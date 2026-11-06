@@ -1,12 +1,14 @@
 /*
- * ecce-launch [on=MACHINE] [profile=NAME] <calculation path or URL>...  (#687)
+ * ecce-launch [on=MACHINE] [profile=NAME] [queue=Q] [wall=TIME] <calculation path or URL>...  (#687)
  *
  * Launches Ready calculations with their stored settings inside the running
  * session: the request goes to the Organizer over the session's broker and
  * the Organizer's Launch Selected does the work, so its tree, the shared ssh
  * connection and the job monitors are the ones the user sees.
  *
- * Prints "name: job id N" or "name: not launched: reason" per calculation.
+ * Prints "name: job id N" or "name: not launched: reason" per calculation,
+ * with "name: note: ..." before it for a setting that was filled in or
+ * dropped (no stored queue, a machine that passes no time limit).
  * Exit 0: all launched; 1: some were not (or no answer); 2: no running
  * ECCE session; 3: the Organizer is busy with a Launch Selected batch;
  * 64: usage.
@@ -117,17 +119,19 @@ int main(int argc, char **argv)
 #endif
   }
 
-  string on, profile;
+  string on, profile, queue, wall;
   vector<string> args;
   for (int i = 1; i < argc; i++) {
     string a = argv[i];
     if (a.compare(0, 3, "on=") == 0) on = a.substr(3);
     else if (a.compare(0, 8, "profile=") == 0) profile = a.substr(8);
+    else if (a.compare(0, 6, "queue=") == 0) queue = a.substr(6);
+    else if (a.compare(0, 5, "wall=") == 0) wall = a.substr(5);
     else args.push_back(a);
   }
   if (args.empty()) {
-    std::cerr << "usage: ecce-launch [on=MACHINE] [profile=NAME] "
-                 "<calculation path or URL>..." << std::endl;
+    std::cerr << "usage: ecce-launch [on=MACHINE] [profile=NAME] [queue=QUEUE] "
+                 "[wall=H:MM] <calculation path or URL>..." << std::endl;
     return 64;
   }
 
@@ -165,6 +169,8 @@ int main(int argc, char **argv)
   msg->addProperty("reply_id", gReplyId);
   msg->addProperty("on", on);
   msg->addProperty("profile", profile);
+  msg->addProperty("queue", queue);
+  msg->addProperty("wall", wall);
   msg->addIntProperty("n", (int)urls.size());
   for (size_t i = 0; i < urls.size(); i++)
     msg->addProperty("url" + std::to_string(i), urls[i]);
@@ -200,7 +206,8 @@ int main(int argc, char **argv)
     if (b == string::npos) { std::cout << gLines[i] << std::endl; allOk = false; continue; }
     string name = gLines[i].substr(0, a), ok = gLines[i].substr(a + 1, b - a - 1),
            text = gLines[i].substr(b + 1);
-    if (ok == "ok") std::cout << name << ": job id " << text << std::endl;
+    if (ok == "warn") std::cout << name << ": note: " << text << std::endl;
+    else if (ok == "ok") std::cout << name << ": job id " << text << std::endl;
     else { std::cout << name << ": not launched: " << text << std::endl; allOk = false; }
   }
   return allOk ? 0 : 1;

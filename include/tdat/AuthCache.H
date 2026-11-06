@@ -71,6 +71,10 @@ class AuthCache
                        const string& realm, string& pass) const;
 
     void pipeOut(const string& pipeName);
+    // pipeOut in two halves: the cache is read on the thread that owns it,
+    // the pipe (which waits for its reader) may be written on another.
+    string pipeData() const;
+    static void pipeOutData(const string& pipeName, const string& data);
     void pipeIn(const string& pipeName);
 #ifndef _WIN32
     // POSIX Gateway launches pass an inherited socketpair endpoint as
@@ -104,6 +108,9 @@ class AuthCache
     static BasicAuth *createBasicAuth(const string& user, const string& password);
 
     virtual int size() const;
+
+    // Login name stored for the data server ref (scheme://host:port/), or "".
+    static string sessionLoginFor(const string& ref);
 
 
   protected:

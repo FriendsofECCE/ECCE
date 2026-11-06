@@ -28,7 +28,8 @@ used the Organizer before.
   `localhost`, and on the **Codes** tab select GROMACS and press **Find**,
   then save (see [Machines](machines.md)). A job fails with "Path for GROMACS
   not found" without it.
-- The protein as a PDB file. 1L2Y can be downloaded from the Protein Data Bank
+- The protein as a PDB file. ECCE bundles 1L2Y in its examples; you can also
+  download it from the Protein Data Bank
   (`https://files.rcsb.org/download/1L2Y.pdb`). The model with the lowest
   number is the one to keep if the file holds several.
 
@@ -87,11 +88,15 @@ makes up for the net charge of the protein, and salt.
    is steepest descent.
 4. Click **Launch...**, then **Launch**.
 
-It completes in a few seconds. Open the task in the Builder (**Tools >
-Builder**) to see the minimised structure, and the energy with the
+It completes in a few seconds. Click **Builder** below its details to see the
+minimised structure, and the energy with the
 **Properties** panel. In the run of this tutorial the potential energy falls
 from about -19 000 to -86 000 kJ/mol in 200 steps, as the water relaxes
 around the protein.
+
+While a GROMACS job is still running, the **Geometry Trace** panel can be
+played over the frames written so far; it is refreshed about every 30
+seconds.
 
 ## 4. Equilibrate
 

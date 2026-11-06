@@ -127,7 +127,7 @@ int main()
   {
     const char* home = getenv("ECCE_HOME");
     std::string path = std::string(home ? home : ".") +
-        "/data/client/StructureLibrary/Ligands/Cyclopentadienyl.mvm";
+        "/data/client/StructureLibrary/Inorganic/Ligands/Cyclopentadienyl.mvm";
     Fragment cp;
     std::ifstream in(path.c_str());
     check(in.good() && cp.restoreMVM(in, 1.0, false), "Cyclopentadienyl.mvm loads");

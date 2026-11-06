@@ -53,6 +53,7 @@
 #include "dsm/MachineConfig.H"
 #include "dsm/NWChemMDModel.H"
 #include "dsm/TaskJob.H"
+#include "dsm/ICalculation.H"
 #include "dsm/Session.H"
 #include "dsm/JCode.H"
 #include "dsm/CodeFactory.H"
@@ -167,6 +168,8 @@ public:
   string mdSystemName;
   string mdCalcName;
   int    mdStoreTrj;
+  bool   mdWriteTraj;
+  bool   mdLeaveTraj;
   bool   mdBatchOutput;
   bool   mdPMFOutput;
   const  RefQueueManager* mgr;
@@ -184,6 +187,33 @@ static string stagedRestartName(const CalcInfo *c)
 static string stagedTopologyName(const CalcInfo *c)
 {
   return c->isGromacs ? string("topol.top") : c->mdSystemName + ".top";
+}
+
+// A GROMACS provider holds up to two files of one type: what the user
+// attached (an input) and what its run ended with (an output named
+// resultName).  The next task starts from the result when there is one;
+// a task's own previous result is never its start.  The trailing-digit
+// pick of getDataFile would choose between them by file name.
+static vector<EcceURL> gromacsStartFile(TaskJob *t, JCode::CodeFileType type,
+                                        bool ownTask, const string& resultName)
+{
+  vector<EcceURL> all = t->getDataFiles(type);
+  vector<EcceURL> inputs, results, named;
+  for (size_t i = 0; i < all.size(); i++) {
+    if (all[i].toString().find("/Outputs/") == string::npos)
+      inputs.push_back(all[i]);
+    else {
+      results.push_back(all[i]);
+      if (!resultName.empty() && all[i].getFilePathTail() == resultName)
+        named.push_back(all[i]);
+    }
+  }
+  vector<EcceURL> pool = ownTask ? inputs
+                       : !named.empty() ? named
+                       : !inputs.empty() ? inputs : results;
+  vector<EcceURL> pick;
+  if (!pool.empty()) pick.push_back(t->getLatestDataFile(pool));
+  return pick;
 }
 
 // Copies a stored file to the run directory.  GROMACS files go across
@@ -219,6 +249,8 @@ static void copyStoredFile(istream *is, ofstream &ofs, bool whole)
 //    during the validation process are ok.
 //
 ///////////////////////////////////////////////////////////////////////////////
+std::function<string()> Launch::authPipeData;
+
 Launch::Launch(TaskJob* task,
                EcceMap& kvargs,
                const bool& fullLaunchFlag,
@@ -251,7 +283,10 @@ Launch::Launch(TaskJob* task,
     // A GROMACS Prepare after other tasks of the study must not get their
     // structure and topology: it pairs them with its own mineral.
     const bool gromacsPrepare = gromacs && !gromacsInputs;
-    if (gromacsInputs && task->getDataFiles(JCode::RESTART_OUTPUT).size() > 0) {
+    p_restartFile.clear();
+    p_topologyFile.clear();
+    if (gromacsInputs &&
+        !gromacsStartFile(task, JCode::RESTART_OUTPUT, true, "").empty()) {
       p_restartProvider = task;
       finishedSearch = true;
     }
@@ -279,7 +314,8 @@ Launch::Launch(TaskJob* task,
     p_topologyProvider = 0;
     searchTask = dynamic_cast<TaskJob*>(EDSIFactory::getResource(task->getURL()));
     finishedSearch = false;
-    if (gromacsInputs && task->getDataFiles(JCode::TOPOLOGY_OUTPUT).size() > 0) {
+    if (gromacsInputs &&
+        !gromacsStartFile(task, JCode::TOPOLOGY_OUTPUT, true, "").empty()) {
       p_topologyProvider = task;
       finishedSearch = true;
     }
@@ -300,6 +336,22 @@ Launch::Launch(TaskJob* task,
           searchTask = p_topologyProvider;
           p_topologyProvider = 0;
         }
+      }
+    }
+
+    if (gromacs) {
+      for (int k = 0; k < 2; k++) {
+        TaskJob *prov = k == 0 ? p_restartProvider : p_topologyProvider;
+        if (prov == 0) continue;
+        const JCode::CodeFileType ft =
+          k == 0 ? JCode::RESTART_OUTPUT : JCode::TOPOLOGY_OUTPUT;
+        MdTask *md = dynamic_cast<MdTask*>(prov);
+        if (md == 0)
+          md = dynamic_cast<MdTask*>(EDSIFactory::getResource(prov->getURL()));
+        string result;
+        if (md != 0) result = k == 0 ? md->getRestartName() : md->getTopologyName();
+        (k == 0 ? p_restartFile : p_topologyFile) =
+          gromacsStartFile(prov, ft, prov == task, result);
       }
     }
 
@@ -334,6 +386,24 @@ Launch::Launch(TaskJob* task,
     // back extra output files in order to allow task chaining
     if (task->getApplicationType() == ResourceDescriptor::AT_METADYNAMICS)
       p_isMetadynamicsTask = true;
+  }
+
+  // Warn, never block: the user may know the provider's files are current.
+  {
+    const string waits = waitsFor(task);
+    if (!waits.empty())
+      p_launchWarning = "The starting structure comes from " + waits +
+        ", which is not complete. This task would start from what that task "
+        "was given, not from its result.";
+  }
+
+  // CREST fails from an unoptimised structure.  A stored structure carries no
+  // mark of where it came from, so only a workflow link from an optimisation
+  // counts as proof.
+  if (!crestFromOptimisation(task)) {
+    const string w = "CREST needs an optimised structure; optimise with xTB "
+      "first (New step > xTB, Geometry) or CREST may fail.";
+    p_launchWarning = p_launchWarning.empty() ? w : p_launchWarning + "\n" + w;
   }
 
   p_valid = true;
@@ -483,6 +553,46 @@ string Launch::message(void) const
 string Launch::info(void) const
 { return p_infoMessage; }
 
+string Launch::waitsFor(TaskJob *task)
+{
+  if (task == 0 || task->getSession() == 0) return "";
+  if (task->getContentType() == ResourceDescriptor::CT_MDPREPARE) return "";
+  if (dynamic_cast<MdTask*>(EDSIFactory::getResource(task->getURL())) == 0)
+    return "";
+  // a structure attached to the task itself does not depend on the provider
+  if (task->getApplicationType() == ResourceDescriptor::AT_GROMACS &&
+      !gromacsStartFile(task, JCode::RESTART_OUTPUT, true, "").empty())
+    return "";
+  TaskJob *prov =
+    dynamic_cast<TaskJob*>(task->getInputProvider(task->getSession()));
+  if (prov == 0 || prov->getState() == ResourceDescriptor::STATE_COMPLETED)
+    return "";
+  return prov->getName();
+}
+
+// True unless task is a CREST calculation with no optimisation feeding it.
+bool Launch::crestFromOptimisation(TaskJob *task)
+{
+  if (task == 0 || task->application() == 0 ||
+      strcasecmp(task->application()->getCodeName().c_str(), "CREST") != 0)
+    return true;
+  Session *wf = task->getSession();
+  // Workflow steps link their structure as "geometry" or "geometry.<point>",
+  // never under the empty name getInputProvider() looks up by default.
+  Resource *prov = 0;
+  if (wf)
+    for (Session::Link *l : wf->getLinks())
+      if (l->target == task && l->linkType == Session::INPUT_PROVIDER &&
+          (l->linkName == "geometry" || l->linkName.rfind("geometry.", 0) == 0)) {
+        prov = l->source;
+        break;
+      }
+  ICalculation *calc = dynamic_cast<ICalculation*>(prov);
+  if (calc == 0) return false;
+  const string rt = calc->runtype().name();
+  return rt == "Geometry" || rt == "GeoVib";
+}
+
 string Launch::launchWarning(void) const
 { return p_launchWarning; }
 
@@ -594,6 +704,8 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName,
   p_cache->mdSystemName = "";
   p_cache->mdCalcName = "";
   p_cache->mdStoreTrj = 0;
+  p_cache->mdWriteTraj = false;
+  p_cache->mdLeaveTraj = false;
   p_cache->mdBatchOutput = false;
   p_cache->mdPMFOutput = false;
 
@@ -614,6 +726,7 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName,
         vector<NWChemMDModel::GUIPanel> panels;
         panels.push_back(NWChemMDModel::FILES);
         panels.push_back(NWChemMDModel::THERMODYNAMICS);
+        panels.push_back(NWChemMDModel::INTERACTION);
         NWChemMDModel taskModel(panels);
         try {
           mdTask->getTaskModel(taskModel);
@@ -621,8 +734,13 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName,
           FilesModel *fmodel = taskModel.getFilesModel();
           if (fmodel) {
             p_cache->mdStoreTrj = fmodel->getTrajectoryStorage();
+            p_cache->mdWriteTraj = fmodel->getWriteTrajectory();
             p_cache->mdBatchOutput = fmodel->getUseBatches() &&
                                      !p_cache->isGromacs;
+          }
+          InteractionModel *imodel = taskModel.getInteractionModel();
+          if (imodel) {
+            p_cache->mdLeaveTraj = imodel->getGromacsRun().leaveTraj;
           }
           ThermodynamicsModel *tmodel = taskModel.getThermodynamicsModel();
           if (tmodel) {
@@ -842,7 +960,9 @@ bool Launch::validateCalculation(void)
             vector<EcceURL> restartFiles = p_restartProvider->getDataFiles(
                                                          JCode::RESTART_OUTPUT);
             if (restartFiles.size() > 0) {
-              is = p_restartProvider->getDataFile(JCode::RESTART_OUTPUT);
+              is = !p_restartFile.empty()
+                ? p_restartProvider->getAnyFile(p_restartFile[0])
+                : p_restartProvider->getDataFile(JCode::RESTART_OUTPUT);
               if (is) {
                 inputFilePath = p_cache->directory + "/" +
                                 stagedRestartName(p_cache);
@@ -869,7 +989,9 @@ bool Launch::validateCalculation(void)
             vector<EcceURL> topologyFiles = p_topologyProvider->getDataFiles(
                                                       JCode::TOPOLOGY_OUTPUT);
             if (topologyFiles.size() > 0) {
-              is = p_topologyProvider->getDataFile(JCode::TOPOLOGY_OUTPUT);
+              is = !p_topologyFile.empty()
+                ? p_topologyProvider->getAnyFile(p_topologyFile[0])
+                : p_topologyProvider->getDataFile(JCode::TOPOLOGY_OUTPUT);
               if (is) {
                 inputFilePath = p_cache->directory + "/" +
                                 stagedTopologyName(p_cache);
@@ -1203,6 +1325,32 @@ bool Launch::checkLocalCmd(const string& command,
   return ret;
 }
 
+// CP2K writes one .pdos per kind and &LDOS list, but only when the deck has
+// a &PDOS section; ask for the wildcard only then, so an ordinary run's
+// copy-back does not fetch (and log) a pattern that can never match.  The
+// section name is case-insensitive and must start a line: a "!" comment or a
+// keyword that merely contains the name does not count (#720).
+string Launch::cp2kCopyBackPatterns(const string& deck)
+{
+  size_t start = 0;
+  while (start < deck.size()) {
+    size_t nl = deck.find('\n', start);
+    string line = deck.substr(start, nl == string::npos ? string::npos
+                                                       : nl - start);
+    string s = STLUtil::trim(line);
+    if (!s.empty() && s[0] != '!') {
+      string first = STLUtil::lower(s);
+      first = first.substr(0, first.find_first_of(" \t"));
+      if (first == "&pdos")
+        return "*.pdos";
+    }
+    if (nl == string::npos)
+      break;
+    start = nl + 1;
+  }
+  return "";
+}
+
 //////////////////////////////////////////////////////////////////////////////
 //  man
 //
@@ -1286,6 +1434,23 @@ bool Launch::generateJobMonitoringFiles(void)
       storeConfigFile << "mdStoreTrj: none" << endl;
     storeConfigFile << "rxnMetadynamicsTask: " <<
                        (p_isMetadynamicsTask? "yes": "no") << endl;
+
+    // The deck's CP2K output sections are known here, where the deck is,
+    // and carried to eccejobstore in the config it reads.  Gate on the code
+    // name, not on deck text: only CP2K has these sections, so another
+    // code's deck that mentions &PDOS keeps an unchanged copy-back (#720).
+    if (strcasecmp(jcode->name().c_str(), "cp2k") == 0) {
+      string input = p_inputFile.empty() ? (*p_options)["##input##"] : p_inputFile;
+      ifstream deckFile((p_cache->directory + "/" + input).c_str());
+      if (deckFile) {
+        string deck, line;
+        while (getline(deckFile, line))
+          deck += line + "\n";
+        string extra = cp2kCopyBackPatterns(deck);
+        if (!extra.empty())
+          storeConfigFile << "cp2kGetPatterns: " << extra << endl;
+      }
+    }
 
     storeConfigFile.close();
   }
@@ -1442,6 +1607,32 @@ bool Launch::generateJobMonitoringFiles(void)
       else if (jc != 0 && !aux.empty() &&
           jc->get_string("RetainAuxiliaryOutput", retain) && retain == "yes")
         monitorConfigFile << "filesToTransfer " << aux << endl;
+    }
+
+    //  GROMACS mdrun leaves its binary results in the run directory; the
+    //  monitor fetches them unless the task asked to leave them there.  The
+    //  trajectory exists only when the task writes one.
+    if (p_cache->isGromacs && !p_isPrepareTask) {
+      string gmx;
+      if (!p_cache->mdLeaveTraj)
+        gmx = p_cache->mdWriteTraj ? "traj.xtc ener.edr topol.tpr"
+                                   : "ener.edr topol.tpr";
+      if (!gmx.empty()) {
+        monitorConfigFile << "filesToTransfer " << gmx << endl;
+
+        //  How large a single fetched file may be before the monitor leaves
+        //  it on the machine (in MB); ECCE_GROMACS_FETCH_LIMIT overrides it.
+        //  Only these GROMACS trajectory files are capped: an orbital guess
+        //  (.chk/.gbw/.movecs) must come back however large it is.
+        long fetchLimit = 500;
+        if ((value = getenv("ECCE_GROMACS_FETCH_LIMIT")) != NULL) {
+          char* end = 0;
+          long parsed = strtol(value, &end, 10);
+          if (parsed > 0 && end != value && *end == '\0')
+            fetchLimit = parsed;
+        }
+        monitorConfigFile << "fileSizeLimit " << fetchLimit << endl;
+      }
     }
 
     monitorConfigFile << "parseTypes ALL" << endl;
@@ -2052,12 +2243,6 @@ bool Launch::doLaunch(void)
       // any command that is executed to invoke the job submission does
       // set the $status variable appropriately.
 
-      //  The allocation left (#613) is read while the job is submitted and
-      //  never waited for; a snapshot from an earlier submission is dropped.
-      const Launchdata snapLaunch = p_taskjob->launchdata();
-      p_taskjob->allocationSnapshot("");
-      AllocationQuery::snapshotBegin(snapLaunch);
-
       // Check if this machine requires users to submit the job
       RefMachine* refMachine = RefMachine::refLookup(p_cache->machineName);
       if (refMachine != (RefMachine*)0 && refMachine->userSubmit()) {
@@ -2107,11 +2292,6 @@ bool Launch::doLaunch(void)
 
       if (ret)
         ret = startJobStore("");
-      if (ret) {
-        const string left = AllocationQuery::snapshot(snapLaunch);
-        if (!left.empty())
-          p_taskjob->allocationSnapshot(left);
-      }
     }
   }
 
@@ -2418,7 +2598,8 @@ bool Launch::startJobStore(const string& importDir)
       updateState();
 
     // Write the current authentication cache to a pipe for eccejobmaster
-    AuthCache::getCache().pipeOut(pipeName);
+    AuthCache::pipeOutData(pipeName, authPipeData ? authPipeData()
+                                     : AuthCache::getCache().pipeData());
   }
 
   return ret;
@@ -2439,6 +2620,7 @@ void Launch::updateState(void)
   // cause problem or not.
   if (currentState <= ResourceDescriptor::STATE_READY) {
     p_taskjob->killRequested(false);
+    p_taskjob->killReason("");
     // The Progress box of a queued job says since when (#606).
     p_taskjob->addProp(VDoc::getEcceNamespace() + ":submitdate",
                        std::to_string((long long)time(0)));
@@ -2525,7 +2707,8 @@ bool Launch::postProcessInput(void)
        // (RCommand returns every newline as CR LF.)
        size_t mark = output.find("ECCE-LAUNCH-WARNING");
        if (mark != string::npos) {
-         p_launchWarning = output.substr(mark + 19);
+         p_launchWarning = (p_launchWarning.empty() ? "" : p_launchWarning + "\n") +
+                           output.substr(mark + 19);
          size_t cr;
          while ((cr = p_launchWarning.find('\r')) != string::npos)
            p_launchWarning.erase(cr, 1);
@@ -2590,6 +2773,9 @@ bool Launch::instanceScript(EcceMap& kv)
     }
     if (kv.count("##numNodes##") == 1) {
       os << " -N " + kv["##numNodes##"] << "\n";
+    }
+    if (kv.count("##threads##") == 1 && kv["##threads##"] != "1") {
+      os << " -K " + kv["##threads##"] << "\n";
     }
     if (kv.count("##runDir##") == 1) {
       os << " -r " + kv["##runDir##"] << "\n";

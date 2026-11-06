@@ -68,6 +68,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(
     os.path.dirname(os.path.abspath(__file__)))), "tools", "basissets"))
 import merge_aggregates  # noqa: E402
 
+# eccercmd holds the libssh transport when the build found libssh
+_SSH = (["-lssh"] if __import__("subprocess").run(
+    ["pkg-config", "--exists", "libssh"], capture_output=True).returncode == 0 else [])
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 BUILD = os.environ.get("ECCE_TEST_BUILD", os.path.join(REPO, "build-cmake"))
@@ -205,7 +209,7 @@ def buildDriver(out):
                    % BUILD)
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"),
             "-o", out, os.path.join(HERE, "loadBasis.C"), "-L" + BUILD]
-           + ["-l" + l for l in LIBS] * 3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
+           + ["-l" + l for l in LIBS] * 3 + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         sys.exit("could not build loadBasis:\n" + proc.stderr[-3000:])

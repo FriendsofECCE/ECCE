@@ -35,6 +35,28 @@ def route(work, extra, func="B3LYP", cat="DFT", theory="RDFT"):
 
 def main():
     with tempfile.TemporaryDirectory() as work:
+        # RI mode and the old checkbox must survive both direct generation
+        # and migration to an explicit None choice.
+        modekey = "ES.Theory.SCF.RIMode: %s\n"
+        oldkey = "ES.Theory.SCF.UseRIJCOSX: %s\n"
+        for cat, theory in (("DFT", "RDFT"), ("SCF", "RHF")):
+            cases = [("", "None"), (oldkey % "0", "None"),
+                     (oldkey % "1", "RIJCOSX")]
+            for mode in ("None", "RIJCOSX", "RIJONX"):
+                cases.extend([(modekey % mode, mode),
+                              ((oldkey % "1") + (modekey % mode), mode)])
+            for extra, expected in cases:
+                r = route(work, extra, cat=cat, theory=theory)
+                ri = [x for x in r if x in ("RIJCOSX", "RIJONX")]
+                check(ri == ([] if expected == "None" else [expected]) and
+                      r.count("def2/J") == (expected != "None"),
+                      "%s RI %r -> %s" % (cat, extra.strip(), " ".join(r)))
+            for mode in ("RIJCOSX", "RIJONX"):
+                r = route(work, (modekey % mode) +
+                          "ES.Theory.SCF.RIJCOSXAuxBasis: def2/JK\n",
+                          cat=cat, theory=theory)
+                check(mode in r and "def2/JK" in r and "def2/J" not in r,
+                      "%s %s uses the selected auxiliary basis" % (cat, mode))
         d = lambda v: "ES.Theory.SCF.Dispersion: %s\n" % v
         r = route(work, d("None"))
         check("D3BJ" not in r and "D4" not in r and "D3ZERO" not in r, "None writes no keyword")
@@ -56,8 +78,16 @@ def main():
         check("wB97X-D3" in r and "D3ZERO" not in r, "wB97X-D3 is a functional, not split")
         r = route(work, "", func="B97-D3")
         check("B97-D3" in r and "D3ZERO" not in r, "B97-D3 is a functional, not split")
+        # -3c composites (#772): the keyword alone, no basis, no D3/D4.
+        for comp in ("r2SCAN-3c", "B97-3c", "PBEh-3c", "wB97X-3c"):
+            r = route(work, d("D4"), func=comp)
+            check(comp in r and "def2-SVP" not in r and "D4" not in r and "D3BJ" not in r
+                  and "D3ZERO" not in r, "%s alone: %s" % (comp, " ".join(r)))
+        r = route(work, "", func="HF-3c")
+        check("HF-3c" in r and "RKS" not in r and "def2-SVP" not in r, "HF-3c alone: " + " ".join(r))
     print("FAILED: %d" % fails if fails else "all passed")
     return 1 if fails else 0
 
 
-sys.exit(main())
+if __name__ == "__main__":
+    sys.exit(main())

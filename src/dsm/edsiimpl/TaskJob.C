@@ -101,10 +101,10 @@ void TaskJob::updateProps()
   if (getEDSI()->getMetaData(vmdr,result, true)) {
     clearProps();
     cacheProps(result.metaData);
-    p_access = SUCCEEDED;
+    noteAccess(true);
   }
   else
-    p_access = FAILED;
+    noteAccess(false);
 
   getEDSI()->setURL(originalUrl);
 }
@@ -371,6 +371,22 @@ bool TaskJob::killRequested(bool requested)
 }
 
 
+bool TaskJob::killReason(const string& reason)
+{
+  vector<MetaDataResult> results(1);
+  results[0].name = VDoc::getEcceNamespace() + ":killreason";
+  results[0].value = reason;
+  return addProps(results);
+}
+
+
+string TaskJob::killReason() const
+{
+  const_cast<TaskJob*>(this)->updateProps();
+  return getProp(VDoc::getEcceNamespace() + ":killreason");
+}
+
+
 /** Reads from the server, not the property cache: the request is made by
     another process. */
 bool TaskJob::killRequested() const
@@ -390,7 +406,7 @@ bool TaskJob::killRequested() const
 bool TaskJob::launchdata(const Launchdata& launchinfo)
 {
   char buf[80];
-  vector<MetaDataResult> results(14);
+  vector<MetaDataResult> results(15);
   results[0].name = VDoc::getEcceNamespace() + ":launch_machine";
   results[1].name = VDoc::getEcceNamespace() + ":launch_nodes";
   results[2].name = VDoc::getEcceNamespace() + ":launch_rundir";
@@ -405,6 +421,7 @@ bool TaskJob::launchdata(const Launchdata& launchinfo)
   results[11].name = VDoc::getEcceNamespace() + ":launch_remoteShell";
   results[12].name = VDoc::getEcceNamespace() + ":launch_account";
   results[13].name = VDoc::getEcceNamespace() + ":launch_profile";
+  results[14].name = VDoc::getEcceNamespace() + ":launch_threads";
 
   results[0].value = launchinfo.machine;
   sprintf(buf, "%lu", launchinfo.nodes);
@@ -424,21 +441,9 @@ bool TaskJob::launchdata(const Launchdata& launchinfo)
   results[11].value = launchinfo.remoteShell;
   results[12].value = launchinfo.account;
   results[13].value = launchinfo.profile;
+  sprintf(buf, "%lu", launchinfo.threads);
+  results[14].value = buf;
 
-  return addProps(results);
-}
-
-
-/**
- * Stores what was left of the allocation when the job was submitted (#613),
- * "" to clear it. Not part of launchdata(): a retarget rewrites that, and the
- * snapshot belongs to one submission.
- */
-bool TaskJob::allocationSnapshot(const string& text)
-{
-  vector<MetaDataResult> results(1);
-  results[0].name = VDoc::getEcceNamespace() + ":launch_allocleft";
-  results[0].value = text;
   return addProps(results);
 }
 
@@ -474,7 +479,6 @@ Launchdata TaskJob::launchdata(const bool &useInputProvider) const
   props->findValue(VDoc::getEcceNamespace() + ":launch_account", ret.account);
   props->findValue(VDoc::getEcceNamespace() + ":launch_profile", ret.profile);
   props->findValue(VDoc::getEcceNamespace() + ":launch_forceCsh", ret.forceCsh);
-  props->findValue(VDoc::getEcceNamespace() + ":launch_allocleft", ret.allocationLeft);
 
   tmp = "";
   props->findValue(VDoc::getEcceNamespace() + ":launch_nodes", tmp);
@@ -482,6 +486,9 @@ Launchdata TaskJob::launchdata(const bool &useInputProvider) const
   tmp = "";
   props->findValue(VDoc::getEcceNamespace() + ":launch_totalprocs", tmp);
   if (!tmp.empty()) ret.totalprocs = atoi(tmp.c_str());
+  tmp = "";
+  props->findValue(VDoc::getEcceNamespace() + ":launch_threads", tmp);
+  if (!tmp.empty()) ret.threads = atoi(tmp.c_str());
   tmp = "";
   props->findValue(VDoc::getEcceNamespace() + ":launch_maxmemory", tmp);
   if (!tmp.empty()) ret.maxmemory = atoi(tmp.c_str());

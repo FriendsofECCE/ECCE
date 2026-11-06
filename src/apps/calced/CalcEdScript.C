@@ -20,6 +20,7 @@
 //    ts-source other          click the TS Search button (FAIL if hidden or off)
 //    ts-pick reactant|product|guess NAME / ts-state   pick a calculation; print what is shown
 //    enabled                  which main controls are enabled, and the state
+//    code-state               selected code, stored application and descriptor
 //    info                     the current choices, GUI values and the
 //                             Verify lamp ("verify="), on stderr
 //    shot NAME                writes NAME.ready next to the script and waits
@@ -43,6 +44,8 @@
 #include "tdat/GUIValues.H"
 #include "util/ResourceUtils.H"
 #include "dsm/ICalculation.H"
+#include "dsm/JCode.H"
+#include "dsm/ResourceType.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxThemeColours.H"
@@ -359,6 +362,13 @@ void CalcEd::runCalcEdScript(const string& file)
         wxSize c = GetClientSize();
         SetClientSize(c.x, c.y + atoi(w[1].c_str()));
         Layout();
+      } else if (w[0] == "code-state") {
+        const ResourceType *descriptor = p_iCalc->getDescriptor();
+        const JCode *storedCode = p_iCalc->application();
+        fprintf(stderr, "CALCED: code=%s application=%s resource=%s builder=%d\n",
+                p_codeName.c_str(), storedCode ? storedCode->name().c_str() : "<none>",
+                descriptor ? descriptor->getName().c_str() : "<none>",
+                p_builderTool->GetId());
       } else if (w[0] == "info") {
         wxWindow *launch = FindWindow(ID_BUTTON_CALCED_LAUNCH);
         fprintf(stderr, "CALCED: theory=%s runtype=%s launch=%s\n",

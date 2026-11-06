@@ -1,3 +1,5 @@
+#include "wx/wrapsizer.h"
+#include <algorithm>
 #include <fstream>
 using std::ifstream;
 using std::ofstream;
@@ -17,6 +19,7 @@ using std::ends;
 using std::vector;
   
 #include <math.h>
+#include <cmath>
 #include <unistd.h>
 
 // Remove some of these three once the calls are in SoWx::init
@@ -72,6 +75,7 @@ using std::vector;
 #include "dsm/EDSIFactory.H"
 #include "dsm/IPropCalculation.H"
 #include "dsm/PropertyTask.H"
+#include "tdat/PropTSVecTable.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceTool.H"
 #include "dsm/Session.H"
@@ -137,6 +141,16 @@ using std::vector;
 #include "viz/AtomLabelsCmd.H"
 #include "viz/BondEditCmd.H"
 #include "viz/CenterCmd.H"
+#include "viz/DistortBondsCmd.H"
+#include "DistortBondsDialog.H"
+#include "viz/SelectWithinCmd.H"
+#include "wxgui/ewxDialog.H"
+#include <wx/checkbox.h>
+#include "TakeCoordsDialog.H"
+#include "viz/TakeCoordsCmd.H"
+#include "dsm/EDSIFactory.H"
+#include "dsm/Resource.H"
+#include "dsm/PropertyTask.H"
 #include "viz/ClearResidueInfoCmd.H"
 #include "viz/CSLoadColorsCmd.H"
 #include "viz/CSRadiiCmd.H"
@@ -223,6 +237,9 @@ using std::vector;
 #include <wx/accel.h>
 #include "Builder.H"
 
+static const char *PERSP_SVG = "svg/view-persp.svg";
+static const char *ORTHO_SVG = "svg/view-ortho.svg";
+
 static wxBitmapBundle shapeIcon(ShapeData::Shape shape);
 
 
@@ -284,6 +301,8 @@ BEGIN_EVENT_TABLE( Builder, BuilderGUI )
     EVT_SPINCTRL(ID_ROT_Y, Builder::OnRotY)
     EVT_SPINCTRL(ID_ROT_Z, Builder::OnRotZ)
     EVT_BUTTON(ID_CHOICE_VIEWER, Builder::OnViewerChoice)
+    EVT_MENU_RANGE(ID_SURFACE_MENU_BASE, ID_SURFACE_MENU_BASE+99,
+                   Builder::OnPropertyMenuClick )
     EVT_MENU_RANGE(ID_PROPERTY_MENU_BASE, ID_PROPERTY_MENU_BASE+99,
                    Builder::OnPropertyMenuClick )
 END_EVENT_TABLE()
@@ -441,10 +460,10 @@ Builder::Builder()
     p_commandManager(NULL),
     p_dirty(),
     p_import(),
-    p_lockBitmap("center_view_lock16.png", wxBITMAP_TYPE_PNG),
-    p_unlockBitmap("center_view_unlock16.png", wxBITMAP_TYPE_PNG),
-    p_orthoBitmap("orthographic16.png", wxBITMAP_TYPE_PNG),
-    p_perspBitmap("perspective16.png", wxBITMAP_TYPE_PNG),
+    p_lockBitmap("svg/center-view-lock.svg"),
+    p_unlockBitmap("svg/center-view-unlock.svg"),
+    p_orthoBitmap("svg/view-ortho.svg"),
+    p_perspBitmap("svg/view-persp.svg"),
     p_centerLockButton(NULL),
     p_cameraButton(NULL),
     p_propertyPanelInfo(),
@@ -519,10 +538,10 @@ Builder::Builder( wxWindow* parent, bool standalone, wxWindowID id,
     p_commandManager(NULL),
     p_dirty(),
     p_import(),
-    p_lockBitmap("center_view_lock16.png", wxBITMAP_TYPE_PNG),
-    p_unlockBitmap("center_view_unlock16.png", wxBITMAP_TYPE_PNG),
-    p_orthoBitmap("orthographic16.png", wxBITMAP_TYPE_PNG),
-    p_perspBitmap("perspective16.png", wxBITMAP_TYPE_PNG),
+    p_lockBitmap("svg/center-view-lock.svg"),
+    p_unlockBitmap("svg/center-view-unlock.svg"),
+    p_orthoBitmap("svg/view-ortho.svg"),
+    p_perspBitmap("svg/view-persp.svg"),
     p_centerLockButton(NULL),
     p_cameraButton(NULL),
     p_propertyPanelInfo(),
@@ -563,6 +582,11 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   p_mgr.Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
   Bind(wxEVT_AUI_PANE_BUTTON, &Builder::OnPaneButton, this);
   guardSashDrag();
+  Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& event) {
+    SGContainer *sg = p_sgMgr ? getSG() : NULL;
+    SGFragment *frag = sg ? sg->getFragment() : NULL;
+    event.Enable(frag && !frag->m_atomHighLight.empty());
+  }, ID_SELECT_WITHIN);
 
   p_viewerEvtHandler = new ViewerEvtHandler(this);
   p_viewerEvtHandler->connectToolKitFW(this);
@@ -718,7 +742,7 @@ void Builder::createToolbar()
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_fileToolbar->SetToolSeparation(0);
     p_fileToolbar->SetToolPacking(0);
-    p_fileToolbar->SetToolBitmapSize(wxSize(22, 22));
+    ewxBitmap::toolBitmapSize(p_fileToolbar, wxSize(22, 22));
     p_fileToolbar->AddTool(wxID_NEW, _T(""), ewxBitmap::colorIcon("svg/candidates/e/new.svg", wxSize(22, 22)), _("New"));
     p_fileToolbar->AddTool(wxID_OPEN, _T(""), ewxBitmap::colorIcon("svg/candidates/e/open.svg", wxSize(22, 22)), _("Open"));
     p_fileToolbar->AddTool(wxID_SAVE, _T(""), ewxBitmap::colorIcon("svg/candidates/e/save.svg", wxSize(22, 22)), _("Save"));
@@ -730,7 +754,7 @@ void Builder::createToolbar()
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_modeToolbar->SetToolSeparation(0);
     p_modeToolbar->SetToolPacking(0);
-    p_modeToolbar->SetToolBitmapSize(wxSize(22, 22));
+    ewxBitmap::toolBitmapSize(p_modeToolbar, wxSize(22, 22));
     wxBitmapBundle selBitmap = ewxBitmap::colorIcon("svg/candidates/e/select.svg", wxSize(22, 22));
     p_modeToolbar->AddTool(ID_MODE_SELECT, _T(""), selBitmap,
                            _("Select"), wxITEM_CHECK);
@@ -766,7 +790,7 @@ void Builder::createToolbar()
             wxDefaultSize, wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_viewToolbar->SetToolSeparation(0);
     p_viewToolbar->SetToolPacking(0);
-    p_viewToolbar->SetToolBitmapSize(wxSize(22, 22));
+    ewxBitmap::toolBitmapSize(p_viewToolbar, wxSize(22, 22));
     p_viewToolbar->AddTool(ViewerEvtHandler::ID_DEPTH_CUEING, _T(""),
             ewxBitmap::colorIcon("svg/candidates/e/depthcue.svg", wxSize(22, 22)),
             _("Enable/disable depth cueing"), wxITEM_CHECK);
@@ -795,7 +819,7 @@ void Builder::createToolbar()
             wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_manipulatorToolbar->SetToolSeparation(0);
     p_manipulatorToolbar->SetToolPacking(0);
-    p_manipulatorToolbar->SetToolBitmapSize(wxSize(22, 22));
+    ewxBitmap::toolBitmapSize(p_manipulatorToolbar, wxSize(22, 22));
     p_manipulatorToolbar->AddTool(ViewerEvtHandler::ID_MANIPULATOR_SPHERE,
             _T(""), ewxBitmap::colorIcon("svg/candidates/e/manip_sphere.svg", wxSize(22, 22)),
             _("Create Sphere Manipulator"), wxITEM_NORMAL);
@@ -814,7 +838,7 @@ void Builder::createToolbar()
             wxTB_FLAT|wxTB_HORIZONTAL|wxNO_BORDER);
     p_measureToolbar->SetToolSeparation(0);
     p_measureToolbar->SetToolPacking(0);
-    p_measureToolbar->SetToolBitmapSize(wxSize(22, 22));
+    ewxBitmap::toolBitmapSize(p_measureToolbar, wxSize(22, 22));
     p_measureToolbar->AddTool(ViewerEvtHandler::ID_MEASURE_DIST, _T(""),
             ewxBitmap::colorIcon("svg/candidates/e/measure_length.svg", wxSize(22, 22)),
             _("Measure Distance"), wxITEM_NORMAL);
@@ -970,24 +994,29 @@ void Builder::createMainPanel()
 
 void Builder::createRotators(wxWindow *parent)
 {
-  p_rotSizer = new wxBoxSizer(wxHORIZONTAL);
+  //  Where the scaled controls no longer fit the pane's width the row wraps
+  //  instead of drawing the corner buttons over each other.
+  if (ewxBitmap::dpiScale() > 1)
+    p_rotSizer = new wxWrapSizer(wxHORIZONTAL);
+  else
+    p_rotSizer = new wxBoxSizer(wxHORIZONTAL);
   p_mainSizer->Add(p_rotSizer, 0, wxEXPAND|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Rotation: X"), 0,
                   wxALIGN_CENTER|wxLEFT, 5);
   p_xrot = new wxSpinCtrl(parent, ID_ROT_X, "0", wxDefaultPosition,
-                           wxSize(50, -1), wxSP_WRAP|wxSP_ARROW_KEYS,
+                           wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
   p_rotSizer->Add(p_xrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Y"), 0,
                   wxALIGN_CENTER|wxLEFT, 5);
   p_yrot = new wxSpinCtrl(parent, ID_ROT_Y, "0", wxDefaultPosition,
-                           wxSize(50, -1), wxSP_WRAP|wxSP_ARROW_KEYS,
+                           wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
   p_rotSizer->Add(p_yrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Z"), 0,
                    wxALIGN_CENTER|wxLEFT, 5);
   p_zrot = new wxSpinCtrl(parent, ID_ROT_Z, "0", wxDefaultPosition,
-                           wxSize(50, -1), wxSP_WRAP|wxSP_ARROW_KEYS,
+                           wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
   p_rotz = 0;
   p_rotSizer->Add(p_zrot, 0, wxALIGN_CENTER|wxALL, 0);
@@ -996,10 +1025,11 @@ void Builder::createRotators(wxWindow *parent)
   //p_viewerButton = new ewxButton(parent, ID_CHOICE_VIEWER, "VCB");
   //p_rotSizer->Add(p_viewerButton);
 
-  ewxBitmap centerBitmap("center_view16.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap centerBitmap("svg/center-view.svg");
   ewxBitmapButton * zoomFit = new ewxBitmapButton(parent, wxID_ZOOM_FIT,
           centerBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
+  zoomFit->setSvg("svg/center-view.svg");
   zoomFit->SetToolTip(_T("Center system"));
   p_rotSizer->Add(zoomFit, 0, wxALIGN_CENTER|wxALL, 0);
 
@@ -1008,21 +1038,24 @@ void Builder::createRotators(wxWindow *parent)
                                            p_unlockBitmap,
                                            wxDefaultPosition, wxDefaultSize,
                                            wxBU_AUTODRAW|wxNO_BORDER);
+  p_centerLockButton->setSvg("svg/center-view-unlock.svg");
   p_centerLockButton->SetToolTip(_T("Auto center after each operation"));
   p_rotSizer->Add(p_centerLockButton, 0, wxALIGN_CENTER|wxALL, 0);
 
-  ewxBitmap homeBitmap("home_view16.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap homeBitmap("svg/home-view.svg");
   ewxBitmapButton * homeView = new ewxBitmapButton(parent, ID_TOOL_GOHOME,
           homeBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
   p_rotSizer->Add(homeView, 0, wxALIGN_CENTER|wxALL, 0);
+  homeView->setSvg("svg/home-view.svg");
   homeView->SetToolTip(_T("Go to home view"));
 
-  ewxBitmap setHomeBitmap("set_home_view16.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap setHomeBitmap("svg/set-home-view.svg");
   ewxBitmapButton * setHomeView = new ewxBitmapButton(parent, ID_TOOL_SETHOME,
           setHomeBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
   p_rotSizer->Add(setHomeView, 0, wxALIGN_CENTER|wxALL, 0);
+  setHomeView->setSvg("svg/set-home-view.svg");
   setHomeView->SetToolTip(_T("Set the home view"));
 
   p_cameraButton = new ewxBitmapButton(parent,
@@ -1031,26 +1064,30 @@ void Builder::createRotators(wxWindow *parent)
                                        wxDefaultPosition, wxDefaultSize,
                                        wxBU_AUTODRAW|wxNO_BORDER);
   p_rotSizer->Add(p_cameraButton, 0, wxALIGN_CENTER|wxALL, 0);
+  p_cameraButton->setSvg(PERSP_SVG);
   p_cameraButton->SetToolTip(_T("Toggle between perpective and orthographic cameras "));
 
-  ewxBitmap zoomToBitmap("viewmagfit.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap zoomToBitmap("svg/zoom-fit.svg");
   ewxBitmapButton * zoomTo = new ewxBitmapButton(parent, 
           ViewerEvtHandler::ID_ZOOM_TO, zoomToBitmap, wxDefaultPosition,
           wxDefaultSize, wxBU_AUTODRAW|wxNO_BORDER);
+  zoomTo->setSvg("svg/zoom-fit.svg");
   zoomTo->SetToolTip(_T("Zoom to fit"));
   p_rotSizer->Add(zoomTo, 0, wxALIGN_CENTER|wxALL, 0);
 
-  ewxBitmap zoomInBitmap("viewmag+.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap zoomInBitmap("svg/zoom-in.svg");
   ewxBitmapButton * zoomIn = new ewxBitmapButton(parent, wxID_ZOOM_IN,
           zoomInBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
+  zoomIn->setSvg("svg/zoom-in.svg");
   zoomIn->SetToolTip(_T("Zoom in"));
   p_rotSizer->Add(zoomIn, 0, wxALIGN_CENTER|wxALL, 0);
 
-  ewxBitmap zoomOutBitmap("viewmag-.png", wxBITMAP_TYPE_PNG);
+  ewxBitmap zoomOutBitmap("svg/zoom-out.svg");
   ewxBitmapButton * zoomOut = new ewxBitmapButton(parent, wxID_ZOOM_OUT,
           zoomOutBitmap, wxDefaultPosition, wxDefaultSize,
           wxBU_AUTODRAW|wxNO_BORDER);
+  zoomOut->setSvg("svg/zoom-out.svg");
   zoomOut->SetToolTip(_T("Zoom out"));
   p_rotSizer->Add(zoomOut, 0, wxALIGN_CENTER|wxALL, 0);
 }
@@ -1141,7 +1178,32 @@ void Builder::createToolPanels()
     tabRow->Add(p_tabButtons[t], 1, wxEXPAND | wxALL, 2);
   }
   p_tabsPanel->SetSizer(tabRow);
-  p_tabsPanel->SetMinSize(wxSize(200, 34));
+  //  Windows reports a best height that clips the text once the display is
+  //  scaled, so the height comes from the extent of the font actually used
+  //  plus padding in DIPs.  Unchanged (34 px) at 100 %.
+  int tabH = 34;
+  if (ewxBitmap::dpiScale() > 1 || GetContentScaleFactor() > 1.05) {
+    //  Padding around the text: 8 DIP above and below, 12 left and right.
+    const int textH = p_tabButtons[0]->GetTextExtent("Wg").y;
+    const int btnH = std::max(p_tabButtons[0]->GetBestSize().y,
+                              textH + 2 * FromDIP(8));
+    for (int t = 0; t < 2; ++t) {
+      const int btnW = std::max(p_tabButtons[t]->GetBestSize().x,
+          p_tabButtons[t]->GetTextExtent(tabNames[t]).x + 2 * FromDIP(12));
+      p_tabButtons[t]->SetMinSize(wxSize(btnW, btnH));
+    }
+    tabH = std::max(ewxBitmap::scaled(34), btnH + 4 + 2 * FromDIP(4));
+  }
+  p_tabsPanel->SetMinSize(wxSize(ewxBitmap::scaled(200), tabH));
+  //  AUI's caption bar keeps its 17 px at any text size.
+  if (ewxBitmap::dpiScale() > 1) {
+    wxAuiDockArt *art = p_mgr.GetArtProvider();
+    wxClientDC dc(this);
+    dc.SetFont(art->GetFont(wxAUI_DOCKART_CAPTION_FONT));
+    const int need = dc.GetTextExtent("Wg").y + ewxBitmap::scaled(6);
+    if (need > art->GetMetric(wxAUI_DOCKART_CAPTION_SIZE))
+      art->SetMetric(wxAUI_DOCKART_CAPTION_SIZE, need);
+  }
   wxAuiPaneInfo tabInfo;
   tabInfo.Name(NAME_COLUMN_TABS).CaptionVisible(false).Right().Layer(1)
          .Position(0).Fixed().Floatable(false).Movable(false)
@@ -1158,8 +1220,8 @@ void Builder::createToolPanels()
   wxAuiPaneInfo indexInfo;
   indexInfo.Name(NAME_PROPERTY_INDEX).Caption("Properties").CaptionVisible(true)
            .Right().Layer(1).Position(1).Resizable(true).CloseButton(false)
-           .Floatable(false).MinSize(wxSize(200, 150))
-           .BestSize(wxSize(400, 230)).Show(false);
+           .Floatable(false).MinSize(ewxBitmap::scaled(wxSize(200, 150)))
+           .BestSize(ewxBitmap::scaled(wxSize(400, 230))).Show(false);
   indexInfo.dock_proportion = 1;   // sized to its rows: sizeIndexPane
   p_mgr.AddPane(p_index, indexInfo);
 
@@ -1308,6 +1370,10 @@ Command *Builder::createCommand(const string& input)
         cmd = new CenterViewCmd(cmdname, p_viewer);
      } else if (cmdname == "center") {
         cmd = new CenterCmd(cmdname, getSG());
+     } else if (cmdname == "distort") {
+        cmd = new DistortBondsCmd(cmdname, getSG());
+     } else if (cmdname == "takecoords") {
+        cmd = new TakeCoordsCmd(cmdname, getSG());
      } else if (cmdname == "addh") {
         cmd = new HydrogensCmd(cmdname, getSG());
      } else if (cmdname == "removeh") {
@@ -1629,8 +1695,18 @@ void Builder::setContext(const string& url, const bool& force)
     // A structure that carries a cell shows it, without the Periodic
     // Builder open (the Viewer of a Prepare has no use for the panel).
     PBC *pbcPanel = dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
-    if (pbcPanel && getSG()->getFragment()->getLattice())
+    // A crystal without bonds starts with its box at the origin, so the
+    // atoms on the cell boundary land on it (#859); molecules in a box
+    // keep the box centred on them.
+    {
+      SGFragment *lf = getSG()->getFragment();
+      if (lf->getLattice() && lf->numAtoms() > 0 && lf->numBonds() == 0)
+        lf->getLattice()->setCentering(false);
+    }
+    if (pbcPanel && getSG()->getFragment()->getLattice()) {
       pbcPanel->showLattice(true);
+      pbcPanel->indicateCentering();
+    }
 
     // The constraints follow the atoms of this fragment from here on.
     const string ctxUrl = p_calculation->getURL().toString();
@@ -1750,6 +1826,9 @@ bool Builder::mouseEvent(wxMouseEvent *event)
         if (!constraintsReadOnly())
           menu.Append(ID_GEOM_CONSTRAINTS, _("Constrain Selected Atoms..."));
         menu.Append(ID_ADD_DUMMY, _("Add Dummy Atom..."));
+        SGFragment *sf = getSG()->getFragment();
+        if (sf && sf->m_atomHighLight.size() == 1)
+          menu.Append(ID_DISTORT_BONDS, _("Distort Bonds..."));
         PopupMenu(&menu);
       });
    }
@@ -2758,6 +2837,9 @@ bool Builder::execute(Command *cmd, bool batch)
    //   Event event("SelectionChanged");
    //   EventDispatcher::getDispatcher().publish(event);
 
+   // Any edit may move the atoms, and the cell is drawn around them.
+   if (didit && getSG()) getSG()->touchLattice();
+
    if (!batch) {
       SGFragment *frag = NULL;
       if (getSG() && (frag = getSG()->getFragment()))
@@ -3360,9 +3442,53 @@ void Builder::OnSelectallClick( wxCommandEvent& event )
    execute(cmd);
 }
 
-/**
- * Select molecule if one atom already selected.
- */
+bool Builder::selectWithin(double radius, bool molecules, bool keep)
+{
+  Command *cmd = new SelectWithinCmd("Select Within Distance", getSG());
+  cmd->getParameter("radius")->setDouble(radius);
+  cmd->getParameter("molecules")->setBoolean(molecules);
+  cmd->getParameter("keep")->setBoolean(keep);
+  return execute(cmd);
+}
+
+void Builder::OnSelectWithinClick(wxCommandEvent&)
+{
+  SGFragment *frag = getSG()->getFragment();
+  if (!frag || frag->m_atomHighLight.empty()) return;
+  ewxConfig *config = ewxConfig::getConfig("wxbuilder.ini");
+  double radius = 3.5;
+  config->Read("SelectWithin/Distance", &radius, 3.5);
+  radius = std::isfinite(radius) ? std::max(0.1, std::min(50.0, radius)) : 3.5;
+  ewxDialog dlg(this, wxID_ANY, _("Select Within Distance"));
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+  row->Add(new wxStaticText(&dlg, wxID_ANY, _("Distance:")), 0,
+           wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  wxSpinCtrlDouble *distance = new wxSpinCtrlDouble(&dlg, wxID_ANY, "",
+      wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0.1, 50.0, radius, 0.1);
+  distance->SetDigits(2);
+  row->Add(distance, 0, wxRIGHT, 6);
+  row->Add(new wxStaticText(&dlg, wxID_ANY, wxString::FromUTF8("\xC3\x85")),
+           0, wxALIGN_CENTER_VERTICAL);
+  top->Add(row, 0, wxALL, 8);
+  wxRadioButton *atoms = new wxRadioButton(&dlg, wxID_ANY, _("Atoms"),
+      wxDefaultPosition, wxDefaultSize, wxRB_GROUP);
+  wxRadioButton *molecules = new wxRadioButton(&dlg, wxID_ANY, _("Whole molecules"));
+  atoms->SetValue(true);
+  top->Add(atoms, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+  top->Add(molecules, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+  wxCheckBox *keep = new wxCheckBox(&dlg, wxID_ANY, _("Keep the original selection"));
+  keep->SetValue(true);
+  top->Add(keep, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+  top->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 8);
+  dlg.SetSizerAndFit(top);
+  dlg.CentreOnParent();
+  if (dlg.ShowModal() != wxID_OK) return;
+  config->Write("SelectWithin/Distance", distance->GetValue());
+  config->Flush();
+  selectWithin(distance->GetValue(), molecules->GetValue(), keep->GetValue());
+}
+
 void Builder::OnSelectMoleculeClick( wxCommandEvent& event )
 {
    Command *cmd = new SelectCmd("Select Molecule", getSG());
@@ -3379,6 +3505,149 @@ void Builder::OnSelectSolventClick( wxCommandEvent& event )
    Command *cmd = new SelectCmd("Select Solvent", getSG());
    cmd->getParameter("solvent")->setBoolean(true);
    execute(cmd);
+}
+
+
+/**
+ * Edit > Distort Bonds...: the selected atom is the centre (#619).
+ */
+void Builder::OnDistortBondsClick( wxCommandEvent& event )
+{
+   SGFragment *frag = getSG()->getFragment();
+   if (!frag || frag->m_atomHighLight.size() != 1) {
+      reportError("Select one atom, the centre of the bonds to distort.");
+      return;
+   }
+   int centre = frag->m_atomHighLight[0];
+   DistortBondsDialog dlg(this, *frag, centre);
+   if (dlg.ShowModal() != wxID_OK || dlg.list().empty()) return;
+   Command *cmd = new DistortBondsCmd("Distort Bonds", getSG());
+   cmd->getParameter("centre")->setInteger(centre + 1);
+   cmd->getParameter("list")->setString(dlg.list());
+   execute(cmd);
+}
+
+
+/**
+ * The coordinates of `set` taken from another structure (#620); one undo step.
+ * Errors reach the user through reportError.
+ */
+bool Builder::takeCoordinates(const string& set, const string& elements,
+                              const string& coords, bool align, double *rmsd)
+{
+   TakeCoordsCmd *cmd = new TakeCoordsCmd("Take Coordinates", getSG());
+   cmd->getParameter("set")->setString(set);
+   cmd->getParameter("elements")->setString(elements);
+   cmd->getParameter("coords")->setString(coords);
+   cmd->getParameter("align")->setBoolean(align);
+   bool ok = execute(cmd);
+   if (rmsd) *rmsd = cmd->rmsd();
+   return ok;
+}
+
+
+/**
+ * The structures Take Coordinates can use: for each other calculation in this
+ * folder with as many atoms, its final geometry (last GEOMTRACE frame, as
+ * Duplicate with final geometry takes it) when it has one, and its input
+ * structure.  A trace without the dummy atoms maps onto the other atoms in
+ * order.
+ */
+void Builder::takeSources(vector<string>& labels, vector<string>& elems,
+                          vector<string>& coords)
+{
+   SGFragment *cur = getSG()->getFragment();
+   if (!cur || !p_calculation) return;
+   Resource *folder = EDSIFactory::getResource(p_calculation->getURL().getParent());
+   vector<Resource*> *kids = folder ? folder->getChildren() : 0;
+   for (size_t i = 0; kids && i < kids->size(); i++) {
+      PropertyTask *other = dynamic_cast<PropertyTask*>((*kids)[i]);
+      if (!other || other->getURL().toString() == p_calculation->getURL().toString())
+         continue;
+      Fragment *f = other->fragment();
+      if (!f) continue;
+      const size_t n = f->numAtoms();
+      vector<double> xyz[2];   // [0] final geometry, [1] input structure
+      for (size_t a = 0; a < n; a++) {
+         const double *c = f->atomRef(a)->coordinates();
+         for (int k = 0; k < 3; k++) xyz[1].push_back(c[k]);
+      }
+      PropTSVecTable *tr = dynamic_cast<PropTSVecTable*>(other->getProperty("GEOMTRACE"));
+      if (tr && tr->tables() > 0) {
+         const vector<double>& v = tr->values(tr->tables() - 1);
+         vector<size_t> real;
+         for (size_t a = 0; a < n; a++)
+            if (f->atomRef(a)->atomicSymbol() != "X") real.push_back(a);
+         xyz[0] = xyz[1];
+         if (v.size() == 3 * n) {
+            xyz[0] = vector<double>(v.begin(), v.end());
+         } else if (real.size() != n && v.size() == 3 * real.size()) {
+            for (size_t k = 0; k < real.size(); k++)
+               for (int j = 0; j < 3; j++) xyz[0][3*real[k]+j] = v[3*k+j];
+         } else {
+            xyz[0].clear();
+         }
+      }
+      string el;
+      for (size_t a = 0; a < n; a++) el += f->atomRef(a)->atomicSymbol() + " ";
+      const string tail = other->getURL().getFilePathTail();
+      for (int w = 0; w < 2; w++) {
+         if (n != cur->numAtoms() || xyz[w].empty()) continue;
+         string text;
+         char buf[128];
+         for (size_t a = 0; a < n; a++) {
+            snprintf(buf, sizeof buf, "%.12g %.12g %.12g ", xyz[w][3*a],
+                     xyz[w][3*a+1], xyz[w][3*a+2]);
+            text += buf;
+         }
+         labels.push_back(tail + (w == 0 ? " (final geometry)" : " (input structure)"));
+         elems.push_back(el);
+         coords.push_back(text);
+      }
+      delete f;
+   }
+}
+
+
+/**
+ * Edit > Take Coordinates From...: other calculations in this folder, final
+ * geometry or input structure (#620).  The element order is checked by
+ * the command.
+ */
+void Builder::OnTakeCoordsClick( wxCommandEvent& event )
+{
+   SGFragment *frag = getSG()->getFragment();
+   if (!frag || frag->numAtoms() == 0 || !p_calculation) {
+      reportError("Open a structure in a calculation first.");
+      return;
+   }
+   vector<string> names, elems, coords;
+   takeSources(names, elems, coords);
+   if (names.empty()) {
+      wxMessageBox(_("No other calculation in this folder has a structure "
+                     "with the same number of atoms."), _("Take Coordinates"),
+                   wxOK | wxICON_INFORMATION, this);
+      return;
+   }
+   string sel;
+   vector<int> hl = frag->m_atomHighLight;
+   sort(hl.begin(), hl.end());
+   for (size_t i = 0; i < hl.size(); ) {
+      size_t j = i;
+      while (j + 1 < hl.size() && hl[j + 1] == hl[j] + 1) j++;
+      char buf[48];
+      if (j > i) snprintf(buf, sizeof buf, "%s%d-%d", sel.empty() ? "" : ",", hl[i] + 1, hl[j] + 1);
+      else snprintf(buf, sizeof buf, "%s%d", sel.empty() ? "" : ",", hl[i] + 1);
+      sel += buf;
+      i = j + 1;
+   }
+   TakeCoordsDialog dlg(this, names, sel);
+   if (dlg.ShowModal() != wxID_OK || dlg.source() < 0) return;
+   double rmsd = 0;
+   if (takeCoordinates(dlg.atoms(), elems[dlg.source()], coords[dlg.source()],
+                       dlg.align(), &rmsd) && dlg.align())
+      wxMessageBox(wxString::Format(_("Fitted over the other atoms: RMSD %.4f A"),
+                                    rmsd), _("Take Coordinates"), wxOK, this);
 }
 
 
@@ -3741,6 +4010,11 @@ void Builder::OnPropertyMenuClick( wxCommandEvent& event )
 {
   BuilderRedrawHold hold(this);
   wxString name = p_propertyMenu->GetLabelText(event.GetId());
+  if (event.GetId() >= ID_SURFACE_MENU_BASE &&
+      event.GetId() < ID_SURFACE_MENU_BASE + 100) {
+    selectDetail(name.ToStdString());
+    return;
+  }
   wxAuiPaneInfo &pane = p_mgr.GetPane(name);
   if (!pane.IsOk()) {
     return;
@@ -4782,8 +5056,18 @@ void Builder::doSaveThumb()
     // create thumbnail (without labels)
     // The offscreen render does not see the canvas's background.
     const SbColor bg = p_viewer->getBackgroundColor();
-    if (!VizRender::thumbnail(p_viewer->getTopNode(), task, bg[0], bg[1], bg[2]))
+    //  The corner texts ("5 atoms") are part of the viewer's scene graph.
+    const bool hadText = p_viewer->textLabelsShown();
+    p_viewer->showTextLabels(false);
+    //  64 px at 100 %.  On a scaled display twice the button's physical
+    //  size: the button shrinks it with a smoothing filter, which gives
+    //  clean edges on the atoms and sticks of the small picture.
+    const double sc = std::max(ewxBitmap::dpiScale(), GetContentScaleFactor());
+    const int tpx = sc > 1.05 ? 2 * (int)(64 * sc + 0.5) : 64;
+    if (!VizRender::thumbnail(p_viewer->getTopNode(), task, bg[0], bg[1], bg[2],
+                              tpx, tpx))
       showMessage(VizRender::msg(), true);
+    p_viewer->showTextLabels(hadText);
     // turn labels back on
     cmd.undo();
   }
@@ -6125,6 +6409,7 @@ void Builder::updatePropertyMenus()
       for (int i = 0; i < 30; i++) { wxTheApp->Yield(true); wxMilliSleep(10); }
       viewer->viewAll();
       SceneScript run(viewer, sg, p_calculation, outdir);
+      run.setTraceStep([this](int index) { return traceFrame(index); });
       //  "mopanel <name>": press the MO panel's Compute, as a user would,
       //  recording every frame the Builder's own canvas paints meanwhile.
       run.setExtension([this, outdir](SceneScript& s, const vector<string>& w) {
@@ -6198,6 +6483,10 @@ void Builder::updatePropertyMenus()
           return densityMapCommand(s, w, outdir);
         //  "atomnumbers N [panel]": atom N's number in the status line, label and a table.
         if (w[0] == "atomnumbers") return atomNumbersCommand(s, w);
+        //  Photo hooks (#860): assigncharges, panelfloat, panelsize, shot.
+        if (w[0] == "assigncharges" || w[0] == "panelfloat" ||
+            w[0] == "panelsize" || w[0] == "shot")
+          return shotHookCommand(s, w, outdir);
         //  "dp...": the Density Profile panel's controls.
         if (w[0].compare(0, 2, "dp") == 0) return densityProfileCommand(s, w, outdir);
         //  "gt...": the Geometry Trace stress commands (#217).
@@ -6298,7 +6587,7 @@ void Builder::updatePropertyMenus()
             w[0] == "undo" || w[0] == "redo" ||
             w[0] == "narrowcolumn" || w[0] == "toolfloat" || w[0] == "toolclip" ||
             w[0] == "importfile" || w[0] == "tooldock" || w[0] == "collapse" ||
-            w[0] == "measure")
+            w[0] == "measure" || w[0] == "translate")
           return pbcTestCommand(s, w, outdir);
         //  "ptree <name>": the Properties list's highlighted entry beside
         //  the property panes that are shown, -> <name>.txt.
@@ -6315,6 +6604,8 @@ void Builder::updatePropertyMenus()
               shown += (shown.empty() ? "" : ",") + pi.name.ToStdString();
           }
           out << "shown " << shown << "\n";
+          if (p_index) for (const auto& entry : p_index->listing())
+            out << "entry " << entry << "\n";
           return true;
         }
         //  "property <menu item>" / "list <entry>": a Properties menu choice
@@ -6331,14 +6622,18 @@ void Builder::updatePropertyMenus()
           int id = p_propertyMenu->FindItem(name);
           if (id == wxNOT_FOUND)
             return s.fail("property: no Properties menu item " + name);
-          bool on = !p_propertyMenu->IsChecked(id);
-          p_propertyMenu->Check(id, on);
+          const bool checkable = p_propertyMenu->FindItem(id)->IsCheckable();
+          bool on = !checkable || !p_propertyMenu->IsChecked(id);
+          if (checkable) p_propertyMenu->Check(id, on);
           wxCommandEvent ev(wxEVT_MENU, id);
           ev.SetInt(on ? 1 : 0);
           GetEventHandler()->ProcessEvent(ev);
           return true;
         }
-        //  "modiagram <name> tip|click|overlaps <n>": the diagram's text for molecular
+        //  "modiagram <name> aufbau|aufbaupng 0|1": a one-atom calculation's aufbau
+        //  view in drawing B (0) or A, energies to scale (1): what it draws
+        //  -> <name>.txt, and for aufbaupng the picture -> <name>.png.
+        //  "modiagram <name> tip|click|overlaps|links|status <n>": the diagram's text for molecular
         //  level <n> (the tooltip), or a click on orbital <n> (0-based ORBENG
         //  index); -> <name>.txt, with whether a surface was computed.
         if (w[0] == "modiagram" && w.size() == 4) {
@@ -6358,6 +6653,21 @@ void Builder::updatePropertyMenus()
             out << md->calcLevelText(n) << "\n";
           } else if (w[2] == "overlaps") {
             out << "overlaps " << md->centreOverlaps() << "\n";
+          } else if (w[2] == "links") {
+            out << md->linkGaps();
+          } else if (w[2] == "core") {
+            //  Show core orbitals on (1) or off (0), then the levels drawn below the break.
+            md->setShowCore(n != 0);
+            out << md->coreText();
+          } else if (w[2] == "status") {
+            out << "status " << md->statusText() << "\n";
+          } else if (w[2] == "aufbau" || w[2] == "aufbaupng") {
+            if (!md->atomView()) return s.fail("modiagram: " + md->aufbauFailure());
+            md->setAufbauToScale(n != 0);
+            if (w[2] == "aufbaupng" &&
+                !md->exportAufbau(outdir + "/" + w[1] + ".png", n != 0, 900, 600))
+              return s.fail("modiagram: the picture could not be saved");
+            out << md->aufbauText();
           } else {
             md->orbitalClicked(n);
             SingleGrid *grid = getSG()->getCurrentGrid();
@@ -6605,6 +6915,10 @@ void Builder::lengthPopup(int x, int y, AtomMeasureDist *dist)
 {
    viewPosToScreenPos(x, y);
    float startValue = dist->getDistance();
+   if (getenv("ECCE_BUILDER_SCRIPT")) {   // test hook: no modal prompt
+      fprintf(stderr, "BUILDER: measure popup distance %.3f\n", startValue);
+      return;
+   }
    float newValue = startValue;
    wxPoint pos(x,y);
    WxMeasurePrompt txt(this, WxMeasurePrompt::DISTANCE, startValue, wxOK|wxCANCEL, pos);
@@ -6633,6 +6947,10 @@ void Builder::anglePopup(int x, int y, AtomMeasureAngle *angle)
 {
    viewPosToScreenPos(x, y);
    float startValue = angle->getAngle();
+   if (getenv("ECCE_BUILDER_SCRIPT")) {   // test hook: no modal prompt
+      fprintf(stderr, "BUILDER: measure popup angle %.3f\n", startValue);
+      return;
+   }
    float newValue = startValue;
    wxPoint pos(x,y);
    WxMeasurePrompt txt(this, WxMeasurePrompt::ANGLE, startValue, wxOK|wxCANCEL, pos);
@@ -6660,6 +6978,10 @@ void Builder::torsionPopup(int x, int y, AtomMeasureTorsion *torsion)
 {
    viewPosToScreenPos(x, y);
    float startValue = torsion->getTorsion();
+   if (getenv("ECCE_BUILDER_SCRIPT")) {   // test hook: no modal prompt
+      fprintf(stderr, "BUILDER: measure popup torsion %.3f\n", startValue);
+      return;
+   }
    float newValue = startValue;
    wxPoint pos(x,y);
    WxMeasurePrompt txt(this, WxMeasurePrompt::TORSION, startValue, wxOK|wxCANCEL, pos);
@@ -6956,6 +7278,7 @@ void Builder::addToolPanel(wxWindow *panel, const string& name,
 void Builder::addToolBar(wxToolBar * toolbar, const string& name)
 {
   toolbar->Realize();
+  ewxBitmap::logDpi(("viewer toolbar " + name).c_str(), toolbar);
   
   wxAuiPaneInfo pinfo;
   pinfo.Name(name).Caption(name).ToolbarPane().Top().Position(p_toolbarCount).
@@ -7182,6 +7505,45 @@ void Builder::addPropertyPanel(PropertyPanel *panel, const string& name)
   p_propertyMenu->AppendCheckItem(
           ID_PROPERTY_MENU_BASE+p_propertyMenu->GetMenuItemCount(),
           name, "")->Check(added.IsShown());
+  if (MoPanel *mo = dynamic_cast<MoPanel*>(panel)) rebuildSurfacesMenu(mo);
+}
+
+
+//  The Surfaces item follows the MOs item and exists only when the
+//  calculation has a density, which the orbital point decides; rebuilt
+//  whenever that changes.
+void Builder::rebuildSurfacesMenu(MoPanel *mo)
+{
+  int mosPos = wxNOT_FOUND;
+  for (int i = (int)p_propertyMenu->GetMenuItemCount() - 1; i >= 0; --i) {
+    wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
+    if (item->GetItemLabelText() == "Surfaces")
+      p_propertyMenu->Destroy(item);
+  }
+  for (size_t i = 0; i < p_propertyMenu->GetMenuItemCount(); ++i)
+    if (p_propertyMenu->FindItemByPosition(i)->GetItemLabelText() == "MOs")
+      mosPos = (int)i;
+  if (mo->surfaceEntries().empty() || mosPos == wxNOT_FOUND) return;
+  p_propertyMenu->Insert(mosPos + 1, ID_SURFACE_MENU_BASE, "Surfaces",
+                         "Density, spin density, ESP, ELF, LOL and NCI surfaces");
+}
+
+
+//  The pane keeps its name (lookups use it); only the title changes.
+void Builder::setPaneCaption(wxWindow *win, const wxString& caption)
+{
+  wxAuiPaneInfo &pane = p_mgr.GetPane(win);
+  if (!pane.IsOk()) return;
+  pane.Caption(caption);
+  p_mgr.Update();
+}
+
+
+void Builder::surfacesChanged()
+{
+  if (MoPanel *mo = dynamic_cast<MoPanel*>(p_mgr.GetPane("MOs").window))
+    rebuildSurfacesMenu(mo);
+  updatePropertyIndex();
 }
 
 
@@ -7253,10 +7615,10 @@ void Builder::removePropertyPanels(const string& context)
 void Builder::toggleTool(int id, bool isChecked)
 {
   if (id == ViewerEvtHandler::ID_CAMERA_TYPE) {
-    p_cameraButton->SetBitmapLabel(isChecked? p_orthoBitmap:p_perspBitmap);
+    p_cameraButton->setSvg(isChecked ? ORTHO_SVG : PERSP_SVG);
   }
   else if (id == ViewerEvtHandler::ID_AUTO_NORMALIZE) {
-    p_centerLockButton->SetBitmapLabel(isChecked? p_lockBitmap:p_unlockBitmap);
+    p_centerLockButton->setSvg(isChecked ? "svg/center-view-lock.svg" : "svg/center-view-unlock.svg");
   }
   else if (p_modeToolbar->FindById(id)) {
     p_modeToolbar->ToggleTool(id, isChecked);

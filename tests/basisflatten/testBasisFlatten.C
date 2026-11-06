@@ -31,6 +31,7 @@
 //  Run with ECCE_HOME set to the repo root (tests/basisflatten/run_tests.py
 //  does this); needs no build tree -- see that script for the g++ line.
 
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <sstream>
@@ -209,6 +210,34 @@ int main()
       delete dang;
     }
     delete dcfg;
+  }
+
+  const JCode* qm = CodeFactory::lookup("ECCE-QM");
+  TGBSAngFunc* pure = qm ? qm->getAngFunc(TGaussianBasisSet::Spherical) : 0;
+  check(pure && pure->maxShells() == 7, "ECCE-QM describes spherical s through i");
+  if (pure) {
+    const int sizes[7] = {1, 3, 5, 7, 9, 11, 13};
+    for (int l = 4; l <= 6; l++) {
+      ostringstream text;
+      text << "NumericalBasis\nbasis \"ao basis\" spherical print\nH "
+           << "SPDFGHI"[l] << "\n1.3 1.0\nEND\nEndNumericalBasis";
+      istringstream input(text.str());
+      TGBSConfig* config = ICalcUtils::importConfig(input);
+      vector<EspBasisFunction> functions;
+      const bool flattened = config && BasisFlatten::flatten(
+          atomSymbols, atomCoordsAng, config, qm, pure, pure->maxShells(),
+          sizes, functions);
+      double worst = 0.0;
+      for (size_t i = 0; i < functions.size(); i++)
+        for (size_t j = 0; j <= i; j++)
+          worst = max(worst, fabs(EspField::overlapOf(functions[i], functions[j]) -
+                                 (i == j ? 1.0 : 0.0)));
+      check(flattened && functions.size() == (size_t)sizes[l] && worst < 1e-8,
+            string("ECCE-QM pure ") + "spdfghi"[l] +
+            " components have unit norms and zero mutual overlaps");
+      delete config;
+    }
+    delete pure;
   }
 
   printf("%s\n", failures ? "FAIL" : "PASS");

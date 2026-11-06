@@ -250,11 +250,11 @@ sub modifyInputFile {
 sub ORCARoute {
   my $route = "! ";
   $route .= &Theory($AbiDict{"Category"}, $AbiDict{"Theory"}) . " ";
-  if ($useExplicitBasis == 0) {
+  if ($useExplicitBasis == 0 && !&IsComposite3c()) {
     $route .= "$NameBasis ";
   }
   $route .= &RunType($AbiDict{"RunType"}) . " ";
-  $route .= &RIJCOSXToken . " ";
+  $route .= &RIToken . " ";
   $route .= &SCFConvergenceToken . " ";
   $route .= &GeomConvergenceToken . " ";
   $route .= &FreqMethodToken . " ";
@@ -319,18 +319,19 @@ sub SymmetryToken {
   return $result;
 }
 
-# "! RIJCOSX <auxbasis>" -- RI-J + chain-of-spheres approximate
-# exchange. Verified against real ORCA 6.1.1 for both DFT (RKS) and HF:
-# COSX grid generation and "Your calculation utilizes the auxiliary
-# basis: <name>" both confirmed in the output.
-sub RIJCOSXToken {
-  my $result = "";
-  if ($AbiDict{"ES.Theory.SCF.UseRIJCOSX"} eq "1") {
+# RI-J with either COSX or exact exchange; an explicit mode overrides
+# the old checkbox so choosing None also disables RI in older calculations.
+sub RIToken {
+  my $mode = $AbiDict{"ES.Theory.SCF.RIMode"};
+  if (!defined($mode)) {
+    $mode = $AbiDict{"ES.Theory.SCF.UseRIJCOSX"} eq "1" ? "RIJCOSX" : "None";
+  }
+  if ($mode eq "RIJCOSX" || $mode eq "RIJONX") {
     my $auxBasis = $AbiDict{"ES.Theory.SCF.RIJCOSXAuxBasis"};
     $auxBasis = "def2/J" if ($auxBasis eq "");
-    $result = "RIJCOSX $auxBasis";
+    return "$mode $auxBasis";
   }
-  return $result;
+  return "";
 }
 
 # "! LooseSCF|TightSCF|VeryTightSCF" -- "Normal" (ORCA's own default)
@@ -565,8 +566,19 @@ sub GridToken {
   return $legacy;
 }
 
+#  The ORCA 6 "-3c" composites prescribe their own basis set and dispersion
+#  correction; a basis or D3/D4 keyword next to them would override or double
+#  them, so the deck carries the composite keyword alone.
+sub IsComposite3c {
+  return 0 unless ($AbiDict{"Category"} eq "DFT");
+  my $f = $AbiDict{"ES.Theory.DFT.XCFunctionals"};
+  return 0 unless defined($f);
+  return ($f =~ /^(B97-3c|HF-3c|PBEh-3c|r2SCAN-3c|wB97X-3c)$/) ? 1 : 0;
+}
+
 sub DispersionToken {
   my $cat = $AbiDict{"Category"};
+  return "" if (&IsComposite3c());
   return "" unless ($cat eq "DFT" || $cat eq "SCF");
   my $dispersion = $AbiDict{"ES.Theory.SCF.Dispersion"};
   $dispersion = "" unless defined($dispersion);
@@ -794,7 +806,7 @@ sub ORCABlocks {
 # onto the "!" line in ORCARoute and nothing needs to be inlined here.
 sub ORCABasis {
   my $result = "";
-  if ($useExplicitBasis == 1) {
+  if ($useExplicitBasis == 1 && !&IsComposite3c()) {
     open(GBS, $BasisFILE) || die "ai.orca error: Couldn't open $BasisFILE\n";
     while (<GBS>) { $result .= $_; }
     close(GBS);
@@ -809,7 +821,10 @@ sub Theory {
 
   if ($category eq "DFT") {
     my $functional = &DFTXCFun($AbiDict{"ES.Theory.DFT.XCFunctionals"});
-    if ($theory eq "UDFT") {
+    if ($functional eq "HF-3c") {
+      #  A Hartree-Fock composite: no KS prefix.
+      $result = ($theory eq "UDFT") ? "UHF HF-3c" : "HF-3c";
+    } elsif ($theory eq "UDFT") {
       $result = "UKS $functional";
     } else {
       $result = "RKS $functional";
@@ -865,9 +880,14 @@ sub DFTXCFun {
     "M062X"     => "M062X",
     "CAM-B3LYP" => "CAM-B3LYP",
     "wB97X-D3"  => "wB97X-D3",
-    #  Verified against ORCA 6.1.1; see orcatheory.py for why SCAN, M11,
-    #  MN15 and the "-3c" composites are deliberately not here.
+    #  Verified against ORCA 6.1.1; see orcatheory.py for why SCAN, M11
+    #  and MN15 are deliberately not here.
     "r2SCAN"    => "r2SCAN",
+    "r2SCAN-3c" => "r2SCAN-3c",
+    "B97-3c"    => "B97-3c",
+    "PBEh-3c"   => "PBEh-3c",
+    "HF-3c"     => "HF-3c",
+    "wB97X-3c"  => "wB97X-3c",
     "revTPSS"   => "revTPSS",
     "wB97X-V"   => "wB97X-V",
     "wB97M-V"   => "wB97M-V",
@@ -1014,7 +1034,14 @@ sub verifyGBSFile {
 }
 
 sub cleanup {
-  rename("tmpfile", $inputFile);   # perl itself: Windows perl has no /bin/mv
+  # Close the source before replacing it; the copy overwrites existing targets
+  # reliably across platforms, and failures must not leave the template in place.
+  close(TEMPLATE);
+  require File::Copy;
+  File::Copy::copy("tmpfile", $inputFile)
+      or die "Input generator error: Could not write generated input $inputFile: $!\n";
+  unlink("tmpfile")
+      or die "Input generator error: Could not remove temporary input tmpfile: $!\n";
   close(ABIDICT);
 }
 

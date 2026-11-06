@@ -76,7 +76,7 @@ StructLib::StructLib( wxWindow* parent, wxWindowID id,
 
     p_inSizeAdjust = false;
 
-    p_listItemImages = new wxImageList(16, 16, true, 2);
+    p_listItemImages = new wxImageList(ewxBitmap::scaled(16), ewxBitmap::scaled(16), true, 2);
 
     p_listItemImages->Add(ewxBitmap("folder_close.xpm", wxBITMAP_TYPE_XPM));
     p_listItemImages->Add(ewxBitmap("molecule.xpm", wxBITMAP_TYPE_XPM));

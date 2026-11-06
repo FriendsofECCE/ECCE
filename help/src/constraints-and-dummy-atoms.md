@@ -92,6 +92,19 @@ to the last point, then backward to the first, and repeat until you press
 stop. The IRC Path panel gives the energy in the unit chosen under **Energy
 unit:** and the reaction coordinate in amu½·bohr.
 
+## Reaction path settings (Gaussian 16)
+
+For the **IRC** run type, **Runtype Details...** has a **Reaction Path** box:
+
+- **Max points per direction:** the number of points followed on each side of
+  the transition state (Gaussian's default is 10).
+- **Step size:** the step between points, in units of 0.01 bohr*sqrt(amu)
+  (Gaussian's default is 10, that is 0.1).
+- **Direction:** **Both**, **Forward** or **Reverse**.
+
+The input keeps the plain `IRC=(calcfc)` while all three are at their defaults.
+The input geometry must already be the transition state.
+
 ## Use symmetry
 
 The Calculation Editor's **Use symmetry** box lets the code keep and exploit

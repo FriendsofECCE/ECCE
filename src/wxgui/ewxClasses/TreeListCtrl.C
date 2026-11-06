@@ -40,6 +40,7 @@
 #include <wx/scrolwin.h>
 
 #include "wxgui/TreeListCtrl.H"
+#include "wxgui/ewxBitmap.H"
 
 
 
@@ -71,13 +72,20 @@ WX_DEFINE_ARRAY(short, wxArrayShort);
 
 static const int NO_IMAGE = -1;
 
-static const int LINEHEIGHT = 10;
-static const int LINEATROOT = 5;
-static const int MARGIN = 2;
-static const int MININDENT = 16;
-static const int BTNWIDTH = 9;
-static const int BTNHEIGHT = 9;
-static const int EXTRA_WIDTH = 4;
+// device pixels: wxMSW draws unscaled, so these follow the DPI
+#define LINEHEIGHT (ewxBitmap::scaled(10))
+// device pixels: wxMSW draws unscaled, so these follow the DPI
+#define LINEATROOT (ewxBitmap::scaled(5))
+// device pixels: wxMSW draws unscaled, so these follow the DPI
+#define MARGIN (ewxBitmap::scaled(2))
+// device pixels: wxMSW draws unscaled, so these follow the DPI
+#define MININDENT (ewxBitmap::scaled(16))
+// device pixels: wxMSW draws unscaled, so these follow the DPI
+#define BTNWIDTH (ewxBitmap::scaled(9))
+// device pixels: wxMSW draws unscaled, so these follow the DPI
+#define BTNHEIGHT (ewxBitmap::scaled(9))
+// device pixels: wxMSW draws unscaled, so these follow the DPI
+#define EXTRA_WIDTH (ewxBitmap::scaled(4))
 static const int EXTRA_HEIGHT = 4;
 static const int HEADER_OFFSET_X = 1;
 static const int HEADER_OFFSET_Y = 1;
@@ -1674,7 +1682,7 @@ void wxTreeListMainWindow::Init() {
 
     m_lineHeight = LINEHEIGHT;
     m_indent = MININDENT; // min. indent
-    m_linespacing = 4;
+    m_linespacing = ewxBitmap::scaled(4);
 
 #if !wxCHECK_VERSION(2, 5, 0)
     m_hilightBrush = new wxBrush (wxSystemSettings::GetSystemColour (wxSYS_COLOUR_HIGHLIGHT), wxSOLID);

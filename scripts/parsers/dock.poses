@@ -1,0 +1,32 @@
+#!/usr/bin/env perl
+# Reader for a code with a docking section of its own (xtb folds the same two
+# properties into xtb.geomtrace, since a property key can have only one section).
+# One pose between ECCE-DOCK-FRAME markers a docking code's gensub appends: a
+# line "score: <kcal/mol>", then the atoms of the whole system in the
+# calculation's own atom order.  GEOMTRACE and POSESCORE come from
+# the same frame so they stay the same length.  A code with another score (an
+# empirical one, say) gives it its own property and label; this reader serves
+# the interaction energies.
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+my (@coordlines, $rowLabels, $score);
+$rowLabels = "";
+while (<STDIN>) {
+  if (/^\s*score:\s*(-?\d+\.?\d*)/) {
+    $score = $1;
+  } elsif (/^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
+    push(@coordlines, "$2 $3 $4");
+    $rowLabels .= " " . scalar(@coordlines) . "-$1";
+  }
+}
+
+my $size = scalar(@coordlines);
+exit(0) if ($size < 1 || !defined($score));
+
+print "key: GEOMTRACE\nsize:\n1 $size 3\nrowlabels:\n$rowLabels\n";
+print "columnlabels:\nX Y Z\nvalues:\n";
+print " $_\n" foreach (@coordlines);
+print "units:\nAngstrom\nEND\n";
+print "key: POSESCORE\nsize:\n1\nvalues:\n$score\nunits:\nkcal/mol\nEND\n";
+exit(0);

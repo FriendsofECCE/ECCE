@@ -38,6 +38,11 @@ class CalcMgr;
 ContextPanelInterface * ContextPanelFactory::createContextPanel
 (CalcMgr * calcMgr, WxResourceTreeItemData * node, wxWindow * parent)
 {
+  // A local folder renamed or removed outside ECCE leaves its node in the
+  // tree; a stat is cheap, so look again at each selection (a data server
+  // is not asked twice).
+  if (node->getResource()->getURL().isLocal())
+    node->getResource()->recheckAccess();
   if (!node->getResource()->hasAccess())
     return new NoAccessContextPanel(calcMgr, node, parent);
 

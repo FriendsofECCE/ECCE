@@ -63,14 +63,33 @@ def steps(info):
     return table
 
 
+def orca_ts_energy(data):
+    """IRCENERGY at IRCCOORD 0 of the ORCA SN2 IRC example (what the box shows)."""
+    base = os.path.join(HERE, "..", "..", "data", "client", "examples", "organic",
+                        "reactions", "orca-sn2_irc", "stored", "sn2_irc", "Props")
+    try:
+        vals = {}
+        for k in ("IRCCOORD", "IRCENERGY"):
+            body = open(os.path.join(base, k)).read()
+            vals[k] = body[body.index(">", body.index("<vector")) + 1:
+                           body.rindex("</vector>")].split()
+        i = [float(c) for c in vals["IRCCOORD"]].index(0.0)
+        return vals["IRCENERGY"][i]
+    except (OSError, ValueError, IndexError):
+        return None
+
+
 def run(display, data, work, shots):
     root = os.path.join(data, "users", "local")
     wf = "file://" + root + "/Examples/Workflows/Na_hydration"
     png = os.path.join(shots, "workflow-na-hydration.png")
     menus = ["workflowmenu %s %s/na_6_0_%s" % (wf, wf, k)
              for k in ("orca", "xtb", "orca")]
+    sn2 = "file://" + root + "/Examples/Workflows/SN2_Cl-_and_CH3Br"
+    png2 = os.path.join(shots, "workflow-sn2.png")
     commands = ["examples workflows"] + menus + ["workflowinfo " + wf,
-                "workflowshot %s %s" % (png, wf)]
+                "workflowshot %s %s" % (png, wf), "workflowinfo " + sn2,
+                "workflowshot %s %s" % (png2, sn2), "workflowresults " + sn2]
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
         handle.write("\n".join(commands) + "\n")
@@ -122,6 +141,63 @@ def run(display, data, work, shots):
           "workflowshot answered %r" % shot)
     check("view screenshot exists",
           os.path.exists(png) and os.path.getsize(png) > 5000, png)
+
+    # The SN2 workflow (#674): a scan-point link and a join.
+    if len(info) < 2 or not info[1].startswith("ok "):
+        return fail(what, "no SN2 workflowinfo answer %r" % info, log)
+    t2 = steps(info[1][3:])
+    l2 = info[1].split(" links:")[1].split()
+    check("SN2: five G16 steps",
+          set(t2) == {"sn2_reactant", "sn2_scan", "sn2_product", "sn2_qst3",
+                      "sn2_irc"} and all(r["code"] == "G16" for r in t2.values()),
+          "%s" % t2)
+    check("SN2: links, the point and the join roles",
+          sorted(l2) == sorted([
+              "sn2_reactant>sn2_scan:geometry",
+              "sn2_scan>sn2_product:geometry.last",
+              "sn2_reactant>sn2_qst3:reactant", "sn2_product>sn2_qst3:product",
+              "sn2_scan>sn2_qst3:tsguess.max", "sn2_qst3>sn2_irc:geometry"]),
+          "links %s" % l2)
+    check("SN2: charge -1 on every step",
+          all(r.get("charge") == "-1" for r in t2.values()), "%s" % t2)
+    shot2 = answer("workflowshot")
+    check("SN2 view: five boxes, six links, labels clear",
+          len(shot2) > 1 and shot2[1].startswith("ok boxes=5 links=6 label-overlaps=0"),
+          "workflowshot answered %r" % shot2)
+
+    # #784: the G16 IRC was imported as an Energy run, so it had no path,
+    # and it carried the ORCA IRC's note (same calculation name).
+    res = answer("workflowresults")
+    lines = dict(l.split(": ", 1) for l in res[0][3:].split("|")
+                 if ": " in l) if res and res[0].startswith("ok ") else {}
+    # An IRC's line is its TS energy: G16 prints it as "relative to the TS
+    # energy of", the stored path has it at coordinate 0.
+    check("SN2: every step has a result line, the IRC's is the TS energy",
+          set(lines) == set(t2) and all(v.strip() for v in lines.values()) and
+          lines.get("sn2_irc", "").strip() == "TS E \u22123071.917 Eh",
+          "workflowresults answered %r" % res)
+    check("ORCA IRC example: stored TS row is the energy at coordinate 0",
+          orca_ts_energy(data) == "-3073.683420", "got %r" % orca_ts_energy(data))
+    irc = os.path.join(root, "Examples", "Workflows", "SN2_Cl-_and_CH3Br",
+                       "sn2_irc")
+    props = os.listdir(os.path.join(irc, "Props")) \
+        if os.path.isdir(os.path.join(irc, "Props")) else []
+    check("SN2 IRC: path and structures (IRCCOORD, IRCENERGY, IRCGEOM)",
+          {"IRCCOORD", "IRCENERGY", "IRCGEOM"} <= set(props),
+          "Props %s" % sorted(props))
+    meta = {}
+    try:
+        for row in open(os.path.join(irc, ".ecce-meta")):
+            f = row.rstrip("\n").split("\t")
+            if len(f) >= 4 and f[0] == ".":
+                meta[f[1].rsplit(":", 1)[-1]] = f[3]
+    except OSError:
+        pass
+    check("SN2 IRC: run type IRC and its own Gaussian 16 note",
+          meta.get("runtype") == "IRC" and
+          meta.get("annotation", "").startswith("Gaussian 16"),
+          "runtype %r, annotation %r" % (meta.get("runtype"),
+                                         meta.get("annotation", "")[:40]))
 
 
 def main():

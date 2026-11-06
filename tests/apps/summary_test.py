@@ -89,11 +89,11 @@ def launchProblem(text, queued=False):
         if "@" in item:
             name, pos = item.split("@")
             rows[name] = tuple(int(v) for v in pos.split(","))
-    for name in ("Machine:", "Processors:", "Start Date:", "Cost:"):
+    for name in ("Machine:", "Processors:", "Start Date:", "Used:"):
         if name not in rows:
             return "Launch Info has no %s row (got %s)" % (name, sorted(rows))
-    for name in (("Allocation:", "Remaining on submission:") if queued else
-                 ("Job ID:", "Allocation:", "Remaining on submission:")):
+    for name in (("Allocation:",) if queued else
+                 ("Job ID:", "Allocation:")):
         if name in rows:
             return "Launch Info shows %s with nothing to show" % name
     if ("Queue:" in rows) != queued:
@@ -117,6 +117,19 @@ def launchProblem(text, queued=False):
         return "Start Date is not in a column right of Machine"
     if rows["Processors:"][1] <= rows["Machine:"][1]:
         return "Processors is not below Machine"
+    #  The Launcher button's top is the Machine row's top, whatever rows
+    #  follow (#753).
+    m = re.search(r"toolpos=(.*?;)(?: |$)", text)
+    pos = {}
+    for item in (m.group(1) if m else "").split(";"):
+        if "@" in item:
+            name, xy = item.split("@")
+            pos[name] = int(xy.split(",")[1])
+    if "Launcher" not in pos:
+        return "no Launcher button position (got %s)" % sorted(pos)
+    if pos["Launcher"] != rows["Machine:"][1]:
+        return "Launcher button top %d is not the Machine row top %d (%s)" % (
+            pos["Launcher"], rows["Machine:"][1], rows)
     return None
 
 

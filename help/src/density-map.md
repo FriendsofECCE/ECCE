@@ -9,7 +9,8 @@ orbitals.
 
 For a relaxed scan or an IRC the map belongs to the last computed point. For
 ECCE-QM it follows the point selected in the **Relaxed Scan** or **IRC Path**
-panel instead, and a note at the top of the panel names the point.
+panel instead, and a note at the top of the panel names the point. An ORCA
+IRC has orbitals at the TS point only.
 
 While the panel is open, the slice is drawn in the 3-D view as a translucent
 square, so you can see where it cuts the molecule. The square follows every
@@ -40,8 +41,7 @@ The slice is flat. Choose how it is placed.
   plane; the map is then drawn on a plane that contains the axis. This is
   where the map starts for a flat or linear molecule, a diatomic included;
   a single atom starts on **This view**.
-  For a molecule that is not flat this entry is greyed out; use
-  **Through three atoms**.
+  For a molecule that is not flat this starts on the best-fit plane.
 - **Through three atoms A, B, C**: the plane through the three atoms you
   choose. Use it for a molecule that is not flat. For ammonia, choose H–N–H to
   see an orbital in the plane of two N–H bonds.
@@ -52,12 +52,22 @@ The slice is flat. Choose how it is placed.
   A and B can be any pair, not only bonded ones: in benzene, C1 and C3 give a
   slice across the ring along a chord. B starts as an atom bonded to A, and
   atoms that are not bonded to A are marked "(not bonded)" in the list. This
-  entry is greyed out for a molecule that is not flat and for a linear one.
+  entry uses the best-fit molecular plane for a non-planar molecule and is
+  greyed out for a linear one.
 - **This view (parallel to the screen)**: the plane parallel to the screen
   through the centre of the molecule, as the 3-D view is now. Choosing it
   takes the view at once. Rotate the molecule in the 3-D view and press
   **Update from view** to take the new view. The plane is stored, not the
   view: it stays where it was when you rotate again.
+
+### Principal planes
+
+For a non-planar cage or cluster, **Molecular plane** offers three principal
+planes through the unweighted centroid of all atoms. The choice lists their
+RMS out-of-plane distances in Å, from **1: best fit** (smallest distance) to
+3 (largest). These planes follow the principal axes of the atomic positions;
+they need not be mirror planes. Flat molecules retain their molecular plane.
+The command-line tool accepts `--plane principal1`, `principal2`, or `principal3`.
 
 ### Picking atoms in the 3-D view
 
@@ -113,6 +123,29 @@ the density of the π electrons above the ring.
 - The caption above the buttons names the quantity, the orbital with its
   energy and occupation, which member of a degenerate set it is, the plane
   and the offset.
+
+## Difference from fragments
+
+**Difference...** (with **Total density**) shows how the density of a complex
+differs from the densities of its parts: the density of this calculation minus
+the densities of the fragments you tick. A fragment is another calculation in
+the same folder (or a sibling folder) of some of the same atoms, at the same
+positions, with the same basis set and method; a hydrogen-bonded dimer minus the
+two monomers, each calculated at its geometry in the dimer. Each density is
+evaluated from that calculation's own orbitals and basis set.
+
+The map is filled: blue where density is gained, red where it is lost, white
+where it is unchanged, with the colour bar at the right. Full colour is at the
+value given there, the 99th percentile of the values in the plane, so the
+peaks at the nuclei do not wash out the region between the molecules; the
+status line repeats it. The integral of the difference over all space is the
+electron count of the complex minus those of the fragments, zero for neutral
+fragments.
+
+A fragment atom must lie within 0.05 Å of an atom of the same element in
+this calculation, and no atom may belong to two fragments; otherwise the panel
+says which atom does not match. Tick nothing and press OK to return to the
+plain density. The **Density Profile** has the same button, under **More**.
 
 ## Export
 

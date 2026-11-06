@@ -11,6 +11,8 @@
 #include "tdat/Fragment.H"
 #include "tdat/TAtm.H"
 #include "tdat/PropTable.H"
+#include "tdat/PropVector.H"
+#include "tdat/ResultsFromCalc.H"
 #include "tdat/TGBSAngFunc.H"
 #include "dsm/ICalcUtils.H"
 #include "dsm/ICalculation.H"
@@ -341,6 +343,70 @@ const char* MoAoBasis::methodName(Method m)
 }
 
 
+bool MoAoBasis::spinPopulations(const vector<SpinSet>& sets,
+                                vector<double>& perAtom) const
+{
+  const size_t nbas = functions.size();
+  perAtom.assign(elements.size(), 0.0);
+  if (nbas == 0) return false;
+
+  //  Orbitals with a net spin, stored mu-major so the inner loop over
+  //  orbitals is contiguous.
+  vector<double> net;
+  vector<const vector<double>*> row;
+  for (size_t s = 0; s < sets.size(); s++) {
+    if (!sets[s].rows) continue;
+    for (size_t i = 0; i < sets[s].net.size() && i < sets[s].rows->size(); i++) {
+      if (sets[s].net[i] == 0.0) continue;
+      if ((*sets[s].rows)[i].size() != nbas) return false;
+      net.push_back(sets[s].net[i]);
+      row.push_back(&(*sets[s].rows)[i]);
+    }
+  }
+  const size_t norb = net.size();
+  if (norb == 0) return true;
+
+  vector<double> C(nbas*norb);
+  for (size_t i = 0; i < norb; i++)
+    for (size_t mu = 0; mu < nbas; mu++) C[mu*norb + i] = (*row[i])[mu];
+
+  //  A[mu][i] = c_i[mu] (S c_i)[mu]; only nonzero S elements are visited,
+  //  which is most of the saving for a large molecule.
+  const bool useS = (!orthonormal && overlap.size() == nbas*nbas);
+  vector<double> A(nbas*norb, 0.0);
+  vector<double> norm(norb, 0.0);
+  for (size_t mu = 0; mu < nbas; mu++) {
+    double *a = &A[mu*norb];
+    const double *cm = &C[mu*norb];
+    if (!useS) {
+      for (size_t i = 0; i < norb; i++) a[i] = cm[i]*cm[i];
+    } else {
+      const double *srow = &overlap[mu*nbas];
+      for (size_t nu = 0; nu < nbas; nu++) {
+        const double s = srow[nu];
+        if (s == 0.0) continue;
+        const double *cn = &C[nu*norb];
+        for (size_t i = 0; i < norb; i++) a[i] += s*cm[i]*cn[i];
+      }
+    }
+    for (size_t i = 0; i < norb; i++) norm[i] += a[i];
+  }
+
+  vector<double> scale(norb, 0.0);
+  for (size_t i = 0; i < norb; i++)
+    if (norm[i] > 1.0e-12) scale[i] = net[i]/norm[i];
+  for (size_t mu = 0; mu < nbas; mu++) {
+    const int atom = functions[mu].atom;
+    if (atom < 0 || atom >= (int)perAtom.size()) continue;
+    const double *a = &A[mu*norb];
+    double q = 0.0;
+    for (size_t i = 0; i < norb; i++) q += scale[i]*a[i];
+    perAtom[atom] += q;
+  }
+  return true;
+}
+
+
 bool MoAoBasis::analyse(const vector<double>& c, Method method,
                         Composition& out) const
 {
@@ -442,4 +508,133 @@ bool MoAoBasis::coefficients(IPropCalculation *calc,
     for (int mu = 0; mu < moCoefs->columns(); mu++)
       rows[m][mu] = moCoefs->value(m, mu);
   return true;
+}
+
+
+#ifdef ECCE_HAVE_HDF5
+
+//  The file's atoms must be the ones asked for; centres come from the
+//  geometry asked for, as flatBasis() does for the Props.
+static bool fromModel(const resultsh5::Model& m, const vector<string>& symbols,
+                      const vector<double>& coordsAng,
+                      MoAoBasis::OrbitalSet& out)
+{
+  if (m.natoms() != symbols.size() || coordsAng.size() != 3*symbols.size() ||
+      m.label != symbols)
+    return false;
+  resultsh5::Model c = m;
+  for (size_t i = 0; i < coordsAng.size(); i++)
+    c.coord[i] = coordsAng[i]*ResultsFromCalc::bohrPerAngstrom();
+  string err;
+  vector<EspBasisFunction> aos;
+  if (!resultsh5::buildAos(c, 0, aos, err) || aos.empty()) return false;
+  MoAoBasis::OrbitalSet o;
+  o.basis.swap(aos);
+  for (size_t k = 0; k < m.mos.size(); k++) {
+    const resultsh5::Mos& mo = m.mos[k];
+    const int sp = mo.spin & 1;
+    if (mo.nao != o.basis.size() || !o.rows[sp].empty()) return false;
+    o.rows[sp].assign(mo.nmo, vector<double>(mo.nao));
+    for (size_t r = 0; r < mo.nmo; r++)
+      std::copy(mo.coef.begin() + r*mo.nao, mo.coef.begin() + (r + 1)*mo.nao,
+                o.rows[sp][r].begin());
+    o.energy[sp] = mo.energy;
+    o.occupation[sp] = mo.occupation;
+  }
+  if (o.rows[0].empty()) return false;
+  o.fromResults = true;
+  out = o;
+  return true;
+}
+
+#endif
+
+
+bool MoAoBasis::orbitalSet(IPropCalculation *calc,
+                           const vector<string>& symbols,
+                           const vector<double>& coordsAng, OrbitalSet& out,
+                           string *why)
+{
+  out = OrbitalSet();
+#ifdef ECCE_HAVE_HDF5
+  {
+    std::shared_ptr<const resultsh5::Model> m = ResultsFromCalc::stored(calc);
+    if (m && fromModel(*m, symbols, coordsAng, out)) return true;
+  }
+#endif
+  OrbitalSet o;
+  if (!coefficients(calc, symbols, false, o.rows[0]) || o.rows[0].empty()) {
+    if (why) *why = "The calculation has no MO coefficients.";
+    return false;
+  }
+  if (!coefficients(calc, symbols, true, o.rows[1])) o.rows[1].clear();
+  if (!flatBasis(calc, symbols, coordsAng, (int)o.rows[0][0].size(), o.basis)) {
+    if (why) *why = "The stored basis set does not match the orbital "
+                    "coefficients.";
+    return false;
+  }
+  auto fetch = [&](const char *key, vector<double>& v) {
+    PropVector *pv = (PropVector*) calc->getProperty(key);
+    v.clear();
+    if (pv != 0) for (int i = 0; i < pv->rows(); i++) v.push_back(pv->value(i));
+  };
+  fetch("ORBENG", o.energy[0]);
+  fetch("ORBOCC", o.occupation[0]);
+  if (!o.rows[1].empty()) {
+    fetch("ORBENGBETA", o.energy[1]);
+    fetch("ORBOCCBETA", o.occupation[1]);
+  }
+  out = o;
+  return true;
+}
+
+
+bool MoAoBasis::buildWithOrbitals(IPropCalculation *calc,
+                                  const vector<string>& symbols,
+                                  const vector<double>& coordsAng,
+                                  vector< vector<double> > rows[2],
+                                  std::function<void(double)> onRow)
+{
+#ifdef ECCE_HAVE_HDF5
+  std::shared_ptr<const resultsh5::Model> m = ResultsFromCalc::stored(calc);
+  OrbitalSet os;
+  if (m && fromModel(*m, symbols, coordsAng, os)) {
+    elements = symbols;
+    perAtom.assign(symbols.size(), 0);
+    functions.clear();
+    overlap.clear();
+    orthonormal = false;
+    complaint.clear();
+    std::map< std::pair<int,int>, int > seen;
+    size_t mu = 0;
+    for (size_t sh = 0; sh < m->basis.shells.size(); sh++) {
+      const resultsh5::Shell& s = m->basis.shells[sh];
+      const int size = s.cartesian ? (s.l + 1)*(s.l + 2)/2 : 2*s.l + 1;
+      const int seq = ++seen[std::make_pair(s.atom, s.l)];
+      for (int k = 0; k < size; k++, mu++) {
+        Function f;
+        f.atom = s.atom;
+        f.l = s.l;
+        f.shellSeq = seq;
+        f.component = componentName(os.basis[mu], s.l, k);
+        functions.push_back(f);
+        perAtom[s.atom]++;
+      }
+    }
+    const size_t n = os.basis.size();
+    overlap.assign(n*n, 0.0);
+    for (size_t i = 0; i < n; i++) {
+      for (size_t j = 0; j < n; j++)
+        overlap[i*n + j] = EspField::overlapOf(os.basis[i], os.basis[j]);
+      if (onRow) onRow((i + 1.0)/n);
+    }
+    rows[0] = os.rows[0];
+    rows[1] = os.rows[1];
+    return true;
+  }
+#endif
+  if (!coefficients(calc, symbols, false, rows[0]) || rows[0].empty())
+    return false;
+  if (!coefficients(calc, symbols, true, rows[1])) rows[1].clear();
+  return build(calc, symbols, coordsAng, (int)rows[0][0].size(), onRow);
 }

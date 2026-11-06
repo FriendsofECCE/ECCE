@@ -134,6 +134,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
                wxMINIMIZE_BOX|wxMAXIMIZE_BOX)
 {
     p_adminFlag = admin;
+    p_infoShown = false;
     p_inCtrlUpdate = false;
     p_inListUpdate = false;
     p_closing = false;
@@ -375,6 +376,7 @@ wxWindow* WxMachineRegister::createMachinePage(wxWindow* parent)
     p_info->SetSizer(infoRow);
     p_info->Show(false);
     sizer->Add(p_info, wxSizerFlags().Expand().Border(wxALL, 3));
+    reg("banner-text", p_infoText);
 
     wxFlexGridSizer* grid = new wxFlexGridSizer(2, 0, 0);
     grid->AddGrowableCol(1);
@@ -2252,7 +2254,7 @@ void WxMachineRegister::draftToControls()
                            (p_adminFlag || p_loadedFrom == "yours"));
     p_inCtrlUpdate = false;
 
-    this->showSiteBanner();
+    this->updateInfoBar(true);
     this->refreshLocality();
     this->syncDraft();
     p_draft->markSaved();
@@ -2260,8 +2262,10 @@ void WxMachineRegister::draftToControls()
 }
 
 
-void WxMachineRegister::showSiteBanner()
+void WxMachineRegister::updateInfoBar(bool fit)
 {
+    string label;
+
     if (fromSite())
     {
         //  The info bar does not wrap, so the line breaks are explicit.
@@ -2271,15 +2275,51 @@ void WxMachineRegister::showSiteBanner()
               "shared by everyone using it."
             : "'" + p_loadedName + "' is a site machine, shared by everyone\n"
               "using this installation.";
-        p_infoText->SetLabel(what + " Saving stores your own copy;\n"
-                             "deleting your copy brings the " + site +
-                             " one back.");
-        p_info->Show(true);
-        p_info->Layout();
+        label = what + " Saving stores your own copy;\n"
+               "deleting your copy brings the " + site + " one back.";
     }
-    else
-        p_info->Show(false);
-    this->growToFitSizer();
+
+    //  Slurm shows UNLIMITED without #SBATCH --time, so a machine that does
+    //  not pass a time limit loses the stored wall time silently.
+    if (slurmWithoutTL())
+    {
+        if (!label.empty())
+            label += "\n";
+        label += "This machine entry does not pass a time limit: the stored "
+                 "wall time will not be passed to Slurm (#SBATCH --time) "
+                 "unless the time-limit capability is enabled.";
+    }
+
+    wxString text = wxString::FromUTF8(label.c_str());
+    if (p_infoText->GetLabel() != text)
+        p_infoText->SetLabel(text);
+    bool show = !label.empty();
+    //  IsShown() is false while the Machine page is not the current tab, so
+    //  track the intended state: the bar is set once per change, not per
+    //  keystroke on another tab.
+    if (p_infoShown != show)
+    {
+        p_info->Show(show);
+        p_info->Layout();
+        p_infoShown = show;
+    }
+    //  Loading a machine re-fits (the bar's text may change its height); a
+    //  live change only toggles the bar, which the page lays out on its own.
+    if (fit)
+        this->growToFitSizer();
+}
+
+
+//  TL (the time-limit capability) is set when any queue has a run limit, so
+//  a Slurm machine with none of them set drops the wall time (#SBATCH --time).
+bool WxMachineRegister::slurmWithoutTL() const
+{
+    if (lowerOf((string)p_qmgrChoice->GetStringSelection()) != "slurm")
+        return false;
+    for (size_t i = 0; i < p_queues.size(); i++)
+        if (p_queues[i].maxWall != 0)
+            return false;
+    return true;
 }
 
 
@@ -3458,6 +3498,10 @@ void WxMachineRegister::updateFooter()
         q->ctrl->SetToolTip(qmgrCommands(lq) + " on the remote machine. "
                             "Leave empty if they are on the default PATH.");
     }
+
+    //  The queue manager or a queue's run limit decides whether a Slurm
+    //  machine passes a time limit; keep the note above in step with them.
+    this->updateInfoBar();
 }
 
 
@@ -4225,6 +4269,15 @@ static string builtinCommand(const string& code)
         return "$xtb xtb.xyz <options from line 1 of $inFile> > $outFile "
                "2>&1\n# gensub first splits $inFile into the options and "
                "xtb.xyz; threads come from OMP_NUM_THREADS=$totalprocs";
+    if (code == "CREST")
+        return "$crest crest.xyz <options from line 1 of $inFile> --xnam "
+               "$xtb -T $totalprocs > $outFile 2>&1\n# gensub first splits "
+               "$inFile into the options and crest.xyz; $xtb is the path "
+               "registered for xTB on this machine";
+    if (code == "MLP")
+        return "$mlp ecce-mlp.py $inFile > $outFile 2>&1\n# $mlp is the "
+               "Python registered for ML Potential; gensub writes ecce-mlp.py "
+               "into the run directory";
     if (code == "MOPAC")
         return "$mopac $inFile >> $runDir/ecce.submit.log 2>&1\n"
                "# before it, $outFile is linked to the .out file MOPAC "
@@ -4257,7 +4310,7 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
         if (code == "NWChem")
             return "e.g. NWCHEM_BASIS_LIBRARY /usr/share/nwchem/libraries/";
         if (code == "ORCA") return "e.g. OMP_NUM_THREADS 1";
-        if (code == "MOPAC" || code == "xTB")
+        if (code == "MOPAC" || code == "xTB" || code == "CREST" || code == "MLP")
             return "e.g. OMP_NUM_THREADS 4";
         if (code == "QuantumESPRESSO")
             return "e.g. ESPRESSO_PSEUDO /opt/pseudo";
@@ -4283,6 +4336,10 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
             return "e.g. $orca $inFile \"--bind-to core\" > $outFile";
         if (code == "GROMACS")
             return "e.g. $gmx mdrun -deffnm md -ntomp $totalprocs -nb gpu";
+        if (code == "MLP")
+            return "e.g. CUDA_VISIBLE_DEVICES=0 $mlp ecce-mlp.py $inFile > $outFile";
+        if (code == "CREST")
+            return "e.g. nice $crest crest.xyz --gfnff --xnam $xtb > $outFile";
         if (code == "xTB")
             return "e.g. nice $xtb xtb.xyz --gfn 2 > $outFile";
         if (code == "MOPAC")

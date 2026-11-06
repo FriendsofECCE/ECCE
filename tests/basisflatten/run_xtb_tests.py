@@ -12,6 +12,10 @@ import subprocess
 import sys
 import tempfile
 
+# eccercmd holds the libssh transport when the build found libssh
+_SSH = (["-lssh"] if __import__("subprocess").run(
+    ["pkg-config", "--exists", "libssh"], capture_output=True).returncode == 0 else [])
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 BUILD = os.environ.get("ECCE_TEST_BUILD", os.path.join(ROOT, "build-cmake"))
@@ -31,7 +35,7 @@ def main():
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"), "-o", exe,
             os.path.join(HERE, "testXtbTracePS.C")] + extra +
            ["-L" + BUILD] + ["-l" + l for l in LIBS] * 3 +
-           ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto",
+           ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH,
             "-Wl,-rpath," + BUILD])
     b = subprocess.run(cmd, capture_output=True, text=True)
     if b.returncode != 0:

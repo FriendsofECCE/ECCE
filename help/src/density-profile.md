@@ -77,13 +77,19 @@ logarithm shows the weak outer tail. The tick marks are always in r itself
 radial curve is no longer the number of electrons; the panel says so beneath the
 plot. Along a line the axis is always linear.
 
-**y axis** is **Linear** or **Log**. Log is for quantities that are never
-negative (the density, ψ² and the radial distribution) and is not offered for
-the signed ψ; its ticks are powers of ten. Values that are zero cannot be drawn
-on a log axis and are left out.
+**y axis** is **Linear**, **Log** or **√y**. Log is for quantities that are
+never negative (the density, ψ² and the radial distribution) and is not offered
+for the signed ψ; its ticks are powers of ten. Values that are zero cannot be
+drawn on a log axis and are left out. √y spreads the small values without the
+decades of the log axis: the curve is drawn at the square root of its value and
+the tick marks are in the real values (0, 0.01, 0.05, 0.1, ...). A value below
+zero is drawn at minus the square root of its size, so a signed ψ is mirrored
+about the zero line and stays readable. The area under a curve is no longer the
+number of electrons on a √y axis.
 
 The mouse wheel zooms about the pointer (Shift+wheel zooms the vertical axis
-only), dragging a rectangle zooms to it, the
+only); on a linear or √y vertical axis the bottom of the axis stays where it is,
+so the baseline below zero stays in view. Dragging a rectangle zooms to it, the
 right or middle button pans, and a double click returns to the opening view.
 **Show all** resets the zoom to show the whole curves, including the peaks that **clip peaks**
 cut off at the nuclei.
@@ -132,6 +138,14 @@ number is not meaningful in the basis set. Every curve has its own colour, the
 total is black and heavier, and when the colours run out the next curves are
 dashed. For an unrestricted calculation choose alpha, beta, or
 alpha + beta; the contributions add up to the total only for alpha + beta.
+
+**Difference...** (under **More**) plots the total density of this calculation
+minus the densities of other calculations of some of the same atoms, at the same
+positions and with the same basis set, which you tick in a list (the fragments
+of a complex; see "Difference from fragments" in **The Density Map**). The plot
+then has one signed curve, "Density difference", with a zero line: above it
+density is gained in the complex, below it lost. The orbital curves are not
+drawn, the vertical axis cannot be logarithmic (the values change sign) and the nuclear peaks are not clipped.
 
 **clip peaks** (along a line) cuts the vertical axis, when the peaks are more than three times higher, a little above the
 highest value found 0.35 Å or more from every atom. The density at a nucleus is

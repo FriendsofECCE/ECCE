@@ -39,6 +39,7 @@
 using std::cerr;
 #include <set>
 using std::set;
+using std::string;
 using std::endl;
 
 #include "wx/treectrl.h"
@@ -63,6 +64,7 @@ using std::endl;
 #include "dsm/TaskJob.H"
 #include "dsm/VDoc.H"
 
+#include <wx/settings.h>
 #include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxTreeCtrl.H"
 #include "wxgui/WxResourceImageList.H"
@@ -111,7 +113,7 @@ bool WxResourceTreeCtrl::Create(wxWindow* parent, wxWindowID id,
 
   // Somehow putting this space and indent setting in ewxTreeCtrl() won't work
   SetSpacing(8);
-  SetIndent(20);
+  SetIndent(ewxBitmap::scaled(20));
 
   // Image list for folder expand and collapse button (the native MSW tree
   // draws its own and has no button list)
@@ -248,6 +250,106 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addRoot(const string& name,
 }
 
 
+WxResourceTreeItemData * WxResourceTreeCtrl::addServerRoot(const string& name,
+    const string& ref, const string& user)
+{
+  string label = name + " (ECCE server)";
+  WxResourceTreeItemData * node = 0;
+  if (!user.empty()) {
+    EDSIServerCentral servers;
+    EcceURL home = servers.getUserHome(EcceURL(ref + "Ecce/"));
+    Resource * res = EDSIFactory::getResource(home);
+    if (res) node = new WxResourceTreeItemData(res);
+  }
+  if (!node) {
+    node = new WxResourceTreeItemData();
+    label += " (not connected)";
+  }
+  node->setServer(name, ref);
+  wxTreeItemId itemId = AppendItem(GetRootItem(), label, -1, -1, node);
+  styleServerRoot(itemId, node, false);
+  SetItemHasChildren(itemId);
+  return node;
+}
+
+
+// An added SSH folder: its tree starts at the folder itself.  ref is its
+// sftp:// address; connected is whether this session has logged in to it.
+WxResourceTreeItemData * WxResourceTreeCtrl::addSshRoot(const string& name,
+    const string& address, bool connected)
+{
+  string label = name + " (SSH)";
+  WxResourceTreeItemData * node = 0;
+  if (connected) {
+    Resource * res = EDSIFactory::getResource(EcceURL(address));
+    if (res) node = new WxResourceTreeItemData(res);
+  }
+  if (!node) {
+    node = new WxResourceTreeItemData();
+    label += " (not connected)";
+  }
+  node->setServer(name, address);
+  wxTreeItemId itemId = AppendItem(GetRootItem(), label, -1, -1, node);
+  styleServerRoot(itemId, node, true);
+  SetItemHasChildren(itemId);
+  return node;
+}
+
+
+// Own icon and a light tint per kind of root; the rows below inherit the
+// tint (see tintLike) so a project's location shows when the root has
+// scrolled away.  A root without a resource is not connected: grey.
+void WxResourceTreeCtrl::styleServerRoot(const wxTreeItemId& id,
+    WxResourceTreeItemData * node, bool ssh)
+{
+  bool connected = node->getResource() != 0;
+  int img = WxResourceImageList::getServerImageIndex(ssh, connected);
+  SetItemImage(id, img, wxTreeItemIcon_Normal);
+  SetItemImage(id, img + 1, wxTreeItemIcon_Selected);
+  SetItemImage(id, img + 2, wxTreeItemIcon_Expanded);
+  SetItemImage(id, img + 3, wxTreeItemIcon_SelectedExpanded);
+  if (connected) {
+    SetItemBackgroundColour(id, WxResourceImageList::getServerTint(ssh));
+    SetItemState(id, getStateIndex(node->getResource()));
+  } else {
+    SetItemTextColour(id, wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+  }
+}
+
+
+void WxResourceTreeCtrl::tintLike(const wxTreeItemId& child,
+                                  const wxTreeItemId& parent)
+{
+  wxColour bg = GetItemBackgroundColour(parent);
+  if (bg.IsOk()) SetItemBackgroundColour(child, bg);
+}
+
+
+void WxResourceTreeCtrl::removeServerRoots()
+{
+  vector<wxTreeItemId> gone;
+  wxTreeItemIdValue cookie;
+  for (wxTreeItemId id = GetFirstChild(GetRootItem(), cookie); id.IsOk();
+       id = GetNextChild(GetRootItem(), cookie)) {
+    WxResourceTreeItemData * d =
+      dynamic_cast<WxResourceTreeItemData *>(GetItemData(id));
+    if (d && !d->serverRef().empty()) gone.push_back(id);
+  }
+  for (size_t i = 0; i < gone.size(); i++) Delete(gone[i]);
+}
+
+
+vector<string> WxResourceTreeCtrl::rootLabels()
+{
+  vector<string> out;
+  wxTreeItemIdValue cookie;
+  for (wxTreeItemId id = GetFirstChild(GetRootItem(), cookie); id.IsOk();
+       id = GetNextChild(GetRootItem(), cookie))
+    out.push_back(GetItemText(id).ToStdString());
+  return out;
+}
+
+
 /**
  * Load the children of node.
  *
@@ -328,6 +430,7 @@ bool WxResourceTreeCtrl::loadChildren(WxResourceTreeItemData * node, bool refres
       wxTreeItemId itemId = AppendItem(node->GetId(), (*resItor)->getName(),
                                        -1, -1, childNode);
       setItemImages(itemId, *resItor);
+      tintLike(itemId, node->GetId());
       
       setExpandable(childNode);
     }
@@ -410,6 +513,7 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addToTree(const EcceURL & url)
     wxTreeItemId itemId = AppendItem(parent->GetId(), resource->getName(),
                                      -1, -1, ret);
     setItemImages(itemId, resource);
+    tintLike(itemId, parent->GetId());
     
     setExpandable(ret);
     SortChildren(parent->GetId());
@@ -546,6 +650,11 @@ WxResourceTreeCtrl::findNode(const EcceURL & targetUrl,
                              bool openWhenFound,
                              bool loadFromServer)
 {
+  // A server root that is not connected has no resource, so its URL is
+  // empty like the hidden root's; taken for the hidden root it would walk
+  // the roots again, itself included, without end.  It holds nothing.
+  const bool hidden = current == GetItemData(GetRootItem());
+  if (!hidden && !current->getResource()) return 0;
   EcceURL currentUrl = current->getUrl();
 
   WxResourceTreeItemData * result = 0;
@@ -581,9 +690,7 @@ WxResourceTreeCtrl::findNode(const EcceURL & targetUrl,
     }
     result = current;
   }
-  // When currentUrl equals EcceURL(), it means the node is the hidden root
-  // of the tree
-  else if (currentUrl == EcceURL()) {
+  else if (hidden) {
     // The hidden root.  Its item data's id is not the root's id on wxMSW
     // (no child is found under it there), so walk GetRootItem() itself.
     wxTreeItemIdValue cookie;

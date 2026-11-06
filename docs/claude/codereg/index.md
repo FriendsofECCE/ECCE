@@ -71,6 +71,8 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [`scripts/gensub`](scripts-gensub.md)
 - [`[PROGRESS]` entries in a `.desc`: job progress, not properties (#284)](progress-parse-type-284.md)
 - [xtb (xTB) is registered like MOPAC/CP2K: a one-file deck split by gensub, geometries appended to the output, orbitals, charges, vibrations and import of outside runs (#362)](xtb-code-registration-stage-1-362.md)
+- [CREST is registered like xtb: a two-part deck split by gensub, the ensemble appended to the output, relative energies as CONFREL (#682)](crest-code-registration-stage-1-682.md)
+- [The shared docking layer (#682, #455): receptor/ligand split in the .param, a pose ensemble as GEOMTRACE + POSESCORE, best-N through ScanPoint](docking-layer-receptor-ligand-pose-ensemble-682.md)
 - [CP2K is registered like Quantum ESPRESSO: its own dialogs, the library scanned in ai.cp2k, the cell from the Builder, results through cp2k.desc (#329)](cp2k-code-registration-follows-qe.md)
 
 ### How a property gets from disk into the Properties menu
@@ -174,6 +176,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [ORCA 6.1.1: no orca_scf next to orca (Find), and the Intel Mac build needs macOS 12.3](orca-6-companion-file-and-macos-minimum.md)
 - [Example calculations ship as program outputs; File > Open Example Calculations imports a fresh copy (and MOPAC has an importer)](example-calculations-are-outputs-not-stored-calcs.md)
 - [Example import copies a pre-parsed calculation; the parse is the fallback (#448)](example-import-copies-the-preparsed-calculation.md)
+- [Example notes are keyed by calculation name; a repeated name takes the wrong note (#784)](example-notes-are-keyed-by-calc-name.md)
 - [A property stored with no values is an empty element; reading one used to end the app (#429)](an-empty-stored-property-element-crashed-its-reader.md)
 - [The dummy atom X has no basis, no electrons, no formula entry - and each code numbers it differently](dummy-atom-x-is-not-an-element-and-each-code-numbers-it-differently.md)
 - [Geometry constraints are edited in the Builder and stored with the calculation; the input uses them only for Geometry/GeoVib](geometry-constraints-are-edited-in-the-builder-and-stored-with-the-calculation.md)
@@ -199,9 +202,14 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [TD-DFT options (#383): ORCA has no triplets-only switch, c vs 2c^2 weights, vocabulary rebuild](tddft-options-orca-triplets-and-weights-383.md)
 - [NWChem final orbitals as the next job's guess (#407)](nwchem-final-orbitals-movecs-as-guess-407.md) — nwchem.movecs kept; guess.movecsin; same basis only
 - [ECCE-QM final orbitals as guess (#407)](ecceqm-final-orbitals-as-guess-407.md)
+- [ECCE-QM ROHF/ROKS on O, F, S, Cl, Ti never converged: aufbau swapped the doubly and singly occupied members of a degenerate shell (#790)](ecceqm-rohf-degenerate-shell-mom-790.md)
 - [ECCE-QM implicit solvent (CPCM): model, keywords, run types, analytic gradient, EPCM vs ESOLV, validation against ORCA](ecceqm-cpcm-solvent.md)
 - [ECCE-QM IRC (#452 stage 2): Gonzalez-Schlegel, panel keys, oracle](ecceqm-irc-452.md)
 - [Example sets and topics are folders plus set.txt; tree Examples/<Set>/<Topic>/<calc>](example-sets-and-topics-are-data.md) — adding an example is data-only; version 9 upgrade
 - [File= properties (GEOMTRACE, MDMSD) are stored last; a long GROMACS log delays them by minutes (#544)](file-parse-properties-are-stored-last.md)
 - [Allocation profiles (#541): Default is the MachPrefs line, the rest are in MachProfiles, each calculation stores its own](allocation-profiles-541.md)
 - [results.h5: internal results format (format_version 1), canonical AO order, converters, gates](results-h5-format.md) — layout, units, why the AO order is not the viewer's per-code order
+- [results.h5 written from the Props at the end of the job store; the views switch in one place](results-h5-written-from-props.md) — where it hooks in, checks, `ResultsFromCalc::stored`, what is not switched
+- [The ML potential code (MLP): Python as the program, runner inlined by gensub, VERSION in .ecce-meta (#728)](ml-potential-code-registration-stage-1-728.md)
+- [xTB "Conformer search (simple)": ecce-confsearch inlined by gensub, ensemble in CREST frame format (#682)](xtb-simple-conformer-search-682.md)
+- [A code's spherical MOOrdering stops below the basis's highest shell: empty functions, every orbital view refuses (ORCA g, #861)](angular-table-below-the-basis-highest-shell-861.md)

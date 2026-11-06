@@ -1,0 +1,65 @@
+# Parse descriptor for ecce-mlp output (machine-learned potential via ASE).
+#
+# ecce-mlp prints every structure between ECCE-MLP-FRAME markers as it goes,
+# and a closing ECCE-MLP-FINAL block (energy, forces, stress), so nothing is
+# appended by gensub.  Energies are eV in the output and Hartree here.  No two
+# Begins may match one line: the FRAME, FINAL and header entries use
+# different markers.
+
+[VERSION]
+Script=mlp.version
+Begin=^Model:\s
+Frequency=first
+Skip=0
+Lines=3
+[END]
+
+[GEOMTRACE][TEVEC][LATTICEVEC]
+Script=mlp.geomtrace
+Begin=^ECCE-MLP-FRAME\s
+Skip=1
+Frequency=all
+End=^ECCE-MLP-ENDFRAME
+[END]
+
+# The last structure's energy, forces (as a gradient) and stress; also what
+# an Energy run reports.
+[TE][EGRADVEC][STRESS][PRESSURE]
+Script=mlp.final
+Begin=^ECCE-MLP-FINAL
+Skip=1
+Frequency=last
+End=^ECCE-MLP-ENDFINAL
+[END]
+
+# The optimiser's criterion is printed once.
+[PROGRESS]
+Begin=^convergence: fmax\s+(\S+)\s
+Remember=fconv
+[END]
+
+[PROGRESS]
+Begin=^Step\s+(\d+)\s*$
+Progress=opt step=$1
+[END]
+
+[PROGRESS]
+Begin=^\s+Energy\s+(-?\d\S*)\s+eV
+Progress=opt energy=$1
+History=energy
+[END]
+
+[PROGRESS]
+Begin=^\s+Fmax\s+(\d\S*)\s+eV/A
+Progress=opt grad=$1/{fconv}
+[END]
+
+[PROGRESS]
+Begin=^Optimisation converged
+Progress=opt converged=yes
+[END]
+
+[PROGRESS]
+Begin=^ecce-mlp: NOT CONVERGED
+Progress=opt converged=no
+[END]

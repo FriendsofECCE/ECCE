@@ -35,6 +35,8 @@
 #include "dsm/ITraversable.H"
 #include "dsm/ResourceType.H"
 #include "dsm/GridProperty.H"
+#include "dsm/VDoc.H"
+#include "dsm/Resource.H"
 
 #include "wxgui/GridElement.H"
 #include "wxgui/WxResourceImageList.H"
@@ -67,7 +69,8 @@ GridPropElement::GridPropElement(Resource *resource, ResourceProperty *property)
   if (property->getName() == "displayname") {
     setValue(resource->getName());
   }
-  else if (property->getType() == GridProperty::PT_PROGRESS) {
+  else if (property->getType() == GridProperty::PT_PROGRESS ||
+           property->getType() == GridProperty::PT_TOTAL_ENERGY) {
     // Made by the Organizer from the job's live or stored snapshot; the
     // stored text itself is not a cell value.
     setValue("");
@@ -128,6 +131,10 @@ wxGridCellAttr *GridPropElement::getAttributes()
     case GridProperty::PT_DATE_TIME:
       cellAttr->SetRenderer(new wxGridCellStringRenderer);
       cellAttr->SetAlignment(wxALIGN_CENTER, wxALIGN_CENTER);
+      break;
+    case GridProperty::PT_TOTAL_ENERGY:
+      cellAttr->SetRenderer(new wxGridCellStringRenderer);
+      cellAttr->SetAlignment(wxALIGN_RIGHT, wxALIGN_CENTER);
       break;
     case GridProperty::PT_PROGRESS:
       cellAttr->SetRenderer(new ProgressCellRenderer);

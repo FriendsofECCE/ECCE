@@ -31,7 +31,7 @@ SCRIPT = [
     "key escape", "info",
     # free-space inserts stay in the mode and never land on atoms
     "cmd clear",
-    "select -1", "library SimpleStructures/Simple_arenes Benzene",
+    "select -1", "library Small_organic_molecules/Arenes Benzene",
     "libatom -1", "click", "info",
     "select -1", "click", "info", "coords",
     "key escape", "info",
@@ -53,7 +53,11 @@ def check(display, results, timeout=120):
         path = os.path.join(work, "mode.script")
         with open(path, "w") as handle:
             handle.write("\n".join(SCRIPT) + "\n")
-        result = apps.run(display, "builder", args=(STRUCTURE,),
+        #  A private state directory has no saved login: without -pipe the
+        #  builder stops at the "ECCE Authentication" dialog.
+        auth = fixture.authFile(os.path.join(work, "auth.pipe"),
+                                user=fixture.realUser())
+        result = apps.run(display, "builder", args=("-pipe", auth, STRUCTURE),
                           windowTimeout=60, settle=timeout,
                           env={"ECCE_BUILDER_SCRIPT": path,
                                "ECCE_FEEDBACK_STDERR": "1",

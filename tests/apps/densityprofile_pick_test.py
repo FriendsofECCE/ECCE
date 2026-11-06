@@ -7,6 +7,7 @@ Density Profile / Density Map details of #580, #581 and #583, headless:
        with many occupied orbitals opens on Total + the largest few
   583  the Density Map names every atom near the plane, also the
        screen-parallel plane of a molecule pointing at the viewer
+  659  a non-planar molecule offers the best-fit molecular plane
 
   629  on a large cluster a click holds the GUI thread under a second (the
        curves are computed on a worker); needs ECCE_DP_CLUSTER=<calc folder>
@@ -47,6 +48,7 @@ CALCS = {
     "acala": stored("spectroscopy/amides-and-peptides", "orca-ac_ala_nhme"),
     "hf": stored("genchem/molecular-orbitals-of-diatomics", "ecceqm-HF"),
     "lih": stored("genchem/molecular-orbitals-of-diatomics", "ecceqm-LiH"),
+    "methane": stored("getting-started", "nwchem-methane"),
 }
 if os.environ.get("ECCE_DP_CLUSTER"):
     CALCS["cluster"] = CALCS["clusterpre"] = os.environ["ECCE_DP_CLUSTER"]
@@ -55,6 +57,12 @@ SCREEN = os.environ.get("ECCE_DP_SCREEN", "1366x768x24")
 MAX_BLOCK_MS = 1000
 
 SCENES = {
+    "methane": """dmopen
+dmplane 0
+dmstate
+dmpng {t}-methane-map 900 700
+hold 1
+""",
     "acala": """dpopen
 dpstate
 plotshot {t}-acala 0 0 Density Profile:docked
@@ -179,6 +187,12 @@ def check(case, log):
         if not opened or not state(opened[0], "line").startswith("6 "):
             p.append("atom selected before the panel opened: line %s"
                      % (state(opened[0], "line") if opened else "-"))
+    elif case == "methane":
+        if "plane principal plane 1 (best fit)" not in log or "have 1" not in log:
+            p.append("non-planar molecule did not produce a best-fit molecular map")
+        grids = [line.split()[1:3] for line in log.splitlines() if line.startswith("grid ")]
+        if not grids or any(int(n) < 2 for n in grids[-1]):
+            p.append("best-fit molecular map has no grid")
     elif case == "lih":
         lab = [l.split()[1:] for l in log.splitlines() if l.startswith("labelled")]
         if len(lab) < 2:

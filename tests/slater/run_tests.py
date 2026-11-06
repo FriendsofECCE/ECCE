@@ -21,6 +21,10 @@ import os
 import subprocess
 import sys
 
+# eccercmd holds the libssh transport when the build found libssh
+_SSH = (["-lssh"] if __import__("subprocess").run(
+    ["pkg-config", "--exists", "libssh"], capture_output=True).returncode == 0 else [])
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 OUT = os.path.join(HERE, "testSlaterExpansion")
@@ -48,7 +52,7 @@ def roundTrip():
             os.path.join(ROOT, "src/tdat/chemistry/SlaterBasisSet.C"),
             os.path.join(ROOT, "src/tdat/chemistry/SlaterExpansion.C"),
             "-L" + BUILD]
-           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
+           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("  skipped: could not link against the build tree")

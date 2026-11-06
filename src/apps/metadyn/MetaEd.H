@@ -133,6 +133,11 @@ class MetaEd: public MetaEdGUI,
     void restrictSpinByCharge();
 
     bool isDetailsReady() const;
+    //  Whether the current theory/run type has a details dialog with fields
+    //  to show; a dialog reports its fields as ES.Theory.* / ES.Runtype.*
+    //  values, so none means it would open empty (#676).
+    bool theoryDetailsAvailable() const;
+    bool runtypeDetailsAvailable() const;
     bool isReady() const;
 
     // refresh & enable/disable & show/hide indicated field sets

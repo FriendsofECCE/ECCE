@@ -6,6 +6,7 @@
  *
  */
 #include "wx/icon.h"
+#include "wx/settings.h"
 #include "dsm/Resource.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceType.H"
@@ -76,6 +77,18 @@ void WxResourceImageList::addAllImages()
   Add(bitmap);
   Add(bitmap);
 
+  // Server roots: ECCE server, SSH folder, then both greyed (4 slots each).
+  wxSize isz = bitmap.GetSize();
+  for (int v = 0; v < 4; v++) {
+    bool ssh = (v % 2) == 1;
+    wxColour ink = v < 2 ? getServerInk(ssh)
+                         : wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+    wxBitmap icon = ewxBitmap::tintedIcon(ssh ? "server-ssh" : "server-ecce",
+                                          isz, ink);
+    if (!icon.IsOk()) icon = bitmap;
+    for (int k = 0; k < 4; k++) Add(icon);
+  }
+
   vector<ResourceType *> resourceTypes =
           ResourceDescriptor::getResourceDescriptor().getResourceTypes();
 
@@ -133,6 +146,30 @@ WxResourceImageList* WxResourceImageList::getImageList()
     p_singleton = new WxResourceImageList();
 
   return p_singleton;
+}
+
+
+int WxResourceImageList::getServerImageIndex(bool ssh, bool connected)
+{
+  return 16 + 4 * ((connected ? 0 : 2) + (ssh ? 1 : 0));
+}
+
+
+wxColour WxResourceImageList::getServerInk(bool ssh)
+{
+  return ssh ? wxColour(0x2E, 0x7D, 0x32) : wxColour(0x80, 0x00, 0x20);
+}
+
+
+// 12 % of the ink over the list background keeps text readable on a light
+// or a dark theme.
+wxColour WxResourceImageList::getServerTint(bool ssh)
+{
+  wxColour ink = getServerInk(ssh);
+  wxColour bg = wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOX);
+  return wxColour((ink.Red() * 12 + bg.Red() * 88) / 100,
+                  (ink.Green() * 12 + bg.Green() * 88) / 100,
+                  (ink.Blue() * 12 + bg.Blue() * 88) / 100);
 }
 
 

@@ -3,7 +3,8 @@
 <!--
    xtb (Grimme group GFN-xTB tight-binding code) registration: energy,
    geometry optimization, orbitals, charges and frequencies.  Modeled on
-   MOPAC.edml and CP2K.edml.  Vibration runs the xtb hess option, GeoVib the ohess option.
+   MOPAC.edml and CP2K.edml.  Vibration runs the xtb hess option, GeoVib the ohess option,
+   Molecular Dynamics the md option (its settings in a $md block below line 1).
 
    Semiempirical, so no basis set: every Theory is needsBasis="false".
 
@@ -17,7 +18,7 @@
    xtb prints no geometry, so gensub appends the trajectory
    (xtbopt.log, or the input xyz for an energy run) to the output file
    between ECCE-XTB-FRAME markers; xtb.desc reads the geometry trace
-   from there.
+   from there.  An MD run's trajectory is xtb.trj, with each frame's time.
 -->
 
 <appdescriptor>
@@ -43,18 +44,26 @@
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Molecular Dynamics</runtype>
+    <runtype>Docking (aISS)</runtype>
+    <runtype>Conformer search (simple)</runtype>
   </Theory>
   <Theory category="SE" name="GFN1-xTB" needsBasis="false">
     <runtype>Energy</runtype>
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Molecular Dynamics</runtype>
+    <runtype>Conformer search (simple)</runtype>
   </Theory>
   <Theory category="SE" name="GFN-FF" needsBasis="false">
     <runtype>Energy</runtype>
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
     <runtype>GeoVib</runtype>
+    <runtype>Molecular Dynamics</runtype>
+    <runtype>Docking (aISS)</runtype>
+    <runtype>Conformer search (simple)</runtype>
   </Theory>
 
   <TheorySummary>
@@ -65,6 +74,16 @@
   </TheorySummary>
   <RuntypeSummary>
     <item key="ES.Runtype.GeomOpt.Level" label="Optimization Level"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.Docking.LigandAtoms" label="Ligand Atoms"></item>
+    <item key="ES.Runtype.Conformers.Samples" label="Conformer Samples"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.MD.Temperature" label="MD Temperature (K)"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.MD.Time" label="MD Time (ps)"></item>
   </RuntypeSummary>
 </Editor>
 

@@ -27,7 +27,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.4.4](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.4.4)),
+  [9.5.1](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.5.1)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
@@ -44,32 +44,20 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
-## Coming in 9.5.0
+## Coming in 9.5.2
 
-- Example set Workflows: a workflow of Na+(H2O)6 in which xTB optimises three arrangements (6+0, 5+1, 4+2) and ORCA r2SCAN-3c refines each result in the gas phase and then in water (CPCM), the water step starting from the gas step's geometry and Hessian (**Start from the source's Hessian**); the order of the arrangements differs between gas and water. Opened from **File > Open Example Calculations**.
+On main, not in a package yet:
+- Example set Workflows: the Na+(H2O)6 workflow gets a water (CPCM) ORCA step after each gas-phase ORCA step, starting from that step's geometry and Hessian; a workflow step can start from the source's ORCA Hessian (**Start from the source's Hessian**).
+- Workflows: an Auto-run checkbox runs the remaining steps once the first one is launched, and a play button on each box runs that step (#736); the Protonation Sites recipe no longer warns that CREST needs an optimised structure, and the step after CREST gets the protomer (#851).
+- General Chemistry examples: Packing in solids, with simple cubic Po, bcc Na, fcc Al and Cu, and hcp Mg shown as unit cells (#859); Quantum ESPRESSO pw.x outputs can be imported (#447).
+- ORCA: RI approximation None, RIJCOSX or RIJONX (#834); orbital views (Density Map, Density Profile, density fields) work for basis sets with g functions (#861).
+- Energy Calculator: a 1 M standard-state term on G and a log K line (#835). `ecce-rerun --last-geometry` continues a running calculation from its last geometry with new cores and wall time (#837).
+- CREST quantum cluster growth runs show their progress (#862); multiplicity 9 is "Nonet" (#853); the side panel keeps its width between panels (#843); Density Map controls tidied (#852).
+- Every finished calculation with orbitals gets a `results.h5` stored beside it, checked (tr(PS) and orthonormality) on every write; the Density Map, Density Profile and density-field command read the orbitals from it. `ecce-results write` makes one for an older calculation (#690).
+- Terminate: a program that outlives the queue's cancel is ended too, and the message says whether anything is still running in the run directory (#855).
+- Structure Library organised by chemistry: small organic molecules, natural products and drugs, biomolecules, inorganic, teaching (#405).
 
-- Workflows (preview): **File > New > Workflow...** makes a set of calculations
-  of any electronic-structure code (ECCE-QM, ORCA, Gaussian-16, NWChem, MOPAC,
-  xTB, Quantum ESPRESSO, CP2K) drawn as a tree. Select a box and a code on the
-  right to add a step that starts from the final geometry, charge and
-  multiplicity of that box (several steps from one box are branches), and
-  **Launch Ready Steps** launches every step whose source is Complete.
-
-- xTB: GFN2-xTB, GFN1-xTB and GFN-FF through the `xtb` program, as a new
-  code in the code bar: energy and geometry optimisation, with an implicit
-  solvent (ALPB or GBSA). The orbitals (energies, occupations and
-  coefficients) are read from xtb's Molden file for GFN2 and GFN1; GFN-FF has
-  no orbitals. Atomic charges, and a Vibration and a Geometry + Vibration
-  run type with frequencies, IR intensities, normal modes and the
-  thermochemistry (zero-point energy, enthalpy, Gibbs energy, T*S). The
-  output of an `xtb` run made outside ECCE can be imported from the
-  Organizer, with the files xtb wrote beside it; the Getting Started set has
-  an xTB water example, and the [xTB help page](help/src/xtb.md) describes the
-  code.
-
-- Results file: the `ecce-results` command converts orbitals from Molden, Gaussian fchk and ORCA files, and an ORCA Hessian, into one HDF5 file (`results.h5`) with a fixed orbital order, the basis for carrying orbitals and Hessians from one workflow step to the next; the [results file help page](help/src/results-file-format.md) describes it.
-
-- `ecce-launch`: launch Ready calculations from the command line, inside the running ECCE session, with their stored machine, cores and wall time; it prints each job id ([#687](https://github.com/FriendsofECCE/ECCE/issues/687)).
+The order of the remaining work is on the [Work plan](https://github.com/FriendsofECCE/ECCE/wiki/Work-plan). What 9.5.0 brought: [release notes](docs/release-notes-9.5.0.md).
 
 ## First steps
 
@@ -88,6 +76,7 @@ videos with subtitles: installing ECCE, a first calculation with ECCE-QM
    ORCA and the others, and telling ECCE where they are.
 4. [Importing a structure](help/src/importing-a-structure.md) or
    [a calculation](help/src/importing-a-calculation.md) that ran elsewhere.
+5. [Scripting and AI assistants](help/src/scripting-and-ai.md): the command-line tools and the `AGENTS.md` file that says how to work with ECCE's data.
 
 ## Getting help and reporting a problem
 

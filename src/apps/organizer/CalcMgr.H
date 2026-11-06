@@ -149,6 +149,11 @@ public:
   // Re-Parse Outputs (#651): parsers and progress record over the stored
   // outputs of the selected calculations; no login, state and dates kept.
   void OnReparseOutputsClick( wxCommandEvent& event );
+  /// "New series from this...": one calculation per structure with the
+  /// template's setup (#621); `sources` are .xyz paths or calculation URLs.
+  void OnNewSeriesClick( wxCommandEvent& event );
+  void newSeries(const EcceURL& templ, const vector<string>& sources,
+                 string *outcome);
   void OnTerminateSelectedClick( wxCommandEvent& event );
   void reparseOutputs(const vector<EcceURL>& urls, bool interactive,
                       string *outcome = 0);
@@ -157,7 +162,7 @@ public:
   // Reconnect Selected (#601), same selection; `listOnly`/`shot` for tests.
   void reconnectSelected(const vector<EcceURL>& urls, bool interactive,
                          string *outcome = 0, const string& shot = "",
-                         bool listOnly = false);
+                         bool listOnly = false, vector<string> *lines = 0);
   // Launch steps run on a worker thread; a login it needs is asked here.
   bool getAuthorization(AuthEvent& event);
   // Launch Selected (#492); `outcome` and `shot` only for the test hook.
@@ -174,6 +179,33 @@ public:
   bool launchForCommand(const vector<EcceURL>& urls,
                         const LaunchBatch::Target& target,
                         vector<string>& lines);
+  // lastGeom: end a running job first and start the copy from its last
+  // stored geometry. cores > 0 and a non-empty wall ("D H:M" or H:M) are
+  // stored as the copy's launch settings.
+  bool rerunForCommand(const vector<EcceURL>& urls, bool launch,
+                       const LaunchBatch::Target& target, vector<string>& lines,
+                       bool lastGeom = false, unsigned long cores = 0,
+                       const string& wall = "");
+  // ecce-terminate (#695): Terminate Selected without the dialog; same line
+  // format as launchForCommand. False, with lines empty, while a batch submits.
+  bool terminateForCommand(const vector<EcceURL>& urls, const string& reason,
+                           vector<string>& lines);
+  // ecce-annotate (#742): the Annotation field set without the editor; same
+  // line format ("name\tok\t" or "name\tno\treason"). Never refused.
+  bool annotateForCommand(const vector<EcceURL>& urls, const string& text,
+                          vector<string>& lines, const string& key = "");
+  // ecce-move / ecce-rename (#824): the Organizer's own move, same line format.
+  bool moveForCommand(const string& verb, const vector<EcceURL>& urls,
+                      const string& second, vector<string>& lines);
+  // ecce-workflow (#807): "ok <workflow URL>" or "error: reason".
+  string workflowForCommand(const string& verb, const EcceURL& calc,
+                            const string& second);
+  // ecce-reconnect: Reconnect Selected without the dialogs; same line format.
+  bool reconnectForCommand(const vector<EcceURL>& urls, vector<string>& lines);
+  bool anyReconnectable(const vector<EcceURL>& urls);
+  // ecce-fetch: run-directory files into the Outputs (or a listing).
+  bool fetchForCommand(const EcceURL& url, const vector<string>& patterns,
+                       bool listOnly, vector<string>& lines);
   // A Launch Selected batch is submitting (#640): the calculations in it
   // must not be deleted, moved, launched or stopped meanwhile.
   bool batchRunning() const { return p_batch != 0; }
@@ -320,8 +352,28 @@ public:
                             Resource *source, bool ask, string *outcome,
                             const string& name = "",
                             const WorkflowSteps::Carry& carry = WorkflowSteps::Carry());
+  /// A step taking several sources (G16 QST2/QST3, ORCA NEB-TS); ask shows
+  /// the join dialog with the given roles as its defaults.
+  Resource *newWorkflowJoin(Session *workflow, ResourceType *type,
+                            const vector<WorkflowSteps::JoinSource>& sources,
+                            bool ask, string *outcome, const string& name = "");
+  /// Apply Recipe: the variant's steps in the workflow; the tree and view
+  /// follow.  Empty on failure, with *outcome saying why.
+  /// A calculation's structure was stored (JMS ecce_url_subject): a recipe
+  /// step's workflow gets the rules and levels again.  What was stored, or "".
+  string structureStored(const EcceURL& url);
+  vector<Resource*> newRecipeSteps(Session *workflow, const Recipe& recipe,
+                                   const RecipeVariant& variant,
+                                   const WorkflowSteps::Levels& levels,
+                                   Resource *after, string *outcome);
   void launchReadySteps(Session *workflow, bool interactive, string *outcome,
                         const string& shot);
+  /// Launch one step if it is ready (the play button, #736); otherwise say
+  /// why not.
+  void launchStep(Session *workflow, Resource *step, bool interactive,
+                  string *outcome);
+  /// Auto-run (#736): launch what is ready in a workflow that has it on.
+  void autoRunWorkflow(Session *workflow);
   void createResource(ResourceType * resource,
                       WxResourceTreeItemData * parent = NULL,
                       const bool& bypassNamePrompt = false);
@@ -356,6 +408,7 @@ public:
   // The project table's Progress cell: JobProgress::shortLine() of the live
   // snapshot, else the stored one; empty unless the calculation is running.
   string progressCellText(Resource * resource) const;
+  string totalEnergyCellText(Resource * resource) const;
   // Out of contact (#284): the job store's "contact" ("lost <epoch last
   // heard>" or "ok") on ecce_url_progress, with the snapshot it holds.
   void contactUpdate(const EcceURL & url, const string & contact,
@@ -385,6 +438,9 @@ public:
   vector<string> p_reparseFailed;
   int p_reparseDone = 0;
 
+  // findNode, re-reading from the nearest known ancestor when the node is missing.
+  WxResourceTreeItemData * findNodeFresh(const EcceURL &targetUrl,
+                                         bool openWhenFound);
   WxResourceTreeItemData * findNode(const EcceURL &targetUrl,
                                     bool openWhenFound = true,
                                     bool loadFromServer = true);
@@ -447,6 +503,13 @@ protected:
   void initializeGUI();
   void setTreeStyle();
   void initializeTreeData();
+  // Roots for the ECCE servers in ~/.ECCE/AddedServers (#767).
+  void syncServerRoots();
+  bool connectServer(const string& ref);
+  bool connectSsh(const string& address);
+  string crossTreeRefusal(const vector<EcceURL>& sources, const EcceURL& dest);
+  bool refuseAddedLaunch(const vector<EcceURL>& urls);
+  void tellRefusal(const string& msg);
 
   void progressNotice(ProgressEvent& event);
   bool getSelection();
@@ -457,10 +520,12 @@ protected:
   WxResourceTreeItemData * nearestContainer(WxResourceTreeItemData * node,
                                             ResourceType * resType);
   void OnGlobalTool(wxCommandEvent& event);
-  // Tools > Compare Energies (#573).
+  // Tools > Energy Calculator (#573).
   class CompareEnergiesDialog *newCompareEnergiesDialog(const vector<EcceURL>& sel);
   void OnCompareEnergies(wxCommandEvent& event);
   bool p_compareEnergiesWired = false;
+  // File > Export > Supporting Information (#625).
+  void OnRank(wxCommandEvent& event);
   // Tools > Allocations (#613).
   void OnAllocations(wxCommandEvent& event);
   bool p_allocationsWired = false;
@@ -484,6 +549,14 @@ protected:
   string p_batchReport;
   void startBatch(const vector<LaunchSelected::Row>& rows, bool showReport);
   bool refuseDuringBatch(const string& what);
+  bool refuseMoveOfActiveJob(Resource *res, const string& what);
+  string activeJobRefusal(Resource *res, const string& what);
+  // Make Workflow... / Move into Workflow > (#807).
+  string workflowMoveRefusal(Resource *calc);
+  string moveIntoWorkflow(Resource *calc, Session *wf, const string& name,
+                          EcceURL *wfUrl);
+  void showInWorkflow(const EcceURL& wfUrl, const EcceURL& step);
+  void makeWorkflowFromSelection(Session *into);
   bool p_quitAsking = false;        // the Quit dialog is open (#291)
   bool p_quitConfirmed = false;     // the user said yes; teardown pending
 
@@ -533,7 +606,7 @@ protected:
                   const string& shell, const string& user, const string& file);
   void shellInRunDir(   WxResourceTreeItemData*);
   void manageFiles(     WxResourceTreeItemData*);
-  void terminateCalc(   WxResourceTreeItemData*);
+  string terminateCalc( WxResourceTreeItemData*);
   void checkJob(        WxResourceTreeItemData*);
   void checkJobOnMachine(WxResourceTreeItemData*);
   void reconnectJob(    WxResourceTreeItemData*);
@@ -569,7 +642,11 @@ protected:
   void viewProperties(WxResourceTreeItemData *itemData);
   void resetWithLastGeom(WxResourceTreeItemData *itemData);
   WxResourceTreeItemData* duplicate(WxResourceTreeItemData* itemData,
-                                    bool openWhenFound = true);
+                                    bool openWhenFound = true,
+                                    const string& name = "");
+  WxResourceTreeItemData* duplicateForRerun(WxResourceTreeItemData* itemData,
+                                           bool select, const string& name = "",
+                                           string *why = 0);
 
   // EditListener virtuals
   void processEditCompletion(const EditEvent& ee);
@@ -591,6 +668,8 @@ protected:
   WxAccessControl       * p_accessControlDialog;
   BookmarkEditor        * p_bookmarkEditor;
   BookmarkEditor        * p_serverListEditor;
+  wxTimer               * p_serverTimer = 0;
+  long                    p_serverListStamp = -1;
   WxFind                * p_find;
   GlobalPrefs           * p_prefs;
   
@@ -640,12 +719,21 @@ protected:
   //  Set by the "new" test command: createResource reports its error
   //  here instead of in a modal dialog.
   string *p_testCreateError = 0;
+  //  Set by the workflownew test command: a New-step dialog is not shown
+  //  but logged here ("carry;" with a source, "nocarry;" without).
+  string *p_testStepDialogs = 0;
   //  Set by the "duplicate" test command: the tree's selection and
   //  collapse events, in order.
   std::vector<string> *p_testTreeEvents = 0;
 
   void applyQueuedUpdates();
   std::vector<std::pair<UpdateKind, string> > p_queuedUpdates;
+  // Steps auto-run launched whose state has not yet left Created, so a
+  // second notice cannot launch them again.
+  std::set<string> p_autoLaunched;
+  // Workflows to look at again when the running launch batch ends.
+  std::set<string> p_autoPending;
+  bool p_autoBatch = false;
   wxTimer *p_updateTimer = 0;
   // For the "counts" test command.
   // True while openExampleSet() imports several outputs: the tree is rebuilt
@@ -653,7 +741,8 @@ protected:
   bool p_batchImport = false;
   // The workflow example being imported: target step -> source step (names).
   // A step joins its session, and the links are made, when its import is done.
-  std::map<std::string, std::string> p_flowSources;
+  std::map<std::string, std::vector<std::pair<std::string, std::string> > >
+    p_flowSources;   // target calc -> (source calc, link name)
   std::map<std::string, std::string> p_flowHessian;   // step -> .hess file
   void joinExampleWorkflow(Resource *step);
   std::string p_batchError;     // the first import that failed in the batch

@@ -30,6 +30,7 @@
 #include "util/TempStorage.H"
 #include "util/JMSPublisher.H"
 #include "util/MqttLink.H"
+#include "util/ServerList.H"
 
 #include "tdat/RefMachine.H"
 #include "tdat/AuthCache.H"
@@ -205,6 +206,30 @@ bool AuthCache::brokerCredential(const string& sessionKey,
 static struct BrokerCredentialRegistration {
   BrokerCredentialRegistration() { MqttLink::setCredentialProvider(AuthCache::brokerCredential); }
 } s_brokerCredentialRegistration;
+
+
+// The login a process other than the Organizer uses on an added server: the
+// newest session store entry of that server (ServerList::loginFor).
+string AuthCache::sessionLoginFor(const string& ref)
+{
+  // What a parent piped in (-pipe) first, then the session store.
+  AuthCache& cache = getCache();
+  for (size_t i = 0; i < cache.p_memcache.size(); i++)
+    if (cache.p_memcache[i]->url.compare(0, ref.size(), ref) == 0 &&
+        !cache.p_memcache[i]->pass.empty())
+      return cache.p_memcache[i]->user;
+  vector<AuthTuple> stored;
+  sessionReadFile(sessionFile(), stored);
+  string user;
+  for (size_t i = 0; i < stored.size(); i++)
+    if (stored[i].url.compare(0, ref.size(), ref) == 0 && !stored[i].pass.empty())
+      user = stored[i].user;
+  return user;
+}
+
+static struct AddedLoginRegistration {
+  AddedLoginRegistration() { ServerList::setLoginProvider(AuthCache::sessionLoginFor); }
+} s_addedLoginRegistration;
 
 
 /**
@@ -416,6 +441,21 @@ string AuthCache::pipeName()
 
 void AuthCache::pipeOut(const string& pipeName)
 {
+  pipeOutData(pipeName, pipeData());
+}
+
+string AuthCache::pipeData() const
+{
+  string data = StringConverter::toString(p_memcache.size()) + "\n";
+  for (size_t idx = 0; idx < p_memcache.size(); idx++) {
+    const AuthTuple *cur = p_memcache[idx];
+    data += cur->url + "|" + cur->user + "|" + cur->pass + "\n";
+  }
+  return data;
+}
+
+void AuthCache::pipeOutData(const string& pipeName, const string& data)
+{
   // pipeName will be a unique name per invocation
 #ifdef _WIN32
   // No FIFOs here: a plain file, written whole and renamed into place, which
@@ -424,12 +464,7 @@ void AuthCache::pipeOut(const string& pipeName)
     string tmp = pipeName + ".tmp";
     FILE *fp = fopen(tmp.c_str(), "wb");
     if (fp) {
-      fprintf(fp, "%d\n", (int)p_memcache.size());
-      for (size_t idx = 0; idx < p_memcache.size(); idx++) {
-        AuthTuple *cur = p_memcache[idx];
-        fprintf(fp, "%s|%s|%s\n", cur->url.c_str(), cur->user.c_str(),
-                cur->pass.c_str());
-      }
+      fwrite(data.data(), 1, data.size(), fp);
       fclose(fp);
       if (renameReplace(tmp.c_str(), pipeName.c_str()) != 0)
         unlink(tmp.c_str());
@@ -438,27 +473,21 @@ void AuthCache::pipeOut(const string& pipeName)
   return;
 #endif
   if (mkfifo(pipeName.c_str(), S_IRUSR|S_IWUSR) == 0) {
-    // A plain O_WRONLY open() blocks until a reader opens the pipe too --
-    // if the child app never starts properly, the caller (e.g. gateway)
-    // hangs forever. O_NONBLOCK makes open() fail immediately with ENXIO
-    // instead of blocking when there's no reader yet, so poll for up to
-    // 10 seconds (matching pipeIn()'s own existing timeout) rather than
-    // waiting indefinitely.  The reader normally opens within milliseconds,
-    // so poll at 20 ms: a 1 s sleep here cost every import and launch a
-    // second.
+    // O_NONBLOCK: open() fails at once while no reader has the pipe open, so
+    // a child that never starts costs at most 10 s (pipeIn()'s timeout),
+    // polled at 20 ms since the reader normally opens within milliseconds.
     int fd = -1;
     for (int it = 0; it < 500 && fd == -1; it++) {
       fd = open(pipeName.c_str(), O_WRONLY|O_NONBLOCK);
       if (fd == -1) usleep(20000);
     }
     if (fd != -1) {
-      string line;
-      line = StringConverter::toString(p_memcache.size()) + "\n";
-      write(fd, line.c_str(), line.length());
-      for (int idx=0; idx<p_memcache.size(); idx++) {
-        AuthTuple *cur = p_memcache[idx];
-        line = cur->url + "|" + cur->user + "|" + cur->pass + "\n";
-        write(fd, line.c_str(), line.length());
+      size_t off = 0;
+      for (int waits = 0; off < data.size() && waits < 10000; ) {
+        ssize_t n = write(fd, data.data() + off, data.size() - off);
+        if (n > 0) off += (size_t)n;
+        else if (n < 0 && errno == EAGAIN) { usleep(1000); waits++; }
+        else break;
       }
       close(fd);
     }
@@ -750,7 +779,8 @@ BasicAuth *AuthCache::getAuthentication
      * ANY_USER.  I think its a bit
      * confusing - the user doesn't know who they are authenticated as.
      */
-    if (pass=="" && p_userPolicy==ANY_USER) {
+    // Never for ssh: another user's password would be tried as this one's.
+    if (pass=="" && p_userPolicy==ANY_USER && sessionWorthy(key)) {
       pass = findAny(key, user, retryCount);
     }
 
@@ -758,12 +788,26 @@ BasicAuth *AuthCache::getAuthentication
       pass = findBest(key, user, retryCount);
     }
 
-    // The newest credential of the same kind: a compute machine's password
-    // (ssh://, cached by RCommand) must never be sent to a data server.
-    if (pass=="" && p_URLPolicy==LAST_URL) {
-      const bool http = sessionWorthy(key);
+    // LAST_URL (the job store) widens only data-server lookups.  An ssh
+    // password is offered to its own host[:port] and user alone (the exact
+    // find above): sent to another sshd it would leak and be reported as a
+    // wrong password there, so with none cached the login asks.
+    if (pass=="" && p_URLPolicy==LAST_URL && ServerList::isAdded(url.getRef())) {
+      // An added server: only its own credential, never another server's.
+      const string server = makeKey(urlstr, "");
       for (size_t i = 0; i < p_memcache.size(); i++) {
-        if (sessionWorthy(p_memcache[i]->url) == http) {
+        if (p_memcache[i]->user == user && p_memcache[i]->url.find(server) == 0) {
+          pass = p_memcache[i]->pass;
+          break;
+        }
+      }
+    }
+    // The session's own data server: its realm need not be the one the
+    // password was cached under.
+    if (pass=="" && p_URLPolicy==LAST_URL && sessionWorthy(key) &&
+        !ServerList::isAdded(url.getRef())) {
+      for (size_t i = 0; i < p_memcache.size(); i++) {
+        if (sessionWorthy(p_memcache[i]->url)) {
           pass = p_memcache[i]->pass;
           break;
         }

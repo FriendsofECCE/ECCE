@@ -32,6 +32,10 @@ import subprocess
 import sys
 import tempfile
 
+# eccercmd holds the libssh transport when the build found libssh
+_SSH = (["-lssh"] if __import__("subprocess").run(
+    ["pkg-config", "--exists", "libssh"], capture_output=True).returncode == 0 else [])
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 BUILD = os.environ.get("ECCE_TEST_BUILD", os.path.join(REPO, "build-cmake"))
@@ -72,7 +76,7 @@ def buildDriver(out):
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o",
             out, os.path.join(HERE, "propinterp.C"), "-L" + BUILD]
            + ["-l" + l for l in LIBS] * 3
-           + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
+           + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         sys.exit("could not build propinterp:\n" + proc.stderr[-3000:])

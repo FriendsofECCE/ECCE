@@ -201,6 +201,13 @@ bool compute(const DensityPlane::Evaluator& ev, const double centre[3],
 
   PointValues pv(ev, specs);
 
+  //  The plain average at r = 0 is the value at the centre (an s orbital is
+  //  largest there); r^2 psi^2 really is 0 at r = 0.
+  if (!opt.radial && r[0] == 0.0) {
+    pv.at(centre[0], centre[1], centre[2]);
+    for (size_t k = 0; k < specs.size(); k++)
+      out[k].p[0] = perUnit * perUnit * perUnit * pv.value(specs[k]);
+  }
   for (size_t i = 1; i < r.size(); i++) {
     const double rA = r[i] * rScale;
     const double rb = rA / BOHR_ANG;
@@ -281,16 +288,26 @@ vector<int> radialNodes(const DensityPlane::Evaluator& ev, bool beta,
 }
 
 vector<string> shellLabels(IPropCalculation *calc,
-                           const DensityPlane::Evaluator& ev, bool beta)
+                           const DensityPlane::Evaluator& ev, bool beta, string *why)
 {
+  if (why) why->clear();
   vector<string> out;
-  if (ev.symbols.size() != 1) return out;
-  vector< vector<double> > rows;
-  if (!MoAoBasis::coefficients(calc, ev.symbols, beta, rows) || rows.empty())
+  if (ev.symbols.size() != 1) {
+    if (why) *why = "not a one-atom calculation";
     return out;
+  }
+  vector< vector<double> > both[2];
   MoAoBasis basis;
-  if (!basis.build(calc, ev.symbols, ev.coordsAng, (int)rows[0].size()))
+  if (!basis.buildWithOrbitals(calc, ev.symbols, ev.coordsAng, both)) {
+    if (why) *why = both[0].empty() ? "No MO coefficients for atomic shell labels."
+                                    : "Atomic shell labels: " + basis.complaint;
     return out;
+  }
+  const vector< vector<double> >& rows = both[beta ? 1 : 0];
+  if (rows.empty()) {
+    if (why) *why = "No MO coefficients for atomic shell labels.";
+    return out;
+  }
   const vector<double>& occ = beta ? ev.occBeta : ev.occ;
   static const char *letters = "spdfgh";
   int seen[6] = { 0, 0, 0, 0, 0, 0 };
@@ -320,6 +337,22 @@ vector<string> shellLabels(IPropCalculation *calc,
       const int l = best->l;
       out[m] = to_string(l + 1 + seen[l]++ / (2 * l + 1)) + letters[l];
     }
+  }
+  //  The empty members of a partly filled shell (B 2p1: two more 2p) are
+  //  that shell's own orbitals, so they carry its n whatever their nodes say.
+  for (int l = 0; l < 6; l++) {
+    const int per = 2 * l + 1;
+    if (seen[l] % per == 0) continue;
+    int need = per - seen[l] % per;
+    const int n = l + 1 + (seen[l] - 1) / per;
+    for (size_t k = 0; k < virt.size() && need > 0; k++)
+      if (virtL[k] == l) {
+        out[virt[k]] = to_string(n) + letters[l] + " (virtual)";
+        virt.erase(virt.begin() + k);
+        virtL.erase(virtL.begin() + k);
+        k--;
+        need--;
+      }
   }
   //  A virtual is named by shell only if it is a real Rydberg-like orbital:
   //  its radial nodes count up from the occupied shells of its type
@@ -358,11 +391,18 @@ vector<string> shellLabels(IPropCalculation *calc,
   return out;
 }
 
-vector<string> atomOrbitalLabels(IPropCalculation *calc, bool beta)
+vector<string> atomOrbitalLabels(IPropCalculation *calc, bool beta, string *why)
 {
   DensityPlane::Evaluator ev;
-  if (!calc || !ev.build(calc) || ev.symbols.size() != 1) return vector<string>();
-  return shellLabels(calc, ev, beta);
+  if (!calc) {
+    if (why) *why = "No calculation for atomic orbital labels.";
+    return vector<string>();
+  }
+  if (!ev.build(calc)) {
+    if (why) *why = "Atomic orbital evaluator: " + ev.complaint;
+    return vector<string>();
+  }
+  return shellLabels(calc, ev, beta, why);
 }
 
 vector<Spec> orbitalSpecs(const DensityPlane::Evaluator& ev,

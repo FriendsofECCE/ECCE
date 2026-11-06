@@ -18,6 +18,7 @@ using namespace xercesc;
 #include <sys/stat.h>
 #include <sys/types.h>
 #include "util/Ecce.H"
+#include "util/ServerList.H"
 #include "util/ErrMsg.H"
 #include "util/KeyValueReader.H"
 #include "util/SFile.H"
@@ -249,8 +250,9 @@ bool EDSIServerCentral::checkServerSetup()
           "login was sent to it.\n\n" +
           string(getenv("ECCE_REMOTE_DIR") ?
             "The server's certificate has changed since you first connected. "
-            "If you expected that, ask the server's administrator, then "
-            "choose Edit > Preferences..., Data folder, Change Server... and connect again.\n" :
+            "If you expected that, ask the server's administrator for the new "
+            "server.pem, pin it (ecce-remote-setup <server> --tls --pin "
+            "server.pem) and connect again.\n" :
             "The administrator can give you the "
             "server's current certificate (ecce-remote-setup --tls --pin).\n"),
           WHERE);
@@ -565,7 +567,7 @@ EcceURL EDSIServerCentral::getUserHome(const EcceURL& rootUrl)
     string path = ret.getFile();
     if (path[path.length()-1] != '/') path.append("/");
     path.append("users/");
-    path.append(Ecce::serverUser());
+    path.append(ServerList::userFor(rootUrl.toString()));
     ret.set(ret.getProtocol().c_str(), ret.getHost().c_str(),
             ret.getPort(), path.c_str());
   } else if (ret.getProtocol().find("file") == 0 ||

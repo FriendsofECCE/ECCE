@@ -4,6 +4,7 @@
 #include "dsm/PropertyTask.H"
 #include "dsm/IPropCalculation.H"
 #include "dsm/ResourceDescriptor.H"
+#include "dsm/ScanPoint.H"
 #include "tdat/PropTSVecTable.H"
 #include "tdat/TAtm.H"
 #include "tdat/Fragment.H"
@@ -14,23 +15,7 @@
 bool applyPointStructure(Fragment *frag, const std::vector<double>& xyz,
                          std::string& why)
 {
-  const int n = frag->numAtoms();
-  std::vector<int> target;
-  for (int i = 0; i < n; i++)
-    if (frag->atomRef(i)->atomicSymbol() != "X") target.push_back(i);
-  if (3 * (size_t)n == xyz.size()) {
-    target.clear();
-    for (int i = 0; i < n; i++) target.push_back(i);
-  } else if (3 * target.size() != xyz.size()) {
-    char buf[128];
-    snprintf(buf, sizeof buf, "The structure has %d atoms; the calculation has %d.",
-             (int)(xyz.size() / 3), n);
-    why = buf;
-    return false;
-  }
-  for (size_t k = 0; k < target.size(); k++)
-    frag->atomRef(target[k])->coordinates(xyz[3*k], xyz[3*k+1], xyz[3*k+2]);
-  return true;
+  return ScanPoint::apply(frag, xyz, why);
 }
 
 std::string newCalcFromPoint(IPropCalculation *calc, const std::string& key,

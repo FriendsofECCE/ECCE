@@ -58,6 +58,49 @@ static void expectShortSingleLine(const string& label, const string& reason)
   }
 }
 
+static void expectEq(const string& label, const string& got,
+                     const string& want)
+{
+  if (got != want) {
+    cerr << "FAIL " << label << ": expected \"" << want
+         << "\", got: \"" << got << "\"" << endl;
+    failures++;
+  } else {
+    cout << "PASS " << label << endl;
+  }
+}
+
+// The HFX_MEM_INFO block of a real CP2K 2025.1 PBE0 water run (MAX_MEMORY
+// 200), with the two program-size lines and the ERI RAM line parameterized
+// so the two-block case below can differ from the verbatim first block.
+static string hfxBlock(const string& before, const string& after,
+                       const string& ram)
+{
+  return string(" SCF WAVEFUNCTION OPTIMIZATION\n")
+       + "\n"
+       + "  Step     Update method      Time    Convergence         Total energy    Change\n"
+       + "  ------------------------------------------------------------------------------\n"
+       + "\n"
+       + "  HFX_MEM_INFO| Est. max. program size before HFX [MiB]:                     " + before + "\n"
+       + "  HFX_MEM_INFO| Number of cart. primitive ERI's calculated:            275133392\n"
+       + "  HFX_MEM_INFO| Number of sph. ERI's calculated:                           89381\n"
+       + "  HFX_MEM_INFO| Number of sph. ERI's stored in-core:                       89381\n"
+       + "  HFX_MEM_INFO| Number of sph. ERI's stored on disk:                           0\n"
+       + "  HFX_MEM_INFO| Number of sph. ERI's calculated on the fly:                    0\n"
+       + "  HFX_MEM_INFO| Total memory consumption ERI's RAM [MiB]:                      " + ram + "\n"
+       + "  HFX_MEM_INFO| Whereof max-vals [MiB]:                                        1\n"
+       + "  HFX_MEM_INFO| Total compression factor ERI's RAM:                         3.23\n"
+       + "  HFX_MEM_INFO| Total memory consumption ERI's disk [MiB]:                     0\n"
+       + "  HFX_MEM_INFO| Total compression factor ERI's disk:                        0.00\n"
+       + "  HFX_MEM_INFO| Size of density/Fock matrix [MiB]:                             0\n"
+       + "  HFX_MEM_INFO| Size of buffers [MiB]:                                         0\n"
+       + "  HFX_MEM_INFO| Number of periodic image cells considered:                    81\n"
+       + "  HFX_MEM_INFO| Est. max. program size after HFX  [MiB]:                     " + after + "\n"
+       + "\n"
+       + "\n"
+       + " MO| EIGENVALUES AND OCCUPATION NUMBERS AFTER SCF STEP 0\n";
+}
+
 int main(int argc, char** argv)
 {
   if (argc < 2) {
@@ -65,6 +108,18 @@ int main(int argc, char** argv)
     return 1;
   }
   string fx = argv[1];
+
+  // ORCA, optimisation out of cycles before Freq: the boxed "ERROR !!!"
+  // is named by the sentence under it.
+  {
+    vector<string> files;
+    files.push_back(fx + "/orca-opt-maxiter/orca.orcaout");
+    string reason = JobFailureReason::extractReason(files);
+    expectContains("ORCA ERROR !!! box", reason,
+                   "\"The optimization did not converge but reached the "
+                   "maximum number of optimization cycles.\"");
+    expectShortSingleLine("ORCA ERROR !!! reason is short", reason);
+  }
 
   // ORCA, real failure: Open MPI refused to bind 8 processes to a
   // 4-core node (benzene-1-1, ran BEFORE gensub's marker-check landed --
@@ -234,6 +289,84 @@ int main(int argc, char** argv)
     remove(path.c_str());
     expectEmpty("scheduler note, missing file",
                 JobFailureReason::schedulerErrNote("slurm.err", path));
+  }
+
+  // reasonForProgressBox: for the Progress box, the scheduler note's quoted
+  // line is shortened to 100 chars + ellipsis; everything else -- CP2K's HFX
+  // estimate sentence above all -- and the stored reason stay whole.
+  {
+    const string quote =
+        "slurmstepd: error: Detected 10 oom_kill events in StepId=1366008."
+        "extern Some of the step tasks have been OOM Killed by the cgroup "
+        "memory controller before the run could checkpoint.";
+    const string full =
+        "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+        "(see slurm.err in Outputs: " + quote + ")";
+    const string hfx = " CP2K's HFX estimate: program size 291 MiB before "
+                       "HFX, 294 MiB after; ERIs in RAM 1 MiB (set the "
+                       "memory per rank, or fewer ranks per node).";
+    const string prefix =
+        "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+        "(see slurm.err in Outputs: ";
+
+    expectEq("long scheduler quote shortened to 100 chars + ellipsis",
+             JobFailureReason::reasonForProgressBox(full),
+             prefix + quote.substr(0, 100) + "\xe2\x80\xa6)");
+    expectEq("short scheduler quote unchanged",
+             JobFailureReason::reasonForProgressBox(
+                 "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+                 "(see slurm.err in Outputs: slurmstepd: error: oom-kill)"),
+             "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+             "(see slurm.err in Outputs: slurmstepd: error: oom-kill)");
+    expectEq("reason with no scheduler note unchanged",
+             JobFailureReason::reasonForProgressBox(
+                 "\"The optimization did not converge but reached the "
+                 "maximum number of optimization cycles.\""),
+             "\"The optimization did not converge but reached the maximum "
+             "number of optimization cycles.\"");
+    expectEq("CP2K HFX sentence stays whole",
+             JobFailureReason::reasonForProgressBox(full + hfx),
+             prefix + quote.substr(0, 100) + "\xe2\x80\xa6)" + hfx);
+    // A ')' inside the quoted slurm line -- the OOM killer's "(1234 MB > "
+    // "1024 MB)" -- is not the note's closing ')' (#677): it must not stop
+    // the shortening early (short quote) or be re-appended after the
+    // ellipsis (long quote).
+    const string parenQuote =
+        "slurmstepd: error: Job 12345 exceeded its memory limit and the OOM "
+        "killer terminated the step (virtual memory 12 GB > 8 GB) to reclaim "
+        "the node for the rest of the queue";
+    expectEq("')' inside a long scheduler quote: shortened at the note's ')'",
+             JobFailureReason::reasonForProgressBox(prefix + parenQuote + ")"),
+             prefix + parenQuote.substr(0, 100) + "\xe2\x80\xa6)");
+    expectEq("')' inside a short scheduler quote: unchanged",
+             JobFailureReason::reasonForProgressBox(
+                 "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+                 "(see slurm.err in Outputs: Job 123 exceeded memory limit "
+                 "(1234 MB > 1024 MB), being killed)"),
+             "Out of memory: the scheduler killed the job (OUT_OF_MEMORY) "
+             "(see slurm.err in Outputs: Job 123 exceeded memory limit "
+             "(1234 MB > 1024 MB), being killed)");
+  }
+
+  // CP2K HFX memory estimate for a scheduler OOM kill (#739): the LAST
+  // HFX_MEM_INFO block's two program-size lines and its ERI RAM line
+  // become one short sentence; "" when there is no such block.
+  {
+    const string one = hfxBlock("291", "294", "1");
+    expectContains("hfx single block",
+                   JobFailureReason::hfxMemoryNote(one),
+                   "CP2K's HFX estimate: program size 291 MiB before HFX, "
+                   "294 MiB after; ERIs in RAM 1 MiB");
+    const string two = one + hfxBlock("300", "305", "7");
+    const string note = JobFailureReason::hfxMemoryNote(two);
+    expectContains("hfx last block wins", note,
+                   "program size 300 MiB before HFX, 305 MiB after; "
+                   "ERIs in RAM 7 MiB");
+    expectContains("hfx advice", note, "set the memory per rank");
+    expectShortSingleLine("hfx note is short", note);
+    expectEmpty("hfx no lines", JobFailureReason::hfxMemoryNote(
+                   "a CP2K output with no HFX_MEM_INFO\n"));
+    expectEmpty("hfx empty text", JobFailureReason::hfxMemoryNote(""));
   }
 
   if (failures) {

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<vecstring name="VIBSYM" rowLabel="Normal Mode" rowLabels="1-A1 2-E 3-E 4-A1 5-E 6-E 7-A1 8-E 9-E 10-A1 11-E 12-E" rows="12" units="NA">A1   E   E   A1
+E   E   A1   E
+E   A1   E   E</vecstring>

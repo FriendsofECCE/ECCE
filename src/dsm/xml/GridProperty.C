@@ -185,6 +185,9 @@ string GridProperty::propertyTypeToStr(GridProperty::PropertyType type)
     case PT_FLOAT:
       ret = "float";
       break;
+    case PT_TOTAL_ENERGY:
+      ret = "totalenergy";
+      break;
     case PT_PROGRESS:
       ret = "progress";
       break;
@@ -229,6 +232,9 @@ GridProperty::PropertyType GridProperty::strToPropertyType(const string& pt)
     }
     else if (lstr == "float") {
       ret = GridProperty::PT_FLOAT;
+    }
+    else if (lstr == "totalenergy") {
+      ret = GridProperty::PT_TOTAL_ENERGY;
     }
     else if (lstr == "progress") {
       ret = GridProperty::PT_PROGRESS;

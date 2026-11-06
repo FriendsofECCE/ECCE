@@ -969,6 +969,18 @@ bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests,
 {
   m_msgStack.clear();
   string path = p_url.getPath();
+  // Only a path that is really gone may read as missing: the Organizer
+  // then tells the user it was moved or removed.  DataServers names the
+  // Structure Library as $ECCE_HOME/..., so expand before the stat.
+  struct stat st;
+  if (stat(SFile(path).path(true).c_str(), &st) != 0) {
+    if (errno == ENOENT || errno == ENOTDIR)
+      m_msgStack.add("RESOURCE_NOT_FOUND", path.c_str());
+    else
+      m_msgStack.add("UNABLE_TO_READ",
+                     (path + " (" + strerror(errno) + ")").c_str());
+    return false;
+  }
   string dir, key;
   locate(path, dir, key);
   MetaStore store = loadStore(dir);

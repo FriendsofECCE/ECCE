@@ -15,6 +15,7 @@
  *    rundir PATH           fill the Run Directory field
  *    account NAME          fill the Alloc. Account field
  *    profile NAME          choose an allocation profile, as the choice does
+ *    walltime MIN          set the wall time limit, in minutes
  *    procs N               set the processors, as typed into the field
     click advanced        the Advanced fold button
     username NAME         type into the Username field
@@ -35,7 +36,7 @@
  *                          block | password | username | scratchdir |
  *                          advanced | rundir | connect | launchable |
  *                          queue | procs | wsprocs | wsprocsmax | wsprocslabel |
- *                          coreswarn | procsmax | memory | memunits |
+ *                          coreswarn | booked | procsmax | memory | memunits |
  *                          scratchunits | button | account | scratch | profile |
  *                          profiles | profilechoice
  *    wait MS | shot FILE | quit

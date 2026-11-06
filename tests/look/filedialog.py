@@ -26,7 +26,7 @@ import xdisplay  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 LIBS = ["eccewxgui", "eccewxplotctrl", "eccewxthings", "eccewxgui",
-        "eccecomm", "eccercmd", "eccedsi", "eccedav", "eccecipc",
+        "eccecomm", "eccercmd", "eccedsi", "eccercmd", "eccedav", "eccecipc",
         "eccefaces", "eccexml", "eccetdat", "ecceutil"]
 FILES = ["benzene.xyz", "water.xyz", "WATER2.XYZ", "glycine.pdb", "glycine.ent",
          "1ABC.PDB", "benzene.car", "nacl_periodic.car", "phenol.mvm",
@@ -94,7 +94,7 @@ def main():
     b = out(["nice", "-n", "19", "g++", "-std=c++17", "-w", "-o", binary]
             + srcs + ["-I" + os.path.join(ROOT, "include")] + cxx
             + ["-L" + o.libdir] + ["-l" + lib for lib in LIBS] + wxl
-            + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl", "-lcrypto"])
+            + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lssh", "-lmosquitto", "-lssl", "-lcrypto"])
     if b.returncode:
         print(b.stderr[-3000:])
         return 1

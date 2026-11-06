@@ -3,6 +3,7 @@
 #include "wxgui/WxState.H"
 
 #include "wxgui/WxStateImageList.H"
+#include "wxgui/ewxBitmap.H"
 
 
 map<int, WxStateImageList*> WxStateImageList::p_singletons;
@@ -18,7 +19,8 @@ WxStateImageList::WxStateImageList(int size)
 
 bool WxStateImageList::Create()
 {
-  if (!ewxImageList::Create(p_size, p_size, true, 0)) {
+  if (!ewxImageList::Create(ewxBitmap::scaled(p_size),
+                            ewxBitmap::scaled(p_size), true, 0)) {
     wxFAIL_MSG( wxT("WxStateImageList creation failed") );
     return false;
   }
@@ -35,7 +37,8 @@ void WxStateImageList::addAllImages()
   for (int state = ResourceDescriptor::STATE_ILLEGAL;
            state <= WxState::OUT_OF_CONTACT;
            state++) {
-    Add(WxState::alphaBitmap((ResourceDescriptor::RUNSTATE)state, p_size));
+    Add(WxState::alphaBitmap((ResourceDescriptor::RUNSTATE)state,
+                             ewxBitmap::scaled(p_size)));
   }
 }
 

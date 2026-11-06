@@ -87,8 +87,9 @@ FetchContent_MakeAvailable(libcint)
 # --- the library and the command line tool ---------------------------------
 add_library(eccems STATIC
   molecule.cpp basislib.cpp basis.cpp integrals.cpp ao.cpp grid.cpp xc.cpp
-  scf.cpp charges.cpp gradient.cpp hessian.cpp optimizer.cpp irc.cpp vibration.cpp polar.cpp localise.cpp solvent.cpp input.cpp output.cpp)
-target_include_directories(eccems PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${libcint_SOURCE_DIR}/include)
+  scf.cpp charges.cpp gradient.cpp hessian.cpp optimizer.cpp tscheck.cpp irc.cpp vibration.cpp polar.cpp localise.cpp solvent.cpp input.cpp output.cpp)
+target_include_directories(eccems PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${libcint_SOURCE_DIR}/include
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(eccems PUBLIC Eigen3::Eigen cint qm_xc)
 if(OpenMP_CXX_FOUND)
   target_link_libraries(eccems PUBLIC OpenMP::OpenMP_CXX)
@@ -124,6 +125,10 @@ if(QM_PYTHON3)
   set_tests_properties(qm_diatomic_order PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # Loewdin, CHELPG and Merz-Kollman charges against ORCA and Gaussian 16;
   # exits 77 (skip) when neither is installed.
+  # Restricted open-shell atoms H-Ar, Ca-Cu converge, above the UHF/UKS energy (#790).
+  add_test(NAME qm_roks_atoms COMMAND ${QM_PYTHON3} ${_qm_tests}/roks_atoms_test.py
+           $<TARGET_FILE:ecce-qm> ${_ecce_root}/data/admin/basissets)
+  set_tests_properties(qm_roks_atoms PROPERTIES TIMEOUT 1800)
   add_test(NAME qm_charges COMMAND ${QM_PYTHON3} ${_qm_tests}/charges_test.py $<TARGET_FILE:ecce-qm>)
   add_test(NAME qm_charges_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/charges_deck_test.py)
   set_tests_properties(qm_charges PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
@@ -145,6 +150,9 @@ if(QM_PYTHON3)
   # The ECCE-QM basis list: the deck ai.ecceqm writes and the bare name agree
   # with each other and with ORCA.
   add_test(NAME qm_basis_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/basis_deck_test.py $<TARGET_FILE:ecce-qm>)
+  # The Basis Set Tool: a library basis outside the quick-pick list, written
+  # as basis_data, gives the same energy as its bare library name.
+  add_test(NAME qm_basis_set_tool COMMAND ${QM_PYTHON3} ${_qm_tests}/basis_set_tool_test.py $<TARGET_FILE:ecce-qm>)
   # CPCM solvation energies against ORCA (oracle numbers in the script).
   add_test(NAME qm_solvent COMMAND ${QM_PYTHON3} ${_qm_tests}/solvent_test.py $<TARGET_FILE:ecce-qm>)
   add_test(NAME qm_raman_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/raman_deck_test.py)
@@ -168,6 +176,12 @@ if(QM_PYTHON3)
   # IRC (#452 stage 2): HCN <-> HNC against ORCA's IRC (tests/qm/irc_oracle.json).
   add_test(NAME qm_irc COMMAND ${QM_PYTHON3} ${_qm_tests}/irc_test.py $<TARGET_FILE:ecce-qm> --quick)
   set_tests_properties(qm_irc PROPERTIES TIMEOUT 600)
+  # IRC from a start a little off the saddle: the two ends must differ (#764).
+  add_test(NAME qm_irc_offset COMMAND ${QM_PYTHON3} ${_qm_tests}/irc_offset_test.py $<TARGET_FILE:ecce-qm>)
+  set_tests_properties(qm_irc_offset PROPERTIES TIMEOUT 300)
+  # Cl- + CH3Br from a start off the saddle: ends are the two different complexes (#764).
+  add_test(NAME qm_irc_sn2 COMMAND ${QM_PYTHON3} ${_qm_tests}/irc_sn2_test.py $<TARGET_FILE:ecce-qm>)
+  set_tests_properties(qm_irc_sn2 PROPERTIES TIMEOUT 600)
   set_tests_properties(qm_ts_quick PROPERTIES TIMEOUT 600)
   set_tests_properties(qm_ts PROPERTIES TIMEOUT 3600)
   set_tests_properties(qm_scan_quick PROPERTIES TIMEOUT 1800)

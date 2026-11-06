@@ -1,0 +1,451 @@
+#include <cctype>
+#include <cstdio>
+#include <fstream>
+#include <sstream>
+
+#include "dsm/EDSIFactory.H"
+#include "dsm/ICalculation.H"
+#include "dsm/ResourceDescriptor.H"
+#include "tdat/AtomMap.H"
+#include "tdat/Fragment.H"
+#include "dsm/TGBSConfig.H"
+#include "tdat/GUIValues.H"
+#include "tdat/TsPath.H"
+#include "tdat/TTheory.H"
+#include "tdat/TAtm.H"
+#include "util/EcceURL.H"
+#include "util/TempStorage.H"
+#include "util/SFile.H"
+
+#include "dsm/QstStructures.H"
+#include "dsm/ScanPoint.H"
+
+bool qstFinalStructure(PropertyTask* calc, std::vector<std::string>& el,
+                       std::vector<double>& xyz, bool& optimised)
+{
+   el.clear();
+   xyz.clear();
+   optimised = false;
+   if (!calc) return false;
+   Fragment* frag = calc->fragment();
+   if (!frag) return false;
+   optimised = calc->getFragmentStep(frag, -1);
+   for (size_t i = 0; i < frag->numAtoms(); i++) {
+      const TAtm* a = frag->atomRef((int)i);
+      el.push_back(a->atomicSymbol());
+      const double* c = a->coordinates();
+      xyz.push_back(c[0]); xyz.push_back(c[1]); xyz.push_back(c[2]);
+   }
+   delete frag;
+   return !el.empty();
+}
+
+static const char kPointTag[] = "#point=";
+
+std::string qstPickUrl(const std::string& pick)
+{
+   size_t i = pick.find(kPointTag);
+   return i == std::string::npos ? pick : pick.substr(0, i);
+}
+
+std::string qstPickPoint(const std::string& pick)
+{
+   size_t i = pick.find(kPointTag);
+   return i == std::string::npos ? std::string()
+                                 : pick.substr(i + sizeof(kPointTag) - 1);
+}
+
+std::string qstMakePick(const std::string& url, const std::string& point)
+{
+   return point.empty() ? url : url + kPointTag + point;
+}
+
+bool qstPickStructure(const std::string& pick, std::vector<std::string>& el,
+                      std::vector<double>& xyz, bool& optimised,
+                      std::string* title, std::string* why)
+{
+   PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(qstPickUrl(pick).c_str()));
+   const std::string point = qstPickPoint(pick);
+   if (title && t) {
+      *title = t->getName();
+      if (!point.empty()) *title += " (" + ScanPoint::words(point) + ")";
+   }
+   if (point.empty()) return qstFinalStructure(t, el, xyz, optimised);
+   optimised = true;
+   std::string w;
+   bool ok = t && ScanPoint::structure(t, point, el, xyz, w);
+   if (!ok && why) *why = w.empty() ? "the calculation cannot be read." : w;
+   return ok;
+}
+
+Fragment* qstReactantFragment(const std::string& url)
+{
+   PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(qstPickUrl(url).c_str()));
+   const std::string point = qstPickPoint(url);
+   if (t && !point.empty()) {
+      std::string why;
+      return ScanPoint::fragment(t, point, why);
+   }
+   Fragment* frag = t ? t->fragment() : 0;
+   if (!frag) return 0;
+   t->getFragmentStep(frag, -1);
+   return frag;
+}
+
+std::vector<QstEntry> qstCandidates(ICalculation* self)
+{
+   std::vector<QstEntry> out;
+   Resource* parent = EDSIFactory::getResource(self->getURL().getParent());
+   if (!parent) return out;
+   std::vector<Resource*>* kids = parent->getChildren();
+   if (!kids) return out;
+   for (size_t i = 0; i < kids->size(); i++) {
+      ICalculation* c = dynamic_cast<ICalculation*>((*kids)[i]);
+      if (!c || c->getURL().toString() == self->getURL().toString()) continue;
+      std::vector<std::string> el;
+      std::vector<double> xyz;
+      bool opt;
+      if (!qstFinalStructure(c, el, xyz, opt)) continue;
+      QstEntry e;
+      e.name = c->getName();
+      e.url = c->getURL().toString();
+      e.kind = opt ? "optimised" : "input";
+      out.push_back(e);
+   }
+   return out;
+}
+
+std::string qstWriteCandidateFile(const std::vector<QstEntry>& entries)
+{
+   SFile* f = TempStorage::getTempFile();
+   if (!f) return "";
+   const std::string path = f->path();
+   delete f;
+   std::ofstream os(path.c_str());
+   if (!os) return "";
+   for (size_t i = 0; i < entries.size(); i++)
+      os << entries[i].name << '\t' << entries[i].url << '\t'
+         << entries[i].kind << '\n';
+   return path;
+}
+
+/** One block of the "Show mapping" text: reactant atom -> the number the
+ *  atom has in this structure's own order, far movers flagged. */
+static void addTable(std::string& out, const char* role,
+                     const std::vector<std::string>& refEl,
+                     const AtomMapResult& r)
+{
+   out += std::string(role) + ": reactant atom -> atom number in the " + role +
+          "\n";
+   for (size_t j = 0; j < refEl.size(); j++) {
+      int from = -1;
+      for (size_t i = 0; i < r.map.size(); i++)
+         if (r.map[i] == (int)j) from = (int)i;
+      char buf[96];
+      sprintf(buf, "  %s%zu -> %d", refEl[j].c_str(), j + 1, from + 1);
+      out += buf;
+      for (size_t i = 0; i < r.far.size(); i++)
+         if (r.far[i] == from) out += "   (moves more than 1 A)";
+      out += '\n';
+   }
+}
+
+static bool writeFrag(const std::string& file, const std::string& title,
+                      const std::vector<std::string>& el,
+                      const std::vector<double>& xyz)
+{
+   std::ofstream os(file.c_str());
+   if (!os) return false;
+   os.setf(std::ios::fixed);
+   os.precision(8);
+   os << "ecce\nnum_atoms: " << el.size() << "\ntitle: " << title
+      << "\natom_info: symbol x y z\natom_list:\n";
+   for (size_t i = 0; i < el.size(); i++)
+      os << el[i] << ' ' << xyz[3*i] << ' ' << xyz[3*i+1] << ' '
+         << xyz[3*i+2] << '\n';
+   return (bool)os;
+}
+
+static std::string value(GUIValues* g, const char* key)
+{
+   GUIValue* v = g ? g->get(key) : 0;
+   return v ? v->getValueAsString() : "";
+}
+
+/** Renumbers and aligns (els, xyz) onto the reference structure.  false,
+ *  with warning set, when the atoms do not match. */
+static bool mapOnto(const std::vector<std::string>& refEl,
+                    const std::vector<double>& ref,
+                    std::vector<std::string>& els, std::vector<double>& xyz,
+                    const char* role, const char* runtype,
+                    AtomMapResult& r, std::string& warning)
+{
+   r = AtomMap::map(refEl, ref, els, xyz);
+   if (!r.ok) {
+      warning = std::string(runtype) + ": " + role + ": " + r.error +
+                " The input is not complete.";
+      return false;
+   }
+   AtomMap::apply(r.alignment, xyz);
+   xyz = AtomMap::renumber(xyz, r.map);
+   els = AtomMap::renumber(els, r.map);
+   return true;
+}
+
+// picks, when given, replace the stored keys; write false matches only.
+static bool qstMatch(ICalculation* self, const std::string& base,
+                     std::string& status, std::string& warning,
+                     std::string* detail, std::string* table,
+                     const std::string* picks, bool write,
+                     std::string* pathWarning)
+{
+   status.clear();
+   if (table) table->clear();
+   warning.clear();
+   if (pathWarning) pathWarning->clear();
+   GUIValues* g = picks ? 0 : self->guiparams();
+   const std::string urls[3] = {
+      picks ? picks[0] : value(g, "ES.Runtype.GeomOpt.QSTReactant"),
+      picks ? picks[1] : value(g, "ES.Runtype.GeomOpt.QSTProduct"),
+      picks ? picks[2] : value(g, "ES.Runtype.GeomOpt.QSTGuess") };
+   const bool guess = !urls[2].empty();
+   if (urls[0].empty() || urls[1].empty()) {
+      warning = "Transition State (QST): pick the reactant and product "
+                "calculations in the Calculation Editor.";
+      return true;
+   }
+
+   // The calculation's own structure (a copy of the reactant) fixes the
+   // atom order.
+   std::vector<std::string> refEl;
+   std::vector<double> ref;
+   bool refOpt;
+   if (!qstFinalStructure(self, refEl, ref, refOpt)) return false;
+
+   std::vector<std::string> els[3];
+   std::vector<double> xyz[3];
+   const char* role[3] = {"Reactant", "Product", "TS guess"};
+   int n = 2 + (guess ? 1 : 0);
+   std::ostringstream st, rm, wr, dt;
+   for (int k = 0; k < n; k++) {
+      std::string title = role[k];
+      bool opt;
+      std::string why;
+      if (!qstPickStructure(urls[k], els[k], xyz[k], opt, &title, &why)) {
+         warning = std::string("Transition State (QST): the ") + role[k] +
+                   " calculation has no structure" +
+                   (why.empty() ? "." : ": " + why);
+         return true;
+      }
+      AtomMapResult r;
+      if (!mapOnto(refEl, ref, els[k], xyz[k], role[k], "Transition State (QST)",
+                   r, warning))
+         return true;
+      if (table) addTable(*table, role[k], refEl, r);
+      if (r.nChanged > 0) {
+         std::string lc = role[k];
+         for (char& c : lc) c = (char)tolower((unsigned char)c);
+         st << (st.tellp() ? ", " : "") << lc << " renumbered ("
+            << r.nChanged << " moved)";
+      }
+      dt << role[k] << " renumbered: " << r.nChanged
+         << " atoms changed place. ";
+      char buf[32];
+      sprintf(buf, "%.2f", r.alignment.rmsdAfter);
+      if (k > 0) rm << (rm.tellp() ? "/" : "") << buf;   // reactant is the reference
+      if (!r.far.empty())
+         dt << role[k] << ": " << r.far.size()
+            << " atom(s) move more than 1 A after alignment (expected for "
+               "an isomerisation). ";
+      if (write && !writeFrag(base + ".qst" + char('1'+k) + ".frag", title,
+                              els[k], xyz[k]))
+         return false;
+   }
+   char cnt[16];
+   sprintf(cnt, "%d", (int)refEl.size());
+   status = std::string("Matched ") + cnt + " atoms" +
+            (st.tellp() ? " \xC2\xB7 " + st.str() : std::string()) +
+            " \xC2\xB7 RMSD " + rm.str() + " \xC3\x85";
+   warning = wr.str();
+   if (detail)
+      *detail = std::string("Atoms matched (") + cnt + "). " + dt.str() +
+                "Aligned onto this calculation, RMSD " + rm.str() +
+                " \xC3\x85.";
+   if (pathWarning)
+      *pathWarning = TsPath::warning(
+         TsPath::check(xyz[0], xyz[1], guess ? &xyz[2] : 0), refEl);
+   return true;
+}
+
+static bool writeXyz(const std::string& file, const std::string& title,
+                     const std::vector<std::string>& el,
+                     const std::vector<double>& xyz)
+{
+   std::ofstream os(file.c_str());
+   if (!os) return false;
+   os.setf(std::ios::fixed);
+   os.precision(8);
+   os << el.size() << '\n' << title << '\n';
+   for (size_t i = 0; i < el.size(); i++)
+      os << el[i] << ' ' << xyz[3*i] << ' ' << xyz[3*i+1] << ' '
+         << xyz[3*i+2] << '\n';
+   return (bool)os;
+}
+
+static bool nebMatch(ICalculation* self, std::string& status,
+                     std::string& warning, std::string* detail,
+                     std::string* table, const std::string* picks, bool write,
+                     std::string* pathWarning)
+{
+   status.clear();
+   if (table) table->clear();
+   warning.clear();
+   if (pathWarning) pathWarning->clear();
+   if (write) {
+      remove("neb_product.xyz");
+      remove("neb_guess.xyz");
+   }
+   GUIValues* g = picks ? 0 : self->guiparams();
+   const std::string urls[2] = {
+      picks ? picks[1] : value(g, "ES.Runtype.NEB.Product"),
+      picks ? picks[2] : value(g, "ES.Runtype.NEB.Guess") };
+   if (urls[0].empty()) {
+      warning = "Transition State (NEB-TS): pick the product calculation "
+                "in the Calculation Editor.";
+      return true;
+   }
+
+   // This calculation's own structure (a copy of the reactant) fixes the order.
+   std::vector<std::string> refEl;
+   std::vector<double> ref;
+   bool refOpt;
+   if (!qstFinalStructure(self, refEl, ref, refOpt)) return false;
+
+   const char* role[2] = {"Product", "TS guess"};
+   const char* file[2] = {"neb_product.xyz", "neb_guess.xyz"};
+   std::ostringstream st, rm, wr, dt;
+   int done = 0;
+   std::vector<double> mapped[2];
+   for (int k = 0; k < 2; k++) {
+      if (urls[k].empty()) continue;
+      std::vector<std::string> el;
+      std::vector<double> xyz;
+      bool opt;
+      std::string why, title;
+      if (!qstPickStructure(urls[k], el, xyz, opt, &title, &why)) {
+         warning = std::string("Transition State (NEB-TS): the ") + role[k] +
+                   " calculation has no structure" +
+                   (why.empty() ? "." : ": " + why);
+         return true;
+      }
+      AtomMapResult r;
+      if (!mapOnto(refEl, ref, el, xyz, role[k], "Transition State (NEB-TS)",
+                   r, warning))
+         return true;
+      if (table) addTable(*table, role[k], refEl, r);
+      if (r.nChanged > 0) {
+         std::string lc = role[k];
+         for (char& c : lc) c = (char)tolower((unsigned char)c);
+         st << (st.tellp() ? ", " : "") << lc << " renumbered ("
+            << r.nChanged << " moved)";
+      }
+      dt << role[k] << " renumbered: " << r.nChanged
+         << " atoms changed place. ";
+      char buf[32];
+      sprintf(buf, "%.2f", r.alignment.rmsdAfter);
+      rm << (done++ ? "/" : "") << buf;
+      if (!r.far.empty())
+         dt << role[k] << ": " << r.far.size()
+            << " atom(s) move more than 1 A after alignment (expected for "
+               "an isomerisation). ";
+      if (write && !writeXyz(file[k], title, el, xyz)) return false;
+      mapped[k] = xyz;
+   }
+   char cnt[16];
+   sprintf(cnt, "%d", (int)refEl.size());
+   status = std::string("Matched ") + cnt + " atoms" +
+            (st.tellp() ? " \xC2\xB7 " + st.str() : std::string()) +
+            " \xC2\xB7 RMSD " + rm.str() + " \xC3\x85";
+   warning = wr.str();
+   if (detail)
+      *detail = std::string("Atoms matched (") + cnt + "). " + dt.str() +
+                "Aligned onto this calculation, RMSD " + rm.str() +
+                " \xC3\x85.";
+   if (pathWarning)
+      *pathWarning = TsPath::warning(
+         TsPath::check(ref, mapped[0], mapped[1].empty() ? 0 : &mapped[1]),
+         refEl);
+   return true;
+}
+
+bool qstWriteStructureFiles(ICalculation* self, const std::string& base,
+                            std::string& status, std::string& warning,
+                            std::string* detail, std::string* table)
+{
+   return qstMatch(self, base, status, warning, detail, table, 0, true, 0);
+}
+
+bool nebWriteStructureFiles(ICalculation* self, std::string& status,
+                            std::string& warning, std::string* detail,
+                            std::string* table)
+{
+   return nebMatch(self, status, warning, detail, table, 0, true, 0);
+}
+
+bool tsMatchStructures(ICalculation* self, bool neb, const std::string picks[3],
+                       std::string& status, std::string& warning,
+                       std::string* detail, std::string* table,
+                       std::string* pathWarning)
+{
+   return neb ? nebMatch(self, status, warning, detail, table, picks, false,
+                         pathWarning)
+              : qstMatch(self, "", status, warning, detail, table, picks, false,
+                         pathWarning);
+}
+
+std::string TsLevel::text() const
+{
+   if (theory.empty() && basis.empty()) return "";
+   std::string m = !functional.empty() ? functional : theory;
+   if (m == "None") m.clear();
+   if (basis.empty()) return m;
+   return m.empty() ? basis : m + "/" + basis;
+}
+
+TsLevel tsLevelOfCalculation(const std::string& url)
+{
+   TsLevel lv;
+   PropertyTask* t = EDSIFactory::getPropertyTask(EcceURL(qstPickUrl(url).c_str()));
+   ICalculation* c = dynamic_cast<ICalculation*>(t);
+   if (!c) return lv;
+   std::vector<std::string> el;
+   std::vector<double> xyz;
+   qstPickStructure(url, el, xyz, lv.optimised, 0, 0);
+   if (TTheory* th = c->theory()) {
+      lv.theory = th->name();
+      delete th;
+   }
+   if (lv.theory.find("DFT") != std::string::npos) {
+      GUIValues* g = c->guiparams();
+      lv.functional = value(g, "ES.Theory.DFT.XCFunctionals");
+      delete g;
+   }
+   if (TGBSConfig* b = c->gbsConfig()) {
+      lv.basis = b->name();
+      delete b;
+   }
+   return lv;
+}
+
+std::string tsLevelWarning(const char* role, const TsLevel& o, const TsLevel& m)
+{
+   auto differs = [](const std::string& a, const std::string& b) {
+      return !a.empty() && !b.empty() && a != b;
+   };
+   if (!(differs(o.theory, m.theory) || differs(o.functional, m.functional) ||
+         differs(o.basis, m.basis)))
+      return "";
+   return std::string(role) + (o.optimised ? " optimised at " : " calculated at ")
+        + o.text() + ", this calculation is " + m.text() +
+        ": the end points are not minima at this level.";
+}

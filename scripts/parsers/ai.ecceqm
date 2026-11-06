@@ -281,6 +281,19 @@ sub QMControl {
     my $every = $AbiDict{"ES.Runtype.IRC.HessianEvery"};
     $result .= "irc_hessian_every $every\n" if (defined($every) && $every ne "" && $every > 0);
   }
+  if ($AbiDict{"RunType"} eq "Transition State (Opt-TS)") {
+    my $mode = $AbiDict{"ES.Runtype.TS.Mode"};
+    $result .= "ts_mode $mode\n" if (defined($mode) && $mode ne "" && $mode > 0);
+    my $follow = $AbiDict{"ES.Runtype.TS.Follow"};
+    if (defined($follow) && $follow =~ /\S/) {
+      $follow =~ s/^\s+|\s+$//g;
+      die "ai.ecceqm error: the TS coordinate '$follow' must be bond 1 2, angle 1 2 3 or torsion 1 2 3 4\n"
+        unless ($follow =~ /^(bond \d+ \d+|angle \d+ \d+ \d+|torsion \d+ \d+ \d+ \d+)$/i);
+      $result .= "ts_follow " . lc($follow) . "\n";
+    }
+    my $every = $AbiDict{"ES.Runtype.TS.HessianEvery"};
+    $result .= "ts_hessian_every $every\n" if (defined($every) && $every ne "" && $every > 0);
+  }
   my @schemes;
   push(@schemes, "loewdin") if ($AbiDict{"ES.Theory.ECCEQM.Loewdin"} eq "1");
   push(@schemes, "chelpg") if ($AbiDict{"ES.Theory.ECCEQM.CHELPG"} eq "1");
@@ -416,7 +429,14 @@ sub verifyGBSFile {
 }
 
 sub cleanup {
-  rename("tmpfile", $inputFile);   # perl itself: Windows perl has no /bin/mv
+  # Close the source before replacing it; the copy overwrites existing targets
+  # reliably across platforms, and failures must not leave the template in place.
+  close(TEMPLATE);
+  require File::Copy;
+  File::Copy::copy("tmpfile", $inputFile)
+      or die "Input generator error: Could not write generated input $inputFile: $!\n";
+  unlink("tmpfile")
+      or die "Input generator error: Could not remove temporary input tmpfile: $!\n";
   close(ABIDICT);
 }
 

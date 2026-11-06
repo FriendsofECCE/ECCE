@@ -101,6 +101,10 @@ class CalculationContextPanel : public ewxScrolledWindow,
     wxBoxSizer *p_progressSizer;
     wxBoxSizer *p_launchHolder;  // the Launch Info block (#648)
     std::vector<wxFlexGridSizer*> p_firstGrids;  // first property grid of each tool
+    // Whether createControls made the Basis Set rows: the code can change
+    // after that (xTB calculation re-set up for ORCA), and refresh must only
+    // fill rows that exist.
+    bool p_basisRows = false;
 
     /** The stored snapshot (ecce:progress) as of the last refresh. */
     std::string p_storedProgress;

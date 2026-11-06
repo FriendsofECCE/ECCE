@@ -1,6 +1,9 @@
+#include "util/StalledRule.H"
 #include "util/JobProgress.H"
+#include "util/VibFrequency.H"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -8,6 +11,8 @@
 #include <sstream>
 
 using std::string;
+using std::pair;
+using std::make_pair;
 using std::vector;
 
 
@@ -53,6 +58,7 @@ bool JobProgress::parse(const string& text)
   p_stages.clear();
   p_seq = 0;
   p_at = 0;
+  p_stall = 0;
   std::istringstream in(text);
   string line;
   while (std::getline(in, line)) {
@@ -64,6 +70,7 @@ bool JobProgress::parse(const string& text)
       while (words >> w)
         if (w.compare(0, 4, "seq=") == 0) p_seq = atoi(w.c_str() + 4);
         else if (w.compare(0, 3, "at=") == 0) p_at = atof(w.c_str() + 3);
+        else if (w.compare(0, 6, "stall=") == 0) p_stall = atof(w.c_str() + 6);
       continue;
     }
     const bool hist = head.size() > 1 && head.back() == '~';
@@ -109,6 +116,32 @@ bool JobProgress::parse(const string& text)
 }
 
 
+void JobProgress::setFrequencies(const vector<double>& frequencies)
+{
+  if (frequencies.empty()) return;
+  int real = 0, imaginary = 0;
+  for (double f : frequencies) {
+    if (VibFrequency::isImaginary(f)) ++imaginary;
+    else if (VibFrequency::isReal(f)) ++real;
+  }
+  Stage *freq = 0;
+  for (auto& st : p_stages)
+    if (st.name == "freq") freq = &st;
+  if (!freq) {
+    p_stages.push_back(Stage());
+    freq = &p_stages.back();
+    freq->name = "freq";
+  }
+  freq->fields.erase(std::remove_if(freq->fields.begin(), freq->fields.end(),
+      [](const pair<string, string>& f) {
+        return f.first == "real" || f.first == "imaginary" || f.first == "done";
+      }), freq->fields.end());
+  freq->fields.push_back(make_pair("real", std::to_string(real)));
+  freq->fields.push_back(make_pair("imaginary", std::to_string(imaginary)));
+  freq->fields.push_back(make_pair("done", "yes"));
+}
+
+
 const JobProgress::Stage* JobProgress::stage(const string& name) const
 {
   for (const auto& s : p_stages)
@@ -125,6 +158,7 @@ string JobProgress::title(const string& stage)
   if (stage == "scan") return "Scan";
   if (stage == "neb") return "NEB";
   if (stage == "prepare") return "Prepare";
+  if (stage == "crest") return "CREST";
   // GROMACS names the stage by its integrator.
   if (stage == "steep" || stage == "cg" || stage == "l-bfgs" || stage == "nm")
     return "Minimisation";
@@ -148,11 +182,20 @@ static string fmt(const char *f, double v)
 }
 
 
+// Every energy in the box: Eh, six decimals, a real minus sign (#826).
+static string ehText(double e)
+{
+  string s = fmt("%.6f", e);
+  if (!s.empty() && s[0] == '-') s.replace(0, 1, "\xe2\x88\x92");
+  return s + " Eh";
+}
+
+
 static string energyText(const string& v)
 {
   double e;
   if (!number(v, e)) return v;
-  return fmt("%.8f", e) + " hartree";
+  return ehText(e);
 }
 
 
@@ -203,6 +246,12 @@ static string agoText(double seconds)
   if (seconds < 90) return fmt("%.0f s", seconds);
   if (seconds < 5400) return fmt("%.0f min", std::floor(seconds / 60));
   return fmt("%.1f h", seconds / 3600);
+}
+
+
+string JobProgress::stalledText(double seconds)
+{
+  return "Running (stalled: " + StalledRule::text(seconds) + ")";
 }
 
 
@@ -329,10 +378,25 @@ void JobProgress::plotAxis(const Stage& st, const string& rec,
         break;
       }
     }
+  double scale = 1, t;
+  //  The density has a time but no step (it comes from the energy file, not
+  //  the log).  Take the ps per step from a sibling plot so it shares their
+  //  x axis; the points are spread over the time they span.
+  if (!haveK && st.name.compare(0, 4, "gmx-") == 0 &&
+      number(st.field("time"), t) && t > 0)
+    for (const Stage& o : p_stages) {
+      double ok, ot;
+      if (&o != &st && o.name.compare(0, 4, "gmx-") == 0 &&
+          number(o.field("step"), ok) && ok > 0 &&
+          number(o.field("time"), ot) && ot > 0) {
+        b.plotXUnit = "ps";
+        b.plotXLast = t;
+        b.plotXEnd = std::max(t, total * ot / ok);
+        return;
+      }
+    }
   const double last = std::max(k, n);
-  double scale = 1;
   b.plotXUnit = recName.empty() ? "record" : recName;
-  double t;
   if (haveK && k > 0 && number(st.field("time"), t) && t > 0) {
     scale = t / k;
     b.plotXUnit = "ps";
@@ -342,11 +406,68 @@ void JobProgress::plotAxis(const Stage& st, const string& rec,
 }
 
 
+// CREST (#810): the rows Stage, Metadynamics, Structures, Lowest energy and
+// Estimated, each only once the output has said it.
+JobProgress::Block JobProgress::crestBlock(const Stage& st, bool finished) const
+{
+  Block b;
+  b.title = title(st.name);
+  const string dot = " \xc2\xb7 ";
+  const string stage = st.field("stage");
+  string row;
+  if (stage == "sampling") {
+    row = "Metadynamics sampling";
+    if (!st.field("iter").empty()) row += ", iteration " + st.field("iter");
+  } else if (stage == "optimising") row = "Multilevel ensemble optimisation";
+  else if (stage == "crude") row = "Multilevel ensemble optimisation" + dot + "crude pre-optimisation";
+  else if (stage == "tight") row = "Multilevel ensemble optimisation" + dot + "optimisation with tight thresholds";
+  else if (stage == "regularmd") row = "Additional regular MDs";
+  else if (stage == "qcg") {
+    string step = st.field("qcgstep");
+    for (char& c : step) c = (char)tolower((unsigned char)c);
+    row = "Quantum cluster growth" + (step.empty() ? string() : dot + step);
+  }
+  if (!row.empty()) b.lines.push_back("Stage: " + row);
+
+  double k, n;
+  bool hasN;
+  if (split(st.field("mtd"), k, n, hasN) && hasN && n > 0) {
+    b.lines.push_back(fmt("Metadynamics: %.0f", k) + fmt(" of %.0f", n) + " done");
+    if (stage == "sampling") {
+      b.bar = true;
+      b.fraction = std::min(1.0, k / n);
+    }
+  }
+  if (split(st.field("solv"), k, n, hasN) && hasN && n > 0) {
+    b.lines.push_back(fmt("Solvent molecules: %.0f", k) + fmt(" of %.0f", n) + " added");
+    if (stage == "qcg") {
+      b.bar = true;
+      b.fraction = std::min(1.0, k / n);
+    }
+  }
+  if (!st.field("ecluster").empty())
+    b.lines.push_back("Cluster energy (Eh): " + st.field("ecluster"));
+  string structs;
+  if (!st.field("nopt").empty()) structs = st.field("nopt") + " optimised";
+  if (!st.field("remain").empty())
+    structs += (structs.empty() ? "" : " \xe2\x86\x92 ") + st.field("remain") +
+               " within " + st.field("window") + " kcal/mol";
+  if (!structs.empty()) b.lines.push_back("Structures: " + structs);
+  if (!st.field("emin").empty())
+    b.lines.push_back("Lowest energy (Eh): " + st.field("emin"));
+  if (!st.field("est").empty() && !finished)
+    b.lines.push_back("Estimated: " + st.field("est") + " " + st.field("estunit") +
+                      " for one batch of metadynamics runs");
+  return b;
+}
+
+
 JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
                                            bool finished) const
 {
   Block b;
   b.title = title(st.name);
+  if (st.name == "crest") return crestBlock(st, finished);
   const string rec = !st.field("cycle").empty() ? "cycle"
                    : !st.field("iter").empty() ? "iter"
                    : !st.field("step").empty() ? "step"
@@ -401,7 +522,7 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
         double real, imag;
         if (number(st.field("real"), real) &&
             number(st.field("imaginary"), imag))
-          first += fmt(" \xc2\xb7 %.0f real", real) +
+          first += fmt(" \xc2\xb7 %.0f modes", real + imag) +
                    fmt(", %.0f imaginary", imag);
       } else if (st.name != "prepare" && st.field("kind") != "analytic" &&
                  !finished &&
@@ -423,10 +544,16 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
     double real, imag;
     if (st.field("done") == "yes" && number(st.field("real"), real) &&
         number(st.field("imaginary"), imag))
-      first += fmt(" \xc2\xb7 %.0f real", real) +
+      first += fmt(" \xc2\xb7 %.0f modes", real + imag) +
                fmt(", %.0f imaginary", imag);
     else if (st.field("done") == "yes")
       first += " \xc2\xb7 done";
+  }
+  if (st.name == "freq" && first.empty() && st.field("done") == "yes") {
+    double real, imag;
+    if (number(st.field("real"), real) && number(st.field("imaginary"), imag))
+      first = fmt("%.0f modes", real + imag) + fmt(", %.0f imaginary", imag);
+    else first = "done";
   }
   if (!st.field("energy").empty())
     first += string(first.empty() ? "" : " \xc2\xb7 ") + "E = " +
@@ -500,7 +627,7 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
     }
     b.plot = b.curves[0].values;
     b.plotLog = true;
-    if (b.curves[0].hasThreshold) b.plotUnit = "Hartree/bohr";
+    if (b.curves[0].hasThreshold) b.plotUnit = "Eh/bohr";
     b.plotLabel = "max and RMS force per " + (rec.empty() ? string("record") : recName);
     plotAxis(st, rec, recName, b);
   } else if (st.history.size() >= 2) {
@@ -524,7 +651,7 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
       b.plot = c.values;
       b.curves.push_back(c);
       b.plotLog = true;
-      if (st.name == "scf" && st.historyKey == "dE") b.plotUnit = "Hartree";
+      if (st.name == "scf" && st.historyKey == "dE") b.plotUnit = "Eh";
       if (st.name == "gmx-fmax") b.plotUnit = "kJ/mol/nm";
       b.plotLabel = "|" + criterionLabel(st.name, st.historyKey) +
                     "| per " + (rec.empty() ? "record" : recName);
@@ -532,6 +659,13 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
     plotAxis(st, rec, recName, b);
   }
   return b;
+}
+
+
+string JobProgress::fieldOf(const string& stageName, const string& key) const
+{
+  const Stage *st = stage(stageName);
+  return st ? st->field(key) : string();
 }
 
 
@@ -548,8 +682,46 @@ bool JobProgress::average(const string& stageName, double& avg, double& sd,
 }
 
 
+vector<string> JobProgress::stageOrderOf(const string& descText)
+{
+  vector<string> order;
+  size_t pos = 0;
+  while (pos < descText.size()) {
+    size_t eol = descText.find('\n', pos);
+    if (eol == string::npos) eol = descText.size();
+    const string line = descText.substr(pos, eol - pos);
+    pos = eol + 1;
+    if (line.compare(0, 9, "Progress=") != 0) continue;
+    const size_t end = line.find_first_of(" \t\r", 9);
+    const string name = line.substr(9, end == string::npos ? end : end - 9);
+    if (!name.empty() && std::find(order.begin(), order.end(), name) == order.end())
+      order.push_back(name);
+  }
+  return order;
+}
+
+
 vector<JobProgress::Block> JobProgress::running(double age, bool finished) const
 {
+  if (!p_order.empty()) {
+    // Rank by the code's rules; a stage they do not name takes the slot of
+    // a {placeholder} rule, else goes last. Ties keep arrival order.
+    size_t wild = p_order.size();
+    for (size_t i = 0; i < p_order.size(); i++)
+      if (p_order[i][0] == '{') { wild = i; break; }
+    vector<pair<size_t, const Stage*> > ranked;
+    for (const auto& st : p_stages) {
+      if (st.name == "gmx-etot" || st.name == "result") continue;
+      const auto it = std::find(p_order.begin(), p_order.end(), st.name);
+      ranked.push_back(make_pair(it == p_order.end() ? wild : (size_t)(it - p_order.begin()), &st));
+    }
+    std::stable_sort(ranked.begin(), ranked.end(),
+        [](const pair<size_t, const Stage*>& a, const pair<size_t, const Stage*>& b)
+        { return a.first < b.first; });
+    vector<Block> sorted;
+    for (const auto& r : ranked) sorted.push_back(stageBlock(*r.second, age, finished));
+    return sorted;
+  }
   // The innermost loop at the top: SCF, optimisation, scan (the outermost),
   // then frequencies; other stages in the order they appeared.
   vector<Block> out;
@@ -558,7 +730,7 @@ vector<JobProgress::Block> JobProgress::running(double age, bool finished) const
     if (const Stage *st = stage(name)) out.push_back(stageBlock(*st, age, finished));
   for (const auto& st : p_stages)
     if (st.name != "scan" && st.name != "opt" && st.name != "neb" && st.name != "freq" &&
-        st.name != "scf" && st.name != "gmx-etot")
+        st.name != "scf" && st.name != "gmx-etot" && st.name != "result")
       out.push_back(stageBlock(st, age, finished));
   return out;
 }
@@ -583,8 +755,28 @@ vector<string> JobProgress::summary(bool completed) const
   if (opt) {
     const string step = !opt->field("step").empty() ? opt->field("step")
                                                    : opt->field("istep");
+    // A Complete run whose last step meets every criterion has converged,
+    // even when the code's own "converged" line never reached the snapshot
+    // (#722); a run stopped at the step limit is Unsuccessful, not Complete.
+    bool allMet = false;
+    if (completed) {
+      int criteria = 0, met = 0;
+      for (size_t i = 0; i < opt->fields.size(); i++) {
+        const string& v = opt->fields[i].second;
+        const size_t slash = v.find('/');
+        if (slash == string::npos || opt->fields[i].first == "step") continue;
+        char *e1 = 0, *e2 = 0;
+        const double got = strtod(v.c_str(), &e1);
+        const double lim = strtod(v.c_str() + slash + 1, &e2);
+        if (e1 != v.c_str() + slash || e2 == v.c_str() + slash + 1) continue;
+        criteria++;
+        if (fabs(got) <= lim) met++;
+      }
+      allMet = criteria > 0 && met == criteria;
+    }
     string line;
-    if (opt->field("converged") == "yes")
+    if (opt->field("converged") == "yes" ||
+        (allMet && opt->field("converged") != "no"))
       line = "Optimisation converged in " + step + " steps";
     else if (opt->field("converged") == "no")
       line = "Optimisation not converged after " + step + " steps";
@@ -597,22 +789,46 @@ vector<string> JobProgress::summary(bool completed) const
     if (!e.empty()) line += " \xc2\xb7 E = " + energyText(e);
     out.push_back(line);
   }
+  // The last SCF is a stage's result when no optimisation follows; under a
+  // numerical frequency run it is the last displaced geometry's, so skipped.
+  auto scfSummary = [&]() {
+    const string cyc = scf->field("cycle");
+    string line;
+    // MOPAC prints no SCF cycles unless asked to.
+    if (scf->field("converged") == "yes" && cyc.empty())
+      line = "SCF converged";
+    else if (scf->field("converged") == "yes")
+      line = "SCF converged in " + cyc + " cycles";
+    else if (scf->field("converged") == "no")
+      line = "SCF not converged after " + cyc + " cycles";
+    else
+      line = "SCF stopped at cycle " + cyc;
+    if (!scf->field("energy").empty())
+      line += " \xc2\xb7 E = " + energyText(scf->field("energy"));
+    out.push_back(line);
+  };
+  bool scfShown = false;
+  if (!opt && scf && freq &&
+      (freq->field("point").empty() || freq->field("kind") == "analytic")) {
+    scfSummary();
+    scfShown = true;
+  }
   if (freq) {
     double k = 0, n = 0, real, imag, zpe;
     bool hasN = false;
     split(freq->field("point"), k, n, hasN);
     if (freq->field("done") == "yes" && number(freq->field("real"), real) &&
         number(freq->field("imaginary"), imag)) {
-      string line = fmt("Frequencies: %.0f real", real) +
+      string line = fmt("Frequencies: %.0f modes", real + imag) +
                     fmt(", %.0f imaginary", imag);
       if (number(freq->field("zpe"), zpe))
-        line += " \xc2\xb7 ZPE " + fmt("%.6f", zpe) + " hartree";
+        line += " \xc2\xb7 ZPE " + fmt("%.6f", zpe) + " Eh";
       out.push_back(line);
     } else if (freq->field("done") == "yes") {
       // Codes that do not say how many modes are imaginary.
       string line = "Frequencies: done";
       if (number(freq->field("zpe"), zpe))
-        line += " \xc2\xb7 ZPE " + fmt("%.6f", zpe) + " hartree";
+        line += " \xc2\xb7 ZPE " + fmt("%.6f", zpe) + " Eh";
       out.push_back(line);
     } else if (hasN) {
       out.push_back(string(freq->field("kind") == "analytic"
@@ -642,22 +858,22 @@ vector<string> JobProgress::summary(bool completed) const
              (hasN ? fmt(" of %.0f", n) : string()) + " steps";
     out.push_back(line);
   }
-  if (!opt && !freq && scf) {
-    const string cyc = scf->field("cycle");
-    string line;
-    // MOPAC prints no SCF cycles unless asked to.
-    if (scf->field("converged") == "yes" && cyc.empty())
-      line = "SCF converged";
-    else if (scf->field("converged") == "yes")
-      line = "SCF converged in " + cyc + " cycles";
-    else if (scf->field("converged") == "no")
-      line = "SCF not converged after " + cyc + " cycles";
-    else
-      line = "SCF stopped at cycle " + cyc;
-    if (!scf->field("energy").empty())
-      line += " \xc2\xb7 E = " + energyText(scf->field("energy"));
+  if (const Stage *cr = stage("crest")) {
+    string line = "CREST";
+    if (!cr->field("remain").empty())
+      line += ": " + cr->field("remain") + " structures within " +
+              cr->field("window") + " kcal/mol";
+    if (!cr->field("emin").empty())
+      line += " \xc2\xb7 lowest " + cr->field("emin") + " Eh";
+    double k, n;
+    bool hasN;
+    if (cr->field("stage") == "qcg" && split(cr->field("solv"), k, n, hasN) && hasN)
+      line += fmt(": %.0f", k) + fmt(" of %.0f solvent molecules added", n);
+    if (!cr->field("ecluster").empty())
+      line += " \xc2\xb7 cluster " + cr->field("ecluster") + " Eh";
     out.push_back(line);
   }
+  if (!scfShown && !opt && !freq && scf) scfSummary();
   if (out.empty() && !completed) {
     for (const auto& b : running(0))
       if (!b.lines.empty())
@@ -718,6 +934,21 @@ string JobProgress::shortLine() const
   }
   if (!scfPart.empty()) return scfPart;
 
+  if (const Stage *cr = stage("crest")) {
+    double k, n;
+    bool hasN;
+    const string stg = cr->field("stage");
+    if (stg == "sampling" && split(cr->field("mtd"), k, n, hasN) && hasN)
+      return fmt("MTD %.0f", k) + fmt(" of %.0f", n);
+    if (stg == "sampling") return "Metadynamics";
+    if (stg == "crude") return "Pre-optimising structures";
+    if (stg == "tight") return "Optimising structures";
+    if (stg == "optimising") return "Optimising structures";
+    if (stg == "regularmd") return "Regular MDs";
+    if (stg == "qcg" && split(cr->field("solv"), k, n, hasN) && hasN)
+      return fmt("QCG %.0f", k) + fmt(" of %.0f solvents", n);
+    if (stg == "qcg") return "Cluster growth";
+  }
   for (const auto& st : p_stages) {       // runs counted in steps (GROMACS)
     double k, n;
     bool hasN;

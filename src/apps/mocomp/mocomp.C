@@ -5,12 +5,15 @@
 //   ecce-mocomp CALC --mo N [--beta] [--method mulliken|c2] [--min PCT]
 //               [--by ao,shell,type,atom] [--tsv]
 //   ecce-mocomp CALC --list [--beta]
+//   ecce-mocomp CALC --spin       (Mulliken spin population per atom:
+//                                  index, element, one pass, per-orbital sum)
 //
 // CALC is a calculation folder in local data mode (a path, or file:// URL).
 // --mo takes a number, "homo" or "lumo", and may be repeated.  Mulliken
 // (C_i (S C)_i, normalised to 100%) is the default: it is the population
 // the MO diagram uses and the one ORCA and Multiwfn report.
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -37,6 +40,7 @@ static void usage()
   cerr << "usage: ecce-mocomp CALC --mo N [--beta] [--method mulliken|c2]\n"
           "                   [--min PCT] [--by ao,shell,type,atom] [--tsv]\n"
           "       ecce-mocomp CALC --list [--beta]\n"
+          "       ecce-mocomp CALC --spin    Mulliken spin population per atom\n"
           "  CALC   a calculation folder in local data mode\n"
           "  --mo   orbital number (1-based), homo or lumo; repeatable\n"
           "  --min  hide parts below PCT percent (default 0.1)\n"
@@ -53,11 +57,78 @@ static string absolute(const string& path)
   return string(buf) + "/" + path;
 }
 
+//  Per-atom Mulliken spin populations, the number the Builder's spin
+//  density view shows: net electrons of each orbital through
+//  MoAoBasis::spinPopulations.
+static int printSpin(IPropCalculation *calc, const vector<string>& symbols,
+                     const vector<double>& coords,
+                     const vector< vector<double> >& alphaRows)
+{
+  PropVector *occ[2] = { (PropVector*) calc->getProperty("ORBOCC"),
+                         (PropVector*) calc->getProperty("ORBOCCBETA") };
+  if (!occ[0]) {
+    cerr << "ecce-mocomp: the calculation has no orbital occupations" << endl;
+    return 1;
+  }
+  vector< vector<double> > betaRows;
+  const bool unrestricted = occ[1] != 0 &&
+      MoAoBasis::coefficients(calc, symbols, true, betaRows);
+
+  MoAoBasis::SpinSet sets[2];
+  sets[0].rows = &alphaRows;
+  sets[1].rows = &betaRows;
+  for (int s = 0; s < (unrestricted ? 2 : 1); s++)
+    for (int i = 0; i < occ[s]->rows(); i++) {
+      const double o = occ[s]->value(i);
+      sets[s].net.push_back(unrestricted ? (s ? -o : o)
+                                         : min(o, 1.0) - max(o - 1.0, 0.0));
+    }
+
+  MoAoBasis basis;
+  std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
+  if (!basis.build(calc, symbols, coords, (int)alphaRows[0].size())) {
+    cerr << "ecce-mocomp: " << basis.complaint << endl;
+    return 1;
+  }
+  std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
+  vector<double> pop;
+  vector<MoAoBasis::SpinSet> v(sets, sets + 2);
+  if (!basis.spinPopulations(v, pop)) {
+    cerr << "ecce-mocomp: the orbital rows do not match the basis" << endl;
+    return 1;
+  }
+  std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
+  //  The per-orbital sum the view used before, as an independent check:
+  //  net electrons times the orbital's Mulliken share on each atom.
+  vector<double> old(pop.size(), 0.0);
+  for (int s = 0; s < 2; s++)
+    for (size_t i = 0; sets[s].rows && i < sets[s].net.size() &&
+                       i < sets[s].rows->size(); i++) {
+      if (sets[s].net[i] == 0.0) continue;
+      MoAoBasis::Composition comp;
+      if (!basis.analyse((*sets[s].rows)[i], MoAoBasis::MULLIKEN, comp))
+        continue;
+      for (size_t a = 0; a < comp.atoms.size() && a < old.size(); a++)
+        old[a] += sets[s].net[i]*comp.atoms[a].share;
+    }
+  std::chrono::steady_clock::time_point t3 = std::chrono::steady_clock::now();
+  for (size_t a = 0; a < pop.size(); a++)
+    printf("%zu\t%s\t%.8f\t%.8f\n", a, basis.elements[a].c_str(), pop[a],
+           old[a]);
+  fprintf(stderr, "basis functions %zu; overlap %.3f s; spin pass %.3f s; "
+          "per-orbital sum %.3f s\n", basis.functions.size(),
+          std::chrono::duration<double>(t1 - t0).count(),
+          std::chrono::duration<double>(t2 - t1).count(),
+          std::chrono::duration<double>(t3 - t2).count());
+  return 0;
+}
+
+
 int main(int argc, char **argv)
 {
   string target;
   vector<string> mos;
-  bool beta = false, tsv = false, list = false;
+  bool beta = false, tsv = false, list = false, spin = false;
   MoAoBasis::Method method = MoAoBasis::MULLIKEN;
   double minPct = 0.1;
   string by = "ao,shell,type,atom";
@@ -68,6 +139,7 @@ int main(int argc, char **argv)
     else if (a == "--beta") beta = true;
     else if (a == "--tsv") tsv = true;
     else if (a == "--list") list = true;
+    else if (a == "--spin") spin = true;
     else if (a == "--min" && i+1 < argc) minPct = atof(argv[++i]);
     else if (a == "--by" && i+1 < argc) by = argv[++i];
     else if (a == "--method" && i+1 < argc) {
@@ -79,7 +151,7 @@ int main(int argc, char **argv)
     else if (a[0] != '-' && target.empty()) target = a;
     else { usage(); return 2; }
   }
-  if (target.empty() || (mos.empty() && !list)) { usage(); return 2; }
+  if (target.empty() || (mos.empty() && !list && !spin)) { usage(); return 2; }
 
   string url = target.find("://") != string::npos
                    ? target : "file://" + absolute(target);
@@ -118,6 +190,8 @@ int main(int argc, char **argv)
       (PropVector*) calc->getProperty(beta ? "ORBOCCBETA" : "ORBOCC");
   PropVecString *syms =
       (PropVecString*) calc->getProperty(beta ? "ORBSYMBETA" : "ORBSYM");
+
+  if (spin) return printSpin(calc, symbols, coords, rows);
 
   if (list) {
     for (size_t m = 0; m < rows.size(); m++) {

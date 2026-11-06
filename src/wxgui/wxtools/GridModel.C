@@ -131,6 +131,24 @@ void GridModel::SetValue(int row, int col, const wxString& value)
 }
 
 
+wxGridCellAttr *GridModel::GetAttr(int row, int col,
+                                   wxGridCellAttr::wxAttrKind kind)
+{
+  wxGridCellAttr *attr = wxGridTableBase::GetAttr(row, col, kind);
+  if (kind != wxGridCellAttr::Any && kind != wxGridCellAttr::Cell) return attr;
+  GridElement *e = GetValueAsGridElement(row, col);
+  if (!e || e->mutedReason().empty()) return attr;
+  wxGridCellAttr *styled = attr ? attr->Clone() : new wxGridCellAttr();
+  if (attr) attr->DecRef();
+  styled->SetTextColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+  wxFont f = GetView() ? GetView()->GetFont()
+                       : wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+  f.SetStrikethrough(true);
+  styled->SetFont(f);
+  return styled;
+}
+
+
 GridElement* GridModel::GetValueAsGridElement(int row, int col)
 {
   GridElement *ret = 0;
@@ -508,6 +526,11 @@ bool GridModel::sortRows(const vector<GridElement*> r1, const vector<GridElement
   if ((sortCol < r1.size()) && (sortCol < r2.size())) {
     GridElement *e1 = r1[sortCol];
     GridElement *e2 = r2[sortCol];
+    // Missing results belong at the end even when the numeric order reverses.
+    if (e1->getPropertyType() == GridProperty::PT_TOTAL_ENERGY &&
+        e2->getPropertyType() == GridProperty::PT_TOTAL_ENERGY &&
+        (e1->getValue().empty() || e2->getValue().empty()))
+      return !e1->getValue().empty() && e2->getValue().empty();
     if (p_ascSort) {
       ret = (e1->compare(e2, p_caseSensitive) < 0);
     }

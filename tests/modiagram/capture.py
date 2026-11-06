@@ -68,6 +68,8 @@ FIXTURES = {
     "ecceqm-he2": os.path.join(FIXTURES_DIR, "ecceqm-he2"),
     "ecceqm-n2": os.path.join(FIXTURES_DIR, "ecceqm-n2"),
     "ecceqm-co-rotated": os.path.join(FIXTURES_DIR, "ecceqm-co-rotated"),
+    #  #745: HF, B3LYP/6-31G* (makecalc.py ecceqm hf 0 DIR --no-rotate).
+    "ecceqm-hf": os.path.join(FIXTURES_DIR, "ecceqm-hf"),
     "ecceqm-water": os.path.join(FIXTURES_DIR, "ecceqm-water"),
     #  #301: ethene and cyclopropane (makecalc.py ecceqm c2h4 / c3h6 0
     #  --no-rotate), and the atom picks that choose a diagram.
@@ -265,6 +267,7 @@ def captureOne(name, source, outfile, timeout, png=None):
         if os.environ.get("ECCE_OPEN_PANEL_SIZE"):
             env["ECCE_OPEN_PANEL_SIZE"] = os.environ["ECCE_OPEN_PANEL_SIZE"]
         env["ECCE_MODIAGRAM_DUMP"] = outfile
+        env.setdefault("ECCE_MODIAGRAM_SHOWCORE", "0")   # goldens predate the core band (#827)
         env.update(FIXTURE_ENV.get(name, {}))
         sceneOut = None
         if name in FIXTURE_SCENE:

@@ -93,7 +93,7 @@ def main():
         if not ok:
             failures.append(what)
 
-    sent = r"jmFILE\s+sched\s+\S*\s*\d+\s+slurm\.err"
+    sent = r"jmFILE\s+sched\s+\S*\s*\d+(?::\d+)?\s+slurm\.err"
 
     rc, text = run("slurmstepd: error: oom-kill event\n", 1)
     check(rc == 0, "failing job: monitor ends normally (exit %d)" % rc)

@@ -17,7 +17,7 @@ using std::vector;
 #include "tdat/SpinMult.H"
 #include "tdat/TRunType.H"
 #include "tdat/TTheory.H"
-#include "QstStructures.H"
+#include "dsm/QstStructures.H"
 #include "tdat/ESPConstraintModel.H"
 #include "tdat/GeomConstraintModel.H"
 
@@ -109,6 +109,11 @@ class CalcEd: public CalcEdGUI,
     void storeUseSymmetry(const bool& value);
     bool useSymmetryBox() const;
     bool hasDetailsValues(const string& prefix = "ES.") const;
+    //  Whether the current theory/run type has a details dialog with fields
+    //  to show: a dialog reports its fields as ES.Theory.* / ES.Runtype.*
+    //  values, so none means it would open empty (#676).
+    bool theoryDetailsAvailable() const;
+    bool runtypeDetailsAvailable() const;
     virtual void OnButtonCalcedBasisQuickClick( wxCommandEvent& event );
     virtual void OnChoiceCalcedTheorySelected( wxCommandEvent& event );
     virtual void OnChoiceCalcedRuntypeSelected( wxCommandEvent& event );
@@ -200,6 +205,7 @@ class CalcEd: public CalcEdGUI,
     // refresh & enable/disable & show/hide indicated field sets
     void updateAllFields();
     void refit();
+    void revealSettingsWhenShown(int tries);
     // A change that updates several field sets: one refit and one repaint
     // at the end, not a resized, half-drawn window per set (MSW).
     struct UpdateHold;
@@ -280,10 +286,7 @@ class CalcEd: public CalcEdGUI,
     void closeRuntypeApp(const bool& sendTerm);
 
     // input file generation, aka InputController
-    string changeWD(const string& newDir);
-    bool write_cs(const string& output_file);
     /** Opt=QST2/QST3 structures next to the .frag (#419). */
-    bool write_qst(const string& baseName);
     void setMatchTooltip();
 
     // Transition-state source of the structure (#419): reactant, product and
@@ -303,13 +306,6 @@ class CalcEd: public CalcEdGUI,
     void tsPicked(int role, int sel);
     void showTsMapping();
     bool tsRuntypeSelected() const;
-    bool write_esp(const string& output_file, bool& file_flag);
-    bool write_constraints(const string& output_file, bool& file_flag);
-    bool write_gbsconfig(const string& output_file, const bool& useExpCoeff,
-                         bool& file_flag, bool& ecp_flag, bool& spherical_flag);
-    bool write_setup(const string& output_file);
-    bool write_template(RCommand& localconn, const string& templateFile,
-                        const string& output_file);
     bool input_controller(const bool& saveParamFlag, const bool& useExpCoeff,
                           string& message);
 
@@ -396,6 +392,7 @@ class CalcEd: public CalcEdGUI,
     bool   p_startUp;
     int    p_holdDepth = 0;
     bool   p_refitPending = false;
+    bool   p_revealSettings = true; // next refit scrolls Settings into view
 
     /**
      * True once Final Edit has written a hand-edited deck back to DAV
@@ -475,6 +472,9 @@ class CalcEd: public CalcEdGUI,
     /// Message naming the elements the chosen basis does not cover, for a
     /// code that only uses the quick picks; empty when it covers everything.
     string uncoveredElementsMessage() const;
+    /// Message naming the elements the chosen basis needs a core potential
+    /// for (ECCE-QM); call before makeConsistent() drops the ECP.
+    string ecpElementsMessage() const;
 
     // wxPython IPC for theory dialog
     int               p_theoryPid;

@@ -1,0 +1,90 @@
+<MolecularConfig>
+<Map>
+<Group Tag="Cr" Name="def2-tzvpd">
+<OrderedList>
+<BasisSet Type="ECPOrbital">def2-tzvpd</BasisSet>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="def2-tzvpd">
+<BasisSet Type="ECPOrbital">def2-tzvpd</BasisSet>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
+<Element tag="Cr">
+<BasisSet uniqueKey="def2-tzvpd:ECPOrbital">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="Cr">
+0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="Cr">
+0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+</Map>
+<Data>
+BasisSet=def2-tzvpd
+Type=ECPOrbital Category=ORBITAL Spherical=UnknownCoordSys ContType=UnknownContType
+element=Cr
+contraction shell=S num_primitives=8 num_coefficients=1
+254477.807040000014 0.000233869457
+38131.797054000002 0.001814260180
+8675.293060700000 0.009436392572
+2455.009984800000 0.038343639367
+799.162177870000 0.124591948370
+286.900214890000 0.294896960290
+111.254132320000 0.418461496070
+43.864152636000 0.216337634200
+contraction shell=S num_primitives=4 num_coefficients=1
+279.326691730000 -0.023450908111
+86.274732376000 -0.110803700270
+13.555756113000 0.530289658420
+5.697811275100 0.516035169470
+contraction shell=S num_primitives=2 num_coefficients=1
+8.563658261500 -0.381095456750
+1.398829676800 1.199159143600
+contraction shell=S num_primitives=1 num_coefficients=1
+0.572881711160 1.000000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.090096171317 1.000000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.034125885135 1.000000000000
+contraction shell=P num_primitives=6 num_coefficients=1
+1306.439886400000 0.002427732619
+309.253114410000 0.019544041017
+98.996273963000 0.090651794553
+36.756916451000 0.256992791540
+14.566657077000 0.409355048910
+5.873993743200 0.237293888490
+contraction shell=P num_primitives=3 num_coefficients=1
+22.890999695000 -0.028166026613
+3.085500182200 0.560341201480
+1.213232911800 0.981190196500
+contraction shell=P num_primitives=1 num_coefficients=1
+0.449316806990 1.000000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.120675000000 1.000000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.025923467275 1.000000000000
+contraction shell=D num_primitives=4 num_coefficients=1
+43.720074476000 0.013622964026
+12.391242652000 0.078935180133
+4.263944200600 0.238338400000
+1.552522179000 0.395268511220
+contraction shell=D num_primitives=1 num_coefficients=1
+0.537619294850 1.000000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.164931730740 1.000000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.051000000000 1.000000000000
+contraction shell=F num_primitives=1 num_coefficients=1
+1.147000000000 1.000000000000
+EndBasisSet
+</Data>
+</MolecularConfig>

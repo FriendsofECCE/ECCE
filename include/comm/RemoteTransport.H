@@ -38,7 +38,8 @@ public:
                        std::string& error) = 0;
   virtual bool getTree(const std::string& remotePath, const std::string& localPath,
                        std::string& error) = 0;
-  // 1 directory, 0 other file, -1 does not exist.
+  // 1 directory, 0 other file, -1 does not exist, -2 the host could not be
+  // asked (no login, a timeout): a copy must not read that as "missing".
   virtual int remoteKind(const std::string& remotePath) = 0;
   // The remote shell's expansion of a wildcard pattern (sorted; a pattern
   // matching nothing comes back as an error).

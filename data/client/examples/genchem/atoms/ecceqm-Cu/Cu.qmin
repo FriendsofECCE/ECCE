@@ -1,0 +1,11 @@
+title Cu atom, B3LYP/def2-TZVPD (restricted open-shell), ground state
+charge 0
+multiplicity 2
+method rob3lyp
+basis def2-TZVPD
+runtype energy
+charges loewdin
+grid_prune off
+geometry
+ Cu      0.00000000     0.00000000     0.00000000
+end

@@ -22,6 +22,7 @@
 #include "wxgui/ewxGrid.H"
 
 #include "DefaultVecPanel.H"
+#include "wxgui/ewxBitmap.H"
 
 
 // ----------------------------------------------------------------------------
@@ -75,10 +76,10 @@ bool DefaultVecPanel::Create(IPropCalculation *calculation,
    panel->GetSizer()->Add(tableSizer, 1, wxGROW|wxALL, 0);
    p_grid = new ewxGrid( panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSUNKEN_BORDER|wxHSCROLL|wxVSCROLL );
    p_grid->EnableEditing(false);
-   p_grid->SetDefaultColSize(50);
-   p_grid->SetDefaultRowSize(25);
-   p_grid->SetColLabelSize(40);
-   p_grid->SetRowLabelSize(50);
+   p_grid->SetDefaultColSize(ewxBitmap::scaled(50));
+   p_grid->SetDefaultRowSize(ewxBitmap::scaled(25));
+   p_grid->SetColLabelSize(ewxBitmap::scaled(40));
+   p_grid->SetRowLabelSize(ewxBitmap::scaled(50));
    //p_grid->SetRowLabelSize(0);
    p_grid->SetColLabelSize(0);
    p_grid->SetMinSize(wxSize(200,175));

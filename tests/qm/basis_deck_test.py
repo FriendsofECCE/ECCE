@@ -97,7 +97,9 @@ def run_engine(exe, text, work, name):
     inp, out = os.path.join(work, name + ".qmin"), os.path.join(work, name + ".qmout")
     open(inp, "w").write(text)
     env = dict(os.environ, ECCE_BASIS_DIR=BASIS_DIR)
-    p = subprocess.run([exe, "-o", out, inp], env=env, capture_output=True, text=True)
+    # The deck says write_orbitals ecceqm.qmorb; run in work so the orbital
+    # file lands there and disappears with the temporary directory.
+    p = subprocess.run([exe, "-o", out, inp], env=env, capture_output=True, text=True, cwd=work)
     if p.returncode:
         raise RuntimeError(p.stderr[-300:])
     for line in open(out):

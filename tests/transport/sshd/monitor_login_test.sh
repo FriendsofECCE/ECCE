@@ -6,6 +6,9 @@
 # of the output files share that login), and a dropped connection costs one
 # new login, in the restarted eccejobstore.  The test's own ssh commands log
 # in by key, so every password login is ECCE's.
+#   On the password-only sshd one more run pauses the sshd container (the
+#   network is cut): the job must go Waiting, not parked as refused, and
+#   finish after the resume (#777).
 #   monitor_login_test.sh [JOBS]     (default 3, plus one dropped run)
 set -eu
 here=$(cd "$(dirname "$0")" && pwd)
@@ -25,7 +28,12 @@ podman image exists localhost/ecce-launch ||
   podman build -q -t localhost/ecce-launch -f "$here/Containerfile.launch" "$here" >/dev/null
 
 logs=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/ecce-monlogin.XXXXXX")
-cleanup() { podman rm -f $kname $pname >/dev/null 2>&1 || true; rm -rf "$logs"; }
+ctl=$(mktemp -d "${XDG_RUNTIME_DIR:-/tmp}/ecce-monctl.XXXXXX")
+chmod 777 "$ctl"
+cleanup() {
+  [ -z "${watcher:-}" ] || kill "$watcher" 2>/dev/null || true
+  podman unpause $pname >/dev/null 2>&1 || true
+  podman rm -f $kname $pname >/dev/null 2>&1 || true; rm -rf "$logs" "$ctl"; }
 trap cleanup EXIT
 podman rm -f $kname $pname >/dev/null 2>&1 || true
 podman run -d --name $kname -p 127.0.0.1:$kport:22 -v "$logs:/log:Z" \
@@ -37,12 +45,26 @@ for p in $kport $pport; do
   for i in $(seq 20); do (exec 3<>/dev/tcp/127.0.0.1/$p) 2>/dev/null && break; sleep 0.5; done
 done
 
+# The outage run asks for the password-only sshd to be paused through $ctl.
+( while :; do
+    for w in pause resume; do
+      if [ -e "$ctl/$w" ]; then
+        if [ $w = pause ]; then podman pause $pname >/dev/null 2>&1
+        else podman unpause $pname >/dev/null 2>&1; fi
+        rm -f "$ctl/$w"; : > "$ctl/$w.done"
+      fi
+    done
+    sleep 0.1
+  done ) &
+watcher=$!
+
 chome=${ECCE_TEST_CLIENT_HOME:-${XDG_CACHE_HOME:-$HOME/.cache}/ecce-remote-launch-client}
 mkdir -p "$chome"
 podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce \
   --passwd-entry "ecce:*:$(id -u):$(id -g)::/tmp/client:/bin/bash" \
   -v "$root:/src:Z" -v "$state:/state:Z,ro" -v "$chome:/tmp/client:Z" \
-  -v "$logs:/log:Z,ro" \
+  -v "$logs:/log:Z,ro" -v "$ctl:/ctl:Z" -e ECCE_CTL_DIR=/ctl \
+  -e ECCE_SSH_RETRY_SECONDS=10 \
   ${ECCE_DATASERVER_PORT:+-e ECCE_DATASERVER_PORT} ${ECCE_BROKER_PORT:+-e ECCE_BROKER_PORT} \
   -e KPORT=$kport -e PPORT=$pport -e JOBS=$jobs localhost/ecce-launch bash -c '
   set -e
@@ -68,6 +90,7 @@ podman run --rm --userns=keep-id --network host -e HOME=/tmp/client -e USER=ecce
     echo "=== $m login"
     python3 tests/launch/run_tests.py --build /src/build-ssh --machine $m \
       --helper-host ${m}key --remote-user bashuser --password ecce-test \
-      --sshd-log /log/$m.log --jobs $JOBS --drop || rc=1
+      --sshd-log /log/$m.log --jobs $JOBS --drop \
+      $([ $m = pw ] && echo --outage) || rc=1
   done
   exit $rc'

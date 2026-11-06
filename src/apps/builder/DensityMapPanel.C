@@ -21,6 +21,7 @@
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
 #include <wx/stopwatch.h>
+#include <wx/timer.h>
 
 #include "PointNote.H"
 #include "dsm/IPropCalculation.H"
@@ -28,6 +29,7 @@
 #include "tdat/Fragment.H"
 #include "util/Event.H"
 #include "wxgui/ewxConfig.H"
+#include "DensityFragments.H"
 #include "DensityProfilePanel.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
@@ -46,7 +48,7 @@ const wxWindowID ID_SHOW = wxNewId(), ID_SPIN = wxNewId(), ID_MO = wxNewId(),
                  ID_PLANE = wxNewId(), ID_ATOM = wxNewId(),
                  ID_PNG = wxNewId(), ID_CSV = wxNewId(),
                  ID_OFFSET = wxNewId(), ID_VIEW = wxNewId(),
-                 ID_FIELD = wxNewId(), ID_RESET = wxNewId(), ID_PLANETOGGLE = wxNewId(), ID_ZOOMRESET = wxNewId();
+                 ID_FIELD = wxNewId(), ID_RESET = wxNewId(), ID_PLANETOGGLE = wxNewId(), ID_ZOOMRESET = wxNewId(), ID_DIFF = wxNewId();
 
 const char *PLANE_NAME = "DensityMapPlane";
 const double MARGIN = 1.5;            // A beyond the atoms' extent
@@ -64,20 +66,32 @@ class DensityMapCanvas : public wxPanel
     DensityMapCanvas(wxWindow *parent)
       : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                 wxFULL_REPAINT_ON_RESIZE),
-        p_have(false)
+        p_have(false), p_wheelTimer(this)
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);
       SetMinSize(wxSize(200, 200));
       Bind(wxEVT_PAINT, &DensityMapCanvas::onPaint, this);
       Bind(wxEVT_MOUSEWHEEL, [this](wxMouseEvent& e) {
         double u, v;
+        if (e.GetWheelAxis() == wxMOUSE_WHEEL_HORIZONTAL) return;
         if (!p_have || !onZoom || e.GetWheelRotation() == 0 ||
             !densityMapPointAt(GetClientSize(), p_map, e.GetX(), e.GetY(), u, v)) {
           e.Skip();
           return;
         }
-        onZoom(u, v, e.GetWheelRotation() > 0 ? 1.25 : 0.8);
+        if (!p_wheelTimer.IsRunning()) {
+          p_wheelAnchor = wxRealPoint(u, v);
+          p_wheelTimer.StartOnce(16);
+        }
+        const int delta = e.GetWheelDelta() > 0 ? e.GetWheelDelta() : 120;
+        p_wheelSteps += e.GetWheelRotation() / (double)delta;
       });
+      Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+        const double steps = p_wheelSteps;
+        p_wheelSteps = 0;
+        if (p_have && onZoom && steps != 0)
+          onZoom(p_wheelAnchor.x, p_wheelAnchor.y, std::pow(1.25, steps));
+      }, p_wheelTimer.GetId());
       Bind(wxEVT_LEFT_DCLICK, [this](wxMouseEvent&) {
         if (onZoomReset) onZoomReset();
       });
@@ -136,6 +150,9 @@ class DensityMapCanvas : public wxPanel
     wxString p_message;
     bool p_panning = false;
     wxPoint p_drag;
+    wxTimer p_wheelTimer;
+    double p_wheelSteps = 0;
+    wxRealPoint p_wheelAnchor;
 };
 
 
@@ -145,9 +162,9 @@ wxFORCE_LINK_THIS_MODULE(DensityMapPanel)
 DensityMapPanel::DensityMapPanel()
   : VizPropertyPanel(), p_haveMap(false), p_haveView(false), p_busy(false),
     p_inViewer(false), p_dragging(false), p_mapCoarse(false), p_show(0), p_spin(0), p_atomA(0),
-    p_atomB(0), p_atomC(0), p_plane(0), p_offsetField(0), p_resetOffset(0),
+    p_atomB(0), p_atomC(0), p_plane(0), p_principal(0), p_offsetField(0), p_resetOffset(0),
     p_labelA(0), p_labelB(0), p_labelC(0), p_caption(0), p_atomRow(0),
-    p_viewRow(0), p_planeToggle(0), p_planeOpen(true), p_planeAuto(false), p_zoomed(false), p_levelTop(0), p_zoomReset(0), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
+    p_viewRow(0), p_planeToggle(0), p_planeOpen(true), p_planeAuto(false), p_diff(0), p_zoomed(false), p_levelTop(0), p_zoomReset(0), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
 {
 }
 
@@ -211,19 +228,24 @@ void DensityMapPanel::build()
   const bool ok = p_eval->build(getCalculation());
   const int RIGHT = wxALIGN_CENTER_VERTICAL | wxRIGHT;
 
-  //  Rows wrap instead of widening the panel: none is wider than the dock.
-  wxWrapSizer *row1 = new wxWrapSizer(wxHORIZONTAL);
+  //  Labels share one column width, so Show, MO and Offset line up; the
+  //  controls beside them stretch, which keeps the panel no wider than the dock.
+  const int labelW = GetTextExtent("Offset").GetWidth() + 8;
+  auto label = [&](const wxString &t) {
+    wxStaticText *l = new wxStaticText(this, wxID_ANY, t);
+    l->SetMinSize(wxSize(labelW, -1));
+    return l;
+  };
+  wxFlexGridSizer *grid = new wxFlexGridSizer(2, 4, 6);
+  grid->AddGrowableCol(1);
   p_show = new wxChoice(this, ID_SHOW);
   p_show->Append("Total density");
   p_show->Append("One orbital");
   p_show->Append("Sum of the degenerate set");
   p_show->SetSelection(0);
   p_show->SetToolTip("The orbital is the one selected in the MOs panel");
-  //  A label and its control wrap together, never apart.
-  wxBoxSizer *showPair = new wxBoxSizer(wxHORIZONTAL);
-  showPair->Add(new wxStaticText(this, wxID_ANY, "Show"), 0, RIGHT, 6);
-  showPair->Add(p_show, 0, wxALIGN_CENTER_VERTICAL);
-  row1->Add(showPair, 0, RIGHT, 12);
+  grid->Add(label("Show"), 0, wxALIGN_CENTER_VERTICAL);
+  grid->Add(p_show, 1, wxEXPAND);
   p_mo = new wxSpinCtrl(this, ID_MO, "1", wxDefaultPosition, wxSize(110, -1),
                         wxSP_ARROW_KEYS, 1, std::max(1, ok ? p_eval->orbitals(false) : 1),
                         std::max(1, ok ? p_eval->homo() : 1));
@@ -233,10 +255,13 @@ void DensityMapPanel::build()
   p_spin->Append("beta");
   p_spin->SetSelection(0);
   wxBoxSizer *moPair = new wxBoxSizer(wxHORIZONTAL);
-  moPair->Add(new wxStaticText(this, wxID_ANY, "MO"), 0, RIGHT, 6);
   moPair->Add(p_mo, 0, RIGHT, 8);
   moPair->Add(p_spin, 0, wxALIGN_CENTER_VERTICAL);
-  row1->Add(moPair, 0);
+  grid->Add(label("MO"), 0, wxALIGN_CENTER_VERTICAL);
+  grid->Add(moPair, 1, wxEXPAND);
+  p_diff = new wxButton(this, ID_DIFF, "Difference...");
+  p_diff->SetToolTip("Show this density minus the density of other calculations of "
+                     "some of the same atoms (the fragments of a complex)");
 
   wxArrayString planes;
   planes.Add("Molecular plane");
@@ -245,6 +270,9 @@ void DensityMapPanel::build()
   planes.Add("This view (parallel to the screen)");
   p_plane = new wxRadioBox(this, ID_PLANE, "Plane", wxDefaultPosition,
                            wxDefaultSize, planes, 1, wxRA_SPECIFY_COLS);
+  p_principal = new wxChoice(this, wxID_ANY);
+  p_principal->SetToolTip(wxString::FromUTF8("Principal plane through the centroid; RMS distance of all atoms in Å"));
+  if (ok) updatePrincipalPlanes();
 
   p_atomRow = new wxBoxSizer(wxHORIZONTAL);
   wxWrapSizer *atoms = new wxWrapSizer(wxHORIZONTAL);
@@ -277,14 +305,16 @@ void DensityMapPanel::build()
     //  A plane that cannot be defined is greyed out, not left to fail.
     const bool flat = isPlanar(p_eval->coordsAng);
     const bool standing = hasMolecularPlane(p_eval->coordsAng);
-    p_plane->Enable(0, flat);
+    p_plane->Enable(0, flat || standing);
     p_plane->Enable(2, standing);
-    const wxString why = "This molecule is not planar: use \"Through three atoms\".";
+    const wxString why = labels.size() == 1
+        ? wxString("One atom has no molecular plane: the map lies in the plane of the screen; turn the molecule and press \"Update from view\".")
+        : wxString("This molecule is not planar: the molecular plane is the best-fit plane through all atoms.");
     if (!flat) p_plane->SetItemToolTip(0, why);
     if (!standing) p_plane->SetItemToolTip(2, flat
         ? wxString("A linear molecule has no molecular plane to stand on: use \"Through three atoms\" or the molecular plane.")
         : why);
-    p_plane->SetSelection(flat ? 0 : 1);
+    p_plane->SetSelection(flat || standing ? 0 : 1);
     //  A lone atom has no molecular plane: start from the screen plane (the
     //  unrotated camera when the viewer is not there yet).
     if (startsOnViewPlane(labels.size())) {
@@ -317,7 +347,7 @@ void DensityMapPanel::build()
                                  wxSize(64, -1), wxTE_PROCESS_ENTER | wxTE_RIGHT);
   p_offsetField->SetToolTip(wxString::FromUTF8("Distance along the plane's normal, in Å (0.01)"));
   p_resetOffset = new wxButton(this, ID_RESET, "Reset");
-  rowOff->Add(new wxStaticText(this, wxID_ANY, "Offset"), 0, RIGHT, 6);
+  rowOff->Add(label("Offset"), 0, RIGHT, 6);
   rowOff->Add(p_offset, 1, RIGHT, 6);
   rowOff->Add(p_offsetField, 0, RIGHT, 2);
   rowOff->Add(new wxStaticText(this, wxID_ANY, wxString::FromUTF8("\xC3\x85")), 0, RIGHT, 6);
@@ -331,11 +361,15 @@ void DensityMapPanel::build()
                                wxDefaultSize, wxST_ELLIPSIZE_END);
   p_status = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
                               wxDefaultSize, wxST_ELLIPSIZE_END);
-  //  The export buttons share the first row: height is what the map lacks.
-  row1->Add(new wxButton(this, ID_PNG, "Export .png..."), 0, wxLEFT | wxRIGHT, 4);
-  row1->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0, wxRIGHT, 4);
+  //  The four actions in one grid of equal widths (as "Mode in the viewer"
+  //  in the Vibrational Frequencies panel); height is what the map lacks.
+  wxGridSizer *buttons = new wxGridSizer(2, 4, 4);
+  buttons->Add(p_diff, 0, wxEXPAND);
+  buttons->Add(new wxButton(this, ID_PNG, "Export .png..."), 0, wxEXPAND);
+  buttons->Add(new wxButton(this, ID_CSV, "Export .csv..."), 0, wxEXPAND);
 
-  top->Add(row1, 0, wxEXPAND | wxALL, 6);
+  top->Add(grid, 0, wxEXPAND | wxALL, 6);
+  top->Add(buttons, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   //  The plane controls take most of the height; the choice is remembered.
   p_planeToggle = new wxButton(this, ID_PLANETOGGLE, wxEmptyString,
                                wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
@@ -348,20 +382,22 @@ void DensityMapPanel::build()
     //  Nothing remembered: a short panel starts folded (see relayout).
     p_planeAuto = !(cfg && cfg->Exists("/DensityMap/PlaneControlsOpen"));
   }
-  row1->Add(p_planeToggle, 0, wxRIGHT, 4);
+  buttons->Add(p_planeToggle, 0, wxEXPAND);
   //  Shown only while zoomed, so the row stays one line otherwise.
   p_zoomReset = new wxButton(this, ID_ZOOMRESET, "Whole plane");
   p_zoomReset->SetToolTip("Mouse wheel zooms around the pointer; double-click also resets");
   p_zoomReset->Hide();
-  row1->Add(p_zoomReset, 0);
+  top->Add(p_zoomReset, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   p_canvas->onZoom = [this](double u, double v, double f) { zoomAt(u, v, f, true); };
   p_canvas->onPan = [this](double du, double dv) { panBy(du, dv, true); };
   p_zoomRest.SetOwner(this);
   Bind(wxEVT_TIMER, [this](wxTimerEvent&) { refineZoom(); }, p_zoomRest.GetId());
   p_canvas->onZoomReset = [this]() { resetZoom(); };
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { resetZoom(); }, ID_ZOOMRESET);
+  Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { chooseFragments(); }, ID_DIFF);
   addOrbitalPointNote(this, top, getCalculation());
   top->Add(p_plane, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  top->Add(p_principal, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_atomRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_viewRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(rowOff, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
@@ -418,9 +454,10 @@ void DensityMapPanel::build()
   if (!ok) {
     p_canvas->say(wxString::FromUTF8(p_eval->complaint.c_str()));
     for (wxWindow *w : std::initializer_list<wxWindow*>{ p_show, p_mo, p_spin,
-         p_plane, p_atomA, p_atomB, p_atomC, p_offset, p_offsetField,
+         p_plane, p_principal, p_atomA, p_atomB, p_atomC, p_offset, p_offsetField,
          p_resetOffset, p_useView })
       w->Enable(false);
+    p_principal->Hide();
     return;
   }
   p_spin->Show(p_eval->unrestricted);
@@ -502,6 +539,17 @@ bool DensityMapPanel::atomPoint(int n, double& u, double& v) const
   return true;
 }
 
+//  The farthest a zoomed or panned window may reach: the whole plane grown
+//  by one and a half of its widths on every side.
+void DensityMapPanel::outerWindow(double out[4]) const
+{
+  const double gw = 1.5 * (p_fullWin[1] - p_fullWin[0]);
+  const double gh = 1.5 * (p_fullWin[3] - p_fullWin[2]);
+  out[0] = p_fullWin[0] - gw;  out[1] = p_fullWin[1] + gw;
+  out[2] = p_fullWin[2] - gh;  out[3] = p_fullWin[3] + gh;
+}
+
+
 bool DensityMapPanel::zoomAt(double u, double v, double factor, bool interactive)
 {
   if (!p_haveMap || !p_eval || factor <= 0) return false;
@@ -520,12 +568,16 @@ bool DensityMapPanel::zoomAt(double u, double v, double factor, bool interactive
     p_zoomKey = zoomKey(plane, what, what == 0 ? 0 : p_mo->GetValue(),
                         p_spin->GetSelection() == 1);
   }
-  const double fullW = p_fullWin[1] - p_fullWin[0], fullH = p_fullWin[3] - p_fullWin[2];
   double w = (p_zoomWin[1] - p_zoomWin[0]) / factor;
   double h = (p_zoomWin[3] - p_zoomWin[2]) / factor;
-  if (w >= fullW * 0.999) {
-    resetZoom();
-    return true;
+  //  Zooming out may go past the whole plane: its margin is a fixed 1.5 A,
+  //  too small for the diffuse orbitals of an atom or a small molecule.
+  double outer[4];
+  outerWindow(outer);
+  const double outW = outer[1] - outer[0], outH = outer[3] - outer[2];
+  if (w > outW || h > outH) {
+    const double k = std::min(outW / w, outH / h);
+    w *= k;  h *= k;
   }
   if (std::min(w, h) < 0.3) {
     const double k = 0.3 / std::min(w, h);
@@ -535,8 +587,8 @@ bool DensityMapPanel::zoomAt(double u, double v, double factor, bool interactive
   const double fu = (u - p_zoomWin[0]) / (p_zoomWin[1] - p_zoomWin[0]);
   const double fv = (v - p_zoomWin[2]) / (p_zoomWin[3] - p_zoomWin[2]);
   double u0 = u - fu * w, v0 = v - fv * h;
-  u0 = std::min(std::max(u0, p_fullWin[0]), p_fullWin[1] - w);
-  v0 = std::min(std::max(v0, p_fullWin[2]), p_fullWin[3] - h);
+  u0 = std::min(std::max(u0, outer[0]), outer[1] - w);
+  v0 = std::min(std::max(v0, outer[2]), outer[3] - h);
   p_zoomWin[0] = u0;  p_zoomWin[1] = u0 + w;
   p_zoomWin[2] = v0;  p_zoomWin[3] = v0 + h;
   p_zoomed = true;
@@ -554,8 +606,10 @@ bool DensityMapPanel::panBy(double du, double dv, bool interactive)
 {
   if (!p_haveMap || !p_eval || !p_zoomed) return false;
   const double w = p_zoomWin[1] - p_zoomWin[0], h = p_zoomWin[3] - p_zoomWin[2];
-  const double u0 = std::min(std::max(p_zoomWin[0] + du, p_fullWin[0]), p_fullWin[1] - w);
-  const double v0 = std::min(std::max(p_zoomWin[2] + dv, p_fullWin[2]), p_fullWin[3] - h);
+  double outer[4];
+  outerWindow(outer);
+  const double u0 = std::min(std::max(p_zoomWin[0] + du, outer[0]), outer[1] - w);
+  const double v0 = std::min(std::max(p_zoomWin[2] + dv, outer[2]), outer[3] - h);
   if (u0 == p_zoomWin[0] && v0 == p_zoomWin[2]) return true;
   p_zoomWin[0] = u0;  p_zoomWin[1] = u0 + w;
   p_zoomWin[2] = v0;  p_zoomWin[3] = v0 + h;
@@ -617,6 +671,8 @@ void DensityMapPanel::onControl(wxCommandEvent& event)
     if (p_plane->GetSelection() == 2) chooseBondedB();
     else fillAtomLists();
     if (p_plane->GetSelection() == 3) { useCurrentView(); return; }
+  } else if (event.GetEventObject() == p_principal) {
+    newPlane();
   } else if (id == ID_ATOM) {
     newPlane();
     if (p_plane->GetSelection() == 2 && event.GetEventObject() == p_atomA)
@@ -627,10 +683,31 @@ void DensityMapPanel::onControl(wxCommandEvent& event)
   compute();
 }
 
+void DensityMapPanel::updatePrincipalPlanes()
+{
+  const int selected = std::max(0, p_principal->GetSelection());
+  p_principalPlanes.clear();
+  p_principal->Clear();
+  const bool flat = isPlanar(p_eval->coordsAng);
+  const bool standing = hasMolecularPlane(p_eval->coordsAng);
+  if (!flat) p_principalPlanes = principalPlanes(p_eval->coordsAng);
+  for (size_t i = 0; i < p_principalPlanes.size(); ++i)
+    p_principal->Append(wxString::Format(wxString::FromUTF8("%d: %s(RMS %.2f Å)"), int(i + 1),
+        i == 0 ? "best fit " : "", p_principalPlanes[i].rms));
+  if (!p_principalPlanes.empty()) p_principal->SetSelection(std::min(selected, 2));
+  p_plane->Enable(0, flat || standing);
+  p_plane->Enable(2, standing);
+  if (flat) p_plane->SetItemToolTip(0, wxEmptyString);
+  else p_plane->SetItemToolTip(0, standing
+      ? "This molecule is not planar: the molecular plane is the best-fit plane through all atoms."
+      : "One atom has no molecular plane: use the screen plane.");
+}
+
 void DensityMapPanel::syncControls()
 {
   const bool orbital = p_show->GetSelection() != 0;
   p_mo->Enable(orbital);
+  p_diff->Enable(!orbital);
   p_spin->Enable(orbital && p_eval->unrestricted);
   const int plane = p_plane->GetSelection();
   const bool two = plane == 2, three = plane == 1;
@@ -639,6 +716,7 @@ void DensityMapPanel::syncControls()
   p_labelC->Show(three);         p_atomC->Show(three);
   p_planeToggle->SetLabel(p_planeOpen ? "Hide plane controls" : "Show plane controls");
   GetSizer()->Show(p_plane, p_planeOpen, true);
+  GetSizer()->Show(p_principal, p_planeOpen && plane == 0 && !p_principalPlanes.empty());
   GetSizer()->Show(p_atomRow, p_planeOpen && (two || three), true);
   GetSizer()->Show(p_viewRow, p_planeOpen && plane == 3, true);
   Layout();
@@ -671,6 +749,8 @@ bool DensityMapPanel::currentPlane(Plane& plane, string& why)
       return false;
     }
     plane = p_viewPlane;
+  } else if (sel == 0 && !p_principalPlanes.empty()) {
+    plane = p_principalPlanes[p_principal->GetSelection()];
   } else {
     const PlaneKind kind = sel == 0 ? MOLECULAR : sel == 1 ? THREE_ATOMS : AXIAL;
     if (!makePlane(kind, p_eval->coordsAng, p_eval->atomLabels(),
@@ -764,6 +844,13 @@ void DensityMapPanel::compute(bool coarse, bool progressInPanel)
            : p_map.quantity == ORBITAL_SET ? " bohr\xE2\x81\xBB\xC2\xB3"
            : " bohr\xE2\x81\xBB\xC2\xB3\xE2\x81\x84\xC2\xB2";
   }
+  if (p_map.difference) {
+    char b[160];
+    snprintf(b, sizeof b, "Blue: density gained, red: lost, white: unchanged; full "
+             "colour at \xC2\xB1%.3g e/bohr\xC2\xB3 (the 99th percentile of the plane)",
+             p_map.colourLimit);
+    p_statusText = coarse ? "Coarse grid while dragging" : b;
+  } else
   p_statusText = coarse ? (p_dragging ? "Coarse grid while dragging"
                                        : "Coarse grid while zooming")
       : lev.empty() ? std::string("No contour level is reached in this plane")
@@ -990,6 +1077,10 @@ string DensityMapPanel::state() const
            p_map.u0, p_map.u(p_map.nu - 1), p_map.v0, p_map.v(p_map.nv - 1));
   s += buf;
   s += "title " + p_map.title + "\n";
+  s += "orbitals " + string(p_eval && p_eval->fromResults ? "results.h5" : "properties") + "\n";
+  snprintf(buf, sizeof buf, "difference %d fragments %d colourlimit %.6g\n",
+           p_map.difference ? 1 : 0, (int)p_fragments.size(), p_map.colourLimit);
+  s += buf;
   s += "plane " + p_map.plane.description + "\n";
   s += "labelled";
   for (const string& l : densityMapLabelled(p_map)) s += " " + l;
@@ -1025,6 +1116,43 @@ bool DensityMapPanel::exportCsv(const wxString& path)
   return fclose(out) == 0 && ok;
 }
 
+bool DensityMapPanel::setFragments(const std::vector<std::string>& urls, string& why)
+{
+  ensureInitialized();
+  if (!p_eval || !p_canvas || !p_show || !p_show->IsEnabled()) {
+    why = "The Density Map is not available for this calculation.";
+    return false;
+  }
+  if (!DensityFragments::attach(*p_eval, urls, why)) {
+    p_fragments.clear();
+    updateDiffButton();
+    compute();
+    return false;
+  }
+  p_fragments = urls;
+  updateDiffButton();
+  p_zoomed = false;
+  compute();
+  return true;
+}
+
+void DensityMapPanel::updateDiffButton()
+{
+  p_diff->SetLabel(p_fragments.empty() ? wxString("Difference...")
+      : wxString::Format("Difference: %d fragment%s...", (int)p_fragments.size(),
+                         p_fragments.size() == 1 ? "" : "s"));
+  relayout();
+}
+
+void DensityMapPanel::chooseFragments()
+{
+  std::vector<std::string> chosen;
+  if (!DensityFragments::choose(this, getCalculation(), p_fragments, chosen)) return;
+  string why;
+  if (!setFragments(chosen, why))
+    wxMessageBox(wxString::FromUTF8(why.c_str()), "Density difference", wxOK | wxICON_WARNING, this);
+}
+
 void DensityMapPanel::orbitalPointChanged()
 {
   if (!p_eval || !p_canvas || !p_show || !p_show->IsEnabled()) return;
@@ -1035,10 +1163,13 @@ void DensityMapPanel::orbitalPointChanged()
     removePlaneFromViewer();
     return;
   }
+  string ignored;
+  if (!DensityFragments::attach(*p_eval, p_fragments, ignored)) p_fragments.clear();
   const int n = std::max(1, p_eval->orbitals(false));
   p_mo->SetRange(1, n);
   p_mo->SetValue(std::min(p_mo->GetValue(), n));
   p_spin->Show(p_eval->unrestricted);
+  updatePrincipalPlanes();
   fillAtomLists();
   syncControls();
   compute();

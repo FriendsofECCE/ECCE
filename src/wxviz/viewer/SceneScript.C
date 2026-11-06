@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <cmath>
 #include <cstdlib>
@@ -64,6 +65,7 @@
 #include "inv/events/SoLocation2Event.H"
 #include "inv/events/SoMouseButtonEvent.H"
 #include "inv/nodes/SoCamera.H"
+#include "inv/sensors/SoFieldSensor.H"
 #include "viz/TwoDMoveCmd.H"
 #include "dsm/ChemistryTask.H"
 #include "dsm/EDSIFactory.H"
@@ -179,6 +181,87 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     SbVec3f focal = cam->position.getValue() + dir * d;
     cam->focalDistance.setValue(d / f);
     cam->position.setValue(focal - dir * (d / f));
+  } else if ((c == "wheelburst" || c == "zoomburst") && w.size() == 5) {
+    SoWxRenderArea *area = findRenderArea(p_viewer);
+    SoCamera *camera = p_viewer->getCamera();
+    if (!area || !camera) return fail("wheelburst: no viewer camera");
+    wxTextCtrl *text = nullptr;
+    if (w[4] == "key" || w[4] == "textkey") {
+      if (w[4] == "textkey") {
+        text = new wxTextCtrl(p_viewer, wxID_ANY);
+        text->SetFocus();
+      } else {
+        area->SetFocus();
+      }
+      wxTheApp->Yield(true);
+    }
+    FILE *out = fopen((p_outdir + "/" + w[1] + ".txt").c_str(), "w");
+    if (!out) return fail("wheelburst: cannot write " + w[1]);
+    struct Trace {
+      FILE *out;
+      std::chrono::steady_clock::time_point start;
+      int changes = 0;
+      int frames = 0;
+      double elapsed() const {
+        return std::chrono::duration<double, std::milli>(
+            std::chrono::steady_clock::now() - start).count();
+      }
+    } trace{out, std::chrono::steady_clock::now()};
+    SoFieldSensor sensor([](void *data, SoSensor *) {
+      static_cast<Trace *>(data)->changes++;
+    }, &trace);
+    sensor.setPriority(0);
+    sensor.attach(&camera->focalDistance);
+    area->setFrameCallback([](void *data) {
+      Trace *t = static_cast<Trace *>(data);
+      fprintf(t->out, "frame %d finished_ms %.6f\n", ++t->frames, t->elapsed());
+    }, &trace);
+    const float before = camera->focalDistance.getValue();
+    const int count = atoi(w[2].c_str()), rotation = atoi(w[3].c_str());
+    for (int i = 0; i < count; ++i) {
+      if (w[4] == "pinch") {
+        wxZoomGestureEvent gesture(area->GetId());
+        gesture.SetEventObject(area);
+        gesture.SetGestureStart(i == 0);
+        gesture.SetGestureEnd(i == count - 1);
+        gesture.SetZoomFactor(std::pow(atof(w[3].c_str()),
+                                     i / double(std::max(1, count - 1))));
+        area->GetEventHandler()->ProcessEvent(gesture);
+        continue;
+      }
+      if (w[4] == "key" || w[4] == "textkey") {
+        wxKeyEvent key(wxEVT_KEY_DOWN);
+        key.m_keyCode = w[3] == "add" ? WXK_NUMPAD_ADD :
+                        w[3] == "subtract" ? WXK_NUMPAD_SUBTRACT : w[3][0];
+        key.SetEventObject(area);
+        area->GetEventHandler()->ProcessEvent(key);
+        continue;
+      }
+      wxMouseEvent event(wxEVT_MOUSEWHEEL);
+      event.SetEventObject(area);
+      event.SetTimestamp(i);
+      event.m_wheelRotation = rotation;
+      event.m_wheelDelta = 120;
+      event.m_wheelAxis = w[4] == "horizontal" ? wxMOUSE_WHEEL_HORIZONTAL : wxMOUSE_WHEEL_VERTICAL;
+      const double start = trace.elapsed();
+      area->GetEventHandler()->ProcessEvent(event);
+      fprintf(out, "event %d timestamp %ld start_ms %.6f end_ms %.6f\n",
+              i, event.GetTimestamp(), start, trace.elapsed());
+    }
+    fprintf(out, "immediate_changes %d\nimmediate_ratio %.9g\n", trace.changes,
+            camera->focalDistance.getValue() / before);
+    // Yield after dispatching the whole burst so it occupies one input frame.
+    const auto end = std::chrono::steady_clock::now() + std::chrono::milliseconds(200);
+    while (std::chrono::steady_clock::now() < end) {
+      wxTheApp->Yield(true);
+      wxMilliSleep(2);
+    }
+    fprintf(out, "changes %d\nratio %.9g\nframes %d\n", trace.changes,
+            camera->focalDistance.getValue() / before, trace.frames);
+    area->setFrameCallback(0, 0);
+    sensor.detach();
+    fclose(out);
+    if (text) text->Destroy();
   } else if (c == "idleframes" && w.size() == 2) {
     //  "idleframes <name>": frames the idle loop alone draws (no forced
     //  paint) after the previous command, and the last of them as
@@ -383,6 +466,53 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     val.getParameter("Value")->setDouble(log10(0.002));
     val.getParameter("transparency")->setDouble(0.0);
     val.execute();
+  } else if (c == "field" && w.size() >= 2) {
+    //  "field elf|lol|nci [res] [iso] [cutoff]": the ELF, LOL or NCI view as
+    //  MoPanel computes and draws it (opaque; NCI coloured by sign(lambda2)rho).
+    ICalculation *ic = dynamic_cast<ICalculation*>(p_calc);
+    const bool isElf = w[1] == "elf", isLol = w[1] == "lol", isNci = w[1] == "nci";
+    if (!ic || !(isElf || isLol || isNci)) return fail("field: needs a calculation and elf, lol or nci");
+    const string type = isElf ? ELF_FIELD_TYPE : isLol ? LOL_FIELD_TYPE : NCI_FIELD_TYPE;
+    int res = w.size() > 2 && w[2] != "opaque" ? atoi(w[2].c_str()) : 40;
+    double iso = w.size() > 3 && w[3] != "opaque" ? atof(w[3].c_str()) : isElf ? 0.8 : 0.5;
+    double cut = w.size() > 4 && w[4] != "opaque" ? atof(w[4].c_str()) : NCI_RHO_CUTOFF;
+    double lo[3] = {1e9, 1e9, 1e9}, hi[3] = {-1e9, -1e9, -1e9};
+    for (int i = 0; i < frag->numAtoms(); i++) {
+      const double *x = frag->atomRef(i)->coordinates();
+      for (int k = 0; k < 3; k++) {
+        lo[k] = std::min(lo[k], x[k]);
+        hi[k] = std::max(hi[k], x[k]);
+      }
+    }
+    ComputeMoCmd mo("Compute Mo", p_sg, p_calc, 0);
+    mo.getParameter("FieldType")->setString(type);
+    mo.getParameter("CoefCutoff")->setDouble(0.0);
+    mo.getParameter("SelectedMO")->setInteger(1);
+    mo.getParameter("Type")->setString("alpha");
+    mo.getParameter("Code")->setString(ic->application()->name());
+    const char *ax[3] = {"X", "Y", "Z"};
+    for (int k = 0; k < 3; k++) {
+      mo.getParameter(string("res") + ax[k])->setInteger(res);
+      mo.getParameter(string("from") + ax[k])->setDouble(lo[k] - 3.0);
+      mo.getParameter(string("to") + ax[k])->setDouble(hi[k] + 3.0);
+    }
+    if (!mo.execute()) return fail("field: no field computed");
+    p_viewer->setTransparencyType(isNci || w.back() == "opaque"
+                                      ? SoGLRenderAction::SORTED_OBJECT_BLEND
+                                      : SoGLRenderAction::SCREEN_DOOR);
+    IsoSurfaceCmd surf("Iso Surface", p_sg, p_calc);
+    //  "opaque" (last word): screen-door dithering shows as dots on software GL.
+    const bool opaque = isNci || w.back() == "opaque";
+    surf.getParameter("transparency")->setDouble(opaque ? 0.0 : 0.5);
+    surf.getParameter("isovalue")->setDouble(iso);
+    surf.getParameter("rhoCutoff")->setDouble(cut);
+    surf.getParameter("positiveRed")->setDouble(1.0);
+    surf.getParameter("positiveGreen")->setDouble(0.0);
+    surf.getParameter("positiveBlue")->setDouble(0.0);
+    surf.execute();
+    SurfDisplayTypeCmd stype("Surface Type", p_sg, p_calc);
+    stype.getParameter("IsosurfStyle")->setString("Solid");
+    stype.execute();
   } else if (c == "espdump" && w.size() == 2) {
     //  "espdump <file>": the current grid (after "esp") for a numeric check
     //  against another program: a header line with the dimensions, origin and
@@ -390,7 +520,7 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     //  node, z fastest (the SingleGrid itself runs x fastest).
     SingleGrid *grid = p_sg->getCurrentGrid();
     if (!grid || !grid->fieldData() || !grid->colorFieldData())
-      return fail("espdump: no ESP grid");
+      return fail("espdump: no grid with a colour field");
     int *n = grid->dimensions();
     double *o = grid->origin(), *k = grid->corner();
     FILE *fp = fopen(w[1].c_str(), "w");
@@ -517,6 +647,7 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     }
   } else if (c == "gtstep") {
     if (!p_calc || w.size() < 2) return fail("gtstep: needs a calculation and a step");
+    if (p_traceStep && p_traceStep(atoi(w[1].c_str()))) return true;
     GTStepCmd g("Trace Step", p_sg, p_calc);
     g.getParameter("Index")->setInteger(atoi(w[1].c_str()));
     g.getParameter("PropKey")->setString("GEOMTRACE");

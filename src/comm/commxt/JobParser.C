@@ -221,6 +221,10 @@ bool JobParser::importCalculation(const char* parseFile,
   }
 
   cmd = parseSetupScript + " " + parseFileName;
+  // xtb's side files sit next to the original output; on Windows the import
+  // is a plain copy with no link to resolve, so pass the source directory.
+  if (code == "xTB")
+    cmd += " " + RCommand::quotePath(importDir);
   if (!localconn.execout(cmd, oput)) {
     message = "Failed to execute setup parse script command \"" + cmd + "\"";
     if (oput != "")

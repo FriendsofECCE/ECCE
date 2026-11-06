@@ -27,6 +27,9 @@ class IsoSurfaceCmd : public PropCmd
      * legend draws the surface's own colours, not a copy of them.
      */
     static void potentialRampColor(double t, double& r, double& g, double& b);
+    /** NCI: blue (attractive) to green (zero) to red (repulsive) over the
+     *  fixed sign(lambda2)rho range; t as for potentialRampColor. */
+    static void nciRampColor(double t, double& r, double& g, double& b);
     static void potentialRampRange(float& minValue, float& maxValue);
 
   protected:
@@ -36,7 +39,8 @@ class IsoSurfaceCmd : public PropCmd
 
       /** Red-white-blue ramp for a potential-mapped surface. */
       static void setPotentialRamp(ChemIso *isosurf, float minValue,
-                                   float maxValue, double transparency);
+                                   float maxValue, double transparency,
+                                   bool nci = false);
 };
 
 #endif

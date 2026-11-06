@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="EGRAD" rowLabel="Geometry Step" rows="1" units="Hartree/Bohr">
+
+  <step number="1">0.000020503</step>
+  <step number="2">0.008051107</step>
+  <step number="3">0.005569644</step>
+  <step number="4">0.004151976</step>
+  <step number="5">0.002425655</step>
+  <step number="6">0.008365947</step>
+  <step number="7">0.005452767</step>
+  <step number="8">0.004837074</step>
+  <step number="9">0.008759900</step>
+  <step number="10">0.008411493</step>
+  <step number="11">0.008090881</step>
+  <step number="12">0.012055798</step>
+  <step number="13">0.011699829</step>
+  <step number="14">0.011530429</step>
+  <step number="15">0.011479194</step>
+  <step number="16">0.016319005</step>
+  <step number="17">0.014376418</step>
+  <step number="18">0.014071287</step>
+  <step number="19">0.013917268</step>
+  <step number="20">0.019420244</step>
+  <step number="21">0.014683734</step>
+  <step number="22">0.012990625</step>
+  <step number="23">0.012466582</step>
+  <step number="24">0.012548369</step>
+  <step number="25">0.018113559</step>
+  <step number="26">0.007581890</step>
+  <step number="27">0.001652269</step>
+  <step number="28">0.001176656</step>
+  <step number="29">0.001022033</step>
+  <step number="30">0.012484095</step>
+  <step number="31">0.011138819</step>
+  <step number="32">0.012005083</step>
+  <step number="33">0.012222604</step>
+  <step number="34">0.012195118</step>
+  <step number="35">0.014527242</step>
+  <step number="36">0.019811762</step>
+  <step number="37">0.018872864</step>
+  <step number="38">0.018830426</step>
+  <step number="39">0.018906027</step>
+  <step number="40">0.018867871</step>
+  <step number="41">0.015315677</step>
+  <step number="42">0.020713833</step>
+  <step number="43">0.021088414</step>
+  <step number="44">0.021106427</step>
+  <step number="45">0.015695681</step>
+  <step number="46">0.017561407</step>
+  <step number="47">0.017810173</step>
+  <step number="48">0.017385363</step>
+  <step number="49">0.015835266</step>
+  <step number="50">0.003683731</step>
+  <step number="51">0.004013968</step>
+  <step number="52">0.004055047</step>
+  <step number="53">0.037076301</step>
+  <step number="54">0.024723220</step>
+  <step number="55">0.023991521</step>
+  <step number="56">0.023902377</step>
+
+</tsvector>

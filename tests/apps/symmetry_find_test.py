@@ -32,6 +32,10 @@ import apps       # noqa: E402
 import fixture    # noqa: E402
 import run_tests  # noqa: E402
 
+# eccercmd holds the libssh transport when the build found libssh
+_SSH = (["-lssh"] if __import__("subprocess").run(
+    ["pkg-config", "--exists", "libssh"], capture_output=True).returncode == 0 else [])
+
 failures = []
 
 CASES = [
@@ -59,7 +63,7 @@ def makeCalculations(folder, modes=("g16", "mopac")):
         ["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o", driver,
          os.path.join(REPO, "tests", "filedsi", "resourceTest.C"), "-L" + build]
         + ["-l" + l for l in libs] * 3
-        + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"],
+        + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH],
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if built.returncode != 0:
         return built.stdout.decode()[-1500:]

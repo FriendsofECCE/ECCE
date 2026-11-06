@@ -52,6 +52,7 @@
 #include "inv/ChemKit/ChemColor.H"
 
 #include "viz/AddDipoleMomentCmd.H"
+#include "tdat/PropString.H"
 
 #include "wxviz/WxVizToolFW.H"
 #include "wxviz/SGSelection.H"
@@ -94,6 +95,19 @@ MomentsPanel::MomentsPanel()
 }
 
 
+
+// An ion's dipole depends on the origin; say which one the code used.
+static wxString dipoleOriginText(IPropCalculation *expt)
+{
+   PropString *org = dynamic_cast<PropString*>(expt->getProperty("DIPOLEORIGIN"));
+   if (org && org->value() == "centre_of_mass")
+      return wxString::FromUTF8(" (about the centre of mass)");
+   if (org && org->value() == "centre_of_charge")
+      return wxString::FromUTF8(" (about the centre of nuclear charge)");
+   if (org && org->value() == "coordinate_origin")
+      return wxString::FromUTF8(" (about the coordinate origin)");
+   return wxString();
+}
 
 MomentsPanel::MomentsPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
@@ -208,8 +222,9 @@ bool MomentsPanel::Create(IPropCalculation *calculation,
             "the total positive %s charge, and they are as far apart as that "
             "charge must be to give \u03bc."),
             AddDipoleMomentCmd::chargeName(key));
+      wxString about = dipoleOriginText(calculation);
       wxString note = wxString::Format(wxString::FromUTF8(
-         "|\u03bc| = %.3f D. %s"), sqrt(mu), from);
+         "|\u03bc| = %.3f D%s. %s"), sqrt(mu), about, from);
       p_dipoleNote = new ewxStaticText(panel, wxID_STATIC, note);
       p_dipoleNote->Wrap(260);
       GetSizer()->Add(p_dipoleNote, 0, wxALIGN_LEFT|wxALL, 3);
@@ -404,10 +419,10 @@ void MomentsPanel::showVectors(bool guessScale)
       const double q = cmd->getParameter("PoleCharge")->getDouble();
       if (p_dipoleNote && q > 0.0) {
          p_dipoleNote->SetLabel(wxString::Format(wxString::FromUTF8(
-            "|\u03bc| = %.3f D. The arrow runs from the negative to the "
+            "|\u03bc| = %.3f D%s. The arrow runs from the negative to the "
             "positive pole along \u03bc. The poles carry \u00b1%.2f e (the "
             "positive %s charge) and are %.2f \u00c5 apart, as far as that "
-            "charge must be to give \u03bc."), sqrt(m2), q,
+            "charge must be to give \u03bc."), sqrt(m2), dipoleOriginText(expt), q,
             AddDipoleMomentCmd::chargeName(AddDipoleMomentCmd::chargeKey(expt)),
             cmd->getParameter("PoleSeparation")->getDouble()));
          p_dipoleNote->Wrap(260);

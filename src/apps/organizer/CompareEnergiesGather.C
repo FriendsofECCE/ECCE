@@ -16,6 +16,11 @@
 #include "tdat/TAtm.H"
 #include "tdat/TTheory.H"
 #include "util/EcceURL.H"
+#include "util/ThermoRun.H"
+
+#include <algorithm>
+#include <cmath>
+#include <map>
 
 using std::string;
 using std::vector;
@@ -24,6 +29,21 @@ FinalEnergy finalEnergyOf(PropertyTask *task)
 {
   FinalEnergy r;
   if (!task) return r;
+  // An IRC's result is its TS: the energy at reaction coordinate 0 (the
+  // last SCF is an arbitrary end of the path, and G16 prints no TE).
+  PropVector *ircE = dynamic_cast<PropVector*>(task->getProperty("IRCENERGY"));
+  PropVector *ircC = dynamic_cast<PropVector*>(task->getProperty("IRCCOORD"));
+  if (ircE && ircC && !ircE->values().empty() &&
+      ircE->values().size() == ircC->values().size()) {
+    size_t at = 0;
+    for (size_t i = 1; i < ircC->values().size(); i++)
+      if (fabs(ircC->values()[i]) < fabs(ircC->values()[at])) at = i;
+    r.found = true;
+    r.ts = true;
+    r.value = ircE->values()[at];
+    r.units = "Hartree";
+    return r;
+  }
   // MOPAC's TE is its heat of formation, so it is named as such.
   TProperty *hof = task->getProperty("HFENERGY");
   TProperty *te = hof ? 0 : task->getProperty("TE");
@@ -55,6 +75,7 @@ EnergyTerm gatherEnergyTerm(const string& url, int coeff)
   EnergyTerm s;
   s.coeff = coeff;
   s.state.name = url;
+  s.url = url;
   PropertyTask *t = url.empty() ? 0 : EDSIFactory::getPropertyTask(EcceURL(url));
   if (!t) {
     s.state.problem = "the calculation cannot be read.";
@@ -100,6 +121,8 @@ EnergyTerm gatherEnergyTerm(const string& url, int coeff)
     GUIValues *gv = c->guiparams();
     GUIValue *d = gv ? gv->get("ES.Theory.SCF.Dispersion") : 0;
     if (d) s.dispersion = d->getValueAsString();
+    GUIValue *xc = gv ? gv->get("ES.Theory.DFT.XCFunctionals") : 0;
+    if (xc) s.xc = xc->getValueAsString();
     delete gv;
     Fragment *frag = c->fragment();
     if (frag) {
@@ -138,3 +161,54 @@ std::vector<std::pair<string, string> > calculationsIn(const string& projectUrl)
   return out;
 }
 
+
+string applyThermoTreatments(SumResult& r, const vector<EnergyTerm>& a,
+                             const vector<EnergyTerm>& b, const string& treatment)
+{
+  SumRow *g = 0;
+  for (SumRow& w : r.rows)
+    if (w.label.compare(0, 1, "G") == 0) g = &w;
+  if (!g || !g->available) return "";
+  std::map<string, ThermoRunResult> runs;
+  for (const vector<EnergyTerm> *side : {&a, &b})
+    for (const EnergyTerm& t : *side) {
+      if (runs.count(t.url)) continue;
+      const double T = t.state.temperature > 0 ? t.state.temperature : 298.15;
+      runs[t.url] = runThermo(t.url, T, false);
+      if (!runs[t.url].ok)
+        return "G over treatments needs the stored frequencies: " +
+               t.state.name + ": " + runs[t.url].error;
+    }
+  const vector<ThermoTreatmentInfo>& tr = thermoTreatments();
+  double lo = 0, hi = 0, ga = 0, gb = 0;
+  bool first = true;
+  for (const ThermoTreatmentInfo& info : tr) {
+    double sa = 0, sb = 0;
+    for (int s = 0; s < 2; s++)
+      for (const EnergyTerm& t : s ? b : a) {
+        const ThermoValue *v = runs[t.url].find(info.cli);
+        if (!v) return "ecce-thermo gave no values for " + string(info.cli) + ".";
+        (s ? sb : sa) += t.coeff * v->G;
+      }
+    const double d = sb - sa;
+    if (first || d < lo) lo = d;
+    if (first || d > hi) hi = d;
+    first = false;
+    if (treatment == info.cli) { ga = sa; gb = sb; }
+  }
+  if (!treatment.empty()) {
+    g->a = ga;
+    g->b = gb;
+    for (const ThermoTreatmentInfo& info : tr)
+      if (treatment == info.cli)
+        r.notes.push_back(string("G is recomputed by ecce-thermo: ") + info.label +
+                          ", 1 atm; the spread is the largest minus the smallest "
+                          "delta G over the six treatments.");
+  }
+  if (treatment.empty())
+    r.notes.push_back("G is the code's own; the spread is the largest minus the "
+                      "smallest delta G over the six ecce-thermo treatments at 1 atm.");
+  g->hasSpread = true;
+  g->spread = hi - lo;
+  return "";
+}

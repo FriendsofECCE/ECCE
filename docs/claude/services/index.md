@@ -35,6 +35,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 
 - [The Gateway window no longer appears](the-gateway-window-no-longer-appears.md)
 - [The first-start question: where a user keeps their work](first-start-question.md)
+- [~/.ECCE/ServerList is the legacy server bookmarks; added servers are in ~/.ECCE/AddedServers](added-servers-file-name.md)
 - [The per-user data server starts with no accounts; its login window offers to create one and to reset a password](per-user-server-offers-an-account.md)
 - [The release check: where it runs and what switches it off](release-check.md)
 - [The session id (`ECCE_SESSION_ID`) and session liveness](the-session-id.md)
@@ -48,8 +49,11 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Central-server TLS: ports, loopback, what must stay in step](tls-central-server.md)
 - [Per-session state is keyed by the session id, and the "is it already running?" checks must be too](per-user-service-state-is-keyed-by.md)
 - [A calculation can live in any local folder, not only in a data store](calculations-in-any-local-folder.md)
+- ["No longer on disk" in the Organizer means the node's path is gone; check the folder's ctime](no-access-panel-missing-means-enoent.md)
 - [In local data mode the Organizer's root is the user's home, labelled Local data](organizer-local-tree-has-no-users-level.md)
 - [Waiting for login: a lost monitor parks the job, session start catches it up](waiting-for-login.md)
+- [SftpEDSI (sftp:// URLs): FileEDSI logic on a scratch mirror, mkdir lock, link and test traps (#767)](sftpedsi-ssh-folder-storage.md)
+- [SSH-folder trees in the Organizer: keyed by address, prompts only while connecting, port refused (#767)](ssh-folder-trees-767.md)
 - [ECCE's own ssh master (ECCE_SSH_CONTROL_DIR): one login per host per state directory](owned-ssh-master.md)
 - [The calculation summary shows the allocation and how much is left (#613)](allocation-left-613.md)
 - [Test suites get a per-run state directory, ports and X display](test-suites-isolate-per-run.md)
@@ -81,3 +85,9 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [passdialog exit status and ecce-askpass](passdialog-exit-status.md) — a wx OnInit returning false exits 255; askpass took OK as cancel (#487)
 - [Ubuntu 26.04 mosquitto AppArmor profile blocks the per-user broker; ecce-client adds a local block (#646)](ubuntu-26-mosquitto-apparmor-profile.md)
 - [A host that accepts TCP but never sends the ssh banner: bounded connect, no libssh retry after a timeout, Organizer connects off the GUI thread with a working Cancel](silent-host-connect.md)
+- [ecce-annotate](ecce-annotate-writes-through-the-organizer.md): through the Organizer, else FileEDSI; never a hand-edited `.ecce-meta` (#742).
+- [ecce-move / ecce-rename](ecce-move-goes-through-the-organizer.md): the Organizer's own move, no offline mode (#824).
+- [A root without a resource (server not connected) taken for the hidden root: findNode recursed to a stack overflow (#767)](unconnected-root-taken-for-hidden-root.md)
+- [AuthCache: an ssh password only for its own host[:port] and user, also under the job store's LAST_URL (#791)](authcache-ssh-own-host-only.md)
+- [A copy-back from a host that cannot be asked "succeeded" with nothing copied and stored a 0-byte output; sizes now checked, Complete needs the normal-end line (#732)](copy-back-unreachable-host-732.md)
+- [A cancelled job's program outlived scancel (linuxproc, job shell died on TERM); TERM trapped, run directory swept after the cancel (#855)](terminate-leaves-program-running-855.md)

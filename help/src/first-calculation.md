@@ -59,11 +59,11 @@ library:
 1. In the **Mode Toolbar**, click the button with the tooltip **Import from
    Structure Library**. You can also choose **Mode > Add Structure**
    (Ctrl+7).
-2. In the **Structure Library** panel, choose `SimpleStructures` in the
-   **Libraries** drop-down, then open the folder `Miscellaneous2` by
+2. In the **Structure Library** panel, choose `Inorganic` in the
+   **Libraries** drop-down, then open the folder `Small_inorganic_molecules` by
    double-clicking it. The button next to the drop-down goes up one
    level.
-3. Click `h2o` in the list. A preview appears in the panel.
+3. Click `Water` in the list. A preview appears in the panel.
 4. Click in the empty 3D view. The molecule is added there.
 
 If you prefer to draw the molecule yourself:
@@ -168,6 +168,30 @@ through a batch queue, and appear for those machines. A machine reached
 over the network shows the **Remote Machine Access** fields (**Username:**,
 **Password:**, **Remote Shell:**).
 
+On a batch-queue machine, **Processors:** is the total number of cores.
+**Threads per rank:** (default 1) splits them between MPI ranks and OpenMP
+threads: the number of ranks is **Processors** divided by **Threads per
+rank**, and the Launcher shows it as **MPI ranks: N (M per node)**. If
+**Processors** is not a multiple of the threads, or the ranks do not divide
+evenly over the nodes, a warning appears in the Launcher's notes; the job
+can still be launched. With more than one thread the job script requests
+`--ntasks-per-node` and `--cpus-per-task` from Slurm and sets
+`OMP_NUM_THREADS`, and a CP2K job runs the OpenMP binary `cp2k.psmp` in
+place of `cp2k.popt`. The value is saved with the calculation.
+
+Under **Threads per rank** the Launcher shows **Books N core-h (cores x wall
+time)**, the cores times the **Wall Time Limit**, and updates it as you change
+either. Queues that book whole nodes are not known to the machine entry, so
+the figure counts the cores as you set them. The calculation summary then
+shows **Booked** (the same figure) and, once the job has run, **Used**: the
+cores times the time the job ran.
+
+**Memory Limit:** is entered in GB for every code and is a request per node;
+the Launcher converts it to the unit the scheduler wants when it writes the
+job script (for Slurm, `--mem`). When the queue has a memory limit, the
+Launcher shows it beside the field as the memory of a node. Leave the field
+at 0 to request none.
+
 ![The Launcher](img/launcher-localhost.png)
 
 <!-- capture: Launcher with Machine: localhost, Run Directory filled, before Launch -->
@@ -210,6 +234,17 @@ reported. On a machine with a queue system (Slurm, PBS, SGE) the code's
 own error can be in the queue's error file instead, such as `slurm.err`.
 ECCE brings that file back into the calculation's Outputs when it has
 text in it, and the reason shown for a failed calculation names it.
+
+## Mouse and trackpad in the 3-D view
+
+Use the vertical mouse wheel or two-finger vertical scrolling to zoom the
+molecule. Horizontal scrolling leaves the zoom unchanged. Pinch two fingers
+apart to zoom in, or together to zoom out, on systems that provide pinch
+gestures. Scroll movement is combined for each frame to keep zoom responsive.
+
+Click the 3-D view to give it keyboard focus, then press **+** or **−** to
+zoom in or out; the keypad **+** and **−** work too. Keys typed in text
+fields continue to edit the text.
 
 ## 7. Look at the results
 

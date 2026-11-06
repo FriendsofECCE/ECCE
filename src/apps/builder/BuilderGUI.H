@@ -149,11 +149,19 @@ public:
     /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_SELECTALL
     virtual    void OnSelectallClick( wxCommandEvent& event );
 
+    virtual void OnSelectWithinClick(wxCommandEvent& event) { event.Skip(); }
+
     /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_SELECT_MOLECULE
     virtual    void OnSelectMoleculeClick( wxCommandEvent& event );
 
     /// wxEVT_COMMAND_MENU_SELECTED event handler for ID_SELECT_SOLVENT
     virtual    void OnSelectSolventClick( wxCommandEvent& event );
+
+    /// Edit > Distort Bonds...
+    virtual    void OnDistortBondsClick( wxCommandEvent& event ) { event.Skip(); }
+
+    /// Edit > Take Coordinates From...
+    virtual    void OnTakeCoordsClick( wxCommandEvent& event ) { event.Skip(); }
 
     /// Edit > Select Ions
     virtual    void OnSelectIonsClick( wxCommandEvent& event );
@@ -204,10 +212,13 @@ public:
     static const wxWindowID ID_UNSELECT;
     static const wxWindowID ID_IMPORT;
     static const wxWindowID ID_SELECT_REVERSE;
+    static const wxWindowID ID_SELECT_WITHIN;
     static const wxWindowID ID_SELECT_MOLECULE;
     static const wxWindowID ID_DUMPSG;
     static const wxWindowID ID_SELECT_SOLVENT;
     static const wxWindowID ID_SELECT_IONS;
+    static const wxWindowID ID_DISTORT_BONDS;
+    static const wxWindowID ID_TAKE_COORDS;
     static const wxWindowID ID_SAVE_THUMB;
     static const wxWindowID ID_SUPPORT;
     static const wxWindowID ID_MODE_PREV;

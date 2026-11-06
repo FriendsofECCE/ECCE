@@ -42,18 +42,28 @@ Editor to switch this off.
 
 ## Spin density
 
-Choose **Spin Density** next to **Compute** (open-shell calculations) and the
+Choose **Properties > Orbitals > Surfaces** and **Spin Density** in its
+drop-down (open-shell calculations), and the
 table gives way to two tables: the singly occupied orbitals, which make the
 spin density, and the Mulliken spin population on each atom, worked out from
 the orbital coefficients. If the populations cannot be worked out, only the
-orbitals are listed and the panel says so. Choose another type to get the table
+orbitals are listed and the panel says so. Choose another surface to leave this view; the orbital table is in **MOs**.
 back.
 
 In the orbital table, **Main atoms** names the largest contributions to the
-orbital and adds **other** for the rest; hold the pointer over the cell to see
+orbital by element and shell with the principal quantum number (F 1s, F 2s,
+H 1s; H(1) 1s and H(2) 1s when an element occurs more than once) and adds **other** for the rest; hold the pointer over the cell to see
 every atom with at least 1 %. The spin population table gives each atom's spin
 population in electrons and its **Share (%)** of the total absolute spin, with
 the atoms that carry most spin first.
+
+Under the tables, **largest spin** names the atom with the largest absolute
+spin population, and **Summed spin per element** adds the populations of each
+element; the sums add up to the total spin, 2S, within the rounding of the
+populations. Tick **Show on structure** to colour every atom by its spin on the
+structure: blue for negative, white for zero, red for positive. The bar beside
+the box is the scale, and the full colour is the largest absolute spin. Untick
+the box, or choose another type, to get the usual colours back.
 
 Computing the surface can take minutes on a large cluster. A window with a
 **Cancel** button appears when it runs longer than a moment.

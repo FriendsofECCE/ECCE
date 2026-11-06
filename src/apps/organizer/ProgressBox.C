@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <cmath>
 #include <ctime>
+#include <fstream>
+#include <sstream>
 
 #include <wx/arrstr.h>
 #include <wx/button.h>
@@ -16,6 +18,7 @@
 #include <wx/settings.h>
 #include <wx/stattext.h>
 
+#include "comm/JobFailureReason.H"
 #include "tdat/VibSpectrum.H"
 #include "wxgui/PlotStyle.H"
 #include "wxgui/ewxConfig.H"
@@ -77,6 +80,17 @@ ProgressBox::~ProgressBox()
 }
 
 
+void ProgressBox::setDescriptor(const string& path)
+{
+  if (path == p_descPath) return;
+  p_descPath = path;
+  std::ifstream in(path.c_str());
+  std::stringstream text;
+  text << in.rdbuf();
+  p_progress.setStageOrder(JobProgress::stageOrderOf(text.str()));
+}
+
+
 bool ProgressBox::set(const string& text, double received, bool finished,
                       bool completed, double lastHeard,
                       const vector<string>& checkLines)
@@ -85,6 +99,7 @@ bool ProgressBox::set(const string& text, double received, bool finished,
     p_text = text;
     p_progress.parse(text);
   }
+  if (finished) p_progress.setFrequencies(p_frequencies);
   p_received = received;
   p_finished = finished;
   p_completed = completed;
@@ -147,15 +162,29 @@ vector<JobProgress::Block> ProgressBox::blocks() const
   if (p_queued && !p_finished && p_progress.empty())
     return vector<JobProgress::Block>(
         1, JobProgress::queued(p_submitted, p_jobId, (double)time(0)));
-  return p_progress.running(std::max(0.0, age()), p_finished);
+  vector<JobProgress::Block> b =
+      p_progress.running(std::max(0.0, age()), p_finished);
+  if (!p_finished && !outOfContact() && p_progress.stalled() > 0) {
+    JobProgress::Block note;
+    note.title = "Status";
+    note.lines.push_back(JobProgress::stalledText(p_progress.stalled()));
+    b.insert(b.begin(), note);
+  }
+  return b;
 }
 
 
-// What a finished job came to, ending with its final energy.
-vector<string> ProgressBox::outcome() const
+// What a finished job came to, ending with its final energy.  shorten: the
+// box's own display shortens the scheduler note's quoted line; false keeps
+// it whole, as the stored reason (run log, ecce-* tools) -- and "Copy all"
+// -- have it.
+vector<string> ProgressBox::outcome(bool shorten) const
 {
   vector<string> out = p_progress.summary(p_completed);
-  if (!p_stopped.empty()) out.push_back("Incomplete: " + p_stopped);
+  if (!p_stopped.empty())
+    out.push_back("Incomplete: " +
+                  (shorten ? JobFailureReason::reasonForProgressBox(p_stopped)
+                           : p_stopped));
   if (!p_finalEnergy.empty()) out.push_back(p_finalEnergy);
   return out;
 }
@@ -168,7 +197,7 @@ string ProgressBox::copyText(int what) const
     return p_finalValue.empty() || p_finalUnits.empty()
                ? p_finalValue : p_finalValue + " " + p_finalUnits;
   string all;
-  for (const string& line : describe()) all += line + "\n";
+  for (const string& line : describe(true)) all += line + "\n";
   return all;
 }
 
@@ -200,8 +229,13 @@ string ProgressBox::foldedText() const
   if (outOfContact())
     return JobProgress::noContactText((double)time(0) - p_lastHeard);
   if (p_finished) {
-    vector<string> s = outcome();
-    return s.empty() ? string() : s[0];
+    vector<string> s = outcome(true);
+    if (s.empty()) return string();
+    // The whole reason as the one folded line would run wider than the box;
+    // a folded box says only that the job is Incomplete (the open box has
+    // the reason).
+    if (s[0].compare(0, 11, "Incomplete:") == 0) return "Incomplete";
+    return s[0];
   }
   if (p_queued && p_progress.empty()) {
     const vector<JobProgress::Block> q = blocks();
@@ -236,7 +270,7 @@ static string plotCaption(const JobProgress::Block& b)
 }
 
 
-vector<string> ProgressBox::describe() const
+vector<string> ProgressBox::describe(bool full) const
 {
   vector<string> out;
   if (!wanted()) return out;
@@ -273,7 +307,7 @@ vector<string> ProgressBox::describe() const
   }
   for (const string& g : p_geom) out.push_back("geom " + g);
   if (p_finished)
-    for (const string& s : outcome())
+    for (const string& s : outcome(!full))
       out.push_back("summary: " + s);
   else if (!outOfContact() && age() >= 0)
     out.push_back(JobProgress::updatedText(age()));
@@ -427,17 +461,55 @@ static void drawPlot(wxDC& dc, const wxRect& r, const JobProgress::Block& blk,
     for (double t = step; t <= xEnd + 1e-9; t += step)
       if (t > 1) xt.values.push_back(t);
   }
+  auto tickX = [&](double t) {
+    return area.x + m + (int)std::lround(xFrac(t) * (area.width - 2 * m));
+  };
+  auto tickText = [&](double t) { return wxString::Format("%.*f", xt.decimals, t); };
+  //  The last cycle or step is always labelled, so the length of the run can
+  //  be read off; a regular tick too close to it gives way.
+  if (xEnd > 0 && (xt.values.empty() || xt.values.back() < xEnd - 1e-9)) {
+    const int gap = dc.GetTextExtent(tickText(xEnd)).x + dc.GetCharWidth();
+    if (!xt.values.empty() && xt.values.size() > 1 &&
+        tickX(xEnd) - tickX(xt.values.back()) < gap)
+      xt.values.pop_back();
+    xt.values.push_back(xEnd);
+  }
   for (double t : xt.values) {
-    const int px = area.x + m + (int)std::lround(xFrac(t) * (area.width - 2 * m));
-    const wxString s = wxString::Format("%.*f", xt.decimals, t);
+    const int px = tickX(t);
+    const wxString s = tickText(t);
     const int w = dc.GetTextExtent(s).x;
-    if (px + w / 2 > r.GetRight()) continue;
     dc.SetPen(wxPen(pal.axis));
     dc.DrawLine(px, area.GetBottom(), px, area.GetBottom() + 3);
-    dc.DrawText(s, std::max(area.x, px - w / 2), area.GetBottom() + 2);
+    //  Kept inside the frame: flush right at the end, flush left at the start.
+    dc.DrawText(s, std::max(area.x, std::min(px - w / 2, area.GetRight() - w)),
+                area.GetBottom() + 2);
   }
   dc.DrawText(U(label + (blk.plotXUnit.empty() ? "" : " (x: " + blk.plotXUnit + ")")),
               r.x, area.GetBottom() + axisH);
+}
+
+
+// A row drawn in `fg`, the "N imaginary" count in `bad` when N is not what
+// the search wants (0 for a minimum, 1 for a transition state).
+static void drawRow(wxDC& dc, const wxString& row, int x, int y, const wxColour& fg,
+                    const wxColour& bad, int expected, bool grey)
+{
+  const int at = row.Find(" imaginary");
+  int from = at;
+  while (from > 0 && wxIsdigit(row[from - 1])) --from;
+  long n = 0;
+  if (at <= 0 || from == at || !row.Mid(from, at - from).ToLong(&n)) {
+    dc.DrawText(row, x, y);
+    return;
+  }
+  const wxString head = row.Left(from), count = row.Mid(from, at + 10 - from);
+  dc.DrawText(head, x, y);
+  dc.SetTextForeground(!grey && n != expected ? bad : fg);
+  dc.DrawText(count, x + dc.GetTextExtent(head).x, y);
+  dc.SetTextForeground(fg);
+  const wxString tail = row.Mid(at + 10);
+  if (!tail.empty())
+    dc.DrawText(tail, x + dc.GetTextExtent(head + count).x, y);
 }
 
 
@@ -596,7 +668,9 @@ wxSize ProgressBox::layout(wxDC *dc)
           for (size_t li = 0; li < b.lines.size(); li++) {
             const vector<wxString> rows = wrapLine(m, b.lines[li], textAvail);
             for (size_t ri = 0; ri < rows.size(); ri++) {
-              if (dc) dc->DrawText(rows[ri], x0, y);
+              if (dc) drawRow(*dc, rows[ri], x0, y, fg, pal.imaginary,
+                              p_progress.search() == JobProgress::SEARCH_TS ? 1 : 0,
+                              lost || p_progress.search() == JobProgress::SEARCH_UNKNOWN);
               //  The imaginary count follows the last row of the last line.
               if (dc && !b.alert.empty() && li + 1 == b.lines.size() &&
                   ri + 1 == rows.size()) {
@@ -658,7 +732,7 @@ wxSize ProgressBox::layout(wxDC *dc)
 
         // A finished job keeps its plots; the outcome goes under them.
         if (p_finished) {
-          for (const string& s : outcome()) {
+          for (const string& s : outcome(true)) {
             //  The final energy is a real label, so it can be selected and
             //  copied (#408); placed when measuring, like the buttons.
             if (s == p_finalEnergy) {
@@ -673,7 +747,9 @@ wxSize ProgressBox::layout(wxDC *dc)
             } else {
               if (dc) dc->SetTextForeground(text);
               for (const wxString& r : wrapLine(m, s, availW)) {
-                if (dc) dc->DrawText(r, 0, y);
+                if (dc) drawRow(*dc, r, 0, y, text, pal.imaginary,
+                                p_progress.search() == JobProgress::SEARCH_TS ? 1 : 0,
+                                p_progress.search() == JobProgress::SEARCH_UNKNOWN);
                 y += lh;
               }
             }

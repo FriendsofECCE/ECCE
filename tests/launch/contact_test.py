@@ -14,6 +14,11 @@ listens on ecce_url_progress as the Organizer does.
      while nothing is heard; Check Job on Machine reports the job gone and
      its script ended; only when the monitor reads on does the state become
      final, and it is not a system failure;
+  d. (#769) ecce-qm alone is stopped: the monitor lives, so the job is not
+     out of contact; once the output has been silent past the (shortened)
+     stall limits the stored snapshot says so, `launchjob status` prints
+     "Running (stalled: ...)", the run log has one line, and all of it
+     clears when the output resumes;
   c. the monitor is stopped past the reconnect time
      (ECCE_JOB_RECONNECT_SECONDS): eccejobmaster starts a fresh store and
      monitor, the state stays running throughout (never waiting or
@@ -250,6 +255,32 @@ def caseStopped(run):
           if run.stored("reason") else True, "a: no lost-monitor reason")
 
 
+def caseStalled(run):
+    """d. output stops while the monitor lives: a note, never a state; clears on resume (#769)."""
+    if not check(run.started(), "d: the monitor runs and progress arrived"):
+        return
+    eng = run.engine()
+    signalAll(eng, signal.SIGSTOP)
+    say("    stopped ecce-qm %s (the monitor goes on)" % eng)
+    stalled = lambda: "stall=" in run.stored("progress")
+    check(run.waitFor(stalled, 90), "d: the stored snapshot carries stall=")
+    status = run.s.driver("status", run.url)[1].strip().splitlines()[-1]
+    check(status.startswith("Running (stalled: no output for"),
+          "d: the status line shows the note (%r)" % status)
+    check(run.state() == "running", "d: the run state is still running")
+    check("Stalled: no output for" in run.storeLog(),
+          "d: the run log has the line for it")
+    check(not run.contacts() or not any(c.startswith("lost ") for c in run.contacts()),
+          "d: the monitor was never out of contact")
+    signalAll(eng, signal.SIGCONT)
+    check(run.waitFor(lambda: not stalled(), 60), "d: the note clears when output resumes")
+    check("Output resumed" in run.storeLog(), "d: the run log has the line for that")
+    status = run.s.driver("status", run.url)[1].strip().splitlines()[-1]
+    check(not status.startswith("Running (stalled"), "d: and the status line (%r)" % status)
+    state = run.finish()
+    check(state == "completed", "d: the run ended completed (last: %s)" % state)
+
+
 def caseKilled(run):
     """b. stopped monitor, killed engine: gone, final only from the output."""
     if not check(run.started(), "b: the monitor runs and progress arrived"):
@@ -312,7 +343,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
     parser.add_argument("--keep", action="store_true")
-    parser.add_argument("--only", default="a,b,c")
+    parser.add_argument("--only", default="a,b,c,d")
     opts = parser.parse_args()
     build = os.path.abspath(opts.build)
 
@@ -323,7 +354,7 @@ def main():
     if not os.access(qmExe, os.X_OK):
         launch.skip("ecce-qm is not built (cmake -DECCE_BUILD_QM=ON)")
     for tool in ("mosquitto", "perl"):
-        if not shutil.which(tool):
+        if not shutil.which(tool, path=os.environ.get("PATH", "") + os.pathsep + "/usr/sbin"):
             launch.skip("%s is not installed" % tool)
     if not os.path.exists(os.path.join(build, "siteconfig-local", "DataServers")):
         launch.skip("%s/siteconfig-local is missing (run cmake)" % build)
@@ -361,6 +392,8 @@ def main():
     cases = {
         "a": (caseStopped, {"ECCE_JOB_CONTACT_SECONDS": str(CONTACT)}),
         "b": (caseKilled, {"ECCE_JOB_CONTACT_SECONDS": str(CONTACT)}),
+        "d": (caseStalled, {"ECCE_JOB_STALL_SECONDS": "5",
+                            "ECCE_JOB_STALL_FEWSTEPS_SECONDS": "15"}),
         "c": (caseReconnect, {"ECCE_JOB_CONTACT_SECONDS": str(CONTACT),
                               "ECCE_JOB_RECONNECT_SECONDS": str(RECONNECT)}),
     }

@@ -20,6 +20,7 @@
 #include "output.hpp"
 #include "polar.hpp"
 #include "scf.hpp"
+#include "tscheck.hpp"
 #include "vibration.hpp"
 
 // gensub's X_NOT_CONVERGED: the job ends Unsuccessful with "stopped without
@@ -340,6 +341,14 @@ int main(int argc, char** argv) {
         std::ofstream f(molden);
         qm::write_molden(f, in, *basis, r, fo.get());
       }
+      // A converged search can still sit on another reaction's saddle or on a
+      // dissociated structure; say so in the output and the run log, and still
+      // end Complete.
+      if (in.runtype == qm::RunType::TS && fo && fo->vib.n_imaginary == 1)
+        for (const std::string& w : qm::check_saddle(in.mol.without_dummies(), res.mol.without_dummies(), fo->vib, in.opt)) {
+          os << "ts_warning " << w << "\n";
+          std::cerr << "ecce-qm: warning: " << w << "\n";
+        }
       // A saddle point of the first order has exactly one imaginary frequency.
       if (in.runtype == qm::RunType::TS && fo && fo->vib.n_imaginary != 1) {
         std::cerr << "ecce-qm: the stationary point has " << fo->vib.n_imaginary

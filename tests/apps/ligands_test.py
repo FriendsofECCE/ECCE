@@ -3,7 +3,7 @@
 
     tests/apps/ligands_test.py                own Xvfb, services, local data
 
-Each .mvm under data/client/StructureLibrary/Ligands must carry a Nub on
+Each .mvm under data/client/StructureLibrary/Inorganic/Ligands must carry a Nub on
 every donor atom (the file is read here, not by the Builder).  The Builder's
 ECCE_BUILDER_SCRIPT then adds an octahedral Fe, picks its first nub, picks
 the ligand's first nub in Add Structure mode and clicks: the Fe must end up
@@ -29,7 +29,7 @@ import isolate    # noqa: E402
 import xdisplay   # noqa: E402
 
 SKIP = 77
-LIGANDS = os.path.join(ROOT, "data", "client", "StructureLibrary", "Ligands")
+LIGANDS = os.path.join(ROOT, "data", "client", "StructureLibrary", "Inorganic", "Ligands")
 
 # ligand -> (donor element, number of nubs)
 EXPECT = {
@@ -82,7 +82,7 @@ def script(path, jobs):
     lines = ["wait 3000"]
     for i, (name, nubIndex, donor) in enumerate(jobs):
         lines += ["select -1", "add Fe Octahedral %d 0 0" % (8 * i), "selectnub Fe",
-                  "library Ligands " + name, "libatom %d" % nubIndex, "click",
+                  "library Inorganic/Ligands " + name, "libatom %d" % nubIndex, "click",
                   "bonds Fe " + donor, "bonds Fe Nub"]
     lines += ["info", "quit"]
     with open(path, "w") as handle:

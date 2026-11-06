@@ -125,6 +125,18 @@ Frequency=last
 End=MULLIKEN POPULATION ANALYSIS
 [END]
 
+# An IRC's orbitals per point (#751): gensub appends the TS block again and
+# the two end-point blocks under the heading ECCE-IRC-END-ORBITALS (TS,
+# backward end, forward end).  One table each, in file order.  The heading
+# differs from the MO entry's so that rule does not also take them.
+[PTMO][PTMOBETA][PTORB][PTORBBETA]
+Script=orca.ptmo
+Begin=ECCE-IRC-END-ORBITALS
+Skip=2
+Frequency=all
+End=MULLIKEN POPULATION ANALYSIS
+[END]
+
 #  Orbital symmetry labels, which live in the Irrep column of "ORBITAL
 #  ENERGIES" -- the MO coefficient block above carries no symmetry, so
 #  this is a separate read of a separate section.  ORCA only prints that
@@ -158,6 +170,13 @@ Begin=CARTESIAN GRADIENT
 Skip=3
 Frequency=all
 End=TIMINGS
+[END]
+
+[DIPOLEORIGIN]
+Script=orca.dipoleorigin
+Begin=Choice of electric origin
+Frequency=last
+Lines=1
 [END]
 
 [DIPOLE]
@@ -529,6 +548,22 @@ History=dE
 # A relaxed scan: the number of points is in the scan header (one scanned
 # parameter; for several the last one is kept and the box drops a total
 # smaller than the point number).
+[PROGRESS]
+Begin=^\s+\*\s+SCF CONVERGED AFTER\s+\d+ CYCLES
+Progress=scf converged=yes
+[END]
+
+# What "FINAL SINGLE POINT ENERGY" contains: the box names it (#826).
+[PROGRESS]
+Begin=^\s+DFT(D[34]) V\d
+Progress=result disp=$1
+[END]
+
+[PROGRESS]
+Begin=^gCP correction\s+-?\d
+Progress=result gcp=gCP
+[END]
+
 [PROGRESS]
 Begin=range=\s*-?\d+\.\d+ \.\. -?\d+\.\d+\s+steps =\s+(\d+)
 Remember=scanpts

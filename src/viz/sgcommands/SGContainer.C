@@ -8,6 +8,9 @@
 
 #include "inv/nodes/SoMaterial.H"
 #include "inv/nodes/SoSwitch.H"
+#include "inv/nodes/SoSphere.H"
+#include "inv/nodes/SoPickStyle.H"
+#include "inv/nodes/SoTranslation.H"
 #include "inv/sensors/SoFieldSensor.H"
 #include "inv/nodes/SoShapeHints.H"
 #include "inv/nodes/SoClipPlane.H"
@@ -180,6 +183,12 @@ void SGContainer::constructor()
    SGLattice *lattice = new SGLattice;
    lattice->setName("lattice");
    latticeswitch->addChild(lattice);
+   // Atoms on the cell boundary drawn again at their equivalent positions;
+   // not pickable, so selection and editing never see them.
+   p_cellImages = new SoSeparator;
+   p_cellImages->setName("cellimages");
+   p_numCellImages = 0;
+   latticeswitch->addChild(p_cellImages);
 
    // Plane switch - goes with lattice code
    SoSwitch *planeswitch = new SoSwitch;
@@ -1884,6 +1893,108 @@ void SGContainer::updateColorNodes()
 }
 
 
+void SGContainer::updateCellImages()
+{
+   p_cellImages->removeAllChildren();
+   p_numCellImages = 0;
+   SoSwitch *sw = (SoSwitch*)findNode("latticeswitch");
+   SGFragment *frag = getFragment();
+   LatticeDef *lattice = frag ? frag->getLattice() : 0;
+   if (!lattice || !sw || sw->whichChild.getValue() == SO_SWITCH_NONE) return;
+   int na, nb, nc;
+   lattice->getReplicationFactors(na, nb, nc);
+   if (na != 1 || nb != 1 || nc != 1) return;   // replicas are real atoms
+
+   // Fractions are taken from the corner the box is drawn from.
+   MPoint corner = lattice->getLatticeCorner();
+   vector<MPoint> *vecs = lattice->toVectors();
+   double v[3][3] = {{(*vecs)[0].x(), (*vecs)[0].y(), (*vecs)[0].z()},
+                     {(*vecs)[1].x(), (*vecs)[1].y(), (*vecs)[1].z()},
+                     {(*vecs)[2].x(), (*vecs)[2].y(), (*vecs)[2].z()}};
+   delete vecs;
+   // Fractional coordinates f_k = r . (v_(k+1) x v_(k+2)) / vol
+   double cr[3][3];
+   for (int k = 0; k < 3; k++) {
+      const double *p = v[(k+1)%3], *q = v[(k+2)%3];
+      cr[k][0] = p[1]*q[2] - p[2]*q[1];
+      cr[k][1] = p[2]*q[0] - p[0]*q[2];
+      cr[k][2] = p[0]*q[1] - p[1]*q[0];
+   }
+   double vol = v[0][0]*cr[0][0] + v[0][1]*cr[0][1] + v[0][2]*cr[0][2];
+   if (fabs(vol) < 1e-9) return;
+   p_cellImages->addChild(new SoPickStyle);
+   ((SoPickStyle*)p_cellImages->getChild(0))->style.setValue(SoPickStyle::UNPICKABLE);
+   const double tol = 1e-3;
+   const int n = frag->numAtoms();
+   for (int i = 0; i < n; i++) {
+      TAtm *atm = frag->atomRef(i);
+      double radius = displayedSphereRadius(i);
+      if (radius <= 0.0 || atm->atomicNumber() <= 0) continue;
+      const double *r = atm->coordinates();
+      // On the lower face of an axis the image is one cell up, on the
+      // upper face one cell down; atoms outside the cell get none.
+      int shift[3];
+      bool any = false;
+      for (int k = 0; k < 3; k++) {
+         double f = ((r[0]-corner.x())*cr[k][0] + (r[1]-corner.y())*cr[k][1] +
+                     (r[2]-corner.z())*cr[k][2]) / vol;
+         double rf = floor(f + 0.5);
+         shift[k] = 0;
+         if (fabs(f - rf) < tol && (rf == 0.0 || rf == 1.0)) {
+            shift[k] = rf == 0.0 ? 1 : -1;
+            any = true;
+         }
+      }
+      if (!any) continue;
+
+      // Colour as the atom is drawn.
+      float col[3] = {0.7f, 0.7f, 0.7f};
+      ChemColor *cc = 0;
+      DisplayStyle ds = atm->displayStyle();
+      for (size_t d = 0; d < p_displayDescs.size(); d++)
+         if (ds.getName() == p_displayDescs[d].getName())
+            cc = dynamic_cast<ChemColor*>(((SoGroup*)p_dynamicStyles->getChild(d))->getChild(0));
+      int z = atm->atomicNumber();
+      const ChemColor *src = p_colors;
+      int ci = z;
+      if (cc && cc->atomColor.getNum() > 0) {
+         if (cc->atomColorBinding.getValue() == ChemColor::ATOM_PER_ATOM &&
+             i < cc->atomColor.getNum()) { src = cc; ci = i; }
+         else if (cc->atomColorBinding.getValue() == ChemColor::ATOM_OVERALL) { src = cc; ci = 0; }
+      }
+      if (ci < src->atomColor.getNum()) {
+         SbColor c = src->atomColor[ci];
+         col[0] = c[0]; col[1] = c[1]; col[2] = c[2];
+      }
+
+      for (int m = 1; m < 8; m++) {
+         int pick[3] = {(m & 1) != 0, (m & 2) != 0, (m & 4) != 0};
+         bool ok = true;
+         for (int k = 0; k < 3; k++) if (pick[k] && !shift[k]) ok = false;
+         if (!ok) continue;
+         double pos[3] = {r[0], r[1], r[2]};
+         for (int k = 0; k < 3; k++)
+            if (pick[k])
+               for (int x = 0; x < 3; x++) pos[x] += shift[k] * v[k][x];
+         SoSeparator *sep = new SoSeparator;
+         SoMaterial *mat = new SoMaterial;
+         mat->diffuseColor.setValue(col[0], col[1], col[2]);
+         mat->specularColor.setValue(0.4f, 0.4f, 0.4f);
+         mat->shininess.setValue(0.3f);
+         sep->addChild(mat);
+         SoTranslation *tr = new SoTranslation;
+         tr->translation.setValue((float)pos[0], (float)pos[1], (float)pos[2]);
+         sep->addChild(tr);
+         SoSphere *sph = new SoSphere;
+         sph->radius.setValue((float)radius);
+         sep->addChild(sph);
+         p_cellImages->addChild(sep);
+         p_numCellImages++;
+      }
+   }
+}
+
+
 /**
  * recomputes the fragment center for use by the lattice and
  * sets the lattice to force a redraw.
@@ -1895,9 +2006,9 @@ void SGContainer::touchLattice()
    SGLattice *sgl = (SGLattice*)findNode("lattice");
    if (frag && lattice && sgl) {
 
-      int na1, na2, na3;
-      lattice->getReplicationFactors(na1, na2, na3);
-      if (na1 == 1 && na2 == 1 && na3 == 1) {
+      // The atoms are the base cell, so its centre is the fragment centre
+      // at any replication; edges and labels must follow the atoms.
+      {
          int natoms = frag->numAtoms();
          double cmx = 0.0;
          double cmy = 0.0;
@@ -1916,14 +2027,16 @@ void SGContainer::touchLattice()
                cmz += weight*coords[2];
             }
          }
-         cmx = cmx/mtot;
-         cmy = cmy/mtot;
-         cmz = cmz/mtot;
+         if (mtot > 0.0) {
+            cmx = cmx/mtot;
+            cmy = cmy/mtot;
+            cmz = cmz/mtot;
+         }
          lattice->setFragCenter(cmx,cmy,cmz);
       }
       // Could just do sgl->touch() if we overload to redo setLattice??
       sgl->setLattice(lattice);
-
+      updateCellImages();
    }
 }
 
@@ -2208,6 +2321,7 @@ void  SGContainer::touchChemDisplay(SGFragment* frag)
 #endif
 
    removeUnusedStyles();
+   updateCellImages();
 
 #ifdef timertests
    t.stop();

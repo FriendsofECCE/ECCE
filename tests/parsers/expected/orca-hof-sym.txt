@@ -91,6 +91,15 @@ args:    '.' 'Energy' 'SCF' 'RHF' '0'
       rowlabels: 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33
       values: A' A' A' A' A' A" A' A' A" A' A' A' A' A" A' A' A' A" A' A" A' A' A' A" A' A" A' A" A' A' A" A' A'
 
+[DIPOLEORIGIN]  Script=orca.dipoleorigin  Freq=last  Skip=-  Lines=1
+  Begin=Choice of electric origin
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=983 fed=1 rc=0 first-fed='Choice of electric origin               ... Center of mass'
+    key: DIPOLEORIGIN
+      size: 1
+      values: centre_of_mass
+      units: NA
+
 [DIPOLE]  Script=orca.dipole  Freq=last  Skip=-  Lines=-
   Begin=Total Dipole Moment
   End=Rotational spectrum

@@ -1,3 +1,4 @@
+#include "util/ServerList.H"
 #include <iostream>
   using std::endl;
   using std::cout;
@@ -36,7 +37,7 @@ bool DefaultDavAuth::getAuthorization(AuthEvent& event)
    bool ret = false;
 
    if (event.m_user == "") {
-      event.m_user = Ecce::serverUser();
+      event.m_user = ServerList::userFor(event.m_url);
    }
 
    if (event.m_retryCount == 1)  {

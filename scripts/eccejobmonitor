@@ -42,6 +42,10 @@ BEGIN
 # debugging output flags
 my $DEBUG_PD		= 0x01;
 
+# Match util/VibFrequency.H and ecce_si_export.py so numerical zeros do
+# not become imaginary modes in the live progress snapshot.
+my $IMAG_THRESHOLD = 1.0;
+
 # parse descriptor constants
 my $PD_KEY_BEGIN        = 'begin';	# canonical form of rule key Begin
 my $PD_KEY_END          = 'end';	# canonical form of rule key End
@@ -161,6 +165,8 @@ my %gProg;		# stage -> snapshot (see ProgressLine)
 my %gProgMem;		# Remember= values
 my $gProgStages = 0;	# stages seen, for their order in the message
 my $gProgDirty = 0;
+my $gLastOut = time;	# last line read from the output (#769)
+my $gIdleAt = 0;	# when idle was last reported, 0: not idle
 my $gProgLastSent = 0;
 my $gProgSeq = 0;
 my $gProgHistMax = 60;	# values kept per history
@@ -203,6 +209,7 @@ my %gConfig = (
     'ecceVersion'		=> 'VersionUnspecified',
     'endOfParams'		=> 'EndOfText',
     'endOfPDF'			=> 'EndOfText',
+    'fileSizeLimit'		=> undef,	# MB; larger traj.xtc/ener.edr/topol.tpr are left
     'filesToTransfer'		=> undef,
     'freqFileReopen'		=> 18,
     'host'			=> '-',
@@ -2577,6 +2584,37 @@ sub SchedulerErrSend
 # info if it's available.
 # --------------------------------------------------------------------------- #
 
+# --------------------------------------------------------------------------- #
+# A job the scheduler ended (OUT_OF_MEMORY, TIMEOUT, ...) never ran its
+# script's end block, and on a shared file system its output may still be
+# arriving.  Wait, at most 60 s, until the output is non-empty and the same
+# size on two reads 3 s apart; the sizes go to the log (#732).
+# --------------------------------------------------------------------------- #
+
+sub SchedulerEndOutputSettle
+{
+    my $file = $gConfig{'jobOutputFile'};
+    return unless $file;
+
+    my $pause = 3;
+    my $deadline = time + 60;
+    my $prev = -1;
+    my @seen;
+    for (;;)
+    {
+        my $size = (-e $file) ? (-s $file) : 0;
+        $size = 0 unless defined $size;
+        push @seen, $size;
+        last if ($size > 0 && $size == $prev);
+        last if (time + $pause > $deadline);
+        $prev = $size;
+        select(undef, undef, undef, $pause);
+    }
+    LogMsg "SchedulerEndOutputSettle: '$file' sizes " . join(',', @seen)
+        . (($seen[-1] > 0 && @seen > 1 && $seen[-1] == $seen[-2])
+           ? " (settled)" : " (gave up)");
+}
+
 sub JobFilesGet
 {
     my $errMsg = undef;
@@ -2585,6 +2623,9 @@ sub JobFilesGet
     my $sWhat = 'job status file';
     my $timeLimit = $gConfig{'timeLimitFileExistStat'};
     my $timePause = $gConfig{'timePauseFileExistStat'};
+
+    &SchedulerEndOutputSettle() if ($gSchedState ne ''
+                                   && $gConfig{'monitoringMode'} eq 'live');
 
     if (($gConfig{'monitoringMode'} eq 'live') && $gWaitFileStatus)
     {
@@ -2596,6 +2637,39 @@ sub JobFilesGet
     foreach $i (keys %gPdTableFiles)
     {
         &MsgSendFile($i, $MSG_TYPE_F_PROP, $gPdTableFiles{$i});
+    }
+
+    # filesToTransfer entries larger than fileSizeLimit stay on the machine:
+    # a note is appended to the job output (sent below) and the file is
+    # skipped here.  Only GROMACS's trajectory files are size-checked: an
+    # orbital guess (.chk/.gbw/.movecs) must come back however big it is, or
+    # the next job's guess breaks.  The job's own outputs are sent however
+    # big they are.
+    my %skipTransfer;
+    my $limit = $gConfig{'fileSizeLimit'};
+    if (defined($limit) && $limit > 0 && $gConfig{'filesToTransfer'})
+    {
+        my $maxbytes = $limit * 1024 * 1024;
+        foreach my $f (split /\s+/, $gConfig{'filesToTransfer'})
+        {
+            (my $base = $f) =~ s/^.*\///;
+            next unless ($base eq 'traj.xtc' || $base eq 'ener.edr'
+                         || $base eq 'topol.tpr');
+            my $path = ($gConfig{'monitoringMode'} eq 'live')
+                       ? $f : $gConfig{'importDir'} . $f;
+            next unless (-e $path);
+            next unless ((-s $path) > $maxbytes);
+            $skipTransfer{$f} = 1;
+            my $msg = "$f was left in the run directory: it is larger than " .
+                      "the $limit MB fetch limit. Use ecce-fetch to fetch " .
+                      "it later.\n";
+            LogMsg $msg;
+            if (open(OUT, ">> $gConfig{'jobOutputFile2'}"))
+            {
+                print OUT $msg;
+                close OUT;
+            }
+        }
     }
 
     # send job output files
@@ -2648,6 +2722,7 @@ sub JobFilesGet
     {
         foreach $i (split /\s+/, $gConfig{'filesToTransfer'})
         {
+            next if ($skipTransfer{$i});
             &MsgSendFile($i, $MSG_TYPE_F_OTHER);
         }
     }
@@ -3098,6 +3173,13 @@ sub JobOutputGet
 
                         # a snapshot held back by the throttle goes now
                         &ProgressTail(1) if (@gProgList);
+                        # silent for a minute: say so once a minute (#769)
+                        if (@gProgList && time - $gLastOut >= 60
+                            && time - $gIdleAt >= 60)
+                        {
+                            $gIdleAt = time;
+                            $gProgDirty = 1;
+                        }
                         &ProgressFlush(0) if (@gProgList);
 
                         # pause to avoid hogging CPU
@@ -3146,6 +3228,12 @@ sub JobOutputGet
             }
 
             $line++;
+            $gLastOut = time;
+            if ($gIdleAt)
+            {
+                $gIdleAt = 0;
+                $gProgDirty = 1;	# output is back: idle=0
+            }
 
             # Keep track of where we are for restarting
             $currPos += length;
@@ -4069,6 +4157,12 @@ sub MsgSendFile
         }
     }
 
+    # The size on this host rides on the count ("1:<bytes>"), which an older
+    # job store reads with atoi: the store checks its copy against it (#732).
+    my $path = ($gConfig{'monitoringMode'} eq 'live') ? $file : "$idir$file";
+    my $size = -s $path;
+    $count .= ":$size" if (defined $size);
+
     &MsgSend(
         join $MSG_SEP, $MSG_TYPE_FILE, $msgType, $parseType, $count, $file);
 }
@@ -4728,8 +4822,11 @@ sub ProgressLine
             {
                 foreach my $v (grep { defined } ($1, $2, $3, $4, $5, $6))
                 {
-                    next if (abs($v) < 1);
-                    $gProgMem{$name . ($v < 0 ? '_imag' : '_real')}++;
+                    if ($v < -$IMAG_THRESHOLD) {
+                        $gProgMem{$name . '_imag'}++;
+                    } elsif ($v >= $IMAG_THRESHOLD) {
+                        $gProgMem{$name . '_real'}++;
+                    }
                 }
             }
             $gProgMem{$name . '_real'} //= 0;
@@ -4906,7 +5003,8 @@ sub ProgressFlush
     my $limit = $MSG_MAXLEN - length($MSG_TYPE_PROG) - 1;
     for (;;)
     {
-        $text = sprintf("# seq=%d sent=%.3f\n", $gProgSeq, $gProgLastSent);
+        $text = sprintf("# seq=%d sent=%.3f idle=%d\n", $gProgSeq,
+                        $gProgLastSent, $gIdleAt ? time - $gLastOut : 0);
         foreach my $stage (@stages)
         {
             my $st = $gProg{$stage};

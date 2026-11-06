@@ -191,6 +191,30 @@ vector<string> ProjectContextPanel::progressCells()
 }
 
 
+vector<string> ProjectContextPanel::columnHeadings()
+{
+  vector<string> out;
+  if (!p_projectView) return out;
+  for (int col = 0; col < p_projectView->getColCount(); col++)
+    out.push_back(string(p_projectView->getModel()->GetColLabelValue(col).ToUTF8()));
+  return out;
+}
+
+
+vector<string> ProjectContextPanel::energyCells(int sort)
+{
+  if (sort && p_projectView)
+    for (int col = 0; col < p_projectView->getColCount(); ++col) {
+      GridElement *cell = p_projectView->getElement(0, col);
+      if (cell && cell->getPropertyType() == GridProperty::PT_TOTAL_ENERGY) {
+        p_projectView->sortByCol(col, sort > 0);
+        break;
+      }
+    }
+  return columnCells(GridProperty::PT_TOTAL_ENERGY);
+}
+
+
 vector<string> ProjectContextPanel::stateCells()
 {
   return columnCells(GridProperty::PT_RUNSTATE_ICON);
@@ -348,6 +372,9 @@ void ProjectContextPanel::initialize()
           if (property->getType() == GridProperty::PT_PROGRESS) {
             cellValue->setValue(wxString::FromUTF8(
                 p_calcMgr->progressCellText(resource).c_str()));
+          } else if (property->getType() == GridProperty::PT_TOTAL_ENERGY) {
+            cellValue->setValue(wxString::FromUTF8(
+                p_calcMgr->totalEnergyCellText(resource).c_str()));
           } else if (property->getType() == GridProperty::PT_RUNSTATE_ICON) {
             cellValue->setValue(wxString::FromUTF8(
                 stateCellText(resource).c_str()));

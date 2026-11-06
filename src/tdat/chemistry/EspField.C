@@ -69,6 +69,72 @@ double EspBasisFunction::value(double x, double y, double z) const
   return radial*angular;
 }
 
+// x^n and its first two derivatives; n is a small non-negative integer.
+static void powers(double x, int n, double p[3])
+{
+  p[0] = p[1] = p[2] = 0.0;
+  if (n == 0) { p[0] = 1.0; return; }
+  double xn2 = 1.0;                       // x^(n-2)
+  for (int i = 0; i < n - 2; i++) xn2 *= x;
+  const double xn1 = n >= 2 ? xn2*x : 1.0;                 // x^(n-1)
+  p[0] = n >= 2 ? xn1*x : x;
+  p[1] = n*xn1;
+  p[2] = n >= 2 ? n*(n - 1)*xn2 : 0.0;
+}
+
+void EspBasisFunction::derivatives(double x, double y, double z, double& v,
+                                   double g[3], double h[6]) const
+{
+  const double d[3] = { x - center[0], y - center[1], z - center[2] };
+  const double rr = d[0]*d[0] + d[1]*d[1] + d[2]*d[2];
+
+  // radial part R and its derivatives: R_k = -2 d_k S1, R_kl = 4 d_k d_l S2 - 2 delta S1
+  double R = 0.0, S1 = 0.0, S2 = 0.0;
+  for (size_t i = 0; i < exponent.size(); i++) {
+    const double ar = exponent[i]*rr;
+    if (ar >= 70.0) continue;
+    const double e = contraction[i]*exp(-ar);
+    R += e;
+    S1 += exponent[i]*e;
+    S2 += exponent[i]*exponent[i]*e;
+  }
+  v = 0.0;
+  for (int k = 0; k < 3; k++) g[k] = 0.0;
+  for (int k = 0; k < 6; k++) h[k] = 0.0;
+  //  R can cancel to 0 while S1 and S2 do not (contraction {1,-1}).
+  if (R == 0.0 && S1 == 0.0 && S2 == 0.0) return;
+
+  double Rg[3], Rh[6];
+  for (int k = 0; k < 3; k++) Rg[k] = -2.0*d[k]*S1;
+  const int ka[6] = {0, 1, 2, 0, 0, 1}, kb[6] = {0, 1, 2, 1, 2, 2};
+  for (int m = 0; m < 6; m++)
+    Rh[m] = 4.0*d[ka[m]]*d[kb[m]]*S2 - (ka[m] == kb[m] ? 2.0*S1 : 0.0);
+
+  // angular polynomial P and its derivatives
+  double P = 0.0, Pg[3] = {0, 0, 0}, Ph[6] = {0, 0, 0, 0, 0, 0};
+  for (size_t t = 0; t < angularCoef.size(); t++) {
+    double a[3], b[3], c[3];
+    powers(d[0], powerX[t], a);
+    powers(d[1], powerY[t], b);
+    powers(d[2], powerZ[t], c);
+    const double w = angularCoef[t];
+    P     += w*a[0]*b[0]*c[0];
+    Pg[0] += w*a[1]*b[0]*c[0];
+    Pg[1] += w*a[0]*b[1]*c[0];
+    Pg[2] += w*a[0]*b[0]*c[1];
+    Ph[0] += w*a[2]*b[0]*c[0];
+    Ph[1] += w*a[0]*b[2]*c[0];
+    Ph[2] += w*a[0]*b[0]*c[2];
+    Ph[3] += w*a[1]*b[1]*c[0];
+    Ph[4] += w*a[1]*b[0]*c[1];
+    Ph[5] += w*a[0]*b[1]*c[1];
+  }
+  v = R*P;
+  for (int k = 0; k < 3; k++) g[k] = Rg[k]*P + R*Pg[k];
+  for (int m = 0; m < 6; m++)
+    h[m] = Rh[m]*P + Rg[ka[m]]*Pg[kb[m]] + Rg[kb[m]]*Pg[ka[m]] + R*Ph[m];
+}
+
 
 void EspField::selectPairs(const vector<EspBasisFunction>& basis,
                            const vector<double>& density,

@@ -6,6 +6,7 @@
 #include "dsm/IPropCalculation.H"
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
+#include "Builder.H"
 #include "DensityMapPanel.H"
 #include "DensityProfilePanel.H"
 #include "MoDiagramPanel.H"
@@ -29,6 +30,21 @@ std::string orbitalPointNote(IPropCalculation *calc)
   const bool irc = calc->getProperty("IRCCOORD") != 0;
   if (!irc && !calc->getProperty("SCANCOORD")) return std::string();
   const char *kind = irc ? "IRC" : "scan";
+  if (calc->hasPointOrbitals() && calc->orbitalsAtSomePointsOnly()) {
+    std::map<std::string, int>::const_iterator r =
+        rowOf().find(calc->getURL().toString());
+    if (calc->orbitalPoint() >= 0 && r != rowOf().end() &&
+        calc->pointHasOrbitals(calc->orbitalPoint()))
+      return "Orbitals and density of point " +
+             std::to_string(r->second + 1) + ".";
+    if (!calc->getProperty("PTMO"))
+      return "ORCA gives orbitals only at the TS of an IRC. Select the TS "
+             "point in the IRC Path panel to see them; there are none for "
+             "the other points.";
+    return "ORCA gives orbitals at the TS and the two end points of an "
+           "IRC. Select one of them in the IRC Path panel to see them; "
+           "there are none for the other points.";
+  }
   if (calc->hasPointOrbitals()) {
     std::map<std::string, int>::const_iterator r =
         rowOf().find(calc->getURL().toString());
@@ -96,4 +112,11 @@ void selectOrbitalPoint(IPropCalculation *calc, int tableIndex, int row)
     else if (DensityProfilePanel *f = dynamic_cast<DensityProfilePanel*>(p)) f->orbitalPointChanged();
     else if (MoDiagramPanel *g = dynamic_cast<MoDiagramPanel*>(p)) g->refresh();
   }
+  //  Which surfaces are offered depends on the point's orbitals.
+  for (PropertyPanel *p : PropertyPanel::getPanels(url))
+    if (dynamic_cast<MoPanel*>(p)) {
+      if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(p)))
+        builder->surfacesChanged();
+      break;
+    }
 }

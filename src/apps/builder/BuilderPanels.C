@@ -37,6 +37,7 @@
 #include "ContextPanel.H"
 #include "DefaultCalculation.H"
 #include "PropertyIndexPanel.H"
+#include "MoPanel.H"
 #include "PropertyPanel.H"
 #include "PropertyPanelFactory.H"
 #include "VizPropertyPanel.H"
@@ -708,8 +709,8 @@ void Builder::setColumnTab(int tab, bool save)
 void Builder::keepColumnWidth()
 {
   wxAuiPaneInfo &idx = p_mgr.GetPane(wxString(NAME_PROPERTY_INDEX));
-  if (idx.IsOk() && idx.min_size.x > 200) {
-    idx.MinSize(wxSize(200, idx.min_size.y));
+  if (idx.IsOk() && idx.min_size.x > ewxBitmap::scaled(200)) {
+    idx.MinSize(wxSize(ewxBitmap::scaled(200), idx.min_size.y));
   }
 }
 
@@ -938,13 +939,21 @@ void Builder::syncIndexSelection(wxWindow *win)
   if (!p_index || !win) return;
   wxAuiPaneInfo &pane = p_mgr.GetPane(win);
   if (pane.IsOk() && dynamic_cast<PropertyPanel*>(win))
-    p_index->setSelected(pane.name.ToStdString());
+    p_index->setSelected(dynamic_cast<MoPanel*>(win) ?
+       static_cast<MoPanel*>(win)->selectedSurface() : pane.name.ToStdString());
 }
 
 
 void Builder::selectDetail(const string& name)
 {
-  wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+  string panelName = name;
+  MoPanel *mo = dynamic_cast<MoPanel*>(p_mgr.GetPane("MOs").window);
+  bool surface = false;
+  if (mo && name == "Surfaces" && !mo->surfaceEntries().empty()) {
+    panelName = "MOs";
+    surface = true;
+  }
+  wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(panelName));
   if (!pane.IsOk()) {
     return;
   }
@@ -956,9 +965,14 @@ void Builder::selectDetail(const string& name)
   if (pane.IsFloating() && pane.frame) {
     pane.frame->Raise();
   }
+  //  An accordion keeps folded panes folded across updatePanes().
+  if (p_panelMode == PANELS_ACCORDION && paneGroup(pane) == GROUP_PROPERTIES)
+    accordionNormalize(pane.window);
   sizeIndexPane();
   updatePanes(true);
   focusShownPanel(pane.window);
+  if (surface) mo->setSurfaceMode(true);
+  else if (mo && name == "MOs") mo->selectFieldType("MO");
   if (p_index) p_index->setSelected(name);
 }
 
@@ -1094,12 +1108,19 @@ void Builder::updatePropertyIndex()
   vector<PropertyIndexPanel::Entry> entries;
   for (size_t i = 0; i < ordered.size(); ++i) {
     entries.push_back(ordered[i].second);
+    if (ordered[i].second.name == "MOs") {
+      const string entry_group_of_mos = ordered[i].second.group;
+      MoPanel *mo = dynamic_cast<MoPanel*>(p_mgr.GetPane("MOs").window);
+      if (mo && !mo->surfaceEntries().empty())
+        entries.push_back({"Surfaces", entry_group_of_mos,
+          "Density, spin density, ESP, ELF, LOL and NCI surfaces"});
+    }
   }
   p_index->setEntries(entries);
   sizeIndexPane();
   if (p_detail) {
     wxAuiPaneInfo &pane = p_mgr.GetPane(p_detail);
-    if (pane.IsOk()) p_index->setSelected(pane.name.ToStdString());
+    if (pane.IsOk()) syncIndexSelection(pane.window);
   }
 }
 

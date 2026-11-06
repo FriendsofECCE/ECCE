@@ -268,6 +268,23 @@ expect queue batch
 expect rundir /proj/andy/ecce
 expect block 1
 expect memrange ''
+expect threads 1
+expect ranksinfo 'MPI ranks: 1 (1 per node)'
+procs 8
+walltime 120
+expect booked 'Books 16.0 core-h (cores \u00d7 wall time)'
+walltime 1440
+expect booked 'Books 192 core-h (cores \u00d7 wall time)'
+threads 2
+expect threads 2
+expect ranksinfo 'MPI ranks: 4 (4 per node)'
+expect coreswarn ''
+procs 6
+threads 4
+expect ranksinfo 'MPI ranks: 1 (1 per node)'
+expect coreswarn '6 processors is not divisible by 4 threads per rank: the job will run 1 rank(s).'
+threads 1
+expect coreswarn ''
 %s
 pick nio
 expect machine nio

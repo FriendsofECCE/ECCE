@@ -490,6 +490,18 @@ CASES = [
         },
     ),
     dict(
+        name='orca-hcn-irc-mos',
+        desc='orca.desc',
+        fixture='orca/hcn_irc_mos.out',
+        # Real HF/3-21G IRC with Print[P_MOs]; gensub's appended TS, backward
+        # and forward end-point orbital blocks give three PTMO tables (#751).
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck'},
+        parse_args=('.', 'IRC', 'SCF', 'RHF', '0'),
+        expect={
+            'PTMO][PTMOBETA][PTORB][PTORBBETA': dict(blocks=3),
+        },
+    ),
+    dict(
         name='orca-h2o2-scan',
         desc='orca.desc',
         fixture='orca/h2o2_dihedral_scan.out',
@@ -1982,6 +1994,20 @@ CASES = [
     # input decks are beside the fixtures.
     # -----------------------------------------------------------------
     dict(
+        # An ion's dipole depends on the origin (#746): the run says which.
+        name='ecceqm-cn-anion-dipole-origin',
+        desc='ecceqm.desc',
+        fixture='ecceqm/cn_anion.qmout',
+        parse_args=('.', 'Energy', 'SCF', 'DFT', '0'),
+        silent_ok={'*': 'only the dipole keys are pinned here'},
+        expect={
+            'DIPOLE': dict(keys={'DIPOLE': {'rowlabels': 'X Y Z',
+                                            'units': 'Debye'}}),
+            'DIPOLEORIGIN': dict(keys={'DIPOLEORIGIN': {
+                'values': 'centre_of_mass'}}),
+        },
+    ),
+    dict(
         name='ecceqm-h2o-hf',
         desc='ecceqm.desc',
         fixture='ecceqm/h2o_hf.qmout',
@@ -2600,6 +2626,21 @@ CASES = [
             'HIRSHFELD': dict(blocks=1, keys={'HIRSHFELD': {'size': '2'}}),
         },
     ),
+    dict(
+        #  Synthetic excerpt, not genuine CP2K output: the gap is printed
+        #  only with &DFT/&PRINT/&MO EIGENVALUES on, and none of the
+        #  captured runs turns it on.  Both spellings across CP2K versions
+        #  appear so cp2k.hlgap's two branches are both exercised; the last
+        #  block is the one a Frequency=all scalar keeps.
+        name='cp2k-si-diag-gap',
+        desc='cp2k.desc',
+        fixture='cp2k/si_diag_gap.cp2kout',
+        parse_args=('.', 'Energy', 'QS', 'GPW', '0'),
+        expect={
+            'HLGAP': dict(blocks=1, keys={
+                'HLGAP': {'values': '10.756318', 'units': 'eV'}}),
+        },
+    ),
     # -----------------------------------------------------------------
     # xtb 6.7.1 (#362).  The fixtures are what scripts/gensub's xtb() sub
     # leaves in the output file: xtb's own report followed by the
@@ -2619,7 +2660,7 @@ CASES = [
                                           'units': 'eV'}}),
             'DIPOLE': dict(keys={'DIPOLE': {'rowlabels': 'X Y Z',
                                             'units': 'Debye'}}),
-            'GEOMTRACE][TEVEC': dict(blocks=1, keys={'GEOMTRACE': {
+            'GEOMTRACE][TEVEC][TIMEVEC][POSESCORE][CONFREL': dict(blocks=1, keys={'GEOMTRACE': {
                 'size': '1 3 3', 'rowlabels': '1-O 2-H 3-H',
                 'units': 'Angstrom'}}),
         },
@@ -2661,6 +2702,24 @@ CASES = [
         },
     ),
     dict(
+        # xtb dock (aISS), water onto water, from an xtb newer than the 6.7.1
+        # release (which aborts in dock): 15 poses.  The frame comment carries
+        # the total energy, so TEVEC is Hartree; POSESCORE is the E_int table
+        # of the output, matched by row.
+        name='xtb-dock-h2o-dimer',
+        desc='xtb.desc',
+        fixture='xtb/h2o_dimer_dock.out',
+        parse_args=('.', 'Docking (aISS)', 'SE', 'GFN2-xTB', '0'),
+        expect={
+            'GEOMTRACE][TEVEC][TIMEVEC][POSESCORE][CONFREL': dict(blocks=15, keys={
+                'GEOMTRACE': {'size': '1 6 3',
+                              'rowlabels': '1-O 2-H 3-H 4-O 5-H 6-H',
+                              'units': 'Angstrom'},
+                'TEVEC': {'units': 'Hartree'},
+                'POSESCORE': {'units': 'kcal/mol'}}),
+        },
+    ),
+    dict(
         # Methane --opt normal: 12 cycles, so 12 frames and 12 TEVEC entries
         # (TEVEC may never outnumber GEOMTRACE).
         name='xtb-ch4-opt',
@@ -2673,7 +2732,7 @@ CASES = [
             'HLGAP': dict(keys={'HLGAP': {'values': '17.346667996473',
                                           'units': 'eV'}}),
             'DIPOLE': dict(keys={'DIPOLE': {'units': 'Debye'}}),
-            'GEOMTRACE][TEVEC': dict(blocks=12, keys={
+            'GEOMTRACE][TEVEC][TIMEVEC][POSESCORE][CONFREL': dict(blocks=12, keys={
                 'GEOMTRACE': {'size': '1 5 3',
                               'rowlabels': '1-C 2-H 3-H 4-H 5-H',
                               'units': 'Angstrom'},
@@ -2689,7 +2748,7 @@ CASES = [
         parse_args=('.', 'Geometry', 'SE', 'GFN2-xTB', '0'),
         expect={
             'TE': dict(keys={'TE': {'units': 'Hartree'}}),
-            'GEOMTRACE][TEVEC': dict(blocks=3, keys={'GEOMTRACE': {
+            'GEOMTRACE][TEVEC][TIMEVEC][POSESCORE][CONFREL': dict(blocks=3, keys={'GEOMTRACE': {
                 'size': '1 5 3'}}),
         },
     ),
@@ -2811,6 +2870,18 @@ MOFILE_CASES = [
         expect={
             'ORBENG': {'size': '5', 'units': 'Hartree'},
             'MO': {'size': '5 5'},
+        },
+    ),
+    # An IRC job punches the MOs of its last path point into fort.7 (#751);
+    # real G16 run, HCN IRC HF/3-21G, last point is the HNC side.
+    dict(
+        name='g16-hcn-irc-mofile',
+        script='gaussian-16.mo',
+        fixture='gaussian-16/hcn_irc_mo.fort7',
+        parse_args=('.', 'IRC', 'SCF', 'RHF', '0'),
+        expect={
+            'ORBENG': {'size': '20', 'units': 'Hartree'},
+            'MO': {'size': '20 20'},
         },
     ),
     # The MSD of the NaCl-dissolving example (#544): three ECCE-MDMSD

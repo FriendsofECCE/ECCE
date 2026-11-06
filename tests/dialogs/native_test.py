@@ -91,7 +91,9 @@ def run(cmd, env, cwd, restoreLines, ov, flag="GUIValues", timeout=40, shot=None
     failure to reach the shared Xvfb under load is retried, not reported."""
     for attempt in range(3):
         r = run1(cmd, env, cwd, restoreLines, ov, flag, timeout, shot)
-        if r[2] or "initialize GTK" not in r[1]:
+        if r[2] or not any(m in r[1] for m in (
+                "initialize GTK", "Unable to access the X Display",
+                "without a display connection")):
             break
     return r
 
@@ -216,6 +218,15 @@ def restoreCases(inv):
                       [line(w, urls[i % 2]) for i, w in enumerate(cp)]))
         cases.append(("calcpick first only", [line(cp[0], urls[1])]))
         cases.append(("calcpick unknown url", [line(cp[0], urls[2])]))
+    if any(w["name"] == "ES.Theory.SCF.RIMode" for w in ws):
+        modekey = "ES.Theory.SCF.RIMode"
+        legacy = tog("ES.Theory.SCF.UseRIJCOSX", 1)
+        cases.extend([("RI legacy on", [legacy]),
+                      ("RI legacy off", [tog("ES.Theory.SCF.UseRIJCOSX", 0)])])
+        for mode in ("None", "RIJCOSX", "RIJONX"):
+            cases.extend([("RI " + mode, [menu(modekey, mode)]),
+                          ("RI override " + mode, [legacy, menu(modekey, mode)]),
+                          ("RI override reversed " + mode, [menu(modekey, mode), legacy])])
     cases.append(("unknown key", ["ES.Nothing|7||1|1|integer_input"]))
     return cases
 
@@ -329,6 +340,10 @@ def main():
     ap.add_argument("--case", default="", help="only cases whose title has this")
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--no-layout", action="store_true")
+    ap.add_argument("--dedupe", action="store_true",
+                    help="inventory-diff every context and variant, but replay "
+                         "the restore cases once per group of contexts whose "
+                         "Python inventories are identical")
     a = ap.parse_args()
     # Never read the developer's ~/.ECCE (fonts) -- the dialogs honour this.
     os.environ.setdefault("ECCE_REALUSERHOME",
@@ -347,7 +362,7 @@ def main():
         print("skip: python3 has no wx")
         return 77
 
-    number = 90
+    number = int(os.environ.get("ECCE_TEST_XDISPLAY_BASE", "90"))
     while os.path.exists("/tmp/.X11-unix/X%d" % number):
         number += 1
     xvfb = subprocess.Popen(["Xvfb", ":%d" % number, "-screen", "0",
@@ -371,6 +386,19 @@ def main():
         pl, perr, pdone = run(pyCmd, env, CODEREG, restore, ov, flag)
         nl, nerr, ndone = run(nativeCmd, env, CODEREG, restore, ov, flag)
         ok = pdone and ndone and pl == nl
+        if " RI " in title:
+            stored = dict((p[0], p[1]) for p in
+                          (l.split("|") for l in restore))
+            expected = stored.get("ES.Theory.SCF.RIMode",
+                                  "RIJCOSX" if stored.get("ES.Theory.SCF.UseRIJCOSX") == "1"
+                                  else "None") if flag == "GUIValues" else "None"
+            for lines in (pl, nl):
+                values = {p[0]: p for p in (l.split("|") for l in lines)
+                          if len(p) == 6}
+                mode = values.get("ES.Theory.SCF.RIMode", [])
+                aux = values.get("ES.Theory.SCF.RIJCOSXAuxBasis", [])
+                ok = ok and bool(mode and aux and mode[1] == expected and
+                                 aux[3] == ("0" if expected == "None" else "1"))
         return title, ok, pl, nl, perr, nerr
 
     try:
@@ -384,25 +412,52 @@ def main():
         print("%d context(s): %s" % (len(ctxs), ", ".join("/".join(c) for c in ctxs)))
         diffs = []
         with harness.Display() as display:
+            # The inventories and restore cases of ~1000 contexts are the
+            # bulk of the work for the Runtype dialogs; build them in the pool.
+            tasks = []
             for category, theory, runtype in ctxs:
                 for vname, vov in VARIANTS:
                     ov = dict(vov, category=category, theory=theory,
                               runType=runtype)
                     tag = "%s/%s/%s %s" % (category, theory, runtype, vname)
-                    nat = nativeInventory(binary, dlg, ov, env)
-                    if vname == "mult1":
-                        pyInv = harness.runDialog(display, py, **ov)
-                        for d in inventoryDiff(pyInv, nat):
-                            diffs.append("%s: %s" % (tag, d))
-                    for cname, restore in restoreCases(nat):
-                        if vname == "rxn nfrozen-1" and cname not in (
-                                "defaults", "one non-default"):
+                    # --case "CAT/THEORY/RUN" narrows the contexts built too.
+                    if "/" in a.case and a.case not in tag and \
+                            not tag.startswith(a.case.split(" ")[0]):
+                        continue
+                    tasks.append((tag, vname, ov, tag[:len(tag) - len(vname) - 1]))
+
+            def prepare(t):
+                tag, vname, ov, _ctx = t
+                nat = nativeInventory(binary, dlg, ov, env)
+                found = []
+                key = None
+                if vname == "mult1" or a.dedupe:
+                    pyInv = harness.runDialog(display, py, **ov)
+                    found = ["%s: %s" % (tag, d)
+                             for d in inventoryDiff(pyInv, nat)]
+                    key = json.dumps([pyInv.get("widgets"), pyInv.get("error")],
+                                     sort_keys=True)
+                return t, found, restoreCases(nat), key
+
+            with concurrent.futures.ThreadPoolExecutor(a.jobs) as pool:
+                prepared = list(pool.map(prepare, tasks))
+            seen = {}
+            perCtx = {}
+            for (tag, vname, ov, ctx), found, cases, key in prepared:
+                perCtx.setdefault(ctx, []).append(key)
+            for (tag, vname, ov, ctx), found, cases, key in prepared:
+                diffs.extend(found)
+                if a.dedupe and seen.setdefault(tuple(perCtx[ctx]), ctx) != ctx:
+                    continue
+                for cname, restore in cases:
+                    if vname == "rxn nfrozen-1" and cname not in (
+                            "defaults", "one non-default"):
+                        continue
+                    for flag in ("GUIValues", "NO_GUIValues"):
+                        if flag == "NO_GUIValues" and vname != "mult3":
                             continue
-                        for flag in ("GUIValues", "NO_GUIValues"):
-                            if flag == "NO_GUIValues" and vname != "mult3":
-                                continue
-                            jobs.append(("%s %s %s" % (tag, cname, flag), ov,
-                                         restore, flag))
+                        jobs.append(("%s %s %s" % (tag, cname, flag), ov,
+                                     restore, flag))
         for d in diffs:
             if a.case in d:
                 print("FAIL  inventory " + d)

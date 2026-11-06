@@ -369,6 +369,35 @@ class Ged16RunTypePanel(EccePanel):
             vibSizer.AddWidget(self.pressure)
 
             self.panelSizer.Add(vibSizer)
+        if EcceGlobals.RunType == "IRC":
+            ircSizer = EcceBoxSizer(self, label = "Reaction Path", cols = 1)
+            #  The defaults are Gaussian's own; ai.gauss16 writes a keyword
+            #  only when the value differs from them.
+            self.ircPoints = EcceSpinCtrl(self,
+                                          hardRange = "[1..)",
+                                          softRange = "[1..200]",
+                                          name = "ES.Runtype.IRC.MaximumStepsValue",
+                                          default = 10,
+                                          label = "Max points per direction:",
+                                          export = 1)
+            ircSizer.AddWidget(self.ircPoints)
+            self.ircStep = EcceSpinCtrl(self,
+                                        hardRange = "[1..)",
+                                        softRange = "[1..50]",
+                                        name = "ES.Runtype.IRC.StepSizeValue",
+                                        default = 10,
+                                        label = "Step size (0.01 bohr*sqrt(amu)):",
+                                        export = 1)
+            ircSizer.AddWidget(self.ircStep)
+            self.ircDirection = EcceComboBox(self,
+                                             choices = ["Both", "Forward", "Reverse"],
+                                             name = "ES.Runtype.IRC.Direction",
+                                             default = 0,
+                                             label = "Direction:",
+                                             export = 1)
+            ircSizer.AddWidget(self.ircDirection)
+            self.panelSizer.Add(ircSizer)
+
         if EcceGlobals.RunType == "Magnetic":
             magneticSizer = EcceBoxSizer(self,
                                          label = "Magnetic/NMR",

@@ -7,6 +7,8 @@
 #include <utility>
 #include "wxgui/SliderCombo.H"
 #include "tdat/SpinTables.H"
+#include "tdat/MoAoBasis.H"
+#include "tdat/ShellLabel.H"
 
 #include "MoGUI.H"
 #include <set>
@@ -65,6 +67,8 @@ class MoPanel : public MoGUI,
             const wxString& name="MoPanelVizPropertyPanel");
     virtual ~MoPanel();
     int getSelectedMo() const;
+    /** ORBENG index (0-based) of the selected alpha orbital, -1 if none or not alpha. */
+    int selectedAlphaIndex() const;
     string getSelectedType() const;
 
     virtual void receiveFocus();
@@ -74,10 +78,6 @@ class MoPanel : public MoGUI,
     bool selectRowForMo(int number);
     void OnButtonMoComputeClick( wxCommandEvent& event );
     void OnButtonMoViewcoefClick( wxCommandEvent& event );
-
-    //  Never narrower than its own rows: the Builder gives every property
-    //  panel a flat minimum, and the dock is sized from this.
-    virtual wxSize GetMinSize() const override;
 
    protected:
      virtual void initialize() override;
@@ -107,12 +107,17 @@ class MoPanel : public MoGUI,
       * a degenerate set.  For the MO diagram's tooltip and info line.
       */
      string compositionText(const std::vector<int>& orbengIndices);
+     /** Is MO `orbeng` (0-based) a core orbital?  Its label ("F 1s") and atom (#827). */
+     bool coreOrbital(int orbeng, string& label, int& atom);
 
      /**
       * The table's selection and scroll state as "key value" lines, for
       * headless checks (the Builder's "motable" scene command).
       */
      string tableState() const;
+     //  Show on structure for the spin density view (the hook's entry).
+     void paintSpin(bool on);
+     std::vector<std::string> atomColourRows() const;
 
      /**
       * The ESP colour bar as drawn, "key value" lines, for headless checks
@@ -122,6 +127,16 @@ class MoPanel : public MoGUI,
 
      /** Choose a field type as a click in the type drop-down does. */
      bool selectFieldType(const string& name);
+     struct SurfaceEntry { string label; string description; };
+     std::vector<SurfaceEntry> surfaceEntries() const;
+     /** "Surfaces" while the panel shows the density surfaces, else "MOs". */
+     string selectedSurface() const;
+     /** Surfaces entry vs MOs entry: the same panel, with its own drop-down and controls. */
+     void setSurfaceMode(bool on);
+     bool surfaceMode() const { return p_surfaceMode; }
+
+     /** The table lists the localised orbitals ("Localised MO" chosen). */
+     bool localisedShown() const { return p_localised; }
      bool sortByHeading(const string& heading, bool ascending);
 
      /** The text shown under the table: the selected MO's composition. */
@@ -131,11 +146,16 @@ class MoPanel : public MoGUI,
 
      double getTransparency();
      bool espFieldSelected();
+     /** ELF, LOL or NCI chosen; `nci` says which kind. */
+     bool fieldViewSelected(bool *nci = 0);
      void updateIsoValue();
      void updateIsoValue(double val);
      void updateSurface();
      void updateUIOptions();
+     void populateTypeChoice();
+     void showOrbitalControls();
      bool rebuildTable();   // table and graphs for the canonical or localised set
+     void setLocalised(bool localised);  // switch the table's set, tell the MO diagram
      void fillUI();
      void selectMo(int index);
      void showComposition();
@@ -171,6 +191,8 @@ class MoPanel : public MoGUI,
         bool haveBasis = false;
         std::string why;                // why the populations are missing
         std::vector<SpinTables::Population> populations;
+        std::vector<std::string> atomElement;   // per atom, all of them
+        std::vector<double> atomSpin;
      };
      SpinData spinDensityData();
      void fillSpinView();
@@ -194,7 +216,18 @@ class MoPanel : public MoGUI,
       void showEspRangeControls(bool show);
       void onFieldTypeChanged(wxCommandEvent& event);
       void chooseMoFieldType();
+      string selectedFieldKey() const;
+      void updateFieldNote();
+      wxStaticText *p_fieldNote = nullptr;
+      wxString p_fieldDescription;
       void rebuildEspSurface();
+      void buildFieldViewControls();
+      void showFieldViewControls(bool show, bool nci);
+      void onFieldViewChanged(wxCommandEvent& event);
+      void onFieldViewFocusLost(wxFocusEvent& event);
+      /** The row's isovalue and (NCI) density cut-off; defaults when blank. */
+      double fieldViewIsovalue(const string& type) const;
+      double fieldViewCutoff() const;
 
       //  The legend for a potential-mapped surface: the surface's own ramp,
       //  the range it is stretched over, and the density isovalue.  Shown
@@ -237,6 +270,10 @@ class MoPanel : public MoGUI,
       wxStaticText *p_espBarMin = 0;
       wxStaticText *p_espBarMax = 0;
       wxStaticText *p_espBarInfo = 0;
+      wxBoxSizer  *p_fieldSizer = 0;
+      ewxTextCtrl *p_fieldIso = 0;
+      wxStaticText *p_fieldCutLabel = 0;
+      ewxTextCtrl *p_fieldCut = 0;
       string p_espDrawnType;     // field type of the surface on screen
       string p_drawnType;        // any field type drawn; empty before one
 
@@ -252,6 +289,12 @@ class MoPanel : public MoGUI,
       string           p_aoWhy;
       vector< vector<double> > p_aoRows[2];     // alpha, beta
       string           p_compSummary;
+      //  Core orbitals for the "F 1s" labels (#827), per spin, from the deepest MOs.
+      vector<ShellLabel::Core> p_coreInfo[2];
+      bool             p_coreDone[2] = { false, false };
+      /** comp.types with labels "F 1s" / "H(1) 1s": n from the element, core for a core MO. */
+      vector<MoAoBasis::Share> namedTypes(const vector<MoAoBasis::Share>& types,
+                                          int mo, bool beta);
 
       /* The report oriented table showing MO energies */
       wxGrid *p_mogrid;  
@@ -278,10 +321,19 @@ class MoPanel : public MoGUI,
       wxGrid *p_spinSomo = NULL, *p_spinPop = NULL;
       std::vector<std::string> p_spinSomoFull;   // tooltip per SOMO row
       bool p_spinShown = false;
+      wxStaticText *p_spinLargest = NULL, *p_spinElemHead = NULL,
+                   *p_spinLegend = NULL;
+      wxGrid *p_spinElem = NULL;
+      wxCheckBox *p_spinPaint = NULL;
+      wxPanel *p_spinBar = NULL;
+      std::vector<float> p_spinSaved;       // atom colours before painting
+      int p_spinSavedBinding = 0;
+      bool p_spinPainted = false;
       //  One atom: each orbital's shell ("1s", "2p", "3s (virtual)"), alpha
       //  then beta, replacing the symmetry label; empty for a molecule.
       vector<string> p_atomLabels[2];
       string p_virtNote;          // "Virtual orbitals: ..." line, for tests
+      bool p_surfaceMode = false; // the Surfaces entry: no orbital table or coefficient controls
       bool p_localised = false;   // the table lists the localised orbitals
 
       /* The first plot; all symmetries are on same x value. */

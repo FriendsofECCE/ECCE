@@ -514,8 +514,12 @@ void WxBasisTool::initControls()
     int aroundX = this->GetSize().x - p_mainSplitWindow->GetSize().x;
     best.x = wxMax(best.x,
         aroundX + p_cntxtMoleculePanel->GetParent()->GetBestSize().x);
-    this->SetMinSize(wxSize(wxMax(best.x, WXBASISTOOL_WINDOW_MINWIDTH),
-                            wxMax(best.y, WXBASISTOOL_WINDOW_MINHEIGHT)));
+    //  The natural size stays the minimum: Show() (ewxFrame::fitToDisplay)
+    //  puts the content in a scroller and caps only the window to the
+    //  display.  Capping the minimum here squashed the splitter's panes.
+    const wxSize want(wxMax(best.x, WXBASISTOOL_WINDOW_MINWIDTH),
+                      wxMax(best.y, WXBASISTOOL_WINDOW_MINHEIGHT));
+    this->SetMinSize(want);
 }
 
 
@@ -554,6 +558,7 @@ void WxBasisTool::loadSettings(string fname)
      // A size saved under a smaller font would cut the content off.
      wxSize least = this->GetMinSize();
      this->SetSize(x, y, wxMax(w, least.x), wxMax(h, least.y));
+     ewxWindowUtils::keepOnDisplay(this);
 }
 
 

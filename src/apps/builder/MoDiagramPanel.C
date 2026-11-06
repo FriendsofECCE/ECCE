@@ -39,6 +39,7 @@
 #include "wxgui/ewxStaticText.H"
 
 #include "tdat/MoAoBasis.H"
+#include "tdat/RadialDist.H"
 #include "tdat/MoComposition.H"
 #include "tdat/MoFragments.H"
 #include "tdat/FoDiagram.H"
@@ -94,7 +95,7 @@ MoDiagramPanel::MoDiagramPanel()
     p_canvas(0), p_fragPanel(0), p_fragToggle(0), p_optToggle(0), p_optSizer(0), p_optRow(0), p_optViews(0), p_optOpen(true), p_fragWasOpen(false), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
     p_about(0), p_pickFirst(0), p_pickSecond(0), p_compute(0),
     p_pickA(-1), p_pickB(-1), p_pickEnvDone(false),
-    p_building(false), p_rebuildPending(false)
+    p_building(false), p_rebuildPending(false), p_refreshWhenShown(false)
 {
 }
 
@@ -106,7 +107,7 @@ MoDiagramPanel::MoDiagramPanel(IPropCalculation *calculation,
     p_canvas(0), p_fragPanel(0), p_fragToggle(0), p_optToggle(0), p_optSizer(0), p_optRow(0), p_optViews(0), p_optOpen(true), p_fragWasOpen(false), p_fragments(0), p_autoFragments(0), p_construction(0), p_piOnly(0), p_showAll(0), p_ligandField(0),
     p_about(0), p_pickFirst(0), p_pickSecond(0), p_compute(0),
     p_pickA(-1), p_pickB(-1), p_pickEnvDone(false),
-    p_building(false), p_rebuildPending(false)
+    p_building(false), p_rebuildPending(false), p_refreshWhenShown(false)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -233,6 +234,28 @@ static void trimUnconnectedFragment(MoColumn& column,
     int& idx = isLeft ? links[i].leftLevel : links[i].rightLevel;
     idx = (idx >= 0 && (size_t)idx < n) ? remap[idx] : -1;
   }
+}
+
+
+void MoDiagramPanel::setShowCore(bool on)
+{
+  if (p_showCore == 0) return;
+  p_showCore->SetValue(on);
+  wxCommandEvent event(wxEVT_CHECKBOX, p_showCore->GetId());
+  event.SetInt(on ? 1 : 0);
+  p_showCore->GetEventHandler()->ProcessEvent(event);
+}
+
+
+string MoDiagramPanel::coreText() const
+{
+  ostringstream out;
+  out.setf(std::ios::fixed);
+  out.precision(4);
+  for (const MoLevel& l : p_coreShown)
+    out << "core " << l.label << " E=" << l.energy << " occ=" << l.occupancy
+        << " side=" << l.coreSide << " nonbonding\n";
+  return out.str();
 }
 
 
@@ -365,9 +388,28 @@ bool MoDiagramPanel::Create(IPropCalculation *calculation,
   p_canvas = new MoDiagramCanvas(this);
   p_canvas->setClickHandler(this);
   sizer->Add(p_canvas, 1, wxEXPAND|wxALL, 2);
+  p_aufbau = new MoAufbauCanvas(this);
+  p_aufbau->setClickHandler(this);
+  sizer->Add(p_aufbau, 1, wxEXPAND|wxALL, 2);
+  sizer->Show(p_aufbau, false);
 
   buildFragmentChooser(sizer);
+  //  Below every control, nearest the log: a message, not a setting.
+  p_status = new wxStaticText(this, wxID_ANY, wxEmptyString);
+  p_status->SetFont(p_status->GetFont().Smaller());
+  p_status->Hide();
+  sizer->Add(p_status, 0, wxEXPAND|wxALL, 4);
   SetSizer(sizer);
+
+  //  Idle, not wxEVT_SHOW: a parent pane or notebook page becoming visible
+  //  sends no show event to this panel.
+  Bind(wxEVT_IDLE, [this](wxIdleEvent& e) {
+    if (p_refreshWhenShown && !p_building && IsShownOnScreen()) {
+      p_refreshWhenShown = false;
+      build();
+    }
+    e.Skip();
+  });
 
   return true;
 }
@@ -569,6 +611,31 @@ void MoDiagramPanel::buildFragmentChooser(wxSizer *sizer)
   p_showAll->Enable(false);
   views->Add(p_showAll, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
 
+  p_showCore = new ewxCheckBox(this, wxID_ANY, _("Show core orbitals"));
+  p_showCore->SetToolTip("Draw the core orbitals (F 1s, ...) as non-bonding "
+                         "levels below an axis break, not to scale. On by "
+                         "default for molecules of up to five atoms");
+  p_showCore->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& event) {
+    ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+    if (cfg) {
+      cfg->Write("/MoDiagram/ShowCore", p_showCore->GetValue());
+      cfg->Flush();
+    }
+    onFragmentChanged(event);
+  });
+  views->Add(p_showCore, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+
+  //  Only for a one-atom calculation (the aufbau view); see showAtomView().
+  p_aufbauScale = new ewxCheckBox(this, wxID_ANY, _("Energies to scale"));
+  p_aufbauScale->SetValue(getenv("ECCE_MODIAGRAM_AUFBAU_SCALE") != 0);
+  p_aufbauScale->SetToolTip("Draw the orbital energies to scale on an eV axis, "
+                            "the core levels below a break, instead of boxes "
+                            "per subshell. In a restricted open-shell atom the "
+                            "orbitals of a partly filled subshell then show "
+                            "their splitting");
+  p_aufbauScale->Bind(wxEVT_CHECKBOX, &MoDiagramPanel::onAufbauScale, this);
+  views->Add(p_aufbauScale, 0, wxALIGN_CENTER_VERTICAL|wxALL, 4);
+
   //  SAY WHAT A FRAGMENT IS, ON THE PANEL.
   //
   //  "Choose fragments" with a list of atom counts beside it does not
@@ -643,6 +710,8 @@ void MoDiagramPanel::setOptionsOpen(bool open)
   p_optSizer->Show(p_optViews, open, true);
   p_optSizer->Show(p_fragToggle, open);
   p_fragPanel->Show(open && p_fragWasOpen);
+  p_optViews->Show(p_aufbauScale, p_atomView && open);
+  if (p_atomView) atomChrome();
   p_optToggle->SetLabel(wxString::FromUTF8(
       open ? "\xe2\x96\xbe Options" : "\xe2\x96\xb8 Options"));
   ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
@@ -696,6 +765,107 @@ void MoDiagramPanel::fillFragmentChooser(const vector< vector<int> >& orbits,
   for (size_t i = 0; i < orbits.size(); i++) {
     if (p_fragments->IsChecked((unsigned int)i)) p_sideOfOrbit[i] = 0;
   }
+}
+
+
+void MoDiagramPanel::onAufbauScale(wxCommandEvent& WXUNUSED(event))
+{
+  if (p_aufbau != 0) p_aufbau->setToScale(p_aufbauScale->IsChecked());
+}
+
+
+void MoDiagramPanel::setAufbauToScale(bool toScale)
+{
+  if (p_aufbau == 0) return;
+  p_aufbauScale->SetValue(toScale);
+  p_aufbau->setToScale(toScale);
+}
+
+
+bool MoDiagramPanel::exportAufbau(const string& path, bool toScale, int width, int height)
+{
+  if (!p_atomView || p_aufbau == 0) return false;
+  // Allow the scene export to exercise compact panels as well as its default size.
+  if (const char *size = getenv("ECCE_AUFBAU_PNG_SIZE")) {
+    int w, h;
+    if (sscanf(size, "%dx%d", &w, &h) == 2 && w >= 300 && h >= 250) {
+      width = w; height = h;
+    }
+  }
+  return p_aufbau->savePng(path, toScale, width, height);
+}
+
+
+string MoDiagramPanel::aufbauText() const
+{
+  if (!p_atomView || p_aufbau == 0) return string();
+  return p_aufbau->describe() + "control pi shown=" +
+      (p_piOnly->IsShown() ? "1\n" : "0\n");
+}
+
+
+//  A molecule's controls (fragments, labels, pick) mean nothing for an atom.
+void MoDiagramPanel::atomChrome()
+{
+  p_optSizer->Show(p_optRow, false, true);
+  p_optSizer->Show(p_fragToggle, false);
+  p_fragPanel->Show(false);
+  wxWindow *molecular[] = { p_showEnergies, p_showDescription, p_constructLabels,
+                            p_symmetryLabels, p_ligandField, p_showAll, p_piOnly, p_showCore };
+  for (wxWindow *w : molecular) p_optViews->Show(w, false);
+}
+
+
+void MoDiagramPanel::showAtomView(bool atom)
+{
+  if (p_aufbau == 0 || p_optSizer == 0) return;
+  const bool was = p_atomView;
+  p_atomView = atom;
+  GetSizer()->Show(p_canvas, !atom);
+  GetSizer()->Show(p_aufbau, atom);
+  if (atom != was) setOptionsOpen(p_optOpen);
+  Layout();
+}
+
+
+//  One atom: its subshells with their electrons.  False (and the ordinary
+//  diagram) when the shells cannot be named, e.g. without a basis.
+bool MoDiagramPanel::buildAufbau(IPropCalculation *calc, const vector<double>& e,
+                                 const vector<double>& o, const vector<double>& eB,
+                                 const vector<double>& oB, bool haveBeta)
+{
+  //  From the calculation, not the scene: the panel can be built before the
+  //  viewer has loaded the structure.
+  p_aufbauFailure = "not a one-atom calculation";
+  std::unique_ptr<Fragment> frag(calc->getFragmentStep(-1));
+  if (!frag || frag->numAtoms() != 1) return false;
+  p_aufbauFailure = "Atomic drawing is unavailable.";
+  if (p_aufbau == 0) return false;
+  TAtm *atom = frag->atomRef(0);
+  if (atom == 0) return false;
+  const vector<string> labels = RadialDist::atomOrbitalLabels(calc, false, &p_aufbauFailure);
+  if (!p_aufbauFailure.empty()) return false;
+  vector<string> labelsB;
+  if (haveBeta) {
+    labelsB = RadialDist::atomOrbitalLabels(calc, true, &p_aufbauFailure);
+    if (!p_aufbauFailure.empty()) return false;
+  }
+  if (labels.size() != e.size() || o.size() != e.size()) {
+    p_aufbauFailure = "Atomic label, energy and occupation counts differ (" +
+        std::to_string(labels.size()) + ", " + std::to_string(e.size()) +
+        ", " + std::to_string(o.size()) + ").";
+    return false;
+  }
+  const vector<double> noE, noO;
+  const vector<AufbauShell> shells = aufbau::shells(e, o, labels,
+      haveBeta ? eB : noE, haveBeta ? oB : noO, labelsB);
+  if (shells.empty()) {
+    p_aufbauFailure = "No atomic subshells could be identified from the orbital labels.";
+    return false;
+  }
+  p_aufbauFailure.clear();
+  p_aufbau->setModel(atom->atomicSymbol(), shells);
+  return true;
 }
 
 
@@ -784,6 +954,12 @@ void MoDiagramPanel::onCompute(wxCommandEvent& event)
 int MoDiagramPanel::centreOverlaps() const
 {
   return p_canvas != 0 ? p_canvas->centreOverlaps() : -1;
+}
+
+
+string MoDiagramPanel::linkGaps() const
+{
+  return p_canvas != 0 ? p_canvas->linkGaps() : string();
 }
 
 
@@ -1032,7 +1208,37 @@ bool MoDiagramPanel::isRelevant(IPropCalculation *propCalc) const
 
 void MoDiagramPanel::initialize()
 {
+  //  A MOs panel already listing the localised set did not tell a diagram
+  //  that did not exist yet.
+  IPropCalculation *calc = getCalculation();
+  if (calc != 0)
+    for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString(), "MOs"))
+      if (MoPanel *mo = dynamic_cast<MoPanel*>(p)) orbitalSetChanged(mo->localisedShown());
   build();
+}
+
+
+void MoDiagramPanel::orbitalSetChanged(bool localisedListed)
+{
+  if (p_status == 0) return;
+  //  The localised set has no symmetry and no fragment correlation to draw,
+  //  so the diagram stays canonical and says so where the MO list disagrees.
+  const wxString text = localisedListed
+      ? _("This diagram shows the canonical MOs. The MOs panel lists the "
+          "localised MOs; clicking a level switches it back to the canonical MOs.")
+      : wxString();
+  if (text == p_status->GetLabel() && p_status->IsShown() == !text.empty()) return;
+  p_status->SetLabel(text);
+  p_status->Wrap(std::max(200, GetClientSize().GetWidth() - 8));
+  p_status->Show(!text.empty());
+  Layout();
+}
+
+
+string MoDiagramPanel::statusText() const
+{
+  return p_status != 0 && p_status->IsShown()
+      ? string(p_status->GetLabel().utf8_str()) : string();
 }
 
 
@@ -1749,6 +1955,12 @@ namespace {
 
 void MoDiagramPanel::refresh()
 {
+  //  Every scan or IRC step refreshes all panels of the calculation; a
+  //  diagram nobody can see is rebuilt when it is shown again (#838).
+  if (!IsShownOnScreen()) {
+    p_refreshWhenShown = true;
+    return;
+  }
   build();
 }
 
@@ -2292,6 +2504,19 @@ void MoDiagramPanel::buildOnce()
       for (int i = 0; i < symsBeta->rows(); i++) sB.push_back(symsBeta->value(i));
     }
   }
+
+  //  --- one atom: the aufbau view instead of a diagram ---------------
+  if (buildAufbau(calc, e, o, eB, oB, haveBeta)) {
+    showAtomView(true);
+    p_aufbau->setToScale(p_aufbauScale->IsChecked());
+    p_lastNote.clear();
+    if (!dumpPath.empty()) {
+      std::ofstream(dumpPath) << p_aufbau->describe();
+      exitAfterDumpIfRequested();
+    }
+    return;
+  }
+  showAtomView(false);
 
   //  --- the molecule's symmetry --------------------------------------
   //
@@ -2932,6 +3157,15 @@ void MoDiagramPanel::buildOnce()
   //  Both ends of the spectrum are folded away, not just the core, and
   //  both cutoffs report what they hid so an absence the reader cannot
   //  see does not pass for a complete diagram.
+  //  The occupied levels the core cutoff folds away, kept for the core band (#827).
+  vector<MoLevel> coreCandidates;
+  {
+    const double cut = MoDiagram::suggestCoreCutoff(centre.levels);
+    for (size_t i = 0; i < centre.levels.size(); i++)
+      if (centre.levels[i].energy < cut && centre.levels[i].occupancy > 0.0 &&
+          !centre.levels[i].orbitals.empty())
+        coreCandidates.push_back(centre.levels[i]);
+  }
   MoDiagram::hideBelow(centre, MoDiagram::suggestCoreCutoff(centre.levels));
 
   //  SEMICORE (#175): an OCCUPIED level whose largest Lowdin share sits,
@@ -3275,6 +3509,7 @@ void MoDiagramPanel::buildOnce()
   //  Which atoms actually ended up in each column -- needed below to
   //  compute each molecular level's composition, not just its irrep.
   vector<int> leftAtoms, rightAtoms;
+  vector<int> coreLeftAtoms, coreRightAtoms;   // as above, kept for the core band (#827)
 
   //  The fragment-orbital construction (FoDiagram) has its own columns,
   //  lines, placement and note; none of the symmetry-based machinery
@@ -3505,6 +3740,8 @@ void MoDiagramPanel::buildOnce()
             foNotOffered = "The model diagram is not available: " + mw +
                            " Use the MOs panel to look at the orbitals.";
         } else if (buildModel(leftAtoms, rightAtoms, charge, false, mw)) {
+          coreLeftAtoms = leftAtoms;
+          coreRightAtoms = rightAtoms;
           leftAtoms.clear();
           rightAtoms.clear();
         } else if (!mw.empty()) {
@@ -4101,6 +4338,60 @@ void MoDiagramPanel::buildOnce()
   //  refusals do; the reason is in the lines under the diagram.
   const string pickHeadline = (pickActive && !haveFragments && !why.empty())
       ? "The picked atoms cannot be drawn as two fragments" : string();
+  //  CORE BAND (#827): the folded occupied core levels, named by the MOs panel.
+  p_coreShown.clear();
+  if (p_showCore != 0) {
+    ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+    bool stored = false;
+    bool on = elements.size() <= 5;
+    if (cfg && cfg->Read("/MoDiagram/ShowCore", &stored, false)) on = stored;
+    const char *env = getenv("ECCE_MODIAGRAM_SHOWCORE");
+    if (env != 0) on = atoi(env) != 0;
+    if (p_showCore->GetValue() != on) p_showCore->SetValue(on);
+    if (on && !coreCandidates.empty()) {
+      MoPanel *mo = 0;
+      set<PropertyPanel*> panels = PropertyPanel::getPanels(
+          getCalculation()->getURL().toString(), "MOs");
+      for (set<PropertyPanel*>::iterator it = panels.begin();
+           it != panels.end() && !mo; ++it)
+        mo = dynamic_cast<MoPanel*>(*it);
+      for (size_t i = 0; mo != 0 && i < coreCandidates.size(); i++) {
+        MoLevel level = coreCandidates[i];
+        string label;
+        int atom = -1;
+        if (!mo->coreOrbital(level.orbitals[0], label, atom)) continue;
+        level.label = label;
+        level.coreAtom = atom;
+        level.coreSide = 0;
+        const vector<int>& la = coreLeftAtoms.empty() ? leftAtoms : coreLeftAtoms;
+        const vector<int>& ra = coreRightAtoms.empty() ? rightAtoms : coreRightAtoms;
+        for (size_t a = 0; a < la.size(); a++)
+          if (la[a] == atom) level.coreSide = -1;
+        for (size_t a = 0; a < ra.size(); a++)
+          if (ra[a] == atom) level.coreSide = 1;
+        level.character = MoLevel::NONBONDING;
+        p_coreShown.push_back(level);
+      }
+    }
+  }
+  centre.coreLevels = p_coreShown;
+  if (!p_coreShown.empty()) {
+    //  The summary counts the core orbitals "hidden"; the drawn ones are not.
+    int drawn = 0;
+    for (size_t i = 0; i < p_coreShown.size(); i++)
+      drawn += p_coreShown[i].degeneracy > 0 ? p_coreShown[i].degeneracy : 1;
+    const int all = centre.hiddenCount + centre.hiddenSemicoreCount;
+    const string cut = " \xC2\xB7 " + std::to_string(all) + " core";
+    const size_t at = tiers.summary.rfind(cut);
+    if (at != string::npos) {
+      tiers.summary.erase(at);
+      const int left = all - drawn;
+      if (left > 0)
+        tiers.summary += " \xC2\xB7 " + std::to_string(left) +
+            (centre.hiddenSemicoreCount > 0 ? " core and semicore orbitals"
+             : left == 1 ? " core orbital" : " core orbitals") + " hidden";
+    }
+  }
   p_canvas->setDiagram(left, centre, right, links, haveFragments, "", pickHeadline);
   p_canvas->setCalcHeader(levelSource(getCalculation(), true));
   p_lastNote = levelSource(getCalculation()) + tiers.summary;

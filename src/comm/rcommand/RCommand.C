@@ -16,6 +16,7 @@
 #include <map>
 #include <set>
 #include <memory>
+#include <mutex>
   using std::map;
 
 #include <stdlib.h> // getenv
@@ -297,13 +298,13 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
                                 const string& password, const string& jumpHost)
 {
   const string theUser = userName == "" ? string(Ecce::realUser()) : userName;
-  p_loginCancelled = p_loginPrompted = p_loginRefused = false;
+  p_loginCancelled = p_loginPrompted = p_loginRefused = p_loginUnreachable = false;
 
   // The callbacks outlive this call: the monitor stream logs in again on
   // a session of its own, reusing the password that just worked.  Each host
   // keeps its own password state, since a front end and the machine behind
   // it need not share one.
-  struct Creds { string pass; bool passTried; bool cancelled = false; };
+  struct Creds { string pass, cached; bool passTried; bool cancelled = false; };
   struct HostKey { string msg; };
   std::shared_ptr<HostKey> hk(new HostKey);
   const string shell = p_shell;
@@ -319,8 +320,8 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
                                                             bool echo, string& answer) {
       if (echo || looksLikeCode(prompt))
         return askPassdialog("passcode", host, theUser, answer);
-      if (!c->passTried &&
-          (c->pass != "" || RCommand::getPassCache(shell, host, theUser, c->pass))) {
+      if (!c->passTried && c->pass == "") c->pass = c->cached;
+      if (!c->passTried && c->pass != "") {
         c->passTried = true;
         answer = c->pass;
         return true;
@@ -335,9 +336,13 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
     });
   };
   std::shared_ptr<Creds> c = newCreds(), cj = newCreds();
+  //  Looked up here: a front end's prompt runs on libssh's front-end thread,
+  //  which has no deferral and must not touch AuthCache.
+  RCommand::getPassCache(shell, passHost(machine), theUser, c->cached);
+  if (jumpHost != "") RCommand::getPassCache(shell, jumpHost, theUser, cj->cached);
 
   // Port 0 leaves the port to ~/.ssh/config, as for the ssh command.
-  SshTransport* t = new SshTransport(machine, 0, userName);
+  SshTransport* t = new SshTransport(machine, p_port, userName);
   t->setConnectTimeout(connectTimeout());
   t->setPasswordAttempts(3);
   t->setPromptCallback(promptFor(c, machine));
@@ -383,7 +388,7 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
   adoptTransport(t);
 
   if (thePass != "")
-    RCommand::setPassCache(p_shell, machine, theUser, thePass);
+    RCommand::setPassCache(p_shell, passHost(machine), theUser, thePass);
   if (jumpHost != "" && theJumpPass != "")
     RCommand::setPassCache(p_shell, jumpHost, theUser, theJumpPass);
 
@@ -400,7 +405,15 @@ bool RCommand::sshConnectLibssh(const string& machine, const string& userName,
 RCommand* RCommandLogin::open() const
 {
   return new RCommand(machine, remShell, locShell, user, password, frontend,
-                      frontendBypass, shellPath, libPath, sourceFile);
+                      frontendBypass, shellPath, libPath, sourceFile, port);
+}
+
+// AuthCache key of the machine's ssh password: host for port 22 (the key
+// before ports existed, so those stored passwords still match), else
+// host:port.
+string RCommand::passHost(const string& machine) const
+{
+  return p_port > 0 ? machine + ":" + std::to_string(p_port) : machine;
 }
 
 int RCommand::connectTimeout()
@@ -412,14 +425,7 @@ int RCommand::connectTimeout()
 
 bool RCommand::hostDidNotAnswer(const string& error)
 {
-  string l;
-  for (char ch : error) l += (char)tolower((unsigned char)ch);
-  for (const char* k : {"timed out", "connection refused", "no route to host",
-                        "network is unreachable", "could not resolve",
-                        "name or service not known",
-                        "temporary failure in name resolution"})
-    if (l.find(k) != string::npos) return true;
-  return false;
+  return OpenSshTransport::hostDidNotAnswer(error);
 }
 
 // A new transport replaces the one this connection had.
@@ -480,23 +486,36 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
                                  bool* tryLibssh)
 {
   if (tryLibssh) *tryLibssh = false;
-  p_loginCancelled = p_loginPrompted = p_loginRefused = false;
-  OpenSshTransport* t = new OpenSshTransport(machine, 0, userName);
+  p_loginCancelled = p_loginPrompted = p_loginRefused = p_loginUnreachable = false;
+  // The port is part of the owned master's socket name and of the stored
+  // password's key, so two ports on one host never share either.
+  OpenSshTransport* t = new OpenSshTransport(machine, p_port, userName);
   t->setConnectTimeout(connectTimeout());
   if (jumpHost != "") t->setJumpHost(jumpHost, 0, userName);
   t->setAskpass(askpassProgram());
   // Offered to an ECCE-owned master's password prompt only (see setPassword).
   string pw = password;
   if (pw == "" && !OpenSshTransport::ownedControlDir().empty())
-    RCommand::getPassCache(p_shell,  machine,
+    RCommand::getPassCache(p_shell, passHost(machine),
                            userName == "" ? string(Ecce::realUser()) : userName, pw);
   t->setPassword(pw);
   string error;
-  if (!t->connect(error)) {
+  const bool connected = t->connect(error);
+  // A stored password that was refused is forgotten here too, whatever the
+  // dialog that followed came to.
+  if (t->forgetCached())
+    forgetPassCache("ssh", passHost(machine),
+                    userName == "" ? string(Ecce::realUser()) : userName);
+  if (connected && t->ownsMaster() && !t->acceptedPassword().empty())
+    setPassCache(p_shell, passHost(machine),
+                 userName == "" ? string(Ecce::realUser()) : userName,
+                 t->acceptedPassword());
+  if (!connected) {
     p_errMessage = error;
     p_loginCancelled = t->loginCancelled();
     p_loginPrompted = t->loginPrompted();
     p_loginRefused = t->loginRefused();
+    p_loginUnreachable = t->hostUnreachable();
     // ECCE's own master could not be opened for a reason other than the
     // login (a cancel, no answer or a refused password would only be asked
     // again, and a full master needs no login): the built-in client still
@@ -505,7 +524,7 @@ bool RCommand::sshConnectOpenssh(const string& machine, const string& userName,
         !t->loginRefused() && !t->sessionsFull() &&
         !OpenSshTransport::configSharesConnection(machine, userName) &&
         !OpenSshTransport::configProxiesConnection(machine, userName) &&
-        !hostDidNotAnswer(error))
+        !t->hostUnreachable() && !hostDidNotAnswer(error))
       *tryLibssh = true;
     delete t;
     return false;
@@ -580,6 +599,7 @@ bool RCommand::sshHop(const string& hopMachine, const string& locShell,
     "LD_LIBRARY_PATH=" + shQuote(libPath) + ":$LD_LIBRARY_PATH; "
     "export LD_LIBRARY_PATH\n";
   p_scriptPrefix = pathLine + libLine;
+  p_port = 0;   // a hop's machine has no port of its own
   if (!sshConnect(hopMachine, user, password, jump)) return false;
   if (sourceFile != "") {
     std::set<std::string> changed;
@@ -810,9 +830,11 @@ RCommand::RCommand(const string& machine, const string& remShell,
                    const string& locShell, const string& userName,
                    const string& password, const string& frontendMachine,
                    const string& frontendBypass, const string& shellPath,
-                   const string& libPath, const string& sourceFile)
+                   const string& libPath, const string& sourceFile,
+                   int port)
 {
   p_connected = false;
+  p_port = port == 22 ? 0 : port;
   p_timeout = RC_EXEC_TIMEOUT;
   p_transport = 0;
   p_ssh = false;
@@ -839,7 +861,8 @@ RCommand::RCommand(const string& machine, const string& remShell,
   p_machine = (machine=="" || machine=="-f" || machine=="system")?
                RCommand::whereami(): machine;
 
-  const bool remote = RCommand::isRemote(machine, remShell, userName);
+  // Another port on this host is another sshd, never this process's shell.
+  const bool remote = p_port > 0 || RCommand::isRemote(machine, remShell, userName);
   if (remote) {
     p_errMessage = RCommand::removedShellMessage(remShell);
     if (p_errMessage != "")
@@ -1556,17 +1579,27 @@ bool RCommand::transportCopy(RemoteTransport* t, bool putFlag,
 
   for (size_t i = 0; i < files.size(); i++) {
     vector<string> one;
+    // Only a host that answered "no such file" makes a source missing; one
+    // that could not be asked fails the copy, or the caller stores outputs
+    // that never arrived (#732).
     if (!t->remoteGlob(files[i], one, err)) {
-      if (err == files[i] + ": No such file or directory" ||
-          t->remoteKind(files[i]) < 0) {
+      int kind = t->remoteKind(files[i]);
+      if (kind == -1) {
         copyWarn(err);
         continue;
       }
-      errMessage = err;
+      errMessage = (kind == -2) ? "cannot reach the host to look for " +
+                                  files[i] + (err.empty() ? "" : ": " + err)
+                                : err;
       return false;
     }
     for (size_t k = 0; k < one.size(); k++) {
-      if (t->remoteKind(one[k]) < 0) {
+      int kind = t->remoteKind(one[k]);
+      if (kind == -2) {
+        errMessage = "cannot reach the host to look for " + one[k];
+        return false;
+      }
+      if (kind < 0) {
         copyWarn(one[k] + ": No such file or directory");
         continue;
       }
@@ -1846,10 +1879,64 @@ bool RCommand::shellget(const char** fromFiles, const string& toFile)
 }
 
 
+namespace {
+struct PassChange { bool forget; string shell, machine, user, pass; };
+std::mutex gPassMu;
+std::vector<PassChange> gPassPending;   // from login threads, for the GUI's
+thread_local RCommand::PassCacheDeferral* tPassDefer = 0;
+
+string passKey(const string& shell, const string& machine, const string& user)
+{
+  return shell + "://" + machine + "\t" + user;
+}
+
+void deferChange(const PassChange& c)
+{
+  if (c.forget) tPassDefer->known[passKey(c.shell, c.machine, c.user)] = "";
+  else tPassDefer->known[passKey(c.shell, c.machine, c.user)] = c.pass;
+  std::lock_guard<std::mutex> lock(gPassMu);
+  gPassPending.push_back(c);
+}
+}  // namespace
+
+void RCommand::prefetchPassCache(PassCacheDeferral& d, const string& shell,
+                                 const string& machine, const string& user)
+{
+  string pw;
+  if (getPassCache(shell, machine, user, pw))
+    d.known[passKey(shell, machine, user)] = pw;
+}
+
+void RCommand::deferPassCache(PassCacheDeferral* d)
+{
+  tPassDefer = d;
+}
+
+void RCommand::applyDeferredPassCache()
+{
+  std::vector<PassChange> todo;
+  {
+    std::lock_guard<std::mutex> lock(gPassMu);
+    todo.swap(gPassPending);
+  }
+  for (const PassChange& c : todo) {
+    if (c.forget) forgetPassCache(c.shell, c.machine, c.user);
+    else setPassCache(c.shell, c.machine, c.user, c.pass);
+  }
+}
+
 const bool RCommand::getPassCache(const string& shell, const string& machine,
                                   const string& user, string& password)
 {
   bool ret = false;
+
+  if (tPassDefer) {
+    // Only what was looked up before the thread started; "" is forgotten.
+    auto i = tPassDefer->known.find(passKey(shell, machine, user));
+    if (i == tPassDefer->known.end() || i->second.empty()) return false;
+    password = i->second;
+    return true;
+  }
 
   string url = shell + "://" + machine;
   BasicAuth *ba = AuthCache::getCache().getAuthentication(url, user, "", 1);
@@ -1866,8 +1953,17 @@ const bool RCommand::getPassCache(const string& shell, const string& machine,
 void RCommand::setPassCache(const string& shell, const string& machine,
                             const string& user, const string& password)
 {
+  if (tPassDefer) { deferChange({false, shell, machine, user, password}); return; }
   // add to AuthCache so it is available to other apps
   string url = shell + "://" + machine;
   AuthCache::getCache().addAuthentication(url, user, password, "",true);
+}
+
+
+void RCommand::forgetPassCache(const string& shell, const string& machine,
+                               const string& user)
+{
+  if (tPassDefer) { deferChange({true, shell, machine, user, ""}); return; }
+  AuthCache::getCache().remove(shell + "://" + machine, user, "");
 }
 

@@ -24,6 +24,7 @@
 #ifndef LAUNCH_HH
 #define LAUNCH_HH
 
+#include <functional>
 #include <string>
   using std::string;
 #include <vector>
@@ -64,6 +65,11 @@ public:
   // Modifiers
         bool nextOperation(void);
 
+        // The AuthCache contents handed to eccejobmaster.  AuthCache belongs
+        // to one thread; an app that runs steps on another sets this to read
+        // it there.  Empty: read it on the calling thread.
+        static std::function<string()> authPipeData;
+
   // Accessors
         string description(void) const;
         string message(void) const;
@@ -71,6 +77,13 @@ public:
         // A problem the launch check found that the user decides about
         // (the Launcher asks); "" when there is none.
         string launchWarning(void) const;
+        // Name of the input provider an MD study task takes its starting
+        // structure from while that provider is not Complete; "" otherwise.
+        static string waitsFor(TaskJob *task);
+        static bool crestFromOptimisation(TaskJob *task);
+        // The extra copy-back wildcard a CP2K deck asks for: *.pdos when it
+        // has a &PDOS section (case-insensitive), else "" (#720).
+        static string cp2kCopyBackPatterns(const string& deck);
         void clearLaunchWarning(void);
 
         // Where the generated input deck and submit script were written.
@@ -111,6 +124,10 @@ private:
         TaskJob                *p_taskjob;
         TaskJob                *p_restartProvider;
         TaskJob                *p_topologyProvider;
+        // The one stored file a GROMACS task starts from (empty: use the
+        // provider's own pick, as the other MD codes do).
+        vector<EcceURL>         p_restartFile;
+        vector<EcceURL>         p_topologyFile;
         TaskJob                *p_fragmentProvider;
         bool                    p_isPrepareTask;
         bool                    p_isMetadynamicsTask;

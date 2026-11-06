@@ -15,11 +15,13 @@
 
 #include "wx/splitter.h"
 
+#include <algorithm>
 #include <iostream>
 using namespace std;
 
 #include "util/Preferences.H"
 
+#include "wxgui/ewxBitmap.H"
 #include "wxgui/WxResourceTreeItemData.H"
 
 #include "ContextPanelInterface.H"
@@ -57,8 +59,10 @@ SessionProjectContextPanel::SessionProjectContextPanel( CalcMgr * calcMgr,
   p_workflow = 0;
 
   CreateControls();
-  GetSizer()->Fit(this);
-  GetSizer()->SetSizeHints(this);
+  if (!p_workflow) {
+    GetSizer()->Fit(this);
+    GetSizer()->SetSizeHints(this);
+  }
 
   // in the workflow, make sure the leaf of the primary path is visible
   if (p_session) p_session->ensureVisiblePrimaryLeaf();
@@ -102,9 +106,38 @@ void SessionProjectContextPanel::CreateControls()
   //  The workflow drawing and its code bar need more height than an MD
   //  study's.
   int splitPos = p_workflow ? 420 : 300;
-  prefs.getInt(p_workflow ? "Organizer.WorkflowHeight"
+  prefs.getInt(p_workflow ? "Organizer.Workflow.Sash"
                           : "Organizer.SessionHeight", splitPos);
+  splitPos = ewxBitmap::scaled(splitPos);
 
+  if (p_workflow) {
+    p_splitterWindow->SetWindowStyleFlag(p_splitterWindow->GetWindowStyleFlag() |
+                                        wxSP_LIVE_UPDATE);
+    p_splitterWindow->SetMinimumPaneSize(80);
+    p_project->SetMinSize(wxSize(1, 80));
+    auto clamp = [this](int position) {
+      const int minTop = p_workflow->GetMinSize().y;
+      const int maxTop = p_splitterWindow->GetClientSize().y -
+                         p_splitterWindow->GetSashSize() - 80;
+      return std::max(minTop, std::min(position, maxTop));
+    };
+    p_splitterWindow->Bind(wxEVT_SPLITTER_SASH_POS_CHANGING,
+        [clamp](wxSplitterEvent &event) {
+          event.SetSashPosition(clamp(event.GetSashPosition()));
+        });
+    p_splitterWindow->Bind(wxEVT_SPLITTER_DOUBLECLICKED,
+        [](wxSplitterEvent &event) { event.Veto(); });
+    // Restore after the Organizer has assigned the context panel its size.
+    CallAfter([this, splitPos, clamp]() {
+      p_splitterWindow->SetSashPosition(clamp(splitPos));
+    });
+    p_splitterWindow->Bind(wxEVT_SIZE, [this, clamp](wxSizeEvent &event) {
+      event.Skip();
+      CallAfter([this, clamp]() {
+        p_splitterWindow->SetSashPosition(clamp(p_splitterWindow->GetSashPosition()));
+      });
+    });
+  }
   p_splitterWindow->SplitHorizontally(top, p_project, splitPos);
 
   topSizer->Add(p_splitterWindow, 1, wxGROW|wxALL, 0);
@@ -153,9 +186,10 @@ void SessionProjectContextPanel::loseFocus()
 void SessionProjectContextPanel::OnSashPosChanged( wxSplitterEvent & event )
 {
   Preferences prefs("Organizer");
-  prefs.setInt(p_workflow ? "Organizer.WorkflowHeight"
+  prefs.setInt(p_workflow ? "Organizer.Workflow.Sash"
                           : "Organizer.SessionHeight",
-               p_splitterWindow->GetSashPosition());
+               (int)(p_splitterWindow->GetSashPosition() /
+                     ewxBitmap::dpiScale() + 0.5));
   prefs.saveFile();
   event.Skip();
 }

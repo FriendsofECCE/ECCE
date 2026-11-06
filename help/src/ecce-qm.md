@@ -37,9 +37,11 @@ grid of 99 radial and 590 angular points per atom. The functionals themselves co
 Chosen from the **Basis Set** menu of the Calculation Editor, in four
 groups: minimal (STO-3G); Pople (3-21G, 6-31G, 6-31G*, 6-31+G*, 6-311G*);
 Dunning (cc-pVDZ, aug-cc-pVDZ, cc-pVTZ); Karlsruhe (def2-SVP, def2-TZVP). A new calculation starts with 6-31G*. The
-basis sets are the ones in ECCE's library; the Basis Set Tool is not used for
-this code. Spherical d and f functions are used throughout. An element that a basis set does not cover, or that would
-need an effective core potential, is named before the job is launched.
+same menu opens the **Basis Set Tool**, which offers every basis set in
+ECCE's library, as for the other codes. Spherical d and f functions are used throughout. An element that a basis set does not cover is named before the job is
+launched. ECCE-QM has no effective core potentials: a basis set that needs one for
+an element of the molecule (for example def2 sets beyond krypton) is named
+in a warning before launch, and its input cannot be written.
 
 ## Run types
 
@@ -52,6 +54,25 @@ need an effective core potential, is named before the job is launched.
 | GeoVib | a geometry optimisation followed by a vibration calculation at the result |
 | Transition State (Opt-TS) | searches for a first-order saddle point from one starting structure (eigenvector following on an exact starting Hessian), then computes the frequencies there: a transition state has exactly one imaginary frequency |
 | IRC | follows the reaction path down from a transition state in both directions; **Properties > IRC Path** plots the energy against the reaction coordinate, and a click on a point shows its structure |
+
+The **Runtype Details** of a Transition State (Opt-TS) search have three
+settings for a hard start, such as a point from a relaxed scan:
+
+* **Start along mode n**: the vibrational mode, counted from the lowest, that
+  the first step climbs along. 0 takes the lowest, which is right when the
+  starting structure is near the saddle point. Later steps follow the mode
+  that looks most like the previous one.
+* **Start along the mode that moves**: a bond, angle or torsion written as
+  `bond 1 2`, `angle 1 2 3` or `torsion 1 2 3 4` (atom numbers as in the
+  Builder). The first step climbs along the mode that overlaps most with it.
+  Empty means not used. A scanned bond can overlap most with a mode
+  that is not the reaction mode, so leave this empty unless the default
+  search fails.
+* **New Hessian every n steps**: how often the second derivatives are
+  computed again. 0 is automatic: every step for a closed-shell Hartree-Fock
+  calculation, where it is cheap, and otherwise at the start and whenever the
+  updated Hessian no longer has a negative curvature. A computed Hessian for
+  DFT costs two gradient calculations per coordinate.
 
 The optimiser stops under the same thresholds as ORCA's default optimisation.
 The vibration calculation takes the second derivatives from finite differences
@@ -70,8 +91,20 @@ ECCE-QM stores the orbitals of every scan point and every IRC point, so the
 **MOs**, **MO Diagram**, **Density Map** and **Density Profile** panels show
 the orbitals and density of the point selected in the **Relaxed Scan** or
 **IRC Path** panel, together with that point's structure. Until a point is
-selected they show the last computed point. For the other codes these panels
-always show the last computed point.
+selected they show the last computed point. ORCA prints the orbitals of an
+IRC once, at the TS: with the TS point selected in the **IRC Path** panel
+the orbital panels show them, and for every other point a note says that ORCA
+gives no orbitals there. For the other codes these panels always show the
+last computed point.
+Tick **Show MO while playing** under the IRC playback buttons (off by
+default) to watch an orbital change along the path: select an orbital in the
+**MOs** panel, then play or step. On every new point the panel shows the
+orbital of that point that overlaps most with the one shown on the previous
+point, so it is followed by its character, not by its number; an open
+**Density Map** or **Density Profile** follows it too. Clicking a point, and
+playback with the box unticked, only change the geometry. If the surface of a
+point takes longer to draw than the delay between points, the points in
+between are skipped and the newest surface is drawn.
 A transition-state guess can also come from two calculations, a reactant and a
 product (**TS Search** in the Calculation Editor).
 
@@ -118,7 +151,7 @@ by side.
   less dependent on the basis set than Mulliken charges; the electrostatic
   potential surface uses the CHELPG charges when they were requested;
 - the density and its electrostatic potential, which the Viewer computes from
-  the orbitals on a grid (**Density (ESP)** in the MOs panel). Within about 0.5 Å of a
+  the orbitals on a grid (**ESP on Density** under **Properties > Orbitals > Surfaces**). Within about 0.5 Å of a
   carbon or oxygen nucleus the grid does not resolve the 1s core density
   exactly; the surfaces drawn (isovalue 0.002) lie far outside that region,
   so the colours on them are not affected;

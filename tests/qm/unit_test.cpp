@@ -18,6 +18,7 @@
 #include "localise.hpp"
 #include "solvent.hpp"
 #include "vibration.hpp"
+#include "tscheck.hpp"
 #include <array>
 
 using namespace qm;
@@ -113,6 +114,37 @@ int main(int argc, char** argv) {
       check(herr < 1e-6, std::string("AO second derivatives vs finite difference ") + bname, herr);
     }
   }
+  // An ion's dipole depends on the origin (#746).  CN-, STO-3G: the reported
+  // dipole is the electronic dipole from the density plus the nuclear charges,
+  // shifted by mu' = mu - q R to the centre of mass (masses 12 and 14.003074),
+  // formed here from the one-electron matrices; moving the molecule 10 A along
+  // z must not change it, while the coordinate-origin dipole does.
+  {
+    Molecule cn;
+    cn.charge = -1;
+    cn.atoms = {{6, {0, 0, 0.0}}, {7, {0, 0, 2.2}}};
+    ScfOptions so;
+    Basis b(cn, lib, "STO-3G", 1);
+    const ScfResult r = run_scf(b, cn, so);
+    OneElectron oe = one_electron(b);
+    const double mC = 12.0, mN = 14.003074, zc = 2.2 * mN / (mC + mN);
+    double mu_z = 6 * 0.0 + 7 * 2.2 - ((r.D_a + r.D_b).array() * oe.dip[2].array()).sum();
+    mu_z -= cn.charge * zc;
+    check(std::abs(r.dipole_rep[2] - mu_z) < 1e-9, "CN-: dipole about the centre of mass (hand shift mu - qR)",
+          r.dipole_rep[2] - mu_z);
+    check(r.dipole_origin_kind == "centre_of_mass" && std::abs(r.dipole_origin[2] - zc) < 1e-9,
+          "CN-: reported origin is the centre of mass", r.dipole_origin[2]);
+    Molecule cn2 = cn;
+    for (auto& a : cn2.atoms) a.x[2] += 10.0 / 0.529177210903;
+    Basis b2(cn2, lib, "STO-3G", 1);
+    const ScfResult r2 = run_scf(b2, cn2, so);
+    check(std::abs(r2.dipole_rep[2] - r.dipole_rep[2]) < 1e-6, "CN-: centre-of-mass dipole unchanged by a 10 A shift",
+          r2.dipole_rep[2] - r.dipole_rep[2]);
+    check(std::abs(r2.dipole[2] - r.dipole[2]) > 1.0, "CN-: coordinate-origin dipole does move with the molecule",
+          r2.dipole[2] - r.dipole[2]);
+    std::cout << "CN- STO-3G dipole about COM (D): " << r.dipole_rep[2] * 2.541746 << "\n";
+  }
+
   // Vibrations.  A diatomic with a given Hessian and dipole derivative has
   // closed-form answers: nu = 5140.487 sqrt(k/mu) cm-1 for k in hartree/bohr^2
   // and mu in amu, and I = 974.88 (dmu/dQ)^2 km/mol for dmu/dQ in e/sqrt(amu).
@@ -459,6 +491,38 @@ int main(int argc, char** argv) {
     o.solvent_eps = 78.3553;
     const ScfResult r2 = run_scf(b, w, o);
     check(r2.converged && r2.e_solvent < -0.005 && r2.energy < r0.energy - 0.005, "water in water: energy lowered by the reaction field", r2.energy - r0.energy);
+  }
+
+  // TS check (#509): warns on a saddle that does not move the coordinate it was
+  // started along, and on a dissociated end structure; silent on a good one.
+  {
+    auto mk = [](double rcl, double rf) {
+      Molecule m;
+      const int Z[6] = {17, 6, 9, 1, 1, 1};
+      const double zc = rcl, zf = rcl + rf;
+      const double pos[6][3] = {{0, 0, 0}, {0, 0, zc}, {0, 0, zf}, {1.06, 0, zc}, {-0.53, 0.92, zc}, {-0.53, -0.92, zc}};
+      for (int i = 0; i < 6; ++i) {
+        Atom a; a.Z = Z[i];
+        for (int k = 0; k < 3; ++k) a.x[k] = pos[i][k] * kAngstromToBohr;
+        m.atoms.push_back(a);
+      }
+      return m;
+    };
+    const Molecule start = mk(2.35, 1.9);
+    VibResult v;
+    v.modes = Mat::Zero(18, 1);
+    v.modes(2, 0) = -0.5; v.modes(5, 0) = 0.5; v.modes(8, 0) = 0.5;  // Cl, C, F along z: the reaction coordinate
+    OptOptions opt;
+    check(check_saddle(start, mk(2.45, 1.85), v, opt).empty(), "ts check: reaction mode on the changing bonds is silent");
+    VibResult wag;
+    wag.modes = Mat::Zero(18, 1);
+    wag.modes(9, 0) = 0.7; wag.modes(10, 0) = 0.7;  // an H moves, no bond to Cl or F does
+    auto w1 = check_saddle(start, mk(2.6, 1.8), wag, opt);
+    check(w1.size() == 1 && w1[0].find("does not move") != std::string::npos, "ts check: warns when the mode misses the changing bonds");
+    auto w2 = check_saddle(start, mk(2.2, 7.2), v, opt);
+    bool broken = false;
+    for (const auto& s : w2) broken |= s.find("is broken") != std::string::npos;
+    check(broken, "ts check: warns on a dissociated end structure");
   }
 
   return fails ? 1 : 0;

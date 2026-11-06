@@ -13,6 +13,8 @@
 #ifndef VIBSPECTRUM_HH
 #define VIBSPECTRUM_HH
 
+#include "util/VibFrequency.H"
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -206,7 +208,7 @@ class VibSpectrum
      * rotations some codes list among the modes (ORCA prints 0.00, NWChem
      * values of 1e-5).  They are not vibrations, so they get no stick.
      */
-    static double zeroTolerance() { return 10.0; }
+    static double zeroTolerance() { return VibFrequency::IMAG_THRESHOLD; }
 
     /** Scaled wavenumber of mode i. */
     double wavenumber(int i) const
@@ -269,6 +271,30 @@ class VibSpectrum
     double compareEnvelope(VibKind kind, double wavenumber) const;
     double compareFactor(VibKind kind) const;
 
+    /**
+     * The difference curve (#707): the second spectrum's envelope minus this
+     * one's, at a position.  Shown and exported only when switched on.
+     */
+    void setDifference(bool on) { p_diff = on; }
+    bool difference() const { return p_diff && p_cmp; }
+    double differenceEnvelope(VibKind kind, double x) const
+    { return compareEnvelope(kind, x) - envelope(kind, x); }
+
+    /**
+     * An experimental spectrum (#707), absorbance against wavenumber in
+     * ascending order.  It is drawn scaled so its largest value in [lo, hi]
+     * equals the largest value of this spectrum's envelope on a 1 cm-1 grid
+     * over [lo, hi] (experimentalFactor); the frequency scale does not touch
+     * it.  experimentalValue is NaN outside the data.
+     */
+    void setExperimental(const vector<double>& x, const vector<double>& a,
+                         const string& label);
+    void clearExperimental() { p_expX.clear(); p_expY.clear(); }
+    bool hasExperimental() const { return p_expX.size() > 1; }
+    const string& experimentalLabel() const { return p_expLabel; }
+    double experimentalFactor(VibKind kind, double lo, double hi) const;
+    double experimentalValue(double x, double factor) const;
+
     /** Whether the code's units string is one we know how to label. */
     static bool knownIntensityUnits(VibKind kind, const string& units);
 
@@ -289,7 +315,9 @@ class VibSpectrum
     string         p_units[2];
     double         p_scale, p_fwhm;
     LineShape      p_shape;
-    string         p_label, p_cmpLabel;
+    string         p_label, p_cmpLabel, p_expLabel;
+    bool           p_diff = false;
+    vector<double> p_expX, p_expY;
     std::shared_ptr<VibSpectrum> p_cmp;
 };
 

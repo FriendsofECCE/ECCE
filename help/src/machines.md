@@ -220,12 +220,18 @@ file.
 The Launcher block of the Organizer's calculation summary, and the Viewer's
 **Calculation Summary**, show the **Allocation:** the job was submitted
 under. A calculation launched before the account was recorded shows the
-account of the machine's profile **Default**. **Remaining on submission:**
-shows how much of the allocation was left when the job was submitted, not
-what this job used; it is shown only when the cluster's allocation command
-gave a recognised answer at that moment, and is not refreshed afterwards.
-Current figures are in **Tools > Allocations...** (see
+account of the machine's profile **Default**. How much
+of an allocation is left is not part of the summary; the current figures
+are in **Tools > Allocations...** (see
 [Allocations](allocations.md)).
+
+**Wall time:** the time limit set in the Launcher, compared with the job's
+start date. While the job runs it shows what is left (for example
+`1 h 20 min left of 4 h`), marked *nearly out* when less than a tenth is
+left, and *limit reached* once the scheduler may stop the job at any
+moment; while the job waits in the queue it shows the time requested, and
+after the job has ended the time used. The figure is worked out when the
+summary is drawn, so select the calculation again to update it.
 
 ## The `dummy` machine: submitting by hand
 
@@ -298,3 +304,19 @@ shows "from site" in that case. The undo button next to the tag removes
 your setting and returns to the site's. Ticking neither box removes the
 key (or, if the site sets one, writes `false` for it), which is the normal
 mode.
+
+## Remembering an ssh password
+
+When ECCE asks for your password for a machine, the password dialog has a
+box **Remember on this computer**. It appears only when your computer has a
+password store that ECCE can use (the Keychain on macOS, the Credential
+Manager on Windows, a keyring with `secret-tool` on Linux). Tick it and, after
+the login works, ECCE keeps the password in that store and uses it the next
+time the connection has to be opened again, without asking.
+
+If the machine refuses a remembered password, ECCE removes it everywhere and
+asks again. To remove one yourself, open **Preferences**, page **Advanced**,
+list **Remembered ssh logins**, select the login and press **Forget**.
+
+The box is not offered for a machine reached through another machine (a jump
+host), and never for one-time passcodes.

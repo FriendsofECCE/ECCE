@@ -75,7 +75,7 @@ def main():
             return 1
         harness.skip("gmx is not installed")
     for tool in ("Xvfb", "import"):
-        if not shutil.which(tool):
+        if not shutil.which(tool, path=os.environ.get("PATH", "") + os.pathsep + "/usr/sbin"):
             harness.skip("%s is not installed" % tool)
     harness.prerequisites(build, ())
     for exe in GUI:

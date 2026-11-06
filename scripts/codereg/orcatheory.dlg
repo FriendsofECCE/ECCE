@@ -11,20 +11,25 @@ int name=ES.Theory.SCF.ConvergenceIterations label="Max. Iterations:" default=64
 combo name=ES.Theory.SCF.ConvergenceTolerance label="Convergence:" choices="Normal|Loose|Tight|Very Tight" default=Normal export=1
 
 box label="RI Approximation" cols=2
-check name=ES.Theory.SCF.UseRIJCOSX label=" Use RIJCOSX" default=0 export=1
-combo name=ES.Theory.SCF.RIJCOSXAuxBasis label="Auxiliary Basis:" choices="def2/J|def2/JK|SARC/J" default=def2/J export=1 enable_if="ES.Theory.SCF.UseRIJCOSX==1"
+combo name=ES.Theory.SCF.RIMode label="RI approximation:" choices="None|RIJCOSX|RIJONX" default=None export=1
+combo name=ES.Theory.SCF.RIJCOSXAuxBasis label="Auxiliary Basis:" choices="def2/J|def2/JK|SARC/J" default=def2/J export=1 enable_if="ES.Theory.SCF.RIMode!=None"
 
 box label="Memory" cols=1
 int name=ES.Theory.SCF.MemorySize label="Memory Per Core:" default=1 hard="[0..512]" unit="Gigabytes / core" export=1
 
+# The -3c composites bring their own basis and dispersion (ai.orca writes only
+# the keyword).
+list COMP3C = B97-3c|HF-3c|PBEh-3c|r2SCAN-3c|wB97X-3c
+
 # Alphabetical, default picked by name.
 box label="DFT Functional" cols=1 when="category==DFT"
-combo name=ES.Theory.DFT.XCFunctionals label="Functional:" choices="B2GP-PLYP|B2PLYP|B3LYP|B97-D3|B97M-V|BLYP|BP86|CAM-B3LYP|DSD-BLYP|DSD-PBEP86|M06|M062X|M06L|mPW2PLYP|PBE|PBE0|PWPB95|r2SCAN|revPBE|revTPSS|RPBE|TPSS|TPSSh|wB2PLYP|wB97M-V|wB97X-D3|wB97X-V" default=B3LYP export=1
+combo name=ES.Theory.DFT.XCFunctionals label="Functional:" choices="B2GP-PLYP|B2PLYP|B3LYP|B97-3c|B97-D3|B97M-V|BLYP|BP86|CAM-B3LYP|DSD-BLYP|DSD-PBEP86|HF-3c|M06|M062X|M06L|mPW2PLYP|PBE|PBE0|PBEh-3c|PWPB95|r2SCAN|r2SCAN-3c|revPBE|revTPSS|RPBE|TPSS|TPSSh|wB2PLYP|wB97M-V|wB97X-3c|wB97X-D3|wB97X-V" default=B3LYP export=1
+note label="the composite carries its own basis" show_if="ES.Theory.DFT.XCFunctionals in @COMP3C"
 
 # ai.orca maps D3(0) to ORCA's D3ZERO.  ORCA 6.1.1 accepts HF D3BJ/D4 too.
 list DISPCAT = SCF|DFT
 box label="Dispersion" cols=1 when="category in @DISPCAT"
-combo name=ES.Theory.SCF.Dispersion label="Correction:" choices="None|D3BJ|D3(0)|D4" default=None export=1
+combo name=ES.Theory.SCF.Dispersion label="Correction:" choices="None|D3BJ|D3(0)|D4" default=None export=1 enable_if="ES.Theory.DFT.XCFunctionals not in @COMP3C"
 
 # ai.orca writes DEFGRID1/2/3 as its own keyword; ORCA's DefGridN sets the DFT
 # and the COSX grid together.  Default writes nothing.

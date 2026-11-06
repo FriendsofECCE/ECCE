@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""The first-start question (#240): when it is asked and when it is not.
+"""First start (#240, #767): when ECCE sets up local data and when it leaves things be.
 
     first_start_test.py <ecce-localdata binary> <scratch dir>
 
 Runs `ecce-first-start --check` (no window) against a private $ECCE_HOME and
-user home.  The one fresh client asks, on every platform (the platform's
-default data folder is not a choice); every setup that already exists, in
-any of the three deployment modes, does not.  Then `--apply` makes each
-answer without a window, against a stub server (an HTTP listener).  Needs no
-display and no services; runs on Linux, macOS and Windows.
+user home.  A fresh client works on this computer ("local", nothing is
+asked); every configured setup, in any of the three deployment modes, and a
+server the user recorded earlier is left alone ("skip").  Then the plain
+start applies local, and `--apply` makes each answer without a window,
+against a stub server (an HTTP listener).  Needs no display and no
+services; runs on Linux, macOS and Windows.
 """
 import http.server
 import os
@@ -64,28 +65,40 @@ os.makedirs(scratch)
 
 env, user, ehome = fresh("fresh")
 rc, out = verdict(env)
-check(rc == 0 and out == "ask", "a fresh client-only user is asked (%s)" % out)
+check(rc == 0 and out == "local", "a fresh client-only user starts local (%s)" % out)
 
 # An installed server package is not configuration: its users are asked too.
 env, user, ehome = fresh("serverpkg", server_install=True)
 rc, out = verdict(env)
-check(rc == 0 and out == "ask", "a fresh user with the server package installed is asked (%s)" % out)
+check(rc == 0 and out == "local", "a fresh user with the server package installed starts local (%s)" % out)
 
-# Data from before the question only preselects a choice: still asked once.
-asked = [("localdir", "the local data folder exists",
-          lambda e, u, h: os.makedirs(u + ("/ecce-local" if sys.platform == "win32" else "/.ECCE-local"))),
-         ("serverdata", "~/.ECCE/dataserver exists",
-          lambda e, u, h: os.makedirs(u + "/.ECCE/dataserver")),
-         ("chosen", "a server was chosen before (~/.ECCE/RemoteServer)",
-          lambda e, u, h: (os.makedirs(u + "/.ECCE/RemoteServer"),
-                           open(u + "/.ECCE/RemoteServer/DataServers", "w").close())),
-         ("pref", "the data folder preference was set",
-          lambda e, u, h: subprocess.run([localdata, "pref", "off"], env=e, check=True))]
-for name, what, setup in asked:
+# Data from before: a local folder is already local; a server the user
+# recorded (RemoteServer, an answer "server...", a per-user data server, the
+# preference off) keeps working.
+local_ok = [("localdir", "the local data folder exists",
+             lambda e, u, h: os.makedirs(u + ("/ecce-local" if sys.platform == "win32" else "/.ECCE-local"))),
+            ("localanswer", "the answer \"local\" was recorded",
+             lambda e, u, h: open(u + "/.ECCE/first-start-answer", "w").write("local\n"))]
+for name, what, setup in local_ok:
     env, user, ehome = fresh(name)
     setup(env, user, ehome)
     rc, out = verdict(env)
-    check(rc == 0 and out == "ask", "asked once although " + what + " (%s)" % out)
+    check(rc == 0 and out == "local", "local when " + what + " (%s)" % out)
+
+kept = [("serverdata", "~/.ECCE/dataserver exists",
+         lambda e, u, h: os.makedirs(u + "/.ECCE/dataserver")),
+        ("chosen", "a server was chosen before (~/.ECCE/RemoteServer)",
+         lambda e, u, h: (os.makedirs(u + "/.ECCE/RemoteServer"),
+                          open(u + "/.ECCE/RemoteServer/DataServers", "w").close())),
+        ("serveranswer", "the answer \"server host\" was recorded",
+         lambda e, u, h: open(u + "/.ECCE/first-start-answer", "w").write("server example.edu\n")),
+        ("pref", "the data folder preference is off",
+         lambda e, u, h: subprocess.run([localdata, "pref", "off"], env=e, check=True))]
+for name, what, setup in kept:
+    env, user, ehome = fresh(name)
+    setup(env, user, ehome)
+    rc, out = verdict(env)
+    check(rc == 1 and out.startswith("skip"), "left alone when " + what + " (%s)" % out)
 
 cases = []
 
@@ -115,11 +128,28 @@ if sys.platform.startswith("linux"):   # macOS and Windows always have a screen
 case("switch", "ECCE_NO_FIRST_START is set (tests, scripts)",
      lambda e, u, h: e.update(ECCE_NO_FIRST_START="1"))
 
-# An answer from an earlier start does not skip the question.
-env, user, ehome = fresh("answered", False)
-open(user + "/.ECCE/first-start-answer", "w").write("local\n")
-rc, out = verdict(env)
-check(rc == 0 and out == "ask", "asked again after an earlier answer (%s)" % out)
+# The plain start (what `ecce` runs) makes the fresh client local, without
+# a window, then leaves it alone.
+def start(env):
+    r = subprocess.run([sys.executable, SCRIPT], env=env, capture_output=True,
+                       text=True, timeout=60)
+    return r.returncode
+
+env, user, ehome = fresh("plainstart")
+rc = start(env)
+check(rc == 0 and os.path.isdir(user + ("/ecce-local" if sys.platform == "win32" else "/.ECCE-local"))
+      and subprocess.run([localdata, "pref-state"], env=env, capture_output=True,
+                         text=True).stdout.strip() == "on",
+      "plain start of a fresh client: local folder and preference on (rc=%d)" % rc)
+check(not os.path.exists(user + "/.ECCE/RemoteServer"), "plain start writes no server")
+env, user, ehome = fresh("plainstart-server")
+os.makedirs(user + "/.ECCE/RemoteServer")
+open(user + "/.ECCE/RemoteServer/DataServers", "w").close()
+rc = start(env)
+check(rc == 0 and not os.path.exists(user + "/.ECCE-local")
+      and subprocess.run([localdata, "pref-state"], env=env, capture_output=True,
+                         text=True).stdout.strip() == "unset",
+      "plain start with a recorded server changes nothing (rc=%d)" % rc)
 
 for name, what, setup, srv in cases:
     env, user, ehome = fresh(name, srv)
@@ -172,7 +202,7 @@ local_dir = user + ("/ecce-local" if sys.platform == "win32" else "/.ECCE-local"
 check(rc == 0 and os.path.isdir(local_dir) and prefstate(env) == "on",
       "local: the data folder exists and the preference is on (%s)" % out)
 rc, out = verdict(env)
-check(rc == 0 and out == "ask", "local chosen: asked again at the next start (%s)" % out)
+check(rc == 0 and out == "local", "local chosen: the next start is local (%s)" % out)
 
 rc, out = apply(env, "server:127.0.0.1:%d" % port)
 ds = user + "/.ECCE/RemoteServer/DataServers"
@@ -181,7 +211,7 @@ check(rc == 0 and ("http://127.0.0.1:%d/Ecce" % port) in text and
       "ECCE Data Server on 127.0.0.1" in text and prefstate(env) == "off",
       "server: RemoteServer/DataServers names the server, preference off (%s)" % out)
 rc, out = verdict(env)
-check(rc == 0 and out == "ask", "server chosen: asked again at the next start (%s)" % out)
+check(rc == 1 and out.startswith("skip"), "server chosen: the next start leaves it (%s)" % out)
 
 rc, out = apply(env, "local")
 check(rc == 0 and not os.path.exists(ds) and os.path.exists(user + "/.ECCE/RemoteServer.off/DataServers")

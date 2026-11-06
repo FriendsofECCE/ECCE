@@ -67,6 +67,13 @@ dpstate
 dppng {t}-ar-logr-logy 1000 650
 dpyaxis linear
 dpxaxis linear
+dpyaxis sqrt
+dpstate
+dpzoom in
+dpstate
+dpyaxis linear
+dpzoom in
+dpstate
 dpshow selected
 dpmo 10,11
 dpstate
@@ -165,6 +172,31 @@ def view(b):
     return [float(v) for v in b["s_view"].split()]
 
 
+def checkYAxis(sq, sqzoom, linzoom):
+    """sqrt y: ticks in real values inside the drawn range; zooming in
+    keeps the bottom of the axis and lowers the top."""
+    p = []
+    if sq.get("s_yaxis") != "sqrt":
+        return ["sqrt y axis not applied (%s)" % sq.get("s_yaxis")]
+    ticks = [float(v) for v in sq["s_yticks"].split()]
+    y0, y1 = view(sq)[2:]
+    if len(ticks) < 3 or ticks != sorted(ticks):
+        p.append("sqrt y ticks %s" % ticks)
+    elif min(ticks) < (-y0 * y0 if y0 < 0 else y0 * y0) - 1e-12 or max(ticks) > y1 * y1 + 1e-12:
+        p.append("sqrt y ticks %s outside the drawn range %s %s" % (ticks, y0, y1))
+    elif ticks[-1] - ticks[-2] < ticks[1] - ticks[0]:
+        p.append("sqrt y ticks %s are evenly spread, not square-root spaced" % ticks)
+    for zoomed, what in ((sqzoom, "sqrt"), (linzoom, "linear")):
+        z0, z1 = view(zoomed)[2:]
+        if abs(z0 - y0) > 1e-9 * max(1.0, abs(y0)) and what == "sqrt":
+            p.append("zoom moved the bottom of the sqrt y axis (%s -> %s)" % (y0, z0))
+        if what == "linear" and not z1 > z0:
+            p.append("linear zoom range %s %s" % (z0, z1))
+    if not view(sqzoom)[3] < y1:
+        p.append("zoom did not lower the top (%s -> %s)" % (y1, view(sqzoom)[3]))
+    return p
+
+
 def checkHcn(first, sel):
     p = []
     if sorted(first["marks"]) != ["C1", "H2", "N3"]:
@@ -218,6 +250,7 @@ def check(case, log, t, out):
     if case == "ar":
         if sel[1].get("s_xaxis") != "sqrt" or sel[2].get("s_yaxis") != "log":
             problems.append("axis choices not applied (%s, %s)" % (sel[1].get("s_xaxis"), sel[2].get("s_yaxis")))
+        problems += checkYAxis(sel[3], sel[4], sel[5])
         cols = [c[1] for c in first.get("colours", [])]
         if len(cols) != len(set(cols)):
             problems.append("a colour repeats in the legend: %s" % cols)

@@ -16,20 +16,7 @@
 inline void drawViewerText(GLuint fontOffset, const char *text)
 {
    if (!text || !*text) return;
-#ifndef __APPLE__
-   //  Linux and Windows hardware GL keep the display lists; only macOS
-   //  (Retina scaling) and software renderers (#565) draw glyphs as geometry.
-   if (!GLPath::software()) {
-      glPushAttrib(GL_LIST_BIT);
-      glListBase(fontOffset);
-      glCallLists(strlen(text), GL_UNSIGNED_BYTE,
-                  reinterpret_cast<const GLubyte *>(text));
-      glPopAttrib();
-      return;
-   }
-#else
    (void)fontOffset;
-#endif
    // drawFixedPixelText reads UTF-8.
    std::string utf8;
    for (const char *p = text; *p; ++p) {

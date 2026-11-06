@@ -32,6 +32,7 @@
 //    libatom I                   select atom (a Nub) I of the library structure
 //    select N                    select atom (or Nub) number N (from 1), as a click
 //                                does; 0 or less none
+//    select_within R [molecules] [replace]  extend by distance in Angstrom
 //    selectelem A                select the first atom of element A
 //    addelem A                   add the last atom of element A to the selection
 //    bondkind covalent|metal     the kind of bond Bond mode makes
@@ -51,12 +52,16 @@
 //    atomtable                   the shown text of each Atom Table row
 //    progress N                  the MO Compute progress dialog, N seconds
 //    property NAME               a click on Properties > NAME (toggles it)
+//    columnwidth N               restore a saved side column width of N pixels
+//    panesize NAME               report pane width, height and virtual width
+//    minsizes NAME               each control's and sizer row's minimum width
 //    list NAME                   a click on NAME in the Properties list
 //    viewer NAME                 a click on NAME's "Show in viewer" box
 //    overlay                     the column's tab (1 = Properties), and for
 //                                each viewer panel: shown, viz focus
 //    rows PANEL                  the rows of a key/value panel (Energies)
 //    tablecopy PANEL             Copy all of the first table in PANEL
+//    thermolayout                Thermochemistry label widths and clip audit
 //    inview                      whether an atom is outside the 3-D view
 //    zoom F                      camera view angle/height times F (<1: in)
 //    fold PANEL GROUP            a click on that group's heading
@@ -93,6 +98,7 @@
 #include <wx/checkbox.h>
 #include <wx/dcmemory.h>
 #include <wx/dcscreen.h>
+#include <wx/grid.h>
 #include <wx/weakref.h>
 #include <wx/image.h>
 #include <wx/menu.h>
@@ -130,7 +136,11 @@
 #include "viz/ForegroundCmd.H"
 #include "wxgui/SliderCombo.H"
 #include "viz/SGContainer.H"
+#include "viz/SGLattice.H"
 #include "viz/SGFragment.H"
+#include "viz/AtomMeasureDist.H"
+#include "viz/AtomMeasureAngle.H"
+#include "viz/AtomMeasureTorsion.H"
 
 #include "viz/FindSymmetryCmd.H"
 #include "wxgui/ewxGrid.H"
@@ -155,6 +165,7 @@
 #include <wx/stattext.h>
 #include "IRCPanel.H"
 #include "ReactionPanel.H"
+#include "ThermoPanel.H"
 #include "PullPanel.H"
 #include "MdAnalysisPanels.H"
 #include "tdat/GeomConstraintModel.H"
@@ -272,15 +283,74 @@ void Builder::runBuilderScript(const std::string& file)
           ev.SetInt(1);
           GetEventHandler()->ProcessEvent(ev);
         }
+      } else if (w[0] == "columnwidth" && w.size() == 2) {
+        wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(NAME_PROPERTY_INDEX));
+        if (!pane.IsOk() || !pane.IsShown()) {
+          outcome = "no Properties pane";
+        } else {
+          // Restore the dock size as a saved user layout does.
+          std::string perspective = p_mgr.SavePerspective().ToStdString();
+          const std::string key = wxString::Format("dock_size(%d,%d,%d)=",
+              pane.dock_direction, pane.dock_layer, pane.dock_row).ToStdString();
+          const size_t at = perspective.find(key);
+          if (at == std::string::npos) {
+            outcome = "no Properties dock size";
+          } else {
+            const size_t value = at + key.size();
+            perspective.replace(value, perspective.find('|', value) - value, w[1]);
+            p_mgr.LoadPerspective(wxString(perspective), false);
+            updatePanes();
+          }
+        }
+      } else if (w[0] == "minsizes" && w.size() >= 2) {
+        //  Which control or sizer row sets a pane's minimum width.
+        wxString nm = line.substr(line.find("minsizes") + 9);
+        nm.Trim(false).Trim(true);
+        wxAuiPaneInfo &pn = p_mgr.GetPane(nm);
+        std::function<void(wxSizer*, int)> dump = [&](wxSizer *s, int depth) {
+          for (wxSizerItem *it : s->GetChildren()) {
+            wxString what = it->IsShown() ? "" : "(hidden) ";
+            if (it->IsWindow()) {
+              wxWindow *win = it->GetWindow();
+              what += wxString(win->GetClassInfo()->GetClassName()) + " '" +
+                     win->GetLabel().Left(30) + "'";
+            } else if (it->IsSizer()) {
+              what += wxString(it->GetSizer()->GetClassInfo()->GetClassName());
+            } else {
+              what += "spacer";
+            }
+            fprintf(stderr, "MINSIZE %*s%s min=%d border=%d\n", depth * 2, "",
+                    (const char*)what.mb_str(), it->CalcMin().x,
+                    it->GetBorder());
+            if (it->IsSizer()) dump(it->GetSizer(), depth + 1);
+            else if (it->IsWindow() && it->GetWindow()->GetSizer() &&
+                     depth < 3)
+              dump(it->GetWindow()->GetSizer(), depth + 1);
+          }
+        };
+        if (pn.IsOk() && pn.window && pn.window->GetSizer()) {
+          fprintf(stderr, "MINSIZE %s window_min=%d sizer_min=%d\n",
+                  (const char*)nm.mb_str(), pn.window->GetMinSize().x,
+                  pn.window->GetSizer()->GetMinSize().x);
+          dump(pn.window->GetSizer(), 1);
+        } else {
+          outcome = "no such pane";
+        }
       } else if (w[0] == "panesize" && w.size() >= 2) {
         wxString nm = line.substr(line.find("panesize") + 9);
         nm.Trim(false).Trim(true);
         wxAuiPaneInfo &pn = p_mgr.GetPane(nm);
         fprintf(stderr, "PANESIZE %s: %s y=%d height=%d min_height=%d "
-                "resizable=%d\n",
+                "resizable=%d width=%d client_width=%d virtual_width=%d "
+                "pane_min_width=%d window_min_width=%d content_width=%d\n",
                 (const char*)nm.mb_str(),
                 pn.IsOk() && pn.IsShown() ? "shown" : "hidden", pn.rect.y,
-                pn.rect.height, pn.min_size.y, pn.IsResizable() ? 1 : 0);
+                pn.rect.height, pn.min_size.y, pn.IsResizable() ? 1 : 0,
+                pn.rect.width, pn.window ? pn.window->GetClientSize().x : 0,
+                pn.window ? pn.window->GetVirtualSize().x : 0, pn.min_size.x,
+                pn.window ? pn.window->GetMinSize().x : 0,
+                pn.window && pn.window->GetSizer()
+                    ? pn.window->GetSizer()->GetMinSize().x : 0);
       } else if (w[0] == "pbc" && w.size() >= 2 && pbc) {
         std::vector<std::string> rest(w.begin() + 1, w.end());
         std::string err = pbc->scriptCommand(rest);
@@ -550,6 +620,21 @@ void Builder::runBuilderScript(const std::string& file)
           if (frag->atomRef(i)->atomicSymbol() == "Nub") nubs++;
         fprintf(stderr, "BUILDER: atoms=%d lattice=%s nubs=%d\n",
                 frag ? (int)frag->numAtoms() : -1, lat ? "yes" : "no", nubs);
+        fprintf(stderr, "BUILDER: cell_images=%d\n", getSG()->numCellImages());
+        if (lat) {
+          MPoint cc = lat->getLatticeCorner();
+          fprintf(stderr, "BUILDER: lattice_centered=%d corner=%.3f %.3f %.3f\n",
+                  lat->getCentering() ? 1 : 0, cc.x(), cc.y(), cc.z());
+          SGLattice *sgl = dynamic_cast<SGLattice*>(getSG()->findNode("lattice"));
+          double lo[3], hi[3];
+          if (sgl && sgl->drawnBounds(lo, hi))
+            fprintf(stderr, "BUILDER: lattice_drawn=%.3f %.3f %.3f %.3f %.3f %.3f\n",
+                    lo[0], lo[1], lo[2], hi[0], hi[1], hi[2]);
+          vector<MPoint> *basis = lat->toVectors();
+          for (MPoint& v : *basis)
+            fprintf(stderr, "BUILDER: lattice_vector=%.3f %.3f %.3f\n", v.x(), v.y(), v.z());
+          delete basis;
+        }
         fprintf(stderr, "BUILDER: frame=%lld\n", ewxModalGuard::frameCounter(this));
         fprintf(stderr, "BUILDER: periodic_builder=%s\n",
                 p_mgr.GetPane(NAME_TOOL_PBC).IsShown() ? "shown" : "hidden");
@@ -576,6 +661,20 @@ void Builder::runBuilderScript(const std::string& file)
         frag->m_atomHighLight.clear();
         if (atoi(w[1].c_str()) >= 1)
           frag->m_atomHighLight.assign(1, atoi(w[1].c_str()) - 1);
+      } else if (w[0] == "select_within" && w.size() >= 2 && frag) {
+        bool molecules = false, keep = true, valid = w.size() <= 4;
+        for (size_t i = 2; i < w.size(); ++i) {
+          if (w[i] == "molecules") molecules = true;
+          else if (w[i] == "replace") keep = false;
+          else valid = false;
+        }
+        double radius = 0.0;
+        std::istringstream input(w[1]);
+        input >> radius;
+        if (!input || !input.eof() || !std::isfinite(radius) ||
+            radius < 0.1 || radius > 50.0 || !valid || frag->m_atomHighLight.empty())
+          outcome = "FAIL: select_within needs a selection and distance 0.1-50";
+        else selectWithin(radius, molecules, keep);
       } else if (w[0] == "selectelem" && w.size() == 2 && frag) {
         //  The first atom of element A, as a click on it selects it.
         outcome = "FAIL: no such atom";
@@ -762,6 +861,64 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: selected after %s click on %s:%s\n",
                   w[1].c_str(), w[2].c_str(), sel.c_str());
         }
+      } else if (w[0] == "measure" && w.size() >= 4 && frag) {
+        //  "measure dist|angle|torsion I J [K [L]]": the Measure toolbar's
+        //  button on those atoms (1-based).
+        frag->m_atomHighLight.clear();
+        for (size_t k = 2; k < w.size(); k++)
+          frag->m_atomHighLight.push_back(atoi(w[k].c_str()) - 1);
+        wxCommandEvent ev(wxEVT_MENU,
+            w[1] == "dist" ? ViewerEvtHandler::ID_MEASURE_DIST
+          : w[1] == "angle" ? ViewerEvtHandler::ID_MEASURE_ANGLE
+                            : ViewerEvtHandler::ID_MEASURE_TORSION);
+        GetEventHandler()->ProcessEvent(ev);
+        wxTheApp->Yield(true);
+      } else if (w[0] == "labelclick" && w.size() == 2 && getSG()) {
+        //  "labelclick dist|angle|torsion": a left click in the middle of the
+        //  first such measure's number.  The popup logs instead of opening.
+        SoWxRenderArea *area = findViewerArea(p_viewer);
+        SbVec3f lp;
+        int len = 0;
+        SoGroup *top = getSG()->getTopLabel();
+        for (int i = 0; top && i < top->getNumChildren() && !len; i++) {
+          SoNode *m = ((SoSeparator*)top->getChild(i))->getChild(0);
+          if (w[1] == "dist" && m->isOfType(AtomMeasureDist::getClassTypeId())) {
+            lp = ((AtomMeasureDist*)m)->getLabelPosition();
+            len = ((AtomMeasureDist*)m)->getLabelLength();
+          } else if (w[1] == "angle" &&
+                     m->isOfType(AtomMeasureAngle::getClassTypeId())) {
+            lp = ((AtomMeasureAngle*)m)->getLabelPosition();
+            len = ((AtomMeasureAngle*)m)->getLabelLength();
+          } else if (w[1] == "torsion" &&
+                     m->isOfType(AtomMeasureTorsion::getClassTypeId())) {
+            lp = ((AtomMeasureTorsion*)m)->getLabelPosition();
+            len = ((AtomMeasureTorsion*)m)->getLabelLength();
+          }
+        }
+        if (!area || !len) {
+          outcome = "FAIL: no drawn " + w[1] + " label";
+        } else {
+          SbVec3f d;
+          const SbViewportRegion& vpr = p_viewer->getViewportRegion();
+          SbViewVolume vv =
+              p_viewer->getCamera()->getViewVolume(vpr.getViewportAspectRatio());
+          vv.projectToScreen(lp, d);
+          SbVec2s sz = vpr.getViewportSizePixels();
+          const double sc = area->GetContentScaleFactor();
+          const int lx = (int)std::lround((d[0] * sz[0] + 4.5 * len) / sc);
+          const int ly = (int)std::lround((sz[1] - 1 - d[1] * sz[1] - 7) / sc);
+          static long stamp = 200000;
+          for (int k = 0; k < 2; k++) {
+            wxMouseEvent e(k == 0 ? wxEVT_LEFT_DOWN : wxEVT_LEFT_UP);
+            e.m_x = lx;
+            e.m_y = ly;
+            e.m_leftDown = (k == 0);
+            e.SetEventObject(area);
+            e.SetTimestamp(stamp += 50);
+            area->GetEventHandler()->ProcessEvent(e);
+          }
+          wxTheApp->Yield(true);
+        }
       } else if ((w[0] == "atompos" && w.size() == 2 && frag) ||
                  (w[0] == "viewpos" && w.size() == 3)) {
         //  Where atom N (1-based), or the point at fractions fx fy of the
@@ -801,6 +958,29 @@ void Builder::runBuilderScript(const std::string& file)
                   frag->atomRef(i)->atomicSymbol().c_str(), c[0], c[1], c[2]);
         }
         fprintf(stderr, "BUILDER: formula=%s\n", frag->formula().c_str());
+      } else if (w[0] == "takefrom" && w.size() >= 3) {
+        //  takefrom PATH.xyz SET|selected [align]: Take Coordinates From...
+        //  with the other structure read from an .xyz file (#620).
+        std::ifstream in(w[1]);
+        int n = 0;
+        std::string title, el, xyz;
+        in >> n;
+        std::getline(in, title);
+        std::getline(in, title);
+        for (int i = 0; i < n && in; i++) {
+          std::string s;
+          double x, y, z;
+          if (in >> s >> x >> y >> z) {
+            char buf[128];
+            snprintf(buf, sizeof buf, "%.17g %.17g %.17g ", x, y, z);
+            el += s + " ";
+            xyz += buf;
+          }
+        }
+        double rmsd = 0;
+        bool ok = takeCoordinates(w[2] == "selected" ? "" : w[2], el, xyz,
+                                  w.size() > 3 && w[3] == "align", &rmsd);
+        fprintf(stderr, "BUILDER: takefrom %s rmsd=%.6g\n", ok ? "ok" : "refused", rmsd);
       } else if (w[0] == "coordsraw" && frag) {
         for (size_t i = 0; i < frag->numAtoms(); i++) {
           const double *c = frag->atomRef(i)->coordinates();
@@ -1098,13 +1278,15 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: pullcsv points=%d %s\n", pp->points(),
                   pp->exportCsv(wxString::FromUTF8(w[1].c_str())) ? "ok" : "failed");
         }
-      } else if ((w[0] == "mdcsv" || w[0] == "mdcompare" || w[0] == "mdfit" ||
+      } else if ((w[0] == "mdcsv" || w[0] == "mdcompare" || w[0] == "comparewith" || w[0] == "mdfit" ||
                   w[0] == "mdloglog") && w.size() >= 2) {
-        //  mdcsv speed|msd <path>; mdcompare speed|msd <calculation|none|?>;
+        //  mdcsv speed|msd <path>; mdcompare speed|msd <calculation...|none|?>;
+        //  comparewith [speed|msd] <calculation...> defaults to speed;
         //  mdfit <from ps> <to ps>; mdloglog on|off: the Speed Distribution
         //  and Displacement panels' Export, Compare, Fit and Log-log without
         //  dialogs or clicks.
-        const bool speed = w[1] == "speed";
+        const bool bareCompare = w[0] == "comparewith" && w[1] != "speed" && w[1] != "msd";
+        const bool speed = bareCompare || w[1] == "speed";
         MdAnalysisPanel *mp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
@@ -1129,9 +1311,14 @@ void Builder::runBuilderScript(const std::string& file)
           for (const std::string& l : labels) all += (all.empty() ? "" : "|") + l;
           fprintf(stderr, "BUILDER: mdcompare candidates=%d ms=%ld %s\n",
                   (int)labels.size(), took.Time(), all.c_str());
-        } else if (w[0] == "mdcompare" && w.size() >= 3) {
-          fprintf(stderr, "BUILDER: mdcompare %s curves=%d %s\n", w[2].c_str(), mp->curves(),
-                  mp->compareWith(w[2] == "none" ? std::string() : w[2]) ? "ok" : "failed");
+        } else if ((w[0] == "mdcompare" || w[0] == "comparewith") &&
+                   w.size() >= (bareCompare ? 2u : 3u)) {
+          const size_t firstName = bareCompare ? 1 : 2;
+          std::vector<std::string> names(w.begin() + firstName, w.end());
+          if (names.size() == 1 && names[0] == "none") names.clear();
+          const bool ok = mp->compareWith(names);
+          fprintf(stderr, "BUILDER: mdcompare %s curves=%d %s\n", w[firstName].c_str(), mp->curves(),
+                  ok ? "ok" : "failed");
         } else if (w[0] == "mdfit" && w.size() >= 3 && msd) {
           msd->setFit(atof(w[1].c_str()), atof(w[2].c_str()));
           fprintf(stderr, "BUILDER: mdfit D=%.4g\n", msd->diffusion(0));
@@ -1156,6 +1343,50 @@ void Builder::runBuilderScript(const std::string& file)
                   rp->exportCsv(wxString::FromUTF8(w[1].c_str()),
                                 w.size() > 2 && w[2] == "kcal")
                       ? "ok" : "failed");
+        }
+      } else if (w[0] == "thermolayout" || (w[0] == "thermo" && w.size() >= 2)) {
+        //  thermo <treatment> [T] [1atm|1M]: set the Thermochemistry panel's
+        //  choices (#692) and print the recomputed H, S, G.
+        ThermoPanel *tp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((tp = dynamic_cast<ThermoPanel*>(p)) != 0) break;
+        if (!tp) {
+          outcome = "no Thermochemistry panel";
+        } else if (w[0] == "thermolayout") {
+          for (wxWindow *child : tp->GetChildren()) {
+            wxGrid *grid = wxDynamicCast(child, wxGrid);
+            if (!grid) continue;
+            wxClientDC dc(grid);
+            dc.SetFont(grid->GetLabelFont());
+            for (int row = 0; row < grid->GetNumberRows(); ++row)
+              fprintf(stderr, "BUILDER: thermolayout row=%d width=%d text=%d\n",
+                      row, grid->GetRowLabelSize(),
+                      dc.GetTextExtent(grid->GetRowLabelValue(row)).x);
+            for (int col = 0; col < grid->GetNumberCols(); ++col)
+              fprintf(stderr, "BUILDER: thermolayout col=%d width=%d text=%d\n",
+                      col, grid->GetColSize(col),
+                      dc.GetTextExtent(grid->GetColLabelValue(col)).x);
+            fprintf(stderr, "BUILDER: thermolayout viewport=%d content=%d scroll=%d thumb=%d\n",
+                    grid->GetGridWindow()->GetClientSize().x,
+                    grid->GetColSize(0) + grid->GetColSize(1),
+                    grid->GetScrollRange(wxHORIZONTAL),
+                    grid->GetScrollThumb(wxHORIZONTAL));
+            int rowsHeight = 0;
+            for (int row = 0; row < grid->GetNumberRows(); ++row)
+              rowsHeight += grid->GetRowSize(row);
+            fprintf(stderr, "BUILDER: thermolayout height=%d rows=%d\n",
+                    grid->GetGridWindow()->GetClientSize().y, rowsHeight);
+          }
+          ewxWindowUtils::clipAuditReport(tp, "Thermochemistry");
+        } else {
+          ThermoValue v;
+          const bool set = tp->setChoice(w[1], w.size() > 2 ? atof(w[2].c_str()) : 298.15,
+                                         w.size() > 3 && w[3] == "1M");
+          const bool have = set && tp->shown(&v);
+          fprintf(stderr, "BUILDER: thermo %s H=%.6f S=%.6f G=%.6f %s\n", w[1].c_str(),
+                  v.H, v.S, v.G, have ? "ok" : ("failed: " + tp->errorText()).c_str());
         }
       } else if (w[0] == "ircpath" && w.size() >= 2) {
         //  ircpath <path> [kcal]: the IRC Path panel's Export .csv (#417)
@@ -1279,6 +1510,8 @@ void Builder::runBuilderScript(const std::string& file)
         } else {
           const std::string arg = w.size() >= 3 ? w[2] : "";
           if (w[1] == "speed") { if (ip) ip->setPlaybackSpeed(arg); else sp->setPlaybackSpeed(arg); }
+          if (w[1] == "mo" && ip) { ip->setShowMo(arg == "on"); ip->flushFollow(); }
+          if (w[1] == "flush" && ip) ip->flushFollow();
           if (w[1] == "loop") { if (ip) ip->setPlaybackLoop(arg == "on"); else sp->setPlaybackLoop(arg == "on"); }
           std::string order;
           if (w[1] == "order")
@@ -1331,9 +1564,9 @@ void Builder::runBuilderScript(const std::string& file)
           } else {
             ip->step(w[1]);
           }
-          fprintf(stderr, "BUILDER: %s %s point=%d row=%d marker=%d order:%s\n",
+          fprintf(stderr, "BUILDER: %s %s point=%d row=%d marker=%d mo=%d order:%s\n",
                   w[0].c_str(), w[1].c_str(), ip->selectedPoint(), ip->selectedRow(),
-                  ip->markerPoint(), order.c_str());
+                  ip->markerPoint(), ip->followedMo() + 1, order.c_str());
         }
       } else if (w[0] == "ircclick" && w.size() >= 2) {
         //  ircclick <index>: what a click on IRC Path plot point <index>
@@ -1424,6 +1657,11 @@ void Builder::runBuilderScript(const std::string& file)
         fgCmd.getParameter("green")->setDouble(fg[1]);
         fgCmd.getParameter("blue")->setDouble(fg[2]);
         fgCmd.execute();
+      } else if (w[0] == "style" && w.size() >= 2) {
+        // "style Ball And Stick", as Render > <style>.
+        string name = w[1];
+        for (size_t i = 2; i < w.size(); i++) name += " " + w[i];
+        p_viewerEvtHandler->doStyleChange(wxString(name));
       } else if (w[0] == "viewall") {
         getViewer().viewAll();
       } else if ((w[0] == "rotate" || w[0] == "rotatex") && w.size() == 2) {

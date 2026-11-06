@@ -33,6 +33,7 @@
 #include "PlaybackLoop.H"
 #include "PointNote.H"
 #include "ScanPanel.H"
+#include "wxgui/ewxBitmap.H"
 
 namespace {
 const double HARTREE_KJ = 2625.4996;
@@ -142,7 +143,7 @@ bool ScanPanel::Create(IPropCalculation *calculation,
   p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(300, 110));
   p_grid->CreateGrid(0, 3, wxGrid::wxGridSelectRows);
   p_grid->EnableEditing(false);
-  p_grid->SetRowLabelSize(40);
+  p_grid->SetRowLabelSize(ewxBitmap::scaled(40));
   p_grid->SetColLabelValue(0, "Coordinate");
   p_grid->SetColLabelValue(1, "Energy (Eh)");
   p_grid->SetColLabelValue(2, "Relative");
@@ -281,6 +282,9 @@ int ScanPanel::showPoint(int index)
   frag->addCovalentBonds();
   frag->touchNumbers();
   sg.touchChemDisplay();
+  // The camera was fitted to the stored (last) point; the first point of a
+  // bond scan can be far wider (#832).  Re-fit only when atoms leave the view.
+  if (getFW().atomsOutsideView()) getFW().center();
   ecce::EventDispatcher::getDispatcher().publish(ecce::Event("StepChange"));
   selectOrbitalPoint(calc, p_frame[index], index);
   return p_frame[index];

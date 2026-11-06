@@ -33,8 +33,10 @@
   using std::endl;
   using std::ios;
 #include <fstream>
+#include <sstream>
   using std::ofstream;
 
+#include "util/StalledRule.H"
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/Preferences.H"
@@ -56,6 +58,8 @@
 #include "tdat/AuthCache.H"
 #include "tdat/RefMachine.H"
 #include "tdat/DefaultDavAuth.H"
+#include "tdat/ResultsFromCalc.H"
+#include "dsm/IPropCalculation.H"
 
 #include "dsm/MachinePreferences.H"
 #include "dsm/JCode.H"
@@ -72,6 +76,8 @@
 #include "comm/JobParser.H"
 #include "comm/JobFailureReason.H"
 #include "comm/JobLogDates.H"
+#include "comm/OutputCopyCheck.H"
+#include <map>
 #include "comm/QueueWait.H"
 #include "util/WaitingJobs.H"
 
@@ -95,6 +101,12 @@ typedef struct
   FileInfoStruct* list;
 } FileListStruct;
 
+// Each named file's size on the compute host, from the monitor's file
+// message (-1 or absent: an older monitor that does not send it).
+static std::map<string, long long> gHostSize;
+static bool copyOutputs(const vector<string>& files, const string& calcdir,
+                        string& err);
+
 enum LogModeJobStore
 {
   LOGMODE_YES,              //Do log.
@@ -113,6 +125,7 @@ void calcStoreData(string parseType, int callCount,
                    const char* data, bool fromFile);
 void calcUpdateState(ResourceDescriptor::RUNSTATE state);
 void cleanup(int exitStatus);
+static void resultsFileStore();
 string unsuccessfulReason(int status);
 string gensubLogReason(const string& outputFilePath);
 void recordStatusReason(const string& reason);
@@ -143,6 +156,7 @@ void getJobMonitorInput(int fid);
 void restart(const char* name, const string& msg);
 void restartSystem(const char* name, const string& msg);
 void park(const char* name, const string& msg, int exitStatus);
+static bool parkAndWait(const string& why);
 void setTimeout(const unsigned long& seconds);
 void handleSignal(int signalValue);
 void handleTimeout(unsigned long milliseconds);
@@ -211,6 +225,12 @@ static unsigned long readTimeoutMilliseconds = 180000;
 static int gContactSeconds = 60;
 static bool gContactLost = false;
 static time_t gLastHeard = 0;                 // wall clock, for the Organizer
+// Stalled (#769): a note on a running job whose output stopped growing.
+static StalledRule gStallRule;
+static bool gStalled = false;
+static string gStepKey;
+static void stallLimits(void);
+static void stallStrip(string& snapshot);
 static struct timespec gLastHeardMono = {0, 0};
 
 // file names
@@ -299,6 +319,9 @@ static string cpImportDir;
 static bool gReparse = false;
 static string cpMdStoreTrj;
 static string cpRxnMetadynamicsTask;
+// Space-separated wildcard patterns the launch found in the deck (a CP2K
+// &PDOS or cube section); copied back in addition to the generic list.
+static string cpExtraPatterns;
 
 #ifdef JSPERLTIMER
 ETimer perlTimer;
@@ -409,6 +432,8 @@ cout << "total JobParser::storeProperty perl parsing time (" << perlTimer.elapse
 cout << "total JobParser::storeProperty DAV storage time (" << dbTimer.elapsedTime() << ")" << endl;
 #endif
 
+  resultsFileStore();
+
   // clean up everything
   cleanup(0);
 
@@ -516,6 +541,20 @@ void calcPutOutFileName(const string& fileName, const string& parseType)
 { 
   string outputFile = tmpStorage + "/" + fileName; 
   string key, value;
+  // A file that did not arrive, or arrived empty although the host has
+  // data, is not stored: it would replace any earlier copy with nothing.
+  {
+    long long local = OutputCopyCheck::localSize(outputFile);
+    std::map<string, long long>::const_iterator h = gHostSize.find(fileName);
+    long long host = h == gHostSize.end() ? -1 : h->second;
+    if (local < 0 || (local == 0 && host > 0)) {
+      logErr("File Copy", fileName + " not stored: " +
+             (local < 0 ? string("it did not arrive")
+                        : "it arrived empty, the compute host has " +
+                          OutputCopyCheck::sizeText(host)));
+      return;
+    }
+  }
   ifstream ifs(outputFile.c_str(), ios::in | ios::binary);
   VDoc *vdoc = EDSIFactory::getVdoc(calculation->getURL());
   if (vdoc != 0) {
@@ -738,6 +777,7 @@ void recordStatusReason(const string& reason)
     const string existing =
         calculation->getProp(VDoc::getEcceNamespace() + ":runStatusReason");
     if (!existing.empty() &&
+        !OutputCopyCheck::isContactReason(existing) &&
         existing.find("setting status") == string::npos &&
         existing.find("(exit code") == string::npos) {
       return;
@@ -754,6 +794,24 @@ void recordStatusReason(const string& reason)
 // ------------------------------------------------------------------------- //
 // Clean up everything in preparation for termination.
 // ------------------------------------------------------------------------- //
+// results.h5 from what was just parsed (#690), before the final state is
+// set.  Whatever happens here the job's own result stands.
+static void resultsFileStore()
+{
+  if (calculation == 0) return;
+  IPropCalculation *props = dynamic_cast<IPropCalculation*>(calculation);
+  if (props == 0) return;
+  try {
+    props->flushPropertyCache();
+    string line;
+    ResultsFromCalc::store(props, line);
+    logMessage("results.h5", line);
+  } catch (...) {
+    logMessage("results.h5", "results.h5 not written: an error while reading the properties");
+  }
+}
+
+
 void cleanup(int exitStatus)
 {
   // Before the final state: the Organizer reads the snapshot when the
@@ -787,12 +845,48 @@ void cleanup(int exitStatus)
         edate.setFromTimeT((time_t)endT);
         calculation->completionDate(edate.toString());
       }
-      if (startT >= 0 && calculation->startDate().empty()) {
+      // The log's start is the job's own; the date stored at the first
+      // "running" is when the monitor noticed it, after the end for a job of
+      // a few seconds, so the log's time replaces it.
+      if (startT >= 0) {
         TDateTime sdate;
         sdate.setFromTimeT((time_t)startT);
         calculation->startDate(sdate.toString());
       }
     }
+
+    // The state follows the output that was stored, not only the job's exit
+    // status: an output that did not come back whole, or lacks the code's
+    // normal-end line, is not a Complete result (#732).
+    string incomplete;
+    if ((endState == ResourceDescriptor::STATE_COMPLETED ||
+         endState == ResourceDescriptor::STATE_UNSUCCESSFUL) && !gReparse &&
+        cpImportDir.empty()) {
+      TypedFile oFile;
+      calculation->getDataFile(JCode::PRIMARY_OUTPUT, oFile);
+      const JCode* jc = calculation->application();
+      if (!oFile.name().empty() && jc != 0) {
+        const string marker = OutputCopyCheck::normalTerminationMarker(jc->name());
+        const string oPath = tmpStorage + "/" + oFile.name();
+        long long local = OutputCopyCheck::localSize(oPath);
+        std::map<string, long long>::const_iterator h = gHostSize.find(oFile.name());
+        long long host = h == gHostSize.end() ? -1 : h->second;
+        // Without the host's size (an older monitor, or none was named) only
+        // the marker can tell.
+        bool shortCopy = host >= 0 && OutputCopyCheck::copyIsShort(local, host);
+        bool noMarker = endState == ResourceDescriptor::STATE_COMPLETED &&
+                        !OutputCopyCheck::hasMarker(oPath, marker);
+        if (shortCopy || noMarker) {
+          incomplete = OutputCopyCheck::incompleteOutputReason(
+              oFile.name(), noMarker ? marker : string(""),
+              local, host);
+          logErr("Calculation Incomplete", incomplete);
+        }
+      }
+    }
+    const bool wasComplete = endState == ResourceDescriptor::STATE_COMPLETED;
+    if (wasComplete && !incomplete.empty())
+      endState = ResourceDescriptor::STATE_UNSUCCESSFUL;
 
     calculation->setState(endState);
     string stateStr = ResourceUtils::stateToString(endState);
@@ -808,7 +902,9 @@ void cleanup(int exitStatus)
       calculation->resetReactionTasks();
     }
 
-    if (endState == ResourceDescriptor::STATE_UNSUCCESSFUL) {
+    if (wasComplete && !incomplete.empty()) {
+      recordStatusReason(incomplete);
+    } else if (endState == ResourceDescriptor::STATE_UNSUCCESSFUL) {
       // By now interactGetFiles() (called from run(), before cleanup())
       // has already fetched the calc's output files into tmpStorage, so
       // the log-block line -- unlike at the point interactStatus() first
@@ -819,7 +915,8 @@ void cleanup(int exitStatus)
       calculation->getDataFile(JCode::PRIMARY_OUTPUT, outFile);
       if (gUnsuccessfulStatus == 305) {
         // The scheduler's verdict names the cause, its own slurm.err line
-        // follows.  The code's output is not scanned: it only stopped early.
+        // follows.  The code's output is not scanned for an error -- it only
+        // stopped early -- but an OOM kill gets CP2K's HFX estimate from it.
         reason = JobLogDates::schedulerEndReason(gSchedState);
         if (reason.empty())
           reason = "The scheduler ended the job (" + gSchedState + ")";
@@ -827,6 +924,14 @@ void cleanup(int exitStatus)
             gSchedulerErrFile.empty() ? string("slurm.err") : gSchedulerErrFile;
         reason += JobFailureReason::schedulerErrNote(
                       errName, tmpStorage + "/" + errName, true);
+        if (gSchedState == "OUT_OF_MEMORY" && !outFile.name().empty()) {
+          std::ifstream ifs((tmpStorage + "/" + outFile.name()).c_str());
+          std::ostringstream oss;
+          oss << ifs.rdbuf();
+          const string note = JobFailureReason::hfxMemoryNote(oss.str());
+          if (!note.empty())
+            reason += " " + note;
+        }
       } else if (!outFile.name().empty()) {
         string outPath = tmpStorage + "/" + outFile.name();
 
@@ -860,12 +965,18 @@ void cleanup(int exitStatus)
       if (gUnsuccessfulStatus != 305 && !gSchedulerErrFile.empty())
         reason += JobFailureReason::schedulerErrNote(
                       gSchedulerErrFile, tmpStorage + "/" + gSchedulerErrFile);
+      if (!incomplete.empty())
+        reason += " " + incomplete;
 
       recordStatusReason(reason);
     } else if ((endState == ResourceDescriptor::STATE_FAILED ||
                 endState == ResourceDescriptor::STATE_SYSTEM_FAILURE) &&
                !gFailReason.empty()) {
       recordStatusReason(gFailReason);
+    } else if (endState == ResourceDescriptor::STATE_KILLED) {
+      // The reason given with the user's cancel (ecce-terminate --reason);
+      // empty when none was given, which clears any earlier text as before.
+      recordStatusReason(calculation->killReason());
     } else {
       recordStatusReason("");
     }
@@ -980,6 +1091,7 @@ void configRead(const string& fileName)
   if (!param->findValue("rxnMetadynamicsTask", cpRxnMetadynamicsTask)) {
     message += "\nMissing 'rxnMetadynamicsTask' parameter";
   }
+  param->findValue("cp2kGetPatterns", cpExtraPatterns);
   delete param;
 
   if (message != "") {
@@ -1113,6 +1225,61 @@ void park(const char* name, const string& msg, int exitStatus)
   cleanup(exitStatus);
   exit(exitStatus);
 }
+
+// The compute server does not answer (network down, host rebooting).  Wait
+// here, not in eccejobmaster: this process hears ecce_ejs_kill (Reconnect)
+// and ecce_quit through the subscriber's wake-up fd, which a sleeping
+// eccejobmaster would not.  Retries back off from 15 s to 300 s (+-20 %
+// jitter, so the stores of one host do not all knock at once) and give up
+// after ECCE_SSH_RETRY_HOURS (default 24): the caller then parks with 5.
+static bool parkAndWait(const string& why)
+{
+  const char* e = getenv("ECCE_SSH_RETRY_HOURS");
+  double hours = e ? atof(e) : 24.0;
+  if (hours <= 0) hours = 24.0;
+  logMessage("System", "waiting for " + cpServerName + " to answer: " + why);
+
+  initMessaging();
+  WaitingJobs::add(cpCalcURL);
+  endState = ResourceDescriptor::STATE_ILLEGAL;
+  calcUpdateState(ResourceDescriptor::STATE_WAITING);
+
+  const time_t giveUpAt = time(0) + (time_t)(hours * 3600);
+  // ECCE_SSH_RETRY_SECONDS fixes the interval (tests); default 15 s doubling to 300 s.
+  const char* fixed = getenv("ECCE_SSH_RETRY_SECONDS");
+  const int fixedSec = fixed ? atoi(fixed) : 0;
+  int backoff = fixedSec > 0 ? fixedSec : 15;
+  srand((unsigned)(getpid() ^ time(0)));
+  while (time(0) < giveUpAt) {
+    int ms = (int)(backoff * 1000 * (0.8 + 0.4 * (rand() / (double)RAND_MAX)));
+    struct timespec t0;
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+    for (;;) {
+      struct timespec t1;
+      clock_gettime(CLOCK_MONOTONIC, &t1);
+      long left = ms - ((t1.tv_sec - t0.tv_sec) * 1000 +
+                        (t1.tv_nsec - t0.tv_nsec) / 1000000);
+      if (left <= 0) break;
+      struct pollfd pfd = {vMsgFd, POLLIN, 0};
+      int n = poll(&pfd, vMsgFd >= 0 ? 1 : 0, (int)left);
+      if (n > 0 && (pfd.revents & POLLIN) && vMsgFd == pfd.fd)
+        msgDispatch();  // a kill or quit message exits from here
+    }
+    if (fixedSec <= 0 && backoff < 300) backoff = std::min(backoff * 2, 300);
+    delete remoteconn;
+    remoteconn = (RCommand*)0;
+    initConn();
+    if (remoteconn->isOpen()) {
+      logMessage("System", cpServerName + " answers again; reconnected");
+      return true;
+    }
+    if (!(remoteconn->loginUnreachable() ||
+          RCommand::hostDidNotAnswer(remoteconn->commError())))
+      return false;  // now a login question, which parks as usual
+  }
+  return false;
+}
+
 
 void handleSignal(int signalValue)
 {
@@ -1363,6 +1530,43 @@ void fileAdd(int callCount, bool dbStoreContents, bool dbStoreName,
 }
 
 
+// Copy files (full paths on the compute host) into calcdir, over the
+// monitor's login when there is one, else a new login.
+static bool copyOutputs(const vector<string>& files, const string& calcdir,
+                        string& err)
+{
+  bool status = false;
+  RefMachine* refMachine = RefMachine::refLookup(cpServerRef);
+  EE_RT_ASSERT(refMachine,EE_FATAL,"No RefMachine object");
+
+  if (cpRemoteShell.find("shellcp")!=string::npos ||
+      refMachine->singleConnect() ||
+      (refMachine->frontendMachine()!="" &&
+       (refMachine->frontendBypass()=="" ||
+        !RCommand::isSameDomain(refMachine->frontendBypass())))) {
+    if (remoteconn != (RCommand*)0 && remoteconn->isOpen()) {
+      status = remoteconn->shellget(files, calcdir);
+      if (!status) err = "shell based file transfer failed";
+    } else {
+      err = "remote shell connection not available";
+    }
+    return status;
+  }
+  // A new login would ask a two-factor site for another code.
+  if (remoteconn != (RCommand*)0 && remoteconn->isOpen() &&
+      remoteconn->sshBackend() != "") {
+    status = remoteconn->copyOnLogin(false, files, calcdir, err);
+    if (!status)
+      logMessage("File System", "Copy over the monitor's login failed (" +
+                 err + "); logging in again to copy");
+  }
+  if (!status)
+    status = RCommand::get(err, cpServerName, cpRemoteShell, cpUserName, "",
+                           files, calcdir);
+  return status;
+}
+
+
 // ------------------------------------------------------------------------- //
 // Copy the files remembered via fileAdd() into the current directory.
 // ------------------------------------------------------------------------- //
@@ -1403,11 +1607,19 @@ void interactGetFiles(void)
   // retrieve files locally or remotely
   string calcdir = tmpStorage;
 
-  // create extra space in the array for .cub, .cube, and possibly
-  // MD Traject.trj, .rst, and .pmf dependent upon whether trajectories will be stored
-  // then add the +1 for the null entry at the end of the array
-  // allocate extra space as needed for files added below
-  int extraCount = 4;
+  // create extra space in the array for .cub, .cube, .file30, one slot per
+  // space-separated CP2K pattern the deck asked for, possibly MD Traject.trj,
+  // .rst, and .pmf dependent upon whether trajectories will be stored, and
+  // the null entry at the end of the array
+  int extraCount = 4;  // .cub, .cube, .file30, and the null entry
+  for (size_t start = 0; start < cpExtraPatterns.size(); ) {
+    size_t sp = cpExtraPatterns.find(' ', start);
+    if (sp != start)
+      extraCount++;
+    if (sp == string::npos)
+      break;
+    start = sp + 1;
+  }
   if (cpMdStoreTrj != "none")
     extraCount += 3;
   if (cpRxnMetadynamicsTask == "yes")
@@ -1444,6 +1656,29 @@ void interactGetFiles(void)
   // DirDyVTST specific file
   fullFile = cpRemoteDir + "/*.file30";
   fileStrs[it++] = strdup((char*)fullFile.c_str());
+
+  // The CP2K wildcard the deck asked for (.pdos), added only if not already
+  // in the list; it was moved here so an ordinary CP2K run does not ask for
+  // a pattern it can never produce (#720).
+  {
+    size_t start = 0;
+    while (start < cpExtraPatterns.size()) {
+      size_t sp = cpExtraPatterns.find(' ', start);
+      string pat = cpExtraPatterns.substr(start, sp == string::npos
+                                                   ? sp : sp - start);
+      if (!pat.empty()) {
+        string want = cpRemoteDir + "/" + pat;
+        bool have = false;
+        for (int k = 0; k < it; k++)
+          if (strcmp(fileStrs[k], want.c_str()) == 0) { have = true; break; }
+        if (!have)
+          fileStrs[it++] = strdup(want.c_str());
+      }
+      if (sp == string::npos)
+        break;
+      start = sp + 1;
+    }
+  }
 
   if (cpMdStoreTrj != "none") {
     fullFile = cpRemoteDir + "/*.trj";
@@ -1486,55 +1721,60 @@ void interactGetFiles(void)
   }
 
   string copyErrMessage;
-  bool status;
+  vector<string> allFiles;
+  for (int n = 0; fileStrs[n] != NULL; n++) allFiles.push_back(fileStrs[n]);
+  logMessage("Benchmark", "Before file copy of output files");
+  bool status = copyOutputs(allFiles, calcdir, copyErrMessage);
+  logMessage("Benchmark", "After file copy of output files");
 
-  RefMachine* refMachine = RefMachine::refLookup(cpServerRef);
-  EE_RT_ASSERT(refMachine,EE_FATAL,"No RefMachine object");
-
-  if (cpRemoteShell.find("shellcp")!=string::npos ||
-      refMachine->singleConnect() ||
-      (refMachine->frontendMachine()!="" &&
-       (refMachine->frontendBypass()=="" ||
-        !RCommand::isSameDomain(refMachine->frontendBypass())))) {
-    if (remoteconn != (RCommand*)0 && remoteconn->isOpen()) {
-      logMessage("Benchmark", "Before shell based file transfer of output files");
-      status = remoteconn->shellget((const char**)fileStrs, calcdir);
-      logMessage("Benchmark", "After shell based file transfer of output files");
-    } else {
-      logMessage("Benchmark", "Could not attempt shell based file transfer of "
-                 "output files--remote shell connection not available");
+  // A copy that "succeeded" has still been seen to leave a named output
+  // missing or shorter than on the host: check each against the size the
+  // monitor sent, copy the short ones again once, and log what is left.
+  if (status) {
+    vector<string> again;
+    for (fi = filesToGet.list; fi; fi = fi->next) {
+      std::map<string, long long>::const_iterator h = gHostSize.find(fi->fileName);
+      long long host = h == gHostSize.end() ? -1 : h->second;
+      long long local = OutputCopyCheck::localSize(calcdir + "/" + fi->fileName);
+      if (!OutputCopyCheck::copyIsShort(local, host)) continue;
+      string full = cpRemoteDir + "/" + fi->fileName;
+      bool dup = false;
+      for (size_t k = 0; k < again.size(); k++) dup = dup || again[k] == full;
+      if (!dup) again.push_back(full);
     }
-  } else {
-    // copy files from server
-    logMessage("Benchmark", "Before file copy of output files");
-    // Over the monitor's own login when there is one: a new login would ask
-    // a two-factor site for another code.
-    status = false;
-    if (remoteconn != (RCommand*)0 && remoteconn->isOpen() &&
-        remoteconn->sshBackend() != "") {
-      vector<string> fs;
-      for (int n = 0; fileStrs[n] != NULL; n++) fs.push_back(fileStrs[n]);
-      status = remoteconn->copyOnLogin(false, fs, calcdir, copyErrMessage);
-      if (!status)
-        logMessage("File System", "Copy over the monitor's login failed (" +
-                   copyErrMessage + "); logging in again to copy");
+    if (!again.empty()) {
+      string names;
+      for (size_t k = 0; k < again.size(); k++)
+        names += " " + again[k].substr(again[k].rfind('/') + 1);
+      logErr("File Copy", "Copied back missing or shorter than on the "
+             "compute host, copying again:" + names);
+      string err2;
+      if (!copyOutputs(again, calcdir, err2))
+        logErr("File Copy", "The second copy failed: " + err2);
     }
-    if (!status)
-      status = RCommand::get(copyErrMessage, cpServerName, cpRemoteShell,
-                             cpUserName, "", (const char**)fileStrs, calcdir);
-    logMessage("Benchmark", "After file copy of output files");
   }
 
   if (status) {
-    string msg = "Successfully copied files from server--\nRCommand::get(" +
-                 cpServerName + ", " + cpRemoteShell + ", " + cpUserName +
-                 ", <elided>, {";
-    for (it=0; fileStrs[it]!=NULL;  it++) {
-      msg += fileStrs[it];
-      msg += ",";
+    // One line per requested pattern: a wildcard that matched nothing is
+    // normal (CP2K rarely writes *.cub or *.file30) and must read as such,
+    // not as a copy that succeeded while files went missing (#720).
+    string msg = "Successfully copied files from server";
+    for (it=0; fileStrs[it]!=NULL; it++) {
+      string base = fileStrs[it];
+      base = base.substr(base.rfind('/') + 1);
+      string listing;
+      bool matched = localconn->execout(string("/bin/ls -d -- ") + base,
+                                        listing);
+      string line;
+      if (matched && !listing.empty()) {
+        for (size_t c = 0; c < listing.size(); c++)
+          if (listing[c] == '\n' || listing[c] == '\r') listing[c] = ' ';
+        line = base + ": " + listing;
+      } else {
+        line = "no files matched " + base;
+      }
+      msg += "\n" + line;
     }
-    msg.resize(msg.length() - 1);
-    msg += "}, " + calcdir + ") succeeded";
 
     if (copyfile) {
       copyfile << msg << endl;
@@ -1591,13 +1831,21 @@ void interactGetFiles(void)
   // because they were copied over from the compute server with a wildcard.
   // Need to figure out what got copied over with a local ls command
   // and then upload each of those to the data server
+  //  One ls per pattern: ls exits non-zero when any of its patterns matches
+  //  nothing, and execout then drops the files the others did match.
   string lsout, fileName;
-  if (localconn->execout("/bin/ls *.cub *.cube", lsout)) {
-    StringTokenizer cubeFiles(lsout, " \t\n\r");
-    while (!(fileName=cubeFiles.next()).empty()) {
+  string storedExtra;
+  auto storeMatches = [&](const char* pattern) {
+    if (!localconn->execout(string("/bin/ls -d -- ") + pattern, lsout)) return;
+    StringTokenizer files(lsout, "\n\r");
+    while (!(fileName=files.next()).empty()) {
       calcPutOutFileName(fileName, "");
+      storedExtra += " " + fileName;
     }
-  }
+  };
+  storeMatches("*.cub");
+  storeMatches("*.cube");
+  storeMatches("*.pdos");
 
   if (localconn->execout("/bin/ls *.file30", lsout)) {
     StringTokenizer file30Files(lsout, " \t\n\r");
@@ -1647,13 +1895,12 @@ void interactGetFiles(void)
   }
 
   if (cpRxnMetadynamicsTask == "yes") {
-    if (localconn->execout("/bin/ls *.db *.movecs *.vmovecs *.vpp *.psp", lsout)) {
-      StringTokenizer metaFiles(lsout, " \t\n\r");
-      while (!(fileName=metaFiles.next()).empty()) {
-        calcPutOutFileName(fileName, "");
-      }
-    }
+    for (const char* pattern : {"*.db", "*.movecs", "*.vmovecs", "*.vpp", "*.psp"})
+      storeMatches(pattern);
   }
+  logMessage("File Copy", storedExtra.empty()
+             ? string("No cube, PDOS or other wildcard output files arrived")
+             : "Wildcard output files stored:" + storedExtra);
 
   if (cpMdStoreTrj != "none") {
     bool uploadTrj = false;
@@ -2020,6 +2267,16 @@ void initMon(void)
     }
   } else {
     string why = remoteconn->commError();
+    // An unanswering host is waited for, not parked as a refused login.
+    if (nodeForRestart == "" && !remoteconn->loginCancelled() &&
+        !remoteconn->loginRefused() &&
+        (remoteconn->loginUnreachable() || RCommand::hostDidNotAnswer(why))) {
+      if (parkAndWait(why)) {
+        initMon();
+        return;
+      }
+      why = remoteconn->commError();
+    }
     // A cancelled or refused login parks the job for good (5): a restart
     // would only put the same question to the user again.
     if (remoteconn->loginCancelled() || remoteconn->loginRefused()) {
@@ -2710,12 +2967,15 @@ void interactFile(char* fileData)
   if (countStr==NULL || *countStr=='\0')
     restart("eccejobmonitor", "Unexpected end of message (wanted count)");
 
-  int callCount = atoi(countStr);
+  long long hostSize;
+  int callCount = OutputCopyCheck::parseCountToken(countStr, hostSize);
 
   // get file name
   string fileName = nextToken();
   if (fileName == "")
     restart("eccejobmonitor", "Unexpected end of message (wanted file name)");
+  if (hostSize >= 0)
+    gHostSize[fileName] = hostSize;
 
   bool dbStoreContents;
   bool dbStoreName;
@@ -2826,18 +3086,68 @@ void interactProgress(char* text)
 {
   convertToNewlines(text);
   string snap = text;
+  stallLimits();
+  const string key = StalledRule::stepKey(snap);
+  if (!key.empty() && key != gStepKey) {
+    gStepKey = key;
+    gStallRule.step((double)time(0));
+  }
+  const double idle = StalledRule::idleOf(snap);
+  const bool stalledNow = gStallRule.stalled(idle, gContactLost);
+  if (stalledNow != gStalled) {
+    gStalled = stalledNow;
+    if (stalledNow)
+      logPrint(ActivityLog::WARNING, "eccejobmonitor",
+               "Stalled: " + StalledRule::text(idle) +
+               "; the job is still running");
+    else
+      logMessage("eccejobmonitor", "Output resumed");
+  }
   // When this job store relayed it, for "updated n s ago" after a restart
   // of the Organizer (the monitor's own clock may be another machine's).
   const string::size_type eol = snap.find('\n');
   if (snap.compare(0, 2, "# ") == 0 && eol != string::npos) {
     char at[32];
-    snprintf(at, sizeof at, " at=%ld", (long)time(0));
+    if (gStalled)
+      snprintf(at, sizeof at, " at=%ld stall=%ld", (long)time(0), (long)idle);
+    else
+      snprintf(at, sizeof at, " at=%ld", (long)time(0));
     snap.insert(eol, at);
   }
   gProgress = snap;
   if (calculation)
     sendNotify("ecce_url_progress", "progress", gProgress);
   progressStore(false);
+}
+
+
+// ECCE_JOB_STALL_SECONDS (floor, default 1800) and
+// ECCE_JOB_STALL_FEWSTEPS_SECONDS (fewer than 3 steps seen, default 7200).
+static void stallLimits(void)
+{
+  static bool done = false;
+  if (done) return;
+  done = true;
+  double floor = 1800, few = 7200;
+  const char* env = getenv("ECCE_JOB_STALL_SECONDS");
+  if (env && atof(env) > 0) floor = atof(env);
+  env = getenv("ECCE_JOB_STALL_FEWSTEPS_SECONDS");
+  if (env && atof(env) > 0) few = atof(env);
+  gStallRule.setLimits(floor, few);
+}
+
+
+// The note leaves the snapshot when contact is lost: silence is then the
+// monitor's, not the job's.
+static void stallStrip(string& snapshot)
+{
+  const string::size_type eol = snapshot.find('\n');
+  const string::size_type at = snapshot.find(" stall=");
+  if (at == string::npos || at > eol) return;
+  string::size_type end = at + 1;
+  while (end < snapshot.size() && snapshot[end] != ' ' && snapshot[end] != '\n')
+    end++;
+  snapshot.erase(at, end - at);
 }
 
 
@@ -2864,6 +3174,9 @@ void progressStore(bool force)
 
 void progressClear(void)
 {
+  gStalled = false;
+  gStallRule.reset();
+  gStepKey.clear();
   if (!calculation)
     return;
   // A new run is in contact until its own monitor falls silent.
@@ -2965,6 +3278,10 @@ void contactStore(const string& value)
 void contactLost(void)
 {
   gContactLost = true;
+  if (gStalled) {
+    gStalled = false;
+    stallStrip(gProgress);
+  }
   char lost[64];
   snprintf(lost, sizeof lost, "lost %ld", (long)gLastHeard);
   char msg[160];

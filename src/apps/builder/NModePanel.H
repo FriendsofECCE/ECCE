@@ -14,6 +14,10 @@
 #include <wx/weakref.h>
 
 class wxCheckBox;
+class wxToggleButton;
+class wxRadioButton;
+class wxButton;
+class wxWrapSizer;
 class wxGrid;
 class wxTextCtrl;
 class PropVector;
@@ -105,6 +109,16 @@ class NModePanel : public NModesGUI,
           spectrum (#173); "" removes it.  False if there is no such
           calculation with IR or Raman data. */
       bool compareWith(const string& name);
+
+      /** Spectrum extras (#707).  An experimental spectrum from a CSV file
+          (kind "auto", "absorbance" or "transmittance"), read by
+          ecce-spectrum --parse-exp; "" as path removes it.  The difference
+          curve (the compared calculation minus this one) on or off.  A
+          zoom to [lo, hi] cm-1. */
+      bool importExperimental(const string& path, const string& kind,
+                              wxString *error = 0);
+      void setShowDifference(bool on);
+      void zoomSpectrum(double lo, double hi);
       VibKind spectrumKindShown() const;
 
       /** The Mode composition window (#486): a read-only assignment table.
@@ -112,6 +126,23 @@ class NModePanel : public NModesGUI,
           0/1 sets it.  False, with `error` set, if the calculation has no
           modes. */
       bool showComposition(int chBends, wxString *error = 0);
+      /** Match this calculation's bands with another one's in the same
+          folder (#707) by ecce-bandshift and show the table; `atoms` is the
+          tool's --atoms ("" = all, needs equal atom counts).  False, with
+          `error` set, if it could not be done. */
+      bool matchBands(const string& other, const string& atoms,
+                      wxString *error = 0);
+      /// The rows of the band table as shown, tab-separated, one per line.
+      wxString bandTableText() const;
+      /// Click a row of the band table; returns the mode now selected (1-based).
+      int scriptBandClick(int row);
+      /// New calculation(s) next to this one, the structure displaced along
+      /// mode (0-based row; -1 = all imaginary modes) by `amplitude`
+      /// Angstrom at the largest atom, sign "+", "-" or "both" (#618).
+      /// Returns "" and the new calculations' URLs, or the reason it failed.
+      string displaceCalculation(int mode, double amplitude, const string& sign,
+                                 vector<string> *urls = 0);
+      void displaceDialog();
 
       /** Colour the spectrum by the share of each mode in the atoms
           (0-based) selected in the viewer; fewer than two clears it.
@@ -142,6 +173,7 @@ class NModePanel : public NModesGUI,
       void showModeDetail(int row);
       /** Sets a description label to `text`, wrapped to two lines at its width. */
       void wrapAll(wxStaticText *label, const std::vector<wxString>& parts);
+      void wrapText(wxStaticText *label, const wxString& full);
       static void setWrapped(wxStaticText *label, const std::vector<wxString>& parts);
       void dumpTableIfRequested();
       void dumpCompositionIfRequested();
@@ -156,10 +188,22 @@ class NModePanel : public NModesGUI,
       void createSpectrumPane();
       void openSpectrumWindow();
       void dumpSpectrumIfRequested();
-      void exportSpectrumDialog();
+      void exportSpectrumDialog(const wxString& path = wxString());
       void compareDialog();
-      vector<IPropCalculation*> comparableCalculations();
-      void applySpectrumSettings();
+      void matchBandsDialog(IPropCalculation *other);
+      /** Remove every other spectrum: the comparison, the difference and the experimental curve. */
+      void removeOtherSpectra();
+      bool hasOtherSpectra() const { return p_compare != nullptr || !p_expX.empty(); }
+      /** The panel's own layout: view toggle, viewer group, bottom row. */
+      void buildLayout();
+      void syncViewControls();
+      void showStyle(bool animation);
+      void importExperimentalDialog();
+      bool writeModesFile(IPropCalculation *calc, const string& path,
+                          wxString *error);
+      vector<IPropCalculation*> comparableCalculations(bool needSpectrum = true);
+      void createWindowControls(wxWindow *pane, wxBoxSizer *col);
+      void applySpectrumSettings(wxTextCtrl *width = nullptr, wxTextCtrl *factor = nullptr);
       void updateVectors(int mode,
                          float amplitude,
                          bool sign,
@@ -187,10 +231,22 @@ class NModePanel : public NModesGUI,
       /* The report oriented table showing modes */
       wxGrid *p_grid;  
       SpectrumCanvas *p_spectrum;
+      bool p_spectrumDumped = false;
       wxWeakRef<wxFrame> p_spectrumFrame;        // "Open in window"
       wxWeakRef<SpectrumCanvas> p_spectrumPop;
       wxWeakRef<wxFrame> p_compFrame;            // Mode composition (#486)
       wxGrid *p_compGrid = 0;
+      wxWeakRef<wxFrame> p_bandFrame;            // Matched bands (#707)
+      wxGrid *p_bandGrid = 0;
+      vector<double> p_expX, p_expY;             // experimental spectrum (#707)
+      string p_expLabel;
+      bool p_showDiff = false;
+      wxToggleButton *p_viewSpectrum = 0, *p_viewTable = 0;
+      wxButton *p_exportBtn = 0;
+      wxRadioButton *p_animRadio = 0, *p_vecRadio = 0;
+      wxCheckBox *p_showCheck = 0;
+      wxBoxSizer *p_viewerRow = 0;
+      wxStaticText *p_bandNote = 0;
       wxCheckBox *p_compCH = 0;
       std::vector<int> p_picked;          // atoms selected in the 3-D view, 0-based
       wxStaticText *p_compNote = 0;
@@ -200,9 +256,6 @@ class NModePanel : public NModesGUI,
       vector<double> p_compFreqs;
       std::shared_ptr<VibSpectrum> p_compare;   // the second curve, if any
       string p_compareName, p_compareCode;
-      wxButton *p_compareRemove = 0;
-      wxTextCtrl *p_fwhmText;
-      wxTextCtrl *p_scaleText;
 
       wxTimer *p_timer;
       std::vector<double> p_home;   // atoms as they were before the animation
@@ -239,6 +292,7 @@ class NModePanel : public NModesGUI,
       wxPanel *p_graphBox = NULL;     // its own box under the plot
       std::vector<wxString> p_detailParts;
       std::vector<wxString> p_graphParts;
+      wxString p_graphText;           // the box under the plot, \n between its two lines
       wxString p_detailText;          // unwrapped, for re-wrapping on a resize
       int         p_mode;
       int         p_numAnimations;

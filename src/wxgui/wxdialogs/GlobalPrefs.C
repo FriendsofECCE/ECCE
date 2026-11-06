@@ -11,8 +11,11 @@
 #endif
 #include "wx/dirdlg.h"
 #include "wx/filedlg.h"
+#include "wx/listctrl.h"
+#include "wx/file.h"
 
 #include <cstdlib>
+#include <sstream>
 #include <algorithm>
 
 #include "util/JMSMessage.H"
@@ -26,6 +29,7 @@
 #include "util/EnvSwitches.H"
 #include "util/RemoteServerDir.H"
 #include "util/LocalData.H"
+#include "util/ServerList.H"
 
 #include "dsm/ResourceDescriptor.H"
 #include "tdat/TPerTab.H"
@@ -36,11 +40,15 @@
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxNotebook.H"
+#include <wx/listbox.h>
+#include "comm/SecretStore.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/WxState.H"
 
+#include "wxgui/AddServerDialog.H"
 #include "wxgui/GlobalPrefs.H"
+#include "wxgui/WindowShot.H"
 
 namespace {
 
@@ -98,8 +106,10 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
     p_focus(NULL), p_quickTransp(NULL), p_ecceQmMoDiagram(NULL), p_updateCheck(NULL), p_updatePreviews(NULL), p_updateLocked(false), p_confirmExit(NULL), p_closeShells(NULL),
     p_savePasswords(NULL), p_showBusy(NULL), p_alwaysOnTop(NULL),
     p_leftClickNewApp(NULL), p_orientation(NULL),
-    p_localData(NULL), p_localFolder(NULL), p_changeFolder(NULL), p_openFolder(NULL),
-    p_localNote(NULL), p_resetAll(NULL), p_restoring(true)
+    p_localFolder(NULL), p_changeFolder(NULL), p_openFolder(NULL),
+    p_localNote(NULL), p_serverList(NULL), p_addServer(NULL),
+    p_editServer(NULL), p_removeServer(NULL),
+    p_resetAll(NULL), p_restoring(true)
 {
   p_editor.choice = p_terminal.choice = p_browser.choice = NULL;
   p_editor.text = p_terminal.text = p_browser.text = NULL;
@@ -130,7 +140,7 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
 
   wxPanel* data = new wxPanel(p_book);
   createDataPage(data);
-  p_book->AddPage(data, _("Data folder"));
+  p_book->AddPage(data, _("Data"));
 
   wxPanel* advanced = new wxPanel(p_book);
   createAdvancedPage(advanced);
@@ -584,6 +594,31 @@ void GlobalPrefs::createAdvancedPage(wxWindow* page)
     }
     p_advanced.push_back(row);
   }
+  // ssh passwords kept with "Remember on this computer": host names only.
+  if (SecretStore::available()) {
+    wxStaticBoxSizer* rb = new wxStaticBoxSizer(wxVERTICAL, page,
+                                                _("Remembered ssh logins"));
+    wxListBox* list = new wxListBox(rb->GetStaticBox(), wxID_ANY);
+    auto fill = [list]() {
+      list->Clear();
+      for (const SecretStore::Login& l : SecretStore::remembered())
+        list->Append(wxString::FromUTF8((l.user + "@" + l.host + ":" +
+            std::to_string(l.port) + (l.jump.empty() ? "" : " via " + l.jump)).c_str()));
+    };
+    fill();
+    ewxButton* forget = new ewxButton(rb->GetStaticBox(), wxID_ANY, _("Forget"));
+    forget->Bind(wxEVT_BUTTON, [list, fill](wxCommandEvent&) {
+      int sel = list->GetSelection();
+      std::vector<SecretStore::Login> all = SecretStore::remembered();
+      if (sel >= 0 && sel < (int)all.size()) {
+        SecretStore::forgetRemembered(all[sel]);
+        fill();
+      }
+    });
+    rb->Add(list, 1, wxGROW|wxALL, PAD);
+    rb->Add(forget, 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD);
+    outer->Add(rb, 0, wxGROW|wxALL, PAD);
+  }
   page->SetSizer(outer);
 }
 
@@ -621,12 +656,8 @@ void GlobalPrefs::createDataPage(wxWindow* page)
 {
   wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
   wxStaticBoxSizer* box = new wxStaticBoxSizer(wxVERTICAL, page,
-                                               _("Where calculations are kept"));
+                                               _("Calculations on this computer"));
   wxWindow* sb = box->GetStaticBox();
-  p_localData = new ewxCheckBox(sb, wxID_ANY,
-      _("Keep calculations in a folder on this computer, not on a data server"));
-  box->Add(p_localData, 0, wxALL, PAD);
-
   wxBoxSizer* row = new wxBoxSizer(wxHORIZONTAL);
   row->Add(new ewxStaticText(sb, wxID_ANY, _("Folder:")), 0,
            wxALIGN_CENTER_VERTICAL|wxRIGHT, PAD);
@@ -636,24 +667,42 @@ void GlobalPrefs::createDataPage(wxWindow* page)
   row->Add(p_localFolder, 1, wxALIGN_CENTER_VERTICAL|wxRIGHT, PAD);
   p_changeFolder = new ewxButton(sb, wxID_ANY, _("Change..."));
   row->Add(p_changeFolder, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, PAD);
-  p_openFolder = new ewxButton(sb, wxID_ANY, _("Open data folder"));
+  p_openFolder = new ewxButton(sb, wxID_ANY, _("Open"));
   row->Add(p_openFolder, 0, wxALIGN_CENTER_VERTICAL);
-  box->Add(row, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, PAD);
-  //  The same choice as the start window: this computer or a server.
-  ewxButton* server = new ewxButton(sb, wxID_ANY, _("Change Server..."));
-  server->SetToolTip(_("Choose between this computer and a server, "
-                       "as at the start of ECCE."));
-  box->Add(server, 0, wxLEFT|wxBOTTOM, PAD);
+  box->Add(row, 0, wxGROW|wxALL, PAD);
   outer->Add(box, 0, wxGROW|wxALL, PAD);
+
+  wxStaticBoxSizer* sbox = new wxStaticBoxSizer(wxVERTICAL, page, _("Servers"));
+  wxWindow* ss = sbox->GetStaticBox();
+  p_serverList = new wxListCtrl(ss, wxID_ANY, wxDefaultPosition,
+                                wxSize(600, 140), wxLC_REPORT|wxLC_SINGLE_SEL);
+  p_serverList->InsertColumn(0, _("Name"), wxLIST_FORMAT_LEFT, 130);
+  p_serverList->InsertColumn(1, _("Type"), wxLIST_FORMAT_LEFT, 100);
+  p_serverList->InsertColumn(2, _("Address"), wxLIST_FORMAT_LEFT, 340);
+  sbox->Add(p_serverList, 1, wxGROW|wxALL, PAD);
+  wxBoxSizer* srow = new wxBoxSizer(wxHORIZONTAL);
+  p_addServer = new ewxButton(ss, wxID_ANY, _("Add Server..."));
+  p_editServer = new ewxButton(ss, wxID_ANY, _("Edit..."));
+  p_removeServer = new ewxButton(ss, wxID_ANY, _("Remove"));
+  p_removeServer->SetToolTip(_("Takes the server out of the list; nothing on "
+                               "the server is deleted."));
+  srow->Add(p_addServer, 0, wxRIGHT, PAD);
+  srow->Add(p_editServer, 0, wxRIGHT, PAD);
+  srow->Add(p_removeServer, 0);
+  sbox->Add(srow, 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD);
+  outer->Add(sbox, 1, wxGROW|wxALL, PAD);
 
   p_localNote = new ewxStaticText(page, wxID_ANY, wxEmptyString);
   outer->Add(p_localNote, 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD*2);
   page->SetSizer(outer);
 
-  p_localData->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnLocalDataToggle, this);
   p_changeFolder->Bind(wxEVT_BUTTON, &GlobalPrefs::OnChangeDataFolder, this);
   p_openFolder->Bind(wxEVT_BUTTON, &GlobalPrefs::OnOpenDataFolder, this);
-  server->Bind(wxEVT_BUTTON, &GlobalPrefs::OnChangeServer, this);
+  p_addServer->Bind(wxEVT_BUTTON, &GlobalPrefs::OnAddServer, this);
+  p_editServer->Bind(wxEVT_BUTTON, &GlobalPrefs::OnEditServer, this);
+  p_removeServer->Bind(wxEVT_BUTTON, &GlobalPrefs::OnRemoveServer, this);
+  p_serverList->Bind(wxEVT_LIST_ITEM_SELECTED, &GlobalPrefs::OnServerSelect, this);
+  p_serverList->Bind(wxEVT_LIST_ITEM_DESELECTED, &GlobalPrefs::OnServerSelect, this);
   updateDataPage();
 }
 
@@ -672,30 +721,88 @@ static string dataFolderToOpen(bool folderMode)
 }
 
 
-// The page shows the preference, which is what the NEXT start uses; the
-// running session keeps the mode it started in.
+//  Set by the installation or by an earlier start: shown, not stored in
+//  the user's ServerList.
+static bool installationServer(string& address)
+{
+  if (getenv("ECCE_TEST_PREFS_ADMIN_SERVER") ||
+      wxFileExists(string(Ecce::ecceHome()) + "/siteconfig/RemoteServer/DataServers") ||
+      wxFileExists(string(Ecce::ecceHome()) + "/siteconfig/SharedBroker") ||
+      wxFileExists(string(Ecce::realUserPrefPath()) + "mosquitto.server")) {
+    address = _("Set by your administrator").ToStdString();
+    return true;
+  }
+  return false;
+}
+
+
+static bool chosenEarlier(string& host)
+{
+  string f = string(Ecce::realUserPrefPath()) + "RemoteServer/DataServers";
+  if (!wxFileExists(f)) return false;
+  host = "";
+  wxFile in(f);
+  wxString text;
+  if (in.IsOpened() && in.ReadAll(&text)) {
+    int a = text.Find("<Url>"), b = text.Find("</Url>");
+    if (a != wxNOT_FOUND && b > a) {
+      host = text.Mid(a + 5, b - a - 5).ToStdString();
+      size_t sl = host.find("://");
+      if (sl != string::npos) host = host.substr(0, host.find('/', sl + 3));
+    }
+  }
+  return true;
+}
+
+
 void GlobalPrefs::updateDataPage()
 {
   bool on = LocalData::prefEnabled();
   string folder = LocalData::prefFolder();
   string moveTo = LocalData::prefMoveTo();
-  p_localData->SetValue(on);
   p_localFolder->SetValue(folder);
-  //  The folder only applies with the box checked; a folder already made
-  //  can still be opened, since its calculations stay there.
-  p_localFolder->Enable(on);
-  p_changeFolder->Enable(on);
   string shown = dataFolderToOpen(on);
   p_openFolder->Enable(!shown.empty() && wxDirExists(shown));
   p_openFolder->SetToolTip(shown.empty() ?
       _("Your calculations are on a server on another computer.") :
       wxString::FromUTF8(shown.c_str()));
 
+  p_serverRows.clear();
+  p_serverList->DeleteAllItems();
+  string addr;
+  ServerRow r;
+  if (installationServer(addr)) {
+    r.kind = ServerRow::ADMIN;
+    r.name = _("This installation").ToStdString();
+    r.type = "ecce";
+    r.address = addr;
+    p_serverRows.push_back(r);
+  } else if (chosenEarlier(addr)) {
+    r.kind = ServerRow::EARLIER;
+    r.name = _("Chosen at an earlier start").ToStdString();
+    r.type = "ecce";
+    r.address = addr;
+    p_serverRows.push_back(r);
+  }
+  vector<ServerEntry> mine = ServerList::load();
+  for (size_t i = 0; i < mine.size(); i++) {
+    r.kind = ServerRow::LISTED;
+    r.name = mine[i].name;
+    r.type = mine[i].type;
+    r.address = mine[i].address;
+    p_serverRows.push_back(r);
+  }
+  for (size_t i = 0; i < p_serverRows.size(); i++) {
+    long at = p_serverList->InsertItem(i, wxString::FromUTF8(p_serverRows[i].name.c_str()));
+    p_serverList->SetItem(at, 1,
+        wxString::FromUTF8(ServerList::typeLabel(p_serverRows[i].type).c_str()));
+    p_serverList->SetItem(at, 2, wxString::FromUTF8(p_serverRows[i].address.c_str()));
+  }
+  updateServerButtons();
+
   string note =
       "The folder holds your projects and calculations. A change takes\n"
-      "effect the next time ECCE starts. Switching between a data server\n"
-      "and a folder copies nothing: the calculations of the other mode stay\n"
-      "where they are, and the new mode starts empty.";
+      "effect the next time ECCE starts.";
   if (!moveTo.empty())
     note += "\n\nAt the next start ECCE will offer to move your calculations\n"
             "from " + folder + " to " + moveTo + ".";
@@ -710,22 +817,78 @@ void GlobalPrefs::updateDataPage()
 }
 
 
-void GlobalPrefs::OnLocalDataToggle(wxCommandEvent& event)
+long GlobalPrefs::selectedServer() const
 {
-  bool on = p_localData->GetValue();
-  // Turning the folder off also drops a move that was waiting for it.
-  LocalData::setPref(on, LocalData::prefFolder(),
-                     on ? LocalData::prefMoveTo() : "");
-  string msg = on ?
-      "From the next start, ECCE keeps your calculations in\n    " +
-      LocalData::prefFolder() + "\n\nCalculations on the data server stay "
-      "there; the folder starts empty." :
-      string("From the next start, ECCE keeps your calculations on a data "
-             "server.\n\nCalculations in the folder stay there; they are "
-             "not copied to the server.");
-  ewxMessageDialog dlg(this, msg, "ECCE data folder", wxOK|wxICON_INFORMATION,
-                       wxDefaultPosition);
+  return p_serverList->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+}
+
+
+void GlobalPrefs::updateServerButtons()
+{
+  long at = selectedServer();
+  bool have = at >= 0 && at < (long)p_serverRows.size();
+  int kind = have ? p_serverRows[at].kind : -1;
+  p_editServer->Enable(kind == ServerRow::LISTED);
+  p_removeServer->Enable(kind == ServerRow::LISTED || kind == ServerRow::EARLIER);
+  p_removeServer->SetToolTip(kind == ServerRow::EARLIER ?
+      _("Goes back to this computer's folder from the next start.") :
+      _("Takes the server out of the list; nothing on the server is deleted."));
+}
+
+
+void GlobalPrefs::OnServerSelect(wxListEvent& event)
+{
+  updateServerButtons();
+}
+
+
+void GlobalPrefs::OnAddServer(wxCommandEvent& event)
+{
+  AddServerDialog dlg(this);
   dlg.ShowModal();
+  updateDataPage();
+}
+
+
+void GlobalPrefs::OnEditServer(wxCommandEvent& event)
+{
+  long at = selectedServer();
+  if (at < 0 || at >= (long)p_serverRows.size() ||
+      p_serverRows[at].kind != ServerRow::LISTED) return;
+  ServerEntry old;
+  old.type = p_serverRows[at].type;
+  old.name = p_serverRows[at].name;
+  old.address = p_serverRows[at].address;
+  AddServerDialog dlg(this, &old);
+  dlg.ShowModal();
+  updateDataPage();
+}
+
+
+void GlobalPrefs::OnRemoveServer(wxCommandEvent& event)
+{
+  long at = selectedServer();
+  if (at < 0 || at >= (long)p_serverRows.size()) return;
+  const ServerRow& r = p_serverRows[at];
+  if (r.kind == ServerRow::LISTED) {
+    ServerList::remove(r.name);
+  } else if (r.kind == ServerRow::EARLIER) {
+    //  The server an earlier start recorded: what the start window did
+    //  for "this computer" (the folder, the server set aside).
+    wxString home = wxString::FromUTF8(Ecce::ecceHome());
+#ifdef __WXMSW__
+    wxString cmd = "\"" + home + "/python/python3w.exe\" \"" + home +
+                   "/bin/ecce-first-start\" --apply local";
+#else
+    wxString cmd = home + "/bin/ecce-first-start --apply local";
+#endif
+    wxExecute(cmd, wxEXEC_SYNC|wxEXEC_HIDE_CONSOLE);
+    ewxMessageDialog dlg(this,
+        "From the next start, ECCE keeps your calculations in\n    " +
+        LocalData::prefFolder() + "\n\nNothing on the server is deleted.",
+        "ECCE data folder", wxOK|wxICON_INFORMATION, wxDefaultPosition);
+    dlg.ShowModal();
+  }
   updateDataPage();
 }
 
@@ -750,24 +913,9 @@ void GlobalPrefs::OnChangeDataFolder(wxCommandEvent& event)
 }
 
 
-void GlobalPrefs::OnChangeServer(wxCommandEvent& event)
-{
-  wxString home = wxString::FromUTF8(Ecce::ecceHome());
-#ifdef __WXMSW__
-  // A script with no extension: run it with the package's own Python.
-  wxString cmd = "\"" + home + "/python/python3w.exe\" \"" + home +
-                 "/bin/ecce-first-start\" --change";
-#else
-  wxString cmd = home + "/bin/ecce-first-start --change";
-#endif
-  wxExecute(cmd, wxEXEC_SYNC);
-  updateDataPage();
-}
-
-
 void GlobalPrefs::OnOpenDataFolder(wxCommandEvent& event)
 {
-  string folder = dataFolderToOpen(p_localData->GetValue());
+  string folder = dataFolderToOpen(LocalData::prefEnabled());
   if (folder.empty()) return;
 #ifdef __WXMSW__
   // There is no xdg-open; Explorer opens it (no console window either).
@@ -1235,4 +1383,85 @@ bool GlobalPrefs::isDefaultPrograms()
 {
   return programValue(p_editor).empty() && programValue(p_terminal).empty() &&
          programValue(p_browser).empty();
+}
+
+
+//  Test hook, the Organizer's "prefs data ..." command: drives the Data page
+//  and the Add Server dialog as clicks do, and reports what they stored.
+string GlobalPrefs::dataTest(const string& line)
+{
+  std::istringstream in(line);
+  string op;
+  in >> op;
+  for (size_t i = 0; i < p_book->GetPageCount(); i++)
+    if (p_book->GetPageText(i) == _("Data")) p_book->SetSelection(i);
+  updateDataPage();
+  for (int i = 0; i < 5; i++) wxYield();
+  auto words = [&in]() {
+    vector<string> w;
+    string t;
+    while (in >> t) {
+      for (size_t k = 0; k < t.size(); k++) if (t[k] == '_') t[k] = ' ';
+      w.push_back(t);
+    }
+    return w;
+  };
+  if (op == "show") {
+    string out = "rows=" + std::to_string(p_serverRows.size());
+    for (size_t i = 0; i < p_serverRows.size(); i++)
+      out += ";" + p_serverRows[i].name + "|" + p_serverRows[i].type + "|" + p_serverRows[i].address;
+    out += string(";folder=") + p_localFolder->GetValue().ToStdString();
+    return out;
+  }
+  if (op == "snap") {
+    vector<string> w = words();
+    return !w.empty() && ecceClientShot(this, wxString::FromUTF8(w[0].c_str())) ? "saved" : "not saved";
+  }
+  if (op == "file") {
+    string out;
+    vector<ServerEntry> l = ServerList::load();
+    for (size_t i = 0; i < l.size(); i++)
+      out += l[i].type + "|" + l[i].name + "|" + l[i].address + ";";
+    return out.empty() ? "empty" : out;
+  }
+  if (op == "remove") {
+    vector<string> w = words();
+    for (size_t i = 0; i < p_serverRows.size(); i++)
+      if (!w.empty() && p_serverRows[i].name == w[0]) {
+        p_serverList->SetItemState(i, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+        wxCommandEvent ev(wxEVT_BUTTON, p_removeServer->GetId());
+        OnRemoveServer(ev);
+        return "ok";
+      }
+    return "no such row";
+  }
+  if (op == "add" || op == "form") {
+    // add TYPE NAME FIELD... SNAPPATH   |   form TYPE SNAPPATH (then Cancel)
+    vector<string> w = words();
+    if (w.size() < 2) return "bad arguments";
+    AddServerDialog dlg(this);
+    string snap = w.back();
+    bool ssh = w[0] == "ssh";
+    wxTimer timer;
+    string result = "dialog did not close";
+    timer.Bind(wxEVT_TIMER, [&](wxTimerEvent&) {
+      if (op == "add") dlg.fillForTest(ssh, w[1], w.size() > 3 ? w[2] : "",
+                                       w.size() > 4 ? w[3] : "", w.size() > 5 ? w[4] : "");
+      else dlg.fillForTest(ssh, "", "", "", "");
+      for (int i = 0; i < 5; i++) wxYield();
+      result = ecceClientShot(&dlg, wxString::FromUTF8(snap.c_str())) ? "saved" : "not saved";
+      if (op == "add") dlg.acceptForTest();
+      // Refused (a duplicate name): the dialog stays; picture the message.
+      if (dlg.IsModal()) {
+        for (int i = 0; i < 5; i++) wxYield();
+        ecceClientShot(&dlg, wxString::FromUTF8(snap.c_str()));
+        dlg.EndModal(wxID_CANCEL);
+      }
+    });
+    timer.StartOnce(700);
+    dlg.ShowModal();
+    updateDataPage();
+    return result;
+  }
+  return "unknown data command";
 }

@@ -101,6 +101,10 @@ sub GMXRunControl {
              &numOr("ES.Runtype.MD.NumberOfSteps", "5000"));
     push(@l, "tinit                    = " .
              &numOr("ES.Runtype.MD.InitialTime", "0"));
+    # A chained task starts the step counter where the previous task ended;
+    # 0 is grompp's default, so nothing is written for a first task.
+    my $initStep = &numOr("ES.Runtype.MD.InitStep", "0");
+    push(@l, "init-step                = $initStep") if ($initStep != 0);
   }
 
   #  How often mdrun writes an energy block to the .log. This is what

@@ -41,10 +41,13 @@ const wxWindowID BuilderGUI::ID_FRAME_Builder = wxNewId();
 const wxWindowID BuilderGUI::ID_UNSELECT = wxNewId();
 const wxWindowID BuilderGUI::ID_IMPORT = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_REVERSE = wxNewId();
+const wxWindowID BuilderGUI::ID_SELECT_WITHIN = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_MOLECULE = wxNewId();
 const wxWindowID BuilderGUI::ID_DUMPSG = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_SOLVENT = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_IONS = wxNewId();
+const wxWindowID BuilderGUI::ID_DISTORT_BONDS = wxNewId();
+const wxWindowID BuilderGUI::ID_TAKE_COORDS = wxNewId();
 const wxWindowID BuilderGUI::ID_SAVE_THUMB = wxNewId();
 const wxWindowID BuilderGUI::ID_SUPPORT = wxNewId();
 const wxWindowID BuilderGUI::ID_MODE_PREV = wxNewId();
@@ -103,10 +106,13 @@ BEGIN_EVENT_TABLE( BuilderGUI, ewxTool )
 
     EVT_MENU( wxID_SELECTALL, BuilderGUI::OnSelectallClick )
 
+    EVT_MENU( ID_SELECT_WITHIN, BuilderGUI::OnSelectWithinClick )
     EVT_MENU( ID_SELECT_MOLECULE, BuilderGUI::OnSelectMoleculeClick )
 
     EVT_MENU( ID_SELECT_SOLVENT, BuilderGUI::OnSelectSolventClick )
     EVT_MENU( ID_SELECT_IONS, BuilderGUI::OnSelectIonsClick )
+    EVT_MENU( ID_DISTORT_BONDS, BuilderGUI::OnDistortBondsClick )
+    EVT_MENU( ID_TAKE_COORDS, BuilderGUI::OnTakeCoordsClick )
 
     EVT_MENU( ID_SELECT_BACKBONE, BuilderGUI::OnSelectBackboneClick )
 
@@ -195,8 +201,12 @@ void BuilderGUI::CreateControls()
     itemMenu16->Append(wxID_CLEAR, _T(""), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(wxID_DELETE, _("Delete Selection\tCtrl+d"), _T(""), wxITEM_NORMAL);
     itemMenu16->AppendSeparator();
+    itemMenu16->Append(ID_DISTORT_BONDS, _("Distort Bonds..."), _T(""), wxITEM_NORMAL);
+    itemMenu16->Append(ID_TAKE_COORDS, _("Take Coordinates From..."), _T(""), wxITEM_NORMAL);
+    itemMenu16->AppendSeparator();
     itemMenu16->Append(wxID_SELECTALL, _("Select All\tCtrl+a"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_MOLECULE, _("Select Molecule"), _T(""), wxITEM_NORMAL);
+    itemMenu16->Append(ID_SELECT_WITHIN, _("Select Within Distance..."), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_SOLVENT, _("Select Solvent"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_IONS, _("Select Ions"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_BACKBONE, _("Select Backbone"), _T(""), wxITEM_NORMAL);

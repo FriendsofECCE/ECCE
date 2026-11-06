@@ -89,7 +89,8 @@ GOLDEN_CASES = [(m, "nwchem", p) for m in MANAGERS for p in PROFILES] + \
                [(m, "ecceqm", "basic") for m in MANAGERS]
 CODES = {"nwchem": ("NWChem", "nwch.nw", "nwch.nwout"),
          "mopac": ("MOPAC", "mopac.mop", "mopac.mopout"),
-         "ecceqm": ("ECCE-QM", "ecceqm.qmin", "ecceqm.qmout")}
+         "ecceqm": ("ECCE-QM", "ecceqm.qmin", "ecceqm.qmout"),
+         "cp2k": ("CP2K", "cp2k.inp", "cp2k.out")}
 
 
 def wallSeconds(wall):
@@ -267,10 +268,11 @@ class Gensub(object):
     def config(self, extra):
         with open(os.path.join(self.user, ".ECCE", "CONFIG.goldhost"), "w") as h:
             h.write("NWChem: /opt/codes/nwchem\nMOPAC: /opt/codes/mopac\n"
+                    "CP2K: /opt/codes/cp2k.popt\n"
                     "perlPath: /usr/bin\n" + extra)
 
     def script(self, mgr, code, p, host="goldhost", name="gold", rundir="/qtest/run",
-               request=""):
+               request="", threads=None):
         name_c, infile, outfile = CODES[code]
         lines = ["-Q %s" % MANAGERS[mgr][0], "-H %s" % host, "-d localhost",
                  "-c %s" % name_c, "-n %d" % p["procs"], "-N %d" % p["nodes"],
@@ -284,6 +286,8 @@ class Gensub(object):
             lines.append("-a " + p["account"])
         if request:
             lines.append("-R " + request)
+        if threads:
+            lines.append("-K %d" % threads)
         if p["wall"]:
             lines += ["-T " + p["wall"], "-w " + p["hrmin"]]
         params = os.path.join(self.tmp, "subParams")
@@ -351,9 +355,40 @@ def goldenSuite(args, rep):
         snippetCases(g, rep, args)
         spacedRunDir(g, rep)
         requestLines(g, rep)
+        threadsPerRank(g, rep)
         realParsers(g, rep, args)
     finally:
         g.close()
+
+
+def threadsPerRank(g, rep):
+    """Threads per rank (#739): 1 leaves the script as it was, 2 with 8
+    processors on 2 nodes is 4 ranks, 2 per node, 2 CPUs each, and CP2K
+    switches from its MPI-only binary to the OpenMP one."""
+    p = PROFILES["multi"]
+    rep.row("golden", "slurm", "-", "threads per rank")
+    try:
+        plain = g.script("slurm", "nwchem", p, name="thr0")
+        one = g.script("slurm", "nwchem", p, name="thr0", threads=1)
+        two = g.script("slurm", "nwchem", p, name="thr2", threads=2)
+        cp1 = g.script("slurm", "cp2k", p, name="cp1", threads=1)
+        cp2 = g.script("slurm", "cp2k", p, name="cp2", threads=2)
+    except RuntimeError as exc:
+        rep.check(False, str(exc))
+        rep.done()
+        return
+    rep.check(plain == one, "threads=1 script identical to none")
+    rep.check("OMP_NUM_THREADS" not in one and "cpus-per-task" not in one
+              and "ntasks-per-node" not in one and "--ntasks=8" in one,
+              "threads=1 writes no threads lines")
+    for want in ("#SBATCH --ntasks=4\n", "#SBATCH --ntasks-per-node=2\n",
+                 "#SBATCH --cpus-per-task=2\n", "export OMP_NUM_THREADS=2\n"):
+        rep.check(want in two, "threads=2 writes " + want.strip())
+    rep.check("cp2k.popt" in cp1 and "cp2k.psmp" not in cp1,
+              "CP2K threads=1 keeps cp2k.popt")
+    rep.check("cp2k.psmp" in cp2 and "cp2k.popt" not in cp2
+              and "mpirun -np 4 " in cp2, "CP2K threads=2 uses cp2k.psmp, 4 ranks")
+    rep.done()
 
 
 def spacedRunDir(g, rep):

@@ -72,6 +72,10 @@ chemical/x-cp2k-input                    .cp2kin
 chemical/x-cp2k-output                   .cp2kout
 chemical/x-xtb-input                     .xtbin
 chemical/x-xtb-output                    .xtbout
+chemical/x-crest-input                   .crestin
+chemical/x-crest-output                  .crestout
+chemical/x-mlp-input                     .mlpin
+chemical/x-mlp-output                    .mlpout
 application/x-compress                   .Z
 application/x-gzip                       .gz .tgz
 image/x-icon                             .ico

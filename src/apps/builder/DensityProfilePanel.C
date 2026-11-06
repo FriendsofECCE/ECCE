@@ -29,6 +29,7 @@
 #include <wx/utils.h>
 #include <wx/wrapsizer.h>
 
+#include "DensityFragments.H"
 #include "PointNote.H"
 #include "wxgui/ewxConfig.H"
 #include "dsm/IPropCalculation.H"
@@ -49,7 +50,7 @@ const wxWindowID ID_MODE = wxNewId(), ID_ATOM = wxNewId(), ID_QUANTITY = wxNewId
                  ID_LIST = wxNewId(), ID_COMBINE = wxNewId(), ID_CLIP = wxNewId(), ID_MARGIN = wxNewId(),
                  ID_PNG = wxNewId(), ID_CSV = wxNewId(), ID_XAXIS = wxNewId(),
                  ID_YAXIS = wxNewId(), ID_WHOLE = wxNewId(), ID_MORE = wxNewId(),
-                 ID_SHIFT = wxNewId(), ID_SHIFTDIR = wxNewId();
+                 ID_SHIFT = wxNewId(), ID_SHIFTDIR = wxNewId(), ID_DIFF = wxNewId();
 
 const double BOHR_ANG = 0.52917721092;
 
@@ -215,6 +216,7 @@ void DensityProfilePanel::build()
                                  wxSP_LIVE_UPDATE | wxSP_3DSASH);
   p_list = new wxCheckListBox(p_outer, ID_LIST, wxDefaultPosition, wxSize(-1, 46));
   p_plot = new XYPlotCanvas(p_inner);
+  p_plot->setKeepYBottom(true);
   p_plot->SetMinSize(wxSize(240, 160));
   p_text = new wxTextCtrl(p_inner, wxID_ANY, wxEmptyString, wxDefaultPosition,
                           wxSize(-1, 44), wxTE_MULTILINE | wxTE_READONLY);
@@ -270,8 +272,9 @@ void DensityProfilePanel::build()
   p_yaxis = new wxChoice(this, ID_YAXIS);
   p_yaxis->Append("Linear");
   p_yaxis->Append("Log");
+  p_yaxis->Append(U("√y"));
   p_yaxis->SetSelection(0);
-  p_yaxis->SetToolTip(U("Log shows the weak tails; only for quantities that are never negative"));
+  p_yaxis->SetToolTip(U("Log shows the weak tails (not for a signed ψ); √y spreads the small values and mirrors negative ones about zero"));
   p_labelYAxis = new wxStaticText(this, wxID_ANY, "y axis");
   wxBoxSizer *yPair = new wxBoxSizer(wxHORIZONTAL);
   yPair->Add(p_labelYAxis, 0, RIGHT, 4);
@@ -331,6 +334,10 @@ void DensityProfilePanel::build()
                      "so the bond region is not flattened by the peaks at the nuclei");
   p_clip->SetValue(true);
   rowMore->Add(p_clip, 0, RIGHT, 12);
+  p_diff = new wxButton(p_more, ID_DIFF, "Difference...");
+  p_diff->SetToolTip("Plot the total density minus the density of other calculations of "
+                     "some of the same atoms (the fragments of a complex)");
+  rowMore->Add(p_diff, 0, RIGHT, 4);
   rowMore->Add(new wxButton(p_more, ID_PNG, "Export .png..."), 0, wxLEFT | wxRIGHT, 4);
   rowMore->Add(new wxButton(p_more, ID_CSV, "Export .csv..."), 0);
 
@@ -359,6 +366,7 @@ void DensityProfilePanel::build()
   Bind(wxEVT_SPINCTRLDOUBLE, &DensityProfilePanel::onControl, this);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { zoom("whole"); }, ID_WHOLE);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { setMoreOpen(!p_moreOpen); }, ID_MORE);
+  Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { chooseFragments(); }, ID_DIFF);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     wxFileDialog dlg(this, "Export plot", wxEmptyString, "density-profile.png",
                      "PNG files (*.png)|*.png", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
@@ -520,6 +528,34 @@ void DensityProfilePanel::ensureSelection()
     if (p_list->IsChecked(i)) { p_list->EnsureVisible((int)i); break; }
 }
 
+bool DensityProfilePanel::differenceOn() const
+{
+  return p_eval && p_eval->isDifference() && densityLike();
+}
+
+bool DensityProfilePanel::setFragments(const std::vector<std::string>& urls, std::string& why)
+{
+  ensureInitialized();
+  if (!p_ok) { why = "The Density Profile is not available for this calculation."; return false; }
+  const bool good = DensityFragments::attach(*p_eval, urls, why);
+  p_fragments = good ? urls : std::vector<std::string>();
+  p_diff->SetLabel(p_fragments.empty() ? wxString("Difference...")
+      : wxString::Format("Difference: %d fragment%s...", (int)p_fragments.size(),
+                         p_fragments.size() == 1 ? "" : "s"));
+  syncControls();
+  recompute();
+  return good;
+}
+
+void DensityProfilePanel::chooseFragments()
+{
+  std::vector<std::string> chosen;
+  if (!DensityFragments::choose(this, getCalculation(), p_fragments, chosen)) return;
+  std::string why;
+  if (!setFragments(chosen, why))
+    wxMessageBox(wxString::FromUTF8(why.c_str()), "Density difference", wxOK | wxICON_WARNING, this);
+}
+
 bool DensityProfilePanel::densityLike() const
 {
   return p_mode->GetSelection() == 1 || p_quantity->GetSelection() <= 0;
@@ -539,10 +575,9 @@ void DensityProfilePanel::syncControls()
   if (!atom) p_xaxis->SetSelection(0);
   p_xaxis->Show(atom);
   p_labelXAxis->Show(atom);
-  //  Log needs values that are never negative.
-  const bool signedPsi = !atom && p_quantity->GetSelection() == 2;
-  if (signedPsi) p_yaxis->SetSelection(0);
-  p_yaxis->Enable(!signedPsi);
+  //  Log needs values that are never negative; √y takes either sign.
+  const bool signedPsi = (!atom && p_quantity->GetSelection() == 2) || differenceOn();
+  if (signedPsi && p_yaxis->GetSelection() == 1) p_yaxis->SetSelection(0);
   p_moreButton->SetLabel(p_moreOpen ? U("More \xE2\x96\xBE") : U("More \xE2\x96\xB8"));
   p_more->Show(p_moreOpen);
   Layout();
@@ -587,7 +622,8 @@ void DensityProfilePanel::recompute()
   const bool like = densityLike();
   const int quantity = p_quantity->GetSelection();
   const bool bohrAuto = bohr;
-  if (p_autoActive && !atom && like && p_show->GetSelection() <= 1 && !p_ranked) {
+  const bool diff = differenceOn();
+  if (p_autoActive && !atom && like && !diff && p_show->GetSelection() <= 1 && !p_ranked) {
     startRanking(bohrAuto);
     return;
   }
@@ -595,9 +631,9 @@ void DensityProfilePanel::recompute()
   const int showIdx = p_show->GetSelection();
   //  Density-like: 0 total + all, 1 total + selected, 2 selected, 3 total only.
   //  Otherwise: 0 selected, 1 all occupied.
-  const bool wantTotal = like && (showIdx == 0 || showIdx == 1 || showIdx == 3);
+  const bool wantTotal = like && (diff || showIdx == 0 || showIdx == 1 || showIdx == 3);
   const bool allOccupied = like ? showIdx == 0 : showIdx == 1;
-  const bool noOrbitals = like && showIdx == 3;
+  const bool noOrbitals = like && (diff || showIdx == 3);
   const bool weighted = like && wantTotal;
   const RadialDist::Spin spin = !p_eval->unrestricted ? RadialDist::ALPHA
       : p_spin->GetSelection() == 0 ? RadialDist::ALPHA
@@ -614,7 +650,7 @@ void DensityProfilePanel::recompute()
       tags(), tagsUnique());
   if (wantTotal) {
     RadialDist::Spec t;
-    t.label = "Total density";
+    t.label = diff ? "Density difference" : "Total density";
     specs.push_back(t);
   }
 
@@ -649,7 +685,9 @@ void DensityProfilePanel::recompute()
           [&job](double f) { job.fraction = f; return !job.cancel.load(); });
     };
     xLabel = "r (" + length + ")";
-    yLabel = quantity == 0 ? U("r²ψ², radial distribution (") + length + U("⁻¹)")
+    yLabel = diff ? (quantity == 0 ? U("r²Δρ (") + length + U("⁻¹)")
+                                   : U("Δρ, averaged over directions (") + perVol + ")")
+         : quantity == 0 ? U("r²ψ², radial distribution (") + length + U("⁻¹)")
                            : U("ψ², averaged over directions (") + perVol + ")";
   } else {
     const int a = std::max(0, p_atomA->GetSelection()), b = std::max(0, p_atomB->GetSelection());
@@ -677,6 +715,7 @@ void DensityProfilePanel::recompute()
     xLabel = "position along the line (" + length + ")";
     yLabel = quantity == 2 ? U("ψ (") + length + U("⁻³/²)")
            : quantity == 1 ? U("ψ² (") + perVol + ")"
+           : diff ? U("density difference Δρ (") + perVol + ")"
                            : U("density ρ (") + perVol + ")";
   }
 
@@ -689,25 +728,27 @@ void DensityProfilePanel::recompute()
   p_shown = curves;
   p_sumError = -1.0;
   p_sumPeak = 0.0;
-  if (weighted && allOccupied && (spin == RadialDist::BOTH || !p_eval->unrestricted)) {
+  if (weighted && allOccupied && !diff && (spin == RadialDist::BOTH || !p_eval->unrestricted)) {
     p_sumError = RadialDist::maxSumError(curves);
     for (const RadialDist::Curve& c : curves)
       if (c.spec.total) for (double v : c.p) p_sumPeak = std::max(p_sumPeak, v);
   }
 
   const int xs = atom ? p_xaxis->GetSelection() : 0;
-  const bool yLog = p_yaxis->IsEnabled() && p_yaxis->GetSelection() == 1;
+  const bool yLog = p_yaxis->GetSelection() == 1 && !(!atom && quantity == 2) && !diff;
+  const bool ySqrt = p_yaxis->GetSelection() == 2;
   p_plot->clearCurves();
   p_plot->clearVLines();
   p_plot->setXScale(xs == 1 ? XYPlotCanvas::X_SQRT : xs == 2 ? XYPlotCanvas::X_LOG
                                                              : XYPlotCanvas::X_LINEAR);
   p_plot->setYLog(yLog);
+  p_plot->setYSqrt(ySqrt);
   p_plot->setXAxisLabel(xs == 1 ? U("√r, labelled in r (") + length + ")"
                       : xs == 2 ? "log r, labelled in r (" + length + ")" : xLabel);
   p_plot->setYAxisLabel(yLabel);
   p_plot->setShowKey(true);
   p_plot->setKeyMaxRows(2);
-  p_plot->setZeroLine(!atom && quantity == 2);
+  p_plot->setZeroLine((!atom && quantity == 2) || diff);
   //  Zero everywhere: a node, not a curve to draw ticks for.
   double biggest = 0;
   for (const RadialDist::Curve& c : curves)
@@ -721,7 +762,7 @@ void DensityProfilePanel::recompute()
     p_plot->setMessage(wxString());
   //  Line: the cut is the highest value 0.35 A or more from every atom.
   double limit = 0.0;
-  if (!atom && !yLog && p_clip->GetValue() && quantity != 2 && !p_marks.empty()) {
+  if (!atom && !yLog && !diff && p_clip->GetValue() && quantity != 2 && !p_marks.empty()) {
     const double away = 0.35 / (bohr ? BOHR_ANG : 1.0);
     double top = 0, all = 0;
     for (const RadialDist::Curve& c : curves)
@@ -748,10 +789,10 @@ void DensityProfilePanel::recompute()
     if (atom) {
       //  Only as far out as the curve is visible.
       double topV = 0;
-      for (double v : c.p) topV = std::max(topV, v);
+      for (double v : c.p) topV = std::max(topV, std::fabs(v));
       size_t last = 1;
       const double visible = yLog ? 1e-9 : 0.002;    // a log axis shows the tail
-      for (size_t i = 0; i < c.p.size(); i++) if (c.p[i] > visible * topV) last = i;
+      for (size_t i = 0; i < c.p.size(); i++) if (std::fabs(c.p[i]) > visible * topV) last = i;
       last = std::min(c.p.size() - 1, last + last / 8 + 2);
       plotR.resize(last + 1);
       plotP.resize(last + 1);
@@ -1177,8 +1218,8 @@ bool DensityProfilePanel::setXAxis(const std::string& name)
 bool DensityProfilePanel::setYAxis(const std::string& name)
 {
   if (!p_ok) return false;
-  const int i = name == "linear" ? 0 : name == "log" ? 1 : -1;
-  if (i < 0 || (i == 1 && !p_yaxis->IsEnabled())) return false;
+  const int i = name == "linear" ? 0 : name == "log" ? 1 : name == "sqrt" ? 2 : -1;
+  if (i < 0 || (i == 1 && p_mode->GetSelection() != 1 && p_quantity->GetSelection() == 2)) return false;
   p_yaxis->SetSelection(i);
   recompute();
   return true;
@@ -1269,6 +1310,7 @@ std::string DensityProfilePanel::state() const
   snprintf(buf, sizeof buf, "progress %d\nstopped %d\n", p_progressShown ? 1 : 0,
            p_text->GetValue().StartsWith("Stopped.") ? 1 : 0);
   s += buf;
+  s += "difference " + std::to_string(p_fragments.size()) + "\n";
   snprintf(buf, sizeof buf, "mode %s\nquantity %d\nshow %d\nunit %s\ncurves %d\nmarks %d\nsumerror %.3e\n",
            p_mode->GetSelection() ? "atom" : "line", p_quantity->GetSelection(),
            p_show->GetSelection(), p_unit->GetSelection() ? "bohr" : "A",
@@ -1287,13 +1329,16 @@ std::string DensityProfilePanel::state() const
              "xaxis %s\nyaxis %s%s\nshift %.3f %s\nmore %d\nticked %s\nview %.6g %.6g %.6g %.6g\n"
              "message %d\nkeyrows %d\nplotheight %d\nline %d %d\ncentre %d\nauto %d\n",
              p_xaxis->GetSelection() == 1 ? "sqrt" : p_xaxis->GetSelection() == 2 ? "log" : "linear",
-             p_yaxis->GetSelection() == 1 ? "log" : "linear", p_yaxis->IsEnabled() ? "" : " (disabled)",
+             p_yaxis->GetSelection() == 1 ? "log" : p_yaxis->GetSelection() == 2 ? "sqrt" : "linear", "",
              p_shift->GetValue(), p_shiftDir->GetSelection() == 0 ? "out" : "in",
              p_moreOpen ? 1 : 0, ticked.empty() ? "none" : ticked.c_str(), x0, x1, y0, y1,
              p_plot->message().empty() ? 0 : 1, p_plot->keyRowsDrawn(), p_plot->plotHeight(),
              p_atomA->GetSelection() + 1, p_atomB->GetSelection() + 1,
              p_centre->GetSelection() + 1, p_autoActive ? 1 : 0);
     s += buf;
+    s += "yticks";
+    for (double v : p_plot->yTickValues()) { snprintf(buf, sizeof buf, " %.6g", v); s += buf; }
+    s += "\n";
     //  What the lists say for the atom; the test compares it with the
     //  viewer's own numbering.
     s += "centrelabel " + std::string(p_centre->GetStringSelection().utf8_str()) + "\n";
@@ -1326,6 +1371,8 @@ void DensityProfilePanel::orbitalPointChanged()
   p_eval.reset(new DensityPlane::Evaluator);
   p_ok = p_eval->build(getCalculation());
   if (!p_ok) return;
+  { std::string ignored;
+    if (!DensityFragments::attach(*p_eval, p_fragments, ignored)) p_fragments.clear(); }
   p_shell = RadialDist::shellLabels(getCalculation(), *p_eval, false);
   p_sym.clear();
   PropVecString *pv = (PropVecString*) getCalculation()->getProperty("ORBSYM");

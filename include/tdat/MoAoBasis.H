@@ -27,12 +27,13 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include "tdat/EspField.H"
 using std::string;
 using std::vector;
 
 class Fragment;
 class IPropCalculation;
-struct EspBasisFunction;
+namespace resultsh5 { struct Model; }
 
 class MoAoBasis
 {
@@ -107,6 +108,25 @@ class MoAoBasis
     bool analyse(const vector<double>& coefficients, Method method,
                  Composition& out) const;
 
+    /** Signed electron count per orbital of one spin set (zero = skipped). */
+    struct SpinSet
+    {
+      const vector< vector<double> > *rows;   // coefficient rows, as analyse()
+      vector<double> net;                     // one per row
+      SpinSet() : rows(0) {}
+    };
+
+    /**
+     * Mulliken spin population on each atom, q_A = sum over mu on A of
+     * [(Pa - Pb) S]_mumu, in one pass over the nonzero overlaps.  Each
+     * orbital is normalised in this basis, as analyse() does, so the
+     * result equals summing net * (Mulliken share) orbital by orbital.
+     * Nothing is built per orbital beyond a row of the nbas x norb work
+     * matrix.  False if a row's length does not match the basis.
+     */
+    bool spinPopulations(const vector<SpinSet>& sets,
+                         vector<double>& perAtom) const;
+
     /**
      * One orbital's rows of the calculation's "MO" or "MOBETA" table,
      * with the per-code column order undone (MoAoOrder), so they line
@@ -115,6 +135,39 @@ class MoAoBasis
     static bool coefficients(IPropCalculation *calc,
                              const vector<string>& symbols, bool beta,
                              vector< vector<double> >& rows);
+
+    /** The orbitals of a calculation with the basis they are expanded in. */
+    struct OrbitalSet
+    {
+      vector<EspBasisFunction> basis;          // one per coefficient column
+      vector< vector<double> > rows[2];        // alpha, beta (empty if none)
+      vector<double> energy[2], occupation[2]; // empty when not available
+      bool fromResults;                        // results.h5, else the Props
+      OrbitalSet() : fromResults(false) {}
+    };
+
+    /**
+     * THE switch point between results.h5 and the Props: orbitals and basis
+     * from the calculation's stored results.h5 when it has an unmarked one
+     * for these atoms, else from the Props and the stored basis set.  Both
+     * give the same density; the file's AOs are unit normalised in the
+     * canonical order, the Props' are as BasisFlatten makes them.
+     */
+    static bool orbitalSet(IPropCalculation *calc,
+                           const vector<string>& symbols,
+                           const vector<double>& coordsAng, OrbitalSet& out,
+                           string *why = 0);
+
+    /**
+     * Like build(), with the orbital rows the panel will analyse: from
+     * results.h5 when there is one (same switch as orbitalSet()), else
+     * coefficients() and build().
+     */
+    bool buildWithOrbitals(IPropCalculation *calc,
+                           const vector<string>& symbols,
+                           const vector<double>& coordsAng,
+                           vector< vector<double> > rows[2],
+                           std::function<void(double)> onRow = nullptr);
 
     /** Element symbols and Angstrom coordinates of a fragment's atoms. */
     static bool fragmentGeometry(Fragment *frag, vector<string>& symbols,

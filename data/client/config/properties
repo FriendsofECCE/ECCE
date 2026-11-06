@@ -143,6 +143,12 @@ Energy		Heat of Formation			HFENERGY	Energy		PropValue	Total
 # xtb's HOMO-LUMO gap.  Units class NA: it is stored in eV, which the
 # Hartree/kcal converter must not rescale.
 Energy		HOMO-LUMO Gap			HLGAP		NA		PropValue	Derived
+# CREST conformer energies relative to the lowest, kcal/mol (class NA: stored
+# as kcal/mol, not rescaled); meaningful within one method only.
+Energy		Relative Conformer Energy		CONFREL		NA		PropTSVector<Geometry Step>
+# Docking poses: one GEOMTRACE frame and one score per pose (kcal/mol), ranked by
+# the score within one run; another docking code gives its score its own key.
+Energy		Interaction energy (kcal/mol, monomers not relaxed)			POSESCORE	NA		PropTSVector<Geometry Step>
 #
 Energy		Zero Point Energy			EZEROPT		Energy		PropValue	Thermochemistry
 #
@@ -270,6 +276,7 @@ Vibration	Anharmonic IR Intensities		ANHARMIR	IRIntensity	PropVector<Normal Mode
 Derived		S**2					S2		NA		PropValue
 Derived		S**2 After Annihilation			S2A		NA		PropValue
 Derived		SCF Dipole Moment			DIPOLE		Dipole		PropVector<Coordinate>
+Derived		Dipole Moment Origin			DIPOLEORIGIN	NA		PropString
 Derived		MP2 Dipole Moment			MP2DIPOLE	Dipole		PropVector<Coordinate>
 Derived		Quadrupole Moment			QUADPOLE	Quadrupole	PropVector<Unknown>
 Derived		Octapole Moment				OCTAPOLE	Octapole	PropVector<Unknown>

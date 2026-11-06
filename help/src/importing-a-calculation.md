@@ -169,7 +169,7 @@ The **Table** has a row for each vibration:
 - **Mode**: what moves, in the standard notation of vibrational
   spectroscopy. Hold the pointer over a cell for the shares, or select the
   row to read them in the line under the table (also under the plot in the
-  Graph view): irrep, description, and which of IR and Raman it is active in.
+  Spectrum view): irrep, description, and which of IR and Raman it is active in.
   The six zero-frequency rows are the translations and rotations of the
   molecule (**Tx** to **Rz**), with their irreps. Where the output prints no
   displacement for them, ECCE names them in the usual order, translations
@@ -192,6 +192,65 @@ torsions of the structure, so they say what moves, not how much each
 contributes to the energy. The structure's bonds and their orders (C=O,
 C≡N) are those of the Builder. A wide **Mode** cell is cut short in a
 narrow panel; the tooltip has all of it.
+
+#### The panel
+
+From the top: the **Spectrum | Table** toggle (**Export .csv...** appears
+beside it in the Table view); the spectrum; the selected
+mode in full under it (frequency, irrep, IR and Raman intensity, and its
+contributions); the **Mode in the viewer** group; and the buttons
+**Open in window...**, **Composition...** and **Displace...**.
+
+In the panel the plot shows IR or Raman, chosen by the **IR | Raman** switch
+at its top right. In the Spectrum window (**Open in window...**) IR and Raman are
+stacked; when a second calculation, an experimental spectrum or a difference
+is loaded they cannot be, and the window shows one kind at a time with the
+same switch.
+
+**Mode in the viewer:** **Show** draws the selected mode in the molecular
+view (off leaves the structure alone); **Animation** or **Vectors** chooses
+how; **Arrow length** (amplitude in Animation) sets its size, with the delay
+between frames for Animation and the arrow colour for Vectors; **Reverse**
+shows the displacement in the opposite direction.
+
+#### Spectrum window
+
+Click **Open in window...** to open the full plots. Clicking a peak selects
+its mode in the table and the molecular view. The strip under the plots shows
+the frequency, irrep, IR/Raman activity and computed intensities, description
+and all available contributions. Its text wraps when you resize the window.
+Modes without an assigned description still show their frequency and
+intensities. The settings of the spectrum are here, not in the panel; the
+panel's plot follows them.
+
+The **Spectrum** group:
+
+- **Width:** full width at half maximum in cm⁻¹ (0-200); 0 shows sticks only.
+- **Scale factor:** multiplies computed frequencies; it starts at 1 for
+  each calculation and does not change the experimental wavenumbers.
+- **Sticks** and **High on left:** show the individual modes and choose
+  the wavenumber axis direction.
+- **Range**, **Reset zoom:** type the lowest and highest wavenumber and press
+  Enter; **Reset zoom** shows the full spectrum. Drag to zoom, use the wheel
+  to zoom, or right-drag to pan.
+
+The **Other spectra** group:
+
+- **Compare...:** choose another calculation of the same folder, and either
+  **overlay spectrum** (its curve is drawn with the same width and scale
+  factor) or **match modes** (the band-matching table, see
+  [Match bands](match-bands.md)). Choosing *(none)* removes the second curve.
+- **Difference:** after an overlay, show the second curve minus the first on
+  a signed axis.
+- **Experimental...:** load a measured absorbance or transmittance spectrum.
+  See [Difference and experimental spectra](ir-spectrum-difference-experiment.md)
+  for file formats and scaling.
+- **Remove:** remove the other spectra (the overlay, the difference and the
+  experimental curve); enabled only while one is loaded.
+- **Export .csv...:** save the sticks and every displayed curve on one
+  wavenumber grid, including comparison, difference and experimental curves.
+
+**Composition...** and **Close** are at the bottom of the window.
 
 See [Your first calculation](first-calculation.md#vibrations-optional) for
 the same steps on a calculation you ran yourself.

@@ -30,6 +30,7 @@
 
 #include "dsm/EDSIFactory.H"
 #include "dsm/JCode.H"
+#include "util/Ecce.H"
 #include "dsm/MdTask.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/Resource.H"
@@ -175,7 +176,7 @@ void CalculationContextPanel::refresh()
   for (tpvIt = toolPropertyViews.begin();
        tpvIt != toolPropertyViews.end();
        tpvIt++) {
-    if (noBasisView(p_itemData->getResource(), tpvIt->second.first))
+    if (tpvIt->second.first->getName() == BASISTOOL && !p_basisRows)
       continue;
     if (tpvIt->second.first->getName() == "Launcher")
       continue;
@@ -263,6 +264,25 @@ static std::string launchCost(TaskJob *job, long processors)
 }
 
 
+//  Wall time left while running; requested while queued; used once ended.
+static std::string launchWallTime(TaskJob *job, const std::string& maxwall)
+{
+  const long limit = LaunchInfoRows::maxWallSeconds(maxwall);
+  const std::string start = job->startDate(), end = job->completionDate();
+  const ResourceDescriptor::RUNSTATE st = job->getState();
+  if (!end.empty() && !start.empty())
+    return LaunchInfoRows::wallTimeText(limit, LaunchInfoRows::ENDED,
+        TDateTime(start).toSeconds(), TDateTime(end).toSeconds());
+  if (!start.empty() && (st == ResourceDescriptor::STATE_RUNNING ||
+                         st == ResourceDescriptor::STATE_WAITING))
+    return LaunchInfoRows::wallTimeText(limit, LaunchInfoRows::RUNNING,
+        TDateTime(start).toSeconds(), (long)time(NULL));
+  if (st == ResourceDescriptor::STATE_SUBMITTED)
+    return LaunchInfoRows::wallTimeText(limit, LaunchInfoRows::WAITING, 0, 0);
+  return "";
+}
+
+
 /**
  * Builds the Launch Info block (see LaunchInfoRows.H): rows with nothing to
  * show are not made.
@@ -287,9 +307,11 @@ void CalculationContextPanel::refreshLaunchInfo()
     in.startDate = formatDateTime(job->startDate());
     in.completionDate = formatDateTime(job->completionDate());
     in.coreHours = launchCost(job, launch.totalprocs);
+    in.booked = LaunchInfoRows::bookedText(launch.totalprocs,
+        LaunchInfoRows::maxWallSeconds(launch.maxwall));
+    in.wallTime = launchWallTime(job, launch.maxwall);
     if (!launch.machine.empty()) {
       in.allocation = AllocationQuery::account(launch);
-      in.allocationRemaining = launch.allocationLeft;
     }
   }
   wxSizer *block = ewxLaunchInfoBlock(this, LaunchInfoRows::build(in));
@@ -339,26 +361,51 @@ void CalculationContextPanel::updateProgress()
   if (finished && !p_energyRead) {
     p_energyRead = true;
     PropertyTask *task = dynamic_cast<PropertyTask*>(p_itemData->getResource());
+    vector<double> frequencies;
+    PropVector *freq = task ? dynamic_cast<PropVector*>(task->getProperty("VIBFREQ")) : 0;
+    if (freq)
+      for (int i = 0; i < freq->rows(); ++i) frequencies.push_back(freq->value(i));
+    p_progressBox->setFrequencies(frequencies);
     const FinalEnergy fe = finalEnergyOf(task);
     const bool scanned = fe.scanned, hof = fe.heat;
     if (fe.found) {
-      const string unit = scanned ? "Hartree"
+      string unit = scanned || fe.ts ? "Hartree"
                         : fe.units == "NA" ? "" : unitLabel(fe.units);
-      const string value = valueLabel(fe.value, 6);
-      char line[128];
-      snprintf(line, sizeof line, "%s %s%s",
+      // Every energy in the box is Eh with six decimals and a real minus (#826).
+      if (unit == "Hartree" || unit == "hartree") unit = "Eh";
+      const string value = valueLabel(fe.value, 6, unit == "Eh");
+      string shown = value;
+      if (!shown.empty() && shown[0] == '-') shown.replace(0, 1, "\xe2\x88\x92");
+      // What the code's own output says the final energy contains.
+      string contains;
+      if (!scanned && !hof && !fe.ts) {
+        JobProgress cp;
+        if (cp.parse(text)) {
+          const string d = cp.fieldOf("result", "disp"), g = cp.fieldOf("result", "gcp");
+          if (!d.empty() || !g.empty()) {
+            contains = " (SCF";
+            if (!d.empty()) contains += " + " + d;
+            if (!g.empty()) contains += " + " + g;
+            contains += ")";
+          }
+        }
+      }
+      char line[160];
+      snprintf(line, sizeof line, "%s %s%s%s",
                scanned ? "Final energy (last scan point)"
-                       : hof ? "Heat of formation" : "Final energy",
-               value.c_str(), unit.empty() ? "" : (" " + unit).c_str());
+                       : fe.ts ? "TS energy" : hof ? "Heat of formation" : "Final energy",
+               shown.c_str(), unit.empty() ? "" : (" " + unit).c_str(), contains.c_str());
       p_progressBox->setFinalEnergy(line, value, unit);
       // A dynamics run's result is the average over the run, not the last step.
       JobProgress jp;
       double avg, sd;
       if (!scanned && !hof && jp.parse(text) && jp.average("gmx-etot", avg, sd)) {
-        const string v = valueLabel(avg, 6);
+        const string v = valueLabel(avg, 6, unit == "Eh");
+        string vs = v;
+        if (!vs.empty() && vs[0] == '-') vs.replace(0, 1, "\xe2\x88\x92");
         char avgLine[160];
         snprintf(avgLine, sizeof avgLine, "Total energy %s \xc2\xb1 %.2g%s (average)",
-                 v.c_str(), sd, unit.empty() ? "" : (" " + unit).c_str());
+                 vs.c_str(), sd, unit.empty() ? "" : (" " + unit).c_str());
         p_progressBox->setFinalEnergy(avgLine, v, unit);
       }
     }
@@ -382,6 +429,10 @@ void CalculationContextPanel::updateProgress()
   if (p_state) p_state->setOutOfContact(lost && !queued);
   if (ICalculation *calc = dynamic_cast<ICalculation*>(p_itemData->getResource()))
     p_progressBox->setSearch(JobProgress::searchOf(calc->runtype().name()));
+  if (TaskJob *task = dynamic_cast<TaskJob*>(p_itemData->getResource()))
+    if (task->application())
+      p_progressBox->setDescriptor(string(Ecce::ecceDataControllersPath()) + "/" +
+                                   task->application()->parseDescriptor());
   const bool resized = p_progressBox->set(text, received, finished,
                                           state == ResourceDescriptor::STATE_COMPLETED,
                                           lost ? lastHeard : 0,
@@ -431,6 +482,7 @@ void CalculationContextPanel::createControls()
        tpvIt++) {
     if (noBasisView(p_itemData->getResource(), tpvIt->second.first))
       continue;
+    if (tpvIt->second.first->getName() == BASISTOOL) p_basisRows = true;
     pair<ResourceTool*,ToolPropertyView*> pairRT_TPV = tpvIt->second;
 
     // create the sizer for this tool
@@ -444,15 +496,17 @@ void CalculationContextPanel::createControls()
       toolButton->SetToolTip("This code picks its basis set in the "
                              "Calculation Editor, not in the Basis Set Tool.");
     }
-    sizer->Add(toolButton,
-          0,                        // do not stretch horizontally
-          wxALIGN_CENTER_VERTICAL|  // center vertically
-          wxALL,                    // make border all around
-          1);                       // set border width to 1
-
     // these variables help format the grid used to display the data
     int rows = 4;       // max number of rows to use in the grid
     const bool isLauncher = pairRT_TPV.first->getName() == "Launcher";
+    // The Launch Info block grows and shrinks with the rows it has; the
+    // button stays level with its first row (#753).
+    sizer->Add(toolButton,
+          0,                        // do not stretch horizontally
+          (isLauncher ? wxALIGN_TOP : wxALIGN_CENTER_VERTICAL)|
+          wxALL,                    // make border all around
+          1);                       // set border width to 1
+
     int cols = 2;       // max number of columns to use in the grid
     int vgap = 0;       // size of vertical gap between children in the grid
     int hgap = 5;       // size of horizontal gap between children in the grid
@@ -809,7 +863,11 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
       if (!functional.empty()) valuestr += " \xc2\xb7 " + functional;
       delete params;
     }
-    prop->SetLabel(valuestr);
+    // The middle dot above is UTF-8; plain conversion reads it as the
+    // locale's charset (Latin-1 on Windows).
+    wxString label = wxString::FromUTF8(valuestr.c_str());
+    if (label.empty() && !valuestr.empty()) label = valuestr;
+    prop->SetLabel(label);
   }
   else if (type == GridProperty::PT_DATE_TIME)
   {

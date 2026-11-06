@@ -8,6 +8,7 @@
 
 #include "util/EcceURL.H"
 #include "util/LocalData.H"
+#include "util/ServerList.H"
 #include "util/EcceMap.H"
 
 using std::find;
@@ -622,7 +623,9 @@ bool EcceURL::isEcceUsers() const
  */
 bool EcceURL::isEcceUserHome() const
 {
-  string target = "/Ecce/users/" + string(Ecce::serverUser());
+  string who = ServerList::userFor(getRef());
+  if (who.empty()) return false;
+  string target = "/Ecce/users/" + who;
   return (p_file == target || p_file == target + "/")
     && (p_protocol == "http" || p_protocol == "https");
 }

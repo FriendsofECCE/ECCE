@@ -1,0 +1,5 @@
+g16-reactant
+g16-scan < g16-reactant
+g16-product < g16-scan@last
+g16-qst3 < g16-reactant=reactant g16-product=product g16-scan=tsguess@max
+g16-irc < g16-qst3

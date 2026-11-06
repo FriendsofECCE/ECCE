@@ -115,6 +115,14 @@ static void hydrogen(const string& root)
     double d = 0;
     for (size_t i = 0; i < r.size(); i++) d = max(d, fabs(out[1].p[i] - s.p[i]));
     CHECK(d < 1e-6*top, "H density equals the 1s curve");
+    //  The plain average starts at psi^2 of the nucleus, 1/pi bohr^-3; r^2 psi^2 at 0.
+    RadialDist::Options plain = opt;
+    plain.radial = false;
+    vector<RadialDist::Curve> avg;
+    CHECK(RadialDist::compute(ev, c, plain, specs, avg), "compute (plain average)");
+    const double psi0 = (1.0 / M_PI) * (unit ? 1.0 : pow(1.0 / BOHR, 3.0));
+    CHECK(fabs(avg[0].p[0] - psi0) < 0.1 * psi0, "plain average at r = 0 is psi^2 of the nucleus");
+    CHECK(out[0].p[0] == 0.0, "r^2 psi^2 is 0 at r = 0");
   }
 }
 
@@ -465,6 +473,23 @@ static void atomLabels(const string& root)
   }
 }
 
+//  B (ROHF-type single list, 2p1): the two empty 2p are the occupied
+//  shell's partners and read "2p (virtual)", not "p (virtual)" (#788).
+static void partlyFilledShell(const string& root)
+{
+  IPropCalculation *calc;
+  DensityPlane::Evaluator b;
+  if (!load(root, "b-rohf", calc, b)) return;
+  const vector<string> labels = RadialDist::shellLabels(calc, b, false);
+  int twoP = 0, bare = 0;  // higher p virtuals stay bare by design
+  for (const string& l : labels) {
+    if (l == "2p (virtual)") twoP++;
+    if (l == "p (virtual)") bare++;
+  }
+  fprintf(stderr, "B: %d '2p (virtual)', %d 'p (virtual)'\n", twoP, bare);
+  CHECK(twoP == 2, "B: the two empty 2p orbitals are labelled 2p (virtual)");
+}
+
 //  compute() shares one basis pass among all specs; it must give the numbers
 //  of summing value() (one pass per orbital) directly.  The 6-point Lebedev
 //  grid is the six axis directions with weight 1/6, so the reference is easy.
@@ -526,5 +551,6 @@ int main(int argc, char **argv)
   diatomics(argv[1]);
   shiftAndVirtuals(argv[1]);
   atomLabels(argv[1]);
+  partlyFilledShell(argv[1]);
   return failures ? 1 : 0;
 }

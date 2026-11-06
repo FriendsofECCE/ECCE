@@ -6,4 +6,7 @@ aaaa ICON "ecce.ico"
 // v6: without it Windows draws every control in the classic (Windows 95)
 // style, disabled labels embossed, and progress dialogs are wx's generic one.
 #define wxUSE_RC_MANIFEST 1
+// Per-monitor DPI aware (v2): without it Windows draws ECCE at 100 % and
+// stretches the bitmap, so at 150-200 % everything is pixelated (#670).
+#define wxUSE_DPI_AWARE_MANIFEST 2
 #include "wx/msw/wx.rc"

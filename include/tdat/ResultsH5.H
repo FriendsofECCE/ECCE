@@ -118,6 +118,10 @@ struct Model {
   vector<TrajectoryRef> trajectory;
   vector<Series> series;
   int nelectron[2] = {-1,-1};           // alpha, beta; -1 unknown
+  // Root attribute: "ok: ..." or "failed: ..." from the checks made when
+  // ECCE wrote the file; empty for files from the converters.  Readers that
+  // feed views ignore a file marked failed.
+  string checks;
 
   size_t natoms() const { return atomicNumber.size(); }
   size_t nframes() const { return natoms() ? coord.size()/(3*natoms()) : 0; }

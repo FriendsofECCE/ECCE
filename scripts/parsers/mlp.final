@@ -1,0 +1,51 @@
+#!/usr/bin/env perl
+# The ECCE-MLP-FINAL block: total energy (eV), forces (eV/A) and, for a
+# periodic structure, the stress in kbar with the sign of the pressure.
+# TE, EGRADVEC, STRESS and PRESSURE are all emitted from one invocation
+# (two entries on one Begin would starve one of them).
+$| = 1;
+($key, $runtype, $ucCategory, $theory) = @ARGV;
+
+use constant EV_TO_HARTREE => 1.0 / 27.211386245988;
+use constant BOHR => 0.529177210903;
+
+my ($energy, @labels, @grad, @stress, $section);
+while (<STDIN>) {
+  if (/^energy:\s*(-?\d+\.\d+)/) { $energy = $1; $section = ""; next; }
+  if (/^forces:/)  { $section = "f"; next; }
+  if (/^stress/)   { $section = "s"; next; }
+  if ($section eq "f" && /^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
+    push(@labels, scalar(@labels) + 1);
+    # A gradient is minus the force; Hartree/Bohr like the other codes.
+    foreach my $f ($2, $3, $4) {
+      my $g = -$f * BOHR * EV_TO_HARTREE;
+      push(@grad, sprintf("%.10f", $g == 0 ? 0 : $g));
+    }
+  } elsif ($section eq "s" && /^\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
+    push(@stress, [$1, $2, $3]);
+  }
+}
+exit(0) if (!defined($energy));
+
+printf("key: TE\nsize:\n1\nvalues:\n%.10f\nunits:\nHartree\nEND\n",
+       $energy * EV_TO_HARTREE);
+
+my $natom = scalar(@labels);
+if ($natom > 0) {
+  print "key: EGRADVEC\nsize:\n$natom 3\nrowlabels:\n", join(" ", @labels),
+        "\ncolumnlabels:\nX Y Z\nvalues:\n";
+  for (my $i = 0; $i <= $#grad; $i++) {
+    print "$grad[$i] ";
+    print "\n" if (($i % 3) == 2);
+  }
+  print "units:\nHartree/Bohr\nEND\n";
+}
+
+if (scalar(@stress) == 3) {
+  print "key: STRESS\nsize:\n9\nrowlabels:\nXX XY XZ YX YY YZ ZX ZY ZZ\nvalues:\n";
+  print join(" ", @$_), "\n" foreach (@stress);
+  print "units:\nkbar\nEND\n";
+  my $p = ($stress[0][0] + $stress[1][1] + $stress[2][2]) / 3;
+  printf("key: PRESSURE\nsize:\n1\nvalues:\n%.8f\nunits:\nkbar\nEND\n", $p);
+}
+exit(0);

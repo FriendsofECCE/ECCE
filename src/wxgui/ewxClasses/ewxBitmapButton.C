@@ -7,6 +7,7 @@ using namespace std;
 #include "wx/wx.h"
 #endif
 
+#include "wxgui/ewxBitmap.H"
 #include "wxgui/ewxDisabler.H"
 #include "wxgui/ewxBitmapButton.H"
 #include "wxgui/ewxHelpHandler.H"
@@ -39,6 +40,13 @@ bool ewxBitmapButton::Create(wxWindow* parent, wxWindowID id,
     return false;
   }
 
+  //  wxMSW sizes the button from the bitmap at the logical scale, which
+  //  leaves a scaled bitmap wider than its button.
+  if (ewxBitmap::dpiScale() > 1 && bitmap.IsOk() && size == wxDefaultSize) {
+    const wxSize best = GetBestSize(), bmp = bitmap.GetSize();
+    SetMinSize(wxSize(wxMax(best.x, bmp.x + ewxBitmap::scaled(2)),
+                      wxMax(best.y, bmp.y + ewxBitmap::scaled(2))));
+  }
   PushEventHandler(new ewxHelpHandler(this));
   p_disabler = new ewxDisabler();
   PushEventHandler(p_disabler);
@@ -54,6 +62,49 @@ ewxBitmapButton::~ewxBitmapButton()
 {
   PopEventHandler(true);
   PopEventHandler(true);
+}
+
+
+void ewxBitmapButton::setSvg(const wxString& svg, int logical)
+{
+  //  The bundle, not a bitmap drawn at the scale: wxMSW takes a plain bitmap
+  //  as 100 % and sizes the button for it, so a pre-scaled one stays small.
+  wxBitmapBundle b = wxBitmapBundle::FromSVGFile(ewxBitmap::pixmapFile(svg),
+                                                 wxSize(logical, logical));
+  if (!b.IsOk()) {
+    SetBitmapLabel(ewxBitmap::placeholder(svg));
+    return;
+  }
+  SetBitmapLabel(b);
+  if (ewxBitmap::dpiScale() > 1)
+    SetMinSize(FromDIP(wxSize(logical + 2, logical + 2)));
+  if (getenv("ECCE_DPI_LOG")) {
+    const wxString name = svg;
+    logSize("setSvg " + name);
+    if (p_sizeLogged) return;
+    p_sizeLogged = true;
+    Bind(wxEVT_SIZE, [this, name](wxSizeEvent& e) {
+      logSize("size " + name);
+      e.Skip();
+    });
+  }
+}
+
+
+//  ECCE_DPI_LOG: what the button was given and what layout made of it (#670).
+void ewxBitmapButton::logSize(const wxString& where)
+{
+  FILE *f = fopen(getenv("ECCE_DPI_LOG"), "a");
+  if (!f) return;
+  const wxBitmap bmp = GetBitmapLabel();
+  fprintf(f, "button %s: size=%dx%d min=%dx%d best=%dx%d bitmap=%dx%d"
+          " bitmapScale=%.3f dpiFactor=%.3f content=%.3f\n",
+          (const char*) where.mb_str(), GetSize().x, GetSize().y,
+          GetMinSize().x, GetMinSize().y, GetBestSize().x, GetBestSize().y,
+          bmp.IsOk() ? bmp.GetWidth() : -1, bmp.IsOk() ? bmp.GetHeight() : -1,
+          bmp.IsOk() ? bmp.GetScaleFactor() : 0.0,
+          GetDPIScaleFactor(), GetContentScaleFactor());
+  fclose(f);
 }
 
 

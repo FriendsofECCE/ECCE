@@ -64,6 +64,11 @@ CASES = [
                                                       ("GOOD", "charge")]),
     ("g16-ozone-sci.g16in",   "Gaussian-16",      3, [("GOOD", "geometry")]),
     ("g16-gen-basis.g16in",   "Gaussian-16",      3, [("GOOD", "basis")]),
+    #  CREST Solvation Shell: the solvent molecule is a $solvent block
+    #  before the molecule's xyz part, not part of the molecule.
+    ("crest-qcg-methanol.crestin", "CREST",       6, [("GOOD", "solvent"),
+                                                      ("GOOD", "geometry"),
+                                                      ("GOOD", "electrons")]),
     ("orca-ethane.orcain",    "ORCA",             8, [("GOOD", "route"),
                                                       ("GOOD", "geomblock"),
                                                       ("GOOD", "geometry")]),
@@ -255,7 +260,7 @@ def run(fixture, code, atoms):
 SMOKE = os.path.join(HERE, "dialog_smoke.C")
 
 LIBS = ["eccecomm", "eccercmd", "eccewxgui", "eccewxplotctrl",
-        "eccewxthings", "eccedsi", "eccedav", "eccecipc", "eccefaces",
+        "eccewxthings", "eccedsi", "eccercmd", "eccedav", "eccecipc", "eccefaces",
         "eccexml", "eccetdat", "ecceutil"]
 
 
@@ -300,14 +305,14 @@ def dialog_smoke(verbose):
             "-I" + calced]
            + wxflags("--cxxflags")
            + ["-L" + tree] + ["-l" + lib for lib in LIBS]
-           + ["--libs=core,base,adv,html"] + ["-lxerces-c", "-lmosquitto"])
+           + ["--libs=core,base,adv,html"] + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto"])
     #  wx-config --libs takes its component list as an argument, which
     #  the line above cannot express; build it properly.
     cmd = [c for c in cmd if not c.startswith("--libs=")]
     p = subprocess.run(["wx-config", "--libs", "core,base,adv,html"],
                        capture_output=True, text=True)
     #  libeccercmd's SSH transport needs libssh.
-    cmd = cmd[:-1] + p.stdout.split() + ["-lxerces-c", "-lssh", "-lssl", "-lcrypto"]
+    cmd = cmd[:-1] + p.stdout.split() + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lssh", "-lssl", "-lcrypto"]
 
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:

@@ -10,7 +10,7 @@ memory, wall time, run directory), unless another machine is chosen.
 1. Select the calculations in a project's table (with the Ctrl key held), or
    in the tree.
 2. Choose **Run Mgmt > Launch Selected...**. The same item is in the
-   right-click menu of a calculation.
+   **Run** submenu of a calculation's right-click menu.
 3. The window lists each calculation with its **Machine**, **Queue**,
    **Cores** and **Wall time**, and a **Check**. A calculation that can be
    submitted shows **OK**. One that cannot is listed in grey, with the reason
@@ -56,6 +56,10 @@ Launcher afterwards show where it ran.
 - **no run directory stored**: with **As set up** the calculation has none;
   with a machine, its profile has none.
 - **no core count stored**, or **no queue stored**.
+- **waits for ...**: an MD study task takes its starting structure from
+  the task before it, which has not completed yet. Launch it after that task
+  has finished. Launching it alone from its editor only warns, and
+  **Launch anyway** goes ahead.
 
 A machine set to staged launches cannot be used here; launch from the
 Launcher. A failed submit leaves the calculation **Ready**, with the reason
@@ -66,12 +70,22 @@ in the Progress box and the run log.
 With ECCE running, calculations prepared outside the window can be launched
 from a terminal:
 
-    ecce-launch [on=MACHINE] [profile=NAME] <calculation folder or URL>...
+    ecce-launch [on=MACHINE] [profile=NAME] [queue=QUEUE] [wall=H:MM] <calculation folder or URL>...
 
 The Organizer submits them in one batch, with the same rules as Launch
 Selected, and its tree shows the change at once. `on=` and `profile=` act as
-**Launch on** and **Profile** do. A folder inside the data folder is turned
+**Launch on** and **Profile** do. `queue=` and `wall=` replace the stored
+queue and wall time (`wall=1:30` is an hour and a half; a stored form such as
+`0 1:30` also works), with or without `on=`. A folder inside the data folder is turned
 into the calculation's address; with a data server, give the address.
+
+When a setting was filled in or dropped, a line `name: note: ...` says so
+before the result, for example `no queue stored: using debug` when the
+machine's default queue replaced an empty one, or `machine X does not pass a
+time limit: wall time 1:00 h is not applied` when the machine entry lacks the
+time-limit option (Register Machines, Time limit), so the job runs without a
+limit. A note never stops the launch. The same text appears in the Changed
+column of the Launch Selected dialog.
 
 One line is printed for each calculation, either `name: job id N` or
 `name: not launched: reason` (for example, a calculation that is already
@@ -79,3 +93,56 @@ submitted). The exit status is 0 only when every calculation was launched.
 Without a running ECCE session the command says `ECCE is not running: start
 ECCE first` and launches nothing. While a Launch Selected batch is submitting,
 it asks to be run again later.
+
+### Terminating from the command line
+
+    ecce-terminate [--reason "text"] <calculation folder or URL>...
+
+cancels submitted, running or waiting calculations the way **Run Mgmt >
+Terminate Selected** does, without asking for confirmation. Calculations in
+other states are refused by name, with their state. The reason, if given, is
+shown as the calculation's run status reason. One line is printed for each
+calculation, either `name: terminated, job id N, ...` or `name: not
+terminated: reason`. After the cancel, ECCE looks on the machine for
+programs still running in the calculation's run directory and stops them
+(first asking them to stop, then forcing them after ten seconds). The rest
+of the line says what it found: `no process left in the run directory`,
+what it had to stop, or what is `still running` there. A queued job that
+ran on a compute node other than the machine ECCE logs in to cannot be
+checked from there; the line says so, and the queue system ends the
+processes it tracks. The same text is shown in the Organizer's message
+bar for **Terminate Selected**. The exit status is 0 only when every
+calculation was terminated and nothing was left running.
+Paths, URLs and the message without a running ECCE session are as for
+`ecce-launch`.
+
+### Reconnecting from the command line
+
+    ecce-reconnect <calculation folder or URL>...
+
+reconnects calculations the way **Run Mgmt > Reconnect Selected** does,
+without asking for confirmation. A machine that needs a password asks for it
+in the Organizer window, as the menu item does. One line is printed for each
+calculation, either `name: reconnected, job id N` or `name: not reconnected:
+reason`, for example when the calculation's state cannot be reconnected; the
+exit status is 0 only when every calculation was reconnected. Paths, URLs and
+the message without a running ECCE session are as for `ecce-launch`.
+
+### Fetching files from the run directory
+
+    ecce-fetch [--list] <calculation folder or URL> [pattern ...]
+
+copies files from the calculation's run directory on its compute machine into
+the calculation's stored outputs, for a job whose automatic copy-back missed
+them, for example cube or PDOS files. It works for a finished calculation as
+well as a running one. The patterns are file-name patterns such as `*.cube`,
+relative to the run directory; without any, `*.cube *.cub *.pdos` are
+fetched. A file already stored under the same name is replaced.
+
+`--list` only lists the run directory and stores nothing. The login is the one
+Reconnect uses, so a machine that needs a password asks for it in the
+Organizer window. One line is printed for each file, `name: fetched (N
+bytes)`, for a pattern that matched nothing `pattern: no file matched`, and
+`name: not fetched: reason` when nothing could be fetched; the exit status is
+0 when at least one file was fetched (or listed) and nothing was refused. Paths, URLs and the message
+without a running ECCE session are as for `ecce-launch`.

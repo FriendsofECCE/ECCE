@@ -1,0 +1,60 @@
+<MolecularConfig>
+<Map>
+<Group Tag="N" Name="aug-cc-pVDZ">
+<OrderedList>
+<BasisSet Type="correlation_consistent">aug-cc-pVDZ</BasisSet>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="aug-cc-pVDZ">
+<BasisSet Type="correlation_consistent">aug-cc-pVDZ</BasisSet>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
+<Element tag="N">
+<BasisSet uniqueKey="aug-cc-pVDZ:correlation_consistent">
+<DeleteFlags>false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="N">
+0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="N">
+0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+</Map>
+<Data>
+BasisSet=aug-cc-pVDZ
+Type=correlation_consistent Category=ORBITAL Spherical=UnknownCoordSys ContType=UnknownContType
+element=N
+contraction shell=SSS num_primitives=9 num_coefficients=3
+9046.000000000000 0.000700000000 -0.000153000000 0.000000000000
+1357.000000000000 0.005389000000 -0.001208000000 0.000000000000
+309.300000000000 0.027406000000 -0.005992000000 0.000000000000
+87.730000000000 0.103207000000 -0.024544000000 0.000000000000
+28.560000000000 0.278723000000 -0.067459000000 0.000000000000
+10.210000000000 0.448540000000 -0.158078000000 0.000000000000
+3.838000000000 0.278238000000 -0.121831000000 0.000000000000
+0.746600000000 0.015440000000 0.549003000000 0.000000000000
+0.224800000000 -0.002864000000 0.578815000000 1.000000000000
+contraction shell=PP num_primitives=4 num_coefficients=2
+13.550000000000 0.039919000000 0.000000000000
+2.917000000000 0.217169000000 0.000000000000
+0.797300000000 0.510319000000 0.000000000000
+0.218500000000 0.462214000000 1.000000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.817000000000 1.000000000000
+contraction shell=S num_primitives=1 num_coefficients=1
+0.061240000000 1.000000000000
+contraction shell=P num_primitives=1 num_coefficients=1
+0.056110000000 1.000000000000
+contraction shell=D num_primitives=1 num_coefficients=1
+0.230000000000 1.000000000000
+EndBasisSet
+</Data>
+</MolecularConfig>

@@ -76,6 +76,14 @@ std::vector<Result> run(
     const LoginFn& login = nullptr,
     const RemoteFn& remote = nullptr);
 
+// ecce-fetch: copy the run directory's files matching `patterns` (file-name
+// globs) over the calculation's login into its stored Outputs, or only list
+// the directory. One line per result: "name\tok\tbytes", "pattern\tnone\t",
+// "\tls\ttext" (list) or "calc\tno\treason".
+bool fetchFiles(TaskJob* calc, const std::vector<std::string>& patterns,
+                bool listOnly, const LoginFn& login, const RemoteFn& remote,
+                std::vector<std::string>& lines);
+
 }
 
 #endif

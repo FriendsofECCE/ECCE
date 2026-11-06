@@ -23,7 +23,7 @@ import xdisplay  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 LIBS = ["eccewxgui", "eccewxplotctrl", "eccewxthings", "eccewxgui",
-        "eccecomm", "eccercmd", "eccedsi", "eccedav", "eccecipc",
+        "eccecomm", "eccercmd", "eccedsi", "eccercmd", "eccedav", "eccecipc",
         "eccefaces", "eccexml", "eccetdat", "ecceutil"]
 
 
@@ -55,7 +55,7 @@ def main():
             "-I" + os.path.join(ROOT, "include")] + cxx
            + ["-L" + o.libdir, "-Wl,-rpath," + o.libdir]
            + ["-l" + lib for lib in LIBS]
-           + libs + ["-lxerces-c", "-lssh", "-lmosquitto", "-lssl", "-lcrypto"])
+           + libs + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lssh", "-lmosquitto", "-lssl", "-lcrypto"])
     b = out(cmd)
     if b.returncode:
         print(b.stderr[-3000:])

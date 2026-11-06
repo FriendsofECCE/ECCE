@@ -141,10 +141,10 @@ void NModesGUI::CreateControls()
     itemBoxSizer2->Add(p_gridPlotSizer, 1, wxGROW|wxALL, 0);
 
     ewxGrid* itemGrid4 = new ewxGrid( itemVizPropertyPanel1, ID_GRID_NMODE, wxDefaultPosition, wxSize(200, 225), wxSUNKEN_BORDER|wxHSCROLL|wxVSCROLL );
-    itemGrid4->SetDefaultColSize(50);
-    itemGrid4->SetDefaultRowSize(25);
-    itemGrid4->SetColLabelSize(40);
-    itemGrid4->SetRowLabelSize(50);
+    itemGrid4->SetDefaultColSize(ewxBitmap::scaled(50));
+    itemGrid4->SetDefaultRowSize(ewxBitmap::scaled(25));
+    itemGrid4->SetColLabelSize(ewxBitmap::scaled(40));
+    itemGrid4->SetRowLabelSize(ewxBitmap::scaled(50));
     // CreateGrid() itself (below, not here) is deferred to the end of this
     // function, after every other control is constructed -- it internally
     // calls wxGrid::SetTable(), which on wx3.2/GTK3 synchronously fires a
@@ -233,7 +233,7 @@ void NModesGUI::CreateControls()
     ewxButton* itemButton20 = new ewxButton( itemVizPropertyPanel1, ID_BUTTON_NMODE_VECCOLOR, _T(""), wxDefaultPosition, wxSize(24, 24), wxBU_EXACTFIT );
     p_vectorSizer->Add(itemButton20, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5);
 
-    ewxCheckBox* itemCheckBox21 = new ewxCheckBox( itemVizPropertyPanel1, ID_CHECKBOX_NMODE_VECSIGN, _("Use Negative Displacement"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
+    ewxCheckBox* itemCheckBox21 = new ewxCheckBox( itemVizPropertyPanel1, ID_CHECKBOX_NMODE_VECSIGN, _("Reverse"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );
     itemCheckBox21->SetValue(false);
     p_vectorSizer->Add(itemCheckBox21, 0, wxALIGN_CENTER_VERTICAL|wxALL, 0);
 

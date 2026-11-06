@@ -1,4 +1,10 @@
 #include "util/UnitDisplay.H"
+#include "util/VibFrequency.H"
+#include "util/Ecce.H"
+#include "dsm/ICalculation.H"
+#include "dsm/TaskJob.H"
+#include "tdat/TRunType.H"
+#include "dsm/VDoc.H"
 #include <cmath>
 #include <iostream>
   using std::cout;
@@ -7,9 +13,22 @@
 #include <algorithm>
   using std::fill;
 #include <limits>
+#include <functional>
 
 #include <sstream>
+#include <filesystem>
+#include <fstream>
+#include <sstream>
 #include <wx/checkbox.h>
+#include <wx/tglbtn.h>
+#include <wx/radiobut.h>
+#include <wx/statbox.h>
+#include <wx/dialog.h>
+#include <wx/choicdlg.h>
+#include <wx/modalhook.h>
+#include <wx/listbox.h>
+#include <wx/utils.h>
+#include <wx/radiobox.h>
 #include <wx/dcclient.h>
 #include <wx/dcscreen.h>
 #include <wx/app.h>
@@ -62,6 +81,7 @@
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/SliderCombo.H"
 #include "wxgui/WindowEvent.H"
+#include "wxgui/WindowShot.H"
 
 #include "viz/NModeStepCmd.H"
 #include "viz/NModeTraceCmd.H"
@@ -73,6 +93,8 @@
 #include "wxviz/WxVizToolFW.H"
 
 #include "NModePanel.H"
+
+static wxString activityText(const VibModeInfo& v);
 
 namespace {
 //  Height of a label's text as drawn, all its lines.
@@ -130,8 +152,6 @@ NModePanel::NModePanel()
     TearableContentProvider(),
     p_grid(NULL),
     p_spectrum(NULL),
-    p_fwhmText(NULL),
-    p_scaleText(NULL),
     p_timer(NULL), p_animating(false),
     p_slider(NULL),
     p_selectedRow(0),
@@ -156,8 +176,6 @@ NModePanel::NModePanel(IPropCalculation *calculation,
     TearableContentProvider(),
     p_grid(NULL),
     p_spectrum(NULL),
-    p_fwhmText(NULL),
-    p_scaleText(NULL),
     p_timer(NULL), p_animating(false),
     p_slider(NULL),
     p_selectedRow(0),
@@ -180,9 +198,13 @@ NModePanel::~NModePanel()
    //  The animation timer must not fire into a destroyed panel.
    unsubscribe();
    delete p_timer;
-   //  The window's canvas calls back into this panel.
+   //  Destroy callbacks while their panel is still alive; frame destruction
+   //  itself is deferred by wxWidgets.
    if (p_spectrumPop) p_spectrumPop->setClickHandler(0);
-   if (p_spectrumFrame) p_spectrumFrame->Destroy();
+   if (p_spectrumFrame) {
+      p_spectrumFrame->DestroyChildren();
+      p_spectrumFrame->Destroy();
+   }
 }
 
 
@@ -259,7 +281,7 @@ bool NModePanel::Create(IPropCalculation *calculation,
       e.Skip();
    });
    p_graphDetail->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
-      wrapAll(p_graphDetail, p_graphParts);
+      wrapText(p_graphDetail, p_graphText);
       e.Skip();
    });
    p_grid->GetGridWindow()->Bind(wxEVT_MOTION, &NModePanel::OnGridMotion, this);
@@ -326,6 +348,8 @@ bool NModePanel::Create(IPropCalculation *calculation,
      viewbox->SetSelection(isGraphShown() ? 0 : 1);
    }
 
+   buildLayout();
+
    int delay;
    config->Read("NMode/Delay",&delay,20);
    ewxTextCtrl *text = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_NMODE_DELAY);
@@ -382,7 +406,7 @@ void NModePanel::initialize()
    //  on the first real vibration, not a zero-scale translation.
    for (int r = 0; r < p_grid->GetNumberRows(); r++) {
       double f = 0;
-      if (p_grid->GetCellValue(r, 0).ToDouble(&f) && fabs(f) >= 10.0) {
+      if (p_grid->GetCellValue(r, 0).ToDouble(&f) && (VibFrequency::isReal(f) || VibFrequency::isImaginary(f))) {
          p_mode = r;
          break;
       }
@@ -403,6 +427,7 @@ void NModePanel::initialize()
             (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_DATAVIEW);
       if (viewbox != 0 && viewbox->GetCount() > 1) {
          viewbox->SetSelection(1);   // 0 = Graph, 1 = Table
+         syncViewControls();
       }
    }
 
@@ -468,6 +493,7 @@ void NModePanel::showTable()
    p_gridPlotSizer->Show((size_t)0,true);
    p_gridPlotSizer->Show((size_t)1,false);
    p_gridPlotSizer->Layout();
+   syncViewControls();
 }
 
 void NModePanel::showGraph()
@@ -475,6 +501,7 @@ void NModePanel::showGraph()
    p_gridPlotSizer->Show((size_t)1,true);
    p_gridPlotSizer->Show((size_t)0,false);
    p_gridPlotSizer->Layout();
+   syncViewControls();
 }
 
 bool NModePanel::isGraphShown()
@@ -530,8 +557,9 @@ bool NModePanel::checkStructure()
 }
 
 /**
- * The plot: the spectrum canvas with its controls underneath.  Item 1 of
- * p_gridPlotSizer, which showGraph()/showTable() rely on.
+ * The plot: the spectrum canvas and the selected mode under it.  Item 1 of
+ * p_gridPlotSizer, which showGraph()/showTable() rely on.  IR and Raman are
+ * stacked here; the settings live in the Spectrum window.
  */
 void NModePanel::createSpectrumPane()
 {
@@ -554,6 +582,8 @@ void NModePanel::createSpectrumPane()
    p_spectrum->setScale(scale);
    p_spectrum->setReversed(reversed);
    p_spectrum->setShowSticks(sticks);
+   //  The panel shows IR or Raman, never stacked; stacking is the window's.
+   p_spectrum->setCompactBelow(std::numeric_limits<int>::max());
    col->Add(p_spectrum, 1, wxEXPAND);
 
    //  The selected mode, frequency first, wrapped into two lines under the
@@ -564,59 +594,11 @@ void NModePanel::createSpectrumPane()
                             wxBORDER_SIMPLE);
    p_graphBox->SetBackgroundColour(pane->GetBackgroundColour().ChangeLightness(106));
    p_graphDetail = new wxStaticText(p_graphBox, wxID_ANY, "");
-   p_graphDetail->SetMinSize(wxSize(50, p_graphDetail->GetCharHeight() + 2));
+   p_graphDetail->SetMinSize(wxSize(50, 2*p_graphDetail->GetCharHeight() + 2));
    wxBoxSizer *boxSizer = new wxBoxSizer(wxVERTICAL);
    boxSizer->Add(p_graphDetail, 1, wxEXPAND | wxALL, 4);
    p_graphBox->SetSizer(boxSizer);
    col->Add(p_graphBox, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
-
-   wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
-   const int gap = 6;
-
-   row->Add(new wxStaticText(pane, wxID_ANY,
-              wxString::FromUTF8("Width:")),
-            0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap);
-   p_fwhmText = new wxTextCtrl(pane, wxID_ANY,
-                  wxString::Format("%g", fwhm), wxDefaultPosition,
-                  wxSize(48, -1), wxTE_PROCESS_ENTER);
-   p_fwhmText->SetToolTip(wxString::FromUTF8(
-      "Full width at half maximum of each band, in cm\xE2\x81\xBB\xC2\xB9 "
-      "(0 to 200).\nCondensed-phase bands are typically 5 to 30 wide.\n"
-      "0 shows sticks only.\nA narrow width gives sharp lines at the band "
-      "origins; it does not reproduce the rotational structure of a "
-      "gas-phase spectrum."));
-   row->Add(p_fwhmText, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-
-   row->Add(new wxStaticText(pane, wxID_ANY, "Freq. factor:"),
-            0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-   p_scaleText = new wxTextCtrl(pane, wxID_ANY,
-                  wxString::Format("%g", scale), wxDefaultPosition,
-                  wxSize(48, -1), wxTE_PROCESS_ENTER);
-   p_scaleText->SetToolTip(wxString::FromUTF8(
-      "Multiplies every frequency. Harmonic frequencies from most "
-      "methods are 3 to 5 % too high; a typical factor is 0.96."));
-   row->Add(p_scaleText, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-
-   wxCheckBox *left = new wxCheckBox(pane, wxID_ANY,
-                                     "High on left");
-   left->SetValue(reversed);
-   row->Add(left, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-
-   wxCheckBox *stk = new wxCheckBox(pane, wxID_ANY, "Sticks");
-   stk->SetValue(sticks);
-   row->Add(stk, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, gap * 2);
-
-   wxButton *reset = new wxButton(pane, wxID_ANY, "Reset");
-   reset->SetToolTip("Show the whole spectrum (or double-click the plot, "
-                     "or press Home).\nClick a peak to show its mode. Drag "
-                     "to zoom to a band, mouse wheel to zoom, right-drag "
-                     "to pan.");
-   row->Add(reset, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, gap * 2);
-   wxButton *popout = new wxButton(pane, wxID_ANY, "Open in window");
-   popout->SetToolTip("The same spectrum in its own resizable window, with "
-                      "both panes and both axes.");
-   row->Add(popout, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, gap);
-   col->Add(row, 0, wxEXPAND | wxTOP | wxBOTTOM, 3);
 
    //  The dock can give this panel less height than a plot is readable
    //  in; then this stands in for the whole plot rather than a squashed one.
@@ -632,15 +614,11 @@ void NModePanel::createSpectrumPane()
    col->Show(noRoom, false);
    noRoomButton->Bind(wxEVT_BUTTON,
                       [this](wxCommandEvent&) { openSpectrumWindow(); });
-   //  The settings row goes first: at the Viewer's first size on a laptop
-   //  screen (1366x768) the pane is about 140 px, room for the plot alone.
-   pane->Bind(wxEVT_SIZE, [pane, col, row, noRoom, this](wxSizeEvent& e) {
+   pane->Bind(wxEVT_SIZE, [col, noRoom, this](wxSizeEvent& e) {
       const int h = e.GetSize().y;
-      const bool plot = h >= 110, settings = h >= 190, text = h >= 150;
-      if (col->IsShown(p_spectrum) != plot || col->IsShown(row) != settings ||
-          col->IsShown(p_graphBox) != text) {
+      const bool plot = h >= 110, text = h >= 150;
+      if (col->IsShown(p_spectrum) != plot || col->IsShown(p_graphBox) != text) {
          col->Show(p_spectrum, plot);
-         col->Show(row, settings);
          col->Show(p_graphBox, text);
          col->Show(noRoom, !plot);
       }
@@ -650,61 +628,6 @@ void NModePanel::createSpectrumPane()
    pane->SetSizer(col);
    p_gridPlotSizer->Add(pane, 1, wxGROW);
 
-   //  The window is most useful beside the Table view, where the plot's own
-   //  button is hidden: offer it next to the Graph/Table choice as well.
-   wxWindow *viewBox = FindWindow(ID_RADIOBOX_NMODE_DATAVIEW);
-   wxSizer *viewSizer = viewBox ? viewBox->GetContainingSizer() : 0;
-   if (viewSizer) {
-      size_t at = 0;
-      for (wxSizerItemList::compatibility_iterator n =
-             viewSizer->GetChildren().GetFirst(); n; n = n->GetNext(), at++)
-         if (n->GetData()->GetWindow() == viewBox) break;
-      wxButton *spectrum = new wxButton(viewBox->GetParent(), wxID_ANY,
-                                        "Spectrum...");
-      spectrum->SetToolTip("The IR and Raman spectra in their own window.");
-      viewSizer->Insert(at + 1, spectrum, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
-      spectrum->Bind(wxEVT_BUTTON,
-                     [this](wxCommandEvent&) { openSpectrumWindow(); });
-      //  Beside the Graph/Table choice, not in the plot's settings row,
-      //  where it wrapped onto a line of its own and took the plot's height.
-      wxButton *exportCsv = new wxButton(viewBox->GetParent(), wxID_ANY,
-                                         "Export .csv...");
-      exportCsv->SetToolTip("Save the spectrum (sticks and broadened "
-                            "curve) as a comma-separated file for a "
-                            "spreadsheet or plotting program.");
-      viewSizer->Insert(at + 2, exportCsv, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
-      exportCsv->Bind(wxEVT_BUTTON,
-                      [this](wxCommandEvent&) { exportSpectrumDialog(); });
-      wxButton *compare = new wxButton(viewBox->GetParent(), wxID_ANY,
-                                       "Compare...");
-      compare->SetToolTip("Draw the IR or Raman spectrum of another "
-                          "calculation in this folder as a second curve.");
-      viewSizer->Insert(at + 3, compare, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
-      compare->Bind(wxEVT_BUTTON,
-                    [this](wxCommandEvent&) { compareDialog(); });
-      wxButton *composition = new wxButton(viewBox->GetParent(), wxID_ANY,
-                                           "Composition...");
-      composition->SetToolTip("What each mode is made of: its share along "
-                              "bond stretches, angle bends and torsions.");
-      viewSizer->Insert(at + 4, composition, 0,
-                        wxALIGN_CENTER_VERTICAL | wxALL, 3);
-      composition->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-         wxString err;
-         if (!showComposition(-1, &err))
-            wxMessageBox(err, "Mode composition", wxOK | wxICON_INFORMATION, this);
-      });
-      //  Enabled, not hidden, so the row does not reflow at narrow widths.
-      p_compareRemove = new wxButton(viewBox->GetParent(), wxID_ANY,
-                                     "Remove comparison");
-      p_compareRemove->SetToolTip("Remove the second curve and show this "
-                                  "calculation only.");
-      p_compareRemove->Enable(false);
-      viewSizer->Insert(at + 5, p_compareRemove, 0,
-                        wxALIGN_CENTER_VERTICAL | wxALL, 3);
-      p_compareRemove->Bind(wxEVT_BUTTON,
-                    [this](wxCommandEvent&) { compareWith(string()); });
-   }
-
    //  The wrap sizers under the plot learn their width only in a layout, so
    //  the first one reserved them several rows (on MSW about 100 px) and the
    //  plot did not fit; a second pass at the same size gives it back.
@@ -712,28 +635,328 @@ void NModePanel::createSpectrumPane()
       e.Skip();
       CallAfter([this]() { Layout(); });
    });
+}
 
-   p_fwhmText->Bind(wxEVT_TEXT_ENTER,
-                    [this](wxCommandEvent&) { applySpectrumSettings(); });
-   p_fwhmText->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) {
-      applySpectrumSettings(); e.Skip(); });
-   p_scaleText->Bind(wxEVT_TEXT_ENTER,
-                     [this](wxCommandEvent&) { applySpectrumSettings(); });
-   p_scaleText->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) {
-      applySpectrumSettings(); e.Skip(); });
+
+/**
+ * The rest of the panel, top to bottom: Spectrum | Table, the plot (made
+ * above), the "Mode in the viewer" group and the row of windows.  The old
+ * Animation/Vector and Graph/Table radio boxes stay as hidden state holders,
+ * so the script hooks and handlers that drive them keep working.
+ */
+void NModePanel::buildLayout()
+{
+   wxSizer *top = GetSizer();
+   FindWindow(ID_RADIOBOX_NMODE_VIZTYPE)->Hide();
+   FindWindow(ID_RADIOBOX_NMODE_DATAVIEW)->Hide();
+
+   wxBoxSizer *tr = new wxBoxSizer(wxHORIZONTAL);
+   p_viewSpectrum = new wxToggleButton(this, wxID_ANY, "Spectrum");
+   p_viewTable = new wxToggleButton(this, wxID_ANY, "Table");
+   auto choose = [this](int i) {
+      wxRadioBox *v = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_DATAVIEW);
+      v->SetSelection(i);
+      wxCommandEvent ev(wxEVT_RADIOBOX, v->GetId());
+      ev.SetEventObject(v);
+      ev.SetInt(i);
+      v->GetEventHandler()->ProcessEvent(ev);
+   };
+   p_viewSpectrum->Bind(wxEVT_TOGGLEBUTTON, [choose](wxCommandEvent&) { choose(0); });
+   p_viewTable->Bind(wxEVT_TOGGLEBUTTON, [choose](wxCommandEvent&) { choose(1); });
+   p_viewSpectrum->SetToolTip("The IR and Raman spectra, one over the other.");
+   p_viewTable->SetToolTip("The frequencies as a table.");
+   p_exportBtn = new wxButton(this, wxID_ANY, "Export .csv...");
+   p_exportBtn->SetToolTip("Save the spectrum (sticks and broadened curve) "
+                           "as a comma-separated file for a spreadsheet or "
+                           "plotting program.");
+   p_exportBtn->Bind(wxEVT_BUTTON,
+                     [this](wxCommandEvent& e) { exportSpectrumDialog(e.GetString()); });
+   tr->Add(p_viewSpectrum, 0, wxALL, 3);
+   tr->Add(p_viewTable, 0, wxALL, 3);
+   tr->AddStretchSpacer(1);
+   tr->Add(p_exportBtn, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+   top->Insert(0, tr, 0, wxEXPAND);
+
+   //  Detach the old rows' contents and regroup them.
+   wxSizer *box5 = 0;
+   for (wxSizerItem *it : top->GetChildren())
+      if (it->GetSizer() && it->GetSizer()->GetItem(p_)) box5 = it->GetSizer();
+   box5->Detach(p_);
+   box5->Detach(p_styleSizer);
+   p_->Detach(p_sliderSizer);
+   p_styleSizer->Detach(p_animateSizer);
+   p_styleSizer->Detach(p_vectorSizer);
+
+   wxStaticBoxSizer *group = new wxStaticBoxSizer(wxVERTICAL, this, "Mode in the viewer");
+   wxStaticBox *sb = group->GetStaticBox();
+   //  The controls moved into the box must be its children, or the box
+   //  is drawn over them.
+   std::function<void(wxSizer*)> adopt = [&](wxSizer *z) {
+      for (wxSizerItem *it : z->GetChildren()) {
+         if (it->GetWindow()) it->GetWindow()->Reparent(sb);
+         else if (it->GetSizer()) adopt(it->GetSizer());
+      }
+   };
+   adopt(p_sliderSizer);
+   adopt(p_animateSizer);
+   adopt(p_vectorSizer);
+   wxWrapSizer *kind = new wxWrapSizer(wxHORIZONTAL);
+   p_showCheck = new wxCheckBox(sb, wxID_ANY, "Show");
+   p_showCheck->SetValue(true);
+   p_showCheck->SetToolTip("Draw the selected mode in the viewer. Off shows "
+                           "the molecule alone.");
+   p_animRadio = new wxRadioButton(sb, wxID_ANY, "Animation", wxDefaultPosition,
+                                   wxDefaultSize, wxRB_GROUP);
+   p_vecRadio = new wxRadioButton(sb, wxID_ANY, "Vectors");
+   kind->Add(p_showCheck, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+   kind->Add(p_animRadio, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+   kind->Add(p_vecRadio, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+   adoptViewerToggle(p_showCheck);
+   auto pick = [this](int i) {
+      wxRadioBox *v = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
+      v->SetSelection(i);
+      wxCommandEvent ev(wxEVT_RADIOBOX, v->GetId());
+      ev.SetEventObject(v);
+      ev.SetInt(i);
+      v->GetEventHandler()->ProcessEvent(ev);
+   };
+   p_animRadio->Bind(wxEVT_RADIOBUTTON, [pick](wxCommandEvent&) { pick(0); });
+   p_vecRadio->Bind(wxEVT_RADIOBUTTON, [pick](wxCommandEvent&) { pick(1); });
+   group->Add(kind, 0, wxEXPAND);
+
+   p_viewerRow = new wxBoxSizer(wxHORIZONTAL);
+   p_viewerRow->Add(p_sliderSizer, 0, wxALIGN_CENTER_VERTICAL);
+   p_viewerRow->Add(p_animateSizer, 0, wxALIGN_CENTER_VERTICAL);
+   p_viewerRow->Add(p_vectorSizer, 0, wxALIGN_CENTER_VERTICAL);
+   group->Add(p_viewerRow, 0, wxEXPAND);
+   top->Add(group, 0, wxEXPAND | wxALL, 3);
+
+   FindWindow(ID_CHECKBOX_NMODE_VECSIGN)->SetToolTip(
+      "Show the displacement in the opposite direction (the negative of the mode).");
+
+   wxWrapSizer *bottom = new wxWrapSizer(wxHORIZONTAL);
+   wxButton *window = new wxButton(this, wxID_ANY, "Open in window...");
+   window->SetToolTip("The IR and Raman spectra in their own window, with "
+                      "width, scale factor, comparison and export.");
+   window->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { openSpectrumWindow(); });
+   wxButton *composition = new wxButton(this, wxID_ANY, "Composition...");
+   composition->SetToolTip("What each mode is made of: its share along "
+                           "bond stretches, angle bends and torsions.");
+   composition->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+      wxString err;
+      if (!showComposition(-1, &err))
+         wxMessageBox(err, "Mode composition", wxOK | wxICON_INFORMATION, this);
+   });
+   wxButton *displace = new wxButton(this, wxID_ANY, "Displace...");
+   displace->SetToolTip("New calculation(s) with the structure displaced "
+                        "along the selected mode or all imaginary modes: "
+                        "the way off a saddle point.");
+   displace->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { displaceDialog(); });
+   for (wxButton *b : {window, composition, displace})
+      bottom->Add(b, 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
+   top->Add(bottom, 0, wxEXPAND | wxALL, 0);
+
+   showStyle(((wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE))->GetSelection() == 0);
+   syncViewControls();
+}
+
+
+/// The toggles, the viewer-group radios and the export button follow the
+/// hidden radio boxes, however those were changed.
+void NModePanel::syncViewControls()
+{
+   if (p_viewSpectrum == 0) return;
+   const bool graph = isGraphShown();
+   p_viewSpectrum->SetValue(graph);
+   p_viewTable->SetValue(!graph);
+   p_exportBtn->Show(!graph);
+   wxRadioBox *viz = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
+   if (viz != 0 && p_animRadio != 0) {
+      p_animRadio->SetValue(viz->GetSelection() == 0);
+      p_vecRadio->SetValue(viz->GetSelection() != 0);
+   }
+   Layout();
+}
+
+
+void NModePanel::showStyle(bool animation)
+{
+   if (p_viewerRow == 0) return;
+   p_viewerRow->Show(p_animateSizer, animation);
+   p_viewerRow->Show(p_vectorSizer, !animation);
+   p_viewerRow->Layout();
+   Layout();
+}
+
+
+/**
+ * The Spectrum window's controls, above the plot: the settings of the
+ * spectrum, and the other spectra drawn with it.
+ */
+void NModePanel::createWindowControls(wxWindow *pane, wxBoxSizer *col)
+{
+   const double fwhm = p_spectrum->spectrum().fwhm();
+   const double scale = p_spectrum->spectrum().scale();
+   const bool reversed = p_spectrum->reversed(), sticks = p_spectrum->showSticks();
+   const int gap = 6;
+
+   wxStaticBoxSizer *g1 = new wxStaticBoxSizer(wxHORIZONTAL, pane, "Spectrum");
+   wxWindow *w1 = g1->GetStaticBox();
+   wxStaticBoxSizer *g2 = new wxStaticBoxSizer(wxHORIZONTAL, pane, "Other spectra");
+   wxWindow *w2 = g2->GetStaticBox();
+   auto add = [gap](wxSizer *s, wxWindow *w, int left = 0) {
+      s->Add(w, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, left ? left : gap / 2);
+   };
+
+   add(g1, new wxStaticText(w1, wxID_ANY, "Width"));
+   wxTextCtrl *width = new wxTextCtrl(w1, wxID_ANY,
+                  wxString::Format("%g", fwhm), wxDefaultPosition,
+                  wxSize(52, -1), wxTE_PROCESS_ENTER);
+   width->SetToolTip(wxString::FromUTF8(
+      "Full width at half maximum of each band, in cm\xE2\x81\xBB\xC2\xB9 "
+      "(0 to 200).\nCondensed-phase bands are typically 5 to 30 wide.\n"
+      "0 shows sticks only.\nA narrow width gives sharp lines at the band "
+      "origins; it does not reproduce the rotational structure of a "
+      "gas-phase spectrum."));
+   add(g1, width);
+   add(g1, new wxStaticText(w1, wxID_ANY, wxString::FromUTF8("cm\xE2\x81\xBB\xC2\xB9")));
+   add(g1, new wxStaticText(w1, wxID_ANY, "Scale factor"), gap * 2);
+   wxTextCtrl *factor = new wxTextCtrl(w1, wxID_ANY,
+                  wxString::Format("%g", scale), wxDefaultPosition,
+                  wxSize(56, -1), wxTE_PROCESS_ENTER);
+   factor->SetToolTip(wxString::FromUTF8(
+      "Multiplies every frequency. Harmonic frequencies from most "
+      "methods are 3 to 5 % too high; a typical factor is 0.96."));
+   add(g1, factor);
+   wxCheckBox *stk = new wxCheckBox(w1, wxID_ANY, "Sticks");
+   stk->SetValue(sticks);
+   add(g1, stk, gap * 2);
+   wxCheckBox *left = new wxCheckBox(w1, wxID_ANY, "High on left");
+   left->SetValue(reversed);
+   add(g1, left, gap * 2);
+   add(g1, new wxStaticText(w1, wxID_ANY, "Range"), gap * 2);
+   wxTextCtrl *lo = new wxTextCtrl(w1, wxID_ANY, "", wxDefaultPosition,
+                             wxSize(60, -1), wxTE_PROCESS_ENTER);
+   wxTextCtrl *hi = new wxTextCtrl(w1, wxID_ANY, "", wxDefaultPosition,
+                             wxSize(60, -1), wxTE_PROCESS_ENTER);
+   lo->SetToolTip("Lowest wavenumber shown, cm-1; Enter applies the range.");
+   hi->SetToolTip("Highest wavenumber shown, cm-1; Enter applies the range.");
+   add(g1, lo);
+   add(g1, new wxStaticText(w1, wxID_ANY, "to"));
+   add(g1, hi);
+   wxButton *reset = new wxButton(w1, wxID_ANY, "Reset zoom");
+   reset->SetToolTip("Show the whole spectrum (or double-click the plot, "
+                     "or press Home).\nClick a peak to show its mode. Drag "
+                     "to zoom to a band, mouse wheel to zoom, right-drag "
+                     "to pan.");
+   add(g1, reset, gap);
+   //  Range is applied by Enter in either field or when the second loses
+   //  focus; a drag on the plot sets the same fields.
+   auto doZoom = [this, lo, hi]() {
+      double a, b;
+      if (lo->GetValue().ToCDouble(&a) && hi->GetValue().ToCDouble(&b))
+         zoomSpectrum(a, b);
+   };
+   hi->Bind(wxEVT_KILL_FOCUS, [doZoom](wxFocusEvent& e) { doZoom(); e.Skip(); });
+   hi->Bind(wxEVT_TEXT_ENTER, [doZoom](wxCommandEvent&) { doZoom(); });
+   lo->Bind(wxEVT_TEXT_ENTER, [doZoom](wxCommandEvent&) { doZoom(); });
+
+   wxButton *compare = new wxButton(w2, wxID_ANY, "Compare...");
+   compare->SetToolTip("Another calculation in this folder: draw its "
+                       "spectrum with this one, or match its bands with "
+                       "this one's modes.");
+   compare->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { compareDialog(); });
+   add(g2, compare, gap);
+   add(g2, new wxStaticText(w2, wxID_ANY, "(overlay or mode matching)"));
+   wxCheckBox *difference = new wxCheckBox(w2, wxID_ANY, "Difference");
+   difference->SetToolTip("Draw the second calculation's curve minus this "
+                          "one's (choose Compare... first), with the same "
+                          "line width and scaling factor.");
+   difference->SetValue(p_showDiff);
+   difference->Enable(p_compare != 0);
+   difference->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
+      setShowDifference(e.IsChecked());
+   });
+   add(g2, difference, gap * 2);
+   wxButton *expBtn = new wxButton(w2, wxID_ANY, "Experimental...");
+   expBtn->SetToolTip("Draw a measured spectrum from a CSV file (wavenumber "
+                      "and absorbance or transmittance), scaled to this "
+                      "calculation's tallest peak in view.");
+   expBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { importExperimentalDialog(); });
+   add(g2, expBtn, gap);
+   wxButton *remove = new wxButton(w2, wxID_ANY, "Remove");
+   remove->SetToolTip("Remove the other spectra: the comparison, the "
+                      "difference and the experimental curve.");
+   remove->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { removeOtherSpectra(); });
+   remove->Enable(hasOtherSpectra());
+   add(g2, remove, gap);
+   g2->AddStretchSpacer(1);
+   wxButton *csv = new wxButton(w2, wxID_ANY, "Export .csv...");
+   csv->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) { exportSpectrumDialog(e.GetString()); });
+   add(g2, csv, gap);
+
+   col->Add(g1, 0, wxEXPAND | wxALL, 3);
+   col->Add(g2, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 3);
+
+   width->SetName("spectrum-width");
+   factor->SetName("spectrum-factor");
+   lo->SetName("spectrum-low");
+   hi->SetName("spectrum-high");
+   left->SetName("spectrum-direction");
+   stk->SetName("spectrum-sticks");
+   difference->SetName("spectrum-difference");
+   reset->SetName("spectrum-reset");
+   expBtn->SetName("spectrum-experimental");
+   compare->SetName("spectrum-compare");
+   remove->SetName("spectrum-remove");
+   csv->SetName("spectrum-export-csv");
+   auto apply = [this, width, factor]() { applySpectrumSettings(width, factor); };
+   for (wxTextCtrl *field : {width, factor}) {
+      field->Bind(wxEVT_TEXT_ENTER, [apply](wxCommandEvent&) { apply(); });
+      field->Bind(wxEVT_KILL_FOCUS, [apply](wxFocusEvent& e) { apply(); e.Skip(); });
+   }
    left->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
       p_spectrum->setReversed(e.IsChecked());
-      ewxConfig::getConfig(INIFILE)->Write("NMode/WavenumberHighOnLeft",
-                                           e.IsChecked());
+      ewxConfig::getConfig(INIFILE)->Write("NMode/WavenumberHighOnLeft", e.IsChecked());
    });
    stk->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
       p_spectrum->setShowSticks(e.IsChecked());
       ewxConfig::getConfig(INIFILE)->Write("NMode/ShowSticks", e.IsChecked());
    });
-   popout->Bind(wxEVT_BUTTON,
-                [this](wxCommandEvent&) { openSpectrumWindow(); });
-   reset->Bind(wxEVT_BUTTON,
-               [this](wxCommandEvent&) { p_spectrum->resetZoom(); });
+   reset->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { p_spectrum->resetZoom(); });
+
+   //  Read back the shared state, including mouse zooms on the plot.
+   //  Leave a field being edited alone until Enter or focus loss applies it.
+   auto syncText = [](wxTextCtrl *field, std::function<double()> value) {
+      field->SetExtraStyle(field->GetExtraStyle() | wxWS_EX_PROCESS_UI_UPDATES);
+      field->Bind(wxEVT_UPDATE_UI, [field, value](wxUpdateUIEvent&) {
+         const wxString text = wxString::Format("%g", value());
+         if (!field->HasFocus() && field->GetValue() != text) field->ChangeValue(text);
+      });
+   };
+   syncText(width, [this]() { return p_spectrum->spectrum().fwhm(); });
+   syncText(factor, [this]() { return p_spectrum->spectrum().scale(); });
+   syncText(lo, [this]() { return p_spectrum->axis().lo(); });
+   syncText(hi, [this]() { return p_spectrum->axis().hi(); });
+   for (wxWindow *w : std::initializer_list<wxWindow*>{left, stk, difference, remove})
+      w->SetExtraStyle(w->GetExtraStyle() | wxWS_EX_PROCESS_UI_UPDATES);
+   left->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) { e.Check(p_spectrum->reversed()); });
+   stk->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) { e.Check(p_spectrum->showSticks()); });
+   difference->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) {
+      e.Check(p_showDiff);
+      e.Enable(p_compare != nullptr);
+   });
+   remove->Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& e) {
+      e.Enable(hasOtherSpectra());
+   });
+}
+
+
+void NModePanel::removeOtherSpectra()
+{
+   setShowDifference(false);
+   if (!p_expX.empty()) importExperimental("", "");
+   compareWith("");
 }
 
 
@@ -751,14 +974,32 @@ void NModePanel::openSpectrumWindow()
    wxFrame *frame = new wxFrame(wxGetTopLevelParent(this), wxID_ANY,
                                 "Vibrational Frequencies: spectrum",
                                 wxDefaultPosition, wxSize(1000, 700));
-   SpectrumCanvas *canvas = new SpectrumCanvas(frame);
+   wxPanel *panel = new wxPanel(frame);
+   SpectrumCanvas *canvas = new SpectrumCanvas(panel);
    canvas->shareWith(*p_spectrum);
    canvas->setClickHandler(this);
    canvas->setCompactBelow(0);
    canvas->setStrip(true);
    wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
+   createWindowControls(panel, sizer);
    sizer->Add(canvas, 1, wxEXPAND);
-   frame->SetSizer(sizer);
+   wxBoxSizer *foot = new wxBoxSizer(wxHORIZONTAL);
+   foot->AddStretchSpacer(1);
+   wxButton *comp = new wxButton(panel, wxID_ANY, "Composition...");
+   wxButton *close = new wxButton(panel, wxID_ANY, "Close");
+   comp->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+      wxString err;
+      if (!showComposition(-1, &err))
+         wxMessageBox(err, "Mode composition", wxOK | wxICON_INFORMATION, this);
+   });
+   close->Bind(wxEVT_BUTTON, [frame](wxCommandEvent&) { frame->Close(); });
+   foot->Add(comp, 0, wxALL, 4);
+   foot->Add(close, 0, wxALL, 4);
+   sizer->Add(foot, 0, wxEXPAND);
+   panel->SetSizer(sizer);
+   wxBoxSizer *outer = new wxBoxSizer(wxVERTICAL);
+   outer->Add(panel, 1, wxEXPAND);
+   frame->SetSizer(outer);
    p_spectrumFrame = frame;
    p_spectrumPop = canvas;
    frame->Show(true);
@@ -793,16 +1034,20 @@ bool NModePanel::exportSpectrumCsv(const wxString& path, VibKind kind)
    return fclose(out) == 0 && ok;
 }
 
-void NModePanel::exportSpectrumDialog()
+void NModePanel::exportSpectrumDialog(const wxString& requestedPath)
 {
    IPropCalculation *calc = getCalculation();
    if (calc == 0) return;
-   wxFileDialog dlg(this, "Export spectrum",  wxEmptyString,
+   wxString path = requestedPath;
+   if (path.empty()) {
+      wxFileDialog dlg(this, "Export spectrum",  wxEmptyString,
                     wxString::FromUTF8(calc->getURL().getFilePathTail().c_str()) +
                     "-spectrum.csv", "CSV files (*.csv)|*.csv",
                     wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-   if (dlg.ShowModal() != wxID_OK) return;
-   if (!exportSpectrumCsv(dlg.GetPath(), spectrumKindShown()))
+      if (dlg.ShowModal() != wxID_OK) return;
+      path = dlg.GetPath();
+   }
+   if (!exportSpectrumCsv(path, spectrumKindShown()))
       wxMessageBox("The file could not be written.", "Export spectrum",
                    wxOK | wxICON_ERROR, this);
 }
@@ -812,9 +1057,9 @@ void NModePanel::exportSpectrumDialog()
  * something: a width of 0 to 200 cm-1 (0 is sticks only), a positive
  * scale.  A field left unreadable goes back to what is in force.
  */
-void NModePanel::applySpectrumSettings()
+void NModePanel::applySpectrumSettings(wxTextCtrl *width, wxTextCtrl *factor)
 {
-   if (p_spectrum == 0 || p_fwhmText == 0 || p_scaleText == 0) return;
+   if (p_spectrum == 0 || (width == 0 && factor == 0)) return;
    double fwhm = p_spectrum->spectrum().fwhm();
    double scale = p_spectrum->spectrum().scale();
    //  A decimal comma is read as a point, whatever the locale.
@@ -824,13 +1069,13 @@ void NModePanel::applySpectrumSettings()
       return c.Trim(true).Trim(false).ToCDouble(out);
    };
    double v;
-   if (parse(p_fwhmText->GetValue(), &v) && v >= 0) {
+   if (width != 0 && parse(width->GetValue(), &v) && v >= 0) {
       fwhm = v > 200 ? 200 : v;
       if (fwhm > 0 && fwhm < 0.1) fwhm = 0.1;
    }
-   if (parse(p_scaleText->GetValue(), &v) && v > 0) scale = v;
-   p_fwhmText->ChangeValue(wxString::Format("%g", fwhm));
-   p_scaleText->ChangeValue(wxString::Format("%g", scale));
+   if (factor != 0 && parse(factor->GetValue(), &v) && v > 0) scale = v;
+   if (width != 0) width->ChangeValue(wxString::Format("%g", fwhm));
+   if (factor != 0) factor->ChangeValue(wxString::Format("%g", scale));
 
    const bool scaleChanged = scale != p_spectrum->spectrum().scale();
    if (fwhm != p_spectrum->spectrum().fwhm()) p_spectrum->setFwhm(fwhm);
@@ -854,10 +1099,8 @@ void NModePanel::modeClicked(int mode)
 
 void NModePanel::showAnimationMode()
 {
-   p_styleSizer->Show(p_animateSizer,1);
-   p_styleSizer->Show(p_vectorSizer,0);
+   showStyle(true);
    p_scaleLabel->SetLabel(_("Amplitude:"));
-   p_styleSizer->Layout();
 
    SGContainer& sg = getFW().getSceneGraph();
    sg.getNMRoot()->whichChild.setValue(SO_SWITCH_NONE);
@@ -870,10 +1113,8 @@ void NModePanel::showAnimationMode()
 
 void NModePanel::showVectorMode()
 {
-   p_styleSizer->Show(p_animateSizer,0);
-   p_styleSizer->Show(p_vectorSizer,1);
+   showStyle(false);
    p_scaleLabel->SetLabel(_("Arrow length:"));
-   p_styleSizer->Layout();
 
    stop();
 
@@ -955,7 +1196,13 @@ bool NModePanel::fillGraph()
   }
   spectrum.setLabel(expt->getURL().getFilePathTail());
   if (p_compare) spectrum.setCompare(*p_compare, p_compareName);
+  spectrum.setDifference(p_showDiff);
+  if (p_expX.size() > 1) spectrum.setExperimental(p_expX, p_expY, p_expLabel);
+  const int selected = p_spectrum->selected();
+  const SpectrumAxis axis = p_spectrum->axis();
   p_spectrum->setSpectrum(spectrum);
+  p_spectrum->setSelected(selected);
+  if (axis.zoomed()) p_spectrum->zoomRange(axis.lo(), axis.hi());
 
   return any;
 }
@@ -974,7 +1221,6 @@ bool NModePanel::compareWith(const string& name)
     p_compare.reset();
     p_compareName.clear();
     p_compareCode.clear();
-    if (p_compareRemove) p_compareRemove->Enable(false);
     fillGraph();
     return true;
   }
@@ -989,7 +1235,6 @@ bool NModePanel::compareWith(const string& name)
     ChemistryTask *task = dynamic_cast<ChemistryTask*>(found[i]);
     const JCode *code = task ? task->application() : 0;
     p_compareCode = code ? code->name() : string();
-    if (p_compareRemove) p_compareRemove->Enable(true);
     fillGraph();
     return true;
   }
@@ -998,7 +1243,7 @@ bool NModePanel::compareWith(const string& name)
 
 
 /** The other calculations in this one's folder that have IR or Raman data. */
-vector<IPropCalculation*> NModePanel::comparableCalculations()
+vector<IPropCalculation*> NModePanel::comparableCalculations(bool needSpectrum)
 {
   vector<IPropCalculation*> out;
   IPropCalculation *calc = getCalculation();
@@ -1011,8 +1256,10 @@ vector<IPropCalculation*> NModePanel::comparableCalculations()
     IPropCalculation *other = dynamic_cast<IPropCalculation*>((*kids)[i]);
     if (other == 0 || (*kids)[i]->getName() == own) continue;
     if (other->getProperty("VIBFREQ") == 0) continue;
-    if (other->getProperty("VIBIR") == 0 && other->getProperty("VIBRAM") == 0)
+    if (needSpectrum && other->getProperty("VIBIR") == 0 &&
+        other->getProperty("VIBRAM") == 0)
       continue;
+    if (!needSpectrum && other->getProperty("VIB") == 0) continue;
     out.push_back(other);
   }
   return out;
@@ -1022,21 +1269,338 @@ vector<IPropCalculation*> NModePanel::comparableCalculations()
 void NModePanel::compareDialog()
 {
   wxBusyCursor busy;
-  const vector<IPropCalculation*> found = comparableCalculations();
-  if (found.empty()) {
-    wxMessageBox("No other calculation in this folder has IR or Raman data.",
-                 "Compare spectra", wxOK | wxICON_INFORMATION, this);
+  const vector<IPropCalculation*> spectra = comparableCalculations();
+  const vector<IPropCalculation*> modes = comparableCalculations(false);
+  if (spectra.empty() && modes.empty()) {
+    wxMessageBox("No other calculation in this folder has IR, Raman or "
+                 "normal-mode data.", "Compare", wxOK | wxICON_INFORMATION, this);
     return;
   }
+  //  One list: each calculation once per thing that can be done with it.
   wxArrayString names;
+  vector<std::pair<IPropCalculation*, bool>> what;   // calculation, overlay?
   names.Add("(none: this calculation only)");
-  for (size_t i = 0; i < found.size(); i++)
-    names.Add(wxString::FromUTF8(found[i]->getURL().getFilePathTail().c_str()));
+  what.push_back({0, true});
+  auto nameOf = [](IPropCalculation *c) {
+    return wxString::FromUTF8(c->getURL().getFilePathTail().c_str());
+  };
+  for (IPropCalculation *c : spectra) {
+    names.Add(nameOf(c) + "  (overlay spectrum)");
+    what.push_back({c, true});
+  }
+  for (IPropCalculation *c : modes) {
+    names.Add(nameOf(c) + "  (match modes)");
+    what.push_back({c, false});
+  }
   const int at = wxGetSingleChoiceIndex(
-      "Draw the spectrum of this calculation as a second curve, with the "
-      "same scaling factor and line width:", "Compare spectra", names, this);
+      "Draw another calculation's spectrum as a second curve, with the same "
+      "scaling factor and line width, or match its bands with this one's "
+      "modes:", "Compare", names, this);
   if (at < 0) return;
-  compareWith(at == 0 ? string() : found[at - 1]->getURL().getFilePathTail());
+  if (at == 0) { compareWith(string()); return; }
+  if (what[at].second)
+    compareWith(what[at].first->getURL().getFilePathTail());
+  else
+    matchBandsDialog(what[at].first);
+}
+
+
+/** Structure, normal modes and IR intensities in ecce-bandshift's file form. */
+bool NModePanel::writeModesFile(IPropCalculation *calc, const string& path,
+                                wxString *error)
+{
+   PropVector *vec = calc ? (PropVector*) calc->getProperty("VIBFREQ") : 0;
+   PropVector *ir = calc ? (PropVector*) calc->getProperty("VIBIR") : 0;
+   PropVecTable *vib = calc ? dynamic_cast<PropVecTable*>(calc->getProperty("VIB")) : 0;
+   Fragment frag;
+   if (!vec || !vib || !calc->getFragment(frag)) {
+      if (error) *error = "This calculation has no stored normal modes and structure.";
+      return false;
+   }
+   const int nat = (int)frag.numAtoms(), nm = vec->rows();
+   if (nat == 0 || vib->rows() != nat || vib->tables() != nm) {
+      if (error) *error = "The normal modes do not match the structure.";
+      return false;
+   }
+   std::ofstream f(path);
+   f.precision(10);
+   f << nat << "\n";
+   for (int a = 0; a < nat; a++) {
+      const double *x = frag.atomRef(a)->coordinates();
+      f << frag.atomRef(a)->atomicSymbol() << " " << x[0] << " " << x[1]
+        << " " << x[2] << "\n";
+   }
+   f << "modes " << nm << "\n";
+   for (int m = 0; m < nm; m++) {
+      f << vec->value(m) << "\n";
+      for (int a = 0; a < nat; a++)
+         f << vib->value(m, a, 0) << " " << vib->value(m, a, 1) << " "
+           << vib->value(m, a, 2) << "\n";
+   }
+   if (ir && ir->rows() == nm) {
+      f << "ir " << nm << "\n";
+      for (int m = 0; m < nm; m++) f << ir->value(m) << "\n";
+   }
+   return (bool)f;
+}
+
+
+//  The arithmetic is ecce-bandshift's (scripts/ecce_bandshift.py).
+bool NModePanel::matchBands(const string& otherName, const string& atoms,
+                            wxString *error)
+{
+   IPropCalculation *self = getCalculation(), *other = 0;
+   const vector<IPropCalculation*> found = comparableCalculations(false);
+   for (size_t i = 0; i < found.size(); i++)
+      if (found[i]->getURL().getFilePathTail() == otherName) other = found[i];
+   wxString err;
+   if (!self || !other) {
+      if (error) *error = "No such calculation with stored normal modes.";
+      return false;
+   }
+   namespace fs = std::filesystem;
+   std::error_code ec;
+   fs::path tmp = fs::temp_directory_path(ec) /
+                  ("ecce-bandshift-" + std::to_string((long)wxGetProcessId()));
+   fs::create_directories(tmp, ec);
+   string text;
+   int status = -1;
+   if (writeModesFile(self, (tmp / "a").string(), error) &&
+       writeModesFile(other, (tmp / "b").string(), error)) {
+      const char *home = getenv("ECCE_HOME");
+      string script = home && *home ? string(home) + "/bin/ecce-bandshift"
+                                    : string("ecce-bandshift");
+      string args = "'" + (tmp / "a").string() + "' '" + (tmp / "b").string() +
+                    "' --lines" +
+                    (atoms.empty() ? string() : " --atoms '" + atoms + "'");
+#ifdef _WIN32
+      fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+      string pyExe = fs::exists(py) ? py.string() : string("python.exe");
+      string cmd = "\"" + pyExe + "\" \"" + script + "\" " + args;
+#else
+      string cmd = "'" + script + "' " + args + " 2>&1";
+#endif
+      status = Ecce::readCommand(cmd, text);
+   } else {
+      fs::remove_all(tmp, ec);
+      return false;
+   }
+   fs::remove_all(tmp, ec);
+   if (status != 0) {
+      if (error) *error = wxString::FromUTF8(text.c_str());
+      return false;
+   }
+
+   if (!p_bandFrame) {
+      wxFrame *frame = new wxFrame(wxGetTopLevelParent(this), wxID_ANY,
+                                   "Vibrational Frequencies: matched bands",
+                                   wxDefaultPosition, wxSize(760, 420));
+      wxPanel *pane = new wxPanel(frame);
+      wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+      p_bandNote = new wxStaticText(pane, wxID_ANY, "");
+      top->Add(p_bandNote, 0, wxEXPAND | wxALL, 6);
+      p_bandGrid = new wxGrid(pane, wxID_ANY);
+      p_bandGrid->CreateGrid(0, 8);
+      p_bandGrid->EnableEditing(false);
+      p_bandGrid->SetRowLabelSize(0);
+      p_bandGrid->SetSelectionMode(wxGrid::wxGridSelectRows);
+      const char *cols[] = {"Mode A", "cm-1 A", "IR A", "Mode B", "cm-1 B",
+                            "IR B", "Shift", "Overlap"};
+      for (int c = 0; c < 8; c++) p_bandGrid->SetColLabelValue(c, cols[c]);
+      p_bandGrid->Bind(wxEVT_GRID_SELECT_CELL, [this](wxGridEvent& e) {
+         long m = 0;
+         if (e.GetRow() >= 0 && p_bandGrid->GetCellValue(e.GetRow(), 0).ToLong(&m) &&
+             p_grid && m >= 1 && m <= p_grid->GetNumberRows())
+            selectMode((int)m - 1);
+         e.Skip();
+      });
+      top->Add(p_bandGrid, 1, wxEXPAND | wxALL, 6);
+      pane->SetSizer(top);
+      wxBoxSizer *fs2 = new wxBoxSizer(wxVERTICAL);
+      fs2->Add(pane, 1, wxEXPAND);
+      frame->SetSizer(fs2);
+      p_bandFrame = frame;
+   }
+   p_bandFrame->SetTitle(wxString::FromUTF8(
+      ("Vibrational Frequencies: bands of " + self->getURL().getFilePathTail() +
+       " matched with " + otherName).c_str()));
+   if (p_bandGrid->GetNumberRows() > 0)
+      p_bandGrid->DeleteRows(0, p_bandGrid->GetNumberRows());
+   wxString note, unmatched;
+   std::istringstream in(text);
+   string line;
+   while (std::getline(in, line)) {
+      if (!line.empty() && line.back() == '\r') line.pop_back();
+      vector<string> f;
+      std::stringstream ls(line);
+      string cell;
+      while (std::getline(ls, cell, '\t')) f.push_back(cell);
+      if (f.size() >= 4 && f[0] == "header")
+         note = wxString::Format("%s common atoms, fit RMSD %s A, overlap "
+                                 "threshold %s. Shift is B minus A, A being "
+                                 "this calculation.",
+                                 f[1], f[2], f[3]);
+      else if (f.size() == 9 && f[0] == "match") {
+         const int r = p_bandGrid->GetNumberRows();
+         p_bandGrid->AppendRows(1);
+         auto fmt = [](const string& v, const char *pat) {
+            return v == "-" ? wxString("-") : wxString::Format(pat, atof(v.c_str()));
+         };
+         p_bandGrid->SetCellValue(r, 0, f[1]);
+         p_bandGrid->SetCellValue(r, 1, fmt(f[2], "%.1f"));
+         p_bandGrid->SetCellValue(r, 2, fmt(f[3], "%.1f"));
+         p_bandGrid->SetCellValue(r, 3, f[4]);
+         p_bandGrid->SetCellValue(r, 4, fmt(f[5], "%.1f"));
+         p_bandGrid->SetCellValue(r, 5, fmt(f[6], "%.1f"));
+         p_bandGrid->SetCellValue(r, 6, wxString::Format("%+.1f", atof(f[7].c_str())));
+         p_bandGrid->SetCellValue(r, 7, wxString::Format("%.3f", atof(f[8].c_str())));
+         for (int c = 0; c < 8; c++)
+            p_bandGrid->SetCellAlignment(r, c, wxALIGN_RIGHT, wxALIGN_CENTRE);
+      } else if (f.size() == 6 && f[0] == "unmatched") {
+         unmatched += wxString::Format("%s%s mode %s (%.1f cm-1)", unmatched.empty() ? "" : "; ",
+                                       f[1], f[2], atof(f[3].c_str()));
+      }
+   }
+   if (!unmatched.empty()) note += "\nUnmatched: " + unmatched + ".";
+   p_bandNote->SetLabel(note);
+   p_bandGrid->AutoSizeColumns();
+   p_bandFrame->Layout();
+   p_bandFrame->Show(true);
+   p_bandFrame->Raise();
+   return true;
+}
+
+
+wxString NModePanel::bandTableText() const
+{
+   wxString out;
+   if (!p_bandGrid) return out;
+   for (int r = 0; r < p_bandGrid->GetNumberRows(); r++) {
+      for (int c = 0; c < p_bandGrid->GetNumberCols(); c++)
+         out += (c ? "\t" : "") + p_bandGrid->GetCellValue(r, c);
+      out += "\n";
+   }
+   return out;
+}
+
+
+int NModePanel::scriptBandClick(int row)
+{
+   if (!p_bandGrid || row < 0 || row >= p_bandGrid->GetNumberRows()) return -1;
+   p_bandGrid->SelectRow(row);
+   p_bandGrid->SetGridCursor(row, 0);
+   wxGridEvent ev(wxID_ANY, wxEVT_GRID_SELECT_CELL, p_bandGrid, row, 0);
+   p_bandGrid->GetEventHandler()->ProcessEvent(ev);
+   return p_selectedRow + 1;
+}
+
+
+void NModePanel::setShowDifference(bool on)
+{
+   p_showDiff = on;
+   fillGraph();
+}
+
+
+void NModePanel::zoomSpectrum(double lo, double hi)
+{
+   if (p_spectrum == 0) return;
+   p_spectrum->zoomRange(lo, hi);
+}
+
+
+//  The reading, format detection and T -> A conversion are
+//  ecce-spectrum's (scripts/ecce_spectrum.py), so the plot and the command
+//  line cannot disagree.
+bool NModePanel::importExperimental(const string& path, const string& kind,
+                                    wxString *error)
+{
+   if (path.empty()) {
+      p_expX.clear();
+      p_expY.clear();
+      p_expLabel.clear();
+      fillGraph();
+      return true;
+   }
+   const char *home = getenv("ECCE_HOME");
+   string script = home && *home ? string(home) + "/bin/ecce-spectrum"
+                                 : string("ecce-spectrum");
+   string args = "--parse-exp '" + path + "' --exp-kind " + (kind.empty() ? "auto" : kind);
+#ifdef _WIN32
+   namespace fs = std::filesystem;
+   fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+   string pyExe = fs::exists(py) ? py.string() : string("python.exe");
+   string cmd = "\"" + pyExe + "\" \"" + script + "\" " + args;
+#else
+   string cmd = "'" + script + "' " + args + " 2>&1";
+#endif
+   string text;
+   if (Ecce::readCommand(cmd, text) != 0) {
+      if (error) *error = wxString::FromUTF8(text.c_str());
+      return false;
+   }
+   vector<double> x, y;
+   string detected, line;
+   std::istringstream in(text);
+   while (std::getline(in, line)) {
+      if (line.compare(0, 5, "kind\t") == 0) { detected = line.substr(5); continue; }
+      double a, b;
+      if (sscanf(line.c_str(), "%lf %lf", &a, &b) == 2) { x.push_back(a); y.push_back(b); }
+   }
+   if (x.size() < 2) {
+      if (error) *error = "No spectrum found in the file.";
+      return false;
+   }
+   p_expX = x;
+   p_expY = y;
+   string name = path;
+   const size_t at = name.find_last_of("/\\");
+   if (at != string::npos) name = name.substr(at + 1);
+   p_expLabel = name + " (" + detected + ")";
+   fillGraph();
+   return true;
+}
+
+
+void NModePanel::importExperimentalDialog()
+{
+   if (!p_expX.empty()) {
+      const int r = wxMessageBox("Remove the experimental spectrum? No keeps "
+                                 "it and lets you choose another file.",
+                                 "Experimental spectrum",
+                                 wxYES_NO | wxCANCEL | wxICON_QUESTION, this);
+      if (r == wxCANCEL) return;
+      if (r == wxYES) { importExperimental("", ""); return; }
+   }
+   wxFileDialog dlg(this, "Experimental spectrum (wavenumber, absorbance or "
+                    "transmittance)", wxEmptyString, wxEmptyString,
+                    "Spectrum files (*.csv;*.txt;*.dat)|*.csv;*.txt;*.dat|All files|*",
+                    wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+   if (dlg.ShowModal() != wxID_OK) return;
+   wxString err;
+   if (!importExperimental((const char*)dlg.GetPath().utf8_str(), "auto", &err))
+      wxMessageBox(err, "Experimental spectrum", wxOK | wxICON_ERROR, this);
+}
+
+
+void NModePanel::matchBandsDialog(IPropCalculation *other)
+{
+  string atoms;
+  Fragment fa, fb;
+  if (getCalculation()->getFragment(fa) && other->getFragment(fb) &&
+      fa.numAtoms() != fb.numAtoms()) {
+    wxString a = wxGetTextFromUser(
+        wxString::Format("This calculation has %d atoms and the other %d. The "
+                         "common atoms, this one's first, 1-based: for example "
+                         "1-12:5-16 maps this calculation's atoms 1-12 to the "
+                         "other's 5-16.", (int)fa.numAtoms(), (int)fb.numAtoms()),
+        "Match bands: common atoms", "", this);
+    if (a.empty()) return;
+    atoms = (const char*)a.utf8_str();
+  }
+  wxString err;
+  if (!matchBands(other->getURL().getFilePathTail(), atoms, &err))
+    wxMessageBox(err, "Match bands", wxOK | wxICON_INFORMATION, this);
 }
 
 
@@ -1047,12 +1611,14 @@ void NModePanel::compareDialog()
  */
 wxString NModePanel::scriptSpectrumFactor(const wxString& text)
 {
-   if (!p_isValid || p_spectrum == 0 || p_scaleText == 0) return "no graph";
-   p_scaleText->ChangeValue(text);
-   applySpectrumSettings();
+   if (!p_isValid || p_spectrum == 0) return "no graph";
+   wxTextCtrl *field = new wxTextCtrl(this, wxID_ANY, text);
+   field->Hide();
+   applySpectrumSettings(nullptr, field);
    const VibSpectrum& s = p_spectrum->spectrum();
    wxString out = wxString::Format("field '%s' scale %g sticks",
-                                   p_scaleText->GetValue(), s.scale());
+                                   field->GetValue(), s.scale());
+   field->Destroy();
    for (int k = 0; k < 2; k++)
       if (s.has((VibKind)k)) {
          const vector<VibStick> st = s.sticks((VibKind)k);
@@ -1076,12 +1642,30 @@ wxString NModePanel::scriptSpectrumFactor(const wxString& text)
 void NModePanel::dumpSpectrumIfRequested()
 {
    const char *path = getenv("ECCE_SPECTRUM_DUMP");
-   if (path == 0 || p_spectrum == 0) return;
+   if (path == 0 || p_spectrum == 0 || p_spectrumDumped) return;
+   p_spectrumDumped = true;
 
    //  ECCE_SPECTRUM_COMPARE=<calculation>: the second curve before painting;
    //  ECCE_SPECTRUM_CSV=<path>: the CSV an export would write.
    const char *other = getenv("ECCE_SPECTRUM_COMPARE");
    const bool compared = other != 0 && compareWith(other);
+   //  ECCE_SPECTRUM_EXPERIMENTAL=<file>[:<kind>], ECCE_SPECTRUM_DIFFERENCE=1
+   //  and ECCE_SPECTRUM_ZOOM=<lo>,<hi> (#707) before the CSV and the paint.
+   if (const char *e = getenv("ECCE_SPECTRUM_EXPERIMENTAL")) {
+      string f = e, kind = "auto";
+      const size_t colon = f.rfind(':');
+      if (colon != string::npos && colon + 1 < f.size() &&
+          (f.substr(colon + 1) == "absorbance" || f.substr(colon + 1) == "transmittance")) {
+         kind = f.substr(colon + 1);
+         f = f.substr(0, colon);
+      }
+      importExperimental(f, kind);
+   }
+   if (getenv("ECCE_SPECTRUM_DIFFERENCE") != 0) setShowDifference(true);
+   if (const char *z = getenv("ECCE_SPECTRUM_ZOOM")) {
+      double a, b;
+      if (sscanf(z, "%lf,%lf", &a, &b) == 2) zoomSpectrum(a, b);
+   }
    const char *csv = getenv("ECCE_SPECTRUM_CSV");
    if (csv != 0) exportSpectrumCsv(csv, spectrumKindShown());
 
@@ -1120,26 +1704,30 @@ void NModePanel::dumpSpectrumIfRequested()
                        cs[i].wavenumber, cs[i].intensity);
          }
       }
-      //  ECCE_SPECTRUM_REMOVE_COMPARE=1: click "Remove comparison" and
-      //  report the button and the second curve before and after.
-      if (other != 0 && getenv("ECCE_SPECTRUM_REMOVE_COMPARE") != 0 &&
-          p_compareRemove != 0) {
+      //  ECCE_SPECTRUM_REMOVE_COMPARE=1: remove the other spectra as the
+      //  window's Remove does, and report whether there were any and the
+      //  second curve before and after.
+      if (other != 0 && getenv("ECCE_SPECTRUM_REMOVE_COMPARE") != 0) {
          auto second = [&]() {
             return (int)(p_spectrum->spectrum().compareSticks(VIB_IR).size() +
                          p_spectrum->spectrum().compareSticks(VIB_RAMAN).size());
          };
          fprintf(out, "remove-button before enabled %d compare-sticks %d\n",
-                 p_compareRemove->IsEnabled() ? 1 : 0, second());
-         wxCommandEvent ev(wxEVT_BUTTON, p_compareRemove->GetId());
-         ev.SetEventObject(p_compareRemove);
-         p_compareRemove->GetEventHandler()->ProcessEvent(ev);
+                 hasOtherSpectra() ? 1 : 0, second());
+         removeOtherSpectra();
          fprintf(out, "remove-button after enabled %d compare-sticks %d\n",
-                 p_compareRemove->IsEnabled() ? 1 : 0, second());
+                 hasOtherSpectra() ? 1 : 0, second());
       }
       //  ECCE_SPECTRUM_WINDOW=1: open the pop-out and click in IT.
       SpectrumCanvas *clicker = p_spectrum;
       if (getenv("ECCE_SPECTRUM_WINDOW") != 0) {
-         openSpectrumWindow();
+         wxWindow *button = wxWindow::FindWindowByLabel("Open in window...", this);
+         if (button) {
+            wxCommandEvent event(wxEVT_BUTTON, button->GetId());
+            event.SetEventObject(button);
+            button->GetEventHandler()->ProcessEvent(event);
+         }
+         if (!p_spectrumPop) { fclose(out); return; }
          clicker = p_spectrumPop;
          wxBitmap shot(1000, 700, 24);
          wxMemoryDC wdc(shot);
@@ -1185,9 +1773,153 @@ void NModePanel::dumpSpectrumIfRequested()
          wdc.SelectObject(wxNullBitmap);
          shot.SaveFile(wxString(path) + ".window.png", wxBITMAP_TYPE_PNG);
          fprintf(out, "strip selected %d\n", sel + 1);
+         p_spectrumFrame->UpdateWindowUI(wxUPDATE_UI_RECURSE);
+         const char *names[] = {"width", "factor", "low", "high", "direction", "sticks",
+                                "difference", "reset", "experimental", "compare",
+                                "remove", "export-csv"};
+         for (const char *name : names) {
+            wxWindow *control = wxWindow::FindWindowByName(wxString("spectrum-") + name,
+                                                          p_spectrumFrame);
+            fprintf(out, "setting %s %d\n", name, control && control->IsShownOnScreen());
+         }
+         // Exercise the buttons and their real dialogs without native UI automation.
+         if (const char *target = getenv("ECCE_SPECTRUM_WINDOW_ACTIONS")) {
+            struct Answers : wxModalDialogHook {
+               wxString calculation;
+               int choices = 0;
+               int Enter(wxDialog *dialog) override {
+                  if (auto *choice = dynamic_cast<wxSingleChoiceDialog*>(dialog)) {
+                     for (wxWindow *child : choice->GetChildren()) {
+                        auto *list = dynamic_cast<wxListBox*>(child);
+                        if (!list) continue;
+                        const int at = list->FindString(calculation + "  (overlay spectrum)");
+                        if (at == wxNOT_FOUND) return wxID_CANCEL;
+                        choice->SetSelection(at);
+                        ++choices;
+                        return wxID_OK;
+                     }
+                  }
+                  return wxID_CANCEL;
+               }
+            } answers;
+            answers.calculation = wxString::FromUTF8(target);
+            answers.Register();
+            auto button = [this](const char *name) {
+               return wxWindow::FindWindowByName(wxString("spectrum-") + name,
+                                                 p_spectrumFrame);
+            };
+            auto press = [](wxWindow *control, const wxString& path = wxString()) {
+               if (!control || !control->IsEnabled()) return;
+               wxCommandEvent event(wxEVT_BUTTON, control->GetId());
+               event.SetEventObject(control);
+               event.SetString(path);
+               control->GetEventHandler()->ProcessEvent(event);
+            };
+            auto states = [&](const char *stage) {
+               p_spectrumFrame->UpdateWindowUI(wxUPDATE_UI_RECURSE);
+               const auto dock = p_spectrum->spectrum().compareSticks(VIB_IR);
+               const auto pop = p_spectrumPop->spectrum().compareSticks(VIB_IR);
+               bool same = dock.size() == pop.size();
+               for (size_t i = 0; same && i < dock.size(); ++i)
+                  same = dock[i].wavenumber == pop[i].wavenumber &&
+                         dock[i].intensity == pop[i].intensity;
+               fprintf(out, "window-compare %s dock %zu window %zu same %d remove %d/%d diff %d/%d\n",
+                       stage, dock.size(), pop.size(), same,
+                       p_compare != nullptr, button("remove")->IsEnabled(),
+                       p_compare != nullptr, button("difference")->IsEnabled());
+            };
+            states("before");
+            press(button("compare"));
+            states("drawn");
+            // Supply the destination through the command event so a headless
+            // export uses the handler without the native file picker.
+            press(button("export-csv"), wxString(path) + ".window.csv");
+            press(wxWindow::FindWindowByLabel("Export .csv...", this),
+                  wxString(path) + ".panel.csv");
+            fprintf(out, "window-dialogs compare %d\n", answers.choices);
+            press(button("remove"));
+            states("removed");
+            // Leave the comparison drawn for the window capture.
+            press(button("compare"));
+         }
+         if (getenv("ECCE_SPECTRUM_SETTINGS")) {
+            auto field = [this](const char *name) {
+               return wxDynamicCast(wxWindow::FindWindowByName(
+                  wxString("spectrum-") + name, p_spectrumFrame), wxTextCtrl);
+            };
+            auto command = [](wxWindow *control, wxEventType type, int value = 0) {
+               wxCommandEvent event(type, control->GetId());
+               event.SetEventObject(control);
+               event.SetInt(value);
+               control->GetEventHandler()->ProcessEvent(event);
+            };
+            const double oldWidth = s.fwhm(), oldScale = s.scale();
+            field("width")->ChangeValue("23");
+            field("factor")->ChangeValue("0.96");
+            command(field("width"), wxEVT_TEXT_ENTER);
+            UpdateWindowUI(wxUPDATE_UI_RECURSE);
+            bool ok = s.fwhm() == 23 && s.scale() == 0.96;
+            field("width")->ChangeValue("17");
+            field("factor")->ChangeValue("1");
+            command(field("width"), wxEVT_TEXT_ENTER);
+            p_spectrumFrame->UpdateWindowUI(wxUPDATE_UI_RECURSE);
+            ok = ok && s.fwhm() == 17 && s.scale() == 1;
+            field("low")->ChangeValue("1000");
+            field("high")->ChangeValue("2000");
+            command(field("high"), wxEVT_TEXT_ENTER);
+            UpdateWindowUI(wxUPDATE_UI_RECURSE);
+            ok = ok && p_spectrum->axis().lo() == 1000 && p_spectrum->axis().hi() == 2000;
+            for (const char *name : {"direction", "sticks"}) {
+               wxWindow *control = wxWindow::FindWindowByName(wxString("spectrum-") + name,
+                                                             p_spectrumFrame);
+               command(control, wxEVT_CHECKBOX, 0);
+            }
+            ok = ok && !p_spectrum->reversed() && !p_spectrum->showSticks();
+            //  A refresh for the difference curve must keep the selected mode and zoom.
+            setShowDifference(true);
+            ok = ok && p_spectrum->selected() == sel && p_spectrum->axis().lo() == 1000 &&
+                 p_spectrum->axis().hi() == 2000;
+            setShowDifference(false);
+            wxWindow *reset = wxWindow::FindWindowByName("spectrum-reset", p_spectrumFrame);
+            command(reset, wxEVT_BUTTON);
+            ok = ok && !p_spectrum->axis().zoomed();
+            fprintf(out, "settings-sync %d\n", ok);
+            field("width")->ChangeValue(wxString::Format("%g", oldWidth));
+            field("factor")->ChangeValue(wxString::Format("%g", oldScale));
+            command(field("width"), wxEVT_TEXT_ENTER);
+            p_spectrum->setReversed(true);
+            p_spectrum->setShowSticks(true);
+            wxMemoryDC updated(shot);
+            p_spectrumPop->paintOnto(updated, wxSize(1000, 700));
+            updated.SelectObject(wxNullBitmap);
+            p_spectrum->setModeNotes({});
+            wxMemoryDC unassigned(shot);
+            p_spectrumPop->paintOnto(unassigned, wxSize(1000, 700));
+            fprintf(out, "strip-unassigned %d\n", !p_spectrumPop->stripText().empty());
+            std::vector<SpectrumModeNote> notes(p_vib.modes.size());
+            for (size_t m = 0; m < notes.size(); ++m) {
+               notes[m].label = p_vib.modes[m].label;
+               notes[m].parts = p_vib.modes[m].parts;
+               notes[m].irrep = p_vib.modes[m].irrep;
+               notes[m].activity = std::string(activityText(p_vib.modes[m]).utf8_str());
+            }
+            p_spectrum->setModeNotes(notes);
+            p_spectrumPop->paintOnto(unassigned, wxSize(1000, 700));
+            unassigned.SelectObject(wxNullBitmap);
+         }
          const std::vector<wxString>& st = p_spectrumPop->stripText();
          for (size_t i = 0; i < st.size(); i++)
             fprintf(out, "strip %zu %s\n", i, (const char*)st[i].utf8_str());
+         const wxWeakRef<wxFrame> frame = p_spectrumFrame;
+         const wxString framePath = wxString(path) + ".frame.png";
+         CallAfter([frame, framePath]() {
+            if (!frame) return;
+            frame->Layout();
+            frame->UpdateWindowUI(wxUPDATE_UI_RECURSE);
+            frame->Refresh();
+            frame->Update();
+            ecceClientShot(frame, framePath);
+         });
       }
       fclose(out);
    }
@@ -1356,6 +2088,8 @@ void NModePanel::fillTable()
       std::vector<SpectrumModeNote> notes(p_vib.modes.size());
       for (size_t m = 0; m < notes.size(); m++) {
          notes[m].label = p_vib.modes[m].label;
+         notes[m].irrep = p_vib.modes[m].irrep;
+         notes[m].activity = std::string(activityText(p_vib.modes[m]).utf8_str());
          notes[m].parts = p_vib.modes[m].parts;
       }
       if (p_spectrum) p_spectrum->setModeNotes(notes);
@@ -1424,7 +2158,7 @@ void NModePanel::fillTable()
          //  An imaginary mode (stored as a negative wavenumber) decides
          //  whether the structure is a minimum or a transition state, so
          //  its whole row stands out.
-         if (vec->value(idx) < 0.0)
+         if (VibFrequency::isImaginary(vec->value(idx)))
             for (int c = 0; c < p_grid->GetNumberCols(); c++)
                p_grid->SetCellTextColour(idx, c, imaginaryColour());
       }
@@ -1468,6 +2202,156 @@ void NModePanel::analyseModes()
    } catch (...) {
       p_vib = VibResult();
    }
+}
+
+
+//  The arithmetic is ecce-displace's (scripts/ecce_displace.py); this writes
+//  its input, runs it and puts the answer into copies of the calculation.
+string NModePanel::displaceCalculation(int mode, double amplitude,
+                                       const string& sign, vector<string> *urls)
+{
+   IPropCalculation *calc = getCalculation();
+   Resource *res = dynamic_cast<Resource*>(calc);
+   PropVector *vec = calc ? (PropVector*) calc->getProperty("VIBFREQ") : 0;
+   PropVecTable *vib = calc ? dynamic_cast<PropVecTable*>(calc->getProperty("VIB")) : 0;
+   Fragment frag;
+   if (!res || !vec || !vib || !calc->getFragment(frag))
+      return "This calculation has no stored normal modes and structure.";
+   const int nat = (int)frag.numAtoms(), nm = vec->rows();
+   if (nat == 0 || vib->rows() != nat || vib->tables() != nm)
+      return "The normal modes do not match the structure.";
+   if (mode >= nm) return "No such mode.";
+   if (!(amplitude > 0)) return "The amplitude must be positive.";
+
+   namespace fs = std::filesystem;
+   std::error_code ec;
+   fs::path tmp = fs::temp_directory_path(ec) /
+                  ("ecce-displace-" + std::to_string((long)wxGetProcessId()));
+   fs::create_directories(tmp, ec);
+   {
+      std::ofstream f((tmp / "modes").string());
+      f.precision(10);
+      f << nat << "\n";
+      for (int a = 0; a < nat; a++) {
+         const double *x = frag.atomRef(a)->coordinates();
+         f << frag.atomRef(a)->atomicSymbol() << " " << x[0] << " " << x[1]
+           << " " << x[2] << "\n";
+      }
+      f << "modes " << nm << "\n";
+      for (int m = 0; m < nm; m++) {
+         f << vec->value(m) << "\n";
+         for (int a = 0; a < nat; a++)
+            f << vib->value(m, a, 0) << " " << vib->value(m, a, 1) << " "
+              << vib->value(m, a, 2) << "\n";
+      }
+   }
+   const char *home = getenv("ECCE_HOME");
+   string script = home && *home ? string(home) + "/bin/ecce-displace"
+                                 : string("ecce-displace");
+   std::ostringstream amp;
+   amp << amplitude;
+   string args = "'" + (tmp / "modes").string() + "' " +
+                 (mode < 0 ? string("--imaginary") : "--mode " + std::to_string(mode + 1)) +
+                 " --amplitude " + amp.str() + " --sign '" + sign + "' --source '" +
+                 res->getName() + "' --lines";
+#ifdef _WIN32
+   fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+   string pyExe = fs::exists(py) ? py.string() : string("python.exe");
+   string cmd = "\"" + pyExe + "\" \"" + script + "\" " + args;
+#else
+   string cmd = "'" + script + "' " + args + " 2>/dev/null";
+#endif
+   string text;
+   int status = Ecce::readCommand(cmd, text);
+   fs::remove_all(tmp, ec);
+   if (status != 0)
+      return mode < 0 ? "This calculation has no imaginary mode."
+                      : "The displacement could not be computed.";
+
+   std::istringstream in(text);
+   string line;
+   vector<string> out;
+   while (std::getline(in, line)) {
+      if (!line.empty() && line.back() == '\r') line.pop_back();
+      if (line.compare(0, 5, "note ") != 0) continue;
+      const string note = line.substr(5);
+      vector<double> xyz;
+      for (int a = 0; a < nat && std::getline(in, line); a++) {
+         std::istringstream ls(line);
+         double x, y, z;
+         ls >> x >> y >> z;
+         xyz.push_back(x); xyz.push_back(y); xyz.push_back(z);
+      }
+      if ((int)xyz.size() != 3*nat) return "The displacement could not be read.";
+      EcceURL url = res->getURL();
+      if (!res->copy(url)) return "The calculation could not be copied: " + res->messages();
+      Resource *made = EDSIFactory::getResource(url);
+      PropertyTask *pt = dynamic_cast<PropertyTask*>(made);
+      ICalculation *ic = dynamic_cast<ICalculation*>(made);
+      TaskJob *job = dynamic_cast<TaskJob*>(made);
+      Fragment *nf = pt ? pt->fragment() : 0;
+      if (!nf || !ic || !job || (int)nf->numAtoms() != nat) {
+         if (made) made->remove();
+         return "The copy has no structure to displace.";
+      }
+      for (int a = 0; a < nat; a++)
+         nf->atomRef(a)->coordinates(xyz[3*a], xyz[3*a+1], xyz[3*a+2]);
+      pt->fragment(nf);
+      TRunType rt;
+      rt.name("Geometry");
+      ic->runtype(rt);
+      //  Settings of the frequency step make no sense for an optimisation.
+      if (GUIValues *g = ic->guiparams()) {
+         g->deletePrefix("ES.Runtype.Vibration.");
+         ic->guiparams(g);
+         delete g;
+      }
+      job->resetForRerun(ResourceDescriptor::STATE_CREATED);
+      made->addProp(VDoc::getEcceNamespace() + ":annotation", note);
+      EDSIFactory::notifyCreate(url.toString(), false);
+      out.push_back(url.toString());
+   }
+   if (out.empty()) return "The displacement could not be read.";
+   if (urls) *urls = out;
+   return "";
+}
+
+
+void NModePanel::displaceDialog()
+{
+   wxDialog dlg(this, wxID_ANY, "Displace along a mode");
+   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+   wxArrayString what, sign;
+   what.Add("Selected mode");
+   what.Add("All imaginary modes");
+   sign.Add("+");
+   sign.Add("-");
+   sign.Add("Both (two calculations)");
+   wxRadioBox *w = new wxRadioBox(&dlg, wxID_ANY, "Along", wxDefaultPosition,
+                                  wxDefaultSize, what, 1);
+   wxRadioBox *sg = new wxRadioBox(&dlg, wxID_ANY, "Direction",
+                                   wxDefaultPosition, wxDefaultSize, sign, 1);
+   wxTextCtrl *amp = new wxTextCtrl(&dlg, wxID_ANY, "0.10");
+   top->Add(w, 0, wxALL | wxEXPAND, 6);
+   top->Add(sg, 0, wxALL | wxEXPAND, 6);
+   wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+   row->Add(new wxStaticText(&dlg, wxID_ANY, "Largest atom displacement (\u00c5)"),
+            0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+   row->Add(amp, 1);
+   top->Add(row, 0, wxALL | wxEXPAND, 6);
+   top->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 6);
+   dlg.SetSizerAndFit(top);
+   if (dlg.ShowModal() != wxID_OK) return;
+   double a = 0;
+   if (!amp->GetValue().ToDouble(&a)) a = -1;
+   const char *signs[] = {"+", "-", "both"};
+   vector<string> urls;
+   string err = displaceCalculation(w->GetSelection() == 0 ? p_mode : -1, a,
+                                    signs[sg->GetSelection()], &urls);
+   wxString msg = err.empty()
+      ? wxString::Format("Created %d new calculation(s) next to this one.", (int)urls.size())
+      : wxString::FromUTF8(err);
+   wxMessageBox(msg, "Displace along a mode", wxOK | wxICON_INFORMATION, this);
 }
 
 
@@ -1661,6 +2545,13 @@ void NModePanel::wrapAll(wxStaticText *label, const std::vector<wxString>& parts
    wxString full;
    for (size_t i = 0; i < parts.size(); i++)
       full += (i ? wxString::FromUTF8(" \xC2\xB7 ") : wxString()) + parts[i];
+   wrapText(label, full);
+}
+
+/// Wraps each paragraph (lines of `full` split at \n) to the label's width.
+void NModePanel::wrapText(wxStaticText *label, const wxString& full)
+{
+   if (label == 0) return;
    label->SetToolTip(full.empty() ? NULL : new wxToolTip(full));
    int width = label->GetClientSize().x;
    if (const char *w = getenv("ECCE_NMODE_DETAIL_WIDTH")) width = atoi(w);
@@ -1668,16 +2559,22 @@ void NModePanel::wrapAll(wxStaticText *label, const std::vector<wxString>& parts
    dc.SetFont(label->GetFont());
    wxString shown, line;
    int lines = 1;
-   wxStringTokenizer words(full, " ");
-   while (words.HasMoreTokens()) {
-      const wxString word = words.GetNextToken();
-      const wxString t = line.empty() ? word : line + " " + word;
-      if (!line.empty() && width > 40 && dc.GetTextExtent(t).x > width) {
-         shown += line + "\n";
-         line = word;
-         lines++;
-      } else {
-         line = t;
+   wxStringTokenizer paras(full, "\n", wxTOKEN_RET_EMPTY_ALL);
+   bool firstPara = true;
+   while (paras.HasMoreTokens()) {
+      if (!firstPara) { shown += line + "\n"; line.clear(); lines++; }
+      firstPara = false;
+      wxStringTokenizer words(paras.GetNextToken(), " ");
+      while (words.HasMoreTokens()) {
+         const wxString word = words.GetNextToken();
+         const wxString t = line.empty() ? word : line + " " + word;
+         if (!line.empty() && width > 40 && dc.GetTextExtent(t).x > width) {
+            shown += line + "\n";
+            line = word;
+            lines++;
+         } else {
+            line = t;
+         }
       }
    }
    shown += line;
@@ -1734,7 +2631,34 @@ void NModePanel::showModeDetail(int row)
    setWrapped(p_modeDetail, vparts);
    p_graphParts = vparts;
    if (!freq.empty()) p_graphParts.insert(p_graphParts.begin(), freq);
-   wrapAll(p_graphDetail, p_graphParts);
+   //  Under the plot: line 1 names the mode with the intensities that
+   //  exist, line 2 the contributions.
+   wxString l1, l2;
+   if (!freq.empty() && row >= 0 && row < (int)p_vib.modes.size()) {
+      const wxString dot = wxString::FromUTF8(" \xC2\xB7 ");
+      const VibModeInfo& v = p_vib.modes[row];
+      l1 = wxString::Format("Mode %d", row + 1) + dot + freq;
+      wxString sym = p_symColumn >= 0 && p_symColumn < p_grid->GetNumberCols()
+                        ? p_grid->GetCellValue(row, p_symColumn) : wxString();
+      if (sym.empty()) sym = wxString::FromUTF8(v.irrep.c_str());
+      if (!sym.empty()) l1 += dot + sym;
+      if (p_spectrum != 0 && !p_spectrum->spectrum().electronic())
+         for (int k = 0; k < 2; k++) {
+            const VibSpectrum& sp = p_spectrum->spectrum();
+            if (!sp.has((VibKind)k)) continue;
+            for (const VibStick& st : sp.sticks((VibKind)k))
+               if (st.mode == row)
+                  l1 += dot + (k == VIB_IR ? "IR " : "Raman ") +
+                        wxString::Format("%.1f ", st.intensity) +
+                        wxString::FromUTF8(sp.unitLabel((VibKind)k).c_str());
+         }
+      for (const auto& part : v.parts)
+         l2 += (l2.empty() ? "" : "  ") + wxString::FromUTF8(part.first.c_str()) +
+               wxString::Format(" %.0f %%", part.second);
+      if (!l2.empty()) l2 += "  (others < 5 %)";
+   }
+   p_graphText = l2.empty() ? l1 : l1 + "\n" + l2;
+   wrapText(p_graphDetail, p_graphText);
 }
 
 
@@ -2168,6 +3092,7 @@ void NModePanel::OnRadioboxSelected( wxCommandEvent& event )
 {
    wxRadioBox *radbox = (wxRadioBox*)FindWindow(ID_RADIOBOX_NMODE_VIZTYPE);
    p_lastRadioSel = radbox->GetSelection();
+   syncViewControls();
    setSlider();
    if (p_lastRadioSel == 0) {
       showAnimationMode();
@@ -2214,6 +3139,7 @@ void NModePanel::OnRadioboxUpdateUI( wxUpdateUIEvent& event )
    int sel = radbox->GetSelection();
    if (sel != p_lastRadioSel) {
       p_lastRadioSel = sel;
+      syncViewControls();
       setSlider();
       if (sel == 0) {
          showAnimationMode();
@@ -2420,7 +3346,7 @@ void NModePanel::fillComposition()
    if (p_compGrid->GetNumberRows() > 0)
       p_compGrid->DeleteRows(0, p_compGrid->GetNumberRows());
    for (size_t m = 0; m < p_comp.percent.size(); m++) {
-      if (fabs(p_compFreqs[m]) < 10.0) continue;   // translations, rotations
+      if (VibFrequency::isZero(p_compFreqs[m])) continue;   // translations, rotations
       vector<size_t> order(p_comp.names.size());
       for (size_t i = 0; i < order.size(); i++) order[i] = i;
       const vector<double>& pc = p_comp.percent[m];
@@ -2443,7 +3369,7 @@ void NModePanel::fillComposition()
       p_compGrid->SetCellValue(r, 2, m < p_compLabels.size()
                                ? wxString::FromUTF8(p_compLabels[m].c_str()) : wxString());
       p_compGrid->SetCellValue(r, 3, text);
-      if (p_compFreqs[m] < 0.0)
+      if (VibFrequency::isImaginary(p_compFreqs[m]))
          for (int c = 0; c < p_compGrid->GetNumberCols(); c++)
             p_compGrid->SetCellTextColour(r, c, imaginaryColour());
    }

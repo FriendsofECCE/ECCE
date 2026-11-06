@@ -89,9 +89,11 @@ vector<string> LaunchBatch::profileNames(const string& machine)
 // Another machine: queue, cores, memory and wall time are kept where the
 // machine's queue allows them; account and directories are the profile's.
 static void carryOver(TaskJob *task, Launchdata& l,
-                      const LaunchBatch::Target& target, string& changes,
-                      string& problem)
+                      const LaunchBatch::Target& given, string& changes,
+                      string& problem, vector<string>& notes)
 {
+  LaunchBatch::Target target = given;
+  if (target.machine.empty()) target.machine = l.machine;
   MachinePreferences *prefs = MachinePreferences::lookup(target.machine);
   RefMachine *rm = prefs ? prefs->getRegisteredMachine() : 0;
   if (!rm) {
@@ -138,9 +140,21 @@ static void carryOver(TaskJob *task, Launchdata& l,
     if (queues && !queues->empty()) {
       if (dflt.empty() || !queues->count(dflt)) dflt = queues->begin()->first;
       l.queue = queues->count(old.queue) ? old.queue : dflt;
+      if (!target.queue.empty()) {
+        if (queues->count(target.queue)) l.queue = target.queue;
+        else notes.push_back("queue " + target.queue + " is not on " +
+                             target.machine + ": using " + l.queue);
+      } else if (!queues->count(old.queue)) {
+        notes.push_back(string(old.queue.empty() ? "no queue stored"
+                                                 : "queue " + old.queue + " is not on " + target.machine) +
+                        ": using " + l.queue);
+      }
       q = qm->queue(l.queue);
     } else {
-      l.queue = old.queue.empty() ? dflt : old.queue;
+      l.queue = !target.queue.empty() ? target.queue
+                                      : (old.queue.empty() ? dflt : old.queue);
+      if (target.queue.empty() && old.queue.empty() && !l.queue.empty())
+        notes.push_back("no queue stored: using " + dash(l.queue));
     }
     if (l.queue != old.queue)
       ch.push_back("queue " + dash(old.queue) + " \xE2\x86\x92 " + dash(l.queue));
@@ -181,14 +195,26 @@ static void carryOver(TaskJob *task, Launchdata& l,
                  memGB(l.maxmemory) + " GB");
   l.minscratch = prefs->isOptionSupported("SS") ? old.minscratch : 0;
 
+  string wantWall = old.maxwall;
+  if (!target.wall.empty()) {
+    wantWall = LaunchBatch::parseWall(target.wall);
+    if (wantWall.empty()) {
+      wantWall = old.maxwall;
+      notes.push_back("wall time \"" + target.wall + "\" is not understood: keeping " +
+                      wallMinutes(old.maxwall));
+    }
+  }
   if (!prefs->isOptionSupported("TL")) {
     l.maxwall = "0 0:0";
-  } else if (!LaunchBatch::noWallTime(old.maxwall)) {
+  } else if (!LaunchBatch::noWallTime(wantWall)) {
+    l.maxwall = wantWall;
     int d = 0, h = 0, m = 0;
-    sscanf(old.maxwall.c_str(), "%d %d:%d", &d, &h, &m);
+    sscanf(wantWall.c_str(), "%d %d:%d", &d, &h, &m);
     long mins = d*1440L + h*60L + m;
     if (q && q->runLimit() > 0 && mins > (long)q->runLimit()) {
       mins = q->runLimit();
+      notes.push_back("wall time cut to the queue limit " + wallMinutes(std::to_string(mins/1440) + " " +
+                      std::to_string(mins%1440/60) + ":" + std::to_string(mins%60)));
       char b[32];
       snprintf(b, sizeof b, "%ld %ld:%ld", mins/1440, mins%1440/60, mins%60);
       l.maxwall = b;
@@ -201,6 +227,24 @@ static void carryOver(TaskJob *task, Launchdata& l,
 
   ch.insert(ch.end(), where.begin(), where.end());
   for (size_t i = 0; i < ch.size(); i++) changes += (i ? "; " : "") + ch[i];
+}
+
+string LaunchBatch::parseWall(const string& text)
+{
+  int d = 0, h = 0, m = 0;
+  char junk;
+  long mins;
+  if (sscanf(text.c_str(), "%d %d:%d%c", &d, &h, &m, &junk) == 3 && d >= 0 && h >= 0 && m >= 0)
+    mins = d*1440L + h*60L + m;
+  else if (sscanf(text.c_str(), "%d:%d%c", &h, &m, &junk) == 2 && h >= 0 && m >= 0)
+    mins = h*60L + m;
+  else if (sscanf(text.c_str(), "%ld%c", &mins, &junk) == 1 && mins >= 0)
+    ;
+  else
+    return "";
+  char buf[48];
+  snprintf(buf, sizeof buf, "%ld %ld:%ld", mins/1440, mins%1440/60, mins%60);
+  return buf;
 }
 
 LaunchBatch::Plan LaunchBatch::plan(TaskJob *task, const Target& target)
@@ -222,8 +266,14 @@ LaunchBatch::Plan LaunchBatch::plan(TaskJob *task, const Target& target)
     p.problem = "not ready (already submitted or finished)";
     return p;
   }
+  {
+    const string waits = Launch::waitsFor(task);
+    if (!waits.empty()) { p.problem = "waits for " + waits; return p; }
+  }
+  const Launchdata stored = l;
+  vector<string> notes;
   if (target.any()) {
-    carryOver(task, l, target, p.changes, p.problem);
+    carryOver(task, l, target, p.changes, p.problem, notes);
     if (!p.problem.empty()) return p;
     p.retarget = true;
     p.data = l;
@@ -244,8 +294,19 @@ LaunchBatch::Plan LaunchBatch::plan(TaskJob *task, const Target& target)
     p.problem = "no queue stored";
     return p;
   }
-  if (wallTimeRequired(prefs) && noWallTime(l.maxwall))
+  if (wallTimeRequired(prefs) && noWallTime(l.maxwall)) {
     p.wall = defaultWallTime(prefs, l.queue);
+    notes.push_back("no wall time stored: using " + wallMinutes(p.wall));
+  }
+  {
+    //  Without TL no time limit reaches the job script; Slurm then shows
+    //  UNLIMITED. The wall time asked for is the override, else the stored one.
+    string want = target.wall.empty() ? stored.maxwall : LaunchBatch::parseWall(target.wall);
+    if (!prefs->isOptionSupported("TL") && !want.empty() && !noWallTime(want))
+      notes.push_back("machine " + l.machine + " does not pass a time limit: wall time " +
+                      wallMinutes(want) + " is not applied");
+  }
+  for (size_t i = 0; i < notes.size(); i++) p.notes += (i ? "; " : "") + notes[i];
   p.ready = true;
   return p;
 }
@@ -350,6 +411,8 @@ void LaunchBatch::buildArgs(TaskJob *task, EcceMap& kv)
   }
   snprintf(buf, sizeof buf, "%lu", l.totalprocs);  kv["##numProcs##"] = buf;
   snprintf(buf, sizeof buf, "%lu", l.nodes);       kv["##numNodes##"] = buf;
+  snprintf(buf, sizeof buf, "%lu", l.threads > 0 ? l.threads : 1UL);
+  kv["##threads##"] = buf;
   if (prefs && prefs->isOptionSupported("SD")) kv["##scratch##"] = l.scratchdir;
   kv["##runDir##"] = task->jobdata().jobpath;
 

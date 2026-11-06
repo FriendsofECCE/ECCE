@@ -73,7 +73,7 @@
 
 #include "tdat/QmSolventWarning.H"
 #include "CalcEd.H"
-#include "QstStructures.H"
+#include "dsm/QstStructures.H"
 #include "VerifyReportDialog.H"
 #include "PartialCharge.H"
 
@@ -463,8 +463,8 @@ void CalcEd::createCodeButtons()
   static const char *const groupName[4] = { "DFT:", "Semi-empirical:",
                                             "Periodic:", "MD:" };
   static const char *const order[] = { "ECCE-QM", "Gaussian-16", "ORCA",
-                                       "NWChem", "MOPAC", "xTB", "QuantumESPRESSO",
-                                       "CP2K", "GROMACS" };
+                                       "NWChem", "MOPAC", "xTB", "CREST", "QuantumESPRESSO",
+                                       "CP2K", "MLP", "GROMACS" };
   std::vector<std::pair<int, wxCustomButton*> > groups[4];
 
   for (size_t it = 0; it < codes.size(); it++) {
@@ -482,8 +482,8 @@ void CalcEd::createCodeButtons()
       codeButton->SetToolTip(codes[it]);
       const string& c = codes[it];
       const int g = c=="GROMACS" ? 3
-                  : (c=="QuantumESPRESSO" || c=="CP2K") ? 2
-                  : (c=="MOPAC" || c=="xTB") ? 1 : 0;
+                  : (c=="QuantumESPRESSO" || c=="CP2K" || c=="MLP") ? 2
+                  : (c=="MOPAC" || c=="xTB" || c=="CREST") ? 1 : 0;
       int rank = 100;
       for (int r = 0; r < (int)(sizeof order / sizeof order[0]); r++)
         if (c == order[r]) rank = r;
@@ -579,6 +579,7 @@ void CalcEd::setCurrentCodeButton(const string& currentCode)
 
 void CalcEd::setContext(const string& url, const string& codeName)
 {
+  p_revealSettings = true;
   // Make sure it is raised/uniconified for popup dialogs.  Not while it is
   // still hidden: Raise() is gtk_window_present() on GTK, which maps the
   // window at its empty size before the fields are filled.
@@ -661,9 +662,6 @@ void CalcEd::setContext(const string& url, const string& codeName)
 
 void CalcEd::doSetContext(const string& codeName)
 {
-  // hack to support two builder implementations
-  fixBuilderButtonId();
-
   // make sure detail dialogs are closed
   closeTheoryApp(true);
   closeRuntypeApp(true);
@@ -732,6 +730,8 @@ void CalcEd::doSetContext(const string& codeName)
   if (!isValidCode(p_code)) {
     return;
   }
+
+  fixBuilderButtonId();
 
   SetTitle("ECCE " + p_code->name() + " Editor");
   p_detailsBox->SetLabel(p_code->name() + " Settings");
@@ -853,9 +853,12 @@ void CalcEd::doSetContext(const string& codeName)
 
   updateAllFields();
 
-  if (isDetailsReady() && !hasDetailsValues()) {
-    startTheoryApp(true);
-    startRuntypeApp(true);
+  // Initialize each dialog separately: a saved calc may hold theory values
+  // but no run type values (or vice versa), so one dialog's defaults can
+  // still be missing while the other has data.
+  if (isDetailsReady()) {
+    if (!hasDetailsValues("ES.Theory")) startTheoryApp(true);
+    if (!hasDetailsValues("ES.Runtype")) startRuntypeApp(true);
   }
 
   // GDB 2/19/13  Fix for dialog states getting cleared between app invocations
@@ -1383,6 +1386,11 @@ void CalcEd::OnCheckboxCalcedUseExponentsClick( wxCommandEvent& event )
 
 void CalcEd::OnButtonCalcedTheoryClick( wxCommandEvent& event )
 {
+  if (!theoryDetailsAvailable()) {
+    p_feedback->setMessage("The current theory has no details to set.",
+                           WxFeedback::INFO);
+    return;
+  }
   startTheoryApp(false);
 
   event.Skip();
@@ -1391,6 +1399,11 @@ void CalcEd::OnButtonCalcedTheoryClick( wxCommandEvent& event )
 
 void CalcEd::OnButtonCalcedRuntypeClick( wxCommandEvent& event )
 {
+  if (!runtypeDetailsAvailable()) {
+    p_feedback->setMessage("The current run type has no details to set.",
+                           WxFeedback::INFO);
+    return;
+  }
   startRuntypeApp(false);
 
   event.Skip();
@@ -2035,9 +2048,12 @@ void CalcEd::subjectMCB(wxCommandEvent& event)
 
   updateAllFields();
 
-  if (isDetailsReady() && !hasDetailsValues()) {
-    startTheoryApp(true);
-    startRuntypeApp(true);
+  // Initialize each dialog separately: a saved calc may hold theory values
+  // but no run type values (or vice versa), so one dialog's defaults can
+  // still be missing while the other has data.
+  if (isDetailsReady()) {
+    if (!hasDetailsValues("ES.Theory")) startTheoryApp(true);
+    if (!hasDetailsValues("ES.Runtype")) startRuntypeApp(true);
   }
 
   // auto-save
@@ -2132,7 +2148,12 @@ void CalcEd::replaceBasisSetButton()
 
 void CalcEd::fixBuilderButtonId()
 {
-  vector<ResourceTool*> tools = p_iCalc->getDescriptor()->getTools();
+  // The selected code is not stored until Save; the calculation's
+  // descriptor can still describe the previous code during a switch.
+  ResourceType *descriptor = ResourceDescriptor::getResourceDescriptor().
+      getResourceType("virtual_document", "ecceCalculation", p_code->name());
+  if (!descriptor) return;
+  vector<ResourceTool*> tools = descriptor->getTools();
   vector<ResourceTool*>::iterator tool;
   for (tool = tools.begin(); tool != tools.end(); tool++) {
     string name = (*tool)->getName();
@@ -2140,6 +2161,8 @@ void CalcEd::fixBuilderButtonId()
       break;
     }
   }
+  // Keep the existing binding when this descriptor has no Builder.
+  if (tool == tools.end()) return;
   Disconnect( p_builderTool->GetId(), wxEVT_COMMAND_BUTTON_CLICKED,
               wxCommandEventHandler( CalcEd::OnToolClick ) );
   p_builderTool->SetId((*tool)->getId());
@@ -2573,6 +2596,20 @@ bool CalcEd::hasDetailsValues(const string& prefix) const
       return true;
   }
   return false;
+}
+
+
+//  A details dialog sends its fields as ES.Theory.* / ES.Runtype.* values, so
+//  a theory/run type whose dialog has nothing to show reports none.  This is
+//  the one check both the button enable and the click handler share (#676).
+bool CalcEd::theoryDetailsAvailable() const
+{
+  return hasDetailsValues("ES.Theory");
+}
+
+bool CalcEd::runtypeDetailsAvailable() const
+{
+  return hasDetailsValues("ES.Runtype");
 }
 
 
@@ -3162,25 +3199,20 @@ void CalcEd::applyDefaultBasis()
 
 /**
  * For a code that only offers its quick-pick basis sets (ECCE-QM): which
- * elements of the molecule the chosen basis has no functions for, or needs a
- * core potential for, in words a student can act on.
+ * elements of the molecule the chosen basis has no functions for, in words
+ * a student can act on.
  */
 string CalcEd::uncoveredElementsMessage() const
 {
   if (!p_basis || !p_code || p_code->getBasisSetPicks().empty()) return "";
 
-  set<string> missing, ecp;
+  set<string> missing;
   for (TGBSConfig::iterator it = p_basis->begin(); it != p_basis->end(); ++it) {
     const TGBSGroup *group = it->second;
     if (group == NULL) continue;
     TGBSConfigTags tags(it->first.c_str());
     vector<const TGaussianBasisSet*> *sets = group->getOrbitalGBSList();
-    const TGaussianBasisSet *ecpSet = group->ecp();
     for (size_t i = 0; i < tags.size(); i++) {
-      if (ecpSet && ecpSet->p_contractions.find(tags[i]) != ecpSet->p_contractions.end()) {
-        ecp.insert(tags[i]);
-        continue;
-      }
       bool covered = (sets != 0 && !sets->empty());
       if (sets) {
         for (size_t j = 0; j < sets->size(); j++) {
@@ -3194,21 +3226,47 @@ string CalcEd::uncoveredElementsMessage() const
     delete sets;
   }
 
-  string msg;
-  string name = p_basis->name();
-  if (!missing.empty()) {
-    msg = "The basis set " + name + " has no functions for ";
-    for (set<string>::const_iterator e = missing.begin(); e != missing.end(); ++e)
-      msg += (e == missing.begin() ? "" : ", ") + *e;
-    msg += ", which is in this molecule.  Choose another basis set from the "
-           "Basis Set menu, or another molecule.";
-  } else if (!ecp.empty()) {
-    msg = "The basis set " + name + " uses a core potential for ";
-    for (set<string>::const_iterator e = ecp.begin(); e != ecp.end(); ++e)
-      msg += (e == ecp.begin() ? "" : ", ") + *e;
-    msg += ", which ECCE-QM does not support.  Choose another basis set from "
-           "the Basis Set menu, or another molecule.";
+  if (missing.empty()) return "";
+  string msg = "The basis set " + p_basis->name() + " has no functions for ";
+  for (set<string>::const_iterator e = missing.begin(); e != missing.end(); ++e)
+    msg += (e == missing.begin() ? "" : ", ") + *e;
+  msg += ", which is in this molecule.  Choose another basis set from the "
+         "Basis Set menu, or another molecule.";
+  return msg;
+}
+
+
+/**
+ * For a code that only offers its quick-pick basis sets (ECCE-QM): which
+ * elements of the molecule the chosen basis carries a core potential for.
+ * Called before ICalcUtils::makeConsistent() drops the ECP the code cannot
+ * use, so the warning can name the elements before launch.
+ */
+string CalcEd::ecpElementsMessage() const
+{
+  if (!p_basis || !p_code || p_code->getBasisSetPicks().empty()) return "";
+
+  set<string> ecp;
+  for (TGBSConfig::iterator it = p_basis->begin(); it != p_basis->end(); ++it) {
+    const TGBSGroup *group = it->second;
+    if (group == NULL) continue;
+    TGBSConfigTags tags(it->first.c_str());
+    const TGaussianBasisSet *ecpSet = group->ecp();
+    if (!ecpSet) continue;
+    for (size_t i = 0; i < tags.size(); i++) {
+      if (ecpSet->p_contractions.find(tags[i]) != ecpSet->p_contractions.end()) {
+        ecp.insert(tags[i]);
+      }
+    }
   }
+
+  if (ecp.empty()) return "";
+  string msg = "The basis set " + p_basis->name() + " uses a core potential for ";
+  for (set<string>::const_iterator e = ecp.begin(); e != ecp.end(); ++e)
+    msg += (e == ecp.begin() ? "" : ", ") + *e;
+  msg += ", which ECCE-QM does not have, so the input for this basis set "
+         "cannot be written.  Choose another basis set from the Basis Set menu "
+         "or the Basis Set Tool, or another molecule.";
   return msg;
 }
 
@@ -3223,6 +3281,10 @@ bool CalcEd::isGbsValid()
   TTheory theory = getTheory();
 
   if (p_frag && p_basis && p_code && !theory.name().empty()) {
+    // makeConsistent() drops an ECP the code cannot use, so name the
+    // elements that would lose one first; the warning must not block launch.
+    string ecpWarning = ecpElementsMessage();
+
     if (!ICalcUtils::makeConsistent(p_frag, p_basis, p_code, &theory)) {
       if (errors.count() > 0) {
         p_feedback->setMessage(errors.messageText(errors.last()),
@@ -3235,6 +3297,8 @@ bool CalcEd::isGbsValid()
     if (!uncovered.empty()) {
       p_feedback->setMessage(uncovered, WxFeedback::ERROR);
       ret = false;
+    } else if (!ecpWarning.empty()) {
+      p_feedback->setMessage(ecpWarning, WxFeedback::WARNING);
     } else if (!GBSRules::isComplete(p_frag, p_basis, p_code, &theory)) {
       p_feedback->setMessage("The selected configuration doesn't cover all "
               "elements in the chemical system.  Use the Basis Set Tool to "
@@ -3283,6 +3347,29 @@ void CalcEd::refit()
   }
   GetSizer()->SetSizeHints(this);
   fitToScreen();
+  //  On a scaled display the content outgrows the window and scrolls; the
+  //  Settings box must be in view when a calculation opens, but later
+  //  refits must not undo the user's scroll.
+  if (p_revealSettings && p_detailsBox) {
+    p_revealSettings = false;
+    revealSettingsWhenShown(40);
+  }
+}
+
+
+//  The scroller exists and is laid out only once the window is shown, which
+//  is after the first refit; wait for that (a few idle rounds at most).
+void CalcEd::revealSettingsWhenShown(int tries)
+{
+  CallAfter([this, tries]() {
+    if (!p_detailsBox) return;
+    if ((!IsShown() || !p_detailsBox->IsShownOnScreen()) && tries > 0) {
+      revealSettingsWhenShown(tries - 1);
+      return;
+    }
+    Layout();
+    ewxWindowUtils::revealInScroller(p_detailsBox);
+  });
 }
 
 
@@ -3674,12 +3761,13 @@ void CalcEd::enableDetailsFields()
   bool hasFragment(p_frag);
 
   p_detailsBox->Enable(hasFragment);
-  //  A calculation at the defaults stores no values, yet its dialog opens
-  //  fine; only a dialog still starting has nothing to show yet.
+  //  A Details dialog is worth opening only when it has fields to show.
+  //  Until it has reported values the button stays closed, so a theory/run
+  //  type with no details panel cannot be opened into an empty dialog (#676).
   FindWindow(ID_BUTTON_CALCED_THEORY)->Enable(isDetailsReady()
-          && (hasDetailsValues("ES.Theory") || !p_theoryHoldFlag));
+          && theoryDetailsAvailable());
   FindWindow(ID_BUTTON_CALCED_RUNTYPE)->Enable(isDetailsReady()
-          && (hasDetailsValues("ES.Runtype") || !p_runtypeHoldFlag));
+          && runtypeDetailsAvailable());
 }
 
 
@@ -5231,7 +5319,7 @@ void CalcEd::refreshTsBox()
     int sel = 0;
     for (size_t i = 0; i < p_tsUrls.size(); i++) {
       p_tsChoice[k]->Append(wxString::FromUTF8(p_tsNames[i].c_str()));
-      if (p_tsUrls[i] == p_tsPick[k]) sel = (int)i + 1;
+      if (p_tsUrls[i] == qstPickUrl(p_tsPick[k])) sel = (int)i + 1;
     }
     p_tsChoice[k]->SetSelection(sel);
   }

@@ -88,6 +88,16 @@ Skip=0
 Lines=1
 [END]
 
+# The HOMO-LUMO gap, printed with the MO eigenvalues when &DFT/&PRINT/&MO
+# EIGENVALUES is on, at every SCF step: the last one is the converged gap.
+[HLGAP]
+Script=cp2k.hlgap
+Begin=(?:HOMO\s*-\s*LUMO\s+gap\s*\[eV\]|MO\|\s*Band\s+gap)
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 # ---- job progress for the Organizer (#284) -------------------------------
 # The SCF tolerance is printed once with the SCF parameters.
 [PROGRESS]

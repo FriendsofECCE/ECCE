@@ -310,9 +310,11 @@ void MetaEd::doSetContext()
 
   updateAllFields();
 
-  if (isDetailsReady() && p_GUIValues->size() == 0) {
-    startTheoryApp(true);
-    startRuntypeApp(true);
+  // Initialize each dialog separately (as in CalcEd): theory values may be
+  // stored while the run type defaults have not been fetched yet.
+  if (isDetailsReady()) {
+    if (!theoryDetailsAvailable()) startTheoryApp(true);
+    if (!runtypeDetailsAvailable()) startRuntypeApp(true);
   }
 
   // GDB 2/19/13  Fix for dialog states getting cleared between app invocations
@@ -508,6 +510,11 @@ void MetaEd::OnComboboxMetaedSpinMultEnter( wxCommandEvent& event )
 
 void MetaEd::OnButtonMetaedTheoryClick( wxCommandEvent& event )
 {
+  if (!theoryDetailsAvailable()) {
+    p_feedback->setMessage("The current theory has no details to set.",
+                           WxFeedback::INFO);
+    return;
+  }
   startTheoryApp(false);
 
   event.Skip();
@@ -516,6 +523,11 @@ void MetaEd::OnButtonMetaedTheoryClick( wxCommandEvent& event )
 
 void MetaEd::OnButtonMetaedRuntypeClick( wxCommandEvent& event )
 {
+  if (!runtypeDetailsAvailable()) {
+    p_feedback->setMessage("The current run type has no details to set.",
+                           WxFeedback::INFO);
+    return;
+  }
   startRuntypeApp(false);
 
   event.Skip();
@@ -734,9 +746,11 @@ void MetaEd::subjectMCB(wxCommandEvent& event)
 
   updateAllFields();
 
-  if (isDetailsReady() && p_GUIValues->size() == 0) {
-    startTheoryApp(true);
-    startRuntypeApp(true);
+  // Initialize each dialog separately (as in CalcEd): theory values may be
+  // stored while the run type defaults have not been fetched yet.
+  if (isDetailsReady()) {
+    if (!theoryDetailsAvailable()) startTheoryApp(true);
+    if (!runtypeDetailsAvailable()) startRuntypeApp(true);
   }
 
   // auto-save
@@ -1077,6 +1091,20 @@ bool MetaEd::isDetailsReady() const
 }
 
 
+//  A details dialog sends its fields as ES.Theory.* / ES.Runtype.* values, so
+//  a theory/run type whose dialog has nothing to show reports none.  This is
+//  the one check both the button enable and the click handler share (#676).
+bool MetaEd::theoryDetailsAvailable() const
+{
+  return p_GUIValues && p_GUIValues->containsKeyPrefix("ES.Theory");
+}
+
+bool MetaEd::runtypeDetailsAvailable() const
+{
+  return p_GUIValues && p_GUIValues->containsKeyPrefix("ES.Runtype");
+}
+
+
 bool MetaEd::isReady() const
 {
   bool ret = p_iCalc->getState() < ResourceDescriptor::STATE_SUBMITTED &&
@@ -1234,12 +1262,13 @@ void MetaEd::enableDetailsFields()
   bool hasFragment(p_frag);
 
   p_detailsBox->Enable(hasFragment);
-  //  A calculation at the defaults stores no values, yet its dialog opens
-  //  fine; only a dialog still starting has nothing to show yet (#427).
+  //  A Details dialog is worth opening only when it has fields to show.
+  //  Until it has reported values the button stays closed, so a theory/run
+  //  type with no details panel cannot be opened into an empty dialog (#676).
   FindWindow(ID_BUTTON_METAED_THEORY)->Enable(isDetailsReady()
-          && (p_GUIValues->containsKeyPrefix("ES.Theory") || !p_theoryHoldFlag));
+          && theoryDetailsAvailable());
   FindWindow(ID_BUTTON_METAED_RUNTYPE)->Enable(isDetailsReady()
-          && (p_GUIValues->containsKeyPrefix("ES.Runtype") || !p_runtypeHoldFlag));
+          && runtypeDetailsAvailable());
 }
 
 

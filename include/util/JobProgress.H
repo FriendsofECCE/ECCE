@@ -93,11 +93,19 @@ public:
   // False for empty or unreadable text (nothing to show).
   bool parse(const std::string& text);
 
+  // Stored results complete or correct counts from the progress snapshot.
+  void setFrequencies(const std::vector<double>& frequencies);
+
   bool empty() const { return p_stages.empty(); }
   int seq() const { return p_seq; }
   // When the job store relayed it (its clock, seconds since 1970); 0 if
   // not known.
   double at() const { return p_at; }
+  // Seconds without output when the job store judged the run stalled
+  // (#769), else 0.
+  double stalled() const { return p_stall; }
+  // "Running (stalled: no output for 2 h 10 min)".
+  static std::string stalledText(double seconds);
   const std::vector<Stage>& stages() const { return p_stages; }
   const Stage* stage(const std::string& name) const;
 
@@ -105,6 +113,13 @@ public:
   // the time left of a frequency run.
   // `finished`: the job has ended, so no time left is shown.
   std::vector<Block> running(double age, bool finished = false) const;
+
+  // The order the code's progress rules give the blocks (#753): stage
+  // names as `Progress=<stage>` first appears in its .desc. A name in braces
+  // ({integrator}) stands for any stage the list does not name. Empty keeps
+  // the built-in order. Blocks the run has not produced are not made.
+  void setStageOrder(const std::vector<std::string>& order) { p_order = order; }
+  static std::vector<std::string> stageOrderOf(const std::string& descText);
 
   // A job still waiting in its queue has no snapshot; the box shows what is
   // known of it: when it was submitted (seconds since 1970, 0 if not
@@ -141,17 +156,25 @@ public:
   bool average(const std::string& stage, double& avg, double& sd,
                int *n = 0) const;
 
+  // One field of a stage, "" when absent.  The stage "result" is never
+  // drawn: it carries what the final energy contains (disp=, gcp=).
+  std::string fieldOf(const std::string& stage, const std::string& key) const;
+  Search search() const { return p_search; }
+
   // The stage's title: "Optimisation", "SCF", "Frequencies", or its name.
   static std::string title(const std::string& stage);
 
 private:
   Search p_search = SEARCH_UNKNOWN;
   Block stageBlock(const Stage& st, double age, bool finished) const;
+  Block crestBlock(const Stage& st, bool finished) const;
   void plotAxis(const Stage& st, const std::string& rec,
                 const std::string& recName, Block& b) const;
 
+  std::vector<std::string> p_order;
   int p_seq = 0;
   double p_at = 0;
+  double p_stall = 0;
   std::vector<Stage> p_stages;
 };
 

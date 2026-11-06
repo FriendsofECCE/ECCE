@@ -8,6 +8,7 @@
 #include "tdat/MoDiagram.H"
 #include "tdat/MoFragments.H"
 #include "MoDiagramCanvas.H"
+#include "MoAufbauCanvas.H"
 
 class wxCheckListBox;
 class wxCheckBox;
@@ -96,6 +97,33 @@ class MoDiagramPanel : public VizPropertyPanel,
 
       virtual void refresh();
 
+      /**
+       * The MOs panel switched between the canonical and the localised set.
+       * The diagram is always built from the canonical orbitals, so with the
+       * localised set listed it says so in its status line.
+       */
+      void orbitalSetChanged(bool localisedListed);
+
+      /** The status line under the diagram's controls; empty when hidden. */
+      string statusText() const;
+
+      /** One atom: the aufbau view is drawn instead of the correlation diagram. */
+      bool atomView() const { return p_atomView; }
+      string aufbauFailure() const { return p_aufbauFailure; }
+      /**
+       * Save the aufbau drawing as a PNG, to scale (A) or as boxes (B);
+       * false when this is not a one-atom calculation.
+       */
+      /** The core levels as drawn, one line each; for tests. */
+      string coreText() const;
+      bool showCoreChecked() const { return p_showCore != 0 && p_showCore->GetValue(); }
+      void setShowCore(bool on);
+      bool exportAufbau(const string& path, bool toScale, int width, int height);
+      /** What the aufbau view draws, line by line (empty for a molecule). */
+      string aufbauText() const;
+      /** Choose drawing A (true) or B for the aufbau view, as its box does. */
+      void setAufbauToScale(bool toScale);
+
    protected:
 
       /**
@@ -149,6 +177,8 @@ class MoDiagramPanel : public VizPropertyPanel,
 
       /** Levels of the model column whose blocks overlap as last drawn (-1: none drawn). */
       int centreOverlaps() const;
+      /** Where each correlation line stops short of its level's bar, as painted. */
+      string linkGaps() const;
 
    protected:
 
@@ -177,10 +207,22 @@ class MoDiagramPanel : public VizPropertyPanel,
       //  below).
       void buildOnce();
 
+      //  One atom: fill the aufbau view (true), or show the diagram (false).
+      bool buildAufbau(IPropCalculation *calc, const vector<double>& e,
+                       const vector<double>& o, const vector<double>& eB,
+                       const vector<double>& oB, bool haveBeta);
+      void showAtomView(bool atom);
+      void atomChrome();
+      void onAufbauScale(wxCommandEvent& event);
+
       //  Opens or closes the "Fragments..." expander.
       void setFragmentsOpen(bool open);
 
       MoDiagramCanvas *p_canvas;
+      MoAufbauCanvas  *p_aufbau = nullptr;
+      wxCheckBox      *p_aufbauScale = nullptr;
+      string           p_aufbauFailure = "Aufbau view has not been built.";
+      bool             p_atomView = false;
       wxPanel         *p_fragPanel;
       wxButton        *p_fragToggle;
       wxButton        *p_optToggle;
@@ -188,6 +230,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       bool             p_optOpen, p_fragWasOpen;
       wxCheckListBox  *p_fragments;
       wxStaticText    *p_fragmentHint;
+      wxStaticText    *p_status = nullptr;
       wxCheckBox      *p_autoFragments;
       wxChoice        *p_construction;
       wxCheckBox      *p_piOnly;
@@ -196,6 +239,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       wxCheckBox      *p_constructLabels;
       wxCheckBox      *p_symmetryLabels;
       wxCheckBox      *p_showAll;
+      wxCheckBox      *p_showCore = 0;     // core levels below an axis break (#827)
       wxCheckBox      *p_ligandField;
       wxButton        *p_about;
       wxChoice        *p_pickFirst;
@@ -206,6 +250,7 @@ class MoDiagramPanel : public VizPropertyPanel,
       vector<double>   p_pickCoords;       // for the second chooser's bonded atoms
       vector<string>   p_pickElements;
       string           p_lastNote;
+      vector<MoLevel>  p_coreShown;   // the core levels last handed to the canvas (#827)
       vector<string>   p_atomLabels;     // "O1", "H2", ... as the Builder numbers
       vector<int>      p_secondAtoms;    // atoms in the second chooser, after (none)
 
@@ -218,6 +263,9 @@ class MoDiagramPanel : public VizPropertyPanel,
       //  it finishes, rather than the two calls racing on p_canvas.
       bool p_building;
       bool p_rebuildPending;
+      //  A refresh while the panel is not on screen (a scan step with the
+      //  diagram closed or on another tab) only marks it out of date (#838).
+      bool p_refreshWhenShown;
 };
 
 #endif

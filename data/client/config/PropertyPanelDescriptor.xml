@@ -86,6 +86,16 @@
     <property class="MDSummary"/>
   </PropertyPanel>
 
+  <!-- H, S and G recomputed from the stored frequencies (#692); listed
+       before Energies, which consumes EGIBBS. -->
+  <PropertyPanel>
+    <name>Thermochemistry</name>
+    <group>Energies</group>
+    <class>ThermoPanel</class>
+    <consumer>false</consumer>
+    <property name="EGIBBS"/>
+  </PropertyPanel>
+
   <!-- Transition-state jobs only (isRelevant); listed before Energies,
        which consumes TE. -->
   <PropertyPanel>
@@ -173,6 +183,46 @@
     <consumer>false</consumer>
     <property name="GEOMTRACE"/>
     <property type="tsvector" indexedBy="Geometry Step"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Conformers</name>
+    <group>Geometry</group>
+    <class>EnsemblePropertyPanel</class>
+    <consumer>false</consumer>
+    <property name="GEOMTRACE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Protonation Sites</name>
+    <group>Geometry</group>
+    <class>EnsemblePropertyPanel</class>
+    <consumer>false</consumer>
+    <property name="GEOMTRACE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Tautomers</name>
+    <group>Geometry</group>
+    <class>EnsemblePropertyPanel</class>
+    <consumer>false</consumer>
+    <property name="GEOMTRACE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Clusters</name>
+    <group>Geometry</group>
+    <class>EnsemblePropertyPanel</class>
+    <consumer>false</consumer>
+    <property name="GEOMTRACE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Poses</name>
+    <group>Geometry</group>
+    <class>EnsemblePropertyPanel</class>
+    <consumer>false</consumer>
+    <property name="GEOMTRACE"/>
   </PropertyPanel>
 
   <PropertyPanel>

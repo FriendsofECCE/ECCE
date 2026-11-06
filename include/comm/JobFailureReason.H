@@ -277,7 +277,23 @@ inline bool matchOrcaError(const std::vector<std::string>& lines,
       return true;
     }
     if (std::regex_search(lines[i], errorWord)) {
-      reason = "\"" + truncate(trimmed(lines[i])) + "\"";
+      // A boxed "ERROR !!!" says nothing itself; its first sentence below
+      // ("The optimization did not converge but reached ...") is the reason.
+      std::string text = trimmed(lines[i]);
+      if (std::regex_match(text, std::regex("ERROR[\\s!:]*"))) {
+        std::string sentence;
+        for (size_t j = i + 1; j < lines.size(); j++) {
+          std::string t = trimmed(lines[j]);
+          if (t.empty() || t.find_first_not_of("-=*") == std::string::npos) {
+            if (sentence.empty()) continue;
+            break;
+          }
+          sentence += (sentence.empty() ? "" : " ") + t;
+          if (t.back() == '.') break;
+        }
+        if (!sentence.empty()) text = sentence;
+      }
+      reason = "\"" + truncate(text) + "\"";
       return true;
     }
   }
@@ -508,6 +524,81 @@ inline std::string schedulerErrNote(const std::string& name,
   if (last.size() > 160)
     last = last.substr(0, 157) + "...";
   return " (see " + name + " in Outputs: " + last + ")";
+}
+
+// ------------------------------------------------------------------------
+// The reason as the Progress box shows it: the scheduler note's quoted line
+// is shortened to ~100 characters so the "Incomplete:" line stays readable
+// (the full line is in slurm.err in Outputs), while everything else -- in
+// particular CP2K's HFX estimate sentence, which callers append after the
+// note -- stays whole.  Display-only: the stored reason (run log, ecce-*
+// tools) is not changed.
+// ------------------------------------------------------------------------
+inline std::string reasonForProgressBox(const std::string& reason)
+{
+  static const std::string kNote = " (see ";
+  static const std::string kInOutputs = " in Outputs: ";
+  static const std::string kHfx = " CP2K's HFX estimate: ";
+  const size_t at = reason.find(kNote);
+  if (at == std::string::npos)
+    return reason;
+  const size_t outputs = reason.find(kInOutputs, at);
+  if (outputs == std::string::npos)
+    return reason;
+  const size_t lineStart = outputs + kInOutputs.size();
+  // The note's quoted line runs to its closing ')'.  A ')' inside the quoted
+  // slurm line -- the OOM killer's "(1234 MB > 1024 MB)" -- is not that, so
+  // take the LAST ')' before the CP2K HFX sentence when one follows the note
+  // (the sentence's own ')' is after its "estimate: "), else the last one.
+  const size_t hfx = reason.find(kHfx, lineStart);
+  const size_t lineEnd = hfx == std::string::npos ? reason.rfind(')')
+                                                  : reason.rfind(')', hfx);
+  if (lineEnd == std::string::npos || lineEnd <= lineStart)
+    return reason;
+  const size_t len = lineEnd - lineStart;
+  if (len <= 100)
+    return reason;
+  return reason.substr(0, lineStart) + reason.substr(lineStart, 100) +
+         "\xe2\x80\xa6" + reason.substr(lineEnd);
+}
+
+// ------------------------------------------------------------------------
+// CP2K hybrids print an HFX_MEM_INFO block each SCF step.  When the
+// scheduler killed the job for out of memory, the LAST block's two
+// program-size lines and its ERI RAM line make a short estimate; "" when
+// the text has no complete block.  Takes the raw output text.
+// ------------------------------------------------------------------------
+inline std::string hfxMemoryNote(const std::string& text)
+{
+  const std::string tag = "HFX_MEM_INFO|";
+  std::istringstream in(text);
+  std::string line, before, after, ram;
+  while (std::getline(in, line)) {
+    size_t at = line.find(tag);
+    if (at == std::string::npos)
+      continue;
+    const std::string rest = trimmed(line.substr(at + tag.size()));
+    size_t colon = rest.find_last_of(':');
+    if (colon == std::string::npos)
+      continue;
+    const std::string value = trimmed(rest.substr(colon + 1));
+    if (rest.find("Est. max. program size before HFX") != std::string::npos) {
+      before = value;   // a new block starts here
+      after.clear();
+      ram.clear();
+    } else if (rest.find("Est. max. program size after HFX") !=
+               std::string::npos) {
+      after = value;
+    } else if (rest.find("Total memory consumption ERI's RAM") !=
+               std::string::npos) {
+      ram = value;
+    }
+  }
+  if (before.empty() || after.empty() || ram.empty())
+    return "";
+  return "CP2K's HFX estimate: program size " + before + " MiB before HFX, " +
+         after + " MiB after; ERIs in RAM " + ram +
+         " MiB (set the memory per rank, or fewer ranks per node).";
 }
 
 } // namespace JobFailureReason

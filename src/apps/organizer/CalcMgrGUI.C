@@ -24,6 +24,7 @@
 
 ////@begin includes
 #include "wxgui/ewxApp.H"
+#include "wxgui/ewxBitmap.H"
 #include "wxgui/WxResourceTreeCtrl.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxBitmap.H"
@@ -45,6 +46,7 @@ const wxWindowID CalcMgrGUI::wxID_DUPLICATE3 = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_LAUNCH_SELECTED = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_RECONNECT_SELECTED = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_REPARSE_OUTPUTS = wxNewId();
+const wxWindowID CalcMgrGUI::wxID_NEW_SERIES = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_TERMINATE_SELECTED = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_HOMEASROOT = wxNewId();
 const wxWindowID CalcMgrGUI::ID_FRAME = wxNewId();
@@ -116,6 +118,7 @@ BEGIN_EVENT_TABLE( CalcMgrGUI, ewxFrame )
     EVT_MENU( wxID_LAUNCH_SELECTED, CalcMgrGUI::OnLaunchSelectedClick )
     EVT_MENU( wxID_RECONNECT_SELECTED, CalcMgrGUI::OnReconnectSelectedClick )
     EVT_MENU( wxID_REPARSE_OUTPUTS, CalcMgrGUI::OnReparseOutputsClick )
+    EVT_MENU( wxID_NEW_SERIES, CalcMgrGUI::OnNewSeriesClick )
     EVT_MENU( wxID_TERMINATE_SELECTED, CalcMgrGUI::OnTerminateSelectedClick )
 
     EVT_MENU( wxID_CUT, CalcMgrGUI::OnCutClick )
@@ -358,7 +361,7 @@ void CalcMgrGUI::CreateControls()
 
     p_toolBar = new wxToolBar( itemFrame1, ID_TOOLBAR1, wxDefaultPosition, wxDefaultSize, wxTB_HORIZONTAL );
     p_toolBar->SetToolPacking(2);
-    p_toolBar->SetToolBitmapSize(wxSize(24, 24));
+    ewxBitmap::toolBitmapSize(p_toolBar, wxSize(24, 24));
     p_toolBar->AddTool(wxID_HOME, _T(""), ewxBitmap::bundle(wxT("gohome.xpm")), _("Go to user home on current server"), wxITEM_NORMAL);
     p_toolBar->AddTool(wxID_UP, _T(""), ewxBitmap::bundle(wxT("goup.xpm")), _("Go up"), wxITEM_NORMAL);
     p_toolBar->AddTool(wxID_BACKWARD, _T(""), ewxBitmap::bundle(wxT("back.xpm")), _("Go back"), wxITEM_NORMAL);
@@ -377,6 +380,7 @@ void CalcMgrGUI::CreateControls()
     p_toolBar->AddTool(wxID_DOWNLOAD, _T(""), ewxBitmap::bundle(wxT("download.xpm")), _("Download File..."), wxITEM_NORMAL);
     p_toolBar->AddTool(wxID_VIEW_PROPERTY, _T(""), ewxBitmap::bundle(wxT("info.xpm")), _("View Properties..."), wxITEM_NORMAL);
     p_toolBar->Realize();
+    ewxBitmap::logDpi("organizer toolbar", p_toolBar);
     p_topSizer->Add(p_toolBar, 0, wxGROW|wxALL, 0);
 
     p_splitterWindow = new wxSplitterWindow( itemFrame1, ID_SPLITTERWINDOW, wxDefaultPosition, wxSize(100, 100), wxSP_3DBORDER|wxSP_3DSASH|wxNO_BORDER );
@@ -385,7 +389,7 @@ void CalcMgrGUI::CreateControls()
 
     ewxPanel* itemPanel82 = new ewxPanel( p_splitterWindow, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSUNKEN_BORDER|wxTAB_TRAVERSAL );
 
-    p_splitterWindow->SplitVertically(p_treeCtrl, itemPanel82, 250);
+    p_splitterWindow->SplitVertically(p_treeCtrl, itemPanel82, ewxBitmap::scaled(250));
     p_topSizer->Add(p_splitterWindow, 1, wxGROW, 0);
 
 ////@end CalcMgrGUI content construction
@@ -507,6 +511,11 @@ void CalcMgrGUI::OnReconnectSelectedClick( wxCommandEvent& event )
 }
 
 void CalcMgrGUI::OnReparseOutputsClick( wxCommandEvent& event )
+{
+    event.Skip();
+}
+
+void CalcMgrGUI::OnNewSeriesClick( wxCommandEvent& event )
 {
     event.Skip();
 }

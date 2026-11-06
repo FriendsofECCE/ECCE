@@ -63,6 +63,16 @@ class IRCPanel : public VizPropertyPanel
       /** The points shown by <ticks> playback ticks from the first, without timers. */
       std::vector<int> playOrder(int ticks);
 
+      /** "Show MO while playing" as the check box does. For scripts and tests. */
+      void setShowMo(bool on);
+      bool showMo() const;
+
+      /** The ORBENG index (0-based) of the orbital followed to the selected point, -1 if none. */
+      int followedMo() const { return p_followMo; }
+
+      /** Draws the orbital surface a skipped tick left pending, now. For tests. */
+      void flushFollow();
+
       /** The selected point (last click, row or playback step), -1 if none. */
       int selectedPoint() const { return p_selected; }
 
@@ -105,6 +115,8 @@ class IRCPanel : public VizPropertyPanel
       virtual void loseFocus();
       int selectPoint(int index);
       int showPoint(int index);
+      void followMo(IPropCalculation *calc, int oldPoint);
+      void drawFollowed();
       void showView(bool table);
 
    private:
@@ -122,6 +134,12 @@ class IRCPanel : public VizPropertyPanel
       PlaybackControl *p_playback;
       PlaybackExtras *p_extras;
       int p_delay;
+      bool p_stepping = false;  // a playback tick or step button, not a click
+      std::vector<double> p_followRow;  // coefficients of the followed MO
+      int p_followPoint = -1;           // table index p_followRow belongs to
+      int p_followMo = -1;
+      int p_pendingMo = -1;             // surface not yet drawn
+      bool p_drawQueued = false;
       bool p_syncing = false;   // plot/table selection echo
 };
 

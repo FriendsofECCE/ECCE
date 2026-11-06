@@ -11,11 +11,13 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 ### wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls
 
+- [Photographing the Builder: scene-script hooks (measure, assigncharges, gtstep, panelfloat, shot) and tools/screenshots/shots.py (#860)](builder-scene-script-photo-hooks-860.md)
 - [A property panel's overlay follows the panel: opened = drawn, closed/replaced/folded = removed; "Show in viewer" turns it off](property-overlay-follows-the-shown-panel.md)
 - [Organizer tool buttons paint their SVG icon; setBitMap (the calculation thumbnail) must replace it there](organizer-tool-button-draws-its-svg-not-setbitmap.md)
 - [The MD editor tools are registered once, as NWChem's; the Organizer's button must name the task's code and fit its label](md-editor-tools-are-registered-as-nwchems.md)
 - [The Density Map plane is one model (point + normal) in wx-free DensityPlane; picks, the view and the offset all set it, and the panel draws it in the viewer as a StyledPlane](density-map-plane-is-a-point-and-a-normal.md)
 - [The Density Profile panel plots DensityPlane::Evaluator along a line through two atoms (LineProfile) or as a Lebedev spherical average about an atom (RadialDist); the evaluator works in bohr, atom shell labels are inferred, aug- sets are refused by ECCE-QM](density-profile-line-or-lebedev-average-of-the-evaluator.md)
+- [A density difference is an Evaluator with fragment Evaluators subtracted in density(); the map draws a filled diverging image, the profile one signed curve](density-difference-is-an-evaluator-with-fragments.md)
 - [Every plot is an `ewxPlotCtrl` styled by `PlotStyle.H`, the palette the vibrational spectrum canvas uses; `tests/plots/capture.py` pictures them before and after a change](plots-share-the-spectrum-style.md)
 - [`ComputeMoCmd` caches a grid before computing it; a failed Compute must remove it (#239)](mo-grid-cache-keeps-a-failed-compute.md)
 - [A property panel is built when it is on screen, not when wxAUI Show()s it in a hidden floating frame](mo-diagram-builds-when-a-calculation-opens.md)
@@ -102,3 +104,6 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [The Vibrational Frequencies table's Sym and Mode columns are VibAnalysis (#367): irreps from ECCE's own operations, a projection on internal coordinates, and what makes it refuse](mode-symmetry-and-description-367.md)
 - [A custom-disabled ewxChoice still changes the shown entry; the disabler puts the last accepted one back](custom-disabled-choice-shows-unaccepted-pick.md)
 - [The viewer's software/hardware GL path (#566): GL_RENDERER read once, ECCE_GL_PATH and Advanced.GLPath, text as geometry on software](gl-path-software-or-hardware-566.md)
+- [mold links what GNU ld refuses: declare static-library dependencies](mold-hides-static-link-order.md)
+- [ELF, LOL, s and sign(lambda2)rho: Evaluator::fieldsAt derivatives, ecce-density-field, the Multiwfn oracle (#798-#800)](density-fields-elf-lol-nci-from-evaluator-derivatives.md)
+- [ELF, LOL and NCI are MoPanel field types computed by ComputeMoCmd::computeFieldView; NCI rides the ESP colour-field path with its own ramp, and its density cut-off is applied when the surface is built](elf-lol-nci-3d-views-share-the-esp-colour-path.md)

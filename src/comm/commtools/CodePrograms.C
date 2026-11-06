@@ -31,6 +31,10 @@ vector<string> CodePrograms::names(const string& code)
     }
     else if (code == "xTB")
         n.push_back("xtb");
+    else if (code == "CREST")
+        n.push_back("crest");
+    else if (code == "MLP")
+        n.push_back("python3");
     else if (code == "MOPAC")
     {
         n.push_back("MOPAC2016.exe");

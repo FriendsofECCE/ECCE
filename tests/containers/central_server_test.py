@@ -164,7 +164,17 @@ def delivery(pm, host, port, label, key="k0", ca="alice", cb="bob"):
     watch(pm, cb, host, port, "bob", PW["bob"], bob_topics, "b" + label, 40)
     watch(pm, ca, host, port, "alice", PW["alice"],
           ["ecce/alice/#", "ecce/bob/#"], "a" + label, 40)
-    time.sleep(2)
+    # Subscribers start in the background: publish a probe each user may
+    # see until it shows in those captures, so none is late (#850).
+    def ready(cont, user, topic, tag, files):
+        for i in range(20):
+            pub(pm, cont, host, port, user, PW[user], topic, "probe-%s-%d" % (label, i))
+            time.sleep(0.5)
+            got = [pm.out(cont, "cat /tmp/cap_%s_%d 2>/dev/null" % (tag, n))[0] for n in files]
+            if all("probe-" + label in g for g in got):
+                return
+    ready(cb, "bob", "ecce/bob/probe", "b" + label, [0, 1, 2])
+    ready(ca, "alice", "ecce/alice/probe", "a" + label, [0])
     A = "ecce/alice/session/%s/ecce_test" % key
     pub(pm, ca, host, port, "alice", PW["alice"], A, "A-session-" + label)
     pub(pm, ca, host, port, "alice", PW["alice"],
@@ -176,7 +186,16 @@ def delivery(pm, host, port, label, key="k0", ca="alice", cb="bob"):
         "ecce/alice/ecce_machreg_changed", "B-spoof-" + label)
     pub(pm, cb, host, port, "bob", PW["bob"],
         "ecce/bob/session/k1/ecce_test", "B-own-" + label)
-    time.sleep(3)
+    # Wait for what must arrive rather than a fixed time: a loaded host
+    # delivered bob's own message after the old 3 s (#850). Everything was
+    # published before this, so the absence checks below hold all the same.
+    want_a = ["A-machreg-" + label, "A-session-" + label, "A-job-" + label]
+    for _ in range(40):
+        time.sleep(0.5)
+        b, a = captured(pm, cb, "b" + label), captured(pm, ca, "a" + label)
+        if "B-own-" + label in b and all(w in a for w in want_a):
+            break
+    time.sleep(1)
     b, a = captured(pm, cb, "b" + label), captured(pm, ca, "a" + label)
     check("A-machreg-" + label in a and "A-session-" + label in a
           and "A-job-" + label in a,

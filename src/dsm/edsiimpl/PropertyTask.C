@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <fstream>
+#include <iostream>
+#include <set>
   using std::find;
 #include <strstream>
   using std::ostrstream;
@@ -16,6 +19,20 @@
 
 #include <xercesc/util/XMLString.hpp>
 using namespace xercesc;
+
+// A stored table whose value count differs from rows x columns: say which
+// property of which calculation, once per run (ecce-check-props lists them).
+static void warnShape(const std::string& calc, const std::string& prop,
+                      size_t have, unsigned long rows, unsigned long cols)
+{
+  static std::set<std::string> seen;
+  if (!seen.insert(calc + "|" + prop).second)
+    return;
+  std::cerr << "WARNING: property " << prop << " of " << calc << " has " << have
+       << " values for " << rows << " x " << cols
+       << "; Re-Parse Outputs rewrites it" << std::endl;
+}
+
 
 #include "dsm/BasicDOMParser.H"
 #include "dsm/BasicDOMWriter.H"
@@ -30,6 +47,7 @@ using namespace xercesc;
 #include "dsm/VDoc.H"
 
 #include "tdat/PropString.H"
+#include "tdat/ResultsFromCalc.H"
 #include "tdat/PropTable.H"
 #include "tdat/PropTSTable.H"
 #include "tdat/PropTSVecString.H"
@@ -187,6 +205,9 @@ TProperty* PropertyTask::updateProperty(const string& name, const string& value)
   bool isOutputFile = false;
   EcceURL fileUrl;
 
+
+  if (name == "PTMO" || name == "MO" || name == "IRCCOORD" || name == "IRCGEOM")
+    p_tsOnlyKnown = false;
 
   // Check if property is in the map first:
   // Else, get the property from the dav server add it to the map 
@@ -402,7 +423,7 @@ TProperty* PropertyTask::updateProperty(const string& name, const string& value)
  */
 TProperty* PropertyTask::getProperty(const string& name)
 {
-  if (p_orbitalPoint >= 0) {
+  if (p_orbitalPoint >= 0 || orbitalsAtSomePointsOnly()) {
     bool hide = false;
     TProperty *pt = pointOrbitalProperty(name, hide);
     if (pt || hide) return pt;
@@ -426,7 +447,98 @@ int PropertyTask::orbitalPoint() const
 bool PropertyTask::hasPointOrbitals()
 {
   PropTSVecTable *t = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTMO"));
-  return t && t->tables() > 0;
+  return (t && t->tables() > 0) || tsOnlyIrcOrbitals() >= 0;
+}
+
+
+/**
+ * An ORCA IRC output without per-point tables (an import, or a job run before
+ * the end-point blocks existed) still has the MOs ORCA printed at the TS.
+ * Returns that TS frame's index, -1 when this is not such a calculation.
+ */
+int PropertyTask::tsOnlyIrcOrbitals()
+{
+  if (!p_tsOnlyKnown) {
+    p_tsOnly = computeTsOnlyIrcOrbitals();
+    p_tsOnlyKnown = true;
+  }
+  return p_tsOnly;
+}
+
+
+int PropertyTask::computeTsOnlyIrcOrbitals()
+{
+  // Only an IRC has both; asking the store which properties exist keeps this
+  // from loading a multi-megabyte MO table for every other calculation.
+  try {
+    bool coord = false, geom = false;
+    for (const EcceURL& u : getVDoc()->getProperties()) {
+      const string n = u.getFilePathTail();
+      coord = coord || n == "IRCCOORD";
+      geom = geom || n == "IRCGEOM";
+    }
+    if (!coord || !geom) return -1;
+  } catch (...) {
+    return -1;
+  }
+  if (getStoredProperty("PTMO") || !getStoredProperty("MO")) return -1;
+  PropVector *c = dynamic_cast<PropVector*>(getStoredProperty("IRCCOORD"));
+  PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
+  if (!c || !geom || geom->tables() < 2 ||
+      (int)c->values().size() != geom->tables()) return -1;
+  for (size_t i = 0; i < c->values().size(); i++)
+    if (c->values()[i] == 0) return (int)i;
+  return -1;
+}
+
+
+/**
+ * ORCA has orbitals at the TS and the two end points of an IRC only, so PTMO
+ * holds fewer tables than IRCGEOM has frames.  The calculation's own MO set
+ * is the TS one, which belongs to no other point's structure.
+ */
+bool PropertyTask::orbitalsAtSomePointsOnly()
+{
+  PropTSVecTable *mo = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTMO"));
+  PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
+  return (mo && geom && mo->tables() < geom->tables()) || tsOnlyIrcOrbitals() >= 0;
+}
+
+
+/**
+ * The PTMO/PTORB table holding a point's orbitals, -1 if it has none.  Table
+ * 0 is the TS (the IRCCOORD row at zero); then come the backward end (the
+ * most negative IRCCOORD) and the forward end (the most positive), each only
+ * if that branch exists.  ORCA stores one IRCGEOM frame per summary row.
+ */
+int PropertyTask::orbitalTable(int point)
+{
+  if (!orbitalsAtSomePointsOnly()) return point;
+  const int tsOnly = tsOnlyIrcOrbitals();
+  if (tsOnly >= 0) return point == tsOnly ? 0 : -1;
+  PropVector *c = dynamic_cast<PropVector*>(getStoredProperty("IRCCOORD"));
+  PropTSVecTable *geom = dynamic_cast<PropTSVecTable*>(getStoredProperty("IRCGEOM"));
+  PropTSVecTable *mo = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTMO"));
+  if (!c || !geom || !mo || (int)c->values().size() != geom->tables()) return -1;
+  const vector<double>& v = c->values();
+  if (point < 0 || point >= (int)v.size()) return -1;
+  int lo = 0, hi = 0, ts = -1;
+  for (size_t i = 0; i < v.size(); i++) {
+    if (v[i] < v[lo]) lo = (int)i;
+    if (v[i] > v[hi]) hi = (int)i;
+    if (v[i] == 0) ts = (int)i;
+  }
+  int next = 1;
+  if (point == ts) return 0;
+  if (v[lo] < 0) { if (point == lo) return next < mo->tables() ? next : -1; next++; }
+  if (v[hi] > 0 && point == hi) return next < mo->tables() ? next : -1;
+  return -1;
+}
+
+
+bool PropertyTask::pointHasOrbitals(int point)
+{
+  return orbitalTable(point) >= 0;
 }
 
 
@@ -444,11 +556,13 @@ TProperty* PropertyTask::pointOrbitalProperty(const string& name, bool& hide)
     {"ORBENG", "PTORB", 0}, {"ORBOCC", "PTORB", 1},
     {"ORBENGBETA", "PTORBBETA", 0}, {"ORBOCCBETA", "PTORBBETA", 1}};
   hide = false;
+  const int tbl = orbitalTable(p_orbitalPoint);
   if (name.compare(0, 5, "LOCMO") == 0) {
+    if (tbl < 0) { hide = true; return 0; }
     PropTSVecTable *orb = dynamic_cast<PropTSVecTable*>(getStoredProperty("PTORB"));
     PropVector *fin = dynamic_cast<PropVector*>(getStoredProperty("ORBENG"));
-    if (!orb || p_orbitalPoint >= orb->tables() || !fin) return 0;
-    const vector<double>& v = orb->values(p_orbitalPoint);
+    if (!orb || tbl >= orb->tables() || !fin) return 0;
+    const vector<double>& v = orb->values(tbl);
     const vector<double>& f = fin->values();
     if ((int)f.size() * 2 != (int)v.size()) { hide = true; return 0; }
     for (size_t i = 0; i < f.size(); i++)
@@ -459,16 +573,17 @@ TProperty* PropertyTask::pointOrbitalProperty(const string& name, bool& hide)
   for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
     if (name == keys[i].key) k = (int)i;
   if (k < 0) return 0;
+  if (tbl < 0) { hide = true; return 0; }
   PropTSVecTable *src = dynamic_cast<PropTSVecTable*>(getStoredProperty(keys[k].src));
-  if (!src || p_orbitalPoint >= src->tables()) return 0;
-  const string cacheKey = name + "@" + std::to_string(p_orbitalPoint);
+  if (!src || tbl >= src->tables()) return 0;
+  const string cacheKey = name + "@" + std::to_string(tbl);
   map<string, TProperty*>::iterator it = p_pointProps.find(cacheKey);
   if (it != p_pointProps.end()) return it->second;
   TProperty *base = getStoredProperty(name);
   TProperty *out = base ? PropFactory::getProperty(name) : 0;
   if (!out) return 0;
   out->units(base->units());
-  const vector<double>& v = src->values(p_orbitalPoint);
+  const vector<double>& v = src->values(tbl);
   const int rows = src->rows(), cols = src->columns();
   bool ok = (int)v.size() == rows * cols;
   if (ok && keys[k].col < 0) {
@@ -1099,7 +1214,11 @@ bool PropertyTask::updatePropTable(PropTable* property, PropertyDoc&  doc)
    if (cp) {
       vector<double> valueVector;
       parseValues(cp, valueVector);
-      property->values(numRows, numColumns, valueVector);
+      if (valueVector.size() != numRows * numColumns)
+         warnShape(getURL().toString(), property->type(), valueVector.size(),
+                   numRows, numColumns);
+      else
+         property->values(numRows, numColumns, valueVector);
       delete cp;
    }
 
@@ -1164,7 +1283,11 @@ bool PropertyTask::getPropTable(PropTable* property, PropertyDoc&  doc)
    if (cp) {
       vector<double> valueVector;
       parseValues(cp, valueVector);
-      property->values(numRows, numColumns, valueVector);
+      if (valueVector.size() != numRows * numColumns)
+         warnShape(getURL().toString(), property->type(), valueVector.size(),
+                   numRows, numColumns);
+      else
+         property->values(numRows, numColumns, valueVector);
       delete cp;
    } 
 
@@ -1630,9 +1753,9 @@ bool PropertyTask::getPropTSVecString(PropTSVecString* property,
 
 
    unsigned long numRows = doc.lastStep();
-   // Validate checke to make sure essential parts of the property are present
-   if (property->type().empty() || 
-       (numRows != 0)) {
+   // Validate check to make sure essential parts of the property are present
+   if (property->type().empty() ||
+       (numRows == 0)) {
       ret = false;
    }
 
@@ -1640,7 +1763,7 @@ bool PropertyTask::getPropTSVecString(PropTSVecString* property,
    //Now that we have all data let's stuff it into a transient property.
    //
    char * cp = 0;
-   for (size_t idx = 1; idx < doc.lastStep(); idx++) {
+   for (size_t idx = 0; idx < doc.lastStep(); idx++) {
       if ((cp = doc.values(idx))) {
          property->appendValue(cp);
          delete cp;
@@ -1876,10 +1999,53 @@ void PropertyTask::flushPropertyCache()
      cur++;
    }
    p_properties.clear();
+   p_tsOnlyKnown = false;
    for (map<string, TProperty*>::iterator p = p_pointProps.begin();
         p != p_pointProps.end(); ++p)
      delete p->second;
    p_pointProps.clear();
+   ResultsFromCalc::forget(this);
+}
+
+
+// The data file `name` of this calculation, copied byte for byte.
+bool PropertyTask::fetchStoredFile(const string& name, const string& localPath)
+{
+  try {
+    vector<EcceURL> urls = getVDoc()->getOutputs();
+    for (size_t i = 0; i < urls.size(); i++) {
+      if (urls[i].getFilePathTail() != name) continue;
+      EDSI *edsi = EDSIFactory::getEDSI(urls[i]);
+      if (edsi == 0) return false;
+      std::ofstream out(localPath.c_str(), std::ios::binary);
+      bool ok = out && edsi->getDataSet(out);
+      out.close();
+      delete edsi;
+      return ok;
+    }
+  }
+  catch (DavException&) {}
+  return false;
+}
+
+
+bool PropertyTask::storeFile(const string& name, const string& localPath)
+{
+  std::ifstream in(localPath.c_str(), std::ios::in | std::ios::binary);
+  if (!in) return false;
+  return putOutputFile(name, &in);
+}
+
+
+bool PropertyTask::removeStoredFile(const string& name)
+{
+  try {
+    vector<EcceURL> urls = getVDoc()->getOutputs();
+    for (size_t i = 0; i < urls.size(); i++)
+      if (urls[i].getFilePathTail() == name) return putOutputFile(name, 0);
+  }
+  catch (DavException&) { return false; }
+  return true;
 }
 
 

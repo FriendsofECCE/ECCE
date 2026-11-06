@@ -91,7 +91,8 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
        *  window is recomputed at the same contour levels.  Interactive (the
        *  mouse wheel): a coarse grid at once, the full one when the zooming
        *  has rested (refineZoom). */
-      bool zoomAt(double u, double v, double factor, bool interactive = false);
+      void outerWindow(double out[4]) const;
+    bool zoomAt(double u, double v, double factor, bool interactive = false);
       /** Move the zoomed window by (du, dv), A, staying on the plane;
        *  interactive as for zoomAt.  No-op when not zoomed. */
       /** The plane through the 2 or 3 atoms selected in the viewer. */
@@ -106,6 +107,13 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       bool atomPoint(int n, double& u, double& v) const;
       /** Where each control sits at a given panel width, and which are clipped. */
       std::string layoutReport(int width);
+      /**
+       * Show the total density as a difference: this calculation minus the
+       * calculations at `urls` (empty: the plain density).  False, with the
+       * reason in `why`, if a fragment does not match (#726).
+       */
+      bool setFragments(const std::vector<std::string>& urls, std::string& why);
+      const std::vector<std::string>& fragments() const { return p_fragments; }
       /** The MOs panel's selection (1-based, alpha or beta). */
       void followMo(int mo, bool beta);
 
@@ -127,6 +135,7 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       void build();
       void compute(bool coarse = false, bool progressInPanel = false);
       void syncControls();
+      void updatePrincipalPlanes();
       bool currentPlane(DensityPlane::Plane& plane, std::string& why);
       void onChanged();
       void onPicked();
@@ -145,6 +154,11 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       std::string zoomKey(const DensityPlane::Plane& plane, int what,
                           int orbital, bool beta) const;
 
+      std::vector<std::string> p_fragments;
+      wxButton *p_diff;
+      void chooseFragments();
+      void updateDiffButton();
+
       bool p_zoomed;
       double p_zoomWin[4], p_fullWin[4], p_levelTop;
       std::string p_zoomKey;
@@ -158,6 +172,8 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
 
       wxChoice *p_show, *p_spin, *p_atomA, *p_atomB, *p_atomC;
       wxRadioBox *p_plane;
+      wxChoice *p_principal;
+      std::vector<DensityPlane::Plane> p_principalPlanes;
       wxTextCtrl *p_offsetField;
       wxButton *p_resetOffset;
       wxStaticText *p_labelA, *p_labelB, *p_labelC, *p_caption;

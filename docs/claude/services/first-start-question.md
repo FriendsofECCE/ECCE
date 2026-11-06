@@ -6,20 +6,23 @@ section: "The Gateway window and session end"
 paths: ["packaging/gateway/ecce-first-start", "packaging/ecce.in", "packaging/gateway/ecce-session-lib.sh", "packaging/dataserver/ecce-remote-setup", "include/util/RemoteServerDir.H", "packaging/windows/ecce.cmd", "packaging/macos/ecce.sh", "tests/apps/first_start_window_test.py", "tests/windows/ecce_cmd_test.py", "src/apps/organizer/CalcMgr.C", "tests/apps/first_start_test.py", "tests/tls/first_connect_test.py"]
 issues: [240, 216]
 ---
-`ecce` runs `ecce-first-start` before it makes the session id (#240). It
-asks at every start ("Store data on this computer" / "Connect to a server";
-Andy, 2026-10-09: a laptop moves between home and campus), with the current
-setup preselected, and Continue on an unchanged choice changes nothing (no
-new server setup). The answer still goes to `~/.ECCE/first-start-answer`, but
-does not skip the question; only explicit configuration does (`skip_reason()`: siteconfig/RemoteServer,
-SharedBroker, `-remote`, `--local`/ECCE_LOCAL_DATA, a central-server account,
-no display, ECCE_NO_FIRST_START). An installed server package is not
-configuration and does not skip it (Andy, 2026-10-09). Existing data
-(a local folder, ~/.ECCE/dataserver, a server chosen, the preference) only
-preselects the window, which then shows the current setup; keeping a
-per-user data server records the answer without switching the preference.
-The skip list is the contract: add a new kind of configuration there, and
-to `tests/apps/first_start_test.py`.
+`ecce` runs `ecce-first-start` before it makes the session id. Since #767
+it asks nothing: a client with nothing configured is made local (the
+LocalData preference on, `~/.ECCE-local`) and goes on. `skip_reason()` lists
+what is left as it is: siteconfig/RemoteServer, SharedBroker, `-remote`,
+`--local`/ECCE_LOCAL_DATA, a central-server account, no display,
+ECCE_NO_FIRST_START, and a recorded server (`~/.ECCE/RemoteServer`, an
+answer "server ..." in `~/.ECCE/first-start-answer`, `~/.ECCE/dataserver`,
+the preference off). `--check` prints `local` or `skip: <why>`. The old
+window survives as `--change` (tests, `ecce-first-start --apply` for
+scripts); Preferences no longer starts it. Preferences > Data lists the
+user's servers (`~/.ECCE/AddedServers`, ServerList.H, `ecce-localdata servers`)
+and shows an installation's or an earlier start's server as read-only;
+Remove on the earlier one runs `--apply local`. Added servers are only
+stored in a1. The skip list is the contract: add a new kind of
+configuration there and to `tests/apps/first_start_test.py`.
+Tests that need a server session use `seedChoice` (session_end.py), not
+the window's answer hook.
 
 - The choice is stored as state ECCE already reads: local = the LocalData
   preference (`ecce-localdata pref on`) plus `~/.ECCE-local`; server =

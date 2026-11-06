@@ -35,6 +35,13 @@ DECLARE_CLASS(CalcMgrApp)
   void quitMCB(JMSMessage& msg);
   void identifyMCB(JMSMessage& msg);
   void launchRequestMCB(JMSMessage& msg);
+  void rerunRequestMCB(JMSMessage& msg);
+  void terminateRequestMCB(JMSMessage& msg);
+  void annotateRequestMCB(JMSMessage& msg);
+  void moveRequestMCB(JMSMessage& msg);
+  void workflowRequestMCB(JMSMessage& msg);
+  void reconnectRequestMCB(JMSMessage& msg);
+  void fetchRequestMCB(JMSMessage& msg);
   void miscPrefChangeMCB(JMSMessage& msg);
   void invokeMCB(JMSMessage& msg);
   void msgStatusMCB(JMSMessage& msg);
@@ -43,6 +50,7 @@ DECLARE_CLASS(CalcMgrApp)
   void msgURLCreatedMCB(JMSMessage& msg);
   void msgURLRemovedMCB(JMSMessage& msg);
   void msgChangedMCB(JMSMessage& msg);
+  void msgSubjectMCB(JMSMessage& msg);
   void msgProgressMCB(JMSMessage& msg);
   void msgMachConfChangedMCB(JMSMessage& msg);
   void msgMachRegChangedMCB(JMSMessage& msg);

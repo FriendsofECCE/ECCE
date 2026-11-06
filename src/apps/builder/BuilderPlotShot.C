@@ -30,6 +30,7 @@
 #include "Builder.H"
 #include "PropertyPanel.H"
 #include "MoPanel.H"
+#include "DensityFragments.H"
 #include "DensityMapPanel.H"
 #include "DensityProfilePanel.H"
 #include "XYPlotCanvas.H"
@@ -150,6 +151,20 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
       return s.fail("plotshot: no Bond type column to sort");
     if (mode == "spin" && !mo->selectFieldType("Spin Density"))
       return s.fail("plotshot: no Spin Density for this calculation");
+    //  "spinpaint": the atom colours before, with Show on structure on, and
+    //  after turning it off again (#616).
+    if (mode == "spinpaint") {
+      if (!mo->selectFieldType("Spin Density"))
+        return s.fail("plotshot: no Spin Density for this calculation");
+      for (int step = 0; step < 3; step++) {
+        if (step) mo->paintSpin(step == 1);
+        fprintf(stderr, "PLOTSHOT-SPINCOLOURS %s %s\n", w[1].c_str(),
+                step == 0 ? "before" : step == 1 ? "on" : "off");
+        for (const string& r : mo->atomColourRows())
+          fprintf(stderr, "PLOTSHOT-SPINCOLOUR %s\n", r.c_str());
+        settle(300);
+      }
+    }
     wxCommandEvent ev(wxEVT_MENU, mode == "plotsym" ? MoPanel::PLOTSYM
                                  : mode == "plot" ? MoPanel::PLOT
                                                   : MoPanel::TABLE);
@@ -226,6 +241,7 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
 
 //  Scene commands for the Density Map panel (#215); each GUI action has one:
 //    densitymap <name> <w> <h> <orbital|0|sumN> <alpha|beta> <plane 0-3> [a b c]
+//    dmdiff [NAME ...]    density minus the named calculations of this folder (none: plain)
 //    dmpick A B [C]       atoms picked in the 3-D view (1-based)
 //    dmoffset X [drag]    the offset slider, A
 //    dmview rx ry rz ux uy uz | dmviewcurrent     "Use this view"
@@ -278,6 +294,12 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
     if (!dm->savePng(wxString(outdir + "/" + w[1] + ".png"), atoi(w[2].c_str()),
                      atoi(w[3].c_str())))
       return s.fail("densitymap: cannot write " + w[1] + ".png");
+  } else if (cmd == "dmdiff") {
+    vector<string> names(w.begin() + 1, w.end()), urls;
+    string why;
+    ok = DensityFragments::resolve(p_calculation, names, urls, why) &&
+         dm->setFragments(urls, why);
+    if (!ok) fprintf(stderr, "dmdiff: %s\n", why.c_str());
   } else if (cmd == "dmpick" && w.size() >= 3) {
     vector<int> atoms;
     for (size_t i = 1; i < w.size(); i++) atoms.push_back(atoi(w[i].c_str()));
@@ -408,10 +430,11 @@ bool Builder::atomNumbersCommand(SceneScript& s, const vector<string>& w)
 //    dpshow all|totalselected|selected|total
 //    dpmo N,N,...|none    exactly these orbitals ticked
 //    dpspin alpha|beta|both | dpunit A|bohr | dpcombine 0|1 | dpclip 0|1
-//    dpxaxis linear|sqrt|log (atom) | dpyaxis linear|log
+//    dpxaxis linear|sqrt|log (atom) | dpyaxis linear|log|sqrt
 //    dpshift ANGSTROM [in|out] (line) | dpzoom whole|fit|in|out | dpmore 0|1
 //    dpfollow N [beta]    what a click on an MO Diagram level does
 //    dpcancelafter MS    press Cancel in the next command's progress dialog
+//    dpdiff [NAME ...]    density minus the named calculations of this folder (none: plain)
 //    dpcsv <name> | dppng <name> <w> <h> | dpstate
 bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
                                     const string& outdir)
@@ -503,6 +526,12 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
     ok = dp->setMoreOpen(w[1] != "0");
   } else if (cmd == "dpfollow" && w.size() >= 2) {
     dp->followMo(atoi(w[1].c_str()), w.size() > 2 && w[2] == "beta");
+  } else if (cmd == "dpdiff") {
+    vector<string> names(w.begin() + 1, w.end()), urls;
+    string why;
+    ok = DensityFragments::resolve(p_calculation, names, urls, why) &&
+         dp->setFragments(urls, why);
+    if (!ok) fprintf(stderr, "dpdiff: %s\n", why.c_str());
   } else if (cmd == "dpcsv" && w.size() == 2) {
     ok = dp->exportCsv(wxString(outdir + "/" + w[1] + ".csv"));
   } else if (cmd == "dppng" && w.size() == 4) {

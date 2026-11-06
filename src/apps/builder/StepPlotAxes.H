@@ -68,6 +68,17 @@ inline wxString xAxisName(const std::string& rowLabel)
   return wxString::FromUTF8(rowLabel.c_str());
 }
 
+// A conformer search (and the other CREST ensembles) stores the structures
+// as geometry steps, but they are not steps of an optimisation.
+inline wxString xAxisName(const std::string& rowLabel, IPropCalculation *calc)
+{
+  if (rowLabel == "Geometry Step" && calc && calc->getProperty("CONFREL"))
+    return "Conformer";
+  if (rowLabel == "Geometry Step" && calc && calc->getProperty("POSESCORE"))
+    return "Pose";
+  return xAxisName(rowLabel);
+}
+
 // What an untimed per-step series is drawn as.
 struct Shaped {
   std::vector<double> y;

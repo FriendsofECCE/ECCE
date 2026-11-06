@@ -15,6 +15,7 @@
 #include <wx/textctrl.h>
 
 #include "PointNote.H"
+#include "MoDiagramPanel.H"
 #include "util/EventDispatcher.H"
 #include "util/InternalException.H"
 #include "util/PreferenceLabels.H"
@@ -22,7 +23,12 @@
 
 #include "dsm/ICalcUtils.H"
 #include "tdat/MoAoBasis.H"
+#include "tdat/ShellLabel.H"
 #include "tdat/SpinTables.H"
+#include "inv/ChemKit/ChemColor.H"
+#include "viz/SGFragment.H"
+#include <wx/dcclient.h>
+#include <wx/checkbox.h>
 #include "tdat/PropTable.H"
 #include "tdat/PropVector.H"
 #include "tdat/PropVecString.H"
@@ -63,6 +69,16 @@
 #include "GridDlg.H"
 #include "MoCoeffs.H"
 
+//  The MO diagram is always canonical; it labels itself while the table
+//  lists the localised set.
+static void tellDiagrams(IPropCalculation *calc, bool localised)
+{
+   if (calc == 0) return;
+   for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString()))
+      if (MoDiagramPanel *d = dynamic_cast<MoDiagramPanel*>(p))
+         d->orbitalSetChanged(localised);
+}
+
 namespace {
 //  Height of a label's text as drawn, all its lines.
 int multiLineHeight(wxStaticText *t)
@@ -74,6 +90,88 @@ int multiLineHeight(wxStaticText *t)
 }
 
 
+
+namespace {
+struct FieldLabel { const char *key; const char *label; const char *description; };
+const FieldLabel surfaceFields[] = {
+   {"Density", "Density", "Total electron density ρ(r). The surface encloses the region where ρ exceeds the isovalue (au)."},
+   {"Spin Density", "Spin Density", "ρ_α - ρ_β: where the unpaired electrons are; the two colours mark alpha and beta excess."},
+   {ESP_FIELD_TYPE, "ESP on Density", "Electrostatic potential on a density surface: red negative (electron-rich), blue positive."},
+   {ELF_FIELD_TYPE, "ELF", "Electron localisation function, 0 to 1; values near 1 mark localised pairs: bonds, lone pairs, core shells."},
+   {LOL_FIELD_TYPE, "LOL", "Localised orbital locator, 0 to 1; as ELF, with sharper separation between basins."},
+   {NCI_FIELD_TYPE, "NCI", "Reduced density gradient at low density, coloured by sign(λ2)ρ: blue hydrogen bonds and other attraction, green weak contacts with little density overlap, red steric repulsion."}
+};
+const FieldLabel chargeField = {ESP_CHARGES_FIELD_TYPE,
+   "ESP on Density (atomic charges)", ""};
+
+string fieldKey(const string& label)
+{
+   for (const auto& field : surfaceFields)
+      if (label == field.label) return field.key;
+   return label == chargeField.label ? chargeField.key : label;
+}
+
+string fieldLabel(const string& key)
+{
+   for (const auto& field : surfaceFields)
+      if (key == field.key) return field.label;
+   return key == chargeField.key ? chargeField.label : key;
+}
+}
+
+std::vector<MoPanel::SurfaceEntry> MoPanel::surfaceEntries() const
+{
+   IPropCalculation *calc = getCalculation();
+   const bool density = calc->getProperty("MO") && calc->getProperty("ORBOCC") &&
+      (!calc->getProperty("MOBETA") || calc->getProperty("ORBOCCBETA"));
+   bool spin = density && calc->getProperty("MOBETA");
+   if (density && !spin) {
+      if (auto *occ = dynamic_cast<PropVector*>(calc->getProperty("ORBOCC")))
+         for (double o : occ->values())
+            if (o > 1e-6 && fabs(o - 2.0) > 1e-6) spin = true;
+   }
+   std::vector<SurfaceEntry> entries;
+   for (const auto& field : surfaceFields) {
+      if (density && (string(field.key) != "Spin Density" || spin))
+         entries.push_back({field.label, field.description});
+   }
+   return entries;
+}
+
+string MoPanel::selectedFieldKey() const
+{
+   auto *choice = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   return !choice || choice->GetSelection() == wxNOT_FOUND ? string() :
+      fieldKey(choice->GetStringSelection().ToStdString());
+}
+
+string MoPanel::selectedSurface() const
+{
+   return p_surfaceMode ? "Surfaces" : "MOs";
+}
+
+void MoPanel::updateFieldNote()
+{
+   p_fieldDescription.clear();
+   const string key = selectedFieldKey();
+   for (const auto& field : surfaceFields)
+      if (key == field.key) p_fieldDescription = wxString::FromUTF8(field.description);
+   auto *choice = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   wxString tip = p_fieldDescription;
+   if (tip.IsEmpty()) {
+      const auto surfaces = surfaceEntries();
+      const bool haveSpin = std::any_of(surfaces.begin(), surfaces.end(),
+         [](const SurfaceEntry& entry) { return fieldKey(entry.label) == "Spin Density"; });
+      if (!surfaces.empty() && !haveSpin)
+         tip = _("Spin density is offered for open-shell calculations (UHF, ROHF, UKS).");
+   }
+   choice->SetToolTip(tip);
+   p_fieldNote->SetLabel(p_fieldDescription);
+   p_fieldNote->SetToolTip(p_fieldDescription);
+   p_fieldNote->Wrap(std::max(80, GetClientSize().x - 12));
+   p_fieldNote->Show(!p_fieldDescription.IsEmpty());
+   reflow();
+}
 
 static const char *INIFILE = "wxbuilder.ini";
 
@@ -162,14 +260,6 @@ MoPanel::~MoPanel()
 
 
 
-wxSize MoPanel::GetMinSize() const
-{
-   wxSize min = MoGUI::GetMinSize();
-   if (GetSizer() != 0) {
-      min.x = std::max(min.x, GetSizer()->GetMinSize().x);
-   }
-   return min;
-}
 
 
 bool MoPanel::Create(IPropCalculation *calculation,
@@ -248,6 +338,8 @@ bool MoPanel::Create(IPropCalculation *calculation,
    wxBoxSizer *spinSizer = new wxBoxSizer(wxVERTICAL);
    p_spinNote = new wxStaticText(p_spinView, wxID_ANY, wxEmptyString);
    p_spinPopHead = new wxStaticText(p_spinView, wxID_ANY, wxEmptyString);
+   p_spinLargest = new wxStaticText(p_spinView, wxID_ANY, wxEmptyString);
+   p_spinElemHead = new wxStaticText(p_spinView, wxID_ANY, wxEmptyString);
    auto makeGrid = [this]() {
       wxGrid *g = new wxGrid(p_spinView, wxID_ANY, wxDefaultPosition,
                              wxDefaultSize, wxBORDER_SUNKEN);
@@ -267,6 +359,33 @@ bool MoPanel::Create(IPropCalculation *calculation,
    };
    p_spinSomo = makeGrid();
    p_spinPop = makeGrid();
+   p_spinElem = makeGrid();
+   //  Colour each atom by its spin; the legend is the scale itself.
+   p_spinPaint = new wxCheckBox(p_spinView, wxID_ANY, "Show on structure");
+   p_spinPaint->SetToolTip(_("Colour each atom by its spin: blue negative, "
+                             "white zero, red positive. Off restores the "
+                             "normal colours."));
+   p_spinPaint->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) {
+      paintSpin(e.IsChecked()); });
+   p_spinBar = new wxPanel(p_spinView, wxID_ANY, wxDefaultPosition,
+                           wxSize(120, 14));
+   p_spinBar->Bind(wxEVT_PAINT, [this](wxPaintEvent&) {
+      wxPaintDC dc(p_spinBar);
+      const wxSize sz = p_spinBar->GetClientSize();
+      for (int x = 0; x < sz.x; x++) {
+         float rgb[3];
+         SpinTables::colour(sz.x > 1 ? 2.0*x/(sz.x - 1) - 1.0 : 0.0, 1.0, rgb);
+         dc.SetPen(wxPen(wxColour((unsigned char)(255*rgb[0]),
+                                  (unsigned char)(255*rgb[1]),
+                                  (unsigned char)(255*rgb[2]))));
+         dc.DrawLine(x, 0, x, sz.y);
+      }
+   });
+   p_spinLegend = new wxStaticText(p_spinView, wxID_ANY, wxEmptyString);
+   wxBoxSizer *paintRow = new wxBoxSizer(wxHORIZONTAL);
+   paintRow->Add(p_spinPaint, 0, wxALIGN_CENTER_VERTICAL);
+   paintRow->Add(p_spinBar, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 8);
+   paintRow->Add(p_spinLegend, 0, wxALIGN_CENTER_VERTICAL|wxLEFT, 6);
    //  A composition cell shows the leading atoms; the tooltip has them all.
    p_spinSomo->GetGridWindow()->Bind(wxEVT_MOTION, [this](wxMouseEvent& e) {
       e.Skip();
@@ -281,6 +400,10 @@ bool MoPanel::Create(IPropCalculation *calculation,
    spinSizer->Add(p_spinSomo, 0, wxGROW|wxLEFT|wxRIGHT, 5);
    spinSizer->Add(p_spinPopHead, 0, wxGROW|wxLEFT|wxRIGHT|wxTOP|wxBOTTOM, 8);
    spinSizer->Add(p_spinPop, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+   spinSizer->Add(p_spinLargest, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 8);
+   spinSizer->Add(p_spinElemHead, 0, wxGROW|wxLEFT|wxRIGHT, 8);
+   spinSizer->Add(p_spinElem, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+   spinSizer->Add(paintRow, 0, wxLEFT|wxRIGHT|wxBOTTOM, 8);
    p_spinView->SetSizer(spinSizer);
    p_spinView->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
       e.Skip();
@@ -319,7 +442,19 @@ bool MoPanel::Create(IPropCalculation *calculation,
    p_slider->SetToolTip("Log Iso value:");
 
    buildEspRangeControls();
+   buildFieldViewControls();
    buildBasisWarning();
+   p_fieldNote = new wxStaticText(this, wxID_ANY, wxEmptyString);
+   p_fieldNote->SetMinSize(wxSize(1, -1));
+   GetSizer()->Add(p_fieldNote, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, 5);
+   p_fieldNote->Hide();
+   Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+      e.Skip();
+      if (p_fieldNote && !p_fieldDescription.IsEmpty()) {
+         p_fieldNote->SetLabel(p_fieldDescription);
+         p_fieldNote->Wrap(std::max(80, GetClientSize().x - 12));
+      }
+   });
 
    //  Dynamically, for the reason given in buildEspRangeControls().
    ((ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE))->Bind(
@@ -381,6 +516,16 @@ int MoPanel::getSelectedMo() const
 }
 
 
+int MoPanel::selectedAlphaIndex() const
+{
+   if (p_mogrid == 0 || p_localised || p_selectedRow < 0 ||
+       p_selectedRow >= p_mogrid->GetNumberRows() ||
+       getSelectedType() != "alpha")
+      return -1;
+   return getSelectedMo() - 1;
+}
+
+
 string MoPanel::getSelectedType() const
 {
    wxString col1 = p_mogrid->GetColLabelValue(0);
@@ -392,6 +537,60 @@ string MoPanel::getSelectedType() const
 }
 
 
+/** The drop-down lists orbital quantities in the MOs entry, density surfaces in Surfaces. */
+void MoPanel::populateTypeChoice()
+{
+   IPropCalculation *expt = getCalculation();
+   ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   typewin->Clear();
+   if (p_surfaceMode) {
+      const auto surfaces = surfaceEntries();
+      bool densityOk = false;
+      for (const auto& entry : surfaces) {
+         if (fieldKey(entry.label) == "Density") densityOk = true;
+         typewin->Append(wxString::FromUTF8(entry.label.c_str()));
+      }
+      if (densityOk && (expt->getProperty("ESPCHARGE") ||
+            expt->getProperty("ESPFIT") || expt->getProperty("MULLIKEN")))
+         typewin->Append(chargeField.label);
+   } else {
+      typewin->Append(_("MO"));
+      if (expt->getProperty("LOCMO") && expt->getProperty("LOCMOENG"))
+         typewin->Append("Localised MO");
+   }
+}
+
+/** The table, plots, composition and coefficient controls are for orbitals only. */
+void MoPanel::showOrbitalControls()
+{
+   if (wxWindow *cut = FindWindow(ID_TEXTCTRL_MO_CUTOFF))
+      cut->GetParent()->Show(!p_surfaceMode);
+   if (p_compBox != 0)
+      GetSizer()->Show(p_compBox, !p_surfaceMode &&
+                       (p_drawnType == "MO" || p_drawnType == "Localised MO"));
+   showMainView();
+}
+
+void MoPanel::setSurfaceMode(bool on)
+{
+   if (on == p_surfaceMode) return;
+   ensureInitialized();
+   p_surfaceMode = on;
+   //  A surface from the other mode would sit under the wrong controls.
+   getFW().getSceneGraph().clearGrids();
+   p_drawnType.clear();
+   p_espDrawnType.clear();
+   hideEspBar();
+   if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this)))
+      builder->setPaneCaption(this, on ? "Surfaces" : "MOs");
+   populateTypeChoice();
+   ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   typewin->SetSelection(typewin->GetCount() ? 0 : wxNOT_FOUND);
+   showOrbitalControls();
+   wxCommandEvent changed(wxEVT_CHOICE);
+   onFieldTypeChanged(changed);
+}
+
 /**
  * Examine data to see what options can be performed (if any) and update
  * the ui accordingly.
@@ -402,57 +601,28 @@ void MoPanel::updateUIOptions()
    ICalculation *escalc = dynamic_cast<ICalculation*>(expt);
    INTERNALEXCEPTION(escalc, "Cannot down cast to ICalucation");
 
-   // If we don't have the occupations, we can't do density
-   bool densityOk=true;
-   if (expt->getProperty("MO") && !expt->getProperty("ORBOCC")) {
-      densityOk=false;
-   } else if (expt->getProperty("MOBETA") && !expt->getProperty("ORBOCCBETA")){
-      densityOk=false;
+   const auto surfaces = surfaceEntries();
+   bool densityOk = false, spinOk = false;
+   for (const auto& entry : surfaces) {
+      if (fieldKey(entry.label) == "Density") densityOk = true;
+      if (fieldKey(entry.label) == "Spin Density") spinOk = true;
    }
-
-   // If we don't have the occupations, we can't do spin density
-   //  Two MO sets (UHF/UKS), or one set with singly occupied orbitals
-   //  (restricted open shell); a closed shell has no spin density.
-   bool spinOk=false;
-   if (expt->getProperty("MO") && expt->getProperty("MOBETA") &&
-         expt->getProperty("ORBOCC") && expt->getProperty("ORBOCCBETA")) {
-      spinOk=true;
-   } else if (expt->getProperty("MO") && !expt->getProperty("MOBETA")) {
-      if (PropVector *occ = dynamic_cast<PropVector*>(expt->getProperty("ORBOCC"))) {
-         for (double o : occ->values())
-            if (o > 1e-6 && fabs(o - 2.0) > 1e-6) spinOk = true;
-      }
-   }
-
-   //  Both potentials are mapped onto a density surface, so both need
-   //  the density.  The canonical one integrates over that density and
-   //  so needs nothing further; the point-charge one needs charges, and
-   //  is offered only when they exist rather than being offered and
-   //  then quietly producing a plain surface.
-   bool espOk = densityOk;
-   bool espChargesOk = densityOk && (expt->getProperty("ESPCHARGE") ||
-                                     expt->getProperty("ESPFIT") ||
-                                     expt->getProperty("MULLIKEN"));
-
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
-   typewin->Clear();
-   if (espChargesOk) typewin->Insert(ESP_CHARGES_FIELD_TYPE,0);
-   if (espOk) typewin->Insert(ESP_FIELD_TYPE,0);
-   if (spinOk) typewin->Insert("Spin Density",0);
-   if (densityOk) typewin->Insert("Density",0);
+   if (p_localised) tellDiagrams(getCalculation(), false);
    p_localised = false;
-   if (expt->getProperty("LOCMO") && expt->getProperty("LOCMOENG")) {
-      typewin->Insert("Localised MO",0);
-   } else if (PropVecString *why = (PropVecString*) expt->getProperty("LOCMONOTE")) {
+   populateTypeChoice();
+   if (!(expt->getProperty("LOCMO") && expt->getProperty("LOCMOENG")) &&
+       !p_surfaceMode) {
+      if (PropVecString *why = (PropVecString*) expt->getProperty("LOCMONOTE")) {
       //  The engine tried and could not; say so rather than omit the type silently.
       if (why->rows() > 0) {
          string text = why->values()[0];
          std::replace(text.begin(), text.end(), '_', ' ');
          getFW().showMessage("No localised orbitals: " + text + ".", false/*warning*/);
       }
+      }
    }
-   typewin->Insert("MO",0);
-   typewin->SetStringSelection(_("MO"));
+   typewin->SetSelection(0);
    p_virtNote.clear();
    typewin->SetToolTip(spinOk || !densityOk ? wxString() :
       _("Spin density is offered for open-shell calculations (UHF, ROHF, UKS)."));
@@ -481,6 +651,9 @@ void MoPanel::updateUIOptions()
    //  The range controls belong to the ESP types alone.  Shown when one
    //  is chosen, which OnTypeSelected below keeps in step.
    showEspRangeControls(false);
+   updateFieldNote();
+   showFieldViewControls(false, false);
+   showOrbitalControls();
 
    // Make sure we have a GBSConfig.  If not we'll crash when
    // we try to compute.
@@ -583,6 +756,7 @@ bool MoPanel::rebuildTable()
    IPropCalculation *expt = getCalculation();
    p_aoBasis = nullptr;
    p_aoTried = false;
+   p_coreDone[0] = p_coreDone[1] = false;
    p_aoRows[0].clear();
    p_aoRows[1].clear();
 
@@ -590,6 +764,7 @@ bool MoPanel::rebuildTable()
    p_mogrid->UnsetSortingColumn();
    p_sortCol = -1;
    if (p_spinShown) {
+      paintSpin(false);
       p_spinShown = false;
       showMainView();
    }
@@ -860,7 +1035,7 @@ void MoPanel::fillCharacterColumn(bool haveTypes)
       if (mo < 1 || mo > (long)rows.size() ||
           !p_aoBasis->analyse(rows[mo-1], MoAoBasis::MULLIKEN, comp))
          continue;
-      vector<MoAoBasis::Share> parts = comp.types;
+      vector<MoAoBasis::Share> parts = namedTypes(comp.types, (int)mo, beta);
       std::stable_sort(parts.begin(), parts.end(),
           [](const MoAoBasis::Share& a, const MoAoBasis::Share& b) {
             return a.share > b.share; });
@@ -1108,8 +1283,15 @@ string MoPanel::tableState() const
    if (ewxChoice *tw = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE)) {
       s << "fieldTypes";
       for (unsigned i = 0; i < tw->GetCount(); i++) s << (i ? " | " : " ") << tw->GetString(i);
+      s << "\nfieldSelected " << tw->GetStringSelection()
+        << "\nfieldNote " << p_fieldDescription
+        << "\nfieldNoteShown " << (p_fieldNote && p_fieldNote->IsShownOnScreen() ? 1 : 0);
       s << "\n" << "fieldTypeTip " << (tw->GetToolTip() ? tw->GetToolTip()->GetTip() : wxString()) << "\n";
    }
+   s << "surfaceMode " << p_surfaceMode << "\n";
+   s << "tableShown " << (p_mogrid->IsShownOnScreen() ? 1 : 0) << "\n";
+   if (wxWindow *cut = FindWindow(ID_TEXTCTRL_MO_CUTOFF))
+      s << "coefControlsShown " << (cut->IsShownOnScreen() ? 1 : 0) << "\n";
    s << "virtNote " << p_virtNote << "\n";
    s << "headerHeight " << p_mogrid->GetColLabelSize() << "\n";
    s << "gridRect " << p_mogrid->GetRect().y << " " << p_mogrid->GetRect().height << "\n";
@@ -1171,8 +1353,11 @@ string MoPanel::tableState() const
    s << "visibleRows " << first << " " << last << "\n";
    if (p_spinShown) {
       wxString text = p_spinNote->GetLabel() + "\n";
-      for (wxGrid *g : { p_spinSomo, p_spinPop }) {
+      for (wxGrid *g : { p_spinSomo, p_spinPop, p_spinElem }) {
          if (g == p_spinPop) text += p_spinPopHead->GetLabel() + "\n";
+         if (g == p_spinElem)
+            text += p_spinLargest->GetLabel() + "\n" +
+                    p_spinElemHead->GetLabel() + "\n";
          if (g->GetNumberRows() == 0) continue;
          for (int col = 0; col < g->GetNumberCols(); col++)
             text += (col ? " | " : "") + g->GetColLabelValue(col);
@@ -1390,21 +1575,56 @@ bool MoPanel::ensureAoBasis()
    vector<double> coords;
    if (calc == 0 || !MoAoBasis::fragmentGeometry(frag, symbols, coords))
       return false;
-   if (!MoAoBasis::coefficients(calc, symbols, false, p_aoRows[0]))
-      return false;
-   if (calc->getProperty("MOBETA") != 0)
-      MoAoBasis::coefficients(calc, symbols, true, p_aoRows[1]);
-
    CompositionProgress progress(wxGetTopLevelParent(this));
    MoAoBasis *basis = new MoAoBasis();
-   if (!basis->build(calc, symbols, coords, (int)p_aoRows[0][0].size(),
-                     [&](double frac) { progress.progress(frac); })) {
-      p_aoWhy = basis->complaint;
+   if (!basis->buildWithOrbitals(calc, symbols, coords, p_aoRows,
+                                 [&](double frac) { progress.progress(frac); })) {
+      p_aoWhy = basis->complaint.empty() ? p_aoWhy : basis->complaint;
       delete basis;
       return false;
    }
    p_aoBasis = basis;
    return true;
+}
+
+
+/**
+ * The labels of an orbital's parts with the principal quantum number.  Which
+ * MOs are core orbitals is found once per spin from the deepest ones only
+ * (a core orbital cannot be anywhere else).
+ */
+vector<MoAoBasis::Share> MoPanel::namedTypes(const vector<MoAoBasis::Share>& types,
+                                             int mo, bool beta)
+{
+   vector<MoAoBasis::Share> out = types;
+   if (p_aoBasis == nullptr) return out;
+   const int set = beta ? 1 : 0;
+   const vector<string>& elements = p_aoBasis->elements;
+   if (!p_coreDone[set]) {
+      p_coreDone[set] = true;
+      const int keep = std::min((int)p_aoRows[set].size(),
+                                ShellLabel::coreCapacity(elements));
+      vector< vector<ShellLabel::Part> > orbitals;
+      for (int i = 0; i < keep; i++) {
+         MoAoBasis::Composition comp;
+         vector<ShellLabel::Part> parts;
+         if (p_aoBasis->analyse(p_aoRows[set][i], MoAoBasis::MULLIKEN, comp))
+            for (size_t k = 0; k < comp.types.size(); k++)
+               parts.push_back(ShellLabel::Part(comp.types[k].atom,
+                                                comp.types[k].l,
+                                                comp.types[k].share));
+         orbitals.push_back(parts);
+      }
+      p_coreInfo[set] = ShellLabel::coreOrbitals(elements, orbitals);
+   }
+   const vector<string> names = ShellLabel::atomNames(elements);
+   const ShellLabel::Core none;
+   const ShellLabel::Core& core =
+      (mo >= 1 && mo <= (int)p_coreInfo[set].size()) ? p_coreInfo[set][mo-1] : none;
+   for (size_t k = 0; k < out.size(); k++)
+      out[k].label = ShellLabel::partName(elements, names,
+         ShellLabel::Part(out[k].atom, out[k].l, out[k].share), core);
+   return out;
 }
 
 
@@ -1473,7 +1693,7 @@ void MoPanel::showComposition()
           !p_aoBasis->analyse(rows[mo-1], MoAoBasis::MULLIKEN, comp)) {
          text = _("Composition not available for this orbital.");
       } else {
-         const string list = shareList(comp.types);
+         const string list = shareList(namedTypes(comp.types, mo, type == "beta"));
          p_compSummary = list;
          text = wxString::Format(_("MO %d%s, composition (%s population):\n"),
                   mo, type == "beta" ? " beta" : "",
@@ -1561,8 +1781,7 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    Command *cmd = new ComputeMoCmd("Compute Mo", &sg, expt, &progress);
 
    string fieldtype = "MO";
-   ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
-   fieldtype = typewin->GetString(typewin->GetSelection());
+   fieldtype = selectedFieldKey();
    cmd->getParameter("FieldType")->setString(fieldtype);
    ewxTextCtrl *cutoff = (ewxTextCtrl*)FindWindow(ID_TEXTCTRL_MO_CUTOFF);
    cmd->getParameter("CoefCutoff")->setDouble(cutoff->getValueAsDouble());
@@ -1589,6 +1808,12 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    cmd->getParameter("fromZ")->setDouble(fromz);
    cmd->getParameter("toZ")->setDouble(toz);
    fw.execute(cmd);
+
+   //  A cancelled or failed ELF/LOL/NCI compute: nothing new to draw.
+   if (cmd->getParameter("FieldFailed")->getInteger() > 0) {
+      event.Skip();
+      return;
+   }
 
    //  Coefficients that do not fit the basis are not a zero grid, and the
    //  grid still holds the previous orbital: say what is wrong and stop.
@@ -1683,10 +1908,19 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       if (fieldtype == "Spin Density") {
          isovalue = -2.5;
       }
+      //  ELF and LOL run 0..1, s of an NCI surface about 0..2: the slider
+      //  is a log10 one, and these views are driven from the row's boxes.
+      bool nciView = false;
+      const bool fieldView = fieldViewSelected(&nciView);
+      if (fieldView) {
+         isovalue = log10(fieldViewIsovalue(fieldtype));
+         absIsovalMax = fieldtype == ELF_FIELD_TYPE || fieldtype == LOL_FIELD_TYPE ? 1.0 : 2.0;
+      }
 
       cmd = new IsoSurfaceCmd("Iso Surface", &sg, expt);
       applyEspRange(cmd);
       cmd->getParameter("isovalue")->setDouble(pow(10.0, isovalue));
+      cmd->getParameter("rhoCutoff")->setDouble(fieldViewCutoff());
       cmd->getParameter("transparency")->setDouble(getTransparency());
       cmd->getParameter("positiveRed")->setDouble(posR);
       cmd->getParameter("positiveGreen")->setDouble(posG);
@@ -1702,7 +1936,7 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       p_slider->SetValue(isovalue);
       updateIsoValue(isovalue);
 
-      p_espDrawnType = espSurface ? fieldtype : string();
+      p_espDrawnType = (espSurface || nciView) ? fieldtype : string();
       p_drawnType = fieldtype;
       //  The composition describes the selected MO, not a density or ESP
       //  surface.
@@ -2167,6 +2401,7 @@ void MoPanel::chooseMoFieldType()
 {
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
    if (typewin == 0) return;
+   if (p_surfaceMode) setSurfaceMode(false);
    //  Both orbital sets count as orbitals; the localised one must survive.
    const int sel = typewin->GetSelection();
    const wxString cur = sel == wxNOT_FOUND ? wxString() : typewin->GetString(sel);
@@ -2184,8 +2419,7 @@ bool MoPanel::espFieldSelected()
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
    if (typewin == 0 || typewin->GetSelection() == wxNOT_FOUND) return false;
 
-   const string chosen = (const char*)typewin->GetString(
-                                          typewin->GetSelection()).mb_str();
+   const string chosen = selectedFieldKey();
    return (chosen == ESP_FIELD_TYPE || chosen == ESP_CHARGES_FIELD_TYPE);
 }
 
@@ -2199,6 +2433,14 @@ bool MoPanel::espFieldSelected()
 //   arithmetic on the row: the table is filled in reverse, and with
 //   beta orbitals it is filled twice.
 /////////////////////////////////////////////////////////////////////////////
+void MoPanel::setLocalised(bool localised)
+{
+   p_localised = localised;
+   rebuildTable();
+   tellDiagrams(getCalculation(), localised);
+}
+
+
 bool MoPanel::showOrbital(int orbengIndex)
 {
    //  A panel nobody has opened has not read the basis or coefficients
@@ -2206,6 +2448,14 @@ bool MoPanel::showOrbital(int orbengIndex)
    ensureInitialized();
    if (!p_isValid || p_mogrid == 0) return false;
    if (orbengIndex < 0) return false;
+
+   //  The diagram's levels are canonical MOs: a localised table would
+   //  match a localised orbital of the same number instead.
+   if (p_localised) {
+      ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+      if (typewin) typewin->SetStringSelection(_("MO"));
+      setLocalised(false);
+   }
 
    const wxString col1 = p_mogrid->GetColLabelValue(0);
    const int offset = (col1 == "Type") ? 1 : 0;
@@ -2235,6 +2485,31 @@ bool MoPanel::showOrbital(int orbengIndex)
 }
 
 
+bool MoPanel::coreOrbital(int orbeng, string& label, int& atom)
+{
+   ensureInitialized();
+   if (orbeng < 0 || !ensureAoBasis() || orbeng >= (int)p_aoRows[0].size())
+      return false;
+   MoAoBasis::Composition comp;
+   if (!p_aoBasis->analyse(p_aoRows[0][orbeng], MoAoBasis::MULLIKEN, comp))
+      return false;
+   const vector<MoAoBasis::Share> named = namedTypes(comp.types, orbeng + 1, false);
+   if (orbeng >= (int)p_coreInfo[0].size() || !p_coreInfo[0][orbeng].core)
+      return false;
+   const ShellLabel::Core& core = p_coreInfo[0][orbeng];
+   int best = -1;
+   for (size_t k = 0; k < comp.types.size(); k++)
+      if (comp.types[k].l == core.l &&
+          p_aoBasis->elements[comp.types[k].atom] == core.element &&
+          (best < 0 || comp.types[k].share > comp.types[best].share))
+         best = (int)k;
+   if (best < 0) return false;
+   atom = comp.types[best].atom;
+   label = named[best].label;
+   return true;
+}
+
+
 string MoPanel::compositionText(const vector<int>& orbengIndices)
 {
    ensureInitialized();
@@ -2251,7 +2526,7 @@ string MoPanel::compositionText(const vector<int>& orbengIndices)
       if (mo < 1 || mo > (int)rows.size() ||
           !p_aoBasis->analyse(rows[mo-1], MoAoBasis::MULLIKEN, comp))
          return "Composition not available for this orbital.";
-      if (k == 0) mean = comp.types;
+      if (k == 0) mean = namedTypes(comp.types, mo, false);
       else for (size_t j = 0; j < mean.size() && j < comp.types.size(); j++)
          mean[j].share += comp.types[j].share;
       numbers += (k ? ", " : "") + std::to_string(mo);
@@ -2287,6 +2562,13 @@ double MoPanel::getTransparency()
    //  the surface IS the object, not a shell around one -- so the
    //  configured MO transparency does not apply to it.
    if (espFieldSelected()) return 0.0;
+
+   //  An ELF surface is a shell around the atoms: always translucent.
+   ewxChoice *tw = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   if (tw != 0 && tw->GetSelection() != wxNOT_FOUND &&
+       string((const char*)tw->GetString(tw->GetSelection()).mb_str()) ==
+          ELF_FIELD_TYPE)
+      return 0.5;
 
    double ret = 0.0;
    int id;
@@ -2473,13 +2755,34 @@ void MoPanel::refreshEspBar()
    IsoSurfaceCmd::potentialRampRange(lo, hi);
    const double toKcal = 627.5095;   // 1 Hartree/e in kcal/mol per e
    const double iso = pow(10.0, static_cast<double>(p_slider->GetFloatValue()));
+   if (p_espDrawnType == NCI_FIELD_TYPE) { lo = NCI_COLOR_MIN; hi = NCI_COLOR_MAX; }
 
    p_espBarMin->SetLabel(wxString::Format("%+.4f", lo));
    p_espBarMax->SetLabel(wxString::Format("%+.4f", hi));
-   p_espBarInfo->SetLabel(wxString::Format(
-      "red: negative (electron-rich)   blue: positive (electron-poor)\n"
-      "a.u. (Hartree/e); %+.1f to %+.1f kcal/mol per e; surface %.4f e/bohr^3",
-      lo*toKcal, hi*toKcal, iso));
+   const bool nciDrawn = p_espDrawnType == NCI_FIELD_TYPE;
+   //  The bar's ramp follows the surface on screen, as its legend does.
+   vector<wxColour> colors;
+   for (int i = 0; i < 64; i++) {
+      double r, g, b;
+      if (nciDrawn) IsoSurfaceCmd::nciRampColor(2.0*i/63 - 1.0, r, g, b);
+      else IsoSurfaceCmd::potentialRampColor(2.0*i/63 - 1.0, r, g, b);
+      colors.push_back(wxColour((unsigned char)(r*255.0 + 0.5),
+                                (unsigned char)(g*255.0 + 0.5),
+                                (unsigned char)(b*255.0 + 0.5)));
+   }
+   p_espBar->setColors(colors);
+   if (nciDrawn) {
+      p_espBarInfo->SetLabel(wxString::Format(
+         "blue: attractive (hydrogen bond)   green: weak (van der Waals)   "
+         "red: repulsive (steric)\n"
+         "sign(lambda2) rho in a.u.; surface s = %.2f where rho < %.3f",
+         fieldViewIsovalue(NCI_FIELD_TYPE), fieldViewCutoff()));
+   } else {
+      p_espBarInfo->SetLabel(wxString::Format(
+         "red: negative (electron-rich)   blue: positive (electron-poor)\n"
+         "a.u. (Hartree/e); %+.1f to %+.1f kcal/mol per e; surface %.4f e/bohr^3",
+         lo*toKcal, hi*toKcal, iso));
+   }
    GetSizer()->Show(p_espBarSizer, true, true);
    const bool changed = !p_espBarShown;
    p_espBarShown = true;
@@ -2515,7 +2818,9 @@ void MoPanel::reflow()
 bool MoPanel::selectFieldType(const string& name)
 {
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
-   const int at = typewin->FindString(wxString::FromUTF8(name.c_str()));
+   const bool orbital = name == "MO" || name == "Localised MO";
+   if (orbital == p_surfaceMode) setSurfaceMode(!orbital);
+   const int at = typewin->FindString(wxString::FromUTF8(fieldLabel(name).c_str()));
    if (at == wxNOT_FOUND) return false;
    typewin->SetSelection(at);
    wxCommandEvent ev(wxEVT_CHOICE, typewin->GetId());
@@ -2611,15 +2916,120 @@ void MoPanel::showEspRangeControls(bool show)
 }
 
 
+static const wxWindowID ID_FIELD_ISO = wxNewId();
+static const wxWindowID ID_FIELD_CUT = wxNewId();
+
+/** Isovalue (and, for NCI, density cut-off) boxes of the ELF, LOL and NCI views. */
+void MoPanel::buildFieldViewControls()
+{
+   p_fieldSizer = new wxBoxSizer(wxHORIZONTAL);
+   GetSizer()->Add(p_fieldSizer, 0, wxALIGN_LEFT|wxLEFT|wxBOTTOM, 5);
+
+   p_fieldSizer->Add(new ewxStaticText(this, wxID_STATIC, _("Isovalue:")),
+                     0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
+   p_fieldIso = new ewxTextCtrl(this, ID_FIELD_ISO, _("0.80"),
+                                wxDefaultPosition, wxSize(60, -1),
+                                wxTE_PROCESS_ENTER);
+   p_fieldIso->SetToolTip(_("ELF and LOL: the value of the localisation "
+         "function the surface is drawn at (0 to 1). NCI: the reduced "
+         "density gradient s."));
+   p_fieldSizer->Add(p_fieldIso, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 10);
+
+   p_fieldCutLabel = new ewxStaticText(this, wxID_STATIC,
+                                       _("Density cut-off (a.u.):"));
+   p_fieldSizer->Add(p_fieldCutLabel, 0, wxALIGN_CENTER_VERTICAL|wxRIGHT, 5);
+   p_fieldCut = new ewxTextCtrl(this, ID_FIELD_CUT, _("0.05"),
+                                wxDefaultPosition, wxSize(60, -1),
+                                wxTE_PROCESS_ENTER);
+   p_fieldCut->SetToolTip(_("NCI: the surface is drawn only where the "
+         "electron density is below this value, which leaves out the "
+         "bonds and the cores."));
+   p_fieldSizer->Add(p_fieldCut, 0, wxALIGN_CENTER_VERTICAL, 0);
+
+   GetSizer()->Show(p_fieldSizer, false, true);
+   for (ewxTextCtrl *t : { p_fieldIso, p_fieldCut }) {
+      t->Bind(wxEVT_TEXT_ENTER, &MoPanel::onFieldViewChanged, this);
+      t->Bind(wxEVT_KILL_FOCUS, &MoPanel::onFieldViewFocusLost, this);
+   }
+}
+
+bool MoPanel::fieldViewSelected(bool *nci)
+{
+   if (nci) *nci = false;
+   ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+   if (typewin == 0 || typewin->GetSelection() == wxNOT_FOUND) return false;
+   const string chosen = (const char*)typewin->GetString(
+                                          typewin->GetSelection()).mb_str();
+   if (nci) *nci = chosen == NCI_FIELD_TYPE;
+   return chosen == ELF_FIELD_TYPE || chosen == LOL_FIELD_TYPE ||
+          chosen == NCI_FIELD_TYPE;
+}
+
+double MoPanel::fieldViewIsovalue(const string& type) const
+{
+   const double dflt = type == ELF_FIELD_TYPE ? 0.8 : 0.5;
+   double v;
+   if (p_fieldIso == 0 || !((wxString)p_fieldIso->GetValue()).ToDouble(&v) ||
+       !(v > 0.0))
+      return dflt;
+   return v;
+}
+
+double MoPanel::fieldViewCutoff() const
+{
+   double v;
+   if (p_fieldCut == 0 || !((wxString)p_fieldCut->GetValue()).ToDouble(&v) ||
+       !(v > 0.0))
+      return NCI_RHO_CUTOFF;
+   return v;
+}
+
+void MoPanel::showFieldViewControls(bool show, bool nci)
+{
+   if (p_fieldSizer == 0) return;
+   GetSizer()->Show(p_fieldSizer, show, true);
+   p_fieldCutLabel->Show(show && nci);
+   p_fieldCut->Show(show && nci);
+   //  The row's box replaces the log slider for these views.
+   p_slider->GetParent()->Show(!show);
+   if (show) {
+      ewxChoice *tw = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
+      const string chosen(tw->GetString(tw->GetSelection()).mb_str());
+      p_fieldIso->ChangeValue(wxString::Format("%.2f",
+                              chosen == ELF_FIELD_TYPE ? 0.8 : 0.5));
+   }
+   GetSizer()->Layout();
+}
+
+/** Apply the boxes: NCI rebuilds (the cut-off is in the surface), ELF/LOL move the level. */
+void MoPanel::onFieldViewChanged(wxCommandEvent& WXUNUSED(event))
+{
+   if (!p_isValid || p_drawnType.empty() ||
+       getFW().getSceneGraph().getCurrentGrid() == 0) return;
+   const double iso = fieldViewIsovalue(p_drawnType);
+   p_slider->SetValue(log10(iso));
+   if (p_drawnType == NCI_FIELD_TYPE) rebuildEspSurface();
+   else updateIsoValue(log10(iso));
+}
+
+void MoPanel::onFieldViewFocusLost(wxFocusEvent& event)
+{
+   event.Skip();
+   wxCommandEvent ev;
+   onFieldViewChanged(ev);
+}
+
+
 /** The table or a plot as chosen in the toolbar, or the spin density view. */
 void MoPanel::showMainView()
 {
    ewxConfig *config = ewxConfig::getConfig(INIFILE);
    int which;
    config->Read("MO/Which", &which, TABLE);
-   p_mogrid->Show(!p_spinShown && which == TABLE);
-   p_plotReg->Show(!p_spinShown && which == PLOT);
-   p_plotSym->Show(!p_spinShown && which == PLOTSYM);
+   const bool orbitals = !p_spinShown && !p_surfaceMode;
+   p_mogrid->Show(orbitals && which == TABLE);
+   p_plotReg->Show(orbitals && which == PLOT);
+   p_plotSym->Show(orbitals && which == PLOTSYM);
    p_spinView->Show(p_spinShown);
    p_mogrid->GetContainingSizer()->Layout();
 }
@@ -2659,42 +3069,57 @@ MoPanel::SpinData MoPanel::spinDensityData()
    }
 
    const bool haveBasis = ensureAoBasis();
-   const size_t natoms = haveBasis ? p_aoBasis->elements.size() : 0;
-   vector<double> spinPop(natoms, 0.0);
-   vector<string> atomName(natoms);
    for (int set = 0; set < (unrestricted ? 2 : 1); set++) {
       const vector<double>& en = (energy[set] ? energy[set] : energy[0])->values();
       for (size_t i = 0; i < net[set].size(); i++) {
          if (fabs(net[set][i]) < 1e-6) continue;
+         // A beta orbital is singly occupied only where the alpha one is not.
+         if (unrestricted && set == 1 && i < net[0].size() && net[0][i] != 0.0)
+            continue;
+         if (unrestricted && set == 0 && i < net[1].size() && net[1][i] != 0.0)
+            continue;
+         //  The composition is only worth its cost for the orbitals listed.
          MoAoBasis::Composition comp;
          string main, full;
          if (haveBasis && i < p_aoRows[set].size() &&
              p_aoBasis->analyse(p_aoRows[set][i], MoAoBasis::MULLIKEN, comp)) {
-            for (size_t a = 0; a < comp.atoms.size() && a < natoms; a++) {
-               spinPop[a] += net[set][i] * comp.atoms[a].share;
-               atomName[a] = comp.atoms[a].label;
-            }
             vector<SpinTables::Part> parts;
             for (size_t a = 0; a < comp.atoms.size(); a++)
                parts.push_back({ comp.atoms[a].label, comp.atoms[a].share });
             main = SpinTables::compositionText(parts);
             full = SpinTables::fullCompositionText(parts);
          }
-         // A beta orbital is singly occupied only where the alpha one is not.
-         if (unrestricted && set == 1 && i < net[0].size() && net[0][i] != 0.0)
-            continue;
-         if (unrestricted && set == 0 && i < net[1].size() && net[1][i] != 0.0)
-            continue;
          data.somos.push_back({ (int)(i + 1), set == 1,
                                 i < en.size() ? en[i] : 0.0, main, full });
       }
    }
 
-   data.haveBasis = haveBasis;
+   //  Atomic spin populations from the whole spin density in one pass.
+   vector<double> spinPop;
+   vector<string> atomName;
+   bool havePop = false;
    if (haveBasis) {
+      vector<MoAoBasis::SpinSet> sets(2);
+      for (int set = 0; set < (unrestricted ? 2 : 1); set++) {
+         sets[set].rows = &p_aoRows[set];
+         sets[set].net = net[set];
+         for (size_t i = 0; i < sets[set].net.size(); i++)
+            if (fabs(sets[set].net[i]) < 1e-6) sets[set].net[i] = 0.0;
+      }
+      havePop = p_aoBasis->spinPopulations(sets, spinPop);
+      for (size_t a = 0; a < p_aoBasis->elements.size(); a++)
+         atomName.push_back(p_aoBasis->elements[a] + std::to_string(a + 1));
+   }
+
+   data.haveBasis = haveBasis;
+   if (havePop) {
       data.populations = SpinTables::populations(atomName, spinPop);
+      data.atomElement = p_aoBasis->elements;
+      data.atomSpin = spinPop;
    } else {
-      data.why = p_aoWhy;
+      data.haveBasis = false;
+      data.why = haveBasis ? "the orbital coefficients do not match the basis"
+                           : p_aoWhy;
    }
    return data;
 }
@@ -2762,8 +3187,38 @@ void MoPanel::fillSpinView()
       for (int c = 1; c < 3; c++)
          p_spinPop->SetCellAlignment(r, c, wxALIGN_RIGHT, wxALIGN_CENTRE);
    }
+   //  The largest atom and the sum per element answer "where is the spin".
+   vector<string> names;
+   for (size_t a = 0; a < data.atomElement.size(); a++)
+      names.push_back(data.atomElement[a] + std::to_string(a + 1));
+   if (popTable && !data.atomSpin.empty()) {
+      const SpinTables::Population big =
+         SpinTables::largest(names, data.atomSpin);
+      p_spinLargest->SetLabel(wxString::Format("largest spin: %s %.2f (Mulliken)",
+         wxString::FromUTF8(big.atom.c_str()), big.spin));
+      p_spinElemHead->SetLabel(_("Summed spin per element (electrons)"));
+      const vector<std::pair<string, double> > sums =
+         SpinTables::byElement(data.atomElement, data.atomSpin);
+      static const char *const elemHeads[] = { "Element", "Spin (e)" };
+      reset(p_spinElem, elemHeads, 2, (int)sums.size());
+      for (size_t r = 0; r < sums.size(); r++) {
+         p_spinElem->SetCellValue(r, 0, wxString::FromUTF8(sums[r].first.c_str()));
+         p_spinElem->SetCellValue(r, 1, wxString::Format("%.3f", sums[r].second));
+         p_spinElem->SetCellAlignment(r, 0, wxALIGN_LEFT, wxALIGN_CENTRE);
+         p_spinElem->SetCellAlignment(r, 1, wxALIGN_RIGHT, wxALIGN_CENTRE);
+      }
+   } else {
+      p_spinLargest->SetLabel(wxEmptyString);
+      p_spinElemHead->SetLabel(wxEmptyString);
+      reset(p_spinElem, popHeads, 2, 0);
+   }
    p_spinSomo->Show(somoTable);
    p_spinPop->Show(popTable);
+   p_spinElem->Show(popTable);
+   p_spinPaint->Show(popTable);
+   p_spinBar->Show(popTable);
+   p_spinLegend->Show(popTable);
+   if (p_spinPainted) paintSpin(true);
    layoutSpinView();
 }
 
@@ -2777,13 +3232,14 @@ void MoPanel::layoutSpinView()
 {
    if (!p_spinView || !p_spinSomo) return;
    const int width = std::max(100, p_spinView->GetClientSize().x - 10);
-   for (wxStaticText *t : { p_spinNote, p_spinPopHead }) {
+   for (wxStaticText *t : { p_spinNote, p_spinPopHead, p_spinLargest,
+                            p_spinElemHead }) {
       wxString label = t->GetLabel();
       label.Replace("\n", " ");
       t->SetLabel(label);
       t->Wrap(width - 10);
    }
-   for (wxGrid *g : { p_spinSomo, p_spinPop }) {
+   for (wxGrid *g : { p_spinSomo, p_spinPop, p_spinElem }) {
       if (!g->IsShown() || g->GetNumberCols() == 0) continue;
       g->AutoSize();
       g->SetColLabelSize(g->GetTextExtent("Ey").y + 10);
@@ -2811,23 +3267,27 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
    event.Skip();
 
    const bool esp = espFieldSelected();
+   bool nciSel = false;
+   const bool fieldView = fieldViewSelected(&nciSel);
    showEspRangeControls(esp);
+   showFieldViewControls(fieldView, nciSel);
+   updateFieldNote();
+   if (IsShownOnScreen())
+      if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this)))
+         builder->syncIndexSelection(this);
 
    {
-      ewxChoice *tw = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
-      const string chosen = tw->GetSelection() == wxNOT_FOUND ? string() :
-         string(tw->GetString(tw->GetSelection()).mb_str());
+      const string chosen = selectedFieldKey();
       const bool spin = chosen == "Spin Density";
       if (spin != p_spinShown) {
+         if (!spin) paintSpin(false);
          p_spinShown = spin;
          if (spin) fillSpinView();
          showMainView();
       }
       if ((chosen == "MO" || chosen == "Localised MO") &&
-          p_localised != (chosen == "Localised MO")) {
-         p_localised = (chosen == "Localised MO");
-         rebuildTable();
-      }
+          p_localised != (chosen == "Localised MO"))
+         setLocalised(chosen == "Localised MO");
    }
 
 
@@ -2836,7 +3296,7 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
    //  leave an opaque map being drawn under SCREEN_DOOR, or the
    //  reverse.
    getFW().getViewer().setTransparencyType(
-      esp ? SoGLRenderAction::SORTED_OBJECT_BLEND
+      esp || nciSel ? SoGLRenderAction::SORTED_OBJECT_BLEND
           : SoGLRenderAction::SCREEN_DOOR);
 }
 
@@ -2869,6 +3329,7 @@ void MoPanel::rebuildEspSurface()
    applyEspRange(cmd);
    cmd->getParameter("isovalue")->setDouble(
          pow(10.0, static_cast<double>(p_slider->GetFloatValue())));
+   cmd->getParameter("rhoCutoff")->setDouble(fieldViewCutoff());
    cmd->getParameter("transparency")->setDouble(getTransparency());
    cmd->getParameter("positiveRed")->setDouble(posR);
    cmd->getParameter("positiveGreen")->setDouble(posG);
@@ -2887,6 +3348,70 @@ void MoPanel::orbitalPointChanged()
 {
    //  A panel nobody has opened yet reads the point when first shown; the
    //  grids drawn belong to the old point's orbitals.
-   if (p_mogrid == 0 || p_mogrid->GetNumberRows() == 0) return;
+   //  An ORCA IRC panel opened at a point without orbitals is empty, and
+   //  must fill when the TS point is selected.
+   IPropCalculation *calc = getCalculation();
+   const bool sparse = calc && calc->orbitalsAtSomePointsOnly();
+   if (p_mogrid == 0 || (p_mogrid->GetNumberRows() == 0 && !sparse)) return;
    initialize(true);
+}
+
+
+/**
+ * Colours each atom by its Mulliken spin, as the Displacement panel colours
+ * by displacement: the colours as they were are kept and put back on off.
+ */
+void MoPanel::paintSpin(bool on)
+{
+   if (p_spinPaint) p_spinPaint->SetValue(on);
+   ChemColor *colors = getFW().getSceneGraph().getColorNode();
+   if (!colors) return;
+   if (!on) {
+      if (!p_spinPainted) return;
+      for (size_t i = 0; i*3 < p_spinSaved.size(); i++)
+         colors->atomColor.set1Value((int)i, p_spinSaved[3*i],
+                                     p_spinSaved[3*i+1], p_spinSaved[3*i+2]);
+      colors->atomColorBinding.setValue(p_spinSavedBinding);
+      p_spinPainted = false;
+      if (p_spinLegend) p_spinLegend->SetLabel(wxEmptyString);
+      getFW().getViewer().refreshRenderArea();
+      return;
+   }
+   const SpinData data = spinDensityData();
+   const int n = getFW().getSceneGraph().getFragment()->numAtoms();
+   if (data.atomSpin.empty() || (int)data.atomSpin.size() != n) return;
+   if (!p_spinPainted) {
+      p_spinSaved.clear();
+      for (int i = 0; i < colors->atomColor.getNum(); i++)
+         for (int k = 0; k < 3; k++) p_spinSaved.push_back(colors->atomColor[i][k]);
+      p_spinSavedBinding = colors->atomColorBinding.getValue();
+   }
+   double top = 0;
+   for (double v : data.atomSpin) top = std::max(top, fabs(v));
+   for (int i = 0; i < n; i++) {
+      float rgb[3];
+      SpinTables::colour(data.atomSpin[i], top, rgb);
+      colors->atomColor.set1Value(i, rgb[0], rgb[1], rgb[2]);
+   }
+   colors->atomColorBinding.setValue(ChemColor::ATOM_PER_ATOM);
+   p_spinPainted = true;
+   if (p_spinLegend)
+      p_spinLegend->SetLabel(wxString::Format("%.2f to +%.2f e", -top, top));
+   getFW().getViewer().refreshRenderArea();
+}
+
+
+vector<string> MoPanel::atomColourRows() const
+{
+   vector<string> rows;
+   ChemColor *colors = const_cast<MoPanel*>(this)->getFW().getSceneGraph()
+                          .getColorNode();
+   if (!colors) return rows;
+   const int n = const_cast<MoPanel*>(this)->getFW().getSceneGraph()
+                    .getFragment()->numAtoms();
+   for (int i = 0; i < n && i < colors->atomColor.getNum(); i++)
+      rows.push_back(string(wxString::Format("%d %.3f %.3f %.3f",
+         (int)colors->atomColorBinding.getValue(), colors->atomColor[i][0],
+         colors->atomColor[i][1], colors->atomColor[i][2]).utf8_str()));
+   return rows;
 }

@@ -4,11 +4,12 @@
 //
 //   launchjob create <parentURL> <name> <resourceType> <deckFile> <deckName>
 //                    <machine> <runDir> <user>            prints the calc URL
-//                    [queue=Q] [nodes=N] [procs=P] [wall="D H:M"] [mem=MB]
+//                    [queue=Q] [nodes=N] [procs=P] [threads=T] [wall="D H:M"] [mem=MB]
 //                    [code=<JCode name>] [xyz=<file>]
 //                                 batch settings, as the launcher's queue controls set them;
 //                                 code and structure as the Calculation Editor's save stores
 //                                 them (the Builder's orbital views need both)
+//                                 [annotation=TEXT]: the calculation's Annotation field
 //                                 LAUNCHJOB_ACCOUNT in the environment sets the account at launch
 //   launchjob gromacsstudy <parentURL> <name>
 //                                 a project <name>-project holding a GROMACS MD study <name> with an Optimize, an Equilibrate and a
@@ -27,18 +28,25 @@
 //   launchjob gromacsaddprepare <studyURL> <name>
 //                                 a bare Prepare appended to the study's chain, as New makes it
 //                                 with the last task selected; prints its URL
+//   launchjob mdfile <taskURL> <file> [name]
+//                                 attach <file> to an MD task's Inputs (as the editor's Inputs page does)
+//   launchjob mdmdp <taskURL> [resume]
+//                                 write the task's default gromacs.mdp (continuation with "resume") and
+//                                 leave it Ready, as the editor's Save does
+//   launchjob plan <taskURL>      what Launch Selected makes of the task: "ready" or the reason it is skipped
 //   launchjob apptype <url>       the application and content type of a resource
 //   launchjob nwchemmdstudy <parentURL> <name> [frag=<mvm|pdb>] [all]
 //                                 the same with an NWChem MD study holding a Prepare and an Optimize task
-//   launchjob mdsetup <taskURL> <machine> <runDir> <user> [procs=P]
+//   launchjob mdsetup <taskURL> <machine> <runDir> <user> [queue=Q] [nodes=N] [procs=P] [threads=T] [wall="D H:M"] [mem=MB] [annotation=TEXT]
 //                                 launch settings for an MD study task made some other
 //                                 way (the Organizer's New menu), as the Launcher saves them
-//   launchjob setup  <calcURL> <dir> <name.out> [SetupParams]
+//   launchjob setup  <calcURL> <dir> <name.out> [SetupParams] [annotation=TEXT]
 //                                 what the Calculation Editor stores: the molecule,
 //                                 basis, theory and run type from <dir>/<name>.frag,
 //                                 .gbs and .param (as an import reads them), and the
 //                                 theory dialogs' values from the SetupParams file;
-//                                 leaves the calculation ready
+//                                 leaves the calculation ready; an "annotation:" line in the
+//                                 .param is stored as the Annotation, annotation= overrides it
 //   launchjob launch <calcURL>                            exit 0 when submitted
 //   launchjob kill   <calcURL>                            RunMgmt::terminate, as the Organizer's Kill
 //   launchjob killflag <calcURL> [set|clear]              prints whether a kill request is recorded
@@ -46,6 +54,7 @@
 //   launchjob rerun  <calcURL>                            "Reset for Rerun" (state ready)
 //   launchjob jobid  <calcURL>                            prints the job id Launch parsed
 //   launchjob state  <calcURL>                            prints the run state
+//   launchjob status <calcURL>                            the same with the stalled note (#769)
 //   launchjob launchdata <calcURL>                        the stored launch settings, one key=value a line
 //   launchjob props  <calcURL>                            one property per line
 //   launchjob restart <calcURL> <deckFile> <deckName>     "Reset for Restart", then
@@ -81,7 +90,9 @@
 #include <string>
 #include <vector>
 
+#include "util/JobProgress.H"
 #include "comm/JobCatchUp.H"
+#include "comm/LaunchBatch.H"
 #include "comm/Launch.H"
 #include "comm/RunMgmt.H"
 #include "dsm/CodeFactory.H"
@@ -108,6 +119,7 @@
 #include "util/Ecce.H"
 #include "util/EcceMap.H"
 #include "util/EcceURL.H"
+#include "util/Preferences.H"
 #include "util/StringConverter.H"
 #include "util/TempStorage.H"
 #include "util/TypedFile.H"
@@ -138,6 +150,16 @@ static TaskJob* getTask(const string& url)
 {
   Resource* rsc = EDSIFactory::getResource(EcceURL(url));
   return rsc ? dynamic_cast<TaskJob*>(rsc) : 0;
+}
+
+//  The Organizer's Annotation field: the same property, stored on the calculation.
+static bool setAnnotation(TaskJob* task, const string& text)
+{
+  if (!task->addProp(VDoc::getEcceNamespace() + ":annotation", text)) {
+    cerr << "could not store the annotation" << endl;
+    return false;
+  }
+  return true;
 }
 
 static int doCreate(const vector<string>& a)
@@ -185,8 +207,10 @@ static int doCreate(const vector<string>& a)
     if (k == "queue") ldat.queue = v;
     else if (k == "nodes") ldat.nodes = strtoul(v.c_str(), 0, 10);
     else if (k == "procs") ldat.totalprocs = strtoul(v.c_str(), 0, 10);
+    else if (k == "threads") ldat.threads = strtoul(v.c_str(), 0, 10);
     else if (k == "wall") ldat.maxwall = v;
     else if (k == "mem") ldat.maxmemory = strtoul(v.c_str(), 0, 10);
+    else if (k == "annotation") { if (!setAnnotation(task, v)) return 1; }
     else if (k == "code") {
       const JCode* jc = CodeFactory::lookup(v.c_str());
       if (!jc || !task->application(jc)) {
@@ -408,9 +432,18 @@ static int doMdSetup(const vector<string>& a)
   ldat.user = a[3];
   ldat.remoteShell = "ssh";
   ldat.maxwall = "0 0:0";
+  //  The same keys as create: without a queue, Launch Selected skips the task.
   for (size_t i = 4; i < a.size(); i++) {
-    if (a[i].compare(0, 6, "procs=") == 0)
-      ldat.totalprocs = strtoul(a[i].c_str() + 6, 0, 10);
+    string::size_type eq = a[i].find('=');
+    string k = a[i].substr(0, eq), v = eq == string::npos ? "" : a[i].substr(eq + 1);
+    if (k == "queue") ldat.queue = v;
+    else if (k == "nodes") ldat.nodes = strtoul(v.c_str(), 0, 10);
+    else if (k == "procs") ldat.totalprocs = strtoul(v.c_str(), 0, 10);
+    else if (k == "threads") ldat.threads = strtoul(v.c_str(), 0, 10);
+    else if (k == "wall") ldat.maxwall = v;
+    else if (k == "mem") ldat.maxmemory = strtoul(v.c_str(), 0, 10);
+    else if (k == "annotation") { if (!setAnnotation(task, v)) return 1; }
+    else { cerr << "mdsetup: unknown option " << a[i] << endl; return 2; }
   }
   Jobdata jdata;
   jdata.jobpath = a[2] + TempStorage::getJobRunDirectoryPath(task->getURL());
@@ -418,6 +451,42 @@ static int doMdSetup(const vector<string>& a)
     cerr << "could not save launch settings" << endl;
     return 1;
   }
+  return 0;
+}
+
+static int doMdFile(const vector<string>& a)
+{
+  if (a.size() < 2) { cerr << "mdfile: wrong argument count" << endl; return 2; }
+  TaskJob* task = getTask(a[0]);
+  if (!task) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+  ifstream in(a[1].c_str());
+  const string name = a.size() > 2 ? a[2] : a[1].substr(a[1].find_last_of('/') + 1);
+  if (!in || !task->putInputFile(name, &in)) { cerr << "could not store " << name << endl; return 1; }
+  return 0;
+}
+
+static int doMdMdp(const vector<string>& a)
+{
+  if (a.empty()) { cerr << "mdmdp: wrong argument count" << endl; return 2; }
+  TaskJob* task = getTask(a[0]);
+  if (!task) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+  GromacsMDModel mm(task->getContentType());
+  if (a.size() > 1 && a[1] == "resume" && mm.getDynamicsModel())
+    mm.getDynamicsModel()->setResumeOpt(true);
+  if (!generateInput(task, mm, "md.gmxtask", "gromacs.mdp")) {
+    cerr << "could not write the .mdp" << endl;
+    return 1;
+  }
+  task->setState(ResourceDescriptor::STATE_READY);
+  return 0;
+}
+
+static int doPlan(const vector<string>& a)
+{
+  TaskJob* task = a.empty() ? 0 : getTask(a[0]);
+  if (!task) { cerr << "not a calculation" << endl; return 1; }
+  LaunchBatch::Plan p = LaunchBatch::plan(task, LaunchBatch::Target());
+  cout << (p.ready ? string("ready") : p.problem) << endl;
   return 0;
 }
 
@@ -441,6 +510,7 @@ static void buildArgs(TaskJob* task, EcceMap& kv)
   Launchdata ldat = task->launchdata();
   kv["##numProcs##"] = StringConverter::toString((int)ldat.totalprocs);
   kv["##numNodes##"] = StringConverter::toString((int)ldat.nodes);
+  kv["##threads##"] = StringConverter::toString((int)(ldat.threads > 0 ? ldat.threads : 1));
   kv["##runDir##"] = task->jobdata().jobpath;
   kv["##priority##"] = "";
   //  WxLauncher sets these only for a machine whose options include Q/AA/MM/TL.
@@ -502,6 +572,24 @@ static int doSetup(const vector<string>& a)
   if (a.size() < 3) { cerr << "setup: <calcURL> <dir> <name.out> [SetupParams]" << endl; return 2; }
   TaskJob* task = getTask(a[0]);
   if (!task) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+  vector<string> rest(a.begin() + 3, a.end());
+  string annotation;
+  bool haveAnnotation = false;
+  for (size_t i = 0; i < rest.size();) {
+    if (rest[i].compare(0, 11, "annotation=") == 0) {
+      annotation = rest[i].substr(11);
+      haveAnnotation = true;
+      rest.erase(rest.begin() + i);
+    } else i++;
+  }
+  //  import() removes the .param, so the line is read first.
+  if (!haveAnnotation) {
+    string root = a[1] + "/" + a[2];
+    size_t dot = root.find_last_of('.');
+    if (dot != string::npos) root = root.substr(0, dot);
+    Preferences param(root + ".param", true);
+    haveAnnotation = param.isValid() && param.getString("annotation", annotation);
+  }
   try {
     string message = task->import(a[1], a[2]);
     if (!message.empty()) cout << message << endl;
@@ -509,12 +597,13 @@ static int doSetup(const vector<string>& a)
     cerr << "setup failed: " << ex.what() << endl;
     return 1;
   }
-  if (a.size() > 3) {
-    ifstream in(a[3].c_str());
+  if (haveAnnotation && !setAnnotation(task, annotation)) return 1;
+  if (!rest.empty()) {
+    ifstream in(rest[0].c_str());
     GUIValues values;
     ICalculation* calc = dynamic_cast<ICalculation*>(task);
     if (!in || values.load(in) == 0 || !calc || !calc->guiparams(&values)) {
-      cerr << "setup: cannot store the values in " << a[3] << endl;
+      cerr << "setup: cannot store the values in " << rest[0] << endl;
       return 1;
     }
   }
@@ -664,6 +753,9 @@ int main(int argc, char** argv)
   }
   if (mode == "listen") return doListen(a);
   if (mode == "mdsetup") return doMdSetup(a);
+  if (mode == "mdfile") return doMdFile(a);
+  if (mode == "mdmdp") return doMdMdp(a);
+  if (mode == "plan") return doPlan(a);
   if (mode == "gromacsstudy") return doMdStudy(a, true);
   if (mode == "gromacsaddprepare") return doGromacsAddPrepare(a);
   if (mode == "gromacsprepstudy") return doGromacsPrepStudy(a);
@@ -681,6 +773,13 @@ int main(int argc, char** argv)
     if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
     if (a.size() > 1) return t->killRequested(a[1] == "set") ? 0 : 1;
     cout << (t->killRequested() ? "set" : "clear") << endl;
+    return 0;
+  }
+  // A stored metadata value such as ecce:annotation ("props" lists results only).
+  if (mode == "meta" && a.size() == 2) {
+    TaskJob* t = getTask(a[0]);
+    if (!t) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+    cout << t->getProp(VDoc::getEcceNamespace() + ":" + a[1]) << endl;
     return 0;
   }
   if (a.size() != 1) { cerr << mode << ": needs a calculation URL" << endl; return 2; }
@@ -768,6 +867,18 @@ int main(int argc, char** argv)
   TaskJob* task = getTask(a[0]);
   if (!task) { cerr << "not a calculation: " << a[0] << endl; return 1; }
   if (mode == "state") { cout << stateName(task->getState()) << endl; return 0; }
+  if (mode == "status") {
+    // The state as a person reads it: a running job whose output stopped
+    // growing carries the job store's note (#769).
+    string line = stateName(task->getState());
+    JobProgress p;
+    if (task->getState() == ResourceDescriptor::STATE_RUNNING &&
+        p.parse(task->getProp(VDoc::getEcceNamespace() + ":progress")) &&
+        p.stalled() > 0)
+      line = JobProgress::stalledText(p.stalled());
+    cout << line << endl;
+    return 0;
+  }
   if (mode == "launchdata") {
     Launchdata l = task->launchdata();
     cout << "machine=" << l.machine << "\nqueue=" << l.queue << "\nprocs=" << l.totalprocs

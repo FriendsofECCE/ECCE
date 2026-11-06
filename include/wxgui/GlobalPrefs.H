@@ -18,6 +18,7 @@ using std::string;
 using std::vector;
 
 #include "wx/wx.h"
+#include "wx/listctrl.h"
 
 #include "dsm/ResourceDescriptor.H"
 #include "wxgui/ewxFrame.H"
@@ -44,6 +45,7 @@ public:
   bool chooseColourScheme(const string& scheme);
   string colourSchemeShown() const;
   bool tickAdvanced(const string& key, bool on);   // as a click does
+  string dataTest(const string& line);             // "prefs data ..."
 
   // One "command" setting: a choice of well-known programs plus a text
   // field that is editable for "Other".  Stored value is the command;
@@ -69,10 +71,14 @@ private:
   void createAdvancedPage(wxWindow* page);
   void OnChooseAdvancedFile(wxCommandEvent& event);
   void updateDataPage();
-  void OnLocalDataToggle(wxCommandEvent& event);
   void OnChangeDataFolder(wxCommandEvent& event);
   void OnOpenDataFolder(wxCommandEvent& event);
-  void OnChangeServer(wxCommandEvent& event);
+  void OnAddServer(wxCommandEvent& event);
+  void OnEditServer(wxCommandEvent& event);
+  void OnRemoveServer(wxCommandEvent& event);
+  void OnServerSelect(wxListEvent& event);
+  void updateServerButtons();
+  long selectedServer() const;
   ProgramRow makeProgramRow(wxWindow* page, wxSizer* sizer,
                             const wxString& label,
                             const vector<string>& labels,
@@ -128,11 +134,22 @@ private:
   ewxChoice* p_orientation;
 
   // Data folder page (#216); saved at once, never touched by Reset All.
-  ewxCheckBox* p_localData;
   ewxTextCtrl* p_localFolder;
   ewxButton* p_changeFolder;
   ewxButton* p_openFolder;
   ewxStaticText* p_localNote;
+  // The Servers box: the user's ServerList plus what the installation or an
+  // earlier start set, which are shown but not stored in it.
+  struct ServerRow {
+    enum { LISTED, ADMIN, EARLIER };
+    int kind;
+    string name, type, address;
+  };
+  vector<ServerRow> p_serverRows;
+  wxListCtrl* p_serverList;
+  ewxButton* p_addServer;
+  ewxButton* p_editServer;
+  ewxButton* p_removeServer;
 
   // Advanced page (#307): one row per EnvSwitches::all() entry.
   struct AdvancedRow {

@@ -432,29 +432,34 @@ quit may stop is decided only by what the admin declared, never by
 guessing who is connected. The data server is only ever stopped by
 **Quit and Stop Server**, in every mode.
 
-#### The first-start question (#240)
+#### First start: local by default (#240, #767)
 
-A client with nothing configured asks once, in a window "Welcome to ECCE":
-**Store data on this computer** (local data mode, data in `~/.ECCE-local`) or
-**Connect to a server** (one box for the server's address, then the login
-window). The default does not change; the question only replaces having to
-know the environment variables. It is asked on Linux, macOS and Windows alike:
-a student's own laptop connects to the instructor's server the same way on
-all three. The choice is kept per user (the local data
-preference, or `~/.ECCE/RemoteServer/`, which `ecce-remote-setup <host>
---user --auto` writes without root) and changes from **Edit > Change
-Server...** in the Organizer, which shows the current mode and data folder.
-The change applies at the next start; nothing is copied between modes.
+A client with nothing configured works on this computer and asks nothing:
+`ecce-first-start` (run by `ecce`) makes the data folder (`~/.ECCE-local`,
+`ecce-local` on Windows) and turns the local data preference on. A server is
+added later in **Edit > Preferences > Data**, box **Servers** (**Add
+Server...**: an SSH folder or an ECCE server; the list is `~/.ECCE/AddedServers`,
+one `type<TAB>name<TAB>address` line each, `ecce-localdata servers list|add|remove`
+for scripts). An added ECCE server is its own root in the Organizer with its own login; a calculation there is launched and monitored from this computer, and its output and results are stored on that server. An added SSH folder
+(`sftp://user@host/folder`) is a root named `<name> (SSH)`: it needs only an SSH
+account and a folder on that machine, it is opened with ECCE's own ssh login
+(2FA and a shared connection work as for jobs), and calculations in it are
+launched and stored there too. A port other than 22 is not accepted in the
+address: use a `Host` entry in `~/.ssh/config`. The old window
+("Welcome to ECCE") is `ecce-first-start --change`. A server recorded
+earlier (`~/.ECCE/RemoteServer/`, which `ecce-remote-setup <host>
+--user --auto` writes without root, or an answer "server ..." in
+`~/.ECCE/first-start-answer`) keeps working and is listed in Preferences;
+removing it there runs `ecce-first-start --apply local`. The change applies
+at the next start; nothing is copied between modes.
 The data server's login window has a button **Use this computer
-instead...** that does the same as choosing this computer there
-(`ecce-first-start --apply local`); `ecce` then goes on in local mode, in a
+instead...** that does the same (`ecce-first-start --apply local`); `ecce`
+then goes on in local mode, in a
 new session (ecce-gateway exits with status 10 for it). On Windows, which
 has no gateway, that start ends with a message to start again.
-On Windows `ecce.cmd` runs the window with the package's own Python and, for
+On Windows `ecce.cmd` runs the script with the package's own Python and, for
 a server, starts the session the same way `ecce -remote` does (the broker
-file, then the Organizer). On macOS the window needs wxPython, which
-ECCE.app does not carry yet; without it nothing is asked and macOS works in
-its data folder, as before.
+file, then the Organizer).
 
 Trust follows #236: the server's certificate is accepted if the system's CA
 list vouches for it (`https`, port 8443); otherwise the certificate shown at
@@ -462,25 +467,18 @@ the first connection is pinned (as `--fetch-pin` does) and a later change
 is refused with a message, never with a question about fingerprints; a
 server that answers only plain http on 8096 is used as it is.
 
-What each deployment mode sees: the question is asked **once per user**;
-the answer is recorded in `~/.ECCE/first-start-answer`. Data from before
-the question (`~/.ECCE-local`, `ecce-local` on Windows, `~/.ECCE/dataserver`,
-a server chosen before, the data folder preference) does not skip it: the
-window shows the current setup and preselects it, so an existing user
-clicks Continue once (keeping a per-user data server as it is). **Nothing is
-asked** where an administrator or the command line decides:
-`siteconfig/RemoteServer` present (an administrator or `ecce-remote-setup` as
-root), `ecce -remote` or `ECCE_REMOTE_SERVER`, `ECCE_LOCAL_DATA` or `ecce
---local`, a shared broker declared (`siteconfig/SharedBroker`), an account
-marked as a central server (`~/.ECCE/mosquitto.server`). An installed
-`ecce-server` package is not configuration: its users are asked too, and a
-user who already works on the per-user data server finds **Store data on
-this computer** preselected, where Continue keeps that data server. On a
-server whose users log in to it (FastX), `ecce-remote-setup` run as root
-(`siteconfig/RemoteServer`) points everyone at the server and nothing is
-asked.
-`ECCE_NO_FIRST_START=1` never asks (tests and scripts set it), and without a
-display or wxPython nothing is asked.
+What each deployment mode sees: **nothing is changed** where an
+administrator or the command line decides: `siteconfig/RemoteServer` present
+(an administrator or `ecce-remote-setup` as root), `ecce -remote` or
+`ECCE_REMOTE_SERVER`, `ECCE_LOCAL_DATA` or `ecce --local`, a shared broker
+declared (`siteconfig/SharedBroker`), an account marked as a central server
+(`~/.ECCE/mosquitto.server`); nor for a user who already recorded a server
+(above), works on the per-user data server (`~/.ECCE/dataserver`) or has
+the data folder preference off. Every other client, including one with the
+`ecce-server` package installed, starts local. On a server whose users log
+in to it (FastX), `ecce-remote-setup` run as root (`siteconfig/RemoteServer`)
+points everyone at the server. `ECCE_NO_FIRST_START=1` skips the script
+(tests set it), and without a display it does nothing.
 
 #### Mode 1: everything local (the default)
 
@@ -496,7 +494,7 @@ is the default (#133).
 
 #### Local data mode (a data folder instead of a data server)
 
-Set **Edit > Preferences > Data folder** (default `~/.ECCE-local`; it takes
+Set **Edit > Preferences > Data** (default `~/.ECCE-local`; it takes
 effect at the next start), or `ECCE_LOCAL_DATA=<folder>` in the environment,
 which wins over the preference, and no data server is started (#216). The
 broker is unchanged. Local mode keeps one data

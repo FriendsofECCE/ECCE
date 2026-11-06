@@ -46,6 +46,7 @@ static bool offerStopServer(bool& inUse);
 // The outcome of the local machine registration at startup, for "probe".
 static std::string s_registerMessage;
 
+#include <wx/stopwatch.h>
 #include <wx/dataobj.h>
 #include <wx/filename.h>
 #include <wx/process.h>
@@ -54,6 +55,8 @@ static std::string s_registerMessage;
 #include <wx/treectrl.h>
 
 #include "util/LocalData.H"
+#include "util/ServerList.H"
+#include "tdat/AuthCache.H"
 #include "util/SessionLease.H"
 #include "util/WaitingJobs.H"
 #include "comm/OpenSshTransport.H"
@@ -86,8 +89,11 @@ static std::string s_registerMessage;
 
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
+#include "dsm/Series.H"
+#include "dsm/QstStructures.H"
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
+#include "dsm/SftpEDSI.H"
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/EDSIExporter.H"
 #include "dsm/EDSI.H"
@@ -116,6 +122,7 @@ static std::string s_registerMessage;
 #include "wxgui/ewxPanel.H"
 #include "ContextPanelInterface.H"
 #include "SessionProjectContextPanel.H"
+#include "RecipePanel.H"
 #include "WorkflowPanel.H"
 #include "ReconnectSelected.H"
 #include <future>
@@ -145,6 +152,7 @@ static std::string s_registerMessage;
 
 #include "BookmarkEditor.H"
 #include "ContextPanelFactory.H"
+#include "NoAccessContextPanel.H"
 #include "CalculationContextPanel.H"
 #include "ProjectContextPanel.H"
 #include "util/JobProgress.H"
@@ -169,6 +177,10 @@ static const char *const kFirstStartSet = "getting-started";
 #include "CalcMgr.H"
 #include "CompareEnergies.H"
 #include "CompareEnergiesDialog.H"
+#include "ReactionOverviewDialog.H"
+#include "CompareForcesDialog.H"
+#include "SiExport.H"
+#include "ChecksDialog.H"
 #include "AllocationsDialog.H"
 
 IMPLEMENT_CLASS( CalcMgr, wxFrame )
@@ -518,6 +530,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * progress <url> <file>
  *                 hand the snapshot in <file> to the Organizer as an
  *                 ecce_url_progress message does (empty file: forget it)
+ * newseries <template url> <source>...
+ *                 New Series from This (#621) without dialogs; the report,
+ *                 lines separated by " | "
  * duplicate <url> [last]
  *                 right-click <url> > Duplicate for Rerun (or Duplicate
  *                 Setup with Last Geometry); the tree's selection and
@@ -529,9 +544,20 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  *                 its top
  * allocations    Tools > Allocations: prints "ALLOC: machine|account|used|
  *                 checked" for each row on stderr
+ * siexport <out.xyz> <csv|latex|none> <url>,<url>... [include-excluded]
+ *                 what ecce-si-export reads (#625); "ok" or
+ *                 "failed: <why>"
+ * checks <out.csv> <url>,<url>...
+ *                 the Checks table dialog's rows (folders expanded) as CSV
+ *                 (#615); "ok" or "failed: <why>"
+ * rank <out.csv> <url>,<url>... [reference-name]
+ *                 the Compare Energies dialog's rows (#703), as for "checks";
+ *                 with a name, dE and dG against that calculation
  * compareenergies <sideA> <sideB>
- *                 what Tools > Compare Energies shows for the two sides
+ *                 what Tools > Energy Calculator shows for the two sides
  *                 (each "[-][N*]url,[-][N*]url"), " | " between lines
+ *                 an optional third word names an ecce-thermo treatment for
+ *                 the G row; the spread over treatments is always shown
  * comparedialog <sideA> <sideB> [png]
  *                 open that dialog preset to the two sides, report its text
  *                 areas and the Copy text, and save a capture of it
@@ -542,6 +568,12 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * checklines <url> <line>|<line>
  *                 what Check Job on Machine said, as if it had run
  * fold open|shut  fold the Progress box, as a click on its heading does
+ * exclude <url> <reason> | include <url>
+ *                 what ecce-annotate --exclude/--include does (#617);
+ *                 "name\tok\t"
+ * treetip <url>   the tree item's strikethrough and grey (never set, #805)
+ * tablecolumns    the shown project table's column headings, " | " between
+ * tableenergies [asc|desc]  the shown project table's Total energy cells
  * treestate <url> the tree icon's index, and those of running and of
  *                 out of contact
  * tablestates     the shown project table's State cells
@@ -553,6 +585,22 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
 static const int ID_COMPARE_ENERGIES = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
+
+// Include submenu paths so tests can check the action and its enabled state.
+static string testContextMenuLabels(wxMenu& menu, const string& prefix = "",
+                                    bool enabled = true)
+{
+  string labels;
+  for (wxMenuItem *item : menu.GetMenuItems()) {
+    if (item->IsSeparator()) continue;
+    const string path = prefix + string(item->GetItemLabelText().ToUTF8());
+    const bool active = enabled && item->IsEnabled();
+    labels += string("|") + (active ? "" : "~") + path;
+    if (item->GetSubMenu())
+      labels += testContextMenuLabels(*item->GetSubMenu(), path + ">", active);
+  }
+  return labels;
+}
 
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -576,6 +624,56 @@ void CalcMgr::runTestCommand(const string& line)
       dlg.registerListener(this);
       dlg.importFile(calcName);
       outcome = "done";
+    } else if (command == "server") {
+      // "server roots|sync|connect NAME|copycheck SRC DST|launchcheck URL"
+      std::istringstream args(calcName);
+      string sub, a, b, c;
+      args >> sub >> a >> b >> c;
+      if (sub == "newproject" || sub == "newcalc") {
+        // "server newproject NAME PROJECT", "server newcalc NAME PROJECT CALC"
+        string ref, sshHome;
+        vector<ServerEntry> list = ServerList::load();
+        for (size_t i = 0; i < list.size(); i++)
+          if (list[i].type == "ecce" && list[i].name == a)
+            ref = ServerList::refOf(list[i].address);
+          else if (list[i].type == "ssh" && list[i].name == a)
+            ref = sshHome = list[i].address;
+        EDSIServerCentral servers;
+        EcceURL shome = sshHome.empty() ? servers.getUserHome(EcceURL(ref + "Ecce/"))
+                                        : EcceURL(sshHome);
+        ResourceDescriptor& srd = ResourceDescriptor::getResourceDescriptor();
+        Resource *parentRes = EDSIFactory::getResource(
+            sub == "newproject" ? shome : shome.getChild(b));
+        ResourceType *rt = sub == "newproject"
+            ? srd.getResourceType("collection", "ecceProject", "")
+            : srd.getResourceType("virtual_document", "ecceCalculation", "NWChem");
+        Resource *made = (ref.empty() || !parentRes || !rt) ? 0
+            : parentRes->createChild(sub == "newproject" ? b : c, rt);
+        outcome = made ? "ok " + made->getURL().toString() : "not created";
+      } else if (sub == "sync") {
+        syncServerRoots();
+        outcome = "ok";
+      } else if (sub == "roots") {
+        vector<string> labels = p_treeCtrl->rootLabels();
+        for (size_t i = 0; i < labels.size(); i++)
+          outcome += (i ? ";" : "") + labels[i];
+      } else if (sub == "connect") {
+        string ref;
+        vector<ServerEntry> list = ServerList::load();
+        for (size_t i = 0; i < list.size(); i++)
+          if (list[i].type == "ecce" && list[i].name == a)
+            ref = ServerList::refOf(list[i].address);
+          else if (list[i].type == "ssh" && list[i].name == a)
+            ref = list[i].address;
+        outcome = ref.empty() ? "no such server"
+                              : (connectServer(ref) ? "connected" : "not connected");
+      } else if (sub == "copycheck") {
+        string r = crossTreeRefusal(vector<EcceURL>(1, EcceURL(a)), EcceURL(b));
+        outcome = r.empty() ? "allowed" : "refused: " + r;
+      } else if (sub == "launchcheck") {
+        outcome = refuseAddedLaunch(vector<EcceURL>(1, EcceURL(a)))
+                  ? "refused" : "allowed";
+      }
     } else if (command == "examples") {
       // File > Open Example Calculations
       // "examples SET" imports a set without the dialog (default getting-started)
@@ -645,21 +743,265 @@ void CalcMgr::runTestCommand(const string& line)
         p_testCreateError = 0;
         outcome = error.empty() ? "ok" : "error: " + error;
       }
+    } else if (command == "workflowrecipelist" || command == "workflowrecipe" ||
+               command == "workflowrecipepanel" || command == "workflowrecipecreate" ||
+               command == "workflowkeydata" || command == "workflowresults" || command == "workflowmark" ||
+               command == "workflowsaverecipe" || command == "workflowlink" ||
+               command == "workflowstructure" || command == "workflowrecipehere") {
+      // Recipes (Recipe.H, RecipePanel.H); WF is the workflow's URL.
+      //   workflowrecipelist            the recipes found: id:variants;...
+      //   workflowrecipe WF ID VARIANT SOURCE|- [method=M] [basis=B] [solvent=S]
+      //     Create boxes without the panel
+      //   workflowrecipepanel PNG|- WF ID VARIANT SOURCE|- [method=M] [basis=B] [solvent=S]
+      //     opens the set-up panel on SOURCE's box (or none), sets the
+      //     choices and takes a picture; answers with the panel's report
+      //   workflowrecipehere WF STEP    the box menu's Apply Recipe from here
+      //     on STEP: its labels, then the panel's report
+      //     (flag autorun: tick "Run the remaining steps automatically")
+      //   workflowrecipecreate WF       Create boxes in the open panel
+      //   workflowkeydata WF            the key-data box as text, "|" for newlines
+      //   workflowresults WF            each box's result line: "name: text|..."
+      //   workflowmark WF STEP KEY THERMO   make a copied step a recipe step (KEY: reactant, ts, ...)
+      //   workflowsaverecipe WF ID TITLE   Save Workflow as Recipe
+      //   workflowlink WF SRC DST NAME     a link between two steps
+      //   workflowstructure WF STEP FROM   stores FROM's structure in STEP as
+      //     the Builder does, then what its ecce_url_subject notice triggers
+      std::istringstream args(calcName);
+      string png, wfUrl, rid, vid, src, flag, method, basis, solvent;
+      if (command == "workflowrecipepanel") args >> png >> wfUrl >> rid >> vid >> src;
+      else if (command == "workflowrecipe") args >> wfUrl >> rid >> vid >> src;
+      else if (command == "workflowmark") args >> wfUrl >> rid >> vid >> src >> method;
+      else if (command == "workflowsaverecipe" || command == "workflowlink" ||
+               command == "workflowstructure" || command == "workflowrecipehere")
+        args >> wfUrl >> rid >> vid >> src;
+      else args >> wfUrl;
+      bool autorun = false;
+      while (args >> flag) {
+        if (flag == "autorun") autorun = true;
+        if (flag.compare(0, 7, "method=") == 0) method = flag.substr(7);
+        if (flag.compare(0, 6, "basis=") == 0) basis = flag.substr(6);
+        if (flag.compare(0, 8, "solvent=") == 0) solvent = flag.substr(8);
+      }
+      if (command == "workflowrecipelist") {
+        outcome = "ok";
+        vector<string> problems;
+        vector<Recipe> all = loadRecipes(recipeDirs(), &problems);
+        for (size_t i = 0; i < problems.size(); i++) outcome += " problem[" + problems[i] + "]";
+        for (size_t i = 0; i < all.size(); i++) {
+          outcome += " " + all[i].id + ":";
+          for (size_t k = 0; k < all[i].variants.size(); k++)
+            outcome += (k ? "," : "") + all[i].variants[k].id;
+          outcome += all[i].site ? "(site)" : "";
+        }
+      } else {
+        WxResourceTreeItemData *wfNode = findNode(EcceURL(wfUrl), true, true);
+        Session *wf = wfNode ? dynamic_cast<Session*>(wfNode->getResource()) : 0;
+        SessionProjectContextPanel *spc = 0;
+        WorkflowPanel *wp = 0;
+        if (wf) {
+          p_treeCtrl->SelectItem(wfNode->GetId());
+          for (int i = 0; i < 5; i++) wxYield();
+          spc = dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+          wp = spc ? spc->getWorkflowPanel() : 0;
+        }
+        Resource *source = 0;
+        if (wf && (command == "workflowrecipe" || command == "workflowrecipepanel") &&
+            !src.empty() && src != "-") {
+          vector<Resource*> members = wf->getMembers();
+          for (size_t i = 0; i < members.size(); i++)
+            if (members[i]->getURL() == EcceURL(src)) source = members[i];
+        }
+        if (!wf || !wp) outcome = "no workflow panel";
+        else if (command == "workflowrecipe") {
+          vector<Recipe> all = loadRecipes(recipeDirs());
+          const Recipe *r = 0;
+          for (size_t i = 0; i < all.size(); i++) if (all[i].id == rid) r = &all[i];
+          const RecipeVariant *v = 0;
+          for (size_t i = 0; r && i < r->variants.size(); i++)
+            if (r->variants[i].id == vid) v = &r->variants[i];
+          if (!v) outcome = "error: no such recipe or variant";
+          else {
+            WorkflowSteps::Levels levels;
+            for (size_t i = 0; i < r->roles.size(); i++)
+              levels[r->roles[i].id] = std::make_pair(
+                  method.empty() ? r->roles[i].method : method,
+                  basis.empty() ? r->roles[i].basis : basis);
+            if (!solvent.empty()) levels["solvent"] = std::make_pair("", solvent);
+            string why = wp->recipeCreate(*r, *v, levels, source, autorun);
+            outcome = why.empty() ? "ok " + WorkflowSteps::info(wf) : "error: " + why;
+          }
+        } else if (command == "workflowrecipepanel") {
+          wp->pick(source ? source->getURL() : EcceURL(), false);
+          if (source) p_contextPanel->selectResource(source->getURL());
+          else wp->selectResource(EcceURL());
+          wp->closeRecipe();
+          RecipePanel *panel = wp->openRecipe();
+          if (!panel) outcome = "error: no panel";
+          else if (!panel->selectRecipe(rid) || !panel->selectVariant(vid))
+            outcome = "error: no such recipe or variant";
+          else {
+            if (!method.empty() || !basis.empty())
+              for (const auto &lv : panel->levels())
+                if (lv.first != "solvent") panel->setLevel(lv.first, method.empty() ? lv.second.first : method,
+                                basis.empty() ? lv.second.second : basis);
+            if (!solvent.empty()) panel->setLevel("solvent", "", solvent);
+            panel->setAutoRun(autorun);
+            SetSize(1500, 900);
+            Raise();
+            for (int i = 0; i < 8; i++) wxYield();
+            outcome = (png == "-" || ecceWindowShot(this, png) ? "ok " : "not saved ") +
+                      panel->report();
+          }
+        } else if (command == "workflowrecipehere") {
+          wp->closeRecipe();
+          const string labels = wp->rightClick(EcceURL(rid), false);
+          RecipePanel *panel = labels.find("Apply Recipe from here") != string::npos
+                                   ? wp->recipeFromHere() : 0;
+          for (int i = 0; i < 4; i++) wxYield();
+          outcome = panel ? "ok " + panel->report() : "error: " + labels;
+        } else if (command == "workflowrecipecreate") {
+          RecipePanel *panel = wp->recipePanel();
+          if (!panel) outcome = "error: no panel";
+          else {
+            panel->createClicked();
+            outcome = wp->recipePanel() ? "error: panel still open: " + wp->recipePanel()->problem()
+                                        : "ok " + WorkflowSteps::info(wf);
+          }
+        } else if (command == "workflowresults") {
+          outcome = "ok " + wp->resultLines();
+        } else if (command == "workflowkeydata") {
+          string t = wp->keyDataText();
+          for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
+          outcome = "ok " + t;
+        } else if (command == "workflowstructure") {
+          PropertyTask *from = dynamic_cast<PropertyTask*>(EDSIFactory::getResource(EcceURL(vid)));
+          ChemistryTask *to = 0;
+          vector<Resource*> members = wf->getMembers();
+          for (size_t i = 0; i < members.size(); i++)
+            if (members[i]->getURL() == EcceURL(rid)) to = dynamic_cast<ChemistryTask*>(members[i]);
+          Fragment *frag = from ? from->fragment() : 0;
+          if (!to || !frag) outcome = "error: no such step or structure";
+          else {
+            to->fragment(frag);
+            outcome = "ok " + structureStored(EcceURL(rid));
+          }
+          delete frag;
+        } else if (command == "workflowmark") {
+          Resource *step = 0;
+          vector<Resource*> members = wf->getMembers();
+          for (size_t i = 0; i < members.size(); i++)
+            if (members[i]->getURL() == EcceURL(rid)) step = members[i];
+          if (!step) outcome = "error: no such step";
+          else {
+            const string ns = VDoc::getEcceNamespace();
+            step->addProp(ns + ":recipe.step", step->getName());
+            step->addProp(ns + ":recipe.key", vid == "-" ? "" : vid);
+            step->addProp(ns + ":recipe.thermo", src == "1" ? "1" : "0");
+            wf->addProp(ns + ":recipe", "marked/main");
+            wp->refresh();
+            outcome = "ok";
+          }
+        } else if (command == "workflowsaverecipe") {
+          outcome = wp->saveAsRecipe(rid, vid);
+        } else if (command == "workflowlink") {
+          Resource *from = 0, *to = 0;
+          vector<Resource*> members = wf->getMembers();
+          for (size_t i = 0; i < members.size(); i++) {
+            if (members[i]->getURL() == EcceURL(rid)) from = members[i];
+            if (members[i]->getURL() == EcceURL(vid)) to = members[i];
+          }
+          if (!from || !to) outcome = "error: no such step";
+          else {
+            wf->addLink(from, to, Session::INPUT_PROVIDER, src);
+            wf->saveLinkbase();
+            wp->refresh();
+            outcome = "ok";
+          }
+        }
+      }
+    } else if (command == "workflowsash") {
+      // workflowsash [N]: drag the current view's divider, or report it.
+      SessionProjectContextPanel *spc =
+          dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+      WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+      wxSplitterWindow *split = wp ? dynamic_cast<wxSplitterWindow*>(wp->GetParent()) : 0;
+      if (!split) outcome = "no workflow splitter";
+      else {
+        if (line.size() > command.size() + 1) {
+          const int x = split->GetClientSize().x / 2;
+          wxMouseEvent down(wxEVT_LEFT_DOWN);
+          down.SetEventObject(split);
+          down.SetPosition(wxPoint(x, split->GetSashPosition() + split->GetSashSize() / 2));
+          down.SetLeftDown(true);
+          split->GetEventHandler()->ProcessEvent(down);
+          wxMouseEvent move(wxEVT_MOTION);
+          move.SetEventObject(split);
+          move.SetPosition(wxPoint(x, atoi(calcName.c_str()) + split->GetSashSize() / 2));
+          move.SetLeftDown(true);
+          split->GetEventHandler()->ProcessEvent(move);
+          wxMouseEvent up(wxEVT_LEFT_UP);
+          up.SetEventObject(split);
+          up.SetPosition(move.GetPosition());
+          split->GetEventHandler()->ProcessEvent(up);
+          for (int i = 0; i < 5; i++) wxYield();
+        }
+        Preferences prefs("Organizer");
+        int saved = -1;
+        prefs.getInt("Organizer.Workflow.Sash", saved);
+        outcome = "ok sash=" + std::to_string(split->GetSashPosition()) +
+                  " saved=" + std::to_string(ewxBitmap::scaled(saved)) +
+                  " top=" + std::to_string(wp->GetSize().y) +
+                  " table=" + std::to_string(split->GetWindow2()->GetSize().y) +
+                  " " + wp->layoutReport();
+      }
+    } else if (command == "workfloworient") {
+      // workfloworient vertical|horizontal: the current workflow view.
+      SessionProjectContextPanel *spc =
+          dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+      WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+      if (!wp) outcome = "no workflow panel";
+      else if (calcName != "vertical" && calcName != "horizontal")
+        outcome = "expected vertical|horizontal";
+      else {
+        wp->setVertical(calcName == "vertical");
+        outcome = "ok " + wp->layoutReport();
+      }
     } else if (command.compare(0, 8, "workflow") == 0) {
       // Workflows (WorkflowSteps.H); WF is the workflow's URL.
       //   workflowstep WF TYPE NAME SOURCE|- [nogeom] [nocharge] [hess]
       //     a code button without the dialog (type = e.g. orca_es)
+      //     point=last|max|N: the scan point the link carries
+      //     best=N: from a CREST ensemble, N steps (conformers by energy)
+      //     patterns: one step per coordination pattern of the ensemble
+      //   workflowjoin WF TYPE NAME SRC=role[@point] ...   a join, roles
+      //     reactant|product|tsguess; the step's structure files as
+      //     TS Search writes them: workflowqst WF STEP
+      //   workflowmake CALC [NAME]   Make Workflow...: CALC is moved into a
+      //     new workflow; "ok WF step=URL selected" (#807)
+      //   workflowmove CALC WF       Move into Workflow >
       //   workflowinfo WF       steps, states, carried values and links
       //   workflowlaunch WF     Launch Ready Steps without dialogs
       //     flags: geomfrom=CALC-URL (its input geometry), charge=N, mult=N
       //   workflowcopy WF CALC-URL NAME   a stored calculation as a first step
       //   workflowready WF      the steps Launch Ready Steps would launch
+      //   workflowautorun WF on|off|query   the auto-run setting (#736)
+      //   workflowlaunchstep WF STEP   launch that one step if it is ready
+      //   workflowplay WF       play button of each box: "name:1|0:reason|.."
       //   workflowshot PNG WF   the Organizer showing WF; the drawing's checks
       //   workflowdialogshot PNG WF TYPE SOURCE   the New-step dialog
+      //   workflownew WF TYPE panel|tree SOURCE|-   a new step as the view's
+      //     code button or the tree's New menu makes it, the New-step dialog
+      //     logged instead of shown: "ok <made> dialogs=carry;|nocarry;"
+      //   workflowicons WF      box icons and tree icons, polled until
+      //     they agree: "ok|differ icons=STEP:N,.. tree=STEP:N,.."
+      //   workflowlaunchbutton WF   the view's Launch Ready Steps button:
+      //     label, shown, inside the view (not clicked)
       //   workflowmenu WF STEP  a right-click on STEP's box: the menu's
       //     labels, or "error: ..." with what threw (#681)
+      //   workflowcrestcheck WF STEP   Launch's CREST check: "ok fromopt=1|0"
       std::istringstream args(calcName);
       string a, b, c, d, flag, geomFrom;
+      vector<string> joinArgs;
       int setCharge = -99, setMult = 0;
       WorkflowSteps::Carry carry;
       if (command == "workflowstep") {
@@ -669,11 +1011,24 @@ void CalcMgr::runTestCommand(const string& line)
           if (flag == "nocharge") carry.chargeMult = false;
           if (flag == "hess") carry.hessian = true;
           if (flag.compare(0, 9, "geomfrom=") == 0) geomFrom = flag.substr(9);
+          if (flag.compare(0, 6, "point=") == 0) carry.point = flag.substr(6);
+          if (flag == "patterns") carry.perPattern = true;
+          if (flag.compare(0, 5, "best=") == 0) carry.best = atoi(flag.c_str() + 5);
           if (flag.compare(0, 7, "charge=") == 0) setCharge = atoi(flag.c_str() + 7);
           if (flag.compare(0, 5, "mult=") == 0) setMult = atoi(flag.c_str() + 5);
         }
-      } else if (command == "workflowcopy" || command == "workflowmenu") {
+      } else if (command == "workflowcopy" || command == "workflowmenu" ||
+                 command == "workflowqst" || command == "workflowmake" ||
+                 command == "workflowcrestcheck" ||
+                 command == "workflowautorun" || command == "workflowlaunchstep" ||
+                 command == "workflowsetlaunch" ||
+                 command == "workflowmove") {
+        args >> a >> b >> c >> d;
+      } else if (command == "workflowjoin") {
         args >> a >> b >> c;
+        while (args >> flag) joinArgs.push_back(flag);
+      } else if (command == "workflownew") {
+        args >> a >> b >> c >> d;       // c = panel|tree, d = source or -
       } else if (command == "workflowshot" || command == "workflowdialogshot") {
         args >> d >> a >> b >> c;       // d = PNG
       } else {
@@ -682,7 +1037,8 @@ void CalcMgr::runTestCommand(const string& line)
       WxResourceTreeItemData *wfNode = findNode(EcceURL(a), true, true);
       Session *wf = wfNode ? dynamic_cast<Session*>(wfNode->getResource()) : 0;
       ResourceType *rt = 0;
-      if (command == "workflowstep" || command == "workflowdialogshot") {
+      if (command == "workflowstep" || command == "workflowdialogshot" ||
+          command == "workflowjoin" || command == "workflownew") {
         vector<ResourceType*> types =
             ResourceDescriptor::getResourceDescriptor().getResourceTypes();
         for (size_t i = 0; i < types.size() && !rt; i++)
@@ -695,7 +1051,34 @@ void CalcMgr::runTestCommand(const string& line)
           if (members[i]->getURL() == EcceURL(url)) return members[i];
         return 0;
       };
-      if (!wf) {
+      if (command == "workflowmake" || command == "workflowmove") {
+        // workflowmake CALC [NAME]; workflowmove CALC WF (a is the calc)
+        WxResourceTreeItemData *cn = findNode(EcceURL(a), true, true);
+        Resource *calc = cn ? cn->getResource() : 0;
+        Session *into = command == "workflowmove"
+            ? dynamic_cast<Session*>(EDSIFactory::getResource(EcceURL(b))) : 0;
+        EcceURL wfUrl;
+        if (!calc) outcome = "error: no such calculation";
+        else if (command == "workflowmove" && !into)
+          outcome = "error: no such workflow";
+        else {
+          const string leaf = EcceURL(a).getFilePathTail();
+          string name = (command == "workflowmake" && !b.empty()) ? b
+                        : leaf + "_workflow";
+          string why = moveIntoWorkflow(calc, into, name, &wfUrl);
+          if (!why.empty()) outcome = "error: " + why;
+          else {
+            EcceURL step = wfUrl.getChild(leaf);
+            showInWorkflow(wfUrl, step);
+            bool sel = false;
+            if (p_contextPanel)
+              for (const EcceURL &u : p_contextPanel->getSelections())
+                if (u == step) sel = true;
+            outcome = string("ok ") + wfUrl.toString() + " step=" +
+                      step.toString() + (sel ? " selected" : " unselected");
+          }
+        }
+      } else if (!wf) {
         outcome = "no workflow";
       } else if (command == "workflowstep") {
         Resource *source = step(d);
@@ -722,6 +1105,51 @@ void CalcMgr::runTestCommand(const string& line)
           outcome = !rt ? "no resource type " + b
                   : made ? "ok " + result : "error: " + result;
         }
+      } else if (command == "workflowjoin") {
+        vector<WorkflowSteps::JoinSource> sources;
+        string bad;
+        for (size_t i = 0; i < joinArgs.size(); i++) {
+          size_t eq = joinArgs[i].rfind('=');
+          Resource *src = eq == string::npos ? 0 : step(joinArgs[i].substr(0, eq));
+          if (!src) { bad = "no such source step " + joinArgs[i]; break; }
+          WorkflowSteps::JoinSource js = {src, "", ""};
+          const string rp = joinArgs[i].substr(eq + 1);
+          const size_t at = rp.find('@');
+          js.role = rp.substr(0, at);
+          if (at != string::npos) js.point = rp.substr(at + 1);
+          sources.push_back(js);
+        }
+        if (!bad.empty()) outcome = "error: " + bad;
+        else {
+          string result;
+          Resource *made = rt ? newWorkflowJoin(wf, rt, sources, false, &result,
+                                                c == "-" ? "" : c)
+                              : 0;
+          outcome = !rt ? "no resource type " + b
+                  : made ? "ok " + result : "error: " + result;
+        }
+      } else if (command == "workflowqst") {
+        // The structure files TS Search hands to the input generator.
+        ICalculation *calc = dynamic_cast<ICalculation*>(step(b));
+        if (!calc) outcome = "no such step";
+        else {
+          char tmpl[] = "/tmp/wfqst-XXXXXX";
+          if (!mkdtemp(tmpl)) outcome = "error: no temporary directory";
+          else {
+            string status, warning;
+            const bool neb = calc->runtype().name().compare(0, 25,
+                                           "Transition State (NEB-TS)") == 0;
+            const string base = string(tmpl) + "/ts";
+            char *here = getcwd(0, 0);
+            if (neb && chdir(tmpl) != 0) {}      // neb files go to the cwd
+            bool ok = neb ? nebWriteStructureFiles(calc, status, warning)
+                          : qstWriteStructureFiles(calc, base, status, warning);
+            if (here) { if (chdir(here) != 0) {} free(here); }
+            outcome = (ok ? "ok " : "error: ") + string(tmpl) + " runtype=" +
+                      calc->runtype().name() + " status=" + status +
+                      " warning=" + warning;
+          }
+        }
       } else if (command == "workflowcopy") {
         ICalculation *from = dynamic_cast<ICalculation*>(
             EDSIFactory::getResource(EcceURL(b)));
@@ -735,6 +1163,10 @@ void CalcMgr::runTestCommand(const string& line)
           if (node) p_treeCtrl->refresh(node);
           outcome = "ok " + to.toString();
         }
+      } else if (command == "workflowcrestcheck") {
+        TaskJob *t = dynamic_cast<TaskJob*>(step(b));
+        outcome = !t ? string("no such step") : string("ok fromopt=") +
+                  (Launch::crestFromOptimisation(t) ? "1" : "0");
       } else if (command == "workflowready") {
         vector<string> waiting;
         vector<Resource*> ready = WorkflowSteps::readySteps(wf, &waiting);
@@ -746,6 +1178,83 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = "ok " + WorkflowSteps::info(wf);
       } else if (command == "workflowlaunch") {
         launchReadySteps(wf, false, &outcome, "");
+      } else if (command == "workflowautorun") {
+        if (b == "on" || b == "off") WorkflowSteps::setAutoRun(wf, b == "on");
+        outcome = string("ok autorun=") + (WorkflowSteps::autoRun(wf) ? "on" : "off");
+      } else if (command == "workflowsetlaunch") {
+        // workflowsetlaunch WF STEP MACHINE RUNDIR: the launch settings the
+        // Launcher would store on the step.
+        TaskJob *t = dynamic_cast<TaskJob*>(step(b));
+        if (!t) outcome = "error: no such step";
+        else {
+          Launchdata l = t->launchdata();
+          l.machine = c;
+          l.rundir = d;
+          l.totalprocs = 1;
+          l.nodes = 1;
+          l.queue = "normal";
+          const char *u = getenv("ECCE_REALUSER");
+          l.user = u ? u : "";
+          // And the input deck the Calculation Editor would have stored.
+          std::istringstream deck("##XtbHeader##\n##chemsys##\n");
+          outcome = t->launchdata(l) && t->putInputFile("xtb.xtbin", &deck)
+                  ? "ok" : "error: not stored";
+        }
+      } else if (command == "workflowlaunchstep") {
+        Resource *s = step(b);
+        if (!s) outcome = "error: no such step";
+        else launchStep(wf, s, false, &outcome);
+      } else if (command == "workflowplay") {
+        // The play button of every box: "name:1|0:reason", once queued
+        // notices and any launch batch (auto-run's included) are done.
+        for (int i = 0; i < 600 && (p_batch || !p_autoPending.empty() ||
+                                    !p_queuedUpdates.empty()); i++) {
+          wxYield();
+          wxMilliSleep(50);
+        }
+        p_treeCtrl->SelectItem(wfNode->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        outcome = wp ? "ok " + wp->playReport() : "no workflow panel";
+      } else if (command == "workflowicons") {
+        // Box icons and tree icons read in the same poll, until they agree
+        // (the tree follows a stored state change a moment later) or 10 s.
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        if (!wp) {
+          outcome = "no workflow panel";
+        } else {
+          string boxes, tree;
+          bool same = false;
+          for (int i = 0; i < 200 && !same; i++) {
+            if (i) { wxYield(); wxMilliSleep(50); }
+            string rep = wp->layoutReport();
+            size_t at = rep.find("icons=");
+            boxes = at == string::npos ? "" : rep.substr(at + 6);
+            tree.clear();
+            vector<Resource*> members = wf->getMembers();
+            for (size_t m = 0; m < members.size(); m++) {
+              WxResourceTreeItemData *n = p_treeCtrl->findNode(
+                  members[m]->getURL(), true, true);
+              tree += (m ? "," : "") + members[m]->getName() + ":" +
+                  (n ? std::to_string(p_treeCtrl->GetItemState(n->GetId()))
+                     : string("-"));
+            }
+            auto sorted = [](const string& list) {
+              std::vector<string> v;
+              std::istringstream in(list);
+              for (string t; std::getline(in, t, ',');) v.push_back(t);
+              std::sort(v.begin(), v.end());
+              return v;
+            };
+            same = sorted(boxes) == sorted(tree);
+          }
+          outcome = string(same ? "ok" : "differ") + " icons=" + boxes +
+                    " tree=" + tree;
+        }
       } else if (command == "workflowshot") {
         p_treeCtrl->SelectItem(wfNode->GetId());
         for (int i = 0; i < 5; i++) wxYield();
@@ -765,6 +1274,42 @@ void CalcMgr::runTestCommand(const string& line)
           outcome = (ecceWindowShot(this, d) ? "ok " : "not saved ") +
                     wp->layoutReport();
         }
+      } else if (command == "workflownew") {
+        p_treeCtrl->SelectItem(wfNode->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        size_t code = 0;
+        while (code < WorkflowSteps::codes().size() &&
+               rt && WorkflowSteps::codes()[code].typeName != rt->getName())
+          code++;
+        const size_t before = wf->numMembers();
+        string dialogs;
+        p_testStepDialogs = &dialogs;
+        string error;
+        if (!rt || !wp || code >= WorkflowSteps::codes().size())
+          error = "no resource type, panel or code";
+        else if (c == "panel") {
+          if (d != "-") wp->pick(EcceURL(d), false);
+          wp->codeClicked(code);
+        } else {
+          if (d != "-") p_contextPanel->selectResource(EcceURL(d));
+          p_testCreateError = &error;
+          createResource(rt, wfNode, false);
+          p_testCreateError = 0;
+        }
+        p_testStepDialogs = 0;
+        outcome = !error.empty() ? "error: " + error
+                : wf->numMembers() == before ? "error: no step made dialogs=" + dialogs
+                : "ok dialogs=" + dialogs;
+      } else if (command == "workflowlaunchbutton") {
+        p_treeCtrl->SelectItem(wfNode->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        outcome = wp ? "ok " + wp->launchButtonReport() : "no workflow panel";
       } else if (command == "workflowmenu") {
         p_treeCtrl->SelectItem(wfNode->GetId());
         for (int i = 0; i < 5; i++) wxYield();
@@ -788,6 +1333,7 @@ void CalcMgr::runTestCommand(const string& line)
           dlg.Show();
           for (int i = 0; i < 5; i++) wxYield();
           outcome = ecceWindowShot(&dlg, d) ? "ok" : "not saved";
+          outcome += string(" carry=") + (dlg.hasCarry() ? "1" : "0");
           dlg.Hide();
         }
       } else {
@@ -824,6 +1370,24 @@ void CalcMgr::runTestCommand(const string& line)
       ICalculation *icalc = dynamic_cast<ICalculation*>(res);
       outcome = icalc ? ResourceUtils::stateToString(icalc->getState())
                       : "no such calculation";
+    } else if (command == "setstate") {
+      // "setstate <calc url> running|completed|...": the stored state, as
+      // the monitor would leave it (for views that draw it).
+      std::istringstream args(calcName);
+      string u, n;
+      args >> u >> n;
+      TaskJob *job = dynamic_cast<TaskJob*>(EDSIFactory::getResource(EcceURL(u)));
+      int found = -1;
+      for (int i = 0; i <= (int)WxState::OUT_OF_CONTACT; i++)
+        if (WxState::getName((ResourceDescriptor::RUNSTATE)i, false) == n) found = i;
+      if (n == "imported") found = (int)ResourceDescriptor::STATE_LOADED;
+      if (n == "failed") found = (int)ResourceDescriptor::STATE_FAILED;
+      if (n == "waiting") found = (int)ResourceDescriptor::STATE_WAITING;
+      outcome = !job ? "no such task" : found < 0 ? "no such state"
+              : job->setState((ResourceDescriptor::RUNSTATE)found) ? "ok" : "not set";
+      // The notice a job monitor's state change brings, so the Organizer
+      // reacts to it as to a real one (auto-run, #736).
+      if (outcome == "ok") queueUpdate(UPDATE_CHANGED, job->getURL());
     } else if (command == "walk") {
       // Select and expand every node below the home as a user clicking
       // through the tree does: the tree's own event handlers run.
@@ -913,6 +1477,38 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "tail-snap") {
       outcome = p_testTail && p_testTail->snapshot(calcName) ? "saved"
                                                              : "not saved";
+    } else if (command == "panelmessage") {
+      // "panelmessage URL": select the node already in the tree and tell
+      // the no-access panel's text (newlines shown as |), if that is shown.
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, false);
+      if (!node) node = findNode(EcceURL(calcName), true, true);
+      if (!node) {
+        outcome = "not in the tree";
+      } else {
+        p_treeCtrl->SelectItem(node->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        NoAccessContextPanel *na = dynamic_cast<NoAccessContextPanel*>(p_contextPanel);
+        if (na) {
+          string t = string(na->message().ToUTF8());
+          for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
+          outcome = "ok " + t;
+        } else outcome = "ok other panel";
+      }
+    } else if (command == "foldertable") {
+      // "foldertable URL": select that folder, wait until its table is
+      // built, and tell the rows shown and the seconds it took (#675).
+      wxStopWatch watch;
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
+      if (!node) {
+        outcome = "not in the tree";
+      } else {
+        p_treeCtrl->SelectItem(node->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        ProjectContextPanel *pcp = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+        outcome = pcp ? "ok rows=" + std::to_string(pcp->rowCount()) +
+                        " seconds=" + std::to_string(watch.Time() / 1000.0)
+                      : "no project panel";
+      }
     } else if (command == "summary") {
       WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
       if (!node) {
@@ -938,8 +1534,7 @@ void CalcMgr::runTestCommand(const string& line)
         }
         // The Launch Info rows that exist, as "label@x,y" (#648).
         static const char *launchLabels[] = {"Machine:", "Processors:",
-          "Queue:", "Job ID:", "Queue state:", "Start Date:", "Comp. Date:", "Cost:", "Allocation:",
-          "Remaining on submission:"};
+          "Queue:", "Job ID:", "Queue state:", "Start Date:", "Comp. Date:", "Booked:", "Used:", "Allocation:"};
         outcome += " launch=";
         for (const char *lbl : launchLabels) {
           wxWindow *w = panel ? panel->FindWindow(string("launch:") + lbl) : 0;
@@ -972,6 +1567,15 @@ void CalcMgr::runTestCommand(const string& line)
                            tool->GetSize().x;
             outcome += " tool=" + string(tool->getLabel().ToUTF8()) +
                        (clipped ? ":clipped" : "");
+          }
+          // Where each tool button is, "label@x,y" (#753).
+          outcome += " toolpos=";
+          for (wxWindow *w : panel->GetChildren()) {
+            EcceTool *tool = dynamic_cast<EcceTool*>(w);
+            if (!tool || tool->getLabel().empty()) continue;
+            outcome += string(tool->getLabel().ToUTF8()) + "@" +
+                       std::to_string(tool->GetPosition().x) + "," +
+                       std::to_string(tool->GetPosition().y) + ";";
           }
         }
       }
@@ -1187,6 +1791,29 @@ void CalcMgr::runTestCommand(const string& line)
       for (int i = 0; i < 5; i++) wxYield();
       outcome = box ? string("folded=") + (box->collapsed() ? "1" : "0")
                     : string("no box");
+    } else if (command == "exclude" || command == "include") {
+      // "exclude <url> <reason...>" / "include <url>": the menu items without
+      // the dialog; the reason is stored as ecce:excluded.
+      std::istringstream args(calcName);
+      string url, reason;
+      args >> url;
+      std::getline(args >> std::ws, reason);
+      vector<EcceURL> sel(1, EcceURL(url));
+      vector<string> lines;
+      annotateForCommand(sel, command == "exclude" ? reason : string(), lines,
+                         "excluded");
+      outcome = lines.empty() ? string("none") : lines[0];
+    } else if (command == "treetip") {
+      // "treetip <url>": font strike and text colour of the tree item; an
+      // excluded calculation is not marked in the GUI (#805).
+      WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName), true, true);
+      if (!node) outcome = "no node";
+      else {
+        wxColour c = p_treeCtrl->GetItemTextColour(node->GetId());
+        outcome = string("strike=") +
+            (p_treeCtrl->GetItemFont(node->GetId()).GetStrikethrough() ? "1" : "0") +
+            " grey=" + (c == wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT) ? "1" : "0");
+      }
     } else if (command == "treestate") {
       // "treestate <url>": the tree icon shown, against those of running
       // and of out of contact.
@@ -1317,6 +1944,68 @@ void CalcMgr::runTestCommand(const string& line)
         fprintf(stderr, "ALLOC: %s\n", r.c_str());
       outcome = "ok " + std::to_string(d->rowTexts().size()) + " rows";
       d->Destroy();
+    } else if (command == "siexport") {
+      // "siexport <out.xyz> <csv|latex|none> <url>,<url>...": File > Export >
+      // Supporting Information without its dialogs.
+      std::istringstream args(calcName);
+      string out, table, urls;
+      string flag;
+      args >> out >> table >> urls >> flag;
+      vector<EcceURL> sel;
+      for (size_t at = 0; at < urls.size(); ) {
+        size_t end = urls.find(',', at);
+        if (end == string::npos) end = urls.size();
+        sel.push_back(EcceURL(urls.substr(at, end - at)));
+        at = end + 1;
+      }
+      string why;
+      outcome = siExport(sel, out, table == "none" ? string() : table, why,
+                       flag == "include-excluded")
+                ? string("ok") : "failed: " + why;
+    } else if (command == "checks" || command == "rank") {
+      // "checks <out.csv> <url>,<url>...": the Checks table dialog's rows
+      // (folders expanded to their calculations) written as CSV (#615).
+      std::istringstream args(calcName);
+      string out, urls, ref, rejected;
+      args >> out >> urls >> ref >> rejected;
+      vector<EcceURL> roots;
+      for (size_t at = 0; at < urls.size(); ) {
+        size_t end = urls.find(',', at);
+        if (end == string::npos) end = urls.size();
+        roots.push_back(EcceURL(urls.substr(at, end - at)));
+        at = end + 1;
+      }
+      const auto t0 = std::chrono::steady_clock::now();
+      ChecksDialog dlg(this, calculationsUnder(roots), command == "rank");
+      string why;
+      if (dlg.ok(why) && !ref.empty() && command == "rank") dlg.setReference(ref, why);
+      if (dlg.ok(why) && !rejected.empty()) {
+        const bool accepted = dlg.setReference(rejected, why);
+        outcome = accepted ? "accepted" : "rejected";
+      }
+      const string referenceResult = outcome;
+      if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
+      else outcome = "failed: " + why;
+      char secs[40];
+      snprintf(secs, sizeof secs, " (%.1f s)", std::chrono::duration<double>(
+                   std::chrono::steady_clock::now() - t0).count());
+      outcome += secs;
+      if (command == "rank") {
+        outcome += " | " + referenceResult + " | reference=" + dlg.selectedReference();
+        for (const string& name : dlg.referenceChoices()) outcome += " | choice=" + name;
+      }
+    } else if (command == "compareforcesdialog") {
+      std::istringstream args(calcName);
+      string a, b, png;
+      args >> a >> b >> png;
+      CompareForcesDialog *d = new CompareForcesDialog(this, a, b);
+      d->Show();
+      for (int i = 0; i < 5; ++i) wxYield();
+      if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+      outcome = "ok";
+      std::istringstream lines(d->resultText() + "\nCopy:\n" + d->copyText());
+      for (string line; std::getline(lines, line); ) outcome += " | " + line;
+      d->Destroy();
     } else if (command == "compareenergies" || command == "comparedialog") {
       // "compareenergies <sideA> <sideB>": the table and notes the dialog
       // shows; a side is "[-][N*]url,[-][N*]url".  "comparedialog <sideA>
@@ -1325,8 +2014,12 @@ void CalcMgr::runTestCommand(const string& line)
       string ua, ub, png;
       args >> ua >> ub >> png;
       if (command == "compareenergies") {
-        const SumResult c = sumEnergies(gatherSide(ua), gatherSide(ub));
+        // The optional third word is an ecce-thermo treatment for the G row.
+        const vector<EnergyTerm> ta = gatherSide(ua), tb = gatherSide(ub);
+        SumResult c = sumEnergies(ta, tb);
+        const string problem = applyThermoTreatments(c, ta, tb, png == "stored" ? string() : png);
         outcome = "ok";
+        if (!problem.empty()) outcome += " | Problem: " + problem;
         std::istringstream lines(sumText(c, false));
         for (string l; std::getline(lines, l); ) outcome += " | " + l;
       } else {
@@ -1344,6 +2037,26 @@ void CalcMgr::runTestCommand(const string& line)
         for (string l; std::getline(r, l); ) outcome += " | " + l;
         d->Destroy();
       }
+    } else if (command == "reactionoverview") {
+      // "reactionoverview <file> <treatment> [png [csv]]": the dialog for the
+      // reactions in <file>; prints the chart points and what a click on
+      // reaction 1 lists, and writes the PNG and CSV exports.
+      std::istringstream args(calcName);
+      string file, treatment, png, csvOut;
+      args >> file >> treatment >> png >> csvOut;
+      std::ifstream in(file.c_str());
+      std::stringstream text;
+      text << in.rdbuf();
+      ReactionOverviewDialog *d = new ReactionOverviewDialog(this, text.str());
+      d->Show();
+      d->setTreatment(treatment);
+      for (int i = 0; i < 5; i++) wxYield();
+      outcome = "ok";
+      std::istringstream r(d->chartText() + "Click 1:\n" + d->clickText(1));
+      for (string l; std::getline(r, l); ) outcome += " | " + l;
+      if (!png.empty() && png != "-") outcome += d->savePng(png) ? " | png saved" : " | png failed";
+      if (!csvOut.empty()) outcome += d->saveCsv(csvOut) ? " | csv saved" : " | csv failed";
+      d->Destroy();
     } else if (command == "table") {
       // "table [PROJECT-URL]": select the project (when given) and report
       // its table's Progress cells, one "name=text" each.
@@ -1359,6 +2072,37 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = "panel=" + std::to_string((unsigned long)(uintptr_t)table) +
                   " paints=" + std::to_string(table->progressPaints());
         for (const string& c : table->progressCells()) outcome += " | " + c;
+      }
+    } else if (command == "tablecolumns" || command == "tableenergies") {
+      ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      outcome = table ? "ok" : "no table";
+      if (table) {
+        const vector<string> v = command == "tablecolumns"
+            ? table->columnHeadings() : table->energyCells(
+                calcName == "asc" ? 1 : calcName == "desc" ? -1 : 0);
+        for (const string& c : v) outcome += " | " + c;
+      }
+    } else if (command == "menulabels") {
+      // "menulabels <url>": the labels of that item's context menu, "/"
+      // between a submenu and its items, " | " between entries.
+      WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName), true, true);
+      if (!node) outcome = "no node";
+      else {
+        p_treeCtrl->SelectItem(node->GetId());
+        for (int i = 0; i < 20; ++i) { wxYield(); wxMilliSleep(25); }
+        wxMenu menu;
+        getContextMenu(menu);
+        std::function<void(wxMenu*, const string&)> dump =
+            [&](wxMenu *m, const string& prefix) {
+          for (wxMenuItem *it : m->GetMenuItems()) {
+            if (it->IsSeparator()) continue;
+            string label = string(it->GetItemLabelText().ToUTF8());
+            outcome += " | " + prefix + label + (it->IsEnabled() ? "" : " (disabled)");
+            if (it->GetSubMenu()) dump(it->GetSubMenu(), prefix + label + "/");
+          }
+        };
+        outcome = "menu";
+        dump(&menu, "");
       }
     } else if (command == "tablestates") {
       // The shown table's State cells, "name=state" ("running?": #284).
@@ -1522,6 +2266,17 @@ void CalcMgr::runTestCommand(const string& line)
       vector<EcceURL> urls;
       while (args >> u) urls.push_back(EcceURL(u));
       reconnectSelected(urls, false, &outcome, png, command == "reconnectselectedlist");
+    } else if (command == "newseries") {
+      // "newseries TEMPLATE_URL SOURCE...": New Series without dialogs; the
+      // answer is the report, newlines as " | ".
+      std::istringstream args(calcName);
+      string t, s;
+      args >> t;
+      vector<string> sources;
+      while (args >> s) sources.push_back(s);
+      newSeries(EcceURL(t), sources, &outcome);
+      for (size_t p; (p = outcome.find('\n')) != string::npos;)
+        outcome.replace(p, 1, " | ");
     } else if (command == "reparseoutputs") {
       // "reparseoutputs URL...": Re-Parse Outputs without dialogs.
       std::istringstream args(calcName);
@@ -1577,9 +2332,29 @@ void CalcMgr::runTestCommand(const string& line)
         if (!it->IsSeparator())
           outcome += "|" + string(it->GetItemLabelText().ToUTF8());
       }
+    } else if (command == "tablecontextmenu") {
+      // "tablecontextmenu URL...": selects the URLs' rows in the project
+      // table, as a right click on a row does, and lists that menu as
+      // treecontextmenu does.
+      std::istringstream args(calcName);
+      vector<EcceURL> urls;
+      string u;
+      while (args >> u) urls.push_back(EcceURL(u));
+      WxResourceTreeItemData *parent = urls.empty() ? 0 :
+          findNode(urls[0].getParent(), true, true);
+      if (parent) {
+        p_treeCtrl->SelectItem(parent->GetId());
+        for (int i = 0; i < 40; i++) { wxYield(); wxMilliSleep(50); }
+      }
+      if (p_contextPanel) p_contextPanel->selectResources(urls);
+      p_focusOnTree = false;
+      wxMenu menu;
+      getContextMenu(menu);
+      outcome = "ok" + testContextMenuLabels(menu);
     } else if (command == "treecontextmenu") {
       // "treecontextmenu URL": selects URL in the tree and lists the items
-      // its right-click menu offers (joined by |), "~" before a disabled one.
+      // its right-click menu offers (joined by |), ">" inside submenus,
+      // "~" before a disabled path.
       WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
       if (node) {
         p_treeCtrl->SelectItem(node->GetId());
@@ -1587,13 +2362,7 @@ void CalcMgr::runTestCommand(const string& line)
       }
       wxMenu menu;
       getContextMenu(menu);
-      outcome = "ok";
-      for (size_t i = 0; i < menu.GetMenuItemCount(); i++) {
-        wxMenuItem *it = menu.FindItemByPosition(i);
-        if (!it->IsSeparator())
-          outcome += string("|") + (it->IsEnabled() ? "" : "~") +
-                     string(it->GetItemLabelText().ToUTF8());
-      }
+      outcome = "ok" + testContextMenuLabels(menu);
     } else if (command == "rmtask") {
       // "rmtask URL LABEL": selects URL and runs its Run Mgmt menu item
       // LABEL (e.g. Rerun) as the menu does; a prompt it shows is answered
@@ -1636,6 +2405,13 @@ void CalcMgr::runTestCommand(const string& line)
       args >> what >> arg;
       if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(this);
       p_prefs->Show(true);
+      if (what == "data") {
+        // "prefs data show|snap P|file|remove NAME|form TYPE P|add TYPE NAME F.. P"
+        for (int i = 0; i < 10; i++) wxYield();
+        string rest;
+        std::getline(args, rest);
+        outcome = p_prefs->dataTest(arg + rest);
+      } else {
       p_prefs->showColoursPage();
       for (int i = 0; i < 10; i++) wxYield();
       if (what == "colours") {
@@ -1660,6 +2436,7 @@ void CalcMgr::runTestCommand(const string& line)
             ? "saved" : "not saved";
       } else {
         outcome = "ok";
+      }
       }
     } else if (command == "start") {
       // "start TOOL [URL]": what a tool button does (startApp), e.g.
@@ -1818,7 +2595,207 @@ void CalcMgr::initializeTreeData()
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
+  syncServerRoots();
   p_treeCtrl->SetFocus();
+  if (!p_serverTimer) {
+    // Add Server / Remove in Preferences write the list; pick it up here.
+    p_serverTimer = new wxTimer();
+    p_serverTimer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+      struct stat st;
+      long stamp = stat(ServerList::file().c_str(), &st) == 0
+                   ? (long)st.st_mtime * 1000 + (st.st_mtime ? 1 : 0) + (long)st.st_size : 0;
+      if (stamp != p_serverListStamp) syncServerRoots();
+    });
+    p_serverTimer->Start(1000);
+  }
+}
+
+
+void CalcMgr::syncServerRoots()
+{
+  struct stat st;
+  p_serverListStamp = stat(ServerList::file().c_str(), &st) == 0
+                      ? (long)st.st_mtime * 1000 + (st.st_mtime ? 1 : 0) + (long)st.st_size : 0;
+  // The session's own server is already a root; it is not added twice.
+  set<string> own;
+  {
+    EDSIServerCentral servers;
+    vector<Bookmark> * mount = servers.getEDSIProviders();
+    for (size_t i = 0; mount && i < mount->size(); i++)
+      own.insert((*mount)[i].getEcceUrl().getRef());
+    delete mount;
+  }
+  p_treeCtrl->removeServerRoots();
+  ServerList::clearAdded();
+  vector<ServerEntry> list = ServerList::load();
+  for (size_t i = 0; i < list.size(); i++) {
+    if (list[i].type == "ssh") {
+      p_treeCtrl->addSshRoot(list[i].name, list[i].address,
+                             !ServerList::loginFor(list[i].address).empty());
+      continue;
+    }
+    if (list[i].type != "ecce") continue;
+    string ref = ServerList::refOf(list[i].address);
+    if (ref.empty() || own.count(ref)) continue;
+    ServerList::markAdded(ref);
+    p_treeCtrl->addServerRoot(list[i].name, ref, ServerList::loginFor(ref));
+  }
+}
+
+
+/**
+ * Ask for the login of an added server and check it by opening the user's
+ * home there.  A failure leaves the root "(not connected)"; the session's
+ * own login and mode are never touched.
+ */
+bool CalcMgr::connectServer(const string& ref)
+{
+  if (ref.compare(0, 7, "sftp://") == 0) return connectSsh(ref);
+  string name = ref;
+  vector<ServerEntry> list = ServerList::load();
+  for (size_t i = 0; i < list.size(); i++)
+    if (list[i].type == "ecce" && ServerList::refOf(list[i].address) == ref)
+      name = list[i].name;
+  ServerList::markAdded(ref);
+  string user = ServerList::loginFor(ref), pass;
+  if (!WxDavAuth::askAddedLogin(ref, user, pass)) {
+    setMessage("Not connected to " + name + ": the login was cancelled.",
+               WxFeedback::ERROR);
+    return false;
+  }
+  ServerList::setLogin(ref, user);
+  string why;
+  bool ok = false;
+  WxDavAuth::setProbe(user, pass);
+  try {
+    EDSIServerCentral servers;
+    EcceURL home = servers.getUserHome(EcceURL(ref + "Ecce/"));
+    EDSI *c = EDSIFactory::getEDSI(home);
+    if (c) {
+      ok = c->exists();
+      why = c->m_msgStack.getMessage();
+      delete c;
+    }
+  } catch (...) {
+    ok = false;
+  }
+  WxDavAuth::clearProbe();
+  if (ok) {
+    AuthCache::getCache().addAuthentication(ref, user, pass, "", false);
+  } else {
+    ServerList::setLogin(ref, "");
+    AuthCache::getCache().remove(ref, user, "");
+    setMessage("Not connected to " + name + ": " + (why.empty() ?
+        "the login was not accepted, or " + user + " has no account there."
+        : why), WxFeedback::ERROR);
+  }
+  syncServerRoots();
+  return ok;
+}
+
+
+// Log in to an SSH folder with ECCE's own ssh login (the prompts and the
+// shared connection are those of jobs) and check the folder.  A failure
+// leaves the root "(not connected)" and the session untouched.
+bool CalcMgr::connectSsh(const string& address)
+{
+  string name = address, user, host, folder, message;
+  vector<ServerEntry> list = ServerList::load();
+  for (size_t i = 0; i < list.size(); i++)
+    if (list[i].type == "ssh" && list[i].address == address) name = list[i].name;
+  if (!ServerList::parseSsh(address, user, host, folder)) return false;
+  SftpEDSI::Probe p = SftpEDSI::probe(user, host, folder, false, message);
+  if (p == SftpEDSI::PROBE_MISSING && !getenv("ECCE_TEST_ORGANIZER")) {
+    ewxMessageDialog ask(this, ("The folder " + folder + " does not exist on " + host +
+                                ".  Create it?").c_str(), "Create folder",
+                         wxYES_NO | wxICON_QUESTION, wxDefaultPosition);
+    if (ask.ShowModal() == wxID_YES)
+      p = SftpEDSI::probe(user, host, folder, true, message);
+  }
+  if (p != SftpEDSI::PROBE_OK) {
+    ServerList::setLogin(address, "");
+    setMessage("Not connected to " + name + ": " + message, WxFeedback::ERROR);
+    syncServerRoots();
+    return false;
+  }
+  ServerList::setLogin(address, user);
+  syncServerRoots();
+  return true;
+}
+
+
+static string treeOf(const EcceURL& u)
+{
+  if (u.getProtocol().find("sftp") == 0) {
+    string root = ServerList::sshRootOf(u.toString());
+    return root.empty() ? u.toString() : root;
+  }
+  return u.getProtocol().find("http") == 0 ? u.getRef() : string("local");
+}
+
+
+void CalcMgr::tellRefusal(const string& msg)
+{
+  if (getenv("ECCE_TEST_ORGANIZER")) {
+    setMessage(msg, WxFeedback::ERROR);
+    return;
+  }
+  ewxMessageDialog dlg(this, msg.c_str(), "Not supported yet",
+                       wxOK | wxICON_INFORMATION, wxDefaultPosition);
+  dlg.ShowModal();
+}
+
+
+// Local data and each server are separate trees; a copy or move between
+// them is refused until the transfer is done properly.
+string CalcMgr::crossTreeRefusal(const vector<EcceURL>& sources,
+                                 const EcceURL& dest)
+{
+  const string to = treeOf(dest);
+  for (size_t i = 0; i < sources.size(); i++) {
+    const string from = treeOf(sources[i]);
+    if (from == to) continue;
+    if (from == "local" || to == "local")
+      return "Copying between Local data and a server is not supported yet.";
+    return "Copying between servers is not supported yet.";
+  }
+  return "";
+}
+
+
+// A calculation on an added server is launched with that server's login:
+// ask for it when this session has none, and refuse (with the reason) when
+// it is not given or not accepted, instead of letting the job store hang on it.
+bool CalcMgr::refuseAddedLaunch(const vector<EcceURL>& urls)
+{
+  set<string> done;
+  for (size_t i = 0; i < urls.size(); i++) {
+    if (urls[i].getProtocol().find("sftp") == 0) {
+      // The job store and monitor are other processes: they get no prompt,
+      // so the login has to be made here, once, before anything is submitted.
+      const string root = ServerList::sshRootOf(urls[i].toString());
+      if (root.empty() || !done.insert(root).second) continue;
+      if (ServerList::loginFor(root).empty() && !connectSsh(root)) {
+        tellRefusal("Not launched: there is no login to " + root + ".");
+        return true;
+      }
+      continue;
+    }
+    if (urls[i].getProtocol().find("http") != 0) continue;
+    const string ref = urls[i].getRef();
+    if (!ServerList::isAdded(ref) || !done.insert(ref).second) continue;
+    if (!ServerList::loginFor(ref).empty() &&
+        !AuthCache::getCache().getAuthentication(ref, ServerList::loginFor(ref),
+                                                 "", 1)) {
+      ServerList::setLogin(ref, "");
+    }
+    if (ServerList::loginFor(ref).empty() && !connectServer(ref)) {
+      tellRefusal("Not launched: the login for the server " + ref +
+                  " was not given or not accepted.");
+      return true;
+    }
+  }
+  return false;
 }
 
 
@@ -1847,7 +2824,8 @@ void CalcMgr::saveSettings()
   
 
   prefs.setInt("Organizer.TreeWidth",
-                  p_splitterWindow->GetSashPosition());
+               (int)(p_splitterWindow->GetSashPosition() /
+                     ewxBitmap::dpiScale() + 0.5));
   prefs.setInt("Organizer.TreeSort",
                   p_treeSort);
   prefs.setInt("Organizer.PropertyView",
@@ -1892,7 +2870,7 @@ void CalcMgr::restoreSettings()
 
   int prefTmp = 250;
   if (prefs.getInt("Organizer.TreeWidth", prefTmp))
-    p_splitterWindow->SetSashPosition(prefTmp);
+    p_splitterWindow->SetSashPosition(ewxBitmap::scaled(prefTmp));
 
   p_treeSort = 0;
   if (prefs.getInt("Organizer.TreeSort", prefTmp))
@@ -1968,8 +2946,10 @@ void CalcMgr::restoreSettings()
     int idx = wxDisplay::GetFromWindow(this);
     wxRect area = wxDisplay((unsigned)(idx == wxNOT_FOUND ? 0 : idx))
                     .GetClientArea();
-    int w = std::max(860, std::min(1100, area.width * 60 / 100));
-    int h = std::max(600, std::min(800, area.height * 80 / 100));
+    int w = std::max(ewxBitmap::scaled(860),
+                     std::min(ewxBitmap::scaled(1100), area.width * 60 / 100));
+    int h = std::max(ewxBitmap::scaled(600),
+                     std::min(ewxBitmap::scaled(800), area.height * 80 / 100));
     SetSize(std::min(w, area.width), std::min(h, area.height));
     Centre();
   }
@@ -2086,6 +3066,20 @@ void CalcMgr::addRoot(const string& name, const string& url)
 void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
 {
   wxMenu menu;
+  {
+    WxResourceTreeItemData *sel = dynamic_cast<WxResourceTreeItemData*>(
+        p_treeCtrl->GetItemData(p_treeCtrl->GetSelection()));
+    if (sel && !sel->getResource() && !sel->serverRef().empty()) {
+      string ref = sel->serverRef();
+      int id = wxWindow::NewControlId();
+      menu.Append(id, _("Reconnect"));
+      menu.Bind(wxEVT_MENU, [this, ref](wxCommandEvent&) {
+        CallAfter([this, ref]() { connectServer(ref); });
+      }, id);
+      ewxPopupMenu(this, menu);
+      return;
+    }
+  }
   p_popupOnTree = true;
   string error = guarded([&]() {
     getContextMenu(menu);
@@ -2357,6 +3351,7 @@ void CalcMgr::OnShowInternalClick( wxCommandEvent& event )
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
+  syncServerRoots();
 
   stopDisabler();
 }
@@ -2375,6 +3370,7 @@ void CalcMgr::OnShowRunstatesClick( wxCommandEvent& event )
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
+  syncServerRoots();
 
   stopDisabler();
 }
@@ -2506,6 +3502,7 @@ void CalcMgr::OnAddServerClick( wxCommandEvent& event )
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
+  syncServerRoots();
 
   stopDisabler();
 }
@@ -2524,6 +3521,7 @@ void CalcMgr::OnHomeasrootClick( wxCommandEvent& event )
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
+  syncServerRoots();
 
   stopDisabler();
 }
@@ -2844,22 +3842,7 @@ void CalcMgr::OnDuplicateClick( wxCommandEvent& event )
     WxResourceTreeItemData * sel = findNode(p_currentSelection[0], false, true);
     if (dynamic_cast<TaskJob*>(sel->getResource())) {
       // it is a calculation, so duplicate it and select it in tree
-      WxResourceTreeItemData *dup = 0;
-      dup = duplicate(sel, true);
-      if (dup) {
-        // duplicate was successful, now reset for rerun
-        TaskJob *task = dynamic_cast<TaskJob*>(dup->getResource());
-        if (task) {
-          task->resetForRerun();
-          // some props changed, so we need to update the panel.  However, the 
-          // state also changed so we also need to update the menubar's dynamic 
-          // menus.
-          // 08/07/06 Lisong: Since CalcMgr is listening to itself for pool
-          //                  state change messages, wonder if this refresh
-          //                  is still necessary or not.
-          onSelectionChange(true);
-        }
-      }
+      if (duplicateForRerun(sel, true)) onSelectionChange(true);
     } else {
       p_feedback->clearMessage();
       setMessage("Duplicate is only applicable to calculations.");
@@ -2939,6 +3922,10 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
                              string *outcome, const string& shot,
                              const LaunchBatch::Target& initial)
 {
+  if (refuseAddedLaunch(urls)) {
+    if (outcome) *outcome = "refused";
+    return;
+  }
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
     WxResourceTreeItemData *item = findNode(urls[i], true, true);
@@ -2993,6 +3980,22 @@ void CalcMgr::startBatch(const vector<LaunchSelected::Row>& rows, bool showRepor
         delete p_batch;
         p_batch = 0;
         if (showReport) LaunchSelected::showResults(this, done);
+        if (p_autoBatch) {
+          // Nobody pressed a button, so say what happened, failures included.
+          p_autoBatch = false;
+          string r = p_batchReport;
+          for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = ' ';
+          setMessage("Auto-run: " + r, WxFeedback::INFO);
+          // Launched steps have left Created; a failed one may be tried again.
+          p_autoLaunched.clear();
+        }
+        std::set<string> pending;
+        pending.swap(p_autoPending);
+        for (const string& u : pending) {
+          WxResourceTreeItemData *n = findNode(EcceURL(u), false, false);
+          if (Session *wf = n ? dynamic_cast<Session*>(n->getResource()) : 0)
+            autoRunWorkflow(wf);
+        }
       });
     });
   p_batch->start();
@@ -3016,6 +4019,150 @@ bool CalcMgr::launchSelectedAsync(const vector<EcceURL>& urls, string *outcome)
 }
 
 
+// Both the menu and command keep the entire setup through the same copy
+// and reset. Only the command supplies a name; the menu keeps its naming.
+WxResourceTreeItemData* CalcMgr::duplicateForRerun(
+    WxResourceTreeItemData *item, bool select, const string& name, string *why)
+{
+  WxResourceTreeItemData *copy = duplicate(item, select, name);
+  TaskJob *task = copy ? dynamic_cast<TaskJob*>(copy->getResource()) : 0;
+  if (!task) {
+    if (why) *why = "could not copy the calculation";
+    return 0;
+  }
+  if (!task->resetForRerun()) {
+    if (why) *why = "copy " + copy->getName() + " could not be reset: " + task->messages();
+    return 0;
+  }
+  return copy;
+}
+
+
+bool CalcMgr::rerunForCommand(const vector<EcceURL>& urls, bool launch,
+                              const LaunchBatch::Target& target,
+                              vector<string>& lines, bool lastGeom,
+                              unsigned long cores, const string& wall)
+{
+  lines.clear();
+  const string wallStored = wall.empty() ? string() : LaunchBatch::parseWall(wall);
+  for (const EcceURL& url : urls) {
+    const string name = url.getFilePathTail();
+    auto no = [&](const string& why) { lines.push_back(name + "\tno\t" + why); };
+    if (p_batch) { no("the Organizer is submitting a Launch Selected batch"); continue; }
+    if (!wall.empty() && wallStored.empty()) {
+      no("wall time \"" + wall + "\" is not understood: use D H:M, H:M or minutes");
+      continue;
+    }
+    WxResourceTreeItemData *item = findNodeFresh(url, false);
+    TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
+    if (!task) { no("not a calculation in this session"); continue; }
+    if (url.getProtocol().find("sftp") == 0) {
+      no("only local data and data servers are supported");
+      continue;
+    }
+    auto state = task->getState();
+    const bool active = state == ResourceDescriptor::STATE_SUBMITTED ||
+                        state == ResourceDescriptor::STATE_RUNNING ||
+                        state == ResourceDescriptor::STATE_WAITING;
+    if (active && !lastGeom) {
+      no("state is " + ResourceUtils::stateToString(state));
+      continue;
+    }
+    if (lastGeom) {
+      // Checked before anything is ended, so a refusal leaves the job alone.
+      PropertyTask *calc = dynamic_cast<PropertyTask*>(task);
+      PropTSVecTable *trace = calc && calc->fragment() ?
+          (PropTSVecTable*)calc->getProperty("GEOMTRACE") : 0;
+      if (!trace || trace->tables() < 1) {
+        no("no stored geometry yet (no geometry trace): nothing copied");
+        continue;
+      }
+      if (active) {
+        vector<string> ended;
+        terminateForCommand(vector<EcceURL>(1, url), "continued from last geometry", ended);
+        const size_t a = ended.empty() ? string::npos : ended[0].find('\t');
+        const size_t b = a == string::npos ? a : ended[0].find('\t', a + 1);
+        if (b == string::npos || ended[0].substr(a + 1, b - a - 1) != "ok") {
+          no("not terminated: " + (b == string::npos ? string("no answer") : ended[0].substr(b + 1)));
+          continue;
+        }
+        item = findNodeFresh(url, false);
+        task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
+        if (!task) { no("not a calculation in this session"); continue; }
+      }
+    }
+    Resource *parent = EDSIFactory::getResource(url.getParent());
+    vector<Resource*> *children = parent ? parent->getChildren(true) : 0;
+    if (!children) { no("cannot read the parent folder"); continue; }
+    string next;
+    for (unsigned int n = 2; ; ++n) {
+      next = name + "_r" + std::to_string(n);
+      bool taken = false;
+      for (Resource *child : *children)
+        if (child->getURL().getFilePathTail() == next) { taken = true; break; }
+      if (!taken) break;
+    }
+    string why;
+    WxResourceTreeItemData *copy = 0;
+    if (lastGeom) {
+      // The Continue from Last Geometry copy; its coordinates are the last
+      // trace step, not the input's.
+      copy = duplicate(item, false, next);
+      if (copy) resetWithLastGeom(copy);
+      else why = "could not copy the calculation";
+    } else {
+      copy = duplicateForRerun(item, false, next, &why);
+    }
+    if (!copy) { no(why); continue; }
+    const EcceURL copyUrl = copy->getUrl();
+    string result = copy->getName();
+    TaskJob *copyTask = dynamic_cast<TaskJob*>(copy->getResource());
+    if (copyTask && (cores > 0 || !wallStored.empty())) {
+      Launchdata l = copyTask->launchdata();
+      if (cores > 0) {
+        l.totalprocs = cores;
+        if (l.nodes > cores) l.nodes = cores;
+      }
+      if (!wallStored.empty()) l.maxwall = wallStored;
+      if (!copyTask->launchdata(l)) {
+        lines.push_back(name + "\tno\t" + result + " made but its launch settings could not be stored");
+        continue;
+      }
+    }
+    if (lastGeom && copy->getResource()) {
+      const string key = VDoc::getEcceNamespace() + ":annotation";
+      const string old = copy->getResource()->getProp(key);
+      copy->getResource()->addProp(key, "continued from " + name + " (last geometry)" +
+                                        (old.empty() ? string() : "\n" + old));
+      updateUrl(copyUrl);
+    }
+    if (launch) {
+      vector<string> launched;
+      if (!launchForCommand(vector<EcceURL>(1, copyUrl), target, launched)) {
+        lines.push_back(name + "\tlaunch_failed\t" + result +
+                        ", not launched: Organizer is busy");
+        continue;
+      }
+      bool submitted = false;
+      for (const string& line : launched) {
+        const size_t a = line.find('\t');
+        const size_t b = a == string::npos ? a : line.find('\t', a + 1);
+        if (b == string::npos) continue;
+        const string status = line.substr(a + 1, b - a - 1);
+        if (status == "ok") { result += ", job id " + line.substr(b + 1); submitted = true; }
+        else if (status == "no") why = line.substr(b + 1);
+      }
+      if (!submitted) {
+        lines.push_back(name + "\tlaunch_failed\t" + result + ", not launched: " + why);
+        continue;
+      }
+    }
+    lines.push_back(name + "\tok\t" + result);
+  }
+  return true;
+}
+
+
 bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
                                const LaunchBatch::Target& target,
                                vector<string>& lines)
@@ -3024,7 +4171,7 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
   if (p_batch) return false;
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
-    WxResourceTreeItemData *item = findNode(urls[i], true, true);
+    WxResourceTreeItemData *item = findNodeFresh(urls[i], false);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
     if (task) tasks.push_back(task);
     else lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
@@ -3034,6 +4181,9 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
   LaunchSelected::run(rows);
   for (size_t i = 0; i < rows.size(); i++) {
     const LaunchSelected::Row& r = rows[i];
+    //  What was filled in or dropped is said before the result, never blocks.
+    if (!r.plan.notes.empty())
+      lines.push_back(r.plan.name + "\twarn\t" + r.plan.notes);
     string line = r.plan.name + "\t";
     if (!r.plan.ready) line += "no\t" + r.plan.problem;
     else if (!r.attempted) line += "no\tnot attempted";
@@ -3043,6 +4193,220 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
     } else line += "no\t" + r.outcome;
     lines.push_back(line);
   }
+  return true;
+}
+
+
+//  The Annotation editor's store (processEditCompletion) for a request from
+//  another process (#742), on any node of the tree: calculations and MD
+//  study tasks alike. The tree and the other apps are told as after an edit.
+bool CalcMgr::annotateForCommand(const vector<EcceURL>& urls,
+                                 const string& text, vector<string>& lines,
+                                 const string& key)
+{
+  lines.clear();
+  const string property = VDoc::getEcceNamespace() + ":" +
+                          (key.empty() ? string("annotation") : key);
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *n = findNodeFresh(urls[i], false);
+    if (!n || !n->getResource()) {
+      lines.push_back(urls[i].toString() + "\tno\tnot in this session");
+      continue;
+    }
+    if (!n->getResource()->addProp(property, text)) {
+      lines.push_back(n->getName() + "\tno\t" + n->getResource()->messages());
+      continue;
+    }
+    updateUrl(urls[i]);
+    notifyProperty(urls[i].toString(), property, text);
+    if (key == "excluded") p_treeCtrl->refreshState(n);
+    lines.push_back(n->getName() + "\tok\t");
+  }
+  return true;
+}
+
+
+//  ecce-move / ecce-rename (#824): the drag-and-drop move and Edit > Rename
+//  without dialogs, with the same refusals (#700). verb "move": second is the
+//  target folder's URL; "rename": second is the new name. One line per
+//  calculation, "name\tok\t" or "name\tno\treason". Only local data and
+//  data servers: the job store and the ssh trees are not covered.
+bool CalcMgr::moveForCommand(const string& verb, const vector<EcceURL>& urls,
+                             const string& second, vector<string>& lines)
+{
+  lines.clear();
+  const bool rename = verb == "rename";
+  EcceURL destUrl;
+  WxResourceTreeItemData *dest = 0;
+  string destWhy;
+  if (!rename) {
+    destUrl = EcceURL(second);
+    dest = findNodeFresh(destUrl, false);
+    if (!dest || !dest->getResource()) destWhy = "the target folder is not in this session";
+    else if (dest->getResource()->getContentType() == ResourceDescriptor::CT_CALCULATION ||
+             !p_treeCtrl->setExpandable(dest))
+      destWhy = "the target is not a folder";
+    else if (dest->getUrl().getProtocol().find("sftp") == 0)
+      destWhy = "only local data and data servers are supported";
+  }
+  for (size_t i = 0; i < urls.size(); i++) {
+    const string leaf = urls[i].getFilePathTail();
+    auto no = [&](const string& why) { lines.push_back(leaf + "\tno\t" + why); };
+    WxResourceTreeItemData *n = findNodeFresh(urls[i], false);
+    Resource *res = n ? n->getResource() : 0;
+    if (!res) { no("not in this session"); continue; }
+    const EcceURL oldUrl = n->getUrl();
+    if (oldUrl.isSystemFolder()) { no("a system folder cannot be moved or renamed"); continue; }
+    if (oldUrl.getProtocol().find("sftp") == 0) {
+      no("only local data and data servers are supported");
+      continue;
+    }
+    EcceURL newUrl;
+    if (rename) {
+      ResourceType *rt = res->getDescriptor();
+      if (!rt || !rt->isValidResourceName(second)) {
+        no("a name may contain only letters, digits, '.', '_' and '-'");
+        continue;
+      }
+      newUrl = oldUrl.getParent().getChild(second);
+      if (newUrl == oldUrl) { no("it already has that name"); continue; }
+    } else {
+      if (!destWhy.empty()) { no(destWhy); continue; }
+      const string cross = crossTreeRefusal(vector<EcceURL>(1, oldUrl), destUrl);
+      if (!cross.empty()) { no("the folder is in another data store"); continue; }
+      if (destUrl == oldUrl || destUrl.isChildOf(oldUrl)) {
+        no("a folder cannot be moved into itself");
+        continue;
+      }
+      if (destUrl == oldUrl.getParent()) { no("it is already in that folder"); continue; }
+      newUrl = destUrl.getChild(leaf);
+    }
+    //  A name clash is refused here, not left to the data layer's overwrite.
+    {
+      Resource *folder = EDSIFactory::getResource(newUrl.getParent());
+      vector<Resource*> *kids = folder ? folder->getChildren(true) : 0;
+      bool clash = false;
+      for (size_t k = 0; kids && k < kids->size(); k++)
+        if ((*kids)[k]->getURL() == newUrl) clash = true;
+      if (clash) {
+        no("there is already a calculation or folder named \"" +
+           newUrl.getFilePathTail() + "\" there");
+        continue;
+      }
+    }
+    const string busy = activeJobRefusal(res, rename ? "Rename" : "Move");
+    if (!busy.empty()) { no(busy); continue; }
+    if (!res->move(newUrl)) { no(res->messages()); continue; }
+    if (WxResourceTreeItemData *up = findNode(oldUrl.getParent(), false, true))
+      p_treeCtrl->refresh(up);
+    if (dest) p_treeCtrl->refresh(findNode(destUrl, false, true));
+    notifyRename(oldUrl.toString(), newUrl.toString(), "");
+    lines.push_back(leaf + "\tok\t" + newUrl.toString());
+  }
+  return true;
+}
+
+
+//  Terminate Selected for a request from another process (#695): the same
+//  terminateCalc, without the confirmation. One line per calculation,
+//  "name\tok\tjob id" or "name\tno\treason".
+bool CalcMgr::terminateForCommand(const vector<EcceURL>& urls,
+                                  const string& reason, vector<string>& lines)
+{
+  lines.clear();
+  if (p_batch) return false;
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *n = findNodeFresh(urls[i], false);
+    TaskJob *job = n ? dynamic_cast<TaskJob*>(n->getResource()) : 0;
+    if (!job) {
+      lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
+      continue;
+    }
+    const string name = n->getName();
+    const ResourceDescriptor::RUNSTATE st = job->getState();
+    if (st != ResourceDescriptor::STATE_SUBMITTED &&
+        st != ResourceDescriptor::STATE_RUNNING &&
+        st != ResourceDescriptor::STATE_WAITING) {
+      lines.push_back(name + "\tno\tstate is " +
+                      ResourceUtils::stateToString(st));
+      continue;
+    }
+    const string id = job->jobdata().jobid;
+    // Before the request: the job store records it when the job ends.
+    if (!reason.empty()) job->killReason(reason);
+    const EcceURL url = n->getUrl();
+    const string msg = terminateCalc(n);
+    updateUrl(url);
+    const bool issued = id.empty() ||
+        msg.find("has been issued") != string::npos ||
+        msg.find("process not found") != string::npos;
+    if (!issued) {
+      job->killReason("");
+      lines.push_back(name + "\tno\t" + msg);
+    } else {
+      if (id.empty() && !reason.empty()) {
+        // An import has no job store pass left to record it.
+        vector<MetaDataResult> r(1);
+        r[0].name = VDoc::getEcceNamespace() + ":runStatusReason";
+        r[0].value = reason;
+        job->addProps(r);
+        job->notifyProperty("runStatusReason", reason);
+      }
+      // What RunMgmt found left in the run directory (#855), after the id.
+      const size_t semi = msg.find("; ");
+      const string note = semi == string::npos ? "" : msg.substr(semi + 2);
+      const bool left = note.compare(0, 13, "still running") == 0;
+      lines.push_back(name + (left ? "\tleft\t" : "\tok\t") +
+                      (id.empty() ? string("none (imported job)") : id) +
+                      (note.empty() ? "" : ", " + note));
+    }
+  }
+  return true;
+}
+
+
+//  Reconnect Selected for a request from another process: the same
+//  reconnectSelected, without the confirmation. One line per calculation,
+//  "name\tok\tjob id" or "name\tno\treason".
+bool CalcMgr::reconnectForCommand(const vector<EcceURL>& urls,
+                                  vector<string>& lines)
+{
+  lines.clear();
+  if (p_batch) return false;
+  vector<EcceURL> tasks;
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *n = findNodeFresh(urls[i], false);
+    if (n && dynamic_cast<TaskJob*>(n->getResource())) tasks.push_back(urls[i]);
+    else lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
+  }
+  if (!tasks.empty()) reconnectSelected(tasks, false, 0, "", false, &lines);
+  return true;
+}
+
+
+//  ecce-fetch: files of the run directory into the stored Outputs over the
+//  login Reconnect uses. Lines as JobCatchUp::fetchFiles; false while a
+//  batch submits.
+bool CalcMgr::fetchForCommand(const EcceURL& url, const vector<string>& patterns,
+                              bool listOnly, vector<string>& lines)
+{
+  lines.clear();
+  if (p_batch) return false;
+  WxResourceTreeItemData *n = findNodeFresh(url, false);
+  TaskJob *task = n ? dynamic_cast<TaskJob*>(n->getResource()) : 0;
+  if (!task) {
+    lines.push_back(url.toString() + "\tno\tnot a calculation in this session");
+    return true;
+  }
+  OpenSshTransport::forgetMasterAttempts();
+  JobCatchUp::fetchFiles(task, patterns, listOnly,
+      [this](const RCommandLogin& l, RCommand*& c, string& why) {
+        return ReconnectSelected::openLogin(this, 0, l, c, why);
+      },
+      [this](const string& what, const std::function<bool()>& work, bool& res) {
+        return ReconnectSelected::runRemote(this, 0, what, work, res);
+      }, lines);
+  if (!listOnly) updateUrl(url);
   return true;
 }
 
@@ -3110,6 +4474,76 @@ void CalcMgr::OnTerminateSelectedClick( wxCommandEvent& event )
            live.size() == 1 ? "" : "s",
            skipped ? (", " + std::to_string(skipped) + " skipped (not running)").c_str() : "");
   setMessage(msg);
+}
+
+
+// The template is the selected calculation; other calculations selected with
+// it, and the .xyz files picked here, are the structures.
+void CalcMgr::OnNewSeriesClick( wxCommandEvent& event )
+{
+  if (refuseDuringBatch("New Series")) return;
+  vector<EcceURL> rows = launchSelection();
+  getSelection();
+  if (p_currentSelection.empty()) return;
+  const EcceURL templ = p_currentSelection[0];
+  vector<string> sources;
+  for (size_t i = 0; i < rows.size(); i++)
+    if (rows[i].toString() != templ.toString())
+      sources.push_back(rows[i].toString());
+  for (size_t i = 1; i < p_currentSelection.size(); i++) {
+    string u = p_currentSelection[i].toString();
+    if (std::find(sources.begin(), sources.end(), u) == sources.end())
+      sources.push_back(u);
+  }
+  ewxFileDialog dlg(this, "Structures for the series (.xyz files)",
+                    Ecce::realUserHome(), "", "XYZ files|*.xyz|All Files|*",
+                    wxFD_OPEN | wxFD_MULTIPLE | wxFD_FILE_MUST_EXIST,
+                    wxDefaultPosition);
+  if (dlg.ShowModal() == wxID_OK) {
+    wxArrayString paths;
+    dlg.GetPaths(paths);
+    for (size_t i = 0; i < paths.GetCount(); i++)
+      sources.push_back(string(paths[i].ToUTF8()));
+  }
+  if (sources.empty()) {
+    wxMessageBox(_("No structures were chosen: pick .xyz files, or select "
+                   "other calculations along with the template."),
+                 _("New Series"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  string report;
+  newSeries(templ, sources, &report);
+  wxMessageBox(wxString::FromUTF8(report.c_str()), _("New Series"),
+               wxOK | wxICON_INFORMATION, this);
+}
+
+
+void CalcMgr::newSeries(const EcceURL& templ, const vector<string>& sources,
+                        string *outcome)
+{
+  WxResourceTreeItemData *node = findNode(templ, true, true);
+  WxResourceTreeItemData *container = node ? nearestContainer(node, 0) : 0;
+  if (!container) {
+    if (outcome) *outcome = "the template is not in the tree";
+    return;
+  }
+  vector<Series::Outcome> r = Series::make(templ, container->getUrl(), sources);
+  string report;
+  int made = 0;
+  for (size_t i = 0; i < r.size(); i++) {
+    if (r[i].ok) {
+      made++;
+      p_treeCtrl->addToTree(EcceURL(r[i].url));
+      notifyCreate(r[i].url);
+      report += r[i].name + ": made" +
+                (r[i].note.empty() ? string() : " (" + r[i].note + ")") + "\n";
+    } else {
+      report += r[i].name + ": not made: " + r[i].note + "\n";
+    }
+  }
+  if (made) p_treeCtrl->refresh(container);
+  report += "Select the new calculations and use Run Mgmt > Launch Selected.";
+  if (outcome) *outcome = report;
 }
 
 
@@ -3185,7 +4619,8 @@ void CalcMgr::reparseFinished(const EcceURL& url, const string& result)
 
 
 void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
-                                string *outcome, const string& shot, bool listOnly)
+                                string *outcome, const string& shot, bool listOnly,
+                                vector<string> *lines)
 {
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
@@ -3247,6 +4682,17 @@ void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
         return ok;
       });
   if (interactive) ReconnectSelected::showResults(this, rows);
+  if (lines) {
+    for (size_t i = 0; i < rows.size(); i++) {
+      const ReconnectSelected::Row& r = rows[i];
+      if (r.eligible() && r.attempted && r.ok)
+        lines->push_back(r.plan.name + "\tok\t" + r.task->jobdata().jobid);
+      else
+        lines->push_back(r.plan.name + "\tno\t" +
+            (!r.eligible() ? r.plan.problem
+             : !r.attempted ? string("not attempted") : r.outcome));
+    }
+  }
   if (outcome) {
     string r = ReconnectSelected::report(rows);
     for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = '|';
@@ -3261,8 +4707,11 @@ bool CalcMgr::getAuthorization(AuthEvent& event)
   if (wxThread::IsMain())
     return WxDavAuth::getAuthorization(event);
   std::promise<bool> answer;
+  //  The step waits on the answer: a throw must still give one.
   wxTheApp->CallAfter([this, &event, &answer]() {
-    answer.set_value(WxDavAuth::getAuthorization(event));
+    bool ok = false;
+    try { ok = WxDavAuth::getAuthorization(event); } catch (...) {}
+    answer.set_value(ok);
   });
   return answer.get_future().get();
 }
@@ -3466,6 +4915,10 @@ void CalcMgr::OnRenameClick( wxCommandEvent& event )
     // If the new name is different from old name, make the move..
     if (newName != oldUrl.getFilePathTail()) {
       EcceURL newUrl = oldUrl.getParent().getChild(newName);
+      if (refuseMoveOfActiveJob(res, "Rename")) {
+        stopDisabler();
+        return;
+      }
       if (res->move(newUrl)) {
         // Refresh the moved node
         p_treeCtrl->refresh(node);
@@ -3721,7 +5174,8 @@ struct ExampleTopic {
   // a project; its calculations are the steps, linked as (source, target)
   // calculation names.
   bool workflow = false;
-  vector<std::pair<string, string>> links;
+  struct FlowLink { string from, to, name; };
+  vector<FlowLink> links;
   // steps (calculation names) that start from their source's Hessian, with
   // the .hess file the source's example folder ships
   vector<std::pair<string, string>> hessian;
@@ -3736,7 +5190,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "22";
+const char *const kExampleSetVersion = "31";
 
 string treeName(string s)
 {
@@ -3772,7 +5226,7 @@ void collectExamples(const string &setDir, const string &topicDir,
       // the output is the first file with one of these extensions
       // (tools/examples/preparse.py does the same)
       string found;
-      for (const char *ext : {".qmout", ".eprint", ".out"}) {
+      for (const char *ext : {".qmout", ".eprint", ".pwout", ".out"}) {
         vector<string> files;
         for (const auto &f : fs::directory_iterator(setDir + dirRel, ec))
           if (f.is_regular_file() && f.path().extension() == ext &&
@@ -3801,17 +5255,32 @@ void collectExamples(const string &setDir, const string &topicDir,
     string l;
     while (std::getline(wf, l)) {
       std::istringstream words(l);
-      string folder, lt, source;
+      string folder, lt, tok;
       if (!(words >> folder) || folder[0] == '#') continue;
-      words >> lt >> source;
-      const size_t plus = source.find("+hess");
-      const bool hess = plus != string::npos && plus + 5 == source.size();
-      if (hess) source.erase(plus);
-      const string to = calcOf(folder), from = calcOf(source);
-      if (!to.empty() && !from.empty()) topic.links.push_back({from, to});
-      if (hess && !to.empty())
-        topic.hessian.push_back({to, setDir + topicDir + "/" + source + "/" +
-                                     from + ".hess"});
+      words >> lt;
+      // "<source>", "<source>@max" (a scan point), or for a join
+      // "<source>=<role>[@<point>]" for each source.
+      const string to = calcOf(folder);
+      while (words >> tok) {
+        // "+hess": the step reads the Hessian of this source
+        const size_t plus = tok.find("+hess");
+        const bool hess = plus != string::npos && plus + 5 == tok.size();
+        if (hess) tok.erase(plus);
+        const size_t at = tok.find('@');
+        const size_t eq = tok.find('=');
+        const size_t end = std::min(eq, at);
+        const string role = eq == string::npos ? string(WorkflowSteps::kGeometryLink)
+            : tok.substr(eq + 1, at == string::npos || at < eq ? string::npos
+                                                               : at - eq - 1);
+        const string point = at == string::npos ? string() : tok.substr(at + 1);
+        const string from = calcOf(tok.substr(0, end));
+        if (!to.empty() && !from.empty())
+          topic.links.push_back({from, to, WorkflowSteps::linkName(role, point)});
+        if (hess && !to.empty() && !from.empty())
+          topic.hessian.push_back({to, setDir + topicDir + "/" +
+                                       tok.substr(0, end) + "/" + from +
+                                       ".hess"});
+      }
     }
   }
 }
@@ -4143,7 +5612,8 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     Session *flow = topic.workflow ? dynamic_cast<Session*>(parent) : 0;
     if (flow)
     {
-      for (const auto &l : topic.links) p_flowSources[l.second] = l.first;
+      for (const auto &l : topic.links)
+        p_flowSources[l.to].push_back({l.from, l.name});
       for (const auto &h : topic.hessian) p_flowHessian[h.first] = h.second;
     }
     findNode(parent->getURL(), true, true);
@@ -4156,7 +5626,8 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
       {
         static const struct { const char *key, *shown; } kCodes[] = {
           {"ecceqm", "ECCE-QM"}, {"mopac", "MOPAC"}, {"nwchem", "NWChem"},
-          {"orca", "ORCA"}, {"gromacs", "GROMACS"}, {"xtb", "xTB"}};
+          {"orca", "ORCA"}, {"gromacs", "GROMACS"}, {"xtb", "xTB"},
+          {"qe", "Quantum ESPRESSO"}};
         size_t dash = ex.name.find('-');
         size_t from = dash == string::npos ? 0 : dash + 1;
         string code = ex.name.substr(0, dash);
@@ -4259,6 +5730,11 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"na_4_2_xtb", "xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with four waters in the first shell and two beyond them, relaxed with the cheap method that starts the workflow."},
     {"na_4_2_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (four waters in the first shell and two beyond them) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
     {"na_4_2_orca_water", "ORCA, r2SCAN-3c with CPCM (water), optimisation and frequencies of Na+(H2O)6, started from the gas-phase geometry and Hessian of the step before. This calculation shows the arrangement with four waters in the first shell and two beyond them in water, where the order of the arrangements differs from the gas phase."},
+    {"sn2_reactant", "Gaussian 16, B3LYP/6-31+G(d), charge -1, optimisation and frequencies. This calculation shows the ion-dipole complex of chloride with methyl bromide, the first step of the SN2 workflow and the geometry the scan starts from."},
+    {"sn2_scan", "Gaussian 16, B3LYP/6-31+G(d), charge -1, relaxed scan of the C...Cl distance. This calculation shows the energy along the approach of chloride to the carbon, with a maximum whose structure is the transition-state guess of the join."},
+    {"sn2_product", "Gaussian 16, B3LYP/6-31+G(d), charge -1, optimisation and frequencies, started from the last point of the scan. This calculation shows the product complex of methyl chloride and bromide."},
+    {"sn2_qst3", "Gaussian 16, B3LYP/6-31+G(d), charge -1, QST3 transition-state search and frequencies, a join of the reactant, the product and the maximum of the scan. This calculation shows a saddle point with one imaginary frequency, the inversion at carbon."},
+    {"SN2_Cl-_and_CH3Br/sn2_irc", "Gaussian 16, B3LYP/6-31+G(d), charge -1, IRC in both directions from the transition state. This calculation shows the path from the transition state towards the reactant side and the product side."},
     {"methane", "NWChem, B3LYP/6-31G*. This calculation shows the effect of "
                 "tetrahedral symmetry: degenerate orbitals (a1, t2) and "
                 "degenerate vibrational modes."},
@@ -4469,72 +5945,84 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "calculation shows how the axial C4 hydroxyl group of galactose "
      "changes the vibrational spectrum compared with glucose."},
     {"H",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
      " electron of the hydrogen atom in the 1s orbital."},
     {"He",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the two "
      "electrons of helium paired in the 1s orbital."},
     {"Li",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
      " 2s electron of lithium outside its filled 1s orbital."},
     {"Be",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the beryllium atom, filled in order of increasing"
      " energy."},
     {"B",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the boron atom, filled in order of increasing "
      "energy."},
     {"C",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the two 2p"
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the two 2p"
      " electrons of carbon in different p orbitals with parallel spins."},
     {"N",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the three "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the three "
      "2p electrons of nitrogen in different p orbitals with parallel spins."},
     {"O",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the four "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the four "
      "2p electrons of oxygen, two of them paired and two unpaired."},
     {"F",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the fluorine atom, filled in order of increasing "
      "energy."},
     {"Ne",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the full "
      "second shell of neon, with all its orbitals doubly occupied."},
     {"Na",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the single"
      " 3s electron of sodium outside its filled neon-like core."},
     {"Mg",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the magnesium atom, filled in order of increasing"
      " energy."},
     {"Al",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the aluminium atom, filled in order of increasing"
      " energy."},
     {"Si",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the silicon atom, filled in order of increasing "
      "energy."},
     {"P",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the phosphorus atom, filled in order of "
      "increasing energy."},
     {"S",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the sulfur atom, filled in order of increasing "
      "energy."},
     {"Cl",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
      "occupied orbitals of the chlorine atom, filled in order of increasing "
      "energy."},
     {"Ar",
      "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the full "
      "third shell of argon, with all its orbitals doubly occupied."},
+    {"Ca",
+     "ECCE-QM, B3LYP/cc-pVTZ, energy. This calculation shows the two 4s "
+     "electrons of calcium outside its argon-like core, with the 3d orbitals "
+     "still empty."},
+    {"Cr",
+     "ECCE-QM, ROB3LYP/def2-TZVPD, energy. This calculation shows the "
+     "3d5 4s1 configuration of chromium: five unpaired 3d electrons and one "
+     "4s electron, all with parallel spins."},
+    {"Cu",
+     "ECCE-QM, ROB3LYP/def2-TZVPD, energy. This calculation shows the "
+     "3d10 4s1 configuration of copper: a filled 3d shell and a single 4s "
+     "electron."},
     {"Li_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
      "lithium atom; with the cation, Tools > "
-     "Compare Energies gives the ionisation energy as the difference of "
+     "Energy Calculator gives the ionisation energy as the difference of "
      "their energies."},
     {"Li_HF_cation",
      "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the "
@@ -4544,7 +6032,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"Be_HF_neutral",
      "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the "
      "beryllium atom; with the cation, Tools > "
-     "Compare Energies gives the ionisation energy as the difference of "
+     "Energy Calculator gives the ionisation energy as the difference of "
      "their energies."},
     {"Be_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
@@ -4554,7 +6042,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"C_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
      "carbon atom; with the cation, Tools > "
-     "Compare Energies gives the ionisation energy as the difference of "
+     "Energy Calculator gives the ionisation energy as the difference of "
      "their energies."},
     {"C_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
@@ -4564,7 +6052,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"N_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
      "nitrogen atom; with the cation, Tools > "
-     "Compare Energies gives the ionisation energy as the difference of "
+     "Energy Calculator gives the ionisation energy as the difference of "
      "their energies."},
     {"N_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
@@ -4574,7 +6062,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"O_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
      "oxygen atom; with the cation, Tools > "
-     "Compare Energies gives the ionisation energy as the difference of "
+     "Energy Calculator gives the ionisation energy as the difference of "
      "their energies."},
     {"O_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
@@ -4584,7 +6072,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     {"F_HF_neutral",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
      "fluorine atom; with the cation, Tools > "
-     "Compare Energies gives the ionisation energy as the difference of "
+     "Energy Calculator gives the ionisation energy as the difference of "
      "their energies."},
     {"F_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the "
@@ -4601,57 +6089,62 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "cation, the atom after loss of its outermost electron; its "
      "energy minus that of the neutral atom is "
      "the ionisation energy."},
-    {"Li_B3LYP_neutral",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "lithium atom; with the anion, Tools > Compare Energies gives the "
+    {"Li_PBE0_neutral",
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
+     "lithium atom; with the anion, Tools > Energy Calculator gives the "
      "electron affinity as the difference of their energies."},
     {"Li_anion",
-     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "lithium anion, the atom with one extra electron; the energy of the "
      "neutral atom minus the energy of this anion is the electron "
      "affinity."},
-    {"Be_B3LYP_neutral",
-     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "beryllium atom; with the anion, Tools > Compare Energies gives the "
+    {"Be_PBE0_neutral",
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
+     "beryllium atom; with the anion, Tools > Energy Calculator gives the "
      "electron affinity as the difference of their energies."},
     {"Be_anion",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "beryllium anion, the atom with one extra electron; the energy of "
      "the neutral atom minus the energy of this anion is the electron "
-     "affinity."},
-    {"C_B3LYP_neutral",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "carbon atom; with the anion, Tools > Compare Energies gives the "
+     "affinity. The 2s orbital of beryllium is full, so the extra "
+     "electron has to go into the higher 2p orbital, and the anion is "
+     "not more stable than the atom."},
+    {"C_PBE0_neutral",
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
+     "carbon atom; with the anion, Tools > Energy Calculator gives the "
      "electron affinity as the difference of their energies."},
-    {"N_B3LYP_neutral",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "nitrogen atom; with the anion, Tools > Compare Energies gives the "
+    {"N_PBE0_neutral",
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
+     "nitrogen atom; with the anion, Tools > Energy Calculator gives the "
      "electron affinity as the difference of their energies."},
-    {"O_B3LYP_neutral",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "oxygen atom; with the anion, Tools > Compare Energies gives the "
+    {"O_PBE0_neutral",
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
+     "oxygen atom; with the anion, Tools > Energy Calculator gives the "
      "electron affinity as the difference of their energies."},
-    {"F_B3LYP_neutral",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
-     "fluorine atom; with the anion, Tools > Compare Energies gives the "
+    {"F_PBE0_neutral",
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
+     "fluorine atom; with the anion, Tools > Energy Calculator gives the "
      "electron affinity as the difference of their energies."},
     {"C_anion",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "carbon anion, the atom with one extra electron; the energy of the "
      "neutral atom minus the energy of this anion is the electron "
      "affinity."},
     {"N_anion",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "nitrogen anion, the atom with one extra electron; the energy of "
      "the neutral atom minus the energy of this anion is the electron "
-     "affinity."},
+     "affinity. The 2p orbitals of nitrogen are half full, one "
+     "electron in each, so the extra electron has to pair with one of "
+     "them and feels the repulsion of that electron, and the anion is "
+     "not more stable than the atom."},
     {"O_anion",
-     "ECCE-QM, UB3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "oxygen anion, the atom with one extra electron; the energy of the "
      "neutral atom minus the energy of this anion is the electron "
      "affinity."},
     {"F_anion",
-     "ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the "
+     "ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the "
      "fluorine anion, the atom with one extra electron; the energy of "
      "the neutral atom minus the energy of this anion is the electron "
      "affinity."},
@@ -4901,6 +6394,34 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
      "localised. This calculation shows that the two O-O bonds of ozone are "
      "equivalent, as the average of two resonance structures."},
+    {"po_sc",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the simple cubic packing of "
+     "alpha polonium: one atom in the cubic cell, six nearest neighbours, "
+     "and 52 % of the space filled by the atoms."},
+    {"na_bcc",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the body-centred cubic packing of "
+     "sodium: two atoms in the cubic cell, eight nearest neighbours, "
+     "and 68 % of the space filled by the atoms."},
+    {"al_fcc",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the face-centred cubic packing of "
+     "aluminium, with layers stacked ABC: four atoms in the cubic "
+     "cell, twelve nearest neighbours, and 74 % of the space filled by "
+     "the atoms."},
+    {"cu_fcc",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the face-centred cubic packing of "
+     "copper, with layers stacked ABC: four atoms in the cubic cell, "
+     "twelve nearest neighbours, and 74 % of the space filled by the "
+     "atoms."},
+    {"mg_hcp",
+     "Quantum ESPRESSO, PBE, plane waves, the hexagonal "
+     "cell. This calculation shows the hexagonal close packing of "
+     "magnesium, with layers stacked ABA: two atoms in the hexagonal "
+     "cell, twelve nearest neighbours, and 74 % of the space filled by "
+     "the atoms."},
     {"ar-gas-300K",
      "GROMACS, Lennard-Jones argon, 1000 atoms, 300 K, 20 bar, 2 ns. This "
      "calculation shows the Maxwell-Boltzmann distribution of atomic speeds "
@@ -4983,9 +6504,17 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
       }
       if (dynamic_cast<ICalculation*>(calc) && added.count(calc->getName()))
         thumbUrls.push_back(calc->getURL().toString());
+      // Calculation names repeat across sets (sn2_irc is ORCA in Organic
+      // and G16 in Workflows): a "<folder>/<calc>" note wins over a bare one.
+      const string qualified = projRes->getName() + "/" + calc->getName();
+      bool haveQualified = false;
+      for (const auto &note : kNotes)
+        if (qualified == note.name) haveQualified = true;
       for (const auto &note : kNotes) {
         // a calculation that was already there keeps the user's annotation
-        if (calc->getName() == note.name && added.count(calc->getName())) {
+        if ((haveQualified ? qualified == note.name
+                           : calc->getName() == note.name) &&
+            added.count(calc->getName())) {
           vector<MetaDataResult> ann(1);
           ann[0].name = VDoc::getEcceNamespace() + ":annotation";
           ann[0].value = note.text;
@@ -5115,6 +6644,15 @@ void CalcMgr::OnTreectrlSelChanged( wxTreeEvent& event )
     return;
   }
 
+  {
+    WxResourceTreeItemData *picked = dynamic_cast<WxResourceTreeItemData*>(
+        p_treeCtrl->GetItemData(event.GetItem()));
+    if (picked && !picked->getResource() && !picked->serverRef().empty()) {
+      event.Skip();
+      return;
+    }
+  }
+
   onSelectionChange(true);
 
 #ifdef __WXMSW__
@@ -5230,6 +6768,10 @@ void CalcMgr::OnTreectrlEndDrag( wxTreeEvent& event )
   string sourceName = sourceUrl.getFilePathTail();
   EcceURL newUrl = targetUrl.getChild(sourceName);
   
+  if (refuseMoveOfActiveJob(p_dragSource->getResource(), "Move")) {
+    stopDisabler();
+    return;
+  }
   if (p_dragSource->getResource()->move(newUrl)) {
     p_treeCtrl->refresh(p_treeCtrl->getParent(p_dragSource));
     p_treeCtrl->refresh(findNode(targetUrl, false, true));
@@ -5352,6 +6894,15 @@ void CalcMgr::OnTreectrlItemExpanding( wxTreeEvent& event )
   //  cerr << "Expanding node: " << itemData->getName() << endl;
   //  cerr << "Children in widget tree: " << p_treeCtrl->GetChildrenCount(event.GetItem(), false) << endl;
   //  cerr << "Children in data tree: " << itemData->getnumChildren() << endl;
+
+  if (itemData && !itemData->getResource() && !itemData->serverRef().empty()) {
+    // An added server that is not connected: log in first.
+    string ref = itemData->serverRef();
+    event.Veto();
+    CallAfter([this, ref]() { connectServer(ref); });
+    stopDisabler();
+    return;
+  }
 
   bool authSucceed = true;
   if (p_treeCtrl->GetChildrenCount(itemData->GetId(), false) == 0) {
@@ -5519,6 +7070,196 @@ void CalcMgr::copySelectionToClipboard(bool deleteAfterPaste)
  */
 // Menu state can lag behind the selection (keyboard Delete, accelerators),
 // so the handlers refuse system folders themselves.
+//  The job store writes a running job's results back to the calculation's
+//  address, so a calculation (or a folder holding one) is not renamed or
+//  moved while its job is submitted, running or waiting for login (#700).
+static bool activeJobIn(Resource *r, string& name, int depth)
+{
+  if (!r) return false;
+  if (TaskJob *job = dynamic_cast<TaskJob*>(r)) {
+    const ResourceDescriptor::RUNSTATE st = job->getState();
+    if (st == ResourceDescriptor::STATE_SUBMITTED ||
+        st == ResourceDescriptor::STATE_RUNNING ||
+        st == ResourceDescriptor::STATE_WAITING) {
+      name = r->getName();
+      return true;
+    }
+    return false;
+  }
+  if (depth > 8) return false;
+  vector<Resource*> *children = r->getChildren();
+  if (!children) return false;
+  for (size_t i = 0; i < children->size(); i++)
+    if (activeJobIn((*children)[i], name, depth + 1)) return true;
+  return false;
+}
+
+
+//  The #700 refusal as text ("" when the move is allowed); the dialog
+//  and ecce-move/ecce-rename say the same thing.
+string CalcMgr::activeJobRefusal(Resource *res, const string& what)
+{
+  string name;
+  if (!activeJobIn(res, name, 0)) return "";
+  return what + " is not possible while the job of \"" + name +
+      "\" is submitted or running: its results are written back to where "
+      "the calculation is now. Wait until the job has ended, or terminate it.";
+}
+
+
+bool CalcMgr::refuseMoveOfActiveJob(Resource *res, const string& what)
+{
+  const string msg = activeJobRefusal(res, what);
+  if (msg.empty()) return false;
+  ewxMessageDialog dlg(this, msg, what + " Not Allowed",
+                       wxOK | wxICON_EXCLAMATION, wxDefaultPosition);
+  dlg.ShowModal();
+  return true;
+}
+
+
+//  Why a calculation cannot be made a step of a workflow ("" if it can).
+string CalcMgr::workflowMoveRefusal(Resource *calc)
+{
+  if (!dynamic_cast<TaskJob*>(calc))
+    return "Only a calculation can be made a step of a workflow.";
+  Resource *folder = EDSIFactory::getResource(calc->getURL().getParent());
+  if (Session *s = dynamic_cast<Session*>(folder)) {
+    if (s->getApplicationType() == ResourceDescriptor::AT_WORKFLOW)
+      return "This calculation is already in a workflow.";
+    return "This calculation is part of a study and cannot be moved out of it.";
+  }
+  string name;
+  if (activeJobIn(calc, name, 0))
+    return "The job of this calculation is submitted or running: its results "
+           "are written back to where the calculation is now. Wait until it "
+           "has ended, or terminate it.";
+  return "";
+}
+
+
+//  Moves calc into wf, or into a new workflow of that name beside it.  "" on
+//  success, else why not.  The tree and the workflow view are left to the
+//  caller.
+string CalcMgr::moveIntoWorkflow(Resource *calc, Session *wf,
+                                 const string& name, EcceURL *wfUrl)
+{
+  string why = workflowMoveRefusal(calc);
+  if (!why.empty()) return why;
+  const EcceURL oldUrl = calc->getURL();
+  Resource *folder = EDSIFactory::getResource(oldUrl.getParent());
+  if (!folder) return "The calculation's folder cannot be opened.";
+  bool created = false;
+  if (!wf) {
+    ResourceType *wt = 0;
+    for (ResourceType *rt :
+         ResourceDescriptor::getResourceDescriptor().getResourceTypes())
+      if (rt->getName() == "workflow") wt = rt;
+    if (!wt) return "This installation has no workflow type.";
+    if (!wt->isValidResourceName(name))
+      return "A name may contain only letters, digits, '.', '_' and '-'.";
+    wf = dynamic_cast<Session*>(folder->createChild(name, wt));
+    if (!wf) return "The workflow cannot be created: " + folder->messages();
+    created = true;
+  } else if (wf->getURL().getParent() != oldUrl.getParent() ||
+             wf->getApplicationType() != ResourceDescriptor::AT_WORKFLOW) {
+    return "Only a workflow in the same folder can take the calculation.";
+  }
+  EcceURL target = wf->getURL().getChild(oldUrl.getFilePathTail());
+  vector<Resource*> *kids = wf->getChildren(true);
+  for (size_t i = 0; kids && i < kids->size(); i++)
+    if ((*kids)[i]->getURL() == target)
+      return "The workflow already has a calculation named \"" +
+             oldUrl.getFilePathTail() + "\".";
+  if (!calc->move(target)) {
+    string msg = calc->messages();
+    if (created) wf->remove();
+    return "The calculation cannot be moved: " + msg;
+  }
+  Resource *moved = EDSIFactory::getResource(target);
+  try {
+    wf->addMember(moved);
+    wf->saveLinkbase();
+  } catch (InvalidException &ex) {
+    return string("The calculation was moved but not added to the workflow: ")
+           + ex.what();
+  }
+  if (WxResourceTreeItemData *n = findNode(oldUrl.getParent(), false, true))
+    p_treeCtrl->refresh(n);
+  notifyRename(oldUrl.toString(), target.toString(), "");
+  if (created) notifyCreate(wf->getURL().toString());
+  if (wfUrl) *wfUrl = wf->getURL();
+  return "";
+}
+
+
+string CalcMgr::workflowForCommand(const string& verb, const EcceURL& calcUrl,
+                                   const string& second)
+{
+  Resource *calc = EDSIFactory::getResource(calcUrl);
+  if (!calc) return "error: no such calculation";
+  Session *into = 0;
+  if (verb == "move") {
+    into = dynamic_cast<Session*>(EDSIFactory::getResource(EcceURL(second)));
+    if (!into) return "error: no such workflow";
+  }
+  const string leaf = calcUrl.getFilePathTail();
+  EcceURL wfUrl;
+  string why = moveIntoWorkflow(calc, into,
+                                second.empty() ? leaf + "_workflow" : second,
+                                &wfUrl);
+  if (!why.empty()) return "error: " + why;
+  showInWorkflow(wfUrl, wfUrl.getChild(leaf));
+  return "ok " + wfUrl.toString();
+}
+
+
+//  Opens the workflow and selects the moved calculation's box.
+void CalcMgr::showInWorkflow(const EcceURL& wfUrl, const EcceURL& step)
+{
+  findNode(wfUrl, true, true);
+  for (int i = 0; i < 5; i++) wxYield();
+  if (p_contextPanel) p_contextPanel->selectResource(step);
+}
+
+
+//  Make Workflow... / Move into Workflow > on the selected calculation.
+void CalcMgr::makeWorkflowFromSelection(Session *into)
+{
+  WxResourceTreeItemData *node = p_treeCtrl->getSelection();
+  Resource *calc = node ? node->getResource() : 0;
+  if (!calc) return;
+  string why = workflowMoveRefusal(calc);
+  string name;
+  if (why.empty() && !into) {
+    ewxTextEntryDialog dlg(this,
+        "Name of the new workflow. The calculation is moved into it as its "
+        "first step, with its inputs, results and job record; the workflow "
+        "view then opens so the next steps can be added.",
+        "Make Workflow", calc->getName() + "_workflow", wxOK | wxCANCEL);
+    dlg.spacesToUnderscores();
+    wxButton *help = new wxButton(&dlg, wxID_HELP, "Help");
+    help->Bind(wxEVT_BUTTON, [](wxCommandEvent&) {
+      WxHelpViewer::show("workflows.html");
+    });
+    dlg.GetSizer()->Add(help, 0, wxALL | wxALIGN_RIGHT, 5);
+    dlg.GetSizer()->SetSizeHints(&dlg);
+    if (dlg.ShowModal() != wxID_OK) return;
+    name = dlg.GetValue();
+  }
+  EcceURL wfUrl;
+  const EcceURL oldUrl = calc->getURL();
+  if (why.empty()) why = moveIntoWorkflow(calc, into, name, &wfUrl);
+  if (!why.empty()) {
+    ewxMessageDialog err(this, why, "Make Workflow",
+                         wxOK | wxICON_EXCLAMATION, wxDefaultPosition);
+    err.ShowModal();
+    return;
+  }
+  showInWorkflow(wfUrl, wfUrl.getChild(oldUrl.getFilePathTail()));
+}
+
+
 bool CalcMgr::selectionHasSystemFolder()
 {
   if (!getSelection()) return false;
@@ -5635,8 +7376,12 @@ void CalcMgr::paste()
   WxResourceTreeItemData * destination = p_treeCtrl->getSelection();
   EcceURL destinationUrl = destination->getUrl();
   
+  string crossRefusal = crossTreeRefusal(p_clipboard, destinationUrl);
+  if (!crossRefusal.empty()) {
+    tellRefusal(crossRefusal);
+  }
   // First check if destination is a sub folder of the folder being copied
-  if (destinationUrl == p_clipboard[0] ||
+  else if (destinationUrl == p_clipboard[0] ||
       destinationUrl.isChildOf(p_clipboard[0])) {
     ewxMessageDialog dlg(this, "Cannot paste parent folder into a child "
                          "folder", "Paste Failed!", 
@@ -5827,6 +7572,38 @@ string CalcMgr::guarded(const std::function<void()>& f)
 }
 
 
+//  Where Reconnect is shown follows the resource type's reconnectJob task
+//  (ResourceDescriptor.xml); whether it is enabled is reconnectProblem().
+static bool offersReconnect(ResourceType *resType,
+                            ResourceDescriptor::RUNSTATE state)
+{
+  if (!resType) return false;
+  vector<ResourceRmTask *> tasks = resType->getRmTasks(state);
+  for (size_t i = 0; i < tasks.size(); i++)
+    if (tasks[i]->getName() == RECONNECTJOB) return true;
+  return false;
+}
+
+
+//  The one rule for every Reconnect item and hook (ReconnectRules): empty
+//  when the calculation can be reconnected, else why not.
+static string reconnectProblem(Resource *res)
+{
+  TaskJob *job = dynamic_cast<TaskJob*>(res);
+  return job ? JobCatchUp::plan(job).problem : string("not a calculation");
+}
+
+
+bool CalcMgr::anyReconnectable(const vector<EcceURL>& urls)
+{
+  for (size_t i = 0; i < urls.size(); i++) {
+    WxResourceTreeItemData *n = findNode(urls[i], false, true);
+    if (n && reconnectProblem(n->getResource()).empty()) return true;
+  }
+  return false;
+}
+
+
 void CalcMgr::getContextMenu(wxMenu & menu)
 {
   ResourceType * resType = 0;
@@ -5885,83 +7662,152 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   menu.Append(wxID_COPY, wxT("&Copy"));
   menu.Append(wxID_PASTE, wxT("&Paste"));
   menu.Enable(wxID_PASTE, !p_clipboard.empty());
+  menu.Append(wxID_RENAME, wxT("&Rename"));
+  menu.Enable(wxID_RENAME, true);
+  menu.Append(wxID_DELETE, wxT("&Delete"));
+  menu.Enable(wxID_DELETE, true);
   //  A study task is rerun by a copy that keeps its place in the study.
   if (!isCalculationNode && itemData && dynamic_cast<MdTask*>(
           itemData->getResource()))
     menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
+  //  A calculation's menu: the clipboard items, what to make from it, and
+  //  what to do with its run. The tools (Builder, Calculation Editor, ...)
+  //  are on the toolbar and the Tools menu.
+  wxMenu *runMenu = 0;
   if (isCalculationNode) {
-    menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
-    menu.Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"));
-    menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
-    //  Offered under the same rule as the Run Mgmt item: only for a job
-    //  that has been submitted.
-    wxMenuItem *reconnect = menu.Append(wxID_RECONNECT_SELECTED,
-                                        _("Reconnect Selected..."));
-    reconnect->Enable(state == ResourceDescriptor::STATE_SUBMITTED ||
-                      state == ResourceDescriptor::STATE_RUNNING ||
-                      state == ResourceDescriptor::STATE_WAITING);
-    menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"), _("Run the "
-                "parsers again over the outputs stored with the calculation"))
-        ->Enable(state >= ResourceDescriptor::STATE_COMPLETED);
+    wxMenu *from = new wxMenu();
+    from->Append(wxID_DUPLICATE, _("Rerun"),
+                 _("A copy of this calculation, ready to run again"));
+    from->Append(wxID_DUPLICATE2, _("Continue from Last Geometry"),
+                 _("A copy with the geometry this calculation ended on"));
     string why;
     bool can = OrbitalGuess::available(
         dynamic_cast<TaskJob*>(itemData->getResource()), why);
-    wxMenuItem *item = menu.Append(wxID_DUPLICATE3,
-        _("Duplicate with Final Orbitals"),
-        can ? _("Duplicate with the last geometry and start from this "
+    wxMenuItem *item = from->Append(wxID_DUPLICATE3,
+        _("Continue from Final Orbitals"),
+        can ? _("A copy with the last geometry that starts from this "
                 "calculation's final orbitals") : wxString(why));
     item->Enable(can);
+    menu.AppendSubMenu(from, _("New from This"));
+    {
+      const string refusal =
+          workflowMoveRefusal(itemData->getResource());
+      int id = wxWindow::NewControlId();
+      wxMenuItem *mk = menu.Append(id, _("Make Workflow..."),
+          refusal.empty() ? wxString(_("Move this calculation into a new "
+                                       "workflow as its first step"))
+                          : wxString(refusal));
+      mk->Enable(refusal.empty());
+      menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+        CallAfter([this]() { makeWorkflowFromSelection(0); });
+      }, id);
+      wxMenu *into = new wxMenu();
+      vector<Session*> flows;
+      if (refusal.empty()) {
+        Resource *folder = EDSIFactory::getResource(
+            itemData->getResource()->getURL().getParent());
+        vector<Resource*> *kids = folder ? folder->getChildren() : 0;
+        for (size_t i = 0; kids && i < kids->size(); i++) {
+          Session *s = dynamic_cast<Session*>((*kids)[i]);
+          if (s && s->getApplicationType() == ResourceDescriptor::AT_WORKFLOW)
+            flows.push_back(s);
+        }
+      }
+      for (Session *s : flows) {
+        int fid = wxWindow::NewControlId();
+        into->Append(fid, wxString(s->getName()));
+        const EcceURL url = s->getURL();
+        menu.Bind(wxEVT_MENU, [this, url](wxCommandEvent&) {
+          CallAfter([this, url]() {
+            makeWorkflowFromSelection(
+                dynamic_cast<Session*>(EDSIFactory::getResource(url)));
+          });
+        }, fid);
+      }
+      wxMenuItem *sub = menu.AppendSubMenu(into, _("Move into Workflow"),
+          refusal.empty() ? wxString(_("Move this calculation into a "
+                                       "workflow of this folder"))
+                          : wxString(refusal));
+      sub->Enable(refusal.empty() && !flows.empty());
+    }
+    runMenu = new wxMenu();
+    runMenu->Append(wxID_LAUNCH_SELECTED, _("Launch..."));
+    string noReconnect = reconnectProblem(itemData->getResource());
+    wxMenuItem *reconnect = runMenu->Append(wxID_RECONNECT_SELECTED,
+        _("Reconnect..."), wxString(noReconnect));
+    reconnect->Enable(noReconnect.empty());
+    //  Terminate and the run-directory shell are the state-based Run
+    //  Management tasks; they are listed always and enabled by the state.
+    vector<ResourceRmTask *> rmVec = resType->getRmTasks(state);
+    int terminateId = wxID_ANY, shellId = wxID_ANY;
+    for (size_t i = 0; i < rmVec.size(); i++) {
+      if (rmVec[i]->getName() == "terminateCalc") terminateId = rmVec[i]->getId();
+      if (rmVec[i]->getName() == "shellInRunDir") shellId = rmVec[i]->getId();
+    }
+    runMenu->Append(terminateId, _("Terminate"))->Enable(terminateId != wxID_ANY);
+    runMenu->Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"), _("Run the "
+                "parsers again over the outputs stored with the calculation"))
+        ->Enable(state >= ResourceDescriptor::STATE_COMPLETED);
+    runMenu->Append(shellId, _("Shell in Run Directory"))
+        ->Enable(shellId != wxID_ANY);
   }
-  //  Several calculation rows selected in the project table: the tree's own
+  if (runMenu) menu.AppendSubMenu(runMenu, _("Run"));
+  //  Calculation rows selected in the project table: the tree's own
   //  selection is then the project, so the batch items come from the same
-  //  rows Launch Selected itself would use.
+  //  rows Launch Selected itself would use (one row too).
   if (!isCalculationNode) {
     vector<EcceURL> rows = launchSelection();
-    bool allCalcs = rows.size() > 1;
+    bool allCalcs = !rows.empty();
     for (size_t i = 0; allCalcs && i < rows.size(); i++) {
       WxResourceTreeItemData *n = findNode(rows[i], false, true);
       allCalcs = n && dynamic_cast<TaskJob*>(n->getResource());
     }
     if (allCalcs) {
-      menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
-      menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
-      menu.Append(wxID_TERMINATE_SELECTED, _("Terminate Selected..."));
-      menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
+      wxMenu *batch = new wxMenu();
+      batch->Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
+      batch->Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."))
+          ->Enable(anyReconnectable(rows));
+      batch->Append(wxID_TERMINATE_SELECTED, _("Terminate Selected..."));
+      batch->Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
+      menu.AppendSubMenu(batch, _("Run"));
     }
   }
-  menu.Append(wxID_RENAME, wxT("&Rename"));
-  menu.Enable(wxID_RENAME, true);
-  menu.Append(wxID_DELETE, wxT("&Delete"));
-  menu.Enable(wxID_DELETE, true);
-
+  //  Comparing the energies of the selection: calculations picked in the
+  //  project table (two or more), or a folder.
+  {
+    size_t nCalcs = 0;
+    bool container = false;
+    if (!isCalculationNode) {
+      vector<EcceURL> rows = launchSelection();
+      bool allCalcs = !rows.empty();
+      for (size_t i = 0; allCalcs && i < rows.size(); i++) {
+        WxResourceTreeItemData *n = findNode(rows[i], false, true);
+        allCalcs = n && dynamic_cast<TaskJob*>(n->getResource());
+      }
+      if (allCalcs) nCalcs = rows.size();
+      container = nCalcs == 0 && itemData && itemData->getResource() &&
+          itemData->getResource()->getContentType() !=
+              ResourceDescriptor::CT_CALCULATION &&
+          dynamic_cast<TaskJob*>(itemData->getResource()) == 0;
+    }
+    if (nCalcs >= 2 || container) {
+      int id = wxWindow::NewControlId();
+      menu.AppendSeparator();
+      menu.Append(id, _("Compare Energies..."), _("Relative energies of the "
+                  "selected calculations, or of the calculations in this folder"));
+      menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+        CallAfter([this]() { wxCommandEvent e; OnRank(e); });
+      }, id);
+    }
+  }
   // get the tools available based on the state of the selection
   if (getSelection()) {
     itemData = findNode(p_currentSelection[0], false, true);
     getTypeAndState(itemData, resType, state);
-    vector<ResourceTool *> toolVec;
-    if (resType->getStateBased()) {
-      toolVec = resType->getTools(state);
-    }
-    else {
-      toolVec = resType->getTools();
-    }
-
-    // for each tool, add the tool to the menu
-    if (!toolVec.empty()) {
-      menu.AppendSeparator();
-    }
-    vector<ResourceTool *>::iterator toolItor;
-    for (toolItor = toolVec.begin(); toolItor != toolVec.end(); toolItor++) {
-      wxMenuItem *item = new wxMenuItem(&menu, (*toolItor)->getId(),
-              (*toolItor)->getMenuItem().c_str(), _T(""), wxITEM_NORMAL);
-      item->SetBitmap(wxBitmap(ewxBitmap((*toolItor)->getIcon())
-                               .ConvertToImage().Scale(16,16)));
-      menu.Append(item);
-    }
-
-    // The two Run Mgmt tasks used mid-run are also reachable here; the
-    // state-based task list is what enables them, as in the menu bar.
-    if (isCalculationNode) {
+    // An MD study task is a TaskJob with its own content type, so it is
+    // not a "calculation node" but runs and is cancelled the same way (#731).
+    if (!isCalculationNode && itemData && dynamic_cast<MdTask*>(
+            itemData->getResource())) {
       bool sep = false;
       vector<ResourceRmTask *> rmVec = resType->getRmTasks(state);
       for (size_t i = 0; i < rmVec.size(); i++) {
@@ -6192,6 +8038,12 @@ void CalcMgr::getRunMgmtMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
     } else {
       menu.Append((*rmTaskItor)->getId(), menuItem, "", wxITEM_NORMAL);
     }
+    if (name == RECONNECTJOB) {
+      WxResourceTreeItemData *on = itemData ? itemData : p_treeCtrl->getSelection();
+      string why = reconnectProblem(on ? on->getResource() : 0);
+      wxMenuItem *it = menu.FindItem((*rmTaskItor)->getId());
+      if (it) { it->Enable(why.empty()); it->SetHelp(wxString(why)); }
+    }
   }
   if ((state == ResourceDescriptor::STATE_READY ||
        state == ResourceDescriptor::STATE_CREATED) &&
@@ -6200,13 +8052,12 @@ void CalcMgr::getRunMgmtMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
     menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."), "",
                 wxITEM_NORMAL);
   }
-  if ((state == ResourceDescriptor::STATE_SUBMITTED ||
-       state == ResourceDescriptor::STATE_RUNNING ||
-       state == ResourceDescriptor::STATE_WAITING) &&
+  if (offersReconnect(resType, state) &&
       itemData && dynamic_cast<TaskJob*>(itemData->getResource())) {
     if (menu.GetMenuItemCount() > 0) menu.AppendSeparator();
-    menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."), "",
-                wxITEM_NORMAL);
+    string why = reconnectProblem(itemData->getResource());
+    menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."),
+                wxString(why), wxITEM_NORMAL)->Enable(why.empty());
   }
   if (state >= ResourceDescriptor::STATE_COMPLETED &&
       itemData && dynamic_cast<TaskJob*>(itemData->getResource())) {
@@ -6275,7 +8126,8 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
     added = true;
   }
 
-  menu.Append(ID_COMPARE_ENERGIES, _("Compare Energies..."));
+  //  Not "Compare Energies": that is the table of selected calculations.
+  menu.Append(ID_COMPARE_ENERGIES, _("Energy Calculator..."));
   if (!p_compareEnergiesWired) {
     Connect(ID_COMPARE_ENERGIES, wxEVT_COMMAND_MENU_SELECTED,
             wxCommandEventHandler(CalcMgr::OnCompareEnergies));
@@ -6322,6 +8174,28 @@ void CalcMgr::OnCompareEnergies(wxCommandEvent&)
   CompareEnergiesDialog *dialog = newCompareEnergiesDialog(p_currentSelection);
   dialog->ShowModal();
   dialog->Destroy();
+}
+
+// Compare Energies (the Rank table, #703): the calculations picked in the
+// project table, else those under the selected folder.
+void CalcMgr::OnRank(wxCommandEvent&)
+{
+  getSelection();
+  const vector<EcceURL> calcs = calculationsUnder(launchSelection());
+  if (calcs.empty()) {
+    wxMessageBox(_("Select a folder or calculations first."),
+                 _("Compare Energies"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  ChecksDialog dlg(this, calcs, true);
+  string why;
+  if (!dlg.ok(why)) {
+    if (why != "Cancelled.")
+      wxMessageBox(wxString::FromUTF8(why.c_str()), _("Compare Energies"),
+                   wxOK | wxICON_ERROR, this);
+    return;
+  }
+  dlg.ShowModal();
 }
 
 void CalcMgr::OnAllocations(wxCommandEvent&)
@@ -6565,6 +8439,28 @@ bool CalcMgr::checkMovable(WxResourceTreeItemData * node)
 void CalcMgr::startApp(const string& app, int force, const string& url,
                        const string& codename, int debug)
 {
+  if (app == "CalculationEditor" && !url.empty()) {
+    Resource *step = EDSIFactory::getResource(EcceURL(url));
+    if (step && !step->getProp(VDoc::getEcceNamespace() + ":recipe.step").empty()
+        && !WorkflowSteps::isLaunched(step)) {
+      ChemistryTask *task = dynamic_cast<ChemistryTask*>(step);
+      Fragment own;
+      // An inherited thumbnail is not the editor's chemical system. Store
+      // the completed source before opening, but preserve an edited structure.
+      if (task && (!task->getFragment(own, false) || own.numAtoms() == 0)) {
+        Session *wf = dynamic_cast<Session*>(
+            EDSIFactory::getResource(step->getURL().getParent()));
+        if (wf) {
+          vector<Resource*> ready = WorkflowSteps::readySteps(wf);
+          for (Resource *member : ready)
+            if (member->getURL() == step->getURL()) {
+              WorkflowSteps::refreshFromSources(wf, member);
+              break;
+            }
+        }
+      }
+    }
+  }
   //  cerr << "\nInvoke " << app << " with url " << url << endl;
   // Send the start app request to gateway:
   Target gateway(GATEWAY, "");
@@ -7332,7 +9228,7 @@ void CalcMgr::manageFiles(WxResourceTreeItemData *itemData)
  *
  * @param itemData  the tree node containing the calculation to terminate
  */
-void CalcMgr::terminateCalc(WxResourceTreeItemData *itemData)
+string CalcMgr::terminateCalc(WxResourceTreeItemData *itemData)
 {
   // Get URL
   EcceURL url = itemData->getUrl();
@@ -7348,11 +9244,11 @@ void CalcMgr::terminateCalc(WxResourceTreeItemData *itemData)
     msg->addProperty("url", url.toString());
     publish("ecce_ejs_kill", *msg);
     delete msg;
-  } else {
-    string msg;
-    msg = RunMgmt::terminate(calc);
-    setMessage(msg, WxFeedback::INFO);
+    return "";
   }
+  string msg = RunMgmt::terminate(calc);
+  setMessage(msg, WxFeedback::INFO);
+  return msg;
 }
 
 
@@ -7432,6 +9328,20 @@ void CalcMgr::catchUpWaitingJobs()
       !WaitingJobs::firstInSession(Ecce::sessionKey()))
     return;
 
+  // Jobs of an added server store to it with its own login, which this
+  // session does not have yet after a restart: ask once per server.
+  {
+    vector<string> waiting = WaitingJobs::list();
+    set<string> asked;
+    for (size_t i = 0; i < waiting.size(); i++) {
+      EcceURL u(waiting[i]);
+      const string ref = u.getRef();
+      if (u.getProtocol().find("http") == 0 && ServerList::isAdded(ref) &&
+          ServerList::loginFor(ref).empty() && asked.insert(ref).second)
+        connectServer(ref);
+    }
+  }
+
   ReconnectSelected::DeferMessages defer;
   ewxProgressDialog* progress = 0;
   bool cancelled = false;   // one Cancel leaves the rest waiting
@@ -7479,12 +9389,11 @@ void CalcMgr::reconnectJob(WxResourceTreeItemData *itemData)
   PropertyTask *calc = dynamic_cast<PropertyTask*>(itemData->getResource());
   NULLPOINTEREXCEPTION(calc,"Could not cast from Resource to PropertyTask.")
 
-  // Get state and job id
-  Jobdata job = calc->jobdata();
   ResourceDescriptor::RUNSTATE state = calc->getState();
-
-  if (job.jobid.empty()) {
-    setMessage("No job id available to reconnect", WxFeedback::ERROR);
+  string why = reconnectProblem(calc);
+  if (!why.empty()) {
+    p_reconnectNote = "not reconnected: " + why;
+    setMessage("Not reconnected: " + why, WxFeedback::ERROR);
     return;
   }
 
@@ -7555,6 +9464,8 @@ bool CalcMgr::resetForRerun(WxResourceTreeItemData *itemData,
   bool ret = false;
   if (task && task->canChangeState(message)) {
     ret = task->resetForRerun(tostate);
+    if (PropertyTask *props = dynamic_cast<PropertyTask*>(task))
+      props->flushPropertyCache();
     if (!ret) {
       setMessage(task->messages());
     }
@@ -8422,7 +10333,8 @@ void CalcMgr::resetWithLastGeom(WxResourceTreeItemData *itemData)
  *                        null if failed
  */
 WxResourceTreeItemData* CalcMgr::duplicate(WxResourceTreeItemData* itemData,
-                                           bool openWhenFound)
+                                           bool openWhenFound,
+                                           const string& name)
 {
   // return variable
   WxResourceTreeItemData *ret = 0;
@@ -8438,6 +10350,7 @@ WxResourceTreeItemData* CalcMgr::duplicate(WxResourceTreeItemData* itemData,
 
   // get the url of the given tree item
   EcceURL copyUrl = itemData->getUrl();
+  if (!name.empty()) copyUrl = copyUrl.getParent().getChild(name);
 
   // the copy method will make an exact copy of the resource but give it a 
   // unique name and place it in the given item's parent
@@ -8521,7 +10434,11 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
   if (!source) carry = WorkflowSteps::Carry();
   if (ask) {
     WorkflowStepDialog dlg(this, wf, *code, rt, source);
-    if (dlg.ShowModal() != wxID_OK) {
+    if (p_testStepDialogs) {
+      // Test hook: record what the dialog offers, take its defaults.
+      *p_testStepDialogs += string(source ? "carry" : "nocarry") + ";";
+      if (dlg.hasCarry() != (source != 0)) *p_testStepDialogs += "WRONG;";
+    } else if (dlg.ShowModal() != wxID_OK) {
       if (outcome) *outcome = "cancelled";
       return 0;
     }
@@ -8531,7 +10448,105 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
 
   FrameHold hold(this);
   string why;
-  Resource *made = WorkflowSteps::create(wf, rt, name, source, carry, why);
+  vector<Resource*> all;
+  // CREST fails from an unoptimised structure: put an xTB optimisation between.
+  string preoptNote;
+  if (source && carry.geometry && code->label == string("CREST") &&
+      !WorkflowSteps::isOptimisation(source)) {
+    ResourceType *xrt = 0;
+    const WorkflowSteps::Code *xcode = 0;
+    for (const WorkflowSteps::Code& c : WorkflowSteps::codes())
+      if (c.label == string("xtb")) xcode = &c;
+    vector<ResourceType*> types =
+        ResourceDescriptor::getResourceDescriptor().getResourceTypes();
+    for (size_t i = 0; xcode && i < types.size(); i++)
+      if (types[i]->getName() == xcode->typeName) xrt = types[i];
+    if (xrt) {
+      string xwhy;
+      Resource *opt = WorkflowSteps::create(wf, xrt,
+                          WorkflowSteps::defaultName(wf, *xcode), source, carry, xwhy);
+      ICalculation *oc = dynamic_cast<ICalculation*>(opt);
+      if (opt && oc) {
+        TRunType geo;
+        geo.name("Geometry");
+        oc->runtype(geo);
+        notifyCreate(opt->getURL().toString());
+        source = opt;
+        carry.point.clear();
+        preoptNote = "An xTB geometry optimisation was added before CREST, "
+                     "which needs an optimised structure.";
+      }
+    }
+  }
+  if (source && carry.perPattern) {
+    all = WorkflowSteps::createPatterns(wf, rt, name, source, carry, why);
+  } else if (source && carry.best > 0) {
+    all = WorkflowSteps::createBest(wf, rt, name, source, carry.best, carry, why);
+  } else if (Resource *one = WorkflowSteps::create(wf, rt, name, source, carry, why)) {
+    all.push_back(one);
+  }
+  if (all.empty()) {
+    if (outcome) *outcome = why.empty() ? "not created" : why;
+    if (ask) setMessage(why, WxFeedback::INFO);
+    return 0;
+  }
+  Resource *made = all[0];
+  string urls;
+  for (size_t i = 0; i < all.size(); i++) {
+    notifyCreate(all[i]->getURL().toString());
+    urls += (i ? " " : "") + all[i]->getURL().toString();
+  }
+  const EcceURL newurl = made->getURL();
+  WxResourceTreeItemData *node = findNode(wf->getURL(), true, false);
+  if (node) {
+    p_treeCtrl->refresh(node);
+    setContextPanel();
+    if (p_contextPanel) p_contextPanel->selectResource(newurl);
+  }
+  if (ask && !p_testStepDialogs) {
+    ResourceTool *tool = made->getDefaultTool();
+    if (tool) startApp(tool->getName(), 0, newurl.toString());
+  }
+  if (!preoptNote.empty()) setMessage(preoptNote, WxFeedback::INFO);
+  if (outcome) *outcome = urls;
+  return made;
+}
+
+
+/**
+ * A join (WorkflowSteps::createJoin): the tree and the view follow and the
+ * Calculation Editor opens on the new step, where TS Search shows the picks.
+ */
+Resource *CalcMgr::newWorkflowJoin(Session *wf, ResourceType *rt,
+                                   const vector<WorkflowSteps::JoinSource>& given,
+                                   bool ask, string *outcome, const string& givenName)
+{
+  const WorkflowSteps::Code *code = 0;
+  for (size_t i = 0; i < WorkflowSteps::codes().size(); i++)
+    if (rt->getName() == WorkflowSteps::codes()[i].typeName)
+      code = &WorkflowSteps::codes()[i];
+  if (!wf || !code || !WorkflowSteps::canJoin(*code)) {
+    if (outcome) *outcome = "not a step type that takes a join";
+    return 0;
+  }
+  string name = givenName.empty() ? WorkflowSteps::defaultName(wf, *code)
+                                  : givenName;
+  vector<WorkflowSteps::JoinSource> sources = given;
+  if (ask) {
+    vector<Resource*> steps;
+    for (size_t i = 0; i < given.size(); i++) steps.push_back(given[i].step);
+    WorkflowJoinDialog dlg(this, wf, *code, rt, steps);
+    if (dlg.ShowModal() != wxID_OK) {
+      if (outcome) *outcome = "cancelled";
+      return 0;
+    }
+    name = dlg.name();
+    sources = dlg.sources();
+  }
+
+  FrameHold hold(this);
+  string why;
+  Resource *made = WorkflowSteps::createJoin(wf, rt, name, sources, why);
   if (!made) {
     if (outcome) *outcome = why.empty() ? "not created" : why;
     if (ask) setMessage(why, WxFeedback::INFO);
@@ -8554,6 +10569,54 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
 }
 
 
+string CalcMgr::structureStored(const EcceURL& url)
+{
+  // Most notices are for calculations outside a recipe workflow: the
+  // property check keeps those to one lookup.
+  Resource *step = EDSIFactory::getResource(url);
+  if (!step || step->getProp(VDoc::getEcceNamespace() + ":recipe.step").empty()) return "";
+  WxResourceTreeItemData *node = findNode(url.getParent(), true, true);
+  Session *wf = node ? dynamic_cast<Session*>(node->getResource()) : 0;
+  if (!wf) return "";
+  vector<Resource*> members = wf->getMembers();
+  for (size_t i = 0; i < members.size(); i++)
+    if (members[i]->getURL() == url) return WorkflowSteps::structureSet(wf, members[i]);
+  return "";
+}
+
+
+/**
+ * Apply Recipe (WorkflowSteps::applyRecipe): the tree and the workflow view
+ * show the new boxes at once.
+ */
+vector<Resource*> CalcMgr::newRecipeSteps(Session *wf, const Recipe& recipe,
+                                          const RecipeVariant& variant,
+                                          const WorkflowSteps::Levels& levels,
+                                          Resource *after, string *outcome)
+{
+  FrameHold hold(this);
+  string why;
+  vector<Resource*> made = WorkflowSteps::applyRecipe(wf, recipe, variant, levels, after, why);
+  if (made.empty()) {
+    if (outcome) *outcome = why.empty() ? "not created" : why;
+    return made;
+  }
+  WxResourceTreeItemData *node = findNode(wf->getURL(), true, false);
+  if (node) {
+    p_treeCtrl->refresh(node);
+    setContextPanel();
+    if (p_contextPanel) p_contextPanel->selectResource(made[0]->getURL());
+  }
+  for (size_t i = 0; i < made.size(); i++) notifyCreate(made[i]->getURL().toString());
+  if (outcome) {
+    *outcome = "";
+    for (size_t i = 0; i < made.size(); i++)
+      *outcome += (i ? " " : "") + made[i]->getURL().toString();
+  }
+  return made;
+}
+
+
 /**
  * Launch Ready Steps: each step of the workflow not yet launched whose
  * source is Complete, with its own saved launch settings.  The others are
@@ -8563,7 +10626,8 @@ void CalcMgr::launchReadySteps(Session *wf, bool interactive, string *outcome,
                                const string& shot)
 {
   vector<string> waiting;
-  vector<Resource*> ready = WorkflowSteps::readySteps(wf, &waiting);
+  vector<string> excluded;
+  vector<Resource*> ready = WorkflowSteps::readySteps(wf, &waiting, &excluded);
   string note;
   if (!waiting.empty()) {
     note = "Waiting for their source step: ";
@@ -8571,6 +10635,10 @@ void CalcMgr::launchReadySteps(Session *wf, bool interactive, string *outcome,
       note += (i ? ", " : "") + waiting[i];
     note += ".";
   }
+  //  The GUI does not show the excluded mark, so say why a step is left out.
+  for (const string& n : excluded)
+    note += (note.empty() ? "" : " ") + n +
+            ": skipped, marked excluded (ecce-annotate --include to clear).";
   if (ready.empty()) {
     string msg = "No step is ready to launch." + (note.empty() ? "" : " " + note);
     if (interactive) setMessage(msg, WxFeedback::INFO);
@@ -8579,8 +10647,66 @@ void CalcMgr::launchReadySteps(Session *wf, bool interactive, string *outcome,
   }
   if (!note.empty() && interactive) setMessage(note, WxFeedback::INFO);
   vector<EcceURL> urls;
-  for (size_t i = 0; i < ready.size(); i++) urls.push_back(ready[i]->getURL());
+  for (size_t i = 0; i < ready.size(); i++) {
+    // A recipe's steps get their sources' results now, not when made.
+    WorkflowSteps::refreshFromSources(wf, ready[i]);
+    urls.push_back(ready[i]->getURL());
+  }
   launchSelected(urls, interactive, outcome, shot);
+  if (outcome && !excluded.empty()) *outcome += " " + note;
+}
+
+
+void CalcMgr::launchStep(Session *wf, Resource *step, bool interactive,
+                         string *outcome)
+{
+  std::map<Resource*, string> blocked = WorkflowSteps::stepBlockers(wf);
+  auto why = blocked.find(step);
+  if (why != blocked.end()) {
+    const string msg = step->getName() + " cannot be launched: " + why->second + ".";
+    if (interactive) setMessage(msg, WxFeedback::INFO);
+    if (outcome) *outcome = "blocked " + why->second;
+    return;
+  }
+  WorkflowSteps::refreshFromSources(wf, step);
+  vector<EcceURL> urls(1, step->getURL());
+  launchSelected(urls, interactive, outcome, "");
+}
+
+
+void CalcMgr::autoRunWorkflow(Session *wf)
+{
+  if (!wf || !WorkflowSteps::autoRun(wf)) return;
+  // One launch batch at a time; this workflow is looked at when it ends.
+  if (p_batch) { p_autoPending.insert(wf->getURL().toString()); return; }
+  // A step seen past Created is launched for good; forget it.
+  vector<Resource*> members = wf->getMembers();
+  for (size_t i = 0; i < members.size(); i++)
+    if (WorkflowSteps::isLaunched(members[i]))
+      p_autoLaunched.erase(members[i]->getURL().toString());
+  vector<Resource*> ready = WorkflowSteps::readySteps(wf);
+  vector<EcceURL> urls;
+  string names;
+  for (size_t i = 0; i < ready.size(); i++) {
+    const string key = ready[i]->getURL().toString();
+    if (p_autoLaunched.count(key)) continue;
+    p_autoLaunched.insert(key);
+    WorkflowSteps::refreshFromSources(wf, ready[i]);
+    urls.push_back(ready[i]->getURL());
+    names += (names.empty() ? "" : ", ") + ready[i]->getName();
+  }
+  if (urls.empty()) return;
+  // No run log exists before a step runs, so the step carries the note.
+  for (size_t i = 0; i < urls.size(); i++)
+    for (size_t k = 0; k < ready.size(); k++)
+      if (ready[k]->getURL() == urls[i])
+        ready[k]->addProp(VDoc::getEcceNamespace() + ":autolaunched", "1");
+  setMessage("Auto-run is launching " + names + " in " + wf->getName() + ".",
+             WxFeedback::INFO);
+  // In the background, as Launch Selected does: a submission over ssh must
+  // not freeze the Organizer, and this can run inside another event's yield.
+  string outcome;
+  if (launchSelectedAsync(urls, &outcome)) p_autoBatch = true;
 }
 
 
@@ -8600,7 +10726,11 @@ void CalcMgr::createResource(ResourceType * resType,
   }
   
   string name = resType->getLabel();
-  if (!bypassNamePrompt && GetMenuBar()->IsChecked(wxID_ASKFORNAME)) {
+  // A workflow step is named in its own New-step dialog.
+  const bool wfStep = parent && parent->getResource() &&
+      parent->getResource()->getApplicationType() == ResourceDescriptor::AT_WORKFLOW &&
+      resType->getFactoryCategory() == "EsCalculation";
+  if (!bypassNamePrompt && !wfStep && GetMenuBar()->IsChecked(wxID_ASKFORNAME)) {
     bool showInvalidMsg = false;
     string invalidMsg = "A name may contain only letters, digits, "
       "'.', '_' and '-'.\n\n";
@@ -8660,8 +10790,10 @@ void CalcMgr::createResource(ResourceType * resType,
         if (!source) throw InvalidException(
             "Select the step the new one starts from first.", WHERE);
       }
+      // The same New-step dialog as a code button of the view shows.
       string why;
-      if (!newWorkflowStep(wf, resType, source, false, &why) && !why.empty())
+      if (!newWorkflowStep(wf, resType, source, true, &why) &&
+          !why.empty() && why != "cancelled")
         throw InvalidException(why, WHERE);
       return;
     }
@@ -8855,8 +10987,12 @@ void CalcMgr::updateUrl(const EcceURL & url)
   if (target != 0) {
 
     EcceURL selectedUrl = p_treeCtrl->getSelection()->getUrl();
+    // Metadata refresh does not discard parsed results from a previous run.
+    if (PropertyTask *task = dynamic_cast<PropertyTask*>(target->getResource()))
+      task->flushPropertyCache();
     EDSIFactory::changePoolResource(url);
-    
+    const bool stepDone = WorkflowSteps::isComplete(target->getResource());
+
     if (selectedUrl.isChildOf(url)) {
       findNode(url, true, false);
       selectedUrl = url;
@@ -8873,6 +11009,19 @@ void CalcMgr::updateUrl(const EcceURL & url)
       //      findNode(selectedUrl, false, true);
       onSelectionChange(true);
       //      stopDisabler();
+    }
+
+    // A step of an auto-run workflow finished: start what it unblocked.
+    // The tree refresh above may free `target`, and launching reselects
+    // nodes, so this runs after the update ends, from the URL alone.
+    if (stepDone) {
+      const EcceURL wfUrl = url.getParent();
+      CallAfter([this, wfUrl]() {
+        WxResourceTreeItemData *n = findNode(wfUrl, false, false);
+        Session *wf = n ? dynamic_cast<Session*>(n->getResource()) : 0;
+        if (wf && wf->getApplicationType() == ResourceDescriptor::AT_WORKFLOW)
+          autoRunWorkflow(wf);
+      });
     }
   }
 }
@@ -8930,6 +11079,9 @@ void CalcMgr::progressUpdate(const EcceURL & url, const string & text)
   // The project table: that one cell, no rebuild (#254).
   if (ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel))
     table->updateProgress(url);
+  if (SessionProjectContextPanel *spc =
+          dynamic_cast<SessionProjectContextPanel*>(p_contextPanel))
+    if (WorkflowPanel *wp = spc->getWorkflowPanel()) wp->resultsChanged(url);
 }
 
 
@@ -9084,6 +11236,25 @@ void CalcMgr::finishProgressBackfill(long pid)
 }
 
 
+//  The Total energy column: the final energy the Progress box shows, in
+//  Hartree. A MOPAC heat of formation is not a total energy, so it is left
+//  out; so is anything unfinished or without a result.
+string CalcMgr::totalEnergyCellText(Resource * resource) const
+{
+  PropertyTask *task = dynamic_cast<PropertyTask*>(resource);
+  if (!task || !resource->hasAccess() ||
+      ResourceUtils::stringToState(resource->getProp(
+          VDoc::getEcceNamespace() + ":state")) < ResourceDescriptor::STATE_COMPLETED)
+    return "";
+  const FinalEnergy fe = finalEnergyOf(task);
+  double hartree;
+  if (!fe.found || fe.heat || !finalEnergyHartree(fe, &hartree)) return "";
+  char buf[64];
+  snprintf(buf, sizeof buf, "%.6f", fabs(hartree));
+  return string(hartree < 0 ? "\xe2\x88\x92" : "") + buf;
+}
+
+
 string CalcMgr::progressCellText(Resource * resource) const
 {
   if (!resource) return "";
@@ -9099,7 +11270,9 @@ string CalcMgr::progressCellText(Resource * resource) const
   if (liveProgress(resource->getURL(), live, at)) text = live;
   else text = resource->getProp(ecce + ":progress");
   JobProgress p;
-  return p.parse(text) ? p.shortLine() : "";
+  if (!p.parse(text)) return "";
+  if (p.stalled() > 0) return JobProgress::stalledText(p.stalled());
+  return p.shortLine();
 }
 
 
@@ -9295,6 +11468,32 @@ WxResourceTreeItemData * CalcMgr::findNode(const EcceURL &targetUrl,
 }
 
 
+//  A calculation, or the study holding it, copied in after the tree read its
+//  folder is not among the cached children. Re-read from the nearest ancestor
+//  the tree knows, since the direct parent may itself be missing (#721).
+WxResourceTreeItemData * CalcMgr::findNodeFresh(const EcceURL &targetUrl,
+                                                bool openWhenFound)
+{
+  WxResourceTreeItemData *item = findNode(targetUrl, openWhenFound, true);
+  if (item) return item;
+  EcceURL up = targetUrl;
+  for (int depth = 0; depth < 32; depth++) {
+    EcceURL next = up.getParent();
+    if (next.toString() == up.toString()) break;
+    up = next;
+    //  Above the server roots the URL is empty, which is the hidden root's:
+    //  it has no resource to refresh (a path outside the data crashed, #814).
+    if (up.toString().empty()) break;
+    WxResourceTreeItemData *known = findNode(up, false, true);
+    if (known && known->getResource()) {
+      p_treeCtrl->refresh(known);
+      return findNode(targetUrl, openWhenFound, true);
+    }
+  }
+  return 0;
+}
+
+
 ///////////////////// WxCalcImportClient virtuals ///////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////
@@ -9411,23 +11610,25 @@ void CalcMgr::joinExampleWorkflow(Resource *step)
       for (Resource *m : members) if (m->getName() == name) return m;
       return 0;
     };
-    for (const auto &l : p_flowSources) {
-      Resource *to = member(l.first), *from = member(l.second);
-      if (!to || !from) continue;
-      bool linked = false;
-      // fresh each time: addLink() may rebuild the link objects
-      for (Session::Link *k : wf->getLinks())
-        if (same(k->source, from) && same(k->target, to)) linked = true;
-      if ((same(to, step) || same(from, step)) && !linked)
-        wf->addLink(from, to, Session::INPUT_PROVIDER,
-                    WorkflowSteps::kGeometryLink);
-    }
+    for (const auto &l : p_flowSources)
+      for (const auto &src : l.second) {
+        Resource *to = member(l.first), *from = member(src.first);
+        if (!to || !from) continue;
+        bool linked = false;
+        // fresh each time: addLink() may rebuild the link objects
+        for (Session::Link *k : wf->getLinks())
+          if (same(k->source, from) && same(k->target, to) &&
+              k->linkName == src.second) linked = true;
+        if ((same(to, step) || same(from, step)) && !linked)
+          wf->addLink(from, to, Session::INPUT_PROVIDER, src.second);
+      }
     wf->saveLinkbase();
     // "+hess" in workflow.txt: the step reads the Hessian of its source
     for (const auto &l : p_flowSources) {
-      Resource *to = member(l.first), *from = member(l.second);
       auto hess = p_flowHessian.find(l.first);
-      if (!to || !from || hess == p_flowHessian.end()) continue;
+      if (hess == p_flowHessian.end() || l.second.empty()) continue;
+      Resource *to = member(l.first), *from = member(l.second[0].first);
+      if (!to || !from) continue;
       if (!same(to, step) && !same(from, step)) continue;
       TaskJob *target = dynamic_cast<TaskJob*>(to);
       string why;
@@ -9735,12 +11936,19 @@ void CalcMgr::updateSelectionMenus()
     clearMenu(*rm);
     if (allCalcs) {
       rm->Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
-      rm->Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
+      rm->Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."))
+          ->Enable(anyReconnectable(p_currentSelection));
       rm->Append(wxID_TERMINATE_SELECTED, _("Terminate Selected..."));
       rm->Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
     }
     enableTopMenu(menuBar, _("Run Mgmt"), allCalcs, p_menuTitlesChanged);
-    enableTopMenu(menuBar, _("Tools"), false, p_menuTitlesChanged);
+    // A pair needs the comparison tools even though ordinary launchers
+    // act on a single calculation.
+    wxMenu *tools = menuBar->GetMenu(menuBar->FindMenu(_("Tools")));
+    clearMenu(*tools);
+    addGlobalTools(*tools);
+    enableTopMenu(menuBar, _("Tools"), allCalcs && p_currentSelection.size() == 2,
+                  p_menuTitlesChanged);
     enableMenuItem(menuBar, wxID_CHANGE_ACCESS, false);
     enableMenuItem(menuBar, wxID_RENAME, false);
     enableMenuItem(menuBar, wxID_VIEW_PROPERTY, false);
@@ -10025,7 +12233,7 @@ wxDragResult CalcMgr::dropInTree( const vector<EcceURL> & urls,
     (p_treeCtrl->GetItemData(id));
 
   // Check if dropped target exists
-  if (target == 0)
+  if (target == 0 || target->getUrl().toString().empty())
     return wxDragCancel;
 
   // Check for authentication to access the target.
@@ -10040,6 +12248,14 @@ wxDragResult CalcMgr::dropInTree( const vector<EcceURL> & urls,
 
   EcceURL targetUrl = target->getUrl();
   EcceURL currentSelection = p_treeCtrl->getSelection()->getUrl();
+
+  {
+    string refusal = crossTreeRefusal(urls, targetUrl);
+    if (!refusal.empty()) {
+      tellRefusal(refusal);
+      return wxDragCancel;
+    }
+  }
 
   startDisabler();
   for (int i=0; i<urls.size(); ++i) {
@@ -10065,6 +12281,8 @@ wxDragResult CalcMgr::dropInTree( const vector<EcceURL> & urls,
     if (def == wxDragMove && !sourceUrl.isLocal())
       def = wxDragCopy;
 
+    if (def == wxDragMove && refuseMoveOfActiveJob(source, "Move"))
+      continue;
     if (def == wxDragMove) {
       if (source->move(newUrl)) {
         notifyRename(sourceUrl.toString(), newUrl.toString(), "");

@@ -40,8 +40,9 @@ the bottom of the Organizer.
   elsewhere, as are the example calculations. See
   [Importing a calculation](importing-a-calculation.md).
 - **Killed**: the job was cancelled by a user, with **Run Mgmt > Terminate
-  Calculation...** or with the queue system's own cancel command on the
-  machine. With several calculations selected in a project's table, **Run
+  Calculation...** (also in the right-click menu of a calculation or of a
+  study task such as a GROMACS Equilibrate) or with the queue system's own
+  cancel command on the machine. With several calculations selected in a project's table, **Run
   Mgmt > Terminate Selected...** terminates those that are submitted or
   running and leaves the others as they are.
 - **Incomplete**: the job ended without a complete result, and what it
@@ -53,7 +54,10 @@ the bottom of the Organizer.
   - the output file did not exist when the job ended;
   - the queue system ended the job: out of memory, wall time reached, node
     failure or preemption. The reason quotes the queue system's message
-    from its error file (for Slurm, `slurm.err` in Outputs).
+    from its error file (for Slurm, `slurm.err` in Outputs). For a CP2K
+    hybrid functional ended for out of memory, the reason also quotes CP2K's
+    own HFX memory estimate (set the memory per rank, or fewer ranks per
+    node).
 
   An Incomplete calculation is not an ECCE or machine fault. Change the
   input (more memory, more time, a better starting geometry) and run again.

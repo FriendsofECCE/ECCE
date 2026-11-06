@@ -49,3 +49,38 @@ off. This is a warning only; nothing is blocked.
 
 The orders Clean used can be drawn: **Options > Advanced > Show Bond Orders
 Used by Clean**. It is off by default.
+
+## Distorting the bonds to one atom
+
+To start a small distortion, such as a Jahn-Teller elongation or a polaron
+around a metal ion, select the centre atom and choose **Edit > Distort
+Bonds...**. The dialog lists every atom bonded to it with its present
+distance and a field for the change in Å: positive stretches the bond,
+negative shrinks it. Each neighbour moves along the bond, and the centre does
+not move. Atoms hanging off a neighbour, such as the hydrogens of a water
+ligand, move with it, so the ligand keeps its shape.
+
+**All the same** fills every field with one value. **Jahn-Teller** fills the
+fields for an atom with six bonds: the pair of trans bonds closest to the
+chosen axis (x, y, z, or the longest pair) changes by the value, and the other
+four by minus half of it. Press OK to apply. It is one step in **Edit > Undo**.
+
+This only moves atoms to seed a distorted geometry. Run **Clean** or an
+optimisation afterwards and the structure will relax towards its own minimum.
+
+## Taking coordinates from another calculation
+
+To put the cluster from one calculation together with the counter-ion from
+another, choose **Edit > Take Coordinates From...**. Pick a calculation in
+the same folder, and give the atoms to take from it as numbers from 1, such
+as `1-12,40`; the field starts with the atoms currently selected. The two
+structures must have the same number of atoms in the same element order. If
+they do not, nothing changes and the message names the first atom that
+differs.
+
+The chosen atoms get the other structure's coordinates and every other atom
+keeps its own. If the two were built in different frames, tick **Align
+first**: the other structure is fitted onto this one over the atoms that are
+not taken, by rotation and translation only (a mirror image is never fitted),
+and the RMSD of that fit is shown. At least three atoms must remain outside
+the chosen set. It is one step in **Edit > Undo**.

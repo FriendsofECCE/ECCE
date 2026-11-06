@@ -15,12 +15,14 @@
 #define DENSITYPLANE_HH
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <vector>
 using std::string;
 using std::vector;
 
 class IPropCalculation;
+class Fragment;
 struct EspBasisFunction;
 
 namespace DensityPlane
@@ -46,6 +48,10 @@ namespace DensityPlane
   bool makePlane(PlaneKind kind, const vector<double>& coordsAng,
                  const vector<string>& labels, int a, int b, int c,
                  Plane& plane, string& complaint);
+
+  /** Three centroid planes, ordered by increasing RMS distance (A).
+   *  Empty for fewer than three atoms or a linear geometry. */
+  vector<Plane> principalPlanes(const vector<double>& coordsAng);
 
   /**
    * The plane moved `distance` A along its normal (from the plane as it
@@ -75,7 +81,7 @@ namespace DensityPlane
   /** Collinear atoms. */
   bool isLinear(const vector<double>& coordsAng);
 
-  /** A molecular plane exists: planar and not linear (the two-atom plane needs it). */
+  /** A molecular or best-fit plane exists (not a linear geometry). */
   bool hasMolecularPlane(const vector<double>& coordsAng);
 
   /** Covalent-radius bonding of atoms a and b (0-based), as a hint for defaults. */
@@ -98,6 +104,8 @@ namespace DensityPlane
     double zmin, zmax;
     Plane plane;
     vector<Mark> atoms;
+    bool difference;    // a density difference: signed, drawn on a diverging scale
+    double colourLimit; // difference: |value| at full colour (99th percentile of |z|)
     double levelTop;    // > 0: level ladder from this maximum, not zmax/zmin
     string title;       // "Total density", "MO 5 (HOMO)  -0.4 Eh  2 e"
     Map();
@@ -134,6 +142,37 @@ namespace DensityPlane
   /** The map as CSV: u, v, x, y, z (stored frame, A) and the value. */
   string csv(const Map& m, const string& calcName);
 
+  /**
+   * The density and what ELF, LOL and NCI need, at one point, in bohr units.
+   * Per spin: rho, gradient, tau = 1/2 sum n_i |grad psi_i|^2.  A restricted
+   * open shell (one MO set, occupations 0..2) puts min(n,1) electrons of an
+   * orbital in alpha and the rest in beta.
+   */
+  struct FieldPoint
+  {
+    double rho[2];        // alpha, beta
+    double grad[2][3];
+    double tau[2];
+    double rhoTotal;
+    double gradTotal[3];
+    double hess[6];       // total density: xx yy zz xy xz yz
+    double eig[3];        // ascending
+    FieldPoint();
+  };
+
+  class Evaluator;
+
+  /**
+   * Whether `fragment` can be subtracted from `whole` (#726): every fragment
+   * atom sits on an atom of `whole` of the same element within `tolerance` A.
+   * `used` (one flag per atom of `whole`, may be shared over several
+   * fragments) catches an atom claimed twice.  On refusal `complaint` says
+   * which atom and why.
+   */
+  bool matchFragment(const Evaluator& whole, const Evaluator& fragment,
+                     vector<char>& used, string& complaint,
+                     double tolerance = 0.05);
+
   class Evaluator
   {
     public:
@@ -143,11 +182,13 @@ namespace DensityPlane
       vector<double> energyBeta, occBeta;
       bool unrestricted;
       string complaint;
+      bool fromResults;             // orbitals came from results.h5
 
       Evaluator();
       ~Evaluator();
 
-      bool build(IPropCalculation *calc);
+      //  shown: the geometry on screen (else the final step's), so a surface sits on the atoms drawn.
+      bool build(IPropCalculation *calc, const Fragment *shown = 0);
 
       int  orbitals(bool beta) const;
       /** 1-based number of the highest occupied alpha orbital. */
@@ -155,8 +196,20 @@ namespace DensityPlane
       /** "O1", "H2", ... in coefficient order. */
       vector<string> atomLabels() const;
 
-      /** Total density (alpha + beta) at a point, A, stored frame. */
+      /** Total density (alpha + beta) at a point, A, stored frame.  With
+       *  fragments added it is the difference: this - sum of the fragments. */
       double density(double x, double y, double z) const;
+
+      /**
+       * Make density() and the density maps/profiles the difference
+       * rho(this) - sum rho(fragment), each from its own MOs and basis (#726).
+       * The fragment must pass matchFragment(); `name` is for the title.
+       */
+      void addFragment(std::shared_ptr<const Evaluator> fragment, const string& name);
+      void clearFragments();
+      bool isDifference() const { return !p_fragments.empty(); }
+      /** "Density difference: complex - H_a - H_b" for titles. */
+      string differenceTitle() const;
       /** True when alpha and beta electrons differ in number: a second
        *  MO set, or a restricted open shell (occupations other than 0, 2). */
       bool openShell() const;
@@ -181,6 +234,9 @@ namespace DensityPlane
                       const vector<char>& needB, bool wantRho, vector<double>& psiA,
                       vector<double>& psiB, vector<double>& phi, double& rho) const;
 
+      /** Everything in FieldPoint at x, y, z (A, stored frame). */
+      void fieldsAt(double x, double y, double z, FieldPoint& out) const;
+
       /**
        * Evaluate on a plane.  The window is the atoms' extent plus
        * `margin`.  onRow gets 0..1 and returns false to stop (false is
@@ -193,6 +249,8 @@ namespace DensityPlane
                const double *win = nullptr) const;
 
     private:
+      vector< std::shared_ptr<const Evaluator> > p_fragments;
+      vector<string> p_fragmentNames;
       vector<EspBasisFunction> *p_basis;
       vector< vector<double> > p_c, p_cBeta;
       void functions(double x, double y, double z, vector<double>& phi) const;

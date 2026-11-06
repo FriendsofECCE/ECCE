@@ -58,8 +58,12 @@ class ProjectContextPanel : public ProjectContextPanelGUI
     // "name=text" of every row's Progress cell, and how many times a
     // cell was set after the table was built (tests).
     vector<string> progressCells();
+    int rowCount() const { return p_projectView ? p_projectView->getRowCount() : 0; }
     // The same for the State column (the stored state, or "running?").
     vector<string> stateCells();
+    // Column headings, and the Total energy cells as "name=text" (tests).
+    vector<string> columnHeadings();
+    vector<string> energyCells(int sort = 0);
     int progressPaints() const { return p_progressSets; }
 
     vector<EcceURL> getSelections();

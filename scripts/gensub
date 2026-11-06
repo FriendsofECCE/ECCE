@@ -111,7 +111,7 @@
   # script requesting 1 unit of memory and left "4000" as a stray argument.
   # Production launches go through the -p param file, which parses these
   # correctly, which is why it never showed up there.
-  getopts(':p:f:H:Q:q:c:a:n:N:t:T:w:r:s:i:o:S:C:m:x:R:hv');
+  getopts(':p:f:H:Q:q:c:a:n:N:K:t:T:w:r:s:i:o:S:C:m:x:R:hv');
 
   # get this from config files
   $CC = "# ";
@@ -175,7 +175,10 @@
   print SUBMIT "  echo \$X_INTERRUPTED > $statusFile\n";
   print SUBMIT "  exit 1\n";
   print SUBMIT "}\n";
-  print SUBMIT "trap canceljob INT\n";
+  # TERM too (scancel, qdel, the Shell cancel): with the trap the shell
+  # waits for the program instead of dying at once, so the program stays in
+  # its process tree and the scheduler's KILL still finds it (#855).
+  print SUBMIT "trap canceljob INT TERM\n";
 
   # Always run from the run directory.
   print SUBMIT "\n$CC Change to the run directory\n";
@@ -227,6 +230,12 @@
   print SUBMIT "\n$CC Setting environment variables...\n";
   print SUBMIT &mark("environment", $lccode . "environment"),
                &doEnvironment($lccode), &mark("ecce");
+
+  # Hybrid MPI + OpenMP: the Launcher's processors are ranks x threads.
+  if ($threads > 1) {
+    print SUBMIT "\n$CC Threads per MPI rank\n";
+    print SUBMIT "export OMP_NUM_THREADS=$threads\n";
+  }
 
   # Keep Open MPI's shared memory backing files out of /dev/shm, which
   # is RAM.
@@ -476,6 +485,14 @@ sub provideVariables()
   # Need for PBS
   my ($ppn, $wallSeconds);
   $ppn = $::totalprocs/$::nodes;
+  # Ranks x threads = processors.  The per-node and per-task values stay
+  # empty for a plain MPI job so that their directive lines are dropped
+  # and the script is what it was before threads existed.
+  my ($tasksPerNode, $cpusPerTask) = ("", "");
+  if ($::threads > 1) {
+    $tasksPerNode = int(($::mpiRanks + $::nodes - 1)/$::nodes);
+    $cpusPerTask = $::threads;
+  }
   $wallSeconds = "";
   if ($::wallTime =~ /^(\d+):(\d+):(\d+)$/) {
     $wallSeconds = $1*3600 + $2*60 + $3;
@@ -486,6 +503,9 @@ sub provideVariables()
   $fixedString =~ s/\$queue/$::queue/gi;
   $fixedString =~ s/\$code/$::code/gi;
   $fixedString =~ s/\$nodes/$::nodes/gi;
+  $fixedString =~ s/\$mpiRanks/$::mpiRanks/gi;
+  $fixedString =~ s/\$tasksPerNode/$tasksPerNode/gi;
+  $fixedString =~ s/\$cpusPerTask/$cpusPerTask/gi;
   $fixedString =~ s/\$totalprocs/$::totalprocs/gi;
   $fixedString =~ s/\$ppn/$ppn/gi;
   $fixedString =~ s/\$cpuTime/$::cpuTime/gi;
@@ -529,6 +549,8 @@ sub provideVariables()
     'account'     => $::account,     'host'         => $::host,
     'qmgr'        => $::qMgr,        'queue'        => $::queue,
     'code'        => $::code,        'nodes'        => $::nodes,
+    'mpiranks'    => $::mpiRanks,    'taskspernode' => $tasksPerNode,
+    'cpuspertask' => $cpusPerTask,
     'totalprocs'  => $::totalprocs,  'cputime'      => $::cpuTime,
     'walltime'    => $::wallTime,    'wallhrmin'    => $::wallHrMin,
     'wallseconds' => $wallSeconds,
@@ -595,6 +617,8 @@ sub determineStatus()
     'orca' => 'ORCA TERMINATED NORMALLY',
     'ecce-qm' => 'end_of_output',
     'xtb' => 'normal termination of xtb',
+    'crest' => 'CREST terminated normally',
+    'mlp' => 'ecce-mlp terminated normally',
   );
   if (defined $normalTermination{$lccode}) {
     my $marker = $normalTermination{$lccode};
@@ -610,14 +634,18 @@ sub determineStatus()
   # unconverged energy or structure would pass as a result (#614).  An entry
   # is a grep pattern, or [pattern, context] when the pattern also ends a
   # converged or intended run and only counts with the context line within
-  # two lines after it.
+  # two lines after it, or [pattern, undef, family] when only the last line
+  # of the family counts: an optimisation or MD run survives early SCF
+  # failures if its final SCF converged (#691).
   my %notConverged = (
     'orca' => ['The optimization did not converge'],
-    'cp2k' => ['SCF run NOT converged',
+    'cp2k' => [['SCF run NOT converged', undef, 'SCF run (NOT )?converged'],
                'MAXIMUM NUMBER OF OPTIMIZATION STEPS REACHED'],
     'mopac' => ['EXCESS NUMBER OF OPTIMIZATION CYCLES'],
     # xtb exits 0 after an optimization that ran out of cycles.
     'xtb' => ['FAILED TO CONVERGE GEOMETRY OPTIMIZATION'],
+    # ecce-mlp stops at its step or time limit and keeps the last structure.
+    'mlp' => ['ecce-mlp: NOT CONVERGED'],
     # pw.x ends an md run with the same "maximum number of steps" line, so it
     # counts only before the end of a BFGS relax.
     'quantumespresso' => ['convergence NOT achieved',
@@ -627,10 +655,17 @@ sub determineStatus()
   if (defined $notConverged{$lccode}) {
     $retval .= "\nif [ \"\$exitStatus\" = 0 ]; then\n";
     foreach my $entry (@{$notConverged{$lccode}}) {
-      my ($marker, $context) = ref($entry) ? @$entry : ($entry, undef);
+      my ($marker, $context, $family) = ref($entry) ? @$entry : ($entry);
       my $test = "grep -q \"$marker\" $qRunDir/$outFile";
       $test = "grep -A2 \"$marker\" $qRunDir/$outFile | grep -q \"$context\""
         if defined $context;
+      if (defined $family) {
+        $test = "grep -E \"$family\" $qRunDir/$outFile | tail -1 | grep -q \"$marker\"";
+        $retval .= "  n=`grep -c \"$marker\" $qRunDir/$outFile`\n";
+        $retval .= "  if [ \"\$n\" -gt 0 ] && ! $test; then\n";
+        $retval .= "    echo \"\$n intermediate '$marker' in $outFile; the final one converged\" >> $logfile\n";
+        $retval .= "  fi\n";
+      }
       $retval .= "  if [ \"\$exitStatus\" = 0 ] && $test; then\n";
       $retval .= "    echo \"'$marker' in $outFile - setting status to not converged\" >> $logfile\n";
       $retval .= "    exitStatus=\$X_NOT_CONVERGED\n";
@@ -965,6 +1000,7 @@ sub handleOptions()
   $submitFile = "submit__";
   $nodes = 1;
   $totalprocs = 1;
+  $threads = 1;
 
   $host = $opt_H if defined ($opt_H);
   $qMgr = $opt_Q if defined ($opt_Q);
@@ -973,6 +1009,7 @@ sub handleOptions()
   $account = $opt_a  if defined ($opt_a);
   $nodes = $opt_N  if defined ($opt_N);
   $totalprocs = $opt_n  if defined ($opt_n);
+  $threads = $opt_K  if defined ($opt_K);
   $cpuTime = $opt_t  if defined ($opt_t);
   $wallTime = $opt_T  if defined ($opt_T);
   $wallHrMin = $opt_w  if defined ($opt_w);
@@ -1012,6 +1049,7 @@ sub handleOptions()
       $account = $value  if ($opt =~ /-a/);
       $nodes = $value  if ($opt =~ /-N/);
       $totalprocs = $value  if ($opt =~ /-n/);
+      $threads = $value  if ($opt =~ /-K/);
       $cpuTime = $value  if ($opt =~ /-t/);
       $wallTime = $value  if ($opt =~ /-T/);
       $wallHrMin = $value  if ($opt =~ /-w/);
@@ -1033,6 +1071,11 @@ sub handleOptions()
      close(PARAM);
 #close(DEBUG);
   }
+
+  # MPI ranks = processors / threads per rank (at least 1).
+  $threads = 1 if !defined($threads) || $threads !~ /^\d+$/ || $threads < 1;
+  $mpiRanks = int($totalprocs/$threads);
+  $mpiRanks = 1 if $mpiRanks < 1;
 
   # Make the job name the tail of the submit file path
   (@tmp) = split(/\//,$submitFile);
@@ -1075,6 +1118,7 @@ sub listOptions()
   $info .= "$CP # Processors: $nodes\n"  if  !defined($queue);
   $info .= "$CP # Nodes: $nodes\n"  if defined($queue);
   $info .= "$CP # TotalProcessors: $totalprocs\n"  if defined($queue);
+  $info .= "$CP # Threads per rank: $threads\n"  if defined($queue) && $threads > 1;
 
   $info .= "$CP Run Directory: $runDir\n"  if defined($runDir);
   $info .= "$CP Scratch Directory: $scratchDir\n"  if defined($scratchDir);
@@ -1525,9 +1569,59 @@ sub orca()
     $retval .= "  perl -i -ne 'print unless /^\\s*%pal\\b/i' $::inFile\n";
     $retval .= "fi\n";
     $retval .= "if [ -z \"\$orcabad\" ]; then \"\$orca\" $::inFile > $::outFile 2>&1; else echo \"\$orcabad\" > $::outFile; false; fi\n";
+    $retval .= &orcaIrcEnds($::inFile, $::outFile);
   }
   return $retval;
   nouse strict vars;
+}
+
+# An IRC's two end points have their own orbitals (<job>_IRC_B.gbw and
+# _IRC_F.gbw), which ORCA never prints.  A converter from the binary file
+# would have to redo ORCA's AO ordering, so ORCA itself prints them: the
+# job's input with the IRC removed, MOREAD NoIter from the end gbw and the
+# end geometry.  Each block is appended under a heading orca.desc's PTMO
+# entry takes (orca.mo's MO entry does not), so a failure here only means
+# no end-point orbitals (#751).
+sub orcaIrcEnds
+{
+  my ($in, $out) = @_;
+  my $perl = <<'PERL';
+my ($in, $gbw, $xyz, $dst) = @ARGV;
+open(my $fh, "<", $in) or exit 1;
+my (@o, $skip, $chg, $mult);
+while (<$fh>) {
+  if ($skip) { $skip = 0 if /^\s*end\b/i; next; }
+  if (/^\s*%irc\b/i) { $skip = 1 unless /\bend\s*$/i; next; }
+  if (/^\s*\*\s*(?:xyz|xyzfile|int|gzmt)\s+(-?\d+)\s+(\d+)/i) { ($chg, $mult) = ($1, $2); last; }
+  s/\bIRC\b/MOREAD NoIter/i if /^\s*!/;
+  push(@o, $_);
+}
+exit 1 unless defined $chg;
+open(my $oh, ">", $dst) or exit 1;
+print $oh @o, "%moinp \"$gbw\"\n* xyzfile $chg $mult $xyz\n";
+PERL
+  my $r = "\n$::CC - Orbitals at the end points of an IRC (#751)\n";
+  $r .= "orcaStatus=\$?\n";
+  $r .= "cat > ecce_ircend.pl <<'ECCE_PERL_END'\n$perl" . "ECCE_PERL_END\n";
+  # The TS block is appended again under the same heading, first, so that
+  # orca.desc's PTMO entry sees the three blocks in one rule.
+  my $awk = "awk 'f==0 && /^MOLECULAR ORBITALS/ {print \"ECCE-IRC-END-ORBITALS\"; f=1; next} f==1 {print; if (/MULLIKEN POPULATION ANALYSIS/) exit}'";
+  $r .= "if [ -s ${in}_IRC_Full_trj.xyz ]; then\n";
+  $r .= "  $awk $out > ecce_irc_all.blk\n";
+  $r .= "  for e in B F; do\n";
+  $r .= "    g=${in}_IRC_\$e.gbw; x=${in}_IRC_\$e.xyz\n";
+  $r .= "    if [ -s \"\$g\" ] && [ -s \"\$x\" ] && perl ecce_ircend.pl $in \"\$g\" \"\$x\" ecce_irc_\$e.inp; then\n";
+  $r .= "      \"\$orca\" ecce_irc_\$e.inp > ecce_irc_\$e.out 2>&1\n";
+  $r .= "      $awk ecce_irc_\$e.out >> ecce_irc_all.blk\n";
+  $r .= "    fi\n";
+  $r .= "    rm -f ecce_irc_\$e.*\n";
+  $r .= "  done\n";
+  $r .= "  cat ecce_irc_all.blk >> $out\n";
+  $r .= "  rm -f ecce_irc_all.blk\n";
+  $r .= "fi\n";
+  $r .= "rm -f ecce_ircend.pl\n";
+  $r .= "(exit \$orcaStatus)\n";
+  return $r;
 }
 
 #############################################################################
@@ -2000,11 +2094,14 @@ sub gromacs()
     #  pressure coupling a helper reads it from a copy of the energy file
     #  every 20 s and echoes the new points to the job output, where the
     #  monitor reads them; it ends with the script, however that ends.
-    $retval .= "  densN=0\n";
+    #  The count lives in a file: the 20 s loop is a subshell, and a shell
+    #  variable it updates is not seen by the final call in the main shell,
+    #  which would echo every point a second time.
+    $retval .= "  echo 0 > dens_n.txt\n";
     $retval .= "  ecceDensity() {\n";
     $retval .= "    [ -s ener.edr ] && cp ener.edr dens_tmp.edr && echo Density | \"\$gmx\" energy -f dens_tmp.edr -o dens_tmp.xvg > /dev/null 2>&1 || return 0\n";
-    $retval .= "    grep -v '^[#@]' dens_tmp.xvg | awk -v n=\$densN 'NR>n{print \"ECCE-DENSITY\", \$1, \$2}' >> $::logfile\n";
-    $retval .= "    densN=`grep -vc '^[#@]' dens_tmp.xvg`\n";
+    $retval .= "    grep -v '^[#@]' dens_tmp.xvg | awk -v n=\`cat dens_n.txt\` 'NR>n{print \"ECCE-DENSITY\", \$1, \$2}' >> $::logfile\n";
+    $retval .= "    grep -vc '^[#@]' dens_tmp.xvg > dens_n.txt\n";
     $retval .= "  }\n";
     $retval .= "  densPid=\n";
     $retval .= "  if grep -qiE '^[[:space:]]*pcoupl[[:space:]]*=[[:space:]]*(berendsen|c-rescale|parrinello-rahman|mttk)' $::inFile; then\n";
@@ -2012,6 +2109,24 @@ sub gromacs()
     $retval .= "    ( while kill -0 \$me 2>/dev/null; do sleep 20; ecceDensity; done ) &\n";
     $retval .= "    densPid=\$!\n";
     $retval .= "  fi\n";
+    #  The frames go to ecce-parse-traj.txt, which gromacs.desc parses as a File=
+    #  of its own, so they are not part of the log.  The function also runs
+    #  every 30 s while mdrun writes traj.xtc, on a copy and moved into place
+    #  whole, so the Geometry Trace can be played on the frames so far.  Whole
+    #  molecules (-pbc mol) so the chain does not tear at the box edge; at
+    #  most 100 frames are kept (every k-th plus the last).
+    $retval .= "  ecceTraj() {\n";
+    $retval .= "    [ -s traj.xtc ] && [ -s topol.tpr ] || return 1\n";
+    $retval .= "    cp traj.xtc ecce_traj_new.xtc && echo 0 | \"\$gmx\" trjconv -s topol.tpr -f ecce_traj_new.xtc -pbc mol -ur compact -o ecce_traj_new.pdb || { rm -f ecce_traj_new.xtc ecce_traj_new.pdb; return 1; }\n";
+    $retval .= "    nfr=`grep -c '^ENDMDL' ecce_traj_new.pdb`\n";
+    $retval .= "    awk -v nfr=\"\$nfr\" 'BEGIN{n=0; k=int((nfr+99)/100); if(k<1)k=1} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^ENDMDL/{ if((f-1)%k==0||f==nfr) printf \"ECCE-TRAJ frame %d atoms %d\\n%sECCE-TRAJ end\\n\",f,n,buf; n=0; buf=\"\"}' ecce_traj_new.pdb > ecce-parse-traj.new\n";
+    $retval .= "    mv ecce-parse-traj.new ecce-parse-traj.txt && mv ecce_traj_new.pdb ecce_traj.pdb\n";
+    $retval .= "    rm -f ecce_traj_new.xtc ecce_traj_new.pdb\n";
+    $retval .= "  }\n";
+    $retval .= "  trajPid=\n";
+    $retval .= "  me=\$\$\n";
+    $retval .= "  ( while kill -0 \$me 2>/dev/null; do sleep 30; ecceTraj > /dev/null 2>&1; done ) &\n";
+    $retval .= "  trajPid=\$!\n";
     $run = "mdrun \$verbose -s topol.tpr -g $log -c $restart -e ener.edr -x traj.xtc";
     #  mdrun refuses to start when OMP_NUM_THREADS differs from -ntomp, and
     #  cluster environments often preset it (Kebnekaise sets 1).
@@ -2023,17 +2138,12 @@ sub gromacs()
       $retval .= "  \"\$gmx\" $run -ntmpi 1 -ntomp $::totalprocs >> $::logfile 2>&1\n";
     }
     $retval .= "  mdrunStatus=\$?\n";
+    $retval .= "  kill \$trajPid 2>/dev/null; wait \$trajPid 2>/dev/null\n";
     $retval .= "  [ -n \"\$densPid\" ] && { kill \$densPid 2>/dev/null; wait \$densPid 2>/dev/null; ecceDensity; }\n";
     $retval .= "  rm -f $::outFile\n";
     $retval .= "  cp $log $::outFile\n";
-    #  The frames go to ecce-parse-traj.txt, which gromacs.desc parses as a File=
-    #  of its own, so they are not part of the log.
-    #  Whole molecules (-pbc mol) so the chain does not tear at the box
-    #  edge; at most 100 frames are kept (every k-th plus the last).
-    $retval .= "  if [ -s traj.xtc ] && echo 0 | \"\$gmx\" trjconv -s topol.tpr -f traj.xtc -pbc mol -ur compact -o ecce_traj.pdb >> $::logfile 2>&1; then\n";
-    $retval .= "    nfr=`grep -c '^ENDMDL' ecce_traj.pdb`\n";
-    $retval .= "    awk -v nfr=\"\$nfr\" 'BEGIN{n=0; k=int((nfr+99)/100); if(k<1)k=1} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^ENDMDL/{ if((f-1)%k==0||f==nfr) printf \"ECCE-TRAJ frame %d atoms %d\\n%sECCE-TRAJ end\\n\",f,n,buf; n=0; buf=\"\"}' ecce_traj.pdb > ecce-parse-traj.txt\n";
-    $retval .= "  fi\n";
+    #  Final frames, from the whole trajectory (ecceTraj is defined above).
+    $retval .= "  ecceTraj >> $::logfile 2>&1\n";
     #  A pulling run: coordinate and force joined, for gromacs.pull.
     $retval .= "  if [ -s pullx.xvg ] && [ -s pullf.xvg ]; then\n";
     $retval .= "    grep -v '^[#@]' pullx.xvg | awk '{print \$1, \$2}' > ecce_pullx.tmp\n";
@@ -2124,26 +2234,82 @@ sub xtb()
 
   $retval .= "\n$::CC - Split the deck: options on line 1, xyz geometry below.\n";
   $retval .= "xtbopts=`sed -n '1s/^[[:space:]]*xtb[[:space:]]*//p' $::inFile`\n";
-  $retval .= "tail -n +2 $::inFile > xtb.xyz\n";
+  # An MD deck has an xtb control block ($md ... $end) below line 1.
+  $retval .= "rm -f xtb.md xtb.xyz\n";
+  $retval .= "awk 'NR==1 {next} inmd {print > \"xtb.md\"; if (/^[\$]end/) inmd=0; next}\n";
+  $retval .= "  NR==2 && /^[\$]md/ {inmd=1; print > \"xtb.md\"; next} {print > \"xtb.xyz\"}' $::inFile\n";
   $retval .= "OMP_NUM_THREADS=$::totalprocs,1; export OMP_NUM_THREADS\n";
   $retval .= "MKL_NUM_THREADS=$::totalprocs; export MKL_NUM_THREADS\n";
   $retval .= "OMP_STACKSIZE=\${OMP_STACKSIZE:-1G}; export OMP_STACKSIZE\n";
   $retval .= "ulimit -s unlimited 2>/dev/null || :\n";
+  # Docking (aISS): the deck is blocks, receptor and ligand go to files of their
+  # own, and the poses (receptor atoms then ligand atoms) are put back in the
+  # calculation's atom order from the $order block.  Everything else is below.
+  $retval .= "case \" \$xtbopts\" in *\" dock \"*) xtbDock=1 ;; *) xtbDock= ;; esac\n";
+  $retval .= "if [ -n \"\$xtbDock\" ]; then\n";
+  $retval .= "  xtbopts=\${xtbopts#dock}\n";
+  $retval .= "  rm -f dock.order receptor.xyz ligand.xyz best_after_gen.xyz optimized_structures.xyz final_structures.xyz final_opt.xyz dock.eint\n";
+  $retval .= "  awk 'NR==1 {next} /^[\$]order/ {o=1; next} /^[\$]receptor/ {f=\"receptor.xyz\"; next}\n";
+  $retval .= "    /^[\$]ligand/ {f=\"ligand.xyz\"; next} /^[\$]end/ {o=0; f=\"\"; next}\n";
+  $retval .= "    o {print > \"dock.order\"; next} f {print > f}' $::inFile\n";
+  $retval .= "  \"\$xtb\" dock receptor.xyz ligand.xyz \$xtbopts > $::outFile 2>&1\n";
+  $retval .= "  xtbStatus=\$?\n";
+  # final_structures.xyz holds the poses in ranked order, with the total energy
+  # (Hartree) as the comment line; the interaction energies (kcal/mol) are only
+  # in xtb's stdout table, one row per pose in the same order.  Older xtb wrote
+  # optimized_structures.xyz or only best_after_gen.xyz.
+  $retval .= "  dockPoses=final_structures.xyz\n";
+  $retval .= "  if [ ! -s \$dockPoses ]; then dockPoses=optimized_structures.xyz; fi\n";
+  $retval .= "  if [ ! -s \$dockPoses ]; then dockPoses=best_after_gen.xyz; fi\n";
+  $retval .= "  awk '/E_int [(]kcal/ {t=1; next} t && \$1 ~ /^[0-9]+\$/ && NF>=2 {print \$2}' $::outFile > dock.eint\n";
+  $retval .= "  if [ -s \$dockPoses ] && [ -s dock.order ]; then\n";
+  $retval .= "    awk 'FILENAME==\"dock.order\" {for (i=1;i<=NF;i++) ord[++m]=\$i; next}\n";
+  $retval .= "      FILENAME==\"dock.eint\" {ei[++q]=\$1; next}\n";
+  $retval .= "      left==0 && NF==0 {next}\n";
+  $retval .= "      left==0 {n=\$1+0; left=n+2; f++; k=0; delete a; next}\n";
+  $retval .= "      left==n+2 {e=\"\"; if (match(\$0, /-?[0-9]+[.][0-9]+/)) e=substr(\$0, RSTART, RLENGTH)\n";
+  $retval .= "        print \"ECCE-XTB-FRAME \" f \" \" n; if (f in ei) print \"score: \" ei[f] \" energy: \" e; left--; next}\n";
+  $retval .= "      {a[ord[++k]]=\$0; left--; if (left==1) {left=0; for (i=1;i<=n;i++) print a[i]; print \"ECCE-XTB-ENDFRAME\"}}' dock.order dock.eint \$dockPoses >> $::outFile\n";
+  $retval .= "  fi\n";
+  $retval .= "else\n";
   # GFN-FF has no orbitals, so it gets no --molden.
-  $retval .= "rm -f molden.input charges vibspectrum g98.out xtbopt.log\n";
-  $retval .= "case \" \$xtbopts \" in *\" --gfnff \"*) ;; *) xtbopts=\"\$xtbopts --molden\" ;; esac\n";
+  $retval .= "rm -f molden.input charges vibspectrum g98.out xtbopt.log xtb.trj\n";
+  # "Conformer search (simple)": ai.xtb leaves --ecce-confsearch <settings> on
+  # line 1; it is not an xtb option, so it goes to ecce-confsearch instead.
+  $retval .= "confopts=`echo \"\$xtbopts\" | sed -n 's/.*--ecce-confsearch \\([^ ]*\\).*/\\1/p'`\n";
+  $retval .= "xtbopts=`echo \"\$xtbopts\" | sed 's/--ecce-confsearch [^ ]*//'`\n";
+  $retval .= "case \" \$xtbopts \" in *\" --gfnff \"*) ;; *) [ -n \"\$confopts\" ] || xtbopts=\"\$xtbopts --molden\" ;; esac\n";
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } else {
+    $retval .= "if [ -n \"\$confopts\" ]; then\n";
+    # The runner is written from here, so a cluster needs no ECCE installation.
+    my $runner = "$::ecceHome/scripts/ecce-confsearch";
+    open(my $fh, "<", $runner) || die "Cannot read $runner: $!";
+    my $source = do { local $/; <$fh> };
+    close($fh);
+    $source .= "\n" if ($source !~ /\n$/);
+    $retval .= "cat > ecce-confsearch.py <<'ECCE_CONFSEARCH_EOF'\n$source" . "ECCE_CONFSEARCH_EOF\n";
+    $retval .= "  rm -rf confsearch_*\n";
+    $retval .= "  csamples=; cseed=; cewin=; crmsd=\n";
+    $retval .= "  eval `echo \"\$confopts\" | sed 's/,/ /g; s/\\([a-z]*\\)=\\([0-9.]*\\)/c\\1=\\2;/g'`\n";
+    $retval .= "  python3 ecce-confsearch.py xtb.xyz --xtb \"\$xtb\" --opts \"\$xtbopts\" --samples \$csamples --seed \$cseed --ewin \$cewin --rmsd \$crmsd --procs $::totalprocs > $::outFile 2>&1\n";
+    $retval .= "else\n";
     $retval .= "\"\$xtb\" xtb.xyz \$xtbopts > $::outFile 2>&1\n";
+    $retval .= "fi\n";
   }
   $retval .= "xtbStatus=\$?\n";
   $retval .= "\n$::CC - Append the geometries for the parser.\n";
-  $retval .= "if [ -s xtbopt.log ]; then xtbTraj=xtbopt.log; else xtbTraj=xtb.xyz; fi\n";
-  $retval .= "awk 'BEGIN{left=0;f=0} left==0 && NF==0 {next}\n";
+  # An MD run's trajectory is xtb.trj; its frames are dump fs apart, the
+  # first being the start geometry, so each gets its time (ps) in the comment.
+  $retval .= "xtbDump=\n";
+  $retval .= "if [ -s xtb.trj ]; then xtbTraj=xtb.trj; xtbDump=`sed -n 's/^[[:space:]]*dump=\\([0-9.]*\\).*/\\1/p' xtb.md`;\n";
+  $retval .= "elif [ -n \"\$confopts\" ]; then xtbTraj=/dev/null;\n";
+  $retval .= "elif [ -s xtbopt.log ]; then xtbTraj=xtbopt.log; else xtbTraj=xtb.xyz; fi\n";
+  $retval .= "awk -v dump=\"\$xtbDump\" 'BEGIN{left=0;f=0} left==0 && NF==0 {next}\n";
   $retval .= "  left==0 {n=\$1; left=n+1; f++; print \"ECCE-XTB-FRAME \" f \" \" n; next}\n";
-  $retval .= "  {print; left--; if (left==0) print \"ECCE-XTB-ENDFRAME\"}' \$xtbTraj >> $::outFile\n";
+  $retval .= "  {if (dump != \"\" && left==n+1) printf \"time: %.6f \", (f-1)*dump/1000; print; left--; if (left==0) print \"ECCE-XTB-ENDFRAME\"}' \$xtbTraj >> $::outFile\n";
   $retval .= "if [ -s molden.input ]; then\n";
   $retval .= "  echo ECCE-XTB-MOLDEN >> $::outFile\n";
   $retval .= "  cat molden.input >> $::outFile\n";
@@ -2157,7 +2323,128 @@ sub xtb()
   $retval .= "    echo ECCE-XTB-END\${f##*:} >> $::outFile\n";
   $retval .= "  fi\n";
   $retval .= "done\n";
+  $retval .= "fi\n";
   $retval .= "(exit \$xtbStatus)\n";
+  return $retval;
+  nouse strict vars;
+}
+
+###########################################################################
+# CREST.  The CONFIG key "crest" is the program; it runs xtb itself, so the
+# xtb path comes from the same machine's "xtb" key (CREST --xnam).
+#
+# Like xtb, the input file (crest.crestin, from ai.crest) is line 1 = the
+# options, the rest an xyz file, split here.  CREST's ensemble is a file
+# (crest_conformers.xyz), not output, so after the run its frames are
+# appended to the output between ECCE-CREST-FRAME markers with each frame's
+# energy relative to the lowest (kcal/mol) in the comment line, followed by
+# crest_best.xyz, for crest.desc.  The status is CREST's own.
+###########################################################################
+sub crest()
+{
+  use strict vars;
+  my ($retval,$crest,$xtb,$cmd);
+  $retval = "";
+  $crest = $::config{$::lccode};
+  if ($crest eq "") { die "Path for crest not found"; }
+  $xtb = $::config{"xtb"};
+  if ($xtb eq "") { die "CREST needs the xTB program: register xTB on this machine too"; }
+  $cmd = &userCmd("crestcommand");
+
+  $retval .= &pathVar("crest", "$crest", "ECCE_CREST");
+  $retval .= &pathVar("xtb", "$xtb", "ECCE_XTB");
+  $retval .= "echo \"Using crest path: \$crest, xtb path: \$xtb\" >> $::logfile\n";
+
+  $retval .= "\n$::CC - Split the deck: options on line 1, xyz geometry below.\n";
+  $retval .= "crestopts=`sed -n '1s/^[[:space:]]*crest[[:space:]]*//p' $::inFile`\n";
+  # A solvation-shell deck has the solvent molecule ($solvent ... $end) below line 1.
+  $retval .= "rm -f crest.xyz solvent.xyz\n";
+  $retval .= "awk 'NR==1 {next} insolv {if (/^[\$]end/) {insolv=0} else {sx[++ns]=\$0}; next}\n";
+  $retval .= "  NR==2 && /^[\$]solvent/ {insolv=1; next} {print > \"crest.xyz\"}\n";
+  $retval .= "  END {if (ns) {print ns > \"solvent.xyz\"; print \"solvent\" > \"solvent.xyz\"; for (i=1;i<=ns;i++) print sx[i] > \"solvent.xyz\"}}' $::inFile\n";
+  $retval .= "OMP_NUM_THREADS=$::totalprocs,1; export OMP_NUM_THREADS\n";
+  $retval .= "MKL_NUM_THREADS=$::totalprocs; export MKL_NUM_THREADS\n";
+  $retval .= "OMP_STACKSIZE=\${OMP_STACKSIZE:-1G}; export OMP_STACKSIZE\n";
+  $retval .= "ulimit -s unlimited 2>/dev/null || :\n";
+  $retval .= "rm -rf crest_conformers.xyz crest_best.xyz protonated.xyz tautomers.xyz cluster.xyz ecce_cluster.xyz final_ensemble.xyz ensemble grow\n";
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $retval .= "\"\$crest\" crest.xyz \$crestopts --xnam \"\$xtb\" -T $::totalprocs > $::outFile 2>&1\n";
+  }
+  $retval .= "crestStatus=\$?\n";
+  $retval .= "\n$::CC - Append the ensemble for the parser.\n";
+  # Which file holds the result depends on the run type.  The QCG names are
+  # CREST's own (checked on a real run).
+  $retval .= "case \" \$crestopts \" in\n";
+  $retval .= "  *\" --protonate \"*) crestEns=protonated.xyz ;;\n";
+  $retval .= "  *\" --tautomerize \"*) crestEns=tautomers.xyz ;;\n";
+  $retval .= "  *\" --qcg \"*) crestEns=\n";
+  $retval .= "    for f in ensemble/final_ensemble.xyz final_ensemble.xyz cluster.xyz grow/cluster.xyz; do\n";
+  $retval .= "      if [ -z \"\$crestEns\" ] && [ -s \$f ]; then crestEns=\$f; fi; done\n";
+  # Without --ensemble the result is the grown cluster, whose comment line is
+  # empty; its energy is the last row of grow/qcg_energy.dat (column 2, Eh).
+  $retval .= "    case \"\$crestEns\" in *cluster.xyz)\n";
+  $retval .= "      qe=`awk 'NF>=2 {e=\$2} END {print e}' grow/qcg_energy.dat 2>/dev/null`\n";
+  $retval .= "      if [ -n \"\$qe\" ]; then\n";
+  $retval .= "        awk -v e=\"\$qe\" 'NR==2 {print e; next} {print}' \"\$crestEns\" > ecce_cluster.xyz && crestEns=ecce_cluster.xyz\n";
+  $retval .= "      fi ;; esac ;;\n";
+  $retval .= "  *) crestEns=crest_conformers.xyz ;;\n";
+  $retval .= "esac\n";
+  $retval .= "if [ -n \"\$crestEns\" ] && [ -s \"\$crestEns\" ]; then\n";
+  $retval .= "  awk 'NF==0 {next}\n";
+  $retval .= "    left==0 {n=\$1; left=n+1; f++; nat[f]=n; e[f]=\$0; next}\n";
+  $retval .= "    left==n+1 {en[f]=\$1; left--; next}\n";
+  $retval .= "    {a[f]=a[f] \$0 \"\\n\"; left--}\n";
+  $retval .= "    END {m=en[1]; for (i=2;i<=f;i++) if (en[i]<m) m=en[i];\n";
+  $retval .= "      for (i=1;i<=f;i++) {print \"ECCE-CREST-FRAME \" i \" \" nat[i];\n";
+  $retval .= "        printf \"energy: %s relative: %.4f\\n\", en[i], (en[i]-m)*627.5094740631;\n";
+  $retval .= "        printf \"%s\", a[i]; print \"ECCE-CREST-ENDFRAME\"}}' \"\$crestEns\" >> $::outFile\n";
+  $retval .= "fi\n";
+  $retval .= "if [ -s crest_best.xyz ]; then\n";
+  $retval .= "  echo ECCE-CREST-BEST >> $::outFile\n";
+  $retval .= "  cat crest_best.xyz >> $::outFile\n";
+  $retval .= "  echo ECCE-CREST-ENDBEST >> $::outFile\n";
+  $retval .= "fi\n";
+  $retval .= "(exit \$crestStatus)\n";
+  return $retval;
+  nouse strict vars;
+}
+
+###########################################################################
+# ML potential (#728).  The CONFIG key "mlp" is the Python interpreter of the
+# environment that has ASE and the potential (mace-torch).  The runner,
+# scripts/ecce-mlp, is written into the run directory from here, so a cluster
+# needs no ECCE installation; the deck is the input file itself.
+###########################################################################
+sub mlp()
+{
+  use strict vars;
+  my ($retval,$python,$cmd,$runner);
+  $retval = "";
+  $python = $::config{$::lccode};
+  if ($python eq "") { die "Path for the ML Potential Python not found"; }
+  $cmd = &userCmd("mlpcommand");
+
+  $runner = "$::ecceHome/scripts/ecce-mlp";
+  open(my $fh, "<", $runner) || die "Cannot read $runner: $!";
+  my $source = do { local $/; <$fh> };
+  close($fh);
+  $source .= "\n" if ($source !~ /\n$/);
+
+  $retval .= &pathVar("mlp", "$python", "ECCE_MLP");
+  $retval .= "echo \"Using python path: \$mlp\" >> $::logfile\n";
+  $retval .= "\n$::CC - The runner, so a remote machine needs no ECCE installation.\n";
+  $retval .= "cat > ecce-mlp.py <<'ECCE_MLP_RUNNER_EOF'\n$source" . "ECCE_MLP_RUNNER_EOF\n";
+  $retval .= "OMP_NUM_THREADS=$::totalprocs; export OMP_NUM_THREADS\n";
+  $retval .= "MKL_NUM_THREADS=$::totalprocs; export MKL_NUM_THREADS\n";
+  $retval .= "rm -f ecce-mlp.extxyz\n";
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $retval .= "\"\$mlp\" ecce-mlp.py $::inFile > $::outFile 2>&1\n";
+  }
   return $retval;
   nouse strict vars;
 }
@@ -2246,12 +2533,14 @@ sub cp2k()
   if ($cp2k eq "") { die "Path for CP2K not found"; }
   $cmd = &userCmd("cp2kcommand");
 
+  # Threads need the OpenMP build; swap the MPI-only suffix.
+  $cp2k =~ s/\.popt$/.psmp/ if $::threads > 1;
   $retval .= &pathVar("cp2k", "$cp2k", "ECCE_CP2K");
   $retval .= "echo \"Using CP2K path: \$cp2k\" >> $::logfile\n";
 
   if ($cmd ne "") {
     $retval .= "$cmd\n";
-  } elsif ($::totalprocs <= 1) {
+  } elsif ($::mpiRanks <= 1 && $::threads <= 1) {
     $retval .= "\"\$cp2k\" -i $::inFile > $::outFile 2>&1\n";
   } else {
     $retval .= "\n$::CC - a threads-only build (ssmp, sopt) runs once with\n";
@@ -2262,7 +2551,7 @@ sub cp2k()
     $retval .= "    \"\$cp2k\" -i $::inFile > $::outFile 2>&1 ;;\n";
     $retval .= "  *)\n";
     $retval .= "    OMP_NUM_THREADS=\${OMP_NUM_THREADS:-1}; export OMP_NUM_THREADS\n";
-    $retval .= "    mpirun -np $::totalprocs \"\$cp2k\" -i $::inFile > $::outFile 2>&1 < /dev/null ;;\n";
+    $retval .= "    mpirun -np $::mpiRanks \"\$cp2k\" -i $::inFile > $::outFile 2>&1 < /dev/null ;;\n";
     $retval .= "esac\n";
   }
   return $retval;

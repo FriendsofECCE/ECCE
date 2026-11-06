@@ -195,6 +195,19 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_identify", (wxJmsCBFunc)&CalcMgrApp::identifyMCB);
   // ecce-launch (#687)
   subscribe("ecce_launch_request", (wxJmsCBFunc)&CalcMgrApp::launchRequestMCB);
+  subscribe("ecce_rerun_request", (wxJmsCBFunc)&CalcMgrApp::rerunRequestMCB);
+  // ecce-terminate (#695)
+  subscribe("ecce_terminate_request", (wxJmsCBFunc)&CalcMgrApp::terminateRequestMCB);
+  // ecce-annotate (#742)
+  subscribe("ecce_annotate_request", (wxJmsCBFunc)&CalcMgrApp::annotateRequestMCB);
+  // ecce-move / ecce-rename (#824)
+  subscribe("ecce_move_request", (wxJmsCBFunc)&CalcMgrApp::moveRequestMCB);
+  // ecce-workflow
+  subscribe("ecce_workflow_request", (wxJmsCBFunc)&CalcMgrApp::workflowRequestMCB);
+  // ecce-reconnect
+  subscribe("ecce_reconnect_request", (wxJmsCBFunc)&CalcMgrApp::reconnectRequestMCB);
+  // ecce-fetch
+  subscribe("ecce_fetch_request", (wxJmsCBFunc)&CalcMgrApp::fetchRequestMCB);
   
   // Preference Messages
   // Not filtered: the Organizer's own Preferences dialog publishes it too.
@@ -212,7 +225,7 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_url_removed", (wxJmsCBFunc)&CalcMgrApp::msgURLRemovedMCB);
   subscribe("ecce_url_state", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB, false);
   subscribe("ecce_url_property", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB);
-  subscribe("ecce_url_subject", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB);
+  subscribe("ecce_url_subject", (wxJmsCBFunc)&CalcMgrApp::msgSubjectMCB);
   subscribe("ecce_url_code", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB);
   subscribe("ecce_url_spin", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB);
   subscribe("ecce_url_theory", (wxJmsCBFunc)&CalcMgrApp::msgChangedMCB);
@@ -296,6 +309,8 @@ void CalcMgrApp::launchRequestMCB(JMSMessage& msg)
   LaunchBatch::Target target;
   target.machine = msg.getProperty("on");
   target.profile = msg.getProperty("profile");
+  target.queue = msg.getProperty("queue");
+  target.wall = msg.getProperty("wall");
   vector<EcceURL> urls;
   int n = msg.getIntProperty("n");
   for (int i = 0; i < n; i++)
@@ -303,6 +318,185 @@ void CalcMgrApp::launchRequestMCB(JMSMessage& msg)
 
   vector<string> lines;
   if (!p_calcMgr->launchForCommand(urls, target, lines))
+    reply("busy", lines);
+  else
+    reply("done", lines);
+}
+
+
+// ecce-rerun: an "ack" at once tells the command an Organizer is there; the
+// answer follows when the batch has submitted.
+void CalcMgrApp::rerunRequestMCB(JMSMessage& msg)
+{
+  const string id = msg.getProperty("reply_id");
+  auto reply = [this, &id](const string& kind, const vector<string>& lines) {
+    JMSMessage* r = newMessage();
+    r->addProperty("reply_id", id);
+    r->addProperty("kind", kind);
+    r->addIntProperty("n", (int)lines.size());
+    for (size_t i = 0; i < lines.size(); i++)
+      r->addProperty("line" + std::to_string(i), lines[i]);
+    publish("ecce_rerun_reply", *r);
+    delete r;
+  };
+  reply("ack", vector<string>());
+
+  LaunchBatch::Target target;
+  target.machine = msg.getProperty("on");
+  vector<EcceURL> urls;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
+
+  vector<string> lines;
+  p_calcMgr->rerunForCommand(urls, msg.getProperty("launch") == "yes", target, lines,
+                             msg.getProperty("last_geometry") == "yes",
+                             strtoul(msg.getProperty("cores").c_str(), 0, 10),
+                             msg.getProperty("wall"));
+  reply("done", lines);
+}
+
+
+// ecce-annotate: as launchRequestMCB, answered on ecce_annotate_reply.
+void CalcMgrApp::annotateRequestMCB(JMSMessage& msg)
+{
+  const string id = msg.getProperty("reply_id");
+  vector<EcceURL> urls;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
+  vector<string> lines;
+  p_calcMgr->annotateForCommand(urls, msg.getProperty("text"), lines,
+                                msg.getProperty("property"));
+  JMSMessage* r = newMessage();
+  r->addProperty("reply_id", id);
+  r->addProperty("kind", "done");
+  r->addIntProperty("n", (int)lines.size());
+  for (size_t i = 0; i < lines.size(); i++)
+    r->addProperty("line" + std::to_string(i), lines[i]);
+  publish("ecce_annotate_reply", *r);
+  delete r;
+}
+
+
+// ecce-move / ecce-rename: as annotateRequestMCB, answered on ecce_move_reply.
+void CalcMgrApp::moveRequestMCB(JMSMessage& msg)
+{
+  const string id = msg.getProperty("reply_id");
+  vector<EcceURL> urls;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
+  vector<string> lines;
+  p_calcMgr->moveForCommand(msg.getProperty("verb"), urls,
+                            msg.getProperty("second"), lines);
+  JMSMessage* r = newMessage();
+  r->addProperty("reply_id", id);
+  r->addProperty("kind", "done");
+  r->addIntProperty("n", (int)lines.size());
+  for (size_t i = 0; i < lines.size(); i++)
+    r->addProperty("line" + std::to_string(i), lines[i]);
+  publish("ecce_move_reply", *r);
+  delete r;
+}
+
+
+// ecce-workflow (#807): one answer line, "ok <workflow URL>" or "error: ...".
+void CalcMgrApp::workflowRequestMCB(JMSMessage& msg)
+{
+  const string answer = p_calcMgr->workflowForCommand(
+      msg.getProperty("verb"), EcceURL(msg.getProperty("calc")),
+      msg.getProperty("second"));
+  JMSMessage* r = newMessage();
+  r->addProperty("reply_id", msg.getProperty("reply_id"));
+  r->addProperty("answer", answer);
+  publish("ecce_workflow_reply", *r);
+  delete r;
+}
+
+
+// ecce-terminate: as launchRequestMCB, answered on ecce_terminate_reply.
+void CalcMgrApp::terminateRequestMCB(JMSMessage& msg)
+{
+  const string id = msg.getProperty("reply_id");
+  auto reply = [this, &id](const string& kind, const vector<string>& lines) {
+    JMSMessage* r = newMessage();
+    r->addProperty("reply_id", id);
+    r->addProperty("kind", kind);
+    r->addIntProperty("n", (int)lines.size());
+    for (size_t i = 0; i < lines.size(); i++)
+      r->addProperty("line" + std::to_string(i), lines[i]);
+    publish("ecce_terminate_reply", *r);
+    delete r;
+  };
+  reply("ack", vector<string>());
+
+  vector<EcceURL> urls;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
+
+  vector<string> lines;
+  if (!p_calcMgr->terminateForCommand(urls, msg.getProperty("reason"), lines))
+    reply("busy", lines);
+  else
+    reply("done", lines);
+}
+
+
+// ecce-reconnect: as terminateRequestMCB, answered on ecce_reconnect_reply.
+void CalcMgrApp::reconnectRequestMCB(JMSMessage& msg)
+{
+  const string id = msg.getProperty("reply_id");
+  auto reply = [this, &id](const string& kind, const vector<string>& lines) {
+    JMSMessage* r = newMessage();
+    r->addProperty("reply_id", id);
+    r->addProperty("kind", kind);
+    r->addIntProperty("n", (int)lines.size());
+    for (size_t i = 0; i < lines.size(); i++)
+      r->addProperty("line" + std::to_string(i), lines[i]);
+    publish("ecce_reconnect_reply", *r);
+    delete r;
+  };
+  reply("ack", vector<string>());
+
+  vector<EcceURL> urls;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
+
+  vector<string> lines;
+  if (!p_calcMgr->reconnectForCommand(urls, lines))
+    reply("busy", lines);
+  else
+    reply("done", lines);
+}
+
+
+// ecce-fetch: as reconnectRequestMCB, answered on ecce_fetch_reply.
+void CalcMgrApp::fetchRequestMCB(JMSMessage& msg)
+{
+  const string id = msg.getProperty("reply_id");
+  auto reply = [this, &id](const string& kind, const vector<string>& lines) {
+    JMSMessage* r = newMessage();
+    r->addProperty("reply_id", id);
+    r->addProperty("kind", kind);
+    r->addIntProperty("n", (int)lines.size());
+    for (size_t i = 0; i < lines.size(); i++)
+      r->addProperty("line" + std::to_string(i), lines[i]);
+    publish("ecce_fetch_reply", *r);
+    delete r;
+  };
+  reply("ack", vector<string>());
+
+  vector<string> patterns;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    patterns.push_back(msg.getProperty("pattern" + std::to_string(i)));
+
+  vector<string> lines;
+  if (!p_calcMgr->fetchForCommand(EcceURL(msg.getProperty("url")), patterns,
+                                  msg.getProperty("list") == "1", lines))
     reply("busy", lines);
   else
     reply("done", lines);
@@ -383,6 +577,13 @@ void CalcMgrApp::msgChangedMCB(JMSMessage& msg)
   if (msg.getProperty("name") == "reparse")
     p_calcMgr->reparseFinished(url, msg.getProperty("value"));
   p_calcMgr->queueUpdate(CalcMgr::UPDATE_CHANGED, url);
+}
+
+
+void CalcMgrApp::msgSubjectMCB(JMSMessage& msg)
+{
+  p_calcMgr->structureStored(EcceURL(msg.getProperty("url")));
+  msgChangedMCB(msg);
 }
 
 

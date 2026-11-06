@@ -122,13 +122,16 @@ The code buttons at the top show Quantum ESPRESSO selected. There is no
 2. Check that **Theory:** is `PW` (plane waves) and **Runtype:** is `Energy`.
 3. Click **Theory Details...**. The defaults suit silicon; nothing needs
    changing. The ones that matter here:
-   - **Wavefunction Cutoff:** `30.0` Ry, the size of the plane-wave basis.
-   - **k-points:** a `4` × `4` × `4` Monkhorst-Pack grid. A crystal is
-     computed at a grid of points in its reciprocal cell; 4 by 4 by 4 is a
-     reasonable first choice for an insulator with this cell.
-   - **Occupations:** `Fixed (insulator)`.
 
-   Click **Close**.
+| Box | Field | Value |
+| --- | --- | --- |
+| **Plane-Wave Basis** | **Wavefunction Cutoff:** | `30.0` Ry |
+| **Brillouin Zone Sampling** | **k-points:** | `4` × `4` × `4` Monkhorst-Pack grid |
+| **Occupations** | **Occupations:** | `Fixed (insulator)` |
+
+   A crystal is computed at a grid of points in its reciprocal cell, the
+   k-points; 4 by 4 by 4 is a reasonable first choice for an insulator with
+   this cell. Click **Close**.
 
 ![Theory Details for silicon](img/qe-si-5-theory.png)
 
@@ -239,10 +242,10 @@ physics are more telling:
 2. Choose `Geometry` in **Runtype:**.
 3. Click **Theory Details...** and change:
 
-   | Box | Field | Value |
-   | --- | --- | --- |
-   | **Plane-Wave Basis** | **Wavefunction Cutoff:** | `60` Ry (hydrogen's recommended value) |
-   | **Brillouin Zone Sampling** | **k-points:** | `Gamma point only` |
+| Box | Field | Value |
+| --- | --- | --- |
+| **Plane-Wave Basis** | **Wavefunction Cutoff:** | `60` Ry (hydrogen's recommended value) |
+| **Brillouin Zone Sampling** | **k-points:** | `Gamma point only` |
 
    A molecule in a large box needs only one k-point, the centre of the cell,
    and `pw.x` is faster with it. Click **Close**.

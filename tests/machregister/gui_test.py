@@ -23,6 +23,7 @@ import re
 import shutil
 import stat
 import subprocess
+import time
 import sys
 import tempfile
 
@@ -159,12 +160,19 @@ class Env:
         return e
 
 
-def run(display, build, env, script, args=(), extra=None, timeout=120):
+def run(display, build, env, script, args=(), extra=None, timeout=240):
     write(os.path.join(env.root, "script"), script)
-    p = subprocess.run([os.path.join(build, "machregister")] + list(args),
-                       env=env.env(display, extra), cwd=env.root,
-                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                       text=True, timeout=timeout)
+    t0 = time.time()
+    first = (script.strip().splitlines() or [""])[0]
+    try:
+        p = subprocess.run([os.path.join(build, "machregister")] + list(args),
+                           env=env.env(display, extra), cwd=env.root,
+                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                           text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print("  [run TIMEOUT %ds] %s" % (timeout, first), flush=True)
+        raise
+    print("  [run %.1fs] %s" % (time.time() - t0, first), flush=True)
     return p
 
 
@@ -444,6 +452,62 @@ quit
     check(qk.get("short|defmemory") == "500000" and qk.get("short|memlimit") == "0"
           and "short|defprocessors" not in qk,
           "saved: memory limit 0, default 500 GB, default processors none: %r" % qk)
+
+
+def slurm_time_limit_warning(tmp, display, build):
+    print("Slurm machine without the time-limit capability warns")
+    e = Env(tmp, "tlwarn")
+    #  A Slurm machine with no run limit on any queue has no TL capability;
+    #  the second machine has one, so it does pass a time limit.
+    write(os.path.join(e.ue, "MyMachines"),
+          "notl\tnotl.example.org\tLinux\tx86_64\tZen4\t4:1\tssh\t:NWChem\t"
+          "MN:RD:SD:UN:PW:Q\n"
+          "withtl\twithtl.example.org\tLinux\tx86_64\tZen4\t4:1\tssh\t:NWChem\t"
+          "MN:RD:SD:UN:PW:Q\n")
+    write(os.path.join(e.ue, "CONFIG.notl"), "nwchem: /opt/nwchem\n")
+    write(os.path.join(e.ue, "CONFIG.withtl"), "nwchem: /opt/nwchem\n")
+    write(os.path.join(e.ue, "Queues"),
+          "Queues: notl withtl\n\n"
+          "notl|queueMgrName: Slurm\nnotl|prefFile: notl.Q\n"
+          "withtl|queueMgrName: Slurm\nwithtl|prefFile: withtl.Q\n")
+    write(os.path.join(e.ue, "notl.Q"),
+          "Queues: short\n\nshort|minProcessors: 1\nshort|maxProcessors: 64\n"
+          "short|runLimit: 0\n")
+    write(os.path.join(e.ue, "withtl.Q"),
+          "Queues: short\n\nshort|minProcessors: 1\nshort|maxProcessors: 64\n"
+          "short|runLimit: 60\n")
+    p = run(display, build, e, """
+select notl
+tab machine
+expect banner 1
+expect contains banner-text 'does not pass a time limit'
+expect contains banner-text '#SBATCH --time'
+select withtl
+expect banner 0
+expect field banner-text ''
+quit
+""")
+    clean(p, "no TL on a Slurm machine warns; with a run limit it does not")
+
+    #  The note follows the queue manager as it changes on the form.
+    p = run(display, build, e, """
+select notl
+tab machine
+expect banner 1
+expect contains banner-text 'does not pass a time limit'
+tab queues
+set qmgr None
+tab machine
+expect banner 0
+expect field banner-text ''
+tab queues
+set qmgr Slurm
+tab machine
+expect banner 1
+expect contains banner-text 'does not pass a time limit'
+quit
+""")
+    clean(p, "the note follows the queue manager")
 
 
 def submit_site_comment():
@@ -1233,7 +1297,7 @@ expect code-listed Gaussian-03 0
 expect code-listed Gaussian-98 0
 expect code-listed GAMESS-UK 0
 expect code-listed Amica 0
-expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,GROMACS,MOPAC,ORCA,QuantumESPRESSO'
+expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,CREST,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,xTB'
 code Gaussian-16
 expect label code:title Gaussian-16
 expect field code:gaussian-16 /site/g16
@@ -1265,9 +1329,9 @@ expect shown blk:ccmd:hint 0
 expect label tag:cenv '%(yours)s'
 expect shown undo:cenv 1
 set code:gaussian-16 /opt/g16/g16
-expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,GROMACS,MOPAC,ORCA,QuantumESPRESSO'
+expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,CREST,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,xTB'
 set code:gaussian-16 ''
-expect field code:list 'NWChem  *,CP2K,Gaussian-16,GROMACS,MOPAC,ORCA,QuantumESPRESSO'
+expect field code:list 'NWChem  *,CP2K,CREST,Gaussian-16,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,xTB'
 set code:gaussian-16 /opt/g16/g16
 set code:files '*.rwf'
 set code:prelim '*.old'
@@ -2792,6 +2856,7 @@ def main():
             fixes(tmp, disp, build)
             help_button(tmp, disp, build)
             queue_defaults(tmp, disp, build)
+            slurm_time_limit_warning(tmp, disp, build)
             submit_site_comment()
             admin_mode(tmp, disp, build)
             remote_admin(tmp, disp, build)

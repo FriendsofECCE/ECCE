@@ -104,7 +104,7 @@ WxTableView::WxTableView(      wxWindow* parent,
 
     wxColour mask((char)(255), (char)(0), (char)(0));
     p_itemImageCount = 2;
-    p_ctrlImages = new wxImageList(16, 16, true);
+    p_ctrlImages = new wxImageList(ewxBitmap::scaled(16), ewxBitmap::scaled(16), true);
 
     p_ctrlImages->Add(ewxBitmap(_T("empty16rmask.xpm"), wxBITMAP_TYPE_XPM), mask);
     p_ctrlImages->Add(ewxBitmap(_T("check16rmask.xpm"), wxBITMAP_TYPE_XPM), mask);

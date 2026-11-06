@@ -1,8 +1,16 @@
+#include <sys/stat.h>
+#include <unistd.h>
+#include <algorithm>
+#include <cstdlib>
+#include <filesystem>
+#include <map>
+#include <set>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "util/EcceMap.H"
+#include "util/StringTokenizer.H"
 #include "util/EcceURL.H"
 #include "util/TypedFile.H"
 #include "util/WaitingJobs.H"
@@ -299,4 +307,126 @@ bool JobCatchUp::reparse(TaskJob* calc, std::string& message)
             launch.startJobStore(stage + "/");
   message = ok ? "re-parsing the stored outputs" : launch.message();
   return ok;
+}
+
+
+//  The copy runs on the login's own thread (remote), the store here.
+bool JobCatchUp::fetchFiles(TaskJob* calc, const vector<string>& patterns,
+                            bool listOnly, const LoginFn& loginFn,
+                            const RemoteFn& remote, vector<string>& lines)
+{
+  const string name = calc->getName();
+  auto refuse = [&](const string& why) {
+    lines.push_back(name + "\tno\t" + why);
+    return false;
+  };
+  const Launchdata ld = calc->launchdata();
+  const string dir = calc->jobdata().jobpath;
+  if (ld.machine.empty() || dir.empty())
+    return refuse("not launched: no run directory is recorded");
+  for (size_t i = 0; i < patterns.size(); i++) {
+    const string& p = patterns[i];
+    if (p.empty() || p[0] == '.' || p.find('/') != string::npos)
+      return refuse("pattern '" + p + "' must be a file name, not starting with '.'");
+  }
+
+  RCommandLogin args;
+  string why;
+  RCommand* conn = 0;
+  if (!loginFor(calc, args, why)) return refuse(why);
+  if (loginFn ? !loginFn(args, conn, why) : !(conn = args.open())) {
+    if (why.empty()) why = "could not log in to " + ld.machine;
+    return refuse(why);
+  }
+  std::shared_ptr<RCommand> c(conn);
+
+  string tmp = TempStorage::systemTempDir() + "/ecce-fetch-XXXXXX";
+  vector<char> tbuf(tmp.begin(), tmp.end());
+  tbuf.push_back(0);
+  if (!listOnly && !mkdtemp(&tbuf[0])) return refuse("cannot create a scratch folder");
+  tmp = &tbuf[0];
+  auto cleanup = [&]() {
+    std::error_code ec;
+    if (!listOnly) std::filesystem::remove_all(tmp, ec);
+  };
+
+  string err, listing;
+  vector<string> each(patterns.size());    // names matched per pattern
+  bool copied = true;
+  std::function<bool()> work = [&]() {
+    string q = RCommand::quotePath(dir);
+    if (listOnly) {
+      if (!c->execout("ls -la -- " + q, listing)) { err = "cannot list " + dir; return false; }
+      return true;
+    }
+    vector<string> found;
+    for (size_t i = 0; i < patterns.size(); i++) {
+      string out;
+      c->execout("cd " + q + " && ls -1d -- " + patterns[i] + " 2>/dev/null", out);
+      StringTokenizer t(out, "\n\r");
+      string f;
+      while (!(f = t.next()).empty()) {
+        each[i] += f + "\n";
+        if (std::find(found.begin(), found.end(), f) == found.end()) found.push_back(f);
+      }
+    }
+    if (found.empty()) return true;
+    vector<string> full;
+    for (size_t i = 0; i < found.size(); i++) full.push_back(dir + "/" + found[i]);
+    if (c->sshBackend() != "") copied = c->copyOnLogin(false, full, tmp, err);
+    else copied = RCommand::get(err, args.machine, args.remShell, args.user, "", full, tmp);
+    return true;
+  };
+  bool ok = true;
+  if (!remote) ok = work();
+  else if (!remote("Fetching files from " + ld.machine + "...", work, ok))
+    return refuse("cancelled while fetching from " + ld.machine);
+  if (!ok) { cleanup(); return refuse(err); }
+
+  if (listOnly) {
+    StringTokenizer t(listing, "\n\r");
+    string l;
+    while (!(l = t.next()).empty()) lines.push_back("\tls\t" + l);
+    return true;
+  }
+  if (!copied) { cleanup(); return refuse("copy failed: " + err); }
+
+  //  The code's suffix mapping, as the job store applies it, so that the
+  //  file is stored under the name the job store would have given it.
+  std::map<string, string> suffixes;
+  if (calc->application()) suffixes = calc->application()->getSuffixMapping();
+  bool all = true;
+  std::set<string> stored;
+  for (size_t i = 0; i < patterns.size(); i++) {
+    if (each[i].empty()) {
+      lines.push_back(patterns[i] + "\tnone\t");
+      all = false;
+      continue;
+    }
+    StringTokenizer t(each[i], "\n");
+    string f;
+    while (!(f = t.next()).empty()) {
+      if (!stored.insert(f).second) continue;
+      const string path = tmp + "/" + f;
+      string out = f;
+      size_t dot = f.rfind('.');
+      if (dot != string::npos && dot != 0 && dot + 1 != f.size()) {
+        std::map<string, string>::const_iterator m = suffixes.find(f.substr(dot + 1));
+        if (m != suffixes.end()) out = f.substr(0, dot + 1) + m->second;
+      }
+      std::ifstream in(path.c_str(), std::ios::in | std::ios::binary);
+      struct stat st;
+      if (!in || ::stat(path.c_str(), &st) != 0) {
+        lines.push_back(f + "\tno\tnot copied");
+        all = false;
+      } else if (!calc->putOutputFile(out, &in)) {
+        lines.push_back(f + "\tno\tnot stored: " + calc->messages());
+        all = false;
+      } else {
+        lines.push_back(out + "\tok\t" + std::to_string((long long)st.st_size));
+      }
+    }
+  }
+  cleanup();
+  return all;
 }

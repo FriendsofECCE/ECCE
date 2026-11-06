@@ -1,11 +1,13 @@
 #include "scf.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <iostream>
 #include <map>
 #include <memory>
 #include "integrals.hpp"
 #include "solvent.hpp"
+#include "vibration.hpp"
 
 namespace qm {
 
@@ -59,6 +61,52 @@ void diagonalize(const Mat& F, const Mat& X, Vec& eps, Mat& C) {
 }
 
 Mat density(const Mat& C, int nocc) { return C.leftCols(nocc) * C.leftCols(nocc).transpose(); }
+
+// Restricted open shell: reorder (C, eps) so that columns [0, nb) are the
+// orbitals that overlap most with the previous doubly occupied space Dc and
+// [nb, na) those that overlap most with the previous singly occupied space Do
+// (maximum overlap method).  In an unevenly filled degenerate shell (O 2p4,
+// Ti 3d2) the eigenvalues of the doubly and singly occupied members cross
+// from cycle to cycle, and an aufbau pick swaps them and never converges.
+void mom_reorder(const Mat& S, const Mat& Dc, const Mat& Do, int na, int nb, Mat& C, Vec& eps) {
+  const int n = static_cast<int>(C.cols());
+  const Mat SC = S * C;
+  std::vector<int> pick;
+  std::vector<bool> used(n, false);
+  auto take = [&](const Mat& D, int count) {
+    const Vec p = (SC.transpose() * D * SC).diagonal();
+    std::vector<int> idx;
+    for (int k = 0; k < n; ++k)
+      if (!used[k]) idx.push_back(k);
+    std::partial_sort(idx.begin(), idx.begin() + count, idx.end(), [&](int a, int b) { return p(a) > p(b); });
+    std::sort(idx.begin(), idx.begin() + count);
+    for (int i = 0; i < count; ++i) { used[idx[i]] = true; pick.push_back(idx[i]); }
+  };
+  take(Dc, nb);
+  take(Do, na - nb);
+  for (int k = 0; k < n; ++k)
+    if (!used[k]) pick.push_back(k);
+  Mat C2(C.rows(), n);
+  Vec e2(n);
+  for (int k = 0; k < n; ++k) { C2.col(k) = C.col(pick[k]); e2(k) = eps(pick[k]); }
+  C = C2;
+  eps = e2;
+}
+
+// Electrons that moved out of the previous doubly / singly occupied spaces.
+double occupied_change(const Mat& S, const Mat& Dprev, const Mat& Dnew, int nocc) {
+  return nocc - (Dprev * S * Dnew * S).trace();
+}
+
+// How far an orbital of a higher class (singly occupied, virtual) lies below
+// one of a lower class (doubly, singly occupied); <= 0 for an aufbau order.
+double aufbau_violation(const Vec& eps, int na, int nb) {
+  const int n = static_cast<int>(eps.size());
+  double v = -1e300;
+  if (nb > 0 && na > nb) v = std::max(v, eps.head(nb).maxCoeff() - eps.segment(nb, na - nb).minCoeff());
+  if (na > 0 && n > na) v = std::max(v, eps.head(na).maxCoeff() - eps.tail(n - na).minCoeff());
+  return v;
+}
 
 // Spin-averaged fractional-occupation atomic HF density for the initial guess.
 Mat atomic_density(int Z, BasisLibrary& lib, const std::string& name, bool sph) {
@@ -218,9 +266,30 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
   }
 
   Diis diis;
+  // ROHF: aufbau occupations, and the maximum overlap method only when aufbau
+  // is still moving whole orbitals between the doubly, singly occupied and
+  // virtual spaces after aufbau_window cycles (an unevenly filled degenerate
+  // shell).  Early swaps are normal far from convergence (NO), and a settled
+  // early configuration need not be the ground state, so MOM waits.
+  bool mom = false, mom_allowed = true;
+  const int aufbau_window = 20, recent = 5, relax_cycles = 20;
+  const double order_tol = 1e-3;  // eigenvalue degeneracy tolerance, hartree
+  std::vector<int> swap_cycles;
+  int relax_left = 0;
+  struct Saved { ScfResult R; Mat Ca, Fa, Fb; Vec eps; ScfCycle cycle; };
+  ScfCycle last_cycle;
+  std::unique_ptr<Saved> mom_result;
   Vec eps_a, eps_b;
   Mat Ca, Cb;
   double Eold = 0;
+  // A non-spherical density on a pruned grid can leave the orbital gradient
+  // on a floor a little above conv_grad while the energy no longer moves; DIIS
+  // then drifts.  Such a run counts as converged once the energy has held to
+  // conv_energy over plateau_cycles successive energies (plateau_cycles - 1
+  // differences) and the gradient is below plateau_grad_factor * conv_grad.
+  const int plateau_cycles = 5;
+  const double plateau_grad_factor = 10.0;
+  int stable = 0;
   bool first = !have_guess;
   Mat Fa, Fb;
   for (int it = 1; it <= opt.max_iter; ++it) {
@@ -300,25 +369,54 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
     const double gmax = err.cwiseAbs().maxCoeff();
     if (opt.verbose)
       std::cerr << "iter " << it << "  E = " << E << "  dE = " << E - Eold << "  |grad| = " << gmax << "\n";
-    const bool done = !first && std::fabs(E - Eold) < opt.conv_energy && gmax < opt.conv_grad;
-    if (opt.on_cycle) {
-      ScfCycle c;
+    stable = (!first && it > 1 && std::fabs(E - Eold) < opt.conv_energy) ? stable + 1 : 0;
+    const bool strict = !first && std::fabs(E - Eold) < opt.conv_energy && gmax < opt.conv_grad;
+    const bool plateau = !strict && stable >= plateau_cycles - 1 && gmax < plateau_grad_factor * opt.conv_grad;
+    const bool done = strict || plateau;
+    {
+      ScfCycle& c = last_cycle;
       c.cycle = it;
       c.energy = E;
       c.dE = it > 1 ? E - Eold : std::nan("");
       c.grad = gmax;
       c.converged = done;
-      opt.on_cycle(c);
+      c.by_plateau = plateau;
+      if (opt.on_cycle) opt.on_cycle(c);
     }
     if (done) {
       R.converged = true;
+      R.convergence_note.clear();
+      if (plateau) {
+        char b[200];
+        std::snprintf(b, sizeof b, "SCF converged (energy stable to %.0e Eh over %d cycles; gradient %.1e above the %.0e target)",
+                      opt.conv_energy, plateau_cycles, gmax, opt.conv_grad);
+        R.convergence_note = b;
+      }
       R.iterations = it;
       R.energy = E;
       // final orbitals from the (unextrapolated) effective Fock
       if (closed) { diagonalize(Fa, X, eps_a, Ca); eps_b = eps_a; Cb = Ca; }
       else if (ref == Reference::Unrestricted) { diagonalize(Fa, X, eps_a, Ca); diagonalize(Fb, X, eps_b, Cb); }
-      else { diagonalize(F, X, eps_a, Ca); eps_b = eps_a; Cb = Ca; }
-      break;
+      else {
+        diagonalize(F, X, eps_a, Ca);
+        if (mom) mom_reorder(S, Db, Da - Db, na, nb, Ca, eps_a);
+        eps_b = eps_a; Cb = Ca;
+        const double viol = mom ? aufbau_violation(eps_a, na, nb) : 0.0;
+        if (opt.verbose && mom) std::cerr << "converged under maximum overlap, aufbau violation " << viol << "\n";
+        if (mom && viol > order_tol) {
+          // An empty or singly occupied orbital below an occupied one: MOM may
+          // hold an excited configuration.  Relax with aufbau from here for a
+          // few cycles and keep whichever converged energy is lower.  (An
+          // unevenly filled atomic shell is legitimately out of order.)
+          mom_result.reset(new Saved{R, Ca, Fa, Fb, eps_a, last_cycle});
+          relax_left = relax_cycles;
+          mom = mom_allowed = false;
+          R.converged = false;
+          diis.reset();
+          if (opt.verbose) std::cerr << "relaxing with aufbau occupations from cycle " << it + 1 << "\n";
+        }
+      }
+      if (R.converged) break;
     }
     Eold = E;
     if (!first || ref != Reference::RestrictedOpen) diis.push(F, err);
@@ -336,13 +434,42 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
       Db = density(Cb, nb);
     } else {
       diagonalize(Fx, X, eps_a, Ca);
+      if (mom) mom_reorder(S, Db, Da - Db, na, nb, Ca, eps_a);
       eps_b = eps_a;
       Cb = Ca;
-      Da = density(Ca, na);
-      Db = density(Ca, nb);
+      const Mat Da_new = density(Ca, na), Db_new = density(Ca, nb);
+      if (!mom && mom_allowed && !first_pass) {
+        const double moved = occupied_change(S, Db, Db_new, nb) + occupied_change(S, Da - Db, Da_new - Db_new, na - nb);
+        if (moved > 0.5) swap_cycles.push_back(it);
+        const auto late = std::count_if(swap_cycles.begin(), swap_cycles.end(), [&](int c) { return c > it - recent; });
+        if (it >= aufbau_window && late >= 2) {
+          mom = true;
+          diis.reset();  // earlier Fock matrices belong to other configurations
+          if (opt.verbose) std::cerr << "maximum overlap occupations from cycle " << it + 1 << "\n";
+        }
+      }
+      Da = Da_new;
+      Db = Db_new;
     }
     R.iterations = it;
     R.energy = E;
+    if (mom_result && --relax_left <= 0) break;
+  }
+  if (mom_result && (!R.converged || mom_result->R.energy < R.energy)) {
+    const int iters = R.iterations;
+    R = mom_result->R;
+    R.iterations = iters;
+    Ca = Cb = mom_result->Ca;
+    eps_a = eps_b = mom_result->eps;
+    Fa = mom_result->Fa;
+    Fb = mom_result->Fb;
+    // The monitor reads the last progress line; it still describes the
+    // discarded relaxation.
+    if (opt.on_cycle) {
+      ScfCycle c = mom_result->cycle;
+      c.cycle = iters;
+      opt.on_cycle(c);
+    }
   }
   if (!R.converged) {
     // leave the last orbitals in place
@@ -381,6 +508,24 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
     double nuc = 0;
     for (const auto& a : mol.atoms) nuc += a.Z * a.x[c];
     R.dipole[c] = nuc - ((R.D_a + R.D_b).array() * oe.dip[c].array()).sum();
+  }
+  // An ion's dipole depends on the origin (mu' = mu - q R): report it about
+  // the centre of mass, the usual choice.  A neutral dipole does not.
+  for (int c = 0; c < 3; ++c) R.dipole_rep[c] = R.dipole[c];
+  R.dipole_origin_kind = "independent";
+  if (mol.charge != 0) {
+    double mt = 0, rc[3] = {0, 0, 0};
+    for (const auto& a : mol.atoms) {
+      if (a.Z <= 0) continue;
+      const double m = a.Z <= 36 ? isotope_mass(a.Z) : 2.0 * a.Z;  // isotope table ends at Kr
+      mt += m;
+      for (int c = 0; c < 3; ++c) rc[c] += m * a.x[c];
+    }
+    for (int c = 0; c < 3; ++c) {
+      R.dipole_origin[c] = rc[c] / mt;
+      R.dipole_rep[c] = R.dipole[c] - mol.charge * R.dipole_origin[c];
+    }
+    R.dipole_origin_kind = "centre_of_mass";
   }
   const double sz = 0.5 * (na - nb);
   R.s2 = sz * (sz + 1);

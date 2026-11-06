@@ -67,6 +67,15 @@ public:
   virtual WxResourceTreeItemData * addRoot(const string& name,
                                            const EcceURL& url);
 
+  // A root for an added ECCE server: connected at the home of user, or,
+  // with user empty, a "(not connected)" placeholder without a resource.
+  WxResourceTreeItemData * addServerRoot(const string& name, const string& ref,
+                                         const string& user);
+  WxResourceTreeItemData * addSshRoot(const string& name, const string& address,
+                                      bool connected);
+  void removeServerRoots();
+  vector<string> rootLabels();
+
   virtual bool loadChildren(WxResourceTreeItemData * node,
                             bool refresh = false);
 
@@ -143,6 +152,9 @@ public:
 protected:
   int getStateIndex(Resource * resource);
   void setItemImages(const wxTreeItemId& itemId, Resource * resource);
+  void styleServerRoot(const wxTreeItemId& id, WxResourceTreeItemData * node,
+                       bool ssh);
+  void tintLike(const wxTreeItemId& child, const wxTreeItemId& parent);
 
 private:
   

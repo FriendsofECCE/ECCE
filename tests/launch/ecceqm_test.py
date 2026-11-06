@@ -191,8 +191,10 @@ def importFromOutput(env, work, name, qm, deck):
     Calculation would: ECCE-QM.expt writes molecule, theory and basis."""
     out = os.path.join(work, name + ".qmout")
     with open(out, "w") as handle:
+        # The deck says write_orbitals ecceqm.qmorb; run in work so the
+        # orbital file lands there, not in the test's own directory.
         rc = subprocess.run([qm, deck], stdout=handle, stderr=subprocess.STDOUT,
-                            env=env).returncode
+                            env=env, cwd=work).returncode
     check(rc == 0, "ecce-qm ran on the deck (rc=%d)" % rc)
     rc, text = perl(env, "ECCE-QM.expt", out)
     check(rc == 0, "ECCE-QM.expt imported the output (rc=%d) %s" % (rc, text.strip()))
@@ -239,6 +241,45 @@ def checkOrbitals(env, build, calc, nelectrons):
           "trace(P S) = %.4f for %d electrons" % (trace, nelectrons))
 
 
+def checkResultsFile(env, build, calc):
+    """results.h5 written by the job store at the end of the run (#690): in
+    Outputs/, checks passed (run log and the file's own attribute), and the
+    density field of the Density Map's evaluator is the same from the file
+    and from the properties."""
+    cli = os.path.join(build, "ecce-results")
+    field = os.path.join(build, "ecce-density-field")
+    if not (os.access(cli, os.X_OK) and os.access(field, os.X_OK)):
+        say("  (ecce-results / ecce-density-field not built: results.h5 not checked)")
+        return
+    h5 = os.path.join(calc, "Outputs", "results.h5")
+    if not check(os.path.exists(h5), "the job store stored Outputs/results.h5"):
+        return
+    with open(os.path.join(calc, "Outputs", "eccejobstorelog.ecce_run_log"), errors="replace") as handle:
+        log = [l for l in handle.read().splitlines() if "results.h5" in l]
+    say("  run log: " + (log[-1].strip() if log else "(no results.h5 line)"))
+    check(len(log) == 1 and "checks passed" in log[0],
+          "the run log has one results.h5 line, checks passed")
+    shown = subprocess.run([cli, "show", h5], env=env, stdout=subprocess.PIPE,
+                           stderr=subprocess.STDOUT).stdout.decode("utf-8", "replace")
+    check(re.search(r"^checks ok: ", shown, re.M) is not None, "the file says checks ok")
+    points = ["--at", "0.3,-0.2,0.45", "--at", "-0.6,0.25,0.3", "--at", "0.1,0.8,-0.4"]
+    got = {}
+    for label, value in (("file", "1"), ("props", "0")):
+        run = subprocess.run([field, calc] + points, env=dict(env, ECCE_RESULTS_H5=value),
+                             stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        got[label] = (run.stdout.decode(), run.stderr.decode())
+    check("from results.h5" in got["file"][1], "the density field reads results.h5")
+    check("stored properties" in got["props"][1], "ECCE_RESULTS_H5=0 reads the properties")
+    rows = {k: [[float(x) for x in l.split()] for l in v[0].splitlines() if l and l[0] != "#"]
+            for k, v in got.items()}
+    worst = 0.0
+    for a, b in zip(rows["file"], rows["props"]):
+        for x, y in zip(a[3:7], b[3:7]):   # rho and its gradient
+            worst = max(worst, abs(x - y) / max(abs(x), abs(y), 1e-12))
+    check(len(rows["file"]) == 3 and len(rows["props"]) == 3 and worst < 1e-6,
+          "density and gradient at 3 points agree between the two paths (worst %.1e)" % worst)
+
+
 def checkDiagramNotOffered(build):
     """The panel's isRelevant() asks JCode::supportsMODiagram(); the .edml
     carries the flag, per code."""
@@ -271,7 +312,7 @@ def main():
     if not os.access(qm, os.X_OK):
         launch.skip("ecce-qm is not built (cmake -DECCE_BUILD_QM=ON)")
     for tool in ("mosquitto", "perl"):
-        if not shutil.which(tool):
+        if not shutil.which(tool, path=os.environ.get("PATH", "") + os.pathsep + "/usr/sbin"):
             launch.skip("%s is not installed" % tool)
     if not os.path.exists(os.path.join(build, "siteconfig-local", "DataServers")):
         launch.skip("%s/siteconfig-local is missing (run cmake)" % build)
@@ -492,6 +533,7 @@ def runCase(suite, env, build, state, oracle, name, mol, key, mult, tol, qm,
         shutil.copytree(calc, target, symlinks=True)
     checkOrbitals(suite.env(), build, calc,
                   sum(Z for Z in [{"O": 8, "H": 1}[a[0]] for a in MOLECULES[mol][2]]))
+    checkResultsFile(suite.env(), build, calc)
 
 
 if __name__ == "__main__":

@@ -52,6 +52,12 @@ public:
   // The run type's search, so imaginary frequencies after an optimisation
   // are marked right or wrong; set before set().
   void setSearch(JobProgress::Search s) { p_progress.setSearch(s); }
+  // The code's parse descriptor: its progress rules fix the order of the blocks.
+  void setDescriptor(const std::string& path);
+
+  // Stored frequencies take precedence over incomplete or older snapshots.
+  void setFrequencies(const std::vector<double>& frequencies)
+  { p_frequencies = frequencies; }
 
   bool hasProgress() const { return !p_progress.empty(); }
   bool outOfContact() const { return p_lastHeard > 0 && !p_finished; }
@@ -85,8 +91,9 @@ public:
   // Called after the box changed size by itself (a fold).
   void setRelayout(std::function<void()> relayout) { p_relayout = relayout; }
 
-  /** What the box shows, a line per row, for tests. */
-  std::vector<std::string> describe() const;
+  /** What the box shows, a line per row, for tests; full keeps the
+   *  scheduler note's quoted line whole, as "Copy all" copies it. */
+  std::vector<std::string> describe(bool full = false) const;
 
   int paints() const { return p_paints; }
 
@@ -102,7 +109,9 @@ private:
   wxSize layout(wxDC *dc);
   double age() const;
   std::string foldedText() const;
-  std::vector<std::string> outcome() const;
+  // shorten: the display shortens the scheduler note's quoted line; false
+  // keeps it whole, as the stored reason and "Copy all" have it.
+  std::vector<std::string> outcome(bool shorten) const;
   int headingHeight() const;
 
   // The blocks the box draws: the queued status, or the progress.
@@ -113,6 +122,8 @@ private:
   double p_checked = 0;
   std::string p_jobId;
   JobProgress p_progress;
+  std::vector<double> p_frequencies;
+  std::string p_descPath;
   std::string p_text;
   double p_received;
   bool p_finished;

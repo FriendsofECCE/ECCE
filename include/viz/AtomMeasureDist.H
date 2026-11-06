@@ -38,6 +38,12 @@ class AtomMeasureDist : public SoLineSet {
   TAtm *atom1();
   TAtm *atom2();
   float getDistance();
+
+  /// Where the value text was last drawn (model space) and its length in
+  /// characters, so a click on the number can be told from a miss.
+  SbVec3f getLabelPosition() const { return p_labelPos; }
+  int getLabelLength() const { return p_labelLen; }
+
   string getDistanceName();
 
   //ChemLabel * label; 
@@ -58,6 +64,8 @@ class AtomMeasureDist : public SoLineSet {
   int	       p_atFirst;
   int          p_atSecond;
 
+  SbVec3f p_labelPos;
+  int p_labelLen = 0;
   float        p_distance;  
   string       p_distanceName;
 

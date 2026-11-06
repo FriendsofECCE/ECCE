@@ -111,6 +111,20 @@ case("orca opt+freq (analytic, HF)", "orca.desc", fx("orca", "h2o_optfreq.out"),
               "point": "9/9", "phase": "assemble", "last": lambda v: v != ""},
       "scf": {"cycle": lambda v: int(v) >= 1, "dE": target}},
      {"opt": (4, 4)})
+# What the final energy contains comes from the code's own output (#826):
+# D3BJ prints "DFTD3" and the dispersion correction; r2SCAN-3c prints D4 and gCP.
+EX = os.path.join(ROOT, "data", "client", "examples")
+case("orca freq-only with D3BJ: the final energy includes D3", "orca.desc",
+     os.path.join(EX, "spectroscopy", "carbonyl-compounds", "orca-formaldehyde",
+                  "formaldehyde.out"),
+     {"result": {"disp": "D3"},
+      "scf": {"cycle": "12", "converged": "yes"}})
+case("orca r2SCAN-3c opt+freq: D4 and gCP", "orca.desc",
+     os.path.join(EX, "workflows", "na-hydration", "orca-na_6_0", "stored",
+                  "na_6_0_orca", "Outputs", "na_6_0_orca.out"),
+     {"result": {"disp": "D4", "gcp": "gCP"}})
+case("orca without dispersion names nothing", "orca.desc",
+     fx("orca", "h2o_optfreq.out"), {"!result": {}})
 # Mode counts from the printed frequencies (#611): the translations and
 # rotations are skipped, a negative frequency is imaginary.
 case("orca frequency count", "orca.desc", fx("orca", "h2o_freq_raman.out"),
@@ -167,6 +181,21 @@ case("ecceqm analytic Hessian counts perturbations", "ecceqm.desc",
 case("ecceqm numerical frequencies (Raman input)", "ecceqm.desc",
      fx("ecceqm", "h2o_numfreq.qmout"),
      {"freq": {"kind": "numerical", "point": "18/18", "done": "yes"}})
+
+# CREST 3.0.2 conformer search (#810): 14 MTDs run in parallel and finish out
+# of order, twice; the tally restarts with each iteration.
+case("crest conformer search (butane, 2 iterations)", "crest.desc",
+     fx("crest", "conformation.crestout"),
+     {"crest": {"stage": "tight", "mtd": "14/14", "iter": "2", "nopt": "261",
+                "remain": "255", "window": "6.00", "emin": "-20.88735",
+                "est": "31", "estunit": "sec"}})
+
+# CREST quantum cluster growth (#862): three waters around deprotonated
+# cysteine; the stage, the solvents added and the last cluster energy.
+case("crest quantum cluster growth (3 waters)", "crest.desc",
+     fx("crest", "qcg_3water.crestout"),
+     {"crest": {"stage": "qcg", "qcgstep": "GROW", "solv": "3/3",
+                "ecluster": "-38.944717"}})
 
 case("gaussian-16 relaxed scan (H2O2 dihedral, 7 points)", "gaussian-16.desc",
      fx("gaussian-16", "h2o2_dihedral_scan.log"),

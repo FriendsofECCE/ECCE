@@ -60,6 +60,8 @@
 
 #include "tdat/TGBSAngFunc.H"
 #include "tdat/EspField.H"
+#include "tdat/DensityPlane.H"
+#include "tdat/DensityFields.H"
 #include "tdat/BasisFlatten.H"
 #include "tdat/MoAoOrder.H"
 #include "tdat/PropTable.H"
@@ -187,6 +189,8 @@ void ComputeMoCmd::init(void)
    //  Outputs: set when the coefficients do not fit the calculation's
    //  basis, so the panel can say that instead of "the grid is 0".
    addParameter(new CommandParameter("CoefWidth", 0));
+   //  Set to 1 when an ELF/LOL/NCI compute failed or was cancelled.
+   addParameter(new CommandParameter("FieldFailed", 0));
    addParameter(new CommandParameter("BasisWidth", 0));
    //  Set when the orbital was drawn with the basis as stored because only
    //  that one has the output's number of functions (#265): the width of
@@ -394,9 +398,49 @@ bool ComputeMoCmd::execute()
     grid = new SingleGrid();
     grid->name(key);
   } else {
-    if (grid->gridSize() != getRequestedGridSize()) {
+    //  An NCI grid is refined past the requested size (computeFieldView).
+    const bool refined = fieldType == NCI_FIELD_TYPE &&
+                         grid->gridSize() > getRequestedGridSize();
+    if (grid->gridSize() != getRequestedGridSize() && !refined) {
       doComputation = true;
     }
+  }
+
+  if (doComputation &&
+      (fieldType == ELF_FIELD_TYPE || fieldType == LOL_FIELD_TYPE ||
+       fieldType == NCI_FIELD_TYPE)) {
+    //  Computed into a grid of its own and published only on success: a
+    //  cancelled recompute at a higher resolution must not leave the cached
+    //  grid with new dimensions on its old, smaller arrays.
+    SingleGrid *fresh = new SingleGrid();
+    fresh->name(key);
+    unsigned long gridRes = 0;
+    float xDelta, yDelta, zDelta;
+    setGrid(fresh,gridRes,xDelta,yDelta,zDelta);
+    fresh->type(fieldType);
+    bool failed = false;
+    const bool done = computeFieldView(fresh, fieldType, &failed,
+                                       cvsg->getFragment());
+    if (!done || failed) {
+      delete fresh;
+      getParameter("FieldFailed")->setInteger(1);
+      if (!done) throw CancelException(WHERE);
+      return false;
+    }
+    if (grid != 0) {
+      cvsg->removeMOGrid(key);
+      if (cvsg->getCurrentGrid() != grid) delete grid;
+    }
+    cvsg->addMOGrid(fresh);
+    cvsg->setCurrentGrid(fresh);
+    return true;
+  }
+  if (!doComputation && (fieldType == ELF_FIELD_TYPE ||
+                         fieldType == LOL_FIELD_TYPE ||
+                         fieldType == NCI_FIELD_TYPE)) {
+    //  A valid cached grid is a success: repeating "field elf" must work.
+    cvsg->setCurrentGrid(grid);
+    return true;
   }
 
   if (doComputation) {
@@ -1176,6 +1220,136 @@ bool ComputeMoCmd::execute()
   cvsg->setCurrentGrid(grid);
 
   return ret;
+}
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Description
+//   ELF, LOL and NCI on the grid the density views use.  The evaluator
+//   returns all three from one pass over the basis, so the planes are just
+//   dealt out to threads as the exact ESP does; only this thread talks to
+//   the progress monitor.
+/////////////////////////////////////////////////////////////////////////////
+bool ComputeMoCmd::computeFieldView(SingleGrid *grid, const string& fieldType,
+                                    bool *failed, const Fragment *shown)
+{
+  *failed = true;
+  IPropCalculation *calc = getCalculation();
+  DensityPlane::Evaluator ev;
+  if (calc == 0 || !ev.build(calc, shown)) {
+    cerr << fieldType << ": " << (calc ? ev.complaint : string("no calculation"))
+         << endl;
+    return true;
+  }
+
+  //  An NCI region is thin: s falls below 0.5 only within about 0.1 A of the
+  //  critical point of a hydrogen bond, so the grid the Density views use
+  //  (0.2 A) misses it.  Refine to 0.1 A, but not past a few million points.
+  if (fieldType == NCI_FIELD_TYPE) {
+    double want = 0.1;
+    if (const char *env = getenv("ECCE_NCI_SPACING")) want = atof(env);
+    double len[3], points = 1.0;
+    for (int k = 0; k < 3; k++) {
+      len[k] = grid->corner()[k] - grid->origin()[k];
+      points *= len[k]/want + 1.0;
+    }
+    if (points > 6.0e6) want *= pow(points/6.0e6, 1.0/3.0);
+    for (int k = 0; k < 3; k++) {
+      const int n = (int)ceil(len[k]/want) + 1;
+      if (n > grid->dimensions()[k]) grid->dimensions()[k] = n;
+    }
+  }
+
+  const int resX = grid->dimensions()[0];
+  const int resY = grid->dimensions()[1];
+  const int resZ = grid->dimensions()[2];
+  const double xStart = grid->origin()[0], yStart = grid->origin()[1],
+               zStart = grid->origin()[2];
+  const double dx = (grid->corner()[0] - xStart)/(resX - 1);
+  const double dy = (grid->corner()[1] - yStart)/(resY - 1);
+  const double dz = (grid->corner()[2] - zStart)/(resZ - 1);
+  const unsigned long gridRes = (unsigned long)resX*resY*resZ;
+
+  const bool nci = (fieldType == NCI_FIELD_TYPE);
+  const bool elf = (fieldType == ELF_FIELD_TYPE);
+  float *field = makeField(gridRes);
+  float *colour = nci ? new float[gridRes] : 0;
+
+  unsigned nThreads = std::thread::hardware_concurrency();
+  if (const char *env = getenv("ECCE_FIELD_THREADS")) {
+    const int n = atoi(env);
+    if (n > 0) nThreads = n;
+  }
+  if (nThreads == 0) nThreads = 1;
+  if ((int)nThreads > resZ) nThreads = resZ;
+
+  std::atomic<int> nextPlane(0), donePlanes(0);
+  std::atomic<bool> stop(false), broke(false);
+  auto worker = [&]() {
+    try {
+      DensityPlane::FieldPoint p;
+      for (;;) {
+        const int plane = nextPlane.fetch_add(1);
+        if (plane >= resZ || stop.load()) return;
+        unsigned long idx = (unsigned long)plane*resX*resY;
+        for (int j = 0; j < resY; j++)
+          for (int i = 0; i < resX; i++, idx++) {
+            ev.fieldsAt(xStart + i*dx, yStart + j*dy, zStart + plane*dz, p);
+            if (nci) {
+              field[idx] = (float)DensityFields::rdg(p);
+              colour[idx] = (float)DensityFields::signL2Rho(p);
+            } else {
+              //  In the far tail the ratio D/D0 goes to 0 and ELF to 1, a
+              //  surface of nothing; left out below the vdW-surface density.
+              field[idx] = p.rhoTotal < 1.0e-3 ? 0.0f :
+                           (float)(elf ? DensityFields::elf(p)
+                                       : DensityFields::lol(p));
+            }
+          }
+        donePlanes.fetch_add(1);
+      }
+    }
+    catch (...) { broke = true; stop = true; }
+  };
+  std::vector<std::thread> workers;
+  try {
+    for (unsigned t = 0; t < nThreads; t++) workers.push_back(std::thread(worker));
+  }
+  catch (...) { broke = true; stop = true; }
+
+  bool interrupted = false;
+  char msg[120];
+  while (donePlanes.load() < resZ && !stop.load()) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    if (p_monitor != 0) {
+      const int done = donePlanes.load();
+      sprintf(msg, "%s: plane %d of %d", fieldType.c_str(), done, resZ);
+      if (p_monitor->isInterrupted(msg, (int)(done*100.0/resZ))) {
+        interrupted = true;
+        stop = true;
+      }
+    }
+  }
+  for (size_t t = 0; t < workers.size(); t++) workers[t].join();
+
+  if (interrupted || broke.load()) {
+    delete [] field;
+    delete [] colour;
+    if (broke.load() && !interrupted)
+      cerr << fieldType << ": the computation failed" << endl;
+    return !interrupted;
+  }
+
+  grid->setFieldData(field);
+  grid->findMinMax();
+  grid->absFieldMax(grid->fieldMax());
+  if (nci) {
+    grid->setColorFieldData(colour);
+    grid->colorFieldMin(NCI_COLOR_MIN);
+    grid->colorFieldMax(NCI_COLOR_MAX);
+  }
+  *failed = false;
+  return true;
 }
 
 

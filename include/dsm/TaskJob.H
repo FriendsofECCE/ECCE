@@ -54,6 +54,7 @@ struct Launchdata {
   string machine;           /**< Launch machine */
   unsigned long nodes;      /**< Only applies to clusters or mpp */
   unsigned long totalprocs; /**< # processors (ws and/or mpp) */
+  unsigned long threads;    /**< OpenMP threads per MPI rank; 0 = not set (1) */
   string rundir;            /**< Base directory name as entered in launcher gui */
   string scratchdir;        /**< Launcher gui name is same as full scratch path */
   string user;              /**< User account name */
@@ -65,12 +66,11 @@ struct Launchdata {
   string remoteShell;       /**< Type of remote communications shell */
   string account;           /**< Allocation account the job was submitted under */
   string profile;           /**< Allocation profile it was launched with ("" = Default) */
-  string allocationLeft;    /**< Allocation left when submitted (#613); read only, see allocationSnapshot() */
   string forceCsh;          /**< read from calculations saved by older versions; never written */
 
   Launchdata()
   {
-    nodes=totalprocs=maxmemory=minscratch = 0;
+    nodes=totalprocs=threads=maxmemory=minscratch = 0;
     machine=rundir=scratchdir=user=queue=priority=maxwall=remoteShell=forceCsh="";
     account=profile="";
   };
@@ -124,13 +124,16 @@ class TaskJob : public Job,
 
       virtual bool launchdata(const Launchdata& launchinfo);
       virtual Launchdata launchdata(const bool &useInputProvider = false) const;
-      virtual bool allocationSnapshot(const string& text);
 
       /** The user asked for this job to be cancelled.  eccejobstore reads it
           to tell a cancelled job from one that vanished.  Cleared by
           launch and by any reset to created/ready. */
       virtual bool killRequested(bool requested);
       virtual bool killRequested() const;
+      /** The reason given with a user's cancel, kept until the job store
+          records it as the run status reason once the job has ended. */
+      virtual bool killReason(const string& reason);
+      virtual string killReason() const;
 
       virtual bool joblog(const char* log);
       virtual string joblog(void) const;

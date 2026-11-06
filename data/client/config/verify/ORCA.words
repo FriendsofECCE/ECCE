@@ -26,6 +26,7 @@ $maxcoregb
 $maxiter\nend\n
 $maxsteps\n
 $message\n
+$mode
 $model
 $n\nend\n
 $name
@@ -111,7 +112,6 @@ $wrote
 6-31g*
 6-31g**
 :n:t:pfbcqeshv
-<auxbasis>
 <basename>
 <basis>/c
 <keywords>
@@ -178,6 +178,7 @@ b2gp-plyp
 b2plyp
 b3lyp
 b3lyp-d3
+b97-3c
 b97-d3
 b97m-v
 basis>/c
@@ -328,6 +329,7 @@ es.theory.scf.memorysize
 es.theory.scf.orbitalguessfile
 es.theory.scf.refractiveindex
 es.theory.scf.rijcosxauxbasis
+es.theory.scf.rimode
 es.theory.scf.solvationmodel
 es.theory.scf.solvent
 es.theory.scf.userijcosx
@@ -368,6 +370,7 @@ help\n
 hessian
 hessian.\n
 hf
+hf-3c
 hirshfeld
 huzinaga
 hybrid
@@ -459,6 +462,7 @@ orca
 p
 pbe
 pbe0
+pbeh-3c
 pc-1
 pc-2
 pc-3
@@ -487,6 +491,7 @@ pwpb95
 quadrupole
 r
 r2scan
+r2scan-3c
 raman
 ran
 re-save
@@ -500,6 +505,7 @@ revpbe
 revtpss
 rhf
 rijcosx
+rijonx
 rks
 rmp2
 rpbe
@@ -585,6 +591,7 @@ warning
 water
 wb2plyp
 wb97m-v
+wb97x-3c
 wb97x-d3
 wb97x-v
 will

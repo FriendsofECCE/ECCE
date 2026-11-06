@@ -23,6 +23,13 @@
 
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
+#include "dsm/EDSIFactory.H"
+#include "dsm/ICalculation.H"
+#include "dsm/PropertyTask.H"
+#include "dsm/ResourceType.H"
+#include "tdat/Fragment.H"
+#include "tdat/GUIValues.H"
+#include "dsm/VDoc.H"
 #include "viz/VRVector.H"
 
 #include "XYPlotCanvas.H"
@@ -33,6 +40,7 @@
 
 #include "Builder.H"
 #include "GeomTracePropertyPanel.H"
+#include "EnsemblePropertyPanel.H"
 #include "wxgui/ewxChoice.H"
 #include "PlotAnyPropertyPanel.H"
 #include "wxgui/SliderCombo.H"
@@ -104,11 +112,34 @@ string stepMessage(int step, int atoms, int values)
 }  // namespace
 
 
+bool Builder::traceFrame(int index)
+{
+  GeomTracePropertyPanel *gt = tracePanel(p_calculation);
+  if (!gt || !plotOf(gt)) return false;
+  gt->showFrame(index);
+  spin(50);
+  PlaybackControl *pb = playback(gt);
+  fprintf(stderr, "GTSTRESS: step %d -> playback %ld, plot marker %d of %d\n", index,
+          pb ? pb->GetCurrentStep() : -1, plotOf(gt)->selectedIndex(),
+          plotOf(gt)->pointCount(0));
+  return true;
+}
+
+
 bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
 {
   const string& c = w[0];
   GeomTracePropertyPanel *gt = tracePanel(p_calculation);
   PlaybackControl *pb = playback(gt);
+
+  //  "gtframe <n>" (0-based; "last"): show that frame as gtstep does, and
+  //  report the playback position and the plot's marker (stderr).
+  if (c == "gtframe" && w.size() == 2) {
+    XYPlotCanvas *plot = plotOf(gt);
+    if (!gt || !plot) return s.fail("gtframe: no Geometry Trace panel");
+    const int frame = w[1] == "last" ? gt->frameCount() - 1 : atoi(w[1].c_str());
+    return traceFrame(frame);
+  }
 
   //  "gtfocus": give the panel the viewer, as a click into it does.
   if (c == "gtfocus") {
@@ -302,6 +333,103 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     return true;
   }
 
+  //  Ensemble panel: "gtenrows" prints the table and the panel's kind;
+  //  "gtencalc <type> <rank>..." makes new calculations (#708);
+  //  "gtenselect <rank>" shows that member and prints atom 1; "gtencsv <path>".
+  //  "gtenkind <runtype, _ for space> <0|1 scored>": the entry name for a run type.
+  if (c == "gtenkind" && w.size() == 3) {
+    string rt = w[1];
+    for (size_t i = 0; i < rt.size(); i++) if (rt[i] == '_') rt[i] = ' ';
+    fprintf(stderr, "GTSTRESS: enkind %s = %s\n", w[1].c_str(),
+            EnsemblePropertyPanel::kindFor(rt, w[2] == "1").c_str());
+    return true;
+  }
+  if (c == "gtenrows" || c == "gtencsv" || c == "gtenselect" ||
+      c == "gtencalc") {
+    EnsemblePropertyPanel *en = dynamic_cast<EnsemblePropertyPanel*>(gt);
+    if (!en) return s.fail(c + ": no ensemble panel");
+    if (c == "gtenrows") {
+      vector<string> rows = en->tableRows();
+      fprintf(stderr, "GTSTRESS: ensemble kind=%s rows=%d\n", en->kind().c_str(),
+              (int)rows.size());
+      for (size_t i = 0; i < rows.size(); i++)
+        fprintf(stderr, "GTSTRESS: enrow %s\n", rows[i].c_str());
+    } else if (c == "gtencsv" && w.size() == 2) {
+      fprintf(stderr, "GTSTRESS: encsv %s\n", en->exportCsv(w[1]) ? "ok" : "failed");
+    } else if (c == "gtenselect" && w.size() == 2) {
+      const bool ok = en->selectRank(atoi(w[1].c_str()));
+      spin(50);
+      const double *p = getSG()->getFragment()->atomRef(0)->coordinates();
+      fprintf(stderr, "GTSTRESS: enselect %s ok=%d atom1 %.6f %.6f %.6f plot=%d\n",
+              w[1].c_str(), (int)ok, p[0], p[1], p[2],
+              plotOf(en) ? plotOf(en)->selectedIndex() + 1 : -1);
+    } else if (c == "gtencalc" && w.size() >= 2) {
+      vector<int> ranks;
+      for (size_t i = 2; i < w.size(); i++) ranks.push_back(atoi(w[i].c_str()));
+      string why;
+      vector<string> urls = en->newCalcsFromRanks(ranks, w[1], why);
+      for (size_t i = 0; i < urls.size(); i++) {
+        // Read the new calculation back: its name and first/last atom.
+        PropertyTask *nt = dynamic_cast<PropertyTask*>(
+            EDSIFactory::getResource(EcceURL(urls[i])));
+        Fragment *nf = nt ? nt->fragment() : 0;
+        const int na = nf ? nf->numAtoms() : 0;
+        const double *a = na ? nf->atomRef(0)->coordinates() : 0;
+        const double *z = na ? nf->atomRef(na - 1)->coordinates() : 0;
+        ICalculation *ic = dynamic_cast<ICalculation*>(nt);
+        fprintf(stderr, "GTSTRESS: encalc %d type=%s run=%s mult=%d name=%s atoms=%d first %.6f %.6f %.6f "
+                "last %.6f %.6f %.6f\n", ranks[i],
+                nt && nt->getDescriptor() ? nt->getDescriptor()->getName().c_str() : "",
+                ic ? ic->runtype().name().c_str() : "", ic ? (int)ic->spinMultiplicity() : 0,
+                EcceURL(urls[i]).getFilePathTail().c_str(), na,
+                a ? a[0] : 0, a ? a[1] : 0, a ? a[2] : 0,
+                z ? z[0] : 0, z ? z[1] : 0, z ? z[2] : 0);
+      }
+      fprintf(stderr, "GTSTRESS: encalc made=%d why=%s\n", (int)urls.size(), why.c_str());
+    } else {
+      return s.fail("bad ensemble command");
+    }
+    return true;
+  }
+
+  //  "gtpatterns": the coordination-pattern table, one row per line.
+  if (c == "gtpatterns") {
+    if (!gt) return s.fail("gtpatterns: no Geometry Trace panel");
+    vector<string> rows = gt->patternRows();
+    fprintf(stderr, "GTSTRESS: patterns=%d\n", (int)rows.size());
+    for (size_t i = 0; i < rows.size(); i++)
+      fprintf(stderr, "GTSTRESS: pattern %s\n", rows[i].c_str());
+    return true;
+  }
+
+  //  Displacement panel (#701).  "gtdisp": its rows and summary;
+  //  "gtdispcolour on|off": colour by displacement, then the atom colours;
+  //  "gtdispcompare <name>" ("-" ends it); "gtdispselect <spec>" ("-" clears);
+  //  "gtdispexport <file>".
+  if (c.compare(0, 6, "gtdisp") == 0) {
+    if (!gt) return s.fail(c + ": no Geometry Trace panel");
+    string rest;
+    for (size_t i = 1; i < w.size(); i++) rest += (i > 1 ? " " : "") + w[i];
+    if (rest == "-") rest.clear();
+    bool ok = true;
+    if (c == "gtdispcolour") gt->colourByDisplacement(rest == "on");
+    else if (c == "gtdispcompare") ok = gt->compareWith(rest);
+    else if (c == "gtdispselect") ok = gt->setDisplacementSelection(rest);
+    else if (c == "gtdispexport") ok = gt->exportDisplacement(rest);
+    else if (c != "gtdisp") return s.fail("unknown command " + c);
+    spin(50);
+    fprintf(stderr, "GTSTRESS: %s ok=%d\n", c.c_str(), (int)ok);
+    if (c == "gtdispcolour") {
+      for (const string& r : gt->atomColourRows())
+        fprintf(stderr, "GTSTRESS: colour %s\n", r.c_str());
+    } else {
+      fprintf(stderr, "GTSTRESS: summary %s\n", gt->displacementSummary().c_str());
+      for (const string& r : gt->displacementRows())
+        fprintf(stderr, "GTSTRESS: disp %s\n", r.c_str());
+    }
+    return true;
+  }
+
   //  "gtseries <key>": plot that series; reports the axis labels.
   if (c == "gtseries" && w.size() == 2) {
     XYPlotCanvas *plot = plotOf(gt);
@@ -310,6 +438,41 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     fprintf(stderr, "GTSTRESS: series %s x='%s' y='%s'\n", w[1].c_str(),
             (const char*)plot->xAxisLabel().utf8_str(),
             (const char*)plot->yAxisLabel().utf8_str());
+    return true;
+  }
+
+  //  "gttake <label> <set|selected> [align]": Take Coordinates From... with
+  //  the source picked by its dialog label, e.g. "calc (final geometry)";
+  //  then every atom's coordinates (#620).
+  if (c == "gttake" && w.size() >= 3) {
+    vector<string> labels, el, xyz;
+    string label = w[1];
+    for (size_t i = 0; i < label.size(); i++) if (label[i] == '_') label[i] = ' ';
+    size_t at = 0;
+    //  The folder listing can still be arriving from the server.
+    for (int tries = 0; tries < 40; tries++) {
+      labels.clear(); el.clear(); xyz.clear();
+      takeSources(labels, el, xyz);
+      for (at = 0; at < labels.size() && labels[at] != label; at++) {}
+      if (at < labels.size()) break;
+      spin(250);
+    }
+    if (at == labels.size()) {
+      string have;
+      for (const string& l : labels) have += " [" + l + "]";
+      fprintf(stderr, "GTSTRESS: gttake sources:%s\n", have.c_str());
+      return s.fail("gttake: no source " + label);
+    }
+    double rmsd = 0;
+    bool ok = takeCoordinates(w[2] == "selected" ? "" : w[2], el[at], xyz[at],
+                              w.size() > 3 && w[3] == "align", &rmsd);
+    fprintf(stderr, "GTSTRESS: gttake ok=%d rmsd=%.6g\n", (int)ok, rmsd);
+    SGFragment *frag = getSG()->getFragment();
+    for (size_t i = 0; i < frag->numAtoms(); i++) {
+      const double *p = frag->atomRef(i)->coordinates();
+      fprintf(stderr, "GTSTRESS: take %zu %s %.10f %.10f %.10f\n", i + 1,
+              frag->atomRef(i)->atomicSymbol().c_str(), p[0], p[1], p[2]);
+    }
     return true;
   }
 
@@ -426,6 +589,85 @@ bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
   //  "vibscale <v>": v typed into the Arrow length / Amplitude field.
   if (c == "vibscale" && w.size() == 2) {
     fprintf(stderr, "VIBSCALE: %.2f\n", nm->typeScale(atof(w[1].c_str())));
+    return true;
+  }
+  //  "vibbandshift <calculation> <atoms|->" and "vibbandclick <row>" (#707):
+  //  the Match bands action; prints the table as shown, and the mode a row
+  //  click selects.
+  if (c == "vibbandshift" && w.size() == 3) {
+    wxString err;
+    bool ok = nm->matchBands(w[1], w[2] == "-" ? string() : w[2], &err);
+    fprintf(stderr, "VIBBANDSHIFT: ok=%d error=%s\n", ok ? 1 : 0,
+            (const char*)err.utf8_str());
+    std::istringstream rows((const char*)nm->bandTableText().utf8_str());
+    string row;
+    while (std::getline(rows, row)) fprintf(stderr, "VIBBAND: %s\n", row.c_str());
+    return true;
+  }
+  //  "vibspectrum <csv> <calculation|-> <diff 0|1> <experimental file|-> <zoom lo,hi|->"
+  //  (#707): the compared calculation, the difference curve, an
+  //  experimental file and a zoom, then the CSV an export would write.
+  if (c == "vibspectrum" && w.size() == 6) {
+    bool ok = w[2] == "-" || nm->compareWith(w[2]);
+    nm->setShowDifference(w[3] == "1");
+    wxString err;
+    if (w[4] != "-") ok = nm->importExperimental(w[4], "auto", &err) && ok;
+    double a, b2;
+    if (w[5] != "-" && sscanf(w[5].c_str(), "%lf,%lf", &a, &b2) == 2)
+      nm->zoomSpectrum(a, b2);
+    ok = nm->exportSpectrumCsv(wxString::FromUTF8(w[1].c_str()), VIB_IR) && ok;
+    fprintf(stderr, "VIBSPECTRUM: ok=%d error=%s\n", ok ? 1 : 0,
+            (const char*)err.utf8_str());
+    return true;
+  }
+  if (c == "vibbandclick" && w.size() == 2) {
+    fprintf(stderr, "VIBBANDCLICK: selected=%d\n", nm->scriptBandClick(atoi(w[1].c_str())));
+    return true;
+  }
+  //  "vibdisplace <row|all> <amplitude> <+|-|both>" (#618): the Displace
+  //  dialog's action; prints each new calculation's run type, annotation and
+  //  structure for the test to compare with the source.
+  if (c == "vibdisplace" && w.size() == 4) {
+    vector<string> urls;
+    {
+      Fragment sf;
+      string sxyz, els;
+      char b[80];
+      IPropCalculation *sc = p_calculation;
+      if (sc && sc->getFragment(sf))
+        for (size_t a = 0; a < sf.numAtoms(); a++) {
+          const double *x = sf.atomRef(a)->coordinates();
+          snprintf(b, sizeof b, " %.6f %.6f %.6f", x[0], x[1], x[2]);
+          sxyz += b;
+          els += (a ? " " : "") + sf.atomRef(a)->atomicSymbol();
+        }
+      fprintf(stderr, "VIBSOURCE: url=%s els=%s xyz=%s\n",
+              sc ? sc->getURL().toString().c_str() : "", els.c_str(), sxyz.c_str());
+    }
+    string err = nm->displaceCalculation(w[1] == "all" ? -1 : atoi(w[1].c_str()),
+                                         atof(w[2].c_str()), w[3], &urls);
+    fprintf(stderr, "VIBDISPLACE: error=%s n=%d\n", err.c_str(), (int)urls.size());
+    for (size_t i = 0; i < urls.size(); i++) {
+      Resource *r = EDSIFactory::getResource(EcceURL(urls[i]));
+      ICalculation *ic = dynamic_cast<ICalculation*>(r);
+      PropertyTask *pt = dynamic_cast<PropertyTask*>(r);
+      Fragment *f = pt ? pt->fragment() : 0;
+      string xyz;
+      char b[80];
+      for (size_t a = 0; f && a < f->numAtoms(); a++) {
+        const double *x = f->atomRef(a)->coordinates();
+        snprintf(b, sizeof b, " %.6f %.6f %.6f", x[0], x[1], x[2]);
+        xyz += b;
+      }
+      GUIValues *gv = ic ? ic->guiparams() : 0;
+      const int vibkeys = gv && gv->get("ES.Runtype.Vibration.Method") ? 1 : 0;
+      delete gv;
+      fprintf(stderr, "VIBDISPLACED: url=%s vibkeys=%d runtype=%s note=%s xyz=%s\n",
+              urls[i].c_str(), vibkeys,
+              ic ? ic->runtype().name().c_str() : "?",
+              r ? r->getProp(VDoc::getEcceNamespace() + ":annotation").c_str() : "?",
+              xyz.c_str());
+    }
     return true;
   }
   //  "vibspace": the Space key in the viewer.

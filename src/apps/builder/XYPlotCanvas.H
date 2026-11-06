@@ -28,6 +28,7 @@
 #include <wx/dcmemory.h>
 #include <wx/panel.h>
 #include <wx/settings.h>
+#include <wx/timer.h>
 
 #include "tdat/VibSpectrum.H"
 #include "wxgui/PlotStyle.H"
@@ -49,7 +50,7 @@ class XYPlotCanvas : public wxPanel
         p_palette(PlotPalette::system()), p_showKey(false), p_showXAxis(true),
         p_selCurve(-1), p_selIndex(-1), p_hoverCurve(-1), p_hoverIndex(-1),
         p_zoomed(false), p_xPad(0), p_pressed(false), p_dragging(false),
-        p_panning(false), p_band(false)
+        p_panning(false), p_band(false), p_wheelTimer(this)
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);
       SetMinSize(wxSize(240, 160));
@@ -63,6 +64,7 @@ class XYPlotCanvas : public wxPanel
       Bind(wxEVT_MIDDLE_UP, &XYPlotCanvas::onPanUp, this);
       Bind(wxEVT_MOTION, &XYPlotCanvas::onMotion, this);
       Bind(wxEVT_MOUSEWHEEL, &XYPlotCanvas::onWheel, this);
+      Bind(wxEVT_TIMER, &XYPlotCanvas::onWheelFrame, this, p_wheelTimer.GetId());
       Bind(wxEVT_KEY_DOWN, &XYPlotCanvas::onKey, this);
       Bind(wxEVT_LEAVE_WINDOW, &XYPlotCanvas::onLeave, this);
       Bind(wxEVT_MOUSE_CAPTURE_LOST, &XYPlotCanvas::onCaptureLost, this);
@@ -105,6 +107,16 @@ class XYPlotCanvas : public wxPanel
       p_selCurve = p_selIndex = p_hoverCurve = p_hoverIndex = -1;
       p_zoomed = false;
       p_whole = false;
+      Refresh();
+    }
+
+    /** Error bars: the absolute low and high y of each point (NaN = none). */
+    void setCurveErrorBars(int curve, const std::vector<double>& lo,
+                           const std::vector<double>& hi)
+    {
+      if (!curveOk(curve)) return;
+      p_curves[curve].errLo = lo;
+      p_curves[curve].errHi = hi;
       Refresh();
     }
 
@@ -189,8 +201,17 @@ class XYPlotCanvas : public wxPanel
     enum XScale { X_LINEAR, X_SQRT, X_LOG };
     void setXScale(XScale s) { p_xScale = s; p_zoomed = false; Refresh(); }
     XScale xScale() const { return p_xScale; }
-    void setYLog(bool on) { p_yLog = on; p_zoomed = false; Refresh(); }
+    void setYLog(bool on) { p_yLog = on; if (on) p_ySqrt = false; p_zoomed = false; Refresh(); }
     bool yLog() const { return p_yLog; }
+    /** Square-root y: sign(y)*sqrt(|y|), so a curve below zero keeps its
+     *  shape mirrored about the zero line; ticks stay in real values. */
+    void setYSqrt(bool on) { p_ySqrt = on; if (on) p_yLog = false; p_zoomed = false; Refresh(); }
+    bool ySqrt() const { return p_ySqrt; }
+    /** The y tick values the last paint drew (real units; hooks and tests). */
+    const std::vector<double>& yTickValues() const { return p_yTickVals; }
+    /** Zooming keeps the bottom of a linear y axis where it is, so a curve
+     *  that dips below zero keeps its baseline in view (Density Profile). */
+    void setKeepYBottom(bool on) { p_keepYBottom = on; }
 
     /** Shown instead of the plot, for a quantity that is zero everywhere. */
     void setMessage(const wxString& m) { p_message = m; Refresh(); }
@@ -406,6 +427,7 @@ class XYPlotCanvas : public wxPanel
       p_keyDrawn = keyRows;
 
       makeTicks(true, ylo, yhi, plotH, std::max(3, plotH / 45), yv, ys);
+      p_yTickVals = yv;
       makeTicks(false, xlo, xhi, plotW, std::max(3, plotW / 80), xv, xs);
 
       //  Grid.
@@ -528,6 +550,9 @@ class XYPlotCanvas : public wxPanel
     bool p_whole = false;
     XScale p_xScale = X_LINEAR;
     bool p_yLog = false;
+    bool p_ySqrt = false;
+    mutable std::vector<double> p_yTickVals;
+    bool p_keepYBottom = false;
     wxString p_message;
 
     struct Curve
@@ -541,6 +566,7 @@ class XYPlotCanvas : public wxPanel
       int  width = 2;        // line width when not thin
       Style style;
       wxColour colour;       // invalid: the palette's series colour
+      std::vector<double> errLo, errHi;   // optional error bars (absolute y)
     };
 
     wxColour colourOf(const Curve& cv) const
@@ -567,7 +593,12 @@ class XYPlotCanvas : public wxPanel
       if (p_xScale == X_LOG) return x > 0 ? std::log10(x) : NAN;
       return x;
     }
-    double ty(double y) const { return p_yLog ? (y > 0 ? std::log10(y) : NAN) : y; }
+    double ty(double y) const
+    {
+      if (p_ySqrt) return y < 0 ? -std::sqrt(-y) : std::sqrt(y);
+      return p_yLog ? (y > 0 ? std::log10(y) : NAN) : y;
+    }
+    double tyInv(double t) const { return p_ySqrt ? (t < 0 ? -t * t : t * t) : t; }
     double txInv(double t) const
     {
       if (p_xScale == X_SQRT) return t * t;
@@ -594,7 +625,7 @@ class XYPlotCanvas : public wxPanel
     {
       vals.clear();
       text.clear();
-      const bool linear = isY ? !p_yLog : p_xScale == X_LINEAR;
+      const bool linear = isY ? !p_yLog && !p_ySqrt : p_xScale == X_LINEAR;
       if (linear) {
         double lo = tlo, hi = thi;
         SpectrumTicks t = niceTicks(lo, hi, target);
@@ -607,6 +638,36 @@ class XYPlotCanvas : public wxPanel
       }
       const double span = thi - tlo;
       if (!(span > 0)) return;
+      if (isY && p_ySqrt) {
+        //  1-2-5 values of either sign and zero, the roundest kept when they crowd.
+        struct YCand { double v; int rank; };
+        std::vector<YCand> yc;
+        const double lo = tyInv(tlo), hi = tyInv(thi);
+        if (lo <= 0.0 && hi >= 0.0) { YCand c = { 0.0, 0 }; yc.push_back(c); }
+        for (int e = -12; e <= 6; e++)
+          for (int k = 0; k < 3; k++) {
+            const int mant[3] = { 1, 5, 2 };
+            for (int sgn = -1; sgn <= 1; sgn += 2) {
+              const double v = sgn * mant[k] * std::pow(10.0, e);
+              if (v < lo - 1e-9 * std::fabs(lo) || v > hi + 1e-9 * std::fabs(hi)) continue;
+              YCand c = { v, k };
+              yc.push_back(c);
+            }
+          }
+        std::stable_sort(yc.begin(), yc.end(),
+                         [](const YCand& a, const YCand& b) { return a.rank < b.rank; });
+        const double gap = 24.0;
+        for (const YCand& c : yc) {
+          const double t = ty(c.v);
+          bool free = true;
+          for (size_t i = 0; i < vals.size() && free; i++)
+            if (std::fabs(ty(vals[i]) - t) / span * pixels < gap) free = false;
+          if (free) vals.push_back(c.v);
+        }
+        std::sort(vals.begin(), vals.end());
+        for (double v : vals) text.push_back(wxString::Format("%g", v));
+        return;
+      }
       if (isY) {
         const int e0 = (int)std::ceil(tlo - 1e-9), e1 = (int)std::floor(thi + 1e-9);
         const int stepE = std::max(1, (int)std::ceil((e1 - e0 + 1) / (double)std::max(2, target)));
@@ -687,6 +748,11 @@ class XYPlotCanvas : public wxPanel
           if (!any) { x0 = x1 = x; y0 = y1 = y; any = true; continue; }
           x0 = std::min(x0, x); x1 = std::max(x1, x);
           y0 = std::min(y0, y); y1 = std::max(y1, y);
+          const Curve& cv = p_curves[c];
+          for (const std::vector<double>* e : {&cv.errLo, &cv.errHi})
+            if (i < e->size() && std::isfinite(ty((*e)[i]))) {
+              y0 = std::min(y0, ty((*e)[i])); y1 = std::max(y1, ty((*e)[i]));
+            }
         }
       if (!any) return false;
       double dx = x1 - x0, dy = y1 - y0;
@@ -697,9 +763,10 @@ class XYPlotCanvas : public wxPanel
       *ylo = y0 - 0.06 * dy; *yhi = y1 + 0.06 * dy;
       //  Far-below values of a log axis would squeeze the interesting part.
       if (p_yLog && *ylo < *yhi - 10.0) *ylo = *yhi - 10.0;
-      if (clipped && !p_yLog && p_yLimit > 0 && p_yLimit < *yhi && p_yLimit > y0) {
-        *yhi = p_yLimit;
-        *ylo = y0 - 0.06 * (p_yLimit - y0);
+      const double lim = p_ySqrt ? ty(p_yLimit) : p_yLimit;
+      if (clipped && !p_yLog && p_yLimit > 0 && lim < *yhi && lim > y0) {
+        *yhi = lim;
+        *ylo = y0 - 0.06 * (lim - y0);
       }
       if (x1 == x0) { *xlo = x0 - dx / 2; *xhi = x0 + dx / 2; }
       return true;
@@ -810,6 +877,16 @@ class XYPlotCanvas : public wxPanel
         dc.SetPen(wxPen(col, 1));
         dc.SetBrush(wxBrush(col));
         for (size_t i = 0; i < pts.size(); i++) drawMarker(dc, cv.marker, pts[i]);
+      }
+      //  Error bars: a vertical line with caps (points with a gap are skipped).
+      dc.SetPen(wxPen(col, 1));
+      for (size_t i = 0; i < cv.x.size() && i < cv.errLo.size() && i < cv.errHi.size(); i++) {
+        if (!std::isfinite(cv.x[i]) || !std::isfinite(cv.errLo[i]) ||
+            !std::isfinite(cv.errHi[i])) continue;
+        const int px = xOf(cv.x[i]), a = yOf(cv.errLo[i]), b = yOf(cv.errHi[i]);
+        dc.DrawLine(px, a, px, b);
+        dc.DrawLine(px - 4, a, px + 5, a);
+        dc.DrawLine(px - 4, b, px + 5, b);
       }
     }
 
@@ -945,6 +1022,7 @@ class XYPlotCanvas : public wxPanel
     void zoomAbout(double cx, double cy, double factor, bool alsoX = true)
     {
       startView();
+      if (p_keepYBottom && !p_yLog) cy = p_vy0;
       if (alsoX) {
         p_vx0 = cx + (p_vx0 - cx) * factor;  p_vx1 = cx + (p_vx1 - cx) * factor;
       }
@@ -1055,12 +1133,30 @@ class XYPlotCanvas : public wxPanel
 
     void onWheel(wxMouseEvent& e)
     {
-      if (!p_laidOut) return;
+      if (!p_laidOut || e.GetWheelAxis() == wxMOUSE_WHEEL_HORIZONTAL ||
+          e.GetWheelRotation() == 0) return;
       const int delta = e.GetWheelDelta() > 0 ? e.GetWheelDelta() : 120;
       const double notches = e.GetWheelRotation() / (double)delta;
-      //  Shift+wheel: y axis only, to lift a flat curve out of a tall one.
-      zoomAbout(xFrom(e.GetPosition().x), yFrom(e.GetPosition().y),
-                std::pow(0.8, notches), !e.ShiftDown());
+      if (!p_wheelTimer.IsRunning()) {
+        p_wheelAnchor = wxRealPoint(xFrom(e.GetX()), yFrom(e.GetY()));
+        p_wheelTimer.StartOnce(16);
+      }
+      p_wheelY += notches;
+      if (!e.ShiftDown()) p_wheelX += notches;
+    }
+
+    void onWheelFrame(wxTimerEvent&)
+    {
+      const double sx = std::pow(0.8, p_wheelX), sy = std::pow(0.8, p_wheelY);
+      p_wheelX = p_wheelY = 0;
+      startView();
+      const double cx = p_wheelAnchor.x;
+      const double cy = p_keepYBottom && !p_yLog ? p_vy0 : p_wheelAnchor.y;
+      // Apply both axes together so Shift changes do not cause extra paints.
+      p_vx0 = cx + (p_vx0 - cx) * sx; p_vx1 = cx + (p_vx1 - cx) * sx;
+      p_vy0 = cy + (p_vy0 - cy) * sy; p_vy1 = cy + (p_vy1 - cy) * sy;
+      clampView();
+      Refresh();
     }
 
     void onKey(wxKeyEvent& e)
@@ -1105,6 +1201,9 @@ class XYPlotCanvas : public wxPanel
     bool p_pressed, p_dragging, p_panning, p_band;
     wxPoint p_pressAt, p_lastPan;
     wxRealPoint p_bandA, p_bandB;
+    wxTimer p_wheelTimer;
+    double p_wheelX = 0, p_wheelY = 0;
+    wxRealPoint p_wheelAnchor;
 };
 
 #endif

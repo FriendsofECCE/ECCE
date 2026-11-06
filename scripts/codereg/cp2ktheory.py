@@ -129,28 +129,43 @@ class Cp2kTheoryPanel(EccePanel):
         libSizer.AddWidget(self.libInfo)
         self.panelSizer.Add(libSizer)
 
-        # Per-element overrides.  Blank means ai.cp2k picks from the files.
+        # Per-element overrides.  A blank basis or potential means ai.cp2k
+        # picks it from the files; a blank file means the Library Files above,
+        # so a row can bring one element from another file (e.g. the UZH files
+        # for valence-only Na) while the rest stay on the defaults.
         kindSizer = EcceBoxSizer(self, label="Per-element Basis and Potential",
-                                 cols=3)
+                                 cols=5)
         self.kindEl = []
         self.kindBasis = []
+        self.kindBasisFile = []
         self.kindPot = []
-        for i in (1, 2, 3):
+        self.kindPotFile = []
+        for i in (1, 2, 3, 4, 5, 6):
             el = EcceTextInput(self, size=(40, -1),
                                name="ES.Theory.GPW.KindElement%d" % i,
                                default="", label="Element:", export=1)
             kindSizer.AddWidget(el)
-            b = EcceTextInput(self, size=(190, -1),
+            b = EcceTextInput(self, size=(150, -1),
                               name="ES.Theory.GPW.KindBasis%d" % i,
                               default="", label="Basis:", export=1)
             kindSizer.AddWidget(b)
+            bf = EcceTextInput(self, size=(120, -1),
+                               name="ES.Theory.GPW.KindBasisFile%d" % i,
+                               default="", label="Basis file:", export=1)
+            kindSizer.AddWidget(bf)
             p = EcceTextInput(self, size=(130, -1),
                               name="ES.Theory.GPW.KindPotential%d" % i,
                               default="", label="Potential:", export=1)
             kindSizer.AddWidget(p)
+            pf = EcceTextInput(self, size=(120, -1),
+                               name="ES.Theory.GPW.KindPotentialFile%d" % i,
+                               default="", label="Potential file:", export=1)
+            kindSizer.AddWidget(pf)
             self.kindEl.append(el)
             self.kindBasis.append(b)
+            self.kindBasisFile.append(bf)
             self.kindPot.append(p)
+            self.kindPotFile.append(pf)
         self.panelSizer.Add(kindSizer)
 
         # Plane-wave grid.  Cutoffs are in Rydberg, CP2K's own unit.
@@ -282,6 +297,37 @@ class Cp2kTheoryPanel(EccePanel):
                                         label="Smearing (0 = off, without OT):",
                                         export=1)
         scfSizer.AddWidget(self.smearTemp)
+        # Diagonalisation-only settings (ai.cp2k drops them while OT is on).
+        self.mixingAlpha = EcceFloatInput(self,
+                                          name="ES.Theory.GPW.MixingAlpha",
+                                          default=0.4,
+                                          hardRange="(0..)",
+                                          softRange="[0.1..0.6]",
+                                          label="Mixing alpha:",
+                                          export=1)
+        scfSizer.AddWidget(self.mixingAlpha)
+        self.nBroyden = EcceSpinCtrl(self,
+                                     hardRange="[1..]",
+                                     softRange="[2..20]",
+                                     name="ES.Theory.GPW.NBroyden",
+                                     default=8,
+                                     label="Broyden history:",
+                                     export=1)
+        scfSizer.AddWidget(self.nBroyden)
+        self.addedMos = EcceSpinCtrl(self,
+                                     hardRange="[0..]",
+                                     softRange="[0..100]",
+                                     name="ES.Theory.GPW.AddedMos",
+                                     default=0,
+                                     label="Added MOs:",
+                                     export=1)
+        scfSizer.AddWidget(self.addedMos)
+        self.printHomoLumoGap = EcceCheckBox(self,
+                                             label=" Print HOMO-LUMO gap",
+                                             name="ES.Theory.GPW.PrintHomoLumoGap",
+                                             default=False,
+                                             export=1)
+        scfSizer.AddWidget(self.printHomoLumoGap)
         self.panelSizer.Add(scfSizer)
 
         self.AddButtons()
@@ -320,6 +366,10 @@ class Cp2kTheoryPanel(EccePanel):
         self.outerScf.Enable(ot)
         self.outerMaxScf.Enable(ot and self.outerScf.GetValue())
         self.smearTemp.Enable(not ot)
+        self.mixingAlpha.Enable(not ot)
+        self.nBroyden.Enable(not ot)
+        self.addedMos.Enable(not ot)
+        self.printHomoLumoGap.Enable(not ot)
 
         for el, orb, u in zip(self.hubbardEl, self.hubbardOrb,
                               self.hubbardU):
@@ -327,10 +377,14 @@ class Cp2kTheoryPanel(EccePanel):
             orb.Enable(used)
             u.Enable(used)
 
-        for el, b, p in zip(self.kindEl, self.kindBasis, self.kindPot):
+        for el, b, bf, p, pf in zip(self.kindEl, self.kindBasis,
+                                    self.kindBasisFile, self.kindPot,
+                                    self.kindPotFile):
             used = bool(el.GetValue().strip())
             b.Enable(used)
+            bf.Enable(used)
             p.Enable(used)
+            pf.Enable(used)
 
         self.libInfo.SetLabel(self.LibraryInfoText(
             self.libDir.GetValue().strip(),

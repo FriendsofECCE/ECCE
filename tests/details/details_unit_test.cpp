@@ -150,6 +150,11 @@ static void build()
   CHECK_EQ(m.items()[m.find("T.Core")].soft, "[0..3]");    // $nfrozen
   CHECK_EQ(m.items()[m.find("T.Core")].hard, "[0..5]");    // $nocc
   CHECK_EQ(m.boxes()[0].label, "Functional for HF");
+  Params pn = params();
+  pn.vars["nocc"] = "-1";                                  // hard_if
+  Model mn(d, pn);
+  CHECK(mn.build(err));
+  CHECK_EQ(mn.items()[mn.find("T.Core")].hard, "[0..0]");
 
   Model m2(d, params("DFT", "Opt"));
   CHECK(m2.build(err));
@@ -234,6 +239,13 @@ static void floats()
   m.userEdit(c, "1.50");                                   // reformatted, same
   CHECK_EQ(m.items()[c].value, "1.5");
   CHECK(r.lines.empty());
+  int e = m.find("T.Exp");                                 // exp=1: power of ten
+  r.lines.clear();
+  m.userEdit(e, "3e-06");
+  CHECK(r.lines.empty() && m.items()[e].value == "1e-08");
+  CHECK(r.statuses.back().find("power of 10") != string::npos);
+  m.userEdit(e, "1e-06");
+  CHECK_EQ(r.lines.size() ? r.lines[0] : "", "T.Exp|1e-06||1|1|float_input");
 }
 
 static void silentForce()

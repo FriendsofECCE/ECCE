@@ -10,11 +10,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
+#include <iomanip>
 #include <string>
 #include <vector>
 
 #include "util/EcceURL.H"
 #include "tdat/DensityPlane.H"
+#include "tdat/MoAoBasis.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/IPropCalculation.H"
@@ -90,11 +93,70 @@ static void planes()
   CHECK(!bonded(sym, coords, 2, 5), "H and the far H are not bonded");
   const double nh3[] = { 0, 0, 0.12,  0, 0.94, -0.28,  0.81, -0.47, -0.28,  -0.81, -0.47, -0.28 };
   const vector<double> pyramid(nh3, nh3 + 12);
-  CHECK(!isPlanar(pyramid) && !hasMolecularPlane(pyramid), "NH3 has no molecular plane");
+  CHECK(!isPlanar(pyramid) && hasMolecularPlane(pyramid), "NH3 has a best-fit molecular plane");
+  CHECK(makePlane(MOLECULAR, pyramid, {}, -1, -1, -1, p, why), "NH3 molecular plane accepted");
+  CHECK(makePlane(AXIAL, pyramid, {}, 0, 1, -1, p, why), "NH3 axial plane uses best fit");
   const double n2[] = { 0, 0, 0, 0, 0, 1.1 };
   const vector<double> diatomic(n2, n2 + 6);
   CHECK(isLinear(diatomic) && isPlanar(diatomic) && !hasMolecularPlane(diatomic),
         "N2: a plane through the axis, but nothing to stand on");
+  CHECK(principalPlanes(diatomic).empty() && principalPlanes({0, 0, 0}).empty(),
+        "principal choices exclude linear and single-atom geometries");
+  CHECK(makePlane(MOLECULAR, diatomic, {}, -1, -1, -1, p, why) &&
+        p.description == "plane through the molecular axis", "linear molecular handling unchanged");
+
+  const auto flat = principalPlanes(coords);
+  CHECK(flat.size() == 3 && flat[0].rms < 1e-12 && fabs(flat[0].n[2]) > 1 - 1e-12,
+        "planar molecule: principal plane 1 is the molecular plane");
+  CHECK(makePlane(MOLECULAR, coords, labels, -1, -1, -1, p, why) &&
+        p.description == "molecular plane" && dot(p.n, flat[0].n) > 1 - 1e-12 &&
+        dot(p.u, flat[0].u) > 1 - 1e-12, "planar molecular frame unchanged");
+
+  const vector<double> octahedron = {1, 0, 0, -1, 0, 0, 0, 1, 0,
+                                    0, -1, 0, 0, 0, 1, 0, 0, -1};
+  const auto equatorial = principalPlanes(octahedron);
+  CHECK(equatorial.size() == 3, "octahedron: three equatorial planes");
+  for (size_t i = 0; i < equatorial.size(); ++i) {
+    int inPlane = 0;
+    for (size_t a = 0; a < 6; ++a)
+      if (fabs(dot(&octahedron[3*a], equatorial[i].n)) < 1e-12) ++inPlane;
+    CHECK(inPlane == 4, "octahedron: four vertices lie exactly in each plane");
+    // The two axial vertices contribute to the RMS over all six atoms.
+    CHECK(fabs(equatorial[i].rms - sqrt(1.0 / 3)) < 1e-12,
+          "octahedron: RMS includes the two out-of-plane vertices");
+    for (size_t j = 0; j < i; ++j)
+      CHECK(fabs(dot(equatorial[i].n, equatorial[j].n)) < 1e-12,
+            "octahedron: three distinct perpendicular planes");
+  }
+
+  const vector<double> cage = {1.1, 1, 1, 1, -1, -1, -1, 1.05, -1, -1, -1, 1};
+  const auto principal = principalPlanes(cage);
+  CHECK(principal.size() == 3, "distorted tetrahedral cage: three planes");
+  CHECK(makePlane(MOLECULAR, cage, {}, -1, -1, -1, p, why) &&
+        dot(p.n, principal[0].n) > 1 - 1e-12, "cage molecular plane is best fit");
+  for (size_t i = 0; i < principal.size(); ++i) {
+    const Plane& q = principal[i];
+    double sum = 0, covarianceNormal[3] = {0, 0, 0};
+    for (size_t a = 0; a < cage.size() / 3; ++a) {
+      double delta[3];
+      for (int k = 0; k < 3; ++k) delta[k] = cage[3*a+k] - q.origin[k];
+      const double distance = dot(delta, q.n);
+      sum += distance * distance;
+      for (int k = 0; k < 3; ++k) covarianceNormal[k] += delta[k] * distance / 4;
+    }
+    CHECK(fabs(q.rms - sqrt(sum / 4)) < 1e-12, "RMS measures all atoms in Angstrom");
+    CHECK(fabs(q.origin[0] - .025) < 1e-12 && fabs(q.origin[1] - .0125) < 1e-12 &&
+          fabs(q.origin[2]) < 1e-12, "planes pass through unweighted centroid");
+    CHECK(fabs(dot(q.n, q.n) - 1) < 1e-12 && fabs(dot(q.u, q.u) - 1) < 1e-12 &&
+          fabs(dot(q.v, q.v) - 1) < 1e-12 && fabs(dot(q.u, q.n)) < 1e-12 &&
+          fabs(dot(q.v, q.n)) < 1e-12 && fabs(dot(q.u, q.v)) < 1e-12,
+          "principal plane frame is orthonormal");
+    for (int k = 0; k < 3; ++k)
+      CHECK(fabs(covarianceNormal[k] - q.rms*q.rms*q.n[k]) < 1e-12,
+            "plane normal is a covariance eigenvector");
+    if (i) CHECK(q.rms >= principal[i-1].rms && fabs(dot(q.n, principal[i-1].n)) < 1e-12,
+                 "principal planes are perpendicular and sorted by increasing scatter");
+  }
 
   //  Degeneracy: the MO diagram's tolerance.
   const vector<double> e = { -1.0, -0.5, -0.5 + 1e-6, -0.2, -0.2 + 1e-4 };
@@ -130,8 +192,50 @@ static void levels()
   CHECK(a.size() == 8 && a.back() == 0.004 && a[5] == 0.001, "levels are base 0.001 * 2^k");
 }
 
+// Probe the stored molecular wavefunction using the Density Map's evaluator
+// and overlap from the same flattened basis, without numerical grid quadrature.
+static int molecularProbe(const string& path, const string& points)
+{
+  EDSIServerCentral central;
+  IPropCalculation *calc = nullptr;
+  open(path, calc);
+  Evaluator ev;
+  if (!calc || !ev.build(calc)) {
+    cerr << "FAIL evaluator: " << ev.complaint << endl;
+    return 1;
+  }
+  vector<vector<double>> rows;
+  vector<int> counts;
+  vector<double> overlap;
+  if (!MoAoBasis::coefficients(calc, ev.symbols, false, rows) || rows.empty() ||
+      !MoAoBasis::overlapMatrix(calc, ev.symbols, ev.coordsAng,
+                              rows[0].size(), counts, overlap)) return 1;
+  const size_t n = rows[0].size();
+  double electrons = 0;
+  for (size_t m = 0; m < ev.occ.size(); ++m) {
+    if (ev.occ[m] == 0) continue;
+    double norm = 0;
+    for (size_t i = 0; i < n; ++i)
+      for (size_t j = 0; j < n; ++j)
+        norm += rows[m][i]*overlap[i*n+j]*rows[m][j];
+    electrons += ev.occ[m]*norm;
+  }
+  cout << std::setprecision(17) << "electrons " << electrons << "\n";
+  std::ifstream input(points);
+  if (!input) return 1;
+  double x, y, z;
+  while (input >> x >> y >> z) {
+    for (size_t m = 0; m < ev.occ.size(); ++m)
+      if (ev.occ[m] > 0)
+        cout << "orbital " << m+1 << " " << ev.orbital(m+1, false, x, y, z) << "\n";
+  }
+  return std::fabs(electrons-10) <= 1e-6 ? 0 : 1;
+}
+
 int main(int argc, char **argv)
 {
+  if (argc == 4 && string(argv[1]) == "--molecular-probe")
+    return molecularProbe(argv[2], argv[3]);
   planes();
   levels();
   if (argc < 2) {

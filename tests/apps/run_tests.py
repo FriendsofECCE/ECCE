@@ -42,10 +42,12 @@ import geomtrace_stress                                       # noqa: E402
 import nmode_edit_test                                        # noqa: E402
 import organizer_local_tree_test                              # noqa: E402
 import organizer_bad_meta_test                               # noqa: E402
+import organizer_missing_node_test                           # noqa: E402
 import organizer_tree_icons_test                             # noqa: E402
 import vib_frame_builder_test                                 # noqa: E402
 import builder_mode_test                                      # noqa: E402
 import builder_metal_test                                     # noqa: E402
+import builder_select_within_test
 import builder_select_style_test                              # noqa: E402
 import builder_panes_test                                     # noqa: E402
 import pbc_edit_test                                          # noqa: E402
@@ -62,8 +64,9 @@ import xdisplay                                               # noqa: E402
 #  I thought of is bounded" is not the same claim as "the run terminates",
 #  and only the second one is worth relying on.
 #
-#  A healthy full run is about six minutes.
-DEFAULT_BUDGET = int(os.environ.get("ECCE_APPS_BUDGET", "1500"))
+#  A healthy full run took about 25 minutes on niobium (2026-11) with the
+#  Builder and Organizer checks added since.
+DEFAULT_BUDGET = int(os.environ.get("ECCE_APPS_BUDGET", "2400"))
 
 
 class BudgetExpired(Exception):
@@ -687,10 +690,12 @@ def main():
                 builder_mode_test.check(display, results)
                 builder_metal_test.check(display, results)
                 builder_select_style_test.check(display, results)
+                builder_select_within_test.check(display, results)
                 builder_panes_test.check(display, results)
                 pbc_ux_test.check(display, results)
                 organizer_local_tree_test.check(display, results)
                 organizer_bad_meta_test.check(display, results)
+                organizer_missing_node_test.check(display, results)
                 organizer_tree_icons_test.check(display, results)
             finally:
                 restorePrefs()

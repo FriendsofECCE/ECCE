@@ -4,6 +4,7 @@
 #include <cstdlib>
 
 #include <wx/button.h>
+#include <wx/checkbox.h>
 #include <wx/choice.h>
 #include <wx/clipbrd.h>
 #include <wx/dataobj.h>
@@ -17,6 +18,8 @@
 #include <wx/textctrl.h>
 
 #include "CompareEnergies.H"
+#include "ReactionOverviewDialog.H"
+#include "util/ThermoRun.H"
 
 using std::string;
 
@@ -51,8 +54,22 @@ CompareEnergiesDialog::CompareEnergiesDialog(wxWindow *parent,
     if (init.empty()) addRow(s, string(), 1);
   }
 
+  wxBoxSizer *tbar = new wxBoxSizer(wxHORIZONTAL);
+  tbar->Add(new wxStaticText(this, wxID_ANY, _("G treatment:")), 0,
+            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  p_treatment = new wxChoice(this, wxID_ANY);
+  p_treatment->Append(_("The code's own G"));
+  for (const ThermoTreatmentInfo& t : thermoTreatments())
+    p_treatment->Append(wxString::FromUTF8(t.label));
+  p_treatment->SetSelection(0);
+  p_treatment->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { update(); });
+  tbar->Add(p_treatment, 0);
+  top->Add(tbar, 0, wxLEFT | wxRIGHT | wxTOP, 10);
+
+  p_std = new wxCheckBox(this, wxID_ANY, _("1 M standard state (solution)"));
+  p_std->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { update(); });
   p_results = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition,
-                             wxSize(640, 140),
+                             wxSize(720, 140),
                              wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
   p_results->SetFont(wxFont(wxFontInfo(wxSystemSettings::GetFont(
       wxSYS_DEFAULT_GUI_FONT).GetPointSize()).Family(wxFONTFAMILY_TELETYPE)));
@@ -61,6 +78,7 @@ CompareEnergiesDialog::CompareEnergiesDialog(wxWindow *parent,
   top->Add(new wxStaticText(this, wxID_ANY, _("Energies")), 0,
            wxLEFT | wxRIGHT, 10);
   top->Add(p_results, 1, wxEXPAND | wxALL, 10);
+  top->Add(p_std, 0, wxLEFT | wxRIGHT, 10);
   top->Add(new wxStaticText(this, wxID_ANY, _("Notes")), 0,
            wxLEFT | wxRIGHT, 10);
   top->Add(p_notes, 1, wxEXPAND | wxALL, 10);
@@ -74,6 +92,21 @@ CompareEnergiesDialog::CompareEnergiesDialog(wxWindow *parent,
     }
   });
   buttons->Add(copy, 0, wxRIGHT, 8);
+  wxButton *overview = new wxButton(this, wxID_ANY, _("Reaction overview..."));
+  overview->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    // Side A is the reactants and B the products; a negative term goes across.
+    string lhs, rhs;
+    for (int s = 0; s < 2; s++)
+      for (const std::pair<string, int>& t : termsOf(s)) {
+        string& side = ((t.second < 0) == (s == 0)) ? rhs : lhs;
+        if (!side.empty()) side += ", ";
+        const int n = t.second < 0 ? -t.second : t.second;
+        side += (n > 1 ? std::to_string(n) + "*" : string()) + t.first;
+      }
+    ReactionOverviewDialog dlg(this, lhs + " -> " + rhs);
+    dlg.ShowModal();
+  });
+  buttons->Add(overview, 0, wxRIGHT, 8);
   buttons->AddStretchSpacer();
   buttons->Add(new wxButton(this, wxID_CLOSE, _("Close")));
   top->Add(buttons, 0, wxEXPAND | wxALL, 10);
@@ -171,10 +204,31 @@ void CompareEnergiesDialog::update()
     p_copy.clear();
     return;
   }
-  const SumResult r = sumEnergies(t[0], t[1]);
+  SumResult r = sumEnergies(t[0], t[1]);
+  const int sel = p_treatment->GetSelection();
+  const string problem = applyThermoTreatments(r, t[0], t[1],
+      sel > 0 ? string(thermoTreatments()[sel - 1].cli) : string());
+  if (!problem.empty()) r.notes.push_back(problem);
+  applyStandardState(r, t[0], t[1], p_std->GetValue());
   p_results->SetValue(wxString::FromUTF8(sumTable(r, false).c_str()));
   p_notes->SetValue(wxString::FromUTF8(sumNotes(r).c_str()));
   p_copy = sumText(r, true);
+}
+
+void CompareEnergiesDialog::setTreatment(const string& treatment)
+{
+  const std::vector<ThermoTreatmentInfo>& t = thermoTreatments();
+  int sel = 0;
+  for (size_t i = 0; i < t.size(); i++)
+    if (treatment == t[i].cli) sel = (int)i + 1;
+  p_treatment->SetSelection(sel);
+  update();
+}
+
+void CompareEnergiesDialog::setStandardState(bool on)
+{
+  p_std->SetValue(on);
+  update();
 }
 
 string CompareEnergiesDialog::resultText() const

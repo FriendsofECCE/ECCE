@@ -107,6 +107,23 @@ scf~ dE=0.00e+00,-7.27e-09,-1.94e-09
 
 """
 
+# Real monitor snapshots of ORCA B3LYP-D3BJ jobs (#826): a frequency-only run
+# (organic... spectroscopy/carbonyl-compounds/orca-formaldehyde) and an
+# optimisation + frequencies run (organic/reactions/orca-ethylene).
+ORCA_FREQ = """# seq=2 sent={sent:.3f} at={at}
+scf cycle=12 energy=-114.2840101001427371 dE=-2.07e-09/1.000e-08 converged=yes
+scf~ dE=-1.2e-04,-3.1e-06,-4.5e-07,-2.07e-09
+result disp=D3
+freq kind=analytic point=15/15 phase=assemble last=Loop real=6 imaginary=0 done=yes zpe=0.02681377
+"""
+ORCA_OPTFREQ = """# seq=2 sent={sent:.3f} at={at}
+opt step=4 energy=-78.477470321 dE=-0.0000020172/0.0000010000 rmsgrad=0.0000193488/0.0000300000 maxgrad=0.0000441539/0.0001000000 rmsstep=0.0000941415/0.0006000000 maxstep=0.0002108991/0.0010000000 converged=yes
+opt~ energy=-78.470,-78.475,-78.4772,-78.477470321
+scf cycle=3 energy=-78.4735425913725635 dE=-8.00e-10/1.000e-08
+result disp=D3
+freq kind=analytic point=18/18 phase=assemble last=Van real=12 imaginary=0 done=yes zpe=0.05065909
+"""
+
 failures = []
 
 
@@ -166,9 +183,9 @@ def checkLayout(tag, b):
         check(y0 >= prevBottom, "%s: the %s section starts below the previous "
               "plot" % (tag, title), g.group(0))
         prevBottom = max(textEnd, py + ph)
-    caps = {"SCF": ["SCF: |\u0394E| per cycle (Hartree)"],
+    caps = {"SCF": ["SCF: |\u0394E| per cycle (Eh)"],
             "Optimisation": ["Optimisation: energy per step, all points",
-                             "Optimisation: max and RMS force per step (Hartree/bohr), all points"]}
+                             "Optimisation: max and RMS force per step (Eh/bohr), all points"]}
     for title, options in caps.items():
         if re.search(r"\| geom %s " % title, b):
             check(any(("plot " + cap) in b for cap in options),
@@ -187,7 +204,10 @@ def run(display, pngs):
         running = makeCalc(project, "water-running", "Running",
                            STORED.format(**stamp))
         done = makeCalc(project, "water-done", "Complete",
-                        DONE.format(**stamp))
+                        DONE.format(**stamp).replace("real=3 imaginary=0 ", ""))
+        with open(os.path.join(done, "Props", "VIBFREQ"), "w") as handle:
+            handle.write('<vector name="VIBFREQ" rows="5" units="cm-1">'
+                         '-0.0 -0.01 -0.9 -50 1200</vector>\n')
         fresh = makeCalc(project, "water-new", "Created", None)
         scan = makeCalc(project, "water-scan", "Complete", DONE.format(**stamp))
         with open(os.path.join(scan, "Props", "SCANENERGY"), "w") as handle:
@@ -204,6 +224,8 @@ def run(display, pngs):
         with open(os.path.join(oom, ".ecce-meta"), "a") as handle:
             handle.write(".\t%srunStatusReason\t\t%s\n" %
                          (NS, "Out of memory: the scheduler killed the job (OUT_OF_MEMORY)"))
+        orcafreq = makeCalc(project, "orca-freq-d3", "Complete", ORCA_FREQ.format(**stamp))
+        orcaoptfreq = makeCalc(project, "orca-optfreq-d3", "Complete", ORCA_OPTFREQ.format(**stamp))
         live = os.path.join(work, "live.txt")
         with open(live, "w") as handle:
             handle.write(LIVE.format(sent=now, at=int(now)))
@@ -257,6 +279,15 @@ def run(display, pngs):
                 "snap " + png("progress-orca-hessian.png"),
                 "summary file://" + oom,
                 "progressbox",
+                "size 1100 900",
+                "summary file://" + orcafreq,
+                "progressbox",
+                "showbox",
+                "snap " + png("progress-orca-freq-d3.png"),
+                "summary file://" + orcaoptfreq,
+                "progressbox",
+                "showbox",
+                "snap " + png("progress-orca-optfreq-d3.png"),
             ]) + "\n")
         result = apps.run(display, "organizer", windowTimeout=60, settle=45,
                           env={"ECCE_TEST_ORGANIZER": cmds,
@@ -268,13 +299,13 @@ def run(display, pngs):
             return
         boxes = answers(log, "progressbox")
         counts = answers(log, "counts")
-        if not check(len(boxes) == 12 and len(counts) == 2,
+        if not check(len(boxes) == 14 and len(counts) == 2,
                      "every command answered (%d boxes, %d counts)" % (len(boxes), len(counts)),
                      run_tests._tail(log, 30)):
             return
         for b in boxes:
             print("      " + b)
-        stored, after, completed, none, scanned, scan1, narrow, scan2, scan3, neb, hess, oomBox = boxes
+        stored, after, completed, none, scanned, scan1, narrow, scan2, scan3, neb, hess, oomBox, ofreq, ooptfreq = boxes
         check("Incomplete: Out of memory: the scheduler killed the job" in oomBox,
               "an Incomplete job's reason is the last word in the Progress box", oomBox)
 
@@ -290,8 +321,8 @@ def run(display, pngs):
         check("Optimisation: step 4" in stored and "max force 4.1e-04 (limit 3e-04) \u2717" in stored
               and "RMS force 8.0e-05 (limit 1e-04) \u2713" in stored,
               "running (stored): step, criteria against targets", stored)
-        check("plot Optimisation: max and RMS force per step (Hartree/bohr), all points (4 points)" in stored and
-              "plot SCF: |\u0394E| per cycle (Hartree) (6 points)" in stored,
+        check("plot Optimisation: max and RMS force per step (Eh/bohr), all points (4 points)" in stored and
+              "plot SCF: |\u0394E| per cycle (Eh) (6 points)" in stored,
               "running (stored): the force and SCF plots", stored)
         check(re.search(r"updated (19|2\d) s ago", stored) is not None,
               "running (stored): updated about 20 s ago, from the job store's stamp", stored)
@@ -307,26 +338,26 @@ def run(display, pngs):
         check(counts[1].startswith("notices=0 applied=0"),
               "live: no tree or summary update for a progress message", counts[1])
         check("Optimisation converged in 6 steps" in completed and
-              "Frequencies: 3 real, 0 imaginary" in completed and
-              "ZPE 0.021346 hartree" in completed and
+              "Frequencies: 2 modes, 1 imaginary" in completed and
+              "ZPE 0.021346 Eh" in completed and
               "plot Optimisation: energy per step, all points" in completed and
               completed.index("plot Optimisation") < completed.index("summary: ") and
               "s left" not in completed and "updated" not in completed,
-              "completed: the plots stay, the outcome lines follow them", completed)
-        check(re.search(r"summary: Final energy -?\d+\.\d{6} Hartree$", completed)
+              "completed: stored frequencies supply counts, plots stay, outcome follows", completed)
+        check(re.search(r"summary: Final energy −?\d+\.\d{6} Eh$", completed)
               is not None,
               "completed: the last line is the final energy (#352)", completed)
-        energy = re.search(r"summary: Final energy (\S+) Hartree$", completed)
-        check(energy is not None and field(completed, "copyvalue") == energy.group(1),
+        energy = re.search(r"summary: Final energy (\S+) Eh$", completed)
+        check(energy is not None and field(completed, "copyvalue") == energy.group(1).replace("\u2212", "-"),
               "completed: Copy energy gives the value shown (#408)", completed)
         check(field(completed, "energyselectable") == "1",
               "completed: the final energy can be selected with the mouse (#408)", completed)
-        check(scanned.endswith("summary: Final energy (last scan point) -76.405 Hartree"),
+        check(scanned.endswith("summary: Final energy (last scan point) \u221276.405000 Eh"),
               "relaxed scan: the final energy is the last scan point's", scanned)
         for tag, b in (("1024x600", scan1), ("1366x768", scan2), ("1920x1080", scan3)):
             check("Scan: point 5 of 5" in b and "bar 1.00" in b and
                   "plot Optimisation: energy per step, all points (39 points)" in b and
-                  "plot SCF: |\u0394E| per cycle (Hartree) (4 points)" in b,
+                  "plot SCF: |\u0394E| per cycle (Eh) (4 points)" in b,
                   "relaxed scan (%s): point 5 of 5, every optimisation step "
                   "of all 5 points in the energy plot" % tag, b)
         for tag, b in (("stored", stored), ("live", after), ("completed", completed),
@@ -339,11 +370,26 @@ def run(display, pngs):
               "plot NEB: E(highest image) - E(reactant) (Eh) per iteration (16 points)" in neb,
               "NEB-TS: iteration, energy, forces against limits, 16-point plot", neb)
         checkLayout("neb 1024x700", neb)
+        # One rule for every box (#826): Eh with six decimals, a summary line
+        # per finished stage, and what the final energy contains.
+        check("summary: SCF converged in 12 cycles \u00b7 E = \u2212114.284010 Eh" in ofreq and
+              "summary: Frequencies: 6 modes, 0 imaginary \u00b7 ZPE 0.026814 Eh" in ofreq and
+              re.search(r"summary: Final energy \u2212?\d+\.\d{6} Eh \(SCF \+ D3\)$", ofreq)
+              is not None and ofreq.index("SCF converged") < ofreq.index("Frequencies: 6"),
+              "ORCA freq-only: SCF line, frequencies, final energy (SCF + D3)", ofreq)
+        check("summary: Optimisation converged in 4 steps \u00b7 E = \u221278.477470 Eh" in ooptfreq and
+              "Frequencies: 12 modes, 0 imaginary" in ooptfreq and
+              re.search(r"summary: Final energy \u2212?\d+\.\d{6} Eh \(SCF \+ D3\)$", ooptfreq)
+              is not None,
+              "ORCA Opt+Freq: optimisation line, frequencies, final energy (SCF + D3)", ooptfreq)
+        check("hartree" not in ofreq + ooptfreq + completed and "E = \u2212" in stored + after,
+              "no 'hartree' in the box, blocks use Eh with a real minus", stored)
         check(field(none, "shown") == "0", "never launched: no box", none)
         for n in ("progress-running-stored.png", "progress-running-live.png",
                   "progress-completed.png", "progress-scan-1024x600.png",
                   "progress-scan-640x600.png", "progress-scan-1366x768.png",
-                  "progress-scan-1920x1080.png", "progress-neb-1024x700.png"):
+                  "progress-scan-1920x1080.png", "progress-neb-1024x700.png",
+                  "progress-orca-freq-d3.png", "progress-orca-optfreq-d3.png"):
             check(os.path.getsize(png(n)) > 1000 if os.path.exists(png(n)) else False,
                   "saved " + n)
     finally:

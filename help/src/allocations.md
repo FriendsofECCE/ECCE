@@ -3,7 +3,7 @@
 **Tools > Allocations...** in the Organizer lists each cluster account you
 have set up and how much of it is used. The figure is for the account as a
 whole, over all jobs charged to it. It is not what one calculation used; that
-is the **Cost** row of the calculation's summary.
+is the **Used** row of the calculation's summary.
 
 ## What the window shows
 

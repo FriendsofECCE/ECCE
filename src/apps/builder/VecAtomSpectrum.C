@@ -28,6 +28,7 @@
 #include "wxviz/WxVizToolFW.H"
 
 #include "VecAtomSpectrum.H"
+#include "wxgui/ewxBitmap.H"
 
   using std::find;
 
@@ -172,8 +173,8 @@ bool VecAtomSpectrum::Create(IPropCalculation *calculation,
    GetSizer()->Add(gridSizer,1, wxGROW|wxALL, 0);
 
    p_grid = new ewxGrid( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSUNKEN_BORDER|wxHSCROLL|wxVSCROLL );
-   p_grid->SetDefaultColSize(50);
-   p_grid->SetDefaultRowSize(25);
+   p_grid->SetDefaultColSize(ewxBitmap::scaled(50));
+   p_grid->SetDefaultRowSize(ewxBitmap::scaled(25));
    p_grid->SetColLabelSize(0);
    p_grid->SetRowLabelSize(0);
    p_grid->SetMinSize(wxSize(200,175));

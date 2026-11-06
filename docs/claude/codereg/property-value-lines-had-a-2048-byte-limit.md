@@ -33,3 +33,7 @@ output (Outputs/*.qmout) again, or rerunning it, gives whole ones.
 Tests: `tests/parsers/propinterp_test.py` (real `ecceqm.parse` + real
 interpreter, 160 functions) and `tests/apps/ecceqm_mo_large_test.py` (the
 9.2-stored props open without a crash; fresh ones give 156 MOs).
+
+`scripts/ecce-check-props <data folder>` lists every stored property whose
+value count differs from its rows x columns (calculation, property, code,
+counts); the reader now warns once per property and calculation (#719).

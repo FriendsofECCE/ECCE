@@ -68,7 +68,7 @@ int main()
   forces.parse("opt step=3 maxgrad=2.0e-03/3e-04 rmsgrad=5.0e-04/1e-04\n"
                "opt~ maxgrad=9e-03,5e-03,2e-03\nopt~ rmsgrad=4e-03,1.6e-03,5e-04\n");
   const JobProgress::Block fb = forces.running(0)[0];
-  check(fb.plotLog && fb.curves.size() == 2 && fb.plotUnit == "Hartree/bohr" &&
+  check(fb.plotLog && fb.curves.size() == 2 && fb.plotUnit == "Eh/bohr" &&
         fb.curves[0].label == "max" && fb.curves[1].label == "RMS" &&
         fb.curves[0].hasThreshold && fabs(fb.curves[0].threshold - log10(3e-4)) < 1e-9 &&
         fabs(fb.curves[1].values[2] - log10(5e-4)) < 1e-9,
@@ -82,7 +82,7 @@ int main()
   check(s.plotLog && s.plot.size() == 3 && fabs(s.plot[2] - log10(3.1e-6)) < 1e-9,
         "log |dE| per SCF cycle");
   check(s.curves.size() == 1 && s.curves[0].hasThreshold &&
-        fabs(s.curves[0].threshold + 10) < 1e-9 && s.plotUnit == "Hartree",
+        fabs(s.curves[0].threshold + 10) < 1e-9 && s.plotUnit == "Eh",
         "the SCF plot carries its limit and unit");
 
   const string done =
@@ -95,9 +95,48 @@ int main()
   f.parse(done);
   vector<string> sum = f.summary(true);
   check(sum.size() == 2 && has(sum, "Optimisation converged in 6 steps") &&
-        has(sum, "-76.40895000 hartree"), "summary: optimisation and final energy");
-  check(has(sum, "Frequencies: 3 real, 0 imaginary") && has(sum, "ZPE 0.021346"),
+        has(sum, "\xe2\x88\x92" "76.408950 Eh"), "summary: optimisation and final energy in Eh");
+  check(has(sum, "Frequencies: 3 modes, 0 imaginary") && has(sum, "ZPE 0.021346"),
         "summary: frequencies and ZPE");
+
+  {
+    const vector<double> frequencies = {-0.0, -0.01, -0.9, -50.0, 1200.0};
+    JobProgress stored;
+    stored.parse("freq done=yes real=1 imaginary=4 zpe=0.012\n");
+    stored.setFrequencies(frequencies);
+    check(has(stored.summary(true), "Frequencies: 2 modes, 1 imaginary"),
+          "stored frequencies correct numerical-zero counts in old progress");
+    check(has(stored.running(0, true)[0].lines, "2 modes, 1 imaginary"),
+          "finished frequencies without kind or point show mode counts");
+    check(has(stored.summary(true), "ZPE 0.012000"),
+          "stored mode counts preserve other progress fields");
+    JobProgress missing;
+    missing.setFrequencies(frequencies);
+    check(has(missing.summary(true), "Frequencies: 2 modes, 1 imaginary"),
+          "stored frequencies supply missing frequency progress");
+    JobProgress analytic;
+    analytic.parse("freq kind=analytic done=yes\n");
+    analytic.setFrequencies(frequencies);
+    check(has(analytic.running(0, true)[0].lines, "2 modes, 1 imaginary"),
+          "analytic frequency progress gains stored counts");
+  }
+
+  //  #722: the code's own converged line missed the snapshot, but the run is
+  //  Complete and its last step meets every limit.
+  JobProgress cm;
+  cm.parse("# seq=822 sent=1793383130.561\n"
+           "opt step=99 energy=-3910.3263062233 maxstep=0.0024287371/0.0030000000 "
+           "rmsstep=0.0005668482/0.0015000000 maxgrad=0.0003239626/0.0004500000 "
+           "rmsgrad=0.0000903064/0.0003000000\n");
+  check(has(cm.summary(true), "Optimisation converged in 99 steps"),
+        "summary: Complete, every limit met -> converged");
+  check(has(cm.summary(false), "Optimisation stopped at step 99"),
+        "summary: not Complete -> stopped, however close");
+  JobProgress cn;
+  cn.parse("# seq=1 sent=1793383130.561\n"
+           "opt step=40 maxstep=0.0040/0.0030 maxgrad=0.0003/0.00045\n");
+  check(has(cn.summary(true), "Optimisation stopped at step 40"),
+        "summary: a limit not met -> stopped");
 
   //  Imaginary modes after a converged optimisation: wrong for a minimum
   //  unless 0, for a transition state unless 1.
@@ -241,6 +280,33 @@ int main()
     check(db.size() == 1 && db[0].fraction == 1.0, "a finished Prepare's bar is full");
   }
 
+  // CREST (#810): the rows, and the cell while it samples.
+  {
+    JobProgress cr;
+    cr.parse("# seq=1\ncrest stage=tight mtd=14/14 iter=2 nopt=261 emin=-20.88735 "
+             "remain=255 window=6.00 est=31 estunit=sec\n");
+    vector<JobProgress::Block> kb = cr.running(0);
+    check(kb.size() == 1 && kb[0].title == "CREST" &&
+          has(kb[0].lines, "Metadynamics: 14 of 14 done") &&
+          has(kb[0].lines, "Structures: 261 optimised \xe2\x86\x92 255 within 6.00 kcal/mol") &&
+          has(kb[0].lines, "Lowest energy (Eh): -20.88735") &&
+          has(kb[0].lines, "Estimated: 31 sec for one batch of metadynamics runs"),
+          "CREST rows");
+    JobProgress cs;
+    cs.parse("# seq=1\ncrest stage=sampling mtd=9/14\n");
+    check(cs.shortLine() == "MTD 9 of 14", "cell: CREST sampling: " + cs.shortLine());
+    // Quantum cluster growth (#862): its stage, the solvents added and the cluster energy.
+    JobProgress cq;
+    cq.parse("# seq=1\ncrest stage=qcg qcgstep=GROW solv=2/3 ecluster=-33.866447\n");
+    vector<JobProgress::Block> qb = cq.running(0);
+    check(qb.size() == 1 && qb[0].title == "CREST" &&
+          has(qb[0].lines, "Stage: Quantum cluster growth \xc2\xb7 grow") &&
+          has(qb[0].lines, "Solvent molecules: 2 of 3 added") &&
+          has(qb[0].lines, "Cluster energy (Eh): -33.866447") && qb[0].bar,
+          "CREST QCG rows");
+    check(cq.shortLine() == "QCG 2 of 3 solvents", "cell: CREST QCG: " + cq.shortLine());
+  }
+
   // The table cell.
   check(p.shortLine() == "Freq 14/54", "cell: frequencies, the last of opt/freq: " + p.shortLine());
   JobProgress c1;
@@ -260,14 +326,46 @@ int main()
   JobProgress e;
   e.parse("# seq=3\nscf cycle=15 energy=-1.1 converged=yes\n");
   vector<string> es = e.summary(true);
-  check(es.size() == 1 && has(es, "SCF converged in 15 cycles"), "single point summary");
+  check(es.size() == 1 && has(es, "SCF converged in 15 cycles") &&
+        has(es, "E = \xe2\x88\x92" "1.100000 Eh"), "single point summary");
+
+  // #826: a finished SCF is a summary line under a frequency run too, from
+  // the real monitor's snapshots (ORCA D3BJ, G16 and ECCE-QM analytic runs).
+  JobProgress fo;
+  fo.parse("# seq=2\nscf cycle=12 energy=-114.2840101001427371 dE=-2.07e-09/1.000e-08 converged=yes\n"
+           "result disp=D3\n"
+           "freq kind=analytic point=15/15 phase=assemble last=Loop real=6 imaginary=0 done=yes zpe=0.02681377\n");
+  vector<string> fos = fo.summary(true);
+  check(fos.size() == 2 &&
+        fos[0] == "SCF converged in 12 cycles \xc2\xb7 E = \xe2\x88\x92" "114.284010 Eh" &&
+        fos[1] == "Frequencies: 6 modes, 0 imaginary \xc2\xb7 ZPE 0.026814 Eh" &&
+        fo.fieldOf("result", "disp") == "D3",
+        "ORCA freq-only summary: SCF line, then frequencies");
+  check(fo.running(0, true).size() == 2, "the result stage is no block");
+  JobProgress g16;
+  g16.parse("# seq=2\nscf cycle=7 energy=-76.4089539099 converged=yes\n"
+            "freq kind=analytic pass=5 real=3 imaginary=0 done=yes zpe=0.021164\n");
+  check(has(g16.summary(true), "SCF converged in 7 cycles \xc2\xb7 E = \xe2\x88\x92" "76.408954 Eh") &&
+        has(g16.summary(true), "Frequencies: 3 modes, 0 imaginary"),
+        "G16 freq-only summary: SCF line, then frequencies");
+  JobProgress qm;
+  qm.parse("# seq=2\nscf cycle=8 energy=-74.9630231385 dE=-8.67e-13/1e-10 grad=4.89e-11/1e-07 converged=yes\n"
+           "freq kind=analytic point=9/9 pass=0 phase=assemble done=yes real=3 imaginary=0 zpe=0.0257944722\n");
+  check(has(qm.summary(true), "SCF converged in 8 cycles \xc2\xb7 E = \xe2\x88\x92" "74.963023 Eh") &&
+        has(qm.summary(true), "ZPE 0.025794 Eh"),
+        "ECCE-QM freq-only summary");
+  JobProgress nf;
+  nf.parse("# seq=2\nscf cycle=5 energy=-1.5 converged=yes\n"
+           "freq kind=numerical point=12/12 done=yes real=3 imaginary=0\n");
+  check(!has(nf.summary(true), "SCF converged"),
+        "numerical frequencies: the last displaced SCF is no summary");
 
   // MOPAC: no SCF cycles, a gradient history that is no energy.
   JobProgress m;
   m.parse("# seq=2\nopt step=5 grad=0.484/1.0 converged=yes\n"
           "opt~ grad=31.9,6.2,0.484\nscf converged=yes\n");
   vector<string> ms = m.summary(true);
-  check(has(ms, "Optimisation converged in 5 steps") && !has(ms, "hartree"),
+  check(has(ms, "Optimisation converged in 5 steps") && !has(ms, "Eh"),
         "MOPAC summary: no gradient shown as an energy");
   JobProgress m1;
   m1.parse("# seq=1\nscf converged=yes\n");
@@ -328,6 +426,52 @@ int main()
           fabs(tp->plotXEnd - 0.8) < 1e-9, "gmx: temperature x axis in ps");
     check(ep && ep->plotXUnit == "step" && ep->plotXLast == 40 && ep->plotXEnd == 60,
           "gmx: potential energy x axis in steps out to the run's total");
+  }
+
+  // The density has a time but no step; it shares the other plots' ps axis.
+  {
+    JobProgress g;
+    g.parse("md point=200/400\ngmx-temp step=200 time=0.4 temp=2.9e+02\n"
+            "gmx-temp~ temp=287,300,291\ngmx-dens time=0.4 dens=1.0e+03\n"
+            "gmx-dens~ dens=990,1000,1010\n");
+    const JobProgress::Block *dn = 0;
+    for (const auto& b : g.running(0))
+      if (b.title == "Density") dn = &b;
+    check(dn && dn->plot.size() == 3 && dn->plotXUnit == "ps" &&
+          fabs(dn->plotXLast - 0.4) < 1e-9 && fabs(dn->plotXEnd - 0.8) < 1e-9,
+          "gmx: density x axis in ps out to the run's total, like temperature");
+  }
+
+  // The blocks keep the order of the code's progress rules whichever record
+  // arrives first (#753); the integrator stage takes its {integrator} slot.
+  {
+    const std::string desc = "[PROGRESS]\nProgress={integrator} point=$1/{n}\n[END]\n"
+        "[PROGRESS]\nProgress=gmx-temp step=$1\n[END]\n"
+        "[PROGRESS]\nProgress=gmx-pres step=$1\n[END]\n"
+        "[PROGRESS]\nProgress=gmx-dens time=$1 dens=$2\n[END]\n";
+    const std::vector<std::string> order = JobProgress::stageOrderOf(desc);
+    check(order.size() == 4 && order[0] == "{integrator}" && order[3] == "gmx-dens",
+          "stage order read from the rules");
+    const char *densFirst = "gmx-dens time=0.4 dens=990\ngmx-pres step=400 time=0.8 pres=1\n"
+        "md point=400/400\ngmx-temp step=400 time=0.8 temp=300\n";
+    const char *densLast = "md point=400/400\ngmx-temp step=400 time=0.8 temp=300\n"
+        "gmx-pres step=400 time=0.8 pres=1\ngmx-dens time=0.4 dens=990\n";
+    std::string seen[2];
+    int i = 0;
+    for (const char *text : {densFirst, densLast}) {
+      JobProgress g;
+      g.setStageOrder(order);
+      g.parse(text);
+      for (const auto& b : g.running(0)) seen[i] += b.title + "|";
+      i++;
+    }
+    check(seen[0] == seen[1] && seen[0].find("Density|") + 8 == seen[0].size() &&
+          seen[0].compare(0, 4, "Mole") == 0,
+          "gmx: blocks in the rules' order, not arrival order (" + seen[0] + " / " + seen[1] + ")");
+    JobProgress none;
+    none.setStageOrder(order);
+    none.parse("gmx-temp step=1 time=0.1 temp=300\n");
+    check(none.running(0).size() == 1, "a block the run lacks is left out");
   }
 
   // Dynamics shows the run's average and deviation (#517); the total energy

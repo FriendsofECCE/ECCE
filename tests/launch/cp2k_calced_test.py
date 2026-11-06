@@ -40,6 +40,10 @@ sys.path.insert(0, os.path.join(REPO, "tests", "filedsi"))
 import harness  # noqa: E402
 from harness import say  # noqa: E402
 
+# eccercmd holds the libssh transport when the build found libssh
+_SSH = (["-lssh"] if __import__("subprocess").run(
+    ["pkg-config", "--exists", "libssh"], capture_output=True).returncode == 0 else [])
+
 LIBS = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
         "eccecipc", "ecceutil", "eccecomm", "eccercmd"]
 failures = []
@@ -57,7 +61,7 @@ def buildResourceTest(build, work):
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o", driver,
             os.path.join(REPO, "tests", "filedsi", "resourceTest.C"), "-L" + build]
            + ["-l" + l for l in LIBS] * 3
-           + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
+           + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         say(proc.stderr[-2000:])

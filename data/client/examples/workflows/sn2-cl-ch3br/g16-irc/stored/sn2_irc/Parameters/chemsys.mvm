@@ -1,0 +1,34 @@
+title: Cl- + CH3Br IRC from the QST3 transition state
+type: molecule
+fragment_attributes:
+  charge: -1
+end_fragment_attributes:
+num_atoms: 6
+atom_info: symbol cart
+atom_list: 
+C 3.00000e-05 1.00000e-06 -0.570583
+H 1.05202 1.00000e-06 -0.814567
+H -0.525962 0.911044 -0.814580
+H -0.525962 -0.911042 -0.814586
+Br 1.00000e-06 -1.00000e-06 1.57786
+Cl -1.50000e-05 3.00000e-06 -3.29435
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+atom_type_list:
+        4   1
+        1   1
+        1   1
+        1   1
+        1   1
+        0   1
+num_bonds: 4
+bond_list: 
+1 2 1.00000 1
+1 3 1.00000 1
+1 4 1.00000 1
+1 5 1.00000 1

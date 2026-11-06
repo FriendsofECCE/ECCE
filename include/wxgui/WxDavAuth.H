@@ -63,8 +63,23 @@ class WxDavAuth : public AuthEventListener
       // Run right after the switch, before the app leaves its main loop.
       static void setOnSwitch(void (*f)()) { s_onSwitch = f; }
 
+      // Login for an added ECCE server (ref = EcceURL::getRef()): asks with
+      // the login window and puts the answer in the cache under that
+      // server's key only.  False when cancelled.
+      static bool askAddedLogin(const string& ref, string& user, string& pass);
+      // While set, requests are answered with exactly this login, once, and
+      // a refusal fails instead of consulting the cache or prompting: a
+      // stale entry of an earlier session must not decide whether the
+      // password just typed is right.
+      static void setProbe(const string& user, const string& pass);
+      static void clearProbe() { s_probe = false; }
+
    protected:
       WxDavAuth(const WxDavAuth& rhs);
+      static bool s_noPrompt;
+      static bool s_probe;
+      static string s_probeUser, s_probePass;
+      static WxDavAuth *s_instance;
 
       static bool s_switchedToLocal;
       static bool s_restartsOnSwitch;

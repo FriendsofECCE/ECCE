@@ -42,7 +42,7 @@ Plane::Plane() : rms(0.0), offset(0.0)
 }
 
 Map::Map() : quantity(DENSITY), mo(0), beta(false), nu(0), nv(0), u0(0),
-             v0(0), step(0.05), zmin(0), zmax(0), levelTop(0) {}
+             v0(0), step(0.05), zmin(0), zmax(0), difference(false), colourLimit(0), levelTop(0) {}
 
 //  Eigen-decomposition of the 3x3 covariance (Jacobi): the smallest
 //  spread is the plane's normal, the largest its long axis.
@@ -102,6 +102,30 @@ bool isPlanar(const vector<double>& c, double tolerance)
   return sqrt(l[0]) < tolerance;
 }
 
+vector<Plane> principalPlanes(const vector<double>& c)
+{
+  if (c.size() < 9 || c.size() % 3 != 0) return {};
+  V3 centroid, axes[3];
+  double spread[3];
+  principalAxes(c, centroid, spread, axes);
+  if (sqrt(spread[1]) < 0.05) return {};
+  vector<Plane> planes(3);
+  for (int i = 0; i < 3; ++i) {
+    Plane& p = planes[i];
+    const int along = i == 2 ? 1 : 2;
+    for (int k = 0; k < 3; ++k) {
+      p.origin[k] = centroid[k];
+      p.n[k] = axes[i][k];
+      p.u[k] = axes[along][k];
+    }
+    cross(p.n, p.u, p.v);
+    p.rms = sqrt(spread[i]);
+    p.description = p.base = "principal plane " + std::to_string(i + 1) +
+                             (i == 0 ? " (best fit)" : "");
+  }
+  return planes;
+}
+
 static bool makePlaneBase(PlaneKind kind, const vector<double>& c,
                const vector<string>& labels, int a, int b, int cc,
                Plane& p, string& why)
@@ -139,11 +163,10 @@ static bool makePlaneBase(PlaneKind kind, const vector<double>& c,
       return true;
     }
     if (p.rms >= 0.1) {
-      char buf[160];
-      snprintf(buf, sizeof buf, "The molecule is not planar (atoms scatter "
-               "%.2f A about the best plane): choose three atoms.", p.rms);
-      why = buf;
-      return false;
+      const vector<Plane> planes = principalPlanes(c);
+      if (planes.empty()) { why = "The atoms define no plane."; return false; }
+      p = planes[0];
+      return true;
     }
     for (int k = 0; k < 3; k++) {
       p.origin[k] = centroid[k]; p.u[k] = ev[2][k]; p.n[k] = ev[0][k];
@@ -183,10 +206,8 @@ static bool makePlaneBase(PlaneKind kind, const vector<double>& c,
   for (int k = 0; k < 3; k++) u[k] = c[3*b+k] - c[3*a+k];
   if (!normalise(u)) { why = "The two atoms coincide."; return false; }
   const bool linear = sqrt(lam[1]) < 0.05;
-  if (linear || p.rms >= 0.1) {
-    why = linear ? "A linear molecule has no molecular plane to stand on."
-                 : "The molecule is not planar, so there is no plane to "
-                   "stand on: choose three atoms.";
+  if (linear) {
+    why = "A linear molecule has no molecular plane to stand on.";
     return false;
   }
   for (int k = 0; k < 3; k++) ref[k] = ev[0][k];
@@ -217,7 +238,7 @@ bool isLinear(const vector<double>& c)
 
 bool hasMolecularPlane(const vector<double>& c)
 {
-  return isPlanar(c) && !isLinear(c);
+  return c.size() >= 9 && !isLinear(c);
 }
 
 bool bonded(const vector<string>& sym, const vector<double>& c, int a, int b)
@@ -444,47 +465,40 @@ string csv(const Map& m, const string& calcName)
 //----------------------------------------------------------------------
 //  Evaluator
 
-Evaluator::Evaluator() : unrestricted(false), p_basis(new vector<EspBasisFunction>) {}
+Evaluator::Evaluator() : unrestricted(false), fromResults(false), p_basis(new vector<EspBasisFunction>) {}
 Evaluator::~Evaluator() { delete p_basis; }
 
-bool Evaluator::build(IPropCalculation *calc)
+bool Evaluator::build(IPropCalculation *calc, const Fragment *shown)
 {
   complaint.clear();
-  std::unique_ptr<Fragment> frag(calc->getFragmentStep(-1));
+  std::unique_ptr<Fragment> own(shown ? 0 : calc->getFragmentStep(-1));
+  const Fragment *frag = shown ? shown : own.get();
   if (!frag || frag->numAtoms() == 0) {
     complaint = "The calculation has no chemical system.";
     return false;
   }
-  if (!MoAoBasis::fragmentGeometry(frag.get(), symbols, coordsAng)) {
+  if (!MoAoBasis::fragmentGeometry(const_cast<Fragment*>(frag), symbols, coordsAng)) {
     complaint = "The chemical system has no usable atoms.";
     return false;
   }
-  if (!MoAoBasis::coefficients(calc, symbols, false, p_c) || p_c.empty()) {
-    complaint = "The calculation has no MO coefficients.";
+  MoAoBasis::OrbitalSet os;
+  if (!MoAoBasis::orbitalSet(calc, symbols, coordsAng, os, &complaint))
     return false;
-  }
-  unrestricted = MoAoBasis::coefficients(calc, symbols, true, p_cBeta) &&
-                 !p_cBeta.empty();
-  if (!unrestricted) p_cBeta.clear();
-  if (!MoAoBasis::flatBasis(calc, symbols, coordsAng, (int)p_c[0].size(),
-                            *p_basis)) {
-    complaint = "The stored basis set does not match the orbital "
-                "coefficients.";
-    return false;
-  }
-
-  auto fetch = [&](const char *key, vector<double>& out) {
-    PropVector *pv = (PropVector*) calc->getProperty(key);
-    out.clear();
-    if (pv != 0) for (int i = 0; i < pv->rows(); i++) out.push_back(pv->value(i));
-  };
-  fetch("ORBENG", energy);
-  fetch("ORBOCC", occ);
+  fromResults = os.fromResults;
+  p_c.swap(os.rows[0]);
+  unrestricted = !os.rows[1].empty();
+  if (unrestricted) p_cBeta.swap(os.rows[1]); else p_cBeta.clear();
+  p_basis->swap(os.basis);
+  energy = os.energy[0];
+  occ = os.occupation[0];
   if (occ.size() < p_c.size()) occ.resize(p_c.size(), 0.0);
   if (unrestricted) {
-    fetch("ORBENGBETA", energyBeta);
-    fetch("ORBOCCBETA", occBeta);
+    energyBeta = os.energy[1];
+    occBeta = os.occupation[1];
     if (occBeta.size() < p_cBeta.size()) occBeta.resize(p_cBeta.size(), 0.0);
+  } else {
+    energyBeta.clear();
+    occBeta.clear();
   }
   return true;
 }
@@ -526,6 +540,56 @@ static double combine(const vector<double>& c, const vector<double>& phi)
   return s;
 }
 
+void Evaluator::addFragment(std::shared_ptr<const Evaluator> fragment, const string& name)
+{
+  p_fragments.push_back(fragment);
+  p_fragmentNames.push_back(name);
+}
+
+void Evaluator::clearFragments() { p_fragments.clear(); p_fragmentNames.clear(); }
+
+string Evaluator::differenceTitle() const
+{
+  string t = "Density difference: complex";
+  for (const string& n : p_fragmentNames) t += " - " + n;
+  return t;
+}
+
+bool matchFragment(const Evaluator& whole, const Evaluator& fragment,
+                   vector<char>& used, string& complaint, double tolerance)
+{
+  used.resize(whole.symbols.size(), 0);
+  for (size_t f = 0; f < fragment.symbols.size(); f++) {
+    int hit = -1;
+    for (size_t a = 0; a < whole.symbols.size() && hit < 0; a++) {
+      if (whole.symbols[a] != fragment.symbols[f]) continue;
+      double d2 = 0;
+      for (int k = 0; k < 3; k++) {
+        const double d = whole.coordsAng[3*a + k] - fragment.coordsAng[3*f + k];
+        d2 += d*d;
+      }
+      if (d2 <= tolerance*tolerance) hit = (int)a;
+    }
+    char buf[200];
+    if (hit < 0) {
+      snprintf(buf, sizeof buf, "Fragment atom %s%d is not at the position of any "
+               "%s atom of the complex (within %.2f A); the fragment must be "
+               "computed at its geometry in the complex.",
+               fragment.symbols[f].c_str(), (int)f + 1, fragment.symbols[f].c_str(), tolerance);
+      complaint = buf;
+      return false;
+    }
+    if (used[hit]) {
+      snprintf(buf, sizeof buf, "Atom %s%d of the complex is in more than one fragment.",
+               whole.symbols[hit].c_str(), hit + 1);
+      complaint = buf;
+      return false;
+    }
+    used[hit] = 1;
+  }
+  return true;
+}
+
 double Evaluator::density(double x, double y, double z) const
 {
   vector<double> phi;
@@ -541,6 +605,7 @@ double Evaluator::density(double x, double y, double z) const
     const double psi = combine(p_cBeta[m], phi);
     rho += occBeta[m]*psi*psi;
   }
+  for (const auto& f : p_fragments) rho -= f->density(x, y, z);
   return rho;
 }
 
@@ -632,6 +697,91 @@ void Evaluator::evaluateAt(double x, double y, double z, const vector<char>& nee
     if (occupied || (m < needB.size() && needB[m])) psiB[m] = combine(p_cBeta[m], phi);
     if (occupied) rho += occBeta[m]*psiB[m]*psiB[m];
   }
+  if (wantRho) for (const auto& f : p_fragments) rho -= f->density(x, y, z);
+}
+
+FieldPoint::FieldPoint()
+{
+  rho[0] = rho[1] = tau[0] = tau[1] = rhoTotal = 0.0;
+  for (int s = 0; s < 2; s++) for (int k = 0; k < 3; k++) grad[s][k] = 0.0;
+  for (int k = 0; k < 3; k++) { gradTotal[k] = 0.0; eig[k] = 0.0; }
+  for (int k = 0; k < 6; k++) hess[k] = 0.0;
+}
+
+// Eigenvalues of a symmetric 3x3 (xx yy zz xy xz yz), ascending, by Jacobi sweeps.
+static void eigenvalues(const double h[6], double e[3])
+{
+  double a[3][3] = { {h[0], h[3], h[4]}, {h[3], h[1], h[5]}, {h[4], h[5], h[2]} };
+  for (int sweep = 0; sweep < 50; sweep++) {
+    const double off = fabs(a[0][1]) + fabs(a[0][2]) + fabs(a[1][2]);
+    if (off < 1e-300) break;
+    for (int p = 0; p < 2; p++)
+      for (int q = p + 1; q < 3; q++) {
+        if (a[p][q] == 0.0) continue;
+        const double th = (a[q][q] - a[p][p])/(2.0*a[p][q]);
+        const double t = (th >= 0 ? 1.0 : -1.0)/(fabs(th) + sqrt(th*th + 1.0));
+        const double c = 1.0/sqrt(t*t + 1.0), sn = t*c;
+        for (int k = 0; k < 3; k++) {          // columns p, q
+          const double akp = a[k][p], akq = a[k][q];
+          a[k][p] = c*akp - sn*akq;
+          a[k][q] = sn*akp + c*akq;
+        }
+        for (int k = 0; k < 3; k++) {          // rows p, q
+          const double apk = a[p][k], aqk = a[q][k];
+          a[p][k] = c*apk - sn*aqk;
+          a[q][k] = sn*apk + c*aqk;
+        }
+      }
+  }
+  e[0] = a[0][0]; e[1] = a[1][1]; e[2] = a[2][2];
+  std::sort(e, e + 3);
+}
+
+void Evaluator::fieldsAt(double x, double y, double z, FieldPoint& out) const
+{
+  const double bx = x*BOHR_PER_ANGSTROM, by = y*BOHR_PER_ANGSTROM,
+               bz = z*BOHR_PER_ANGSTROM;
+  const size_t nb = p_basis->size();
+  vector<double> v(nb), g(3*nb), h(6*nb);
+  for (size_t i = 0; i < nb; i++)
+    (*p_basis)[i].derivatives(bx, by, bz, v[i], &g[3*i], &h[6*i]);
+
+  out = FieldPoint();
+  // One orbital: psi, grad psi, Hessian of psi, then added with weight n to the spin.
+  auto add = [&](const vector<double>& c, double na, double nb_) {
+    double psi = 0, gp[3] = {0, 0, 0}, hp[6] = {0, 0, 0, 0, 0, 0};
+    for (size_t i = 0; i < nb; i++) {
+      const double ci = c[i];
+      psi += ci*v[i];
+      for (int k = 0; k < 3; k++) gp[k] += ci*g[3*i + k];
+      for (int k = 0; k < 6; k++) hp[k] += ci*h[6*i + k];
+    }
+    const double w[2] = { na, nb_ };
+    const double g2 = gp[0]*gp[0] + gp[1]*gp[1] + gp[2]*gp[2];
+    for (int s = 0; s < 2; s++) {
+      if (w[s] == 0.0) continue;
+      out.rho[s] += w[s]*psi*psi;
+      out.tau[s] += 0.5*w[s]*g2;
+      for (int k = 0; k < 3; k++) out.grad[s][k] += 2.0*w[s]*psi*gp[k];
+      static const int ka[6] = {0, 1, 2, 0, 0, 1}, kb[6] = {0, 1, 2, 1, 2, 2};
+      for (int m = 0; m < 6; m++)
+        out.hess[m] += 2.0*w[s]*(gp[ka[m]]*gp[kb[m]] + psi*hp[m]);
+    }
+  };
+  if (unrestricted) {
+    for (size_t m = 0; m < p_c.size(); m++) if (occ[m] != 0.0) add(p_c[m], occ[m], 0.0);
+    for (size_t m = 0; m < p_cBeta.size(); m++)
+      if (occBeta[m] != 0.0) add(p_cBeta[m], 0.0, occBeta[m]);
+  } else {
+    for (size_t m = 0; m < p_c.size(); m++) {
+      if (occ[m] == 0.0) continue;
+      const double a = std::min(occ[m], 1.0);
+      add(p_c[m], a, occ[m] - a);
+    }
+  }
+  out.rhoTotal = out.rho[0] + out.rho[1];
+  for (int k = 0; k < 3; k++) out.gradTotal[k] = out.grad[0][k] + out.grad[1][k];
+  eigenvalues(out.hess, out.eig);
 }
 
 bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,
@@ -703,7 +853,7 @@ bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,
     if (!beta && set.front() <= homo() && set.back() > homo())
       out.title += " - partly occupied";
   } else {
-    out.title = "Total electron density";
+    out.title = isDifference() ? differenceTitle() : "Total electron density";
   }
 
   vector<double> phi;
@@ -727,6 +877,15 @@ bool Evaluator::map(const Plane& plane, Quantity q, int mo, bool beta,
   }
   out.zmin = *std::min_element(out.z.begin(), out.z.end());
   out.zmax = *std::max_element(out.z.begin(), out.z.end());
+  if (q == DENSITY && isDifference()) {
+    //  The nuclear regions would swamp the bonding region at full range.
+    out.difference = true;
+    vector<double> a(out.z.size());
+    for (size_t i = 0; i < a.size(); i++) a[i] = fabs(out.z[i]);
+    std::nth_element(a.begin(), a.begin() + (size_t)(0.99*(a.size() - 1)), a.end());
+    out.colourLimit = a[(size_t)(0.99*(a.size() - 1))];
+    if (!(out.colourLimit > 0)) out.colourLimit = std::max(fabs(out.zmin), fabs(out.zmax));
+  }
   return true;
 }
 

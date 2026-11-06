@@ -10,6 +10,10 @@ here=$(dirname "$0")
 bin=${ECCE_HOME:+$ECCE_HOME/bin}
 [ -x "$bin/passdialog" ] || bin=$here/../bin
 host=${ECCE_ASKPASS_HOST:-}
+# Marker files of this ssh run (see openMaster): fed = the stored password
+# was given, refused = ssh asked again after it, asked = a dialog was shown.
+sdir=
+[ -z "${ECCE_ASKPASS_ANSWER:-}" ] || sdir=$(dirname "$ECCE_ASKPASS_ANSWER")
 user=${ECCE_ASKPASS_USER:-}
 
 cancel() {
@@ -57,15 +61,28 @@ case $kind in
       IFS= read -r pw < "$fifo"
       rm -f "$fifo"
       if [ -n "$pw" ]; then
+        [ -z "$sdir" ] || : > "$sdir/fed"
         printf '%s\n' "$pw"
         exit 0
       fi
     fi
     [ -x "$bin/passdialog" ] || exit 1
+    if [ -n "$sdir" ]; then
+      [ "$what" != password ] || [ ! -e "$sdir/fed" ] || : > "$sdir/refused"
+      : > "$sdir/asked"
+    fi
     # The answer, not the exit status, decides: an older passdialog exits
     # 255 after OK.  It prints nothing when it is cancelled.
-    answer=$("$bin/passdialog" "$what" "$host" "$user")
+    rem=
+    [ "$what" = password ] && [ "${ECCE_ASKPASS_REMEMBER:-}" = 1 ] && rem=remember
+    reply=$("$bin/passdialog" "$what" "$host" "$user" $rem)
+    # Line 1 is the password, an optional line 2 "remember" (the checkbox).
+    answer=$(printf '%s\n' "$reply" | sed -n 1p)
     [ -n "$answer" ] || cancel
+    # ECCE keeps a password (not a passcode) that was accepted, 0600.
+    if [ "$what" = password ] && [ -n "${ECCE_ASKPASS_ANSWER:-}" ]; then
+      ( umask 077; printf '%s\n' "$reply" > "$ECCE_ASKPASS_ANSWER" )
+    fi
     printf '%s\n' "$answer"
     ;;
 esac

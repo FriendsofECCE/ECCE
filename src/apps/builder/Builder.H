@@ -57,6 +57,7 @@ class Fragment;
 class IPropCalculation;
 class Job;
 class MiniPerTab;
+class MoPanel;
 class PropertyIndexPanel;
 class PropertyPanel;
 class SFile;
@@ -154,7 +155,8 @@ class Builder: public BuilderGUI,
       // Ctrl+A (selectAllKey); Edit > Select All is wxID_SELECTALL
       ID_ACCEL_SELECTALL,
       // Ctrl+S: Save, or Save As when there is nothing to save into
-      ID_ACCEL_SAVE
+      ID_ACCEL_SAVE,
+      ID_SURFACE_MENU_BASE = 3500
     };
 
     const static string NAME_TOOL_CONTEXT;
@@ -276,7 +278,7 @@ class Builder: public BuilderGUI,
       GeomConstraintsDialog *constraintsDialog() { return p_constraintsDialog; }
       virtual void center();
       virtual bool isAutoCenter() const;
-      bool atomsOutsideView();
+      virtual bool atomsOutsideView();
       virtual bool isSelectModeDrag() const;
       virtual bool areLabelsOn() const;
 
@@ -353,9 +355,17 @@ class Builder: public BuilderGUI,
       virtual void OnClearClick( wxCommandEvent& event );
       virtual void OnDeleteClick( wxCommandEvent& event );
       virtual void OnSelectallClick( wxCommandEvent& event );
+      virtual void OnSelectWithinClick(wxCommandEvent& event);
+      bool selectWithin(double radius, bool molecules, bool keep);
       virtual void OnSelectMoleculeClick( wxCommandEvent& event );
       virtual void OnSelectSolventClick( wxCommandEvent& event );
       virtual void OnSelectIonsClick( wxCommandEvent& event );
+      virtual void OnDistortBondsClick( wxCommandEvent& event );
+      virtual void OnTakeCoordsClick( wxCommandEvent& event );
+      void takeSources(vector<string>& labels, vector<string>& elems,
+                       vector<string>& coords);
+      bool takeCoordinates(const string& set, const string& elements,
+                           const string& coords, bool align, double *rmsd = 0);
       virtual void OnSelectBackboneClick( wxCommandEvent& event );
       virtual void OnSelectSidechainsClick( wxCommandEvent& event );
       virtual void OnSelectReverseClick( wxCommandEvent& event );
@@ -407,6 +417,8 @@ class Builder: public BuilderGUI,
       void focusShownPanel(wxWindow *win);
       void unfocusPanel(wxWindow *win);
       void syncIndexSelection(wxWindow *win);
+      void surfacesChanged();
+      void setPaneCaption(wxWindow *win, const wxString& caption);
               void OnPropertyMenuClick( wxCommandEvent& event );
 
       // Help menu events
@@ -509,6 +521,7 @@ class Builder: public BuilderGUI,
       void accordionNormalize(wxWindow *keepOpen=0);
       void foldPane(wxWindow *win, bool fold);
       void updatePropertyIndex();
+      void rebuildSurfacesMenu(MoPanel *mo);
       void collapseLog();
       bool paneWanted(const wxAuiPaneInfo& pane) const;
       string layoutPrefix() const;
@@ -554,6 +567,11 @@ class Builder: public BuilderGUI,
       void doSaveThumb();
       void doClose(const string& context="", const bool& autoOpen=true);
       bool traceStressCommand(SceneScript& s, const vector<string>& w);
+      /// Show frame `index` through the Geometry Trace panel (plot marker
+      /// included); false when that panel is not open.
+      bool traceFrame(int index);
+      bool shotHookCommand(SceneScript& s, const vector<string>& w,
+                           const string& outdir);
       bool nmodeTestCommand(SceneScript& s, const vector<string>& w);
       bool plotShotCommand(SceneScript& s, const vector<string>& w,
                            const string& outdir);

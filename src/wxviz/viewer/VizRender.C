@@ -83,6 +83,7 @@ bool VizRender::thumbnail(const string& urlstr, int width, int height)
     viewer = new SGViewer(&dialog, wxID_ANY);
     viewer->setSceneGraph(sg);
     viewer->setViewing(false);
+    viewer->showTextLabels(false);   // no corner texts in the picture
     mainSizer->Add(viewer, 1, wxEXPAND|wxALL, 0);
 
     loadAtomColors(sg);
