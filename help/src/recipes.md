@@ -2,9 +2,10 @@
 
 A recipe makes the boxes of a [workflow](workflows.md) for a kind of study,
 already linked, with the run types and settings the study needs. ECCE ships
-six: **TS search with IRC**, **Conformers**, **Protonation sites**,
-**Tautomers**, **Solvation shell** and **xTB first, then conformers**. A site can add its own, and
-any workflow can be saved as a recipe.
+seven: **TS search with IRC**, **Conformers**, **Protonation sites**,
+**Tautomers**, **Solvation shell**, **xTB first, then conformers** and
+**Fragment analysis**. A site can add its own, and any workflow can be saved
+as a recipe.
 
 - **Conformers**: an xTB optimisation (CREST needs an optimised structure, in every recipe that uses it), a CREST conformer search, then xTB, then a DFT optimisation with frequencies.
 - **Protonation sites**: CREST finds the protonation sites, then xTB and DFT refine the lowest protomer, with the charge raised by one.
@@ -12,6 +13,9 @@ any workflow can be saved as a recipe.
 - **Solvation shell**: CREST grows a shell of solvent molecules (water, ten, by default) around the solute, then xTB and DFT refine the whole cluster with the same implicit solvent.
 - **xTB first, then conformers**: an xTB optimisation of a rough structure, then a CREST conformer search from it, then DFT.
 - **TS search with IRC**: reactant and product, a TS search with frequencies, then the IRC.
+- **Fragment analysis**: a single point of a complex and one of each of its
+  fragments, all at the complex's geometry with the same method and basis set,
+  for the [Fragment orbitals](#fragment-orbitals) box. ORCA only for now.
 
 ## Apply Recipe
 
@@ -54,6 +58,9 @@ The recommendation is the recipe's default, changed by its rules:
 The rules read the selected box when the recipe is applied after it; for a new
 chain there is no structure yet and the recipe's defaults are shown. The
 rules only warn: any method and basis you type is accepted.
+
+**3 Fragments** appears for the Fragment analysis recipe; see
+[Fragment analysis](#fragment-analysis). The next section is then numbered 4.
 
 **3 Where the new steps go** offers **Start a new workflow** or
 **Continue after the selected box "&lt;name&gt;"**. This section is hidden when no
@@ -156,6 +163,99 @@ needs calculations stored on this machine.
 temperatures (250 to 400 K in steps of 25 by default; change the three
 fields and press **Update**), the Arrhenius and Eyring fits over the range,
 and **Export CSV...** for the table.
+
+## Fragment analysis
+
+The recipe makes three or more boxes: **complex**, a single point (run type
+Energy) of the whole structure, and **fragment-1**, **fragment-2**, ..., a
+single point of each fragment, linked from the complex by its geometry. All
+use the one method and basis set of the panel's level-of-theory row, since
+each fragment's orbitals are expanded in the complex's basis set.
+
+Apply it after the box of a finished calculation of the complex (select the
+box, or right-click it and choose **Apply Recipe from here...**): the complex
+box starts from that calculation's final geometry, and each fragment box
+holds its own atoms of that geometry. For a new workflow, build the complex
+in the **complex** box; the fragment boxes take their atoms when they are
+launched.
+
+**Fragments.** One row per fragment, with:
+
+- **Atoms**: the complex's atom numbers as the Builder shows them, for
+  example `1` or `2-13` or `1,3,5-8`. `rest` takes every atom that no other
+  fragment has.
+- **Charge** and **Multiplicity** of the fragment on its own.
+- **Formula**, shown when the structure is known.
+
+**Add fragment** adds a row; **Remove last** removes the last one (two
+remain at least). Fragments must not share atoms and together must cover the
+complex. The panel says what is wrong under the controls, and **Create
+boxes** makes nothing until it is right. It also warns, without refusing,
+when the fragment charges do not add up to the charge of the complex.
+
+When the recipe is applied after a box, the panel proposes a split of its
+structure:
+
+- with a metal atom: the metal, and the rest. A ligand (a molecule bonded to
+  the metal) with an odd number of electrons is counted as an anion, for
+  example Cl⁻; one with an even number as neutral, for example CO or NH₃. The
+  metal takes the remaining charge: for Co(NH₃)₄Cl₂⁺ the proposal is Co³⁺ and
+  one fragment (NH₃)₄Cl₂²⁻. A closed-shell anion with an even
+  number of electrons, such as sulfate, is counted as neutral: change its
+  charge by hand.
+- without a metal: one fragment per molecule, or atom 1 and the rest.
+
+Each fragment gets the lowest multiplicity its number of electrons allows
+(singlet or doublet). A fragment with a multiplicity above 1 is calculated
+unrestricted (UHF or UKS).
+
+## Fragment orbitals
+
+A workflow with a complex box and its fragment boxes gets a **Fragment
+orbitals** box, below the Rate or Key data box or in their place. It waits
+until the complex and every fragment are Complete and says which ones it is
+waiting for. The numbers are those of `ecce-fragorb analyse`, from each
+calculation's `results.h5`; the box needs calculations stored on this
+machine.
+
+The line under the title names the fragments with their charges, for
+example Cr | C₆O₆. Each following line is one orbital level of the complex
+near the frontier, highest first: two levels above the LUMO, the LUMO, the
+HOMO and two below it. A level is one orbital, or several degenerate ones
+(MO 34-36). The line gives its energy in eV and the fragment orbitals (FOs)
+it is made of, with the Mulliken share of each, largest first: the first
+always, the next two when they are 10 % or more. An FO is named by its
+fragment and its place there (C₆O₆ LUMO+1); degenerate FOs of one fragment
+are taken together (Cr HOMO (×3)). For degenerate complex orbitals the share
+is the mean over the level. For an open-shell complex the α and β orbitals
+are listed separately.
+
+The complex orbital c is written in the fragment orbitals as
+a = S_FO⁻¹ C_FOᵀ S c, with S the complex's overlap matrix; the Mulliken share
+of FO i is aᵢ (C_FOᵀ S c)ᵢ. The shares of one orbital add up to 1 minus the
+part outside the span of the FOs, which is listed in the Details window and
+is near zero when the fragments together have the complex's basis set.
+A Mulliken share can be above 100 % or below 0 when fragment orbitals
+overlap strongly; the shares of one orbital still add up as above.
+
+**Details...** opens a window with:
+
+- every complex orbital with its energy, occupation, the part outside the
+  FOs and each FO level with a share of 1 % or more;
+- the FO levels of each fragment with their energies and occupations;
+- the partial density of states (PDOS) of each fragment and the total, and
+  the overlap population density of states (OPDOS) between the fragments,
+  from `ecce-fragorb dos`: Gaussian broadening with a full width at half
+  maximum of 0.3 eV, in states per eV (eV⁻¹), with a line at the midpoint
+  between HOMO and LUMO. A positive OPDOS is bonding between the fragments,
+  a negative one antibonding. The line under the plots gives the occupied
+  overlap population, the OPDOS summed over the occupied orbitals;
+- **Export CSV...**, the share of every FO in every complex orbital.
+
+The analysis refuses calculations that are not at the same geometry
+(within 0.001 Å), fragments that share atoms or leave atoms out, and a
+fragment whose basis set differs from the complex's on its atoms; the box
+then shows the reason.
 
 ## Save Workflow as Recipe
 

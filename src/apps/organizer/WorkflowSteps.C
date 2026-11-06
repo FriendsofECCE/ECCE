@@ -8,6 +8,8 @@
 
 #include "tdat/Fragment.H"
 #include "tdat/TAtm.H"
+#include "tdat/TFormula.H"
+#include "tdat/TPerTab.H"
 #include "tdat/SpinMult.H"
 #include "util/InvalidException.H"
 #include "util/ResourceUtils.H"
@@ -818,9 +820,12 @@ void applyRoleMethod(Resource *step)
   const bool hf = methodKey(method) == "hf";
   const string value = hf ? "" : WorkflowSteps::methodValue(type, method);
   if (!hf && value.empty()) return;
-  // ECCE-QM names its theories after the category ("DFT", "HF").
+  // ECCE-QM names its theories after the category ("DFT", "HF"); an open
+  // shell (a fragment that is a radical) needs the unrestricted theory.
   const bool qm = type == "ecceqm_es";
-  TTheory theory(hf ? "SCF" : "DFT", qm ? (hf ? "HF" : "DFT") : hf ? "RHF" : "RDFT");
+  const bool open = calc->spinMultiplicity() > SpinMult::singlet;
+  TTheory theory(hf ? "SCF" : "DFT", qm ? (hf ? "HF" : "DFT")
+                                        : hf ? (open ? "UHF" : "RHF") : (open ? "UDFT" : "RDFT"));
   calc->theory(&theory);
   if (hf) return;
   GUIValues *g = calc->guiparams();
@@ -872,6 +877,28 @@ void carryInto(Resource *source, Resource *made, const string& point, int charge
     frag = ScanPoint::fragment(fromTask, point, w);
   } else {
     frag = finalGeometry(fromTask);
+  }
+  // A fragment step (#201) takes its own atoms of the structure, with its
+  // own charge and multiplicity.
+  vector<RecipeFragment> parts;
+  const int part = atoi(made->getProp(nsKey(":recipe.fragment")).c_str());
+  if (part > 0 && parseFragments(made->getProp(nsKey(":recipe.fragments")), parts) &&
+      part <= (int)parts.size()) {
+    vector<vector<int> > atoms;
+    string why;
+    Fragment *sub = frag && frag->numAtoms() > 0 &&
+                    resolveFragments(parts, (int)frag->numAtoms(), atoms, why)
+                        ? frag->createSubFragment(atoms[part - 1]) : 0;
+    delete frag;
+    if (sub) {
+      sub->charge(parts[part - 1].charge);
+      toTask->fragment(sub);
+    }
+    delete sub;
+    to->spinMultiplicity((SpinMult::SpinMultEnum)parts[part - 1].mult);
+    to->openShells(parts[part - 1].mult - 1);
+    applyRoleBasis(made);
+    return;
   }
   if (frag && frag->numAtoms() > 0) {
     if (chargeShift) frag->charge(frag->charge() + chargeShift);
@@ -958,6 +985,11 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
                        : role == "tsguess" ? 2 : -1;
       if (slot >= 0) picks[slot][l.to] = qstMakePick(byId[l.from]->getURL().toString(), point);
     }
+    for (size_t i = 0; i < variant.steps.size(); i++)
+      if (variant.steps[i].fragment > 0) {
+        made[i]->addProp(nsKey(":recipe.fragment"), std::to_string(variant.steps[i].fragment));
+        made[i]->addProp(nsKey(":recipe.fragments"), variant.steps[i].fragments);
+      }
     if (after)
       for (size_t i = 0; i < variant.steps.size(); i++)
         if (!hasSource[i]) {
@@ -965,6 +997,15 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
           carryInto(after, made[i], "", variant.steps[i].chargeShift);
           hasSource[i] = true;
         }
+    // Fragment steps show their atoms at once when their source has a
+    // structure; they take it again from its result when launched.
+    for (size_t k = 0; k < variant.links.size(); k++) {
+      const RecipeLink& l = variant.links[k];
+      for (size_t i = 0; i < variant.steps.size(); i++)
+        if (variant.steps[i].id == l.to && variant.steps[i].fragment > 0 &&
+            l.name == kGeometryLink)
+          carryInto(byId[l.from], made[i], "");
+    }
     wf->saveLinkbase();
 
     for (size_t i = 0; i < variant.steps.size(); i++) {
@@ -1100,6 +1141,14 @@ string WorkflowSteps::methodValue(const string& codeType, const string& method)
 string WorkflowSteps::structureSet(Session *wf, Resource *step)
 {
   if (!wf || !step || step->getProp(nsKey(":recipe.step")).empty()) return "";
+  // A fragment's structure says nothing about the level of theory, which
+  // must stay the complex's.
+  if (atoi(step->getProp(nsKey(":recipe.fragment")).c_str()) > 0) {
+    applyRoleMethod(step);
+    applyRoleBasis(step);
+    return step->getName() + "=" + step->getProp(nsKey(":recipe.method")) + "/" +
+           step->getProp(nsKey(":recipe.basis"));
+  }
   const string rid = recipeId(wf);
   StructureFacts facts;
   PropertyTask *task = dynamic_cast<PropertyTask*>(step);
@@ -1255,6 +1304,78 @@ vector<KeyStep> WorkflowSteps::keySteps(Session *wf)
     if (k.complete) k.term = gatherEnergyTerm(step->getURL().toString(), 1);
     out.push_back(k);
   }
+  return out;
+}
+
+
+vector<RecipeFragment> WorkflowSteps::proposedFragments(Resource *step, vector<int> *zOut,
+                                                       int *chargeOut)
+{
+  PropertyTask *task = dynamic_cast<PropertyTask*>(step);
+  Fragment *frag = task ? finalGeometry(task) : 0;
+  vector<int> z;
+  vector<double> xyz, radii;
+  int charge = 0;
+  if (frag) {
+    TPerTab table;
+    for (size_t i = 0; i < frag->numAtoms(); i++) {
+      const TAtm *a = frag->atomRef((int)i);
+      z.push_back(a->atomicNumber());
+      for (int c = 0; c < 3; c++) xyz.push_back(a->coordinates()[c]);
+      radii.push_back(table.covalentRadius(a->atomicNumber()));
+    }
+    charge = frag->charge();
+  }
+  delete frag;
+  if (zOut) *zOut = z;
+  if (chargeOut) *chargeOut = charge;
+  return proposeFragments(z, xyz, radii, charge);
+}
+
+
+vector<FragStep> WorkflowSteps::fragmentSteps(Session *wf)
+{
+  vector<FragStep> out;
+  if (!wf) return out;
+  Resource *complex = 0;
+  vector<std::pair<Resource*, int> > parts;
+  for (const Node& n : tree(wf)) {
+    const int k = atoi(n.step->getProp(nsKey(":recipe.fragment")).c_str());
+    if (k <= 0 || !n.source) continue;
+    if (!complex) complex = n.source;
+    if (n.source == complex) parts.push_back(std::make_pair(n.step, k));
+  }
+  if (!complex) return out;
+  auto make = [&](Resource *step, int k) {
+    FragStep s;
+    s.name = step->getName();
+    s.url = step->getURL().toString();
+    s.stamp = step->getProp(nsKey(":completiondate"));
+    s.fragment = k;
+    s.complete = isComplete(step);
+    const ResourceDescriptor::RUNSTATE st = stateOf(step);
+    if (st == ResourceDescriptor::STATE_UNSUCCESSFUL || st == ResourceDescriptor::STATE_FAILED ||
+        st == ResourceDescriptor::STATE_SYSTEM_FAILURE || st == ResourceDescriptor::STATE_KILLED)
+      s.state = ResourceUtils::stateToString(st);
+    PropertyTask *task = dynamic_cast<PropertyTask*>(step);
+    Fragment *frag = task ? task->fragment() : 0;
+    if (frag && frag->numAtoms() > 0) {
+      vector<TTagCountPair> *tc = frag->tagCounts();
+      s.formula = TFormula::empiricalFormula(*tc, 0);
+      delete tc;
+    }
+    delete frag;
+    vector<RecipeFragment> spec;
+    if (k > 0 && parseFragments(step->getProp(nsKey(":recipe.fragments")), spec) &&
+        k <= (int)spec.size()) {
+      s.atoms = spec[k - 1].atoms;
+      s.charge = spec[k - 1].charge;
+      s.mult = spec[k - 1].mult;
+    }
+    return s;
+  };
+  out.push_back(make(complex, 0));
+  for (const auto& p : parts) out.push_back(make(p.first, p.second));
   return out;
 }
 

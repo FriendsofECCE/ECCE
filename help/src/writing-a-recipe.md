@@ -39,6 +39,10 @@ box takes from its source. Use it on the first box after a CREST
 **Protonation Sites** step: CREST's structures are cations, one charge above
 the structure that went in. Later boxes copy the charge of the box before them,
 so only the first box needs the flag.
+`fragment` makes the box once per fragment set in the panel's **Fragments**
+section, with that fragment's atoms of its source's structure, its charge and
+its multiplicity; links to and from the box are repeated for each copy. The
+**Fragment analysis** recipe uses it.
 The run type is the name the Calculation Editor uses, for example `Energy`,
 `Geometry`, `GeoVib` (optimisation and frequencies), `IRC`,
 `Transition State (QST) + Frequencies` or `Conformer Search`. List the steps

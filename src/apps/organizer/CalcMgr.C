@@ -123,6 +123,7 @@ static std::string s_registerMessage;
 #include "ContextPanelInterface.H"
 #include "SessionProjectContextPanel.H"
 #include "RecipePanel.H"
+#include "FragOrbDetailsDialog.H"
 #include "WorkflowPanel.H"
 #include "ReconnectSelected.H"
 #include <future>
@@ -749,6 +750,7 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "workflowrecipelist" || command == "workflowrecipe" ||
                command == "workflowrecipepanel" || command == "workflowrecipecreate" ||
                command == "workflowkeydata" || command == "workflowrate" ||
+               command == "workflowfragorb" ||
                command == "workflowresults" || command == "workflowmark" ||
                command == "workflowsaverecipe" || command == "workflowlink" ||
                command == "workflowstructure" || command == "workflowrecipehere") {
@@ -767,6 +769,11 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflowrate WF [T=K] [png=FILE] [csv=FILE] [range=LOW:HIGH:STEP]
       //     the Rate box as text ("|" for newlines); the picture of the window;
       //     the Details table for the range (default 250:400:25) as CSV
+      //   workflowfragorb WF [png=FILE] [details=PNG] [csv=FILE]
+      //     the Fragment orbitals box as text ("|" for newlines); the picture
+      //     of the window; its Details window's picture, report and CSV
+      //   fragments=ATOMS:CHARGE:MULT/... (workflowrecipe, workflowrecipepanel)
+      //     the fragments of a recipe with fragment steps (#201)
       //   workflowresults WF            each box's result line: "name: text|..."
       //   workflowmark WF STEP KEY THERMO   make a copied step a recipe step (KEY: reactant, ts, ...)
       //   workflowsaverecipe WF ID TITLE   Save Workflow as Recipe
@@ -783,8 +790,10 @@ void CalcMgr::runTestCommand(const string& line)
         args >> wfUrl >> rid >> vid >> src;
       else args >> wfUrl;
       bool autorun = false;
-      string rateT, ratePng, rateCsv, rateRange = "250:400:25";
+      string rateT, ratePng, rateCsv, rateRange = "250:400:25", fragSpec, detailsPng;
       while (args >> flag) {
+        if (flag.compare(0, 10, "fragments=") == 0) fragSpec = flag.substr(10);
+        if (flag.compare(0, 8, "details=") == 0) detailsPng = flag.substr(8);
         if (flag.compare(0, 2, "T=") == 0) rateT = flag.substr(2);
         if (flag.compare(0, 4, "png=") == 0) ratePng = flag.substr(4);
         if (flag.compare(0, 4, "csv=") == 0) rateCsv = flag.substr(4);
@@ -839,7 +848,15 @@ void CalcMgr::runTestCommand(const string& line)
                   method.empty() ? r->roles[i].method : method,
                   basis.empty() ? r->roles[i].basis : basis);
             if (!solvent.empty()) levels["solvent"] = std::make_pair("", solvent);
-            string why = wp->recipeCreate(*r, *v, levels, source, autorun);
+            RecipeVariant made = *v;
+            if (hasFragmentSteps(*v)) {
+              vector<RecipeFragment> parts;
+              if (!parseFragments(fragSpec, parts))
+                parts = source ? WorkflowSteps::proposedFragments(source)
+                               : vector<RecipeFragment>{{"1", 0, 1}, {"rest", 0, 1}};
+              made = expandFragments(*v, parts);
+            }
+            string why = wp->recipeCreate(*r, made, levels, source, autorun);
             outcome = why.empty() ? "ok " + WorkflowSteps::info(wf) : "error: " + why;
           }
         } else if (command == "workflowrecipepanel") {
@@ -857,10 +874,14 @@ void CalcMgr::runTestCommand(const string& line)
                 if (lv.first != "solvent") panel->setLevel(lv.first, method.empty() ? lv.second.first : method,
                                 basis.empty() ? lv.second.second : basis);
             if (!solvent.empty()) panel->setLevel("solvent", "", solvent);
+            vector<RecipeFragment> parts;
+            if (parseFragments(fragSpec, parts)) panel->setFragments(parts);
             panel->setAutoRun(autorun);
             SetSize(1500, 900);
             Raise();
             for (int i = 0; i < 8; i++) wxYield();
+            panel->scrollToFragments();
+            for (int i = 0; i < 4; i++) wxYield();
             outcome = (png == "-" || ecceWindowShot(this, png) ? "ok " : "not saved ") +
                       panel->report();
           }
@@ -893,6 +914,29 @@ void CalcMgr::runTestCommand(const string& line)
           if (!rateCsv.empty()) {
             const string why = wp->rateDetailsCsv(rateCsv, rateRange);
             outcome += why.empty() ? " csv saved" : " csv failed: " + why;
+          }
+        } else if (command == "workflowfragorb") {
+          SetSize(1500, 900);
+          Raise();
+          for (int i = 0; i < 4; i++) wxYield();
+          string t = wp->fragOrbText();
+          for (int i = 0; i < 4; i++) wxYield();
+          for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
+          outcome = "ok " + t;
+          if (!ratePng.empty()) outcome += ecceWindowShot(this, ratePng) ? " png saved" : " png failed";
+          if (!detailsPng.empty() || !rateCsv.empty()) {
+            FragOrbDetailsDialog *d = wp->fragOrbDetails();
+            if (!d) outcome += " details: none";
+            else {
+              d->SetSize(1300, 760);
+              d->Show();
+              for (int i = 0; i < 10; i++) wxYield();
+              outcome += " details: " + d->report();
+              if (!detailsPng.empty())
+                outcome += ecceWindowShot(d, detailsPng) ? " details-png saved" : " details-png failed";
+              if (!rateCsv.empty()) outcome += d->saveCsv(rateCsv) ? " csv saved" : " csv failed";
+              d->Destroy();
+            }
           }
         } else if (command == "workflowkeydata") {
           string t = wp->keyDataText();

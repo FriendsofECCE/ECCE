@@ -28,6 +28,8 @@ class wxCheckBox;
 class wxListCtrl;
 class RecipePreview;
 class wxScrolledWindow;
+class wxSpinCtrl;
+class wxTextCtrl;
 
 class RecipePanel : public wxPanel
 {
@@ -55,7 +57,19 @@ public:
   void createClicked();
   void cancelClicked();
 
+  /// The fragments of a recipe with "fragment" steps (#201); false when
+  /// the variant has none.
+  bool setFragments(const std::vector<RecipeFragment>& fragments);
+  std::vector<RecipeFragment> fragments() const;
+  /// Why the fragments cannot be used, "" when they can.
+  std::string fragmentProblem() const;
+  /// Scrolls the settings to the Fragments section (for a picture).
+  void scrollToFragments();
+
 private:
+  void fillFragments(const std::vector<RecipeFragment>& fragments);
+  void addFragmentRow(const RecipeFragment& f);
+  void fragmentsChanged();
   void fillRoles(bool preserve = false);
   void layoutSettings();
   void fillVariants();
@@ -89,6 +103,21 @@ private:
   wxStaticText *p_description, *p_problem, *p_facts_text;
   wxCheckBox *p_autorun;
   RecipePreview *p_preview;
+
+  // Fragments (#201): shown for a variant with "fragment" steps.
+  wxPanel *p_fragPanel;
+  wxBoxSizer *p_fragRows;
+  wxStaticText *p_fragHeading, *p_whereHeading;
+  struct FragRow {
+    wxTextCtrl *atoms;
+    wxSpinCtrl *charge, *mult;
+    wxStaticText *formula;
+  };
+  std::vector<FragRow> p_frags;
+  std::vector<int> p_z;        ///< atomic numbers of the selected box's structure
+  int p_charge;
+  RecipeVariant p_expanded;    ///< the variant with its fragment steps made
+  bool p_fragMessage;          ///< p_problem shows the fragments' check
 };
 
 #endif

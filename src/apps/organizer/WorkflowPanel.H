@@ -31,6 +31,7 @@ class WorkflowCanvas;
 class WxResourceTreeItemData;
 class PointChooser;
 class RecipePanel;
+class FragOrbDetailsDialog;
 
 class WorkflowPanel : public ewxPanel
 {
@@ -89,6 +90,10 @@ public:
   /// The Rate box as plain lines (T set first when given); the details CSV for a range.
   std::string rateText(const std::string& T = "");
   std::string rateDetailsCsv(const std::string& file, const std::string& range);
+  /// The Fragment orbitals box as plain lines; its Details window, shown
+  /// without blocking (null when the box has no result).
+  std::string fragOrbText();
+  FragOrbDetailsDialog *fragOrbDetails();
 
   /// Geometry of the drawing, for the screenshot test.
   std::string layoutReport();

@@ -36,6 +36,8 @@
 #include "CalcMgr.H"
 #include "RateBox.H"
 #include "RateDetailsDialog.H"
+#include "FragOrbBox.H"
+#include "FragOrbDetailsDialog.H"
 #include "RecipePanel.H"
 #include "WorkflowLayout.H"
 #include "WorkflowPanel.H"
@@ -102,6 +104,31 @@ public:
     p_rateDetails->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { showRateDetails(); });
     p_rateTField->Hide();
     p_rateDetails->Hide();
+    p_fragDetails = new wxButton(this, wxID_ANY, "Details...");
+    p_fragDetails->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) { showFragDetails(); });
+    p_fragDetails->Hide();
+  }
+
+  /// The Fragment orbitals box as plain lines (test hook), brought into view.
+  string fragOrbText()
+  {
+    relayout();
+    Refresh();
+    if (p_hasFrag)
+      Scroll(std::max(0, (p_fragRect.x - 40) / 10), std::max(0, (p_fragRect.y - 10) / 10));
+    return p_frag.text();
+  }
+
+  /// Opens the Details window without blocking (test hook); null when the
+  /// box has no result.
+  FragOrbDetailsDialog *fragDetails()
+  {
+    string complex, waiting;
+    vector<string> fragments, names;
+    if (!fragOrbRequest(WorkflowSteps::fragmentSteps(p_panel->p_session), complex, fragments,
+                        names, waiting) || !waiting.empty())
+      return 0;
+    return new FragOrbDetailsDialog(this, complex, fragments, names, p_frag.level);
   }
 
   /// The Rate box as plain lines (test hook), after setting T when given.
@@ -194,7 +221,74 @@ public:
       maxY = std::max(maxY, p_keyRect.GetBottom());
     }
     layoutRate(keySteps, dc, maxX, maxY);
+    layoutFragOrb(dc, maxX, maxY);
     SetVirtualSize(maxX + kMargin, maxY + kMargin);
+  }
+
+  /// The Fragment orbitals box (#201) under the Rate or key-data box.
+  /// ecce-fragorb runs only when one of the steps has changed.
+  void layoutFragOrb(wxDC &dc, int &maxX, int &maxY)
+  {
+    p_fragRect = wxRect();
+    const vector<FragStep> steps = WorkflowSteps::fragmentSteps(p_panel->p_session);
+    string complex, waiting;
+    vector<string> fragments, names;
+    p_hasFrag = fragOrbRequest(steps, complex, fragments, names, waiting);
+    if (!p_hasFrag) {
+      p_frag = FragOrbBoxResult();
+      p_fragSig.clear();
+      p_fragDetails->Hide();
+      return;
+    }
+    string sig;
+    for (const FragStep &s : steps)
+      sig += "|" + s.url + ":" + (s.complete ? "1" : "0") + ":" + s.stamp + ":" + s.state;
+    if (sig != p_fragSig) {
+      p_fragSig = sig;
+      p_frag = fragOrbBox(steps);
+    }
+    const int lh = dc.GetTextExtent("Ag").y + 4;
+    const int kw = 620;
+    p_fragLines.clear();
+    if (!p_frag.level.empty())
+      p_fragLines.push_back(std::make_pair(wxString::FromUTF8(p_frag.level.c_str()), wxString()));
+    for (const auto &r : p_frag.rows)
+      p_fragLines.push_back(std::make_pair(wxString::FromUTF8(r.first.c_str()),
+                                           wxString::FromUTF8(r.second.c_str())));
+    wxString line;
+    wxArrayString words = wxSplit(wxString::FromUTF8(p_frag.note.c_str()), ' ');
+    for (size_t i = 0; i < words.size(); i++) {
+      wxString next = line.empty() ? words[i] : line + " " + words[i];
+      if (dc.GetTextExtent(next).x > kw - 28 && !line.empty()) {
+        p_fragLines.push_back(std::make_pair(line, wxString()));
+        next = words[i];
+      }
+      line = next;
+    }
+    if (!line.empty()) p_fragLines.push_back(std::make_pair(line, wxString()));
+    const wxRect above = p_hasRate ? p_rateRect : p_hasKey ? p_keyRect : wxRect();
+    const int h = ((int)p_fragLines.size() + 2) * lh + 20 + 40;
+    if (p_panel->p_vertical)
+      p_fragRect = wxRect(kMargin, above.IsEmpty() ? maxY + 60 : above.GetBottom() + 20, kw, h);
+    else
+      p_fragRect = wxRect(above.IsEmpty() ? maxX + 60 : above.x,
+                          above.IsEmpty() ? kMargin : above.GetBottom() + 20, kw, h);
+    maxX = std::max(maxX, p_fragRect.GetRight());
+    maxY = std::max(maxY, p_fragRect.GetBottom());
+    int sx, sy;
+    CalcScrolledPosition(p_fragRect.GetRight() - 14 - p_fragDetails->GetSize().x,
+                         p_fragRect.GetBottom() - 34, &sx, &sy);
+    p_fragDetails->SetPosition(wxPoint(sx, sy));
+    p_fragDetails->Show();
+    p_fragDetails->Enable(p_frag.ready);
+  }
+
+  void showFragDetails()
+  {
+    FragOrbDetailsDialog *d = fragDetails();
+    if (!d) return;
+    d->ShowModal();
+    d->Destroy();
   }
 
   /// The Rate box (#872) under the key-data box, or at its place when there is none.
@@ -560,6 +654,32 @@ private:
       dc.DrawText("T / K", k.x + 14, k.GetBottom() - 30);
     }
 
+    if (p_hasFrag) {
+      const wxRect &k = p_fragRect;
+      const int lh = dc.GetTextExtent("Ag").y + 4;
+      dc.SetBrush(wxBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW)));
+      dc.SetPen(wxPen(dim, 2));
+      dc.DrawRoundedRectangle(k, 6);
+      dc.SetFont(bold);
+      dc.SetTextForeground(text);
+      dc.DrawText("Fragment orbitals", k.x + 14, k.y + 10);
+      dc.SetFont(base);
+      int y = k.y + 10 + lh + 6;
+      for (size_t i = 0; i < p_fragLines.size(); i++, y += lh) {
+        const bool isRow = !p_fragLines[i].second.empty();
+        dc.SetTextForeground(isRow || i == 0 ? text : dim);
+        dc.DrawText(p_fragLines[i].first, k.x + 14, y);
+        if (!isRow) continue;
+        // Values in a column after the widest label.
+        int lw = 0;
+        for (const auto &l : p_fragLines)
+          if (!l.second.empty()) lw = std::max(lw, dc.GetTextExtent(l.first).x);
+        dc.DrawText(wxControl::Ellipsize(p_fragLines[i].second, dc, wxELLIPSIZE_END,
+                                         k.width - 42 - lw),
+                    k.x + 28 + lw, y);
+      }
+    }
+
     if (p_hasKey) {
       const wxRect &k = p_keyRect;
       const int lh = dc.GetTextExtent("Ag").y + 4;
@@ -650,6 +770,12 @@ private:
   vector<std::pair<wxString, wxString> > p_rateLines;
   wxTextCtrl *p_rateTField = 0;
   wxButton *p_rateDetails = 0;
+  FragOrbBoxResult p_frag;
+  wxRect p_fragRect;
+  bool p_hasFrag = false;
+  string p_fragSig;
+  vector<std::pair<wxString, wxString> > p_fragLines;
+  wxButton *p_fragDetails = 0;
 };
 
 
@@ -942,6 +1068,18 @@ string WorkflowPanel::rateText(const string& T)
 string WorkflowPanel::rateDetailsCsv(const string& file, const string& range)
 {
   return p_canvas->rateDetailsCsvTo(file, range);
+}
+
+
+string WorkflowPanel::fragOrbText()
+{
+  return p_canvas->fragOrbText();
+}
+
+
+FragOrbDetailsDialog *WorkflowPanel::fragOrbDetails()
+{
+  return p_canvas->fragDetails();
 }
 
 

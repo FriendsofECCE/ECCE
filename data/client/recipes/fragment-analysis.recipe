@@ -1,0 +1,14 @@
+# Fragment analysis (#201): single points of a complex and of its fragments at
+# the complex's geometry, for the Fragment orbitals box (ecce-fragorb).
+recipe: fragment-analysis
+title: Fragment analysis
+field: Bonding
+summary: The complex and each fragment at the complex's geometry; its orbitals in fragment orbitals
+description: A single point of the complex and one of each fragment set below, all at the complex's geometry with the same method and basis set. When they have finished, the Fragment orbitals box expands each orbital of the complex in the orbitals of the fragments. Apply it after a finished calculation of the complex to use that calculation's final geometry.
+role: sp | Complex and fragments | PBE0 | def2-SVP | one method and basis set for every step: the fragments' orbitals are expanded in the complex's basis
+rules: heavy-ecp, size, registered
+
+variant: orca | ORCA | ORCA
+step: orca | complex | ORCA | sp | Energy | single point of the complex | structure
+step: orca | fragment | ORCA | sp | Energy | single point of a fragment | fragment
+link: orca | complex | fragment | geometry

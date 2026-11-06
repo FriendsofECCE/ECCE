@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
   std::vector<std::string> problems;
   std::vector<Recipe> all = loadRecipes({root + "/data/client/recipes"}, &problems);
-  check(problems.empty() && all.size() == 6, "all six built-in recipes load");
+  check(problems.empty() && all.size() == 7, "all seven built-in recipes load");
   const Recipe *ts = 0, *conf = 0;
   for (const Recipe& r : all) { if (r.id == "ts-irc") ts = &r; if (r.id == "conformers") conf = &r; }
   check(ts && ts->variants.size() == 2 && ts->variants[0].steps.size() == 5 &&
@@ -233,6 +233,55 @@ int main(int argc, char **argv)
         std::string(want[2]) == "-12.3 kJ/mol", "SN2 reaction free energy -12.3 kJ/mol by hand");
   check(has(t, "Free-energy barrier  G(TS) - G(reactant): +25.6 kJ/mol") &&
         std::string(want[3]) == "+25.6 kJ/mol", "SN2 free-energy barrier +25.6 kJ/mol by hand");
+
+  // Fragments (#201): the recipe's fragment step, the split, the checks.
+  {
+    Recipe fr;
+    std::string err;
+    check(parseRecipe("recipe: f\nvariant: v | V | ORCA\n"
+                      "step: v | cx | ORCA | | Energy | complex | structure\n"
+                      "step: v | frag | ORCA | | Energy | fragment | fragment\n"
+                      "link: v | cx | frag | geometry\n", fr, err) &&
+          fr.variants[0].steps[1].perFragment, "the fragment flag is read");
+    check(has(recipeText(fr), "| fragment\n"), "and written back");
+    std::vector<RecipeFragment> parts;
+    check(parseFragments("1:0:1/2-13:-1:2", parts) && parts.size() == 2 &&
+          parts[1].atoms == "2-13" && parts[1].charge == -1 && parts[1].mult == 2 &&
+          fragmentsText(parts) == "1:0:1/2-13:-1:2", "fragment list read and written");
+    RecipeVariant ex = expandFragments(fr.variants[0], parts);
+    check(ex.steps.size() == 3 && ex.steps[1].id == "frag-1" && ex.steps[2].id == "frag-2" &&
+          ex.steps[2].fragment == 2 && ex.steps[2].fragments == "1:0:1/2-13:-1:2" &&
+          ex.links.size() == 2 && ex.links[1].from == "cx" && ex.links[1].to == "frag-2",
+          "one step and one link per fragment");
+    std::vector<std::vector<int> > atoms;
+    check(resolveFragments({{"1", 0, 1}, {"rest", 0, 1}}, 13, atoms, err) &&
+          atoms[1].size() == 12 && atoms[1][0] == 1, "rest takes the other atoms");
+    check(!resolveFragments({{"1-3", 0, 1}, {"3-13", 0, 1}}, 13, atoms, err) &&
+          has(err, "atom 3 is in fragment 1 and in fragment 2"), "shared atom refused");
+    check(!resolveFragments({{"1", 0, 1}, {"2-12", 0, 1}}, 13, atoms, err) &&
+          has(err, "atoms 13 are in no fragment"), "missing atom refused");
+    check(!resolveFragments({{"1", 0, 1}, {"2-14", 0, 1}}, 13, atoms, err) &&
+          has(err, "atom 14"), "atom beyond the structure refused");
+    // CoCl(NH3) +1: Co | ligands, Cl (odd) an anion, Co takes +2; Cr(CO)6 neutral.
+    std::vector<int> z = {27, 17, 7, 1, 1, 1};
+    std::vector<double> xyz = {0, 0, 0,  2.2, 0, 0,  -2.0, 0, 0,  -2.4, 0.9, 0,
+                               -2.4, -0.45, 0.8,  -2.4, -0.45, -0.8};
+    std::vector<double> radii = {1.26, 1.02, 0.71, 0.31, 0.31, 0.31};
+    std::vector<RecipeFragment> p = proposeFragments(z, xyz, radii, 1);
+    check(fragmentsText(p) == "1:2:2/2-6:-1:1", ("metal | ligands, odd ligand an anion: " + fragmentsText(p)).c_str());
+    check(checkFragments(p, z, 1).empty(), "the proposal passes the check");
+    check(has(checkFragments({{"1", 2, 1}, {"2-6", -1, 1}}, z, 1), "cannot have multiplicity 1"),
+          "a multiplicity the electrons do not allow is refused");
+    std::string warn;
+    check(checkFragments({{"1", 0, 2}, {"2-6", 0, 2}}, z, 1, &warn).empty() &&
+          has(warn, "add up to 0, the complex has 1"), "charges that do not add up only warn");
+    // Two water molecules without a metal: one fragment per molecule.
+    std::vector<int> zw = {8, 1, 1, 8, 1, 1};
+    std::vector<double> xw = {0, 0, 0,  0.96, 0, 0,  -0.24, 0.93, 0,
+                              2.9, 0, 0,  3.2, 0.9, 0,  3.2, -0.9, 0};
+    check(fragmentsText(proposeFragments(zw, xw, {0.66, 0.31, 0.31, 0.66, 0.31, 0.31}, 0)) ==
+          "1-3:0:1/4-6:0:1", "no metal: one fragment per molecule");
+  }
 
   printf(failures ? "FAILED\n" : "PASSED\n");
   return failures ? 1 : 0;

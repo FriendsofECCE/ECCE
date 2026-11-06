@@ -3587,6 +3587,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_rate_gui PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Fragment analysis recipe and Fragment orbitals box equal ecce-fragorb (#201).
+  add_test(NAME apps_fragorb_gui
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/fragorb_gui_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_fragorb_gui PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
 
   # ecce-thermo --reactions: reaction overview data (#709).
   add_test(NAME apps_thermo_reactions

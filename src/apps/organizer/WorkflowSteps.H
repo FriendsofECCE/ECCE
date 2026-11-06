@@ -16,6 +16,7 @@
 
 #include "dsm/ResourceDescriptor.H"
 
+#include "FragOrbBox.H"
 #include "KeyData.H"
 #include "Recipe.H"
 
@@ -212,6 +213,18 @@ namespace WorkflowSteps {
 
   /// The steps of a recipe workflow with their energies, for keyData().
   std::vector<KeyStep> keySteps(Session *wf);
+
+  /// What proposeFragments (Recipe.H) suggests for the step's structure,
+  /// with its atomic numbers and charge for checkFragments; empty without
+  /// a structure.
+  std::vector<RecipeFragment> proposedFragments(Resource *step,
+                                                std::vector<int> *z = 0,
+                                                int *charge = 0);
+
+  /// The steps of a fragment analysis (#201): the source of the first
+  /// fragment step (the complex), then that complex's fragment steps.
+  /// Empty when the workflow has none.
+  std::vector<FragStep> fragmentSteps(Session *wf);
 
   /// A workflow as a recipe: settings and links kept, structures and
   /// results dropped.  False with `why` set when it has no steps.

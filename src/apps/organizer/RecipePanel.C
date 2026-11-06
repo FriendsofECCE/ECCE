@@ -8,6 +8,7 @@
 #include "wx/dcgraph.h"
 #include "wx/listctrl.h"
 #include "wx/scrolwin.h"
+#include "wx/spinctrl.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -19,6 +20,7 @@
 #include "dsm/Session.H"
 #include "tdat/Fragment.H"
 #include "tdat/TAtm.H"
+#include "tdat/TPerTab.H"
 #include "wxgui/WxHelpViewer.H"
 
 #include "RecipePanel.H"
@@ -156,7 +158,7 @@ private:
 RecipePanel::RecipePanel(wxWindow *parent, WorkflowPanel *owner, Session *wf,
                          Resource *after)
   : wxPanel(parent, wxID_ANY), p_owner(owner), p_session(wf), p_after(after),
-    p_applyAfter(after != 0), p_recipe(-1), p_variant(0)
+    p_applyAfter(after != 0), p_recipe(-1), p_variant(0), p_charge(0), p_fragMessage(false)
 {
   // The user's folder exists from the first use, ready for hand-written recipes.
   if (system(("mkdir -p '" + WorkflowSteps::userRecipeDir() + "'").c_str()) != 0) {}
@@ -180,6 +182,8 @@ RecipePanel::RecipePanel(wxWindow *parent, WorkflowPanel *owner, Session *wf,
     }
   }
   delete frag;
+  const vector<RecipeFragment> proposed =
+      after ? WorkflowSteps::proposedFragments(after, &p_z, &p_charge) : vector<RecipeFragment>();
 
   wxBoxSizer *top = new wxBoxSizer(wxHORIZONTAL);
   p_settings = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
@@ -222,10 +226,45 @@ RecipePanel::RecipePanel(wxWindow *parent, WorkflowPanel *owner, Session *wf,
   p_rolePanel->SetSizer(p_roleSizer);
   ls->Add(p_rolePanel, 0, wxEXPAND | wxALL, 4);
 
+  // Fragments: one row per fragment, for recipes with "fragment" steps.
+  p_fragPanel = new wxPanel(left, wxID_ANY);
+  wxBoxSizer *fs = new wxBoxSizer(wxVERTICAL);
+  p_fragHeading = new wxStaticText(p_fragPanel, wxID_ANY, "3  Fragments");
+  p_fragHeading->SetFont(bold);
+  fs->Add(p_fragHeading, 0, wxBOTTOM, 6);
+  wxStaticText *fragNote = new wxStaticText(p_fragPanel, wxID_ANY,
+      "Atom numbers of the complex as the Builder shows them, e.g. 1 or 2-13; \"rest\" "
+      "takes every atom no other fragment has. Fragments must not share atoms and "
+      "together must cover the complex. Each fragment is calculated at the complex's "
+      "geometry with the same method and basis set.");
+  fragNote->Wrap(490);
+  fs->Add(fragNote, 0, wxBOTTOM, 6);
+  p_fragRows = new wxBoxSizer(wxVERTICAL);
+  fs->Add(p_fragRows, 0);
+  wxBoxSizer *fb = new wxBoxSizer(wxHORIZONTAL);
+  wxButton *addFrag = new wxButton(p_fragPanel, wxID_ANY, "Add fragment");
+  wxButton *dropFrag = new wxButton(p_fragPanel, wxID_ANY, "Remove last");
+  addFrag->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
+    vector<RecipeFragment> f = fragments();
+    f.push_back(RecipeFragment());
+    fillFragments(f);
+  });
+  dropFrag->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
+    vector<RecipeFragment> f = fragments();
+    if (f.size() > 2) f.pop_back();
+    fillFragments(f);
+  });
+  fb->Add(addFrag, 0, wxRIGHT, 6);
+  fb->Add(dropFrag, 0);
+  fs->Add(fb, 0, wxTOP, 4);
+  p_fragPanel->SetSizer(fs);
+  ls->Add(p_fragPanel, 0, wxEXPAND | wxALL, 10);
+
   p_where = new wxPanel(left, wxID_ANY);
   wxBoxSizer *apply = new wxBoxSizer(wxVERTICAL);
   wxStaticText *where = new wxStaticText(p_where, wxID_ANY, "3  Where the new steps go");
   where->SetFont(bold);
+  p_whereHeading = where;
   apply->Add(where, 0, wxBOTTOM, 6);
   p_new = new wxRadioButton(p_where, wxID_ANY, "Start a new workflow", wxDefaultPosition,
                             wxDefaultSize, wxRB_GROUP);
@@ -284,7 +323,127 @@ RecipePanel::RecipePanel(wxWindow *parent, WorkflowPanel *owner, Session *wf,
   if (!p_problems.empty())
     p_problem->SetLabel(U("Not read: " + p_problems[0] +
         (p_problems.size() > 1 ? " (and " + std::to_string(p_problems.size() - 1) + " more)" : "")));
+  fillFragments(!proposed.empty() ? proposed
+                : vector<RecipeFragment>{{"1", 0, 1}, {"rest", 0, 1}});
   if (!p_recipes.empty()) selectRecipe(p_recipes[0].id);
+}
+
+
+void RecipePanel::addFragmentRow(const RecipeFragment &f)
+{
+  const size_t k = p_frags.size();
+  wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+  wxStaticText *n = new wxStaticText(p_fragPanel, wxID_ANY, U(std::to_string(k + 1)));
+  n->SetMinSize(wxSize(18, -1));
+  row->Add(n, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+  FragRow r;
+  r.atoms = new wxTextCtrl(p_fragPanel, wxID_ANY, U(f.atoms), wxDefaultPosition, wxSize(150, -1));
+  r.atoms->SetToolTip("Atom numbers, e.g. 1 or 2-13,15, or rest");
+  r.charge = new wxSpinCtrl(p_fragPanel, wxID_ANY, "", wxDefaultPosition, wxSize(110, -1),
+                            wxSP_ARROW_KEYS, -20, 20, f.charge);
+  r.mult = new wxSpinCtrl(p_fragPanel, wxID_ANY, "", wxDefaultPosition, wxSize(110, -1),
+                          wxSP_ARROW_KEYS, 1, 9, f.mult);
+  r.formula = new wxStaticText(p_fragPanel, wxID_ANY, "");
+  auto labelled = [&](const char *label, wxWindow *w) {
+    wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
+    if (k == 0) col->Add(new wxStaticText(p_fragPanel, wxID_ANY, label), 0, wxBOTTOM, 2);
+    col->Add(w);
+    row->Add(col, 0, wxALIGN_BOTTOM | wxRIGHT, 8);
+  };
+  labelled("Atoms", r.atoms);
+  labelled("Charge", r.charge);
+  labelled("Multiplicity", r.mult);
+  row->Add(r.formula, 0, wxALIGN_CENTER_VERTICAL);
+  r.atoms->Bind(wxEVT_TEXT, [this](wxCommandEvent &) { fragmentsChanged(); });
+  r.charge->Bind(wxEVT_SPINCTRL, [this](wxCommandEvent &) { fragmentsChanged(); });
+  r.mult->Bind(wxEVT_SPINCTRL, [this](wxCommandEvent &) { fragmentsChanged(); });
+  p_fragRows->Add(row, 0, wxBOTTOM, 4);
+  p_frags.push_back(r);
+}
+
+
+void RecipePanel::fillFragments(const vector<RecipeFragment> &f)
+{
+  p_fragRows->Clear(true);
+  p_frags.clear();
+  for (const RecipeFragment &x : f) addFragmentRow(x);
+  fragmentsChanged();
+}
+
+
+bool RecipePanel::setFragments(const vector<RecipeFragment> &f)
+{
+  if (!variant() || !hasFragmentSteps(*variant())) return false;
+  fillFragments(f);
+  return true;
+}
+
+
+vector<RecipeFragment> RecipePanel::fragments() const
+{
+  vector<RecipeFragment> out;
+  for (const FragRow &r : p_frags) {
+    RecipeFragment f;
+    f.atoms = string(r.atoms->GetValue().ToUTF8());
+    f.charge = r.charge->GetValue();
+    f.mult = r.mult->GetValue();
+    out.push_back(f);
+  }
+  return out;
+}
+
+
+string RecipePanel::fragmentProblem() const
+{
+  if (!variant() || !hasFragmentSteps(*variant())) return "";
+  const vector<RecipeFragment> f = fragments();
+  if (f.size() < 2) return "A fragment analysis needs at least two fragments.";
+  if (p_z.empty()) {
+    // No structure yet: the lists must read; the rest is checked on the structure.
+    vector<vector<int> > atoms;
+    string why;
+    if (!resolveFragments(f, 100000, atoms, why) && why.find("in no fragment") == string::npos)
+      return "Fragments: " + why + ".";
+    return "";
+  }
+  const string why = checkFragments(f, p_z, p_charge);
+  return why.empty() ? "" : "Fragments: " + why + ".";
+}
+
+
+void RecipePanel::scrollToFragments()
+{
+  if (!p_fragPanel->IsShown()) return;
+  int x, y;
+  p_settings->CalcUnscrolledPosition(0, p_fragPanel->GetPosition().y, &x, &y);
+  p_settings->Scroll(0, std::max(0, (y - 200) / 12));
+}
+
+
+void RecipePanel::fragmentsChanged()
+{
+  const vector<RecipeFragment> f = fragments();
+  vector<vector<int> > atoms;
+  string why;
+  const bool resolved = !p_z.empty() && resolveFragments(f, (int)p_z.size(), atoms, why);
+  for (size_t k = 0; k < p_frags.size(); k++) {
+    string formula;
+    if (resolved) {
+      // Hill order, as the workflow box names the fragment.
+      std::map<string, int> count;
+      TPerTab table;
+      for (int a : atoms[k]) count[table.atomicSymbol(p_z[a])]++;
+      auto add = [&](const string &e) {
+        if (!count.count(e)) return;
+        formula += e + (count[e] > 1 ? std::to_string(count[e]) : "");
+        count.erase(e);
+      };
+      if (count.count("C")) { add("C"); add("H"); }
+      while (!count.empty()) add(count.begin()->first);
+    }
+    p_frags[k].formula->SetLabel(U(formula));
+  }
+  if (variant()) changed();
 }
 
 
@@ -526,7 +685,24 @@ WorkflowSteps::Levels RecipePanel::levels() const
 
 void RecipePanel::changed()
 {
-  p_preview->show(variant(), !p_applyAfter);
+  const bool frags = variant() && hasFragmentSteps(*variant());
+  p_fragPanel->Show(frags);
+  p_whereHeading->SetLabel(frags ? "4  Where the new steps go" : "3  Where the new steps go");
+  if (frags) p_expanded = expandFragments(*variant(), fragments());
+  // What is wrong with the fragments, or the charge warning, under the controls.
+  if (frags) {
+    string text = fragmentProblem(), warning;
+    if (text.empty() && !p_z.empty()) {
+      checkFragments(fragments(), p_z, p_charge, &warning);
+      text = warning;
+    }
+    p_problem->SetLabel(U(text));
+    p_problem->Wrap(490);
+  } else if (p_fragMessage) {
+    p_problem->SetLabel("");
+  }
+  p_fragMessage = frags;
+  p_preview->show(frags ? &p_expanded : variant(), !p_applyAfter);
   layoutSettings();
 }
 
@@ -572,6 +748,11 @@ string RecipePanel::report() const
   }
   if (p_rolePanel->GetSize().y < bottom) overlaps++;
   o << " role-overlaps=" << overlaps << " clipped-labels=" << clipped;
+  if (variant() && hasFragmentSteps(*variant())) {
+    o << " fragments=" << fragmentsText(fragments()) << " formulas=";
+    for (const FragRow &r : p_frags) o << string(r.formula->GetLabel().ToUTF8()) << ";";
+    o << " fragment-problem=" << fragmentProblem() << " problem=" << problem();
+  }
   string result = o.str();
   std::replace(result.begin(), result.end(), '\n', ' ');
   return result;
@@ -581,7 +762,14 @@ string RecipePanel::report() const
 void RecipePanel::createClicked()
 {
   if (!variant()) return;
-  string why = p_owner->recipeCreate(*recipe(), *variant(), levels(), after(),
+  const bool frags = hasFragmentSteps(*variant());
+  if (frags && !fragmentProblem().empty()) {
+    p_problem->SetLabel(U(fragmentProblem()));
+    Layout();
+    return;
+  }
+  const RecipeVariant made = frags ? expandFragments(*variant(), fragments()) : *variant();
+  string why = p_owner->recipeCreate(*recipe(), made, levels(), after(),
                                  p_autorun->GetValue());
   if (!why.empty()) {
     p_problem->SetLabel(U(why));
