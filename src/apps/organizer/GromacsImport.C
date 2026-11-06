@@ -12,6 +12,7 @@
 
 #include "GromacsImport.H"
 
+#include "comm/CodePrograms.H"
 #include "comm/JobParser.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/GromacsStructure.H"
@@ -107,6 +108,99 @@ ResourceType* typeNamed(const string& name)
   return 0;
 }
 
+string shellArg(const string& s)
+{
+#ifdef _WIN32
+  return Ecce::winArg(s);
+#else
+  string o = "'";
+  for (char c : s) o += c == '\'' ? string("'\\''") : string(1, c);
+  return o + "'";
+#endif
+}
+
+int runProgram(const vector<string>& argv, string& out)
+{
+  string cmd;
+  for (size_t i = 0; i < argv.size(); i++) cmd += (i ? " " : "") + shellArg(argv[i]);
+#ifdef _WIN32
+  return Ecce::readCommand(cmd, out, false);
+#else
+  return Ecce::readCommand(cmd + " 2>&1", out);
+#endif
+}
+
+// A run imported without ecce-parse-md.txt gets one as a live run's job
+// script makes it (gensub, gromacsMdAnalysis): mdanalysis on the .xtc and,
+// when the .mdp saved velocities, the .trr.  The topology is the one gmx
+// grompp -pp resolves (library includes, #ifdef) when gmx is found, else the
+// run's own .top.  Any failure only leaves the panels out.
+void analyseTask(const string& taskDir, const vector<string>& files,
+                 const string& stage)
+{
+  string xtc, trr, top, mdp, gro, ndx;
+  for (const string& f : files) {
+    const string p = taskDir + "/" + f;
+    if (hasSuffix(f, ".xtc") && xtc.empty()) xtc = p;
+    else if (hasSuffix(f, ".trr") && trr.empty()) trr = p;
+    else if ((hasSuffix(f, ".top") || hasSuffix(f, ".gmxtop")) && top.empty()) top = p;
+    else if (hasSuffix(f, ".mdp") && f != "mdout.mdp" && mdp.empty()) mdp = p;
+    else if (hasSuffix(f, ".gro") && f != "confout.gro" && f != "view.gro" && gro.empty()) gro = p;
+    else if (hasSuffix(f, ".ndx") && ndx.empty()) ndx = p;
+  }
+  if (xtc.empty() || top.empty() || mdp.empty()) return;
+  string mdpText;
+  readFile(mdp, mdpText);
+  int nstvout = 0;
+  {
+    std::istringstream in(mdpText);
+    string line;
+    while (std::getline(in, line)) {
+      line = line.substr(0, line.find(';'));
+      const size_t eq = line.find('=');
+      if (eq == string::npos) continue;
+      std::istringstream k(line.substr(0, eq)), v(line.substr(eq + 1));
+      string key;
+      k >> key;
+      if (key == "nstvout") v >> nstvout;
+    }
+  }
+  string out;
+  const char* gmxEnv = getenv("ECCE_GROMACS");
+  const string gmx = gmxEnv && *gmxEnv ? string(gmxEnv) : CodePrograms::findOnPath("GROMACS");
+  if (!gmx.empty() && !gro.empty()) {
+    vector<string> a = { gmx, "grompp", "-f", mdp, "-c", gro, "-r", gro, "-p", top,
+                         "-pp", stage + "/ecce_pp.top", "-o", stage + "/ecce_pp.tpr",
+                         "-po", stage + "/ecce_pp.mdp", "-maxwarn", "999" };
+    if (!ndx.empty()) { a.push_back("-n"); a.push_back(ndx); }
+    if (runProgram(a, out) == 0 && access((stage + "/ecce_pp.top").c_str(), R_OK) == 0)
+      top = stage + "/ecce_pp.top";
+  }
+  const char* home = getenv("ECCE_HOME");
+  const string mda = (home && *home ? string(home) + "/bin/" : string()) + "mdanalysis"
+#ifdef _WIN32
+    ".exe"
+#endif
+    ;
+  string msd, speed;
+  if (runProgram({ mda, "--top", top, "--mdp", mdp, "--traj", xtc,
+                   "--out", stage + "/ecce_md_msd.txt" }, out) == 0)
+    readFile(stage + "/ecce_md_msd.txt", msd);
+  if (nstvout > 0 && !trr.empty()) {
+    if (runProgram({ mda, "--top", top, "--mdp", mdp, "--vel", trr,
+                     "--out", stage + "/ecce_md_speed.txt" }, out) == 0)
+      readFile(stage + "/ecce_md_speed.txt", speed);
+  } else if (!msd.empty()) {
+    speed = "ECCE-MDSPEED none\n";
+  }
+  if (!msd.empty() || !speed.empty())
+    writeFile(stage + "/ecce-parse-md.txt", msd + speed);
+  // The job monitor reads the staging directory: leave only what it parses.
+  for (const char* f : { "ecce_pp.top", "ecce_pp.tpr", "ecce_pp.mdp",
+                         "ecce_md_msd.txt", "ecce_md_speed.txt" })
+    unlink((stage + "/" + f).c_str());
+}
+
 // Attaches a task's inputs, copies its outputs into a staging directory
 // under the names a live run brings back, and imports that.  The job
 // monitor reads the staging directory after this returns, so it is left.
@@ -177,6 +271,9 @@ bool importTask(MdTask* md, const string& taskDir, bool prepare,
     message = taskDir + " has no .log or .gmxlog file";
     return false;
   }
+  if (!prepare &&
+      std::find(files.begin(), files.end(), "ecce-parse-md.txt") == files.end())
+    analyseTask(taskDir, files, stage);
   // A run without view.gro keeps its triclinic box as the brick mdrun wrote.
   if (!view.empty()) fragment = view;
   else if (!fragment.empty()) fragment = GromacsStructure::wrapCompact(fragment);

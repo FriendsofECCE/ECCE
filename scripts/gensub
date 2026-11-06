@@ -2012,7 +2012,9 @@ sub gromacs()
     $retval .= "  [ -f \"\$f\" ] && [ \"\$f\" != ecce_groups.ndx ] && { ndx=\$f; break; }\n";
     $retval .= "done\n";
     $retval .= "[ -z \"\$ndx\" ] && [ -f ecce_groups.ndx ] && ndx=ecce_groups.ndx\n";
-    $retval .= "grompp_args=\"-f $::inFile -c conf.gro -r conf.gro -p topol.top \${ndx:+-n \$ndx} -o topol.tpr\"\n";
+    #  -pp: the topology with every #include and #ifdef resolved, which
+    #  mdanalysis reads after the run (it has no GROMACS library search).
+    $retval .= "grompp_args=\"-f $::inFile -c conf.gro -r conf.gro -p topol.top \${ndx:+-n \$ndx} -o topol.tpr -pp ecce_pp.top\"\n";
     $retval .= "marked=0\ngrep -q ECCE-NETCHARGE-INTENDED topol.top && marked=1\n";
     $retval .= "\"\$gmx\" grompp \$grompp_args -maxwarn 999 > grompp.out 2>&1\n";
     $retval .= "grompp_rc=\$?\n";
@@ -2043,7 +2045,7 @@ sub gromacs()
     #  A rerun reuses the directory: the last run's log and frames must go
     #  before the symlink is made, or the monitor opens the old log and keeps
     #  reading it after mdrun moves it aside.
-    $retval .= "  rm -f $::outFile $log ecce-parse-traj.txt ecce_traj.pdb ecce-parse-pull.txt\n";
+    $retval .= "  rm -f $::outFile $log ecce-parse-traj.txt ecce_traj.pdb ecce-parse-pull.txt ecce-parse-md.txt\n";
     $retval .= "  ln -s $log $::outFile\n";
     #  A minimiser prints Epot and Fmax per step only with -v; the monitor
     #  plots them (gromacs.desc).  Dynamics gets no -v: it would only add
@@ -2105,6 +2107,7 @@ sub gromacs()
     $retval .= "  cp $log $::outFile\n";
     #  Final frames, from the whole trajectory (ecceTraj is defined above).
     $retval .= "  ecceTraj >> $::logfile 2>&1\n";
+    $retval .= &gromacsMdAnalysis();
     #  A pulling run: coordinate and force joined, for gromacs.pull.
     $retval .= "  if [ -s pullx.xvg ] && [ -s pullf.xvg ]; then\n";
     $retval .= "    grep -v '^[#@]' pullx.xvg | awk '{print \$1, \$2}' > ecce_pullx.tmp\n";
@@ -2127,6 +2130,55 @@ sub gromacs()
   }
   return $retval;
   nouse strict vars;
+}
+
+#  The Speed Distribution and Displacement panels read ecce-parse-md.txt
+#  (gromacs.md), which ECCE's mdanalysis program writes from the topology,
+#  the .xtc (displacements) and, when nstvout saved velocities, the .trr
+#  (speeds).  A run without velocities gets the record "none", so that its
+#  Speed panel says why it is empty.  The program is ECCE's own: on a host
+#  without ECCE (ECCE_MDANALYSIS, then ecce-mdanalysis on PATH) the step
+#  only logs a line.  Nothing here changes the job's exit status.
+sub gromacsMdAnalysis()
+{
+  my $t = &pathVar("mda", "$::ecceHome/bin/mdanalysis", "ECCE_MDANALYSIS");
+  $t .= <<'MDAEOF';
+  ecceMdAnalysis() {
+    [ -s traj.xtc ] || return 0
+    grep -qiE '^[[:space:]]*integrator[[:space:]]*=[[:space:]]*(steep|cg|l-bfgs|nm|tpi|tpic)' @@IN@@ && return 0
+    [ -x "$mda" ] || mda=`command -v ecce-mdanalysis 2>/dev/null`
+    if [ -z "$mda" ] || [ ! -x "$mda" ]; then
+      echo "MD analysis skipped: ECCE's mdanalysis is not installed on this host" >> @@LOG@@
+      return 0
+    fi
+    top=topol.top
+    [ -s ecce_pp.top ] && top=ecce_pp.top
+    rm -f ecce_md_msd.txt ecce_md_speed.txt
+    if ! "$mda" --top "$top" --mdp @@IN@@ --traj traj.xtc --out ecce_md_msd.txt > ecce_md.out 2>&1; then
+      echo "MD analysis (displacement) failed: `tail -1 ecce_md.out`" >> @@LOG@@
+      rm -f ecce_md_msd.txt
+    fi
+    nstv=`sed -n 's/^[[:space:]]*nstvout[[:space:]]*=[[:space:]]*\([0-9]*\).*/\1/p' @@IN@@ | tail -1`
+    if [ "${nstv:-0}" -gt 0 ] 2>/dev/null && [ -s traj.trr ]; then
+      if ! "$mda" --top "$top" --mdp @@IN@@ --vel traj.trr --out ecce_md_speed.txt >> ecce_md.out 2>&1; then
+        echo "MD analysis (speeds) failed: `tail -1 ecce_md.out`" >> @@LOG@@
+        rm -f ecce_md_speed.txt
+      fi
+    elif [ -s ecce_md_msd.txt ]; then
+      echo "ECCE-MDSPEED none" > ecce_md_speed.txt
+    fi
+    if [ -s ecce_md_msd.txt ] || [ -s ecce_md_speed.txt ]; then
+      cat ecce_md_msd.txt ecce_md_speed.txt > ecce-parse-md.txt 2>/dev/null
+      echo "MD analysis: ecce-parse-md.txt written" >> @@LOG@@
+    fi
+    rm -f ecce_md_msd.txt ecce_md_speed.txt
+    return 0
+  }
+  [ $mdrunStatus -eq 0 ] && ecceMdAnalysis
+MDAEOF
+  $t =~ s/\@\@IN\@\@/$::inFile/g;
+  $t =~ s/\@\@LOG\@\@/$::logfile/g;
+  return $t;
 }
 
 sub mopac()
