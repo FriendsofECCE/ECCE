@@ -25,14 +25,22 @@ def c0(T, standard_state):
     raise ValueError("standard state must be 1M or 1atm")
 
 
+_SUP = str.maketrans("-0123456789", "\u207b\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079")
+
+
+def sup(n):
+    """n as superscript characters, e.g. -1 -> \u207b\u00b9."""
+    return str(n).translate(_SUP)
+
+
 def rate_unit(m, standard_state):
-    """Unit of a rate constant of molecularity m."""
+    """Unit of a rate constant of molecularity m, with real superscripts."""
     n = m - 1
     if n == 0:
-        return "s^-1"
+        return "s" + sup(-1)
     if standard_state == "1M":
-        return "M^-%d s^-1" % n if n > 1 else "M^-1 s^-1"
-    return "cm^%d molecule^-%d s^-1" % (3 * n, n) if n > 1 else "cm^3 molecule^-1 s^-1"
+        return "M%s s%s" % (sup(-n), sup(-1))
+    return "cm%s molecule%s s%s" % (sup(3 * n), sup(-n), sup(-1))
 
 
 def tst_rate(T, dG_act, m, standard_state, sigma=1, kappa=1.0):

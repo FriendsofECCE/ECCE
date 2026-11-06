@@ -142,12 +142,11 @@ Once they are, the box shows, at the temperature in its **T / K** field
 - the free energy of activation, ΔG‡, in kJ/mol;
 - the rate constant k without tunnelling, and with the Wigner and with the
   Eckart correction, each with its factor κ, in the unit of the reaction
-  (s^-1 for one reactant, M^-1 s^-1 for two);
-- with a product step, the reverse rate constant and the equilibrium constant
-  K_eq.
+  (s⁻¹ for one reactant, M⁻¹ s⁻¹ for two);
+- with a product step, the reverse rate constant and the equilibrium constant K.
 
 The line under the title gives the treatment of the low frequencies and the
-standard state; the box uses Grimme's quasi-RRHO with omega0 = 100 cm-1 and
+standard state; the box uses Grimme's quasi-RRHO with ω₀ = 100 cm⁻¹ and
 1 M. The numbers are those of `ecce-rate`. Press Enter in the T field to
 recompute. A TS that does not have exactly one imaginary frequency is not a
 transition state, and the box shows the reason instead of numbers. The box

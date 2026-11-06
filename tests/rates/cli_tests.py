@@ -73,7 +73,7 @@ try:
     check("dG‡ = ecce-thermo reaction dG (%.3f kJ/mol)" % dg, abs(row["dG_act"] - dg) < 2e-4,
           row["dG_act"])
     k0 = pref * math.exp(-dg / RT)
-    check("k(298 K) TST = kB T/h exp(-dG‡/RT) = %.4e s^-1" % k0, abs(row["k"]["none"] / k0 - 1) < 1e-5,
+    check("k(298 K) TST = kB T/h exp(-dG‡/RT) = %.4e s⁻¹" % k0, abs(row["k"]["none"] / k0 - 1) < 1e-5,
           row["k"]["none"])
     freqs = [float(x) for x in ET.parse(os.path.join(TS, "Props", "VIBFREQ")).getroot().text.split()]
     nu = min(freqs)
@@ -107,7 +107,7 @@ try:
     both = REACT + "," + REACT
     r = rate(both, TS, "--standard-state", "1atm", "--tunnelling", "none", "--json")
     j = json.loads(r.stdout)
-    check("bimolecular unit", j["unit"] == "cm^3 molecule^-1 s^-1", j["unit"])
+    check("bimolecular unit", j["unit"] == "cm³ molecule⁻¹ s⁻¹", j["unit"])
     dg2 = thermo_dG("2*sn2_reactant -> sn2_qst3", "1atm", T)
     check("bimolecular dG‡ = ecce-thermo 2*A -> TS (1 atm)",
           abs(j["temperatures"][0]["dG_act"] - dg2) < 2e-3 * max(1, abs(dg2) * 1e-3), dg2)
@@ -119,7 +119,7 @@ try:
     r = rate(REACT, TS, TS)
     check("a TS as product warns", r.returncode == 0 and "warning" in r.stdout, r.stdout[:300])
     r = rate(REACT, TS, PROD)
-    check("text output has the formulas' units", "k in s^-1" in r.stdout and "Eckart" in r.stdout)
+    check("text output has the formulas' units", "k in s⁻¹" in r.stdout and "Eckart" in r.stdout)
     r = rate(REACT, TS, "--T", "abc")
     check("bad --T refused", r.returncode == 1)
 finally:

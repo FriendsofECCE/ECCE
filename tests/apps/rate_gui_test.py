@@ -45,7 +45,11 @@ def cli(args):
 
 
 def sci(v):
-    return "%.3e" % v
+    """The GUI's number form: 7.971 × 10⁷, plain digits between 0.01 and 10⁴."""
+    if v == 0 or 0.01 <= abs(v) < 1e4:
+        return "%.4g" % v
+    m, e = ("%.3e" % v).split("e")
+    return "%s × 10%s" % (m, str(int(e)).translate(str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹")))
 
 
 def run(display, data, work, shots):
@@ -99,9 +103,9 @@ def run(display, data, work, shots):
     check("Rate box: Wigner and Eckart k equal ecce-rate",
           any(k.startswith("κ Wigner") and v.startswith("k " + sci(row["k"]["wigner"])) for k, v in b.items()) and
           any(k.startswith("κ Eckart") and v.startswith("k " + sci(row["k"]["eckart"])) for k, v in b.items()), b)
-    check("Rate box: product given, so reverse k and K_eq",
+    check("Rate box: product given, so reverse k and K",
           b.get("k reverse (Eckart)", "").startswith(sci(row["k_reverse"]["eckart"])) and
-          b.get("K_eq", "") == sci(row["K_eq"]), b)
+          b.get("K (equilibrium)", "") == sci(row["K_eq"]), b)
     check("Rate box: treatment and standard state shown", "qrrho-grimme:100, 1 M standard state" in rate[0], rate[0])
     b2 = box(rate[1])
     check("Rate box at T = 310 K equals ecce-rate",

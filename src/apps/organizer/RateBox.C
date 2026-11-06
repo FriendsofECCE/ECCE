@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 
 using std::string;
 using std::vector;
@@ -19,9 +20,20 @@ string unitOf(const string& u) { return u.empty() ? string() : " " + u; }
 
 }  // namespace
 
+// Shown as 7.971 × 10⁷ rather than 7.971e+07; plain digits for moderate values.
 string rateNum(double v)
 {
-  return std::isnan(v) ? string("-") : f("%.3e", v);
+  if (std::isnan(v)) return "-";
+  if (v == 0 || (std::fabs(v) >= 0.01 && std::fabs(v) < 1e4)) return f("%.4g", v);
+  const char *sup[] = {"\xE2\x81\xB0", "\xC2\xB9", "\xC2\xB2", "\xC2\xB3", "\xE2\x81\xB4",
+                       "\xE2\x81\xB5", "\xE2\x81\xB6", "\xE2\x81\xB7", "\xE2\x81\xB8", "\xE2\x81\xB9"};
+  const string e = f("%.3e", v);
+  const size_t at = e.find('e');
+  int x = atoi(e.c_str() + at + 1);
+  string out = e.substr(0, at) + " \xC3\x97 10";
+  if (x < 0) { out += "\xE2\x81\xBB"; x = -x; }
+  for (char c : std::to_string(x)) out += sup[c - '0'];
+  return out;
 }
 
 bool rateRequest(const vector<KeyStep>& steps, RateRequest& req, string& waiting)
@@ -84,7 +96,7 @@ RateBoxResult rateBox(const vector<KeyStep>& steps, const string& temperature,
                     "k " + rateNum(r.kEckart) + u});
   if (d.hasProduct) {
     b.rows.push_back({"k reverse (Eckart)", rateNum(r.kRevEckart) + unitOf(d.unitReverse)});
-    b.rows.push_back({"K_eq", rateNum(r.Keq)});
+    b.rows.push_back({"K (equilibrium)", rateNum(r.Keq)});
   }
   for (const string& n : d.notes) b.note += (b.note.empty() ? "" : " ") + n + ".";
   return b;

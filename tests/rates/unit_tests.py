@@ -132,13 +132,13 @@ def test_tst():
     ref = 1.380649e-23 * T / 6.62607015e-34 * math.exp(-dG * 1000 / (8.314462618 * T))
     check("TST k (unimolecular) = kB T/h exp(-dG/RT): %.4e" % k1, close(k1, ref, 1e-9))
     check("sigma and kappa multiply", close(R.tst_rate(T, dG, 1, "1M", sigma=2, kappa=1.5), 3 * k1, 1e-12))
-    check("1M bimolecular has the same number in M^-1 s^-1", close(R.tst_rate(T, dG, 2, "1M"), k1, 1e-12))
+    check("1M bimolecular has the same number in M⁻¹ s⁻¹", close(R.tst_rate(T, dG, 2, "1M"), k1, 1e-12))
     c = 101325.0 / (1.380649e-23 * T) * 1e-6
     check("1 atm bimolecular: c0 = p0/kT in molecule cm-3 = %.4e" % c,
           close(R.tst_rate(T, dG, 2, "1atm"), k1 / c, 1e-9))
     check("units", (R.rate_unit(1, "1M"), R.rate_unit(2, "1M"), R.rate_unit(2, "1atm"),
-                    R.rate_unit(3, "1atm")) == ("s^-1", "M^-1 s^-1", "cm^3 molecule^-1 s^-1",
-                                                "cm^6 molecule^-2 s^-1"))
+                    R.rate_unit(3, "1atm")) == ("s⁻¹", "M⁻¹ s⁻¹", "cm³ molecule⁻¹ s⁻¹",
+                                                "cm⁶ molecule⁻² s⁻¹"))
     check("half life m=1", close(R.half_life(0.01, 1, T, "1M"), math.log(2) / 0.01, 1e-12))
     check("half life m=2 at 1 M", close(R.half_life(0.01, 2, T, "1M"), math.log(2) / 0.01, 1e-12))
     check("half life m=3 undefined", R.half_life(0.01, 3, T, "1M") is None)

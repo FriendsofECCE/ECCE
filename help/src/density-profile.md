@@ -97,8 +97,8 @@ cut off at the nuclei.
 When an orbital is zero everywhere on the line the plot says so instead of
 drawing an empty axis.
 
-The axes are labelled with their units: ψ in length^-3/2, ψ² and the density in
-length^-3, the radial distribution in 1/length, where the length is ångström or
+The axes are labelled with their units: ψ in length<sup>−3/2</sup>, ψ² and the density in
+length⁻³, the radial distribution in 1/length, where the length is ångström or
 bohr, as chosen under **Unit**.
 
 ## Which orbitals
