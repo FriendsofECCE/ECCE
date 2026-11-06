@@ -105,6 +105,7 @@ public:
 
   /// wxEVT_CONTEXT_MENU event handler for ID_FRAME
   void OnContextMenu( wxContextMenuEvent& event );
+  void menuSource(wxWindow *source);
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_IMPORT
   void OnNewStructureClick( wxCommandEvent& event );
