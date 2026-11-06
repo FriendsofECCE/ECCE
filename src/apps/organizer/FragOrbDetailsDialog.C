@@ -74,7 +74,24 @@ FragOrbDetailsDialog::FragOrbDetailsDialog(wxWindow *parent, const string& compl
   top->Add(buttons, 0, wxEXPAND | wxALL, 10);
 
   string status;
-  if (p_result.ok) p_text->SetValue(U(fragOrbDetailsText(p_result, p_names)));
+  if (p_result.ok) {
+    const string text = fragOrbDetailsText(p_result, p_names);
+    p_text->SetValue(U(text));
+    // The list runs from the highest virtual down; open it with the first
+    // occupied MO mid-window. ShowPosition scrolls just far enough to show a
+    // position, so aim at a line some way below it.
+    size_t lineStart = 0, at = 0;
+    int below = -1;
+    for (size_t i = 0; i <= text.size(); i++) {
+      if (i < text.size() && text[i] != '\n') continue;
+      int n; double e, occ;
+      if (below < 0 && sscanf(text.c_str() + lineStart, "%d %lf %lf", &n, &e, &occ) == 3 && occ > 0)
+        below = 0;
+      if (below >= 0 && below++ == 14) { at = lineStart; break; }
+      lineStart = i + 1;
+    }
+    if (at > 0) p_text->ShowPosition(U(text.substr(0, at)).length());
+  }
   else status = "Composition: " + p_result.error;
 
   // A name of the CLI (its folder name) as the box shows it.
