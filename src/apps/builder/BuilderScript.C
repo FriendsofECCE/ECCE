@@ -1054,6 +1054,16 @@ void Builder::runBuilderScript(const std::string& file)
         std::string err = addDummyAtom(how, w.size() > 2 ? atof(w[2].c_str()) : 1.0);
         fprintf(stderr, "BUILDER: dummy %s: %s\n", w[1].c_str(),
                 err.empty() ? "added" : ("refused: " + err).c_str());
+      } else if ((w[0] == "smiles" || w[0] == "replacegroup") && w.size() >= 2) {
+        //  "smiles <SMILES> [extended]": Tools > Add from SMILES... (#833).
+        //  "replacegroup <SMILES>": Tools > Replace Group... on the
+        //  selection (a bond, or the group's first atom).
+        std::string err = w[0] == "smiles"
+            ? addFromSmiles(w[1], w.size() > 2 && w[2] == "extended")
+            : replaceGroupFromSmiles(w[1]);
+        fprintf(stderr, "BUILDER: %s: %s charge=%g\n", w[0].c_str(),
+                err.empty() ? "done" : ("refused: " + err).c_str(),
+                frag ? frag->getTotalCharge() : 0.0);
       } else if (w[0] == "symmetry") {
         //  The Symmetry panel's Find (autosym), then the point group found.
         Command *cmd = new FindSymmetryCmd("Find Symmetry", getSG());

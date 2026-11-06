@@ -50,6 +50,26 @@ off. This is a warning only; nothing is blocked.
 The orders Clean used can be drawn: **Options > Advanced > Show Bond Orders
 Used by Clean**. It is off by default.
 
+## Building from SMILES
+
+**Tools > Add from SMILES...** builds a molecule from a SMILES string with
+Open Babel (`obabel`, which must be installed; without it the dialog says so).
+Formal charges and stereochemistry in the SMILES are kept: the zwitterion
+`[NH3+][C@@H](C[S-])C(=O)[O-]` comes with its charges (each charged atom
+carries its formal charge, so the structure's charge is their sum, -1 here)
+and its chirality at the alpha carbon. The 3-D structure is cleaned, and when
+a structure is already open the new molecule is placed beside it, without
+overlap, and only the new atoms are cleaned. **Fully extended start** sets
+every chain torsion (single bonds outside rings) to 180 degrees first.
+
+**Tools > Replace Group...** replaces a terminal group by a fragment. Select
+the bond that joins the group, or the group's first atom, then give the
+fragment as SMILES with `[*]` where it attaches, for example `[*]C(=O)O` for
+a carboxylic acid. The new group takes the old bond's direction and a length
+from the sum of the covalent radii, and is turned about that bond to keep as
+far as possible from the rest of the structure. A bond in a ring has no
+terminal group and is refused.
+
 ## Distorting the bonds to one atom
 
 To start a small distortion, such as a Jahn-Teller elongation or a polaron
