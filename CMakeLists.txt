@@ -3587,6 +3587,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_rate_gui PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Reaction overview energy profile: no label touches a line or another label.
+  add_test(NAME apps_reaction_profile_layout
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/reaction_profile_layout_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_reaction_profile_layout PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # Fragment analysis recipe and Fragment orbitals box equal ecce-fragorb (#201).
   add_test(NAME apps_fragorb_gui
            COMMAND ${PYTHON3_EXECUTABLE}
