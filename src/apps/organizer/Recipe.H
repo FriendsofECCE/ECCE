@@ -34,6 +34,8 @@
 #include <utility>
 #include <vector>
 
+class Fragment;
+
 struct RecipeRole {
   std::string id, label, method, basis, why;
 };
@@ -148,6 +150,11 @@ bool resolveFragments(const std::vector<RecipeFragment>& fragments, int natoms,
 /// fragment per molecule.  A ligand (molecule bonded to the metal) with an
 /// odd electron count is an anion, the metal takes the remaining charge;
 /// each fragment's multiplicity is the lowest its electron count allows.
+/// A fragment's formula for display: "(CO)6" when it is several copies of
+/// one bonded molecule (bonds made by distance when it has none), else the
+/// plain formula ("H15N5O4S", "Cl6" for separate atoms).
+std::string groupedFormula(Fragment& frag);
+
 std::vector<RecipeFragment> proposeFragments(const std::vector<int>& z,
                                              const std::vector<double>& xyz,
                                              const std::vector<double>& radii,

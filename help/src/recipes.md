@@ -219,13 +219,14 @@ calculation's `results.h5`; the box needs calculations stored on this
 machine.
 
 The line under the title names the fragments with their charges, for
-example Cr | C₆O₆. Each following line is one orbital level of the complex
+example Cr | (CO)₆: a fragment made of several copies of one molecule is
+named (molecule)ₙ, any other fragment by its formula. Each following line is one orbital level of the complex
 near the frontier, highest first: two levels above the LUMO, the LUMO, the
 HOMO and two below it. A level is one orbital, or several degenerate ones
 (MO 34-36). The line gives its energy in eV and the fragment orbitals (FOs)
 it is made of, with the Mulliken share of each, largest first: the first
 always, the next two when they are 10 % or more. An FO is named by its
-fragment and its place there (C₆O₆ LUMO+1); degenerate FOs of one fragment
+fragment and its place there ((CO)₆ LUMO+1); degenerate FOs of one fragment
 are taken together (Cr HOMO (×3)). For degenerate complex orbitals the share
 is the mean over the level. For an open-shell complex the α and β orbitals
 are listed separately.
@@ -301,7 +302,10 @@ fragment (FO 43–45 LUMO).
 shares of its lines and the part of the orbital outside the span of all FOs.
 The line under the title says whether the diagram is representative: every
 drawn complex level at least 90 % made of the FO levels connected to it.
-Otherwise it names the levels that are not, which are drawn dashed. The
+Otherwise it names the levels that are not, with their percentages, and
+draws them dashed. When all of these are partner levels added outside the
+window (rule 2), the line says the diagram is representative in the window
+and names those far partner levels separately. The
 HOMO–LUMO difference is given as an orbital-energy gap: a difference of
 orbital energies, not an excitation energy.
 

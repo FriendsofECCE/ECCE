@@ -1,7 +1,9 @@
 #include "FragOrbDetailsDialog.H"
 
+#include <algorithm>
 #include <cstdio>
 #include <fstream>
+#include <functional>
 #include <sstream>
 
 #include <wx/button.h>
@@ -10,6 +12,8 @@
 #include <wx/notebook.h>
 #include <wx/panel.h>
 #include <wx/spinctrl.h>
+#include <wx/splitter.h>
+#include <wx/wrapsizer.h>
 #include <wx/font.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -43,46 +47,54 @@ FragOrbDetailsDialog::FragOrbDetailsDialog(wxWindow *parent, const string& compl
   title->SetFont(bold);
   top->Add(title, 0, wxLEFT | wxRIGHT | wxTOP, 10);
 
-  wxBoxSizer *body = new wxBoxSizer(wxHORIZONTAL);
+  // Table and pages share the width through a sash, so the window fits a
+  // 1366-pixel screen; the table and the diagram scroll inside their panes.
+  wxSplitterWindow *split = new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                                                 wxSP_LIVE_UPDATE | wxSP_3DSASH);
+  wxPanel *lpane = new wxPanel(split);
   wxBoxSizer *left = new wxBoxSizer(wxVERTICAL);
-  left->Add(new wxStaticText(this, wxID_ANY,
-      _("Complex MOs, highest first: energy, occupation, the part outside the span of the FOs,\n"
-        "and the Mulliken share of each FO level (degenerate FOs of a fragment together)")),
-      0, wxBOTTOM, 4);
-  p_text = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(620, 520),
+  wxStaticText *caption = new wxStaticText(lpane, wxID_ANY,
+      _("Complex MOs, highest first: energy, occupation, the part outside the span of the FOs, "
+        "and the Mulliken share of each FO level (degenerate FOs of a fragment together)"));
+  caption->Wrap(340);
+  left->Add(caption, 0, wxBOTTOM, 4);
+  p_text = new wxTextCtrl(lpane, wxID_ANY, "", wxDefaultPosition, wxSize(340, 400),
                           wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
   p_text->SetFont(wxFont(wxFontInfo(9).Family(wxFONTFAMILY_TELETYPE)));
   left->Add(p_text, 1, wxEXPAND);
-  body->Add(left, 1, wxEXPAND | wxRIGHT, 8);
+  lpane->SetSizer(left);
 
   // Diagram and densities of states as pages beside the table.
-  p_book = new wxNotebook(this, wxID_ANY);
+  p_book = new wxNotebook(split, wxID_ANY);
   wxPanel *dpage = new wxPanel(p_book);
   wxBoxSizer *dsizer = new wxBoxSizer(wxVERTICAL);
-  wxBoxSizer *controls = new wxBoxSizer(wxHORIZONTAL);
-  controls->Add(new wxStaticText(dpage, wxID_ANY, _("Occupied levels")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+  wxWrapSizer *controls = new wxWrapSizer(wxHORIZONTAL);
+  auto labelled = [&](const wxString& label, wxWindow *w) {
+    wxBoxSizer *pair = new wxBoxSizer(wxHORIZONTAL);
+    pair->Add(new wxStaticText(dpage, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+    pair->Add(w, 0);
+    controls->Add(pair, 0, wxRIGHT | wxBOTTOM, 8);
+  };
   p_occupied = new wxSpinCtrl(dpage, wxID_ANY, "4", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 1, 99, 4);
-  controls->Add(p_occupied, 0, wxRIGHT, 8);
-  controls->Add(new wxStaticText(dpage, wxID_ANY, _("Empty levels")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+  labelled(_("Occupied levels"), p_occupied);
   p_virtual = new wxSpinCtrl(dpage, wxID_ANY, "4", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 99, 4);
-  controls->Add(p_virtual, 0, wxRIGHT, 10);
-  controls->Add(new wxStaticText(dpage, wxID_ANY, wxString::FromUTF8("Line at \xE2\x89\xA5 (%)")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+  labelled(_("Empty levels"), p_virtual);
   p_threshold = new wxSpinCtrl(dpage, wxID_ANY, "10", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 1, 50, 10);
-  controls->Add(p_threshold, 0, wxRIGHT, 10);
+  labelled(wxString::FromUTF8("Line at \xE2\x89\xA5 (%)"), p_threshold);
   p_spin = new wxChoice(dpage, wxID_ANY);
   p_spin->Append(wxString::FromUTF8("\xCE\xB1 orbitals"));
   p_spin->Append(wxString::FromUTF8("\xCE\xB2 orbitals"));
   p_spin->SetSelection(0);
-  controls->Add(p_spin, 0, wxRIGHT, 10);
-  controls->AddStretchSpacer();
+  controls->Add(p_spin, 0, wxRIGHT | wxBOTTOM, 8);
   wxButton *savePng = new wxButton(dpage, wxID_ANY, _("Save PNG..."));
-  controls->Add(savePng, 0);
+  controls->Add(savePng, 0, wxBOTTOM, 8);
   dsizer->Add(controls, 0, wxEXPAND | wxALL, 4);
   p_canvas = new FragDiagramCanvas(dpage);
-  p_canvas->SetMinSize(wxSize(520, 380));
+  p_canvas->SetMinSize(wxSize(420, 300));
   dsizer->Add(p_canvas, 1, wxEXPAND);
-  dsizer->Add(new wxStaticText(dpage, wxID_ANY,
-      _("Point at or click a level for its composition (the text can be copied):")), 0, wxTOP | wxLEFT, 4);
+  wxStaticText *hint = new wxStaticText(dpage, wxID_ANY,
+      _("Point at or click a level for its composition (the text can be copied):"));
+  dsizer->Add(hint, 0, wxTOP | wxLEFT, 4);
   p_level = new wxTextCtrl(dpage, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 130),
                            wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
   p_level->SetFont(wxFont(wxFontInfo(9).Family(wxFONTFAMILY_TELETYPE)));
@@ -93,18 +105,21 @@ FragOrbDetailsDialog::FragOrbDetailsDialog(wxWindow *parent, const string& compl
   wxPanel *spage = new wxPanel(p_book);
   wxBoxSizer *right = new wxBoxSizer(wxVERTICAL);
   p_pdos = new XYPlotCanvas(spage);
-  p_pdos->SetMinSize(wxSize(560, 250));
+  p_pdos->SetMinSize(wxSize(400, 200));
   p_opdos = new XYPlotCanvas(spage);
-  p_opdos->SetMinSize(wxSize(560, 250));
+  p_opdos->SetMinSize(wxSize(400, 200));
   right->Add(p_pdos, 1, wxEXPAND | wxBOTTOM, 6);
   right->Add(p_opdos, 1, wxEXPAND);
   spage->SetSizer(right);
   p_book->AddPage(spage, _("PDOS and OPDOS"));
-  body->Add(p_book, 1, wxEXPAND);
-  top->Add(body, 1, wxEXPAND | wxALL, 10);
+  split->SetMinimumPaneSize(260);
+  split->SetSashGravity(0.35);
+  split->SplitVertically(lpane, p_book, 380);
+  top->Add(split, 1, wxEXPAND | wxALL, 10);
 
   // Status in its own line, under the content and above the buttons.
-  p_status = new wxStaticText(this, wxID_ANY, "");
+  p_status = new wxStaticText(this, wxID_ANY, "", wxDefaultPosition, wxDefaultSize,
+                              wxST_ELLIPSIZE_END);
   top->Add(p_status, 0, wxLEFT | wxRIGHT, 10);
 
   wxBoxSizer *buttons = new wxBoxSizer(wxHORIZONTAL);
@@ -192,6 +207,9 @@ FragOrbDetailsDialog::FragOrbDetailsDialog(wxWindow *parent, const string& compl
   runDiagram();
 
   SetSizerAndFit(top);
+  // Open at most 1200 x 800, smaller on a smaller screen.
+  const wxSize screen = wxGetDisplaySize();
+  SetSize(std::min(1200, screen.x - 40), std::min(800, screen.y - 60));
   SetEscapeId(wxID_CLOSE);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     if (IsModal()) EndModal(wxID_CLOSE); else Destroy();
@@ -290,4 +308,30 @@ string FragOrbDetailsDialog::diagramReport(int occupied, int virtuals, int click
     out += saveFragDiagramPng(p_diagram, ch, v, png) ? "png saved\n" : "png failed\n";
   }
   return out;
+}
+
+
+string FragOrbDetailsDialog::fitReport() const
+{
+  // Every shown control must lie inside the window's client area.
+  std::ostringstream o;
+  const wxSize c = GetClientSize();
+  o << "size=" << GetSize().x << "x" << GetSize().y << " min=" << GetMinSize().x << "x"
+    << GetMinSize().y << " best=" << GetBestSize().x << "x" << GetBestSize().y;
+  int outside = 0;
+  std::function<void(const wxWindow*)> walk = [&](const wxWindow *w) {
+    for (const wxWindow *k : w->GetChildren()) {
+      if (!k->IsShownOnScreen() || k->IsTopLevel()) continue;
+      const wxPoint p = ScreenToClient(k->GetScreenPosition());
+      const wxSize s = k->GetSize();
+      if (p.x < 0 || p.x + s.x > c.x + 1) {
+        outside++;
+        o << " outside=" << string(wxString(k->GetClassInfo()->GetClassName()).ToUTF8()) << "@" << p.x << "+" << s.x;
+      }
+      walk(k);
+    }
+  };
+  walk(this);
+  o << " cut=" << outside;
+  return o.str();
 }

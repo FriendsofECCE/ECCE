@@ -30,3 +30,11 @@ shared with it.
   `apps_fragorb_diagram` compares the GUI layout dump (`fragdiagram` hook)
   with the CLI and runs profile_layout.py's overlap check (bars are dumped as
   segments of their height).
+- Fragment display names come from `groupedFormula()` (Recipe.C): bonded
+  molecules by BFS over bonds (covalent bonds made when the fragment has none);
+  n identical multi-atom molecules give "(CO)6", anything else the plain formula.
+- The verdict separates window levels from far partners: a far partner below
+  90 % gives "Representative in the window; ... far partner levels ...", and
+  `window_representative` stays true.
+- The Details window fits 1280 x 800 (splitter, wrap sizer for the controls);
+  `fragdiagram ... size=WxH` reports `fit ... cut=N` for the test.

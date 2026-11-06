@@ -39,6 +39,8 @@ public:
    * click on level `click` shows (-1: none) and the PNG when `png` is given.
    */
   std::string diagramReport(int occupied, int virtuals, int click, const std::string& png);
+  /// For the test hook: size, minimum size and the controls outside the client area.
+  std::string fitReport() const;
 
 private:
   void exportCsv();

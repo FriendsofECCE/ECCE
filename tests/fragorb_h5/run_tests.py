@@ -118,6 +118,9 @@ def check_diagram(exe, cx, cr7, co6):
             check(l["kind"] == want_kind and l["fragments"] == frs, "kind of MO %s" % l["numbers"])
         check(ch["representative"] == all(l["representative"] for l in ch["levels"] if l["fragment"] < 0),
               "verdict flag")
+        check(ch["window_representative"] == all(l["representative"] for l in ch["levels"]
+                                                 if l["fragment"] < 0 and not l["partner"]),
+              "window verdict flag")
         # no occupied drawn MO level has an FO level whose other lines lead to an undrawn MO level
         drawn_mo = {tuple(l["numbers"]) for l in ch["levels"] if l["fragment"] < 0}
         for l in ch["levels"]:
@@ -133,6 +136,10 @@ def check_diagram(exe, cx, cr7, co6):
           "t2g partner antibonding")
     check((68, 69) in lv and lv[(68, 69)]["partner"] and lv[(68, 69)]["kind"] == "antibonding",
           "eg* drawn as a partner, antibonding")
+    check(ch["window_representative"] and not ch["representative"] and
+          ch["verdict"] == "Representative in the window; two far partner levels (MO 97\u201399 86.0 %, "
+                           "MO 151\u2013153 89.7 %) are less than 90 % covered and drawn dashed.",
+          "verdict names the far partners: " + ch["verdict"])
     check(abs(ch["gap_ev"] - (lv[(55,)]["energy_ev"] - lv[(52, 53, 54)]["energy_ev"])) < 1e-6, "gap")
     # with every occupied level drawn, sum n_i OP_i equals dos's occupied overlap population
     d = json.loads(run([exe, "diagram", cx, cr7, co6, "--window", "99,0", "--json"]).stdout)

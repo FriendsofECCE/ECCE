@@ -175,7 +175,8 @@ struct DiagramChannel {
   vector<DiagramLine> lines;
   int homo = -1, lumo = -1;            // level ids
   double gapEv = 0;                    // LUMO - HOMO orbital energy
-  bool representative = true;
+  bool representative = true;          // every drawn MO level covered
+  bool windowRepresentative = true;    // every MO level of the window covered (partners aside)
   string verdict;                      // one line: representative or which levels are not
   vector<int> notRepresentative;       // level ids
   vector<int> hiddenFoLevels;          // per fragment: FO levels with no line to a drawn MO

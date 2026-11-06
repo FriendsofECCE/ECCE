@@ -9,7 +9,9 @@ RHF/def2-SVP) and prints the Diagram page's layout.  Checked:
   columns, fragments, MO/FO numbers, energies, one bar per orbital, shares);
 - no label touches a line, a bar or another label, or leaves the picture
   (profile_layout.py), on screen and in the exported PNG;
-- the verdict line is the CLI's, and a click on a level shows its composition.
+- the verdict line is the CLI's, and a click on a level shows its composition;
+- the window fits 1280 x 800 (its best width at most 1200 px) with no
+  control outside it.
 ECCE_FRAGORB_SHOTS=<dir> keeps the PNGs.  Exit 77 (skip) without an install
 or Xvfb.
 """
@@ -83,8 +85,8 @@ def run(display, work, shots):
         extra = " window=%d,%d" % window if window else ""
         shot = " shot=" + os.path.join(shots, "fragorb-details-%s.png" % name) if name == "default" else ""
         dump = os.path.join(work, "dump-%s.txt" % name)
-        cmds.append("fragdiagram %s %s names=%s%s click=0%s dump=%s" % (png, " ".join(folders), ";".join(NAMES),
-                                                                       extra, shot, dump))
+        cmds.append("fragdiagram %s %s names=%s%s click=0%s dump=%s size=1280x800" % (
+            png, " ".join(folders), ";".join(NAMES), extra, shot, dump))
     script = os.path.join(work, "commands")
     with open(script, "w") as f:
         f.write("\n".join(cmds) + "\n")
@@ -138,6 +140,11 @@ def run(display, work, shots):
         check("%s: a click on level 0 shows its composition" % name,
               click.startswith("MO %d" % l0["numbers"][0]) and "per electron" in click and
               "1 % or more" in click, click[:400])
+        fit = [l for l in lines if l.startswith("fit ")]
+        m = re.search(r"size=(\d+)x(\d+) min=(-?\d+)x(-?\d+) best=(\d+)x", fit[0]) if fit else None
+        check("%s: the Details window fits 1280 x 800, nothing cut off left or right" % name,
+              m and (int(m.group(1)), int(m.group(2))) == (1280, 800) and int(m.group(5)) <= 1200 and
+              fit[0].endswith(" cut=0"), fit)
         check("%s: PNG written" % name, "png saved" in lines and
               os.path.getsize(os.path.join(shots, "fragorb-diagram-%s.png" % name)) > 10000)
     check("window picture taken", "shot saved" in got[0], got[0][-100:])

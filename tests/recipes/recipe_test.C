@@ -12,6 +12,8 @@
 #include "CompareEnergies.H"
 #include "KeyData.H"
 #include "Recipe.H"
+#include "tdat/Fragment.H"
+#include <sstream>
 
 static int failures = 0;
 static void check(bool ok, const char *what)
@@ -281,6 +283,32 @@ int main(int argc, char **argv)
                               2.9, 0, 0,  3.2, 0.9, 0,  3.2, -0.9, 0};
     check(fragmentsText(proposeFragments(zw, xw, {0.66, 0.31, 0.31, 0.66, 0.31, 0.31}, 0)) ==
           "1-3:0:1/4-6:0:1", "no metal: one fragment per molecule");
+  }
+
+  // Fragment names (#201): n copies of one molecule as (formula)n.
+  {
+    auto named = [](const std::string& xyz) {
+      std::istringstream in(xyz);
+      Fragment f;
+      f.restoreXYZ(in);
+      return groupedFormula(f);
+    };
+    std::string co6 = "12\nCO6\n";
+    const char *ax[6] = {"1 0 0", "-1 0 0", "0 1 0", "0 -1 0", "0 0 1", "0 0 -1"};
+    for (const char *a : ax) {
+      double x, y, zz;
+      sscanf(a, "%lf %lf %lf", &x, &y, &zz);
+      char l[160];
+      snprintf(l, sizeof l, "C %.3f %.3f %.3f\nO %.3f %.3f %.3f\n", 1.92 * x, 1.92 * y, 1.92 * zz,
+               3.07 * x, 3.07 * y, 3.07 * zz);
+      co6 += l;
+    }
+    std::string got = named(co6);
+    check(got == "(CO)6", ("six CO molecules are (CO)6: " + got).c_str());
+    got = named("5\nmix\nC 0 0 0\nO 1.13 0 0\nN 5 0 0\nH 5.4 0.9 0\nH 5.4 -0.45 0.8\n");
+    check(got.find('(') == std::string::npos, ("different molecules keep the plain formula: " + got).c_str());
+    got = named("3\nCl3\nCl 0 0 0\nCl 5 0 0\nCl 0 5 0\n");
+    check(got == "Cl3", ("separate atoms keep the plain formula: " + got).c_str());
   }
 
   printf(failures ? "FAILED\n" : "PASSED\n");

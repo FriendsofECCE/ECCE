@@ -667,18 +667,34 @@ bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diag
     if (dc.homo >= 0 && dc.lumo >= 0) dc.gapEv = dc.levels[dc.lumo].energyEv - dc.levels[dc.homo].energyEv;
 
     dc.representative = dc.notRepresentative.empty();
+    // A far partner pulled in by the partner rule does not decide the
+    // verdict on the window, but it is named with its number.
     const string pct = fmt("%.0f %%", 100 * opt.covered);
+    string inWin, far;
+    int nWin = 0, nFar = 0;
+    for (size_t t = 0; t < dc.notRepresentative.size(); t++) {
+      const DiagramLevel& lv = dc.levels[dc.notRepresentative[t]];
+      string& to = lv.partner ? far : inWin;
+      to += (to.empty() ? "" : ", ") + levelName("MO", lv.numbers) + fmt(" %.1f %%", 100 * lv.covered);
+      (lv.partner ? nFar : nWin)++;
+    }
+    dc.windowRepresentative = nWin == 0;
+    const char* words[] = {"no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"};
+    auto count = [&](int n, const char* one, const char* many) {
+      return (n < 10 ? string(words[n]) : std::to_string(n)) + " " + (n == 1 ? one : many);
+    };
     if (dc.representative)
       dc.verdict = "Representative: every drawn MO level is at least " + pct +
                    " made of the FO levels connected to it.";
+    else if (nWin == 0)
+      dc.verdict = "Representative in the window; " + count(nFar, "far partner level", "far partner levels") +
+                   " (" + far + ") " + (nFar == 1 ? "is" : "are") + " less than " + pct +
+                   " covered and drawn dashed.";
     else {
-      dc.verdict = "Not representative: ";
-      for (size_t t = 0; t < dc.notRepresentative.size(); t++) {
-        const DiagramLevel& lv = dc.levels[dc.notRepresentative[t]];
-        dc.verdict += (t ? ", " : "") + levelName("MO", lv.numbers) + fmt(" (%.1f %%)", 100 * lv.covered);
-      }
-      dc.verdict += " less than " + pct + " made of the FO levels connected to " +
-                    (dc.notRepresentative.size() > 1 ? "them" : "it") + " (drawn dashed).";
+      dc.verdict = "Not representative in the window: " + count(nWin, "level", "levels") + " (" + inWin +
+                   ") less than " + pct + " made of the FO levels connected to " + (nWin == 1 ? "it" : "them");
+      if (nFar) dc.verdict += "; also " + count(nFar, "far partner level", "far partner levels") + " (" + far + ")";
+      dc.verdict += "; drawn dashed.";
     }
 
     string partners;

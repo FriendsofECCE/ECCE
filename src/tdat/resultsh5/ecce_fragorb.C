@@ -234,8 +234,9 @@ static int diagramCmd(const vector<string>& pos, const vector<string>& names, co
     printf("],\"channels\":[");
     for (size_t c = 0; c < d.channel.size(); c++) {
       const DiagramChannel& ch = d.channel[c];
-      printf("%s{\"spin\":%d,\"homo\":%d,\"lumo\":%d,\"gap_ev\":%.6f,\"representative\":%s,\"verdict\":%s,\"notes\":[",
+      printf("%s{\"spin\":%d,\"homo\":%d,\"lumo\":%d,\"gap_ev\":%.6f,\"representative\":%s,\"window_representative\":%s,\"verdict\":%s,\"notes\":[",
              c ? "," : "", ch.spin, ch.homo, ch.lumo, ch.gapEv, ch.representative ? "true" : "false",
+             ch.windowRepresentative ? "true" : "false",
              jstr(ch.verdict).c_str());
       for (size_t k = 0; k < ch.notes.size(); k++) printf("%s%s", k ? "," : "", jstr(ch.notes[k]).c_str());
       printf("],\"hidden_fo_levels\":%s,\"levels\":[", numbers(ch.hiddenFoLevels).c_str());

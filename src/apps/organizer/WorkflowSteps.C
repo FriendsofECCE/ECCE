@@ -1333,6 +1333,7 @@ vector<RecipeFragment> WorkflowSteps::proposedFragments(Resource *step, vector<i
 }
 
 
+
 vector<FragStep> WorkflowSteps::fragmentSteps(Session *wf)
 {
   vector<FragStep> out;
@@ -1359,11 +1360,7 @@ vector<FragStep> WorkflowSteps::fragmentSteps(Session *wf)
       s.state = ResourceUtils::stateToString(st);
     PropertyTask *task = dynamic_cast<PropertyTask*>(step);
     Fragment *frag = task ? task->fragment() : 0;
-    if (frag && frag->numAtoms() > 0) {
-      vector<TTagCountPair> *tc = frag->tagCounts();
-      s.formula = TFormula::empiricalFormula(*tc, 0);
-      delete tc;
-    }
+    if (frag && frag->numAtoms() > 0) s.formula = groupedFormula(*frag);
     delete frag;
     vector<RecipeFragment> spec;
     if (k > 0 && parseFragments(step->getProp(nsKey(":recipe.fragments")), spec) &&

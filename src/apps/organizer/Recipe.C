@@ -7,6 +7,10 @@
 #include <map>
 #include <sstream>
 
+#include "tdat/Fragment.H"
+#include "tdat/TAtm.H"
+#include "tdat/TFormula.H"
+#include "tdat/TTCPair.H"
 #include "util/Ecce.H"
 
 using std::string;
@@ -663,4 +667,52 @@ vector<std::pair<string, string>> recipeSolventSettings(const string& code, cons
   if (code == "ECCE-QM")
     return {{"ES.Theory.ECCEQM.Solvent", gas ? "None" : name}};
   return {};
+}
+
+// "(CO)6" when the fragment is several copies of one bonded molecule, else
+// its plain formula: a ligand set reads as what it is made of.
+string groupedFormula(Fragment& frag)
+{
+  vector<TTagCountPair> *all = frag.tagCounts();
+  const string plain = TFormula::empiricalFormula(*all, 0);
+  delete all;
+  const int n = frag.numAtoms();
+  if (n < 2) return plain;
+  if (frag.numBonds() == 0) frag.addCovalentBonds();
+  vector<int> seen(n, 0);
+  string first;
+  int copies = 0, firstAtoms = 0;
+  for (int a = 0; a < n; a++) {
+    if (seen[a]) continue;
+    vector<TTagCountPair> tc;
+    int atoms = 0;
+    vector<int> todo(1, a);
+    seen[a] = 1;
+    while (!todo.empty()) {
+      TAtm *atom = frag.atomRef(todo.back());
+      todo.pop_back();
+      atoms++;
+      if (atom->atomicSymbol() != "X") {
+        TTagCountPair look;
+        look.tag = atom->atomicSymbol();
+        auto it = std::find(tc.begin(), tc.end(), look);
+        if (it != tc.end()) it->count++;
+        else { look.count = 1; tc.push_back(look); }
+      }
+      vector<TAtm*> *nb = atom->connectedAtoms();
+      for (TAtm *b : *nb) {
+        const int k = frag.atomIndex(*b);
+        if (k >= 0 && k < n && !seen[k]) { seen[k] = 1; todo.push_back(k); }
+      }
+      delete nb;
+    }
+    if (tc.empty()) continue;
+    const string f = TFormula::empiricalFormula(tc, 0);
+    if (copies == 0) { first = f; firstAtoms = atoms; }
+    else if (f != first) return plain;
+    copies++;
+  }
+  // separate atoms (6 Cl) keep the plain formula
+  if (copies < 2 || firstAtoms < 2) return plain;
+  return "(" + first + ")" + std::to_string(copies);
 }
