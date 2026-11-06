@@ -95,24 +95,6 @@ NWChemPrelimFilesToRemove { *.q  *.trj  *.prp  *[0-9][0-9][0-9]*.rst *.file30 me
 #}
 
 ################
-# Amica
-################
-AmicaFilesToRemove { core }
-
-# The /usr/ucblib path is really only for Suns but we add it here so that we
-# can reduce registration efforts - no affect on other machines.
-AmicaEnvironment { 
-  LD_LIBRARY_PATH /usr/ucblib
-  COMENIUS /msrc/home/gdanitz/comenius/platform/IRIX64
-}
-
-# Defined in gensub at this point
-#AmicaCommand {
-#  amica -P $totalprocs < $infile
-#}
-
-
-################
 # Gaussian-98 - see comments for NWChem
 ################
 Gaussian-98FilesToRemove { core *.rwf }
@@ -132,12 +114,6 @@ Gaussian-09FilesToRemove { core *.rwf }
 ################
 Gaussian-16FilesToRemove { core *.rwf }
 
-
-################
-# Polyrate
-################
-PolyrateFilesToRemove { core }
-PolyratePrelimFilesToRemove { *.fu14 *.fu15 *.fu61 }
 
 ################
 # Queue Manager

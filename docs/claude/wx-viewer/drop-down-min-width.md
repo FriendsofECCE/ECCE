@@ -19,5 +19,4 @@ Do not size a drop-down by hand in a window. A plain `wxChoice`/
 `wxComboBox` is outside the rule: use the ewx class, or call
 `fitDropDown()` after filling it. A drop-down that starts empty and is
 filled only when data arrives has nothing to measure; give it a
-minimum width from its longest expected value (see `NWDirdy::
-createDynamicGUI()`).
+minimum width from its longest expected value (the removed NWDirdy editor did this).

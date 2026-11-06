@@ -159,7 +159,6 @@ started `ecce`; use the variables that take a file where there is one.
 | `ECCE_DEBUG_SASH` | The Builder reports on stderr each time it releases a mouse capture a pane-sash drag left behind. | Set to enable. |
 | `ECCE_DEBUG_MODAL` | Log every modal dialog to this file: the busy cursor and parent window it was opened under, whether it got focus, and (GTK) each key, scroll and click it received with its repaint count, frame counter, frame sync and the compositor's frame-drawn replies. | File path. |
 | `ECCE_FRAME_SYNC` | GTK 3 frame synchronisation with the compositor. ECCE turns it off under XWayland, where Mutter sometimes never answers and a window stops repainting; `1` keeps it on, `0` turns it off on any X server. | `0` or `1`. |
-| `ECCE_NWDIRDY_DEBUG` | The reaction-rate editor prints its general theory data. | Set to enable. |
 | `ECCE_BUG` | Same as `ecce --bug`: see above. | Set and not `0`. |
 | `ECCE_BUG_DIR` | Set by bug mode to the folder collecting the report. | Do not set. |
 | `ECCE_NO_FIRST_START` | `ecce` never shows the first-start window (where do you keep your work: this computer or a server). Test suites and scripts set it; on Windows `ecce.cmd` then also shows no message box when the server cannot be reached. | Set to skip. |

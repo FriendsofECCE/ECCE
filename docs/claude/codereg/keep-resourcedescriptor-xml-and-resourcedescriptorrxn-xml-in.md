@@ -10,10 +10,12 @@ issues: [38]
 step.** Each needs the new code's full `<ResourceType>` block *and* a
 `<ContainsResource name="..._es"/>` entry on `project`; missing either
 makes the "New Calculation" menu (and, in the Rxn file, the CalcEd
-code-switch toolbar) silently omit the code. Only one file is read:
-`ResourceDescriptor.C` uses the `Rxn` variant whenever `bin/dirdyed`
-exists, so a code missing from one file vanishes only on installs of
-the other kind.
+code-switch toolbar) silently omit the code. Only the Rxn file is read
+since #873: `ResourceDescriptor.C` used to pick it only when
+`bin/dirdyed` existed, and that editor is gone, so the Rxn file is the
+live one and `ResourceDescriptor.xml` is a stale twin (kept in step by
+`tests/dialogs/resources.py` until it is deleted). Edit the Rxn file
+first.
 
 Why the `.edml` alone is not enough: `CodeFactory::getFullySupportedCodes()`
 (CalcEd's code-switch *buttons*) discovers `.edml` files by directory

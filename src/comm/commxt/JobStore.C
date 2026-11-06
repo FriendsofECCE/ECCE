@@ -1653,10 +1653,6 @@ void interactGetFiles(void)
   fullFile = cpRemoteDir + "/*.cube";
   fileStrs[it++] = strdup((char*)fullFile.c_str());
 
-  // DirDyVTST specific file
-  fullFile = cpRemoteDir + "/*.file30";
-  fileStrs[it++] = strdup((char*)fullFile.c_str());
-
   // The CP2K wildcard the deck asked for (.pdos), added only if not already
   // in the list; it was moved here so an ordinary CP2K run does not ask for
   // a pattern it can never produce (#720).
@@ -1846,33 +1842,6 @@ void interactGetFiles(void)
   storeMatches("*.cub");
   storeMatches("*.cube");
   storeMatches("*.pdos");
-
-  if (localconn->execout("/bin/ls *.file30", lsout)) {
-    StringTokenizer file30Files(lsout, " \t\n\r");
-#if 0000
-    char buf[256];
-#endif
-    while (!(fileName=file30Files.next()).empty()) {
-
-#if 0000
-      // Disable HACK--TITLE directive in NWChem DirDyVTST input fixes problem
-      // HACK Alert
-      // NWChem DirDyVTST spits out a bogus first line in the file30
-      // output file that has a bunch of null characters.
-      // This line needs to be stripped out or ECCE won't be able to
-      // successfully write out the file for the POLYRATE job
-      ifstream ifs(fileName.c_str());
-      if (!ifs.getline(buf, 255)) {
-        ifs.close();
-        string cmd = "sed -i '1,1d' " + RCommand::quotePath(fileName);
-        localconn->exec(cmd);
-      } else
-        ifs.close();
-#endif
-
-      calcPutOutFileName(fileName, "");
-    }
-  }
 
   //  The auxiliary output a code asks to keep (ORCA's .gbw).  Only a
   //  file that really arrived is stored; a failed job may leave none.

@@ -21,13 +21,11 @@
 #include "dsm/DavCalculation.H"
 #include "dsm/DavPropCache.H"
 #include "dsm/DavEDSI.H"
-#include "dsm/DirDyVTSTTask.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/EDSITraversable.H"
 #include "dsm/FileEDSI.H"
 #include "dsm/SftpEDSI.H"
 #include "dsm/MdTask.H"
-#include "dsm/PolyrateTask.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/IPropCache.H"
 #include "dsm/Resource.H"
@@ -246,12 +244,8 @@ Resource *EDSIFactory::getResource(const EcceURL& url,
           ret = new MdTask(url);
           break;
         case ResourceDescriptor::RC_REACTION_TASK:
-          if (at == ResourceDescriptor::AT_DRDVTST) {
-            ret = new DirDyVTSTTask(url);
-          }
-          else if (at == ResourceDescriptor::AT_POLYRATE) {
-            ret = new PolyrateTask(url);
-          }
+          // Retired DirDyVTST/Polyrate steps (#873): listed read-only.
+          ret = new DavCalculation(url);
           break;
         case ResourceDescriptor::RC_CONDENSED_REACTION_TASK:
           if (at == ResourceDescriptor::AT_SOLVATE) {
@@ -1293,48 +1287,10 @@ void EDSIFactory::addSessionReactionTask(const EcceURL& taskId,
     // Session takes ownership of pointer - no need to delete it
     // after adding to session.
 
-    // Only one DirDyVTST task allowed per session
-    // If adding a Polyrate task then link to the DirdyVTST task
-    // If the DirdyVTST task does not exist then throw exception
-    ResourceDescriptor::APPLICATIONTYPE at =
-      ResourceUtils::stringToApplicationType(rt->getApplicationType());
-    DirDyVTSTTask *dirdy = 0;
-    bool isDirdy = (at == ResourceDescriptor::AT_DRDVTST);
-    bool isPolyrate = (at == ResourceDescriptor::AT_POLYRATE);
-    vector<Resource *> tasks = session->getMembers();
-    for (int i = 0; i < tasks.size(); i++) {
-      ResourceType *resType = tasks[i]->getDescriptor();
-      ResourceDescriptor::APPLICATIONTYPE appType =
-        ResourceUtils::stringToApplicationType(resType->getApplicationType());
-      if (appType == ResourceDescriptor::AT_DRDVTST) {
-        dirdy = dynamic_cast<DirDyVTSTTask*>(tasks[i]);
-        break;
-      }
-    }
-
-    if ((isDirdy) && (dirdy != 0)) {
-      throw InvalidException("Only one DirDyVTST task allowed per reaction "
-                             "study", WHERE);
-    }
-        
-    if ((isPolyrate) && (dirdy == 0)) {
-      throw InvalidException("DirDyVTST task must be added to reaction study "
-                             "before adding a POLYRATE task", WHERE);
-    }
-
-    // The user is allowed to create other objects such as projects, but
-    // make sure they aren't linked into the session or it will be
-    // corrupted
-    if (isDirdy) {
-      // DirDyVTST task is first session member so no target specified
-      session->addMember(task);
-      session->saveLinkbase();
-    } else if (isPolyrate) {
-      // must by a Polyrate task and those always get linked to DirDyVTST
-      // tasks
-      session->addMemberAsTarget(task, dirdy);
-      session->saveLinkbase();
-    }
+    // Reaction studies take no new steps since DirDyVTST and Polyrate
+    // were removed (#873); only existing members are read.
+    (void)session;
+    (void)rt;
   }
 }
 

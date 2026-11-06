@@ -83,8 +83,6 @@ class VDoc {
     string getMdEnergyName() const;
     string getMdDynamicsName() const;
     string getThumbnailName() const;
-    string getNwDirdyName() const;
-    string getPolyrateName() const;
 
     EcceURL         getConfiguration(const string& name);
     vector<EcceURL> getConfigurations();
@@ -265,8 +263,6 @@ class VDoc {
     string p_mdEnergy;                 /**< Name of MD Energy resource */
     string p_mdDynamics;               /**< Name of MD Dynamics resource */
     string p_thumbnail;                /**< Name of thumbnail resource */
-    string p_nwDirdy;                  /**< Name of NWDirdy resource */
-    string p_polyrate;                 /**< Name of polyrate resource */
 
     string p_configurationCollection;  /**< Configuration collection path, 
                                             relative to the VDoc's base URL */

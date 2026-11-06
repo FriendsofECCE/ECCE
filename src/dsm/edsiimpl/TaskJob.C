@@ -43,8 +43,6 @@
 #include "dsm/PrepareModelXMLizer.H"
 #include "dsm/GromacsPrepareModelXMLizer.H"
 #include "dsm/NWChemMDModelXMLizer.H"
-#include "dsm/PolyrateModelXMLizer.H"
-#include "dsm/NWDirdyModelXMLizer.H"
 #include "dsm/EDSIMessage.H"
 #include "dsm/EDSI.H"
 #include "dsm/VDoc.H"
@@ -1833,16 +1831,6 @@ Serializer* TaskJob::getSerializer(string& resourceName)
       resourceName = getVDoc()->getMdDynamicsName();
       break;
     case ResourceDescriptor::CT_CALCULATION:
-      if (appType == ResourceDescriptor::AT_DRDVTST) {
-        serializer = new NWDirdyModelXMLizer();
-        resourceName = getVDoc()->getNwDirdyName();
-        break;
-      }
-      if (appType == ResourceDescriptor::AT_POLYRATE) {
-        serializer = new PolyrateModelXMLizer();
-        resourceName = getVDoc()->getPolyrateName();
-        break;
-      }
     default:
       throw InvalidException("Could not determine task type", WHERE);
   }

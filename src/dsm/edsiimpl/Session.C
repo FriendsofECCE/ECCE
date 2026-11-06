@@ -27,6 +27,7 @@ using std::pair;
 #include "util/EcceRegexp.H"
 #include "util/EcceMap.H"
 
+#include "dsm/DavCalculation.H"
 #include "dsm/NWChemMDModel.H"
 #include "dsm/GromacsMDModel.H"
 #include "tdat/DynamicsModel.H"
@@ -36,7 +37,6 @@ using std::pair;
 #include "dsm/VDoc.H"
 #include "dsm/Session.H"
 #include "dsm/SessionXMLizer.H"
-#include "dsm/DirDyVTSTTask.H"
 
 
 /**
@@ -1100,11 +1100,7 @@ void Session::removeLinks(LinkType linkType)
 
   vector<Link *>::iterator linkIt = p_links.begin();
   while (linkIt != p_links.end()) {
-    // includes special reaction study logic not to remove the primary path
-    // links for the tasks going into the DirDyVTST tasks
-    if ((*linkIt)->linkType == linkType &&
-        (*linkIt)->target->getApplicationType() !=
-                    ResourceDescriptor::AT_DRDVTST) {
+    if ((*linkIt)->linkType == linkType) {
       linkIt = p_links.erase(linkIt);
     }
     else {

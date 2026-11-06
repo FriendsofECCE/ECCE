@@ -44,7 +44,7 @@ import run_tests  # noqa: E402
 import xdisplay   # noqa: E402
 
 # Codes whose dialogs get no new work (CLAUDE.md memory: retired codes).
-RETIRED = {"Gaussian-03", "Gaussian-98", "GAMESS-UK", "Amica"}
+RETIRED = {"Gaussian-03", "Gaussian-98", "GAMESS-UK"}
 # Every (category, theory) of these; the others get the first of each
 # category, since their dialogs differ little between theories.
 EXHAUSTIVE = {"NWChem", "ORCA"}

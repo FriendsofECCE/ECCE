@@ -439,30 +439,6 @@ string VDoc::getThumbnailName() const
 
 
 /**
- * Get's the name of the NWDirdy file for a VDoc.
- *
- * @return Name of the NWDirdy file.
- *
- */
-string VDoc::getNwDirdyName() const
-{
-  return p_nwDirdy;
-}
-
-
-/**
- * Get's the name of the Polyrate file for a VDoc.
- *
- * @return Name of the Polyrate file.
- *
- */
-string VDoc::getPolyrateName() const
-{
-  return p_polyrate;
-}
-
-
-/**
  * Constructs and returns Url for a configuration resource
  * using the name provided in the call.  
  *
@@ -1939,8 +1915,6 @@ void VDoc::setVdoc(bool createVdoc)
   p_mdEnergy =  "mdEnergy.xml";
   p_mdDynamics =  "mdDynamics.xml";
   p_thumbnail = "Thumbnail.jpeg";
-  p_nwDirdy =  "nwDirdy.xml";
-  p_polyrate =  "polyrate.xml";
 
   // Default collection names
   if (!p_currentVdoc) {

@@ -145,8 +145,6 @@ AddType  chemical/x-esp-constraint     .ecst
 AddType  chemical/x-pdb                .pdb
 
 # Amica
-AddType  chemical/x-amica-input        .amica_in
-AddType  chemical/x-amica-aux-basisset .bas
 
 # NWChem
 AddType  chemical/x-nwchem-input         .nw
@@ -185,11 +183,8 @@ AddType  chemical/x-gromacs-energy       .edr
 AddType  chemical/x-gromacs-trajectory   .xtc .trr
 
 # DirDyVTST
-AddType  chemical/x-nwdirdy-file30       .file30
 
 # POLYRATE
-AddType  chemical/x-polyrate-input       .fu5
-AddType  chemical/x-polyrate-output      .fu6
 
 # Gaussian (general)
 AddType  chemical/x-gaussian-checkpoint .chk

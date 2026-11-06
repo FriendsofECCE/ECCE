@@ -26,7 +26,7 @@ issues: [234]
   Debian nwchem "NWChem", pw.x "PWSCF", mopac "MOPAC", gmx "GROMACS", cp2k
   "CP2K") and each was checked to be absent from the others; "ORCA" alone is
   also in the screen reader script, and "MOPAC" also occurs in cp2k.psmp.
-  GAMESS-US, Polyrate, Gaussian-03/98 and the rest have none: check a new
+  GAMESS-US, Gaussian-03/98 and the rest have none: check a new
   binary with `grep -a -c -F` before adding one.
 - On Windows, for this computer, the examples are Windows paths
   (`programHelp(code, true)`); when nothing is on the PATH, Find looks in a folder named after

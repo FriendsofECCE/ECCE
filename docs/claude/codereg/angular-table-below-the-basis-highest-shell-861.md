@@ -26,6 +26,6 @@ output as a fixture and asserts c^T S c = 1 for all 85 MOs and trace(PS) = N.
 When a new basis family reaches a higher shell (h for ORCA def2-QZVPP heavy
 atoms, aug-cc-pV5Z), check the table first: compare `max lval` in the
 `MOOrdering` against the highest shell in the basis. Gaussian-16.edml,
-NWChem.edml, DirDyVTST, MetaDyn and Polyrate still stop at f in the spherical
+NWChem.edml and MetaDyn still stop at f in the spherical
 table; ORCA stops at g. Signs per code must be found against that code's real
 output, not copied.

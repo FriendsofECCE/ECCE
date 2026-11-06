@@ -790,18 +790,10 @@ void ResourceDescriptor::parseResourceDescriptorFile()
 {
   string file = Ecce::ecceDataPath();
   file += "/client/config/ResourceDescriptor";
-  string ext = ".xml";
+  // Always the Rxn variant: it alone declares the reaction study types, so
+  // stored studies open whether or not a rate-code editor is installed.
+  string ext = "Rxn.xml";
 
-  string path = Ecce::ecceHome();
-  path += "/";
-  const char* sysdir = getenv("ECCE_SYSDIR");
-  if (sysdir) path += sysdir;
-  path += "bin/dirdyed";
-
-  if (!access(path.c_str(), F_OK)) {
-    // hardwire resource descriptor if one of the reaction rate exes exists
-    ext = "Rxn.xml"; 
-  }
   file += ext;
 
   BasicDOMParser parser;

@@ -32,8 +32,6 @@ title_of() {
     mdenergy)     echo "ECCE MD Energy" ;;
     mdoptimize)   echo "ECCE MD Optimize" ;;
     metadyn)      echo "ECCE Metadynamics" ;;
-    polyed)       echo "ECCE Polyrate Editor" ;;
-    dirdyed)      echo "ECCE Dirdy Editor" ;;
     *)            echo "ECCE" ;;   # gateway, dialogs and other small helpers
   esac
 }

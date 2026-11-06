@@ -337,8 +337,8 @@ def mo_ordering_matches_the_code():
     the question to be answered rather than copied.
     """
     CAP = os.path.join(REPO, "data", "client", "cap")
-    RETIRED = ("Gaussian-98", "GAMESS-UK", "Amica", "DirDyVTST", "MetaDyn",
-               "Polyrate", "NWChemMD", "GROMACS", "MOLCAS",
+    RETIRED = ("Gaussian-98", "GAMESS-UK", "MetaDyn",
+               "NWChemMD", "GROMACS", "MOLCAS",
                "QuantumESPRESSO")
 
     findings = []
