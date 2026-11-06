@@ -13,6 +13,7 @@
 #include <functional>
 #include "wx/statline.h"
 #include "wx/spinctrl.h"
+#include "wx/checklst.h"
 #include <map>
 #include <sstream>
 
@@ -28,6 +29,7 @@
 #include "dsm/Session.H"
 
 #include "wxgui/ewxWindowUtils.H"
+#include "wxgui/WxHelpViewer.H"
 #include "wxgui/WxResourceTreeItemData.H"
 #include "wxgui/WxStateImageList.H"
 
@@ -1367,6 +1369,120 @@ void WorkflowStepDialog::validate()
   }
   p_problem->SetLabel(wxString::FromUTF8(problem.c_str()));
   p_create->Enable(problem.empty());
+  Layout();
+}
+
+
+// ---- several calculations into a workflow (#874) ----
+
+WorkflowImportDialog::WorkflowImportDialog(
+    wxWindow *parent, size_t calcs,
+    const vector<WorkflowSteps::ProposedLink>& links, ResourceType *type,
+    const string& newName, const string& into)
+  : wxDialog(parent, wxID_ANY, into.empty() ? "Make Workflow from Selected"
+                                            : "Move Selected into Workflow"),
+    p_type(type), p_name(0), p_links(0)
+{
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  const string what = std::to_string(calcs) + " calculations are moved " +
+      (into.empty() ? string("into a new workflow")
+                    : "into the workflow " + into) +
+      " as steps, with their inputs, results and job records. Nothing is "
+      "run again.";
+  wxStaticText *intro = new wxStaticText(this, wxID_ANY,
+                                         wxString::FromUTF8(what.c_str()));
+  intro->Wrap(460);
+  top->Add(intro, 0, wxALL, 14);
+  if (into.empty()) {
+    wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+    row->Add(new wxStaticText(this, wxID_ANY, "Name:"), 0,
+             wxALIGN_CENTER_VERTICAL);
+    p_name = new wxTextCtrl(this, wxID_ANY, wxString::FromUTF8(newName.c_str()),
+                            wxDefaultPosition, wxSize(320, -1));
+    row->Add(p_name, 1, wxLEFT | wxEXPAND, 8);
+    top->Add(row, 0, wxLEFT | wxRIGHT | wxEXPAND, 14);
+  }
+  wxStaticText *head = new wxStaticText(this, wxID_ANY, "Links between the steps:");
+  wxFont bold = head->GetFont(); bold.SetWeight(wxFONTWEIGHT_BOLD);
+  head->SetFont(bold);
+  top->Add(head, 0, wxLEFT | wxRIGHT | wxTOP, 14);
+  if (links.empty()) {
+    wxStaticText *none = new wxStaticText(this, wxID_ANY,
+        "None found: no calculation records another as its source, and no "
+        "starting structure is another's final structure. Links can be "
+        "added later by making new steps from these.");
+    none->Wrap(460);
+    top->Add(none, 0, wxLEFT | wxRIGHT | wxTOP, 14);
+  } else {
+    wxArrayString items;
+    for (const WorkflowSteps::ProposedLink& l : links)
+      items.Add(wxString::FromUTF8(label(l).c_str()));
+    p_links = new wxCheckListBox(this, wxID_ANY, wxDefaultPosition,
+                                 wxSize(460, -1), items);
+    for (unsigned i = 0; i < items.size(); i++) p_links->Check(i, true);
+    top->Add(p_links, 0, wxLEFT | wxRIGHT | wxTOP | wxEXPAND, 14);
+    wxStaticText *hint = new wxStaticText(this, wxID_ANY,
+        "Untick a link that is wrong. A link draws the arrow and makes a "
+        "step not yet run wait for its source; nothing is copied into the "
+        "calculations.");
+    hint->Wrap(460);
+    top->Add(hint, 0, wxLEFT | wxRIGHT | wxTOP, 14);
+  }
+  p_problem = new wxStaticText(this, wxID_ANY, "");
+  p_problem->SetForegroundColour(wxColour(0xc9, 0x2a, 0x2a));
+  top->Add(p_problem, 0, wxLEFT | wxRIGHT | wxTOP, 14);
+
+  wxStdDialogButtonSizer *buttons = new wxStdDialogButtonSizer();
+  p_ok = new wxButton(this, wxID_OK, "Move");
+  buttons->AddButton(p_ok);
+  buttons->AddButton(new wxButton(this, wxID_CANCEL, "Cancel"));
+  wxButton *help = new wxButton(this, wxID_HELP, "Help");
+  help->Bind(wxEVT_BUTTON, [](wxCommandEvent&) {
+    WxHelpViewer::show("workflows.html");
+  });
+  buttons->AddButton(help);
+  buttons->Realize();
+  p_ok->SetDefault();
+  top->Add(buttons, 0, wxEXPAND | wxALL, 14);
+  SetSizerAndFit(top);
+  if (p_name) p_name->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { validate(); });
+  validate();
+}
+
+
+string WorkflowImportDialog::label(const WorkflowSteps::ProposedLink& l)
+{
+  const string a = l.source->getName(), b = l.target->getName();
+  string text = a + " → " + b + " (" + WorkflowSteps::linkLabel(l.name);
+  if (l.why == "orbitals" || l.why == "Hessian")
+    text += "; " + b + " started from the " + l.why + " of " + a;
+  return text + ")";
+}
+
+
+string WorkflowImportDialog::name() const
+{
+  return p_name ? string(p_name->GetValue().ToUTF8()) : string();
+}
+
+
+vector<bool> WorkflowImportDialog::chosen() const
+{
+  vector<bool> out;
+  if (p_links)
+    for (unsigned i = 0; i < p_links->GetCount(); i++)
+      out.push_back(p_links->IsChecked(i));
+  return out;
+}
+
+
+void WorkflowImportDialog::validate()
+{
+  string problem;
+  if (p_name && p_type && !p_type->isValidResourceName(name()))
+    problem = "A name may contain only letters, digits, '.', '_' and '-'.";
+  p_problem->SetLabel(wxString::FromUTF8(problem.c_str()));
+  p_ok->Enable(problem.empty());
   Layout();
 }
 

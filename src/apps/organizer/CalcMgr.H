@@ -200,6 +200,12 @@ public:
   // ecce-workflow (#807): "ok <workflow URL>" or "error: reason".
   string workflowForCommand(const string& verb, const EcceURL& calc,
                             const string& second);
+  // ecce-workflow create (#874): TARGET is a workflow URL or a new name;
+  // links "A:B[=role]" by calculation name.  "ok <workflow URL> ..." or
+  // "error: reason".
+  string workflowCreateForCommand(const string& target,
+                                  const vector<EcceURL>& calcs,
+                                  const vector<string>& links, bool autoLinks);
   // ecce-reconnect: Reconnect Selected without the dialogs; same line format.
   bool reconnectForCommand(const vector<EcceURL>& urls, vector<string>& lines);
   bool anyReconnectable(const vector<EcceURL>& urls);
@@ -557,6 +563,17 @@ protected:
                           EcceURL *wfUrl);
   void showInWorkflow(const EcceURL& wfUrl, const EcceURL& step);
   void makeWorkflowFromSelection(Session *into);
+  // Make Workflow from Selected... / Move Selected into Workflow > (#874).
+  struct WorkflowLinkSpec { EcceURL from, to; string name; };
+  string severalWorkflowRefusal(const vector<EcceURL>& calcs, Session *into,
+                                vector<Resource*> *found = 0);
+  vector<WorkflowSteps::ProposedLink> proposeWorkflowLinks(
+      const vector<Resource*>& calcs, Session *into);
+  string moveSeveralIntoWorkflow(const vector<EcceURL>& calcs, Session *into,
+                                 const string& name,
+                                 const vector<WorkflowLinkSpec>& links,
+                                 EcceURL *wfUrl);
+  void makeWorkflowFromRows(Session *into);
   bool p_quitAsking = false;        // the Quit dialog is open (#291)
   bool p_quitConfirmed = false;     // the user said yes; teardown pending
 

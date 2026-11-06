@@ -46,6 +46,51 @@ From a terminal, with ECCE running:
     ecce-workflow make <calculation> [name]
     ecce-workflow move <calculation> <workflow>
 
+## Making a workflow from several calculations
+
+Calculations run one after another (an optimisation, a scan started from its
+structure, a product optimisation started from the end of the scan) can be
+gathered into one workflow afterwards.
+
+1. Open their folder and select the calculations in the project table (Ctrl-
+   or Shift-click). They must all be in that one folder.
+2. Right-click one of them and choose **Make Workflow from Selected...**, or
+   **Move Selected into Workflow** and a workflow of the folder.
+3. The dialog shows the links ECCE proposes between the calculations, for
+   example `scan → product (geometry)`. Untick any that is wrong, give a new
+   workflow its name and choose **Move**.
+
+All the selected calculations are moved into the workflow in one go, as for
+**Make Workflow...**: nothing is copied or run again, and each box shows the
+calculation's own state and results. The links are drawn as for steps made in
+the workflow.
+
+A link is proposed into a calculation from:
+
+- the calculation whose orbitals or Hessian it started from, when it was made
+  with **New from This > Continue from Final Orbitals** or took a Hessian
+  from another step;
+- otherwise, a calculation whose final structure is its starting structure:
+  the same atoms in the same order, every interatomic distance within
+  0.01 Å, in any orientation. A calculation that changed the structure (an
+  optimisation, a scan) is preferred to a single point that ended where it
+  started.
+
+Each calculation gets at most one proposed link, always of the kind
+`geometry`, and none that would close a loop. **Rerun** and **Continue from
+Last Geometry** record nothing about their source; the second is still found
+by its structure. Moving into an existing workflow also proposes links from
+the workflow's own steps.
+
+From a terminal, with ECCE running:
+
+    ecce-workflow create <new-name or workflow> <calculation>... [--auto-links] [--link A:B[=role]]...
+
+`--auto-links` makes the links the dialog would propose; `--link A:B` makes a
+link from calculation A to calculation B (names), with the role `geometry`
+unless `=reactant`, `=product` or `=tsguess` is given. A link given with
+`--link` replaces the proposed one into the same calculation.
+
 ## The view
 
 Each step is a box with the code in its colour, the state of the calculation
