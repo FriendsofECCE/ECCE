@@ -271,6 +271,25 @@ ECCE session.
 
 Exit code 0 on success; anything else is an error message on stderr.
 
+### ecce-rate
+
+    ecce-rate REACTANT[,REACTANT2] TS [PRODUCT[,PRODUCT2]] [--T 298.15 | --T LOW:HIGH:STEP] [--standard-state 1M|1atm] [--treatment SPEC] [--sigma N] [--tunnelling none|wigner|eckart|all] [--json]
+
+Conventional TST rate constant k = kappa sigma (kB T/h) c0^(1-m) exp(-dG‡/RT)
+from stored calculations; dG‡, dH‡, dS‡ and the ZPE-corrected barriers come from
+`ecce-thermo` (same `--treatment`, default `qrrho-grimme:100`). The TS must have
+exactly one imaginary mode (otherwise exit 1 with the reason); reactants and
+products with imaginary modes give a warning. kappa is none, Wigner or Eckart
+(unsymmetric, from the imaginary frequency and the ZPE-corrected forward and
+reverse barriers; symmetric with a note when no product is given). With a
+product: reverse k and K_eq consistent with dG_rxn. Over a `--T` range:
+Arrhenius (A, Ea) and Eyring (dH‡, dS‡) fits. Units are in the output
+(`unit` in `--json`): s^-1, M^-1 s^-1 or cm^3 molecule^-1 s^-1. Half-life is
+ln2/k, pseudo-first order at the standard concentration for two reactants.
+Formulas in `ecce-rate --help`. Exit 0 done, 1 refused or failed.
+
+    ecce-rate proj/complex proj/ts proj/product --T 250:400:25 --json
+
 ### ecce-ensemble
 
     ecce-ensemble pick <crest calc> [n=N] [--rmsd A] [--skip-failed] [--create TEMPLATE FOLDER] [--json]
@@ -316,6 +335,7 @@ launcher, without command wrappers for these tools.
 | `ecce-spectrum` | Process spectral curves |
 | `ecce-displace` | Displace a structure along a normal mode |
 | `ecce-thermo` | Recompute thermochemistry from stored results |
+| `ecce-rate` | TST rate constants with Wigner/Eckart tunnelling from reactant, TS and product calculations |
 | `ecce-force-compare` | Compare stored forces (command line only) |
 | `ecce-mlp` | Run an ML potential job from its input file |
 | `ecce-confsearch` | Run a simple conformer search from its input file |
