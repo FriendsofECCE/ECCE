@@ -72,6 +72,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [`[PROGRESS]` entries in a `.desc`: job progress, not properties (#284)](progress-parse-type-284.md)
 - [xtb (xTB) is registered like MOPAC/CP2K: a one-file deck split by gensub, geometries appended to the output, orbitals, charges, vibrations and import of outside runs (#362)](xtb-code-registration-stage-1-362.md)
 - [CREST is registered like xtb: a two-part deck split by gensub, the ensemble appended to the output, relative energies as CONFREL (#682)](crest-code-registration-stage-1-682.md)
+- [CREST QCG: only an xtb whose `dock` works, and a charged solute is grown as the neutral species (#841)](crest-qcg-needs-a-docking-xtb-and-a-neutral-solute-841.md)
 - [The shared docking layer (#682, #455): receptor/ligand split in the .param, a pose ensemble as GEOMTRACE + POSESCORE, best-N through ScanPoint](docking-layer-receptor-ligand-pose-ensemble-682.md)
 - [CP2K is registered like Quantum ESPRESSO: its own dialogs, the library scanned in ai.cp2k, the cell from the Builder, results through cp2k.desc (#329)](cp2k-code-registration-follows-qe.md)
 

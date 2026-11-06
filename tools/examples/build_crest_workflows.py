@@ -34,7 +34,13 @@ DISPLAY = 253
 
 # workflow: (recipe, start structure, charge)
 WORKFLOWS = {
-    "solv": ("solvation-shell", [("Na", 0.0, 0.0, 0.0)], 1),
+    # urea (Open Babel --gen3d).  Not an ion: CREST 3.0.2's QCG grows the
+    # cluster of a charged solute as the neutral species.
+    "solv": ("solvation-shell", [
+        ("N", 1.06505, 0.07772, -0.01705), ("C", 2.40919, 0.03409, -0.07041),
+        ("O", 3.01912, -0.63460, -0.88828), ("N", 3.02157, 0.79273, 0.85746),
+        ("H", 0.55583, -0.47502, -0.69309), ("H", 0.55565, 0.62681, 0.65453),
+        ("H", 2.52500, 1.34651, 1.53477), ("H", 4.03243, 0.79549, 0.86084)], 0),
     # 4-aminopyridine (Open Babel --gen3d)
     "prot": ("protonation-sites", [
         ("N", 2.39079, 0.01049, -0.18870), ("C", 1.00274, 0.00644, -0.00275),
@@ -45,7 +51,7 @@ WORKFLOWS = {
         ("H", -1.69403, 2.05503, 0.02096), ("H", -1.68044, -2.05946, 0.03005),
         ("H", 0.79918, -2.14657, -0.08446)], 0),
 }
-TITLES = {"solv": "na_water", "prot": "aminopyridine"}
+TITLES = {"solv": "urea_water", "prot": "aminopyridine"}
 
 # Deck and output names by code, as in the .edml files.
 DECKS = {"xtb": ("xtb.xtbin", "xtb.xtbout"), "crest": ("crest.crestin", "crest.crestout"),
@@ -168,7 +174,7 @@ def make_seed(work, wf):
 def cmd_create(args):
     with Ecce(args.work) as e:
         commands = []
-        for wf in WORKFLOWS:
+        for wf in args.only or WORKFLOWS:
             make_seed(args.work, wf)
             proj = "file://" + project_dir(args.work, wf)
             url = wf_url(args.work, wf)
@@ -218,7 +224,9 @@ HOST_CODES = {"xtb": ("xTB", "/usr/bin/xtb"), "crest": ("CREST", "/usr/local/bin
 PROCS = 6
 # QCG docks with `xtb dock`, which crashes in Debian's xtb 6.7.1 (#758); the
 # solvation-shell CREST step runs with the upstream static build.
-UPSTREAM_XTB = "/home/andy/opt/xtb-dist"
+# Neither Debian's xtb 6.7.1 nor the 6.7.1 release docks (`xtb dock` dies in
+# its final optimisation, #758); the upstream bleeding-edge build does.
+UPSTREAM_XTB = "/home/andy/opt/xtb-bleed/stage"
 
 
 def gensub_script(code, rundir, scratch):
@@ -240,7 +248,7 @@ def gensub_script(code, rundir, scratch):
     subprocess.run(["perl", os.path.join(install, "scripts", "gensub"),
                     "-c", HOST_CODES[code][0], "-Q", "Shell", "-H", "radium",
                     "-r", rundir, "-i", deck, "-o", out, "-n", str(PROCS),
-                    "-f", target], env=env, check=True)
+                    "-f", target], env=env, check=True, cwd=rundir)
     return open(target).read()
 
 
@@ -249,15 +257,12 @@ def write_job(jobs, name, code, deck_text, scratch, before="", hours=4):
     folder = os.path.join(jobs, name)
     os.makedirs(folder, exist_ok=True)
     deck = DECKS[code][0]
+    if code == "orca" and "%pal" not in deck_text:
+        # what orca.launchpp does to the stored deck before gensub reads it
+        deck_text = "%%pal nprocs %d end\n%s" % (PROCS, deck_text)
     with open(os.path.join(folder, deck), "w") as f:
         f.write(deck_text)
     script = gensub_script(code, folder, scratch)
-    if code == "orca":
-        # what orca.launchpp does to the stored deck at launch
-        text = deck_text if "%pal" in deck_text else \
-            "%%pal nprocs %d end\n%s" % (PROCS, deck_text)
-        with open(os.path.join(folder, deck), "w") as f:
-            f.write(text)
     slurm = "#SBATCH -J 841-%s\n#SBATCH -N 1\n#SBATCH -t %d:00:00\n" % (name, hours)
     slurm += ("#SBATCH -n %d\n" if code == "orca" else "#SBATCH -n 1\n#SBATCH -c %d\n") % PROCS
     slurm += "#SBATCH -o %s/slurm.out\n" % folder
@@ -317,14 +322,76 @@ def cmd_jobs_a(args):
                         os.path.join(dist, "share", "xtb"))
 
 
+# ECCE keeps a carried structure to six significant digits; the decks print
+# that value (ai.xtb/ai.crest "%14.9f", ai.orca the stored text, "%#.6g").
+SUBSTITUTE = r"""#  The geometry is the final structure of %(src)s, written as ECCE
+#  writes it once that step is imported (same atoms, same order).
+if [ ! -s %(src)s ]; then echo "no %(src)s"; exit 1; fi
+awk -v frame=%(frame)s -v style=%(style)s '
+  function r(v) { return sprintf("%%.6g", v) + 0 }
+  function f(v) { return style == "orca" ? sprintf("%%#.6g", r(v)) : sprintf("%%14.9f", r(v)) }
+  FNR==NR {if (left==0 && NF==1) {n=$1; left=n+1; nf++; k=0; next}
+           if (left>0) {left--; if (left<n && (frame=="last" || nf==frame)) {k++; s[k]=$1; x[k]=$2; y[k]=$3; z[k]=$4}}; next}
+  body==0 && style=="orca" && /^\* xyz/ {body=1; print; next}
+  body==0 && style!="orca" && NF==1 && $1==n {print; getline; print; body=1; next}
+  body==1 && k2<n {k2++; sym=toupper(substr(s[k2],1,1)) tolower(substr(s[k2],2))
+    if (style=="orca") printf " %%s     %%s     %%s     %%s\n", sym, f(x[k2]), f(y[k2]), f(z[k2])
+    else printf "%%-2s  %%s  %%s  %%s\n", sym, f(x[k2]), f(y[k2]), f(z[k2]); next}
+  {print}' %(src)s %(deck)s.ecce > %(deck)s
+"""
+
+
+def chained(jobs, name, code, spec, work, scratch, src, frame, hours):
+    """A job whose ECCE deck gets the geometry of an earlier job at run time."""
+    deck = DECKS[code][0]
+    folder = write_job(jobs, name, code, inputs_deck(work, spec), scratch, hours=hours,
+                       before=SUBSTITUTE % {"src": src, "frame": frame, "deck": deck,
+                                            "style": "orca" if code == "orca" else "xyz"})
+    os.rename(os.path.join(folder, deck), os.path.join(folder, deck + ".ecce"))
+    return folder
+
+
+def cmd_jobs_b(args):
+    """Round 2: urea preopt and QCG; protonation CREST with the wider window,
+    then xTB and ORCA of the lowest protomer."""
+    jobs = os.path.abspath(args.jobs)
+    scratch = os.path.join(args.work, "gensub")
+    os.makedirs(scratch, exist_ok=True)
+    j = lambda n: os.path.join(jobs, n)
+    write_job(jobs, "solv-preopt", "xtb", inputs_deck(args.work, "solv/preopt"),
+              scratch, hours=1)
+    folder = chained(jobs, "solv-crest", "crest", "solv/crest", args.work, scratch,
+                     j("solv-preopt/xtbopt.log"), "last", 10)
+    up = ("export ECCE_XTB=%s/bin/xtb\nexport XTBPATH=%s/share/xtb\n"
+          % (j("xtb-dist"), j("xtb-dist")))
+    text = open(os.path.join(folder, "job.sh")).read()
+    text = text.replace("#  The geometry is", up + "#  The geometry is", 1)
+    open(os.path.join(folder, "job.sh"), "w").write(text)
+    write_job(jobs, "prot-crest2", "crest", open(args.prot_crest).read(), scratch, hours=2)
+    # protonated.xyz lists the protomers lowest first: frame 1 is ECCE's c1.
+    chained(jobs, "prot-xtb", "xtb", "prot/xtb", args.work, scratch,
+            j("prot-crest2/protonated.xyz"), "1", 1)
+    chained(jobs, "prot-dft", "orca", "prot/dft", args.work, scratch,
+            j("prot-xtb/xtbopt.log"), "last", 12)
+    dist = j("xtb-dist")
+    shutil.rmtree(dist, ignore_errors=True)
+    os.makedirs(os.path.join(dist, "bin"))
+    shutil.copy2(os.path.join(UPSTREAM_XTB, "bin", "xtb"), os.path.join(dist, "bin"))
+    shutil.copytree(os.path.join(UPSTREAM_XTB, "share", "xtb"), os.path.join(dist, "share", "xtb"))
+
+
 def cmd_import(args):
     urls = []
     for spec in args.steps:
         folder = step_dir(args.work, spec)
         code = code_of(folder)
-        out = os.path.join(args.results, spec.replace("/", "-"), DECKS[code][1])
+        job = os.path.join(args.results, args.job_names.get(spec, spec.replace("/", "-")))
         os.makedirs(os.path.join(folder, "Outputs"), exist_ok=True)
-        shutil.copy(out, os.path.join(folder, "Outputs", DECKS[code][1]))
+        shutil.copy(os.path.join(job, DECKS[code][1]),
+                    os.path.join(folder, "Outputs", DECKS[code][1]))
+        # the deck that ran, as the launch leaves it in Inputs/
+        shutil.copy(os.path.join(job, DECKS[code][0]),
+                    os.path.join(folder, "Inputs", DECKS[code][0]))
         wf, step = spec.split("/")
         urls.append(wf_url(args.work, wf) + "/" + step)
     with Ecce(args.work) as e:
@@ -335,23 +402,31 @@ def cmd_import(args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("create", "organizer", "save", "import", "jobs-a"):
+    for name in ("create", "organizer", "save", "import", "jobs-a", "jobs-b"):
         p = sub.add_parser(name)
         p.add_argument("--work", required=True)
-        if name == "jobs-a":
+        if name in ("jobs-a", "jobs-b"):
             p.add_argument("--jobs", required=True)
+        if name == "jobs-b":
+            p.add_argument("--prot-crest", required=True,
+                           help="the protonation CREST deck ECCE wrote after the preopt import")
+        if name == "create":
+            p.add_argument("--only", nargs="*")
         if name == "organizer":
             p.add_argument("--settle", type=int, default=40)
             p.add_argument("commands", nargs="+")
         if name == "save":
             p.add_argument("steps", nargs="+")
         if name == "import":
+            p.add_argument("--job", action="append", default=[],
+                           help="STEP=JOBDIR when the job directory has another name")
             p.add_argument("results")
             p.add_argument("steps", nargs="+")
     args = ap.parse_args()
     args.work = os.path.abspath(args.work)
+    args.job_names = dict(j.split("=", 1) for j in getattr(args, "job", []))
     {"create": cmd_create, "organizer": cmd_organizer, "save": cmd_save,
-     "import": cmd_import, "jobs-a": cmd_jobs_a}[args.cmd](args)
+     "import": cmd_import, "jobs-a": cmd_jobs_a, "jobs-b": cmd_jobs_b}[args.cmd](args)
 
 
 if __name__ == "__main__":
