@@ -1,4 +1,5 @@
 #include "tdat/FragGraft.H"
+#include "tdat/Smiles.H"
 
 #include <algorithm>
 #include <cmath>
@@ -7,14 +8,6 @@
 #include <fstream>
 #include <queue>
 #include <sstream>
-#ifdef _WIN32
-#include <process.h>
-#define popen _popen
-#define pclose _pclose
-#define getpid _getpid
-#else
-#include <unistd.h>
-#endif
 
 using namespace std;
 
@@ -57,99 +50,21 @@ vector<vector<int> > adjacency(size_t n, const vector<Bond>& bonds)
 }
 
 
-bool parseSdf(const string& text, Mol& mol, string& err)
-{
-   mol = Mol();
-   istringstream in(text);
-   string line;
-   for (int i = 0; i < 3; i++) getline(in, line);
-   if (!getline(in, line) || line.size() < 6) {
-      err = "Open Babel gave no structure.";
-      return false;
-   }
-   int na = atoi(line.substr(0, 3).c_str());
-   int nb = atoi(line.substr(3, 3).c_str());
-   if (na <= 0) { err = "Open Babel gave an empty structure."; return false; }
-   static const int old[8] = {0, 3, 2, 1, 0, -1, -2, -3};
-   for (int i = 0; i < na && getline(in, line); i++) {
-      if (line.size() < 34) { err = "Unreadable atom line."; return false; }
-      Vec p = {atof(line.substr(0, 10).c_str()), atof(line.substr(10, 10).c_str()),
-               atof(line.substr(20, 10).c_str())};
-      string sym = line.substr(31, 3);
-      sym.erase(remove(sym.begin(), sym.end(), ' '), sym.end());
-      int code = line.size() >= 39 ? atoi(line.substr(36, 3).c_str()) : 0;
-      mol.el.push_back(sym);
-      mol.xyz.push_back(p);
-      mol.charge.push_back(code >= 0 && code < 8 ? old[code] : 0);
-   }
-   for (int i = 0; i < nb && getline(in, line); i++) {
-      if (line.size() < 9) { err = "Unreadable bond line."; return false; }
-      int t = atoi(line.substr(6, 3).c_str());
-      mol.bonds.push_back({atoi(line.substr(0, 3).c_str()) - 1,
-                           atoi(line.substr(3, 3).c_str()) - 1,
-                           t == 4 ? 1.5 : (double)t});
-   }
-   // The property block overrides the atom block's charge and marks the dummy.
-   while (getline(in, line)) {
-      istringstream ls(line);
-      string m, key;
-      int n;
-      if (!(ls >> m >> key >> n) || m != "M") continue;
-      if (key == "CHG" || key == "ISO") {
-         for (int k = 0; k < n; k++) {
-            int idx, v;
-            if (!(ls >> idx >> v)) break;
-            if (idx < 1 || idx > na) continue;
-            if (key == "CHG") mol.charge[idx-1] = v;
-            else if (v == 2) mol.dummy = idx - 1;
-         }
-      }
-   }
-   if ((int)mol.el.size() != na) { err = "Truncated structure."; return false; }
-   return true;
-}
-
-
 bool smilesTo3D(const string& smiles, Mol& mol, string& err)
 {
    string smi = smiles;
-   size_t star;
-   const bool wantsDummy = smi.find('*') != string::npos;
-   while ((star = smi.find("[*]")) != string::npos) smi.replace(star, 3, "[2H]");
-   if (smi.find('*') != string::npos) {
-      err = "Write the attachment point as [*].";
-      return false;
-   }
    smi.erase(remove_if(smi.begin(), smi.end(), [](char c) {
       return c == '"' || c == '\n' || c == '\r'; }), smi.end());
-   if (smi.empty()) { err = "No SMILES given."; return false; }
-
-   static int counter = 0;
-   char name[256];
-   snprintf(name, sizeof name, "%s/ecce-smiles-%d-%d.smi",
-            getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp", (int)getpid(), counter++);
-   { ofstream(name) << smi << "\n"; }
-   const string cmd = string("obabel -ismi \"") + name + "\" --gen3d -osdf 2>/dev/null";
-   FILE *p = popen(cmd.c_str(), "r");
-   string out;
-   if (p) {
-      char buf[4096];
-      size_t n;
-      while ((n = fread(buf, 1, sizeof buf, p)) > 0) out.append(buf, n);
-   }
-   int rc = p ? pclose(p) : -1;
-   remove(name);
-   if (out.empty() || rc != 0) {
-      err = "Open Babel (obabel) is needed to build from SMILES, and it "
-            "was not found or could not read this SMILES.";
-      return false;
-   }
-   if (!parseSdf(out, mol, err)) return false;
-   if (wantsDummy && mol.dummy < 0) {
-      err = "The attachment point [*] was lost.";
-      return false;
-   }
-   if (!wantsDummy) mol.dummy = -1;
+   Smiles::Graph g;
+   if (!Smiles::parse(smi, g, err)) return false;
+   Smiles::Built b;
+   if (!Smiles::build3D(g, b, err)) return false;
+   mol = Mol();
+   mol.el = b.el;
+   mol.charge = b.charge;
+   mol.dummy = b.dummy;
+   for (const auto& x : b.xyz) mol.xyz.push_back({x[0], x[1], x[2]});
+   for (const auto& bd : b.bonds) mol.bonds.push_back({bd.a, bd.b, bd.order});
    return true;
 }
 

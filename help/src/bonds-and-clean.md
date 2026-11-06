@@ -53,7 +53,18 @@ Used by Clean**. It is off by default.
 ## Building from SMILES
 
 **Tools > Add from SMILES...** builds a molecule from a SMILES string with
-Open Babel (`obabel`, which must be installed; without it the dialog says so).
+ECCE's own reader; nothing else needs to be installed. It reads the organic
+subset and bracket atoms (isotope, charge, hydrogen count, `@`/`@@`), branches,
+ring closures (`1`-`9` and `%10`), aromatic atoms (`c`, `n`, `[nH]`, `o`, `s`
+and so on), `/` and `\` double-bond marks, and `.` for separate parts such as
+`[Na+].[Cl-]`. Quadruple bonds, `@TH`/`@SP` chirality forms and dative bonds
+are not read, and an error names the column of the character it stopped at.
+The result is a starting structure with ideal bond lengths and angles, rings
+and stereochemistry as written (a chiral centre not marked in the SMILES, or a
+double bond with no `/` `\`, gets whichever form the build produced); optimise it
+before relying on the geometry. Isotope labels are read, but the atoms are
+built as the ordinary element.
+
 Formal charges and stereochemistry in the SMILES are kept: the zwitterion
 `[NH3+][C@@H](C[S-])C(=O)[O-]` comes with its charges (each charged atom
 carries its formal charge, so the structure's charge is their sum, -1 here)

@@ -15,8 +15,9 @@ typedef std::array<double,3> Vec;
 
 struct Bond { int a, b; double order; };
 
-/// A molecule as Open Babel writes it: symbols, coordinates (Angstrom),
-/// formal charges, bonds, and the atom that stood for [*] (-1 if none).
+/// A molecule as the SMILES builder returns it: symbols, coordinates
+/// (Angstrom), formal charges, bonds, and the atom that stood for [*]
+/// (-1 if none).
 struct Mol {
    std::vector<std::string> el;
    std::vector<Vec> xyz;
@@ -25,14 +26,9 @@ struct Mol {
    int dummy = -1;
 };
 
-/// Parse an MDL V2000 block as Open Babel writes it.  Atoms with the
-/// isotope 2 (M  ISO) become Mol::dummy.
-bool parseSdf(const std::string& text, Mol& mol, std::string& err);
-
-/// 3-D structure of a SMILES string through `obabel --gen3d`; stereo and
-/// formal charges come with it.  A "[*]" in the SMILES is generated as a
-/// deuterium (a real bond direction and length) and returned as
-/// Mol::dummy.  err names a missing Open Babel.
+/// 3-D structure of a SMILES string (Smiles::parse and Smiles::build3D),
+/// with formal charges and stereo as written.  [*] comes back as a
+/// hydrogen at a real bond direction and length, in Mol::dummy.
 bool smilesTo3D(const std::string& smiles, Mol& mol, std::string& err);
 
 /// Translation that puts `add` beside `existing` along +x, a gap apart,

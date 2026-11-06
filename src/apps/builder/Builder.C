@@ -929,7 +929,7 @@ void Builder::createMenus()
                      _("Place a dummy atom X from the selected atoms"));
   Bind(wxEVT_MENU, &Builder::OnAddDummy, this, ID_ADD_DUMMY);
   p_toolMenu->Append(ID_ADD_SMILES, _("Add from SMILES..."),
-                     _("Build a molecule from a SMILES string with Open Babel"));
+                     _("Build a molecule from a SMILES string"));
   Bind(wxEVT_MENU, &Builder::OnAddSmiles, this, ID_ADD_SMILES);
   p_toolMenu->Append(ID_REPLACE_GROUP, _("Replace Group..."),
                      _("Replace the selected terminal group by a SMILES fragment"));

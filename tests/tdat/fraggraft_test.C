@@ -1,6 +1,5 @@
 // FragGraft (#833): torsion extension, ring handling, grafting a fragment
-// on an attachment vector, group finding; SMILES through Open Babel when
-// obabel is installed (those checks are skipped, not failed, without it).
+// on an attachment vector, group finding, and the SMILES entry point.
 #include "tdat/FragGraft.H"
 
 #include <cmath>
@@ -84,13 +83,10 @@ int main()
       if (best > md + 1e-6) { check(false, "chosen rotation maximises the minimum distance"); break; }
    }
 
-   // Open Babel parts.
+   // SMILES parts.
    Mol z;
    string err;
-   if (!smilesTo3D("[NH3+][C@@H](C[S-])C(=O)[O-]", z, err)) {
-      printf("SKIP: %s\n", err.c_str());
-      return failures ? 1 : 77;
-   }
+   check(smilesTo3D("[NH3+][C@@H](C[S-])C(=O)[O-]", z, err), "cysteine zwitterion builds");
    int q = 0;
    for (int c : z.charge) q += c;
    check(z.el.size() == 13 && q == -1, "cysteine zwitterion: 13 atoms, charge -1");

@@ -57,7 +57,7 @@ On main, not in a package yet:
 - Energy Calculator: a 1 M standard-state term on G and a log K line (#835). `ecce-rerun --last-geometry` continues a running calculation from its last geometry with new cores and wall time (#837).
 - CREST quantum cluster growth runs show their progress (#862); multiplicity 9 is "Nonet" (#853); the side panel keeps its width between panels (#843); Density Map controls tidied (#852).
 - Every finished calculation with orbitals gets a `results.h5` stored beside it, checked (tr(PS) and orthonormality) on every write; the Density Map, Density Profile and density-field command read the orbitals from it. `ecce-results write` makes one for an older calculation (#690).
-- Builder: **Tools > Add from SMILES...** builds a molecule with its formal charges and stereochemistry (Open Babel), optionally in a fully extended start, and **Replace Group...** swaps a selected terminal group for a SMILES fragment, with the rotation about the bond chosen to avoid clashes (#833).
+- Builder: **Tools > Add from SMILES...** builds a molecule with its formal charges and stereochemistry from ECCE's own SMILES reader and builder (no Open Babel needed, #867), optionally in a fully extended start, and **Replace Group...** swaps a selected terminal group for a SMILES fragment, with the rotation about the bond chosen to avoid clashes (#833).
 - Terminate: a program that outlives the queue's cancel is ended too, and the message says whether anything is still running in the run directory (#855).
 - Structure Library organised by chemistry: small organic molecules, natural products and drugs, biomolecules, inorganic, teaching (#405).
 

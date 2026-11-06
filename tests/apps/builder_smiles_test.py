@@ -2,11 +2,11 @@
 """Tools > Add from SMILES... and Replace Group... through the Builder scene hook (#833).
 
 Cysteine zwitterion from SMILES: 13 atoms, structure charge -1, the same
-chirality as Open Babel's own output; added beside an open structure
+the chirality of L-cysteine; added beside an open structure
 without overlap, as one undo step.  Replacing the methyl of dimethyl
 sulfide by [*]C(=O)O keeps the S-C direction and leaves no close contacts.
 
-Exit status 77 (skip) without Xvfb, the built Builder or obabel.
+Exit status 77 (skip) without Xvfb or the built Builder.
 """
 import argparse
 import math
@@ -30,28 +30,28 @@ check = eb.check
 CYS = "[NH3+][C@@H](C[S-])C(=O)[O-]"
 
 
-def obabelSdf(smiles):
-    out = subprocess.run(["obabel", "-:" + smiles, "--gen3d", "-osdf"],
-                         capture_output=True, text=True).stdout
-    lines = out.splitlines()
-    n = int(lines[3][:3])
-    return [tuple(float(lines[4 + i][k:k + 10]) for k in (0, 10, 20))
-            for i in range(n)]
-
-
 def dmsCar(path):
-    out = subprocess.run(["obabel", "-:CSC", "--gen3d", "-oxyz"],
-                         capture_output=True, text=True).stdout.splitlines()
+    """Dimethyl sulfide, C S C then six H, built by hand (no other program)."""
+    u = (0.797, 0.604, 0.0)
+    e1, e2 = (-0.604, 0.797, 0.0), (0.0, 0.0, 1.0)
+    atoms = [("C", (1.45, 1.10, 0.0)), ("S", (0.0, 0.0, 0.0)),
+             ("C", (-1.45, 1.10, 0.0))]
+    for sx in (1, -1):
+        c = atoms[0][1] if sx == 1 else atoms[2][1]
+        for phi in (0, 120, 240):
+            ph = math.radians(phi)
+            d = [0.333 * u[k] * 1.0 + 0.943 * (math.cos(ph) * e1[k] + math.sin(ph) * e2[k])
+                 for k in range(3)]
+            d[0] *= sx
+            atoms.append(("H", tuple(c[k] + 1.09 * d[k] for k in range(3))))
     counts = {}
     with open(path, "w") as f:
         f.write("!BIOSYM archive 3\nPBC=OFF\ndms\n!DATE Mon Oct 05 "
                 "12:00:00 2026\n")
-        for line in out[2:]:
-            sym, x, y, z = line.split()[:4]
+        for sym, (x, y, z) in atoms:
             n = counts[sym] = counts.get(sym, 0) + 1
             f.write("%-6s %14.9f %14.9f %14.9f XXXX 1      %-2s      %-2s"
-                    "  0.000\n" % ("%s%d" % (sym, n), float(x), float(y),
-                                    float(z), sym.lower(), sym))
+                    "  0.000\n" % ("%s%d" % (sym, n), x, y, z, sym.lower(), sym))
         f.write("end\nend\n")
 
 
@@ -90,8 +90,8 @@ def main():
     ap.add_argument("--shots")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
-    if not shutil.which("Xvfb") or not shutil.which("obabel"):
-        harness.skip("Xvfb or obabel is not installed")
+    if not shutil.which("Xvfb"):
+        harness.skip("Xvfb is not installed")
     harness.prerequisites(build, ())
     if not os.access(os.path.join(build, "builder"), os.X_OK):
         harness.skip("builder is not built in %s" % build)
@@ -131,15 +131,24 @@ def main():
             return 1
         check(ch and ch[0][0] == "done" and abs(float(ch[0][1]) + 1) < 1e-9,
               "structure charge is -1 (%s)" % ch)
-        ref = obabelSdf(CYS)
         pos = [a[1:] for a in d[0]]
-        # N=1, CA=2, CB=3, C=5: the order Open Babel writes, kept by the Builder.
-        mine, theirs = volume(pos, 1, 0, 4, 2), volume(ref, 1, 0, 4, 2)
-        check(mine * theirs > 0 and abs(mine) > 0.5,
-              "chirality at CA matches Open Babel (%.2f vs %.2f)" % (mine, theirs))
+        # N=0, CA=1, CB=2, C=4 (heavy atoms in SMILES order).  The sign for
+        # L-cysteine was checked once against Open Babel's own 3-D output.
+        mine = volume(pos, 1, 0, 4, 2)
+        check(mine > 0.5, "chirality at CA is L (volume %.2f)" % mine)
         forms = re.findall(r"BUILDER: formula=(\S*)", text)
         check(len(forms) == 2 and forms[0] == "H6C3NSO2-" and forms[1] == "",
               "undo removes the molecule in one step (%s)" % forms)
+
+        if args.shots:
+            for name, smi in (("alanine", "[NH3+][C@@H](C)C(=O)[O-]"),
+                              ("cis-difluoroethene", "F/C=C\\F"),
+                              ("cyclohexane", "C1CCCCC1"),
+                              ("naphthalene", "c1ccc2ccccc2c1")):
+                eb.runBuilder(s, env, wrappers, "shot-" + name,
+                              ["wait 3000", "smiles " + smi] +
+                              white(name, args) + ["quit"],
+                              args.shots, structure=None)
 
         # 2. Beside an open structure.
         text = eb.runBuilder(s, env, wrappers, "smiles2",
@@ -182,7 +191,7 @@ def main():
                  if dist(after[i][1:], after[j][1:]) < 1.0 and
                  (i, j) not in bonds and (j, i) not in bonds]
         check(not close, "no non-bonded pair closer than 1.0 A (%s)" % close)
-        # Open Babel writes C S C: the methyl being replaced is atom 1.  The
+        # The dimethyl sulfide file is C S C: the methyl being replaced is atom 1.  The
         # Builder renumbers after the delete, so find S by symbol, the
         # kept methyl by its unchanged position, the new carbon as the
         # other carbon bonded to S.
