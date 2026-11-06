@@ -43,3 +43,38 @@ electric origin, which ECCE shows when the output gives it. Gaussian 16 does not
 state the origin in its output; its default for the dipole moment is the centre of
 nuclear charge, so ion dipole moments from different codes are not directly
 comparable.
+
+## Bond dipoles
+
+The **Bond dipoles** box (off by default) splits the dipole moment into one
+dipole per bond, from the atomic charges of the set chosen next to it
+(Mulliken, Löwdin, Hirshfeld, CHELPG or Merz-Kollman, whichever the
+calculation stores). The partition depends on the charge set, and the panel
+names the one used.
+
+Each atomic charge is written as a sum of charge transfers along its bonds,
+q<sub>i</sub> = Σ<sub>j</sub> δ<sub>ij</sub> with δ<sub>ji</sub> = −δ<sub>ij</sub>.
+For a molecule without rings the transfers are fixed by the charges. For rings
+they are not, and the smallest set of transfers (the minimum-norm solution) is
+taken, so no charge circulates round a ring. The bond dipole is
+μ<sub>ij</sub> = δ<sub>ij</sub> (r<sub>i</sub> − r<sub>j</sub>), and the bond
+dipoles add up exactly to the point-charge dipole Σ q<sub>i</sub> r<sub>i</sub>.
+
+The table gives each bond (written from the negative to the positive atom), |μ|
+in D and the direction as a unit vector, then these lines:
+
+- **Sum of bonds**, the bond dipoles added as vectors.
+- **Net-charge term**, only for a charged molecule: a net charge cannot be
+  written as transfers between bonded atoms, so its share is kept apart.
+- **Point charges**, Σ q<sub>i</sub> r<sub>i</sub>. For an ion the origin is the
+  centre of mass, as for the dipole moment; the bond dipoles do not depend on it.
+- **Computed**, the dipole moment the calculation reports.
+- **Remainder**, computed minus point charges (computed minus the sum of
+  bonds for a neutral molecule). It is the part atomic charges cannot carry:
+  lone pairs and atomic densities that are not spherical.
+
+In the viewer each bond gets a purple arrow, in the same direction as the
+molecular dipole arrow (negative to positive). The arrows share one scale: the
+largest bond dipole fills its bond, the others follow |μ|, each is centred on
+its bond and kept inside it. A very small bond dipole still gets a short arrow,
+unless the table shows 0.00 D.

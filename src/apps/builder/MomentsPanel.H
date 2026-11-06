@@ -2,6 +2,8 @@
 #define MOMENTSPANEL__H
 
 
+#include <string>
+#include <vector>
 #include "VizPropertyPanel.H"
 
 
@@ -16,6 +18,9 @@ class wxGrid;
  * Subclass for a more generic display - see QuadPolePanel
  */
 class ewxStaticText;
+class ewxCheckBox;
+class ewxChoice;
+class ewxGrid;
 
 class MomentsPanel : public VizPropertyPanel
 {
@@ -44,6 +49,13 @@ class MomentsPanel : public VizPropertyPanel
             const wxString& name="Moments");
       virtual ~MomentsPanel();
 
+      // Bond dipoles (#849), also driven by the Builder script command
+      // "bonddipoles": switch the display on or off (key: the charge
+      // property, "" keeps the choice) and read the table back as text rows.
+      bool hasBondDipoles() const { return p_bondCheck != NULL; }
+      void setBondDipoles(bool on, const string& key = "");
+      vector<vector<string> > bondDipoleRows() const { return p_bondRows; }
+
       virtual void receiveFocus();
       virtual void loseFocus();
 
@@ -63,6 +75,16 @@ class MomentsPanel : public VizPropertyPanel
 
       /* The dipole's note: magnitude, pole charge and separation. */
       ewxStaticText *p_dipoleNote = 0;
+
+      ewxCheckBox *p_bondCheck = NULL;
+      ewxChoice *p_bondChoice = NULL;
+      ewxGrid *p_bondGrid = NULL;
+      ewxStaticText *p_bondNote = NULL;
+      vector<string> p_bondKeys;
+      vector<vector<string> > p_bondRows;
+      void fillBondTable();
+      void OnBondToggle(wxCommandEvent& event);
+      void OnBondChoice(wxCommandEvent& event);
 
       /* The first time, we want to let the command guess the scale
          but after that, stick with the user's choice. */

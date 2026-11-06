@@ -2503,6 +2503,11 @@ add_executable(bondorder_test tests/bondorder/bondorder_test.C)
 target_link_libraries(bondorder_test PRIVATE eccetdat ecceutil)
 add_test(NAME bondorder COMMAND bondorder_test)
 
+# tests/bonddipoles -- bond dipoles from atomic charges (#849)
+add_executable(bonddipoles_test tests/bonddipoles/bonddipoles_test.C)
+target_link_libraries(bonddipoles_test PRIVATE eccetdat ecceutil)
+add_test(NAME bonddipoles COMMAND bonddipoles_test)
+
 # tests/vibanalysis -- mode symmetry and description (#367): real code output
 # through the real parsers, against textbook assignments.
 add_executable(vibanalysis_cli tests/vibanalysis/vibanalysis_cli.C)
