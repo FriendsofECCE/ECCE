@@ -116,6 +116,8 @@ class Builder: public BuilderGUI,
       ID_DOCK_FLOATING_PANELS,
       ID_GEOM_CONSTRAINTS,
       ID_ADD_DUMMY,
+      ID_ADD_SMILES,
+      ID_REPLACE_GROUP,
       ID_VIEW_TOGGLE_COLUMN,
       ID_VIEW_RESET_LAYOUT,
       ID_VIEW_PANELS_CLASSIC,
@@ -275,6 +277,16 @@ class Builder: public BuilderGUI,
       /// @param placement a DummyPlacement
       /// @return why nothing was added, or empty
       string addDummyAtom(int placement, double distance);
+
+      /// Add from SMILES (#833): the molecule beside the structure, formal
+      /// charges kept as atom charges, cleaned; one undoable edit.
+      /// @return why nothing was added, or empty
+      string addFromSmiles(const string& smiles, bool extended);
+
+      /// Replace Group (#833): the selected terminal group (a bond, or its
+      /// first atom) becomes the SMILES fragment, whose [*] is the
+      /// attachment point.  @return why nothing changed, or empty
+      string replaceGroupFromSmiles(const string& smiles);
       GeomConstraintsDialog *constraintsDialog() { return p_constraintsDialog; }
       virtual void center();
       virtual bool isAutoCenter() const;
@@ -383,6 +395,8 @@ class Builder: public BuilderGUI,
       void OnDockFloatingPanels( wxCommandEvent& event );
       void OnGeomConstraints( wxCommandEvent& event );
       void OnAddDummy( wxCommandEvent& event );
+      void OnAddSmiles( wxCommandEvent& event );
+      void OnReplaceGroup( wxCommandEvent& event );
 
       virtual void OnPaneClose(wxAuiManagerEvent& event);
       void OnPaneButton(wxAuiManagerEvent& event);

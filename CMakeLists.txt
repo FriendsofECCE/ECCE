@@ -4463,6 +4463,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_takecoords PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # Tools > Add from SMILES... and Replace Group... (#833).
+  add_test(NAME apps_builder_smiles
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_smiles_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_smiles PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # No bond orders in building; Clean's derived orders and bond lengths (#439).
   add_test(NAME apps_builder_bond_model
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4899,3 +4907,9 @@ add_test(NAME packaging_command_wrappers
                  --build ${CMAKE_BINARY_DIR}
                  --home ${CMAKE_INSTALL_PREFIX}
                  --wrappers ${ECCE_WRAPPER_DESTINATION})
+
+# FragGraft: SMILES building and fragment grafting geometry (#833).
+add_executable(fraggraft_test tests/tdat/fraggraft_test.C)
+target_link_libraries(fraggraft_test PRIVATE eccetdat ecceutil)
+add_test(NAME fraggraft COMMAND fraggraft_test)
+set_tests_properties(fraggraft PROPERTIES SKIP_RETURN_CODE 77)

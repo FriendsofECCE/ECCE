@@ -148,6 +148,7 @@ using std::vector;
 #include <wx/checkbox.h>
 #include "TakeCoordsDialog.H"
 #include "viz/TakeCoordsCmd.H"
+#include "viz/SmilesCmd.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/Resource.H"
 #include "dsm/PropertyTask.H"
@@ -927,6 +928,12 @@ void Builder::createMenus()
   p_toolMenu->Append(ID_ADD_DUMMY, _("Add Dummy Atom..."),
                      _("Place a dummy atom X from the selected atoms"));
   Bind(wxEVT_MENU, &Builder::OnAddDummy, this, ID_ADD_DUMMY);
+  p_toolMenu->Append(ID_ADD_SMILES, _("Add from SMILES..."),
+                     _("Build a molecule from a SMILES string with Open Babel"));
+  Bind(wxEVT_MENU, &Builder::OnAddSmiles, this, ID_ADD_SMILES);
+  p_toolMenu->Append(ID_REPLACE_GROUP, _("Replace Group..."),
+                     _("Replace the selected terminal group by a SMILES fragment"));
+  Bind(wxEVT_MENU, &Builder::OnReplaceGroup, this, ID_REPLACE_GROUP);
 
   p_propertyMenu = GetMenuBar()->GetMenu(
                    GetMenuBar()->FindMenu(_("Properties")));
@@ -1263,6 +1270,8 @@ void Builder::createReadOnlyIds()
 {
   p_readOnlyDisabledIds.insert(ID_IMPORT);
   p_readOnlyDisabledIds.insert(ID_ADD_DUMMY);
+  p_readOnlyDisabledIds.insert(ID_ADD_SMILES);
+  p_readOnlyDisabledIds.insert(ID_REPLACE_GROUP);
 
   p_readOnlyDisabledIds.insert(ViewerEvtHandler::ID_CLEAN_COORD);
   p_readOnlyDisabledIds.insert(ViewerEvtHandler::ID_ADD_H);
@@ -4933,6 +4942,92 @@ void Builder::OnAddDummy(wxCommandEvent& event)
   const string err = addDummyAtom(centre->GetValue() ? DUMMY_CENTRE :
       (beyond->GetValue() ? DUMMY_BEYOND : DUMMY_BETWEEN), dist->GetValue());
   if (!err.empty()) showMessage(err, true);
+}
+
+
+void Builder::OnAddSmiles(wxCommandEvent& event)
+{
+  wxDialog dlg(this, wxID_ANY, "Add from SMILES");
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  top->Add(new wxStaticText(&dlg, wxID_ANY,
+      "SMILES, with charges and stereochemistry, e.g. [NH3+][C@@H](C[S-])C(=O)[O-]"),
+      0, wxALL, 6);
+  wxTextCtrl *text = new wxTextCtrl(&dlg, wxID_ANY, "", wxDefaultPosition,
+                                    wxSize(460, -1));
+  top->Add(text, 0, wxLEFT | wxRIGHT | wxEXPAND, 6);
+  wxCheckBox *ext = new wxCheckBox(&dlg, wxID_ANY,
+      "Fully extended start (chain torsions at 180 degrees)");
+  top->Add(ext, 0, wxALL, 6);
+  top->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 6);
+  dlg.SetSizerAndFit(top);
+  if (dlg.ShowModal() != wxID_OK) return;
+  const string err = addFromSmiles(string(text->GetValue().ToUTF8()),
+                                   ext->GetValue());
+  if (!err.empty()) showMessage(err, true);
+}
+
+
+void Builder::OnReplaceGroup(wxCommandEvent& event)
+{
+  SGFragment *frag = getSG()->getFragment();
+  if (!frag || (frag->m_atomHighLight.size() != 1 &&
+                frag->m_bondHighLight.size() != 1)) {
+    showMessage("Select the bond that joins the group, or the first atom "
+                "of the group, first.", true);
+    return;
+  }
+  wxDialog dlg(this, wxID_ANY, "Replace Group");
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  top->Add(new wxStaticText(&dlg, wxID_ANY,
+      "SMILES of the new group, with [*] where it attaches, e.g. [*]C(=O)O"),
+      0, wxALL, 6);
+  wxTextCtrl *text = new wxTextCtrl(&dlg, wxID_ANY, "", wxDefaultPosition,
+                                    wxSize(460, -1));
+  top->Add(text, 0, wxLEFT | wxRIGHT | wxEXPAND, 6);
+  top->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 6);
+  dlg.SetSizerAndFit(top);
+  if (dlg.ShowModal() != wxID_OK) return;
+  const string err = replaceGroupFromSmiles(string(text->GetValue().ToUTF8()));
+  if (!err.empty()) showMessage(err, true);
+}
+
+
+string Builder::addFromSmiles(const string& smiles, bool extended)
+{
+  if (!getSG() || !getSG()->getFragment()) return "No structure is open.";
+  SmilesCmd *cmd = new SmilesCmd("Add from SMILES", getSG());
+  cmd->getParameter("mode")->setString("add");
+  cmd->getParameter("smiles")->setString(smiles);
+  cmd->getParameter("extended")->setBoolean(extended);
+  // execute() reports a failure itself; the text is only for the script.
+  return execute(cmd) ? "" : "Nothing was added.";
+}
+
+
+string Builder::replaceGroupFromSmiles(const string& smiles)
+{
+  SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+  if (!frag) return "No structure is open.";
+  int first = -1, attach = -1;
+  if (frag->m_bondHighLight.size() == 1) {
+    vector<TBond*> *all = frag->bonds();
+    int b = frag->m_bondHighLight[0];
+    if (b >= 0 && b < (int)all->size()) {
+      first = (*all)[b]->atom1()->index();
+      attach = (*all)[b]->atom2()->index();
+    }
+    delete all;
+  } else if (frag->m_atomHighLight.size() == 1) {
+    first = frag->m_atomHighLight[0];
+  }
+  if (first < 0)
+    return "Select the bond that joins the group, or the first atom of the group.";
+  SmilesCmd *cmd = new SmilesCmd("Replace Group", getSG());
+  cmd->getParameter("mode")->setString("replace");
+  cmd->getParameter("smiles")->setString(smiles);
+  cmd->getParameter("first")->setInteger(first);
+  cmd->getParameter("attach")->setInteger(attach);
+  return execute(cmd) ? "" : "Nothing was replaced.";
 }
 
 
