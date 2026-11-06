@@ -178,6 +178,7 @@ def main():
             #  #827: labels carry the principal quantum number; the core
             #  level is drawn below the break on request.
             scene = ("hold 3\nmotable mot\nmodiagram coreon core 1\n"
+                     "modiagram corehit corehits 0\n"
                      "modiagram coreoff core 0\nmodiagram tip0 tip 0\n")
             res = base.runBuilder(display, url, out, scene, panel="MO Diagram")
             mot = text(out, "mot") or ""
@@ -196,6 +197,9 @@ def main():
             check("core F 1s" in on and "nonbonding" in on,
                   "Show core orbitals: an F 1s non-bonding level is drawn below the break (%r)" % on.strip())
             check(off.strip() == "", "Show core orbitals off: no core level")
+            ch = text(out, "corehit") or ""
+            check("corehit MO 1 |" in ch and "core" in ch.split("|", 1)[-1],
+                  "core levels are clickable: a hit box for MO 1 with its tip (%r)" % ch.strip()[:200])
             check("F 2p" in (text(out, "tip0") or "") or "F 2s" in (text(out, "tip0") or ""),
                   "a level's tooltip names its shells with n")
             url = makeFrom(data, "ecceqm-water",

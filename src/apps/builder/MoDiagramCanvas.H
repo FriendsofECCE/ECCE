@@ -22,6 +22,7 @@
 #ifndef MODIAGRAMCANVAS_H_
 #define MODIAGRAMCANVAS_H_
 
+#include <wx/dcmemory.h>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -518,6 +519,7 @@ class MoDiagramCanvas : public wxPanel
     //  carries one of these bits (matched: centre index; no partner: calcOnly index).
     static const int CALC_BIT = 1 << 20;
     static const int ONLY_BIT = 1 << 21;
+    static const int CORE_BIT = 1 << 22;   // a level of the core band
 
     const MoLevel& itemLevel(const CalcItem& it) const
     {
@@ -2056,6 +2058,14 @@ class MoDiagramCanvas : public wxPanel
         dc.SetPen(wxPen(wxColour(0, 0, 0), 2));
         for (int d = 0; d < count; d++)
           dc.DrawLine(bx + d*slot, y, bx + d*slot + lane, y);
+        //  Core bars are clickable like the others: one hit box per bar.
+        for (int d = 0; d < count && !l.orbitals.empty(); d++) {
+          Hit hit;
+          hit.box = wxRect(bx + d*slot - 2, y - 8, slot, 17);
+          hit.orbital = l.orbitals[(size_t)d < l.orbitals.size() ? (size_t)d : l.orbitals.size() - 1];
+          hit.level = CORE_BIT | (int)k;
+          p_hits.push_back(hit);
+        }
         drawElectrons(dc, l, bx, slot, lane, y, 0, plot);
         dc.SetTextForeground(wxColour(30, 30, 30));
         const wxString nb = label;
@@ -2801,8 +2811,45 @@ class MoDiagramCanvas : public wxPanel
     }
     const string& infoText() const { return p_info; }
 
+    /** Test hook: paint once, then list the core band's click targets. */
+    string coreHitsText()
+    {
+      wxSize size = GetClientSize();
+      if (size.x < 200 || size.y < 200) size = wxSize(900, 700);
+      wxBitmap bmp(size.x, size.y);
+      wxMemoryDC dc(bmp);
+      paintOnto(dc, size);
+      dc.SelectObject(wxNullBitmap);
+      ostringstream out;
+      for (const Hit& h : p_hits)
+        if ((h.level & CORE_BIT) != 0)
+          out << "corehit MO " << h.orbital + 1 << " | " << describeLevel(h.level) << "\n";
+      return out.str();
+    }
+
     string describeLevel(int key)
     {
+      if (key >= 0 && (key & CORE_BIT) != 0) {
+        const int k = key & ~CORE_BIT;
+        if (k >= (int)p_centre.coreLevels.size()) return "";
+        const MoLevel& l = p_centre.coreLevels[k];
+        ostringstream out;
+        if (l.orbitals.size() > 1) {
+          out << "MOs ";
+          for (size_t i = 0; i < l.orbitals.size(); i++)
+            out << (i ? ", " : "") << l.orbitals[i] + 1;
+        } else if (!l.orbitals.empty()) {
+          out << "MO " << l.orbitals[0] + 1;
+        }
+        char e[64];
+        snprintf(e, sizeof e, "%.2f", l.energy*HARTREE_EV);
+        out << ", E = " << e << " eV, " << l.label << " (core, drawn below the break, not to scale)";
+        if (p_owner != 0 && !l.orbitals.empty()) {
+          const string comp = p_owner->orbitalComposition(l.orbitals);
+          if (!comp.empty()) out << "\n" << comp;
+        }
+        return out.str();
+      }
       const bool only = (key & ONLY_BIT) != 0;
       const bool calc = only || (key & CALC_BIT) != 0;
       const int level = key & ~(CALC_BIT | ONLY_BIT);

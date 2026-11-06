@@ -116,6 +116,7 @@ class MoDiagramPanel : public VizPropertyPanel,
        */
       /** The core levels as drawn, one line each; for tests. */
       string coreText() const;
+      string coreHitsText();
       bool showCoreChecked() const { return p_showCore != 0 && p_showCore->GetValue(); }
       void setShowCore(bool on);
       bool exportAufbau(const string& path, bool toScale, int width, int height);
