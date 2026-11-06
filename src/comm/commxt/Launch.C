@@ -339,6 +339,20 @@ Launch::Launch(TaskJob* task,
       }
     }
 
+    // An NWChem MD optimisation stores the restart it was given (.rst) beside
+    // the one it wrote (.qrs); the next task must start from the latter.
+    if (!gromacs && p_restartProvider != 0) {
+      MdTask *md = dynamic_cast<MdTask*>(p_restartProvider);
+      if (md == 0)
+        md = dynamic_cast<MdTask*>(EDSIFactory::getResource(p_restartProvider->getURL()));
+      if (md != 0) {
+        const string own = md->getRestartName();
+        vector<EcceURL> files = p_restartProvider->getDataFiles(JCode::RESTART_OUTPUT);
+        for (size_t i = 0; i < files.size(); i++)
+          if (files[i].getFilePathTail() == own) p_restartFile.push_back(files[i]);
+      }
+    }
+
     if (gromacs) {
       for (int k = 0; k < 2; k++) {
         TaskJob *prov = k == 0 ? p_restartProvider : p_topologyProvider;
