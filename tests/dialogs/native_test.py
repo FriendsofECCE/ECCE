@@ -338,6 +338,10 @@ def main():
     ap.add_argument("--case", default="", help="only cases whose title has this")
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--no-layout", action="store_true")
+    ap.add_argument("--dedupe", action="store_true",
+                    help="inventory-diff every context and variant, but replay "
+                         "the restore cases once per group of contexts whose "
+                         "Python inventories are identical")
     a = ap.parse_args()
     # Never read the developer's ~/.ECCE (fonts) -- the dialogs honour this.
     os.environ.setdefault("ECCE_REALUSERHOME",
@@ -356,7 +360,7 @@ def main():
         print("skip: python3 has no wx")
         return 77
 
-    number = 90
+    number = int(os.environ.get("ECCE_TEST_XDISPLAY_BASE", "90"))
     while os.path.exists("/tmp/.X11-unix/X%d" % number):
         number += 1
     xvfb = subprocess.Popen(["Xvfb", ":%d" % number, "-screen", "0",
@@ -406,25 +410,52 @@ def main():
         print("%d context(s): %s" % (len(ctxs), ", ".join("/".join(c) for c in ctxs)))
         diffs = []
         with harness.Display() as display:
+            # The inventories and restore cases of ~1000 contexts are the
+            # bulk of the work for the Runtype dialogs; build them in the pool.
+            tasks = []
             for category, theory, runtype in ctxs:
                 for vname, vov in VARIANTS:
                     ov = dict(vov, category=category, theory=theory,
                               runType=runtype)
                     tag = "%s/%s/%s %s" % (category, theory, runtype, vname)
-                    nat = nativeInventory(binary, dlg, ov, env)
-                    if vname == "mult1":
-                        pyInv = harness.runDialog(display, py, **ov)
-                        for d in inventoryDiff(pyInv, nat):
-                            diffs.append("%s: %s" % (tag, d))
-                    for cname, restore in restoreCases(nat):
-                        if vname == "rxn nfrozen-1" and cname not in (
-                                "defaults", "one non-default"):
+                    # --case "CAT/THEORY/RUN" narrows the contexts built too.
+                    if "/" in a.case and a.case not in tag and \
+                            not tag.startswith(a.case.split(" ")[0]):
+                        continue
+                    tasks.append((tag, vname, ov, tag[:len(tag) - len(vname) - 1]))
+
+            def prepare(t):
+                tag, vname, ov, _ctx = t
+                nat = nativeInventory(binary, dlg, ov, env)
+                found = []
+                key = None
+                if vname == "mult1" or a.dedupe:
+                    pyInv = harness.runDialog(display, py, **ov)
+                    found = ["%s: %s" % (tag, d)
+                             for d in inventoryDiff(pyInv, nat)]
+                    key = json.dumps([pyInv.get("widgets"), pyInv.get("error")],
+                                     sort_keys=True)
+                return t, found, restoreCases(nat), key
+
+            with concurrent.futures.ThreadPoolExecutor(a.jobs) as pool:
+                prepared = list(pool.map(prepare, tasks))
+            seen = {}
+            perCtx = {}
+            for (tag, vname, ov, ctx), found, cases, key in prepared:
+                perCtx.setdefault(ctx, []).append(key)
+            for (tag, vname, ov, ctx), found, cases, key in prepared:
+                diffs.extend(found)
+                if a.dedupe and seen.setdefault(tuple(perCtx[ctx]), ctx) != ctx:
+                    continue
+                for cname, restore in cases:
+                    if vname == "rxn nfrozen-1" and cname not in (
+                            "defaults", "one non-default"):
+                        continue
+                    for flag in ("GUIValues", "NO_GUIValues"):
+                        if flag == "NO_GUIValues" and vname != "mult3":
                             continue
-                        for flag in ("GUIValues", "NO_GUIValues"):
-                            if flag == "NO_GUIValues" and vname != "mult3":
-                                continue
-                            jobs.append(("%s %s %s" % (tag, cname, flag), ov,
-                                         restore, flag))
+                        jobs.append(("%s %s %s" % (tag, cname, flag), ov,
+                                     restore, flag))
         for d in diffs:
             if a.case in d:
                 print("FAIL  inventory " + d)

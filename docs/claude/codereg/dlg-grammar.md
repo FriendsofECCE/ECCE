@@ -2,7 +2,7 @@
 type: map
 title: ".dlg grammar and the engine behind it: what each line means and which Python behaviour it reproduces"
 area: codereg
-paths: ["src/wxgui/details", "src/apps/codereg-dialog/ecce-dialog.cpp", "scripts/codereg/ecceqmtheory.dlg", "scripts/codereg/orcatheory.dlg", "scripts/codereg/orcaruntype.dlg", "tests/dialogs/grammar_test.dlg", "tests/dialogs/native_test.py", "tests/details/details_unit_test.cpp"]
+paths: ["src/wxgui/details", "src/apps/codereg-dialog/ecce-dialog.cpp", "scripts/codereg/ecceqmtheory.dlg", "scripts/codereg/orcatheory.dlg", "scripts/codereg/orcaruntype.dlg", "scripts/codereg/ged16theory.dlg", "scripts/codereg/ged16runtype.dlg", "tests/dialogs/grammar_test.dlg", "tests/dialogs/native_test.py", "tests/details/details_unit_test.cpp"]
 issues: [411]
 ---
 Engine: `src/wxgui/details/` = `DetailsRules` (line parser, expressions, ranges,
@@ -45,6 +45,8 @@ nothing sent; int: the spin box clamps), ranges in the templates.py syntax
 is what a stale stored unit is compared with. Float values the user edits are
 reformatted as Python `str(float)` (`1e-06`, `1.0`). `default=` of a float is
 the literal text sent; write it as Python would (`1.0`).
+
+**Other attributes:** `dep_before=NAME` (run this rule before NAME's), `hard_if="cond => [lo..hi]"`, float `exp=1` (power of ten only), `start_disabled=1` (the Python widget is Enable(False)'d in its constructor, so its line is sent first, before the initial dump).
 
 **Behaviours copied from the wx widgets, easy to lose:** combo/number/text/
 calcpick report a change of enabled state as an edit (line sent after a nested

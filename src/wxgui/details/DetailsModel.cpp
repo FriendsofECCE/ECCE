@@ -343,6 +343,14 @@ void Model::initialize()
 {
   std::vector<int> notRestored;
   bool legacyDispersion = false, legacyGrid = false;
+  // The Python dialog reports a widget it disables right after creating it,
+  // before anything else is sent.
+  for (size_t i = 0; i < items_.size(); i++) {
+    if (!items_[i].startDisabled) continue;
+    items_[i].enabled = false;
+    touch((int)i);
+    if (sendsOnEnable(items_[i]) && transport_) emit((int)i);
+  }
   if (par_.restoreFlag == "GUIValues") {
     std::ifstream f(par_.restoreFile);
     string line;
@@ -499,6 +507,7 @@ bool Model::build(string& error)
       it.hard = substitute(L.get("hard"), argv);
       it.exportFlag = atoi(L.get("export", "0").c_str());
       it.exp = L.get("exp", "0") == "1";
+      it.startDisabled = L.get("start_disabled", "0") == "1";
       it.enableIf = L.get("enable_if");
       it.showIf = L.get("show_if");
       it.exportIf = L.get("export_if");

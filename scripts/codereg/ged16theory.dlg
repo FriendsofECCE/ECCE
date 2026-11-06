@@ -57,8 +57,9 @@ combo name=ES.Theory.DFT.Dispersion label="Dispersion:" choices="None|Grimme D2|
 box label="Solvation" cols=2 when="category==DFT || category==SCF || (category==CC || category==CI) && runtype==Energy"
 check name=ES.Theory.SCF.UseSCRF label=" Use SCRF" default=0
 combo name=ES.Theory.SCF.SCRF label="SCRF type:" choices="PCM|CPCM|IPCM|SCIPCM|SMD|Dipole" default=PCM enable_if="ES.Theory.SCF.UseSCRF==1"
-combo name=ES.Theory.SCF.Solvent label="Solvent:" choices="Water|Acetonitrile|Methanol|Ethanol|Manual|1,4-Dioxane|methylcyclohexane|Benzene|Chloroform|Diethylether|Dichloromethane|Dichloroethane|Carbontetrachloride|Toluene|Chlorobenzene|Nitromethane|Heptane|Aniline|Acetone|Tetrahydrofuran|Dimethylsulfoxide|Argon|Krypton|Xenon|n-Octanol|1-Butanol|Cyclohexane|Isoquinoline|Quinoline|n,n-dimethylformamide" default=Water enable_if="ES.Theory.SCF.UseSCRF==1" dep_before=ES.Theory.SCF.SCRF
-float name=ES.Theory.SCF.Dielectric label="Dielectric Constant:" default=78.4 hard="(0..)" unit=Debye enable_if="ES.Theory.SCF.UseSCRF==1 && ES.Theory.SCF.Solvent==Manual"
+combo name=ES.Theory.SCF.Solvent label="Solvent:" choices="Water|Acetonitrile|Methanol|Ethanol|Custom|1,4-Dioxane|methylcyclohexane|Benzene|Chloroform|Diethylether|Dichloromethane|Dichloroethane|Carbontetrachloride|Toluene|Chlorobenzene|Nitromethane|Heptane|Aniline|Acetone|Tetrahydrofuran|Dimethylsulfoxide|Argon|Krypton|Xenon|n-Octanol|1-Butanol|Cyclohexane|Isoquinoline|Quinoline|n,n-dimethylformamide" default=Water enable_if="ES.Theory.SCF.UseSCRF==1" dep_before=ES.Theory.SCF.SCRF
+float name=ES.Theory.SCF.Dielectric label="Dielectric Constant:" default=78.4 hard="(0..)" enable_if="ES.Theory.SCF.UseSCRF==1 && ES.Theory.SCF.Solvent==Custom"
+float name=ES.Theory.SCF.RefractiveIndex label="Refractive index:" default=1.4 hard="(0..)" enable_if="ES.Theory.SCF.UseSCRF==1 && ES.Theory.SCF.Solvent==Custom"
 
 box label="Theory Options - MP" cols=2 when="category==MP"
 combo name=ES.Theory.MP.Direct label="Computed:" choices="Direct|Full-Direct|Semi-Direct|In Core" default=Direct
@@ -66,8 +67,9 @@ combo name=ES.Theory.MP.Direct label="Computed:" choices="Direct|Full-Direct|Sem
 box label="Solvation" cols=2 when="category==MP"
 check name=ES.Theory.SCF.UseSCRF label=" Use SCRF" default=0
 combo name=ES.Theory.SCF.SCRF label="SCRF type:" choices="PCM|CPCM|IPCM|SCIPCM|SMD|Dipole" default=PCM enable_if="ES.Theory.SCF.UseSCRF==1"
-combo name=ES.Theory.SCF.Solvent label="Solvent:" choices="Water|Acetonitrile|Methanol|Ethanol|Manual|1,4-Dioxane|methylcyclohexane|Benzene|Chloroform|Diethylether|Dichloromethane|Dichloroethane|Carbontetrachloride|Toluene|Chlorobenzene|Nitromethane|Heptane|Aniline|Acetone|Tetrahydrofuran|Dimethylsulfoxide|Argon|Krypton|Xenon|n-Octanol|1-Butanol|Cyclohexane|Isoquinoline|Quinoline|n,n-dimethylformamide" default=Water enable_if="ES.Theory.SCF.UseSCRF==1" dep_before=ES.Theory.SCF.SCRF
-float name=ES.Theory.SCF.Dielectric label="Dielectric Constant:" default=78.4 hard="(0..)" unit=Debye enable_if="ES.Theory.SCF.UseSCRF==1 && ES.Theory.SCF.Solvent==Manual"
+combo name=ES.Theory.SCF.Solvent label="Solvent:" choices="Water|Acetonitrile|Methanol|Ethanol|Custom|1,4-Dioxane|methylcyclohexane|Benzene|Chloroform|Diethylether|Dichloromethane|Dichloroethane|Carbontetrachloride|Toluene|Chlorobenzene|Nitromethane|Heptane|Aniline|Acetone|Tetrahydrofuran|Dimethylsulfoxide|Argon|Krypton|Xenon|n-Octanol|1-Butanol|Cyclohexane|Isoquinoline|Quinoline|n,n-dimethylformamide" default=Water enable_if="ES.Theory.SCF.UseSCRF==1" dep_before=ES.Theory.SCF.SCRF
+float name=ES.Theory.SCF.Dielectric label="Dielectric Constant:" default=78.4 hard="(0..)" enable_if="ES.Theory.SCF.UseSCRF==1 && ES.Theory.SCF.Solvent==Custom"
+float name=ES.Theory.SCF.RefractiveIndex label="Refractive index:" default=1.4 hard="(0..)" enable_if="ES.Theory.SCF.UseSCRF==1 && ES.Theory.SCF.Solvent==Custom"
 
 box label="Theory Options - CC" cols=2 when="category==CC"
 float name=ES.Theory.CC.ConvergenceEnergy.Value label="Delta Energy:" default=1e-08 default_if="runtype in @ENERGYLIKE => 1e-07" unit=Hartree hard="(0.0..)" soft="[1e-12..1e-2]"
@@ -83,6 +85,13 @@ check name=ES.Theory.UseFrozenCores label=" Use Frozen Core Orbitals" default=1 
 int name=ES.Theory.CorrelOrb.FrozenCoreValue label="Freeze:" default=$nfrozen default_if="nfrozen<0 => 0" hard="[0..$nocc]" export=1 enable_if="ES.Theory.UseFrozenCores==1"
 check name=ES.Theory.CorrelOrb.ExcludedVirtual label=" Number to Exclude:" default=0
 int name=ES.Theory.CorrelOrb.ExcludedVirtualValue default=0 hard="[0..$nvirt]" hard_if="nvirt<0 => [0..0]" export=1 enable_if="ES.Theory.CorrelOrb.ExcludedVirtual==1"
+
+# ai.gauss16 writes TD(...) or TDA(...); ROHF has no TD in Gaussian.
+box label="Excited States (TD-DFT)" cols=2 when="category==SCF || category==DFT"
+check name=ES.Theory.TDDFT.Use label=" Calculate excited states" default=0 export=1
+int name=ES.Theory.TDDFT.NStates label="Number of states:" default=10 hard="[1..)" export=1 enable_if="ES.Theory.TDDFT.Use==1" dep_before=ES.Theory.SCF.Solvent
+combo name=ES.Theory.TDDFT.Spin label="Spin:" choices="Singlets|Triplets|Singlets and triplets" default=Singlets export=1 enable_if="ES.Theory.TDDFT.Use==1" dep_before=ES.Theory.SCF.Solvent
+check name=ES.Theory.TDDFT.TDA label=" Tamm-Dancoff approximation" default=0 export=1 enable_if="ES.Theory.TDDFT.Use==1" dep_before=ES.Theory.SCF.Solvent
 
 # Expert free text appended verbatim to the route card; not checked.
 box label="Additional Route Options (expert)" cols=1

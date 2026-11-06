@@ -41,6 +41,7 @@ struct Item {
   std::string soft, hard;                    // ranges, as templates.py
   Strings choices, urls;                     // urls: calcpick only
   int exportFlag = 0;
+  bool startDisabled = false;                // disabled when built (wx Enable(False) in the constructor)
   bool exp = false;                          // float: power of ten only
   int box = -1;
   // run time
