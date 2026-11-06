@@ -27,7 +27,7 @@ import re
 import sys
 import xml.etree.ElementTree as ET
 
-_here = os.path.dirname(os.path.abspath(__file__))
+_here = os.path.dirname(os.path.realpath(__file__))
 
 HARTREE_KJ = 2625.4996394799
 HARTREE_EV = 27.211386245988

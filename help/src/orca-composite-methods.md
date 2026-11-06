@@ -33,3 +33,23 @@ Next to **Auxiliary Basis**, **RI approximation** offers three choices:
 
 The auxiliary basis applies to both RI modes and is disabled for None.
 Existing calculations with **Use RIJCOSX** enabled retain RIJCOSX.
+
+## Broken-symmetry guess (UHF and UDFT)
+
+For an unrestricted calculation the dialog has an **Initial Guess** box with
+**Broken-symmetry guess (mix HOMO and LUMO)**. From a symmetric start, a UHF
+or UKS singlet keeps the closed-shell (restricted) solution even where a
+lower, spin-polarised one exists, for example in a stretched bond. Ticked,
+ECCE writes `%scf GuessMix 75 end`: ORCA rotates the alpha HOMO and LUMO by
+75° before the SCF, which lets it reach the broken-symmetry solution. In a
+scan ORCA applies the mixing at every point, so near the equilibrium distance
+the SCF still returns to the closed-shell solution. ⟨S²⟩ in the output shows
+which one was found (0 closed shell; near 1 for two separated electrons of
+opposite spin).
+
+## CCSD optimisations and scans
+
+CCSD offers the Gradient and Geometry run types, so a bond can be scanned at
+the CCSD level. ORCA 6.1.1 has analytic CCSD gradients for a closed-shell
+reference; for an open-shell one ECCE adds `NumGrad`, and each step costs
+a numerical gradient.

@@ -133,7 +133,7 @@ sub parseKeywordLine {
   # of every ORCA runtype keyword.
   my %unsupportedRuntypeTokens = map { $_ => 1 } ("NEB","SCANTS");
 
-  my ($sawHF, $sawUHF, $sawRKS, $sawUKS,
+  my ($sawHF, $sawUHF, $sawRKS, $sawUKS, $sawCC,
       $sawOpt, $sawFreq, $sawEnGrad, $sawNMR, $sawIRC, $sawNebTS, $sawUnsupportedRuntype);
   foreach my $tok (@tokens) {
     my $ucTok = uc($tok);
@@ -145,6 +145,7 @@ sub parseKeywordLine {
     # Freq" run imported with no Category and no Theory at all.
     if ($ucTok eq "HF" || $ucTok eq "RHF") { $sawHF = 1; }
     elsif ($ucTok eq "UHF") { $sawUHF = 1; }
+    elsif ($ucTok eq "CCSD" || $ucTok eq "CCSD(T)") { $sawCC = $tok; }
     elsif ($ucTok eq "RKS") { $sawRKS = 1; }
     elsif ($ucTok eq "UKS") { $sawUKS = 1; }
     elsif (exists($xcFunctionals{$ucTok})) { $xcFunctional = $xcFunctionals{$ucTok}; }
@@ -169,7 +170,10 @@ sub parseKeywordLine {
     if (!defined($basisName) && defined($reportedBasis) &&
         exists($BasisToName{uc($reportedBasis)}));
 
-  if ($sawUKS || $sawRKS) {
+  if ($sawCC) {
+    $theoryCat = "CC";
+    $theory = uc($sawCC);
+  } elsif ($sawUKS || $sawRKS) {
     $theoryCat = "DFT";
     $theory = $sawUKS ? "UDFT" : "RDFT";
   } elsif ($sawUHF) {
@@ -299,6 +303,9 @@ sub writeDictAndMVM {
         if (defined($multiplicity));
   print(PARAMS "ES.Theory.DFT.XCFunctionals:\t$xcFunctional\n")
         if (defined($xcFunctional));
+  # ai.orca's broken-symmetry guess (#858), so a rerun keeps it.
+  print(PARAMS "ES.Theory.SCF.BrokenSymmetryGuess:\t1\n")
+        if (grep(/^\s*GuessMix\b/i, @inputEchoLines));
   # ORCA has spherical basis functions only; without this key the import
   # records the basis as Cartesian.
   print(PARAMS "SphericalBasis:\tTRUE\n");

@@ -5390,7 +5390,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "33";
+const char *const kExampleSetVersion = "34";
 
 string treeName(string s)
 {
@@ -6464,6 +6464,31 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "localised. This calculation shows the two electrons of H2 in one "
      "bonding sigma orbital, with the empty antibonding sigma* orbital above"
      " it."},
+    {"h2_bond_curve",
+     "The energy of two hydrogen atoms as they approach, from 5.0 to 0.4 Å "
+     "apart. This calculation shows how a chemical bond forms: the minimum of "
+     "the curve is the bond length and its depth below the separated atoms "
+     "is the bond energy."},
+    {"h2_rhf_scan",
+     "ORCA, RHF/cc-pVTZ, scan of the H-H distance from 4.0 to 0.3 Å. This "
+     "calculation shows a closed-shell wavefunction that keeps equal ionic "
+     "and covalent parts at every distance, so its energy at 4 Å lies far "
+     "above that of two hydrogen atoms."},
+    {"h2_uhf_scan",
+     "ORCA, UHF/cc-pVTZ with a broken-symmetry guess, scan of the H-H "
+     "distance from 4.0 to 0.3 Å. This calculation shows the unrestricted "
+     "solution reaching the energy of two hydrogen atoms, with <S²> "
+     "rising from 0 towards 1 beyond the Coulson-Fischer point between 1.2 "
+     "and 1.3 Å."},
+    {"h2_ccsd_scan",
+     "ORCA, CCSD/cc-pVTZ, scan of the H-H distance from 4.0 to 0.3 Å. This "
+     "calculation shows the curve that is exact for two electrons in this "
+     "basis, the one the RHF and UHF scans are measured against."},
+    {"h2_uhf_scan_out",
+     "ORCA, UHF/cc-pVTZ without a broken-symmetry guess, scan of the H-H "
+     "distance outwards from 0.5 to 4.0 Å. This calculation shows the SCF "
+     "following its closed-shell solution from point to point, so it stays "
+     "on the RHF curve where the inward broken-symmetry scan does not."},
     {"H2_cation",
      "ECCE-QM, UB3LYP/6-31G*, optimisation and frequencies, orbitals "
      "localised. This calculation shows H2+, held together by a single "

@@ -5,8 +5,9 @@ Synthetic Morse curves must be recovered exactly; omega_e is checked against
 an independent route (the curvature of the synthetic curve by finite
 differences, omega = sqrt(V''/mu)), and the CLI is run on a stored
 calculation made here (Props vectors + chemsys.mvm), with and without --json.
-With --ccsd <calc>, the fit of the H2 CCSD scan is printed next to the
-experimental constants of H2 (no pass/fail on the differences).
+The fit of the shipped H2 curve (General Chemistry h2_bond_curve, or --ccsd
+<calc>) is printed next to the experimental constants of H2; the differences
+are stated, not tested.
 """
 import argparse
 import json
@@ -160,12 +161,15 @@ def ccsd(calc):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--ccsd", help="stored H2 CCSD scan calculation")
+    ap.add_argument("--ccsd", default=os.path.join(
+        ROOT, "data", "client", "examples", "genchem", "bond-formation",
+        "orca-h2_bond_curve", "stored", "h2_bond_curve"),
+        help="stored H2 CCSD scan calculation")
     a = ap.parse_args()
     synthetic()
     formatting()
     cli()
-    if a.ccsd:
+    if os.path.isdir(a.ccsd):
         ccsd(a.ccsd)
     print("FAILED: %d" % len(fails) if fails else "PASSED")
     return 1 if fails else 0

@@ -4,7 +4,10 @@
 #include <sstream>
 
 #include <wx/button.h>
+#include <wx/checkbox.h>
+#include <wx/choicdlg.h>
 #include <wx/choice.h>
+#include <wx/textctrl.h>
 #include <wx/filedlg.h>
 #include <wx/grid.h>
 #include <wx/radiobox.h>
@@ -13,6 +16,9 @@
 #include <wx/wrapsizer.h>
 #include <wx/stattext.h>
 #include <wx/event.h>
+#include <wx/dcmemory.h>
+#include <wx/image.h>
+#include <wx/utils.h>
 
 #include "tdat/PropVector.H"
 #include "tdat/PropTSVecTable.H"
@@ -27,6 +33,9 @@
 #include "PointCalc.H"
 #include "wxgui/PlaybackControl.H"
 #include "util/EcceURL.H"
+#include "util/RateRun.H"
+#include "dsm/EDSIFactory.H"
+#include "dsm/Resource.H"
 
 #include "PlaybackExtras.H"
 #include "wxgui/ewxConfig.H"
@@ -43,6 +52,10 @@ const wxWindowID ID_EXPORT = wxNewId();
 const wxWindowID ID_NEWCALC = wxNewId();
 const wxWindowID ID_VIEW = wxNewId();
 const wxWindowID ID_PLAYBACK = wxNewId();
+const wxWindowID ID_MORSE = wxNewId();
+const wxWindowID ID_WINDOW = wxNewId();
+const wxWindowID ID_COMPARE = wxNewId();
+const double KCAL_KJ = 4.184;
 static const char *INIFILE = "wxbuilder.ini";
 
 double factor(bool kcal) { return kcal ? HARTREE_KCAL : HARTREE_KJ; }
@@ -79,7 +92,8 @@ END_EVENT_TABLE()
 
 ScanPanel::ScanPanel()
   : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL),
-    p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(500), p_syncing(false)
+    p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(500), p_syncing(false),
+    p_morse(NULL), p_window(NULL), p_windowUnit(NULL), p_morseText(NULL)
 {
 }
 
@@ -87,7 +101,8 @@ ScanPanel::ScanPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
   : VizPropertyPanel(), p_selected(-1), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL),
-    p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(500), p_syncing(false)
+    p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(500), p_syncing(false),
+    p_morse(NULL), p_window(NULL), p_windowUnit(NULL), p_morseText(NULL)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -121,12 +136,30 @@ bool ScanPanel::Create(IPropCalculation *calculation,
   bar->Add(p_view, 0, wxRIGHT, 12);
   bar->Add(new wxButton(this, ID_NEWCALC, "New calculation from this point"), 0,
            wxRIGHT, 6);
-  bar->Add(new wxButton(this, ID_EXPORT, "Export .csv..."), 0);
+  bar->Add(new wxButton(this, ID_EXPORT, "Export .csv..."), 0, wxRIGHT, 12);
+  bar->Add(new wxButton(this, ID_COMPARE, "Compare..."), 0, wxRIGHT, 12);
+  p_morse = new wxCheckBox(this, ID_MORSE, "Fit Morse");
+  p_morse->SetToolTip(wxString::FromUTF8(
+      "Fit V(r) = De(1 - exp(-a(r - re)))\u00b2 to the points of a bond scan "
+      "within the window above the lowest point"));
+  bar->Add(p_morse, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  bar->Add(new wxStaticText(this, wxID_ANY, "Window:"), 0,
+           wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+  p_window = new wxTextCtrl(this, ID_WINDOW, "", wxDefaultPosition,
+                            wxSize(ewxBitmap::scaled(70), -1), wxTE_PROCESS_ENTER);
+  p_window->SetHint("all bound");
+  p_window->SetToolTip("Energy above the lowest point; empty: every point "
+                       "below the energy at the longest distance");
+  bar->Add(p_window, 0, wxRIGHT, 4);
+  p_windowUnit = new wxStaticText(this, wxID_ANY, "kJ/mol");
+  bar->Add(p_windowUnit, 0, wxALIGN_CENTER_VERTICAL);
   GetSizer()->Add(bar, 0, wxEXPAND | wxALL, 4);
 
   p_plot = new XYPlotCanvas(this);
   p_plot->SetMinSize(wxSize(300, 180));
-  p_plot->setPointHandler([this](int, int index) { selectPoint(index); });
+  p_plot->setPointHandler([this](int curve, int index) {
+    if (curve == 0) selectPoint(index);   // compared scans have no structures here
+  });
   GetSizer()->Add(p_plot, 3, wxEXPAND);
 
   wxBoxSizer *play = new wxBoxSizer(wxHORIZONTAL);
@@ -139,6 +172,11 @@ bool ScanPanel::Create(IPropCalculation *calculation,
   GetSizer()->Add(play, 0, wxEXPAND | wxLEFT | wxRIGHT, 4);
   p_extras = new PlaybackExtras(this, GetSizer(), &p_delay);
   GetSizer()->Add(p_status, 0, wxEXPAND | wxALL, 4);
+  p_morseText = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition,
+                               wxSize(300, ewxBitmap::scaled(130)),
+                               wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
+  p_morseText->Hide();
+  GetSizer()->Add(p_morseText, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 4);
 
   p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(300, 110));
   p_grid->CreateGrid(0, 3, wxGrid::wxGridSelectRows);
@@ -154,6 +192,9 @@ bool ScanPanel::Create(IPropCalculation *calculation,
   Bind(wxEVT_BUTTON, &ScanPanel::OnExport, this, ID_EXPORT);
   Bind(wxEVT_BUTTON, &ScanPanel::OnNewCalc, this, ID_NEWCALC);
   Bind(wxEVT_RADIOBOX, &ScanPanel::OnView, this, ID_VIEW);
+  Bind(wxEVT_CHECKBOX, &ScanPanel::OnMorse, this, ID_MORSE);
+  Bind(wxEVT_TEXT_ENTER, &ScanPanel::OnMorse, this, ID_WINDOW);
+  Bind(wxEVT_BUTTON, &ScanPanel::OnCompare, this, ID_COMPARE);
 
   bool table = false;
   ewxConfig::getConfig(INIFILE)->Read("ScanPanel/Table", &table, false);
@@ -189,15 +230,42 @@ void ScanPanel::fill()
   const wxString unit = kcal ? "kcal/mol" : "kJ/mol";
   const double lo = n ? *std::min_element(p_hartree.begin(), p_hartree.end()) : 0;
 
+  const bool bond = p_coordUnit != "degree";
+  p_morse->Show(bond);
+  p_window->Show(bond);
+  p_windowUnit->SetLabel(unit);
+  p_windowUnit->Show(bond);
+  if (!bond) p_morse->SetValue(false);
+
   p_plot->clearCurves();
   if (n) {
     std::vector<double> y(n);
     for (size_t i = 0; i < n; i++) y[i] = (p_hartree[i] - lo) * factor(kcal);
-    p_plot->addCurve(p_coord, y);
+    p_plot->addCurve(p_coord, y, wxString::FromUTF8(
+        calc->getURL().getFilePathTail().c_str()), 0);
   }
+  // Each compared scan relative to its own lowest point: energies of
+  // different methods are never put on one scale.
+  for (size_t c = 0; c < p_compared.size(); c++) {
+    const Compared& o = p_compared[c];
+    if (o.hartree.empty()) continue;
+    const double olo = *std::min_element(o.hartree.begin(), o.hartree.end());
+    std::vector<double> y(o.hartree.size());
+    for (size_t i = 0; i < y.size(); i++) y[i] = (o.hartree[i] - olo) * factor(kcal);
+    p_plot->addCurve(o.coord, y, wxString::FromUTF8(o.name.c_str()), (int)c + 1);
+  }
+  if (p_morse->GetValue() && !p_fitR.empty()) {
+    std::vector<double> y(p_fitE.size());
+    for (size_t i = 0; i < y.size(); i++) y[i] = (p_fitE[i] - lo) * factor(kcal);
+    const int f = p_plot->addCurve(p_fitR, y, "Morse fit", 0, XYPlotCanvas::LINE);
+    p_plot->setCurveStyle(f, true, 2);
+  }
+  p_plot->setShowKey(!p_compared.empty() || (p_morse->GetValue() && !p_fitR.empty()));
   p_plot->setXAxisLabel(p_coordUnit == "degree" ? "Scanned coordinate (degrees)"
                                                  : wxString::FromUTF8("Scanned coordinate (Å)"));
-  p_plot->setYAxisLabel("Relative energy (" + unit + ")");
+  p_plot->setYAxisLabel(p_compared.empty()
+      ? "Relative energy (" + unit + ")"
+      : "Energy above each curve's lowest point (" + unit + ")");
   p_plot->setReadout("Point", "Coordinate",
                      p_coordUnit == "degree" ? wxString::FromUTF8("°")
                                              : wxString::FromUTF8("Å"),
@@ -221,6 +289,7 @@ void ScanPanel::fill()
 // they arrive, or its points stay without a structure to show.
 void ScanPanel::refresh()
 {
+  if (p_morse && p_morse->GetValue()) runFit();
   fill();
   if (p_selected >= (int)p_coord.size()) p_selected = -1;
   if (p_selected < 0) return;
@@ -472,7 +541,179 @@ void ScanPanel::OnNewCalc(wxCommandEvent&)
 
 void ScanPanel::OnUnit(wxCommandEvent&)
 {
+  // The window field is in the shown unit, so its value changes with it.
+  double w = 0;
+  if (p_window->GetValue().ToCDouble(&w) && w > 0)
+    p_window->ChangeValue(wxString::FromCDouble(
+        p_unit->GetSelection() == 1 ? w / KCAL_KJ : w * KCAL_KJ, 3));
   fill();
+}
+
+// The fit is ecce-morse's (#858): the panel draws its curve and shows its
+// report, so the numbers equal the command line's.
+void ScanPanel::runFit()
+{
+  p_fitR.clear();
+  p_fitE.clear();
+  if (!p_morse->GetValue()) {
+    p_morseState = "off";
+    if (p_morseText->IsShown()) { p_morseText->Hide(); Layout(); }
+    return;
+  }
+  IPropCalculation *calc = getCalculation();
+  const std::string folder = calc ? rateLocalPath(calc->getURL().toString()) : "";
+  wxString text;
+  if (folder.empty()) {
+    text = "The Morse fit reads calculations stored on this computer; this one "
+           "is on a data server.";
+    p_morseState = "error not local";
+  } else {
+    double w = 0;
+    if (!p_window->GetValue().Strip(wxString::both).empty() &&
+        (!p_window->GetValue().ToCDouble(&w) || w <= 0)) {
+      text = "The window is an energy above the lowest point, a positive number "
+             "(empty: every bound point).";
+      p_morseState = "error window";
+    } else {
+      if (p_unit->GetSelection() == 1) w *= KCAL_KJ;
+      wxBusyCursor busy;
+      const MorseResult r = runMorse(folder, w);
+      if (r.ok) {
+        p_fitR = r.curveR;
+        p_fitE = r.curveE;
+        text = wxString::FromUTF8(r.report.c_str());
+        char buf[400];
+        snprintf(buf, sizeof buf, "ok re=%.10g De_eV=%.10g De_kJ=%.10g a=%.10g "
+                 "omega=%.10g omegaX=%.10g D0_eV=%.10g D0_kJ=%.10g rms=%.10g "
+                 "used=%d total=%d window=%.10g mode=%s", r.re, r.De_eV, r.De_kJ,
+                 r.a, r.omega, r.omegaX, r.D0_eV, r.D0_kJ, r.rms, r.used, r.total,
+                 r.window, r.windowMode.c_str());
+        p_morseState = buf;
+      } else {
+        text = "No Morse fit: " + wxString::FromUTF8(r.error.c_str());
+        p_morseState = "error " + r.error;
+      }
+    }
+  }
+  p_morseText->ChangeValue(text);
+  if (!p_morseText->IsShown()) { p_morseText->Show(); Layout(); }
+}
+
+void ScanPanel::OnMorse(wxCommandEvent&)
+{
+  runFit();
+  fill();
+}
+
+std::string ScanPanel::setMorse(bool on, double window)
+{
+  p_morse->SetValue(on);
+  p_window->ChangeValue(window > 0 ? wxString::FromCDouble(window) : wxString());
+  runFit();
+  fill();
+  return p_morseState;
+}
+
+wxString ScanPanel::morseText() const
+{
+  return p_morseText && p_morseText->IsShown() ? p_morseText->GetValue() : wxString();
+}
+
+namespace {
+struct Candidate { std::string name; std::vector<double> coord, hartree; };
+
+std::vector<Candidate> scansBeside(IPropCalculation *calc, const std::string& unit)
+{
+  std::vector<Candidate> out;
+  if (!calc) return out;
+  Resource *folder = EDSIFactory::getResource(calc->getURL().getParent());
+  std::vector<Resource*> *kids = folder ? folder->getChildren() : 0;
+  if (!kids) return out;
+  const std::string own = calc->getURL().toString();
+  for (Resource *r : *kids) {
+    IPropCalculation *other = dynamic_cast<IPropCalculation*>(r);
+    if (!other || other->getURL().toString() == own) continue;
+    PropVector *c = dynamic_cast<PropVector*>(other->getProperty("SCANCOORD"));
+    PropVector *e = dynamic_cast<PropVector*>(other->getProperty("SCANENERGY"));
+    if (!c || !e || (c->units() == "Degree") != (unit == "degree")) continue;
+    const size_t n = std::min(c->values().size(), e->values().size());
+    if (n < 2) continue;
+    Candidate k;
+    k.name = other->getURL().getFilePathTail();
+    k.coord.assign(c->values().begin(), c->values().begin() + n);
+    k.hartree.assign(e->values().begin(), e->values().begin() + n);
+    out.push_back(k);
+  }
+  std::sort(out.begin(), out.end(),
+            [](const Candidate& a, const Candidate& b) { return a.name < b.name; });
+  return out;
+}
+}
+
+std::vector<std::string> ScanPanel::compareCandidates()
+{
+  std::vector<std::string> names;
+  for (const Candidate& k : scansBeside(getCalculation(), p_coordUnit))
+    names.push_back(k.name);
+  return names;
+}
+
+bool ScanPanel::setCompared(const std::vector<std::string>& names, std::string& complaint)
+{
+  const std::vector<Candidate> all = scansBeside(getCalculation(), p_coordUnit);
+  std::vector<Compared> chosen;
+  for (const std::string& n : names) {
+    auto it = std::find_if(all.begin(), all.end(),
+                           [&](const Candidate& k) { return k.name == n; });
+    if (it == all.end()) {
+      complaint = "No scan named " + n + " beside this calculation.";
+      return false;
+    }
+    chosen.push_back({it->name, it->coord, it->hartree});
+  }
+  p_compared = chosen;
+  fill();
+  return true;
+}
+
+void ScanPanel::OnCompare(wxCommandEvent&)
+{
+  const std::vector<std::string> names = compareCandidates();
+  if (names.empty()) {
+    wxMessageBox("No other scan of the same kind of coordinate is in this "
+                 "calculation's folder.", "Compare scans", wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  wxArrayString choices;
+  wxArrayInt selected;
+  for (size_t i = 0; i < names.size(); i++) {
+    choices.Add(wxString::FromUTF8(names[i].c_str()));
+    for (const Compared& c : p_compared)
+      if (c.name == names[i]) selected.Add((int)i);
+  }
+  wxMultiChoiceDialog dlg(this, "Scans to draw beside this one, each relative to "
+                          "its own lowest point:", "Compare scans", choices);
+  dlg.SetSelections(selected);
+  if (dlg.ShowModal() != wxID_OK) return;
+  std::vector<std::string> picked;
+  for (int i : dlg.GetSelections()) picked.push_back(names[i]);
+  std::string why;
+  setCompared(picked, why);
+}
+
+bool ScanPanel::savePng(const wxString& path, int width, int height)
+{
+  static bool handlers = false;
+  if (!handlers) { wxInitAllImageHandlers(); handlers = true; }
+  const PlotPalette was = p_plot->palette();
+  p_plot->setPalette(PlotPalette::light());
+  wxBitmap bmp(width, height);
+  {
+    wxMemoryDC dc(bmp);
+    p_plot->paintOnto(dc, wxSize(width, height));
+  }
+  p_plot->setPalette(was);
+  return bmp.SaveFile(path, wxBITMAP_TYPE_PNG);
 }
 
 bool ScanPanel::exportCsv(const wxString& path, bool kcal)

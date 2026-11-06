@@ -1496,6 +1496,40 @@ void Builder::runBuilderScript(const std::string& file)
           if (c.second == p_calculation) url = c.first;
         propertyChanged(url, w[1], "");
         fprintf(stderr, "BUILDER: propchange %s\n", w[1].c_str());
+      } else if (w[0] == "scanmorse" || w[0] == "scancompare" || w[0] == "scanpng") {
+        //  scanmorse on|off [window]: the Fit Morse check and window (the
+        //  panel's unit); logs the fit and the text box (#858).
+        //  scancompare [none|NAME...]: lists the scans beside this one, or
+        //  draws the named ones.  scanpng PATH [W H]: the plot on white.
+        ScanPanel *sp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
+        if (!sp) {
+          outcome = "no Relaxed Scan panel";
+        } else if (w[0] == "scanmorse") {
+          const std::string state = sp->setMorse(
+              w.size() >= 2 && w[1] == "on", w.size() >= 3 ? atof(w[2].c_str()) : 0);
+          wxString text = sp->morseText();
+          text.Replace("\n", " | ");
+          fprintf(stderr, "BUILDER: scanmorse %s\nBUILDER: scanmorsetext [%s]\n",
+                  state.c_str(), text.utf8_str().data());
+        } else if (w[0] == "scancompare") {
+          std::string why, list;
+          if (w.size() >= 2) {
+            std::vector<std::string> names;
+            if (w[1] != "none") names.assign(w.begin() + 1, w.end());
+            if (!sp->setCompared(names, why)) outcome = why;
+          }
+          for (const std::string& n : sp->compareCandidates()) list += " " + n;
+          fprintf(stderr, "BUILDER: scancompare candidates:%s\n", list.c_str());
+        } else if (w.size() >= 2) {
+          const int wd = w.size() >= 4 ? atoi(w[2].c_str()) : 900;
+          const int ht = w.size() >= 4 ? atoi(w[3].c_str()) : 560;
+          fprintf(stderr, "BUILDER: scanpng %s\n",
+                  sp->savePng(wxString::FromUTF8(w[1].c_str()), wd, ht) ? "saved" : "failed");
+        }
       } else if (w[0] == "scanstatus") {
         //  scanstatus: the Relaxed Scan panel's status line
         ScanPanel *sp = 0;

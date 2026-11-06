@@ -1,6 +1,7 @@
 #include "util/RateRun.H"
 
 #include <cmath>
+#include <cstdio>
 #include <cstdlib>
 #include <map>
 
@@ -185,6 +186,55 @@ RateResult runRate(const RateRequest& q)
   }
   r.ok = !r.rows.empty();
   if (!r.ok) r.error = "ecce-rate gave no values.";
+  return r;
+#endif
+}
+
+MorseResult runMorse(const string& calcFolder, double windowKj)
+{
+  MorseResult r;
+#ifdef _WIN32
+  r.error = "The Morse fit is not available on this platform yet.";
+  return r;
+#else
+  const char *home = getenv("ECCE_HOME");
+  const string exe = (home && *home ? string(home) + "/bin/" : string()) + "ecce-morse";
+  string cmd = quote(exe) + " " + quote(calcFolder) + " --json";
+  if (windowKj > 0) {
+    char buf[64];
+    snprintf(buf, sizeof buf, " --window %.6g", windowKj);
+    cmd += buf;
+  }
+  cmd += " 2>/dev/null";
+  string text;
+  const int status = Ecce::readCommand(cmd, text);
+  const size_t b = text.find('{');
+  J j;
+  if (b != string::npos) {
+    Parser pr(text.substr(b));
+    if (!pr.value(j)) j = J();
+  }
+  if (j.kind != J::Obj) {
+    r.error = "ecce-morse could not be run.";
+    return r;
+  }
+  if (status != 0 || j.at("error").kind == J::Str) {
+    r.error = j.at("error").str.empty() ? "ecce-morse failed." : j.at("error").str;
+    return r;
+  }
+  r.report = j.at("report").str;
+  r.bond = j.at("bond").str;
+  r.windowMode = j.at("window_mode").str;
+  r.De_eV = j.at("De_eV").n(); r.De_kJ = j.at("De_kJ_per_mol").n();
+  r.a = j.at("a_per_A").n(); r.re = j.at("re_A").n();
+  r.omega = j.at("omega_e_cm-1").n(); r.omegaX = j.at("omega_e_xe_cm-1").n();
+  r.D0_eV = j.at("D0_eV").n(); r.D0_kJ = j.at("D0_kJ_per_mol").n();
+  r.rms = j.at("rms_kJ_per_mol").n(); r.window = j.at("window_kJ_per_mol").n();
+  r.used = (int)j.at("points_used").n(); r.total = (int)j.at("points_total").n();
+  for (const J& v : j.at("curve_r_A").arr) r.curveR.push_back(v.n());
+  for (const J& v : j.at("curve_E_hartree").arr) r.curveE.push_back(v.n());
+  r.ok = !r.curveR.empty() && r.curveR.size() == r.curveE.size();
+  if (!r.ok) r.error = "ecce-morse gave no curve.";
   return r;
 #endif
 }

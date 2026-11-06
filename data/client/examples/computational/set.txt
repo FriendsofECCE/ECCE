@@ -1,3 +1,4 @@
 Computational
-One showcase job per code, a topic for each code: a GROMACS molecular dynamics study of the Trp-cage: prepare, optimize, equilibrate and dynamics.
+One showcase job per code, a topic for each code: a GROMACS molecular dynamics study of the Trp-cage: prepare, optimize, equilibrate and dynamics; and the dissociation of H2 with RHF, UHF and CCSD in ORCA.
 gromacs|GROMACS
+h2-dissociation|H2 dissociation: RHF, UHF and CCSD
