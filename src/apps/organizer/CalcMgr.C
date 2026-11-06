@@ -2218,6 +2218,52 @@ void CalcMgr::runTestCommand(const string& line)
       if (!png.empty() && png != "-") outcome += d->savePng(png) ? " | png saved" : " | png failed";
       if (!csvOut.empty() && csvOut != "-") outcome += d->saveCsv(csvOut) ? " | csv saved" : " | csv failed";
       d->Destroy();
+    } else if (command == "fragdiagram") {
+      // "fragdiagram PNG|- COMPLEX FRAGMENT... [names=A;B] [window=OCC,VIRT]
+      // [click=ID] [shot=PNG] [dump=FILE]": the Fragment orbitals Details
+      // window on these calculation folders, its Diagram page's layout
+      // (FragDiagramLayout::dump), the text a click on level ID shows, the
+      // exported PNG and, with shot=, a picture of the window.  The report
+      // goes to FILE (it is too long for one log line), else "|" for newlines.
+      std::istringstream args(calcName);
+      string png, complex, a, shot, dump;
+      vector<string> frags, names;
+      int occ = 0, virt = -1, click = -1;
+      args >> png >> complex;
+      while (args >> a) {
+        if (a.compare(0, 6, "names=") == 0) {
+          std::istringstream n(a.substr(6));
+          for (string x; std::getline(n, x, ';'); ) names.push_back(x);
+        } else if (a.compare(0, 7, "window=") == 0) {
+          sscanf(a.c_str() + 7, "%d,%d", &occ, &virt);
+        } else if (a.compare(0, 6, "click=") == 0) {
+          click = atoi(a.c_str() + 6);
+        } else if (a.compare(0, 5, "shot=") == 0) {
+          shot = a.substr(5);
+        } else if (a.compare(0, 5, "dump=") == 0) {
+          dump = a.substr(5);
+        } else frags.push_back(a);
+      }
+      while (names.size() < frags.size()) names.push_back("fragment-" + std::to_string(names.size() + 1));
+      string heading;
+      for (size_t k = 0; k < names.size(); k++) heading += (k ? " | " : "") + names[k];
+      FragOrbDetailsDialog *d = new FragOrbDetailsDialog(this, complex, frags, names, heading);
+      d->SetSize(1500, 900);
+      d->Show();
+      for (int i = 0; i < 10; i++) wxYield();
+      const string r = d->diagramReport(occ, virt, click, png == "-" ? "" : png);
+      outcome = "";
+      if (!dump.empty()) {
+        std::ofstream f(dump.c_str());
+        f << r;
+        outcome = r.compare(0, 2, "ok") == 0 ? "ok" : r.substr(0, r.find('\n'));
+        outcome += f ? " | dump saved" : " | dump failed";
+      } else {
+        std::istringstream in(r);
+        for (string l; std::getline(in, l); ) outcome += (outcome.empty() ? "" : " | ") + l;
+      }
+      if (!shot.empty()) outcome += ecceWindowShot(d, shot) ? " | shot saved" : " | shot failed";
+      d->Destroy();
     } else if (command == "reactionprofile") {
       // "reactionprofile dE_ts dG_ts dE_p dG_p [png]": an energy profile from
       // these numbers alone, for checking the label layout of awkward cases.

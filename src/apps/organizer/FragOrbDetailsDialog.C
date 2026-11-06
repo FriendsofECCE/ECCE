@@ -5,13 +5,18 @@
 #include <sstream>
 
 #include <wx/button.h>
+#include <wx/choice.h>
 #include <wx/filedlg.h>
+#include <wx/notebook.h>
+#include <wx/panel.h>
+#include <wx/spinctrl.h>
 #include <wx/font.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 
 #include "FragOrbBox.H"
+#include "FragOrbDiagram.H"
 #include "XYPlotCanvas.H"
 
 using std::string;
@@ -26,7 +31,7 @@ FragOrbDetailsDialog::FragOrbDetailsDialog(wxWindow *parent, const string& compl
                                            const vector<string>& names, const string& heading)
   : wxDialog(parent, wxID_ANY, _("Fragment orbitals"), wxDefaultPosition, wxDefaultSize,
              wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
-    p_names(names)
+    p_complex(complex), p_fragments(fragments), p_names(names)
 {
   p_result = runFragOrb(complex, fragments);
   p_dos = runFragDos(complex, fragments);
@@ -50,14 +55,52 @@ FragOrbDetailsDialog::FragOrbDetailsDialog(wxWindow *parent, const string& compl
   left->Add(p_text, 1, wxEXPAND);
   body->Add(left, 1, wxEXPAND | wxRIGHT, 8);
 
+  // Diagram and densities of states as pages beside the table.
+  p_book = new wxNotebook(this, wxID_ANY);
+  wxPanel *dpage = new wxPanel(p_book);
+  wxBoxSizer *dsizer = new wxBoxSizer(wxVERTICAL);
+  wxBoxSizer *controls = new wxBoxSizer(wxHORIZONTAL);
+  controls->Add(new wxStaticText(dpage, wxID_ANY, _("Occupied levels")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+  p_occupied = new wxSpinCtrl(dpage, wxID_ANY, "4", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 1, 99, 4);
+  controls->Add(p_occupied, 0, wxRIGHT, 8);
+  controls->Add(new wxStaticText(dpage, wxID_ANY, _("Empty levels")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+  p_virtual = new wxSpinCtrl(dpage, wxID_ANY, "4", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 99, 4);
+  controls->Add(p_virtual, 0, wxRIGHT, 10);
+  controls->Add(new wxStaticText(dpage, wxID_ANY, wxString::FromUTF8("Line at \xE2\x89\xA5 (%)")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+  p_threshold = new wxSpinCtrl(dpage, wxID_ANY, "10", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 1, 50, 10);
+  controls->Add(p_threshold, 0, wxRIGHT, 10);
+  p_spin = new wxChoice(dpage, wxID_ANY);
+  p_spin->Append(wxString::FromUTF8("\xCE\xB1 orbitals"));
+  p_spin->Append(wxString::FromUTF8("\xCE\xB2 orbitals"));
+  p_spin->SetSelection(0);
+  controls->Add(p_spin, 0, wxRIGHT, 10);
+  controls->AddStretchSpacer();
+  wxButton *savePng = new wxButton(dpage, wxID_ANY, _("Save PNG..."));
+  controls->Add(savePng, 0);
+  dsizer->Add(controls, 0, wxEXPAND | wxALL, 4);
+  p_canvas = new FragDiagramCanvas(dpage);
+  p_canvas->SetMinSize(wxSize(520, 380));
+  dsizer->Add(p_canvas, 1, wxEXPAND);
+  dsizer->Add(new wxStaticText(dpage, wxID_ANY,
+      _("Point at or click a level for its composition (the text can be copied):")), 0, wxTOP | wxLEFT, 4);
+  p_level = new wxTextCtrl(dpage, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 130),
+                           wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
+  p_level->SetFont(wxFont(wxFontInfo(9).Family(wxFONTFAMILY_TELETYPE)));
+  dsizer->Add(p_level, 0, wxEXPAND | wxTOP, 2);
+  dpage->SetSizer(dsizer);
+  p_book->AddPage(dpage, _("Diagram"), true);
+
+  wxPanel *spage = new wxPanel(p_book);
   wxBoxSizer *right = new wxBoxSizer(wxVERTICAL);
-  p_pdos = new XYPlotCanvas(this);
+  p_pdos = new XYPlotCanvas(spage);
   p_pdos->SetMinSize(wxSize(560, 250));
-  p_opdos = new XYPlotCanvas(this);
+  p_opdos = new XYPlotCanvas(spage);
   p_opdos->SetMinSize(wxSize(560, 250));
   right->Add(p_pdos, 1, wxEXPAND | wxBOTTOM, 6);
   right->Add(p_opdos, 1, wxEXPAND);
-  body->Add(right, 1, wxEXPAND);
+  spage->SetSizer(right);
+  p_book->AddPage(spage, _("PDOS and OPDOS"));
+  body->Add(p_book, 1, wxEXPAND);
   top->Add(body, 1, wxEXPAND | wxALL, 10);
 
   // Status in its own line, under the content and above the buttons.
@@ -141,6 +184,13 @@ FragOrbDetailsDialog::FragOrbDetailsDialog(wxWindow *parent, const string& compl
   }
   p_status->SetLabel(U(status));
 
+  p_canvas->onLevel([this](int level, bool) { showLevel(level); });
+  for (wxSpinCtrl *c : {p_occupied, p_virtual, p_threshold})
+    c->Bind(wxEVT_SPINCTRL, [this](wxSpinEvent&) { runDiagram(); });
+  p_spin->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { showDiagram(); });
+  savePng->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { saveDiagramPng(); });
+  runDiagram();
+
   SetSizerAndFit(top);
   SetEscapeId(wxID_CLOSE);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
@@ -172,4 +222,72 @@ void FragOrbDetailsDialog::exportCsv()
                  wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
   if (d.ShowModal() != wxID_OK) return;
   saveCsv(string(d.GetPath().ToUTF8()));
+}
+
+
+void FragOrbDetailsDialog::runDiagram()
+{
+  p_diagram = runFragDiagram(p_complex, p_fragments, p_names, p_occupied->GetValue(),
+                             p_virtual->GetValue(), p_threshold->GetValue() / 100.0);
+  p_spin->Show(p_diagram.ok && p_diagram.channels.size() > 1);
+  if (p_spin->GetSelection() >= (int)p_diagram.channels.size()) p_spin->SetSelection(0);
+  p_spin->GetParent()->Layout();
+  showDiagram();
+}
+
+
+void FragOrbDetailsDialog::showDiagram()
+{
+  FragDiagramView v;
+  for (size_t k = 0; k < p_names.size(); k++) v.heading += (k ? " | " : "") + p_names[k];
+  const size_t ch = p_spin->GetSelection() < 0 ? 0 : (size_t)p_spin->GetSelection();
+  p_canvas->setDiagram(p_diagram, ch, v);
+  p_level->SetValue(p_diagram.ok ? "" : U("No diagram: " + p_diagram.error));
+}
+
+
+void FragOrbDetailsDialog::showLevel(int level)
+{
+  const size_t ch = p_spin->GetSelection() < 0 ? 0 : (size_t)p_spin->GetSelection();
+  p_level->SetValue(U(fragDiagramLevelText(p_diagram, ch, level)));
+}
+
+
+void FragOrbDetailsDialog::saveDiagramPng()
+{
+  wxFileDialog d(this, _("Save the diagram"), "", "fragment-orbital-diagram.png", "*.png",
+                 wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+  if (d.ShowModal() != wxID_OK) return;
+  FragDiagramView v;
+  for (size_t k = 0; k < p_names.size(); k++) v.heading += (k ? " | " : "") + p_names[k];
+  const size_t ch = p_spin->GetSelection() < 0 ? 0 : (size_t)p_spin->GetSelection();
+  saveFragDiagramPng(p_diagram, ch, v, string(d.GetPath().ToUTF8()));
+}
+
+
+string FragOrbDetailsDialog::diagramReport(int occupied, int virtuals, int click, const string& png)
+{
+  p_book->SetSelection(0);
+  if (occupied > 0 || virtuals >= 0) {
+    if (occupied > 0) p_occupied->SetValue(occupied);
+    if (virtuals >= 0) p_virtual->SetValue(virtuals);
+    runDiagram();
+  }
+  for (int i = 0; i < 6; i++) wxYield();
+  string out = p_diagram.ok ? "ok" : "error: " + p_diagram.error;
+  const size_t ch = p_spin->GetSelection() < 0 ? 0 : (size_t)p_spin->GetSelection();
+  out += "\n" + p_canvas->layout().dump(p_diagram);
+  if (click >= 0) {
+    showLevel(click);
+    out += "click " + std::to_string(click) + "\n" + string(p_level->GetValue().ToUTF8()) + "\n";
+  }
+  if (!png.empty()) {
+    FragDiagramView v;
+    for (size_t k = 0; k < p_names.size(); k++) v.heading += (k ? " | " : "") + p_names[k];
+    const FragDiagramLayout e = exportFragDiagram(p_diagram, ch, v);
+    std::istringstream in(e.dump(p_diagram));
+    for (string l; std::getline(in, l); ) out += "export " + l + "\n";
+    out += saveFragDiagramPng(p_diagram, ch, v, png) ? "png saved\n" : "png failed\n";
+  }
+  return out;
 }

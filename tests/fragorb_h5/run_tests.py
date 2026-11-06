@@ -33,6 +33,121 @@ def run(args, **kw):
     return subprocess.run(args, capture_output=True, text=True, **kw)
 
 
+def oracle_diagram(an, threshold, occ_levels, virt_levels, tol_ev=1e-4 * 27.211386245988):
+    """The diagram's levels and lines recomputed from `analyse --json` alone."""
+    ch = an["channels"][0]
+    mo, fo = ch["mo"], ch["fo"]
+    ml, i = [], 0
+    while i < len(mo):
+        j = i
+        while j + 1 < len(mo) and abs(mo[j + 1]["energy_ev"] - mo[i]["energy_ev"]) < tol_ev:
+            j += 1
+        ml.append((i, j))
+        i = j + 1
+    fl, k = [], 0
+    while k < len(fo):
+        j = k
+        while (j + 1 < len(fo) and fo[j + 1]["fragment"] == fo[k]["fragment"] and
+               abs(fo[j + 1]["energy_ev"] - fo[k]["energy_ev"]) < tol_ev):
+            j += 1
+        fl.append((k, j))
+        k = j + 1
+
+    def share(f, m):
+        a, b = ml[m]
+        return sum(mo[x]["composition"][q] for x in range(a, b + 1)
+                   for q in range(fl[f][0], fl[f][1] + 1)) / (b - a + 1)
+    L = [[share(f, m) for m in range(len(ml))] for f in range(len(fl))]
+    occupied = [any(mo[x]["occupation"] > 1e-6 for x in range(a, b + 1)) for a, b in ml]
+    homo = max(m for m in range(len(ml)) if occupied[m])
+    drawn = set(range(max(0, homo - occ_levels + 1), homo + 1))
+    drawn |= set(range(homo + 1, min(len(ml), homo + 1 + virt_levels)))
+    window = set(drawn)
+    changed = True
+    while changed:
+        changed = False
+        for m in sorted(drawn):
+            if not occupied[m]:
+                continue
+            for f in range(len(fl)):
+                if L[f][m] < threshold:
+                    continue
+                for m2 in range(len(ml)):
+                    if m2 not in drawn and L[f][m2] >= threshold:
+                        drawn.add(m2)
+                        changed = True
+    fos = [f for f in range(len(fl)) if any(L[f][m] >= threshold for m in drawn)]
+    levels = [("mo", tuple(range(ml[m][0] + 1, ml[m][1] + 2)), m not in window) for m in sorted(drawn)]
+    levels += [(fo[fl[f][0]]["fragment"], tuple(fo[q]["index"] for q in range(fl[f][0], fl[f][1] + 1)), False)
+               for f in fos]
+    lines = {(fo[fl[f][0]]["fragment"], fo[fl[f][0]]["index"], ml[m][0] + 1): L[f][m]
+             for f in fos for m in sorted(drawn) if L[f][m] >= threshold}
+    return levels, lines
+
+
+def check_diagram(exe, cx, cr7, co6):
+    """`ecce-fragorb diagram` against the rule recomputed here, and its OP sums."""
+    an = json.loads(run([exe, "analyse", cx, cr7, co6, "--json"]).stdout)
+    for thr, occ, virt in ((0.10, 4, 4), (0.10, 1, 1), (0.20, 2, 6), (0.05, 3, 0)):
+        r = run([exe, "diagram", cx, cr7, co6, "--threshold", str(thr), "--window", "%d,%d" % (occ, virt),
+                 "--json"])
+        check(r.returncode == 0, "diagram %g %d,%d: %s" % (thr, occ, virt, r.stderr))
+        if r.returncode:
+            continue
+        d = json.loads(r.stdout)
+        ch = d["channels"][0]
+        got = [("mo" if l["fragment"] < 0 else l["fragment"], tuple(l["numbers"]), l.get("partner", False))
+               for l in ch["levels"]]
+        lv = {l["id"]: l for l in ch["levels"]}
+        got_lines = {(lv[x["fo"]]["fragment"], lv[x["fo"]]["numbers"][0], lv[x["mo"]]["numbers"][0]): x["share"]
+                     for x in ch["lines"]}
+        want, want_lines = oracle_diagram(an, thr, occ, virt)
+        check(got == want, "diagram %g %d,%d levels\n got  %s\n want %s" % (thr, occ, virt, got, want))
+        check(sorted(got_lines) == sorted(want_lines) and
+              all(abs(got_lines[k] - want_lines[k]) < 1e-6 for k in got_lines),
+              "diagram %g %d,%d lines\n got  %s\n want %s" % (thr, occ, virt, sorted(got_lines), sorted(want_lines)))
+        for l in ch["levels"]:
+            if l["fragment"] >= 0:
+                continue
+            cov = sum(x["share"] for x in ch["lines"] if x["mo"] == l["id"])
+            check(abs(cov - l["covered"]) < 1e-6, "covered = sum of the lines, MO %s" % l["numbers"])
+            check(l["representative"] == (l["covered"] >= 0.9), "representative flag MO %s" % l["numbers"])
+            frs = sorted({x["fragment"] for x in ch["lines"] if x["mo"] == l["id"]})
+            want_kind = ("unconnected" if not frs else "fragment" if len(frs) == 1 else
+                         "bonding" if l["overlap_population"] > 0 else "antibonding")
+            check(l["kind"] == want_kind and l["fragments"] == frs, "kind of MO %s" % l["numbers"])
+        check(ch["representative"] == all(l["representative"] for l in ch["levels"] if l["fragment"] < 0),
+              "verdict flag")
+        # no occupied drawn MO level has an FO level whose other lines lead to an undrawn MO level
+        drawn_mo = {tuple(l["numbers"]) for l in ch["levels"] if l["fragment"] < 0}
+        for l in ch["levels"]:
+            if l["fragment"] >= 0 and any(s["share"] >= thr and s["level"] < 0 for s in l["shares"]):
+                into_occ = any(lv[x["mo"]]["occupation"][0] > 0 for x in ch["lines"] if x["fo"] == l["id"])
+                check(not into_occ, "partner of an occupied level hidden: FO %s" % l["numbers"])
+    # Cr(CO)6 facts the diagram must show (numbers from the fixtures)
+    d = json.loads(run([exe, "diagram", cx, cr7, co6, "--json"]).stdout)
+    ch = d["channels"][0]
+    lv = {tuple(l["numbers"]): l for l in ch["levels"] if l["fragment"] < 0}
+    check(lv[(52, 53, 54)]["kind"] == "bonding" and lv[(52, 53, 54)]["overlap_population"] > 0, "t2g bonding")
+    check(lv[(62, 63, 64)]["kind"] == "antibonding" and lv[(62, 63, 64)]["overlap_population"] < 0,
+          "t2g partner antibonding")
+    check((68, 69) in lv and lv[(68, 69)]["partner"] and lv[(68, 69)]["kind"] == "antibonding",
+          "eg* drawn as a partner, antibonding")
+    check(abs(ch["gap_ev"] - (lv[(55,)]["energy_ev"] - lv[(52, 53, 54)]["energy_ev"])) < 1e-6, "gap")
+    # with every occupied level drawn, sum n_i OP_i equals dos's occupied overlap population
+    d = json.loads(run([exe, "diagram", cx, cr7, co6, "--window", "99,0", "--json"]).stdout)
+    dos_ = json.loads(run([exe, "dos", cx, cr7, co6, "--json"]).stdout)
+    tot = sum(l["overlap_population"] * sum(l["occupation"]) for l in d["channels"][0]["levels"]
+              if l["fragment"] < 0)
+    check(abs(tot - dos_["occupied_overlap"][0]) < 1e-5, "OP of the occupied levels %.6f vs dos %.6f" %
+          (tot, dos_["occupied_overlap"][0]))
+    r = run([exe, "diagram", cx, cr7, co6, "--name", "Cr", "--name", "(CO)6"])
+    check(r.returncode == 0 and "columns: Cr | complex | (CO)6" in r.stdout and "orbital-energy gap" in r.stdout,
+          "diagram text output: " + r.stdout[:300])
+    r = run([exe, "diagram", cx, cr7, co6, "--window", "0"])
+    check(r.returncode == 2, "--window 0 refused")
+
+
 def main():
     exe, libtest = sys.argv[1], sys.argv[2]
     cx, cr, cr7, co6 = [os.path.join(FIX, n) for n in ("crco6", "cr", "cr7", "co6")]
@@ -111,6 +226,8 @@ def main():
         check(max(abs(g["pdos"][0] + g["pdos"][1] - g["tdos"]) for g in d["grid"]) < 1e-5, "PDOS sums to TDOS")
     r = run([exe, "dos", cx, "--set", "Cr=1", "--set", "CO=2-13", "--shape", "lorentzian"])
     check(r.returncode == 0 and "OPDOS(Cr-CO)" in r.stdout, "dos --set: " + r.stderr)
+
+    check_diagram(exe, cx, cr7, co6)
 
     r = run([libtest, os.path.join(cx, "results.h5")])
     sys.stdout.write(r.stdout)

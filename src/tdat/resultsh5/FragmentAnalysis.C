@@ -425,4 +425,288 @@ bool dos(const Model& cx, const DosOptions& opt, DosResult& out, string& err) {
   return true;
 }
 
+namespace {
+
+struct Run { int first, last; };
+
+// "MO 52-54" with an en dash
+string levelName(const char* what, const vector<int>& n) {
+  if (n.size() == 1) return fmt("%s %d", what, n[0]);
+  return fmt("%s %d\xE2\x80\x93%d", what, n.front(), n.back());
+}
+
+// HOMO/LUMO position of orbitals lo..hi (1-based) of a set whose HOMO is h.
+string position(int h, int lo, int hi) {
+  if (h >= lo && h <= hi) return "HOMO";
+  if (hi < h) return fmt("HOMO\xE2\x88\x92%d", h - hi);
+  if (lo == h + 1) return "LUMO";
+  return fmt("LUMO+%d", lo - h - 1);
+}
+
+}  // namespace
+
+bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diagram& out, string& err) {
+  out = Diagram();
+  out.fragmentNames = a.fragmentNames;
+  out.options = opt;
+  const size_t nf = a.fragmentNames.size();
+  if (nf == 0 || a.channel.empty()) { err = "no analysis"; return false; }
+  if (opt.threshold <= 0 || opt.threshold > 1) { err = "the threshold must be between 0 and 1"; return false; }
+
+  // Overlap population of every MO between the fragments' atoms (complex S).
+  DosResult dr;
+  vector<vector<int> > pairIndex(nf, vector<int>(nf, -1));
+  if (nf >= 2) {
+    DosOptions dopt;
+    for (size_t f = 0; f < nf; f++) {
+      AtomSet as;
+      as.name = a.fragmentNames[f];
+      as.atoms = a.atomMap[f];
+      dopt.sets.push_back(as);
+    }
+    dopt.emin = -1;
+    dopt.emax = 1;
+    dopt.step = 1;
+    if (!dos(cx, dopt, dr, err)) { err = "overlap populations: " + err; return false; }
+    int p = 0;
+    for (size_t f = 0; f < nf; f++)
+      for (size_t g = f + 1; g < nf; g++) pairIndex[f][g] = pairIndex[g][f] = p++;
+  }
+  const size_t np = dr.pairNames.size();
+
+  size_t moBase = 0;
+  for (size_t c = 0; c < a.channel.size(); c++) {
+    const Channel& ch = a.channel[c];
+    const vector<double>& comp = opt.method == "scpa" ? ch.scpa : ch.mulliken;
+    const size_t nmo = ch.nmo, nfo = ch.fo.size();
+    DiagramChannel dc;
+    dc.spin = ch.spin;
+
+    vector<Run> ml, fl;
+    for (size_t i = 0; i < nmo;) {
+      size_t j = i;
+      while (j + 1 < nmo && std::fabs(ch.energy[j + 1] - ch.energy[i]) < opt.degenerateEh) j++;
+      Run r = { int(i), int(j) };
+      ml.push_back(r);
+      i = j + 1;
+    }
+    for (size_t k = 0; k < nfo;) {
+      size_t j = k;
+      while (j + 1 < nfo && ch.fo[j + 1].fragment == ch.fo[k].fragment &&
+             std::fabs(ch.fo[j + 1].energy - ch.fo[k].energy) < opt.degenerateEh) j++;
+      Run r = { int(k), int(j) };
+      fl.push_back(r);
+      k = j + 1;
+    }
+    const size_t nml = ml.size(), nfl = fl.size();
+    // share of FO level k in MO level m
+    vector<double> L(nfl * nml, 0.0);
+    for (size_t k = 0; k < nfl; k++)
+      for (size_t m = 0; m < nml; m++) {
+        double s = 0;
+        for (int q = fl[k].first; q <= fl[k].last; q++)
+          for (int i = ml[m].first; i <= ml[m].last; i++) s += comp[size_t(q) * nmo + i];
+        L[k * nml + m] = s / double(ml[m].last - ml[m].first + 1);
+      }
+    auto occupied = [&](size_t m) {
+      for (int i = ml[m].first; i <= ml[m].last; i++) if (ch.occupation[i] > 1e-6) return true;
+      return false;
+    };
+    int homoL = -1;
+    for (size_t m = 0; m < nml; m++) if (occupied(m)) homoL = int(m);
+    const int lumoL = homoL + 1 < int(nml) ? homoL + 1 : -1;
+
+    vector<char> drawn(nml, 0), partner(nml, 0), drawnF(nfl, 0);
+    for (int m = std::max(0, homoL - opt.occupiedLevels + 1); m <= homoL; m++) drawn[m] = 1;
+    if (lumoL >= 0)
+      for (int m = lumoL; m < std::min(int(nml), lumoL + opt.virtualLevels); m++) drawn[m] = 1;
+    for (bool changed = true; changed;) {
+      changed = false;
+      for (size_t m = 0; m < nml; m++) {
+        if (!drawn[m] || !occupied(m)) continue;
+        for (size_t k = 0; k < nfl; k++) {
+          if (L[k * nml + m] < opt.threshold) continue;
+          for (size_t m2 = 0; m2 < nml; m2++)
+            if (!drawn[m2] && L[k * nml + m2] >= opt.threshold) {
+              drawn[m2] = partner[m2] = 1;
+              changed = true;
+            }
+        }
+      }
+    }
+    for (size_t k = 0; k < nfl; k++)
+      for (size_t m = 0; m < nml && !drawnF[k]; m++)
+        if (drawn[m] && L[k * nml + m] >= opt.threshold) drawnF[k] = 1;
+
+    // HOMO (1-based index) of the complex and of each fragment
+    int cxHomo = 0;
+    for (size_t i = 0; i < nmo; i++) if (ch.occupation[i] > 1e-6) cxHomo = int(i + 1);
+    vector<int> frHomo(nf, 0);
+    for (size_t k = 0; k < nfo; k++) if (ch.fo[k].occupation > 1e-6) frHomo[ch.fo[k].fragment] = ch.fo[k].index;
+
+    vector<int> moId(nml, -1), foId(nfl, -1);
+    for (size_t m = 0; m < nml; m++) {
+      if (!drawn[m]) continue;
+      DiagramLevel lv;
+      lv.id = int(dc.levels.size());
+      lv.column = 1;
+      lv.fragment = -1;
+      lv.first = ml[m].first;
+      lv.last = ml[m].last;
+      double e = 0, rem = 0;
+      for (int i = lv.first; i <= lv.last; i++) {
+        lv.numbers.push_back(i + 1);
+        lv.occupation.push_back(ch.occupation[i]);
+        e += ch.energy[i];
+        rem += ch.remainder[i];
+      }
+      const double n = double(lv.numbers.size());
+      lv.energyEv = e / n * HARTREE_EV;
+      lv.remainder = rem / n;
+      lv.position = position(cxHomo, lv.numbers.front(), lv.numbers.back());
+      lv.partner = partner[m] != 0;
+      moId[m] = lv.id;
+      dc.levels.push_back(lv);
+    }
+    for (size_t k = 0; k < nfl; k++) {
+      if (!drawnF[k]) continue;
+      DiagramLevel lv;
+      lv.id = int(dc.levels.size());
+      lv.fragment = ch.fo[fl[k].first].fragment;
+      lv.column = lv.fragment == 0 ? 0 : 2;
+      lv.first = fl[k].first;
+      lv.last = fl[k].last;
+      lv.kind = "fo";
+      double e = 0;
+      for (int q = lv.first; q <= lv.last; q++) {
+        lv.numbers.push_back(ch.fo[q].index);
+        lv.occupation.push_back(ch.fo[q].occupation);
+        e += ch.fo[q].energy;
+      }
+      lv.energyEv = e / double(lv.numbers.size()) * HARTREE_EV;
+      lv.position = position(frHomo[lv.fragment], lv.numbers.front(), lv.numbers.back());
+      foId[k] = lv.id;
+      dc.levels.push_back(lv);
+    }
+    for (size_t k = 0; k < nfl; k++)
+      for (size_t m = 0; m < nml; m++)
+        if (foId[k] >= 0 && moId[m] >= 0 && L[k * nml + m] >= opt.threshold) {
+          DiagramLine ln;
+          ln.fo = foId[k];
+          ln.mo = moId[m];
+          ln.fragment = ch.fo[fl[k].first].fragment;
+          ln.share = L[k * nml + m];
+          dc.lines.push_back(ln);
+        }
+
+    // Per MO level: coverage, fragments, overlap population, kind, shares.
+    for (size_t m = 0; m < nml; m++) {
+      if (moId[m] < 0) continue;
+      DiagramLevel& lv = dc.levels[moId[m]];
+      std::set<int> frs;
+      for (size_t t = 0; t < dc.lines.size(); t++)
+        if (dc.lines[t].mo == lv.id) {
+          lv.covered += dc.lines[t].share;
+          frs.insert(dc.lines[t].fragment);
+        }
+      lv.fragments.assign(frs.begin(), frs.end());
+      double opAll = 0, opConn = 0;
+      for (int i = lv.first; i <= lv.last; i++)
+        for (size_t f = 0; f < nf; f++)
+          for (size_t g = f + 1; g < nf; g++) {
+            const double op = dr.moOverlap[(moBase + size_t(i)) * np + size_t(pairIndex[f][g])];
+            opAll += op;
+            if (frs.count(int(f)) && frs.count(int(g))) opConn += op;
+          }
+      const double n = double(lv.last - lv.first + 1);
+      lv.overlapPopulation = opAll / n;
+      opConn /= n;
+      if (frs.size() >= 2) lv.kind = opConn > 0 ? "bonding" : opConn < 0 ? "antibonding" : "zero overlap population";
+      else if (frs.size() == 1) lv.kind = "fragment";
+      else lv.kind = "unconnected";
+      lv.representative = lv.covered >= opt.covered;
+      if (!lv.representative) dc.notRepresentative.push_back(lv.id);
+      vector<std::pair<double, size_t> > v;
+      for (size_t k = 0; k < nfl; k++) if (L[k * nml + m] >= 0.01) v.push_back(std::make_pair(-L[k * nml + m], k));
+      std::sort(v.begin(), v.end());
+      for (size_t t = 0; t < v.size(); t++) {
+        const size_t k = v[t].second;
+        DiagramShare sh;
+        sh.level = foId[k];
+        sh.fragment = ch.fo[fl[k].first].fragment;
+        double e = 0;
+        for (int q = fl[k].first; q <= fl[k].last; q++) { sh.numbers.push_back(ch.fo[q].index); e += ch.fo[q].energy; }
+        sh.energyEv = e / double(sh.numbers.size()) * HARTREE_EV;
+        sh.share = -v[t].first;
+        sh.position = position(frHomo[sh.fragment], sh.numbers.front(), sh.numbers.back());
+        lv.shares.push_back(sh);
+      }
+    }
+    // Per FO level: the MO levels it goes into.
+    for (size_t k = 0; k < nfl; k++) {
+      if (foId[k] < 0) continue;
+      DiagramLevel& lv = dc.levels[foId[k]];
+      vector<std::pair<double, size_t> > v;
+      for (size_t m = 0; m < nml; m++) if (L[k * nml + m] >= 0.01) v.push_back(std::make_pair(-L[k * nml + m], m));
+      std::sort(v.begin(), v.end());
+      for (size_t t = 0; t < v.size(); t++) {
+        const size_t m = v[t].second;
+        DiagramShare sh;
+        sh.level = moId[m];
+        double e = 0;
+        for (int i = ml[m].first; i <= ml[m].last; i++) { sh.numbers.push_back(i + 1); e += ch.energy[i]; }
+        sh.energyEv = e / double(sh.numbers.size()) * HARTREE_EV;
+        sh.share = -v[t].first;
+        sh.position = position(cxHomo, sh.numbers.front(), sh.numbers.back());
+        lv.shares.push_back(sh);
+      }
+    }
+
+    if (homoL >= 0) dc.homo = moId[homoL];
+    if (lumoL >= 0) dc.lumo = moId[lumoL];
+    if (dc.homo >= 0 && dc.lumo >= 0) dc.gapEv = dc.levels[dc.lumo].energyEv - dc.levels[dc.homo].energyEv;
+
+    dc.representative = dc.notRepresentative.empty();
+    const string pct = fmt("%.0f %%", 100 * opt.covered);
+    if (dc.representative)
+      dc.verdict = "Representative: every drawn MO level is at least " + pct +
+                   " made of the FO levels connected to it.";
+    else {
+      dc.verdict = "Not representative: ";
+      for (size_t t = 0; t < dc.notRepresentative.size(); t++) {
+        const DiagramLevel& lv = dc.levels[dc.notRepresentative[t]];
+        dc.verdict += (t ? ", " : "") + levelName("MO", lv.numbers) + fmt(" (%.1f %%)", 100 * lv.covered);
+      }
+      dc.verdict += " less than " + pct + " made of the FO levels connected to " +
+                    (dc.notRepresentative.size() > 1 ? "them" : "it") + " (drawn dashed).";
+    }
+
+    string partners;
+    for (size_t i = 0; i < dc.levels.size(); i++)
+      if (dc.levels[i].partner) partners += (partners.empty() ? "" : ", ") + levelName("MO", dc.levels[i].numbers);
+    if (!partners.empty())
+      dc.notes.push_back(partners + ": outside the window, drawn because they share an FO level with a drawn occupied MO level.");
+    dc.hiddenFoLevels.assign(nf, 0);
+    for (size_t k = 0; k < nfl; k++) if (!drawnF[k]) dc.hiddenFoLevels[ch.fo[fl[k].first].fragment]++;
+    for (size_t f = 0; f < nf; f++) {
+      if (!dc.hiddenFoLevels[f]) continue;
+      string fr;
+      for (size_t k = 0; k < nfl; k++) {
+        const int g = ch.fo[fl[k].first].fragment;
+        if (g != int(f) || drawnF[k]) continue;
+        const int lo = ch.fo[fl[k].first].index, hi = ch.fo[fl[k].last].index;
+        const string p = position(frHomo[f], lo, hi);
+        if (p == "HOMO" || p == "LUMO") fr += string(fr.empty() ? "" : ", ") + "its " + p;
+      }
+      const bool one = dc.hiddenFoLevels[f] == 1;
+      dc.notes.push_back(a.fragmentNames[f] + fmt(": %d FO level", dc.hiddenFoLevels[f]) + (one ? "" : "s") +
+                         (fr.empty() ? "" : " (" + fr + ")") + (one ? " has" : " have") +
+                         " no line to a drawn MO level and " + (one ? "is" : "are") + " not drawn.");
+    }
+    out.channel.push_back(dc);
+    moBase += nmo;
+  }
+  return true;
+}
+
 }
