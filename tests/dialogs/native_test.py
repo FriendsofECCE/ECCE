@@ -91,7 +91,9 @@ def run(cmd, env, cwd, restoreLines, ov, flag="GUIValues", timeout=40, shot=None
     failure to reach the shared Xvfb under load is retried, not reported."""
     for attempt in range(3):
         r = run1(cmd, env, cwd, restoreLines, ov, flag, timeout, shot)
-        if r[2] or "initialize GTK" not in r[1]:
+        if r[2] or not any(m in r[1] for m in (
+                "initialize GTK", "Unable to access the X Display",
+                "without a display connection")):
             break
     return r
 
