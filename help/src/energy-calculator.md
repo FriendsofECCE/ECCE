@@ -118,34 +118,39 @@ the comparison is what you intend.
 
 ## Reaction overview
 
-**Reaction overview...**, at the bottom of the Compare Energies window, opens
-a chart of ΔE and ΔG for one or more reactions. It starts with the reaction
-set up in the window: side A as the reactants and side B as the products.
+**Reaction overview...**, at the bottom of the Compare Energies window, lists
+ΔE and ΔG for one or more reactions and draws an energy profile for each
+reaction with a transition state. It starts with the reaction set up in the
+window: side A as the reactants and side B as the products.
 
 - The text box holds the reactions, one per line, in the form
   `a, 2*b -> c`, where each name is a calculation and `2*` a coefficient.
-  Add lines to chart several reactions side by side.
-- Write `a, b -> [ts] -> c` to give the transition state of a reaction. The
-  chart then also shows the barriers ΔE‡ and ΔG‡ (TS minus reactants) for it,
-  and the box below the chart lists the rate constant k at the temperature in
-  the **T / K** field, without tunnelling and with the Wigner and the Eckart
-  correction, with κ for each. The reactants, TS and product must be
-  calculations stored on this machine, each named once (no `N*`), and the TS
-  must have exactly one imaginary frequency. The rates are those of
-  `ecce-rate`.
+- Write `a, b -> [ts] -> c` to give the transition state of a reaction. That
+  reaction gets an energy profile: reactants, TS and products as levels for ΔG
+  (at the temperature in the **T / K** field) and for the electronic ΔE, both
+  relative to the reactants, with the barrier ΔG‡ as an arrow and the rate
+  constant k without tunnelling (TST) and with the Eckart correction beside
+  it. With several such reactions, **Energy profile of** chooses which one is
+  shown. The reactants, TS and product must be calculations stored on this
+  machine, each named once (no `N*`), and the TS must have exactly one
+  imaginary frequency. The rates are those of `ecce-rate`.
+- A reaction without `[ts]` gets no chart; its numbers are in the text below.
 - **G treatment** chooses the treatment of the low frequencies for ΔG (the
-  default is Grimme's quasi-RRHO with omega0 = 100 cm-1). **Update** redraws
-  the chart after the text is changed.
-- For each reaction the chart shows the electronic ΔE and ΔG in kJ/mol. The
-  bar on ΔG is the spread over the six treatments listed under
-  [G over treatments](#g-over-treatments).
-- Click a point to list the soft modes (below 100 cm-1) of each species with
-  their share of its entropy and of G.
+  default is Grimme's quasi-RRHO with omega0 = 100 cm-1). **Update** redoes
+  the numbers after the text is changed.
+- The text below the profile lists for each reaction ΔE, ΔG and the spread of
+  ΔG over the six treatments listed under
+  [G over treatments](#g-over-treatments), the soft modes (below 100 cm-1) of
+  each species with their share of its entropy and of G, the profile's
+  numbers, and k without tunnelling and with the Wigner and the Eckart
+  correction, with κ for each. The text can be selected and copied;
+  right-clicking the profile offers **Copy values** for its numbers.
 - **Export CSV...** writes the numbers (with the barrier and rate columns when
-  a reaction has a `[ts]`), and **Export PNG...** the chart.
+  a reaction has a `[ts]`), and **Export PNG...** the energy profiles, one
+  under the other.
 
 A reaction whose calculations differ in code, method, basis set, solvent or
-dispersion correction is not drawn, and the box below the chart says why.
+dispersion correction is refused, and the text says why.
 The numbers are those of `ecce-thermo --reactions`.
 
 ## Compare Forces

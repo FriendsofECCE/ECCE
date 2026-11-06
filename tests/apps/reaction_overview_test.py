@@ -5,12 +5,11 @@ Compare Energies > Reaction overview (#709), headless.
 Two water frequency calculations with constructed soft modes (the thermo
 fixtures) and a reactions file.  The ECCE_TEST_ORGANIZER hook
 "reactionoverview <file> <treatment> <png> <csv>" opens the dialog and prints
-its chart points, what a click on reaction 1 lists, and writes the exports.
-The chart's dE, dG and dG range must equal `ecce-thermo --reactions --format
-csv`, the click must list the soft modes below 100 cm-1, the exported CSV
-must be the CLI's reaction table, and the PNG must exist.
-ECCE_OVERVIEW_PNG=<file> keeps the PNG.  Exit 77 (skip) without an install
-or Xvfb.
+the numbers per reaction, the text for reaction 1, and writes the exports.
+The dE, dG and dG range must equal `ecce-thermo --reactions --format csv`,
+reaction 1's text must list the soft modes below 100 cm-1, the exported CSV
+must be the CLI's reaction table, and with no [ts] reaction there is no
+energy profile and so no PNG.  Exit 77 (skip) without an install or Xvfb.
 """
 
 import csv
@@ -87,29 +86,30 @@ def run(display):
         check(len(rows) == 2 and all(r["status"] == "ok" for r in rows), "CLI: two reactions", cli[:300])
         pts = {}
         for l in lines:
-            m = re.match(r"([01]) (\d+) (\d+) (\S+) (\S+) (\S+) (\S+)$", l)
+            m = re.match(r"reaction (\d+) (\S+) (\S+) (\S+) (\S+)$", l)
             if m:
-                pts[(int(m.group(1)), int(m.group(3)))] = m.groups()[4:]
-        check(len(pts) == 4, "the chart has dE and dG for both reactions", str(lines[:12]))
+                pts[int(m.group(1))] = m.groups()[1:]
+        check(len(pts) == 2, "the text has dE and dG for both reactions", str(lines[:12]))
+        check(not any(l.startswith("profile ") or l.startswith("layout ") for l in lines),
+              "reactions without [ts] get no energy profile", str(lines[:12]))
         for n, r in enumerate(rows, 1):
-            e = pts.get((0, n)); g = pts.get((1, n))
-            if not e or not g:
-                check(False, "points for reaction %d" % n)
+            v = pts.get(n)
+            if not v:
+                check(False, "numbers for reaction %d" % n)
                 continue
-            check(abs(float(e[0]) - float(r["dE_el_kJ_mol"])) < 1e-3, "reaction %d: dE equals the CLI" % n)
-            check(abs(float(g[0]) - float(r["dG_kJ_mol"])) < 1e-3 and
-                  abs(float(g[1]) - float(r["dG_min_kJ_mol"])) < 1e-3 and
-                  abs(float(g[2]) - float(r["dG_max_kJ_mol"])) < 1e-3,
-                  "reaction %d: dG and its range equal the CLI" % n, str(g))
+            check(abs(float(v[0]) - float(r["dE_el_kJ_mol"])) < 1e-3, "reaction %d: dE equals the CLI" % n)
+            check(abs(float(v[1]) - float(r["dG_kJ_mol"])) < 1e-3 and
+                  abs(float(v[2]) - float(r["dG_min_kJ_mol"])) < 1e-3 and
+                  abs(float(v[3]) - float(r["dG_max_kJ_mol"])) < 1e-3,
+                  "reaction %d: dG and its range equal the CLI" % n, str(v))
         click = [l for l in lines if "cm-1" in l and "soft-" in l]
         check(len(click) == 4, "a click lists the four soft modes (a: 25, 60; b: 40, 90)",
               " | ".join(lines))
         check(any(l.startswith("Soft modes (< 100 cm-1)") for l in lines), "the click names the 100 cm-1 limit")
         exp = open(csvOut).read() if os.path.exists(csvOut) else ""
         check(exp.split("\n\n")[0].strip() == cli.split("\n\n")[0].strip(), "the CSV export is the CLI's table")
-        check(os.path.exists(png) and os.path.getsize(png) > 2000, "the PNG exists")
-        if os.environ.get("ECCE_OVERVIEW_PNG") is None and os.path.exists(png):
-            pass
+        check("png failed" in lines and not os.path.exists(png),
+              "no PNG without a reaction with [ts]", str(lines[-3:]))
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)

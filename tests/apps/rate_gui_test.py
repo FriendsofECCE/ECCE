@@ -5,8 +5,9 @@ The SN2 workflow example carries the keys reactant, ts and product (workflow.txt
 "!key" lines), so its Rate box must show what `ecce-rate --json` prints for the
 same calculations, at 298.15 K and at a T typed into the box; the Details
 table's CSV must equal the CLI's temperature rows.  The Reaction overview with
-`reactant -> [ts] -> product` must list the same k and its chart must carry the
-barrier points; a reaction without [ts] must not get rate columns.
+`reactant -> [ts] -> product` must list the same k, draw an energy profile with
+the barrier dG of ecce-rate and no label touching a line or another label (also
+with two [ts] reactions); a reaction without [ts] must not get rate columns.
 ECCE_RATE_SHOTS=<dir> keeps the PNGs.  Same install and isolation as
 examples_workflow_test.py; exit 77 (skip) without an install or Xvfb.
 """
@@ -25,6 +26,7 @@ sys.path.insert(0, HERE)
 
 import apps       # noqa: E402
 import isolate    # noqa: E402
+import profile_layout  # noqa: E402
 import xdisplay   # noqa: E402
 
 failures = []
@@ -63,10 +65,16 @@ def run(display, data, work, shots):
         f.write("file://%s -> [file://%s] -> file://%s\nfile://%s -> file://%s\n" % (re_, ts, pr, re_, pr))
     png2 = os.path.join(shots, "reaction-overview-ts.png")
     csv2 = os.path.join(work, "overview.csv")
+    rx2 = os.path.join(work, "reactions2.txt")
+    with open(rx2, "w") as f:
+        f.write("file://%s -> [file://%s] -> file://%s\nfile://%s -> [file://%s] -> file://%s\n"
+                % (re_, ts, pr, pr, ts, re_))
+    png3 = os.path.join(shots, "reaction-overview-two-ts.png")
     commands = ["examples workflows",
                 "workflowrate %s png=%s csv=%s range=250:400:25" % (wf, png, csv1),
                 "workflowrate %s T=310" % wf,
-                "reactionoverview %s qrrho-grimme:100 %s %s 298.15" % (rx, png2, csv2)]
+                "reactionoverview %s qrrho-grimme:100 %s %s 298.15" % (rx, png2, csv2),
+                "reactionoverview %s qrrho-grimme:100 %s - 298.15" % (rx2, png3)]
     script = os.path.join(work, "commands")
     open(script, "w").write("\n".join(commands) + "\n")
     result = apps.run(display, "organizer", windowTimeout=60, settle=120,
@@ -125,12 +133,29 @@ def run(display, data, work, shots):
     check("Rate box PNG exists", os.path.exists(png) and os.path.getsize(png) > 5000, png)
 
     ov = answers("reactionoverview")
-    if not check("overview answered", len(ov) == 1 and ov[0].startswith("ok"), "%r\n%s" % (ov, log[-1200:])):
+    if not check("overview answered", len(ov) == 2 and all(o.startswith("ok") for o in ov),
+                 "%r\n%s" % (ov, log[-1200:])):
         return
     lines = ov[0].split(" | ")
-    tsPts = [l for l in lines if re.match(r"[23] \d+ 1 ", l)]
-    check("overview chart has barrier points dE and dG for reaction 1",
-          len(tsPts) == 2 and abs(float(tsPts[1].split()[4]) - row["dG_act"]) < 1e-2, tsPts)
+    prof = {l.split()[3]: l.split()[4:] for l in lines if l.startswith("profile 1 1 ")}
+    check("overview: one energy profile, for reaction 1 only",
+          len(prof) == 3 and not any(l.startswith("profile 2 ") for l in lines), lines[:20])
+    check("overview profile: TS dG is the barrier dG of ecce-rate",
+          "ts" in prof and abs(float(prof["ts"][1]) - row["dG_act"]) < 1e-2, prof)
+    check("overview profile: reactants at zero",
+          prof.get("reactant") == ["0.000", "0.000"], prof)
+    click = " ".join(lines[lines.index("Click 1:") + 1:]) if "Click 1:" in lines else ""
+    check("the copyable text carries the profile numbers",
+          "Energy profile:" in click and "%.2f" % row["dG_act"] in click, click[:600])
+    bad = profile_layout.overlaps(lines)
+    check("SN2 profile: no label touches a line or another label", not bad, "; ".join(bad[:8]))
+    two = ov[1].split(" | ")
+    check("two [ts] reactions: two profiles",
+          any(l.startswith("profile 2 2 ts ") for l in two) and
+          len([l for l in two if l.startswith("layout 2 size")]) == 1, two[:20])
+    bad = profile_layout.overlaps(two)
+    check("two profiles: no label touches a line or another label", not bad, "; ".join(bad[:8]))
+    check("two profiles: PNG written", "png saved" in two and os.path.getsize(png3) > 5000, png3)
     i = lines.index("Rates:") if "Rates:" in lines else -1
     rt = " ".join(lines[i + 1:]) if i >= 0 else ""
     check("overview lists the same k (TST, Wigner, Eckart)",

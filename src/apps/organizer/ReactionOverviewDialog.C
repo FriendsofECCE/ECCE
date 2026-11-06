@@ -8,14 +8,12 @@
 
 #include <wx/button.h>
 #include <wx/choice.h>
-#include <wx/dcmemory.h>
 #include <wx/filedlg.h>
 #include <wx/filename.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 
-#include "XYPlotCanvas.H"
 #include "RateBox.H"
 #include "util/ThermoRun.H"
 
@@ -88,6 +86,21 @@ vector<string> sidePaths(const string& side, string& why)
   return out;
 }
 
+// The calculation names of one side, "a + b" (sep " + ") or "a, b" (sep ", ").
+string shortSide(const string& side, const string& sep)
+{
+  string out;
+  std::istringstream in(side);
+  for (string item; std::getline(in, item, ','); ) {
+    item = trim(item);
+    while (item.size() > 1 && item.back() == '/') item.pop_back();
+    if (item.empty()) continue;
+    const size_t slash = item.rfind('/');
+    out += (out.empty() ? "" : sep) + (slash == string::npos ? item : item.substr(slash + 1));
+  }
+  return out;
+}
+
 // Reaction `a, b -> [ts] -> c` split into its parts; false when the line has
 // brackets but not that form.
 bool splitTs(const string& line, string& lhs, string& ts, string& rhs)
@@ -137,10 +150,21 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
   bar->Add(run, 0);
   top->Add(bar, 0, wxALL, 8);
 
-  p_plot = new XYPlotCanvas(this);
-  p_plot->SetMinSize(wxSize(720, 300));
-  top->Add(p_plot, 1, wxEXPAND | wxLEFT | wxRIGHT, 8);
-  p_detail = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(720, 150),
+  wxBoxSizer *pick = new wxBoxSizer(wxHORIZONTAL);
+  p_profileLabel = new wxStaticText(this, wxID_ANY, _("Energy profile of:"));
+  pick->Add(p_profileLabel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  p_profileChoice = new wxChoice(this, wxID_ANY);
+  p_profileChoice->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) {
+    const int i = p_profileChoice->GetSelection();
+    if (i >= 0 && i < (int)p_profiles.size()) p_plot->setProfile(p_profiles[i]);
+  });
+  pick->Add(p_profileChoice, 1);
+  top->Add(pick, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+  p_plot = new EnergyProfileCanvas(this);
+  p_plot->SetMinSize(wxSize(720, 380));
+  p_plot->SetToolTip(_("Right-click to copy the numbers"));
+  top->Add(p_plot, 2, wxEXPAND | wxLEFT | wxRIGHT, 8);
+  p_detail = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(720, 180),
                             wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
   top->Add(p_detail, 1, wxEXPAND | wxALL, 8);
 
@@ -153,24 +177,22 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
   });
   wxButton *png = new wxButton(this, wxID_ANY, _("Export PNG..."));
   png->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-    wxFileDialog d(this, _("Export chart"), "", "reactions.png", "*.png",
+    wxFileDialog d(this, _("Export energy profiles"), "", "reactions.png", "*.png",
                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (d.ShowModal() == wxID_OK) savePng(string(d.GetPath().ToUTF8()));
   });
   buttons->Add(csv, 0, wxRIGHT, 8);
   buttons->Add(png, 0);
+  p_pngButton = png;
   buttons->AddStretchSpacer();
   buttons->Add(new wxButton(this, wxID_CLOSE, _("Close")));
   top->Add(buttons, 0, wxEXPAND | wxALL, 8);
+  update();
   SetSizerAndFit(top);
   SetEscapeId(wxID_CLOSE);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     if (IsModal()) EndModal(wxID_CLOSE); else Hide();
   }, wxID_CLOSE);
-  p_plot->setPointHandler([this](int, int idx) {
-    if (idx >= 0 && idx < (int)p_rowOfPoint.size()) showReaction(p_rowOfPoint[idx] + 1);
-  });
-  update();
 }
 
 void ReactionOverviewDialog::setTreatment(const string& cli)
@@ -190,8 +212,8 @@ void ReactionOverviewDialog::setTemperature(const string& kelvin)
 void ReactionOverviewDialog::update()
 {
   p_rows.clear();
-  p_rowOfPoint.clear();
-  p_plot->clearCurves();
+  p_profiles.clear();
+  p_profileRow.clear();
   p_csv.clear();
   p_anyTs = false;
   const int sel = p_treatment->GetSelection();
@@ -202,7 +224,7 @@ void ReactionOverviewDialog::update()
 
   // One entry per line.  A TS line goes to ecce-thermo twice: 'a -> c' for the
   // reaction and 'a -> ts' for the barrier, so both come from its numbers.
-  struct Entry { string user, main, aux; int mainIdx = -1, auxIdx = -1; string refused; vector<string> re, ts, pr; };
+  struct Entry { string user, main, aux; int mainIdx = -1, auxIdx = -1; string refused; vector<string> re, ts, pr; string names[3], title; };
   vector<Entry> entries;
   std::istringstream lines(string(p_input->GetValue().ToUTF8()));
   string thermoFile;
@@ -227,6 +249,10 @@ void ReactionOverviewDialog::update()
         else if (e.ts.size() != 1) e.refused = "name one transition state in [ ]";
         e.main = lhs + " -> " + rhs;
         e.aux = lhs + " -> " + ts;
+        e.names[0] = shortSide(lhs, " + ");
+        e.names[1] = shortSide(ts, " + ");
+        e.names[2] = shortSide(rhs, " + ");
+        e.title = shortSide(lhs, ", ") + " -> [" + e.names[1] + "] -> " + shortSide(rhs, ", ");
       }
     }
     if (e.refused.empty()) {
@@ -244,6 +270,7 @@ void ReactionOverviewDialog::update()
   if (!ok) {
     p_error = err;
     p_detail->SetValue(wxString::FromUTF8(err.c_str()));
+    showProfiles();
     return;
   }
   p_error.clear();
@@ -300,6 +327,22 @@ void ReactionOverviewDialog::update()
         req.treatment = treatment;
         r.rate = runRate(req);
         if (!r.rate.ok) r.rateError = r.rate.error;
+        EnergyProfileData pd;
+        pd.title = e.title;
+        for (int k = 0; k < 3; k++) pd.names[k] = e.names[k];
+        pd.E[1] = r.dEact; pd.G[1] = r.dGact;
+        pd.E[2] = r.dE; pd.G[2] = r.dG;
+        pd.kelvin = kelvin;
+        if (r.rate.ok && !r.rate.rows.empty()) {
+          const RateRow& w = r.rate.rows[0];
+          const string u = r.rate.unit.empty() ? string() : " " + r.rate.unit;
+          pd.rateLines.push_back("k (TST) = " + rateNum(w.k) + u);
+          pd.rateLines.push_back("k (Eckart) = " + rateNum(w.kEckart) + u);
+        } else {
+          pd.rateLines.push_back("k: not available (see the text below)");
+        }
+        p_profiles.push_back(pd);
+        p_profileRow.push_back((int)p_rows.size());
       }
     }
     p_rows.push_back(r);
@@ -327,43 +370,29 @@ void ReactionOverviewDialog::update()
   }
   p_csv = table;
 
-  vector<double> x0, e, x1, g, lo, hi, xe, ye, xg, yg;
-  string refused;
-  for (size_t i = 0; i < p_rows.size(); i++) {
-    const Row& r = p_rows[i];
-    if (r.status != "ok") {
-      refused += wxString::Format("%d: refused: %s\n", (int)i + 1, r.reason.c_str()).ToStdString();
-      continue;
-    }
-    p_rowOfPoint.push_back((int)i);
-    x0.push_back(i + 0.85); e.push_back(r.dE);
-    x1.push_back(i + 1.15); g.push_back(r.dG);
-    lo.push_back(r.lo); hi.push_back(r.hi);
-    if (r.hasTs && r.rateError.compare(0, 8, "barrier:") != 0) {
-      xe.push_back(i + 0.7); ye.push_back(r.dEact);
-      xg.push_back(i + 1.3); yg.push_back(r.dGact);
-    }
+  string d = "Reactions: G " + treatment + " at " + tText + " K, kJ/mol\n";
+  for (size_t i = 0; i < p_rows.size(); i++) d += "\n" + reactionText((int)i + 1);
+  p_detail->SetValue(wxString::FromUTF8(d.c_str()));
+  showProfiles();
+}
+
+// Only reactions with a [ts] get a chart; without any, the text alone.
+void ReactionOverviewDialog::showProfiles()
+{
+  const bool any = !p_profiles.empty();
+  p_profileChoice->Clear();
+  for (size_t i = 0; i < p_profiles.size(); i++)
+    p_profileChoice->Append(wxString::FromUTF8(
+        (std::to_string(p_profileRow[i] + 1) + ": " + p_profiles[i].title).c_str()));
+  if (any) {
+    p_profileChoice->SetSelection(0);
+    p_plot->setProfile(p_profiles[0]);
   }
-  const int ce = p_plot->addCurve(x0, e, _("dE (electronic)"), 0, XYPlotCanvas::MARKERS);
-  const int cg = p_plot->addCurve(x1, g, _("dG (bar: spread over treatments)"), 1,
-                                  XYPlotCanvas::MARKERS);
-  p_plot->setCurveMarker(ce, 1);
-  p_plot->setCurveErrorBars(cg, lo, hi);
-  if (p_anyTs) {
-    const int cte = p_plot->addCurve(xe, ye, _("dE\xE2\x80\xA1 (barrier, electronic)"), 2, XYPlotCanvas::MARKERS);
-    p_plot->addCurve(xg, yg, _("dG\xE2\x80\xA1 (barrier)"), 3, XYPlotCanvas::MARKERS);
-    p_plot->setCurveMarker(cte, 1);
-  }
-  p_plot->setShowKey(true);
-  p_plot->setIntegerX(true);
-  p_plot->setXAxisLabel(_("Reaction (numbered as in the list)"));
-  p_plot->setYAxisLabel(_("kJ/mol"));
-  string d;
-  for (size_t i = 0; i < p_rows.size(); i++)
-    d += std::to_string(i + 1) + ": " + p_rows[i].text + "\n";
-  d += refused;
-  if (p_anyTs) d += "\nRate constants at " + tText + " K (" + treatment + ", 1 M)\n" + rateText();
-  p_detail->SetValue(wxString::FromUTF8((d + "\nClick a point to list the soft modes.").c_str()));
+  p_profileLabel->Show(p_profiles.size() > 1);
+  p_profileChoice->Show(p_profiles.size() > 1);
+  p_plot->Show(any);
+  p_pngButton->Enable(any);
+  if (GetSizer()) Layout();
 }
 
 string ReactionOverviewDialog::rateLines(int n) const
@@ -392,62 +421,79 @@ string ReactionOverviewDialog::rateText() const
   return o;
 }
 
-string ReactionOverviewDialog::chartText() const
+string ReactionOverviewDialog::tableText() const
 {
   string out = p_error.empty() ? string() : "error: " + p_error + "\n";
-  const size_t n = p_rowOfPoint.size();
-  for (size_t k = 0; k < n; k++) {
-    const Row& r = p_rows[p_rowOfPoint[k]];
-    const int idx = p_rowOfPoint[k] + 1;
-    out += "0 " + std::to_string(k) + " " + std::to_string(idx) + " " + num(idx - 0.15) + " " +
-           num(r.dE) + " - -\n";
-    out += "1 " + std::to_string(k) + " " + std::to_string(idx) + " " + num(idx + 0.15) + " " +
-           num(r.dG) + " " + num(r.lo) + " " + num(r.hi) + "\n";
-  }
-  for (size_t k = 0; k < n; k++) {
-    const Row& r = p_rows[p_rowOfPoint[k]];
-    const int idx = p_rowOfPoint[k] + 1;
-    if (!r.hasTs || r.rateError.compare(0, 8, "barrier:") == 0) continue;
-    out += "2 " + std::to_string(k) + " " + std::to_string(idx) + " " + num(idx - 0.3) + " " +
-           num(r.dEact) + " - -\n";
-    out += "3 " + std::to_string(k) + " " + std::to_string(idx) + " " + num(idx + 0.3) + " " +
-           num(r.dGact) + " - -\n";
+  for (size_t i = 0; i < p_rows.size(); i++) {
+    const Row& r = p_rows[i];
+    if (r.status != "ok") continue;
+    out += "reaction " + std::to_string(i + 1) + " " + num(r.dE) + " " + num(r.dG) + " " +
+           num(r.lo) + " " + num(r.hi) + "\n";
   }
   return out;
 }
 
-void ReactionOverviewDialog::showReaction(int n)
+string ReactionOverviewDialog::profileText() const
+{
+  string out;
+  const char *lv[3] = {"reactant", "ts", "product"};
+  for (size_t p = 0; p < p_profiles.size(); p++)
+    for (int k = 0; k < 3; k++)
+      out += "profile " + std::to_string(p + 1) + " " + std::to_string(p_profileRow[p] + 1) + " " +
+             lv[k] + " " + num(p_profiles[p].E[k]) + " " + num(p_profiles[p].G[k]) + "\n";
+  return out;
+}
+
+string ReactionOverviewDialog::layoutText() const
+{
+  string out;
+  for (size_t p = 0; p < p_profiles.size(); p++) {
+    const EnergyProfileLayout l = exportLayout(p_profiles[p]);
+    std::istringstream in(l.dump());
+    for (string line; std::getline(in, line); )
+      out += "layout " + std::to_string(p + 1) + " " + line + "\n";
+    if (!l.placed) out += "layout " + std::to_string(p + 1) + " unplaced\n";
+  }
+  return out;
+}
+
+string ReactionOverviewDialog::reactionText(int n) const
 {
   string d;
-  if (n < 1 || n > (int)p_rows.size()) return;
+  if (n < 1 || n > (int)p_rows.size()) return d;
   const Row& r = p_rows[n - 1];
   d += std::to_string(n) + ": " + r.text + "\n";
+  if (r.status != "ok") return d + "refused: " + r.reason + "\n";
   d += "dE_el " + num(r.dE, "%.2f") + "   dG " + num(r.dG, "%.2f") + "   spread " +
-       num(r.spread, "%.2f") + " kJ/mol\n";
+       num(r.spread, "%.2f") + " kJ/mol (dG over the treatments " + num(r.lo, "%.2f") + " to " +
+       num(r.hi, "%.2f") + ")\n";
   d += "Soft modes (< 100 cm-1), share of the species' S and of its G correction:\n";
   if (r.modes.empty()) d += "  none\n";
   for (const Mode& m : r.modes)
     d += "  " + m.species + "  " + num(m.freq, "%.1f") + " cm-1  S " + num(m.S) + " J/mol/K (" +
          num(100 * m.Sshare, "%.1f") + "%)  G " + num(m.G) + " kJ/mol (" +
          num(100 * m.Gshare, "%.1f") + "%)\n";
+  for (size_t p = 0; p < p_profiles.size(); p++)
+    if (p_profileRow[p] == n - 1) {
+      std::istringstream in(p_profiles[p].text());
+      string line;
+      std::getline(in, line);   // the title repeats the reaction
+      d += "Energy profile:\n";
+      while (std::getline(in, line))
+        if (line.compare(0, 2, "k ") && line.compare(0, 2, "k:")) d += "  " + line + "\n";
+    }
   d += rateLines(n);
-  p_detail->SetValue(wxString::FromUTF8(d.c_str()));
+  return d;
 }
 
 string ReactionOverviewDialog::clickText(int n)
 {
-  showReaction(n);
-  return string(p_detail->GetValue().ToUTF8());
+  return reactionText(n);
 }
 
 bool ReactionOverviewDialog::savePng(const string& file) const
 {
-  const wxSize size(900, 480);
-  wxBitmap bmp(size.x, size.y);
-  wxMemoryDC dc(bmp);
-  p_plot->paintOnto(dc, size);
-  dc.SelectObject(wxNullBitmap);
-  return bmp.SaveFile(wxString::FromUTF8(file.c_str()), wxBITMAP_TYPE_PNG);
+  return saveEnergyProfilesPng(p_profiles, file);
 }
 
 bool ReactionOverviewDialog::saveCsv(const string& file) const

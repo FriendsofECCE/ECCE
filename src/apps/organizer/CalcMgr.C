@@ -179,6 +179,7 @@ static const char *const kFirstStartSet = "getting-started";
 #include "CompareEnergies.H"
 #include "CompareEnergiesDialog.H"
 #include "ReactionOverviewDialog.H"
+#include "RateBox.H"
 #include "CompareForcesDialog.H"
 #include "SiExport.H"
 #include "ChecksDialog.H"
@@ -2196,8 +2197,9 @@ void CalcMgr::runTestCommand(const string& line)
       }
     } else if (command == "reactionoverview") {
       // "reactionoverview <file> <treatment> [png [csv [T]]]": the dialog for the
-      // reactions in <file>; prints the chart points and what a click on
-      // reaction 1 lists, and writes the PNG and CSV exports.
+      // reactions in <file>; prints the numbers per reaction, the energy
+      // profiles and their label layout, the text of reaction 1, and writes
+      // the PNG and CSV exports.
       std::istringstream args(calcName);
       string file, treatment, png, csvOut, kelvin;
       args >> file >> treatment >> png >> csvOut >> kelvin;
@@ -2210,12 +2212,30 @@ void CalcMgr::runTestCommand(const string& line)
       if (!kelvin.empty()) d->setTemperature(kelvin);
       for (int i = 0; i < 5; i++) wxYield();
       outcome = "ok";
-      std::istringstream r(d->chartText() + "Click 1:\n" + d->clickText(1) + "Rates:\n" +
-                           d->rateText());
+      std::istringstream r(d->tableText() + d->profileText() + d->layoutText() + "Click 1:\n" +
+                           d->clickText(1) + "Rates:\n" + d->rateText());
       for (string l; std::getline(r, l); ) outcome += " | " + l;
       if (!png.empty() && png != "-") outcome += d->savePng(png) ? " | png saved" : " | png failed";
-      if (!csvOut.empty()) outcome += d->saveCsv(csvOut) ? " | csv saved" : " | csv failed";
+      if (!csvOut.empty() && csvOut != "-") outcome += d->saveCsv(csvOut) ? " | csv saved" : " | csv failed";
       d->Destroy();
+    } else if (command == "reactionprofile") {
+      // "reactionprofile dE_ts dG_ts dE_p dG_p [png]": an energy profile from
+      // these numbers alone, for checking the label layout of awkward cases.
+      std::istringstream args(calcName);
+      EnergyProfileData pd;
+      string png;
+      args >> pd.E[1] >> pd.G[1] >> pd.E[2] >> pd.G[2] >> png;
+      pd.title = "reactant -> [ts] -> product";
+      pd.names[0] = "reactant"; pd.names[1] = "ts"; pd.names[2] = "product";
+      pd.rateLines.push_back("k (TST) = " + rateNum(7.971e7) + " M\xE2\x81\xBB\xC2\xB9 s\xE2\x81\xBB\xC2\xB9");
+      pd.rateLines.push_back("k (Eckart) = " + rateNum(9.054e7) + " M\xE2\x81\xBB\xC2\xB9 s\xE2\x81\xBB\xC2\xB9");
+      const EnergyProfileLayout l = exportLayout(pd);
+      outcome = l.placed ? "ok" : "ok | unplaced";
+      std::istringstream r(l.dump());
+      for (string line; std::getline(r, line); ) outcome += " | layout 1 " + line;
+      if (!png.empty())
+        outcome += saveEnergyProfilesPng(vector<EnergyProfileData>(1, pd), png) ? " | png saved"
+                                                                                : " | png failed";
     } else if (command == "table") {
       // "table [PROJECT-URL]": select the project (when given) and report
       // its table's Progress cells, one "name=text" each.
