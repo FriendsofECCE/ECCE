@@ -307,7 +307,7 @@ ecce_library(eccetdat
 if(ECCE_HAVE_RESULTSH5)
   target_sources(eccetdat PRIVATE
     src/tdat/resultsh5/ResultsBasis.C src/tdat/resultsh5/ResultsH5Io.C
-    src/tdat/resultsh5/ResultsConvert.C)
+    src/tdat/resultsh5/ResultsConvert.C src/tdat/resultsh5/FragmentAnalysis.C)
   target_include_directories(eccetdat PRIVATE ${HDF5_INCLUDE_DIRS})
   target_link_libraries(eccetdat PUBLIC ${HDF5_LIBRARIES})
 endif()
@@ -4868,6 +4868,11 @@ if(ECCE_HAVE_RESULTSH5)
     eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
     ${XercesC_LIBRARIES} Threads::Threads)
   install(TARGETS ecce-results RUNTIME DESTINATION bin COMPONENT client)
+  # Fragment-orbital analysis and OPDOS from results.h5 files (#201, #171).
+  add_executable(ecce-fragorb src/tdat/resultsh5/ecce_fragorb.C)
+  target_link_libraries(ecce-fragorb PRIVATE eccetdat ecceutil Threads::Threads)
+  install(TARGETS ecce-fragorb RUNTIME DESTINATION bin COMPONENT client)
+  include(${CMAKE_SOURCE_DIR}/tests/fragorb_h5/tests.cmake OPTIONAL)
   include(${CMAKE_SOURCE_DIR}/tests/resultsh5/tests.cmake OPTIONAL)
 endif()
 
@@ -4924,6 +4929,9 @@ if(TARGET ecce-qm)
 endif()
 if(TARGET ecce-results)
   list(APPEND ECCE_COMMAND_WRAPPERS ecce-results=bin/ecce-results)
+endif()
+if(TARGET ecce-fragorb)
+  list(APPEND ECCE_COMMAND_WRAPPERS ecce-fragorb=bin/ecce-fragorb)
 endif()
 file(READ ${_launch_wrapper} _command_template)
 foreach(_command IN LISTS ECCE_COMMAND_WRAPPERS)

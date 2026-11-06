@@ -1,0 +1,10 @@
+! RHF def2-SVP TightSCF
+%pal nprocs 4 end
+%maxcore 1500
+%output
+  Print[P_MOs] 1
+  Print[P_OrbEn] 2
+end
+* xyz 0 1
+Cr 0 0 0
+*

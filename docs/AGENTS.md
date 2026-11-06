@@ -341,6 +341,7 @@ launcher, without command wrappers for these tools.
 | `ecce-confsearch` | Run a simple conformer search from its input file |
 | `ecce-qm` | Run the bundled quantum chemistry program, when built |
 | `ecce-results` | Convert and inspect results files, when built with HDF5 |
+| `ecce-fragorb` | Fragment-orbital analysis (`analyse <complex> <fragment>...`) and PDOS/OPDOS (`dos`) from results.h5 files of a complex and its fragment calculations at one geometry; `--json`, `--help` has the syntax |
 
 See the matching help page for inputs, options and units.
 
