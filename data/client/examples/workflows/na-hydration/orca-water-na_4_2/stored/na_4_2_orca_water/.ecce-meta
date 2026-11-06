@@ -3,11 +3,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, r2SCAN-3c with CPCM (water), optimisation and frequencies of Na+(H2O)6, started from the gas-phase geometry and Hessian of the step before. This calculation shows the arrangement with four waters in the first shell and two beyond them in water, where the order of the arrangements differs from the gas phase.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Fri, 06 Nov 2026 05:52:29 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Fri, 06 Nov 2026 10:20:04 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Fri, 06 Nov 2026 05:52:14 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Fri, 06 Nov 2026 10:19:51 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -18,7 +18,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/na_4_2_orca_water__7jV7AB
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/na_4_2_orca_water__EQ2y9j
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -41,7 +41,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=10 sent=1793944344.491 idle=0 at=1793944348\nopt step=26 energy=-620.828903685 dE=-0.0000004202/0.0000050000 rmsgrad=0.0000130703/0.0001000000 maxgrad=0.0000710924/0.0003000000 rmsstep=0.0020711438/0.0020000000 maxstep=0.0090706878/0.0040000000 converged=yes\nopt~ rmsgrad=0.0003177279,0.0000598936,0.0000279904,0.0000068259,0.0000697464,0.0002061005,0.0004921892,0.0002993198,0.0001168283,0.0001038595,0.0001338523,0.0002305723,0.0001775046,0.0003394954,0.0000825109,0.0003754417,0.0000924125,0.0004568926,0.0001483829,0.0004522087,0.0001454333,0.0003531993,0.0000234427,0.0000407526,0.0000178799,0.0000130703\nopt~ maxgrad=0.0014557272,0.0002251978,0.0001094450,0.0000363278,0.0003350508,0.0008547411,0.0022697072,0.0013122392,0.0007751497,0.0006182001,0.0007533142,0.0011715299,0.0006939204,0.0018644732,0.0004393082,0.0017887553,0.0005914453,0.0025811782,0.0007013240,0.0020584972,0.0008150945,0.0020997609,0.0001234101,0.0002184476,0.0001171098,0.0000710924\nscf cycle=5 energy=-620.8416450786955920 dE=-2.29e-08/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-3.83e-06,-1.68e-07,1.37e-08,-2.29e-08\nresult disp=D4 gcp=gCP\nfreq kind=analytic point=57/57 phase=assemble last=GCP-Hessian real=51 imaginary=0 done=yes zpe=0.14378306\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=10 sent=1793960401.634 idle=0 at=1793960404\nopt step=25 energy=-620.828904008 dE=-0.0000111176/0.0000050000 rmsgrad=0.0000102776/0.0001000000 maxgrad=0.0000591914/0.0003000000 rmsstep=0.0010351361/0.0020000000 maxstep=0.0039529715/0.0040000000 converged=yes\nopt~ rmsgrad=0.0003177447,0.0000598937,0.0000279897,0.0000068283,0.0000697422,0.0002059585,0.0004933793,0.0003008503,0.0001078579,0.0000960918,0.0000899489,0.0000949725,0.0001511225,0.0001703152,0.0002051357,0.0002932430,0.0002000525,0.0002712784,0.0000702146,0.0001102452,0.0000956192,0.0000831925,0.0000576802,0.0001051283,0.0000102776\nopt~ maxgrad=0.0014557273,0.0002251997,0.0001094444,0.0000363381,0.0003350737,0.0008541611,0.0022748704,0.0012948789,0.0006661880,0.0005249099,0.0005079111,0.0005329889,0.0008126803,0.0007358069,0.0014736250,0.0013927171,0.0009583650,0.0011418642,0.0003524556,0.0005759421,0.0006371641,0.0003363679,0.0003467715,0.0005004778,0.0000591914\nscf cycle=4 energy=-620.8416467804327112 dE=-5.35e-10/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-1.18e-06,-5.08e-08,-5.35e-10\nresult disp=D4 gcp=gCP\nfreq kind=analytic point=57/57 phase=assemble last=GCP-Hessian real=51 imaginary=0 done=yes zpe=0.14378124\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -53,6 +53,6 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Fri, 06 Nov 2026 05:52:15 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Fri, 06 Nov 2026 10:19:52 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793944335
+.	http://www.emsl.pnl.gov/ecce:submitdate		1793960392

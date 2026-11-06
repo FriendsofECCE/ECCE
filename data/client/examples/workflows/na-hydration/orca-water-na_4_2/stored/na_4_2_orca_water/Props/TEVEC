@@ -1,32 +1,31 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <tsvector name="TEVEC" rowLabel="Geometry Step" rows="1" units="Hartree">
 
-  <step number="1">-620.827831325910</step>
-  <step number="2">-620.828214737346</step>
-  <step number="3">-620.828313680753</step>
-  <step number="4">-620.828316905433</step>
-  <step number="5">-620.828323584299</step>
-  <step number="6">-620.828369111717</step>
-  <step number="7">-620.828291689326</step>
-  <step number="8">-620.828465605563</step>
-  <step number="9">-620.828521761951</step>
-  <step number="10">-620.828608965515</step>
-  <step number="11">-620.828706389582</step>
-  <step number="12">-620.828773026066</step>
-  <step number="13">-620.828834018799</step>
-  <step number="14">-620.828738803882</step>
-  <step number="15">-620.828887544580</step>
-  <step number="16">-620.828723349074</step>
-  <step number="17">-620.828891248865</step>
-  <step number="18">-620.828740177412</step>
-  <step number="19">-620.828877305603</step>
-  <step number="20">-620.828696355787</step>
-  <step number="21">-620.828870580367</step>
-  <step number="22">-620.828789010992</step>
-  <step number="23">-620.828900109594</step>
-  <step number="24">-620.828902205812</step>
-  <step number="25">-620.828903265012</step>
-  <step number="26">-620.828903685204</step>
-  <step number="27">-620.828903872848</step>
+  <step number="1">-620.827831321325</step>
+  <step number="2">-620.828214737435</step>
+  <step number="3">-620.828313680202</step>
+  <step number="4">-620.828316904288</step>
+  <step number="5">-620.828323581490</step>
+  <step number="6">-620.828369134731</step>
+  <step number="7">-620.828290450446</step>
+  <step number="8">-620.828456594553</step>
+  <step number="9">-620.828514566736</step>
+  <step number="10">-620.828594404284</step>
+  <step number="11">-620.828685703780</step>
+  <step number="12">-620.828766518243</step>
+  <step number="13">-620.828836666428</step>
+  <step number="14">-620.828852894381</step>
+  <step number="15">-620.828835955080</step>
+  <step number="16">-620.828800962117</step>
+  <step number="17">-620.828855290443</step>
+  <step number="18">-620.828817295810</step>
+  <step number="19">-620.828896976824</step>
+  <step number="20">-620.828887454010</step>
+  <step number="21">-620.828893880426</step>
+  <step number="22">-620.828897385514</step>
+  <step number="23">-620.828901444919</step>
+  <step number="24">-620.828892890742</step>
+  <step number="25">-620.828904008388</step>
+  <step number="26">-620.828904124453</step>
 
 </tsvector>
