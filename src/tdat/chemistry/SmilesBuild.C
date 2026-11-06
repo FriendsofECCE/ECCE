@@ -81,6 +81,10 @@ struct Builder {
    vector<vector<int> > rings;
    vector<int> ringOfBond;
    vector<char> ringPlanar;
+   vector<int> sysOf;                // flat ring system of an atom, or -1
+   vector<vector<int> > sysAtoms;
+   vector<map<int,V3> > sysXY;       // 2-D layout, z = 0
+   vector<char> sysPlaced;
    vector<vector<int> > chirOrder;   // per atom, 4 neighbours or empty
    vector<int> chirSign;
    vector<V3> pos;
@@ -91,6 +95,20 @@ struct Builder {
 
    Builder(const Graph& gr) : g(gr), rng(12345) {}
 
+   // Across ring bond k: true when a and d lie on the same side (both in
+   // its ring, or both outside it).
+   bool sameSide(int k, int a, int d) const
+   {
+      const vector<int>& r = rings[ringOfBond[k]];
+      return binary_search(r.begin(), r.end(), a) == binary_search(r.begin(), r.end(), d);
+   }
+   bool ringHas4(int a, int b, int c, int d) const
+   {
+      for (const vector<int>& r : rings)
+         if (binary_search(r.begin(), r.end(), a) && binary_search(r.begin(), r.end(), b) &&
+             binary_search(r.begin(), r.end(), c) && binary_search(r.begin(), r.end(), d)) return true;
+      return false;
+   }
    int bondIndex(int a, int b) const
    {
       for (size_t k = 0; k < adj[a].size(); k++) if (adj[a][k] == b) return bondOf[a][k];
@@ -104,6 +122,8 @@ struct Builder {
 
    void setup();
    void findRings();
+   void layoutSystems();
+   void placeSystem(int sys, int e, int p);
    double ringAngle(int ring, int atom) const;
    double idealAngle(int c, int i, int j) const;
    Slots slotsFor(int c) const;
@@ -187,6 +207,7 @@ void Builder::setup()
       if (o.size() == 4) { chirOrder[i] = o; chirSign[i] = g.atoms[i].chir == 1 ? -1 : 1; }
    }
    findRings();
+   layoutSystems();
 }
 
 void Builder::findRings()
@@ -221,17 +242,142 @@ void Builder::findRings()
    }
    ringPlanar.assign(rings.size(), 0);
    for (size_t r = 0; r < rings.size(); r++) {
-      bool sat = true;
-      for (int x : rings[r]) if (hyb[x] != 3) sat = false;
-      // Saturated six- and seven-rings pucker; everything else starts flat.
-      ringPlanar[r] = !(sat && (rings[r].size() == 6 || rings[r].size() == 7));
+      bool anySp3 = false;
+      for (int x : rings[r]) if (hyb[x] == 3) anySp3 = true;
+      // Six- and seven-rings with an sp3 atom pucker; everything else starts flat.
+      ringPlanar[r] = !(anySp3 && (rings[r].size() == 6 || rings[r].size() == 7));
    }
 }
 
-double Builder::ringAngle(int ring, int) const
+
+// Fused planar rings are laid out together, edge to edge, as regular
+// polygons; ring-by-ring placement left them folded.
+void Builder::layoutSystems()
+{
+   sysOf.assign(n, -1);
+   sysAtoms.clear(); sysXY.clear();
+   const int nr = (int)rings.size();
+   vector<char> flat(nr, 1);
+   for (int r = 0; r < nr; r++)
+      for (int x : rings[r]) if (hyb[x] != 2 || x >= nh) flat[r] = 0;
+   vector<int> ringSys(nr, -1);
+   for (int r0 = 0; r0 < nr; r0++) {
+      if (!flat[r0] || ringSys[r0] >= 0) continue;
+      int id = (int)sysAtoms.size();
+      vector<int> members = {r0};
+      ringSys[r0] = id;
+      for (size_t h = 0; h < members.size(); h++)
+         for (int r = 0; r < nr; r++) {
+            if (!flat[r] || ringSys[r] >= 0) continue;
+            int shared = 0;
+            for (int x : rings[r]) if (binary_search(rings[members[h]].begin(), rings[members[h]].end(), x)) shared++;
+            if (shared >= 2) { ringSys[r] = id; members.push_back(r); }
+         }
+      // Cycle order of each ring.
+      auto cycle = [&](int r) {
+         const vector<int>& rg = rings[r];
+         vector<int> cyc = {rg[0]};
+         int prevA = -1;
+         while (cyc.size() < rg.size()) {
+            int cur = cyc.back(), nx = -1;
+            for (int y : adj[cur])
+               if (y != prevA && binary_search(rg.begin(), rg.end(), y) &&
+                   find(cyc.begin(), cyc.end(), y) == cyc.end()) { nx = y; break; }
+            if (nx < 0) break;
+            prevA = cur; cyc.push_back(nx);
+         }
+         return cyc;
+      };
+      map<int,V3> xy;
+      vector<char> done(members.size(), 0);
+      const double L = 1.40;
+      {
+         vector<int> cyc = cycle(members[0]);
+         int m = (int)cyc.size();
+         double R = L / (2 * sin(PI / m));
+         for (int k = 0; k < m; k++) xy[cyc[k]] = {R * cos(2 * PI * k / m), R * sin(2 * PI * k / m), 0};
+         done[0] = 1;
+      }
+      bool progress = true;
+      while (progress) {
+         progress = false;
+         for (size_t mi = 0; mi < members.size(); mi++) {
+            if (done[mi]) continue;
+            vector<int> cyc = cycle(members[mi]);
+            int m = (int)cyc.size();
+            if ((int)cyc.size() != (int)rings[members[mi]].size()) { done[mi] = 1; continue; }
+            int iu = -1;
+            for (int k = 0; k < m; k++)
+               if (xy.count(cyc[k]) && xy.count(cyc[(k + 1) % m])) { iu = k; break; }
+            if (iu < 0) continue;
+            int u = cyc[iu], v = cyc[(iu + 1) % m];
+            V3 mid = mul(add(xy[u], xy[v]), 0.5), ce = {0, 0, 0};
+            for (auto& kv : xy) ce = add(ce, kv.second);
+            ce = mul(ce, 1.0 / xy.size());
+            V3 d = sub(xy[v], xy[u]);
+            V3 perp = unit(V3{-d[1], d[0], 0});
+            if (dot(perp, sub(mid, ce)) < 0) perp = mul(perp, -1);
+            double h = (L / 2) / tan(PI / m);
+            V3 c = add(mid, mul(perp, h));
+            double tu = atan2(xy[u][1] - c[1], xy[u][0] - c[0]);
+            double tv = atan2(xy[v][1] - c[1], xy[v][0] - c[0]);
+            double step = 2 * PI / m;
+            double dd = tv - tu;
+            while (dd > PI) dd -= 2 * PI;
+            while (dd < -PI) dd += 2 * PI;
+            if (dd < 0) step = -step;
+            double R = L / (2 * sin(PI / m));
+            for (int k = 1; k < m; k++) {
+               int a = cyc[(iu + 1 + k) % m];
+               if (!xy.count(a)) xy[a] = {c[0] + R * cos(tv + k * step), c[1] + R * sin(tv + k * step), 0};
+            }
+            done[mi] = 1; progress = true;
+         }
+      }
+      vector<int> atoms;
+      for (auto& kv : xy) { atoms.push_back(kv.first); sysOf[kv.first] = id; }
+      sysAtoms.push_back(atoms);
+      sysXY.push_back(xy);
+   }
+   sysPlaced.assign(sysAtoms.size(), 0);
+}
+
+// Put a flat system in space.  With a parent outside it, the system enters
+// at atom e with its ring plane perpendicular to the plane of the parent's
+// other neighbour; without one (p < 0) it lies in z = 0.
+void Builder::placeSystem(int sys, int e, int p)
+{
+   if (sysPlaced[sys]) return;
+   sysPlaced[sys] = 1;
+   const map<int,V3>& xy = sysXY[sys];
+   if (p < 0) {
+      for (auto& kv : xy) if (!placed[kv.first]) { pos[kv.first] = kv.second; placed[kv.first] = 1; }
+      return;
+   }
+   V3 u = unit(sub(pos[e], pos[p]));
+   V3 le = xy.at(e), mean = {0, 0, 0};
+   int cnt = 0;
+   for (int y : adj[e]) if (xy.count(y)) { mean = add(mean, xy.at(y)); cnt++; }
+   V3 o = unit(sub(le, mul(mean, 1.0 / max(1, cnt))));
+   V3 op = {-o[1], o[0], 0};
+   V3 r = {0, 0, 0};
+   for (int x : adj[p]) if (x != e && placed[x]) { r = sub(pos[x], pos[p]); break; }
+   r = sub(r, mul(u, dot(r, u)));
+   if (norm(r) < 1e-6) { V3 t = fabs(u[1]) < 0.9 ? V3{0, 1, 0} : V3{0, 0, 1}; r = cross(u, t); }
+   V3 w = unit(cross(u, r));
+   for (auto& kv : xy) {
+      if (placed[kv.first]) continue;
+      V3 d = sub(kv.second, le);
+      double a = dot(d, o), b = dot(d, op);
+      pos[kv.first] = add(pos[e], add(mul(u, -a), mul(w, b)));
+      placed[kv.first] = 1;
+   }
+}
+
+double Builder::ringAngle(int ring, int atom) const
 {
    size_t s = rings[ring].size();
-   if (!ringPlanar[ring]) return s == 6 ? 111.0 : 113.0;
+   if (!ringPlanar[ring]) return hyb[atom] == 3 ? (s == 6 ? 111.0 : 113.0) : 118.0;
    return 180.0 * (s - 2) / s;
 }
 
@@ -349,11 +495,12 @@ void Builder::placeCenter(int c)
    }
    // Torsion offset of the first slot.
    double t0 = 180 + jitter;
-   // Ring children not at the ring's place are virtual closures only.
-   bool realKid = false;
-   for (int d : kids) if (parent[d] == c) realKid = true;
-   (void)realKid;
    if (ringKid >= 0) t0 = tRing;
+   else if (aref >= 0 && !stereo && !kids.empty() && (bonds[bpc].ord == 2 || bonds[bpc].arom) &&
+            hyb[c] == 2 && hyb[p] == 2)
+      t0 = (ringOfBond[bpc] >= 0 ? sameSide(bpc, aref, kids[0]) : false) ? 0 : 180;   // flat bond
+   if (hyb[c] == 2 && deg == 3 && fixedOther.size() == 1 && aref >= 0 && !stereo)
+      t0 = torsionOf(pos[aref], pos[p], pos[c], pos[fixedOther[0]]) * 180 / PI + 180;
    // Slots taken by already-placed neighbours.
    vector<int> freeSlot;
    {
@@ -404,9 +551,6 @@ void Builder::placeCenter(int c)
    for (size_t i = 0; i < perm.size(); i++) perm[i] = (int)i;
    do {
       // kid i takes freeSlot[perm[i]].
-      if (ringKid >= 0 && kids[0] == ringKid && perm[0] != 0 && !done) {
-         // keep the ring child on slot 0 on the first pass only
-      }
       vector<int> assign(K);
       for (size_t i = 0; i < K; i++) assign[i] = freeSlot[perm[i]];
       if (chirSign[c] && chirOrder[c].size() == 4) {
@@ -436,6 +580,7 @@ void Builder::placeCenter(int c)
       if (d == ringKid) ang = angRing;
       pos[d] = nerf(A, pos[p], pos[c], ideal(c, d), rad(ang), rad(t0 + slots[choice[i]].second));
       placed[d] = 1;
+      if (sysOf[d] >= 0) placeSystem(sysOf[d], d, c);
    }
 }
 
@@ -446,6 +591,7 @@ bool Builder::buildOnce()
    parent.assign(n, -2);
    depth.assign(n, 0);
    vector<int> comp(n, -1);
+   sysPlaced.assign(sysAtoms.size(), 0);
    int ncomp = 0;
    vector<vector<int> > order;
    for (int s = 0; s < n; s++) {
@@ -471,11 +617,15 @@ bool Builder::buildOnce()
       int root = ord[0];
       placed[root] = 1;
       pos[root] = {0, 0, 0};
+      if (sysOf[root] >= 0) { placed[root] = 0; placeSystem(sysOf[root], root, -1); }
       // First child along +x so the root has a "parent" to place the rest about.
       for (size_t t = 0; t < adj[root].size(); t++) {
          int y = adj[root][t];
          if (parent[y] == root) {
-            pos[y] = {ideal(root, y), 0, 0}; placed[y] = 1; break;
+            if (placed[y]) break;
+            pos[y] = {ideal(root, y), 0, 0}; placed[y] = 1;
+            if (sysOf[y] >= 0) placeSystem(sysOf[y], y, root);
+            break;
          }
       }
       placeCenter(root);
@@ -492,10 +642,12 @@ bool Builder::buildOnce()
 }
 
 struct Term { int i, j; double d0, k; };
+struct Tors { int a, b, c, d; bool cis; };
 
 void Builder::relax()
 {
    vector<Term> terms;
+   vector<Tors> tors;
    for (size_t k = 0; k < bonds.size(); k++)
       terms.push_back({bonds[k].a, bonds[k].b, ideal(bonds[k].a, bonds[k].b), 400});
    for (int c = 0; c < n; c++)
@@ -514,13 +666,28 @@ void Builder::relax()
          if (a == c) continue;
          for (int d : adj[c]) {
             if (d == b || d == a) continue;
-            double t = fabs(torsionOf(pos[a], pos[b], pos[c], pos[d]));
-            bool cis = t < PI / 2;
+            bool cis;
+            if (ringOfBond[k] >= 0) cis = sameSide((int)k, a, d);
+            else cis = fabs(torsionOf(pos[a], pos[b], pos[c], pos[d])) < PI / 2;
+            tors.push_back({a, b, c, d, cis});
+         }
+      }
+   }
+   // Puckered rings keep their chair torsion through the 1-4 distance.
+   for (size_t k = 0; k < bonds.size(); k++) {
+      int b = bonds[k].a, c = bonds[k].b, r = ringOfBond[k];
+      if (r < 0 || ringPlanar[r] || rings[r].size() != 6 || hyb[b] != 3 || hyb[c] != 3) continue;
+      const vector<int>& rg = rings[r];
+      double T = rg.size() == 6 ? 55 : 65;
+      for (int a : adj[b]) {
+         if (a == c || !binary_search(rg.begin(), rg.end(), a)) continue;
+         for (int d : adj[c]) {
+            if (d == b || d == a || !binary_search(rg.begin(), rg.end(), d)) continue;
             double lab = ideal(a, b), lbc = ideal(b, c), lcd = ideal(c, d);
-            double t1 = rad(idealAngle(b, a, c)), t2 = rad(idealAngle(c, b, d));
+            double t1 = rad(idealAngle(b, a, c)), t2 = rad(idealAngle(c, b, d)), ph = rad(T);
             V3 pa = {lab * cos(t1), lab * sin(t1), 0};
-            V3 pd = {lbc - lcd * cos(t2), (cis ? 1 : -1) * lcd * sin(t2), 0};
-            terms.push_back({a, d, norm(sub(pa, pd)), 40});
+            V3 pd = {lbc - lcd * cos(t2), lcd * sin(t2) * cos(ph), lcd * sin(t2) * sin(ph)};
+            terms.push_back({a, d, norm(sub(pa, pd)), 60});
          }
       }
    }
@@ -539,7 +706,7 @@ void Builder::relax()
       for (int j = i + 1; j < n; j++) {
          int t = topo[i][j];
          if (t < 3) continue;
-         double f = t == 3 ? 0.6 : 0.8;
+         double f = t == 3 ? 0.6 : 0.7;
          rep.push_back({i, j, f * (vdwRadius(el[i]) + vdwRadius(el[j])), 30});
       }
    vector<int> chirAtoms;
@@ -562,6 +729,27 @@ void Builder::relax()
          E += 0.5 * t.k * e * e;
          if (gr) { V3 f = mul(d, t.k * e / r); (*gr)[t.i] = add((*gr)[t.i], f); (*gr)[t.j] = sub((*gr)[t.j], f); }
       }
+      for (const Tors& t : tors) {
+         V3 F = sub(x[t.a], x[t.b]), G = sub(x[t.b], x[t.c]), H = sub(x[t.d], x[t.c]);
+         V3 A = cross(F, G), Bv = cross(H, G);
+         double na = norm(A), nb = norm(Bv);
+         if (na < 1e-8 || nb < 1e-8) continue;
+         double C = dot(A, Bv) / (na * nb);
+         const double kt = 25.0;
+         E += kt * (t.cis ? 1 - C : 1 + C);
+         if (gr) {
+            double sg = t.cis ? -kt : kt;           // dE/dC
+            V3 gA = sub(mul(Bv, 1 / (na * nb)), mul(A, C / (na * na)));
+            V3 gB = sub(mul(A, 1 / (na * nb)), mul(Bv, C / (nb * nb)));
+            V3 dF = mul(cross(G, gA), sg);
+            V3 dG = mul(add(cross(gA, F), cross(gB, H)), sg);
+            V3 dH = mul(cross(G, gB), sg);
+            (*gr)[t.a] = add((*gr)[t.a], dF);
+            (*gr)[t.b] = add((*gr)[t.b], sub(dG, dF));
+            (*gr)[t.c] = sub((*gr)[t.c], add(dG, dH));
+            (*gr)[t.d] = add((*gr)[t.d], dH);
+         }
+      }
       for (int c : chirAtoms) {
          const vector<int>& o = chirOrder[c];
          V3 p0 = x[o[0]], a = sub(x[o[1]], p0), b = sub(x[o[2]], p0), cc = sub(x[o[3]], p0);
@@ -581,25 +769,73 @@ void Builder::relax()
       }
       return E;
    };
-   vector<V3> grad(n), trial(n), gtrial(n);
-   double E = energy(pos, &grad), step = 0.002;
-   for (int it = 0; it < 4000; it++) {
-      double gmax = 0;
-      for (int i = 0; i < n; i++) gmax = max(gmax, norm(grad[i]));
-      if (gmax < 1e-3) break;
-      for (;;) {
-         for (int i = 0; i < n; i++) {
-            V3 s = mul(grad[i], -step);
-            double l = norm(s);
-            if (l > 0.2) s = mul(s, 0.2 / l);
-            trial[i] = add(pos[i], s);
-         }
-         double E2 = energy(trial, &gtrial);
-         if (E2 <= E) { pos = trial; grad = gtrial; E = E2; step *= 1.3; break; }
-         step *= 0.5;
-         if (step < 1e-9) return;
+   // L-BFGS with a backtracking line search; the steepest-descent used
+   // first stalled on the stiff planarity terms.
+   const int N3 = 3 * n, M = 10;
+   vector<V3> gv(n), tv(n);
+   auto pack = [&](const vector<V3>& v, vector<double>& o) {
+      o.resize(N3);
+      for (int i = 0; i < n; i++) for (int k = 0; k < 3; k++) o[3*i+k] = v[i][k];
+   };
+   auto unpack = [&](const vector<double>& o, vector<V3>& v) {
+      for (int i = 0; i < n; i++) for (int k = 0; k < 3; k++) v[i][k] = o[3*i+k];
+   };
+   auto eval = [&](const vector<double>& x, vector<double>& g) {
+      unpack(x, tv);
+      double E = energy(tv, &gv);
+      pack(gv, g);
+      return E;
+   };
+   vector<double> x, g, xn, gn;
+   pack(pos, x);
+   double E = eval(x, g);
+   vector<vector<double> > S, Y;
+   vector<double> rho;
+   for (int it = 0; it < 3000; it++) {
+      double gm = 0;
+      for (double v : g) gm = max(gm, fabs(v));
+      if (gm < 1e-4) break;
+      vector<double> q = g, alpha(S.size());
+      for (int i = (int)S.size() - 1; i >= 0; i--) {
+         double a = 0;
+         for (int k = 0; k < N3; k++) a += S[i][k] * q[k];
+         alpha[i] = rho[i] * a;
+         for (int k = 0; k < N3; k++) q[k] -= alpha[i] * Y[i][k];
       }
+      if (!S.empty()) {
+         double sy = 0, yy = 0;
+         for (int k = 0; k < N3; k++) { sy += S.back()[k] * Y.back()[k]; yy += Y.back()[k] * Y.back()[k]; }
+         for (double& v : q) v *= sy / yy;
+      } else for (double& v : q) v *= 0.002;
+      for (size_t i = 0; i < S.size(); i++) {
+         double bb = 0;
+         for (int k = 0; k < N3; k++) bb += Y[i][k] * q[k];
+         bb *= rho[i];
+         for (int k = 0; k < N3; k++) q[k] += S[i][k] * (alpha[i] - bb);
+      }
+      double gd = 0, dm = 0;
+      for (int k = 0; k < N3; k++) { gd -= g[k] * q[k]; dm = max(dm, fabs(q[k])); }
+      if (gd >= 0) { S.clear(); Y.clear(); rho.clear(); continue; }
+      double t = dm > 0.3 ? 0.3 / dm : 1.0, E2 = 0;
+      bool ok = false;
+      for (int ls = 0; ls < 30; ls++) {
+         xn.resize(N3);
+         for (int k = 0; k < N3; k++) xn[k] = x[k] - t * q[k];
+         E2 = eval(xn, gn);
+         if (E2 <= E + 1e-4 * t * gd) { ok = true; break; }
+         t *= 0.5;
+      }
+      if (!ok) { if (S.empty()) break; S.clear(); Y.clear(); rho.clear(); continue; }
+      vector<double> sv(N3), yv(N3);
+      double sy = 0;
+      for (int k = 0; k < N3; k++) { sv[k] = xn[k] - x[k]; yv[k] = gn[k] - g[k]; sy += sv[k] * yv[k]; }
+      if (sy > 1e-12) {
+         S.push_back(sv); Y.push_back(yv); rho.push_back(1 / sy);
+         if ((int)S.size() > M) { S.erase(S.begin()); Y.erase(Y.begin()); rho.erase(rho.begin()); }
+      }
+      x = xn; g = gn; E = E2;
    }
+   unpack(x, pos);
 }
 
 // Number of violated checks: wrong chirality, wrong E/Z, bad bond
@@ -627,6 +863,28 @@ int Builder::check(bool)
       double d = norm(sub(pos[A], pos[Bt]));
       if (fabs(d - ideal(A, Bt)) > 0.1) bad++;
    }
+   for (const vector<int>& at0 : sysAtoms) {
+      vector<int> at = at0;
+      for (int x : at0)
+         for (int y : adj[x]) if (y < nh && find(at.begin(), at.end(), y) == at.end()) at.push_back(y);
+      V3 ce = {0, 0, 0};
+      for (int x : at) ce = add(ce, mul(pos[x], 1.0 / at.size()));
+      // Plane normal from the first ring's atoms: cross of two spans.
+      V3 nrm = {0, 0, 0};
+      for (size_t i = 1; i + 1 < at.size(); i++)
+         nrm = add(nrm, cross(sub(pos[at[i]], pos[at[0]]), sub(pos[at[i+1]], pos[at[0]])));
+      nrm = unit(nrm);
+      double s2 = 0;
+      for (int x : at) { double d = dot(sub(pos[x], ce), nrm); s2 += d * d; }
+      if (sqrt(s2 / at.size()) > 0.04) bad += 3;
+   }
+   for (int c = 0; c < n; c++)
+      for (size_t a = 0; a < adj[c].size(); a++)
+         for (size_t bb = a + 1; bb < adj[c].size(); bb++) {
+            V3 u = unit(sub(pos[adj[c][a]], pos[c])), w = unit(sub(pos[adj[c][bb]], pos[c]));
+            double ang = acos(max(-1.0, min(1.0, dot(u, w)))) * 180 / PI;
+            if (fabs(ang - idealAngle(c, adj[c][a], adj[c][bb])) > 20 && adj[c].size() <= 4) bad++;
+         }
    vector<vector<char> > bonded(n, vector<char>(n, 0));
    for (const BondRec& b : bonds) bonded[b.a][b.b] = bonded[b.b][b.a] = 1;
    for (int i = 0; i < n; i++)
@@ -659,10 +917,12 @@ bool build3D(const Graph& g, Built& out, string& err)
    vector<V3> best;
    int bestBad = 1 << 30;
    mt19937 rr(7);
-   for (int attempt = 0; attempt < 16; attempt++) {
+   for (int attempt = 0; attempt < 24; attempt++) {
       b.flip = attempt & 1;
       b.jitter = attempt < 2 ? 0 : (int)(rr() % 360);
       b.buildOnce();
+      if (attempt >= 4)
+         for (auto& q : b.pos) for (int k = 0; k < 3; k++) q[k] += ((int)(rr() % 2001) - 1000) * 1e-4 * 1.5;
       b.relax();
       int bad = b.check(false);
       if (bad < bestBad) { bestBad = bad; best = b.pos; }

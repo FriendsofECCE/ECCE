@@ -56,6 +56,123 @@ static string canonical(const string& flag, const string& file)
    return o.substr(0, t);
 }
 
+
+// Geometry beyond bond lengths: flat aromatic systems, ideal angles.
+typedef array<double,3> P3;
+static double planeRms(const vector<P3>& pts)
+{
+   // Best-fit plane through the centroid: smallest-eigenvalue direction of
+   // the covariance, by inverse iteration on the 3x3 matrix.
+   P3 c = {0, 0, 0};
+   for (const P3& p : pts) for (int k = 0; k < 3; k++) c[k] += p[k] / pts.size();
+   double m[3][3] = {{0}};
+   for (const P3& p : pts)
+      for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) m[i][j] += (p[i]-c[i]) * (p[j]-c[j]);
+   // Power iteration on (trace*I - m) finds the smallest eigenvector of m.
+   double tr = m[0][0] + m[1][1] + m[2][2];
+   double a[3][3];
+   for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) a[i][j] = (i == j ? tr : 0) - m[i][j];
+   double v[3] = {0.3, 0.5, 0.8};
+   for (int it = 0; it < 500; it++) {
+      double w[3] = {0, 0, 0};
+      for (int i = 0; i < 3; i++) for (int j = 0; j < 3; j++) w[i] += a[i][j] * v[j];
+      double l = sqrt(w[0]*w[0] + w[1]*w[1] + w[2]*w[2]);
+      if (l < 1e-12) return 0;
+      for (int i = 0; i < 3; i++) v[i] = w[i] / l;
+   }
+   double s2 = 0;
+   for (const P3& p : pts) {
+      double d = (p[0]-c[0])*v[0] + (p[1]-c[1])*v[1] + (p[2]-c[2])*v[2];
+      s2 += d * d;
+   }
+   return sqrt(s2 / pts.size());
+}
+
+static void geometryChecks(const string& s, const Smiles::Built& b)
+{
+   const int n = (int)b.el.size();
+   vector<vector<int> > adj(n);
+   vector<int> dbl(n, 0), trp(n, 0);
+   vector<char> arom(n, 0);
+   for (const auto& bd : b.bonds) {
+      adj[bd.a].push_back(bd.b); adj[bd.b].push_back(bd.a);
+      if (bd.arom) arom[bd.a] = arom[bd.b] = 1;
+      if (bd.order == 2) { dbl[bd.a]++; dbl[bd.b]++; }
+      if (bd.order == 3) { trp[bd.a]++; trp[bd.b]++; }
+   }
+   // Flat: each aromatic system (joined through aromatic bonds) with its
+   // heavy substituent atoms.
+   vector<int> comp(n, -1);
+   for (int i = 0; i < n; i++) {
+      if (!arom[i] || comp[i] >= 0) continue;
+      vector<int> st = {i}, members;
+      comp[i] = i;
+      while (!st.empty()) {
+         int x = st.back(); st.pop_back(); members.push_back(x);
+         for (const auto& bd : b.bonds) {
+            if (!bd.arom || (bd.a != x && bd.b != x)) continue;
+            int y = bd.a == x ? bd.b : bd.a;
+            if (comp[y] < 0) { comp[y] = i; st.push_back(y); }
+         }
+      }
+      vector<P3> pts;
+      vector<char> in(n, 0);
+      for (int x : members) { in[x] = 1; pts.push_back(b.xyz[x]); }
+      for (int x : members)
+         for (int y : adj[x]) if (!in[y] && b.el[y] != "H") { in[y] = 1; pts.push_back(b.xyz[y]); }
+      double r = planeRms(pts);
+      if (r > 0.05) {
+         char m[200];
+         snprintf(m, sizeof m, ": aromatic system at atom %d is %.3f A rms out of plane", i + 1, r);
+         check(false, s + m);
+      }
+   }
+   // Angles at carbon and aromatic atoms, small rings exempt.
+   for (int c = 0; c < n; c++) {
+      if (b.el[c] != "C" && !arom[c]) continue;
+      if (adj[c].size() < 2 || adj[c].size() > 4) continue;
+      int centreRing = 0, ringNbrs = 0;   // smallest ring through any two neighbours
+      for (size_t x = 0; x < adj[c].size(); x++)
+         for (size_t y = x + 1; y < adj[c].size(); y++) {
+            int i = adj[c][x], j = adj[c][y];
+            vector<int> dist(n, -1), q = {i};
+            dist[i] = 0;
+            for (size_t h = 0; h < q.size() && dist[j] < 0; h++)
+               for (int z : adj[q[h]]) if (z != c && dist[z] < 0) { dist[z] = dist[q[h]] + 1; q.push_back(z); }
+            if (dist[j] >= 0 && dist[j] + 2 <= 12) { ringNbrs++; }
+            if (dist[j] >= 0 && dist[j] + 2 <= 7 && (!centreRing || dist[j] + 2 < centreRing)) centreRing = dist[j] + 2;
+         }
+      int hyb = (trp[c] || dbl[c] >= 2) ? 1 : (dbl[c] || arom[c]) ? 2 : 3;
+      for (size_t x = 0; x < adj[c].size(); x++)
+         for (size_t y = x + 1; y < adj[c].size(); y++) {
+            int i = adj[c][x], j = adj[c][y];
+            // Smallest ring through i-c-j: shortest path i..j avoiding c.
+            vector<int> dist(n, -1);
+            vector<int> q = {i};
+            dist[i] = 0;
+            for (size_t h = 0; h < q.size() && dist[j] < 0; h++)
+               for (int z : adj[q[h]]) if (z != c && dist[z] < 0) { dist[z] = dist[q[h]] + 1; q.push_back(z); }
+            int ring = dist[j] < 0 ? 0 : dist[j] + 2;
+            if (ring > 7) ring = 0;   // not a ring angle: an angle across a fusion atom
+            if (ring && ring <= 4) continue;
+            P3 u = {b.xyz[i][0]-b.xyz[c][0], b.xyz[i][1]-b.xyz[c][1], b.xyz[i][2]-b.xyz[c][2]};
+            P3 w = {b.xyz[j][0]-b.xyz[c][0], b.xyz[j][1]-b.xyz[c][1], b.xyz[j][2]-b.xyz[c][2]};
+            double ang = acos((u[0]*w[0]+u[1]*w[1]+u[2]*w[2]) /
+                              (sqrt(u[0]*u[0]+u[1]*u[1]+u[2]*u[2]) * sqrt(w[0]*w[0]+w[1]*w[1]+w[2]*w[2]))) * 180 / M_PI;
+            double want = hyb == 1 ? 180 : hyb == 2 ? (ring >= 5 ? 180.0 * (ring - 2) / ring : centreRing == 5 ? 126 : 120) : 109.5;
+            // Exocyclic angles beside a five-ring open to about 126 and a
+            // fusion atom to about 132: allow 15 there.
+            double tol = (hyb == 2 && !ring) ? 15 : 10;
+            if (hyb == 3 && (ring == 0 || ringNbrs >= 3)) tol = 15;   // fused rings
+            if (fabs(ang - want) > tol) {
+               char m[200];
+               snprintf(m, sizeof m, ": angle %d-%d-%d is %.1f, ideal %.1f", i + 1, c + 1, j + 1, ang, want);
+               check(false, s + m);
+            }
+         }
+   }
+}
+
 // V2000 block, turned about an oblique axis so no coordinate plane is
 // flat (Open Babel reads a planar file as 2-D and loses E/Z).
 static void writeSdf(const char *path, const Smiles::Built& b)
@@ -142,6 +259,7 @@ int main(int argc, char **argv)
                check(false, s + m);
             }
          }
+      if (flag != "strained") geometryChecks(s, b);
       if (haveOb && flag != "noracle") {
          writeSdf(sdf.c_str(), b);
          { ofstream(smi) << s << "\n"; }
