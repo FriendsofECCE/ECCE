@@ -50,6 +50,7 @@ On main, not in a package yet:
 - Example set Workflows: the Na+(H2O)6 workflow gets a water (CPCM) ORCA step after each gas-phase ORCA step, starting from that step's geometry and Hessian; a workflow step can start from the source's ORCA Hessian (**Start from the source's Hessian**).
 - Workflows: an Auto-run checkbox runs the remaining steps once the first one is launched, and a play button on each box runs that step (#736); the Protonation Sites recipe no longer warns that CREST needs an optimised structure, and the step after CREST gets the protomer (#851).
 - General Chemistry examples: Packing in solids, with simple cubic Po, bcc Na, fcc Al and Cu, and hcp Mg shown as unit cells (#859); Quantum ESPRESSO pw.x outputs can be imported (#447).
+- Dipole Moment: an optional **Bond dipoles** display splits the dipole into bond contributions from a chosen set of atomic charges, as purple arrows on the bonds and a table with the point-charge sum, the computed dipole and the remainder (#849).
 - NWChem MD: a task after an optimisation starts from the optimised structure (.qrs), not from the restart the optimisation was given; dynamics with SHAKE no longer aborts (#865).
 - ORCA: RI approximation None, RIJCOSX or RIJONX (#834); orbital views (Density Map, Density Profile, density fields) work for basis sets with g functions (#861).
 - Energy Calculator: a 1 M standard-state term on G and a log K line (#835). `ecce-rerun --last-geometry` continues a running calculation from its last geometry with new cores and wall time (#837).

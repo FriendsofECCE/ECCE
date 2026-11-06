@@ -88,6 +88,8 @@ public:
     // Radius (A) of the sphere drawn for atom idx in its display style; 0
     // where none is drawn (wireframe, stick, hidden).
     double displayedSphereRadius(int idx);
+    // Bond cylinder radius of the style atom idx is drawn in (0 if none).
+    double displayedBondRadius(int idx);
     // Display-only copies of atoms on the cell's corners, edges and faces
     // at their equivalent boundary positions (#859); number drawn.
     void updateCellImages();
