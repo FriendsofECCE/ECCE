@@ -2066,7 +2066,7 @@ if(ECCE_SPLIT_PACKAGES)
   # deployment) has no use for a local data server or broker at all, so
   # this is Recommends, not Depends, matching the design brief.
   set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, mosquitto, nwchem, openssh-client")
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "www-browser")
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "openbabel, www-browser")
   # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
   # without this, installing ecce-client while the old ecce package still
   # owns e.g. /opt/ecce/bin/organizer is a file-already-owned conflict,
