@@ -2902,7 +2902,7 @@ if(PYTHON3_EXECUTABLE)
   # cases once per group of contexts with identical Python inventories.
   foreach(_d orcatheory orcaruntype ged16theory ged16runtype)
     set(_extra "")
-    set(_timeout 1800)
+    set(_timeout 3600)   # ORCA runs ~25 min on an idle machine
     if(_d MATCHES "^ged16")
       set(_extra --dedupe --jobs 8)
       set(_timeout 7200)
