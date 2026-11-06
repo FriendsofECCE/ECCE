@@ -96,7 +96,7 @@ class GmxAnalysisPanel : public PropertyPanel
       wxButton *p_run, *p_export;
       XYPlotCanvas *p_plot;
       wxTextCtrl *p_results;
-      wxStaticText *p_status;
+      wxStaticText *p_status, *p_showLabel;
       wxGauge *p_gauge;
       std::unique_ptr<wxTimer> p_timer;
       std::shared_ptr<Job> p_job;

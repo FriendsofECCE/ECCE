@@ -211,6 +211,7 @@ def main():
     ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
     ap.add_argument("--keep", action="store_true")
     ap.add_argument("--png", help="copy the panel screenshots here")
+    ap.add_argument("--procs", type=int, default=4, help="threads for the NaCl run (at most 4)")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
 
@@ -226,8 +227,6 @@ def main():
     import builder_overlay_test as bo
     import xdisplay
 
-    # The job script finds no mdanalysis; the job store must make the data.
-    os.environ["ECCE_MDANALYSIS"] = "/nonexistent/mdanalysis"
     s = harness.Session(build, "gmxmdpanel", {"GROMACS": gmx}, local=True, keep=args.keep)
     for exe in ("mdanalysis",) + bo.GUI:
         harness.link(os.path.join(build, exe), os.path.join(s.home, "bin", exe))
@@ -244,14 +243,24 @@ def main():
     env = s.env({"OMP_NUM_THREADS": "4"})
     display = None
     try:
+        # The job script's mdanalysis fails (an installed ecce-mdanalysis on
+        # PATH would otherwise stand in); the job store must make the data.
+        broken = os.path.join(s.state, "broken-mda")
+        os.makedirs(broken, exist_ok=True)
+        with open(os.path.join(broken, "ecce-mdanalysis"), "w") as h:
+            h.write("#!/bin/sh\necho 'mdanalysis: not usable on this host' >&2\nexit 1\n")
+        os.chmod(os.path.join(broken, "ecce-mdanalysis"), 0o755)
         s.registerMachine("localhost", "Shell", {"GROMACS": gmx})
+        with open(os.path.join(s.state, ".ECCE", "CONFIG.localhost"), "a") as h:
+            h.write("gromacs_setup {\nsetenv ECCE_MDANALYSIS /nonexistent/mdanalysis\n"
+                    "setenv PATH %s:$PATH\n}\n" % broken)
         if not check(s.services(True), "services came up"):
             return 1
         nacl = runTask(s, "nacl", os.path.join(NACL, "topol.top"),
                        os.path.join(NACL, "confout.gro"),
-                       [os.path.join(NACL, "salt.itp")], NACL_MDP, 4)
+                       [os.path.join(NACL, "salt.itp")], NACL_MDP, min(4, args.procs))
         ar = runTask(s, "argon", os.path.join(AR, "topol.top"),
-                     os.path.join(AR, "confout.gro"), [], AR_MDP, 2)
+                     os.path.join(AR, "confout.gro"), [], AR_MDP, min(2, args.procs))
         if not nacl or not ar:
             return 1
         d, a = where(nacl), where(ar)
@@ -266,10 +275,11 @@ def main():
         cell = first_step(d, "LATTICEVEC")
         check(len(cell) == 9 and abs(cell[0] - 49.49) < 1.0 and abs(cell[4] - cell[0]) < 1e-3,
               "the first frame's box is the cubic 49.5 Angstrom cell: %s" % cell[:3])
-        log = "".join(open(p, errors="replace").read()
-                      for p in glob.glob(os.path.join(s.state, "run-nacl", "**", "*.log"),
-                                         recursive=True))
-        check("MD analysis skipped" in log, "the job script found no mdanalysis")
+        log = open(os.path.join(out, "gromacs.gmxlog"), errors="replace").read() \
+            if os.path.exists(os.path.join(out, "gromacs.gmxlog")) else ""
+        check("MD analysis (displacement) failed" in log and
+              "ecce-parse-md.txt written" not in log,
+              "the job script's mdanalysis failed, as on a host without ECCE")
         check(waitProps(d, ("MDMSD", "MDSPEED")), "MDMSD and MDSPEED stored by the job store")
         sp = records(d, "MDSPEED") or []
         check(sp and sp != ["none"], "speeds from the fetched traj.trr: %s"
@@ -340,13 +350,14 @@ def main():
               "a trajectory left on the host is named as such: %s" % res.get("error"))
 
         rc, arr = cli(env, a, "rdf", "--ref", "element:Ar", "--sel", "element:Ar")
-        peak = dict((x["name"], x.get("value")) for x in arr.get("summary", [])).get(
-            "first peak position") or 0
-        check(rc == 0 and 0.365 <= peak <= 0.385,
-              "liquid argon at 85 K: first g(r) peak at %.3f nm" % peak)
+        summ = dict((x["name"], x.get("value")) for x in arr.get("summary", []))
+        peak = summ.get("first peak position") or 0
+        cnum = summ.get("coordination number (to the first minimum)") or 0
+        check(rc == 0 and 0.365 <= peak <= 0.385 and 11 <= cnum <= 14,
+              "liquid argon at 85 K: first g(r) peak at %.3f nm, %.1f neighbours" % (peak, cnum))
 
         # --- the panel ------------------------------------------------------
-        display = xdisplay.Display().__enter__()
+        display = xdisplay.Display(screen="1400x1050x24").__enter__()
         benv = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita",
                       "PATH": wrappers + os.pathsep + s.env()["PATH"]})
         png = os.path.join(s.state, "png")
@@ -361,7 +372,8 @@ def main():
              "gmxa analysis energy", "gmxa wait", "gmxa set terms Potential",
              "gmxa run", "gmxa dump %s" % dumps["energy"], "gmxa state", "shot energy",
              "quit"], png, "gmxa",
-            {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "MD Analysis"})
+            {"ECCE_PANEL_MODE": "classic", "ECCE_OPEN_PANEL": "MD Analysis",
+             "ECCE_OPEN_PANEL_SIZE": "760x860"})
         bad = [l for l in text.splitlines()
                if l.startswith("ECCE_BUILDER_SCRIPT: gmxa") and not l.endswith(": ok")]
         check(not bad, "the panel's script commands: %s" % (bad or "all ok"))

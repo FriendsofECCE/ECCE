@@ -90,7 +90,7 @@ GmxAnalysisPanel::GmxAnalysisPanel()
   : PropertyPanel(), p_analysis(0), p_fields(0), p_ref(0), p_sel(0), p_group(0),
     p_rmax(0), p_bin(0), p_slices(0), p_begin(0), p_end(0), p_axis(0), p_dens(0),
     p_show(0), p_terms(0), p_run(0), p_export(0), p_plot(0), p_results(0),
-    p_status(0), p_gauge(0), p_haveResult(false), p_started(0)
+    p_status(0), p_showLabel(0), p_gauge(0), p_haveResult(false), p_started(0)
 {
   p_alive = std::make_shared<GmxAnalysisPanel*>(this);
 }
@@ -165,49 +165,48 @@ void GmxAnalysisPanel::build()
   p_group = new wxComboBox(this, wxID_ANY);
   p_group->SetToolTip(selTip);
   p_fields->Add(p_group, 1, wxEXPAND);
+  //  Small fields share a row, so the plot keeps its height in a dock.
+  const wxSize NUM(70, -1);
   label("Cut-off (nm):");
-  p_rmax = new wxTextCtrl(this, wxID_ANY);
+  wxBoxSizer *rdfRow = new wxBoxSizer(wxHORIZONTAL);
+  p_rmax = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, NUM);
   p_rmax->SetToolTip("Largest distance of g(r); empty: half the shortest box edge.");
-  p_fields->Add(p_rmax, 0);
-  label("Bin width (nm):");
-  p_bin = new wxTextCtrl(this, wxID_ANY, "0.002");
-  p_fields->Add(p_bin, 0);
-  label("Plot:");
-  wxArrayString show;
-  show.Add("g(r)");
-  show.Add("cn(r), coordination number");
-  p_show = new wxChoice(this, ID_SHOW, wxDefaultPosition, wxDefaultSize, show);
-  p_show->SetSelection(0);
-  p_fields->Add(p_show, 0);
+  rdfRow->Add(p_rmax, 0, MID | wxRIGHT, 8);
+  rdfRow->Add(new wxStaticText(this, wxID_ANY, "Bin width (nm):"), 0, MID | wxRIGHT, 4);
+  p_bin = new wxTextCtrl(this, wxID_ANY, "0.002", wxDefaultPosition, NUM);
+  rdfRow->Add(p_bin, 0, MID);
+  p_fields->Add(rdfRow, 0);
   label("Axis:");
+  wxBoxSizer *densRow = new wxBoxSizer(wxHORIZONTAL);
   wxArrayString axes;
   axes.Add("x");
   axes.Add("y");
   axes.Add("z");
   p_axis = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, axes);
   p_axis->SetSelection(2);
-  p_fields->Add(p_axis, 0);
-  label("Slices:");
-  p_slices = new wxTextCtrl(this, wxID_ANY, "50");
-  p_fields->Add(p_slices, 0);
-  label("Density:");
+  densRow->Add(p_axis, 0, MID | wxRIGHT, 8);
+  densRow->Add(new wxStaticText(this, wxID_ANY, "Slices:"), 0, MID | wxRIGHT, 4);
+  p_slices = new wxTextCtrl(this, wxID_ANY, "50", wxDefaultPosition, NUM);
+  densRow->Add(p_slices, 0, MID | wxRIGHT, 8);
   wxArrayString dens;
   dens.Add("number");
   dens.Add("mass");
   dens.Add("charge");
   p_dens = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, dens);
   p_dens->SetSelection(0);
-  p_fields->Add(p_dens, 0);
+  p_dens->SetToolTip("Number density (nm⁻³), mass density (kg m⁻³) or charge density (e nm⁻³)");
+  densRow->Add(p_dens, 0, MID);
+  p_fields->Add(densRow, 0);
   label("Terms:");
-  p_terms = new wxCheckListBox(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 110));
+  p_terms = new wxCheckListBox(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 90));
   p_fields->Add(p_terms, 1, wxEXPAND);
   label("From (ps):");
   wxBoxSizer *times = new wxBoxSizer(wxHORIZONTAL);
-  p_begin = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1));
+  p_begin = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, NUM);
   p_begin->SetToolTip("First time used; empty: the start of the run.");
   times->Add(p_begin, 0, MID | wxRIGHT, 4);
   times->Add(new wxStaticText(this, wxID_ANY, "to"), 0, MID | wxRIGHT, 4);
-  p_end = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxSize(80, -1));
+  p_end = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, NUM);
   p_end->SetToolTip("Last time used; empty: the end of the run.");
   times->Add(p_end, 0, MID);
   p_fields->Add(times, 0);
@@ -219,16 +218,25 @@ void GmxAnalysisPanel::build()
   p_export = new wxButton(this, ID_EXPORT, "Export .csv...");
   p_export->Enable(false);
   bar->Add(p_run, 0, wxRIGHT, 4);
-  bar->Add(p_export, 0);
+  bar->Add(p_export, 0, wxRIGHT, 12);
+  p_showLabel = new wxStaticText(this, wxID_ANY, "Plot:");
+  bar->Add(p_showLabel, 0, MID | wxRIGHT, 4);
+  wxArrayString show;
+  show.Add("g(r)");
+  show.Add("cn(r), coordination number");
+  p_show = new wxChoice(this, ID_SHOW, wxDefaultPosition, wxDefaultSize, show);
+  p_show->SetSelection(0);
+  bar->Add(p_show, 0, MID);
   top->Add(bar, 0, wxALL, 4);
 
   p_plot = new XYPlotCanvas(this);
-  p_plot->SetMinSize(wxSize(300, 200));
+  p_plot->SetMinSize(wxSize(300, 160));
   p_plot->setShowKey(true);
   top->Add(p_plot, 3, wxEXPAND);
 
   p_results = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
-                             wxSize(-1, 90), wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
+                             wxSize(-1, 70), wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
+  p_results->SetMinSize(wxSize(-1, 60));
   top->Add(p_results, 1, wxEXPAND | wxTOP, 4);
 
   //  Status and notes have their own line below the results.
@@ -258,8 +266,7 @@ void GmxAnalysisPanel::showFields()
   const bool rdf = a == "rdf", hb = a == "hbond", en = a == "energy";
   const bool grp = a == "rms" || a == "gyrate" || a == "density";
   //  Rows in Add order: label then control; index 2k and 2k+1.
-  const bool rows[] = { rdf || hb, rdf || hb, grp, rdf, rdf, rdf,
-                        a == "density", a == "density", a == "density", en, true };
+  const bool rows[] = { rdf || hb, rdf || hb, grp, rdf, a == "density", en, true };
   for (size_t k = 0; k < sizeof rows / sizeof rows[0]; k++) {
     p_fields->Show(2 * k, rows[k]);
     p_fields->Show(2 * k + 1, rows[k]);
@@ -270,6 +277,8 @@ void GmxAnalysisPanel::showFields()
     refLabel->GetWindow()->SetLabel(hb ? "Group:" : "Reference:");
   if (selLabel && selLabel->GetWindow())
     selLabel->GetWindow()->SetLabel(hb ? "Second group (optional):" : "Selection:");
+  p_showLabel->Show(rdf);
+  p_show->Show(rdf);
   if (en && p_terms->IsEmpty() && !p_job)
     startJob({ "energy" }, "Reading the energy terms...", JOB_TERMS);
   Layout();
@@ -397,7 +406,10 @@ std::string GmxAnalysisPanel::command(const std::vector<std::string>& args) cons
 
 void GmxAnalysisPanel::setStatus(const wxString& text)
 {
-  p_status->SetLabel(text);
+  //  A static text reads "&" as a mnemonic: "residue:SOL & element:O".
+  wxString shown = text;
+  shown.Replace("&", "&&");
+  p_status->SetLabel(shown);
   p_status->SetToolTip(text);
   Layout();
 }
@@ -734,7 +746,7 @@ std::string GmxAnalysisPanel::plotDump() const
 
 wxString GmxAnalysisPanel::status() const
 {
-  return p_status->GetLabel();
+  return p_status->GetLabelText();
 }
 
 wxString GmxAnalysisPanel::resultsText() const

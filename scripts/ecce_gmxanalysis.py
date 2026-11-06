@@ -356,32 +356,44 @@ def time_args(a):
     return t
 
 
+def smooth(g, half):
+    out = []
+    for i in range(len(g)):
+        w = g[max(0, i - half):i + half + 1]
+        out.append(sum(w) / len(w))
+    return out
+
+
 def first_peak_and_minimum(r, g, cn):
-    """First peak of g(r) (the maximum of the first stretch above 1) and the
-    first minimum after it (lowest point before g rises above 1 again or the
-    next stretch's maximum), with cn at that minimum."""
+    """First peak of g(r) and the first minimum after it, found on g smoothed
+    over 0.01 nm (a short run's g(r) is noisy bin to bin): the peak is the
+    maximum of the first stretch above 1, the minimum the lowest point before
+    g, having fallen below 1, rises above 1 again.  cn is read at the minimum."""
     n = len(g)
-    i = next((k for k in range(n) if g[k] > 1.0), None)
+    if n < 3:
+        return []
+    half = max(1, int(round(0.005 / max(r[1] - r[0], 1e-6))))
+    s = smooth(g, half)
+    i = next((k for k in range(n) if s[k] > 1.0), None)
     if i is None:
         return []
     j = i
-    while j < n and g[j] > 1.0:
+    while j < n and s[j] > 1.0:
         j += 1
-    peak = max(range(i, j), key=lambda k: g[k])
-    # the minimum: the lowest g after the peak until g passes the level of the
-    # point half way back up to the peak (one shell to the next)
-    lo = peak
-    for k in range(peak + 1, n):
-        if g[k] < g[lo]:
-            lo = k
-        elif g[k] > g[lo] + 0.5 * (g[peak] - g[lo]) and g[k] > 1.0:
-            break
+    peak = max(range(i, j), key=lambda k: s[k])
     out = [{"name": "first peak position", "value": r[peak], "unit": "nm"},
-           {"name": "first peak height g(r)", "value": g[peak], "unit": ""}]
-    if lo != peak and lo < n - 1:
-        out += [{"name": "first minimum position", "value": r[lo], "unit": "nm"},
-                {"name": "coordination number (to the first minimum)",
-                 "value": cn[lo] if lo < len(cn) else float("nan"), "unit": ""}]
+           {"name": "first peak height g(r)", "value": s[peak], "unit": ""}]
+    if j >= n:
+        return out
+    k = j
+    while k < n and s[k] <= 1.0:
+        k += 1
+    if k >= n:
+        return out
+    lo = min(range(peak, k), key=lambda m: s[m])
+    out += [{"name": "first minimum position", "value": r[lo], "unit": "nm"},
+            {"name": "coordination number (to the first minimum)",
+             "value": cn[lo] if lo < len(cn) else float("nan"), "unit": ""}]
     return out
 
 
@@ -410,7 +422,8 @@ def do_rdf(a, calc, gmx, res):
                      {"name": "cn(r)", "unit": "", "values": c}]
     res["summary"] = first_peak_and_minimum(r, g, c)
     res["notes"].append("g(r) of %s (%d atoms) around %s (%d atoms); cn(r) is the "
-                        "number of %s atoms within r of one %s atom (gmx rdf -cn)."
+                        "number of %s atoms within r of one %s atom (gmx rdf -cn). The peak and "
+                        "minimum are read from g(r) smoothed over 0.01 nm."
                         % (a.sel, made[1]["atoms"], a.ref, made[0]["atoms"], a.sel, a.ref))
 
 
