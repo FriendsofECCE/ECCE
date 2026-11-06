@@ -763,9 +763,17 @@ sub ORCABlocks {
   # gensub's orca() writes it at launch. A value stored by the theory
   # dialog's old Processors field is ignored, so it cannot override that.
   my $maxiter = $AbiDict{"ES.Theory.SCF.ConvergenceIterations"};
-  if ($maxiter ne "") {
-    $result .= "%scf\n  MaxIter $maxiter\nend\n";
-  }
+  my $scf = "";
+  $scf .= "  MaxIter $maxiter\n" if ($maxiter ne "");
+  #  A UHF singlet stays on the closed-shell solution from a symmetric
+  #  guess.  GuessMix rotates the alpha HOMO and LUMO by this angle (deg);
+  #  ORCA 6.1.1 applies it at every scan point, so an H2 scan finds the
+  #  broken-symmetry solution beyond the Coulson-Fischer point and the
+  #  restricted one inside it (verified both ways, #858).
+  $scf .= "  GuessMix 75\n"
+    if ($AbiDict{"ES.Theory.SCF.BrokenSymmetryGuess"} eq "1" &&
+        $AbiDict{"Theory"} =~ /^(UHF|UDFT)$/);
+  $result .= "%scf\n$scf" . "end\n" if ($scf ne "");
   my $runtype = $AbiDict{"RunType"};
   if ($runtype =~ /Geo/i && !&NoOptForOneAtom()) {
     my $maxsteps = $AbiDict{"ES.Runtype.GeomOpt.MaximumStepsValue"};
@@ -971,6 +979,11 @@ sub RunType {
   } else {
     die "ai.orca error: unsupported runtype '$runtype' (reduced scope covers Energy/Gradient/Geometry/Vibration/GeoVib/Magnetic/IRC/NEB-TS only)\n";
   }
+  #  ORCA 6.1.1 has analytic CCSD gradients for a closed-shell reference
+  #  only; an open-shell one aborts ("Please turn on NumGrad").
+  $result .= " NumGrad"
+    if ($AbiDict{"Theory"} eq "CCSD" && &Multiplicity() > 1 &&
+        $runtype =~ /^(Gradient|Geometry)$/);
   return $result;
 }
 
@@ -1110,7 +1123,8 @@ sub readCnstrntFile {
                  $type eq "torsion" ? "D" : "";
     if ($letter ne "" && $scanSteps > 0) {
       # Same points as Gaussian's 'S n step': n steps, so n+1 points.
-      my $end = $value + $scanSteps * $scanStep;
+      # Rounded: 5.0 + 92 * -0.05 would be written 0.399999999999999.
+      my $end = sprintf("%.6f", $value + $scanSteps * $scanStep) + 0;
       push(@orcaScans, sprintf("  Scan %s %s = %s, %s, %d end\n",
                                $letter, "@group", $value, $end, $scanSteps + 1));
     } elsif ($letter ne "") {

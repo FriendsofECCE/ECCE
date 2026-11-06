@@ -1351,6 +1351,11 @@ install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_rates.py
         DESTINATION scripts
         COMPONENT client)
 
+# ecce-morse (#858): Morse fit of a bond scan; the Relaxed Scan panel runs it.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_morse.py
+        DESTINATION bin RENAME ecce-morse
+        COMPONENT client)
+
 # ecce-bandshift (#707): matched bands and their shifts between two calculations.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_bandshift.py
         DESTINATION bin RENAME ecce-bandshift
@@ -2726,6 +2731,11 @@ add_test(NAME rates_formulas
 add_test(NAME rates
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rates/cli_tests.py)
 set_tests_properties(rates PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+
+# tests/morse -- scripts/ecce_morse.py: exact recovery of synthetic Morse
+# curves, omega_e against the curvature, the CLI on a stored scan (#858).
+add_test(NAME morse
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/morse/unit_tests.py)
 
 # tests/bandshift -- scripts/ecce_bandshift.py on stored frequency calculations (#707).
 add_test(NAME bandshift
@@ -4965,6 +4975,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-bandshift=bin/ecce-bandshift
   ecce-ensemble=bin/ecce-ensemble
   ecce-rate=bin/ecce-rate
+  ecce-morse=bin/ecce-morse
   ecce-spectrum=bin/ecce-spectrum
   ecce-displace=bin/ecce-displace
   ecce-si-export=bin/ecce-si-export

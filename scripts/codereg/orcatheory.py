@@ -72,6 +72,18 @@ class OrcaTheoryPanel(EccePanel):
         #  stored one.
         self.panelSizer.Add(scfSizer)
 
+        # ai.orca writes %scf GuessMix: a UHF/UKS singlet otherwise keeps
+        # the closed-shell solution where a broken-symmetry one is lower.
+        if EcceGlobals.Theory in ("UHF", "UDFT"):
+            guessSizer = EcceBoxSizer(self, label="Initial Guess", cols=1)
+            self.bsGuess = EcceCheckBox(self,
+                                        label=" Broken-symmetry guess (mix HOMO and LUMO)",
+                                        name="ES.Theory.SCF.BrokenSymmetryGuess",
+                                        default=False,
+                                        export=1)
+            guessSizer.AddWidget(self.bsGuess)
+            self.panelSizer.Add(guessSizer)
+
         # Both RI modes share the Coulomb-fitting auxiliary basis.
         riSizer = EcceBoxSizer(self, label="RI Approximation", cols=2)
         self.riMode = EcceComboBox(self,
