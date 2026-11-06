@@ -73,7 +73,7 @@ in D and the direction as a unit vector, then these lines:
   bonds for a neutral molecule). It is the part atomic charges cannot carry:
   lone pairs and atomic densities that are not spherical.
 
-In the viewer each bond gets a purple arrow, in the same direction as the
+In the viewer each bond gets a opaque purple arrow, slightly wider than the bond so that it sheathes it, in the same direction as the
 molecular dipole arrow (negative to positive). The arrows share one scale: the
 largest bond dipole fills its bond, the others follow |μ|, each is centred on
 its bond and kept inside it. A very small bond dipole still gets a short arrow,

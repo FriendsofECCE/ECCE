@@ -308,6 +308,8 @@ bool AddDipoleMomentCmd::execute()
       // (the bond less 0.25 A of atom at each end), the others follow
       // |mu| and are clamped to their own bond; a floor keeps small ones
       // visible unless the table shows 0.00 D.
+      double rad = sg->displayedBondRadius(bonds.empty() ? 0 : bonds[0].first);
+      if (rad <= 0.0) rad = 0.1;
       const size_t nb = bonds.size();
       vector<double> mag(nb), room(nb);
       size_t big = 0;
@@ -336,8 +338,9 @@ bool AddDipoleMomentCmd::execute()
          vec->position(a[0] + f*d[0], a[1] + f*d[1], a[2] + f*d[2]);
          double s2 = L/len/1.075;
          vec->direction(d[0]*s2, d[1]*s2, d[2]*s2);
-         vec->fixedThickness(0.045f, 0.11f, (float)std::min(0.20, 0.5*L));
-         vec->showThroughMolecule();
+         // Opaque and a little wider than the bond, so the arrow sheathes it.
+         vec->fixedThickness((float)(1.3*rad), (float)(2.0*rad),
+                             (float)std::min(0.20, 0.5*L));
          root->addChild(vec);
       }
    }
