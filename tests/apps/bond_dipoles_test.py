@@ -194,6 +194,9 @@ def main():
             if not rows or not summary:
                 print(log[-1500:])
                 continue
+            if os.environ.get("ECCE_BONDDIP_VERBOSE"):
+                for m in re.finditer(r"BUILDER: vector DIPOLE \d+ .*", log):
+                    print("    ", name, m.group(0))
             names = [r[0] for r in rows]
             by = {r[0]: float(r[1]) for r in rows}
             nb = names.index("Sum of bonds")
