@@ -1,0 +1,79 @@
+# Gaussian 16 Runtype Details for the native engine (bin/ecce-dialog), the same
+# dialog as ged16runtype.py.  Keep the two in step: tests/dialogs/native_test.py
+# compares what they send.  Single-entry lists stand in for string literals
+# with spaces, which the expression syntax has none of.
+
+list GEOPT = Geometry|GeoVib
+list OPT = Geometry|GeoVib|Transition State (QST)|Transition State (QST) + Frequencies
+list FREQ = Vibration|GeoVib|Transition State (QST) + Frequencies
+list TSFIND = Transition State
+list VFF = Valence Force Field
+list ANAL = Analytic
+list ANALPOL = Analytic Polariz. + Hyperpol.
+list NUM2 = Numerical 2nd Derivative
+
+# Theories that have analytic gradients / a computable Hessian / etc.
+list MPGRAD = RMP2|UMP2|RMP3|UMP3|RMP4(SDQ)|UMP4(SDQ)
+list CCGRAD = RQCISD|UQCISD|RCCD|UCCD
+list CCHESS = RQCISD|UQCISD
+list POLANA = RHF|UHF|RMP2|UMP2
+list POLNUM = RMP3|UMP3|RMP4(SDQ)|UMP4(SDQ)
+list VIBANA = RHF|UHF|RMP2|UMP2|CIS
+list VIBNUM2 = ROHF|RMP3|UMP3|RMP4(SDQ)|UMP4(SDQ)|RMP4(DQ)|UMP4(DQ)|RQCISD|UQCISD|RCCD|UCCD|CISD
+list VIBNUM12 = RMP4|UMP4|RQCISD(T)|UQCISD(T)|RCCSD|UCCSD|RCCSD(T)|UCCSD(T)
+
+dialog title="ECCE Gaussian-16 Editor: Runtype Details" minwidth=380
+
+box label="Gradient" cols=2 when="runtype==Gradient"
+combo name=ES.Runtype.Gradient.Method label="Method:" choices="Analytic|Finite Difference" default=Analytic when="category==SCF || category==DFT || category==CI || category==MP && theory in @MPGRAD || category==CC && theory in @CCGRAD"
+combo name=ES.Runtype.Gradient.Method label="Method:" choices="Analytic" default=Analytic when="category==SE"
+combo name=ES.Runtype.Gradient.Method label="Method:" choices="Finite Difference" default="Finite Difference" when="category!=SE && category!=SCF && category!=DFT && category!=CI && !(category==MP && theory in @MPGRAD) && !(category==CC && theory in @CCGRAD)"
+
+box label="Geometry Optimization" cols=2 when="runtype in @GEOPT"
+combo name=ES.Runtype.GeomOpt.SearchFor label="Find:" choices="Minimum|Transition State" default=Minimum default_if="rxn!=0 && calcname==Transition-State => Transition State" export_if="default!=@0"
+
+box label="Convergence" cols=3 when="runtype in @OPT"
+combo name=ES.Runtype.GeomOpt.ConvergenceGradient label="Gradient:" choices="Loose|Medium|Tight|Very Tight" default=Medium
+check name=ES.Runtype.GeomOpt.MaximumSteps label=" Max Steps:" default=0
+int name=ES.Runtype.GeomOpt.MaximumStepsValue default=20 hard="[1..)" soft="[1..100]" export=1 enable_if="ES.Runtype.GeomOpt.MaximumSteps==1"
+
+box label="Hessian" cols=1 when="runtype in @GEOPT"
+combo name=ES.Runtype.GeomOpt.InitialHessian label="Initial Source:" choices="Valence Force Field|Calculate|Calculate at every step|Read from checkpoint" default=Calculate when="category==SCF || category==DFT || category==MP && theory in @MPGRAD || category==CC && theory in @CCHESS"
+combo name=ES.Runtype.GeomOpt.InitialHessian label="Initial Source:" choices="Valence Force Field|Read from checkpoint" default="Valence Force Field" when="category!=SCF && category!=DFT && !(category==MP && theory in @MPGRAD) && !(category==CC && theory in @CCHESS)"
+int name=ES.Runtype.GeomOpt.RecalcFC label="Recalculate every N steps (0 = never):" default=0 hard="[0..)" soft="[0..50]" export=1
+force name=ES.Runtype.GeomOpt.InitialHessian value=Calculate when="ES.Runtype.GeomOpt.SearchFor in @TSFIND && ES.Runtype.GeomOpt.InitialHessian in @VFF && (category==SCF || category==DFT || category==MP && theory in @MPGRAD || category==CC && theory in @CCHESS)" silent=1
+
+box label="Polarizability" cols=1 when="runtype==Polarizability"
+combo name=ES.Runtype.Polar.Method label="Method:" choices="Analytic Polariz. + Hyperpol.|Numerical Polariz." default="Analytic Polariz. + Hyperpol." when="theory in @POLANA || category==DFT"
+combo name=ES.Runtype.Polar.Method label="Method:" choices="Numerical Polariz.|Numerical Polariz. + Hyperpol." default="Numerical Polariz." when="theory not in @POLANA && category!=DFT && (theory==ROHF || category==MP && theory in @POLNUM || category==CI || category==CC && theory in @CCGRAD)"
+combo name=ES.Runtype.Polar.Method label="Method:" choices="Numerical Polariz." default="Numerical Polariz." when="theory not in @POLANA && category!=DFT && !(theory==ROHF || category==MP && theory in @POLNUM || category==CI || category==CC && theory in @CCGRAD)"
+float name=ES.Runtype.Polar.EFieldStepSize label="Electric Field Step Size:" default=0.0019 hard="[0..)" soft="[1e-5..1e-2]" unit=AU enable_if="ES.Runtype.Polar.Method not in @ANALPOL"
+
+# Freq=(Raman,Numerical) and Freq=(Anharmonic,Projected) are fatal in Gaussian
+# 16, so they are made unaskable (forced off) rather than warned about.
+box label="IR/Raman" cols=1 when="runtype in @FREQ"
+combo name=ES.Runtype.Vibration.Method label="Method:" choices="Analytic|Numerical 2nd Derivative|Numerical 1st and 2nd Derivative" default=Analytic when="theory in @VIBANA || category==DFT"
+combo name=ES.Runtype.Vibration.Method label="Method:" choices="Numerical 2nd Derivative|Numerical 1st and 2nd Derivative" default="Numerical 2nd Derivative" when="theory not in @VIBANA && category!=DFT && theory in @VIBNUM2"
+combo name=ES.Runtype.Vibration.Method label="Method:" choices="Numerical 1st and 2nd Derivative" default="Numerical 1st and 2nd Derivative" when="theory not in @VIBANA && category!=DFT && theory not in @VIBNUM2 && theory in @VIBNUM12"
+combo name=ES.Runtype.Vibration.Method label="Method:" choices="Analytic|Numerical 2nd Derivative" default=Analytic when="theory not in @VIBANA && category!=DFT && theory not in @VIBNUM2 && theory not in @VIBNUM12 && category==SE"
+combo name=ES.Runtype.Vibration.Method label="Method:" choices="Numerical 1st and 2nd Derivative" default="Numerical 1st and 2nd Derivative" start_disabled=1 when="theory not in @VIBANA && category!=DFT && theory not in @VIBNUM2 && theory not in @VIBNUM12 && category!=SE"
+float name=ES.Runtype.Vibration.FiniteStepSize label="FD Step Size:" default=0.001 hard="(0..)" soft="(0..0.1]" unit=Angstrom enable_if="ES.Runtype.Vibration.Method not in @ANAL"
+check name=ES.Runtype.Vibration.ComputeRaman label=" Raman Activities" default=0 enable_if="ES.Runtype.Vibration.Method not in @NUM2"
+force name=ES.Runtype.Vibration.ComputeRaman value=0 when="ES.Runtype.Vibration.Method in @NUM2" silent=1
+check name=ES.Runtype.Vibration.Anharmonic label=" Anharmonic Frequencies" default=0
+check name=ES.Runtype.Vibration.HighPrecisionModes label=" High-Precision Modes" default=0
+check name=ES.Runtype.Vibration.Projected label=" Project Out Translation/Rotation" default=0 enable_if="ES.Runtype.Vibration.Anharmonic==0"
+force name=ES.Runtype.Vibration.Projected value=0 when="ES.Runtype.Vibration.Anharmonic==1" silent=1
+check name=ES.Runtype.Vibration.VibRot label=" Vibration-Rotation Coupling" default=0
+check name=ES.Runtype.Vibration.SaveNormalModes label=" Save Normal Modes To Checkpoint" default=0
+check name=ES.Runtype.Vibration.UseThermochemistry label=" Thermochemistry At:" default=0
+float name=ES.Runtype.Vibration.Temperature label="Temperature:" default=298.15 hard="(0..)" soft="(0..5000]" unit=Kelvin export=1 enable_if="ES.Runtype.Vibration.UseThermochemistry==1"
+float name=ES.Runtype.Vibration.Pressure label="Pressure:" default=1.0 hard="(0..)" soft="(0..1000]" unit=Atmosphere export=1 enable_if="ES.Runtype.Vibration.UseThermochemistry==1"
+
+box label="Reaction Path" cols=1 when="runtype==IRC"
+int name=ES.Runtype.IRC.MaximumStepsValue label="Max points per direction:" default=10 hard="[1..)" soft="[1..200]" export=1
+int name=ES.Runtype.IRC.StepSizeValue label="Step size (0.01 bohr*sqrt(amu)):" default=10 hard="[1..)" soft="[1..50]" export=1
+combo name=ES.Runtype.IRC.Direction label="Direction:" choices="Both|Forward|Reverse" default=Both export=1
+
+box label="Magnetic/NMR" cols=1 when="runtype==Magnetic"
+combo name=ES.Runtype.Magnetic.Method label="Method:" choices="Gauge-Independent Atomic Orbitals|Continuous Set of Gauge Transformations|Atoms-In-Molecules Gauge|Single Origin" default="Gauge-Independent Atomic Orbitals"

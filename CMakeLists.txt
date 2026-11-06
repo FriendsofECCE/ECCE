@@ -2898,15 +2898,24 @@ if(PYTHON3_EXECUTABLE)
   # runs started together would take the same one.
   set_tests_properties(dialogs_native PROPERTIES SKIP_RETURN_CODE 77
                        TIMEOUT 900 RUN_SERIAL TRUE)
-  foreach(_d orcatheory orcaruntype)
+  # The G16 Runtype dialog has 349 contexts; --dedupe replays the restore
+  # cases once per group of contexts with identical Python inventories.
+  foreach(_d orcatheory orcaruntype ged16theory ged16runtype)
+    set(_extra "")
+    set(_timeout 1800)
+    if(_d MATCHES "^ged16")
+      set(_extra --dedupe --jobs 8)
+      set(_timeout 7200)
+    endif()
     add_test(NAME dialogs_native_${_d}
              COMMAND ${PYTHON3_EXECUTABLE}
                      ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/native_test.py
                      --dialog $<TARGET_FILE:ecce-dialog>
                      --py ${CMAKE_CURRENT_SOURCE_DIR}/scripts/codereg/${_d}.py
-                     --dlg ${CMAKE_CURRENT_SOURCE_DIR}/scripts/codereg/${_d}.dlg)
+                     --dlg ${CMAKE_CURRENT_SOURCE_DIR}/scripts/codereg/${_d}.dlg
+                     ${_extra})
     set_tests_properties(dialogs_native_${_d} PROPERTIES SKIP_RETURN_CODE 77
-                         TIMEOUT 1800 RUN_SERIAL TRUE)
+                         TIMEOUT ${_timeout} RUN_SERIAL TRUE)
   endforeach()
 
   # tests/verify -- the input-deck checker (#148).  Runs the real
