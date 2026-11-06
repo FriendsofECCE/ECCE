@@ -41,6 +41,7 @@ MOPAC → spec) is the bridge it would reuse.
 - [The text under the diagram has three tiers (#301)](the-text-under-the-diagram-has-three-tiers.md)
 - [A homonuclear diatomic is classified by phase, not energy](a-homonuclear-diatomic-is-classified-by-phase.md)
 - [A spherical-only code on a Cartesian-flagged basis: columns unpermuted, no labels](a-spherical-only-code-on-a-cartesian-flagged-basis.md)
+- [Fragment-orbital analysis from real fragment calculations (#201)](fragment-orbital-analysis-from-fragment-calculations.md)
 - [Fragment orbitals from extended Hueckel, and the MO composition in them (#301)](fragment-orbitals-from-eht.md)
 - [EHTParameters: Alvarez 1993 via YAeHMOP (BSD), what was checked and what disagrees](eht-parameters-and-licence.md)
 - [The fragment-orbital diagram in the MO Diagram panel (#301, route B stage 2)](fragment-orbital-diagram.md)
