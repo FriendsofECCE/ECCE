@@ -1341,6 +1341,11 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_displacement.py
         DESTINATION bin RENAME ecce-displacement
         COMPONENT client)
 
+# ecce-ensemble (#836): ensemble picks, lowest-G minimum, benchmark tables.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_ensemble.py
+        DESTINATION bin RENAME ecce-ensemble
+        COMPONENT client)
+
 # ecce-bandshift (#707): matched bands and their shifts between two calculations.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_bandshift.py
         DESTINATION bin RENAME ecce-bandshift
@@ -2700,6 +2705,13 @@ set_tests_properties(contacts PROPERTIES TIMEOUT 600)
 add_test(NAME displacement
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/displacement/run_tests.py)
+
+# tests/ensemble -- scripts/ecce_ensemble.py (#836); the ecce-thermo parts need
+# a DESTDIR install (ECCE_TEST_HOME, ECCE_TEST_WRAPPERS) and SKIP without.
+add_test(NAME ensemble
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/ensemble/run_tests.py)
+set_tests_properties(ensemble PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 
 # tests/bandshift -- scripts/ecce_bandshift.py on stored frequency calculations (#707).
 add_test(NAME bandshift
@@ -4878,6 +4890,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-contacts=bin/ecce-contacts
   ecce-displacement=bin/ecce-displacement
   ecce-bandshift=bin/ecce-bandshift
+  ecce-ensemble=bin/ecce-ensemble
   ecce-spectrum=bin/ecce-spectrum
   ecce-displace=bin/ecce-displace
   ecce-si-export=bin/ecce-si-export

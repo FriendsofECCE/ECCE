@@ -271,6 +271,33 @@ ECCE session.
 
 Exit code 0 on success; anything else is an error message on stderr.
 
+### ecce-ensemble
+
+    ecce-ensemble pick <crest calc> [n=N] [--rmsd A] [--skip-failed] [--create TEMPLATE FOLDER] [--json]
+    ecce-ensemble minimum <calculation|folder|pattern>... [--treatment SPEC] [--json]
+    ecce-ensemble benchmark <spec file> [--treatment SPEC] [--T K] [--save NAME] [--dir DIR] [--json]
+
+Reads stored calculations; talks to no ECCE session. `pick` lists the N
+(default 5) lowest distinct members of a CREST ensemble: members with the same
+protonation and a heavy-atom RMSD below `--rmsd` (default 0.50 A, after a
+fit, atoms in stored order) are merged. Each pick is checked against the
+input structure: protonation unchanged, every ion that is bound in the input
+still bound, metal-N/O/S contacts listed with distances (cutoffs in `--help`).
+`--create` makes one calculation per pick through `ecce-series` from the
+setup of a template calculation, without launching. `minimum` gives the
+lowest-G calculation without imaginary modes; calculations with imaginary
+modes, without frequencies or without G are listed and excluded, and
+calculations of different methods are refused. `benchmark` reads reactions
+over species (several calculations per species: the lowest-G minimum is used),
+and gives dG with the 1 M standard state (as `ecce-thermo`), log K,
+experimental log K with its source and calc - exp; `--save NAME` stores
+`NAME.benchmark.json` next to the spec file. The spec file format is in
+`ecce-ensemble --help`. Exit 0 all done, 1 something not done.
+
+    ecce-ensemble pick proj/crest-run n=5 --json
+    ecce-ensemble minimum 'proj/conformers/*' --treatment qrrho-grimme:100
+    ecce-ensemble benchmark proj/logk.txt --save logk-set1
+
 ### Other command-line tools
 
 On Linux these commands are on PATH. In the macOS app they are in
