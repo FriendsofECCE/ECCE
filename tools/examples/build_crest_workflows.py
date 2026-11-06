@@ -51,7 +51,17 @@ WORKFLOWS = {
         ("H", -1.69403, 2.05503, 0.02096), ("H", -1.68044, -2.05946, 0.03005),
         ("H", 0.79918, -2.14657, -0.08446)], 0),
 }
-TITLES = {"solv": "urea_water", "prot": "aminopyridine"}
+# Na+(H2O)6, all six waters on the ion (the start of the former example)
+NA6 = [("Na", 0.0, 0.0, 0.0),
+       ("O", 2.4, 0.0, 0.0), ("H", 1.812271, 0.643683, -0.402302), ("H", 1.812271, -0.643683, 0.402302),
+       ("O", -2.4, 0.0, 0.0), ("H", -1.812271, -0.643683, 0.402302), ("H", -1.812271, 0.643683, -0.402302),
+       ("O", 0.0, 2.4, 0.0), ("H", -0.710732, 1.812271, 0.266524), ("H", 0.710732, 1.812271, -0.266524),
+       ("O", 0.0, -2.4, 0.0), ("H", 0.710732, -1.812271, -0.266524), ("H", -0.710732, -1.812271, 0.266524),
+       ("O", 0.0, 0.0, 2.4), ("H", 0.65089, -0.390534, 1.812271), ("H", -0.65089, 0.390534, 1.812271),
+       ("O", 0.0, 0.0, -2.4), ("H", -0.65089, 0.390534, -1.812271), ("H", 0.65089, -0.390534, -1.812271)]
+WORKFLOWS["na"] = ("xtb-crest", NA6, 1)
+RECIPE_FLAGS = {"na": " solvent=water"}
+TITLES = {"na": "na_water6", "solv": "urea_water", "prot": "aminopyridine"}
 
 # Deck and output names by code, as in the .edml files.
 DECKS = {"xtb": ("xtb.xtbin", "xtb.xtbout"), "crest": ("crest.crestin", "crest.crestout"),
@@ -174,13 +184,14 @@ def make_seed(work, wf):
 def cmd_create(args):
     with Ecce(args.work) as e:
         commands = []
-        for wf in args.only or WORKFLOWS:
+        for wf in args.only or ("solv", "prot"):
             make_seed(args.work, wf)
             proj = "file://" + project_dir(args.work, wf)
             url = wf_url(args.work, wf)
             commands += ["new %s workflow" % proj,
                          "workflowcopy %s %s/seed seed" % (url, proj),
-                         "workflowrecipe %s %s orca %s/seed" % (url, WORKFLOWS[wf][0], url),
+                         "workflowrecipe %s %s orca %s/seed%s" % (url, WORKFLOWS[wf][0], url,
+                                                                     RECIPE_FLAGS.get(wf, "")),
                          "workflowinfo %s" % url]
         e.organizer(commands, "create")
 
@@ -189,6 +200,7 @@ def cmd_organizer(args):
     with Ecce(args.work) as e:
         e.organizer([c.replace("@solv", wf_url(args.work, "solv"))
                       .replace("@prot", wf_url(args.work, "prot"))
+                     .replace("@na", wf_url(args.work, "na"))
                      for c in args.commands], "manual", settle=args.settle)
 
 
@@ -380,6 +392,81 @@ def cmd_jobs_b(args):
     shutil.copytree(os.path.join(UPSTREAM_XTB, "share", "xtb"), os.path.join(dist, "share", "xtb"))
 
 
+CHARGE_CHECK = """#!/bin/sh
+#SBATCH -J 841-na-check
+#SBATCH -N 1
+#SBATCH -n 1
+#SBATCH -c 1
+#SBATCH -t 0:20:00
+#SBATCH -o %(dir)s/slurm.out
+# Does CREST's conformer search treat Na+(H2O)6 as a cation in ALPB water?
+# Its best energy should equal an xtb single point at +1 with ALPB, not one
+# at 0 or without solvent (CREST 3.0.2's QCG drops both).
+cd %(dir)s || exit 1
+cp %(crest)s/crest_best.xyz best.xyz || exit 1
+for c in "1 --alpb water" "1" "0 --alpb water" "0"; do
+  /usr/bin/xtb best.xyz --gfn 2 --sp --chrg $c > sp.out 2>&1
+  printf '%%s\t%%s\n' "chrg $c" "$(awk '/TOTAL ENERGY/ {print $4}' sp.out)"
+done > energies.txt
+echo "crest_best\t$(sed -n 2p best.xyz)" >> energies.txt
+cat energies.txt
+"""
+
+
+def cmd_jobs_c(args):
+    """Round 3: urea cluster xTB then ORCA; ring-C and amine-N protomers xTB
+    then ORCA; Na+(H2O)6 xTB, CREST conformers and the charge check."""
+    jobs = os.path.abspath(args.jobs)
+    scratch = os.path.join(args.work, "gensub")
+    os.makedirs(scratch, exist_ok=True)
+    j = lambda n: os.path.join(jobs, n)
+    write_job(jobs, "solv-xtb", "xtb", inputs_deck(args.work, "solv/xtb"), scratch, hours=2)
+    chained(jobs, "solv-dft", "orca", "solv/dft", args.work, scratch,
+            j("solv-xtb/xtbopt.log"), "last", 12)
+    for c in ("c2", "c4"):
+        write_job(jobs, "prot-xtb-" + c, "xtb", inputs_deck(args.work, "prot/xtb-" + c),
+                  scratch, hours=1)
+        chained(jobs, "prot-dft-" + c, "orca", "prot/dft-" + c, args.work, scratch,
+                j("prot-xtb-%s/xtbopt.log" % c), "last", 12)
+    write_job(jobs, "na-xtb", "xtb", inputs_deck(args.work, "na/xtb"), scratch, hours=1)
+    chained(jobs, "na-crest", "crest", "na/crest", args.work, scratch,
+            j("na-xtb/xtbopt.log"), "last", 10)
+    os.makedirs(j("na-check"), exist_ok=True)
+    with open(j("na-check/job.sh"), "w") as f:
+        f.write(CHARGE_CHECK % {"dir": j("na-check"), "crest": j("na-crest")})
+    os.chmod(j("na-check/job.sh"), 0o755)
+
+
+SETUP_KEYS = ("runtype", "theory", "useExpCoeff", "basisSetDocument",
+              "setupParametersDocument")
+
+
+def copy_setup(src, dst):
+    """The level of a recipe step on a step made by hand (code button), as the
+    user sets it in the Calculation Editor: setup, basis set, theory, run type."""
+    def meta(path):
+        return [l for l in open(path, errors="surrogateescape").read().split("\n") if l]
+    for f in ("SetupParams", "BasisSet.ecce_basisset"):
+        if os.path.exists(os.path.join(src, "Parameters", f)):
+            shutil.copy(os.path.join(src, "Parameters", f), os.path.join(dst, "Parameters", f))
+    pm = os.path.join(dst, "Parameters", ".ecce-meta")
+    lines = [l for l in meta(pm) if not l.startswith("BasisSet.ecce_basisset\t")]
+    lines += [l for l in meta(os.path.join(src, "Parameters", ".ecce-meta"))
+              if l.startswith("BasisSet.ecce_basisset\t")]
+    open(pm, "w", errors="surrogateescape").write("\n".join(lines) + "\n")
+    keys = ["ecce:" + k + "\t" for k in SETUP_KEYS] + [":hasConfigurations\t"]
+    picked = [l for l in meta(os.path.join(src, ".ecce-meta")) if any(k in l for k in keys)]
+    sm = os.path.join(dst, ".ecce-meta")
+    lines = [l for l in meta(sm) if not any(k in l for k in keys)] + picked
+    open(sm, "w", errors="surrogateescape").write("\n".join(lines) + "\n")
+
+
+def cmd_copysetup(args):
+    for pair in args.pairs:
+        src, dst = pair.split("=")
+        copy_setup(step_dir(args.work, src), step_dir(args.work, dst))
+
+
 def cmd_import(args):
     urls = []
     for spec in args.steps:
@@ -402,10 +489,10 @@ def cmd_import(args):
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("create", "organizer", "save", "import", "jobs-a", "jobs-b"):
+    for name in ("create", "organizer", "save", "import", "jobs-a", "jobs-b", "jobs-c", "copysetup"):
         p = sub.add_parser(name)
         p.add_argument("--work", required=True)
-        if name in ("jobs-a", "jobs-b"):
+        if name in ("jobs-a", "jobs-b", "jobs-c"):
             p.add_argument("--jobs", required=True)
         if name == "jobs-b":
             p.add_argument("--prot-crest", required=True,
@@ -415,6 +502,8 @@ def main():
         if name == "organizer":
             p.add_argument("--settle", type=int, default=40)
             p.add_argument("commands", nargs="+")
+        if name == "copysetup":
+            p.add_argument("pairs", nargs="+", help="WF/SRC=WF/DST")
         if name == "save":
             p.add_argument("steps", nargs="+")
         if name == "import":
@@ -426,7 +515,7 @@ def main():
     args.work = os.path.abspath(args.work)
     args.job_names = dict(j.split("=", 1) for j in getattr(args, "job", []))
     {"create": cmd_create, "organizer": cmd_organizer, "save": cmd_save,
-     "import": cmd_import, "jobs-a": cmd_jobs_a, "jobs-b": cmd_jobs_b}[args.cmd](args)
+     "import": cmd_import, "jobs-a": cmd_jobs_a, "jobs-b": cmd_jobs_b, "copysetup": cmd_copysetup, "jobs-c": cmd_jobs_c}[args.cmd](args)
 
 
 if __name__ == "__main__":
