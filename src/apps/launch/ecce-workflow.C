@@ -1,11 +1,15 @@
 /*
  * ecce-workflow make <calculation> [name]   (#807)
  * ecce-workflow move <calculation> <workflow>
+ * ecce-workflow create <workflow-or-new-name> <calculation>...
+ *               [--link A:B[=role]]... [--auto-links]   (#874)
  *
  * Make Workflow... and Move into Workflow > of the Organizer: the calculation
- * is moved into a new (or an existing) workflow of its folder as a step. The
- * Organizer does the work, so ECCE must be running. Paths are inside the
- * local data folder, or URLs.
+ * is moved into a new (or an existing) workflow of its folder as a step;
+ * create does the same for several calculations of one folder, with the
+ * links given (A and B are calculation names) or proposed. The Organizer
+ * does the work, so ECCE must be running. Paths are inside the local data
+ * folder, or URLs.
  *
  * Prints "ok: <workflow URL>" or "error: reason". Exit 0: done; 1: refused
  * or no answer; 2: ECCE is not running; 64: usage.
@@ -101,18 +105,72 @@ int main(int argc, char **argv)
     if (h) setenv("ECCE_REALUSERHOME", h, 0);
   }
   const string verb = argc > 1 ? argv[1] : "";
-  const bool make = verb == "make";
-  if (!((make && (argc == 3 || argc == 4)) || (verb == "move" && argc == 4))) {
+  const bool make = verb == "make", create = verb == "create";
+  std::vector<string> calcArgs, links;
+  bool autoLinks = false, badArg = false;
+  for (int i = 3; create && i < argc; i++) {
+    const string a = argv[i];
+    if (a == "--auto-links") autoLinks = true;
+    else if (a == "--link" && i + 1 < argc) links.push_back(argv[++i]);
+    else if (a.compare(0, 7, "--link=") == 0) links.push_back(a.substr(7));
+    else if (a.compare(0, 2, "--") == 0) badArg = true;
+    else calcArgs.push_back(a);
+  }
+  if (!((make && (argc == 3 || argc == 4)) || (verb == "move" && argc == 4) ||
+        (create && !badArg && !calcArgs.empty()))) {
     std::cerr << "usage: ecce-workflow make <calculation> [name]\n"
-                 "       ecce-workflow move <calculation> <workflow>"
+                 "       ecce-workflow move <calculation> <workflow>\n"
+                 "       ecce-workflow create <workflow-or-new-name> "
+                 "<calculation>... [--link A:B[=role]]... [--auto-links]"
               << std::endl;
     return 64;
   }
   if (sessionKey().empty()) return notRunning();
 
   string calc, second, why;
-  if (!toUrl(argv[2], calc, why) ||
-      (!make && !toUrl(argv[3], second, why))) {
+  std::vector<string> calcUrls;
+  if (create) {
+    // An existing workflow is a path or URL; anything else names a new one.
+    const string target = argv[2];
+    struct stat st;
+    if (target.find("://") != string::npos || stat(target.c_str(), &st) == 0) {
+      if (!toUrl(target, second, why)) {
+        std::cout << "error: " << why << std::endl;
+        return 1;
+      }
+    } else if (target.find('/') != string::npos) {
+      std::cout << "error: no such workflow: " << target << std::endl;
+      return 1;
+    } else {
+      second = target;
+    }
+    for (const string& c : calcArgs) {
+      string url;
+      if (!toUrl(c, url, why)) {
+        std::cout << "error: " << why << std::endl;
+        return 1;
+      }
+      calcUrls.push_back(url);
+    }
+    // Links name calculations; a path given for one is reduced to its name.
+    for (string& l : links) {
+      const size_t colon = l.find(':'), eq = l.find('=', colon);
+      if (colon == string::npos) {
+        std::cout << "error: link " << l << ": give A:B" << std::endl;
+        return 1;
+      }
+      auto base = [](string s) {
+        while (s.size() > 1 && s.back() == '/') s.pop_back();
+        const size_t slash = s.rfind('/');
+        return slash == string::npos ? s : s.substr(slash + 1);
+      };
+      const string a = base(l.substr(0, colon));
+      const string b = base(l.substr(colon + 1, eq == string::npos
+                                                    ? string::npos : eq - colon - 1));
+      l = a + ":" + b + (eq == string::npos ? "" : l.substr(eq));
+    }
+  } else if (!toUrl(argv[2], calc, why) ||
+             (!make && !toUrl(argv[3], second, why))) {
     std::cout << "error: " << why << std::endl;
     return 1;
   }
@@ -137,6 +195,11 @@ int main(int argc, char **argv)
   msg->addProperty("verb", verb);
   msg->addProperty("calc", calc);
   msg->addProperty("second", second);
+  for (size_t i = 0; i < calcUrls.size(); i++)
+    msg->addProperty("calc" + std::to_string(i), calcUrls[i]);
+  for (size_t i = 0; i < links.size(); i++)
+    msg->addProperty("link" + std::to_string(i), links[i]);
+  if (autoLinks) msg->addProperty("autolinks", "1");
   bool sent = pub.publish("ecce_workflow_request", *msg);
   delete msg;
   if (!sent) return notRunning();

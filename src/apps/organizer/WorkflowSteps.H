@@ -19,6 +19,7 @@
 #include "KeyData.H"
 #include "Recipe.H"
 
+class Fragment;
 class Resource;
 class ResourceType;
 class Session;
@@ -241,6 +242,24 @@ namespace WorkflowSteps {
   /// "a+b+c"), joined by "|",
   /// then " links:" and "src>dst:name" for each link.
   std::string info(Session *wf);
+
+  /// A link proposed between calculations moved into a workflow (#874).
+  struct ProposedLink {
+    Resource *source;
+    Resource *target;
+    std::string name;   ///< the link's name (kGeometryLink)
+    std::string why;    ///< "orbitals" or "Hessian" (recorded), "geometry" (matched)
+  };
+
+  /// At most one link into each target, from a source: the one the target
+  /// records as where its orbitals or Hessian came from, else one whose
+  /// final geometry is the target's starting geometry.  No cycles.
+  std::vector<ProposedLink> proposeLinks(const std::vector<Resource*>& sources,
+                                         const std::vector<Resource*>& targets);
+
+  /// Same elements in the same order and every interatomic distance within
+  /// tol (Angstrom): a structure is the same in any orientation.
+  bool sameStructure(const Fragment *a, const Fragment *b, double tol = 0.01);
 }
 
 #endif

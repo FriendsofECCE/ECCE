@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cmath>
 #include <cctype>
 #include <cstring>
 #include <map>
@@ -6,6 +7,7 @@
 #include <sstream>
 
 #include "tdat/Fragment.H"
+#include "tdat/TAtm.H"
 #include "tdat/SpinMult.H"
 #include "util/InvalidException.H"
 #include "util/ResourceUtils.H"
@@ -1335,4 +1337,104 @@ bool WorkflowSteps::toRecipe(Session *wf, const string& id, const string& title,
 string WorkflowSteps::userRecipeDir()
 {
   return Ecce::userRegistrationDir() + "Recipes";
+}
+
+
+bool WorkflowSteps::sameStructure(const Fragment *a, const Fragment *b,
+                                  double tol)
+{
+  if (!a || !b) return false;
+  auto atoms = [](const Fragment *f, vector<string>& sym, vector<const double*>& xyz) {
+    for (size_t i = 0; i < f->numAtoms(); i++) {
+      TAtm *t = f->atomRef((int)i);
+      if (t->atomicSymbol() == "X") continue;
+      sym.push_back(t->atomicSymbol());
+      xyz.push_back(t->coordinates());
+    }
+  };
+  vector<string> sa, sb;
+  vector<const double*> xa, xb;
+  atoms(a, sa, xa);
+  atoms(b, sb, xb);
+  if (sa.empty() || sa != sb) return false;
+  auto dist = [](const double *p, const double *q) {
+    double d = 0;
+    for (int k = 0; k < 3; k++) d += (p[k] - q[k]) * (p[k] - q[k]);
+    return std::sqrt(d);
+  };
+  for (size_t i = 0; i < xa.size(); i++)
+    for (size_t j = i + 1; j < xa.size(); j++)
+      if (std::fabs(dist(xa[i], xa[j]) - dist(xb[i], xb[j])) > tol) return false;
+  return true;
+}
+
+
+// A calculation's starting geometry is the first frame of its trace: after a
+// run (and for an imported output) the stored structure can be the final one.
+static Fragment *startGeometry(PropertyTask *task)
+{
+  Fragment *f = task ? task->fragment() : 0;
+  if (f) task->getFragmentStep(f, 0);
+  return f;
+}
+
+
+vector<WorkflowSteps::ProposedLink> WorkflowSteps::proposeLinks(
+    const vector<Resource*>& sources, const vector<Resource*>& targets)
+{
+  vector<ProposedLink> out;
+  std::map<Resource*, Fragment*> finals, starts;
+  auto finalOf = [&](Resource *r) -> Fragment* {
+    if (!finals.count(r)) {
+      bool fromResult = false;
+      Fragment *f = finalGeometry(dynamic_cast<PropertyTask*>(r), &fromResult);
+      if (!fromResult) { delete f; f = 0; }
+      finals[r] = f;
+    }
+    return finals[r];
+  };
+  auto startOf = [&](Resource *r) -> Fragment* {
+    if (!starts.count(r)) starts[r] = startGeometry(dynamic_cast<PropertyTask*>(r));
+    return starts[r];
+  };
+  std::map<Resource*, Resource*> parent;
+  auto makesCycle = [&](Resource *from, Resource *to) {
+    for (Resource *r = from; r; r = parent.count(r) ? parent[r] : 0)
+      if (r == to) return true;
+    return false;
+  };
+  for (Resource *t : targets) {
+    vector<ProposedLink> cands;
+    const string orb = t->getProp(TaskJob::orbitalGuessSourceProp());
+    const string hess = t->getProp(TaskJob::hessianFromSourceProp());
+    for (Resource *s : sources) {
+      if (s == t) continue;
+      const string n = s->getName(), leaf = s->getURL().getFilePathTail();
+      if (!orb.empty() && (orb == n || orb == leaf))
+        cands.push_back({s, t, kGeometryLink, "orbitals"});
+      else if (!hess.empty() && (hess == n || hess == leaf))
+        cands.push_back({s, t, kGeometryLink, "Hessian"});
+    }
+    if (cands.empty()) {
+      // A source that changed the structure (an optimisation, a scan) is the
+      // likelier origin than a single point that ended where it started.
+      vector<ProposedLink> moved, kept;
+      for (Resource *s : sources) {
+        if (s == t || !sameStructure(finalOf(s), startOf(t))) continue;
+        (sameStructure(startOf(s), finalOf(s)) ? kept : moved)
+            .push_back({s, t, kGeometryLink, "geometry"});
+      }
+      cands = moved;
+      cands.insert(cands.end(), kept.begin(), kept.end());
+    }
+    for (const ProposedLink& c : cands)
+      if (!makesCycle(c.source, t)) {
+        out.push_back(c);
+        parent[t] = c.source;
+        break;
+      }
+  }
+  for (auto& f : finals) delete f.second;
+  for (auto& f : starts) delete f.second;
+  return out;
 }

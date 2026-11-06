@@ -401,12 +401,26 @@ void CalcMgrApp::moveRequestMCB(JMSMessage& msg)
 }
 
 
-// ecce-workflow (#807): one answer line, "ok <workflow URL>" or "error: ...".
+// ecce-workflow (#807, #874): one answer line, "ok <workflow URL>" or "error: ...".
 void CalcMgrApp::workflowRequestMCB(JMSMessage& msg)
 {
-  const string answer = p_calcMgr->workflowForCommand(
-      msg.getProperty("verb"), EcceURL(msg.getProperty("calc")),
-      msg.getProperty("second"));
+  string answer;
+  if (msg.getProperty("verb") == "create") {
+    // create (#874): calcN calculation URLs, linkN "A:B[=role]".
+    vector<EcceURL> calcs;
+    vector<string> links;
+    for (int i = 0; !msg.getProperty("calc" + std::to_string(i)).empty(); i++)
+      calcs.push_back(EcceURL(msg.getProperty("calc" + std::to_string(i))));
+    for (int i = 0; !msg.getProperty("link" + std::to_string(i)).empty(); i++)
+      links.push_back(msg.getProperty("link" + std::to_string(i)));
+    answer = p_calcMgr->workflowCreateForCommand(
+        msg.getProperty("second"), calcs, links,
+        msg.getProperty("autolinks") == "1");
+  } else {
+    answer = p_calcMgr->workflowForCommand(
+        msg.getProperty("verb"), EcceURL(msg.getProperty("calc")),
+        msg.getProperty("second"));
+  }
   JMSMessage* r = newMessage();
   r->addProperty("reply_id", msg.getProperty("reply_id"));
   r->addProperty("answer", answer);

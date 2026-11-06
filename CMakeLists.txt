@@ -4279,6 +4279,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(ecce_rerun PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
+  # Several stored calculations into one workflow, with proposed links (#874).
+  add_test(NAME ecce_workflow_create
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/ecce_workflow_create_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(ecce_workflow_create PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
   # ecce-reconnect asks the running Organizer to reconnect calculations;
   # skipped (77) without Xvfb.
   add_test(NAME ecce_reconnect

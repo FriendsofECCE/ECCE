@@ -155,6 +155,34 @@ private:
 
 
 
+/// Make Workflow from Selected... / Move Selected into Workflow (#874): the
+/// new workflow's name (none when moving into an existing one) and which of
+/// the proposed links to make.
+class WorkflowImportDialog : public wxDialog
+{
+public:
+  WorkflowImportDialog(wxWindow *parent, size_t calcs,
+                       const std::vector<WorkflowSteps::ProposedLink>& links,
+                       ResourceType *workflowType, const std::string& newName,
+                       const std::string& into);
+
+  std::string name() const;
+  /// For each proposed link: still ticked.
+  std::vector<bool> chosen() const;
+  /// "A → B (geometry)", with what was recorded when it was.
+  static std::string label(const WorkflowSteps::ProposedLink& link);
+
+private:
+  void validate();
+
+  ResourceType *p_type;
+  wxTextCtrl *p_name;
+  wxCheckListBox *p_links;
+  wxStaticText *p_problem;
+  wxButton *p_ok;
+};
+
+
 /// Asks for a join's name and the role of each source (reactant, product,
 /// TS guess), and the scan point of each source that is a scan.
 class WorkflowJoinDialog : public wxDialog

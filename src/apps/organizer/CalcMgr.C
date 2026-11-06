@@ -602,6 +602,9 @@ static string testContextMenuLabels(wxMenu& menu, const string& prefix = "",
   return labels;
 }
 
+static string newWorkflowName(const vector<Resource*>& calcs,
+    const vector<WorkflowSteps::ProposedLink>& links);
+
 void CalcMgr::runTestCommand(const string& line)
 {
   string outcome;
@@ -987,6 +990,94 @@ void CalcMgr::runTestCommand(const string& line)
       else {
         wp->setVertical(calcName == "vertical");
         outcome = "ok " + wp->layoutReport();
+      }
+    } else if (command == "workflowcreate" || command == "workflowpropose" ||
+               command == "workflowcreatedialog" ||
+               command == "workflowcreatemenu") {
+      // Several calculations of one folder into a workflow (#874):
+      //   workflowpropose CALC...   the proposed links, "ok A>B:name:why,.."
+      //   workflowcreate TARGET CALC... [link=A:B[=role]] [autolinks]
+      //     as ecce-workflow create; TARGET a workflow URL or a new name
+      //   workflowcreatedialog PNG|- new|WF CALC...   the dialog shown (and
+      //     saved), not answered: "ok links=LABEL;LABEL"
+      //   workflowcreatemenu new|WF CALC...   the rows selected in the table,
+      //     the menu's action run and its dialog answered Move: "ok WF"
+      std::istringstream args(calcName);
+      string png, target, w;
+      vector<EcceURL> urls;
+      vector<string> links;
+      bool autoLinks = false;
+      if (command == "workflowcreatedialog") args >> png;
+      if (command != "workflowpropose") args >> target;
+      while (args >> w) {
+        if (w.compare(0, 5, "link=") == 0) links.push_back(w.substr(5));
+        else if (w == "autolinks") autoLinks = true;
+        else urls.push_back(EcceURL(w));
+      }
+      Session *into = target.find("://") == string::npos ? 0 :
+          dynamic_cast<Session*>(EDSIFactory::getResource(EcceURL(target)));
+      vector<Resource*> calcs;
+      if (command == "workflowcreate") {
+        outcome = workflowCreateForCommand(target, urls, links, autoLinks);
+      } else if (command == "workflowcreatemenu") {
+        WxResourceTreeItemData *parent = urls.empty() ? 0 :
+            findNode(urls[0].getParent(), true, true);
+        if (parent) {
+          p_treeCtrl->SelectItem(parent->GetId());
+          for (int i = 0; i < 40; i++) { wxYield(); wxMilliSleep(50); }
+        }
+        if (p_contextPanel) p_contextPanel->selectResources(urls);
+        p_focusOnTree = false;
+        wxTimer answer;
+        answer.Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+          for (wxWindowList::compatibility_iterator n =
+                 wxTopLevelWindows.GetFirst(); n; n = n->GetNext()) {
+            wxDialog *d = dynamic_cast<wxDialog*>(n->GetData());
+            if (d && d->IsModal()) d->EndModal(wxID_OK);
+          }
+        });
+        answer.Start(1000);
+        makeWorkflowFromRows(into);
+        answer.Stop();
+        // A new workflow is named after one of the calculations.
+        EcceURL wfUrl = into ? into->getURL() : EcceURL();
+        Session *wf = into;
+        for (size_t i = 0; !wf && i < urls.size(); i++) {
+          wfUrl = urls[i].getParent().getChild(urls[i].getFilePathTail() +
+                                              "_workflow");
+          wf = dynamic_cast<Session*>(EDSIFactory::getResource(wfUrl));
+        }
+        outcome = wf ? "ok " + wfUrl.toString() + " members=" +
+                       std::to_string(wf->numMembers())
+                     : string("error: no workflow made");
+      } else {
+        string why = severalWorkflowRefusal(urls, into, &calcs);
+        if (!why.empty()) outcome = "error: " + why;
+        else if (command == "workflowpropose") {
+          outcome = "ok ";
+          for (const WorkflowSteps::ProposedLink& l :
+               proposeWorkflowLinks(calcs, into))
+            outcome += l.source->getURL().getFilePathTail() + ">" +
+                       l.target->getURL().getFilePathTail() + ":" + l.name +
+                       ":" + l.why + ",";
+        } else {
+          ResourceType *wt = 0;
+          for (ResourceType *rt :
+               ResourceDescriptor::getResourceDescriptor().getResourceTypes())
+            if (rt->getName() == "workflow") wt = rt;
+          vector<WorkflowSteps::ProposedLink> proposed =
+              proposeWorkflowLinks(calcs, into);
+          WorkflowImportDialog dlg(this, calcs.size(), proposed, wt,
+                                   into ? "" : newWorkflowName(calcs, proposed),
+                                   into ? into->getName() : "");
+          dlg.Show();
+          for (int i = 0; i < 5; i++) wxYield();
+          outcome = png == "-" || ecceWindowShot(&dlg, png) ? "ok links="
+                                                            : "not saved links=";
+          for (size_t i = 0; i < proposed.size(); i++)
+            outcome += (i ? ";" : "") + WorkflowImportDialog::label(proposed[i]);
+          dlg.Hide();
+        }
       }
     } else if (command.compare(0, 8, "workflow") == 0) {
       // Workflows (WorkflowSteps.H); WF is the workflow's URL.
@@ -7295,6 +7386,222 @@ void CalcMgr::makeWorkflowFromSelection(Session *into)
 }
 
 
+//  Why these calculations cannot be moved together into `into` (or a new
+//  workflow of their folder); "" if they can.  One folder only: a workflow
+//  lives in a folder and its steps are its children.
+string CalcMgr::severalWorkflowRefusal(const vector<EcceURL>& calcs,
+                                       Session *into, vector<Resource*> *found)
+{
+  if (calcs.empty()) return "No calculations are selected.";
+  std::set<string> leaves;
+  for (const EcceURL& u : calcs) {
+    const string leaf = u.getFilePathTail();
+    Resource *r = EDSIFactory::getResource(u);
+    if (!r) return "There is no calculation \"" + leaf + "\".";
+    if (u.getParent() != calcs[0].getParent())
+      return "The calculations must all be in one folder.";
+    if (!leaves.insert(leaf).second)
+      return "\"" + leaf + "\" is given twice.";
+    const string why = workflowMoveRefusal(r);
+    if (!why.empty()) return leaf + ": " + why;
+    if (found) found->push_back(r);
+  }
+  if (into) {
+    if (into->getApplicationType() != ResourceDescriptor::AT_WORKFLOW ||
+        into->getURL().getParent() != calcs[0].getParent())
+      return "Only a workflow in the calculations' folder can take them.";
+    vector<Resource*> *kids = into->getChildren(true);
+    for (size_t i = 0; kids && i < kids->size(); i++)
+      if (leaves.count((*kids)[i]->getURL().getFilePathTail()))
+        return "The workflow already has a calculation named \"" +
+               (*kids)[i]->getURL().getFilePathTail() + "\".";
+  }
+  return "";
+}
+
+
+//  Links into the calculations, from each other and, when moving into an
+//  existing workflow, from its steps.
+vector<WorkflowSteps::ProposedLink> CalcMgr::proposeWorkflowLinks(
+    const vector<Resource*>& calcs, Session *into)
+{
+  vector<Resource*> sources = calcs;
+  if (into)
+    for (Resource *m : into->getMembers()) sources.push_back(m);
+  return WorkflowSteps::proposeLinks(sources, calcs);
+}
+
+
+//  Moves the calculations (checked by severalWorkflowRefusal) and makes the
+//  links, given by the URLs from before the move.
+string CalcMgr::moveSeveralIntoWorkflow(const vector<EcceURL>& calcs,
+                                        Session *into, const string& name,
+                                        const vector<WorkflowLinkSpec>& links,
+                                        EcceURL *wfUrl)
+{
+  vector<Resource*> found;
+  string why = severalWorkflowRefusal(calcs, into, &found);
+  if (!why.empty()) return why;
+  EcceURL url;
+  for (size_t i = 0; i < found.size(); i++) {
+    why = moveIntoWorkflow(found[i], into, name, &url);
+    if (!why.empty())
+      return i == 0 ? why : found[i]->getName() + ": " + why + " (" +
+                            std::to_string(i) + " of " +
+                            std::to_string(found.size()) + " were moved)";
+    if (!into) into = dynamic_cast<Session*>(EDSIFactory::getResource(url));
+    if (!into) return "The new workflow cannot be opened.";
+  }
+  auto member = [&](const EcceURL& old) -> Resource* {
+    EcceURL now = old;
+    for (const EcceURL& c : calcs)
+      if (c == old) now = url.getChild(old.getFilePathTail());
+    for (Resource *m : into->getMembers())
+      if (m->getURL() == now) return m;
+    return 0;
+  };
+  string skipped;
+  for (const WorkflowLinkSpec& l : links) {
+    Resource *from = member(l.from), *to = member(l.to);
+    try {
+      if (!from || !to) throw InvalidException("not a step", WHERE);
+      into->addLink(from, to, Session::INPUT_PROVIDER, l.name);
+    } catch (InvalidException&) {
+      skipped += " " + l.from.getFilePathTail() + ">" + l.to.getFilePathTail();
+    }
+  }
+  try {
+    into->saveLinkbase();
+  } catch (InvalidException &ex) {
+    return string("The calculations were moved but the links were not "
+                  "saved: ") + ex.what();
+  }
+  if (WxResourceTreeItemData *node = findNode(url, true, false)) {
+    p_treeCtrl->refresh(node);
+    setContextPanel();
+    if (p_contextPanel) p_contextPanel->selectResource(
+        url.getChild(calcs[0].getFilePathTail()));
+  }
+  if (wfUrl) *wfUrl = url;
+  return skipped.empty() ? "" : "The calculations were moved; links not "
+                                "made (they would close a loop):" + skipped;
+}
+
+
+//  A new workflow is named after its first step: the first calculation no
+//  proposed link leads into, whatever order the table shows.
+static string newWorkflowName(const vector<Resource*>& calcs,
+                              const vector<WorkflowSteps::ProposedLink>& links)
+{
+  for (Resource *c : calcs) {
+    bool fed = false;
+    for (const WorkflowSteps::ProposedLink& l : links) fed |= l.target == c;
+    if (!fed) return c->getName() + "_workflow";
+  }
+  return calcs.empty() ? string("Workflow") : calcs[0]->getName() + "_workflow";
+}
+
+
+//  Make Workflow from Selected... / Move Selected into Workflow > on the
+//  project table's selected rows.
+void CalcMgr::makeWorkflowFromRows(Session *into)
+{
+  const vector<EcceURL> rows = launchSelection();
+  vector<Resource*> calcs;
+  string why = severalWorkflowRefusal(rows, into, &calcs);
+  if (!why.empty()) {
+    ewxMessageDialog err(this, why, "Make Workflow",
+                         wxOK | wxICON_EXCLAMATION, wxDefaultPosition);
+    err.ShowModal();
+    return;
+  }
+  const vector<WorkflowSteps::ProposedLink> links =
+      proposeWorkflowLinks(calcs, into);
+  ResourceType *wt = 0;
+  for (ResourceType *rt :
+       ResourceDescriptor::getResourceDescriptor().getResourceTypes())
+    if (rt->getName() == "workflow") wt = rt;
+  WorkflowImportDialog dlg(this, calcs.size(), links, wt,
+                           into ? "" : newWorkflowName(calcs, links),
+                           into ? into->getName() : "");
+  if (dlg.ShowModal() != wxID_OK) return;
+  vector<WorkflowLinkSpec> chosen;
+  const vector<bool> on = dlg.chosen();
+  for (size_t i = 0; i < links.size(); i++)
+    if (i < on.size() && on[i])
+      chosen.push_back({links[i].source->getURL(), links[i].target->getURL(),
+                        links[i].name});
+  EcceURL wfUrl;
+  why = moveSeveralIntoWorkflow(rows, into, dlg.name(), chosen, &wfUrl);
+  if (!why.empty()) {
+    ewxMessageDialog err(this, why, "Make Workflow",
+                         wxOK | wxICON_EXCLAMATION, wxDefaultPosition);
+    err.ShowModal();
+  }
+}
+
+
+string CalcMgr::workflowCreateForCommand(const string& target,
+                                         const vector<EcceURL>& calcs,
+                                         const vector<string>& linkArgs,
+                                         bool autoLinks)
+{
+  Session *into = 0;
+  string name = target;
+  if (target.find("://") != string::npos) {
+    into = dynamic_cast<Session*>(EDSIFactory::getResource(EcceURL(target)));
+    if (!into) return "error: no such workflow";
+    name.clear();
+  }
+  vector<Resource*> found;
+  string why = severalWorkflowRefusal(calcs, into, &found);
+  if (!why.empty()) return "error: " + why;
+  // A link names its ends by calculation (or, into a workflow, step) name.
+  auto byName = [&](const string& n) -> Resource* {
+    for (Resource *r : found)
+      if (r->getURL().getFilePathTail() == n) return r;
+    if (into)
+      for (Resource *m : into->getMembers())
+        if (m->getURL().getFilePathTail() == n) return m;
+    return 0;
+  };
+  vector<WorkflowLinkSpec> links;
+  std::set<Resource*> hasExplicit;
+  for (const string& arg : linkArgs) {
+    const size_t colon = arg.find(':'), eq = arg.find('=');
+    const string a = arg.substr(0, colon);
+    const string b = colon == string::npos ? "" :
+        arg.substr(colon + 1, eq == string::npos ? string::npos : eq - colon - 1);
+    const string role = eq == string::npos ? WorkflowSteps::kGeometryLink
+                                           : arg.substr(eq + 1);
+    Resource *from = byName(a), *to = byName(b);
+    if (!from || !to || from == to)
+      return "error: link " + arg + ": give A:B with two of the calculations";
+    if (std::find(found.begin(), found.end(), to) == found.end())
+      return "error: link " + arg + ": " + b + " is not one of the calculations moved";
+    if (role != "geometry" && role != "reactant" && role != "product" &&
+        role != "tsguess")
+      return "error: link " + arg + ": role is geometry, reactant, product or tsguess";
+    links.push_back({from->getURL(), to->getURL(), role});
+    hasExplicit.insert(to);
+  }
+  string proposed;
+  if (autoLinks)
+    for (const WorkflowSteps::ProposedLink& l : proposeWorkflowLinks(found, into)) {
+      if (hasExplicit.count(l.target)) continue;
+      links.push_back({l.source->getURL(), l.target->getURL(), l.name});
+    }
+  for (const WorkflowLinkSpec& l : links)
+    proposed += string(proposed.empty() ? "" : ",") + l.from.getFilePathTail() +
+                ">" + l.to.getFilePathTail() + ":" + l.name;
+  EcceURL wfUrl;
+  why = moveSeveralIntoWorkflow(calcs, into, name, links, &wfUrl);
+  if (!why.empty() && wfUrl.toString().empty()) return "error: " + why;
+  return "ok " + wfUrl.toString() + " steps=" + std::to_string(calcs.size()) +
+         " links=" + proposed + (why.empty() ? "" : " note: " + why);
+}
+
+
 bool CalcMgr::selectionHasSystemFolder()
 {
   if (!getSelection()) return false;
@@ -7805,6 +8112,43 @@ void CalcMgr::getContextMenu(wxMenu & menu)
       batch->Append(wxID_TERMINATE_SELECTED, _("Terminate Selected..."));
       batch->Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
       menu.AppendSubMenu(batch, _("Run"));
+    }
+    if (allCalcs && rows.size() >= 2) {
+      const string refusal = severalWorkflowRefusal(rows, 0);
+      int id = wxWindow::NewControlId();
+      wxMenuItem *mk = menu.Append(id, _("Make Workflow from Selected..."),
+          refusal.empty() ? wxString(_("Move the selected calculations into "
+                                       "a new workflow, with links between them"))
+                          : wxString::FromUTF8(refusal.c_str()));
+      mk->Enable(refusal.empty());
+      menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+        CallAfter([this]() { makeWorkflowFromRows(0); });
+      }, id);
+      wxMenu *into = new wxMenu();
+      size_t flows = 0;
+      Resource *folder = refusal.empty()
+          ? EDSIFactory::getResource(rows[0].getParent()) : 0;
+      vector<Resource*> *kids = folder ? folder->getChildren() : 0;
+      for (size_t i = 0; kids && i < kids->size(); i++) {
+        Session *s = dynamic_cast<Session*>((*kids)[i]);
+        if (!s || s->getApplicationType() != ResourceDescriptor::AT_WORKFLOW)
+          continue;
+        int fid = wxWindow::NewControlId();
+        into->Append(fid, wxString(s->getName()));
+        flows++;
+        const EcceURL url = s->getURL();
+        menu.Bind(wxEVT_MENU, [this, url](wxCommandEvent&) {
+          CallAfter([this, url]() {
+            makeWorkflowFromRows(
+                dynamic_cast<Session*>(EDSIFactory::getResource(url)));
+          });
+        }, fid);
+      }
+      menu.AppendSubMenu(into, _("Move Selected into Workflow"),
+          refusal.empty() ? wxString(_("Move the selected calculations into "
+                                       "a workflow of this folder"))
+                          : wxString::FromUTF8(refusal.c_str()))
+          ->Enable(refusal.empty() && flows > 0);
     }
   }
   //  Comparing the energies of the selection: calculations picked in the
