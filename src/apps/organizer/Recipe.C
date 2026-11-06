@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <dirent.h>
 #include <fstream>
+#include <map>
 #include <sstream>
 
 #include "util/Ecce.H"
@@ -97,6 +98,7 @@ bool parseRecipe(const string& text, Recipe& out, string& error)
           flag = trim(flag);
           if (flag == "structure") s.needsStructure = true;
           else if (flag == "thermo") s.thermo = true;
+          else if (flag == "fragment") s.perFragment = true;
           else if (flag.compare(0, 4, "key=") == 0) s.keyRole = flag.substr(4);
           else if (flag.compare(0, 7, "charge=") == 0) {
             char *end = 0;
@@ -168,6 +170,7 @@ string recipeText(const Recipe& r)
       auto add = [&](const string& f) { flags += (flags.empty() ? "" : ",") + f; };
       if (s.needsStructure) add("structure");
       if (s.thermo) add("thermo");
+      if (s.perFragment) add("fragment");
       if (!s.keyRole.empty()) add("key=" + s.keyRole);
       if (s.chargeShift) add(string("charge=") + (s.chargeShift > 0 ? "+" : "") + std::to_string(s.chargeShift));
       o << "step: " << v.id << " | " << s.id << " | " << s.code << " | " << s.role
@@ -316,6 +319,270 @@ vector<string> checkLevel(const Recipe& recipe, const string& method,
     w.push_back(std::to_string(facts.atoms) +
                 " atoms: consider the RI approximation or a smaller basis");
   return w;
+}
+
+
+// ---- fragments (#201) ----
+
+bool hasFragmentSteps(const RecipeVariant& variant)
+{
+  for (const RecipeStep& s : variant.steps) if (s.perFragment) return true;
+  return false;
+}
+
+
+RecipeVariant expandFragments(const RecipeVariant& variant,
+                              const vector<RecipeFragment>& fragments)
+{
+  RecipeVariant out = variant;
+  out.steps.clear();
+  out.links.clear();
+  const string spec = fragmentsText(fragments);
+  std::map<string, vector<string> > ids;   // recipe step id -> made step ids
+  for (const RecipeStep& s : variant.steps) {
+    if (!s.perFragment) {
+      out.steps.push_back(s);
+      ids[s.id].push_back(s.id);
+      continue;
+    }
+    for (size_t k = 0; k < fragments.size(); k++) {
+      RecipeStep f = s;
+      f.id = s.id + "-" + std::to_string(k + 1);
+      f.fragment = (int)k + 1;
+      f.fragments = spec;
+      const RecipeFragment& g = fragments[k];
+      f.caption = "atoms " + g.atoms + ", charge " + std::to_string(g.charge) +
+                  ", multiplicity " + std::to_string(g.mult);
+      out.steps.push_back(f);
+      ids[s.id].push_back(f.id);
+    }
+  }
+  for (const RecipeLink& l : variant.links)
+    for (const string& from : ids[l.from])
+      for (const string& to : ids[l.to])
+        out.links.push_back({from, to, l.name});
+  return out;
+}
+
+
+string fragmentsText(const vector<RecipeFragment>& fragments)
+{
+  string t;
+  for (size_t k = 0; k < fragments.size(); k++)
+    t += (k ? "/" : "") + fragments[k].atoms + ":" + std::to_string(fragments[k].charge) +
+         ":" + std::to_string(fragments[k].mult);
+  return t;
+}
+
+
+bool parseFragments(const string& text, vector<RecipeFragment>& out)
+{
+  out.clear();
+  std::istringstream in(text);
+  string one;
+  while (std::getline(in, one, '/')) {
+    const size_t a = one.find(':'), b = a == string::npos ? a : one.find(':', a + 1);
+    if (b == string::npos) return false;
+    RecipeFragment f;
+    f.atoms = trim(one.substr(0, a));
+    char *end = 0;
+    f.charge = (int)strtol(one.c_str() + a + 1, &end, 10);
+    if (*end != ':') return false;
+    f.mult = (int)strtol(one.c_str() + b + 1, &end, 10);
+    if (*end || f.mult < 1) return false;
+    out.push_back(f);
+  }
+  return !out.empty();
+}
+
+
+namespace {
+
+// "2-13,15" -> 1-based numbers; false when it does not read.
+bool atomList(const string& text, vector<int>& out)
+{
+  out.clear();
+  std::istringstream in(text);
+  string part;
+  while (std::getline(in, part, ',')) {
+    part = trim(part);
+    if (part.empty()) return false;
+    char *end = 0;
+    const long a = strtol(part.c_str(), &end, 10);
+    long b = a;
+    if (*end == '-') b = strtol(end + 1, &end, 10);
+    if (*end || a < 1 || b < a) return false;
+    for (long x = a; x <= b; x++) out.push_back((int)x);
+  }
+  return !out.empty();
+}
+
+bool isMetal(int z)
+{
+  return (z >= 21 && z <= 30) || (z >= 39 && z <= 48) || (z >= 57 && z <= 80) ||
+         (z >= 89 && z <= 112) || z == 3 || z == 4 || z == 11 || z == 12 || z == 13 ||
+         z == 19 || z == 20 || z == 31 || z == 37 || z == 38 || z == 49 || z == 50 ||
+         z == 55 || z == 56 || (z >= 81 && z <= 83);
+}
+
+// "1,2,3,7" -> "1-3,7"
+string listText(vector<int> a)
+{
+  std::sort(a.begin(), a.end());
+  string t;
+  for (size_t i = 0; i < a.size();) {
+    size_t j = i;
+    while (j + 1 < a.size() && a[j + 1] == a[j] + 1) j++;
+    t += (t.empty() ? "" : ",") + std::to_string(a[i] + 1);
+    if (j > i) t += "-" + std::to_string(a[j] + 1);
+    i = j + 1;
+  }
+  return t;
+}
+
+}  // namespace
+
+
+bool resolveFragments(const vector<RecipeFragment>& fragments, int natoms,
+                      vector<vector<int> >& atoms, string& why)
+{
+  atoms.assign(fragments.size(), vector<int>());
+  vector<int> owner(natoms, -1);
+  int rest = -1;
+  for (size_t k = 0; k < fragments.size(); k++) {
+    const string name = "fragment " + std::to_string(k + 1);
+    if (trim(fragments[k].atoms) == "rest") {
+      if (rest >= 0) { why = "only one fragment can be \"rest\""; return false; }
+      rest = (int)k;
+      continue;
+    }
+    vector<int> list;
+    if (!atomList(fragments[k].atoms, list)) {
+      why = name + ": \"" + fragments[k].atoms + "\" is not a list of atom numbers such as 2-13";
+      return false;
+    }
+    for (int a : list) {
+      if (a > natoms) {
+        why = name + ": atom " + std::to_string(a) + ", but the complex has " +
+              std::to_string(natoms) + " atoms";
+        return false;
+      }
+      if (owner[a - 1] >= 0) {
+        why = "atom " + std::to_string(a) + " is in fragment " + std::to_string(owner[a - 1] + 1) +
+              " and in fragment " + std::to_string(k + 1) + "; fragments must not share atoms";
+        return false;
+      }
+      owner[a - 1] = (int)k;
+      atoms[k].push_back(a - 1);
+    }
+  }
+  vector<int> missing;
+  for (int a = 0; a < natoms; a++)
+    if (owner[a] < 0) {
+      if (rest >= 0) atoms[rest].push_back(a);
+      else missing.push_back(a);
+    }
+  if (rest >= 0 && atoms[rest].empty()) { why = "the \"rest\" fragment has no atoms"; return false; }
+  if (!missing.empty()) {
+    why = "atoms " + listText(missing) + " are in no fragment; the fragments must cover the complex";
+    return false;
+  }
+  return true;
+}
+
+
+vector<RecipeFragment> proposeFragments(const vector<int>& z, const vector<double>& xyz,
+                                        const vector<double>& radii, int charge)
+{
+  const int n = (int)z.size();
+  vector<RecipeFragment> out;
+  if (n == 0) return out;
+  int metal = -1;
+  for (int i = 0; i < n && metal < 0; i++) if (isMetal(z[i])) metal = i;
+  // Molecules: atoms joined by bonds (distance within 1.2 times the radii),
+  // not through the metal.
+  vector<int> mol(n, -1);
+  int nmol = 0;
+  for (int s = 0; s < n; s++) {
+    if (mol[s] >= 0 || s == metal) continue;
+    vector<int> todo(1, s);
+    mol[s] = nmol;
+    while (!todo.empty()) {
+      const int a = todo.back();
+      todo.pop_back();
+      for (int b = 0; b < n; b++) {
+        if (mol[b] >= 0 || b == metal) continue;
+        double d2 = 0;
+        for (int c = 0; c < 3; c++) d2 += (xyz[3 * a + c] - xyz[3 * b + c]) * (xyz[3 * a + c] - xyz[3 * b + c]);
+        const double r = 1.2 * (radii[a] + radii[b]);
+        if (d2 < r * r) { mol[b] = nmol; todo.push_back(b); }
+      }
+    }
+    nmol++;
+  }
+  auto electrons = [&](const vector<int>& atoms) {
+    int e = 0;
+    for (int a : atoms) e += z[a];
+    return e;
+  };
+  auto make = [&](const vector<int>& atoms, int q) {
+    RecipeFragment f;
+    f.atoms = listText(atoms);
+    f.charge = q;
+    f.mult = (electrons(atoms) - q) % 2 ? 2 : 1;
+    return f;
+  };
+  if (metal >= 0) {
+    int ligandCharge = 0;
+    vector<int> rest;
+    for (int m = 0; m < nmol; m++) {
+      vector<int> atoms;
+      for (int a = 0; a < n; a++) if (mol[a] == m) atoms.push_back(a);
+      if (electrons(atoms) % 2) ligandCharge -= 1;
+      rest.insert(rest.end(), atoms.begin(), atoms.end());
+    }
+    out.push_back(make(vector<int>(1, metal), charge - ligandCharge));
+    if (!rest.empty()) out.push_back(make(rest, ligandCharge));
+    return out;
+  }
+  if (nmol < 2) {
+    vector<int> rest;
+    for (int a = 1; a < n; a++) rest.push_back(a);
+    out.push_back(make(vector<int>(1, 0), 0));
+    if (!rest.empty()) out.push_back(make(rest, charge));
+    return out;
+  }
+  for (int m = 0; m < nmol; m++) {
+    vector<int> atoms;
+    for (int a = 0; a < n; a++) if (mol[a] == m) atoms.push_back(a);
+    out.push_back(make(atoms, m == 0 ? charge : 0));
+  }
+  return out;
+}
+
+
+string checkFragments(const vector<RecipeFragment>& fragments, const vector<int>& z,
+                      int charge, string *warning)
+{
+  if (fragments.size() < 2) return "a fragment analysis needs at least two fragments";
+  vector<vector<int> > atoms;
+  string why;
+  if (!resolveFragments(fragments, (int)z.size(), atoms, why)) return why;
+  int sum = 0;
+  for (size_t k = 0; k < fragments.size(); k++) {
+    int e = -fragments[k].charge;
+    for (int a : atoms[k]) e += z[a];
+    if (e < 0) return "fragment " + std::to_string(k + 1) + ": more charge than electrons";
+    if ((e + fragments[k].mult) % 2 == 0)
+      return "fragment " + std::to_string(k + 1) + ": " + std::to_string(e) +
+             " electrons cannot have multiplicity " + std::to_string(fragments[k].mult);
+    sum += fragments[k].charge;
+  }
+  if (warning)
+    *warning = sum == charge ? string()
+        : "The fragment charges add up to " + std::to_string(sum) + ", the complex has " +
+          std::to_string(charge) + ".";
+  return "";
 }
 
 
