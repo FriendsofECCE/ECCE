@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 
@@ -18,6 +19,7 @@
 
 #include "tdat/PropVector.H"
 
+#include "tdat/TBond.H"
 #include "viz/SGFragment.H"
 #include "viz/cvSGContainer.H"
 #include "viz/VRVector.H"
@@ -30,6 +32,9 @@ const double ZERO_MU = 0.005;
 
 // 1 e Angstrom in debye.
 const double DEBYE_PER_E_ANGSTROM = 4.80320;
+// Bond-dipole arrows: purple, apart from the yellow molecular arrow and the
+// element colours.
+const char *BOND_ARROW_COLOR = "#7b2d9b";
 // Nearly uncharged atoms would put the poles far outside the molecule.
 const double MAX_POLE_SEPARATION = 10.0;
 
@@ -60,6 +65,7 @@ AddDipoleMomentCmd::AddDipoleMomentCmd(const string& name, Receiver *receiver,
    addParameter(new CommandParameter("ChargesOppose", false));
    addParameter(new CommandParameter("PoleCharge", 0.0));
    addParameter(new CommandParameter("PoleSeparation", 0.0));
+   addParameter(new CommandParameter("BondCharges", ""));
 }
 
 AddDipoleMomentCmd::~AddDipoleMomentCmd()
@@ -83,6 +89,64 @@ string AddDipoleMomentCmd::chargeName(const string& key)
    if (key == "MKFIT") return "Merz-Kollman (ESP-fitted)";
    if (key == "MULLIKEN") return "Mulliken";
    return "";
+}
+
+
+vector<string> AddDipoleMomentCmd::bondChargeKeys(IPropCalculation *calc)
+{
+   static const char *keys[] = { "MULLIKEN", "LOEWDIN", "HIRSHFELD", "ESPFIT",
+                                 "MKFIT" };
+   vector<string> out;
+   for (int i = 0; calc && i < 5; i++)
+      if (calc->getProperty(keys[i])) out.push_back(keys[i]);
+   return out;
+}
+
+
+string AddDipoleMomentCmd::bondChargeName(const string& key)
+{
+   if (key == "LOEWDIN") return "L\u00f6wdin";
+   if (key == "HIRSHFELD") return "Hirshfeld";
+   return chargeName(key);
+}
+
+
+bool AddDipoleMomentCmd::bondDipoles(IPropCalculation *calc, SGFragment *frag,
+                                     const string& key,
+                                     vector<std::pair<int,int> >& bonds,
+                                     BondDipoles::Result& result)
+{
+   PropVector *qv = key.empty() || !calc ? 0 :
+      (PropVector*) calc->getProperty(key);
+   if (!qv || !frag) return false;
+   int n = std::min((int)frag->numAtoms(), (int)qv->rows());
+   if (n < 2) return false;
+   vector<double> q(n), xyz(3*n);
+   for (int i = 0; i < n; i++) {
+      q[i] = qv->value(i);
+      const double *c = frag->atomRef(i)->coordinates();
+      for (int k = 0; k < 3; k++) xyz[3*i + k] = c[k];
+   }
+   vector<std::pair<int,int> > graph;
+   vector<TBond*> *tb = frag->bonds();
+   for (size_t b = 0; tb && b < tb->size(); b++) {
+      int i = (*tb)[b]->atom1()->index(), j = (*tb)[b]->atom2()->index();
+      if (i >= 0 && j >= 0 && i < n && j < n && i != j)
+         graph.push_back(std::make_pair(i, j));
+   }
+   delete tb;
+   if (graph.empty()) return false;
+   double com[3];
+   frag->centerOfMass(com[0], com[1], com[2]);
+   result = BondDipoles::compute(q, xyz, graph, com);
+   bonds.clear();
+   for (size_t b = 0; b < graph.size(); b++) {
+      // delta > 0: atom i is the positive end.
+      if (result.delta[b] >= 0.0)
+         bonds.push_back(std::make_pair(graph[b].second, graph[b].first));
+      else bonds.push_back(graph[b]);
+   }
+   return true;
 }
 
 
@@ -231,6 +295,50 @@ bool AddDipoleMomentCmd::execute()
          for (int k = 0; k < 3; k++) head[k] = start[k] + len*m[k]/mag;
          root->addChild(poleSphere(start));
          root->addChild(poleSphere(head));
+      }
+   }
+
+   const string bondKey = getParameter("BondCharges")->getString();
+   vector<std::pair<int,int> > bonds;
+   BondDipoles::Result bd;
+   if (frag && !bondKey.empty() &&
+       bondDipoles(calc, frag, bondKey, bonds, bd)) {
+      Color bcol(BOND_ARROW_COLOR);
+      // One scale for all bonds: the largest bond dipole fills its bond
+      // (the bond less 0.25 A of atom at each end), the others follow
+      // |mu| and are clamped to their own bond; a floor keeps small ones
+      // visible unless the table shows 0.00 D.
+      const size_t nb = bonds.size();
+      vector<double> mag(nb), room(nb);
+      size_t big = 0;
+      for (size_t b = 0; b < nb; b++) {
+         mag[b] = sqrt(bd.mu[0][b]*bd.mu[0][b] + bd.mu[1][b]*bd.mu[1][b] +
+                       bd.mu[2][b]*bd.mu[2][b]) * DEBYE_PER_E_ANGSTROM;
+         const double *a = frag->atomRef(bonds[b].first)->coordinates();
+         const double *z = frag->atomRef(bonds[b].second)->coordinates();
+         double len = sqrt((z[0]-a[0])*(z[0]-a[0]) + (z[1]-a[1])*(z[1]-a[1]) +
+                           (z[2]-a[2])*(z[2]-a[2]));
+         room[b] = std::max(0.3, len - 0.5);
+         if (mag[b] > mag[big]) big = b;
+      }
+      const double scale = mag.empty() || mag[big] <= 0 ? 0 : room[big]/mag[big];
+      for (size_t b = 0; b < nb; b++) {
+         if (mag[b] < 0.005) continue;
+         const double *a = frag->atomRef(bonds[b].first)->coordinates();
+         const double *z = frag->atomRef(bonds[b].second)->coordinates();
+         double L = std::min(room[b], std::max(0.2, mag[b]*scale));
+         double d[3], len = 0.0;
+         for (int k = 0; k < 3; k++) { d[k] = z[k]-a[k]; len += d[k]*d[k]; }
+         len = sqrt(len);
+         VRVector *vec = new VRVector;
+         vec->setColor(bcol.red(), bcol.green(), bcol.blue());
+         double f = 0.5*(len - L)/len;   // centred on the bond midpoint
+         vec->position(a[0] + f*d[0], a[1] + f*d[1], a[2] + f*d[2]);
+         double s2 = L/len/1.075;
+         vec->direction(d[0]*s2, d[1]*s2, d[2]*s2);
+         vec->fixedThickness(0.045f, 0.11f, (float)std::min(0.20, 0.5*L));
+         vec->showThroughMolecule();
+         root->addChild(vec);
       }
    }
 

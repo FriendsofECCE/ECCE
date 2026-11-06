@@ -37,6 +37,7 @@
 //    bondkind covalent|metal     the kind of bond Bond mode makes
 //    toolbar bond                press the Bond button of the mode toolbar
 //    clean                       the viewer's Clean command
+//    bonddipoles on [KEY] | off  Dipole Moment panel: bond dipoles, logs the table
 //    key escape                  what the Esc key does with the view focused
 //    dclick A                    a double-click on the last atom of element A
 //    selectnub A                 select the first Nub of the last atom of element A
@@ -171,6 +172,7 @@
 #include "PropertyIndexPanel.H"
 #include "StructLib.H"
 #include "VizPropertyPanel.H"
+#include "MomentsPanel.H"
 #include "wxgui/ewxModalGuard.H"
 
 namespace {
@@ -1556,6 +1558,32 @@ void Builder::runBuilderScript(const std::string& file)
         delete bonds;
         fprintf(stderr, "BUILDER: vector %s arrows=%d longest_bond=%.4f\n",
                 w[1].c_str(), sa.getPaths().getLength(), longest);
+      } else if (w[0] == "bonddipoles" && w.size() >= 2) {
+        //  "bonddipoles on [KEY] | off": the Dipole Moment panel's Bond
+        //  dipoles box and charge choice (KEY: MULLIKEN, ESPFIT, ...); the
+        //  table rows and the arrow count are logged.
+        MomentsPanel *mp = 0;
+        for (VizPropertyPanel *panel : VizPropertyPanel::getPanels(
+                 p_calculation->getURL().toString()))
+          if (MomentsPanel *m = dynamic_cast<MomentsPanel*>(panel))
+            if (m->hasBondDipoles()) mp = m;
+        if (!mp) {
+          outcome = "FAIL: no Dipole Moment panel with bond dipoles";
+        } else {
+          mp->setBondDipoles(w[1] == "on", w.size() > 2 ? w[2] : "");
+          wxTheApp->Yield(true);
+          vector<vector<string> > rows = mp->bondDipoleRows();
+          for (size_t i = 0; i < rows.size(); i++)
+            fprintf(stderr, "BUILDER: bonddipoles row %zu | %s | %s | %s\n", i,
+                    rows[i][0].c_str(), rows[i][1].c_str(),
+                    rows[i][2].c_str());
+          SoSearchAction sa;
+          sa.setType(VRVector::getClassTypeId(), FALSE);
+          sa.setInterest(SoSearchAction::ALL);
+          sa.apply(getSG()->getPropertySwitch("DIPOLE"));
+          fprintf(stderr, "BUILDER: bonddipoles rows=%zu arrows=%d\n",
+                  rows.size(), sa.getPaths().getLength());
+        }
       } else if (w[0] == "ellipsoid" && w.size() == 2) {
         SoSearchAction sa;
         sa.setType(SoSphere::getClassTypeId(), FALSE);
