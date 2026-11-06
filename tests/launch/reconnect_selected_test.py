@@ -218,6 +218,15 @@ def main():
         ans = send("treecontextmenu %s" % never)
         check("|~Reconnect Selected..." in ans, "tree menu: Reconnect Selected disabled when not launched (%s)" % ans)
 
+        #  A right click on ONE row of the project table must offer the same
+        #  run items as for several rows (#875).
+        ans = send("projectcontextmenu %s" % urls[0])
+        check("|Reconnect Selected..." in ans and "|Launch Selected..." in ans,
+              "table menu, one row: run items on a waiting job (%s)" % ans)
+        ans = send("projectcontextmenu %s" % never)
+        check("|~Reconnect Selected..." in ans,
+              "table menu, one row: Reconnect Selected disabled when not launched (%s)" % ans)
+
         shot = args.shot or os.path.join(s.state, "reconnect.png")
         ans = send("reconnectselectedshot %s %s" % (shot, " ".join(every)))
         check(ans == "not reconnected" and os.path.getsize(shot) > 1000,

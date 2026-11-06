@@ -1438,13 +1438,19 @@ void CalcMgr::runTestCommand(const string& line)
         for (int i = 0; i < 40; i++) { wxYield(); wxMilliSleep(50); }
       }
       if (p_contextPanel) p_contextPanel->selectResources(urls);
+      // A right click on the table reaches the frame with the focus last
+      // on the tree; that is the case that lost the Run items for one row.
+      p_focusOnTree = true;
+      menuSource(dynamic_cast<wxWindow*>(p_contextPanel));
       wxMenu menu;
       getContextMenu(menu);
+      p_popupOnTree = false;
       outcome = "ok";
       for (size_t i = 0; i < menu.GetMenuItemCount(); i++) {
         wxMenuItem *it = menu.FindItemByPosition(i);
         if (!it->IsSeparator())
-          outcome += "|" + string(it->GetItemLabelText().ToUTF8());
+          outcome += string("|") + (it->IsEnabled() ? "" : "~") +
+                     string(it->GetItemLabelText().ToUTF8());
       }
     } else if (command == "treecontextmenu") {
       // "treecontextmenu URL": selects URL in the tree and lists the items
@@ -1955,11 +1961,25 @@ void CalcMgr::addRoot(const string& name, const string& url)
 /*!
  * wxEVT_CONTEXT_MENU event handler for ID_FRAME
  */
+//  The frame gets the right click of every child: only one from the tree
+//  is about the tree's selection.  One from the project table is about its
+//  rows, even a single row (the Run submenu was missing for one row).
+void CalcMgr::menuSource(wxWindow *source)
+{
+  bool fromTree = false;
+  for (wxWindow *w = source; w; w = w->GetParent())
+    if (w == p_treeCtrl) { fromTree = true; break; }
+  if (!fromTree && p_contextPanel && !p_contextPanel->getSelections().empty())
+    p_focusOnTree = false;
+  p_popupOnTree = fromTree;
+}
+
+
 void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
 {
   wxMenu menu;
   getContextMenu(menu);
-  p_popupOnTree = true;
+  menuSource(dynamic_cast<wxWindow*>(event.GetEventObject()));
   ewxPopupMenu(this, menu);
   p_popupOnTree = false;
   /*
