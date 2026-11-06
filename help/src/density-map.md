@@ -149,6 +149,7 @@ plain density. The **Density Profile** has the same button, under **More**.
 
 ## Export
 
+The exports, **Difference...** and the plane controls are under **Options** above the map.
 **Export .png...** saves the picture as drawn. **Export .csv...** saves every
 grid value: the position in the plane, the Cartesian position, and the value,
 with the plane and the offset in the header.

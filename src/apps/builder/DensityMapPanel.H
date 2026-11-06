@@ -177,7 +177,7 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       wxTextCtrl *p_offsetField;
       wxButton *p_resetOffset;
       wxStaticText *p_labelA, *p_labelB, *p_labelC, *p_caption;
-      wxBoxSizer *p_atomRow, *p_viewRow;
+      wxBoxSizer *p_atomRow, *p_viewRow, *p_moreRow;
       wxButton *p_planeToggle;
       bool p_planeOpen, p_planeAuto;
       wxSpinCtrl *p_mo;
