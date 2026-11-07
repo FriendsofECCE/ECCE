@@ -9,6 +9,7 @@
  * Prints "name: job id N" or "name: not launched: reason" per calculation,
  * with "name: note: ..." before it for a setting that was filled in or
  * dropped (no stored queue, a machine that passes no time limit).
+ * Every calculation given gets one line, also when ECCE gives no answer.
  * Exit 0: all launched; 1: some were not (or no answer); 2: no running
  * ECCE session; 3: the Organizer is busy with a Launch Selected batch;
  * 64: usage.
@@ -104,6 +105,26 @@ bool toUrl(const string& arg, string& url, string& why)
   return true;
 }
 
+// The name the Organizer's lines use for a calculation: its folder name.
+string leafOf(const string& url)
+{
+  string u = url;
+  while (u.size() > 1 && u.back() == '/') u.pop_back();
+  size_t slash = u.rfind('/');
+  return slash == string::npos ? u : u.substr(slash + 1);
+}
+
+// The request has gone out, so a busy Organizer may still submit these later
+// (it defers broker messages during a launch): never say "not launched".
+void unanswered(const vector<string>& given, const vector<string>& urls,
+                const string& why)
+{
+  for (size_t i = 0; i < urls.size(); i++)
+    std::cout << given[i] << ": submitted? " << why
+              << ": check the Organizer and the queue (job name submit__"
+              << leafOf(urls[i]) << ") before launching it again" << std::endl;
+}
+
 }  // namespace
 
 int main(int argc, char **argv)
@@ -138,10 +159,10 @@ int main(int argc, char **argv)
   if (sessionKey().empty()) return notRunning();
 
   bool allOk = true;
-  vector<string> urls;
+  vector<string> urls, given;
   for (size_t i = 0; i < args.size(); i++) {
     string url, why;
-    if (toUrl(args[i], url, why)) urls.push_back(url);
+    if (toUrl(args[i], url, why)) { urls.push_back(url); given.push_back(args[i]); }
     else {
       std::cout << args[i] << ": not launched: " << why << std::endl;
       allOk = false;
@@ -188,10 +209,13 @@ int main(int argc, char **argv)
     if (gAck && !gDone) end = clock::now() + std::chrono::seconds(kBatchSeconds);
   }
   if (timedOut) {
-    if (!gAck) return notRunning();
-    std::cerr << "ecce-launch: no answer from ECCE within "
-              << kBatchSeconds / 60 << " minutes; see the Organizer for the "
-                 "state of the calculations" << std::endl;
+    if (!gAck) {
+      unanswered(given, urls, "no answer from the Organizer within " +
+                 std::to_string(kAckSeconds) + " s (it may be busy with another launch)");
+      return 2;
+    }
+    unanswered(given, urls, "no answer from ECCE within " +
+               std::to_string(kBatchSeconds / 60) + " minutes");
     return 1;
   }
   if (gBusy) {
@@ -200,15 +224,30 @@ int main(int argc, char **argv)
     return 3;
   }
 
+  vector<string> answered;
   for (size_t i = 0; i < gLines.size(); i++) {
     size_t a = gLines[i].find('\t');
     size_t b = a == string::npos ? a : gLines[i].find('\t', a + 1);
     if (b == string::npos) { std::cout << gLines[i] << std::endl; allOk = false; continue; }
     string name = gLines[i].substr(0, a), ok = gLines[i].substr(a + 1, b - a - 1),
            text = gLines[i].substr(b + 1);
+    if (ok != "warn") answered.push_back(name);
     if (ok == "warn") std::cout << name << ": note: " << text << std::endl;
     else if (ok == "ok") std::cout << name << ": job id " << text << std::endl;
     else { std::cout << name << ": not launched: " << text << std::endl; allOk = false; }
+  }
+  //  The Organizer answers one line per calculation; match names only when
+  //  some are missing, as a stored name need not equal its folder name.
+  vector<string> missingGiven, missingUrls;
+  for (size_t i = 0; answered.size() < urls.size() && i < urls.size(); i++) {
+    bool found = false;
+    for (const string& n : answered)
+      if (n == leafOf(urls[i]) || n == urls[i]) { found = true; break; }
+    if (!found) { missingGiven.push_back(given[i]); missingUrls.push_back(urls[i]); }
+  }
+  if (!missingUrls.empty()) {
+    unanswered(missingGiven, missingUrls, "ECCE's answer has no line for it");
+    allOk = false;
   }
   return allOk ? 0 : 1;
 }

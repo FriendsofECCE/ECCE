@@ -145,6 +145,19 @@ def main():
               "without a session: exit 2 and the message (rc=%s %r)" % (rc, err))
         check(s.state_of(urls["one"]) == "ready", "nothing was launched without a session")
 
+        #  #887: the session's broker runs but no Organizer answers. The
+        #  request has gone out, so each calculation gets a "submitted?" line.
+        rc, out, err = run(urls["one"], urls["two"])
+        lines = out.splitlines()
+        check(rc == 2 and len(lines) == 2 and all(
+            "submitted? no answer from the Organizer" in l for l in lines) and
+            any(l.startswith(urls["one"] + ": ") and "submit__one" in l for l in lines) and
+            any(l.startswith(urls["two"] + ": ") and "submit__two" in l for l in lines),
+            "no Organizer: one 'submitted?' line per calculation, exit 2 "
+            "(rc=%s %r %r)" % (rc, out, err))
+        check(s.state_of(urls["one"]) == "ready" and s.state_of(urls["two"]) == "ready",
+              "nothing was launched without an Organizer")
+
         def annotation(url):
             rc, out = s.driver("meta", url, "annotation")
             return out.strip() if rc == 0 else ""
