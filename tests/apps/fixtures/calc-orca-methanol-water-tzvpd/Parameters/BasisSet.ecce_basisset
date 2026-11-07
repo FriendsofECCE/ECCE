@@ -1,61 +1,88 @@
 <MolecularConfig>
 <Map>
-<Group Tag="C O H" Name="def2-tzvpd">
+<Group Tag="C" Name="def2-tzvpd">
 <OrderedList>
 <BasisSet Type="ECPOrbital">def2-tzvpd</BasisSet>
-<ECP Type="ecp">Def2-ECP</ECP>
 </OrderedList>
 <OrbitalMapping>
 <OrbitalBasisSet Name="def2-tzvpd">
 <BasisSet Type="ECPOrbital">def2-tzvpd</BasisSet>
-<ECP Type="ecp">Def2-ECP</ECP>
 </OrbitalBasisSet>
 </OrbitalMapping>
 <ContractionInfoMap>
 <Element tag="C">
 <BasisSet uniqueKey="def2-tzvpd:ECPOrbital">
-<DeleteFlags>false false false false false false false false </DeleteFlags>
+<DeleteFlags>false false false false false false false false false false false false false </DeleteFlags>
 <UncontractFlags>
-false false false false false false false false </UncontractFlags>
-</BasisSet>
-</Element>
-<Element tag="O">
-<BasisSet uniqueKey="def2-tzvpd:ECPOrbital">
-<DeleteFlags>false false false false false false false false </DeleteFlags>
-<UncontractFlags>
-false false false false false false false false </UncontractFlags>
-</BasisSet>
-</Element>
-<Element tag="H">
-<BasisSet uniqueKey="def2-tzvpd:ECPOrbital">
-<DeleteFlags>false false false false false false false false </DeleteFlags>
-<UncontractFlags>
-false false false false false false false false </UncontractFlags>
+false false false false false false false false false false false false false </UncontractFlags>
 </BasisSet>
 </Element>
 </ContractionInfoMap>
 <DiffuseMap>
 <Element tag="C">
-0 0 0 0 0 0 0 0 </Element>
-<Element tag="O">
-0 0 0 0 0 0 0 0 </Element>
-<Element tag="H">
-0 0 0 0 0 0 0 0 </Element>
+0 0 0 0 0 0 0 0 0 0 0 0 0 </Element>
 </DiffuseMap>
 <TightMap>
 <Element tag="C">
-0 0 0 0 0 0 0 0 </Element>
+0 0 0 0 0 0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+<Group Tag="O" Name="def2-tzvpd">
+<OrderedList>
+<BasisSet Type="ECPOrbital">def2-tzvpd</BasisSet>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="def2-tzvpd">
+<BasisSet Type="ECPOrbital">def2-tzvpd</BasisSet>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
 <Element tag="O">
-0 0 0 0 0 0 0 0 </Element>
+<BasisSet uniqueKey="def2-tzvpd:ECPOrbital">
+<DeleteFlags>false false false false false false false false false false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false false false false false false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="O">
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="O">
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 </Element>
+</TightMap>
+</Group>
+<Group Tag="H" Name="def2-tzvpd">
+<OrderedList>
+<BasisSet Type="ECPOrbital">def2-tzvpd</BasisSet>
+</OrderedList>
+<OrbitalMapping>
+<OrbitalBasisSet Name="def2-tzvpd">
+<BasisSet Type="ECPOrbital">def2-tzvpd</BasisSet>
+</OrbitalBasisSet>
+</OrbitalMapping>
+<ContractionInfoMap>
 <Element tag="H">
-0 0 0 0 0 0 0 0 </Element>
+<BasisSet uniqueKey="def2-tzvpd:ECPOrbital">
+<DeleteFlags>false false false false false </DeleteFlags>
+<UncontractFlags>
+false false false false false </UncontractFlags>
+</BasisSet>
+</Element>
+</ContractionInfoMap>
+<DiffuseMap>
+<Element tag="H">
+0 0 0 0 0 </Element>
+</DiffuseMap>
+<TightMap>
+<Element tag="H">
+0 0 0 0 0 </Element>
 </TightMap>
 </Group>
 </Map>
 <Data>
-BasisSet=Def2-ECP
-Type=ecp Category=AUXILIARY Spherical=UnknownCoordSys ContType=UnknownContType
-EndBasisSet
 BasisSet=def2-tzvpd
 Type=ECPOrbital Category=ORBITAL Spherical=UnknownCoordSys ContType=UnknownContType
 element=C
