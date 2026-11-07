@@ -1,5 +1,6 @@
 #include <dirent.h>
 #include <sys/stat.h>
+#include <ctime>
 #include <unistd.h>
 
 #include <algorithm>
@@ -22,6 +23,8 @@
 #include "dsm/ResourceType.H"
 #include "dsm/Session.H"
 #include "util/Ecce.H"
+
+#include <filesystem>
 
 using std::string;
 using std::vector;
@@ -201,15 +204,43 @@ void analyseTask(const string& taskDir, const vector<string>& files,
     unlink((stage + "/" + f).c_str());
 }
 
+// Removes our own gmximport-* directories more than a day old.
+void sweepOldStaging(const string& parent)
+{
+  DIR* d = opendir(parent.c_str());
+  if (!d) return;
+  const time_t limit = time(0) - 24 * 3600;
+  vector<string> old;
+  while (struct dirent* e = readdir(d)) {
+    string n = e->d_name;
+    if (n.compare(0, 10, "gmximport-") != 0) continue;
+    struct stat st;
+    if (lstat((parent + "/" + n).c_str(), &st) != 0) continue;
+    if (S_ISDIR(st.st_mode) && st.st_uid == getuid() && st.st_mtime < limit)
+      old.push_back(parent + "/" + n);
+  }
+  closedir(d);
+  for (size_t i = 0; i < old.size(); i++) {
+    std::error_code ec;
+    std::filesystem::remove_all(old[i], ec);
+  }
+}
+
 // Attaches a task's inputs, copies its outputs into a staging directory
 // under the names a live run brings back, and imports that.  The job
-// monitor reads the staging directory after this returns, so it is left.
+// monitor reads the staging directory after this returns and removes it when
+// it finishes; only a failed import (no monitor started) removes it here.
+bool importTaskStaged(MdTask* md, const string& taskDir, bool prepare,
+                      string& message, const string& stage);
+
 bool importTask(MdTask* md, const string& taskDir, bool prepare,
                 string& message)
 {
   const char* tmp = getenv("ECCE_TMPDIR");
-  string pattern = (tmp && *tmp ? string(tmp) : string("/tmp")) +
-                   "/gmximport-XXXXXX";
+  const string parent = tmp && *tmp ? string(tmp) : string("/tmp");
+  // A monitor that dies leaves its staging copy; this bounds the growth.
+  sweepOldStaging(parent);
+  string pattern = parent + "/gmximport-XXXXXX";
   vector<char> buf(pattern.begin(), pattern.end());
   buf.push_back('\0');
   if (!mkdtemp(&buf[0])) {
@@ -217,7 +248,15 @@ bool importTask(MdTask* md, const string& taskDir, bool prepare,
     return false;
   }
   const string stage = &buf[0];
+  if (importTaskStaged(md, taskDir, prepare, message, stage)) return true;
+  std::error_code ec;
+  std::filesystem::remove_all(stage, ec);
+  return false;
+}
 
+bool importTaskStaged(MdTask* md, const string& taskDir, bool prepare,
+                      string& message, const string& stage)
+{
   bool haveLog = false;
   string fragment, view;
   vector<string> files = listDir(taskDir, false);
