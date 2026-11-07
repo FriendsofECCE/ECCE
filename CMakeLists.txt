@@ -3031,6 +3031,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_orca_mo PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
 
+  # The MO panel's Table / Graph / Graph by Symmetries views each show with a
+  # size and the orbital levels (#882).
+  add_test(NAME apps_mo_graph_views
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/mo_graph_views_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_mo_graph_views PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+
   # The Periodic Builder pane (docked, closable, reopenable in every panel
   # layout) and the layout choice for run and not-yet-run calculations.
   add_test(NAME apps_pbc_ux
