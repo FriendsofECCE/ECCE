@@ -23,6 +23,7 @@
 #include "dsm/ResourceType.H"
 #include "dsm/Session.H"
 #include "util/Ecce.H"
+#include "util/MdAnalysisRun.H"
 
 #include <filesystem>
 
@@ -152,22 +153,6 @@ void analyseTask(const string& taskDir, const vector<string>& files,
     else if (hasSuffix(f, ".ndx") && ndx.empty()) ndx = p;
   }
   if (xtc.empty() || top.empty() || mdp.empty()) return;
-  string mdpText;
-  readFile(mdp, mdpText);
-  int nstvout = 0;
-  {
-    std::istringstream in(mdpText);
-    string line;
-    while (std::getline(in, line)) {
-      line = line.substr(0, line.find(';'));
-      const size_t eq = line.find('=');
-      if (eq == string::npos) continue;
-      std::istringstream k(line.substr(0, eq)), v(line.substr(eq + 1));
-      string key;
-      k >> key;
-      if (key == "nstvout") v >> nstvout;
-    }
-  }
   string out;
   const char* gmxEnv = getenv("ECCE_GROMACS");
   const string gmx = gmxEnv && *gmxEnv ? string(gmxEnv) : CodePrograms::findOnPath("GROMACS");
@@ -179,25 +164,9 @@ void analyseTask(const string& taskDir, const vector<string>& files,
     if (runProgram(a, out) == 0 && access((stage + "/ecce_pp.top").c_str(), R_OK) == 0)
       top = stage + "/ecce_pp.top";
   }
-  const char* home = getenv("ECCE_HOME");
-  const string mda = (home && *home ? string(home) + "/bin/" : string()) + "mdanalysis"
-#ifdef _WIN32
-    ".exe"
-#endif
-    ;
-  string msd, speed;
-  if (runProgram({ mda, "--top", top, "--mdp", mdp, "--traj", xtc,
-                   "--out", stage + "/ecce_md_msd.txt" }, out) == 0)
-    readFile(stage + "/ecce_md_msd.txt", msd);
-  if (nstvout > 0 && !trr.empty()) {
-    if (runProgram({ mda, "--top", top, "--mdp", mdp, "--vel", trr,
-                     "--out", stage + "/ecce_md_speed.txt" }, out) == 0)
-      readFile(stage + "/ecce_md_speed.txt", speed);
-  } else if (!msd.empty()) {
-    speed = "ECCE-MDSPEED none\n";
-  }
-  if (!msd.empty() || !speed.empty())
-    writeFile(stage + "/ecce-parse-md.txt", msd + speed);
+  const string md = MdAnalysisRun::run(MdAnalysisRun::program(), top, mdp, xtc, trr, stage);
+  if (!md.empty())
+    writeFile(stage + "/ecce-parse-md.txt", md);
   // The job monitor reads the staging directory: leave only what it parses.
   for (const char* f : { "ecce_pp.top", "ecce_pp.tpr", "ecce_pp.mdp",
                          "ecce_md_msd.txt", "ecce_md_speed.txt" })

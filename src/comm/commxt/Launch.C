@@ -15,6 +15,7 @@
 #include <iomanip>
   using std::ios;
 #include <fstream>
+#include <sstream>
 #ifdef _WIN32
 #include <filesystem>
 #endif
@@ -492,6 +493,30 @@ Launch::~Launch(void)
 //  Implementation
 //
 ///////////////////////////////////////////////////////////////////////////////
+//  nstxout-compressed and nstvout of a GROMACS task's .mdp (0 when absent):
+//  whether the run writes traj.xtc, and velocities to traj.trr.
+static void mdpOutputSteps(TaskJob *task, int& xtc, int& vel)
+{
+  xtc = vel = 0;
+  istream *is = task ? task->getDataFile(JCode::PRIMARY_INPUT) : 0;
+  if (!is) return;
+  string line;
+  while (std::getline(*is, line)) {
+    line = line.substr(0, line.find(';'));
+    const size_t eq = line.find('=');
+    if (eq == string::npos) continue;
+    std::istringstream k(line.substr(0, eq)), v(line.substr(eq + 1));
+    string key;
+    int n = 0;
+    k >> key;
+    for (char& c : key) if (c == '_') c = '-';
+    if (!(v >> n)) continue;
+    if (key == "nstxout-compressed" || key == "nstxtcout") xtc = n;
+    else if (key == "nstvout") vel = n;
+  }
+  delete is;
+}
+
 bool Launch::nextOperation(void)
 {
 #if (!defined(INSTALL) && defined(DEBUG))
@@ -1626,11 +1651,18 @@ bool Launch::generateJobMonitoringFiles(void)
     //  GROMACS mdrun leaves its binary results in the run directory; the
     //  monitor fetches them unless the task asked to leave them there.  The
     //  trajectory exists only when the task writes one.
+    //  ecce_pp.top is the topology grompp resolved: what mdanalysis and
+    //  ecce-gmxanalysis read on the client.  The .mdp decides as well as the
+    //  model, since a task's .mdp may be the user's own (Inputs tab).
     if (p_cache->isGromacs && !p_isPrepareTask) {
       string gmx;
-      if (!p_cache->mdLeaveTraj)
-        gmx = p_cache->mdWriteTraj ? "traj.xtc ener.edr topol.tpr"
-                                   : "ener.edr topol.tpr";
+      if (!p_cache->mdLeaveTraj) {
+        int xtc = 0, vel = 0;
+        mdpOutputSteps(p_taskjob, xtc, vel);
+        gmx = "ener.edr topol.tpr ecce_pp.top";
+        if (p_cache->mdWriteTraj || xtc > 0) gmx = "traj.xtc " + gmx;
+        if (vel > 0) gmx += " traj.trr";
+      }
       if (!gmx.empty()) {
         monitorConfigFile << "filesToTransfer " << gmx << endl;
 

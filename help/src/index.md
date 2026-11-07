@@ -132,6 +132,10 @@ describe what you did and what happened.
    atomic speeds of a dynamics run against Maxwell-Boltzmann, and the
    mean-square displacement with the diffusion coefficient.
 
+24b. [MD Analysis](md-analysis.md): GROMACS's g(r) and coordination numbers,
+   energy terms, RMSD, radius of gyration, density profiles and hydrogen
+   bonds on a run's trajectory and energy file.
+
 25. [Energy Calculator](energy-calculator.md): the difference between the final
    energies of two calculations in Hartree, kJ/mol, kcal/mol and eV, and the
    notes on differing code, method or basis set.

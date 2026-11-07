@@ -95,8 +95,9 @@ Lines=1
 [END]
 
 # The trajectory gensub leaves in ecce-parse-traj.txt (<= 100 frames), one
-# GEOMTRACE step per frame; a File= parse like Gaussian's fort.7.
-[GEOMTRACE]
+# GEOMTRACE step per frame, with the frame's box as LATTICEVEC; a File= parse
+# like Gaussian's fort.7.
+[GEOMTRACE][LATTICEVEC]
 Script=gromacs.geomtrace
 File=ecce-parse-traj.txt
 Begin=ecce-parse-traj.txt

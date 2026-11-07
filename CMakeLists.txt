@@ -1351,6 +1351,12 @@ install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_rates.py
         DESTINATION scripts
         COMPONENT client)
 
+# ecce-gmxanalysis (#877): gmx rdf/energy/rms/gyrate/density/hbond on a stored
+# GROMACS calculation; the Builder's MD Analysis panel runs it.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_gmxanalysis.py
+        DESTINATION bin RENAME ecce-gmxanalysis
+        COMPONENT client)
+
 # ecce-bandshift (#707): matched bands and their shifts between two calculations.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_bandshift.py
         DESTINATION bin RENAME ecce-bandshift
@@ -4457,6 +4463,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs_md_analysis PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # #877 steps 2-3: the box per frame, the fetched files, the client-side
+  # mdanalysis, ecce-gmxanalysis against gmx itself and the MD Analysis panel.
+  add_test(NAME launch_gromacs_md_panel
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_md_panel_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs_md_panel PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   # The classic NWChem MD workflow (Prepare, Optimize, Energy, Dynamics), headless.
   add_test(NAME launch_nwchem_md_walk
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4972,6 +4986,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-bandshift=bin/ecce-bandshift
   ecce-ensemble=bin/ecce-ensemble
   ecce-rate=bin/ecce-rate
+  ecce-gmxanalysis=bin/ecce-gmxanalysis
   ecce-spectrum=bin/ecce-spectrum
   ecce-displace=bin/ecce-displace
   ecce-si-export=bin/ecce-si-export

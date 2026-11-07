@@ -10,16 +10,20 @@
 #   ecce-parse-traj.txt as
 #
 #     ECCE-TRAJ frame <n> atoms <N>
+#     ECCE-TRAJ box <a> <b> <c> <alpha> <beta> <gamma>   (CRYST1; older runs have none)
 #     <element> <x> <y> <z>        (Angstrom, one line per atom)
 #     ECCE-TRAJ end
 #
-#   gromacs.desc ships that file whole (File=), one record per frame here.
+#   gromacs.desc ships that file whole (File=), one record per frame here:
+#   GEOMTRACE, and LATTICEVEC when the frame has its box, so that the two
+#   stay the same length and GTStepCmd draws each frame's cell.
 #
 ################################################################################
 
 $| = 1;
 
-my (@coords, $labels, $i);
+my (@coords, $labels, $i, @box);
+use constant DEG => 3.14159265358979 / 180.0;
 sub flush {
   return unless @coords;
   print "key: GEOMTRACE\n";
@@ -30,12 +34,30 @@ sub flush {
   print " $_\n" for @coords;
   print "units:\nAngstrom\n";
   print "END\n";
-  @coords = (); $labels = ""; $i = 0;
+  if (@box == 6) {
+    # a along x, b in the xy plane: the PDB convention, which is GROMACS's.
+    my ($a, $b, $c) = @box[0..2];
+    my ($ca, $cb, $cg) = map { cos($_ * DEG) } @box[3..5];
+    my $sg = sin($box[5] * DEG);
+    my $cy = ($ca - $cb * $cg) / $sg;
+    my $cz = 1 - $cb * $cb - $cy * $cy;
+    my @v = ($a, 0, 0, $b * $cg, $b * $sg, 0,
+             $c * $cb, $c * $cy, $c * sqrt($cz > 0 ? $cz : 0));
+    print "key: LATTICEVEC\nsize:\n1 3 3\nrowlabels:\n0 1 2\ncolumnlabels:\nX Y Z\nvalues:\n";
+    for (my $k = 0; $k < 9; $k += 3) {
+      printf(" %.6f %.6f %.6f\n", map { abs($_) < 5e-7 ? 0 : $_ } @v[$k..$k+2]);
+    }
+    print "units:\nAngstrom\nEND\n";
+  }
+  @coords = (); $labels = ""; $i = 0; @box = ();
 }
 
 while (<STDIN>) {
   if (/^ECCE-TRAJ end/) {
     flush();
+  } elsif (/^ECCE-TRAJ box\s+(.*?)\s*$/) {
+    @box = split(/\s+/, $1);
+    @box = () unless (@box == 6);
   } elsif (/^\s*([A-Za-z]{1,2})\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s*$/) {
     push(@coords, "$2 $3 $4");
     $i++;
