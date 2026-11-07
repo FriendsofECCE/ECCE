@@ -27,10 +27,11 @@ KEEP = ("MO", "MOAOORDER", "ORBENG", "ORBOCC")
 
 def basisFile(name, elements, blocks):
     """One group per element and no ECP, as the Calculation Editor stores
-    a def2 set for light elements."""
+    a def2 set for light elements; the flag and diffuse/tight lists are
+    per angular momentum."""
     out = ["<MolecularConfig>\n<Map>\n"]
     for el in elements:
-        n = blocks[el].count("contraction")
+        n = 8   # one per angular momentum, s..k (TGaussianBasisSet::maxShell+1)
         flags = "false " * n
         out.append(
             '<Group Tag="%s" Name="%s">\n<OrderedList>\n'
