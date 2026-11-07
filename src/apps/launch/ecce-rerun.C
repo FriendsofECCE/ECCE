@@ -23,6 +23,8 @@ using std::vector;
 
 namespace {
 
+const char *const kNoAnswer =
+    "no answer from the Organizer; it may have been carried out — check before repeating";
 const int kAckSeconds = 8;          // an Organizer answers at once
 const int kBatchSeconds = 10 * 60;  // a batch submits one by one
 
@@ -196,10 +198,9 @@ int main(int argc, char **argv)
   }
   if (timedOut) {
     if (!gAck) return notRunning();
-    std::cerr << "ecce-rerun: no answer from ECCE within "
-              << kBatchSeconds / 60 << " minutes; see the Organizer for the "
-                 "state of the calculations" << std::endl;
-    return 1;
+    for (size_t i = 0; i < args.size(); i++)
+      std::cout << args[i] << ": " << kNoAnswer << std::endl;
+    return 3;
   }
   for (size_t i = 0; i < gLines.size(); i++) {
     size_t a = gLines[i].find('\t');

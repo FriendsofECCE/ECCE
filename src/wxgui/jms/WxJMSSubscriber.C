@@ -29,6 +29,7 @@ WxJMSSubscriber::WxJMSSubscriber(const string& toolName) {
   if (p_messagingEnabled) {
     p_ep = std::make_shared<MqttEndpoint>(toolName);
     p_ep->handler = [this](const string& t, JMSMessage& m) { deliver(t, m); };
+    p_ep->arrival = [this](const string& t, JMSMessage& m) { messageArrived(t, m); };
     p_ep->poster = [](std::shared_ptr<MqttEndpoint> ep, MqttInbound in) {
       // The endpoint is held by the closure; process() drops the message if
       // the subscriber was unsubscribed meanwhile.
@@ -175,14 +176,13 @@ string WxJMSSubscriber::getMyID() const {
   return std::to_string(getpid());
 }
 
-void WxJMSSubscriber::messageDeferred(const string&, JMSMessage&) {}
+void WxJMSSubscriber::messageArrived(const string&, JMSMessage&) {}
 
 /**
  * GUI thread: finds the callback for the topic and makes the call.
  */
 void WxJMSSubscriber::deliver(const string& topic, JMSMessage& msg) {
   if (p_deferring) {
-    messageDeferred(topic, msg);      // may mark msg as acknowledged
     p_deferred.emplace_back(topic, msg);
     return;
   }

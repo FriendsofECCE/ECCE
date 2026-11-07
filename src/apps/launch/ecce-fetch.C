@@ -8,8 +8,7 @@
  *
  * Without patterns: *.cube *.cub *.pdos. --list only lists the directory.
  * Prints "name: fetched (N bytes)", "pattern: no file matched" or
- * "calc: not fetched: reason". Exit 0: all fetched; 1: some not (or no
- * answer); 2: no running ECCE session; 3: the Organizer is busy with a
+ * "calc: not fetched: reason". Exit 3 also means no answer in time (it may have been carried out). Exit 0: all fetched; 1: some not ; 2: no running ECCE session; 3: the Organizer is busy with a
  * Launch Selected batch; 64: usage.
  */
 #include <sys/stat.h>
@@ -37,6 +36,8 @@ using std::vector;
 
 namespace {
 
+const char *const kNoAnswer =
+    "no answer from the Organizer; it may have been carried out — check before repeating";
 const int kAckSeconds = 8;          // an Organizer answers at once
 const int kBatchSeconds = 5 * 60;   // each cancel is a login round trip
 
@@ -177,20 +178,21 @@ int main(int argc, char **argv)
   if (!sent) return notRunning();
 
   end = clock::now() + std::chrono::seconds(kAckSeconds);
-  bool timedOut = false;
+  bool timedOut = false, batchLimitSet = false;
   while (!gDone) {
     if (clock::now() >= end) { timedOut = true; break; }
     sub.processMessage();
     if (gDone) break;
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    if (gAck && !gDone) end = clock::now() + std::chrono::seconds(kBatchSeconds);
+    if (gAck && !gDone && !batchLimitSet) {
+      batchLimitSet = true;   // once: resetting every pass would never time out
+      end = clock::now() + std::chrono::seconds(kBatchSeconds);
+    }
   }
   if (timedOut) {
     if (!gAck) return notRunning();
-    std::cerr << "ecce-fetch: no answer from ECCE within "
-              << kBatchSeconds / 60 << " minutes; see the Organizer for the "
-                 "state of the calculations" << std::endl;
-    return 1;
+    std::cout << args[0] << ": " << kNoAnswer << std::endl;
+    return 3;
   }
   if (gBusy) {
     std::cerr << "ecce-fetch: ECCE is submitting a Launch Selected batch; "

@@ -6,6 +6,7 @@
 #ifndef WXJMSSUBSCRIBER_HH
 #define WXJMSSUBSCRIBER_HH
 
+#include <atomic>
 #include <map>
 #include <memory>
 #include <string>
@@ -70,7 +71,9 @@ class WxJMSSubscriber : public wxEvtHandler {
 
   protected:
     // A message arrived while deferring and is being kept for later.
-    virtual void messageDeferred(const string& topic, JMSMessage& msg);
+    // Messaging thread, on arrival, before the GUI thread sees the message.
+    virtual void messageArrived(const string& topic, JMSMessage& msg);
+    bool deferring() const { return p_deferring; }
 
   private:
 
@@ -82,7 +85,7 @@ class WxJMSSubscriber : public wxEvtHandler {
     wxCbMap cbStructs;               /**< holds the Ecce app's callback classes & 
                                       * functions - one pair for each 
                                       * subscription */
-    bool p_deferring = false;
+    std::atomic<bool> p_deferring{false};
     std::vector<std::pair<string, JMSMessage> > p_deferred;
     string p_toolName;               /**< Name of tool - used to stamp messages */
     bool p_messagingEnabled;         /**< Indicates if messaging is enabled */

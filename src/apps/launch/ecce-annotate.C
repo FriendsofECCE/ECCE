@@ -12,8 +12,8 @@
  * --exclude <calc>... "reason" marks calculations as excluded (#617): the
  * same path, property ecce:excluded; --include <calc>... clears the mark.
  *
- * Prints "name: annotated" or "name: not annotated: reason". Exit 0: all
- * annotated; 1: some were not (or no answer); 2: no running ECCE session
+ * Prints "name: annotated" or "name: not annotated: reason". Exit 3 also means no answer in time (it may have been carried out). Exit 0: all
+ * annotated; 1: some were not; 2: no running ECCE session
  * and no local data folder; 64: usage.
  */
 #include <sys/stat.h>
@@ -44,6 +44,8 @@ using std::vector;
 
 namespace {
 
+const char *const kNoAnswer =
+    "no answer from the Organizer; it may have been carried out — check before repeating";
 const int kAckSeconds = 8;          // an Organizer answers at once
 const int kBatchSeconds = 60;
 
@@ -207,19 +209,22 @@ int main(int argc, char **argv)
   if (!sent) return notRunning();
 
   end = clock::now() + std::chrono::seconds(kAckSeconds);
-  bool timedOut = false;
+  bool timedOut = false, batchLimitSet = false;
   while (!gDone) {
     if (clock::now() >= end) { timedOut = true; break; }
     sub.processMessage();
     if (gDone) break;
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    if (gAck && !gDone) end = clock::now() + std::chrono::seconds(kBatchSeconds);
+    if (gAck && !gDone && !batchLimitSet) {
+      batchLimitSet = true;   // once: resetting every pass would never time out
+      end = clock::now() + std::chrono::seconds(kBatchSeconds);
+    }
   }
   if (timedOut) {
     if (!gAck) return notRunning();
-    std::cerr << "ecce-annotate: no answer from ECCE within a minute; see "
-                 "the Organizer for the state of the calculations" << std::endl;
-    return 1;
+    for (size_t i = 0; i < args.size(); i++)
+      std::cout << args[i] << ": " << kNoAnswer << std::endl;
+    return 3;
   }
 
   for (size_t i = 0; i < gLines.size(); i++) {

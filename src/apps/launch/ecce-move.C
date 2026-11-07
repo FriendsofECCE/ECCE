@@ -14,8 +14,8 @@
  * session nothing is done: a move behind the Organizer's back leaves stale tree nodes.
  *
  * Prints "name: moved to folder" / "name: renamed to new name" or
- * "name: not moved: reason" / "name: not renamed: reason". Exit 0: all done;
- * 1: some were not (or no answer); 2: no running ECCE session; 64: usage.
+ * "name: not moved: reason" / "name: not renamed: reason". Exit 3 also means no answer in time (it may have been carried out). Exit 0: all done;
+ * 1: some were not; 2: no running ECCE session; 64: usage.
  * One source, built twice: ECCE_RENAME_COMMAND selects ecce-rename.
  */
 #include <sys/stat.h>
@@ -46,6 +46,8 @@ using std::vector;
 
 namespace {
 
+const char *const kNoAnswer =
+    "no answer from the Organizer; it may have been carried out — check before repeating";
 const int kAckSeconds = 8;          // an Organizer answers at once
 const int kBatchSeconds = 3600;     // a transfer between trees can be large
 
@@ -204,19 +206,22 @@ int main(int argc, char **argv)
   if (!sent) return notRunning();
 
   end = clock::now() + std::chrono::seconds(kAckSeconds);
-  bool timedOut = false;
+  bool timedOut = false, batchLimitSet = false;
   while (!gDone) {
     if (clock::now() >= end) { timedOut = true; break; }
     sub.processMessage();
     if (gDone) break;
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    if (gAck && !gDone) end = clock::now() + std::chrono::seconds(kBatchSeconds);
+    if (gAck && !gDone && !batchLimitSet) {
+      batchLimitSet = true;   // once: resetting every pass would never time out
+      end = clock::now() + std::chrono::seconds(kBatchSeconds);
+    }
   }
   if (timedOut) {
     if (!gAck) return notRunning();
-    std::cerr << me << ": no answer from ECCE; see "
-                 "the Organizer for the state of the calculations" << std::endl;
-    return 1;
+    for (size_t i = 0; i < args.size(); i++)
+      std::cout << args[i] << ": " << kNoAnswer << std::endl;
+    return 3;
   }
 
   for (size_t i = 0; i < gLines.size(); i++) {
