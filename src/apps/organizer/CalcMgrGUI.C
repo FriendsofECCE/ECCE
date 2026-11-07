@@ -270,7 +270,6 @@ void CalcMgrGUI::CreateControls()
     //  on the first tree click) and, worse, would look like it worked
     //  while the menu happened to be untouched.
     itemMenu3->Append(wxID_IMPORT, _("&Import Calculation from Output File..."), _T(""), wxITEM_NORMAL);
-    itemMenu3->Append(wxID_EXPORT, _("&Export"), _T(""), wxITEM_NORMAL);
     itemMenu3->AppendSeparator();
     itemMenu3->Append(wxID_EXIT, _("&Quit\tCtrl+Q"), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu3, _("&File"));

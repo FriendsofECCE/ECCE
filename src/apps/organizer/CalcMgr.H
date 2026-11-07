@@ -544,6 +544,7 @@ protected:
   void OnCompareEnergies(wxCommandEvent& event);
   bool p_compareEnergiesWired = false;
   // File > Export > Supporting Information (#625).
+  bool p_siExportWired = false;
   void OnRank(wxCommandEvent& event);
   // Tools > Allocations (#613).
   void OnAllocations(wxCommandEvent& event);

@@ -245,6 +245,22 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
+  //  "floatstyle <pane> <tag>" -> <outdir>/<tag>.txt: the floating frame's
+  //  style flags.
+  if (c == "floatstyle" && w.size() == 3) {
+    string name = w[1];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+    if (!pane.IsOk() || !pane.IsFloating() || !pane.frame)
+      return s.fail("floatstyle: " + name + " is not floating");
+    const long st = pane.frame->GetWindowStyleFlag();
+    std::ofstream out(outdir + "/" + w[2] + ".txt");
+    out << "onparent " << ((st & wxFRAME_FLOAT_ON_PARENT) ? 1 : 0)
+        << " notaskbar " << ((st & wxFRAME_NO_TASKBAR) ? 1 : 0);
+    out << "\n";
+    return true;
+  }
+
   //  "toolclip <name> <tool>" -> <outdir>/<name>.txt: "pane <w>", then one
   //  "clipped <class> <right edge> <width>" line per control of the tool's
   //  scroll window that ends beyond its client width, and "hscroll 1" if
