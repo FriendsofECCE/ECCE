@@ -198,6 +198,8 @@ def checkSet(work, setId, failures):
 
 
 def main():
+    # A fresh test home (offload hosts) has no ~/.cache yet.
+    os.makedirs(os.path.expanduser("~/.cache"), exist_ok=True)
     work = tempfile.mkdtemp(prefix="examples-preparsed-",
                             dir=os.path.expanduser("~/.cache"))
     failures = []
