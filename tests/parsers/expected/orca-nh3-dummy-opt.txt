@@ -333,7 +333,7 @@ args:    '.' 'Geometry' 'SCF' 'RHF' '0'
     (script emitted no property)
 
 [EGRAD][EGRADVEC]  Script=orca.egradvec  Freq=all  Skip=3  Lines=-
-  Begin=CARTESIAN GRADIENT
+  Begin=^CARTESIAN GRADIENT\s*$
   End=TIMINGS
   begins=7 delivered=7 buffered_away=0
   block 1: begin-line=750 fed=18 rc=0 first-fed='   1   N   :   -0.000019665   -0.001840954    0.027677623'

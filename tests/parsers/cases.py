@@ -2542,6 +2542,20 @@ CASES = [
                 'SOLVMODEL': {'values': 'SMD, Water', 'units': 'NA'}}),
         },
     ),
+    dict(
+        name='orca-h2-ccsd-scan-step',
+        desc='orca.desc',
+        fixture='orca/h2_ccsd_scan_step1.out',
+        # First step of the H2 CCSD relaxed scan (#858): the MDCI gradient
+        # is "CARTESIAN GRADIENT (ANALYTIC)", has no norm line and no
+        # TIMINGS block after it.
+        parse_args=('.', 'Geometry', 'SCF', 'RHF', '0'),
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck, so ORCA '
+                                         'prints no Irrep column'},
+        expect={
+            'EGRAD][EGRADVEC': dict(blocks=2),
+        },
+    ),
 
     # -----------------------------------------------------------------
     # CP2K 2025.1 (Quickstep), #329.  The decks were written by ai.cp2k and
