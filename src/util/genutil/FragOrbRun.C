@@ -91,6 +91,13 @@ FragOrbResult runFragOrb(const string& complex, const vector<string>& fragments,
     }
     r.channels.push_back(ch);
   }
+  const J& fc = j.get("field_check");
+  if (!fc.isNull()) {
+    r.fieldApplicable = fc.get("applicable").boolean();
+    r.fieldOk = fc.get("ok").boolean();
+    r.fieldChecked = (int)num(fc.get("checked"));
+    r.fieldWorst = num(fc.get("worst"));
+  }
   r.ok = !r.channels.empty() && !r.channels[0].mo.empty();
   if (!r.ok) r.error = "ecce-fragorb gave no orbitals.";
   return r;

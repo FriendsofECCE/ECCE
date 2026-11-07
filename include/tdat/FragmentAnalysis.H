@@ -76,6 +76,25 @@ struct Connection {
 // FO -> complex MO lines with share >= threshold (method "mulliken"|"scpa").
 vector<Connection> connections(const Analysis& a, double threshold, const string& method);
 
+// Does the occupied d set of a one-atom fragment match the complex's?  Each
+// occupied complex MO with a Mulliken share of at least dMin on the atom's d
+// orbitals must be expanded mainly in the atom's OCCUPIED d orbitals: their
+// share at least occMin of its d share.  A bare ion's degenerate d set is
+// filled in an arbitrary orientation unless the fragment calculation was
+// guided, and the d shares are then not those of the complex's t2g/eg
+// split.  applicable is false for a fragment that is not an atom with a d
+// set, or when no occupied MO has dMin of d (ok stays true: nothing to say).
+struct FieldCheck {
+  bool applicable = false;
+  bool ok = true;
+  int fragment = -1;        // 0-based
+  int checked = 0;          // occupied MOs with a d share of at least dMin
+  double worst = 1;         // lowest occupied fraction of the d share
+  int mo = 0;               // 1-based, the MO that has it
+  double dShare = 0;        // its d share
+};
+FieldCheck fieldCheck(const Analysis& a, double dMin = 0.30, double occMin = 0.80);
+
 // --- OPDOS / PDOS / TDOS ---------------------------------------------------
 
 struct AtomSet {

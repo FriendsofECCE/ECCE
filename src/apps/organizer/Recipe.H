@@ -142,7 +142,8 @@ bool hasFragmentSteps(const RecipeVariant& variant);
 /// The variant with each "fragment" step made once per fragment (ids
 /// "<id>-1", "<id>-2", ...) and every link to or from it repeated.
 RecipeVariant expandFragments(const RecipeVariant& variant,
-                              const std::vector<RecipeFragment>& fragments);
+                              const std::vector<RecipeFragment>& fragments,
+                              const std::vector<int>& z = std::vector<int>());
 
 /// "1:0:1/2-13:0:1" (atoms:charge:multiplicity[:free], "/" between fragments), and back.
 std::string fragmentsText(const std::vector<RecipeFragment>& fragments);

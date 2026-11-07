@@ -161,7 +161,10 @@ static int analyseCmd(const vector<string>& pos, double threshold, string method
     printf("],\"connections\":[");
     for (size_t k = 0; k < con.size(); k++)
       printf("%s{\"spin\":%d,\"mo\":%d,\"fo\":%d,\"share\":%.8f}", k ? "," : "", con[k].spin, con[k].mo + 1, con[k].fo + 1, con[k].share);
-    printf("]}\n");
+    printf("],\"field_check\":");
+    const FieldCheck fc = fieldCheck(a);
+    printf("{\"applicable\":%s,\"ok\":%s,\"fragment\":%d,\"checked\":%d,\"worst\":%.6f,\"mo\":%d,\"d_share\":%.6f}}\n",
+           fc.applicable ? "true" : "false", fc.ok ? "true" : "false", fc.fragment + 1, fc.checked, fc.worst, fc.mo, fc.dShare);
     return 0;
   }
   printf("complex %s, %zu fragments, %s composition, FO energies and MO energies in eV\n", name.c_str(),

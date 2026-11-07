@@ -337,8 +337,11 @@ bool hasFragmentSteps(const RecipeVariant& variant)
 }
 
 
+namespace { bool isMetal(int z); }
+
 RecipeVariant expandFragments(const RecipeVariant& variant,
-                              const vector<RecipeFragment>& fragments)
+                              const vector<RecipeFragment>& fragments,
+                              const vector<int>& z)
 {
   RecipeVariant out = variant;
   out.steps.clear();
@@ -353,12 +356,15 @@ RecipeVariant expandFragments(const RecipeVariant& variant,
     }
     for (size_t k = 0; k < fragments.size(); k++) {
       const RecipeFragment& one = fragments[k];
-      // A single atom in its complex state: the d orbitals of the bare ion
-      // are degenerate and the SCF fills an arbitrary subset, so a first step
-      // in point charges at the donor atoms picks the occupation.
+      // A single metal atom in its complex state: the d orbitals of the bare
+      // ion are degenerate and the SCF fills an arbitrary subset, so a first
+      // step in point charges at the donor atoms picks the occupation. A
+      // non-metal has no such set, and without the elements nothing is known.
       const bool oneAtom = !one.free && !one.atoms.empty() &&
           one.atoms.find_first_not_of("0123456789") == string::npos;
-      if (s.metalField && oneAtom) {
+      const long atom = oneAtom ? atol(one.atoms.c_str()) : 0;
+      if (s.metalField && oneAtom && atom >= 1 && atom <= (long)z.size() &&
+          isMetal(z[atom - 1])) {
         RecipeStep pre = s;
         pre.id = s.id + "-" + std::to_string(k + 1) + "-field";
         pre.field = true;

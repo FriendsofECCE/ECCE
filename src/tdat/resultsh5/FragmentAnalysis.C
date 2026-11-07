@@ -334,6 +334,58 @@ vector<Connection> connections(const Analysis& a, double threshold, const string
   return r;
 }
 
+FieldCheck fieldCheck(const Analysis& a, double dMin, double occMin) {
+  FieldCheck r;
+  // The fragment is a lone atom with a d set: at least five of its orbitals
+  // are mostly d (Mulliken population of l = 2 of 50 % or more).
+  for (size_t f = 0; f < a.fragmentModels.size() && !r.applicable; f++) {
+    const Model* fm = a.fragmentModels[f];
+    if (!fm || fm->natoms() != 1 || a.channel.empty()) continue;
+    const Mos* fmo = mosFor(*fm, 0);
+    if (!fmo) fmo = &fm->mos[0];
+    vector<double> Sf;
+    string err;
+    if (!overlapMatrix(*fm, geometryOf(*fm), Sf, err)) continue;
+    const size_t na = fmo->nao;
+    vector<int> lOf;
+    for (size_t k = 0; k < fm->basis.shells.size(); k++)
+      for (size_t i = 0; i < shellSize(fm->basis.shells[k]); i++) lOf.push_back(fm->basis.shells[k].l);
+    if (lOf.size() != na) continue;
+    vector<char> isD(fmo->nmo, 0);
+    size_t nd = 0;
+    for (size_t i = 0; i < fmo->nmo; i++) {
+      const double* c = &fmo->coef[i * na];
+      double pop = 0;
+      for (size_t mu = 0; mu < na; mu++) {
+        if (lOf[mu] != 2) continue;
+        double sc = 0;
+        for (size_t nu = 0; nu < na; nu++) sc += Sf[mu * na + nu] * c[nu];
+        pop += c[mu] * sc;
+      }
+      if (pop >= 0.5) { isD[i] = 1; nd++; }
+    }
+    if (nd < 5) continue;
+    r.applicable = true;
+    r.fragment = int(f);
+    for (const Channel& ch : a.channel)
+      for (size_t i = 0; i < ch.nmo; i++) {
+        if (ch.occupation[i] <= 0.5) continue;
+        double d = 0, occ = 0;
+        for (size_t k = 0; k < ch.fo.size(); k++) {
+          if (ch.fo[k].fragment != int(f) || size_t(ch.fo[k].index) > isD.size() || !isD[ch.fo[k].index - 1]) continue;
+          const double m = ch.mulliken[k * ch.nmo + i];
+          d += m;
+          if (ch.fo[k].occupation > 0.5) occ += m;
+        }
+        if (d < dMin) continue;
+        r.checked++;
+        if (occ / d < r.worst) { r.worst = occ / d; r.mo = int(i + 1); r.dShare = d; }
+      }
+    r.ok = r.checked == 0 || r.worst >= occMin;
+  }
+  return r;
+}
+
 bool dos(const Model& cx, const DosOptions& opt, DosResult& out, string& err) {
   out = DosResult();
   if (cx.basis.type != "GTO" || cx.basis.orthonormal || cx.mos.empty()) { err = "no Gaussian-basis orbitals"; return false; }

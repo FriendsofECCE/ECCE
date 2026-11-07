@@ -269,6 +269,17 @@ is near zero when the fragments together have the complex's basis set.
 A Mulliken share can be above 100 % or below 0 when fragment orbitals
 overlap strongly; the shares of one orbital still add up as above.
 
+When a fragment is a single metal atom, the box also checks that its
+occupied d orbitals match the complex's. Every occupied complex orbital
+with a Mulliken share of 30 % or more on the atom's d orbitals must be
+made mainly (80 % or more of that d share) of the atom's occupied d
+orbitals. If one is not, a line under the box says: "The metal fragment's
+occupied d orbitals do not match the complex's; the d shares are
+unreliable (field-split guess failed)." The shares are still shown. This
+happens, for example, when the atom was run without the field box and the
+SCF filled a different set of the degenerate d orbitals than the complex
+uses.
+
 **Details...** opens a window with:
 
 - every complex orbital with its energy, occupation, the part outside the
