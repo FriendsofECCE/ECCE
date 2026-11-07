@@ -49,7 +49,8 @@ EXPECT = {
               "Theory": "SCF/RHF", "Runtype": "Geometry"},
 }
 FIELDS = ("Formula", "Atoms", "Electrons", "Symmetry", "Basis",
-          "Polarization", "Functions", "Primitives", "Theory", "Runtype")
+          "Polarization", "Functions", "Primitives", "Theory", "Runtype",
+          "SpinMult", "OpenShells", "CDFitting")
 
 failures = []
 
@@ -236,6 +237,69 @@ def queuedCase(display, pngs):
         shutil.rmtree(data, ignore_errors=True)
 
 
+def checkFields(label, result, expect):
+    """Like check(), for the fields alone; values may hold spaces."""
+    log = result.log or ""
+    done = re.search(r"ECCE_TEST_ORGANIZER: summary \S+: (.*)", log)
+    if result.crashed or not done:
+        problem = "crashed or the summary command never answered"
+    else:
+        wrong = []
+        for key, want in sorted(expect.items()):
+            m = re.search(r"\b%s=(.*?)(?= [A-Za-z]+=|$)" % key, done.group(1))
+            got = m.group(1) if m else None
+            if got != want:
+                wrong.append("%s=%r (want %r)" % (key, got, want))
+        problem = "summary fields wrong: " + ", ".join(wrong) if wrong else None
+    if problem is None:
+        print("ok    %s" % label)
+        return
+    failures.append(label)
+    print("FAIL  %s: %s\n%s" % (label, problem, run_tests._tail(log, 25)))
+
+
+def orcaCase(display, pngs):
+    """A calculation made outside the Calculation Editor (series, script,
+    recipe) stores no open-shell count: the summary shows multiplicity - 1
+    (#893). Its ORCA RI mode and auxiliary basis are in the theory line and
+    under CD Fitting (#894)."""
+    ns = "http://www.emsl.pnl.gov/ecce:"
+    setup = ("ES.Theory.DFT.XCFunctionals|PBE0 D3BJ||1|1|menu_input\n"
+             "ES.Theory.SCF.RIMode|RIJCOSX||1|1|menu_input\n"
+             "ES.Theory.SCF.RIJCOSXAuxBasis|def2/J||1|1|menu_input\n")
+    for mult, openShells in (("Singlet", "0"), ("Triplet", "2")):
+        data = tempfile.mkdtemp(prefix="ecce-summary-data-")
+        try:
+            project = os.path.join(data, "users", "local", "summary-test")
+            os.makedirs(project)
+            shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+            calc = os.path.join(project, "water-orca")
+            shutil.copytree(os.path.join(fixture.FIXTURES,
+                                         "calc-orca-water-ccpvdz"),
+                            calc, symlinks=True)
+            with open(os.path.join(calc, "Parameters", "SetupParams"), "w") as f:
+                f.write(setup)
+            meta = os.path.join(calc, ".ecce-meta")
+            lines = []
+            for line in open(meta).read().splitlines():
+                if line.startswith(".\t" + ns + "spinmultiplicity\t"):
+                    line = ".\t" + ns + "spinmultiplicity\t\t" + mult
+                elif "hasConfigurations" in line:
+                    line = line.replace("</rdf:Bag>",
+                        '<rdf:li><rdf:href xlink:href="Parameters/SetupParams" '
+                        'xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>')
+                lines.append(line)
+            open(meta, "w").write("\n".join(lines) + "\n")
+            result = organizer(display, "file://" + calc,
+                               os.path.join(pngs, "orca-%s.png" % mult),
+                               {"ECCE_LOCAL_DATA": data})
+            expect = {"Theory": "DFT/RDFT \u00b7 PBE0 D3BJ \u00b7 RIJCOSX",
+                      "OpenShells": openShells, "CDFitting": "def2/J"}
+            checkFields("ORCA %s, RIJCOSX" % mult, result, expect)
+        finally:
+            shutil.rmtree(data, ignore_errors=True)
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         keep = os.environ.get("ECCE_SUMMARY_PNGS")
@@ -245,6 +309,7 @@ def main():
             serverCase(display, pngs)
             localCase(display, pngs)
             queuedCase(display, pngs)
+            orcaCase(display, pngs)
         finally:
             if not keep:
                 shutil.rmtree(pngs, ignore_errors=True)

@@ -23,6 +23,7 @@
 #include "util/PrefDateTime.H"
 #include <ctime>
 #include "tdat/TFormula.H"
+#include "tdat/SpinMult.H"
 #include "tdat/TProperty.H"
 #include "tdat/PropVector.H"
 #include "util/TempStorage.H"
@@ -840,6 +841,26 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
     p_inpProvProps->findValue(resProp->getQName(), valuestr);
   }
 
+  // Calculations not set up in the Calculation Editor (script, recipe,
+  // series) store no open-shell count or ORCA RI auxiliary basis; show what
+  // the editor would have stored rather than a blank.
+  ICalculation *icalc = dynamic_cast<ICalculation*>(p_itemData->getResource());
+  const string pname = resProp->getName();
+  if (icalc && pname == "openshells" && valuestr.empty()) {
+    const SpinMult::SpinMultEnum sm = icalc->spinMultiplicity();
+    if (sm != SpinMult::unknown) valuestr = std::to_string((int)sm - 1);
+  }
+  if (icalc && pname == "chargeFittingName" &&
+      (valuestr.empty() || valuestr == "None")) {
+    GUIValues *params = icalc->guiparams();
+    GUIValue *mode = params ? params->get("ES.Theory.SCF.RIMode") : 0;
+    GUIValue *aux = params ? params->get("ES.Theory.SCF.RIJCOSXAuxBasis") : 0;
+    const string ri = mode ? mode->getValueAsString() : string();
+    if (aux && (ri == "RIJCOSX" || ri == "RIJONX"))
+      valuestr = aux->getValueAsString();
+    delete params;
+  }
+
   // Empty metadata fields take no sizer space, while their GTK widgets remain
   // visible at zero size so scrolling cannot allocate a hidden child.
   const bool show = !valuestr.empty() || resProp->getDisplay();
@@ -852,15 +873,21 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
   {
     if (resProp->getName() == "empiricalFormula")
       valuestr = TFormula::hillOrder(valuestr);
-    //  "DFT/RDFT" alone does not say which functional ran (#611).
-    if (resProp->getName() == "theory" && valuestr.compare(0, 4, "DFT/") == 0) {
+    //  "DFT/RDFT" alone does not say which functional ran (#611); the ORCA
+    //  RI mode changes the result too (#894).
+    if (resProp->getName() == "theory") {
       ICalculation *calc = dynamic_cast<ICalculation*>(p_itemData->getResource());
       GUIValues *params = calc ? calc->guiparams() : 0;
-      GUIValue *value = params ? params->get("ES.Theory.DFT.XCFunctionals") : 0;
-      string functional = value ? value->getValueAsString() : string();
-      const size_t paren = functional.find(" (");
-      if (paren != string::npos) functional.erase(paren);
-      if (!functional.empty()) valuestr += " \xc2\xb7 " + functional;
+      if (valuestr.compare(0, 4, "DFT/") == 0) {
+        GUIValue *value = params ? params->get("ES.Theory.DFT.XCFunctionals") : 0;
+        string functional = value ? value->getValueAsString() : string();
+        const size_t paren = functional.find(" (");
+        if (paren != string::npos) functional.erase(paren);
+        if (!functional.empty()) valuestr += " \xc2\xb7 " + functional;
+      }
+      GUIValue *mode = params ? params->get("ES.Theory.SCF.RIMode") : 0;
+      const string ri = mode ? mode->getValueAsString() : string();
+      if (ri == "RIJCOSX" || ri == "RIJONX") valuestr += " \xc2\xb7 " + ri;
       delete params;
     }
     // The middle dot above is UTF-8; plain conversion reads it as the
