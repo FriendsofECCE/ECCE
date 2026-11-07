@@ -154,10 +154,21 @@ End=^-{4,}\s*$
 
 [EGRAD][EGRADVEC]
 Script=orca.egradvec
-Begin=CARTESIAN GRADIENT
+Begin=^CARTESIAN GRADIENT\s*$
 Skip=3
 Frequency=all
 End=TIMINGS
+[END]
+
+# The MDCI (CCSD) gradient is printed as "CARTESIAN GRADIENT (ANALYTIC)"
+# with "0:" atom rows and no TIMINGS block after it; an unclosed block
+# swallowed every later property (TE, scan energies) up to the end of file.
+[EGRAD][EGRADVEC]
+Script=orca.egradvec
+Begin=^CARTESIAN GRADIENT \(ANALYTIC\)
+Skip=2
+Frequency=all
+End=^-{4,}\s*$
 [END]
 
 [DIPOLEORIGIN]
