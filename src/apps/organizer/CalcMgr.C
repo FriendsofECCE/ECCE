@@ -1261,6 +1261,9 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflowautorun WF on|off|query   the auto-run setting (#736)
       //   workflowlaunchstep WF STEP   launch that one step if it is ready
       //   workflowplay WF       play button of each box: "name:1|0:reason|.."
+      //   workflowautorunclick WF on|off   tick the view's auto-run box as a
+      //     click does: "ok shown=1|0 autorun=on|off" (#902)
+      //   workflowstate WF STEP   the step's state and why it is not ready (#901)
       //   workflowshot PNG WF   the Organizer showing WF; the drawing's checks
       //   workflowdialogshot PNG WF TYPE SOURCE   the New-step dialog
       //   workflownew WF TYPE panel|tree SOURCE|-   a new step as the view's
@@ -1296,6 +1299,7 @@ void CalcMgr::runTestCommand(const string& line)
                  command == "workflowcrestcheck" ||
                  command == "workflowautorun" || command == "workflowlaunchstep" ||
                  command == "workflowsetlaunch" ||
+                 command == "workflowautorunclick" || command == "workflowstate" ||
                  command == "workflowmove") {
         args >> a >> b >> c >> d;
       } else if (command == "workflowjoin") {
@@ -1478,6 +1482,30 @@ void CalcMgr::runTestCommand(const string& line)
         Resource *s = step(b);
         if (!s) outcome = "error: no such step";
         else launchStep(wf, s, false, &outcome);
+      } else if (command == "workflowstate") {
+        TaskJob *t = dynamic_cast<TaskJob*>(step(b));
+        if (!t) outcome = "error: no such step";
+        else outcome = "ok state=" + ResourceUtils::stateToString(t->getState()) +
+                       " notready=" + t->getProp(VDoc::getEcceNamespace() +
+                                                 WorkflowSteps::kNotReadyProp);
+      } else if (command == "workflowautorunclick") {
+        p_treeCtrl->SelectItem(wfNode->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        if (!wp) {
+          outcome = "no workflow panel";
+        } else {
+          wp->clickAutoRun(b == "on");
+          for (int i = 0; i < 20; i++) { wxYield(); wxMilliSleep(50); }
+          spc = dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+          WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
+          const bool shown = spc && spc->getWorkflowPanel() && sel &&
+                             sel->getUrl() == wf->getURL();
+          outcome = string("ok shown=") + (shown ? "1" : "0") + " autorun=" +
+                    (WorkflowSteps::autoRun(wf) ? "on" : "off");
+        }
       } else if (command == "workflowplay") {
         // The play button of every box: "name:1|0:reason", once queued
         // notices and any launch batch (auto-run's included) are done.
@@ -4537,7 +4565,9 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
   }
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
-    WxResourceTreeItemData *item = findNode(urls[i], true, true);
+    // Not openWhenFound: that selects the node, which replaces the
+    // workflow view a launch from it was started in (#902).
+    WxResourceTreeItemData *item = findNode(urls[i], false, true);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
     if (task) tasks.push_back(task);
   }
@@ -4547,6 +4577,12 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
   }
   LaunchBatch::Target target = initial;
   vector<LaunchSelected::Row> rows = LaunchSelected::plan(tasks, target);
+  // A shot is a test run; a real GUI launch asks for what is missing.
+  if (interactive && shot.empty() && !target.any() &&
+      askForMissingSettings(rows)) {
+    if (outcome) *outcome = "launcher opened";
+    return;
+  }
   bool go = true;
   if (interactive || !shot.empty()) {
     go = LaunchSelected::confirm(this, rows, target,
@@ -4566,6 +4602,29 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
     for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = '|';
     *outcome = "ok " + r;
   }
+}
+
+
+// There is no default machine: a step without launch settings is not
+// skipped but opened in the Launcher, which submits it when the user
+// presses Launch. Returns true when no row is left to launch here.
+bool CalcMgr::askForMissingSettings(vector<LaunchSelected::Row>& rows)
+{
+  vector<LaunchSelected::Row> rest;
+  string names;
+  for (const LaunchSelected::Row& r : rows) {
+    if (!r.plan.ready && r.plan.problem == "no machine stored") {
+      startApp("Launcher", 0, r.plan.url);
+      names += (names.empty() ? "" : ", ") + r.plan.name;
+    } else {
+      rest.push_back(r);
+    }
+  }
+  if (names.empty()) return false;
+  setMessage("No launch settings yet for " + names +
+             ": choose a machine in the Launcher.", WxFeedback::INFO);
+  rows.swap(rest);
+  return rows.empty();
 }
 
 
@@ -4611,17 +4670,24 @@ void CalcMgr::startBatch(const vector<LaunchSelected::Row>& rows, bool showRepor
 }
 
 
-bool CalcMgr::launchSelectedAsync(const vector<EcceURL>& urls, string *outcome)
+bool CalcMgr::launchSelectedAsync(const vector<EcceURL>& urls, string *outcome,
+                                  bool askForSettings)
 {
   if (p_batch) { if (outcome) *outcome = "busy"; return false; }
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
-    WxResourceTreeItemData *item = findNode(urls[i], true, true);
+    // Not openWhenFound: that selects the node, which replaces the
+    // workflow view a launch from it was started in (#902).
+    WxResourceTreeItemData *item = findNode(urls[i], false, true);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
     if (task) tasks.push_back(task);
   }
   if (tasks.empty()) { if (outcome) *outcome = "no calculations"; return false; }
   vector<LaunchSelected::Row> rows = LaunchSelected::plan(tasks);
+  if (askForSettings && askForMissingSettings(rows)) {
+    if (outcome) *outcome = "launcher opened";
+    return false;
+  }
   startBatch(rows, false);
   if (outcome) *outcome = "started";
   return true;
@@ -9542,7 +9608,9 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
           vector<Resource*> ready = WorkflowSteps::readySteps(wf);
           for (Resource *member : ready)
             if (member->getURL() == step->getURL()) {
-              WorkflowSteps::refreshFromSources(wf, member);
+              // Not prepared: the editor writes the deck, and a deck
+              // written here would carry default theory and chemistry.
+              WorkflowSteps::refreshFromSources(wf, member, false);
               break;
             }
         }
@@ -11679,6 +11747,9 @@ vector<Resource*> CalcMgr::newRecipeSteps(Session *wf, const Recipe& recipe,
     if (outcome) *outcome = why.empty() ? "not created" : why;
     return made;
   }
+  // A step whose source is already Complete gets its input now (#901).
+  // Not refreshFromSources: its structureSet would re-rule the levels just set.
+  for (size_t i = 0; i < made.size(); i++) WorkflowSteps::prepareStep(wf, made[i]);
   WxResourceTreeItemData *node = findNode(wf->getURL(), true, false);
   if (node) {
     p_treeCtrl->refresh(node);
@@ -11784,7 +11855,7 @@ void CalcMgr::autoRunWorkflow(Session *wf)
   // In the background, as Launch Selected does: a submission over ssh must
   // not freeze the Organizer, and this can run inside another event's yield.
   string outcome;
-  if (launchSelectedAsync(urls, &outcome)) p_autoBatch = true;
+  if (launchSelectedAsync(urls, &outcome, true)) p_autoBatch = true;
 }
 
 
@@ -12086,8 +12157,12 @@ void CalcMgr::updateUrl(const EcceURL & url)
       CallAfter([this, wfUrl]() {
         WxResourceTreeItemData *n = findNode(wfUrl, false, false);
         Session *wf = n ? dynamic_cast<Session*>(n->getResource()) : 0;
-        if (wf && wf->getApplicationType() == ResourceDescriptor::AT_WORKFLOW)
+        if (wf && wf->getApplicationType() == ResourceDescriptor::AT_WORKFLOW) {
+          // What the finished step unblocked becomes Ready, auto-run or not (#901).
+          for (Resource *s : WorkflowSteps::readySteps(wf))
+            WorkflowSteps::prepareStep(wf, s);
           autoRunWorkflow(wf);
+        }
       });
     }
   }
