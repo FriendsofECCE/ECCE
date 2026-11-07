@@ -339,6 +339,23 @@ int main(int argc, char** argv)
     }
   }
 
+  // The Organizer's GROMACS import stages a private copy in gmximport-*;
+  // it is removed whatever the exit status, unless logmode says to keep it.
+  if (!importDir.empty() && !deleteFlag) {
+    string d = importDir;
+    while (d.size() > 1 && d[d.size()-1] == '/') d.erase(d.size()-1);
+    string::size_type sl = d.rfind('/');
+    string base = sl == string::npos ? d : d.substr(sl+1);
+    bool keep = false;
+    if (value != NULL) {
+      string m = value;
+      string::size_type c = m.find(',');
+      if (c != string::npos) m = m.substr(c+1);
+      keep = m.find("yes")!=string::npos || m.find("true")!=string::npos;
+    }
+    if (base.compare(0, 10, "gmximport-") == 0 && !keep) deleteFlag = true;
+  }
+
   if (!importDir.empty() && importDir.length()>5 && deleteFlag) {
     string rmcmd = "/bin/rm -rf " + RCommand::quotePath(importDir);
 #ifdef _WIN32
