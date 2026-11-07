@@ -92,6 +92,9 @@ folder (of a bond, or of an angle or torsion, as this one). Tick the ones to
 draw beside this one. Each curve is drawn relative to its own lowest point,
 so the shapes can be compared; the absolute energies of different methods
 are never put on one scale. The key names each curve after its calculation.
+Choose **OK** to draw the ticked scans and **Cancel** to leave the plot as it
+was; ticking none returns to the one curve. A scan whose energies are
+missing is not listed.
 
 ### Fit a Morse potential to a bond scan
 
@@ -102,7 +105,10 @@ V(r) = Dₑ (1 − e^−a(r − rₑ))² + E∞ − Dₑ
 to the scan points by least squares. **Window:** is the energy above the
 lowest point up to which points are used, in the energy unit of the panel;
 left empty, every point below the energy at the longest distance (the bound
-part of the curve) is used. Press Enter in the field to fit again. The fitted
+part of the curve) is used. The label after the field shows the unit, which
+follows **Energy unit:** (kJ/mol or kcal/mol); changing that unit converts the
+number in the field. Press Enter in the field to fit again. Unticking **Fit
+Morse** hides the curve and the box. The fitted
 curve is drawn dashed, and the box under the plot lists (select and copy the
 text):
 

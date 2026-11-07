@@ -27,7 +27,7 @@ SETS = {"getting-started": ("Examples/Getting_Started", 6),
         "computational": ("Examples/Computational", 4),
         "organic": ("Examples/Organic_Chemistry", 21),
         "spectroscopy": ("Examples/Spectroscopy", 19),
-        "genchem": ("Examples/General_Chemistry", 106),
+        "genchem": ("Examples/General_Chemistry", 109),
         "workflows": ("Examples/Workflows", 14),
         "test": ("Examples/Test", 7)}
 
