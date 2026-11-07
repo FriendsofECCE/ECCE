@@ -192,7 +192,7 @@ namespace WorkflowSteps {
 
   /// Attaches a finished field step's orbitals as the guess of `step`, once.
   /// The deck only carries MORead if this ran before the editor saved it.
-  void attachFieldOrbitals(Resource *step, Resource *source);
+  bool attachFieldOrbitals(Resource *step, Resource *source);
 
   /// Takes the geometry, charge and multiplicity of a recipe step's sources
   /// just before it is launched (they did not exist when it was made).
