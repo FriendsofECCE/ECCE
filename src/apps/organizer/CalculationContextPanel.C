@@ -606,6 +606,7 @@ void CalculationContextPanel::createControls()
         if (p_calcMgr) p_calcMgr->progressAction(action, p_itemData);
       });
       p_progressBox->setRelayout([this]() { Layout(); FitInside(); });
+      p_progressBox->setRecheck([this]() { updateProgress(); });
       p_progressSizer->Add(p_progressBox, wxSizerFlags(1).Expand().Border());
       GetSizer()->Add(p_progressSizer, wxSizerFlags().Expand().Border());
       GetSizer()->Hide(p_progressSizer);
@@ -659,12 +660,15 @@ void CalculationContextPanel::createControls()
       wxDefaultSize,      //    a non-default style next
       wxTE_MULTILINE|     // text will display on multiple lines with scrollbar,
       wxTE_READONLY|      // text cannot be edited,
-      wxTE_BESTWRAP,      // and wrap long lines the "best" way possible
+      wxTE_WORDWRAP,      // and wrap long lines at word boundaries
       wxDefaultValidator, // default only because I want non-default name next
       "annotation");      // the name of the control, should be unique
   // the text control employs its own generic validator internally if one is not
   // used at creation time.  Reset validator to the one we wanted.
   anno->SetValidator(wxDefaultValidator);
+  // Without a small minimum the control's best size (the whole line) widens
+  // the panel instead of wrapping.
+  anno->SetMinSize(wxSize(anno->FromDIP(60), anno->FromDIP(60)));
 
   // add the text control to the main sizer
   GetSizer()->Add(anno, 

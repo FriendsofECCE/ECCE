@@ -283,6 +283,14 @@ vector<string> ProgressBox::describe(bool full) const
     for (int i = 0; i < 3; i++)
       shown += p_buttons[i]->IsShown() && p_buttons[i]->GetSize().x > 0;
     out.push_back("buttons " + std::to_string(shown));
+    int overlaps = 0;
+    for (const wxRect& b : p_buttonRects) {
+      out.push_back("buttonrect " + std::to_string(b.x) + " " + std::to_string(b.y) +
+                    " " + std::to_string(b.width) + " " + std::to_string(b.height));
+      for (const wxRect& r : p_rows) if (b.Intersects(r)) overlaps++;
+    }
+    out.push_back("button/text overlaps " + std::to_string(overlaps) + " of " +
+                  std::to_string(p_rows.size()) + " rows");
   }
   if (p_collapsed) {
     out.push_back("folded: " + foldedText());
@@ -578,6 +586,7 @@ wxSize ProgressBox::layout(wxDC *dc)
       size = wxSize(w, headingHeight());
     } else {
       y += headingHeight() + FromDIP(2);
+      p_rows.clear();
 
       vector<JobProgress::Block> blocks = this->blocks();
       int titleW = 0;
@@ -602,11 +611,13 @@ wxSize ProgressBox::layout(wxDC *dc)
           if (dc) dc->SetTextForeground(amber);
           for (const wxString& r : wrapLine(m, a, availW)) {
             if (dc) dc->DrawText(r, 0, y);
+            p_rows.push_back(wxRect(0, y, m.GetTextExtent(r).x, lh));
             y += lh;
           }
           if (dc) dc->SetTextForeground(text);
           for (const wxString& r : wrapLine(m, b, availW)) {
             if (dc) dc->DrawText(r, 0, y);
+            p_rows.push_back(wxRect(0, y, m.GetTextExtent(r).x, lh));
             y += lh;
           }
           y += lh / 3;
@@ -668,6 +679,7 @@ wxSize ProgressBox::layout(wxDC *dc)
           for (size_t li = 0; li < b.lines.size(); li++) {
             const vector<wxString> rows = wrapLine(m, b.lines[li], textAvail);
             for (size_t ri = 0; ri < rows.size(); ri++) {
+              p_rows.push_back(wxRect(x0, y, m.GetTextExtent(rows[ri]).x, lh));
               if (dc) drawRow(*dc, rows[ri], x0, y, fg, pal.imaginary,
                               p_progress.search() == JobProgress::SEARCH_TS ? 1 : 0,
                               lost || p_progress.search() == JobProgress::SEARCH_UNKNOWN);
@@ -771,6 +783,7 @@ wxSize ProgressBox::layout(wxDC *dc)
           // Real buttons, placed here when measuring (dc == 0); a row that
           // does not fit goes on to the next.
           int x = 0, bh = 0;
+          p_buttonRects.clear();
           for (int i = 0; i < 3; i++) {
             const wxSize bs = p_buttons[i]->GetBestSize();
             if (x > 0 && x + bs.x > availW) {
@@ -778,6 +791,7 @@ wxSize ProgressBox::layout(wxDC *dc)
               y += bh + FromDIP(4);
               bh = 0;
             }
+            p_buttonRects.push_back(wxRect(x, y, bs.x, bs.y));
             if (!dc) {
               p_buttons[i]->SetSize(x, y, bs.x, bs.y);
               p_buttons[i]->Show();
@@ -791,6 +805,7 @@ wxSize ProgressBox::layout(wxDC *dc)
           for (const string& l : p_check)
             for (const wxString& r : wrapLine(m, l, availW)) {
               if (dc) dc->DrawText(r, 0, y);
+              p_rows.push_back(wxRect(0, y, m.GetTextExtent(r).x, lh));
               y += lh;
             }
         }
@@ -801,8 +816,9 @@ wxSize ProgressBox::layout(wxDC *dc)
   if (!dc && !buttonsShown)
     for (int i = 0; i < 3; i++) {
       p_buttons[i]->SetSize(0, 0, 0, 0);
-      p_buttons[i]->Show(true);
+      p_buttons[i]->Hide();
     }
+  if (!buttonsShown) p_buttonRects.clear();
   if (!dc && !energyShown) {
     p_energyLabel->SetSize(0, 0, 0, 0);
     p_energyLabel->Show(true);
@@ -818,6 +834,16 @@ void ProgressBox::OnPaint(wxPaintEvent&)
   dc.Clear();
   dc.SetFont(GetFont());
   p_paints++;
+  //  Measured at another width than it is drawn at, the buttons would sit
+  //  where the text is not; measure again first.
+  if (wanted() && !p_collapsed && GetClientSize().x != p_laidOutWidth) {
+    p_laidOutWidth = GetClientSize().x;
+    const wxSize want = layout(0);
+    if (want != GetMinSize()) {
+      SetMinSize(want);
+      CallAfter([this]() { if (p_relayout) p_relayout(); });
+    }
+  }
   layout(&dc);
 }
 
@@ -840,6 +866,12 @@ void ProgressBox::OnSize(wxSizeEvent& event)
 void ProgressBox::OnTimer(wxTimerEvent&)
 {
   if (!IsShownOnScreen()) return;
+  //  A job that finished while out of contact stops being offered the
+  //  lost-job buttons: the panel reads the state again.
+  if (outOfContact() && p_recheck) {
+    p_recheck();
+    return;
+  }
   //  The aged lines (updated n s ago, out of contact for ...) can change the
   //  height; measured here too, or the buttons overlap what lies below.
   const wxSize want = layout(0);
