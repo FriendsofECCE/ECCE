@@ -131,6 +131,20 @@ def check(display, results):
     for p in problems:
         results.fail("builder panes tools", p)
 
+    # #895: a floated panel is an ordinary window, not always-on-top
+    results.checks += 1
+    work = run(display, results, "floatwin", unrun_url,
+               ["toolfloat Build", "floatstyle Build fs"], "detail")
+    fs = lines(work, "fs")
+    if not fs:
+        results.fail("builder panes floatwin", "no floatstyle output")
+    elif not fs[0].startswith("onparent 0 notaskbar 0") or \
+            fs[0].endswith("transient 1"):
+        results.fail("builder panes floatwin",
+                     "floating frame is tied to the Builder: %s" % fs[0])
+    else:
+        print("builder panes: floating frame %s" % fs[0])
+
     # L3: tool panes dragged to the left, the column collapsed (F9) and
     # restored, then folded and unfolded, stay as they were
     results.checks += 1
