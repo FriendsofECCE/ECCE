@@ -4576,6 +4576,12 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
   }
   LaunchBatch::Target target = initial;
   vector<LaunchSelected::Row> rows = LaunchSelected::plan(tasks, target);
+  // A shot is a test run; a real GUI launch asks for what is missing.
+  if (interactive && shot.empty() && !target.any() &&
+      askForMissingSettings(rows)) {
+    if (outcome) *outcome = "launcher opened";
+    return;
+  }
   bool go = true;
   if (interactive || !shot.empty()) {
     go = LaunchSelected::confirm(this, rows, target,
@@ -4595,6 +4601,29 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
     for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = '|';
     *outcome = "ok " + r;
   }
+}
+
+
+// There is no default machine: a step without launch settings is not
+// skipped but opened in the Launcher, which submits it when the user
+// presses Launch. Returns true when no row is left to launch here.
+bool CalcMgr::askForMissingSettings(vector<LaunchSelected::Row>& rows)
+{
+  vector<LaunchSelected::Row> rest;
+  string names;
+  for (const LaunchSelected::Row& r : rows) {
+    if (!r.plan.ready && r.plan.problem == "no machine stored") {
+      startApp("Launcher", 0, r.plan.url);
+      names += (names.empty() ? "" : ", ") + r.plan.name;
+    } else {
+      rest.push_back(r);
+    }
+  }
+  if (names.empty()) return false;
+  setMessage("No launch settings yet for " + names +
+             ": choose a machine in the Launcher.", WxFeedback::INFO);
+  rows.swap(rest);
+  return rows.empty();
 }
 
 
@@ -4640,7 +4669,8 @@ void CalcMgr::startBatch(const vector<LaunchSelected::Row>& rows, bool showRepor
 }
 
 
-bool CalcMgr::launchSelectedAsync(const vector<EcceURL>& urls, string *outcome)
+bool CalcMgr::launchSelectedAsync(const vector<EcceURL>& urls, string *outcome,
+                                  bool askForSettings)
 {
   if (p_batch) { if (outcome) *outcome = "busy"; return false; }
   vector<TaskJob*> tasks;
@@ -4653,6 +4683,10 @@ bool CalcMgr::launchSelectedAsync(const vector<EcceURL>& urls, string *outcome)
   }
   if (tasks.empty()) { if (outcome) *outcome = "no calculations"; return false; }
   vector<LaunchSelected::Row> rows = LaunchSelected::plan(tasks);
+  if (askForSettings && askForMissingSettings(rows)) {
+    if (outcome) *outcome = "launcher opened";
+    return false;
+  }
   startBatch(rows, false);
   if (outcome) *outcome = "started";
   return true;
@@ -11764,7 +11798,7 @@ void CalcMgr::autoRunWorkflow(Session *wf)
   // In the background, as Launch Selected does: a submission over ssh must
   // not freeze the Organizer, and this can run inside another event's yield.
   string outcome;
-  if (launchSelectedAsync(urls, &outcome)) p_autoBatch = true;
+  if (launchSelectedAsync(urls, &outcome, true)) p_autoBatch = true;
 }
 
 

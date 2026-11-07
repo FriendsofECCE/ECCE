@@ -173,7 +173,9 @@ public:
                       string *outcome = 0, const string& shot = "",
                       const LaunchBatch::Target& target = LaunchBatch::Target());
   // Test hook: the batch without dialogs, left running; false if one runs.
-  bool launchSelectedAsync(const vector<EcceURL>& urls, string *outcome);
+  bool launchSelectedAsync(const vector<EcceURL>& urls, string *outcome,
+                           bool askForSettings = false);
+  bool askForMissingSettings(vector<LaunchSelected::Row>& rows);
   string launchBatchStatus() const;
   // ecce-launch (#687): Launch Selected without dialogs for a request from
   // another process. One line per calculation, "name\tok\tjob id" or
