@@ -10,5 +10,5 @@ rules: heavy-ecp, size, registered
 
 variant: orca | ORCA | ORCA
 step: orca | complex | ORCA | sp | Energy | single point of the complex | structure
-step: orca | fragment | ORCA | sp | Energy | single point of a fragment | fragment
+step: orca | fragment | ORCA | sp | Energy | single point of a fragment | fragment, field
 link: orca | complex | fragment | geometry

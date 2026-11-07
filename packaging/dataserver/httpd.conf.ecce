@@ -229,6 +229,7 @@ AddType  chemical/x-orca-input  .orcain
 AddType  chemical/x-orca-output .orcaout
 AddType  chemical/x-orca-gbw    .gbw
 AddType  chemical/x-orca-guess   .gbwin
+AddType  chemical/x-orca-pc      .pc
 AddType  chemical/x-gaussian-16-chk    .chk
 AddType  chemical/x-gaussian-16-guess  .chkin
 AddType  chemical/x-nwchem-movecs      .movecs

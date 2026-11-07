@@ -195,7 +195,7 @@ def run(display, data, work, shots):
     t = steps(infos[-1].replace("ok ", "", 1)) if infos else {}
     cx, f1, f2 = t.get("complex", {}), t.get("fragment-1", {}), t.get("fragment-2", {})
     check("complex and two fragment steps, each from its source",
-          cx.get("source") == "co_complex" and f1.get("source") == "complex" and
+          cx.get("source") == "co_complex" and f1.get("source") == "complex+fragment-1-field" and
           f2.get("source") == "complex", infos[-1:] if infos else infos)
     check("the complex keeps all atoms and the charge, the fragments their own",
           cx.get("atoms") == str(natoms) and f1.get("atoms") == "1" and
@@ -207,6 +207,18 @@ def run(display, data, work, shots):
     check("geometry links from the complex to each fragment",
           infos and "complex>fragment-1:geometry" in infos[-1] and
           "complex>fragment-2:geometry" in infos[-1], infos[-1:])
+    fld = t.get("fragment-1-field", {})
+    check("a one-atom fragment gets a field step: the atom, same charge, geometry from the complex",
+          fld.get("atoms") == "1" and fld.get("charge") == "1" and fld.get("source") == "complex" and
+          "complex>fragment-1-field:geometry" in infos[-1], (fld, infos[-1:]))
+    check("the field step hands its orbitals to the fragment; the other fragment has no field step",
+          "fragment-1-field>fragment-1:orbitals" in infos[-1] and "fragment-2-field" not in infos[-1],
+          infos[-1:])
+    pc = os.path.join(root, "frag", "Workflow", "fragment-1-field", "Inputs", "pointcharges.pc")
+    pcl = open(pc).read().split("\n") if os.path.exists(pc) else []
+    # Co(NH3)5OSO3: five N and one O bonded to Co, -0.1 e each, hydrogens left out
+    check("the field step stores 6 point charges of -0.1 e",
+          pcl[:1] == ["6"] and sum(1 for l in pcl[1:] if l.startswith("-0.1 ")) == 6, pcl[:8])
     waiting = answers(log, "workflowfragorb")
     check("the box waits for its steps",
           waiting and "Waiting for complex, fragment-1, fragment-2 to finish." in waiting[0], waiting)

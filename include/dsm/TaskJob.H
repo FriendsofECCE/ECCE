@@ -169,6 +169,9 @@ class TaskJob : public Job,
           (inhess.*), "" for a code without one; has... says whether
           this calculation carries one. */
       string hessianInputFile() const;
+      /** Point-charge input the code declares (pointcharges.*), "" if none. */
+      string pointChargeInputFile() const;
+      bool hasPointChargeInput() const;
       bool hasHessianInput() const;
       virtual bool hasOrbitalGuess() const;
       virtual bool clearOrbitalGuess();

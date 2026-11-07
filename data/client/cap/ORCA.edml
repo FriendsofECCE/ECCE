@@ -280,6 +280,7 @@
        one), read as the initial Hessian of an optimisation (#557). -->
   <Output type="auxiliary" mimetype="chemical/x-orca-hess">orca.orcain.hess</Output>
   <Input   type="auxiliary" mimetype="chemical/x-orca-hess">inhess.hess</Input>
+  <Input   type="auxiliary" mimetype="chemical/x-orca-pc">pointcharges.pc</Input>
   <!-- NEB-TS (#419): product and optional TS guess structure, written by
        CalcEd as inputs of the calculation and copied to the run directory
        with the deck.  Matched by name. -->

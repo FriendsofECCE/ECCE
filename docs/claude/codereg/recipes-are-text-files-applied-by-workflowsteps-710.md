@@ -56,3 +56,15 @@ issues: [710, 674, 808, 847]
   grown cluster), so plain `geometry` carries solute plus solvent; its CREST
   step's QCG solvent follows the dialog's Solvent row for water, methanol and
   acetonitrile (`applyRecipe`).
+- Recipe step flag `field` (with `fragment`, #201): a one-atom, non-free fragment
+  gets a preceding step `<id>-N-field` (`RecipeStep::field`, prop
+  `ecce:recipe.field`), linked `geometry` from the complex and `orbitals` to the
+  fragment step. Its atom runs in point charges of -0.1 e at the complex's
+  non-H atoms within 1.25 covalent radii of it (`storeFieldCharges`, stored as the
+  input `pointcharges.pc`, `ES.Theory.SCF.PointChargeFile`, `%pointcharges` in
+  `ai.orca`); `refreshFromSources` attaches its `.gbw` as the fragment step's
+  MORead guess once it is Complete. Measured, ORCA 6.1.1, def2-SVP, Cr(0) in 6
+  point charges: -0.1 and -0.15 e give t2g6, -0.2 e and stronger give d4 4s2
+  (the point charges raise 3d more than 4s). Co(III) is t2g6 at any of these.
+  The bare ion's RHF d set is an arbitrary subset, which is why the step exists.
+  `fragmentSteps` skips field steps.
