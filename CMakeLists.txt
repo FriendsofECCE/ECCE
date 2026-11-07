@@ -311,6 +311,9 @@ ecce_library(eccevizsg
 ecce_library(eccecomm   src/comm/commtools)
 ecce_library(eccecommxt src/comm/commxt)
 ecce_library(eccercmd   src/comm/rcommand)
+# Example outputs ship gzip-compressed (StoredCalcCopy::gunzip).
+find_package(ZLIB REQUIRED)
+target_link_libraries(eccedsi PUBLIC ZLIB::ZLIB)
 # SshTransport needs libssh >= 0.10; without it the glob's copy is dropped
 # and nothing else changes.
 pkg_check_modules(LIBSSH IMPORTED_TARGET libssh>=0.10)

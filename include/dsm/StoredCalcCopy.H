@@ -25,7 +25,12 @@ namespace StoredCalcCopy {
   // The name of the one calculation folder inside a pre-parsed copy, or "".
   std::string calcName(const std::string& dir);
 
-  // Copy the tree at srcDir into project as calcName.  On failure the
+  // Decompress the gzip file src into the string out; false if it cannot
+  // be read.  A shipped example output or a stored copy's file named
+  // <name>.gz stands for <name>.
+  bool gunzip(const std::string& src, std::string& out);
+
+  // Copy the tree at srcDir into project as calcName (a file X.gz as X).  On failure the
   // partly made calculation is removed and why says what went wrong.
   bool copy(Resource *project, const std::string& srcDir,
             const std::string& calcName, std::string& why);
