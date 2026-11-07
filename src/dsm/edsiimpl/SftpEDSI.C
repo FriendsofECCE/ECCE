@@ -589,6 +589,15 @@ string SftpEDSI::folderStamp()
   SftpOp op(*this);
   string out;
   if (!op.ok()) return "";
+  // Only over a login the user already made: a timer must never start one
+  // (a password prompt or a stalled connect under the user's hands).
+  {
+    string user, host, path;
+    parseURL(getURL().toString(false), user, host, path);
+    std::lock_guard<std::mutex> g(gMutex);
+    auto it = gLogins.find(user + "@" + host);
+    if (it == gLogins.end() || !it->second || !it->second->isOpen()) return "";
+  }
   string p = q(op.path());
   if (!op.run("stat -c '%Y' -- " + p + " 2>/dev/null || stat -f '%m' -- " + p + " 2>/dev/null\n", out, 20))
     return "";

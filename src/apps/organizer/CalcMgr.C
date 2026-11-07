@@ -1609,6 +1609,15 @@ void CalcMgr::runTestCommand(const string& line)
              c = p_treeCtrl->GetNextChild(node->GetId(), ck))
           outcome += " " + string(p_treeCtrl->GetItemText(c).ToUTF8());
       }
+    } else if (command == "tableselect" || command == "tableselected") {
+      // "tableselect URL": select that row; "tableselected": the selected rows
+      ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      if (!t) outcome = "no table";
+      else {
+        if (command == "tableselect") t->selectResources(vector<EcceURL>(1, EcceURL(calcName)));
+        outcome = "ok";
+        for (const EcceURL &u : t->getSelections()) outcome += " " + u.toString();
+      }
     } else if (command == "modal") {
       // "modal SECONDS": a modal dialog for that long (a stand-in for any dialog)
       int secs = atoi(calcName.c_str());
@@ -12783,6 +12792,13 @@ string CalcMgr::autoRefreshStamp(const EcceURL& url)
   string stamp;
   EDSI *edsi = EDSIFactory::getEDSI(url);
   if (!edsi) return stamp;
+  // A timer must never open a dialog: with no listeners a DAV request uses
+  // the credentials already cached by the tree's login and otherwise just
+  // fails, and SftpEDSI::folderStamp only uses an existing login.  On a
+  // central server a prompt every 30 s per client would be a lockout risk;
+  // a failed check is skipped until the user acts (Refresh, or the next try).
+  edsi->addAuthEventListener(0);
+  edsi->addProgressEventListener(0);
   if (SftpEDSI *sftp = dynamic_cast<SftpEDSI*>(edsi)) {
     stamp = sftp->folderStamp();
   } else {
@@ -12896,9 +12912,21 @@ void CalcMgr::autoRefreshTick()
         p_treeCtrl->GetItemData(top));
     if (t) topUrl = t->getUrl().toString();
   }
+  // The project table is rebuilt: keep its selected rows (by URL) and its
+  // first visible row.
+  vector<EcceURL> rowsSelected;
+  int topRow = 0;
+  if (ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel)) {
+    rowsSelected = t->getSelections();
+    topRow = t->firstVisibleRow();
+  }
   p_autoReloads++;
   p_treeCtrl->refresh(folder);
   onSelectionChange(true);
+  if (ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel)) {
+    if (!rowsSelected.empty()) t->selectResources(rowsSelected);
+    t->scrollToRow(topRow);
+  }
   if (!topUrl.empty()) {
     WxResourceTreeItemData *t = findNode(EcceURL(topUrl), false, false);
     if (t) p_treeCtrl->ScrollTo(t->GetId());

@@ -67,6 +67,8 @@ class ProjectContextPanel : public ProjectContextPanelGUI
     int progressPaints() const { return p_progressSets; }
 
     vector<EcceURL> getSelections();
+    int firstVisibleRow();
+    void scrollToRow(int row);
 
     void clearSelections();
 

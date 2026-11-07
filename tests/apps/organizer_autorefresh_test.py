@@ -54,9 +54,11 @@ def run(display):
         def drive(_display):
             send("select " + u, "autoshown x", "treechildren " + u)
             time.sleep(4)
+            send("tableselect " + u + "/water")
+            time.sleep(2)
             shutil.copytree(SRC, os.path.join(project, "added"), symlinks=True)
             time.sleep(5)
-            send("treechildren " + u, "selection x", "autoreloads x", "autoshown x")
+            send("treechildren " + u, "selection x", "autoreloads x", "autoshown x", "tableselected x")
             time.sleep(2)
             shutil.rmtree(os.path.join(project, "added"))
             time.sleep(5)
@@ -87,6 +89,9 @@ def run(display):
                      ans("autoshown")[0].startswith(u + " watched"),
                      "the hooks answered", log[-2000:]):
             return
+        rows = ans("tableselected")
+        check(len(rows) == 1 and rows[0].endswith("/water"),
+              "the selected table row stays selected after the reload", rows)
         check("water" in kids[0], "the project was shown with its calculation", kids[0])
         check("added" not in kids[0], "no copy yet", kids[0])
         check("added" in kids[1], "a copied-in calculation appears by itself", "%s reloads=%s %s" % (kids[1], reloads, ans("autoshown")))
