@@ -1978,8 +1978,8 @@ void CalcMgr::menuSource(wxWindow *source)
 void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
 {
   wxMenu menu;
-  getContextMenu(menu);
   menuSource(dynamic_cast<wxWindow*>(event.GetEventObject()));
+  getContextMenu(menu);
   ewxPopupMenu(this, menu);
   p_popupOnTree = false;
   /*
@@ -5831,21 +5831,32 @@ void CalcMgr::getContextMenu(wxMenu & menu)
                 "calculation's final orbitals") : wxString(why));
     item->Enable(can);
   }
-  //  Several calculation rows selected in the project table: the tree's own
-  //  selection is then the project, so the batch items come from the same
-  //  rows Launch Selected itself would use.
+  //  Calculation rows selected in the project table (one or several): the
+  //  tree's own selection is then the project, so the batch items come from
+  //  the same rows Launch Selected itself would use.  A single row also
+  //  gets them, enabled by its state as for a calculation in the tree.
   if (!isCalculationNode) {
     vector<EcceURL> rows = launchSelection();
-    bool allCalcs = rows.size() > 1;
+    bool allCalcs = !rows.empty();
     for (size_t i = 0; allCalcs && i < rows.size(); i++) {
       WxResourceTreeItemData *n = findNode(rows[i], false, true);
       allCalcs = n && dynamic_cast<TaskJob*>(n->getResource());
     }
     if (allCalcs) {
+      bool reconnect = true, reparse = true;
+      if (rows.size() == 1) {
+        ResourceType *rt = 0;
+        ResourceDescriptor::RUNSTATE st = ResourceDescriptor::STATE_ILLEGAL;
+        getTypeAndState(findNode(rows[0], false, true), rt, st);
+        reconnect = offersReconnect(rt, st);
+        reparse = st >= ResourceDescriptor::STATE_COMPLETED;
+      }
       menu.Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
-      menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."));
+      menu.Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."))
+          ->Enable(reconnect);
       menu.Append(wxID_TERMINATE_SELECTED, _("Terminate Selected..."));
-      menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"));
+      menu.Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"))
+          ->Enable(reparse);
     }
   }
   menu.Append(wxID_RENAME, wxT("&Rename"));
