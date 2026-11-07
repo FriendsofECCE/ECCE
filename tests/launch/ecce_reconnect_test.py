@@ -201,6 +201,9 @@ def main():
         say(out)
         check(rc == 1 and "jobid= only for a Ready calculation" in out,
               "a finished calculation is refused (rc=%s)" % rc)
+        #  The submit that lost its answer had made the run directory.
+        parts = urls["late"].rstrip("/").split("/")
+        os.makedirs(os.path.join(rundir, parts[-2], parts[-1]), exist_ok=True)
         rc, out, err = run(urls["late"], "jobid=" + jid)
         say(out)
         check(rc == 0 and re.search(r"^late: reconnected, job id %s$" % jid, out, re.M),
