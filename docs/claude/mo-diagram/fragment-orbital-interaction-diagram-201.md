@@ -38,3 +38,14 @@ shared with it.
   `window_representative` stays true.
 - The Details window fits 1280 x 800 (splitter, wrap sizer for the controls);
   `fragdiagram ... size=WxH` reports `fit ... cut=N` for the test.
+- Mulliken symbols come from `fragorb::orbitalSymmetry()` (autosym + symops +
+  `fullLabelSpectrum`, angular table built for the results.h5 canonical order).
+  Linking it pulls in `TChartOfNuclides`' static `TPerTab`, which asserts on
+  a missing ECCE_REALUSERHOME while the program loads: ecce-fragorb defaults
+  it (and ECCE_REALUSER) in a constructor(101) function. A single atom gets
+  no group (no spherical table): Cr FO levels read "?".
+- tests/fragorb_h5/run_tests.py's `check()` returns None: never use it as a
+  condition (`elif check(...)` silently skipped the label checks once).
+- The `cr` fixture (RHF singlet Cr) has 3d⁴-like occupied d orbitals in an
+  arbitrary orientation (t2g MOs take 7-33 % from them, unequally): it is not
+  the t2g⁶ "state in the complex".
