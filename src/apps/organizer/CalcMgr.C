@@ -4647,16 +4647,50 @@ bool CalcMgr::terminateForCommand(const vector<EcceURL>& urls,
 //  Reconnect Selected for a request from another process: the same
 //  reconnectSelected, without the confirmation. One line per calculation,
 //  "name\tok\tjob id" or "name\tno\treason".
+//  With a job id (ecce-reconnect ... jobid=N) a Ready calculation whose
+//  submit gave no answer is first marked Submitted with that id, so that the
+//  ordinary reconnect starts its monitor.
 bool CalcMgr::reconnectForCommand(const vector<EcceURL>& urls,
-                                  vector<string>& lines)
+                                  vector<string>& lines, const string& jobId)
 {
   lines.clear();
   if (p_batch) return false;
   vector<EcceURL> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
     WxResourceTreeItemData *n = findNodeFresh(urls[i], false);
-    if (n && dynamic_cast<TaskJob*>(n->getResource())) tasks.push_back(urls[i]);
-    else lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
+    TaskJob *job = n ? dynamic_cast<TaskJob*>(n->getResource()) : 0;
+    if (!job) {
+      lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
+      continue;
+    }
+    if (!jobId.empty()) {
+      const string name = n->getName();
+      if (urls.size() != 1) {
+        lines.push_back(name + "\tno\tjobid= only for one calculation");
+        continue;
+      }
+      if (job->getState() != ResourceDescriptor::STATE_READY) {
+        lines.push_back(name + "\tno\tjobid= only for a Ready calculation");
+        continue;
+      }
+      Jobdata jd = job->jobdata();
+      if (job->launchdata().machine.empty() || jd.jobpath.empty()) {
+        lines.push_back(name + "\tno\tno machine or run directory stored: "
+                        "the calculation was not submitted from here");
+        continue;
+      }
+      jd.jobid = jobId;
+      job->jobdata(jd);
+      job->addProp(VDoc::getEcceNamespace() + ":submitdate",
+                   std::to_string((long long)time(0)));
+      vector<MetaDataResult> r(1);
+      r[0].name = VDoc::getEcceNamespace() + ":submituncertain";
+      r[0].value = "";
+      try { job->addProps(r); } catch (...) {}
+      job->setState(ResourceDescriptor::STATE_SUBMITTED);
+      updateUrl(urls[i]);
+    }
+    tasks.push_back(urls[i]);
   }
   if (!tasks.empty()) reconnectSelected(tasks, false, 0, "", false, &lines);
   return true;

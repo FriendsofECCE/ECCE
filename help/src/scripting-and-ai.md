@@ -5,7 +5,8 @@ assistants can work with it too. The commands are `ecce-launch`,
 `ecce-terminate`, `ecce-rerun`, `ecce-annotate`, `ecce-move`, `ecce-rename`,
 `ecce-reconnect`, `ecce-fetch` and
 `ecce-contacts`; see [Launch Selected](launch-selected.md) for the launch and
-terminate commands.
+terminate commands. `ecce-reconnect <calculation> jobid=N` attaches a job
+found in the queue after a `submitted?` answer.
 
 ## Command line only
 
