@@ -65,6 +65,15 @@ A machine set to staged launches cannot be used here; launch from the
 Launcher. A failed submit leaves the calculation **Ready**, with the reason
 in the Progress box and the run log.
 
+A submit command that gets no answer from a slow queue (it times out, or its
+answer cannot be read) may still have queued the job. For Slurm and LSF, ECCE
+then asks the queue for jobs named `submit__<calculation>` in the calculation's
+run directory. If it finds exactly one, it takes that job id and carries on as
+if the submit had answered. If the queue cannot be asked, or finds several, the
+calculation stays **Ready** with the message "submitted? check the queue", and
+the next Launch, from here, the Launcher or `ecce-launch`, warns that it may
+already be in the queue. Launch anyway goes ahead.
+
 ## From the command line
 
 With ECCE running, calculations prepared outside the window can be launched

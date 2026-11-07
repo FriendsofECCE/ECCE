@@ -78,6 +78,9 @@ string RefQueueManager::submitCommand(void) const
 { return p_submitCommand; }
 string RefQueueManager::cancelCommand(void) const
 { return p_cancelCommand; }
+string RefQueueManager::queryJobNameCommand(void) const
+{ return p_queryJobNameCommand; }
+
 string RefQueueManager::queryJobCommand(void) const
 { return p_queryJobCommand; }
 string RefQueueManager::queryMachineCommand(void) const
@@ -179,6 +182,9 @@ void RefQueueManager::submitCommand(const string& command)
 { p_submitCommand = command; }
 void RefQueueManager::cancelCommand(const string& command)
 { p_cancelCommand = command; }
+void RefQueueManager::queryJobNameCommand(const string& command)
+{ p_queryJobNameCommand = command; }
+
 void RefQueueManager::queryJobCommand(const string& command)
 { p_queryJobCommand = command; }
 void RefQueueManager::queryMachineCommand(const string& command)
@@ -271,6 +277,11 @@ void RefQueueManager::fillAttributesFrom(Preferences& prefs)
   EE_RT_ASSERT(prefs.getString(keyRoot + "queryDiskUsageCommand", value),
 	       EE_FATAL, "Couldn't Find Mandatory Key queryDiskUsageCommand");
   queryDiskUsageCommand(value);
+  // Optional: lets a submit that gave no answer find its job by name.
+  if (prefs.getString(keyRoot + "queryJobNameCommand", value))
+    queryJobNameCommand(value);
+  else
+    queryJobNameCommand("");
   // Optional: most queue managers have no allocation query.
   if (prefs.getString(keyRoot + "queryAllocationCommand", value))
     queryAllocationCommand(value);

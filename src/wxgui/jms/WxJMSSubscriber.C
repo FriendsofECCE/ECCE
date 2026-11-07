@@ -175,12 +175,15 @@ string WxJMSSubscriber::getMyID() const {
   return std::to_string(getpid());
 }
 
+void WxJMSSubscriber::messageDeferred(const string&, JMSMessage&) {}
+
 /**
  * GUI thread: finds the callback for the topic and makes the call.
  */
 void WxJMSSubscriber::deliver(const string& topic, JMSMessage& msg) {
   if (p_deferring) {
     p_deferred.emplace_back(topic, msg);
+    messageDeferred(topic, msg);
     return;
   }
   wxCbMap::iterator it = cbStructs.find(topic);

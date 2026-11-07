@@ -68,6 +68,10 @@ class WxJMSSubscriber : public wxEvtHandler {
     // See MqttEndpoint::answerAs.
     void answerAs(const string& alias, const string& topic);
 
+  protected:
+    // A message arrived while deferring and is being kept for later.
+    virtual void messageDeferred(const string& topic, JMSMessage& msg);
+
   private:
 
     bool subscribeInternal(const char* topic, 

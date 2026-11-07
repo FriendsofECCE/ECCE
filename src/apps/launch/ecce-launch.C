@@ -43,14 +43,14 @@ const int kAckSeconds = 8;          // an Organizer answers at once
 const int kBatchSeconds = 10 * 60;  // a batch submits one by one
 
 string gReplyId;
-bool gAck = false, gDone = false, gBusy = false;
+bool gAck = false, gDone = false, gBusy = false, gQueued = false;
 vector<string> gLines;
 
 void replyCB(JMSMessage& msg)
 {
   if (msg.getProperty("reply_id") != gReplyId) return;
   string kind = msg.getProperty("kind");
-  if (kind == "ack") { gAck = true; return; }
+  if (kind == "ack") { gAck = true; if (msg.getProperty("queued") == "1") gQueued = true; return; }
   int n = msg.getIntProperty("n");
   for (int i = 0; i < n; i++) gLines.push_back(msg.getProperty("line" + std::to_string(i)));
   gAck = true;
@@ -200,13 +200,20 @@ int main(int argc, char **argv)
   if (!sent) return notRunning();
 
   end = clock::now() + std::chrono::seconds(kAckSeconds);
-  bool timedOut = false;
+  bool timedOut = false, batchLimitSet = false;
   while (!gDone) {
     if (clock::now() >= end) { timedOut = true; break; }
     sub.processMessage();
     if (gDone) break;
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    if (gAck && !gDone) end = clock::now() + std::chrono::seconds(kBatchSeconds);
+    if (gAck && !gDone && !batchLimitSet) {
+      // set once: resetting it every pass would make the limit never fire
+      end = clock::now() + std::chrono::seconds(kBatchSeconds);
+      batchLimitSet = true;
+      if (gQueued)
+        std::cerr << "ecce-launch: queued behind a launch that is running; waiting"
+                  << std::endl;
+    }
   }
   if (timedOut) {
     if (!gAck) {

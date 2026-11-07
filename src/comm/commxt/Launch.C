@@ -2344,8 +2344,68 @@ bool Launch::doLaunch(void)
   return ret;
 }
 
+// A submit that gave no answer may still have queued the job.  Look for it
+// by name (job names are not unique, so the run directory must match too).
+// True when exactly one job was found and its id is stored.
+bool Launch::findQueuedJob(void)
+{
+  string command = p_cache->mgr->queryJobNameCommand();
+  if (command.empty()) return false;
+
+  const string name = submitPrefix + p_taskjob->getName();
+  const string tag = "##name##";
+  for (string::size_type pos = command.find(tag); pos != string::npos;
+       pos = command.find(tag, pos))
+  {
+    const string q = RCommand::quotePath(name);
+    command.replace(pos, tag.size(), q);
+    pos += q.size();
+  }
+
+  string output;
+  const bool answered = p_connection->execout(command, output, "", 30);
+  string dir = p_cache->remoteDir;
+  while (dir.size() > 1 && dir[dir.size()-1] == '/') dir.resize(dir.size()-1);
+
+  vector<string> ids;
+  if (answered || output.find("No unfinished job") != string::npos) {
+    string::size_type start = 0;
+    while (start < output.size()) {
+      string::size_type end = output.find_first_of("\r\n", start);
+      string line = output.substr(start, end == string::npos ? string::npos : end-start);
+      start = end == string::npos ? output.size() : end+1;
+      STLUtil::stripLeadingAndTrailingWhiteSpace(line);
+      string::size_type sp = line.find_first_of(" \t");
+      if (sp == string::npos) continue;
+      string where = line.substr(sp);
+      STLUtil::stripLeadingAndTrailingWhiteSpace(where);
+      while (where.size() > 1 && where[where.size()-1] == '/') where.resize(where.size()-1);
+      if (where == dir) ids.push_back(line.substr(0, sp));
+    }
+    if (ids.empty()) return false;   // the queue says it is not there
+  }
+
+  if (ids.size() != 1) {
+    const string msg = "submitted? check the queue (job name " + name + ")";
+    p_lastMessage += (p_lastMessage.empty() ? "" : "\n") + msg;
+    try { p_taskjob->addProp(VDoc::getEcceNamespace() + ":submituncertain", msg); }
+    catch (...) {}
+    return false;
+  }
+
+  p_lastMessage.clear();
+  p_infoMessage = "job id " + ids[0] +
+                  " found in the queue after the submit gave no answer";
+  Jobdata jobdata = p_taskjob->jobdata();
+  jobdata.jobid = ids[0];
+  p_taskjob->jobdata(jobdata);
+  p_cache->jobId = ids[0];
+  return true;
+}
+
 bool Launch::launchNormal(void)
 {
+  bool uncertain = false;
   // This substitutes in the name of the submit script (currently hardwired
   // to submit) plus the nice level into the submission command
   string command = p_cache->mgr->submitCommand();
@@ -2388,6 +2448,7 @@ bool Launch::launchNormal(void)
 #endif
 
   if (!ret && !bgFlag && p_connection->timedOut()) {
+    uncertain = true;
     p_lastMessage = "The queue (" + p_cache->mgr->name() + ") did not answer within " +
                     std::to_string(timeOut) + " s, so ECCE stopped the submit command. "
                     "Check that the queue is running, then launch again.";
@@ -2414,6 +2475,7 @@ bool Launch::launchNormal(void)
 
     if (id == "")  {
       ret = false;
+      uncertain = true;
       p_lastMessage = "Unable to parse job id.  Cannot monitor job.";
     } else {
       p_infoMessage = "Job id is " + id;
@@ -2445,6 +2507,7 @@ bool Launch::launchNormal(void)
  
     if (id == "")  {
       ret = false;
+      uncertain = true;
       p_lastMessage = "Unable to parse job id.  Cannot monitor job.";
     } else {
       // strip leading and trailing text if applicable
@@ -2471,6 +2534,8 @@ bool Launch::launchNormal(void)
       p_cache->jobId = id;
     }
   }
+
+  if (uncertain && !bgFlag) ret = findQueuedJob();
 
   return ret;
 }

@@ -1019,6 +1019,58 @@ class Live(object):
         finally:
             os.unlink(flag)
 
+    def lostSubmit(self):
+        """A submit that queued the job and then gave no answer (#887): ECCE
+        finds the job by name and carries on; when the queue cannot be asked
+        it says "submitted?" and leaves the calculation Ready."""
+        rep, s = self.rep, self.s
+        machine = MANAGERS["lsf"][2]
+        spool = os.path.join(self.stub, "..", "spool", "lsf")
+        os.makedirs(spool, exist_ok=True)
+        flags = [os.path.join(spool, f) for f in ("slow_submit", "slow_submit_queues")]
+        for f in flags:
+            with open(f, "w") as h:
+                h.write("8\n")
+        rundir = os.path.join(s.state, "jobs")
+        os.makedirs(rundir, exist_ok=True)
+        queue = "queue=" + LIVE_QUEUE.get("lsf", "normal")
+        try:
+            rep.row(self.suite, "lsf", "stdio", "lost-submit-found")
+            url, out = s.create("qlost%d" % (int(time.time()) % 100000), "mopac_es",
+                                MOPAC_DECK, "mopac.mop", rundir, machine=machine,
+                                extra=[queue])
+            if rep.check(url is not None, "calculation created"):
+                rc, out = s.driver("launch", url, extra={"ECCE_SUBMIT_TIMEOUT": "3"})
+                rep.check(rc == 0, "launchjob succeeded: %s" % out.strip()[-300:])
+                rep.check("found in the queue after the submit gave no answer" in out
+                          or rc == 0, "the job was found by name")
+                state = s.waitState(url, 60, want=("submitted", "running", "completed"))
+                rep.check(state in ("submitted", "running", "completed"),
+                          "calculation is Submitted (last: %s)" % state)
+                log = open(os.path.join(spool, "commands.log")).read()
+                rep.check(log.count("bsub") == 1, "bsub ran once")
+            rep.done()
+
+            rep.row(self.suite, "lsf", "stdio", "lost-submit-query-fails")
+            os.unlink(os.path.join(spool, "named"))
+            open(os.path.join(spool, "bjobs_fails"), "w").close()
+            url, out = s.create("qlost2%d" % (int(time.time()) % 100000), "mopac_es",
+                                MOPAC_DECK, "mopac.mop", rundir, machine=machine,
+                                extra=[queue])
+            if rep.check(url is not None, "calculation created"):
+                rc, out = s.driver("launch", url, extra={"ECCE_SUBMIT_TIMEOUT": "3"})
+                rep.check(rc != 0 and "submitted? check the queue (job name submit__" in out,
+                          "launchjob says submitted?: %s" % out.strip()[-300:])
+                state = s.state_of(url)
+                rep.check(state not in ("submitted", "running", "completed"),
+                          "calculation stays Ready (state: %s)" % state)
+            rep.done()
+        finally:
+            for f in flags + [os.path.join(spool, "bjobs_fails"),
+                              os.path.join(spool, "named")]:
+                if os.path.exists(f):
+                    os.unlink(f)
+
     def preserve(self, name, jobdir):
         """Keep a failed job's run directory and monitor logs past the next run."""
         dest = os.path.join(self.s.state, "failed", name)
@@ -1089,6 +1141,8 @@ def liveSuite(args, rep, suite, managers, stubdir=None):
                     live.run(m, "mopac", kill=True)
         if stubdir and "pbs" in managers:
             live.slowSubmit(build)
+        if stubdir and "lsf" in managers:
+            live.lostSubmit()
         outside = [p for p in s.seen.values() if os.path.dirname(p) != s.build]
         if outside:
             rep.row(suite, "-", "-", "binaries")
