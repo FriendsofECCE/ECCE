@@ -1134,6 +1134,19 @@ string WorkflowSteps::recipeId(Session *wf)
 }
 
 
+void WorkflowSteps::attachFieldOrbitals(Resource *step, Resource *source)
+{
+  // The orbitals of a recipe's field step, once it has finished, are the
+  // starting guess of the step they are linked to.
+  TaskJob *to = dynamic_cast<TaskJob*>(step);
+  TaskJob *from = dynamic_cast<TaskJob*>(source);
+  string why;
+  if (to && from && isComplete(source) && !to->hasOrbitalGuess() &&
+      OrbitalGuess::available(from, why))
+    OrbitalGuess::attach(to, from, why);
+}
+
+
 string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
 {
   if (step->getProp(nsKey(":recipe.step")).empty()) return "";
@@ -1142,14 +1155,8 @@ string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
     if (l->linkType != Session::INPUT_PROVIDER || l->target != step) continue;
     string role, point;
     splitLinkName(l->linkName, role, point);
-    // The orbitals of a recipe's field step, once it has finished, are the
-    // starting guess of the step they are linked to.
-    if (role == "orbitals" && isComplete(l->source)) {
-      TaskJob *to = dynamic_cast<TaskJob*>(step);
-      TaskJob *from = dynamic_cast<TaskJob*>(l->source);
-      string why;
-      if (to && from && !to->hasOrbitalGuess() && OrbitalGuess::available(from, why))
-        OrbitalGuess::attach(to, from, why);
+    if (role == "orbitals") {
+      attachFieldOrbitals(step, l->source);
       continue;
     }
     if ((role == "geometry" || role == "reactant") &&

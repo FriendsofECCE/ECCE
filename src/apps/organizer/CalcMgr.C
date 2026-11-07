@@ -8963,6 +8963,14 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
     Resource *step = EDSIFactory::getResource(EcceURL(url));
     if (step && !step->getProp(VDoc::getEcceNamespace() + ":recipe.step").empty()
         && !WorkflowSteps::isLaunched(step)) {
+      // The field step's orbitals must be attached before the editor saves
+      // the deck, or the deck has no MORead.
+      if (Session *fw = dynamic_cast<Session*>(
+              EDSIFactory::getResource(step->getURL().getParent())))
+        for (Session::Link *l : fw->getLinks())
+          if (l->linkType == Session::INPUT_PROVIDER && l->target == step &&
+              l->linkName == "orbitals")
+            WorkflowSteps::attachFieldOrbitals(step, l->source);
       ChemistryTask *task = dynamic_cast<ChemistryTask*>(step);
       Fragment own;
       // An inherited thumbnail is not the editor's chemical system. Store
