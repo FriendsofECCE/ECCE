@@ -1,0 +1,54 @@
+.	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/BasisSet.ecce_basisset" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:annotation		ORCA, RHF/cc-pVTZ, scan of the H-H distance from 4.0 to 0.3 Å. This calculation shows a closed-shell wavefunction that keeps equal ionic and covalent parts at every distance, so its energy at 4 Å lies far above that of two hydrogen atoms.
+.	http://www.emsl.pnl.gov/ecce:application		ORCA
+.	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
+.	http://www.emsl.pnl.gov/ecce:completiondate		Sat, 07 Nov 2026 12:39:02 GMT
+.	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
+.	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.4.11-dev
+.	http://www.emsl.pnl.gov/ecce:creationdate		Sat, 07 Nov 2026 12:38:48 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.11-dev
+.	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
+.	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
+.	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
+.	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
+.	http://www.emsl.pnl.gov/ecce:job_clientid		
+.	http://www.emsl.pnl.gov/ecce:job_jobid		
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/h2_rhf_scan__o6IOrD
+.	http://www.emsl.pnl.gov/ecce:killrequested		
+.	http://www.emsl.pnl.gov/ecce:launch_account		
+.	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
+.	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
+.	http://www.emsl.pnl.gov/ecce:launch_maxwall		
+.	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
+.	http://www.emsl.pnl.gov/ecce:launch_nodes		0
+.	http://www.emsl.pnl.gov/ecce:launch_priority		
+.	http://www.emsl.pnl.gov/ecce:launch_profile		
+.	http://www.emsl.pnl.gov/ecce:launch_queue		
+.	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
+.	http://www.emsl.pnl.gov/ecce:launch_rundir		
+.	http://www.emsl.pnl.gov/ecce:launch_scratchdir		
+.	http://www.emsl.pnl.gov/ecce:launch_totalprocs		0
+.	http://www.emsl.pnl.gov/ecce:launch_user		
+.	http://www.emsl.pnl.gov/ecce:metaPotentialsDocument		MetaPotentialModel.mpot
+.	http://www.emsl.pnl.gov/ecce:moleculeDocument		chemsys.mvm
+.	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
+.	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
+.	http://www.emsl.pnl.gov/ecce:owner		andy
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=10 sent=1794055137.931 at=1794055142\nscan point=38/\nopt step=1 energy=-0.655909131 rmsgrad=0.0000000000/0.0001000000 maxgrad=0.0000000000/0.0003000000 rmsstep=0.0000000000/0.0020000000 maxstep=0.0000000000/0.0040000000 converged=yes\nopt~ rmsgrad=0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000\nopt~ maxgrad=0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000\nscf cycle=2 energy=-0.6559091313895109 dE=-9.77e-15/\nscf~ dE=0.00e+00,-9.77e-15\n
+.	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
+.	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
+.	http://www.emsl.pnl.gov/ecce:rerun		false
+.	http://www.emsl.pnl.gov/ecce:resourcetype		virtual_document
+.	http://www.emsl.pnl.gov/ecce:reviewed		false
+.	http://www.emsl.pnl.gov/ecce:reviewedDate		
+.	http://www.emsl.pnl.gov/ecce:runLogDocument		eccejobstorelog.ecce_run_log
+.	http://www.emsl.pnl.gov/ecce:runStatusReason		
+.	http://www.emsl.pnl.gov/ecce:runtype		Geometry
+.	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
+.	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
+.	http://www.emsl.pnl.gov/ecce:startdate		Sat, 07 Nov 2026 12:38:48 GMT
+.	http://www.emsl.pnl.gov/ecce:state		Loaded
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794055128
+.	http://www.emsl.pnl.gov/ecce:theory		SCF/RHF

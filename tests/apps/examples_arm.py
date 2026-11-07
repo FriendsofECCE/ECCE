@@ -36,7 +36,8 @@ def propsOf(project):
     found = {}
     for base, dirs, _files in os.walk(project):
         # a GROMACS run's `dynamics` task is parsed, never stored or counted
-        if "Props" in dirs and os.path.basename(base) != "dynamics":
+        if "Props" in dirs and os.path.basename(base) != "dynamics" \
+                and "GROMACS" not in os.path.relpath(base, project).split(os.sep):
             found[os.path.basename(base)] = sorted(
                 os.listdir(os.path.join(base, "Props")))
     return found
@@ -49,7 +50,8 @@ def waitStable(project, count, seconds=300):
     while time.time() < end:
         now = propsOf(project)
         paths = {os.path.basename(b): b for b, d, _f in os.walk(project)
-                 if "Props" in d and os.path.basename(b) != "dynamics"}
+                 if "Props" in d and os.path.basename(b) != "dynamics"
+                 and "GROMACS" not in os.path.relpath(b, project).split(os.sep)}
         def size(path):
             try:
                 return os.path.getsize(path)
