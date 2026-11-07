@@ -6,6 +6,7 @@
 #include <set>
 #include <sstream>
 
+#include "dsm/DeckWriter.H"
 #include "tdat/Fragment.H"
 #include "tdat/TAtm.H"
 #include "tdat/TFormula.H"
@@ -1134,16 +1135,15 @@ string WorkflowSteps::recipeId(Session *wf)
 }
 
 
-void WorkflowSteps::attachFieldOrbitals(Resource *step, Resource *source)
+bool WorkflowSteps::attachFieldOrbitals(Resource *step, Resource *source)
 {
   // The orbitals of a recipe's field step, once it has finished, are the
   // starting guess of the step they are linked to.
   TaskJob *to = dynamic_cast<TaskJob*>(step);
   TaskJob *from = dynamic_cast<TaskJob*>(source);
   string why;
-  if (to && from && isComplete(source) && !to->hasOrbitalGuess() &&
-      OrbitalGuess::available(from, why))
-    OrbitalGuess::attach(to, from, why);
+  return to && from && isComplete(source) && !to->hasOrbitalGuess() &&
+         OrbitalGuess::available(from, why) && OrbitalGuess::attach(to, from, why);
 }
 
 
@@ -1156,7 +1156,13 @@ string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
     string role, point;
     splitLinkName(l->linkName, role, point);
     if (role == "orbitals") {
-      attachFieldOrbitals(step, l->source);
+      // A deck written before the guess existed lacks MORead; auto-run and
+      // Launch Ready Steps do not pass through the editor, so rewrite it.
+      if (attachFieldOrbitals(step, l->source) &&
+          dynamic_cast<TaskJob*>(step)->getState() == ResourceDescriptor::STATE_READY)
+        if (ICalculation *calc = dynamic_cast<ICalculation*>(step))
+          if (!DeckWriter::generate(calc).ok)
+            dynamic_cast<TaskJob*>(step)->setState(ResourceDescriptor::STATE_CREATED);
       continue;
     }
     if ((role == "geometry" || role == "reactant") &&
