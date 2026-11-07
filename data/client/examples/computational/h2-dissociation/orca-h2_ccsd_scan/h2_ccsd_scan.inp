@@ -1,6 +1,6 @@
-! CCSD cc-pVTZ Opt
+! CCSD cc-pVTZ Opt MiniPrint
 %output
-  Print[P_MOs] 1
+  Print[P_MOs] 0
   Print[P_OrbEn] 2
 end
 %elprop
