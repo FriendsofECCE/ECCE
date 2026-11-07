@@ -1173,7 +1173,63 @@ string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
     }
   }
   if (carried) structureSet(wf, step);
-  return "";
+  return prepareStep(wf, step);
+}
+
+
+const char *const WorkflowSteps::kNotReadyProp = ":workflow.notready";
+
+
+string WorkflowSteps::prepareStep(Session *wf, Resource *step)
+{
+  if (!wf || !step || step->getProp(nsKey(":recipe.step")).empty()) return "";
+  TaskJob *job = dynamic_cast<TaskJob*>(step);
+  ICalculation *calc = dynamic_cast<ICalculation*>(step);
+  if (!job || !calc) return "";
+  const ResourceDescriptor::RUNSTATE st = job->getState();
+  if (st != ResourceDescriptor::STATE_CREATED && st != ResourceDescriptor::STATE_READY)
+    return "";
+  TaskJob *launchFrom = 0;
+  for (Session::Link *l : wf->getLinks()) {
+    if (l->linkType != Session::INPUT_PROVIDER || l->target != step) continue;
+    if (!isComplete(l->source)) return "";            // waiting; the box says so
+    TaskJob *src = dynamic_cast<TaskJob*>(l->source);
+    if (!launchFrom && src && !src->launchdata().machine.empty()) launchFrom = src;
+  }
+  string why;
+  if (st == ResourceDescriptor::STATE_CREATED) {
+    // Recipe steps are never opened in the editor on the way to a launch,
+    // and a Created step has no deck for Launch to submit.
+    PropertyTask *task = dynamic_cast<PropertyTask*>(step);
+    Fragment *frag = task ? task->fragment() : 0;
+    const bool atoms = frag && frag->numAtoms() > 0;
+    delete frag;
+    if (!atoms) {
+      why = "no structure yet";
+    } else {
+      DeckWriter::Result r = DeckWriter::generate(calc);
+      if (r.ok) {
+        job->setState(ResourceDescriptor::STATE_READY);
+      } else {
+        string msg = r.message.substr(0, r.message.find('\n'));
+        why = "input not written (open it in the Calculation Editor)" +
+              (msg.empty() ? string() : ": " + msg);
+      }
+    }
+  }
+  if (why.empty() && job->launchdata().machine.empty()) {
+    // Steps launched together run where the chain started; the Launcher
+    // can still change it.  The same user's own settings, nothing new.
+    if (!launchFrom)
+      for (Resource *m : wf->getMembers()) {
+        TaskJob *t = dynamic_cast<TaskJob*>(m);
+        if (t && t != job && !t->launchdata().machine.empty()) { launchFrom = t; break; }
+      }
+    if (!launchFrom || !job->launchdata(launchFrom->launchdata()))
+      why = "no launch settings (set them in the Launcher)";
+  }
+  if (step->getProp(nsKey(kNotReadyProp)) != why) step->addProp(nsKey(kNotReadyProp), why);
+  return why;
 }
 
 

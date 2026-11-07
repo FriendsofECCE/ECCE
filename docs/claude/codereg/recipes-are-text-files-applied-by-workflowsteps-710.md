@@ -3,7 +3,7 @@ type: map
 title: "Recipes (#710): a .recipe text file, applied by WorkflowSteps::applyRecipe; the set-up panel and the key-data box"
 area: codereg
 paths: [src/apps/organizer/Recipe.C, src/apps/organizer/KeyData.C, src/apps/organizer/RecipePanel.C, src/apps/organizer/WorkflowLayout.C, src/apps/organizer/WorkflowSteps.C, data/client/recipes, tests/recipes, tests/apps/workflow_test.py]
-issues: [710, 674, 808, 847]
+issues: [710, 674, 808, 847, 901, 902]
 ---
 - Format and rules: `Recipe.H` (wx-free; tested by `recipe_test`). Built-ins
   are `data/client/recipes/*.recipe`; a site adds `Recipes/` in any site
@@ -24,6 +24,17 @@ issues: [710, 674, 808, 847]
   fragment without input-provider fallback and preserves existing structures
   and launched steps. `launchReadySteps` still refreshes at launch. Both
   paths act on recipe steps only so other workflows behave as before.
+- Ready without the editor (#901): `refreshFromSources` ends in `prepareStep`,
+  which writes a Created recipe step's deck (`DeckWriter::generate`) once all
+  sources are Complete and it has atoms, sets Ready, and copies launch settings
+  from a source (else another step) when it has none. Called after Apply
+  Recipe, when a step finishes, and on every launch path. Why not is stored as
+  `ecce:workflow.notready` (play tooltip, `workflowplay`, `workflowstate`).
+  A `workflowcopy` seed has no launch settings (StoredCalcCopy strips them),
+  so the first step after it shows "no launch settings" until one is set.
+- Launches from the workflow view must not use `findNode(url, true, ...)`:
+  openWhenFound calls SelectItem, which replaces the view with the step's
+  panel (#902, auto-run tick). Hook: `workflowautorunclick`.
 - The method and basis chosen per role are recorded as properties.
   `applyRoleMethod` sets theory RDFT plus `ES.Theory.DFT.XCFunctionals` (or
   SCF/RHF for HF) for G16, ORCA and ECCE-QM only (ECCE-QM: theory DFT/DFT or SCF/HF, functionals SVWN, PBE, B3LYP, PBE0), through `methodValue`, which holds

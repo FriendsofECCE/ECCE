@@ -1230,15 +1230,16 @@ def run_autorun(display, data, work, shots):
         "workflowstep %s xtb_es a %s/seed" % (wf, wf),
         "workflowstep %s xtb_es b %s/a" % (wf, wf),
         "workflowstep %s xtb_es c %s/a" % (wf, wf),
+        "workflowstep %s xtb_es d %s/seed" % (wf, wf),
     ] + ["workflowsetlaunch %s %s/%s localhost %s" % (wf, wf, n, rundir)
-         for n in ("a", "b", "c")]
+         for n in ("a", "b", "c", "d")]
     with open(script, "w") as f:
         f.write("\n".join(setup) + "\n")
     result = apps.run(display, "organizer", windowTimeout=60, settle=40,
                       env={"ECCE_TEST_ORGANIZER": script})
     check("autorun setup Organizer survives", not result.crashed, result.log or "")
     # The input deck the Calculation Editor would have written.
-    for n in ("a", "b", "c"):
+    for n in ("a", "b", "c", "d"):
         with open(os.path.join(project, "Workflow", n, "xtb.xtbin"), "w") as f:
             f.write("##XtbHeader##\n##chemsys##\n")
     script = os.path.join(work, "autorun-commands1")
@@ -1284,7 +1285,9 @@ def run_autorun(display, data, work, shots):
     # Auto-run on: the first step completes, the next two start by themselves.
     script2 = os.path.join(work, "autorun-commands2")
     commands = [
-        "workflowautorun %s on" % wf,
+        # Ticked as a click does while d is ready: d launches and the view
+        # stays (#902: the launch selected d in the tree, replacing the view).
+        "workflowautorunclick %s on" % wf,
         "setstate %s/a completed" % wf,
         "workflowplay %s" % wf,
         "workflowplay %s" % wf,
@@ -1307,6 +1310,62 @@ def run_autorun(display, data, work, shots):
           str(play))
     check("auto-run stays on", answers("workflowautorun")[-1:] == ["ok autorun=on"],
           str(answers("workflowautorun")))
+    click = answers("workflowautorunclick")
+    check("ticking auto-run keeps the workflow view shown (#902)",
+          click == ["ok shown=1 autorun=on"], str(click))
+    check("ticking auto-run launched the ready step", play and "d:0:already run" in play[-1],
+          str(play))
+    run_recipe_ready(display, data, work, shots, rundir)
+
+
+def run_recipe_ready(display, data, work, shots, rundir):
+    """Apply Recipe on a finished calculation (#901): the first step gets its
+    input and is Ready without the Calculation Editor, takes its source's
+    launch settings, and Launch Ready Steps submits it.  Uses the localhost
+    machine run_autorun registered."""
+    project = os.path.join(data, "users", "local", "recready")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(CALC, os.path.join(project, "water"), symlinks=True)
+    proj = "file://" + project
+    wf = proj + "/Workflow"
+    script = os.path.join(work, "recready-commands")
+    commands = [
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/water seed" % (wf, proj),
+        "workflowsetlaunch %s %s/seed localhost %s" % (wf, wf, rundir),
+        "workflowrecipe %s protonation-sites orca %s/seed" % (wf, wf),
+        "workflowstate %s %s/preopt" % (wf, wf),
+        "workflowplay %s" % wf,
+        "workflowlaunch %s" % wf,
+        "workflowplay %s" % wf,
+    ]
+    with open(script, "w") as f:
+        f.write("\n".join(commands) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    log = result.log or ""
+    with open(os.path.join(shots, "recready.log"), "w") as f:
+        f.write(log)
+    check("recipe-ready Organizer survives", not result.crashed, log)
+
+    def answers(command):
+        return re.findall(r"ECCE_TEST_ORGANIZER: %s .*?: (.*)$" % command, log, re.M)
+
+    state = answers("workflowstate")
+    check("after Apply Recipe the first step is Ready with nothing missing",
+          len(state) == 1 and state[0].lower().startswith("ok state=ready") and
+          state[0].endswith("notready="), str(state))
+    deck = os.path.join(project, "Workflow", "preopt", "xtb.xtbin")
+    check("its input was written without the editor", os.path.isfile(deck), deck)
+    play = answers("workflowplay")
+    check("its play button is enabled", play and "preopt:1:|" in play[0] + "|", str(play))
+    launch = answers("workflowlaunch")
+    check("Launch Ready Steps submits it",
+          len(launch) == 1 and launch[0].startswith("ok ") and "preopt" in launch[0] and
+          "skipped" not in launch[0].split("preopt", 1)[1].split("|")[0], str(launch))
+    check("the step left Created/Ready",
+          len(play) == 2 and "preopt:0:already run" in play[1], str(play))
 
 
 def main():
