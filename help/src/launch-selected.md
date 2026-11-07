@@ -137,6 +137,15 @@ reason`, for example when the calculation's state cannot be reconnected; the
 exit status is 0 only when every calculation was reconnected. Paths, URLs and
 the message without a running ECCE session are as for `ecce-launch`.
 
+    ecce-reconnect <calculation folder or URL> jobid=N
+
+attaches a job that is already in the queue to a **Ready** calculation, then
+reconnects it. Use it when `ecce-launch` printed `submitted?` because the
+answer to the submit was lost and the job is in the queue: look up its id
+there (the job name and run directory are in the `submitted?` line), and
+give it as `jobid=`. It takes one calculation only and refuses any state
+other than Ready, and a calculation ECCE never prepared a run directory for.
+
 ### Fetching files from the run directory
 
     ecce-fetch [--list] <calculation folder or URL> [pattern ...]
