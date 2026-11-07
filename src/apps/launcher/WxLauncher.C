@@ -2915,6 +2915,15 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
         p_messagesFeedback->setMessage("This machine entry does not pass a time limit: "
             "the stored wall time is not applied.", WxFeedback::WARNING, false, true);
 
+    //  A timed-out earlier submit may have queued the job: warn, never block.
+    if (p_taskJob)
+    {
+        string maybe = p_taskJob->getProp(VDoc::getEcceNamespace() + ":submituncertain");
+        if (!maybe.empty())
+            p_messagesFeedback->setMessage("May already be in the queue: " + maybe,
+                                           WxFeedback::WARNING, false, true);
+    }
+
     //  Broker messages (state, invoke, quit, machine changes) touch the
     //  calculation the steps are using: they wait until the launch ends.
     struct DeferMessages {

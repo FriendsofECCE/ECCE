@@ -306,6 +306,11 @@ LaunchBatch::Plan LaunchBatch::plan(TaskJob *task, const Target& target)
       notes.push_back("machine " + l.machine + " does not pass a time limit: wall time " +
                       wallMinutes(want) + " is not applied");
   }
+  {
+    // A timed-out submit may have queued the job; launching again runs it twice.
+    const string u = task->getProp(VDoc::getEcceNamespace() + ":submituncertain");
+    if (!u.empty()) notes.push_back("may already be in the queue: " + u);
+  }
   for (size_t i = 0; i < notes.size(); i++) p.notes += (i ? "; " : "") + notes[i];
   p.ready = true;
   return p;
@@ -350,8 +355,15 @@ void LaunchBatch::recordFailure(TaskJob *task, const string& reason)
 
 void LaunchBatch::clearFailure(TaskJob *task)
 {
-  if (!task || task->getProp(VDoc::getEcceNamespace() + ":runStatusReason").empty())
-    return;
+  if (!task) return;
+  const string ns = VDoc::getEcceNamespace();
+  if (!task->getProp(ns + ":submituncertain").empty()) {
+    vector<MetaDataResult> r(1);
+    r[0].name = ns + ":submituncertain";
+    r[0].value = "";
+    try { task->addProps(r); } catch (...) {}
+  }
+  if (task->getProp(ns + ":runStatusReason").empty()) return;
   try { setReason(task, ""); } catch (...) {}
 }
 

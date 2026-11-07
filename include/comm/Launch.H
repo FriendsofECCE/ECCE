@@ -166,6 +166,7 @@ private:
         bool validateScratchDir(void);
         bool moveFiles(void);
         bool launchNormal(void);
+        bool findQueuedJob(void);
 
         ///////////
         // Operations helper functions
