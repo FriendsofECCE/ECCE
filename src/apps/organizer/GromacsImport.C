@@ -23,6 +23,8 @@
 #include "dsm/Session.H"
 #include "util/Ecce.H"
 
+#include <filesystem>
+
 using std::string;
 using std::vector;
 
@@ -203,7 +205,11 @@ void analyseTask(const string& taskDir, const vector<string>& files,
 
 // Attaches a task's inputs, copies its outputs into a staging directory
 // under the names a live run brings back, and imports that.  The job
-// monitor reads the staging directory after this returns, so it is left.
+// monitor reads the staging directory after this returns and removes it when
+// it finishes; only a failed import (no monitor started) removes it here.
+bool importTaskStaged(MdTask* md, const string& taskDir, bool prepare,
+                      string& message, const string& stage);
+
 bool importTask(MdTask* md, const string& taskDir, bool prepare,
                 string& message)
 {
@@ -217,7 +223,15 @@ bool importTask(MdTask* md, const string& taskDir, bool prepare,
     return false;
   }
   const string stage = &buf[0];
+  if (importTaskStaged(md, taskDir, prepare, message, stage)) return true;
+  std::error_code ec;
+  std::filesystem::remove_all(stage, ec);
+  return false;
+}
 
+bool importTaskStaged(MdTask* md, const string& taskDir, bool prepare,
+                      string& message, const string& stage)
+{
   bool haveLog = false;
   string fragment, view;
   vector<string> files = listDir(taskDir, false);
