@@ -135,6 +135,12 @@ struct DosResult {
 // repeatable with another width on the same DosResult.
 bool dosOrbitals(const resultsh5::Model& complex, const DosOptions& opt, DosResult& out, string& err);
 bool dosCurves(const DosOptions& opt, DosResult& out, string& err);
+// The MOs of one spin channel (spin < 0: all) of a dosOrbitals result, optionally
+// only the occupied ones; curves of the two channels then share one grid.
+bool dosSpinPart(const DosResult& all, int spin, bool occupiedOnly, DosResult& part, string& err);
+// Default A | B split: the first transition-metal or heavier atom against the
+// rest, else the first atom against the rest (0-based atoms).
+void defaultSplit(const resultsh5::Model& complex, vector<int>& a, vector<int>& b);
 bool dos(const resultsh5::Model& complex, const DosOptions& opt, DosResult& out, string& err);
 
 // Complex atoms of a fragment, for building AtomSets from fragment files.

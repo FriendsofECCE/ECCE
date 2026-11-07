@@ -6584,6 +6584,8 @@ void Builder::updatePropertyMenus()
           return shotHookCommand(s, w, outdir);
         //  "dp...": the Density Profile panel's controls.
         if (w[0].compare(0, 2, "dp") == 0) return densityProfileCommand(s, w, outdir);
+        //  "opdos...": the Density of States (OPDOS) panel (#171).
+        if (w[0].compare(0, 5, "opdos") == 0) return opdosCommand(s, w, outdir);
         //  "gt...": the Geometry Trace stress commands (#217).
         if (w[0].compare(0, 2, "gt") == 0) return traceStressCommand(s, w);
         //  "vib...": the Normal Modes panel on an edited structure.

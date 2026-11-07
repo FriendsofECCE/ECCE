@@ -234,6 +234,8 @@ int main(int argc, char** argv) {
     size_t gf = size_t(std::floor((w.fermiEv - w.energy[0]) / wide.step + 0.5));
     printf("dos: integrated OPDOS at E_F %.6f vs occupied OP %.6f, norm error %.2e\n", w.intOpdos[gf], w.occupiedOverlap[0], d.normError);
     CHECK(std::fabs(w.intOpdos[gf] - w.occupiedOverlap[0]) < 2e-3, "integrated OPDOS at HOMO");
+    size_t gd = size_t(std::floor((d.fermiEv - d.energy[0]) / dopt.step + 0.5));
+    CHECK(std::fabs(d.intOpdos[gd] - d.occupiedOverlap[0]) < 2e-3, "integrated OPDOS at HOMO in a window that cuts the core: %f vs %f", d.intOpdos[gd], d.occupiedOverlap[0]);
     CHECK(d.normError < 1e-5, "c^T S c = 1: %g", d.normError);
     DosOptions occ = dopt;
     occ.occupiedOnly = true;
