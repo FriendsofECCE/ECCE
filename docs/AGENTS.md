@@ -137,7 +137,7 @@ running: start ECCE first` and do nothing. A calculation is given as a folder
 
 Exit codes of these four: 0 everything done; 1 something was not done; 2 no
 running ECCE session; 3 the Organizer is busy with a Launch Selected batch
-(try again later) or gave no answer within the time limit (it may have been
+(try again later); 4 no answer within the time limit (it may have been
 carried out: check before repeating); 64 usage error.
 
 ### ecce-launch
@@ -181,7 +181,7 @@ overrides its launch machine. Output: `name: rerun as new`, optionally
 `, job id N`, or `name: not rerun: reason`. A launch failure identifies the
 copy that was made and leaves it available. Other calculations still proceed.
 Exit codes, as ecce-move: 0 all done, 1 any refusal, 2 no running
-session, 3 no answer in time (may have been carried out; check before repeating), 64 usage. Local data paths and data-server URLs only.
+session, 4 no answer in time (may have been carried out; check before repeating), 64 usage. Local data paths and data-server URLs only.
 
     ecce-rerun project/killed-job
     ecce-rerun on=localhost launch project/finished-job

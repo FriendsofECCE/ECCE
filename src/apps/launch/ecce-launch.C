@@ -10,7 +10,7 @@
  * with "name: note: ..." before it for a setting that was filled in or
  * dropped (no stored queue, a machine that passes no time limit).
  * Every calculation given gets one line, also when ECCE gives no answer.
- * Exit 3 also means no answer in time (it may have been carried out). Exit 0: all launched; 1: some were not; 2: no running
+ * Exit 4: no answer in time (it may have been carried out). Exit 0: all launched; 1: some were not; 2: no running
  * ECCE session; 3: the Organizer is busy with a Launch Selected batch;
  * 64: usage.
  */
@@ -222,7 +222,7 @@ int main(int argc, char **argv)
     for (size_t i = 0; i < urls.size(); i++)
       std::cout << given[i] << ": " << kNoAnswer << " (job name submit__"
                 << leafOf(urls[i]) << ")" << std::endl;
-    return 3;
+    return 4;  // no answer: may have been carried out
   }
   if (gBusy) {
     std::cerr << "ecce-launch: ECCE is submitting a Launch Selected batch; "

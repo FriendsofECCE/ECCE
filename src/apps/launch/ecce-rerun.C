@@ -200,7 +200,7 @@ int main(int argc, char **argv)
     if (!gAck) return notRunning();
     for (size_t i = 0; i < args.size(); i++)
       std::cout << args[i] << ": " << kNoAnswer << std::endl;
-    return 3;
+    return 4;  // no answer: may have been carried out
   }
   for (size_t i = 0; i < gLines.size(); i++) {
     size_t a = gLines[i].find('\t');

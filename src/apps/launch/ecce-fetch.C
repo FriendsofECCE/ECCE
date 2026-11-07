@@ -8,7 +8,7 @@
  *
  * Without patterns: *.cube *.cub *.pdos. --list only lists the directory.
  * Prints "name: fetched (N bytes)", "pattern: no file matched" or
- * "calc: not fetched: reason". Exit 3 also means no answer in time (it may have been carried out). Exit 0: all fetched; 1: some not ; 2: no running ECCE session; 3: the Organizer is busy with a
+ * "calc: not fetched: reason". Exit 4: no answer in time (it may have been carried out). Exit 0: all fetched; 1: some not ; 2: no running ECCE session; 3: the Organizer is busy with a
  * Launch Selected batch; 64: usage.
  */
 #include <sys/stat.h>
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
   if (timedOut) {
     if (!gAck) return notRunning();
     std::cout << args[0] << ": " << kNoAnswer << std::endl;
-    return 3;
+    return 4;  // no answer: may have been carried out
   }
   if (gBusy) {
     std::cerr << "ecce-fetch: ECCE is submitting a Launch Selected batch; "

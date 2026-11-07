@@ -12,7 +12,7 @@ request `ecce_move_request` (verb, second, urls) is answered on
 target in the tree and calls `notifyRename`. The #700 refusal text is
 `activeJobRefusal` (the dialog variant `refuseMoveOfActiveJob` calls it). The
 name clash is checked against the target's fresh children before the move.
-Requests are acknowledged on arrival by `WxJMSMessageDispatch::messageArrived` (messaging thread, #897); the MCBs do not ack. No answer after an ack: exit 3. Unlike ecce-annotate there is no offline path: a move without the Organizer
+Requests are acknowledged on arrival by `WxJMSMessageDispatch::messageArrived` (messaging thread, #897); the MCBs do not ack. No answer after an ack: exit 4 (3 stays 'busy with a launch batch'). Unlike ecce-annotate there is no offline path: a move without the Organizer
 leaves stale tree nodes, so no session means exit 2. A target in another tree goes through `copyAcrossTrees` (#890).
 
 `ecce-rerun` uses the same request/reply pattern on `ecce_rerun_request` /

@@ -12,7 +12,7 @@
  * --exclude <calc>... "reason" marks calculations as excluded (#617): the
  * same path, property ecce:excluded; --include <calc>... clears the mark.
  *
- * Prints "name: annotated" or "name: not annotated: reason". Exit 3 also means no answer in time (it may have been carried out). Exit 0: all
+ * Prints "name: annotated" or "name: not annotated: reason". Exit 4: no answer in time (it may have been carried out). Exit 0: all
  * annotated; 1: some were not; 2: no running ECCE session
  * and no local data folder; 64: usage.
  */
@@ -224,7 +224,7 @@ int main(int argc, char **argv)
     if (!gAck) return notRunning();
     for (size_t i = 0; i < args.size(); i++)
       std::cout << args[i] << ": " << kNoAnswer << std::endl;
-    return 3;
+    return 4;  // no answer: may have been carried out
   }
 
   for (size_t i = 0; i < gLines.size(); i++) {

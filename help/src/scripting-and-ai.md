@@ -57,7 +57,7 @@ confirms each request as soon as it arrives, so a command sent while the
 Organizer is still busy with an earlier one is not mistaken for "not running".
 If the Organizer confirmed but gave no answer in time, each calculation gets
 the line `no answer from the Organizer; it may have been carried out - check
-before repeating` and the exit status is 3.
+before repeating` and the exit status is 4.
 
 `ecce-copy <calculation or folder>... <folder>` copies in the same way, and
 the target folder may be in another tree (Local data, an SSH folder or an ECCE
@@ -97,7 +97,7 @@ set the copy's launch settings, with or without `--last-geometry`; with
 `launch` the copy is submitted with them.
 
 Local data paths and data-server URLs are supported. Exit status: 0 all done,
-1 any refusal, 2 no running ECCE session, 3 no answer in time (it may have
+1 any refusal, 2 no running ECCE session, 4 no answer in time (it may have
 been carried out; check before repeating), 64 invalid usage.
 
 ## The AGENTS.md file

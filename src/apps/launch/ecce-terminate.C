@@ -8,7 +8,7 @@
  *
  * Prints "name: terminated, job id N, <what is left>" or "name: not
  * terminated: reason" per calculation; what is left says whether a process
- * still runs in the run directory (#855). Exit 3 also means no answer in time (it may have been carried out). Exit 0: all terminated and nothing
+ * still runs in the run directory (#855). Exit 4: no answer in time (it may have been carried out). Exit 0: all terminated and nothing
  * left; 1: some were not, a process is still running;
  * 2: no running ECCE session; 3: the Organizer is busy with a Launch
  * Selected batch; 64: usage.
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
     if (!gAck) return notRunning();
     for (size_t i = 0; i < args.size(); i++)
       std::cout << args[i] << ": " << kNoAnswer << std::endl;
-    return 3;
+    return 4;  // no answer: may have been carried out
   }
   if (gBusy) {
     std::cerr << "ecce-terminate: ECCE is submitting a Launch Selected batch; "

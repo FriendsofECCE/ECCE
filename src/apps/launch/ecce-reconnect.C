@@ -8,7 +8,7 @@
  * is asked for in the Organizer, as for the menu item.
  *
  * Prints "name: reconnected, job id N" or "name: not reconnected: reason"
- * per calculation. Exit 3 also means no answer in time (it may have been carried out). Exit 0: all reconnected; 1: some were not;
+ * per calculation. Exit 4: no answer in time (it may have been carried out). Exit 0: all reconnected; 1: some were not;
  * 2: no running ECCE session; 3: the Organizer is busy with a Launch
  * Selected batch; 64: usage.
  */
@@ -197,7 +197,7 @@ int main(int argc, char **argv)
     if (!gAck) return notRunning();
     for (size_t i = 0; i < args.size(); i++)
       std::cout << args[i] << ": " << kNoAnswer << std::endl;
-    return 3;
+    return 4;  // no answer: may have been carried out
   }
   if (gBusy) {
     std::cerr << "ecce-reconnect: ECCE is submitting a Launch Selected batch; "

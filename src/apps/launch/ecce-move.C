@@ -14,7 +14,7 @@
  * session nothing is done: a move behind the Organizer's back leaves stale tree nodes.
  *
  * Prints "name: moved to folder" / "name: renamed to new name" or
- * "name: not moved: reason" / "name: not renamed: reason". Exit 3 also means no answer in time (it may have been carried out). Exit 0: all done;
+ * "name: not moved: reason" / "name: not renamed: reason". Exit 4: no answer in time (it may have been carried out). Exit 0: all done;
  * 1: some were not; 2: no running ECCE session; 64: usage.
  * One source, built twice: ECCE_RENAME_COMMAND selects ecce-rename.
  */
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
     if (!gAck) return notRunning();
     for (size_t i = 0; i < args.size(); i++)
       std::cout << args[i] << ": " << kNoAnswer << std::endl;
-    return 3;
+    return 4;  // no answer: may have been carried out
   }
 
   for (size_t i = 0; i < gLines.size(); i++) {
