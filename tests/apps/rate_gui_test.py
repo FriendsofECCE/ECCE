@@ -77,6 +77,7 @@ def run(display, data, work, shots):
     with open(rx3, "w") as f:
         f.write("# base file://%s\nreactant_complex -> [sn2_ts] -> product_complex\n"
                 "butadiene, ethylene -> [diels_alder_ts] -> cyclohexene\n" % tdir)
+    shot3 = os.path.join(os.environ.get("ECCE_RATE_SHOTS") or work, "overview-two-ts.png")
     rx4 = os.path.join(work, "reactions4.txt")
     with open(rx4, "w") as f:
         f.write("# base file://%s\nbutadiene, ethylene -> [sn2_qts3] -> cyclohexene\n" % tdir)
@@ -85,7 +86,7 @@ def run(display, data, work, shots):
                 "workflowrate %s T=310" % wf,
                 "reactionoverview %s qrrho-grimme:100 %s %s 298.15" % (rx, png2, csv2),
                 "reactionoverview %s qrrho-grimme:100 %s - 298.15" % (rx2, png3),
-                "reactionoverview %s qrrho-grimme:100" % rx3,
+                "reactionoverview %s qrrho-grimme:100 - - 298.15 %s" % (rx3, shot3),
                 "reactionoverview %s qrrho-grimme:100" % rx4]
     script = os.path.join(work, "commands")
     open(script, "w").write("\n".join(commands) + "\n")
@@ -170,6 +171,15 @@ def run(display, data, work, shots):
     bad = profile_layout.overlaps(lines)
     check("SN2 profile: no label touches a line or another label", not bad, "; ".join(bad[:8]))
     two = ov[1].split(" | ")
+    lay = dict(kv.split("=", 1) for l in two if l.startswith("layout: ") for kv in l[8:].split())
+    h = lambda k: int(lay.get(k, "0x0").split("x")[1])
+    check("two [ts] reactions: the chart and the choice are shown, chart taller than 50 px",
+          lay.get("plotshown") == "1" and lay.get("choiceshown") == "1" and h("plot") > 50 and h("choice") > 0, lay)
+    check("the G treatment choice is enabled", lay.get("treatmentenabled") == "1", lay)
+    check("the result text is read-only, enabled, multi-line and has room",
+          lay.get("detailreadonly") == "1" and lay.get("detailenabled") == "1" and
+          lay.get("detailmulti") == "1" and h("detail") >= 100, lay)
+    check("dialog screenshot written", os.path.getsize(shot3) > 5000 if os.path.exists(shot3) else False, shot3)
     check("two [ts] reactions: two profiles",
           any(l.startswith("profile 2 2 ts ") for l in two) and
           len([l for l in two if l.startswith("layout 2 size")]) == 1, two[:20])
