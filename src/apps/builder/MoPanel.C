@@ -1812,6 +1812,12 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    int resx, resy, resz;
    bool uniform;
 
+   //  A click starts from the default box; the recomputes of the face
+   //  check (p_gridRound > 0) keep the growth.
+   if (p_gridRound == 0) {
+      for (int k = 0; k < 6; k++) p_gridGrow[k] = 0;
+   }
+
    // Could not do this at create time becaus fragment is not yet set
    updateGridDlg();
    p_griddlg->getResolution(resx,resy,resz,uniform);
@@ -1930,6 +1936,7 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       //  is a log10 one, and these views are driven from the row's boxes.
       bool nciView = false;
       const bool fieldView = fieldViewSelected(&nciView);
+      if (p_keepIso) isovalue = p_keepIsoLog;
       if (fieldView) {
          isovalue = log10(fieldViewIsovalue(fieldtype));
          absIsovalMax = fieldtype == ELF_FIELD_TYPE || fieldtype == LOL_FIELD_TYPE ? 1.0 : 2.0;
@@ -1953,6 +1960,32 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
 
       p_slider->SetValue(isovalue);
       updateIsoValue(isovalue);
+      p_facesCheckedIso = pow(10.0, isovalue);
+
+      //  A surface cut at the grid faces is not the orbital's: enlarge the
+      //  box on those sides and compute again, within a size limit.
+      if (!fieldView) {
+         const int cut = gridFacesCut(p_facesCheckedIso);
+         if (cut) {
+            const float s_grow = 2.0, s_maxEdge = 40.0;
+            const double *o = grid->origin(), *cr = grid->corner();
+            bool grown = false;
+            for (int k = 0; k < 6 && p_gridRound < 3; k++) {
+               if (!(cut & (1 << k))) continue;
+               if (fabs(cr[k/2] - o[k/2]) + s_grow > s_maxEdge) continue;
+               p_gridGrow[k] += s_grow;
+               grown = true;
+            }
+            if (grown) {
+               p_gridRound++;
+               OnButtonMoComputeClick(event);
+               p_gridRound--;
+               return;
+            }
+            fw.showMessage("The surface reaches beyond the grid; raise the "
+                           "isovalue or enlarge the grid (Grid...)", false);
+         }
+      }
 
       p_espDrawnType = (espSurface || nciView) ? fieldtype : string();
       p_drawnType = fieldtype;
@@ -2126,18 +2159,29 @@ void MoPanel::updateGridDlg()
 
    SGFragment *frag = getFW().getSceneGraph().getFragment() ;
    if (frag) {
-      const float s_boundingBoxExtra = 2.0;
-      float xmin, ymin, zmin, xmax, ymax, zmax;
-      frag->getBoundBox(xmin, ymin, zmin, xmax, ymax, zmax);
+      //  Diffuse orbitals of a linear molecule reach far across the bond
+      //  axis; the face check in OnButtonMoComputeClick grows the box
+      //  from here where the surface is still cut.
+      const float s_boundingBoxExtra = 4.0;
+      //  Every atom, not getBoundBox(): that one covers only the selected
+      //  atoms when there is a selection (#892).
+      float xmin = 0, ymin = 0, zmin = 0, xmax = 0, ymax = 0, zmax = 0;
+      for (int i = 0; i < (int)frag->numAtoms(); i++) {
+         const double *x = frag->atomRef(i)->coordinates();
+         if (i == 0 || x[0] < xmin) xmin = x[0];
+         if (i == 0 || x[1] < ymin) ymin = x[1];
+         if (i == 0 || x[2] < zmin) zmin = x[2];
+         if (i == 0 || x[0] > xmax) xmax = x[0];
+         if (i == 0 || x[1] > ymax) ymax = x[1];
+         if (i == 0 || x[2] > zmax) zmax = x[2];
+      }
 
-      // Extend the range of the grid beyond the
-      // bounding box of the chemical system.
-      xmin -= s_boundingBoxExtra;
-      ymin -= s_boundingBoxExtra;
-      zmin -= s_boundingBoxExtra;
-      xmax += s_boundingBoxExtra;
-      ymax += s_boundingBoxExtra;
-      zmax += s_boundingBoxExtra;
+      xmin -= s_boundingBoxExtra + p_gridGrow[0];
+      xmax += s_boundingBoxExtra + p_gridGrow[1];
+      ymin -= s_boundingBoxExtra + p_gridGrow[2];
+      ymax += s_boundingBoxExtra + p_gridGrow[3];
+      zmin -= s_boundingBoxExtra + p_gridGrow[4];
+      zmax += s_boundingBoxExtra + p_gridGrow[5];
       grid->setExtent(xmin,xmax,ymin,ymax,zmin,zmax);
 
    }
@@ -2290,14 +2334,72 @@ void MoPanel::updateSurface()
 void MoPanel::OnEndSliderMotion(wxScrollEvent& event)
 {
    updateIsoValue();
+   recheckGridFaces(static_cast<double>(p_slider->GetFloatValue()));
    event.Skip();
 }
 
 void MoPanel::OnSliderTextEnter(wxCommandEvent& event)
 {
    updateIsoValue();
+   recheckGridFaces(static_cast<double>(p_slider->GetFloatValue()));
    event.Skip();
 }
+
+/** Sides (bit 0..5: -x +x -y +y -z +z) where |field| on the grid's outer faces exceeds iso. */
+int MoPanel::gridFacesCut(double iso) const
+{
+   SingleGrid *grid = const_cast<MoPanel*>(this)->getFW().getSceneGraph().getCurrentGrid();
+   if (!grid || !grid->fieldData()) return 0;
+   const int *d = grid->dimensions();
+   const float *f = grid->fieldData();
+   int cut = 0;
+   for (int iz = 0; iz < d[2]; iz++) {
+      for (int iy = 0; iy < d[1]; iy++) {
+         for (int ix = 0; ix < d[0]; ix++) {
+            if (ix > 0 && ix < d[0]-1 && iy > 0 && iy < d[1]-1 &&
+                iz > 0 && iz < d[2]-1) {
+               ix = d[0] - 2;        // the interior: jump to the +x face
+               continue;
+            }
+            if (fabs(f[ix + (size_t)d[0] * (iy + (size_t)d[1] * iz)]) <= iso)
+               continue;
+            if (ix == 0) cut |= 1;
+            if (ix == d[0]-1) cut |= 2;
+            if (iy == 0) cut |= 4;
+            if (iy == d[1]-1) cut |= 8;
+            if (iz == 0) cut |= 16;
+            if (iz == d[2]-1) cut |= 32;
+         }
+      }
+   }
+   return cut;
+}
+
+
+/**
+ * The slider went below the isovalue the faces were checked at: the same
+ * check on the grid held, and a recompute at the slider's value when cut.
+ */
+void MoPanel::recheckGridFaces(double isoLog)
+{
+   const double iso = pow(10.0, isoLog);
+   if (p_drawnType.empty() || p_facesCheckedIso <= 0 ||
+       iso >= p_facesCheckedIso * 0.9999)
+      return;
+   if (gridFacesCut(iso) == 0) {
+      p_facesCheckedIso = iso;
+      return;
+   }
+   p_keepIso = true;
+   p_keepIsoLog = isoLog;
+   wxCommandEvent ev(wxEVT_BUTTON, MoGUI::ID_BUTTON_MO_COMPUTE);
+   //  Keep the growth so far: the compute resets it only on a fresh click.
+   p_gridRound = 1;
+   OnButtonMoComputeClick(ev);
+   p_gridRound = 0;
+   p_keepIso = false;
+}
+
 
 /**
  * Re-issue isovalue command based on slider value

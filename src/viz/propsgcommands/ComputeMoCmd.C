@@ -85,6 +85,65 @@
 static bool espDebug() { static const bool on = getenv("ECCE_ESP_DEBUG") != 0; return on; }
 #define ESP_LOG if (!espDebug()) {} else cerr
 
+//  Density (kind 0), spin density (1) or orbital `mo` (2, 1-based) from the
+//  evaluator onto the grid, planes dealt out to threads; returns false when
+//  the monitor reports a cancel.  The grid points are placed as the
+//  per-atom walk places them.
+static bool fillFromEvaluator(const DensityPlane::Evaluator& ev,
+                              SingleGrid *grid, float *out, int kind, int mo,
+                              bool beta, ProgressMonitor *monitor,
+                              const string& title)
+{
+  const int nx = grid->dimensions()[0], ny = grid->dimensions()[1],
+            nz = grid->dimensions()[2];
+  float d[3];
+  for (int k = 0; k < 3; k++)
+    d[k] = (grid->corner()[k] - grid->origin()[k]) /
+           (grid->dimensions()[k] - 1);
+  const double *o = grid->origin();
+  unsigned threads = std::thread::hardware_concurrency();
+  if (const char *env = getenv("ECCE_FIELD_THREADS"))
+    if (atoi(env) > 0) threads = atoi(env);
+  threads = std::max(1u, std::min(threads, (unsigned)nz));
+  std::atomic<int> next(0), done(0);
+  std::atomic<bool> stop(false);
+  auto worker = [&]() {
+    for (;;) {
+      const int k = next.fetch_add(1);
+      if (k >= nz || stop.load()) return;
+      size_t idx = (size_t)k*nx*ny;
+      const double z = o[2] + k*d[2];
+      for (int j = 0; j < ny; j++) {
+        const double y = o[1] + j*d[1];
+        for (int i = 0; i < nx; i++, idx++) {
+          const double x = o[0] + i*d[0];
+          out[idx] = (float)(kind == 0 ? ev.density(x, y, z)
+                           : kind == 1 ? ev.spinDensity(x, y, z)
+                                       : ev.orbital(mo, beta, x, y, z));
+        }
+      }
+      done.fetch_add(1);
+    }
+  };
+  vector<std::thread> pool;
+  for (unsigned t = 0; t < threads; t++) pool.push_back(std::thread(worker));
+  bool cancelled = false;
+  char msg[120];
+  while (done.load() < nz && !stop.load()) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    if (monitor) {
+      snprintf(msg, sizeof msg, "%s: plane %d of %d", title.c_str(),
+               done.load(), nz);
+      if (monitor->isInterrupted(msg, (int)(done.load()*100.0/nz))) {
+        cancelled = true;
+        stop = true;
+      }
+    }
+  }
+  for (size_t t = 0; t < pool.size(); t++) pool[t].join();
+  return !cancelled;
+}
+
 //  Functions the basis gives these atoms, counted spherical and Cartesian
 //  as MoAoBasis does (2l+1, (l+1)(l+2)/2).
 static void countFunctions(TGBSConfig *config, const vector<string>& symbols,
@@ -776,8 +835,24 @@ bool ComputeMoCmd::execute()
 
         string atomID;
 
+        //  A results.h5 that passed its checks gives the orbitals in the
+        //  canonical order with its own basis, as the Density Map and
+        //  ecce-density-field read them; the walk below is the fallback.
+        //  ECCE_SURFACE_PROPS=1 forces the walk (tests compare the two).
+        DensityPlane::Evaluator ev;
+        const bool fromH5 = !localised && !getenv("ECCE_SURFACE_PROPS") &&
+                            ev.build(calc, sgfrag) && ev.fromResults;
+        if (fromH5) {
+          const int kind = doingDensity ? 0 : doingSpinDensity ? 1 : 2;
+          interrupted = !fillFromEvaluator(ev, grid,
+                                           kind == 2 ? field : density, kind,
+                                           selectedMO, moType == "beta",
+                                           p_monitor, fieldType);
+        }
+
         // Loop over the MOs
-        for (unsigned long idxMO = startMO; idxMO <= endMO; idxMO++) {
+        for (unsigned long idxMO = startMO; !fromH5 && idxMO <= endMO;
+             idxMO++) {
 #if (!defined(INSTALL) && defined(DEBUG))
           cout << "idxMO is " << idxMO << endl;
 #endif

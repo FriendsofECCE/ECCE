@@ -6643,6 +6643,43 @@ void Builder::updatePropertyMenus()
             out << "none\n";
           return true;
         }
+        //  "gridnuclei <name>": the current grid's value at the grid point
+        //  nearest each nucleus: atom, symbol, that point (Angstrom, placed
+        //  as ComputeMoCmd places it), value, nucleus -> <name>.txt; checks against
+        //  ecce-density-field --at (#892).
+        if (w[0] == "gridnuclei" && w.size() == 2) {
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          SingleGrid *grid = getSG() ? getSG()->getCurrentGrid() : 0;
+          SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+          if (!grid || !frag || !grid->fieldData()) {
+            out << "none\n";
+            return true;
+          }
+          const int *dim = grid->dimensions();
+          float delta[3];
+          for (int k = 0; k < 3; k++)
+            delta[k] = (grid->corner()[k] - grid->origin()[k]) / (dim[k] - 1);
+          double *xyz = frag->coordinates();
+          out.precision(12);
+          for (int a = 0; a < (int)frag->numAtoms(); a++) {
+            int ix[3];
+            double p[3];
+            for (int k = 0; k < 3; k++) {
+              ix[k] = (int)floor((xyz[3*a+k] - grid->origin()[k]) / delta[k]
+                                 + 0.5);
+              ix[k] = std::max(0, std::min(dim[k] - 1, ix[k]));
+              p[k] = grid->origin()[k] + ix[k] * delta[k];
+            }
+            const size_t at = ix[0] + (size_t)dim[0] *
+                                      (ix[1] + (size_t)dim[1] * ix[2]);
+            out << a + 1 << " " << frag->atomRef(a)->atomicSymbol() << " "
+                << p[0] << " " << p[1] << " " << p[2] << " "
+                << grid->fieldData()[at] << " " << xyz[3*a] << " "
+                << xyz[3*a+1] << " " << xyz[3*a+2] << "\n";
+          }
+          delete [] xyz;
+          return true;
+        }
         //  "dsstyle open | slider <name> <value> | info <file>": the Display
         //  Style dialog (Custom Style...), a slider let go in it, and what
         //  the scene then holds -> <file>.txt (#210).
@@ -6802,6 +6839,51 @@ void Builder::updatePropertyMenus()
             md = dynamic_cast<MoDiagramPanel*>(*it);
           if (!md) return s.fail("modioptions: no MO diagram panel");
           md->setOptionsOpen(w[1] != "0");
+          return true;
+        }
+        //  "moselect <number>" picks that row of the MOs table (of the
+        //  localised table after "mofield Localised MO"); "gridfaces <name>"
+        //  -> <name>.txt: the isovalue the faces were checked at, the grid
+        //  edge lengths and the largest |field| on each of the six faces (#892).
+        if ((w[0] == "moselect" || w[0] == "gridfaces") && w.size() == 2) {
+          MoPanel *mo = 0;
+          set<PropertyPanel*> mp =
+              PropertyPanel::getPanels(p_calculation->getURL().toString());
+          for (set<PropertyPanel*>::iterator it = mp.begin();
+               it != mp.end() && !mo; ++it)
+            mo = dynamic_cast<MoPanel*>(*it);
+          if (!mo) return s.fail(w[0] + ": no MO panel");
+          if (w[0] == "moselect")
+            return mo->selectRowForMo(atoi(w[1].c_str())) ||
+                   s.fail("moselect: no MO " + w[1]);
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          SingleGrid *grid = getSG() ? getSG()->getCurrentGrid() : 0;
+          if (!grid || !grid->fieldData()) {
+            out << "none\n";
+            return true;
+          }
+          const int *dim = grid->dimensions();
+          const float *f = grid->fieldData();
+          double face[6] = {0, 0, 0, 0, 0, 0};
+          for (int iz = 0; iz < dim[2]; iz++)
+            for (int iy = 0; iy < dim[1]; iy++)
+              for (int ix = 0; ix < dim[0]; ix++) {
+                const double v = fabs(f[ix + (size_t)dim[0] *
+                                        (iy + (size_t)dim[1] * iz)]);
+                const int i[3] = {ix, iy, iz};
+                for (int k = 0; k < 3; k++) {
+                  if (i[k] == 0) face[2*k] = std::max(face[2*k], v);
+                  if (i[k] == dim[k]-1) face[2*k+1] = std::max(face[2*k+1], v);
+                }
+              }
+          out.precision(9);
+          out << "iso " << mo->facesCheckedIso() << "\n";
+          out << "edge";
+          for (int k = 0; k < 3; k++)
+            out << " " << fabs(grid->corner()[k] - grid->origin()[k]);
+          out << "\nfaces";
+          for (int k = 0; k < 6; k++) out << " " << face[k];
+          out << "\n";
           return true;
         }
         //  "mofield <type>": the MO panel's field-type choice, as clicked.
