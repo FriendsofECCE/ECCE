@@ -1,5 +1,4 @@
 #include <dirent.h>
-#include <dirent.h>
 #include <sys/stat.h>
 #include <ctime>
 #include <unistd.h>
