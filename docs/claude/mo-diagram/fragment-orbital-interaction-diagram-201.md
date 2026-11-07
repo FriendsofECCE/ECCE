@@ -46,7 +46,8 @@ shared with it.
   no group (no spherical table): Cr FO levels read "?".
 - tests/fragorb_h5/run_tests.py's `check()` returns None: never use it as a
   condition (`elif check(...)` silently skipped the label checks once).
-- The `cr` fixture (RHF singlet Cr, d⁶) has its occupied d orbitals in an
-  arbitrary orientation: the three t2g MOs of Cr(CO)6 take 16, 7 and 33 % from
-  the occupied FO 10-11 and 57, 66 and 39 % from the empty FO 17-19. It is
-  not the t2g⁶ "state in the complex".
+- The `cr` fixture (RHF singlet Cr) has two doubly occupied d FOs (10-11) and
+  three empty ones (17-19), oriented arbitrarily: the three t2g MOs of Cr(CO)6
+  take 16, 7 and 33 % from FO 10-11 and 57, 66 and 39 % from FO 17-19. It is
+  not the t2g⁶ "state in the complex" (its d count is read from these shares,
+  not from the output).
