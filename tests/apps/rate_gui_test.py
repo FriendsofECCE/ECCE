@@ -70,11 +70,20 @@ def run(display, data, work, shots):
         f.write("file://%s -> [file://%s] -> file://%s\nfile://%s -> [file://%s] -> file://%s\n"
                 % (re_, ts, pr, pr, ts, re_))
     png3 = os.path.join(shots, "reaction-overview-two-ts.png")
-    commands = ["examples workflows",
+    # Bare names in the Test > Reaction overview folder (#885): both reactions
+    # of its seven calculations draw a profile, a missing name is refused.
+    tdir = os.path.join(data, "users", "local", "Examples", "Test", "Reaction_overview")
+    rx3 = os.path.join(work, "reactions3.txt")
+    with open(rx3, "w") as f:
+        f.write("# base file://%s\nreactant_complex -> [sn2_ts] -> product_complex\n"
+                "butadiene, ethylene -> [diels_alder_ts] -> cyclohexene\n"
+                "butadiene, ethylene -> [sn2_qts3] -> cyclohexene\n" % tdir)
+    commands = ["examples workflows", "examples test",
                 "workflowrate %s png=%s csv=%s range=250:400:25" % (wf, png, csv1),
                 "workflowrate %s T=310" % wf,
                 "reactionoverview %s qrrho-grimme:100 %s %s 298.15" % (rx, png2, csv2),
-                "reactionoverview %s qrrho-grimme:100 %s - 298.15" % (rx2, png3)]
+                "reactionoverview %s qrrho-grimme:100 %s - 298.15" % (rx2, png3),
+                "reactionoverview %s qrrho-grimme:100" % rx3]
     script = os.path.join(work, "commands")
     open(script, "w").write("\n".join(commands) + "\n")
     result = apps.run(display, "organizer", windowTimeout=60, settle=120,
@@ -133,6 +142,13 @@ def run(display, data, work, shots):
     check("Rate box PNG exists", os.path.exists(png) and os.path.getsize(png) > 5000, png)
 
     ov = answers("reactionoverview")
+    if len(ov) == 3:
+        names = ov.pop().split(" | ")
+        check("bare names: two profiles, the first two reactions",
+              any(l.startswith("profile 1 1 ts ") for l in names) and
+              any(l.startswith("profile 2 2 ts ") for l in names), names[:20])
+        check("bare names: an unknown calculation is refused by name",
+              any("no calculation 'sn2_qts3' in this folder" in l for l in names), names[:30])
     if not check("overview answered", len(ov) == 2 and all(o.startswith("ok") for o in ov),
                  "%r\n%s" % (ov, log[-1200:])):
         return

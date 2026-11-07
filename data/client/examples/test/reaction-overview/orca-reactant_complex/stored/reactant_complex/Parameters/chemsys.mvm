@@ -1,0 +1,35 @@
+title: reactant_complex
+type: molecule
+fragment_attributes:
+  point_group: Cs
+  charge: -1
+end_fragment_attributes:
+num_atoms: 6
+atom_info: symbol cart
+atom_list: 
+C -0.000148000 -7.00000e-06 -0.0493750
+Br 0.000453000 3.50000e-05 1.97632
+H 1.04286 -1.30000e-05 -0.369551
+H -0.521809 0.903350 -0.369014
+H -0.521809 -0.903379 -0.368971
+Cl 0.000452000 1.40000e-05 -3.12271
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+atom_type_list:
+        4   1
+        1   1
+        1   1
+        1   1
+        1   1
+        0   1
+num_bonds: 4
+bond_list: 
+1 2 1.00000 1
+1 3 1.00000 1
+1 4 1.00000 1
+1 5 1.00000 1

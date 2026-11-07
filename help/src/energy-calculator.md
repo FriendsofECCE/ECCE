@@ -124,7 +124,10 @@ reaction with a transition state. It starts with the reaction set up in the
 window: side A as the reactants and side B as the products.
 
 - The text box holds the reactions, one per line, in the form
-  `a, 2*b -> c`, where each name is a calculation and `2*` a coefficient.
+  `a, 2*b -> c`, where each name is a calculation as listed in the Organizer,
+  in the folder of the compared calculations, and `2*` a coefficient. A full
+  URL or path to a calculation also works, for one in another folder. A name
+  that is not a calculation in the folder is refused with a line saying so.
 - Write `a, b -> [ts] -> c` to give the transition state of a reaction. That
   reaction gets an energy profile: reactants, TS and products as levels for ΔG
   (at the temperature in the **T / K** field) and for the electronic ΔE, both

@@ -2197,7 +2197,8 @@ void CalcMgr::runTestCommand(const string& line)
       }
     } else if (command == "reactionoverview") {
       // "reactionoverview <file> <treatment> [png [csv [T]]]": the dialog for the
-      // reactions in <file>; prints the numbers per reaction, the energy
+      // reactions in <file>; a first line "# base <url>" gives the folder that
+      // bare calculation names in the file are taken from; prints the numbers per reaction, the energy
       // profiles and their label layout, the text of reaction 1, and writes
       // the PNG and CSV exports.
       std::istringstream args(calcName);
@@ -2206,7 +2207,13 @@ void CalcMgr::runTestCommand(const string& line)
       std::ifstream in(file.c_str());
       std::stringstream text;
       text << in.rdbuf();
-      ReactionOverviewDialog *d = new ReactionOverviewDialog(this, text.str());
+      string body = text.str(), base;
+      if (body.compare(0, 7, "# base ") == 0) {
+        const size_t nl = body.find('\n');
+        base = body.substr(7, nl == string::npos ? string::npos : nl - 7);
+        while (!base.empty() && isspace((unsigned char)base.back())) base.pop_back();
+      }
+      ReactionOverviewDialog *d = new ReactionOverviewDialog(this, body, base);
       d->Show();
       d->setTreatment(treatment);
       if (!kelvin.empty()) d->setTemperature(kelvin);
@@ -5551,7 +5558,10 @@ const vector<ExampleSet>& exampleSets()
   for (const auto &e : fs::directory_iterator(examplesDir(), ec))
     if (e.is_directory() && fs::exists(e.path() / "set.txt"))
       ids.push_back(e.path().filename().string());
-  std::sort(ids.begin(), ids.end());
+  // The hand-check data sets (Test) are listed after the teaching sets.
+  std::sort(ids.begin(), ids.end(), [](const string &a, const string &b) {
+    return (a == "test") != (b == "test") ? b == "test" : a < b;
+  });
   for (const string &id : ids) {
     ExampleSet set;
     set.id = id;

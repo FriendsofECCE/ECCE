@@ -22,8 +22,10 @@ class wxTextCtrl;
 class ReactionOverviewDialog : public wxDialog
 {
 public:
-  /** lines: one reaction per line, "a, 2*b -> c" with calculation URLs. */
-  ReactionOverviewDialog(wxWindow *parent, const std::string& lines);
+  /** lines: one reaction per line, "a, 2*b -> c"; species are calculation names
+   *  in the folder `base` (a URL), or full URLs/paths. */
+  ReactionOverviewDialog(wxWindow *parent, const std::string& lines,
+                         const std::string& base = std::string());
 
   /** Test hooks. */
   void setTreatment(const std::string& cli);
@@ -58,6 +60,7 @@ private:
     std::string names[3];            ///< reactants, TS, products, shortened
   };
   void update();
+  std::string p_base;
   std::string reactionText(int n) const;
   void showProfiles();
 

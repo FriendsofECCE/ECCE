@@ -1,0 +1,8 @@
+! B3LYP D3BJ def2-SVP TightSCF DefGrid3 OptTS Freq
+%pal nprocs 6 end
+%maxcore 1500
+%geom Calc_Hess true
+ Recalc_Hess 5
+ Convergence tight
+end
+* xyzfile 0 1 start.xyz

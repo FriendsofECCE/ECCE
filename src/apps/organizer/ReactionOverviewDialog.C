@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 
@@ -116,16 +117,61 @@ bool splitTs(const string& line, string& lhs, string& ts, string& rhs)
   return !lhs.empty() && !ts.empty() && !rhs.empty();
 }
 
+// Species written as bare calculation names become base + "/" + name; URLs,
+// paths, N* and [ ] stay as typed.  `why` names a name that is not a
+// calculation in a folder we can look into.
+string resolveNames(const string& line, const string& base, string& why)
+{
+  if (base.empty()) return line;
+  const string dir = rateLocalPath(base);
+  string out;
+  size_t pos = 0;
+  while (pos < line.size()) {
+    const size_t arrow = line.find("->", pos);
+    const string part = line.substr(pos, arrow == string::npos ? string::npos : arrow - pos);
+    string rebuilt;
+    std::istringstream in(part);
+    string item;
+    bool first = true;
+    while (std::getline(in, item, ',')) {
+      string lead, tail, body = trim(item);
+      if (!body.empty() && body[0] == '[') { lead = "["; body = trim(body.substr(1)); }
+      if (!body.empty() && body.back() == ']') { tail = "]"; body = trim(body.substr(0, body.size() - 1)); }
+      string coef;
+      const size_t star = body.find('*');
+      if (star != string::npos) { coef = trim(body.substr(0, star + 1)); body = trim(body.substr(star + 1)); }
+      if (!body.empty() && body.find('/') == string::npos && body.compare(0, 7, "file://") != 0) {
+        if (!dir.empty() && !std::filesystem::is_directory(dir + "/" + body)) {
+          if (why.empty()) why = "no calculation '" + body + "' in this folder";
+        } else {
+          body = base + (base.back() == '/' ? "" : "/") + body;
+        }
+      }
+      rebuilt += string(first ? "" : ", ") + lead + coef + body + tail;
+      first = false;
+    }
+    // keep the spacing around the arrows; the parts are trimmed above
+    const string pre = part.empty() || part[0] != ' ' ? "" : " ";
+    const string post = part.empty() || part.back() != ' ' ? "" : " ";
+    out += pre + rebuilt + post;
+    if (arrow == string::npos) break;
+    out += "->";
+    pos = arrow + 2;
+  }
+  return out;
 }
 
-ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& lines)
+}
+
+ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& lines, const string& base)
   : wxDialog(parent, wxID_ANY, _("Reaction overview"), wxDefaultPosition,
              wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
+  p_base = base;
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
   top->Add(new wxStaticText(this, wxID_ANY,
       _("Reactions, one per line: reactants -> products, or reactants -> [ts] -> products for a rate "
-        "(calculation URLs, N* for a coefficient)")),
+        "(calculation names, N* for a coefficient)")),
       0, wxALL, 8);
   p_input = new wxTextCtrl(this, wxID_ANY, wxString::FromUTF8(lines.c_str()),
                            wxDefaultPosition, wxSize(720, 90), wxTE_MULTILINE | wxTE_DONTWRAP);
@@ -234,11 +280,15 @@ void ReactionOverviewDialog::update()
     if (l.empty() || l[0] == '#') continue;
     Entry e;
     e.user = l;
-    if (l.find('[') == string::npos) {
-      e.main = l;
+    string nameErr;
+    const string full = resolveNames(l, p_base, nameErr);
+    if (!nameErr.empty()) {
+      e.refused = nameErr;
+    } else if (full.find('[') == string::npos) {
+      e.main = full;
     } else {
       string lhs, ts, rhs;
-      if (!splitTs(l, lhs, ts, rhs)) {
+      if (!splitTs(full, lhs, ts, rhs)) {
         e.refused = "cannot parse; the form is 'a, 2*b -> [ts] -> c'";
       } else {
         string why;
