@@ -480,7 +480,7 @@ bool OpdosPanel::exportCsv(const wxString& path)
     out << ",TDOS" << tag << ",PDOS_A" << tag << ",PDOS_B" << tag << ",OPDOS_AB" << tag << ",intOPDOS_AB" << tag;
   }
   out << "\n";
-  char buf[64];
+  char buf[200];
   for (size_t g = 0; g < p_part[0].energy.size(); g++) {
     snprintf(buf, sizeof buf, "%.4f", p_part[0].energy[g]);
     out << buf;

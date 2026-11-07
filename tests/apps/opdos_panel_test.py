@@ -100,6 +100,7 @@ def main():
             bl = blocks(log)
             if len(bl) < 8:
                 bad.append("only %d OPDOS states in the log" % len(bl))
+                print("\n".join(l for l in log.splitlines() if re.search("opdos|scene|SCENE|OPDOS", l))[-1500:])
             else:
                 first, atoms, clicked, occ, sel = bl[1], bl[3], bl[5], bl[7], bl[-1]
                 if first.get("ready") != "1" or first.get("error") != "-":
