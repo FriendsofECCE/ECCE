@@ -82,6 +82,57 @@ available for ECCE-QM, ORCA and Gaussian 16 calculations.
    **Energy unit:** (kJ/mol or kcal/mol) and click **Export .csv...** to
    save the table.
 
+For a diatomic molecule nothing else can relax, so the scan of its bond is
+the plain (rigid) energy curve.
+
+### Compare scans
+
+**Compare...** in the Relaxed Scan panel lists the other scans in the same
+folder (of a bond, or of an angle or torsion, as this one). Tick the ones to
+draw beside this one. Each curve is drawn relative to its own lowest point,
+so the shapes can be compared; the absolute energies of different methods
+are never put on one scale. The key names each curve after its calculation.
+Choose **OK** to draw the ticked scans and **Cancel** to leave the plot as it
+was; ticking none returns to the one curve. A scan whose energies are
+missing is not listed.
+
+### Fit a Morse potential to a bond scan
+
+Tick **Fit Morse** in the Relaxed Scan panel of a bond-length scan to fit
+
+V(r) = Dₑ (1 − e^−a(r − rₑ))² + E∞ − Dₑ
+
+to the scan points by least squares. **Window:** is the energy above the
+lowest point up to which points are used, in the energy unit of the panel;
+left empty, every point below the energy at the longest distance (the bound
+part of the curve) is used. The label after the field shows the unit, which
+follows **Energy unit:** (kJ/mol or kcal/mol); changing that unit converts the
+number in the field. Press Enter in the field to fit again. Unticking **Fit
+Morse** hides the curve and the box. The fitted
+curve is drawn dashed, and the box under the plot lists (select and copy the
+text):
+
+- **Dₑ**, the depth of the well, in eV and kJ/mol, and the range parameter
+  **a** in Å⁻¹;
+- **rₑ**, the bond length at the minimum, in Å;
+- **ωₑ**, the harmonic wavenumber in cm⁻¹, from the force constant
+  k = 2Dₑa² and the reduced mass of the two scanned atoms (most abundant
+  isotopes);
+- **ωₑxₑ** = ωₑ²/(4Dₑ), the anharmonicity of the Morse potential, in cm⁻¹;
+- **D₀** = Dₑ − ωₑ/2 + ωₑxₑ/4, the dissociation energy from the lowest
+  vibrational level;
+- the RMS residual of the fit, which shows how well a Morse curve describes
+  the points.
+
+The fit is that of the command `ecce-morse <calculation folder> [--window
+kJ/mol] [--atoms I,J] [--masses M1,M2] [--json]`, which gives the same
+numbers outside the Viewer. It needs a calculation stored on this computer,
+and the scanned bond: ECCE takes it from the scan in the input, or, for a
+diatomic, the two atoms; otherwise name it with `--atoms`. Where the
+curve does not level off by the longest distance (a restricted Hartree-Fock
+dissociation curve, for example), Dₑ and D₀ describe the fitted function, not
+a dissociation, and the residual is large.
+
 ### Play the points of a scan or an IRC
 
 The **Relaxed Scan** panel and the **IRC Path** panel have a playback control

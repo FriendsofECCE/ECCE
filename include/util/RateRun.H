@@ -49,6 +49,25 @@ struct RateResult
 
 RateResult runRate(const RateRequest& req);
 
+/**
+ * Runs `ecce-morse <calc> --json` (#858), the Morse fit of a bond scan; it
+ * shares ecce-rate's JSON reader.  `report` is the CLI's own text.
+ */
+struct MorseResult
+{
+   bool ok = false;
+   std::string error;
+   std::string report, bond, windowMode;
+   double De_eV = 0, De_kJ = 0, a = 0, re = 0;      ///< eV, kJ/mol, 1/A, A
+   double omega = 0, omegaX = 0;                    ///< cm-1
+   double D0_eV = 0, D0_kJ = 0, rms = 0, window = 0; ///< rms, window: kJ/mol
+   int used = 0, total = 0;
+   std::vector<double> curveR, curveE;              ///< A, Hartree
+};
+
+/** windowKj <= 0: every bound point. */
+MorseResult runMorse(const std::string& calcFolder, double windowKj);
+
 /** The folder of a stored calculation URL; empty for a remote (server) one. */
 std::string rateLocalPath(const std::string& url);
 

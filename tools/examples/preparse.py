@@ -13,6 +13,7 @@ the output it came from (StoredCalcCopy::stampOf).  Run it when an example
 or a parser changes; tests/apps/examples_preparsed_test.py fails when a stored
 copy no longer agrees with a parse.
 """
+import gzip
 import os
 import shutil
 import subprocess
@@ -53,11 +54,26 @@ EXTENSIONS = (".qmout", ".eprint", ".pwout", ".out")   # the output of an exampl
 
 
 def outputOf(folder):
+    """The output file, also gzip-compressed (<name>.gz)."""
     for ext in EXTENSIONS:
         for name in sorted(os.listdir(folder)):
-            if name.endswith(ext) and name != "g98.out":   # xtb companion
+            plain = name[:-3] if name.endswith(".gz") else name
+            if plain.endswith(ext) and plain != "g98.out":   # xtb companion
                 return name
     return None
+
+
+def gzipStoredOutput(calcDir, name):
+    """A compressed example keeps its stored copy of the output compressed
+    too (StoredCalcCopy writes X.gz as X); mtime 0 keeps the bytes stable."""
+    for base, _dirs, files in os.walk(calcDir):
+        if name in files:
+            path = os.path.join(base, name)
+            with open(path, "rb") as src, open(path + ".gz", "wb") as raw:
+                with gzip.GzipFile(filename="", mode="wb", fileobj=raw,
+                                   compresslevel=9, mtime=0) as dst:
+                    shutil.copyfileobj(src, dst)
+            os.remove(path)
 
 
 def examplesOf(setId):
@@ -114,7 +130,8 @@ def main():
             return rc
         project = os.path.join(out, SETS[setId])
         for example, output in outputs.items():
-            calc = os.path.splitext(output)[0]
+            plain = output[:-3] if output.endswith(".gz") else output
+            calc = os.path.splitext(plain)[0]
             topic = topicsOf(setId).get(example.split("/")[0], "")
             if "/" in example:
                 parent = os.path.join(project, topic)
@@ -127,6 +144,8 @@ def main():
             shutil.copytree(os.path.join(parent, calc),
                             os.path.join(dest, calc), symlinks=True,
                             ignore=shutil.ignore_patterns("Thumbnail*", "*.lock"))
+            if output.endswith(".gz"):
+                gzipStoredOutput(os.path.join(dest, calc), calc + os.path.splitext(plain)[1])
             # HDF5 lays out equal content differently from run to run; keep
             # the old bytes when the content is the same, so git sees no change
             if kept is not None and os.path.exists(oldH5):

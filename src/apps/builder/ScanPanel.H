@@ -5,7 +5,9 @@
 #include <vector>
 #include "VizPropertyPanel.H"
 
+class wxCheckBox;
 class wxChoice;
+class wxTextCtrl;
 class wxGrid;
 class wxRadioBox;
 class wxGridEvent;
@@ -93,6 +95,24 @@ class ScanPanel : public VizPropertyPanel
       /** Rebuilds from the calculation's current scan properties. */
       virtual void refresh();
 
+      /**
+       * Fit Morse (#858) on or off; window in the panel's energy unit above
+       * the lowest point, 0 for every bound point.  Returns the state line
+       * of the hook: "ok re=... De_eV=..." or "error <text>" or "off".
+       */
+      std::string setMorse(bool on, double window = 0);
+      /** The fit's report as shown in the panel's text box. */
+      wxString morseText() const;
+
+      /** Scans beside this one (same folder, same kind of coordinate). */
+      std::vector<std::string> compareCandidates();
+      /** Draw these beside the own curve, each relative to its own lowest point;
+       *  false and a reason if a name is not a candidate. */
+      bool setCompared(const std::vector<std::string>& names, std::string& complaint);
+
+      /** The plot as a PNG on white. */
+      bool savePng(const wxString& path, int width, int height);
+
    protected:
       void fill();
       void OnUnit(wxCommandEvent& event);
@@ -102,6 +122,9 @@ class ScanPanel : public VizPropertyPanel
       void OnView(wxCommandEvent& event);
       void showView(bool table);
       void OnPlayback(wxCommandEvent& event);
+      void OnMorse(wxCommandEvent& event);
+      void OnCompare(wxCommandEvent& event);
+      void runFit();
       virtual void receiveFocus();
       virtual void loseFocus();
       int showPoint(int index);
@@ -126,6 +149,14 @@ class ScanPanel : public VizPropertyPanel
       PlaybackExtras *p_extras;
       int p_delay;
       bool p_syncing;           // selectPoint is moving the row; ignore its event
+      wxCheckBox *p_morse;
+      wxTextCtrl *p_window;
+      wxStaticText *p_windowUnit;
+      wxTextCtrl *p_morseText;
+      std::string p_morseState;  // the hook's line for the last fit
+      std::vector<double> p_fitR, p_fitE;   // fitted curve, A and Hartree
+      struct Compared { std::string name; std::vector<double> coord, hartree; };
+      std::vector<Compared> p_compared;
 };
 
 /**
