@@ -31,7 +31,7 @@ struct J
 
 struct Parser
 {
-  const string& s;
+  const string s;
   size_t p = 0;
   explicit Parser(const string& t) : s(t) {}
   void ws() { while (p < s.size() && isspace((unsigned char)s[p])) p++; }
