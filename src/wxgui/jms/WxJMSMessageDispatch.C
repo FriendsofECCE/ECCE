@@ -240,10 +240,11 @@ void WxJMSMessageDispatch::unregisterTopShell(wxWindow *wid)
 }
 
 
-// A command-line request (ecce-launch and the like) that arrives during a
-// launch batch is answered with an ack at once; the request itself runs
-// when the batch is over.  Without it the command gives up after seconds.
-void WxJMSMessageDispatch::messageDeferred(const string& topic, JMSMessage& msg)
+// A command-line request (ecce-launch, ecce-move, ...) is acknowledged here, on
+// the messaging thread, so the command knows an Organizer is there even while
+// the GUI thread is busy with an earlier request. queued=1: it will wait for
+// a launch batch. The request's own handler answers later and does not ack.
+void WxJMSMessageDispatch::messageArrived(const string& topic, JMSMessage& msg)
 {
   const string pre = "ecce_", post = "_request";
   if (topic.size() <= pre.size() + post.size() ||
@@ -255,11 +256,10 @@ void WxJMSMessageDispatch::messageDeferred(const string& topic, JMSMessage& msg)
   JMSMessage *r = newMessage();
   r->addProperty("reply_id", id);
   r->addProperty("kind", "ack");
-  r->addProperty("queued", "1");
+  if (deferring()) r->addProperty("queued", "1");
   r->addIntProperty("n", 0);
   publish(topic.substr(0, topic.size() - post.size()) + "_reply", *r);
   delete r;
-  msg.addProperty("acked", "1");   // the handler that runs later must not ack again
 }
 
 /**

@@ -202,6 +202,22 @@ bool MqttEndpoint::enablePipe()
   return true;
 }
 
+// What JMSMessage::loadBody accepts. Another account can publish to
+// ecce_machreg_changed, and loadBody ends the process on a malformed body.
+static bool wellFormedBody(string body)
+{
+  while (!body.empty()) {
+    const char* items[] = {"NAME", "VALUE"};
+    for (int i = 0; i < 2; i++) {
+      string st = string(items[i]) + "START", en = string(items[i]) + "END";
+      size_t a = body.find(st), b = body.find(en);
+      if (a == string::npos || b == string::npos || b < a) return false;
+      body.erase(a, b + en.size() - a);
+    }
+  }
+  return true;
+}
+
 void MqttEndpoint::receive(const MqttInbound& in)
 {
   if (!p_alive || p_held) return;
@@ -225,6 +241,11 @@ void MqttEndpoint::receive(const MqttInbound& in)
   if (filterSelf(in.topic) && get("senderid") == std::to_string(getpid()))
     return;
 
+  if (arrival && wellFormedBody(in.payload)) {
+    JMSMessage msg;
+    msg.loadBody(in.payload);
+    arrival(in.topic, msg);
+  }
   if (poster) {
     poster(shared_from_this(), in);
     return;
@@ -256,22 +277,6 @@ void MqttEndpoint::drain()
     }
     process(in);
   }
-}
-
-// What JMSMessage::loadBody accepts. Another account can publish to
-// ecce_machreg_changed, and loadBody ends the process on a malformed body.
-static bool wellFormedBody(string body)
-{
-  while (!body.empty()) {
-    const char* items[] = {"NAME", "VALUE"};
-    for (int i = 0; i < 2; i++) {
-      string st = string(items[i]) + "START", en = string(items[i]) + "END";
-      size_t a = body.find(st), b = body.find(en);
-      if (a == string::npos || b == string::npos || b < a) return false;
-      body.erase(a, b + en.size() - a);
-    }
-  }
-  return true;
 }
 
 void MqttEndpoint::process(const MqttInbound& in)
@@ -449,6 +454,7 @@ bool MqttLink::ensureConnected()
   }
   mosquitto_loop_start(p_mosq);
 
+  p_ready = true;
   // The callbacks take the lock.
   g.unlock();
   for (int i = 0; i < 150 && !p_connected; i++)
@@ -605,7 +611,9 @@ bool MqttLink::awaitingLogin()
 
 bool MqttLink::publish(const string& topic, const JMSMessage& msg)
 {
-  if (!ensureConnected()) return false;
+  // Once started, no lock: an endpoint's arrival hook publishes from inside
+  // onMessage, which already holds p_lock.
+  if (!p_ready && !ensureConnected()) return false;
   if (!p_mosq || !p_connected) return false;
 
   mosquitto_property* props = nullptr;

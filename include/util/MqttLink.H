@@ -101,6 +101,10 @@ public:
 
   // Called on the owner's thread for each accepted message.
   std::function<void(const std::string& topic, JMSMessage& msg)> handler;
+  // If set, called on libmosquitto's thread for each accepted message before
+  // it is posted to the owner's thread (an ack that must not wait for a busy
+  // GUI thread). It runs with the link's lock held: it may publish, nothing more.
+  std::function<void(const std::string& topic, JMSMessage& msg)> arrival;
   // If set, replaces the self-pipe; called on libmosquitto's thread.
   std::function<void(std::shared_ptr<MqttEndpoint>, MqttInbound)> poster;
 
@@ -199,6 +203,7 @@ private:
   std::atomic<bool> p_sessionless{false};
   std::atomic<int> p_inflight{0};
   bool p_started = false;
+  std::atomic<bool> p_ready{false};   // p_started, readable without p_lock
 };
 
 #endif
