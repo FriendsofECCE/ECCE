@@ -1,0 +1,16 @@
+! UHF cc-pVTZ Opt MiniPrint
+%output
+  Print[P_MOs] 0
+  Print[P_OrbEn] 2
+end
+%elprop
+  Quadrupole true
+end
+%geom
+  Scan B 0 1 = 0.5000, 4, 36 end
+end
+
+* xyz 0 1
+ H     0.0     0.0     0.0
+ H     0.0     0.0     0.5000
+*
