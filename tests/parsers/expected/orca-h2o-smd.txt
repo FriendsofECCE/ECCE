@@ -219,7 +219,7 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
     (script emitted no property)
 
 [EGRAD][EGRADVEC]  Script=orca.egradvec  Freq=all  Skip=3  Lines=-
-  Begin=CARTESIAN GRADIENT
+  Begin=^CARTESIAN GRADIENT\s*$
   End=TIMINGS
   begins=4 delivered=4 buffered_away=0
   block 1: begin-line=947 fed=16 rc=0 first-fed='   1   O   :   -0.000000014   -0.000000018   -0.017110609'

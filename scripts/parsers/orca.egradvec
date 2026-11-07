@@ -25,8 +25,9 @@ $| = 1;
 
 my @values;
 my $natom = 0;
+my $sawNorm = 0;
 while (<STDIN>) {
-  if (/^\s*\d+\s+\S+\s*:\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
+  if (/^\s*\d+(?:\s+\S+)?\s*:\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/) {
     push(@values, $1, $2, $3);
     $natom++;
   } elsif (/Norm of the Cartesian gradient\s*\.+\s*(-?\d+\.\d+)/) {
@@ -35,8 +36,16 @@ while (<STDIN>) {
     print "values:\n$1\n";
     print "units:\nHartree/Bohr\n";
     print "END\n";
+    $sawNorm = 1;
     last;
   }
+}
+
+# The MDCI gradient block has no norm line: derive it.
+if ($natom > 0 && !$sawNorm) {
+  my $sum = 0;
+  $sum += $_ * $_ foreach (@values);
+  printf("key: EGRAD\nsize:\n1\nvalues:\n%.10f\nunits:\nHartree/Bohr\nEND\n", sqrt($sum));
 }
 
 if ($natom > 0) {

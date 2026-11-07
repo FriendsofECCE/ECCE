@@ -1,5 +1,6 @@
 /*
  * ecce-reconnect <calculation path or URL>...
+ * ecce-reconnect <calculation path or URL> jobid=N
  *
  * Reconnects calculations inside the running session: the request goes to
  * the Organizer over the session's broker and its Reconnect Selected code
@@ -119,8 +120,22 @@ int main(int argc, char **argv)
 
   vector<string> args;
   for (int i = 1; i < argc; i++) args.push_back(argv[i]);
-  if (args.empty()) {
-    std::cerr << "usage: ecce-reconnect <calculation path or URL>..." << std::endl;
+  // jobid=N attaches an existing queue job to one Ready calculation.
+  string jobId;
+  bool hasId = false;
+  for (size_t i = 0; i < args.size();) {
+    if (args[i].compare(0, 6, "jobid=") == 0) {
+      jobId = args[i].substr(6);
+      hasId = true;
+      args.erase(args.begin() + i);
+    } else i++;
+  }
+  bool badId = hasId && (jobId.empty() ||
+      jobId.find_first_not_of("0123456789") != string::npos);
+  if (args.empty() || badId || (hasId && args.size() != 1)) {
+    std::cerr << "usage: ecce-reconnect <calculation path or URL>...\n"
+                 "       ecce-reconnect <calculation path or URL> jobid=N"
+              << std::endl;
     return 64;
   }
 
@@ -156,6 +171,7 @@ int main(int argc, char **argv)
   JMSPublisher pub("EcceReconnect");
   JMSMessage *msg = pub.newMessage();
   msg->addProperty("reply_id", gReplyId);
+  if (!jobId.empty()) msg->addProperty("jobid", jobId);
   msg->addIntProperty("n", (int)urls.size());
   for (size_t i = 0; i < urls.size(); i++)
     msg->addProperty("url" + std::to_string(i), urls[i]);

@@ -12,6 +12,7 @@ pushed to GitHub**: the host fetches from GitHub, not from this machine.
 | --- | --- |
 | `build` | configure (first time only) and `ninja -k 0` |
 | `ctest [-R re ...]` | build, then `ctest -j --output-on-failure` |
+| `ctesti [-R re ...]` | as ctest, with this ref installed for the GUI tests (`apps_*` skip without an install) |
 | `teaching [args]` | build, then `tests/teaching/run_tests.py --jobs 4 [args]` |
 | `apps [args]` | build and install into the build dir, then `tests/apps/run_tests.py` |
 | `apptest <script.py ...>` | the same install, then each named GUI test script against it (e.g. `tests/apps/mo_explore_workflow_test.py`) |

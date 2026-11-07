@@ -55,15 +55,18 @@ EXPECT = {
     "methane": ["MO", "VIBFREQ", "MULLIKEN"],
     "water_xtb": ["TE", "MO", "VIBFREQ", "VIBIR", "MULLIKEN"],
 }
+SCAN = ["TE", "SCANCOORD", "SCANENERGY", "SCANGEOM"]
 COMPUTATIONAL = {
     # a GROMACS study: its tasks, each as "task:" and "task:PROP"
     "trpcage": ["prepare:", "optimize:", "equilibrate:", "dynamics:",
                 "optimize:TE", "dynamics:TE"],
 }
+# H2 dissociation (#858): ORCA scans, SCANGEOM from the .allxyz beside them
+COMPUTATIONAL.update({c: SCAN for c in ("h2_rhf_scan", "h2_uhf_scan",
+                                        "h2_ccsd_scan", "h2_uhf_scan_out")})
 VIBS = ["TE", "VIB", "VIBFREQ", "VIBIR"]
 ORCA_RAMAN = ["TE", "MO", "VIB", "VIBFREQ", "VIBIR", "VIBRAM", "VIBRAMDEPOL"]
 QM_LOC = VIBS + ["MO", "LOCMO", "LOCMOENG", "LOCMOLABEL", "LOCMOOCC"]
-SCAN = ["TE", "SCANCOORD", "SCANENERGY", "SCANGEOM"]
 ORGANIC = {
     "ethane": QM_LOC, "ethene": QM_LOC, "ethyne": QM_LOC,
     "ethane_scan": SCAN, "butane_scan": SCAN, "nma_scan": SCAN,
@@ -112,6 +115,7 @@ for _topic in sorted(os.listdir(_GC)):
                                 "polar-bonds-and-dipole-moments", "vsepr",
                                 "lewis-structures-and-resonance")
         GENCHEM[_name] = (QM_LOC if _molecular and _name not in ("He2", "LiF")
+                          else SCAN if _topic == "bond-formation"
                           else ["TE", "MO"])
 # the Quantum ESPRESSO crystals of Packing in solids: energy only
 GENCHEM.update({c: ["TE"] for c in ("po_sc", "na_bcc", "al_fcc", "cu_fcc",

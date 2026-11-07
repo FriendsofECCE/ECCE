@@ -108,7 +108,7 @@ def main():
             check(False, "services came up")
             return 1
         urls = {}
-        for name in ("one", "done", "idle"):
+        for name in ("one", "done", "idle", "late"):
             url, out = s.create(name, "cp2k_es", deck, "cp2k.cp2kin", rundir,
                                 extra=("procs=1", "queue=normal", "nodes=1",
                                        "wall=0 1:0"))
@@ -187,6 +187,32 @@ def main():
         say(out)
         check(rc == 0 and re.search(r"^one: reconnected, job id \S+$", out, re.M),
               "reconnecting alone: exit 0 (rc=%s)" % rc)
+
+        #  jobid=N: a queue job found by hand is attached to a Ready
+        #  calculation (a submit that gave no answer, #887).
+        rc, jid = s.driver("jobid", urls["one"])
+        jid = jid.strip().splitlines()[-1] if jid.strip() else ""
+        check(rc == 0 and jid.isdigit(), "a job id to attach (%r)" % jid)
+        rc, out, err = run(path_one, urls["done"], "jobid=" + jid)
+        check(rc == 64 and "usage" in err, "jobid= with two calculations: usage, 64")
+        rc, out, err = run(urls["late"], "jobid=abc")
+        check(rc == 64, "jobid= must be a number: 64 (rc=%s)" % rc)
+        rc, out, err = run(urls["done"], "jobid=" + jid)
+        say(out)
+        check(rc == 1 and "jobid= only for a Ready calculation" in out,
+              "a finished calculation is refused (rc=%s)" % rc)
+        #  The submit that lost its answer had made the run directory.
+        parts = urls["late"].rstrip("/").split("/")
+        os.makedirs(os.path.join(rundir, parts[-2], parts[-1]), exist_ok=True)
+        rc, out, err = run(urls["late"], "jobid=" + jid)
+        say(out)
+        check(rc == 0 and re.search(r"^late: reconnected, job id %s$" % jid, out, re.M),
+              "a Ready calculation takes the job id (rc=%s)" % rc)
+        check(s.state_of(urls["late"]) in ("submitted", "running"),
+              "it is Submitted")
+        rc, got = s.driver("jobid", urls["late"])
+        check(got.strip() == jid, "its job id is stored (%r)" % got.strip())
+        check(monitoring(s, urls["late"]), "its monitor is running")
     finally:
         if org and org.poll() is None:
             org.terminate()

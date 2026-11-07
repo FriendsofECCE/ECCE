@@ -209,7 +209,8 @@ public:
                                   const vector<EcceURL>& calcs,
                                   const vector<string>& links, bool autoLinks);
   // ecce-reconnect: Reconnect Selected without the dialogs; same line format.
-  bool reconnectForCommand(const vector<EcceURL>& urls, vector<string>& lines);
+  bool reconnectForCommand(const vector<EcceURL>& urls, vector<string>& lines,
+                           const string& jobId = "");
   bool anyReconnectable(const vector<EcceURL>& urls);
   // ecce-fetch: run-directory files into the Outputs (or a listing).
   bool fetchForCommand(const EcceURL& url, const vector<string>& patterns,

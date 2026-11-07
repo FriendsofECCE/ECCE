@@ -233,6 +233,7 @@ class XYPlotCanvas : public wxPanel
     void setIntegerX(bool on) { p_intX = on; Refresh(); }
 
     const PlotPalette& palette() const { return p_palette; }
+    void setPalette(const PlotPalette& p) { p_palette = p; Refresh(); }
     wxColour seriesColour(int i) const { return p_palette.series(i); }
     /** The colour a curve is drawn in. */
     wxColour curveColourOf(int c) const { return curveOk(c) ? colourOf(p_curves[c]) : wxColour(); }

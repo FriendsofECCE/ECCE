@@ -24,9 +24,10 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SKIP = 77
 # set folder -> (project it is imported into, number of calculations)
 SETS = {"getting-started": ("Examples/Getting_Started", 6),
+        "computational": ("Examples/Computational", 4),
         "organic": ("Examples/Organic_Chemistry", 21),
         "spectroscopy": ("Examples/Spectroscopy", 19),
-        "genchem": ("Examples/General_Chemistry", 105),
+        "genchem": ("Examples/General_Chemistry", 109),
         "workflows": ("Examples/Workflows", 14),
         "test": ("Examples/Test", 7)}
 
@@ -197,6 +198,8 @@ def checkSet(work, setId, failures):
 
 
 def main():
+    # A fresh test home (offload hosts) has no ~/.cache yet.
+    os.makedirs(os.path.expanduser("~/.cache"), exist_ok=True)
     work = tempfile.mkdtemp(prefix="examples-preparsed-",
                             dir=os.path.expanduser("~/.cache"))
     failures = []

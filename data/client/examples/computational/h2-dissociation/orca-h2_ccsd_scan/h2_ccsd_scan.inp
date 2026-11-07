@@ -1,0 +1,16 @@
+! CCSD cc-pVTZ Opt MiniPrint
+%output
+  Print[P_MOs] 0
+  Print[P_OrbEn] 2
+end
+%elprop
+  Quadrupole true
+end
+%geom
+  Scan B 0 1 = 4.0000, 0.3, 38 end
+end
+
+* xyz 0 1
+ H     0.0     0.0     0.0
+ H     0.0     0.0     4.0000
+*

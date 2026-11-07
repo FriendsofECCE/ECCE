@@ -4747,16 +4747,50 @@ bool CalcMgr::terminateForCommand(const vector<EcceURL>& urls,
 //  Reconnect Selected for a request from another process: the same
 //  reconnectSelected, without the confirmation. One line per calculation,
 //  "name\tok\tjob id" or "name\tno\treason".
+//  With a job id (ecce-reconnect ... jobid=N) a Ready calculation whose
+//  submit gave no answer is first marked Submitted with that id, so that the
+//  ordinary reconnect starts its monitor.
 bool CalcMgr::reconnectForCommand(const vector<EcceURL>& urls,
-                                  vector<string>& lines)
+                                  vector<string>& lines, const string& jobId)
 {
   lines.clear();
   if (p_batch) return false;
   vector<EcceURL> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
     WxResourceTreeItemData *n = findNodeFresh(urls[i], false);
-    if (n && dynamic_cast<TaskJob*>(n->getResource())) tasks.push_back(urls[i]);
-    else lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
+    TaskJob *job = n ? dynamic_cast<TaskJob*>(n->getResource()) : 0;
+    if (!job) {
+      lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
+      continue;
+    }
+    if (!jobId.empty()) {
+      const string name = n->getName();
+      if (urls.size() != 1) {
+        lines.push_back(name + "\tno\tjobid= only for one calculation");
+        continue;
+      }
+      if (job->getState() != ResourceDescriptor::STATE_READY) {
+        lines.push_back(name + "\tno\tjobid= only for a Ready calculation");
+        continue;
+      }
+      Jobdata jd = job->jobdata();
+      if (job->launchdata().machine.empty() || jd.jobpath.empty()) {
+        lines.push_back(name + "\tno\tno machine or run directory stored: "
+                        "the calculation was not submitted from here");
+        continue;
+      }
+      jd.jobid = jobId;
+      job->jobdata(jd);
+      job->addProp(VDoc::getEcceNamespace() + ":submitdate",
+                   std::to_string((long long)time(0)));
+      vector<MetaDataResult> r(1);
+      r[0].name = VDoc::getEcceNamespace() + ":submituncertain";
+      r[0].value = "";
+      try { job->addProps(r); } catch (...) {}
+      job->setState(ResourceDescriptor::STATE_SUBMITTED);
+      updateUrl(urls[i]);
+    }
+    tasks.push_back(urls[i]);
   }
   if (!tasks.empty()) reconnectSelected(tasks, false, 0, "", false, &lines);
   return true;
@@ -5572,7 +5606,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "33";
+const char *const kExampleSetVersion = "34";
 
 string treeName(string s)
 {
@@ -5605,20 +5639,26 @@ void collectExamples(const string &setDir, const string &topicDir,
       o.rel = dirRel;
       o.calc = n.substr(8);
     } else {
-      // the output is the first file with one of these extensions
-      // (tools/examples/preparse.py does the same)
+      // the output is the first file with one of these extensions, or the
+      // same gzip-compressed (tools/examples/preparse.py does the same)
       string found;
       for (const char *ext : {".qmout", ".eprint", ".pwout", ".out"}) {
         vector<string> files;
-        for (const auto &f : fs::directory_iterator(setDir + dirRel, ec))
-          if (f.is_regular_file() && f.path().extension() == ext &&
-              f.path().filename() != "g98.out")  // xtb companion
+        for (const auto &f : fs::directory_iterator(setDir + dirRel, ec)) {
+          string name = f.path().filename().string();
+          if (name.size() > 3 && name.compare(name.size() - 3, 3, ".gz") == 0)
+            name.resize(name.size() - 3);
+          if (f.is_regular_file() && fs::path(name).extension() == ext &&
+              name != "g98.out")  // xtb companion
             files.push_back(f.path().filename().string());
+        }
         std::sort(files.begin(), files.end());
         if (!files.empty()) { found = files[0]; break; }
       }
       if (found.empty()) continue;
       o.rel = dirRel + "/" + found;
+      if (found.size() > 3 && found.compare(found.size() - 3, 3, ".gz") == 0)
+        found.resize(found.size() - 3);
       o.calc = found.substr(0, found.rfind('.'));
     }
     topic.outputs.push_back(o);
@@ -5672,6 +5712,37 @@ void collectExamples(const string &setDir, const string &topicDir,
       }
     }
   }
+}
+
+// The import reads plain files, and the output's companions (.allxyz,
+// .hess) by their names next to it, so a gzip-compressed example is
+// unpacked whole into the user's ECCE directory and imported from there.
+string unpackedExample(const string &setDir, const string &rel)
+{
+  const string path = setDir + rel;
+  if (path.size() <= 3 || path.compare(path.size() - 3, 3, ".gz") != 0)
+    return path;
+  namespace fs = std::filesystem;
+  const string folder = path.substr(0, path.rfind('/'));
+  const string out = string(Ecce::realUserPrefPath()) + "/examples/" +
+                     folder.substr(examplesDir().size());
+  std::error_code ec;
+  fs::create_directories(out, ec);
+  for (const auto &f : fs::directory_iterator(folder, ec)) {
+    if (!f.is_regular_file()) continue;
+    string name = f.path().filename().string();
+    if (name.size() > 3 && name.compare(name.size() - 3, 3, ".gz") == 0) {
+      string text;
+      if (!StoredCalcCopy::gunzip(f.path().string(), text)) continue;
+      name.resize(name.size() - 3);
+      std::ofstream(out + "/" + name, std::ios::binary) << text;
+    } else {
+      fs::copy_file(f.path(), out + "/" + name,
+                    fs::copy_options::overwrite_existing, ec);
+    }
+  }
+  const string name = path.substr(path.rfind('/') + 1);
+  return out + "/" + name.substr(0, name.size() - 3);
 }
 
 const vector<ExampleSet>& exampleSets()
@@ -6074,7 +6145,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
           if (!why.empty())
             cerr << "Organizer: example copy failed (" << why
                  << "), parsing" << endl;
-          dlg.importFile(dir + rel);
+          dlg.importFile(unpackedExample(dir, ex.rel));
         }
         // A parsed step joins at importValidationComplete().
         if (flow && copied)
@@ -6649,6 +6720,31 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "localised. This calculation shows the two electrons of H2 in one "
      "bonding sigma orbital, with the empty antibonding sigma* orbital above"
      " it."},
+    {"h2_bond_curve",
+     "The energy of two hydrogen atoms as they approach, from 5.0 to 0.4 Å "
+     "apart. This calculation shows how a chemical bond forms: the minimum of "
+     "the curve is the bond length and its depth below the separated atoms "
+     "is the bond energy."},
+    {"h2_rhf_scan",
+     "ORCA, RHF/cc-pVTZ, scan of the H-H distance from 4.0 to 0.3 Å. This "
+     "calculation shows a closed-shell wavefunction that keeps equal ionic "
+     "and covalent parts at every distance, so its energy at 4 Å lies far "
+     "above that of two hydrogen atoms."},
+    {"h2_uhf_scan",
+     "ORCA, UHF/cc-pVTZ with a broken-symmetry guess, scan of the H-H "
+     "distance from 4.0 to 0.3 Å. This calculation shows the unrestricted "
+     "solution reaching the energy of two hydrogen atoms, with <S²> "
+     "rising from 0 towards 1 beyond the Coulson-Fischer point between 1.2 "
+     "and 1.3 Å."},
+    {"h2_ccsd_scan",
+     "ORCA, CCSD/cc-pVTZ, scan of the H-H distance from 4.0 to 0.3 Å. This "
+     "calculation shows the curve that is exact for two electrons in this "
+     "basis, the one the RHF and UHF scans are measured against."},
+    {"h2_uhf_scan_out",
+     "ORCA, UHF/cc-pVTZ without a broken-symmetry guess, scan of the H-H "
+     "distance outwards from 0.5 to 4.0 Å. This calculation shows the SCF "
+     "following its closed-shell solution from point to point, so it stays "
+     "on the RHF curve where the inward broken-symmetry scan does not."},
     {"H2_cation",
      "ECCE-QM, UB3LYP/6-31G*, optimisation and frequencies, orbitals "
      "localised. This calculation shows H2+, held together by a single "

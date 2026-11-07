@@ -488,7 +488,7 @@ void CalcMgrApp::reconnectRequestMCB(JMSMessage& msg)
     urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
 
   vector<string> lines;
-  if (!p_calcMgr->reconnectForCommand(urls, lines))
+  if (!p_calcMgr->reconnectForCommand(urls, lines, msg.getProperty("jobid")))
     reply("busy", lines);
   else
     reply("done", lines);

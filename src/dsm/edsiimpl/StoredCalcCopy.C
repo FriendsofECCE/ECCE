@@ -1,4 +1,5 @@
 #include <dirent.h>
+#include <zlib.h>
 #include <sys/stat.h>
 
 #include <algorithm>
@@ -113,13 +114,20 @@ string prop(const vector<MetaDataResult>& v, const string& key)
   return "";
 }
 
+bool endsGz(const string& n)
+{
+  return n.size() > 3 && n.compare(n.size() - 3, 3, ".gz") == 0;
+}
+
 // Copy what is below srcDir into the collection at url.
 bool copyTree(const EcceURL& url, const string& srcDir, string& why)
 {
   Records recs = readSidecar(srcDir);
   for (const string& name : names(srcDir)) {
     const string src = srcDir + "/" + name;
-    EcceURL child = url.getChild(name);
+    const bool gz = !isDir(src) && endsGz(name);
+    const string target = gz ? name.substr(0, name.size() - 3) : name;
+    EcceURL child = url.getChild(target);
     if (isDir(src)) {
       if (!EDSIFactory::getEDSI(child)->exists()) {
         EcceURL *made = EDSIFactory::getEDSI(url)->makeCollection(name);
@@ -135,13 +143,25 @@ bool copyTree(const EcceURL& url, const string& srcDir, string& why)
       }
       if (!copyTree(child, src, why)) return false;
     } else {
-      std::ifstream ifs(src.c_str(), std::ios::binary);
       EDSI *edsi = EDSIFactory::getEDSI(child);
-      if (!ifs || !edsi->putDataSet(ifs)) {
-        why = "cannot write " + name;
+      bool ok;
+      if (gz) {
+        string text;
+        std::istringstream in;
+        ok = StoredCalcCopy::gunzip(src, text);
+        if (ok) {
+          in.str(text);
+          ok = edsi->putDataSet(in);
+        }
+      } else {
+        std::ifstream ifs(src.c_str(), std::ios::binary);
+        ok = ifs && edsi->putDataSet(ifs);
+      }
+      if (!ok) {
+        why = "cannot write " + target;
         return false;
       }
-      if (!recs[name].empty() && !edsi->putMetaData(recs[name])) {
+      if (!recs[target].empty() && !edsi->putMetaData(recs[target])) {
         why = "cannot write the properties of " + name;
         return false;
       }
@@ -153,6 +173,19 @@ bool copyTree(const EcceURL& url, const string& srcDir, string& why)
 }  // namespace
 
 namespace StoredCalcCopy {
+
+bool gunzip(const string& src, string& out)
+{
+  out.clear();
+  gzFile f = gzopen(src.c_str(), "rb");
+  if (!f) return false;
+  char buf[65536];
+  int n;
+  while ((n = gzread(f, buf, sizeof buf)) > 0) out.append(buf, n);
+  const bool ok = n == 0;
+  gzclose(f);
+  return ok;
+}
 
 string stampOf(const string& file)
 {

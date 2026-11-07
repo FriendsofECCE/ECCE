@@ -338,6 +338,9 @@ ecce_library(eccecommxt src/comm/commxt)
 ecce_library(eccercmd   src/comm/rcommand)
 # SftpEDSI runs its operations through RCommand.
 target_link_libraries(eccedsi PUBLIC eccercmd)
+# Example outputs ship gzip-compressed (StoredCalcCopy::gunzip).
+find_package(ZLIB REQUIRED)
+target_link_libraries(eccedsi PUBLIC ZLIB::ZLIB)
 target_link_libraries(eccetdat PUBLIC ecceutil)
 # RCommand uses AuthCache: without this a program that links eccedsi but
 # names eccetdat earlier fails with GNU ld (mold does not care about order).
@@ -1350,6 +1353,11 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_rate.py
         COMPONENT client)
 install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_rates.py
         DESTINATION scripts
+        COMPONENT client)
+
+# ecce-morse (#858): Morse fit of a bond scan; the Relaxed Scan panel runs it.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_morse.py
+        DESTINATION bin RENAME ecce-morse
         COMPONENT client)
 
 # ecce-gmxanalysis (#877): gmx rdf/energy/rms/gyrate/density/hbond on a stored
@@ -2734,6 +2742,11 @@ add_test(NAME rates
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rates/cli_tests.py)
 set_tests_properties(rates PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 
+# tests/morse -- scripts/ecce_morse.py: exact recovery of synthetic Morse
+# curves, omega_e against the curvature, the CLI on a stored scan (#858).
+add_test(NAME morse
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/morse/unit_tests.py)
+
 # tests/bandshift -- scripts/ecce_bandshift.py on stored frequency calculations (#707).
 add_test(NAME bandshift
          COMMAND ${PYTHON3_EXECUTABLE}
@@ -3527,6 +3540,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_h2_far_atoms PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
+  # Fit Morse and Compare in the Relaxed Scan panel equal ecce-morse (#858).
+  add_test(NAME apps_morse_panel
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/morse_panel_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_morse_panel PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
   # The Relaxed Scan panel on an ECCE-QM scan (#450): engine output through
   # ecceqm.parse into the panel.
   if(ECCE_BUILD_QM)
@@ -3705,6 +3726,15 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/orca_mo_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_orca_mo PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+
+  # The MO panel's Table / Graph / Graph by Symmetries views each show with a
+  # size and the orbital levels (#882).
+  add_test(NAME apps_mo_graph_views
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/mo_graph_views_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_mo_graph_views PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
 
   # results.h5 (#690): the Density Map reads the properties without one and
@@ -4988,6 +5018,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-bandshift=bin/ecce-bandshift
   ecce-ensemble=bin/ecce-ensemble
   ecce-rate=bin/ecce-rate
+  ecce-morse=bin/ecce-morse
   ecce-gmxanalysis=bin/ecce-gmxanalysis
   ecce-spectrum=bin/ecce-spectrum
   ecce-displace=bin/ecce-displace
