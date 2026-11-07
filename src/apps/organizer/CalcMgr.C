@@ -1740,7 +1740,7 @@ void CalcMgr::runTestCommand(const string& line)
           {"Functions", "numFunctions"}, {"Primitives", "numPrimitives"},
           {"Theory", "theory"}, {"Runtype", "runtype"},
           {"Charge", "charge"}, {"SpinMult", "spinmultiplicity"},
-          {"OpenShells", "openshells"}};
+          {"OpenShells", "openshells"}, {"CDFitting", "chargeFittingName"}};
         outcome = panel ? "ok" : "no context panel";
         for (auto& f : fields) {
           wxWindow *w = panel ? panel->FindWindow(f[1]) : 0;
