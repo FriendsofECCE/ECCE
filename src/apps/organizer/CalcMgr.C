@@ -303,7 +303,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   const int serversId = p_serversToolId = wxWindow::NewControlId();
   p_toolBar->AddSeparator();
   p_toolBar->AddTool(serversId, _("Servers"),
-      ewxBitmap::colorIcon("svg/servers.svg", wxSize(24, 24)), _("Servers"));
+      ewxBitmap::bundle(wxT("servers.xpm")), _("Servers"));
   p_toolBar->Realize();
   Bind(wxEVT_TOOL, [this](wxCommandEvent&) { showServersMenu(); }, serversId);
   {
