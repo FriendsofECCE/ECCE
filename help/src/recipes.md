@@ -319,10 +319,14 @@ level of that symmetry: 2t₂g is the second t₂g level of the complex. Complex
 levels carry the irreducible representations of the complex's point group,
 FO levels those of their own fragment's point group, both found from the
 structure and the orbital coefficients as in the Builder's MO Diagram. A
-level reads ? when no symbol could be established: when the point group is
-not found (a single atom, whose spherical group is not in ECCE's tables),
-or when its orbitals do not span one irreducible representation cleanly.
-The note under the diagram names each point group, or why there is none.
+fragment that is a single atom has no point group in ECCE's tables; its
+levels are named by their shell instead, Cr 3d or Cr 4p, when one angular
+momentum makes up 90 % or more of the level (the principal quantum number
+is counted from the orbitals of that kind below it). A level reads ? when
+no symbol could be established: its orbitals do not span one irreducible
+representation cleanly, no shell dominates, or the point group is not
+found. The note under the diagram names each point group, or why there is
+none.
 
 **Validity.** For every drawn complex level the diagram knows the sum of the
 shares of its lines and the part of the orbital outside the span of all FOs.

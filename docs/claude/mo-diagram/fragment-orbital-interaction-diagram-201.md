@@ -43,7 +43,10 @@ shared with it.
   Linking it pulls in `TChartOfNuclides`' static `TPerTab`, which asserts on
   a missing ECCE_REALUSERHOME while the program loads: ecce-fragorb defaults
   it (and ECCE_REALUSER) in a constructor(101) function. A single atom gets
-  no group (no spherical table): Cr FO levels read "?".
+  no group (no spherical table): its FO levels are named by shell ("Cr 3d")
+  from the l populations, n counted from the orbitals of that l below
+  (a model choice). Subscripts are drawn as MoDiagramCanvas::splitLabel
+  sets them (order and g/u smaller and lower), not as Unicode.
 - tests/fragorb_h5/run_tests.py's `check()` returns None: never use it as a
   condition (`elif check(...)` silently skipped the label checks once).
 - The `cr` fixture (RHF singlet Cr) has two doubly occupied d FOs (10-11) and
