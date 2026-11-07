@@ -259,6 +259,12 @@ string MoDiagramPanel::coreText() const
 }
 
 
+string MoDiagramPanel::coreHitsText()
+{
+  return p_canvas ? p_canvas->coreHitsText() : string();
+}
+
+
 string MoDiagramPanel::levelText(int level)
 {
   return p_canvas ? p_canvas->describeLevel(level) : string();

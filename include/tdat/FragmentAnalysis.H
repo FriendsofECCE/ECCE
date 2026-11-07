@@ -58,6 +58,7 @@ struct Channel {
 
 struct Analysis {
   vector<string> fragmentNames;
+  vector<const resultsh5::Model*> fragmentModels;   // as given to analyse()
   vector<vector<int> > atomMap;        // fragment atom -> complex atom
   vector<Channel> channel;
   bool restricted = true;
@@ -74,6 +75,25 @@ struct Connection {
 };
 // FO -> complex MO lines with share >= threshold (method "mulliken"|"scpa").
 vector<Connection> connections(const Analysis& a, double threshold, const string& method);
+
+// Does the occupied d set of a one-atom fragment match the complex's?  Each
+// occupied complex MO with a Mulliken share of at least dMin on the atom's d
+// orbitals must be expanded mainly in the atom's OCCUPIED d orbitals: their
+// share at least occMin of its d share.  A bare ion's degenerate d set is
+// filled in an arbitrary orientation unless the fragment calculation was
+// guided, and the d shares are then not those of the complex's t2g/eg
+// split.  applicable is false for a fragment that is not an atom with a d
+// set, or when no occupied MO has dMin of d (ok stays true: nothing to say).
+struct FieldCheck {
+  bool applicable = false;
+  bool ok = true;
+  int fragment = -1;        // 0-based
+  int checked = 0;          // occupied MOs with a d share of at least dMin
+  double worst = 1;         // lowest occupied fraction of the d share
+  int mo = 0;               // 1-based, the MO that has it
+  double dShare = 0;        // its d share
+};
+FieldCheck fieldCheck(const Analysis& a, double dMin = 0.30, double occMin = 0.80);
 
 // --- OPDOS / PDOS / TDOS ---------------------------------------------------
 
@@ -110,6 +130,106 @@ bool dos(const resultsh5::Model& complex, const DosOptions& opt, DosResult& out,
 // Complex atoms of a fragment, for building AtomSets from fragment files.
 bool mapAtoms(const resultsh5::Model& complex, const resultsh5::Model& frag,
               double tolAng, vector<int>& map, string& err);
+
+// --- Interaction diagram ---------------------------------------------------
+//
+// Which levels are drawn is one fixed rule on the data: the complex MO levels
+// of the window (occupiedLevels from the HOMO level down, virtualLevels from
+// the LUMO level up); then, repeated until nothing changes, every MO level
+// that shares an FO level (share >= threshold) with a drawn occupied MO level,
+// so the partner of a drawn occupied level is never hidden; then every FO
+// level with a line to a drawn MO level.  Degenerate orbitals (within
+// degenerateEh) form one level; the share of an FO level in an MO level is the
+// sum over its FOs averaged over the MOs, which does not depend on how a
+// program mixes a degenerate set.
+
+struct DiagramOptions {
+  double threshold = 0.10;
+  string method = "mulliken";
+  int occupiedLevels = 4;
+  int virtualLevels = 4;
+  double degenerateEh = 1e-4;
+  double covered = 0.90;               // an MO level covered less is not representative
+  bool symmetry = true;                // label levels by irrep (runs autosym)
+};
+
+// Shares of 1 % or more: an MO level's FO levels, or the MO levels an FO
+// level goes into.
+struct DiagramShare {
+  int level = -1;                      // id of the drawn level, -1 when not drawn
+  int fragment = -1;                   // FO level: its fragment; MO level: -1
+  vector<int> numbers;                 // 1-based MO numbers or FO indices
+  double energyEv = 0;
+  double share = 0;
+  string position;
+  string irrep;                        // as DiagramLevel::irrep
+  string shell;                        // as DiagramLevel::shell
+};
+
+struct DiagramLevel {
+  int id = 0;
+  int column = 1;                      // 0 first fragment, 1 complex, 2 the other fragments
+  int fragment = -1;                   // -1 complex
+  int first = 0, last = 0;             // 0-based positions in the channel (MOs or FOs)
+  vector<int> numbers;                 // 1-based MO numbers or FO indices
+  double energyEv = 0;                 // mean over the level
+  vector<double> occupation;           // per orbital, as stored
+  string position;                     // "HOMO", "LUMO+3", counted in orbitals
+  string irrep;                        // Mulliken label with its count, "2t2g"; "" not determined
+  string shell;                        // FO of a one-atom fragment: "Cr 3d" when one l has >= 90 %
+  // complex MO levels only
+  bool partner = false;                // drawn by the partner rule, outside the window
+  double remainder = 0;                // part outside the span of all FOs (mean over the level)
+  double covered = 0;                  // sum of the shares of its lines
+  bool representative = true;          // covered >= DiagramOptions::covered
+  double overlapPopulation = 0;        // fragment-fragment OP per electron, summed over pairs
+  string kind;                         // bonding, antibonding, fragment, unconnected; FO levels "fo"
+  vector<int> fragments;               // fragments with a line into it
+  vector<DiagramShare> shares;
+};
+
+struct DiagramLine {
+  int fo = 0, mo = 0;                  // level ids
+  int fragment = 0;
+  double share = 0;
+};
+
+struct DiagramChannel {
+  int spin = 0;
+  vector<DiagramLevel> levels;         // complex MO levels (energy order), then FO levels
+  vector<DiagramLine> lines;
+  int homo = -1, lumo = -1;            // level ids
+  double gapEv = 0;                    // LUMO - HOMO orbital energy
+  bool representative = true;          // every drawn MO level covered
+  bool windowRepresentative = true;    // every MO level of the window covered (partners aside)
+  string verdict;                      // one line: representative or which levels are not
+  vector<int> notRepresentative;       // level ids
+  vector<int> hiddenFoLevels;          // per fragment: FO levels with no line to a drawn MO
+  vector<string> notes;
+};
+
+struct Diagram {
+  vector<string> fragmentNames;
+  // point group of the complex [0] and of each fragment [1..], "" when not
+  // determined, with the reason in symmetryWhy
+  vector<string> groups, symmetryWhy;
+  DiagramOptions options;
+  vector<DiagramChannel> channel;
+};
+
+// Irreps of a model's orbitals in the point group autosym finds, from the
+// coefficients (SymmetryAnalysis::fullLabelSpectrum, the Builder MO
+// diagram's machinery).  irrep[i] is "" where no clean label exists; false
+// with `why` when no orbital can be labelled.  Needs autosym and symops.
+struct OrbitalSymmetry {
+  string group, why;
+  vector<string> irrep;                // per MO, the table's spelling ("T2g")
+};
+bool orbitalSymmetry(const resultsh5::Model& m, int spin, OrbitalSymmetry& out);
+
+// `a` must come from analyse() on the same complex model.
+bool diagram(const resultsh5::Model& complex, const Analysis& a, const DiagramOptions& opt,
+             Diagram& out, string& err);
 
 }
 #endif

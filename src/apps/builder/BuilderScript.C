@@ -169,6 +169,8 @@
 #include "ThermoPanel.H"
 #include "PullPanel.H"
 #include "MdAnalysisPanels.H"
+#include "GmxAnalysisPanel.H"
+#include "XYPlotCanvas.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
 #include "tdat/GeomConstraintPick.H"
@@ -191,6 +193,7 @@ struct ScriptState {
   wxLongLong notBefore;
   std::string waitingFor;      // a .go file
   wxLongLong waitUntil;
+  std::function<bool()> busy;  // a background job the script waits for
   std::string dir;
   ScriptState() : next(0), notBefore(0), waitUntil(0) {}
 };
@@ -251,6 +254,10 @@ void Builder::runBuilderScript(const std::string& file)
         st->waitingFor.clear();
       else
         return;
+    }
+    if (st->busy) {
+      if (st->busy() && wxGetLocalTimeMillis() < st->waitUntil) return;
+      st->busy = nullptr;
     }
     if (wxGetLocalTimeMillis() < st->notBefore) return;
     if (st->next >= st->lines.size()) { timer->Stop(); return; }
@@ -1289,6 +1296,48 @@ void Builder::runBuilderScript(const std::string& file)
         } else {
           fprintf(stderr, "BUILDER: pullcsv points=%d %s\n", pp->points(),
                   pp->exportCsv(wxString::FromUTF8(w[1].c_str())) ? "ok" : "failed");
+        }
+      } else if (w[0] == "gmxa" && w.size() >= 2) {
+        //  The MD Analysis panel (#877): gmxa analysis <rdf|energy|...>;
+        //  gmxa set <field> <value...>; gmxa run (the script waits for it,
+        //  at most 10 min); gmxa wait (for the group/term listing);
+        //  gmxa state; gmxa dump <path> (the plotted curves); gmxa csv <path>.
+        GmxAnalysisPanel *gp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((gp = dynamic_cast<GmxAnalysisPanel*>(p)) != 0) break;
+        if (!gp) {
+          outcome = "no MD Analysis panel";
+        } else if (w[1] == "analysis" && w.size() >= 3) {
+          if (!gp->setAnalysis(w[2])) outcome = "no analysis " + w[2];
+        } else if (w[1] == "set" && w.size() >= 3) {
+          const size_t at = line.find(w[2], line.find("set") + 3) + w[2].size();
+          std::string value = at < line.size() ? line.substr(at) : std::string();
+          while (!value.empty() && isspace((unsigned char)value[0])) value.erase(0, 1);
+          outcome = gp->setField(w[2], value);
+        } else if (w[1] == "run" || w[1] == "wait") {
+          if (w[1] == "run" && !gp->run())
+            outcome = "not started: " + std::string(gp->status().ToUTF8());
+          st->busy = [gp]() { return gp->busy(); };
+          st->waitUntil = wxGetLocalTimeMillis() + 600000;
+        } else if (w[1] == "state") {
+          std::string res = std::string(gp->resultsText().ToUTF8());
+          for (char& c : res) if (c == '\n') c = '|';
+          fprintf(stderr, "BUILDER: gmxa analysis=%s busy=%d curves=%d status=[%s] "
+                  "groups=[%s] terms=[%s] results=[%s]\n", gp->analysis().c_str(),
+                  gp->busy() ? 1 : 0, gp->plot()->curveCount(),
+                  std::string(gp->status().ToUTF8()).c_str(), gp->groupChoices().c_str(),
+                  gp->energyTerms().c_str(), res.c_str());
+        } else if (w[1] == "dump" && w.size() >= 3) {
+          std::ofstream out(w[2].c_str());
+          out << gp->plotDump();
+          out << "#json " << gp->lastJson() << "\n";
+          if (!out) outcome = "cannot write " + w[2];
+        } else if (w[1] == "csv" && w.size() >= 3) {
+          if (!gp->exportCsv(wxString::FromUTF8(w[2].c_str()))) outcome = "csv failed";
+        } else {
+          outcome = "unknown gmxa command";
         }
       } else if ((w[0] == "mdcsv" || w[0] == "mdcompare" || w[0] == "comparewith" || w[0] == "mdfit" ||
                   w[0] == "mdloglog") && w.size() >= 2) {

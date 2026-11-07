@@ -150,6 +150,11 @@
     <runtype>Transition State (NEB-TS) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
+  <!-- Restricted open shell, for the open-shell fragments of a fragment
+       analysis (#201): one set of orbitals for both spins. -->
+  <Theory category="SCF" name="ROHF">
+    <runtype>Energy</runtype>
+  </Theory>
   <Theory category="DFT" name="RDFT">
     <runtype>Energy</runtype>
     <runtype>Gradient</runtype>
@@ -160,6 +165,9 @@
     <runtype>Transition State (NEB-TS) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
+  </Theory>
+  <Theory category="DFT" name="RODFT">
+    <runtype>Energy</runtype>
   </Theory>
   <Theory category="DFT" name="UDFT">
     <runtype>Energy</runtype>
@@ -275,6 +283,7 @@
        one), read as the initial Hessian of an optimisation (#557). -->
   <Output type="auxiliary" mimetype="chemical/x-orca-hess">orca.orcain.hess</Output>
   <Input   type="auxiliary" mimetype="chemical/x-orca-hess">inhess.hess</Input>
+  <Input   type="auxiliary" mimetype="chemical/x-orca-pc">pointcharges.pc</Input>
   <!-- NEB-TS (#419): product and optional TS guess structure, written by
        CalcEd as inputs of the calculation and copied to the run directory
        with the deck.  Matched by name. -->

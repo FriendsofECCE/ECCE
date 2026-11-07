@@ -1,5 +1,6 @@
 #include <dirent.h>
 #include <sys/stat.h>
+#include <ctime>
 #include <unistd.h>
 
 #include <algorithm>
@@ -22,6 +23,9 @@
 #include "dsm/ResourceType.H"
 #include "dsm/Session.H"
 #include "util/Ecce.H"
+#include "util/MdAnalysisRun.H"
+
+#include <filesystem>
 
 using std::string;
 using std::vector;
@@ -149,22 +153,6 @@ void analyseTask(const string& taskDir, const vector<string>& files,
     else if (hasSuffix(f, ".ndx") && ndx.empty()) ndx = p;
   }
   if (xtc.empty() || top.empty() || mdp.empty()) return;
-  string mdpText;
-  readFile(mdp, mdpText);
-  int nstvout = 0;
-  {
-    std::istringstream in(mdpText);
-    string line;
-    while (std::getline(in, line)) {
-      line = line.substr(0, line.find(';'));
-      const size_t eq = line.find('=');
-      if (eq == string::npos) continue;
-      std::istringstream k(line.substr(0, eq)), v(line.substr(eq + 1));
-      string key;
-      k >> key;
-      if (key == "nstvout") v >> nstvout;
-    }
-  }
   string out;
   const char* gmxEnv = getenv("ECCE_GROMACS");
   const string gmx = gmxEnv && *gmxEnv ? string(gmxEnv) : CodePrograms::findOnPath("GROMACS");
@@ -176,40 +164,52 @@ void analyseTask(const string& taskDir, const vector<string>& files,
     if (runProgram(a, out) == 0 && access((stage + "/ecce_pp.top").c_str(), R_OK) == 0)
       top = stage + "/ecce_pp.top";
   }
-  const char* home = getenv("ECCE_HOME");
-  const string mda = (home && *home ? string(home) + "/bin/" : string()) + "mdanalysis"
-#ifdef _WIN32
-    ".exe"
-#endif
-    ;
-  string msd, speed;
-  if (runProgram({ mda, "--top", top, "--mdp", mdp, "--traj", xtc,
-                   "--out", stage + "/ecce_md_msd.txt" }, out) == 0)
-    readFile(stage + "/ecce_md_msd.txt", msd);
-  if (nstvout > 0 && !trr.empty()) {
-    if (runProgram({ mda, "--top", top, "--mdp", mdp, "--vel", trr,
-                     "--out", stage + "/ecce_md_speed.txt" }, out) == 0)
-      readFile(stage + "/ecce_md_speed.txt", speed);
-  } else if (!msd.empty()) {
-    speed = "ECCE-MDSPEED none\n";
-  }
-  if (!msd.empty() || !speed.empty())
-    writeFile(stage + "/ecce-parse-md.txt", msd + speed);
+  const string md = MdAnalysisRun::run(MdAnalysisRun::program(), top, mdp, xtc, trr, stage);
+  if (!md.empty())
+    writeFile(stage + "/ecce-parse-md.txt", md);
   // The job monitor reads the staging directory: leave only what it parses.
   for (const char* f : { "ecce_pp.top", "ecce_pp.tpr", "ecce_pp.mdp",
                          "ecce_md_msd.txt", "ecce_md_speed.txt" })
     unlink((stage + "/" + f).c_str());
 }
 
+// Removes our own gmximport-* directories more than a day old.
+void sweepOldStaging(const string& parent)
+{
+  DIR* d = opendir(parent.c_str());
+  if (!d) return;
+  const time_t limit = time(0) - 24 * 3600;
+  vector<string> old;
+  while (struct dirent* e = readdir(d)) {
+    string n = e->d_name;
+    if (n.compare(0, 10, "gmximport-") != 0) continue;
+    struct stat st;
+    if (lstat((parent + "/" + n).c_str(), &st) != 0) continue;
+    if (S_ISDIR(st.st_mode) && st.st_uid == getuid() && st.st_mtime < limit)
+      old.push_back(parent + "/" + n);
+  }
+  closedir(d);
+  for (size_t i = 0; i < old.size(); i++) {
+    std::error_code ec;
+    std::filesystem::remove_all(old[i], ec);
+  }
+}
+
 // Attaches a task's inputs, copies its outputs into a staging directory
 // under the names a live run brings back, and imports that.  The job
-// monitor reads the staging directory after this returns, so it is left.
+// monitor reads the staging directory after this returns and removes it when
+// it finishes; only a failed import (no monitor started) removes it here.
+bool importTaskStaged(MdTask* md, const string& taskDir, bool prepare,
+                      string& message, const string& stage);
+
 bool importTask(MdTask* md, const string& taskDir, bool prepare,
                 string& message)
 {
   const char* tmp = getenv("ECCE_TMPDIR");
-  string pattern = (tmp && *tmp ? string(tmp) : string("/tmp")) +
-                   "/gmximport-XXXXXX";
+  const string parent = tmp && *tmp ? string(tmp) : string("/tmp");
+  // A monitor that dies leaves its staging copy; this bounds the growth.
+  sweepOldStaging(parent);
+  string pattern = parent + "/gmximport-XXXXXX";
   vector<char> buf(pattern.begin(), pattern.end());
   buf.push_back('\0');
   if (!mkdtemp(&buf[0])) {
@@ -217,7 +217,15 @@ bool importTask(MdTask* md, const string& taskDir, bool prepare,
     return false;
   }
   const string stage = &buf[0];
+  if (importTaskStaged(md, taskDir, prepare, message, stage)) return true;
+  std::error_code ec;
+  std::filesystem::remove_all(stage, ec);
+  return false;
+}
 
+bool importTaskStaged(MdTask* md, const string& taskDir, bool prepare,
+                      string& message, const string& stage)
+{
   bool haveLog = false;
   string fragment, view;
   vector<string> files = listDir(taskDir, false);

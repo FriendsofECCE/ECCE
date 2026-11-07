@@ -48,6 +48,8 @@ string gAnswer;
 void replyCB(JMSMessage& msg)
 {
   if (msg.getProperty("reply_id") != gReplyId) return;
+  // A busy Organizer acknowledges at once and answers later.
+  if (msg.getProperty("kind") == "ack") return;
   gAnswer = msg.getProperty("answer");
   gDone = true;
 }

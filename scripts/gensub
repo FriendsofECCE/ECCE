@@ -2077,12 +2077,14 @@ sub gromacs()
     #  every 30 s while mdrun writes traj.xtc, on a copy and moved into place
     #  whole, so the Geometry Trace can be played on the frames so far.  Whole
     #  molecules (-pbc mol) so the chain does not tear at the box edge; at
-    #  most 100 frames are kept (every k-th plus the last).
+    #  most 100 frames are kept (every k-th plus the last).  Each frame keeps
+    #  its box (CRYST1, Angstrom and degrees), so the cell follows the
+    #  pressure coupling when the trace plays.
     $retval .= "  ecceTraj() {\n";
     $retval .= "    [ -s traj.xtc ] && [ -s topol.tpr ] || return 1\n";
     $retval .= "    cp traj.xtc ecce_traj_new.xtc && echo 0 | \"\$gmx\" trjconv -s topol.tpr -f ecce_traj_new.xtc -pbc mol -ur compact -o ecce_traj_new.pdb || { rm -f ecce_traj_new.xtc ecce_traj_new.pdb; return 1; }\n";
     $retval .= "    nfr=`grep -c '^ENDMDL' ecce_traj_new.pdb`\n";
-    $retval .= "    awk -v nfr=\"\$nfr\" 'BEGIN{n=0; k=int((nfr+99)/100); if(k<1)k=1} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^ENDMDL/{ if((f-1)%k==0||f==nfr) printf \"ECCE-TRAJ frame %d atoms %d\\n%sECCE-TRAJ end\\n\",f,n,buf; n=0; buf=\"\"}' ecce_traj_new.pdb > ecce-parse-traj.new\n";
+    $retval .= "    awk -v nfr=\"\$nfr\" 'BEGIN{n=0; k=int((nfr+99)/100); if(k<1)k=1} /^(ATOM|HETATM)/{ if(n==0){f++} n++; e=substr(\$0,77,2); gsub(/ /,\"\",e); if(e==\"\"){e=substr(\$0,13,2); gsub(/[^A-Za-z]/,\"\",e); e=substr(e,1,1)} buf=buf sprintf(\"%s %.3f %.3f %.3f\\n\",e,substr(\$0,31,8)+0,substr(\$0,39,8)+0,substr(\$0,47,8)+0)} /^CRYST1/{box=sprintf(\"ECCE-TRAJ box %.3f %.3f %.3f %.2f %.2f %.2f\\n\",substr(\$0,7,9)+0,substr(\$0,16,9)+0,substr(\$0,25,9)+0,substr(\$0,34,7)+0,substr(\$0,41,7)+0,substr(\$0,48,7)+0)} /^ENDMDL/{ if((f-1)%k==0||f==nfr) printf \"ECCE-TRAJ frame %d atoms %d\\n%s%sECCE-TRAJ end\\n\",f,n,box,buf; n=0; buf=\"\"; box=\"\"}' ecce_traj_new.pdb > ecce-parse-traj.new\n";
     $retval .= "    mv ecce-parse-traj.new ecce-parse-traj.txt && mv ecce_traj_new.pdb ecce_traj.pdb\n";
     $retval .= "    rm -f ecce_traj_new.xtc ecce_traj_new.pdb\n";
     $retval .= "  }\n";

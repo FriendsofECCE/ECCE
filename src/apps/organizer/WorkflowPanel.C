@@ -255,17 +255,20 @@ public:
     for (const auto &r : p_frag.rows)
       p_fragLines.push_back(std::make_pair(wxString::FromUTF8(r.first.c_str()),
                                            wxString::FromUTF8(r.second.c_str())));
-    wxString line;
-    wxArrayString words = wxSplit(wxString::FromUTF8(p_frag.note.c_str()), ' ');
-    for (size_t i = 0; i < words.size(); i++) {
-      wxString next = line.empty() ? words[i] : line + " " + words[i];
-      if (dc.GetTextExtent(next).x > kw - 28 && !line.empty()) {
-        p_fragLines.push_back(std::make_pair(line, wxString()));
-        next = words[i];
+    // the note, then the warning (if any) as its own wrapped paragraph
+    for (const std::string *para : {&p_frag.note, &p_frag.warning}) {
+      wxString line;
+      wxArrayString words = wxSplit(wxString::FromUTF8(para->c_str()), ' ');
+      for (size_t i = 0; i < words.size(); i++) {
+        wxString next = line.empty() ? words[i] : line + " " + words[i];
+        if (dc.GetTextExtent(next).x > kw - 28 && !line.empty()) {
+          p_fragLines.push_back(std::make_pair(line, wxString()));
+          next = words[i];
+        }
+        line = next;
       }
-      line = next;
+      if (!line.empty()) p_fragLines.push_back(std::make_pair(line, wxString()));
     }
-    if (!line.empty()) p_fragLines.push_back(std::make_pair(line, wxString()));
     const wxRect above = p_hasRate ? p_rateRect : p_hasKey ? p_keyRect : wxRect();
     const int h = ((int)p_fragLines.size() + 2) * lh + 20 + 40;
     if (p_panel->p_vertical)

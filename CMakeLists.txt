@@ -1359,6 +1359,12 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_morse.py
         DESTINATION bin RENAME ecce-morse
         COMPONENT client)
 
+# ecce-gmxanalysis (#877): gmx rdf/energy/rms/gyrate/density/hbond on a stored
+# GROMACS calculation; the Builder's MD Analysis panel runs it.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_gmxanalysis.py
+        DESTINATION bin RENAME ecce-gmxanalysis
+        COMPONENT client)
+
 # ecce-bandshift (#707): matched bands and their shifts between two calculations.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_bandshift.py
         DESTINATION bin RENAME ecce-bandshift
@@ -3622,6 +3628,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_fragorb_gui PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Fragment-orbital interaction diagram: GUI equals ecce-fragorb diagram, no label overlap (#201).
+  add_test(NAME apps_fragorb_diagram
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/fragorb_diagram_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_fragorb_diagram PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
 
   # ecce-thermo --reactions: reaction overview data (#709).
   add_test(NAME apps_thermo_reactions
@@ -4471,6 +4484,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs_md_analysis PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # #877 steps 2-3: the box per frame, the fetched files, the client-side
+  # mdanalysis, ecce-gmxanalysis against gmx itself and the MD Analysis panel.
+  add_test(NAME launch_gromacs_md_panel
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_md_panel_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs_md_panel PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   # The classic NWChem MD workflow (Prepare, Optimize, Energy, Dynamics), headless.
   add_test(NAME launch_nwchem_md_walk
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4987,6 +5008,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-ensemble=bin/ecce-ensemble
   ecce-rate=bin/ecce-rate
   ecce-morse=bin/ecce-morse
+  ecce-gmxanalysis=bin/ecce-gmxanalysis
   ecce-spectrum=bin/ecce-spectrum
   ecce-displace=bin/ecce-displace
   ecce-si-export=bin/ecce-si-export

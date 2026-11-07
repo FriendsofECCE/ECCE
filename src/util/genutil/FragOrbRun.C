@@ -91,6 +91,13 @@ FragOrbResult runFragOrb(const string& complex, const vector<string>& fragments,
     }
     r.channels.push_back(ch);
   }
+  const J& fc = j.get("field_check");
+  if (!fc.isNull()) {
+    r.fieldApplicable = fc.get("applicable").boolean();
+    r.fieldOk = fc.get("ok").boolean();
+    r.fieldChecked = (int)num(fc.get("checked"));
+    r.fieldWorst = num(fc.get("worst"));
+  }
   r.ok = !r.channels.empty() && !r.channels[0].mo.empty();
   if (!r.ok) r.error = "ecce-fragorb gave no orbitals.";
   return r;
@@ -120,5 +127,85 @@ FragDosResult runFragDos(const string& complex, const vector<string>& fragments,
   }
   r.ok = !r.energy.empty();
   if (!r.ok) r.error = "ecce-fragorb gave no density of states.";
+  return r;
+}
+
+
+FragDiagramResult runFragDiagram(const string& complex, const vector<string>& fragments,
+                                 const vector<string>& names, int occupied, int virtuals,
+                                 double threshold)
+{
+  FragDiagramResult r;
+  string args = "diagram " + files(complex, fragments);
+  for (const string& n : names) args += " --name " + quote(n);
+  char w[64];
+  snprintf(w, sizeof w, " --window %d,%d --threshold %g", occupied, virtuals, threshold);
+  J j;
+  if (!run(args + w, j, r.error)) return r;
+  r.method = j.get("method").str();
+  r.threshold = num(j.get("threshold"));
+  r.covered = num(j.get("covered"));
+  const vector<J>& win = j.get("window").items();
+  if (win.size() == 2) { r.occupied = (int)num(win[0]); r.virtuals = (int)num(win[1]); }
+  for (const J& f : j.get("fragments").items()) r.fragments.push_back(f.str());
+  for (const J& g : j.get("groups").items()) r.groups.push_back(g.str());
+  auto ints = [](const J& a) {
+    vector<int> v;
+    for (const J& x : a.items()) v.push_back((int)num(x));
+    return v;
+  };
+  for (const J& c : j.get("channels").items()) {
+    FragDiagramChannel ch;
+    ch.spin = (int)num(c.get("spin"));
+    ch.homo = (int)num(c.get("homo"));
+    ch.lumo = (int)num(c.get("lumo"));
+    ch.gap = num(c.get("gap_ev"));
+    ch.representative = c.get("representative").boolean();
+    ch.verdict = c.get("verdict").str();
+    for (const J& n : c.get("notes").items()) ch.notes.push_back(n.str());
+    for (const J& l : c.get("levels").items()) {
+      FragDiagramLevel lv;
+      lv.id = (int)num(l.get("id"));
+      lv.column = (int)num(l.get("column"));
+      lv.fragment = (int)num(l.get("fragment"));
+      lv.numbers = ints(l.get("numbers"));
+      lv.energy = num(l.get("energy_ev"));
+      for (const J& o : l.get("occupation").items()) lv.occupation.push_back(num(o));
+      lv.position = l.get("position").str();
+      lv.kind = l.get("kind").str();
+      lv.irrep = l.get("irrep").str();
+      lv.shell = l.get("shell").str();
+      lv.partner = l.get("partner").boolean();
+      lv.representative = l.get("representative").isNull() || l.get("representative").boolean();
+      lv.remainder = l.get("remainder").isNull() ? 0 : num(l.get("remainder"));
+      lv.covered = l.get("covered").isNull() ? 0 : num(l.get("covered"));
+      lv.overlapPopulation = l.get("overlap_population").isNull() ? 0 : num(l.get("overlap_population"));
+      lv.fragments = ints(l.get("fragments"));
+      for (const J& s : l.get("shares").items()) {
+        FragDiagramShare sh;
+        sh.level = (int)num(s.get("level"));
+        sh.fragment = (int)num(s.get("fragment"));
+        sh.numbers = ints(s.get("numbers"));
+        sh.energy = num(s.get("energy_ev"));
+        sh.share = num(s.get("share"));
+        sh.position = s.get("position").str();
+        sh.irrep = s.get("irrep").str();
+        sh.shell = s.get("shell").str();
+        lv.shares.push_back(sh);
+      }
+      ch.levels.push_back(lv);
+    }
+    for (const J& l : c.get("lines").items()) {
+      FragDiagramLine ln;
+      ln.fo = (int)num(l.get("fo"));
+      ln.mo = (int)num(l.get("mo"));
+      ln.fragment = (int)num(l.get("fragment"));
+      ln.share = num(l.get("share"));
+      ch.lines.push_back(ln);
+    }
+    r.channels.push_back(ch);
+  }
+  r.ok = !r.channels.empty() && !r.channels[0].levels.empty();
+  if (!r.ok) r.error = "ecce-fragorb drew no levels.";
   return r;
 }

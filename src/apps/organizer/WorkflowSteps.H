@@ -190,6 +190,10 @@ namespace WorkflowSteps {
   /// The recipe a workflow was made from ("" for any other workflow).
   std::string recipeId(Session *wf);
 
+  /// Attaches a finished field step's orbitals as the guess of `step`, once.
+  /// The deck only carries MORead if this ran before the editor saved it.
+  bool attachFieldOrbitals(Resource *step, Resource *source);
+
   /// Takes the geometry, charge and multiplicity of a recipe step's sources
   /// just before it is launched (they did not exist when it was made).
   /// Steps not made by a recipe are left alone.  Empty, or why not.

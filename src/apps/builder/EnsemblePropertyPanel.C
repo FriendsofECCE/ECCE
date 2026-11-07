@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <memory>
 
 #include <wx/button.h>
 #include <wx/choicdlg.h>
@@ -10,6 +11,27 @@
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
 #include <wx/toolbar.h>
+#include <wx/dcmemory.h>
+#include <wx/imaglist.h>
+#include <wx/stattext.h>
+
+#include "inv/SoOffscreenRenderer.H"
+#include "inv/nodes/SoOrthographicCamera.H"
+#include "inv/nodes/SoSeparator.H"
+#include "inv/nodes/SoMaterial.H"
+#include "inv/nodes/SoTranslation.H"
+#include "inv/nodes/SoSphere.H"
+#include "inv/nodes/SoCoordinate3.H"
+#include "inv/nodes/SoLineSet.H"
+#include "inv/nodes/SoDrawStyle.H"
+#include "inv/nodes/SoComplexity.H"
+#include "inv/nodes/SoLightModel.H"
+#include "tdat/AtomMap.H"
+#include "tdat/TBond.H"
+#include "tdat/TPerTab.H"
+#include "tdat/PropTSVecTable.H"
+#include "wxgui/PlotStyle.H"
+#include "wxviz/WxVizToolFW.H"
 
 #include "dsm/EDSIFactory.H"
 #include "dsm/ICalculation.H"
@@ -83,7 +105,12 @@ EnsemblePropertyPanel::EnsemblePropertyPanel(IPropCalculation *calculation,
 }
 
 
-EnsemblePropertyPanel::~EnsemblePropertyPanel() {}
+EnsemblePropertyPanel::~EnsemblePropertyPanel()
+{
+  p_thumbTimer.Stop();
+  p_selectTimer.Stop();
+  if (p_overlay) clearOverlay();
+}
 
 
 // Run type first; an ensemble from a run type not listed is Poses if it is
@@ -138,7 +165,7 @@ void EnsemblePropertyPanel::load()
   const int n = ScanPoint::ensembleSize(task);
   p_members.clear();
   p_deName = ScanPoint::ensembleIsPoses(task)
-                 ? "Interaction energy (kcal/mol)" : "\xCE\x94" "E (kcal/mol)";
+                 ? "Interaction energy (kcal mol⁻¹)" : "ΔE (kcal mol⁻¹)";
 
   vector<ScanPoint::Pattern> pats;
   string why;
@@ -167,20 +194,39 @@ void EnsemblePropertyPanel::initialize()
   if (!GetSizer()) SetSizer(new wxBoxSizer(wxVERTICAL));
   load();
 
+  GetSizer()->Add(new wxStaticText(this, wxID_ANY,
+      "Compare structures and choose members for further calculations."),
+      0, wxEXPAND | wxALL, 5);
+
   p_table = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 220),
                            wxLC_REPORT);
+  p_images = new wxImageList(72, 56, false);
+  p_table->AssignImageList(p_images, wxIMAGE_LIST_SMALL);
+  p_table->AppendColumn("Structure", wxLIST_FORMAT_LEFT, 86);
   p_table->AppendColumn("Rank", wxLIST_FORMAT_RIGHT, 60);
-  p_table->AppendColumn(wxString::FromUTF8(p_deName.c_str()), wxLIST_FORMAT_RIGHT, 150);
+  const wxString energyLabel = wxString::FromUTF8(p_deName.c_str());
+  p_table->AppendColumn(energyLabel, wxLIST_FORMAT_RIGHT,
+      std::max(150, p_table->GetTextExtent(energyLabel).x + 24));
   p_table->AppendColumn("Population (%)", wxLIST_FORMAT_RIGHT, 110);
   if (p_hasPatterns)
     p_table->AppendColumn("Coordination pattern", wxLIST_FORMAT_LEFT, 240);
   p_table->SetToolTip("One row per member, lowest energy first; click a column "
-      "heading to sort and a row to show that structure. Population is the "
+      "heading to sort and a row to show that structure; Ctrl/Shift selects "
+      "several members to superpose. Population is the "
       "Boltzmann weight at 298.15 K of the energy shown, within this method "
       "only: it is not a measured or cross-method population.");
   p_table->Bind(wxEVT_LIST_ITEM_SELECTED, &EnsemblePropertyPanel::OnRowSelected, this);
+  p_table->Bind(wxEVT_LIST_ITEM_DESELECTED, &EnsemblePropertyPanel::OnRowSelected, this);
   p_table->Bind(wxEVT_LIST_COL_CLICK, &EnsemblePropertyPanel::OnColumn, this);
   GetSizer()->Add(p_table, 1, wxEXPAND|wxALL, 2);
+
+  p_key = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 90), wxLC_REPORT);
+  p_key->AppendColumn("Member", wxLIST_FORMAT_RIGHT, 75);
+  p_key->AppendColumn("Colour", wxLIST_FORMAT_LEFT, 85);
+  p_key->AppendColumn(wxString::FromUTF8("RMSD (Å)"), wxLIST_FORMAT_RIGHT, 100);
+  p_key->AssignImageList(new wxImageList(12, 12, false), wxIMAGE_LIST_SMALL);
+  p_key->SetToolTip("Heavy atoms, matching atom indices; RMSD to the first selected member.");
+  GetSizer()->Add(p_key, 0, wxEXPAND | wxALL, 5);
 
   p_plotCtrl = new XYPlotCanvas(this);
   p_plotCtrl->setPointHandler([this](int, int index) { selectRank(index + 1); });
@@ -199,10 +245,26 @@ void EnsemblePropertyPanel::initialize()
   wxBoxSizer *buttons = new wxBoxSizer(wxHORIZONTAL);
   buttons->Add(p_export, 0, wxALL, 4);
   buttons->Add(p_newCalcs, 0, wxALL, 4);
+  wxButton *png = new wxButton(this, wxID_ANY, "Export .png...");
+  png->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    wxFileDialog dlg(this, "Export table with thumbnails", "", "ensemble.png",
+        "PNG files (*.png)|*.png", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    if (dlg.ShowModal() == wxID_OK && !exportPng(std::string(dlg.GetPath().utf8_str())))
+      wxMessageBox("The table image could not be written.", "Export ensemble table",
+                    wxOK | wxICON_ERROR, this);
+  });
+  buttons->Add(png, 0, wxALL, 4);
   GetSizer()->Add(buttons, 0);
+
+  p_selectTimer.SetOwner(this);
+  Bind(wxEVT_TIMER, [this](wxTimerEvent&) { updateSelection(); }, p_selectTimer.GetId());
+  p_thumbTimer.SetOwner(this);
+  Bind(wxEVT_TIMER, [this](wxTimerEvent&) { thumbnailBatch(); }, p_thumbTimer.GetId());
+  p_thumbTimer.Start(20);
 
   fillTable();
   fillPlot();
+  addViewerToggle();
   GetSizer()->Fit(this);
   GetSizer()->SetSizeHints(this);
 }
@@ -214,13 +276,16 @@ void EnsemblePropertyPanel::fillTable()
   p_table->DeleteAllItems();
   for (size_t i = 0; i < p_members.size(); i++) {
     const Member& m = p_members[i];
-    long row = p_table->InsertItem((long)i, wxString::Format("%d", m.rank));
-    p_table->SetItem(row, 1, wxString::Format("%.3f", m.de));
-    p_table->SetItem(row, 2, wxString::Format("%.1f", m.pop));
+    const auto image = p_imageIndex.find(m.rank);
+    long row = p_table->InsertItem((long)i, "", image == p_imageIndex.end() ? -1 : image->second);
+    p_table->SetItem(row, 1, wxString::Format("%d", m.rank));
+    p_table->SetItem(row, 2, wxString::Format("%.3f", m.de));
+    p_table->SetItem(row, 3, wxString::Format("%.1f", m.pop));
     if (p_hasPatterns)
-      p_table->SetItem(row, 3, wxString::FromUTF8(m.pattern.c_str()));
+      p_table->SetItem(row, 4, wxString::FromUTF8(m.pattern.c_str()));
     p_table->SetItemData(row, m.rank);
-    if (m.rank == p_selRank) p_table->SetItemState(row, wxLIST_STATE_SELECTED,
+    if (std::find(p_selection.begin(), p_selection.end(), m.rank) != p_selection.end())
+      p_table->SetItemState(row, wxLIST_STATE_SELECTED,
                                                    wxLIST_STATE_SELECTED);
   }
   p_inSelect = false;
@@ -254,26 +319,45 @@ void EnsemblePropertyPanel::fillPlot()
 void EnsemblePropertyPanel::refresh()
 {
   if (!p_table) return;
+  clearOverlay();
+  p_geometry.clear();
+  p_thumbnails.clear();
+  p_imageIndex.clear();
+  p_images->RemoveAll();
   load();
+  p_selection.erase(std::remove_if(p_selection.begin(), p_selection.end(),
+      [this](int k) { return k > (int)p_members.size(); }), p_selection.end());
   fillTable();
   fillPlot();
+  p_thumbTimer.Start(20);
+  if (hasFocus()) updateSelection();
 }
 
 
 void EnsemblePropertyPanel::OnRowSelected(wxListEvent& event)
 {
-  // With several rows selected, leave the selection alone (selectRank would
-  // collapse it to the clicked row).
-  if (p_inSelect || p_table->GetSelectedItemCount() > 1) return;
-  selectRank((int)event.GetData());
+  if (p_inSelect) return;
+  const int rank = (int)event.GetData();
+  p_selection.erase(std::remove(p_selection.begin(), p_selection.end(), rank), p_selection.end());
+  if (event.GetEventType() == wxEVT_LIST_ITEM_SELECTED) p_selection.push_back(rank);
+  // A Ctrl/Shift gesture sends several events; fit once after the gesture.
+  p_selectTimer.StartOnce(30);
 }
 
 
 void EnsemblePropertyPanel::OnColumn(wxListEvent& event)
 {
-  const int col = event.GetColumn();
+  const int col = event.GetColumn() - 1;
+  if (col < 0) return;
   p_sortUp = col == p_sortCol ? !p_sortUp : true;
   p_sortCol = col;
+  sortTable(col, p_sortUp);
+}
+
+void EnsemblePropertyPanel::sortTable(int col, bool ascending)
+{
+  p_sortCol = col;
+  p_sortUp = ascending;
   std::stable_sort(p_members.begin(), p_members.end(),
       [col, this](const Member& a, const Member& b) {
         int c = 0;
@@ -289,18 +373,25 @@ void EnsemblePropertyPanel::OnColumn(wxListEvent& event)
 
 bool EnsemblePropertyPanel::selectRank(int rank)
 {
-  PropertyTask *task = dynamic_cast<PropertyTask*>(getCalculation());
-  string why;
-  const int frame = ScanPoint::frame(task, "c" + std::to_string(rank), why);
-  if (frame < 0) return false;
-  p_selRank = rank;
+  return selectRanks(vector<int>(1, rank));
+}
+
+bool EnsemblePropertyPanel::selectRanks(const vector<int>& ranks)
+{
+  for (int rank : ranks)
+    if (rank < 1 || rank > (int)p_members.size()) return false;
+  p_selectTimer.Stop();
+  p_selection.clear();
+  for (int rank : ranks)
+    if (std::find(p_selection.begin(), p_selection.end(), rank) == p_selection.end())
+      p_selection.push_back(rank);
   p_inSelect = true;
   for (long i = 0; i < p_table->GetItemCount(); i++)
-    p_table->SetItemState(i, (int)p_table->GetItemData(i) == rank ?
+    p_table->SetItemState(i, std::find(p_selection.begin(), p_selection.end(),
+        (int)p_table->GetItemData(i)) != p_selection.end() ?
         wxLIST_STATE_SELECTED : 0, wxLIST_STATE_SELECTED);
   p_inSelect = false;
-  processStep(frame);
-  if (p_plotCtrl) p_plotCtrl->setSelectedPoint(0, rank - 1);
+  updateSelection();
   return true;
 }
 
@@ -315,11 +406,11 @@ void EnsemblePropertyPanel::processStep(int step)
 
 void EnsemblePropertyPanel::receiveFocus()
 {
-  if (p_selRank > 0) selectRank(p_selRank);
+  updateSelection();
 }
 
 
-void EnsemblePropertyPanel::loseFocus() {}
+void EnsemblePropertyPanel::loseFocus() { p_selectTimer.Stop(); clearOverlay(); }
 
 
 vector<string> EnsemblePropertyPanel::tableRows() const
@@ -339,12 +430,27 @@ bool EnsemblePropertyPanel::exportCsv(const std::string& path) const
 {
   FILE *out = fopen(path.c_str(), "wb");
   if (!out) return false;
-  fprintf(out, "rank,energy_kcal_per_mol,population_percent%s\n",
-          p_hasPatterns ? ",pattern" : "");
+  fprintf(out, "rank,energy_kcal_per_mol,population_percent%s%s\n",
+          p_hasPatterns ? ",pattern" : "", p_fits.empty() ? "" :
+          ",reference_rank,heavy_atom_rmsd_angstrom,colour");
   for (size_t i = 0; i < p_members.size(); i++) {
     const Member& m = p_members[i];
     fprintf(out, "%d,%.3f,%.2f", m.rank, m.de, m.pop);
     if (p_hasPatterns) fprintf(out, ",\"%s\"", m.pattern.c_str());
+    if (!p_fits.empty()) {
+      bool selected = false;
+      for (const string& row : p_fits) {
+        int rank;
+        double rmsd;
+        char colour[16];
+        if (sscanf(row.c_str(), "%d | %lf | %15s", &rank, &rmsd, colour) == 3 && rank == m.rank) {
+          fprintf(out, ",%d,%.8f,%s", p_selection.front(), rmsd, colour);
+          selected = true;
+          break;
+        }
+      }
+      if (!selected) fprintf(out, ",,,");
+    }
     fprintf(out, "\n");
   }
   return fclose(out) == 0;
@@ -492,4 +598,308 @@ void EnsemblePropertyPanel::OnNewCalcs(wxCommandEvent&)
   else text += "\nThey are in the Organizer, ready to edit and launch.";
   wxMessageBox(text, "New calculation", wxOK |
                (why.empty() ? wxICON_INFORMATION : wxICON_WARNING), this);
+}
+
+namespace {
+wxColour memberColour(size_t i)
+{
+  const PlotPalette p = PlotPalette::system();
+  // Keep the shared series hues; additional cycles differ in lightness.
+  return i < 6 ? p.series(i) : PlotPalette::mix(p.series(i), p.text,
+                                               std::min(0.7, 0.18 * (i / 6)));
+}
+const int thumbWidth = 72, thumbHeight = 56;
+}
+
+const EnsemblePropertyPanel::Geometry& EnsemblePropertyPanel::geometry(int rank)
+{
+  auto found = p_geometry.find(rank);
+  if (found != p_geometry.end()) return found->second;
+  Geometry g;
+  string why;
+  PropertyTask *task = dynamic_cast<PropertyTask*>(getCalculation());
+  const string spec = "c" + std::to_string(rank);
+  const int frame = ScanPoint::frame(task, spec, why);
+  PropTSVecTable *trace = dynamic_cast<PropTSVecTable*>(getCalculation()->getProperty("GEOMTRACE"));
+  std::unique_ptr<Fragment> f;
+  // Row labels carry the ensemble's own elements (including added protons).
+  // Use cached property data so generating 200 pictures does not fetch the
+  // calculation's input fragment from the data server 200 times.
+  if (trace && frame >= 0 && trace->rowLabels() &&
+      trace->rowLabels()->size() * 3 == trace->values(frame).size()) {
+    TPerTab pt;
+    f.reset(new Fragment);
+    const vector<double>& xyz = trace->values(frame);
+    const vector<string>& labels = *trace->rowLabels();
+    for (size_t i = 0; i < labels.size(); i++) {
+      const size_t dash = labels[i].find('-');
+      const string el = dash == string::npos ? labels[i] : labels[i].substr(dash+1);
+      if (!pt.isValid(el)) { f.reset(); break; }
+      f->addAtom(el, &xyz[3*i]);
+    }
+  }
+  if (!f) f.reset(ScanPoint::fragment(task, spec, why));
+  if (f) {
+    f->deleteAllBonds();
+    f->addCovalentBonds();
+    for (int i = 0; i < f->numAtoms(); i++) {
+      const TAtm *a = f->atomRef(i);
+      g.elements.push_back(a->atomicNumber());
+      for (int k = 0; k < 3; k++) g.xyz.push_back(a->coordinates()[k]);
+    }
+    std::unique_ptr<vector<TBond*> > bonds(f->bonds());
+    for (const TBond *b : *bonds)
+      g.bonds.push_back(std::make_pair(b->atom1()->index(), b->atom2()->index()));
+  }
+  return p_geometry.emplace(rank, std::move(g)).first->second;
+}
+
+SoSeparator *EnsemblePropertyPanel::molecule(const Geometry& g,
+    const vector<double>& xyz, const wxColour *colour)
+{
+  SoSeparator *root = new SoSeparator;
+  SoComplexity *quality = new SoComplexity;
+  quality->value = 0.2f;
+  root->addChild(quality);
+  SoLightModel *light = new SoLightModel;
+  light->model = SoLightModel::BASE_COLOR;
+  root->addChild(light);
+  TPerTab pt;
+  for (size_t i = 0; i < g.elements.size(); i++) {
+    if (!g.elements[i]) continue;
+    SoSeparator *atom = new SoSeparator;
+    SoMaterial *mat = new SoMaterial;
+    const wxColour c = colour ? *colour : wxColour(pt.colorName(g.elements[i]));
+    mat->diffuseColor.setValue(c.Red()/255.f, c.Green()/255.f, c.Blue()/255.f);
+    atom->addChild(mat);
+    SoTranslation *at = new SoTranslation;
+    at->translation.setValue(xyz[3*i], xyz[3*i+1], xyz[3*i+2]);
+    atom->addChild(at);
+    SoSphere *sphere = new SoSphere;
+    sphere->radius = g.elements[i] == 1 ? 0.12f : 0.23f;
+    atom->addChild(sphere);
+    root->addChild(atom);
+  }
+  SoMaterial *mat = new SoMaterial;
+  const wxColour c = colour ? *colour : wxColour(110,110,110);
+  mat->diffuseColor.setValue(c.Red()/255.f, c.Green()/255.f, c.Blue()/255.f);
+  root->addChild(mat);
+  SoDrawStyle *style = new SoDrawStyle;
+  style->lineWidth = 2;
+  root->addChild(style);
+  SoCoordinate3 *points = new SoCoordinate3;
+  SoLineSet *lines = new SoLineSet;
+  int n = 0;
+  for (const auto& b : g.bonds) {
+    if (!g.elements[b.first] || !g.elements[b.second]) continue;
+    for (int i : {b.first, b.second})
+      points->point.set1Value(n++, xyz[3*i], xyz[3*i+1], xyz[3*i+2]);
+    lines->numVertices.set1Value(n/2 - 1, 2);
+  }
+  root->addChild(points);
+  if (n) root->addChild(lines);
+  else { lines->ref(); lines->unref(); }
+  return root;
+}
+
+void EnsemblePropertyPanel::clearOverlay()
+{
+  if (!p_overlay) return;
+  SGContainer& sg = getFW().getSceneGraph();
+  SoSwitch *sw = sg.getPropertySwitch("EnsembleSuperposition");
+  sw->whichChild = SO_SWITCH_NONE;
+  sw->removeAllChildren();
+  sg.getcsSwitch()->whichChild = p_savedCS;
+  p_overlay = false;
+  getFW().getViewer().refreshRenderArea();
+}
+
+void EnsemblePropertyPanel::updateSelection()
+{
+  // Stepping the base trace yields to wx; a second selection must wait
+  // until the first has finished changing the scene graph.
+  if (p_updatingSelection) { p_selectTimer.StartOnce(30); return; }
+  struct Guard {
+    bool& active;
+    explicit Guard(bool& value) : active(value) { active = true; }
+    ~Guard() { active = false; }
+  } guard(p_updatingSelection);
+  const vector<int> requested = p_selection;
+  const bool wasFocused = hasFocus();
+  clearOverlay();
+  p_fits.clear();
+  if (p_key) p_key->DeleteAllItems();
+  if (p_key) p_key->GetImageList(wxIMAGE_LIST_SMALL)->RemoveAll();
+  if (p_selection.empty()) return;
+  p_selRank = p_selection.front();
+  string why;
+  int frame = ScanPoint::frame(dynamic_cast<PropertyTask*>(getCalculation()),
+                             "c" + std::to_string(p_selRank), why);
+  if (frame < 0) return;
+  processStep(frame);
+  if (wasFocused && !hasFocus()) return;
+  if (requested != p_selection) { p_selectTimer.StartOnce(30); return; }
+  if (p_selection.size() < 2) return;
+
+  const Geometry& ref = geometry(p_selRank);
+  if (ref.xyz.empty()) return;
+  vector<double> heavyRef;
+  for (size_t i = 0; i < ref.elements.size(); i++)
+    if (ref.elements[i] > 1)
+      for (int k = 0; k < 3; k++) heavyRef.push_back(ref.xyz[3*i+k]);
+  // All-hydrogen ensembles have no heavy atoms: fit all real atoms instead.
+  const bool all = heavyRef.empty();
+  if (all) heavyRef = ref.xyz;
+  vector<int> identity(heavyRef.size()/3);
+  for (size_t i = 0; i < identity.size(); i++) identity[i] = i;
+
+  SGContainer& sg = getFW().getSceneGraph();
+  SoSwitch *sw = sg.getPropertySwitch("EnsembleSuperposition");
+  for (size_t m = 0; m < p_selection.size(); m++) {
+    const int rank = p_selection[m];
+    const Geometry& g = geometry(rank);
+    if (g.elements != ref.elements) {
+      clearOverlay();
+      sw->removeAllChildren();
+      p_fits.clear();
+      p_key->DeleteAllItems();
+      getFW().showMessage("Cannot align members with different atoms at matching indices.", true);
+      return;
+    }
+    vector<double> heavy;
+    for (size_t i = 0; i < g.elements.size(); i++)
+      if (all || g.elements[i] > 1)
+        for (int k = 0; k < 3; k++) heavy.push_back(g.xyz[3*i+k]);
+    AtomAlignment fit;
+    if (m != 0) fit = AtomMap::align(heavyRef, heavy, identity);
+    vector<double> xyz = g.xyz;
+    AtomMap::apply(fit, xyz);
+    const wxColour c = memberColour(m);
+    sw->addChild(molecule(g, xyz, &c));
+    const wxString hex = c.GetAsString(wxC2S_HTML_SYNTAX);
+    p_fits.push_back(std::string(wxString::Format("%d | %.8f | %s",
+        rank, m == 0 ? 0.0 : fit.rmsdAfter, hex).utf8_str()));
+    wxBitmap swatch(12, 12);
+    wxMemoryDC dc(swatch);
+    dc.SetBackground(wxBrush(c));
+    dc.Clear();
+    dc.SelectObject(wxNullBitmap);
+    const int image = p_key->GetImageList(wxIMAGE_LIST_SMALL)->Add(swatch);
+    long row = p_key->InsertItem(m, wxString::Format("%d", rank), image);
+    p_key->SetItem(row, 1, hex);
+    p_key->SetItem(row, 2, wxString::Format("%.4f", m == 0 ? 0.0 : fit.rmsdAfter));
+  }
+  p_savedCS = sg.getcsSwitch()->whichChild.getValue();
+  sg.getcsSwitch()->whichChild = SO_SWITCH_NONE;
+  sw->whichChild = SO_SWITCH_ALL;
+  p_overlay = true;
+  getFW().getViewer().refreshRenderArea();
+}
+
+vector<string> EnsemblePropertyPanel::superpositionRows() const { return p_fits; }
+
+bool EnsemblePropertyPanel::makeThumbnail(int rank)
+{
+  if (p_thumbnails.count(rank)) return true;
+  const Geometry& g = geometry(rank);
+  if (g.xyz.empty()) return false;
+  SoSeparator *root = new SoSeparator;
+  root->ref();
+  SoOrthographicCamera *cam = new SoOrthographicCamera;
+  if (!p_haveOrientation) {
+    if (getFW().getViewer().getCamera())
+      p_thumbOrientation = getFW().getViewer().getCamera()->orientation.getValue();
+    p_haveOrientation = true;
+  }
+  cam->orientation = p_thumbOrientation;
+  root->addChild(cam);
+  root->addChild(molecule(g, g.xyz));
+  SbViewportRegion vp;
+  vp.setWindowSize(SbVec2s(thumbWidth, thumbHeight));
+  cam->viewAll(root, vp, 1.1f);
+  // Reuse the context, as the existing calculation thumbnail renderer does.
+  static SoOffscreenRenderer *renderer = new SoOffscreenRenderer(vp);
+  renderer->setComponents(SoOffscreenRenderer::RGB);
+  renderer->setBackgroundColor(getFW().getViewer().getBackgroundColor());
+  const bool ok = renderer->render(root) && renderer->getBuffer();
+  if (ok) {
+    wxImage image(thumbWidth, thumbHeight);
+    const unsigned char *pixels = renderer->getBuffer();
+    for (int y = 0; y < thumbHeight; y++)
+      std::copy(pixels + 3*thumbWidth*(thumbHeight-1-y),
+                pixels + 3*thumbWidth*(thumbHeight-y), image.GetData() + 3*thumbWidth*y);
+    wxBitmap bitmap(image);
+    p_thumbnails[rank] = bitmap;
+    const int idx = p_images->Add(bitmap);
+    p_imageIndex[rank] = idx;
+    for (long row = 0; row < p_table->GetItemCount(); row++)
+      if ((int)p_table->GetItemData(row) == rank) p_table->SetItemImage(row, idx);
+  }
+  root->unref();
+  return ok;
+}
+
+void EnsemblePropertyPanel::thumbnailBatch()
+{
+  int made = 0;
+  for (const Member& m : p_members) {
+    if (p_thumbnails.count(m.rank)) continue;
+    if (!makeThumbnail(m.rank)) { p_thumbTimer.Stop(); return; }
+    if (++made == 2) return;
+  }
+  p_thumbTimer.Stop();
+}
+
+vector<int> EnsemblePropertyPanel::thumbnailRanks() const
+{
+  vector<int> out;
+  for (const auto& t : p_thumbnails) out.push_back(t.first);
+  return out;
+}
+
+bool EnsemblePropertyPanel::exportPng(const string& path)
+{
+  for (const Member& m : p_members) if (!makeThumbnail(m.rank)) return false;
+  const int rowHeight = 62;
+  wxMemoryDC dc;
+  dc.SetFont(p_table->GetFont());
+  vector<int> widths = {86, 60, 160, 120};
+  widths[2] = std::max(widths[2], dc.GetTextExtent(wxString::FromUTF8(p_deName.c_str())).x + 16);
+  int patternWidth = 200;
+  for (const Member& m : p_members)
+    patternWidth = std::max(patternWidth, dc.GetTextExtent(wxString::FromUTF8(m.pattern.c_str())).x + 16);
+  if (p_hasPatterns) widths.push_back(patternWidth);
+  int width = 0;
+  for (int w : widths) width += w;
+  const int header = 32;
+  wxBitmap bitmap(width, header + rowHeight * p_members.size());
+  if (!bitmap.IsOk()) return false;
+  dc.SelectObject(bitmap);
+  dc.SetBackground(*wxWHITE_BRUSH);
+  dc.Clear();
+  dc.SetTextForeground(*wxBLACK);
+  dc.SetPen(wxPen(wxColour(210,210,210)));
+  vector<wxString> labels = {"Structure", "Rank", wxString::FromUTF8(p_deName.c_str()), "Population (%)"};
+  if (p_hasPatterns) labels.push_back("Coordination pattern");
+  int x = 0;
+  for (size_t i = 0; i < widths.size(); i++) {
+    dc.DrawText(labels[i], x + 6, 7);
+    x += widths[i];
+  }
+  int y = header;
+  for (const Member& m : p_members) {
+    dc.DrawLine(0, y, width, y);
+    dc.DrawBitmap(p_thumbnails.at(m.rank), 5, y + 3);
+    vector<wxString> text = {"", wxString::Format("%d", m.rank),
+        wxString::Format("%.3f", m.de), wxString::Format("%.1f", m.pop),
+        wxString::FromUTF8(m.pattern.c_str())};
+    x = widths[0];
+    for (size_t i = 1; i < widths.size(); i++) {
+      dc.DrawText(text[i], x + 6, y + (rowHeight - dc.GetCharHeight())/2);
+      x += widths[i];
+    }
+    y += rowHeight;
+  }
+  dc.SelectObject(wxNullBitmap);
+  return bitmap.SaveFile(wxString::FromUTF8(path.c_str()), wxBITMAP_TYPE_PNG);
 }

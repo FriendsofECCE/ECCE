@@ -91,6 +91,7 @@ static std::string s_registerMessage;
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
 #include "dsm/Series.H"
+#include "dsm/DeckWriter.H"
 #include "dsm/QstStructures.H"
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
@@ -851,11 +852,12 @@ void CalcMgr::runTestCommand(const string& line)
             if (!solvent.empty()) levels["solvent"] = std::make_pair("", solvent);
             RecipeVariant made = *v;
             if (hasFragmentSteps(*v)) {
-              vector<RecipeFragment> parts;
+              vector<RecipeFragment> parts, proposed;
+              vector<int> z;
+              if (source) proposed = WorkflowSteps::proposedFragments(source, &z);
               if (!parseFragments(fragSpec, parts))
-                parts = source ? WorkflowSteps::proposedFragments(source)
-                               : vector<RecipeFragment>{{"1", 0, 1}, {"rest", 0, 1}};
-              made = expandFragments(*v, parts);
+                parts = source ? proposed : vector<RecipeFragment>{{"1", 0, 1}, {"rest", 0, 1}};
+              made = expandFragments(*v, parts, z);
             }
             string why = wp->recipeCreate(*r, made, levels, source, autorun);
             outcome = why.empty() ? "ok " + WorkflowSteps::info(wf) : "error: " + why;
@@ -2197,7 +2199,8 @@ void CalcMgr::runTestCommand(const string& line)
       }
     } else if (command == "reactionoverview") {
       // "reactionoverview <file> <treatment> [png [csv [T]]]": the dialog for the
-      // reactions in <file>; prints the numbers per reaction, the energy
+      // reactions in <file>; a first line "# base <url>" gives the folder that
+      // bare calculation names in the file are taken from; prints the numbers per reaction, the energy
       // profiles and their label layout, the text of reaction 1, and writes
       // the PNG and CSV exports.
       std::istringstream args(calcName);
@@ -2206,7 +2209,13 @@ void CalcMgr::runTestCommand(const string& line)
       std::ifstream in(file.c_str());
       std::stringstream text;
       text << in.rdbuf();
-      ReactionOverviewDialog *d = new ReactionOverviewDialog(this, text.str());
+      string body = text.str(), base;
+      if (body.compare(0, 7, "# base ") == 0) {
+        const size_t nl = body.find('\n');
+        base = body.substr(7, nl == string::npos ? string::npos : nl - 7);
+        while (!base.empty() && isspace((unsigned char)base.back())) base.pop_back();
+      }
+      ReactionOverviewDialog *d = new ReactionOverviewDialog(this, body, base);
       d->Show();
       d->setTreatment(treatment);
       if (!kelvin.empty()) d->setTemperature(kelvin);
@@ -2217,6 +2226,54 @@ void CalcMgr::runTestCommand(const string& line)
       for (string l; std::getline(r, l); ) outcome += " | " + l;
       if (!png.empty() && png != "-") outcome += d->savePng(png) ? " | png saved" : " | png failed";
       if (!csvOut.empty() && csvOut != "-") outcome += d->saveCsv(csvOut) ? " | csv saved" : " | csv failed";
+      d->Destroy();
+    } else if (command == "fragdiagram") {
+      // "fragdiagram PNG|- COMPLEX FRAGMENT... [names=A;B] [window=OCC,VIRT]
+      // [click=ID] [shot=PNG] [dump=FILE] [size=WxH]": the Fragment orbitals Details
+      // window on these calculation folders, its Diagram page's layout
+      // (FragDiagramLayout::dump), the text a click on level ID shows, the
+      // exported PNG and, with shot=, a picture of the window.  The report
+      // goes to FILE (it is too long for one log line), else "|" for newlines.
+      std::istringstream args(calcName);
+      string png, complex, a, shot, dump;
+      vector<string> frags, names;
+      int occ = 0, virt = -1, click = -1, sizeW = 1500, sizeH = 900;
+      args >> png >> complex;
+      while (args >> a) {
+        if (a.compare(0, 6, "names=") == 0) {
+          std::istringstream n(a.substr(6));
+          for (string x; std::getline(n, x, ';'); ) names.push_back(x);
+        } else if (a.compare(0, 7, "window=") == 0) {
+          sscanf(a.c_str() + 7, "%d,%d", &occ, &virt);
+        } else if (a.compare(0, 6, "click=") == 0) {
+          click = atoi(a.c_str() + 6);
+        } else if (a.compare(0, 5, "shot=") == 0) {
+          shot = a.substr(5);
+        } else if (a.compare(0, 5, "dump=") == 0) {
+          dump = a.substr(5);
+        } else if (a.compare(0, 5, "size=") == 0) {
+          sscanf(a.c_str() + 5, "%dx%d", &sizeW, &sizeH);
+        } else frags.push_back(a);
+      }
+      while (names.size() < frags.size()) names.push_back("fragment-" + std::to_string(names.size() + 1));
+      string heading;
+      for (size_t k = 0; k < names.size(); k++) heading += (k ? " | " : "") + names[k];
+      FragOrbDetailsDialog *d = new FragOrbDetailsDialog(this, complex, frags, names, heading);
+      d->SetSize(sizeW, sizeH);
+      d->Show();
+      for (int i = 0; i < 10; i++) wxYield();
+      const string r = d->diagramReport(occ, virt, click, png == "-" ? "" : png) + "fit " + d->fitReport() + "\n";
+      outcome = "";
+      if (!dump.empty()) {
+        std::ofstream f(dump.c_str());
+        f << r;
+        outcome = r.compare(0, 2, "ok") == 0 ? "ok" : r.substr(0, r.find('\n'));
+        outcome += f ? " | dump saved" : " | dump failed";
+      } else {
+        std::istringstream in(r);
+        for (string l; std::getline(in, l); ) outcome += (outcome.empty() ? "" : " | ") + l;
+      }
+      if (!shot.empty()) outcome += ecceWindowShot(d, shot) ? " | shot saved" : " | shot failed";
       d->Destroy();
     } else if (command == "reactionprofile") {
       // "reactionprofile dE_ts dG_ts dE_p dG_p [png]": an energy profile from
@@ -4333,6 +4390,29 @@ bool CalcMgr::rerunForCommand(const vector<EcceURL>& urls, bool launch,
                                         (old.empty() ? string() : "\n" + old));
       updateUrl(copyUrl);
     }
+    if (lastGeom && copyTask) {
+      // The copy holds the new structure but the input deck still has the
+      // old one; write it again so the copy can be launched as it stands.
+      ICalculation *icalc = dynamic_cast<ICalculation*>(copyTask);
+      DeckWriter::Result r;
+      if (icalc) r = DeckWriter::generate(icalc);
+      else r.message = "not a calculation";
+      if (r.ok) {
+        copyTask->setState(ResourceDescriptor::STATE_READY);
+      } else {
+        // Leave no deck with the old geometry behind.
+        if (Resource *inputs = EDSIFactory::getResource(copyUrl.getChild("Inputs"))) {
+          if (vector<Resource*> *files = inputs->getChildren(true))
+            for (Resource *f : *files) f->remove();
+        }
+        string msg = r.message;
+        for (char& c : msg) if (c == '\n' || c == '\t') c = ' ';
+        lines.push_back(name + "\tno\t" + result + " made but its input could not be written; "
+                        "open it in the Calculation Editor: " + msg);
+        continue;
+      }
+      updateUrl(copyUrl);
+    }
     if (launch) {
       vector<string> launched;
       if (!launchForCommand(vector<EcceURL>(1, copyUrl), target, launched)) {
@@ -4370,7 +4450,9 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
   for (size_t i = 0; i < urls.size(); i++) {
     WxResourceTreeItemData *item = findNodeFresh(urls[i], false);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
-    if (task) tasks.push_back(task);
+    if (task && task->getState() == ResourceDescriptor::STATE_CREATED)
+      lines.push_back(task->getName() + "\tno\tnot ready: state Created, open it in the Calculation Editor");
+    else if (task) tasks.push_back(task);
     else lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
   }
   if (tasks.empty()) return true;
@@ -5540,7 +5622,10 @@ const vector<ExampleSet>& exampleSets()
   for (const auto &e : fs::directory_iterator(examplesDir(), ec))
     if (e.is_directory() && fs::exists(e.path() / "set.txt"))
       ids.push_back(e.path().filename().string());
-  std::sort(ids.begin(), ids.end());
+  // The hand-check data sets (Test) are listed after the teaching sets.
+  std::sort(ids.begin(), ids.end(), [](const string &a, const string &b) {
+    return (a == "test") != (b == "test") ? b == "test" : a < b;
+  });
   for (const string &id : ids) {
     ExampleSet set;
     set.id = id;
@@ -8966,6 +9051,14 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
     Resource *step = EDSIFactory::getResource(EcceURL(url));
     if (step && !step->getProp(VDoc::getEcceNamespace() + ":recipe.step").empty()
         && !WorkflowSteps::isLaunched(step)) {
+      // The field step's orbitals must be attached before the editor saves
+      // the deck, or the deck has no MORead.
+      if (Session *fw = dynamic_cast<Session*>(
+              EDSIFactory::getResource(step->getURL().getParent())))
+        for (Session::Link *l : fw->getLinks())
+          if (l->linkType == Session::INPUT_PROVIDER && l->target == step &&
+              l->linkName == "orbitals")
+            WorkflowSteps::attachFieldOrbitals(step, l->source);
       ChemistryTask *task = dynamic_cast<ChemistryTask*>(step);
       Fragment own;
       // An inherited thumbnail is not the editor's chemical system. Store

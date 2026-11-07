@@ -12,6 +12,8 @@
 #include "CompareEnergies.H"
 #include "KeyData.H"
 #include "Recipe.H"
+#include "tdat/Fragment.H"
+#include <sstream>
 
 static int failures = 0;
 static void check(bool ok, const char *what)
@@ -253,6 +255,20 @@ int main(int argc, char **argv)
           ex.steps[2].fragment == 2 && ex.steps[2].fragments == "1:0:1/2-13:-1:2" &&
           ex.links.size() == 2 && ex.links[1].from == "cx" && ex.links[1].to == "frag-2",
           "one step and one link per fragment");
+    // the field step: only for a one-atom fragment that is a metal
+    Recipe fld;
+    check(parseRecipe("recipe: f\nvariant: v | V | ORCA\n"
+                      "step: v | cx | ORCA | | Energy | complex | structure\n"
+                      "step: v | frag | ORCA | | Energy | fragment | fragment, field\n"
+                      "link: v | cx | frag | geometry\n", fld, err), "the field flag is read");
+    std::vector<int> zFe(13, 6), zC(13, 6), zNone;
+    zFe[0] = 26;
+    check(expandFragments(fld.variants[0], parts, zFe).steps.size() == 4 &&
+          expandFragments(fld.variants[0], parts, zFe).steps[1].id == "frag-1-field",
+          "a metal atom gets a field step");
+    check(expandFragments(fld.variants[0], parts, zC).steps.size() == 3 &&
+          expandFragments(fld.variants[0], parts, zNone).steps.size() == 3,
+          "a non-metal atom, or unknown elements, none");
     std::vector<std::vector<int> > atoms;
     check(resolveFragments({{"1", 0, 1}, {"rest", 0, 1}}, 13, atoms, err) &&
           atoms[1].size() == 12 && atoms[1][0] == 1, "rest takes the other atoms");
@@ -281,6 +297,50 @@ int main(int argc, char **argv)
                               2.9, 0, 0,  3.2, 0.9, 0,  3.2, -0.9, 0};
     check(fragmentsText(proposeFragments(zw, xw, {0.66, 0.31, 0.31, 0.66, 0.31, 0.31}, 0)) ==
           "1-3:0:1/4-6:0:1", "no metal: one fragment per molecule");
+  }
+
+  // Fragment state (#201): in the complex (lowest multiplicity) or free (ground state).
+  {
+    std::vector<RecipeFragment> parts;
+    check(parseFragments("1:0:7:free/2-13:0:1", parts) && parts.size() == 2 && parts[0].free &&
+          !parts[1].free && fragmentsText(parts) == "1:0:7:free/2-13:0:1", "the free state reads and writes");
+    check(!parseFragments("1:0:7:loose/2-13:0:1", parts), "an unknown state is refused");
+    struct { int z, q; bool free; int mult; const char *what; } cases[] = {
+      {24, 0, false, 1, "Cr(0) in the complex: singlet"}, {24, 0, true, 7, "free Cr: septet (7S)"},
+      {26, 2, true, 5, "free Fe2+: quintet (d6)"}, {27, 3, true, 5, "free Co3+: quintet (d6)"},
+      {27, 3, false, 1, "Co3+ in the complex: singlet"}, {29, 1, true, 1, "free Cu+: singlet"},
+      {26, 3, false, 2, "Fe3+ in the complex: doublet"}, {26, 3, true, 6, "free Fe3+: sextet (d5)"},
+      {42, 0, true, 7, "free Mo: septet"}, {77, 1, true, 5, "free Ir+: quintet"},
+      {8, 0, true, 3, "free O: triplet"}, {17, -1, true, 1, "free Cl-: singlet"}};
+    for (const auto& c : cases)
+      check(fragmentMultiplicity(std::vector<int>(1, c.z), c.q, c.free) == c.mult, c.what);
+    check(fragmentMultiplicity({6, 8}, 0, true) == 1, "a free molecule keeps the lowest multiplicity");
+  }
+
+  // Fragment names (#201): n copies of one molecule as (formula)n.
+  {
+    auto named = [](const std::string& xyz) {
+      std::istringstream in(xyz);
+      Fragment f;
+      f.restoreXYZ(in);
+      return groupedFormula(f);
+    };
+    std::string co6 = "12\nCO6\n";
+    const char *ax[6] = {"1 0 0", "-1 0 0", "0 1 0", "0 -1 0", "0 0 1", "0 0 -1"};
+    for (const char *a : ax) {
+      double x, y, zz;
+      sscanf(a, "%lf %lf %lf", &x, &y, &zz);
+      char l[160];
+      snprintf(l, sizeof l, "C %.3f %.3f %.3f\nO %.3f %.3f %.3f\n", 1.92 * x, 1.92 * y, 1.92 * zz,
+               3.07 * x, 3.07 * y, 3.07 * zz);
+      co6 += l;
+    }
+    std::string got = named(co6);
+    check(got == "(CO)6", ("six CO molecules are (CO)6: " + got).c_str());
+    got = named("5\nmix\nC 0 0 0\nO 1.13 0 0\nN 5 0 0\nH 5.4 0.9 0\nH 5.4 -0.45 0.8\n");
+    check(got.find('(') == std::string::npos, ("different molecules keep the plain formula: " + got).c_str());
+    got = named("3\nCl3\nCl 0 0 0\nCl 5 0 0\nCl 0 5 0\n");
+    check(got == "Cl3", ("separate atoms keep the plain formula: " + got).c_str());
   }
 
   printf(failures ? "FAILED\n" : "PASSED\n");

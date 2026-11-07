@@ -85,6 +85,20 @@ GromacsRunPanel::GromacsRunPanel(MDEdBase *owner, wxWindow *parent)
   p_leaveTraj->SetToolTip(_("Keep traj.xtc, ener.edr and topol.tpr in the run "
                             "directory instead of fetching them back."));
   defs->Add(p_leaveTraj, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  wxBoxSizer *vel = new wxBoxSizer(wxHORIZONTAL);
+  p_saveVel = new ewxCheckBox(db, ID_RUN_FIELD,
+      _("Save velocities every"));
+  p_saveVel->SetToolTip(_("Writes nstvout: the velocities go to traj.trr, which "
+                          "the Speed Distribution panel needs. Off by default: "
+                          "a .trr is large."));
+  vel->Add(p_saveVel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+  p_nstvout = new ewxTextCtrl(db, ID_RUN_FIELD, "500", wxDefaultPosition,
+                              wxSize(80, -1));
+  p_nstvout->SetToolTip(_("Steps between saved velocity frames (nstvout)."));
+  vel->Add(p_nstvout, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+  vel->Add(new ewxStaticText(db, wxID_ANY, _("steps (for speed distributions)")),
+           0, wxALIGN_CENTER_VERTICAL);
+  defs->Add(vel, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
   p_defsBox = db;
   p_chainRow = new wxWrapSizer(wxHORIZONTAL);
   defs->Add(p_chainRow, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 6);
@@ -268,6 +282,9 @@ void GromacsRunPanel::refresh()
   p_posres->SetValue(g.posres);
   p_posresName->ChangeValue(W(g.posresName));
   p_leaveTraj->SetValue(g.leaveTraj);
+  p_saveVel->SetValue(g.nstvout > 0);
+  if (g.nstvout > 0) p_nstvout->ChangeValue(wxString::Format("%d", g.nstvout));
+  p_nstvout->Enable(g.nstvout > 0);
   p_groups->ChangeValue(W(g.groups));
   p_comGroups->SetSelection(g.comGroups ? 1 : 0);
   p_tcGroups->SetSelection(g.tcGroups ? 1 : 0);
@@ -307,6 +324,11 @@ void GromacsRunPanel::store()
   g.defines = S(p_defines->GetValue());
   g.posres = p_posres->GetValue();
   g.leaveTraj = p_leaveTraj->GetValue();
+  {
+    const int n = atoi(S(p_nstvout->GetValue()).c_str());
+    g.nstvout = p_saveVel->GetValue() && n > 0 ? n : 0;
+    p_nstvout->Enable(p_saveVel->GetValue());
+  }
   string name = S(p_posresName->GetValue());
   g.posresName = name.empty() ? GromacsRun().posresName : name;
   g.groups = S(p_groups->GetValue());
@@ -513,6 +535,8 @@ string GromacsRunPanel::summary()
      << " posres=" << (p_posres->GetValue() ? 1 : 0)
      << " posresname=" << S(p_posresName->GetValue())
      << " leavetraj=" << (p_leaveTraj->GetValue() ? 1 : 0)
+     << " nstvout=" << (p_saveVel->GetValue() ? S(p_nstvout->GetValue()) : string("0"))
+     << " model-nstvout=" << g.nstvout
      << " chains=" << chainSummary()
      << " groups=[" << oneLine(S(p_groups->GetValue())) << "]"
      << " comgroups=" << p_comGroups->GetSelection()
@@ -540,6 +564,12 @@ string GromacsRunPanel::setField(const string& name, const string& value)
   else if (name == "posres") p_posres->SetValue(value == "1");
   else if (name == "posresname") p_posresName->SetValue(v);
   else if (name == "leavetraj") p_leaveTraj->SetValue(value == "1");
+  else if (name == "nstvout") {
+    //  nstvout N: on with N steps; 0 switches it off.
+    const int n = atoi(value.c_str());
+    p_saveVel->SetValue(n > 0);
+    if (n > 0) p_nstvout->SetValue(v);
+  }
   else if (name.compare(0, 6, "chain:") == 0) {
     refreshChains();
     for (size_t i = 0; i < p_chainIds.size(); i++) {

@@ -209,7 +209,7 @@ my %gConfig = (
     'ecceVersion'		=> 'VersionUnspecified',
     'endOfParams'		=> 'EndOfText',
     'endOfPDF'			=> 'EndOfText',
-    'fileSizeLimit'		=> undef,	# MB; larger traj.xtc/ener.edr/topol.tpr are left
+    'fileSizeLimit'		=> undef,	# MB; larger traj.xtc/.trr/ener.edr/topol.tpr are left
     'filesToTransfer'		=> undef,
     'freqFileReopen'		=> 18,
     'host'			=> '-',
@@ -2654,7 +2654,7 @@ sub JobFilesGet
         {
             (my $base = $f) =~ s/^.*\///;
             next unless ($base eq 'traj.xtc' || $base eq 'ener.edr'
-                         || $base eq 'topol.tpr');
+                         || $base eq 'topol.tpr' || $base eq 'traj.trr');
             my $path = ($gConfig{'monitoringMode'} eq 'live')
                        ? $f : $gConfig{'importDir'} . $f;
             next unless (-e $path);

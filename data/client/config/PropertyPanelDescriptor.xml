@@ -422,6 +422,17 @@
     <property name="MDMSD"/>
   </PropertyPanel>
 
+  <!-- gmx tools on a GROMACS run's stored files (#877); isRelevant keeps it
+       to GROMACS tasks, GEOMTRACE only makes it listed. -->
+  <PropertyPanel>
+    <name>MD Analysis</name>
+    <group>Energies</group>
+    <class>GmxAnalysisPanel</class>
+    <consumer>false</consumer>
+    <allowPin>false</allowPin>
+    <property name="GEOMTRACE"/>
+  </PropertyPanel>
+
   <PropertyPanel>
     <name>IRC Path</name>
     <group>Geometry</group>

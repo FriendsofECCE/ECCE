@@ -95,15 +95,29 @@ CompareEnergiesDialog::CompareEnergiesDialog(wxWindow *parent,
   wxButton *overview = new wxButton(this, wxID_ANY, _("Reaction overview..."));
   overview->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     // Side A is the reactants and B the products; a negative term goes across.
-    string lhs, rhs;
+    // Bare calculation names when all terms sit in one folder.
+    string lhs, rhs, base;
+    bool oneFolder = true;
+    for (int s = 0; s < 2; s++)
+      for (const std::pair<string, int>& t : termsOf(s)) {
+        string u = t.first;
+        while (u.size() > 1 && u.back() == '/') u.pop_back();
+        const string dir = u.substr(0, u.rfind('/'));
+        if (base.empty()) base = dir;
+        else if (dir != base) oneFolder = false;
+      }
+    if (!oneFolder) base.clear();
     for (int s = 0; s < 2; s++)
       for (const std::pair<string, int>& t : termsOf(s)) {
         string& side = ((t.second < 0) == (s == 0)) ? rhs : lhs;
         if (!side.empty()) side += ", ";
         const int n = t.second < 0 ? -t.second : t.second;
-        side += (n > 1 ? std::to_string(n) + "*" : string()) + t.first;
+        string name = t.first;
+        while (name.size() > 1 && name.back() == '/') name.pop_back();
+        if (!base.empty()) name = name.substr(name.rfind('/') + 1);
+        side += (n > 1 ? std::to_string(n) + "*" : string()) + name;
       }
-    ReactionOverviewDialog dlg(this, lhs + " -> " + rhs);
+    ReactionOverviewDialog dlg(this, lhs + " -> " + rhs, base);
     dlg.ShowModal();
   });
   buttons->Add(overview, 0, wxRIGHT, 8);

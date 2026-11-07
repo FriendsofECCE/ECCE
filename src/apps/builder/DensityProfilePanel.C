@@ -223,7 +223,7 @@ void DensityProfilePanel::build()
   const int natoms = (int)p_eval->symbols.size();
 
   //  Two short rows that wrap instead of widening the panel, then the
-  //  rarely needed controls folded under "More".
+  //  rarely needed controls folded under "Options".
   wxWrapSizer *row1 = new wxWrapSizer(wxHORIZONTAL);
   wxWrapSizer *row2 = new wxWrapSizer(wxHORIZONTAL);
   p_mode = new wxChoice(this, ID_MODE);
@@ -283,7 +283,7 @@ void DensityProfilePanel::build()
   wxButton *whole = new wxButton(this, ID_WHOLE, "Show all");
   whole->SetToolTip("Reset the zoom to show the whole curves, including peaks that clip peaks cut off at the nuclei (mouse wheel zooms, Shift+wheel zooms the y axis only, drag pans)");
   row2->Add(whole, 0, RIGHT, 12);
-  p_moreButton = new wxButton(this, ID_MORE, U("More \xE2\x96\xB8"));
+  p_moreButton = new wxButton(this, ID_MORE, U("Options \xE2\x96\xB8"));
   row2->Add(p_moreButton, 0, RIGHT, 12);
 
   //  The folded controls.
@@ -578,7 +578,7 @@ void DensityProfilePanel::syncControls()
   //  Log needs values that are never negative; √y takes either sign.
   const bool signedPsi = (!atom && p_quantity->GetSelection() == 2) || differenceOn();
   if (signedPsi && p_yaxis->GetSelection() == 1) p_yaxis->SetSelection(0);
-  p_moreButton->SetLabel(p_moreOpen ? U("More \xE2\x96\xBE") : U("More \xE2\x96\xB8"));
+  p_moreButton->SetLabel(p_moreOpen ? U("Options \xE2\x96\xBE") : U("Options \xE2\x96\xB8"));
   p_more->Show(p_moreOpen);
   Layout();
 }

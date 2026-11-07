@@ -36,3 +36,11 @@ No GUI yet; the diagram and recipe come next.
   regenerates `reference/*.tsv` (needs `chmod +x` on the noGUI binary and a
   settings.ini with compthresCDA=0.01). Agreement 0.006 pp (SCPA), 0.05 pp
   (Mulliken, a 0.05 % share of a high Cr virtual).
+- **Field check** (`fragorb::fieldCheck`, JSON `field_check`, box warning
+  `FragOrbBoxResult::warning`): for a one-atom fragment with a d set (>= 5 FOs
+  of >= 50 % d population) every OCCUPIED complex MO with a Mulliken d share
+  >= 0.30 must have >= 0.80 of that share on the atom's occupied d FOs
+  (occupation > 0.5). Else "field-split guess failed" (the recipe's field step,
+  recipes-are-text-files-applied-by-workflowsteps-710, picks the occupied d set).
+  Thresholds are arguments (dMin, occMin), warn only; not applicable and no
+  warning when no occupied MO has 30 % d.

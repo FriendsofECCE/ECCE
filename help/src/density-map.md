@@ -145,10 +145,11 @@ fragments.
 A fragment atom must lie within 0.05 Å of an atom of the same element in
 this calculation, and no atom may belong to two fragments; otherwise the panel
 says which atom does not match. Tick nothing and press OK to return to the
-plain density. The **Density Profile** has the same button, under **More**.
+plain density. The **Density Profile** has the same button, under **Options**.
 
 ## Export
 
+The exports, **Difference...** and the plane controls are under **Options** above the map.
 **Export .png...** saves the picture as drawn. **Export .csv...** saves every
 grid value: the position in the plane, the Cartesian position, and the value,
 with the plane and the offset in the header.

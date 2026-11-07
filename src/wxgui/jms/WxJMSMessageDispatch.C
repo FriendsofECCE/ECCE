@@ -240,6 +240,27 @@ void WxJMSMessageDispatch::unregisterTopShell(wxWindow *wid)
 }
 
 
+// A command-line request (ecce-launch and the like) that arrives during a
+// launch batch is answered with an ack at once; the request itself runs
+// when the batch is over.  Without it the command gives up after seconds.
+void WxJMSMessageDispatch::messageDeferred(const string& topic, JMSMessage& msg)
+{
+  const string pre = "ecce_", post = "_request";
+  if (topic.size() <= pre.size() + post.size() ||
+      topic.compare(0, pre.size(), pre) != 0 ||
+      topic.compare(topic.size() - post.size(), post.size(), post) != 0)
+    return;
+  const string id = msg.getProperty("reply_id");
+  if (id.empty() || !p_publisher) return;
+  JMSMessage *r = newMessage();
+  r->addProperty("reply_id", id);
+  r->addProperty("kind", "ack");
+  r->addProperty("queued", "1");
+  r->addIntProperty("n", 0);
+  publish(topic.substr(0, topic.size() - post.size()) + "_reply", *r);
+  delete r;
+}
+
 /**
  * Publisher interface method - publish a method.
  */

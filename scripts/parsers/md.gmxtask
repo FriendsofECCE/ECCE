@@ -241,6 +241,10 @@ if (get("Interaction", "GmxPull", 0) == 1 && $runtype{$task} eq "Dynamics") {
 
 # lines of the user's own, merged over ours by ai.gromacs
 my @extra = grep { /\S/ } split(/\n/, get("Interaction", "GmxExtraMdp", ""));
+# velocities for the Speed Distribution panel; an nstvout of the user's own wins
+my $nstv = get("Interaction", "GmxNstvout", 0);
+unshift(@extra, "nstvout = $nstv")
+  if ($nstv > 0 && $runtype{$task} eq "Dynamics" && !grep { /^\s*nstvout\s*=/i } @extra);
 $p{"ES.Runtype.MD.ExtraLines"} = join("|", @extra) if (@extra);
 
 # ---- write the .param file and let ai.gromacs fill the template ----

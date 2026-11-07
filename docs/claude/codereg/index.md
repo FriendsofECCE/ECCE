@@ -65,6 +65,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [GROMACS run settings (defines, residue-name groups, barostat type, extra .mdp lines): model, md.gmxtask, ai.gromacs, and the index file written at launch](gromacs-run-settings-travel-md-gmxtask-ai-launchpp-gensub.md)
 - [grompp 2025.2: C-rescale does not support anisotropic coupling, Berendsen draws a warning, atom-name mismatches are warnings](grompp-2025-takes-every-barostat-pair-except-c-rescale-anisotropic.md)
 - [GROMACS periodic-molecules is a tri-state in the Interaction model, resolved from the structure cell when the editor opens the task (#262)](gromacs-periodic-molecules-follows-the-structure-cell.md)
+- [GROMACS filesToTransfer reach the job store's tmp dir but are stored only when JobStore names them; gmx energy's menu exits 1; no element selections (#877)](gromacs-files-to-transfer-are-not-stored-unless-named.md)
 - [EDML control file](edml-control-file.md)
 - [`scripts/codereg`](scripts-codereg.md)
 - [`scripts/parsers`](scripts-parsers.md)

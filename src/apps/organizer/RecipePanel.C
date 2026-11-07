@@ -8,6 +8,7 @@
 #include "wx/dcgraph.h"
 #include "wx/listctrl.h"
 #include "wx/scrolwin.h"
+#include "wx/choice.h"
 #include "wx/spinctrl.h"
 
 #include <algorithm>
@@ -343,6 +344,13 @@ void RecipePanel::addFragmentRow(const RecipeFragment &f)
                             wxSP_ARROW_KEYS, -20, 20, f.charge);
   r.mult = new wxSpinCtrl(p_fragPanel, wxID_ANY, "", wxDefaultPosition, wxSize(110, -1),
                           wxSP_ARROW_KEYS, 1, 9, f.mult);
+  r.state = new wxChoice(p_fragPanel, wxID_ANY);
+  r.state->Append(_("In the complex"));
+  r.state->Append(_("Free fragment, ground state"));
+  r.state->SetSelection(f.free ? 1 : 0);
+  r.state->SetToolTip("In the complex: closed shell, or the lowest multiplicity the electrons allow "
+                      "(Cr(0) in Cr(CO)6 a singlet). Free fragment: the ground state of the isolated "
+                      "atom or ion (Cr(0) a septet). Open shells run restricted (ROHF/ROKS).");
   r.formula = new wxStaticText(p_fragPanel, wxID_ANY, "");
   auto labelled = [&](const char *label, wxWindow *w) {
     wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
@@ -353,10 +361,12 @@ void RecipePanel::addFragmentRow(const RecipeFragment &f)
   labelled("Atoms", r.atoms);
   labelled("Charge", r.charge);
   labelled("Multiplicity", r.mult);
+  labelled("State", r.state);
   row->Add(r.formula, 0, wxALIGN_CENTER_VERTICAL);
   r.atoms->Bind(wxEVT_TEXT, [this](wxCommandEvent &) { fragmentsChanged(); });
   r.charge->Bind(wxEVT_SPINCTRL, [this](wxCommandEvent &) { fragmentsChanged(); });
   r.mult->Bind(wxEVT_SPINCTRL, [this](wxCommandEvent &) { fragmentsChanged(); });
+  r.state->Bind(wxEVT_CHOICE, [this, k](wxCommandEvent &) { stateChanged(k); });
   p_fragRows->Add(row, 0, wxBOTTOM, 4);
   p_frags.push_back(r);
 }
@@ -387,6 +397,7 @@ vector<RecipeFragment> RecipePanel::fragments() const
     f.atoms = string(r.atoms->GetValue().ToUTF8());
     f.charge = r.charge->GetValue();
     f.mult = r.mult->GetValue();
+    f.free = r.state->GetSelection() == 1;
     out.push_back(f);
   }
   return out;
@@ -417,6 +428,21 @@ void RecipePanel::scrollToFragments()
   int x, y;
   p_settings->CalcUnscrolledPosition(0, p_fragPanel->GetPosition().y, &x, &y);
   p_settings->Scroll(0, std::max(0, (y - 200) / 12));
+}
+
+
+void RecipePanel::stateChanged(size_t k)
+{
+  // The multiplicity follows the chosen state; it can still be edited.
+  const vector<RecipeFragment> f = fragments();
+  vector<vector<int> > atoms;
+  string why;
+  if (k < f.size() && !p_z.empty() && resolveFragments(f, (int)p_z.size(), atoms, why)) {
+    vector<int> z;
+    for (int a : atoms[k]) z.push_back(p_z[a]);
+    p_frags[k].mult->SetValue(fragmentMultiplicity(z, f[k].charge, f[k].free));
+  }
+  fragmentsChanged();
 }
 
 
@@ -688,7 +714,7 @@ void RecipePanel::changed()
   const bool frags = variant() && hasFragmentSteps(*variant());
   p_fragPanel->Show(frags);
   p_whereHeading->SetLabel(frags ? "4  Where the new steps go" : "3  Where the new steps go");
-  if (frags) p_expanded = expandFragments(*variant(), fragments());
+  if (frags) p_expanded = expandFragments(*variant(), fragments(), p_z);
   // What is wrong with the fragments, or the charge warning, under the controls.
   if (frags) {
     string text = fragmentProblem(), warning;
@@ -768,7 +794,7 @@ void RecipePanel::createClicked()
     Layout();
     return;
   }
-  const RecipeVariant made = frags ? expandFragments(*variant(), fragments()) : *variant();
+  const RecipeVariant made = frags ? expandFragments(*variant(), fragments(), p_z) : *variant();
   string why = p_owner->recipeCreate(*recipe(), made, levels(), after(),
                                  p_autorun->GetValue());
   if (!why.empty()) {

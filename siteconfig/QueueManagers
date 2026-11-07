@@ -98,6 +98,7 @@ PBS|jobIdParseExpression:   .*
 LSF|submitCommand:           bsub < ##script##
 LSF|cancelCommand:           bkill ##id##
 LSF|queryJobCommand:         bjobs -l ##id##
+LSF|queryJobNameCommand:     bjobs -J ##name## -o "jobid exec_cwd" -noheader
 LSF|queryMachineCommand:     bqueues
 LSF|queryQueueCommand:       bjobs -u all
 LSF|queryDiskUsageCommand:   df -h
@@ -209,6 +210,9 @@ Shell|jobIdParseExpression:   \ [0-9]+
 Slurm|submitCommand:           sbatch ##script##
 Slurm|cancelCommand:           scancel ##id##
 Slurm|queryJobCommand:         squeue
+# Job id and run directory of the jobs with this name (submit__<calc>), for a
+# submit that timed out: the job may be queued already.
+Slurm|queryJobNameCommand:     squeue -h -u $USER -n ##name## -o "%i %Z"
 Slurm|queryMachineCommand:     sinfo -p ##queue##
 Slurm|queryQueueCommand:       squeue -a
 Slurm|queryDiskUsageCommand:   df -k

@@ -307,6 +307,13 @@ def main():
         #  as sbatch does while it cannot reach its controller (#424).
         slow = os.path.join(SPOOL, mgr, "slow_submit")
         if os.path.exists(slow):
+            if os.path.exists(os.path.join(SPOOL, mgr, "slow_submit_queues")):
+                #  The controller took the job and then did not answer: record
+                #  id and directory for the by-name query, held so it never runs.
+                text = readScript(args)
+                seq = submit(mgr, text, queueOf(text), True)
+                with open(os.path.join(SPOOL, mgr, "named"), "a") as h:
+                    h.write("%d %s\n" % (seq, os.getcwd()))
             time.sleep(float(open(slow).read().strip() or 0))
             return 1
         text = readScript(args)
@@ -342,6 +349,18 @@ def main():
             print("Job <%d> is being terminated" % seq)
         elif mgr == "moab":
             print("job '%d' cancelled" % seq)
+        return 0
+
+    if name == "bjobs" and "-J" in args:
+        #  bjobs -J NAME -o "jobid exec_cwd" -noheader
+        if os.path.exists(os.path.join(SPOOL, mgr, "bjobs_fails")):
+            print("Request to the LSF master timed out", file=sys.stderr)
+            return 1
+        named = os.path.join(SPOOL, mgr, "named")
+        if not os.path.exists(named):
+            print("No unfinished job found", file=sys.stderr)
+            return 255
+        sys.stdout.write(open(named).read())
         return 0
 
     if name in ("qstat", "bjobs", "checkjob"):

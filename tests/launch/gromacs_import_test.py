@@ -216,6 +216,13 @@ def main():
             ans = send("gmximportsel %s %s" % (proj, run))
             check(ans.startswith("ok ") and ans.rstrip("/").endswith("/" + want),
                   "gmximportsel makes %s: %s" % (want, ans))
+        # The job monitor removes each staging directory when it is done.
+        pat = os.path.join(s.state, "tmp", "gmximport-*")
+        end = time.time() + 60
+        while glob.glob(pat) and time.time() < end:
+            time.sleep(1)
+        left = glob.glob(pat)
+        check(not left, "staging directories left after the imports: %s" % left)
     finally:
         if org is not None:
             stop(org)
