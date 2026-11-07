@@ -1767,7 +1767,7 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
 
       //  A surface cut at the grid faces is not the orbital's: enlarge the
       //  box on those sides and compute again, within a size limit.
-      if (!fieldView) {
+      {  // 9.4 has no field views, so every surface is checked
          const int cut = gridFacesCut(p_facesCheckedIso);
          if (cut) {
             const float s_grow = 2.0, s_maxEdge = 40.0;
