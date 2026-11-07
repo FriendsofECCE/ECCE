@@ -144,6 +144,7 @@ struct DiagramShare {
   double share = 0;
   string position;
   string irrep;                        // as DiagramLevel::irrep
+  string shell;                        // as DiagramLevel::shell
 };
 
 struct DiagramLevel {
@@ -156,6 +157,7 @@ struct DiagramLevel {
   vector<double> occupation;           // per orbital, as stored
   string position;                     // "HOMO", "LUMO+3", counted in orbitals
   string irrep;                        // Mulliken label with its count, "2t2g"; "" not determined
+  string shell;                        // FO of a one-atom fragment: "Cr 3d" when one l has >= 90 %
   // complex MO levels only
   bool partner = false;                // drawn by the partner rule, outside the window
   double remainder = 0;                // part outside the span of all FOs (mean over the level)

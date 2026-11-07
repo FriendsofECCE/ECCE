@@ -532,7 +532,53 @@ bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diag
     // "2t2g": the irrep shared by every orbital of the level, counted from
     // the lowest level of that irrep; "" when the orbitals disagree or
     // have no label.
-    vector<string> mlIrrep(nml), flIrrep(nfl);
+    vector<string> mlIrrep(nml), flIrrep(nfl), flShell(nfl);
+    // A one-atom fragment has no table group: its FO levels are named by
+    // the shell they are made of (Mulliken population of one l >= 90 %),
+    // n counted from the orbitals of that l below them (model choice: the
+    // aufbau count, so a split d set stays 3d).
+    for (size_t f = 0; f < nf; f++) {
+      const Model* fm = f < a.fragmentModels.size() ? a.fragmentModels[f] : 0;
+      if (!fm || fm->natoms() != 1) continue;
+      const Mos* fmo = mosFor(*fm, ch.spin);
+      if (!fmo) fmo = &fm->mos[0];
+      vector<double> Sf;
+      string serr;
+      if (!overlapMatrix(*fm, geometryOf(*fm), Sf, serr)) continue;
+      const size_t na = fmo->nao;
+      vector<int> lOf;
+      for (size_t k = 0; k < fm->basis.shells.size(); k++)
+        for (size_t i = 0; i < shellSize(fm->basis.shells[k]); i++) lOf.push_back(fm->basis.shells[k].l);
+      if (lOf.size() != na) continue;
+      const string el = TPerTab().atomicSymbol(fm->atomicNumber[0]);
+      vector<int> lBelow(8, 0);
+      // FO levels of this fragment, lowest first (fl is in FO order, as stored)
+      vector<size_t> ks;
+      for (size_t k = 0; k < nfl; k++) if (ch.fo[fl[k].first].fragment == int(f)) ks.push_back(k);
+      std::stable_sort(ks.begin(), ks.end(), [&](size_t x, size_t y) {
+        return ch.fo[fl[x].first].energy < ch.fo[fl[y].first].energy; });
+      for (size_t k : ks) {
+        vector<double> pop(8, 0.0);
+        for (int q = fl[k].first; q <= fl[k].last; q++) {
+          const size_t i = size_t(ch.fo[q].index - 1);
+          if (i >= fmo->nmo) continue;
+          const double* c = &fmo->coef[i * na];
+          for (size_t mu = 0; mu < na; mu++) {
+            double sc = 0;
+            for (size_t nu = 0; nu < na; nu++) sc += Sf[mu * na + nu] * c[nu];
+            if (lOf[mu] < 8) pop[lOf[mu]] += c[mu] * sc;
+          }
+        }
+        const double n = double(fl[k].last - fl[k].first + 1);
+        int best = 0;
+        for (int l = 1; l < 8; l++) if (pop[l] > pop[best]) best = l;
+        if (pop[best] / n >= 0.90) {
+          const int nq = best + 1 + lBelow[best] / (2 * best + 1);
+          flShell[k] = el + " " + std::to_string(nq) + "spdfghi"[best];
+        }
+        if (pop[best] / n >= 0.5) lBelow[best] += int(n);
+      }
+    }
     {
       std::map<string, int> count;
       for (size_t m = 0; m < nml && cok; m++) {
@@ -644,6 +690,7 @@ bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diag
       lv.energyEv = e / double(lv.numbers.size()) * HARTREE_EV;
       lv.position = position(frHomo[lv.fragment], lv.numbers.front(), lv.numbers.back());
       lv.irrep = flIrrep[k];
+      lv.shell = flShell[k];
       foId[k] = lv.id;
       dc.levels.push_back(lv);
     }
@@ -699,6 +746,7 @@ bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diag
         sh.share = -v[t].first;
         sh.position = position(frHomo[sh.fragment], sh.numbers.front(), sh.numbers.back());
         sh.irrep = flIrrep[k];
+        sh.shell = flShell[k];
         lv.shares.push_back(sh);
       }
     }
@@ -762,7 +810,13 @@ bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diag
       string groups = "Point groups (Mulliken labels from the orbital coefficients): complex " +
                       (cok ? csym.group : "not determined (" + csym.why + ")");
       for (size_t f = 0; f < nf; f++)
-        groups += "; " + a.fragmentNames[f] + " " + (fok[f] ? fsym[f].group : "not determined (" + fsym[f].why + ")");
+      {
+        const bool atom = f < a.fragmentModels.size() && a.fragmentModels[f] && a.fragmentModels[f]->natoms() == 1;
+        groups += "; " + a.fragmentNames[f] + " " +
+                  (fok[f] ? fsym[f].group
+                   : atom ? "a single atom, its levels named by shell (one l at 90 % or more, else ?)"
+                          : "not determined (" + fsym[f].why + ")");
+      }
       if (opt.symmetry) dc.notes.push_back(groups + ".");
     }
     string partners;

@@ -181,8 +181,12 @@ def check_diagram(exe, cx, cr7, co6):
             got = ir(f, n) or ""
             check(got.lstrip("0123456789") == want and got[:1].isdigit(),
                   "level %s %s is %s: %r" % (f, n, want, got))
-        check(all(l["irrep"] == "" for l in ch["levels"] if l["fragment"] == 0), "Cr levels have no label")
-        check(any("not determined (a single atom" in n for n in ch["notes"]), "the note says why Cr has none")
+        cr = {tuple(l["numbers"]): l["shell"] for l in ch["levels"] if l["fragment"] == 0}
+        print("Cr shells:", cr)
+        check(all(l["irrep"] == "" for l in ch["levels"] if l["fragment"] == 0), "Cr levels have no irrep")
+        check(cr.get((11, 12, 13, 14, 15)) == "Cr 3d" and cr.get((17, 18, 19)) == "Cr 4p",
+              "Cr levels named by shell: %s" % cr)
+        check(any("a single atom, its levels named by shell" in n for n in ch["notes"]), "the note says so")
     r = run([exe, "diagram", cx, cr7, co6, "--name", "Cr", "--name", "(CO)6"])
     check(r.returncode == 0 and "columns: Cr | complex | (CO)6" in r.stdout and "orbital-energy gap" in r.stdout,
           "diagram text output: " + r.stdout[:300])

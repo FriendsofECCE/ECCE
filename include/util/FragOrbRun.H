@@ -68,7 +68,7 @@ struct FragDiagramShare
    int fragment = -1;
    std::vector<int> numbers;
    double energy = 0, share = 0;
-   std::string position, irrep;
+   std::string position, irrep, shell;
 };
 
 /** A level of `ecce-fragorb diagram`: complex MOs (fragment -1) or FOs. */
@@ -80,6 +80,7 @@ struct FragDiagramLevel
    std::vector<double> occupation;
    std::string position, kind;
    std::string irrep;         ///< "2t2g", "" when not determined
+   std::string shell;         ///< one-atom fragment: "Cr 3d"
    bool partner = false, representative = true;
    double remainder = 0, covered = 0, overlapPopulation = 0;
    std::vector<int> fragments;

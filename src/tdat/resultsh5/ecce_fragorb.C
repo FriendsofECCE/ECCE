@@ -263,8 +263,8 @@ static int diagramCmd(const vector<string>& pos, const vector<string>& names, co
         printf("%s{\"id\":%d,\"column\":%d,\"fragment\":%d,\"numbers\":%s,\"energy_ev\":%.6f,\"occupation\":[",
                k ? "," : "", l.id, l.column, l.fragment, numbers(l.numbers).c_str(), l.energyEv);
         for (size_t i = 0; i < l.occupation.size(); i++) printf("%s%.6f", i ? "," : "", l.occupation[i]);
-        printf("],\"position\":%s,\"irrep\":%s,\"kind\":%s", jstr(l.position).c_str(), jstr(l.irrep).c_str(),
-               jstr(l.kind).c_str());
+        printf("],\"position\":%s,\"irrep\":%s,\"shell\":%s,\"kind\":%s", jstr(l.position).c_str(),
+               jstr(l.irrep).c_str(), jstr(l.shell).c_str(), jstr(l.kind).c_str());
         if (l.fragment < 0)
           printf(",\"partner\":%s,\"remainder\":%.8f,\"covered\":%.8f,\"representative\":%s,"
                  "\"overlap_population\":%.8f,\"fragments\":%s",
@@ -274,9 +274,9 @@ static int diagramCmd(const vector<string>& pos, const vector<string>& names, co
         for (size_t i = 0; i < l.shares.size(); i++) {
           const DiagramShare& sh = l.shares[i];
           printf("%s{\"level\":%d,\"fragment\":%d,\"numbers\":%s,\"energy_ev\":%.6f,\"share\":%.8f,\"position\":%s,"
-                 "\"irrep\":%s}",
+                 "\"irrep\":%s,\"shell\":%s}",
                  i ? "," : "", sh.level, sh.fragment, numbers(sh.numbers).c_str(), sh.energyEv, sh.share,
-                 jstr(sh.position).c_str(), jstr(sh.irrep).c_str());
+                 jstr(sh.position).c_str(), jstr(sh.irrep).c_str(), jstr(sh.shell).c_str());
         }
         printf("]}");
       }
@@ -313,7 +313,8 @@ static int diagramCmd(const vector<string>& pos, const vector<string>& names, co
       const DiagramLevel& l = ch.levels[k];
       if (l.fragment < 0) continue;
       printf("  %-12s %-10s %-6s %-9s %9.3f  occ %.3f\n", d.fragmentNames[l.fragment].c_str(),
-             levelName("FO", l.numbers).c_str(), l.irrep.empty() ? "?" : l.irrep.c_str(), l.position.c_str(),
+             levelName("FO", l.numbers).c_str(),
+             !l.shell.empty() ? l.shell.c_str() : l.irrep.empty() ? "?" : l.irrep.c_str(), l.position.c_str(),
              l.energyEv, l.occupation[0]);
     }
     printf("\nlines: FO level -> MO level, share\n");

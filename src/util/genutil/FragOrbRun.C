@@ -167,6 +167,7 @@ FragDiagramResult runFragDiagram(const string& complex, const vector<string>& fr
       lv.position = l.get("position").str();
       lv.kind = l.get("kind").str();
       lv.irrep = l.get("irrep").str();
+      lv.shell = l.get("shell").str();
       lv.partner = l.get("partner").boolean();
       lv.representative = l.get("representative").isNull() || l.get("representative").boolean();
       lv.remainder = l.get("remainder").isNull() ? 0 : num(l.get("remainder"));
@@ -182,6 +183,7 @@ FragDiagramResult runFragDiagram(const string& complex, const vector<string>& fr
         sh.share = num(s.get("share"));
         sh.position = s.get("position").str();
         sh.irrep = s.get("irrep").str();
+        sh.shell = s.get("shell").str();
         lv.shares.push_back(sh);
       }
       ch.levels.push_back(lv);

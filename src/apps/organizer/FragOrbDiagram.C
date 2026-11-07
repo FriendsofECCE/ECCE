@@ -1,6 +1,7 @@
 #include "FragOrbDiagram.H"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 #include <cstdio>
 
@@ -77,9 +78,84 @@ string fragIrrep(const string& ir)
 
 namespace {
 
+// Subscript runs in a label, drawn smaller and lower as the Builder's MO
+// diagram sets them (MoDiagramCanvas::splitLabel): order and parity, t2g.
+const char SUB_ON = '\x01', SUB_OFF = '\x02';
+
+string irrepMarkup(const string& ir)
+{
+  if (ir.empty()) return "?";
+  string o;
+  size_t i = 0;
+  while (i < ir.size() && isdigit((unsigned char)ir[i])) o += ir[i++];
+  if (i < ir.size()) o += ir[i++];
+  string sub;
+  while (i < ir.size() && (isdigit((unsigned char)ir[i]) || ir[i] == 'g' || ir[i] == 'u')) sub += ir[i++];
+  if (!sub.empty()) o += SUB_ON + sub + SUB_OFF;
+  for (; i < ir.size(); i++)
+    o += ir[i] == '\'' ? "\xE2\x80\xB2" : ir[i] == '"' ? "\xE2\x80\xB3" : string(1, ir[i]);
+  return o;
+}
+
+string stripMarkup(const string& s)
+{
+  string o;
+  for (char c : s) if (c != SUB_ON && c != SUB_OFF) o += c;
+  return o;
+}
+
+wxFont subFont(const wxFont& f)
+{
+  wxFont g = f;
+  g.SetPointSize(std::max(6, f.GetPointSize() - 2));
+  return g;
+}
+
+// Pieces of a label: (text, subscript?)
+vector<std::pair<string, bool> > pieces(const string& s)
+{
+  vector<std::pair<string, bool> > out(1, std::make_pair(string(), false));
+  for (char c : s) {
+    if (c == SUB_ON || c == SUB_OFF) { out.push_back(std::make_pair(string(), c == SUB_ON)); continue; }
+    out.back().first += c;
+  }
+  return out;
+}
+
+wxSize richExtent(wxDC& dc, const string& s, const wxFont& f)
+{
+  if (s.find(SUB_ON) == string::npos) { dc.SetFont(f); return dc.GetTextExtent(wx(s)); }
+  int w = 0, h = 0;
+  bool sub = false;
+  for (const auto& p : pieces(s)) {
+    if (p.first.empty()) continue;
+    dc.SetFont(p.second ? subFont(f) : f);
+    const wxSize e = dc.GetTextExtent(wx(p.first));
+    w += e.x;
+    if (!p.second) h = std::max(h, e.y);
+    sub = sub || p.second;
+  }
+  dc.SetFont(f);
+  return wxSize(w, h + (sub ? 3 : 0));
+}
+
+void drawRich(wxDC& dc, const string& s, int x, int y, const wxFont& f)
+{
+  dc.SetFont(f);
+  const int base = dc.GetTextExtent("Ag").y;
+  for (const auto& p : pieces(s)) {
+    if (p.first.empty()) continue;
+    dc.SetFont(p.second ? subFont(f) : f);
+    const wxSize e = dc.GetTextExtent(wx(p.first));
+    dc.DrawText(wx(p.first), x, p.second ? y + base - e.y + 3 : y);
+    x += e.x;
+  }
+  dc.SetFont(f);
+}
+
 string levelLabel(const FragDiagramResult& d, const FragDiagramLevel& l)
 {
-  const string sym = d.groups.empty() ? "" : fragIrrep(l.irrep) + " ";
+  const string sym = !l.shell.empty() ? l.shell + " " : d.groups.empty() ? "" : irrepMarkup(l.irrep) + " ";
   if (l.fragment >= 0) return sym + "FO " + range(l.numbers) + " " + l.position;
   string s = sym + "MO " + range(l.numbers);
   if (l.kind == "bonding" || l.kind == "antibonding") s += " " + l.kind;
@@ -234,7 +310,7 @@ string FragDiagramLayout::dump(const FragDiagramResult& d) const
   for (const Text& t : texts)
     o += "text " + std::to_string(t.r.x) + " " + std::to_string(t.r.y) + " " +
          std::to_string(t.r.width) + " " + std::to_string(t.r.height) + " " + t.what + ": " +
-         t.text + "\n";
+         stripMarkup(t.text) + "\n";
   for (const Seg& s : segs)
     o += "seg " + fmt("%.1f", s.x1) + " " + fmt("%.1f", s.y1) + " " + fmt("%.1f", s.x2) + " " +
          fmt("%.1f", s.y2) + " " + std::to_string(s.width) + " " + s.what + "\n";
@@ -272,10 +348,7 @@ FragDiagramLayout layoutFragDiagram(wxDC& dc, const FragDiagramResult& d, size_t
   if (!d.ok || channel >= d.channels.size()) return L;
   const FragDiagramChannel& ch = d.channels[channel];
   const wxFont normal = *wxNORMAL_FONT, small = smallFont();
-  auto ext = [&](const string& s, bool sm) {
-    dc.SetFont(sm ? small : normal);
-    return dc.GetTextExtent(wx(s));
-  };
+  auto ext = [&](const string& s, bool sm) { return richExtent(dc, s, sm ? small : normal); };
   const int lh = ext("Ag", false).y, sh = ext("Ag", true).y;
   const double maxOcc = d.channels.size() > 1 ? 1.0 : 2.0;
   const size_t nf = d.fragments.size();
@@ -568,7 +641,7 @@ void paintFragDiagram(wxDC& dc, const FragDiagramLayout& L, const PlotPalette& p
     dc.SetFont(t.small ? small : normal);
     dc.SetTextForeground(t.colour);
     if (t.vertical) dc.DrawRotatedText(wx(t.text), t.r.x, t.r.y + t.r.height, 90);
-    else dc.DrawText(wx(t.text), t.r.x, t.r.y);
+    else drawRich(dc, t.text, t.r.x, t.r.y, t.small ? small : normal);
   }
 }
 
@@ -627,11 +700,12 @@ string fragDiagramLevelText(const FragDiagramResult& d, size_t channel, int leve
     t += "FO levels with 1 % or more (Mulliken shares can be negative or exceed 100 %):\n";
     for (const FragDiagramShare& s : l.shares)
       t += "  " + fmt("%6.1f %%", 100 * s.share) + "  " + fragName(d, s.fragment) + " FO " + range(s.numbers) +
-           " " + fragIrrep(s.irrep) + " " + s.position + "  " + num(s.energy) + " eV" + (s.share >= d.threshold ? "  (line)" : "") +
+           " " + (s.shell.empty() ? fragIrrep(s.irrep) : s.shell) + " " + s.position + "  " + num(s.energy) + " eV" + (s.share >= d.threshold ? "  (line)" : "") +
            (s.level < 0 ? "  (not drawn)" : "") + "\n";
   } else {
     t += fragName(d, l.fragment) + " FO " + range(l.numbers) + orbs + ", " +
-         symText(d, l.fragment + 1, l.irrep) + l.position + " of the fragment, " +
+         (l.shell.empty() ? symText(d, l.fragment + 1, l.irrep) : l.shell + " (shell of the atom), ") +
+         l.position + " of the fragment, " +
          num(l.energy) + " eV, " + occ + "\n";
     t += "Its share in each complex MO level, 1 % or more (a line where " + pct + " or more):\n";
     for (const FragDiagramShare& s : l.shares)
