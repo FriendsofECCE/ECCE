@@ -173,8 +173,7 @@ the Organizer at once. In a server tree you can browse, make projects and
 calculations, open, rename, delete and copy within that tree. A calculation in a server
 tree is launched like any other (Launch, Launch Selected, the Launcher): the
 job runs where you choose, and its output and results are stored on that
-server with your login there. Copying or moving between **Local data** and a
-server, or between two servers, is not supported yet.
+server with your login there.
 
 Each SSH folder in the list is a tree too, named **<name> (SSH)**, with the
 folder as its top level. Opening it logs in to the machine the way job
@@ -185,6 +184,26 @@ projects and calculations, renaming and deleting work as in the other trees,
 and a calculation there is launched like any other: the job runs where you
 choose and its results are written to the folder over the same login. A
 launch is refused with a message if there is no login to the folder.
+
+### Copying and moving between trees
+
+Calculations, projects and folders can be copied and moved between any two
+trees: **Local data**, an SSH folder and an ECCE server. Use **Edit > Copy**
+(or **Cut**) and **Paste**, or drag with the mouse; or use `ecce-copy` and
+`ecce-move` with the target folder's URL (see [Scripting and
+AI](scripting-and-ai.md)). ECCE reads every file of the calculation over the
+tree's own login and writes it to the other tree, with its properties, so the
+copy opens, shows its results and can be run again on the other side; job data
+that points at a run directory stays as it was. Both trees must be connected.
+
+A move is a copy, then a check that every file is there with the same size,
+and only then the removal of the original. If anything fails, the partly made
+copy is removed and the original is not touched; the message says which. As
+inside one tree, a calculation whose job is Submitted, Running or Waiting for
+Login, and a folder holding one, is not moved (copying is allowed). A large
+transfer shows a progress bar with a **Cancel** button; cancelling removes the
+partial copy. A name that already exists in the target gets a number added
+(`calc-1`).
 
 The trees are told apart by their icon and colour. **Local data** keeps its
 home icon. An ECCE server has a server icon in maroon, and an SSH folder has

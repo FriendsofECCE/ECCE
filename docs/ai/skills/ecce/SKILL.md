@@ -1,6 +1,6 @@
 ---
 name: ecce
-description: Work with ECCE (Extensible Computational Chemistry Environment) calculations: the stored-data layout, the ecce-launch, ecce-terminate, ecce-annotate, ecce-move, ecce-rename, ecce-reconnect, ecce-fetch and ecce-contacts commands, and how to check a result. Use when the scientist asks to look at, check, compare, launch or terminate ECCE calculations.
+description: Work with ECCE (Extensible Computational Chemistry Environment) calculations: the stored-data layout, the ecce-launch, ecce-terminate, ecce-annotate, ecce-move, ecce-copy, ecce-rename, ecce-reconnect, ecce-fetch and ecce-contacts commands, and how to check a result. Use when the scientist asks to look at, check, compare, launch or terminate ECCE calculations.
 ---
 
 The full instructions are in AGENTS.md, installed with ECCE as

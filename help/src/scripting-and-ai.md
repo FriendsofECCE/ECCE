@@ -2,7 +2,7 @@
 
 Everything ECCE does can be done from the command line, so scripts and AI
 assistants can work with it too. The commands are `ecce-launch`,
-`ecce-terminate`, `ecce-rerun`, `ecce-annotate`, `ecce-move`, `ecce-rename`,
+`ecce-terminate`, `ecce-rerun`, `ecce-annotate`, `ecce-move`, `ecce-copy`, `ecce-rename`,
 `ecce-reconnect`, `ecce-fetch` and
 `ecce-contacts`; see [Launch Selected](launch-selected.md) for the launch and
 terminate commands.
@@ -50,9 +50,17 @@ holding one, are not moved (see [Renaming and moving
 calculations](rename-and-move.md)); a name that exists in the target is
 never overwritten. The other calculations in the same command still move, and
 the exit status is 1. One line is printed per calculation, for example
-`calc-1: moved to archive` or `calc-2: not moved: reason`. Local data and data
-servers are supported. Without a running ECCE the commands print a message and
-exit with status 2.
+`calc-1: moved to archive` or `calc-2: not moved: reason`. Without a running
+ECCE the commands print a message and exit with status 2.
+
+`ecce-copy <calculation or folder>... <folder>` copies in the same way, and
+the target folder may be in another tree (Local data, an SSH folder or an ECCE
+server), given by its URL, for example
+`ecce-copy proj/calc-1 sftp://me@host/data/project`. `ecce-move` to another
+tree copies, checks the file count and sizes, and only then removes the
+original; on a failure the partial copy is removed and the original stays.
+A name that exists in the target is never overwritten. See
+[Copying and moving between trees](installation.md#copying-and-moving-between-trees).
 
 ## Rerunning a calculation
 

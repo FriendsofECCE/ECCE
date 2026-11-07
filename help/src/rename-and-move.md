@@ -21,3 +21,7 @@ their names, because the study finds them by name.
 
 A copy (**Edit > Copy** and **Paste**) is always possible: the copy is a new
 calculation and the running job keeps writing to the original.
+
+Moving or copying to another tree (Local data, an SSH folder, an ECCE server)
+works the same way and is described under [Where your work is
+kept](installation.md#copying-and-moving-between-trees).

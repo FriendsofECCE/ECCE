@@ -130,7 +130,7 @@ to. Other variables: the `ENVIRONMENT.md` file next to this one.
 ## Commands
 
 The `ecce-launch`, `ecce-terminate`, `ecce-reconnect`, `ecce-fetch`,
-`ecce-annotate`, `ecce-rerun`, `ecce-move` and `ecce-rename` commands do not start ECCE; they ask the running Organizer to act, so ECCE has
+`ecce-annotate`, `ecce-rerun`, `ecce-move`, `ecce-copy` and `ecce-rename` commands do not start ECCE; they ask the running Organizer to act, so ECCE has
 to be running with the same data mode. Without it they print `ECCE is not
 running: start ECCE first` and do nothing. A calculation is given as a folder
 (local data) or a URL (data server). One line is printed per calculation.
@@ -211,9 +211,10 @@ data server it needs the running Organizer and says so (exit 2). Output:
 
     ecce-annotate proj/calc-1 "ORCA B3LYP/def2-SVP, tests the new basis"
 
-### ecce-move and ecce-rename
+### ecce-move, ecce-copy and ecce-rename
 
     ecce-move <calculation or folder>... <folder>
+    ecce-copy <calculation or folder>... <folder>
     ecce-rename <calculation or folder> <new name>
 
 Move calculations (or folders) into an existing folder of the same data store,
@@ -222,8 +223,11 @@ at once. Never move them with `mv` while ECCE is running: the Organizer keeps
 stale nodes. Refused, with the reason: a calculation whose job is Submitted,
 Running or Waiting for Login, or a folder holding one (the others still move,
 exit 1); a name that already exists in the target (nothing is overwritten); a
-folder in another data store; a system folder. Local data and data servers
-only. Output: `name: moved to folder`, `name: renamed to new name`, or
+system folder. The folder may be in another tree (Local data, `sftp://` SSH
+folder, ECCE server; give its URL): the move is then copy, verify file count
+and sizes, remove the source, and a failure removes the partial copy and
+leaves the source. `ecce-copy` copies (a running calculation may be copied).
+Output: `name: copied to folder`, `name: moved to folder`, `name: renamed to new name`, or
 `name: not moved: reason` / `name: not renamed: reason`. Without a running
 ECCE nothing is done (exit 2).
 
