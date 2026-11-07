@@ -32,8 +32,8 @@ import xtb_test  # noqa: E402
 failures = []
 
 
-def check(ok, what):
-    say("  %s %s" % ("ok  " if ok else "FAIL", what))
+def check(ok, what, detail=""):
+    say("  %s %s%s" % ("ok  " if ok else "FAIL", what, ("\n      " + detail) if (detail and not ok) else ""))
     if not ok:
         failures.append(what)
     return ok
@@ -197,11 +197,18 @@ def main():
         def files(path):
             res = []
             for r, d, f in os.walk(path):
+                # .DAV holds the web server's own property database, not data
+                d[:] = [x for x in d if not x.startswith(".")]
                 for n in f:
                     if not n.startswith("."):
                         full = os.path.join(r, n)
                         res.append("%s %d" % (os.path.relpath(full, path), os.path.getsize(full)))
             return sorted(res)
+
+        def delta(got):
+            # what is missing or different on the target, and what is extra
+            g, w = set(got), set(srcFiles)
+            return "missing/different: %s; extra: %s" % (sorted(w - g)[:8], sorted(g - w)[:8])
 
         def formula(u):
             a = send("summary " + u)
@@ -215,7 +222,8 @@ def main():
         ans = send("server xfer copy %s %s" % (url, lproj))
         check("\tok\t" in ans, "server -> Local copy: %s" % ans)
         lcalc = lproj.replace("file://", "") + "/" + name
-        check(files(lcalc) == srcFiles, "every file arrived with its size (%d files)" % len(srcFiles))
+        got = files(lcalc)
+        check(got == srcFiles, "every file arrived with its size (%d files)" % len(srcFiles), delta(got))
         check(formula("file://" + lcalc) == srcFormula, "its summary opens from Local data")
         check(os.path.isdir(calc), "the server source is untouched")
         ans = send("server newproject Course pB")
@@ -223,7 +231,8 @@ def main():
         ans = send("server xfer copy file://%s %s" % (lcalc, pB))
         check("\tok\t" in ans, "Local -> server copy: %s" % ans)
         bcalc = os.path.join(htdocs, "pB", name)
-        check(files(bcalc) == srcFiles, "every file is on the server with its size")
+        got = files(bcalc)
+        check(got == srcFiles, "every file is on the server with its size", delta(got))
         check(formula(pB + "/" + name) == srcFormula, "its summary opens from the server tree")
         ans = send("server newproject Course pM")
         pM = ans.split(" ", 1)[1] if ans.startswith("ok ") else ""
