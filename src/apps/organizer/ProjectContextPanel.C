@@ -441,6 +441,24 @@ vector<EcceURL> ProjectContextPanel::getSelections()
 }
 
 
+int ProjectContextPanel::firstVisibleRow()
+{
+  wxGrid *g = p_projectView ? p_projectView->getGrid() : 0;
+  if (!g || g->GetNumberRows() == 0) return 0;
+  int r = g->YToRow(g->CalcUnscrolledPosition(wxPoint(0, 0)).y);
+  return r < 0 ? 0 : r;
+}
+
+void ProjectContextPanel::scrollToRow(int row)
+{
+  wxGrid *g = p_projectView ? p_projectView->getGrid() : 0;
+  if (!g || row <= 0 || row >= g->GetNumberRows()) return;
+  int unit = g->GetScrollLineY() > 0 ? g->GetScrollLineY() : 1;
+  int top = 0;
+  for (int i = 0; i < row; i++) top += g->GetRowSize(i);
+  g->Scroll(-1, top / unit);
+}
+
 void ProjectContextPanel::clearSelections()
 {
   p_projectView->clearSelectedRows();

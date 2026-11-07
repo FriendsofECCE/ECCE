@@ -177,6 +177,8 @@ static string progressKey(const EcceURL & url);
 static const char *const kFirstStartSet = "getting-started";
 #include <wx/dirdlg.h>
 #include "CalcMgr.H"
+#include <wx/filename.h>
+#include <wx/fswatcher.h>
 #include "CompareEnergies.H"
 #include "CompareEnergiesDialog.H"
 #include "ReactionOverviewDialog.H"
@@ -1572,6 +1574,60 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "message") {
       setMessage(calcName, WxFeedback::INFO);
       outcome = "ok";
+    } else if (command == "autoreloads") {
+      // "autoreloads": how many automatic reloads have run
+      outcome = std::to_string(p_autoReloads);
+    } else if (command == "autoshown") {
+      // "autoshown": the folder being watched or polled, and how
+      outcome = p_autoUrl + (p_autoLocal ? " watched" : " polled");
+      outcome += string(" idle=") + (autoRefreshIdle() ? "1" : "0") + " dirty=" + (p_autoDirty ? "1" : "0")
+                 + " disabler=" + std::to_string(p_disablerCount) + " busy=" + std::to_string(p_uiBusy)
+                 + " capture=" + (wxWindow::GetCapture() ? "1" : "0") + " focus="
+                 + (wxWindow::FindFocus() ? string(wxString(wxWindow::FindFocus()->GetClassInfo()->GetClassName()).ToUTF8()) : string("none"));
+      if (p_autoWatcher) {
+        wxArrayString ps;
+        p_autoWatcher->GetWatchedPaths(&ps);
+        for (size_t i = 0; i < ps.GetCount(); i++) outcome += " [" + string(ps[i].ToUTF8()) + "]";
+      }
+    } else if (command == "select") {
+      // "select URL": select that node as a click does
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
+      if (!node) outcome = "not in the tree";
+      else { p_treeCtrl->SelectItem(node->GetId()); outcome = "ok"; }
+    } else if (command == "selection") {
+      WxResourceTreeItemData *n = p_treeCtrl->GetSelection().IsOk() ? dynamic_cast<WxResourceTreeItemData*>(
+          p_treeCtrl->GetItemData(p_treeCtrl->GetSelection())) : 0;
+      outcome = n ? n->getUrl().toString() : "none";
+    } else if (command == "treechildren") {
+      // "treechildren URL": the names of the node's children in the tree
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), false, false);
+      if (!node) outcome = "not in the tree";
+      else {
+        outcome = "ok";
+        wxTreeItemIdValue ck;
+        for (wxTreeItemId c = p_treeCtrl->GetFirstChild(node->GetId(), ck); c.IsOk();
+             c = p_treeCtrl->GetNextChild(node->GetId(), ck))
+          outcome += " " + string(p_treeCtrl->GetItemText(c).ToUTF8());
+      }
+    } else if (command == "tableselect" || command == "tableselected") {
+      // "tableselect URL": select that row; "tableselected": the selected rows
+      ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      if (!t) outcome = "no table";
+      else {
+        if (command == "tableselect") t->selectResources(vector<EcceURL>(1, EcceURL(calcName)));
+        outcome = "ok";
+        for (const EcceURL &u : t->getSelections()) outcome += " " + u.toString();
+      }
+    } else if (command == "modal") {
+      // "modal SECONDS": a modal dialog for that long (a stand-in for any dialog)
+      int secs = atoi(calcName.c_str());
+      wxTimer *t = new wxTimer();
+      wxDialog dlg(this, wxID_ANY, "test");
+      t->Bind(wxEVT_TIMER, [&dlg](wxTimerEvent&) { dlg.EndModal(wxID_OK); });
+      t->StartOnce(secs * 1000);
+      outcome = "ok";
+      dlg.ShowModal();
+      delete t;
     } else if (command == "refresh") {
       WxResourceTreeItemData *node = findNode(project, true, true);
       if (node) {
@@ -3330,14 +3386,14 @@ void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
       menu.Bind(wxEVT_MENU, [this, ref](wxCommandEvent&) {
         CallAfter([this, ref]() { connectServer(ref); });
       }, id);
-      ewxPopupMenu(this, menu);
+      p_uiBusy++; ewxPopupMenu(this, menu); p_uiBusy--;
       return;
     }
   }
   menuSource(dynamic_cast<wxWindow*>(event.GetEventObject()));
   string error = guarded([&]() {
     getContextMenu(menu);
-    ewxPopupMenu(this, menu);
+    p_uiBusy++; ewxPopupMenu(this, menu); p_uiBusy--;
   });
   p_popupOnTree = false;
   if (!error.empty())
@@ -7096,7 +7152,9 @@ void CalcMgr::OnTreectrlBeginDrag( wxTreeEvent& event )
     */
 
     wxDropSource dragSource( my_data, this );
+    p_uiBusy++;
     (void)dragSource.DoDragDrop( wxDrag_DefaultMove );
+    p_uiBusy--;
     event.Skip();
   }
   else
@@ -8954,8 +9012,10 @@ void CalcMgr::machineNoticeRegisterClickCB(wxCommandEvent& event)
 
 void CalcMgr::OnActivate(wxActivateEvent& event)
 {
-  if (event.GetActive())
+  if (event.GetActive()) {
     refreshMachineNotice();
+    CallAfter([this]() { autoRefreshCheck(); });
+  }
   event.Skip();
 }
 
@@ -12542,6 +12602,7 @@ void CalcMgr::onSelectionChange(bool selectInTree)
     // getFileMenu(*fileMenu, itemData);
 
     stopDisabler();
+    autoRefreshArm();
   }
 
   //  The menus follow the selection once it has settled: a Shift range or
@@ -12804,6 +12865,169 @@ int CalcMgr::getProjectViewId() const
   return p_projectViewId;
 }
 
+
+
+// ---- Auto-refresh of the shown folder (#889) ----
+
+// The folder whose contents the table shows: the selected collection.  A
+// selected calculation is left alone, so its panel is not rebuilt under the
+// user.
+WxResourceTreeItemData *CalcMgr::autoRefreshFolder()
+{
+  if (!p_treeCtrl || !p_treeCtrl->GetSelection().IsOk()) return 0;
+  WxResourceTreeItemData *n = dynamic_cast<WxResourceTreeItemData*>(
+      p_treeCtrl->GetItemData(p_treeCtrl->GetSelection()));
+  if (!n || !n->getResource() || !n->getResource()->getDescriptor() ||
+      !n->getResource()->getDescriptor()->getIsExpandable()) return 0;
+  return n;
+}
+
+// One small request for a remote folder: SFTP stat, or DAV:getlastmodified.
+string CalcMgr::autoRefreshStamp(const EcceURL& url)
+{
+  string stamp;
+  EDSI *edsi = EDSIFactory::getEDSI(url);
+  if (!edsi) return stamp;
+  // A timer must never open a dialog: with no listeners a DAV request uses
+  // the credentials already cached by the tree's login and otherwise just
+  // fails, and SftpEDSI::folderStamp only uses an existing login.  On a
+  // central server a prompt every 30 s per client would be a lockout risk;
+  // a failed check is skipped until the user acts (Refresh, or the next try).
+  edsi->addAuthEventListener(0);
+  edsi->addProgressEventListener(0);
+  if (SftpEDSI *sftp = dynamic_cast<SftpEDSI*>(edsi)) {
+    stamp = sftp->folderStamp();
+  } else {
+    MetaDataRequest req;
+    req.name = "DAV:getlastmodified";
+    vector<MetaDataRequest> reqs(1, req);
+    vector<MetaDataResult> res;
+    if (edsi->getMetaData(reqs, res) && !res.empty()) stamp = res[0].value;
+  }
+  delete edsi;
+  return stamp;
+}
+
+void CalcMgr::autoRefreshArm()
+{
+  if (!p_autoDebounce) {
+    p_autoDebounce = new wxTimer();
+    p_autoDebounce->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { autoRefreshTick(); });
+    Bind(wxEVT_FSWATCHER, [this](wxFileSystemWatcherEvent &ev) {
+      // A sidecar rewritten in place is ECCE's own annotation, not news.
+      string name = ev.GetPath().GetFullName().ToStdString();
+      if (name.compare(0, 10, ".ecce-meta") == 0 && ev.GetNewPath().GetFullName().empty())
+        return;
+      autoRefreshMark();
+    });
+    p_autoPoll = new wxTimer();
+    p_autoPoll->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { autoRefreshCheck(); });
+  }
+  WxResourceTreeItemData *folder = autoRefreshFolder();
+  string url = folder ? folder->getUrl().toString() : string();
+  if (url == p_autoUrl) return;
+
+  if (p_autoWatcher) { delete p_autoWatcher; p_autoWatcher = 0; }
+  p_autoPoll->Stop();
+  p_autoUrl = url;
+  p_autoStamp.clear();
+  p_autoLocal = false;
+  if (url != p_autoTried) { p_autoTried = url; p_autoRetry = 0; }
+  if (!folder) return;
+
+  EcceURL eu = folder->getUrl();
+  if (eu.isLocal()) {
+    p_autoLocal = true;
+    p_autoWatcher = new wxFileSystemWatcher();
+    p_autoWatcher->SetOwner(this);
+    // Not the calculation folders inside: a running job writes there.
+    if (!p_autoWatcher->Add(wxFileName::DirName(wxString::FromUTF8(eu.getPath().c_str())),
+                            wxFSW_EVENT_CREATE | wxFSW_EVENT_DELETE | wxFSW_EVENT_RENAME)) {
+      delete p_autoWatcher; p_autoWatcher = 0;
+      // The watcher cannot start before the event loop runs (the first
+      // selection happens in the constructor): try again shortly.
+      p_autoUrl.clear();
+      if (p_autoRetry++ < 10) p_autoDebounce->StartOnce(1000);
+      return;
+    }
+  } else {
+    p_autoStamp = autoRefreshStamp(eu);
+    p_autoPoll->Start(30000);
+  }
+}
+
+void CalcMgr::autoRefreshMark()
+{
+  p_autoDirty = true;
+  if (p_autoDebounce) p_autoDebounce->StartOnce(1000);
+}
+
+// A remote folder: reload only if its modification time moved.  Not while
+// the window is minimised or inactive.
+void CalcMgr::autoRefreshCheck()
+{
+  if (p_autoLocal || p_autoUrl.empty() || IsIconized() || !autoRefreshIdle())
+    return;
+  string now = autoRefreshStamp(EcceURL(p_autoUrl));
+  if (!now.empty() && now != p_autoStamp) {
+    p_autoStamp = now;
+    autoRefreshMark();
+  }
+}
+
+// Nothing the user is in the middle of: no modal dialog, menu, drag, text
+// edit, or the busy state of an action under way.
+bool CalcMgr::autoRefreshIdle() const
+{
+  if (p_disablerCount > 0 || p_disabler || p_uiBusy > 0 || p_batch) return false;
+  if (wxWindow::GetCapture()) return false;
+  for (wxWindowList::compatibility_iterator n = wxTopLevelWindows.GetFirst();
+       n; n = n->GetNext()) {
+    wxDialog *d = dynamic_cast<wxDialog*>(n->GetData());
+    if (d && d->IsShown() && d->IsModal()) return false;
+  }
+  wxWindow *f = wxWindow::FindFocus();
+  if (f && dynamic_cast<wxTextCtrl*>(f) && !p_autoUrl.empty() &&
+      wxGetTopLevelParent(f) == this) return false;
+  return true;
+}
+
+void CalcMgr::autoRefreshTick()
+{
+  if (p_autoUrl.empty()) { autoRefreshArm(); return; }
+  if (!p_autoDirty) return;
+  if (!autoRefreshIdle()) { p_autoDebounce->StartOnce(1000); return; }
+  p_autoDirty = false;
+  WxResourceTreeItemData *folder = autoRefreshFolder();
+  if (!folder || folder->getUrl().toString() != p_autoUrl) return;
+  // Items are rebuilt below; the first visible one is found again by URL.
+  string topUrl;
+  wxTreeItemId top = p_treeCtrl->GetFirstVisibleItem();
+  if (top.IsOk()) {
+    WxResourceTreeItemData *t = dynamic_cast<WxResourceTreeItemData*>(
+        p_treeCtrl->GetItemData(top));
+    if (t) topUrl = t->getUrl().toString();
+  }
+  // The project table is rebuilt: keep its selected rows (by URL) and its
+  // first visible row.
+  vector<EcceURL> rowsSelected;
+  int topRow = 0;
+  if (ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel)) {
+    rowsSelected = t->getSelections();
+    topRow = t->firstVisibleRow();
+  }
+  p_autoReloads++;
+  p_treeCtrl->refresh(folder);
+  onSelectionChange(true);
+  if (ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel)) {
+    if (!rowsSelected.empty()) t->selectResources(rowsSelected);
+    t->scrollToRow(topRow);
+  }
+  if (!topUrl.empty()) {
+    WxResourceTreeItemData *t = findNode(EcceURL(topUrl), false, false);
+    if (t) p_treeCtrl->ScrollTo(t->GetId());
+  }
+}
 
 void CalcMgr::refresh()
 {

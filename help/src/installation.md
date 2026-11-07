@@ -162,6 +162,12 @@ added, with their name, type and address:
 - **Edit...** changes the selected server and **Remove** takes it out of the
   list. Nothing on the server is deleted.
 
+The Organizer follows changes made outside ECCE in the folder it shows: a
+calculation copied into a local project by a script, another program or
+another computer appears at once, and one in a server or SSH folder within 30
+seconds or when you return to the window. It waits while a dialog, menu or
+rename is open. **View > Refresh** forces a reload.
+
 The list of servers is stored for you. Each ECCE server in the list is a
 tree of its own in the Organizer, below **Local data**, named
 **<name> (ECCE server)**. Opening it asks for your login on that server
