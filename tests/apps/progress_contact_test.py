@@ -92,7 +92,10 @@ def run(display, pngs):
             handle.write(".\t%sjob_jobid\t\t4711\n" % NS)
         # First in the table, which selects its first row: the amber cell
         # is drawn in an unselected row.
-        box.makeCalc(project, "water-done", "Complete", box.DONE.format(**stamp))
+        done = box.makeCalc(project, "water-done", "Complete", box.DONE.format(**stamp))
+        longNote = " ".join(["annotation words that go on past any panel width"] * 12)
+        with open(os.path.join(done, ".ecce-meta"), "a") as handle:
+            handle.write(".\t%sannotation\t\t%s\n" % (NS, longNote))
         png = lambda n: os.path.join(pngs, n)
         url = "file://" + running
         cmds = os.path.join(work, "commands")
@@ -131,6 +134,10 @@ def run(display, pngs):
                 "contact file://%s lost %d" % (queued, int(now - 240)),
                 "progressbox",
                 "snap " + png("contact-queued-lost.png"),
+                "summary file://" + stored,
+                "progressbox",
+                "summary file://" + done,
+                "progressbox",
                 "fold shut",
             ]) + "\n")
         log = organizer(display, cmds, data, running)
@@ -138,7 +145,7 @@ def run(display, pngs):
         trees = re.findall(r"ECCE_TEST_ORGANIZER: treestate.*?: (image=.*)", log)
         tables = re.findall(r"ECCE_TEST_ORGANIZER: table.*?: (panel=.*)", log)
         states = box.answers(log, "tablestates")
-        if not check(len(boxes) == 9 and len(trees) == 3 and len(tables) == 1
+        if not check(len(boxes) == 11 and len(trees) == 3 and len(tables) == 1
                      and len(states) == 1,
                      "every command answered (%d boxes, %d trees, %d tables, %d states)"
                      % (len(boxes), len(trees), len(tables), len(states)),
@@ -146,7 +153,8 @@ def run(display, pngs):
             return
         for b in boxes + trees + tables + states:
             print("      " + b)
-        before, lost, checked, folded, back, fromStored, qBox, qChecked, qLost = boxes
+        before, lost, checked, folded, back, fromStored, qBox, qChecked, qLost, \
+            storedOpen, doneBox = boxes
 
         check(field(before, "stateicon") == "plain" and
               "heading open" in lines(before) and
@@ -209,6 +217,21 @@ def run(display, pngs):
               any(l.startswith("(grey) Status: Queued since") for l in lines(qLost)) and
               field(qLost, "stateicon") == "plain",
               "queued: no contact greys it, last heard shown", qLost)
+
+        # #896: the buttons stay clear of the text, none on a finished job,
+        # and a long annotation wraps to the panel.
+        check("buttons 3" in lines(storedOpen) and
+              any(l.startswith("button/text overlaps 0 of ") for l in lines(storedOpen)),
+              "lost: the buttons overlap no text row", storedOpen)
+        check(not any(l.startswith(("buttons", "contact lost")) for l in lines(doneBox)) and
+              field(doneBox, "stateicon") == "plain",
+              "completed: no lost-job buttons", doneBox)
+        try:
+            anno, client = int(field(doneBox, "annotation")), int(field(doneBox, "panelclient"))
+        except ValueError:
+            anno, client = 0, -1
+        check(0 < anno <= client, "long annotation wraps: %d wide in a %d panel" % (anno, client),
+              doneBox)
 
         ini = os.path.join(os.environ.get("ECCE_REALUSERHOME", ""), ".ECCE")
         found = [os.path.join(r, f) for r, _, fs in os.walk(ini) for f in fs

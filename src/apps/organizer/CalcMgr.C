@@ -2256,6 +2256,9 @@ void CalcMgr::runTestCommand(const string& line)
                                    ? "running?" : "plain") +
                   " copyvalue=" + box->copyText(0) +
                   " energyselectable=" + (box->energySelectable() ? "1" : "0");
+        if (wxWindow *anno = panel->FindWindow("annotation"))
+          outcome += " annotation=" + std::to_string(anno->GetSize().x) + " panelclient=" +
+                     std::to_string(panel->GetClientSize().x);
         for (const string& l : box->describe()) outcome += " | " + l;
       }
     } else if (command == "allocations") {
