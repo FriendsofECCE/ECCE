@@ -1,0 +1,464 @@
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 1 E  -0.999625244150
+  H       0.000000      0.000000     -0.000000
+  H       0.000000      0.000000      5.000000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 2 E  -0.999625773793
+  H       0.000000      0.000000      0.025000
+  H       0.000000      0.000000      4.975000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 3 E  -0.999626387363
+  H       0.000000      0.000000      0.050000
+  H       0.000000      0.000000      4.950000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 4 E  -0.999627141434
+  H       0.000000      0.000000      0.075000
+  H       0.000000      0.000000      4.925000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 5 E  -0.999627886555
+  H       0.000000      0.000000      0.100000
+  H       0.000000      0.000000      4.900000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 6 E  -0.999628758292
+  H       0.000000      0.000000      0.125000
+  H       0.000000      0.000000      4.875000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 7 E  -0.999629744892
+  H       0.000000      0.000000      0.150000
+  H       0.000000      0.000000      4.850000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 8 E  -0.999630864781
+  H       0.000000      0.000000      0.175000
+  H       0.000000      0.000000      4.825000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 9 E  -0.999632138699
+  H       0.000000      0.000000      0.200000
+  H       0.000000      0.000000      4.800000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 10 E  -0.999633590389
+  H       0.000000      0.000000      0.225000
+  H       0.000000      0.000000      4.775000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 11 E  -0.999635247621
+  H       0.000000      0.000000      0.250000
+  H       0.000000      0.000000      4.750000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 12 E  -0.999637143381
+  H       0.000000      0.000000      0.275000
+  H       0.000000      0.000000      4.725000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 13 E  -0.999639304443
+  H       0.000000      0.000000      0.300000
+  H       0.000000      0.000000      4.700000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 14 E  -0.999641809607
+  H       0.000000      0.000000      0.325000
+  H       0.000000      0.000000      4.675000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 15 E  -0.999644705710
+  H       0.000000      0.000000      0.350000
+  H       0.000000      0.000000      4.650000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 16 E  -0.999648055238
+  H       0.000000      0.000000      0.375000
+  H       0.000000      0.000000      4.625000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 17 E  -0.999651936329
+  H       0.000000      0.000000      0.400000
+  H       0.000000      0.000000      4.600000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 18 E  -0.999656439131
+  H       0.000000      0.000000      0.425000
+  H       0.000000      0.000000      4.575000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 19 E  -0.999661668305
+  H       0.000000      0.000000      0.450000
+  H       0.000000      0.000000      4.550000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 20 E  -0.999667746629
+  H       0.000000      0.000000      0.475000
+  H       0.000000      0.000000      4.525000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 21 E  -0.999674818999
+  H       0.000000      0.000000      0.500000
+  H       0.000000      0.000000      4.500000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 22 E  -0.999683056535
+  H       0.000000      0.000000      0.525000
+  H       0.000000      0.000000      4.475000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 23 E  -0.999692915242
+  H       0.000000      0.000000      0.550000
+  H       0.000000      0.000000      4.450000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 24 E  -0.999704132396
+  H       0.000000      0.000000      0.575000
+  H       0.000000      0.000000      4.425000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 25 E  -0.999717232521
+  H       0.000000      0.000000      0.600000
+  H       0.000000      0.000000      4.400000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 26 E  -0.999732540428
+  H       0.000000      0.000000      0.625000
+  H       0.000000      0.000000      4.375000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 27 E  -0.999750435936
+  H       0.000000      0.000000      0.650000
+  H       0.000000      0.000000      4.350000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 28 E  -0.999771362670
+  H       0.000000      0.000000      0.675000
+  H       0.000000      0.000000      4.325000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 29 E  -0.999795838199
+  H       0.000000      0.000000      0.700000
+  H       0.000000      0.000000      4.300000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 30 E  -0.999824465773
+  H       0.000000      0.000000      0.725000
+  H       0.000000      0.000000      4.275000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 31 E  -0.999857947932
+  H       0.000000      0.000000      0.750000
+  H       0.000000      0.000000      4.250000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 32 E  -0.999897102257
+  H       0.000000      0.000000      0.775000
+  H       0.000000      0.000000      4.225000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 33 E  -0.999942879685
+  H       0.000000      0.000000      0.800000
+  H       0.000000      0.000000      4.200000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 34 E  -0.999996385756
+  H       0.000000      0.000000      0.825000
+  H       0.000000      0.000000      4.175000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 35 E  -1.000058905276
+  H       0.000000      0.000000      0.850000
+  H       0.000000      0.000000      4.150000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 36 E  -1.000131930882
+  H       0.000000      0.000000      0.875000
+  H       0.000000      0.000000      4.125000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 37 E  -1.000217196104
+  H       0.000000      0.000000      0.900000
+  H       0.000000      0.000000      4.100000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 38 E  -1.000316713352
+  H       0.000000      0.000000      0.925000
+  H       0.000000      0.000000      4.075000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 39 E  -1.000432817539
+  H       0.000000      0.000000      0.950000
+  H       0.000000      0.000000      4.050000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 40 E  -1.000568215799
+  H       0.000000      0.000000      0.975000
+  H       0.000000      0.000000      4.025000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 41 E  -1.000726043654
+  H       0.000000      0.000000      1.000000
+  H       0.000000      0.000000      4.000000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 42 E  -1.000909928122
+  H       0.000000      0.000000      1.025000
+  H       0.000000      0.000000      3.975000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 43 E  -1.001124057896
+  H       0.000000      0.000000      1.050000
+  H       0.000000      0.000000      3.950000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 44 E  -1.001373260278
+  H       0.000000      0.000000      1.075000
+  H       0.000000      0.000000      3.925000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 45 E  -1.001663084813
+  H       0.000000      0.000000      1.100000
+  H       0.000000      0.000000      3.900000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 46 E  -1.001999892493
+  H       0.000000      0.000000      1.125000
+  H       0.000000      0.000000      3.875000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 47 E  -1.002390949502
+  H       0.000000      0.000000      1.150000
+  H       0.000000      0.000000      3.850000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 48 E  -1.002844522993
+  H       0.000000      0.000000      1.175000
+  H       0.000000      0.000000      3.825000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 49 E  -1.003369976817
+  H       0.000000      0.000000      1.200000
+  H       0.000000      0.000000      3.800000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 50 E  -1.003977863556
+  H       0.000000      0.000000      1.225000
+  H       0.000000      0.000000      3.775000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 51 E  -1.004680007760
+  H       0.000000      0.000000      1.250000
+  H       0.000000      0.000000      3.750000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 52 E  -1.005489576187
+  H       0.000000      0.000000      1.275000
+  H       0.000000      0.000000      3.725000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 53 E  -1.006421128737
+  H       0.000000      0.000000      1.300000
+  H       0.000000      0.000000      3.700000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 54 E  -1.007490642089
+  H       0.000000      0.000000      1.325000
+  H       0.000000      0.000000      3.675000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 55 E  -1.008715498395
+  H       0.000000      0.000000      1.350000
+  H       0.000000      0.000000      3.650000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 56 E  -1.010114424247
+  H       0.000000      0.000000      1.375000
+  H       0.000000      0.000000      3.625000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 57 E  -1.011707370973
+  H       0.000000      0.000000      1.400000
+  H       0.000000      0.000000      3.600000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 58 E  -1.013515446643
+  H       0.000000      0.000000      1.425000
+  H       0.000000      0.000000      3.575000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 59 E  -1.015561043475
+  H       0.000000      0.000000      1.450000
+  H       0.000000      0.000000      3.550000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 60 E  -1.017866530967
+  H       0.000000      0.000000      1.475000
+  H       0.000000      0.000000      3.525000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 61 E  -1.020454886394
+  H       0.000000      0.000000      1.500000
+  H       0.000000      0.000000      3.500000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 62 E  -1.023348871379
+  H       0.000000      0.000000      1.525000
+  H       0.000000      0.000000      3.475000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 63 E  -1.026570668023
+  H       0.000000      0.000000      1.550000
+  H       0.000000      0.000000      3.450000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 64 E  -1.030141339998
+  H       0.000000      0.000000      1.575000
+  H       0.000000      0.000000      3.425000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 65 E  -1.034080264510
+  H       0.000000      0.000000      1.600000
+  H       0.000000      0.000000      3.400000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 66 E  -1.038404539603
+  H       0.000000      0.000000      1.625000
+  H       0.000000      0.000000      3.375000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 67 E  -1.043128382426
+  H       0.000000      0.000000      1.650000
+  H       0.000000      0.000000      3.350000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 68 E  -1.048262522074
+  H       0.000000      0.000000      1.675000
+  H       0.000000      0.000000      3.325000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 69 E  -1.053813579020
+  H       0.000000      0.000000      1.700000
+  H       0.000000      0.000000      3.300000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 70 E  -1.059783424724
+  H       0.000000      0.000000      1.725000
+  H       0.000000      0.000000      3.275000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 71 E  -1.066168487499
+  H       0.000000      0.000000      1.750000
+  H       0.000000      0.000000      3.250000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 72 E  -1.072958951967
+  H       0.000000      0.000000      1.775000
+  H       0.000000      0.000000      3.225000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 73 E  -1.080137802599
+  H       0.000000      0.000000      1.800000
+  H       0.000000      0.000000      3.200000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 74 E  -1.087679630969
+  H       0.000000      0.000000      1.825000
+  H       0.000000      0.000000      3.175000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 75 E  -1.095549105669
+  H       0.000000      0.000000      1.850000
+  H       0.000000      0.000000      3.150000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 76 E  -1.103698994630
+  H       0.000000      0.000000      1.875000
+  H       0.000000      0.000000      3.125000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 77 E  -1.112067596844
+  H       0.000000      0.000000      1.900000
+  H       0.000000      0.000000      3.100000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 78 E  -1.120575285207
+  H       0.000000      0.000000      1.925000
+  H       0.000000      0.000000      3.075000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 79 E  -1.129119909750
+  H       0.000000      0.000000      1.950000
+  H       0.000000      0.000000      3.050000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 80 E  -1.137570501015
+  H       0.000000      0.000000      1.975000
+  H       0.000000      0.000000      3.025000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 81 E  -1.145758831991
+  H       0.000000      0.000000      2.000000
+  H       0.000000      0.000000      3.000000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 82 E  -1.153467330698
+  H       0.000000      0.000000      2.025000
+  H       0.000000      0.000000      2.975000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 83 E  -1.160412821173
+  H       0.000000      0.000000      2.050000
+  H       0.000000      0.000000      2.950000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 84 E  -1.166223436989
+  H       0.000000      0.000000      2.075000
+  H       0.000000      0.000000      2.925000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 85 E  -1.170406275313
+  H       0.000000      0.000000      2.100000
+  H       0.000000      0.000000      2.900000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 86 E  -1.172301239909
+  H       0.000000      0.000000      2.125000
+  H       0.000000      0.000000      2.875000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 87 E  -1.171014611188
+  H       0.000000      0.000000      2.150000
+  H       0.000000      0.000000      2.850000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 88 E  -1.165321356648
+  H       0.000000      0.000000      2.175000
+  H       0.000000      0.000000      2.825000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 89 E  -1.153517943708
+  H       0.000000      0.000000      2.200000
+  H       0.000000      0.000000      2.800000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 90 E  -1.133194484820
+  H       0.000000      0.000000      2.225000
+  H       0.000000      0.000000      2.775000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 91 E  -1.100869691910
+  H       0.000000      0.000000      2.250000
+  H       0.000000      0.000000      2.750000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 92 E  -1.051379387233
+  H       0.000000      0.000000      2.275000
+  H       0.000000      0.000000      2.725000
+>
+2
+Coordinates from ORCA-job orca.orcain Relaxed Surface Scan Step 93 E  -0.976797974935
+  H       0.000000      0.000000      2.300000
+  H       0.000000      0.000000      2.700000
