@@ -867,6 +867,42 @@ void applyRoleBasis(Resource *step)
   }
 }
 
+// Weak point charge (e) at each donor atom of a metal fragment's complex. It
+// only decides WHICH d orbitals are occupied by breaking their degeneracy in
+// the complex's frame, it does not model the ligand field: charges of -0.5 e
+// and more push the compact 3d above 4s (d4 4s2 for Cr(0)), which the
+// complex avoids through Pauli repulsion. -0.1 e keeps t2g6 (Cr(CO)6, Co(III)).
+static const double kFieldCharge = -0.1;
+
+// Stores the point-charge file of a field step: the non-hydrogen atoms
+// within 1.25 covalent radii of the metal atom `metal` (0-based) of `whole`.
+static void storeFieldCharges(TaskJob *target, Fragment *whole, int metal)
+{
+  if (!target || target->pointChargeInputFile().empty()) return;
+  TPerTab table;
+  const TAtm *m = whole->atomRef(metal);
+  std::ostringstream body;
+  int n = 0;
+  for (size_t i = 0; i < whole->numAtoms(); i++) {
+    if ((int)i == metal) continue;
+    const TAtm *a = whole->atomRef((int)i);
+    if (a->atomicNumber() < 2) continue;
+    double d2 = 0;
+    for (int c = 0; c < 3; c++) {
+      const double dx = a->coordinates()[c] - m->coordinates()[c];
+      d2 += dx * dx;
+    }
+    const double lim = 1.25 * (table.covalentRadius(m->atomicNumber()) +
+                               table.covalentRadius(a->atomicNumber()));
+    if (d2 > lim * lim) continue;
+    body << kFieldCharge << " " << a->coordinates()[0] << " " << a->coordinates()[1]
+         << " " << a->coordinates()[2] << "\n";
+    n++;
+  }
+  std::istringstream in(std::to_string(n) + "\n" + body.str());
+  target->putInputFile(target->pointChargeInputFile(), &in);
+}
+
 // Copies what a link carries from `source` into `made`.
 void carryInto(Resource *source, Resource *made, const string& point, int chargeShift = 0)
 {
@@ -893,6 +929,8 @@ void carryInto(Resource *source, Resource *made, const string& point, int charge
     Fragment *sub = frag && frag->numAtoms() > 0 &&
                     resolveFragments(parts, (int)frag->numAtoms(), atoms, why)
                         ? frag->createSubFragment(atoms[part - 1]) : 0;
+    if (sub && made->getProp(nsKey(":recipe.field")) == "1" && atoms[part - 1].size() == 1)
+      storeFieldCharges(dynamic_cast<TaskJob*>(made), frag, atoms[part - 1][0]);
     delete frag;
     if (sub) {
       sub->charge(parts[part - 1].charge);
@@ -993,6 +1031,7 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
       if (variant.steps[i].fragment > 0) {
         made[i]->addProp(nsKey(":recipe.fragment"), std::to_string(variant.steps[i].fragment));
         made[i]->addProp(nsKey(":recipe.fragments"), variant.steps[i].fragments);
+        if (variant.steps[i].field) made[i]->addProp(nsKey(":recipe.field"), "1");
       }
     if (after)
       for (size_t i = 0; i < variant.steps.size(); i++)
@@ -1095,6 +1134,19 @@ string WorkflowSteps::recipeId(Session *wf)
 }
 
 
+void WorkflowSteps::attachFieldOrbitals(Resource *step, Resource *source)
+{
+  // The orbitals of a recipe's field step, once it has finished, are the
+  // starting guess of the step they are linked to.
+  TaskJob *to = dynamic_cast<TaskJob*>(step);
+  TaskJob *from = dynamic_cast<TaskJob*>(source);
+  string why;
+  if (to && from && isComplete(source) && !to->hasOrbitalGuess() &&
+      OrbitalGuess::available(from, why))
+    OrbitalGuess::attach(to, from, why);
+}
+
+
 string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
 {
   if (step->getProp(nsKey(":recipe.step")).empty()) return "";
@@ -1103,6 +1155,10 @@ string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
     if (l->linkType != Session::INPUT_PROVIDER || l->target != step) continue;
     string role, point;
     splitLinkName(l->linkName, role, point);
+    if (role == "orbitals") {
+      attachFieldOrbitals(step, l->source);
+      continue;
+    }
     if ((role == "geometry" || role == "reactant") &&
         hasResultGeometry(l->source)) {
       carryInto(l->source, step, role == "reactant" ? "" : point,
@@ -1346,9 +1402,15 @@ vector<FragStep> WorkflowSteps::fragmentSteps(Session *wf)
   vector<std::pair<Resource*, int> > parts;
   for (const Node& n : tree(wf)) {
     const int k = atoi(n.step->getProp(nsKey(":recipe.fragment")).c_str());
-    if (k <= 0 || !n.source) continue;
-    if (!complex) complex = n.source;
-    if (n.source == complex) parts.push_back(std::make_pair(n.step, k));
+    if (k <= 0) continue;
+    if (n.step->getProp(nsKey(":recipe.field")) == "1") continue;   // not an analysed fragment
+    // A fragment that follows a field step has two sources; the complex is
+    // the one it takes its geometry from.
+    Resource *src = n.source;
+    for (const Incoming& in : n.in) if (in.name == kGeometryLink) src = in.source;
+    if (!src) continue;
+    if (!complex) complex = src;
+    if (src == complex) parts.push_back(std::make_pair(n.step, k));
   }
   if (!complex) return out;
   auto make = [&](Resource *step, int k) {

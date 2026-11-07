@@ -260,6 +260,8 @@ bool writeParams(ICalculation *calc, const string& file,
   TaskJob *job = dynamic_cast<TaskJob*>(calc);
   if (job && job->hasOrbitalGuess())
     os << "ES.Theory.SCF.OrbitalGuessFile: " << job->orbitalGuessFile() << endl;
+  if (job && job->hasPointChargeInput())
+    os << "ES.Theory.SCF.PointChargeFile: " << job->pointChargeInputFile() << endl;
   if (job && job->hasHessianInput()) {
     os << "ES.Runtype.GeomOpt.HessianFile: " << job->hessianInputFile() << endl;
     // A workflow step made with "Start from the source's Hessian" reads it

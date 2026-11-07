@@ -714,7 +714,7 @@ void RecipePanel::changed()
   const bool frags = variant() && hasFragmentSteps(*variant());
   p_fragPanel->Show(frags);
   p_whereHeading->SetLabel(frags ? "4  Where the new steps go" : "3  Where the new steps go");
-  if (frags) p_expanded = expandFragments(*variant(), fragments());
+  if (frags) p_expanded = expandFragments(*variant(), fragments(), p_z);
   // What is wrong with the fragments, or the charge warning, under the controls.
   if (frags) {
     string text = fragmentProblem(), warning;
@@ -794,7 +794,7 @@ void RecipePanel::createClicked()
     Layout();
     return;
   }
-  const RecipeVariant made = frags ? expandFragments(*variant(), fragments()) : *variant();
+  const RecipeVariant made = frags ? expandFragments(*variant(), fragments(), p_z) : *variant();
   string why = p_owner->recipeCreate(*recipe(), made, levels(), after(),
                                  p_autorun->GetValue());
   if (!why.empty()) {

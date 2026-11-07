@@ -192,6 +192,20 @@ launched.
     lowest multiplicity (a doublet). Cr(0) in Cr(CO)₆ is d⁶, a singlet; Co³⁺
     in a low-spin complex is d⁶, a singlet. The fragment orbitals then
     describe the metal as it is bonded.
+
+    For a single atom in this state the recipe makes two boxes. First
+    **fragment-N-field** runs the atom in weak point charges (-0.1 e each)
+    at the complex's donor atoms, the non-hydrogen atoms bonded to it. The
+    charges only break the degeneracy of the d orbitals in the complex's own
+    frame, so the occupied d orbitals are the ones the complex's field
+    favours (the t2g set of an octahedral d⁶ complex). They are not a model
+    of the ligand field: charges of -0.5 e and more push the 3d above 4s in
+    a neutral atom and give the wrong configuration. Then **fragment-N**, the
+    atom without point charges, starts from the orbitals of the field box
+    and so keeps that occupation; the Fragment orbitals box analyses this
+    one. Without the field box, the bare ion's degenerate d orbitals are
+    filled in an arbitrary orientation and the shares of the complex's d
+    orbitals are wrong.
   - *Free fragment, ground state*: the isolated atom or ion in its ground
     state: for the neutral atoms and +1 ions of the d block the tabulated
     ground term (Cr 3d⁵4s¹, a septet; Fe 3d⁶4s², a quintet), for higher
@@ -254,6 +268,17 @@ part outside the span of the FOs, which is listed in the Details window and
 is near zero when the fragments together have the complex's basis set.
 A Mulliken share can be above 100 % or below 0 when fragment orbitals
 overlap strongly; the shares of one orbital still add up as above.
+
+When a fragment is a single metal atom, the box also checks that its
+occupied d orbitals match the complex's. Every occupied complex orbital
+with a Mulliken share of 30 % or more on the atom's d orbitals must be
+made mainly (80 % or more of that d share) of the atom's occupied d
+orbitals. If one is not, a line under the box says: "The metal fragment's
+occupied d orbitals do not match the complex's; the d shares are
+unreliable (field-split guess failed)." The shares are still shown. This
+happens, for example, when the atom was run without the field box and the
+SCF filled a different set of the degenerate d orbitals than the complex
+uses.
 
 **Details...** opens a window with:
 

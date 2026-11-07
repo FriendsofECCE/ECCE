@@ -20,7 +20,10 @@
  *       thermo (the key data gives its G),
  *       charge=<+N|-N> (the source's charge plus N, for a step after CREST Protonation Sites),
  *       fragment (made once per fragment set in the set-up panel: that
- *       fragment's atoms of the source's structure, its charge and multiplicity)
+ *       fragment's atoms of the source's structure, its charge and multiplicity),
+ *       field (with fragment: a one-atom fragment in its complex state is made
+ *       after a step "<id>-N-field", the atom in weak point charges at the
+ *       complex's donor atoms, and the fragment's step starts from its orbitals)
  *   set: <variant> | <step id> | <ES key> | <value>
  *   link: <variant> | <from> | <to> | <link name>     (name as WorkflowSteps)
  *   rules: anion-diffuse, heavy-ecp, size, registered
@@ -48,6 +51,8 @@ struct RecipeStep {
   int chargeShift = 0;   // added to the charge carried from the source (a protonated cation: +1)
   std::string keyRole;
   bool perFragment = false;   ///< the "fragment" flag
+  bool metalField = false;    ///< the "field" flag: a one-atom fragment first gets a point-charge step
+  bool field = false;         ///< after expandFragments: that point-charge step (its fragment's number is `fragment`)
   int fragment = 0;           ///< after expandFragments: 1.. (0 = not a fragment step)
   std::string fragments;      ///< after expandFragments: every fragment, fragmentsText()
 };
@@ -137,7 +142,8 @@ bool hasFragmentSteps(const RecipeVariant& variant);
 /// The variant with each "fragment" step made once per fragment (ids
 /// "<id>-1", "<id>-2", ...) and every link to or from it repeated.
 RecipeVariant expandFragments(const RecipeVariant& variant,
-                              const std::vector<RecipeFragment>& fragments);
+                              const std::vector<RecipeFragment>& fragments,
+                              const std::vector<int>& z = std::vector<int>());
 
 /// "1:0:1/2-13:0:1" (atoms:charge:multiplicity[:free], "/" between fragments), and back.
 std::string fragmentsText(const std::vector<RecipeFragment>& fragments);

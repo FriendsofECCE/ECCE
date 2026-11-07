@@ -684,6 +684,10 @@ sub ORCABlocks {
   $result .= "%output\n  Print[P_MOs] 1\n  Print[P_OrbEn] 2\nend\n";
   $result .= "%moinp \"" . &OrbitalGuessFile() . "\"\n"
     if (&OrbitalGuessFile() ne "");
+  #  A workflow step (Fragment analysis recipe) stores the charges as an input.
+  $result .= "%pointcharges \"" . $AbiDict{"ES.Theory.SCF.PointChargeFile"} . "\"\n"
+    if (defined($AbiDict{"ES.Theory.SCF.PointChargeFile"}) &&
+        $AbiDict{"ES.Theory.SCF.PointChargeFile"} ne "");
   # One %elprop block. Quadrupole is unconditional (orca.quadpole needs
   # it; ORCA has no octupole/hexadecapole flag). Polar 1 gives Raman
   # activities; verifyRamanRequest warns about combinations ORCA

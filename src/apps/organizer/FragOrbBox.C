@@ -215,6 +215,9 @@ FragOrbBoxResult fragOrbBox(const vector<FragStep>& steps)
       b.rows.push_back(std::make_pair(label, value));
     }
   }
+  if (b.data.fieldApplicable && !b.data.fieldOk)
+    b.warning = "The metal fragment's occupied d orbitals do not match the complex's; "
+                "the d shares are unreliable (field-split guess failed).";
   b.note = "Shares of the fragment orbitals (FOs) of " + fragPercent(b.data.threshold) +
            " or more; degenerate orbitals taken together.";
   return b;
@@ -228,6 +231,7 @@ string FragOrbBoxResult::text() const
   if (!level.empty()) t += level + "\n";
   for (size_t i = 0; i < rows.size(); i++) t += rows[i].first + ": " + rows[i].second + "\n";
   if (!note.empty()) t += note + "\n";
+  if (!warning.empty()) t += warning + "\n";
   return t;
 }
 

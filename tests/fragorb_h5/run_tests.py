@@ -273,6 +273,15 @@ def main():
     r = run([exe, "dos", cx, "--set", "Cr=1", "--set", "CO=2-13", "--shape", "lorentzian"])
     check(r.returncode == 0 and "OPDOS(Cr-CO)" in r.stdout, "dos --set: " + r.stderr)
 
+    # Field check: the RHF Cr atom's arbitrary d set does not match Cr(CO)6's
+    # t2g (occupied d share 10 %); the ROHF septet has every d occupied.
+    for frag, want in ((cr, False), (cr7, True)):
+        fc = json.loads(run([exe, "analyse", cx, frag, co6, "--json"]).stdout)["field_check"]
+        check(fc["applicable"] and fc["ok"] == want and fc["checked"] >= 1,
+              "field check %s: %s" % (os.path.basename(frag), fc))
+    fc = json.loads(run([exe, "analyse", cx, co6, "--allow-uncovered", "--json"]).stdout)["field_check"]
+    check(not fc["applicable"], "field check: not applicable without an atom fragment")
+
     check_diagram(exe, cx, cr7, co6)
 
     r = run([libtest, os.path.join(cx, "results.h5")])

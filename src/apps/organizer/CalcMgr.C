@@ -852,11 +852,12 @@ void CalcMgr::runTestCommand(const string& line)
             if (!solvent.empty()) levels["solvent"] = std::make_pair("", solvent);
             RecipeVariant made = *v;
             if (hasFragmentSteps(*v)) {
-              vector<RecipeFragment> parts;
+              vector<RecipeFragment> parts, proposed;
+              vector<int> z;
+              if (source) proposed = WorkflowSteps::proposedFragments(source, &z);
               if (!parseFragments(fragSpec, parts))
-                parts = source ? WorkflowSteps::proposedFragments(source)
-                               : vector<RecipeFragment>{{"1", 0, 1}, {"rest", 0, 1}};
-              made = expandFragments(*v, parts);
+                parts = source ? proposed : vector<RecipeFragment>{{"1", 0, 1}, {"rest", 0, 1}};
+              made = expandFragments(*v, parts, z);
             }
             string why = wp->recipeCreate(*r, made, levels, source, autorun);
             outcome = why.empty() ? "ok " + WorkflowSteps::info(wf) : "error: " + why;
@@ -8988,6 +8989,14 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
     Resource *step = EDSIFactory::getResource(EcceURL(url));
     if (step && !step->getProp(VDoc::getEcceNamespace() + ":recipe.step").empty()
         && !WorkflowSteps::isLaunched(step)) {
+      // The field step's orbitals must be attached before the editor saves
+      // the deck, or the deck has no MORead.
+      if (Session *fw = dynamic_cast<Session*>(
+              EDSIFactory::getResource(step->getURL().getParent())))
+        for (Session::Link *l : fw->getLinks())
+          if (l->linkType == Session::INPUT_PROVIDER && l->target == step &&
+              l->linkName == "orbitals")
+            WorkflowSteps::attachFieldOrbitals(step, l->source);
       ChemistryTask *task = dynamic_cast<ChemistryTask*>(step);
       Fragment own;
       // An inherited thumbnail is not the editor's chemical system. Store

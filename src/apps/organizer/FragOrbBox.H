@@ -41,6 +41,7 @@ struct FragOrbBoxResult {
   bool ready = false;        ///< ecce-fragorb answered
   std::string level;         ///< "Cr (charge 0) | C6O6 (charge 0); Mulliken"
   std::string note;          ///< what is awaited, or ecce-fragorb's refusal
+  std::string warning;       ///< the metal fragment's d set does not match the complex's; "" when it does
   std::vector<std::pair<std::string, std::string> > rows;   ///< label, value
   FragOrbResult data;
   std::vector<std::string> names;   ///< display name per fragment

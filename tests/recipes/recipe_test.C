@@ -255,6 +255,20 @@ int main(int argc, char **argv)
           ex.steps[2].fragment == 2 && ex.steps[2].fragments == "1:0:1/2-13:-1:2" &&
           ex.links.size() == 2 && ex.links[1].from == "cx" && ex.links[1].to == "frag-2",
           "one step and one link per fragment");
+    // the field step: only for a one-atom fragment that is a metal
+    Recipe fld;
+    check(parseRecipe("recipe: f\nvariant: v | V | ORCA\n"
+                      "step: v | cx | ORCA | | Energy | complex | structure\n"
+                      "step: v | frag | ORCA | | Energy | fragment | fragment, field\n"
+                      "link: v | cx | frag | geometry\n", fld, err), "the field flag is read");
+    std::vector<int> zFe(13, 6), zC(13, 6), zNone;
+    zFe[0] = 26;
+    check(expandFragments(fld.variants[0], parts, zFe).steps.size() == 4 &&
+          expandFragments(fld.variants[0], parts, zFe).steps[1].id == "frag-1-field",
+          "a metal atom gets a field step");
+    check(expandFragments(fld.variants[0], parts, zC).steps.size() == 3 &&
+          expandFragments(fld.variants[0], parts, zNone).steps.size() == 3,
+          "a non-metal atom, or unknown elements, none");
     std::vector<std::vector<int> > atoms;
     check(resolveFragments({{"1", 0, 1}, {"rest", 0, 1}}, 13, atoms, err) &&
           atoms[1].size() == 12 && atoms[1][0] == 1, "rest takes the other atoms");

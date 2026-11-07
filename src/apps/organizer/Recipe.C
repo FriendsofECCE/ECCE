@@ -103,6 +103,7 @@ bool parseRecipe(const string& text, Recipe& out, string& error)
           if (flag == "structure") s.needsStructure = true;
           else if (flag == "thermo") s.thermo = true;
           else if (flag == "fragment") s.perFragment = true;
+          else if (flag == "field") s.metalField = true;
           else if (flag.compare(0, 4, "key=") == 0) s.keyRole = flag.substr(4);
           else if (flag.compare(0, 7, "charge=") == 0) {
             char *end = 0;
@@ -175,6 +176,7 @@ string recipeText(const Recipe& r)
       if (s.needsStructure) add("structure");
       if (s.thermo) add("thermo");
       if (s.perFragment) add("fragment");
+      if (s.metalField) add("field");
       if (!s.keyRole.empty()) add("key=" + s.keyRole);
       if (s.chargeShift) add(string("charge=") + (s.chargeShift > 0 ? "+" : "") + std::to_string(s.chargeShift));
       o << "step: " << v.id << " | " << s.id << " | " << s.code << " | " << s.role
@@ -335,8 +337,11 @@ bool hasFragmentSteps(const RecipeVariant& variant)
 }
 
 
+namespace { bool isMetal(int z); }
+
 RecipeVariant expandFragments(const RecipeVariant& variant,
-                              const vector<RecipeFragment>& fragments)
+                              const vector<RecipeFragment>& fragments,
+                              const vector<int>& z)
 {
   RecipeVariant out = variant;
   out.steps.clear();
@@ -350,6 +355,28 @@ RecipeVariant expandFragments(const RecipeVariant& variant,
       continue;
     }
     for (size_t k = 0; k < fragments.size(); k++) {
+      const RecipeFragment& one = fragments[k];
+      // A single metal atom in its complex state: the d orbitals of the bare
+      // ion are degenerate and the SCF fills an arbitrary subset, so a first
+      // step in point charges at the donor atoms picks the occupation. A
+      // non-metal has no such set, and without the elements nothing is known.
+      const bool oneAtom = !one.free && !one.atoms.empty() &&
+          one.atoms.find_first_not_of("0123456789") == string::npos;
+      const long atom = oneAtom ? atol(one.atoms.c_str()) : 0;
+      if (s.metalField && oneAtom && atom >= 1 && atom <= (long)z.size() &&
+          isMetal(z[atom - 1])) {
+        RecipeStep pre = s;
+        pre.id = s.id + "-" + std::to_string(k + 1) + "-field";
+        pre.field = true;
+        pre.metalField = false;
+        pre.fragment = (int)k + 1;
+        pre.fragments = spec;
+        pre.caption = "atoms " + one.atoms + " in weak point charges at the donor atoms, "
+                      "charge " + std::to_string(one.charge) +
+                      ", multiplicity " + std::to_string(one.mult);
+        out.steps.push_back(pre);
+        ids[s.id + "#field"].push_back(pre.id);
+      }
       RecipeStep f = s;
       f.id = s.id + "-" + std::to_string(k + 1);
       f.fragment = (int)k + 1;
@@ -365,6 +392,13 @@ RecipeVariant expandFragments(const RecipeVariant& variant,
     for (const string& from : ids[l.from])
       for (const string& to : ids[l.to])
         out.links.push_back({from, to, l.name});
+  // The field step takes the geometry from the same source as its fragment
+  // step and hands its orbitals on.
+  for (const RecipeLink& l : variant.links)
+    for (const string& pre : ids[l.to + "#field"]) {
+      for (const string& from : ids[l.from]) out.links.push_back({from, pre, l.name});
+      out.links.push_back({pre, pre.substr(0, pre.size() - 6), "orbitals"});
+    }
   return out;
 }
 

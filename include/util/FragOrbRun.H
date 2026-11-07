@@ -38,6 +38,11 @@ struct FragOrbResult
    double threshold = 0.10;
    std::vector<std::string> fragments;   ///< names (folder names)
    std::vector<FragOrbChannel> channels;
+   /// A one-atom fragment's occupied d set against the complex's
+   /// (fragorb::fieldCheck); applicable only for such a fragment.
+   bool fieldApplicable = false, fieldOk = true;
+   int fieldChecked = 0;
+   double fieldWorst = 1;
 };
 
 struct FragDosResult
