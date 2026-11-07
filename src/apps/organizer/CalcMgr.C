@@ -2374,8 +2374,8 @@ void CalcMgr::runTestCommand(const string& line)
       // profiles and their label layout, the text of reaction 1, and writes
       // the PNG and CSV exports.
       std::istringstream args(calcName);
-      string file, treatment, png, csvOut, kelvin;
-      args >> file >> treatment >> png >> csvOut >> kelvin;
+      string file, treatment, png, csvOut, kelvin, shot;
+      args >> file >> treatment >> png >> csvOut >> kelvin >> shot;
       std::ifstream in(file.c_str());
       std::stringstream text;
       text << in.rdbuf();
@@ -2396,6 +2396,7 @@ void CalcMgr::runTestCommand(const string& line)
       for (string l; std::getline(r, l); ) outcome += " | " + l;
       if (!png.empty() && png != "-") outcome += d->savePng(png) ? " | png saved" : " | png failed";
       if (!csvOut.empty() && csvOut != "-") outcome += d->saveCsv(csvOut) ? " | csv saved" : " | csv failed";
+      outcome += " | layout: " + d->layoutReport(shot);
       d->Destroy();
     } else if (command == "fragdiagram") {
       // "fragdiagram PNG|- COMPLEX FRAGMENT... [names=A;B] [window=OCC,VIRT]

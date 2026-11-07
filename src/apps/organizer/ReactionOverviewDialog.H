@@ -43,6 +43,8 @@ public:
   /** One line per transition-state reaction: its barrier and k at the dialog's T. */
   std::string rateText() const;
   void setTemperature(const std::string& kelvin);
+  /** Test hook: shown state and size of chart and choices, the text control's flags; "shot" gets a PNG of the dialog. */
+  std::string layoutReport(const std::string& shot);
 
 private:
   struct Mode { std::string species; double freq, S, Sshare, G, Gshare; };
