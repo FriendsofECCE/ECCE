@@ -2127,20 +2127,8 @@ void MoPanel::updateGridDlg()
    SGFragment *frag = getFW().getSceneGraph().getFragment() ;
    if (frag) {
       const float s_boundingBoxExtra = 2.0;
-      //  Every atom, not getBoundBox(): that one covers only the selected
-      //  atoms when there is a selection, so the orbital or density of
-      //  the unselected ones fell outside the grid and the surface was
-      //  cut at the box faces (#892).
-      float xmin = 0, ymin = 0, zmin = 0, xmax = 0, ymax = 0, zmax = 0;
-      for (int i = 0; i < (int)frag->numAtoms(); i++) {
-         const double *x = frag->atomRef(i)->coordinates();
-         if (i == 0 || x[0] < xmin) xmin = x[0];
-         if (i == 0 || x[1] < ymin) ymin = x[1];
-         if (i == 0 || x[2] < zmin) zmin = x[2];
-         if (i == 0 || x[0] > xmax) xmax = x[0];
-         if (i == 0 || x[1] > ymax) ymax = x[1];
-         if (i == 0 || x[2] > zmax) zmax = x[2];
-      }
+      float xmin, ymin, zmin, xmax, ymax, zmax;
+      frag->getBoundBox(xmin, ymin, zmin, xmax, ymax, zmax);
 
       // Extend the range of the grid beyond the
       // bounding box of the chemical system.
