@@ -91,6 +91,7 @@ static std::string s_registerMessage;
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
 #include "dsm/Series.H"
+#include "dsm/DeckWriter.H"
 #include "dsm/QstStructures.H"
 #include "dsm/CodeFactory.H"
 #include "dsm/EDSIFactory.H"
@@ -4388,6 +4389,29 @@ bool CalcMgr::rerunForCommand(const vector<EcceURL>& urls, bool launch,
                                         (old.empty() ? string() : "\n" + old));
       updateUrl(copyUrl);
     }
+    if (lastGeom && copyTask) {
+      // The copy holds the new structure but the input deck still has the
+      // old one; write it again so the copy can be launched as it stands.
+      ICalculation *icalc = dynamic_cast<ICalculation*>(copyTask);
+      DeckWriter::Result r;
+      if (icalc) r = DeckWriter::generate(icalc);
+      else r.message = "not a calculation";
+      if (r.ok) {
+        copyTask->setState(ResourceDescriptor::STATE_READY);
+      } else {
+        // Leave no deck with the old geometry behind.
+        if (Resource *inputs = EDSIFactory::getResource(copyUrl.getChild("Inputs"))) {
+          if (vector<Resource*> *files = inputs->getChildren(true))
+            for (Resource *f : *files) f->remove();
+        }
+        string msg = r.message;
+        for (char& c : msg) if (c == '\n' || c == '\t') c = ' ';
+        lines.push_back(name + "\tno\t" + result + " made but its input could not be written; "
+                        "open it in the Calculation Editor: " + msg);
+        continue;
+      }
+      updateUrl(copyUrl);
+    }
     if (launch) {
       vector<string> launched;
       if (!launchForCommand(vector<EcceURL>(1, copyUrl), target, launched)) {
@@ -4425,7 +4449,9 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
   for (size_t i = 0; i < urls.size(); i++) {
     WxResourceTreeItemData *item = findNodeFresh(urls[i], false);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
-    if (task) tasks.push_back(task);
+    if (task && task->getState() == ResourceDescriptor::STATE_CREATED)
+      lines.push_back(task->getName() + "\tno\tnot ready: state Created, open it in the Calculation Editor");
+    else if (task) tasks.push_back(task);
     else lines.push_back(urls[i].toString() + "\tno\tnot a calculation in this session");
   }
   if (tasks.empty()) return true;

@@ -266,7 +266,30 @@ def main():
             got = mvm_coords(copy2)
             check(len(got) == len(want) and max(abs(a - b) for a, b in zip(want, got)) < 1e-4,
                   "copy's structure equals the last trace step")
-            check(s.state_of(copy2) in ("ready", "created"), "last-geometry copy can be launched")
+            check(s.state_of(copy2) == "ready", "last-geometry copy is Ready")
+            deck_atoms = []
+            deck_text = open(os.path.join(path(copy2), "Inputs", "nwch.nw")).read()
+            in_geom = False
+            for l in deck_text.splitlines():
+                w = l.split()
+                if w and w[0].lower() == "geometry":
+                    in_geom = True
+                elif in_geom and w and w[0].lower() == "end":
+                    break
+                elif in_geom and len(w) == 4:
+                    deck_atoms += [float(v) for v in w[1:]]
+            check(len(deck_atoms) == len(want) and
+                  max(abs(a - b) for a, b in zip(want, deck_atoms)) < 1e-4,
+                  "copy's input deck holds the last trace geometry")
+            # ecce-launch refuses a Created calculation.
+            check(send("setstate %s created" % copy2) == "ok", "copy set to Created")
+            lx = os.path.join(build, "ecce-launch")
+            r = subprocess.run([lx, copy2], env=s.env(), stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, timeout=120)
+            lout = r.stdout.decode("utf-8", "replace")
+            check(r.returncode == 1 and "not ready: state Created" in lout,
+                  "ecce-launch refuses a Created calculation: " + lout.strip())
+            check(send("setstate %s ready" % copy2) == "ok", "copy set back to Ready")
             rc, settings = s.driver("launchdata", copy2)
             say(settings)
             check(re.search(r"(procs|totalprocs)\D*=\s*4\b", settings) is not None and

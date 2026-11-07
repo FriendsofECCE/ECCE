@@ -75,7 +75,7 @@ that was made and gives the launch failure; the copy remains available.
 `ecce-rerun --last-geometry [cores=N] [wall="D H:M"] <calculation>...` uses
 **New from This > Continue from Last Geometry** instead. The copy starts from
 the last geometry in the stored geometry trace, and its annotation begins
-`continued from <name> (last geometry)`. A Submitted, Running or Waiting
+`continued from <name> (last geometry)`, and its input is written again from that geometry, so the copy is Ready. If the input cannot be written, the copy stays Created and the line says to open it in the Calculation Editor. A Submitted, Running or Waiting
 calculation is terminated first, as `ecce-terminate` does. A calculation with
 no stored geometry yet is refused with that reason, no copy is made and a
 running job is left alone. `cores=N` and `wall=` (`D H:M`, `H:M` or minutes)
