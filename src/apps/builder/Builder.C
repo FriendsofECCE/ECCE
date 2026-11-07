@@ -6643,6 +6643,43 @@ void Builder::updatePropertyMenus()
             out << "none\n";
           return true;
         }
+        //  "gridnuclei <name>": the current grid's value at the grid point
+        //  nearest each nucleus: atom, symbol, that point (Angstrom, placed
+        //  as ComputeMoCmd places it), value, nucleus -> <name>.txt; checks against
+        //  ecce-density-field --at (#892).
+        if (w[0] == "gridnuclei" && w.size() == 2) {
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          SingleGrid *grid = getSG() ? getSG()->getCurrentGrid() : 0;
+          SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+          if (!grid || !frag || !grid->fieldData()) {
+            out << "none\n";
+            return true;
+          }
+          const int *dim = grid->dimensions();
+          float delta[3];
+          for (int k = 0; k < 3; k++)
+            delta[k] = (grid->corner()[k] - grid->origin()[k]) / (dim[k] - 1);
+          double *xyz = frag->coordinates();
+          out.precision(12);
+          for (int a = 0; a < (int)frag->numAtoms(); a++) {
+            int ix[3];
+            double p[3];
+            for (int k = 0; k < 3; k++) {
+              ix[k] = (int)floor((xyz[3*a+k] - grid->origin()[k]) / delta[k]
+                                 + 0.5);
+              ix[k] = std::max(0, std::min(dim[k] - 1, ix[k]));
+              p[k] = grid->origin()[k] + ix[k] * delta[k];
+            }
+            const size_t at = ix[0] + (size_t)dim[0] *
+                                      (ix[1] + (size_t)dim[1] * ix[2]);
+            out << a + 1 << " " << frag->atomRef(a)->atomicSymbol() << " "
+                << p[0] << " " << p[1] << " " << p[2] << " "
+                << grid->fieldData()[at] << " " << xyz[3*a] << " "
+                << xyz[3*a+1] << " " << xyz[3*a+2] << "\n";
+          }
+          delete [] xyz;
+          return true;
+        }
         //  "dsstyle open | slider <name> <value> | info <file>": the Display
         //  Style dialog (Custom Style...), a slider let go in it, and what
         //  the scene then holds -> <file>.txt (#210).
