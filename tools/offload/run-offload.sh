@@ -16,7 +16,7 @@ conf() {
     case $1 in
       # Both hosts have 6 physical cores (nproc counts 12 threads) and are
       # shared: one job at a time, 4 build jobs, so 2 cores stay free.
-      radium)    echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=4 CTEST_JOBS=2 KEEP=8' ;;
+      radium)    echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=4 CTEST_JOBS=2 KEEP=8 BUILDWRAP="srun -c 4 --mem=8G --"' ;;
       # Other projects share nerdegg's CPUs through Slurm, so builds ask it
       # for them; test jobs go through Slurm by their own --queue slurm.
       nerdegg)   echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=4 CTEST_JOBS=1 KEEP=3 BUILDWRAP="srun -c 4 --mem=12G --"' ;;
