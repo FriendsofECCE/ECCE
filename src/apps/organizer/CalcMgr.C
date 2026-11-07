@@ -600,6 +600,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  */
 static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
 static const int ID_COMPARE_ENERGIES = wxNewId();
+static const int ID_SI_EXPORT = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
 
 // Include submenu paths so tests can check the action and its enabled state.
@@ -7383,6 +7384,46 @@ void CalcMgr::importExamplesOnce()
  */
 void CalcMgr::OnExportClick( wxCommandEvent& event )
 {
+  getSelection();
+  const vector<EcceURL> calcs = calculationsUnder(launchSelection());
+  if (calcs.empty()) {
+    wxMessageBox(_("Select a folder or calculations first."),
+                 _("Export for Supporting Information"),
+                 wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  wxFileDialog file(this, _("Export for Supporting Information"),
+                    wxEmptyString, "supporting-information.xyz",
+                    "XYZ files (*.xyz)|*.xyz",
+                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+  if (file.ShowModal() != wxID_OK) return;
+  wxArrayString kinds;
+  kinds.Add(_("No table"));
+  kinds.Add(_("CSV table"));
+  kinds.Add(_("LaTeX table"));
+  wxSingleChoiceDialog pick(this, _("Also write a table beside the XYZ file?"),
+                            _("Export for Supporting Information"), kinds);
+  if (pick.ShowModal() != wxID_OK) return;
+  const string table = pick.GetSelection() == 1 ? "csv"
+                     : pick.GetSelection() == 2 ? "latex" : "";
+  bool anyExcluded = false;
+  for (const EcceURL& u : calcs) {
+    PropertyTask *t = EDSIFactory::getPropertyTask(u);
+    if (t && !t->getProp(VDoc::getEcceNamespace() + ":excluded").empty())
+      anyExcluded = true;
+  }
+  const bool includeExcluded = anyExcluded &&
+      wxMessageBox(_("Some calculations are marked as excluded. Include them?"),
+                   _("Export for Supporting Information"),
+                   wxYES_NO | wxICON_QUESTION, this) == wxYES;
+  string why;
+  const string out = (const char*)file.GetPath().mb_str(wxConvUTF8);
+  if (siExport(calcs, out, table, why, includeExcluded))
+    setMessage("Wrote " + out, WxFeedback::INFO);
+  else
+    wxMessageBox(wxString::FromUTF8(why.c_str()),
+                 _("Export for Supporting Information"),
+                 wxOK | wxICON_ERROR, this);
 }
 
 
@@ -8972,6 +9013,20 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
   menu.Append(wxID_OPENEXAMPLES, _("Open &Example Calculations"),
               _T(""), wxITEM_NORMAL);
   menu.AppendSeparator();
+
+  //  Rebuilt on every selection change, so the entry and its handler are
+  //  made here; the handler is connected once.
+  {
+    wxMenu *exportMenu = new wxMenu();
+    exportMenu->Append(ID_SI_EXPORT, _("&Supporting Information..."));
+    menu.AppendSubMenu(exportMenu, _("&Export"));
+    if (!p_siExportWired) {
+      Connect(ID_SI_EXPORT, wxEVT_COMMAND_MENU_SELECTED,
+              wxCommandEventHandler(CalcMgr::OnExportClick));
+      p_siExportWired = true;
+    }
+    menu.AppendSeparator();
+  }
 
   menu.Append(wxID_EXIT, _("&Quit\tCtrl+Q"), _T(""), wxITEM_NORMAL);
 }
