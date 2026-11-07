@@ -25,6 +25,34 @@ TEMPLATE = os.path.join(HERE, "fixtures", "calc-orca-water-ccpvdz")
 KEEP = ("MO", "MOAOORDER", "ORBENG", "ORBOCC")
 
 
+def basisFile(name, elements, blocks):
+    """One group per element and no ECP, as the Calculation Editor stores
+    a def2 set for light elements."""
+    out = ["<MolecularConfig>\n<Map>\n"]
+    for el in elements:
+        n = blocks[el].count("contraction")
+        flags = "false " * n
+        out.append(
+            '<Group Tag="%s" Name="%s">\n<OrderedList>\n'
+            '<BasisSet Type="ECPOrbital">%s</BasisSet>\n</OrderedList>\n'
+            '<OrbitalMapping>\n<OrbitalBasisSet Name="%s">\n'
+            '<BasisSet Type="ECPOrbital">%s</BasisSet>\n</OrbitalBasisSet>\n'
+            '</OrbitalMapping>\n<ContractionInfoMap>\n<Element tag="%s">\n'
+            '<BasisSet uniqueKey="%s:ECPOrbital">\n<DeleteFlags>%s'
+            '</DeleteFlags>\n<UncontractFlags>\n%s</UncontractFlags>\n'
+            '</BasisSet>\n</Element>\n</ContractionInfoMap>\n'
+            '<DiffuseMap>\n<Element tag="%s">\n%s</Element>\n</DiffuseMap>\n'
+            '<TightMap>\n<Element tag="%s">\n%s</Element>\n</TightMap>\n'
+            '</Group>\n' % (el, name, name, name, name, el, name, flags,
+                             flags, el, "0 " * n, el, "0 " * n))
+    out.append("</Map>\n<Data>\nBasisSet=%s\nType=ECPOrbital "
+               "Category=ORBITAL Spherical=UnknownCoordSys "
+               "ContType=UnknownContType\n" % name)
+    out.extend("element=%s\n%s" % (el, blocks[el]) for el in elements)
+    out.append("EndBasisSet\n</Data>\n</MolecularConfig>\n")
+    return "".join(out)
+
+
 def main():
     out, deck, basis, dest = sys.argv[1:5]
     os.environ["ECCE_HOME"] = ROOT
@@ -64,15 +92,11 @@ def main():
     for a in atoms:
         if a[0] not in elements:
             elements.append(a[0])
-    stored = makecalc.basisFile(elements)
     lib = open(os.path.join(ROOT, "data", "admin", "basissets",
                             basis + ".BAS")).read()
     blocks = dict((c.split("\n", 1)[0].strip(), c.split("\n", 1)[1])
                   for c in lib.split("atom=")[1:])
-    head, data = stored.split("element=", 1)
-    stored = (head.replace("def2-svp", basis) +
-              "".join("element=%s\n%s" % (e, blocks[e]) for e in elements) +
-              "EndBasisSet\n</Data>\n</MolecularConfig>\n")
+    stored = basisFile(basis, elements, blocks)
     params = os.path.join(dest, "Parameters")
     open(os.path.join(params, "BasisSet.ecce_basisset"), "w").write(stored)
     open(os.path.join(params, "chemsys.mvm"), "w").write(

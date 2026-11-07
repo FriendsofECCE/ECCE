@@ -1,0 +1,24 @@
+---
+type: pitfall
+title: "The MOs panel's surface grid covered only the selected atoms (getBoundBox follows the selection)"
+area: wx-viewer
+paths: ["src/apps/builder/MoPanel.C", "src/viz/sgcommands/SGFragment.C", "src/viz/propsgcommands/ComputeMoCmd.C", "tests/apps/surface_nuclei_test.py"]
+issues: [892]
+---
+`SGFragment::getBoundBox()` is the box of the **selected** atoms when any
+are selected (and always includes atom 1); it exists for zoom-to-selection.
+`MoPanel::updateGridDlg()` used it for the Density/MO/spin-density grid, so
+with a few atoms picked the others lay outside the grid: no density on
+them whatever the isovalue or coefficient cutoff, and a surface cut flat
+at the box faces. It looked like a basis-mapping fault (#892) but the
+per-atom walk in `ComputeMoCmd` is the same walk as
+`BasisFlatten::flatten`, from which results.h5 is written. The grid box is
+now taken from every atom. Any new grid for a whole-molecule view: do not
+use `getBoundBox()`.
+
+Since #892 `ComputeMoCmd` fills Density, Spin Density and MO grids from
+`DensityPlane::Evaluator` when it reads a checked results.h5
+(`ECCE_SURFACE_PROPS=1` forces the old walk); the walk stays for
+calculations without one and for localised orbitals.
+`tests/apps/surface_nuclei_test.py` compares the grid at every nucleus
+with `ecce-density-field --at` (scene command `gridnuclei`).
