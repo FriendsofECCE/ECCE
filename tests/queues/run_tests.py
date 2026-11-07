@@ -1039,6 +1039,8 @@ class Live(object):
             url, out = s.create("qlost%d" % (int(time.time()) % 100000), "mopac_es",
                                 MOPAC_DECK, "mopac.mop", rundir, machine=machine,
                                 extra=[queue])
+            logPath = os.path.join(spool, "commands.log")
+            before = open(logPath).read().count("bsub") if os.path.exists(logPath) else 0
             if rep.check(url is not None, "calculation created"):
                 rc, out = s.driver("launch", url, extra={"ECCE_SUBMIT_TIMEOUT": "3"})
                 rep.check(rc == 0, "launchjob succeeded: %s" % out.strip()[-300:])
@@ -1047,8 +1049,8 @@ class Live(object):
                 state = s.waitState(url, 60, want=("submitted", "running", "completed"))
                 rep.check(state in ("submitted", "running", "completed"),
                           "calculation is Submitted (last: %s)" % state)
-                log = open(os.path.join(spool, "commands.log")).read()
-                rep.check(log.count("bsub") == 1, "bsub ran once")
+                rep.check(open(logPath).read().count("bsub") == before + 1,
+                          "bsub ran once for this calculation")
             rep.done()
 
             rep.row(self.suite, "lsf", "stdio", "lost-submit-query-fails")
