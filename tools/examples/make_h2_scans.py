@@ -5,7 +5,8 @@
 
 Each deck is made by the real ai.orca from what the Calculation Editor stores
 (.param, .frag, .basis useRouteCard, the Builder's bond-scan constraint .con),
-the same files CalcEd hands it.  OUTDIR/<name>/ gets orca.orcain and a Slurm
+the same files CalcEd hands it, with output printing cut down so the stored
+examples stay small (see SLIM).  OUTDIR/<name>/ gets orca.orcain and a Slurm
 script run.sh (one task; ORCA at --orca) that runs it in that folder.  Copy
 OUTDIR/<name>/orca.orcaout back into the example folder afterwards.
 """
@@ -26,6 +27,11 @@ SCANS = {
     "h2_ccsd_scan": ("CCSD", 4.0, 37, -0.1, False),
     "h2_uhf_scan_out": ("UHF", 0.5, 35, 0.1, False),
 }
+# ORCA prints MOs, populations and settings at every scan point; none of it is
+# needed for a scan, and it made up most of the 26 MB of the first outputs.
+# MiniPrint keeps everything the scan parsers read (energies, geometries,
+# <S**2>, gradients, the scan table); the atomic charges go, zero for H2.
+SLIM = (("Opt\n", "Opt MiniPrint\n"), ("Print[P_MOs] 1", "Print[P_MOs] 0"))
 CATEGORY = {"RHF": "SCF", "UHF": "SCF", "CCSD": "CC"}
 SLURM = """#!/bin/bash
 #SBATCH -n 1
@@ -57,6 +63,11 @@ def deck(work, theory, r0, steps, step, bs):
     subprocess.run(["perl", os.path.join(PARSERS, "ai.orca"), "-p", "-f", "-b", "-c",
                     "-n", "h", "-t", "orca.orcain"], cwd=work, check=True,
                    env=dict(os.environ, ECCE_HOME=REPO), capture_output=True)
+    text = open(out).read()
+    for old, new in SLIM:
+        assert old in text, old
+        text = text.replace(old, new, 1)
+    open(out, "w").write(text)
     for f in ("h.frag", "h.basis", "h.con", "h.param"):
         os.unlink(os.path.join(work, f))
     return out
