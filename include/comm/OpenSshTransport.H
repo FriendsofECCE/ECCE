@@ -124,6 +124,8 @@ public:
   // The socket ECCE would use for this transport, "" when it does not own
   // the master through ECCE_SSH_CONTROL_DIR.  A name of 16 hex digits.
   std::string controlSocketPath() const;
+  // Stop accepting sessions on our masters; streams already running survive.
+  void stopOwnedMasters();
 
   // What the user is told when ssh printed `err` and exited 255: a message
   // for a failure that needs a login by hand, or for a connection that could

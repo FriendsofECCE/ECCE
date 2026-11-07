@@ -39,8 +39,8 @@ check(rc == 0, "add an ECCE server (%s)" % err)
 rc, out, err = run("add", "ssh", "Cluster storage", "sftp://me@hpc.example.edu/home/me/ecce")
 check(rc == 0, "add an SSH folder (%s)" % err)
 check(open(fileName).read() ==
-      "ecce\tCourse server\thttps://ecce.example.edu\n"
-      "ssh\tCluster storage\tsftp://me@hpc.example.edu/home/me/ecce\n",
+      "ecce\tCourse server\thttps://ecce.example.edu\t0\n"
+      "ssh\tCluster storage\tsftp://me@hpc.example.edu/home/me/ecce\t0\n",
       "the file is one line per server: type, name, address")
 rc, out, err = run("list")
 check(rc == 0 and out.splitlines() == [
@@ -59,4 +59,12 @@ check(run("remove", "Course server")[0] == 1, "removing an unknown name fails")
 with open(fileName, "a") as f:
     f.write("garbage line\nssh\tbroken\tnot-an-address\n")
 check(len(run("list")[1].splitlines()) == 1, "damaged lines are skipped on load")
+with open(fileName, "w") as f:
+    f.write("ssh\tLegacy\tsftp://me@hpc.example.edu/home/me/ecce\n")
+check(run("add", "ecce", "New", "https://ecce.example.edu")[0] == 0,
+      "a legacy list can be extended")
+check(open(fileName).read().splitlines() == [
+    "ssh\tLegacy\tsftp://me@hpc.example.edu/home/me/ecce\t1",
+    "ecce\tNew\thttps://ecce.example.edu\t0"],
+    "legacy entries connect at start; new entries wait to be chosen")
 sys.exit(1 if failures else 0)
