@@ -1060,24 +1060,31 @@ void MoPanel::fillGraph(bool haveTypes)
    // The Y-axis values (Energy) are shared between the two graphs, but the
    // X-axis values depend on the occ#.
 
-   // bail if we don't have enough columns
-   if (p_mogrid->GetNumberCols() < 4) {
+   //  Needs MO, energy and occupation.  Runs without symmetry labels (ORCA)
+   //  have no fourth column yet; their levels go in one column, labelled by
+   //  MO number.
+   if (p_mogrid->GetNumberCols() < 3 + (haveTypes ? 1 : 0)) {
       return;
    }
 
    int col = 0;
    int typeColumn = -1;
    if (haveTypes) typeColumn = col++;
-   col++; // for "moColumn", but avoid compiler warning on unused variable
+   const int moColumn = col++;
    int energyColumn = col++;
    int occColumn = col++;
-   int symColumn = col++;
+   const int symColumn = col < p_mogrid->GetNumberCols() ? col : -1;
+   auto symOf = [&](int row) {
+      return symColumn >= 0 ? p_mogrid->GetCellValue(row, symColumn)
+                            : p_mogrid->GetCellValue(row, moColumn);
+   };
 
    map<wxString,double> regXValueMap; // "[alpha/beta]" to X-axis values
    map<wxString,double> symXValueMap; // "<sym>[ - alpha/beta]" to X-axis value
    for (int row=0, rows=p_mogrid->GetNumberRows(); row<rows; ++row) {
       wxString regValue;
-      wxString symValue = p_mogrid->GetCellValue(row, symColumn);
+      wxString symValue = symColumn >= 0 ? p_mogrid->GetCellValue(row, symColumn)
+                                         : wxString();
       if (haveTypes) {
          wxString type = p_mogrid->GetCellValue(row, typeColumn);
          regValue << type;
@@ -1117,9 +1124,11 @@ void MoPanel::fillGraph(bool haveTypes)
          if (occ == occs[occIdx]) {
             double energy;
             p_mogrid->GetCellValue(row, energyColumn).ToDouble(&energy);
-            wxString sym = p_mogrid->GetCellValue(row, symColumn);
+            wxString sym = symOf(row);
+            //  The column a level goes in comes from the symmetry alone.
+            wxString symKey = symColumn >= 0 ? sym : wxString();
             wxString regXValueString = sym;
-            wxString symXValueString = sym;
+            wxString symXValueString = symKey;
             wxString type;
             if (haveTypes) {
                type = p_mogrid->GetCellValue(row, typeColumn);
@@ -1129,7 +1138,7 @@ void MoPanel::fillGraph(bool haveTypes)
             regXValues.push_back(regXValueMap[type]);
             symXValues.push_back(symXValueMap[symXValueString]);
             regLabels.push_back(regXValueString);
-            symLabels.push_back(symXValueString);
+            symLabels.push_back(symColumn >= 0 ? symXValueString : regXValueString);
             values.push_back(energy);
             rows.push_back(row);
          }
@@ -1290,6 +1299,15 @@ string MoPanel::tableState() const
    }
    s << "surfaceMode " << p_surfaceMode << "\n";
    s << "tableShown " << (p_mogrid->IsShownOnScreen() ? 1 : 0) << "\n";
+   //  The two energy-level graphs: shown, size and what they hold.
+   for (XYPlotCanvas *plot : { p_plotReg, p_plotSym }) {
+      int points = 0;
+      for (int c = 0; c < plot->curveCount(); c++) points += plot->pointCount(c);
+      s << (plot == p_plotReg ? "graphReg" : "graphSym") << " shown "
+        << (plot->IsShownOnScreen() ? 1 : 0) << " size " << plot->GetSize().x
+        << "x" << plot->GetSize().y << " at " << plot->GetPosition().x << "," << plot->GetPosition().y << " curves " << plot->curveCount()
+        << " levels " << points << "\n";
+   }
    if (wxWindow *cut = FindWindow(ID_TEXTCTRL_MO_CUTOFF))
       s << "coefControlsShown " << (cut->IsShownOnScreen() ? 1 : 0) << "\n";
    s << "virtNote " << p_virtNote << "\n";
