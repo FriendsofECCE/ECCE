@@ -246,7 +246,7 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
   }
 
   //  "floatstyle <pane> <tag>" -> <outdir>/<tag>.txt: the floating frame's
-  //  style flags,.
+  //  style flags.
   if (c == "floatstyle" && w.size() == 3) {
     string name = w[1];
     for (char& ch : name) if (ch == '_') ch = ' ';
