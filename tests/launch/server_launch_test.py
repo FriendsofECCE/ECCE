@@ -192,6 +192,53 @@ def main():
             check(key in props, "%s is stored on the server" % key)
         stray = [r for r, d, f in os.walk(s.localData()) if name in os.path.basename(r)]
         check(not stray, "nothing of it in Local data: %s" % stray)
+
+        # Copy and move between Local data and the ECCE server (#890).
+        def files(path):
+            res = []
+            for r, d, f in os.walk(path):
+                for n in f:
+                    if not n.startswith("."):
+                        full = os.path.join(r, n)
+                        res.append("%s %d" % (os.path.relpath(full, path), os.path.getsize(full)))
+            return sorted(res)
+
+        def formula(u):
+            a = send("summary " + u)
+            return a.split("Formula=")[1].split(" ")[0] if "Formula=" in a else a
+
+        srcFiles = files(calc)
+        srcFormula = formula(url)
+        check(srcFiles and srcFormula == "H2O", "the server calculation has files and a formula: %s" % srcFormula)
+        ans = send("newproject lproj")
+        lproj = ans.split(" ", 1)[1] if ans.startswith("ok ") else ""
+        ans = send("server xfer copy %s %s" % (url, lproj))
+        check("\tok\t" in ans, "server -> Local copy: %s" % ans)
+        lcalc = lproj.replace("file://", "") + "/" + name
+        check(files(lcalc) == srcFiles, "every file arrived with its size (%d files)" % len(srcFiles))
+        check(formula("file://" + lcalc) == srcFormula, "its summary opens from Local data")
+        check(os.path.isdir(calc), "the server source is untouched")
+        ans = send("server newproject Course pB")
+        pB = ans.split(" ", 1)[1] if ans.startswith("ok ") else ""
+        ans = send("server xfer copy file://%s %s" % (lcalc, pB))
+        check("\tok\t" in ans, "Local -> server copy: %s" % ans)
+        bcalc = os.path.join(htdocs, "pB", name)
+        check(files(bcalc) == srcFiles, "every file is on the server with its size")
+        check(formula(pB + "/" + name) == srcFormula, "its summary opens from the server tree")
+        ans = send("server newproject Course pM")
+        pM = ans.split(" ", 1)[1] if ans.startswith("ok ") else ""
+        ans = send("server xfer move file://%s %s" % (lcalc, pM))
+        check("\tok\t" in ans, "Local -> server move: %s" % ans)
+        check(files(os.path.join(htdocs, "pM", name)) == srcFiles and not os.path.exists(lcalc),
+              "the moved calculation is complete on the server and the source is gone")
+        check(formula(pM + "/" + name) == srcFormula, "the moved calculation opens")
+        send("server failafter 3")
+        ans = send("server newproject Course pF")
+        pF = ans.split(" ", 1)[1] if ans.startswith("ok ") else ""
+        ans = send("server xfer copy %s %s" % (pM + "/" + name, lproj))
+        send("server failafter -1")
+        check("\tno\t" in ans and not os.path.exists(lcalc) and os.path.isdir(os.path.join(htdocs, "pM", name)),
+              "a failed server -> Local copy leaves no target and the source: %s" % ans)
     finally:
         if org is not None and org.poll() is None:
             org.terminate()

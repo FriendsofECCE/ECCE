@@ -388,7 +388,7 @@ void CalcMgrApp::moveRequestMCB(JMSMessage& msg)
   for (int i = 0; i < n; i++)
     urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
   vector<string> lines;
-  {
+  if (msg.getProperty("acked") != "1") {
     // A transfer between trees can take long: tell the tool we are on it.
     JMSMessage* a = newMessage();
     a->addProperty("reply_id", id);

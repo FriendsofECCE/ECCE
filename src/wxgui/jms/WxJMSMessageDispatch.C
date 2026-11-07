@@ -259,6 +259,7 @@ void WxJMSMessageDispatch::messageDeferred(const string& topic, JMSMessage& msg)
   r->addIntProperty("n", 0);
   publish(topic.substr(0, topic.size() - post.size()) + "_reply", *r);
   delete r;
+  msg.addProperty("acked", "1");   // the handler that runs later must not ack again
 }
 
 /**
