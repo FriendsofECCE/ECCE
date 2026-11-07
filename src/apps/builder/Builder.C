@@ -6804,6 +6804,51 @@ void Builder::updatePropertyMenus()
           md->setOptionsOpen(w[1] != "0");
           return true;
         }
+        //  "moselect <number>" picks that row of the MOs table (of the
+        //  localised table after "mofield Localised MO"); "gridfaces <name>"
+        //  -> <name>.txt: the isovalue the faces were checked at, the grid
+        //  edge lengths and the largest |field| on each of the six faces (#892).
+        if ((w[0] == "moselect" || w[0] == "gridfaces") && w.size() == 2) {
+          MoPanel *mo = 0;
+          set<PropertyPanel*> mp =
+              PropertyPanel::getPanels(p_calculation->getURL().toString());
+          for (set<PropertyPanel*>::iterator it = mp.begin();
+               it != mp.end() && !mo; ++it)
+            mo = dynamic_cast<MoPanel*>(*it);
+          if (!mo) return s.fail(w[0] + ": no MO panel");
+          if (w[0] == "moselect")
+            return mo->selectRowForMo(atoi(w[1].c_str())) ||
+                   s.fail("moselect: no MO " + w[1]);
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          SingleGrid *grid = getSG() ? getSG()->getCurrentGrid() : 0;
+          if (!grid || !grid->fieldData()) {
+            out << "none\n";
+            return true;
+          }
+          const int *dim = grid->dimensions();
+          const float *f = grid->fieldData();
+          double face[6] = {0, 0, 0, 0, 0, 0};
+          for (int iz = 0; iz < dim[2]; iz++)
+            for (int iy = 0; iy < dim[1]; iy++)
+              for (int ix = 0; ix < dim[0]; ix++) {
+                const double v = fabs(f[ix + (size_t)dim[0] *
+                                        (iy + (size_t)dim[1] * iz)]);
+                const int i[3] = {ix, iy, iz};
+                for (int k = 0; k < 3; k++) {
+                  if (i[k] == 0) face[2*k] = std::max(face[2*k], v);
+                  if (i[k] == dim[k]-1) face[2*k+1] = std::max(face[2*k+1], v);
+                }
+              }
+          out.precision(9);
+          out << "iso " << mo->facesCheckedIso() << "\n";
+          out << "edge";
+          for (int k = 0; k < 3; k++)
+            out << " " << fabs(grid->corner()[k] - grid->origin()[k]);
+          out << "\nfaces";
+          for (int k = 0; k < 6; k++) out << " " << face[k];
+          out << "\n";
+          return true;
+        }
         //  "mofield <type>": the MO panel's field-type choice, as clicked.
         if (w[0] == "mofield" && w.size() >= 2) {
           string type = w[1];
