@@ -9,6 +9,7 @@
 
 #include <wx/weakref.h>
 #include <wx/timer.h>
+#include <wx/fswatcher.h>
 #include <functional>
 #include <map>
 #include <set>
@@ -550,6 +551,27 @@ protected:
   void buildMachineNotice();
   void machineNoticeRegisterClickCB(wxCommandEvent& event);
   void OnActivate(wxActivateEvent& event);
+
+  // Auto-refresh (#889): the folder being shown follows changes made outside
+  // ECCE.  Local folders are watched; server and SSH folders are polled.
+  void autoRefreshArm();
+  void autoRefreshCheck();
+  void autoRefreshMark();
+  void autoRefreshTick();
+  bool autoRefreshIdle() const;
+  string autoRefreshStamp(const EcceURL& url);
+  WxResourceTreeItemData *autoRefreshFolder();
+  wxFileSystemWatcher *p_autoWatcher = 0;
+  wxTimer *p_autoDebounce = 0;   // settles a burst of events, then retries while busy
+  wxTimer *p_autoPoll = 0;       // 30 s, remote folders only
+  string p_autoUrl;              // the folder armed
+  string p_autoStamp;            // its last known modification time (remote)
+  bool p_autoDirty = false;
+  bool p_autoLocal = false;
+  int p_autoRetry = 0;
+  string p_autoTried;
+  int p_uiBusy = 0;              // popup menu or drag in progress
+  int p_autoReloads = 0;         // test hook
   ewxPanel   *p_machineNoticePanel;
   ReleaseNotice *p_releaseNotice;   // #273
   LaunchSelected::Batch *p_batch = 0;

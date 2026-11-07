@@ -583,6 +583,19 @@ bool SftpEDSI::exists(const bool&)
   return op.ok() && op.mirror(op.path(), 0, &k) && k != 'x';
 }
 
+string SftpEDSI::folderStamp()
+{
+  m_msgStack.clear();
+  SftpOp op(*this);
+  string out;
+  if (!op.ok()) return "";
+  string p = q(op.path());
+  if (!op.run("stat -c '%Y' -- " + p + " 2>/dev/null || stat -f '%m' -- " + p + " 2>/dev/null\n", out, 20))
+    return "";
+  while (!out.empty() && isspace((unsigned char)out.back())) out.pop_back();
+  return out;
+}
+
 bool SftpEDSI::isWritable()
 {
   m_msgStack.clear();

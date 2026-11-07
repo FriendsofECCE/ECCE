@@ -37,6 +37,9 @@ class SftpEDSI : public EDSI
     void removeProgressEventListener(ProgressEventListener *) { p_progressListener = 0; }
 
     virtual bool exists(const bool& newUser=false);
+    // Modification time (as text) of this folder: one stat on the login, no
+    // listing; empty when it cannot be read.  For the Organizer's auto-refresh.
+    string folderStamp();
 
     virtual istream *getDataSet();
     virtual unsigned long getDataSetSize();
