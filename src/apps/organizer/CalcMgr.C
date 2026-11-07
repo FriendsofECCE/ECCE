@@ -11657,7 +11657,8 @@ vector<Resource*> CalcMgr::newRecipeSteps(Session *wf, const Recipe& recipe,
     return made;
   }
   // A step whose source is already Complete gets its input now (#901).
-  for (size_t i = 0; i < made.size(); i++) WorkflowSteps::refreshFromSources(wf, made[i]);
+  // Not refreshFromSources: its structureSet would re-rule the levels just set.
+  for (size_t i = 0; i < made.size(); i++) WorkflowSteps::prepareStep(wf, made[i]);
   WxResourceTreeItemData *node = findNode(wf->getURL(), true, false);
   if (node) {
     p_treeCtrl->refresh(node);
@@ -12068,7 +12069,7 @@ void CalcMgr::updateUrl(const EcceURL & url)
         if (wf && wf->getApplicationType() == ResourceDescriptor::AT_WORKFLOW) {
           // What the finished step unblocked becomes Ready, auto-run or not (#901).
           for (Resource *s : WorkflowSteps::readySteps(wf))
-            WorkflowSteps::refreshFromSources(wf, s);
+            WorkflowSteps::prepareStep(wf, s);
           autoRunWorkflow(wf);
         }
       });
