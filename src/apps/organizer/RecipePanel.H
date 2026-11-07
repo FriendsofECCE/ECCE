@@ -28,6 +28,7 @@ class wxCheckBox;
 class wxListCtrl;
 class RecipePreview;
 class wxScrolledWindow;
+class wxChoice;
 class wxSpinCtrl;
 class wxTextCtrl;
 
@@ -70,6 +71,7 @@ private:
   void fillFragments(const std::vector<RecipeFragment>& fragments);
   void addFragmentRow(const RecipeFragment& f);
   void fragmentsChanged();
+  void stateChanged(size_t k);
   void fillRoles(bool preserve = false);
   void layoutSettings();
   void fillVariants();
@@ -111,6 +113,7 @@ private:
   struct FragRow {
     wxTextCtrl *atoms;
     wxSpinCtrl *charge, *mult;
+    wxChoice *state;           ///< in the complex / ground state of the free fragment
     wxStaticText *formula;
   };
   std::vector<FragRow> p_frags;

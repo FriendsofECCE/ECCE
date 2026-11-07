@@ -7,6 +7,10 @@
 #include <map>
 #include <sstream>
 
+#include "tdat/Fragment.H"
+#include "tdat/TAtm.H"
+#include "tdat/TFormula.H"
+#include "tdat/TTCPair.H"
 #include "util/Ecce.H"
 
 using std::string;
@@ -370,7 +374,7 @@ string fragmentsText(const vector<RecipeFragment>& fragments)
   string t;
   for (size_t k = 0; k < fragments.size(); k++)
     t += (k ? "/" : "") + fragments[k].atoms + ":" + std::to_string(fragments[k].charge) +
-         ":" + std::to_string(fragments[k].mult);
+         ":" + std::to_string(fragments[k].mult) + (fragments[k].free ? ":free" : "");
   return t;
 }
 
@@ -389,7 +393,12 @@ bool parseFragments(const string& text, vector<RecipeFragment>& out)
     f.charge = (int)strtol(one.c_str() + a + 1, &end, 10);
     if (*end != ':') return false;
     f.mult = (int)strtol(one.c_str() + b + 1, &end, 10);
-    if (*end || f.mult < 1) return false;
+    if (*end == ':') {
+      const string st = trim(end + 1);
+      if (st == "free") f.free = true;
+      else if (st != "complex") return false;
+    } else if (*end) return false;
+    if (f.mult < 1) return false;
     out.push_back(f);
   }
   return !out.empty();
@@ -488,6 +497,45 @@ bool resolveFragments(const vector<RecipeFragment>& fragments, int natoms,
     return false;
   }
   return true;
+}
+
+
+int fragmentMultiplicity(const vector<int>& z, int charge, bool free)
+{
+  int e = -charge;
+  for (int x : z) e += x;
+  const int lowest = e % 2 ? 2 : 1;
+  if (!free || z.size() != 1 || e < 0) return lowest;
+  const int Z = z[0];
+  // Ground terms of the neutral atoms and +1 ions of the d block (NIST):
+  // the 4s/5s/6s occupation varies, so no rule gives them.
+  static const int d3[10][2] = {{2, 3}, {3, 4}, {4, 5}, {7, 6}, {6, 7}, {5, 6}, {4, 3}, {3, 2}, {2, 1}, {1, 2}};
+  static const int d4[10][2] = {{2, 1}, {3, 4}, {6, 5}, {7, 6}, {6, 7}, {5, 4}, {4, 3}, {1, 2}, {2, 1}, {1, 2}};
+  static const int d5[10][2] = {{2, 3}, {3, 2}, {4, 5}, {5, 6}, {6, 7}, {5, 6}, {4, 5}, {3, 2}, {2, 1}, {1, 2}};
+  int row = -1, col = -1;
+  if (Z >= 21 && Z <= 30) { row = 3; col = Z - 21; }
+  else if (Z >= 39 && Z <= 48) { row = 4; col = Z - 39; }
+  else if (Z == 57 || (Z >= 72 && Z <= 80)) { row = 5; col = Z == 57 ? 0 : Z - 71; }
+  if (row > 0) {
+    if (charge == 0 || charge == 1) {
+      const int (*t)[2] = row == 3 ? d3 : row == 4 ? d4 : d5;
+      return t[col][charge];
+    }
+    // a higher ion keeps only d electrons: d^n, n = group - charge
+    const int n = col + 3 - charge;
+    if (n < 0 || n > 10) return lowest;
+    return (n <= 5 ? n : 10 - n) + 1;
+  }
+  // main group: Hund's rule on the valence p shell, s electrons paired
+  static const int nobleZ[] = {0, 2, 10, 18, 36, 54, 86};
+  int core = 0;
+  for (int k : nobleZ) if (k < Z) core = k;
+  int v = e - core;
+  if (core >= 18 && Z > core + 2) v -= 10;           // a filled d shell below the p block
+  if (v <= 2) return lowest;
+  const int p = v - 2;
+  if (p > 6) return lowest;
+  return (p <= 3 ? p : 6 - p) + 1;
 }
 
 
@@ -663,4 +711,52 @@ vector<std::pair<string, string>> recipeSolventSettings(const string& code, cons
   if (code == "ECCE-QM")
     return {{"ES.Theory.ECCEQM.Solvent", gas ? "None" : name}};
   return {};
+}
+
+// "(CO)6" when the fragment is several copies of one bonded molecule, else
+// its plain formula: a ligand set reads as what it is made of.
+string groupedFormula(Fragment& frag)
+{
+  vector<TTagCountPair> *all = frag.tagCounts();
+  const string plain = TFormula::empiricalFormula(*all, 0);
+  delete all;
+  const int n = frag.numAtoms();
+  if (n < 2) return plain;
+  if (frag.numBonds() == 0) frag.addCovalentBonds();
+  vector<int> seen(n, 0);
+  string first;
+  int copies = 0, firstAtoms = 0;
+  for (int a = 0; a < n; a++) {
+    if (seen[a]) continue;
+    vector<TTagCountPair> tc;
+    int atoms = 0;
+    vector<int> todo(1, a);
+    seen[a] = 1;
+    while (!todo.empty()) {
+      TAtm *atom = frag.atomRef(todo.back());
+      todo.pop_back();
+      atoms++;
+      if (atom->atomicSymbol() != "X") {
+        TTagCountPair look;
+        look.tag = atom->atomicSymbol();
+        auto it = std::find(tc.begin(), tc.end(), look);
+        if (it != tc.end()) it->count++;
+        else { look.count = 1; tc.push_back(look); }
+      }
+      vector<TAtm*> *nb = atom->connectedAtoms();
+      for (TAtm *b : *nb) {
+        const int k = frag.atomIndex(*b);
+        if (k >= 0 && k < n && !seen[k]) { seen[k] = 1; todo.push_back(k); }
+      }
+      delete nb;
+    }
+    if (tc.empty()) continue;
+    const string f = TFormula::empiricalFormula(tc, 0);
+    if (copies == 0) { first = f; firstAtoms = atoms; }
+    else if (f != first) return plain;
+    copies++;
+  }
+  // separate atoms (6 Cl) keep the plain formula
+  if (copies < 2 || firstAtoms < 2) return plain;
+  return "(" + first + ")" + std::to_string(copies);
 }

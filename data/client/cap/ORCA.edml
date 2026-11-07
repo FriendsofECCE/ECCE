@@ -150,6 +150,11 @@
     <runtype>Transition State (NEB-TS) + Frequencies</runtype>
     <runtype>IRC</runtype>
   </Theory>
+  <!-- Restricted open shell, for the open-shell fragments of a fragment
+       analysis (#201): one set of orbitals for both spins. -->
+  <Theory category="SCF" name="ROHF">
+    <runtype>Energy</runtype>
+  </Theory>
   <Theory category="DFT" name="RDFT">
     <runtype>Energy</runtype>
     <runtype>Gradient</runtype>
@@ -160,6 +165,9 @@
     <runtype>Transition State (NEB-TS) + Frequencies</runtype>
     <runtype>IRC</runtype>
     <runtype>Magnetic</runtype>
+  </Theory>
+  <Theory category="DFT" name="RODFT">
+    <runtype>Energy</runtype>
   </Theory>
   <Theory category="DFT" name="UDFT">
     <runtype>Energy</runtype>

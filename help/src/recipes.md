@@ -185,6 +185,21 @@ launched.
   example `1` or `2-13` or `1,3,5-8`. `rest` takes every atom that no other
   fragment has.
 - **Charge** and **Multiplicity** of the fragment on its own.
+- **State**: **In the complex** (the default) or **Free fragment, ground
+  state**. Choosing one sets the multiplicity, which can still be changed.
+  - *In the complex*: the electron configuration the fragment has inside the
+    complex, closed shell where its electron count allows, otherwise the
+    lowest multiplicity (a doublet). Cr(0) in Cr(CO)₆ is d⁶, a singlet; Co³⁺
+    in a low-spin complex is d⁶, a singlet. The fragment orbitals then
+    describe the metal as it is bonded.
+  - *Free fragment, ground state*: the isolated atom or ion in its ground
+    state: for the neutral atoms and +1 ions of the d block the tabulated
+    ground term (Cr 3d⁵4s¹, a septet; Fe 3d⁶4s², a quintet), for higher
+    ions Hund's rule on the dⁿ configuration (Fe³⁺ d⁵, a sextet), for other
+    atoms Hund's rule on the p shell. A fragment of more than one atom keeps
+    the lowest multiplicity. Its orbital energies are those of a different
+    configuration from the one in the complex, so its levels are not
+    directly comparable with the complex's.
 - **Formula**, shown when the structure is known.
 
 **Add fragment** adds a row; **Remove last** removes the last one (two
@@ -206,8 +221,9 @@ structure:
 - without a metal: one fragment per molecule, or atom 1 and the rest.
 
 Each fragment gets the lowest multiplicity its number of electrons allows
-(singlet or doublet). A fragment with a multiplicity above 1 is calculated
-unrestricted (UHF or UKS).
+(singlet or doublet), the state in the complex. A fragment with a
+multiplicity above 1 is calculated restricted open shell (ROHF or ROKS), so
+that one set of its orbitals serves both spins of the complex.
 
 ## Fragment orbitals
 
@@ -219,13 +235,14 @@ calculation's `results.h5`; the box needs calculations stored on this
 machine.
 
 The line under the title names the fragments with their charges, for
-example Cr | C₆O₆. Each following line is one orbital level of the complex
+example Cr | (CO)₆: a fragment made of several copies of one molecule is
+named (molecule)ₙ, any other fragment by its formula. Each following line is one orbital level of the complex
 near the frontier, highest first: two levels above the LUMO, the LUMO, the
 HOMO and two below it. A level is one orbital, or several degenerate ones
 (MO 34-36). The line gives its energy in eV and the fragment orbitals (FOs)
 it is made of, with the Mulliken share of each, largest first: the first
 always, the next two when they are 10 % or more. An FO is named by its
-fragment and its place there (C₆O₆ LUMO+1); degenerate FOs of one fragment
+fragment and its place there ((CO)₆ LUMO+1); degenerate FOs of one fragment
 are taken together (Cr HOMO (×3)). For degenerate complex orbitals the share
 is the mean over the level. For an open-shell complex the α and β orbitals
 are listed separately.
@@ -251,6 +268,83 @@ overlap strongly; the shares of one orbital still add up as above.
   a negative one antibonding. The line under the plots gives the occupied
   overlap population, the OPDOS summed over the occupied orbitals;
 - **Export CSV...**, the share of every FO in every complex orbital.
+
+The plots are on the **PDOS and OPDOS** page; the first page is the
+**Diagram**.
+
+### Diagram
+
+The interaction diagram of `ecce-fragorb diagram`: the FO levels of the
+first fragment on the left, the orbital levels of the complex in the
+centre, the FO levels of the other fragments on the right (with more than
+two fragments, each of these has its own lane in the right column), on one
+energy axis in eV. All energies are the computed orbital energies of the
+calculations, with no tabulated values. A level is drawn as one short bar per
+orbital, so degenerate levels show as bars side by side; a filled bar is an
+occupied orbital, an open bar an empty one, a half-filled bar a singly
+occupied one. A line joins an FO level and a complex level wherever the FO
+level's Mulliken share in that complex level is at least the threshold
+(10 % by default, the convention of Multiwfn's orbital interaction diagram);
+the line has the colour of the fragment and is thicker for shares of 25 %
+and 50 % or more. For degenerate levels the share is that of the whole FO
+level, averaged over the complex level.
+
+**Which levels are drawn.** The rule is the same for every calculation:
+
+1. the complex's levels in the window: **Occupied levels** from the HOMO
+   level down and **Empty levels** from the LUMO level up (4 and 4 by
+   default);
+2. every complex level that shares an FO level (with a line) with a drawn
+   occupied level, repeated until no level is added, so the antibonding
+   partner of a drawn bonding level is never left out, even far above the
+   window;
+3. every FO level with a line to a drawn complex level.
+
+FO levels without such a line are not drawn; a note under the diagram says
+how many there are for each fragment, and names the fragment's own HOMO or
+LUMO when it is among them. Where nothing is drawn for more than 5 eV, the
+axis is shortened and shows a break; the stretch between the complex's HOMO
+and LUMO is never shortened.
+
+**Labels.** A complex level with lines from two fragments is labelled
+bonding or antibonding by the sign of the overlap population between the
+fragments' atoms in that orbital (its OPDOS contribution, per electron):
+positive bonding, negative antibonding. A complex level with lines from one
+fragment only is labelled with that fragment; one without lines has only its
+number. An FO level is labelled with its FO numbers and its place in its
+fragment (FO 43–45 LUMO).
+
+Each label starts with the level's Mulliken symbol, counted from the lowest
+level of that symmetry: 2t₂g is the second t₂g level of the complex. Complex
+levels carry the irreducible representations of the complex's point group,
+FO levels those of their own fragment's point group, both found from the
+structure and the orbital coefficients as in the Builder's MO Diagram. A
+fragment that is a single atom has no point group in ECCE's tables; its
+levels are named by their shell instead, Cr 3d or Cr 4p, when one angular
+momentum makes up 90 % or more of the level (the principal quantum number
+is counted from the orbitals of that kind below it). A level reads ? when
+no symbol could be established: its orbitals do not span one irreducible
+representation cleanly, no shell dominates, or the point group is not
+found. The note under the diagram names each point group, or why there is
+none.
+
+**Validity.** For every drawn complex level the diagram knows the sum of the
+shares of its lines and the part of the orbital outside the span of all FOs.
+The line under the title says whether the diagram is representative: every
+drawn complex level at least 90 % made of the FO levels connected to it.
+Otherwise it names the levels that are not, with their percentages, and
+draws them dashed. When all of these are partner levels added outside the
+window (rule 2), the line says the diagram is representative in the window
+and names those far partner levels separately. The
+HOMO–LUMO difference is given as an orbital-energy gap: a difference of
+orbital energies, not an excitation energy.
+
+Point at a level, or click it, for its composition in the text field under
+the diagram: energy, occupation, overlap population, the sum of its lines,
+the part outside the FOs, and every FO level (or, for an FO level, every
+complex level) with a share of 1 % or more. The text can be selected and
+copied. **Line at ≥ (%)** changes the threshold; **Save PNG...** saves
+the diagram on a white background.
 
 The analysis refuses calculations that are not at the same geometry
 (within 0.001 Å), fragments that share atoms or leave atoms out, and a

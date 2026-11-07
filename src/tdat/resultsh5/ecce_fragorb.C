@@ -14,11 +14,27 @@ using resultsh5::Model;
 
 static const double HARTREE_EV = 27.211386245988;
 
+// The symmetry code links ECCE's periodic table and temporary files, which
+// ask for ECCE_REALUSERHOME and ECCE_REALUSER (some while the program
+// loads); a bare command line has neither, so default them to HOME and the
+// login name before any static constructor runs.
+#if defined(__GNUC__) && !defined(_WIN32)
+__attribute__((constructor(101))) static void defaultRealUserHome() {
+  const char* home = getenv("HOME");
+  if (!getenv("ECCE_REALUSERHOME") && home) setenv("ECCE_REALUSERHOME", home, 0);
+  const char* user = getenv("USER") ? getenv("USER") : getenv("LOGNAME");
+  if (!getenv("ECCE_REALUSER") && user) setenv("ECCE_REALUSER", user, 0);
+}
+#endif
+
 static const char* USAGE =
 "ecce-fragorb: fragment-orbital analysis from real fragment calculations\n"
 "\n"
 "  ecce-fragorb analyse <complex> <fragment>... [--threshold 0.10]\n"
 "               [--method mulliken|scpa] [--allow-uncovered] [--top N] [--json]\n"
+"  ecce-fragorb diagram <complex> <fragment>... [--threshold 0.10]\n"
+"               [--method mulliken|scpa] [--window OCC[,VIRT]] [--name NAME]...\n"
+"               [--json]\n"
 "  ecce-fragorb dos <complex> [<fragment>...] [--set NAME=ATOMS]... [--pair A:B]...\n"
 "               [--fwhm EV] [--shape gaussian|lorentzian] [--emin EV --emax EV]\n"
 "               [--step EV] [--json]\n"
@@ -34,6 +50,18 @@ static const char* USAGE =
 "         outside the span of the FOs).  Then the connection list: every\n"
 "         FO -> MO pair whose share is >= --threshold.  Energies in eV.\n"
 "         --top N      list at most N FOs per MO (default 4)\n"
+"diagram  The interaction diagram: the first fragment's FO levels (column 0),\n"
+"         the complex's MO levels (column 1), the other fragments' FO levels\n"
+"         (column 2, one lane per fragment), and a line from an FO level to an\n"
+"         MO level where its share is >= --threshold.  Degenerate orbitals\n"
+"         form one level.  Drawn: OCC complex levels from the HOMO level down\n"
+"         and VIRT from the LUMO level up (--window, default 4,4); then, until\n"
+"         nothing changes, every MO level sharing an FO level with a drawn\n"
+"         occupied MO level; then every FO level with a line to a drawn MO.\n"
+"         Per MO level: the part outside all FOs, the sum of its lines'\n"
+"         shares (under 90 %: not representative), the fragment-fragment\n"
+"         overlap population per electron, and bonding/antibonding (its sign)\n"
+"         when lines come from two fragments.\n"
 "dos      PDOS, TDOS and OPDOS from the complex's own S.  Atom sets come from\n"
 "         the fragment calculations (named after their folder) or --set\n"
 "         NAME=1,2,5-8 (1-based complex atoms).  --pair A:B picks OPDOS pairs\n"
@@ -43,6 +71,8 @@ static const char* USAGE =
 "\n"
 "--levels           (analyse) add the shares of degenerate FOs of one fragment (within 1e-4 Eh)\n"
 "                   and list levels, e.g. the five d orbitals of an atom, instead of single FOs.\n"
+"--no-symmetry      (diagram) no Mulliken labels (they need autosym and symops in $ECCE_HOME/bin)\n"
+"--name NAME        (diagram) the name of the next fragment in the output (default: its folder)\n"
 "--allow-uncovered  analyse although some complex atoms are in no fragment.\n"
 "--json             machine-readable output.\n";
 
@@ -178,6 +208,127 @@ static int analyseCmd(const vector<string>& pos, double threshold, string method
   return 0;
 }
 
+static string numbers(const vector<int>& n) {
+  string o = "[";
+  for (size_t i = 0; i < n.size(); i++) o += (i ? "," : "") + std::to_string(n[i]);
+  return o + "]";
+}
+
+static string levelName(const char* what, const vector<int>& n) {
+  if (n.size() == 1) return string(what) + " " + std::to_string(n[0]);
+  return string(what) + " " + std::to_string(n.front()) + "-" + std::to_string(n.back());
+}
+
+static int diagramCmd(const vector<string>& pos, const vector<string>& names, const DiagramOptions& dopt, bool allow, bool json) {
+  if (pos.size() < 2) { fprintf(stderr, "diagram needs a complex and at least one fragment\n"); return 2; }
+  Model cx;
+  vector<Model> fm(pos.size() - 1);
+  vector<NamedModel> frags;
+  string name, err;
+  if (!load(pos[0], cx, name, err)) { fprintf(stderr, "ecce-fragorb: %s\n", err.c_str()); return 1; }
+  for (size_t i = 1; i < pos.size(); i++) {
+    NamedModel nm;
+    if (!load(pos[i], fm[i-1], nm.name, err)) { fprintf(stderr, "ecce-fragorb: %s\n", err.c_str()); return 1; }
+    nm.model = &fm[i-1];
+    if (i - 1 < names.size()) nm.name = names[i - 1];
+    frags.push_back(nm);
+  }
+  Options opt;
+  opt.allowUncovered = allow;
+  Analysis a;
+  Diagram d;
+  if (!analyse(cx, frags, opt, a, err) || !diagram(cx, a, dopt, d, err)) {
+    fprintf(stderr, "ecce-fragorb: %s\n", err.c_str());
+    return 1;
+  }
+  if (json) {
+    printf("{\"method\":%s,\"threshold\":%g,\"covered\":%g,\"window\":[%d,%d],\"fragments\":[",
+           jstr(dopt.method).c_str(), dopt.threshold, dopt.covered, dopt.occupiedLevels, dopt.virtualLevels);
+    for (size_t f = 0; f < d.fragmentNames.size(); f++) printf("%s%s", f ? "," : "", jstr(d.fragmentNames[f]).c_str());
+    printf("],\"groups\":[");
+    for (size_t f = 0; f < d.groups.size(); f++) printf("%s%s", f ? "," : "", jstr(d.groups[f]).c_str());
+    printf("],\"symmetry_why\":[");
+    for (size_t f = 0; f < d.symmetryWhy.size(); f++) printf("%s%s", f ? "," : "", jstr(d.symmetryWhy[f]).c_str());
+    printf("],\"channels\":[");
+    for (size_t c = 0; c < d.channel.size(); c++) {
+      const DiagramChannel& ch = d.channel[c];
+      printf("%s{\"spin\":%d,\"homo\":%d,\"lumo\":%d,\"gap_ev\":%.6f,\"representative\":%s,\"window_representative\":%s,\"verdict\":%s,\"notes\":[",
+             c ? "," : "", ch.spin, ch.homo, ch.lumo, ch.gapEv, ch.representative ? "true" : "false",
+             ch.windowRepresentative ? "true" : "false",
+             jstr(ch.verdict).c_str());
+      for (size_t k = 0; k < ch.notes.size(); k++) printf("%s%s", k ? "," : "", jstr(ch.notes[k]).c_str());
+      printf("],\"hidden_fo_levels\":%s,\"levels\":[", numbers(ch.hiddenFoLevels).c_str());
+      for (size_t k = 0; k < ch.levels.size(); k++) {
+        const DiagramLevel& l = ch.levels[k];
+        printf("%s{\"id\":%d,\"column\":%d,\"fragment\":%d,\"numbers\":%s,\"energy_ev\":%.6f,\"occupation\":[",
+               k ? "," : "", l.id, l.column, l.fragment, numbers(l.numbers).c_str(), l.energyEv);
+        for (size_t i = 0; i < l.occupation.size(); i++) printf("%s%.6f", i ? "," : "", l.occupation[i]);
+        printf("],\"position\":%s,\"irrep\":%s,\"shell\":%s,\"kind\":%s", jstr(l.position).c_str(),
+               jstr(l.irrep).c_str(), jstr(l.shell).c_str(), jstr(l.kind).c_str());
+        if (l.fragment < 0)
+          printf(",\"partner\":%s,\"remainder\":%.8f,\"covered\":%.8f,\"representative\":%s,"
+                 "\"overlap_population\":%.8f,\"fragments\":%s",
+                 l.partner ? "true" : "false", l.remainder, l.covered, l.representative ? "true" : "false",
+                 l.overlapPopulation, numbers(l.fragments).c_str());
+        printf(",\"shares\":[");
+        for (size_t i = 0; i < l.shares.size(); i++) {
+          const DiagramShare& sh = l.shares[i];
+          printf("%s{\"level\":%d,\"fragment\":%d,\"numbers\":%s,\"energy_ev\":%.6f,\"share\":%.8f,\"position\":%s,"
+                 "\"irrep\":%s,\"shell\":%s}",
+                 i ? "," : "", sh.level, sh.fragment, numbers(sh.numbers).c_str(), sh.energyEv, sh.share,
+                 jstr(sh.position).c_str(), jstr(sh.irrep).c_str(), jstr(sh.shell).c_str());
+        }
+        printf("]}");
+      }
+      printf("],\"lines\":[");
+      for (size_t k = 0; k < ch.lines.size(); k++)
+        printf("%s{\"fo\":%d,\"mo\":%d,\"fragment\":%d,\"share\":%.8f}", k ? "," : "",
+               ch.lines[k].fo, ch.lines[k].mo, ch.lines[k].fragment, ch.lines[k].share);
+      printf("]}");
+    }
+    printf("]}\n");
+    return 0;
+  }
+  printf("complex %s; columns: %s | complex", name.c_str(), d.fragmentNames[0].c_str());
+  for (size_t f = 1; f < d.fragmentNames.size(); f++) printf("%s %s", f == 1 ? " |" : ",", d.fragmentNames[f].c_str());
+  printf("\n%s shares, lines for >= %.0f %%, window %d occupied + %d virtual MO levels; energies in eV\n",
+         dopt.method == "scpa" ? "SCPA" : "Mulliken", 100 * dopt.threshold, dopt.occupiedLevels, dopt.virtualLevels);
+  for (size_t c = 0; c < d.channel.size(); c++) {
+    const DiagramChannel& ch = d.channel[c];
+    if (d.channel.size() > 1) printf("\n%s orbitals\n", ch.spin ? "beta" : "alpha");
+    printf("%s\n", ch.verdict.c_str());
+    if (ch.homo >= 0 && ch.lumo >= 0)
+      printf("HOMO-LUMO orbital-energy gap %.3f eV\n", ch.gapEv);
+    printf("\ncomplex MO levels (highest first): energy, occupation, outside FOs, covered by lines, OP, kind\n");
+    for (size_t k = ch.levels.size(); k-- > 0;) {
+      const DiagramLevel& l = ch.levels[k];
+      if (l.fragment >= 0) continue;
+      string kind = l.kind == "fragment" ? d.fragmentNames[l.fragments[0]] : l.kind;
+      printf("  %-10s %-6s %9.3f  occ %.3f  %6.1f %%  %6.1f %%  OP %+.4f  %s%s%s\n", levelName("MO", l.numbers).c_str(),
+             l.irrep.empty() ? "?" : l.irrep.c_str(), l.energyEv, l.occupation[0], 100 * l.remainder, 100 * l.covered, l.overlapPopulation, kind.c_str(),
+             l.partner ? "  (partner)" : "", l.representative ? "" : "  NOT REPRESENTATIVE");
+    }
+    printf("\nFO levels drawn\n");
+    for (size_t k = 0; k < ch.levels.size(); k++) {
+      const DiagramLevel& l = ch.levels[k];
+      if (l.fragment < 0) continue;
+      printf("  %-12s %-10s %-6s %-9s %9.3f  occ %.3f\n", d.fragmentNames[l.fragment].c_str(),
+             levelName("FO", l.numbers).c_str(),
+             !l.shell.empty() ? l.shell.c_str() : l.irrep.empty() ? "?" : l.irrep.c_str(), l.position.c_str(),
+             l.energyEv, l.occupation[0]);
+    }
+    printf("\nlines: FO level -> MO level, share\n");
+    for (size_t k = 0; k < ch.lines.size(); k++) {
+      const DiagramLevel& f = ch.levels[ch.lines[k].fo];
+      const DiagramLevel& m = ch.levels[ch.lines[k].mo];
+      printf("  %-12s %-10s -> %-10s %6.1f %%\n", d.fragmentNames[f.fragment].c_str(), levelName("FO", f.numbers).c_str(),
+             levelName("MO", m.numbers).c_str(), 100 * ch.lines[k].share);
+    }
+    for (size_t k = 0; k < ch.notes.size(); k++) printf("note: %s\n", ch.notes[k].c_str());
+  }
+  return 0;
+}
+
 // "1,2,5-8" -> 0-based atoms
 static bool parseAtoms(const string& s, vector<int>& out) {
   size_t i = 0;
@@ -272,21 +423,30 @@ int main(int argc, char** argv) {
     return argc < 2 ? 2 : 0;
   }
   string cmd = argv[1];
-  vector<string> pos, sets, pairs;
+  vector<string> pos, sets, pairs, names;
   double threshold = 0.10, topThreshold = 0.02;
   string method = "mulliken";
   bool allow = false, json = false, levels = false;
   int top = 4;
   DosOptions dopt;
+  DiagramOptions gopt;
   for (int i = 2; i < argc; i++) {
     string a = argv[i];
     bool more = i + 1 < argc;
     if (a == "--threshold" && more) { threshold = atof(argv[++i]); topThreshold = std::min(topThreshold, threshold); }
     else if (a == "--method" && more) method = argv[++i];
+    else if (a == "--window" && more) {
+      const char* w = argv[++i];
+      gopt.occupiedLevels = gopt.virtualLevels = atoi(w);
+      if (strchr(w, ',')) gopt.virtualLevels = atoi(strchr(w, ',') + 1);
+      if (gopt.occupiedLevels < 1 || gopt.virtualLevels < 0) { fprintf(stderr, "--window expects OCC[,VIRT], OCC >= 1\n"); return 2; }
+    }
     else if (a == "--top" && more) top = atoi(argv[++i]);
     else if (a == "--allow-uncovered") allow = true;
     else if (a == "--json") json = true;
     else if (a == "--levels") levels = true;
+    else if (a == "--name" && more) names.push_back(argv[++i]);
+    else if (a == "--no-symmetry") gopt.symmetry = false;
     else if (a == "--set" && more) sets.push_back(argv[++i]);
     else if (a == "--pair" && more) pairs.push_back(argv[++i]);
     else if (a == "--fwhm" && more) dopt.fwhmEv = atof(argv[++i]);
@@ -299,7 +459,12 @@ int main(int argc, char** argv) {
   }
   if (method != "mulliken" && method != "scpa") { fprintf(stderr, "--method is mulliken or scpa\n"); return 2; }
   if (cmd == "analyse" || cmd == "analyze") return analyseCmd(pos, threshold, method, allow, json, top, topThreshold, levels);
+  if (cmd == "diagram") {
+    gopt.threshold = threshold;
+    gopt.method = method;
+    return diagramCmd(pos, names, gopt, allow, json);
+  }
   if (cmd == "dos") return dosCmd(pos, sets, pairs, dopt, json);
-  fprintf(stderr, "ecce-fragorb: unknown command %s (analyse, dos; see --help)\n", cmd.c_str());
+  fprintf(stderr, "ecce-fragorb: unknown command %s (analyse, diagram, dos; see --help)\n", cmd.c_str());
   return 2;
 }
