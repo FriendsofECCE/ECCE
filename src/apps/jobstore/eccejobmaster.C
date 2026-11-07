@@ -130,6 +130,20 @@ int main(int argc, char** argv)
 
   string ejsEnd = " > " + RCommand::quotePath(cacheDir + "/eccejobstore.log");
 
+  // A GROMACS import's staging copy (gmximport-*) is named only in the store
+  // config, which goes with cacheDir, so it is read now and removed at the end.
+  string stagingDir;
+  {
+    std::ifstream conf(argv[argc-1]);
+    for (string line; std::getline(conf, line); ) {
+      if (line.compare(0, 11, "importDir: ") != 0) continue;
+      string d = line.substr(11);
+      while (d.size() > 1 && d[d.size()-1] == '/') d.erase(d.size()-1);
+      const string::size_type sl = d.rfind('/');
+      if (d.compare(sl == string::npos ? 0 : sl + 1, 10, "gmximport-") == 0) stagingDir = d;
+    }
+  }
+
   logFileName = cacheDir + "/eccejobmaster.log";
   ofstream logFile(logFileName.c_str(), (ios::out | ios::trunc));
   if (!logFile)
@@ -339,13 +353,7 @@ int main(int argc, char** argv)
     }
   }
 
-  // The Organizer's GROMACS import stages a private copy in gmximport-*;
-  // it is removed whatever the exit status, unless logmode says to keep it.
-  if (!importDir.empty() && !deleteFlag) {
-    string d = importDir;
-    while (d.size() > 1 && d[d.size()-1] == '/') d.erase(d.size()-1);
-    string::size_type sl = d.rfind('/');
-    string base = sl == string::npos ? d : d.substr(sl+1);
+  if (!stagingDir.empty()) {
     bool keep = false;
     if (value != NULL) {
       string m = value;
@@ -353,7 +361,13 @@ int main(int argc, char** argv)
       if (c != string::npos) m = m.substr(c+1);
       keep = m.find("yes")!=string::npos || m.find("true")!=string::npos;
     }
-    if (base.compare(0, 10, "gmximport-") == 0 && !keep) deleteFlag = true;
+    if (!keep) {
+#ifdef _WIN32
+      (void)winShell("rm -rf " + RCommand::quotePath(stagingDir));
+#else
+      (void)system(("/bin/rm -rf " + RCommand::quotePath(stagingDir)).c_str());
+#endif
+    }
   }
 
   if (!importDir.empty() && importDir.length()>5 && deleteFlag) {
