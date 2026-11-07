@@ -89,7 +89,8 @@ def run(display, data, work, shots):
     png2 = os.path.join(shots, "workflow-sn2.png")
     commands = ["examples workflows"] + menus + ["workflowinfo " + wf,
                 "workflowshot %s %s" % (png, wf), "workflowinfo " + sn2,
-                "workflowshot %s %s" % (png2, sn2), "workflowresults " + sn2]
+                "workflowshot %s %s" % (png2, sn2), "workflowresults " + sn2,
+                "workflowrate " + sn2]
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
         handle.write("\n".join(commands) + "\n")
@@ -176,6 +177,10 @@ def run(display, data, work, shots):
           set(lines) == set(t2) and all(v.strip() for v in lines.values()) and
           lines.get("sn2_irc", "").strip() == "TS E \u22123071.917 Eh",
           "workflowresults answered %r" % res)
+    rate = answer("workflowrate")
+    check("SN2: the Rate box has its keys and a rate (#906)",
+          bool(rate) and rate[0].startswith("ok "),
+          "workflowrate answered %r" % rate)
     check("ORCA IRC example: stored TS row is the energy at coordinate 0",
           orca_ts_energy(data) == "-3073.683420", "got %r" % orca_ts_energy(data))
     irc = os.path.join(root, "Examples", "Workflows", "SN2_Cl-_and_CH3Br",
