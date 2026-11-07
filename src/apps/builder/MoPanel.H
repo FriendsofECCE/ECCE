@@ -124,6 +124,8 @@ class MoPanel : public MoGUI,
       */
      string espBarState() const;
 
+     /** The isovalue (linear) the grid's outer faces were last checked at; 0 before a surface. */
+     double facesCheckedIso() const { return p_facesCheckedIso; }
      /** Choose a field type as a click in the type drop-down does. */
      bool selectFieldType(const string& name);
 
@@ -153,6 +155,10 @@ class MoPanel : public MoGUI,
      GridDlg *getGridDlg();
      void updateGridDlg();
      void showGridDlg();
+     /** Sides of the drawn grid where |field| exceeds `iso` (bit 0..5: -x +x -y +y -z +z). */
+     int gridFacesCut(double iso) const;
+     /** Re-check the faces at a lowered isovalue; recompute with a larger box if cut. */
+     void recheckGridFaces(double isoLog);
      int  fillTable(const string& type,
                     PropVector *orbEnergy,
                     PropVector *orbOcc, 
@@ -297,6 +303,13 @@ class MoPanel : public MoGUI,
       vector<string> p_atomLabels[2];
       string p_virtNote;          // "Virtual orbitals: ..." line, for tests
       bool p_localised = false;   // the table lists the localised orbitals
+      //  Grid box growth (Angstrom per side) the face check asked for, the
+      //  rounds spent, and the isovalue the faces were last checked at.
+      float p_gridGrow[6] = {0, 0, 0, 0, 0, 0};
+      int p_gridRound = 0;
+      double p_facesCheckedIso = 0;
+      bool p_keepIso = false;     // a recompute keeps the slider's value
+      double p_keepIsoLog = 0;
 
       /* The first plot; all symmetries are on same x value. */
       XYPlotCanvas *p_plotReg;
