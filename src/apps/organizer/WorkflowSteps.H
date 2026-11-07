@@ -197,7 +197,7 @@ namespace WorkflowSteps {
   /// Takes the geometry, charge and multiplicity of a recipe step's sources
   /// just before it is launched (they did not exist when it was made).
   /// Steps not made by a recipe are left alone.  Empty, or why not.
-  std::string refreshFromSources(Session *wf, Resource *step);
+  std::string refreshFromSources(Session *wf, Resource *step, bool prepare = true);
 
   /// A Created recipe step whose sources are all Complete and which has a
   /// structure gets its input written (DeckWriter, as the editor's Save) and

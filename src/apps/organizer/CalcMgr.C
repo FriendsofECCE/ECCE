@@ -9553,7 +9553,9 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
           vector<Resource*> ready = WorkflowSteps::readySteps(wf);
           for (Resource *member : ready)
             if (member->getURL() == step->getURL()) {
-              WorkflowSteps::refreshFromSources(wf, member);
+              // Not prepared: the editor writes the deck, and a deck
+              // written here would carry default theory and chemistry.
+              WorkflowSteps::refreshFromSources(wf, member, false);
               break;
             }
         }

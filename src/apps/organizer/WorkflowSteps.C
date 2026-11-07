@@ -1147,7 +1147,7 @@ bool WorkflowSteps::attachFieldOrbitals(Resource *step, Resource *source)
 }
 
 
-string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
+string WorkflowSteps::refreshFromSources(Session *wf, Resource *step, bool prepare)
 {
   if (step->getProp(nsKey(":recipe.step")).empty()) return "";
   bool carried = false;
@@ -1173,7 +1173,7 @@ string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
     }
   }
   if (carried) structureSet(wf, step);
-  return prepareStep(wf, step);
+  return prepare ? prepareStep(wf, step) : string();
 }
 
 
