@@ -211,12 +211,13 @@ JobCatchUp::Plan JobCatchUp::plan(TaskJob* calc)
 
 vector<JobCatchUp::Result> JobCatchUp::run(
     std::function<bool(size_t, size_t)> progress, const LoginFn& login,
-    const RemoteFn& remote)
+    const RemoteFn& remote, std::function<bool(const std::string&)> include)
 {
   vector<Result> results;
   vector<string> urls = WaitingJobs::list();
   OpenSshTransport::forgetMasterAttempts();
   for (size_t i = 0; i < urls.size(); i++) {
+    if (include && !include(urls[i])) continue;
     if (progress && !progress(i, urls.size()))
       break;
     Result r;

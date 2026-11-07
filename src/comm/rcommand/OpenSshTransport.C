@@ -706,6 +706,26 @@ void OpenSshTransport::forgetMasterAttempts()
   }
 }
 
+void OpenSshTransport::stopOwnedMasters()
+{
+#ifndef _WIN32
+  if (!ownsFromDir()) return;
+  const std::string base = socketFor(0);
+  HostLock lock(base + ".lock");
+  for (int i = 0; i <= kMaxOverflow; ++i) {
+    const std::string socket = socketFor(i);
+    struct stat st;
+    if (lstat(socket.c_str(), &st) != 0 || !S_ISSOCK(st.st_mode)) continue;
+    std::vector<std::string> a = {p_program, "-O", "stop", "-S", socket};
+    if (p_port > 0) { a.push_back("-p"); a.push_back(std::to_string(p_port)); }
+    if (!p_user.empty()) { a.push_back("-l"); a.push_back(p_user); }
+    a.push_back(p_host);
+    DirectTransport::runProcess(a, "", -1, -1, 5);
+    unlink((socket + ".pw").c_str());
+  }
+#endif
+}
+
 bool OpenSshTransport::masterAlive() const
 {
   std::vector<std::string> a;

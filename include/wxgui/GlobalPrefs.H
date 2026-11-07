@@ -42,6 +42,7 @@ public:
   // Test hooks (the Organizer's ECCE_TEST_ORGANIZER "prefs" command): show the
   // Colours tab, choose a scheme as a click does, say which one is shown.
   void showColoursPage();
+  void showDataPage();
   bool chooseColourScheme(const string& scheme);
   string colourSchemeShown() const;
   bool tickAdvanced(const string& key, bool on);   // as a click does

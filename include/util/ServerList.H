@@ -4,7 +4,7 @@
  * The servers a user has added (#767): SSH folders and ECCE servers, kept
  * per user in one plain file, ~/.ECCE/AddedServers, one line per server:
  *
- *     <type><TAB><name><TAB><address>
+ *     <type><TAB><name><TAB><address><TAB><connect-at-start: 0 or 1>
  *
  * type is "ssh" (address sftp://user@host/folder) or "ecce" (address
  * https://host[:port]).  wx-free; Edit > Preferences > Data lists them.
@@ -23,6 +23,7 @@ struct ServerEntry
   string type;      // "ssh" or "ecce"
   string name;
   string address;
+  bool connectAtStart = false;
 };
 
 class ServerList
