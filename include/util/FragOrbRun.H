@@ -68,7 +68,7 @@ struct FragDiagramShare
    int fragment = -1;
    std::vector<int> numbers;
    double energy = 0, share = 0;
-   std::string position;
+   std::string position, irrep;
 };
 
 /** A level of `ecce-fragorb diagram`: complex MOs (fragment -1) or FOs. */
@@ -79,6 +79,7 @@ struct FragDiagramLevel
    double energy = 0;         ///< eV
    std::vector<double> occupation;
    std::string position, kind;
+   std::string irrep;         ///< "2t2g", "" when not determined
    bool partner = false, representative = true;
    double remainder = 0, covered = 0, overlapPopulation = 0;
    std::vector<int> fragments;
@@ -109,6 +110,7 @@ struct FragDiagramResult
    double threshold = 0.10, covered = 0.90;
    int occupied = 4, virtuals = 4;
    std::vector<std::string> fragments;   ///< the names given with --name
+   std::vector<std::string> groups;      ///< complex, then each fragment; "" not determined
    std::vector<FragDiagramChannel> channels;
 };
 

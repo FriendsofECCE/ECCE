@@ -58,6 +58,7 @@ struct Channel {
 
 struct Analysis {
   vector<string> fragmentNames;
+  vector<const resultsh5::Model*> fragmentModels;   // as given to analyse()
   vector<vector<int> > atomMap;        // fragment atom -> complex atom
   vector<Channel> channel;
   bool restricted = true;
@@ -130,6 +131,7 @@ struct DiagramOptions {
   int virtualLevels = 4;
   double degenerateEh = 1e-4;
   double covered = 0.90;               // an MO level covered less is not representative
+  bool symmetry = true;                // label levels by irrep (runs autosym)
 };
 
 // Shares of 1 % or more: an MO level's FO levels, or the MO levels an FO
@@ -141,6 +143,7 @@ struct DiagramShare {
   double energyEv = 0;
   double share = 0;
   string position;
+  string irrep;                        // as DiagramLevel::irrep
 };
 
 struct DiagramLevel {
@@ -152,6 +155,7 @@ struct DiagramLevel {
   double energyEv = 0;                 // mean over the level
   vector<double> occupation;           // per orbital, as stored
   string position;                     // "HOMO", "LUMO+3", counted in orbitals
+  string irrep;                        // Mulliken label with its count, "2t2g"; "" not determined
   // complex MO levels only
   bool partner = false;                // drawn by the partner rule, outside the window
   double remainder = 0;                // part outside the span of all FOs (mean over the level)
@@ -185,9 +189,22 @@ struct DiagramChannel {
 
 struct Diagram {
   vector<string> fragmentNames;
+  // point group of the complex [0] and of each fragment [1..], "" when not
+  // determined, with the reason in symmetryWhy
+  vector<string> groups, symmetryWhy;
   DiagramOptions options;
   vector<DiagramChannel> channel;
 };
+
+// Irreps of a model's orbitals in the point group autosym finds, from the
+// coefficients (SymmetryAnalysis::fullLabelSpectrum, the Builder MO
+// diagram's machinery).  irrep[i] is "" where no clean label exists; false
+// with `why` when no orbital can be labelled.  Needs autosym and symops.
+struct OrbitalSymmetry {
+  string group, why;
+  vector<string> irrep;                // per MO, the table's spelling ("T2g")
+};
+bool orbitalSymmetry(const resultsh5::Model& m, int spin, OrbitalSymmetry& out);
 
 // `a` must come from analyse() on the same complex model.
 bool diagram(const resultsh5::Model& complex, const Analysis& a, const DiagramOptions& opt,

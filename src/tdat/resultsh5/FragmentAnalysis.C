@@ -3,10 +3,22 @@
 #include "tdat/FragmentAnalysis.H"
 
 #include <algorithm>
+#include <cctype>
+#include <map>
 #include <cmath>
 #include <cstdarg>
 #include <cstdio>
 #include <set>
+#include <sstream>
+
+#include "tdat/CharacterTable.H"
+#include "tdat/Fragment.H"
+#include "tdat/MoFragments.H"
+#include "tdat/SymmetryAnalysis.H"
+#include "tdat/SymmetryOps.H"
+#include "tdat/TAtm.H"
+#include "tdat/TGBSAngFunc.H"
+#include "tdat/TPerTab.H"
 
 namespace fragorb {
 
@@ -187,6 +199,7 @@ bool analyse(const Model& cx, const vector<NamedModel>& frags, const Options& op
     const Model& fr = *frags[f].model;
     const string& nm = frags[f].name;
     out.fragmentNames.push_back(nm);
+    out.fragmentModels.push_back(frags[f].model);
     if (fr.basis.type != "GTO" || fr.basis.orthonormal || fr.mos.empty()) { err = "fragment " + nm + " has no Gaussian-basis orbitals"; return false; }
     out.atomMap.push_back(vector<int>());
     if (!mapAtoms(cx, fr, opt.atomTolAng, out.atomMap.back(), err)) { err = "fragment " + nm + ": " + err; return false; }
@@ -474,9 +487,26 @@ bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diag
   }
   const size_t np = dr.pairNames.size();
 
+  auto lower = [](string x) { if (!x.empty()) x[0] = char(std::tolower((unsigned char)x[0])); return x; };
   size_t moBase = 0;
   for (size_t c = 0; c < a.channel.size(); c++) {
     const Channel& ch = a.channel[c];
+    // Irreps of the complex's and each fragment's own orbitals.
+    OrbitalSymmetry csym;
+    vector<OrbitalSymmetry> fsym(nf);
+    const bool cok = opt.symmetry && orbitalSymmetry(cx, ch.spin, csym);
+    vector<char> fok(nf, 0);
+    for (size_t f = 0; f < nf; f++)
+      fok[f] = opt.symmetry && f < a.fragmentModels.size() && a.fragmentModels[f] &&
+               orbitalSymmetry(*a.fragmentModels[f], ch.spin, fsym[f]);
+    if (c == 0) {
+      out.groups.assign(1, cok ? csym.group : "");
+      out.symmetryWhy.assign(1, cok ? "" : (opt.symmetry ? csym.why : "not asked for"));
+      for (size_t f = 0; f < nf; f++) {
+        out.groups.push_back(fok[f] ? fsym[f].group : "");
+        out.symmetryWhy.push_back(fok[f] ? "" : (opt.symmetry ? fsym[f].why : "not asked for"));
+      }
+    }
     const vector<double>& comp = opt.method == "scpa" ? ch.scpa : ch.mulliken;
     const size_t nmo = ch.nmo, nfo = ch.fo.size();
     DiagramChannel dc;
@@ -499,6 +529,33 @@ bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diag
       k = j + 1;
     }
     const size_t nml = ml.size(), nfl = fl.size();
+    // "2t2g": the irrep shared by every orbital of the level, counted from
+    // the lowest level of that irrep; "" when the orbitals disagree or
+    // have no label.
+    vector<string> mlIrrep(nml), flIrrep(nfl);
+    {
+      std::map<string, int> count;
+      for (size_t m = 0; m < nml && cok; m++) {
+        string ir = csym.irrep.size() > size_t(ml[m].first) ? csym.irrep[ml[m].first] : "";
+        for (int i = ml[m].first; i <= ml[m].last && !ir.empty(); i++)
+          if (size_t(i) >= csym.irrep.size() || csym.irrep[i] != ir) ir.clear();
+        if (!ir.empty()) mlIrrep[m] = std::to_string(++count[ir]) + lower(ir);
+      }
+      std::map<std::pair<int, string>, int> fcount;
+      for (size_t k = 0; k < nfl; k++) {
+        const int f = ch.fo[fl[k].first].fragment;
+        if (!fok[f]) continue;
+        const vector<string>& irs = fsym[f].irrep;
+        string ir;
+        for (int q = fl[k].first; q <= fl[k].last; q++) {
+          const size_t i = size_t(ch.fo[q].index - 1);
+          const string one = i < irs.size() ? irs[i] : "";
+          if (q == fl[k].first) ir = one;
+          else if (one != ir) ir.clear();
+        }
+        if (!ir.empty()) flIrrep[k] = std::to_string(++fcount[std::make_pair(f, ir)]) + lower(ir);
+      }
+    }
     // share of FO level k in MO level m
     vector<double> L(nfl * nml, 0.0);
     for (size_t k = 0; k < nfl; k++)
@@ -564,6 +621,7 @@ bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diag
       lv.energyEv = e / n * HARTREE_EV;
       lv.remainder = rem / n;
       lv.position = position(cxHomo, lv.numbers.front(), lv.numbers.back());
+      lv.irrep = mlIrrep[m];
       lv.partner = partner[m] != 0;
       moId[m] = lv.id;
       dc.levels.push_back(lv);
@@ -585,6 +643,7 @@ bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diag
       }
       lv.energyEv = e / double(lv.numbers.size()) * HARTREE_EV;
       lv.position = position(frHomo[lv.fragment], lv.numbers.front(), lv.numbers.back());
+      lv.irrep = flIrrep[k];
       foId[k] = lv.id;
       dc.levels.push_back(lv);
     }
@@ -639,6 +698,7 @@ bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diag
         sh.energyEv = e / double(sh.numbers.size()) * HARTREE_EV;
         sh.share = -v[t].first;
         sh.position = position(frHomo[sh.fragment], sh.numbers.front(), sh.numbers.back());
+        sh.irrep = flIrrep[k];
         lv.shares.push_back(sh);
       }
     }
@@ -658,6 +718,7 @@ bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diag
         sh.energyEv = e / double(sh.numbers.size()) * HARTREE_EV;
         sh.share = -v[t].first;
         sh.position = position(cxHomo, sh.numbers.front(), sh.numbers.back());
+        sh.irrep = mlIrrep[m];
         lv.shares.push_back(sh);
       }
     }
@@ -697,6 +758,13 @@ bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diag
       dc.verdict += "; drawn dashed.";
     }
 
+    {
+      string groups = "Point groups (Mulliken labels from the orbital coefficients): complex " +
+                      (cok ? csym.group : "not determined (" + csym.why + ")");
+      for (size_t f = 0; f < nf; f++)
+        groups += "; " + a.fragmentNames[f] + " " + (fok[f] ? fsym[f].group : "not determined (" + fsym[f].why + ")");
+      if (opt.symmetry) dc.notes.push_back(groups + ".");
+    }
     string partners;
     for (size_t i = 0; i < dc.levels.size(); i++)
       if (dc.levels[i].partner) partners += (partners.empty() ? "" : ", ") + levelName("MO", dc.levels[i].numbers);
@@ -722,6 +790,128 @@ bool diagram(const Model& cx, const Analysis& a, const DiagramOptions& opt, Diag
     out.channel.push_back(dc);
     moBase += nmo;
   }
+  return true;
+}
+
+namespace {
+
+// Real solid harmonics with one norm per shell (Helgaker 6.4.47), in the
+// results.h5 canonical order: p x,y,z; else m = 0, +1, -1, +2, -2, ...
+// ShellRotation fits each operation's matrix from these polynomials, so they
+// must be the AOs up to one factor per shell.
+void addTerm(AngMomFunc& f, double c, int x, int y, int z) {
+  Monomial m;
+  m.m_coefficient = c; m.m_l = x; m.m_m = y; m.m_n = z; m.m_k = 0;
+  f.push_back(m);
+}
+
+TGBSAngFunc* canonicalAngFunc() {
+  TGBSAngFunc* a = new TGBSAngFunc;
+  a->basisType(TGBSAngFunc::Spherical);
+  a->componentNormalized(true);
+  AngMomFunc f;
+  addTerm(f, 1, 0, 0, 0); a->addFunc(f); a->markShell();
+  for (int k = 0; k < 3; k++) { f.clear(); addTerm(f, 1, k == 0, k == 1, k == 2); a->addFunc(f); }
+  a->markShell();
+  const double r3 = std::sqrt(3.0);
+  f.clear(); addTerm(f, 1, 0, 0, 2); addTerm(f, -0.5, 2, 0, 0); addTerm(f, -0.5, 0, 2, 0); a->addFunc(f);
+  f.clear(); addTerm(f, r3, 1, 0, 1); a->addFunc(f);
+  f.clear(); addTerm(f, r3, 0, 1, 1); a->addFunc(f);
+  f.clear(); addTerm(f, r3 / 2, 2, 0, 0); addTerm(f, -r3 / 2, 0, 2, 0); a->addFunc(f);
+  f.clear(); addTerm(f, r3, 1, 1, 0); a->addFunc(f);
+  a->markShell();
+  const double c1 = std::sqrt(3.0 / 8), c2 = std::sqrt(15.0) / 2, c3 = std::sqrt(5.0 / 8);
+  f.clear(); addTerm(f, 1, 0, 0, 3); addTerm(f, -1.5, 2, 0, 1); addTerm(f, -1.5, 0, 2, 1); a->addFunc(f);
+  f.clear(); addTerm(f, 4 * c1, 1, 0, 2); addTerm(f, -c1, 3, 0, 0); addTerm(f, -c1, 1, 2, 0); a->addFunc(f);
+  f.clear(); addTerm(f, 4 * c1, 0, 1, 2); addTerm(f, -c1, 2, 1, 0); addTerm(f, -c1, 0, 3, 0); a->addFunc(f);
+  f.clear(); addTerm(f, c2, 2, 0, 1); addTerm(f, -c2, 0, 2, 1); a->addFunc(f);
+  f.clear(); addTerm(f, 2 * c2, 1, 1, 1); a->addFunc(f);
+  f.clear(); addTerm(f, c3, 3, 0, 0); addTerm(f, -3 * c3, 1, 2, 0); a->addFunc(f);
+  f.clear(); addTerm(f, 3 * c3, 2, 1, 0); addTerm(f, -c3, 0, 3, 0); a->addFunc(f);
+  a->markShell();
+  return a;
+}
+
+}  // namespace
+
+bool orbitalSymmetry(const Model& m, int spin, OrbitalSymmetry& out) {
+  out = OrbitalSymmetry();
+  const Mos* mo = 0;
+  for (size_t k = 0; k < m.mos.size(); k++) if (m.mos[k].spin == spin) mo = &m.mos[k];
+  if (!mo && !m.mos.empty()) mo = &m.mos[0];
+  if (!mo) { out.why = "no orbitals"; return false; }
+  out.irrep.assign(mo->nmo, "");
+  const size_t na = m.natoms();
+  for (size_t k = 0; k < m.basis.shells.size(); k++) {
+    if (m.basis.shells[k].cartesian) { out.why = "Cartesian basis functions are not labelled"; return false; }
+    if (m.basis.shells[k].l > 3) { out.why = "g and higher shells are not labelled"; return false; }
+  }
+  const int g = mo->geometry;
+  vector<double> stored(3 * na);
+  vector<string> elements(na);
+  std::ostringstream xyz;
+  xyz << na << "\nfragorb\n";
+  for (size_t a = 0; a < na; a++) {
+    elements[a] = TPerTab().atomicSymbol(m.atomicNumber[a]);
+    for (int x = 0; x < 3; x++) stored[3 * a + x] = m.coord[(size_t(g) * na + a) * 3 + x] * BOHR_ANG;
+    xyz << elements[a] << " " << stored[3 * a] << " " << stored[3 * a + 1] << " " << stored[3 * a + 2] << "\n";
+  }
+  if (na == 1) { out.why = "a single atom: its spherical group is not in ECCE's character tables"; return false; }
+  Fragment probe;
+  std::istringstream in(xyz.str());
+  if (!probe.restoreXYZ(in, 1.0, false)) { out.why = "the structure could not be read"; return false; }
+  try {
+    out.group = SymmetryOps::find(probe, 0.01);
+  } catch (...) {
+    out.why = "the symmetry search (autosym) could not be run";
+    return false;
+  }
+  const CharacterTable* table = CharacterTable::lookup(out.group);
+  if (!table) { out.why = "no character table for " + out.group; return false; }
+  vector<double> probeCoords(3 * na);
+  const double* pc = probe.coordinates();
+  if (!pc || probe.numAtoms() != na) { out.why = "the symmetry search changed the atoms"; return false; }
+  for (size_t i = 0; i < 3 * na; i++) probeCoords[i] = pc[i];
+  vector<SymOp> ops;
+  if (!MoFragments::symmetryOperations(out.group, ops)) { out.why = "no operations for " + out.group + " (symops)"; return false; }
+  vector<vector<int> > images, classes;
+  if (!SymmetryAnalysis::atomImages(probeCoords, elements, ops, 0.05, images)) { out.why = "the operations do not map the atoms"; return false; }
+  SymmetryAnalysis::conjugacyClasses(ops, classes);
+  vector<int> classOfOp;
+  if (!SymmetryAnalysis::matchClasses(ops, classes, *table, classOfOp)) { out.why = "the classes of " + out.group + " do not match"; return false; }
+  SymOp Q;
+  double rmsd = 0;
+  if (na < 3) { out.why = "fewer than three atoms: the frame cannot be fixed"; return false; }
+  if (!SymmetryAnalysis::alignFrames(stored, probeCoords, Q, rmsd) || rmsd > 0.1) {
+    out.why = "the symmetrised frame does not match the calculation's";
+    return false;
+  }
+  vector<SymOp> opsInFrame(ops.size());
+  for (size_t i = 0; i < ops.size(); i++) opsInFrame[i] = SymmetryAnalysis::conjugate(ops[i], Q);
+
+  // AO bookkeeping in the canonical order
+  vector<int> perAtom(na, 0), shellType;
+  for (size_t k = 0; k < m.basis.shells.size(); k++) {
+    const Shell& sh = m.basis.shells[k];
+    const int n = 2 * sh.l + 1;
+    perAtom[sh.atom] += n;
+    for (int i = 0; i < n; i++) shellType.push_back(sh.l);
+  }
+  const size_t nao = shellType.size();
+  if (nao != mo->nao) { out.why = "basis and orbital sizes differ"; return false; }
+  vector<double> S;
+  string err;
+  if (!overlapMatrix(m, g, S, err)) { out.why = "overlap: " + err; return false; }
+  vector<vector<double> > S2(nao, vector<double>(nao));
+  for (size_t i = 0; i < nao; i++) for (size_t j = 0; j < nao; j++) S2[i][j] = S[i * nao + j];
+  vector<vector<double> > orbitals(mo->nmo, vector<double>(nao));
+  for (size_t i = 0; i < mo->nmo; i++) for (size_t p = 0; p < nao; p++) orbitals[i][p] = mo->coef[i * nao + p];
+  TGBSAngFunc* ang = canonicalAngFunc();
+  vector<string> derived;
+  SymmetryAnalysis::fullLabelSpectrum(orbitals, mo->energy, perAtom, shellType, S2, images, classOfOp,
+                                      opsInFrame, ang, *table, 1e-4, derived);
+  delete ang;
+  for (size_t i = 0; i < derived.size() && i < out.irrep.size(); i++) out.irrep[i] = derived[i];
   return true;
 }
 

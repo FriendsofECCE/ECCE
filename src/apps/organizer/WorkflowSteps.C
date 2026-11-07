@@ -824,8 +824,12 @@ void applyRoleMethod(Resource *step)
   // shell (a fragment that is a radical) needs the unrestricted theory.
   const bool qm = type == "ecceqm_es";
   const bool open = calc->spinMultiplicity() > SpinMult::singlet;
+  // An open-shell fragment of a fragment analysis runs restricted open
+  // shell: its orbitals must serve as one set for both spins of the complex.
+  const bool fragment = atoi(step->getProp(nsKey(":recipe.fragment")).c_str()) > 0;
+  const string openHf = fragment ? "ROHF" : "UHF", openDft = fragment ? "RODFT" : "UDFT";
   TTheory theory(hf ? "SCF" : "DFT", qm ? (hf ? "HF" : "DFT")
-                                        : hf ? (open ? "UHF" : "RHF") : (open ? "UDFT" : "RDFT"));
+                                        : hf ? (open ? openHf : "RHF") : (open ? openDft : "RDFT"));
   calc->theory(&theory);
   if (hf) return;
   GUIValues *g = calc->guiparams();

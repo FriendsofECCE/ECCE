@@ -14,6 +14,19 @@ using resultsh5::Model;
 
 static const double HARTREE_EV = 27.211386245988;
 
+// The symmetry code links ECCE's periodic table and temporary files, which
+// ask for ECCE_REALUSERHOME and ECCE_REALUSER (some while the program
+// loads); a bare command line has neither, so default them to HOME and the
+// login name before any static constructor runs.
+#if defined(__GNUC__) && !defined(_WIN32)
+__attribute__((constructor(101))) static void defaultRealUserHome() {
+  const char* home = getenv("HOME");
+  if (!getenv("ECCE_REALUSERHOME") && home) setenv("ECCE_REALUSERHOME", home, 0);
+  const char* user = getenv("USER") ? getenv("USER") : getenv("LOGNAME");
+  if (!getenv("ECCE_REALUSER") && user) setenv("ECCE_REALUSER", user, 0);
+}
+#endif
+
 static const char* USAGE =
 "ecce-fragorb: fragment-orbital analysis from real fragment calculations\n"
 "\n"
@@ -58,6 +71,7 @@ static const char* USAGE =
 "\n"
 "--levels           (analyse) add the shares of degenerate FOs of one fragment (within 1e-4 Eh)\n"
 "                   and list levels, e.g. the five d orbitals of an atom, instead of single FOs.\n"
+"--no-symmetry      (diagram) no Mulliken labels (they need autosym and symops in $ECCE_HOME/bin)\n"
 "--name NAME        (diagram) the name of the next fragment in the output (default: its folder)\n"
 "--allow-uncovered  analyse although some complex atoms are in no fragment.\n"
 "--json             machine-readable output.\n";
@@ -231,6 +245,10 @@ static int diagramCmd(const vector<string>& pos, const vector<string>& names, co
     printf("{\"method\":%s,\"threshold\":%g,\"covered\":%g,\"window\":[%d,%d],\"fragments\":[",
            jstr(dopt.method).c_str(), dopt.threshold, dopt.covered, dopt.occupiedLevels, dopt.virtualLevels);
     for (size_t f = 0; f < d.fragmentNames.size(); f++) printf("%s%s", f ? "," : "", jstr(d.fragmentNames[f]).c_str());
+    printf("],\"groups\":[");
+    for (size_t f = 0; f < d.groups.size(); f++) printf("%s%s", f ? "," : "", jstr(d.groups[f]).c_str());
+    printf("],\"symmetry_why\":[");
+    for (size_t f = 0; f < d.symmetryWhy.size(); f++) printf("%s%s", f ? "," : "", jstr(d.symmetryWhy[f]).c_str());
     printf("],\"channels\":[");
     for (size_t c = 0; c < d.channel.size(); c++) {
       const DiagramChannel& ch = d.channel[c];
@@ -245,7 +263,8 @@ static int diagramCmd(const vector<string>& pos, const vector<string>& names, co
         printf("%s{\"id\":%d,\"column\":%d,\"fragment\":%d,\"numbers\":%s,\"energy_ev\":%.6f,\"occupation\":[",
                k ? "," : "", l.id, l.column, l.fragment, numbers(l.numbers).c_str(), l.energyEv);
         for (size_t i = 0; i < l.occupation.size(); i++) printf("%s%.6f", i ? "," : "", l.occupation[i]);
-        printf("],\"position\":%s,\"kind\":%s", jstr(l.position).c_str(), jstr(l.kind).c_str());
+        printf("],\"position\":%s,\"irrep\":%s,\"kind\":%s", jstr(l.position).c_str(), jstr(l.irrep).c_str(),
+               jstr(l.kind).c_str());
         if (l.fragment < 0)
           printf(",\"partner\":%s,\"remainder\":%.8f,\"covered\":%.8f,\"representative\":%s,"
                  "\"overlap_population\":%.8f,\"fragments\":%s",
@@ -254,9 +273,10 @@ static int diagramCmd(const vector<string>& pos, const vector<string>& names, co
         printf(",\"shares\":[");
         for (size_t i = 0; i < l.shares.size(); i++) {
           const DiagramShare& sh = l.shares[i];
-          printf("%s{\"level\":%d,\"fragment\":%d,\"numbers\":%s,\"energy_ev\":%.6f,\"share\":%.8f,\"position\":%s}",
+          printf("%s{\"level\":%d,\"fragment\":%d,\"numbers\":%s,\"energy_ev\":%.6f,\"share\":%.8f,\"position\":%s,"
+                 "\"irrep\":%s}",
                  i ? "," : "", sh.level, sh.fragment, numbers(sh.numbers).c_str(), sh.energyEv, sh.share,
-                 jstr(sh.position).c_str());
+                 jstr(sh.position).c_str(), jstr(sh.irrep).c_str());
         }
         printf("]}");
       }
@@ -284,16 +304,17 @@ static int diagramCmd(const vector<string>& pos, const vector<string>& names, co
       const DiagramLevel& l = ch.levels[k];
       if (l.fragment >= 0) continue;
       string kind = l.kind == "fragment" ? d.fragmentNames[l.fragments[0]] : l.kind;
-      printf("  %-10s %9.3f  occ %.3f  %6.1f %%  %6.1f %%  OP %+.4f  %s%s%s\n", levelName("MO", l.numbers).c_str(),
-             l.energyEv, l.occupation[0], 100 * l.remainder, 100 * l.covered, l.overlapPopulation, kind.c_str(),
+      printf("  %-10s %-6s %9.3f  occ %.3f  %6.1f %%  %6.1f %%  OP %+.4f  %s%s%s\n", levelName("MO", l.numbers).c_str(),
+             l.irrep.empty() ? "?" : l.irrep.c_str(), l.energyEv, l.occupation[0], 100 * l.remainder, 100 * l.covered, l.overlapPopulation, kind.c_str(),
              l.partner ? "  (partner)" : "", l.representative ? "" : "  NOT REPRESENTATIVE");
     }
     printf("\nFO levels drawn\n");
     for (size_t k = 0; k < ch.levels.size(); k++) {
       const DiagramLevel& l = ch.levels[k];
       if (l.fragment < 0) continue;
-      printf("  %-12s %-10s %-9s %9.3f  occ %.3f\n", d.fragmentNames[l.fragment].c_str(),
-             levelName("FO", l.numbers).c_str(), l.position.c_str(), l.energyEv, l.occupation[0]);
+      printf("  %-12s %-10s %-6s %-9s %9.3f  occ %.3f\n", d.fragmentNames[l.fragment].c_str(),
+             levelName("FO", l.numbers).c_str(), l.irrep.empty() ? "?" : l.irrep.c_str(), l.position.c_str(),
+             l.energyEv, l.occupation[0]);
     }
     printf("\nlines: FO level -> MO level, share\n");
     for (size_t k = 0; k < ch.lines.size(); k++) {
@@ -424,6 +445,7 @@ int main(int argc, char** argv) {
     else if (a == "--json") json = true;
     else if (a == "--levels") levels = true;
     else if (a == "--name" && more) names.push_back(argv[++i]);
+    else if (a == "--no-symmetry") gopt.symmetry = false;
     else if (a == "--set" && more) sets.push_back(argv[++i]);
     else if (a == "--pair" && more) pairs.push_back(argv[++i]);
     else if (a == "--fwhm" && more) dopt.fwhmEv = atof(argv[++i]);

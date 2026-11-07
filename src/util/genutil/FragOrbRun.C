@@ -141,6 +141,7 @@ FragDiagramResult runFragDiagram(const string& complex, const vector<string>& fr
   const vector<J>& win = j.get("window").items();
   if (win.size() == 2) { r.occupied = (int)num(win[0]); r.virtuals = (int)num(win[1]); }
   for (const J& f : j.get("fragments").items()) r.fragments.push_back(f.str());
+  for (const J& g : j.get("groups").items()) r.groups.push_back(g.str());
   auto ints = [](const J& a) {
     vector<int> v;
     for (const J& x : a.items()) v.push_back((int)num(x));
@@ -165,6 +166,7 @@ FragDiagramResult runFragDiagram(const string& complex, const vector<string>& fr
       for (const J& o : l.get("occupation").items()) lv.occupation.push_back(num(o));
       lv.position = l.get("position").str();
       lv.kind = l.get("kind").str();
+      lv.irrep = l.get("irrep").str();
       lv.partner = l.get("partner").boolean();
       lv.representative = l.get("representative").isNull() || l.get("representative").boolean();
       lv.remainder = l.get("remainder").isNull() ? 0 : num(l.get("remainder"));
@@ -179,6 +181,7 @@ FragDiagramResult runFragDiagram(const string& complex, const vector<string>& fr
         sh.energy = num(s.get("energy_ev"));
         sh.share = num(s.get("share"));
         sh.position = s.get("position").str();
+        sh.irrep = s.get("irrep").str();
         lv.shares.push_back(sh);
       }
       ch.levels.push_back(lv);

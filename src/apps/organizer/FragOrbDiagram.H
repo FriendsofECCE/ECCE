@@ -88,6 +88,9 @@ FragDiagramLayout layoutFragDiagram(wxDC& dc, const FragDiagramResult& d, size_t
 /** highlight: a level id whose bars and lines are drawn heavier, or -1. */
 void paintFragDiagram(wxDC& dc, const FragDiagramLayout& l, const PlotPalette& pal, int highlight = -1);
 
+/** "2t2g" as "2t₂g"; "?" for "" (not determined). */
+std::string fragIrrep(const std::string& irrep);
+
 /** A level's composition and numbers as plain text (hover, click, test hook). */
 std::string fragDiagramLevelText(const FragDiagramResult& d, size_t channel, int level);
 

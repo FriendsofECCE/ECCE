@@ -826,6 +826,8 @@ sub Theory {
       $result = ($theory eq "UDFT") ? "UHF HF-3c" : "HF-3c";
     } elsif ($theory eq "UDFT") {
       $result = "UKS $functional";
+    } elsif ($theory eq "RODFT") {
+      $result = "ROKS $functional";
     } else {
       $result = "RKS $functional";
     }
@@ -833,6 +835,8 @@ sub Theory {
     $result = "HF";
   } elsif ($theory eq "UHF") {
     $result = "UHF";
+  } elsif ($theory eq "ROHF") {
+    $result = "ROHF";
   } elsif ($theory eq "RMP2") {
     $result = "MP2";
   } elsif ($theory eq "UMP2") {
@@ -850,7 +854,7 @@ sub Theory {
     $result = "DLPNO-CCSD(T)";
   } else {
     die "ai.orca error: unsupported theory '$theory'.\n" .
-        "  Supported: RHF, UHF, RDFT, UDFT, RMP2, UMP2, CCSD, CCSD(T),\n" .
+        "  Supported: RHF, UHF, ROHF, RDFT, UDFT, RODFT, RMP2, UMP2, CCSD, CCSD(T),\n" .
         "  DLPNO-MP2, DLPNO-CCSD, DLPNO-CCSD(T).\n";
   }
   return $result;

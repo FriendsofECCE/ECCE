@@ -185,6 +185,21 @@ launched.
   example `1` or `2-13` or `1,3,5-8`. `rest` takes every atom that no other
   fragment has.
 - **Charge** and **Multiplicity** of the fragment on its own.
+- **State**: **In the complex** (the default) or **Free fragment, ground
+  state**. Choosing one sets the multiplicity, which can still be changed.
+  - *In the complex*: the electron configuration the fragment has inside the
+    complex, closed shell where its electron count allows, otherwise the
+    lowest multiplicity (a doublet). Cr(0) in Cr(CO)₆ is d⁶, a singlet; Co³⁺
+    in a low-spin complex is d⁶, a singlet. The fragment orbitals then
+    describe the metal as it is bonded.
+  - *Free fragment, ground state*: the isolated atom or ion in its ground
+    state: for the neutral atoms and +1 ions of the d block the tabulated
+    ground term (Cr 3d⁵4s¹, a septet; Fe 3d⁶4s², a quintet), for higher
+    ions Hund's rule on the dⁿ configuration (Fe³⁺ d⁵, a sextet), for other
+    atoms Hund's rule on the p shell. A fragment of more than one atom keeps
+    the lowest multiplicity. Its orbital energies are those of a different
+    configuration from the one in the complex, so its levels are not
+    directly comparable with the complex's.
 - **Formula**, shown when the structure is known.
 
 **Add fragment** adds a row; **Remove last** removes the last one (two
@@ -206,8 +221,9 @@ structure:
 - without a metal: one fragment per molecule, or atom 1 and the rest.
 
 Each fragment gets the lowest multiplicity its number of electrons allows
-(singlet or doublet). A fragment with a multiplicity above 1 is calculated
-unrestricted (UHF or UKS).
+(singlet or doublet), the state in the complex. A fragment with a
+multiplicity above 1 is calculated restricted open shell (ROHF or ROKS), so
+that one set of its orbitals serves both spins of the complex.
 
 ## Fragment orbitals
 
@@ -297,6 +313,16 @@ positive bonding, negative antibonding. A complex level with lines from one
 fragment only is labelled with that fragment; one without lines has only its
 number. An FO level is labelled with its FO numbers and its place in its
 fragment (FO 43–45 LUMO).
+
+Each label starts with the level's Mulliken symbol, counted from the lowest
+level of that symmetry: 2t₂g is the second t₂g level of the complex. Complex
+levels carry the irreducible representations of the complex's point group,
+FO levels those of their own fragment's point group, both found from the
+structure and the orbital coefficients as in the Builder's MO Diagram. A
+level reads ? when no symbol could be established: when the point group is
+not found (a single atom, whose spherical group is not in ECCE's tables),
+or when its orbitals do not span one irreducible representation cleanly.
+The note under the diagram names each point group, or why there is none.
 
 **Validity.** For every drawn complex level the diagram knows the sum of the
 shares of its lines and the part of the orbital outside the span of all FOs.

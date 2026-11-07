@@ -58,6 +58,10 @@ struct RecipeFragment {
   std::string atoms;
   int charge = 0;
   int mult = 1;
+  /// false: the state it has in the complex (closed shell, or the lowest
+  /// multiplicity its electron count allows); true: the ground state of
+  /// the free fragment (for a single atom, Hund's rule).
+  bool free = false;
 };
 
 struct RecipeLink {
@@ -135,7 +139,7 @@ bool hasFragmentSteps(const RecipeVariant& variant);
 RecipeVariant expandFragments(const RecipeVariant& variant,
                               const std::vector<RecipeFragment>& fragments);
 
-/// "1:0:1/2-13:0:1" (atoms:charge:multiplicity, "/" between fragments), and back.
+/// "1:0:1/2-13:0:1" (atoms:charge:multiplicity[:free], "/" between fragments), and back.
 std::string fragmentsText(const std::vector<RecipeFragment>& fragments);
 bool parseFragments(const std::string& text, std::vector<RecipeFragment>& out);
 
@@ -154,6 +158,13 @@ bool resolveFragments(const std::vector<RecipeFragment>& fragments, int natoms,
 /// one bonded molecule (bonds made by distance when it has none), else the
 /// plain formula ("H15N5O4S", "Cl6" for separate atoms).
 std::string groupedFormula(Fragment& frag);
+
+/// The multiplicity of a fragment of these atoms (atomic numbers) and
+/// charge: in the complex, the lowest its electron count allows; free, a
+/// single atom's ground state (tabulated for neutral and +1 transition
+/// metals, Hund's rule on the d or p shell otherwise), and for anything
+/// larger again the lowest.
+int fragmentMultiplicity(const std::vector<int>& z, int charge, bool free);
 
 std::vector<RecipeFragment> proposeFragments(const std::vector<int>& z,
                                              const std::vector<double>& xyz,

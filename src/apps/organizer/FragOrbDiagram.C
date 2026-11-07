@@ -17,7 +17,7 @@ namespace {
 const char *MINUS = "\xE2\x88\x92";
 const char *NDASH = "\xE2\x80\x93";
 const int BAR_H = 5;
-const int FO_W = 64, MO_W = 132;
+const int FO_W = 64, MO_W_MIN = 132;
 
 string fmt(const char *f, double v)
 {
@@ -57,10 +57,31 @@ string fragName(const FragDiagramResult& d, int f)
   return f >= 0 && f < (int)d.fragments.size() ? d.fragments[f] : "?";
 }
 
+}  // namespace
+
+string fragIrrep(const string& ir)
+{
+  if (ir.empty()) return "?";
+  // the count stays, digits after the letter are subscripts, primes are primes
+  string o;
+  bool letter = false;
+  for (char c : ir) {
+    if (c >= 'a' && c <= 'z') letter = true;
+    if (letter && c >= '0' && c <= '9') o += string("\xE2\x82") + (char)(0x80 + (c - '0'));
+    else if (c == '\'') o += "\xE2\x80\xB2";
+    else if (c == '"') o += "\xE2\x80\xB3";
+    else o += c;
+  }
+  return o;
+}
+
+namespace {
+
 string levelLabel(const FragDiagramResult& d, const FragDiagramLevel& l)
 {
-  if (l.fragment >= 0) return "FO " + range(l.numbers) + " " + l.position;
-  string s = "MO " + range(l.numbers);
+  const string sym = d.groups.empty() ? "" : fragIrrep(l.irrep) + " ";
+  if (l.fragment >= 0) return sym + "FO " + range(l.numbers) + " " + l.position;
+  string s = sym + "MO " + range(l.numbers);
   if (l.kind == "bonding" || l.kind == "antibonding") s += " " + l.kind;
   else if (l.kind == "fragment" && !l.fragments.empty()) s += " " + fragName(d, l.fragments[0]);
   return s;
@@ -282,8 +303,12 @@ FragDiagramLayout layoutFragDiagram(wxDC& dc, const FragDiagramResult& d, size_t
   // Label texts and lane widths.
   vector<string> label(ch.levels.size());
   vector<int> laneW(std::max<size_t>(nf, 1), 0);
+  // The complex's bars are as wide as its widest label: a label above or
+  // below them then stays between the ends where the lines attach.
+  int MO_W = MO_W_MIN;
   for (const FragDiagramLevel& l : ch.levels) {
     label[l.id] = levelLabel(d, l);
+    if (l.fragment < 0) MO_W = std::max(MO_W, ext(label[l.id], true).x + 6);
     if (l.fragment >= 0 && l.fragment < (int)nf)
       laneW[l.fragment] = std::max(laneW[l.fragment], ext(label[l.id], true).x);
   }
@@ -548,6 +573,17 @@ void paintFragDiagram(wxDC& dc, const FragDiagramLayout& L, const PlotPalette& p
 }
 
 
+namespace {
+// "2t₂g in Oh, " or "no symmetry label (point group not determined), "
+string symText(const FragDiagramResult& d, size_t which, const string& irrep)
+{
+  if (which >= d.groups.size()) return "";
+  if (d.groups[which].empty()) return "no symmetry label (point group not determined), ";
+  if (irrep.empty()) return "no symmetry label in " + d.groups[which] + " (no clean irrep), ";
+  return fragIrrep(irrep) + " in " + d.groups[which] + ", ";
+}
+}  // namespace
+
 string fragDiagramLevelText(const FragDiagramResult& d, size_t channel, int level)
 {
   if (channel >= d.channels.size()) return "";
@@ -567,7 +603,8 @@ string fragDiagramLevelText(const FragDiagramResult& d, size_t channel, int leve
   const string orbs = n > 1 ? " (" + std::to_string(n) + " degenerate orbitals)" : "";
   const string pct = fmt("%.0f %%", 100 * d.threshold);
   if (l.fragment < 0) {
-    t += "MO " + range(l.numbers) + orbs + ", " + l.position + ", " + num(l.energy) + " eV, " + occ + "\n";
+    t += "MO " + range(l.numbers) + orbs + ", " + symText(d, 0, l.irrep) + l.position + ", " + num(l.energy) +
+         " eV, " + occ + "\n";
     string frs;
     for (size_t i = 0; i < l.fragments.size(); i++)
       frs += (i ? (i + 1 == l.fragments.size() ? " and " : ", ") : "") + fragName(d, l.fragments[i]);
@@ -590,14 +627,16 @@ string fragDiagramLevelText(const FragDiagramResult& d, size_t channel, int leve
     t += "FO levels with 1 % or more (Mulliken shares can be negative or exceed 100 %):\n";
     for (const FragDiagramShare& s : l.shares)
       t += "  " + fmt("%6.1f %%", 100 * s.share) + "  " + fragName(d, s.fragment) + " FO " + range(s.numbers) +
-           " " + s.position + "  " + num(s.energy) + " eV" + (s.share >= d.threshold ? "  (line)" : "") +
+           " " + fragIrrep(s.irrep) + " " + s.position + "  " + num(s.energy) + " eV" + (s.share >= d.threshold ? "  (line)" : "") +
            (s.level < 0 ? "  (not drawn)" : "") + "\n";
   } else {
-    t += fragName(d, l.fragment) + " FO " + range(l.numbers) + orbs + ", " + l.position + " of the fragment, " +
+    t += fragName(d, l.fragment) + " FO " + range(l.numbers) + orbs + ", " +
+         symText(d, l.fragment + 1, l.irrep) + l.position + " of the fragment, " +
          num(l.energy) + " eV, " + occ + "\n";
     t += "Its share in each complex MO level, 1 % or more (a line where " + pct + " or more):\n";
     for (const FragDiagramShare& s : l.shares)
-      t += "  " + fmt("%6.1f %%", 100 * s.share) + "  MO " + range(s.numbers) + " " + s.position + "  " +
+      t += "  " + fmt("%6.1f %%", 100 * s.share) + "  MO " + range(s.numbers) + " " + fragIrrep(s.irrep) + " " +
+           s.position + "  " +
            num(s.energy) + " eV" + (s.level < 0 ? "  (not drawn)" : "") + "\n";
   }
   return t;

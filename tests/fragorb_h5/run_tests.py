@@ -148,6 +148,41 @@ def check_diagram(exe, cx, cr7, co6):
               if l["fragment"] < 0)
     check(abs(tot - dos_["occupied_overlap"][0]) < 1e-5, "OP of the occupied levels %.6f vs dos %.6f" %
           (tot, dos_["occupied_overlap"][0]))
+    # Mulliken labels need autosym and symops: an ECCE_HOME with the build's
+    # helpers and the source tree's character tables.
+    import tempfile
+    home = tempfile.mkdtemp(prefix="fragorb-sym-")
+    os.makedirs(os.path.join(home, "bin"))
+    bindir = os.path.dirname(os.path.abspath(exe))
+    for h in ("autosym", "symops", "autosym_cpp", "symops_cpp", "cleansym"):
+        if os.path.exists(os.path.join(bindir, h)):
+            os.symlink(os.path.join(bindir, h), os.path.join(home, "bin", h))
+    os.symlink(os.path.join(os.path.dirname(os.path.dirname(HERE)), "data"), os.path.join(home, "data"))
+    env = dict(os.environ, ECCE_HOME=home)
+    r = run([exe, "diagram", cx, cr7, co6, "--json"], env=env)
+    if not os.path.exists(os.path.join(home, "bin", "autosym")):
+        print("SKIP Mulliken labels: no autosym beside", exe)
+    elif r.returncode != 0:
+        check(False, "diagram with symmetry: " + r.stderr)
+    else:
+        d = json.loads(r.stdout)
+        ch = d["channels"][0]
+        lv = {(l["fragment"], tuple(l["numbers"])): l for l in ch["levels"]}
+        def ir(f, n):
+            return lv[(f, n)]["irrep"] if (f, n) in lv else None
+        print("groups", d["groups"], "why", d["symmetry_why"])
+        print("labels: t2g HOMO %s, eg %s, LUMO %s, t2g* %s, eg* %s; (CO)6 pi* %s, 5sigma %s" % (
+            ir(-1, (52, 53, 54)), ir(-1, (47, 48)), ir(-1, (55,)), ir(-1, (62, 63, 64)), ir(-1, (68, 69)),
+            ir(1, (43, 44, 45)), ir(1, (41, 42))))
+        check(d["groups"][0] == "Oh" and d["groups"][2] == "Oh", "Cr(CO)6 and (CO)6 are Oh: %s" % d["groups"])
+        check(d["groups"][1] == "" and "single atom" in d["symmetry_why"][1], "a single atom has no table group")
+        for f, n, want in ((-1, (52, 53, 54), "t2g"), (-1, (62, 63, 64), "t2g"), (-1, (47, 48), "eg"),
+                           (-1, (68, 69), "eg"), (-1, (55,), "a1g"), (1, (43, 44, 45), "t2g"), (1, (41, 42), "eg")):
+            got = ir(f, n) or ""
+            check(got.lstrip("0123456789") == want and got[:1].isdigit(),
+                  "level %s %s is %s: %r" % (f, n, want, got))
+        check(all(l["irrep"] == "" for l in ch["levels"] if l["fragment"] == 0), "Cr levels have no label")
+        check(any("not determined (a single atom" in n for n in ch["notes"]), "the note says why Cr has none")
     r = run([exe, "diagram", cx, cr7, co6, "--name", "Cr", "--name", "(CO)6"])
     check(r.returncode == 0 and "columns: Cr | complex | (CO)6" in r.stdout and "orbital-energy gap" in r.stdout,
           "diagram text output: " + r.stdout[:300])
