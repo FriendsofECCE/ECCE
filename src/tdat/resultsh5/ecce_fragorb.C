@@ -382,7 +382,7 @@ static int dosCmd(const vector<string>& pos, const vector<string>& sets, const v
   if (!dos(cx, opt, r, err)) { fprintf(stderr, "ecce-fragorb: %s\n", err.c_str()); return 1; }
   size_t ns = r.setNames.size(), np = r.pairNames.size();
   if (json) {
-    printf("{\"fermi_ev\":%.6f,\"sets\":[", r.fermiEv);
+    printf("{\"fermi_ev\":%.6f,\"norm_error\":%.3g,\"sets\":[", r.fermiEv, r.normError);
     for (size_t s = 0; s < ns; s++) printf("%s%s", s ? "," : "", jstr(r.setNames[s]).c_str());
     printf("],\"pairs\":[");
     for (size_t p = 0; p < np; p++) printf("%s%s", p ? "," : "", jstr(r.pairNames[p]).c_str());
@@ -403,6 +403,7 @@ static int dosCmd(const vector<string>& pos, const vector<string>& sets, const v
   }
   printf("# complex %s; Fermi level (HOMO/LUMO midpoint) %.4f eV; %s, FWHM %.3f eV; states/eV, closed-shell MOs count twice\n",
          name.c_str(), r.fermiEv, opt.lorentzian ? "Lorentzian" : "Gaussian", opt.fwhmEv);
+  printf("# max |c^T S c - 1| over the orbitals used: %.2e\n", r.normError);
   printf("# occupied overlap population (sum n_i OP_i):");
   for (size_t p = 0; p < np; p++) printf("  %s %.4f", r.pairNames[p].c_str(), r.occupiedOverlap[p]);
   printf("\n# E_eV  TDOS");
@@ -457,6 +458,8 @@ int main(int argc, char** argv) {
     else if (a == "--emin" && more) dopt.emin = atof(argv[++i]);
     else if (a == "--emax" && more) dopt.emax = atof(argv[++i]);
     else if (a == "--step" && more) dopt.step = atof(argv[++i]);
+    else if (a == "--spin" && more) { string v = argv[++i]; dopt.spin = v == "alpha" ? 0 : v == "beta" ? 1 : -1; }
+    else if (a == "--occupied-only") dopt.occupiedOnly = true;
     else if (a.size() > 1 && a[0] == '-' && a[1] == '-') { fprintf(stderr, "ecce-fragorb: unknown option %s (see --help)\n", a.c_str()); return 2; }
     else pos.push_back(a);
   }

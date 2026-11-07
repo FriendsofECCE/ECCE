@@ -107,6 +107,8 @@ struct DosOptions {
   vector<std::pair<int,int> > pairs;   // indices into sets; empty = all pairs
   double fwhmEv = 0.3;
   bool lorentzian = false;
+  int spin = -1;                       // -1 both channels, 0 alpha, 1 beta (open shell)
+  bool occupiedOnly = false;           // leave out the empty MOs (diffuse virtuals)
   double emin = 0, emax = 0, step = 0.05;   // eV; emin == emax: HOMO-20 .. LUMO+10
 };
 
@@ -122,9 +124,17 @@ struct DosResult {
   vector<double> pdos;                 // [point * nset + set]
   vector<double> opdos, intOpdos;      // [point * npair + pair]
   vector<double> occupiedOverlap;      // per pair: sum_i n_i OP_i = Mulliken overlap population
+  vector<int> moIndex, moSpin;         // 1-based MO number within its spin set; 0 alpha / 1 beta
   double fermiEv = 0;                  // midpoint of HOMO and LUMO
+  double homoEv = 0, lumoEv = 0;
+  double normError = 0;                // max |c^T S c - 1| over the MOs used
+  bool unrestricted = false;
 };
 
+// dosOrbitals: S and the per-MO populations (slow); dosCurves: the broadening,
+// repeatable with another width on the same DosResult.
+bool dosOrbitals(const resultsh5::Model& complex, const DosOptions& opt, DosResult& out, string& err);
+bool dosCurves(const DosOptions& opt, DosResult& out, string& err);
 bool dos(const resultsh5::Model& complex, const DosOptions& opt, DosResult& out, string& err);
 
 // Complex atoms of a fragment, for building AtomSets from fragment files.

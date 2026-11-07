@@ -270,6 +270,12 @@ def main():
         d = json.loads(r.stdout)
         check(d["pairs"] == ["cr7-co6"] and d["occupied_overlap"][0] > 1, "dos pair / overlap population")
         check(max(abs(g["pdos"][0] + g["pdos"][1] - g["tdos"]) for g in d["grid"]) < 1e-5, "PDOS sums to TDOS")
+    r = run([exe, "dos", cx, "--set", "Cr=1", "--set", "CO=2-13", "--occupied-only", "--json"])
+    check(r.returncode == 0, "dos --occupied-only: " + r.stderr)
+    if r.returncode == 0:
+        d = json.loads(r.stdout)
+        check(d["norm_error"] < 1e-5, "dos norm_error %g" % d["norm_error"])
+        check(max(abs(g["tdos"]) for g in d["grid"] if g["e"] > d["fermi_ev"] + 3) < 1e-6, "no states above the HOMO with --occupied-only")
     r = run([exe, "dos", cx, "--set", "Cr=1", "--set", "CO=2-13", "--shape", "lorentzian"])
     check(r.returncode == 0 and "OPDOS(Cr-CO)" in r.stdout, "dos --set: " + r.stderr)
 

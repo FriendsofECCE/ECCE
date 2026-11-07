@@ -386,7 +386,7 @@ FieldCheck fieldCheck(const Analysis& a, double dMin, double occMin) {
   return r;
 }
 
-bool dos(const Model& cx, const DosOptions& opt, DosResult& out, string& err) {
+bool dosOrbitals(const Model& cx, const DosOptions& opt, DosResult& out, string& err) {
   out = DosResult();
   if (cx.basis.type != "GTO" || cx.basis.orthonormal || cx.mos.empty()) { err = "no Gaussian-basis orbitals"; return false; }
   if (opt.sets.empty()) { err = "no atom sets"; return false; }
@@ -415,10 +415,13 @@ bool dos(const Model& cx, const DosOptions& opt, DosResult& out, string& err) {
   for (size_t p = 0; p < np; p++) out.pairNames.push_back(opt.sets[pairs[p].first].name + "-" + opt.sets[pairs[p].second].name);
 
   bool unres = mosFor(cx, 1) != 0;
+  out.unrestricted = unres;
   for (int spin = 0; spin < (unres ? 2 : 1); spin++) {
+    if (opt.spin >= 0 && spin != opt.spin) continue;
     const Mos* m = mosFor(cx, spin);
     if (!m) { err = "missing spin set"; return false; }
     for (size_t i = 0; i < m->nmo; i++) {
+      if (opt.occupiedOnly && !(i < m->occupation.size() && m->occupation[i] > 0.5 * (unres ? 1.0 : 2.0) - 1e-6)) continue;
       const double* c = &m->coef[i * nao];
       vector<double> Sc(nao, 0.0);
       for (size_t p = 0; p < nao; p++) {
@@ -436,7 +439,10 @@ bool dos(const Model& cx, const DosOptions& opt, DosResult& out, string& err) {
       }
       // Mulliken gross population: own block plus half of each overlap
       for (size_t p = 0; p < nao; p++) if (setOf[p] >= 0) gross[setOf[p]] += c[p] * Sc[p];
+      { double n = 0; for (size_t p = 0; p < nao; p++) n += c[p] * Sc[p]; out.normError = std::max(out.normError, std::fabs(n - 1.0)); }
       for (size_t k = 0; k < np; k++) ov[k] = 2.0 * cross[pairs[k].first * nset + pairs[k].second];
+      out.moIndex.push_back(int(i) + 1);
+      out.moSpin.push_back(spin);
       out.moEnergy.push_back((i < m->energy.size() ? m->energy[i] : 0) * HARTREE_EV);
       out.moOccupation.push_back(i < m->occupation.size() ? m->occupation[i] : 0);
       out.moWeight.push_back(unres ? 1.0 : 2.0);
@@ -444,6 +450,7 @@ bool dos(const Model& cx, const DosOptions& opt, DosResult& out, string& err) {
       out.moOverlap.insert(out.moOverlap.end(), ov.begin(), ov.end());
     }
   }
+  if (out.moEnergy.empty()) { err = "no orbitals selected"; return false; }
   size_t nm = out.moEnergy.size();
   // Fermi level: midpoint of the highest occupied and lowest empty MO
   double homo = -1e30, lumo = 1e30;
@@ -453,8 +460,18 @@ bool dos(const Model& cx, const DosOptions& opt, DosResult& out, string& err) {
   }
   if (homo < -1e29 || lumo > 1e29) out.fermiEv = homo < -1e29 ? lumo : homo;
   else out.fermiEv = 0.5 * (homo + lumo);
+  out.homoEv = homo < -1e29 ? out.fermiEv : homo;
+  out.lumoEv = lumo > 1e29 ? out.fermiEv : lumo;
+  return true;
+}
+
+// Broadened curves and their running integral from the per-MO data.
+bool dosCurves(const DosOptions& opt, DosResult& out, string& err) {
+  size_t nm = out.moEnergy.size(), nset = out.setNames.size(), np = out.pairNames.size();
+  if (nm == 0) { err = "no orbitals"; return false; }
+  double homo = out.homoEv, lumo = out.lumoEv;
   double e0 = opt.emin, e1 = opt.emax;
-  if (e0 == e1) { e0 = (homo < -1e29 ? out.moEnergy[0] : homo) - 20; e1 = (lumo > 1e29 ? out.moEnergy.back() : lumo) + 10; }
+  if (e0 == e1) { e0 = homo - 20; e1 = lumo + 10; }
   double step = opt.step > 0 ? opt.step : 0.05;
   size_t npts = size_t(std::floor((e1 - e0) / step + 0.5)) + 1;
   out.energy.resize(npts);
@@ -463,6 +480,7 @@ bool dos(const Model& cx, const DosOptions& opt, DosResult& out, string& err) {
   out.opdos.assign(npts * np, 0.0);
   out.intOpdos.assign(npts * np, 0.0);
   out.occupiedOverlap.assign(np, 0.0);
+  if (!(opt.fwhmEv > 0)) { err = "the width must be positive"; return false; }
   double sigma = opt.fwhmEv / (2.0 * std::sqrt(2.0 * std::log(2.0)));
   double hw = 0.5 * opt.fwhmEv;
   for (size_t g = 0; g < npts; g++) {
@@ -488,6 +506,10 @@ bool dos(const Model& cx, const DosOptions& opt, DosResult& out, string& err) {
     for (size_t i = 0; i < nm; i++) out.occupiedOverlap[k] += out.moOccupation[i] * out.moOverlap[i * np + k];
   }
   return true;
+}
+
+bool dos(const Model& cx, const DosOptions& opt, DosResult& out, string& err) {
+  return dosOrbitals(cx, opt, out, err) && dosCurves(opt, out, err);
 }
 
 namespace {
