@@ -264,7 +264,7 @@ def check(case, log, t, out):
     if case == "hcn":
         problems += checkHcn(first, sel)
     if case == "hcnmore" and sel[0].get("s_more") != "1":
-        problems.append("More does not open")
+        problems.append("Options does not open")
     if case == "h2" and len(sel) > 1:
         if [c[0] for c in sel[1]["curves"]] != ["MO 1", "MO 2"]:
             problems.append("H2 selection %s" % sel[1]["curves"])

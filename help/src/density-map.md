@@ -145,7 +145,7 @@ fragments.
 A fragment atom must lie within 0.05 Å of an atom of the same element in
 this calculation, and no atom may belong to two fragments; otherwise the panel
 says which atom does not match. Tick nothing and press OK to return to the
-plain density. The **Density Profile** has the same button, under **More**.
+plain density. The **Density Profile** has the same button, under **Options**.
 
 ## Export
 

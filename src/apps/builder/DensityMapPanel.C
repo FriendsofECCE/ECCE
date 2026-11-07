@@ -718,7 +718,7 @@ void DensityMapPanel::syncControls()
   p_labelA->Show(two || three);  p_atomA->Show(two || three);
   p_labelB->Show(two || three);  p_atomB->Show(two || three);
   p_labelC->Show(three);         p_atomC->Show(three);
-  p_planeToggle->SetLabel(wxString::FromUTF8(p_planeOpen ? "\xE2\x96\xBE Options" : "\xE2\x96\xB8 Options"));
+  p_planeToggle->SetLabel(wxString::FromUTF8(p_planeOpen ? "Options \xE2\x96\xBE" : "Options \xE2\x96\xB8"));
   GetSizer()->Show(p_moreRow, p_planeOpen, true);
   GetSizer()->Show(p_plane, p_planeOpen, true);
   GetSizer()->Show(p_principal, p_planeOpen && plane == 0 && !p_principalPlanes.empty());

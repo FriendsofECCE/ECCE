@@ -13,9 +13,9 @@ For ECCE-QM it follows the point selected in the **Relaxed Scan** or **IRC
 Path** panel instead, and a note at the top of the panel names the point.
 
 The controls are two short rows. The first row has the mode, the atoms, the
-quantity and what to show; the second the axes, **Show all** and **More**,
+quantity and what to show; the second the axes, **Show all** and **Options**,
 which unfolds the controls used less often (margin, sideways shift, unit,
-combine degenerate, clip peaks and the export buttons). Whether **More** is open
+combine degenerate, clip peaks and the export buttons). Whether **Options** is open
 is remembered. The orbital list, the plot and the notes beneath it are separated
 by handles that can be dragged to give any of them more room.
 
@@ -29,7 +29,7 @@ with that atom as **Centre**. The lists stay available.
   along the line, zero at the first atom. A dashed vertical line marks every atom
   the line passes within 0.3 Å of, with its label under the axis. A molecule
   opens in this mode, on the line through its first bond. **Shift line
-  sideways** (under **More**) moves the whole line by a distance in ångström,
+  sideways** (under **Options**) moves the whole line by a distance in ångström,
   out of the molecular plane (the plane of the atoms and the line) or within
   it. A π orbital is exactly zero on the line through both nuclei; shifted
   0.5 Å it shows its two lobes. For a linear molecule any perpendicular is the
@@ -139,7 +139,7 @@ total is black and heavier, and when the colours run out the next curves are
 dashed. For an unrestricted calculation choose alpha, beta, or
 alpha + beta; the contributions add up to the total only for alpha + beta.
 
-**Difference...** (under **More**) plots the total density of this calculation
+**Difference...** (under **Options**) plots the total density of this calculation
 minus the densities of other calculations of some of the same atoms, at the same
 positions and with the same basis set, which you tick in a list (the fragments
 of a complex; see "Difference from fragments" in **The Density Map**). The plot
