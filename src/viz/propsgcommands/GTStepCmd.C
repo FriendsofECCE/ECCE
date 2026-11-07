@@ -74,6 +74,24 @@ bool GTStepCmd::execute()
     for (int j = 0; j < natoms; j++)
       if (sgfrag->atomRef(j)->atomicSymbol() == "X") ndummy++;
     const bool skipDummies = ndummy > 0 && trace->rows() == natoms - ndummy;
+    // A protonation ensemble's frames carry one more atom than the input
+    // (CREST appends the proton): add the missing atoms from the row labels
+    // so the protomer is shown whole, not as the input structure.
+    if (ndummy == 0 && trace->rows() > natoms && trace->rowLabels() &&
+        (int)trace->rowLabels()->size() == trace->rows()) {
+      for (int r = natoms; r < trace->rows(); r++) {
+        const string& lab = (*trace->rowLabels())[r];
+        const size_t dash = lab.find('-');
+        const string el = dash == string::npos ? lab : lab.substr(dash + 1);
+        double xyz[] = {trace->value(step, r, 0), trace->value(step, r, 1),
+                        trace->value(step, r, 2)};
+        sgfrag->addAtom(el, xyz);
+      }
+      sgfrag->deleteAllBonds();
+      sgfrag->addCovalentBonds();
+      sgfrag->touchNumbers();
+      natoms = sgfrag->numAtoms();
+    }
     int row = 0;
     for (int j = 0; j < natoms; j++) {
       if (skipDummies && sgfrag->atomRef(j)->atomicSymbol() == "X") continue;
