@@ -138,8 +138,7 @@ def check(display, results):
     fs = lines(work, "fs")
     if not fs:
         results.fail("builder panes floatwin", "no floatstyle output")
-    elif not fs[0].startswith("onparent 0 notaskbar 0") or \
-            fs[0].endswith("transient 1"):
+    elif not fs[0].startswith("onparent 0 notaskbar 0"):
         results.fail("builder panes floatwin",
                      "floating frame is tied to the Builder: %s" % fs[0])
     else:

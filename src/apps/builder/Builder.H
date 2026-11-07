@@ -17,6 +17,7 @@
 #include "inv/draggers/SoDragger.H"
 #include "inv/nodes/SoEventCallback.H" 
 
+#include <wx/aui/aui.h>
 #include <wx/aui/floatpane.h>
 #include "EwxAuiCompat.H"
 

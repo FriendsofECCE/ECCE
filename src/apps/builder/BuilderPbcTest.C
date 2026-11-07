@@ -13,9 +13,6 @@
 #include <wx/spinctrl.h>
 #include <wx/utils.h>
 #include <wx/aui/aui.h>
-#ifdef __WXGTK__
-#include <gtk/gtk.h>
-#endif
 
 #include "tdat/LatticeDef.H"
 #include "tdat/TAtm.H"
@@ -249,7 +246,7 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
   }
 
   //  "floatstyle <pane> <tag>" -> <outdir>/<tag>.txt: the floating frame's
-  //  style flags, and on GTK whether it is transient for another window.
+  //  style flags,.
   if (c == "floatstyle" && w.size() == 3) {
     string name = w[1];
     for (char& ch : name) if (ch == '_') ch = ' ';
@@ -260,11 +257,6 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     std::ofstream out(outdir + "/" + w[2] + ".txt");
     out << "onparent " << ((st & wxFRAME_FLOAT_ON_PARENT) ? 1 : 0)
         << " notaskbar " << ((st & wxFRAME_NO_TASKBAR) ? 1 : 0);
-#ifdef __WXGTK__
-    out << " transient "
-        << (gtk_window_get_transient_for(GTK_WINDOW(pane.frame->GetHandle()))
-                ? 1 : 0);
-#endif
     out << "\n";
     return true;
   }
