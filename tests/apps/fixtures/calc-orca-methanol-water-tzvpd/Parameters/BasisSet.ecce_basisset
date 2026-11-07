@@ -12,19 +12,19 @@
 <ContractionInfoMap>
 <Element tag="C">
 <BasisSet uniqueKey="def2-tzvpd:ECPOrbital">
-<DeleteFlags>false false false false false false false false false false false false false </DeleteFlags>
+<DeleteFlags>false false false false false false false false </DeleteFlags>
 <UncontractFlags>
-false false false false false false false false false false false false false </UncontractFlags>
+false false false false false false false false </UncontractFlags>
 </BasisSet>
 </Element>
 </ContractionInfoMap>
 <DiffuseMap>
 <Element tag="C">
-0 0 0 0 0 0 0 0 0 0 0 0 0 </Element>
+0 0 0 0 0 0 0 0 </Element>
 </DiffuseMap>
 <TightMap>
 <Element tag="C">
-0 0 0 0 0 0 0 0 0 0 0 0 0 </Element>
+0 0 0 0 0 0 0 0 </Element>
 </TightMap>
 </Group>
 <Group Tag="O" Name="def2-tzvpd">
@@ -39,19 +39,19 @@ false false false false false false false false false false false false false </
 <ContractionInfoMap>
 <Element tag="O">
 <BasisSet uniqueKey="def2-tzvpd:ECPOrbital">
-<DeleteFlags>false false false false false false false false false false false false false false </DeleteFlags>
+<DeleteFlags>false false false false false false false false </DeleteFlags>
 <UncontractFlags>
-false false false false false false false false false false false false false false </UncontractFlags>
+false false false false false false false false </UncontractFlags>
 </BasisSet>
 </Element>
 </ContractionInfoMap>
 <DiffuseMap>
 <Element tag="O">
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 </Element>
+0 0 0 0 0 0 0 0 </Element>
 </DiffuseMap>
 <TightMap>
 <Element tag="O">
-0 0 0 0 0 0 0 0 0 0 0 0 0 0 </Element>
+0 0 0 0 0 0 0 0 </Element>
 </TightMap>
 </Group>
 <Group Tag="H" Name="def2-tzvpd">
@@ -66,19 +66,19 @@ false false false false false false false false false false false false false fa
 <ContractionInfoMap>
 <Element tag="H">
 <BasisSet uniqueKey="def2-tzvpd:ECPOrbital">
-<DeleteFlags>false false false false false </DeleteFlags>
+<DeleteFlags>false false false false false false false false </DeleteFlags>
 <UncontractFlags>
-false false false false false </UncontractFlags>
+false false false false false false false false </UncontractFlags>
 </BasisSet>
 </Element>
 </ContractionInfoMap>
 <DiffuseMap>
 <Element tag="H">
-0 0 0 0 0 </Element>
+0 0 0 0 0 0 0 0 </Element>
 </DiffuseMap>
 <TightMap>
 <Element tag="H">
-0 0 0 0 0 </Element>
+0 0 0 0 0 0 0 0 </Element>
 </TightMap>
 </Group>
 </Map>
