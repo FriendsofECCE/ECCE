@@ -17,6 +17,8 @@
 #include <sstream>
 
 #include "comm/RCommand.H"
+#include "comm/OpenSshTransport.H"
+#include "util/SessionLease.H"
 #include "dsm/FileEDSI.H"
 #include "dsm/SftpEDSI.H"
 #include "util/ServerList.H"
@@ -222,6 +224,27 @@ const char *MIRROR_FUNCS =
   "  done; }\n";
 
 } // namespace
+
+void SftpEDSI::disconnect(const string& address)
+{
+  string user, authority, folder, host;
+  int port = 22;
+  if (!ServerList::parseSsh(address, user, authority, folder) ||
+      !ServerList::splitHostPort(authority, host, port)) return;
+  std::lock_guard<std::mutex> guard(gMutex);
+  auto it = gLogins.find(user + "@" + authority);
+  if (it != gLogins.end()) { delete it->second; gLogins.erase(it); }
+  // Job stores open more channels for progress and copy-back after the
+  // monitor stream starts. Their shared master must keep accepting those.
+  bool monitoring = false;
+  for (const auto& holder : SessionLease::otherPrograms())
+    if (holder.name == "eccejobstore" || holder.name == "eccejobmaster")
+      monitoring = true;
+  if (!monitoring) {
+    OpenSshTransport transport(host, port == 22 ? 0 : port, user);
+    transport.stopOwnedMasters();
+  }
+}
 
 // One operation: a scratch mirror of the directories it touches, the
 // server-side locks, and the remote changes the mirror shows afterwards.

@@ -67,6 +67,10 @@ AddServerDialog::AddServerDialog(wxWindow* parent, const ServerEntry* old)
   p_eccRows[m++] = p_address;
   top->Add(grid, 0, wxGROW|wxALL, PAD*2);
 
+  p_startup = new wxCheckBox(this, wxID_ANY, _("Connect at start"));
+  p_startup->SetValue(old ? old->connectAtStart : false);
+  top->Add(p_startup, 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD*2);
+
   p_test = new ewxButton(this, wxID_ANY, _("Test connection"));
   p_status = new ewxStaticText(this, wxID_ANY, wxEmptyString);
   wxBoxSizer* testRow = new wxBoxSizer(wxHORIZONTAL);
@@ -140,6 +144,7 @@ void AddServerDialog::OnType(wxCommandEvent&)
 
 bool AddServerDialog::collect(ServerEntry& e) const
 {
+  e.connectAtStart = p_startup->GetValue();
   e.name = p_name->GetValue().Trim().Trim(false).ToStdString();
   if (p_type->GetSelection() == 0) {
     e.type = "ssh";

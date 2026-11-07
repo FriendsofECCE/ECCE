@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""An added SSH folder as an Organizer tree, with launching (#767, b2).
+"""SSH-folder startup choices, server menus and launching (#767, #795).
 
 Run by tests/launch/ssh_folder_test.sh, which starts the test sshd and gives
 this process a private ~/.ssh (Host sshtest = the sshd with the test key,
@@ -15,6 +15,8 @@ Exit status 77 (CTest SKIP) without xtb, Xvfb or the built binaries.
 import argparse
 import os
 import shutil
+import signal
+import shlex
 import subprocess
 import sys
 import time
@@ -78,7 +80,12 @@ def main():
     shutil.copytree(os.path.join(build, "wrappers"), wrappers)
     for entry in os.listdir(wrappers):
         os.chmod(os.path.join(wrappers, entry), 0o755)
-    s.registerMachine("localhost", "Shell", {"xTB": xtb})
+    # Leave a live monitor to check after Disconnect, even for this tiny job.
+    slow_xtb = os.path.join(s.state, "slow-xtb")
+    with open(slow_xtb, "w") as h:
+        h.write('#!/bin/sh\nsleep 10\nexec %s "$@"\n' % shlex.quote(xtb))
+    os.chmod(slow_xtb, 0o755)
+    s.registerMachine("localhost", "Shell", {"xTB": slow_xtb})
     work = os.path.join(s.state, "decks")
     rundir = os.path.join(s.state, "run")
     os.makedirs(work, exist_ok=True)
@@ -93,7 +100,7 @@ def main():
         onServer("rm -rf ecce-data; mkdir ecce-data")
         onServer("rm -rf ecce-data; mkdir ecce-data", PORT2)
         with open(os.path.join(s.state, ".ECCE", "AddedServers"), "w") as h:
-            h.write("ssh\tFolder\t%s\nssh\tBad\t%s\nssh\tOther\t%s\n" % (BASE, BAD, OTHER))
+            h.write("ssh\tBad\t%s\t0\nssh\tOther\t%s\t0\n" % (BAD, OTHER))
         # ECCE's own masters: one per route, so the port must tell them apart.
         control = os.path.join(s.state, "cm")
         os.makedirs(control, mode=0o700, exist_ok=True)
@@ -134,9 +141,49 @@ def main():
                 time.sleep(0.5)
             return "no answer"
 
+        pictures = os.environ.get("RUNDIR", rundir)
+        os.makedirs(pictures, exist_ok=True)
+        ans = send("prefs data add ssh Folder sshport:%d bashuser /home/bashuser/ecce-data %s" %
+                   (PORT, os.path.join(pictures, "add-server.png")))
+        check(ans == "saved", "add SSH folder through the Add Server dialog: %s" % ans)
+        send("server sync")
         ans = send("server roots")
         check("Folder (SSH) (not connected)" in ans and "Bad (SSH) (not connected)" in ans
               and ans.startswith("Local data"), "both SSH roots start not connected: %s" % ans)
+        ans = send("server menu")
+        check("[ ] Folder" in ans and "[ ] Other" in ans and
+              "Add Server...;Manage Servers..." in ans, "toolbar lists remembered servers and ticks: %s" % ans)
+        check(send("server startup Folder on") == "ok", "set Connect at start in Edit Server")
+        os.killpg(org.pid, signal.SIGTERM)
+        org.wait(20)
+        open(cmds, "w").close()
+        org = subprocess.Popen([os.path.join(wrappers, "ecce-organizer")],
+                               env=dict(genv, ECCE_TEST_ORGANIZER=cmds),
+                               cwd=os.path.join(s.home, "bin"), stdout=open(olog, "w"),
+                               stderr=subprocess.STDOUT, start_new_session=True)
+        ans = send("server menu")
+        check("[x] Folder" in ans and "[ ] Other" in ans and "[ ] Bad" in ans,
+              "restart connects only Connect-at-start entry: %s" % ans)
+        check(send("server rootmenu Folder") == "Disconnect;Remove from list",
+              "connected root offers Disconnect and Remove")
+        check(send("server rootchoose Folder Disconnect") == "ok", "root Disconnect action")
+        check("[ ] Folder" in send("server menu"), "disconnect clears toolbar tick")
+        check("Folder (SSH) (not connected)" in send("server roots"), "disconnect folds root")
+        check(send("server rootchoose Folder Connect") == "ok", "root Connect action")
+        check("[x] Folder" in send("server menu"), "connect sets toolbar tick")
+        check(send("server choose Folder") == "ok", "toolbar toggles server off")
+        check("[ ] Folder" in send("server menu"), "toolbar toggle clears tick")
+        check(send("server choose Other") == "ok", "toolbar connects second server")
+        check("[x] Other" in send("server menu"), "second server tick set")
+        check(send("server rootchoose Other Remove_from_list") == "ok", "root Remove action")
+        check("Other" not in send("server menu") and "Other" not in send("server roots"),
+              "Remove forgets entry in both menus and tree")
+        # Restore the second entry for the existing cross-port launch checks.
+        with open(os.path.join(s.state, ".ECCE", "AddedServers"), "a") as h:
+            h.write("ssh\tOther\t%s\t0\n" % OTHER)
+        send("server sync")
+        ans = send("server menushot " + os.path.join(pictures, "servers-menu.png"))
+        check(ans == "saved", "PNG of open Servers toolbar menu: %s" % ans)
         # A tree search past a root that is not connected (here: a URL in no
         # tree) used to recurse without end and crash the Organizer.
         ans = send("panelmessage file:///nowhere/p/c")
@@ -189,6 +236,10 @@ def main():
         check(ans == "allowed", "launch from the connected folder is allowed: %s" % ans)
         ans = send("launchselected " + url, timeout=240)
         check(ans.startswith("ok ") and "submitted" in ans, "Launch Selected submitted it: %s" % ans)
+        rc, out = drive("state", url)
+        check(out.strip().splitlines()[-1] in ("submitted", "running"),
+              "job is still live before Disconnect: %s" % out.strip()[-40:])
+        check(send("server disconnect Folder") == "ok", "disconnect after launch leaves monitor running")
         state = ""
         end = time.time() + 300
         while time.time() < end:

@@ -71,10 +71,12 @@ struct Result {
 // Every waiting calculation not already watched by a running monitor.
 // progress(done, total) is called before each one.
 // progress returning false (Cancel) leaves the rest waiting.
+// include leaves disconnected stores waiting without opening their data URLs.
 std::vector<Result> run(
     std::function<bool(size_t, size_t)> progress = nullptr,
     const LoginFn& login = nullptr,
-    const RemoteFn& remote = nullptr);
+    const RemoteFn& remote = nullptr,
+    std::function<bool(const std::string&)> include = nullptr);
 
 // ecce-fetch: copy the run directory's files matching `patterns` (file-name
 // globs) over the calculation's login into its stored Outputs, or only list

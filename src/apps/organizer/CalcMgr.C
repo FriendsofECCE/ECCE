@@ -56,6 +56,10 @@ static std::string s_registerMessage;
 
 #include "util/LocalData.H"
 #include "util/ServerList.H"
+#include "wxgui/AddServerDialog.H"
+#include "wx/uiaction.h"
+#include "wx/dcscreen.h"
+#include "wx/dcmemory.h"
 #include "tdat/AuthCache.H"
 #include "util/SessionLease.H"
 #include "util/WaitingJobs.H"
@@ -297,6 +301,12 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   p_find = 0;
   p_prefs = 0;
   Bind(wxEVT_MENU, &CalcMgr::OnPreferencesClick, this, wxID_PREFERENCES);
+  const int serversId = p_serversToolId = wxWindow::NewControlId();
+  p_toolBar->AddSeparator();
+  p_toolBar->AddTool(serversId, _("Servers"),
+      ewxBitmap::bundle(wxT("servers.xpm")), _("Servers"));
+  p_toolBar->Realize();
+  Bind(wxEVT_TOOL, [this](wxCommandEvent&) { showServersMenu(); }, serversId);
   {
     // Help > How to Cite ECCE..., before About.
     wxMenuBar* mb = GetMenuBar();
@@ -673,6 +683,96 @@ void CalcMgr::runTestCommand(const string& line)
             ref = list[i].address;
         outcome = ref.empty() ? "no such server"
                               : (connectServer(ref) ? "connected" : "not connected");
+      } else if (sub == "menu" || sub == "choose" || sub == "rootmenu" ||
+                 sub == "rootchoose" || sub == "menushot") {
+        // Names with spaces use underscores, as in the Preferences hooks.
+        if (sub != "menushot") std::replace(a.begin(), a.end(), '_', ' ');
+        std::replace(b.begin(), b.end(), '_', ' ');
+        wxMenu menu;
+        if (sub == "rootmenu" || sub == "rootchoose") {
+          string ref;
+          for (const ServerEntry& entry : ServerList::load())
+            if (entry.name == a)
+              ref = entry.type == "ssh" ? entry.address : ServerList::refOf(entry.address);
+          if (rememberedServer(ref)) {
+            wxTreeItemIdValue cookie;
+            for (wxTreeItemId id = p_treeCtrl->GetFirstChild(p_treeCtrl->GetRootItem(), cookie);
+                 id.IsOk(); id = p_treeCtrl->GetNextChild(p_treeCtrl->GetRootItem(), cookie)) {
+              auto* data = dynamic_cast<WxResourceTreeItemData*>(p_treeCtrl->GetItemData(id));
+              if (data && data->serverRef() == ref) { p_treeCtrl->SelectItem(id); break; }
+            }
+            for (int i = 0; i < 5; ++i) wxYield();
+          }
+          serverRootMenu(menu, ref);
+        } else serversMenu(menu);
+        if (sub == "choose" || sub == "rootchoose") {
+          const string label = sub == "choose" ? a : b;
+          int id = menu.FindItem(wxString::FromUTF8(label.c_str()));
+          if (id == wxNOT_FOUND) outcome = "no such item";
+          else {
+            wxMenuItem* item = menu.FindItem(id);
+            wxCommandEvent event(wxEVT_MENU, id);
+            if (item->IsCheckable()) event.SetInt(!item->IsChecked());
+            menu.ProcessEvent(event);
+            for (int i = 0; i < 10; ++i) wxYield();
+            outcome = "ok";
+          }
+        } else if (sub == "menushot") {
+          wxTimer timer;
+          timer.Bind(wxEVT_TIMER, [&](wxTimerEvent&) {
+            wxScreenDC screen;
+            wxBitmap bitmap(GetSize().x, GetSize().y, 24);
+            wxMemoryDC memory(bitmap);
+            wxPoint pos = GetScreenPosition();
+            memory.Blit(0, 0, bitmap.GetWidth(), bitmap.GetHeight(), &screen, pos.x, pos.y);
+            memory.SelectObject(wxNullBitmap);
+            outcome = bitmap.SaveFile(wxString::FromUTF8(a.c_str()), wxBITMAP_TYPE_PNG)
+                ? "saved" : "not saved";
+            wxUIActionSimulator().Char(WXK_ESCAPE);
+          });
+          timer.StartOnce(700);
+          showServersMenu();
+        } else {
+          for (wxMenuItem* item : menu.GetMenuItems()) {
+            if (item->IsSeparator()) continue;
+            if (!outcome.empty()) outcome += ";";
+            if (item->IsCheckable()) outcome += item->IsChecked() ? "[x] " : "[ ] ";
+            outcome += item->GetItemLabelText().ToStdString();
+          }
+        }
+      } else if (sub == "startup") {
+        std::replace(a.begin(), a.end(), '_', ' ');
+        outcome = "no such server";
+        for (const ServerEntry& entry : ServerList::load()) {
+          if (entry.name != a) continue;
+          AddServerDialog dialog(this, &entry);
+          wxTimer timer;
+          timer.Bind(wxEVT_TIMER, [&](wxTimerEvent&) {
+            dialog.startupForTest(b == "on");
+            dialog.acceptForTest();
+          });
+          timer.StartOnce(50);
+          outcome = dialog.ShowModal() == wxID_OK ? "ok" : "not saved";
+          break;
+        }
+      } else if (sub == "disconnect" || sub == "remove") {
+        string ref;
+        for (const ServerEntry& entry : ServerList::load())
+          if (entry.name == a)
+            ref = entry.type == "ssh" ? entry.address : ServerList::refOf(entry.address);
+        if (!rememberedServer(ref)) outcome = "no such server";
+        else {
+          wxMenu menu;
+          serverRootMenu(menu, ref);
+          int id = menu.FindItem(sub == "remove" ? "Remove from list" : "Disconnect");
+          if (id == wxNOT_FOUND) outcome = "no such item";
+          else {
+            wxCommandEvent event(wxEVT_MENU, id);
+            menu.ProcessEvent(event);
+            for (int i = 0; i < 10; ++i) wxYield();
+            outcome = "ok";
+          }
+        }
       } else if (sub == "copycheck") {
         string r = crossTreeRefusal(vector<EcceURL>(1, EcceURL(a)), EcceURL(b));
         outcome = r.empty() ? "allowed" : "refused: " + r;
@@ -2836,6 +2936,12 @@ void CalcMgr::initializeTreeData()
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
   syncServerRoots();
+  CallAfter([this]() {
+    for (const ServerEntry& entry : ServerList::load()) {
+      const string ref = entry.type == "ssh" ? entry.address : ServerList::refOf(entry.address);
+      if (entry.connectAtStart && rememberedServer(ref)) connectServer(ref);
+    }
+  });
   p_treeCtrl->SetFocus();
   if (!p_serverTimer) {
     // Add Server / Remove in Preferences write the list; pick it up here.
@@ -2850,6 +2956,109 @@ void CalcMgr::initializeTreeData()
   }
 }
 
+
+bool CalcMgr::rememberedServer(const string& ref) const
+{
+  if (ref.empty()) return false;
+  EDSIServerCentral central;
+  vector<Bookmark>* own = central.getEDSIProviders();
+  bool primary = false;
+  for (size_t i = 0; own && i < own->size(); ++i)
+    if ((*own)[i].getEcceUrl().getRef() == ref) primary = true;
+  delete own;
+  if (primary) return false;
+  for (const ServerEntry& entry : ServerList::load())
+    if ((entry.type == "ssh" ? entry.address : ServerList::refOf(entry.address)) == ref)
+      return true;
+  return false;
+}
+
+void CalcMgr::disconnectServer(const string& ref)
+{
+  if (!rememberedServer(ref)) return;
+  // Move selection out before deleting roots that may back the context panel.
+  p_treeCtrl->openHome(true);
+  if (ref.compare(0, 7, "sftp://") == 0) SftpEDSI::disconnect(ref);
+  else {
+    const string user = ServerList::loginFor(ref);
+    if (!user.empty()) AuthCache::getCache().remove(ref, user, "");
+  }
+  ServerList::setLogin(ref, "");
+  syncServerRoots();
+}
+
+void CalcMgr::serverRootMenu(wxMenu& menu, const string& ref)
+{
+  if (!rememberedServer(ref)) return;
+  bool connected = !ServerList::loginFor(ref).empty();
+  int toggle = wxWindow::NewControlId(), remove = wxWindow::NewControlId();
+  menu.Append(toggle, connected ? _("Disconnect") : _("Connect"));
+  menu.Append(remove, _("Remove from list"));
+  menu.Bind(wxEVT_MENU, [this, ref, connected](wxCommandEvent&) {
+    CallAfter([this, ref, connected]() {
+      if (connected) disconnectServer(ref); else connectServer(ref);
+    });
+  }, toggle);
+  menu.Bind(wxEVT_MENU, [this, ref](wxCommandEvent&) {
+    CallAfter([this, ref]() {
+      if (!rememberedServer(ref)) return;
+      disconnectServer(ref);
+      for (const ServerEntry& entry : ServerList::load())
+        if ((entry.type == "ssh" ? entry.address : ServerList::refOf(entry.address)) == ref)
+          ServerList::remove(entry.name);
+      syncServerRoots();
+    });
+  }, remove);
+}
+
+void CalcMgr::serversMenu(wxMenu& menu)
+{
+  for (const ServerEntry& entry : ServerList::load()) {
+    const string ref = entry.type == "ssh" ? entry.address : ServerList::refOf(entry.address);
+    if (!rememberedServer(ref)) continue;
+    int id = wxWindow::NewControlId();
+    wxString label = wxString::FromUTF8(entry.name.c_str());
+    label.Replace("&", "&&");
+    menu.AppendCheckItem(id, label);
+    menu.Check(id, !ServerList::loginFor(ref).empty());
+    menu.Bind(wxEVT_MENU, [this, ref](wxCommandEvent& event) {
+      const bool on = event.IsChecked();
+      CallAfter([this, ref, on]() {
+        if (on) connectServer(ref); else disconnectServer(ref);
+      });
+    }, id);
+  }
+  if (menu.GetMenuItemCount()) menu.AppendSeparator();
+  int add = wxWindow::NewControlId(), manage = wxWindow::NewControlId();
+  menu.Append(add, _("Add Server..."));
+  menu.Append(manage, _("Manage Servers..."));
+  menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+    CallAfter([this]() {
+      AddServerDialog dialog(this);
+      if (dialog.ShowModal() == wxID_OK) syncServerRoots();
+    });
+  }, add);
+  menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+    CallAfter([this]() {
+      wxCommandEvent event;
+      OnPreferencesClick(event);
+      p_prefs->showDataPage();
+    });
+  }, manage);
+}
+
+void CalcMgr::showServersMenu()
+{
+  Raise();
+  wxMenu menu;
+  serversMenu(menu);
+  wxPoint at(0, p_toolBar->GetSize().y);
+  for (int x = 0; x < p_toolBar->GetSize().x; ++x) {
+    wxToolBarToolBase* tool = p_toolBar->FindToolForPosition(x, at.y / 2);
+    if (tool && tool->GetId() == p_serversToolId) { at.x = x; break; }
+  }
+  PopupMenu(&menu, p_toolBar->GetPosition() + at);
+}
 
 void CalcMgr::syncServerRoots()
 {
@@ -2890,6 +3099,7 @@ void CalcMgr::syncServerRoots()
  */
 bool CalcMgr::connectServer(const string& ref)
 {
+  if (!rememberedServer(ref)) return false;
   if (ref.compare(0, 7, "sftp://") == 0) return connectSsh(ref);
   string name = ref;
   vector<ServerEntry> list = ServerList::load();
@@ -3015,8 +3225,8 @@ bool CalcMgr::refuseAddedLaunch(const vector<EcceURL>& urls)
       // so the login has to be made here, once, before anything is submitted.
       const string root = ServerList::sshRootOf(urls[i].toString());
       if (root.empty() || !done.insert(root).second) continue;
-      if (ServerList::loginFor(root).empty() && !connectSsh(root)) {
-        tellRefusal("Not launched: there is no login to " + root + ".");
+      if (ServerList::loginFor(root).empty()) {
+        tellRefusal("Not launched: choose Connect for " + root + " in the Servers menu first.");
         return true;
       }
       continue;
@@ -3029,9 +3239,9 @@ bool CalcMgr::refuseAddedLaunch(const vector<EcceURL>& urls)
                                                  "", 1)) {
       ServerList::setLogin(ref, "");
     }
-    if (ServerList::loginFor(ref).empty() && !connectServer(ref)) {
+    if (ServerList::loginFor(ref).empty()) {
       tellRefusal("Not launched: the login for the server " + ref +
-                  " was not given or not accepted.");
+                  " is not connected. Choose Connect in the Servers menu first.");
       return true;
     }
   }
@@ -3320,17 +3530,14 @@ void CalcMgr::menuSource(wxWindow *source)
 void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
 {
   wxMenu menu;
+  menuSource(dynamic_cast<wxWindow*>(event.GetEventObject()));
   {
     WxResourceTreeItemData *sel = dynamic_cast<WxResourceTreeItemData*>(
         p_treeCtrl->GetItemData(p_treeCtrl->GetSelection()));
-    if (sel && !sel->getResource() && !sel->serverRef().empty()) {
-      string ref = sel->serverRef();
-      int id = wxWindow::NewControlId();
-      menu.Append(id, _("Reconnect"));
-      menu.Bind(wxEVT_MENU, [this, ref](wxCommandEvent&) {
-        CallAfter([this, ref]() { connectServer(ref); });
-      }, id);
+    if (p_popupOnTree && sel && rememberedServer(sel->serverRef())) {
+      serverRootMenu(menu, sel->serverRef());
       ewxPopupMenu(this, menu);
+      p_popupOnTree = false;
       return;
     }
   }
@@ -7189,10 +7396,9 @@ void CalcMgr::OnTreectrlItemExpanding( wxTreeEvent& event )
   //  cerr << "Children in data tree: " << itemData->getnumChildren() << endl;
 
   if (itemData && !itemData->getResource() && !itemData->serverRef().empty()) {
-    // An added server that is not connected: log in first.
-    string ref = itemData->serverRef();
+    // Expanding a tree must not open a login implicitly.
     event.Veto();
-    CallAfter([this, ref]() { connectServer(ref); });
+    setMessage("Choose Connect from the server menu to open this server.", WxFeedback::INFO);
     stopDisabler();
     return;
   }
@@ -9882,20 +10088,6 @@ void CalcMgr::catchUpWaitingJobs()
       !WaitingJobs::firstInSession(Ecce::sessionKey()))
     return;
 
-  // Jobs of an added server store to it with its own login, which this
-  // session does not have yet after a restart: ask once per server.
-  {
-    vector<string> waiting = WaitingJobs::list();
-    set<string> asked;
-    for (size_t i = 0; i < waiting.size(); i++) {
-      EcceURL u(waiting[i]);
-      const string ref = u.getRef();
-      if (u.getProtocol().find("http") == 0 && ServerList::isAdded(ref) &&
-          ServerList::loginFor(ref).empty() && asked.insert(ref).second)
-        connectServer(ref);
-    }
-  }
-
   ReconnectSelected::DeferMessages defer;
   ewxProgressDialog* progress = 0;
   bool cancelled = false;   // one Cancel leaves the rest waiting
@@ -9917,6 +10109,10 @@ void CalcMgr::catchUpWaitingJobs()
         return true;
       cancelled = true;
       return false;
+    }, [this](const string& url) {
+      const string ref = url.compare(0, 7, "sftp://") == 0
+          ? ServerList::sshRootOf(url) : ServerList::refOf(url);
+      return !rememberedServer(ref) || !ServerList::loginFor(ref).empty();
     });
   delete progress;
 

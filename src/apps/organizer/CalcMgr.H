@@ -514,6 +514,12 @@ protected:
   void syncServerRoots();
   bool connectServer(const string& ref);
   bool connectSsh(const string& address);
+  bool rememberedServer(const string& ref) const;
+  void disconnectServer(const string& ref);
+  void serverRootMenu(wxMenu& menu, const string& ref);
+  void serversMenu(wxMenu& menu);
+  void showServersMenu();
+  int p_serversToolId = wxID_ANY;
   string crossTreeRefusal(const vector<EcceURL>& sources, const EcceURL& dest);
   bool refuseAddedLaunch(const vector<EcceURL>& urls);
   void tellRefusal(const string& msg);
