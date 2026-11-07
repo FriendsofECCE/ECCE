@@ -338,6 +338,9 @@ ecce_library(eccecommxt src/comm/commxt)
 ecce_library(eccercmd   src/comm/rcommand)
 # SftpEDSI runs its operations through RCommand.
 target_link_libraries(eccedsi PUBLIC eccercmd)
+# Example outputs ship gzip-compressed (StoredCalcCopy::gunzip).
+find_package(ZLIB REQUIRED)
+target_link_libraries(eccedsi PUBLIC ZLIB::ZLIB)
 target_link_libraries(eccetdat PUBLIC ecceutil)
 # RCommand uses AuthCache: without this a program that links eccedsi but
 # names eccetdat earlier fails with GNU ld (mold does not care about order).

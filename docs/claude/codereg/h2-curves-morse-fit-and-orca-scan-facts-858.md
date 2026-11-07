@@ -2,7 +2,7 @@
 type: map
 title: "H2 curves (#858): ORCA has no rigid scan, GuessMix is reapplied per point, closed-shell CCSD has gradients; Fit Morse is ecce-morse --json"
 area: codereg
-paths: ["scripts/ecce_morse.py", "src/apps/builder/ScanPanel.C", "src/util/genutil/RateRun.C", "scripts/parsers/ai.orca", "scripts/parsers/ORCA.expt", "data/client/cap/ORCA.edml", "scripts/codereg/orcatheory.py", "scripts/codereg/orcatheory.dlg", "tools/examples/make_h2_scans.py", "tests/morse/unit_tests.py", "tests/apps/morse_panel_test.py"]
+paths: ["scripts/ecce_morse.py", "src/apps/builder/ScanPanel.C", "src/util/genutil/RateRun.C", "scripts/parsers/ai.orca", "scripts/parsers/ORCA.expt", "data/client/cap/ORCA.edml", "scripts/codereg/orcatheory.py", "scripts/codereg/orcatheory.dlg", "tools/examples/make_h2_scans.py", "tests/morse/unit_tests.py", "tests/apps/morse_panel_test.py", "tools/examples/preparse.py", "src/dsm/edsiimpl/StoredCalcCopy.C", "src/apps/organizer/CalcMgr.C"]
 issues: [858]
 ---
 ORCA 6.1.1 facts, each checked with a run:
@@ -33,3 +33,12 @@ calculation) answers clicks: the others have no structures in this panel.
 
 Hooks: `scanmorse on|off [window]` (logs `ok re=... De_eV=...` and the text
 box), `scancompare [none|NAME...]`, `scanpng PATH [W H]` (light palette).
+
+Example size: `make_h2_scans.py` adds `MiniPrint` and `Print[P_MOs] 0` to
+the ai.orca deck. ORCA prints MOs, populations and SCF settings at every scan
+point (26 MB for the five scans); MiniPrint keeps every block the scan parsers
+read, drops the Mulliken/Löwdin charges. The outputs ship as `<calc>.out.gz`:
+an example output may be gzip-compressed (CalcMgr unpacks the folder into
+`~/.ECCE*/examples/` for a parse; preparse.py compresses the stored copy's
+output too, and StoredCalcCopy writes `X.gz` as `X`). The stamp is of the
+`.gz` bytes, so recompressing a file makes its stored copy stale.
