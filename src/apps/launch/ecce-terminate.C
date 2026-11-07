@@ -8,8 +8,8 @@
  *
  * Prints "name: terminated, job id N, <what is left>" or "name: not
  * terminated: reason" per calculation; what is left says whether a process
- * still runs in the run directory (#855). Exit 0: all terminated and nothing
- * left; 1: some were not, a process is still running (or no answer);
+ * still runs in the run directory (#855). Exit 4: no answer in time (it may have been carried out). Exit 0: all terminated and nothing
+ * left; 1: some were not, a process is still running;
  * 2: no running ECCE session; 3: the Organizer is busy with a Launch
  * Selected batch; 64: usage.
  */
@@ -38,6 +38,8 @@ using std::vector;
 
 namespace {
 
+const char *const kNoAnswer =
+    "no answer from the Organizer; it may have been carried out — check before repeating";
 const int kAckSeconds = 8;          // an Organizer answers at once
 const int kBatchSeconds = 5 * 60;   // each cancel is a login round trip
 
@@ -174,20 +176,22 @@ int main(int argc, char **argv)
   if (!sent) return notRunning();
 
   end = clock::now() + std::chrono::seconds(kAckSeconds);
-  bool timedOut = false;
+  bool timedOut = false, batchLimitSet = false;
   while (!gDone) {
     if (clock::now() >= end) { timedOut = true; break; }
     sub.processMessage();
     if (gDone) break;
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    if (gAck && !gDone) end = clock::now() + std::chrono::seconds(kBatchSeconds);
+    if (gAck && !gDone && !batchLimitSet) {
+      batchLimitSet = true;   // once: resetting every pass would never time out
+      end = clock::now() + std::chrono::seconds(kBatchSeconds);
+    }
   }
   if (timedOut) {
     if (!gAck) return notRunning();
-    std::cerr << "ecce-terminate: no answer from ECCE within "
-              << kBatchSeconds / 60 << " minutes; see the Organizer for the "
-                 "state of the calculations" << std::endl;
-    return 1;
+    for (size_t i = 0; i < args.size(); i++)
+      std::cout << args[i] << ": " << kNoAnswer << std::endl;
+    return 4;  // no answer: may have been carried out
   }
   if (gBusy) {
     std::cerr << "ecce-terminate: ECCE is submitting a Launch Selected batch; "
