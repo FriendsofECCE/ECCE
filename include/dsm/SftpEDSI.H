@@ -27,6 +27,8 @@ class SftpEDSI : public EDSI
     SftpEDSI();
     SftpEDSI(const EcceURL& url);
     virtual ~SftpEDSI();
+    // Releases only this process's login; job stores own separate logins.
+    static void disconnect(const string& address);
 
     virtual bool describeServerMetaData(vector<string>& metadata);
     virtual bool checkServer();

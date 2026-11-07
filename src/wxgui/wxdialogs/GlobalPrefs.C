@@ -1388,6 +1388,13 @@ bool GlobalPrefs::isDefaultPrograms()
 
 //  Test hook, the Organizer's "prefs data ..." command: drives the Data page
 //  and the Add Server dialog as clicks do, and reports what they stored.
+void GlobalPrefs::showDataPage()
+{
+  for (size_t i = 0; i < p_book->GetPageCount(); i++)
+    if (p_book->GetPageText(i) == _("Data")) p_book->SetSelection(i);
+  updateDataPage();
+}
+
 string GlobalPrefs::dataTest(const string& line)
 {
   std::istringstream in(line);

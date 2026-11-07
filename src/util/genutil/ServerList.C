@@ -46,7 +46,10 @@ vector<ServerEntry> ServerList::load()
     ServerEntry e;
     e.type = line.substr(0, a);
     e.name = line.substr(a + 1, b - a - 1);
-    e.address = line.substr(b + 1);
+    size_t c = line.find('\t', b + 1);
+    e.address = line.substr(b + 1, c == string::npos ? c : c - b - 1);
+    // Three-column entries predate the option and retain their startup behavior.
+    e.connectAtStart = c == string::npos || line.substr(c + 1) != "0";
     if (check(e).empty()) out.push_back(e);
   }
   return out;
@@ -61,7 +64,8 @@ bool ServerList::save(const vector<ServerEntry>& list)
     std::ofstream out(tmp.c_str(), std::ios::binary | std::ios::trunc);
     if (!out) return false;
     for (size_t i = 0; i < list.size(); i++)
-      out << list[i].type << '\t' << list[i].name << '\t' << list[i].address << '\n';
+      out << list[i].type << '\t' << list[i].name << '\t' << list[i].address
+          << '\t' << (list[i].connectAtStart ? 1 : 0) << '\n';
     if (!out) return false;
   }
   remove(path.c_str());   // rename() does not replace on Windows

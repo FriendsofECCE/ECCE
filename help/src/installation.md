@@ -164,10 +164,10 @@ added, with their name, type and address:
 
 The list of servers is stored for you. Each ECCE server in the list is a
 tree of its own in the Organizer, below **Local data**, named
-**<name> (ECCE server)**. Opening it asks for your login on that server
+**<name> (ECCE server)**. Connecting asks for your login on that server
 (the login is kept for that server only, never used for another one). If the
 login is cancelled or refused the tree stays marked **(not connected)** and
-**Reconnect** in its right-click menu asks again; this never changes where
+**Connect** in its right-click menu asks again; this never changes where
 ECCE keeps your calculations. **Remove** in Preferences takes the tree out of
 the Organizer at once. In a server tree you can browse, make projects and
 calculations, open, rename, delete and copy within that tree. A calculation in a server
@@ -177,10 +177,10 @@ server with your login there. Copying or moving between **Local data** and a
 server, or between two servers, is not supported yet.
 
 Each SSH folder in the list is a tree too, named **<name> (SSH)**, with the
-folder as its top level. Opening it logs in to the machine the way job
+folder as its top level. Choosing **Connect** logs in to the machine the way job
 submission does (a key, a password or a code, and the shared connection if
 your `~/.ssh/config` has one), so it is asked once; if that fails the tree
-stays **(not connected)** and **Reconnect** tries again. Browsing, making
+stays **(not connected)** and **Connect** tries again. Browsing, making
 projects and calculations, renaming and deleting work as in the other trees,
 and a calculation there is launched like any other: the job runs where you
 choose and its results are written to the folder over the same login. A
@@ -375,3 +375,18 @@ To look at a structure or at existing results first, continue with
 [Importing a structure](importing-a-structure.md) or
 [Importing a calculation](importing-a-calculation.md). To run calculations, continue with
 [Machines](machines.md).
+
+### Choosing when remembered servers connect
+
+**Connect at start**, in **Add Server** and **Edit Server**, applies to each
+remembered SSH folder or ECCE server separately. New entries leave it off;
+existing entries default to on so their startup behavior is preserved.
+With it off, use the Organizer toolbar's **Servers** menu to tick a server
+when you need it. The tick shows whether it is connected.
+
+The menu also offers **Add Server...** and **Manage Servers...**; Manage opens
+**Preferences > Data**. Right-click a remembered server root to **Connect**,
+**Disconnect**, or **Remove from list**. Disconnect closes the Organizer's
+logins and folds the tree while jobs keep their monitors. Remove forgets
+only the entry, leaving its data intact. A configured central server is part
+of the session and is not included among these switchable servers.
