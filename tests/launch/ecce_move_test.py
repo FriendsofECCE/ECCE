@@ -55,7 +55,8 @@ def main():
     mv = os.path.join(build, "ecce-move")
     rn = os.path.join(build, "ecce-rename")
     ann = os.path.join(build, "ecce-annotate")
-    for exe in (mv, rn):
+    cp = os.path.join(build, "ecce-copy")
+    for exe in (mv, rn, cp):
         if not os.access(exe, os.X_OK):
             say("FAIL: %s is not built" % exe)
             return 1
@@ -198,6 +199,17 @@ def main():
         check(known("file://" + dest + "/one") and known(dest + "/two"),
               "the Organizer finds them at the new URL")
         check(not known(urls["one"]), "and no longer at the old one")
+
+        #  ecce-copy (#890): a copy, also of a running calculation; the
+        #  source stays and a name clash is refused.
+        arch = home + "/arch"
+        os.makedirs(arch, exist_ok=True)
+        rc, out, err = go(cp, P("run"), arch)
+        check(rc == 0 and "run: copied to %s" % arch in out and os.path.isdir(arch + "/run") and
+              os.path.isdir(P("run")), "ecce-copy copies a running calculation, the source stays (rc=%s %r)" % (rc, out))
+        rc, out, err = go(cp, P("run"), arch)
+        check(rc == 1 and "not copied" in out, "a name clash is refused (rc=%s %r)" % (rc, out))
+        check(run(cp, "x")[0] == 64, "ecce-copy without a folder: usage, 64")
 
         #  A running calculation, and the folder holding it, are refused.
         rc, out, err = go(mv, P("run"), P("ren"), dest)

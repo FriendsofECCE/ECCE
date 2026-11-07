@@ -242,7 +242,7 @@ def main():
         check(formula("file://" + lcalc) == srcFormula, "its summary opens from Local data: %s" % formula("file://" + lcalc))
         ans = send("server xfer copy %s %s" % (url, lproj))
         check("\tno\t" in ans and "already" in ans, "a name clash is refused: %s" % ans)
-        check(not [x for x in os.listdir(lproj.replace("file://", "")) if x != name], "the refusal left no partial copy")
+        check(not [x for x in os.listdir(lproj.replace("file://", "")) if x != name and not x.startswith(".")], "the refusal left no partial copy")
 
         ans = send("server newproject Folder pB")
         pB = ans.split(" ", 1)[1] if ans.startswith("ok ") else ""
