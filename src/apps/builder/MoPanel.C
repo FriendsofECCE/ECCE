@@ -3405,6 +3405,16 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
          if (spin) fillSpinView();
          showMainView();
       }
+      //  A field-view surface (ELF, LOL, NCI) would otherwise stay drawn
+      //  under the orbital controls until an orbital is computed.
+      if ((chosen == "MO" || chosen == "Localised MO") &&
+          (p_drawnType == ELF_FIELD_TYPE || p_drawnType == LOL_FIELD_TYPE ||
+           p_drawnType == NCI_FIELD_TYPE)) {
+         getFW().getSceneGraph().clearGrids();
+         p_drawnType.clear();
+         p_espDrawnType.clear();
+         hideEspBar();
+      }
       if ((chosen == "MO" || chosen == "Localised MO") &&
           p_localised != (chosen == "Localised MO"))
          setLocalised(chosen == "Localised MO");
