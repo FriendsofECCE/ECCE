@@ -14,10 +14,12 @@ here=$(cd "$(dirname "$0")" && pwd)
 # Per-host settings: work root, container or native, parallel jobs, ninja -j.
 conf() {
     case $1 in
-      radium)    echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=2 JOBS=6 CTEST_JOBS=4 KEEP=8' ;;
-      # Other agents share nerdegg's CPUs through Slurm, so the build asks it
+      # Both hosts have 6 physical cores (nproc counts 12 threads) and are
+      # shared: one job at a time, 4 build jobs, so 2 cores stay free.
+      radium)    echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=4 CTEST_JOBS=2 KEEP=8' ;;
+      # Other projects share nerdegg's CPUs through Slurm, so builds ask it
       # for them; test jobs go through Slurm by their own --queue slurm.
-      nerdegg)   echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=6 CTEST_JOBS=2 KEEP=3 BUILDWRAP="srun -c 6 --"' ;;
+      nerdegg)   echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=4 CTEST_JOBS=1 KEEP=3 BUILDWRAP="srun -c 4 --"' ;;
       *) echo "unknown host $1" >&2; return 1 ;;
     esac
 }

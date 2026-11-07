@@ -104,7 +104,7 @@ install_tree() {
   [ -f $BLD/bi/build.ninja ] || cmake -G Ninja -S $SRC -B $BLD/bi \
     -DCMAKE_INSTALL_PREFIX=$BLD/install -DECCE_HOME_DIR=$BLD/install \
     -DECCE_WRAPPER_DESTINATION=$BLD/install-bin || return 1
-  ninja -C $BLD/bi -j'$JOBS' -k 0 && ninja -C $BLD/bi install
+  ${BUILDWRAP:-} ninja -C $BLD/bi -j'$JOBS' -k 0 && ninja -C $BLD/bi install
 }
 set -e'
 
