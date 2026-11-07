@@ -573,7 +573,7 @@ target_link_libraries(ecce-annotate PRIVATE
   eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
   eccetdat ecceutil ${XercesC_LIBRARIES})
 # Move and rename through the running Organizer (#824): one source, two tools.
-foreach(_mv ecce-move ecce-rename)
+foreach(_mv ecce-move ecce-rename ecce-copy)
   add_executable(${_mv} src/apps/launch/ecce-move.C)
   target_include_directories(${_mv} PRIVATE ${XercesC_INCLUDE_DIRS})
   target_link_libraries(${_mv} PRIVATE
@@ -581,6 +581,7 @@ foreach(_mv ecce-move ecce-rename)
     eccetdat ecceutil ${XercesC_LIBRARIES})
 endforeach()
 target_compile_definitions(ecce-rename PRIVATE ECCE_RENAME_COMMAND)
+target_compile_definitions(ecce-copy PRIVATE ECCE_COPY_COMMAND)
 # Make Workflow / Move into Workflow from the command line (#807).
 add_executable(ecce-workflow src/apps/launch/ecce-workflow.C)
 target_include_directories(ecce-workflow PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -1228,7 +1229,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-workflow ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-workflow ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -5011,6 +5012,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-rerun=bin/ecce-rerun
   ecce-move=bin/ecce-move
   ecce-rename=bin/ecce-rename
+  ecce-copy=bin/ecce-copy
   ecce-workflow=bin/ecce-workflow
   ecce-series=bin/ecce-series
   ecce-reconnect=bin/ecce-reconnect

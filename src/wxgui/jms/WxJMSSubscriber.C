@@ -182,8 +182,8 @@ void WxJMSSubscriber::messageDeferred(const string&, JMSMessage&) {}
  */
 void WxJMSSubscriber::deliver(const string& topic, JMSMessage& msg) {
   if (p_deferring) {
+    messageDeferred(topic, msg);      // may mark msg as acknowledged
     p_deferred.emplace_back(topic, msg);
-    messageDeferred(topic, msg);
     return;
   }
   wxCbMap::iterator it = cbStructs.find(topic);

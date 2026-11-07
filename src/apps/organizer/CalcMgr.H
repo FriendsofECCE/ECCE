@@ -196,7 +196,8 @@ public:
   // line format ("name\tok\t" or "name\tno\treason"). Never refused.
   bool annotateForCommand(const vector<EcceURL>& urls, const string& text,
                           vector<string>& lines, const string& key = "");
-  // ecce-move / ecce-rename (#824): the Organizer's own move, same line format.
+  // ecce-move / ecce-rename (#824) and ecce-copy (#890): verb move, rename or
+  // copy; the Organizer's own operation, same line format.
   bool moveForCommand(const string& verb, const vector<EcceURL>& urls,
                       const string& second, vector<string>& lines);
   // ecce-workflow (#807): "ok <workflow URL>" or "error: reason".
@@ -523,6 +524,9 @@ protected:
   void showServersMenu();
   int p_serversToolId = wxID_ANY;
   string crossTreeRefusal(const vector<EcceURL>& sources, const EcceURL& dest);
+  bool isCrossTree(const EcceURL& a, const EcceURL& b);
+  string copyAcrossTrees(const EcceURL& src, const EcceURL& destFolder,
+                         bool move, bool unique, EcceURL& made);
   bool refuseAddedLaunch(const vector<EcceURL>& urls);
   void tellRefusal(const string& msg);
 

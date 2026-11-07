@@ -102,6 +102,7 @@ static std::string s_registerMessage;
 #include "dsm/SftpEDSI.H"
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/EDSIExporter.H"
+#include "dsm/TreeCopy.H"
 #include "dsm/EDSI.H"
 #include "dsm/HistoryList.H"
 #include "dsm/MdTask.H"
@@ -778,6 +779,16 @@ void CalcMgr::runTestCommand(const string& line)
       } else if (sub == "copycheck") {
         string r = crossTreeRefusal(vector<EcceURL>(1, EcceURL(a)), EcceURL(b));
         outcome = r.empty() ? "allowed" : "refused: " + r;
+      } else if (sub == "failafter") {
+        // Test only: the next copies between trees fail after N files.
+        setenv("ECCE_TEST_TREECOPY_FAIL_AFTER", a.c_str(), 1);
+        outcome = "ok";
+      } else if (sub == "xfer") {
+        // "server xfer VERB SOURCE-URL FOLDER-URL": ecce-copy / ecce-move.
+        vector<string> lines;
+        moveForCommand(a, vector<EcceURL>(1, EcceURL(b)), c, lines);
+        for (size_t i = 0; i < lines.size(); i++)
+          outcome += (i ? ";" : "") + lines[i];
       } else if (sub == "launchcheck") {
         outcome = refuseAddedLaunch(vector<EcceURL>(1, EcceURL(a)))
                   ? "refused" : "allowed";
@@ -3252,8 +3263,8 @@ void CalcMgr::tellRefusal(const string& msg)
 }
 
 
-// Local data and each server are separate trees; a copy or move between
-// them is refused until the transfer is done properly.
+// What still stops a copy or move into another tree: an SSH folder that
+// this session is not logged in to.  The transfer itself is copyAcrossTrees.
 string CalcMgr::crossTreeRefusal(const vector<EcceURL>& sources,
                                  const EcceURL& dest)
 {
@@ -3261,9 +3272,82 @@ string CalcMgr::crossTreeRefusal(const vector<EcceURL>& sources,
   for (size_t i = 0; i < sources.size(); i++) {
     const string from = treeOf(sources[i]);
     if (from == to) continue;
-    if (from == "local" || to == "local")
-      return "Copying between Local data and a server is not supported yet.";
-    return "Copying between servers is not supported yet.";
+    if (to.compare(0, 5, "sftp:") == 0 && ServerList::loginFor(to).empty())
+      return "Not connected to " + to + ": connect to it first.";
+    if (from.compare(0, 5, "sftp:") == 0 && ServerList::loginFor(from).empty())
+      return "Not connected to " + from + ": connect to it first.";
+  }
+  return "";
+}
+
+
+bool CalcMgr::isCrossTree(const EcceURL& a, const EcceURL& b)
+{
+  return treeOf(a) != treeOf(b);
+}
+
+
+// Copy src into destFolder of another tree through the EDSIs; with move,
+// verify the copy and only then remove the source (#890).  Returns "" when
+// done (made = the new URL), else why not; a failed or cancelled copy has
+// removed its partial target and left the source as it was.
+string CalcMgr::copyAcrossTrees(const EcceURL& src, const EcceURL& destFolder,
+                                bool move, bool unique, EcceURL& made)
+{
+  WxResourceTreeItemData *node = findNode(src, false, true);
+  Resource *res = node ? node->getResource() : 0;
+  if (!res) return "the source no longer exists";
+  if (move) {
+    const string busy = activeJobRefusal(res, "Move");
+    if (!busy.empty()) return busy;
+  }
+  const string name = src.getFilePathTail();
+
+  // Shown only when the transfer takes longer than half a second.
+  wxStopWatch clock;
+  ewxProgressDialog *pd = 0;
+  const bool gui = !getenv("ECCE_TEST_ORGANIZER");
+  TreeCopy::Progress progress = [&](const string& item, long files,
+                                    unsigned long bytes) {
+    if (!gui) return true;
+    const string text = std::string(move ? "Moving " : "Copying ") + name +
+        ": " + item + "\n" + std::to_string(files) + " files, " +
+        std::to_string(bytes / 1024) + " kB so far";
+    if (!pd && clock.Time() > 500)
+      pd = new ewxProgressDialog(move ? "Move" : "Copy", text, 100, this,
+                                 wxPD_APP_MODAL | wxPD_CAN_ABORT | wxPD_ELAPSED_TIME);
+    if (!pd) return true;
+    wxYieldIfNeeded();
+    return pd->Pulse(text);
+  };
+
+  TreeCopy::Result r = TreeCopy::copy(src, destFolder, unique, progress);
+  string why;
+  if (!r.ok) {
+    why = r.cancelled ? "Cancelled: the partial copy was removed and the source is untouched."
+                      : "Copy failed (" + r.error + "); " +
+                                  (r.target.toString().empty() ? "nothing was copied"
+                                                               : "the partial copy was removed") +
+                                  " and the source is untouched.";
+  } else {
+    const string bad = TreeCopy::verify(r.target, r.manifest);
+    if (!bad.empty()) {
+      const bool removed = TreeCopy::removeTree(r.target);
+      why = "The copy did not check out (" + bad + "); " +
+            (removed ? "it was removed" : "REMOVING IT FAILED, remove it by hand") +
+            " and the source is untouched.";
+    }
+  }
+  delete pd;
+  if (!why.empty()) return why;
+
+  made = r.target;
+  notifyCreate(made.toString());
+  if (move) {
+    if (!p_treeCtrl->removeFromTree(src, true))
+      return "Copied to " + made.toString() + ", but the source could not be "
+             "removed.";
+    notifyRemove(src.toString(), "");
   }
   return "";
 }
@@ -4791,8 +4875,6 @@ bool CalcMgr::moveForCommand(const string& verb, const vector<EcceURL>& urls,
     else if (dest->getResource()->getContentType() == ResourceDescriptor::CT_CALCULATION ||
              !p_treeCtrl->setExpandable(dest))
       destWhy = "the target is not a folder";
-    else if (dest->getUrl().getProtocol().find("sftp") == 0)
-      destWhy = "only local data and data servers are supported";
   }
   for (size_t i = 0; i < urls.size(); i++) {
     const string leaf = urls[i].getFilePathTail();
@@ -4802,6 +4884,24 @@ bool CalcMgr::moveForCommand(const string& verb, const vector<EcceURL>& urls,
     if (!res) { no("not in this session"); continue; }
     const EcceURL oldUrl = n->getUrl();
     if (oldUrl.isSystemFolder()) { no("a system folder cannot be moved or renamed"); continue; }
+    if (!rename && (verb == "copy" || isCrossTree(oldUrl, destUrl))) {
+      if (!destWhy.empty()) { no(destWhy); continue; }
+      if (destUrl == oldUrl || destUrl.isChildOf(oldUrl)) {
+        no("a folder cannot be copied into itself");
+        continue;
+      }
+      const string refused = crossTreeRefusal(vector<EcceURL>(1, oldUrl), destUrl);
+      if (!refused.empty()) { no(refused); continue; }
+      EcceURL made;
+      const string why = copyAcrossTrees(oldUrl, destUrl, verb == "move", false, made);
+      if (!why.empty()) { no(why); continue; }
+      if (dest) p_treeCtrl->refresh(findNode(destUrl, false, true));
+      if (verb == "move")
+        if (WxResourceTreeItemData *up = findNode(oldUrl.getParent(), false, true))
+          p_treeCtrl->refresh(up);
+      lines.push_back(leaf + "\tok\t" + made.toString());
+      continue;
+    }
     if (oldUrl.getProtocol().find("sftp") == 0) {
       no("only local data and data servers are supported");
       continue;
@@ -8281,6 +8381,16 @@ void CalcMgr::paste()
         if (p_deleteAfterPaste && newUrl == (*itor))
           continue;
 
+        if (isCrossTree(*itor, destinationUrl)) {
+          EcceURL made;
+          const string why = copyAcrossTrees(*itor, destinationUrl,
+                                             p_deleteAfterPaste, true, made);
+          if (!why.empty()) {
+            msg += why;
+            break;
+          }
+          continue;     // a move has already removed its source
+        }
         if (!(source->getResource()->copy(newUrl))) {
           msg += source->getResource()->messages();
           break;
@@ -13346,6 +13456,21 @@ wxDragResult CalcMgr::dropInTree( const vector<EcceURL> & urls,
 
     string sourceName = sourceUrl.getFilePathTail();
     EcceURL newUrl = targetUrl.getChild(sourceName);
+
+    if (isCrossTree(sourceUrl, targetUrl)) {
+      if (def != wxDragMove) def = wxDragCopy;
+      EcceURL made;
+      const string why = copyAcrossTrees(sourceUrl, targetUrl,
+                                         def == wxDragMove, true, made);
+      if (!why.empty()) {
+        ewxMessageDialog dlg(this, why, def == wxDragMove ? "Move Failed!" : "Copy Failed!",
+                             wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
+        dlg.ShowModal();
+        def = wxDragCancel;
+        break;
+      }
+      continue;
+    }
 
     if (def == wxDragMove && !sourceUrl.isLocal())
       def = wxDragCopy;

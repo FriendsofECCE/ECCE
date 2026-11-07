@@ -1,13 +1,17 @@
 /*
  * ecce-move <calculation or folder>... <folder>   (#824)
  * ecce-rename <calculation or folder> <new name>
+ * ecce-copy <calculation or folder>... <folder>   (#890)
  *
  * The Organizer's own move and Edit > Rename, asked of the running Organizer
  * so that its tree is updated at once. The refusals are the Organizer's: a
  * calculation whose job is Submitted, Running or Waiting for Login, or a
  * folder holding one (#700), a name clash, a folder in another data store.
- * Local data and data servers only. Without a running session nothing is
- * done: a move behind the Organizer's back leaves stale tree nodes.
+ * The folder may be in another tree (Local data, an SSH folder, an ECCE
+ * server), given by its URL; a move there is a copy, a check of file counts
+ * and sizes, and only then the removal of the source. ecce-copy is the same
+ * without the removal and without the active-job refusal. Without a running
+ * session nothing is done: a move behind the Organizer's back leaves stale tree nodes.
  *
  * Prints "name: moved to folder" / "name: renamed to new name" or
  * "name: not moved: reason" / "name: not renamed: reason". Exit 0: all done;
@@ -43,7 +47,7 @@ using std::vector;
 namespace {
 
 const int kAckSeconds = 8;          // an Organizer answers at once
-const int kBatchSeconds = 60;
+const int kBatchSeconds = 3600;     // a transfer between trees can be large
 
 string gReplyId;
 bool gAck = false, gDone = false;
@@ -125,16 +129,24 @@ int main(int argc, char **argv)
 #ifdef ECCE_RENAME_COMMAND
   const bool rename = true;
   const char *me = "ecce-rename";
+  const char *verb = "rename";
+#elif defined(ECCE_COPY_COMMAND)
+  const bool rename = false;
+  const char *me = "ecce-copy";
+  const char *verb = "copy";
 #else
   const bool rename = false;
   const char *me = "ecce-move";
+  const char *verb = "move";
 #endif
-  const string done = rename ? "renamed to " : "moved to ";
-  const string undone = rename ? "not renamed" : "not moved";
+  const bool copying = string(verb) == "copy";
+  const string done = rename ? "renamed to " : copying ? "copied to " : "moved to ";
+  const string undone = rename ? "not renamed" : copying ? "not copied" : "not moved";
   vector<string> args(argv + 1, argv + argc);
   if (args.size() < 2 || (rename && args.size() != 2)) {
     std::cerr << (rename ? "usage: ecce-rename <calculation or folder> <new name>"
-                         : "usage: ecce-move <calculation or folder>... <folder>")
+                         : copying ? "usage: ecce-copy <calculation or folder>... <folder>"
+                                   : "usage: ecce-move <calculation or folder>... <folder>")
               << std::endl;
     return 64;
   }
@@ -182,7 +194,7 @@ int main(int argc, char **argv)
   JMSPublisher pub("EcceMove");
   JMSMessage *msg = pub.newMessage();
   msg->addProperty("reply_id", gReplyId);
-  msg->addProperty("verb", rename ? "rename" : "move");
+  msg->addProperty("verb", verb);
   msg->addProperty("second", secondUrl);
   msg->addIntProperty("n", (int)urls.size());
   for (size_t i = 0; i < urls.size(); i++)
@@ -202,7 +214,7 @@ int main(int argc, char **argv)
   }
   if (timedOut) {
     if (!gAck) return notRunning();
-    std::cerr << me << ": no answer from ECCE within a minute; see "
+    std::cerr << me << ": no answer from ECCE; see "
                  "the Organizer for the state of the calculations" << std::endl;
     return 1;
   }

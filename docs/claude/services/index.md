@@ -87,6 +87,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [A host that accepts TCP but never sends the ssh banner: bounded connect, no libssh retry after a timeout, Organizer connects off the GUI thread with a working Cancel](silent-host-connect.md)
 - [ecce-annotate](ecce-annotate-writes-through-the-organizer.md): through the Organizer, else FileEDSI; never a hand-edited `.ecce-meta` (#742).
 - [ecce-move / ecce-rename](ecce-move-goes-through-the-organizer.md): the Organizer's own move, no offline mode (#824).
+- [Copy and move between trees](cross-tree-copy-890.md): TreeCopy through the EDSIs, verify then remove, ecce-copy (#890).
 - [A root without a resource (server not connected) taken for the hidden root: findNode recursed to a stack overflow (#767)](unconnected-root-taken-for-hidden-root.md)
 - [AuthCache: an ssh password only for its own host[:port] and user, also under the job store's LAST_URL (#791)](authcache-ssh-own-host-only.md)
 - [A copy-back from a host that cannot be asked "succeeded" with nothing copied and stored a 0-byte output; sizes now checked, Complete needs the normal-end line (#732)](copy-back-unreachable-host-732.md)
