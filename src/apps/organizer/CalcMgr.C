@@ -5943,7 +5943,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "34";
+const char *const kExampleSetVersion = "36";
 
 string treeName(string s)
 {
