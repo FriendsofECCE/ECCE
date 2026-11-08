@@ -3176,6 +3176,11 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_examples_preparsed PROPERTIES TIMEOUT 1800
                        SKIP_RETURN_CODE 77)
+  # Every stored geometry trace fits its structure's atoms (#920).
+  add_test(NAME apps_examples_geomtrace
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/examples_geomtrace_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   # Structure Library > Ligands attach to a metal's nub in the Builder
   # (ECCE_BUILDER_SCRIPT select/selectnub/libatom/bonds).
   add_test(NAME apps_ligands

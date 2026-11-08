@@ -12,6 +12,7 @@
 
 class Fragment;
 class PropertyTask;
+class PropTSVecTable;
 
 namespace ScanPoint {
 
@@ -72,6 +73,13 @@ namespace ScanPoint {
   /// structure has no rows for them.  False, frag unchanged, with why set
   /// if the atom count fits neither way.
   bool apply(Fragment *frag, const std::vector<double>& xyz, std::string& why);
+
+  /// A CREST protomer or solvent cluster frame has more atoms than the
+  /// calculation's input: when xyz fits the trace's "n-El" row labels but
+  /// not frag, rebuild frag's atoms from those labels (kept as a prefix if
+  /// they match).  True if atoms were changed.
+  bool adoptTraceAtoms(Fragment *frag, const PropTSVecTable *trace,
+                       const std::vector<double>& xyz);
 }
 
 #endif

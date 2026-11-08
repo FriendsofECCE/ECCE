@@ -43,6 +43,7 @@ static void warnShape(const std::string& calc, const std::string& prop,
 #include "dsm/PropertyTask.H"
 #include "dsm/PropFactory.H"
 #include "dsm/ResourceType.H"
+#include "dsm/ScanPoint.H"
 #include "dsm/Session.H"
 #include "dsm/VDoc.H"
 
@@ -916,8 +917,10 @@ bool PropertyTask::loadStep(Fragment *frag, int step)
     int numStep = step;
     EE_ASSERT((step==-1|| step<geotrace->tables()),EE_WARNING,"Bad step #");
     if (numStep < 0) numStep = geotrace->tables()-1;
-    size_t numRows = frag->numAtoms();
     const vector<double>& xvalues = geotrace->values(numStep);
+    // A CREST protomer's frames carry the added proton (#920).
+    ScanPoint::adoptTraceAtoms(frag, geotrace, xvalues);
+    size_t numRows = frag->numAtoms();
     if (3*numRows != xvalues.size()) {
       fprintf(stderr, "GEOMTRACE step %d holds %lu values for %lu atoms; "
               "coordinates left unchanged\n", numStep,
@@ -963,8 +966,9 @@ bool PropertyTask::loadStep(Fragment *frag, int step, PropertyDoc& doc)
       int numStep = step;
       EE_ASSERT((step==-1|| step<geotrace->tables()),EE_WARNING,"Bad step #");
       if (numStep < 0) numStep = geotrace->tables()-1;
-      size_t numRows = frag->numAtoms();
       const vector<double>& xvalues = geotrace->values(numStep);
+      ScanPoint::adoptTraceAtoms(frag, geotrace, xvalues);
+      size_t numRows = frag->numAtoms();
       if (3*numRows != xvalues.size()) {
         fprintf(stderr, "GEOMTRACE step %d holds %lu values for %lu atoms; "
                 "coordinates left unchanged\n", numStep,
