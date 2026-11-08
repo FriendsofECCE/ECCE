@@ -29,7 +29,7 @@ SETS = {"getting-started": ("Examples/Getting_Started", 6),
         "spectroscopy": ("Examples/Spectroscopy", 19),
         "genchem": ("Examples/General_Chemistry", 109),
         "workflows": ("Examples/Workflows", 14),
-        "test": ("Examples/Test", 7)}
+        "test": ("Examples/Test", 13)}
 
 # Written per import: who ran it, when, and where (StoredCalcCopy's kSkip).
 VOLATILE = {"owner", "creationdate", "createdWith", "currentVersion",
@@ -123,7 +123,9 @@ def compare(parsed, copied):
                         rel, key[1].rsplit(":", 1)[-1],
                         ra.get(key, "-")[-160:], rb.get(key, "-")[-160:]))
         elif os.path.basename(rel) == "eccejobstorelog.ecce_run_log":
-            continue    # a log of this run, with its own times
+            continue
+        elif rel.endswith("/MO") and "MO_table_check" in parsed + copied:
+            continue    # shipped short on purpose (#719); a parse is whole    # a log of this run, with its own times
         elif rel.endswith(".h5"):
             # HDF5 does not lay out the same content byte for byte twice
             if h5content(pa) != h5content(pb):
