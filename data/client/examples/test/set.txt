@@ -1,3 +1,7 @@
 Test
 Data sets for checking ECCE features by hand (see the To-test page of the wiki); not teaching examples.
 reaction-overview|Reaction overview
+na-geometries|Na+(H2O)6 geometries
+isomer-ranking|Isomer ranking
+mo-table-check|MO table check
+density-difference|Density difference

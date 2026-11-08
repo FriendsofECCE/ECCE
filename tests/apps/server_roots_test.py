@@ -72,15 +72,19 @@ def main():
         fixture.ensureRealUserAccount()
         os.makedirs(os.path.dirname(serverFile()), exist_ok=True)
         with open(serverFile(), "w") as handle:
-            handle.write("ecce\t%s\thttp://localhost:%d\n" % (NAME, fixture.dataserverPort()))
+            handle.write("ecce\t%s\thttp://localhost:%d\t0\n" % (NAME, fixture.dataserverPort()))
         home = os.path.join(fixture.stateDir(), "htdocs", "Ecce", "users", user)
         proj = "p767"
         notConn = lambda a: ROOT + " (not connected)" in a and "Local data" in a
         steps = [
             ("server roots", notConn),
+            ("server menu", lambda a: "[ ] " + NAME in a),
+            ("server rootmenu " + NAME, lambda a: a == "Connect;Remove from list"),
             ("server connect " + NAME, lambda a: a == "connected"),
             ("server roots", lambda a: ROOT in a and "not connected" not in a
                              and a.startswith("Local data")),
+            ("server menu", lambda a: "[x] " + NAME in a),
+            ("server rootmenu " + NAME, lambda a: a == "Disconnect;Remove from list"),
             ("server newproject %s %s" % (NAME, proj), lambda a: a.startswith("ok http")),
             ("server newcalc %s %s c1" % (NAME, proj), lambda a: a.startswith("ok http")),
             ("server copycheck file:///tmp/x http://localhost:%d/Ecce/users/%s/%s"
@@ -110,7 +114,26 @@ def main():
         def stayed(log):
             if "switched" in log.lower() and "local" in log.lower().split("switched")[1][:40]:
                 failures.append("session mode changed")
+        bad += [
+            ("server remove " + NAME, lambda a: a == "ok"),
+            ("server menu", lambda a: NAME not in a),
+            ("server roots", lambda a: NAME not in a),
+        ]
         run(display, bad, {"ECCE_TEST_AUTH_ANSWER": "login:%s:wrongpass" % user}, "wrong", stayed)
+        # A remembered alias for the configured session server is protected,
+        # including direct hook calls that bypass the menu's missing item.
+        with open(serverFile(), "w") as handle:
+            handle.write("ecce\t%s\thttp://localhost:%d\t1\n" % (NAME, fixture.dataserverPort()))
+        primary = [
+            ("server menu", lambda a: a == "Add Server...;Manage Servers..."),
+            ("server rootmenu " + NAME, lambda a: a == ""),
+            ("server connect " + NAME, lambda a: a == "not connected"),
+            ("server disconnect " + NAME, lambda a: a == "no such server"),
+            ("server remove " + NAME, lambda a: a == "no such server"),
+        ]
+        run(display, primary, {"ECCE_LOCAL_DATA": "",
+            "ECCE_TEST_AUTH_ANSWER": "login:%s:%s" % (user, fixture.passwordFor(user))},
+            "configured session server")
         try:
             os.unlink(serverFile())
         except OSError:

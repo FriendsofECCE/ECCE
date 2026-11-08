@@ -89,7 +89,7 @@ public:
     
   void registerTopShell(wxWindow *w);
   void unregisterTopShell(wxWindow *w);
-  void messageDeferred(const string& topic, JMSMessage& msg);
+  void messageArrived(const string& topic, JMSMessage& msg);
   bool publish(const string& topic,
                const JMSMessage& message) const;
   JMSMessage* newMessage() const;

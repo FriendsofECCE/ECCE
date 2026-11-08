@@ -42,7 +42,8 @@ SGLattice::SGLattice()
 
 void SGLattice::constructor()
 {
-   p_noLabels = false;
+   p_noLabels = true;
+   for (int i = 0; i < 3; ++i) p_labelVisible[i] = false;
    // set up 12 lines (2 points each)
    // This is the default box but of course it changes with replication
    int cnt = 12;
@@ -65,27 +66,7 @@ void SGLattice::constructor()
 
    updateColors();
 
-   // Don't do the font initialization below because it results in crashes
-   // with some 64-bit OpenGL libraries including RHEL 5 using standard
-   // Mesa GL.  Since text isn't used with the render area for lattices,
-   // I'm guessing this code was a copy/paste from somewhere else since
-   // removing the code doesn't cause any issues.
-   // GDB 5/2/12
-#if 000
-   if (SO_NODE_IS_FIRST_INSTANCE()) { 
-      GLuint i;
-      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
-      if (!GLPath::software()) {
-      fontOffset = glGenLists (256);
-      for (i = 32; i < 256; i++) {
-         glNewList(i+fontOffset, GL_COMPILE);
-         glBitmap(9, 15, 0.0, 0.0, 9.0, 0.0, Fixed9x15_Character_Map[i]+1);
-         glEndList();
-      }
-    }
-   }
-#endif
 }
 
 void SGLattice::GLRender(SoGLRenderAction *action)
@@ -99,56 +80,26 @@ void SGLattice::GLRender(SoGLRenderAction *action)
    if (! shouldGLRender(action) || p_noLabels)
       return;
 
-   glPushMatrix();
-
-   float offset = .05;
-
-   // OK this is truely an embarrassing hack!
-   // There is an off by 1 error indexing into the bitmap.  So
-   // instead of using a,b,c below, I use b,c,d to correct it.
-   // The code is copied from EcceAxis - can't see what I'm doing wrong!!!!
-   // signed anonymous:)
-
-   //glEnable(GL_LIGHTING);
-   //  Save the CURRENT colour, not just the list state.  The
-   //  glPushAttrib(GL_LIST_BIT) calls below guard glListBase, but the
-   //  glColor3f calls sit outside them, so without this the function
-   //  returns having left GL's current colour set to whatever it drew
-   //  last -- leaking into anything rendered afterwards that does not set
-   //  its own colour.  Found while looking into the uniform-hue atom
-   //  rendering in issue #83; it leaks blue rather than green, so it is
-   //  probably not that bug, but it is wrong either way.
+   // Labels and diagnostic positions share the same visibility and endpoints.
    glPushAttrib(GL_CURRENT_BIT);
-   //  The font lists are never built on hardware (#if 000 above), so these
-   //  labels draw nothing there; software skips them to look the same.
-   char text[80];
-   strcpy(text,"b");
-   glColor3f(1.0,0.0, 0.0);
-   glRasterPos3f(p_a1str.x()-offset,p_a1str.y()-offset, p_a1str.z()-offset ); 
-   if (!GLPath::software()) drawViewerText(fontOffset, text);
-
-   glColor3f(0.0, 1.0, 0.0);
-   strcpy(text,"c");
-   glRasterPos3f(p_a2str.x()-offset,p_a2str.y()-offset, p_a2str.z()-offset ); 
-   if (!GLPath::software()) drawViewerText(fontOffset, text);
-
-
-
-   glColor3f(0.0, 0.0, 1.0);
-   strcpy(text,"d");
-   glRasterPos3f(p_a3str.x()-offset,p_a3str.y()-offset, p_a3str.z()-offset ); 
-   if (!GLPath::software()) drawViewerText(fontOffset, text);                       // the GL_CURRENT_BIT push above
-
-   // Restore the GL matrix
-   glPopMatrix();
+   const char *text[] = {"a", "b", "c"};
+   const float colors[3][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}};
+   for (int i = 0; i < 3; ++i) {
+      double xyz[3];
+      if (!labelPosition(i, xyz)) continue;
+      glColor3fv(colors[i]);
+      glRasterPos3dv(xyz);
+      drawViewerText(fontOffset, text[i]);
+   }
+   glPopAttrib();
 }
 
 
 bool SGLattice::labelPosition(int i, double xyz[3])
 {
-   if (p_noLabels || i < 0 || i > 2) return false;
+   if (p_noLabels || i < 0 || i > 2 || !p_labelVisible[i]) return false;
    MPoint& p = (i == 0 ? p_a1str : (i == 1 ? p_a2str : p_a3str));
-   const float off = 0.05f;  // as in GLRender
+   const float off = 0.05f;
    xyz[0] = p.x() - off;
    xyz[1] = p.y() - off;
    xyz[2] = p.z() - off;
@@ -175,6 +126,8 @@ void SGLattice::setLattice(LatticeDef *lattice)
 {
 
    float xyz[3];
+   p_noLabels = true;
+   for (int i = 0; i < 3; ++i) p_labelVisible[i] = false;
 
    if (lattice) {
       int na1, na2, na3;
@@ -198,6 +151,10 @@ void SGLattice::setLattice(LatticeDef *lattice)
       p_a2str = (*edges)[3];
       p_a3str = (*edges)[5];
       p_noLabels = false;
+      // A collapsed edge has no axis direction to label (for example a 2-D cell).
+      p_labelVisible[0] = a1.length() > 1.0e-10;
+      p_labelVisible[1] = a2.length() > 1.0e-10;
+      p_labelVisible[2] = a3.length() > 1.0e-10;
 
       // A GROMACS dodecahedron or truncated octahedron is simulated as its
       // compact cell around the box centre, not as the vector parallelepiped.

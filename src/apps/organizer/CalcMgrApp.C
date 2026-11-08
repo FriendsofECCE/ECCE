@@ -11,6 +11,8 @@
 #pragma implementation "CalcMgrApp.H"
 #endif
 
+#include <unistd.h>
+#include <stdio.h>
 #include "wx/wxprec.h"
 
 #ifdef __BORLANDC__
@@ -289,6 +291,23 @@ void CalcMgrApp::identifyMCB(JMSMessage& msg)
 }
 
 
+// Test hook (#897): ECCE_TEST_SLOW_REQUEST names a file holding seconds; the
+// next request holds the GUI thread that long (once), to show that requests
+// arriving meanwhile are still acknowledged and answered.
+static void slowDownForTest()
+{
+  const char *path = getenv("ECCE_TEST_SLOW_REQUEST");
+  if (!path) return;
+  FILE *h = fopen(path, "r");
+  if (!h) return;
+  int secs = 0;
+  if (fscanf(h, "%d", &secs) != 1) secs = 0;
+  fclose(h);
+  unlink(path);
+  if (secs > 0) sleep(secs);
+}
+
+
 // ecce-launch: an "ack" at once tells the command an Organizer is there; the
 // answer follows when the batch has submitted.
 void CalcMgrApp::launchRequestMCB(JMSMessage& msg)
@@ -304,8 +323,6 @@ void CalcMgrApp::launchRequestMCB(JMSMessage& msg)
     publish("ecce_launch_reply", *r);
     delete r;
   };
-  reply("ack", vector<string>());
-
   LaunchBatch::Target target;
   target.machine = msg.getProperty("on");
   target.profile = msg.getProperty("profile");
@@ -339,8 +356,6 @@ void CalcMgrApp::rerunRequestMCB(JMSMessage& msg)
     publish("ecce_rerun_reply", *r);
     delete r;
   };
-  reply("ack", vector<string>());
-
   LaunchBatch::Target target;
   target.machine = msg.getProperty("on");
   vector<EcceURL> urls;
@@ -360,6 +375,7 @@ void CalcMgrApp::rerunRequestMCB(JMSMessage& msg)
 // ecce-annotate: as launchRequestMCB, answered on ecce_annotate_reply.
 void CalcMgrApp::annotateRequestMCB(JMSMessage& msg)
 {
+  slowDownForTest();
   const string id = msg.getProperty("reply_id");
   vector<EcceURL> urls;
   int n = msg.getIntProperty("n");
@@ -382,6 +398,7 @@ void CalcMgrApp::annotateRequestMCB(JMSMessage& msg)
 // ecce-move / ecce-rename: as annotateRequestMCB, answered on ecce_move_reply.
 void CalcMgrApp::moveRequestMCB(JMSMessage& msg)
 {
+  slowDownForTest();
   const string id = msg.getProperty("reply_id");
   vector<EcceURL> urls;
   int n = msg.getIntProperty("n");
@@ -443,8 +460,6 @@ void CalcMgrApp::terminateRequestMCB(JMSMessage& msg)
     publish("ecce_terminate_reply", *r);
     delete r;
   };
-  reply("ack", vector<string>());
-
   vector<EcceURL> urls;
   int n = msg.getIntProperty("n");
   for (int i = 0; i < n; i++)
@@ -472,8 +487,6 @@ void CalcMgrApp::reconnectRequestMCB(JMSMessage& msg)
     publish("ecce_reconnect_reply", *r);
     delete r;
   };
-  reply("ack", vector<string>());
-
   vector<EcceURL> urls;
   int n = msg.getIntProperty("n");
   for (int i = 0; i < n; i++)
@@ -501,8 +514,6 @@ void CalcMgrApp::fetchRequestMCB(JMSMessage& msg)
     publish("ecce_fetch_reply", *r);
     delete r;
   };
-  reply("ack", vector<string>());
-
   vector<string> patterns;
   int n = msg.getIntProperty("n");
   for (int i = 0; i < n; i++)

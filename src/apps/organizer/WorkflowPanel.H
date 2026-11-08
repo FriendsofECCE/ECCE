@@ -79,6 +79,8 @@ public:
   void playClicked(const EcceURL& step, bool interactive = true);
   /// Each box's play button, "name:1|0:reason|...", for the test hook.
   std::string playReport();
+  /// The auto-run box ticked or cleared as a click does (test hook).
+  void clickAutoRun(bool on);
   /// Save Workflow as Recipe: "ok <file>" or "error: ...".
   std::string saveAsRecipe(const std::string& id, const std::string& title);
   /// A step's progress or state changed: redraw its result line (#810).

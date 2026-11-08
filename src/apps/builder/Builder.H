@@ -17,6 +17,8 @@
 #include "inv/draggers/SoDragger.H"
 #include "inv/nodes/SoEventCallback.H" 
 
+#include <wx/aui/aui.h>
+#include <wx/aui/floatpane.h>
 #include "EwxAuiCompat.H"
 
 #include "util/CancelException.H"
@@ -82,6 +84,21 @@ class BuilderRedrawHold
     ~BuilderRedrawHold();
   private:
     wxWindow *p_frame;
+};
+
+//  Floating panels are ordinary windows: wxAUI's default floating frame is
+//  always-on-top of the Builder (FLOAT_ON_PARENT) and hides it from the
+//  taskbar, which buries the viewer behind a floated MO Diagram (#895).
+class BuilderAuiManager : public wxAuiManager
+{
+public:
+  wxAuiFloatingFrame* CreateFloatingFrame(wxWindow* parent,
+                                          const wxAuiPaneInfo& p) override
+  {
+    return new wxAuiFloatingFrame(parent, this, p, wxID_ANY,
+                                  wxRESIZE_BORDER | wxSYSTEM_MENU |
+                                  wxCAPTION | wxCLIP_CHILDREN);
+  }
 };
 
 class Builder: public BuilderGUI,
@@ -658,7 +675,7 @@ class Builder: public BuilderGUI,
       ewxTextCtrl *p_cmd;
 
       ViewerEvtHandler *p_viewerEvtHandler;
-      wxAuiManager p_mgr;
+      BuilderAuiManager p_mgr;
 
       int p_toolCount;
       int p_toolbarCount;

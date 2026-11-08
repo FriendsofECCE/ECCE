@@ -55,7 +55,8 @@ def main():
     mv = os.path.join(build, "ecce-move")
     rn = os.path.join(build, "ecce-rename")
     ann = os.path.join(build, "ecce-annotate")
-    for exe in (mv, rn):
+    cp = os.path.join(build, "ecce-copy")
+    for exe in (mv, rn, cp):
         if not os.access(exe, os.X_OK):
             say("FAIL: %s is not built" % exe)
             return 1
@@ -123,7 +124,8 @@ def main():
         open(cmds, "w").close()
         org = subprocess.Popen(
             [os.path.join(wrappers, "ecce-organizer")],
-            env=dict(genv, ECCE_TEST_ORGANIZER=cmds),
+            env=dict(genv, ECCE_TEST_ORGANIZER=cmds,
+                     ECCE_TEST_SLOW_REQUEST=os.path.join(s.state, "slow-request")),
             cwd=os.path.join(s.home, "bin"), stdout=open(olog, "w"),
             stderr=subprocess.STDOUT, start_new_session=True)
 
@@ -186,6 +188,36 @@ def main():
             rc, out, err = run(ann, url, "probe")
             return ": annotated" in out
 
+        #  #897: the Organizer acknowledges a request on arrival, so a command
+        #  sent while it is still busy with the previous one is answered.
+        for name in ("q1", "q2", "q3"):
+            urls[name] = make(home, name)
+            check(urls[name] is not None, "calculation %s created" % name)
+        if None in urls.values():
+            return 1
+        Q = lambda n: urls[n][len("file://"):]
+        check(send("newproject dest2").startswith("ok"), "project dest2 made")
+        d2 = home + "/dest2"
+        slowfile = os.path.join(s.state, "slow-request")
+        open(slowfile, "w").write("25")
+        first = subprocess.Popen([mv, Q("q1"), d2], env=s.env(), stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        time.sleep(3)
+        rc, out, err = run(mv, Q("q2"), d2)
+        check(rc == 0 and "q2: moved to %s" % d2 in out,
+              "a move sent while the Organizer is busy is answered: exit 0 (rc=%s %r %r)"
+              % (rc, out, err))
+        check(first.wait(timeout=120) == 0, "the slowed first move finished: exit 0")
+        open(slowfile, "w").write("25")
+        first = subprocess.Popen([ann, Q("q3"), "text"], env=s.env(),
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(3)
+        rc, out, err = run(mv, Q("q3"), d2)
+        check(rc == 0 and "q3: moved to %s" % d2 in out,
+              "a move sent right after an annotate is answered: exit 0 (rc=%s %r %r)"
+              % (rc, out, err))
+        first.wait(timeout=120)
+
         dest = home + "/dest"
         P = lambda n: urls[n][len("file://"):]
         rc, out, err = go(mv, P("one"), P("two"), dest)
@@ -198,6 +230,17 @@ def main():
         check(known("file://" + dest + "/one") and known(dest + "/two"),
               "the Organizer finds them at the new URL")
         check(not known(urls["one"]), "and no longer at the old one")
+
+        #  ecce-copy (#890): a copy, also of a running calculation; the
+        #  source stays and a name clash is refused.
+        arch = home + "/arch"
+        os.makedirs(arch, exist_ok=True)
+        rc, out, err = go(cp, P("run"), arch)
+        check(rc == 0 and "run: copied to %s" % arch in out and os.path.isdir(arch + "/run") and
+              os.path.isdir(P("run")), "ecce-copy copies a running calculation, the source stays (rc=%s %r)" % (rc, out))
+        rc, out, err = go(cp, P("run"), arch)
+        check(rc == 1 and "not copied" in out, "a name clash is refused (rc=%s %r)" % (rc, out))
+        check(run(cp, "x")[0] == 64, "ecce-copy without a folder: usage, 64")
 
         #  A running calculation, and the folder holding it, are refused.
         rc, out, err = go(mv, P("run"), P("ren"), dest)

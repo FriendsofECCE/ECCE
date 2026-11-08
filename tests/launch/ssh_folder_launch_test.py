@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""An added SSH folder as an Organizer tree, with launching (#767, b2).
+"""SSH-folder startup choices, server menus and launching (#767, #795).
 
 Run by tests/launch/ssh_folder_test.sh, which starts the test sshd and gives
 this process a private ~/.ssh (Host sshtest = the sshd with the test key,
@@ -15,6 +15,8 @@ Exit status 77 (CTest SKIP) without xtb, Xvfb or the built binaries.
 import argparse
 import os
 import shutil
+import signal
+import shlex
 import subprocess
 import sys
 import time
@@ -78,7 +80,12 @@ def main():
     shutil.copytree(os.path.join(build, "wrappers"), wrappers)
     for entry in os.listdir(wrappers):
         os.chmod(os.path.join(wrappers, entry), 0o755)
-    s.registerMachine("localhost", "Shell", {"xTB": xtb})
+    # Leave a live monitor to check after Disconnect, even for this tiny job.
+    slow_xtb = os.path.join(s.state, "slow-xtb")
+    with open(slow_xtb, "w") as h:
+        h.write('#!/bin/sh\nsleep 10\nexec %s "$@"\n' % shlex.quote(xtb))
+    os.chmod(slow_xtb, 0o755)
+    s.registerMachine("localhost", "Shell", {"xTB": slow_xtb})
     work = os.path.join(s.state, "decks")
     rundir = os.path.join(s.state, "run")
     os.makedirs(work, exist_ok=True)
@@ -93,7 +100,7 @@ def main():
         onServer("rm -rf ecce-data; mkdir ecce-data")
         onServer("rm -rf ecce-data; mkdir ecce-data", PORT2)
         with open(os.path.join(s.state, ".ECCE", "AddedServers"), "w") as h:
-            h.write("ssh\tFolder\t%s\nssh\tBad\t%s\nssh\tOther\t%s\n" % (BASE, BAD, OTHER))
+            h.write("ssh\tBad\t%s\t0\nssh\tOther\t%s\t0\n" % (BAD, OTHER))
         # ECCE's own masters: one per route, so the port must tell them apart.
         control = os.path.join(s.state, "cm")
         os.makedirs(control, mode=0o700, exist_ok=True)
@@ -134,9 +141,49 @@ def main():
                 time.sleep(0.5)
             return "no answer"
 
+        pictures = os.environ.get("RUNDIR", rundir)
+        os.makedirs(pictures, exist_ok=True)
+        ans = send("prefs data add ssh Folder sshport:%d bashuser /home/bashuser/ecce-data %s" %
+                   (PORT, os.path.join(pictures, "add-server.png")))
+        check(ans == "saved", "add SSH folder through the Add Server dialog: %s" % ans)
+        send("server sync")
         ans = send("server roots")
         check("Folder (SSH) (not connected)" in ans and "Bad (SSH) (not connected)" in ans
               and ans.startswith("Local data"), "both SSH roots start not connected: %s" % ans)
+        ans = send("server menu")
+        check("[ ] Folder" in ans and "[ ] Other" in ans and
+              "Add Server...;Manage Servers..." in ans, "toolbar lists remembered servers and ticks: %s" % ans)
+        check(send("server startup Folder on") == "ok", "set Connect at start in Edit Server")
+        os.killpg(org.pid, signal.SIGTERM)
+        org.wait(20)
+        open(cmds, "w").close()
+        org = subprocess.Popen([os.path.join(wrappers, "ecce-organizer")],
+                               env=dict(genv, ECCE_TEST_ORGANIZER=cmds),
+                               cwd=os.path.join(s.home, "bin"), stdout=open(olog, "w"),
+                               stderr=subprocess.STDOUT, start_new_session=True)
+        ans = send("server menu")
+        check("[x] Folder" in ans and "[ ] Other" in ans and "[ ] Bad" in ans,
+              "restart connects only Connect-at-start entry: %s" % ans)
+        check(send("server rootmenu Folder") == "Disconnect;Remove from list",
+              "connected root offers Disconnect and Remove")
+        check(send("server rootchoose Folder Disconnect") == "ok", "root Disconnect action")
+        check("[ ] Folder" in send("server menu"), "disconnect clears toolbar tick")
+        check("Folder (SSH) (not connected)" in send("server roots"), "disconnect folds root")
+        check(send("server rootchoose Folder Connect") == "ok", "root Connect action")
+        check("[x] Folder" in send("server menu"), "connect sets toolbar tick")
+        check(send("server choose Folder") == "ok", "toolbar toggles server off")
+        check("[ ] Folder" in send("server menu"), "toolbar toggle clears tick")
+        check(send("server choose Other") == "ok", "toolbar connects second server")
+        check("[x] Other" in send("server menu"), "second server tick set")
+        check(send("server rootchoose Other Remove_from_list") == "ok", "root Remove action")
+        check("Other" not in send("server menu") and "Other" not in send("server roots"),
+              "Remove forgets entry in both menus and tree")
+        # Restore the second entry for the existing cross-port launch checks.
+        with open(os.path.join(s.state, ".ECCE", "AddedServers"), "a") as h:
+            h.write("ssh\tOther\t%s\t0\n" % OTHER)
+        send("server sync")
+        ans = send("server menushot " + os.path.join(pictures, "servers-menu.png"))
+        check(ans == "saved", "PNG of open Servers toolbar menu: %s" % ans)
         # A tree search past a root that is not connected (here: a URL in no
         # tree) used to recurse without end and crash the Organizer.
         ans = send("panelmessage file:///nowhere/p/c")
@@ -167,7 +214,7 @@ def main():
         say("  owned masters: %s" % socks)
         check(len(socks) >= 2, "one owned master per port")
         ans = send("server copycheck %s/p767 file:///tmp" % BASE)
-        check(ans.startswith("refused: Copying between Local data and a server"), "copy to Local data refused: %s" % ans)
+        check(ans == "allowed", "copy to Local data is allowed (#890): %s" % ans)
 
         text, rc = xtb_test.deck(xtb_test.WATER, "Energy")
         deck = os.path.join(work, "w.xtbin")
@@ -189,6 +236,10 @@ def main():
         check(ans == "allowed", "launch from the connected folder is allowed: %s" % ans)
         ans = send("launchselected " + url, timeout=240)
         check(ans.startswith("ok ") and "submitted" in ans, "Launch Selected submitted it: %s" % ans)
+        rc, out = drive("state", url)
+        check(out.strip().splitlines()[-1] in ("submitted", "running"),
+              "job is still live before Disconnect: %s" % out.strip()[-40:])
+        check(send("server disconnect Folder") == "ok", "disconnect after launch leaves monitor running")
         state = ""
         end = time.time() + 300
         while time.time() < end:
@@ -208,6 +259,80 @@ def main():
               "the owner stamped is the ssh user")
         stray = [r for r, d, f in os.walk(s.localData()) if name in os.path.basename(r)]
         check(not stray, "nothing of it in Local data: %s" % stray)
+
+        # Copy and move between trees (#890).
+        def srvFiles(path, port=None):
+            out = onServer("cd %s && find . -type f ! -name '.*' -printf '%%P %%s\\n' | sort" % path, port)
+            return [l.strip() for l in out.splitlines() if l.strip()]
+
+        def locFiles(path):
+            res = []
+            for r, d, f in os.walk(path):
+                for n in f:
+                    if not n.startswith("."):
+                        res.append("%s %d" % (os.path.relpath(os.path.join(r, n), path),
+                                              os.path.getsize(os.path.join(r, n))))
+            return sorted(res)
+
+        def formula(u):
+            a = send("summary " + u)
+            return a.split("Formula=")[1].split(" ")[0] if "Formula=" in a else a
+
+        srcFiles = srvFiles(calc)
+        srcFormula = formula(url)
+        check(srcFiles and srcFormula not in ("", "<none>"), "the source calculation has files and a formula: %s" % srcFormula)
+        ans = send("newproject lproj")
+        lproj = ans.split(" ", 1)[1] if ans.startswith("ok ") else ""
+        check(bool(lproj), "a local project: %s" % ans)
+        ans = send("server xfer copy %s %s" % (url, lproj))
+        check("\tok\t" in ans, "SSH -> Local copy: %s" % ans)
+        lcalc = lproj.replace("file://", "") + "/" + name
+        check(locFiles(lcalc) == srcFiles, "every file arrived with its size (%d files)" % len(srcFiles))
+        check(os.path.exists(os.path.join(lcalc, ".ecce-meta")), "the .ecce-meta arrived")
+        check(onServer("test -d %s && echo yes" % calc).strip() == "yes", "the SSH source is untouched")
+        check(formula("file://" + lcalc) == srcFormula, "its summary opens from Local data: %s" % formula("file://" + lcalc))
+        ans = send("server xfer copy %s %s" % (url, lproj))
+        check("\tno\t" in ans and "already" in ans, "a name clash is refused: %s" % ans)
+        check(not [x for x in os.listdir(lproj.replace("file://", "")) if x != name and not x.startswith(".")], "the refusal left no partial copy")
+
+        ans = send("server newproject Folder pB")
+        pB = ans.split(" ", 1)[1] if ans.startswith("ok ") else ""
+        ans = send("server xfer copy file://%s %s" % (lcalc, pB))
+        check("\tok\t" in ans, "Local -> SSH copy: %s" % ans)
+        check(srvFiles("ecce-data/pB/" + name) == srcFiles, "every file is on the server with its size")
+        check(formula(pB + "/" + name) == srcFormula, "its summary opens from the SSH tree")
+
+        # An interrupted copy leaves the source intact and no partial target.
+        ans = send("server newproject Other pI")
+        pI = ans.split(" ", 1)[1] if ans.startswith("ok ") else ""
+        send("server failafter 3")
+        ans = send("server xfer copy file://%s %s" % (lcalc, pI))
+        send("server failafter -1")
+        check("\tno\t" in ans and "partial copy was removed" in ans, "a failure part-way is reported: %s" % ans)
+        check(srvFiles("ecce-data/pI", PORT2) == [] and name not in onServer("ls ecce-data/pI", PORT2),
+              "no partial target remains")
+        check(locFiles(lcalc) == srcFiles, "the source is intact")
+        send("server failafter 3")
+        ans = send("server xfer move file://%s %s" % (lcalc, pI))
+        send("server failafter -1")
+        check("\tno\t" in ans and locFiles(lcalc) == srcFiles and name not in onServer("ls ecce-data/pI", PORT2),
+              "a failed move keeps the source and leaves no target: %s" % ans)
+
+        # A running calculation is not moved (copy is allowed).
+        ans = send("setstate file://%s running" % lcalc)
+        check(ans == "ok", "marked running: %s" % ans)
+        ans = send("server newproject Other pguard")
+        pg = ans.split(" ", 1)[1] if ans.startswith("ok ") else ""
+        ans = send("server xfer move file://%s %s" % (lcalc, pg))
+        check("\tno\t" in ans and "submitted or running" in ans, "moving a running calculation is refused: %s" % ans)
+        check(os.path.isdir(lcalc) and not srvFiles("ecce-data/pguard", PORT2) , "the source stays and nothing arrived")
+        ans = send("setstate file://%s completed" % lcalc)
+
+        # Move Local -> SSH: the source goes only after the check.
+        ans = send("server xfer move file://%s %s" % (lcalc, pg))
+        check("\tok\t" in ans, "Local -> SSH move: %s" % ans)
+        check(srvFiles("ecce-data/pguard/" + name, PORT2) == srcFiles, "the moved calculation is complete on the other server")
+        check(not os.path.exists(lcalc), "the Local source is gone after the move")
     finally:
         if org is not None and org.poll() is None:
             org.terminate()

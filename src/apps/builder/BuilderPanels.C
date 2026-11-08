@@ -1140,7 +1140,7 @@ int Builder::indexProportion() const
   PropertyPanel *open = p_panelMode == PANELS_DETAIL
       ? dynamic_cast<PropertyPanel*>(p_detail) : 0;
   if (open) {
-    const wxAuiPaneInfo &d = const_cast<wxAuiManager&>(p_mgr).GetPane(p_detail);
+    const wxAuiPaneInfo &d = const_cast<BuilderAuiManager&>(p_mgr).GetPane(p_detail);
     if (d.IsOk() && d.IsShown() && !d.IsFloating() && !p_folded.count(p_detail))
       return 1;
   }

@@ -6,8 +6,9 @@ same values, for the Supporting Information of a paper.
 
 Run `ecce-si-export <calculation>... -o supporting-information.xyz`, and
 add `--table csv` or `--table latex` to also write a table, saved beside the
-XYZ file with the extension `.csv` or `.tex`. There is no menu item for it in
-the Organizer.
+XYZ file with the extension `.csv` or `.tex`.
+In the Organizer, select a folder or calculations and choose File > Export >
+Supporting Information... to be asked for the file name and table kind.
 
 For each calculation the XYZ file has the number of atoms, a comment line,
 and the final geometry in Å. The comment line reads

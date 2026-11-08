@@ -30,6 +30,7 @@ using namespace std;
 // replaces each (#210).  Chemistry icons are not listed: they stay ECCE's.
 static const struct { const char* file; const char* icon; } GENERIC_ICONS[] = {
   {"gohome",          "go-home"},
+  {"servers",         "network-server"},
   {"goup",            "go-up"},
   {"back",            "go-previous"},
   {"forward",         "go-next"},
@@ -71,6 +72,7 @@ static const struct { const char* file; const char* icon; } GENERIC_ICONS[] = {
 //  freedesktop names, for platforms whose theme has none.
 static const struct { const char* icon; const char* lucide; } LUCIDE_ICONS[] = {
   {"go-home", "house"},
+  {"network-server", "server"},
   {"go-up", "arrow-up"},
   {"go-down", "arrow-down"},
   {"go-previous", "arrow-left"},

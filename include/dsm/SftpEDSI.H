@@ -27,6 +27,8 @@ class SftpEDSI : public EDSI
     SftpEDSI();
     SftpEDSI(const EcceURL& url);
     virtual ~SftpEDSI();
+    // Releases only this process's login; job stores own separate logins.
+    static void disconnect(const string& address);
 
     virtual bool describeServerMetaData(vector<string>& metadata);
     virtual bool checkServer();
@@ -37,6 +39,9 @@ class SftpEDSI : public EDSI
     void removeProgressEventListener(ProgressEventListener *) { p_progressListener = 0; }
 
     virtual bool exists(const bool& newUser=false);
+    // Modification time (as text) of this folder: one stat on the login, no
+    // listing; empty when it cannot be read.  For the Organizer's auto-refresh.
+    string folderStamp();
 
     virtual istream *getDataSet();
     virtual unsigned long getDataSetSize();

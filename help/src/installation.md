@@ -162,29 +162,54 @@ added, with their name, type and address:
 - **Edit...** changes the selected server and **Remove** takes it out of the
   list. Nothing on the server is deleted.
 
+The Organizer follows changes made outside ECCE in the folder it shows: a
+calculation copied into a local project by a script, another program or
+another computer appears at once, and one in a server or SSH folder within 30
+seconds or when you return to the window. It waits while a dialog, menu or
+rename is open. **View > Refresh** forces a reload.
+
 The list of servers is stored for you. Each ECCE server in the list is a
 tree of its own in the Organizer, below **Local data**, named
-**<name> (ECCE server)**. Opening it asks for your login on that server
+**<name> (ECCE server)**. Connecting asks for your login on that server
 (the login is kept for that server only, never used for another one). If the
 login is cancelled or refused the tree stays marked **(not connected)** and
-**Reconnect** in its right-click menu asks again; this never changes where
+**Connect** in its right-click menu asks again; this never changes where
 ECCE keeps your calculations. **Remove** in Preferences takes the tree out of
 the Organizer at once. In a server tree you can browse, make projects and
 calculations, open, rename, delete and copy within that tree. A calculation in a server
 tree is launched like any other (Launch, Launch Selected, the Launcher): the
 job runs where you choose, and its output and results are stored on that
-server with your login there. Copying or moving between **Local data** and a
-server, or between two servers, is not supported yet.
+server with your login there.
 
 Each SSH folder in the list is a tree too, named **<name> (SSH)**, with the
-folder as its top level. Opening it logs in to the machine the way job
+folder as its top level. Choosing **Connect** logs in to the machine the way job
 submission does (a key, a password or a code, and the shared connection if
 your `~/.ssh/config` has one), so it is asked once; if that fails the tree
-stays **(not connected)** and **Reconnect** tries again. Browsing, making
+stays **(not connected)** and **Connect** tries again. Browsing, making
 projects and calculations, renaming and deleting work as in the other trees,
 and a calculation there is launched like any other: the job runs where you
 choose and its results are written to the folder over the same login. A
 launch is refused with a message if there is no login to the folder.
+
+### Copying and moving between trees
+
+Calculations, projects and folders can be copied and moved between any two
+trees: **Local data**, an SSH folder and an ECCE server. Use **Edit > Copy**
+(or **Cut**) and **Paste**, or drag with the mouse; or use `ecce-copy` and
+`ecce-move` with the target folder's URL (see [Scripting and
+AI](scripting-and-ai.md)). ECCE reads every file of the calculation over the
+tree's own login and writes it to the other tree, with its properties, so the
+copy opens, shows its results and can be run again on the other side; job data
+that points at a run directory stays as it was. Both trees must be connected.
+
+A move is a copy, then a check that every file is there with the same size,
+and only then the removal of the original. If anything fails, the partly made
+copy is removed and the original is not touched; the message says which. As
+inside one tree, a calculation whose job is Submitted, Running or Waiting for
+Login, and a folder holding one, is not moved (copying is allowed). A large
+transfer shows a progress bar with a **Cancel** button; cancelling removes the
+partial copy. A name that already exists in the target gets a number added
+(`calc-1`).
 
 The trees are told apart by their icon and colour. **Local data** keeps its
 home icon. An ECCE server has a server icon in maroon, and an SSH folder has
@@ -375,3 +400,18 @@ To look at a structure or at existing results first, continue with
 [Importing a structure](importing-a-structure.md) or
 [Importing a calculation](importing-a-calculation.md). To run calculations, continue with
 [Machines](machines.md).
+
+### Choosing when remembered servers connect
+
+**Connect at start**, in **Add Server** and **Edit Server**, applies to each
+remembered SSH folder or ECCE server separately. New entries leave it off;
+existing entries default to on so their startup behavior is preserved.
+With it off, use the Organizer toolbar's **Servers** menu to tick a server
+when you need it. The tick shows whether it is connected.
+
+The menu also offers **Add Server...** and **Manage Servers...**; Manage opens
+**Preferences > Data**. Right-click a remembered server root to **Connect**,
+**Disconnect**, or **Remove from list**. Disconnect closes the Organizer's
+logins and folds the tree while jobs keep their monitors. Remove forgets
+only the entry, leaving its data intact. A configured central server is part
+of the session and is not included among these switchable servers.

@@ -68,7 +68,7 @@ def cli(tmp):
     return xyz
 
 
-def fixture(out, dav=False):
+def fixture(out, dav=False, proton=False):
     """The butane CREST calculation with the ion cluster's structures.  With
     dav, the data-server layout of calc-water-vib (as geomtrace_stress.py
     uses) holding only these two properties."""
@@ -91,11 +91,15 @@ def fixture(out, dav=False):
         open(os.path.join(out, *sub, "chemsys.mvm"), "w").write("\n".join(chem) + "\n")
     steps = []
     for tag, _r in FRAMES:
-        steps.append("   ".join(c for r in atoms(tag) for c in r[1:]))
+        row = "   ".join(c for r in atoms(tag) for c in r[1:])
+        # A protomer: CREST appends the proton after the input's atoms.
+        steps.append(row + "   0.5   0.5   9.5" if proton else row)
     head = open(os.path.join(BASE, "Props", "GEOMTRACE")).read().split("\n")[1]
-    head = re.sub(r'rowLabels="[^"]*"', 'rowLabels="%s"' % " ".join(
-        "%d-%s" % (i + 1, r[0]) for i, r in enumerate(a)), head)
-    head = re.sub(r'rows="\d+"', 'rows="%d"' % n, head)
+    labels = ["%d-%s" % (i + 1, r[0]) for i, r in enumerate(a)]
+    if proton:
+        labels.append("%d-H" % (n + 1))
+    head = re.sub(r'rowLabels="[^"]*"', 'rowLabels="%s"' % " ".join(labels), head)
+    head = re.sub(r'rows="\d+"', 'rows="%d"' % (n + (1 if proton else 0)), head)
     with open(os.path.join(out, "Props", "GEOMTRACE"), "w") as f:
         f.write('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n' + head + "\n")
         for i, s in enumerate(steps):
@@ -115,7 +119,7 @@ def fixture(out, dav=False):
                         os.path.join(out, "Props", ".DAV", key))
 
 
-def panel(tmp):
+def panel(tmp, proton=False):
     import apps
     import fixture as fx
     import isolate
@@ -127,8 +131,8 @@ def panel(tmp):
     state = settings["ECCE_REALUSERHOME"]
     isolate.killLeftovers(state)
     os.environ["ECCE_NO_REAP"] = "1"
-    src = os.path.join(tmp, "na-ensemble")
-    fixture(src, dav=True)
+    src = os.path.join(tmp, "na-protomers" if proton else "na-ensemble")
+    fixture(src, dav=True, proton=proton)
     with xdisplay.Display() as display:
         log = []
         apps.startServices(display, log)
@@ -148,7 +152,12 @@ def panel(tmp):
                 kinds = [("Conformer_Search", 0), ("Conformer_search_(simple)", 0),
                          ("Protonation_Sites", 0), ("Tautomers", 0),
                          ("Solvation_Shell", 0), ("Docking_(aISS)", 1), ("Other", 1)]
-                open(scene, "w").write(
+                if proton:
+                    # Protomers have the input's atoms plus the proton (#912).
+                    open(scene, "w").write("gtfocus\ngtenrows\ngtenselect 1\n"
+                                           "gtenselect 2\ngtclose\nhold 1\n")
+                else:
+                  open(scene, "w").write(
                     "gtfocus\ngtenrows\n" +
                     "".join("gtenkind %s %d\n" % k for k in kinds) +
                     "".join("gtenselect %d\n" % k for k in range(1, len(FRAMES) + 1)) +
@@ -167,6 +176,12 @@ def panel(tmp):
                 failed = os.path.join(tmp, "FAILED")
                 if os.path.exists(failed):
                     check("the scene ran", False, open(failed).read())
+                if proton:
+                    n = len(atoms("6_0")) + 1
+                    sel = re.findall(r"GTSTRESS: enselect \d+ ok=1 .* natoms=(\d+)", log)
+                    check("selecting a protomer shows all %d atoms, proton included" % n,
+                          len(sel) == 2 and all(int(v) == n for v in sel), sel or log[-3000:])
+                    return
                 kind = re.search(r"GTSTRESS: ensemble kind=(.*) rows=(\d+)", log)
                 check("the panel is the Conformers panel with %d rows" % len(FRAMES),
                       kind and kind.group(1) == "Conformers" and
@@ -324,6 +339,7 @@ def main():
         cli(tmp)
         if "--cli-only" not in sys.argv:
             panel(tmp)
+            panel(tmp, proton=True)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return 1 if fails else 0

@@ -90,6 +90,8 @@ public:
   { p_action = handler; }
   // Called after the box changed size by itself (a fold).
   void setRelayout(std::function<void()> relayout) { p_relayout = relayout; }
+  // Asked each second while out of contact: the panel reads the state again.
+  void setRecheck(std::function<void()> recheck) { p_recheck = recheck; }
 
   /** What the box shows, a line per row, for tests; full keeps the
    *  scheduler note's quoted line whole, as "Copy all" copies it. */
@@ -144,6 +146,8 @@ private:
   wxStaticText *p_energyLabel;
   std::function<void(int)> p_action;
   std::function<void()> p_relayout;
+  std::function<void()> p_recheck;
+  std::vector<wxRect> p_rows, p_buttonRects;
 };
 
 #endif

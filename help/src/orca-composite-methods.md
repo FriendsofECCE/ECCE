@@ -34,6 +34,11 @@ Next to **Auxiliary Basis**, **RI approximation** offers three choices:
 The auxiliary basis applies to both RI modes and is disabled for None.
 Existing calculations with **Use RIJCOSX** enabled retain RIJCOSX.
 
+The Calculation Summary names an active RI mode in the theory line (for example
+`DFT/RDFT · PBE0 D3BJ · RIJCOSX`) and shows the auxiliary basis under **CD
+Fitting** in the Basis Set box; **XC Fitting** stays empty because neither mode
+fits exchange.
+
 ## Broken-symmetry guess (UHF and UDFT)
 
 For an unrestricted calculation the dialog has an **Initial Guess** box with

@@ -111,7 +111,7 @@ def main():
         project = os.path.join(s.localData(), "users", "local", "qm")
         os.makedirs(project, exist_ok=True)
         shutil.copy(bo.PROJECT_META, os.path.join(project, ".ecce-meta"))
-        calc = makeThermoCalc(project, "soft", [25.0, 60.0, 150.0, 1645.0, 3866.0, 3965.0],
+        calc = makeThermoCalc(project, "soft", [0.3, 25.0, 60.0, 150.0, 1645.0, 3866.0, 3965.0],
                               code="Gaussian-16")
         url = "file://" + calc
         cenv = dict(env, ECCE_HOME=s.home)
@@ -123,7 +123,8 @@ def main():
             extra = ["--T", "%.2f" % T] + (["--standard-state", "1M"] if molar else [])
             want[(t, T, molar)] = cli(cenv, url, *extra)[t]
             cmds.append("thermo %s %.2f %s" % (t, T, "1M" if molar else "1atm"))
-        cmds.extend(["thermolayout", "quit"])
+        # The 1 M note is the long one: picture how it wraps (#908).
+        cmds.extend(["shot panel1m", "thermolayout", "quit"])
         audit = os.path.join(png, "clip.tsv")
         open(audit, "w").close()
         text, shots = bo.runScript(

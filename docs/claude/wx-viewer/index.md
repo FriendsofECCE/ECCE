@@ -9,6 +9,8 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 ## Entries
 
+- [Cell labels skip collapsed vectors and balance GL current state (#723)](cell-label-rendering.md)
+
 ### wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls
 
 - [Photographing the Builder: scene-script hooks (measure, assigncharges, gtstep, panelfloat, shot) and tools/screenshots/shots.py (#860)](builder-scene-script-photo-hooks-860.md)
@@ -20,6 +22,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [A density difference is an Evaluator with fragment Evaluators subtracted in density(); the map draws a filled diverging image, the profile one signed curve](density-difference-is-an-evaluator-with-fragments.md)
 - [Every plot is an `ewxPlotCtrl` styled by `PlotStyle.H`, the palette the vibrational spectrum canvas uses; `tests/plots/capture.py` pictures them before and after a change](plots-share-the-spectrum-style.md)
 - [`ComputeMoCmd` caches a grid before computing it; a failed Compute must remove it (#239)](mo-grid-cache-keeps-a-failed-compute.md)
+- [The MOs panel's surface grid covered only the selected atoms (getBoundBox follows the selection) (#892)](surface-grid-box-followed-the-selection.md)
 - [A property panel is built when it is on screen, not when wxAUI Show()s it in a hidden floating frame](mo-diagram-builds-when-a-calculation-opens.md)
 - [A property panel's SetSizeHints() lifts its docked pane's floor to the content height](property-panel-sizehints-lift-the-dock-floor.md)
 - [Tool panes that do not fit the right-hand column get no height and are drawn over the viewer](tool-column-shares-height-when-panes-do-not-fit.md)

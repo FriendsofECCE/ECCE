@@ -23,6 +23,7 @@
 #include "dsm/ICalculation.H"
 #include "dsm/OrbitalGuess.H"
 #include "dsm/TaskJob.H"
+#include "comm/Launch.H"
 #include "dsm/ChemistryTask.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/ResourceType.H"
@@ -136,6 +137,12 @@ bool WorkflowSteps::isOptimisation(Resource *step)
 }
 
 
+bool WorkflowSteps::isXtbOptimisation(Resource *step)
+{
+  return Launch::isXtbOptimisation(dynamic_cast<TaskJob*>(step));
+}
+
+
 bool WorkflowSteps::isScan(Resource *step)
 {
   return ScanPoint::isScan(dynamic_cast<PropertyTask*>(step));
@@ -188,6 +195,8 @@ string WorkflowSteps::defaultName(Session *wf, const Code& code)
 }
 
 
+namespace { void applyDefaultTheory(Resource *step); }
+
 Resource *WorkflowSteps::create(Session *wf, ResourceType *rt,
                                 const string& name, Resource *source,
                                 const Carry& carry, string& why)
@@ -237,6 +246,8 @@ Resource *WorkflowSteps::create(Session *wf, ResourceType *rt,
         throw InvalidException(hessWhy.empty() ? "The Hessian could not be "
                                "carried over" : hessWhy, WHERE);
     }
+    // A step nobody has opened yet still shows a theory and run type (#910).
+    applyDefaultTheory(made);
   }
   catch (InvalidException& ex) {
     why = ex.what();
@@ -673,6 +684,8 @@ string WorkflowSteps::info(Session *wf)
     TTheory *th = calc ? calc->theory() : 0;
     if (th && !th->name().empty()) out << " theory=" << th->name();
     delete th;
+    if (calc && !calc->runtype().name().empty())
+      out << " runtype=" << calc->runtype().name();
     GUIValues *gv = calc ? calc->guiparams() : 0;
     GUIValue *xc = gv ? gv->get("ES.Theory.DFT.XCFunctionals") : 0;
     if (xc && !xc->getValueAsString().empty()) {
@@ -838,6 +851,37 @@ void applyRoleMethod(Resource *step)
   setKey(g, "ES.Theory.DFT.XCFunctionals", value);
   calc->guiparams(g);
   delete g;
+}
+
+// A step nobody has opened in the Calculation Editor stores no theory, so
+// the Calculation panel shows none (#910).  Store the first theory its code
+// offers for the run type, as the editor's list would; codes whose theory is
+// set from a recipe method (applyRoleMethod) already have one.
+void applyDefaultTheory(Resource *step)
+{
+  ICalculation *calc = dynamic_cast<ICalculation*>(step);
+  TaskJob *job = dynamic_cast<TaskJob*>(step);
+  const JCode *jcode = job ? job->application() : 0;
+  if (!calc || !jcode) return;
+  TTheory *have = calc->theory();
+  const bool set = have && !have->category().empty();
+  delete have;
+  if (set) return;
+  const string rt = calc->runtype().name();
+  vector<TTheory> *theories = jcode->theories();
+  if (!theories) return;
+  for (size_t i = 0; i < theories->size(); i++) {
+    vector<TRunType> *types = jcode->runTypes(&(*theories)[i]);
+    bool ok = rt.empty();
+    for (size_t k = 0; types && k < types->size() && !ok; k++)
+      ok = (*types)[k].name() == rt;
+    if (ok) {
+      calc->theory(&(*theories)[i]);
+      if (rt.empty() && types && !types->empty())
+        calc->runtype((*types)[0]);
+      return;
+    }
+  }
 }
 
 // A basis set is per element, so the role's one is stored once the step
@@ -1101,6 +1145,7 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
       step->addProp(nsKey(":recipe.basis"), basis);
       step->addProp(nsKey(":recipe.caption"), rs.caption);
       applyRoleMethod(step);
+      applyDefaultTheory(step);
       applyRoleBasis(step);
     }
     wf->addProp(nsKey(kRecipeProp.c_str()), recipe.id + "/" + variant.id);
@@ -1147,7 +1192,7 @@ bool WorkflowSteps::attachFieldOrbitals(Resource *step, Resource *source)
 }
 
 
-string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
+string WorkflowSteps::refreshFromSources(Session *wf, Resource *step, bool prepare)
 {
   if (step->getProp(nsKey(":recipe.step")).empty()) return "";
   bool carried = false;
@@ -1173,7 +1218,63 @@ string WorkflowSteps::refreshFromSources(Session *wf, Resource *step)
     }
   }
   if (carried) structureSet(wf, step);
-  return "";
+  return prepare ? prepareStep(wf, step) : string();
+}
+
+
+const char *const WorkflowSteps::kNotReadyProp = ":workflow.notready";
+
+
+string WorkflowSteps::prepareStep(Session *wf, Resource *step)
+{
+  if (!wf || !step || step->getProp(nsKey(":recipe.step")).empty()) return "";
+  TaskJob *job = dynamic_cast<TaskJob*>(step);
+  ICalculation *calc = dynamic_cast<ICalculation*>(step);
+  if (!job || !calc) return "";
+  const ResourceDescriptor::RUNSTATE st = job->getState();
+  if (st != ResourceDescriptor::STATE_CREATED && st != ResourceDescriptor::STATE_READY)
+    return "";
+  TaskJob *launchFrom = 0;
+  for (Session::Link *l : wf->getLinks()) {
+    if (l->linkType != Session::INPUT_PROVIDER || l->target != step) continue;
+    if (!isComplete(l->source)) return "";            // waiting; the box says so
+    TaskJob *src = dynamic_cast<TaskJob*>(l->source);
+    if (!launchFrom && src && !src->launchdata().machine.empty()) launchFrom = src;
+  }
+  string why;
+  if (st == ResourceDescriptor::STATE_CREATED) {
+    // Recipe steps are never opened in the editor on the way to a launch,
+    // and a Created step has no deck for Launch to submit.
+    PropertyTask *task = dynamic_cast<PropertyTask*>(step);
+    Fragment *frag = task ? task->fragment() : 0;
+    const bool atoms = frag && frag->numAtoms() > 0;
+    delete frag;
+    if (!atoms) {
+      why = "no structure yet";
+    } else {
+      DeckWriter::Result r = DeckWriter::generate(calc);
+      if (r.ok) {
+        job->setState(ResourceDescriptor::STATE_READY);
+      } else {
+        string msg = r.message.substr(0, r.message.find('\n'));
+        why = "input not written (open it in the Calculation Editor)" +
+              (msg.empty() ? string() : ": " + msg);
+      }
+    }
+  }
+  if (why.empty() && job->launchdata().machine.empty()) {
+    // Steps launched together run where the chain started; the Launcher
+    // can still change it.  The same user's own settings, nothing new.
+    if (!launchFrom)
+      for (Resource *m : wf->getMembers()) {
+        TaskJob *t = dynamic_cast<TaskJob*>(m);
+        if (t && t != job && !t->launchdata().machine.empty()) { launchFrom = t; break; }
+      }
+    if (!launchFrom || !job->launchdata(launchFrom->launchdata()))
+      why = "no launch settings (set them in the Launcher)";
+  }
+  if (step->getProp(nsKey(kNotReadyProp)) != why) step->addProp(nsKey(kNotReadyProp), why);
+  return why;
 }
 
 

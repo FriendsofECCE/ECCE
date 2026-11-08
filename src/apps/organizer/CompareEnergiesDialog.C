@@ -58,7 +58,7 @@ CompareEnergiesDialog::CompareEnergiesDialog(wxWindow *parent,
   tbar->Add(new wxStaticText(this, wxID_ANY, _("G treatment:")), 0,
             wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
   p_treatment = new wxChoice(this, wxID_ANY);
-  p_treatment->Append(_("The code's own G"));
+  p_treatment->Append(_("The code's own Gibbs energy"));
   for (const ThermoTreatmentInfo& t : thermoTreatments())
     p_treatment->Append(wxString::FromUTF8(t.label));
   p_treatment->SetSelection(0);

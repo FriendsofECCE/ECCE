@@ -56,6 +56,10 @@ static std::string s_registerMessage;
 
 #include "util/LocalData.H"
 #include "util/ServerList.H"
+#include "wxgui/AddServerDialog.H"
+#include "wx/uiaction.h"
+#include "wx/dcscreen.h"
+#include "wx/dcmemory.h"
 #include "tdat/AuthCache.H"
 #include "util/SessionLease.H"
 #include "util/WaitingJobs.H"
@@ -98,6 +102,7 @@ static std::string s_registerMessage;
 #include "dsm/SftpEDSI.H"
 #include "dsm/EDSIServerCentral.H"
 #include "dsm/EDSIExporter.H"
+#include "dsm/TreeCopy.H"
 #include "dsm/EDSI.H"
 #include "dsm/HistoryList.H"
 #include "dsm/MdTask.H"
@@ -177,6 +182,8 @@ static string progressKey(const EcceURL & url);
 static const char *const kFirstStartSet = "getting-started";
 #include <wx/dirdlg.h>
 #include "CalcMgr.H"
+#include <wx/filename.h>
+#include <wx/fswatcher.h>
 #include "CompareEnergies.H"
 #include "CompareEnergiesDialog.H"
 #include "ReactionOverviewDialog.H"
@@ -297,6 +304,12 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   p_find = 0;
   p_prefs = 0;
   Bind(wxEVT_MENU, &CalcMgr::OnPreferencesClick, this, wxID_PREFERENCES);
+  const int serversId = p_serversToolId = wxWindow::NewControlId();
+  p_toolBar->AddSeparator();
+  p_toolBar->AddTool(serversId, _("Servers"),
+      ewxBitmap::bundle(wxT("servers.xpm")), _("Servers"));
+  p_toolBar->Realize();
+  Bind(wxEVT_TOOL, [this](wxCommandEvent&) { showServersMenu(); }, serversId);
   {
     // Help > How to Cite ECCE..., before About.
     wxMenuBar* mb = GetMenuBar();
@@ -587,6 +600,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  */
 static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
 static const int ID_COMPARE_ENERGIES = wxNewId();
+static const int ID_SI_EXPORT = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
 
 // Include submenu paths so tests can check the action and its enabled state.
@@ -673,9 +687,109 @@ void CalcMgr::runTestCommand(const string& line)
             ref = list[i].address;
         outcome = ref.empty() ? "no such server"
                               : (connectServer(ref) ? "connected" : "not connected");
+      } else if (sub == "menu" || sub == "choose" || sub == "rootmenu" ||
+                 sub == "rootchoose" || sub == "menushot") {
+        // Names with spaces use underscores, as in the Preferences hooks.
+        if (sub != "menushot") std::replace(a.begin(), a.end(), '_', ' ');
+        std::replace(b.begin(), b.end(), '_', ' ');
+        wxMenu menu;
+        if (sub == "rootmenu" || sub == "rootchoose") {
+          string ref;
+          for (const ServerEntry& entry : ServerList::load())
+            if (entry.name == a)
+              ref = entry.type == "ssh" ? entry.address : ServerList::refOf(entry.address);
+          if (rememberedServer(ref)) {
+            wxTreeItemIdValue cookie;
+            for (wxTreeItemId id = p_treeCtrl->GetFirstChild(p_treeCtrl->GetRootItem(), cookie);
+                 id.IsOk(); id = p_treeCtrl->GetNextChild(p_treeCtrl->GetRootItem(), cookie)) {
+              auto* data = dynamic_cast<WxResourceTreeItemData*>(p_treeCtrl->GetItemData(id));
+              if (data && data->serverRef() == ref) { p_treeCtrl->SelectItem(id); break; }
+            }
+            for (int i = 0; i < 5; ++i) wxYield();
+          }
+          serverRootMenu(menu, ref);
+        } else serversMenu(menu);
+        if (sub == "choose" || sub == "rootchoose") {
+          const string label = sub == "choose" ? a : b;
+          int id = menu.FindItem(wxString::FromUTF8(label.c_str()));
+          if (id == wxNOT_FOUND) outcome = "no such item";
+          else {
+            wxMenuItem* item = menu.FindItem(id);
+            wxCommandEvent event(wxEVT_MENU, id);
+            if (item->IsCheckable()) event.SetInt(!item->IsChecked());
+            menu.ProcessEvent(event);
+            for (int i = 0; i < 10; ++i) wxYield();
+            outcome = "ok";
+          }
+        } else if (sub == "menushot") {
+          wxTimer timer;
+          timer.Bind(wxEVT_TIMER, [&](wxTimerEvent&) {
+            wxScreenDC screen;
+            wxBitmap bitmap(GetSize().x, GetSize().y, 24);
+            wxMemoryDC memory(bitmap);
+            wxPoint pos = GetScreenPosition();
+            memory.Blit(0, 0, bitmap.GetWidth(), bitmap.GetHeight(), &screen, pos.x, pos.y);
+            memory.SelectObject(wxNullBitmap);
+            outcome = bitmap.SaveFile(wxString::FromUTF8(a.c_str()), wxBITMAP_TYPE_PNG)
+                ? "saved" : "not saved";
+            wxUIActionSimulator().Char(WXK_ESCAPE);
+          });
+          timer.StartOnce(700);
+          showServersMenu();
+        } else {
+          for (wxMenuItem* item : menu.GetMenuItems()) {
+            if (item->IsSeparator()) continue;
+            if (!outcome.empty()) outcome += ";";
+            if (item->IsCheckable()) outcome += item->IsChecked() ? "[x] " : "[ ] ";
+            outcome += item->GetItemLabelText().ToStdString();
+          }
+        }
+      } else if (sub == "startup") {
+        std::replace(a.begin(), a.end(), '_', ' ');
+        outcome = "no such server";
+        for (const ServerEntry& entry : ServerList::load()) {
+          if (entry.name != a) continue;
+          AddServerDialog dialog(this, &entry);
+          wxTimer timer;
+          timer.Bind(wxEVT_TIMER, [&](wxTimerEvent&) {
+            dialog.startupForTest(b == "on");
+            dialog.acceptForTest();
+          });
+          timer.StartOnce(50);
+          outcome = dialog.ShowModal() == wxID_OK ? "ok" : "not saved";
+          break;
+        }
+      } else if (sub == "disconnect" || sub == "remove") {
+        string ref;
+        for (const ServerEntry& entry : ServerList::load())
+          if (entry.name == a)
+            ref = entry.type == "ssh" ? entry.address : ServerList::refOf(entry.address);
+        if (!rememberedServer(ref)) outcome = "no such server";
+        else {
+          wxMenu menu;
+          serverRootMenu(menu, ref);
+          int id = menu.FindItem(sub == "remove" ? "Remove from list" : "Disconnect");
+          if (id == wxNOT_FOUND) outcome = "no such item";
+          else {
+            wxCommandEvent event(wxEVT_MENU, id);
+            menu.ProcessEvent(event);
+            for (int i = 0; i < 10; ++i) wxYield();
+            outcome = "ok";
+          }
+        }
       } else if (sub == "copycheck") {
         string r = crossTreeRefusal(vector<EcceURL>(1, EcceURL(a)), EcceURL(b));
         outcome = r.empty() ? "allowed" : "refused: " + r;
+      } else if (sub == "failafter") {
+        // Test only: the next copies between trees fail after N files.
+        setenv("ECCE_TEST_TREECOPY_FAIL_AFTER", a.c_str(), 1);
+        outcome = "ok";
+      } else if (sub == "xfer") {
+        // "server xfer VERB SOURCE-URL FOLDER-URL": ecce-copy / ecce-move.
+        vector<string> lines;
+        moveForCommand(a, vector<EcceURL>(1, EcceURL(b)), c, lines);
+        for (size_t i = 0; i < lines.size(); i++)
+          outcome += (i ? ";" : "") + lines[i];
       } else if (sub == "launchcheck") {
         outcome = refuseAddedLaunch(vector<EcceURL>(1, EcceURL(a)))
                   ? "refused" : "allowed";
@@ -1147,6 +1261,9 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflowautorun WF on|off|query   the auto-run setting (#736)
       //   workflowlaunchstep WF STEP   launch that one step if it is ready
       //   workflowplay WF       play button of each box: "name:1|0:reason|.."
+      //   workflowautorunclick WF on|off   tick the view's auto-run box as a
+      //     click does: "ok shown=1|0 autorun=on|off" (#902)
+      //   workflowstate WF STEP   the step's state and why it is not ready (#901)
       //   workflowshot PNG WF   the Organizer showing WF; the drawing's checks
       //   workflowdialogshot PNG WF TYPE SOURCE   the New-step dialog
       //   workflownew WF TYPE panel|tree SOURCE|-   a new step as the view's
@@ -1182,6 +1299,7 @@ void CalcMgr::runTestCommand(const string& line)
                  command == "workflowcrestcheck" ||
                  command == "workflowautorun" || command == "workflowlaunchstep" ||
                  command == "workflowsetlaunch" ||
+                 command == "workflowautorunclick" || command == "workflowstate" ||
                  command == "workflowmove") {
         args >> a >> b >> c >> d;
       } else if (command == "workflowjoin") {
@@ -1364,6 +1482,30 @@ void CalcMgr::runTestCommand(const string& line)
         Resource *s = step(b);
         if (!s) outcome = "error: no such step";
         else launchStep(wf, s, false, &outcome);
+      } else if (command == "workflowstate") {
+        TaskJob *t = dynamic_cast<TaskJob*>(step(b));
+        if (!t) outcome = "error: no such step";
+        else outcome = "ok state=" + ResourceUtils::stateToString(t->getState()) +
+                       " notready=" + t->getProp(VDoc::getEcceNamespace() +
+                                                 WorkflowSteps::kNotReadyProp);
+      } else if (command == "workflowautorunclick") {
+        p_treeCtrl->SelectItem(wfNode->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        if (!wp) {
+          outcome = "no workflow panel";
+        } else {
+          wp->clickAutoRun(b == "on");
+          for (int i = 0; i < 20; i++) { wxYield(); wxMilliSleep(50); }
+          spc = dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+          WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
+          const bool shown = spc && spc->getWorkflowPanel() && sel &&
+                             sel->getUrl() == wf->getURL();
+          outcome = string("ok shown=") + (shown ? "1" : "0") + " autorun=" +
+                    (WorkflowSteps::autoRun(wf) ? "on" : "off");
+        }
       } else if (command == "workflowplay") {
         // The play button of every box: "name:1|0:reason", once queued
         // notices and any launch batch (auto-run's included) are done.
@@ -1572,6 +1714,60 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "message") {
       setMessage(calcName, WxFeedback::INFO);
       outcome = "ok";
+    } else if (command == "autoreloads") {
+      // "autoreloads": how many automatic reloads have run
+      outcome = std::to_string(p_autoReloads);
+    } else if (command == "autoshown") {
+      // "autoshown": the folder being watched or polled, and how
+      outcome = p_autoUrl + (p_autoLocal ? " watched" : " polled");
+      outcome += string(" idle=") + (autoRefreshIdle() ? "1" : "0") + " dirty=" + (p_autoDirty ? "1" : "0")
+                 + " disabler=" + std::to_string(p_disablerCount) + " busy=" + std::to_string(p_uiBusy)
+                 + " capture=" + (wxWindow::GetCapture() ? "1" : "0") + " focus="
+                 + (wxWindow::FindFocus() ? string(wxString(wxWindow::FindFocus()->GetClassInfo()->GetClassName()).ToUTF8()) : string("none"));
+      if (p_autoWatcher) {
+        wxArrayString ps;
+        p_autoWatcher->GetWatchedPaths(&ps);
+        for (size_t i = 0; i < ps.GetCount(); i++) outcome += " [" + string(ps[i].ToUTF8()) + "]";
+      }
+    } else if (command == "select") {
+      // "select URL": select that node as a click does
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), true, true);
+      if (!node) outcome = "not in the tree";
+      else { p_treeCtrl->SelectItem(node->GetId()); outcome = "ok"; }
+    } else if (command == "selection") {
+      WxResourceTreeItemData *n = p_treeCtrl->GetSelection().IsOk() ? dynamic_cast<WxResourceTreeItemData*>(
+          p_treeCtrl->GetItemData(p_treeCtrl->GetSelection())) : 0;
+      outcome = n ? n->getUrl().toString() : "none";
+    } else if (command == "treechildren") {
+      // "treechildren URL": the names of the node's children in the tree
+      WxResourceTreeItemData *node = findNode(EcceURL(calcName), false, false);
+      if (!node) outcome = "not in the tree";
+      else {
+        outcome = "ok";
+        wxTreeItemIdValue ck;
+        for (wxTreeItemId c = p_treeCtrl->GetFirstChild(node->GetId(), ck); c.IsOk();
+             c = p_treeCtrl->GetNextChild(node->GetId(), ck))
+          outcome += " " + string(p_treeCtrl->GetItemText(c).ToUTF8());
+      }
+    } else if (command == "tableselect" || command == "tableselected") {
+      // "tableselect URL": select that row; "tableselected": the selected rows
+      ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      if (!t) outcome = "no table";
+      else {
+        if (command == "tableselect") t->selectResources(vector<EcceURL>(1, EcceURL(calcName)));
+        outcome = "ok";
+        for (const EcceURL &u : t->getSelections()) outcome += " " + u.toString();
+      }
+    } else if (command == "modal") {
+      // "modal SECONDS": a modal dialog for that long (a stand-in for any dialog)
+      int secs = atoi(calcName.c_str());
+      wxTimer *t = new wxTimer();
+      wxDialog dlg(this, wxID_ANY, "test");
+      t->Bind(wxEVT_TIMER, [&dlg](wxTimerEvent&) { dlg.EndModal(wxID_OK); });
+      t->StartOnce(secs * 1000);
+      outcome = "ok";
+      dlg.ShowModal();
+      delete t;
     } else if (command == "refresh") {
       WxResourceTreeItemData *node = findNode(project, true, true);
       if (node) {
@@ -1684,7 +1880,7 @@ void CalcMgr::runTestCommand(const string& line)
           {"Functions", "numFunctions"}, {"Primitives", "numPrimitives"},
           {"Theory", "theory"}, {"Runtype", "runtype"},
           {"Charge", "charge"}, {"SpinMult", "spinmultiplicity"},
-          {"OpenShells", "openshells"}};
+          {"OpenShells", "openshells"}, {"CDFitting", "chargeFittingName"}};
         outcome = panel ? "ok" : "no context panel";
         for (auto& f : fields) {
           wxWindow *w = panel ? panel->FindWindow(f[1]) : 0;
@@ -2089,6 +2285,9 @@ void CalcMgr::runTestCommand(const string& line)
                                    ? "running?" : "plain") +
                   " copyvalue=" + box->copyText(0) +
                   " energyselectable=" + (box->energySelectable() ? "1" : "0");
+        if (wxWindow *anno = panel->FindWindow("annotation"))
+          outcome += " annotation=" + std::to_string(anno->GetSize().x) + " panelclient=" +
+                     std::to_string(panel->GetClientSize().x);
         for (const string& l : box->describe()) outcome += " | " + l;
       }
     } else if (command == "allocations") {
@@ -2204,8 +2403,8 @@ void CalcMgr::runTestCommand(const string& line)
       // profiles and their label layout, the text of reaction 1, and writes
       // the PNG and CSV exports.
       std::istringstream args(calcName);
-      string file, treatment, png, csvOut, kelvin;
-      args >> file >> treatment >> png >> csvOut >> kelvin;
+      string file, treatment, png, csvOut, kelvin, shot;
+      args >> file >> treatment >> png >> csvOut >> kelvin >> shot;
       std::ifstream in(file.c_str());
       std::stringstream text;
       text << in.rdbuf();
@@ -2226,6 +2425,7 @@ void CalcMgr::runTestCommand(const string& line)
       for (string l; std::getline(r, l); ) outcome += " | " + l;
       if (!png.empty() && png != "-") outcome += d->savePng(png) ? " | png saved" : " | png failed";
       if (!csvOut.empty() && csvOut != "-") outcome += d->saveCsv(csvOut) ? " | csv saved" : " | csv failed";
+      outcome += " | layout: " + d->layoutReport(shot);
       d->Destroy();
     } else if (command == "fragdiagram") {
       // "fragdiagram PNG|- COMPLEX FRAGMENT... [names=A;B] [window=OCC,VIRT]
@@ -2836,6 +3036,12 @@ void CalcMgr::initializeTreeData()
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
   syncServerRoots();
+  CallAfter([this]() {
+    for (const ServerEntry& entry : ServerList::load()) {
+      const string ref = entry.type == "ssh" ? entry.address : ServerList::refOf(entry.address);
+      if (entry.connectAtStart && rememberedServer(ref)) connectServer(ref);
+    }
+  });
   p_treeCtrl->SetFocus();
   if (!p_serverTimer) {
     // Add Server / Remove in Preferences write the list; pick it up here.
@@ -2850,6 +3056,109 @@ void CalcMgr::initializeTreeData()
   }
 }
 
+
+bool CalcMgr::rememberedServer(const string& ref) const
+{
+  if (ref.empty()) return false;
+  EDSIServerCentral central;
+  vector<Bookmark>* own = central.getEDSIProviders();
+  bool primary = false;
+  for (size_t i = 0; own && i < own->size(); ++i)
+    if ((*own)[i].getEcceUrl().getRef() == ref) primary = true;
+  delete own;
+  if (primary) return false;
+  for (const ServerEntry& entry : ServerList::load())
+    if ((entry.type == "ssh" ? entry.address : ServerList::refOf(entry.address)) == ref)
+      return true;
+  return false;
+}
+
+void CalcMgr::disconnectServer(const string& ref)
+{
+  if (!rememberedServer(ref)) return;
+  // Move selection out before deleting roots that may back the context panel.
+  p_treeCtrl->openHome(true);
+  if (ref.compare(0, 7, "sftp://") == 0) SftpEDSI::disconnect(ref);
+  else {
+    const string user = ServerList::loginFor(ref);
+    if (!user.empty()) AuthCache::getCache().remove(ref, user, "");
+  }
+  ServerList::setLogin(ref, "");
+  syncServerRoots();
+}
+
+void CalcMgr::serverRootMenu(wxMenu& menu, const string& ref)
+{
+  if (!rememberedServer(ref)) return;
+  bool connected = !ServerList::loginFor(ref).empty();
+  int toggle = wxWindow::NewControlId(), remove = wxWindow::NewControlId();
+  menu.Append(toggle, connected ? _("Disconnect") : _("Connect"));
+  menu.Append(remove, _("Remove from list"));
+  menu.Bind(wxEVT_MENU, [this, ref, connected](wxCommandEvent&) {
+    CallAfter([this, ref, connected]() {
+      if (connected) disconnectServer(ref); else connectServer(ref);
+    });
+  }, toggle);
+  menu.Bind(wxEVT_MENU, [this, ref](wxCommandEvent&) {
+    CallAfter([this, ref]() {
+      if (!rememberedServer(ref)) return;
+      disconnectServer(ref);
+      for (const ServerEntry& entry : ServerList::load())
+        if ((entry.type == "ssh" ? entry.address : ServerList::refOf(entry.address)) == ref)
+          ServerList::remove(entry.name);
+      syncServerRoots();
+    });
+  }, remove);
+}
+
+void CalcMgr::serversMenu(wxMenu& menu)
+{
+  for (const ServerEntry& entry : ServerList::load()) {
+    const string ref = entry.type == "ssh" ? entry.address : ServerList::refOf(entry.address);
+    if (!rememberedServer(ref)) continue;
+    int id = wxWindow::NewControlId();
+    wxString label = wxString::FromUTF8(entry.name.c_str());
+    label.Replace("&", "&&");
+    menu.AppendCheckItem(id, label);
+    menu.Check(id, !ServerList::loginFor(ref).empty());
+    menu.Bind(wxEVT_MENU, [this, ref](wxCommandEvent& event) {
+      const bool on = event.IsChecked();
+      CallAfter([this, ref, on]() {
+        if (on) connectServer(ref); else disconnectServer(ref);
+      });
+    }, id);
+  }
+  if (menu.GetMenuItemCount()) menu.AppendSeparator();
+  int add = wxWindow::NewControlId(), manage = wxWindow::NewControlId();
+  menu.Append(add, _("Add Server..."));
+  menu.Append(manage, _("Manage Servers..."));
+  menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+    CallAfter([this]() {
+      AddServerDialog dialog(this);
+      if (dialog.ShowModal() == wxID_OK) syncServerRoots();
+    });
+  }, add);
+  menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+    CallAfter([this]() {
+      wxCommandEvent event;
+      OnPreferencesClick(event);
+      p_prefs->showDataPage();
+    });
+  }, manage);
+}
+
+void CalcMgr::showServersMenu()
+{
+  Raise();
+  wxMenu menu;
+  serversMenu(menu);
+  wxPoint at(0, p_toolBar->GetSize().y);
+  for (int x = 0; x < p_toolBar->GetSize().x; ++x) {
+    wxToolBarToolBase* tool = p_toolBar->FindToolForPosition(x, at.y / 2);
+    if (tool && tool->GetId() == p_serversToolId) { at.x = x; break; }
+  }
+  PopupMenu(&menu, p_toolBar->GetPosition() + at);
+}
 
 void CalcMgr::syncServerRoots()
 {
@@ -2890,6 +3199,7 @@ void CalcMgr::syncServerRoots()
  */
 bool CalcMgr::connectServer(const string& ref)
 {
+  if (!rememberedServer(ref)) return false;
   if (ref.compare(0, 7, "sftp://") == 0) return connectSsh(ref);
   string name = ref;
   vector<ServerEntry> list = ServerList::load();
@@ -2986,8 +3296,8 @@ void CalcMgr::tellRefusal(const string& msg)
 }
 
 
-// Local data and each server are separate trees; a copy or move between
-// them is refused until the transfer is done properly.
+// What still stops a copy or move into another tree: an SSH folder that
+// this session is not logged in to.  The transfer itself is copyAcrossTrees.
 string CalcMgr::crossTreeRefusal(const vector<EcceURL>& sources,
                                  const EcceURL& dest)
 {
@@ -2995,9 +3305,82 @@ string CalcMgr::crossTreeRefusal(const vector<EcceURL>& sources,
   for (size_t i = 0; i < sources.size(); i++) {
     const string from = treeOf(sources[i]);
     if (from == to) continue;
-    if (from == "local" || to == "local")
-      return "Copying between Local data and a server is not supported yet.";
-    return "Copying between servers is not supported yet.";
+    if (to.compare(0, 5, "sftp:") == 0 && ServerList::loginFor(to).empty())
+      return "Not connected to " + to + ": connect to it first.";
+    if (from.compare(0, 5, "sftp:") == 0 && ServerList::loginFor(from).empty())
+      return "Not connected to " + from + ": connect to it first.";
+  }
+  return "";
+}
+
+
+bool CalcMgr::isCrossTree(const EcceURL& a, const EcceURL& b)
+{
+  return treeOf(a) != treeOf(b);
+}
+
+
+// Copy src into destFolder of another tree through the EDSIs; with move,
+// verify the copy and only then remove the source (#890).  Returns "" when
+// done (made = the new URL), else why not; a failed or cancelled copy has
+// removed its partial target and left the source as it was.
+string CalcMgr::copyAcrossTrees(const EcceURL& src, const EcceURL& destFolder,
+                                bool move, bool unique, EcceURL& made)
+{
+  WxResourceTreeItemData *node = findNode(src, false, true);
+  Resource *res = node ? node->getResource() : 0;
+  if (!res) return "the source no longer exists";
+  if (move) {
+    const string busy = activeJobRefusal(res, "Move");
+    if (!busy.empty()) return busy;
+  }
+  const string name = src.getFilePathTail();
+
+  // Shown only when the transfer takes longer than half a second.
+  wxStopWatch clock;
+  ewxProgressDialog *pd = 0;
+  const bool gui = !getenv("ECCE_TEST_ORGANIZER");
+  TreeCopy::Progress progress = [&](const string& item, long files,
+                                    unsigned long bytes) {
+    if (!gui) return true;
+    const string text = std::string(move ? "Moving " : "Copying ") + name +
+        ": " + item + "\n" + std::to_string(files) + " files, " +
+        std::to_string(bytes / 1024) + " kB so far";
+    if (!pd && clock.Time() > 500)
+      pd = new ewxProgressDialog(move ? "Move" : "Copy", text, 100, this,
+                                 wxPD_APP_MODAL | wxPD_CAN_ABORT | wxPD_ELAPSED_TIME);
+    if (!pd) return true;
+    wxYieldIfNeeded();
+    return pd->Pulse(text);
+  };
+
+  TreeCopy::Result r = TreeCopy::copy(src, destFolder, unique, progress);
+  string why;
+  if (!r.ok) {
+    why = r.cancelled ? "Cancelled: the partial copy was removed and the source is untouched."
+                      : "Copy failed (" + r.error + "); " +
+                                  (r.target.toString().empty() ? "nothing was copied"
+                                                               : "the partial copy was removed") +
+                                  " and the source is untouched.";
+  } else {
+    const string bad = TreeCopy::verify(r.target, r.manifest);
+    if (!bad.empty()) {
+      const bool removed = TreeCopy::removeTree(r.target);
+      why = "The copy did not check out (" + bad + "); " +
+            (removed ? "it was removed" : "REMOVING IT FAILED, remove it by hand") +
+            " and the source is untouched.";
+    }
+  }
+  delete pd;
+  if (!why.empty()) return why;
+
+  made = r.target;
+  notifyCreate(made.toString());
+  if (move) {
+    if (!p_treeCtrl->removeFromTree(src, true))
+      return "Copied to " + made.toString() + ", but the source could not be "
+             "removed.";
+    notifyRemove(src.toString(), "");
   }
   return "";
 }
@@ -3015,8 +3398,8 @@ bool CalcMgr::refuseAddedLaunch(const vector<EcceURL>& urls)
       // so the login has to be made here, once, before anything is submitted.
       const string root = ServerList::sshRootOf(urls[i].toString());
       if (root.empty() || !done.insert(root).second) continue;
-      if (ServerList::loginFor(root).empty() && !connectSsh(root)) {
-        tellRefusal("Not launched: there is no login to " + root + ".");
+      if (ServerList::loginFor(root).empty()) {
+        tellRefusal("Not launched: choose Connect for " + root + " in the Servers menu first.");
         return true;
       }
       continue;
@@ -3029,9 +3412,9 @@ bool CalcMgr::refuseAddedLaunch(const vector<EcceURL>& urls)
                                                  "", 1)) {
       ServerList::setLogin(ref, "");
     }
-    if (ServerList::loginFor(ref).empty() && !connectServer(ref)) {
+    if (ServerList::loginFor(ref).empty()) {
       tellRefusal("Not launched: the login for the server " + ref +
-                  " was not given or not accepted.");
+                  " is not connected. Choose Connect in the Servers menu first.");
       return true;
     }
   }
@@ -3320,24 +3703,24 @@ void CalcMgr::menuSource(wxWindow *source)
 void CalcMgr::OnContextMenu( wxContextMenuEvent& event )
 {
   wxMenu menu;
+  menuSource(dynamic_cast<wxWindow*>(event.GetEventObject()));
   {
     WxResourceTreeItemData *sel = dynamic_cast<WxResourceTreeItemData*>(
         p_treeCtrl->GetItemData(p_treeCtrl->GetSelection()));
-    if (sel && !sel->getResource() && !sel->serverRef().empty()) {
-      string ref = sel->serverRef();
-      int id = wxWindow::NewControlId();
-      menu.Append(id, _("Reconnect"));
-      menu.Bind(wxEVT_MENU, [this, ref](wxCommandEvent&) {
-        CallAfter([this, ref]() { connectServer(ref); });
-      }, id);
-      ewxPopupMenu(this, menu);
+    // Only a server root (no resource) gets the server menu; a calculation
+    // under it keeps the normal calculation menu.
+    if (p_popupOnTree && sel && !sel->getResource() &&
+        rememberedServer(sel->serverRef())) {
+      serverRootMenu(menu, sel->serverRef());
+      p_uiBusy++; ewxPopupMenu(this, menu); p_uiBusy--;
+      p_popupOnTree = false;
       return;
     }
   }
   menuSource(dynamic_cast<wxWindow*>(event.GetEventObject()));
   string error = guarded([&]() {
     getContextMenu(menu);
-    ewxPopupMenu(this, menu);
+    p_uiBusy++; ewxPopupMenu(this, menu); p_uiBusy--;
   });
   p_popupOnTree = false;
   if (!error.empty())
@@ -4182,7 +4565,9 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
   }
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
-    WxResourceTreeItemData *item = findNode(urls[i], true, true);
+    // Not openWhenFound: that selects the node, which replaces the
+    // workflow view a launch from it was started in (#902).
+    WxResourceTreeItemData *item = findNode(urls[i], false, true);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
     if (task) tasks.push_back(task);
   }
@@ -4192,6 +4577,12 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
   }
   LaunchBatch::Target target = initial;
   vector<LaunchSelected::Row> rows = LaunchSelected::plan(tasks, target);
+  // A shot is a test run; a real GUI launch asks for what is missing.
+  if (interactive && shot.empty() && !target.any() &&
+      askForMissingSettings(rows)) {
+    if (outcome) *outcome = "launcher opened";
+    return;
+  }
   bool go = true;
   if (interactive || !shot.empty()) {
     go = LaunchSelected::confirm(this, rows, target,
@@ -4211,6 +4602,29 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
     for (size_t i = 0; i < r.size(); i++) if (r[i] == '\n') r[i] = '|';
     *outcome = "ok " + r;
   }
+}
+
+
+// There is no default machine: a step without launch settings is not
+// skipped but opened in the Launcher, which submits it when the user
+// presses Launch. Returns true when no row is left to launch here.
+bool CalcMgr::askForMissingSettings(vector<LaunchSelected::Row>& rows)
+{
+  vector<LaunchSelected::Row> rest;
+  string names;
+  for (const LaunchSelected::Row& r : rows) {
+    if (!r.plan.ready && r.plan.problem == "no machine stored") {
+      startApp("Launcher", 0, r.plan.url);
+      names += (names.empty() ? "" : ", ") + r.plan.name;
+    } else {
+      rest.push_back(r);
+    }
+  }
+  if (names.empty()) return false;
+  setMessage("No launch settings yet for " + names +
+             ": choose a machine in the Launcher.", WxFeedback::INFO);
+  rows.swap(rest);
+  return rows.empty();
 }
 
 
@@ -4256,17 +4670,24 @@ void CalcMgr::startBatch(const vector<LaunchSelected::Row>& rows, bool showRepor
 }
 
 
-bool CalcMgr::launchSelectedAsync(const vector<EcceURL>& urls, string *outcome)
+bool CalcMgr::launchSelectedAsync(const vector<EcceURL>& urls, string *outcome,
+                                  bool askForSettings)
 {
   if (p_batch) { if (outcome) *outcome = "busy"; return false; }
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
-    WxResourceTreeItemData *item = findNode(urls[i], true, true);
+    // Not openWhenFound: that selects the node, which replaces the
+    // workflow view a launch from it was started in (#902).
+    WxResourceTreeItemData *item = findNode(urls[i], false, true);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
     if (task) tasks.push_back(task);
   }
   if (tasks.empty()) { if (outcome) *outcome = "no calculations"; return false; }
   vector<LaunchSelected::Row> rows = LaunchSelected::plan(tasks);
+  if (askForSettings && askForMissingSettings(rows)) {
+    if (outcome) *outcome = "launcher opened";
+    return false;
+  }
   startBatch(rows, false);
   if (outcome) *outcome = "started";
   return true;
@@ -4525,8 +4946,6 @@ bool CalcMgr::moveForCommand(const string& verb, const vector<EcceURL>& urls,
     else if (dest->getResource()->getContentType() == ResourceDescriptor::CT_CALCULATION ||
              !p_treeCtrl->setExpandable(dest))
       destWhy = "the target is not a folder";
-    else if (dest->getUrl().getProtocol().find("sftp") == 0)
-      destWhy = "only local data and data servers are supported";
   }
   for (size_t i = 0; i < urls.size(); i++) {
     const string leaf = urls[i].getFilePathTail();
@@ -4536,6 +4955,24 @@ bool CalcMgr::moveForCommand(const string& verb, const vector<EcceURL>& urls,
     if (!res) { no("not in this session"); continue; }
     const EcceURL oldUrl = n->getUrl();
     if (oldUrl.isSystemFolder()) { no("a system folder cannot be moved or renamed"); continue; }
+    if (!rename && (verb == "copy" || isCrossTree(oldUrl, destUrl))) {
+      if (!destWhy.empty()) { no(destWhy); continue; }
+      if (destUrl == oldUrl || destUrl.isChildOf(oldUrl)) {
+        no("a folder cannot be copied into itself");
+        continue;
+      }
+      const string refused = crossTreeRefusal(vector<EcceURL>(1, oldUrl), destUrl);
+      if (!refused.empty()) { no(refused); continue; }
+      EcceURL made;
+      const string why = copyAcrossTrees(oldUrl, destUrl, verb == "move", false, made);
+      if (!why.empty()) { no(why); continue; }
+      if (dest) p_treeCtrl->refresh(findNode(destUrl, false, true));
+      if (verb == "move")
+        if (WxResourceTreeItemData *up = findNode(oldUrl.getParent(), false, true))
+          p_treeCtrl->refresh(up);
+      lines.push_back(leaf + "\tok\t" + made.toString());
+      continue;
+    }
     if (oldUrl.getProtocol().find("sftp") == 0) {
       no("only local data and data servers are supported");
       continue;
@@ -5506,7 +5943,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "34";
+const char *const kExampleSetVersion = "35";
 
 string treeName(string s)
 {
@@ -5922,6 +6359,23 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         nExamples++;
       }
   }
+  // Steps imported by an older build lack the "!key" roles of workflow.txt
+  // (the Rate box needs them); fill in what is unset, nothing else.
+  if (topUp) {
+    const string ns = VDoc::getEcceNamespace();
+    for (const ExampleTopic &topic : set->topics) {
+      if (!topic.workflow || topic.name.empty()) continue;
+      Resource *folder = childOf(proj, treeName(topic.name));
+      for (const auto &k : topic.keys) {
+        Resource *step = childOf(folder, k.calc);
+        if (!step) continue;
+        if (!k.role.empty() && step->getProp(ns + ":recipe.key").empty())
+          step->addProp(ns + ":recipe.key", k.role);
+        if (step->getProp(ns + ":recipe.thermo").empty())
+          step->addProp(ns + ":recipe.thermo", k.thermo ? "1" : "0");
+      }
+    }
+  }
   if (topUp && nExamples == 0) {
     findNode(topUrl.getChild(set->project), true, true);
     setContextPanel();
@@ -6261,6 +6715,18 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and "
      "Raman. This calculation shows the S–O stretches of a sulfate "
      "bridging two cobalt centres in [(en)2Co(μ-OH)(μ-SO4)Co(en)2]3+."},
+    {"water_dimer",
+     "ORCA, B3LYP-D3BJ/def2-SVP, single point. This calculation shows the "
+     "water dimer, the complex for the density difference of the dimer "
+     "minus its two water molecules (Density Map, Difference...)."},
+    {"water_A",
+     "ORCA, B3LYP-D3BJ/def2-SVP, single point. This calculation shows the "
+     "hydrogen-bond donor molecule of the water dimer at its geometry in "
+     "the dimer, fragment A of the density difference."},
+    {"water_B",
+     "ORCA, B3LYP-D3BJ/def2-SVP, single point. This calculation shows the "
+     "hydrogen-bond acceptor molecule of the water dimer at its geometry in "
+     "the dimer, fragment B of the density difference."},
     {"formaldehyde",
      "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
      "calculation shows the C=O stretch of the simplest carbonyl "
@@ -7013,6 +7479,46 @@ void CalcMgr::importExamplesOnce()
  */
 void CalcMgr::OnExportClick( wxCommandEvent& event )
 {
+  getSelection();
+  const vector<EcceURL> calcs = calculationsUnder(launchSelection());
+  if (calcs.empty()) {
+    wxMessageBox(_("Select a folder or calculations first."),
+                 _("Export for Supporting Information"),
+                 wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  wxFileDialog file(this, _("Export for Supporting Information"),
+                    wxEmptyString, "supporting-information.xyz",
+                    "XYZ files (*.xyz)|*.xyz",
+                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+  if (file.ShowModal() != wxID_OK) return;
+  wxArrayString kinds;
+  kinds.Add(_("No table"));
+  kinds.Add(_("CSV table"));
+  kinds.Add(_("LaTeX table"));
+  wxSingleChoiceDialog pick(this, _("Also write a table beside the XYZ file?"),
+                            _("Export for Supporting Information"), kinds);
+  if (pick.ShowModal() != wxID_OK) return;
+  const string table = pick.GetSelection() == 1 ? "csv"
+                     : pick.GetSelection() == 2 ? "latex" : "";
+  bool anyExcluded = false;
+  for (const EcceURL& u : calcs) {
+    PropertyTask *t = EDSIFactory::getPropertyTask(u);
+    if (t && !t->getProp(VDoc::getEcceNamespace() + ":excluded").empty())
+      anyExcluded = true;
+  }
+  const bool includeExcluded = anyExcluded &&
+      wxMessageBox(_("Some calculations are marked as excluded. Include them?"),
+                   _("Export for Supporting Information"),
+                   wxYES_NO | wxICON_QUESTION, this) == wxYES;
+  string why;
+  const string out = (const char*)file.GetPath().mb_str(wxConvUTF8);
+  if (siExport(calcs, out, table, why, includeExcluded))
+    setMessage("Wrote " + out, WxFeedback::INFO);
+  else
+    wxMessageBox(wxString::FromUTF8(why.c_str()),
+                 _("Export for Supporting Information"),
+                 wxOK | wxICON_ERROR, this);
 }
 
 
@@ -7096,7 +7602,9 @@ void CalcMgr::OnTreectrlBeginDrag( wxTreeEvent& event )
     */
 
     wxDropSource dragSource( my_data, this );
+    p_uiBusy++;
     (void)dragSource.DoDragDrop( wxDrag_DefaultMove );
+    p_uiBusy--;
     event.Skip();
   }
   else
@@ -7285,10 +7793,9 @@ void CalcMgr::OnTreectrlItemExpanding( wxTreeEvent& event )
   //  cerr << "Children in data tree: " << itemData->getnumChildren() << endl;
 
   if (itemData && !itemData->getResource() && !itemData->serverRef().empty()) {
-    // An added server that is not connected: log in first.
-    string ref = itemData->serverRef();
+    // Expanding a tree must not open a login implicitly.
     event.Veto();
-    CallAfter([this, ref]() { connectServer(ref); });
+    setMessage("Choose Connect from the server menu to open this server.", WxFeedback::INFO);
     stopDisabler();
     return;
   }
@@ -8014,6 +8521,16 @@ void CalcMgr::paste()
         if (p_deleteAfterPaste && newUrl == (*itor))
           continue;
 
+        if (isCrossTree(*itor, destinationUrl)) {
+          EcceURL made;
+          const string why = copyAcrossTrees(*itor, destinationUrl,
+                                             p_deleteAfterPaste, true, made);
+          if (!why.empty()) {
+            msg += why;
+            break;
+          }
+          continue;     // a move has already removed its source
+        }
         if (!(source->getResource()->copy(newUrl))) {
           msg += source->getResource()->messages();
           break;
@@ -8592,6 +9109,20 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
               _T(""), wxITEM_NORMAL);
   menu.AppendSeparator();
 
+  //  Rebuilt on every selection change, so the entry and its handler are
+  //  made here; the handler is connected once.
+  {
+    wxMenu *exportMenu = new wxMenu();
+    exportMenu->Append(ID_SI_EXPORT, _("&Supporting Information..."));
+    menu.AppendSubMenu(exportMenu, _("&Export"));
+    if (!p_siExportWired) {
+      Connect(ID_SI_EXPORT, wxEVT_COMMAND_MENU_SELECTED,
+              wxCommandEventHandler(CalcMgr::OnExportClick));
+      p_siExportWired = true;
+    }
+    menu.AppendSeparator();
+  }
+
   menu.Append(wxID_EXIT, _("&Quit\tCtrl+Q"), _T(""), wxITEM_NORMAL);
 }
 
@@ -8954,8 +9485,10 @@ void CalcMgr::machineNoticeRegisterClickCB(wxCommandEvent& event)
 
 void CalcMgr::OnActivate(wxActivateEvent& event)
 {
-  if (event.GetActive())
+  if (event.GetActive()) {
     refreshMachineNotice();
+    CallAfter([this]() { autoRefreshCheck(); });
+  }
   event.Skip();
 }
 
@@ -9104,7 +9637,9 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
           vector<Resource*> ready = WorkflowSteps::readySteps(wf);
           for (Resource *member : ready)
             if (member->getURL() == step->getURL()) {
-              WorkflowSteps::refreshFromSources(wf, member);
+              // Not prepared: the editor writes the deck, and a deck
+              // written here would carry default theory and chemistry.
+              WorkflowSteps::refreshFromSources(wf, member, false);
               break;
             }
         }
@@ -9978,20 +10513,6 @@ void CalcMgr::catchUpWaitingJobs()
       !WaitingJobs::firstInSession(Ecce::sessionKey()))
     return;
 
-  // Jobs of an added server store to it with its own login, which this
-  // session does not have yet after a restart: ask once per server.
-  {
-    vector<string> waiting = WaitingJobs::list();
-    set<string> asked;
-    for (size_t i = 0; i < waiting.size(); i++) {
-      EcceURL u(waiting[i]);
-      const string ref = u.getRef();
-      if (u.getProtocol().find("http") == 0 && ServerList::isAdded(ref) &&
-          ServerList::loginFor(ref).empty() && asked.insert(ref).second)
-        connectServer(ref);
-    }
-  }
-
   ReconnectSelected::DeferMessages defer;
   ewxProgressDialog* progress = 0;
   bool cancelled = false;   // one Cancel leaves the rest waiting
@@ -10013,6 +10534,10 @@ void CalcMgr::catchUpWaitingJobs()
         return true;
       cancelled = true;
       return false;
+    }, [this](const string& url) {
+      const string ref = url.compare(0, 7, "sftp://") == 0
+          ? ServerList::sshRootOf(url) : ServerList::refOf(url);
+      return !rememberedServer(ref) || !ServerList::loginFor(ref).empty();
     });
   delete progress;
 
@@ -11102,7 +11627,7 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
   // CREST fails from an unoptimised structure: put an xTB optimisation between.
   string preoptNote;
   if (source && carry.geometry && code->label == string("CREST") &&
-      !WorkflowSteps::isOptimisation(source)) {
+      !WorkflowSteps::isXtbOptimisation(source)) {
     ResourceType *xrt = 0;
     const WorkflowSteps::Code *xcode = 0;
     for (const WorkflowSteps::Code& c : WorkflowSteps::codes())
@@ -11251,6 +11776,9 @@ vector<Resource*> CalcMgr::newRecipeSteps(Session *wf, const Recipe& recipe,
     if (outcome) *outcome = why.empty() ? "not created" : why;
     return made;
   }
+  // A step whose source is already Complete gets its input now (#901).
+  // Not refreshFromSources: its structureSet would re-rule the levels just set.
+  for (size_t i = 0; i < made.size(); i++) WorkflowSteps::prepareStep(wf, made[i]);
   WxResourceTreeItemData *node = findNode(wf->getURL(), true, false);
   if (node) {
     p_treeCtrl->refresh(node);
@@ -11356,7 +11884,7 @@ void CalcMgr::autoRunWorkflow(Session *wf)
   // In the background, as Launch Selected does: a submission over ssh must
   // not freeze the Organizer, and this can run inside another event's yield.
   string outcome;
-  if (launchSelectedAsync(urls, &outcome)) p_autoBatch = true;
+  if (launchSelectedAsync(urls, &outcome, true)) p_autoBatch = true;
 }
 
 
@@ -11658,8 +12186,12 @@ void CalcMgr::updateUrl(const EcceURL & url)
       CallAfter([this, wfUrl]() {
         WxResourceTreeItemData *n = findNode(wfUrl, false, false);
         Session *wf = n ? dynamic_cast<Session*>(n->getResource()) : 0;
-        if (wf && wf->getApplicationType() == ResourceDescriptor::AT_WORKFLOW)
+        if (wf && wf->getApplicationType() == ResourceDescriptor::AT_WORKFLOW) {
+          // What the finished step unblocked becomes Ready, auto-run or not (#901).
+          for (Resource *s : WorkflowSteps::readySteps(wf))
+            WorkflowSteps::prepareStep(wf, s);
           autoRunWorkflow(wf);
+        }
       });
     }
   }
@@ -12542,6 +13074,7 @@ void CalcMgr::onSelectionChange(bool selectInTree)
     // getFileMenu(*fileMenu, itemData);
 
     stopDisabler();
+    autoRefreshArm();
   }
 
   //  The menus follow the selection once it has settled: a Shift range or
@@ -12805,6 +13338,169 @@ int CalcMgr::getProjectViewId() const
 }
 
 
+
+// ---- Auto-refresh of the shown folder (#889) ----
+
+// The folder whose contents the table shows: the selected collection.  A
+// selected calculation is left alone, so its panel is not rebuilt under the
+// user.
+WxResourceTreeItemData *CalcMgr::autoRefreshFolder()
+{
+  if (!p_treeCtrl || !p_treeCtrl->GetSelection().IsOk()) return 0;
+  WxResourceTreeItemData *n = dynamic_cast<WxResourceTreeItemData*>(
+      p_treeCtrl->GetItemData(p_treeCtrl->GetSelection()));
+  if (!n || !n->getResource() || !n->getResource()->getDescriptor() ||
+      !n->getResource()->getDescriptor()->getIsExpandable()) return 0;
+  return n;
+}
+
+// One small request for a remote folder: SFTP stat, or DAV:getlastmodified.
+string CalcMgr::autoRefreshStamp(const EcceURL& url)
+{
+  string stamp;
+  EDSI *edsi = EDSIFactory::getEDSI(url);
+  if (!edsi) return stamp;
+  // A timer must never open a dialog: with no listeners a DAV request uses
+  // the credentials already cached by the tree's login and otherwise just
+  // fails, and SftpEDSI::folderStamp only uses an existing login.  On a
+  // central server a prompt every 30 s per client would be a lockout risk;
+  // a failed check is skipped until the user acts (Refresh, or the next try).
+  edsi->addAuthEventListener(0);
+  edsi->addProgressEventListener(0);
+  if (SftpEDSI *sftp = dynamic_cast<SftpEDSI*>(edsi)) {
+    stamp = sftp->folderStamp();
+  } else {
+    MetaDataRequest req;
+    req.name = "DAV:getlastmodified";
+    vector<MetaDataRequest> reqs(1, req);
+    vector<MetaDataResult> res;
+    if (edsi->getMetaData(reqs, res) && !res.empty()) stamp = res[0].value;
+  }
+  delete edsi;
+  return stamp;
+}
+
+void CalcMgr::autoRefreshArm()
+{
+  if (!p_autoDebounce) {
+    p_autoDebounce = new wxTimer();
+    p_autoDebounce->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { autoRefreshTick(); });
+    Bind(wxEVT_FSWATCHER, [this](wxFileSystemWatcherEvent &ev) {
+      // A sidecar rewritten in place is ECCE's own annotation, not news.
+      string name = ev.GetPath().GetFullName().ToStdString();
+      if (name.compare(0, 10, ".ecce-meta") == 0 && ev.GetNewPath().GetFullName().empty())
+        return;
+      autoRefreshMark();
+    });
+    p_autoPoll = new wxTimer();
+    p_autoPoll->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { autoRefreshCheck(); });
+  }
+  WxResourceTreeItemData *folder = autoRefreshFolder();
+  string url = folder ? folder->getUrl().toString() : string();
+  if (url == p_autoUrl) return;
+
+  if (p_autoWatcher) { delete p_autoWatcher; p_autoWatcher = 0; }
+  p_autoPoll->Stop();
+  p_autoUrl = url;
+  p_autoStamp.clear();
+  p_autoLocal = false;
+  if (url != p_autoTried) { p_autoTried = url; p_autoRetry = 0; }
+  if (!folder) return;
+
+  EcceURL eu = folder->getUrl();
+  if (eu.isLocal()) {
+    p_autoLocal = true;
+    p_autoWatcher = new wxFileSystemWatcher();
+    p_autoWatcher->SetOwner(this);
+    // Not the calculation folders inside: a running job writes there.
+    if (!p_autoWatcher->Add(wxFileName::DirName(wxString::FromUTF8(eu.getPath().c_str())),
+                            wxFSW_EVENT_CREATE | wxFSW_EVENT_DELETE | wxFSW_EVENT_RENAME)) {
+      delete p_autoWatcher; p_autoWatcher = 0;
+      // The watcher cannot start before the event loop runs (the first
+      // selection happens in the constructor): try again shortly.
+      p_autoUrl.clear();
+      if (p_autoRetry++ < 10) p_autoDebounce->StartOnce(1000);
+      return;
+    }
+  } else {
+    p_autoStamp = autoRefreshStamp(eu);
+    p_autoPoll->Start(30000);
+  }
+}
+
+void CalcMgr::autoRefreshMark()
+{
+  p_autoDirty = true;
+  if (p_autoDebounce) p_autoDebounce->StartOnce(1000);
+}
+
+// A remote folder: reload only if its modification time moved.  Not while
+// the window is minimised or inactive.
+void CalcMgr::autoRefreshCheck()
+{
+  if (p_autoLocal || p_autoUrl.empty() || IsIconized() || !autoRefreshIdle())
+    return;
+  string now = autoRefreshStamp(EcceURL(p_autoUrl));
+  if (!now.empty() && now != p_autoStamp) {
+    p_autoStamp = now;
+    autoRefreshMark();
+  }
+}
+
+// Nothing the user is in the middle of: no modal dialog, menu, drag, text
+// edit, or the busy state of an action under way.
+bool CalcMgr::autoRefreshIdle() const
+{
+  if (p_disablerCount > 0 || p_disabler || p_uiBusy > 0 || p_batch) return false;
+  if (wxWindow::GetCapture()) return false;
+  for (wxWindowList::compatibility_iterator n = wxTopLevelWindows.GetFirst();
+       n; n = n->GetNext()) {
+    wxDialog *d = dynamic_cast<wxDialog*>(n->GetData());
+    if (d && d->IsShown() && d->IsModal()) return false;
+  }
+  wxWindow *f = wxWindow::FindFocus();
+  if (f && dynamic_cast<wxTextCtrl*>(f) && !p_autoUrl.empty() &&
+      wxGetTopLevelParent(f) == this) return false;
+  return true;
+}
+
+void CalcMgr::autoRefreshTick()
+{
+  if (p_autoUrl.empty()) { autoRefreshArm(); return; }
+  if (!p_autoDirty) return;
+  if (!autoRefreshIdle()) { p_autoDebounce->StartOnce(1000); return; }
+  p_autoDirty = false;
+  WxResourceTreeItemData *folder = autoRefreshFolder();
+  if (!folder || folder->getUrl().toString() != p_autoUrl) return;
+  // Items are rebuilt below; the first visible one is found again by URL.
+  string topUrl;
+  wxTreeItemId top = p_treeCtrl->GetFirstVisibleItem();
+  if (top.IsOk()) {
+    WxResourceTreeItemData *t = dynamic_cast<WxResourceTreeItemData*>(
+        p_treeCtrl->GetItemData(top));
+    if (t) topUrl = t->getUrl().toString();
+  }
+  // The project table is rebuilt: keep its selected rows (by URL) and its
+  // first visible row.
+  vector<EcceURL> rowsSelected;
+  int topRow = 0;
+  if (ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel)) {
+    rowsSelected = t->getSelections();
+    topRow = t->firstVisibleRow();
+  }
+  p_autoReloads++;
+  p_treeCtrl->refresh(folder);
+  onSelectionChange(true);
+  if (ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel)) {
+    if (!rowsSelected.empty()) t->selectResources(rowsSelected);
+    t->scrollToRow(topRow);
+  }
+  if (!topUrl.empty()) {
+    WxResourceTreeItemData *t = findNode(EcceURL(topUrl), false, false);
+    if (t) p_treeCtrl->ScrollTo(t->GetId());
+  }
+}
+
 void CalcMgr::refresh()
 {
   WxResourceTreeItemData * itemData = p_treeCtrl->getSelection();
@@ -12923,6 +13619,21 @@ wxDragResult CalcMgr::dropInTree( const vector<EcceURL> & urls,
 
     string sourceName = sourceUrl.getFilePathTail();
     EcceURL newUrl = targetUrl.getChild(sourceName);
+
+    if (isCrossTree(sourceUrl, targetUrl)) {
+      if (def != wxDragMove) def = wxDragCopy;
+      EcceURL made;
+      const string why = copyAcrossTrees(sourceUrl, targetUrl,
+                                         def == wxDragMove, true, made);
+      if (!why.empty()) {
+        ewxMessageDialog dlg(this, why, def == wxDragMove ? "Move Failed!" : "Copy Failed!",
+                             wxOK|wxICON_EXCLAMATION, wxDefaultPosition);
+        dlg.ShowModal();
+        def = wxDragCancel;
+        break;
+      }
+      continue;
+    }
 
     if (def == wxDragMove && !sourceUrl.isLocal())
       def = wxDragCopy;

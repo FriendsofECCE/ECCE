@@ -41,3 +41,21 @@ heat of formation.
 
 Some functions are only on the command line; see
 [Scripting and AI assistants](scripting-and-ai.md).
+
+## Servers on the toolbar
+
+The **Servers** button lists your remembered SSH folders and ECCE servers.
+A tick means connected. Tick an entry to connect; clear its tick to disconnect.
+**Add Server...** remembers another location. **Manage Servers...** opens
+**Preferences > Data**, where you can edit the list.
+
+Right-click a remembered server's tree root for **Connect** or **Disconnect**
+and **Remove from list**. Disconnect closes the Organizer's logins and folds
+its tree. Jobs launched from there keep their monitors. Remove forgets the
+entry without deleting its data. The configured central server belongs to
+the session and is not offered in this menu.
+
+In **Add Server** and **Edit Server**, **Connect at start** chooses whether
+to connect automatically when the Organizer starts. New entries start with
+this option off; existing entries default to on. With it off, choose the
+server in the Servers menu or use **Connect** on its tree root.

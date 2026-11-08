@@ -10,7 +10,7 @@
  * with "name: note: ..." before it for a setting that was filled in or
  * dropped (no stored queue, a machine that passes no time limit).
  * Every calculation given gets one line, also when ECCE gives no answer.
- * Exit 0: all launched; 1: some were not (or no answer); 2: no running
+ * Exit 4: no answer in time (it may have been carried out). Exit 0: all launched; 1: some were not; 2: no running
  * ECCE session; 3: the Organizer is busy with a Launch Selected batch;
  * 64: usage.
  */
@@ -39,6 +39,8 @@ using std::vector;
 
 namespace {
 
+const char *const kNoAnswer =
+    "no answer from the Organizer; it may have been carried out — check before repeating";
 const int kAckSeconds = 8;          // an Organizer answers at once
 const int kBatchSeconds = 10 * 60;  // a batch submits one by one
 
@@ -216,14 +218,11 @@ int main(int argc, char **argv)
     }
   }
   if (timedOut) {
-    if (!gAck) {
-      unanswered(given, urls, "no answer from the Organizer within " +
-                 std::to_string(kAckSeconds) + " s (it may be busy with another launch)");
-      return 2;
-    }
-    unanswered(given, urls, "no answer from ECCE within " +
-               std::to_string(kBatchSeconds / 60) + " minutes");
-    return 1;
+    if (!gAck) return notRunning();
+    for (size_t i = 0; i < urls.size(); i++)
+      std::cout << given[i] << ": " << kNoAnswer << " (job name submit__"
+                << leafOf(urls[i]) << ")" << std::endl;
+    return 4;  // no answer: may have been carried out
   }
   if (gBusy) {
     std::cerr << "ecce-launch: ECCE is submitting a Launch Selected batch; "

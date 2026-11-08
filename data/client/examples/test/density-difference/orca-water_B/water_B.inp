@@ -1,0 +1,9 @@
+! B3LYP D3BJ def2-SVP TightSCF
+%pal nprocs 2 end
+%maxcore 1500
+%output Print[P_MOs] 1 end
+* xyz 0 1
+  O   1.350625   0.111469   0.000000
+  H   1.680398  -0.373741  -0.758561
+  H   1.680398  -0.373741   0.758561
+*

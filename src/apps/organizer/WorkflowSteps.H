@@ -116,6 +116,10 @@ namespace WorkflowSteps {
   /// True when step is a geometry optimisation by run type (Geometry, GeoVib).
   bool isOptimisation(Resource *step);
 
+  /// True when step is a completed xTB geometry optimisation: the only
+  /// structure CREST accepts without an xTB optimisation before it (#904).
+  bool isXtbOptimisation(Resource *step);
+
   /// Makes a step of type rt in wf, links it to source (null for the first
   /// step) and copies what carry says.  Null with `why` set on failure.
   Resource *create(Session *wf, ResourceType *rt, const std::string& name,
@@ -197,7 +201,15 @@ namespace WorkflowSteps {
   /// Takes the geometry, charge and multiplicity of a recipe step's sources
   /// just before it is launched (they did not exist when it was made).
   /// Steps not made by a recipe are left alone.  Empty, or why not.
-  std::string refreshFromSources(Session *wf, Resource *step);
+  std::string refreshFromSources(Session *wf, Resource *step, bool prepare = true);
+
+  /// A Created recipe step whose sources are all Complete and which has a
+  /// structure gets its input written (DeckWriter, as the editor's Save) and
+  /// becomes Ready; with no launch settings it takes a source's, else those
+  /// of another step of the workflow.  Empty, or why it is not launchable,
+  /// which is also stored on the step for its box (kNotReadyProp).
+  std::string prepareStep(Session *wf, Resource *step);
+  extern const char *const kNotReadyProp;
 
   /// A recipe step's structure was stored (by the Builder, or carried in
   /// from its source): the recipe's rules are applied again with what is now

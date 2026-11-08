@@ -1,4 +1,7 @@
 #include "ReactionOverviewDialog.H"
+#include <wx/display.h>
+#include "wxgui/WindowShot.H"
+#include <algorithm>
 
 #include <cmath>
 #include <cstdio>
@@ -211,7 +214,8 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
   p_plot->SetToolTip(_("Right-click to copy the numbers"));
   top->Add(p_plot, 2, wxEXPAND | wxLEFT | wxRIGHT, 8);
   p_detail = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(720, 180),
-                            wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
+                            wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP | wxHSCROLL);
+  p_detail->SetMinSize(wxSize(300, 150));
   top->Add(p_detail, 1, wxEXPAND | wxALL, 8);
 
   wxBoxSizer *buttons = new wxBoxSizer(wxHORIZONTAL);
@@ -442,7 +446,25 @@ void ReactionOverviewDialog::showProfiles()
   p_profileChoice->Show(p_profiles.size() > 1);
   p_plot->Show(any);
   p_pngButton->Enable(any);
-  if (GetSizer()) Layout();
+  if (GetSizer()) {
+    // The dialog was fitted while the chart was hidden; a chart shown later needs the
+    // window to grow, or the layout squeezes it to a strip.
+    Layout();
+    const wxSize need = GetSizer()->GetMinSize();
+    wxSize want = GetClientSize();
+    if (any) {
+      want.x = std::max(want.x, std::max(need.x, 900));
+      want.y = std::max(want.y, std::max(need.y, 800));
+    }
+    want.x = std::max(want.x, need.x);
+    want.y = std::max(want.y, need.y);
+    const wxRect area = wxDisplay(wxDisplay::GetFromWindow(this) < 0 ? 0 : wxDisplay::GetFromWindow(this))
+                            .GetClientArea();
+    want.x = std::min(want.x, std::max(need.x, area.width - 80));
+    want.y = std::min(want.y, std::max(need.y, area.height - 120));
+    if (want != GetClientSize()) SetClientSize(want);
+    Layout();
+  }
 }
 
 string ReactionOverviewDialog::rateLines(int n) const
@@ -552,4 +574,17 @@ bool ReactionOverviewDialog::saveCsv(const string& file) const
   if (!f) return false;
   f << p_csv << "\n";
   return (bool)f;
+}
+
+string ReactionOverviewDialog::layoutReport(const string& shot)
+{
+  auto sz = [](wxWindow *w) { return std::to_string(w->GetSize().x) + "x" + std::to_string(w->GetSize().y); };
+  string r = "dialog=" + sz(this) + " plot=" + sz(p_plot) + " plotshown=" + (p_plot->IsShownOnScreen() ? "1" : "0") +
+             " choice=" + sz(p_profileChoice) + " choiceshown=" + (p_profileChoice->IsShownOnScreen() ? "1" : "0") +
+             " treatment=" + sz(p_treatment) + " treatmentenabled=" + (p_treatment->IsEnabled() ? "1" : "0") +
+             " detailenabled=" + (p_detail->IsEnabled() ? "1" : "0") +
+             " detailmulti=" + (p_detail->IsMultiLine() ? "1" : "0") +
+             " detailreadonly=" + (p_detail->IsEditable() ? "0" : "1") + " detail=" + sz(p_detail);
+  if (!shot.empty() && shot != "-") r += ecceWindowShot(this, wxString::FromUTF8(shot.c_str())) ? " shot=saved" : " shot=failed";
+  return r;
 }

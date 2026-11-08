@@ -396,9 +396,10 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
       const bool ok = en->selectRanks(ranks);
       spin(50);
       const double *p = getSG()->getFragment()->atomRef(0)->coordinates();
-      fprintf(stderr, "GTSTRESS: enselect %s ok=%d atom1 %.6f %.6f %.6f plot=%d\n",
+      fprintf(stderr, "GTSTRESS: enselect %s ok=%d atom1 %.6f %.6f %.6f plot=%d natoms=%d\n",
               w[1].c_str(), (int)ok, p[0], p[1], p[2],
-              plotOf(en) ? plotOf(en)->selectedIndex() + 1 : -1);
+              plotOf(en) ? plotOf(en)->selectedIndex() + 1 : -1,
+              getSG()->getFragment()->numAtoms());
     } else if (c == "gtencalc" && w.size() >= 2) {
       vector<int> ranks;
       for (size_t i = 2; i < w.size(); i++) ranks.push_back(atoi(w[i].c_str()));

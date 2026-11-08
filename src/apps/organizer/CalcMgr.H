@@ -9,6 +9,7 @@
 
 #include <wx/weakref.h>
 #include <wx/timer.h>
+#include <wx/fswatcher.h>
 #include <functional>
 #include <map>
 #include <set>
@@ -172,7 +173,9 @@ public:
                       string *outcome = 0, const string& shot = "",
                       const LaunchBatch::Target& target = LaunchBatch::Target());
   // Test hook: the batch without dialogs, left running; false if one runs.
-  bool launchSelectedAsync(const vector<EcceURL>& urls, string *outcome);
+  bool launchSelectedAsync(const vector<EcceURL>& urls, string *outcome,
+                           bool askForSettings = false);
+  bool askForMissingSettings(vector<LaunchSelected::Row>& rows);
   string launchBatchStatus() const;
   // ecce-launch (#687): Launch Selected without dialogs for a request from
   // another process. One line per calculation, "name\tok\tjob id" or
@@ -195,7 +198,8 @@ public:
   // line format ("name\tok\t" or "name\tno\treason"). Never refused.
   bool annotateForCommand(const vector<EcceURL>& urls, const string& text,
                           vector<string>& lines, const string& key = "");
-  // ecce-move / ecce-rename (#824): the Organizer's own move, same line format.
+  // ecce-move / ecce-rename (#824) and ecce-copy (#890): verb move, rename or
+  // copy; the Organizer's own operation, same line format.
   bool moveForCommand(const string& verb, const vector<EcceURL>& urls,
                       const string& second, vector<string>& lines);
   // ecce-workflow (#807): "ok <workflow URL>" or "error: reason".
@@ -515,7 +519,16 @@ protected:
   void syncServerRoots();
   bool connectServer(const string& ref);
   bool connectSsh(const string& address);
+  bool rememberedServer(const string& ref) const;
+  void disconnectServer(const string& ref);
+  void serverRootMenu(wxMenu& menu, const string& ref);
+  void serversMenu(wxMenu& menu);
+  void showServersMenu();
+  int p_serversToolId = wxID_ANY;
   string crossTreeRefusal(const vector<EcceURL>& sources, const EcceURL& dest);
+  bool isCrossTree(const EcceURL& a, const EcceURL& b);
+  string copyAcrossTrees(const EcceURL& src, const EcceURL& destFolder,
+                         bool move, bool unique, EcceURL& made);
   bool refuseAddedLaunch(const vector<EcceURL>& urls);
   void tellRefusal(const string& msg);
 
@@ -533,6 +546,7 @@ protected:
   void OnCompareEnergies(wxCommandEvent& event);
   bool p_compareEnergiesWired = false;
   // File > Export > Supporting Information (#625).
+  bool p_siExportWired = false;
   void OnRank(wxCommandEvent& event);
   // Tools > Allocations (#613).
   void OnAllocations(wxCommandEvent& event);
@@ -551,6 +565,27 @@ protected:
   void buildMachineNotice();
   void machineNoticeRegisterClickCB(wxCommandEvent& event);
   void OnActivate(wxActivateEvent& event);
+
+  // Auto-refresh (#889): the folder being shown follows changes made outside
+  // ECCE.  Local folders are watched; server and SSH folders are polled.
+  void autoRefreshArm();
+  void autoRefreshCheck();
+  void autoRefreshMark();
+  void autoRefreshTick();
+  bool autoRefreshIdle() const;
+  string autoRefreshStamp(const EcceURL& url);
+  WxResourceTreeItemData *autoRefreshFolder();
+  wxFileSystemWatcher *p_autoWatcher = 0;
+  wxTimer *p_autoDebounce = 0;   // settles a burst of events, then retries while busy
+  wxTimer *p_autoPoll = 0;       // 30 s, remote folders only
+  string p_autoUrl;              // the folder armed
+  string p_autoStamp;            // its last known modification time (remote)
+  bool p_autoDirty = false;
+  bool p_autoLocal = false;
+  int p_autoRetry = 0;
+  string p_autoTried;
+  int p_uiBusy = 0;              // popup menu or drag in progress
+  int p_autoReloads = 0;         // test hook
   ewxPanel   *p_machineNoticePanel;
   ReleaseNotice *p_releaseNotice;   // #273
   LaunchSelected::Batch *p_batch = 0;

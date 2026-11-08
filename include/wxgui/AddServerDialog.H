@@ -32,6 +32,7 @@ public:
   void fillForTest(bool ssh, const std::string& name, const std::string& a,
                    const std::string& b, const std::string& c);
   void acceptForTest();
+  void startupForTest(bool on) { p_startup->SetValue(on); }
 
 private:
   void OnType(wxCommandEvent& event);
@@ -44,6 +45,7 @@ private:
 
   std::string p_old;
   ServerEntry p_entry;
+  wxCheckBox* p_startup;
   ewxChoice* p_type;
   ewxTextCtrl* p_name;
   ewxTextCtrl* p_host;

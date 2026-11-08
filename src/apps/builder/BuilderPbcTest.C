@@ -93,9 +93,14 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     return true;
   }
 
-  //  "pbcpress <create|generate|replicate|restore|super|fold|delete> [n]":
-  //  press that Periodic Builder button; replicate first sets n x n x n.
+  //  "pbcpress <create|generate|replicate|restore|super|fold|delete|save> [n]":
+  //  Press the Periodic Builder button; replicate first sets n x n x n.
+  //  Save uses File > Save so edited fixtures can close without a prompt.
   if (c == "pbcpress" && w.size() >= 2) {
+    if (w[1] == "save") {
+      doSave();
+      return true;
+    }
     if (!pbc) return s.fail("pbcpress: no Periodic Builder panel");
     wxWindowID id = wxID_NONE;
     const string& b = w[1];
@@ -242,6 +247,22 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     p_mgr.Update();
     updatePanes(true);
     settle(400);
+    return true;
+  }
+
+  //  "floatstyle <pane> <tag>" -> <outdir>/<tag>.txt: the floating frame's
+  //  style flags.
+  if (c == "floatstyle" && w.size() == 3) {
+    string name = w[1];
+    for (char& ch : name) if (ch == '_') ch = ' ';
+    wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
+    if (!pane.IsOk() || !pane.IsFloating() || !pane.frame)
+      return s.fail("floatstyle: " + name + " is not floating");
+    const long st = pane.frame->GetWindowStyleFlag();
+    std::ofstream out(outdir + "/" + w[2] + ".txt");
+    out << "onparent " << ((st & wxFRAME_FLOAT_ON_PARENT) ? 1 : 0)
+        << " notaskbar " << ((st & wxFRAME_NO_TASKBAR) ? 1 : 0);
+    out << "\n";
     return true;
   }
 
@@ -498,7 +519,7 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
   }
 
   //  "pbcset <field> <value>": type <value> into a Periodic Builder text
-  //  field (a b c alpha beta gamma) and press Enter in it.
+  //  field (a b c alpha beta gamma or a1x .. a3z) and press Enter in it.
   if (c == "pbcset" && w.size() == 3) {
     if (!pbc) return s.fail("pbcset: no Periodic Builder panel");
     wxWindowID id = wxID_NONE;
@@ -508,6 +529,15 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     else if (w[1] == "alpha") id = PBCGUI::ID_TEXTCTRL_PBC_ALPHA;
     else if (w[1] == "beta") id = PBCGUI::ID_TEXTCTRL_PBC_BETA;
     else if (w[1] == "gamma") id = PBCGUI::ID_TEXTCTRL_PBC_GAMMA;
+    else if (w[1] == "a1x") id = PBCGUI::ID_TEXTCTRL_PBC_A1X;
+    else if (w[1] == "a1y") id = PBCGUI::ID_TEXTCTRL_PBC_A1Y;
+    else if (w[1] == "a1z") id = PBCGUI::ID_TEXTCTRL_PBC_A1Z;
+    else if (w[1] == "a2x") id = PBCGUI::ID_TEXTCTRL_PBC_A2X;
+    else if (w[1] == "a2y") id = PBCGUI::ID_TEXTCTRL_PBC_A2Y;
+    else if (w[1] == "a2z") id = PBCGUI::ID_TEXTCTRL_PBC_A2Z;
+    else if (w[1] == "a3x") id = PBCGUI::ID_TEXTCTRL_PBC_A3X;
+    else if (w[1] == "a3y") id = PBCGUI::ID_TEXTCTRL_PBC_A3Y;
+    else if (w[1] == "a3z") id = PBCGUI::ID_TEXTCTRL_PBC_A3Z;
     else return s.fail("pbcset: unknown field " + w[1]);
     wxTextCtrl *t = dynamic_cast<wxTextCtrl*>(pbc->FindWindow(id));
     if (!t) return s.fail("pbcset: no field " + w[1]);

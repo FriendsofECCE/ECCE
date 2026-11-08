@@ -447,7 +447,10 @@ public:
     for (const WfBox &b : p_boxes) {
       auto it = blocked.find(b.step);
       out += (out.empty() ? "" : "|") + b.step->getName() + ":" +
-             (it == blocked.end() ? "1:" : "0:" + it->second);
+             (it == blocked.end()
+                  ? "1:" + b.step->getProp(VDoc::getEcceNamespace() +
+                                           WorkflowSteps::kNotReadyProp)
+                  : "0:" + it->second);
     }
     return out;
   }
@@ -508,8 +511,12 @@ private:
     wxString tip;
     if (b && playRect(*b).Contains(at)) {
       const string why = playBlocker(*b);
-      tip = why.empty() ? wxString("Launch this step")
-                        : wxString::FromUTF8(("Cannot launch: " + why).c_str());
+      // Launchable but not as it stands (no deck or no machine): say why.
+      const string note = b->step->getProp(VDoc::getEcceNamespace() +
+                                           WorkflowSteps::kNotReadyProp);
+      tip = !why.empty() ? wxString::FromUTF8(("Cannot launch: " + why).c_str())
+          : note.empty() ? wxString("Launch this step")
+                         : wxString::FromUTF8(("Launch this step; " + note).c_str());
     }
     if (tip != GetToolTipText()) SetToolTip(tip);
     e.Skip();
@@ -1180,6 +1187,16 @@ void WorkflowPanel::launchReadyClicked()
 {
   say("");
   p_calcMgr->launchReadySteps(p_session, true, 0, "");
+}
+
+
+void WorkflowPanel::clickAutoRun(bool on)
+{
+  p_autorun->SetValue(on);
+  wxCommandEvent evt(wxEVT_CHECKBOX, p_autorun->GetId());
+  evt.SetEventObject(p_autorun);
+  evt.SetInt(on ? 1 : 0);
+  p_autorun->GetEventHandler()->ProcessEvent(evt);
 }
 
 
