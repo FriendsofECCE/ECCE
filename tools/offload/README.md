@@ -15,7 +15,7 @@ pushed to GitHub**: the host fetches from GitHub, not from this machine.
 | `ctesti [-R re ...]` | as ctest, with this ref installed for the GUI tests (`apps_*` skip without an install) |
 | `teaching [args]` | build, then `tests/teaching/run_tests.py --jobs 4 [args]` |
 | `apps [args]` | build and install into the build dir, then `tests/apps/run_tests.py` |
-| `apptest <script.py ...>` | the same install, then each named GUI test script against it (e.g. `tests/apps/mo_explore_workflow_test.py`) |
+| `apptest <script.py [args] ...>` | the same install, then each named GUI test script against it, with the arguments that follow it (e.g. `tests/apps/examples_preparsed_test.py genchem`); the job fails when any script does |
 | `run <cmd...>` | build, then any command in the checkout (`$SRC`; build tree `$BLD/b`) |
 
 The full log stays on the host (`<host>:.../logs/<time>-<ref>-<pid>.log`);

@@ -44,8 +44,10 @@ def propsOf(project):
     return found
 
 
-def waitStable(project, count, seconds=300):
-    """The property files of all `count` calculations stopped changing."""
+def waitStable(project, count, seconds=300, seen=None):
+    """The property files of all `count` calculations stopped changing.
+    SEEN gets the last calculations found and those annotated, for the
+    failure message."""
     end = time.time() + seconds
     last, stable, changed = None, 0, time.time()
     while time.time() < end:
@@ -67,6 +69,9 @@ def waitStable(project, count, seconds=300):
             except OSError:
                 return False
         annotated = sum(1 for c in now if noted(paths[c]))
+        if seen is not None:
+            seen["found"] = sorted(now)
+            seen["bare"] = sorted(c for c in now if not noted(paths[c]))
         state = (now, sizes, annotated)
         if len(now) == count and annotated == count and state == last:
             stable += 1
@@ -101,14 +106,15 @@ def main():
     os.makedirs(os.path.join(data, "users", "local"))
     os.environ["ECCE_LOCAL_DATA"] = data
     project = os.path.join(data, "users", "local", projectName)
-    ok = {}
+    ok, seen = {}, {}
     with xdisplay.Display() as display:
         subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")],
                        env=display.env(), timeout=180)
         # Polled from the start, so the time to the last property file is
         # not rounded up to the settle period.
         watcher = threading.Thread(
-            target=lambda: ok.update(done=waitStable(project, count)))
+            target=lambda: ok.update(done=waitStable(project, count,
+                                                     seen=seen)))
         t0 = time.time()
         watcher.start()
         try:
@@ -129,8 +135,15 @@ def main():
                            env=display.env(), timeout=120)
     log = result.log or ""
     if result.crashed or not ok.get("done"):
-        print("FAIL: the first-start import did not finish (found %s)\n%s"
-              % (sorted(propsOf(project)), log[-2000:]))
+        # The summary goes last: callers keep only the tail of the output.
+        found = seen.get("found", [])
+        topics = {}
+        for c in found:
+            topics[c.split(os.sep)[0]] = topics.get(c.split(os.sep)[0], 0) + 1
+        print("%s\nFAIL: the first-start import did not settle: %d of %d "
+              "calculations found (by topic %s), %d without their note %s"
+              % (log[-2000:], len(found), count, topics,
+                 len(seen.get("bare", [])), seen.get("bare", [])[:20]))
         return 1
     took = re.findall(r"Organizer: examples %s imported in ([0-9.]+) s" % setId, log)
     copied = len(re.findall(r"Organizer: example copied:", log))

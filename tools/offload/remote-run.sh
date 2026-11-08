@@ -92,7 +92,7 @@ case $cmd in
   teaching) inner='configure; ${BUILDWRAP:-} ninja -C $BLD/b -j'$JOBS' -k 0 && cd $SRC && tests/teaching/run_tests.py --build $BLD/b --jobs 4 "$@"' ;;
   apps)     inner='install_tree; cd $SRC && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin tests/apps/run_tests.py "$@"' ;;
   clip)     inner='install_tree; cd $SRC && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin tests/apps/clip_test.py "$@"' ;;
-  apptest)  inner='install_tree; cd $SRC && export ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin ECCE_TEST_BUILD=$BLD/bi && for t in "$@"; do echo "== $t"; python3 "$t" || echo "FAILED $t rc=$?"; done' ;;
+  apptest)  inner='install_tree; cd $SRC && export ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin ECCE_TEST_BUILD=$BLD/bi && apptests "$@"' ;;
   run)      inner='configure; cd $SRC && "$@"' ;;
   *) fail "unknown command '$cmd' (build|ctest|ctesti|teaching|apps|apptest|clip|run)" ;;
 esac
@@ -105,6 +105,25 @@ install_tree() {
     -DCMAKE_INSTALL_PREFIX=$BLD/install -DECCE_HOME_DIR=$BLD/install \
     -DECCE_WRAPPER_DESTINATION=$BLD/install-bin || return 1
   ${BUILDWRAP:-} ninja -C $BLD/bi -j'$JOBS' -k 0 && ninja -C $BLD/bi install
+}
+# Each *.py argument is a test script; the arguments after it are its own.
+# The job fails when any script fails (77 is a skip).
+apptests() {
+  local t= x r failed=0
+  local -a a=()
+  for x in "$@" ""; do
+    if [ -z "$x" ] || [[ $x == *.py ]]; then
+      if [ -n "$t" ]; then
+        echo "== $t ${a[*]}"
+        r=0; python3 "$t" "${a[@]}" || r=$?
+        [ $r -eq 0 ] || [ $r -eq 77 ] || { echo "FAILED $t rc=$r"; failed=1; }
+      fi
+      t=$x; a=()
+    else
+      a+=("$x")
+    fi
+  done
+  return $failed
 }
 set -e'
 
