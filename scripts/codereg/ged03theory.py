@@ -396,7 +396,7 @@ class Ged03TheoryPanel(EccePanel):
             self.scrfDielec = EcceFloatInput(self,
                                               default = 78.4,
                                               name = "ES.Theory.SCF.Dielectric",
-                                              label = "Dielectric constant (ε_r):",
+                                              label = "Dielectric constant (εᵣ):",
                                               hardRange = "(0..)")
             sovRightSizer.AddWidget(self.scrfDielec,
                                     border = EcceGlobals.BorderDefault)
