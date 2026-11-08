@@ -11,6 +11,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <unistd.h>
+#include <tuple>
 #include <utility>
 
 #include <wx/menu.h>
@@ -1438,8 +1439,8 @@ void Builder::makeRoomFor(const wxString& name)
 
 
 /**
- * Shares the right-hand column among its tool panes when their own height
- * floors do not fit in it.  AUI lays out the panes that fit and gives the
+ * Shares the right-hand column, and a column of tools docked on the left,
+ * among its tool panes when their own height floors do not fit in it.  AUI lays out the panes that fit and gives the
  * rest no height (Symmetry, the last default pane, on a 1400x900 screen);
  * each pane's floor is scaled down by the same factor instead, and its
  * controls scroll.  On a screen with room every pane keeps its floor.
@@ -1451,33 +1452,42 @@ bool Builder::fitToolColumn()
   static const int SHRUNK_FLOOR = 40;
   bool changed = false;
   for (int round = 0; round < 3; ++round) {
-    vector<wxAuiPaneInfo*> column;
-    int avail = 0, need = 0;
+    //  The right-hand column, and any column of tools docked on the left
+    //  (dragged there), each shared on its own.
+    map<std::tuple<int, int, int>, vector<wxAuiPaneInfo*> > columns;
     wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
     for (size_t i = 0; i < panes.GetCount(); ++i) {
       wxAuiPaneInfo &pane = panes.Item(i);
+      const bool right = pane.dock_direction == wxAUI_DOCK_RIGHT &&
+                         pane.dock_layer >= 1;
+      const bool left = pane.dock_direction == wxAUI_DOCK_LEFT;
       if (!pane.IsShown() || pane.IsFloating() || pane.IsToolbar() ||
-          !pane.window || pane.dock_direction != wxAUI_DOCK_RIGHT ||
-          pane.dock_layer < 1 || p_folded.count(pane.window) ||
+          !pane.window || !(right || left) || p_folded.count(pane.window) ||
           !p_paneFloor.count(pane.window)) {
         continue;
       }
-      column.push_back(&pane);
-      avail += std::max(0, pane.rect.height);
-      need += p_paneFloor[pane.window];
+      columns[std::make_tuple(pane.dock_direction, pane.dock_layer,
+                              pane.dock_row)].push_back(&pane);
     }
-    //  Not laid out yet: a frame not yet sized would shrink everything.
-    if (avail <= 0) break;
     bool now = false;
-    for (size_t i = 0; i < column.size(); ++i) {
-      wxAuiPaneInfo &pane = *column[i];
-      const int floor = p_paneFloor[pane.window];
-      const int want = need <= avail ? floor :
-          std::min(floor, std::max(SHRUNK_FLOOR,
-                                   (int)((long)floor * avail / need)));
-      if (pane.min_size.y != want) {
-        pane.MinSize(wxSize(pane.min_size.x, want));
-        now = true;
+    for (auto &entry : columns) {
+      const vector<wxAuiPaneInfo*> &column = entry.second;
+      int avail = 0, need = 0;
+      for (wxAuiPaneInfo *pane : column) {
+        avail += std::max(0, pane->rect.height);
+        need += p_paneFloor[pane->window];
+      }
+      //  Not laid out yet: a frame not yet sized would shrink everything.
+      if (avail <= 0) continue;
+      for (wxAuiPaneInfo *pane : column) {
+        const int floor = p_paneFloor[pane->window];
+        const int want = need <= avail ? floor :
+            std::min(floor, std::max(SHRUNK_FLOOR,
+                                     (int)((long)floor * avail / need)));
+        if (pane->min_size.y != want) {
+          pane->MinSize(wxSize(pane->min_size.x, want));
+          now = true;
+        }
       }
     }
     if (!now) break;
