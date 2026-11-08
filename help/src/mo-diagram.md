@@ -12,6 +12,10 @@ For ECCE-QM it follows the point selected in the **Relaxed Scan** or **IRC
 Path** panel instead, as do the **MOs** panel and its orbital list. An ORCA
 IRC has orbitals at the TS point only; select it to see them.
 
+For a MOPAC calculation the diagram shows the levels only, with the symmetry
+labels and occupations MOPAC reports; there are no fragment columns, because
+orbital composition is not available for semi-empirical results.
+
 Click a level and its orbital is drawn in the 3-D view by the **MOs** panel.
 Click an atom or a bond in the 3-D view first to choose the part the diagram
 is built around.

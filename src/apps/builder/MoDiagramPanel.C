@@ -271,6 +271,16 @@ string MoDiagramPanel::levelText(int level)
 }
 
 
+//  MOPAC's coefficients are in an orthonormal basis that composition and the
+//  fragment columns cannot project on; only the level diagram is drawn (#911).
+static bool noCompositionFor(IPropCalculation *calc)
+{
+  ICalculation *esCalc = dynamic_cast<ICalculation*>(calc);
+  const JCode *app = esCalc != 0 ? esCalc->application() : 0;
+  return app != 0 && app->name() == "MOPAC";
+}
+
+
 string MoDiagramPanel::calcLevelText(int n)
 {
   if (!p_canvas) return string();
@@ -281,7 +291,7 @@ string MoDiagramPanel::calcLevelText(int n)
 string MoDiagramPanel::orbitalComposition(const vector<int>& orbengIndices)
 {
   IPropCalculation *calc = getCalculation();
-  if (calc == 0) return "";
+  if (calc == 0 || noCompositionFor(calc)) return "";
   set<PropertyPanel*> panels =
       PropertyPanel::getPanels(calc->getURL().toString(), "MOs");
   for (set<PropertyPanel*>::iterator it = panels.begin();
@@ -1192,10 +1202,8 @@ bool MoDiagramPanel::isRelevant(IPropCalculation *propCalc) const
   ICalculation *esCalc = dynamic_cast<ICalculation*>(propCalc);
   if (esCalc != 0) {
     const JCode *app = esCalc->application();
-    //  Not for MOPAC for now (Andy, 2026-10-17): its orthonormal basis gives
-    //  the fragment-orbital diagram nothing to project on, and the symmetry
-    //  route alone is not worth offering for it yet.
-    if (app != 0 && app->name() == "MOPAC") return false;
+    //  MOPAC gets the level diagram only (ORBSYM labels, ORBOCC occupations):
+    //  its orthonormal basis gives composition nothing to project on (#911).
     if (app != 0 && !app->supportsMODiagram()) {
       Preferences prefs(PrefLabels::GLOBALPREFFILE);
       //  Must match GlobalPrefs' default for an unset preference.
@@ -1217,9 +1225,11 @@ void MoDiagramPanel::initialize()
   //  A MOs panel already listing the localised set did not tell a diagram
   //  that did not exist yet.
   IPropCalculation *calc = getCalculation();
+  bool localised = false;
   if (calc != 0)
     for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString(), "MOs"))
-      if (MoPanel *mo = dynamic_cast<MoPanel*>(p)) orbitalSetChanged(mo->localisedShown());
+      if (MoPanel *mo = dynamic_cast<MoPanel*>(p)) localised = mo->localisedShown();
+  orbitalSetChanged(localised);
   build();
 }
 
@@ -1229,10 +1239,16 @@ void MoDiagramPanel::orbitalSetChanged(bool localisedListed)
   if (p_status == 0) return;
   //  The localised set has no symmetry and no fragment correlation to draw,
   //  so the diagram stays canonical and says so where the MO list disagrees.
-  const wxString text = localisedListed
+  wxString text = localisedListed
       ? _("This diagram shows the canonical MOs. The MOs panel lists the "
           "localised MOs; clicking a level switches it back to the canonical MOs.")
       : wxString();
+  //  The one-line reason there is no fragment composition (#911).
+  if (text.empty()) {
+    if (noCompositionFor(getCalculation()))
+      text = _("Orbital composition is not available for semi-empirical results; "
+               "the levels carry the symmetry labels and occupations MOPAC reports.");
+  }
   if (text == p_status->GetLabel() && p_status->IsShown() == !text.empty()) return;
   p_status->SetLabel(text);
   p_status->Wrap(std::max(200, GetClientSize().GetWidth() - 8));
@@ -3452,7 +3468,7 @@ void MoDiagramPanel::buildOnce()
   //  set splits into b1 + b2 + b3 -- but it is correct, and it is what
   //  the calculation computed.  Drawing it in Td instead would be
   //  claiming a degeneracy the numbers do not have.
-  if (!s.empty() && !group.empty()) {
+  if (!noCompositionFor(calc) && !s.empty() && !group.empty()) {
     const CharacterTable *structure = CharacterTable::lookup(group);
 
     //  What the calculation actually reported, canonicalised.
@@ -3531,7 +3547,7 @@ void MoDiagramPanel::buildOnce()
   string modelVerdict;
   bool modelVerdictOk = true;
 
-  if (!elements.empty()) {
+  if (!elements.empty() && !noCompositionFor(calc)) {
     //  OFFER THE CHOICE, AND HONOUR IT.
     //
     //  fillFragmentChooser() existed and was called from nowhere, so
