@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <eccejobstore>
-     <event  type="Message"  name="Job log started for calculation"  date="Sat, 07 Nov 2026 13:41:01 CET" >file:///tmp/claude-1000/-home-andy-tmp-ecce-ECCE/ed743b56-bac1-4ceb-b889-6ce3b0b76712/scratchpad/h/.cache/ecce-apps-vg295akm/examples-arm-fjbyxehm/data/users/local/Examples/General_Chemistry/How_a_chemical_bond_forms/h2_bond_curve     </event>
-     <event  type="Message"  name="eccejobstore running on client"  date="Sat, 07 Nov 2026 13:41:01 CET" >niobium     </event>
-     <event  type="Message"  name="Cache"  date="Sat, 07 Nov 2026 13:41:01 CET" >Successfully started property parsing cache     </event>
-     <event  type="Message"  name="Local cache directory"  date="Sat, 07 Nov 2026 13:41:01 CET" >/tmp/ecce_andy/jobs/h2_bond_curve__393AG8     </event>
-     <event  type="Message"  name="Job Monitor"  date="Sat, 07 Nov 2026 13:41:01 CET" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
-     <event  type="Message"  name="System"  date="Sat, 07 Nov 2026 13:41:01 CET" >Started local RCommand connection     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sat, 07 Nov 2026 13:41:01 CET" >Receiving calculation output from eccejobmonitor     </event>
-     <event  type="Message"  name="eccejobstore"  date="Sat, 07 Nov 2026 13:41:01 CET" >out of contact after 60 s of silence, reconnect after 180 s     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Sat, 07 Nov 2026 13:41:01 CET" >Running     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sat, 07 Nov 2026 13:41:42 CET" >File marked to copy from compute host: h2_bond_curve.allxyz     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sat, 07 Nov 2026 13:41:42 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '/tmp/claude-1000/-home-andy-tmp-ecce-ECCE/ed743b56-bac1-4ceb-b889-6ce3b0b76712/scratchpad/h/.cache/ecce-apps-vg295akm/ecce-home/data/client/examples/genchem/bond-formation/orca-h2_bond_curve/orca.orcain_IRC_Full_trj.xyz' does not exist     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sat, 07 Nov 2026 13:41:42 CET" >File marked to copy from compute host: h2_bond_curve.out     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sat, 07 Nov 2026 13:41:42 CET" >File marked to copy from compute host: h2_bond_curve.out     </event>
-     <event  type="Message"  name="Benchmark"  date="Sat, 07 Nov 2026 13:41:42 CET" >Before file copy of output files     </event>
-     <event  type="Message"  name="Benchmark"  date="Sat, 07 Nov 2026 13:41:42 CET" >After file copy of output files     </event>
-     <event  type="Message"  name="File Copy"  date="Sat, 07 Nov 2026 13:41:42 CET" >Successfully copied files from server--
-RCommand::get(niobium, , , <elided>, {/tmp/ecce_andy/jobs/h2_bond_curve__IjffBY/h2_bond_curve.out,/tmp/ecce_andy/jobs/h2_bond_curve__IjffBY/h2_bond_curve.allxyz,/tmp/ecce_andy/jobs/h2_bond_curve__IjffBY/*.cub,/tmp/ecce_andy/jobs/h2_bond_curve__IjffBY/*.cube,/tmp/ecce_andy/jobs/h2_bond_curve__IjffBY/*.file30}, /tmp/ecce_andy/jobs/h2_bond_curve__393AG8) succeeded     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Sat, 07 Nov 2026 13:41:42 CET" >Loaded     </event>
-     <event  type="Message"  name="eccejobstore exit"  date="Sat, 07 Nov 2026 13:41:42 CET" >eccejobstore terminating normally, exit status 0     </event>
+     <event  type="Message"  name="Job log started for calculation"  date="Sun, 08 Nov 2026 19:18:08 CET" >file:///home/andy/.cache/ecce-apps-kp8u40yq/examples-arm-fq6kf62s/data/users/local/Examples/General_Chemistry/How_a_chemical_bond_forms/h2_bond_curve     </event>
+     <event  type="Message"  name="eccejobstore running on client"  date="Sun, 08 Nov 2026 19:18:08 CET" >niobium     </event>
+     <event  type="Message"  name="Cache"  date="Sun, 08 Nov 2026 19:18:08 CET" >Successfully started property parsing cache     </event>
+     <event  type="Message"  name="Local cache directory"  date="Sun, 08 Nov 2026 19:18:08 CET" >/tmp/ecce_andy/jobs/h2_bond_curve__zwso7s     </event>
+     <event  type="Message"  name="Job Monitor"  date="Sun, 08 Nov 2026 19:18:08 CET" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
+     <event  type="Message"  name="System"  date="Sun, 08 Nov 2026 19:18:08 CET" >Started local RCommand connection     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 08 Nov 2026 19:18:08 CET" >Receiving calculation output from eccejobmonitor     </event>
+     <event  type="Message"  name="eccejobstore"  date="Sun, 08 Nov 2026 19:18:08 CET" >out of contact after 60 s of silence, reconnect after 180 s     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Sun, 08 Nov 2026 19:18:08 CET" >Running     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 08 Nov 2026 19:20:57 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '/home/andy/.cache/ecce-apps-kp8u40yq/.ECCE//examples/genchem/bond-formation/orca-h2_bond_curve/orca.orcain_IRC_Full_trj.xyz' does not exist     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 08 Nov 2026 19:20:57 CET" >File marked to copy from compute host: h2_bond_curve.allxyz     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 08 Nov 2026 19:20:57 CET" >File marked to copy from compute host: h2_bond_curve.out     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Sun, 08 Nov 2026 19:20:57 CET" >File marked to copy from compute host: h2_bond_curve.out     </event>
+     <event  type="Message"  name="Benchmark"  date="Sun, 08 Nov 2026 19:20:57 CET" >Before file copy of output files     </event>
+     <event  type="Message"  name="Benchmark"  date="Sun, 08 Nov 2026 19:20:57 CET" >After file copy of output files     </event>
+     <event  type="Message"  name="File Copy"  date="Sun, 08 Nov 2026 19:20:57 CET" >Successfully copied files from server--
+RCommand::get(niobium, , , <elided>, {/tmp/ecce_andy/jobs/h2_bond_curve__fg9G1L/h2_bond_curve.out,/tmp/ecce_andy/jobs/h2_bond_curve__fg9G1L/h2_bond_curve.allxyz,/tmp/ecce_andy/jobs/h2_bond_curve__fg9G1L/*.cub,/tmp/ecce_andy/jobs/h2_bond_curve__fg9G1L/*.cube,/tmp/ecce_andy/jobs/h2_bond_curve__fg9G1L/*.file30}, /tmp/ecce_andy/jobs/h2_bond_curve__zwso7s) succeeded     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Sun, 08 Nov 2026 19:20:59 CET" >Loaded     </event>
+     <event  type="Message"  name="eccejobstore exit"  date="Sun, 08 Nov 2026 19:20:59 CET" >eccejobstore terminating normally, exit status 0     </event>
 </eccejobstore>

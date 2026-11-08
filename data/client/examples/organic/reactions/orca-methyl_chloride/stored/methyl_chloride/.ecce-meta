@@ -1,13 +1,13 @@
-.	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/SetupParams" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/BasisSet.ecce_basisset" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/SetupParams" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, B3LYP-D3BJ/ma-def2-SVP. Optimisation and frequencies. This calculation shows the product of the SN2 reaction, with an electronic energy of -499.863026 Eh.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 03 Nov 2026 05:23:52 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 08 Nov 2026 18:36:55 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
-.	http://www.emsl.pnl.gov/ecce:createdWith		9.4.7
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 03 Nov 2026 05:23:49 GMT
-.	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.7
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.4.11-dev
+.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 08 Nov 2026 18:36:52 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.4.11-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/methyl_chloride__fadj4K
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/methyl_chloride__MIOJHS
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
 .	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
@@ -36,7 +36,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=3 sent=1793683431.990 at=1793683431\nopt step=4 energy=-499.863283039 dE=0.0000031464/0.0000010000 rmsgrad=0.0000098510/0.0000300000 maxgrad=0.0000195912/0.0001000000 rmsstep=0.0000342939/0.0006000000 maxstep=0.0000483818/0.0010000000 converged=yes\nopt~ rmsgrad=0.0042687681,0.0002437605,0.0000517608,0.0000098510\nopt~ maxgrad=0.0075656010,0.0006164290,0.0001030583,0.0000195912\nscf cycle=2 energy=-499.8594657408756348 dE=-2.83e-10/1.000e-08\nscf~ dE=0.00e+00,-2.83e-10\nfreq kind=analytic point=15/15 phase=assemble last=Van real=9 imaginary=0 done=yes zpe=0.03744575\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794163014.517 at=1794163015\nopt step=4 energy=-499.863283039 dE=0.0000031464/0.0000010000 rmsgrad=0.0000098510/0.0000300000 maxgrad=0.0000195912/0.0001000000 rmsstep=0.0000342939/0.0006000000 maxstep=0.0000483818/0.0010000000 converged=yes\nopt~ rmsgrad=0.0042687681,0.0002437605,0.0000517608,0.0000098510\nopt~ maxgrad=0.0075656010,0.0006164290,0.0001030583,0.0000195912\nscf cycle=2 energy=-499.8594657408756348 dE=-2.83e-10/1.000e-08\nscf~ dE=0.00e+00,-2.83e-10\nfreq kind=analytic point=15/15 phase=assemble last=Van real=9 imaginary=0 done=yes zpe=0.03744575\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -48,7 +48,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 03 Nov 2026 05:23:49 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 18:36:53 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793683429
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794163012
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT
