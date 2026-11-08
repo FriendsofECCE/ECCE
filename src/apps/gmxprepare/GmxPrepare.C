@@ -656,6 +656,19 @@ string GmxPrepare::runTestCommand(const string& line)
       snprintf(b, sizeof b, "frame %d %d page %d %d virtual %d %d", f.x, f.y,
                c.x, c.y, v.x, v.y);
       return b;
+   } else if (cmd == "fit") {
+      // What the page's virtual size is made from: the panel's cached best
+      // size, its sizer's fresh minimum, and the size it was given.
+      wxScrolledWindow *page = dynamic_cast<wxScrolledWindow*>(p_panel->GetParent());
+      wxSize c = page ? page->GetClientSize() : wxSize(0, 0),
+             v = page ? page->GetVirtualSize() : wxSize(0, 0),
+             best = p_panel->GetBestSize(), need = p_panel->GetSizer()->CalcMin(),
+             got = p_panel->GetSize();
+      char b[240];
+      snprintf(b, sizeof b, "page %d %d virtual %d %d best %d %d need %d %d "
+               "panel %d %d", c.x, c.y, v.x, v.y, best.x, best.y, need.x,
+               need.y, got.x, got.y);
+      return b;
    } else if (cmd == "verify") {
       string text = verifyText(), out, l;
       std::istringstream in(text);

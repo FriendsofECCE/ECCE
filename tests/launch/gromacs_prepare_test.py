@@ -104,6 +104,8 @@ def main():
                     help="run only the Organizer section")
     ap.add_argument("--ui-only", action="store_true",
                     help="run only the editor window section")
+    ap.add_argument("--small-only", action="store_true",
+                    help="run only the editor window at 1024x600 (#839)")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
 
@@ -133,6 +135,10 @@ def main():
 
         if args.ui_only:
             ui_section(s, build, args.png or os.path.join(s.state, "png"))
+            return 1 if failures else 0
+
+        if args.small_only:
+            small_screen_section(s, build, args.png or os.path.join(s.state, "png"))
             return 1 if failures else 0
 
         if args.clayff_only:
@@ -294,6 +300,7 @@ def main():
         # ---- the editor ---------------------------------------------------
         editor_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
         ui_section(s, build, args.png or os.path.join(s.state, "png"))
+        small_screen_section(s, build, args.png or os.path.join(s.state, "png"))
         minff_section(s, build, rundir, args.png or os.path.join(s.state, "png"))
         clayff_section(s, build, os.path.join(s.state, "run-clayff"))
         ffimport_section(s, build, rundir, gmx)
@@ -1001,6 +1008,58 @@ def ui_section(s, build, png):
                 f = ed.cmd("fields")
                 check("repshown=%s repfields=%s " % (rep, "|".join(rep.split())) in f + " ",
                       "reopened, the repeat shows %r: %s" % (rep, f.split("repshown=")[-1][:20]))
+        finally:
+            ed.close()
+
+
+def small_screen_section(s, build, png):
+    """At 1024x600 the System page is shorter than its boxes and must scroll
+    (#839): the page's virtual height is at least what the panel's sizer
+    needs, so no box is cut off at the bottom, in all three sources."""
+    if not shutil.which("Xvfb") or not os.access(os.path.join(build, "gmxprepare"), os.X_OK):
+        say("  (no Xvfb or no gmxprepare: the small-screen window is not checked)")
+        return
+    import xdisplay
+    import gromacs_test
+    harness.link(os.path.join(build, "gmxprepare"), os.path.join(s.home, "bin", "gmxprepare"))
+    wrappers = os.path.join(s.home, "wrappers-small")
+    shutil.rmtree(wrappers, ignore_errors=True)
+    shutil.copytree(os.path.join(build, "wrappers"), wrappers)
+    for entry in os.listdir(wrappers):
+        os.chmod(os.path.join(wrappers, entry), 0o755)
+    os.makedirs(png, exist_ok=True)
+    if not s.services(True):
+        check(False, "services came up for the small-screen editor")
+        return
+    rc, out = s.driver("gromacsprepstudy", s.userUrl(), "smallprep",
+                       os.path.join(FIXTURES, "1l2y.pdb"), "bare")
+    urls = urls_of(out)
+    if not check(rc == 0 and len(urls) == 3, "a study with a bare Prepare was made"):
+        return
+    with xdisplay.Display(screen="1024x600x24") as display:
+        cmddir = os.path.join(s.state, "mded-small")
+        os.makedirs(cmddir, exist_ok=True)
+        genv = s.env({"DISPLAY": display.name, "ECCE_TEST_MDED": cmddir,
+                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+        ed = gromacs_test.Editor(s, display, genv, wrappers, cmddir,
+                                 "gmxprepare", "GMXPrepare")
+        try:
+            if not ed.up():
+                return
+            check(ed.cmd("open " + urls[1]) == "ok", "the Prepare opens at 1024x600")
+            for tag, cmds in (("protein", []), ("minff", ["set source minff"]),
+                              ("clayff", ["set mff clayff"]),
+                              ("protein-again", ["set source protein"])):
+                for c in cmds:
+                    ed.cmd(c)
+                fit = ed.cmd("fit")
+                say("  1024x600 %s: size %s; fit %s" % (tag, ed.cmd("size"), fit))
+                n = [int(x) for x in re.findall(r"-?\d+", fit)]
+                check(len(n) == 10 and n[3] >= n[7] and n[9] >= n[7]
+                      and n[2] >= n[6] and n[8] >= n[6],
+                      "%s: the page scrolls over all the panel needs "
+                      "(virtual %s, needs %s, panel %s)" % (tag, n[2:4], n[6:8], n[8:10]))
+                ed.cmd("snap " + os.path.join(png, "gmxprepare-1024x600-%s.png" % tag))
         finally:
             ed.close()
 
