@@ -9,6 +9,8 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 ## Entries
 
+- [Cell labels skip collapsed vectors and balance GL current state (#723)](cell-label-rendering.md)
+
 ### wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls
 
 - [Photographing the Builder: scene-script hooks (measure, assigncharges, gtstep, panelfloat, shot) and tools/screenshots/shots.py (#860)](builder-scene-script-photo-hooks-860.md)
