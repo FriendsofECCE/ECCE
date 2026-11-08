@@ -323,6 +323,10 @@ def checkRestore(display, results, verbose=False):
                         where, "sent after #INITIALIZED: %s, expected %s\n"
                         "      %s" % (late, sorted(case["resent"]),
                                       _why(case)))
+        for word in case.get("forbid", ()):
+            if word in repr(after["widgets"]):
+                results.fail(where, "%r still appears in the dialog\n      %s"
+                             % (word, _why(case)))
         for name, expected in case["expect"].items():
             if name not in got:
                 results.fail(where, "the dialog built no widget named %s"
