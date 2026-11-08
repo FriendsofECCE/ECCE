@@ -58,17 +58,25 @@ hold 1
 
 
 def blocks(log):
+    """One dict per `OPDOS: <cmd>` state dump; `text` is the last key and spans lines."""
     out = []
     lines = log.splitlines()
     for i, line in enumerate(lines):
-        if line.startswith("OPDOS: opdos"):
-            b = {"cmd": line.split()[1]}
-            for item in lines[i + 1:]:
-                if item.startswith("OPDOS") or item.startswith("PLOTSHOT"):
-                    break
-                k, _, v = item.partition(" ")
-                b[k] = v
-            out.append(b)
+        m = re.search(r"OPDOS: (opdos\w+)", line)
+        if not m:
+            continue
+        b = {"cmd": m.group(1)}
+        last = None
+        for item in lines[i + 1:]:
+            if "OPDOS: opdos" in item or item.startswith("PLOTSHOT"):
+                break
+            if last == "text":
+                b["text"] += "\n" + item
+                continue
+            k, _, v = item.partition(" ")
+            b[k] = v
+            last = k
+        out.append(b)
     return out
 
 
