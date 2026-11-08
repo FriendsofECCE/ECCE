@@ -252,11 +252,8 @@ def main():
         rc, out, err = go(mkd, nested)
         check(rc == 1 and "-p" in out and not os.path.exists(home + "/up"),
               "mkdir of a nested folder without -p is refused, nothing made (rc=%s %r)" % (rc, out))
-        say("DEBUG870 P(one)=%r exists=%s; dest/one isdir=%s" % (P("one"), os.path.exists(P("one")), os.path.isdir(dest + "/one")))
-        rcx, outx, errx = go(mkd, "-p", "--json", P("one") + "/inside")
-        say("DEBUG870 old-path case: rc=%s %r" % (rcx, outx))
+        #  "one" was moved into dest above; its old path no longer exists.
         rc, out, err = go(mkd, "-p", "--json", nested, dest + "/one/inside")
-        say("DEBUG870 dest case: rc=%s %r" % (rc, out))
         try:
             objs = json.loads(out)
         except ValueError:

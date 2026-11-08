@@ -5090,9 +5090,6 @@ bool CalcMgr::mkdirForCommand(const vector<EcceURL>& urls, bool parents,
         (foundNode->getResource()->getContentType() == ResourceDescriptor::CT_CALCULATION ||
          dynamic_cast<TaskJob*>(foundNode->getResource()) ||
          !p_treeCtrl->setExpandable(foundNode));
-    std::cerr << "DEBUG870 url=" << urls[i].toString() << " found=" << found->getURL().toString()
-              << " missing=" << missing.size() << " type=" << (foundType ? foundType->getResourceType() : string("null"))
-              << " node=" << (foundNode != 0) << " calc=" << foundCalc << std::endl;
     if (missing.empty()) {
       if (foundCalc)
         no("a calculation with that name exists");
