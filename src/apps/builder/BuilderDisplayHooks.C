@@ -1,7 +1,7 @@
 //  The Display panel (#881): construction, Render > Display Settings..., and
 //  the scene-script hook "display <form>" that calls every control:
 //    display open | info <name> | reset
-//    display style <name> | scheme <name> | slider <sphscl|cylrad|sphrq|cylrq> <n>
+//    display style <name> | scheme <name> | slider <sphscl|cylrad|sphrq|cylrq|opacity> <n>
 //    display auto <sphrq|cylrq> <on|off> | background r g b | foreground r g b
 //    display lobes r g b r g b | preset 0-3 | surface solid|mesh|contour
 //    display opacity <percent> | cell r g b | celllabels on|off

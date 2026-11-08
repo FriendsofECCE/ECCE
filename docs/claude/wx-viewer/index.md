@@ -11,6 +11,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 - [The Display panel (#881): style via VizStyleChooser, global surface settings in SurfaceStyle](display-panel-881.md)
 - [Automatic atom-count quality preserves explicit slider values; cell images need their own complexity (#880)](sphere-quality-defaults.md)
+- [Atom opacity: ChemDisplay sorts the spheres itself, back to front, constant-alpha blend, depth writes on (#879)](atom-opacity-sorts-spheres-inside-chemdisplay-879.md)
 - [Cell labels skip collapsed vectors and balance GL current state (#723)](cell-label-rendering.md)
 
 ### wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls

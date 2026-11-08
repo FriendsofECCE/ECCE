@@ -76,6 +76,11 @@
 
 #include "inv/SbBox.H"
 #include "inv/ChemKit/ChemPerPixel.H"
+#include <algorithm>
+#include <vector>
+#ifdef OIV_COIN
+#include <Inventor/C/glue/gl.h>
+#endif
 #include "inv/SoPickedPoint.H"
 #include "inv/SoPrimitiveVertex.H"
 #include "inv/actions/SoCallbackAction.H"
@@ -417,6 +422,33 @@ ChemDisplay::polygonSidesFor(float radiusPixels)
 //
 // Use: protected
 
+//  Constant-alpha blending for transparent atoms; the vendored core has no
+//  glBlendColor entry point to hand, and keeps opaque atoms.
+static void
+setAtomBlend(SoGLRenderAction *action, bool on, float alpha)
+{
+#ifdef OIV_COIN
+	typedef void (*BlendColorFn)(float, float, float, float);
+	static BlendColorFn blendColor = 0;
+	if (blendColor == 0) {
+		const cc_glglue *glue = cc_glglue_instance(action->getCacheContext());
+		blendColor = (BlendColorFn)cc_glglue_getprocaddress(glue, "glBlendColor");
+		if (blendColor == 0)
+			blendColor = (BlendColorFn)cc_glglue_getprocaddress(glue, "glBlendColorEXT");
+	}
+	if (on && blendColor != 0) {
+		blendColor(0.0f, 0.0f, 0.0f, alpha);
+		glEnable(GL_BLEND);
+		glBlendFunc(0x8003 /*GL_CONSTANT_ALPHA*/, 0x8004 /*GL_ONE_MINUS_CONSTANT_ALPHA*/);
+	}
+	else if (!on) {
+		glDisable(GL_BLEND);
+	}
+#else
+	(void)action; (void)on; (void)alpha;
+#endif
+}
+
 void
 ChemDisplay::renderAtomsAsSpheres(SoGLRenderAction *action,
 	SbBool renderNormal, SbBool renderHighlight,
@@ -559,148 +591,196 @@ printf ("In ChemDisplay::renderAtomsAsSpheres\n");
 		 displayStyle == ChemDisplayParam::ATOMSPHERE_GLUSPHERE) &&
 		ChemPerPixel::begin(state);
 
-	// Render the spheres
-	switch (chemRadii->atomRadiiBinding.getValue()) {
-	  case ChemRadii::RADII_OVERALL:
-		switch (chemColor->atomColorBinding.getValue()) {
-		  case ChemColor::ATOM_OVERALL:
-			if (renderNormal) {
-				normalSphereROCO(action, 
-					displayStyle, doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, normalIndex);
-			}
-			if (renderHighlight) {
-				highlightSphereROCO(action, 
-					displayStyle, highlightStyle, highlightColor,
-					doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, highlightIndex);
+	// One pass over the spheres of the two index lists.
+	auto drawSet = [&](const MFVec2i &nIdx, const MFVec2i &hIdx) {
+		switch (chemRadii->atomRadiiBinding.getValue()) {
+		  case ChemRadii::RADII_OVERALL:
+			switch (chemColor->atomColorBinding.getValue()) {
+			  case ChemColor::ATOM_OVERALL:
+				if (renderNormal) {
+					normalSphereROCO(action, 
+						displayStyle, doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, nIdx);
+				}
+				if (renderHighlight) {
+					highlightSphereROCO(action, 
+						displayStyle, highlightStyle, highlightColor,
+						doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, hIdx);
+				}
+				break;
+			  case ChemColor::ATOM_PER_ATOM:
+				if (renderNormal) {
+					normalSphereROCA(action, 
+						displayStyle, doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, nIdx);
+				}
+				if (renderHighlight) {
+					highlightSphereROCA(action, 
+						displayStyle, highlightStyle, highlightColor,
+						doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, hIdx);
+				}
+				break;
+			  case ChemColor::ATOM_PER_ATOM_INDEXED:
+				if (renderNormal) {
+					normalSphereROCI(action, 
+						displayStyle, doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, nIdx);
+				}
+				if (renderHighlight) {
+					highlightSphereROCI(action, 
+						displayStyle, highlightStyle, highlightColor,
+						doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, hIdx);
+				}
+				break;
+			  default:
+				break;
 			}
 			break;
-		  case ChemColor::ATOM_PER_ATOM:
-			if (renderNormal) {
-				normalSphereROCA(action, 
-					displayStyle, doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, normalIndex);
-			}
-			if (renderHighlight) {
-				highlightSphereROCA(action, 
-					displayStyle, highlightStyle, highlightColor,
-					doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, highlightIndex);
+
+		  case ChemRadii::RADII_PER_ATOM:
+			switch (chemColor->atomColorBinding.getValue()) {
+			  case ChemColor::ATOM_OVERALL:
+				if (renderNormal) {
+					normalSphereRACO(action, 
+						displayStyle, doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, nIdx);
+				}
+				if (renderHighlight) {
+					highlightSphereRACO(action, 
+						displayStyle, highlightStyle, highlightColor,
+						doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, hIdx);
+				}
+				break;
+			  case ChemColor::ATOM_PER_ATOM:
+				if (renderNormal) {
+					normalSphereRACA(action, 
+						displayStyle, doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, nIdx);
+				}
+				if (renderHighlight) {
+					highlightSphereRACA(action, 
+						displayStyle, highlightStyle, highlightColor,
+						doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, hIdx);
+				}
+				break;
+			  case ChemColor::ATOM_PER_ATOM_INDEXED:
+				if (renderNormal) {
+					normalSphereRACI(action, 
+						displayStyle, doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, nIdx);
+				}
+				if (renderHighlight) {
+					highlightSphereRACI(action, 
+						displayStyle, highlightStyle, highlightColor,
+						doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, hIdx);
+				}
+				break;
+			  default:
+				break;
 			}
 			break;
-		  case ChemColor::ATOM_PER_ATOM_INDEXED:
-			if (renderNormal) {
-				normalSphereROCI(action, 
-					displayStyle, doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, normalIndex);
-			}
-			if (renderHighlight) {
-				highlightSphereROCI(action, 
-					displayStyle, highlightStyle, highlightColor,
-					doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, highlightIndex);
+
+		  case ChemRadii::RADII_PER_ATOM_INDEXED:
+			switch (chemColor->atomColorBinding.getValue()) {
+			  case ChemColor::ATOM_OVERALL:
+				if (renderNormal) {
+					normalSphereRICO(action, 
+						displayStyle, doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, nIdx);
+				}
+				if (renderHighlight) {
+					highlightSphereRICO(action, 
+						displayStyle, highlightStyle, highlightColor,
+						doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, hIdx);
+				}
+				break;
+			  case ChemColor::ATOM_PER_ATOM:
+				if (renderNormal) {
+					normalSphereRICA(action, 
+						displayStyle, doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, nIdx);
+				}
+				if (renderHighlight) {
+					highlightSphereRICA(action, 
+						displayStyle, highlightStyle, highlightColor,
+						doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, hIdx);
+				}
+				break;
+			  case ChemColor::ATOM_PER_ATOM_INDEXED:
+				if (renderNormal) {
+					normalSphereRICI(action, 
+						displayStyle, doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, nIdx);
+				}
+				if (renderHighlight) {
+					highlightSphereRICI(action, 
+						displayStyle, highlightStyle, highlightColor,
+						doHydrogens, doHemi, radScale,
+						atomColors, atomRadii, chemData, hIdx);
+				}
+				break;
+			  default:
+				break;
 			}
 			break;
-		  default:
+
+		  default:	
 			break;
 		}
-		break;
+	};
 
-	  case ChemRadii::RADII_PER_ATOM:
-		switch (chemColor->atomColorBinding.getValue()) {
-		  case ChemColor::ATOM_OVERALL:
-			if (renderNormal) {
-				normalSphereRACO(action, 
-					displayStyle, doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, normalIndex);
+	const float opacity = cdp->atomOpacity.getValue();
+	if (opacity >= 0.999f) {
+		drawSet(normalIndex, highlightIndex);
+	}
+	else {
+		// Transparent: Coin sorts whole shapes only, so order the spheres
+		// ourselves, far to near by eye depth, blended with a constant alpha
+		// (the loops set colour with glColor3f).  Depth writes stay on:
+		// bonds are drawn before the atoms and then show through the sphere
+		// in front of them but not through one behind them.  The result
+		// depends on the view, so it must not be cached.
+		SoGLCacheContextElement::shouldAutoCache(state,
+			SoGLCacheContextElement::DONT_AUTO_CACHE);
+		GLfloat mv[16];
+		glGetFloatv(GL_MODELVIEW_MATRIX, mv);
+		std::vector<std::pair<float, int32_t> > queue;   // depth, atom*2+highlight
+		const MFVec2i *lists[2] = { &normalIndex, &highlightIndex };
+		for (int h = 0; h < 2; h++) {
+			const MFVec2i &idx = *lists[h];
+			for (int i = 0; i < idx.getNum(); i++) {
+				int32_t st, en;
+				idx[i].getValue(st, en);
+				en = (en == CHEM_DISPLAY_USE_REST_OF_ATOMS) ?
+					globalNumberOfAtoms : en + st;
+				for (int32_t at = st; at < en; at++) {
+					if (!doHydrogens && chemData->getAtomicNumber(at) == 1)
+						continue;
+					const SbVec3f &c = chemData->getAtomCoordinates(at);
+					const float z = mv[2]*c[0] + mv[6]*c[1] + mv[10]*c[2] + mv[14];
+					queue.push_back(std::make_pair(z, at*2 + h));
+				}
 			}
-			if (renderHighlight) {
-				highlightSphereRACO(action, 
-					displayStyle, highlightStyle, highlightColor,
-					doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, highlightIndex);
-			}
-			break;
-		  case ChemColor::ATOM_PER_ATOM:
-			if (renderNormal) {
-				normalSphereRACA(action, 
-					displayStyle, doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, normalIndex);
-			}
-			if (renderHighlight) {
-				highlightSphereRACA(action, 
-					displayStyle, highlightStyle, highlightColor,
-					doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, highlightIndex);
-			}
-			break;
-		  case ChemColor::ATOM_PER_ATOM_INDEXED:
-			if (renderNormal) {
-				normalSphereRACI(action, 
-					displayStyle, doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, normalIndex);
-			}
-			if (renderHighlight) {
-				highlightSphereRACI(action, 
-					displayStyle, highlightStyle, highlightColor,
-					doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, highlightIndex);
-			}
-			break;
-		  default:
-			break;
 		}
-		break;
+		std::stable_sort(queue.begin(), queue.end());   // most negative z = farthest
 
-	  case ChemRadii::RADII_PER_ATOM_INDEXED:
-		switch (chemColor->atomColorBinding.getValue()) {
-		  case ChemColor::ATOM_OVERALL:
-			if (renderNormal) {
-				normalSphereRICO(action, 
-					displayStyle, doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, normalIndex);
-			}
-			if (renderHighlight) {
-				highlightSphereRICO(action, 
-					displayStyle, highlightStyle, highlightColor,
-					doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, highlightIndex);
-			}
-			break;
-		  case ChemColor::ATOM_PER_ATOM:
-			if (renderNormal) {
-				normalSphereRICA(action, 
-					displayStyle, doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, normalIndex);
-			}
-			if (renderHighlight) {
-				highlightSphereRICA(action, 
-					displayStyle, highlightStyle, highlightColor,
-					doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, highlightIndex);
-			}
-			break;
-		  case ChemColor::ATOM_PER_ATOM_INDEXED:
-			if (renderNormal) {
-				normalSphereRICI(action, 
-					displayStyle, doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, normalIndex);
-			}
-			if (renderHighlight) {
-				highlightSphereRICI(action, 
-					displayStyle, highlightStyle, highlightColor,
-					doHydrogens, doHemi, radScale,
-					atomColors, atomRadii, chemData, highlightIndex);
-			}
-			break;
-		  default:
-			break;
+		setAtomBlend(action, true, opacity);
+		MFVec2i none, one;
+		for (size_t q = 0; q < queue.size(); q++) {
+			const int32_t at = queue[q].second >> 1;
+			one.set1Value(0, SbVec2i(at, 1));
+			if (queue[q].second & 1) drawSet(none, one);
+			else drawSet(one, none);
 		}
-		break;
-
-	  default:	
-		break;
+		setAtomBlend(action, false, 1.0f);
 	}
 	if (perPixel) ChemPerPixel::end();
 // --> EGB && SGB

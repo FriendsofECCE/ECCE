@@ -171,6 +171,23 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     cmd.getParameter("descriptor")->setString(dd.toString());
     cmd.getParameter("all")->setBoolean(true);
     cmd.execute();
+  } else if (c == "opacity" && (w.size() == 2 || (w.size() == 3 && w[2] == "selection"))) {
+    //  "opacity <0-100> [selection]": the Display Style dialog's Atom opacity
+    //  slider, for every atom or for the selected ones (a style group of
+    //  their own, as the dialog's Update makes) (#879).
+    const int pct = atoi(w[1].c_str());
+    // A style for "the selection" with nothing selected aborts in CSStyleCmd.
+    if (w.size() == 3 && (!p_sg->getFragment() || p_sg->getFragment()->m_atomHighLight.empty()))
+      return fail("opacity: no atoms selected");
+    DisplayDescriptor dd = p_sg->styleExists("default") ?
+        p_sg->getDisplayDescriptor("default") :
+        DisplayDescriptor("default", "Ball And Stick", "Element");
+    dd.setAtomOpacity(pct);
+    if (w.size() == 3) dd.setName("opacity" + w[1]);
+    CSStyleCmd cmd("Style", p_sg);
+    cmd.getParameter("descriptor")->setString(dd.toString());
+    cmd.getParameter("all")->setBoolean(w.size() == 2);
+    cmd.execute();
   } else if (c == "zoom" && w.size() == 2) {
     //  "zoom <factor>": dolly the camera toward its focal point.
     SoCamera *cam = p_viewer->getCamera();
@@ -300,6 +317,10 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     vector<int> atoms;
     for (size_t i = 1; i < w.size(); i++) atoms.push_back(atoi(w[i].c_str()) - 1);
     if (atoms.empty()) return fail("select: no atoms");
+    //  Numbered from 1; atomRef aborts on a bad index rather than returning.
+    for (size_t j = 0; j < atoms.size(); j++)
+      if (atoms[j] < 0 || (size_t)atoms[j] >= frag->numAtoms())
+        return fail("select: no atom " + w[j + 1] + " (atoms are numbered from 1; 'deselect' clears)");
     frag->m_atomHighLight = atoms;
     frag->m_bondHighLight.clear();
     SGSelection *esel = p_viewer->getSel();

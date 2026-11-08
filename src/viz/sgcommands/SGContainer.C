@@ -1385,6 +1385,7 @@ void SGContainer::applyStyle(const DisplayDescriptor& dd, ChemDisplayParam *cdp)
       }
       cdp->atomSphereComplexity.setValue(dd.getSphereRQ()/100.0);
       cdp->atomSphereQualityAutomatic.setValue(dd.isSphereRQAutomatic());
+      cdp->atomOpacity.setValue(dd.getAtomOpacity()/100.0f);
    } else {
       // Turn atoms off
       cdp->displayStyle.setValue (ChemDisplayParam::DISPLAY_NONE) ;

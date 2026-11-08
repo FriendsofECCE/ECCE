@@ -106,6 +106,7 @@ const wxWindowID VizStyleChooserGUI::wxID_STATIC_DSPLY_RBTHKTXT = wxNewId();
 const wxWindowID VizStyleChooserGUI::wxID_STATIC_DSPLY_RBTHKMIN = wxNewId();
 const wxWindowID VizStyleChooserGUI::wxID_STATIC_DSPLY_CYLRQTXT = wxNewId();
 const wxWindowID VizStyleChooserGUI::ID_SLIDER_DSPLY_SPHRQ = wxNewId();
+const wxWindowID VizStyleChooserGUI::ID_SLIDER_DSPLY_OPACITY = wxNewId();
 const wxWindowID VizStyleChooserGUI::ID_BUTTON_DSPLY_RESET = wxNewId();
 const wxWindowID VizStyleChooserGUI::ID_PANEL_DSPLY_CNTRLS = wxNewId();
 const wxWindowID VizStyleChooserGUI::wxID_STATIC_DSPLY_SHTW = wxNewId();
@@ -505,6 +506,10 @@ void VizStyleChooserGUI::CreateControls()
     ewxStaticText* itemStaticText94 = new ewxStaticText( itemPanel75, wxID_STATIC_DSPLY_SPHSCLMAX, _("100%"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer91->Add(itemStaticText94, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
+    itemFlexGridSizer77->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+
+    itemFlexGridSizer77->Add(new ewxStaticText( itemPanel75, wxID_STATIC, _("Atom opacity (%):"), wxDefaultPosition, wxSize(140, -1), 0 ), 0, wxALIGN_LEFT|wxALIGN_CENTER_VERTICAL|wxALL, 3);
+    itemFlexGridSizer77->Add(new wxSlider( itemPanel75, ID_SLIDER_DSPLY_OPACITY, 100, 0, 100, wxDefaultPosition, wxSize(150, -1), wxSL_HORIZONTAL|wxSL_LABELS ), 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
     itemFlexGridSizer77->Add(5, 5, 0, wxALIGN_CENTER_HORIZONTAL|wxALIGN_CENTER_VERTICAL|wxALL, 3);
 
     wxBoxSizer* itemBoxSizer96 = new wxBoxSizer(wxHORIZONTAL);

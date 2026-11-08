@@ -87,6 +87,16 @@ style setting leaves automatic quality active. Previously saved quality values
 are also kept. PNG export and printing use the same scene quality; automatic
 detail can increase for a larger output image.
 
+## Transparent atoms
+
+In the Display panel (and in **Render > Custom Style...**), the **Atom Opacity** slider (0 to 100 %,
+default 100) makes the atom spheres of a style see-through, so atoms behind
+them show. The setting belongs to the style: use **Update** on the selected
+atoms to give only those atoms a style with another opacity. Bonds stay
+opaque, and a saved picture shows the opacity. Transparent atoms are drawn
+back to front; where bonded and non-bonded atoms overlap in the view the
+order between those two groups is approximate.
+
 ## Making room in the docked layout
 
 - Drag the divider between the 3-D view and the panel column to make the

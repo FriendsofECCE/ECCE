@@ -105,6 +105,7 @@ class DisplayDescriptor
       void setSphereSize(const int& size);
       void setSphereStyle(const int& flag);
       void setSphereRQ(const int& rq, bool automatic = false);
+      void setAtomOpacity(const int& percent);
       void setRibbonBlended(const bool& flag);
       void setRibbonRounded(const bool& flag);
       void setCoilWidth(const float& wdth);
@@ -141,6 +142,7 @@ class DisplayDescriptor
       int getSphereSize() const;
       int getSphereStyle() const;
       int getSphereRQ() const;
+      int getAtomOpacity() const;
       bool isSphereRQAutomatic() const;
       bool getRibbonBlended() const;
       bool getRibbonRounded() const;
@@ -193,6 +195,7 @@ class DisplayDescriptor
       int p_sphereSize;
       int p_sphereStyle;
       int p_sphereRQ;
+      int p_atomOpacity;
       bool p_sphereRQAutomatic;
 
       bool p_ribbonBlend;
