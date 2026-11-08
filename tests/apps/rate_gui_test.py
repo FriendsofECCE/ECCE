@@ -216,8 +216,8 @@ def run(display, data, work, shots):
     check("formatted details: the G treatment in words, not the internal key",
           "Grimme quasi-RRHO" in html2 and "qrrho-grimme" not in html2, html2[:300])
     check("formatted details: tables, tunnelling and superscripts",
-          "<table" in html2 and "<h4>Reaction 1:" in html2 and "Tunnelling" in html2 and "<sup>" in html2, html2[:600])
-    refs = html2[html2.find("<h4>References"):] if "<h4>References" in html2 else ""
+          "<table" in html2 and "<b>Reaction 1:" in html2 and "Tunnelling" in html2 and "<sup>" in html2, html2[:600])
+    refs = html2[html2.find("<b>References"):] if "<b>References" in html2 else ""
     check("References name Eyring, Wigner, Eckart and Grimme for the TS reaction",
           all(n in refs for n in ("Eyring", "Wigner", "Eckart", "Grimme")) and "Truhlar" not in refs, refs[:500])
     check("dialog screenshot written", os.path.getsize(shot3) > 5000 if os.path.exists(shot3) else False, shot3)

@@ -607,11 +607,9 @@ string ReactionOverviewDialog::buildDetailHtml(const string& treatment, const st
   bool anyTs = false;
   for (size_t i = 0; i < p_rows.size(); i++) {
     const Row& r = p_rows[i];
-    const string title = htmlEsc(r.text);
-    string head = std::to_string(i + 1) + ": " + title;
-    if (r.hasTs && r.status == "ok" && r.names[0].size() && r.names[2].size())
-      head = std::to_string(i + 1) + ": " + htmlEsc(r.names[0]) + " \xE2\x86\x92 " + htmlEsc(r.names[2]);
-    h += "<h4>Reaction " + head + "</h4>\n";
+    const Spec sp = parseSpec(r.text);
+    const string head = std::to_string(i + 1) + ": " + htmlEsc(cellSide(sp.re) + " \xE2\x86\x92 " + cellSide(sp.pr));
+    h += "<p><font size=\"+1\"><b>Reaction " + head + "</b></font></p>\n";
     if (r.status != "ok") {
       h += "<p>" + warn + "\xE2\x9A\xA0 " + htmlEsc(r.reason) + "</font></p>\n";
       continue;
@@ -650,7 +648,7 @@ string ReactionOverviewDialog::buildDetailHtml(const string& treatment, const st
     for (const string& note : r.rate.notes) h += "<p><i>" + htmlEsc(note) + "</i></p>\n";
   }
 
-  h += "<h4>References</h4>\n<p>Methods used in the results above.</p>\n<ol>\n";
+  h += "<p><font size=\"+1\"><b>References</b></font></p>\n<p>Methods used in the results above.</p>\n<ol>\n";
   if (anyTs) {
     h += citation("H. Eyring", "J. Chem. Phys.</i> 1935, <b>3</b>, 107\xE2\x80\x93" "115");
     h += citation("E. Wigner", "Z. Phys. Chem. B</i> 1932, <b>19</b>, 203\xE2\x80\x93" "216");
@@ -1153,7 +1151,7 @@ void ReactionOverviewDialog::showResults()
     const double ke = rate ? r.rate.rows[0].kEckart : 0;
     cell(rate && ke == ke ? rateNum(ke) : dash, false, true);
   }
-  p_units->SetLabel(wxString::FromUTF8(("kJ/mol; k in " + unit +
+  p_units->SetLabel(wxString::FromUTF8(("kJ mol\xE2\x81\xBB\xC2\xB9; k in " + (unit == "s-1" ? string("s\xE2\x81\xBB\xC2\xB9") : unit) +
       " at the T above. Spread: largest minus smallest \xCE\x94G over the six G treatments.").c_str()));
   p_results->Layout();
 }
