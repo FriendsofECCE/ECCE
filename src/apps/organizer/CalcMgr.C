@@ -8908,14 +8908,16 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   //  Calculation rows selected in the project table: the tree's own
   //  selection is then the project, so the batch items come from the same
   //  rows Launch Selected itself would use (one row too).
-  if (!isCalculationNode) {
-    vector<EcceURL> rows = launchSelection();
+  // Also for a calculation node, when the table has two or more rows selected.
+  vector<EcceURL> tableRows = launchSelection();
+  if (!isCalculationNode || tableRows.size() >= 2) {
+    vector<EcceURL> rows = tableRows;
     bool allCalcs = !rows.empty();
     for (size_t i = 0; allCalcs && i < rows.size(); i++) {
       WxResourceTreeItemData *n = findNode(rows[i], false, true);
       allCalcs = n && dynamic_cast<TaskJob*>(n->getResource());
     }
-    if (allCalcs) {
+    if (allCalcs && !isCalculationNode) {
       wxMenu *batch = new wxMenu();
       batch->Append(wxID_LAUNCH_SELECTED, _("Launch Selected..."));
       batch->Append(wxID_RECONNECT_SELECTED, _("Reconnect Selected..."))

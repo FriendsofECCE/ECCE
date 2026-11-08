@@ -106,6 +106,7 @@ private:
   friend class WorkflowCanvas;
   void createControls();
   void updateTexts();
+  void rewrapHelp();
   void joinClicked(const WorkflowSteps::Code& code, ResourceType *rt,
                    const std::vector<Resource*>& sources);
 
@@ -178,6 +179,8 @@ public:
   std::vector<bool> chosen() const;
   /// "A → B (geometry)", with what was recorded when it was.
   static std::string label(const WorkflowSteps::ProposedLink& link);
+  /// "A → B (geometry, Hessian)": the list entry; label() is its tooltip.
+  static std::string shortLabel(const WorkflowSteps::ProposedLink& link);
 
 private:
   void validate();
@@ -185,6 +188,7 @@ private:
   ResourceType *p_type;
   wxTextCtrl *p_name;
   wxCheckListBox *p_links;
+  std::vector<wxString> p_reasons;
   wxStaticText *p_problem;
   wxButton *p_ok;
 };

@@ -378,6 +378,41 @@ vector<Resource*> WorkflowSteps::createPatterns(Session *wf, ResourceType *rt,
 }
 
 
+string WorkflowSteps::stepTag(Resource *step)
+{
+  ICalculation *calc = dynamic_cast<ICalculation*>(step);
+  if (!calc) return "";
+  const string rt = calc->runtype().name();
+  if (rt.empty()) return "";
+  if (isScan(step) && rt != "IRC") return "Scan";
+  if (rt.compare(0, 16, "Transition State") == 0) {
+    const bool neb = rt.find("NEB") != string::npos;
+    const bool opt = rt.find("Opt-TS") != string::npos;
+    string how = neb ? "NEB" : opt ? "Opt-TS" : "QST";
+    if (how == "QST") {
+      GUIValues *g = calc->guiparams();
+      GUIValue *guess = g ? g->get("ES.Runtype.GeomOpt.QSTGuess") : 0;
+      GUIValue *prod = g ? g->get("ES.Runtype.GeomOpt.QSTProduct") : 0;
+      if (guess && !guess->getValueAsString().empty()) how += "3";
+      else if (prod && !prod->getValueAsString().empty()) how += "2";
+      delete g;
+    }
+    return "TS (" + how + ")" + (rt.find("+ Freq") != string::npos ? " + freq" : "");
+  }
+  if (rt == "Geometry") return "Opt";
+  if (rt == "GeoVib") return "Opt + freq";
+  if (rt == "Vibration") return "Freq";
+  if (rt == "Energy" || rt == "Energy only") return "Single point";
+  if (rt == "Gradient") return "Gradient";
+  if (rt == "IRC") return "IRC";
+  if (rt == "Conformer Search" || rt == "Conformer search (simple)")
+    return "Conformer search";
+  if (rt == "Molecular Dynamics") return "MD";
+  if (rt == "Docking (aISS)") return "Docking";
+  return rt;
+}
+
+
 bool WorkflowSteps::canJoin(const Code& code)
 {
   const string t = code.typeName;
@@ -686,6 +721,11 @@ string WorkflowSteps::info(Session *wf)
     delete th;
     if (calc && !calc->runtype().name().empty())
       out << " runtype=" << calc->runtype().name();
+    if (!stepTag(step).empty()) {
+      string tag = stepTag(step);
+      std::replace(tag.begin(), tag.end(), ' ', '_');
+      out << " tag=" << tag;
+    }
     GUIValues *gv = calc ? calc->guiparams() : 0;
     GUIValue *xc = gv ? gv->get("ES.Theory.DFT.XCFunctionals") : 0;
     if (xc && !xc->getValueAsString().empty()) {

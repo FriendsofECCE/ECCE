@@ -400,14 +400,19 @@ public:
     for (size_t i = 0; i < p_boxes.size(); i++)
       for (size_t j = i + 1; j < p_boxes.size(); j++)
         if (p_boxes[i].rect.Intersects(p_boxes[j].rect)) boxOverlaps++;
-    for (const WfLink &l : p_links)
+    int diagonals = 0;
+    for (const WfLink &l : p_links) {
       if (p_panel->p_vertical ? l.p3.y <= l.p0.y : l.p3.x <= l.p0.x)
         rankErrors++;
+      const wxPoint pts[4] = {l.p0, l.p1, l.p2, l.p3};
+      for (int k = 0; k < 3; k++)
+        if (pts[k].x != pts[k + 1].x && pts[k].y != pts[k + 1].y) diagonals++;
+    }
     std::ostringstream o;
     o << "boxes=" << p_boxes.size() << " links=" << p_links.size()
       << " label-overlaps=" << overlaps() << " keybox=" << (p_hasKey ? 1 : 0)
       << " keyshown=" << (p_hasKey && p_key.shown ? 1 : 0) << " vertical=" << p_panel->p_vertical
-      << " box-overlaps=" << boxOverlaps << " rank-errors=" << rankErrors
+      << " box-overlaps=" << boxOverlaps << " rank-errors=" << rankErrors << " diagonals=" << diagonals
       << " play=" << playReport()
       << " canvas-height=" << GetSize().y << " icons=";
     for (size_t i = 0; i < p_boxes.size(); i++)
@@ -600,7 +605,19 @@ private:
 
       dc.SetFont(bold);
       dc.SetTextForeground(codeColour(code));
-      dc.DrawText(code ? code->label : "?", r.x + 18, r.y + 8);
+      const wxString label = code ? code->label : "?";
+      dc.DrawText(label, r.x + 18, r.y + 8);
+      const string tag = WorkflowSteps::stepTag(b.step);
+      if (!tag.empty()) {
+        const wxSize lw = dc.GetTextExtent(label);
+        const int tx = r.x + 18 + lw.x + 8;
+        dc.SetFont(base);
+        dc.SetTextForeground(dim);
+        const wxSize ts0 = dc.GetTextExtent("Ag");
+        dc.DrawText(wxControl::Ellipsize(wxString::FromUTF8(tag.c_str()), dc,
+                        wxELLIPSIZE_END, std::max(20, r.GetRight() - 110 - tx)),
+                    tx, r.y + 8 + (lw.y - ts0.y) / 2);
+      }
 
       ResourceDescriptor::RUNSTATE st = WorkflowSteps::stateOf(b.step);
       string word = needs ? "needs structure" : ResourceUtils::stateToString(st);
@@ -933,6 +950,10 @@ void WorkflowPanel::createControls()
   launchCol->Add(p_autorun, 0, wxALIGN_RIGHT | wxTOP, 4);
   noteSizer->Add(launchCol, 0, wxALIGN_CENTER_VERTICAL | wxALL, 8);
   notes->SetSizer(noteSizer);
+  notes->Bind(wxEVT_SIZE, [this](wxSizeEvent &e) {
+    e.Skip();
+    CallAfter([this]() { rewrapHelp(); });
+  });
   left->Add(notes, 0, wxEXPAND | wxTOP, 4);
   top->Add(left, 1, wxEXPAND);
 
@@ -989,10 +1010,23 @@ void WorkflowPanel::updateTexts()
   else
     p_help->SetLabel(
       "Select a box, then a code on the right: the new step starts from that "
-      "box's final geometry, charge and multiplicity.\n"
-      "Several boxes from one source = branches.  Ctrl-click several boxes, "
-      "then G16 or ORCA, joins them (QST2/QST3, NEB-TS).  Launch Ready Steps "
-      "runs every step whose source is Complete.");
+      "box's final structure, charge and multiplicity. Several new steps from "
+      "one box make branches. To search for a transition state between two or "
+      "three boxes, Ctrl-click them, then pick a code that offers this search. "
+      "Launch Ready Steps runs every step whose sources are Complete.");
+  rewrapHelp();
+}
+
+
+// Wrapped to what the buttons beside the text leave, so no line is cut off.
+void WorkflowPanel::rewrapHelp()
+{
+  if (!p_help || !p_help->GetParent()) return;
+  const wxString text = p_help->GetLabel();
+  p_help->SetLabel(text);   // drop the earlier wrapping
+  const int w = std::max(220, p_help->GetParent()->GetClientSize().x - 520);
+  p_help->Wrap(w);
+  p_help->GetParent()->Layout();
 }
 
 
@@ -1573,12 +1607,23 @@ WorkflowImportDialog::WorkflowImportDialog(
     top->Add(none, 0, wxLEFT | wxRIGHT | wxTOP, 14);
   } else {
     wxArrayString items;
-    for (const WorkflowSteps::ProposedLink& l : links)
-      items.Add(wxString::FromUTF8(label(l).c_str()));
+    for (const WorkflowSteps::ProposedLink& l : links) {
+      items.Add(wxString::FromUTF8(shortLabel(l).c_str()));
+      p_reasons.push_back(wxString::FromUTF8(label(l).c_str()));
+    }
     p_links = new wxCheckListBox(this, wxID_ANY, wxDefaultPosition,
-                                 wxSize(460, -1), items);
+                                 wxSize(-1, std::min<int>(links.size(), 10) * 24 + 8),
+                                 items);
     for (unsigned i = 0; i < items.size(); i++) p_links->Check(i, true);
-    top->Add(p_links, 0, wxLEFT | wxRIGHT | wxTOP | wxEXPAND, 14);
+    // The full reason is the tooltip of the entry under the pointer.
+    p_links->Bind(wxEVT_MOTION, [this](wxMouseEvent &e) {
+      const int i = p_links->HitTest(e.GetPosition());
+      const wxString tip = i >= 0 && i < (int)p_reasons.size() ? p_reasons[i]
+                                                               : wxString();
+      if (tip != p_links->GetToolTipText()) p_links->SetToolTip(tip);
+      e.Skip();
+    });
+    top->Add(p_links, 1, wxLEFT | wxRIGHT | wxTOP | wxEXPAND, 14);
     wxStaticText *hint = new wxStaticText(this, wxID_ANY,
         "Untick a link that is wrong. A link draws the arrow and makes a "
         "step not yet run wait for its source; nothing is copied into the "
@@ -1605,6 +1650,16 @@ WorkflowImportDialog::WorkflowImportDialog(
   SetSizerAndFit(top);
   if (p_name) p_name->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { validate(); });
   validate();
+}
+
+
+string WorkflowImportDialog::shortLabel(const WorkflowSteps::ProposedLink& l)
+{
+  string text = l.source->getName() + " → " + l.target->getName() + " (" +
+                WorkflowSteps::linkLabel(l.name);
+  if (l.why == "orbitals") text += ", orbitals";
+  else if (l.why == "Hessian") text += ", Hessian";
+  return text + ")";
 }
 
 

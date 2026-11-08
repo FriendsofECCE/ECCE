@@ -73,6 +73,11 @@ namespace WorkflowSteps {
   /// point)".
   std::string linkLabel(const std::string& name);
 
+  /// The step's kind as a short tag for its box: "Opt", "Opt + freq",
+  /// "TS (QST3) + freq", "IRC", "Scan", "Single point", "Freq", "Conformer
+  /// search", ... ("" when the run type is not known).
+  std::string stepTag(Resource *step);
+
   /// True if the source is a scan or IRC with a structure for every point.
   bool isScan(Resource *step);
 
