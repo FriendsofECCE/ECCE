@@ -118,7 +118,7 @@ for _topic in sorted(os.listdir(_GC)):
                           else ["TE", "MO"])
 # the Quantum ESPRESSO crystals of Packing in solids: energy only
 GENCHEM.update({c: ["TE"] for c in ("po_sc", "na_bcc", "al_fcc", "cu_fcc",
-                                    "mg_hcp")})
+                                    "mg_hcp", "nacl", "cscl")})
 NEW_SETS = {"Examples/Organic_Chemistry": ORGANIC,
             "Examples/Spectroscopy": SPECTROSCOPY,
             "Examples/General_Chemistry": GENCHEM}

@@ -1,0 +1,32 @@
+&CONTROL
+  calculation = 'scf'
+  prefix = 'cscl'
+  outdir = './qe.scratch'
+  pseudo_dir = '/usr/share/espresso/pseudo/'
+  tstress = .true.
+/
+&SYSTEM
+  ibrav = 0
+  nat = 2
+  ntyp = 2
+  ecutwfc = 50
+  occupations = 'smearing'
+  smearing = 'marzari-vanderbilt'
+  degauss = 0.02
+/
+&ELECTRONS
+  conv_thr = 1e-08
+  mixing_beta = 0.7
+/
+ATOMIC_SPECIES
+  Cs  132.90545  Cs_pbe_v1.uspp.F.UPF
+  Cl  35.453  cl_pbe_v1.4.uspp.F.UPF
+CELL_PARAMETERS angstrom
+  4.1200000000 0.0000000000 0.0000000000
+  0.0000000000 4.1200000000 0.0000000000
+  0.0000000000 0.0000000000 4.1200000000
+ATOMIC_POSITIONS angstrom
+  Cs 0.0000000000 0.0000000000 0.0000000000
+  Cl 2.0600000000 2.0600000000 2.0600000000
+K_POINTS automatic
+  12 12 12 0 0 0
