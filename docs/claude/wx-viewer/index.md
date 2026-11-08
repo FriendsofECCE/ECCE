@@ -112,3 +112,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [mold links what GNU ld refuses: declare static-library dependencies](mold-hides-static-link-order.md)
 - [ELF, LOL, s and sign(lambda2)rho: Evaluator::fieldsAt derivatives, ecce-density-field, the Multiwfn oracle (#798-#800)](density-fields-elf-lol-nci-from-evaluator-derivatives.md)
 - [ELF, LOL and NCI are MoPanel field types computed by ComputeMoCmd::computeFieldView; NCI rides the ESP colour-field path with its own ramp, and its density cut-off is applied when the surface is built](elf-lol-nci-3d-views-share-the-esp-colour-path.md)
+- [Four places map geometry-trace rows onto a fragment (#912, #920)](trace-rows-onto-fragment-four-places.md)
