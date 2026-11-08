@@ -73,20 +73,26 @@ def main():
     # reach lval=4 or BasisFlatten leaves empty functions.
     rc3 = run_cro_moaoorder(env, ["fixtures/hf_qz.nb", "fixtures/hf_qz.xyz", "10"],
                             "fixtures/hf_qz_mo_block.txt")
-    return rc or rc2 or rc3
+    # HF/cc-pV5Z, H off-axis so every m mixes: F has g AND h shells (#863).
+    # Each code's own parser output, its own MOOrdering table.
+    fx = ["fixtures/hf_5z.nb", "fixtures/hf_5z.xyz", "10"]
+    rc4 = run_cro_moaoorder(env, fx + ["ORCA"], "fixtures/hf_5z_orca_mo_block.txt")
+    rc5 = run_cro_moaoorder(env, fx + ["NWChem", "5e-3"],
+                            "fixtures/hf_5z_nwchem_eprint.txt", ["nwchem.mo"])
+    return rc or rc2 or rc3 or rc4 or rc5
 
 
-def run_cro_moaoorder(env, extra=(), block="fixtures/cro_mo_block.txt"):
+def run_cro_moaoorder(env, extra=(), block="fixtures/cro_mo_block.txt",
+                      parser=("orca.mo", "MO", "Energy", "SCF", "RHF")):
     """orca.mo's canonical-order fix (fault A) + MoAoOrder's un-permute,
     against ORCA's real CrO/def2-SVP MO block -- see testCrOMoAoOrder.C.
     """
     perl = subprocess.run(
-        ["perl", os.path.join(ROOT, "scripts/parsers/orca.mo"),
-         "MO", "Energy", "SCF", "RHF"],
+        ["perl", os.path.join(ROOT, "scripts/parsers", parser[0]), *parser[1:]],
         stdin=open(os.path.join(HERE, block)),
-        capture_output=True, text=True)
+        capture_output=True, text=True, env=env)
     if perl.returncode != 0:
-        print("orca.mo failed on the CrO fixture:")
+        print("%s failed on %s:" % (parser[0], block))
         print(perl.stderr)
         return 2
     parsed = os.path.join(HERE, "cro_mo_parsed.txt")
