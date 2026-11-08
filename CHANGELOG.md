@@ -94,6 +94,7 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
 
 | 9.x | 8.x (bug fixes) |
 |---|---|
+| **v9.4.11** — bond dipoles in the Dipole Moment panel (#849); H₂ examples with orbitals (#858); NaCl and CsCl in Packing in solids (#916); ma-def2-SVP in the basis library (#898); dielectric constant without a unit (#848); surfaces cover every atom (#892) |  |
 | **v9.4.10** — outputs no longer copied back empty when the login to the compute host fails at the end of a job (#732); orbital names with the principal quantum number and Show core orbitals in the MO Diagram (#827); scan steps keep far-apart atoms in view (#832) |  |
 | **v9.4.9** — MO Diagram for a single atom as a textbook staircase, energies to scale with grouped levels and values, d-block atoms and g-function basis sets (#817); General Chemistry atoms Ca, Cr, Cu (#788) |  |
 | **v9.4.8** — MO Diagram for a single atom: subshell boxes with electrons, or energies to scale (#813); ECCE-QM ROHF/ROKS converges for O, F, S, Cl, Ti (#790); General Chemistry open-shell atoms restricted open-shell, '2p (virtual)' labels (#788); SN2 example IRC step opens with its path (#784); ssh password offered only to its own host (#791); unreachable host not blamed on the password (#777); trackpad/pinch zoom (#811); one-entry Properties category keeps its heading (#804) |  |
