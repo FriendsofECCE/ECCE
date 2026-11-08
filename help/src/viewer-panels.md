@@ -93,3 +93,30 @@ detail can increase for a larger output image.
   column wider.
 - Drag the divider between two docked panels to give one of them more height.
 - The Viewer remembers the layout for the next time it opens.
+
+## Display settings
+
+**Render > Display Settings...** opens the Display panel in the Builder's side
+column. It gathers the rendering settings that are otherwise spread over the
+Render menu and the right-click menus, and every change it makes is the same
+change the old place makes.
+
+**Style** holds Display style, Color scheme, Ball and Stick Scale, Cylinder
+Radius, Sphere Quality and Cylinder Quality. The two quality sliders have an
+**Automatic (by atom count)** check box: when it is ticked the detail follows the
+number of atoms drawn; moving the slider unticks it and keeps your value.
+**More... (Custom Style)** opens the full Custom Style dialog.
+
+**Colors** has the background and foreground colors, and the colors of
+orbital and density surfaces: a positive and a negative lobe color, the four
+presets (R/G, R/B, B/Y, L/D), Solid, Mesh or Contour, and an opacity slider.
+These surface settings are shared by orbitals, densities and cube files, and
+are remembered the next time you start ECCE. The right-click menus of the
+orbital and cube panels still work and change the same settings. Cell edges
+sets the color of the unit cell edges.
+
+**Labels** has the Atom Labels choice, bond, residue and summary text labels,
+the axes, and the a/b/c labels on the unit cell.
+
+**Reset to defaults** returns the style, background and surface colors,
+opacity, surface type and cell settings to their original values.

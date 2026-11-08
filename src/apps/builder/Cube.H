@@ -19,6 +19,8 @@ class Cube : public VizPropertyPanel
   DECLARE_EVENT_TABLE()
 
   public:
+    /// The global surface settings changed (Display panel): redraw.
+    void surfaceStyleChanged();
     static const wxWindowID ID_LIST;
     static const wxWindowID ID_TEXT_A;
     static const wxWindowID ID_TEXT_GRID_A;

@@ -9,6 +9,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 ## Entries
 
+- [The Display panel (#881): style via VizStyleChooser, global surface settings in SurfaceStyle](display-panel-881.md)
 - [Automatic atom-count quality preserves explicit slider values; cell images need their own complexity (#880)](sphere-quality-defaults.md)
 - [Cell labels skip collapsed vectors and balance GL current state (#723)](cell-label-rendering.md)
 

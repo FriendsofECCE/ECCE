@@ -41,6 +41,7 @@
 #include "dsm/PropFactory.H"
 
 #include "wxgui/ewxConfig.H"
+#include "SurfaceStyle.H"
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxNumericValidator.H"
@@ -1428,21 +1429,28 @@ void MoPanel::OnMenuClick( wxCommandEvent& event )
               event.GetId() == MESH ||
               event.GetId() == CONTOUR) {
       ewxConfig *config = ewxConfig::getConfig(INIFILE);
-      config->Write("MO/Surface", event.GetId());
+      SurfaceStyle::setSurfaceType(event.GetId() - SOLID);
       updateSurface();
    } else if (event.GetId() == REDGREEN  ||
               event.GetId() == REDBLUE ||
               event.GetId() == BLUEYELLOW ||
               event.GetId() == LIGHTDARK) {
       ewxConfig *config = ewxConfig::getConfig(INIFILE);
-      config->Write("MO/Colors", event.GetId());
+      SurfaceStyle::setPreset(event.GetId() - REDGREEN);
       updateIsoValue();
    } else if (event.GetId() == OPAQUE  ||
               event.GetId() == SEMITRANSPARENT) {
       ewxConfig *config = ewxConfig::getConfig(INIFILE);
       config->Write("MO/Transparency", event.GetId());
+      SurfaceStyle::clearOpacity();
       updateIsoValue();
    }
+}
+
+void MoPanel::surfaceStyleChanged()
+{
+   updateSurface();
+   updateIsoValue();
 }
 
 void MoPanel::resetColorMap()
@@ -2447,6 +2455,12 @@ void MoPanel::updateIsoValue(double isovalue)
 void MoPanel::getSurfaceColors(double& posR, double& posG, double& posB, 
                                double& negR, double& negG, double& negB)
 {
+   double cp[3], cn[3];
+   if (SurfaceStyle::customColors(cp, cn)) {
+      posR = cp[0]; posG = cp[1]; posB = cp[2];
+      negR = cn[0]; negG = cn[1]; negB = cn[2];
+      return;
+   }
    int id;
    ewxConfig *config = ewxConfig::getConfig(INIFILE);
    config->Read("MO/Colors", &id, REDGREEN);
@@ -2695,7 +2709,7 @@ double MoPanel::getTransparency()
    ewxConfig *config = ewxConfig::getConfig(INIFILE);
    config->Read("MO/Transparency", &id, SEMITRANSPARENT);
    if (id == SEMITRANSPARENT)  ret = 0.5;
-   return ret;
+   return SurfaceStyle::transparency(ret);
 }
 
 void MoPanel::receiveFocus()

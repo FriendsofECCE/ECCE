@@ -48,6 +48,11 @@ class MoPanel : public MoGUI,
   static const wxWindowID ID_SLIDER;
 
   public:
+     /// Menu ids of the colour presets and surface types, for SurfaceStyle.
+     static int presetId(int i) { return REDGREEN + i; }
+     static int surfaceId(int i) { return SOLID + i; }
+     /// The global surface settings changed (Display panel): redraw.
+     void surfaceStyleChanged();
     //  The scan/IRC point whose orbitals the calculation returns changed.
     void orbitalPointChanged();
     //  The orbital table with a dozen rows, the composition and controls.
