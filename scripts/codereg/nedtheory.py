@@ -321,11 +321,11 @@ class NedTheoryPanel(EccePanel):
             sovLeftSizer.AddWidget(self.cosmoRadius,
                                    border = EcceGlobals.BorderDefault)
 
-            solventChoice = ["Water: 78.4 Debye",
-                             "Methanol: 33.0 Debye",
-                             "Cyclohexane: 2.0243 Debye",
-                             "Benzene: 2.2825 Debye",
-                             "Acetonitrile: 36.64 Debye",
+            solventChoice = ["Water: 78.4",
+                             "Methanol: 33.0",
+                             "Cyclohexane: 2.0243",
+                             "Benzene: 2.2825",
+                             "Acetonitrile: 36.64",
                              "Other"]
             self.solvent = EcceComboBox(self,
                                         choices = solventChoice,

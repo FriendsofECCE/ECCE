@@ -404,7 +404,7 @@ RESTORE_CASES = [
         script="nedtheory.py", category="DFT", theory="RDFT",
         changes={"ES.Theory.SCF.Solvent": ("Methanol: 33.0 Debye", None)},
         expect={"ES.Theory.SCF.Solvent": {"value": "Methanol: 33.0",
-                                          "selection": 2}},
+                                          "selection": 1}},
         forbid=("Debye",),
         why="""
             The dielectric constant is a relative permittivity and has no
