@@ -391,6 +391,8 @@ class Builder: public BuilderGUI,
       virtual void OnSelectSolventClick( wxCommandEvent& event );
       virtual void OnSelectIonsClick( wxCommandEvent& event );
       virtual void OnDistortBondsClick( wxCommandEvent& event );
+      void applyDistortDialog();
+      void refreshDistortDialog();
       virtual void OnTakeCoordsClick( wxCommandEvent& event );
       void takeSources(vector<string>& labels, vector<string>& elems,
                        vector<string>& coords);
@@ -701,6 +703,7 @@ class Builder: public BuilderGUI,
       map<string, GeomConstraintModel*> p_constraintModels;
       map<string, bool> p_constraintsDirty;
       GeomConstraintsDialog *p_constraintsDialog;
+      class DistortBondsDialog *p_distortDlg = 0;
       wxPoint p_rightDownAt;
       void saveConstraints();
       IPropCalculation *p_calculation;

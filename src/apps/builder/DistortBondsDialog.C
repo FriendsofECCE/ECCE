@@ -9,6 +9,7 @@
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include <wx/scrolwin.h>
+#include <wx/event.h>
 
 #include "tdat/BondDistort.H"
 #include "tdat/Fragment.H"
@@ -27,11 +28,14 @@ double distance(const Fragment& f, int a, int b)
 }
 
 DistortBondsDialog::DistortBondsDialog(wxWindow *parent, const Fragment& frag,
-                                       int centre)
-  : wxDialog(parent, wxID_ANY, _("Distort Bonds")), p_frag(frag),
-    p_centre(centre)
+                                       int centre, std::function<void()> onApply)
+  : wxDialog(parent, wxID_ANY, _("Distort Bonds"), wxDefaultPosition,
+             wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
+    p_frag(&frag), p_sym(frag.atomRef(centre)->atomicSymbol()), p_centre(centre), p_ok(true),
+    p_apply(onApply)
 {
   p_nb = BondDistort::neighbours(frag, centre);
+  for (size_t i = 0; i < p_nb.size(); i++) p_nbSyms.push_back(frag.atomRef(p_nb[i])->atomicSymbol());
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
   top->Add(new wxStaticText(this, wxID_ANY,
       wxString::Format(_("Change in each bond to %s%d, in Angstrom "
@@ -43,11 +47,10 @@ DistortBondsDialog::DistortBondsDialog(wxWindow *parent, const Fragment& frag,
   sc->SetScrollRate(0, 10);
   wxFlexGridSizer *grid = new wxFlexGridSizer(3, 6, 10);
   for (size_t i = 0; i < p_nb.size(); i++) {
-    grid->Add(new wxStaticText(sc, wxID_ANY, wxString::Format("%s%d",
-              frag.atomRef(p_nb[i])->atomicSymbol(), p_nb[i] + 1)),
-              0, wxALIGN_CENTER_VERTICAL);
-    grid->Add(new wxStaticText(sc, wxID_ANY, wxString::Format("%.4f A",
-              distance(frag, centre, p_nb[i]))), 0, wxALIGN_CENTER_VERTICAL);
+    p_name.push_back(new wxStaticText(sc, wxID_ANY, ""));
+    grid->Add(p_name.back(), 0, wxALIGN_CENTER_VERTICAL);
+    p_len.push_back(new wxStaticText(sc, wxID_ANY, ""));
+    grid->Add(p_len.back(), 0, wxALIGN_CENTER_VERTICAL);
     wxTextCtrl *t = new wxTextCtrl(sc, wxID_ANY, "0.0");
     p_dr.push_back(t);
     grid->Add(t);
@@ -79,11 +82,84 @@ DistortBondsDialog::DistortBondsDialog(wxWindow *parent, const Fragment& frag,
   jt->Add(new wxButton(this, ID_JT, _("Fill")));
   top->Add(jt, 0, wxALL, 8);
 
-  top->Add(CreateButtonSizer(wxOK | wxCANCEL), 0, wxEXPAND | wxALL, 8);
+  p_note = new wxStaticText(this, wxID_ANY, "");
+  p_note->SetForegroundColour(wxColour(150, 0, 0));
+  top->Add(p_note, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+
+  wxBoxSizer *btns = new wxBoxSizer(wxHORIZONTAL);
+  btns->AddStretchSpacer(1);
+  p_applyBtn = new wxButton(this, wxID_APPLY, _("Apply"));
+  btns->Add(p_applyBtn, 0, wxRIGHT, 8);
+  btns->Add(new wxButton(this, wxID_CLOSE, _("Close")));
+  top->Add(btns, 0, wxEXPAND | wxALL, 8);
+  setNames();
   SetSizerAndFit(top);
+  Bind(wxEVT_BUTTON, &DistortBondsDialog::onApplyBtn, this, wxID_APPLY);
+  Bind(wxEVT_BUTTON, &DistortBondsDialog::onCloseBtn, this, wxID_CLOSE);
+  Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent&) { Destroy(); });
   Bind(wxEVT_BUTTON, &DistortBondsDialog::onAll, this, ID_ALL);
   Bind(wxEVT_BUTTON, &DistortBondsDialog::onJT, this, ID_JT);
 }
+
+// Labels hold the atom names and current bond lengths of the centre's bonds.
+void DistortBondsDialog::setNames()
+{
+  for (size_t i = 0; i < p_nb.size(); i++) {
+    p_name[i]->SetLabel(wxString::Format("%s%d",
+        p_frag->atomRef(p_nb[i])->atomicSymbol(), p_nb[i] + 1));
+    p_len[i]->SetLabel(wxString::Format("%.4f A",
+        distance(*p_frag, p_centre, p_nb[i])));
+  }
+}
+
+void DistortBondsDialog::refresh(const Fragment *frag, const std::vector<int>& sel)
+{
+  p_frag = frag;
+  wxString why;
+  // Undo rebuilds the atoms, so the centre is tracked by number and element.
+  int idx = (frag && p_centre >= 0 && p_centre < (int)frag->numAtoms() &&
+             p_sym == frag->atomRef(p_centre)->atomicSymbol()) ? p_centre : -1;
+  if (idx < 0) {
+    why = _("The atom this dialog was opened for no longer exists.");
+  } else if (std::find(sel.begin(), sel.end(), idx) == sel.end()) {
+    why = _("The atom this dialog was opened for is no longer selected.");
+  } else {
+    std::vector<int> nb = BondDistort::neighbours(*frag, idx);
+    std::vector<std::string> atoms;
+    for (size_t i = 0; i < nb.size(); i++) atoms.push_back(frag->atomRef(nb[i])->atomicSymbol());
+    if (atoms != p_nbSyms) {
+      why = _("The bonds of this atom have changed; open the dialog again.");
+    } else {
+      p_nb = nb;
+      p_centre = idx;
+      setNames();
+    }
+  }
+  p_ok = why.empty();
+  p_applyBtn->Enable(p_ok);
+  p_note->SetLabel(why);
+  Layout();
+}
+
+void DistortBondsDialog::fillAll(const std::string& v)
+{
+  p_all->SetValue(v);
+  for (size_t i = 0; i < p_dr.size(); i++) p_dr[i]->SetValue(v);
+}
+
+bool DistortBondsDialog::applyEnabled() const { return p_applyBtn->IsEnabled(); }
+
+std::string DistortBondsDialog::note() const
+{
+  return std::string(p_note->GetLabel().mb_str());
+}
+
+void DistortBondsDialog::onApplyBtn(wxCommandEvent&)
+{
+  if (p_ok && p_apply) p_apply();
+}
+
+void DistortBondsDialog::onCloseBtn(wxCommandEvent&) { Close(); }
 
 void DistortBondsDialog::onAll(wxCommandEvent&)
 {
@@ -93,7 +169,7 @@ void DistortBondsDialog::onAll(wxCommandEvent&)
 void DistortBondsDialog::onJT(wxCommandEvent&)
 {
   std::vector<double> dr;
-  if (!BondDistort::jahnTeller(p_frag, p_centre, p_nb,
+  if (!BondDistort::jahnTeller(*p_frag, p_centre, p_nb,
                                atof(p_delta->GetValue().mb_str()),
                                std::string(p_axis->GetStringSelection().mb_str()),
                                dr)) {

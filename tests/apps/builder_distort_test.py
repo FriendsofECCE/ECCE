@@ -88,7 +88,15 @@ def main():
         lines = ["wait 3000", "coordsraw",
                  "cmd distort centre 1 dr 0.1", "coordsraw",
                  "key viewer undo", "coordsraw",
-                 "cmd distort centre 1 jt 0.1 axis z", "coordsraw", "quit"]
+                 "cmd distort centre 1 jt 0.1 axis z", "coordsraw",
+                 "key viewer undo",
+                 # modeless dialog: two Applies, then Undo step by step
+                 "select 1", "distortdlg open", "distortdlg open",
+                 "distortdlg fill 0.1", "distortdlg apply", "coordsraw",
+                 "distortdlg apply", "coordsraw",
+                 "key viewer undo", "coordsraw", "key viewer undo", "coordsraw",
+                 "select 2", "distortdlg state",
+                 "select 1", "distortdlg state", "distortdlg close", "quit"]
         text = eb.runBuilder(s, env, wrappers, "distort", lines, shots,
                              structure=xyz)
         dumps = []
@@ -96,11 +104,11 @@ def main():
             if m.group(1) == "1":
                 dumps.append([])
             dumps[-1].append(tuple(float(m.group(k)) for k in (2, 3, 4)))
-        if not check(len(dumps) == 4 and all(len(d) == 7 for d in dumps),
-                     "four dumps of 7 atoms (%s)" % [len(d) for d in dumps]):
+        if not check(len(dumps) == 8 and all(len(d) == 7 for d in dumps),
+                     "eight dumps of 7 atoms (%s)" % [len(d) for d in dumps]):
             say("\n".join("      | " + l for l in text.splitlines()[-30:]))
             return 1
-        before, after, undone, jt = dumps
+        before, after, undone, jt, m1, m2, u1, u0 = dumps
         steps = [dist(after[i], after[0]) - dist(before[i], before[0])
                  for i in range(1, 7)]
         check(all(abs(x - 0.1) < 1e-6 for x in steps),
@@ -117,6 +125,21 @@ def main():
               "Jahn-Teller: two +0.1, four -0.05 (%s)" % j)
         z = [i for i in range(1, 7) if abs(jt[i][2]) > 1]
         check(len(z) == 2, "the z pair is the axial one")
+        st = [(m.group(1), m.group(2), m.group(3)) for m in re.finditer(
+            r"BUILDER: distortdlg open=(\d) apply=(\d) note=\[(.*)\]", text)]
+        check(len(st) == 8 and st[0][:2] == ("1", "1") and st[1][:2] == ("1", "1"),
+              "dialog opens once, second open reuses it (%s)" % st[:2])
+        g = lambda d, i: dist(d[i], d[0]) - dist(before[i], before[0])
+        check(all(abs(g(m1, i) - 0.1) < 1e-6 and abs(g(m2, i) - 0.2) < 1e-6
+                  for i in range(1, 7)), "two Applies add 0.1 each")
+        check(all(abs(g(u1, i) - 0.1) < 1e-6 for i in range(1, 7)),
+              "first undo removes only the second Apply")
+        check(all(dist(a, b) < 1e-9 for a, b in zip(before, u0)),
+              "second undo restores the start")
+        check(st[5][:2] == ("1", "0") and "selected" in st[5][2],
+              "deselected centre disables Apply with a note (%s)" % (st[5],))
+        check(st[6][:2] == ("1", "1") and st[6][2] == "",
+              "reselecting enables Apply again")
     finally:
         if display:
             display.__exit__(None, None, None)
