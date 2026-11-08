@@ -49,12 +49,15 @@ class ThermoPanel : public PropertyPanel
 
    protected:
       void fill();
+      void rewrap();
       void OnChange(wxCommandEvent& event);
 
    private:
       wxChoice *p_treatment, *p_state;
       wxTextCtrl *p_temp;
       wxStaticText *p_text;
+      wxString p_note;
+      int p_wrapWidth = 0;
       wxGrid *p_grid;
       std::string p_error;
       bool p_have;

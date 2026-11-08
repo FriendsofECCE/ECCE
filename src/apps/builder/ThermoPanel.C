@@ -86,12 +86,20 @@ bool ThermoPanel::Create(IPropCalculation *calculation,
   GetSizer()->Add(bar, 0, wxEXPAND | wxALL, 4);
 
   p_text = new wxStaticText(this, wxID_ANY, wxEmptyString);
+  // No width of its own: the note takes the panel's width and wraps to it.
+  p_text->SetMinSize(wxSize(1, -1));
   GetSizer()->Add(p_text, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
   p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(1, 110));
   p_grid->CreateGrid(3, 2);
   p_grid->EnableEditing(false);
   GetSizer()->Add(p_grid, 0, wxEXPAND | wxALL, 3);
 
+  // The panel has no real width while it is built, so the note is wrapped
+  // from its own text again whenever the panel is sized.
+  Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+    e.Skip();
+    if (e.GetSize().x != p_wrapWidth) CallAfter(&ThermoPanel::rewrap);
+  });
   Bind(wxEVT_CHOICE, &ThermoPanel::OnChange, this, ID_TREATMENT);
   Bind(wxEVT_CHOICE, &ThermoPanel::OnChange, this, ID_STATE);
   Bind(wxEVT_TEXT_ENTER, &ThermoPanel::OnChange, this, ID_TEMP);
@@ -127,9 +135,9 @@ void ThermoPanel::fill()
     for (const std::string& n : r.notes) msg += wxString::FromUTF8(n.c_str()) + "\n";
   }
   msg.Trim();
-  p_text->SetLabel(msg);
+  p_note = msg;
   p_text->Show(!msg.empty());
-  p_text->Wrap(std::max(100, GetClientSize().x - 16));
+  rewrap();
 
   PropertyTask *task = dynamic_cast<PropertyTask*>(calc);
   const std::string code = task ?
@@ -164,6 +172,17 @@ void ThermoPanel::fill()
   for (int row = 0; row < p_grid->GetNumberRows(); ++row)
     height += p_grid->GetRowSize(row);
   p_grid->SetMinSize(wxSize(1, height));
+  Layout();
+}
+
+void ThermoPanel::rewrap()
+{
+  const int width = GetClientSize().x;
+  if (width < 40) return;   // not laid out yet
+  p_wrapWidth = GetSize().x;
+  p_text->SetLabel(p_note);   // drops the line breaks of the previous wrap
+  p_text->Wrap(width - 12);
+  p_text->InvalidateBestSize();
   Layout();
 }
 
