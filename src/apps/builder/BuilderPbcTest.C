@@ -150,6 +150,9 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
     for (char& ch : name) if (ch == '_') ch = ' ';
     wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(name));
     if (!pane.IsOk()) return s.fail("tooldock: no pane " + name);
+    //  Left()/Right() only set the side: a pane floated earlier (the saved
+    //  layout keeps it so) stays floating unless it is docked, as a drag does.
+    pane.Dock();
     if (w[2] == "left") pane.Left().Layer(0).Row(0);
     else pane.Right();
     pane.Show(true);
