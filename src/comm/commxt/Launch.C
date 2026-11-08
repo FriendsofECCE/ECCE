@@ -626,8 +626,16 @@ bool Launch::crestFromOptimisation(TaskJob *task)
         prov = l->source;
         break;
       }
-  ICalculation *calc = dynamic_cast<ICalculation*>(prov);
-  if (calc == 0) return false;
+  return isXtbOptimisation(dynamic_cast<TaskJob*>(prov));
+}
+
+bool Launch::isXtbOptimisation(TaskJob *task)
+{
+  ICalculation *calc = dynamic_cast<ICalculation*>(task);
+  if (calc == 0 || task->application() == 0 ||
+      strcasecmp(task->application()->getCodeName().c_str(), "xtb") != 0 ||
+      task->getState() != ResourceDescriptor::STATE_COMPLETED)
+    return false;
   const string rt = calc->runtype().name();
   return rt == "Geometry" || rt == "GeoVib";
 }

@@ -242,6 +242,11 @@ def run_crest_preopt(display, data, work, shots):
     check("an ECCE-QM step is no exception (#904)",
           "qm>xtb-2:geometry" in links and "xtb-2>cr2:geometry" in links
           and "qm>cr2:geometry" not in links, "links %s" % links)
+    for step in ("cr", "cr2", "sp"):
+        entry = [e for e in info[0].split("|") if e.startswith(step + " ")]
+        check("New step %s stores a theory and run type (#910)" % step,
+              bool(entry) and " theory=" in entry[0] and " runtype=" in entry[0],
+              "entry %s" % entry)
 
 
 def run_patterns(display, data, work, shots):

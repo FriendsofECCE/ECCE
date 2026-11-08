@@ -116,6 +116,10 @@ namespace WorkflowSteps {
   /// True when step is a geometry optimisation by run type (Geometry, GeoVib).
   bool isOptimisation(Resource *step);
 
+  /// True when step is a completed xTB geometry optimisation: the only
+  /// structure CREST accepts without an xTB optimisation before it (#904).
+  bool isXtbOptimisation(Resource *step);
+
   /// Makes a step of type rt in wf, links it to source (null for the first
   /// step) and copies what carry says.  Null with `why` set on failure.
   Resource *create(Session *wf, ResourceType *rt, const std::string& name,
