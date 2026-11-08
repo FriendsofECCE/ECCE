@@ -338,7 +338,7 @@ class NedTheoryPanel(EccePanel):
             self.cosmoDielec = EcceFloatInput(self,
                                               default = 78.4,
                                               name = "ES.Theory.SCF.Dielectric",
-                                              label = "Dielectric constant (ε_r):",
+                                              label = "Dielectric constant (εᵣ):",
                                               hardRange = "(0..)")
             sovRightSizer.AddWidget(self.cosmoDielec,
                                     border = EcceGlobals.BorderDefault)
