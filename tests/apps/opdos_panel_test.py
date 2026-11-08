@@ -112,11 +112,13 @@ def main():
                                    "ECCE_VIEWER_SCENE_OUT": out})
             log = result.log or ""
             bl = blocks(log)
-            if len(bl) < 8:
+            # Pick the dumps by command, not by position: every scene command logs a block.
+            bl = [b for b in bl if b["cmd"] == "opdosstate"]
+            if len(bl) < 5:
                 bad.append("only %d OPDOS states in the log" % len(bl))
                 print("\n".join(l for l in log.splitlines() if re.search("opdos|scene|SCENE|OPDOS", l))[-1500:])
             else:
-                first, atoms, clicked, occ, sel = bl[1], bl[3], bl[5], bl[7], bl[-1]
+                first, atoms, clicked, occ, sel = bl[0], bl[1], bl[2], bl[3], bl[-1]
                 if first.get("ready") != "1" or first.get("error") != "-":
                     bad.append("panel not ready: %s" % first.get("error"))
                 if float(first.get("norm_error", "1")) > 1e-5:
