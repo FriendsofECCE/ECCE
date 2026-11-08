@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		Quantum ESPRESSO, PBE, plane waves, the conventional cubic cell. This calculation shows the caesium chloride structure: one ion of each kind in the cubic cell, each with eight nearest neighbours of the other kind at the corners of a cube; the lattice is simple cubic, not body-centred, because the two ions differ.
 .	http://www.emsl.pnl.gov/ecce:application		QuantumESPRESSO
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 08 Nov 2026 18:26:35 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 08 Nov 2026 18:42:12 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 08 Nov 2026 18:26:33 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 08 Nov 2026 18:42:10 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/cscl__KUwc5S
+.	http://www.emsl.pnl.gov/ecce:job_path		<rundir>
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794162395.522 idle=0 at=1794162395\nscf cycle=7 scferr=9.9E-10/1.0E-08 converged=yes\nscf~ scferr=0.07899747,0.02841777,0.00037165,0.00001086,0.00000054,0.00000014,9.9E-10\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794163332.557 idle=0 at=1794163332\nscf cycle=7 scferr=9.9E-10/1.0E-08 converged=yes\nscf~ scferr=0.07899747,0.02841777,0.00037165,0.00001086,0.00000054,0.00000014,9.9E-10\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,8 +50,8 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 18:26:34 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 18:42:11 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794162394
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794163330
 .	http://www.emsl.pnl.gov/ecce:theory		PW/PW
 .	http://www.emsl.pnl.gov/ecce:version		PWSCF 6.7MaX
