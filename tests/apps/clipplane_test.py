@@ -9,7 +9,7 @@ panel through its script hooks (clipplane, clipdir, clipoffset, clipflip):
 
   - plane normal to x through the middle: one half of the picture is bare
     background and the other still shows atoms; "Flip side" swaps them;
-  - plane normal to z: the picture changes and still shows atoms;
+  - plane normal to z: still shows atoms (water is flat in the view plane);
   - off again: the picture is the one drawn before.
 
 Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME,
@@ -131,8 +131,10 @@ def run(display, data, work, keep):
                             "other drawn: %s" % (n, seen[n]))
     if seen["x_pos"][0] == seen["x_neg"][0] and seen["x_pos"][0] == 0:
         problems.append("flipping the side left the same half bare")
-    if images["z_pos"][2] == images["off0"][2] or not any(seen["z_pos"]):
-        problems.append("plane normal to z: picture unchanged or empty")
+    # Water lies in the view plane, so a z cut through its middle removes only
+    # the back halves of the spheres: the picture may stay the same.
+    if not any(seen["z_pos"]):
+        problems.append("plane normal to z: picture empty")
     if images["off1"][2] != images["off0"][2]:
         problems.append("off again does not restore the picture")
     info = os.path.join(out, "info_x.txt")
