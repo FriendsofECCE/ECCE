@@ -33,6 +33,7 @@ import xdisplay   # noqa: E402
 from ecceqm_builder_test import installLocal   # noqa: E402
 
 CALC = os.path.join(REPO, "tests", "modiagram", "fixtures", "orca-crco6")
+META = os.path.join(REPO, "tests", "apps", "fixtures", "calc-orca-water-ccpvdz")
 H5 = os.path.join(REPO, "tests", "fragorb_h5", "fixtures", "crco6", "results.h5")
 
 SCENE = """opdosopen
@@ -81,7 +82,11 @@ def main():
     def checkApp(display, name, results, verbose=False):
         folder = os.path.join(fixture.stateDir(), "opdos-localdata")
         urls = installLocal(folder, {"crco6": CALC})
-        shutil.copy(H5, os.path.join(urls["crco6"][len("file://"):], "results.h5"))
+        calc = urls["crco6"][len("file://"):]
+        shutil.copy(H5, os.path.join(calc, "results.h5"))
+        # the modiagram fixture predates .ecce-meta; without one the calculation does not open
+        for sub in ("", "Parameters", "Props"):
+            shutil.copy(os.path.join(META, sub, ".ecce-meta"), os.path.join(calc, sub, ".ecce-meta"))
         os.environ["ECCE_LOCAL_DATA"] = folder
         restore = fixture.settleUpgradeNotices()
         bad = []
