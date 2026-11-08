@@ -83,7 +83,8 @@ def main():
         folder = os.path.join(fixture.stateDir(), "opdos-localdata")
         urls = installLocal(folder, {"crco6": CALC})
         calc = urls["crco6"][len("file://"):]
-        shutil.copy(H5, os.path.join(calc, "results.h5"))
+        os.makedirs(os.path.join(calc, "Outputs"))
+        shutil.copy(H5, os.path.join(calc, "Outputs", "results.h5"))
         # the modiagram fixture predates .ecce-meta; without one the calculation does not open
         for sub in ("", "Parameters", "Props"):
             shutil.copy(os.path.join(META, sub, ".ecce-meta"), os.path.join(calc, sub, ".ecce-meta"))
