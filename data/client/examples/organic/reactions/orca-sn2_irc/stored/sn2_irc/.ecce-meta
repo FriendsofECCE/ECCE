@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, B3LYP-D3BJ/ma-def2-SVP. Intrinsic reaction coordinate (IRC) from the transition state. This calculation shows the path from the transition state down to the ion-dipole complexes on both sides (both branches converged); the end points, -3073.691304 Eh and -3073.699544 Eh, are close to the optimised complexes, -3073.691084 Eh and -3073.699428 Eh.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 08 Nov 2026 12:18:35 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 08 Nov 2026 17:51:45 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 08 Nov 2026 12:18:32 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 08 Nov 2026 17:51:42 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -15,7 +15,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		nerdegg
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/sn2_irc__CzjibN
+.	http://www.emsl.pnl.gov/ecce:job_path		<rundir>
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794140314.542 idle=0 at=1794140314\nscf cycle=10 energy=-3073.6765442006785634 dE=-6.75e-10/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-2.73e-02,-1.32e-02,-7.43e-03,-1.55e-02,-1.02e-04,-1.65e-06,-2.79e-07,-1.26e-06,-6.75e-10\nresult disp=D3\nfreq kind=analytic point=18/18 phase=assemble last=Van done=yes zpe=0.03632799\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794160304.745 idle=0 at=1794160304\nscf cycle=10 energy=-3073.6765442006785634 dE=-6.75e-10/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-2.73e-02,-1.32e-02,-7.43e-03,-1.55e-02,-1.02e-04,-1.65e-06,-2.79e-07,-1.26e-06,-6.75e-10\nresult disp=D3\nfreq kind=analytic point=18/18 phase=assemble last=Van done=yes zpe=0.03632799\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		IRC
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 12:18:33 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 17:51:43 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794140312
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794160303
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT
