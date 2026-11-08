@@ -27,6 +27,17 @@
 
 SO_NODE_SOURCE(SGLattice);
 
+static uint32_t s_edgeColor = SbColor(0.5, 0.5, 0.5).getPackedValue();
+static bool s_labelsShown = true;
+
+void SGLattice::setEdgeColor(float r, float g, float b)
+{
+   s_edgeColor = SbColor(r, g, b).getPackedValue();
+}
+
+void SGLattice::setLabelsShown(bool on) { s_labelsShown = on; }
+bool SGLattice::labelsShown() { return s_labelsShown; }
+
 void SGLattice::initClass()
 {
    SO_NODE_INIT_CLASS(SGLattice, SoLineSet, "LineSet");
@@ -77,7 +88,7 @@ void SGLattice::GLRender(SoGLRenderAction *action)
    // now. This is a method on SoShape that checks for INVISIBLE
    // draw style, BOUNDING_BOX complexity, and delayed
    // transparency.
-   if (! shouldGLRender(action) || p_noLabels)
+   if (! shouldGLRender(action) || p_noLabels || !s_labelsShown)
       return;
 
    // Labels and diagnostic positions share the same visibility and endpoints.
@@ -263,6 +274,7 @@ void SGLattice::setLattice(LatticeDef *lattice)
  */
 void SGLattice::updateColors()
 {
+   p_color = s_edgeColor;
    int cnt =  p_line->vertex.getNum();
    p_line->orderedRGBA.set1Value(0,p_xcolor);
    p_line->orderedRGBA.set1Value(1,p_xcolor);

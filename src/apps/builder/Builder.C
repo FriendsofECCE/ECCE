@@ -1261,6 +1261,7 @@ void Builder::createToolPanels()
             .MinSize(toggleSize).BestSize(toggleSize);
   p_mgr.AddPane(p_togglePanel, toggleInfo);
 
+  createDisplayPanel();
   applyGeometry();
 }
 
@@ -6693,6 +6694,7 @@ void Builder::updatePropertyMenus()
           delete [] xyz;
           return true;
         }
+        if (w[0] == "display") return displayCommand(s, w, outdir);
         //  "dsstyle open | slider <name> <value> | info <file>": the Display
         //  Style dialog (Custom Style...), a slider let go in it, and what
         //  the scene then holds -> <file>.txt (#210).

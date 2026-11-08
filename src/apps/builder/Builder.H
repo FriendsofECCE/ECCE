@@ -601,6 +601,10 @@ class Builder: public BuilderGUI,
       /// Show frame `index` through the Geometry Trace panel (plot marker
       /// included); false when that panel is not open.
       bool traceFrame(int index);
+      void createDisplayPanel();
+      void showDisplayPanel();
+      bool displayCommand(SceneScript& s, const vector<string>& w,
+                          const string& outdir);
       bool shotHookCommand(SceneScript& s, const vector<string>& w,
                            const string& outdir);
       bool nmodeTestCommand(SceneScript& s, const vector<string>& w);
@@ -658,6 +662,7 @@ class Builder: public BuilderGUI,
       wxMenu *p_editMenu;
       wxMenu *p_optionsMenu;
       wxMenu *p_renderMenu;
+      class DisplayPanel *p_displayPanel = 0;
       wxMenu *p_buildMenu;
       wxMenu *p_modeMenu;
       wxMenu *p_measureMenu;

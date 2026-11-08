@@ -14,6 +14,7 @@
 
 #include "wxgui/ewxButton.H"
 #include "wxgui/ewxConfig.H"
+#include "SurfaceStyle.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/NumericValidator.H"
@@ -402,6 +403,12 @@ void Cube::updateIsoValue(double isovalue)
 void Cube::getSurfaceColors(double& posR, double& posG, double& posB,
                             double& negR, double& negG, double& negB)
 {
+   double cp[3], cn[3];
+   if (SurfaceStyle::customColors(cp, cn)) {
+      posR = cp[0]; posG = cp[1]; posB = cp[2];
+      negR = cn[0]; negG = cn[1]; negB = cn[2];
+      return;
+   }
    ewxConfig *config = ewxConfig::getConfig(CONFIG_INIFILE);
    wxString colorType = config->Read(CONFIG_COLORS, CONFIG_REDGREEN);
    if (colorType == CONFIG_REDGREEN) {
@@ -461,6 +468,12 @@ void Cube::getSurfaceColors(double& posR, double& posG, double& posB,
 }
 
 
+void Cube::surfaceStyleChanged()
+{
+   updateSurface();
+   updateIsoValue();
+}
+
 double Cube::getTransparency()
 {
    double ret = 0.0;
@@ -469,7 +482,7 @@ double Cube::getTransparency()
             == CONFIG_SEMITRANSPARENT) {
       ret = 0.5;
    }
-   return ret;
+   return SurfaceStyle::transparency(ret);
 }
 
 
@@ -496,9 +509,11 @@ void Cube::OnMenuClick(wxCommandEvent& event)
           || id == ID_MENU_BLUEYELLOW
           || id == ID_MENU_LIGHTDARK) {
     key = CONFIG_COLORS;
+    SurfaceStyle::clearCustom();
   } else if (id == ID_MENU_OPAQUE
           || id == ID_MENU_SEMITRANSPARENT) {
     key = CONFIG_TRANSPARENCY;
+    SurfaceStyle::clearOpacity();
   }
 
   config->Write(key, s_str[id]);
