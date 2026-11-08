@@ -616,7 +616,7 @@ string ReactionOverviewDialog::buildDetailHtml(const string& treatment, const st
       h += "<p>" + warn + "\xE2\x9A\xA0 " + htmlEsc(r.reason) + "</font></p>\n";
       continue;
     }
-    h += "<p>\xCE\x94E<sub>el</sub> = " + num(r.dE, "%.2f") + ",  \xCE\x94G = " + num(r.dG, "%.2f") +
+    h += "<p>\xCE\x94" "E<sub>el</sub> = " + num(r.dE, "%.2f") + ",  \xCE\x94G = " + num(r.dG, "%.2f") +
          ",  spread " + num(r.spread, "%.2f") + " (\xCE\x94G from " + num(r.lo, "%.2f") + " to " +
          num(r.hi, "%.2f") + " over the six treatments)</p>\n";
     h += "<p><b>Soft modes</b> (&lt; 100 cm<sup>-1</sup>)</p>\n";
@@ -638,7 +638,7 @@ string ReactionOverviewDialog::buildDetailHtml(const string& treatment, const st
     if (!r.rateError.empty()) { h += "<p>" + warn + "no rate: " + htmlEsc(r.rateError) + "</font></p>\n"; continue; }
     const RateRow& w = r.rate.rows[0];
     const string u = r.rate.unit.empty() ? string() : htmlEsc(r.rate.unit);
-    h += "<p>\xCE\x94E<sup>\xE2\x80\xA1</sup> = " + num(r.dEact, "%.2f") + ",  \xCE\x94G<sup>\xE2\x80\xA1</sup> = " +
+    h += "<p>\xCE\x94" "E<sup>\xE2\x80\xA1</sup> = " + num(r.dEact, "%.2f") + ",  \xCE\x94G<sup>\xE2\x80\xA1</sup> = " +
          num(r.dGact, "%.2f") + " kJ/mol at " + num(w.T, "%.2f") + " K.  k in " + (u.empty() ? string("the rate unit") : u) + ".</p>\n";
     h += "<table border=\"1\" cellspacing=\"0\" cellpadding=\"4\">\n<tr><th align=\"left\">Rate</th><th>\xCE\xBA</th><th>k</th></tr>\n";
     h += "<tr><td>Transition-state theory</td><td align=\"right\">1</td><td align=\"right\">" + htmlK(rateNum(w.k)) + "</td></tr>\n";

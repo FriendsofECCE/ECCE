@@ -6,6 +6,7 @@
 #include "wx/wx.h"
 #include "wx/dcmemory.h"
 #include "wx/image.h"
+#include "wx/html/htmlwin.h"
 
 #include "wxgui/WindowShot.H"
 
@@ -106,6 +107,27 @@ bool ecceWindowShot(wxWindow* win, const wxString& file)
 }
 
 
+// A wxHtmlWindow paints through its own handler; the parent's client-DC blit
+// leaves its area white, so blit it separately.
+static void blitHtmlChildren(wxWindow* win, wxWindow* top, wxMemoryDC& mem)
+{
+    for (wxWindowList::compatibility_iterator n = win->GetChildren().GetFirst(); n; n = n->GetNext())
+    {
+        wxWindow* c = n->GetData();
+        if (!c->IsShownOnScreen())
+            continue;
+        if (wxHtmlWindow* h = wxDynamicCast(c, wxHtmlWindow))
+        {
+            wxPoint p = top->ScreenToClient(h->GetScreenPosition());
+            wxClientDC hdc(h);
+            wxSize hs = h->GetClientSize();
+            mem.Blit(p.x, p.y, hs.x, hs.y, &hdc, 0, 0);
+        }
+        else
+            blitHtmlChildren(c, top, mem);
+    }
+}
+
 bool ecceClientShot(wxWindow* win, const wxString& file)
 {
     wxSize sz = win->GetClientSize();
@@ -115,6 +137,7 @@ bool ecceClientShot(wxWindow* win, const wxString& file)
     wxBitmap bmp(sz.x, sz.y, 24);
     wxMemoryDC mem(bmp);
     mem.Blit(0, 0, sz.x, sz.y, &screen, 0, 0);
+    blitHtmlChildren(win, win, mem);
     mem.SelectObject(wxNullBitmap);
     wxImage img = bmp.ConvertToImage();
     if (img.HasAlpha())
