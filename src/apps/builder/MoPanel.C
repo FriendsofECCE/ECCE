@@ -398,13 +398,14 @@ bool MoPanel::Create(IPropCalculation *calculation,
       g->GetGridWindow()->SetToolTip(tip);
    });
    spinSizer->Add(p_spinNote, 0, wxGROW|wxALL, 8);
+   //  At the top, not below the tables: at the bottom it was scrolled out of sight.
+   spinSizer->Add(paintRow, 0, wxLEFT|wxRIGHT|wxBOTTOM, 8);
    spinSizer->Add(p_spinSomo, 0, wxGROW|wxLEFT|wxRIGHT, 5);
    spinSizer->Add(p_spinPopHead, 0, wxGROW|wxLEFT|wxRIGHT|wxTOP|wxBOTTOM, 8);
    spinSizer->Add(p_spinPop, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 5);
    spinSizer->Add(p_spinLargest, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 8);
    spinSizer->Add(p_spinElemHead, 0, wxGROW|wxLEFT|wxRIGHT, 8);
    spinSizer->Add(p_spinElem, 0, wxGROW|wxLEFT|wxRIGHT|wxBOTTOM, 5);
-   spinSizer->Add(paintRow, 0, wxLEFT|wxRIGHT|wxBOTTOM, 8);
    p_spinView->SetSizer(spinSizer);
    p_spinView->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
       e.Skip();
@@ -3349,7 +3350,9 @@ void MoPanel::fillSpinView()
    p_spinSomo->Show(somoTable);
    p_spinPop->Show(popTable);
    p_spinElem->Show(popTable);
-   p_spinPaint->Show(popTable);
+   //  Always listed; greyed out when there are no per-atom spins to draw.
+   p_spinPaint->Show(true);
+   p_spinPaint->Enable(popTable);
    p_spinBar->Show(popTable);
    p_spinLegend->Show(popTable);
    if (p_spinPainted) paintSpin(true);
