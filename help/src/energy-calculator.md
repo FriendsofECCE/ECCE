@@ -88,11 +88,11 @@ Head-Gordon's quasi-RRHO enthalpy), in kJ/mol at 1 atm. A large spread says
 that the reaction G depends on how the soft modes are treated, which matters
 for loosely bound complexes and clusters.
 
-**G treatment** chooses what the G row itself shows: the code's own G (the
+**G treatment** chooses what the G row itself shows: the code's own Gibbs energy (the
 default) or G recomputed with one of the treatments. The recomputed numbers
 come from the `ecce-thermo` command, so they equal what it prints for the same
 calculations. If the stored frequencies cannot be read, a note says why and
-the code's own G is kept.
+the code's own Gibbs energy is kept.
 
 ## Warnings and notes
 
