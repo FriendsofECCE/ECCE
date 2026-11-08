@@ -881,6 +881,10 @@ def run_recipes(display, data, work, shots):
           for n, model, name in (("crest", "ALPB", "dmso"),
                                  ("xtb", "ALPB", "dmso"), ("dft", "CPCM", "DMSO"))),
           "steps: %r" % conf)
+    check("recipe CREST and xTB steps store a theory for the Calculation panel (#910)",
+          conf.get("crest", {}).get("theory") == "GFN2-xTB"
+          and conf.get("xtb", {}).get("theory") == "GFN2-xTB",
+          "CREST %r, xTB %r" % (conf.get("crest"), conf.get("xtb")))
     check("solvent checkbox restores as a checkbox in the ORCA theory editor",
           conf.get("dft", {}).get("solvent-toggle-type") == "toggle_input",
           "DFT step: %r" % conf.get("dft"))

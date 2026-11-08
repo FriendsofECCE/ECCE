@@ -840,6 +840,35 @@ void applyRoleMethod(Resource *step)
   delete g;
 }
 
+// A step nobody has opened in the Calculation Editor stores no theory, so
+// the Calculation panel shows none (#910).  Store the first theory its code
+// offers for the run type, as the editor's list would; codes whose theory is
+// set from a recipe method (applyRoleMethod) already have one.
+void applyDefaultTheory(Resource *step)
+{
+  ICalculation *calc = dynamic_cast<ICalculation*>(step);
+  TaskJob *job = dynamic_cast<TaskJob*>(step);
+  const JCode *jcode = job ? job->application() : 0;
+  if (!calc || !jcode) return;
+  TTheory *have = calc->theory();
+  const bool set = have && !have->category().empty();
+  delete have;
+  if (set) return;
+  const string rt = calc->runtype().name();
+  vector<TTheory> *theories = jcode->theories();
+  if (!theories) return;
+  for (size_t i = 0; i < theories->size(); i++) {
+    vector<TRunType> *types = jcode->runTypes(&(*theories)[i]);
+    bool ok = rt.empty();
+    for (size_t k = 0; types && k < types->size() && !ok; k++)
+      ok = (*types)[k].name() == rt;
+    if (ok) {
+      calc->theory(&(*theories)[i]);
+      return;
+    }
+  }
+}
+
 // A basis set is per element, so the role's one is stored once the step
 // has a structure; a name the library does not know leaves the step as is.
 void applyRoleBasis(Resource *step)
@@ -1101,6 +1130,7 @@ vector<Resource*> WorkflowSteps::applyRecipe(Session *wf, const Recipe& recipe,
       step->addProp(nsKey(":recipe.basis"), basis);
       step->addProp(nsKey(":recipe.caption"), rs.caption);
       applyRoleMethod(step);
+      applyDefaultTheory(step);
       applyRoleBasis(step);
     }
     wf->addProp(nsKey(kRecipeProp.c_str()), recipe.id + "/" + variant.id);
