@@ -219,6 +219,8 @@ def run_crest_preopt(display, data, work, shots):
         "workflowcopy %s %s/crest ens" % (wf, proj),
         "workflowstep %s orca_es sp %s/ens nogeom" % (wf, wf),
         "workflowstep %s crest_es cr %s/sp" % (wf, wf),
+        "workflowstep %s ecceqm_es qm %s/ens" % (wf, wf),
+        "workflowstep %s crest_es cr2 %s/qm" % (wf, wf),
         "workflowinfo %s" % wf,
     ]
     script = os.path.join(work, "commands-preopt")
@@ -237,6 +239,14 @@ def run_crest_preopt(display, data, work, shots):
     check("an xTB step sits between the box and CREST",
           "sp>xtb-1:geometry" in links and "xtb-1>cr:geometry" in links,
           "links %s" % links)
+    check("an ECCE-QM step is no exception (#904)",
+          "qm>xtb-2:geometry" in links and "xtb-2>cr2:geometry" in links
+          and "qm>cr2:geometry" not in links, "links %s" % links)
+    for step in ("cr", "cr2", "sp"):
+        entry = [e for e in info[0].split("|") if e.startswith(step + " ")]
+        check("New step %s stores a theory and run type (#910)" % step,
+              bool(entry) and " theory=" in entry[0] and " runtype=" in entry[0],
+              "entry %s" % entry)
 
 
 def run_patterns(display, data, work, shots):

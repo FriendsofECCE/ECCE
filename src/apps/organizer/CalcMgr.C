@@ -11615,7 +11615,7 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
   // CREST fails from an unoptimised structure: put an xTB optimisation between.
   string preoptNote;
   if (source && carry.geometry && code->label == string("CREST") &&
-      !WorkflowSteps::isOptimisation(source)) {
+      !WorkflowSteps::isXtbOptimisation(source)) {
     ResourceType *xrt = 0;
     const WorkflowSteps::Code *xcode = 0;
     for (const WorkflowSteps::Code& c : WorkflowSteps::codes())

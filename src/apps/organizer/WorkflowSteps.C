@@ -23,6 +23,7 @@
 #include "dsm/ICalculation.H"
 #include "dsm/OrbitalGuess.H"
 #include "dsm/TaskJob.H"
+#include "comm/Launch.H"
 #include "dsm/ChemistryTask.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/ResourceType.H"
@@ -136,6 +137,12 @@ bool WorkflowSteps::isOptimisation(Resource *step)
 }
 
 
+bool WorkflowSteps::isXtbOptimisation(Resource *step)
+{
+  return Launch::isXtbOptimisation(dynamic_cast<TaskJob*>(step));
+}
+
+
 bool WorkflowSteps::isScan(Resource *step)
 {
   return ScanPoint::isScan(dynamic_cast<PropertyTask*>(step));
@@ -188,6 +195,8 @@ string WorkflowSteps::defaultName(Session *wf, const Code& code)
 }
 
 
+namespace { void applyDefaultTheory(Resource *step); }
+
 Resource *WorkflowSteps::create(Session *wf, ResourceType *rt,
                                 const string& name, Resource *source,
                                 const Carry& carry, string& why)
@@ -237,6 +246,8 @@ Resource *WorkflowSteps::create(Session *wf, ResourceType *rt,
         throw InvalidException(hessWhy.empty() ? "The Hessian could not be "
                                "carried over" : hessWhy, WHERE);
     }
+    // A step nobody has opened yet still shows a theory and run type (#910).
+    applyDefaultTheory(made);
   }
   catch (InvalidException& ex) {
     why = ex.what();
@@ -673,6 +684,8 @@ string WorkflowSteps::info(Session *wf)
     TTheory *th = calc ? calc->theory() : 0;
     if (th && !th->name().empty()) out << " theory=" << th->name();
     delete th;
+    if (calc && !calc->runtype().name().empty())
+      out << " runtype=" << calc->runtype().name();
     GUIValues *gv = calc ? calc->guiparams() : 0;
     GUIValue *xc = gv ? gv->get("ES.Theory.DFT.XCFunctionals") : 0;
     if (xc && !xc->getValueAsString().empty()) {
@@ -864,6 +877,8 @@ void applyDefaultTheory(Resource *step)
       ok = (*types)[k].name() == rt;
     if (ok) {
       calc->theory(&(*theories)[i]);
+      if (rt.empty() && types && !types->empty())
+        calc->runtype((*types)[0]);
       return;
     }
   }
