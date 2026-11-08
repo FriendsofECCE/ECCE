@@ -28,6 +28,7 @@
 #include "tdat/TAtm.H"
 #include "viz/AtomLabelsCmd.H"
 #include "viz/SGContainer.H"
+#include "ClipPlanePanel.H"
 #include "viz/SGFragment.H"
 #include "wxviz/SceneScript.H"
 
@@ -137,4 +138,36 @@ bool Builder::shotHookCommand(SceneScript& s, const vector<string>& w,
   }
 
   return s.fail("unknown command: " + c);
+}
+
+//  "clipplane on|off", "clipdir x|y|z|hkl h k l|atoms a b c", "clipoffset A",
+//  "clipflip", "clipinfo NAME": the Clipping plane panel's controls (#879).
+bool Builder::clipCommand(SceneScript& s, const vector<string>& w, const string& outdir)
+{
+  if (!p_clipPanel) return s.fail(w[0] + ": no clipping panel");
+  const string& c = w[0];
+  bool ok = true;
+  if (c == "clipplane" && w.size() == 2 && (w[1] == "on" || w[1] == "off")) {
+    p_clipPanel->setOn(w[1] == "on");
+  } else if (c == "clipdir" && w.size() >= 2) {
+    if (w[1] == "x" || w[1] == "y" || w[1] == "z")
+      p_clipPanel->setDirection(w[1] == "x" ? ClipPlanePanel::DIR_X
+          : w[1] == "y" ? ClipPlanePanel::DIR_Y : ClipPlanePanel::DIR_Z);
+    else if (w[1] == "hkl" && w.size() == 5)
+      p_clipPanel->setHKL(atoi(w[2].c_str()), atoi(w[3].c_str()), atoi(w[4].c_str()));
+    else if (w[1] == "atoms" && w.size() == 5)
+      p_clipPanel->setAtoms(atoi(w[2].c_str()), atoi(w[3].c_str()), atoi(w[4].c_str()));
+    else ok = false;
+  } else if (c == "clipoffset" && w.size() == 2) {
+    p_clipPanel->setOffset(atof(w[1].c_str()));
+  } else if (c == "clipflip" && w.size() == 1) {
+    p_clipPanel->flip();
+  } else if (c == "clipinfo" && w.size() == 2) {
+    std::ofstream(outdir + "/" + w[1] + ".txt") << p_clipPanel->describe() << "\n";
+  } else {
+    ok = false;
+  }
+  if (!ok) return s.fail(c + ": bad arguments");
+  settle(400);
+  return true;
 }

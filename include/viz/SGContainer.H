@@ -6,6 +6,8 @@ class ChemRadii;
 class SoSeparator;
 class SoFieldSensor;
 class SoSwitch;
+class SoClipPlane;
+class SbVec3f;
 class ChemDisplay;
 class ChemDisplayParam;
 class SoMaterial;
@@ -126,6 +128,10 @@ public:
     SoPath           *getSelectionPath(ChemSelection *, int index);
     SoShapeHints     *getShapeHints();
     SoGroup	     *getTopClipManip() ;
+    // Clipping plane above everything in the scene: atoms, bonds, surfaces,
+    // the cell.  Keeps the side n.x >= d.
+    void setClipPlane(bool on, const SbVec3f& normal, float d);
+    bool clipPlaneOn() const;
     CustomBBoxNode *getViewBBox();
 
     string hackSGName(const string& name);
@@ -268,6 +274,7 @@ SoINTERNAL public:
     ChemRadii   *p_CPK_radii;
     SoShapeHints *p_shapeHints;
     SoGroup	*p_topClipManip ;
+    SoClipPlane *p_clipPlane ;
     SoGroup	*p_dynamicStyles ;
     CustomBBoxNode *p_viewBbox;
 
