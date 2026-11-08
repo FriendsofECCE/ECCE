@@ -1,0 +1,38 @@
+&CONTROL
+  calculation = 'scf'
+  prefix = 'nacl'
+  outdir = './qe.scratch'
+  pseudo_dir = '/usr/share/espresso/pseudo/'
+  tstress = .true.
+/
+&SYSTEM
+  ibrav = 0
+  nat = 8
+  ntyp = 2
+  ecutwfc = 50
+  occupations = 'smearing'
+  smearing = 'marzari-vanderbilt'
+  degauss = 0.02
+/
+&ELECTRONS
+  conv_thr = 1e-08
+  mixing_beta = 0.7
+/
+ATOMIC_SPECIES
+  Na  22.98977  na_pbe_v1.5.uspp.F.UPF
+  Cl  35.453  cl_pbe_v1.4.uspp.F.UPF
+CELL_PARAMETERS angstrom
+  5.6400000000 0.0000000000 0.0000000000
+  0.0000000000 5.6400000000 0.0000000000
+  0.0000000000 0.0000000000 5.6400000000
+ATOMIC_POSITIONS angstrom
+  Na 0.0000000000 0.0000000000 0.0000000000
+  Na 0.0000000000 2.8200000000 2.8200000000
+  Na 2.8200000000 0.0000000000 2.8200000000
+  Na 2.8200000000 2.8200000000 0.0000000000
+  Cl 2.8200000000 2.8200000000 2.8200000000
+  Cl 2.8200000000 0.0000000000 0.0000000000
+  Cl 0.0000000000 2.8200000000 0.0000000000
+  Cl 0.0000000000 0.0000000000 2.8200000000
+K_POINTS automatic
+  8 8 8 0 0 0
