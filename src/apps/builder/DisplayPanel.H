@@ -57,8 +57,8 @@ private:
 
   DisplayHost p_h;
   wxChoice *p_style, *p_scheme, *p_atomLabels;
-  wxSlider *p_sl[4];       // sphscl, cylrad, sphrq, cylrq
-  wxStaticText *p_val[4];
+  wxSlider *p_sl[5];       // sphscl, cylrad, sphrq, cylrq, opacity
+  wxStaticText *p_val[5];
   wxCheckBox *p_auto[2];   // sphere, cylinder
   Swatch *p_bg, *p_fg, *p_pos, *p_neg, *p_cell;
   wxRadioButton *p_surf[3];

@@ -9,9 +9,10 @@
 #include "wxviz/ViewerEvtHandler.H"
 
 namespace {
-const char *SLIDER_KEYS[4] = {"sphscl", "cylrad", "sphrq", "cylrq"};
-const char *SLIDER_LABELS[4] = {"Ball and Stick Scale", "Cylinder Radius",
-                                "Sphere Quality", "Cylinder Quality"};
+const char *SLIDER_KEYS[5] = {"sphscl", "cylrad", "sphrq", "cylrq", "opacity"};
+const char *SLIDER_LABELS[5] = {"Ball and Stick Scale", "Cylinder Radius",
+                                "Sphere Quality", "Cylinder Quality",
+                                "Atom Opacity (%)"};
 const char *ATOM_LABELS[7] = {"None", "Element with Number", "Atom Name",
     "Charge, 2 decimals", "Charge, 3 decimals", "Charge, 4 decimals", "Type"};
 const char *PRESET_NAMES[4] = {"R/G", "R/B", "B/Y", "L/D"};
@@ -94,8 +95,8 @@ void DisplayPanel::build()
   g->Add(p_scheme, 1, wxEXPAND);
   p_style->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { applyStyle(); });
   p_scheme->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { applyStyle(); });
-  for (int i = 0; i < 4; i++) {
-    p_sl[i] = new wxSlider(this, wxID_ANY, 50, 1, 100);
+  for (int i = 0; i < 5; i++) {
+    p_sl[i] = new wxSlider(this, wxID_ANY, i == 4 ? 100 : 50, i == 4 ? 0 : 1, 100);
     p_val[i] = new wxStaticText(this, wxID_ANY, "50", wxDefaultPosition,
                                 wxSize(30, -1));
     wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
@@ -248,7 +249,7 @@ void DisplayPanel::refresh()
     };
     fill(p_style, false);
     fill(p_scheme, true);
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
       p_sl[i]->SetValue(c->sliderValue(SLIDER_KEYS[i]));
       p_val[i]->SetLabel(wxString::Format("%d", p_sl[i]->GetValue()));
     }
@@ -305,7 +306,7 @@ void DisplayPanel::applySlider(const std::string& name, int v)
   c->scriptSlider(name, v);
   if (name == "sphrq") p_auto[0]->SetValue(false);
   if (name == "cylrq") p_auto[1]->SetValue(false);
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 5; i++)
     if (name == SLIDER_KEYS[i]) {
       p_sl[i]->SetValue(v);
       p_val[i]->SetLabel(wxString::Format("%d", v));

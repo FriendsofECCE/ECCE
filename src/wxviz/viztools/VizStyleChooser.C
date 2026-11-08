@@ -1163,7 +1163,8 @@ int VizStyleChooser::sliderValue(const string& name)
    ewxSlider *slider = (ewxSlider*)FindWindow(
       name == "sphrq" ? ID_SLIDER_DSPLY_SPHRQ :
       name == "cylrq" ? ID_SLIDER_DSPLY_CYLRQ :
-      name == "cylrad" ? ID_SLIDER_DSPLY_CYLRAD : ID_SLIDER_DSPLY_SPHSCL);
+      name == "cylrad" ? ID_SLIDER_DSPLY_CYLRAD :
+      name == "opacity" ? ID_SLIDER_DSPLY_OPACITY : ID_SLIDER_DSPLY_SPHSCL);
    return slider->GetValue();
 }
 
@@ -1207,6 +1208,7 @@ bool VizStyleChooser::scriptSlider(const string& name, int value)
       {"lnwdth", &ID_SLIDER_DSPLY_LNWDTH}, {"cylrq", &ID_SLIDER_DSPLY_CYLRQ},
       {"cylrad", &ID_SLIDER_DSPLY_CYLRAD}, {"resrad", &ID_SLIDER_DSPLY_RESRAD},
       {"sphrq", &ID_SLIDER_DSPLY_SPHRQ}, {"sphscl", &ID_SLIDER_DSPLY_SPHSCL},
+      {"opacity", &ID_SLIDER_DSPLY_OPACITY},
       {"coilw", &ID_SLIDER_DSPLY_COILW}, {"hlxrad", &ID_SLIDER_DSPLY_HLXRAD},
       {"hlxw", &ID_SLIDER_DSPLY_HLXW}, {"shtw", &ID_SLIDER_DSPLY_SHTW},
       {"rbthk", &ID_SLIDER_DSPLY_RBTHK}, {"ccylrq", &ID_SLIDER_DSPLY_CCYLRQ},

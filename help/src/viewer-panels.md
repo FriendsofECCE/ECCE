@@ -89,7 +89,7 @@ detail can increase for a larger output image.
 
 ## Transparent atoms
 
-In **Render > Custom Style...**, the **Atom opacity** slider (0 to 100 %,
+In the Display panel (and in **Render > Custom Style...**), the **Atom Opacity** slider (0 to 100 %,
 default 100) makes the atom spheres of a style see-through, so atoms behind
 them show. The setting belongs to the style: use **Update** on the selected
 atoms to give only those atoms a style with another opacity. Bonds stay
