@@ -939,7 +939,8 @@ void applyRoleBasis(Resource *step)
   if (tags.empty()) return;
   EDSIServerCentral central;
   EDSIGaussianBasisSetLibrary lib(central.getDefaultBasisSetLibrary());
-  const string names[2] = {name, libraryBasisName(name)};
+  // The library spelling first: it is the name the step should keep.
+  const string names[2] = {libraryBasisName(name), name};
   for (int k = 0; k < 2; k++) {
     vector<TGaussianBasisSet*> found =
         lib.lookup(names[k].c_str(), TGaussianBasisSet::UnknownGBSType, tags.c_str());
