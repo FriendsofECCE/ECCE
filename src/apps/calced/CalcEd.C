@@ -3562,9 +3562,18 @@ void CalcEd::refreshBasisSetFields()
     ((ewxStaticText*)FindWindow(ID_STATICTEXT_CALCED_XC))
             ->SetLabel(p_basis->dftFittingName().empty() ? "None" :
                        p_basis->dftFittingName());
+    // ORCA RI-J fits the Coulomb term with an auxiliary basis kept in the
+    // theory details, not in the basis set (#894).
+    string cdName = p_basis->dftChargeFittingName();
+    GUIValue *riMode = p_GUIValues ? p_GUIValues->get("ES.Theory.SCF.RIMode") : 0;
+    GUIValue *riAux = p_GUIValues ?
+        p_GUIValues->get("ES.Theory.SCF.RIJCOSXAuxBasis") : 0;
+    if (cdName.empty() && riMode && riAux &&
+        (riMode->getValueAsString() == "RIJCOSX" ||
+         riMode->getValueAsString() == "RIJONX"))
+      cdName = riAux->getValueAsString();
     ((ewxStaticText*)FindWindow(ID_STATICTEXT_CALCED_CD))
-            ->SetLabel(p_basis->dftChargeFittingName().empty() ? "None" :
-                       p_basis->dftChargeFittingName());
+            ->SetLabel(cdName.empty() ? "None" : cdName);
   } else {
     ((ewxCheckBox*)FindWindow(ID_CHECKBOX_CALCED_USE_EXPONENTS))
             ->SetValue(false);
