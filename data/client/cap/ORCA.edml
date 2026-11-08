@@ -100,12 +100,11 @@
      against 18 for ethane, so the molecule was being drawn as though
      it carried +3 to +5 charge, and every electrostatic potential map
      came out positive everywhere. -->
-<!-- f(+3), f(-3), g(+3) and g(-3) are negated: ORCA's coefficients carry
-     the opposite sign on the m = +-3 components, so with the textbook
-     signs every MO with f or g character came out un-normalised (cT S c
-     up to 3 for methane/def2-TZVP; exactly 1 once negated).  The g row
-     is the ECCE-QM (libcint) polynomials in ORCA's component order; HF/
-     cc-pVQZ (tests/basisflatten) is exact to 1e-6 for all 85 MOs. -->
+<!-- ORCA's coefficients carry the opposite sign on the m = +-3 components
+     of f, g and h and on m = +-4 of g and h.  The g and h rows are the
+     ECCE-QM (libcint) polynomials in ORCA's component order.  m = +-4 is
+     invisible with the molecule on the z axis: HF/cc-pV5Z with H off-axis
+     (tests/basisflatten) is what showed it, all 146 MOs exact to 2e-6. -->
 <MOOrdering type="spherical" >
    <lshell lval="0" a1="1"></lshell>
    <lshell lval="1" a1="z" a2="x" a3="y"></lshell>
@@ -115,10 +114,27 @@
     a3="-xxy/2-yyy/2+2yzz" a4="xxz/2-yyz/2" a5="xyz"
     a6="-xxx/2+3xyy/2" a7="-3xxy/2+yyy/2"></lshell>
    <lshell lval="4"
-    a1="8zzzz-24xxzz-24yyzz+3xxxx+6xxyy+3yyyy" a2="4xzzz-3xxxz-3xyyz"
-    a3="4yzzz-3xxyz-3yyyz" a4="6xxzz-6yyzz-xxxx+yyyy"
-    a5="6xyzz-xxxy-xyyy" a6="-xxxz+3xyyz" a7="-3xxyz+yyyz"
-    a8="xxxx-6xxyy+yyyy" a9="xxxy-xyyy"></lshell>
+    a1="8zzzz-24xxzz-24yyzz+3xxxx+6xxyy+3yyyy"
+    a2="4xzzz-3xxxz-3xyyz"
+    a3="4yzzz-3xxyz-3yyyz"
+    a4="6xxzz-6yyzz-xxxx+yyyy"
+    a5="6xyzz-xxxy-xyyy"
+    a6="-xxxz+3xyyz"
+    a7="-3xxyz+yyyz"
+    a8="-xxxx+6xxyy-yyyy"
+    a9="-xxxy+xyyy"></lshell>
+   <lshell lval="5"
+    a1="8zzzzz-40xxzzz-40yyzzz+15xxxxz+30xxyyz+15yyyyz"
+    a2="8xzzzz-12xxxzz-12xyyzz+xxxxx+2xxxyy+xyyyy"
+    a3="8yzzzz-12xxyzz-12yyyzz+xxxxy+2xxyyy+yyyyy"
+    a4="2xxzzz-2yyzzz-xxxxz+yyyyz"
+    a5="2xyzzz-xxxyz-xyyyz"
+    a6="-8xxxzz+24xyyzz+xxxxx-2xxxyy-3xyyyy"
+    a7="-24xxyzz+8yyyzz+3xxxxy+2xxyyy-yyyyy"
+    a8="-xxxxz+6xxyyz-yyyyz"
+    a9="-xxxyz+xyyyz"
+    a10="xxxxx-10xxxyy+5xyyyy"
+    a11="5xxxxy-10xxyyy+yyyyy"></lshell>
 </MOOrdering>
 
 

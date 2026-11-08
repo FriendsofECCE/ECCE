@@ -65,6 +65,9 @@
     a13="yyzz" a14="yzzz" a15="zzzz"></lshell>
 </MOOrdering>
 
+<!-- Components run m = -l..+l; the odd m > 0 are negated (the Condon-Shortley
+     phase), as already in d and f.  g and h checked on HF/cc-pV5Z with H off
+     the z axis (tests/basisflatten). -->
 <MOOrdering type="spherical" >
    <lshell lval="0" a1="1"></lshell>
    <lshell lval="1" a1="x" a2="y" a3="z"></lshell>
@@ -73,6 +76,28 @@
    <lshell lval="3" a1="3xxy/2-yyy/2" a2="xyz" a3="-xxy/2-yyy/2+2yzz"
     a4="-3xxz/2-3yyz/2+zzz" a5="xxx/2+xyy/2-2xzz" a6="xxz/2-yyz/2"
     a7="-xxx/2+3xyy/2"></lshell>
+   <lshell lval="4"
+    a1="xxxy-xyyy"
+    a2="3xxyz-yyyz"
+    a3="6xyzz-xxxy-xyyy"
+    a4="4yzzz-3xxyz-3yyyz"
+    a5="8zzzz-24xxzz-24yyzz+3xxxx+6xxyy+3yyyy"
+    a6="-4xzzz+3xxxz+3xyyz"
+    a7="6xxzz-6yyzz-xxxx+yyyy"
+    a8="-xxxz+3xyyz"
+    a9="xxxx-6xxyy+yyyy"></lshell>
+   <lshell lval="5"
+    a1="5xxxxy-10xxyyy+yyyyy"
+    a2="xxxyz-xyyyz"
+    a3="24xxyzz-8yyyzz-3xxxxy-2xxyyy+yyyyy"
+    a4="2xyzzz-xxxyz-xyyyz"
+    a5="8yzzzz-12xxyzz-12yyyzz+xxxxy+2xxyyy+yyyyy"
+    a6="8zzzzz-40xxzzz-40yyzzz+15xxxxz+30xxyyz+15yyyyz"
+    a7="-8xzzzz+12xxxzz+12xyyzz-xxxxx-2xxxyy-xyyyy"
+    a8="2xxzzz-2yyzzz-xxxxz+yyyyz"
+    a9="-8xxxzz+24xyyzz+xxxxx-2xxxyy-3xyyyy"
+    a10="xxxxz-6xxyyz+yyyyz"
+    a11="-xxxxx+10xxxyy-5xyyyy"></lshell>
 </MOOrdering>
 
 <!-- All names are completely unconstrained but must be consistent with

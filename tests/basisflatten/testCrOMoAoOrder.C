@@ -116,9 +116,17 @@ int main(int argc, char** argv) {
   const string nbPath  = argc > 2 ? argv[2] : "fixtures/cro.nb";
   const string xyzPath = argc > 3 ? argv[3] : "fixtures/cro.xyz";
   const int nElec = argc > 4 ? atoi(argv[4]) : 0;
+  // The code whose MOOrdering is under test.  Only ORCA's parser writes
+  // canonical (angular-momentum sorted) columns; the others store ECCE's
+  // native order, so there is nothing to un-permute.
+  const string codeName = argc > 5 ? argv[5] : "ORCA";
+  const bool unpermute = (codeName == "ORCA");
+  // NWChem's ecce_print writes coefficients to 3 decimals; ORCA and the
+  // old fixtures are good to 1e-5.
+  const double tol = argc > 6 ? atof(argv[6]) : 1.0e-4;
 
-  const JCode* code = CodeFactory::lookup("ORCA");
-  check(code != 0, "ORCA registered");
+  const JCode* code = CodeFactory::lookup(codeName.c_str());
+  check(code != 0, (codeName + " registered").c_str());
   if (code == 0) { printf("FAIL\n"); return 1; }
 
   ifstream nb(nbPath.c_str());
@@ -144,14 +152,17 @@ int main(int argc, char** argv) {
   check(moTable != 0, "orca.mo's MO block parsed");
   if (moTable == 0 || !flattened) { printf("FAIL\n"); return 1; }
 
+  printf("MO width %d, flattened basis %d\n", moTable->columns(), (int)basis.size());
   check(moTable->columns() == (int)basis.size(),
         "canonical-order MO width matches ECCE's flattened basis width");
 
   FakeCalc fake;
   fake.p_marker = "angular-momentum";
-  PropTable *reordered = MoAoOrder::reorderToNative(moTable, &fake, el, cfg);
+  PropTable *reordered = unpermute
+      ? MoAoOrder::reorderToNative(moTable, &fake, el, cfg) : moTable;
   bool owned = (reordered != moTable);
-  check(owned, "MoAoOrder actually reordered (marker recognised)");
+  if (unpermute)
+    check(owned, "MoAoOrder actually reordered (marker recognised)");
 
   double maxErr = 0;
   int nbad = 0;
@@ -176,7 +187,7 @@ int main(int argc, char** argv) {
     }
     double err = fabs(n - 1.0);
     if (err > maxErr) maxErr = err;
-    if (err > 1.0e-3) nbad++;
+    if (err > tol*10) nbad++;
   }
   printf("max|c^T S c - 1| = %.3e over %d MOs\n", maxErr, reordered->rows());
   if (nElec > 0) {
@@ -196,11 +207,11 @@ int main(int argc, char** argv) {
       }
     printf("occupied: max|offdiag C^T S C| = %.3e, trace(PS) = %.6f (N = %d)\n",
            worstOff, trPS, nElec);
-    check(worstOff < 1.0e-4, "occupied MOs orthogonal");
-    check(fabs(trPS - nElec) < 1.0e-4, "trace(PS) = number of electrons");
+    check(worstOff < tol, "occupied MOs orthogonal");
+    check(fabs(trPS - nElec) < tol*10, "trace(PS) = number of electrons");
   }
-  check(maxErr < 1.0e-4, "every MO is normalised (fault A, f(+-3) sign, ORCA g row)");
-  check(nbad == 0, "no MO off by more than 1e-3");
+  check(maxErr < tol*10, "every MO is normalised (fault A, f/g/h signs)");
+  check(nbad == 0, "no MO off by more than 10*tol");
 
   if (owned) delete reordered;
 
