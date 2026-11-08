@@ -6715,6 +6715,18 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and "
      "Raman. This calculation shows the S–O stretches of a sulfate "
      "bridging two cobalt centres in [(en)2Co(μ-OH)(μ-SO4)Co(en)2]3+."},
+    {"water_dimer",
+     "ORCA, B3LYP-D3BJ/def2-SVP, single point. This calculation shows the "
+     "water dimer, the complex for the density difference of the dimer "
+     "minus its two water molecules (Density Map, Difference...)."},
+    {"water_A",
+     "ORCA, B3LYP-D3BJ/def2-SVP, single point. This calculation shows the "
+     "hydrogen-bond donor molecule of the water dimer at its geometry in "
+     "the dimer, fragment A of the density difference."},
+    {"water_B",
+     "ORCA, B3LYP-D3BJ/def2-SVP, single point. This calculation shows the "
+     "hydrogen-bond acceptor molecule of the water dimer at its geometry in "
+     "the dimer, fragment B of the density difference."},
     {"formaldehyde",
      "ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This "
      "calculation shows the C=O stretch of the simplest carbonyl "
@@ -11615,7 +11627,7 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
   // CREST fails from an unoptimised structure: put an xTB optimisation between.
   string preoptNote;
   if (source && carry.geometry && code->label == string("CREST") &&
-      !WorkflowSteps::isOptimisation(source)) {
+      !WorkflowSteps::isXtbOptimisation(source)) {
     ResourceType *xrt = 0;
     const WorkflowSteps::Code *xcode = 0;
     for (const WorkflowSteps::Code& c : WorkflowSteps::codes())
