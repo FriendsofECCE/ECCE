@@ -774,6 +774,11 @@ class EccePanel(wx.lib.scrolledpanel.ScrolledPanel):
                                    value == "Manual" and \
                                    "Custom" in setting.combo.GetStrings():
                                     value = "Custom"
+                                # Old calcs stored "Water: 78.4 Debye";
+                                # relative permittivity has no unit (#848).
+                                if name == "ES.Theory.SCF.Solvent" and \
+                                   value.endswith(" Debye"):
+                                    value = value[:-len(" Debye")]
                                 try:
                                     setting.SetValue(value)
                                 except wx.core.PyAssertionError:

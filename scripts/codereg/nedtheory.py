@@ -321,11 +321,11 @@ class NedTheoryPanel(EccePanel):
             sovLeftSizer.AddWidget(self.cosmoRadius,
                                    border = EcceGlobals.BorderDefault)
 
-            solventChoice = ["Water: 78.4 Debye",
-                             "Methanol: 33.0 Debye",
-                             "Cyclohexane: 2.0243 Debye",
-                             "Benzene: 2.2825 Debye",
-                             "Acetonitrile: 36.64 Debye",
+            solventChoice = ["Water: 78.4",
+                             "Methanol: 33.0",
+                             "Cyclohexane: 2.0243",
+                             "Benzene: 2.2825",
+                             "Acetonitrile: 36.64",
                              "Other"]
             self.solvent = EcceComboBox(self,
                                         choices = solventChoice,
@@ -338,9 +338,8 @@ class NedTheoryPanel(EccePanel):
             self.cosmoDielec = EcceFloatInput(self,
                                               default = 78.4,
                                               name = "ES.Theory.SCF.Dielectric",
-                                              label = "Dielectric Constant:",
-                                              hardRange = "(0..)",
-                                              unit = "Debye")
+                                              label = "Dielectric constant (ε_r):",
+                                              hardRange = "(0..)")
             sovRightSizer.AddWidget(self.cosmoDielec,
                                     border = EcceGlobals.BorderDefault)
 

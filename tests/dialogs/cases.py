@@ -400,6 +400,20 @@ RESTORE_CASES = [
         """),
 
     dict(
+        name="nwchem-cosmo-solvent-old-debye-string",
+        script="nedtheory.py", category="DFT", theory="RDFT",
+        changes={"ES.Theory.SCF.Solvent": ("Methanol: 33.0 Debye", None)},
+        expect={"ES.Theory.SCF.Solvent": {"value": "Methanol: 33.0",
+                                          "selection": 1}},
+        forbid=("Debye",),
+        why="""
+            The dielectric constant is a relative permittivity and has no
+            unit; calcs saved with "Methanol: 33.0 Debye" must still show
+            methanol (not the Water default) and no COSMO string may carry
+            the unit any more (#848).
+        """),
+
+    dict(
         name="g16-menu-and-toggle-restore",
         script="ged16theory.py", category="SCF", theory="RHF",
         changes={"ES.Theory.SCF.Direct": ("To Disk", None),
