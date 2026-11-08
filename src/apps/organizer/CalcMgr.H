@@ -202,6 +202,11 @@ public:
   // copy; the Organizer's own operation, same line format.
   bool moveForCommand(const string& verb, const vector<EcceURL>& urls,
                       const string& second, vector<string>& lines);
+  // ecce-mkdir (#870): make each URL as a project or folder; with parents
+  // also the missing ones above it. Lines "name\tok\tURL" (made),
+  // "name\tok\texists" or "name\tno\treason".
+  bool mkdirForCommand(const vector<EcceURL>& urls, bool parents,
+                       vector<string>& lines);
   // ecce-workflow (#807): "ok <workflow URL>" or "error: reason".
   string workflowForCommand(const string& verb, const EcceURL& calc,
                             const string& second);

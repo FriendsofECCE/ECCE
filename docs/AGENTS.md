@@ -130,7 +130,7 @@ to. Other variables: the `ENVIRONMENT.md` file next to this one.
 ## Commands
 
 The `ecce-launch`, `ecce-terminate`, `ecce-reconnect`, `ecce-fetch`,
-`ecce-annotate`, `ecce-rerun`, `ecce-move`, `ecce-copy` and `ecce-rename` commands do not start ECCE; they ask the running Organizer to act, so ECCE has
+`ecce-annotate`, `ecce-rerun`, `ecce-move`, `ecce-copy`, `ecce-mkdir` and `ecce-rename` commands do not start ECCE; they ask the running Organizer to act, so ECCE has
 to be running with the same data mode. Without it they print `ECCE is not
 running: start ECCE first` and do nothing. A calculation is given as a folder
 (local data) or a URL (data server). One line is printed per calculation.
@@ -234,6 +234,23 @@ ECCE nothing is done (exit 2).
 
     ecce-move proj/calc-1 proj/calc-2 archive
     ecce-rename proj/calc-1 calc-1-b3lyp
+
+### ecce-mkdir
+
+    ecce-mkdir [-p] [--json] <project or folder>...
+
+Makes a project or folder with the Organizer's own New Project, so its tree
+shows it at once; then `ecce-move` can put calculations into it. The parent
+must exist unless `-p` is given, which makes the missing parents too and is
+not an error when the folder already exists. Output: `path: created`,
+`path: exists` (with `-p`), or `path: not created: reason` (exists without
+`-p`, missing parent, invalid name, outside the data folder, inside a
+calculation); with `--json` an array of `{"path", "ok", "created", "url"}` or
+`{"path", "ok": false, "reason"}`. Exit codes as ecce-move: 0 all done, 1 any
+refusal, 2 no running session, 4 no answer in time, 64 usage.
+
+    ecce-mkdir -p proj/series/step-1
+    ecce-move proj/calc-1 proj/series/step-1
 
 ### ecce-reconnect
 
