@@ -9,6 +9,7 @@
 #include "inv/nodes/SoMaterial.H"
 #include "inv/nodes/SoSwitch.H"
 #include "inv/nodes/SoSphere.H"
+#include "inv/nodes/SoComplexity.H"
 #include "inv/nodes/SoPickStyle.H"
 #include "inv/nodes/SoTranslation.H"
 #include "inv/sensors/SoFieldSensor.H"
@@ -1363,6 +1364,7 @@ void SGContainer::applyStyle(const DisplayDescriptor& dd, ChemDisplayParam *cdp)
       cdp->bondCylinderRadius.setValue(dd.getCylinderRadius() /100.0 * p_nmStickScale);
 
       cdp->bondCylinderComplexity.setValue(dd.getCylinderRQ() /100.0);
+      cdp->bondCylinderQualityAutomatic.setValue(dd.isCylinderRQAutomatic());
       cdp->bondCylinderDisplayStyle.setValue(dd.getBondCylinderOpt());
 
       // Spheres
@@ -1375,6 +1377,7 @@ void SGContainer::applyStyle(const DisplayDescriptor& dd, ChemDisplayParam *cdp)
          cdp->atomRadiiScaleFactor.setValue(1.0);
       }
       cdp->atomSphereComplexity.setValue(dd.getSphereRQ()/100.0);
+      cdp->atomSphereQualityAutomatic.setValue(dd.isSphereRQAutomatic());
    } else {
       // Turn atoms off
       cdp->displayStyle.setValue (ChemDisplayParam::DISPLAY_NONE) ;
@@ -1926,6 +1929,10 @@ void SGContainer::updateCellImages()
    ((SoPickStyle*)p_cellImages->getChild(0))->style.setValue(SoPickStyle::UNPICKABLE);
    const double tol = 1e-3;
    const int n = frag->numAtoms();
+   const int storedCount = p_displayParams.empty() ? -1 :
+      p_displayParams[0]->qualityAtomCount.getValue();
+   const int drawn = storedCount >= 0 ? storedCount : n;
+   const float automaticQuality = drawn <= 2000 ? 0.9f : drawn <= 4000 ? 0.7f : 0.5f;
    for (int i = 0; i < n; i++) {
       TAtm *atm = frag->atomRef(i);
       double radius = displayedSphereRadius(i);
@@ -1951,9 +1958,13 @@ void SGContainer::updateCellImages()
       float col[3] = {0.7f, 0.7f, 0.7f};
       ChemColor *cc = 0;
       DisplayStyle ds = atm->displayStyle();
+      float quality = automaticQuality;
       for (size_t d = 0; d < p_displayDescs.size(); d++)
-         if (ds.getName() == p_displayDescs[d].getName())
+         if (ds.getName() == p_displayDescs[d].getName()) {
             cc = dynamic_cast<ChemColor*>(((SoGroup*)p_dynamicStyles->getChild(d))->getChild(0));
+            if (!p_displayDescs[d].isSphereRQAutomatic())
+               quality = p_displayDescs[d].getSphereRQ() / 100.0f;
+         }
       int z = atm->atomicNumber();
       const ChemColor *src = p_colors;
       int ci = z;
@@ -1985,6 +1996,12 @@ void SGContainer::updateCellImages()
          SoTranslation *tr = new SoTranslation;
          tr->translation.setValue((float)pos[0], (float)pos[1], (float)pos[2]);
          sep->addChild(tr);
+         // Cell images bypass ChemDisplay, so carry their style's quality
+         // explicitly in object space for both the viewer and exports.
+         SoComplexity *complexity = new SoComplexity;
+         complexity->type.setValue(SoComplexity::OBJECT_SPACE);
+         complexity->value.setValue(quality);
+         sep->addChild(complexity);
          SoSphere *sph = new SoSphere;
          sph->radius.setValue((float)radius);
          sep->addChild(sph);
@@ -2192,6 +2209,7 @@ void  SGContainer::touchChemDisplay(SGFragment* frag)
    DisplayStyle style;
    string name;
    int numDisplays = p_displays.size();
+   vector<bool> drawnAtoms(numbatoms, false);
 
    // Note that we tried to have code that just did:
    //   chemDisplay->atomIndex.set1Value
@@ -2224,6 +2242,8 @@ void  SGContainer::touchChemDisplay(SGFragment* frag)
             if (name == p_displayDescs[idx].getName() && style.isDisplayed()) {
                //cout << "found a matched style name " << cdAtomIndices[idx].getNum() << endl;;
                cdAtomIndices[idx].set1Value(cdAtomIndices[idx].getNum(),k,1);
+               if (p_displayParams[idx]->displayStyle.getValue() != ChemDisplayParam::DISPLAY_NONE)
+                  drawnAtoms[k] = true;
                //cout << " " << cdAtomIndices[idx].getNum() << endl;
                break;
             }
@@ -2264,6 +2284,10 @@ void  SGContainer::touchChemDisplay(SGFragment* frag)
             if (name == p_displayDescs[idx].getName() && style.isDisplayed()) {
                //cout << "found a matched style name " << cdBondIndices[idx].getNum();
                cdBondIndices[idx].set1Value(cdBondIndices[idx].getNum(),k,1);
+               if (p_displayParams[idx]->displayStyle.getValue() != ChemDisplayParam::DISPLAY_NONE) {
+                  drawnAtoms[frag->getBondFrom(k)] = true;
+                  drawnAtoms[frag->getBondTo(k)] = true;
+               }
                //cout << " " << cdBondIndices[idx].getNum() << endl;
                break;
             }
@@ -2330,6 +2354,13 @@ void  SGContainer::touchChemDisplay(SGFragment* frag)
   T.stop();
   cout << T.elapsedTime() << " " << t.CPUTime() << " Residues" << endl;
 #endif
+
+   // Share the scene count across styles so splitting a large box into
+   // small groups cannot accidentally raise its total rendering cost.
+   int qualityAtomCount = 0;
+   for (bool drawn : drawnAtoms) if (drawn) qualityAtomCount++;
+   for (ChemDisplayParam *param : p_displayParams)
+      param->qualityAtomCount.setValue(qualityAtomCount);
 
    removeUnusedStyles();
    updateCellImages();

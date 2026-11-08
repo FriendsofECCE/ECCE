@@ -56,6 +56,21 @@ and [Density Profile](density-profile.md).
 The 3-D view and a floating panel stay linked: picking atoms, choosing a
 mode or an orbital, or stepping through a trajectory updates both.
 
+## Sphere and cylinder quality
+
+New display styles choose smooth atom spheres and bond cylinders automatically:
+quality 90 for up to 2,000 drawn atoms, 70 for up to 4,000, and 50 for larger
+structures. Small structures can gain further detail when enlarged; large MD
+boxes keep the lower default for responsive rotation. Equivalent atoms drawn
+at cell boundaries follow the style's quality too.
+
+In **Render > Custom Style...**, releasing **Sphere quality** or **Cylinder
+quality** sets that style's quality explicitly. Your chosen value is kept,
+including 50, and takes precedence over automatic quality. Changing another
+style setting leaves automatic quality active. Previously saved quality values
+are also kept. PNG export and printing use the same scene quality; automatic
+detail can increase for a larger output image.
+
 ## Making room in the docked layout
 
 - Drag the divider between the 3-D view and the panel column to make the

@@ -260,6 +260,14 @@ ChemDisplay::setupSpheres(SoGLRenderAction *action, SoState *&state,
 
 	atomSphereDisplayStyle = cdp->atomSphereDisplayStyle.getValue();
 	complexity = cdp->atomSphereComplexity.getValue();
+	const SbBool automatic = cdp->atomSphereQualityAutomatic.getValue();
+	if (automatic) {
+		// Keep the large-box floor unchanged; small scenes can afford smooth outlines.
+		const int32_t drawnAtoms = cdp->qualityAtomCount.getValue() >= 0 ?
+			cdp->qualityAtomCount.getValue() : globalNumberOfAtoms;
+		complexity = drawnAtoms <= 2000 ? 0.9f :
+			(drawnAtoms <= 4000 ? 0.7f : 0.5f);
+	}
 
 // --> EGB && SGB
 	if (lastSphereComplexity != complexity ||
@@ -320,8 +328,8 @@ ChemDisplay::setupSpheres(SoGLRenderAction *action, SoState *&state,
 		}
 	}
 #else
-	//  The complexity is a floor; the depth rises with the atoms' size on
-	//  screen, within a vertex budget so large systems keep their speed.
+	// Automatic quality may rise with screen size within a vertex budget.
+	// An explicit slider value must remain authoritative at every zoom.
 	int32_t depth = ChemUnitSphere::depthForComplexity(complexity);
 	atomPixelRadius = 1e6f;   // not measured for the other styles
 	if (atomSphereDisplayStyle == ChemDisplayParam::ATOMSPHERE_HEMISPHERES ||
@@ -341,7 +349,7 @@ ChemDisplay::setupSpheres(SoGLRenderAction *action, SoState *&state,
 		int32_t cap = 32;
 		while (cap > depth && atoms * (4.0 * cap * cap + 6.0 * cap) > 300000.0)
 			cap--;
-		if (need > depth) depth = need < cap ? need : cap;
+		if (automatic && need > depth) depth = need < cap ? need : cap;
 	}
 	if (unitSphere == NULL || lastSphereComplexity != complexity ||
 		unitSphere->getDepth() != depth) {

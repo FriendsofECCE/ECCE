@@ -120,6 +120,8 @@ class VizStyleChooser: public VizStyleChooserGUI,
 
       /** True while the dialog sets its own sliders (no preview then). */
       bool p_settingSliders;
+      bool p_sphereQualityAutomatic = true;
+      bool p_cylinderQualityAutomatic = true;
 
       /** Flag to keep track of whether options lists have been changed */
       int p_hasResidues;

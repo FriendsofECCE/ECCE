@@ -9,6 +9,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 ## Entries
 
+- [Automatic atom-count quality preserves explicit slider values; cell images need their own complexity (#880)](sphere-quality-defaults.md)
 - [Cell labels skip collapsed vectors and balance GL current state (#723)](cell-label-rendering.md)
 
 ### wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls

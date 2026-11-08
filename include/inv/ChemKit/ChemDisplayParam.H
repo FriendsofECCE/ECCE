@@ -105,6 +105,8 @@ class CHEMKIT_DLL_API ChemDisplayParam : public SoNode {
     SoSFFloat   atomPickRadius;
     SoSFFloat   atomRadiiScaleFactor;
     SoSFFloat   atomSphereComplexity;
+    SoSFBool    atomSphereQualityAutomatic;
+    SoSFInt32   qualityAtomCount;
     SoSFEnum    atomSphereDisplayStyle;
 
     // Bond Label Fields:
@@ -118,6 +120,7 @@ class CHEMKIT_DLL_API ChemDisplayParam : public SoNode {
     SoSFFloat   multipleBondSeparation;
     SoSFFloat   bondCylinderRadius;
     SoSFFloat   bondCylinderComplexity;
+    SoSFBool    bondCylinderQualityAutomatic;
     SoSFEnum    bondCylinderDisplayStyle;
 
 // --> CAstick

@@ -276,6 +276,14 @@ void ChemDisplay::setupCylinders(SoGLRenderAction *action, SoState *&state,
 
 	// Compute depth based on complexity
 	float bcc = cdp->bondCylinderComplexity.getValue();
+	const SbBool automatic = cdp->bondCylinderQualityAutomatic.getValue();
+	if (automatic) {
+		// Use the same atom-count tiers as spheres, including the large-box floor.
+		const int32_t drawnAtoms = cdp->qualityAtomCount.getValue() >= 0 ?
+			cdp->qualityAtomCount.getValue() : globalNumberOfAtoms;
+		bcc = drawnAtoms <= 2000 ? 0.9f :
+			(drawnAtoms <= 4000 ? 0.7f : 0.5f);
+	}
 
 	// Checks to perform:
 	//	  Need to regenerate unit cylinder vertices because of complexity 
@@ -300,8 +308,8 @@ void ChemDisplay::setupCylinders(SoGLRenderAction *action, SoState *&state,
 // <-- EGB && SGB regenerate lod
 	}
 	{
-		//  As for the spheres: the complexity's sides are a floor, more as
-		//  the bonds grow on screen, within a vertex budget (#210).
+		// Automatic detail follows screen size within the same vertex budget
+		// as spheres; explicit quality is independent of zoom.
 		int32_t sides = unitCylinder->getNumberOfSides();
 		bondPixelRadius =
 			cdp->bondCylinderRadius.getValue() * maxPixelsPerUnit(chemData);
@@ -312,7 +320,7 @@ void ChemDisplay::setupCylinders(SoGLRenderAction *action, SoState *&state,
 		int32_t cap = 64;
 		while (cap > sides && bonds * 2.0 * (4.0 * cap + 6.0) > 300000.0)
 			cap--;
-		if (need > sides) sides = need < cap ? need : cap;
+		if (automatic && need > sides) sides = need < cap ? need : cap;
 		unitCylinder->soSides = sides;
 	}
 	lastCylinderDoNormals = doNormals;

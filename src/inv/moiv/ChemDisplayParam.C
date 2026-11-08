@@ -130,6 +130,8 @@ ChemDisplayParam::ChemDisplayParam()
     SO_NODE_ADD_FIELD(atomPickRadius, (0.2f));
     SO_NODE_ADD_FIELD(atomRadiiScaleFactor, (1.0));
     SO_NODE_ADD_FIELD(atomSphereComplexity, (0.5));
+    SO_NODE_ADD_FIELD(atomSphereQualityAutomatic, (FALSE));
+    SO_NODE_ADD_FIELD(qualityAtomCount, (-1));
     SO_NODE_ADD_FIELD(atomSphereDisplayStyle, 
                       (ChemDisplayParam::ATOMSPHERE_DEFAULT));
 
@@ -146,6 +148,7 @@ ChemDisplayParam::ChemDisplayParam()
     SO_NODE_ADD_FIELD(multipleBondSeparation, (0.15f));
     SO_NODE_ADD_FIELD(bondCylinderRadius, (0.15f));
     SO_NODE_ADD_FIELD(bondCylinderComplexity, (0.04f));
+    SO_NODE_ADD_FIELD(bondCylinderQualityAutomatic, (FALSE));
     SO_NODE_ADD_FIELD(bondCylinderDisplayStyle,
                       (ChemDisplayParam::BONDCYLINDER_DEFAULT));
 
