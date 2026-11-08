@@ -159,6 +159,9 @@ def run(display, data, work, shots):
         check("auto-fill: dE -9.61 kJ/mol", t0 and abs(float(t0[0].split()[3]) + 9.61) < 0.01, t0)
         check("two adds then remove row 1 leave the unbalanced and the balanced reaction",
               l1 == ["2*sn2_reactant -> sn2_product", "sn2_reactant -> sn2_product"], l1)
+        uh = "\n".join(l[5:] for l in u if l.startswith("html "))
+        check("an unbalanced reaction is one warning line in the formatted details",
+              "Not balanced" in uh and "#a02020" in uh, uh[:300])
         bal = [l[8:] for l in u if l.startswith("balance ")]
         check("an unbalanced reaction is refused with the atoms of both sides",
               len(bal) == 2 and bal[0].startswith("1 Not balanced: left ") and ", right " in bal[0]
@@ -201,9 +204,16 @@ def run(display, data, work, shots):
     check("two [ts] reactions: the chart and the choice are shown, chart taller than 50 px",
           lay.get("plotshown") == "1" and lay.get("choiceshown") == "1" and h("plot") > 50 and h("choice") > 0, lay)
     check("the G treatment choice is enabled", lay.get("treatmentenabled") == "1", lay)
-    check("the result text is read-only, enabled, multi-line and has room",
-          lay.get("detailreadonly") == "1" and lay.get("detailenabled") == "1" and
-          lay.get("detailmulti") == "1" and h("detail") >= 100, lay)
+    check("the details page is enabled and has room",
+          lay.get("detailenabled") == "1" and h("detail") >= 100, lay)
+    html2 = "\n".join(l[5:] for l in two if l.startswith("html "))
+    check("formatted details: the G treatment in words, not the internal key",
+          "Grimme quasi-RRHO" in html2 and "qrrho-grimme" not in html2, html2[:300])
+    check("formatted details: tables, tunnelling and superscripts",
+          "<table" in html2 and "<h4>Reaction 1:" in html2 and "Tunnelling" in html2 and "<sup>" in html2, html2[:600])
+    refs = html2[html2.find("<h4>References"):] if "<h4>References" in html2 else ""
+    check("References name Eyring, Wigner, Eckart and Grimme for the TS reaction",
+          all(n in refs for n in ("Eyring", "Wigner", "Eckart", "Grimme")) and "Truhlar" not in refs, refs[:500])
     check("dialog screenshot written", os.path.getsize(shot3) > 5000 if os.path.exists(shot3) else False, shot3)
     check("two [ts] reactions: two profiles",
           any(l.startswith("profile 2 2 ts ") for l in two) and

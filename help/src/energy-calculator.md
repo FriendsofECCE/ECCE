@@ -164,6 +164,22 @@ A reaction whose calculations differ in code, method, basis set, solvent or
 dispersion correction is refused, and the text says why.
 The numbers are those of `ecce-thermo --reactions`.
 
+The **Details** pane under the table is formatted: for each reaction the soft
+modes (below 100 cm⁻¹) with their share of the entropy and of the G correction,
+and for a reaction with a transition state the Wigner and Eckart tunnelling
+factors and the rate constants. It ends with the references for the methods
+used in the results shown.
+
+References for the methods offered:
+
+- Transition-state theory: H. Eyring, *J. Chem. Phys.* 1935, **3**, 107–115.
+- Wigner tunnelling correction: E. Wigner, *Z. Phys. Chem. B* 1932, **19**, 203–216.
+- Eckart barrier: C. Eckart, *Phys. Rev.* 1930, **35**, 1303–1309.
+- Grimme quasi-RRHO entropy: S. Grimme, *Chem. Eur. J.* 2012, **18**, 9955–9964.
+- Truhlar quasi-harmonic treatment (low modes raised to 100 cm⁻¹): R. F. Ribeiro, A. V. Marenich, C. J. Cramer, D. G. Truhlar, *J. Phys. Chem. B* 2011, **115**, 14556–14562.
+- Head-Gordon quasi-RRHO enthalpy: Y.-P. Li, J. Gomes, S. M. Sharada, A. T. Bell, M. Head-Gordon, *J. Phys. Chem. C* 2015, **119**, 1840–1850.
+
+
 ## Compare Forces
 
 Compare Forces is used from the command line, with `ecce-force-compare` or

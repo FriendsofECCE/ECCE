@@ -23,6 +23,7 @@
 #include <wx/spinctrl.h>
 #include <wx/filedlg.h>
 #include <wx/filename.h>
+#include <wx/html/htmlwin.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
@@ -513,6 +514,118 @@ static string workflowReaction(const string& base)
   return string();
 }
 
+// ---- the formatted Details page (display only; reactionText stays the copyable text)
+
+static string htmlEsc(const string& s)
+{
+  string o;
+  for (char c : s) {
+    if (c == '&') o += "&amp;";
+    else if (c == '<') o += "&lt;";
+    else if (c == '>') o += "&gt;";
+    else o += c;
+  }
+  return o;
+}
+
+// The G treatment in words; the internal key is not shown to the user.
+static string treatmentWords(const string& cli)
+{
+  for (const ThermoTreatmentInfo& t : thermoTreatments())
+    if (cli == t.cli) {
+      if (cli == "rrho") return "Rigid-rotor harmonic-oscillator (RRHO), no low-mode correction";
+      if (cli.compare(0, 13, "qrrho-grimme:") == 0)
+        return "Grimme quasi-RRHO, \xCF\x89\xE2\x82\x80 = " + cli.substr(13) + " cm\xE2\x81\xBB\xC2\xB9";
+      if (cli == "truhlar") return "Truhlar quasi-harmonic (modes below 100 cm\xE2\x81\xBB\xC2\xB9 raised to 100 cm\xE2\x81\xBB\xC2\xB9)";
+      if (cli == "head-gordon") return "Head-Gordon quasi-RRHO (enthalpy and entropy)";
+      return t.label;
+    }
+  return cli;
+}
+
+// k with the exponent as a superscript: 1.23e-05 -> 1.23 x 10<sup>-5</sup>.
+static string htmlK(const string& plain)
+{
+  const size_t e = plain.find_first_of("eE");
+  if (e == string::npos || e == 0) return htmlEsc(plain);
+  int ex = atoi(plain.c_str() + e + 1);
+  return htmlEsc(plain.substr(0, e)) + " \xC3\x97 10<sup>" + std::to_string(ex) + "</sup>";
+}
+
+static string citation(const char *authors, const char *ref)
+{
+  return string("<li>") + authors + ", <i>" + ref + "</li>\n";
+}
+
+string ReactionOverviewDialog::buildDetailHtml(const string& treatment, const string& tText) const
+{
+  const string warn = "<font color=\"#a02020\">";
+  string h = "<body>\n<p><b>G treatment:</b> " + treatmentWords(treatment) + ".  <b>T</b> = " + htmlEsc(tText) +
+             " K.  Energies in kJ/mol.</p>\n";
+  bool anyTs = false;
+  for (size_t i = 0; i < p_rows.size(); i++) {
+    const Row& r = p_rows[i];
+    const string title = htmlEsc(r.text);
+    string head = std::to_string(i + 1) + ": " + title;
+    if (r.hasTs && r.status == "ok" && r.names[0].size() && r.names[2].size())
+      head = std::to_string(i + 1) + ": " + htmlEsc(r.names[0]) + " \xE2\x86\x92 " + htmlEsc(r.names[2]);
+    h += "<h4>Reaction " + head + "</h4>\n";
+    if (r.status != "ok") {
+      h += "<p>" + warn + "\xE2\x9A\xA0 " + htmlEsc(r.reason) + "</font></p>\n";
+      continue;
+    }
+    h += "<p>\xCE\x94E<sub>el</sub> = " + num(r.dE, "%.2f") + ",  \xCE\x94G = " + num(r.dG, "%.2f") +
+         ",  spread " + num(r.spread, "%.2f") + " (\xCE\x94G from " + num(r.lo, "%.2f") + " to " +
+         num(r.hi, "%.2f") + " over the six treatments)</p>\n";
+    h += "<p><b>Soft modes</b> (&lt; 100 cm<sup>-1</sup>)</p>\n";
+    if (r.modes.empty()) h += "<p>none</p>\n";
+    else {
+      h += "<table border=\"1\" cellspacing=\"0\" cellpadding=\"4\">\n<tr><th align=\"left\">Calculation</th>"
+           "<th>\xCE\xBD / cm<sup>-1</sup></th><th>S / J mol<sup>-1</sup> K<sup>-1</sup></th>"
+           "<th>share of S</th><th>G correction / kJ mol<sup>-1</sup></th><th>share</th></tr>\n";
+      for (const Mode& m : r.modes)
+        h += "<tr><td>" + htmlEsc(m.species) + "</td><td align=\"right\">" + num(m.freq, "%.1f") +
+             "</td><td align=\"right\">" + num(m.S) + "</td><td align=\"right\">" + num(100 * m.Sshare, "%.1f") +
+             " %</td><td align=\"right\">" + num(m.G) + "</td><td align=\"right\">" + num(100 * m.Gshare, "%.1f") +
+             " %</td></tr>\n";
+      h += "</table>\n";
+    }
+    if (!r.hasTs) continue;
+    anyTs = true;
+    h += "<p><b>Tunnelling</b></p>\n";
+    if (!r.rateError.empty()) { h += "<p>" + warn + "no rate: " + htmlEsc(r.rateError) + "</font></p>\n"; continue; }
+    const RateRow& w = r.rate.rows[0];
+    const string u = r.rate.unit.empty() ? string() : htmlEsc(r.rate.unit);
+    h += "<p>\xCE\x94E<sup>\xE2\x80\xA1</sup> = " + num(r.dEact, "%.2f") + ",  \xCE\x94G<sup>\xE2\x80\xA1</sup> = " +
+         num(r.dGact, "%.2f") + " kJ/mol at " + num(w.T, "%.2f") + " K.  k in " + (u.empty() ? string("the rate unit") : u) + ".</p>\n";
+    h += "<table border=\"1\" cellspacing=\"0\" cellpadding=\"4\">\n<tr><th align=\"left\">Rate</th><th>\xCE\xBA</th><th>k</th></tr>\n";
+    h += "<tr><td>Transition-state theory</td><td align=\"right\">1</td><td align=\"right\">" + htmlK(rateNum(w.k)) + "</td></tr>\n";
+    h += "<tr><td>Wigner</td><td align=\"right\">" + num(w.kappaWigner) + "</td><td align=\"right\">" +
+         htmlK(rateNum(w.kWigner)) + "</td></tr>\n";
+    const bool noE = w.kappaEckart != w.kappaEckart;
+    h += "<tr><td>Eckart</td><td align=\"right\">" + (noE ? string("\xE2\x80\x94") : num(w.kappaEckart)) +
+         "</td><td align=\"right\">" + (noE ? string("\xE2\x80\x94") : htmlK(rateNum(w.kEckart))) + "</td></tr>\n</table>\n";
+    for (const string& note : r.rate.notes) h += "<p><i>" + htmlEsc(note) + "</i></p>\n";
+  }
+
+  h += "<h4>References</h4>\n<p>Methods used in the results above.</p>\n<ol>\n";
+  if (anyTs) {
+    h += citation("H. Eyring", "J. Chem. Phys.</i> 1935, <b>3</b>, 107\xE2\x80\x93" "115");
+    h += citation("E. Wigner", "Z. Phys. Chem. B</i> 1932, <b>19</b>, 203\xE2\x80\x93" "216");
+    h += citation("C. Eckart", "Phys. Rev.</i> 1930, <b>35</b>, 1303\xE2\x80\x93" "1309");
+  }
+  if (treatment.compare(0, 13, "qrrho-grimme:") == 0)
+    h += citation("S. Grimme", "Chem. Eur. J.</i> 2012, <b>18</b>, 9955\xE2\x80\x93" "9964");
+  else if (treatment == "truhlar")
+    h += citation("R. F. Ribeiro, A. V. Marenich, C. J. Cramer, D. G. Truhlar",
+                  "J. Phys. Chem. B</i> 2011, <b>115</b>, 14556\xE2\x80\x93" "14562");
+  else if (treatment == "head-gordon")
+    h += citation("Y.-P. Li, J. Gomes, S. M. Sharada, A. T. Bell, M. Head-Gordon",
+                  "J. Phys. Chem. C</i> 2015, <b>119</b>, 1840\xE2\x80\x93" "1850");
+  h += "</ol>\n</body>";
+  return h;
+}
+
 ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& lines, const string& base)
   : wxDialog(parent, wxID_ANY, _("Reaction overview"), wxDefaultPosition,
              wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
@@ -589,8 +702,8 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
   top->Add(p_units, 0, wxALL, 8);
 
   p_pane = new wxCollapsiblePane(this, wxID_ANY, _("Details: soft modes and tunnelling"));
-  p_detail = new wxTextCtrl(p_pane->GetPane(), wxID_ANY, "", wxDefaultPosition, wxSize(720, 180),
-                            wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP | wxHSCROLL);
+  p_detail = new wxHtmlWindow(p_pane->GetPane(), wxID_ANY, wxDefaultPosition, wxSize(720, 180),
+                              wxHW_SCROLLBAR_AUTO | wxBORDER_SUNKEN);
   p_detail->SetMinSize(wxSize(300, 150));
   wxBoxSizer *ps = new wxBoxSizer(wxVERTICAL);
   ps->Add(p_detail, 1, wxEXPAND);
@@ -837,7 +950,8 @@ void ReactionOverviewDialog::update()
   std::remove(tmp.c_str());
   if (!ok) {
     p_error = err;
-    p_detail->SetValue(wxString::FromUTF8(err.c_str()));
+    p_detailHtml = "<body><font color=\"#a02020\">" + htmlEsc(err) + "</font></body>";
+    p_detail->SetPage(wxString::FromUTF8(p_detailHtml.c_str()));
     showResults();
     showProfiles();
     return;
@@ -939,9 +1053,8 @@ void ReactionOverviewDialog::update()
   }
   p_csv = table;
 
-  string d = "Reactions: G " + treatment + " at " + tText + " K, kJ/mol\n";
-  for (size_t i = 0; i < p_rows.size(); i++) d += "\n" + reactionText((int)i + 1);
-  p_detail->SetValue(wxString::FromUTF8(d.c_str()));
+  p_detailHtml = buildDetailHtml(treatment, tText);
+  p_detail->SetPage(wxString::FromUTF8(p_detailHtml.c_str()));
   showResults();
   showProfiles();
 }
@@ -1148,9 +1261,7 @@ string ReactionOverviewDialog::layoutReport(const string& shot)
   string r = "dialog=" + sz(this) + " plot=" + sz(p_plot) + " plotshown=" + (p_plot->IsShownOnScreen() ? "1" : "0") +
              " choice=" + sz(p_profileChoice) + " choiceshown=" + (p_profileChoice->IsShownOnScreen() ? "1" : "0") +
              " treatment=" + sz(p_treatment) + " treatmentenabled=" + (p_treatment->IsEnabled() ? "1" : "0") +
-             " detailenabled=" + (p_detail->IsEnabled() ? "1" : "0") +
-             " detailmulti=" + (p_detail->IsMultiLine() ? "1" : "0") +
-             " detailreadonly=" + (p_detail->IsEditable() ? "0" : "1") + " detail=" + sz(p_detail);
+             " detailenabled=" + (p_detail->IsEnabled() ? "1" : "0") + " detail=" + sz(p_detail);
   if (!shot.empty() && shot != "-") r += ecceWindowShot(this, wxString::FromUTF8(shot.c_str())) ? " shot=saved" : " shot=failed";
   return r;
 }

@@ -2426,6 +2426,10 @@ void CalcMgr::runTestCommand(const string& line)
       if (!png.empty() && png != "-") outcome += d->savePng(png) ? " | png saved" : " | png failed";
       if (!csvOut.empty() && csvOut != "-") outcome += d->saveCsv(csvOut) ? " | csv saved" : " | csv failed";
       outcome += " | layout: " + d->layoutReport(shot);
+      {
+        std::istringstream hs(d->detailHtml());
+        for (string l; std::getline(hs, l); ) outcome += " | html " + l;
+      }
       d->Destroy();
     } else if (command == "reactionoverviewui") {
       // "reactionoverviewui <folder url> <treatment> <png|-> [add=LINE] [remove=N]":
@@ -2456,6 +2460,7 @@ void CalcMgr::runTestCommand(const string& line)
       dump("table", d->tableText());
       dump("ts", d->tsChoices());
       dump("balance", d->balanceText());
+      dump("html", d->detailHtml());
       if (png != "-") outcome += ecceWindowShot(d, wxString::FromUTF8(png.c_str())) ? " | shot saved" : " | shot failed";
       d->Destroy();
     } else if (command == "fragdiagram") {

@@ -23,6 +23,7 @@ class wxCollapsiblePane;
  * numbers are those of `ecce-thermo --reactions` and `ecce-rate`; the
  * dialog only lays them out.
  */
+class wxHtmlWindow;
 class ReactionOverviewDialog : public wxDialog
 {
 public:
@@ -98,7 +99,13 @@ private:
   wxStaticText *p_note;
   wxWindow *p_editButton;
   wxCollapsiblePane *p_pane;
-  wxTextCtrl *p_detail;
+  wxHtmlWindow *p_detail;
+  std::string p_detailHtml;
+  std::string buildDetailHtml(const std::string& treatment, const std::string& tText) const;
+public:
+  /** The formatted Details page as HTML (display only; the plain text is reactionText). */
+  std::string detailHtml() const { return p_detailHtml; }
+private:
   wxChoice *p_treatment, *p_profileChoice;
   wxStaticText *p_profileLabel;
   wxWindow *p_pngButton;
