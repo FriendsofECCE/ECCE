@@ -183,6 +183,7 @@
 #include "StructLib.H"
 #include "VizPropertyPanel.H"
 #include "MomentsPanel.H"
+#include "DistortBondsDialog.H"
 #include "wxgui/ewxModalGuard.H"
 
 namespace {
@@ -990,6 +991,26 @@ void Builder::runBuilderScript(const std::string& file)
         bool ok = takeCoordinates(w[2] == "selected" ? "" : w[2], el, xyz,
                                   w.size() > 3 && w[3] == "align", &rmsd);
         fprintf(stderr, "BUILDER: takefrom %s rmsd=%.6g\n", ok ? "ok" : "refused", rmsd);
+      } else if (w[0] == "distortdlg" && w.size() >= 2) {
+        //  distortdlg open|fill <dr>|apply|state|close: the modeless dialog.
+        if (w[1] == "open") {
+          wxCommandEvent ev(wxEVT_MENU, ID_DISTORT_BONDS);
+          OnDistortBondsClick(ev);
+        } else if (p_distortDlg && w[1] == "fill" && w.size() == 3) {
+          p_distortDlg->fillAll(w[2]);
+        } else if (p_distortDlg && w[1] == "apply") {
+          wxCommandEvent ev(wxEVT_BUTTON, wxID_APPLY);
+          ev.SetEventObject(p_distortDlg);
+          p_distortDlg->GetEventHandler()->ProcessEvent(ev);
+        } else if (p_distortDlg && w[1] == "close") {
+          p_distortDlg->Close();
+          wxTheApp->Yield(true);
+        }
+        refreshDistortDialog();
+        fprintf(stderr, "BUILDER: distortdlg open=%d apply=%d note=[%s]\n",
+                p_distortDlg ? 1 : 0,
+                p_distortDlg && p_distortDlg->applyEnabled() ? 1 : 0,
+                p_distortDlg ? p_distortDlg->note().c_str() : "");
       } else if (w[0] == "coordsraw" && frag) {
         for (size_t i = 0; i < frag->numAtoms(); i++) {
           const double *c = frag->atomRef(i)->coordinates();

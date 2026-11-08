@@ -1916,6 +1916,7 @@ void Builder::pickedInMode(bool doubleClick, int dcatom)
 
 void Builder::processSelectionChange(ChemSelection *sel)
 {
+  refreshDistortDialog();
   SGSelection * esel = ( SGSelection *) sel;
   
   //  tu_busy_activate();
@@ -3527,18 +3528,48 @@ void Builder::OnSelectSolventClick( wxCommandEvent& event )
  */
 void Builder::OnDistortBondsClick( wxCommandEvent& event )
 {
+   if (p_distortDlg) {
+      p_distortDlg->Raise();
+      return;
+   }
    SGFragment *frag = getSG()->getFragment();
    if (!frag || frag->m_atomHighLight.size() != 1) {
       reportError("Select one atom, the centre of the bonds to distort.");
       return;
    }
    int centre = frag->m_atomHighLight[0];
-   DistortBondsDialog dlg(this, *frag, centre);
-   if (dlg.ShowModal() != wxID_OK || dlg.list().empty()) return;
+   p_distortDlg = new DistortBondsDialog(this, *frag, centre,
+                                         [this]() { applyDistortDialog(); });
+   DistortBondsDialog *dlg = p_distortDlg;
+   dlg->Bind(wxEVT_DESTROY, [this, dlg](wxWindowDestroyEvent& e) {
+      if (e.GetEventObject() == dlg) p_distortDlg = 0;
+      e.Skip();
+   });
+   dlg->Show();
+}
+
+
+/// One Undo step per Apply; the dialog stays open for the next one.
+void Builder::applyDistortDialog()
+{
+   if (!p_distortDlg) return;
+   refreshDistortDialog();
+   int centre = p_distortDlg->centre();
+   std::string list = p_distortDlg->list();
+   if (centre < 0 || list.empty()) return;
    Command *cmd = new DistortBondsCmd("Distort Bonds", getSG());
    cmd->getParameter("centre")->setInteger(centre + 1);
-   cmd->getParameter("list")->setString(dlg.list());
+   cmd->getParameter("list")->setString(list);
    execute(cmd);
+   refreshDistortDialog();
+}
+
+
+void Builder::refreshDistortDialog()
+{
+   if (!p_distortDlg) return;
+   SGFragment *frag = getSG()->getFragment();
+   p_distortDlg->refresh(frag, frag ? frag->m_atomHighLight : std::vector<int>());
 }
 
 
