@@ -6747,6 +6747,10 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and "
      "Raman. This calculation shows the S–O stretches of a sulfate "
      "bridging two cobalt centres in [(en)2Co(μ-OH)(μ-SO4)Co(en)2]3+."},
+    {"series_template",
+     "ORCA, B3LYP-D3BJ/def2-SVP, single point. This calculation shows the "
+     "template for New Series from This: its method and basis set are applied "
+     "to the XYZ files in the structures folder next to it."},
     {"water_dimer",
      "ORCA, B3LYP-D3BJ/def2-SVP, single point. This calculation shows the "
      "water dimer, the complex for the density difference of the dimer "
