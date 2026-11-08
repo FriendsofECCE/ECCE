@@ -609,7 +609,9 @@ string ReactionOverviewDialog::reactionLines() const
 
 void ReactionOverviewDialog::addReactionLine(const string& line)
 {
-  p_lines.push_back(line);
+  // Store the canonical spelling, as the picker does, whatever spacing the hook got.
+  const Spec s = parseSpec(line);
+  p_lines.push_back(s.re.empty() || s.pr.empty() ? line : formatLine(s));
   p_sel = (int)p_lines.size() - 1;
   rebuildTable();
   update();
