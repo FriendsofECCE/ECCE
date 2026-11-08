@@ -3176,6 +3176,10 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_examples_preparsed PROPERTIES TIMEOUT 1800
                        SKIP_RETURN_CODE 77)
+  # No stored copy carries the preparsing machine's paths (#888).
+  add_test(NAME apps_examples_stored_paths
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/examples_stored_paths_test.py)
   # Every stored geometry trace fits its structure's atoms (#920).
   add_test(NAME apps_examples_geomtrace
            COMMAND ${PYTHON3_EXECUTABLE}
