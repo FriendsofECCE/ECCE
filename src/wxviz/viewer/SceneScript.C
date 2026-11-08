@@ -171,6 +171,20 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     cmd.getParameter("descriptor")->setString(dd.toString());
     cmd.getParameter("all")->setBoolean(true);
     cmd.execute();
+  } else if (c == "opacity" && (w.size() == 2 || (w.size() == 3 && w[2] == "selection"))) {
+    //  "opacity <0-100> [selection]": the Display Style dialog's Atom opacity
+    //  slider, for every atom or for the selected ones (a style group of
+    //  their own, as the dialog's Update makes) (#879).
+    const int pct = atoi(w[1].c_str());
+    DisplayDescriptor dd = p_sg->styleExists("default") ?
+        p_sg->getDisplayDescriptor("default") :
+        DisplayDescriptor("default", "Ball And Stick", "Element");
+    dd.setAtomOpacity(pct);
+    if (w.size() == 3) dd.setName("opacity" + w[1]);
+    CSStyleCmd cmd("Style", p_sg);
+    cmd.getParameter("descriptor")->setString(dd.toString());
+    cmd.getParameter("all")->setBoolean(w.size() == 2);
+    cmd.execute();
   } else if (c == "zoom" && w.size() == 2) {
     //  "zoom <factor>": dolly the camera toward its focal point.
     SoCamera *cam = p_viewer->getCamera();

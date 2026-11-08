@@ -116,6 +116,7 @@ void DisplayDescriptor::constructor()
    p_sphereSize = SPHERESZ;
    p_sphereRQ = SPHERERQ;
    p_sphereRQAutomatic = true;
+   p_atomOpacity = 100;
    p_sphereStyle = SPHERESTYLE;
    p_atomSphere = ATMSPHR;
 
@@ -158,6 +159,7 @@ DisplayDescriptor& DisplayDescriptor::operator=(const DisplayDescriptor& rhs)
 
       setSphereSize(rhs.getSphereSize());
       setSphereRQ(rhs.getSphereRQ(), rhs.isSphereRQAutomatic());
+      setAtomOpacity(rhs.getAtomOpacity());
       setSphereStyle(rhs.getSphereStyle());
 
       setRibbonBlended(rhs.getRibbonBlended());
@@ -370,6 +372,16 @@ void DisplayDescriptor::setSphereRQ(const int& rq, bool automatic)
 {
   p_sphereRQ = rq;
   p_sphereRQAutomatic = automatic;
+}
+
+void DisplayDescriptor::setAtomOpacity(const int& percent)
+{
+  p_atomOpacity = percent < 0 ? 0 : (percent > 100 ? 100 : percent);
+}
+
+int DisplayDescriptor::getAtomOpacity() const
+{
+  return p_atomOpacity;
 }
 
 void DisplayDescriptor::setRibbonBlended(const bool& flag)
@@ -680,6 +692,13 @@ void DisplayDescriptor::save(Preferences& prefs)
     prefs.remove_entry(key);
   }
 
+  key = "StyleChooser." + style + ".AtomOpacity";
+  if (getAtomOpacity() != 100) {
+    prefs.setInt(key,getAtomOpacity());
+  } else {
+    prefs.remove_entry(key);
+  }
+
   key = "StyleChooser." + style + ".RibbonBlended";
   if (getRibbonBlended() != BLENDED) {
     prefs.setBool(key,getRibbonBlended());
@@ -806,6 +825,9 @@ void DisplayDescriptor::load(const Preferences& prefs, const string& style)
   if (prefs.getInt("StyleChooser." + style + ".SphereQuality",ival)) {
     setSphereRQ(ival);
   }
+  if (prefs.getInt("StyleChooser." + style + ".AtomOpacity",ival)) {
+    setAtomOpacity(ival);
+  }
   if (prefs.getBool("StyleChooser." + style + ".RibbonBlended",bval)) {
     setRibbonBlended(bval);
   }
@@ -918,6 +940,9 @@ ostream& operator<<(ostream& os, const DisplayDescriptor& display)
   if (!display.isSphereRQAutomatic()) {
     os << " SRQ:"<<display.getSphereRQ();
   }
+  if (display.getAtomOpacity() != 100) {
+    os << " AO:"<<display.getAtomOpacity();
+  }
   if (display.getRibbonBlended() != display.BLENDED) {
     os << " RB:"<<display.getRibbonBlended();
   }
@@ -1025,6 +1050,8 @@ istream& operator>>(istream& is, DisplayDescriptor& display)
       display.setSphereStyle(atoi(value.c_str()));
     } else if (key == "SRQ") {
       display.setSphereRQ(atoi(value.c_str()));
+    } else if (key == "AO") {
+      display.setAtomOpacity(atoi(value.c_str()));
     } else if (key == "RB") {
       display.setRibbonBlended((bool)atoi(value.c_str()));
     } else if (key == "RR") {

@@ -106,6 +106,7 @@ class CHEMKIT_DLL_API ChemDisplayParam : public SoNode {
     SoSFFloat   atomRadiiScaleFactor;
     SoSFFloat   atomSphereComplexity;
     SoSFBool    atomSphereQualityAutomatic;
+    SoSFFloat   atomOpacity;   // 1 = opaque; below 1 spheres are depth sorted and blended
     SoSFInt32   qualityAtomCount;
     SoSFEnum    atomSphereDisplayStyle;
 

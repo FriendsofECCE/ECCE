@@ -6713,7 +6713,8 @@ void Builder::updatePropertyMenus()
             SGContainer *sg = getSG();
             DisplayDescriptor dd = sg->getDisplayDescriptor("default");
             std::ofstream out(outdir + "/" + w[2] + ".txt");
-            out << "sphrq " << dd.getSphereRQ() << "\n"
+            out << "atom_opacity " << dd.getAtomOpacity() << "\n"
+                << "sphrq " << dd.getSphereRQ() << "\n"
                 << "cylrq " << dd.getCylinderRQ() << "\n"
                 << "sphere_auto " << dd.isSphereRQAutomatic() << "\n"
                 << "cylinder_auto " << dd.isCylinderRQAutomatic() << "\n"

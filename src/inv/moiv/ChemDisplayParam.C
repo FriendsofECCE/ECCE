@@ -131,6 +131,7 @@ ChemDisplayParam::ChemDisplayParam()
     SO_NODE_ADD_FIELD(atomRadiiScaleFactor, (1.0));
     SO_NODE_ADD_FIELD(atomSphereComplexity, (0.5));
     SO_NODE_ADD_FIELD(atomSphereQualityAutomatic, (FALSE));
+    SO_NODE_ADD_FIELD(atomOpacity, (1.0f));
     SO_NODE_ADD_FIELD(qualityAtomCount, (-1));
     SO_NODE_ADD_FIELD(atomSphereDisplayStyle, 
                       (ChemDisplayParam::ATOMSPHERE_DEFAULT));

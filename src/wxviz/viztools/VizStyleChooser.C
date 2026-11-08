@@ -103,6 +103,7 @@ void VizStyleChooser::initializeGUI()
    static const wxWindowID sliderIds[] = {
       ID_SLIDER_DSPLY_LNWDTH, ID_SLIDER_DSPLY_CYLRQ, ID_SLIDER_DSPLY_CYLRAD,
       ID_SLIDER_DSPLY_RESRAD, ID_SLIDER_DSPLY_SPHRQ, ID_SLIDER_DSPLY_SPHSCL,
+      ID_SLIDER_DSPLY_OPACITY,
       ID_SLIDER_DSPLY_COILW, ID_SLIDER_DSPLY_HLXRAD, ID_SLIDER_DSPLY_HLXW,
       ID_SLIDER_DSPLY_SHTW, ID_SLIDER_DSPLY_RBTHK, ID_SLIDER_DSPLY_CCYLRQ,
       ID_SLIDER_DSPLY_CYLR, ID_SLIDER_DSPLY_TUBER };
@@ -315,6 +316,8 @@ void VizStyleChooser::setPanelsFromDescriptor(const DisplayDescriptor& dd)
    slider->SetValue(dd.getSphereSize());
    slider = ((ewxSlider*)FindWindow(ID_SLIDER_DSPLY_SPHRQ));
    slider->SetValue(dd.getSphereRQ());
+   slider = ((ewxSlider*)FindWindow(ID_SLIDER_DSPLY_OPACITY));
+   slider->SetValue(dd.getAtomOpacity());
    choice = ((ewxChoice*)FindWindow(ID_CHOICE_DSPLY_ATOMSPHERE));
    choice->SetSelection(dd.getAtomSphereOpt());
 
@@ -1011,6 +1014,8 @@ DisplayDescriptor *VizStyleChooser::buildDescriptor()
      display->setSphereRQ(slider->GetValue(), p_sphereQualityAutomatic);
      slider = ((ewxSlider*)FindWindow(ID_SLIDER_DSPLY_SPHSCL));
      display->setSphereSize(slider->GetValue());
+     slider = ((ewxSlider*)FindWindow(ID_SLIDER_DSPLY_OPACITY));
+     display->setAtomOpacity(slider->GetValue());
      choice = ((ewxChoice*)FindWindow(ID_CHOICE_DSPLY_ATOMSPHERE));
      display->setAtomSphereOpt(choice->GetSelection());
    }
@@ -1121,6 +1126,7 @@ void VizStyleChooser::previewSliders()
       dd.setCylinderRQ(gui->getCylinderRQ(), gui->isCylinderRQAutomatic());
       dd.setSphereSize(gui->getSphereSize());
       dd.setSphereRQ(gui->getSphereRQ(), gui->isSphereRQAutomatic());
+      dd.setAtomOpacity(gui->getAtomOpacity());
       dd.setCoilWidth(gui->getCoilWidth());
       dd.setHelixWidth(gui->getHelixWidth());
       dd.setSheetWidth(gui->getSheetWidth());

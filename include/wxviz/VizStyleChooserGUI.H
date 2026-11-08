@@ -236,6 +236,7 @@ public:
     static const wxWindowID wxID_STATIC_DSPLY_RBTHKMIN;
     static const wxWindowID wxID_STATIC_DSPLY_CYLRQTXT;
     static const wxWindowID ID_SLIDER_DSPLY_SPHRQ;
+    static const wxWindowID ID_SLIDER_DSPLY_OPACITY;
     static const wxWindowID ID_BUTTON_DSPLY_RESET;
     static const wxWindowID ID_PANEL_DSPLY_CNTRLS;
     static const wxWindowID wxID_STATIC_DSPLY_SHTW;
