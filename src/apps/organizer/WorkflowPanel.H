@@ -115,7 +115,8 @@ private:
   EcceURL p_selected;
   std::vector<EcceURL> p_picked;
   WorkflowCanvas *p_canvas;
-  wxStaticText *p_help;
+  wxTextCtrl *p_help;
+  wxString p_helpRaw;
   wxStaticText *p_status;
   wxButton *p_launch;
   wxCheckBox *p_autorun;

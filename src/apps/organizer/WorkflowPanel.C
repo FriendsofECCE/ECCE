@@ -907,13 +907,21 @@ void WorkflowPanel::createControls()
   // The instructions have a panel of their own, never among the controls.
   wxPanel *notes = new wxPanel(this, wxID_ANY, wxDefaultPosition,
                                wxDefaultSize, wxBORDER_SIMPLE);
-  wxBoxSizer *noteSizer = new wxBoxSizer(wxHORIZONTAL);
-  p_help = new wxStaticText(notes, wxID_ANY, "");
+  // Text on its own full-width row, the buttons in a row under it.
+  wxBoxSizer *noteSizer = new wxBoxSizer(wxVERTICAL);
+  wxBoxSizer *btnRow = new wxBoxSizer(wxHORIZONTAL);
+  // A read-only text control wraps itself at any width; a wrapped
+  // wxStaticText kept its first, too-narrow line breaks under GTK3.
+  p_help = new wxTextCtrl(notes, wxID_ANY, "", wxDefaultPosition, wxDefaultSize,
+                          wxTE_MULTILINE | wxTE_READONLY | wxTE_WORDWRAP |
+                          wxTE_NO_VSCROLL | wxBORDER_NONE);
+  p_help->SetBackgroundColour(notes->GetBackgroundColour());
+  p_help->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+  p_help->SetMinSize(wxSize(1, p_help->GetCharHeight() * 4 + 8));
   p_status = new wxStaticText(notes, wxID_ANY, "");
   wxBoxSizer *texts = new wxBoxSizer(wxVERTICAL);
-  texts->Add(p_help, 0, wxALL, 6);
+  texts->Add(p_help, 0, wxALL | wxEXPAND, 6);
   texts->Add(p_status, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
-  // Beside the instructions, where the text that names it is read.
   p_launch = new wxButton(notes, wxID_ANY, "Launch Ready Steps");
   p_launch->SetToolTip("Launch every step that has not been launched and whose "
                        "source step is Complete");
@@ -934,9 +942,10 @@ void WorkflowPanel::createControls()
     const string got = saveAsRecipe(id, title);
     say(got.compare(0, 3, "ok ") == 0 ? "Saved as a recipe: " + got.substr(3) : got);
   });
-  noteSizer->Add(texts, 1, wxEXPAND);
-  noteSizer->Add(saveRecipe, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM | wxLEFT, 8);
-  noteSizer->Add(p_apply, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM | wxLEFT, 8);
+  noteSizer->Add(texts, 0, wxEXPAND);
+  btnRow->Add(saveRecipe, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxLEFT, 8);
+  btnRow->Add(p_apply, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxLEFT, 8);
+  btnRow->AddStretchSpacer(1);
   p_autorun = new wxCheckBox(notes, wxID_ANY, "Run the remaining steps automatically");
   p_autorun->SetToolTip("Launch each step as soon as the step it starts from is "
                         "Complete. Works while the Organizer is open.");
@@ -948,7 +957,8 @@ void WorkflowPanel::createControls()
   wxBoxSizer *launchCol = new wxBoxSizer(wxVERTICAL);
   launchCol->Add(p_launch, 0, wxALIGN_RIGHT);
   launchCol->Add(p_autorun, 0, wxALIGN_RIGHT | wxTOP, 4);
-  noteSizer->Add(launchCol, 0, wxALIGN_CENTER_VERTICAL | wxALL, 8);
+  btnRow->Add(launchCol, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+  noteSizer->Add(btnRow, 0, wxEXPAND);
   notes->SetSizer(noteSizer);
   notes->Bind(wxEVT_SIZE, [this](wxSizeEvent &e) {
     e.Skip();
@@ -999,16 +1009,16 @@ void WorkflowPanel::updateTexts()
     p_left->Show(p_empty, empty);
   }
   if (p_session->numMembers() == 0)
-    p_help->SetLabel("Pick a code on the right to add the first step.  "
+    p_help->ChangeValue(p_helpRaw = "Pick a code on the right to add the first step.  "
                      "Its structure is set in the Builder.");
   else if (!WorkflowSteps::recipeId(p_session).empty())
-    p_help->SetLabel(
+    p_help->ChangeValue(p_helpRaw =
       "Build the first molecule in Builder; open its editor, save and launch.\n"
       "After a source is Complete, open the next editor to load its structure.\n"
       "Check its settings, save and launch.\n"
       "Launch Ready Steps launches all steps whose sources are Complete.");
   else
-    p_help->SetLabel(
+    p_help->ChangeValue(p_helpRaw =
       "Select a box, then a code on the right: the new step starts from that "
       "box's final structure, charge and multiplicity. Several new steps from "
       "one box make branches. To search for a transition state between two or "
@@ -1018,15 +1028,10 @@ void WorkflowPanel::updateTexts()
 }
 
 
-// Wrapped to what the buttons beside the text leave, so no line is cut off.
 void WorkflowPanel::rewrapHelp()
 {
-  if (!p_help || !p_help->GetParent()) return;
-  const wxString text = p_help->GetLabel();
-  p_help->SetLabel(text);   // drop the earlier wrapping
-  const int w = std::max(220, p_help->GetParent()->GetClientSize().x - 520);
-  p_help->Wrap(w);
-  p_help->GetParent()->Layout();
+  // The text control wraps by itself; only the panel's layout follows.
+  if (p_help && p_help->GetParent()) p_help->GetParent()->Layout();
 }
 
 
