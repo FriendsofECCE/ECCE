@@ -175,6 +175,13 @@ void DisplayPanel::build()
   wxBoxSizer *orow = new wxBoxSizer(wxHORIZONTAL);
   orow->Add(p_opacity, 1, wxEXPAND);
   orow->Add(p_opacityVal, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
+  // The two settings the old right-click menu offered, one click each.
+  for (int pct : {50, 100}) {
+    wxButton *b = new wxButton(this, wxID_ANY, pct == 50 ? "Semi-transparent" : "Opaque",
+                               wxDefaultPosition, wxDefaultSize, wxBU_EXACTFIT);
+    b->Bind(wxEVT_BUTTON, [this, pct](wxCommandEvent&) { applyOpacity(pct); refresh(); });
+    orow->Add(b, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 4);
+  }
   p_opacity->Bind(wxEVT_SCROLL_CHANGED, [this](wxScrollEvent&) {
     if (!p_building) applyOpacity(p_opacity->GetValue());
   });
@@ -247,6 +254,9 @@ void DisplayPanel::refresh()
     }
     p_auto[0]->SetValue(c->isQualityAutomatic(true));
     p_auto[1]->SetValue(c->isQualityAutomatic(false));
+    // While Automatic is on the slider's number is not the quality in use.
+    p_sl[2]->Enable(!p_auto[0]->GetValue());
+    p_sl[3]->Enable(!p_auto[1]->GetValue());
   }
   double v[3] = {0, 0, 0};
   if (p_h.getBackground) { p_h.getBackground(v); p_bg->set(v); }
@@ -285,6 +295,7 @@ void DisplayPanel::applyAutomatic(bool sphere, bool on)
   if (VizStyleChooser *c = p_h.chooser ? p_h.chooser() : 0)
     c->setQualityAutomatic(sphere, on);
   p_auto[sphere ? 0 : 1]->SetValue(on);
+  refresh();   // greys the slider while Automatic is on
 }
 
 void DisplayPanel::applySlider(const std::string& name, int v)
