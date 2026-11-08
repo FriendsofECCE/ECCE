@@ -214,5 +214,6 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [The ML potential code (MLP): Python as the program, runner inlined by gensub, VERSION in .ecce-meta (#728)](ml-potential-code-registration-stage-1-728.md)
 - [xTB "Conformer search (simple)": ecce-confsearch inlined by gensub, ensemble in CREST frame format (#682)](xtb-simple-conformer-search-682.md)
 - [A code's spherical MOOrdering stops below the basis's highest shell: empty functions, every orbital view refuses (ORCA g, #861)](angular-table-below-the-basis-highest-shell-861.md)
+- [Gaussian re-contracts general contractions that share primitives: fort.7 is in its basis, not the one ECCE wrote (#863)](gaussian-recontracts-shared-primitive-contractions-863.md)
 - [Starting structure = GEOMTRACE step 0, not chemsys.mvm; structures compared by distances (#874)](stored-structure-of-a-run-calc-can-be-its-final-874.md) — link proposals when several calculations become a workflow
 - [H2 curves (#858): ORCA has no rigid scan, GuessMix per point, closed-shell CCSD gradients; Fit Morse = ecce-morse --json](h2-curves-morse-fit-and-orca-scan-facts-858.md)
