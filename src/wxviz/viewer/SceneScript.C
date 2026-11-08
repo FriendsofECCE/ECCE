@@ -317,6 +317,10 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     vector<int> atoms;
     for (size_t i = 1; i < w.size(); i++) atoms.push_back(atoi(w[i].c_str()) - 1);
     if (atoms.empty()) return fail("select: no atoms");
+    //  Numbered from 1; atomRef aborts on a bad index rather than returning.
+    for (size_t j = 0; j < atoms.size(); j++)
+      if (atoms[j] < 0 || (size_t)atoms[j] >= frag->numAtoms())
+        return fail("select: no atom " + w[j + 1] + " (atoms are numbered from 1; 'deselect' clears)");
     frag->m_atomHighLight = atoms;
     frag->m_bondHighLight.clear();
     SGSelection *esel = p_viewer->getSel();

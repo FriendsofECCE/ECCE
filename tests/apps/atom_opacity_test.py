@@ -8,13 +8,12 @@ Two atoms lie on the view axis, N behind O and then O behind N (an .xyz file
 each), seen end on, so the back sphere sits exactly behind the front one:
 
   - 100 % draws the picture of no opacity setting at all;
-  - at 30 % the back atom's colour shows through the front sphere (the green
-    channel of the centre pixel rises) and the order is far-before-near: the
-    front colour has the larger weight (0.3 against 0.21), so the centre pixel
-    leans toward the front atom's colour; drawn near-first it would lean to
-    the back atom's;
-  - "opacity 30 selection" does the same for the selected atom only (the
-    other atom stays opaque);
+  - at 30 % the centre pixel is the far-before-near blend
+    0.3 front + 0.21 back + 0.49 background, with the opaque colours taken
+    from the other file's 100 % picture; it is told apart from the near-first
+    blend (weights swapped) and from a front sphere over nothing;
+  - "opacity 30 selection" on the front atom (atom 2 in both files) gives
+    0.3 front + 0.7 back: the other atom stays opaque;
   - the setting is still there after a redraw (viewall) and in the PNG export.
 
 Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME,
@@ -52,9 +51,9 @@ vizfile export30 480
 viewall
 snap redraw
 opacity 100
-select 1
+select 2
 opacity 30 selection
-select 0
+deselect
 snap sel
 """
 
@@ -62,7 +61,7 @@ failures = []
 
 
 def fail(what, why, log=""):
-    tail = "\n".join("      | " + l for l in (log or "").splitlines()[-12:])
+    tail = "\n".join("      | " + l for l in (log or "").splitlines()[-int(os.environ.get("OPACITY_LOG_LINES", "12")):])
     failures.append(what)
     print("FAIL  %s: %s\n%s" % (what, why, tail))
 
@@ -133,14 +132,7 @@ def check(what, out, shots, log):
         problems.append("30% draws the opaque picture")
     if shots["redraw"][2] != shots["alpha"][2]:
         problems.append("the picture changed after a redraw")
-    if c30[1] < c100[1] + 40:
-        problems.append("the back atom does not show through (green %d -> %d)"
-                        % (c100[1], c30[1]))
     sign = 1 if c100[0] > c100[2] else -1        # red on top, or blue on top
-    lean = sign * (c30[0] - c30[2])
-    if lean <= 5:
-        problems.append("far-before-near order wrong: the centre leans to the "
-                        "back atom (lean %d)" % lean)
     info = open(os.path.join(out, "alpha.txt")).read()
     if "atom_opacity 30" not in info:
         problems.append("the style still reports another opacity: " + info[:60])
@@ -155,12 +147,24 @@ def check(what, out, shots, log):
         fail(what, "; ".join(problems), log)
     else:
         print("ok    %s: 100%% unchanged, 30%% shows through in the right order" % what)
-    return sign
+    return sign, c100, c30, centre(shots["sel"])
+
+
+def blend(*terms):
+    return tuple(sum(w * c[i] for w, c in terms) for i in range(3))
+
+
+def nearest(what, got, candidates):
+    """The candidate blend closest to `got`; a failure unless it is `want`."""
+    dist = {k: max(abs(g - e) for g, e in zip(got, v)) for k, v in candidates.items()}
+    return min(dist, key=dist.get), dist
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--shots", help="keep the pictures here")
+    parser.add_argument("--gdb", action="store_true",
+                        help="run the builder under gdb; its backtrace lands in the log")
     options = parser.parse_args()
     if not os.path.exists(os.path.join(apps.WRAPPERS, "ecce-builder")):
         print("SKIP: no ecce-builder under %s" % apps.WRAPPERS)
@@ -175,6 +179,10 @@ def main():
         return 1
     print(isolate.describe(settings))
     os.environ["ECCE_NO_REAP"] = "1"
+    if options.gdb:
+        from geomtrace_stress import _wrapBuilder
+        _wrapBuilder(settings["ECCE_HOME"],
+                     "gdb -q -batch -ex run -ex bt -ex quit --args")
     os.environ["GTK_THEME"] = "Adwaita"
     work = tempfile.mkdtemp(prefix="opacity-",
                             dir=os.environ.get("ECCE_REALUSERHOME"))
@@ -193,11 +201,35 @@ def main():
             gateway = os.path.join(apps.INSTALL, "bin", "ecce-gateway-start")
             subprocess.run([gateway], env=display.env(), timeout=180)
             try:
-                signs = []
+                got = {}
                 for name in ("front-o", "front-n"):
-                    got = run(display, name, files[name], work, options.shots)
-                    if got:
-                        signs.append(check(*got))
+                    shot = run(display, name, files[name], work, options.shots)
+                    if shot:
+                        got[name] = check(*shot)
+                signs = [g[0] for g in got.values()]
+                # The back atom of one file is the front atom of the other.
+                white = (255, 255, 255)
+                for name, other in (("front-o", "front-n"), ("front-n", "front-o")):
+                    if name not in got or other not in got:
+                        continue
+                    front, back = got[name][1], got[other][1]
+                    for label, seen, want, cands in (
+                            ("30 %", got[name][2], "far-first", {
+                                "far-first": blend((.3, front), (.21, back), (.49, white)),
+                                "near-first": blend((.21, front), (.3, back), (.49, white)),
+                                "back hidden": blend((.3, front), (.7, white))}),
+                            ("selection", got[name][3], "front only", {
+                                "front only": blend((.3, front), (.7, back)),
+                                "opaque": front,
+                                "all 30 %": blend((.3, front), (.21, back), (.49, white))})):
+                        best, dist = nearest(name, seen, cands)
+                        if best != want or dist[want] > 12:
+                            fail("Atom opacity (%s)" % name, "%s centre %s is nearest the "
+                                 "%s blend %s (off by %s)" % (label, seen, best,
+                                 tuple(round(v) for v in cands[best]), dist))
+                        else:
+                            print("ok    Atom opacity (%s): %s centre %s = %s blend"
+                                  % (name, label, seen, want))
                 if len(signs) == 2 and signs[0] == signs[1]:
                     fail("Atom opacity", "swapping the atoms did not swap the "
                          "colour on top at 100%")
