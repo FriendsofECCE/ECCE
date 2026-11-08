@@ -181,6 +181,9 @@ def panel(tmp, proton=False):
                     sel = re.findall(r"GTSTRESS: enselect \d+ ok=1 .* natoms=(\d+)", log)
                     check("selecting a protomer shows all %d atoms, proton included" % n,
                           len(sel) == 2 and all(int(v) == n for v in sel), sel or log[-3000:])
+                    # The calculation's final structure is a protomer too (#920).
+                    bad = re.findall(r".*coordinates left unchanged", log)
+                    check("the final structure takes the protomer's atoms", not bad, bad)
                     return
                 kind = re.search(r"GTSTRESS: ensemble kind=(.*) rows=(\d+)", log)
                 check("the panel is the Conformers panel with %d rows" % len(FRAMES),
