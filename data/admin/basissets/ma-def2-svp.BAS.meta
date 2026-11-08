@@ -1,0 +1,29 @@
+name
+ma-def2-svp
+name
+type
+
+type
+category
+ORBITAL
+category
+spherical
+
+spherical
+contraction_type
+
+contraction_type
+references
+  ma-def2-SVP  derived  def2-SVP plus one diffuse s and p on each non-H atom (tools/basissets/make_ma_basis.py)
+ Elements                             References
+ --------                             ----------
+ H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn : J. Zheng, X. Xu, D. G. Truhlar, Theor. Chem. Acc. 128, 295 (2011); F. Weigend and R. Ahlrichs, Phys. Chem. Chem. Phys. 7, 3297 (2005).
+ 
+
+references
+info
+
+info
+comments
+
+comments

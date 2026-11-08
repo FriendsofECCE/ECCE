@@ -79,17 +79,14 @@ def oracle(code, text):
         want["spherical"] = "yes"
         # Method from the "! ..." line of the echoed input (also present with
         # MiniPrint), singlets only.  A -3c composite is DFT (HF-3c: SCF); its basis
-        # (def2-mTZVPP, ...) is in the library since #898.  ma-def2-SVP is not
-        # in the Basis Set Exchange, so no basis is expected for it.
+        # (def2-mTZVPP, ...) is in the library since #898.  ma-def2-SVP is derived
+        # from def2-SVP (tools/basissets/make_ma_basis.py).
         tokens = (first(r"^\|\s*\d+>\s*!(.*)$", text) or "").upper().split()
         if "CCSD" in tokens or "CCSD(T)" in tokens:
             want["theory"] = "CC/" + ("CCSD(T)" if "CCSD(T)" in tokens
                                       else "CCSD")
         elif any(t.endswith("-3C") for t in tokens):
             want["theory"] = "SCF/RHF" if "HF-3C" in tokens else "DFT/RDFT"
-            del want["ecp"], want["spherical"]
-        if want["basis"] and want["basis"].lower().startswith("ma-def2"):
-            want["basis"] = ""
             del want["ecp"], want["spherical"]
     elif code == "Gaussian-16":
         want["pointgroup"] = last(r"^\s*Full point group\s+(\S+)", text) or "C1"
