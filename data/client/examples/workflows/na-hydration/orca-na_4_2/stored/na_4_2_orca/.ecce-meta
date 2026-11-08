@@ -1,13 +1,13 @@
-.	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/SetupParams" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/BasisSet.ecce_basisset" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/SetupParams" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
 .	http://purl.org/dc/terms/:taskIndex		0
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (four waters in the first shell and two beyond them) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Mon, 02 Nov 2026 02:54:59 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 08 Nov 2026 07:50:37 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 08 Nov 2026 07:30:05 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 08 Nov 2026 07:50:27 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -16,7 +16,7 @@
 .	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/na_4_2_orca__XG6grk
+.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/na_4_2_orca__IdaWgS
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
@@ -39,7 +39,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=7 sent=1794123012.622 idle=0 at=1794123014\nopt step=13 energy=-620.743335863 dE=-0.0000155201/0.0000050000 rmsgrad=0.0000581402/0.0001000000 maxgrad=0.0002018305/0.0003000000 rmsstep=0.0010752681/0.0020000000 maxstep=0.0035082276/0.0040000000 converged=yes\nopt~ rmsgrad=0.0037842312,0.0031802382,0.0021709895,0.0013455949,0.0006421009,0.0004219510,0.0002961406,0.0002599684,0.0002608517,0.0002624871,0.0002270339,0.0001397684,0.0000581402\nopt~ maxgrad=0.0168003034,0.0147805552,0.0080831370,0.0043046909,0.0021423120,0.0013085881,0.0007889811,0.0006757938,0.0006426874,0.0008664094,0.0007928387,0.0003940253,0.0002018305\nscf cycle=5 energy=-620.7553099957415270 dE=3.56e-10/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-6.42e-07,-1.72e-08,-2.29e-08,3.56e-10\nresult disp=D4 gcp=gCP\nfreq kind=analytic point=57/57 phase=assemble last=GCP-Hessian real=51 imaginary=0 done=yes zpe=0.14620180\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=4 sent=1794124231.498 idle=0 at=1794124235\nopt step=13 energy=-620.743335863 dE=-0.0000155201/0.0000050000 rmsgrad=0.0000581402/0.0001000000 maxgrad=0.0002018305/0.0003000000 rmsstep=0.0010752681/0.0020000000 maxstep=0.0035082276/0.0040000000 converged=yes\nopt~ rmsgrad=0.0037842312,0.0031802382,0.0021709895,0.0013455949,0.0006421009,0.0004219510,0.0002961406,0.0002599684,0.0002608517,0.0002624871,0.0002270339,0.0001397684,0.0000581402\nopt~ maxgrad=0.0168003034,0.0147805552,0.0080831370,0.0043046909,0.0021423120,0.0013085881,0.0007889811,0.0006757938,0.0006426874,0.0008664094,0.0007928387,0.0003940253,0.0002018305\nscf cycle=5 energy=-620.7553099957415270 dE=3.56e-10/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-6.42e-07,-1.72e-08,-2.29e-08,3.56e-10\nresult disp=D4 gcp=gCP\nfreq kind=analytic point=57/57 phase=assemble last=GCP-Hessian real=51 imaginary=0 done=yes zpe=0.14620180\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -51,7 +51,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Mon, 02 Nov 2026 02:51:10 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 07:50:28 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794123006
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794124228
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT
