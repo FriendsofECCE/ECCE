@@ -370,6 +370,10 @@ void CalcEd::runCalcEdScript(const string& file)
                 descriptor ? descriptor->getName().c_str() : "<none>",
                 p_builderTool->GetId());
       } else if (w[0] == "info") {
+        auto label = [this](wxWindowID id) {
+          wxWindow *w = FindWindow(id);
+          return w ? w->GetLabel() : wxString("?");
+        };
         wxWindow *launch = FindWindow(ID_BUTTON_CALCED_LAUNCH);
         fprintf(stderr, "CALCED: theory=%s runtype=%s launch=%s\n",
                 getTheoryName().ToStdString().c_str(),
@@ -381,6 +385,9 @@ void CalcEd::runCalcEdScript(const string& file)
                 p_notReadyWhy.c_str(),
                 p_chemSysMark->GetBackgroundColour() == red ? "chemsys" : "none",
                 p_basisMark->GetBackgroundColour() == red ? "basis" : "none");
+        fprintf(stderr, "CALCED: openshells=%s cdfitting=%s\n",
+                label(ID_STATICTEXT_CALCED_OPEN_SHELLS).utf8_str().data(),
+                label(ID_STATICTEXT_CALCED_CD).utf8_str().data());
         fprintf(stderr, "CALCED: basisbox=%s\n",
                 p_basisMark && p_basisMark->IsShown() ? "shown" : "hidden");
         //  The Verify lamp: empty (not checked), else its tooltip.
@@ -391,10 +398,6 @@ void CalcEd::runCalcEdScript(const string& file)
         lampText.Replace("\n", " | ");
         fprintf(stderr, "CALCED: verify=%s\n", lampText.utf8_str().data());
         //  The chemical system as the page shows it.
-        auto label = [this](wxWindowID id) {
-          wxWindow *w = FindWindow(id);
-          return w ? w->GetLabel() : wxString("?");
-        };
         fprintf(stderr, "CALCED: formula=%s atoms=%s electrons=%s "
                 "symmetry=%s\n",
                 label(ID_STATICTEXT_CALCED_FORMULA).utf8_str().data(),
