@@ -2,24 +2,24 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP/aug-cc-pVTZ, energy. This calculation shows the occupied orbitals of the beryllium atom, filled in order of increasing energy.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 05 Nov 2026 22:17:04 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 08 Nov 2026 17:49:39 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 05 Nov 2026 22:17:02 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 08 Nov 2026 17:49:37 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
 .	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
-.	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
+.	http://www.emsl.pnl.gov/ecce:job_clienthost		nerdegg
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/Be__9gHN8I
+.	http://www.emsl.pnl.gov/ecce:job_path		<rundir>
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
-.	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
+.	http://www.emsl.pnl.gov/ecce:launch_machine		nerdegg
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
 .	http://www.emsl.pnl.gov/ecce:launch_maxwall		
 .	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793917024.014 idle=0 at=1793917024\nscf cycle=6 energy=-14.6585160452 dE=-2.25e-12/1e-10 grad=1.12e-08/1e-07 converged=yes\nscf~ dE=-1.24e-03,-6.54e-06,-1.25e-07,-5.28e-10,-2.25e-12\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794160179.216 idle=0 at=1794160179\nscf cycle=6 energy=-14.6585160452 dE=-2.25e-12/1e-10 grad=1.12e-08/1e-07 converged=yes\nscf~ dE=-1.24e-03,-6.54e-06,-1.25e-07,-5.28e-10,-2.25e-12\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 05 Nov 2026 22:17:03 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 17:49:38 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793917022
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794160177
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

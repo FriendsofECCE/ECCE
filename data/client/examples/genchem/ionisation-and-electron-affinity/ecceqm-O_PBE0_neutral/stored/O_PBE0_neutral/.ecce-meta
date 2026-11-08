@@ -2,24 +2,24 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, UPBE0/aug-cc-pVDZ, energy. This calculation shows the oxygen atom; with the anion, Tools > Energy Calculator gives the electron affinity as the difference of their energies.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 05 Nov 2026 22:17:15 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 08 Nov 2026 17:49:46 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 05 Nov 2026 22:17:13 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 08 Nov 2026 17:49:45 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
 .	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
-.	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
+.	http://www.emsl.pnl.gov/ecce:job_clienthost		nerdegg
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
-.	http://www.emsl.pnl.gov/ecce:job_path		/tmp/ecce_andy/jobs/O_PBE0_neutral__8eDPa0
+.	http://www.emsl.pnl.gov/ecce:job_path		<rundir>
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
-.	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
+.	http://www.emsl.pnl.gov/ecce:launch_machine		nerdegg
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
 .	http://www.emsl.pnl.gov/ecce:launch_maxwall		
 .	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1793917035.217 idle=0 at=1793917035\nscf cycle=8 energy=-75.0002243798 dE=-1.61e-10/1e-08 grad=4.55e-07/1e-04 converged=yes\nscf~ dE=-1.79e-01,-3.97e-03,-1.35e-03,-1.08e-04,-2.87e-06,-2.94e-08,-1.61e-10\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794160186.385 idle=0 at=1794160186\nscf cycle=8 energy=-75.0002243798 dE=-1.61e-10/1e-08 grad=4.55e-07/1e-04 converged=yes\nscf~ dE=-1.79e-01,-3.97e-03,-1.35e-03,-1.08e-04,-2.87e-06,-2.94e-08,-1.61e-10\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Triplet
-.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 05 Nov 2026 22:17:14 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 17:49:45 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1793917033
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794160185
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

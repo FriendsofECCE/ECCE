@@ -15,6 +15,7 @@ copy no longer agrees with a parse.
 """
 import gzip
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -101,6 +102,32 @@ def examplesOf(setId):
     return found
 
 
+# The preparsing machine's paths must not ship in a stored copy (#888):
+# the run directory of the import and the home of its user.
+PATHS = ((re.compile(r"/tmp/ecce_[^/\s\"'<>]+(/[^\s\"'<>]*)?"), "<rundir>"),
+         (re.compile(r"/home/[^/\s\"'<>]+/\.cache/ecce-[^/\s\"'<>]+/[^/\s\"'<>]+"),
+          "<rundir>"),
+         (re.compile(r"/home/[^/\s\"'<>]+"), "<home>"))
+
+
+def neutralPaths(calcDir):
+    """Rewrite those paths in the sidecars and the run log.  Nothing reads
+    them back: StoredCalcCopy skips job_path and the run log is only shown.
+    The run log is XML, so its placeholders are escaped there."""
+    for base, _dirs, names in os.walk(calcDir):
+        for n in names:
+            if n != ".ecce-meta" and not n.endswith(".ecce_run_log"):
+                continue
+            path = os.path.join(base, n)
+            text = open(path, encoding="utf-8", errors="surrogateescape").read()
+            for rx, to in PATHS:
+                if n != ".ecce-meta":
+                    to = to.replace("<", "&lt;").replace(">", "&gt;")
+                text = rx.sub(to, text)
+            with open(path, "w", encoding="utf-8", errors="surrogateescape") as f:
+                f.write(text)
+
+
 FNV = 1469598103934665603
 
 
@@ -144,6 +171,7 @@ def main():
             shutil.copytree(os.path.join(parent, calc),
                             os.path.join(dest, calc), symlinks=True,
                             ignore=shutil.ignore_patterns("Thumbnail*", "*.lock"))
+            neutralPaths(os.path.join(dest, calc))
             if output.endswith(".gz"):
                 gzipStoredOutput(os.path.join(dest, calc), calc + os.path.splitext(plain)[1])
             # HDF5 lays out equal content differently from run to run; keep
