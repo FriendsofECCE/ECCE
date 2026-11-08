@@ -73,6 +73,28 @@
    <lshell lval="3" a1="-3xxz/2-3yyz/2+zzz" a2="-xxx/2-xyy/2+2xzz"
     a3="-xxy/2-yyy/2+2yzz" a4="xxz/2-yyz/2" a5="xyz"
     a6="xxx/2-3xyy/2" a7="3xxy/2-yyy/2"></lshell>
+   <lshell lval="4"
+    a1="8zzzz-24xxzz-24yyzz+3xxxx+6xxyy+3yyyy"
+    a2="4xzzz-3xxxz-3xyyz"
+    a3="4yzzz-3xxyz-3yyyz"
+    a4="6xxzz-6yyzz-xxxx+yyyy"
+    a5="6xyzz-xxxy-xyyy"
+    a6="xxxz-3xyyz"
+    a7="3xxyz-yyyz"
+    a8="xxxx-6xxyy+yyyy"
+    a9="xxxy-xyyy"></lshell>
+   <lshell lval="5"
+    a1="8zzzzz-40xxzzz-40yyzzz+15xxxxz+30xxyyz+15yyyyz"
+    a2="8xzzzz-12xxxzz-12xyyzz+xxxxx+2xxxyy+xyyyy"
+    a3="8yzzzz-12xxyzz-12yyyzz+xxxxy+2xxyyy+yyyyy"
+    a4="2xxzzz-2yyzzz-xxxxz+yyyyz"
+    a5="2xyzzz-xxxyz-xyyyz"
+    a6="8xxxzz-24xyyzz-xxxxx+2xxxyy+3xyyyy"
+    a7="24xxyzz-8yyyzz-3xxxxy-2xxyyy+yyyyy"
+    a8="xxxxz-6xxyyz+yyyyz"
+    a9="xxxyz-xyyyz"
+    a10="xxxxx-10xxxyy+5xyyyy"
+    a11="5xxxxy-10xxyyy+yyyyy"></lshell>
 </MOOrdering>
 
 
