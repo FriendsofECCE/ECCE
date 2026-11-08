@@ -100,11 +100,11 @@ class DisplayDescriptor
       void setAntiAlias(bool antialias); 
       void setCylinderRadius(const int& radius);
       void setResidueCylinderRadius(const float& radius);
-      void setCylinderRQ(const int& rq);
+      void setCylinderRQ(const int& rq, bool automatic = false);
       void setCapStyle(const int& style);
       void setSphereSize(const int& size);
       void setSphereStyle(const int& flag);
-      void setSphereRQ(const int& rq);
+      void setSphereRQ(const int& rq, bool automatic = false);
       void setRibbonBlended(const bool& flag);
       void setRibbonRounded(const bool& flag);
       void setCoilWidth(const float& wdth);
@@ -136,10 +136,12 @@ class DisplayDescriptor
       int getCylinderRadius() const;
       float getResidueCylinderRadius() const;
       int getCylinderRQ() const;
+      bool isCylinderRQAutomatic() const;
       int getCapStyle() const;
       int getSphereSize() const;
       int getSphereStyle() const;
       int getSphereRQ() const;
+      bool isSphereRQAutomatic() const;
       bool getRibbonBlended() const;
       bool getRibbonRounded() const;
       float getCoilWidth() const;
@@ -185,11 +187,13 @@ class DisplayDescriptor
       int p_cylRadius;
       float p_cylResRadius;
       int p_cylinderRQ;
+      bool p_cylinderRQAutomatic;
       int p_capStyle;
 
       int p_sphereSize;
       int p_sphereStyle;
       int p_sphereRQ;
+      bool p_sphereRQAutomatic;
 
       bool p_ribbonBlend;
       bool p_ribbonRound;

@@ -272,6 +272,8 @@ void VizStyleChooser::saveSettings()
 
 void VizStyleChooser::setPanelsFromDescriptor(const DisplayDescriptor& dd)
 {
+   p_sphereQualityAutomatic = dd.isSphereRQAutomatic();
+   p_cylinderQualityAutomatic = dd.isCylinderRQAutomatic();
    p_settingSliders = true;
    ewxSlider *slider;
    ewxRadioButton *radio;
@@ -997,7 +999,7 @@ DisplayDescriptor *VizStyleChooser::buildDescriptor()
      }
      display->setCapStyle(cap);
      slider = ((ewxSlider*)FindWindow(ID_SLIDER_DSPLY_CYLRQ));
-     display->setCylinderRQ(slider->GetValue());
+     display->setCylinderRQ(slider->GetValue(), p_cylinderQualityAutomatic);
      choice = ((ewxChoice*)FindWindow(ID_CHOICE_DSPLY_BONDCYLINDER));
      display->setBondCylinderOpt(choice->GetSelection()*3+cap);
    }
@@ -1006,7 +1008,7 @@ DisplayDescriptor *VizStyleChooser::buildDescriptor()
    panel = ((wxPanel*)FindWindow(ID_PANEL_DSPLY_SPHERE));
    if (panel->IsEnabled()) {
      slider = ((ewxSlider*)FindWindow(ID_SLIDER_DSPLY_SPHRQ));
-     display->setSphereRQ(slider->GetValue());
+     display->setSphereRQ(slider->GetValue(), p_sphereQualityAutomatic);
      slider = ((ewxSlider*)FindWindow(ID_SLIDER_DSPLY_SPHSCL));
      display->setSphereSize(slider->GetValue());
      choice = ((ewxChoice*)FindWindow(ID_CHOICE_DSPLY_ATOMSPHERE));
@@ -1092,7 +1094,13 @@ void VizStyleChooser::chooseColor()
 void VizStyleChooser::OnSliderReleased( wxScrollEvent& event )
 {
    event.Skip();
-   if (!p_settingSliders) previewSliders();
+   if (!p_settingSliders) {
+      if (event.GetId() == ID_SLIDER_DSPLY_SPHRQ)
+         p_sphereQualityAutomatic = false;
+      if (event.GetId() == ID_SLIDER_DSPLY_CYLRQ)
+         p_cylinderQualityAutomatic = false;
+      previewSliders();
+   }
 }
 
 void VizStyleChooser::previewSliders()
@@ -1110,9 +1118,9 @@ void VizStyleChooser::previewSliders()
       dd.setLineWidth(gui->getLineWidth());
       dd.setCylinderRadius(gui->getCylinderRadius());
       dd.setResidueCylinderRadius(gui->getResidueCylinderRadius());
-      dd.setCylinderRQ(gui->getCylinderRQ());
+      dd.setCylinderRQ(gui->getCylinderRQ(), gui->isCylinderRQAutomatic());
       dd.setSphereSize(gui->getSphereSize());
-      dd.setSphereRQ(gui->getSphereRQ());
+      dd.setSphereRQ(gui->getSphereRQ(), gui->isSphereRQAutomatic());
       dd.setCoilWidth(gui->getCoilWidth());
       dd.setHelixWidth(gui->getHelixWidth());
       dd.setSheetWidth(gui->getSheetWidth());

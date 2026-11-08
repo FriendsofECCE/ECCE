@@ -6707,6 +6707,26 @@ void Builder::updatePropertyMenus()
             std::ofstream out(outdir + "/" + w[2] + ".txt");
             out << "sphrq " << dd.getSphereRQ() << "\n"
                 << "cylrq " << dd.getCylinderRQ() << "\n"
+                << "sphere_auto " << dd.isSphereRQAutomatic() << "\n"
+                << "cylinder_auto " << dd.isCylinderRQAutomatic() << "\n"
+                << "quality_atoms " << sg->getChemDisplayParam(0)->qualityAtomCount.getValue() << "\n"
+                << "cell_images " << sg->numCellImages() << "\n";
+            DisplayDescriptor roundtrip(dd.toString());
+            string prefPath = outdir + "/" + w[2] + "-quality.pref";
+            Preferences saved(prefPath, true);
+            dd.save(saved);
+            saved.saveFile();
+            Preferences stored(prefPath, true);
+            DisplayDescriptor reloaded("default", dd.getStyle(), dd.getColorScheme());
+            reloaded.load(stored, dd.getStyle());
+            out << "stored_sphere " << reloaded.getSphereRQ() << " "
+                << reloaded.isSphereRQAutomatic() << "\n"
+                << "stored_cylinder " << reloaded.getCylinderRQ() << " "
+                << reloaded.isCylinderRQAutomatic() << "\n"
+                << "roundtrip_sphere " << roundtrip.getSphereRQ() << " "
+                << roundtrip.isSphereRQAutomatic() << "\n"
+                << "roundtrip_cylinder " << roundtrip.getCylinderRQ() << " "
+                << roundtrip.isCylinderRQAutomatic() << "\n"
                 << "selected " << sg->getFragment()->m_atomHighLight.size()
                 << "\n";
             map<string, int> styles;

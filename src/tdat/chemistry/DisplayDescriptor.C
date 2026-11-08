@@ -107,6 +107,7 @@ void DisplayDescriptor::constructor()
    //p_antiAlias = ANTIALIAS;
 
    p_cylinderRQ = CYLRQ;
+   p_cylinderRQAutomatic = true;
    p_cylRadius = CYLRAD;
    p_cylResRadius = RESCYLRAD;
    p_capStyle = CAPSTYLE;
@@ -114,6 +115,7 @@ void DisplayDescriptor::constructor()
 
    p_sphereSize = SPHERESZ;
    p_sphereRQ = SPHERERQ;
+   p_sphereRQAutomatic = true;
    p_sphereStyle = SPHERESTYLE;
    p_atomSphere = ATMSPHR;
 
@@ -151,11 +153,11 @@ DisplayDescriptor& DisplayDescriptor::operator=(const DisplayDescriptor& rhs)
       setAntiAlias(rhs.getAntiAlias());
 
       setCylinderRadius(rhs.getCylinderRadius());
-      setCylinderRQ(rhs.getCylinderRQ());
+      setCylinderRQ(rhs.getCylinderRQ(), rhs.isCylinderRQAutomatic());
       setCapStyle(rhs.getCapStyle());
 
       setSphereSize(rhs.getSphereSize());
-      setSphereRQ(rhs.getSphereRQ());
+      setSphereRQ(rhs.getSphereRQ(), rhs.isSphereRQAutomatic());
       setSphereStyle(rhs.getSphereStyle());
 
       setRibbonBlended(rhs.getRibbonBlended());
@@ -343,9 +345,10 @@ void DisplayDescriptor::setResidueCylinderRadius(const float& radius)
   p_cylResRadius = radius;
 }
 
-void DisplayDescriptor::setCylinderRQ(const int& rq)
+void DisplayDescriptor::setCylinderRQ(const int& rq, bool automatic)
 {
   p_cylinderRQ = rq;
+  p_cylinderRQAutomatic = automatic;
 }
 
 void DisplayDescriptor::setCapStyle(const int& style)
@@ -363,9 +366,10 @@ void DisplayDescriptor::setSphereStyle(const int& flag)
   p_sphereStyle = flag;
 }
 
-void DisplayDescriptor::setSphereRQ(const int& rq)
+void DisplayDescriptor::setSphereRQ(const int& rq, bool automatic)
 {
   p_sphereRQ = rq;
+  p_sphereRQAutomatic = automatic;
 }
 
 void DisplayDescriptor::setRibbonBlended(const bool& flag)
@@ -490,6 +494,16 @@ int DisplayDescriptor::getCylinderRadius() const
 float DisplayDescriptor::getResidueCylinderRadius() const
 {
   return p_cylResRadius;
+}
+
+bool DisplayDescriptor::isCylinderRQAutomatic() const
+{
+  return p_cylinderRQAutomatic;
+}
+
+bool DisplayDescriptor::isSphereRQAutomatic() const
+{
+  return p_sphereRQAutomatic;
 }
 
 int DisplayDescriptor::getCylinderRQ() const
@@ -623,7 +637,7 @@ void DisplayDescriptor::save(Preferences& prefs)
   }
 
   key = "StyleChooser." + style + ".CylinderQuality";
-  if (getCylinderRQ() != CYLRQ) {
+  if (!isCylinderRQAutomatic()) {
     prefs.setInt(key,getCylinderRQ());
   } else {
     prefs.remove_entry(key);
@@ -660,7 +674,7 @@ void DisplayDescriptor::save(Preferences& prefs)
     prefs.remove_entry(key);
   }
   key = "StyleChooser." + style + ".SphereQuality";
-  if (getSphereRQ() != SPHERERQ) {
+  if (!isSphereRQAutomatic()) {
     prefs.setInt(key,getSphereRQ());
   } else {
     prefs.remove_entry(key);
@@ -889,7 +903,7 @@ ostream& operator<<(ostream& os, const DisplayDescriptor& display)
   if (display.getResidueCylinderRadius() != display.RESCYLRAD) {
     os << " RCR:"<<display.getResidueCylinderRadius();
   }
-  if (display.getCylinderRQ() != display.CYLRQ) {
+  if (!display.isCylinderRQAutomatic()) {
     os << " CRQ:"<<display.getCylinderRQ();
   }
   if (display.getCapStyle() != display.CAPSTYLE) {
@@ -901,7 +915,7 @@ ostream& operator<<(ostream& os, const DisplayDescriptor& display)
   if (display.getSphereStyle() != display.SPHERESTYLE) {
     os << " SB:"<<display.getSphereStyle();
   }
-  if (display.getSphereRQ() != display.SPHERERQ) {
+  if (!display.isSphereRQAutomatic()) {
     os << " SRQ:"<<display.getSphereRQ();
   }
   if (display.getRibbonBlended() != display.BLENDED) {
