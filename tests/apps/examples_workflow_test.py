@@ -159,12 +159,21 @@ def run(display, data, work, shots):
               "sn2_reactant>sn2_qst3:reactant", "sn2_product>sn2_qst3:product",
               "sn2_scan>sn2_qst3:tsguess.max", "sn2_qst3>sn2_irc:geometry"]),
           "links %s" % l2)
+    tags = {k: r.get("tag") for k, r in t2.items()}
+    check("SN2: each box shows its step tag",
+          tags == {"sn2_reactant": "Opt_+_freq", "sn2_scan": "Opt",
+                   "sn2_product": "Opt_+_freq", "sn2_qst3": "TS_(QST)_+_freq",
+                   "sn2_irc": "IRC"}, "tags %s" % tags)
     check("SN2: charge -1 on every step",
           all(r.get("charge") == "-1" for r in t2.values()), "%s" % t2)
     shot2 = answer("workflowshot")
     check("SN2 view: five boxes, six links, labels clear",
           len(shot2) > 1 and shot2[1].startswith("ok boxes=5 links=6 label-overlaps=0"),
           "workflowshot answered %r" % shot2)
+    check("links have no diagonal segment",
+          len(shot) > 0 and len(shot2) > 1 and
+          all(" diagonals=0 " in x for x in (shot[0], shot2[1])),
+          "answers %r %r" % (shot, shot2))
 
     # #784: the G16 IRC was imported as an Energy run, so it had no path,
     # and it carried the ORCA IRC's note (same calculation name).

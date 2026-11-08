@@ -400,14 +400,19 @@ public:
     for (size_t i = 0; i < p_boxes.size(); i++)
       for (size_t j = i + 1; j < p_boxes.size(); j++)
         if (p_boxes[i].rect.Intersects(p_boxes[j].rect)) boxOverlaps++;
-    for (const WfLink &l : p_links)
+    int diagonals = 0;
+    for (const WfLink &l : p_links) {
       if (p_panel->p_vertical ? l.p3.y <= l.p0.y : l.p3.x <= l.p0.x)
         rankErrors++;
+      const wxPoint pts[4] = {l.p0, l.p1, l.p2, l.p3};
+      for (int k = 0; k < 3; k++)
+        if (pts[k].x != pts[k + 1].x && pts[k].y != pts[k + 1].y) diagonals++;
+    }
     std::ostringstream o;
     o << "boxes=" << p_boxes.size() << " links=" << p_links.size()
       << " label-overlaps=" << overlaps() << " keybox=" << (p_hasKey ? 1 : 0)
       << " keyshown=" << (p_hasKey && p_key.shown ? 1 : 0) << " vertical=" << p_panel->p_vertical
-      << " box-overlaps=" << boxOverlaps << " rank-errors=" << rankErrors
+      << " box-overlaps=" << boxOverlaps << " rank-errors=" << rankErrors << " diagonals=" << diagonals
       << " play=" << playReport()
       << " canvas-height=" << GetSize().y << " icons=";
     for (size_t i = 0; i < p_boxes.size(); i++)
@@ -600,7 +605,19 @@ private:
 
       dc.SetFont(bold);
       dc.SetTextForeground(codeColour(code));
-      dc.DrawText(code ? code->label : "?", r.x + 18, r.y + 8);
+      const wxString label = code ? code->label : "?";
+      dc.DrawText(label, r.x + 18, r.y + 8);
+      const string tag = WorkflowSteps::stepTag(b.step);
+      if (!tag.empty()) {
+        const wxSize lw = dc.GetTextExtent(label);
+        const int tx = r.x + 18 + lw.x + 8;
+        dc.SetFont(base);
+        dc.SetTextForeground(dim);
+        const wxSize ts0 = dc.GetTextExtent("Ag");
+        dc.DrawText(wxControl::Ellipsize(wxString::FromUTF8(tag.c_str()), dc,
+                        wxELLIPSIZE_END, std::max(20, r.GetRight() - 110 - tx)),
+                    tx, r.y + 8 + (lw.y - ts0.y) / 2);
+      }
 
       ResourceDescriptor::RUNSTATE st = WorkflowSteps::stateOf(b.step);
       string word = needs ? "needs structure" : ResourceUtils::stateToString(st);
@@ -890,13 +907,21 @@ void WorkflowPanel::createControls()
   // The instructions have a panel of their own, never among the controls.
   wxPanel *notes = new wxPanel(this, wxID_ANY, wxDefaultPosition,
                                wxDefaultSize, wxBORDER_SIMPLE);
-  wxBoxSizer *noteSizer = new wxBoxSizer(wxHORIZONTAL);
-  p_help = new wxStaticText(notes, wxID_ANY, "");
+  // Text on its own full-width row, the buttons in a row under it.
+  wxBoxSizer *noteSizer = new wxBoxSizer(wxVERTICAL);
+  wxBoxSizer *btnRow = new wxBoxSizer(wxHORIZONTAL);
+  // A read-only text control wraps itself at any width; a wrapped
+  // wxStaticText kept its first, too-narrow line breaks under GTK3.
+  p_help = new wxTextCtrl(notes, wxID_ANY, "", wxDefaultPosition, wxDefaultSize,
+                          wxTE_MULTILINE | wxTE_READONLY | wxTE_WORDWRAP |
+                          wxTE_NO_VSCROLL | wxBORDER_NONE);
+  p_help->SetBackgroundColour(notes->GetBackgroundColour());
+  p_help->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+  p_help->SetMinSize(wxSize(1, p_help->GetCharHeight() * 4 + 8));
   p_status = new wxStaticText(notes, wxID_ANY, "");
   wxBoxSizer *texts = new wxBoxSizer(wxVERTICAL);
-  texts->Add(p_help, 0, wxALL, 6);
+  texts->Add(p_help, 0, wxALL | wxEXPAND, 6);
   texts->Add(p_status, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
-  // Beside the instructions, where the text that names it is read.
   p_launch = new wxButton(notes, wxID_ANY, "Launch Ready Steps");
   p_launch->SetToolTip("Launch every step that has not been launched and whose "
                        "source step is Complete");
@@ -917,9 +942,10 @@ void WorkflowPanel::createControls()
     const string got = saveAsRecipe(id, title);
     say(got.compare(0, 3, "ok ") == 0 ? "Saved as a recipe: " + got.substr(3) : got);
   });
-  noteSizer->Add(texts, 1, wxEXPAND);
-  noteSizer->Add(saveRecipe, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM | wxLEFT, 8);
-  noteSizer->Add(p_apply, 0, wxALIGN_CENTER_VERTICAL | wxTOP | wxBOTTOM | wxLEFT, 8);
+  noteSizer->Add(texts, 0, wxEXPAND);
+  btnRow->Add(saveRecipe, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxLEFT, 8);
+  btnRow->Add(p_apply, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxLEFT, 8);
+  btnRow->AddStretchSpacer(1);
   p_autorun = new wxCheckBox(notes, wxID_ANY, "Run the remaining steps automatically");
   p_autorun->SetToolTip("Launch each step as soon as the step it starts from is "
                         "Complete. Works while the Organizer is open.");
@@ -931,8 +957,13 @@ void WorkflowPanel::createControls()
   wxBoxSizer *launchCol = new wxBoxSizer(wxVERTICAL);
   launchCol->Add(p_launch, 0, wxALIGN_RIGHT);
   launchCol->Add(p_autorun, 0, wxALIGN_RIGHT | wxTOP, 4);
-  noteSizer->Add(launchCol, 0, wxALIGN_CENTER_VERTICAL | wxALL, 8);
+  btnRow->Add(launchCol, 0, wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+  noteSizer->Add(btnRow, 0, wxEXPAND);
   notes->SetSizer(noteSizer);
+  notes->Bind(wxEVT_SIZE, [this](wxSizeEvent &e) {
+    e.Skip();
+    CallAfter([this]() { rewrapHelp(); });
+  });
   left->Add(notes, 0, wxEXPAND | wxTOP, 4);
   top->Add(left, 1, wxEXPAND);
 
@@ -978,21 +1009,29 @@ void WorkflowPanel::updateTexts()
     p_left->Show(p_empty, empty);
   }
   if (p_session->numMembers() == 0)
-    p_help->SetLabel("Pick a code on the right to add the first step.  "
+    p_help->ChangeValue(p_helpRaw = "Pick a code on the right to add the first step.  "
                      "Its structure is set in the Builder.");
   else if (!WorkflowSteps::recipeId(p_session).empty())
-    p_help->SetLabel(
+    p_help->ChangeValue(p_helpRaw =
       "Build the first molecule in Builder; open its editor, save and launch.\n"
       "After a source is Complete, open the next editor to load its structure.\n"
       "Check its settings, save and launch.\n"
       "Launch Ready Steps launches all steps whose sources are Complete.");
   else
-    p_help->SetLabel(
+    p_help->ChangeValue(p_helpRaw =
       "Select a box, then a code on the right: the new step starts from that "
-      "box's final geometry, charge and multiplicity.\n"
-      "Several boxes from one source = branches.  Ctrl-click several boxes, "
-      "then G16 or ORCA, joins them (QST2/QST3, NEB-TS).  Launch Ready Steps "
-      "runs every step whose source is Complete.");
+      "box's final structure, charge and multiplicity. Several new steps from "
+      "one box make branches. To search for a transition state between two or "
+      "three boxes, Ctrl-click them, then pick a code that offers this search. "
+      "Launch Ready Steps runs every step whose sources are Complete.");
+  rewrapHelp();
+}
+
+
+void WorkflowPanel::rewrapHelp()
+{
+  // The text control wraps by itself; only the panel's layout follows.
+  if (p_help && p_help->GetParent()) p_help->GetParent()->Layout();
 }
 
 
@@ -1573,12 +1612,23 @@ WorkflowImportDialog::WorkflowImportDialog(
     top->Add(none, 0, wxLEFT | wxRIGHT | wxTOP, 14);
   } else {
     wxArrayString items;
-    for (const WorkflowSteps::ProposedLink& l : links)
-      items.Add(wxString::FromUTF8(label(l).c_str()));
+    for (const WorkflowSteps::ProposedLink& l : links) {
+      items.Add(wxString::FromUTF8(shortLabel(l).c_str()));
+      p_reasons.push_back(wxString::FromUTF8(label(l).c_str()));
+    }
     p_links = new wxCheckListBox(this, wxID_ANY, wxDefaultPosition,
-                                 wxSize(460, -1), items);
+                                 wxSize(-1, std::min<int>(links.size(), 10) * 24 + 8),
+                                 items);
     for (unsigned i = 0; i < items.size(); i++) p_links->Check(i, true);
-    top->Add(p_links, 0, wxLEFT | wxRIGHT | wxTOP | wxEXPAND, 14);
+    // The full reason is the tooltip of the entry under the pointer.
+    p_links->Bind(wxEVT_MOTION, [this](wxMouseEvent &e) {
+      const int i = p_links->HitTest(e.GetPosition());
+      const wxString tip = i >= 0 && i < (int)p_reasons.size() ? p_reasons[i]
+                                                               : wxString();
+      if (tip != p_links->GetToolTipText()) p_links->SetToolTip(tip);
+      e.Skip();
+    });
+    top->Add(p_links, 1, wxLEFT | wxRIGHT | wxTOP | wxEXPAND, 14);
     wxStaticText *hint = new wxStaticText(this, wxID_ANY,
         "Untick a link that is wrong. A link draws the arrow and makes a "
         "step not yet run wait for its source; nothing is copied into the "
@@ -1605,6 +1655,16 @@ WorkflowImportDialog::WorkflowImportDialog(
   SetSizerAndFit(top);
   if (p_name) p_name->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { validate(); });
   validate();
+}
+
+
+string WorkflowImportDialog::shortLabel(const WorkflowSteps::ProposedLink& l)
+{
+  string text = l.source->getName() + " → " + l.target->getName() + " (" +
+                WorkflowSteps::linkLabel(l.name);
+  if (l.why == "orbitals") text += ", orbitals";
+  else if (l.why == "Hessian") text += ", Hessian";
+  return text + ")";
 }
 
 
