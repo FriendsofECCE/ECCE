@@ -204,6 +204,25 @@ def run(display, data, work, shots):
           "runtype %r, annotation %r" % (meta.get("runtype"),
                                          meta.get("annotation", "")[:40]))
 
+    # #906: steps imported without recipe.key/recipe.thermo (an older build)
+    # get them when the set is opened again; the Rate box then answers.
+    wfdir = os.path.join(root, "Examples", "Workflows", "SN2_Cl-_and_CH3Br")
+    for step in t2:
+        path = os.path.join(wfdir, step, ".ecce-meta")
+        rows = open(path, errors="replace").readlines()
+        with open(path, "w") as handle:
+            handle.writelines(r for r in rows if ":recipe." not in r)
+    with open(script, "w") as handle:
+        handle.write("examples workflows\nworkflowrate " + sn2 + "\n")
+    again = apps.run(display, "organizer", windowTimeout=60, settle=60,
+                     env={"ECCE_TEST_ORGANIZER": script,
+                          "ECCE_NO_EXAMPLE_IMPORT": ""})
+    got = re.findall(r"ECCE_TEST_ORGANIZER: workflowrate.*?: (.*)$",
+                     again.log or "", re.M)
+    check("SN2: keys restored on top-up, Rate box answers (#906)",
+          bool(got) and got[0].startswith("ok "),
+          "workflowrate answered %r" % got)
+
 
 def main():
     keep = None

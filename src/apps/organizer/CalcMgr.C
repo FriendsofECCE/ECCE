@@ -6359,6 +6359,23 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         nExamples++;
       }
   }
+  // Steps imported by an older build lack the "!key" roles of workflow.txt
+  // (the Rate box needs them); fill in what is unset, nothing else.
+  if (topUp) {
+    const string ns = VDoc::getEcceNamespace();
+    for (const ExampleTopic &topic : set->topics) {
+      if (!topic.workflow || topic.name.empty()) continue;
+      Resource *folder = childOf(proj, treeName(topic.name));
+      for (const auto &k : topic.keys) {
+        Resource *step = childOf(folder, k.calc);
+        if (!step) continue;
+        if (!k.role.empty() && step->getProp(ns + ":recipe.key").empty())
+          step->addProp(ns + ":recipe.key", k.role);
+        if (step->getProp(ns + ":recipe.thermo").empty())
+          step->addProp(ns + ":recipe.thermo", k.thermo ? "1" : "0");
+      }
+    }
+  }
   if (topUp && nExamples == 0) {
     findNode(topUrl.getChild(set->project), true, true);
     setContextPanel();
