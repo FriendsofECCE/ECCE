@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """The Workflows example set (#341): File > Open Example Calculations >
-Workflows imports Na hydration as a Workflow session, not as loose calculations.
+Workflows imports the aminopyridine protonation as a Workflow session, not as loose calculations.
 
     tests/apps/examples_workflow_test.py [--shots DIR]
 
-Checks the nine steps (three xTB, three ORCA gas, three ORCA water), the
-"geometry" links xTB > gas > water, that each water step starts from the Hessian
-of its gas step, the charge and multiplicity of every step, and that
-no label of the drawing touches a box, a line or an arrow.  --shots keeps the
+Checks the four steps (xTB, CREST, two ORCA), the "geometry" links xTB > CREST
+> the ORCA steps (conformer picks c1 and c4), the charge and multiplicity of
+every step, and that no label of the drawing touches a box, a line or an arrow.  --shots keeps the
 screenshot of the view.  A right-click on an ORCA and an xTB box builds the
 context menu without an exception (#681); the first-start import of the
 example sets runs in the same start.
@@ -30,7 +29,6 @@ import isolate    # noqa: E402
 import xdisplay   # noqa: E402
 
 SKIP = 77
-ARRANGEMENTS = ("6_0", "5_1", "4_2")
 
 failures = []
 
@@ -81,10 +79,10 @@ def orca_ts_energy(data):
 
 def run(display, data, work, shots):
     root = os.path.join(data, "users", "local")
-    wf = "file://" + root + "/Examples/Workflows/Na_hydration"
-    png = os.path.join(shots, "workflow-na-hydration.png")
-    menus = ["workflowmenu %s %s/na_6_0_%s" % (wf, wf, k)
-             for k in ("orca", "xtb", "orca")]
+    wf = "file://" + root + "/Examples/Workflows/Aminopyridine_protonation"
+    png = os.path.join(shots, "workflow-aminopyridine.png")
+    menus = ["workflowmenu %s %s/ap_%s" % (wf, wf, k)
+             for k in ("ring_n", "preopt", "amino_n")]
     sn2 = "file://" + root + "/Examples/Workflows/SN2_Cl-_and_CH3Br"
     png2 = os.path.join(shots, "workflow-sn2.png")
     commands = ["examples workflows"] + menus + ["workflowinfo " + wf,
@@ -111,34 +109,32 @@ def run(display, data, work, shots):
         return fail(what, "no workflowinfo answer %r" % info, log)
     table = steps(info[0][3:])
     links = info[0].split(" links:")[1].split()
-    expect = {"na_%s_%s" % (n, k) for n in ARRANGEMENTS
-              for k in ("xtb", "orca", "orca_water")}
-    check("nine steps", set(table) == expect, "steps %s" % sorted(table))
-    check("codes", all(table.get("na_%s_xtb" % n, {}).get("code") == "xtb" and
-                       table.get("na_%s_%s" % (n, e), {}).get("code") == "ORCA"
-                       for n in ARRANGEMENTS for e in ("orca", "orca_water")),
+    expect = {"ap_preopt", "ap_protonation", "ap_ring_n", "ap_amino_n"}
+    check("four steps", set(table) == expect, "steps %s" % sorted(table))
+    check("codes", [table.get(k, {}).get("code") for k in
+                    ("ap_preopt", "ap_protonation", "ap_ring_n", "ap_amino_n")]
+          == ["xtb", "CREST", "ORCA", "ORCA"], "%s" % table)
+    check("xTB > CREST > the two protomers, picked by rank",
+          sorted(links) == sorted([
+              "ap_preopt>ap_protonation:geometry",
+              "ap_protonation>ap_ring_n:geometry.c1",
+              "ap_protonation>ap_amino_n:geometry.c4"]), "links %s" % links)
+    check("no step carries a Hessian",
+          not any("hess" in r for r in table.values()), "%s" % table)
+    check("charge 0 up to CREST, charge 1 on the protomers, multiplicity 1",
+          all(table.get(k, {}).get("charge") == c and
+              table.get(k, {}).get("mult") == "1"
+              for k, c in (("ap_preopt", "0"), ("ap_protonation", "0"),
+                           ("ap_ring_n", "1"), ("ap_amino_n", "1"))),
           "%s" % table)
-    check("xTB > gas > water links",
-          sorted(links) == sorted(
-              ["na_%s_xtb>na_%s_orca:geometry" % (n, n) for n in ARRANGEMENTS] +
-              ["na_%s_orca>na_%s_orca_water:geometry" % (n, n)
-               for n in ARRANGEMENTS]), "links %s" % links)
-    check("water steps carry the Hessian of their gas step, no other step does",
-          all(table["na_%s_orca_water" % n].get("hess") == "na_%s_orca" % n
-              for n in ARRANGEMENTS) and
-          not any("hess" in r for k, r in table.items()
-                  if not k.endswith("_water")), "%s" % table)
-    check("charge 1 and multiplicity 1 on every step",
-          all(r.get("charge") == "1" and r.get("mult") == "1"
-              for r in table.values()), "%s" % table)
     got = answer("workflowmenu")
     check("right-click menu on ORCA and xTB boxes",
           len(got) == 3 and all(m.startswith("ok ") and "Rename" in m
                                 for m in got),
           "workflowmenu answered %r" % got)
     shot = answer("workflowshot")
-    check("view saved, nine boxes, six links, labels clear",
-          bool(shot) and shot[0].startswith("ok boxes=9 links=6 label-overlaps=0"),
+    check("view saved, four boxes, three links, labels clear",
+          bool(shot) and shot[0].startswith("ok boxes=4 links=3 label-overlaps=0"),
           "workflowshot answered %r" % shot)
     check("view screenshot exists",
           os.path.exists(png) and os.path.getsize(png) > 5000, png)

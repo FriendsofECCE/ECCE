@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<table columnLabel="Coordinate" columnLabels="Z l Exponent Coefficient Shell" columns="5" name="GTOBASIS" rowLabel="Atom" rowLabels="Primitive-1 Primitive-2 Primitive-3 Primitive-4 Primitive-5 Primitive-6 Primitive-7 Primitive-8 Primitive-9 Primitive-10 Primitive-11 Primitive-12 Primitive-13 Primitive-14 Primitive-15 Primitive-16 Primitive-17 Primitive-18 Primitive-19" rows="19" units="NA">7   0   63.5940244669   -0.192343884147
+1   7   0   10.9514172315
+-0.23478107925   1   7   0
+0.879993102574   0.375937539017   1   7
+0   0.335387152965   0.149828892719   1
+7   1   7.29650404815   0.976586663157
+2   7   1   1.89187454507
+0.903722267303   2   7   1
+0.666944321108   0.474049584615   2   7
+1   0.265522026741   0.071516067715   2
+6   0   51.0493630956   -0.163120632101
+1   6   0   8.79112274069
+-0.19911024581   1   6   0
+0.706404222589   0.318820477537   1   6
+0   0.269228134134   0.127065041842   1
+6   1   5.82636561408   0.737164515452
+2   6   1   1.51068960187
+0.682163716149   2   6   1
+0.53256483288   0.357830539293   2   6
+1   0.212023236906   0.0539830302758   2
+1   0   3.37022769753   0.273591105889
+1   1   0   0.613891182215
+0.264605406539   1   1   0
+0.166142911484   0.0824659475341   1</table>

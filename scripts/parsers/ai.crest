@@ -265,9 +265,9 @@ sub OptionLine {
   push(@kw, "--uhf", &Unpaired);
   push(@kw, &SolventOptions);
   if ($runtype eq "Protonation Sites") {
-    push(@kw, "--protonate");
+    push(@kw, "--protonate", &SitesWindow);
   } elsif ($runtype eq "Tautomers") {
-    push(@kw, "--tautomerize");
+    push(@kw, "--tautomerize", &SitesWindow);
   } elsif ($runtype eq "Solvation Shell") {
   } else {
     push(@kw, "--ewin", &EnergyWindow);
@@ -342,6 +342,14 @@ sub EnergyWindow {
   my $w = $AbiDict{"ES.Runtype.Conformers.EnergyWindow"};
   $w = 6 if (!defined($w) || $w eq "" || $w !~ /^\d*\.?\d+$/ || $w <= 0);
   return $w + 0;
+}
+
+# CREST keeps protomers and tautomers within 30 kcal/mol of the lowest; a
+# site further up (an amine N beside a pyridine N) needs a wider window.
+sub SitesWindow {
+  my $w = $AbiDict{"ES.Runtype.Sites.EnergyWindow"};
+  return "" if (!defined($w) || $w !~ /^\d*\.?\d+$/ || $w <= 0);
+  return "--ewin " . ($w + 0);
 }
 
 # The solvent menu is the ALPB list; GBSA has fewer solvents and its own

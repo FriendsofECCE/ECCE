@@ -1,0 +1,220 @@
+
+       ╔════════════════════════════════════════════╗
+       ║            ___ ___ ___ ___ _____           ║
+       ║           / __| _ \ __/ __|_   _|          ║
+       ║          | (__|   / _|\__ \ | |            ║
+       ║           \___|_|_\___|___/ |_|            ║
+       ║                                            ║
+       ║  Conformer-Rotamer Ensemble Sampling Tool  ║
+       ║          based on the xTB methods          ║
+       ║                                            ║
+       ╚════════════════════════════════════════════╝
+       Version 3.0.2, Sun, 25 August 20:02:44, 08/25/2024
+       commit (af7eb99) compiled by 'usr@fv-az732-492'
+
+   Cite work conducted with this code as
+
+   • P.Pracht, F.Bohle, S.Grimme, PCCP, 2020, 22, 7169-7192.
+   • S.Grimme, JCTC, 2019, 15, 2847-2862.
+   • P.Pracht, S.Grimme, C.Bannwarth, F.Bohle, S.Ehlert,
+     G.Feldmann, J.Gorges, M.Müller, T.Neudecker, C.Plett,
+     S.Spicher, P.Steinbach, P.Wesołowski, F.Zeller,
+     J. Chem. Phys., 2024, 160, 114110.
+
+   for works involving QCG cite
+
+   • S.Spicher, C.Plett, P.Pracht, A.Hansen, S.Grimme,
+     JCTC, 2022, 18 (5), 3174-3189.
+   • C.Plett, S. Grimme,
+     Angew. Chem. Int. Ed. 2023, 62, e202214477.
+
+   for works involving MECP screening cite
+
+   • P.Pracht, C.Bannwarth, JCTC, 2022, 18 (10), 6370-6385.
+
+   Original code
+     P.Pracht, S.Grimme, Universität Bonn, MCTC
+   with help from (alphabetical order):
+     C.Bannwarth, F.Bohle, S.Ehlert, G.Feldmann, J.Gorges,
+     S.Grimme, C.Plett, P.Pracht, S.Spicher, P.Steinbach,
+     P.Wesolowski, F.Zeller
+
+   Online documentation is available at
+   https://crest-lab.github.io/crest-docs/
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU Lesser General Public License (LGPL) for more details.
+
+ Command line input:
+ $ /usr/local/bin/crest crest.xyz --gfn2 --chrg 0 --uhf 0 --protonate --ewin 50 --xnam /usr/bin/xtb -T 4
+
+  --protonate : automated protonation script
+  --gfn2               : Use of GFN2-xTB requested.
+  --chrg 0
+  --uhf 0
+  --ewin 50
+  -xnam :
+     xtb executable was set to: "/usr/bin/xtb"
+  -T 4 (CPUs/Threads selected)
+
+ -------------------------
+ xTB Geometry Optimization
+ -------------------------
+ Geometry successfully optimized.
+        __________________________________________
+       |                                          |
+       |       automated protonation script       |
+       |__________________________________________|
+  Universitaet Bonn, MCTC
+  P.Pracht, Wed 28. Nov 13:11:52 CEST 2018
+
+  Cite as:
+  P.Pracht, C.A.Bauer, S.Grimme
+  JCC, 2017, 38, 2618–2631.
+
+
+ LMO calculation ... done.
+
+-----------------------
+Multilevel Optimization
+-----------------------
+ -------------------------
+ 1. crude pre-optimization
+ -------------------------
+ Optimizing all 13 structures from file "protonate_0.xyz" ...
+ 1 2 3 4 5 6 7 8 9 10 11 12 13
+ done.
+ 13 structures remain within   150.00 kcal/mol window
+
+ ---------------------
+ 2. loose optimization
+ ---------------------
+ Optimizing all 13 structures from file "protonate_1.xyz" ...
+ 1 2 3 4 5 6 7 8 9 10 11 12 13
+ done.
+ 13 structures remain within   100.00 kcal/mol window
+
+ --------------------------------------------
+ 3. optimization with user-defined thresholds
+ --------------------------------------------
+ Optimizing all 13 structures from file "protonate_2.xyz" ...
+ 1 2 3 4 5 6 7 8 9 10 11 12 13
+ done.
+ 12 structures remain within    50.00 kcal/mol window
+
+ ===================================================
+ Identifying topologically equivalent structures:
+ Equivalent to 1. structure: 6 structure(s).
+ Equivalent to 7. structure: 3 structure(s).
+ Equivalent to 8. structure: 2 structure(s).
+ Done.
+ Appending file <protonated.xyz> with structures.
+
+ Initial 12 structures from file protonate_3.xyz have
+ been reduced to 4 topologically unique structures.
+
+===================================================
+============= ordered structure list ==============
+===================================================
+ written to file <protonated.xyz>
+
+ structure    ΔE(kcal/mol)   Etot(Eh)
+    1            0.00        -19.712202
+    2           36.37        -19.654247
+    3           36.37        -19.654247
+    4           38.84        -19.650306
+
+
+ -----------------
+ Wall Time Summary
+ -----------------
+ CREST runtime (total)               0 d,  0 h,  0 min,  1.689 sec
+ ------------------------------------------------------------------
+ LMO calc.                  ...        0 min,  0.022 sec (  1.297%)
+ multilevel OPT             ...        0 min,  1.546 sec ( 91.569%)
+ I/O and setup              ...        0 min,  0.120 sec (  7.134%)
+ ------------------------------------------------------------------
+ * wall-time:     0 d,  0 h,  0 min,  1.689 sec
+ *  cpu-time:     0 d,  0 h,  0 min,  0.286 sec
+ * ratio c/w:     0.169 speedup
+ ------------------------------------------------------------------
+ CREST terminated normally.
+ECCE-CREST-FRAME 1 14
+energy: -19.712202049999998 relative: 0.0000
+ N          2.2894940562       -0.0000749678        0.0782473923
+ C          0.9641464476        0.0001022360        0.0469283739
+ C          0.2218616055        1.2085104636        0.0294009379
+ C         -1.1400023426        1.1733185812       -0.0026298903
+ N         -1.8006275184        0.0004724077       -0.0181102460
+ C         -1.1403155740       -1.1725511774       -0.0026308297
+ C          0.2215385361       -1.2081078930        0.0294011538
+ H          2.8093772826        0.8630072603        0.0905009093
+ H          2.8091463923       -0.8632962440        0.0905014407
+ H          0.7366378740        2.1554784802        0.0414258940
+ H         -1.7317488327        2.0756045155       -0.0166154596
+ H         -1.7323041324       -2.0746782457       -0.0166167923
+ H          0.7360619774       -2.1552132612        0.0414264241
+ H         -2.8144060552        0.0006043422       -0.0419273746
+ECCE-CREST-ENDFRAME
+ECCE-CREST-FRAME 2 14
+energy: -19.654247300000002 relative: 36.3672
+ N          2.3215688490       -0.1258544532        0.0868228465
+ C          1.0094867713       -0.0865183550        0.0869104118
+ C          0.3013956127        1.2048667772       -0.0971516145
+ C         -1.1834236792        1.0728590892       -0.1252473825
+ N         -1.8160316346       -0.0306721232       -0.0534976339
+ C         -1.1252611971       -1.1896967833        0.0878830662
+ C          0.2347731113       -1.2599519316        0.2209123713
+ H          2.8831582943        0.7065030255       -0.0344113868
+ H          2.8139299524       -1.0021818636        0.2041629103
+ H          0.5450499335        1.8948676866        0.7226541816
+ H         -1.7705401447        1.9795381011       -0.1980657358
+ H         -1.7390419896       -2.0807825324        0.0983142803
+ H          0.7239995172       -2.2102177561        0.3684400386
+ H          0.6521310482        1.7219163299       -0.9998100579
+ECCE-CREST-ENDFRAME
+ECCE-CREST-FRAME 3 14
+energy: -19.654247269999999 relative: 36.3672
+ N          2.2898347516        0.1349554730        0.0090444875
+ C          0.9774014929        0.1610086799        0.0016531439
+ C          0.2606983162        1.3578536994        0.2226786690
+ C         -1.1022126269        1.3166326068        0.3377917878
+ N         -1.8484439076        0.2028153508        0.1312609287
+ C         -1.2699774146       -0.9017800918       -0.1300386164
+ C          0.2071760572       -1.0917746422       -0.1994192520
+ H          2.8240717053        0.9822735686        0.1531642172
+ H          2.8101567420       -0.7224054542       -0.1215208620
+ H          0.7958750936        2.2846612765        0.3594560242
+ H         -1.6726140327        2.1987921868        0.5972016156
+ H         -1.9003225710       -1.7590951432       -0.3293523133
+ H          0.5231589494       -1.8671648444        0.5105860331
+ H          0.4270823627       -1.5217946674       -1.1864302742
+ECCE-CREST-ENDFRAME
+ECCE-CREST-FRAME 4 14
+energy: -19.650305880000001 relative: 38.8404
+ N          2.3328293418       -0.0005636800       -0.1492746489
+ C          0.8449699300       -0.0003108778       -0.0570051452
+ C          0.1623785418        1.2009058606       -0.0191758538
+ C         -1.2287897930        1.1361345842        0.0568200365
+ N         -1.8906384551        0.0001321017        0.0926254915
+ C         -1.2291646305       -1.1360925219        0.0566311322
+ C          0.1619708839       -1.2013181648       -0.0193761113
+ H          2.7189982253        0.8407863444        0.3024779441
+ H          2.7190515998       -0.8398031813        0.3063386010
+ H          0.6691829533        2.1521691912       -0.0455364412
+ H         -1.8235616421        2.0372662922        0.0910116015
+ H         -1.8242433900       -2.0370269461        0.0906743988
+ H          0.6684725229       -2.1527351592       -0.0458984828
+ H          2.6337129935       -0.0028714701       -1.1354858482
+ECCE-CREST-ENDFRAME
+
+-----ECCE Log Information-----
+Starting Job: Sun Nov  8 08:39:50 PM CET 2026
+Starting Job (UTC): 2026-11-08T19:39:50Z
+Using crest path: /usr/local/bin/crest, xtb path: /usr/bin/xtb
+crest exit status = 0
+Final exit status = 0
+Completed Job: Sun Nov  8 08:39:52 PM CET 2026
+Completed Job (UTC): 2026-11-08T19:39:52Z

@@ -159,6 +159,11 @@ def main():
     text, rc = deck(METHYLAMINE, "GFN2-xTB", runtype="Protonation Sites")
     check(rc == 0 and text.splitlines()[0] ==
           "crest --gfn2 --chrg 0 --uhf 0 --protonate", "protonate: %r" % text.splitlines()[0])
+    text, rc = deck(METHYLAMINE, "GFN2-xTB", runtype="Protonation Sites",
+                    extra="ES.Runtype.Sites.EnergyWindow:\t50\n")
+    check(rc == 0 and text.splitlines()[0] ==
+          "crest --gfn2 --chrg 0 --uhf 0 --protonate --ewin 50",
+          "protonate with a window: %r" % text.splitlines()[0])
     text, rc = deck(FORMAMIDE, "GFN2-xTB", runtype="Tautomers")
     check(rc == 0 and text.splitlines()[0] ==
           "crest --gfn2 --chrg 0 --uhf 0 --tautomerize", "tautomerize: %r" % text.splitlines()[0])

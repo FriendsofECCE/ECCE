@@ -5980,7 +5980,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "38";
+const char *const kExampleSetVersion = "39";
 
 string treeName(string s)
 {
@@ -6576,15 +6576,10 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
                   "calculation shows a tight-binding calculation of water "
                   "with orbitals, atomic charges and vibrations, run outside "
                   "ECCE and imported from the program's output files."},
-    {"na_6_0_xtb", "xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with six waters in the first shell, relaxed with the cheap method that starts the workflow."},
-    {"na_6_0_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (six waters in the first shell) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
-    {"na_6_0_orca_water", "ORCA, r2SCAN-3c with CPCM (water), optimisation and frequencies of Na+(H2O)6, started from the gas-phase geometry and Hessian of the step before. This calculation shows the arrangement with six waters in the first shell in water, where the order of the arrangements differs from the gas phase."},
-    {"na_5_1_xtb", "xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with five waters in the first shell and one in the second, relaxed with the cheap method that starts the workflow."},
-    {"na_5_1_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (five waters in the first shell and one in the second) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
-    {"na_5_1_orca_water", "ORCA, r2SCAN-3c with CPCM (water), optimisation and frequencies of Na+(H2O)6, started from the gas-phase geometry and Hessian of the step before. This calculation shows the arrangement with five waters in the first shell and one in the second in water, where the order of the arrangements differs from the gas phase."},
-    {"na_4_2_xtb", "xTB, GFN2-xTB, geometry optimisation of Na+(H2O)6 in the gas phase. This calculation shows the arrangement with four waters in the first shell and two beyond them, relaxed with the cheap method that starts the workflow."},
-    {"na_4_2_orca", "ORCA, r2SCAN-3c, optimisation and frequencies of Na+(H2O)6, started from the xTB geometry of the step before. This calculation shows how the same arrangement (four waters in the first shell and two beyond them) looks at the DFT level, so that its energy can be compared with the xTB energy and with the other arrangements."},
-    {"na_4_2_orca_water", "ORCA, r2SCAN-3c with CPCM (water), optimisation and frequencies of Na+(H2O)6, started from the gas-phase geometry and Hessian of the step before. This calculation shows the arrangement with four waters in the first shell and two beyond them in water, where the order of the arrangements differs from the gas phase."},
+    {"ap_preopt", "xTB, GFN2-xTB, geometry optimisation of neutral 4-aminopyridine. This calculation shows the relaxed structure that CREST needs as its start: a planar ring with the amino group conjugated to it."},
+    {"ap_protonation", "CREST, protonation sites, GFN2-xTB, energy window 50 kcal/mol, started from the xTB geometry of the step before. This calculation shows four protomers ranked by energy: the proton on the ring nitrogen is the lowest, the two on a ring carbon are 36 kcal/mol higher and the one on the amino nitrogen is 39 kcal/mol higher."},
+    {"ap_ring_n", "ORCA, r2SCAN-3c, charge +1, optimisation and frequencies of the protomer with the proton on the ring nitrogen (conformer 1 of the CREST step). This calculation shows the protomer that forms: the amino lone pair stays in resonance with the ring and the positive charge is shared between the two nitrogens."},
+    {"ap_amino_n", "ORCA, r2SCAN-3c, charge +1, optimisation and frequencies of the protomer with the proton on the amino nitrogen (conformer 4 of the CREST step). This calculation shows the other nitrogen: protonating it takes the lone pair out of the resonance with the ring, and the energy is 159.6 kJ/mol above the ring-N protomer (computed electronic energies, no zero-point correction)."},
     {"sn2_reactant", "Gaussian 16, B3LYP/6-31+G(d), charge -1, optimisation and frequencies. This calculation shows the ion-dipole complex of chloride with methyl bromide, the first step of the SN2 workflow and the geometry the scan starts from."},
     {"sn2_scan", "Gaussian 16, B3LYP/6-31+G(d), charge -1, relaxed scan of the C...Cl distance. This calculation shows the energy along the approach of chloride to the carbon, with a maximum whose structure is the transition-state guess of the join."},
     {"sn2_product", "Gaussian 16, B3LYP/6-31+G(d), charge -1, optimisation and frequencies, started from the last point of the scan. This calculation shows the product complex of methyl chloride and bromide."},

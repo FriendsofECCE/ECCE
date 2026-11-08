@@ -120,13 +120,10 @@ for _topic in sorted(os.listdir(_GC)):
 # the Quantum ESPRESSO crystals of Packing in solids: energy only
 GENCHEM.update({c: ["TE"] for c in ("po_sc", "na_bcc", "al_fcc", "cu_fcc",
                                     "mg_hcp", "nacl", "cscl")})
-WORKFLOWS = {"na_%s_%s" % (n, c): (["TE", "GEOMTRACE", "MO", "ORBENG"]
-                                   if c == "xtb"
-                                   else ["TE", "VIBFREQ", "MO", "ORBENG"])
-             for n in ("6_0", "5_1", "4_2") for c in ("xtb", "orca")}
-# the water steps print no MO block (gas-phase steps carry it for #712)
-WORKFLOWS.update({"na_%s_orca_water" % n: ["TE", "VIBFREQ"]
-                  for n in ("6_0", "5_1", "4_2")})
+WORKFLOWS = {"ap_preopt": ["TE", "GEOMTRACE", "MO", "ORBENG"],
+             "ap_protonation": ["GEOMTRACE", "CONFREL"]}
+WORKFLOWS.update({"ap_" + k: ["TE", "VIBFREQ", "MO", "ORBENG"]
+                  for k in ("ring_n", "amino_n")})
 WORKFLOWS.update({"sn2_" + k: ["TE"] for k in
                   ("reactant", "scan", "product", "qst3")})
 WORKFLOWS["sn2_irc"] = ["GEOMTRACE"]

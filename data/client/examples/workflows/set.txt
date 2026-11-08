@@ -1,4 +1,4 @@
 Workflows
-Workflows of linked calculations, opened in the workflow view: Na+ hydration with xTB and ORCA, and an SN2 reaction with Gaussian 16.
-na-hydration|Na hydration
+Workflows of linked calculations, opened in the workflow view: the protonation of 4-aminopyridine with xTB, CREST and ORCA, and an SN2 reaction with Gaussian 16.
+aminopyridine-protonation|Aminopyridine protonation
 sn2-cl-ch3br|SN2 Cl- and CH3Br

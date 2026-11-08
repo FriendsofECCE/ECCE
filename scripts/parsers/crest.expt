@@ -1,0 +1,168 @@
+#!/usr/bin/env perl
+###############################################################################
+# FILENAME:  crest.expt
+#
+# SYNTAX: crest.expt <outfile> [<sourcedir>]
+#
+# PURPOSE:
+#       Reads the output of a CREST run and writes the ECCE .frag/.param pair,
+#       so it can be imported as a completed calculation.
+#
+#       The settings come from CREST's "Command line input" line.  The
+#       ensemble is in the output only as the ECCE-CREST-FRAME blocks the
+#       job script appends, so an output without them is refused.  The
+#       calculation's structure is its input molecule (a protonation or QCG
+#       ensemble has other atoms), read from the deck or crest.xyz next to
+#       the output; a conformer search without one uses its lowest conformer.
+###############################################################################
+
+use Getopt::Std;
+use Cwd 'abs_path';
+
+$| = 1;
+&getopts(':hv');
+&usage if ($opt_h || $opt_help);
+exit if ($opt_v);
+&usage if ($#ARGV != 0 && $#ARGV != 1);
+
+my $file = $ARGV[0];
+open(INPUT, $file) || die "Can't locate output file $file";
+local $/;
+my $text = <INPUT>;
+close(INPUT);
+$/ = "\n";
+
+if ($text !~ /Conformer-Rotamer Ensemble Sampling Tool/) {
+  print "$file is not a CREST output\n";
+  exit(1);
+}
+if ($text !~ /^ECCE-CREST-FRAME\s/m) {
+  print "$file has no ensemble: CREST writes it to a separate file, which " .
+        "ECCE appends to the outputs of the runs it launches\n";
+  exit(1);
+}
+
+my ($call) = $text =~ /^\s*Command line input:\s*\n\s*\$\s*(.*)$/m;
+$call = "" unless (defined($call));
+my ($version) = $text =~ /Version\s+(\d[\w.]*)/;
+
+my $theory = "GFN2-xTB";
+$theory = "GFN-FF" if ($call =~ /--gfnff(\s|$)/);
+$theory = "GFN2//GFN-FF" if ($call =~ /--gfn2\/\/gfnff/);
+
+my $runType = "Conformer Search";
+$runType = "Protonation Sites" if ($call =~ /--protonate(\s|$)/);
+$runType = "Tautomers" if ($call =~ /--tautomeri[sz]e(\s|$)/);
+$runType = "Solvation Shell" if ($call =~ /--qcg(\s|$)/);
+
+my $charge = 0;
+$charge = $1 if ($call =~ /--chrg\s+(-?\d+)/);
+my $uhf = 0;
+$uhf = $1 if ($call =~ /--uhf\s+(\d+)/);
+my $mult = $uhf + 1;
+
+my ($model, $solvent);
+if ($call =~ /--alpb\s+(\S+)/) {
+  ($model, $solvent) = ("ALPB", lc($1));
+} elsif ($call =~ /--gbsa\s+(\S+)/) {
+  ($model, $solvent) = ("GBSA", lc($1));
+  $solvent = "water" if ($solvent eq "h2o");
+  $solvent = "hexane" if ($solvent eq "n-hexane");
+}
+my ($ewin) = $call =~ /--ewin\s+(\d*\.?\d+)/;
+my ($nsolv) = $call =~ /--nsolv\s+(\d+)/;
+
+# --- the input molecule ------------------------------------------------------
+my $dir = ".";
+if (-l $file) {
+  my $real = abs_path($file);
+  ($dir = $real) =~ s{/[^/]*$}{} if (defined($real));
+} elsif (defined($ARGV[1]) && $ARGV[1] ne "") {
+  $dir = $ARGV[1];
+  $dir =~ s{/+$}{};
+}
+(my $stem = $file) =~ s{.*/}{};
+$stem =~ s/\.[^.]*$//;
+
+my @atoms;
+foreach my $c ("$dir/$stem.crestin", "$dir/crest.crestin", "$dir/crest.xyz") {
+  next unless (-s $c);
+  open(X, $c) || next;
+  my @x = <X>;
+  close(X);
+  # a deck: line 1 is the option line, then any $solvent block
+  if ($c =~ /\.crestin$/) {
+    shift(@x);
+    if (@x && $x[0] =~ /^\s*\$solvent/) {
+      shift(@x) while (@x && $x[0] !~ /^\s*\$end/);
+      shift(@x);
+    }
+  }
+  next unless (@x >= 2 && $x[0] =~ /^\s*(\d+)\s*$/);
+  my $n = $1;
+  for (my $i = 2; $i < 2 + $n && $i < @x; $i++) {
+    push(@atoms, [$1, $2, $3, $4])
+      if ($x[$i] =~ /^\s*([A-Za-z]{1,2})\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)\s+(-?\d+\.?\d*)/);
+  }
+  last if (@atoms == $n);
+  @atoms = ();
+}
+if (!@atoms && $runType eq "Conformer Search" &&
+    $text =~ /^ECCE-CREST-FRAME 1 (\d+)\n[^\n]*\n((?:[^\n]*\n)*?)ECCE-CREST-ENDFRAME/m) {
+  foreach (split(/\n/, $2)) {
+    push(@atoms, [$1, $2, $3, $4])
+      if (/^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)/);
+  }
+}
+if (!@atoms) {
+  print "No input molecule found for $file: put the deck ($stem.crestin) " .
+        "or crest.xyz in the same directory\n";
+  exit(1);
+}
+foreach my $a (@atoms) {
+  $a->[0] = ucfirst(lc($a->[0]));
+}
+
+(my $root = $file) =~ s/\.[^.]*$//;
+(my $title = $root) =~ s{.*/}{};
+
+open(PARAMS, ">$root.param");
+print(PARAMS "title:\t$title\n");
+print(PARAMS "version:\t$version\n") if (defined($version));
+print(PARAMS "Category:\tSE\n");
+print(PARAMS "Theory:\t$theory\n");
+print(PARAMS "RunType:\t$runType\n");
+print(PARAMS "Charge:\t$charge\n");
+print(PARAMS "ES.ChemSys.Multiplicity:\t$mult\n");
+if (defined($model)) {
+  print(PARAMS "ES.Theory.Solvent.Model:\t$model\n");
+  print(PARAMS "ES.Theory.Solvent.Name:\t$solvent\n");
+}
+if (defined($ewin)) {
+  my $key = $runType =~ /^(Protonation Sites|Tautomers)$/
+          ? "ES.Runtype.Sites.EnergyWindow" : "ES.Runtype.Conformers.EnergyWindow";
+  print(PARAMS "$key:\t$ewin\n");
+}
+if ($runType eq "Solvation Shell") {
+  print(PARAMS "ES.Runtype.QCG.Number:\t$nsolv\n") if (defined($nsolv));
+  print(PARAMS "ES.Runtype.QCG.Solvent:\t" . (defined($solvent) ? $solvent : "water") . "\n");
+}
+close(PARAMS);
+
+open(MOL, ">$root.frag");
+print(MOL "title:\t$title\ntype:\tmolecule\n");
+print(MOL "charge:\t$charge\n");
+print(MOL "num_atoms:\t" . scalar(@atoms) . "\n");
+print(MOL "atom_info:\tsymbol cart\natom_list:\n");
+foreach my $a (@atoms) {
+  print(MOL " $a->[0] $a->[1] $a->[2] $a->[3]\n");
+}
+close(MOL);
+exit(0);
+
+sub usage {
+  print "Usage: crest.expt <outfile> [<sourcedir>]\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}

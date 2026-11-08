@@ -61,7 +61,7 @@
 <DataFiles>
   <Input  type="primary" mimetype="chemical/x-crest-input" comment="false">crest.crestin</Input>
   <Output type="primary" mimetype="chemical/x-crest-output">crest.crestout</Output>
-  <Output type="parse" verifypattern="C R E S T" mimetype="chemical/x-crest-output">crest.crestout</Output>
+  <Output type="parse" verifypattern="Conformer-Rotamer Ensemble Sampling Tool" mimetype="chemical/x-crest-output">crest.crestout</Output>
 </DataFiles>
 
 <IntegrationFiles>
@@ -69,6 +69,7 @@
   <InputGenerator>ai.crest</InputGenerator>
   <ParseSpecification>crest.desc</ParseSpecification>
   <LaunchPreprocessor>crest.launchpp</LaunchPreprocessor>
+  <Importer>crest.expt</Importer>
 </IntegrationFiles>
 
 </appdescriptor>
