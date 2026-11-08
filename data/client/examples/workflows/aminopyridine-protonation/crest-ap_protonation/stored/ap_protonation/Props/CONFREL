@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="CONFREL" rowLabel="Geometry Step" rows="1" units="kcal/mol">
+
+  <step number="1">0.0000</step>
+  <step number="2">36.3672</step>
+  <step number="3">36.3672</step>
+  <step number="4">38.8404</step>
+
+</tsvector>

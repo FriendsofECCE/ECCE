@@ -25,12 +25,14 @@ special.
 - The session's `taskIndex` is the order in the importing session and is not
   copied (`StoredCalcCopy` skips it; `VOLATILE` in the preparsed test too).
 - Test: `tests/apps/examples_workflow_test.py` (`apps_examples_workflow`).
-- The Na+(H2O)6 steps are produced by `tools/examples/rerun_na_hydration.py`
-  (ai.xtb / ai.orca decks, run through Launch in an isolated ECCE), so they
-  carry the MO print and the Molden block (#712). ECCE's Theory Details
-  offers no r2SCAN-3c; the deck gets it as an XCFunctional passthrough with
-  an empty `useRouteCard` basis. `examples_test.py` expects MO and ORBENG
-  on all six steps.
+- The aminopyridine-protonation steps are produced by
+  `tools/examples/rerun_aminopyridine.py` (ai.xtb / ai.crest / ai.orca decks and
+  gensub job scripts, run with Slurm on another host), so the CREST output
+  carries the appended ensemble (`crest.expt` imports it) and the ORCA steps
+  the MO print (#712). ECCE's Theory Details offers no r2SCAN-3c; the deck
+  gets it as an XCFunctional passthrough with an empty `useRouteCard` basis.
+  CREST's own protonation window (30 kcal/mol) leaves only the ring N, so the
+  deck carries `--ewin 50`; the amino N is the fourth protomer (`@c4`).
 
 
 A line `<folder> < <source folder>+hess` also makes the step read the

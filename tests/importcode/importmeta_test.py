@@ -31,10 +31,10 @@ CASES = [
     ("orca/c6h6_sym.out", "ORCA"),
     ("orca/hi_ecp.out", "ORCA"),
     ("orca/h2_ccsd_scan_step1.out", "ORCA"),
-    ("../../../data/client/examples/workflows/na-hydration/orca-na_4_2/"
-     "na_4_2_orca.out", "ORCA"),
-    ("../../../data/client/examples/workflows/na-hydration/orca-water-na_4_2/"
-     "na_4_2_orca_water.out", "ORCA"),
+    ("../../../data/client/examples/workflows/aminopyridine-protonation/"
+     "orca-ap_ring_n/ap_ring_n.out", "ORCA"),
+    ("../../../data/client/examples/workflows/aminopyridine-protonation/"
+     "orca-ap_amino_n/ap_amino_n.out", "ORCA"),
     ("../../../data/client/examples/organic/reactions/orca-sn2_ts/"
      "sn2_ts.out", "ORCA"),
     ("gaussian-16/co_freq.log", "Gaussian-16"),

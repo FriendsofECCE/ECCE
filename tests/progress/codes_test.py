@@ -120,8 +120,9 @@ case("orca freq-only with D3BJ: the final energy includes D3", "orca.desc",
      {"result": {"disp": "D3"},
       "scf": {"cycle": "12", "converged": "yes"}})
 case("orca r2SCAN-3c opt+freq: D4 and gCP", "orca.desc",
-     os.path.join(EX, "workflows", "na-hydration", "orca-na_6_0", "stored",
-                  "na_6_0_orca", "Outputs", "na_6_0_orca.out"),
+     os.path.join(EX, "workflows", "aminopyridine-protonation",
+                  "orca-ap_ring_n", "stored", "ap_ring_n", "Outputs",
+                  "ap_ring_n.out"),
      {"result": {"disp": "D4", "gcp": "gCP"}})
 case("orca without dispersion names nothing", "orca.desc",
      fx("orca", "h2o_optfreq.out"), {"!result": {}})

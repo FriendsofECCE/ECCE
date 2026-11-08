@@ -1,0 +1,4 @@
+xtb-ap_preopt
+crest-ap_protonation < xtb-ap_preopt
+orca-ap_ring_n < crest-ap_protonation@c1
+orca-ap_amino_n < crest-ap_protonation@c4

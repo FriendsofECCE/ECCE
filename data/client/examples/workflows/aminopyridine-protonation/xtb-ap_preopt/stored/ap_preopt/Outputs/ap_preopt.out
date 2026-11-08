@@ -1,0 +1,2305 @@
+      -----------------------------------------------------------      
+     |                   =====================                   |     
+     |                           x T B                           |     
+     |                   =====================                   |     
+     |                         S. Grimme                         |     
+     |          Mulliken Center for Theoretical Chemistry        |     
+     |                    University of Bonn                     |     
+      -----------------------------------------------------------      
+
+   * xtb version 6.7.1 (unknown) compiled by 'builduser@buildhost' on 2025-03-30
+
+   xtb is free software: you can redistribute it and/or modify it under
+   the terms of the GNU Lesser General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+   
+   xtb is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU Lesser General Public License for more details.
+   
+   Cite this work as:
+   * C. Bannwarth, E. Caldeweyher, S. Ehlert, A. Hansen, P. Pracht,
+     J. Seibert, S. Spicher, S. Grimme, WIREs Comput. Mol. Sci., 2020, 11,
+     e01493. DOI: 10.1002/wcms.1493
+   
+   for GFN2-xTB:
+   * C. Bannwarth, S. Ehlert and S. Grimme., J. Chem. Theory Comput., 2019,
+     15, 1652-1671. DOI: 10.1021/acs.jctc.8b01176
+   for GFN1-xTB:
+   * S. Grimme, C. Bannwarth, P. Shushkov, J. Chem. Theory Comput., 2017,
+     13, 1989-2009. DOI: 10.1021/acs.jctc.7b00118
+   for GFN0-xTB:
+   * P. Pracht, E. Caldeweyher, S. Ehlert, S. Grimme, ChemRxiv, 2019, preprint.
+     DOI: 10.26434/chemrxiv.8326202.v1
+   for GFN-FF:
+   * S. Spicher and S. Grimme, Angew. Chem. Int. Ed., 2020, 59, 15665-15673.
+     DOI: 10.1002/anie.202004239
+   
+   for ALPB and GBSA implicit solvation:
+   * S. Ehlert, M. Stahn, S. Spicher, S. Grimme, J. Chem. Theory Comput.,
+     2021, 17, 4250-4261. DOI: 10.1021/acs.jctc.1c00471
+   
+   for ddCOSMO and CPCM-X implicit solvation:
+   * M. Stahn, S. Ehlert, S. Grimme, J. Phys. Chem. A,
+     2023, XX, XXXX-XXXX. DOI: 10.1021/acs.jpca.3c04382
+   
+   for DFT-D4:
+   * E. Caldeweyher, C. Bannwarth and S. Grimme, J. Chem. Phys., 2017,
+     147, 034112. DOI: 10.1063/1.4993215
+   * E. Caldeweyher, S. Ehlert, A. Hansen, H. Neugebauer, S. Spicher,
+     C. Bannwarth and S. Grimme, J. Chem. Phys., 2019, 150, 154122.
+     DOI: 10.1063/1.5090222
+   * E. Caldeweyher, J.-M. Mewes, S. Ehlert and S. Grimme, Phys. Chem. Chem. Phys.
+     2020, 22, 8499-8512. DOI: 10.1039/D0CP00502A
+   
+   for sTDA-xTB:
+   * S. Grimme and C. Bannwarth, J. Chem. Phys., 2016, 145, 054103.
+     DOI: 10.1063/1.4959605
+   
+   in the mass-spec context:
+   * V. Asgeirsson, C. Bauer and S. Grimme, Chem. Sci., 2017, 8, 4879.
+     DOI: 10.1039/c7sc00601b
+   * J. Koopman and S. Grimme, ACS Omega 2019, 4, 12, 15120-15133.
+     DOI: 10.1021/acsomega.9b02011
+   
+   for metadynamics refer to:
+   * S. Grimme, J. Chem. Theory Comput., 2019, 155, 2847-2862
+     DOI: 10.1021/acs.jctc.9b00143
+   
+   for SPH calculations refer to:
+   * S. Spicher and S. Grimme, J. Chem. Theory Comput., 2021, 17, 1701-1714
+     DOI: 10.1021/acs.jctc.0c01306
+   
+   for ONIOM refer to:
+   * C. Plett, A. Katbashev, S. Ehlert, S. Grimme, M. Bursch,
+     Phys. Chem. Chem. Phys., 2023, 25, 17860-17868. DOI: 10.1039/D3CP02178E
+   
+   for DIPRO refer to:
+   * J. Kohn, N. Gildemeister, S. Grimme, D. Fazzi, A. Hansen,
+     J. Chem. Phys., 2023, just accepted.
+   
+   for PTB refer to:
+   * S. Grimme, M. Mueller, A. Hansen, J. Chem. Phys., 2023, 158, 124111.
+     DOI: 10.1063/5.0137838
+   
+   with help from (in alphabetical order)
+   P. Atkinson, C. Bannwarth, F. Bohle, G. Brandenburg, E. Caldeweyher
+   M. Checinski, S. Dohm, S. Ehlert, S. Ehrlich, I. Gerasimov, C. Hölzer
+   A. Katbashev, J. Kohn, J. Koopman, C. Lavigne, S. Lehtola, F. März, M. Müller,
+   F. Musil, H. Neugebauer, J. Pisarek, C. Plett, P. Pracht, F. Pultar,
+   J. Seibert, P. Shushkov, S. Spicher, M. Stahn, M. Steiner, T. Strunk,
+   J. Stückrath, T. Rose, and J. Unsleber
+   
+ * started run on 2026/11/08 at 20:37:05.077     
+   ID    Z sym.   atoms
+    1    7 N      1, 5
+    2    6 C      2-4, 6, 7
+    3    1 H      8-13
+
+           -------------------------------------------------
+          |                Calculation Setup                |
+           -------------------------------------------------
+
+          program call               : /usr/bin/xtb xtb.xyz --gfn 2 --chrg 0 --uhf 0 --opt normal --molden
+          hostname                   : nerdegg
+          coordinate file            : xtb.xyz
+          omp threads                :                     4
+
+
+           -------------------------------------------------
+          |                 G F N 2 - x T B                 |
+           -------------------------------------------------
+
+        Reference                      10.1021/acs.jctc.8b01176
+      * Hamiltonian:
+        H0-scaling (s, p, d)           1.850000    2.230000    2.230000
+        zeta-weighting                 0.500000
+      * Dispersion:
+        s8                             2.700000
+        a1                             0.520000
+        a2                             5.000000
+        s9                             5.000000
+      * Repulsion:
+        kExp                           1.500000    1.000000
+        rExp                           1.000000
+      * Coulomb:
+        alpha                          2.000000
+        third order                    shell-resolved
+        anisotropic                    true
+        a3                             3.000000
+        a5                             4.000000
+        cn-shift                       1.200000
+        cn-exp                         4.000000
+        max-rad                        5.000000
+
+
+          ...................................................
+          :                      SETUP                      :
+          :.................................................:
+          :  # basis functions                  34          :
+          :  # atomic orbitals                  34          :
+          :  # shells                           20          :
+          :  # electrons                        36          :
+          :  max. iterations                   250          :
+          :  Hamiltonian                  GFN2-xTB          :
+          :  restarted?                      false          :
+          :  GBSA solvation                  false          :
+          :  PC potential                    false          :
+          :  electronic temp.          300.0000000     K    :
+          :  accuracy                    1.0000000          :
+          :  -> integral cutoff          0.2500000E+02      :
+          :  -> integral neglect         0.1000000E-07      :
+          :  -> SCF convergence          0.1000000E-05 Eh   :
+          :  -> wf. convergence          0.1000000E-03 e    :
+          :  Broyden damping             0.4000000          :
+          :  net charge                          0          :
+          :  unpaired electrons                  0          :
+          ...................................................
+
+ iter      E             dE          RMSdq      gap      omega  full diag
+   1    -19.8641436 -0.198641E+02  0.449E+00    3.25       0.0  T
+   2    -19.8909567 -0.268131E-01  0.285E+00    3.73       1.0  T
+   3    -19.8909238  0.329108E-04  0.108E+00    3.62       1.0  T
+   4    -19.8927894 -0.186565E-02  0.321E-01    3.46       1.0  T
+   5    -19.8934908 -0.701393E-03  0.108E-01    3.48       1.0  T
+   6    -19.8935231 -0.322613E-04  0.400E-02    3.48       1.0  T
+   7    -19.8935281 -0.499827E-05  0.223E-02    3.48       1.2  T
+   8    -19.8935293 -0.124497E-05  0.622E-03    3.49       4.5  T
+   9    -19.8935297 -0.359110E-06  0.208E-03    3.48      13.3  T
+  10    -19.8935297 -0.113728E-08  0.764E-04    3.48      36.3  T
+  11    -19.8935297 -0.385758E-08  0.145E-04    3.48     190.8  T
+
+   *** convergence criteria satisfied after 11 iterations ***
+
+         #    Occupation            Energy/Eh            Energy/eV
+      -------------------------------------------------------------
+         1        2.0000           -0.6607888             -17.9810
+       ...           ...                  ...                  ...
+        12        2.0000           -0.4818956             -13.1130
+        13        2.0000           -0.4801561             -13.0657
+        14        2.0000           -0.4594227             -12.5015
+        15        2.0000           -0.4310000             -11.7281
+        16        2.0000           -0.4083578             -11.1120
+        17        2.0000           -0.3847760             -10.4703
+        18        2.0000           -0.3615077              -9.8371 (HOMO)
+        19                         -0.2334677              -6.3530 (LUMO)
+        20                         -0.2283343              -6.2133
+        21                         -0.1043564              -2.8397
+        22                          0.0242068               0.6587
+        23                          0.1174350               3.1956
+       ...                                ...                  ...
+        34                          0.6033008              16.4167
+      -------------------------------------------------------------
+                  HL-Gap            0.1280400 Eh            3.4841 eV
+             Fermi-level           -0.2974877 Eh           -8.0951 eV
+
+ SCC (total)                   0 d,  0 h,  0 min,  0.090 sec
+ SCC setup                      ...        0 min,  0.004 sec (  4.136%)
+ Dispersion                     ...        0 min,  0.001 sec (  0.878%)
+ classical contributions        ...        0 min,  0.033 sec ( 36.591%)
+ integral evaluation            ...        0 min,  0.035 sec ( 38.819%)
+ iterations                     ...        0 min,  0.014 sec ( 15.982%)
+ molecular gradient             ...        0 min,  0.003 sec (  3.176%)
+ printout                       ...        0 min,  0.000 sec (  0.369%)
+
+         :::::::::::::::::::::::::::::::::::::::::::::::::::::
+         ::                     SUMMARY                     ::
+         :::::::::::::::::::::::::::::::::::::::::::::::::::::
+         :: total energy             -19.588731733864 Eh    ::
+         :: gradient norm              0.051508734578 Eh/a0 ::
+         :: HOMO-LUMO gap              3.484145678313 eV    ::
+         ::.................................................::
+         :: SCC energy               -19.893517031599 Eh    ::
+         :: -> isotropic ES            0.017222054976 Eh    ::
+         :: -> anisotropic ES          0.004946027339 Eh    ::
+         :: -> anisotropic XC          0.017418312726 Eh    ::
+         :: -> dispersion             -0.009186831613 Eh    ::
+         :: repulsion energy           0.304785297734 Eh    ::
+         :: add. restraining           0.000000000000 Eh    ::
+         :: total charge              -0.000000000000 e     ::
+         :::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+      ----------------------------------------------------------- 
+     |                   =====================                   |
+     |                        A N C O P T                        |
+     |                   =====================                   |
+     |               Approximate Normal Coordinate               |
+     |                Rational Function Optimizer                |
+      ----------------------------------------------------------- 
+      ----------------------------------------------------------- 
+     |                   =====================                   |
+     |                        A N C O P T                        |
+     |                   =====================                   |
+     |               Approximate Normal Coordinate               |
+     |                Rational Function Optimizer                |
+      ----------------------------------------------------------- 
+
+          ...................................................
+          :                      SETUP                      :
+          :.................................................:
+          :   optimization level            normal          :
+          :   max. optcycles                   200          :
+          :   ANC micro-cycles                  20          :
+          :   degrees of freedom                33          :
+          :.................................................:
+          :   RF solver                   davidson          :
+          :   write xtbopt.log                true          :
+          :   linear?                        false          :
+          :   energy convergence         0.5000000E-05 Eh   :
+          :   grad. convergence          0.1000000E-02 Eh/α :
+          :   maxmium RF displ.          1.0000000          :
+          :   Hlow (freq-cutoff)         0.1000000E-01      :
+          :   Hmax (freq-cutoff)         5.0000000          :
+          :   S6 in model hess.         20.0000000          :
+          ...................................................
+
+generating ANC from exact Hessian ...
+Using Lindh-Hessian (1995)
+ Shifting diagonal of input Hessian by    0.0000000000000000     
+ Lowest  eigenvalues of input Hessian
+    0.000000    0.000000    0.000000    0.000000    0.000000    0.000000
+    0.010029    0.013143    0.017567    0.022869    0.028397    0.049132
+    0.067437    0.067817    0.097813    0.101494    0.116644    0.123719
+ Highest eigenvalues
+    1.476187    1.558557    1.716794    1.929214    2.026007    2.063435
+
+
+........................................................................
+.............................. CYCLE    1 ..............................
+........................................................................
+
+ iter      E             dE          RMSdq      gap      omega  full diag
+   1    -19.8935297 -0.198935E+02  0.243E-05    3.48       0.0  T
+   2    -19.8935297 -0.247269E-11  0.123E-05    3.48    2252.8  T
+   3    -19.8935297 -0.316192E-12  0.660E-06    3.48    4200.4  T
+     SCC iter.                  ...        0 min,  0.005 sec
+     gradient                   ...        0 min,  0.003 sec
+ * total energy  :   -19.5887317 Eh     change       -0.2564704E-10 Eh
+   gradient norm :     0.0515088 Eh/α   predicted     0.0000000E+00 (-100.00%)
+   displ. norm   :     0.1555639 α      lambda       -0.3864930E-02
+   maximum displ.:     0.1069231 α      in ANC's #4, #6, #20, ...
+
+........................................................................
+.............................. CYCLE    2 ..............................
+........................................................................
+
+ iter      E             dE          RMSdq      gap      omega  full diag
+   1    -19.9087848 -0.199088E+02  0.229E-01    3.55       0.0  T
+   2    -19.9088159 -0.311025E-04  0.146E-01    3.56       1.0  T
+   3    -19.9088085  0.747479E-05  0.798E-02    3.56       1.0  T
+   4    -19.9088397 -0.312511E-04  0.884E-03    3.56       3.1  T
+   5    -19.9088401 -0.373668E-06  0.408E-03    3.56       6.8  T
+   6    -19.9088401 -0.364782E-08  0.145E-03    3.56      19.1  T
+   7    -19.9088401 -0.188561E-07  0.252E-04    3.56     110.0  T
+   8    -19.9088401 -0.124238E-09  0.980E-05    3.56     283.0  T
+     SCC iter.                  ...        0 min,  0.010 sec
+     gradient                   ...        0 min,  0.003 sec
+ * total energy  :   -19.5911674 Eh     change       -0.2435656E-02 Eh
+   gradient norm :     0.0207471 Eh/α   predicted    -0.1979231E-02 ( -18.74%)
+   displ. norm   :     0.0897109 α      lambda       -0.7549865E-03
+   maximum displ.:     0.0696024 α      in ANC's #1, #17, #6, ...
+
+........................................................................
+.............................. CYCLE    3 ..............................
+........................................................................
+
+ iter      E             dE          RMSdq      gap      omega  full diag
+   1    -19.9152765 -0.199153E+02  0.131E-01    3.60       0.0  T
+   2    -19.9153060 -0.294630E-04  0.754E-02    3.60       1.0  T
+   3    -19.9153125 -0.655803E-05  0.446E-02    3.60       1.0  T
+   4    -19.9153170 -0.453340E-05  0.831E-03    3.60       3.3  T
+   5    -19.9153174 -0.334979E-06  0.308E-03    3.60       9.0  T
+   6    -19.9153174 -0.196778E-07  0.179E-03    3.60      15.5  T
+   7    -19.9153174 -0.165015E-07  0.232E-04    3.60     119.5  T
+   8    -19.9153174 -0.109139E-09  0.123E-04    3.60     225.4  T
+     SCC iter.                  ...        0 min,  0.009 sec
+     gradient                   ...        0 min,  0.002 sec
+ * total energy  :   -19.5916224 Eh     change       -0.4550042E-03 Eh
+   gradient norm :     0.0069018 Eh/α   predicted    -0.3805319E-03 ( -16.37%)
+   displ. norm   :     0.0577777 α      lambda       -0.1867081E-03
+   maximum displ.:     0.0448370 α      in ANC's #1, #17, #11, ...
+
+........................................................................
+.............................. CYCLE    4 ..............................
+........................................................................
+
+ iter      E             dE          RMSdq      gap      omega  full diag
+   1    -19.9155947 -0.199156E+02  0.764E-02    3.60       0.0  T
+   2    -19.9156061 -0.114250E-04  0.416E-02    3.60       1.0  T
+   3    -19.9156076 -0.145465E-05  0.239E-02    3.60       1.2  T
+   4    -19.9156091 -0.157504E-05  0.399E-03    3.60       6.9  T
+   5    -19.9156092 -0.494726E-07  0.175E-03    3.60      15.9  T
+   6    -19.9156092  0.212845E-08  0.688E-04    3.60      40.3  T
+   7    -19.9156092 -0.475168E-08  0.155E-04    3.60     178.7  T
+     SCC iter.                  ...        0 min,  0.006 sec
+     gradient                   ...        0 min,  0.001 sec
+ * total energy  :   -19.5917591 Eh     change       -0.1367013E-03 Eh
+   gradient norm :     0.0052181 Eh/α   predicted    -0.9366728E-04 ( -31.48%)
+   displ. norm   :     0.0557228 α      lambda       -0.1305785E-03
+   maximum displ.:     0.0316654 α      in ANC's #1, #11, #17, ...
+
+........................................................................
+.............................. CYCLE    5 ..............................
+........................................................................
+
+ iter      E             dE          RMSdq      gap      omega  full diag
+   1    -19.9152576 -0.199153E+02  0.760E-02    3.61       0.0  T
+   2    -19.9152687 -0.111319E-04  0.428E-02    3.60       1.0  T
+   3    -19.9152699 -0.120340E-05  0.234E-02    3.61       1.2  T
+   4    -19.9152719 -0.203123E-05  0.435E-03    3.60       6.4  T
+   5    -19.9152720 -0.770505E-07  0.203E-03    3.60      13.7  T
+   6    -19.9152720 -0.321392E-08  0.103E-03    3.60      27.0  T
+   7    -19.9152720 -0.644087E-08  0.204E-04    3.60     135.7  T
+   8    -19.9152720 -0.109281E-09  0.548E-05    3.60     506.5  T
+     SCC iter.                  ...        0 min,  0.005 sec
+     gradient                   ...        0 min,  0.001 sec
+ * total energy  :   -19.5918414 Eh     change       -0.8231596E-04 Eh
+   gradient norm :     0.0040702 Eh/α   predicted    -0.6549102E-04 ( -20.44%)
+   displ. norm   :     0.0240271 α      lambda       -0.3257441E-04
+   maximum displ.:     0.0108544 α      in ANC's #17, #4, #11, ...
+
+........................................................................
+.............................. CYCLE    6 ..............................
+........................................................................
+
+ iter      E             dE          RMSdq      gap      omega  full diag
+   1    -19.9155178 -0.199155E+02  0.338E-02    3.61       0.0  T
+   2    -19.9155192 -0.145720E-05  0.194E-02    3.61       1.4  T
+   3    -19.9155191  0.100549E-06  0.102E-02    3.61       2.7  T
+   4    -19.9155198 -0.628149E-06  0.191E-03    3.61      14.5  T
+   5    -19.9155198 -0.124356E-07  0.102E-03    3.61      27.3  T
+   6    -19.9155198 -0.301119E-08  0.406E-04    3.61      68.3  T
+   7    -19.9155198 -0.598259E-09  0.103E-04    3.61     270.3  T
+     SCC iter.                  ...        0 min,  0.004 sec
+     gradient                   ...        0 min,  0.001 sec
+ * total energy  :   -19.5918633 Eh     change       -0.2193790E-04 Eh
+   gradient norm :     0.0021622 Eh/α   predicted    -0.1629647E-04 ( -25.72%)
+   displ. norm   :     0.0145453 α      lambda       -0.1115047E-04
+   maximum displ.:     0.0067744 α      in ANC's #17, #13, #6, ...
+
+........................................................................
+.............................. CYCLE    7 ..............................
+........................................................................
+
+ iter      E             dE          RMSdq      gap      omega  full diag
+   1    -19.9158600 -0.199159E+02  0.207E-02    3.61       0.0  T
+   2    -19.9158603 -0.311713E-06  0.117E-02    3.61       2.4  T
+   3    -19.9158602  0.124097E-06  0.558E-03    3.61       5.0  T
+   4    -19.9158604 -0.250376E-06  0.972E-04    3.61      28.5  T
+   5    -19.9158604 -0.112033E-08  0.573E-04    3.61      48.4  T
+     SCC iter.                  ...        0 min,  0.003 sec
+     gradient                   ...        0 min,  0.001 sec
+ * total energy  :   -19.5918699 Eh     change       -0.6560853E-05 Eh
+   gradient norm :     0.0006431 Eh/α   predicted    -0.5577285E-05 ( -14.99%)
+   displ. norm   :     0.0107502 α      lambda       -0.1550438E-05
+   maximum displ.:     0.0075184 α      in ANC's #1, #4, #17, ...
+
+........................................................................
+.............................. CYCLE    8 ..............................
+........................................................................
+
+ iter      E             dE          RMSdq      gap      omega  full diag
+   1    -19.9161055 -0.199161E+02  0.131E-02    3.61       0.0  T
+   2    -19.9161056 -0.571894E-07  0.749E-03    3.61       3.7  T
+   3    -19.9161056  0.352724E-07  0.264E-03    3.61      10.5  T
+   4    -19.9161056 -0.572516E-07  0.423E-04    3.61      65.5  T
+   5    -19.9161056 -0.132300E-09  0.124E-04    3.61     223.8  T
+     SCC iter.                  ...        0 min,  0.003 sec
+     gradient                   ...        0 min,  0.001 sec
+ * total energy  :   -19.5918707 Eh     change       -0.7598351E-06 Eh
+   gradient norm :     0.0002824 Eh/α   predicted    -0.7741657E-06 (   1.89%)
+   displ. norm   :     0.0041986 α      lambda       -0.3747926E-06
+   maximum displ.:     0.0039415 α      in ANC's #4, #17, #19, ...
+
+   *** GEOMETRY OPTIMIZATION CONVERGED AFTER 8 ITERATIONS ***
+
+------------------------------------------------------------------------
+ total energy gain   :        -0.0031389 Eh       -1.9697 kcal/mol
+ total RMSD          :         0.0787046 a0        0.0416 Å
+ total power (kW/mol):        -1.0301594 (step)  -95.4522 (real)
+------------------------------------------------------------------------
+
+ ANCopt (total)                0 d,  0 h,  0 min,  0.086 sec
+ optimizer setup                ...        0 min,  0.000 sec (  0.258%)
+ model hessian                  ...        0 min,  0.004 sec (  4.452%)
+ ANC generation                 ...        0 min,  0.001 sec (  1.026%)
+ coordinate transformation      ...        0 min,  0.000 sec (  0.137%)
+ single point calculation       ...        0 min,  0.068 sec ( 78.556%)
+ optimization log               ...        0 min,  0.001 sec (  0.825%)
+ hessian update                 ...        0 min,  0.000 sec (  0.214%)
+ rational function              ...        0 min,  0.011 sec ( 12.749%)
+
+================
+ final structure:
+================
+13
+ xtb: 6.7.1 (unknown)
+N            2.37326327466562        0.01062555835496       -0.12452563473079
+C            1.00851344829158        0.00638681332558       -0.03433107816505
+C            0.27673432877532        1.19783798403538       -0.02059160908994
+C           -1.10165325181353        1.12988372199728        0.00987346552193
+N           -1.78743666963515       -0.00256010512054        0.02893708155566
+C           -1.09430937122786       -1.13059566167086        0.01475774679253
+C            0.28449065222147       -1.18972429685059       -0.01543173357414
+H            2.85693404635536        0.86678992773490        0.08602428640534
+H            2.86248386844752       -0.84145982031307        0.08971813931818
+H            0.78618726516904        2.15002036825976       -0.03429603629018
+H           -1.69692380352173        2.03392949665948        0.02213430927332
+H           -1.68369584201329       -2.03842794194303        0.03094443404719
+H            0.80012205428565       -2.13862604446924       -0.02502337106405
+
+ Bond Distances (Angstroems)
+ ---------------------------
+N1-C2=1.3677         N1-H8=1.0056         N1-H9=1.0056         C2-N1=1.3677         C2-C3=1.3983         C2-C7=1.3983         
+C3-C2=1.3983         C3-C4=1.3804         C3-H10=1.0800        C4-C3=1.3804         C4-N5=1.3240         C4-H11=1.0825        
+N5-C4=1.3240         N5-C6=1.3240         C6-N5=1.3240         C6-C7=1.3804         C6-H12=1.0825        C7-C2=1.3983         
+C7-C6=1.3804         C7-H13=1.0800        H8-N1=1.0056         H9-N1=1.0056         H10-C3=1.0800        H11-C4=1.0825        
+H12-C6=1.0825        H13-C7=1.0800        
+ C  H  Rav=1.0812 sigma=0.0013  Rmin=1.0800  Rmax=1.0825     4
+ C  C  Rav=1.3893 sigma=0.0090  Rmin=1.3804  Rmax=1.3983     4
+ N  H  Rav=1.0056 sigma=0.0000  Rmin=1.0056  Rmax=1.0056     2
+ N  C  Rav=1.3386 sigma=0.0206  Rmin=1.3240  Rmax=1.3677     3
+
+ selected bond angles (degree)
+ --------------------
+H8-N1-C2=117.95                H9-N1-C2=117.95                H9-N1-H8=116.28                C3-C2-N1=121.35                
+C7-C2-N1=121.35                C7-C2-C3=117.24                C4-C3-C2=118.74                H10-C3-C2=120.28               
+H10-C3-C4=120.98               N5-C4-C3=124.03                H11-C4-C3=120.55               H11-C4-N5=115.42               
+C6-N5-C4=117.22                C7-C6-N5=124.03                H12-C6-N5=115.42               H12-C6-C7=120.55               
+C6-C7-C2=118.74                H13-C7-C2=120.28               H13-C7-C6=120.98               
+
+ selected dihedral angles (degree)
+ ---------------------------------
+C3-C2-N1-H8= 17.47            C3-C2-N1-H9=165.58            C7-C2-N1-H8=194.42            C7-C2-N1-H9=342.53            
+C4-C3-C2-N1=177.05            C4-C3-C2-C7=359.97            H10-C3-C2-N1=357.09           H10-C3-C2-C7=180.01           
+N5-C4-C3-C2=  0.09            N5-C4-C3-H10=180.05           H11-C4-C3-C2=179.94           H11-C4-C3-H10=359.90          
+C6-N5-C4-C3=359.85            C6-N5-C4-H11=180.00           C7-C6-N5-C4=  0.15            H12-C6-N5-C4=180.00           
+C6-C7-C2-N1=182.95            C6-C7-C2-C3=  0.03            H13-C7-C2-N1=  2.91           H13-C7-C2-C3=179.99           
+C2-C7-C6-N5=359.91            C2-C7-C6-H12=180.06           H13-C7-C6-N5=179.95           H13-C7-C6-H12=  0.10          
+           -------------------------------------------------
+          |                Final Singlepoint                |
+           -------------------------------------------------
+
+          ...................................................
+          :                      SETUP                      :
+          :.................................................:
+          :  # basis functions                  34          :
+          :  # atomic orbitals                  34          :
+          :  # shells                           20          :
+          :  # electrons                        36          :
+          :  max. iterations                   250          :
+          :  Hamiltonian                  GFN2-xTB          :
+          :  restarted?                      false          :
+          :  GBSA solvation                  false          :
+          :  PC potential                    false          :
+          :  electronic temp.          300.0000000     K    :
+          :  accuracy                    1.0000000          :
+          :  -> integral cutoff          0.2500000E+02      :
+          :  -> integral neglect         0.1000000E-07      :
+          :  -> SCF convergence          0.1000000E-05 Eh   :
+          :  -> wf. convergence          0.1000000E-03 e    :
+          :  Broyden damping             0.4000000          :
+          :  net charge                          0          :
+          :  unpaired electrons                  0          :
+          ...................................................
+
+ iter      E             dE          RMSdq      gap      omega  full diag
+   1    -19.9161056 -0.199161E+02  0.479E-05    3.61       0.0  T
+   2    -19.9161056 -0.625633E-11  0.290E-05    3.61     956.8  T
+   3    -19.9161056 -0.389022E-11  0.153E-05    3.61    1806.9  T
+
+   *** convergence criteria satisfied after 3 iterations ***
+
+         #    Occupation            Energy/Eh            Energy/eV
+      -------------------------------------------------------------
+         1        2.0000           -0.6611143             -17.9898
+       ...           ...                  ...                  ...
+        12        2.0000           -0.4822410             -13.1224
+        13        2.0000           -0.4770521             -12.9812
+        14        2.0000           -0.4633259             -12.6077
+        15        2.0000           -0.4271109             -11.6223
+        16        2.0000           -0.4055619             -11.0359
+        17        2.0000           -0.3787682             -10.3068
+        18        2.0000           -0.3556612              -9.6780 (HOMO)
+        19                         -0.2228373              -6.0637 (LUMO)
+        20                         -0.2220639              -6.0427
+        21                         -0.0931380              -2.5344
+        22                          0.0213755               0.5817
+        23                          0.1351137               3.6766
+       ...                                ...                  ...
+        34                          0.6356564              17.2971
+      -------------------------------------------------------------
+                  HL-Gap            0.1328238 Eh            3.6143 eV
+             Fermi-level           -0.2892492 Eh           -7.8709 eV
+
+ SCC (total)                   0 d,  0 h,  0 min,  0.004 sec
+ SCC setup                      ...        0 min,  0.000 sec (  1.663%)
+ Dispersion                     ...        0 min,  0.000 sec (  1.497%)
+ classical contributions        ...        0 min,  0.000 sec (  0.344%)
+ integral evaluation            ...        0 min,  0.000 sec ( 12.206%)
+ iterations                     ...        0 min,  0.002 sec ( 50.276%)
+ molecular gradient             ...        0 min,  0.001 sec ( 30.848%)
+ printout                       ...        0 min,  0.000 sec (  2.572%)
+
+         :::::::::::::::::::::::::::::::::::::::::::::::::::::
+         ::                     SUMMARY                     ::
+         :::::::::::::::::::::::::::::::::::::::::::::::::::::
+         :: total energy             -19.591870669807 Eh    ::
+         :: gradient norm              0.000282795092 Eh/a0 ::
+         :: HOMO-LUMO gap              3.614320770429 eV    ::
+         ::.................................................::
+         :: SCC energy               -19.916093361659 Eh    ::
+         :: -> isotropic ES            0.017230670644 Eh    ::
+         :: -> anisotropic ES          0.004803781511 Eh    ::
+         :: -> anisotropic XC          0.016380857072 Eh    ::
+         :: -> dispersion             -0.009236196228 Eh    ::
+         :: repulsion energy           0.324222691853 Eh    ::
+         :: add. restraining           0.000000000000 Eh    ::
+         :: total charge              -0.000000000000 e     ::
+         :::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+           -------------------------------------------------
+          |                Property Printout                |
+           -------------------------------------------------
+
+    * Orbital Energies and Occupations
+
+         #    Occupation            Energy/Eh            Energy/eV
+      -------------------------------------------------------------
+         1        2.0000           -0.6611143             -17.9898
+       ...           ...                  ...                  ...
+         6        2.0000           -0.5785263             -15.7425
+         7        2.0000           -0.5447541             -14.8235
+         8        2.0000           -0.5421098             -14.7516
+         9        2.0000           -0.5038455             -13.7103
+        10        2.0000           -0.4992192             -13.5844
+        11        2.0000           -0.4913726             -13.3709
+        12        2.0000           -0.4822410             -13.1224
+        13        2.0000           -0.4770521             -12.9812
+        14        2.0000           -0.4633259             -12.6077
+        15        2.0000           -0.4271109             -11.6223
+        16        2.0000           -0.4055619             -11.0359
+        17        2.0000           -0.3787682             -10.3068
+        18        2.0000           -0.3556612              -9.6780 (HOMO)
+        19                         -0.2228373              -6.0637 (LUMO)
+        20                         -0.2220639              -6.0427
+        21                         -0.0931380              -2.5344
+        22                          0.0213755               0.5817
+        23                          0.1351137               3.6766
+        24                          0.1433319               3.9003
+        25                          0.1507145               4.1012
+        26                          0.1830142               4.9801
+        27                          0.2158260               5.8729
+        28                          0.2336211               6.3572
+        29                          0.3196550               8.6983
+       ...                                ...                  ...
+        34                          0.6356564              17.2971
+      -------------------------------------------------------------
+                  HL-Gap            0.1328238 Eh            3.6143 eV
+             Fermi-level           -0.2892492 Eh           -7.8709 eV
+
+     #   Z          covCN         q      C6AA      α(0)
+     1   7 N        2.641    -0.267    26.911     7.704
+     2   6 C        2.907     0.096    25.876     8.341
+     3   6 C        2.918    -0.073    29.819     8.955
+     4   6 C        2.917     0.059    26.688     8.471
+     5   7 N        1.835    -0.244    27.222     7.732
+     6   6 C        2.917     0.059    26.688     8.471
+     7   6 C        2.918    -0.073    29.819     8.955
+     8   1 H        0.860     0.165     1.305     1.790
+     9   1 H        0.860     0.165     1.305     1.790
+    10   1 H        0.926     0.025     2.664     2.552
+    11   1 H        0.925     0.033     2.548     2.496
+    12   1 H        0.925     0.033     2.548     2.496
+    13   1 H        0.926     0.025     2.664     2.552
+
+ Mol. C6AA /au·bohr⁶  :       2065.030816
+ Mol. C8AA /au·bohr⁸  :      48718.025681
+ Mol. α(0) /au        :         72.306153
+
+
+Wiberg/Mayer (AO) data.
+largest (>0.10) Wiberg bond orders for each atom
+
+ ---------------------------------------------------------------------------
+     #   Z sym  total        # sym  WBO       # sym  WBO       # sym  WBO
+ ---------------------------------------------------------------------------
+     1   7 N    3.290 --     2 C    1.186     8 H    0.954     9 H    0.954
+     2   6 C    3.970 --     3 C    1.334     7 C    1.334     1 N    1.186
+     3   6 C    3.986 --     4 C    1.463     2 C    1.334    10 H    0.968
+     4   6 C    3.984 --     3 C    1.463     5 N    1.419    11 H    0.964
+     5   7 N    3.052 --     4 C    1.419     6 C    1.419
+     6   6 C    3.984 --     7 C    1.463     5 N    1.419    12 H    0.964
+     7   6 C    3.986 --     6 C    1.463     2 C    1.334    13 H    0.968
+     8   1 H    0.972 --     1 N    0.954
+     9   1 H    0.972 --     1 N    0.954
+    10   1 H    0.999 --     3 C    0.968
+    11   1 H    0.998 --     4 C    0.964
+    12   1 H    0.998 --     6 C    0.964
+    13   1 H    0.999 --     7 C    0.968
+ ---------------------------------------------------------------------------
+
+Topologies differ in total number of bonds
+Writing topology from bond orders to xtbtopo.mol
+
+MOs/occ written to file <molden.input>
+
+
+molecular dipole:
+                 x           y           z       tot (Debye)
+ q only:        1.136       0.004       0.106
+   full:        1.671       0.006       0.253       4.296
+molecular quadrupole (traceless):
+                xx          xy          yy          xz          yz          zz
+ q only:        1.848       0.015       0.900       0.889      -0.004      -2.748
+  q+dip:        1.141       0.010       4.223       2.143      -0.012      -5.365
+   full:       -0.065       0.009       3.215       2.239      -0.004      -3.149
+Note: The following floating-point exceptions are signalling: IEEE_DENORMAL
+normal termination of xtb
+
+           -------------------------------------------------
+          |                Geometry Summary                 |
+           -------------------------------------------------
+
+      molecular mass/u    :       94.1147304
+   center of mass at/Å    :        0.0493054       0.0033051      -0.0182458
+  moments of inertia/u·Å² :        0.8411400E+02   0.1902372E+03   0.2741602E+03
+rotational constants/cm⁻¹ :        0.2004141E+00   0.8861373E-01   0.6148827E-01
+
+ * 13 selected distances
+
+     #   Z          #   Z                                           value/Å
+     1   7 N        2   6 C                                       1.3677337
+     2   6 C        3   6 C                                       1.3983010
+     3   6 C        4   6 C                                       1.3803980
+     4   6 C        5   7 N                                       1.3240437
+     5   7 N        6   6 C                                       1.3240434
+     2   6 C        7   6 C                                       1.3983020 (max)
+     6   6 C        7   6 C                                       1.3803976
+     1   7 N        8   1 H                                       1.0056273 (min)
+     1   7 N        9   1 H                                       1.0056276
+     3   6 C       10   1 H                                       1.0799915
+     4   6 C       11   1 H                                       1.0824954
+     6   6 C       12   1 H                                       1.0824962
+     7   6 C       13   1 H                                       1.0799919
+
+ * 4 distinct bonds (by element types)
+
+   Z      Z             #   av. dist./Å        max./Å        min./Å
+   1 H    6 C           4     1.0812438     1.0824962     1.0799915
+   6 C    6 C           4     1.3893496     1.3983020     1.3803976
+   1 H    7 N           2     1.0056275     1.0056276     1.0056273
+   6 C    7 N           3     1.3386069     1.3677337     1.3240434
+
+
+optimized geometry written to: xtbopt.xyz
+
+
+           -------------------------------------------------
+          | TOTAL ENERGY              -19.591870669807 Eh   |
+          | GRADIENT NORM               0.000282795092 Eh/α |
+          | HOMO-LUMO GAP               3.614320770429 eV   |
+           -------------------------------------------------
+
+------------------------------------------------------------------------
+ * finished run on 2026/11/08 at 20:37:05.315     
+------------------------------------------------------------------------
+ total:
+ * wall-time:     0 d,  0 h,  0 min,  0.238 sec
+ *  cpu-time:     0 d,  0 h,  0 min,  0.437 sec
+ * ratio c/w:     1.834 speedup
+ SCF:
+ * wall-time:     0 d,  0 h,  0 min,  0.090 sec
+ *  cpu-time:     0 d,  0 h,  0 min,  0.083 sec
+ * ratio c/w:     0.914 speedup
+ ANC optimizer:
+ * wall-time:     0 d,  0 h,  0 min,  0.092 sec
+ *  cpu-time:     0 d,  0 h,  0 min,  0.318 sec
+ * ratio c/w:     3.479 speedup
+
+ECCE-XTB-FRAME 1 13
+ energy: -19.588731733890 gnorm: 0.051508795375 xtb: 6.7.1 (unknown)
+N            2.39079000000000        0.01049000000000       -0.18870000000000
+C            1.00274000000000        0.00644000000000       -0.00275000000000
+C            0.28437000000000        1.19886000000000       -0.03022000000000
+C           -1.10025000000000        1.14563000000000        0.02422000000000
+N           -1.80721000000000       -0.00254000000000        0.06799000000000
+C           -1.09262000000000       -1.14614000000000        0.02924000000000
+C            0.29228000000000       -1.19069000000000       -0.02507000000000
+H            2.84976000000000        0.85525000000000        0.13867000000000
+H            2.85510000000000       -0.83001000000000        0.14196000000000
+H            0.78504000000000        2.15779000000000       -0.09370000000000
+H           -1.69403000000000        2.05503000000000        0.02096000000000
+H           -1.68044000000000       -2.05946000000000        0.03005000000000
+H            0.79918000000000       -2.14657000000000       -0.08446000000000
+ECCE-XTB-ENDFRAME
+ECCE-XTB-FRAME 2 13
+ energy: -19.591167389669 gnorm: 0.020747405279 xtb: 6.7.1 (unknown)
+N            2.38976982860752        0.01056577123377       -0.18099917584158
+C            1.00641316149298        0.00634613374268       -0.05457420754653
+C            0.28139532494467        1.19735872307289       -0.03971527092088
+C           -1.09727560756117        1.13329591105130        0.01815215513099
+N           -1.78925911234195       -0.00251841772019        0.05550639057172
+C           -1.08985498060144       -1.13390306756310        0.02309815703219
+C            0.28920146292902       -1.18928268747824       -0.03455871033234
+H            2.84330457942271        0.85554602160825        0.13962349425988
+H            2.84871382654013       -0.83017282844001        0.14302123640741
+H            0.78248112849478        2.15507983493983       -0.06465929165860
+H           -1.69498735991833        2.03558933954336        0.03488332881626
+H           -1.68168583090854       -2.04000588082935        0.04380736562150
+H            0.79649357889963       -2.14381885316116       -0.05539547154003
+ECCE-XTB-ENDFRAME
+ECCE-XTB-FRAME 3 13
+ energy: -19.591622393880 gnorm: 0.006901809363 xtb: 6.7.1 (unknown)
+N            2.38181707970621        0.01057926302946       -0.16947016141045
+C            1.00908994048183        0.00636127482389       -0.05091364188551
+C            0.27950018814380        1.19685324289315       -0.02927666421576
+C           -1.09848628095890        1.12828321795770        0.01218717254852
+N           -1.78250489670441       -0.00253087916772        0.03825422962893
+C           -1.09115549202283       -1.12896542172518        0.01708494607728
+C            0.28725800528909       -1.18875559523786       -0.02411093113545
+H            2.84478009658547        0.85855711558437        0.12125932232941
+H            2.85024642346245       -0.83317411796907        0.12477062651667
+H            0.78463340408018        2.15082125129316       -0.04836217966731
+H           -1.69612170667254        2.02983738400675        0.03351027933062
+H           -1.68291796448443       -2.03428534233105        0.04233240999868
+H            0.79857120309407       -2.13950139315761       -0.03907540811563
+ECCE-XTB-ENDFRAME
+ECCE-XTB-FRAME 4 13
+ energy: -19.591759095223 gnorm: 0.005218185679 xtb: 6.7.1 (unknown)
+N            2.37729910749863        0.01057977678368       -0.15784999624945
+C            1.00927675475872        0.00636615563852       -0.04657143006547
+C            0.27804206247949        1.19749001422293       -0.02500692473978
+C           -1.10052410266741        1.12878248738281        0.01093137687390
+N           -1.78311835474773       -0.00254255776808        0.03115371360276
+C           -1.09320009858625       -1.12949098816349        0.01581435555948
+C            0.28579182390680       -1.18938529177820       -0.01983644920892
+H            2.84858872027499        0.86164217547872        0.10801928612328
+H            2.85409577262641       -0.83626736875120        0.11162529088617
+H            0.78715427323260        2.14950584816080       -0.03840384062317
+H           -1.69649004636907        2.03197600409866        0.02931545749419
+H           -1.68328017549665       -2.03644788103203        0.03811324878224
+H            0.80107426308946       -2.13812837427310       -0.02911408843523
+ECCE-XTB-ENDFRAME
+ECCE-XTB-FRAME 5 13
+ energy: -19.591841411180 gnorm: 0.004070361482 xtb: 6.7.1 (unknown)
+N            2.37356332328912        0.01058928025089       -0.14142895309013
+C            1.00866109416793        0.00637515966756       -0.03962414016574
+C            0.27658681707166        1.19797009242858       -0.02237549811580
+C           -1.10229753530081        1.13001234371403        0.00939416244177
+N           -1.78581774610612       -0.00255568571730        0.02732249574880
+C           -1.09496112000909       -1.13073742833826        0.01427881591481
+C            0.28433671768411       -1.18986193182299       -0.01720881902541
+H            2.85359970871026        0.86462980807669        0.09530903587376
+H            2.85914230764239       -0.83927400846973        0.09899163262637
+H            0.78874923722134        2.14854007366731       -0.03346548473292
+H           -1.69637638226488        2.03495320868901        0.02619263499363
+H           -1.68314214054346       -2.03943653932824        0.03499014774268
+H            0.80266571843754       -2.13712437281755       -0.02418603021183
+ECCE-XTB-ENDFRAME
+ECCE-XTB-FRAME 6 13
+ energy: -19.591863349084 gnorm: 0.002162286527 xtb: 6.7.1 (unknown)
+N            2.37298893583787        0.01060493148689       -0.13219937381009
+C            1.00836995015900        0.00638009922898       -0.03707035318303
+C            0.27629080134402        1.19801209553208       -0.02195627725167
+C           -1.10235257691554        1.13027277598368        0.01005209113705
+N           -1.78713899831903       -0.00255664328325        0.02900639313831
+C           -1.09500803934210       -1.13099129168658        0.01493870949845
+C            0.28404430790150       -1.18990298380328       -0.01679425627281
+H            2.85559186624514        0.86552279114298        0.09082207984316
+H            2.86114222768466       -0.84018261266350        0.09450822039187
+H            0.78818309075051        2.14878584307152       -0.03448457293447
+H           -1.69637476128189        2.03523283272693        0.02388461914669
+H           -1.68313473794007       -2.03972377029852        0.03269472338742
+H            0.80210793387595       -2.13737406743795       -0.02521200309089
+ECCE-XTB-ENDFRAME
+ECCE-XTB-FRAME 7 13
+ energy: -19.591869909937 gnorm: 0.000643088657 xtb: 6.7.1 (unknown)
+N            2.37312822800407        0.01061847675281       -0.12634021741433
+C            1.00833386343583        0.00638333504355       -0.03553908989722
+C            0.27643439392019        1.19791568947294       -0.02196133086808
+C           -1.10200753122068        1.13008720790300        0.00937323941128
+N           -1.78760369314384       -0.00255869245027        0.02939820602139
+C           -1.09466205383962       -1.13080463019817        0.01426413116640
+C            0.28418971029192       -1.18980830860788       -0.01679718969176
+H            2.85656563685716        0.86621396895099        0.08826386551895
+H            2.86211617754066       -0.84087755523467        0.09195936350231
+H            0.78711484935887        2.14946650602629       -0.03518343562914
+H           -1.69659003397223        2.03463980054827        0.02392975577088
+H           -1.68335591011619       -2.03912908459784        0.03273693286449
+H            0.80104636288386       -2.13806671360903       -0.02591423075516
+ECCE-XTB-ENDFRAME
+ECCE-XTB-FRAME 8 13
+ energy: -19.591870669772 gnorm: 0.000282352971 xtb: 6.7.1 (unknown)
+N            2.37326327466562        0.01062555835496       -0.12452563473079
+C            1.00851344829158        0.00638681332558       -0.03433107816505
+C            0.27673432877532        1.19783798403538       -0.02059160908994
+C           -1.10165325181353        1.12988372199728        0.00987346552193
+N           -1.78743666963515       -0.00256010512054        0.02893708155566
+C           -1.09430937122786       -1.13059566167086        0.01475774679253
+C            0.28449065222147       -1.18972429685059       -0.01543173357414
+H            2.85693404635536        0.86678992773490        0.08602428640534
+H            2.86248386844752       -0.84145982031307        0.08971813931818
+H            0.78618726516904        2.15002036825976       -0.03429603629018
+H           -1.69692380352173        2.03392949665948        0.02213430927332
+H           -1.68369584201329       -2.03842794194303        0.03094443404719
+H            0.80012205428565       -2.13862604446924       -0.02502337106405
+ECCE-XTB-ENDFRAME
+ECCE-XTB-MOLDEN
+[Molden Format]
+[Title]
+[Atoms] AU
+N      1     7  0.44848176107379E+01  0.20079395212051E-01 -0.23531934513571E+00
+C      2     6  0.19058142102677E+01  0.12069327994425E-01 -0.64876335294881E-01
+C      3     6  0.52295209066602E+00  0.22635857314943E+01 -0.38912501645235E-01
+C      4     6 -0.20818229302251E+01  0.21351707872416E+01  0.18658145737336E-01
+N      5     7 -0.33777657707141E+01 -0.48378975280639E-02  0.54683158985997E-01
+C      6     6 -0.20679450072263E+01 -0.21365161582420E+01  0.27888099654375E-01
+C      7     6  0.53760941771321E+00 -0.22482530848542E+01 -0.29161750083237E-01
+H      8     1  0.53988229037153E+01  0.16379955709985E+01  0.16256234137201E+00
+H      9     1  0.54093105475099E+01 -0.15901286052640E+01  0.16954271172190E+00
+H     10     1  0.14856786138338E+01  0.40629496583665E+01 -0.64810115748488E-01
+H     11     1 -0.32067212430053E+01  0.38435697054735E+01  0.41827782484218E-01
+H     12     1 -0.31817240185673E+01 -0.38520705350460E+01  0.58476505430565E-01
+H     13     1  0.15120115488686E+01 -0.40414175070272E+01 -0.47287318025797E-01
+[GTO]
+           1 0
+ s           4   1.0000000000000000     
+   63.594024466941008      -0.19234388414721629     
+   10.951417231523665      -0.23478107924953728     
+  0.87999310257376984       0.37593753901700888     
+  0.33538715296521110       0.14982889271862770     
+ p           4   1.0000000000000000     
+   7.2965040481495080       0.97658666315667420     
+   1.8918745450712575       0.90372226730345739     
+  0.66694432110824120       0.47404958461536373     
+  0.26552202674130870        7.1516067715011844E-002
+
+           2 0
+ s           4   1.0000000000000000     
+   51.049363095579913      -0.16312063210127389     
+   8.7911227406887544      -0.19911024581000730     
+  0.70640422258929825       0.31882047753655751     
+  0.26922813413411617       0.12706504184240380     
+ p           4   1.0000000000000000     
+   5.8263656140800002       0.73716451545209605     
+   1.5106896018720002       0.68216371614850257     
+  0.53256483288000001       0.35783053929253711     
+  0.21202323690600003        5.3983030275847881E-002
+
+           3 0
+ s           4   1.0000000000000000     
+   51.049363095579913      -0.16312063210127389     
+   8.7911227406887544      -0.19911024581000730     
+  0.70640422258929825       0.31882047753655751     
+  0.26922813413411617       0.12706504184240380     
+ p           4   1.0000000000000000     
+   5.8263656140800002       0.73716451545209605     
+   1.5106896018720002       0.68216371614850257     
+  0.53256483288000001       0.35783053929253711     
+  0.21202323690600003        5.3983030275847881E-002
+
+           4 0
+ s           4   1.0000000000000000     
+   51.049363095579913      -0.16312063210127389     
+   8.7911227406887544      -0.19911024581000730     
+  0.70640422258929825       0.31882047753655751     
+  0.26922813413411617       0.12706504184240380     
+ p           4   1.0000000000000000     
+   5.8263656140800002       0.73716451545209605     
+   1.5106896018720002       0.68216371614850257     
+  0.53256483288000001       0.35783053929253711     
+  0.21202323690600003        5.3983030275847881E-002
+
+           5 0
+ s           4   1.0000000000000000     
+   63.594024466941008      -0.19234388414721629     
+   10.951417231523665      -0.23478107924953728     
+  0.87999310257376984       0.37593753901700888     
+  0.33538715296521110       0.14982889271862770     
+ p           4   1.0000000000000000     
+   7.2965040481495080       0.97658666315667420     
+   1.8918745450712575       0.90372226730345739     
+  0.66694432110824120       0.47404958461536373     
+  0.26552202674130870        7.1516067715011844E-002
+
+           6 0
+ s           4   1.0000000000000000     
+   51.049363095579913      -0.16312063210127389     
+   8.7911227406887544      -0.19911024581000730     
+  0.70640422258929825       0.31882047753655751     
+  0.26922813413411617       0.12706504184240380     
+ p           4   1.0000000000000000     
+   5.8263656140800002       0.73716451545209605     
+   1.5106896018720002       0.68216371614850257     
+  0.53256483288000001       0.35783053929253711     
+  0.21202323690600003        5.3983030275847881E-002
+
+           7 0
+ s           4   1.0000000000000000     
+   51.049363095579913      -0.16312063210127389     
+   8.7911227406887544      -0.19911024581000730     
+  0.70640422258929825       0.31882047753655751     
+  0.26922813413411617       0.12706504184240380     
+ p           4   1.0000000000000000     
+   5.8263656140800002       0.73716451545209605     
+   1.5106896018720002       0.68216371614850257     
+  0.53256483288000001       0.35783053929253711     
+  0.21202323690600003        5.3983030275847881E-002
+
+           8 0
+ s           3   1.0000000000000000     
+   3.3702276975336001       0.27359110588908298     
+  0.61389118221497996       0.26460540653860526     
+  0.16614291148415999        8.2465947534082318E-002
+
+           9 0
+ s           3   1.0000000000000000     
+   3.3702276975336001       0.27359110588908298     
+  0.61389118221497996       0.26460540653860526     
+  0.16614291148415999        8.2465947534082318E-002
+
+          10 0
+ s           3   1.0000000000000000     
+   3.3702276975336001       0.27359110588908298     
+  0.61389118221497996       0.26460540653860526     
+  0.16614291148415999        8.2465947534082318E-002
+
+          11 0
+ s           3   1.0000000000000000     
+   3.3702276975336001       0.27359110588908298     
+  0.61389118221497996       0.26460540653860526     
+  0.16614291148415999        8.2465947534082318E-002
+
+          12 0
+ s           3   1.0000000000000000     
+   3.3702276975336001       0.27359110588908298     
+  0.61389118221497996       0.26460540653860526     
+  0.16614291148415999        8.2465947534082318E-002
+
+          13 0
+ s           3   1.0000000000000000     
+   3.3702276975336001       0.27359110588908298     
+  0.61389118221497996       0.26460540653860526     
+  0.16614291148415999        8.2465947534082318E-002
+
+[MO]
+Sym=     1a
+Ene=  -0.66111428799561667     
+Spin= Alpha
+Occup=     2.00000000
+           1  0.33718900239195437     
+           2 -0.18808735663919890     
+           3  -5.4426836745617669E-004
+           4   3.0848850925870221E-002
+           5  0.46607746310031106     
+           6   4.9207369022402199E-002
+           7   1.6212063403262916E-004
+           8   9.6191732608948664E-004
+           9  0.21626641314624384     
+          10   3.8480689546450911E-002
+          11 -0.10244444149818639     
+          12   9.7122870952641590E-004
+          13  0.10976650208743938     
+          14   4.7355142447663853E-002
+          15  -4.4566459995411561E-002
+          16  -3.9328931111693116E-004
+          17   8.9439171338158069E-002
+          18   5.9521421621957088E-002
+          19   1.9116250768759532E-004
+          20  -1.0210788930842330E-003
+          21  0.10976647035939965     
+          22   4.7064520379454224E-002
+          23   4.4871103383357286E-002
+          24  -5.8648271473724957E-004
+          25  0.21626597902381267     
+          26   3.7814106124263148E-002
+          27  0.10269547182497168     
+          28   5.2791309379748765E-004
+          29   6.4330942488741605E-002
+          30   6.4330853665386920E-002
+          31   3.9879733043421836E-002
+          32   1.0947989946770063E-002
+          33   1.0947946269159932E-002
+          34   3.9879657240279295E-002
+Sym=     2a
+Ene=  -0.64340299039167403     
+Spin= Alpha
+Occup=     2.00000000
+           1  0.34527747086502025     
+           2  -7.0520217027649795E-002
+           3  -1.5806937117857246E-004
+           4   3.2834356573564580E-002
+           5   7.3738458454905911E-002
+           6  0.20828565642429975     
+           7   6.7026407529466206E-004
+           8  -2.9613006017609961E-003
+           9 -0.13710094829025851     
+          10  0.10322788495125075     
+          11   3.2199999525168832E-002
+          12  -2.7562819791290922E-003
+          13 -0.26646614350557607     
+          14  -2.3430582936674531E-002
+          15  0.10251148163533910     
+          16  -6.1110481565482407E-004
+          17 -0.29931802952658976     
+          18 -0.14166681724507002     
+          19  -4.5471128318319939E-004
+          20   2.5395722435587443E-003
+          21 -0.26646619465124405     
+          22  -2.2763959818235556E-002
+          23 -0.10266328934157562     
+          24  -1.6791628802445674E-004
+          25 -0.13710090951412018     
+          26  0.10343489636270631     
+          27  -3.1540283529831549E-002
+          28  -2.6185390610230690E-003
+          29   9.2177389133941676E-002
+          30   9.2177322714330420E-002
+          31  -1.2759241005149561E-002
+          32  -3.9932765414433531E-002
+          33  -3.9932695746274192E-002
+          34  -1.2759135106319139E-002
+Sym=     3a
+Ene=  -0.61771294167658153     
+Spin= Alpha
+Occup=     2.00000000
+           1   1.2806348859616158E-006
+           2   3.6036581811464577E-004
+           3 -0.11083801156688471     
+           4   2.3975333387207516E-004
+           5  -4.7081506178272404E-007
+           6   7.2242115800848672E-004
+           7 -0.22218138682487726     
+           8   4.8023284415099691E-004
+           9 -0.33807993696400007     
+          10   5.1360001793892690E-002
+          11  -7.6431715293964102E-003
+          12  -3.1823079447680174E-003
+          13 -0.29799652813129063     
+          14  -7.5614900888892320E-002
+          15  -1.9247357111046179E-002
+          16   6.1057344467724901E-004
+          17   1.2919768557798051E-006
+          18   5.2117504576554708E-004
+          19 -0.16031620930120685     
+          20   3.4652917132951719E-004
+          21  0.29799751172504352     
+          22   7.5737651980817430E-002
+          23  -1.8757327521746039E-002
+          24  -5.2805612860423842E-004
+          25  0.33807893723443583     
+          26  -5.1309656029189049E-002
+          27  -7.9629399824713270E-003
+          28   3.2161740529375988E-003
+          29  -5.0515115026331034E-002
+          30   5.0516123837961259E-002
+          31 -0.11042411395373181     
+          32  -8.6757086437948008E-002
+          33   8.6757058707227511E-002
+          34  0.11042365797229953     
+Sym=     4a
+Ene=  -0.61284737354990337     
+Spin= Alpha
+Occup=     2.00000000
+           1 -0.36954446228763566     
+           2 -0.14352041601571125     
+           3  -5.6793067334143840E-004
+           4  -4.6828807161708334E-002
+           5  0.21240795527710532     
+           6 -0.16514977325358240     
+           7  -5.4932396113176608E-004
+           8  -5.6198831712494955E-003
+           9  0.17616719503244241     
+          10   5.9217732525980858E-002
+          11  -6.0822743808275848E-002
+          12  -2.5147063298453474E-003
+          13 -0.14437828116935331     
+          14  0.11885285681818687     
+          15  0.10026504548979052     
+          16  -3.7707404731795926E-003
+          17 -0.36607958833201004     
+          18  -8.3980952526335653E-002
+          19  -2.7097939529883622E-004
+          20   1.0899320425108989E-003
+          21 -0.14437627445876194     
+          22  0.11950244416705950     
+          23  -9.9506249030620927E-002
+          24  -3.3391548542665646E-003
+          25  0.17616928041055763     
+          26   5.8820911723869836E-002
+          27   6.1194639026173933E-002
+          28  -2.7783618518053979E-003
+          29 -0.16611465858055871     
+          30 -0.16611422668742762     
+          31   4.6936835415623712E-002
+          32  -3.3921769467600803E-002
+          33  -3.3921211189793070E-002
+          34   4.6937547405190676E-002
+Sym=     5a
+Ene=  -0.58774058220111214     
+Spin= Alpha
+Occup=     2.00000000
+           1  -3.1246926707864752E-007
+           2  -8.2192397801340346E-004
+           3  0.25292942667916501     
+           4  -5.4687097691118430E-004
+           5   1.0554521669030287E-007
+           6  -8.3677107846523869E-004
+           7  0.25757657359793185     
+           8  -5.5677071245514138E-004
+           9  0.15113283346069598     
+          10  0.16193509205795489     
+          11  -1.4081919477172239E-002
+          12  -2.4660248110310824E-003
+          13 -0.28067426645506022     
+          14  0.10382465052153175     
+          15   3.3447404533839286E-003
+          16  -2.8911076811646685E-003
+          17   3.6991624771385264E-007
+          18   9.0543036388902821E-004
+          19 -0.27870463599297507     
+          20   6.0240972086627611E-004
+          21  0.28067379811042587     
+          22 -0.10384470884124215     
+          23   2.6828798490760057E-003
+          24   2.8785241632344532E-003
+          25 -0.15113336112253195     
+          26 -0.16183991578424881     
+          27  -1.5122842647878139E-002
+          28   2.5290495513757253E-003
+          29  0.12943949846072075     
+          30 -0.12943988141629678     
+          31   9.4822695767185827E-002
+          32 -0.12412489799147436     
+          33  0.12412463644555984     
+          34  -9.4823089535668051E-002
+Sym=     6a
+Ene=  -0.57852628623144864     
+Spin= Alpha
+Occup=     2.00000000
+           1 -0.16020588810527311     
+           2 -0.34157498805162179     
+           3  -1.2257139786908120E-003
+           4  -5.3491557711686594E-002
+           5  0.20120847153403282     
+           6  0.12058186415746465     
+           7   3.2353377445491007E-004
+           8  -3.1457325345814566E-002
+           9 -0.19409347080762318     
+          10  0.12219403239032277     
+          11  -9.9719711280672196E-002
+          12  -1.1896404155689964E-002
+          13  -9.7001822714144370E-002
+          14 -0.16313052922185184     
+          15 -0.14204509138608290     
+          16   7.3208883036439507E-004
+          17  0.29055929514682449     
+          18   5.6983971318173496E-003
+          19   1.4553903464728089E-005
+          20  -2.0420010190591335E-003
+          21  -9.7002795898292235E-002
+          22 -0.16404991357971091     
+          23  0.14098394381916043     
+          24   1.2021919224357305E-004
+          25 -0.19409359112466093     
+          26  0.12154413898531320     
+          27  0.10045902179018205     
+          28  -1.2329128159515116E-002
+          29 -0.18042005403729763     
+          30 -0.18041965919692196     
+          31  -9.8345401426303547E-002
+          32  -5.9179801844424194E-002
+          33  -5.9179875052385436E-002
+          34  -9.8345026779349864E-002
+Sym=     7a
+Ene=  -0.54475414905356934     
+Spin= Alpha
+Occup=     2.00000000
+           1  -3.5423192485801613E-008
+           2   1.5842406912847918E-003
+           3 -0.48812916999957667     
+           4   1.0553368713553191E-003
+           5  -1.0444591024825167E-007
+           6   1.9060363613137153E-004
+           7  -5.8241408814745925E-002
+           8   1.2595031021671389E-004
+           9  0.18170337138288425     
+          10  -7.1059142127579217E-002
+          11   6.9215077945742096E-002
+          12   2.4107127198210649E-003
+          13  -6.2074869698350223E-002
+          14  0.20146047093527797     
+          15   6.2272742491171436E-002
+          16  -4.5385741225311398E-003
+          17   3.4370633186218661E-008
+          18   7.8425685988182676E-004
+          19 -0.24151693095730986     
+          20   5.2201254127891815E-004
+          21   6.2076303185458689E-002
+          22 -0.20186160920032595     
+          23   6.0979708557156662E-002
+          24   4.2725079331056588E-003
+          25 -0.18170321139605128     
+          26   7.0607884552169445E-002
+          27   6.9662110990080184E-002
+          28  -2.7107665144133542E-003
+          29 -0.28777675921627044     
+          30  0.28777558125951930     
+          31   8.6240904320512610E-002
+          32  -5.5877040557822708E-002
+          33   5.5879098885545979E-002
+          34  -8.6239359921435152E-002
+Sym=     8a
+Ene=  -0.54210975769183423     
+Spin= Alpha
+Occup=     2.00000000
+           1  -6.3926168808659490E-003
+           2 -0.34824278983014145     
+           3  -1.2819964924954746E-003
+           4  -7.0836025449855552E-002
+           5  -3.3752783701929190E-002
+           6  0.30057391411695367     
+           7   8.3823676905034773E-004
+           8  -6.4006891578931732E-002
+           9   1.9062525164259683E-002
+          10  -2.8724252995331448E-002
+          11  0.20804367373797875     
+          12  -2.0548464484824492E-002
+          13  0.17928129720509989     
+          14  -6.2923906584540432E-002
+          15  0.18579216257259096     
+          16  -8.2001905054297723E-003
+          17  -1.6024645226733537E-003
+          18  -6.4644690347688091E-002
+          19  -2.2345582203328935E-004
+          20  -6.5680836765249122E-003
+          21  0.17928102538776491     
+          22  -6.1713379791317725E-002
+          23 -0.18623086833721053     
+          24  -7.3953718198593900E-003
+          25   1.9064731060703673E-002
+          26  -2.7372452935162071E-002
+          27 -0.20831296580834607     
+          28  -1.9648158553321735E-002
+          29 -0.14130203829436710     
+          30 -0.14130505976277671     
+          31  0.11978872438449825     
+          32  0.20056489938571118     
+          33  0.20056389918562861     
+          34  0.11978913839659289     
+Sym=     9a
+Ene=  -0.50384550121981253     
+Spin= Alpha
+Occup=     2.00000000
+           1 -0.13026617166479196     
+           2   1.7412528324402585E-002
+           3   7.9185398798978126E-004
+           4  0.34011999125364106     
+           5   1.2907384301638878E-002
+           6  -2.6093269932818638E-003
+           7   8.7052999921190439E-004
+           8  0.40616617522732212     
+           9   5.0321751035168540E-002
+          10  0.11980162582623716     
+          11   7.5877071733169821E-002
+          12  0.25167088156508044     
+          13  -4.4114598986614156E-002
+          14  -7.3330362595633317E-002
+          15  -4.9779967712485816E-003
+          16  0.22896731136949092     
+          17  0.13304856574294172     
+          18  -6.1091956671130321E-002
+          19   3.6002447604627019E-004
+          20  0.25779122782791897     
+          21  -4.4115894678173312E-002
+          22  -7.3364706505433877E-002
+          23   5.4882568865000213E-003
+          24  0.22894491781975931     
+          25   5.0321097689561133E-002
+          26  0.12028890072317701     
+          27  -7.4011160522614847E-002
+          28  0.25199500277577569     
+          29   1.5329560065511361E-002
+          30   1.5329978067530871E-002
+          31  0.12634197032192246     
+          32   5.7957883727073880E-003
+          33   5.7986660778299604E-003
+          34  0.12634445780815434     
+Sym=    10a
+Ene=  -0.49921920109588397     
+Spin= Alpha
+Occup=     2.00000000
+           1  -4.8957536173724857E-002
+           2  0.11611435268141157     
+           3   1.2297466596232869E-004
+           4 -0.11790921390592407     
+           5  -9.0871838711851768E-002
+           6  -3.3897617099514755E-002
+           7  -4.3541124937557425E-004
+           8 -0.15016962060502809     
+           9  0.15080531477987325     
+          10  0.19753756199895958     
+          11  0.19899521857495489     
+          12 -0.10955330526827672     
+          13 -0.14711878331463082     
+          14  -5.5359706459730734E-002
+          15 -0.12825562148647546     
+          16 -0.10432309181664247     
+          17  0.27051857367000420     
+          18  -4.7313683269829619E-002
+          19  -4.1916261845004150E-004
+          20 -0.12248600303693377     
+          21 -0.14711837397395996     
+          22  -5.6190960409212648E-002
+          23  0.12744220635548270     
+          24 -0.10487612157725845     
+          25  0.15080597864330728     
+          26  0.19882893347276664     
+          27 -0.19817814657399588     
+          28 -0.10869422967092153     
+          29   3.1969474501671639E-002
+          30   3.1968510771564818E-002
+          31  0.30839681655180012     
+          32 -0.13939195852277383     
+          33 -0.13939273591788362     
+          34  0.30839660173489952     
+Sym=    11a
+Ene=  -0.49137263264577952     
+Spin= Alpha
+Occup=     2.00000000
+           1   4.3949607412579481E-007
+           2   9.2760492406937728E-004
+           3 -0.28565813855206473     
+           4   6.1650989340263692E-004
+           5  -7.8784564132045000E-007
+           6  -9.6238180699768862E-004
+           7  0.29647134919670476     
+           8  -6.4226063802052895E-004
+           9   6.8044346623389415E-002
+          10  0.26483160162258407     
+          11 -0.12290359201161061     
+          12  -4.8518583709539157E-003
+          13  -4.0924318053266399E-002
+          14 -0.20437185760923735     
+          15 -0.20156258618128461     
+          16   5.1548805284112173E-003
+          17   1.9460570427323356E-007
+          18  -1.0322624539872882E-003
+          19  0.31789034118996995     
+          20  -6.8745688486378557E-004
+          21   4.0924279874238009E-002
+          22  0.20567830893192776     
+          23 -0.20024981828124758     
+          24  -4.2875549604677807E-003
+          25  -6.8043652896505130E-002
+          26 -0.26402820096958568     
+          27 -0.12460135056897703     
+          28   5.3847536578331768E-003
+          29 -0.20807594913137703     
+          30  0.20807559342603832     
+          31   4.0753071517063102E-002
+          32  -7.5069946083772557E-002
+          33   7.5068164386060676E-002
+          34  -4.0752194868369652E-002
+Sym=    12a
+Ene=  -0.48224095545801271     
+Spin= Alpha
+Occup=     2.00000000
+           1  -9.7702373825493571E-002
+           2  0.24646057776400310     
+           3   8.8899046543558578E-004
+           4   4.1227259619472698E-002
+           5  0.17129242554516264     
+           6 -0.27627879914043635     
+           7  -9.0840507208765164E-004
+           8  -5.3820503447290762E-003
+           9  -8.6054890669820406E-003
+          10  0.16633441029191612     
+          11 -0.13066927203701739     
+          12  -5.5883811691501660E-002
+          13   9.9652637364071161E-003
+          14 -0.25283000267871081     
+          15  0.18248962068723920     
+          16  -9.3410940015661956E-002
+          17  0.10123885785151018     
+          18 -0.27083940165285264     
+          19  -1.1561022868222829E-003
+          20 -0.12789581678758238     
+          21   9.9661279877577245E-003
+          22 -0.25163530164188430     
+          23 -0.18452965994568329     
+          24  -9.2615934850849832E-002
+          25  -8.6052793055287711E-003
+          26  0.16548009964744581     
+          27  0.13150438309820700     
+          28  -5.6449373178073782E-002
+          29   8.5653548260703066E-002
+          30   8.5654806373476736E-002
+          31  -2.8801353654366521E-002
+          32  0.25115105425384965     
+          33  0.25114933556406993     
+          34  -2.8802110953904544E-002
+Sym=    13a
+Ene=  -0.47705206849327025     
+Spin= Alpha
+Occup=     2.00000000
+           1  -9.8092710850263938E-007
+           2   1.2276545473193792E-004
+           3  -3.8137856951041958E-002
+           4   8.7417568350757875E-005
+           5  -2.3748778362172819E-007
+           6   3.6785874768054610E-004
+           7 -0.11287464932668761     
+           8   2.4818037148580623E-004
+           9  -5.8780835667809672E-002
+          10  0.20004936115282473     
+          11  0.27847536411721152     
+          12  -4.6343361654102898E-003
+          13  -7.4538208610484075E-002
+          14 -0.21738249251010694     
+          15  0.20350987207833485     
+          16   4.3550005498076121E-003
+          17   1.2969501869217252E-007
+          18   1.5374322744373544E-004
+          19  -4.7084293848894433E-002
+          20   1.0083542268772383E-004
+          21   7.4537656199491709E-002
+          22  0.21605683824715677     
+          23  0.20489873838395953     
+          24  -5.2386510502812353E-003
+          25   5.8780668464502500E-002
+          26 -0.20185484741894205     
+          27  0.27718628140705587     
+          28   3.4360039829222427E-003
+          29  -8.6382463000920437E-003
+          30   8.6379393273046806E-003
+          31  0.28220517237912407     
+          32  0.21404967807042208     
+          33 -0.21405161308921658     
+          34 -0.28220473105686361     
+Sym=    14a
+Ene=  -0.46332592895793884     
+Spin= Alpha
+Occup=     2.00000000
+           1  -9.1796214490645539E-002
+           2 -0.10675768052178156     
+           3   7.3919728750549449E-004
+           4  0.50227755138684838     
+           5  -1.2307908154818855E-002
+           6   9.3685072245199855E-002
+           7   1.0135773116728558E-003
+           8  0.32722436505260000     
+           9  -1.2565054386330559E-002
+          10  -3.9614428361052410E-002
+          11   2.5679725828336712E-002
+          12   1.0731669754409532E-002
+          13   1.3386001343334352E-002
+          14   3.8650190696750443E-002
+          15  -2.5276380547648088E-002
+          16 -0.30177522172366494     
+          17  -3.2250462057990023E-002
+          18   4.9199819984248168E-002
+          19  -9.0935637897013723E-004
+          20 -0.49441655930737938     
+          21   1.3386199470602040E-002
+          22   3.8486641974246040E-002
+          23   2.4221310447205727E-002
+          24 -0.30188294209138322     
+          25  -1.2565744545543057E-002
+          26  -3.9445071452373179E-002
+          27  -2.5895523307324180E-002
+          28   1.0842177503996785E-002
+          29  -7.3533089842441231E-003
+          30  -7.3527723093561054E-003
+          31  -6.2160230670223887E-003
+          32  -3.4578757273399666E-002
+          33  -3.4578849306639098E-002
+          34  -6.2106044641322125E-003
+Sym=    15a
+Ene=  -0.42711093269258549     
+Spin= Alpha
+Occup=     2.00000000
+           1   5.7859672825195339E-007
+           2   2.2380201401632580E-004
+           3  -6.8825309797952761E-002
+           4   1.4603045375056233E-004
+           5  -3.5709500374692214E-007
+           6  -1.0704596876981761E-003
+           7  0.32951935394155546     
+           8  -7.1298128537979814E-004
+           9  -2.3488575572143486E-003
+          10   7.5523855388331923E-002
+          11 -0.26097594033203686     
+          12  -3.5738082435718414E-003
+          13  -1.0653649813430805E-002
+          14  -4.8731113153020256E-002
+          15  0.28576338449439048     
+          16  -1.6867280638766110E-003
+          17  -5.7467042494624791E-008
+          18   9.5727527115409185E-004
+          19 -0.29444607429571318     
+          20   6.3871910168272349E-004
+          21   1.0653515560256788E-002
+          22   4.6873727693372086E-002
+          23  0.28607908155857037     
+          24   4.5323325824014524E-004
+          25   2.3488424073696687E-003
+          26  -7.3826372937067675E-002
+          27 -0.26144361610681810     
+          28   4.7045879481522924E-003
+          29  -9.0038043841749224E-002
+          30   9.0037787365387797E-002
+          31 -0.24727166525845748     
+          32  0.30335238575407469     
+          33 -0.30335294379048844     
+          34  0.24727189593040752     
+Sym=    16a
+Ene=  -0.40556193863008333     
+Spin= Alpha
+Occup=     2.00000000
+           1   9.4808478726538604E-008
+           2   8.2349623752065976E-006
+           3  -2.4455765535204978E-003
+           4   4.3958596667725692E-006
+           5   3.0636331269572665E-007
+           6  -8.4217358573493159E-007
+           7   1.6552104268735223E-004
+           8  -3.1058296923380364E-007
+           9  -9.0296590181749420E-004
+          10   1.0575941726264399E-002
+          11  -7.0063853010317735E-004
+          12  0.46323125688965883     
+          13  -1.1944882421675350E-003
+          14   9.7726941358822171E-003
+          15   2.4560611720809557E-003
+          16  0.46439217698834873     
+          17   1.4563585327209407E-006
+          18   3.3852557692954137E-006
+          19  -1.8352120698727486E-003
+          20   4.1990103364197829E-006
+          21   1.1962011240494012E-003
+          22  -9.7828817666564937E-003
+          23   3.8295264324918822E-004
+          24 -0.46439798373318147     
+          25   9.0417813946752070E-004
+          26  -1.0564529307704726E-002
+          27  -2.7720115412100338E-003
+          28 -0.46322371113551075     
+          29   1.7082578812123888E-003
+          30  -1.7082194212978742E-003
+          31  -2.0826666170739735E-003
+          32   1.4834720289879342E-003
+          33  -1.4841888403189262E-003
+          34   2.0819663216544671E-003
+Sym=    17a
+Ene=  -0.37876815106741624     
+Spin= Alpha
+Occup=     2.00000000
+           1  0.14912258059805625     
+           2   5.2485803073317724E-002
+           3  -1.2557959763202422E-003
+           4 -0.65963524445326005     
+           5  -6.2514037360814588E-003
+           6  -1.0080030701427545E-002
+           7   5.4953231847828100E-004
+           8  0.26959202925349329     
+           9   1.0566771281099060E-002
+          10   7.0673745543905053E-003
+          11  -4.5537759371958022E-003
+          12  0.38621529017135831     
+          13  -6.6102874363836422E-003
+          14  -6.6435156427328249E-004
+          15   3.3303767931789261E-003
+          16  -3.9426363112507745E-002
+          17   2.1414658083662951E-002
+          18  -4.5303278466354832E-002
+          19  -1.0179430483285715E-003
+          20 -0.40322512048796799     
+          21  -6.6099615791833637E-003
+          22  -6.4196298464361257E-004
+          23  -3.5056996387705474E-003
+          24  -3.9410773535856765E-002
+          25   1.0566263585406905E-002
+          26   7.0315187373113253E-003
+          27   6.2701842764390035E-003
+          28  0.38619235192919166     
+          29  -4.8268490403017138E-002
+          30  -4.8268774438426934E-002
+          31  -1.2942728810184871E-003
+          32  -2.1517349557828719E-003
+          33  -2.1511524595235585E-003
+          34  -1.2949187963168319E-003
+Sym=    18a
+Ene=  -0.35566116962810418     
+Spin= Alpha
+Occup=     2.00000000
+           1   7.0552756799511396E-002
+           2  -7.4990287213900719E-002
+           3  -1.4340008850820019E-004
+           4   4.6353212337641558E-002
+           5  -3.0967697619583068E-002
+           6   2.9924610925971717E-002
+           7   8.8659347534115560E-005
+           8  -4.0090979608292110E-003
+           9  0.10821842526357180     
+          10 -0.21799500436336175     
+          11  -4.6593363266866136E-003
+          12  -8.7807452914203388E-003
+          13  -6.3254300648489817E-002
+          14  0.16106855692690095     
+          15   6.5971877801330958E-002
+          16  -4.5298721957628086E-003
+          17  0.46607984724855639     
+          18 -0.76233925682941805     
+          19  -2.4105020774884229E-003
+          20   3.0779863450772077E-002
+          21  -6.3254376978732610E-002
+          22  0.16149368893840071     
+          23  -6.4942640122915798E-002
+          24  -4.2447332769355323E-003
+          25  0.10821847880039116     
+          26 -0.21802022527703085     
+          27   3.2043873008302109E-003
+          28  -8.7946300442130199E-003
+          29  -2.3574612827742234E-002
+          30  -2.3574582877384405E-002
+          31  -9.5671500711036417E-002
+          32 -0.13989375408062482     
+          33 -0.13989437689130862     
+          34  -9.5671344847774190E-002
+Sym=    19a
+Ene=  -0.22283732535161813     
+Spin= Alpha
+Occup=     0.00000000
+           1   1.2884891984243953E-005
+           2   2.2984208534859339E-005
+           3  -5.4712927171056839E-003
+           4  -2.9560445536740031E-005
+           5   2.7784807438067515E-007
+           6   7.4403962203287108E-006
+           7  -1.3772563203887488E-003
+           8   8.5312237132206950E-005
+           9   5.2568503739322384E-004
+          10   1.2372083798634919E-002
+          11   4.0363366203022478E-004
+          12  0.56131374114214894     
+          13   2.1120599058964160E-004
+          14  -1.3363678533809391E-002
+          15  -1.3115073741635833E-003
+          16 -0.56413695045756240     
+          17   9.0144276001038204E-007
+          18   2.1524805150404076E-006
+          19  -3.3254148348070750E-005
+          20   7.7427533061133973E-005
+          21  -2.1485698950470168E-004
+          22   1.3363736880104607E-002
+          23   1.2155122249261421E-003
+          24  0.56403884954874439     
+          25  -5.2310072656942515E-004
+          26  -1.2366427850721166E-002
+          27  -2.1042290386605396E-003
+          28 -0.56136675277400283     
+          29   4.5926645375418823E-003
+          30  -4.6076366262951061E-003
+          31  -7.8672968827046949E-004
+          32   3.4910529532104675E-004
+          33  -3.4662928947772298E-004
+          34   7.8588875765473007E-004
+Sym=    20a
+Ene=  -0.22206394303561408     
+Spin= Alpha
+Occup=     0.00000000
+           1  0.10000185355714689     
+           2   4.1343491627340530E-002
+           3  -5.6564366735315636E-004
+           4 -0.32402857631891624     
+           5   6.5883335769965782E-003
+           6   2.0804686532758503E-002
+           7   1.4636121665584847E-003
+           8  0.64604874651372901     
+           9   3.8946474858705797E-003
+          10  -1.8182036757602887E-003
+          11  -1.0687643790413510E-004
+          12 -0.22064094144973315     
+          13  -1.3850528488667111E-004
+          14  -9.1046075483602155E-003
+          15  -8.0263785060493515E-004
+          16 -0.38402812426234723     
+          17   2.6959275534989882E-004
+          18   1.6080481963020962E-002
+          19   1.3574622065700521E-003
+          20  0.60399069083587820     
+          21  -1.3682096380080697E-004
+          22  -9.1085570255856427E-003
+          23  -9.1908392686325770E-004
+          24 -0.38417197555141103     
+          25   3.8946730809665954E-003
+          26  -1.8119530906445789E-003
+          27  -8.5886209265333146E-004
+          28 -0.22049530156892902     
+          29  -5.8150514581364332E-002
+          30  -5.8149913673725365E-002
+          31   5.4724552283604456E-004
+          32   7.0847766692724715E-004
+          33   7.0712535803276464E-004
+          34   5.4639554572975455E-004
+Sym=    21a
+Ene=   -9.3138036671216271E-002
+Spin= Alpha
+Occup=     0.00000000
+           1 -0.10567628509535582     
+           2  -4.8113907457223902E-002
+           3   2.0598246139260227E-004
+           4  0.16751167625609265     
+           5  -3.4144889532533051E-003
+           6  -1.5129770340230999E-002
+           7  -1.2446146830945688E-003
+           8 -0.55282951455242302     
+           9  -7.2607569271764911E-003
+          10   7.4228470264930905E-003
+          11   2.8247706555555491E-004
+          12  0.51974144833346436     
+          13   2.5567965828577543E-003
+          14  -9.0198291145003658E-003
+          15  -5.8894196257600160E-004
+          16 -0.48081488661386307     
+          17  -2.6861401491913347E-005
+          18   8.0004864295662205E-003
+          19   1.0002453654050867E-003
+          20  0.45060108128237059     
+          21   2.5598539480677007E-003
+          22  -9.0180791462738229E-003
+          23  -1.5513122028459868E-003
+          24 -0.48081305249573097     
+          25  -7.2623135988532476E-003
+          26   7.4169167415057994E-003
+          27   2.0137056283012914E-003
+          28  0.51973750562597565     
+          29   7.3601418710997485E-002
+          30   7.3601481162616098E-002
+          31   8.5859671036943959E-004
+          32  -1.3762232226692888E-003
+          33  -1.3791298889314885E-003
+          34   8.5945235389046806E-004
+Sym=    22a
+Ene=    2.1375482598227965E-002
+Spin= Alpha
+Occup=     0.00000000
+           1  -1.0378779832947740     
+           2 -0.10815448093339171     
+           3  -9.4740516429879670E-004
+           4 -0.27603393063137965     
+           5  0.38682848142195914     
+           6  0.28997166954859144     
+           7   1.1020234510470915E-003
+           8   7.4226115946159230E-002
+           9 -0.18106325700831996     
+          10  -3.5044995590132827E-002
+          11   5.7910917465813824E-002
+          12  -3.8460439929770295E-002
+          13  0.15681993388027990     
+          14   8.3957355002100845E-002
+          15   5.8545414330040083E-002
+          16   1.7277774354357758E-002
+          17   2.3172886324607029E-002
+          18  -4.2867033991547704E-002
+          19  -1.6806354405114697E-004
+          20  -1.3269211918890494E-002
+          21  0.15682005859734161     
+          22   8.4335315114028031E-002
+          23  -5.7924102394074042E-002
+          24   1.7530904250260462E-002
+          25 -0.18106358210788567     
+          26  -3.4667798191149790E-002
+          27  -5.8303154567219281E-002
+          28  -3.8209637466807708E-002
+          29  0.63631165860805938     
+          30  0.63631276200468057     
+          31   7.5389787530498343E-003
+          32 -0.12507339149978045     
+          33 -0.12507412723743533     
+          34   7.5391538980188414E-003
+Sym=    23a
+Ene=   0.13511373125446896     
+Spin= Alpha
+Occup=     0.00000000
+           1 -0.15559163798973646     
+           2  0.19875843501747298     
+           3   6.1244936620046138E-004
+           4  -1.3552512318992276E-002
+           5  -9.3846162223521198E-002
+           6  0.34721088649744120     
+           7   1.0821128640047092E-003
+           8  -2.0460479526301742E-002
+           9  0.61058789700768290     
+          10  0.30757463264151563     
+          11  0.26228909055903887     
+          12  -3.8155999002718430E-003
+          13  -6.9187780350475500E-002
+          14   1.6969481812045908E-002
+          15  0.14058069739500120     
+          16  -1.9429749787851650E-003
+          17  0.22838494696785894     
+          18  0.23323310483389997     
+          19   7.4316628300293822E-004
+          20  -4.7816612226129944E-003
+          21  -6.9191162938283313E-002
+          22   1.7878339966587341E-002
+          23 -0.14048262569526584     
+          24  -1.3361461536647752E-003
+          25  0.61059728674627967     
+          26  0.30927257602355801     
+          27 -0.26031001523086600     
+          28  -2.6833878468165043E-003
+          29   1.9358288438665464E-003
+          30   1.9295994672503445E-003
+          31 -0.72472839914637477     
+          32  -2.7773222172150270E-002
+          33  -2.7780486833230842E-002
+          34 -0.72474246209605764     
+Sym=    24a
+Ene=   0.14333188250373857     
+Spin= Alpha
+Occup=     0.00000000
+           1  -1.0754947717381039E-005
+           2  -1.6353134642116103E-003
+           3  0.49764502837807878     
+           4  -1.0805032653051008E-003
+           5  -2.2702902600127500E-005
+           6  -1.2338469461466326E-003
+           7  0.38105286655725473     
+           8  -8.2123259114463625E-004
+           9   7.0818319169940330E-003
+          10   1.7684322980623574E-002
+          11  0.45775667832566419     
+          12   2.9389401183560013E-003
+          13  0.16806206722094746     
+          14  -7.2913776506127681E-002
+          15  0.38054582401556175     
+          16  -6.0696320090510654E-004
+          17   1.3494954802835172E-005
+          18  -6.7734309795985795E-004
+          19  0.21091935798659459     
+          20  -4.5499519373377038E-004
+          21 -0.16812690168160366     
+          22   7.0464695908663624E-002
+          23  0.38103279186802530     
+          24  -1.0430010903195181E-003
+          25  -7.0555364012525523E-003
+          26  -2.0658976807489866E-002
+          27  0.45762523291434737     
+          28  -4.9191436908841068E-003
+          29 -0.46058741181529905     
+          30  0.46061450300229650     
+          31 -0.38950161891282542     
+          32 -0.45558817759996806     
+          33  0.45565708274949140     
+          34  0.38948990765429292     
+Sym=    25a
+Ene=   0.15071450464216515     
+Spin= Alpha
+Occup=     0.00000000
+           1 -0.17015124909501711     
+           2 -0.37600553490133382     
+           3  -1.4117174664652538E-003
+           4  -7.5525914600655469E-002
+           5 -0.34296553530682650     
+           6  -2.2095353149932089E-002
+           7  -3.0934985796842990E-006
+           8   4.0306718803381360E-002
+           9  0.11221528817977904     
+          10  -9.3443313085991866E-002
+          11 -0.11095422872535846     
+          12  -1.1964501886968069E-002
+          13 -0.65264396534654434     
+          14  0.24332068412467106     
+          15 -0.20885610114754788     
+          16  -5.2542098089547538E-004
+          17  0.27506007719687325     
+          18  0.15829542095177465     
+          19   4.8768843405631911E-004
+          20  -6.9580883006887927E-003
+          21 -0.65263118427033451     
+          22  0.24195099897838906     
+          23  0.21039142197239225     
+          24  -1.4375785663844648E-003
+          25  0.11222179845540771     
+          26  -9.4160442677136288E-002
+          27  0.11024154955757474     
+          28  -1.2440684547917941E-002
+          29  0.25115564038615440     
+          30  0.25110680221069337     
+          31   2.4938301652777259E-002
+          32  0.67001678636781903     
+          33  0.66997358120280448     
+          34   2.4893250665285530E-002
+Sym=    26a
+Ene=   0.18301417461498012     
+Spin= Alpha
+Occup=     0.00000000
+           1  -1.6385758193848788E-006
+           2   9.3674304150479729E-004
+           3 -0.28818629303326970     
+           4   6.2282697126126026E-004
+           5  -1.4745107266664624E-006
+           6   9.2463981707427119E-004
+           7 -0.28383599335781884     
+           8   6.1389085456630842E-004
+           9  0.67747312736174126     
+          10  -2.9843661836284098E-002
+          11  0.21380985401868569     
+          12  -3.0847320622878261E-003
+          13 -0.47694400484884847     
+          14 -0.14526486542260042     
+          15   8.2760276896251081E-002
+          16   3.8039575525174014E-003
+          17   3.5001162658749827E-006
+          18  -1.2208499774715106E-003
+          19  0.37660393056761460     
+          20  -8.1437305583450484E-004
+          21  0.47693783928868616     
+          22  0.14472691824688180     
+          23   8.3683293643622231E-002
+          24  -4.1615160073153789E-003
+          25 -0.67746491630309391     
+          26   2.8456605702191419E-002
+          27  0.21400792118602829     
+          28   2.1577247457586937E-003
+          29  0.31830385979374098     
+          30 -0.31830261101809149     
+          31 -0.52303265418170830     
+          32  0.11040659243594861     
+          33 -0.11040207285980796     
+          34  0.52302369230669588     
+Sym=    27a
+Ene=   0.21582604043595635     
+Spin= Alpha
+Occup=     0.00000000
+           1  -4.4464119566769295E-002
+           2 -0.62691878416431768     
+           3  -2.1853639428618754E-003
+           4  -6.7452496202714235E-002
+           5 -0.85989296959146488     
+           6  -9.6911435761526110E-002
+           7  -2.0013413140137432E-004
+           8   5.3446600430999310E-002
+           9  0.33637854961572583     
+          10  0.14940898841189076     
+          11 -0.24196136391444908     
+          12  -1.9723288560956721E-002
+          13  0.29103678271431749     
+          14 -0.29806686197656418     
+          15 -0.19363817158497018     
+          16   1.2430382310927369E-002
+          17 -0.52154270078795850     
+          18 -0.32432070245389566     
+          19  -1.0441408751689842E-003
+          20   5.0146011651506454E-003
+          21  0.29103964164771762     
+          22 -0.29931836009078538     
+          23  0.19174482490646361     
+          24   1.1598980504346613E-002
+          25  0.33637733554502902     
+          26  0.14783577149200586     
+          27  0.24283717140017722     
+          28  -2.0771310514542791E-002
+          29  0.28364294127156608     
+          30  0.28363798182096606     
+          31  -4.7087178696617098E-002
+          32 -0.14652166731413516     
+          33 -0.14652679763862897     
+          34  -4.7089523294300654E-002
+Sym=    28a
+Ene=   0.23362106532006657     
+Spin= Alpha
+Occup=     0.00000000
+           1   1.0749268680003296E-006
+           2  -2.4144360646492858E-003
+           3  0.74233459955150194     
+           4  -1.6052990218983546E-003
+           5  -1.5975780061482130E-006
+           6   1.6917529533356520E-004
+           7  -5.2827782388668455E-002
+           8   1.1486374458442390E-004
+           9   9.1689501176622404E-002
+          10 -0.19846633982565981     
+          11   2.3907529077930458E-002
+          12   9.5170708169037797E-003
+          13 -0.46650159805808133     
+          14   8.5898501606380726E-002
+          15 -0.36462001793470378     
+          16  -3.2035048039433969E-003
+          17   3.3455149648956476E-006
+          18  -3.1044327537374912E-004
+          19   9.6458369694207180E-002
+          20  -2.0972881564325366E-004
+          21  0.46649560649393695     
+          22  -8.3527917326420648E-002
+          23 -0.36515685509109047     
+          24   4.7856357650128273E-003
+          25  -9.1687814230082307E-002
+          26  0.19830554428423403     
+          27   2.5155081970466637E-002
+          28  -9.6244526709708799E-003
+          29 -0.60653897043300109     
+          30  0.60654043081204911     
+          31   4.3374710075559215E-002
+          32  0.52369757730609190     
+          33 -0.52369615529757652     
+          34  -4.3375785511122707E-002
+Sym=    29a
+Ene=   0.31965497029602707     
+Spin= Alpha
+Occup=     0.00000000
+           1 -0.14846132339378254     
+           2  0.58677022388448452     
+           3   1.9739962601208697E-003
+           4   3.1219871434866854E-002
+           5  -4.7727335490684600E-002
+           6  0.75240112128031578     
+           7   2.3251389447299653E-003
+           8  -5.5416077757810316E-002
+           9  -4.6867993827386760E-002
+          10  0.29825740435269621     
+          11 -0.23277107455347307     
+          12   4.7827431327677862E-003
+          13  0.20618686484882540     
+          14  0.29992879766719605     
+          15 -0.44768743425493196     
+          16  -8.4984358043246853E-003
+          17 -0.38375497423133026     
+          18 -0.45327846001921640     
+          19  -1.4464791540947021E-003
+          20   1.2233193800529299E-002
+          21  0.20619195650613939     
+          22  0.29701054125337251     
+          23  0.44957797097441421     
+          24  -1.0439506144277695E-002
+          25  -4.6867165327859159E-002
+          26  0.29673943968371436     
+          27  0.23472328393988717     
+          28   3.7727931014844298E-003
+          29 -0.20946592959838417     
+          30 -0.20946541886682191     
+          31   7.5448819922995361E-002
+          32  0.33690209851696801     
+          33  0.33689269301587865     
+          34   7.5448209925124354E-002
+Sym=    30a
+Ene=   0.40192569776919151     
+Spin= Alpha
+Occup=     0.00000000
+           1  -1.4607226769105053E-006
+           2   2.1951734084693942E-005
+           3  -5.8788781666236521E-003
+           4   1.2733844935080928E-005
+           5   4.7684115746806450E-006
+           6  -5.2572678601643945E-004
+           7  0.16248353480778391     
+           8  -3.5176947648582572E-004
+           9  -9.6925647075912405E-002
+          10 -0.53103103709601340     
+          11 -0.40338114830264898     
+          12   1.2813923157593119E-002
+          13 -0.43242181242293759     
+          14 -0.18427570668954887     
+          15  0.51064517377190677     
+          16   2.6325515382883964E-003
+          17  -5.7830428907745649E-006
+          18  -1.8808984184412894E-003
+          19  0.57809125659001526     
+          20  -1.2485840720983788E-003
+          21  0.43242122619000628     
+          22  0.18094549918921066     
+          23  0.51182357453117633     
+          24  -4.8438231262172924E-003
+          25   9.6929803115827218E-002
+          26  0.53363375287209436     
+          27 -0.39997865835065682     
+          28  -1.1075349356348936E-002
+          29  -1.2963567329650908E-002
+          30   1.2962803978298224E-002
+          31  0.48147422479747676     
+          32 -0.25315876188350894     
+          33  0.25315963589668217     
+          34 -0.48147598545150466     
+Sym=    31a
+Ene=   0.44694667953643369     
+Spin= Alpha
+Occup=     0.00000000
+           1  0.10948706937140452     
+           2 -0.19342641791988510     
+           3  -6.3167738593194729E-004
+           4   8.2421807010810144E-003
+           5 -0.54903119030884917     
+           6  -6.1185413799908467E-002
+           7  -1.3695387893177899E-004
+           8   1.0650796581483013E-002
+           9 -0.28817165878141815     
+          10  0.54410592249288814     
+          11 -0.33388391559631070     
+          12  -1.3382750509773229E-002
+          13  0.22598569670097815     
+          14  0.53957552716595714     
+          15  0.46783128829450110     
+          16  -1.2553726266198885E-002
+          17  0.57919897459914449     
+          18  0.22091123873569057     
+          19   7.2920358446178246E-004
+          20  -6.0854038385700950E-003
+          21  0.22601487684826066     
+          22  0.54256417312394578     
+          23 -0.46436586089736853     
+          24  -1.0537237417600097E-002
+          25 -0.28812389410697292     
+          26  0.54194236635348081     
+          27  0.33738126148732661     
+          28  -1.4833788870631082E-002
+          29   1.2123721603193294E-002
+          30   1.2098142340904167E-002
+          31  0.11490991809925663     
+          32 -0.12565050836491046     
+          33 -0.12567386508840769     
+          34  0.11490904038336101     
+Sym=    32a
+Ene=   0.46260067376352765     
+Spin= Alpha
+Occup=     0.00000000
+           1   5.1713276671878690E-006
+           2  -1.4623044382006943E-003
+           3  0.44757076169068682     
+           4  -9.6711795852550775E-004
+           5  -2.5602480729893413E-005
+           6   2.7276988088217472E-003
+           7 -0.84030089554207543     
+           8   1.8163054267757929E-003
+           9  0.50484801819863601     
+          10  0.10918636582813816     
+          11 -0.41988525733522436     
+          12   1.3709161526395244E-004
+          13  0.26209947816837953     
+          14 -0.46658892236225152     
+          15   9.8765584503658702E-002
+          16   1.0130713562166707E-002
+          17   2.4691838212229099E-005
+          18   1.4453508003297859E-003
+          19 -0.44233839102139400     
+          20   9.5602081934681438E-004
+          21 -0.26207656411724584     
+          22  0.46598957486983933     
+          23  0.10171207870256228     
+          24  -1.0567578605932632E-002
+          25 -0.50487386650216415     
+          26 -0.10640293462047300     
+          27 -0.42055358630638789     
+          28   1.6788752964482388E-003
+          29 -0.27042242571169878     
+          30  0.27042283695037289     
+          31   9.1128351040125469E-002
+          32 -0.31928362772587454     
+          33  0.31927476198419763     
+          34  -9.1120083140402208E-002
+Sym=    33a
+Ene=   0.62537217785426091     
+Spin= Alpha
+Occup=     0.00000000
+           1 -0.20858126971850291     
+           2  0.35272957940581906     
+           3   1.1286809386098172E-003
+           4  -2.8872001553251429E-003
+           5 -0.26158852646888081     
+           6  0.79542787809673510     
+           7   2.5448727538732886E-003
+           8  -3.4740407909448170E-002
+           9  0.30749986132757257     
+          10 -0.35562631514936704     
+          11 -0.62952254945930120     
+          12   1.2787939998010405E-002
+          13 -0.25285174273382732     
+          14 -0.36219912174505386     
+          15  0.36293586606308992     
+          16   6.4869628070683425E-003
+          17  0.23699867533974250     
+          18  0.30681227055767440     
+          19   9.3739565319441354E-004
+          20  -6.8399821814062066E-003
+          21 -0.25285573804886646     
+          22 -0.35974946548322351     
+          23 -0.36529060788213169     
+          24   8.0601168660289976E-003
+          25  0.30748894976578406     
+          26 -0.35963513703970662     
+          27  0.62727898020718986     
+          28   1.0068853319125473E-002
+          29  -8.1923445267690659E-002
+          30  -8.1936298311379996E-002
+          31  0.36909307681652936     
+          32 -0.23474871991886465     
+          33 -0.23473889548701010     
+          34  0.36909062480871407     
+Sym=    34a
+Ene=   0.63565642410163126     
+Spin= Alpha
+Occup=     0.00000000
+           1   1.2324260419642793E-005
+           2   6.0437423366261668E-004
+           3 -0.19244896695961891     
+           4   4.1622089827505462E-004
+           5   1.6973484923528576E-005
+           6  -2.0868100258925426E-003
+           7  0.62759161322576151     
+           8  -1.3543639425059319E-003
+           9   7.7286434027563924E-002
+          10 -0.62905878051874176     
+          11  0.27581136048635008     
+          12   1.2350037198998244E-002
+          13   1.1103796829652330E-002
+          14 -0.68342398204146326     
+          15 -0.34757144958149960     
+          16   1.6630954844040514E-002
+          17  -1.2783991931233515E-005
+          18   2.3260611426473630E-003
+          19 -0.72137188283518450     
+          20   1.5590754954091896E-003
+          21  -1.1074358345760907E-002
+          22  0.68571292018367569     
+          23 -0.34314996011862348     
+          24  -1.5139508077370965E-002
+          25  -7.7324968540514127E-002
+          26  0.62729685142006908     
+          27  0.27976070992793145     
+          28  -1.3551547786005548E-002
+          29  0.11068621286219014     
+          30 -0.11067639489755873     
+          31   1.1280321849499049E-002
+          32  -6.4876064521617871E-002
+          33   6.4904866224804986E-002
+          34  -1.1325048013441396E-002
+ECCE-XTB-ENDMOLDEN
+ECCE-XTB-CHARGES
+   -0.26673531
+    0.09573630
+   -0.07294261
+    0.05850706
+   -0.24421633
+    0.05850722
+   -0.07294251
+    0.16472020
+    0.16472017
+    0.02461749
+    0.03270549
+    0.03270538
+    0.02461746
+ECCE-XTB-ENDCHARGES
+
+-----ECCE Log Information-----
+Starting Job: Sun Nov  8 08:37:05 PM CET 2026
+Starting Job (UTC): 2026-11-08T19:37:05Z
+Using xtb path: /usr/bin/xtb
+xtb exit status = 0
+Final exit status = 0
+Completed Job: Sun Nov  8 08:37:05 PM CET 2026
+Completed Job (UTC): 2026-11-08T19:37:05Z

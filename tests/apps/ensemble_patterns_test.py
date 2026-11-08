@@ -3,7 +3,7 @@
 
     tests/apps/ensemble_patterns_test.py [--cli-only]
 
-The ensemble is built from the shipped Na+(H2O)6 workflow structures (6_0, 5_1
+The ensemble is built from the Na+(H2O)6 structures kept in fixtures/na-arrangements (6_0, 5_1
 and 4_2, twice each at different relative energies) and written as a CREST-style
 crest_conformers.xyz.  ecce-contacts --group must find three patterns whose
 representatives are each pattern's lowest-energy member; the Builder's Geometry
@@ -23,7 +23,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 sys.path.insert(0, HERE)
 
-WF = os.path.join(ROOT, "data", "client", "examples", "workflows", "na-hydration")
+WF = os.path.join(HERE, "fixtures", "na-arrangements")
 CONTACTS = os.path.join(ROOT, "scripts", "ecce_contacts.py")
 BASE = os.path.join(HERE, "fixtures", "crest-butane-ensemble")
 # (structure, relative energy kcal/mol): frame 1..6
@@ -39,7 +39,7 @@ def check(name, ok, detail=""):
 
 
 def atoms(tag):
-    lines = open(os.path.join(WF, "xtb-na_%s" % tag, "na_%s.xyz" % tag)).read().splitlines()
+    lines = open(os.path.join(WF, "na_%s.xyz" % tag)).read().splitlines()
     return [l.split() for l in lines[2:2 + int(lines[0])]]
 
 
