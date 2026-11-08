@@ -271,7 +271,7 @@ void DensityMapPanel::build()
   p_plane = new wxRadioBox(this, ID_PLANE, "Plane", wxDefaultPosition,
                            wxDefaultSize, planes, 1, wxRA_SPECIFY_COLS);
   p_principal = new wxChoice(this, wxID_ANY);
-  p_principal->SetToolTip(wxString::FromUTF8("Principal plane through the centroid; RMS distance of all atoms in Å"));
+  p_principal->SetToolTip(wxString::FromUTF8("Principal plane through the centroid. The number is the root-mean-square distance of the atoms from the plane in Å; the smaller, the better the plane fits the molecule."));
   if (ok) updatePrincipalPlanes();
 
   p_atomRow = new wxBoxSizer(wxHORIZONTAL);
@@ -355,12 +355,10 @@ void DensityMapPanel::build()
 
   p_canvas = new DensityMapCanvas(this);
   p_canvas->onPaintHook = [this]() { ensurePlane(); };
-  //  One ellipsized line each, full text in the tooltip: wrapped text took
-  //  the canvas's height.
-  p_caption = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
-                               wxDefaultSize, wxST_ELLIPSIZE_END);
-  p_status = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition,
-                              wxDefaultSize, wxST_ELLIPSIZE_END);
+  //  Wrapped to the panel width (relayout): an ellipsized line hid the end
+  //  of the plane description at the bottom of the panel.
+  p_caption = new wxStaticText(this, wxID_ANY, wxEmptyString);
+  p_status = new wxStaticText(this, wxID_ANY, wxEmptyString);
   //  The four actions in one grid of equal widths (as "Mode in the viewer"
   //  in the Vibrational Frequencies panel); height is what the map lacks.
   //  One Options toggle; the rarely used actions sit inside it with the
@@ -650,6 +648,9 @@ void DensityMapPanel::relayout()
   setCaption();
   p_status->SetLabel(wxString::FromUTF8(p_statusText.c_str()));
   p_status->SetToolTip(wxString::FromUTF8(p_statusText.c_str()));
+  const int w = std::max(100, GetClientSize().x - 12);
+  p_caption->Wrap(w);
+  p_status->Wrap(w);
   Layout();
 }
 
@@ -663,6 +664,7 @@ void DensityMapPanel::setCaption()
     text += wxString::Format(" (zoom x%.1f)", (p_fullWin[1] - p_fullWin[0]) /
                                               (p_zoomWin[1] - p_zoomWin[0]));
   p_caption->SetLabel(text);
+  p_caption->Wrap(std::max(100, GetClientSize().x - 12));
   p_caption->SetToolTip(text);
 }
 
@@ -696,8 +698,8 @@ void DensityMapPanel::updatePrincipalPlanes()
   const bool standing = hasMolecularPlane(p_eval->coordsAng);
   if (!flat) p_principalPlanes = principalPlanes(p_eval->coordsAng);
   for (size_t i = 0; i < p_principalPlanes.size(); ++i)
-    p_principal->Append(wxString::Format(wxString::FromUTF8("%d: %s(RMS %.2f Å)"), int(i + 1),
-        i == 0 ? "best fit " : "", p_principalPlanes[i].rms));
+    p_principal->Append(wxString::Format(wxString::FromUTF8("Plane %d%s: atoms %.2f Å from it (RMS)"), int(i + 1),
+        i == 0 ? " (best fit)" : "", p_principalPlanes[i].rms));
   if (!p_principalPlanes.empty()) p_principal->SetSelection(std::min(selected, 2));
   p_plane->Enable(0, flat || standing);
   p_plane->Enable(2, standing);
