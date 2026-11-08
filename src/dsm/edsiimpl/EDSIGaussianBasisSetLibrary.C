@@ -437,6 +437,13 @@ const gbs_alias* EDSIGaussianBasisSetLibrary::getGbsAlias(
   // Convert gbs_name to lower case for lookup
   string lowername = gbs_name;
   STLUtil::toLower(lowername);
+  // Pople sets are named with stars in the library; recipes and Gaussian
+  // routes write the same sets as 6-31+G(d) / 6-311+G(d,p).
+  {
+    size_t p;
+    if ((p = lowername.find("(d,p)")) != string::npos) lowername.replace(p, 5, "**");
+    else if ((p = lowername.find("(d)")) != string::npos) lowername.replace(p, 3, "*");
+  }
 
   // If type is unknown, we have to check through all basis set categories
   // to find a match.  Note that priority is given to orbital basis sets,
