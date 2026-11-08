@@ -1149,7 +1149,7 @@ void Builder::createToolPanels()
   addToolPanel(slice, NAME_TOOL_SLICER, false);
 
   p_clipPanel = new ClipPlanePanel(this, [this]() { return getSG(); });
-  addToolPanel(p_clipPanel, _("Clipping plane"), false);
+  addToolPanel(p_clipPanel, "Clipping plane", false);
 
   p_toolMenu->AppendSeparator();
 
