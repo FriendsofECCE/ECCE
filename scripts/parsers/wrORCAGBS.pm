@@ -247,6 +247,9 @@ sub setupBasisTranslation {
   $NameToBasis{"def2-svp(p)"} = "def2-SV(P)";                # nbf 18
   $NameToBasis{"def2-tzvpp"} = "def2-TZVPP";                 # nbf 59
   $NameToBasis{"def2-qzvpp"} = "def2-QZVPP";                 # nbf 117
+  #  Derived from def2-SVP (tools/basissets/make_ma_basis.py); nbf matches
+  #  ORCA's counts for the shipped organic/reactions outputs.
+  $NameToBasis{"ma-def2-svp"} = "ma-def2-SVP";               # nbf 5 (H), 18 (C)
 
   #  Added for #118 from tests/basisload/named_basis_check.py: each keyword
   #  gave the same function count and an RHF energy within 1e-5 Eh of
