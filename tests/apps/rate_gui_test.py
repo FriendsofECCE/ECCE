@@ -78,6 +78,7 @@ def run(display, data, work, shots):
         f.write("# base file://%s\nreactant_complex -> [sn2_ts] -> product_complex\n"
                 "butadiene, ethylene -> [diels_alder_ts] -> cyclohexene\n" % tdir)
     shot3 = os.path.join(os.environ.get("ECCE_RATE_SHOTS") or work, "overview-two-ts.png")
+    shot4 = os.path.join(os.environ.get("ECCE_RATE_SHOTS") or work, "900-impl.png")
     rx4 = os.path.join(work, "reactions4.txt")
     with open(rx4, "w") as f:
         f.write("# base file://%s\nbutadiene, ethylene -> [sn2_qts3] -> cyclohexene\n" % tdir)
@@ -87,7 +88,9 @@ def run(display, data, work, shots):
                 "reactionoverview %s qrrho-grimme:100 %s %s 298.15" % (rx, png2, csv2),
                 "reactionoverview %s qrrho-grimme:100 %s - 298.15" % (rx2, png3),
                 "reactionoverview %s qrrho-grimme:100 - - 298.15 %s" % (rx3, shot3),
-                "reactionoverview %s qrrho-grimme:100" % rx4]
+                "reactionoverview %s qrrho-grimme:100" % rx4,
+                "reactionoverviewui %s qrrho-grimme:100 %s add=2*sn2_reactant->sn2_product remove=1"
+                % (wf, shot4)]
     script = os.path.join(work, "commands")
     open(script, "w").write("\n".join(commands) + "\n")
     result = apps.run(display, "organizer", windowTimeout=60, settle=120,
@@ -145,7 +148,22 @@ def run(display, data, work, shots):
     check("details CSV equals the CLI's 250-400 K rows", ok, rows)
     check("Rate box PNG exists", os.path.exists(png) and os.path.getsize(png) > 5000, png)
 
-    ov = answers("reactionoverview")
+    ui = answers("reactionoverviewui")
+    if check("picker overview answered", len(ui) == 1 and ui[0].startswith("ok"), ui):
+        u = ui[0].split(" | ")
+        l0 = [l[7:] for l in u if l.startswith("lines0 ")]
+        l1 = [l[6:] for l in u if l.startswith("lines ")]
+        check("auto-fill: reactant -> [ts] -> product from the workflow's roles",
+              l0 == ["sn2_reactant -> [sn2_qst3] -> sn2_product"], l0)
+        t0 = [l for l in u if l.startswith("table0 reaction 1 ")]
+        check("auto-fill: dE -9.61 kJ/mol", t0 and abs(float(t0[0].split()[3]) + 9.61) < 0.01, t0)
+        check("add (coefficient 2) then remove row 1 leaves the added reaction",
+              l1 == ["2*sn2_reactant -> sn2_product"], l1)
+        check("TS choices: only calculations with one imaginary frequency enabled",
+              "ts sn2_qst3:1:1" in u and "ts sn2_reactant:0:0" in u, [l for l in u if l.startswith("ts ")])
+        check("dialog picture 900-impl.png written", os.path.exists(shot4) and os.path.getsize(shot4) > 5000, shot4)
+
+    ov = answers("reactionoverview ")
     if len(ov) == 4:
         refused = ov.pop()
         names = ov.pop().split(" | ")

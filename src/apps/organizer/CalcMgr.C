@@ -2427,6 +2427,36 @@ void CalcMgr::runTestCommand(const string& line)
       if (!csvOut.empty() && csvOut != "-") outcome += d->saveCsv(csvOut) ? " | csv saved" : " | csv failed";
       outcome += " | layout: " + d->layoutReport(shot);
       d->Destroy();
+    } else if (command == "reactionoverviewui") {
+      // "reactionoverviewui <folder url> <treatment> <png|-> [add=LINE] [remove=N]":
+      // the dialog on an empty reaction list (so it fills itself from the
+      // workflow), then the table edits as the picker would make them (LINE
+      // is the stored form without spaces, "2*b->c"); prints the stored lines,
+      // the TS choices, the numbers, and a picture of the dialog.
+      std::istringstream args(calcName);
+      string folder, treatment, png, flag;
+      args >> folder >> treatment >> png;
+      ReactionOverviewDialog *d = new ReactionOverviewDialog(this, "", folder);
+      d->Show();
+      d->setTreatment(treatment);
+      for (int i = 0; i < 5; i++) wxYield();
+      outcome = "ok";
+      auto dump = [&](const string& what, const string& text) {
+        std::istringstream r(text);
+        for (string l; std::getline(r, l); ) outcome += " | " + what + " " + l;
+      };
+      dump("lines0", d->reactionLines());
+      dump("table0", d->tableText());
+      while (args >> flag) {
+        if (flag.compare(0, 4, "add=") == 0) d->addReactionLine(flag.substr(4));
+        if (flag.compare(0, 7, "remove=") == 0) d->removeReaction(atoi(flag.c_str() + 7));
+      }
+      for (int i = 0; i < 5; i++) wxYield();
+      dump("lines", d->reactionLines());
+      dump("table", d->tableText());
+      dump("ts", d->tsChoices());
+      if (png != "-") outcome += ecceWindowShot(d, wxString::FromUTF8(png.c_str())) ? " | shot saved" : " | shot failed";
+      d->Destroy();
     } else if (command == "fragdiagram") {
       // "fragdiagram PNG|- COMPLEX FRAGMENT... [names=A;B] [window=OCC,VIRT]
       // [click=ID] [shot=PNG] [dump=FILE] [size=WxH]": the Fragment orbitals Details
