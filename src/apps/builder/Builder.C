@@ -231,6 +231,7 @@ using std::vector;
 #include "PBC.H"
 #include "LayerBuilder.H"
 #include "Slice.H"
+#include "ClipPlanePanel.H"
 
 #include <wx/timer.h>
 #include <wx/textentry.h>
@@ -1146,6 +1147,9 @@ void Builder::createToolPanels()
 
   Slice *slice = new Slice(this,-1);
   addToolPanel(slice, NAME_TOOL_SLICER, false);
+
+  p_clipPanel = new ClipPlanePanel(this, [this]() { return getSG(); });
+  addToolPanel(p_clipPanel, _("Clipping plane"), false);
 
   p_toolMenu->AppendSeparator();
 
@@ -6595,6 +6599,8 @@ void Builder::updatePropertyMenus()
           return shotHookCommand(s, w, outdir);
         //  "dp...": the Density Profile panel's controls.
         if (w[0].compare(0, 2, "dp") == 0) return densityProfileCommand(s, w, outdir);
+        //  "clip...": the Clipping plane panel (#879).
+        if (w[0].compare(0, 4, "clip") == 0) return clipCommand(s, w, outdir);
         //  "opdos...": the Density of States (OPDOS) panel (#171).
         if (w[0].compare(0, 5, "opdos") == 0) return opdosCommand(s, w, outdir);
         //  "gt...": the Geometry Trace stress commands (#217).

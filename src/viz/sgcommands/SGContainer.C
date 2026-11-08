@@ -161,6 +161,13 @@ void SGContainer::constructor()
    addChild(p_mainSep);
 
 
+   // First child of the main separator so that it applies to every sibling
+   // after it: structure, lattice, MO surfaces and normal modes.
+   p_clipPlane = new SoClipPlane;
+   p_clipPlane->setName("clipplane");
+   p_clipPlane->on.setValue(false);
+   p_mainSep->addChild(p_clipPlane);
+
    // Show one thing at a time
    SoSeparator *sep2 = new SoSeparator;
    p_mainSep->addChild(sep2);
@@ -2430,6 +2437,17 @@ SoShapeHints * SGContainer::getShapeHints()
 /////////////////////////////////////////////////////////////////////////////
 // Description
 /////////////////////////////////////////////////////////////////////////////
+void SGContainer::setClipPlane(bool on, const SbVec3f& normal, float d)
+{
+   p_clipPlane->plane.setValue(SbPlane(normal, d));
+   p_clipPlane->on.setValue(on);
+}
+
+bool SGContainer::clipPlaneOn() const
+{
+   return p_clipPlane->on.getValue();
+}
+
 SoGroup* SGContainer::getTopClipManip()
 {
    return p_topClipManip ;
