@@ -5075,6 +5075,11 @@ bool CalcMgr::mkdirForCommand(const vector<EcceURL>& urls, bool parents,
     Resource *found = 0;
     for (int depth = 0; depth < 64 && !found; depth++) {
       found = EDSIFactory::getResource(cur);
+      //  The factory returns null for a calculation; the tree knows it.
+      if (!found) {
+        WxResourceTreeItemData *n = findNodeFresh(cur, false);
+        if (n) found = n->getResource();
+      }
       if (found) break;
       missing.push_back(cur);
       EcceURL up = cur.getParent();
