@@ -52,9 +52,9 @@ vizfile export30 480
 viewall
 snap redraw
 opacity 100
-select 0
+select 1
 opacity 30 selection
-deselect
+unselect
 snap sel
 """
 
