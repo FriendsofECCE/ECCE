@@ -3,7 +3,7 @@ type: map
 title: ecce-move / ecce-rename go through CalcMgr::moveForCommand; no offline mode
 area: services
 paths: [src/apps/launch/ecce-move.C, src/apps/organizer/CalcMgr.C, tests/launch/ecce_move_test.py, src/apps/launch/ecce-rerun.C, tests/launch/ecce_rerun_test.py]
-issues: [824, 825, 700]
+issues: [824, 825, 700, 870]
 ---
 One source builds both tools (`ECCE_RENAME_COMMAND` selects ecce-rename). The
 request `ecce_move_request` (verb, second, urls) is answered on
@@ -21,3 +21,10 @@ leaves stale tree nodes, so no session means exit 2. A target in another tree go
 Rerun (`duplicate` then `TaskJob::resetForRerun`). Optional submission uses
 `launchForCommand` on the copy; a failed launch identifies the retained copy.
 Active jobs are refused before copying. No offline path; exit codes match move.
+
+`ecce-mkdir` (`ECCE_MKDIR_COMMAND`) sends verb `mkdir` on the same request;
+`CalcMgr::mkdirForCommand` walks up to the deepest existing resource
+(`EDSIFactory::getResource` does return calculations) and refuses when it is a
+calculation. In ecce_move_test.py, `urls[...]`/`P()` keep a calculation's
+creation-time path after it is moved: a case aimed at a moved calculation must
+use its new path, or it silently targets an empty spot that mkdir -p may fill.

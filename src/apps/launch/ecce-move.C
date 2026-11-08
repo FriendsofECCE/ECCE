@@ -2,6 +2,7 @@
  * ecce-move <calculation or folder>... <folder>   (#824)
  * ecce-rename <calculation or folder> <new name>
  * ecce-copy <calculation or folder>... <folder>   (#890)
+ * ecce-mkdir [-p] [--json] <project or folder>...   (#870)
  *
  * The Organizer's own move and Edit > Rename, asked of the running Organizer
  * so that its tree is updated at once. The refusals are the Organizer's: a
@@ -16,7 +17,11 @@
  * Prints "name: moved to folder" / "name: renamed to new name" or
  * "name: not moved: reason" / "name: not renamed: reason". Exit 4: no answer in time (it may have been carried out). Exit 0: all done;
  * 1: some were not; 2: no running ECCE session; 64: usage.
- * One source, built twice: ECCE_RENAME_COMMAND selects ecce-rename.
+ * ecce-mkdir makes a project or folder (-p: also the missing parents, and no
+ * error if it exists), printing "path: created" / "path: exists" /
+ * "path: not created: reason"; --json prints one object per path.
+ * One source, built four times: ECCE_RENAME_COMMAND, ECCE_COPY_COMMAND and
+ * ECCE_MKDIR_COMMAND select the other tools.
  */
 #include <sys/stat.h>
 #include <unistd.h>
@@ -113,6 +118,63 @@ bool toUrl(const string& arg, string& url, string& why)
   return true;
 }
 
+// ecce-mkdir: the URL of a folder that need not exist yet. The deepest
+// existing ancestor must be inside the data folder; the rest is appended.
+bool mkUrl(const string& arg, string& url, string& why)
+{
+  if (arg.find("://") != string::npos) { url = arg; return true; }
+  string root = LocalData::dir();
+  if (root.empty()) {
+    why = "this session uses a data server: give the folder's URL";
+    return false;
+  }
+  char cwd[PATH_MAX], buf[PATH_MAX], rbuf[PATH_MAX];
+  string abs = arg;
+  if (abs.empty() || abs[0] != '/') {
+    if (!getcwd(cwd, sizeof cwd)) { why = "no current folder"; return false; }
+    abs = string(cwd) + "/" + abs;
+  }
+  vector<string> parts;   // lexical normalisation: "." and ".." without the disk
+  size_t i = 0;
+  while (i <= abs.size()) {
+    size_t j = abs.find('/', i);
+    if (j == string::npos) j = abs.size();
+    string seg = abs.substr(i, j - i);
+    if (seg == "..") { if (!parts.empty()) parts.pop_back(); }
+    else if (!seg.empty() && seg != ".") parts.push_back(seg);
+    i = j + 1;
+  }
+  string existing, rest;
+  size_t keep = parts.size();
+  for (; keep > 0; keep--) {
+    existing.clear();
+    for (size_t k = 0; k < keep; k++) existing += "/" + parts[k];
+    if (realpath(existing.c_str(), buf)) break;
+  }
+  if (keep == 0) { why = "not inside the data folder"; return false; }
+  for (size_t k = keep; k < parts.size(); k++) rest += "/" + parts[k];
+  string base = realpath(root.c_str(), rbuf) ? string(rbuf) : root;
+  string path = string(buf);
+  if (path != base && path.compare(0, base.size() + 1, base + "/") != 0) {
+    why = "not inside the data folder " + base;
+    return false;
+  }
+  if (path == base && rest.empty()) { why = "that is the data folder itself"; return false; }
+  url = "file://" + path + rest;
+  return true;
+}
+
+string jsonString(const string& s)
+{
+  string o = "\"";
+  for (unsigned char c : s) {
+    if (c == '"' || c == '\\') { o += '\\'; o += (char)c; }
+    else if (c < 0x20) { char b[8]; snprintf(b, sizeof b, "\\u%04x", c); o += b; }
+    else o += (char)c;
+  }
+  return o + "\"";
+}
+
 }  // namespace
 
 int main(int argc, char **argv)
@@ -132,6 +194,10 @@ int main(int argc, char **argv)
   const bool rename = true;
   const char *me = "ecce-rename";
   const char *verb = "rename";
+#elif defined(ECCE_MKDIR_COMMAND)
+  const bool rename = false;
+  const char *me = "ecce-mkdir";
+  const char *verb = "mkdir";
 #elif defined(ECCE_COPY_COMMAND)
   const bool rename = false;
   const char *me = "ecce-copy";
@@ -142,34 +208,61 @@ int main(int argc, char **argv)
   const char *verb = "move";
 #endif
   const bool copying = string(verb) == "copy";
+  const bool making = string(verb) == "mkdir";
   const string done = rename ? "renamed to " : copying ? "copied to " : "moved to ";
-  const string undone = rename ? "not renamed" : copying ? "not copied" : "not moved";
-  vector<string> args(argv + 1, argv + argc);
-  if (args.size() < 2 || (rename && args.size() != 2)) {
+  const string undone = making ? "not created" : rename ? "not renamed"
+                      : copying ? "not copied" : "not moved";
+  vector<string> args;
+  bool parents = false, json = false;
+  for (int i = 1; i < argc; i++) {
+    string a = argv[i];
+    if (making && a == "-p") parents = true;
+    else if (making && a == "--json") json = true;
+    else args.push_back(a);
+  }
+  if (making) {
+    if (args.empty()) {
+      std::cerr << "usage: ecce-mkdir [-p] [--json] <project or folder>..." << std::endl;
+      return 64;
+    }
+  } else if (args.size() < 2 || (rename && args.size() != 2)) {
     std::cerr << (rename ? "usage: ecce-rename <calculation or folder> <new name>"
                          : copying ? "usage: ecce-copy <calculation or folder>... <folder>"
                                    : "usage: ecce-move <calculation or folder>... <folder>")
               << std::endl;
     return 64;
   }
-  const string last = args.back();   // the folder, or the new name
-  args.pop_back();
+  const string last = making ? string() : args.back();   // the folder, or the new name
+  if (!making) args.pop_back();
 
   if (sessionKey().empty()) return notRunning();
 
   bool allOk = true;
-  vector<string> urls;
+  vector<string> urls, names;   // names: what the user typed, for the output
+  vector<string> refused;       // mkdir: paths refused before the request
   for (size_t i = 0; i < args.size(); i++) {
     string url, why;
-    if (toUrl(args[i], url, why)) urls.push_back(url);
-    else {
-      std::cout << args[i] << ": " << undone << ": " << why << std::endl;
+    if (making ? mkUrl(args[i], url, why) : toUrl(args[i], url, why)) {
+      urls.push_back(url);
+      names.push_back(args[i]);
+    } else {
+      if (json) refused.push_back("{\"path\":" + jsonString(args[i]) +
+                                  ",\"ok\":false,\"reason\":" + jsonString(why) + "}");
+      else std::cout << args[i] << ": " << undone << ": " << why << std::endl;
       allOk = false;
     }
   }
-  if (urls.empty()) return 1;
+  if (urls.empty()) {
+    if (json) {
+      std::cout << "[";
+      for (size_t i = 0; i < refused.size(); i++) std::cout << (i ? "," : "") << refused[i];
+      std::cout << "]" << std::endl;
+    }
+    return 1;
+  }
   string secondUrl = last;
-  if (!rename) {
+  if (making) secondUrl = parents ? "parents" : "";
+  else if (!rename) {
     string why;
     if (!toUrl(last, secondUrl, why)) {
       for (size_t i = 0; i < args.size(); i++)
@@ -219,11 +312,37 @@ int main(int argc, char **argv)
   }
   if (timedOut) {
     if (!gAck) return notRunning();
-    for (size_t i = 0; i < args.size(); i++)
-      std::cout << args[i] << ": " << kNoAnswer << std::endl;
+    for (size_t i = 0; i < names.size(); i++)
+      std::cout << names[i] << ": " << kNoAnswer << std::endl;
     return 4;  // no answer: may have been carried out
   }
 
+  if (making) {
+    vector<string> objs = refused;
+    for (size_t i = 0; i < gLines.size(); i++) {
+      size_t a = gLines[i].find('\t');
+      size_t b = a == string::npos ? a : gLines[i].find('\t', a + 1);
+      string name = i < names.size() ? names[i] : gLines[i].substr(0, a);
+      if (b == string::npos) { allOk = false; continue; }
+      string ok = gLines[i].substr(a + 1, b - a - 1), rest = gLines[i].substr(b + 1);
+      const bool existed = rest == "exists";
+      if (ok != "ok") allOk = false;
+      if (json) {
+        string o = "{\"path\":" + jsonString(name) + ",\"ok\":" + (ok == "ok" ? "true" : "false");
+        if (ok == "ok") o += string(",\"created\":") + (existed ? "false" : "true") +
+                             ",\"url\":" + jsonString(existed ? urls[i] : rest);
+        else o += ",\"reason\":" + jsonString(rest);
+        objs.push_back(o + "}");
+      } else if (ok == "ok") std::cout << name << ": " << (existed ? "exists" : "created") << std::endl;
+      else std::cout << name << ": " << undone << ": " << rest << std::endl;
+    }
+    if (json) {
+      std::cout << "[";
+      for (size_t i = 0; i < objs.size(); i++) std::cout << (i ? "," : "") << objs[i];
+      std::cout << "]" << std::endl;
+    }
+    return allOk ? 0 : 1;
+  }
   for (size_t i = 0; i < gLines.size(); i++) {
     size_t a = gLines[i].find('\t');
     size_t b = a == string::npos ? a : gLines[i].find('\t', a + 1);

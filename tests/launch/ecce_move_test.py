@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""ecce-move / ecce-rename: the command line asks the running Organizer to
+"""ecce-move / ecce-rename / ecce-mkdir: the command line asks the running Organizer to
 move or rename calculations with its own move, and its #700 refusals.
 
 Two calculations are moved into a project (the Organizer finds them at the
@@ -56,7 +56,8 @@ def main():
     rn = os.path.join(build, "ecce-rename")
     ann = os.path.join(build, "ecce-annotate")
     cp = os.path.join(build, "ecce-copy")
-    for exe in (mv, rn, cp):
+    mkd = os.path.join(build, "ecce-mkdir")
+    for exe in (mv, rn, cp, mkd):
         if not os.access(exe, os.X_OK):
             say("FAIL: %s is not built" % exe)
             return 1
@@ -113,6 +114,8 @@ def main():
             shutil.rmtree(empty, ignore_errors=True)
         check(run(mv)[0] == 64 and run(mv, "one")[0] == 64,
               "ecce-move without a folder: usage, 64")
+        check(run(mkd)[0] == 64 and run(mkd, "-p")[0] == 64,
+              "ecce-mkdir without a path: usage, 64")
         check(run(rn, "one")[0] == 64 and run(rn, "a", "b", "c")[0] == 64,
               "ecce-rename without exactly two arguments: usage, 64")
 
@@ -196,6 +199,7 @@ def main():
         if None in urls.values():
             return 1
         Q = lambda n: urls[n][len("file://"):]
+        P = Q
         check(send("newproject dest2").startswith("ok"), "project dest2 made")
         d2 = home + "/dest2"
         slowfile = os.path.join(s.state, "slow-request")
@@ -219,7 +223,6 @@ def main():
         first.wait(timeout=120)
 
         dest = home + "/dest"
-        P = lambda n: urls[n][len("file://"):]
         rc, out, err = go(mv, P("one"), P("two"), dest)
         say(out)
         check(rc == 0 and "one: moved to %s" % dest in out and
@@ -230,6 +233,43 @@ def main():
         check(known("file://" + dest + "/one") and known(dest + "/two"),
               "the Organizer finds them at the new URL")
         check(not known(urls["one"]), "and no longer at the old one")
+
+        #  ecce-mkdir (#870): a new folder, an existing one with and without
+        #  -p, a nested one, then a calculation moved into it.
+        import json
+        newf = home + "/fresh"
+        rc, out, err = go(mkd, newf)
+        check(rc == 0 and "created" in out and os.path.isdir(newf),
+              "mkdir: new folder created, exit 0 (rc=%s %r %r)" % (rc, out, err))
+        check(known("file://" + newf) or send("tree").startswith("ok"),
+              "the Organizer is still up after mkdir")
+        rc, out, err = go(mkd, newf)
+        check(rc == 1 and "not created" in out and "exists" in out,
+              "mkdir on an existing folder: exit 1 (rc=%s %r)" % (rc, out))
+        rc, out, err = go(mkd, "-p", newf)
+        check(rc == 0 and "exists" in out, "mkdir -p on an existing folder: exit 0 (rc=%s %r)" % (rc, out))
+        nested = home + "/up/mid/low"
+        rc, out, err = go(mkd, nested)
+        check(rc == 1 and "-p" in out and not os.path.exists(home + "/up"),
+              "mkdir of a nested folder without -p is refused, nothing made (rc=%s %r)" % (rc, out))
+        #  "one" was moved into dest above; its old path no longer exists.
+        rc, out, err = go(mkd, "-p", "--json", nested, dest + "/one/inside")
+        try:
+            objs = json.loads(out)
+        except ValueError:
+            objs = []
+        check(rc == 1 and len(objs) == 2 and objs[0]["ok"] and objs[0]["created"] and
+              objs[0]["path"] == nested and not objs[1]["ok"] and os.path.isdir(nested),
+              "mkdir -p --json: nested made, a calculation as parent refused (rc=%s %r)" % (rc, out))
+        rc2, out2, err2 = go(mkd, "-p", home + "/bad name!")
+        check(rc2 == 1 and "not created" in out2, "an invalid name is refused (rc=%s %r)" % (rc2, out2))
+        rc, out, err = go(mkd, "-p", os.path.join(s.state, "decks", "x"))
+        check(rc == 1 and "not inside the data folder" in out,
+              "mkdir outside the data is refused (rc=%s %r)" % (rc, out))
+        urls["mk"] = make(home, "mk")
+        rc, out, err = go(mv, P("mk"), nested)
+        check(rc == 0 and "mk: moved to %s" % nested in out and os.path.isdir(nested + "/mk"),
+              "a calculation moves into the new nested folder (rc=%s %r)" % (rc, out))
 
         #  ecce-copy (#890): a copy, also of a running calculation; the
         #  source stays and a name clash is refused.

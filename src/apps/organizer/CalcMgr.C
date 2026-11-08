@@ -5060,6 +5060,78 @@ bool CalcMgr::moveForCommand(const string& verb, const vector<EcceURL>& urls,
 }
 
 
+//  ecce-mkdir (#870): File > New Project / New Folder without the name prompt.
+bool CalcMgr::mkdirForCommand(const vector<EcceURL>& urls, bool parents,
+                              vector<string>& lines)
+{
+  lines.clear();
+  ResourceType *rt = ResourceDescriptor::getResourceDescriptor().getResourceType(
+      "collection", "ecceProject", "");
+  for (size_t i = 0; i < urls.size(); i++) {
+    const string leaf = urls[i].getFilePathTail();
+    auto no = [&](const string& why) { lines.push_back(leaf + "\tno\t" + why); };
+    vector<EcceURL> missing;   // innermost first
+    EcceURL cur = urls[i];
+    Resource *found = 0;
+    for (int depth = 0; depth < 64 && !found; depth++) {
+      found = EDSIFactory::getResource(cur);
+      if (found) break;
+      missing.push_back(cur);
+      EcceURL up = cur.getParent();
+      if (up == cur) break;
+      cur = up;
+    }
+    if (!found || !rt) { no("not in this session"); continue; }
+    // The tree's resource knows it is a calculation; a fresh one may not.
+    WxResourceTreeItemData *foundNode = findNodeFresh(found->getURL(), false);
+    ResourceType *foundType = found->getDescriptor();
+    const bool foundCalc = (foundType && foundType->getResourceType() == "virtual_document") ||
+        foundNode && foundNode->getResource() &&
+        (foundNode->getResource()->getContentType() == ResourceDescriptor::CT_CALCULATION ||
+         dynamic_cast<TaskJob*>(foundNode->getResource()) ||
+         !p_treeCtrl->setExpandable(foundNode));
+    if (missing.empty()) {
+      if (foundCalc)
+        no("a calculation with that name exists");
+      else if (parents) lines.push_back(leaf + "\tok\texists");
+      else no("it already exists");
+      continue;
+    }
+    if (foundCalc) {
+      no("it would be inside a calculation");
+      continue;
+    }
+    if (missing.size() > 1 && !parents) {
+      no("the parent folder does not exist (use -p to make it)");
+      continue;
+    }
+    EcceURL anchor = found->getURL();
+    if (!foundNode) {
+      no("the parent is not a folder in this session");
+      continue;
+    }
+    string why;
+    Resource *parentRes = found, *made = 0;
+    for (size_t k = missing.size(); k-- > 0;) {
+      const string name = missing[k].getFilePathTail();
+      if (!rt->isValidResourceName(name)) {
+        why = "a name may contain only letters, digits, '.', '_' and '-'";
+        break;
+      }
+      made = parentRes->createChild(name, rt);
+      if (!made) { why = parentRes->messages(); if (why.empty()) why = "could not be created"; break; }
+      parentRes = made;
+    }
+    if (WxResourceTreeItemData *up = findNode(anchor, false, true))
+      p_treeCtrl->refresh(up);
+    if (!why.empty()) { no(why); continue; }
+    findNode(made->getURL(), true, true);
+    lines.push_back(leaf + "\tok\t" + made->getURL().toString());
+  }
+  return true;
+}
+
+
 //  Terminate Selected for a request from another process (#695): the same
 //  terminateCalc, without the confirmation. One line per calculation,
 //  "name\tok\tjob id" or "name\tno\treason".

@@ -405,8 +405,11 @@ void CalcMgrApp::moveRequestMCB(JMSMessage& msg)
   for (int i = 0; i < n; i++)
     urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
   vector<string> lines;
-  p_calcMgr->moveForCommand(msg.getProperty("verb"), urls,
-                            msg.getProperty("second"), lines);
+  if (msg.getProperty("verb") == "mkdir")
+    p_calcMgr->mkdirForCommand(urls, msg.getProperty("second") == "parents", lines);
+  else
+    p_calcMgr->moveForCommand(msg.getProperty("verb"), urls,
+                              msg.getProperty("second"), lines);
   JMSMessage* r = newMessage();
   r->addProperty("reply_id", id);
   r->addProperty("kind", "done");
