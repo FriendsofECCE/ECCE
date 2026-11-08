@@ -225,6 +225,28 @@ int main(int argc, char** argv) {
   CHECK(std::fabs(integral - 2 * inWin) < 0.01, "TDOS integral");
   CHECK(std::fabs(d.occupiedOverlap[0] - op) < 1e-8, "OP vs P.S");
   CHECK(d.occupiedOverlap[0] > 0, "Cr-CO bonding overlap population should be positive: %f", d.occupiedOverlap[0]);
+  // integrated OPDOS at the Fermi level is the A-B overlap population; norm check passes
+  {
+    DosOptions wide = dopt;
+    wide.emin = -7000; wide.emax = 30; wide.step = 0.1;
+    DosResult w;
+    CHECK(dos(cx, wide, w, err), "%s", err.c_str());
+    size_t gf = size_t(std::floor((w.fermiEv - w.energy[0]) / wide.step + 0.5));
+    printf("dos: integrated OPDOS at E_F %.6f vs occupied OP %.6f, norm error %.2e\n", w.intOpdos[gf], w.occupiedOverlap[0], d.normError);
+    CHECK(std::fabs(w.intOpdos[gf] - w.occupiedOverlap[0]) < 2e-3, "integrated OPDOS at HOMO");
+    size_t gd = size_t(std::floor((d.fermiEv - d.energy[0]) / dopt.step + 0.5));
+    CHECK(std::fabs(d.intOpdos[gd] - d.occupiedOverlap[0]) < 2e-3, "integrated OPDOS at HOMO in a window that cuts the core: %f vs %f", d.intOpdos[gd], d.occupiedOverlap[0]);
+    CHECK(d.normError < 1e-5, "c^T S c = 1: %g", d.normError);
+    DosOptions occ = dopt;
+    occ.occupiedOnly = true;
+    DosResult o;
+    CHECK(dosOrbitals(cx, occ, o, err), "%s", err.c_str());
+    CHECK(dosCurves(occ, o, err), "%s", err.c_str());
+    double mx = -1e30;
+    for (size_t i = 0; i < o.moOccupation.size(); i++) mx = std::max(mx, o.moEnergy[i]);
+    CHECK(o.moEnergy.size() < d.moEnergy.size() && mx <= d.homoEv + 1e-9, "occupied only keeps %zu of %zu MOs, max E %.4f homo %.4f", o.moEnergy.size(), d.moEnergy.size(), mx, d.homoEv);
+    CHECK(std::fabs(o.occupiedOverlap[0] - d.occupiedOverlap[0]) < 1e-9, "occupied-only overlap population");
+  }
   printf(fails ? "RESULT FAIL\n" : "RESULT OK\n");
   return fails ? 1 : 0;
 }

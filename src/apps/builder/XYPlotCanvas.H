@@ -190,6 +190,8 @@ class XYPlotCanvas : public wxPanel
       Refresh();
     }
     void clearVLines() { p_vlines.clear(); Refresh(); }
+    /** A tinted band over x in [from, to] behind the curves (occupied levels). */
+    void setShadeX(double from, double to, bool on = true) { p_shadeOn = on; p_shadeLo = from; p_shadeHi = to; Refresh(); }
     int vLineCount() const { return (int)p_vlines.size(); }
     /** Cut the y axis at `top` (0: show everything), for tall peaks that
      *  would flatten the rest of the curve. */
@@ -456,6 +458,15 @@ class XYPlotCanvas : public wxPanel
 
       dc.SetClippingRegion(p_plot.x - 4, p_plot.y - 4, p_plot.width + 8,
                            p_plot.height + 8);
+      if (p_shadeOn) {
+        const int a = std::max(p_plot.x, std::min(xOf(p_shadeLo), xOf(p_shadeHi)));
+        const int b = std::min(p_plot.GetRight(), std::max(xOf(p_shadeLo), xOf(p_shadeHi)));
+        if (b > a) {
+          dc.SetPen(*wxTRANSPARENT_PEN);
+          dc.SetBrush(wxBrush(PlotPalette::mix(p_palette.text, p_palette.background, 0.92)));
+          dc.DrawRectangle(a, p_plot.y, b - a, p_plot.height);
+        }
+      }
       if (p_zeroLine && !p_yLog && 0.0 > p_y0 && 0.0 < p_y1) {
         dc.SetPen(wxPen(p_palette.axis, 1));
         dc.DrawLine(p_plot.x, yOf(0.0), p_plot.GetRight(), yOf(0.0));
@@ -547,6 +558,8 @@ class XYPlotCanvas : public wxPanel
 
     std::vector< std::pair<double, wxString> > p_vlines;
     bool p_zeroLine = false;
+    bool p_shadeOn = false;
+    double p_shadeLo = 0, p_shadeHi = 0;
     double p_yLimit = 0.0;
     bool p_whole = false;
     XScale p_xScale = X_LINEAR;

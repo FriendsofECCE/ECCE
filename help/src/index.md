@@ -125,6 +125,10 @@ describe what you did and what happened.
    orbital's share of it along a line through two atoms, or averaged around one
    atom: shells, penetration, nodes and the build-up in a bond.
 
+22a. [Density of states (OPDOS)](density-of-states-opdos.md): TDOS, the PDOS of two atom
+   groups and the overlap population DOS between them (Mulliken), with the
+   integrated OPDOS, for one calculation.
+
 23. [Dipole moment](dipole-moment.md): the arrow from the negative to the
    positive pole, its label, and which atomic charges place the poles.
 

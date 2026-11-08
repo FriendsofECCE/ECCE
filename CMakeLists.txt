@@ -3637,6 +3637,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_fragorb_diagram PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Density of States (OPDOS) panel on Cr(CO)6: integrated OPDOS at the HOMO equals the A-B overlap population (#171).
+  add_test(NAME apps_opdos_panel
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/opdos_panel_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_opdos_panel PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # ecce-thermo --reactions: reaction overview data (#709).
   add_test(NAME apps_thermo_reactions
            COMMAND ${PYTHON3_EXECUTABLE}

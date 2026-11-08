@@ -37,7 +37,7 @@ drop-down's tooltip. The drop-down in **MOs** lists orbitals only.
 
 **Density Map** and **Density Profile** remain under **Orbitals**. They plot
 a plane or a line through chosen atoms; see [Density Map](density-map.md)
-and [Density Profile](density-profile.md).
+and [Density Profile](density-profile.md); [Density of States (OPDOS)](density-of-states-opdos.md) plots the density of states and the overlap population between two atom groups.
 
 ## A panel in its own window
 

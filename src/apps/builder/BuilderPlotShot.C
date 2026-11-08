@@ -33,6 +33,7 @@
 #include "DensityFragments.H"
 #include "DensityMapPanel.H"
 #include "DensityProfilePanel.H"
+#include "OpdosPanel.H"
 #include "XYPlotCanvas.H"
 
 
@@ -551,5 +552,61 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
   fprintf(stderr, "DENSITYPROFILE-BLOCK: %s init %ld ms, command %ld ms\n", cmd.c_str(),
           initMs, blockMs);
   fprintf(stderr, "DENSITYPROFILE: %s\n%s", cmd.c_str(), dp->state().c_str());
+  return true;
+}
+
+
+//  Scene commands for the Density of States (OPDOS) panel (#171):
+//    opdosopen | opdosatoms "A" "B" | opdosselect A|B A1 A2 ... (viewer selection, then Use selection)
+//    opdoswidth EV | opdossticks 0|1 | opdosoccupied 0|1 | opdosint 0|1
+//    opdosclick EV | opdoscsv <name> | opdospng <name> <w> <h> | opdosstate
+bool Builder::opdosCommand(SceneScript& s, const vector<string>& w, const string& outdir)
+{
+  const string name = "Density of States (OPDOS)";
+  wxAuiPaneInfo &pane = p_mgr.GetPane(name);
+  if (!pane.IsOk()) return s.fail(w[0] + ": no OPDOS panel");
+  if (!pane.IsShown()) {
+    pane.Show(true);
+    for (int i = 0; i < p_propertyMenu->GetMenuItemCount(); i++) {
+      wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
+      if (item != 0 && item->GetItemLabelText() == name) item->Check(true);
+    }
+    updatePanes(true);
+  }
+  OpdosPanel *op = 0;
+  set<PropertyPanel*> panels = PropertyPanel::getPanels(p_calculation->getURL().toString());
+  for (set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end() && !op; ++it)
+    op = dynamic_cast<OpdosPanel*>(*it);
+  if (!op) return s.fail(w[0] + ": no OPDOS panel for this calculation");
+  op->ensureInitialized();
+  const string& cmd = w[0];
+  bool ok = true;
+  if (cmd == "opdosatoms" && w.size() == 3) {
+    ok = op->setAtoms(w[1], w[2]);
+  } else if (cmd == "opdosselect" && w.size() >= 3) {
+    SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+    if (!frag) return s.fail("opdosselect: no structure");
+    frag->m_atomHighLight.clear();
+    for (size_t i = 2; i < w.size(); i++) frag->m_atomHighLight.push_back(atoi(w[i].c_str()) - 1);
+    ok = op->useSelection(w[1] == "B" ? 1 : 0);
+  } else if (cmd == "opdoswidth" && w.size() == 2) {
+    ok = op->setWidth(atof(w[1].c_str()));
+  } else if (cmd == "opdossticks" && w.size() == 2) {
+    ok = op->setSticks(w[1] != "0");
+  } else if (cmd == "opdosoccupied" && w.size() == 2) {
+    ok = op->setOccupiedOnly(w[1] != "0");
+  } else if (cmd == "opdosint" && w.size() == 2) {
+    ok = op->setIntegrated(w[1] != "0");
+  } else if (cmd == "opdosclick" && w.size() == 2) {
+    ok = op->clickEnergy(atof(w[1].c_str()));
+  } else if (cmd == "opdoscsv" && w.size() == 2) {
+    ok = op->exportCsv(wxString(outdir + "/" + w[1] + ".csv"));
+  } else if (cmd == "opdospng" && w.size() == 4) {
+    ok = op->savePng(wxString(outdir + "/" + w[1] + ".png"), atoi(w[2].c_str()), atoi(w[3].c_str()));
+  } else if (cmd != "opdosopen" && cmd != "opdosstate") {
+    return s.fail("unknown opdos command: " + cmd);
+  }
+  if (!ok) return s.fail(cmd + ": refused");
+  fprintf(stderr, "OPDOS: %s\n%s", cmd.c_str(), op->state().c_str());
   return true;
 }
