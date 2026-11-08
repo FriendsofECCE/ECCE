@@ -131,6 +131,16 @@ sub parseKeywordLine {
   # left blank). NMR is now handled properly (-> Magnetic); this list
   # is deliberately short (just what's been tested) and not exhaustive
   # of every ORCA runtype keyword.
+  # The -3c composites fix their own basis (orcatheory.py COMPOSITES_3C).
+  # Names as in the ORCA 6 manual's composite-methods table, not checked
+  # against the manual text here; a basis the ECCE library lacks is left unset.
+  my %composites = ("R2SCAN-3C" => ["r2SCAN-3c", "DFT", "def2-mTZVPP"],
+                    "B97-3C"    => ["B97-3c",    "DFT", "def2-mTZVP"],
+                    "PBEH-3C"   => ["PBEh-3c",   "DFT", "def2-mSVP"],
+                    "WB97X-3C"  => ["wB97X-3c",  "DFT", "vDZP"],
+                    "HF-3C"     => ["HF-3c",     "SCF", "MINIX"]);
+  my ($compositeName, $compositeCat, $compositeBasis);
+
   my %unsupportedRuntypeTokens = map { $_ => 1 } ("NEB","SCANTS");
 
   my ($sawHF, $sawUHF, $sawRKS, $sawUKS, $sawCC,
@@ -148,6 +158,9 @@ sub parseKeywordLine {
     elsif ($ucTok eq "CCSD" || $ucTok eq "CCSD(T)") { $sawCC = $tok; }
     elsif ($ucTok eq "RKS") { $sawRKS = 1; }
     elsif ($ucTok eq "UKS") { $sawUKS = 1; }
+    elsif (exists($composites{$ucTok})) {
+      ($compositeName, $compositeCat, $compositeBasis) = @{$composites{$ucTok}};
+    }
     elsif (exists($xcFunctionals{$ucTok})) { $xcFunctional = $xcFunctionals{$ucTok}; }
     # ORCA keywords ignore case, and Raman with B88 functionals needs NumFreq.
     elsif ($ucTok =~ /^(LOOSE|NORMAL|TIGHT|VERYTIGHT)?OPT$/) { $sawOpt = 1; }
@@ -169,6 +182,15 @@ sub parseKeywordLine {
   $basisName = $reportedBasis
     if (!defined($basisName) && defined($reportedBasis) &&
         exists($BasisToName{uc($reportedBasis)}));
+
+  # The printed basis wins; the composite's implied one is the fallback.
+  $basisName = $compositeBasis
+    if (!defined($basisName) && defined($compositeBasis) &&
+        exists($BasisToName{uc($compositeBasis)}));
+  $xcFunctional = $compositeName
+    if (defined($compositeName) && $compositeCat eq "DFT" &&
+        !defined($xcFunctional));
+  $sawHF = 1 if (defined($compositeName) && $compositeCat eq "SCF");
 
   if ($sawCC) {
     $theoryCat = "CC";

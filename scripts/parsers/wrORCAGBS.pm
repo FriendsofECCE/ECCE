@@ -247,6 +247,11 @@ sub setupBasisTranslation {
   $NameToBasis{"def2-svp(p)"} = "def2-SV(P)";                # nbf 18
   $NameToBasis{"def2-tzvpp"} = "def2-TZVPP";                 # nbf 59
   $NameToBasis{"def2-qzvpp"} = "def2-QZVPP";                 # nbf 117
+  #  The -3c composites' own bases, from the BSE; run against ORCA 6.1.1
+  #  on water, nbf as ECCE's library entries give.
+  $NameToBasis{"def2-mtzvp"} = "def2-mTZVP";                 # nbf 30
+  $NameToBasis{"def2-mtzvpp"} = "def2-mTZVPP";               # nbf 34
+  $NameToBasis{"vdzp"} = "vDZP";                             # nbf 23
 
   #  Added for #118 from tests/basisload/named_basis_check.py: each keyword
   #  gave the same function count and an RHF energy within 1e-5 Eh of
