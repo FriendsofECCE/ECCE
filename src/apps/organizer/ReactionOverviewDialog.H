@@ -1,6 +1,7 @@
 #ifndef REACTIONOVERVIEWDIALOG_HH
 #define REACTIONOVERVIEWDIALOG_HH
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -12,6 +13,9 @@
 class wxChoice;
 class wxStaticText;
 class wxTextCtrl;
+class wxPanel;
+class wxFlexGridSizer;
+class wxCollapsiblePane;
 
 /**
  * Compare Energies > Reaction overview (#709): dE_el and dG per reaction as
@@ -22,11 +26,22 @@ class wxTextCtrl;
 class ReactionOverviewDialog : public wxDialog
 {
 public:
-  /** lines: one reaction per line, "a, 2*b -> c"; species are calculation names
-   *  in the folder `base` (a URL), or full URLs/paths. */
+  /** lines: one reaction per line, "a, 2*b -> [ts] -> c", the stored form of
+   *  the Reactions table (the user picks, never types it); species are
+   *  calculation names in the folder `base` (a URL), or full URLs/paths.
+   *  Blank `lines`: the table is filled from the workflow `base` is. */
   ReactionOverviewDialog(wxWindow *parent, const std::string& lines,
                          const std::string& base = std::string());
 
+  /** Test hooks: the stored reaction lines, one per line; add a line as the
+   *  picker would; remove row n (1-based); the picker's TS choices as
+   *  "name:imaginary:enabled" lines. */
+  std::string reactionLines() const;
+  void addReactionLine(const std::string& line);
+  void removeReaction(int n);
+  std::string tsChoices() const;
+  /** One line per stored reaction: "n balanced" or the "Not balanced: ..." message. */
+  std::string balanceText() const;
   /** Test hooks. */
   void setTreatment(const std::string& cli);
   /** One line per drawn reaction: "reaction n dE dG lo hi" (kJ/mol). */
@@ -65,8 +80,25 @@ private:
   std::string p_base;
   std::string reactionText(int n) const;
   void showProfiles();
+  void showResults();
+  /** "" when balanced (or unknown), else "Not balanced: left ..., right ...". */
+  std::string balanceOf(const std::string& line) const;
+  mutable std::map<std::string, std::string> p_calcUrls;
+  wxPanel *p_results;
+  wxFlexGridSizer *p_resSizer;
+  wxStaticText *p_units;
 
-  wxTextCtrl *p_input, *p_detail;
+  void rebuildTable();
+  void pick(int row);                 ///< the picker for a new reaction (-1) or row
+  void autoFill();
+  std::vector<std::string> p_lines;
+  int p_sel = -1;
+  wxPanel *p_table;
+  wxFlexGridSizer *p_tableSizer;
+  wxStaticText *p_note;
+  wxWindow *p_editButton;
+  wxCollapsiblePane *p_pane;
+  wxTextCtrl *p_detail;
   wxChoice *p_treatment, *p_profileChoice;
   wxStaticText *p_profileLabel;
   wxWindow *p_pngButton;

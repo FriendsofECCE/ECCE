@@ -8,18 +8,40 @@
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
+#include <functional>
+#include <map>
 #include <sstream>
 
 #include <wx/button.h>
+#include <wx/checkbox.h>
 #include <wx/choice.h>
+#include <wx/collpane.h>
+#include <wx/panel.h>
+#include <wx/radiobut.h>
+#include <wx/scrolwin.h>
+#include <wx/settings.h>
+#include <wx/spinctrl.h>
 #include <wx/filedlg.h>
 #include <wx/filename.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 
+#include "CompareEnergies.H"
 #include "RateBox.H"
+#include "WorkflowSteps.H"
+#include "dsm/EDSIFactory.H"
+#include "dsm/ICalculation.H"
+#include "dsm/PropertyTask.H"
+#include "dsm/Session.H"
+#include "tdat/Fragment.H"
+#include "tdat/PropVector.H"
+#include "tdat/TAtm.H"
+#include "tdat/TRunType.H"
+#include "util/EcceURL.H"
 #include "util/ThermoRun.H"
+#include "util/VibFrequency.H"
+#include "wxgui/WxHelpViewer.H"
 
 using std::string;
 using std::vector;
@@ -164,6 +186,331 @@ string resolveNames(const string& line, const string& base, string& why)
   return out;
 }
 
+
+// A reaction line as the picker shows it: coefficient and calculation name per
+// species, the TS (empty for none).
+struct Spec {
+  vector<std::pair<int, string> > re, pr;
+  string ts;
+};
+
+string lastPart(string n)
+{
+  while (n.size() > 1 && n.back() == '/') n.pop_back();
+  const size_t slash = n.rfind('/');
+  return slash == string::npos ? n : n.substr(slash + 1);
+}
+
+vector<std::pair<int, string> > parseSide(const string& side)
+{
+  vector<std::pair<int, string> > out;
+  std::istringstream in(side);
+  for (string item; std::getline(in, item, ','); ) {
+    item = trim(item);
+    if (item.empty()) continue;
+    int n = 1;
+    const size_t star = item.find('*');
+    if (star != string::npos) { n = std::max(1, atoi(item.substr(0, star).c_str())); item = trim(item.substr(star + 1)); }
+    out.push_back(std::make_pair(n, lastPart(item)));
+  }
+  return out;
+}
+
+Spec parseSpec(const string& line)
+{
+  Spec s;
+  string lhs, ts, rhs;
+  if (line.find('[') != string::npos && splitTs(line, lhs, ts, rhs)) {
+    s.ts = lastPart(ts);
+  } else {
+    const size_t a = line.find("->");
+    lhs = line.substr(0, a);
+    rhs = a == string::npos ? string() : line.substr(a + 2);
+  }
+  s.re = parseSide(lhs);
+  s.pr = parseSide(rhs);
+  return s;
+}
+
+string formatSide(const vector<std::pair<int, string> >& side)
+{
+  string o;
+  for (const std::pair<int, string>& t : side)
+    o += (o.empty() ? "" : ", ") + (t.first > 1 ? std::to_string(t.first) + "*" : string()) + t.second;
+  return o;
+}
+
+string formatLine(const Spec& s)
+{
+  return formatSide(s.re) + (s.ts.empty() ? " -> " : " -> [" + s.ts + "] -> ") + formatSide(s.pr);
+}
+
+// Cell text of one side: "2 x water + b".
+string cellSide(const vector<std::pair<int, string> >& side)
+{
+  string o;
+  for (const std::pair<int, string>& t : side)
+    o += (o.empty() ? "" : " + ") + (t.first > 1 ? std::to_string(t.first) + " \xC3\x97 " : string()) + t.second;
+  return o;
+}
+
+// Imaginary frequencies of a stored calculation; -1 when it has no frequencies.
+int imaginaryCount(const string& url)
+{
+  PropertyTask *t = dynamic_cast<PropertyTask*>(EDSIFactory::getResource(EcceURL(url)));
+  PropVector *v = t ? dynamic_cast<PropVector*>(t->getProperty("VIBFREQ")) : 0;
+  if (!v || v->values().empty()) return -1;
+  int n = 0;
+  for (double f : v->values()) if (VibFrequency::isImaginary(f)) n++;
+  return n;
+}
+
+// Atoms and total charge of a stored calculation's structure (cached per URL).
+struct Comp { std::map<string, int> atoms; int charge = 0; bool ok = false; };
+
+const Comp& compOf(const string& url)
+{
+  static std::map<string, Comp> cache;
+  std::map<string, Comp>::iterator it = cache.find(url);
+  if (it != cache.end()) return it->second;
+  Comp c;
+  ICalculation *calc = dynamic_cast<ICalculation*>(EDSIFactory::getResource(EcceURL(url)));
+  Fragment *frag = calc ? calc->fragment() : 0;
+  if (frag) {
+    c.charge = frag->charge();
+    vector<TAtm*> *atoms = frag->atoms();
+    if (atoms) {
+      for (TAtm *a : *atoms) if (a->atomicSymbol() != "X") c.atoms[a->atomicSymbol()]++;
+      delete atoms;
+    }
+    c.ok = !c.atoms.empty();
+    delete frag;
+  }
+  return cache.insert(std::make_pair(url, c)).first->second;
+}
+
+// "C2 H6 Cl2": carbon, hydrogen, then alphabetical (Hill order).
+string hill(const std::map<string, int>& a)
+{
+  string o;
+  auto put = [&](const string& sym, int n) {
+    o += (o.empty() ? "" : " ") + sym + (n > 1 ? std::to_string(n) : string());
+  };
+  const bool hasC = a.count("C") > 0;
+  if (hasC) put("C", a.at("C"));
+  if (hasC && a.count("H")) put("H", a.at("H"));
+  for (const std::pair<const string, int>& e : a) {
+    if (hasC && (e.first == "C" || e.first == "H")) continue;
+    put(e.first, e.second);
+  }
+  return o;
+}
+
+typedef std::function<const Comp*(const string&)> CompLookup;
+
+// Empty when the reaction has the same atoms and total charge on both sides
+// (coefficients applied), or when a species' structure is not known.
+string balanceMessage(const vector<std::pair<int, string> >& re,
+                      const vector<std::pair<int, string> >& pr, const CompLookup& find)
+{
+  std::map<string, int> a[2];
+  int q[2] = {0, 0};
+  for (int side = 0; side < 2; side++)
+    for (const std::pair<int, string>& t : side == 0 ? re : pr) {
+      const Comp *c = find(t.second);
+      if (!c || !c->ok) return string();
+      for (const std::pair<const string, int>& e : c->atoms) a[side][e.first] += t.first * e.second;
+      q[side] += t.first * c->charge;
+    }
+  if (a[0] == a[1] && q[0] == q[1]) return string();
+  auto fmt = [&](int s) {
+    string f = hill(a[s]);
+    if (q[0] || q[1]) f += " (charge " + std::to_string(q[s]) + ")";
+    return f;
+  };
+  return "Not balanced: left " + fmt(0) + ", right " + fmt(1);
+}
+
+struct CalcInfo { string name, url; int imag; };
+
+vector<CalcInfo> calcsOf(const string& base)
+{
+  vector<CalcInfo> out;
+  if (base.empty()) return out;
+  for (const std::pair<string, string>& c : calculationsIn(base)) {
+    CalcInfo i;
+    i.name = c.first; i.url = c.second; i.imag = imaginaryCount(c.second);
+    out.push_back(i);
+  }
+  std::sort(out.begin(), out.end(), [](const CalcInfo& a, const CalcInfo& b) { return a.name < b.name; });
+  return out;
+}
+
+// Add Reaction / Edit: reactants and products as tick lists with a coefficient
+// each, the transition state as one optional choice (only calculations with
+// exactly one imaginary frequency).
+class PickerDialog : public wxDialog
+{
+public:
+  PickerDialog(wxWindow *parent, const vector<CalcInfo>& calcs, const Spec& init, bool edit)
+    : wxDialog(parent, wxID_ANY, edit ? _("Edit Reaction") : _("Add Reaction"), wxDefaultPosition,
+               wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER), p_calcs(calcs)
+  {
+    wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+    wxStaticText *intro = new wxStaticText(this, wxID_ANY,
+        _("Calculations in this folder. Tick reactants and products and set how many of each; "
+          "the transition state is optional."));
+    intro->Wrap(640);
+    top->Add(intro, 0, wxALL, 10);
+    wxBoxSizer *cols = new wxBoxSizer(wxHORIZONTAL);
+    const wxString heads[3] = {_("Reactants"), _("Transition state"), _("Products")};
+    wxScrolledWindow *pane[3];
+    wxFlexGridSizer *grid[3];
+    for (int c = 0; c < 3; c++) {
+      wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
+      wxStaticText *h = new wxStaticText(this, wxID_ANY, heads[c]);
+      h->SetFont(h->GetFont().Bold());
+      col->Add(h, 0, wxBOTTOM, 4);
+      pane[c] = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(230, 230), wxBORDER_THEME | wxVSCROLL);
+      pane[c]->SetScrollRate(0, 10);
+      grid[c] = new wxFlexGridSizer(c == 1 ? 1 : 2, 3, 6);
+      pane[c]->SetSizer(grid[c]);
+      col->Add(pane[c], 1, wxEXPAND);
+      cols->Add(col, 1, wxEXPAND | wxLEFT | wxRIGHT, 8);
+    }
+    top->Add(cols, 1, wxEXPAND | wxLEFT | wxRIGHT, 4);
+
+    wxRadioButton *none = new wxRadioButton(pane[1], wxID_ANY, _("(none)"), wxDefaultPosition,
+                                            wxDefaultSize, wxRB_GROUP);
+    grid[1]->Add(none, 0, wxALL, 2);
+    p_tsRadio.push_back(none);
+    none->SetValue(init.ts.empty());
+    for (size_t i = 0; i < calcs.size(); i++) {
+      const wxString name = wxString::FromUTF8(calcs[i].name.c_str());
+      for (int side = 0; side < 2; side++) {
+        const int col = side == 0 ? 0 : 2;
+        wxCheckBox *cb = new wxCheckBox(pane[col], wxID_ANY, name);
+        wxSpinCtrl *sp = new wxSpinCtrl(pane[col], wxID_ANY, "1", wxDefaultPosition, wxSize(64, -1),
+                                        wxSP_ARROW_KEYS, 1, 99, 1);
+        sp->Hide();
+        grid[col]->Add(cb, 0, wxALIGN_CENTER_VERTICAL | wxALL, 2);
+        grid[col]->Add(sp, 0, wxALIGN_CENTER_VERTICAL);
+        const vector<std::pair<int, string> >& have = side == 0 ? init.re : init.pr;
+        for (const std::pair<int, string>& t : have)
+          if (t.second == calcs[i].name) { cb->SetValue(true); sp->SetValue(t.first); sp->Show(); }
+        cb->Bind(wxEVT_CHECKBOX, [this, sp](wxCommandEvent& e) {
+          sp->Show(e.IsChecked());
+          sp->GetParent()->Layout();
+          check();
+        });
+        sp->Bind(wxEVT_SPINCTRL, [this](wxSpinEvent&) { check(); });
+        sp->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { if (p_status) check(); });
+        (side == 0 ? p_reCb : p_prCb).push_back(cb);
+        (side == 0 ? p_reSp : p_prSp).push_back(sp);
+      }
+      wxRadioButton *rb = new wxRadioButton(pane[1], wxID_ANY, name);
+      const bool ok = calcs[i].imag == 1;
+      if (!ok) {
+        rb->Enable(false);
+        rb->SetToolTip(calcs[i].imag < 0 ? wxString(_("no frequencies stored"))
+                       : wxString::Format(_("%d imaginary frequencies"), calcs[i].imag));
+      }
+      rb->SetValue(ok && init.ts == calcs[i].name);
+      grid[1]->Add(rb, 0, wxALL, 2);
+      p_tsRadio.push_back(rb);
+    }
+    for (int c = 0; c < 3; c++) pane[c]->FitInside();
+
+    p_status = new wxStaticText(this, wxID_ANY, " ");
+    p_status->SetForegroundColour(wxColour(150, 30, 30));
+    p_status->SetMinSize(wxSize(640, 2 * p_status->GetCharHeight()));
+    top->Add(p_status, 0, wxLEFT | wxRIGHT | wxTOP, 10);
+    wxBoxSizer *bar = new wxBoxSizer(wxHORIZONTAL);
+    wxButton *help = new wxButton(this, wxID_HELP, _("Help"));
+    help->Bind(wxEVT_BUTTON, [](wxCommandEvent&) { WxHelpViewer::show("energy-calculator.html"); });
+    bar->Add(help, 0);
+    bar->AddStretchSpacer();
+    bar->Add(new wxButton(this, wxID_CANCEL, _("Cancel")), 0, wxRIGHT, 8);
+    p_ok = new wxButton(this, wxID_OK, _("OK"));
+    bar->Add(p_ok, 0);
+    top->Add(bar, 0, wxEXPAND | wxALL, 10);
+    SetSizerAndFit(top);
+    check();
+  }
+
+  Spec result() const
+  {
+    Spec s;
+    for (size_t i = 0; i < p_calcs.size(); i++) {
+      if (p_reCb[i]->GetValue()) s.re.push_back(std::make_pair(p_reSp[i]->GetValue(), p_calcs[i].name));
+      if (p_prCb[i]->GetValue()) s.pr.push_back(std::make_pair(p_prSp[i]->GetValue(), p_calcs[i].name));
+      if (p_tsRadio[i + 1]->GetValue()) s.ts = p_calcs[i].name;
+    }
+    return s;
+  }
+
+private:
+  void check()
+  {
+    bool re = false, pr = false;
+    for (size_t i = 0; i < p_calcs.size(); i++) {
+      re = re || p_reCb[i]->GetValue();
+      pr = pr || p_prCb[i]->GetValue();
+    }
+    string msg;
+    if (re && pr) {
+      const Spec s = result();
+      msg = balanceMessage(s.re, s.pr, [this](const string& n) -> const Comp* {
+        for (const CalcInfo& c : p_calcs) if (c.name == n) return &compOf(c.url);
+        return 0;
+      });
+    }
+    p_ok->Enable(re && pr && msg.empty());
+    p_status->SetLabel(msg.empty() ? wxString(" ") : wxString::FromUTF8(msg.c_str()));
+    p_status->Wrap(640);
+  }
+  vector<CalcInfo> p_calcs;
+  vector<wxCheckBox*> p_reCb, p_prCb;
+  vector<wxSpinCtrl*> p_reSp, p_prSp;
+  vector<wxRadioButton*> p_tsRadio;
+  wxButton *p_ok;
+  wxStaticText *p_status = 0;
+};
+
+}
+
+// The reaction a workflow stands for: its reactant, ts and product steps
+// (recipe roles), else an IRC step with the TS it starts from and that TS's
+// reactant and product sources.  Empty when the folder is no workflow.
+static string workflowReaction(const string& base)
+{
+  Session *wf = dynamic_cast<Session*>(EDSIFactory::getResource(EcceURL(base)));
+  if (!wf) return string();
+  Spec s;
+  for (const KeyStep& k : WorkflowSteps::keySteps(wf)) {
+    if (k.keyRole == "reactant") s.re.push_back(std::make_pair(1, k.name));
+    else if (k.keyRole == "product") s.pr.push_back(std::make_pair(1, k.name));
+    else if (k.keyRole == "ts" && s.ts.empty()) s.ts = k.name;
+  }
+  if (!s.re.empty() && !s.pr.empty()) return formatLine(s);
+  s = Spec();
+  const vector<WorkflowSteps::Node> nodes = WorkflowSteps::tree(wf);
+  for (const WorkflowSteps::Node& n : nodes) {
+    ICalculation *irc = dynamic_cast<ICalculation*>(n.step);
+    if (!irc || irc->runtype().name().find("IRC") == string::npos || n.in.size() != 1) continue;
+    Resource *ts = n.in[0].source;
+    if (imaginaryCount(ts->getURL().toString()) != 1) continue;
+    for (const WorkflowSteps::Node& t : nodes) {
+      if (t.step != ts) continue;
+      for (const WorkflowSteps::Incoming& in : t.in) {
+        if (in.name == "reactant") s.re.push_back(std::make_pair(1, in.source->getName()));
+        else if (in.name == "product") s.pr.push_back(std::make_pair(1, in.source->getName()));
+      }
+    }
+    if (!s.re.empty() && !s.pr.empty()) { s.ts = ts->getName(); return formatLine(s); }
+    s = Spec();
+  }
+  return string();
 }
 
 ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& lines, const string& base)
@@ -172,13 +519,46 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
 {
   p_base = base;
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
-  top->Add(new wxStaticText(this, wxID_ANY,
-      _("Reactions, one per line: reactants -> products, or reactants -> [ts] -> products for a rate "
-        "(calculation names, N* for a coefficient)")),
-      0, wxALL, 8);
-  p_input = new wxTextCtrl(this, wxID_ANY, wxString::FromUTF8(lines.c_str()),
-                           wxDefaultPosition, wxSize(720, 90), wxTE_MULTILINE | wxTE_DONTWRAP);
-  top->Add(p_input, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
+  wxStaticText *head = new wxStaticText(this, wxID_ANY, _("Reactions"));
+  head->SetFont(head->GetFont().Bold());
+  top->Add(head, 0, wxLEFT | wxRIGHT | wxTOP, 8);
+  p_note = new wxStaticText(this, wxID_ANY, "");
+  p_note->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+  top->Add(p_note, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+  p_table = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(720, -1), wxBORDER_THEME);
+  p_tableSizer = new wxFlexGridSizer(6, 4, 14);
+  p_tableSizer->AddGrowableCol(0, 1);
+  p_tableSizer->AddGrowableCol(2, 1);
+  p_tableSizer->AddGrowableCol(4, 1);
+  p_table->SetSizer(p_tableSizer);
+  top->Add(p_table, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
+  wxBoxSizer *rb = new wxBoxSizer(wxHORIZONTAL);
+  wxButton *add = new wxButton(this, wxID_ANY, _("Add Reaction..."));
+  add->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { pick(-1); });
+  add->Enable(!calcsOf(base).empty());
+  p_editButton = new wxButton(this, wxID_ANY, _("Edit..."));
+  p_editButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { pick(p_sel); });
+  rb->Add(add, 0, wxRIGHT, 8);
+  rb->Add(p_editButton, 0);
+  top->Add(rb, 0, wxALL, 8);
+
+  bool filled = false;
+  {
+    std::istringstream in(lines);
+    for (string l; std::getline(in, l); ) {
+      l = trim(l);
+      if (!l.empty() && l[0] != '#') p_lines.push_back(l);
+    }
+  }
+  if (p_lines.empty() && !base.empty()) {
+    const string auto_ = workflowReaction(base);
+    if (!auto_.empty() && balanceOf(auto_).empty()) { p_lines.push_back(auto_); filled = true; }
+  }
+  p_note->SetLabel(filled
+      ? _("Filled in from the workflow's reactant, TS and product steps. Add or change a reaction by picking calculations.")
+      : _("Add or change a reaction by picking calculations."));
+  p_sel = p_lines.empty() ? -1 : 0;
+  rebuildTable();
 
   wxBoxSizer *bar = new wxBoxSizer(wxHORIZONTAL);
   bar->Add(new wxStaticText(this, wxID_ANY, _("G treatment:")), 0,
@@ -199,6 +579,29 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
   bar->Add(run, 0);
   top->Add(bar, 0, wxALL, 8);
 
+  p_results = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_THEME);
+  p_resSizer = new wxFlexGridSizer(9, 4, 16);
+  p_resSizer->AddGrowableCol(1, 1);
+  p_results->SetSizer(p_resSizer);
+  top->Add(p_results, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
+  p_units = new wxStaticText(this, wxID_ANY, "");
+  p_units->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+  top->Add(p_units, 0, wxALL, 8);
+
+  p_pane = new wxCollapsiblePane(this, wxID_ANY, _("Details: soft modes and tunnelling"));
+  p_detail = new wxTextCtrl(p_pane->GetPane(), wxID_ANY, "", wxDefaultPosition, wxSize(720, 180),
+                            wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP | wxHSCROLL);
+  p_detail->SetMinSize(wxSize(300, 150));
+  wxBoxSizer *ps = new wxBoxSizer(wxVERTICAL);
+  ps->Add(p_detail, 1, wxEXPAND);
+  p_pane->GetPane()->SetSizer(ps);
+  p_pane->Expand();
+  p_pane->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED, [this](wxCollapsiblePaneEvent&) {
+    Layout();
+    if (GetSizer()) SetMinSize(ClientToWindowSize(GetSizer()->GetMinSize()));
+  });
+  top->Add(p_pane, 1, wxEXPAND | wxALL, 8);
+
   wxBoxSizer *pick = new wxBoxSizer(wxHORIZONTAL);
   p_profileLabel = new wxStaticText(this, wxID_ANY, _("Energy profile of:"));
   pick->Add(p_profileLabel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
@@ -213,10 +616,6 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
   p_plot->SetMinSize(wxSize(720, 380));
   p_plot->SetToolTip(_("Right-click to copy the numbers"));
   top->Add(p_plot, 2, wxEXPAND | wxLEFT | wxRIGHT, 8);
-  p_detail = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(720, 180),
-                            wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP | wxHSCROLL);
-  p_detail->SetMinSize(wxSize(300, 150));
-  top->Add(p_detail, 1, wxEXPAND | wxALL, 8);
 
   wxBoxSizer *buttons = new wxBoxSizer(wxHORIZONTAL);
   wxButton *csv = new wxButton(this, wxID_ANY, _("Export CSV..."));
@@ -243,6 +642,118 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     if (IsModal()) EndModal(wxID_CLOSE); else Hide();
   }, wxID_CLOSE);
+}
+
+void ReactionOverviewDialog::rebuildTable()
+{
+  p_table->DestroyChildren();
+  p_tableSizer->Clear(false);
+  auto cell = [this](const wxString& t, bool bold) {
+    wxStaticText *w = new wxStaticText(p_table, wxID_ANY, t);
+    if (bold) w->SetFont(w->GetFont().Bold());
+    return w;
+  };
+  const wxString heads[6] = {_("Reactants"), "", _("Transition state"), "", _("Products"), ""};
+  for (int c = 0; c < 6; c++) p_tableSizer->Add(cell(heads[c], true), 0, wxALL, 4);
+  for (size_t i = 0; i < p_lines.size(); i++) {
+    const Spec s = parseSpec(p_lines[i]);
+    const string unbal = balanceOf(p_lines[i]);
+    const wxColour bg = (int)i == p_sel ? wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT).ChangeLightness(170)
+                                        : p_table->GetBackgroundColour();
+    wxWindow *w[6] = {
+      cell(wxString::FromUTF8(((unbal.empty() ? "" : "\xE2\x9A\xA0 ") + cellSide(s.re)).c_str()), false), cell(wxString::FromUTF8("\xE2\x86\x92"), false),
+      cell(s.ts.empty() ? wxString::FromUTF8("\xE2\x80\x94") : wxString::FromUTF8(s.ts.c_str()), false),
+      cell(wxString::FromUTF8("\xE2\x86\x92"), false),
+      cell(wxString::FromUTF8(cellSide(s.pr).c_str()), false), 0};
+    wxButton *x = new wxButton(p_table, wxID_ANY, wxString::FromUTF8("\xC3\x97"), wxDefaultPosition,
+                               wxDefaultSize, wxBU_EXACTFIT);
+    x->SetToolTip(_("Remove this reaction"));
+    const int row = (int)i;
+    x->Bind(wxEVT_BUTTON, [this, row](wxCommandEvent&) { CallAfter([this, row]() { removeReaction(row + 1); }); });
+    w[5] = x;
+    if (!unbal.empty()) w[0]->SetToolTip(wxString::FromUTF8(unbal.c_str()));
+    for (int c = 0; c < 6; c++) {
+      if (c < 5) {
+        w[c]->SetBackgroundColour(bg);
+        w[c]->Bind(wxEVT_LEFT_DOWN, [this, row](wxMouseEvent&) { p_sel = row; rebuildTable(); });
+      }
+      p_tableSizer->Add(w[c], 0, wxALL | wxEXPAND, 4);
+    }
+  }
+  p_editButton->Enable(p_sel >= 0 && p_sel < (int)p_lines.size() && !calcsOf(p_base).empty());
+  p_table->Layout();
+  Layout();
+}
+
+string ReactionOverviewDialog::balanceOf(const string& line) const
+{
+  if (p_base.empty()) return string();
+  const Spec s = parseSpec(line);
+  if (s.re.empty() || s.pr.empty()) return string();
+  if (p_calcUrls.empty())
+    for (const std::pair<string, string>& c : calculationsIn(p_base)) p_calcUrls[c.first] = c.second;
+  return balanceMessage(s.re, s.pr, [this](const string& n) -> const Comp* {
+    std::map<string, string>::const_iterator it = p_calcUrls.find(n);
+    return it == p_calcUrls.end() ? 0 : &compOf(it->second);
+  });
+}
+
+string ReactionOverviewDialog::balanceText() const
+{
+  string o;
+  for (size_t i = 0; i < p_lines.size(); i++) {
+    const string m = balanceOf(p_lines[i]);
+    o += std::to_string(i + 1) + " " + (m.empty() ? string("balanced") : m) + "\n";
+  }
+  return o;
+}
+
+void ReactionOverviewDialog::pick(int row)
+{
+  const vector<CalcInfo> calcs = calcsOf(p_base);
+  if (calcs.empty()) return;
+  const bool edit = row >= 0 && row < (int)p_lines.size();
+  PickerDialog d(this, calcs, edit ? parseSpec(p_lines[row]) : Spec(), edit);
+  if (d.ShowModal() != wxID_OK) return;
+  const string line = formatLine(d.result());
+  if (edit) p_lines[row] = line;
+  else { p_lines.push_back(line); p_sel = (int)p_lines.size() - 1; }
+  rebuildTable();
+  update();
+}
+
+string ReactionOverviewDialog::reactionLines() const
+{
+  string o;
+  for (const string& l : p_lines) o += l + "\n";
+  return o;
+}
+
+void ReactionOverviewDialog::addReactionLine(const string& line)
+{
+  // Store the canonical spelling, as the picker does, whatever spacing the hook got.
+  const Spec s = parseSpec(line);
+  p_lines.push_back(s.re.empty() || s.pr.empty() ? line : formatLine(s));
+  p_sel = (int)p_lines.size() - 1;
+  rebuildTable();
+  update();
+}
+
+void ReactionOverviewDialog::removeReaction(int n)
+{
+  if (n < 1 || n > (int)p_lines.size()) return;
+  p_lines.erase(p_lines.begin() + (n - 1));
+  p_sel = p_lines.empty() ? -1 : std::min(p_sel, (int)p_lines.size() - 1);
+  rebuildTable();
+  update();
+}
+
+string ReactionOverviewDialog::tsChoices() const
+{
+  string o;
+  for (const CalcInfo& c : calcsOf(p_base))
+    o += c.name + ":" + std::to_string(c.imag) + ":" + (c.imag == 1 ? "1" : "0") + "\n";
+  return o;
 }
 
 void ReactionOverviewDialog::setTreatment(const string& cli)
@@ -276,7 +787,9 @@ void ReactionOverviewDialog::update()
   // reaction and 'a -> ts' for the barrier, so both come from its numbers.
   struct Entry { string user, main, aux; int mainIdx = -1, auxIdx = -1; string refused; vector<string> re, ts, pr; string names[3], title; };
   vector<Entry> entries;
-  std::istringstream lines(string(p_input->GetValue().ToUTF8()));
+  string joined;
+  for (const string& l : p_lines) joined += l + "\n";
+  std::istringstream lines(joined);
   string thermoFile;
   int nth = 0;
   for (string raw; std::getline(lines, raw); ) {
@@ -309,6 +822,7 @@ void ReactionOverviewDialog::update()
         e.title = shortSide(lhs, ", ") + " -> [" + e.names[1] + "] -> " + shortSide(rhs, ", ");
       }
     }
+    if (e.refused.empty()) e.refused = balanceOf(l);
     if (e.refused.empty()) {
       e.mainIdx = nth++;
       thermoFile += e.main + "\n";
@@ -324,6 +838,7 @@ void ReactionOverviewDialog::update()
   if (!ok) {
     p_error = err;
     p_detail->SetValue(wxString::FromUTF8(err.c_str()));
+    showResults();
     showProfiles();
     return;
   }
@@ -427,7 +942,58 @@ void ReactionOverviewDialog::update()
   string d = "Reactions: G " + treatment + " at " + tText + " K, kJ/mol\n";
   for (size_t i = 0; i < p_rows.size(); i++) d += "\n" + reactionText((int)i + 1);
   p_detail->SetValue(wxString::FromUTF8(d.c_str()));
+  showResults();
   showProfiles();
+}
+
+// The numbers of every reaction in one table: kJ/mol, and k in the rate unit.
+void ReactionOverviewDialog::showResults()
+{
+  p_results->DestroyChildren();
+  p_resSizer->Clear(false);
+  auto cell = [this](const string& t, bool bold, bool right) {
+    wxStaticText *w = new wxStaticText(p_results, wxID_ANY, wxString::FromUTF8(t.c_str()),
+                                       wxDefaultPosition, wxDefaultSize,
+                                       right ? wxALIGN_RIGHT : wxALIGN_LEFT);
+    if (bold) w->SetFont(w->GetFont().Bold());
+    p_resSizer->Add(w, 0, wxALL | (right ? wxALIGN_RIGHT : 0), 4);
+    return w;
+  };
+  auto kj = [](double v) {   // typographic minus
+    string o = num(v, "%.2f");
+    return o[0] == '-' ? string("\xE2\x88\x92") + o.substr(1) : o;
+  };
+  const string dash = "\xE2\x80\x94";
+  const char *heads[9] = {"#", "Reaction", "\xCE\x94" "E", "\xCE\x94" "G", "Spread",
+                          "\xCE\x94" "E\xE2\x80\xA1", "\xCE\x94" "G\xE2\x80\xA1", "k (TST)", "k (Eckart)"};
+  for (int c = 0; c < 9; c++) cell(heads[c], true, c != 1);
+  string unit = "s-1";
+  for (size_t i = 0; i < p_rows.size(); i++) {
+    const Row& r = p_rows[i];
+    const Spec sp = parseSpec(r.text);
+    const bool unbal = r.status != "ok" && r.reason.compare(0, 12, "Not balanced") == 0;
+    cell(std::to_string(i + 1), false, true);
+    wxStaticText *name = cell((unbal ? "\xE2\x9A\xA0 " : "") + cellSide(sp.re) + " \xE2\x86\x92 " + cellSide(sp.pr), false, false);
+    if (r.status != "ok") {
+      name->SetToolTip(wxString::FromUTF8(r.reason.c_str()));
+      cell(unbal ? "not balanced" : "refused", false, true);
+      for (int c = 3; c < 9; c++) cell(dash, false, true);
+      continue;
+    }
+    cell(kj(r.dE), false, true);
+    cell(kj(r.dG), false, true);
+    cell(num(r.spread, "%.2f"), false, true);
+    const bool rate = r.hasTs && r.rate.ok && !r.rate.rows.empty();
+    if (rate && !r.rate.unit.empty() && unit == "s-1") unit = r.rate.unit;
+    cell(rate ? kj(r.dEact) : dash, false, true);
+    cell(rate ? kj(r.dGact) : dash, false, true);
+    cell(rate ? rateNum(r.rate.rows[0].k) : dash, false, true);
+    const double ke = rate ? r.rate.rows[0].kEckart : 0;
+    cell(rate && ke == ke ? rateNum(ke) : dash, false, true);
+  }
+  p_units->SetLabel(wxString::FromUTF8(("kJ/mol; k in " + unit +
+      " at the T above. Spread: largest minus smallest \xCE\x94G over the six G treatments.").c_str()));
+  p_results->Layout();
 }
 
 // Only reactions with a [ts] get a chart; without any, the text alone.

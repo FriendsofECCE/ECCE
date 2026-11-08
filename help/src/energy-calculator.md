@@ -123,21 +123,29 @@ the comparison is what you intend.
 reaction with a transition state. It starts with the reaction set up in the
 window: side A as the reactants and side B as the products.
 
-- The text box holds the reactions, one per line, in the form
-  `a, 2*b -> c`, where each name is a calculation as listed in the Organizer,
-  in the folder of the compared calculations, and `2*` a coefficient. A full
-  URL or path to a calculation also works, for one in another folder. A name
-  that is not a calculation in the folder is refused with a line saying so.
-- Write `a, b -> [ts] -> c` to give the transition state of a reaction. That
-  reaction gets an energy profile: reactants, TS and products as levels for ΔG
+- The **Reactions** table has one row per reaction: its reactants, its
+  transition state (if any) and its products. Opened on a workflow, it fills
+  itself in from the workflow's reactant, transition-state and product steps,
+  or, when the workflow has none of those marked, from an IRC step and the
+  transition state it starts from. The × at the end of a row removes it.
+- **Add Reaction...** opens a window with the calculations of the folder in
+  three lists. Tick the reactants and the products and set how many of each in
+  the box next to the name; choose the transition state in the middle list, or
+  (none). Only a calculation with exactly one imaginary frequency can be a
+  transition state; the others are greyed, and pointing at one tells how many
+  it has. Select a row and press **Edit...** to change it the same way. A
+  reaction with a transition state takes each species once.
+- A reaction with a transition state gets an energy profile: reactants, TS and
+  products as levels for ΔG
   (at the temperature in the **T / K** field) and for the electronic ΔE, both
   relative to the reactants, with the barrier ΔG‡ as an arrow and the rate
   constant k without tunnelling (TST) and with the Eckart correction beside
   it. With several such reactions, **Energy profile of** chooses which one is
   shown. The reactants, TS and product must be calculations stored on this
-  machine, each named once (no `N*`), and the TS must have exactly one
-  imaginary frequency. The rates are those of `ecce-rate`.
-- A reaction without `[ts]` gets no chart; its numbers are in the text below.
+  machine. The rates are those of `ecce-rate`.
+- **Details** below the results, open by default, lists the soft modes and the
+  tunnelling corrections.
+- A reaction without a transition state gets no chart; its numbers are in the text below.
 - **G treatment** chooses the treatment of the low frequencies for ΔG (the
   default is Grimme's quasi-RRHO with omega0 = 100 cm-1). **Update** redoes
   the numbers after the text is changed.
