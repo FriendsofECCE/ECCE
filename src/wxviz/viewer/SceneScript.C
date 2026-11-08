@@ -176,6 +176,9 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     //  slider, for every atom or for the selected ones (a style group of
     //  their own, as the dialog's Update makes) (#879).
     const int pct = atoi(w[1].c_str());
+    // A style for "the selection" with nothing selected aborts in CSStyleCmd.
+    if (w.size() == 3 && (!p_sg->getFragment() || p_sg->getFragment()->m_atomHighLight.empty()))
+      return fail("opacity: no atoms selected");
     DisplayDescriptor dd = p_sg->styleExists("default") ?
         p_sg->getDisplayDescriptor("default") :
         DisplayDescriptor("default", "Ball And Stick", "Element");

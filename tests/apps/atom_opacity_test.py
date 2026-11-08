@@ -54,7 +54,7 @@ snap redraw
 opacity 100
 select 1
 opacity 30 selection
-unselect
+select 0
 snap sel
 """
 
