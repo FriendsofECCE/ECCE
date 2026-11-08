@@ -103,6 +103,18 @@ class VizStyleChooser: public VizStyleChooserGUI,
       /// label is name (sphrq, cylrq, ...) and release it as a user would.
       bool scriptSlider(const string& name, int value);
 
+      /// The Display panel (#881) drives the dialog's own logic through
+      /// these, so a style is applied by one piece of code.
+      void syncFromScene();
+      int sliderValue(const string& name);
+      bool isQualityAutomatic(bool sphere) const;
+      /// Automatic quality on or off for sphere or cylinder; redraws.
+      void setQualityAutomatic(bool sphere, bool on);
+      vector<string> choiceItems(bool colorScheme);
+      string currentChoice(bool colorScheme);
+      /// Select display style and colour scheme and press Update.
+      bool applyStyleAndScheme(const string& style, const string& scheme);
+
 
       // Listener interface
       virtual void eventMCB(const Event& event);

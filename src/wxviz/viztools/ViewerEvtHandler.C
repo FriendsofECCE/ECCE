@@ -358,13 +358,19 @@ void ViewerEvtHandler::styleChange(wxCommandEvent & event)
 }
 
 
-VizStyleChooser *ViewerEvtHandler::openStyleChooser()
+VizStyleChooser *ViewerEvtHandler::styleChooser()
 {
   if (p_styleChooser == 0) {
     p_styleChooser = new VizStyleChooser(p_parent);
     ((WxVizTool*)p_styleChooser)->connectToolKitFW(&(getFW()));
     p_styleChooser->initializeGUI();
   }
+  return p_styleChooser;
+}
+
+VizStyleChooser *ViewerEvtHandler::openStyleChooser()
+{
+  styleChooser();
   p_styleChooser->Show();
   p_styleChooser->Raise();
   return p_styleChooser;

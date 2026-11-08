@@ -1142,6 +1142,65 @@ void VizStyleChooser::previewSliders()
    delete gui;
 }
 
+void VizStyleChooser::syncFromScene()
+{
+   requestStyles();
+}
+
+bool VizStyleChooser::isQualityAutomatic(bool sphere) const
+{
+   return sphere ? p_sphereQualityAutomatic : p_cylinderQualityAutomatic;
+}
+
+void VizStyleChooser::setQualityAutomatic(bool sphere, bool on)
+{
+   (sphere ? p_sphereQualityAutomatic : p_cylinderQualityAutomatic) = on;
+   previewSliders();
+}
+
+int VizStyleChooser::sliderValue(const string& name)
+{
+   ewxSlider *slider = (ewxSlider*)FindWindow(
+      name == "sphrq" ? ID_SLIDER_DSPLY_SPHRQ :
+      name == "cylrq" ? ID_SLIDER_DSPLY_CYLRQ :
+      name == "cylrad" ? ID_SLIDER_DSPLY_CYLRAD : ID_SLIDER_DSPLY_SPHSCL);
+   return slider->GetValue();
+}
+
+vector<string> VizStyleChooser::choiceItems(bool colorScheme)
+{
+   ewxChoice *c = (ewxChoice*)FindWindow(colorScheme ? ID_CHOICE_DSPLY_CSOPT
+                                                     : ID_CHOICE_DSPLY_DSOPT);
+   vector<string> items;
+   for (unsigned i = 0; i < c->GetCount(); i++)
+      items.push_back(c->GetString(i).ToStdString());
+   return items;
+}
+
+string VizStyleChooser::currentChoice(bool colorScheme)
+{
+   ewxChoice *c = (ewxChoice*)FindWindow(colorScheme ? ID_CHOICE_DSPLY_CSOPT
+                                                     : ID_CHOICE_DSPLY_DSOPT);
+   return c->GetStringSelection().ToStdString();
+}
+
+bool VizStyleChooser::applyStyleAndScheme(const string& style,
+                                          const string& scheme)
+{
+   ewxChoice *ds = (ewxChoice*)FindWindow(ID_CHOICE_DSPLY_DSOPT);
+   int i = ds->FindString(style);
+   if (i == wxNOT_FOUND) return false;
+   ds->SetSelection(i);
+   wxCommandEvent ev(wxEVT_CHOICE, ID_CHOICE_DSPLY_DSOPT);
+   OnChoiceDsplyDsoptSelected(ev);
+   ewxChoice *cs = (ewxChoice*)FindWindow(ID_CHOICE_DSPLY_CSOPT);
+   i = cs->FindString(scheme);
+   if (i != wxNOT_FOUND) cs->SetSelection(i);
+   wxCommandEvent up;
+   OnButtonDsplyUpdateClick(up);
+   return true;
+}
+
 bool VizStyleChooser::scriptSlider(const string& name, int value)
 {
    static const struct { const char *name; const wxWindowID *id; } ids[] = {

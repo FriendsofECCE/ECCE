@@ -117,6 +117,8 @@ public:
   virtual void doStyleChange(const wxString& style);
   /// Custom Style...: the Display Style dialog, made on first use.
   VizStyleChooser *openStyleChooser();
+  /// The Custom Style dialog, created but not shown (Display panel, #881).
+  VizStyleChooser *styleChooser();
   virtual void showAtomLabel(wxCommandEvent & event);
   virtual void showBondLabel(wxCommandEvent & event);
   virtual void showCleanOrders(wxCommandEvent & event);

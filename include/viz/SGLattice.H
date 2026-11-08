@@ -34,6 +34,12 @@ class  SGLattice : public SoLineSet
    SoINTERNAL public:
       static void		initClass();
 
+   public:
+      /// Cell edge colour and a/b/c labels shared by every lattice (#881).
+      static void setEdgeColor(float r, float g, float b);
+      static void setLabelsShown(bool on);
+      static bool labelsShown();
+
    protected:
 
       virtual  ~SGLattice();
