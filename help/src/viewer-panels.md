@@ -24,6 +24,22 @@ like or move to a second screen.
 The 3-D view and a floating panel stay linked: picking atoms, choosing a
 mode or an orbital, or stepping through a trajectory updates both.
 
+## Cutting the structure open
+
+The **Clipping plane** panel (Tools menu in the Builder) removes everything on
+one side of a plane, so the inside of a cluster, a cell or an orbital surface
+can be seen. Tick **Clip**, then choose the plane:
+
+- **Plane normal to x**, **y** or **z**: the Cartesian axes.
+- **Miller plane (h k l)**: a plane of the unit cell; only for a periodic
+  structure.
+- **Plane of three selected atoms**: select three atoms first.
+
+The **Offset** slider moves the plane across the structure, in angstrom from
+its middle (from the three atoms' centre for an atom plane). **Flip side**
+keeps the other half. The plane cuts atoms, bonds, orbital and density
+surfaces and the unit cell, and a saved picture shows the cut.
+
 ## Making room in the docked layout
 
 - Drag the divider between the 3-D view and the panel column to make the

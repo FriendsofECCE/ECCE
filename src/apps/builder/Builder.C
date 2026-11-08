@@ -216,6 +216,7 @@ using std::vector;
 #include "PBC.H"
 #include "LayerBuilder.H"
 #include "Slice.H"
+#include "ClipPlanePanel.H"
 
 #include <wx/timer.h>
 #include <wx/textentry.h>
@@ -1118,6 +1119,9 @@ void Builder::createToolPanels()
 
   Slice *slice = new Slice(this,-1);
   addToolPanel(slice, NAME_TOOL_SLICER, false);
+
+  p_clipPanel = new ClipPlanePanel(this, [this]() { return getSG(); });
+  addToolPanel(p_clipPanel, _("Clipping plane"), false);
 
   p_toolMenu->AppendSeparator();
 
@@ -6245,6 +6249,8 @@ void Builder::updatePropertyMenus()
         if (w[0] == "atomnumbers") return atomNumbersCommand(s, w);
         //  "dp...": the Density Profile panel's controls.
         if (w[0].compare(0, 2, "dp") == 0) return densityProfileCommand(s, w, outdir);
+        //  "clip...": the Clipping plane panel (#879).
+        if (w[0].compare(0, 4, "clip") == 0) return clipCommand(s, w, outdir);
         //  "gt...": the Geometry Trace stress commands (#217).
         if (w[0].compare(0, 2, "gt") == 0) return traceStressCommand(s, w);
         //  "vib...": the Normal Modes panel on an edited structure.
@@ -8016,3 +8022,35 @@ void Builder::importValidationComplete(TaskJob *ipc, bool status,
   }
 }
 
+
+//  "clipplane on|off", "clipdir x|y|z|hkl h k l|atoms a b c", "clipoffset A",
+//  "clipflip", "clipinfo NAME": the Clipping plane panel's controls (#879).
+bool Builder::clipCommand(SceneScript& s, const vector<string>& w, const string& outdir)
+{
+  if (!p_clipPanel) return s.fail(w[0] + ": no clipping panel");
+  const string& c = w[0];
+  bool ok = true;
+  if (c == "clipplane" && w.size() == 2 && (w[1] == "on" || w[1] == "off")) {
+    p_clipPanel->setOn(w[1] == "on");
+  } else if (c == "clipdir" && w.size() >= 2) {
+    if (w[1] == "x" || w[1] == "y" || w[1] == "z")
+      p_clipPanel->setDirection(w[1] == "x" ? ClipPlanePanel::DIR_X
+          : w[1] == "y" ? ClipPlanePanel::DIR_Y : ClipPlanePanel::DIR_Z);
+    else if (w[1] == "hkl" && w.size() == 5)
+      p_clipPanel->setHKL(atoi(w[2].c_str()), atoi(w[3].c_str()), atoi(w[4].c_str()));
+    else if (w[1] == "atoms" && w.size() == 5)
+      p_clipPanel->setAtoms(atoi(w[2].c_str()), atoi(w[3].c_str()), atoi(w[4].c_str()));
+    else ok = false;
+  } else if (c == "clipoffset" && w.size() == 2) {
+    p_clipPanel->setOffset(atof(w[1].c_str()));
+  } else if (c == "clipflip" && w.size() == 1) {
+    p_clipPanel->flip();
+  } else if (c == "clipinfo" && w.size() == 2) {
+    std::ofstream(outdir + "/" + w[1] + ".txt") << p_clipPanel->describe() << "\n";
+  } else {
+    ok = false;
+  }
+  if (!ok) return s.fail(c + ": bad arguments");
+  settle(400);
+  return true;
+}

@@ -41,6 +41,7 @@
 
 #include "BuilderGUI.H"
 
+class ClipPlanePanel;
 class AtomMeasureAngle;
 class AtomMeasureDist;
 class AtomMeasureTorsion;
@@ -560,6 +561,9 @@ class Builder: public BuilderGUI,
       bool densityMapCommand(SceneScript& s, const vector<string>& w,
                              const string& outdir);
       bool atomNumbersCommand(SceneScript& s, const vector<string>& w);
+      bool clipCommand(SceneScript& s, const vector<string>& w,
+                       const string& outdir);
+      ClipPlanePanel *p_clipPanel = 0;
       bool densityProfileCommand(SceneScript& s, const vector<string>& w,
                              const string& outdir);
       bool pbcTestCommand(SceneScript& s, const vector<string>& w,
