@@ -2462,6 +2462,7 @@ void CalcMgr::runTestCommand(const string& line)
       dump("balance", d->balanceText());
       dump("html", d->detailHtml());
       if (png != "-") outcome += ecceWindowShot(d, wxString::FromUTF8(png.c_str())) ? " | shot saved" : " | shot failed";
+      outcome += " | detailpane " + d->detailReport(png);
       d->Destroy();
     } else if (command == "fragdiagram") {
       // "fragdiagram PNG|- COMPLEX FRAGMENT... [names=A;B] [window=OCC,VIRT]

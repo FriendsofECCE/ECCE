@@ -171,6 +171,12 @@ def run(display, data, work, shots):
               len(t1) == 1 and t1[0].startswith("table reaction 2 ") and abs(float(t1[0].split()[3]) + 9.61) < 0.01, t1)
         check("TS choices: only calculations with one imaginary frequency enabled",
               "ts sn2_qst3:1:1" in u and "ts sn2_reactant:0:0" in u, [l for l in u if l.startswith("ts ")])
+        dp = dict(kv.split("=", 1) for l in u if l.startswith("detailpane ") for kv in l[11:].split())
+        cw, ch = (dp.get("cells", "0x0").split("x") + ["0"])[:2]
+        check("the Details html window has a laid-out page (cells taller than 100 px, wider than 100)",
+              int(ch) > 100 and int(cw) > 100, dp)
+        check("the Details pane paints text: non-white pixels in the pane and in the dialog shot",
+              int(dp.get("px", "-1")) > 500 and int(dp.get("pxdialog", "-1")) > 500, dp)
         check("dialog picture 900-impl.png written", os.path.exists(shot4) and os.path.getsize(shot4) > 5000, shot4)
 
     ov = answers("reactionoverview ")

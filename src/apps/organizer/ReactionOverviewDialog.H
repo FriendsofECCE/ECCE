@@ -101,8 +101,12 @@ private:
   wxCollapsiblePane *p_pane;
   wxHtmlWindow *p_detail;
   std::string p_detailHtml;
+  int p_detailW = 0;
+  void showDetail();
   std::string buildDetailHtml(const std::string& treatment, const std::string& tText) const;
 public:
+  /** Cell-tree size and painted non-white pixels of the Details pane (test hook); dialogShot = a saved shot of the dialog or "". */
+  std::string detailReport(const std::string& dialogShot);
   /** The formatted Details page as HTML (display only; the plain text is reactionText). */
   std::string detailHtml() const { return p_detailHtml; }
 private:

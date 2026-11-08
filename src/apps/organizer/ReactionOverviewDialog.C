@@ -24,6 +24,8 @@
 #include <wx/filedlg.h>
 #include <wx/filename.h>
 #include <wx/html/htmlwin.h>
+#include <wx/html/htmlcell.h>
+#include <wx/image.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
@@ -557,6 +559,46 @@ static string citation(const char *authors, const char *ref)
   return string("<li>") + authors + ", <i>" + ref + "</li>\n";
 }
 
+void ReactionOverviewDialog::showDetail()
+{
+  p_detailW = p_detail->GetSize().x;
+  p_detail->SetPage(wxString::FromUTF8(p_detailHtml.c_str()));
+  p_detail->Refresh();
+}
+
+string ReactionOverviewDialog::detailReport(const string& dialogShot)
+{
+  // cells: the laid-out page; px: non-white pixels of the pane as painted, read back from the screen.
+  auto count = [](const wxImage& img, const wxRect& r) {
+    long n = 0;
+    for (int y = r.y; y < r.y + r.height && y < img.GetHeight(); y++)
+      for (int x = r.x; x < r.x + r.width && x < img.GetWidth(); x++)
+        if (x >= 0 && y >= 0 && (img.GetRed(x, y) < 235 || img.GetGreen(x, y) < 235 || img.GetBlue(x, y) < 235)) n++;
+    return n;
+  };
+  wxHtmlContainerCell *cells = p_detail->GetInternalRepresentation();
+  string r = "cells=" + std::to_string(cells ? cells->GetWidth() : 0) + "x" + std::to_string(cells ? cells->GetHeight() : 0) +
+             " pane=" + std::to_string(p_detail->GetSize().x) + "x" + std::to_string(p_detail->GetSize().y) +
+             " shown=" + (p_detail->IsShownOnScreen() ? "1" : "0");
+  p_detail->Refresh();
+  p_detail->Update();
+  const string own = string(wxFileName::CreateTempFileName("detail").ToUTF8());
+  long px = -1, pxd = -1;
+  if (ecceClientShot(p_detail, wxString::FromUTF8(own.c_str()))) {
+    wxImage img(wxString::FromUTF8(own.c_str()), wxBITMAP_TYPE_PNG);
+    if (img.IsOk()) px = count(img, wxRect(0, 0, img.GetWidth(), img.GetHeight()));
+  }
+  std::remove(own.c_str());
+  if (!dialogShot.empty() && dialogShot != "-") {
+    wxImage img(wxString::FromUTF8(dialogShot.c_str()), wxBITMAP_TYPE_PNG);
+    if (img.IsOk()) {
+      const wxPoint o = p_detail->GetScreenPosition() - ClientToScreen(wxPoint(0, 0));
+      pxd = count(img, wxRect(o.x + 10, o.y + 10, p_detail->GetSize().x - 20, p_detail->GetSize().y - 20));
+    }
+  }
+  return r + " px=" + std::to_string(px) + " pxdialog=" + std::to_string(pxd);
+}
+
 string ReactionOverviewDialog::buildDetailHtml(const string& treatment, const string& tText) const
 {
   const string warn = "<font color=\"#a02020\">";
@@ -705,6 +747,13 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
   p_detail = new wxHtmlWindow(p_pane->GetPane(), wxID_ANY, wxDefaultPosition, wxSize(720, 180),
                               wxHW_SCROLLBAR_AUTO | wxBORDER_SUNKEN);
   p_detail->SetMinSize(wxSize(300, 150));
+  p_detail->SetBorders(8);
+  p_detail->SetBackgroundColour(*wxWHITE);
+  // The page is laid out for the width it had when set; lay it out again when the pane gets its real size.
+  p_detail->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+    e.Skip();
+    if (e.GetSize().x > 50 && e.GetSize().x != p_detailW) CallAfter([this]() { showDetail(); });
+  });
   wxBoxSizer *ps = new wxBoxSizer(wxVERTICAL);
   ps->Add(p_detail, 1, wxEXPAND);
   p_pane->GetPane()->SetSizer(ps);
@@ -951,7 +1000,7 @@ void ReactionOverviewDialog::update()
   if (!ok) {
     p_error = err;
     p_detailHtml = "<body><font color=\"#a02020\">" + htmlEsc(err) + "</font></body>";
-    p_detail->SetPage(wxString::FromUTF8(p_detailHtml.c_str()));
+    showDetail();
     showResults();
     showProfiles();
     return;
@@ -1054,7 +1103,7 @@ void ReactionOverviewDialog::update()
   p_csv = table;
 
   p_detailHtml = buildDetailHtml(treatment, tText);
-  p_detail->SetPage(wxString::FromUTF8(p_detailHtml.c_str()));
+  showDetail();
   showResults();
   showProfiles();
 }
