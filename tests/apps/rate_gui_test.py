@@ -89,7 +89,7 @@ def run(display, data, work, shots):
                 "reactionoverview %s qrrho-grimme:100 %s - 298.15" % (rx2, png3),
                 "reactionoverview %s qrrho-grimme:100 - - 298.15 %s" % (rx3, shot3),
                 "reactionoverview %s qrrho-grimme:100" % rx4,
-                "reactionoverviewui %s qrrho-grimme:100 %s add=2*sn2_reactant->sn2_product remove=1"
+                "reactionoverviewui %s qrrho-grimme:100 %s add=2*sn2_reactant->sn2_product add=sn2_reactant->sn2_product remove=1"
                 % (wf, shot4)]
     script = os.path.join(work, "commands")
     open(script, "w").write("\n".join(commands) + "\n")
@@ -157,8 +157,15 @@ def run(display, data, work, shots):
               l0 == ["sn2_reactant -> [sn2_qst3] -> sn2_product"], l0)
         t0 = [l for l in u if l.startswith("table0 reaction 1 ")]
         check("auto-fill: dE -9.61 kJ/mol", t0 and abs(float(t0[0].split()[3]) + 9.61) < 0.01, t0)
-        check("add (coefficient 2) then remove row 1 leaves the added reaction",
-              l1 == ["2*sn2_reactant -> sn2_product"], l1)
+        check("two adds then remove row 1 leave the unbalanced and the balanced reaction",
+              l1 == ["2*sn2_reactant -> sn2_product", "sn2_reactant -> sn2_product"], l1)
+        bal = [l[8:] for l in u if l.startswith("balance ")]
+        check("an unbalanced reaction is refused with the atoms of both sides",
+              len(bal) == 2 and bal[0].startswith("1 Not balanced: left ") and ", right " in bal[0]
+              and bal[1] == "2 balanced", bal)
+        t1 = [l for l in u if l.startswith("table reaction ")]
+        check("only the balanced reaction has energies (dE -9.61 kJ/mol)",
+              len(t1) == 1 and t1[0].startswith("table reaction 2 ") and abs(float(t1[0].split()[3]) + 9.61) < 0.01, t1)
         check("TS choices: only calculations with one imaginary frequency enabled",
               "ts sn2_qst3:1:1" in u and "ts sn2_reactant:0:0" in u, [l for l in u if l.startswith("ts ")])
         check("dialog picture 900-impl.png written", os.path.exists(shot4) and os.path.getsize(shot4) > 5000, shot4)

@@ -2455,6 +2455,7 @@ void CalcMgr::runTestCommand(const string& line)
       dump("lines", d->reactionLines());
       dump("table", d->tableText());
       dump("ts", d->tsChoices());
+      dump("balance", d->balanceText());
       if (png != "-") outcome += ecceWindowShot(d, wxString::FromUTF8(png.c_str())) ? " | shot saved" : " | shot failed";
       d->Destroy();
     } else if (command == "fragdiagram") {

@@ -1,6 +1,7 @@
 #ifndef REACTIONOVERVIEWDIALOG_HH
 #define REACTIONOVERVIEWDIALOG_HH
 
+#include <map>
 #include <string>
 #include <vector>
 
@@ -39,6 +40,8 @@ public:
   void addReactionLine(const std::string& line);
   void removeReaction(int n);
   std::string tsChoices() const;
+  /** One line per stored reaction: "n balanced" or the "Not balanced: ..." message. */
+  std::string balanceText() const;
   /** Test hooks. */
   void setTreatment(const std::string& cli);
   /** One line per drawn reaction: "reaction n dE dG lo hi" (kJ/mol). */
@@ -77,6 +80,13 @@ private:
   std::string p_base;
   std::string reactionText(int n) const;
   void showProfiles();
+  void showResults();
+  /** "" when balanced (or unknown), else "Not balanced: left ..., right ...". */
+  std::string balanceOf(const std::string& line) const;
+  mutable std::map<std::string, std::string> p_calcUrls;
+  wxPanel *p_results;
+  wxFlexGridSizer *p_resSizer;
+  wxStaticText *p_units;
 
   void rebuildTable();
   void pick(int row);                 ///< the picker for a new reaction (-1) or row
