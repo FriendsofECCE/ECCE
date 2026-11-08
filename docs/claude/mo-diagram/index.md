@@ -55,3 +55,4 @@ MOPAC → spec) is the bridge it would reuse.
 - ["pi system only" goes through the model diagram, as a subset of it](pi-only-through-the-model-diagram.md)
 - [Labels in a pick's subgroup: a degenerate level is split by projection, and the code's own labels cannot check them](labels-in-a-subgroup-split-degenerate-levels.md)
 - [Correlation lines end at the label column's edge; a leader carries them on to the bar (#745)](links-reach-the-bar-through-the-label.md)
+- [MOPAC gets the level diagram only: no composition, its own labels, looser degeneracy tolerance (#911)](mopac-gets-the-level-diagram-only.md)

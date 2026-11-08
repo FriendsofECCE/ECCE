@@ -2935,7 +2935,11 @@ void MoDiagramPanel::buildOnce()
   //  value, so this only removes the risk of two DIFFERENT same-named
   //  levels (unlikely, but the same-irrep guard below does not bound
   //  energy on its own) being averaged into one.
-  MoDiagram::groupByIrrep(e, o, s, dimensions, 1.5e-5, centre.levels);
+  //  MOPAC's SCF leaves a degenerate pair ~1e-4 Hartree apart (NH3 1e:
+  //  9e-5), so its own e/t labels are grouped with a looser tolerance.
+  MoDiagram::groupByIrrep(e, o, s, dimensions,
+                          noCompositionFor(calc) ? 1.0e-3 : 1.5e-5,
+                          centre.levels);
   centre.title = "Molecular orbitals";
 
   //  One atom: each level is named by its shell, not an irrep.

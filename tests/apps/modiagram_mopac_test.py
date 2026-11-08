@@ -78,7 +78,7 @@ def main():
             tips = [text(out, "tip%d" % n).strip() for n in range(0, 8)]
             shown = [t for t in tips if t]
             print("\n".join(shown))
-            check(len(shown) >= 4, "levels exist (%d)" % len(shown))
+            check(len(shown) == 5, "five levels, the e pairs grouped (%d)" % len(shown))
             check(all("composition" not in t for t in shown),
                   "no level tooltip claims a composition")
             check(any("occupancy 2" in t for t in shown) and
