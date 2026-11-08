@@ -62,7 +62,19 @@ class CrestRunTypePanel(EccePanel):
                                          export=1)
             qcgSizer.AddWidget(self.ensemble)
             self.panelSizer.Add(qcgSizer)
-        # Protonation Sites and Tautomers have no settings of their own.
+        elif runtype in ("Protonation Sites", "Tautomers"):
+            siteSizer = EcceBoxSizer(self, label=runtype, cols=1)
+            # CREST's own window is 30 kcal/mol.
+            self.sitewin = EcceFloatInput(self,
+                                          unit="kcal/mol",
+                                          name="ES.Runtype.Sites.EnergyWindow",
+                                          default=30.0,
+                                          hardRange="(0..)",
+                                          softRange="[5..100]",
+                                          label="Energy window:",
+                                          export=1)
+            siteSizer.AddWidget(self.sitewin)
+            self.panelSizer.Add(siteSizer)
 
         self.AddButtons()
 

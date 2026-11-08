@@ -59,7 +59,9 @@ message when the input is generated.
   ensemble of one structure.
 - **Tautomers**: CREST's `--tautomerize`. It moves protons between the sites
   of the molecule and returns the tautomers, lowest first. GFN2-xTB only.
-  Neither of these two run types has settings of its own.
+  **Runtype Details** of both has the **Energy window** (30 kcal/mol, CREST's
+  own): structures higher above the lowest are dropped. A less basic site,
+  such as the amine nitrogen of 4-aminopyridine, can need a wider window.
 - **Solvation Shell**: CREST's quantum cluster growth (`--qcg`). It adds
   solvent molecules one at a time around the molecule of the calculation.
   **Runtype Details** has the **Solvent molecule** (water, methanol or
@@ -111,7 +113,7 @@ line by hand; the input check looks only at the shape of the file and at the
 charge and multiplicity.
 
 For the other run types the first line has `--protonate` or `--tautomerize`
-instead of the energy window, or `--qcg solvent.xyz --nsolv <n>` (with `--ensemble` if chosen).
+(followed by `--ewin <window>` when Runtype Details set one) instead of the energy window, or `--qcg solvent.xyz --nsolv <n>` (with `--ensemble` if chosen).
 A solvation-shell deck also has the solvent molecule below the first line,
 between `$solvent` and `$end`; the job script writes it to `solvent.xyz`.
 
