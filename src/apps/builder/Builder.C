@@ -4971,9 +4971,10 @@ void Builder::OnReplaceGroup(wxCommandEvent& event)
 {
   SGFragment *frag = getSG()->getFragment();
   if (!frag || (frag->m_atomHighLight.size() != 1 &&
+                frag->m_atomHighLight.size() != 2 &&
                 frag->m_bondHighLight.size() != 1)) {
-    showMessage("Select the bond that joins the group, or the first atom "
-                "of the group, first.", true);
+    showMessage("Select the bond that joins the group (or its two atoms), "
+                "or the first atom of the group, first.", true);
     return;
   }
   wxDialog dlg(this, wxID_ANY, "Replace Group");
@@ -5019,6 +5020,16 @@ string Builder::replaceGroupFromSmiles(const string& smiles)
     delete all;
   } else if (frag->m_atomHighLight.size() == 1) {
     first = frag->m_atomHighLight[0];
+  } else if (frag->m_atomHighLight.size() == 2) {
+    // Two selected atoms count as the bond between them, as the bond case;
+    // the command then picks the terminal side itself.
+    const int a = frag->m_atomHighLight[0], b = frag->m_atomHighLight[1];
+    vector<TBond*> *all = frag->bonds();
+    for (TBond *bd : *all) {
+      int i = bd->atom1()->index(), j = bd->atom2()->index();
+      if ((i == a && j == b) || (i == b && j == a)) { first = a; attach = b; break; }
+    }
+    delete all;
   }
   if (first < 0)
     return "Select the bond that joins the group, or the first atom of the group.";

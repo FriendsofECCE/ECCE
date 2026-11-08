@@ -212,6 +212,24 @@ def main():
             check(1.5 < ln < 2.1, "S-C length from the covalent radii (%.3f A)" % ln)
         check(all(dist(a[1:], b[1:]) < 1e-9 for a, b in zip(before, d[2])),
               "undo restores the structure")
+
+        # 4. The two atoms of the bond select it too (#909); two atoms
+        # that are not bonded change nothing.
+        for tag, pick, replaced in (("pair", "S", True), ("apart", "C", False)):
+            text = eb.runBuilder(s, env, wrappers, "smiles4" + tag,
+                                 ["wait 3000", "select 1", "addelem " + pick,
+                                  "replacegroup [*]C(=O)O"] +
+                                 white("pair" + tag, args) + ["coords", "quit"],
+                                 args.shots, structure=dms)
+            d = dumps(text)
+            if not check(len(d) == 1, "two atoms (%s): one dump" % tag):
+                continue
+            syms = sorted(a[0] for a in d[0])
+            want = "C C H H H H O O S" if replaced else "C C H H H H H H S"
+            if not check(syms == sorted(want.split()),
+                         "two atoms (%s): %s" % (tag, "".join(syms))):
+                say("\n".join("      | " + l for l in text.splitlines()[-25:]))
+
     finally:
         if display:
             display.__exit__(None, None, None)
