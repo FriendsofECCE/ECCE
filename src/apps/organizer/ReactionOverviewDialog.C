@@ -29,6 +29,7 @@
 #include "RateBox.H"
 #include "WorkflowSteps.H"
 #include "dsm/EDSIFactory.H"
+#include "dsm/ICalculation.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/Session.H"
 #include "tdat/PropVector.H"
@@ -408,7 +409,7 @@ static string workflowReaction(const string& base)
   s = Spec();
   const vector<WorkflowSteps::Node> nodes = WorkflowSteps::tree(wf);
   for (const WorkflowSteps::Node& n : nodes) {
-    PropertyTask *irc = dynamic_cast<PropertyTask*>(n.step);
+    ICalculation *irc = dynamic_cast<ICalculation*>(n.step);
     if (!irc || irc->runtype().name().find("IRC") == string::npos || n.in.size() != 1) continue;
     Resource *ts = n.in[0].source;
     if (imaginaryCount(ts->getURL().toString()) != 1) continue;
