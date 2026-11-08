@@ -30,6 +30,13 @@ CASES = [
     ("orca/h2o_optfreq.out", "ORCA"),
     ("orca/c6h6_sym.out", "ORCA"),
     ("orca/hi_ecp.out", "ORCA"),
+    ("orca/h2_ccsd_scan_step1.out", "ORCA"),
+    ("../../../data/client/examples/workflows/na-hydration/orca-na_4_2/"
+     "na_4_2_orca.out", "ORCA"),
+    ("../../../data/client/examples/workflows/na-hydration/orca-water-na_4_2/"
+     "na_4_2_orca_water.out", "ORCA"),
+    ("../../../data/client/examples/organic/reactions/orca-sn2_ts/"
+     "sn2_ts.out", "ORCA"),
     ("gaussian-16/co_freq.log", "Gaussian-16"),
     ("gaussian-16/oh_uhf.log", "Gaussian-16"),
     ("gaussian-16/h2o_optfreq.log", "Gaussian-16"),
@@ -63,10 +70,27 @@ def oracle(code, text):
             last(r"^Point Group:\s*([^\s,]+)", text) or "C1")
         want["multiplicity"] = first(r"^\s*Multiplicity\s+Mult\s+\.+\s+(\d+)",
                                      text)
+        if want["multiplicity"] is None:     # MiniPrint omits that table
+            want["multiplicity"] = first(r"^\|\s*\d+>\s*\*\s*xyz\s+-?\d+\s+(\d+)",
+                                         text)
         want["basis"] = first(r"^Your calculation utilizes the basis:\s*(\S+)",
                               text)
         want["ecp"] = bool(re.search(r"\bECP\b", text))
         want["spherical"] = "yes"
+        # Method from the "! ..." line of the echoed input (also present with
+        # MiniPrint), singlets only.  A -3c composite is DFT (HF-3c: SCF); its basis
+        # (def2-mTZVPP, ...) is in the library since #898.  ma-def2-SVP is not
+        # in the Basis Set Exchange, so no basis is expected for it.
+        tokens = (first(r"^\|\s*\d+>\s*!(.*)$", text) or "").upper().split()
+        if "CCSD" in tokens or "CCSD(T)" in tokens:
+            want["theory"] = "CC/" + ("CCSD(T)" if "CCSD(T)" in tokens
+                                      else "CCSD")
+        elif any(t.endswith("-3C") for t in tokens):
+            want["theory"] = "SCF/RHF" if "HF-3C" in tokens else "DFT/RDFT"
+            del want["ecp"], want["spherical"]
+        if want["basis"] and want["basis"].lower().startswith("ma-def2"):
+            want["basis"] = ""
+            del want["ecp"], want["spherical"]
     elif code == "Gaussian-16":
         want["pointgroup"] = last(r"^\s*Full point group\s+(\S+)", text) or "C1"
         want["multiplicity"] = first(
@@ -125,6 +149,10 @@ def compare(want, got):
             flat = [x for row in value for x in row]
             ok = len(nums) == 9 and all(abs(a - b) < 1e-4
                                         for a, b in zip(nums, flat))
+        elif field == "basis" and value is None:
+            ok = True
+        elif field == "basis" and value == "":
+            ok = (have or "-") in ("-", "")
         elif field == "basis":
             # TGBSConfig::name() marks more than one element group "...".
             ok = (have or "").rstrip(".").lower() == (value or "").lower()
@@ -157,7 +185,7 @@ def main():
                 "importmeta exit %d: %s" % (proc.returncode,
                                             proc.stderr.strip()[-500:])]
             summary = ", ".join("%s=%s" % (k, got.get(k)) for k in
-                                ("pointgroup", "multiplicity", "basis", "ecp",
+                                ("pointgroup", "multiplicity", "theory", "basis", "ecp",
                                  "spherical"))
             if problems:
                 failures += 1

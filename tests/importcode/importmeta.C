@@ -109,6 +109,9 @@ int main(int argc, char **argv)
   cout << "multiplicity: "
        << (icalc ? (int)icalc->spinMultiplicity() : -1) << " "
        << (icalc ? SpinMult::toString(icalc->spinMultiplicity()) : "-") << endl;
+  TTheory *th = icalc ? icalc->theory() : 0;
+  cout << "theory: " << (th ? th->category() + "/" + th->name() : string("-"))
+       << endl;
   cout << "basis: " << (config ? config->name() : "-") << endl;
   cout << "ecp: " << (config ? config->ecpName() : "-") << endl;
   cout << "spherical: "
