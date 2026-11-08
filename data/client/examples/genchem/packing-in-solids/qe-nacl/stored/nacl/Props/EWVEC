@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="EWVEC" rowLabel="Wave Step" rows="1" units="Hartree">
+
+  <step number="1">-257.775269855</step>
+  <step number="2">-257.798357145</step>
+  <step number="3">-257.802294</step>
+  <step number="4">-257.80732972</step>
+  <step number="5">-257.807337005</step>
+  <step number="6">-257.80734237</step>
+  <step number="7">-257.80734313</step>
+
+</tsvector>

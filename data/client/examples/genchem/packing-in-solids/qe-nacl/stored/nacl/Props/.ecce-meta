@@ -1,0 +1,7 @@
+CPUSEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+DELTAE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+ETIME	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+EWVEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+PRESSURE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+STRESS	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+TE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml

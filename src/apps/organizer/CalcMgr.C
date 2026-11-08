@@ -5980,7 +5980,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "37";
+const char *const kExampleSetVersion = "38";
 
 string treeName(string s)
 {
@@ -7314,6 +7314,18 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "magnesium, with layers stacked ABA: two atoms in the hexagonal "
      "cell, twelve nearest neighbours, and 74 % of the space filled by "
      "the atoms."},
+    {"nacl",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the rock-salt structure of sodium "
+     "chloride: a face-centred cubic lattice with a two-ion basis, in "
+     "which each ion has six nearest neighbours of the other kind, "
+     "arranged octahedrally."},
+    {"cscl",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the caesium chloride structure: one "
+     "ion of each kind in the cubic cell, each with eight nearest "
+     "neighbours of the other kind at the corners of a cube; the lattice "
+     "is simple cubic, not body-centred, because the two ions differ."},
     {"ar-gas-300K",
      "GROMACS, Lennard-Jones argon, 1000 atoms, 300 K, 20 bar, 2 ns. This "
      "calculation shows the Maxwell-Boltzmann distribution of atomic speeds "

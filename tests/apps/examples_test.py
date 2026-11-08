@@ -119,7 +119,7 @@ for _topic in sorted(os.listdir(_GC)):
                           else ["TE", "MO"])
 # the Quantum ESPRESSO crystals of Packing in solids: energy only
 GENCHEM.update({c: ["TE"] for c in ("po_sc", "na_bcc", "al_fcc", "cu_fcc",
-                                    "mg_hcp")})
+                                    "mg_hcp", "nacl", "cscl")})
 WORKFLOWS = {"na_%s_%s" % (n, c): (["TE", "GEOMTRACE", "MO", "ORBENG"]
                                    if c == "xtb"
                                    else ["TE", "VIBFREQ", "MO", "ORBENG"])
