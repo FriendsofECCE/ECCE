@@ -790,6 +790,27 @@ void CalcMgr::runTestCommand(const string& line)
         moveForCommand(a, vector<EcceURL>(1, EcceURL(b)), c, lines);
         for (size_t i = 0; i < lines.size(); i++)
           outcome += (i ? ";" : "") + lines[i];
+      } else if (sub == "paste") {
+        // "server paste copy|cut FOLDER-URL SOURCE-URL...": the GUI Copy/Cut
+        // and Paste, which go through Resource::copy/move, not ecce-copy.
+        // The failure text is taken from paste() instead of its dialog.
+        vector<EcceURL> srcs;
+        for (string u = c; !u.empty(); u.clear(), args >> u)
+          srcs.push_back(EcceURL(u));
+        WxResourceTreeItemData *from = srcs.empty() ? 0
+            : findNode(srcs[0], true, true);
+        WxResourceTreeItemData *to = findNode(EcceURL(b), true, true);
+        if (!from || !to) {
+          outcome = "error: no such node";
+        } else {
+          p_treeCtrl->SelectItem(from->GetId());
+          copySelectionToClipboard(a == "cut");
+          p_clipboard = srcs;
+          p_treeCtrl->SelectItem(to->GetId());
+          p_pasteMessage.clear();
+          paste();
+          outcome = p_pasteMessage.empty() ? "ok" : "refused: " + p_pasteMessage;
+        }
       } else if (sub == "launchcheck") {
         outcome = refuseAddedLaunch(vector<EcceURL>(1, EcceURL(a)))
                   ? "refused" : "allowed";
@@ -8725,6 +8746,10 @@ void CalcMgr::paste()
   onSelectionChange(false);
 
   if (msg != "") {
+    if (getenv("ECCE_TEST_ORGANIZER")) {
+      p_pasteMessage = msg;
+      return;
+    }
     ewxMessageDialog dlg(this, msg,
                          "Paste Failed!", wxOK|wxICON_EXCLAMATION, 
                          wxDefaultPosition);
