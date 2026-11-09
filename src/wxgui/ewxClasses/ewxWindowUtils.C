@@ -1089,6 +1089,14 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
       //  A frame's status bar and toolbars lie outside its client area.
       wxRect area = a->IsKindOf(wxCLASSINFO(wxTopLevelWindow))
                     ? screenRect(a) : clientScreenRect(a);
+      //  A panel that is the virtual area of a scroller: its screen origin
+      //  moves with the scroll position (wxGTK reports it 20 px off the
+      //  boxes in it), so compare in the panel's own coordinates.
+      if (a->GetParent() && scrollsOrIsCustom(a->GetParent())) {
+        wxPoint p(0, 0);
+        for (wxWindow *c = w; c != a; c = c->GetParent()) p += c->GetPosition();
+        me = wxRect(wxPoint(p.x, p.y) + area.GetTopLeft(), size);
+      }
       if (me.x < area.x - 1 || me.y < area.y - 1 ||
           me.GetRight() > area.GetRight() + 1 ||
           me.GetBottom() > area.GetBottom() + 1) {
