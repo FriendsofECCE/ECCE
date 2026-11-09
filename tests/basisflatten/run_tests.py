@@ -80,12 +80,18 @@ def main():
     rc5 = run_cro_moaoorder(env, fx + ["NWChem", "5e-3"],
                             "fixtures/hf_5z_nwchem_eprint.txt", ["nwchem.mo"])
     # Gaussian re-contracts general contractions that share primitives, so
-    # its fort.7 refers to the basis it echoes with GFInput (hf_5z_g16.nb),
-    # not to the cc-pV5Z it was given.
-    rc6 = run_cro_moaoorder(env, ["fixtures/hf_5z_g16.nb", "fixtures/hf_5z.xyz",
-                                  "10", "Gaussian-16"],
+    # its fort.7 refers to the basis it echoes with GFInput (hf_5z_g16.nb);
+    # the MOs must come out right on the cc-pV5Z ECCE gave it (#921).
+    rc6 = run_cro_moaoorder(env, fx + ["Gaussian-16", "1e-6",
+                                       "fixtures/hf_5z_g16.nb"],
                             "fixtures/hf_5z_g16_fort7.txt", ["gaussian-16.mo"])
-    return rc or rc2 or rc3 or rc4 or rc5 or rc6
+    # The same through what a calculation stores: HCl/cc-pVTZ, the GFInput
+    # echo run through gaussian-16.codebasis, then MoAoOrder (#921).
+    rc7 = run_cro_moaoorder(env, ["fixtures/hcl_tz.nb", "fixtures/hcl.xyz", "18",
+                                  "Gaussian-16", "3e-5", "",
+                                  "fixtures/hcl_g16_echo.txt"],
+                            "fixtures/hcl_g16_fort7.txt", ["gaussian-16.mo"])
+    return rc or rc2 or rc3 or rc4 or rc5 or rc6 or rc7
 
 
 def run_cro_moaoorder(env, extra=(), block="fixtures/cro_mo_block.txt",
@@ -104,6 +110,17 @@ def run_cro_moaoorder(env, extra=(), block="fixtures/cro_mo_block.txt",
     parsed = os.path.join(HERE, "cro_mo_parsed.txt")
     with open(parsed, "w") as f:
         f.write(perl.stdout)
+
+    extra = list(extra)
+    stored = os.path.join(HERE, "cro_codebasis_parsed.txt")
+    if len(extra) > 6:
+        echo = subprocess.run(
+            ["perl", os.path.join(ROOT, "scripts/parsers/gaussian-16.codebasis")],
+            stdin=open(os.path.join(HERE, extra[6])), capture_output=True,
+            text=True, env=env)
+        with open(stored, "w") as f:
+            f.write(echo.stdout)
+        extra[6] = stored
 
     out = os.path.join(HERE, "testCrOMoAoOrder")
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
@@ -124,6 +141,8 @@ def run_cro_moaoorder(env, extra=(), block="fixtures/cro_mo_block.txt",
         print(run.stderr, end="")
     os.unlink(out)
     os.unlink(parsed)
+    if os.path.exists(stored):
+        os.unlink(stored)
     return run.returncode
 
 

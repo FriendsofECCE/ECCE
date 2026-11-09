@@ -9,10 +9,20 @@
 #include <algorithm>
 using std::stable_sort;
 
+#include <memory>
+#include <set>
+#include <sstream>
+
+#include "tdat/BasisFlatten.H"
+#include "tdat/TGBSAngFunc.H"
+#include "tdat/MoBasisChange.H"
 #include "tdat/PropTable.H"
 #include "tdat/PropString.H"
 
+#include "dsm/ICalcUtils.H"
+#include "dsm/ICalculation.H"
 #include "dsm/IPropCalculation.H"
+#include "dsm/JCode.H"
 #include "dsm/TGaussianBasisSet.H"
 #include "dsm/TGBSConfig.H"
 
@@ -37,9 +47,78 @@ struct Shell {
 
 }  // namespace
 
+namespace {
+
+// CODEBASIS ("<centre> <L> exp coef ..." records joined by "|", written by
+// gaussian-16.codebasis) as NumericalBasis text for ICalcUtils::importConfig.
+// The first centre of each element supplies its basis.
+string codeBasisText(const string& stored, const vector<string>& atomSymbols,
+                     bool cartesian) {
+  std::ostringstream os;
+  os << "NumericalBasis\nbasis \"ao basis\" "
+     << (cartesian ? "cartesian" : "spherical") << " print\n";
+  std::set<string> done;
+  string curElement;
+  bool skipping = false;
+  size_t pos = 0;
+  while (pos <= stored.size()) {
+    size_t bar = stored.find('|', pos);
+    if (bar == string::npos) bar = stored.size();
+    std::istringstream rec(stored.substr(pos, bar - pos));
+    pos = bar + 1;
+    size_t centre = 0;
+    string shell;
+    if (!(rec >> centre >> shell) || centre < 1 || centre > atomSymbols.size())
+      return "";
+    const string& el = atomSymbols[centre - 1];
+    if (el != curElement) {
+      skipping = done.count(el) > 0;
+      done.insert(el);
+      curElement = el;
+    }
+    if (skipping) continue;
+    string e, c;
+    os << el << " " << shell << "\n";
+    while (rec >> e >> c) os << "  " << e << " " << c << "\n";
+  }
+  os << "END\nEndNumericalBasis\n";
+  return os.str();
+}
+
+}  // namespace
+
 namespace MoAoOrder {
 
-PropTable* reorderToNative(PropTable *moTable, IPropCalculation *calc,
+PropTable* projectFromCodeBasis(PropTable *mo, const string& stored,
+                                const vector<string>& atomSymbols,
+                                TGBSConfig *gbsConfig, const JCode *code) {
+  if (mo == 0 || gbsConfig == 0 || code == 0 || stored.empty()) return mo;
+  const bool cartesian =
+      (gbsConfig->coordsys() == TGaussianBasisSet::Cartesian);
+  const string text = codeBasisText(stored, atomSymbols, cartesian);
+  if (text.empty()) return mo;
+  std::istringstream is(text);
+  std::unique_ptr<TGBSConfig> codeCfg(ICalcUtils::importConfig(is));
+  if (codeCfg == 0) return mo;
+
+  std::unique_ptr<TGBSAngFunc> af(code->getAngFunc(
+      cartesian ? TGaussianBasisSet::Cartesian : TGaussianBasisSet::Spherical));
+  if (af == 0) return mo;
+  const int lenCart[7] = { 1, 3, 6, 10, 15, 21, 28 };
+  const int lenSph[7]  = { 1, 3, 5, 7, 9, 11, 13 };
+  // Only within-atom overlaps are used, so the centres need not be real.
+  const vector<double> coords(3 * atomSymbols.size(), 0.0);
+  vector<EspBasisFunction> from, to;
+  if (!BasisFlatten::flatten(atomSymbols, coords, codeCfg.get(), code,
+                             af.get(), af->maxShells(),
+                             cartesian ? lenCart : lenSph, from) ||
+      !BasisFlatten::flatten(atomSymbols, coords, gbsConfig, code, af.get(),
+                             af->maxShells(), cartesian ? lenCart : lenSph, to))
+    return mo;
+  return MoBasisChange::project(mo, from, to);
+}
+
+static PropTable* reorderOnly(PropTable *moTable, IPropCalculation *calc,
                             const vector<string>& atomSymbols,
                             TGBSConfig *gbsConfig) {
   if (moTable == 0 || calc == 0 || gbsConfig == 0) return moTable;
@@ -130,6 +209,21 @@ PropTable* reorderToNative(PropTable *moTable, IPropCalculation *calc,
   PropTable *result = new PropTable(*moTable);
   result->values(rows, cols, reordered);
   return result;
+}
+
+PropTable* reorderToNative(PropTable *moTable, IPropCalculation *calc,
+                            const vector<string>& atomSymbols,
+                            TGBSConfig *gbsConfig) {
+  PropTable *reordered = reorderOnly(moTable, calc, atomSymbols, gbsConfig);
+  if (reordered == 0 || calc == 0 || gbsConfig == 0) return reordered;
+  PropString *stored = (PropString*)calc->getProperty("CODEBASIS");
+  ICalculation *escalc = dynamic_cast<ICalculation*>(calc);
+  if (stored == 0 || escalc == 0) return reordered;
+  PropTable *projected = projectFromCodeBasis(
+      reordered, stored->value(), atomSymbols, gbsConfig, escalc->application());
+  // The intermediate table is ours when the reorder made one.
+  if (projected != reordered && reordered != moTable) delete reordered;
+  return projected;
 }
 
 }  // namespace MoAoOrder

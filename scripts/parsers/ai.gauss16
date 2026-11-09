@@ -348,9 +348,9 @@ sub G09Route {
   # bend a symmetrised structure would have removed, so no symmetry.
   $route .= &isQstRunType($AbiDict{"RunType"}) ? "NoSymm "
       : &Symmetry($AbiDict{"UseSymmetry"}, $AbiDict{"Symmetry"});
-  # This is so we can detect the basis set on import.
-  # - GFInput flag is unneeded to dump basissets - jmc
-  #$route .= " GFInput";
+  # Gaussian re-contracts shared-primitive sets (cc-pVXZ) and its MOs refer
+  # to its own functions; the echo lets the import project them back (#921).
+  $route .= "GFInput ";
   $route .= &IntOptions ;
   $route .= (&OrbitalGuessFile() ne "") ? "Guess=Read "
           : &InitialGuess($AbiDict{"SCF.InitialGuess"});

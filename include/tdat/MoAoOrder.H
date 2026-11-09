@@ -36,6 +36,7 @@ using std::vector;
 class PropTable;
 class IPropCalculation;
 class TGBSConfig;
+class JCode;
 
 namespace MoAoOrder {
 
@@ -62,6 +63,16 @@ namespace MoAoOrder {
 PropTable* reorderToNative(PropTable *moTable, IPropCalculation *calc,
                             const vector<string>& atomSymbols,
                             TGBSConfig *gbsConfig);
+
+// Re-expresses moTable's columns, given in the basis the code itself used
+// (Gaussian's GFInput echo as stored in CODEBASIS: "<centre> <L> exp coef
+// ..." records joined by "|"), in gbsConfig's basis; see MoBasisChange.
+// Same ownership rule as reorderToNative(): a NEW table, or moTable itself
+// when it does not apply. reorderToNative() calls this itself when the
+// calculation has CODEBASIS, after the column reorder.
+PropTable* projectFromCodeBasis(PropTable *moTable, const string& stored,
+                                const vector<string>& atomSymbols,
+                                TGBSConfig *gbsConfig, const JCode *code);
 
 }  // namespace MoAoOrder
 

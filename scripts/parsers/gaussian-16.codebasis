@@ -1,0 +1,34 @@
+#!/usr/bin/env perl
+###############################################################################
+# CODEBASIS: the basis Gaussian itself used, from the GFInput echo "AO basis
+# set in the form of general basis input".  For Dunning sets Gaussian
+# re-contracts functions that share primitives and the MO coefficients refer
+# to the re-contracted set, so MoAoOrder projects the MOs back onto ECCE's
+# basis with this echo (#921).
+#
+# A PropString is stored with its lines joined, so the echo goes out as one
+# line: records separated by "|", each "<centre> <L> exp coef exp coef ...".
+# Centre numbers stay numbers (element symbols are not in this block); the
+# reader maps them through the calculation's atom list.
+###############################################################################
+$| = 1;
+my @rec;
+my $centre = 0;
+my $bad = 0;
+while (<STDIN>) {
+  chomp;
+  s/(\d)[Dd]([-+]\d)/$1E$2/g;
+  my @q = split ' ';
+  next unless @q;
+  if (@q == 2 && $q[0] =~ /^\d+$/ && $q[1] eq "0") { $centre = $q[0]; next; }
+  next if $q[0] eq "****";
+  next if /basis functions|general basis input/;
+  if ($q[0] =~ /^[A-Za-z]+$/ && @q >= 3) {
+    if ($q[0] !~ /^[SPDFGHI]$/) { $bad = 1; last; }
+    push @rec, "$centre $q[0]";
+  } elsif (@q == 2 && @rec) {
+    $rec[-1] .= " $q[0] $q[1]";
+  }
+}
+exit(0) if ($bad || !@rec);
+print "key: CODEBASIS\nsize:\n1\nvalues:\n", join("|", @rec), "\nunits:\nNA\nEND\n";
