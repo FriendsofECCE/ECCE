@@ -208,10 +208,7 @@ bool ReleaseCheck::newerRelease(const string& current, const string& json,
 
     Parsed p;
     if (draft || !parse(tag, p) || url.empty()) continue;
-    if (p.core[0] != cur.core[0]) continue;
-    // 8.x is bug-fix only, so its line is the minor version.
-    if (cur.core[0] == 8 && (p.ncore < 2 || cur.ncore < 2 ||
-                             p.core[1] != cur.core[1])) continue;
+    if (!sameLine(stripV(tag), current)) continue;
     if ((prerelease || !p.pre.empty()) && !previewUser) continue;
     string ver = stripV(tag);
     if (compareVersions(ver, current) <= 0) continue;
@@ -222,6 +219,21 @@ bool ReleaseCheck::newerRelease(const string& current, const string& json,
     }
   }
   return have;
+}
+
+
+bool ReleaseCheck::sameLine(const string& candidate, const string& current)
+{
+  Parsed p, cur;
+  if (!parse(candidate, p) || !parse(current, cur)) return false;
+  if (p.core[0] != cur.core[0]) return false;
+  // 8.x and 9.4.x (teaching, long-term support) get bug fixes only, so
+  // their users hear only about that minor line, not a newer feature line.
+  bool fixLine = cur.core[0] == 8 || (cur.ncore >= 2 && cur.core[0] == 9 &&
+                                      cur.core[1] == 4);
+  if (fixLine && (p.ncore < 2 || cur.ncore < 2 || p.core[1] != cur.core[1]))
+    return false;
+  return true;
 }
 
 

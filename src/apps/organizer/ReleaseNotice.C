@@ -68,7 +68,8 @@ void ReleaseNotice::start()
   ReleaseCheck::Release cached;
   cached.version = ver;
   cached.url = url;
-  if (!ver.empty() && ReleaseCheck::compareVersions(ver, Ecce::ecceVersion()) > 0)
+  if (!ver.empty() && ReleaseCheck::sameLine(ver, Ecce::ecceVersion()) &&
+      ReleaseCheck::compareVersions(ver, Ecce::ecceVersion()) > 0)
     show(cached);
 }
 

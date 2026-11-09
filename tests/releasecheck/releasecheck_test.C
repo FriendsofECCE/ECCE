@@ -51,6 +51,10 @@ int main()
   CHECK(!find("9.0.0-beta.10", kJson, v));                          // same
   CHECK(!find("9.0.0-beta.11", kJson, v));                          // older
   CHECK(find("8.18.1", kJson, v) && v == "8.18.10");   // 8.x: stable 8.x only
+  // 9.4.x is a bug-fix line: 9.5.1 is not offered to it, 9.4.12 is.
+  CHECK(sameLine("9.4.12", "9.4.11") && !sameLine("9.5.1", "9.4.11"));
+  CHECK(sameLine("9.5.1", "9.3.2") && sameLine("9.5.2", "9.5.1"));
+  CHECK(!sameLine("10.0.0", "9.5.1") && !sameLine("8.19.0", "8.18.2"));
   CHECK(!find("8.18.10", kJson, v));
   CHECK(!find("9.0.0", kJson, v));     // stable 9: no previews, no drafts
   CHECK(find("9.0.0-beta.1", kStable, v) && v == "9.1.0-alpha.1");
