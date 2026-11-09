@@ -158,7 +158,9 @@ class Ecce
           return r.find(' ') == string::npos ? r : "\"" + r + "\"";
         }
 #endif
-        if (access(path.c_str(), X_OK) == 0) return path;
+        // A space in $ECCE_HOME (HOME of "Asa Oberg") must stay one word.
+        if (access(path.c_str(), X_OK) == 0)
+          return path.find(' ') == string::npos ? path : "\"" + path + "\"";
         return name;
       }
 

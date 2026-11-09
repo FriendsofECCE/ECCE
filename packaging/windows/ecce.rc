@@ -2,11 +2,10 @@
 // Named so it sorts first: Windows shows the first icon group of an .exe.
 aaaa ICON "ecce.ico"
 
-// wxWidgets' own resources, with the manifest that selects common controls
-// v6: without it Windows draws every control in the classic (Windows 95)
-// style, disabled labels embossed, and progress dialogs are wx's generic one.
-#define wxUSE_RC_MANIFEST 1
-// Per-monitor DPI aware (v2): without it Windows draws ECCE at 100 % and
-// stretches the bitmap, so at 150-200 % everything is pixelated (#670).
-#define wxUSE_DPI_AWARE_MANIFEST 2
+// wx.rc without its own manifest (an exe may have one): ours selects common
+// controls v6 (else Windows draws classic Windows 95 controls), per-monitor
+// DPI v2 (else the bitmap is stretched at 150-200 %, #670) and UTF-8 as the
+// ANSI code page (#922).
+#define wxUSE_NO_MANIFEST 1
+1 24 "ecce-utf8.manifest"
 #include "wx/msw/wx.rc"

@@ -414,6 +414,8 @@ class Suite(object):
             if os.path.exists(self.stubLog()):
                 os.unlink(self.stubLog())
         name = "mopac-ch4-%s-%d" % (label, int(time.time()))
+        if self.args.odd_names:
+            name = "vatten \u00e5\u00e4\u00f6 " + name
         if self.remote():
             rundir = "%s/ecce-jobs/%s" % (os.environ.get(
                 "ECCE_TEST_REMOTE_HOME", "/home/" + self.args.remote_user), name)
@@ -1037,6 +1039,9 @@ def main():
                         help="run N jobs one after another (default 1)")
     parser.add_argument("--keep", action="store_true",
                         help="leave the services running afterwards")
+    parser.add_argument("--odd-names", action="store_true",
+                        help="HOME and the calculation name contain a space "
+                        "and a-ring/a-umlaut/o-umlaut (#922)")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -1046,6 +1051,8 @@ def main():
         skip("nwchem is not installed")
 
     state = isolate.resolveStateDir(isolate.runState("launch", keep=args.keep))
+    if args.odd_names:
+        state = os.path.join(state, "\u00c5sa \u00d6berg")
     os.makedirs(state, exist_ok=True)
     note, _ = sweep(state)
     if note:

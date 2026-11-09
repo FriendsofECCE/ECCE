@@ -13,6 +13,12 @@ set "ECCE_REALUSER=%USERNAME%"
 set "HOST=%COMPUTERNAME%"
 set "UH=%USERPROFILE:\=/%"
 set "ECCE_REALUSERHOME=%UH%"
+rem Each start step with its time, so a start that stops can be traced
+rem (ecce-splash adds its own); kept small.
+if not exist "%USERPROFILE%\.ECCE" mkdir "%USERPROFILE%\.ECCE"
+set "ECCE_STARTLOG=%USERPROFILE%\.ECCE\start.log"
+for %%A in ("%ECCE_STARTLOG%") do if %%~zA GTR 200000 del "%ECCE_STARTLOG%"
+>>"%ECCE_STARTLOG%" echo %DATE% %TIME% ecce.cmd: start
 rem The antivirus checks of programs it has not seen (each new release) are
 rem made in the background, once per installation, before they are needed.
 if exist "%ECCE_ROOT%\python\python3w.exe" start "" /b "%ECCE_ROOT%\python\python3w.exe" "%ECCE_ROOT%\bin\ecce-prewarm"
@@ -27,6 +33,7 @@ if not defined ECCE_NO_FIRST_START if not defined ECCE_SWITCHED_LOCAL if exist "
   start /wait "" "%ECCE_ROOT%\python\python3w.exe" "%ECCE_ROOT%\bin\ecce-first-start"
   if errorlevel 3 if not errorlevel 4 exit /b 0
 )
+>>"%ECCE_STARTLOG%" echo %DATE% %TIME% ecce.cmd: past the first-start window
 rem A server given by the installation, or chosen in that window, makes this a
 rem -remote session (what ecce-session-lib.sh does on the other systems).
 set "ECCE_SERVER_SESSION="
@@ -78,22 +85,27 @@ set ECCE_REMOTE_SERVER=1
 for /f %%i in ('python3.exe -c "import os;print(os.urandom(8).hex())"') do set "ECCE_SESSION_ID=%%i"
 rem The start-up card until the Organizer has a window (ecce-splash).
 if not defined ECCE_NO_FIRST_START if not defined ECCE_NO_SPLASH if exist "%ECCE_ROOT%\python\python3w.exe" start "" "%ECCE_ROOT%\python\python3w.exe" "%ECCE_ROOT%\bin\ecce-splash"
-bash.exe "%ECCE_HOME%/bin/ecce-gateway-start"
-if errorlevel 1 (
-  type nul > "%TEMP%\ecce-splash-%ECCE_SESSION_ID%.stop"
-  if defined ECCE_LOCAL_BROKER (
-    echo ECCE could not start its message broker. 1>&2
-    if not defined ECCE_NO_FIRST_START mshta "javascript:alert('ECCE could not start its message broker. See the files in your .ECCE folder.');close()"
-    exit /b 2
-  )
-  echo ECCE could not reach its server. 1>&2
-  rem Scripts and tests (ECCE_NO_FIRST_START) get no message box.
-  if not defined ECCE_NO_FIRST_START mshta "javascript:alert('ECCE could not reach its server. Check that the server is running and your network connection, then start ECCE again.');close()"
-  exit /b 2
-)
+>>"%ECCE_STARTLOG%" echo %DATE% %TIME% ecce.cmd: session %ECCE_SESSION_ID%, local=%ECCE_LOCAL_BROKER% server=%ECCE_REMOTE_SERVER%, gateway start
+rem With a time limit (status 124): a hung broker or server would otherwise
+rem leave the user with the card and nothing after it.
+"%ECCE_ROOT%\python\python3.exe" "%ECCE_ROOT%\bin\ecce-splash" --gateway 150
+set "_rc=%ERRORLEVEL%"
+>>"%ECCE_STARTLOG%" echo %DATE% %TIME% ecce.cmd: gateway start exit %_rc%
+if "%_rc%"=="0" goto gatewayup
+type nul > "%TEMP%\ecce-splash-%ECCE_SESSION_ID%.stop"
+set "_msg=ECCE could not reach its server. Check that the server is running and your network connection, then start ECCE again."
+if defined ECCE_LOCAL_BROKER set "_msg=ECCE could not start its message broker."
+if "%_rc%"=="124" set "_msg=ECCE did not finish starting: its message broker or server did not answer within 150 seconds."
+echo %_msg% 1>&2
+rem Scripts and tests (ECCE_NO_FIRST_START) get no message box.  Not mshta:
+rem antivirus and Defender rules often block it without a word.
+if not defined ECCE_NO_FIRST_START start "" "%ECCE_ROOT%\python\python3w.exe" "%ECCE_ROOT%\bin\ecce-splash" --message "%_msg%"
+exit /b 2
+:gatewayup
 rem The Organizer shows the start-up splash, which the gateway shows elsewhere.
 set "ECCE_SPLASH=1"
 start "" "%ECCE_ROOT%\bin\organizer.exe" %*
+>>"%ECCE_STARTLOG%" echo %DATE% %TIME% ecce.cmd: organizer.exe started
 set "ECCE_SPLASH="
 rem The local broker ends with the session: when no ECCE window is left.
 if defined ECCE_LOCAL_BROKER start "" /b bash.exe "%ECCE_HOME%/bin/ecce-broker-win" watch
