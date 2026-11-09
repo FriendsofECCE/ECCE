@@ -781,8 +781,10 @@ string GromacsPreparePanel::layoutReport() const
          n; n = n->GetNext()) {
       wxStaticBoxSizer *sb = dynamic_cast<wxStaticBoxSizer*>(n->GetData()->GetSizer());
       if (sb == 0 || !n->GetData()->IsShown()) continue;
+      wxRect it = n->GetData()->GetRect(), box = sb->GetStaticBox()->GetRect();
       os << " [" << sb->GetStaticBox()->GetLabel().ToUTF8() << "="
-         << sb->CalcMin().x << "x" << sb->CalcMin().y << "]";
+         << sb->CalcMin().x << "x" << sb->CalcMin().y << " item "
+         << it.y << "+" << it.height << " box " << box.y << "+" << box.height << "]";
     }
   }
   return os.str();

@@ -1054,6 +1054,7 @@ def small_screen_section(s, build, png):
                     ed.cmd(c)
                 fit = ed.cmd("fit")
                 say("  1024x600 %s: size %s; fit %s" % (tag, ed.cmd("size"), fit))
+                say("  1024x600 %s layout: %s" % (tag, ed.cmd("layout")))
                 n = [int(x) for x in re.findall(r"-?\d+", fit)]
                 check(len(n) == 10 and n[3] >= n[7] and n[9] >= n[7]
                       and n[2] >= n[6] and n[8] >= n[6],
