@@ -10,7 +10,7 @@
 #include <csignal>
 #include <cstdio>
 #include <cstdlib>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -148,7 +148,7 @@ int main(int argc, char** argv)
   check(PM::run(form) == -1, "a missing script gives -1");
 
   if (failures == 0)
-    std::filesystem::remove_all(tmp);
+    ecce::fs::remove_all(tmp);
   else
     std::cout << "kept " << tmp << std::endl;
   std::cout << (failures ? "FAILED" : "PASSED") << std::endl;
