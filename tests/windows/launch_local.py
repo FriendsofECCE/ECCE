@@ -23,6 +23,10 @@ OUT = os.path.join(REPO, "tests", "parsers", "fixtures", "mopac", "ch4_force.out
 FINAL = ("completed", "loaded", "failed", "killed", "unsuccessful", "system_failure")
 
 
+# The log is piped: without this, a path with Ł stops the test at print.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
+
 def say(t):
     print(t, flush=True)
 
