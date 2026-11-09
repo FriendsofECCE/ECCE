@@ -1,0 +1,3 @@
+// UTF-8 as the ANSI code page of every ECCE program (bash, Python and the
+// job scripts write UTF-8; without this getenv and fopen use cp1252). #922
+1 24 "ecce-utf8-cli.manifest"

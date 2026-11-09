@@ -53,10 +53,9 @@ vector<Bookmark> EDSIServerCentral::p_mountPoints;
 #include <windows.h>
 #endif
 
-// The paths come from getenv in the ANSI code page on Windows, but the
-// parser reads this text as UTF-8: a folder such as C:/Users/Åsa Öberg made
-// it fail at line 1 and the Organizer abort (#922).  The values it gives
-// back are transcoded to the ANSI code page again.
+// The parser reads this text as UTF-8 but getenv gives ANSI paths. With the
+// UTF-8 manifest CP_ACP is UTF-8 and this is a no-op; it still protects a
+// build or Windows without the manifest (#922).
 static string xmlEscape(const string& ansi)
 {
   string in = ansi;
