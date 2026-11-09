@@ -3691,6 +3691,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_organizer_menus PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Organizer Move to... / Copy to... (#929).
+  add_test(NAME apps_organizer_moveto
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_moveto_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_moveto PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Organizer follows changes made outside ECCE in the shown folder (#889).
   add_test(NAME apps_organizer_autorefresh
            COMMAND ${PYTHON3_EXECUTABLE}

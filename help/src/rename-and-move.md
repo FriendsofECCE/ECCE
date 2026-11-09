@@ -5,6 +5,10 @@ project a new name. A name may contain letters, digits, `.`, `_` and `-`.
 **Edit > Cut** followed by **Edit > Paste** on another folder, or dragging a
 calculation onto a folder in the tree, moves it there. The calculation keeps
 its inputs, outputs, results and run log; only its name or place changes.
+**Move to...** and **Copy to...** in the right-click menu do the same
+without the clipboard: choose the folder in the list that opens. While you
+drag an item in the tree, holding the mouse near the top or bottom edge of
+the tree scrolls it.
 
 ## While a job is running
 

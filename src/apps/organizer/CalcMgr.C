@@ -149,6 +149,7 @@ static std::string s_registerMessage;
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/WxEditSessionMgr.H"
 #include "wxgui/WxFeedback.H"
+#include "FolderChooserDialog.H"
 #include "wxgui/WxResourceImageList.H"
 #include "wxgui/WxResourceTreeCtrl.H"
 #include "wxgui/WxResourceTreeItemData.H"
@@ -793,6 +794,14 @@ void CalcMgr::runTestCommand(const string& line)
       } else if (sub == "launchcheck") {
         outcome = refuseAddedLaunch(vector<EcceURL>(1, EcceURL(a)))
                   ? "refused" : "allowed";
+      } else if (sub == "moveto") {
+        // "server moveto copy|cut SOURCE-URL FOLDER-URL": the Move to... /
+        // Copy to... menu items after the folder dialog.
+        if (!findNode(EcceURL(b), true, true)) outcome = "no such source";
+        else {
+          const string why = transferTo(a == "cut", EcceURL(c));
+          outcome = why.empty() ? "ok" : "refused: " + why;
+        }
       }
     } else if (command == "examples") {
       // File > Open Example Calculations
@@ -8609,6 +8618,98 @@ void CalcMgr::deleteSelection()
 }
 
 
+//  Why the selection cannot go into dest ("" when it can).  The same rules
+//  as paste() and a drop, as text, so the folder dialog can grey OK.
+string CalcMgr::moveToRefusal(const vector<EcceURL>& sources,
+                              const EcceURL& dest)
+{
+  string why = crossTreeRefusal(sources, dest);
+  if (!why.empty()) return why;
+  for (size_t i = 0; i < sources.size(); i++)
+    if (dest == sources[i] || dest.isChildOf(sources[i]))
+      return "Cannot paste parent folder into a child folder";
+  WxResourceTreeItemData *node = findNode(dest, false, true);
+  Resource *res = node ? node->getResource() : 0;
+  if (!res || !res->getDescriptor()->getIsExpandable())
+    return "Must paste into a container type object";
+  if (dest.isSystemFolder() && !dest.getParent().isEcceUsers() &&
+      !dest.isLocalDataHome())
+    return "Items cannot be put into a system folder.";
+  if (Session *s = dynamic_cast<Session*>(res)) {
+    if (s->getApplicationType() == ResourceDescriptor::AT_WORKFLOW) {
+      for (size_t i = 0; i < sources.size(); i++) {
+        Resource *src = EDSIFactory::getResource(sources[i]);
+        if (dynamic_cast<TaskJob*>(src))
+          return "A calculation joins a workflow through Make Workflow or "
+                 "Move into Workflow in its menu.";
+      }
+    }
+  }
+  return "";
+}
+
+
+//  Move to... / Copy to...: Cut or Copy of the selection, then Paste with
+//  dest as the target, so the outcome is that of the clipboard route.  The
+//  user's own clipboard is put back afterwards.  Returns why not, or "".
+string CalcMgr::transferTo(bool cut, const EcceURL& dest)
+{
+  getSelection();
+  const vector<EcceURL> sources = p_currentSelection;
+  string why = moveToRefusal(sources, dest);
+  if (why.empty() && cut) {
+    for (size_t i = 0; i < sources.size(); i++)
+      if (sources[i].getParent() == dest) why = "It is already in this folder.";
+  }
+  if (!why.empty()) return why;
+
+  const vector<EcceURL> keep = p_clipboard;
+  const bool keepCut = p_deleteAfterPaste;
+  copySelectionToClipboard(cut);
+  if (!findNode(dest, true, true)) {
+    p_clipboard = keep;
+    p_deleteAfterPaste = keepCut;
+    return "The folder cannot be opened.";
+  }
+  paste();
+  if (!keep.empty()) {
+    p_clipboard = keep;
+    p_deleteAfterPaste = keepCut;
+    p_toolBar->EnableTool(wxID_PASTE, true);
+    GetMenuBar()->Enable(wxID_PASTE, true);
+  }
+  return "";
+}
+
+
+void CalcMgr::chooseAndTransfer(bool cut)
+{
+  if (refuseDuringBatch(cut ? "Move" : "Copy")) return;
+  if (cut && selectionHasSystemFolder()) return;
+  getSelection();
+  const vector<EcceURL> sources = p_currentSelection;
+  if (sources.empty()) return;
+  const string name = sources.size() == 1 ? sources[0].getFilePathTail()
+                                          : "the selection";
+  FolderChooserDialog dlg(this, cut ? _("Move to") : _("Copy to"),
+      wxString::FromUTF8(((cut ? "Move " : "Copy ") + name +
+                          " to this folder:").c_str()),
+      p_treeCtrl, sources[0].getParent(),
+      [this, sources, cut](const EcceURL& dest) {
+        string why = moveToRefusal(sources, dest);
+        if (why.empty() && cut)
+          for (size_t i = 0; i < sources.size(); i++)
+            if (sources[i].getParent() == dest) why = "It is already in this folder.";
+        return why;
+      });
+  if (dlg.ShowModal() != wxID_OK) return;
+  startDisabler();
+  const string why = transferTo(cut, dlg.selectedUrl());
+  stopDisabler();
+  if (!why.empty()) tellRefusal(why);
+}
+
+
 /**
  * Paste nodes from clipboard to the current selected node
  */
@@ -8919,6 +9020,20 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   menu.Append(wxID_COPY, wxT("&Copy"));
   menu.Append(wxID_PASTE, wxT("&Paste"));
   menu.Enable(wxID_PASTE, !p_clipboard.empty());
+  {
+    int moveId = wxWindow::NewControlId();
+    int copyId = wxWindow::NewControlId();
+    menu.Append(moveId, _("Move to..."),
+                _("Move the selection into a folder you choose"));
+    menu.Append(copyId, _("Copy to..."),
+                _("Copy the selection into a folder you choose"));
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+      CallAfter([this]() { chooseAndTransfer(true); });
+    }, moveId);
+    menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+      CallAfter([this]() { chooseAndTransfer(false); });
+    }, copyId);
+  }
   menu.Append(wxID_RENAME, wxT("&Rename"));
   menu.Enable(wxID_RENAME, true);
   menu.Append(wxID_DELETE, wxT("&Delete"));
@@ -13829,6 +13944,7 @@ void CalcMgr::enableTreeDropHighlight(bool flag, wxCoord x, wxCoord y)
 {
   // If turn off flag is set
   if (!flag) {
+    if (p_dragScrollTimer) p_dragScrollTimer->Stop();
     if (p_highlightId.IsOk()) {
       p_treeCtrl->SetItemDropHighlight(p_highlightId, false);
       p_highlightId = wxTreeItemId();
@@ -13839,6 +13955,16 @@ void CalcMgr::enableTreeDropHighlight(bool flag, wxCoord x, wxCoord y)
     int hitFlag = wxTREE_HITTEST_ONITEMLABEL| wxTREE_HITTEST_ONITEMICON;
     wxTreeItemId id = p_treeCtrl->HitTest(pt, hitFlag);
     
+    // Near the top or bottom edge the tree scrolls while the drag stays there.
+    p_dragX = x;
+    p_dragY = y;
+    if (!p_dragScrollTimer) {
+      p_dragScrollTimer = new wxTimer(this);
+      Bind(wxEVT_TIMER, [this](wxTimerEvent&) { dragScrollTick(); },
+           p_dragScrollTimer->GetId());
+    }
+    if (!p_dragScrollTimer->IsRunning()) p_dragScrollTimer->Start(80);
+
     // Turn off the highlight on the previously node
     if (id != p_highlightId) {
       if (p_highlightId.IsOk()) {
@@ -13852,6 +13978,29 @@ void CalcMgr::enableTreeDropHighlight(bool flag, wxCoord x, wxCoord y)
       }
     }
   }
+}
+
+
+//  One row per tick while the drag is within 1.5 rows of the tree's top or
+//  bottom edge; stops itself when it is not.
+void CalcMgr::dragScrollTick()
+{
+  int row = p_treeCtrl->GetCharHeight() + 4;
+  wxTreeItemId first = p_treeCtrl->GetFirstVisibleItem();
+  wxRect box;
+  if (first.IsOk() && p_treeCtrl->GetBoundingRect(first, box) && box.height > 0)
+    row = box.height;
+  const int band = row * 3 / 2;
+  const int height = p_treeCtrl->GetClientSize().y;
+  int dir = 0;
+  if (p_dragY < band) dir = -1;
+  else if (p_dragY > height - band) dir = 1;
+  if (dir == 0) {
+    p_dragScrollTimer->Stop();
+    return;
+  }
+  p_treeCtrl->ScrollLines(dir);
+  enableTreeDropHighlight(true, p_dragX, p_dragY);
 }
 
 

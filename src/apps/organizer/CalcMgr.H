@@ -468,6 +468,11 @@ public:
   void focusLeaveTree();
   void copySelectionToClipboard(bool deleteAfterPaste);
   void paste();
+  // Move to... / Copy to... (#929): the same paste, into a chosen folder.
+  string moveToRefusal(const vector<EcceURL>& sources, const EcceURL& dest);
+  string transferTo(bool cut, const EcceURL& dest);
+  void chooseAndTransfer(bool cut);
+  void dragScrollTick();
   void deleteSelection();
   bool selectionHasSystemFolder();
   string getTreeSelectionName();
@@ -770,6 +775,8 @@ protected:
   int p_disablerCount;
   wxBusyCursor * p_cursor;
   wxTreeItemId p_highlightId;
+  wxTimer *p_dragScrollTimer = 0;   // scrolls the tree while a drag is at its edge
+  wxCoord p_dragX = 0, p_dragY = 0;
 
   static const char     * vMsgNoMoving;
 
