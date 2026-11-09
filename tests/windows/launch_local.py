@@ -127,7 +127,7 @@ def broker(s, what):
     cfg = {}
     f = os.path.join(s.state, ".ECCE", "broker_%s_%s" % (s.env["HOST"], s.env["ECCE_SESSION_ID"]))
     if os.path.exists(f):
-        for line in open(f):
+        for line in open(f, encoding="utf-8"):
             if "=" in line:
                 k, v = line.strip().split("=", 1)
                 cfg[k] = v
@@ -136,9 +136,9 @@ def broker(s, what):
 
 def stub(state, delay):
     path = os.path.join(state, "stubmopac")
-    with open(path, "w", newline="\n") as h:
-        h.write("#!/bin/sh\necho \"stub args: $*\" >> %s/stub.log\nsleep %d\n"
-                "cat %s > mopac.out\n" % (state.replace("\\", "/"), delay,
+    with open(path, "w", newline="\n", encoding="utf-8") as h:
+        h.write("#!/bin/sh\necho \"stub args: $*\" >> '%s/stub.log'\nsleep %d\n"
+                "cat '%s' > mopac.out\n" % (state.replace("\\", "/"), delay,
                               OUT.replace("\\", "/")))
     return path.replace("\\", "/")
 
@@ -156,7 +156,7 @@ def main():
     s = S(os.path.abspath(a.build).replace("\\", "/"),
           os.path.abspath(a.state).replace("\\", "/"))
     st = s.state.replace("\\", "/")
-    with open(os.path.join(st, ".ECCE", "CONFIG.localhost"), "w", newline="\n") as h:
+    with open(os.path.join(st, ".ECCE", "CONFIG.localhost"), "w", newline="\n", encoding="utf-8") as h:
         h.write("MOPAC: %s\n" % (a.mopac.replace("\\", "/") if a.mopac else
                                   stub(st, 2 if a.case == "complete" else 300)))
     cfg = {}
@@ -220,14 +220,14 @@ def main():
         s.check(not left, "no process of the job left")
         say("all sleep/stub processes now: %s" % [p for p in procs() if "sleep" in p[4] or "stub" in p[4]])
         for f in glob.glob(os.path.join(st, "jobs", "**", ".ecce.status"), recursive=True):
-            code = open(f).read().strip()
+            code = open(f, encoding="utf-8").read().strip()
             say("%s: %s" % (f, code))
             s.check(code == "302", ".ecce.status is 302")
     if sub:
         time.sleep(2)
         sub.terminate()
         sub.wait()
-        seen = open(s.sublog).read()
+        seen = open(s.sublog, encoding="utf-8", errors="replace").read()
         lines = [l for l in seen.splitlines() if l.startswith("ecce/")]
         say("broker messages seen by the subscriber: %d" % len(lines))
         for l in lines[:12]:
