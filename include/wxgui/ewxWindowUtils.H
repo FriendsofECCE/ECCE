@@ -101,6 +101,11 @@ public:
   // Safe to call again after the content changes.
   static void fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow = NULL);
 
+  // A top-level window the window manager may put behind its parent: on
+  // GTK a wxMiniFrame is made transient for its parent whatever its style.
+  // Call before the window is first shown.
+  static void detachFromParent(wxTopLevelWindow *win);
+
   // Scroll the scrolled window holding `child` (if any) the least that
   // brings the whole of `child` into view.  No-op when nothing scrolls.
   static void revealInScroller(wxWindow *child);
