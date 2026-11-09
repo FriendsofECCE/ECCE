@@ -12,6 +12,8 @@
 #endif
 
 #include <thread>
+
+#include "util/TempStorage.H"
 #include <unistd.h>
 #include <stdio.h>
 #include "util/MqttBroker.H"
