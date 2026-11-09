@@ -62,6 +62,25 @@ CASES = [
             }),
         },
     ),
+    # #921: GFInput makes G16 echo the basis it used; CODEBASIS keeps it
+    # (one line, "<centre> <L> exp coef ..." joined by "|").  HCl/cc-pVTZ,
+    # Cl is centre 1.
+    dict(
+        name='g16-hcl-gfinput-codebasis',
+        desc='gaussian-16.desc',
+        fixture='gaussian-16/hcl_ccpvtz_gfinput.log',
+        parse_args=('.', 'Energy', 'SCF', 'RHF', '0'),
+        silent_ok={
+            'DELTAE': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'RMSDP': 'runtype-gated to /Geo/i (see g16-co-freq).',
+            'ESCF1][ESCFVEC': 'runtype-gated to /Geo/i (see g16-co-freq).',
+        },
+        expect={
+            'CODEBASIS': dict(keys={
+                'CODEBASIS': {'values_contain':
+                              '1 S 0.4561000000E+06 0.4932288255E-04'}}),
+        },
+    ),
     dict(
         name='g16-h2o-optfreq',
         desc='gaussian-16.desc',

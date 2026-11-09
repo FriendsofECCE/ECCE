@@ -128,6 +128,9 @@ int main(int argc, char** argv) {
   // Optional: the basis the code itself used (Gaussian's GFInput echo);
   // the MOs are projected from it onto the input basis before checking.
   const string codeBasisPath = argc > 7 ? argv[7] : "";
+  // Optional: gaussian-16.codebasis output; the stored CODEBASIS text goes
+  // through MoAoOrder::projectFromCodeBasis, as a real calculation's does.
+  const string storedPath = argc > 8 ? argv[8] : "";
 
   const JCode* code = CodeFactory::lookup(codeName.c_str());
   check(code != 0, (codeName + " registered").c_str());
@@ -175,6 +178,15 @@ int main(int argc, char** argv) {
       reordered = MoBasisChange::project(moTable, codeBasis, basis);
       check(reordered != moTable, "MOs projected onto the input basis");
     }
+  }
+  if (!storedPath.empty()) {
+    ifstream sin(storedPath.c_str());
+    string ln, stored;
+    while (getline(sin, ln) && ln != "values:") { }
+    getline(sin, stored);
+    check(!stored.empty(), "CODEBASIS text parsed");
+    reordered = MoAoOrder::projectFromCodeBasis(moTable, stored, el, cfg, code);
+    check(reordered != moTable, "MOs projected through CODEBASIS");
   }
   bool owned = (reordered != moTable);
   if (unpermute)
