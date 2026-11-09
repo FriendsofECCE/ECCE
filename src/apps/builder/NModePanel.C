@@ -1474,6 +1474,8 @@ bool NModePanel::matchBands(const string& otherName, const string& atoms,
    }
    if (!unmatched.empty()) note += "\nUnmatched: " + unmatched + ".";
    p_bandNote->SetLabel(common + note);
+   // A large molecule's atom list would widen the window otherwise.
+   p_bandNote->Wrap(p_bandFrame->FromDIP(560));
    p_bandGrid->AutoSizeColumns();
    p_bandFrame->Layout();
    p_bandFrame->Show(true);
