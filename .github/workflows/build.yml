@@ -686,6 +686,14 @@ jobs:
         shell: pwsh
         run: packaging/windows/bundle-tools.ps1 -Install stage\ecce -Cache "$env:RUNNER_TEMP\ecce-dl"
 
+      # The MSYS2 mosquitto tools get the UTF-8 code-page manifest every ECCE
+      # program has, or a profile path outside the code page stops the broker.
+      - name: UTF-8 manifest on the mosquitto tools
+        shell: pwsh
+        run: |
+          & stage\ecce\python\python3.exe packaging\windows\embed-manifest.py packaging\windows\ecce-utf8-cli.manifest (Get-ChildItem stage\ecce\bin\mosquitto*.exe).FullName
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
       - name: Zip the install tree
         shell: pwsh
         run: |

@@ -99,7 +99,10 @@ def gateway(seconds):
     import subprocess
     script = os.path.join(ECCE_HOME, "bin", "ecce-gateway-start")
     log("gateway start (limit %d s)" % seconds)
-    p = subprocess.Popen(["bash.exe", script])
+    # The bundled bash by its path: CreateProcess looks in System32 before
+    # PATH, where WSL installs a bash.exe of its own (GitHub's runners too).
+    bash = os.path.join(ECCE_HOME, "usr", "bin", "bash.exe")
+    p = subprocess.Popen([bash if os.path.exists(bash) else "bash.exe", script])
     try:
         rc = p.wait(seconds)
     except subprocess.TimeoutExpired:
