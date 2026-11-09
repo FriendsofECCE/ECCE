@@ -4239,6 +4239,12 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #924: the start-up sweep of stale job folders and temp files.
+  add_test(NAME launch_tmp_sweep
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/tmp_sweep_test.py
+                   --build ${CMAKE_BINARY_DIR})
+  set_tests_properties(launch_tmp_sweep PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
   add_test(NAME launch_socketcomms
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_tests.py

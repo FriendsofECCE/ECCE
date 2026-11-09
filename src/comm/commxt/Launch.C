@@ -466,6 +466,10 @@ Launch::Launch(TaskJob* task,
 ///////////////////////////////////////////////////////////////////////////////
 Launch::~Launch(void)
 {
+  // A launch, import or catch-up that stopped before the job store took
+  // over has no further use for its staging folder (#924).
+  removeStaging();
+
   p_options->clear();
   delete p_options;
 
