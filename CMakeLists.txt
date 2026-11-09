@@ -4243,6 +4243,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR} --local
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_local PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #922: the same with a space and a-ring/a-umlaut/o-umlaut in HOME and the name.
+  add_test(NAME launch_oddnames
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_tests.py
+                   --build ${CMAKE_BINARY_DIR} --local --odd-names
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_oddnames PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
   # ECCE-QM, the bundled engine: water and triplet O2 created, run through
   # Launch in a local data folder, energies against ORCA, MOs normalised.
   if(ECCE_BUILD_QM)
