@@ -15,7 +15,8 @@ class wxStaticText;
 class wxTextCtrl;
 class wxPanel;
 class wxFlexGridSizer;
-class wxCollapsiblePane;
+// wx may define wxCollapsiblePane as a macro for the generic class (macOS), so it cannot be forward-declared.
+#include <wx/collpane.h>
 
 /**
  * Compare Energies > Reaction overview (#709): dE_el and dG per reaction as
