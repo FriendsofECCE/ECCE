@@ -29,6 +29,10 @@ import os
 import subprocess
 import sys
 
+# eccercmd holds the libssh transport when the build found libssh
+_SSH = (["-lssh"] if __import__("subprocess").run(
+    ["pkg-config", "--exists", "libssh"], capture_output=True).returncode == 0 else [])
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
 
@@ -47,7 +51,7 @@ def main():
             "-o", out,
             os.path.join(HERE, "testBasisFlatten.C"),
             "-L" + BUILD]
-           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
+           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("could not build testBasisFlatten:")
@@ -65,20 +69,36 @@ def main():
     rc = run.returncode
 
     rc2 = run_cro_moaoorder(env)
-    return rc or rc2
+    # HF/cc-pVQZ has a g shell on F (#861): ORCA's spherical table must
+    # reach lval=4 or BasisFlatten leaves empty functions.
+    rc3 = run_cro_moaoorder(env, ["fixtures/hf_qz.nb", "fixtures/hf_qz.xyz", "10"],
+                            "fixtures/hf_qz_mo_block.txt")
+    # HF/cc-pV5Z, H off-axis so every m mixes: F has g AND h shells (#863).
+    # Each code's own parser output, its own MOOrdering table.
+    fx = ["fixtures/hf_5z.nb", "fixtures/hf_5z.xyz", "10"]
+    rc4 = run_cro_moaoorder(env, fx + ["ORCA"], "fixtures/hf_5z_orca_mo_block.txt")
+    rc5 = run_cro_moaoorder(env, fx + ["NWChem", "5e-3"],
+                            "fixtures/hf_5z_nwchem_eprint.txt", ["nwchem.mo"])
+    # Gaussian re-contracts general contractions that share primitives, so
+    # its fort.7 refers to the basis it echoes with GFInput (hf_5z_g16.nb);
+    # the MOs must come out right on the cc-pV5Z ECCE gave it (#921).
+    rc6 = run_cro_moaoorder(env, fx + ["Gaussian-16", "1e-6",
+                                       "fixtures/hf_5z_g16.nb"],
+                            "fixtures/hf_5z_g16_fort7.txt", ["gaussian-16.mo"])
+    return rc or rc2 or rc3 or rc4 or rc5 or rc6
 
 
-def run_cro_moaoorder(env):
+def run_cro_moaoorder(env, extra=(), block="fixtures/cro_mo_block.txt",
+                      parser=("orca.mo", "MO", "Energy", "SCF", "RHF")):
     """orca.mo's canonical-order fix (fault A) + MoAoOrder's un-permute,
     against ORCA's real CrO/def2-SVP MO block -- see testCrOMoAoOrder.C.
     """
     perl = subprocess.run(
-        ["perl", os.path.join(ROOT, "scripts/parsers/orca.mo"),
-         "MO", "Energy", "SCF", "RHF"],
-        stdin=open(os.path.join(HERE, "fixtures/cro_mo_block.txt")),
-        capture_output=True, text=True)
+        ["perl", os.path.join(ROOT, "scripts/parsers", parser[0]), *parser[1:]],
+        stdin=open(os.path.join(HERE, block)),
+        capture_output=True, text=True, env=env)
     if perl.returncode != 0:
-        print("orca.mo failed on the CrO fixture:")
+        print("%s failed on %s:" % (parser[0], block))
         print(perl.stderr)
         return 2
     parsed = os.path.join(HERE, "cro_mo_parsed.txt")
@@ -89,7 +109,7 @@ def run_cro_moaoorder(env):
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
             "-o", out, os.path.join(HERE, "testCrOMoAoOrder.C"),
             "-L" + BUILD]
-           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", "-lmosquitto", "-lssl", "-lcrypto"])
+           + ["-l" + l for l in LIBS]*3 + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
     build = subprocess.run(cmd, capture_output=True, text=True)
     if build.returncode != 0:
         print("could not build testCrOMoAoOrder:")
@@ -97,7 +117,7 @@ def run_cro_moaoorder(env):
         os.unlink(parsed)
         return 2
 
-    run = subprocess.run([out, parsed], capture_output=True, text=True,
+    run = subprocess.run([out, parsed, *extra], capture_output=True, text=True,
                           env=env, cwd=HERE)
     print(run.stdout, end="")
     if run.stderr:
