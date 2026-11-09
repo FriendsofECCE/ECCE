@@ -8251,9 +8251,11 @@ void CalcMgr::makeWorkflowFromSelection(Session *into)
   string name;
   if (why.empty() && !into) {
     ewxTextEntryDialog dlg(this,
-        "Name of the new workflow. The calculation is moved into it as its "
-        "first step, with its inputs, results and job record; the workflow "
-        "view then opens so the next steps can be added.",
+        // Line breaks: the dialog sizes to its longest line (#905).
+        "Name of the new workflow.\n\n"
+        "The calculation is moved into it as its first step, with its\n"
+        "inputs, results and job record. The workflow view then opens\n"
+        "so the next steps can be added.",
         "Make Workflow", calc->getName() + "_workflow", wxOK | wxCANCEL);
     dlg.spacesToUnderscores();
     wxButton *help = new wxButton(&dlg, wxID_HELP, "Help");
