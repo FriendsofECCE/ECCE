@@ -2417,6 +2417,12 @@ sub crest()
   $retval .= "        printf \"energy: %s relative: %.4f\\n\", en[i], (en[i]-m)*627.5094740631;\n";
   $retval .= "        printf \"%s\", a[i]; print \"ECCE-CREST-ENDFRAME\"}}' \"\$crestEns\" >> $::outFile\n";
   $retval .= "fi\n";
+  # The input molecule, for the parser's comparison of its bonding with the result's (#831).
+  $retval .= "if [ -s crest.xyz ]; then\n";
+  $retval .= "  echo ECCE-CREST-INPUT >> $::outFile\n";
+  $retval .= "  cat crest.xyz >> $::outFile\n";
+  $retval .= "  echo ECCE-CREST-ENDINPUT >> $::outFile\n";
+  $retval .= "fi\n";
   $retval .= "if [ -s crest_best.xyz ]; then\n";
   $retval .= "  echo ECCE-CREST-BEST >> $::outFile\n";
   $retval .= "  cat crest_best.xyz >> $::outFile\n";

@@ -64,11 +64,14 @@ public:
   // Shown at all: progress to show, or a job out of contact.
   bool wanted() const
   { return hasProgress() || outOfContact() || p_queued ||
-           (p_finished && (!p_finalEnergy.empty() || !p_stopped.empty())); }
+           (p_finished && (!p_finalEnergy.empty() || !p_stopped.empty() ||
+                           !p_warning.empty())); }
 
   // Why an Incomplete job stopped (its run status reason), shown after the
   // outcome so it is found where the run was being followed; "" for none.
   void setStopped(const std::string& reason) { p_stopped = reason; }
+  // A finished job's warning (Complete, but the result needs a look); "" for none.
+  void setWarning(const std::string& text) { p_warning = text; }
 
   // The plain final energy line of a finished calculation, shown after the
   // outcome, and its value and unit for Copy (#408); set before set().
@@ -136,6 +139,7 @@ private:
   std::string p_finalValue;
   std::string p_finalUnits;
   std::string p_stopped;
+  std::string p_warning;
   bool p_collapsed;
   wxTimer p_timer;
   int p_paints;

@@ -78,6 +78,8 @@
 #include "comm/JobFailureReason.H"
 #include "comm/JobLogDates.H"
 #include "comm/OutputCopyCheck.H"
+#include "comm/CrestCheck.H"
+#include "tdat/TPerTab.H"
 #include <map>
 #include "comm/QueueWait.H"
 #include "util/WaitingJobs.H"
@@ -763,6 +765,19 @@ void queueWaitStore(const string& text)
 }
 
 
+static string crestWarning(const string& outPath)
+{
+  std::ifstream ifs(outPath.c_str());
+  std::ostringstream oss;
+  oss << ifs.rdbuf();
+  TPerTab tpt;
+  return CrestCheck::warning(oss.str(), [&tpt](const string& symbol) {
+    const int num = tpt.atomicNumber(symbol);
+    return tpt.covalentRadius(num) * tpt.covalentRadiusTolerance(num);
+  });
+}
+
+
 void recordStatusReason(const string& reason)
 {
   if (gReparse) return;
@@ -980,7 +995,17 @@ void cleanup(int exitStatus)
       // empty when none was given, which clears any earlier text as before.
       recordStatusReason(calculation->killReason());
     } else {
-      recordStatusReason("");
+      // A normal CREST end can still be a result to question (#831); the
+      // state stays Complete, the reason is shown as a warning.
+      string warn;
+      if (endState == ResourceDescriptor::STATE_COMPLETED && !gReparse) {
+        const JCode* jc = calculation->application();
+        TypedFile oFile;
+        calculation->getDataFile(JCode::PRIMARY_OUTPUT, oFile);
+        if (jc != 0 && !oFile.name().empty() && jc->name() == "CREST")
+          warn = crestWarning(tmpStorage + "/" + oFile.name());
+      }
+      recordStatusReason(warn);
     }
   }
 

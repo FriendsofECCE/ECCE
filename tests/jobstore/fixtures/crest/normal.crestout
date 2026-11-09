@@ -1,0 +1,25 @@
+       |        Conformer-Rotamer Ensemble Sampling Tool        |
+ Command line input:
+ > crest crest.xyz --gfn2 --chrg 0 --uhf 0 --ewin 6
+
+CREGEN> number of topology-based structure removals: 2
+ECCE-CREST-FRAME 1 3
+energy: -10.0 relative: 0.0000
+Hg   0.010000000   0.000000000   0.000000000
+S    2.340000000   0.000000000   0.000000000
+S   -2.320000000   0.100000000   0.000000000
+ECCE-CREST-ENDFRAME
+ECCE-CREST-FRAME 2 3
+energy: -9.99 relative: 6.0000
+Hg   0.000000000   0.000000000   0.000000000
+S    2.330000000   0.300000000   0.000000000
+S   -2.330000000   0.000000000   0.000000000
+ECCE-CREST-ENDFRAME
+ECCE-CREST-INPUT
+3
+ECCE crest calculation
+Hg   0.000000000   0.000000000   0.000000000
+S    2.330000000   0.000000000   0.000000000
+S   -2.330000000   0.000000000   0.000000000
+ECCE-CREST-ENDINPUT
+ CREST terminated normally.

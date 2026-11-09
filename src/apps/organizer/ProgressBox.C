@@ -185,6 +185,7 @@ vector<string> ProgressBox::outcome(bool shorten) const
     out.push_back("Incomplete: " +
                   (shorten ? JobFailureReason::reasonForProgressBox(p_stopped)
                            : p_stopped));
+  if (!p_warning.empty()) out.push_back("Warning: " + p_warning);
   if (!p_finalEnergy.empty()) out.push_back(p_finalEnergy);
   return out;
 }

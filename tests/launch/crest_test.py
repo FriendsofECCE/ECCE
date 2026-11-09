@@ -152,6 +152,14 @@ def main():
     check(rc == 0 and text.splitlines()[0] ==
           "crest --gfn2//gfnff --legacy --chrg 0 --uhf 0 --alpb water --ewin 4.5 "
           "--nci --noreftopo", "all options: %r" % text.splitlines()[0])
+    # --notopo only when ticked (#831); the default line above has neither.
+    text, rc = deck(BUTANE, "GFN-FF", "ES.Runtype.Conformers.NoTopo:\t1\n")
+    check(rc == 0 and text.splitlines()[0] ==
+          "crest --gfnff --chrg 0 --uhf 0 --ewin 6 --notopo",
+          "no topology check: %r" % text.splitlines()[0])
+    text, rc = deck(BUTANE, "GFN-FF", "ES.Runtype.Conformers.NoTopo:\t0\n")
+    check(rc == 0 and "--notopo" not in text.splitlines()[0],
+          "unticked: no --notopo: %r" % text.splitlines()[0])
     text, rc = deck(BUTANE, "GFN2-xTB", "ES.Theory.Solvent.Model:\tGBSA\n"
                     "ES.Theory.Solvent.Name:\tbenzaldehyde\n")
     check(rc != 0, "GBSA with a solvent it lacks is refused")

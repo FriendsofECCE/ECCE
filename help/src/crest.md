@@ -93,6 +93,12 @@ message when the input is generated.
   normally discards a structure whose bonding differs from the input, and it
   reads contacts such as Na-O in an ion cluster as bonds, so most structures of
   such a cluster can be thrown away. Tick this to keep them.
+- **No topology check**: CREST's `--notopo`. Turns off every topology check
+  in CREGEN, so no structure is removed for a change of bonding. Use it when
+  the check removed every conformer of a loosely bound complex. CREST (GFN2-xTB)
+  may then keep chemistry it invents, such as a disulfide made from two
+  thiolates beside a metal ion; when the best conformer has other bonds than
+  the input structure, the Progress box says which bonds were made or broken.
 
 The number of cores is the processor count chosen in the Launcher. A search
 takes from seconds for a small molecule with GFN-FF to hours for a large one.
@@ -195,3 +201,9 @@ any order, so the count is of the runs finished, not the number of the last
 one. In a workflow, the CREST box says how many conformers (protonation sites,
 tautomers or clusters) the finished search kept, within the energy window
 of a Conformer Search.
+
+A search that ends normally can still give a result to question, and the
+Progress box then adds a warning (the state stays Complete). It appears when the
+topology check removed every conformer, so that the result is the input
+structure, and when the bonding of the lowest conformer differs from the input
+structure's (bonds made or broken, by ECCE's covalent-radius rule).

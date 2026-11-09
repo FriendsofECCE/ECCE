@@ -71,6 +71,8 @@ if ($call =~ /--alpb\s+(\S+)/) {
 }
 my ($ewin) = $call =~ /--ewin\s+(\d*\.?\d+)/;
 my ($nsolv) = $call =~ /--nsolv\s+(\d+)/;
+my $noreftopo = ($call =~ /--noreftopo(\s|$)/) ? 1 : 0;
+my $notopo = ($call =~ /--notopo(\s|$)/) ? 1 : 0;
 
 # --- the input molecule ------------------------------------------------------
 my $dir = ".";
@@ -142,6 +144,10 @@ if (defined($ewin)) {
   my $key = $runType =~ /^(Protonation Sites|Tautomers)$/
           ? "ES.Runtype.Sites.EnergyWindow" : "ES.Runtype.Conformers.EnergyWindow";
   print(PARAMS "$key:\t$ewin\n");
+}
+if ($runType eq "Conformer Search") {
+  print(PARAMS "ES.Runtype.Conformers.NoRefTopo:\t1\n") if ($noreftopo);
+  print(PARAMS "ES.Runtype.Conformers.NoTopo:\t1\n") if ($notopo);
 }
 if ($runType eq "Solvation Shell") {
   print(PARAMS "ES.Runtype.QCG.Number:\t$nsolv\n") if (defined($nsolv));
