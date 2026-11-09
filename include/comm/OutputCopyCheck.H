@@ -10,7 +10,7 @@
 #include <cstring>
 #include <fstream>
 #include <sstream>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <string>
 #include <system_error>
 
@@ -51,7 +51,7 @@ inline int parseCountToken(const char* tok, long long& hostSize)
 inline long long localSize(const std::string& path)
 {
   std::error_code ec;
-  const auto n = std::filesystem::file_size(std::filesystem::path(path), ec);
+  const auto n = ecce::fs::file_size(ecce::fs::path(path), ec);
   return ec ? -1 : (long long)n;
 }
 

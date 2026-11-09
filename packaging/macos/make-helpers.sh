@@ -81,7 +81,7 @@ TOOL
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key><string>$VERSION</string>
-  <key>LSMinimumSystemVersion</key><string>12.0</string>
+  <key>LSMinimumSystemVersion</key><string>${MACOSX_DEPLOYMENT_TARGET:-11.0}</string>
   <key>NSHighResolutionCapable</key><true/>
   $ui
   <key>NSLocalNetworkUsageDescription</key><string>ECCE connects to the central ECCE server (data server and message broker) and to compute hosts on your network.</string>

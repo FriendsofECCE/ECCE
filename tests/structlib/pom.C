@@ -5,7 +5,7 @@
 // label and reference comments are present.  Usage: structlib_pom <dir>
 #include <cctype>
 #include <cstdlib>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -17,7 +17,7 @@
 #include "tdat/TAtm.H"
 
 using namespace std;
-namespace fs = std::filesystem;
+namespace fs = ecce::fs;
 
 static int failures = 0;
 static void check(bool ok, const string& what)

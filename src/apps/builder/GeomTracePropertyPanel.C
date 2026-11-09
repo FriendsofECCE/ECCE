@@ -8,7 +8,7 @@
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include <cstdio>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <fstream>
 #include <sstream>
 #include "util/Ecce.H"
@@ -791,7 +791,7 @@ namespace {
 
 //  A scratch calculation folder holding Props/GEOMTRACE of `calc`, which is
 //  what ecce-displacement reads; rowLabels carry the elements.
-bool writeTraceFolder(IPropCalculation *calc, const std::filesystem::path& dir)
+bool writeTraceFolder(IPropCalculation *calc, const ecce::fs::path& dir)
 {
   PropTSVecTable *trace =
       dynamic_cast<PropTSVecTable*>(calc->getProperty("GEOMTRACE"));
@@ -802,7 +802,7 @@ bool writeTraceFolder(IPropCalculation *calc, const std::filesystem::path& dir)
   const int n = trace->rows();
   if ((int)frag->numAtoms() != n) { delete frag; return false; }
   std::error_code ec;
-  std::filesystem::create_directories(dir / "Props", ec);
+  ecce::fs::create_directories(dir / "Props", ec);
   std::ofstream f(dir / "Props" / "GEOMTRACE");
   if (!f) { delete frag; return false; }
   f << "<?xml version=\"1.0\"?>\n<tsvectable columns=\"3\" name=\"GEOMTRACE\" "
@@ -842,8 +842,8 @@ bool GeomTracePropertyPanel::runDisplacement()
   p_dispSummary.clear();
   IPropCalculation *calc = getCalculation();
   static int serial = 0;
-  const std::filesystem::path tmp = std::filesystem::temp_directory_path() /
-      ("ecce-disp-" + std::to_string((long)std::filesystem::file_time_type::clock::now().time_since_epoch().count()) + "-" +
+  const ecce::fs::path tmp = ecce::fs::temp_directory_path() /
+      ("ecce-disp-" + std::to_string((long)ecce::fs::file_time_type::clock::now().time_since_epoch().count()) + "-" +
        std::to_string(serial++));
   std::error_code ec;
   string cmdArgs;
@@ -861,7 +861,7 @@ bool GeomTracePropertyPanel::runDisplacement()
   if (!ok) {
     p_dispSummary = p_dispCompare.empty() ? "No geometry trace to analyse."
         : "The two calculations do not have the same atoms.";
-    std::filesystem::remove_all(tmp, ec);
+    ecce::fs::remove_all(tmp, ec);
     return false;
   }
   if (!p_dispSelection.empty())
@@ -871,15 +871,15 @@ bool GeomTracePropertyPanel::runDisplacement()
   string script = home && *home ? string(home) + "/bin/ecce-displacement"
                                 : string("ecce-displacement");
 #ifdef _WIN32
-  std::filesystem::path py = std::filesystem::path(Ecce::ecceHome()) / "python" / "python.exe";
-  string pyExe = std::filesystem::exists(py) ? py.string() : string("python.exe");
+  ecce::fs::path py = ecce::fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+  string pyExe = ecce::fs::exists(py) ? py.string() : string("python.exe");
   string cmd = "\"" + pyExe + "\" \"" + script + "\" " + cmdArgs + " --csv";
 #else
   string cmd = "'" + script + "' " + cmdArgs + " --csv 2>/dev/null";
 #endif
   string text;
   int status = Ecce::readCommand(cmd, text);
-  std::filesystem::remove_all(tmp, ec);
+  ecce::fs::remove_all(tmp, ec);
   if (status != 0) {
     p_dispSummary = "ecce-displacement could not be run (check the selection).";
     return false;

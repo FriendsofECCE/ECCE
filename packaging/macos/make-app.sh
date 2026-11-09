@@ -36,7 +36,7 @@ for t in mosquitto mosquitto_passwd; do
   cp -L "$p" "$RES/ecce/libexec/$t"
 done
 
-sed "s/@VERSION@/$VERSION/" "$HERE/Info.plist.in" > "$APP/Contents/Info.plist"
+sed -e "s/@VERSION@/$VERSION/" -e "s/@MINOS@/${MACOSX_DEPLOYMENT_TARGET:-11.0}/" "$HERE/Info.plist.in" > "$APP/Contents/Info.plist"
 install -m 755 "$HERE/ecce.sh" "$RES/ecce.sh"
 # A Mach-O, not the script: TCC's responsible process must be ECCE, not bash.
 cc -O2 -Wall -o "$APP/Contents/MacOS/ecce" "$HERE/launcher.c"
@@ -75,13 +75,15 @@ codesign --force -s - "$APP"
 codesign --verify --verbose=2 "$APP"
 
 rm -f "$OUT"/ECCE-*.dmg
+# The 10.13 Intel build is its own dmg next to the 10.15 one.
+case "${MACOSX_DEPLOYMENT_TARGET:-}" in 10.13|10.14) sfx="-macos$MACOSX_DEPLOYMENT_TARGET" ;; *) sfx= ;; esac
 dmgdir=$(mktemp -d)
 cp -R "$APP" "$dmgdir/"
 ln -s /Applications "$dmgdir/Applications"
 # hdiutil fails now and then with "Resource busy" while the system still
 # scans the new files; a retry a little later succeeds.
 for try in 1 2 3 4 5; do
-  hdiutil create -volname "ECCE $VERSION" -srcfolder "$dmgdir" -ov -format UDZO "$OUT/ECCE-$FULLVER-$(uname -m).dmg" && break
+  hdiutil create -volname "ECCE $VERSION" -srcfolder "$dmgdir" -ov -format UDZO "$OUT/ECCE-$FULLVER-$(uname -m)$sfx.dmg" && break
   [ $try = 5 ] && exit 1
   sleep $((try*10))
 done

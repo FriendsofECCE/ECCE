@@ -3,7 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <fstream>
 #include <sstream>
 #include <thread>
@@ -108,7 +108,7 @@ GmxAnalysisPanel::~GmxAnalysisPanel()
   *p_alive = 0;
   if (p_timer) p_timer->Stop();
   std::error_code ec;
-  if (!p_scratch.empty()) std::filesystem::remove_all(p_scratch, ec);
+  if (!p_scratch.empty()) ecce::fs::remove_all(p_scratch, ec);
 }
 
 bool GmxAnalysisPanel::Create(IPropCalculation *calculation, wxWindow *parent,
@@ -368,10 +368,10 @@ std::string GmxAnalysisPanel::calcFolder()
   TaskJob *job = dynamic_cast<TaskJob*>(calc);
   if (!job) return "";
   static int serial = 0;
-  const std::filesystem::path dir = std::filesystem::temp_directory_path() /
+  const ecce::fs::path dir = ecce::fs::temp_directory_path() /
       ("ecce-gmxa-" + std::to_string((long)getpid()) + "-" + std::to_string(serial++));
   std::error_code ec;
-  std::filesystem::create_directories(dir / "Outputs", ec);
+  ecce::fs::create_directories(dir / "Outputs", ec);
   p_scratch = dir.string();
   wxBusyCursor wait;
   for (const char *f : { "traj.xtc", "ener.edr", "topol.tpr", "ecce_pp.top" }) {
@@ -391,8 +391,8 @@ std::string GmxAnalysisPanel::command(const std::vector<std::string>& args) cons
                                            : std::string("ecce-gmxanalysis");
   std::string cmd;
 #ifdef _WIN32
-  std::filesystem::path py = std::filesystem::path(Ecce::ecceHome()) / "python" / "python.exe";
-  cmd = quote(std::filesystem::exists(py) ? py.string() : std::string("python.exe")) + " " +
+  ecce::fs::path py = ecce::fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+  cmd = quote(ecce::fs::exists(py) ? py.string() : std::string("python.exe")) + " " +
         quote(script);
 #else
   cmd = quote(script);

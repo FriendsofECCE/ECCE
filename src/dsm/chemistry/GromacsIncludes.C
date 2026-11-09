@@ -1,12 +1,12 @@
 #include <algorithm>
 #include <cstdlib>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <fstream>
 #include <set>
 
 #include "dsm/GromacsIncludes.H"
 
-namespace fs = std::filesystem;
+namespace fs = ecce::fs;
 
 static const char *SEP = "__SLASH__";
 

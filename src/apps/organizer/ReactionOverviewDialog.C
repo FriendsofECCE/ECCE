@@ -6,7 +6,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <fstream>
 #include <functional>
 #include <map>
@@ -169,7 +169,7 @@ string resolveNames(const string& line, const string& base, string& why)
       const size_t star = body.find('*');
       if (star != string::npos) { coef = trim(body.substr(0, star + 1)); body = trim(body.substr(star + 1)); }
       if (!body.empty() && body.find('/') == string::npos && body.compare(0, 7, "file://") != 0) {
-        if (!dir.empty() && !std::filesystem::is_directory(dir + "/" + body)) {
+        if (!dir.empty() && !ecce::fs::is_directory(dir + "/" + body)) {
           if (why.empty()) why = "no calculation '" + body + "' in this folder";
         } else {
           body = base + (base.back() == '/' ? "" : "/") + body;

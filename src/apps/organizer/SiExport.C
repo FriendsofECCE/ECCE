@@ -2,7 +2,7 @@
 
 #include <cstdio>
 #include <cstdlib>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <fstream>
 
 #include "dsm/EDSIFactory.H"
@@ -23,7 +23,7 @@
 
 using std::string;
 using std::vector;
-namespace fs = std::filesystem;
+namespace fs = ecce::fs;
 
 namespace {
 

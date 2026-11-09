@@ -25,7 +25,7 @@
 #include "util/Ecce.H"
 #include "util/MdAnalysisRun.H"
 
-#include <filesystem>
+#include "util/Filesystem.H"
 
 using std::string;
 using std::vector;
@@ -191,7 +191,7 @@ void sweepOldStaging(const string& parent)
   closedir(d);
   for (size_t i = 0; i < old.size(); i++) {
     std::error_code ec;
-    std::filesystem::remove_all(old[i], ec);
+    ecce::fs::remove_all(old[i], ec);
   }
 }
 
@@ -219,7 +219,7 @@ bool importTask(MdTask* md, const string& taskDir, bool prepare,
   const string stage = &buf[0];
   if (importTaskStaged(md, taskDir, prepare, message, stage)) return true;
   std::error_code ec;
-  std::filesystem::remove_all(stage, ec);
+  ecce::fs::remove_all(stage, ec);
   return false;
 }
 
