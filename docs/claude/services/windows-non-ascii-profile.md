@@ -30,3 +30,10 @@ Test without a new account: unpack the zip into a fake profile and run
 pointing there (scheduled task, interactive principal). ecce-splash now
 reports a crashed or windowless Organizer and logs each step with its time
 in `%USERPROFILE%\.ECCE\start.log`.
+
+Linux has the same trap for a space: mosquitto does not honour quotes in
+`log_dest file` or `listener 0 <socket>`, so `ecce-gateway-start` writes
+relative names and starts the broker from the state directory when that
+path has whitespace (found by `tests/launch --odd-names`, HOME "Åsa Öberg").
+The central/TLS listeners still put `$ECCE_HOME/server/...` and
+`$STATEDIR/dataserver/users` in the config unquoted.

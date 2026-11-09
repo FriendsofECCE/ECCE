@@ -297,11 +297,18 @@ else
   TLS_DIR="$STATEDIR/tls"
   TLS=0
   if [ "${ECCE_DATASERVER_TLS:-}" = 1 ] || [ -f "$TLS_DIR/enabled" ]; then TLS=1; fi
+  # mosquitto reads a path to the end of a word and does not honour quotes,
+  # so a state directory with a space is reached by relative names from there.
+  CONF_LOG="$STATEDIR/mosquitto.log" CONF_SOCK="$SOCK" CONF_CD=
+  case "$STATEDIR" in *[[:space:]]*)
+    CONF_CD="$STATEDIR" CONF_LOG=mosquitto.log
+    [ "$SOCK" = "$STATEDIR/mosquitto.sock" ] && CONF_SOCK=mosquitto.sock ;;
+  esac
   make_conf() {
     echo "per_listener_settings true"
     echo "persistence false"
-    echo "log_dest file $STATEDIR/mosquitto.log"
-    echo "listener 0 $SOCK"
+    echo "log_dest file $CONF_LOG"
+    echo "listener 0 $CONF_SOCK"
     echo "allow_anonymous true"
     [ -e "$MARKER" ] || return 0
     local b
@@ -380,6 +387,7 @@ else
     rm -f "$SOCK"
     (
       umask 077
+      [ -z "$CONF_CD" ] || cd "$CONF_CD"
       nohup "$MOSQUITTO" -c "$CONF" \
         >"$STATEDIR/mosquitto.out" 2>&1 9>&- &
       echo $! >"$STATEDIR/mosquitto.pid"
