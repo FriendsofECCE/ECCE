@@ -44,8 +44,35 @@ vector<Bookmark> EDSIServerCentral::p_mountPoints;
 // Local mode (LocalData::dir() non-empty, #216): the default and only data
 // server is file://<dir>, with no siteconfig/DataServers and no Apache.
 // In server mode, the default, nothing below behaves differently.
-static string xmlEscape(const string& in)
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
+
+// The paths come from getenv in the ANSI code page on Windows, but the
+// parser reads this text as UTF-8: a folder such as C:/Users/Åsa Öberg made
+// it fail at line 1 and the Organizer abort (#922).  The values it gives
+// back are transcoded to the ANSI code page again.
+static string xmlEscape(const string& ansi)
 {
+  string in = ansi;
+#ifdef _WIN32
+  int n = MultiByteToWideChar(CP_ACP, 0, ansi.data(), (int)ansi.size(), 0, 0);
+  if (n > 0) {
+    std::wstring w(n, L'\0');
+    MultiByteToWideChar(CP_ACP, 0, ansi.data(), (int)ansi.size(), &w[0], n);
+    int m = WideCharToMultiByte(CP_UTF8, 0, w.data(), n, 0, 0, 0, 0);
+    if (m > 0) {
+      in.assign(m, '\0');
+      WideCharToMultiByte(CP_UTF8, 0, w.data(), n, &in[0], m, 0, 0);
+    }
+  }
+#endif
   string out;
   for (size_t i = 0; i < in.size(); i++) {
     if (in[i] == '&') out += "&amp;";
