@@ -47,6 +47,11 @@ foreach ($c in "complete", "cancel") {
   & "$r\python\python3.exe" tests/windows/launch_local.py $c --build "$r\bin" --state "$Out\state-$c" 2>&1 | Tee-Object "$Out\$c.log"
   Check ($LASTEXITCODE -eq 0) "local job $c from the installed copy"
 }
+# A user folder with a space and letters outside A-Z (#922); [char] codes
+# keep this file ASCII for Windows PowerShell 5.
+$odd = "$Out\" + [char]0xC5 + "sa " + [char]0xD6 + "berg " + [char]0x141 + "ukasz"
+& "$r\python\python3.exe" tests/windows/launch_local.py complete --build "$r\bin" --state "$odd" 2>&1 | Tee-Object "$Out\complete-odd.log"
+Check ($LASTEXITCODE -eq 0) "local job complete with a user folder named like Asa Oberg Lukasz (space, A-ring, O-umlaut, L-stroke)"
 $env:Path = $sys
 tests\windows\ci-run.ps1 -Stage $stage -Out "$Out\apps"
 Get-Content "$Out\apps\summary.txt" | ForEach-Object { Say "apps: $_" }
