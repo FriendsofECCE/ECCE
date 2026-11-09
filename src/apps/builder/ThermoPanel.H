@@ -43,6 +43,10 @@ class ThermoPanel : public PropertyPanel
 
       /** Test hook: set the controls (treatment by ecce-thermo name). */
       bool setChoice(const std::string& treatment, double kelvin, bool oneMolar);
+      /** Test hook: symmetry number override (0 = as used) and rotor (0 auto, 1 linear, 2 non-linear). */
+      void setSymmetry(int sigma, int rotor);
+      /** The notes shown above the table (symmetry line, warnings). */
+      std::string noteText() const { return std::string(p_note.utf8_str()); }
       /** What the table shows: recomputed H, S, G; false if there are none. */
       bool shown(ThermoValue *v) const;
       std::string errorText() const { return p_error; }
@@ -53,8 +57,8 @@ class ThermoPanel : public PropertyPanel
       void OnChange(wxCommandEvent& event);
 
    private:
-      wxChoice *p_treatment, *p_state;
-      wxTextCtrl *p_temp;
+      wxChoice *p_treatment, *p_state, *p_rotor;
+      wxTextCtrl *p_temp, *p_sigma;
       wxStaticText *p_text;
       wxString p_note;
       int p_wrapWidth = 0;

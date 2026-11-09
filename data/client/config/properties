@@ -133,6 +133,7 @@ Energy		Gibbs Free Energy			EGIBBS		Energy		PropValue	Thermochemistry
 Energy		Heat Capacity (Cp)			HEATCAP		NA		PropValue	Thermochemistry
 Energy		Thermochemistry Temperature		THERMOTEMP	Temperature	PropValue	Thermochemistry
 Energy		Thermochemistry Pressure		THERMOPRES	NA		PropValue	Thermochemistry
+Energy		Rotational Symmetry Number (code's)	THERMOSIGMA	NA		PropValue	Thermochemistry
 #
 # Solvation.  ESOLV is E(solution) - E(gas), stored only where the code
 # prints both totals (NWChem COSMO).  Gaussian and ORCA SMD print just the

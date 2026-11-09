@@ -20,6 +20,8 @@ namespace {
 const wxWindowID ID_TREATMENT = wxNewId();
 const wxWindowID ID_STATE = wxNewId();
 const wxWindowID ID_TEMP = wxNewId();
+const wxWindowID ID_SIGMA = wxNewId();
+const wxWindowID ID_ROTOR = wxNewId();
 
 bool stored(IPropCalculation *c, const char *key, double *v)
 {
@@ -33,7 +35,7 @@ bool stored(IPropCalculation *c, const char *key, double *v)
 IMPLEMENT_DYNAMIC_CLASS(ThermoPanel, PropertyPanel)
 
 ThermoPanel::ThermoPanel()
-  : PropertyPanel(), p_treatment(NULL), p_state(NULL), p_temp(NULL),
+  : PropertyPanel(), p_treatment(NULL), p_state(NULL), p_rotor(NULL), p_temp(NULL), p_sigma(NULL),
     p_text(NULL), p_grid(NULL), p_have(false)
 {
 }
@@ -41,7 +43,7 @@ ThermoPanel::ThermoPanel()
 ThermoPanel::ThermoPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
-  : PropertyPanel(), p_treatment(NULL), p_state(NULL), p_temp(NULL),
+  : PropertyPanel(), p_treatment(NULL), p_state(NULL), p_rotor(NULL), p_temp(NULL), p_sigma(NULL),
     p_text(NULL), p_grid(NULL), p_have(false)
 {
   Create(calculation, parent, id, pos, size, style, name);
@@ -82,7 +84,21 @@ bool ThermoPanel::Create(IPropCalculation *calculation,
   p_state->Append("1 atm");
   p_state->Append("1 M");
   p_state->SetSelection(0);
-  bar->Add(p_state, 0, wxBOTTOM, 0);
+  bar->Add(p_state, 0, wxRIGHT | wxBOTTOM, 12);
+  bar->Add(new wxStaticText(this, wxID_ANY, "Symmetry number:"), 0,
+           wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  p_sigma = new wxTextCtrl(this, ID_SIGMA, wxEmptyString, wxDefaultPosition,
+                           wxSize(50, -1), wxTE_PROCESS_ENTER);
+  p_sigma->SetHint("as used");
+  bar->Add(p_sigma, 0, wxRIGHT | wxBOTTOM, 12);
+  bar->Add(new wxStaticText(this, wxID_ANY, "Rotor:"), 0,
+           wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  p_rotor = new wxChoice(this, ID_ROTOR);
+  p_rotor->Append("As found");
+  p_rotor->Append("Linear");
+  p_rotor->Append("Non-linear");
+  p_rotor->SetSelection(0);
+  bar->Add(p_rotor, 0, wxBOTTOM, 0);
   GetSizer()->Add(bar, 0, wxEXPAND | wxALL, 4);
 
   p_text = new wxStaticText(this, wxID_ANY, wxEmptyString);
@@ -103,6 +119,13 @@ bool ThermoPanel::Create(IPropCalculation *calculation,
   Bind(wxEVT_CHOICE, &ThermoPanel::OnChange, this, ID_TREATMENT);
   Bind(wxEVT_CHOICE, &ThermoPanel::OnChange, this, ID_STATE);
   Bind(wxEVT_TEXT_ENTER, &ThermoPanel::OnChange, this, ID_TEMP);
+  Bind(wxEVT_CHOICE, &ThermoPanel::OnChange, this, ID_ROTOR);
+  Bind(wxEVT_TEXT_ENTER, &ThermoPanel::OnChange, this, ID_SIGMA);
+  p_sigma->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) {
+    e.Skip();
+    wxCommandEvent c;
+    OnChange(c);
+  });
   p_temp->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) {
     e.Skip();
     wxCommandEvent c;
@@ -119,8 +142,11 @@ void ThermoPanel::fill()
   if (kelvin <= 0) kelvin = 298.15;
   const int sel = p_treatment->GetSelection();
   const std::string cli = sel >= 0 ? thermoTreatments()[sel].cli : "rrho";
+  const int sigma = atoi(p_sigma->GetValue().utf8_str());
   const ThermoRunResult r = calc ? runThermo(calc->getURL().toString(), kelvin,
-                                             p_state->GetSelection() == 1)
+                                             p_state->GetSelection() == 1,
+                                             sigma > 0 ? sigma : 0,
+                                             p_rotor->GetSelection())
                                  : ThermoRunResult();
   p_have = false;
   p_error.clear();
@@ -132,6 +158,7 @@ void ThermoPanel::fill()
   } else {
     p_have = true;
     p_value = *v;
+    if (!r.symmetry.empty()) msg += wxString::FromUTF8(r.symmetry.c_str()) + "\n";
     for (const std::string& n : r.notes) msg += wxString::FromUTF8(n.c_str()) + "\n";
   }
   msg.Trim();
@@ -203,6 +230,13 @@ bool ThermoPanel::setChoice(const std::string& treatment, double kelvin, bool on
       return true;
     }
   return false;
+}
+
+void ThermoPanel::setSymmetry(int sigma, int rotor)
+{
+  p_sigma->SetValue(sigma > 0 ? wxString::Format("%d", sigma) : wxString());
+  p_rotor->SetSelection(rotor);
+  fill();
 }
 
 bool ThermoPanel::shown(ThermoValue *v) const

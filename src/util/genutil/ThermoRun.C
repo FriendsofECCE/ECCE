@@ -64,20 +64,24 @@ string stringField(const string& text, const char *key)
 }
 }
 
-ThermoRunResult runThermo(const string& url, double kelvin, bool oneMolar)
+ThermoRunResult runThermo(const string& url, double kelvin, bool oneMolar,
+                          int sigma, int rotor)
 {
   ThermoRunResult r;
   const char *home = getenv("ECCE_HOME");
   const string exe = (home && *home ? string(home) + "/bin/" : string()) + "ecce-thermo";
   string quoted;
   for (char c : url) quoted += c == '\'' ? string("'\\''") : string(1, c);
-  char opt[64];
+  char opt[128];
   snprintf(opt, sizeof opt, " --T %.4f --standard-state %s --json", kelvin,
            oneMolar ? "1M" : "1atm");
+  string extra;
+  if (sigma > 0) extra += " --symmetry-number " + std::to_string(sigma);
+  if (rotor == 1 || rotor == 2) extra += rotor == 1 ? " --rotor linear" : " --rotor nonlinear";
 #ifdef _WIN32
-  const string cmd = "\"" + exe + ".exe\" \"" + url + "\"" + opt;
+  const string cmd = "\"" + exe + ".exe\" \"" + url + "\"" + opt + extra;
 #else
-  const string cmd = "'" + exe + "' '" + quoted + "'" + opt + " 2>/dev/null";
+  const string cmd = "'" + exe + "' '" + quoted + "'" + opt + extra + " 2>/dev/null";
 #endif
   string text;
   const int status = Ecce::readCommand(cmd, text);
@@ -91,6 +95,7 @@ ThermoRunResult runThermo(const string& url, double kelvin, bool oneMolar)
     return r;
   }
   r.name = stringField(text, "name");
+  r.symmetry = stringField(text, "symmetry");
   const size_t tp = text.find("\"T\": ");
   if (tp != string::npos) r.T = atof(text.c_str() + tp + 5);
   const size_t from = text.find("\"treatments\"");

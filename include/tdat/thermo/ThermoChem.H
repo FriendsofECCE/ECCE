@@ -21,6 +21,12 @@ struct ThermoInput
    bool linear = false;                  ///< linear: rotConstants[0] is the one
    int symmetryNumber = 1;               ///< rotational symmetry number sigma
    int multiplicity = 1;                 ///< 2S+1 (singlet = 1)
+   // Where sigma came from and what the geometry is close to (#854).
+   std::string code;                     ///< application that ran the job
+   std::string pointGroup;               ///< stored point group, "" if none
+   std::string sigmaSource;              ///< "code", "point group" or "override"
+   std::string nearGroup;                ///< group found with a loose tolerance
+   double nearTolerance = 0.0;           ///< that tolerance, angstrom
 };
 
 enum ThermoTreatment {
@@ -68,6 +74,25 @@ ThermoResult computeThermo(const ThermoInput& in, double T,
  * (PNTGRP), case-insensitive; 1 when the group is not one we know.
  */
 int symmetryNumberForPointGroup(const std::string& pointGroup);
+
+/** True for the linear groups C*v and D*h (any spelling of them). */
+bool pointGroupIsLinear(const std::string& pointGroup);
+
+/** "Point group Cs, sigma = 1 (printed by ORCA), non-linear rotor." */
+std::string symmetrySummary(const ThermoInput& in);
+
+/**
+ * A warning when the structure is within nearTolerance of a group with a
+ * larger sigma (or a linear one) than the thermochemistry used; "" if not.
+ */
+std::string symmetryWarning(const ThermoInput& in);
+
+/**
+ * Force the rotor type: choice 0 keeps it, 1 = linear, 2 = non-linear.
+ * Linear from a non-linear geometry takes B as the mean of the two smaller
+ * constants; non-linear cannot be forced on a linear molecule (no A, B, C).
+ */
+bool applyRotorChoice(ThermoInput& in, int choice, std::string& err);
 
 /**
  * The real vibrations from a stored VIBFREQ list, which also holds the

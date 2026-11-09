@@ -249,6 +249,56 @@ int main()
           "Head-Gordon damped enthalpy matches the hand formula");
   }
 
+  // Symmetry number, rotor type and the near-symmetry warning (#854).
+  {
+    check(symmetryNumberForPointGroup("D*h") == 2, "D*h (autosym spelling) has sigma 2");
+    check(symmetryNumberForPointGroup("Td") == 12, "Td has sigma 12");
+    check(pointGroupIsLinear("D*h") && pointGroupIsLinear("C*v") &&
+          !pointGroupIsLinear("D3h"), "only C*v and D*h are linear");
+
+    // HgI2 case: bent by a hair, so C2v / sigma 2 became C1 / sigma 1.
+    ThermoInput hgi2;
+    hgi2.code = "ORCA";
+    hgi2.pointGroup = "C1";
+    hgi2.symmetryNumber = 1;
+    hgi2.sigmaSource = "code";
+    hgi2.nearGroup = "D*h";
+    hgi2.nearTolerance = 0.05;
+    hgi2.rotConstants[0] = 0.05; hgi2.rotConstants[1] = 0.0100;
+    hgi2.rotConstants[2] = 0.0099;
+    const std::string w = symmetryWarning(hgi2);
+    check(w.find("D*h") != std::string::npos && w.find("symmetry number 2") != std::string::npos &&
+          w.find("linear rotor") != std::string::npos, "near-D*h structure is warned about");
+    check(symmetrySummary(hgi2).find("printed by ORCA") != std::string::npos &&
+          symmetrySummary(hgi2).find("non-linear rotor") != std::string::npos,
+          "the summary names the source and the rotor");
+
+    // HgI4(2-) case: Td would give sigma 12.
+    ThermoInput hgi4 = hgi2;
+    hgi4.nearGroup = "Td"; hgi4.symmetryNumber = 1;
+    check(symmetryWarning(hgi4).find("symmetry number 12") != std::string::npos,
+          "near-Td structure is warned about with sigma 12");
+    hgi4.symmetryNumber = 12;
+    check(symmetryWarning(hgi4).empty(), "no warning once sigma 12 is used");
+    hgi4.nearGroup.clear();
+    check(symmetryWarning(hgi4).empty(), "no warning without a near group");
+
+    ThermoInput lin = hgi2;
+    std::string err;
+    check(applyRotorChoice(lin, 1, err) && lin.linear &&
+          near(lin.rotConstants[0], 0.00995, 1e-12), "linear rotor from the two small constants");
+    check(!applyRotorChoice(lin, 2, err) && !err.empty(),
+          "non-linear cannot be forced on a linear molecule");
+    lin.symmetryNumber = 2;
+    check(symmetryWarning(lin).empty(), "linear and sigma 2: nothing to warn about");
+    // sigma 2 against 1 halves the partition function: S drops by R ln 2.
+    ThermoInput a = hgi2, b = hgi2;
+    a.mass = b.mass = 200.0; a.symmetryNumber = 1; b.symmetryNumber = 2;
+    const double dS = computeThermo(a, 298.15, THERMO_GAS_1ATM, THERMO_RRHO).S -
+                      computeThermo(b, 298.15, THERMO_GAS_1ATM, THERMO_RRHO).S;
+    check(near(dS, 8.314462618 * std::log(2.0), 1e-6), "sigma 2 lowers S by R ln 2");
+  }
+
   printf("%d failure(s)\n", failures);
   return failures ? 1 : 0;
 }

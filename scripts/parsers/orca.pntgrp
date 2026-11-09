@@ -25,9 +25,13 @@ if (defined($line) && $line =~ /Point Group:\s*([^\s,]+)\s*,/) {
   $pntgrp = $1;
 }
 
+my $sigma = ($line =~ /Symmetry Number:\s*(\d+)/) ? $1 : undef;
+
 print "key: PNTGRP\n";
 print "size: \n1\n";
 print "values: \n$pntgrp\n";
 print "END\n";
+# The symmetry number sits on the same line, which PNTGRP's Begin already takes.
+print "key: THERMOSIGMA\nsize:\n1\nvalues:\n$sigma\nunits:\nNA\nEND\n" if (defined($sigma));
 
 exit(0);

@@ -29,11 +29,12 @@ $| = 1;
 
 use constant KCAL_PER_HARTREE => 627.5094740631;
 
-my ($temp, $pres, $zpe, $etherm, $enth, $gibbs, $S);
+my ($temp, $pres, $zpe, $etherm, $enth, $gibbs, $S, $sigma);
 my $inTable = 0;
 while (<STDIN>) {
   if (/^\s*Temperature\s+(\d+\.\d+)\s+Kelvin\.\s+Pressure\s+(\d+\.\d+)\s+Atm/) { $temp = $1; $pres = $2; }
   elsif (/^\s*Temperature\s+(\d+\.\d+)\s+Kelvin/) { $temp = $1; }
+  elsif (/Rotational symmetry number\s+(\d+)/) { $sigma = $1; }
   elsif (/Zero-point correction=\s+(-?\d+\.\d+)/) { $zpe = $1; }
   elsif (/Sum of electronic and thermal Energies=\s+(-?\d+\.\d+)/) { $etherm = $1; }
   elsif (/Sum of electronic and thermal Enthalpies=\s+(-?\d+\.\d+)/) { $enth = $1; }
@@ -60,4 +61,5 @@ if (defined($S) && defined($temp)) {
 &emit("EGIBBS", $gibbs, "Hartree") if (defined($gibbs));
 &emit("THERMOTEMP", $temp, "Kelvin") if (defined($temp));
 &emit("THERMOPRES", $pres, "atm") if (defined($pres));
+&emit("THERMOSIGMA", $sigma, "NA") if (defined($sigma));
 exit(0);

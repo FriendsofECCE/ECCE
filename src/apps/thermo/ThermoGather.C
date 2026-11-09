@@ -14,6 +14,7 @@
 #include "tdat/TTheory.H"
 #include "tdat/PropTSVecString.H"
 #include "tdat/PropValue.H"
+#include "tdat/SymmetryOps.H"
 #include "tdat/PropVector.H"
 #include "tdat/TAtm.H"
 #include "util/EcceURL.H"
@@ -92,7 +93,7 @@ double rotConstant(double inertia)
 
 bool gatherThermoInput(const std::string& url, ThermoInput& in,
                        std::string& name, std::vector<std::string>& notes,
-                       std::string& error)
+                       std::string& error, double symTolerance)
 {
   PropertyTask* t = url.empty() ? 0 : EDSIFactory::getPropertyTask(EcceURL(url));
   if (!t) { error = "the calculation cannot be read."; return false; }
@@ -112,6 +113,16 @@ bool gatherThermoInput(const std::string& url, ThermoInput& in,
   if (pg && pg->rows() > 0)
     sigma = symmetryNumberForPointGroup(pg->value(pg->rows() - 1));
   in.symmetryNumber = sigma;
+  in.sigmaSource = "point group";
+  if (pg && pg->rows() > 0) in.pointGroup = pg->value(pg->rows() - 1);
+  in.code = t->getProp(VDoc::getEcceNamespace() + ":application");
+  // The number the code printed is the one its own G used; the table only
+  // stands in where the parser found none.
+  PropValue* printed = dynamic_cast<PropValue*>(t->getProperty("THERMOSIGMA"));
+  if (printed && printed->value() >= 1.0) {
+    in.symmetryNumber = (int)(printed->value() + 0.5);
+    in.sigmaSource = "code";
+  }
 
   ICalculation* c = dynamic_cast<ICalculation*>(t);
   if (c) {
@@ -163,6 +174,17 @@ bool gatherThermoInput(const std::string& url, ThermoInput& in,
         }
       }
       delete atoms;
+      // A looser search than the code's: a structure a hair off a higher
+      // group gets the lower group's sigma and rotor type (#854).
+      if (symTolerance > 0.0) {
+        try {
+          Fragment probe(*frag);
+          const std::string g = SymmetryOps::find(probe, symTolerance);
+          if (!g.empty()) { in.nearGroup = g; in.nearTolerance = symTolerance; }
+        } catch (...) {
+          // autosym unavailable: no near-symmetry check, the rest is unaffected
+        }
+      }
     }
     delete frag;
   }
