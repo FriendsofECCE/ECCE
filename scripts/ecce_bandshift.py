@@ -22,8 +22,10 @@ without a colon names the same indices in both; mapped elements must agree.
 The free molecule's geometry is fitted onto each copy over the common atoms
 (proper rotation, Kabsch) and the modes are rotated the same way.  The stored
 vectors are taken as Cartesian displacements of any normalisation; they are
-mass-weighted, cut to the common atoms and renormalised, so an overlap is the
-cosine of the motion of the common atoms alone.  With one copy, modes are
+mass-weighted.  The overlap is the free molecule's motion against the larger
+calculation's mode cut to the common atoms, divided by that mode's length over
+ALL its atoms: a mode that hardly moves the common atoms scores low however
+alike the shapes are.  With one copy, modes are
 matched one-to-one, greedily by largest |overlap|, above --threshold (default
 0.5).  With several copies every band of the larger calculation takes the free
 band it resembles most in any phase of the copies, so one free band may pair
@@ -403,12 +405,18 @@ def bandshift(a, b, atoms=None, threshold=0.5, names=("A", "B")):
         _r, _al, rot = D.kabsch_rotation([fx[i] for i in o[fk]],
                                          [bx[i] for i in o[bk]])
         rots.append(rot)
+    # Normalised over ALL atoms of the copy side: a mode of the complex that
+    # hardly moves the common atoms (a C-H stretch of a ligand) must not look
+    # like a free-molecule band just because its small motion there has the
+    # right shape.
     nrm = []
+    allb = list(range(len(bx)))
     for m in bm:
         per = [_raw(m, o[bk], rots[k], bmass) for k, o in enumerate(occ)]
         rbig.append(per)
-        n2 = math.sqrt(sum(c * c for v in per for c in v))
-        nrm.append(None if n2 < 1e-10 else n2)
+        on = math.sqrt(sum(c * c for v in per for c in v))
+        full = math.sqrt(sum(c * c for c in _raw(m, allb, None, bmass)))
+        nrm.append(None if on < 1e-10 else full)
 
     def overlap(x, j):
         return math.sqrt(sum(sum(p * q for p, q in zip(x, v)) ** 2

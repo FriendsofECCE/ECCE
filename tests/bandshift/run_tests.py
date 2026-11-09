@@ -149,6 +149,11 @@ def main():
             if atoms:
                 ok = ok and set(oc[0]["atoms_b"]) == atoms
             check("one map, S O4, fit below 0.2 A, " + name, ok, oc)
+            # Sulfate has no band above ~1300 cm-1, so a partner above 1500
+            # is a ligand mode (C-H, N-H, CH2) that barely moves the sulfate.
+            high = [m for m in r["matches"] if m["freq_b"] > 1500]
+            check("no sulfate band paired with a ligand mode above 1500, " + name,
+                  not high, high)
             if name == "co2_en4_oh_so4_bridged":
                 check("the OH bridge oxygen (atom 3) is not used",
                       3 not in oc[0]["atoms_b"])

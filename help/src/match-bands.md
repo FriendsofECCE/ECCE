@@ -32,10 +32,13 @@ many bands of the other calculation one band is paired with.
 ## How the bands are matched
 
 B's structure is fitted onto A's over the common atoms, and B's modes are
-turned the same way. Each mode's motion is mass-weighted, cut down to the
-common atoms and scaled to length one, so the **Overlap** of two modes is the
-cosine of the angle between the motions of the common atoms: 1 for the same
-motion, 0 for unrelated motion. Each band is paired with at most one band of
+turned the same way. Each mode's motion is mass-weighted. The **Overlap**
+compares the free molecule's motion with the part of the other mode on the
+common atoms, measured against that mode's whole motion: 1 when the mode is the
+same motion and moves only the common atoms, lower when part of it is in the
+rest of the complex (a ligand), 0 for unrelated motion. A ligand mode that
+barely moves the common atoms is therefore not paired with a band of the free
+molecule. Each band is paired with at most one band of
 the other calculation, the largest overlaps first, and only above 0.5. With
 several copies of the molecule, each band of the complex is paired with the
 free band it resembles most, whatever the phase between the copies, so one free
