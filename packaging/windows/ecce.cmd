@@ -19,6 +19,18 @@ if not exist "%USERPROFILE%\.ECCE" mkdir "%USERPROFILE%\.ECCE"
 set "ECCE_STARTLOG=%USERPROFILE%\.ECCE\start.log"
 for %%A in ("%ECCE_STARTLOG%") do if %%~zA GTR 200000 del "%ECCE_STARTLOG%"
 >>"%ECCE_STARTLOG%" echo %DATE% %TIME% ecce.cmd: start
+rem Smart App Control (Windows 11) blocks ECCE's unsigned DLLs with an error
+rem that names a DLL, not the cause (#933); say it in words first.  Only
+rem PowerShell (signed by Microsoft) can show the message in that case.
+set "_sac="
+for /f "tokens=3" %%V in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy" /v VerifiedAndReputablePolicyState 2^>nul ^| find "VerifiedAndReputablePolicyState"') do set "_sac=%%V"
+if "%_sac%"=="0x1" (
+  >>"%ECCE_STARTLOG%" echo %DATE% %TIME% ecce.cmd: Smart App Control is on
+  if not defined ECCE_NO_FIRST_START (
+    powershell -NoProfile -WindowStyle Hidden -Command "Add-Type -AssemblyName PresentationFramework; $t = 'Smart App Control is switched on in Windows. It blocks ECCE, because ECCE is not code-signed, and ECCE will fail with an error about a DLL file.' + [char]10 + [char]10 + 'To run ECCE, open Windows Security > App and browser control > Smart App Control settings, and choose Off. Microsoft Defender stays on.' + [char]10 + [char]10 + 'Try to start ECCE anyway?'; if ([System.Windows.MessageBox]::Show($t, 'ECCE', 'YesNo', 'Warning') -eq 'No') { exit 3 }"
+    if errorlevel 3 exit /b 0
+  )
+)
 rem The antivirus checks of programs it has not seen (each new release) are
 rem made in the background, once per installation, before they are needed.
 if exist "%ECCE_ROOT%\python\python3w.exe" start "" /b "%ECCE_ROOT%\python\python3w.exe" "%ECCE_ROOT%\bin\ecce-prewarm"
