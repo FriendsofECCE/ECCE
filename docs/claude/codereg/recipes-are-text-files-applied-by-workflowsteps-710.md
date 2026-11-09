@@ -23,7 +23,16 @@ issues: [710, 674, 808, 847, 901, 902]
   before dispatching the editor request (#847). It checks the step's own
   fragment without input-provider fallback and preserves existing structures
   and launched steps. `launchReadySteps` still refreshes at launch. Both
-  paths act on recipe steps only so other workflows behave as before.
+  paths act on recipe steps; a hand-made (New step) step is re-carried only
+  when its source had not run when it was made (`ecce:workflow.carry`, set
+  in `create`, cleared once carried, #926): otherwise New step > CREST kept
+  the inserted xTB step's *input* structure.
+- Ready is exact (#926): `prepareStep` also handles hand-made steps that have
+  a source, and puts a Ready step back to Created while a source is not
+  Complete or the carry is pending; the editor's Save sets Ready regardless,
+  so `CalcMgr::updateUrl` runs `prepareStep` when a workflow step turns Ready.
+  Test hook `idle MS` lets a CallAfter run between test commands (all lines
+  read in one timer tick run back to back).
 - Ready without the editor (#901): `refreshFromSources` ends in `prepareStep`,
   which writes a Created recipe step's deck (`DeckWriter::generate`) once all
   sources are Complete and it has atoms, sets Ready, and copies launch settings
