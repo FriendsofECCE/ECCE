@@ -1094,9 +1094,17 @@ void auditWindow(wxWindow *w, wxWindow *top, std::vector<std::string>& out)
       //  boxes in it), so compare in the panel's own coordinates.
       if (a->GetParent() && dynamic_cast<wxScrollHelper*>(a->GetParent()) &&
           a->IsKindOf(wxCLASSINFO(wxPanel)) && !a->IsKindOf(wxCLASSINFO(wxControl))) {
+        //  Only through plain panels and boxes: a notebook page's position
+        //  is not relative to the notebook's client area.
         wxPoint p(0, 0);
-        for (wxWindow *c = w; c != a; c = c->GetParent()) p += c->GetPosition();
-        me = wxRect(wxPoint(p.x, p.y) + area.GetTopLeft(), size);
+        bool plain = true;
+        for (wxWindow *c = w; c != a; c = c->GetParent()) {
+          p += c->GetPosition();
+          if (c != w && c->IsKindOf(wxCLASSINFO(wxControl))) plain = false;
+          if (c != w && c->GetParent() != a && !c->IsKindOf(wxCLASSINFO(wxPanel)))
+            plain = false;
+        }
+        if (plain) me = wxRect(p + area.GetTopLeft(), size);
       }
       if (me.x < area.x - 1 || me.y < area.y - 1 ||
           me.GetRight() > area.GetRight() + 1 ||
