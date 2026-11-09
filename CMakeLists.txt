@@ -5097,3 +5097,31 @@ set_tests_properties(fraggraft PROPERTIES SKIP_RETURN_CODE 77)
 add_executable(smiles_test tests/tdat/smiles_test.C)
 target_link_libraries(smiles_test PRIVATE eccetdat ecceutil)
 add_test(NAME smiles COMMAND smiles_test ${CMAKE_SOURCE_DIR}/tests/tdat/smiles_corpus.txt)
+
+# ------------------------------------------------------------------------
+# Windows: every program (GUI apps via ecce.rc) gets the UTF-8 ANSI-code-page
+# manifest, so getenv/fopen/CreateProcessA agree with the UTF-8 paths bash,
+# Python and DirectTransportWin write (#922). Last, so all targets exist.
+# ------------------------------------------------------------------------
+if(WIN32)
+  function(ecce_utf8_manifest_dir dir)
+    get_property(_targets DIRECTORY ${dir} PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(_t ${_targets})
+      get_target_property(_type ${_t} TYPE)
+      if(_type STREQUAL "EXECUTABLE")
+        get_target_property(_srcs ${_t} SOURCES)
+        string(FIND "${_srcs}" "ecce.rc" _has)
+        if(_has EQUAL -1)
+          target_sources(${_t} PRIVATE ${CMAKE_SOURCE_DIR}/packaging/windows/ecce-utf8.rc)
+        endif()
+      endif()
+    endforeach()
+    get_property(_subs DIRECTORY ${dir} PROPERTY SUBDIRECTORIES)
+    foreach(_s ${_subs})
+      ecce_utf8_manifest_dir(${_s})
+    endforeach()
+  endfunction()
+  set_property(SOURCE ${CMAKE_SOURCE_DIR}/packaging/windows/ecce-utf8.rc APPEND
+               PROPERTY COMPILE_OPTIONS "-I${CMAKE_SOURCE_DIR}/packaging/windows")
+  ecce_utf8_manifest_dir(${CMAKE_SOURCE_DIR})
+endif()
