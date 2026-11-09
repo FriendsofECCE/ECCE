@@ -16,6 +16,19 @@ are not changed.
 - **Temperature (K)** starts at the temperature of the calculation. Press Enter
   or leave the field to recompute.
 - **Standard state** is 1 atm (gas) or 1 M (solution).
+- **Symmetry number** is the rotational symmetry number used for the rotational
+  entropy. Leave it empty to use the one the code printed (ORCA and Gaussian)
+  or, where the code's output is not read for it, the one that follows from the
+  stored point group. A number here replaces it.
+- **Rotor** is the rotor type: As found (from the geometry), Linear or
+  Non-linear. Linear can be chosen for a structure that is only slightly bent;
+  Non-linear cannot be chosen for a molecule that is exactly linear.
+
+The first line of the notes gives the point group, the symmetry number used and
+where it came from, and the rotor type. If the structure is within 0.05 A of a
+point group with a larger symmetry number (or a linear one) than was used, the
+notes say so and give that group's number. A structure a hair off its symmetry
+otherwise gets too small a symmetry number and a G that is too high.
 
 The table has two columns: **Recomputed (ecce-thermo)** for the choice above,
 and the code's own stored values. Notes from the calculation, such as a

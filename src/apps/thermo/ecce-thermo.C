@@ -33,6 +33,8 @@ namespace {
 
 const double KJ_PER_HARTREE = 4.3597447222071e-18 * 6.02214076e23 / 1000.0;
 const double KCAL_PER_KJ = 1.0 / 4.184;
+int g_rotor = 0;            // --rotor: 0 as found, 1 linear, 2 non-linear
+double g_symTol = 0.05;     // --symmetry-tolerance (A); 0 turns the check off
 
 struct TreatmentSpec {
   ThermoTreatment t;
@@ -47,6 +49,17 @@ struct Calc {
   vector<string> notes;
   string error;
 };
+
+// --symmetry-number and --rotor; a refused rotor choice stays visible as a note.
+void applyOverrides(Calc& c, int sigmaOverride)
+{
+  if (sigmaOverride > 0) {
+    c.in.symmetryNumber = sigmaOverride;
+    c.in.sigmaSource = "override";
+  }
+  string err;
+  if (!applyRotorChoice(c.in, g_rotor, err)) c.notes.push_back(err);
+}
 
 string lower(const string& s)
 {
@@ -141,8 +154,8 @@ int run(const vector<string>& urls, double T, ThermoStandardState ss,
   for (const string& u : urls) {
     Calc c;
     c.url = u;
-    gatherThermoInput(u, c.in, c.name, c.notes, c.error);
-    if (sigmaOverride > 0) c.in.symmetryNumber = sigmaOverride;
+    gatherThermoInput(u, c.in, c.name, c.notes, c.error, g_symTol);
+    applyOverrides(c, sigmaOverride);
     calcs.push_back(c);
   }
   for (const Calc& c : calcs)
@@ -219,6 +232,7 @@ int run(const vector<string>& urls, double T, ThermoStandardState ss,
                   T, standardStateName(ss));
       std::printf("    \"symmetryNumber\": %d,\n    \"multiplicity\": %d,\n",
                   c.in.symmetryNumber, c.in.multiplicity);
+      std::printf("    \"symmetry\": %s,\n", jstr(symmetrySummary(c.in)).c_str());
       std::printf("    \"treatments\": {\n");
       for (size_t j = 0; j < trs.size(); j++) {
         ThermoResult r;
@@ -227,9 +241,12 @@ int run(const vector<string>& urls, double T, ThermoStandardState ss,
                     jstr(trs[j].cli).c_str(), r.H, r.S, r.G,
                     j + 1 < trs.size() ? "," : "");
       }
+      vector<string> notes = c.notes;
+      const string warn = symmetryWarning(c.in);
+      if (!warn.empty()) notes.push_back(warn);
       std::printf("    },\n    \"notes\": [");
-      for (size_t j = 0; j < c.notes.size(); j++)
-        std::printf("%s%s", j ? ", " : " ", jstr(c.notes[j]).c_str());
+      for (size_t j = 0; j < notes.size(); j++)
+        std::printf("%s%s", j ? ", " : " ", jstr(notes[j]).c_str());
       std::printf(" ]\n  }%s\n", i + 1 < calcs.size() ? "," : "");
     }
     std::printf("]\n");
@@ -241,9 +258,12 @@ int run(const vector<string>& urls, double T, ThermoStandardState ss,
     std::printf("%s (%s)\n", c.name.c_str(), c.url.c_str());
     std::printf("  T = %.2f K, standard state %s, sigma = %d, multiplicity = %d\n",
                 T, standardStateName(ss), c.in.symmetryNumber, c.in.multiplicity);
+    std::printf("  %s\n", symmetrySummary(c.in).c_str());
     if (c.notes.empty())
       std::printf("  %d vibration(s)\n", (int)c.in.frequencies.size());
     for (const string& n : c.notes) std::printf("  note: %s\n", n.c_str());
+    const string warn = symmetryWarning(c.in);
+    if (!warn.empty()) std::printf("  warning: %s\n", warn.c_str());
     std::printf("  %-18s %12s %12s %s\n", "treatment", "H (Hartree)", "S (J/mol/K)", "G");
     for (const TreatmentSpec& tr : trs) {
       ThermoResult r;
@@ -309,7 +329,7 @@ int runReactions(const string& file, const vector<string>& urls, double T,
   std::map<string, Calc> cache;
   for (const string& u : urls) {
     Calc c; c.url = u;
-    gatherThermoInput(u, c.in, c.name, c.notes, c.error);
+    gatherThermoInput(u, c.in, c.name, c.notes, c.error, 0.0);
     named[c.name] = u;
     cache[u] = c;
   }
@@ -339,8 +359,8 @@ int runReactions(const string& file, const vector<string>& urls, double T,
         sp.coeff = side ? t.coeff : -t.coeff;
         if (!cache.count(sp.url)) {
           Calc c; c.url = sp.url;
-          gatherThermoInput(sp.url, c.in, c.name, c.notes, c.error);
-          if (sigmaOverride > 0) c.in.symmetryNumber = sigmaOverride;
+          gatherThermoInput(sp.url, c.in, c.name, c.notes, c.error, 0.0);
+          applyOverrides(c, sigmaOverride);
           cache[sp.url] = c;
         }
         sp.calc = cache[sp.url];
@@ -528,6 +548,11 @@ int main(int argc, char** argv)
     }
     else if (a == "--treatment" && i + 1 < argc) trSpec = argv[++i];
     else if (a == "--symmetry-number" && i + 1 < argc) sigmaOverride = atoi(argv[++i]);
+    else if (a == "--rotor" && i + 1 < argc) {
+      const string v = lower(argv[++i]);
+      g_rotor = v == "linear" ? 1 : v == "nonlinear" || v == "non-linear" ? 2 : 0;
+    }
+    else if (a == "--symmetry-tolerance" && i + 1 < argc) g_symTol = atof(argv[++i]);
     else if (a == "--reactions" && i + 1 < argc) reactionsFile = argv[++i];
     else if (a == "--format" && i + 1 < argc) format = lower(argv[++i]);
     else if (a == "--chosen" && i + 1 < argc) chosenSpec = argv[++i];
@@ -536,7 +561,8 @@ int main(int argc, char** argv)
       std::printf("ecce-thermo <calc> [<calc> ...]\n"
                   "  [--T 298.15] [--standard-state 1atm|1M]\n"
                   "  [--treatment all|rrho|qrrho-grimme:100|truhlar|head-gordon,...]\n"
-                  "  [--symmetry-number N] [--reaction \"LHS -> RHS\"] [--json]\n"
+                  "  [--symmetry-number N] [--rotor auto|linear|nonlinear]\n"
+                  "  [--symmetry-tolerance ANGSTROM] [--reaction \"LHS -> RHS\"] [--json]\n"
                   "ecce-thermo --reactions FILE [<calc> ...] [--chosen qrrho-grimme:100]\n"
                   "  [--format text|json|csv] [--T K] [--standard-state 1atm|1M]\n"
                   "  one reaction per line, 'a, 2*b -> c' (calc names or URLs)\n");

@@ -25,6 +25,7 @@ struct ThermoRunResult
    bool ok = false;
    std::string error;            ///< why not, when !ok
    std::string name;
+   std::string symmetry;         ///< point group, sigma, rotor type, as one line
    double T = 0;
    std::vector<std::string> notes;
    std::vector<std::string> treatments;   ///< cli names, in order
@@ -35,7 +36,9 @@ struct ThermoRunResult
 const std::vector<ThermoTreatmentInfo>& thermoTreatments();
 
 /** Runs ecce-thermo on one calculation; oneMolar selects the 1 M standard state. */
-ThermoRunResult runThermo(const std::string& url, double kelvin, bool oneMolar);
+ThermoRunResult runThermo(const std::string& url, double kelvin, bool oneMolar,
+                          int sigma = 0, int rotor = 0);
+// sigma > 0 overrides the symmetry number; rotor 1 = linear, 2 = non-linear.
 
 /**
  * Runs `ecce-thermo --reactions file --chosen treatment --format csv` (#709)

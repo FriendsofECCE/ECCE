@@ -369,7 +369,7 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
   block 1: begin-line=1304 fed=404 rc=0 first-fed=' Link1:  Proceeding to internal job step number  2.'
     (script emitted no property)
 
-[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
+[EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES][THERMOSIGMA]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
   Begin= Thermochemistry
   End=Cartesian Forces
   begins=1 delivered=1 buffered_away=0
@@ -402,6 +402,10 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
       size: 1
       values: 1.00000
       units: atm
+    key: THERMOSIGMA
+      size: 1
+      values: 2
+      units: NA
 
 [SOLVMODEL]  Script=gaussian-16.solvmodel  Freq=last  Skip=-  Lines=-
   Begin=Polarizable Continuum Model \(PCM\)

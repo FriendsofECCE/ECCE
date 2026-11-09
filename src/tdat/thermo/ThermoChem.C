@@ -224,8 +224,10 @@ bool parseTreatmentName(const std::string& name, ThermoTreatment& t,
 int symmetryNumberForPointGroup(const std::string& pointGroup)
 {
   std::string g;
-  for (char ch : pointGroup)
-    if (ch != ' ' && ch != '\t') g += (char)toupper((unsigned char)ch);
+  for (char ch : pointGroup) {
+    if (ch == '*') g += "INF";   // autosym's C*v / D*h
+    else if (ch != ' ' && ch != '\t') g += (char)toupper((unsigned char)ch);
+  }
   if (g == "C1" || g == "CS" || g == "CI" || g == "CINFV") return 1;
   if (g == "C2" || g == "C2V" || g == "C2H") return 2;
   if (g == "C3" || g == "C3V" || g == "C3H" || g == "S6") return 3;
@@ -280,4 +282,59 @@ const char* treatmentName(ThermoTreatment t)
 const char* standardStateName(ThermoStandardState s)
 {
   return s == THERMO_SOLN_1M ? "1 M" : "1 atm";
+}
+
+bool pointGroupIsLinear(const std::string& pointGroup)
+{
+  std::string g;
+  for (char ch : pointGroup) {
+    if (ch == '*') g += "INF";
+    else if (ch != ' ' && ch != '\t') g += (char)toupper((unsigned char)ch);
+  }
+  return g == "CINFV" || g == "DINFH";
+}
+
+std::string symmetrySummary(const ThermoInput& in)
+{
+  std::string s = in.pointGroup.empty() ? std::string("Point group not stored")
+                                        : "Point group " + in.pointGroup;
+  s += ", \xCF\x83 = " + std::to_string(in.symmetryNumber);
+  if (in.sigmaSource == "code")
+    s += " (printed by " + (in.code.empty() ? std::string("the code") : in.code) + ")";
+  else if (in.sigmaSource == "override")
+    s += " (set by you)";
+  else
+    s += " (from the point group; the symmetry number is not read from " +
+         (in.code.empty() ? std::string("the code") : in.code) + "'s output)";
+  s += in.linear ? ", linear rotor." : ", non-linear rotor.";
+  return s;
+}
+
+std::string symmetryWarning(const ThermoInput& in)
+{
+  if (in.nearGroup.empty()) return std::string();
+  const int sig = symmetryNumberForPointGroup(in.nearGroup);
+  const bool lin = pointGroupIsLinear(in.nearGroup);
+  if (sig <= in.symmetryNumber && !(lin && !in.linear)) return std::string();
+  char tol[32];
+  snprintf(tol, sizeof tol, "%g", in.nearTolerance);
+  return "The structure is within " + std::string(tol) + " A of point group " +
+         in.nearGroup + ", which has rotational symmetry number " +
+         std::to_string(sig) + (lin ? " and a linear rotor" : "") +
+         "; the thermochemistry used \xCF\x83 = " + std::to_string(in.symmetryNumber) +
+         (in.linear ? " and a linear rotor." : " and a non-linear rotor.") +
+         " Set the symmetry number and rotor type if the higher symmetry is meant.";
+}
+
+bool applyRotorChoice(ThermoInput& in, int choice, std::string& err)
+{
+  if (choice == 1 && !in.linear) {
+    const double b = 0.5 * (in.rotConstants[1] + in.rotConstants[2]);
+    in.linear = true;
+    in.rotConstants[0] = in.rotConstants[1] = in.rotConstants[2] = b;
+  } else if (choice == 2 && in.linear) {
+    err = "a linear molecule has no third rotational constant, so a non-linear rotor cannot be forced.";
+    return false;
+  }
+  return true;
 }

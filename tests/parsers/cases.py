@@ -75,7 +75,7 @@ CASES = [
             }),
             # Printed: zero-point 0.024386, sums -74.938683 / -74.937739 /
             # -74.959907, S = 46.658 cal/mol-K at 298.15 K (see #176).
-            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES': dict(
+            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES][THERMOSIGMA': dict(
                 keys={
                     'EZEROPT': {'values': '0.024386', 'units': 'Hartree'},
                     'ETHERM': {'values': '-74.938683', 'units': 'Hartree'},
@@ -916,7 +916,10 @@ CASES = [
                 'size': '9',
                 'values': '0 0 0 0 0 0 7.24 44.27 29.93',
                 'units': 'KM/Mole'}}),
-            'PNTGRP': dict(keys={'PNTGRP': {'values': 'C2v'}}),
+            'PNTGRP][THERMOSIGMA': dict(keys={
+                'PNTGRP': {'values': 'C2v'},
+                # "Point Group:  C2v, Symmetry Number:   2"
+                'THERMOSIGMA': {'values': '2', 'units': 'NA'}}),
             'EZEROPT': dict(keys={'EZEROPT': {'values': '0.02437665',
                                               'units': 'Hartree'}}),
             'ETHERM': dict(keys={'ETHERM': {'values': '-74.93869172',
@@ -2462,7 +2465,7 @@ CASES = [
         # B3LYP/6-31G(d) Opt Freq: S(total) = 45.137 cal/mol-K at 298.15 K
         parse_args=('.', 'GeoVib', 'SCF', 'RHF', '0'),
         expect={
-            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES': dict(
+            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES][THERMOSIGMA': dict(
                 blocks=1, keys={
                     'EZEROPT': {'values': '0.021164', 'units': 'Hartree'},
                     'ETHERM': {'values': '-76.384955', 'units': 'Hartree'},
@@ -2472,6 +2475,8 @@ CASES = [
                     'THERMOTEMP': {'values': '298.150', 'units': 'Kelvin'},
                     # "Temperature 298.150 Kelvin.  Pressure 1.00000 Atm."
                     'THERMOPRES': {'values': '1.00000', 'units': 'atm'},
+                    # "Rotational symmetry number  2." (C2v)
+                    'THERMOSIGMA': {'values': '2', 'units': 'NA'},
                 }),
         },
         silent_ok={
@@ -2486,7 +2491,7 @@ CASES = [
         # SMD(water) Opt Freq: S(total) = 45.157 cal/mol-K
         parse_args=('.', 'GeoVib', 'SCF', 'RHF', '0'),
         expect={
-            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES': dict(
+            'EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES][THERMOSIGMA': dict(
                 blocks=1, keys={
                     'EZEROPT': {'values': '0.020987', 'units': 'Hartree'},
                     'ETHERM': {'values': '-76.398294', 'units': 'Hartree'},

@@ -164,6 +164,27 @@ def main():
         stored = open(os.path.join(calc, "Props", "EGIBBS")).read()
         check(stored == open(os.path.join(FIX, "calc-water-freq-g16", "Props", "EGIBBS")).read(),
               "the code's own G is untouched")
+        # Symmetry (#854): a stored THERMOSIGMA is the number the code used.
+        with open(os.path.join(calc, "Props", "THERMOSIGMA"), "w") as f:
+            f.write('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
+                    '<value name="THERMOSIGMA" units="NA">4</value>\n')
+        def sym(*extra):
+            out = subprocess.run([os.path.join(cenv["ECCE_HOME"], "bin", "ecce-thermo"), url,
+                                  "--json", "--symmetry-tolerance", "0"] + list(extra),
+                                 env=cenv, capture_output=True, text=True).stdout
+            return json.loads(out)[0]
+        a = sym()
+        check(a["symmetryNumber"] == 4 and "printed by Gaussian-16" in a["symmetry"],
+              "the code's printed symmetry number is used and named", a["symmetry"])
+        b = sym("--symmetry-number", "3")
+        check(b["symmetryNumber"] == 3 and "set by you" in b["symmetry"],
+              "a symmetry number override is applied", b["symmetry"])
+        c = sym("--rotor", "linear")
+        check("linear rotor" in c["symmetry"] and "non-linear" not in c["symmetry"],
+              "a linear rotor can be chosen", c["symmetry"])
+        check(len({a["treatments"]["rrho"]["S"], b["treatments"]["rrho"]["S"],
+                   c["treatments"]["rrho"]["S"]}) == 3,
+              "sigma and rotor change the entropy")
     finally:
         if display:
             display.__exit__(None, None, None)

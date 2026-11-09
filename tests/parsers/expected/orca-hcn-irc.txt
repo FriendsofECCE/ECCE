@@ -223,13 +223,17 @@ args:    '.' 'IRC' 'SCF' 'RHF' '0'
       values: -0.165055 -0.065875 0.230930
       units: e
 
-[PNTGRP]  Script=orca.pntgrp  Freq=last  Skip=0  Lines=1
+[PNTGRP][THERMOSIGMA]  Script=orca.pntgrp  Freq=last  Skip=0  Lines=1
   Begin=Point Group:
   begins=2 delivered=1 buffered_away=1
   block 1: begin-line=2705 fed=1 rc=0 first-fed='Point Group:  Cs, Symmetry Number:   1'
     key: PNTGRP
       size: 1
       values: Cs
+    key: THERMOSIGMA
+      size: 1
+      values: 1
+      units: NA
 
 [EZEROPT]  Script=orca.ezeropt  Freq=last  Skip=0  Lines=1
   Begin=Zero point energy

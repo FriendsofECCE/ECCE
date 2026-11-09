@@ -157,13 +157,17 @@ args:    '.' 'Vibration' 'SCF' 'RHF' '0'
       values: 0 0 0 0 0 0 0.750000 0.750000 0.750000 0.750000 0.750000 0.000000 0.750000 0.750000 0.750000
       units: NA
 
-[PNTGRP]  Script=orca.pntgrp  Freq=last  Skip=0  Lines=1
+[PNTGRP][THERMOSIGMA]  Script=orca.pntgrp  Freq=last  Skip=0  Lines=1
   Begin=Point Group:
   begins=1 delivered=1 buffered_away=0
   block 1: begin-line=1172 fed=1 rc=0 first-fed='Point Group:  Td, Symmetry Number:  12'
     key: PNTGRP
       size: 1
       values: Td
+    key: THERMOSIGMA
+      size: 1
+      values: 12
+      units: NA
 
 [EZEROPT]  Script=orca.ezeropt  Freq=last  Skip=0  Lines=1
   Begin=Zero point energy

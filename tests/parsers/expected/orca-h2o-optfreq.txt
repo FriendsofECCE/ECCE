@@ -375,13 +375,17 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
       values: 0 0 0 0 0 0 7.24 44.27 29.93
       units: KM/Mole
 
-[PNTGRP]  Script=orca.pntgrp  Freq=last  Skip=0  Lines=1
+[PNTGRP][THERMOSIGMA]  Script=orca.pntgrp  Freq=last  Skip=0  Lines=1
   Begin=Point Group:
   begins=1 delivered=1 buffered_away=0
   block 1: begin-line=2776 fed=1 rc=0 first-fed='Point Group:  C2v, Symmetry Number:   2'
     key: PNTGRP
       size: 1
       values: C2v
+    key: THERMOSIGMA
+      size: 1
+      values: 2
+      units: NA
 
 [EZEROPT]  Script=orca.ezeropt  Freq=last  Skip=0  Lines=1
   Begin=Zero point energy
