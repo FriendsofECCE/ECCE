@@ -1124,10 +1124,17 @@ void ReactionOverviewDialog::showResults()
     return o[0] == '-' ? string("\xE2\x88\x92") + o.substr(1) : o;
   };
   const string dash = "\xE2\x80\x94";
-  const char *heads[9] = {"#", "Reaction", "\xCE\x94" "E", "\xCE\x94" "G", "Spread",
-                          "\xCE\x94" "E\xE2\x80\xA1", "\xCE\x94" "G\xE2\x80\xA1", "k (TST)", "k (Eckart)"};
-  for (int c = 0; c < 9; c++) cell(heads[c], true, c != 1);
+  // Units in the headers: the note under the table was easy to miss.
   string unit = "s-1";
+  for (const Row& r : p_rows)
+    if (r.status == "ok" && r.hasTs && r.rate.ok && !r.rate.rows.empty() &&
+        !r.rate.unit.empty()) { unit = r.rate.unit; break; }
+  const string kU = unit == "s-1" ? string("s\xE2\x81\xBB\xC2\xB9") : unit;
+  const string eU = " / kJ mol\xE2\x81\xBB\xC2\xB9";
+  const string heads[9] = {"#", "Reaction", "\xCE\x94" "E" + eU, "\xCE\x94" "G" + eU, "Spread" + eU,
+                          "\xCE\x94" "E\xE2\x80\xA1" + eU, "\xCE\x94" "G\xE2\x80\xA1" + eU,
+                          "k (TST) / " + kU, "k (Eckart) / " + kU};
+  for (int c = 0; c < 9; c++) cell(heads[c], true, c != 1);
   for (size_t i = 0; i < p_rows.size(); i++) {
     const Row& r = p_rows[i];
     const Spec sp = parseSpec(r.text);
@@ -1144,15 +1151,14 @@ void ReactionOverviewDialog::showResults()
     cell(kj(r.dG), false, true);
     cell(num(r.spread, "%.2f"), false, true);
     const bool rate = r.hasTs && r.rate.ok && !r.rate.rows.empty();
-    if (rate && !r.rate.unit.empty() && unit == "s-1") unit = r.rate.unit;
     cell(rate ? kj(r.dEact) : dash, false, true);
     cell(rate ? kj(r.dGact) : dash, false, true);
     cell(rate ? rateNum(r.rate.rows[0].k) : dash, false, true);
     const double ke = rate ? r.rate.rows[0].kEckart : 0;
     cell(rate && ke == ke ? rateNum(ke) : dash, false, true);
   }
-  p_units->SetLabel(wxString::FromUTF8(("kJ mol\xE2\x81\xBB\xC2\xB9; k in " + (unit == "s-1" ? string("s\xE2\x81\xBB\xC2\xB9") : unit) +
-      " at the T above. Spread: largest minus smallest \xCE\x94G over the six G treatments.").c_str()));
+  p_units->SetLabel(wxString::FromUTF8(("k at the T above. Spread: how much \xCE\x94G changes with the "
+      "G treatment (largest minus smallest over the six treatments in the G treatment list).")));
   p_results->Layout();
 }
 
