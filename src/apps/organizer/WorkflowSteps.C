@@ -197,6 +197,11 @@ string WorkflowSteps::defaultName(Session *wf, const Code& code)
 
 namespace { void applyDefaultTheory(Resource *step); }
 
+namespace {
+// Set on a hand-made step whose source had not run when it was made.
+const char *const kCarryPendingProp = ":workflow.carry";
+}
+
 Resource *WorkflowSteps::create(Session *wf, ResourceType *rt,
                                 const string& name, Resource *source,
                                 const Carry& carry, string& why)
@@ -246,6 +251,11 @@ Resource *WorkflowSteps::create(Session *wf, ResourceType *rt,
         throw InvalidException(hessWhy.empty() ? "The Hessian could not be "
                                "carried over" : hessWhy, WHERE);
     }
+    // A source that has not run gives only its input structure; the step
+    // takes the result when the source completes (refreshFromSources).
+    if (source && carry.geometry && !isComplete(source))
+      made->addProp(VDoc::getEcceNamespace() + kCarryPendingProp,
+                    carry.chargeMult ? "geometry+charge" : "geometry");
     // A step nobody has opened yet still shows a theory and run type (#910).
     applyDefaultTheory(made);
   }
@@ -1235,7 +1245,41 @@ bool WorkflowSteps::attachFieldOrbitals(Resource *step, Resource *source)
 
 string WorkflowSteps::refreshFromSources(Session *wf, Resource *step, bool prepare)
 {
-  if (step->getProp(nsKey(":recipe.step")).empty()) return "";
+  if (step->getProp(nsKey(":recipe.step")).empty()) {
+    // A hand-made step keeps what it was given unless its source had not run.
+    const string pending = step->getProp(nsKey(kCarryPendingProp));
+    if (!pending.empty() && !isLaunched(step)) {
+      bool done = false;
+      for (Session::Link *l : wf->getLinks()) {
+        if (l->linkType != Session::INPUT_PROVIDER || l->target != step ||
+            !isComplete(l->source))
+          continue;
+        string role, point;
+        splitLinkName(l->linkName, role, point);
+        if (role != "geometry") continue;
+        PropertyTask *fromTask = dynamic_cast<PropertyTask*>(l->source);
+        ChemistryTask *toTask = dynamic_cast<ChemistryTask*>(step);
+        ICalculation *from = dynamic_cast<ICalculation*>(l->source);
+        ICalculation *to = dynamic_cast<ICalculation*>(step);
+        string w;
+        Fragment *frag = point.empty() ? finalGeometry(fromTask)
+                                       : ScanPoint::fragment(fromTask, point, w);
+        const bool charge = pending.find("charge") != string::npos;
+        if (frag && frag->numAtoms() > 0 && toTask) {
+          if (!charge) frag->charge(0);
+          toTask->fragment(frag);
+        }
+        delete frag;
+        if (charge && from && to) {
+          to->spinMultiplicity(from->spinMultiplicity());
+          to->openShells(from->openShells());
+        }
+        done = true;
+      }
+      if (done) step->addProp(nsKey(kCarryPendingProp), "");
+    }
+    return prepare ? prepareStep(wf, step) : string();
+  }
   bool carried = false;
   for (Session::Link *l : wf->getLinks()) {
     if (l->linkType != Session::INPUT_PROVIDER || l->target != step) continue;
@@ -1268,7 +1312,8 @@ const char *const WorkflowSteps::kNotReadyProp = ":workflow.notready";
 
 string WorkflowSteps::prepareStep(Session *wf, Resource *step)
 {
-  if (!wf || !step || step->getProp(nsKey(":recipe.step")).empty()) return "";
+  if (!wf || !step) return "";
+  const bool recipe = !step->getProp(nsKey(":recipe.step")).empty();
   TaskJob *job = dynamic_cast<TaskJob*>(step);
   ICalculation *calc = dynamic_cast<ICalculation*>(step);
   if (!job || !calc) return "";
@@ -1276,11 +1321,22 @@ string WorkflowSteps::prepareStep(Session *wf, Resource *step)
   if (st != ResourceDescriptor::STATE_CREATED && st != ResourceDescriptor::STATE_READY)
     return "";
   TaskJob *launchFrom = 0;
+  bool hasSource = false, waiting = false;
   for (Session::Link *l : wf->getLinks()) {
     if (l->linkType != Session::INPUT_PROVIDER || l->target != step) continue;
-    if (!isComplete(l->source)) return "";            // waiting; the box says so
+    hasSource = true;
+    if (!isComplete(l->source)) waiting = true;
     TaskJob *src = dynamic_cast<TaskJob*>(l->source);
     if (!launchFrom && src && !src->launchdata().machine.empty()) launchFrom = src;
+  }
+  // A hand-made first step is the user's own: Ready from the editor only.
+  if (!recipe && !hasSource) return "";
+  if (waiting || !step->getProp(nsKey(kCarryPendingProp)).empty()) {
+    // The editor's Save makes a step Ready, but a deck written before its
+    // source ran has the source's input structure, not its result (#926).
+    if (st == ResourceDescriptor::STATE_READY)
+      job->setState(ResourceDescriptor::STATE_CREATED);
+    return "";                                        // waiting; the box says so
   }
   string why;
   if (st == ResourceDescriptor::STATE_CREATED) {

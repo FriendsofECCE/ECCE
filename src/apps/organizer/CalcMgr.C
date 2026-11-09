@@ -47,6 +47,7 @@ static bool offerStopServer(bool& inUse);
 static std::string s_registerMessage;
 
 #include <wx/stopwatch.h>
+#include <wx/time.h>
 #include <wx/dataobj.h>
 #include <wx/filename.h>
 #include <wx/process.h>
@@ -1667,6 +1668,12 @@ void CalcMgr::runTestCommand(const string& line)
       string made = importGromacsFrom(runDir, message);
       outcome = (made.empty() || !message.empty()) ? "error: " + message
               : "ok " + made;
+    } else if (command == "idle") {
+      // "idle MS": run the event loop for MS ms, so that what a notice
+      // started with CallAfter is done before the next command.
+      const wxLongLong end = wxGetLocalTimeMillis() + atoi(calcName.c_str());
+      while (wxGetLocalTimeMillis() < end) { wxYield(); wxMilliSleep(20); }
+      outcome = "ok";
     } else if (command == "state") {
       Resource *res = EDSIFactory::getResource(EcceURL(calcName));
       ICalculation *icalc = dynamic_cast<ICalculation*>(res);
@@ -11750,6 +11757,7 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
   vector<Resource*> all;
   // CREST fails from an unoptimised structure: put an xTB optimisation between.
   string preoptNote;
+  std::unique_ptr<EcceURL> preopt;
   if (source && carry.geometry && code->label == string("CREST") &&
       !WorkflowSteps::isXtbOptimisation(source)) {
     ResourceType *xrt = 0;
@@ -11770,6 +11778,7 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
         geo.name("Geometry");
         oc->runtype(geo);
         notifyCreate(opt->getURL().toString());
+        preopt.reset(new EcceURL(opt->getURL()));
         source = opt;
         carry.point.clear();
         preoptNote = "An xTB geometry optimisation was added before CREST, "
@@ -11788,6 +11797,13 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
     if (outcome) *outcome = why.empty() ? "not created" : why;
     if (ask) setMessage(why, WxFeedback::INFO);
     return 0;
+  }
+  // A step whose source is already Complete gets its input now (#926).
+  // Each create re-reads the linkbase, so the session's own objects are used.
+  for (Resource *s : wf->getMembers()) {
+    bool fresh = preopt && s->getURL() == *preopt;
+    for (size_t i = 0; i < all.size(); i++) fresh = fresh || s->getURL() == all[i]->getURL();
+    if (fresh) WorkflowSteps::prepareStep(wf, s);
   }
   Resource *made = all[0];
   string urls;
@@ -12283,6 +12299,9 @@ void CalcMgr::updateUrl(const EcceURL & url)
       task->flushPropertyCache();
     EDSIFactory::changePoolResource(url);
     const bool stepDone = WorkflowSteps::isComplete(target->getResource());
+    // The editor's Save makes a step Ready even while its source waits.
+    const bool stepReady =
+        WorkflowSteps::stateOf(target->getResource()) == ResourceDescriptor::STATE_READY;
 
     if (selectedUrl.isChildOf(url)) {
       findNode(url, true, false);
@@ -12305,15 +12324,21 @@ void CalcMgr::updateUrl(const EcceURL & url)
     // A step of an auto-run workflow finished: start what it unblocked.
     // The tree refresh above may free `target`, and launching reselects
     // nodes, so this runs after the update ends, from the URL alone.
-    if (stepDone) {
+    if (stepDone || stepReady) {
       const EcceURL wfUrl = url.getParent();
-      CallAfter([this, wfUrl]() {
+      CallAfter([this, wfUrl, url, stepDone]() {
         WxResourceTreeItemData *n = findNode(wfUrl, false, false);
         Session *wf = n ? dynamic_cast<Session*>(n->getResource()) : 0;
         if (wf && wf->getApplicationType() == ResourceDescriptor::AT_WORKFLOW) {
-          // What the finished step unblocked becomes Ready, auto-run or not (#901).
+          if (!stepDone) {
+            for (Resource *m : wf->getMembers())
+              if (m->getURL() == url) WorkflowSteps::prepareStep(wf, m);
+            return;
+          }
+          // What the finished step unblocked takes its result and becomes
+          // Ready, auto-run or not (#901, #926).
           for (Resource *s : WorkflowSteps::readySteps(wf))
-            WorkflowSteps::prepareStep(wf, s);
+            WorkflowSteps::refreshFromSources(wf, s);
           autoRunWorkflow(wf);
         }
       });

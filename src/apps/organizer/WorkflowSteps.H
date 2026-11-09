@@ -205,12 +205,14 @@ namespace WorkflowSteps {
 
   /// Takes the geometry, charge and multiplicity of a recipe step's sources
   /// just before it is launched (they did not exist when it was made).
-  /// Steps not made by a recipe are left alone.  Empty, or why not.
+  /// A hand-made step takes its source's result only when the source had not
+  /// run when the step was made.  Empty, or why not.
   std::string refreshFromSources(Session *wf, Resource *step, bool prepare = true);
 
-  /// A Created recipe step whose sources are all Complete and which has a
+  /// A Created step with sources (any recipe step) whose sources are all
+  /// Complete, whose source results have been taken and which has a
   /// structure gets its input written (DeckWriter, as the editor's Save) and
-  /// becomes Ready; with no launch settings it takes a source's, else those
+  /// becomes Ready; a Ready one still waiting goes back to Created; with no launch settings it takes a source's, else those
   /// of another step of the workflow.  Empty, or why it is not launchable,
   /// which is also stored on the step for its box (kNotReadyProp).
   std::string prepareStep(Session *wf, Resource *step);
