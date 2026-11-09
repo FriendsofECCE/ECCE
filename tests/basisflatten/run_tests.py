@@ -80,10 +80,10 @@ def main():
     rc5 = run_cro_moaoorder(env, fx + ["NWChem", "5e-3"],
                             "fixtures/hf_5z_nwchem_eprint.txt", ["nwchem.mo"])
     # Gaussian re-contracts general contractions that share primitives, so
-    # its fort.7 refers to the basis it echoes with GFInput (hf_5z_g16.nb),
-    # not to the cc-pV5Z it was given.
-    rc6 = run_cro_moaoorder(env, ["fixtures/hf_5z_g16.nb", "fixtures/hf_5z.xyz",
-                                  "10", "Gaussian-16"],
+    # its fort.7 refers to the basis it echoes with GFInput (hf_5z_g16.nb);
+    # the MOs must come out right on the cc-pV5Z ECCE gave it (#921).
+    rc6 = run_cro_moaoorder(env, fx + ["Gaussian-16", "1e-6",
+                                       "fixtures/hf_5z_g16.nb"],
                             "fixtures/hf_5z_g16_fort7.txt", ["gaussian-16.mo"])
     return rc or rc2 or rc3 or rc4 or rc5 or rc6
 

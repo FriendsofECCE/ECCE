@@ -28,6 +28,7 @@ using namespace std;
 #include "tdat/EspField.H"
 #include "tdat/TGBSAngFunc.H"
 #include "tdat/MoAoOrder.H"
+#include "tdat/MoBasisChange.H"
 #include "tdat/PropTable.H"
 #include "tdat/PropString.H"
 
@@ -124,6 +125,9 @@ int main(int argc, char** argv) {
   // NWChem's ecce_print writes coefficients to 3 decimals; ORCA and the
   // old fixtures are good to 1e-5.
   const double tol = argc > 6 ? atof(argv[6]) : 1.0e-4;
+  // Optional: the basis the code itself used (Gaussian's GFInput echo);
+  // the MOs are projected from it onto the input basis before checking.
+  const string codeBasisPath = argc > 7 ? argv[7] : "";
 
   const JCode* code = CodeFactory::lookup(codeName.c_str());
   check(code != 0, (codeName + " registered").c_str());
@@ -160,6 +164,18 @@ int main(int argc, char** argv) {
   fake.p_marker = "angular-momentum";
   PropTable *reordered = unpermute
       ? MoAoOrder::reorderToNative(moTable, &fake, el, cfg) : moTable;
+  if (!codeBasisPath.empty()) {
+    ifstream cnb(codeBasisPath.c_str());
+    TGBSConfig* ccfg = ICalcUtils::importConfig(cnb);
+    vector<EspBasisFunction> codeBasis;
+    bool ok = ccfg && BasisFlatten::flatten(el, coordsAng, ccfg, code, af,
+                                            af->maxShells(), lenS, codeBasis);
+    check(ok, "code's own basis flattened");
+    if (ok) {
+      reordered = MoBasisChange::project(moTable, codeBasis, basis);
+      check(reordered != moTable, "MOs projected onto the input basis");
+    }
+  }
   bool owned = (reordered != moTable);
   if (unpermute)
     check(owned, "MoAoOrder actually reordered (marker recognised)");
