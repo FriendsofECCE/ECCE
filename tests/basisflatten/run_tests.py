@@ -113,14 +113,14 @@ def run_cro_moaoorder(env, extra=(), block="fixtures/cro_mo_block.txt",
 
     extra = list(extra)
     stored = os.path.join(HERE, "cro_codebasis_parsed.txt")
-    if len(extra) > 7:
+    if len(extra) > 6:
         echo = subprocess.run(
             ["perl", os.path.join(ROOT, "scripts/parsers/gaussian-16.codebasis")],
-            stdin=open(os.path.join(HERE, extra[7])), capture_output=True,
+            stdin=open(os.path.join(HERE, extra[6])), capture_output=True,
             text=True, env=env)
         with open(stored, "w") as f:
             f.write(echo.stdout)
-        extra[7] = stored
+        extra[6] = stored
 
     out = os.path.join(HERE, "testCrOMoAoOrder")
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
