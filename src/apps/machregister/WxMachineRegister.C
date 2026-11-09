@@ -58,6 +58,7 @@
 #include "tdat/SiteRequest.H"
 #include "tdat/Queue.H"
 #include "tdat/QueueMgr.H"
+#include "tdat/SubmitHeaderCheck.H"
 
 #include "comm/RCommand.H"
 
@@ -3919,8 +3920,15 @@ bool WxMachineRegister::save()
     }
     this->saveDefaultAccount(name);
 
+    // Warn only: the entry may be exactly what the site wants.
+    string hdr = SubmitHeaderCheck::warning(
+        RefMachine::config(name), (string)p_qmgrChoice->GetStringSelection(),
+        p_allocAccts->IsChecked());
+
     this->redo(name);
     this->notifyUpdate();
+    if (!hdr.empty())
+        displayMessage(hdr);
     return true;
 }
 

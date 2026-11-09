@@ -101,6 +101,17 @@ The footer confirms that the file is `~/.ECCE/CONFIG.<name>`. The tag next
 to the block now reads **your value**. To return to the site's lines,
 click the undo arrow.
 
+### A one-line entry replaces the whole header
+
+An entry for the queue manager in the machine's settings file (for example
+`Slurm: #SBATCH --mem-per-cpu=2500M`) is the whole header, not a line added
+to the site's. When the entry for Slurm has no `--partition`, `--time` or
+`--account` line, **Save** says which are missing, and the Launcher says
+the same before it submits. When **Allocation accounts used** is ticked and
+the entry for another queue manager has no `$account`, the warning names
+that instead. These are warnings only: **Launch anyway** goes ahead. Use
+**Copy site setting** as above to keep the site's lines and add to them.
+
 ## Placeholders
 
 A job script is written once but used for every job, so the request lines
