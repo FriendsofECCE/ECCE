@@ -94,6 +94,7 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
 
 | 9.x | 8.x (bug fixes) |
 |---|---|
+| **v9.4.12** — Windows starts for user names with å/ä/ö and other letters, and a failed start is always reported (#922); folders with spaces or å/ä/ö run jobs (#922); macOS: Intel app from 10.15, separate dmg for 10.13 (#923); 9.4.x announces only 9.4 updates |  |
 | **v9.4.11** — bond dipoles in the Dipole Moment panel (#849); H₂ examples with orbitals (#858); NaCl and CsCl in Packing in solids (#916); ma-def2-SVP in the basis library (#898); dielectric constant without a unit (#848); surfaces cover every atom (#892) |  |
 | **v9.4.10** — outputs no longer copied back empty when the login to the compute host fails at the end of a job (#732); orbital names with the principal quantum number and Show core orbitals in the MO Diagram (#827); scan steps keep far-apart atoms in view (#832) |  |
 | **v9.4.9** — MO Diagram for a single atom as a textbook staircase, energies to scale with grouped levels and values, d-block atoms and g-function basis sets (#817); General Chemistry atoms Ca, Cr, Cu (#788) |  |
