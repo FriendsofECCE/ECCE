@@ -166,6 +166,7 @@ bool JobParser::importCalculation(const char* parseFile,
   // taking place in the same directory overwriting files like eccejobmonitor
   SDirectory* dir = TempStorage::getTempJobDirectory(
                                 task->getURL().getFilePathTail().c_str());
+  TempStorage::JobDirGuard dirGuard(dir->path());
   if (localconn.cd(dir->path())) {
     cmd = "ln -s " + RCommand::quotePath(fullFilePath) + " " + RCommand::quotePath(parseFileName);
     if (!localconn.exec(cmd)) {
@@ -266,9 +267,10 @@ bool JobParser::importCalculation(const char* parseFile,
       launch->validateRemoteLogin() &&
       launch->generateJobMonitoringFiles() &&
       launch->moveJobMonitoringFiles() &&
-      launch->startJobStore(importDir))
+      launch->startJobStore(importDir)) {
     ret = true;
-  else {
+    dirGuard.keep();   // eccejobmaster removes it when the parse is done
+  } else {
     message = "Unable to import--";
     message += launch->message();
   }
@@ -312,6 +314,7 @@ bool JobParser::importGromacsTask(TaskJob* task, const string& stageDir,
 
   SDirectory* dir = TempStorage::getTempJobDirectory(
                                 task->getURL().getFilePathTail().c_str());
+  TempStorage::JobDirGuard dirGuard(dir->path());
   struct Jobdata jobdata;
   jobdata.jobpath = dir->path();
   jobdata.jobid = "";
@@ -350,6 +353,8 @@ bool JobParser::importGromacsTask(TaskJob* task, const string& stageDir,
             launch.startJobStore(dirWithSlash);
   if (!ok)
     message = "Unable to import--" + launch.message();
+  else
+    dirGuard.keep();   // eccejobmaster removes it when the parse is done
   return ok;
 }
 

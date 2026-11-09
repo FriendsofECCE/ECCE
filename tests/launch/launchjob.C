@@ -624,6 +624,10 @@ int main(int argc, char** argv)
 
   const string mode = a[0];
   a.erase(a.begin());
+  if (mode == "sweeptmp") {   // the Organizer's start-up sweep (#924)
+    cout << TempStorage::sweepStale(a.empty() ? 3 : atoi(a[0].c_str())) << endl;
+    return 0;
+  }
   if (mode == "create") return doCreate(a);
   if (mode == "restart") return doRestart(a);
   if (mode == "guess" && a.size() == 2) {

@@ -216,6 +216,13 @@ def main():
             ans = send("gmximportsel %s %s" % (proj, run))
             check(ans.startswith("ok ") and ans.rstrip("/").endswith("/" + want),
                   "gmximportsel makes %s: %s" % (want, ans))
+        # The job folders each import ran its monitor in are removed (#924).
+        end = time.time() + 60
+        jobs = os.path.join(s.state, "tmp", "*", "jobs", "*")
+        while glob.glob(jobs) and time.time() < end:
+            time.sleep(1)
+        left = glob.glob(jobs)
+        check(not left, "job folders left after the imports: %s" % left)
     finally:
         if org is not None:
             stop(org)

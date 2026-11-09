@@ -32,6 +32,7 @@ Exit status 77 (CTest SKIP) when a prerequisite is missing.
 """
 
 import argparse
+import glob
 import json
 import os
 import re
@@ -447,6 +448,12 @@ def runCase(suite, env, build, state, oracle, name, mol, key, mult, tol, qm,
         suite.diagnose(url)
         return
     time.sleep(2)
+    #  The job monitor removes the staging folder once the job is stored (#924).
+    pat = os.path.join(state, "tmp", "*", "jobs", calcName + "__*")
+    end = time.time() + 60
+    while glob.glob(pat) and time.time() < end:
+        time.sleep(1)
+    check(not glob.glob(pat), "no staging folder left: %s" % glob.glob(pat))
     props = suite.props(url)
     say("  properties: " + " ".join(props))
     for prop in ("TE", "MO", "ORBENG", "ORBOCC", "MULLIKEN", "DIPOLE", "NNREPUL",
