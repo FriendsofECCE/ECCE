@@ -85,7 +85,13 @@ def main():
     rc6 = run_cro_moaoorder(env, fx + ["Gaussian-16", "1e-6",
                                        "fixtures/hf_5z_g16.nb"],
                             "fixtures/hf_5z_g16_fort7.txt", ["gaussian-16.mo"])
-    return rc or rc2 or rc3 or rc4 or rc5 or rc6
+    # The same through what a calculation stores: HCl/cc-pVTZ, the GFInput
+    # echo run through gaussian-16.codebasis, then MoAoOrder (#921).
+    rc7 = run_cro_moaoorder(env, ["fixtures/hcl_tz.nb", "fixtures/hcl.xyz", "18",
+                                  "Gaussian-16", "1e-6", "",
+                                  "fixtures/hcl_g16_echo.txt"],
+                            "fixtures/hcl_g16_fort7.txt", ["gaussian-16.mo"])
+    return rc or rc2 or rc3 or rc4 or rc5 or rc6 or rc7
 
 
 def run_cro_moaoorder(env, extra=(), block="fixtures/cro_mo_block.txt",
@@ -104,6 +110,17 @@ def run_cro_moaoorder(env, extra=(), block="fixtures/cro_mo_block.txt",
     parsed = os.path.join(HERE, "cro_mo_parsed.txt")
     with open(parsed, "w") as f:
         f.write(perl.stdout)
+
+    extra = list(extra)
+    stored = os.path.join(HERE, "cro_codebasis_parsed.txt")
+    if len(extra) > 7:
+        echo = subprocess.run(
+            ["perl", os.path.join(ROOT, "scripts/parsers/gaussian-16.codebasis")],
+            stdin=open(os.path.join(HERE, extra[7])), capture_output=True,
+            text=True, env=env)
+        with open(stored, "w") as f:
+            f.write(echo.stdout)
+        extra[7] = stored
 
     out = os.path.join(HERE, "testCrOMoAoOrder")
     cmd = (["g++", "-O0", "-w", "-I", os.path.join(ROOT, "include"),
@@ -124,6 +141,8 @@ def run_cro_moaoorder(env, extra=(), block="fixtures/cro_mo_block.txt",
         print(run.stderr, end="")
     os.unlink(out)
     os.unlink(parsed)
+    if os.path.exists(stored):
+        os.unlink(stored)
     return run.returncode
 
 

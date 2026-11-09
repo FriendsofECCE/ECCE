@@ -1,5 +1,13 @@
 # Parse descriptor for GAUSSIAN-03 output file.
 
+# Gaussian's own (re-contracted) basis, echoed because the route has GFInput (#921).
+[CODEBASIS]
+Script=gaussian-16.codebasis
+Begin=AO basis set in the form of general basis input
+Frequency=last
+End=basis functions,
+[END]
+
 [ORBOCC1][ORBOCCBETA]
 Script=gaussian-16.orbocc
 Begin=Orbital symmetries
