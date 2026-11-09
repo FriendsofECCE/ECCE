@@ -85,6 +85,7 @@ class DavCalculation : virtual public ICalculation
     virtual bool remove();
     virtual bool copy(EcceURL& target);
     virtual bool move(EcceURL& target);
+    bool intoSession(const EcceURL& target) const;
     virtual bool canModifyInputProvider();
 
     static string theoryTypeToString(DavCalculation::TheoryType theory);
