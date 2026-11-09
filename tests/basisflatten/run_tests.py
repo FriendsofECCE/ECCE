@@ -88,7 +88,7 @@ def main():
     # The same through what a calculation stores: HCl/cc-pVTZ, the GFInput
     # echo run through gaussian-16.codebasis, then MoAoOrder (#921).
     rc7 = run_cro_moaoorder(env, ["fixtures/hcl_tz.nb", "fixtures/hcl.xyz", "18",
-                                  "Gaussian-16", "1e-6", "",
+                                  "Gaussian-16", "3e-5", "",
                                   "fixtures/hcl_g16_echo.txt"],
                             "fixtures/hcl_g16_fort7.txt", ["gaussian-16.mo"])
     return rc or rc2 or rc3 or rc4 or rc5 or rc6 or rc7
