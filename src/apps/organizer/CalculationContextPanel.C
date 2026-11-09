@@ -42,6 +42,7 @@
 #include "dsm/TaskJob.H"
 #include "dsm/LaunchInfoRows.H"
 #include "dsm/ICalculation.H"
+#include "dsm/OrcaRIFitting.H"
 #include "dsm/TCalculation.H"
 #include "comm/AllocationQuery.H"
 #include "dsm/ToolPropertyView.H"
@@ -860,11 +861,8 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
   if (icalc && pname == "chargeFittingName" &&
       (valuestr.empty() || valuestr == "None")) {
     GUIValues *params = icalc->guiparams();
-    GUIValue *mode = params ? params->get("ES.Theory.SCF.RIMode") : 0;
-    GUIValue *aux = params ? params->get("ES.Theory.SCF.RIJCOSXAuxBasis") : 0;
-    const string ri = mode ? mode->getValueAsString() : string();
-    if (aux && (ri == "RIJCOSX" || ri == "RIJONX"))
-      valuestr = aux->getValueAsString();
+    const string auxiliary = OrcaRIFitting::resolve(icalc, params).auxiliary;
+    if (!auxiliary.empty()) valuestr = auxiliary;
     delete params;
   }
 
@@ -892,9 +890,8 @@ void CalculationContextPanel::setPropValue(ResourceProperty* resProp)
         if (paren != string::npos) functional.erase(paren);
         if (!functional.empty()) valuestr += " \xc2\xb7 " + functional;
       }
-      GUIValue *mode = params ? params->get("ES.Theory.SCF.RIMode") : 0;
-      const string ri = mode ? mode->getValueAsString() : string();
-      if (ri == "RIJCOSX" || ri == "RIJONX") valuestr += " \xc2\xb7 " + ri;
+      const string ri = OrcaRIFitting::resolve(calc, params).mode;
+      if (!ri.empty()) valuestr += " \xc2\xb7 " + ri;
       delete params;
     }
     // The middle dot above is UTF-8; plain conversion reads it as the

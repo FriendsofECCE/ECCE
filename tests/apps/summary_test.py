@@ -258,25 +258,44 @@ def checkFields(label, result, expect):
     print("FAIL  %s: %s\n%s" % (label, problem, run_tests._tail(log, 25)))
 
 
-def orcaCase(display, pngs):
-    """A calculation made outside the Calculation Editor (series, script,
-    recipe) stores no open-shell count: the summary shows multiplicity - 1
-    (#893). Its ORCA RI mode and auxiliary basis are in the theory line and
-    under CD Fitting (#894)."""
+ORCA_RI_OUTPUT = os.path.join(HERE, "..", "parsers", "fixtures", "orca",
+                              "h2o_pbe0_ri.out")
+
+
+def orcaCalculations(display):
+    """Stored editor settings, old settings, and actual output/import paths."""
     ns = "http://www.emsl.pnl.gov/ecce:"
-    setup = ("ES.Theory.DFT.XCFunctionals|PBE0 D3BJ||1|1|menu_input\n"
-             "ES.Theory.SCF.RIMode|RIJCOSX||1|1|menu_input\n"
-             "ES.Theory.SCF.RIJCOSXAuxBasis|def2/J||1|1|menu_input\n")
-    for mult, openShells in (("Singlet", "0"), ("Triplet", "2")):
-        data = tempfile.mkdtemp(prefix="ecce-summary-data-")
-        try:
-            project = os.path.join(data, "users", "local", "summary-test")
-            os.makedirs(project)
-            shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
-            calc = os.path.join(project, "water-orca")
+    cases = [
+        ("explicit-singlet", "Singlet", {"RIMode": "RIJCOSX",
+         "RIJCOSXAuxBasis": "def2/J"}, "RIJCOSX", "def2/J", False),
+        ("explicit-triplet", "Triplet", {"RIMode": "RIJCOSX",
+         "RIJCOSXAuxBasis": "def2/J"}, "RIJCOSX", "def2/J", False),
+        ("legacy-checkbox", "Singlet", {"UseRIJCOSX": "1",
+         "RIJCOSXAuxBasis": "def2/J"}, "RIJCOSX", "def2/J", False),
+        ("default-auxiliary", "Singlet", {"RIMode": "RIJCOSX"},
+         "RIJCOSX", "def2/J", False),
+        ("rijonx", "Singlet", {"RIMode": "RIJONX",
+         "RIJCOSXAuxBasis": "SARC/J"}, "RIJONX", "SARC/J", False),
+        ("explicit-none", "Singlet", {"RIMode": "None", "UseRIJCOSX": "1",
+         "RIJCOSXAuxBasis": "def2/J"}, "", "", False),
+        ("no-saved-details", "Singlet", {}, "", "", False),
+        ("output-without-editor-ri", "Singlet", {}, "RIJCOSX", "def2/J", True),
+        ("implicit-output-without-editor-ri", "Singlet", {}, "RIJCOSX", "def2/J", "implicit"),
+    ]
+    data = tempfile.mkdtemp(prefix="ecce-summary-data-")
+    try:
+        project = os.path.join(data, "users", "local", "summary-test")
+        os.makedirs(project)
+        shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+        for name, mult, settings, mode, aux, output in cases:
+            calc = os.path.join(project, name)
             shutil.copytree(os.path.join(fixture.FIXTURES,
                                          "calc-orca-water-ccpvdz"),
                             calc, symlinks=True)
+            functional = "B3LYP" if output == "implicit" else "PBE0 D3BJ"
+            setup = "ES.Theory.DFT.XCFunctionals|%s||1|1|menu_input\n" % functional
+            setup += "".join("ES.Theory.SCF.%s|%s||1|1|menu_input\n" % item
+                             for item in settings.items())
             with open(os.path.join(calc, "Parameters", "SetupParams"), "w") as f:
                 f.write(setup)
             meta = os.path.join(calc, ".ecce-meta")
@@ -290,14 +309,41 @@ def orcaCase(display, pngs):
                         'xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>')
                 lines.append(line)
             open(meta, "w").write("\n".join(lines) + "\n")
-            result = organizer(display, "file://" + calc,
-                               os.path.join(pngs, "orca-%s.png" % mult),
-                               {"ECCE_LOCAL_DATA": data})
-            expect = {"Theory": "DFT/RDFT \u00b7 PBE0 D3BJ \u00b7 RIJCOSX",
-                      "OpenShells": openShells, "CDFitting": "def2/J"}
-            checkFields("ORCA %s, RIJCOSX" % mult, result, expect)
-        finally:
-            shutil.rmtree(data, ignore_errors=True)
+            if output:
+                os.makedirs(os.path.join(calc, "Outputs"))
+                source = (os.path.join(os.path.dirname(ORCA_RI_OUTPUT), "h2o_smd.out")
+                          if output == "implicit" else ORCA_RI_OUTPUT)
+                shutil.copy(source, os.path.join(calc, "Outputs", "orca.orcaout"))
+            theory = "DFT/RDFT \u00b7 " + functional
+            if mode:
+                theory += " \u00b7 " + mode
+            yield name, data, "file://" + calc, {
+                "Theory": theory, "OpenShells": "2" if mult == "Triplet" else "0",
+                "CDFitting": aux}
+
+        # Use File > Import's real importer and job store, with no editor setup.
+        result = apps.run(display, "organizer", windowTimeout=60, settle=110,
+                          env={"ECCE_LOCAL_DATA": data,
+                               "ECCE_TEST_CALCIMPORT": os.path.abspath(ORCA_RI_OUTPUT),
+                               "ECCE_TEST_IMPORTREPORT": "1"})
+        log = result.log or ""
+        selected = re.search(r"ECCE_TEST_CALCIMPORT: selected (\S+)", log)
+        if result.crashed or not selected or "ECCE_TEST_CALCIMPORT: imported, code ORCA:" not in log:
+            failures.append("ORCA actual import")
+            print("FAIL  ORCA actual import\n" + run_tests._tail(log, 40))
+        else:
+            yield "imported-output", data, selected.group(1), {
+                "Theory": "DFT/RDFT \u00b7 PBE0 \u00b7 RIJCOSX",
+                "OpenShells": "0", "CDFitting": "def2/J"}
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+
+
+def orcaCase(display, pngs):
+    for name, data, url, expect in orcaCalculations(display):
+        result = organizer(display, url, os.path.join(pngs, "orca-%s.png" % name),
+                           {"ECCE_LOCAL_DATA": data})
+        checkFields("ORCA " + name, result, expect)
 
 
 def main():

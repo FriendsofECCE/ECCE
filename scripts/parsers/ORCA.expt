@@ -96,6 +96,8 @@ sub getInputEcho {
     # Printed before the echo; names the basis however it was given
     # (keyword line or %basis block).
     $reportedBasis = $1 if (/^Your calculation utilizes the basis:\s*(\S+)/);
+    $reportedAuxBasis = $1
+      if (/^Your calculation utilizes the auxiliary basis:\s*(\S+)/);
     last if (/^\s*INPUT FILE\s*$/);
   }
   $_ = <INPUT>;  # ====... line
@@ -116,9 +118,9 @@ sub getInputEcho {
 # undefined rather than guessed at.
 ###############################################################################
 sub parseKeywordLine {
-  my ($kwline) = grep(/^!/, @inputEchoLines);
-  return if (!defined($kwline));
-  $kwline =~ s/^!\s*//;
+  my $kwline = join(" ", map { s/^\s*!\s*//r }
+                          grep(/^\s*!/, @inputEchoLines));
+  return if ($kwline eq "");
   my @tokens = split(/\s+/, $kwline);
 
   my %xcFunctionals = map { uc($_) => $_ }
@@ -158,6 +160,11 @@ sub parseKeywordLine {
     elsif ($ucTok eq "CCSD" || $ucTok eq "CCSD(T)") { $sawCC = $tok; }
     elsif ($ucTok eq "RKS") { $sawRKS = 1; }
     elsif ($ucTok eq "UKS") { $sawUKS = 1; }
+    elsif ($ucTok eq "RIJCOSX" || $ucTok eq "RIJONX") { $riMode = $ucTok; }
+    elsif ($ucTok eq "NORI") { $riMode = "None"; }
+    elsif ($ucTok eq "DEF2/J") { $riAuxBasis = "def2/J"; }
+    elsif ($ucTok eq "DEF2/JK") { $riAuxBasis = "def2/JK"; }
+    elsif ($ucTok eq "SARC/J") { $riAuxBasis = "SARC/J"; }
     elsif (exists($composites{$ucTok})) {
       ($compositeName, $compositeCat, $compositeBasis) = @{$composites{$ucTok}};
     }
@@ -179,6 +186,8 @@ sub parseKeywordLine {
     # fix, 2026-09-06 session).
     elsif (exists($BasisToName{$ucTok})) { $basisName = $tok; }
   }
+  # The output records the effective auxiliary basis even when ORCA chose it.
+  $riAuxBasis = $reportedAuxBasis if (defined($reportedAuxBasis));
   $basisName = $reportedBasis
     if (!defined($basisName) && defined($reportedBasis) &&
         exists($BasisToName{uc($reportedBasis)}));
@@ -253,6 +262,11 @@ sub getMolecule {
     # input echo, which "* xyzfile" or "%coords" leave without them.
     if (/^\s*Total Charge\s+Charge\s+\.+\s+(-?\d+)/) { $charge = $1; }
     if (/^\s*Multiplicity\s+Mult\s+\.+\s+(\d+)/) { $multiplicity = $1; }
+    # ORCA may enable RI without a keyword, so use the effective SCF settings.
+    if (/^\s*RI-approximation to the Coulomb term is turned on/) {
+      $riMode = "RIJONX";
+    }
+    if (/^\s*RIJ-COSX\b.*\.+\s+on\s*$/) { $riMode = "RIJCOSX"; }
     # The molecule's point group: "Auto-detected point group .... D6h"
     # with UseSym, else the thermochemistry's "Point Group:  C2v, ...".
     # Not the "Reduced point group" (D2h for benzene): that is the abelian
@@ -325,6 +339,9 @@ sub writeDictAndMVM {
         if (defined($multiplicity));
   print(PARAMS "ES.Theory.DFT.XCFunctionals:\t$xcFunctional\n")
         if (defined($xcFunctional));
+  print(PARAMS "ES.Theory.SCF.RIMode:\t$riMode\n") if (defined($riMode));
+  print(PARAMS "ES.Theory.SCF.RIJCOSXAuxBasis:\t$riAuxBasis\n")
+        if (defined($riMode) && $riMode ne "None" && defined($riAuxBasis));
   # ai.orca's broken-symmetry guess (#858), so a rerun keeps it.
   print(PARAMS "ES.Theory.SCF.BrokenSymmetryGuess:\t1\n")
         if (grep(/^\s*GuessMix\b/i, @inputEchoLines));
