@@ -10,15 +10,25 @@ Usage: ecce-bandshift <calcA> <calcB> [--atoms SET] [--threshold T]
 A and B are calculation folders (last GEOMTRACE frame, Props/VIB, VIBFREQ,
 VIBIR) or modes files (read_modes_file).
 
-The common atoms are all atoms of A when A and B have as many atoms, else
-SET, 1-based and ordered: "1-12:5-16" maps A's atoms 1-12 to B's 5-16, a
-set without a colon ("1-12") names the same indices in both.  B's geometry
-is fitted onto A over the common atoms (proper rotation, Kabsch) and B's
-modes are rotated the same way.  The stored vectors are taken as Cartesian
-displacements of any normalisation; they are mass-weighted, cut to the common
-atoms and renormalised, so an overlap is the cosine of the motion of the
-common atoms alone.  Modes are matched one-to-one, greedily by largest
-|overlap|, above --threshold (default 0.5).  The shift is B - A in cm-1.
+The common atoms are found automatically: the smaller calculation (the free
+molecule) is looked up in the larger one as a bonded unit, by element and
+covalent bonds (bonds to metal atoms do not count, so a bound anion or ligand
+is a unit of its own).  Every copy found gives one map; among the equivalent
+maps of a copy (the O atoms of a sulfate, the H atoms of a methyl) the one with
+the lowest Kabsch RMSD is kept.  --atoms SET overrides this for scripts:
+1-based and ordered, "1-12:5-16" maps A's atoms 1-12 to B's 5-16, a set
+without a colon names the same indices in both; mapped elements must agree.
+
+The free molecule's geometry is fitted onto each copy over the common atoms
+(proper rotation, Kabsch) and the modes are rotated the same way.  The stored
+vectors are taken as Cartesian displacements of any normalisation; they are
+mass-weighted, cut to the common atoms and renormalised, so an overlap is the
+cosine of the motion of the common atoms alone.  With one copy, modes are
+matched one-to-one, greedily by largest |overlap|, above --threshold (default
+0.5).  With several copies every band of the larger calculation takes the free
+band it resembles most in any phase of the copies, so one free band may pair
+with several (in-phase and out-of-phase combinations): a split.  The shift is
+B - A in cm-1.
 """
 import argparse
 import csv
@@ -59,6 +69,21 @@ MASS = {
     "Re": 186.21, "Os": 190.23, "Ir": 192.22, "Pt": 195.08, "Au": 196.97,
     "Hg": 200.59, "Tl": 204.38, "Pb": 207.2, "Bi": 208.98,
 }
+
+
+# Covalent radii in A (Cordero 2008); unknown elements get 1.5.
+RADIUS = {
+    "H": 0.31, "He": 0.28, "Li": 1.28, "Be": 0.96, "B": 0.84, "C": 0.76,
+    "N": 0.71, "O": 0.66, "F": 0.57, "Ne": 0.58, "Na": 1.66, "Mg": 1.41,
+    "Al": 1.21, "Si": 1.11, "P": 1.07, "S": 1.05, "Cl": 1.02, "Ar": 1.06,
+    "K": 2.03, "Ca": 1.76, "Ge": 1.20, "As": 1.19, "Se": 1.20, "Br": 1.20,
+    "Kr": 1.16, "Sb": 1.39, "Te": 1.38, "I": 1.39, "Xe": 1.40,
+}
+# Elements whose contacts are coordination, not bonds.
+NONMETAL = {"H", "He", "B", "C", "N", "O", "F", "Ne", "Si", "P", "S", "Cl",
+            "Ar", "Ge", "As", "Se", "Br", "Kr", "Sb", "Te", "I", "Xe"}
+BOND_TOL = 1.2
+MAX_MAPS = 5000       # equivalent maps tried per copy
 
 
 def _vector(path):
@@ -153,11 +178,7 @@ def parse_set(text, n):
 
 
 def common_atoms(spec, na, nb):
-    """-> (indices in A, indices in B), pairwise."""
-    if not spec:
-        if na != nb:
-            raise ValueError("A has %d atoms and B %d: give --atoms" % (na, nb))
-        return list(range(na)), list(range(nb))
+    """-> (indices in A, indices in B), pairwise, for a typed map."""
     if ":" in spec:
         sa, sb = spec.split(":", 1)
         ia, ib = parse_set(sa, na), parse_set(sb, nb)
@@ -170,6 +191,144 @@ def common_atoms(spec, na, nb):
     if len(ia) < 3:
         raise ValueError("at least 3 common atoms are needed for the fit")
     return ia, ib
+
+
+def bond_graph(els, xyz):
+    """Adjacency sets from coordinates; bonds to metal atoms are left out."""
+    n = len(els)
+    adj = [set() for _ in range(n)]
+    for i in range(n):
+        if els[i] not in NONMETAL:
+            continue
+        for j in range(i + 1, n):
+            if els[j] not in NONMETAL:
+                continue
+            d = math.dist(xyz[i], xyz[j])
+            if 0.4 < d < BOND_TOL * (RADIUS.get(els[i], 1.5) +
+                                     RADIUS.get(els[j], 1.5)):
+                adj[i].add(j)
+                adj[j].add(i)
+    return adj
+
+
+def components(adj):
+    seen, out = set(), []
+    for s0 in range(len(adj)):
+        if s0 in seen:
+            continue
+        comp, todo = [], [s0]
+        seen.add(s0)
+        while todo:
+            u = todo.pop()
+            comp.append(u)
+            for v in adj[u]:
+                if v not in seen:
+                    seen.add(v)
+                    todo.append(v)
+        out.append(sorted(comp))
+    return out
+
+
+def formula(els):
+    cnt = {}
+    for e in els:
+        cnt[e] = cnt.get(e, 0) + 1
+    return " ".join(e + (str(c) if c > 1 else "") for e, c in cnt.items())
+
+
+def _isomorphisms(sels, sadj, bels, badj, comp, limit):
+    """Element-labelled isomorphisms of the small graph onto the component
+    comp of the big one: lists m with m[s] = big atom.  -> (maps, capped)."""
+    n = len(sels)
+    start = min(range(n), key=lambda i: (-len(sadj[i]), sels[i]))
+    order, parent, seen = [start], {start: None}, {start}
+    for u in order:
+        for v in sorted(sadj[u]):
+            if v not in seen:
+                seen.add(v)
+                parent[v] = u
+                order.append(v)
+    maps, m, used = [], {}, set()
+    state = {"capped": False}
+
+    def rec(k):
+        if state["capped"]:
+            return
+        if k == n:
+            if len(maps) >= limit:
+                state["capped"] = True
+                return
+            maps.append([m[i] for i in range(n)])
+            return
+        s = order[k]
+        cands = comp if parent[s] is None else sorted(badj[m[parent[s]]])
+        for c in cands:
+            if (c in used or bels[c] != sels[s]
+                    or len(badj[c]) != len(sadj[s])):
+                continue
+            if any(t in m and m[t] not in badj[c] for t in sadj[s]):
+                continue
+            m[s] = c
+            used.add(c)
+            rec(k + 1)
+            del m[s]
+            used.discard(c)
+
+    rec(0)
+    return maps, state["capped"]
+
+
+def _occurrence(ia, ib, xa, xb):
+    rmsd, aligned, _rot = D.kabsch_rotation([xa[i] for i in ia],
+                                            [xb[i] for i in ib])
+    dist = [math.dist(aligned[k], xa[ia[k]]) for k in range(len(ia))]
+    return {"ia": list(ia), "ib": list(ib), "rmsd": rmsd, "dist": dist}
+
+
+def auto_map(ela, xa, elb, xb, name_a="A", name_b="B"):
+    """The smaller structure as a bonded unit in the larger one.
+    -> (occurrences, capped, free) with free 'a' or 'b': the smaller side."""
+    na, nb = len(ela), len(elb)
+    if na == nb and ela == elb:
+        return [_occurrence(range(na), range(nb), xa, xb)], False, "a"
+    free = "a" if na <= nb else "b"
+    sels, sx, sname = (ela, xa, name_a) if free == "a" else (elb, xb, name_b)
+    bels, bx, bname = (elb, xb, name_b) if free == "a" else (ela, xa, name_a)
+    if len(sels) < 3:
+        raise ValueError("%s has fewer than 3 atoms: nothing to fit"
+                         % sname)
+    sadj = bond_graph(sels, sx)
+    if len(components(sadj)) != 1:
+        raise ValueError("%s (%s) is not one bonded unit (bonds to metal "
+                         "atoms do not count); give --atoms"
+                         % (sname, formula(sels)))
+    badj = bond_graph(bels, bx)
+    occ, capped = [], False
+    for comp in components(badj):
+        if len(comp) != len(sels) or \
+                sorted(bels[c] for c in comp) != sorted(sels):
+            continue
+        maps, cp = _isomorphisms(sels, sadj, bels, badj, comp, MAX_MAPS)
+        capped = capped or cp
+        best = None
+        for mp in maps:
+            ia, ib = (list(range(len(sels))), mp) if free == "a" else \
+                (mp, list(range(len(sels))))
+            o = _occurrence(ia, ib, xa, xb)
+            if best is None or o["rmsd"] < best["rmsd"]:
+                best = o
+        if best:
+            occ.append(best)
+    if not occ:
+        raise ValueError("%s (%s) not found in %s as a bonded unit (same "
+                         "elements and bonds; bonds to metal atoms do not "
+                         "count)" % (sname, formula(sels), bname))
+    occ.sort(key=lambda o: min(o["ia"] if free == "b" else o["ib"]))
+    return occ, capped, free
+
+
+def label(els, idx):
+    return " ".join("%s%d" % (els[i], i + 1) for i in idx)
 
 
 def _weighted(mode, idx, rot, masses):
@@ -188,92 +347,175 @@ def _weighted(mode, idx, rot, masses):
     return [c / nrm for c in v]
 
 
-def bandshift(a, b, atoms=None, threshold=0.5):
+def _raw(mode, idx, rot, masses):
+    """The mode's motion of atoms idx, rotated and mass-weighted."""
+    v = []
+    for a in idx:
+        d = mode[a]
+        if rot:
+            d = [sum(rot[i][k] * d[k] for k in range(3)) for i in range(3)]
+        w = math.sqrt(masses[a])
+        v.extend(c * w for c in d)
+    return v
+
+
+def _unit(v):
+    nrm = math.sqrt(sum(c * c for c in v))
+    return None if nrm < 1e-10 else [c / nrm for c in v]
+
+
+def bandshift(a, b, atoms=None, threshold=0.5, names=("A", "B")):
     """a, b: read_modes() results.  -> dict, see the module docstring."""
     ela, xa, fa, ira, ma = a
     elb, xb, fb, irb, mb = b
-    ia, ib = common_atoms(atoms, len(xa), len(xb))
-    rmsd, _al, rot = D.kabsch_rotation([xa[i] for i in ia],
-                                       [xb[i] for i in ib])
+    capped, auto = False, False
+    free = "a"
+    if atoms and atoms != "auto":
+        ia, ib = common_atoms(atoms, len(xa), len(xb))
+        for i, j in zip(ia, ib):
+            if ela[i] != elb[j]:
+                raise ValueError("atom %d of A is %s but atom %d of B is %s: "
+                                 "mapped atoms must be the same element"
+                                 % (i + 1, ela[i], j + 1, elb[j]))
+        occ = [_occurrence(ia, ib, xa, xb)]
+    else:
+        auto = True
+        occ, capped, free = auto_map(ela, xa, elb, xb, names[0], names[1])
     massa = [MASS.get(e) for e in ela]
     massb = [MASS.get(e) for e in elb]
-    if any(massa[i] is None for i in ia) or any(massb[i] is None for i in ib):
-        raise ValueError("an element of the common atoms has no known mass")
-    va = [_weighted(m, ia, None, massa) for m in ma]
-    vb = []
-    for m in mb:
-        sub = [m[i] for i in ib]
-        vb.append(_weighted(sub, range(len(ib)), rot,
-                            [massb[i] for i in ib]))
-    cand = []
-    for i, x in enumerate(va):
-        if x is None:
-            continue
-        for j, y in enumerate(vb):
-            if y is None:
+    for o in occ:
+        if any(massa[i] is None for i in o["ia"]) or \
+                any(massb[i] is None for i in o["ib"]):
+            raise ValueError("an element of the common atoms has no known mass")
+
+    # F: the free (repeated) side, B: the side that holds the copies; the
+    # copies' modes are rotated into F's frame.
+    if free == "a":
+        fm, fmass, bm, bmass, fk, bk = ma, massa, mb, massb, "ia", "ib"
+        fx, bx = xa, xb
+    else:
+        fm, fmass, bm, bmass, fk, bk = mb, massb, ma, massa, "ib", "ia"
+        fx, bx = xb, xa
+    vf = [_unit(_raw(m, occ[0][fk], None, fmass)) for m in fm]
+    rbig = []                       # rbig[j][o]
+    rots = []
+    for o in occ:
+        _r, _al, rot = D.kabsch_rotation([fx[i] for i in o[fk]],
+                                         [bx[i] for i in o[bk]])
+        rots.append(rot)
+    nrm = []
+    for m in bm:
+        per = [_raw(m, o[bk], rots[k], bmass) for k, o in enumerate(occ)]
+        rbig.append(per)
+        n2 = math.sqrt(sum(c * c for v in per for c in v))
+        nrm.append(None if n2 < 1e-10 else n2)
+
+    def overlap(x, j):
+        return math.sqrt(sum(sum(p * q for p, q in zip(x, v)) ** 2
+                             for v in rbig[j])) / nrm[j]
+
+    pairs = []                      # (free mode, copy-side mode, overlap)
+    if len(occ) == 1:
+        cand = sorted((-overlap(x, j), i, j)
+                      for i, x in enumerate(vf) if x is not None
+                      for j in range(len(bm)) if nrm[j] is not None
+                      if overlap(x, j) >= threshold)
+        used_f, used_b = set(), set()
+        for no, i, j in cand:
+            if i in used_f or j in used_b:
                 continue
-            o = abs(sum(p * q for p, q in zip(x, y)))
-            if o >= threshold:
-                cand.append((-o, i, j))
-    cand.sort()
-    used_a, used_b, pairs = set(), set(), []
-    for no, i, j in cand:
-        if i in used_a or j in used_b:
-            continue
-        used_a.add(i)
-        used_b.add(j)
-        pairs.append((i, j, -no))
-    pairs.sort(key=lambda p: fa[p[0]])
+            used_f.add(i)
+            used_b.add(j)
+            pairs.append((i, j, -no))
+    else:
+        for j in range(len(bm)):
+            if nrm[j] is None:
+                continue
+            best = max(((overlap(x, j), i) for i, x in enumerate(vf)
+                        if x is not None), default=None)
+            if best and best[0] >= threshold:
+                pairs.append((best[1], j, best[0]))
+    partners = {}
+    for i, _j, _o in pairs:
+        partners[i] = partners.get(i, 0) + 1
+    if free == "a":
+        pairs = [(i, j, o, partners[i]) for i, j, o in pairs]
+    else:
+        pairs = [(j, i, o, partners[i]) for i, j, o in pairs]
+    pairs.sort(key=lambda p: (fa[p[0]], fb[p[1]]))
+    used_a = {p[0] for p in pairs}
+    used_b = {p[1] for p in pairs}
 
     def band(freqs, ir, i):
         return {"mode": i + 1, "freq": freqs[i],
                 "ir": ir[i] if ir else None}
 
     matches = []
-    for i, j, o in pairs:
+    for i, j, o, sp in pairs:
         ba, bb = band(fa, ira, i), band(fb, irb, j)
         matches.append({"mode_a": ba["mode"], "freq_a": ba["freq"],
                         "ir_a": ba["ir"], "mode_b": bb["mode"],
                         "freq_b": bb["freq"], "ir_b": bb["ir"],
-                        "shift": bb["freq"] - ba["freq"], "overlap": o})
+                        "shift": bb["freq"] - ba["freq"], "overlap": o,
+                        "split": sp})
 
-    def rest(freqs, ir, used, vecs):
+    def rest(freqs, ir, used, side):
         out = []
         for i in range(len(freqs)):
             if i in used:
                 continue
+            if side == free:
+                dead = vf[i] is None
+            else:
+                dead = nrm[i] is None
             r = band(freqs, ir, i)
-            r["reason"] = ("no motion of the common atoms"
-                           if vecs[i] is None else
+            r["reason"] = ("no motion of the common atoms" if dead else
                            "overlap below %g" % threshold)
             out.append(r)
         return out
 
-    return {"n_common": len(ia), "fit_rmsd": rmsd, "threshold": threshold,
-            "matches": matches,
-            "unmatched_a": rest(fa, ira, used_a, va),
-            "unmatched_b": rest(fb, irb, used_b, vb)}
+    occs = []
+    for o in occ:
+        occs.append({"atoms_a": [i + 1 for i in o["ia"]],
+                     "atoms_b": [i + 1 for i in o["ib"]],
+                     "label_a": label(ela, o["ia"]),
+                     "label_b": label(elb, o["ib"]),
+                     "rmsd": o["rmsd"], "dist": o["dist"]})
+    return {"n_common": len(occ[0]["ia"]),
+            "fit_rmsd": max(o["rmsd"] for o in occ), "threshold": threshold,
+            "auto": auto, "capped": capped, "free": free,
+            "occurrences": occs, "matches": matches,
+            "unmatched_a": rest(fa, ira, used_a, "a"),
+            "unmatched_b": rest(fb, irb, used_b, "b")}
 
 
 COLS = ["mode_a", "freq_a", "ir_a", "mode_b", "freq_b", "ir_b", "shift",
-        "overlap"]
+        "overlap", "split"]
 
 
 def _num(v, fmt):
     return "-" if v is None else fmt % v
 
 
+def common_line(o):
+    return "common atoms: %s = %s, fit RMSD %.2f A (largest atom distance " \
+           "%.2f A)" % (o["label_a"], o["label_b"], o["rmsd"], max(o["dist"]))
+
+
 def as_text(res, na, nb):
-    out = ["A: %s   B: %s   common atoms: %d (fit RMSD %.3f A)   "
-           "overlap threshold %g" % (na, nb, res["n_common"],
-                                    res["fit_rmsd"], res["threshold"]),
-           "%6s %9s %9s  %6s %9s %9s  %8s %7s" %
-           ("mode A", "freq A", "IR A", "mode B", "freq B", "IR B",
-            "shift", "overlap")]
+    out = ["A: %s   B: %s   overlap threshold %g" % (na, nb, res["threshold"])]
+    out.extend(common_line(o) for o in res["occurrences"])
+    if res["capped"]:
+        out.append("note: more equivalent atom maps than the %d tried per "
+                   "copy; the best of those tried is used" % MAX_MAPS)
+    out.append("%6s %9s %9s  %6s %9s %9s  %8s %7s" %
+               ("mode A", "freq A", "IR A", "mode B", "freq B", "IR B",
+                "shift", "overlap"))
     for m in res["matches"]:
         out.append("%6d %9.1f %9s  %6d %9.1f %9s  %+8.1f %7.3f" % (
             m["mode_a"], m["freq_a"], _num(m["ir_a"], "%.1f"), m["mode_b"],
-            m["freq_b"], _num(m["ir_b"], "%.1f"), m["shift"], m["overlap"]))
+            m["freq_b"], _num(m["ir_b"], "%.1f"), m["shift"], m["overlap"])
+            + ("   split over %d bands" % m["split"] if m["split"] > 1 else ""))
     for key, name in (("unmatched_a", "A"), ("unmatched_b", "B")):
         if res[key]:
             out.append("Unmatched in %s:" % name)
@@ -288,7 +530,10 @@ def main(argv=None):
     ap.add_argument("calc_a")
     ap.add_argument("calc_b")
     ap.add_argument("--atoms", default="",
-                    help="common atoms: '1-12' or '1-12:5-16' (A:B)")
+                    help="override the automatic map: '1-12' or '1-12:5-16' "
+                         "(A:B)")
+    ap.add_argument("--name-a", default="")
+    ap.add_argument("--name-b", default="")
     ap.add_argument("--threshold", type=float, default=0.5)
     ap.add_argument("--lines", action="store_true",
                     help="tab-separated lines for the GUI")
@@ -298,7 +543,9 @@ def main(argv=None):
     o = ap.parse_args(argv)
     try:
         res = bandshift(read_modes(o.calc_a), read_modes(o.calc_b),
-                        o.atoms, o.threshold)
+                        o.atoms, o.threshold,
+                        (o.name_a or os.path.basename(os.path.normpath(o.calc_a)),
+                         o.name_b or os.path.basename(os.path.normpath(o.calc_b))))
     except ValueError as e:
         print("ecce-bandshift: %s" % e, file=sys.stderr)
         return 1
@@ -307,11 +554,17 @@ def main(argv=None):
     if o.lines:
         print("header\t%d\t%.6f\t%g" % (res["n_common"], res["fit_rmsd"],
                                           res["threshold"]))
+        for oc in res["occurrences"]:
+            print("common\t%s\t%s\t%.4f\t%.4f" % (
+                oc["label_a"], oc["label_b"], oc["rmsd"], max(oc["dist"])))
+        if res["capped"]:
+            print("note\tmore equivalent atom maps than the %d tried per "
+                  "copy" % MAX_MAPS)
         for m in res["matches"]:
-            print("match\t%d\t%.4f\t%s\t%d\t%.4f\t%s\t%.4f\t%.6f" % (
+            print("match\t%d\t%.4f\t%s\t%d\t%.4f\t%s\t%.4f\t%.6f\t%d" % (
                 m["mode_a"], m["freq_a"], _num(m["ir_a"], "%.4f"),
                 m["mode_b"], m["freq_b"], _num(m["ir_b"], "%.4f"),
-                m["shift"], m["overlap"]))
+                m["shift"], m["overlap"], m["split"]))
         for key, tag in (("unmatched_a", "A"), ("unmatched_b", "B")):
             for r in res[key]:
                 print("unmatched\t%s\t%d\t%.4f\t%s\t%s" % (

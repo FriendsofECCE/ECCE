@@ -57,6 +57,37 @@ def extra_atom_copy(dst):
     sub(os.path.join(p, "VIB"), vib)
 
 
+SULF = os.path.join(REPO, "data", "client", "examples", "spectroscopy",
+                    "sulfate-coordination")
+
+
+def example(name):
+    d = os.path.join(SULF, "orca-" + name, "stored", name)
+    return d
+
+
+def two_copies(dst):
+    """Water twice (the second turned 90 deg about z and 50 A away): modes in
+    phase at f and out of phase at f+1, for the split case."""
+    sys.path.insert(0, os.path.join(REPO, "scripts"))
+    import ecce_bandshift as B
+    els, xyz, fr, ir, md = B.read_modes(FIX)
+    rot = lambda v: (-v[1], v[0], v[2])
+    xyz2 = [tuple(c + o for c, o in zip(rot(p), (50.0, 0, 0))) for p in xyz]
+    lines = ["6"]
+    for e, p in zip(els * 2, list(xyz) + xyz2):
+        lines.append("%s %.8f %.8f %.8f" % (e, *p))
+    lines.append("modes %d" % (2 * len(fr)))
+    for sign, df in ((1, 0.0), (-1, 1.0)):
+        for f, m in zip(fr, md):
+            lines.append("%.6f" % (f + df))
+            for d in m:
+                lines.append("%.8f %.8f %.8f" % tuple(d))
+            for d in m:
+                lines.append("%.8f %.8f %.8f" % tuple(sign * c for c in rot(d)))
+    open(dst, "w").write("\n".join(lines) + "\n")
+
+
 def main():
     tmp = tempfile.mkdtemp(prefix="ecce-bandshift-")
     try:
@@ -82,8 +113,10 @@ def main():
 
         ex = os.path.join(tmp, "extra")
         extra_atom_copy(ex)
-        rc, _, err = run(FIX, ex)
-        check("different atom counts need --atoms", rc != 0 and "--atoms" in err, err)
+        rc, out, err = run(FIX, ex, "--json")
+        r = json.loads(out) if rc == 0 else {}
+        check("different atom counts: automatic map", rc == 0 and
+              r["occurrences"][0]["label_b"] == "O2 H3 H4" and len(r["matches"]) == 3, err)
         rc, out, err = run(FIX, ex, "--atoms", "1-3:2-4", "--json")
         check("fragment case runs", rc == 0, err)
         r = json.loads(out)
@@ -96,6 +129,54 @@ def main():
         check("reverse direction", rc == 0 and len(json.loads(out)["matches"]) == 3, err)
         rc, _, err = run(FIX, ex, "--atoms", "1-9")
         check("out-of-range atoms refused", rc != 0, err)
+
+        # The sulfate in four cobalt complexes, found without any typed atoms.
+        sul = example("sulfate")
+        want = {"co_nh3_5_oso3": {22, 23, 24, 25, 26},
+                "co_en2_cl_oso3": None, "co_en2_o2so2": None,
+                "co2_en4_oh_so4_bridged": {4, 5, 6, 8, 9}}
+        for name, atoms in want.items():
+            rc, out, err = run(sul, example(name), "--json")
+            check("sulfate in " + name, rc == 0, err)
+            if rc:
+                continue
+            r = json.loads(out)
+            oc = r["occurrences"]
+            ok = len(oc) == 1 and oc[0]["label_a"].startswith("S1 ") and \
+                oc[0]["rmsd"] < 0.2 and len(r["matches"]) >= 6 and \
+                [l.split()[0][0] for l in [oc[0]["label_b"]]] == ["S"] and \
+                sorted(a[0] for a in oc[0]["label_b"].split()) == ["O"] * 4 + ["S"]
+            if atoms:
+                ok = ok and set(oc[0]["atoms_b"]) == atoms
+            check("one map, S O4, fit below 0.2 A, " + name, ok, oc)
+            if name == "co2_en4_oh_so4_bridged":
+                check("the OH bridge oxygen (atom 3) is not used",
+                      3 not in oc[0]["atoms_b"])
+        rc, out, err = run(example("co2_en4_oh_so4_bridged"), sul, "--json")
+        r = json.loads(out) if rc == 0 else {}
+        check("complex as A: same atoms, swapped sides", rc == 0 and
+              set(r["occurrences"][0]["atoms_a"]) == {4, 5, 6, 8, 9} and
+              r["occurrences"][0]["label_b"].startswith("S1 ") and r["matches"], err)
+        rc, _, err = run(FIX, example("co_nh3_5_oso3"))
+        check("not found names the molecule", rc != 0 and "not found" in err
+              and "O H2" in err, err)
+        rc, _, err = run(sul, example("co_nh3_5_oso3"), "--atoms", "1-5")
+        check("typed map with different elements refused", rc != 0 and
+              "same element" in err, err)
+        rc, out, err = run(sul, example("co_nh3_5_oso3"), "--atoms", "1-5:23,24,25,26,22", "--json")
+        check("typed map still works", rc == 0 and json.loads(out)["n_common"] == 5, err)
+
+        two = os.path.join(tmp, "two.modes")
+        two_copies(two)
+        rc, out, err = run(FIX, two, "--json")
+        r = json.loads(out) if rc == 0 else {}
+        check("two copies: two maps", rc == 0 and len(r["occurrences"]) == 2, err)
+        ms = r.get("matches", [])
+        check("two copies: each free band pairs with two bands (split)",
+              len(ms) == 6 and all(m["split"] == 2 for m in ms) and
+              all(abs(m["overlap"] - 1) < 1e-6 for m in ms), ms)
+        check("two copies: in-phase unshifted, out-of-phase +1",
+              sorted(round(m["shift"], 3) for m in ms) == [0.0] * 3 + [1.0] * 3, ms)
     finally:
         shutil.rmtree(tmp, True)
     print("FAILED: %s" % ", ".join(fails) if fails else "all passed")
