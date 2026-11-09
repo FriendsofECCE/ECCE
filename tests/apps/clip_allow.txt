@@ -10,6 +10,3 @@
 # is taller than the pane the detail layout leaves it.
 ^1024x600\tdetail-Calculation Summary\toutside-parent\t
 #
-# Known, not yet fixed (#839): a Residue Table spin control in the classic
-# layout.
-^1366x768\tclassic-tool-Residue Table\ttext-wider-than-field\t
