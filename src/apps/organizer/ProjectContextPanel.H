@@ -74,6 +74,7 @@ class ProjectContextPanel : public ProjectContextPanelGUI
 
     void selectResource(const EcceURL &url);
     void selectResources(const vector<EcceURL>& urls);
+    void clickRow(int row, bool ctrl, bool shift);
 
     void loseFocus();
 

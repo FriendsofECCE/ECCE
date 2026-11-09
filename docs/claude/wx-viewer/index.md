@@ -98,6 +98,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [The MO table vanished and scrolled to the top when the ESP colour bar appeared: propertyPaneRoom (#285)](mo-panel-esp-bar-needs-pane-room.md)
 - [Structure Library ligands: a Nub atom bonded to each donor atom, pointing at the metal site](library-ligands-carry-a-nub-at-each-donor.md)
 - [Builder Save is only refreshed by updateSave(); a wxGrid in a sizer needs its own minimum size; Open structures height](builder-save-follows-dirty-and-grid-needs-its-own-size.md)
+- [Read a wxGrid's selection from the grid, not from range events; a pushed mouse handler must pass modifier clicks on (#925)](wxgrid-selection-read-from-grid.md)
 - [Builder mode: setMode() sets mode, viewer and toolbar together; Structure Library insert returns to Select; Esc is a char hook (#321)](builder-mode-is-set-by-setmode-only.md)
 - [NanoSVG draws objectBoundingBox radial gradients flat: the Builder bond/geometry icons use per-sphere userSpaceOnUse gradients (#323)](nanosvg-renders-bounding-box-gradients-flat.md)
 - [macOS: Coin's own offscreen context fails, so every thumbnail failed until CoinCglOffscreen (#344)](macos-offscreen-render-needs-our-cgl-context.md)

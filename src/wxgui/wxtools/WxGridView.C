@@ -156,7 +156,6 @@ void WxGridView::setModel(GridModel *model)
   if (model != 0) {
     p_dataModel = model;
     p_grid->ClearSelection();
-    p_selections.clear();
 
     p_grid->SetTable(model, false, wxGrid::wxGridSelectRows);
 
@@ -247,9 +246,39 @@ void WxGridView::setAttributes()
 }
 
 
+// Read from wxGrid itself: a set kept from range events went stale, as a
+// Shift+click that shrinks a block reports only the new block (wx 3.2).
 set<int> WxGridView::getSelectedRows()
 {
-  return p_selections;
+  set<int> rows;
+  for (const wxGridBlockCoords &b : p_grid->GetSelectedRowBlocks())
+    for (int r = b.GetTopRow(); r <= b.GetBottomRow(); r++)
+      rows.insert(r);
+  return rows;
+}
+
+
+// A left click on a row with the modifiers given, through the same handlers
+// a mouse click goes through (test hook).
+void WxGridView::clickRow(int row, bool ctrl, bool shift)
+{
+  if (row < 0 || row >= getRowCount() || getColCount() == 0) return;
+  wxWindow *win = p_grid->GetGridWindow();
+  wxRect r = p_grid->CellToRect(row, 0);
+  wxPoint at = p_grid->CalcScrolledPosition(
+      wxPoint(r.x + r.width / 2, r.y + r.height / 2));
+  const wxEventType types[] = { wxEVT_LEFT_DOWN, wxEVT_LEFT_UP };
+  for (wxEventType t : types) {
+    wxMouseEvent e(t);
+    e.SetPosition(at);
+    e.SetControlDown(ctrl);
+    e.SetRawControlDown(ctrl);
+    e.SetShiftDown(shift);
+    e.m_leftDown = (t == wxEVT_LEFT_DOWN);
+    e.SetEventObject(win);
+    win->GetEventHandler()->ProcessEvent(e);
+  }
+  if (win->HasCapture()) win->ReleaseMouse();
 }
 
 
@@ -412,7 +441,8 @@ void WxGridView::sortByCol(int col, bool ascSort, bool caseSensitive)
     p_caseSensitive = caseSensitive;
 
     // Save current cursor location and selections, if any
-    bool rowsSelected = (!p_selections.empty());
+    set<int> selected = getSelectedRows();
+    bool rowsSelected = (!selected.empty());
     GridElement *cursorElement = 0;
     set<GridElement*> selections;
     int cursorCol = 0;
@@ -422,15 +452,14 @@ void WxGridView::sortByCol(int col, bool ascSort, bool caseSensitive)
       cursorCol = p_grid->GetGridCursorCol();
       cursorElement = 
         p_dataModel->GetValueAsGridElement(cursorRow, cursorCol);
-      set<int>::iterator setIt = p_selections.begin();
-      while (setIt != p_selections.end()) {
+      set<int>::iterator setIt = selected.begin();
+      while (setIt != selected.end()) {
         selections.insert(p_dataModel->GetValueAsGridElement(*setIt, cursorCol));
         setIt++;
       }
     }
 
     p_grid->ClearSelection();
-    p_selections.clear();
 
     // timer.start();
     // Let model do the sort
@@ -468,7 +497,6 @@ void WxGridView::sortByCol(int col, bool ascSort, bool caseSensitive)
     }
     else {
       p_grid->ClearSelection();
-      p_selections.clear();
     }
   }
   p_grid->EndBatch();
@@ -641,18 +669,9 @@ void WxGridView::gridRangeSelect(wxGridRangeSelectEvent& event)
       }
       else {
         p_grid->SetSelectionBackground(ewxStyledWindow::getFocusedSelectionColor());
-        for (int i = topRow; i <= bottomRow; i++) {
-          p_selections.insert(i);
-        }
-      }
-    }
-    else {
-      for (int i = topRow; i <= bottomRow; i++) {
-        p_selections.erase(i);
       }
     }
   }
-  // cout << "p_selections.size()" << p_selections.size() << endl;
   event.Skip();
 }
 
@@ -727,7 +746,10 @@ setIt = selRows.begin();
     setIt++;
   }
 
-  if (rowSelected && !event.ControlDown()) {
+  // Only a plain press on a selected row may start a drag; Shift and Ctrl
+  // go to wxGrid, which extends or toggles the selection.
+  if (rowSelected && !event.ControlDown() && !event.CmdDown() &&
+      !event.ShiftDown()) {
     p_potentialDrag = true;
   }
   else {
