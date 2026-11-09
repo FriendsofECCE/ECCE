@@ -3,13 +3,18 @@
 # (ECCE.app/Contents/Resources/python), for the machine's own architecture.
 # The Theory/Runtype Details dialogs, the first-start window and the other
 # Python helpers run on it, so a Mac needs no Python of its own (#133).
-# python-build-standalone is built for macOS 10.9 (Intel) / 11.0 (Apple
-# silicon); the wxPython wheels for 10.13 / 11.0, so both are within the
-# deployment targets the app is built for (minos.py checks).
+# python-build-standalone x86_64 builds target macOS 10.9 only up to release
+# 20241206; later ones need 10.15, so a deployment target below 10.15 pins
+# that release. Apple silicon is 11.0; the wxPython wheels are 10.13 / 11.0
+# (minos.py checks the result).
 set -euo pipefail
 DEST=$1
 PBS_TAG=20261003
 PY_VERSION=3.13.16
+case "$(uname -m):${MACOSX_DEPLOYMENT_TARGET:-}" in
+  x86_64:10.[0-9]|x86_64:10.1[0-4]|x86_64:10.[0-9].*|x86_64:10.1[0-4].*)
+    PBS_TAG=20241206; PY_VERSION=3.13.1 ;;
+esac
 WX_VERSION=4.2.4
 case "$(uname -m)" in
   arm64) triple=aarch64-apple-darwin ;;
