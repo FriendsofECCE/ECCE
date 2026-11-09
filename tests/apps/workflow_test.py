@@ -1308,6 +1308,10 @@ def run_autorun(display, data, work, shots):
         "workflowplay %s" % wf,
         "workflowplay %s" % wf,
         "workflowautorun %s query" % wf,
+        # #931: Back to Table shows the folder's table; the folder in the tree
+        # does the same after the workflow was opened again.
+        "workflowclose %s press" % wf,
+        "workflowclose %s folder" % wf,
         "workflowshot %s %s" % (os.path.join(shots, "workflow-play-buttons.png"), wf),
     ]
     with open(script2, "w") as f:
@@ -1327,6 +1331,11 @@ def run_autorun(display, data, work, shots):
     click = answers("workflowautorunclick")
     check("ticking auto-run keeps the workflow view shown (#902)",
           click == ["ok shown=1 autorun=on"], str(click))
+    closed = answers("workflowclose")
+    check("Back to Table shows the folder's table, selecting the folder does too (#931)",
+          len(closed) == 2 and all(c.startswith("ok view=table selected=") and
+                                   not c.endswith("/" + wf) for c in closed),
+          str(closed))
     check("ticking auto-run launched the ready step", play and "d:0:already run" in play[-1],
           str(play))
     run_recipe_ready(display, data, work, shots, rundir)
