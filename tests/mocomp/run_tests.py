@@ -73,7 +73,7 @@ def read_rows(lines):
     return rows
 
 
-def run_mocomp(build, fixture, mos, beta, method="mulliken"):
+def run_mocomp(build, fixture, mos, beta, method="mulliken", tsv=True):
     work = tempfile.mkdtemp(prefix="mocomp-")
     try:
         calc = os.path.join(work, "calc")
@@ -83,7 +83,9 @@ def run_mocomp(build, fixture, mos, beta, method="mulliken"):
         env = dict(os.environ, ECCE_HOME=REPO, ECCE_REALUSER="mocomp",
                    ECCE_REALUSERHOME=home)
         env.pop("ECCE_LOCAL_DATA", None)
-        cmd = [os.path.join(build, "mocomp"), calc, "--tsv", "--method", method]
+        cmd = [os.path.join(build, "mocomp"), calc, "--method", method]
+        if tsv:
+            cmd.append("--tsv")
         if beta:
             cmd.append("--beta")
         for m in mos:
