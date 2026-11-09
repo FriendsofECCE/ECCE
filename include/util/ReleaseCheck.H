@@ -39,6 +39,10 @@ namespace ReleaseCheck
   bool newerRelease(const string& current, const string& json,
                     Release& found, bool includePreviews = false);
 
+  /// Whether `candidate` is on `current`'s release line: the same major
+  /// version, and for the bug-fix lines (8.x, 9.4.x) the same minor too.
+  bool sameLine(const string& candidate, const string& current);
+
   /// The releases URL, or ECCE_UPDATE_CHECK_URL when set (a test hook;
   /// an http(s) URL or a file:// path to a JSON file).
   string releasesUrl();
