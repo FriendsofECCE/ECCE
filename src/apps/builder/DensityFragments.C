@@ -106,10 +106,12 @@ bool choose(wxWindow *parent, IPropCalculation *calc, const vector<string>& curr
     for (const string& c : current)
       if (c == found[i]->getURL().toString()) on.Add((int)i);
   }
+  // Line breaks: the generic dialog sizes to its longest line.
   wxMultiChoiceDialog dlg(parent,
-      "Tick the fragments to subtract from this calculation: each is a "
-      "calculation of some of the same atoms at the same positions, with the "
-      "same basis set. The difference is this density minus theirs.",
+      "Tick the fragments to subtract from this calculation.\n"
+      "Each is a calculation of some of the same atoms at the same\n"
+      "positions, with the same basis set. The difference is this\n"
+      "density minus theirs.",
       "Density difference", names);
   dlg.SetSelections(on);
   if (dlg.ShowModal() != wxID_OK) return false;

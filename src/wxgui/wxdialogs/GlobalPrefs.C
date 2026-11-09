@@ -346,8 +346,8 @@ void GlobalPrefs::createColoursPage(wxWindow* page)
   row->Add(p_elementColours, 0, wxALIGN_CENTER_VERTICAL);
   box->Add(row, 0, wxALL, PAD);
   box->Add(new ewxStaticText(sb, wxID_ANY,
-      _("Used for the atoms in the 3D viewer, the periodic table and "
-        "thumbnails. An open Builder changes at once; other windows "
+      _("Used for the atoms in the 3D viewer, the periodic table and\n"
+        "thumbnails. An open Builder changes at once; other windows\n"
         "change when they are next opened.")), 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD);
   outer->Add(box, 0, wxGROW|wxALL, PAD);
 
@@ -363,8 +363,8 @@ void GlobalPrefs::createColoursPage(wxWindow* page)
   row2->Add(p_stateIconStyle, 0, wxALIGN_CENTER_VERTICAL);
   box2->Add(row2, 0, wxALL, PAD);
   box2->Add(new ewxStaticText(sb2, wxID_ANY,
-      _("The small state icons in the Organizer tree and legend. An open "
-        "Organizer changes at once; other windows change when they are "
+      _("The small state icons in the Organizer tree and legend. An open\n"
+        "Organizer changes at once; other windows change when they are\n"
         "next opened.")), 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD);
   outer->Add(box2, 0, wxGROW|wxALL, PAD);
   page->SetSizer(outer);
@@ -541,10 +541,10 @@ void GlobalPrefs::createAdvancedPage(wxWindow* page)
 {
   wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
   ewxStaticText* intro = new ewxStaticText(page, wxID_ANY,
-      _("These switches are for testing and troubleshooting; leave them off "
-        "unless you are asked to turn one on.\nA change applies to programs "
-        "started afterwards; a program that is already open keeps its "
-        "settings until it is restarted."));
+      _("These switches are for testing and troubleshooting; leave them\n"
+        "off unless you are asked to turn one on.\n"
+        "A change applies to programs started afterwards; a program that\n"
+        "is already open keeps its settings until it is restarted."));
   outer->Add(intro, 0, wxALL, PAD);
 
   wxBoxSizer* glLine = new wxBoxSizer(wxHORIZONTAL);

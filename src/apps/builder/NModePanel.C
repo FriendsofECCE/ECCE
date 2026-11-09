@@ -1293,9 +1293,10 @@ void NModePanel::compareDialog()
     what.push_back({c, false});
   }
   const int at = wxGetSingleChoiceIndex(
-      "Draw another calculation's spectrum as a second curve, with the same "
-      "scaling factor and line width, or match its bands with this one's "
-      "modes:", "Compare", names, this);
+      // Line breaks: the generic dialog sizes to its longest line.
+      "Draw another calculation's spectrum as a second curve, with\n"
+      "the same scaling factor and line width, or match its bands\n"
+      "with this one's modes:", "Compare", names, this);
   if (at < 0) return;
   if (at == 0) { compareWith(string()); return; }
   if (what[at].second)
@@ -1590,10 +1591,10 @@ void NModePanel::matchBandsDialog(IPropCalculation *other)
   if (getCalculation()->getFragment(fa) && other->getFragment(fb) &&
       fa.numAtoms() != fb.numAtoms()) {
     wxString a = wxGetTextFromUser(
-        wxString::Format("This calculation has %d atoms and the other %d. The "
-                         "common atoms, this one's first, 1-based: for example "
-                         "1-12:5-16 maps this calculation's atoms 1-12 to the "
-                         "other's 5-16.", (int)fa.numAtoms(), (int)fb.numAtoms()),
+        wxString::Format("This calculation has %d atoms and the other %d.\n"
+                         "The common atoms, this one's first, 1-based: for\n"
+                         "example 1-12:5-16 maps this calculation's atoms\n"
+                         "1-12 to the other's 5-16.", (int)fa.numAtoms(), (int)fb.numAtoms()),
         "Match bands: common atoms", "", this);
     if (a.empty()) return;
     atoms = (const char*)a.utf8_str();
