@@ -293,7 +293,7 @@ int main()
     check(symmetryWarning(lin).empty(), "linear and sigma 2: nothing to warn about");
     // sigma 2 against 1 halves the partition function: S drops by R ln 2.
     ThermoInput a = hgi2, b = hgi2;
-    a.mass = b.mass = 200.0; a.symmetryNumber = 1; b.symmetryNumber = 2;
+    a.mass = b.mass = 200.0; a.frequencies = b.frequencies = {100.0, 150.0, 400.0}; a.symmetryNumber = 1; b.symmetryNumber = 2;
     const double dS = computeThermo(a, 298.15, THERMO_GAS_1ATM, THERMO_RRHO).S -
                       computeThermo(b, 298.15, THERMO_GAS_1ATM, THERMO_RRHO).S;
     check(near(dS, 8.314462618 * std::log(2.0), 1e-6), "sigma 2 lowers S by R ln 2");
