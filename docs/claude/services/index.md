@@ -69,6 +69,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [macOS: BSD env has no -0, so a machine's login file was silently ignored (#133)](macos-env-has-no-dash-zero.md)
 - [tests/macos/e2e.sh: water single points on a Mac with real codes](macos-end-to-end-run.md)
 - [Windows: the user's folder can hold a space, and every path ECCE builds sits below it (#247)](windows-paths-hold-spaces.md)
+- [Windows: a profile folder with å/ä/ö broke the start twice, silently (#922)](windows-non-ascii-profile.md)
 - [Windows: a text-mode stream's tellg() is not the length of what it reads; DAV PUT 400 (#247)](windows-dav-put-text-mode.md)
 - [Windows MSI: install time goes by the file and the component; Strawberry keeps core modules in vendor\lib (#257)](windows-msi-time-goes-by-file.md)
 - [Preferences > Advanced: environment switches applied by Ecce::initialize; an explicit variable wins (#307)](preferences-advanced-switches.md)

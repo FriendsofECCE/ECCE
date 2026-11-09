@@ -28,8 +28,6 @@ KEY="$(ecce_session_key)"
 DIR="$STATEDIR/broker_$KEY.d"
 PIDFILE="$DIR/mosquitto.pid"
 
-# mosquitto is a native program: it needs C:/... paths, not /c/...
-native() { if command -v cygpath >/dev/null 2>&1; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
 # netstat, not /dev/tcp: connecting to a closed loopback port on Windows does
 # not fail but sits in SYN_SENT, so the probe would hang.
 port_open() { netstat -an 2>/dev/null | grep -Eq "[:.]$1 +[^ ]+ +LISTENING"; }
@@ -94,7 +92,10 @@ mkdir -p "$DIR"
 rand() { LC_ALL=C od -An -N"$1" -tx1 /dev/urandom | LC_ALL=C tr -d ' \n'; }
 BUSER="s$(rand 4)"
 BPASS="$(rand 16)"
-"$PASSWD" -b -c "$(native "$DIR/passwd")" "$BUSER" "$BPASS" >/dev/null 2>&1 ||
+# Paths relative to $DIR, which is mosquitto's working directory: mosquitto
+# opens files with the ANSI API, which cannot open a profile path holding
+# letters such as å or ö (C:/Users/Åsa Öberg) when given as UTF-8 text.
+(cd "$DIR" && "$PASSWD" -b -c passwd "$BUSER" "$BPASS") >/dev/null 2>&1 ||
   { echo "ecce-broker-win: mosquitto_passwd failed" >&2; exit 1; }
 # The same rules as a central broker (packaging/gateway/ecce-mosquitto.acl).
 cat > "$DIR/acl" <<ACL
@@ -115,16 +116,16 @@ for attempt in 1 2 3; do
   cat > "$DIR/mosquitto.conf" <<CONF
 per_listener_settings true
 persistence false
-log_dest file $(native "$DIR/mosquitto.log")
+log_dest file mosquitto.log
 listener $port 127.0.0.1
 allow_anonymous false
-password_file $(native "$DIR/passwd")
-acl_file $(native "$DIR/acl")
+password_file passwd
+acl_file acl
 CONF
 
   # No setsid: on Windows it opens a console window of its own.
-  nohup "$MOSQUITTO" -c "$(native "$DIR/mosquitto.conf")" \
-    </dev/null >"$DIR/mosquitto.out" 2>&1 &
+  (cd "$DIR" && exec nohup "$MOSQUITTO" -c mosquitto.conf \
+    </dev/null >mosquitto.out 2>&1) &
   echo $! > "$PIDFILE"
   i=0
   while [ $i -lt 80 ] && ! port_open "$port"; do i=$((i + 1)); sleep 0.25; done

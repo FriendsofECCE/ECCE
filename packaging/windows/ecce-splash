@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """ecce-splash: the start-up card while ecce.cmd starts the broker and the
-Organizer (Windows, #522).
+Organizer (Windows, #522), and the start's messages (#922).
 
-    ecce-splash          show the card until the Organizer has a window
+    ecce-splash                       the card until the Organizer has a window
+    ecce-splash --gateway SECONDS     run ecce-gateway-start, at most SECONDS
+                                      (exit 124 when it took longer)
+    ecce-splash --message TEXT        a message box saying the start failed
 
 The Organizer shows the same card itself, but only once its own code runs.
 On a machine whose antivirus checks every new program before it may start
@@ -10,9 +13,11 @@ On a machine whose antivirus checks every new program before it may start
 nothing was on the screen until then.  Python is signed and already checked,
 so this card is up within about a second.
 
-It goes when a visible window of <ECCE_HOME>/bin/organizer.exe appears, when
-ecce.cmd leaves %TEMP%/ecce-splash-<ECCE_SESSION_ID>.stop (the start failed),
-when clicked, or after three minutes.
+The card goes when a visible window of <ECCE_HOME>/bin/organizer.exe
+appears, when ecce.cmd leaves %TEMP%/ecce-splash-<ECCE_SESSION_ID>.stop (the
+start failed; ecce.cmd says why), or when clicked.  When the Organizer ends
+without a window, or has none after LIMIT_S, or never starts, it says so.
+Each step is logged with its time in %USERPROFILE%/.ECCE/start.log.
 """
 import ctypes
 import os
@@ -25,7 +30,13 @@ ECCE_HOME = os.environ.get("ECCE_HOME") or os.path.dirname(
 ORGANIZER = os.path.join(ECCE_HOME, "bin", "organizer.exe")
 STOP = os.path.join(os.environ.get("TEMP", ""),
                     "ecce-splash-%s.stop" % os.environ.get("ECCE_SESSION_ID", ""))
+# From the Organizer's start to its window; the gateway step before it has
+# its own limit in ecce.cmd, so NOSTART_S only catches a stuck ecce.cmd.
 LIMIT_S = 180
+NOSTART_S = 300
+PROFILE = os.environ.get("USERPROFILE", "")
+LOGDIR = os.path.join(PROFILE, ".ECCE")
+STARTLOG = os.path.join(LOGDIR, "start.log")
 # After this long, say why it can take a while.
 SLOW_S = 8
 
@@ -40,17 +51,66 @@ EnumProc = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
 user32.EnumWindows.argtypes = [EnumProc, wintypes.LPARAM]
 user32.IsWindowVisible.argtypes = [wintypes.HWND]
 user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+user32.GetWindowTextLengthW.argtypes = [wintypes.HWND]
 user32.ShowWindow.argtypes = [wintypes.HWND, ctypes.c_int]
 kernel32.OpenProcess.restype = wintypes.HANDLE
 kernel32.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
 kernel32.QueryFullProcessImageNameW.argtypes = [
     wintypes.HANDLE, wintypes.DWORD, wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)]
 kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
+kernel32.WaitForSingleObject.argtypes = [wintypes.HANDLE, wintypes.DWORD]
+kernel32.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+kernel32.K32EnumProcesses.argtypes = [ctypes.POINTER(wintypes.DWORD), wintypes.DWORD,
+                                      ctypes.POINTER(wintypes.DWORD)]
 
 
-def ours(pid, cache={}):
-    if pid in cache:
-        return cache[pid]
+def log(what):
+    try:
+        os.makedirs(LOGDIR, exist_ok=True)
+        with open(STARTLOG, "a", encoding="utf-8") as f:
+            f.write("%s ecce-splash[%d]: %s\n" % (
+                time.strftime("%Y-%m-%d %H:%M:%S"), os.getpid(), what))
+    except OSError:
+        pass
+
+
+def version():
+    try:
+        with open(os.path.join(ECCE_HOME, "data", "client", "config", "Version"),
+                  encoding="utf-8") as f:
+            return f.readline().strip()
+    except OSError:
+        return ""
+
+
+def message(text):
+    """A plain Windows message box: no wx, no script host, so neither a broken
+    install nor a rule against mshta can keep it from showing."""
+    log("message: " + text.replace("\n", " "))
+    text += ("\n\nWhat ECCE wrote during the start is in\n%s\n"
+             "(start.log, and the broker_* folders)." % LOGDIR)
+    # MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST
+    user32.MessageBoxW(None, text, "ECCE " + version(), 0x10 | 0x10000 | 0x40000)
+
+
+def gateway(seconds):
+    """ecce-gateway-start with a time limit: cmd has none, and the bundled
+    shell has no timeout(1)."""
+    import subprocess
+    script = os.path.join(ECCE_HOME, "bin", "ecce-gateway-start")
+    log("gateway start (limit %d s)" % seconds)
+    p = subprocess.Popen(["bash.exe", script])
+    try:
+        rc = p.wait(seconds)
+    except subprocess.TimeoutExpired:
+        p.kill()
+        log("gateway start did not finish in %d s" % seconds)
+        return 124
+    log("gateway start exit %d" % rc)
+    return rc
+
+
+def ours(pid):
     name = ""
     h = kernel32.OpenProcess(0x1000, False, pid)   # QUERY_LIMITED_INFORMATION
     if h:
@@ -65,15 +125,40 @@ def ours(pid, cache={}):
                 os.path.samefile(name, ORGANIZER))
     except OSError:
         mine = False
-    cache[pid] = mine
     return mine
+
+
+def find_organizer():
+    """A handle on this install's running organizer.exe, or None."""
+    pids = (wintypes.DWORD * 4096)()
+    got = wintypes.DWORD()
+    if not kernel32.K32EnumProcesses(pids, ctypes.sizeof(pids), ctypes.byref(got)):
+        return None, 0
+    for pid in pids[:got.value // ctypes.sizeof(wintypes.DWORD)]:
+        if pid and ours(pid):
+            # SYNCHRONIZE | QUERY_LIMITED_INFORMATION
+            h = kernel32.OpenProcess(0x00100000 | 0x1000, False, pid)
+            if h:
+                return h, pid
+    return None, 0
+
+
+def exit_code(h):
+    """None while the process runs, else its exit status."""
+    if kernel32.WaitForSingleObject(h, 0) != 0:
+        return None
+    code = wintypes.DWORD()
+    kernel32.GetExitCodeProcess(h, ctypes.byref(code))
+    return code.value
 
 
 def organizer_window():
     found = []
 
     def each(hwnd, _):
-        if user32.IsWindowVisible(hwnd):
+        # A title: the Organizer's own copy of this card has none, and the
+        # Organizer can still fail after it.
+        if user32.IsWindowVisible(hwnd) and user32.GetWindowTextLengthW(hwnd) > 0:
             pid = wintypes.DWORD()
             user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
             if pid.value != os.getpid() and ours(pid.value):
@@ -134,42 +219,79 @@ def main():
         dc.SelectObject(wx.NullBitmap)
         return bmp
 
+    first = "Starting ECCE %s…" % version() if version() else "Starting…"
     splash = wx.adv.SplashScreen(
-        drawn(["Starting…"]), wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_NO_TIMEOUT,
+        drawn([first]), wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_NO_TIMEOUT,
         0, None, style=wx.BORDER_NONE | wx.FRAME_NO_TASKBAR | wx.STAY_ON_TOP)
     # ecce.vbs starts ECCE hidden; a program's first ShowWindow then hides,
     # the second is obeyed (as in ewxShowSplash).
     user32.ShowWindow(splash.GetHandle(), 8)   # SW_SHOWNA
     start = time.monotonic()
-    state = {"slow": False}
+    state = {"slow": False, "org": None, "org_at": 0.0, "scan": 0.0, "said": None}
+
+    def done(why, say=None):
+        timer.Stop()
+        log(why)
+        state["said"] = say
+        splash.Destroy()
 
     def tick(_evt):
         if not splash:
             return
-        waited = time.monotonic() - start
-        if organizer_window() or stop_requested() or waited > LIMIT_S:
-            timer.Stop()
-            splash.Destroy()
-            return
-        if not state["slow"] and waited > SLOW_S:
+        now = time.monotonic()
+        if organizer_window():
+            return done("organizer window shown after %.0f s" % (now - start))
+        if stop_requested():
+            return done("stopped by ecce.cmd (the start failed)")
+        h = state["org"]
+        if h is None and now - state["scan"] >= 1:
+            state["scan"] = now
+            h, pid = find_organizer()
+            if h:
+                state["org"], state["org_at"] = h, now
+                log("organizer.exe running, pid %d" % pid)
+        if h is not None:
+            code = exit_code(h)
+            if code is not None:
+                return done("organizer.exe exited with status %d, no window" % code,
+                            "The ECCE Organizer stopped before its window opened "
+                            "(exit status %d)." % code)
+            if now - state["org_at"] > LIMIT_S:
+                return done("organizer.exe has no window after %d s" % LIMIT_S,
+                            "The ECCE Organizer is running but has not opened its "
+                            "window after %d minutes." % (LIMIT_S // 60))
+        elif now - start > NOSTART_S:
+            return done("organizer.exe not started after %d s" % NOSTART_S,
+                        "ECCE did not finish starting: the Organizer was not "
+                        "started after %d minutes." % (NOSTART_S // 60))
+        if not state["slow"] and now - start > SLOW_S:
             state["slow"] = True
             win = splash.GetSplashWindow()
             win.SetBitmap(drawn([
-                "Starting…",
+                first,
                 "The first start after an install can take a minute",
                 "while security software checks the programs."]))
             win.Refresh()
 
+    log("card shown; ECCE %s in %s" % (version(), ECCE_HOME))
     timer = wx.Timer(splash)
     splash.Bind(wx.EVT_TIMER, tick, timer)
     timer.Start(250)
     app.MainLoop()
+    if state["said"]:
+        message(state["said"])
     return 0
 
 
 if __name__ == "__main__":
+    if sys.argv[1:2] == ["--message"]:
+        message(" ".join(sys.argv[2:]))
+        sys.exit(0)
+    if sys.argv[1:2] == ["--gateway"]:
+        sys.exit(gateway(int(sys.argv[2])))
     try:
         sys.exit(main())
     except Exception as e:   # the card never keeps ECCE from starting
+        log("card failed: %s" % e)
         sys.stderr.write("ecce-splash: %s\n" % e)
         sys.exit(0)
