@@ -3025,7 +3025,12 @@ void Launch::instanceCommand(string& command,
   if (command.find("##script##") != string::npos) {
     re = "##script##";
     re.match(command,foundIdx, substrLength);
-    command.replace(foundIdx, substrLength, p_cache->scriptName);
+    // A calculation name can hold a space or non-ASCII letters (#922).
+    string script = p_cache->scriptName;
+    if (script.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                 "0123456789_.-+,:=@%") != string::npos)
+      script = RCommand::quotePath(script);
+    command.replace(foundIdx, substrLength, script);
   }
 
   if (command.find("##queueMgr##") != string::npos) {
