@@ -2,7 +2,7 @@
 type: pitfall
 title: "Windows: a profile folder with å/ä/ö broke the start twice, silently (#922)"
 area: services
-paths: ["packaging/windows/ecce-broker-win", "packaging/windows/ecce-splash", "packaging/windows/ecce.cmd", "src/dsm/edsiimpl/EDSIServerCentral.C", "src/comm/rcommand/DirectTransportWin.C", "packaging/windows/ecce.rc", "packaging/windows/ecce-utf8.rc", "CMakeLists.txt"]
+paths: ["packaging/windows/ecce-broker-win", "packaging/windows/ecce-splash", "packaging/windows/ecce.cmd", "src/dsm/edsiimpl/EDSIServerCentral.C", "src/comm/rcommand/DirectTransportWin.C", "packaging/windows/ecce.rc", "packaging/windows/ecce-utf8.rc", "CMakeLists.txt", "packaging/windows/embed-manifest.py", ".github/workflows/build.yml"]
 issues: [922]
 ---
 ECCE's own programs have no UTF-8 `activeCodePage` manifest, so on Windows
@@ -24,6 +24,15 @@ while MSYS bash and Python write UTF-8 text. Under `C:\Users\Åsa Öberg`
   `ecce-utf8.rc` attached by the loop at the end of `CMakeLists.txt`.
   getenv, fopen, CreateProcessA then use UTF-8 like bash, Python and
   `DirectTransportWin.C`. Any new exe is covered by that loop.
+- The relative paths only help for letters in the ANSI code page:
+  mosquitto_passwd makes the absolute path itself (`C:\Users\Łukasz Ő`
+  became `Lukasz O`, "Unable to open file"). The MSYS2 mosquitto tools are
+  not built by us, so CI writes the same manifest into them
+  (`packaging/windows/embed-manifest.py`, kernel32 resource API).
+- `ecce-splash --gateway` must start the bundled bash by its full path:
+  CreateProcess searches System32 before PATH, and WSL's
+  `System32\bash.exe` (present on GitHub's runners) took over; the broker
+  start failed at once and msi-test's shortcut check found no Organizer.
 
 Test without a new account: unpack the zip into a fake profile and run
 `ecce.cmd` with USERPROFILE, HOMEPATH, LOCALAPPDATA, APPDATA, TEMP, TMP
