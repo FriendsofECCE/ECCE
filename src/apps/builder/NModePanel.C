@@ -16,7 +16,7 @@
 #include <functional>
 
 #include <sstream>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <fstream>
 #include <sstream>
 #include <wx/checkbox.h>
@@ -1358,7 +1358,7 @@ bool NModePanel::matchBands(const string& otherName, const string& atoms,
       if (error) *error = "No such calculation with stored normal modes.";
       return false;
    }
-   namespace fs = std::filesystem;
+   namespace fs = ecce::fs;
    std::error_code ec;
    fs::path tmp = fs::temp_directory_path(ec) /
                   ("ecce-bandshift-" + std::to_string((long)wxGetProcessId()));
@@ -1527,7 +1527,7 @@ bool NModePanel::importExperimental(const string& path, const string& kind,
                                  : string("ecce-spectrum");
    string args = "--parse-exp '" + path + "' --exp-kind " + (kind.empty() ? "auto" : kind);
 #ifdef _WIN32
-   namespace fs = std::filesystem;
+   namespace fs = ecce::fs;
    fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
    string pyExe = fs::exists(py) ? py.string() : string("python.exe");
    string cmd = "\"" + pyExe + "\" \"" + script + "\" " + args;
@@ -2223,7 +2223,7 @@ string NModePanel::displaceCalculation(int mode, double amplitude,
    if (mode >= nm) return "No such mode.";
    if (!(amplitude > 0)) return "The amplitude must be positive.";
 
-   namespace fs = std::filesystem;
+   namespace fs = ecce::fs;
    std::error_code ec;
    fs::path tmp = fs::temp_directory_path(ec) /
                   ("ecce-displace-" + std::to_string((long)wxGetProcessId()));

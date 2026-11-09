@@ -9,7 +9,7 @@
 #include "dsm/Resource.H"
 #include "wxgui/WxResourceTreeItemData.H"
 
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <system_error>
 
 namespace {
@@ -18,7 +18,7 @@ namespace {
 // a sibling folder (the usual move made outside ECCE); empty if not found.
 std::string movedTo(const EcceURL& url)
 {
-  namespace fs = std::filesystem;
+  namespace fs = ecce::fs;
   std::error_code ec;
   fs::path gone(url.getPath());
   fs::path name = gone.filename();

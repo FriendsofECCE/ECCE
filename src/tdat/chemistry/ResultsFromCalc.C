@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <map>
 #include <memory>
 
@@ -445,7 +445,7 @@ string scratchFile()
 {
   static int counter = 0;
   std::error_code ec;
-  std::filesystem::path dir = std::filesystem::temp_directory_path(ec);
+  ecce::fs::path dir = ecce::fs::temp_directory_path(ec);
   if (ec) dir = ".";
   return (dir / ("ecce-results-" + std::to_string((long)getpid()) + "-" +
                  std::to_string(++counter) + ".h5")).string();

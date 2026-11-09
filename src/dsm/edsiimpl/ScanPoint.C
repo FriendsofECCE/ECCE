@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cstdlib>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <fstream>
 
 #include "util/Ecce.H"
@@ -21,7 +21,7 @@ namespace {
 // Distinguishes the temporary files of two programs running at once.
 long pidNow()
 {
-  return (long)std::filesystem::file_time_type::clock::now()
+  return (long)ecce::fs::file_time_type::clock::now()
              .time_since_epoch().count();
 }
 
@@ -271,7 +271,7 @@ bool ScanPoint::ensemblePatterns(PropertyTask *calc, vector<Pattern>& out,
 
   // Frames go out in rank order, so the script's index is the rank.
   static int serial = 0;
-  const std::filesystem::path file = std::filesystem::temp_directory_path() /
+  const ecce::fs::path file = ecce::fs::temp_directory_path() /
       ("ecce-patterns-" + std::to_string(pidNow()) + "-" +
        std::to_string(serial++) + ".xyz");
   {
@@ -283,7 +283,7 @@ bool ScanPoint::ensemblePatterns(PropertyTask *calc, vector<Pattern>& out,
       if (!structure(calc, "c" + std::to_string(k), el, xyz, why)) {
         f.close();
         std::error_code ec;
-        std::filesystem::remove(file, ec);
+        ecce::fs::remove(file, ec);
         return false;
       }
       char line[160];
@@ -305,8 +305,8 @@ bool ScanPoint::ensemblePatterns(PropertyTask *calc, vector<Pattern>& out,
 #ifdef _WIN32
   // The Windows package carries its own Python (as CalcEd's pythonw); the
   // console python.exe is needed here, since the output is read back.
-  std::filesystem::path py = std::filesystem::path(Ecce::ecceHome()) / "python" / "python.exe";
-  string pyExe = std::filesystem::exists(py) ? py.string() : string("python.exe");
+  ecce::fs::path py = ecce::fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+  string pyExe = ecce::fs::exists(py) ? py.string() : string("python.exe");
   string cmd = "\"" + pyExe + "\" \"" + script + "\" \"" + file.string() + "\" --group";
 #else
   string cmd = "'" + script + "' '" + file.string() + "' --group 2>/dev/null";
@@ -314,7 +314,7 @@ bool ScanPoint::ensemblePatterns(PropertyTask *calc, vector<Pattern>& out,
   string text;
   int status = Ecce::readCommand(cmd, text);
   std::error_code ec;
-  std::filesystem::remove(file, ec);
+  ecce::fs::remove(file, ec);
   if (status != 0) {
     why = "ecce-contacts could not be run.";
     return false;

@@ -1,4 +1,4 @@
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <iostream>
 #include <string>
 
@@ -18,7 +18,7 @@ int main(int argc, char **argv)
     for (int i = 0; i < 2; ++i) {
       urls[i] = argv[i+1];
       if (urls[i].find("://") == std::string::npos)
-        urls[i] = "file://" + std::filesystem::absolute(urls[i]).generic_string();
+        urls[i] = "file://" + ecce::fs::absolute(urls[i]).generic_string();
     }
     const ForceComparison r = compareForces(gatherForceInput(urls[0]), gatherForceInput(urls[1]));
     std::cout << (json ? forceComparisonJson(r) : forceComparisonText(r));

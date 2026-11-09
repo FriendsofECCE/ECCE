@@ -25,7 +25,7 @@
 #include "wx/msw/wrapwin.h"
 #endif
 
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <fstream>
 #include <functional>
 #include <typeinfo>
@@ -6068,7 +6068,7 @@ string examplesDir()
 void collectExamples(const string &setDir, const string &topicDir,
                      ExampleTopic &topic)
 {
-  namespace fs = std::filesystem;
+  namespace fs = ecce::fs;
   vector<string> names;
   std::error_code ec;
   for (const auto &e : fs::directory_iterator(
@@ -6168,7 +6168,7 @@ string unpackedExample(const string &setDir, const string &rel)
   const string path = setDir + rel;
   if (path.size() <= 3 || path.compare(path.size() - 3, 3, ".gz") != 0)
     return path;
-  namespace fs = std::filesystem;
+  namespace fs = ecce::fs;
   const string folder = path.substr(0, path.rfind('/'));
   const string out = string(Ecce::realUserPrefPath()) + "/examples/" +
                      folder.substr(examplesDir().size());
@@ -6196,7 +6196,7 @@ const vector<ExampleSet>& exampleSets()
   static vector<ExampleSet> sets;
   static bool loaded = false;
   if (loaded) return sets;
-  namespace fs = std::filesystem;
+  namespace fs = ecce::fs;
   vector<string> ids;
   std::error_code ec;
   for (const auto &e : fs::directory_iterator(examplesDir(), ec))

@@ -7,7 +7,7 @@
 #include <sys/time.h>
 #include <utime.h>
 #include <algorithm>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <functional>
 #include <memory>
 #include <fstream>
@@ -44,7 +44,7 @@ static void setMtime(const std::string& path, long t)
   utime(path.c_str(), &ub);
 }
 
-namespace fs = std::filesystem;
+namespace fs = ecce::fs;
 
 namespace {
 

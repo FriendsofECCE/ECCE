@@ -2,7 +2,7 @@
 #include <unistd.h>
 #include <algorithm>
 #include <cstdlib>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <map>
 #include <set>
 #include <memory>
@@ -348,7 +348,7 @@ bool JobCatchUp::fetchFiles(TaskJob* calc, const vector<string>& patterns,
   tmp = &tbuf[0];
   auto cleanup = [&]() {
     std::error_code ec;
-    if (!listOnly) std::filesystem::remove_all(tmp, ec);
+    if (!listOnly) ecce::fs::remove_all(tmp, ec);
   };
 
   string err, listing;

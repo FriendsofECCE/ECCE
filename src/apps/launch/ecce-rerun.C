@@ -1,6 +1,6 @@
 // Ask the running Organizer to copy a calculation through New from This >
 // Rerun, keeping its setup and optionally submitting the new calculation.
-#include <filesystem>
+#include "util/Filesystem.H"
 
 #include <chrono>
 #include <thread>
@@ -68,7 +68,7 @@ string sessionKey()
   }
   std::error_code ec;
   if (key.empty() ||
-      !std::filesystem::exists(string(Ecce::realUserPrefPath()) + "broker_" + key, ec))
+      !ecce::fs::exists(string(Ecce::realUserPrefPath()) + "broker_" + key, ec))
     return "";
   return key;
 }
@@ -83,9 +83,9 @@ bool toUrl(const string& arg, string& url, string& why)
     return false;
   }
   std::error_code ec;
-  const auto path = std::filesystem::canonical(arg, ec);
+  const auto path = ecce::fs::canonical(arg, ec);
   if (ec) { why = "no such folder"; return false; }
-  const auto base = std::filesystem::canonical(root, ec);
+  const auto base = ecce::fs::canonical(root, ec);
   if (ec) { why = "cannot read the data folder"; return false; }
   const auto relative = path.lexically_relative(base);
   if (relative.empty() || relative == "." || *relative.begin() == "..") {

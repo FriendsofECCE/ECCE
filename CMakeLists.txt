@@ -166,6 +166,8 @@ if(APPLE)
   # compat/GL/{gl,glu}.h) avoids editing every one of those call sites;
   # placed last so it never shadows a real GL/ dir if one somehow exists.
   include_directories(AFTER ${CMAKE_SOURCE_DIR}/packaging/macos-compat)
+  # ghc::filesystem for util/Filesystem.H below macOS 10.15.
+  include_directories(AFTER ${CMAKE_SOURCE_DIR}/third_party)
 endif()
 
 set(ECCE_VERSION_RAW "")
