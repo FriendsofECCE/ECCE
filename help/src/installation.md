@@ -113,6 +113,17 @@ for your own user and needs no administrator rights; start ECCE from the
 Start menu. Windows shows a SmartScreen warning because the program is not
 signed: choose **More info**, then **Run anyway**.
 
+**Smart App Control.** Some Windows 11 computers (mostly newly set up ones)
+have Smart App Control switched on. It blocks programs that are not
+code-signed, and ECCE then stops at once with a message such as
+"wxmsw32u_aui_gcc_custom.dll is either not designed to run on Windows or
+contains an error" (error 0xc0e90002), sometimes with a Windows Security
+notice about Python. ECCE says so when it starts. To run ECCE, open
+**Windows Security** > **App & browser control** > **Smart App Control
+settings** and choose **Off**; Microsoft Defender stays on. On some Windows
+versions Smart App Control cannot be switched on again without resetting
+Windows; if you would rather keep it, use another computer for ECCE.
+
 ## Start ECCE
 
 Start ECCE from a terminal with:
