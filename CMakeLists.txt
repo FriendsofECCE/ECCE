@@ -4869,6 +4869,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/queues)
   set_tests_properties(queues_configedit PROPERTIES TIMEOUT 300
                        SKIP_RETURN_CODE 77)
+  # Memory-unit and submit-header-warning (#829) drivers; header-only, no ECCE.
+  add_test(NAME machregister_units
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister/run_tests.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/machregister)
+  set_tests_properties(machregister_units PROPERTIES TIMEOUT 120)
   # Register Machines through its real window under Xvfb (test hook), user,
   # -remote and -admin; SKIPs without Xvfb.
   add_test(NAME machregister_gui

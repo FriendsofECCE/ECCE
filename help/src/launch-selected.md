@@ -61,6 +61,11 @@ Launcher afterwards show where it ran.
   has finished. Launching it alone from its editor only warns, and
   **Launch anyway** goes ahead.
 
+If the machine's settings file has a queue manager entry that replaces the
+default submit header and leaves out lines the job needs (for Slurm
+`--partition`, `--time` or `--account`), Launch warns and names them.
+**Launch anyway** goes ahead.
+
 A machine set to staged launches cannot be used here; launch from the
 Launcher. A failed submit leaves the calculation **Ready**, with the reason
 in the Progress box and the run log.

@@ -49,6 +49,22 @@ def main():
             print("FAIL  testMemoryUnits exited %d" % run.returncode)
             return 1
 
+        exe2 = os.path.join(work, "testSubmitHeaderCheck")
+        build = subprocess.run(
+            ["g++", "-O0", "-w", "-o", exe2,
+             os.path.join(HERE, "testSubmitHeaderCheck.C")],
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        if build.returncode != 0:
+            print("FAIL  submit-header driver did not compile:\n%s"
+                  % build.stdout.decode("utf-8", "replace"))
+            return 1
+        run = subprocess.run([exe2], stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+        print(run.stdout.decode("utf-8", "replace"))
+        if run.returncode != 0:
+            print("FAIL  testSubmitHeaderCheck exited %d" % run.returncode)
+            return 1
+
         print("PASS")
         return 0
     finally:

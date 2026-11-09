@@ -47,6 +47,7 @@
 
 #include "tdat/QueueMgr.H"
 #include "tdat/RefMachine.H"
+#include "tdat/SubmitHeaderCheck.H"
 #include "tdat/RefQueueMgr.H"
 #include "tdat/AuthCache.H"
 
@@ -715,6 +716,16 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName,
   p_cache->mgr = RefQueueManager::lookup(queueMgrName.c_str());
   EE_ASSERT(p_cache->mgr != (RefQueueManager*)0, EE_FATAL,
             "No queue manager found for specified machine!");
+
+  // Warn, never block; a re-parse submits nothing.
+  if (!reparse) {
+    // the stored account is empty unless the machine uses accounts
+    const string w = SubmitHeaderCheck::warning(
+        RefMachine::config(p_cache->machineName), queueMgrName,
+        !launchdata.account.empty());
+    if (!w.empty())
+      p_launchWarning = p_launchWarning.empty() ? w : p_launchWarning + "\n" + w;
+  }
 
   p_cache->scratchDir = launchdata.scratchdir;
 
