@@ -58,7 +58,19 @@ def mode(atoms):
     return out
 
 
-def makeCalc(dest):
+def behindGeometry():
+    """N at the origin and one H 3 A behind it on the z axis, no bond."""
+    return [("N", 0.0, 0.0, 0.0), ("H", 0.0, 0.0, -3.0)]
+
+
+def behindMode(atoms):
+    """H moves away from N in the file, so toward N on screen (see mode()):
+    its arrow runs from the H ball to 2 A from N, along the viewing axis and
+    so behind the nitrogen ball, with its head outside every ball."""
+    return [0.0, 0.0, 0.0, 0.0, 0.0, -1.0]
+
+
+def makeCalc(dest, atoms=None, modevec=None):
     shutil.rmtree(dest, ignore_errors=True)
     shutil.copytree(SOURCE, dest, symlinks=True)
     props = os.path.join(dest, "Props")
@@ -66,38 +78,41 @@ def makeCalc(dest):
         for p in (os.path.join(props, name), os.path.join(props, ".DAV", name)):
             if os.path.exists(p):
                 os.remove(p)
-    atoms = geometry()
-    vals = "\n".join("%.8f" % v for v in mode(atoms))
+    atoms = atoms or geometry()
+    modevec = modevec or mode(atoms)
+    n = len(atoms)
+    bonds = [(1, k + 1) for k in range(1, n)] if n == 4 else []
+    vals = "\n".join("%.8f" % v for v in modevec)
     with open(os.path.join(props, "VIB"), "w") as h:
         h.write('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
                 '<vectable columnLabel="Atom" columnLabels="X Y Z" columns="3" '
-                'name="VIB" rowLabel="Normal Mode" rowLabels="1" rows="4" '
+                'name="VIB" rowLabel="Normal Mode" rowLabels="1" rows="%d" '
                 'units="NA" vectorLabel="Coordinate" vectorLabels="%s" '
-                'vectors="12">\n\n  <step number="0"/>\n\n'
+                'vectors="%d">\n\n  <step number="0"/>\n\n'
                 '  <matrix number="1">%s</matrix>\n\n</vectable>\n'
-                % (" ".join("NA" for _ in range(12)), vals))
+                % (n, " ".join("NA" for _ in range(3 * n)), 3 * n, vals))
     with open(os.path.join(props, "VIBFREQ"), "w") as h:
         h.write('<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n'
                 '<vector name="VIBFREQ" rowLabel="Normal Mode" rowLabels="1" '
                 'rows="1" units="cm-1">3400.0</vector>\n')
     with open(os.path.join(dest, "Parameters", "chemsys.mvm"), "w") as h:
-        h.write("title: nh3\ntype: molecule\nnum_atoms: 4\n"
+        h.write("title: nh3\ntype: molecule\nnum_atoms: %d\n"
                 "atom_info: symbol cart\natom_list: \n%s"
                 "attr_list:\n%s"
                 "atom_type_list:\n%s"
-                "num_bonds: 3\nbond_list: \n1 2 1.00000 1\n1 3 1.00000 1\n"
-                "1 4 1.00000 1\n"
-                % ("".join("%s %.6f %.6f %.6f\n" % a for a in atoms),
-                   " 0.000000   1   0   0   0\n" * 4,
-                   "        7   1\n        1   1\n        1   1\n        1   1\n"))
+                "num_bonds: %d\nbond_list: \n%s"
+                % (n, "".join("%s %.6f %.6f %.6f\n" % a for a in atoms),
+                   " 0.000000   1   0   0   0\n" * n,
+                   "        7   1\n" + "        1   1\n" * (n - 1),
+                   len(bonds), "".join("%d %d 1.00000 1\n" % b for b in bonds)))
 
 
-def renderScene(s, env, wrappers, url, tag, style, outdir):
+def renderScene(s, env, wrappers, url, tag, style, outdir, pre=()):
     """Builder scene script (ECCE_VIEWER_SCENE): the style, the mode's
     vectors, one offscreen picture; the Builder exits afterwards."""
     script = os.path.join(outdir, tag + ".scene")
     with open(script, "w") as h:
-        h.write("\n".join(["style " + style, "vibfocus", "vibmode 0",
+        h.write("\n".join(["style " + style] + list(pre) + ["vibfocus", "vibmode 0",
                            "vibvector", "offscreen " + tag + " 500", ""]))
     log = os.path.join(outdir, tag + ".log")
     benv = dict(env, ECCE_VIEWER_SCENE=script, ECCE_VIEWER_SCENE_OUT=outdir)
@@ -202,6 +217,27 @@ def main():
             check(tinted >= args.min_changed,
                   "%s: arrowheads show through the nitrogen ball (%d px)"
                   % (style, tinted))
+        # An arrow behind the ball whose head is in no ball: opaque and
+        # depth tested, so nothing of it shows inside the nitrogen disc.
+        # With the see-through pass on every arrow, 100s of px show here.
+        calc2 = os.path.join(project, "nh-behind")
+        a2 = behindGeometry()
+        makeCalc(calc2, a2, behindMode(a2))
+        for style in ("Ball And Stick", "CPK"):
+            tag = style.split()[0].lower()
+            path, log = renderScene(s, env, wrappers, "file://" + calc2 + "/",
+                                    "behind-" + tag, style, png,
+                                    pre=("resetview",))
+            if not check(path is not None, "%s (behind): rendered" % style):
+                say(open(log, errors="replace").read()[-1500:])
+                continue
+            disc, tinted = analyse(viewerPixels(path))
+            say("%s (behind): N disc %d px, arrow-tinted pixels in it %d"
+                % (style, disc, tinted))
+            check(disc > 500, "%s (behind): the nitrogen ball is found" % style)
+            check(tinted <= 10,
+                  "%s (behind): an arrow behind the ball is hidden by it "
+                  "(%d px)" % (style, tinted))
     finally:
         if display:
             display.__exit__(None, None, None)

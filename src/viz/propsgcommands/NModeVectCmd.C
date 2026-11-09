@@ -140,9 +140,6 @@ bool NModeVectCmd::execute()
          dip->direction(dx,dy,dz );
          // Start on the drawn sphere, so the arrow is not inside its atom.
          dip->startRadius(sg->displayedSphereRadius(j));
-         // An X-H stretch arrow on H points into the heavy atom's ball and
-         // its head ends up inside it: let the hidden part show through.
-         dip->showThroughMolecule();
          dip->setColor(color->red(), color->green(), color->blue());
          //dip->scaleFactor(scale, scale, scale) ;
          sg->getNMVecRoot()->addChild(dip);
@@ -151,6 +148,7 @@ bool NModeVectCmd::execute()
 
    }
    delete color;
+   // Also decides which heads end inside an atom's ball and show through.
    sg->updateNMVecStarts();
 
    return ret;

@@ -2116,9 +2116,25 @@ void SGContainer::updateNMVecStarts()
    // Thin the sticks first: a Stick-style arrow starts at the rod's radius
    // as drawn, not at its width before the arrows were shown.
    applyNMStickScale();
-   for (int j = 0; j < root->getNumChildren(); j++) {
+   const int n = root->getNumChildren();
+   std::vector<double> rad(n);
+   for (int j = 0; j < n; j++) rad[j] = displayedSphereRadius(j);
+   for (int j = 0; j < n; j++) {
       VRVector *v = dynamic_cast<VRVector*>(root->getChild(j));
-      if (v) v->startRadius(displayedSphereRadius(j));
+      if (!v) continue;
+      v->startRadius(rad[j]);
+      // Only a head that ends inside another atom's drawn ball shows
+      // through; any other arrow is hidden behind atoms like the atoms are.
+      double t[3];
+      v->tip(t);
+      bool inside = false;
+      for (int i = 0; i < n && !inside; i++) {
+         if (i == j || rad[i] <= 0.0) continue;
+         const double *c = frag->atomRef(i)->coordinates();
+         const double dx = t[0]-c[0], dy = t[1]-c[1], dz = t[2]-c[2];
+         inside = dx*dx + dy*dy + dz*dz < rad[i]*rad[i];
+      }
+      v->showThroughMolecule(inside);
    }
 }
 

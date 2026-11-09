@@ -4,6 +4,7 @@
 #include "inv/nodes/SoGroup.H"
 
 class SoScale;
+class SoSeparator;
 class SoTransform;
 class SoMaterial;
 class SoCone;
@@ -31,7 +32,10 @@ class  VRVector : public SoGroup {
     void startRadius(double);
     // Draw the arrow a second time, after everything else's depth test, at
     // 40 % opacity, so the part inside an atom or bond still shows.
-    void showThroughMolecule();
+    // With false the second pass is taken off again.
+    void showThroughMolecule(bool enable = true);
+    // Where the head ends (position + direction*1.075), for hit tests.
+    void tip(double out[3]) const;
     // Radius of the arrowhead as drawn (for tests).
     float headRadius() const;
     const double* getPosition(); 
@@ -50,6 +54,7 @@ SoINTERNAL public:
    SoTransform * transf;
    SoMaterial * mat;
    SoMaterial * throughMat;
+   SoSeparator * throughPass;
    SoCylinder * shaft;
    SoCone * head;
    SoTranslation * shaftTrans;
