@@ -672,7 +672,8 @@ class SpectrumCanvas : public wxPanel
       //  clickable; the table and the mode animation belong to the first.
       const bool second = p_s->spec.hasCompare(kind);
       if (second) {
-        const wxColour other = p_palette.series(3);
+        //  Reddish purple: series(3) is a bluish green next to the Raman green.
+        const wxColour other = p_palette.series(2);
         if (envelope) {
           std::vector<wxPoint> c2;
           for (int px = 0; px < pane.width; px++) {
@@ -726,7 +727,7 @@ class SpectrumCanvas : public wxPanel
         }
       }
       dc.DestroyClippingRegion();
-      if (second) paintKey(dc, pane, series, p_palette.series(3));
+      if (second) paintKey(dc, pane, series, p_palette.series(2));
       if (!p_s->highlightLabel.empty()) {
         dc.SetFont(*wxSMALL_FONT);
         const wxString t = wxString::Format("highlight: %s (modes with 10 %% or more)",
