@@ -16,7 +16,7 @@
   using std::ios;
 #include <fstream>
 #ifdef _WIN32
-#include <filesystem>
+#include "util/Filesystem.H"
 #endif
   using std::ofstream;
 
@@ -1159,7 +1159,7 @@ bool Launch::checkRemoteDir(const string& remoteDir, const bool& rerunCheck)
       remoteDir[1]==':' && (remoteDir[2]=='/' || remoteDir[2]=='\\')) {
     ret = true;
     std::error_code ec;
-    std::filesystem::create_directories(remoteDir, ec);
+    ecce::fs::create_directories(remoteDir, ec);
   }
 #endif
 

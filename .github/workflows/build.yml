@@ -56,7 +56,7 @@ on:
       macos_arch:
         description: "Architecture for the macOS job"
         type: choice
-        options: [all, arm64, x86_64]
+        options: [all, arm64, x86_64, x86_64-1013]
         required: false
         default: all
 
@@ -334,13 +334,14 @@ jobs:
 
   macos:
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.only == '' || inputs.only == 'macos' }}
-    name: macOS (${{ matrix.arch }})
+    name: macOS (${{ matrix.tag || matrix.arch }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        # Catalina is the oldest macOS many 2012-2014 Intel Macs can run.
-        include: ${{ fromJSON(inputs.macos_arch == 'arm64' && '[{"os":"macos-latest","arch":"arm64","target":"11.0","experimental":false}]' || inputs.macos_arch == 'x86_64' && '[{"os":"macos-15-intel","arch":"x86_64","target":"10.15","experimental":true}]' || '[{"os":"macos-latest","arch":"arm64","target":"11.0","experimental":false},{"os":"macos-15-intel","arch":"x86_64","target":"10.15","experimental":true}]') }}
+        # Catalina is the oldest macOS many 2012-2014 Intel Macs can run; the
+        # 10.13 entry builds std::filesystem from ghc (util/Filesystem.H).
+        include: ${{ fromJSON(inputs.macos_arch == 'arm64' && '[{"os":"macos-latest","arch":"arm64","target":"11.0","experimental":false}]' || inputs.macos_arch == 'x86_64' && '[{"os":"macos-15-intel","arch":"x86_64","target":"10.15","experimental":true}]' || inputs.macos_arch == 'x86_64-1013' && '[{"os":"macos-15-intel","arch":"x86_64","target":"10.13","experimental":true,"tag":"x86_64-1013"}]' || '[{"os":"macos-latest","arch":"arm64","target":"11.0","experimental":false},{"os":"macos-15-intel","arch":"x86_64","target":"10.15","experimental":true},{"os":"macos-15-intel","arch":"x86_64","target":"10.13","experimental":true,"tag":"x86_64-1013"}]') }}
     env:
       # Oldest macOS the app is built for (#133).  Our code and every
       # bundled library are built to this; the minimum-macOS step fails
@@ -372,7 +373,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ env.ECCE_DEPS }}
-          key: macos-deps-${{ matrix.arch }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ hashFiles('packaging/macos/build-deps.sh') }}
+          key: macos-deps-${{ matrix.tag || matrix.arch }}-${{ env.MACOSX_DEPLOYMENT_TARGET }}-${{ hashFiles('packaging/macos/build-deps.sh') }}
 
       - name: Build libraries (wxWidgets, Coin, Xerces, Mosquitto, libssh, OpenSSL)
         if: steps.deps.outputs.cache-hit != 'true'
@@ -442,7 +443,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: macos-run-${{ matrix.arch }}
+          name: macos-run-${{ matrix.tag || matrix.arch }}
           path: macos-run/
           if-no-files-found: ignore
 
@@ -462,7 +463,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ECCE-macos-dmg-${{ matrix.arch }}
+          name: ECCE-macos-dmg-${{ matrix.tag || matrix.arch }}
           path: dist/*.dmg
           if-no-files-found: ignore
 
@@ -557,7 +558,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: lab-out-${{ matrix.arch }}
+          name: lab-out-${{ matrix.tag || matrix.arch }}
           path: |
             lab.log
             lab-out/out
@@ -572,14 +573,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ECCE-macos-minos-${{ matrix.arch }}
+          name: ECCE-macos-minos-${{ matrix.tag || matrix.arch }}
           path: minos/minos.txt
           if-no-files-found: ignore
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: macos-app-run-${{ matrix.arch }}
+          name: macos-app-run-${{ matrix.tag || matrix.arch }}
           path: |
             macos-app-run/
             python-check/

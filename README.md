@@ -36,7 +36,7 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 |---|---|---|
 | Debian 13, Ubuntu 24.04 | `ecce-client_…deb`, `ecce-server_…deb` | `sudo apt install ./ecce-client_*.deb ./ecce-server_*.deb` |
 | RHEL/Rocky 9, Fedora | `ecce-client-…rpm`, `ecce-server-…rpm` | `sudo dnf install ./ecce-*.rpm` (on RHEL/Rocky first `sudo dnf install epel-release`) |
-| macOS | `ECCE-…-arm64.dmg` (Apple silicon) or `…-x86_64.dmg` (Intel) | open it and drag ECCE to Applications; macOS refuses it at first: on macOS 15 and later open it once, then System Settings → Privacy & Security → Open Anyway (macOS 14 and earlier: right-click → Open), or run `xattr -dr com.apple.quarantine /Applications/ECCE.app` |
+| macOS | `ECCE-…-arm64.dmg` (Apple silicon) or `…-x86_64.dmg` (Intel, macOS 10.15 or later) or `…-x86_64-macos10.13.dmg` (Intel, macOS 10.13 and 10.14; experimental) | open it and drag ECCE to Applications; macOS refuses it at first: on macOS 15 and later open it once, then System Settings → Privacy & Security → Open Anyway (macOS 14 and earlier: right-click → Open), or run `xattr -dr com.apple.quarantine /Applications/ECCE.app` |
 | Windows 10/11 | `ECCE-windows-….msi` | double-click; at the SmartScreen warning choose More info → Run anyway |
 
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the

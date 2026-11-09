@@ -89,8 +89,12 @@ The macOS version is experimental.
    Mac**. "Chip: Apple M..." needs the `arm64` file, "Processor: ... Intel"
    the `x86_64` file. An Intel build on an Apple silicon Mac runs only with
    Rosetta; without it, ECCE says which file to install and stops.
-2. Download `ECCE-<version>-arm64.dmg` or `ECCE-<version>-x86_64.dmg` from
-   the ECCE releases page, open it and drag **ECCE** to **Applications**.
+2. Download the file for the Mac from the ECCE releases page, open it and
+   drag **ECCE** to **Applications**:
+   - `ECCE-<version>-arm64.dmg`: Apple silicon (macOS 11 or later);
+   - `ECCE-<version>-x86_64.dmg`: Intel, macOS 10.15 or later;
+   - `ECCE-<version>-x86_64-macos10.13.dmg`: Intel, macOS 10.13 and 10.14.
+     Experimental, and not yet tried on a real 10.13 Mac.
 3. ECCE is not notarised by Apple, so at the first start macOS says it cannot
    check the app for malware. Either run, in Terminal,
 
