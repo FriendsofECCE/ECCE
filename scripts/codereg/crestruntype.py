@@ -35,6 +35,12 @@ class CrestRunTypePanel(EccePanel):
                                           default=False,
                                           export=1)
             confSizer.AddWidget(self.noreftopo)
+            self.notopo = EcceCheckBox(self,
+                                       label=" No topology check",
+                                       name="ES.Runtype.Conformers.NoTopo",
+                                       default=False,
+                                       export=1)
+            confSizer.AddWidget(self.notopo)
             self.panelSizer.Add(confSizer)
 
         elif runtype == "Solvation Shell":

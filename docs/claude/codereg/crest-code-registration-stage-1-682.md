@@ -12,7 +12,7 @@ theories GFN2-xTB, GFN-FF, GFN2//GFN-FF.
 
 - **Deck = `crest.crestin`**: line 1 `crest <options>`, then an xyz file, split
   by gensub exactly as for xtb. Options: method, `--chrg`, `--uhf`, ALPB/GBSA,
-  `--ewin`, `--nci`, `--noreftopo`; `-T` is the Launcher's processor count.
+  `--ewin`, `--nci`, `--noreftopo`, `--notopo` (#831); `-T` is the Launcher's processor count.
 - **xtb path.** CREST calls xtb, so gensub passes `--xnam` from the `xtb` key
   of the same machine's CONFIG and refuses to write the script without it.
 - **GFN2//GFN-FF needs `--legacy`.** CREST 3.0.2 answers "option not yet
@@ -28,3 +28,9 @@ theories GFN2-xTB, GFN-FF, GFN2//GFN-FF.
 - A conformer search with one structure is a valid result (rigid molecule).
 - Register Machines: `CodePrograms::names("CREST")`, `SchedulerQuery` signature
   `crest`, the built-in command text, and `crest` in the `Machines` lines.
+- **Result warnings (#831).** gensub also appends `crest.xyz` as
+  `ECCE-CREST-INPUT`; `include/comm/CrestCheck.H` (header only, unit test
+  `tests/jobstore/testCrestCheck.C`) compares the lowest frame's bonding with it
+  and reads CREGEN's "topology-based structure removals" count. JobStore
+  records the text as `runStatusReason` while the state stays Complete;
+  ProgressBox shows it as "Warning:" only for a Complete calculation.

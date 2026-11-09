@@ -273,6 +273,7 @@ sub OptionLine {
     push(@kw, "--ewin", &EnergyWindow);
     push(@kw, "--nci") if (&flag("ES.Runtype.Conformers.NCI"));
     push(@kw, "--noreftopo") if (&flag("ES.Runtype.Conformers.NoRefTopo"));
+    push(@kw, "--notopo") if (&flag("ES.Runtype.Conformers.NoTopo"));
   }
   return join(" ", grep { $_ ne "" } @kw);
 }
