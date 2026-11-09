@@ -680,12 +680,15 @@ jobs:
         shell: pwsh
         run: packaging/windows/bundle-tools.ps1 -Install stage\ecce -Cache "$env:RUNNER_TEMP\ecce-dl"
 
-      # The MSYS2 mosquitto tools get the UTF-8 code-page manifest every ECCE
-      # program has, or a profile path outside the code page stops the broker.
-      - name: UTF-8 manifest on the mosquitto tools
+      # The MSYS2 mosquitto tools and Strawberry Perl get the UTF-8 code-page
+      # manifest every ECCE program has: they open files with the ANSI API, and
+      # the parameter files ECCE writes hold UTF-8 paths, so a user folder such
+      # as C:\Users\Åsa Öberg stopped the broker or the job scripts (gensub).
+      - name: UTF-8 manifest on the mosquitto tools and Perl
         shell: pwsh
         run: |
-          & stage\ecce\python\python3.exe packaging\windows\embed-manifest.py packaging\windows\ecce-utf8-cli.manifest (Get-ChildItem stage\ecce\bin\mosquitto*.exe).FullName
+          $exes = @(Get-ChildItem stage\ecce\bin\mosquitto*.exe) + @(Get-ChildItem stage\ecce\strawberry\perl\bin\*perl*.exe)
+          & stage\ecce\python\python3.exe packaging\windows\embed-manifest.py packaging\windows\ecce-utf8-cli.manifest $exes.FullName
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - name: Zip the install tree
