@@ -3606,6 +3606,7 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME apps_thermo_panel
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/thermo_panel_test.py
+                   --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_thermo_panel PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
@@ -3659,6 +3660,7 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME apps_thermo_reactions
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/thermo_reactions_test.py
+                   --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_thermo_reactions PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
