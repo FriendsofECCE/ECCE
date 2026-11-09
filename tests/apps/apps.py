@@ -59,6 +59,22 @@ def treeVersion():
         os.path.dirname(os.path.abspath(__file__)))))
 
 
+def versionMismatch():
+    """A SKIP message when the install under test is another version.
+
+    Its failures would be reported as this tree's (an older /opt/ecce makes
+    newly added examples "missing").  ECCE_TEST_ANY_VERSION=1 runs anyway.
+    """
+    if os.environ.get("ECCE_TEST_ANY_VERSION") == "1":
+        return None
+    installed, tree = installedVersion(), treeVersion()
+    if installed == tree:
+        return None
+    return ("SKIP: installed ECCE under %s is %s, this tree is %s; install "
+            "this tree (ECCE_TEST_HOME) or set ECCE_TEST_ANY_VERSION=1"
+            % (INSTALL, installed or "unknown", tree))
+
+
 class Result(object):
     def __init__(self, name):
         self.name = name

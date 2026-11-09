@@ -111,6 +111,10 @@ def run(display, data, work, problems):
 
 
 def main():
+    msg = apps.versionMismatch()
+    if msg:
+        print(msg)
+        return SKIP
     if not os.path.exists(os.path.join(apps.WRAPPERS, "ecce-organizer")):
         print("SKIP: no ecce-organizer under %s" % apps.WRAPPERS)
         return SKIP
