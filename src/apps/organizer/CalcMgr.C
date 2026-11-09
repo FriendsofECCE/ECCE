@@ -693,6 +693,26 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "message") {
       setMessage(calcName, WxFeedback::INFO);
       outcome = "ok";
+    } else if (command == "tableclick") {
+      // "tableclick ROW [ctrl] [shift]": a left click on that row of the
+      // project table, with those keys held; answers the selected rows.
+      ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      if (!t) outcome = "no table";
+      else {
+        t->clickRow(atoi(calcName.c_str()), calcName.find("ctrl") != string::npos,
+                    calcName.find("shift") != string::npos);
+        outcome = "ok";
+        for (const EcceURL &u : t->getSelections()) outcome += " " + u.toString();
+      }
+    } else if (command == "tableselect" || command == "tableselected") {
+      // "tableselect URL": select that row; "tableselected": the selected rows
+      ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      if (!t) outcome = "no table";
+      else {
+        if (command == "tableselect") t->selectResources(vector<EcceURL>(1, EcceURL(calcName)));
+        outcome = "ok";
+        for (const EcceURL &u : t->getSelections()) outcome += " " + u.toString();
+      }
     } else if (command == "refresh") {
       WxResourceTreeItemData *node = findNode(project, true, true);
       if (node) {

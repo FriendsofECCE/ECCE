@@ -460,16 +460,30 @@ void ProjectContextPanel::selectResources(const vector<EcceURL>& urls)
   GridModel *model = p_projectView->getModel();
   int rows = p_projectView->getRowCount();
   p_projectView->getGrid()->ClearSelection();
+  bool cursorSet = false;
   for (int i = 0; i < rows; i++) {
     GridPropElement *element =
       dynamic_cast<GridPropElement*>(model->GetValueAsGridElement(i, 0));
     if (!element || !element->getResource()) continue;
     if (std::find(urls.begin(), urls.end(), element->getResource()->getURL())
-        != urls.end())
+        != urls.end()) {
+      // The cursor is the anchor of the next Shift+click: on the selection,
+      // not on row 0 where a rebuilt table leaves it.
+      if (!cursorSet) {
+        p_projectView->setCursor(i, 0);
+        cursorSet = true;
+      }
       p_projectView->getGrid()->SelectRow(i, true);
+    }
   }
   for (int i = 0; i < 5; i++) wxYield();
   saveSelections();
+}
+
+
+void ProjectContextPanel::clickRow(int row, bool ctrl, bool shift)
+{
+  p_projectView->clickRow(row, ctrl, shift);
 }
 
 

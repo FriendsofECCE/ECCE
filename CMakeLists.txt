@@ -3022,6 +3022,14 @@ if(PYTHON3_EXECUTABLE)
                          SKIP_RETURN_CODE 77)
   endif()
 
+  # Project table: Ctrl/Shift multi-selection through the grid's handlers (#925).
+  add_test(NAME apps_organizer_table_selection
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_table_selection_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_table_selection PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+
   # ORCA orbitals in the MOs panel (#239): a 24-function cc-pVDZ water run
   # draws; a 23-function one gives one plain dialog; the pane fits its rows.
   add_test(NAME apps_orca_mo
