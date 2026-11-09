@@ -1386,7 +1386,8 @@ def run_recipe_ready(display, data, work, shots, rundir):
 def run_hand_ready(display, data, work, shots):
     """ECCE-QM -> xTB -> CREST made with New step (#926): once ECCE-QM is
     complete the inserted xTB step is Ready and CREST is not, not even after
-    the editor's Save; CREST is Ready once xTB completes."""
+    the editor's Save; CREST becomes Ready only through that Save, once xTB
+    has completed."""
     project = os.path.join(data, "users", "local", "handready")
     os.makedirs(project)
     shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
@@ -1410,6 +1411,9 @@ def run_hand_ready(display, data, work, shots):
         "setstate %s/xtb-1 completed" % wf,
         "idle 3000",
         "workflowstate %s %s/cr" % (wf, wf),
+        "setstate %s/cr ready" % wf,
+        "idle 1000",
+        "workflowstate %s %s/cr" % (wf, wf),
     ]
     with open(script, "w") as f:
         f.write("\n".join(commands) + "\n")
@@ -1422,13 +1426,15 @@ def run_hand_ready(display, data, work, shots):
     state = re.findall(r"ECCE_TEST_ORGANIZER: workflowstate .*?: (.*)$", log, re.M)
     state = [s.lower() for s in state]
     check("after ECCE-QM completes, the inserted xTB step is Ready",
-          len(state) == 4 and state[0].startswith("ok state=ready"), str(state))
+          len(state) == 5 and state[0].startswith("ok state=ready"), str(state))
     check("CREST is not Ready before xTB has run",
-          len(state) == 4 and state[1].startswith("ok state=created"), str(state))
+          len(state) == 5 and state[1].startswith("ok state=created"), str(state))
     check("the editor's Save does not make CREST Ready while xTB waits",
-          len(state) == 4 and state[2].startswith("ok state=created"), str(state))
-    check("CREST is Ready once xTB completes",
-          len(state) == 4 and state[3].startswith("ok state=ready"), str(state))
+          len(state) == 5 and state[2].startswith("ok state=created"), str(state))
+    check("CREST is not Ready on its own once xTB completes",
+          len(state) == 5 and state[3].startswith("ok state=created"), str(state))
+    check("CREST is Ready after the editor's Save once xTB completed",
+          len(state) == 5 and state[4].startswith("ok state=ready"), str(state))
 
 
 def main():

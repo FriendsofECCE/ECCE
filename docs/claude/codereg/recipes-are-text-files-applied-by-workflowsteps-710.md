@@ -27,8 +27,10 @@ issues: [710, 674, 808, 847, 901, 902]
   when its source had not run when it was made (`ecce:workflow.carry`, set
   in `create`, cleared once carried, #926): otherwise New step > CREST kept
   the inserted xTB step's *input* structure.
-- Ready is exact (#926): `prepareStep` also handles hand-made steps that have
-  a source, and puts a Ready step back to Created while a source is not
+- Ready is exact (#926): `prepareStep` handles hand-made steps that have a
+  source, but writes input and sets Ready only for the xTB step New step
+  inserts before CREST (`ecce:workflow.auto`); other hand-made steps become
+  Ready through their editor's Save only. It puts a Ready step back to Created while a source is not
   Complete or the carry is pending; the editor's Save sets Ready regardless,
   so `CalcMgr::updateUrl` runs `prepareStep` when a workflow step turns Ready.
   Test hook `idle MS` lets a CallAfter run between test commands (all lines

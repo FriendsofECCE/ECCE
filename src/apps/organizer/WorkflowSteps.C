@@ -200,6 +200,9 @@ namespace { void applyDefaultTheory(Resource *step); }
 namespace {
 // Set on a hand-made step whose source had not run when it was made.
 const char *const kCarryPendingProp = ":workflow.carry";
+// Marks the xTB optimisation New step inserts before CREST; only it is
+// written and made Ready without its editor.
+const char *const kAutoReadyProp = ":workflow.auto";
 }
 
 Resource *WorkflowSteps::create(Session *wf, ResourceType *rt,
@@ -1329,7 +1332,6 @@ string WorkflowSteps::prepareStep(Session *wf, Resource *step)
     TaskJob *src = dynamic_cast<TaskJob*>(l->source);
     if (!launchFrom && src && !src->launchdata().machine.empty()) launchFrom = src;
   }
-  // A hand-made first step is the user's own: Ready from the editor only.
   if (!recipe && !hasSource) return "";
   if (waiting || !step->getProp(nsKey(kCarryPendingProp)).empty()) {
     // The editor's Save makes a step Ready, but a deck written before its
@@ -1338,6 +1340,8 @@ string WorkflowSteps::prepareStep(Session *wf, Resource *step)
       job->setState(ResourceDescriptor::STATE_CREATED);
     return "";                                        // waiting; the box says so
   }
+  // Other hand-made steps become Ready only through their editor's Save.
+  if (!recipe && step->getProp(nsKey(kAutoReadyProp)).empty()) return "";
   string why;
   if (st == ResourceDescriptor::STATE_CREATED) {
     // Recipe steps are never opened in the editor on the way to a launch,

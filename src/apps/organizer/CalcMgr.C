@@ -11778,6 +11778,7 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
         geo.name("Geometry");
         oc->runtype(geo);
         notifyCreate(opt->getURL().toString());
+        opt->addProp(VDoc::getEcceNamespace() + ":workflow.auto", "1");
         preopt.reset(new EcceURL(opt->getURL()));
         source = opt;
         carry.point.clear();
