@@ -52,6 +52,7 @@ class WxGridView: public wxWindow
     void setModel(GridModel *model);
 
     set<int> getSelectedRows();
+    void clickRow(int row, bool ctrl, bool shift);
     void clearSelectedRows();
     void selectRow(int row, bool addToSelected = false);
     void setSelectionColor(const wxColour& color);
@@ -107,7 +108,6 @@ class WxGridView: public wxWindow
     GridModel *p_dataModel;
     ewxGrid *p_grid;
     string p_appName;
-    set<int> p_selections;
     bool p_cmdClick;
     int p_sortedCol;        /**< The current sort column */
     bool p_caseSensitive;
