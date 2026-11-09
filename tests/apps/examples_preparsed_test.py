@@ -20,6 +20,8 @@ import subprocess
 import sys
 import tempfile
 
+import apps
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKIP = 77
 # set folder -> (project it is imported into, number of calculations)
@@ -200,6 +202,10 @@ def checkSet(work, setId, failures):
 
 
 def main():
+    msg = apps.versionMismatch()
+    if msg:
+        print(msg)
+        return SKIP
     # A fresh test home (offload hosts) has no ~/.cache yet.
     os.makedirs(os.path.expanduser("~/.cache"), exist_ok=True)
     work = tempfile.mkdtemp(prefix="examples-preparsed-",

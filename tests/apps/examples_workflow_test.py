@@ -230,6 +230,10 @@ def run(display, data, work, shots):
 
 
 def main():
+    msg = apps.versionMismatch()
+    if msg:
+        print(msg)
+        return SKIP
     keep = None
     if "--shots" in sys.argv:
         keep = sys.argv[sys.argv.index("--shots") + 1]
