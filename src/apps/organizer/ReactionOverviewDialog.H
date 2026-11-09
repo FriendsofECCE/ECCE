@@ -15,7 +15,7 @@ class wxStaticText;
 class wxTextCtrl;
 class wxPanel;
 class wxFlexGridSizer;
-class wxCollapsiblePane;
+#include <wx/collpane.h>  // a class on GTK, a typedef of the generic pane on MSW: no forward declaration
 
 /**
  * Compare Energies > Reaction overview (#709): dE_el and dG per reaction as
