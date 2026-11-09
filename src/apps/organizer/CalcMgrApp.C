@@ -55,7 +55,6 @@
 #include <string.h>
 #include <vector>
 #include "util/Ecce.H"
-#include "util/TempStorage.H"
 
 // The login window's "Use this computer instead": this start was set up for
 // the server, so ecce.cmd runs again, once, for a local session and without
