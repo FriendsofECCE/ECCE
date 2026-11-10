@@ -116,6 +116,7 @@ for _topic in sorted(os.listdir(_GC)):
                                 "lewis-structures-and-resonance")
         GENCHEM[_name] = (QM_LOC if _molecular and _name not in ("He2", "LiF")
                           else SCAN if _topic == "bond-formation"
+                          else VIBS + ["MO"] if _topic == "intermolecular-interactions"
                           else ["TE", "MO"])
 # the Quantum ESPRESSO crystals of Packing in solids: energy only
 GENCHEM.update({c: ["TE"] for c in ("po_sc", "na_bcc", "al_fcc", "cu_fcc",
