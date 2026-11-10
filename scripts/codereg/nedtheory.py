@@ -1,4 +1,5 @@
 from templates import *
+from cosmo_solvents import solvent_choices
 import os
 
 class NedTheoryFrame(EcceFrame):
@@ -321,12 +322,7 @@ class NedTheoryPanel(EccePanel):
             sovLeftSizer.AddWidget(self.cosmoRadius,
                                    border = EcceGlobals.BorderDefault)
 
-            solventChoice = ["Water: 78.4",
-                             "Methanol: 33.0",
-                             "Cyclohexane: 2.0243",
-                             "Benzene: 2.2825",
-                             "Acetonitrile: 36.64",
-                             "Other"]
+            solventChoice = solvent_choices() + ["Other"]
             self.solvent = EcceComboBox(self,
                                         choices = solventChoice,
                                         name = "ES.Theory.SCF.Solvent",

@@ -200,6 +200,15 @@
   <TheorySummary>
     <item key="ES.Theory.SCF.Precise" label="Precise"></item>
   </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.SCF.SolvationModel" label="Solvent Model"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.SCF.Solvent" label="Solvent"></item>
+  </TheorySummary>
+  <TheorySummary>
+    <item key="ES.Theory.SCF.Dielectric" label="Custom Dielectric Constant"></item>
+  </TheorySummary>
 
   <RuntypeSummary>
     <item key="ES.Runtype.GeomOpt.MaximumStepsValue" label="Max. Steps"></item>

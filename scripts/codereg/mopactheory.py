@@ -1,4 +1,5 @@
 from templates import *
+from cosmo_solvents import solvent_choices
 
 # ECCE MOPAC "Theory Details" dialog (reduced scope first cut).
 #
@@ -97,6 +98,31 @@ class MopacTheoryPanel(EccePanel):
         scfSizer.AddWidget(self.espCharges)
         self.panelSizer.Add(scfSizer)
 
+        solvSizer = EcceBoxSizer(self, label="Solvent", cols=1)
+        self.solvModel = EcceComboBox(self,
+                                       choices=["None", "COSMO"],
+                                       name="ES.Theory.SCF.SolvationModel",
+                                       default=0,
+                                       label="Model:",
+                                       export=1)
+        solvSizer.AddWidget(self.solvModel)
+        self.solvent = EcceComboBox(self,
+                                     choices=[choice.split(":", 1)[0]
+                                              for choice in solvent_choices()] + ["Custom"],
+                                     name="ES.Theory.SCF.Solvent",
+                                     default=0,
+                                     label="Solvent:",
+                                     export=1)
+        solvSizer.AddWidget(self.solvent)
+        self.dielectric = EcceFloatInput(self,
+                                          name="ES.Theory.SCF.Dielectric",
+                                          default=78.4,
+                                          hardRange="[1..)",
+                                          label="Dielectric constant (Custom):",
+                                          export=1)
+        solvSizer.AddWidget(self.dielectric)
+        self.panelSizer.Add(solvSizer)
+
         # PARALLEL
         #
         # THREADS=n -- MOPAC's only parallelism control, and it is
@@ -124,7 +150,9 @@ class MopacTheoryPanel(EccePanel):
         self.AddButtons()
 
     def CheckDependency(self):
-        pass
+        cosmo = self.solvModel.GetValue() == "COSMO"
+        self.solvent.Enable(cosmo)
+        self.dielectric.Enable(cosmo and self.solvent.GetValue() == "Custom")
 
 
 frame = MopacTheoryFrame(None,

@@ -1,0 +1,153 @@
+ *******************************************************************************
+ **                                                                           **
+ **                              MOPAC v23.1.2                                **
+ **                                                                           **
+ *******************************************************************************
+ **          Digital Object Identifier (DOI): 10.5281/zenodo.6511958          **
+ **    Visit the DOI location for information on how to cite this program.    **
+ *******************************************************************************
+
+                              PM7 CALCULATION RESULTS
+
+ *******************************************************************************
+ *  CALCULATION DONE: (MAX THREADS = 1)              Tue Nov 10 05:47:03 2026  *
+ *  PM7        - The PM7 Hamiltonian to be used
+ *  1SCF       - DO 1 SCF AND THEN STOP 
+ *  THREADS=1  - MULTI-THREADING NOT USED
+ *  T=         - A TIME OF 172800.0 SECONDS REQUESTED
+ *  DUMP=N     - RESTART FILE WRITTEN EVERY 7200.0 SECONDS REQUESTED
+ *******************************************************************************
+PM7 1SCF EPS=78.4 THREADS=1
+ Water COSMO parser fixture
+ Single point
+   ATOM   CHEMICAL          X               Y               Z
+  NUMBER   SYMBOL      (ANGSTROMS)     (ANGSTROMS)     (ANGSTROMS)
+
+     1       O          0.00000000  *   0.00000000  *   0.11730000  *
+     2       H          0.00000000  *   0.75720000  *  -0.46920000  *
+     3       H          0.00000000  *  -0.75720000  *  -0.46920000  *
+
+
+
+          CARTESIAN COORDINATES 
+
+    NO.       ATOM           X           Y           Z
+
+     1         O          0.0000      0.0000      0.1173
+     2         H          0.0000      0.7572     -0.4692
+     3         H          0.0000     -0.7572     -0.4692
+
+ General Reference for PM7:
+
+           Empirical Formula: H2 O  =     3 atoms
+
+
+
+      MOLECULAR POINT GROUP   :   C2v 
+
+
+      RHF CALCULATION, NO. OF DOUBLY OCCUPIED LEVELS = 4
+
+
+ -------------------------------------------------------------------------------
+ PM7 1SCF EPS=78.4 THREADS=1
+ Water COSMO parser fixture
+ Single point
+
+
+     1SCF WAS SPECIFIED, SO BFGS WAS NOT USED                 
+     SCF FIELD WAS ACHIEVED                                   
+
+
+                              PM7 CALCULATION
+                                                       MOPAC v23.1.2 Linux
+                                                       Tue Nov 10 05:47:03 2026
+
+
+
+
+          FINAL HEAT OF FORMATION =        -65.17020 KCAL/MOL =    -272.67213 KJ/MOL
+          VAN DER WAALS AREA      =         42.49 SQUARE ANGSTROMS
+
+
+
+          DIELECTRIC ENERGY       =         -0.35903 EV
+          COSMO AREA              =         42.49 SQUARE ANGSTROMS
+          COSMO VOLUME            =         25.21 CUBIC ANGSTROMS
+
+          IONIZATION POTENTIAL    =         12.444703 EV
+          HOMO LUMO ENERGIES (EV) =        -12.445  4.400
+          NO. OF FILLED LEVELS    =          4
+          MOLECULAR WEIGHT        =         18.0152         POINT GROUP:  C2v 
+
+          MOLECULAR DIMENSIONS (Angstroms)
+
+            Atom       Atom       Distance
+            H     3    H     2     1.51440
+            H     2    O     1     0.58650
+            O     1    H     2     0.00000
+
+
+          SCF CALCULATIONS        =          2
+
+          WALL-CLOCK TIME         =      0.010 SECONDS
+          COMPUTATION TIME        =      0.009 SECONDS
+
+
+
+
+   ATOM   CHEMICAL          X               Y               Z
+  NUMBER   SYMBOL      (ANGSTROMS)     (ANGSTROMS)     (ANGSTROMS)
+
+     1       O          0.00000000  *   0.00000000  *   0.11730000  *
+     2       H          0.00000000  *   0.75720000  *  -0.46920000  *
+     3       H          0.00000000  *  -0.75720000  *  -0.46920000  *
+
+                             CARTESIAN COORDINATES
+
+   1    O        0.000000000     0.000000000     0.117300000
+   2    H        0.000000000     0.757200000    -0.469200000
+   3    H        0.000000000    -0.757200000    -0.469200000
+
+
+           Empirical Formula: H2 O  =     3 atoms
+
+
+
+      MOLECULAR POINT GROUP   :   C2v 
+
+
+                  EIGENVALUES  
+ -29.39688 -17.75862 -14.44348 -12.44470   4.39968   6.62643
+
+
+              NET ATOMIC CHARGES AND DIPOLE CONTRIBUTIONS
+
+  ATOM NO.   TYPE          CHARGE      No. of ELECS.   s-Pop       p-Pop       
+    1          O          -0.747151        6.7472     1.80900     4.93815
+    2          H           0.373639        0.6264     0.62636
+    3          H           0.373512        0.6265     0.62649
+ DIPOLE           X         Y         Z       TOTAL
+ POINT-CHG.     0.000     0.000    -2.105     2.105
+ HYBRID        -0.000    -0.000    -0.311     0.311
+ SUM           -0.000     0.000    -2.416     2.416
+
+
+          ATOMIC ORBITAL ELECTRON POPULATIONS
+
+     Atom    s        px        py        pz   
+    1  O   1.80900   2.00000   1.40410   1.53404
+    2  H   0.62636
+    3  H   0.62649
+
+ **********************
+ *                    *
+ * JOB ENDED NORMALLY *
+ *                    *
+ **********************
+
+
+
+ TOTAL JOB TIME:             0.01 SECONDS
+
+ == MOPAC DONE ==

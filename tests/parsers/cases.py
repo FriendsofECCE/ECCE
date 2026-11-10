@@ -1250,6 +1250,17 @@ CASES = [
     # semiempirical, so the energies are heats of formation in kcal/mol
     # and there is no basis set anywhere in the pipeline.
     # -----------------------------------------------------------------
+    # Real PM7 1SCF EPS=78.4 water output; citation/banner prose trimmed.
+    dict(
+        name='mopac-h2o-cosmo',
+        desc='mopac.desc',
+        fixture='mopac/h2o_cosmo.out',
+        parse_args=('.', 'Energy', 'SE', 'RPM7', '0'),
+        expect={
+            'SOLVMODEL': dict(blocks=1, keys={'SOLVMODEL': {
+                'values': 'COSMO, ε = 78.4', 'units': 'NA'}}),
+        },
+    ),
     # #298: NH3 + dummy XX; MOPAC leaves it out of its tables, so the trace
     # has the four real atoms (the viewer maps them onto the non-dummy atoms).
     dict(

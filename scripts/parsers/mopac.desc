@@ -22,6 +22,15 @@
 #     "DIPOLE  X  Y  Z  TOTAL" header would have been permanently
 #     starved by [MULLIKEN]'s End.
 
+# Only the echoed keyword line, not the starred keyword descriptions.
+[SOLVMODEL]
+Script=mopac.solvmodel
+Begin=(?i)^\s*(?=[A-Za-z0-9])[^\r\n]*\bEPS\s*=
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 # MOPAC's heat of formation is its total energy for all practical
 # purposes (a semiempirical Hamiltonian has no meaningful absolute
 # electronic energy), so it is published under three keys at once: TE

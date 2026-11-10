@@ -1,0 +1,17 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use POSIX qw(isfinite);
+
+# The echoed keyword line identifies the dielectric without guessing a
+# solvent name; several solvents can have the same dielectric constant.
+my $eps;
+while (<STDIN>) {
+  next unless /^\s*(?=[A-Za-z0-9])[^\r\n]*\bEPS\s*=\s*((?:\d+(?:\.\d*)?|\.\d+)(?:[eEdD][+-]?\d+)?)(?=\s|$)/i;
+  my $value = $1;
+  $value =~ tr/dD/eE/;
+  $eps = $value if (isfinite($value) && $value >= 1);
+}
+exit(0) unless defined($eps);
+my $text = sprintf("COSMO, \xCE\xB5 = %.15g", $eps);
+print "key: SOLVMODEL\nsize:\n1\nvalues:\n$text\nunits:\nNA\nEND\n";

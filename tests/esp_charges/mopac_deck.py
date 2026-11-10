@@ -38,6 +38,33 @@ def main():
         ok = ("ESP" in first) == want
         print(("ok   " if ok else "FAIL ") + " ".join(first))
         fails += not ok
+    solvent = ["ES.Theory.SCF.SolvationModel: COSMO",
+               "ES.Theory.SCF.Solvent: Water"]
+    for rt in ("Energy", "Geometry", "GeoVib"):
+        for extra, expected in (([], None),
+                                (["ES.Theory.SCF.SolvationModel: None",
+                                  "ES.Theory.SCF.Solvent: Water"], None),
+                                (solvent, "EPS=78.4"),
+                                (["ES.Theory.SCF.SolvationModel: COSMO",
+                                  "ES.Theory.SCF.Solvent: Custom",
+                                  "ES.Theory.SCF.Dielectric: 30.125"], "EPS=30.125")):
+            lines = deck(["RunType: " + rt] + extra).splitlines()
+            keywords = [line.split() for line in lines if line.startswith("PM7 ")]
+            ok = len(keywords) == (2 if rt == "GeoVib" else 1)
+            ok = ok and all(([w for w in words if w.startswith("EPS=")] ==
+                            ([expected] if expected else [])) for words in keywords)
+            print(("ok   " if ok else "FAIL ") + "%s solvent %s" % (rt, expected))
+            fails += not ok
+    for value in ("0", "-1", "nan", "inf", "30 EPS=80"):
+        try:
+            deck(["ES.Theory.SCF.SolvationModel: COSMO",
+                  "ES.Theory.SCF.Solvent: Custom",
+                  "ES.Theory.SCF.Dielectric: " + value])
+            ok = False
+        except RuntimeError:
+            ok = True
+        print(("ok   " if ok else "FAIL ") + "reject invalid dielectric " + value)
+        fails += not ok
     return fails
 
 
