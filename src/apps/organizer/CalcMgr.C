@@ -2597,6 +2597,27 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = "menu";
         dump(&menu, "");
       }
+    } else if (command == "exportmenu") {
+      // "exportmenu <out.xyz> <csv|latex|none>": choose File > Export >
+      // Supporting Information on the current selection through the real
+      // menu bar; reports "dialog: ok N" or "message: <why>".
+      std::istringstream args(calcName);
+      string table;
+      args >> p_exportOut >> table;
+      p_exportTable = table == "none" ? string() : table;
+      for (int i = 0; i < 20; ++i) { wxYield(); wxMilliSleep(25); }
+      wxMenuBar *mb = GetMenuBar();
+      string trace = "no handler ran";
+      if (!mb || !mb->FindItem(ID_SI_EXPORT)) {
+        outcome = "no menu item";
+      } else {
+        p_exportTrace = &trace;
+        wxCommandEvent ev(wxEVT_MENU, ID_SI_EXPORT);
+        ev.SetEventObject(mb->FindItem(ID_SI_EXPORT)->GetMenu());
+        ProcessEvent(ev);
+        p_exportTrace = nullptr;
+        outcome = trace;
+      }
     } else if (command == "tablestates") {
       // The shown table's State cells, "name=state" ("running?": #284).
       ProjectContextPanel *table = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
@@ -7624,9 +7645,17 @@ void CalcMgr::OnExportClick( wxCommandEvent& event )
   getSelection();
   const vector<EcceURL> calcs = calculationsUnder(launchSelection());
   if (calcs.empty()) {
+    if (p_exportTrace) { *p_exportTrace = "message: nothing selected"; return; }
     wxMessageBox(_("Select a folder or calculations first."),
                  _("Export for Supporting Information"),
                  wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  if (p_exportTrace) {
+    // test hook: the answers the dialogs would have given
+    string why;
+    *p_exportTrace = siExport(calcs, p_exportOut, p_exportTable, why, false)
+        ? "dialog: ok " + std::to_string(calcs.size()) : "message: " + why;
     return;
   }
   wxFileDialog file(this, _("Export for Supporting Information"),

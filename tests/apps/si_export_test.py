@@ -86,6 +86,9 @@ def run(display):
         with open(cmds, "w") as h:
             for k, o in outs.items():
                 h.write("siexport %s %s %s\n" % (o, k, ",".join(urls)))
+            # #913: the menu entry itself must exist and reach its handler
+            h.write("select %s\n" % project.replace(data, "file://" + data, 1))
+            h.write("exportmenu %s csv\n" % os.path.join(work, "menu.xyz"))
             h.write("siexport %s none file://%s\n" % (os.path.join(work, "bad.xyz"),
                                                       os.path.join(project, "nonexistent")))
         result = apps.run(display, "organizer", windowTimeout=60, settle=30,
@@ -96,6 +99,9 @@ def run(display):
         if result.crashed:
             check(False, "the Organizer ran", "CRASHED (%s)" % result.signalName)
             return
+        menu = re.findall(r"ECCE_TEST_ORGANIZER: exportmenu .*?: (.*)", log)
+        check(menu and menu[0].startswith("dialog: ok"),
+              "File > Export > Supporting Information reaches its handler", menu or log[-1500:])
         ans = re.findall(r"ECCE_TEST_ORGANIZER: siexport .*?: (ok|failed.*)", log)
         if not check(len(ans) == 4 and ans[:3] == ["ok"] * 3, "the menu path ran", ans or log[-1500:]):
             return

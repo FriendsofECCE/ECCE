@@ -557,6 +557,10 @@ protected:
   bool p_compareEnergiesWired = false;
   // File > Export > Supporting Information (#625).
   bool p_siExportWired = false;
+  // Set by the "exportmenu" test hook: OnExportClick records what it would
+  // have asked or said here instead of opening a modal dialog.
+  std::string *p_exportTrace = nullptr;
+  std::string p_exportOut, p_exportTable;
   void OnRank(wxCommandEvent& event);
   // Tools > Allocations (#613).
   void OnAllocations(wxCommandEvent& event);
