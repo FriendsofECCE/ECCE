@@ -58,7 +58,7 @@ namespace ResultsFromCalc
   void addProperties(IPropCalculation *calc, resultsh5::Model& m);
 
   /**
-   * tr(PS) = N per spin (1e-4 relative) and C'SC = 1 over the occupied
+   * tr(PS) = N per spin (1e-4 relative, absolute when N = 0) and C'SC = 1 over the occupied
    * orbitals (1e-5).  Sets m.checks ("ok: ..." / "failed: ...") and returns
    * the one-line summary for the job store's run log.
    */

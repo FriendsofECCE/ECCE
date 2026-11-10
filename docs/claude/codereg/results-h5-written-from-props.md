@@ -25,7 +25,7 @@ file is removed. The basis centres in the file are the flat functions' own
 (bohr per Angstrom 1/0.52917724924, BasisFlatten's constant, not the 092
 one DensityPlane uses for query points).
 
-**Checks.** tr(PS) = N per spin (1e-4 relative) and C'SC = 1 over occupied
+**Checks.** tr(PS) = N per spin (1e-4 relative; absolute for an empty channel, #943) and C'SC = 1 over occupied
 orbitals (1e-5), overlap screened for far pairs. A failed check still writes
 the file with root attribute `checks = "failed: ..."`; `stored()` returns null
 for a marked file. A restricted calculation has one spin-0 group with

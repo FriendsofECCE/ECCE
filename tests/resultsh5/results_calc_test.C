@@ -5,6 +5,7 @@
 //        results.h5 is stored in them); full round trip through the data store
 //   results_calc_test orca <orca.mo output> <nb> <xyz> <nelectrons>
 //   results_calc_test xtb <molden.input> <xtb.mo output> <nelectrons>
+//   results_calc_test emptyspin                  H2+ with an empty beta channel
 //
 // The calculation modes compare Evaluator::density, ::spinDensity and
 // every occupied orbital at a grid of points between ECCE_RESULTS_H5=0 (the
@@ -353,15 +354,53 @@ static void xtbBlock(const string& moldenPath, const string& parsed, double nele
   finish("xtb", in, nelec);
 }
 
+// ---- a spin channel with no electrons (#943) --------------------------------
+
+// H2+ (doublet, UHF): one alpha electron, none beta.  tr(PS) = 0 for an empty
+// channel is exact, so the check must accept it rather than divide by N = 0.
+static void emptySpin()
+{
+  printf("== H2+ with an empty beta channel\n");
+  resultsh5::Model m;
+  const double R = 2.0;                       // bohr; one s primitive, exponent 1
+  m.atomicNumber = {1, 1};
+  m.coord = {0, 0, 0, 0, 0, R};
+  for (int a = 0; a < 2; a++) {
+    resultsh5::Shell sh;
+    sh.atom = a;
+    sh.exponent = {1.0};
+    sh.coef = {1.0};
+    m.basis.shells.push_back(sh);
+  }
+  const double S = exp(-0.5*R*R);             // overlap of the two normalised s
+  const double g = 1/sqrt(2 + 2*S), u = 1/sqrt(2 - 2*S);
+  for (int spin = 0; spin < 2; spin++) {
+    resultsh5::Mos mo;
+    mo.spin = spin;
+    mo.nmo = mo.nao = 2;
+    mo.coef = {g, g, u, -u};
+    mo.energy = {-1.1, 0.2};
+    mo.occupation = {spin == 0 ? 1.0 : 0.0, 0.0};
+    m.mos.push_back(mo);
+  }
+  m.nelectron[0] = 1;
+  m.nelectron[1] = 0;
+  const string line = ResultsFromCalc::check(m);
+  printf("  %s\n", line.c_str());
+  CHECK(m.checks.compare(0, 3, "ok:") == 0, "an empty beta channel passes: " + m.checks);
+
+}
+
 int main(int argc, char **argv)
 {
-  if (argc < 3) { fprintf(stderr, "usage: see the head of this file\n"); return 2; }
+  if (argc < 2) { fprintf(stderr, "usage: see the head of this file\n"); return 2; }
   EDSIServerCentral central;
   const string mode = argv[1];
   if (mode == "fixture")
     for (int i = 2; i < argc; i++) fixture(argv[i]);
   else if (mode == "orca" && argc >= 6) orcaBlock(argv[2], argv[3], argv[4], atof(argv[5]));
   else if (mode == "xtb" && argc >= 5) xtbBlock(argv[2], argv[3], atof(argv[4]));
+  else if (mode == "emptyspin") emptySpin();
   else return 2;
   printf("%s\n", failures ? "FAIL" : "PASS");
   return failures ? 1 : 0;
