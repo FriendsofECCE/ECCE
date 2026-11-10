@@ -94,6 +94,7 @@ use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t
 
 push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
 require "pertab.pl";
+require QEFunctional;
 &loadPT;
 
 $| = 1;
@@ -406,13 +407,12 @@ sub resolvePseudos {
         "  package.\n";
   }
 
-  my @missing = ();
+  my @missing = grep { !defined($candidates{$_}) } @species;
+  &matchFunctional($dir, \%candidates) if (!@missing);
+
   foreach my $sym (@species) {
     my $list = $candidates{$sym};
-    if (!defined($list) || scalar(@$list) == 0) {
-      push(@missing, $sym);
-      next;
-    }
+    next if (!defined($list));
     my $pick = "";
     if ($wanted ne "") {
       foreach my $f (sort @$list) {
@@ -432,6 +432,39 @@ sub resolvePseudos {
         "  element in the structure.  Either point Theory Details ->\n" .
         "  Pseudopotentials -> Directory at a library that covers " .
         "them,\n  or remove those atoms from the structure.\n";
+  }
+}
+
+# Keep, per element, only the files of one functional that every element
+# has: pw.x stops with "conflicting values for icorr" when the
+# pseudopotentials of a run were generated with different functionals,
+# and a library such as Debian's quantum-espresso-data holds several
+# functionals per element (sorted by name, Ni would be PBE and O BLYP).
+# The functional chosen in input_dft wins, then PBE; with no common
+# functional the lists are left alone and verifyinput reports the mix.
+sub matchFunctional {
+  my ($dir, $candidates) = @_;
+  my %byFun = ();
+  foreach my $sym (@species) {
+    foreach my $f (@{$candidates->{$sym}}) {
+      my $fun = QEFunctional::ofFile("$dir/$f");
+      push(@{$byFun{$fun}{$sym}}, $f) if ($fun ne "");
+    }
+  }
+  my @common = sort grep {
+    my $fun = $_;
+    scalar(grep { exists($byFun{$fun}{$_}) } @species) == scalar(@species);
+  } keys(%byFun);
+  return if (!@common);
+
+  my $dft = $AbiDict{"ES.Theory.PW.XCFunctionals"};
+  my $want = (defined($dft) && $dft !~ /pseudopotential/i)
+           ? QEFunctional::canonical($dft) : "";
+  my ($fun) = grep { $_ eq $want } @common;
+  ($fun) = grep { $_ eq "PBE" } @common if (!defined($fun));
+  $fun = $common[0] if (!defined($fun));
+  foreach my $sym (@species) {
+    $candidates->{$sym} = $byFun{$fun}{$sym};
   }
 }
 
