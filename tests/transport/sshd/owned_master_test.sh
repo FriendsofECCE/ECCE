@@ -141,8 +141,9 @@ STUB
     socks=$(find "$ECCE_SSH_CONTROL_DIR" -type s | wc -l)
     echo "     sockets left by the run: $socks"
     [ "$socks" -ge "${MINSOCKS:-1}" ] || { echo "FAIL no master socket"; rc=1; }
-    # the session is over: no program of it lives, so the reaper sweeps it
-    touch -d "10 minutes ago" "$ECCE_SSH_CONTROL_DIR/.born"
+    # the session is over: no program of it lives, so the reaper sweeps it.
+    # Both files must be old: a fresh .claim is a session starting (#666).
+    touch -d "10 minutes ago" "$ECCE_SSH_CONTROL_DIR/.born" "$ECCE_SSH_CONTROL_DIR/.claim"
     d=$ECCE_SSH_CONTROL_DIR
     unset ECCE_SSH_CONTROL_DIR
     bash /src/packaging/gateway/ecce-gateway-reap || true
