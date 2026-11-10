@@ -56,3 +56,13 @@ A fixture is a calculation folder in local data mode (`.ecce-meta` sidecars,
 
 Geometry for the Gaussian run was put in Gaussian's standard orientation first,
 so the stored frame is the one the coefficients are in.
+
+## NH3 norm regression (#927)
+
+`srun -c 2 nice python3 tests/mocomp/nh3_norms_test.py` prints every stored
+MO's independent norm for the MOPAC and ECCE-QM NH3 examples, then checks the
+production composition norms for both and for ORCA water to 1e-4. It needs
+numpy and the configured build tree; CTest registers it as `mocomp_nh3_norms`.
+It fails with the identity metric formerly used for MOPAC, and also with a
+Slater overlap built in GEOMTRACE's frame instead of GRAPHF's. The optional
+argument is a build directory containing `mocomp`.
