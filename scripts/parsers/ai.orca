@@ -689,6 +689,7 @@ sub ORCABlocks {
   #  the MO table rather than just stop early -- see that script's
   #  header.  Unconditional, like Print[P_MOs]: it only lengthens the
   #  listing of numbers ORCA already computed.
+  # Scans need this at every point; orca.scanmos takes each converged set.
   $result .= "%output\n  Print[P_MOs] 1\n  Print[P_OrbEn] 2\nend\n";
   $result .= "%moinp \"" . &OrbitalGuessFile() . "\"\n"
     if (&OrbitalGuessFile() ne "");

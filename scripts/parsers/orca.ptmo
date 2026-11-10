@@ -1,5 +1,5 @@
 #!/usr/bin/env perl
-# Per-point orbital tables of an IRC (#751): orca.mo in its table-only mode.
+# Scan/IRC orbital tables share the ordinary MO parser and AO ordering.
 use File::Basename;
 $main::PTONLY = 1;
 do(dirname($0) . "/orca.mo");

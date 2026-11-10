@@ -1,0 +1,192 @@
+         *               RELAXED SURFACE SCAN STEP   1               *
+         *                GEOMETRY OPTIMIZATION CYCLE   1            *
+CARTESIAN COORDINATES (ANGSTROEM)
+---------------------------------
+  H      0.000000    0.000000    0.000000
+  H      0.000000    0.000000    0.600000
+
+----------------------------
+CARTESIAN COORDINATES (A.U.)
+ORBITAL ENERGIES
+----------------
+
+  NO   OCC          E(Eh)            E(eV) 
+   0   2.0000      -0.640876       -17.4391 
+   1   0.0000       0.838085        22.8055 
+------------------------------
+MOLECULAR ORBITALS (RHF, ROHF)
+------------------------------
+                      0         1   
+                  -0.64088   0.83808
+                   2.00000   0.00000
+                  --------  --------
+  0H   1s        -0.534308 -1.418199
+  1H   1s        -0.534308  1.418199
+
+
+
+                    ********************************
+                    * MULLIKEN POPULATION ANALYSIS *
+FINAL SINGLE POINT ENERGY        -1.101128243183
+                    ***        THE OPTIMIZATION HAS CONVERGED     ***
+CARTESIAN COORDINATES (ANGSTROEM)
+---------------------------------
+  H      0.000000    0.000000    0.000000
+  H      0.000000    0.000000    0.600000
+
+----------------------------
+CARTESIAN COORDINATES (A.U.)
+ORBITAL ENERGIES
+----------------
+
+  NO   OCC          E(Eh)            E(eV) 
+   0   2.0000      -0.640876       -17.4391 
+   1   0.0000       0.838085        22.8055 
+------------------------------
+MOLECULAR ORBITALS (RHF, ROHF)
+------------------------------
+                      0         1   
+                  -0.64088   0.83808
+                   2.00000   0.00000
+                  --------  --------
+  0H   1s         0.534308 -1.418199
+  1H   1s         0.534308  1.418199
+
+
+
+                    ********************************
+                    * MULLIKEN POPULATION ANALYSIS *
+FINAL SINGLE POINT ENERGY        -1.101128243183
+                                *** OPTIMIZATION RUN DONE ***
+         *               RELAXED SURFACE SCAN STEP   2               *
+         *                GEOMETRY OPTIMIZATION CYCLE   1            *
+CARTESIAN COORDINATES (ANGSTROEM)
+---------------------------------
+  H      0.000000    0.000000   -0.150000
+  H      0.000000    0.000000    0.750000
+
+----------------------------
+CARTESIAN COORDINATES (A.U.)
+ORBITAL ENERGIES
+----------------
+
+  NO   OCC          E(Eh)            E(eV) 
+   0   2.0000      -0.517668       -14.0865 
+   1   0.0000       0.528477        14.3806 
+------------------------------
+MOLECULAR ORBITALS (RHF, ROHF)
+------------------------------
+                      0         1   
+                  -0.51767   0.52848
+                   2.00000   0.00000
+                  --------  --------
+  0H   1s        -0.566650 -1.062613
+  1H   1s        -0.566650  1.062613
+
+
+
+                    ********************************
+                    * MULLIKEN POPULATION ANALYSIS *
+FINAL SINGLE POINT ENERGY        -1.091914040057
+                    ***        THE OPTIMIZATION HAS CONVERGED     ***
+CARTESIAN COORDINATES (ANGSTROEM)
+---------------------------------
+  H      0.000000    0.000000   -0.150000
+  H      0.000000    0.000000    0.750000
+
+----------------------------
+CARTESIAN COORDINATES (A.U.)
+ORBITAL ENERGIES
+----------------
+
+  NO   OCC          E(Eh)            E(eV) 
+   0   2.0000      -0.517668       -14.0865 
+   1   0.0000       0.528477        14.3806 
+------------------------------
+MOLECULAR ORBITALS (RHF, ROHF)
+------------------------------
+                      0         1   
+                  -0.51767   0.52848
+                   2.00000   0.00000
+                  --------  --------
+  0H   1s         0.566650 -1.062613
+  1H   1s         0.566650  1.062613
+
+
+
+                    ********************************
+                    * MULLIKEN POPULATION ANALYSIS *
+FINAL SINGLE POINT ENERGY        -1.091914040057
+                                *** OPTIMIZATION RUN DONE ***
+         *               RELAXED SURFACE SCAN STEP   3               *
+         *                GEOMETRY OPTIMIZATION CYCLE   1            *
+CARTESIAN COORDINATES (ANGSTROEM)
+---------------------------------
+  H      0.000000    0.000000   -0.300000
+  H      0.000000    0.000000    0.900000
+
+----------------------------
+CARTESIAN COORDINATES (A.U.)
+ORBITAL ENERGIES
+----------------
+
+  NO   OCC          E(Eh)            E(eV) 
+   0   2.0000      -0.426503       -11.6057 
+   1   0.0000       0.344127         9.3642 
+------------------------------
+MOLECULAR ORBITALS (RHF, ROHF)
+------------------------------
+                      0         1   
+                  -0.42650   0.34413
+                   2.00000   0.00000
+                  --------  --------
+  0H   1s        -0.600401 -0.903163
+  1H   1s        -0.600401  0.903163
+
+
+
+                    ********************************
+                    * MULLIKEN POPULATION ANALYSIS *
+FINAL SINGLE POINT ENERGY        -1.005106704791
+                    ***        THE OPTIMIZATION HAS CONVERGED     ***
+CARTESIAN COORDINATES (ANGSTROEM)
+---------------------------------
+  H      0.000000    0.000000   -0.300000
+  H      0.000000    0.000000    0.900000
+
+----------------------------
+CARTESIAN COORDINATES (A.U.)
+ORBITAL ENERGIES
+----------------
+
+  NO   OCC          E(Eh)            E(eV) 
+   0   2.0000      -0.426503       -11.6057 
+   1   0.0000       0.344127         9.3642 
+------------------------------
+MOLECULAR ORBITALS (RHF, ROHF)
+------------------------------
+                      0         1   
+                  -0.42650   0.34413
+                   2.00000   0.00000
+                  --------  --------
+  0H   1s         0.600401 -0.903163
+  1H   1s         0.600401  0.903163
+
+
+
+                    ********************************
+                    * MULLIKEN POPULATION ANALYSIS *
+FINAL SINGLE POINT ENERGY        -1.005106704791
+                                *** OPTIMIZATION RUN DONE ***
+RELAXED SURFACE SCAN RESULTS
+----------------------------
+
+Column   1: NONAME
+
+The Calculated Surface using the 'Actual Energy'
+   0.60000000  -1.10112824
+   0.90000000  -1.09191404
+   1.20000000  -1.00510670
+
+The Calculated Surface using the SCF energy
+                             ****ORCA TERMINATED NORMALLY****

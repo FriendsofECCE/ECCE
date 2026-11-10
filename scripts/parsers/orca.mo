@@ -209,10 +209,9 @@ sub printMO {
   return 1;
 }
 
-# An IRC has orbitals at the TS and its two end points (#751).  orca.ptmo
-# runs this script once per block (TS first) with $main::PTONLY and gets one
-# PTORB/PTMO table each; the plain run gives MO/ORBENG/ORBOCC of the TS block.
-my $isIrc = ($runtype =~ /IRC/i);
+# Point tables need the same coefficient parser and AO ordering as final MOs.
+# orca.ptmo selects table-only output for converged scan or available IRC sets.
+my $isPointRun = ($runtype =~ /IRC|Geo/i);
 my $ptOnly = $main::PTONLY;
 
 sub printPointTables {
@@ -238,12 +237,12 @@ my $printedAny = 0;
 if (@segments >= 1) {
   my ($orbEnergy, $orbOcc, $coeff, $nbas) = parseSegment($segments[0]);
   $printedAny |= printMO("MO", "ORBENG", "ORBOCC", $orbEnergy, $orbOcc, $coeff, $nbas) if (!$ptOnly);
-  &printPointTables("PTMO", "PTORB", $orbEnergy, $orbOcc, $coeff, $nbas) if ($ptOnly && $isIrc);
+  &printPointTables("PTMO", "PTORB", $orbEnergy, $orbOcc, $coeff, $nbas) if ($ptOnly && $isPointRun);
 }
 if (@segments >= 2) {
   my ($orbEnergy, $orbOcc, $coeff, $nbas) = parseSegment($segments[1]);
   $printedAny |= printMO("MOBETA", "ORBENGBETA", "ORBOCCBETA", $orbEnergy, $orbOcc, $coeff, $nbas) if (!$ptOnly);
-  &printPointTables("PTMOBETA", "PTORBBETA", $orbEnergy, $orbOcc, $coeff, $nbas) if ($ptOnly && $isIrc);
+  &printPointTables("PTMOBETA", "PTORBBETA", $orbEnergy, $orbOcc, $coeff, $nbas) if ($ptOnly && $isPointRun);
 }
 
 # Tells the C++ side (MoAoOrder::reorderToNative()) that MO/MOBETA's

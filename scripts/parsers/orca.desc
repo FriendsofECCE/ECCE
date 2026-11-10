@@ -51,6 +51,14 @@ File=orca.orcain.allxyz
 Begin=orca.orcain.allxyz
 [END]
 
+# Scan orbitals need the whole output to select the final evaluation after
+# convergence at each point, rather than every optimizer iteration's MOs.
+[SCANPTMO]
+Script=orca.scanmos
+File=orca.orcaout
+Begin=orca.orcaout
+[END]
+
 # ORCA names the file after the input, which ECCE always calls orca.orcain.
 [IRCGEOM]
 Script=orca.ircgeom

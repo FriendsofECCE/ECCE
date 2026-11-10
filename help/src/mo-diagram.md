@@ -12,6 +12,13 @@ For ECCE-QM it follows the point selected in the **Relaxed Scan** or **IRC
 Path** panel instead, as do the **MOs** panel and its orbital list. An ORCA
 IRC has orbitals at the TS point only; select it to see them.
 
+For an ORCA relaxed scan, these views follow the selected scan point when
+its orbitals are available. Select a row in **Relaxed Scan**; the note names
+the point used for the orbitals and density. If an older calculation has
+only the final orbitals, the views retain the last computed point and say so.
+Import the output again if it contains orbitals for every point; otherwise
+rerun the scan with ECCE's generated input.
+
 For a MOPAC calculation the diagram shows the levels only, with the symmetry
 labels and occupations MOPAC reports; there are no fragment columns, because
 orbital composition is not available for semi-empirical results.
