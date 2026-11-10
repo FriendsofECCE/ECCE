@@ -14,6 +14,7 @@ class wxChoice;
 class wxStaticText;
 class wxTextCtrl;
 class wxPanel;
+class wxScrolledWindow;
 class wxFlexGridSizer;
 #include <wx/collpane.h>  // a class on GTK, a typedef of the generic pane on MSW: no forward declaration
 
@@ -81,6 +82,8 @@ private:
   std::string p_base;
   std::string reactionText(int n) const;
   void showProfiles();
+  void fitContent(bool wantChart);
+  wxScrolledWindow *p_body;
   void showResults();
   /** "" when balanced (or unknown), else "Not balanced: left ..., right ...". */
   std::string balanceOf(const std::string& line) const;

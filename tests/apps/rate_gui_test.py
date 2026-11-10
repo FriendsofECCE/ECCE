@@ -209,6 +209,11 @@ def run(display, data, work, shots):
     h = lambda k: int(lay.get(k, "0x0").split("x")[1])
     check("two [ts] reactions: the chart and the choice are shown, chart taller than 50 px",
           lay.get("plotshown") == "1" and lay.get("choiceshown") == "1" and h("plot") > 50 and h("choice") > 0, lay)
+    # #899: the content scrolls inside a dialog that fits the display (the results are
+    # a table of labels now, the details page is the selectable text).
+    check("two [ts] reactions: the dialog fits the display and the content scrolls when it is taller",
+          int(lay.get("screen", "0")) > 0 and h("dialog") <= int(lay.get("screen", "0")) and
+          int(lay.get("virtual", "0x0").split("x")[1]) >= h("body") > 0, lay)
     check("the G treatment choice is enabled", lay.get("treatmentenabled") == "1", lay)
     check("the details page is enabled and has room",
           lay.get("detailenabled") == "1" and h("detail") >= 100, lay)
