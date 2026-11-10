@@ -56,7 +56,7 @@ namespace SubmitHeaderCheck
     }
 
     // The account a generated submit script charges the job to, "" when its
-    // directives name none: #SBATCH --account/-A, #PBS -A, #BSUB -P.  Read
+    // directives name none: #SBATCH --account/-A, #PBS -A, #BSUB -P, #MSUB -A.  Read
     // from the script after gensub has substituted, so it is the account the
     // scheduler sees whether it came from the launcher, the machine's CONFIG
     // block or a queue default.  An unsubstituted ##token## or $variable is
@@ -66,7 +66,8 @@ namespace SubmitHeaderCheck
         static const struct { const char* tag; const char* a; const char* b; } kinds[] = {
             { "#SBATCH", "--account", "-A" },
             { "#PBS",    "-A",        "-A" },
-            { "#BSUB",   "-P",        "-P" } };
+            { "#BSUB",   "-P",        "-P" },
+            { "#MSUB",   "-A",        "-A" } };
         size_t pos = 0;
         while (pos <= script.size())
         {
@@ -78,7 +79,7 @@ namespace SubmitHeaderCheck
             size_t b = line.find_first_not_of(" \t\r");
             if (b == std::string::npos)
                 continue;
-            for (size_t k = 0; k < 3; k++)
+            for (size_t k = 0; k < sizeof(kinds) / sizeof(kinds[0]); k++)
             {
                 size_t n = std::string(kinds[k].tag).size();
                 if (line.compare(b, n, kinds[k].tag) != 0)

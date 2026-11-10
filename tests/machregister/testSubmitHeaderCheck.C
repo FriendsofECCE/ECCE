@@ -64,6 +64,8 @@ int main()
     check(w == "pbsproj", "PBS -A", w);
     w = submitAccount("#BSUB -P lsfproj\n");
     check(w == "lsfproj", "LSF -P", w);
+    w = submitAccount("#MSUB -A moabproj\n");
+    check(w == "moabproj", "Moab -A", w);
     w = submitAccount("#SBATCH --partition=normal\n#SBATCH --time=1:00:00\n");
     check(w.empty(), "no account directive gives none", w);
     w = submitAccount("#SBATCH --account=##account_no##\n");
