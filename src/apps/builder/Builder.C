@@ -6975,7 +6975,8 @@ void Builder::updatePropertyMenus()
             return s.fail("mofield: no field type " + type);
           return true;
         }
-        if ((w[0] != "mopanel" && w[0] != "motable" && w[0] != "mobar") ||
+        if ((w[0] != "mopanel" && w[0] != "motable" && w[0] != "mobar" &&
+             w[0] != "mosurf") ||
             w.size() != 2)
           return s.fail("unknown command: " + w[0]);
         MoPanel *mo = 0;
@@ -6990,6 +6991,11 @@ void Builder::updatePropertyMenus()
         if (w[0] == "mobar") {
           std::ofstream out(outdir + "/" + w[1] + ".txt");
           out << mo->espBarState();
+          return true;
+        }
+        //  "mosurf <name>": drawn surface kind and node count -> <name>.txt.
+        if (w[0] == "mosurf") {
+          std::ofstream(outdir + "/" + w[1] + ".txt") << mo->surfaceState();
           return true;
         }
         //  "motable <name>": the MO table's selection and scroll state, and

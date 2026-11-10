@@ -129,6 +129,7 @@ class MoPanel : public MoGUI,
       * (the Builder's "mobar" scene command).
       */
      string espBarState() const;
+     string surfaceState() const;
 
      /** The isovalue (linear) the grid's outer faces were last checked at; 0 before a surface. */
      double facesCheckedIso() const { return p_facesCheckedIso; }
@@ -232,6 +233,7 @@ class MoPanel : public MoGUI,
       wxStaticText *p_fieldNote = nullptr;
       wxString p_fieldDescription;
       void rebuildEspSurface();
+      void dropDrawnSurface();
       void buildFieldViewControls();
       void showFieldViewControls(bool show, bool nci);
       void onFieldViewChanged(wxCommandEvent& event);
