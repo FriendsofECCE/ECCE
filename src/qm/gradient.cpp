@@ -4,6 +4,7 @@
 #include <memory>
 #include "cint_wrap.hpp"
 #include "integrals.hpp"
+#include "d3.hpp"
 #include "solvent.hpp"
 #include "xc.hpp"
 
@@ -186,6 +187,11 @@ std::vector<double> scf_gradient(Basis& basis, const Molecule& mol, const ScfOpt
     std::vector<double> gx;
     xc.gradient(r.D_a, r.D_b, closed, gx);
     for (int k = 0; k < 3 * natm; ++k) g[k] += gx[k];
+  }
+
+  if (!opt.dispersion.empty()) {
+    D3Params dp;
+    if (d3bj_params(opt.method, dp)) d3bj_energy(mol, dp, &g);
   }
   return g;
 }

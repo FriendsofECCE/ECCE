@@ -20,6 +20,10 @@ check name=ES.Theory.ECCEQM.MK label=" Merz-Kollman (fitted to the electrostatic
 box label="Orbitals"
 combo name=ES.Theory.ECCEQM.Virtuals label="Virtual orbitals:" choices="Canonical|Improved (IVO)" default=Canonical export=1
 
+# Grimme D3(BJ); there are no published parameters for SVWN.
+box label="Dispersion correction"
+check name=ES.Theory.ECCEQM.Dispersion label=" D3(BJ) (Grimme, Becke-Johnson damping)" default=0 export=1 enable_if="ES.Theory.DFT.XCFunctionals!=SVWN"
+
 # Implicit solvent (CPCM).  Every run type but Raman works; the Calculation
 # Editor and the Launcher warn about Raman.
 box label="Solvent"

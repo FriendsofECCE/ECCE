@@ -36,6 +36,10 @@
 //                                raman are refused
 //   epsilon <x>                  the same with a dielectric constant of your own
 //   cavity_scale <x>             solvent cavity: atomic spheres of x * Bondi radii (1.2)
+//   dispersion <none|d3bj>       Grimme D3 with Becke-Johnson damping (two-body
+//                                terms, no three-body term), added to the energy
+//                                and the gradient; hf, pbe, b3lyp, pbe0 only.
+//                                Frequencies then use the finite-difference Hessian
 //   charges <loewdin|chelpg|mk ...>   extra charge sets besides Mulliken
 //   runtype <energy|gradient|optimize|frequency|optfreq|ts|irc>   default energy;
 //                                gradient adds the analytic nuclear gradient,

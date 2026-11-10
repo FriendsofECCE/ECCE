@@ -372,6 +372,8 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
   os << "energy_exchange_hf " << r.e_exchange_hf << "\n";
   os << "energy_xc " << r.e_xc << "\n";
   if (dft) os << "grid_electrons " << r.xc_electrons << "\n";
+  if (!in.scf.dispersion.empty())  // already in energy_total
+    os << "dispersion D3(BJ)\nenergy_dispersion " << r.e_disp << "\n";
   if (in.scf.solvent_eps > 0) {
     // Polarisation energy of the medium (q.V/2), already in energy_total.
     os << "solvent " << in.solvent << "\nsolvent_epsilon " << in.scf.solvent_eps << "\n";

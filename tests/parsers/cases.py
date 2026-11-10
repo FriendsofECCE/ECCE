@@ -2095,6 +2095,17 @@ CASES = [
         },
     ),
     dict(
+        #  B3LYP-D3(BJ)/def2-SVP Ar2 gradient (#453): the dispersion energy,
+        #  already in TE, as EDISP.
+        name='ecceqm-ar2-d3bj',
+        desc='ecceqm.desc',
+        fixture='ecceqm/ar2_d3bj.qmout',
+        parse_args=('.', 'Gradient', 'DFT', 'RDFT', '0'),
+        expect={
+            'EDISP': dict(keys={'EDISP': {'units': 'Hartree'}}),
+        },
+    ),
+    dict(
         #  HF/STO-3G IRC from the HCN/HNC TS, 3 points per direction (#452):
         #  7 structures, the TS in the middle, one per IRCCOORD point.
         name='ecceqm-hcn-irc',

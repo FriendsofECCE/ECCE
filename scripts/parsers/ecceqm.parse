@@ -47,6 +47,7 @@ my %energyKey = (
   energy_coulomb        => 'COULOMB',
   energy_exchange_hf    => 'EXCHANGE',
   energy_xc             => 'EXCORR',
+  energy_dispersion     => 'EDISP',    # D3(BJ), already in energy_total
 );
 
 if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {

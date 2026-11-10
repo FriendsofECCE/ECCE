@@ -131,6 +131,15 @@ Skip=0
 Lines=1
 [END]
 
+# D3(BJ) dispersion energy, written only when it was asked for.
+[EDISP]
+Script=ecceqm.parse
+Begin=^energy_dispersion\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 # Implicit solvent (CPCM): the polarisation energy of the surface charges and
 # the model name; neither line is written for a vacuum run.
 [EPCM]

@@ -1,0 +1,13 @@
+                         Program Version 6.1.1  -  RELEASE   -
+|  1> ! B3LYP D3BJ def2-SVP VeryTightSCF EnGrad NoUseSym
+|  2> %maxcore 1000
+|  3> * xyz 0 1
+|  4> Ar    0.000000    0.000000    0.000000
+|  5> Ar    0.000000    0.000000    3.800000
+|  6> *
+|  7> 
+|  8>                          ****END OF INPUT****
+ Edisp/kcal,au: -0.419293149481  -0.000668186095 
+Dispersion correction           -0.000668186
+FINAL SINGLE POINT ENERGY     -1054.589309075927
+Dispersion correction             ... done (  0.0 sec)

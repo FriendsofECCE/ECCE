@@ -1,4 +1,5 @@
 #include "input.hpp"
+#include "d3.hpp"
 #include <algorithm>
 #include <cctype>
 #include <fstream>
@@ -202,6 +203,12 @@ Input parse_input(std::istream& in) {
       try { r.scf.cavity_scale = std::stod(rest); } catch (...) { throw bad("cavity_scale needs a number"); }
       if (!(r.scf.cavity_scale > 0)) throw bad("cavity_scale must be positive");
     }
+    else if (k == "dispersion") {
+      const std::string v = lower(rest);
+      if (v == "none" || v.empty()) r.scf.dispersion.clear();
+      else if (v == "d3bj" || v == "d3(bj)") r.scf.dispersion = "d3bj";
+      else throw bad("dispersion must be none or d3bj");
+    }
     else if (k == "molden") r.molden = true;
     else throw bad("unknown keyword '" + key + "'");
   }
@@ -318,6 +325,10 @@ Input parse_input(std::istream& in) {
   else if (m[0] == 'r' && m != "r") { ref = Reference::Restricted; m = m.substr(1); explicit_ref = true; }
   (void)explicit_ref;
   r.scf.method = m;
+  if (!r.scf.dispersion.empty()) {
+    D3Params dp;
+    if (!d3bj_params(r.scf.method, dp)) throw Error("dispersion d3bj has no parameters for method " + r.scf.method + " (hf, pbe, b3lyp, pbe0 have them)");
+  }
   r.scf.reference = ref;
   functional_by_name(m);  // validate
   return r;

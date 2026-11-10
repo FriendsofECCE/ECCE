@@ -6,6 +6,7 @@
 #include <map>
 #include <memory>
 #include "integrals.hpp"
+#include "d3.hpp"
 #include "solvent.hpp"
 #include "vibration.hpp"
 
@@ -196,6 +197,11 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
   R.nalpha = na;
   R.nbeta = nb;
   R.e_nuc = mol.nuclear_repulsion();
+  if (!opt.dispersion.empty()) {  // fixed for the geometry, added like E_nuc
+    D3Params dp;
+    if (!d3bj_params(opt.method, dp)) throw Error("no D3(BJ) parameters for method " + opt.method);
+    R.e_disp = d3bj_energy(mol, dp);
+  }
 
   OneElectron oe = one_electron(basis);
   Mat H = oe.T + oe.V;
@@ -331,7 +337,7 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
     }
     const double E1 = (Dt.array() * H.array()).sum();
     const double EJ = 0.5 * (Dt.array() * Jt.array()).sum();
-    const double E = E1 + EJ + EK + Exc + R.e_nuc + Esolv;
+    const double E = E1 + EJ + EK + Exc + R.e_nuc + Esolv + R.e_disp;
     R.e_solvent = Esolv;
     R.e_one = E1; R.e_coulomb = EJ; R.e_exchange_hf = EK; R.e_xc = Exc;
 

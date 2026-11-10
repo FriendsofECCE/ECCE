@@ -45,6 +45,8 @@ struct ScfOptions {
   // cavity spheres are cavity_scale times the Bondi radii.
   double solvent_eps = 0;
   double cavity_scale = 1.2;
+  // Dispersion correction: "" none, "d3bj" Grimme D3 with BJ damping.
+  std::string dispersion;
   std::function<void(const ScfCycle&)> on_cycle;  // called after every cycle
 };
 
@@ -72,6 +74,7 @@ struct ScfResult {
   double xc_electrons = 0;        // grid integral of the density (DFT)
   int nalpha = 0, nbeta = 0;
   double e_solvent = 0;           // CPCM: polarisation energy q.V/2, part of energy
+  double e_disp = 0;              // D3(BJ) dispersion energy, part of energy
   bool ivo_applied = false;       // virtuals are IVOs, not canonical
   std::string ivo_note;           // why IVOs were asked for but not made
 };
