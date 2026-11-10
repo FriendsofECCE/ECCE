@@ -219,3 +219,5 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [H2 curves (#858): ORCA has no rigid scan, GuessMix per point, closed-shell CCSD gradients; Fit Morse = ecce-morse --json](h2-curves-morse-fit-and-orca-scan-facts-858.md)
 - [ORCA RI summaries need legacy keys and effective output settings (#894)](orca-ri-summary-follows-input-and-output.md)
 - [MOPAC and CP2K final orbitals: density staging and restart retention (#407)](mopac-cp2k-final-orbitals-407.md)
+
+- [ORCA scan point orbitals: select converged final evaluations, not optimizer iterations (#549)](orca-scan-point-orbitals-549.md)

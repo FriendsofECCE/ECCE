@@ -1,0 +1,58 @@
+#!/usr/bin/env perl
+# Optimizer iterations also print MOs. Only the final evaluation after each
+# point converges belongs to SCANGEOM; a partial set would mislabel its frames.
+use strict;
+use warnings;
+use File::Basename qw(dirname);
+use File::Spec;
+
+my ($key, $runtype) = @ARGV;
+exit(0) unless ($runtype =~ /Geo/i);
+my (@points, @block);
+my ($point, $converged, $done, $reading, $skip) = (0, 0, 0, 0, 0);
+my $last;
+while (<STDIN>) {
+  if (/RELAXED SURFACE SCAN STEP\s+(\d+)/) {
+    if ($point) {
+      exit(0) unless ($done && defined($last));
+      push(@points, $last);
+    }
+    exit(0) unless ($1 == $point + 1);
+    $point = $1;
+    ($converged, $done, $reading, $skip) = (0, 0, 0, 0);
+    undef $last;
+    next;
+  }
+  next unless $point;
+  if (/THE OPTIMIZATION HAS CONVERGED/) {
+    $converged = 1;
+    next;
+  }
+  $done = 1 if /OPTIMIZATION RUN DONE/;
+  if ($converged && /MOLECULAR ORBITALS/) {
+    @block = ();
+    $reading = 1;
+    $skip = 1;  # the header underline, as in orca.desc's Skip=2
+    next;
+  }
+  next unless $reading;
+  if ($skip) { $skip--; next; }
+  if (/MULLIKEN POPULATION ANALYSIS/) {
+    $last = join('', @block);
+    $reading = 0;
+    next;
+  }
+  push(@block, $_);
+}
+exit(0) unless ($point && $done && defined($last) && !$reading);
+push(@points, $last);
+
+# Use the same coefficient parser and AO ordering as ordinary and IRC MOs.
+# Validate the complete sequence before emitting any accumulating properties:
+# older outputs with only the final MOs must retain the final-point fallback.
+for my $text (@points) {
+  open(my $parser, '|-', $^X, File::Spec->rel2abs(dirname($0)) . '/orca.ptmo', @ARGV)
+    or die "Cannot start orbital parser: $!\n";
+  print {$parser} $text;
+  close($parser) or die "Orbital parser failed\n";
+}

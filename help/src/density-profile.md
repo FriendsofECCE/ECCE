@@ -12,6 +12,13 @@ For a relaxed scan or an IRC the profile belongs to the last computed point.
 For ECCE-QM it follows the point selected in the **Relaxed Scan** or **IRC
 Path** panel instead, and a note at the top of the panel names the point.
 
+For an ORCA relaxed scan, these views follow the selected scan point when
+its orbitals are available. Select a row in **Relaxed Scan**; the note names
+the point used for the orbitals and density. If an older calculation has
+only the final orbitals, the views retain the last computed point and say so.
+Import the output again if it contains orbitals for every point; otherwise
+rerun the scan with ECCE's generated input.
+
 The controls are two short rows. The first row has the mode, the atoms, the
 quantity and what to show; the second the axes, **Show all** and **Options**,
 which unfolds the controls used less often (margin, sideways shift, unit,
