@@ -862,11 +862,22 @@ vector<vector<double> > *tablesOf(const vector<double>& flat, size_t rows)
 struct Derived
 {
   TProperty *source = 0;
+  std::shared_ptr<const Model> model;
+  long shape = -1;
   vector<double> values;
   std::unique_ptr<TProperty> prop;
 };
 std::map<string, Derived> g_derived;
 vector<std::unique_ptr<TProperty> > g_retired;
+
+// Values a property holds; a live update that grows it changes this.
+long shapeOf(TProperty *p)
+{
+  if (PropVector *v = dynamic_cast<PropVector*>(p)) return v->rows();
+  if (PropVecTable *v = dynamic_cast<PropVecTable*>(p)) return long(v->tables())*v->rows()*v->columns();
+  if (PropTSVecTable *v = dynamic_cast<PropTSVecTable*>(p)) return long(v->tables())*v->rows()*v->columns();
+  return -1;
+}
 
 }  // namespace
 
@@ -876,10 +887,21 @@ TProperty *property(IPropCalculation *calc, const string& key)
   TProperty *p = calc ? calc->getProperty(key) : 0;
   if (p == 0) return 0;
   std::shared_ptr<const Model> m = storedAny(calc);
-  vector<double> vals;
-  if (!m || !valuesFromFile(*m, key, p, vals)) return p;
-
+  if (!m) return p;
+  //  Playback asks once per frame: an MD trace is not copied each time.
   Derived& d = g_derived[calc->getURL().toString() + "\n" + key];
+  const long shape = shapeOf(p);
+  if (d.source == p && d.model == m && d.shape == shape) return d.prop ? d.prop.get() : p;
+  vector<double> vals;
+  const bool fits = valuesFromFile(*m, key, p, vals);
+  d.model = m;
+  d.shape = shape;
+  if (!fits) {
+    if (d.prop) g_retired.push_back(std::move(d.prop));
+    d.source = p;
+    d.values.clear();
+    return p;
+  }
   if (d.prop && d.source == p && d.values == vals) return d.prop.get();
   TProperty *copy = 0;
   if (PropVector *v = dynamic_cast<PropVector*>(p)) {
