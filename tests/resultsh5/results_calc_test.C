@@ -6,6 +6,9 @@
 //   results_calc_test orca <orca.mo output> <nb> <xyz> <nelectrons>
 //   results_calc_test xtb <molden.input> <xtb.mo output> <nelectrons>
 //   results_calc_test emptyspin                  H2+ with an empty beta channel
+//   results_calc_test views <calc folder>[=keys]... the vibration and trace
+//        properties the views read (ResultsFromCalc::property) against the
+//        Props; `keys` (comma-separated) must come from the file
 //
 // The calculation modes compare Evaluator::density, ::spinDensity and
 // every occupied orbital at a grid of points between ECCE_RESULTS_H5=0 (the
@@ -30,6 +33,9 @@ using namespace std;
 #include "dsm/PropFactory.H"
 #include "tdat/PropString.H"
 #include "tdat/PropTable.H"
+#include "tdat/PropTSVecTable.H"
+#include "tdat/PropVecTable.H"
+#include "tdat/PropVector.H"
 #include "tdat/ResultsFromCalc.H"
 #include "tdat/TAtm.H"
 #include "tdat/TGBSAngFunc.H"
@@ -391,6 +397,67 @@ static void emptySpin()
 
 }
 
+static bool flatValues(TProperty *p, vector<double>& out)
+{
+  out.clear();
+  if (PropVector *v = dynamic_cast<PropVector*>(p)) { out = v->values(); return true; }
+  if (PropVecTable *v = dynamic_cast<PropVecTable*>(p)) {
+    for (int t = 0; t < v->tables(); t++)
+      out.insert(out.end(), v->values(t).begin(), v->values(t).end());
+    return true;
+  }
+  if (PropTSVecTable *v = dynamic_cast<PropTSVecTable*>(p)) {
+    for (int t = 0; t < v->tables(); t++)
+      out.insert(out.end(), v->values(t).begin(), v->values(t).end());
+    return true;
+  }
+  return false;
+}
+
+//  The two paths of every view property: values from results.h5 must equal
+//  the parsed ones to 1e-6 of the largest magnitude (the Props hold the
+//  code's printed digits; ECCE-QM's own file holds full precision), and
+//  with ECCE_RESULTS_H5=0 the view gets the parsed property itself.
+static void views(string arg)
+{
+  string want;
+  const size_t eq = arg.find('=');
+  if (eq != string::npos) { want = "," + arg.substr(eq + 1) + ","; arg = arg.substr(0, eq); }
+  printf("== %s\n", arg.c_str());
+  Resource *res = EDSIFactory::getResource(EcceURL("file://" + arg));
+  IPropCalculation *calc = dynamic_cast<IPropCalculation*>(res);
+  CHECK(calc != 0, "opens as a calculation");
+  if (!calc) return;
+  const char *keys[] = {"VIBFREQ", "VIBIR", "VIBRAM", "VIB", "SCANGEOM", "SCANENERGY",
+                        "SCANCOORD", "IRCGEOM", "IRCENERGY", "IRCCOORD", "GEOMTRACE", "TEVEC"};
+  for (const char *key : keys) {
+    setenv("ECCE_RESULTS_H5", "1", 1);
+    TProperty *parsed = calc->getProperty(key);
+    if (parsed == 0) continue;
+    ResultsFromCalc::forget(calc);
+    TProperty *viewed = ResultsFromCalc::property(calc, key);
+    const bool fromFile = viewed != parsed;
+    vector<double> a, b;
+    flatValues(parsed, a);
+    flatValues(viewed, b);
+    double scale = 0, diff = 0;
+    for (double x : a) scale = max(scale, fabs(x));
+    if (a.size() == b.size())
+      for (size_t i = 0; i < a.size(); i++) diff = max(diff, fabs(a[i] - b[i]));
+    char msg[200];
+    snprintf(msg, sizeof msg, "%-10s %-8s n=%zu max|diff| %.2e (scale %.3g, %s)", key,
+             fromFile ? "file" : "props", a.size(), diff, scale, parsed->units().c_str());
+    CHECK(a.size() == b.size() && diff <= 1e-6*max(scale, 1.0), msg);
+    if (want.find("," + string(key) + ",") != string::npos)
+      CHECK(fromFile, string(key) + " is read from results.h5");
+    setenv("ECCE_RESULTS_H5", "0", 1);
+    ResultsFromCalc::forget(calc);
+    CHECK(ResultsFromCalc::property(calc, key) == parsed,
+          string(key) + ": ECCE_RESULTS_H5=0 gives the parsed property");
+  }
+  setenv("ECCE_RESULTS_H5", "1", 1);
+}
+
 int main(int argc, char **argv)
 {
   if (argc < 2) { fprintf(stderr, "usage: see the head of this file\n"); return 2; }
@@ -401,6 +468,8 @@ int main(int argc, char **argv)
   else if (mode == "orca" && argc >= 6) orcaBlock(argv[2], argv[3], argv[4], atof(argv[5]));
   else if (mode == "xtb" && argc >= 5) xtbBlock(argv[2], argv[3], atof(argv[4]));
   else if (mode == "emptyspin") emptySpin();
+  else if (mode == "views")
+    for (int i = 2; i < argc; i++) views(argv[i]);
   else return 2;
   printf("%s\n", failures ? "FAIL" : "PASS");
   return failures ? 1 : 0;

@@ -13,6 +13,7 @@
 #include <memory>
 
 #ifdef ECCE_HAVE_HDF5
+#include <strings.h>
 #include <unistd.h>
 
 #include "tdat/EspField.H"
@@ -100,7 +101,9 @@ double toHartree(const string& u)
 
 double toBohr(const string& u)
 {
-  if (u == "Angstrom" || u == "angstrom" || u.empty()) return bohrPerAngstrom();
+  //  "NA": a structure table whose parser declared no unit (ORCA's
+  //  IRCGEOM); ECCE's coordinates are Angstrom.
+  if (u == "Angstrom" || u == "angstrom" || u.empty() || u == "NA") return bohrPerAngstrom();
   if (u == "Bohr" || u == "bohr") return 1.0;
   if (u == "nm") return 10*bohrPerAngstrom();
   return 0;
@@ -738,10 +741,9 @@ void forget(IPropCalculation *calc)
 }
 
 
-std::shared_ptr<const Model> stored(IPropCalculation *calc)
+std::shared_ptr<const Model> storedAny(IPropCalculation *calc)
 {
-  if (calc == 0 || !enabled() || calc->orbitalPoint() != -1)
-    return std::shared_ptr<const Model>();
+  if (calc == 0 || !enabled()) return std::shared_ptr<const Model>();
   const string url = calc->getURL().toString();
   const time_t now = time(0);
   //  The age limit covers a file written by another process (a re-parse);
@@ -757,7 +759,7 @@ std::shared_ptr<const Model> stored(IPropCalculation *calc)
   if (calc->fetchStoredFile(FILE_NAME, path)) {
     Model *m = new Model();
     string err;
-    if (resultsh5::readFile(path, *m, err) && !m->mos.empty() &&
+    if (resultsh5::readFile(path, *m, err) &&
         m->checks.compare(0, 6, "failed") != 0)
       g_cache.model.reset(m);
     else
@@ -765,6 +767,140 @@ std::shared_ptr<const Model> stored(IPropCalculation *calc)
   }
   std::remove(path.c_str());
   return g_cache.model;
+}
+
+
+std::shared_ptr<const Model> stored(IPropCalculation *calc)
+{
+  if (calc == 0 || calc->orbitalPoint() != -1) return std::shared_ptr<const Model>();
+  std::shared_ptr<const Model> m = storedAny(calc);
+  return m && !m->mos.empty() ? m : std::shared_ptr<const Model>();
+}
+
+
+namespace {
+
+const resultsh5::Trace *traceNamed(const Model& m, const string& key)
+{
+  for (const resultsh5::Trace& t : m.trace) {
+    const bool step = t.name == "optimization" || t.name == "md" || t.name == "ensemble";
+    if ((key.compare(0, 4, "SCAN") == 0 && t.name == "scan") ||
+        (key.compare(0, 3, "IRC") == 0 && t.name == "irc") ||
+        ((key == "GEOMTRACE" || key == "TEVEC") && step))
+      return &t;
+  }
+  return 0;
+}
+
+// Factor from the file's coordinate unit to the property's; 0 when the two
+// are not known to match.
+double valueFactor(const string& file, const string& prop)
+{
+  if (file == "radian" && prop == "Degree") return 180/3.14159265358979323846;
+  if (file == "bohr" && prop == "Angstrom") return 1/bohrPerAngstrom();
+  if (strcasecmp(file.c_str(), prop.c_str()) == 0) return 1.0;
+  return 0;
+}
+
+// The values of `key` from the file in the shape and units of `p`, or false.
+bool valuesFromFile(const Model& m, const string& key, TProperty *p,
+                    vector<double>& out)
+{
+  out.clear();
+  const size_t N = m.natoms();
+  if (PropVector *v = dynamic_cast<PropVector*>(p)) {
+    const size_t n = v->rows();
+    const vector<double> *src = 0;
+    double f = 1.0;
+    if (!m.vib.empty() && key == "VIBFREQ") src = &m.vib[0].frequency;
+    else if (!m.vib.empty() && key == "VIBIR") src = &m.vib[0].irIntensity;
+    else if (!m.vib.empty() && key == "VIBRAM") src = &m.vib[0].ramanActivity;
+    else if (const resultsh5::Trace *t = traceNamed(m, key)) {
+      if (key == "SCANENERGY" || key == "IRCENERGY" || key == "TEVEC") {
+        src = &t->energy;
+        f = toHartree(v->units());
+        f = f != 0 ? 1/f : 0;
+      } else if (key == "SCANCOORD" || key == "IRCCOORD") {
+        src = &t->value;
+        f = valueFactor(t->valueUnit, v->units());
+      }
+    }
+    if (src == 0 || src->size() != n || n == 0 || f == 0) return false;
+    for (double x : *src) out.push_back(x*f);
+    return true;
+  }
+  if (PropVecTable *v = dynamic_cast<PropVecTable*>(p)) {
+    if (key != "VIB" || m.vib.empty() || v->columns() != 3 || (size_t)v->rows() != N)
+      return false;
+    if (m.vib[0].mode.size() != (size_t)v->tables()*3*N || v->tables() == 0) return false;
+    out = m.vib[0].mode;
+    return true;
+  }
+  if (PropTSVecTable *v = dynamic_cast<PropTSVecTable*>(p)) {
+    const resultsh5::Trace *t = traceNamed(m, key);
+    if (t == 0 || v->columns() != 3 || (size_t)v->rows() != N || v->tables() == 0 ||
+        t->coord.size() != (size_t)v->tables()*3*N || toBohr(v->units()) == 0)
+      return false;
+    const double f = 1/toBohr(v->units());
+    for (double x : t->coord) out.push_back(x*f);
+    return true;
+  }
+  return false;
+}
+
+// Tables of `rows` x 3 from flat values, as setValues() takes them.
+vector<vector<double> > *tablesOf(const vector<double>& flat, size_t rows)
+{
+  vector<vector<double> > *t = new vector<vector<double> >();
+  for (size_t i = 0; i + 3*rows <= flat.size(); i += 3*rows)
+    t->push_back(vector<double>(flat.begin() + i, flat.begin() + i + 3*rows));
+  return t;
+}
+
+//  Views keep the pointers they are handed, so a copy is replaced only when
+//  its values change, and the old one is kept, not freed.
+struct Derived
+{
+  TProperty *source = 0;
+  vector<double> values;
+  std::unique_ptr<TProperty> prop;
+};
+std::map<string, Derived> g_derived;
+vector<std::unique_ptr<TProperty> > g_retired;
+
+}  // namespace
+
+
+TProperty *property(IPropCalculation *calc, const string& key)
+{
+  TProperty *p = calc ? calc->getProperty(key) : 0;
+  if (p == 0) return 0;
+  std::shared_ptr<const Model> m = storedAny(calc);
+  vector<double> vals;
+  if (!m || !valuesFromFile(*m, key, p, vals)) return p;
+
+  Derived& d = g_derived[calc->getURL().toString() + "\n" + key];
+  if (d.prop && d.source == p && d.values == vals) return d.prop.get();
+  TProperty *copy = 0;
+  if (PropVector *v = dynamic_cast<PropVector*>(p)) {
+    PropVector *c = new PropVector(*v);
+    c->values(vals);
+    copy = c;
+  } else if (PropVecTable *v = dynamic_cast<PropVecTable*>(p)) {
+    PropVecTable *c = new PropVecTable(*v);
+    c->setValues(tablesOf(vals, v->rows()), v->rows(), 3);
+    copy = c;
+  } else if (PropTSVecTable *v = dynamic_cast<PropTSVecTable*>(p)) {
+    PropTSVecTable *c = new PropTSVecTable(*v);
+    c->setValues(tablesOf(vals, v->rows()), v->rows(), 3);
+    copy = c;
+  }
+  if (copy == 0) return p;
+  if (d.prop) g_retired.push_back(std::move(d.prop));
+  d.prop.reset(copy);
+  d.source = p;
+  d.values.swap(vals);
+  return copy;
 }
 
 #else   // no HDF5: no results.h5
@@ -776,6 +912,8 @@ string check(resultsh5::Model&) { return string(); }
 bool build(IPropCalculation*, resultsh5::Model&, string&, string& why) { why = "built without HDF5"; return false; }
 bool store(IPropCalculation*, string& line) { line = "built without HDF5"; return false; }
 std::shared_ptr<const resultsh5::Model> stored(IPropCalculation*) { return std::shared_ptr<const resultsh5::Model>(); }
+std::shared_ptr<const resultsh5::Model> storedAny(IPropCalculation*) { return std::shared_ptr<const resultsh5::Model>(); }
+TProperty *property(IPropCalculation *calc, const string& key) { return calc ? calc->getProperty(key) : 0; }
 void forget(IPropCalculation*) {}
 
 #endif

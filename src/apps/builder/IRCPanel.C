@@ -15,6 +15,7 @@
 #include <wx/wrapsizer.h>
 #include <wx/stattext.h>
 
+#include "tdat/ResultsFromCalc.H"
 #include "tdat/PropVector.H"
 #include "tdat/PropTSVecTable.H"
 #include "tdat/MoAoBasis.H"
@@ -213,8 +214,8 @@ void IRCPanel::fill()
   p_frame.clear();
   if (p_playback) p_playback->SetStopIndex(0L);
   IPropCalculation *calc = getCalculation();
-  PropVector *c = calc ? dynamic_cast<PropVector*>(calc->getProperty("IRCCOORD")) : 0;
-  PropVector *e = calc ? dynamic_cast<PropVector*>(calc->getProperty("IRCENERGY")) : 0;
+  PropVector *c = calc ? dynamic_cast<PropVector*>(ResultsFromCalc::property(calc, "IRCCOORD")) : 0;
+  PropVector *e = calc ? dynamic_cast<PropVector*>(ResultsFromCalc::property(calc, "IRCENERGY")) : 0;
   if (!c || !e) return;
   const size_t n = std::min(c->values().size(), e->values().size());
   p_coord.assign(c->values().begin(), c->values().begin() + n);
@@ -225,7 +226,7 @@ void IRCPanel::fill()
   const wxString xUnit = wxString::FromUTF8("amu\xC2\xBD\xC2\xB7" "bohr");
 
   PropTSVecTable *geom =
-      calc ? dynamic_cast<PropTSVecTable*>(calc->getProperty("IRCGEOM")) : 0;
+      calc ? dynamic_cast<PropTSVecTable*>(ResultsFromCalc::property(calc, "IRCGEOM")) : 0;
   p_frame = ircFrameMap(p_coord, geom ? (int)geom->tables() : 0);
   if (p_playback) p_playback->SetStopIndex(n ? (long)n - 1 : 0);
 
@@ -281,7 +282,7 @@ void IRCPanel::loseFocus()
   // With per-point orbitals the selected point's structure stays with them.
   if (calc && calc->hasPointOrbitals()) return;
   PropTSVecTable *trace =
-      calc ? dynamic_cast<PropTSVecTable*>(calc->getProperty("GEOMTRACE")) : 0;
+      calc ? dynamic_cast<PropTSVecTable*>(ResultsFromCalc::property(calc, "GEOMTRACE")) : 0;
   if (!trace || trace->tables() == 0) return;
   SGContainer& sg = getFW().getSceneGraph();
   Command *cmd = new GTStepCmd("Trace Step", &sg, calc);

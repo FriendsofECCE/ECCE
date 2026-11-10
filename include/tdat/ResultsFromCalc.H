@@ -23,6 +23,7 @@ using std::vector;
 #include "tdat/ResultsH5.H"
 
 class IPropCalculation;
+class TProperty;
 struct EspBasisFunction;
 
 namespace ResultsFromCalc
@@ -83,6 +84,23 @@ namespace ResultsFromCalc
    * reads the file or the Props.
    */
   std::shared_ptr<const resultsh5::Model> stored(IPropCalculation *calc);
+
+  /**
+   * Like stored(), for vibrations and traces: also a file without
+   * orbitals (MD, MOPAC), and at any orbital point.
+   */
+  std::shared_ptr<const resultsh5::Model> storedAny(IPropCalculation *calc);
+
+  /**
+   * The views' read of the vibration and trace properties (VIBFREQ, VIBIR,
+   * VIBRAM, VIB, SCANGEOM/ENERGY/COORD, IRCGEOM/ENERGY/COORD, GEOMTRACE,
+   * TEVEC): a copy of the parsed property with its values from results.h5,
+   * in the property's own units, when the file has them in the same shape;
+   * else calc->getProperty(key).  Labels and units stay the property's, so
+   * a calculation without the property gets null either way.  The copy
+   * lives as long as the process; never update it.
+   */
+  TProperty *property(IPropCalculation *calc, const string& key);
 
   /** Drop the cached copy (the calculation's properties were reloaded). */
   void forget(IPropCalculation *calc);

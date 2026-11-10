@@ -11,6 +11,7 @@
 #include "dsm/IPropCalculation.H"
 #include "dsm/MdTask.H"
 
+#include "tdat/ResultsFromCalc.H"
 #include "tdat/PropTSVecTable.H"
 #include "tdat/LatticeDef.H"
 
@@ -52,7 +53,7 @@ bool GTStepCmd::execute()
 
   // Get the property 
   string propKey = getParameter("PropKey")->getString();
-  PropTSVecTable *trace = (PropTSVecTable*)calc->getProperty(propKey);
+  PropTSVecTable *trace = dynamic_cast<PropTSVecTable*>(ResultsFromCalc::property(calc, propKey));
   INTERNALEXCEPTION(trace,"trace table pointer is null");
 
   PropTSVecTable *latticeprop = (PropTSVecTable*)calc->getProperty("LATTICEVEC");

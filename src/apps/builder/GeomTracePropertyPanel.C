@@ -32,6 +32,7 @@
 #include "util/Transformations.H"
   using namespace ecce;
 
+#include "tdat/ResultsFromCalc.H"
 #include "tdat/PropTSVecTable.H"
 #include "tdat/PropVector.H"
 #include "tdat/TProperty.H"
@@ -403,7 +404,7 @@ void GeomTracePropertyPanel::fillPlot()
   if (p_currentProp.empty()) return;
 
   PropVector *prop = dynamic_cast<PropVector*>(
-          getCalculation()->getProperty(p_currentProp));
+          ResultsFromCalc::property(getCalculation(), p_currentProp));
 
   if (!prop) return; // bail if bad prop
 
@@ -745,7 +746,7 @@ int GeomTracePropertyPanel::numSteps() const
   int ret = 0;
 
   PropTSVecTable * trace = dynamic_cast<PropTSVecTable*>(
-          getCalculation()->getProperty(getTracePropKey()));
+          ResultsFromCalc::property(getCalculation(), getTracePropKey()));
   if (trace) {
     ret = trace->tables();
   }
