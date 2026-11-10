@@ -71,6 +71,9 @@ class WxGridView: public wxWindow
     int getCursorRow();
     int getCursorCol();
     void setCursor(int row, int col);
+    // Moves the cursor (the Shift+click anchor) and leaves the selection
+    // as it is; setCursor() also selects the row.
+    void moveCursor(int row, int col);
 
     void setColLabel(int col, const wxString& label);
     void setColAlignment(int col, int horiz, int vert);
@@ -109,6 +112,7 @@ class WxGridView: public wxWindow
     ewxGrid *p_grid;
     string p_appName;
     bool p_cmdClick;
+    bool p_keepSelection;
     int p_sortedCol;        /**< The current sort column */
     bool p_caseSensitive;
     bool p_ascSort;         /**< Indicates the sort column is ascending if true,

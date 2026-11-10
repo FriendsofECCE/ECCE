@@ -81,7 +81,7 @@ def run(display):
             open(stray, "w").close()
             os.remove(stray)
             time.sleep(6)
-            send("autoreloads x", "table x")
+            send("autoreloads x", "table x", "tableselected x")
             send("tableclick 3 shift")
             time.sleep(2)
 
@@ -128,6 +128,9 @@ def run(display):
         # wherever the re-sort puts it, instead of falling back to row 0.
         check(names(clicks[13]) == [], "Ctrl+click clears the only selected row",
               "got %s" % names(clicks[13]))
+        # Nothing selected before the reload, so nothing after it (#939).
+        check(len(kept) == 2 and names(kept[1]) == [],
+              "a reload keeps an emptied selection empty", kept)
         anchor = names(clicks[12])[0]
         table = ans("table")
         order = [c.split("=")[0].strip() for c in table[-1].split("|")[1:]] \

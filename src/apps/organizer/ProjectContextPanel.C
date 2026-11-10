@@ -142,27 +142,6 @@ void ProjectContextPanel::refresh()
   // Initialize/refresh grid with property view
   initialize();
   
-  // Restore selections, if any
-  if (selUrls.size() > 0) {
-    int rows = p_projectView->getRowCount();
-    bool setGridCursor = false;
-    for (int i = 0; i < rows; i++) {
-      element = dynamic_cast<GridPropElement*>(p_projectView->getElement(i, 0));
-      if (element != 0) {
-        string res = element->getResource()->getURL().toString();
-        if (selUrls.find(res) != selUrls.end()) {
-          if (!setGridCursor) {
-            p_projectView->setCursor(i, 0);
-            setGridCursor = true;
-          }
-          else {
-            p_projectView->selectRow(i, true);
-          }
-        }
-      }
-    }
-  }
-
   // Restore sort
   int newSortCol;
   bool sortColFound = false;
@@ -189,7 +168,17 @@ void ProjectContextPanel::refresh()
     p_projectView->defaultSort();
   }
 
-  // After the sort, which moves rows: the anchor back on its calculation.
+  // After the sort, which moves rows: the selection exactly as it was, also
+  // when empty (the rebuilt grid selects its cursor row), and the anchor
+  // back on its calculation, which may be a row Ctrl+clicked off (#939).
+  p_projectView->clearSelectedRows();
+  int nrows = p_projectView->getRowCount();
+  for (int i = 0; i < nrows && !selUrls.empty(); i++) {
+    element = dynamic_cast<GridPropElement*>(p_projectView->getElement(i, 0));
+    if (element && element->getResource() &&
+        selUrls.count(element->getResource()->getURL().toString()))
+      p_projectView->selectRow(i, true);
+  }
   if (!anchorUrl.empty()) {
     int n = p_projectView->getRowCount();
     for (int i = 0; i < n; i++) {
@@ -197,11 +186,12 @@ void ProjectContextPanel::refresh()
         dynamic_cast<GridPropElement*>(p_projectView->getElement(i, 0));
       if (ae && ae->getResource() &&
           ae->getResource()->getURL().toString() == anchorUrl) {
-        p_projectView->setCursor(i, 0);
+        p_projectView->moveCursor(i, 0);
         break;
       }
     }
   }
+  saveSelections();
 
   p_initialized = true;
 }
