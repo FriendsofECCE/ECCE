@@ -11,9 +11,11 @@
 class wxButton;
 class wxCheckBox;
 class wxSpinCtrlDouble;
+class wxHtmlWindow;
 class wxStaticText;
 class wxTextCtrl;
 class XYPlotCanvas;
+class OpdosProgress;
 namespace resultsh5 { struct Model; }
 
 /**
@@ -50,6 +52,8 @@ class OpdosPanel : public VizPropertyPanel, public ecce::Listener
       bool setSticks(bool on);
       bool setOccupiedOnly(bool on);
       bool setIntegrated(bool on);
+      bool setWindow(double from, double to);                       // eV, both plots; to <= from refused
+      bool resetWindow();
       bool clickEnergy(double ev);                                  // as a click on a peak
       bool savePng(const wxString& path, int width, int height);
       bool exportCsv(const wxString& path);
@@ -62,7 +66,9 @@ class OpdosPanel : public VizPropertyPanel, public ecce::Listener
 
    private:
       void build();
-      void recomputeOrbitals();      // S and the per-MO numbers (slow)
+      void recomputeOrbitals(OpdosProgress *progress = nullptr);   // S (once) and the per-MO numbers (slow)
+      void applyWindow(bool remember);
+      void showExplanation(double occOp);
       void redraw();                 // broadening and plot (fast)
       void listMos(double ev);
       void setText(const wxString& head);
@@ -73,9 +79,14 @@ class OpdosPanel : public VizPropertyPanel, public ecce::Listener
       bool p_ok = false, p_unres = false, p_haveAll = false;
       std::string p_error;
       std::vector<int> p_a, p_b;     // 0-based
-      wxString p_head, p_clicked;
+      wxString p_head, p_clicked, p_headPlain;
+      std::vector<double> p_S;       // overlap matrix, the same for every A/B choice
+      bool p_haveS = false, p_busy = false, p_winOn = false;
 
       wxTextCtrl *p_atomsA = nullptr, *p_atomsB = nullptr, *p_text = nullptr;
+      wxButton *p_useA = nullptr, *p_useB = nullptr;
+      wxHtmlWindow *p_html = nullptr;
+      wxSpinCtrlDouble *p_from = nullptr, *p_to = nullptr;
       wxSpinCtrlDouble *p_width = nullptr;
       wxCheckBox *p_sticks = nullptr, *p_occ = nullptr, *p_int = nullptr;
       XYPlotCanvas *p_plot = nullptr, *p_intPlot = nullptr;

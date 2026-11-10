@@ -52,6 +52,11 @@ opdoswidth 0.2
 opdosselect A 1
 opdosselect B 2 3 4 5 6 7 8 9 10 11 12 13
 opdosstate
+opdosatoms 1 2-13
+opdosrange -12 2
+opdosstate
+opdosreset
+opdosstate
 opdospng {t} 1200 800
 hold 1
 """
@@ -118,7 +123,7 @@ def main():
                 bad.append("only %d OPDOS states in the log" % len(bl))
                 print("\n".join(l for l in log.splitlines() if re.search("opdos|scene|SCENE|OPDOS", l))[-1500:])
             else:
-                first, atoms, clicked, occ, sel = bl[0], bl[1], bl[2], bl[3], bl[-1]
+                first, atoms, clicked, occ, sel = bl[0], bl[1], bl[2], bl[3], bl[4]
                 if first.get("ready") != "1" or first.get("error") != "-":
                     bad.append("panel not ready: %s" % first.get("error"))
                 if float(first.get("norm_error", "1")) > 1e-5:
@@ -155,6 +160,30 @@ def main():
                     bad.append("Occupied only keeps %s MOs, not 54" % re.search(r"nmo (\d+)", occ["channel0"]).group(1))
                 if sel.get("A") != "1" or sel.get("B") != "2-13":
                     bad.append("Use selection gave %s | %s" % (sel.get("A"), sel.get("B")))
+            # #934: layout, labels, energy window (the last three states: window, reset)
+            if len(bl) >= 7:
+                win, rst, lay = bl[-2], bl[-1], bl[0]
+                if "in both" in first.get("text", "") or "in both" in atoms.get("text", ""):
+                    bad.append("an 'in both A and B' note for disjoint A=1, B=2-13")
+                def box(st, k):
+                    return [int(x) for x in st[k].split()]
+                ax, ay, aw, ah = box(lay, "atomsA_box")
+                ux, uy, uw, uh = box(lay, "useA_button")
+                bx, by, bw, bh = box(lay, "atomsB_box")
+                vx, vy, vw, vh = box(lay, "useB_button")
+                # each Use selection directly below its own text box, not beside it
+                if not (uy >= ay + ah and abs((ux + uw) - (ax + aw)) <= 40 and ux + uw > ax):
+                    bad.append("Use selection (A) is not under box A: box %s button %s" % ((ax, ay, aw, ah), (ux, uy, uw, uh)))
+                if not (vy >= by + bh and vx + vw > bx and vx < bx + bw + 40):
+                    bad.append("Use selection (B) is not under box B: box %s button %s" % ((bx, by, bw, bh), (vx, vy, vw, vh)))
+                if lay.get("intplot_ylabel", "").strip() != "Integrated OPDOS (electrons)" or lay.get("intplot_xlabel", "").strip() != "Energy (eV)":
+                    bad.append("lower plot labels: %r / %r" % (lay.get("intplot_xlabel"), lay.get("intplot_ylabel")))
+                if win.get("plot_window") != "1 -12.000 2.000" or win.get("intplot_window") != "1 -12.000 2.000":
+                    bad.append("From/To not applied to both plots: %s | %s" % (win.get("plot_window"), win.get("intplot_window")))
+                if rst.get("plot_window", "").split()[0] != "0" or rst.get("intplot_window", "").split()[0] != "0":
+                    bad.append("Reset left a window: %s | %s" % (rst.get("plot_window"), rst.get("intplot_window")))
+            else:
+                bad.append("window/layout states missing (%d)" % len(bl))
             for ext in ("csv", "png"):
                 f = os.path.join(out, "opdos." + ext)
                 if not os.path.exists(f) or os.path.getsize(f) < 1000:

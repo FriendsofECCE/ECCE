@@ -307,6 +307,24 @@ class XYPlotCanvas : public wxPanel
 
     void fitAll() { p_zoomed = false; p_whole = false; Refresh(); }
 
+    /** Show only x in [lo, hi] (the y range then fits the points inside);
+     *  hi <= lo shows everything again. */
+    void setXWindow(double lo, double hi)
+    {
+      p_xwOn = hi > lo;
+      p_xw0 = lo; p_xw1 = hi;
+      p_zoomed = false;
+      Refresh();
+    }
+    bool xWindow(double *lo, double *hi) const
+    {
+      if (lo) *lo = p_xw0;
+      if (hi) *hi = p_xw1;
+      return p_xwOn;
+    }
+    /** The x range the last paint drew. */
+    void shownX(double *lo, double *hi) const { *lo = p_x0; *hi = p_x1; }
+
     /** Everything, also what a y limit cut off (the "Show all" reset). */
     void showWholePlot() { p_zoomed = false; p_whole = true; Refresh(); }
 
@@ -759,6 +777,7 @@ class XYPlotCanvas : public wxPanel
         for (size_t i = 0; i < p_curves[c].x.size(); i++) {
           const double x = tx(p_curves[c].x[i]), y = ty(p_curves[c].y[i]);
           if (!std::isfinite(x) || !std::isfinite(y)) continue;
+          if (p_xwOn && (x < tx(p_xw0) || x > tx(p_xw1))) continue;
           if (!any) { x0 = x1 = x; y0 = y1 = y; any = true; continue; }
           x0 = std::min(x0, x); x1 = std::max(x1, x);
           y0 = std::min(y0, y); y1 = std::max(y1, y);
@@ -774,6 +793,7 @@ class XYPlotCanvas : public wxPanel
       if (dy <= 0) dy = std::max(1e-6, std::fabs(y0) * 0.1);
       const double px = std::max(0.04 * dx, p_xPad);
       *xlo = x0 - px;  *xhi = x1 + px;
+      if (p_xwOn) { *xlo = tx(p_xw0); *xhi = tx(p_xw1); }
       *ylo = y0 - 0.06 * dy; *yhi = y1 + 0.06 * dy;
       //  Far-below values of a log axis would squeeze the interesting part.
       if (p_yLog && *ylo < *yhi - 10.0) *ylo = *yhi - 10.0;
@@ -1206,6 +1226,8 @@ class XYPlotCanvas : public wxPanel
     //  paint used, which the mouse maths reads.
     bool   p_zoomed;
     double p_xPad;
+    bool   p_xwOn = false;
+    double p_xw0 = 0, p_xw1 = 0;
     bool   p_intX = false;
     double p_vx0 = 0, p_vx1 = 1, p_vy0 = 0, p_vy1 = 1;
     double p_x0 = 0, p_x1 = 1, p_y0 = 0, p_y1 = 1;
