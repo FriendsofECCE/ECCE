@@ -50,8 +50,62 @@ static int show(const Model& m) {
   for (size_t k = 0; k < m.hessian.size(); k++) printf("hessian %zu: geometry %d, %s\n", k, m.hessian[k].geometry, m.hessian[k].method.c_str());
   for (size_t k = 0; k < m.gradient.size(); k++) printf("gradient %zu\n", k);
   for (size_t k = 0; k < m.charges.size(); k++) printf("charges: %s\n", m.charges[k].scheme.c_str());
-  for (size_t k = 0; k < m.vib.size(); k++) printf("vib %zu: %zu modes\n", k, m.vib[k].frequency.size());
+  for (size_t k = 0; k < m.vib.size(); k++) {
+    const Vib& v = m.vib[k];
+    const size_t nm = v.frequency.size();
+    printf("vib %zu: %zu modes%s%s%s\n", k, nm, v.mode.empty() ? "" : ", displacements",
+           v.irIntensity.empty() ? "" : ", IR", v.ramanActivity.empty() ? "" : ", Raman");
+  }
+  for (size_t k = 0; k < m.trace.size(); k++) {
+    const Trace& t = m.trace[k];
+    printf("trace %s: %zu points%s%s%s%s%s\n", t.name.c_str(), t.npoint(m.natoms()),
+           t.energy.empty() ? "" : ", energy", t.value.empty() ? "" : (", value (" + t.valueUnit + ")").c_str(),
+           t.gradient.empty() ? "" : ", gradient", t.cell.empty() ? "" : ", cell", t.time.empty() ? "" : ", time");
+  }
   if (m.bands.nk) printf("bands: %zu k-points, %zu bands\n", m.bands.nk, m.bands.nband);
+  return 0;
+}
+
+// Full-precision text of the arrays a test compares with the program's own
+// output: hessian, vib, trace and the root geometry.
+static void dumpArr(const string& name, const vector<double>& v) {
+  if (v.empty()) return;
+  printf("%s %zu", name.c_str(), v.size());
+  for (size_t i = 0; i < v.size(); i++) printf(" %.17g", v[i]);
+  printf("\n");
+}
+static int dump(const Model& m) {
+  printf("natoms %zu\n", m.natoms());
+  if (!m.checks.empty()) printf("checks %s\n", m.checks.c_str());
+  for (std::map<string,string>::const_iterator i = m.provenance.begin(); i != m.provenance.end(); ++i)
+    printf("provenance/%s %s\n", i->first.c_str(), i->second.c_str());
+  dumpArr("geometry/coord", m.coord);
+  dumpArr("geometry/energy", m.geomEnergy);
+  vector<double> nuc, ang, nprim, expo;
+  for (size_t k = 0; k < m.basis.shells.size(); k++) {
+    const Shell& s = m.basis.shells[k];
+    nuc.push_back(s.atom); ang.push_back(s.l); nprim.push_back(double(s.exponent.size()));
+    expo.insert(expo.end(), s.exponent.begin(), s.exponent.end());
+  }
+  dumpArr("basis/shell_nucleus", nuc); dumpArr("basis/shell_ang_mom", ang);
+  dumpArr("basis/shell_nprim", nprim); dumpArr("basis/exponent", expo);
+  for (size_t k = 0; k < m.hessian.size(); k++) dumpArr("hessian/" + std::to_string(k), m.hessian[k].upper);
+  for (size_t k = 0; k < m.vib.size(); k++) {
+    const string b = "vib/" + std::to_string(k) + "/";
+    dumpArr(b + "frequency", m.vib[k].frequency); dumpArr(b + "ir_intensity", m.vib[k].irIntensity);
+    dumpArr(b + "raman_activity", m.vib[k].ramanActivity); dumpArr(b + "mode", m.vib[k].mode);
+  }
+  for (size_t k = 0; k < m.mos.size(); k++) {
+    const string b = "mo/" + std::to_string(k) + "/";
+    dumpArr(b + "energy", m.mos[k].energy); dumpArr(b + "occupation", m.mos[k].occupation);
+    dumpArr(b + "coefficient", m.mos[k].coef);
+  }
+  for (size_t k = 0; k < m.trace.size(); k++) {
+    const Trace& t = m.trace[k];
+    const string b = "trace/" + t.name + "/";
+    dumpArr(b + "coord", t.coord); dumpArr(b + "energy", t.energy); dumpArr(b + "value", t.value);
+    dumpArr(b + "gradient", t.gradient); dumpArr(b + "cell", t.cell); dumpArr(b + "time", t.time);
+  }
   return 0;
 }
 
@@ -174,17 +228,18 @@ int main(int argc, char** argv) {
     if (!readFile(argv[3], m, err) || !writeMolden(argv[4], m, err)) { fprintf(stderr, "ecce-results: %s\n", err.c_str()); return 1; }
     return 0;
   }
-  if (argc >= 3 && (!strcmp(argv[1], "show") || !strcmp(argv[1], "check"))) {
+  if (argc >= 3 && (!strcmp(argv[1], "show") || !strcmp(argv[1], "check") || !strcmp(argv[1], "dump"))) {
     Model m;
     if (!readFile(argv[2], m, err)) { fprintf(stderr, "ecce-results: %s\n", err.c_str()); return 1; }
     if (!strcmp(argv[1], "show")) return show(m);
+    if (!strcmp(argv[1], "dump")) return dump(m);
     Invariants inv = check(m);
     printf("%s%s\n", inv.report.c_str(), inv.ok ? "OK" : "FAILED");
     return inv.ok ? 0 : 1;
   }
   fprintf(stderr, "usage: ecce-results convert <in.molden|in.fchk|in.hess> <results.h5>\n"
                   "       ecce-results export molden <results.h5> <out.molden>\n"
-                  "       ecce-results show|check <results.h5>\n"
+                  "       ecce-results show|check|dump <results.h5>\n"
                   "       ecce-results write <calculation folder or URL> [out.h5]\n"
                   "           (no out.h5: store results.h5 in the calculation)\n");
   return 2;

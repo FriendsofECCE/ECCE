@@ -337,6 +337,7 @@ bool writeFile(const string& path, const Model& m, string& err) {
       putD(g, "frequency", v.frequency);
       putD(g, "ir_intensity", v.irIntensity);
       putD(g, "reduced_mass", v.reducedMass);
+      putD(g, "raman_activity", v.ramanActivity);
       if (!v.mode.empty() && !v.frequency.empty()) {
         hsize_t d[2] = {v.frequency.size(), v.mode.size()/v.frequency.size()};
         putD(g, "mode", v.mode, 2, d);
@@ -388,6 +389,28 @@ bool writeFile(const string& path, const Model& m, string& err) {
       hid_t g = grp(g0, nm);
       attrStr(g, "name", m.series[k].name); attrStr(g, "unit", m.series[k].unit);
       putD(g, "time", m.series[k].time); putD(g, "value", m.series[k].value);
+      H5Gclose(g);
+    }
+    H5Gclose(g0);
+  }
+  if (!m.trace.empty()) {
+    hid_t g0 = grp(f, "trace");
+    const hsize_t n = m.natoms();
+    for (size_t k = 0; k < m.trace.size(); k++) {
+      const Trace& t = m.trace[k];
+      hid_t g = grp(g0, t.name.c_str());
+      const hsize_t np = t.npoint(n);
+      attrInt(g, "npoint", (long long)np);
+      hsize_t d3[3] = {np, n, 3}, dc[3] = {np, 3, 3};
+      putD(g, "coord", t.coord, 3, d3);
+      putD(g, "energy", t.energy);
+      if (!t.value.empty()) {
+        hid_t o = putD(g, "value", t.value, 1, 0, true);
+        if (o >= 0) { attrStr(o, "unit", t.valueUnit); H5Dclose(o); }
+      }
+      if (t.gradient.size() == t.coord.size()) putD(g, "gradient", t.gradient, 3, d3);
+      if (t.cell.size() == 9*np) putD(g, "cell", t.cell, 3, dc);
+      putD(g, "time", t.time);
       H5Gclose(g);
     }
     H5Gclose(g0);
@@ -536,6 +559,7 @@ bool readFile(const string& path, Model& m, string& err) {
     Vib v; v.geometry = int(rdInt(s, "geometry"));
     getD(s, "frequency", v.frequency); getD(s, "ir_intensity", v.irIntensity);
     getD(s, "reduced_mass", v.reducedMass); getD(s, "mode", v.mode);
+    getD(s, "raman_activity", v.ramanActivity);
     H5Gclose(s); m.vib.push_back(v);
   });
   Arrays::each(f, "tensors", [&](hid_t g, const string& nm) {
@@ -569,6 +593,16 @@ bool readFile(const string& path, Model& m, string& err) {
     Series t; t.name = rdStr(s, "name"); t.unit = rdStr(s, "unit");
     getD(s, "time", t.time); getD(s, "value", t.value);
     H5Gclose(s); m.series.push_back(t);
+  });
+  Arrays::each(f, "trace", [&](hid_t g, const string& nm) {
+    hid_t s = H5Gopen2(g, nm.c_str(), H5P_DEFAULT);
+    Trace t; t.name = nm;
+    getD(s, "coord", t.coord); getD(s, "energy", t.energy);
+    if (getD(s, "value", t.value)) {
+      hid_t o = openObj(s, "value"); t.valueUnit = rdStr(o, "unit"); H5Oclose(o);
+    }
+    getD(s, "gradient", t.gradient); getD(s, "cell", t.cell); getD(s, "time", t.time);
+    H5Gclose(s); m.trace.push_back(t);
   });
   H5Fclose(f);
   return true;

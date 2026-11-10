@@ -75,7 +75,9 @@ struct Tensor   { string name; int geometry = 0; vector<long long> dims; vector<
 
 struct Vib {
   vector<double> frequency, irIntensity, reducedMass;
-  vector<double> mode;       // nmodes x 3N
+  vector<double> ramanActivity;   // as the code prints it (A^4/amu)
+  vector<double> mode;       // nmodes x 3N, Cartesian displacements as the
+                             // code printed them (each code normalises its own way)
   int geometry = 0;
 };
 
@@ -86,6 +88,21 @@ struct Bands {
   vector<double> energy, occupation;   // [spin][k][band]
   double fermi = 0;
   bool hasFermi = false;
+};
+
+// One path through configuration space (#883): an optimisation, a scan, an
+// IRC, an MD run or an ensemble.  Every array has one entry per point;
+// absent quantities stay empty.
+struct Trace {
+  string name;               // optimization | scan | irc | md | ensemble
+  vector<double> coord;      // npoint x natoms x 3, bohr
+  vector<double> energy;     // hartree
+  vector<double> value;      // scan/IRC coordinate (bohr, radian or as valueUnit)
+  string valueUnit;
+  vector<double> gradient;   // npoint x natoms x 3, hartree/bohr
+  vector<double> cell;       // npoint x 3 x 3, rows a,b,c, bohr
+  vector<double> time;       // MD, ps
+  size_t npoint(size_t natoms) const { return natoms ? coord.size()/(3*natoms) : 0; }
 };
 
 struct TrajectoryRef { string file, sha256; long long nframes = 0; double dt = 0; };
@@ -117,6 +134,7 @@ struct Model {
   Bands bands;
   vector<TrajectoryRef> trajectory;
   vector<Series> series;
+  vector<Trace> trace;
   int nelectron[2] = {-1,-1};           // alpha, beta; -1 unknown
   // Root attribute: "ok: ..." or "failed: ..." from the checks made when
   // ECCE wrote the file; empty for files from the converters.  Readers that
