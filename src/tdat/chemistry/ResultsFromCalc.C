@@ -24,6 +24,8 @@
 #include "tdat/PropVecTable.H"
 #include "tdat/PropValue.H"
 #include "tdat/PropVector.H"
+#include "tdat/PropTSVector.H"
+#include "tdat/TPerTab.H"
 #include "tdat/TAtm.H"
 #include "dsm/ICalculation.H"
 #include "dsm/IPropCalculation.H"
@@ -731,12 +733,17 @@ struct Cache
   Cache() : calc(0), when(0) {}
 };
 Cache g_cache;
+//  Calculations without a file: views and Organizer tables ask for missing
+//  keys of many calculations in turn, and the one-entry cache would list
+//  each calculation's outputs again.
+std::map<string, time_t> g_noFile;
 
 }  // namespace
 
 
 void forget(IPropCalculation *calc)
 {
+  if (calc) g_noFile.erase(calc->getURL().toString());
   if (g_cache.calc == calc) g_cache = Cache();
 }
 
@@ -751,12 +758,16 @@ std::shared_ptr<const Model> storedAny(IPropCalculation *calc)
   if (g_cache.calc == calc && g_cache.url == url && now - g_cache.when < 60)
     return g_cache.model;
 
+  auto none = g_noFile.find(url);
+  if (none != g_noFile.end() && now - none->second < 60) return std::shared_ptr<const Model>();
+
   g_cache = Cache();
   g_cache.calc = calc;
   g_cache.url = url;
   g_cache.when = now;
   const string path = scratchFile();
-  if (calc->fetchStoredFile(FILE_NAME, path)) {
+  if (!calc->fetchStoredFile(FILE_NAME, path)) g_noFile[url] = now;
+  else {
     Model *m = new Model();
     string err;
     if (resultsh5::readFile(path, *m, err) &&
@@ -925,6 +936,158 @@ TProperty *property(IPropCalculation *calc, const string& key)
   return copy;
 }
 
+namespace {
+
+vector<string> numbered(size_t n)
+{
+  vector<string> l;
+  for (size_t i = 0; i < n; i++) l.push_back(std::to_string(i + 1));
+  return l;
+}
+
+// "1-C 2-H ...", the row labels the parsers give a structure table.
+vector<string> atomLabels(const Model& m)
+{
+  TPerTab pt;
+  vector<string> l;
+  for (size_t a = 0; a < m.natoms(); a++)
+    l.push_back(std::to_string(a + 1) + "-" + pt.atomicSymbol(m.atomicNumber[a]));
+  return l;
+}
+
+const vector<double> *vibArray(const Model& m, const string& key)
+{
+  if (m.vib.empty()) return 0;
+  const vector<double> *a = key == "VIBFREQ" ? &m.vib[0].frequency
+      : key == "VIBIR" ? &m.vib[0].irIntensity
+      : key == "VIBRAM" ? &m.vib[0].ramanActivity : 0;
+  return a && !a->empty() ? a : 0;
+}
+
+// Scan or IRC coordinate unit back to the one the parsers write.
+string coordUnit(const string& file, double& f)
+{
+  f = 1.0;
+  if (file == "radian") { f = 180/3.14159265358979323846; return "Degree"; }
+  if (file == "bohr") { f = 1/bohrPerAngstrom(); return "Angstrom"; }
+  return file;
+}
+
+}  // namespace
+
+
+// Layout as in the stored Props of every example (#883): VIBFREQ/IR/RAM
+// rows "Normal Mode" 1..n; VIB rows = atoms 1..N, one "NA"-labelled table
+// per mode; structure tables "Atom" X Y Z with "i-El" rows; energies in
+// Hartree and structures in Angstrom.  Gaussian's mode symmetry labels
+// ("1-A1") are not in the file, so its modes come back numbered.
+bool fromFile(IPropCalculation *calc, const string& key, TProperty *p)
+{
+  if (calc == 0 || p == 0) return false;
+  std::shared_ptr<const Model> sm = storedAny(calc);
+  if (!sm) return false;
+  const Model& m = *sm;
+  const size_t N = m.natoms();
+  const resultsh5::Trace *t = traceNamed(m, key);
+  const string point = key.compare(0, 3, "IRC") == 0 ? "IRC" : "Scan";
+
+  if (const vector<double> *a = vibArray(m, key)) {
+    PropVector *v = dynamic_cast<PropVector*>(p);
+    if (v == 0) return false;
+    v->rowLabel("Normal Mode");
+    v->units(key == "VIBFREQ" ? "cm-1" : key == "VIBIR" ? "KM/Mole" : "A**4/AMU");
+    vector<string> l = numbered(a->size());
+    v->rowLabels(&l);
+    v->values(*a);
+    return true;
+  }
+  if (key == "VIB") {
+    PropVecTable *v = dynamic_cast<PropVecTable*>(p);
+    if (v == 0 || m.vib.empty() || N == 0) return false;
+    const vector<double>& mode = m.vib[0].mode;
+    const size_t nm = mode.size()/(3*N);
+    if (nm == 0 || mode.size() != nm*3*N) return false;
+    v->rowLabel("Normal Mode");
+    v->columnLabel("Atom");
+    v->units("NA");
+    vector<string> rows = numbered(N), cols = {"X", "Y", "Z"}, tabs(nm, "NA");
+    v->labels(&rows, &cols, &tabs);
+    v->setValues(tablesOf(mode, N), N, 3);
+    return true;
+  }
+  if (t == 0 || N == 0) return false;
+  const size_t np = t->npoint(N);
+  if (np == 0 || t->coord.size() != np*3*N) return false;
+
+  if (key == "SCANGEOM" || key == "IRCGEOM" || key == "GEOMTRACE") {
+    PropTSVecTable *v = dynamic_cast<PropTSVecTable*>(p);
+    if (v == 0) return false;
+    v->rowLabel(key == "GEOMTRACE" ? "Geometry Step" : point + " Step");
+    v->columnLabel("Atom");
+    v->units("Angstrom");
+    vector<string> rows = atomLabels(m), cols = {"X", "Y", "Z"}, tabs;
+    v->labels(&rows, &cols, &tabs);
+    vector<double> x(t->coord);
+    for (double& c : x) c /= bohrPerAngstrom();
+    v->setValues(tablesOf(x, N), N, 3);
+    return true;
+  }
+  if (key == "TEVEC") {
+    PropTSVector *v = dynamic_cast<PropTSVector*>(p);
+    if (v == 0 || t->energy.size() != np) return false;
+    v->rowLabel("Geometry Step");
+    v->units("Hartree");
+    v->insertValues(t->energy);
+    return true;
+  }
+  PropVector *v = dynamic_cast<PropVector*>(p);
+  if (v == 0) return false;
+  if (key == "SCANENERGY" || key == "IRCENERGY") {
+    if (t->energy.size() != np) return false;
+    v->rowLabel(point + " Point");
+    v->units("Hartree");
+    v->values(t->energy);
+    return true;
+  }
+  if (key == "SCANCOORD" || key == "IRCCOORD") {
+    if (t->value.size() != np) return false;
+    double f = 1;
+    v->rowLabel(point + " Point");
+    v->units(coordUnit(t->valueUnit, f));
+    vector<double> x(t->value);
+    for (double& c : x) c *= f;
+    v->values(x);
+    return true;
+  }
+  return false;
+}
+
+
+vector<string> keysInFile(IPropCalculation *calc)
+{
+  vector<string> keys;
+  std::shared_ptr<const Model> sm = storedAny(calc);
+  if (!sm) return keys;
+  const Model& m = *sm;
+  const size_t N = m.natoms();
+  for (const char *k : {"VIBFREQ", "VIBIR", "VIBRAM"})
+    if (vibArray(m, k)) keys.push_back(k);
+  if (!m.vib.empty() && N > 0 && !m.vib[0].mode.empty()) keys.push_back("VIB");
+  for (const char *k : {"SCANGEOM", "SCANENERGY", "SCANCOORD", "IRCGEOM",
+                        "IRCENERGY", "IRCCOORD", "GEOMTRACE", "TEVEC"}) {
+    const resultsh5::Trace *t = traceNamed(m, k);
+    if (t == 0 || t->npoint(N) == 0) continue;
+    const string key = k;
+    const size_t np = t->npoint(N);
+    if (key.find("ENERGY") != string::npos || key == "TEVEC") {
+      if (t->energy.size() == np) keys.push_back(key);
+    } else if (key.find("COORD") != string::npos) {
+      if (t->value.size() == np) keys.push_back(key);
+    } else if (key != "GEOMTRACE" || np > 1) keys.push_back(key);
+  }
+  return keys;
+}
+
 #else   // no HDF5: no results.h5
 
 bool convert(const Parsed&, resultsh5::Model&, string& why) { why = "built without HDF5"; return false; }
@@ -937,6 +1100,8 @@ std::shared_ptr<const resultsh5::Model> stored(IPropCalculation*) { return std::
 std::shared_ptr<const resultsh5::Model> storedAny(IPropCalculation*) { return std::shared_ptr<const resultsh5::Model>(); }
 TProperty *property(IPropCalculation *calc, const string& key) { return calc ? calc->getProperty(key) : 0; }
 void forget(IPropCalculation*) {}
+bool fromFile(IPropCalculation*, const string&, TProperty*) { return false; }
+vector<string> keysInFile(IPropCalculation*) { return vector<string>(); }
 
 #endif
 

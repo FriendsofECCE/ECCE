@@ -2,7 +2,7 @@
 type: map
 title: "results.h5 is written from the Props at the end of the job store, and the views switch in one place"
 area: codereg
-paths: ["src/tdat/chemistry/ResultsFromCalc.C", "src/apps/builder/NModePanel.C", "src/apps/builder/ScanPanel.C", "src/apps/builder/IRCPanel.C", "src/apps/builder/GeomTracePropertyPanel.C", "src/viz/propsgcommands/GTStepCmd.C", "src/viz/propsgcommands/ComputeMoCmd.C", "src/qm/results_h5.cpp", "tests/resultsh5/trace_vib_test.py", "include/tdat/ResultsFromCalc.H", "src/tdat/chemistry/MoAoBasis.C", "src/tdat/chemistry/DensityPlane.C", "src/comm/commxt/JobStore.C", "src/dsm/edsiimpl/PropertyTask.C", "src/tdat/resultsh5/ecce_results.C", "tests/resultsh5/results_calc_test.C"]
+paths: ["src/tdat/chemistry/ResultsFromCalc.C", "src/apps/builder/NModePanel.C", "src/apps/builder/ScanPanel.C", "src/apps/builder/IRCPanel.C", "src/apps/builder/GeomTracePropertyPanel.C", "src/viz/propsgcommands/GTStepCmd.C", "src/viz/propsgcommands/ComputeMoCmd.C", "src/qm/results_h5.cpp", "tests/resultsh5/trace_vib_test.py", "include/tdat/ResultsFromCalc.H", "src/tdat/chemistry/MoAoBasis.C", "src/tdat/chemistry/DensityPlane.C", "src/comm/commxt/JobStore.C", "src/dsm/edsiimpl/PropertyTask.C", "src/tdat/resultsh5/ecce_results.C", "tests/resultsh5/run_calc_tests.py", "tests/resultsh5/results_calc_test.C"]
 issues: [690, 883]
 ---
 **Write.** `jobstore_main` calls `resultsFileStore()` just before `cleanup(0)`
@@ -56,8 +56,25 @@ missing Prop, or `ECCE_RESULTS_H5=0` gives `calc->getProperty(key)`. The
 shape test is what keeps a running job's growing GEOMTRACE and ECCE-QM's
 3N-6 vibrations against 3N parsed ones on the Props. Views keep the pointers
 they get, so a copy is never freed (a changed one is retired, not deleted).
-Writers (BuilderTraceStress, the live update, the GEOMTRACE export) and
-existence checks still use `getProperty`. `ORCA IRCGEOM` carries units "NA";
+Writers (BuilderTraceStress, the live update, the GEOMTRACE export) use
+`getProperty`.
+
+**File alone (#883).** When a calculation has no stored Prop for one of those
+twelve keys, `PropertyTask::getStoredProperty` asks `ResultsFromCalc::fromFile`
+to fill the PropFactory-made property from the file, and `propertyNames()`
+adds `keysInFile()`, so existence checks, the Properties menu and the
+Organizer see the key too. Layout is the parsers' (taken from every stored
+example): VIB* rows "Normal Mode" 1..n, VIB rows = atoms 1..N with one "NA"
+table label per mode, structures "Atom" X Y Z with "i-El" rows in Angstrom,
+energies Hartree, scan coordinate Degree/Angstrom. Deliberate differences:
+Gaussian's mode symmetry labels ("3-E") are not in the file, so modes come
+back numbered; ORCA/G16 scan and IRC parsers write "i-X" rows and ORCA's
+IRCGEOM unit "NA", the file gives elements and Angstrom. A companion the file
+dropped (length differs from the structures) stays absent. Calculations with
+no file are remembered for 60 s (`g_noFile`) so missing-key reads across many
+calculations do not list their outputs each time. `results_calc_test
+fileonly` (in `resultsh5_calc`) strips the raw output and these Props from
+copies of five examples and compares. `ORCA IRCGEOM` carries units "NA";
 `toBohr` reads that as Angstrom.
 
 **Storage.** `IPropCalculation::fetchStoredFile/storeFile/removeStoredFile`

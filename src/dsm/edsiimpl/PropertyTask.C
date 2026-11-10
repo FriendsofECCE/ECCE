@@ -148,6 +148,10 @@ vector<string> PropertyTask::propertyNames()
      }
    }
 
+   for (const string& key : ResultsFromCalc::keysInFile(this))
+     if (find(names.begin(), names.end(), key) == names.end())
+       names.push_back(key);
+
    // Calc info keys.  Only add them if our runstate is sufficient
    if (getState() > ResourceDescriptor::STATE_READY) {
       names.push_back("Application");
@@ -654,6 +658,16 @@ TProperty* PropertyTask::getStoredProperty(const string& name)
   }
 
   if (!docString && !isOutputFile) {
+    //  An example may ship results.h5 instead of the raw output and these
+    //  bulky parsed properties (#883).
+    static const std::set<string> fileKeys = {"VIBFREQ", "VIBIR", "VIBRAM",
+        "VIB", "SCANGEOM", "SCANENERGY", "SCANCOORD", "IRCGEOM", "IRCENERGY",
+        "IRCCOORD", "GEOMTRACE", "TEVEC"};
+    if (property && fileKeys.count(name) &&
+        ResultsFromCalc::fromFile(this, name, property)) {
+      putTProperty(name, property);
+      return property;
+    }
      if (property) {
         delete property;
         property = 0;

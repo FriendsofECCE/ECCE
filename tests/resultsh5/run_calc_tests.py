@@ -53,6 +53,34 @@ VIEW_CASES = [
     ("workflows/sn2-cl-ch3br/g16-product/stored/sn2_product", "GEOMTRACE,TEVEC"),
 ]
 
+# Shipped with results.h5 and the small Props only (#883): the raw output and
+# the trace/vibration Props are removed from a copy, and the views must get
+# the full calculation's values with the parsed layout.
+FILE_ONLY_CASES = [
+    "organic/conformations/ecceqm-butane-scan/stored/butane_scan",
+    "getting-started/orca-benzene/stored/benzene",
+    "computational/h2-dissociation/orca-h2_ccsd_scan/stored/h2_ccsd_scan",
+    "workflows/sn2-cl-ch3br/g16-irc/stored/sn2_irc",
+    "organic/reactions/orca-sn2_irc/stored/sn2_irc",
+]
+FILE_KEYS = ("VIBFREQ", "VIBIR", "VIBRAM", "VIB", "SCANGEOM", "SCANENERGY", "SCANCOORD",
+             "IRCGEOM", "IRCENERGY", "IRCCOORD", "GEOMTRACE", "TEVEC")
+
+
+def strip_to_file(calc):
+    props = os.path.join(calc, "Props")
+    for k in FILE_KEYS:
+        if os.path.exists(os.path.join(props, k)):
+            os.remove(os.path.join(props, k))
+    meta = os.path.join(props, ".ecce-meta")
+    if os.path.exists(meta):
+        lines = [l for l in open(meta) if l.split("\t", 1)[0] not in FILE_KEYS]
+        open(meta, "w").writelines(lines)
+    out = os.path.join(calc, "Outputs")
+    for f in os.listdir(out):
+        if f != "results.h5" and not f.endswith(".ecce_run_log"):
+            os.remove(os.path.join(out, f))
+
 
 def run(cmd, env, **kw):
     r = subprocess.run(cmd, env=env, capture_output=True, text=True, **kw)
@@ -127,6 +155,18 @@ def main():
                     rc |= run([cli, "write", dst], env)
                 args.append(dst + ("=" + keys if keys else ""))
             rc |= run([exe, "views"] + args, env)
+
+            args = []
+            for i, rel in enumerate(FILE_ONLY_CASES):
+                full = os.path.join(tmp, "full%d-%s" % (i, os.path.basename(rel)))
+                bare = os.path.join(tmp, "bare%d-%s" % (i, os.path.basename(rel)))
+                shutil.copytree(os.path.join(EX, rel), full, ignore=shutil.ignore_patterns(".DAV"))
+                if not os.path.exists(os.path.join(full, "Outputs", "results.h5")):
+                    rc |= run([cli, "write", full], env)
+                shutil.copytree(full, bare)
+                strip_to_file(bare)
+                args.append(full + "=" + bare)
+            rc |= run([exe, "fileonly"] + args, env)
 
         # real ORCA blocks: CrO/def2-SVP (f functions, a metal) and HF/cc-pVQZ (g)
         for block, nb, xyz, nel in (

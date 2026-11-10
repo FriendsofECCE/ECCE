@@ -102,6 +102,18 @@ namespace ResultsFromCalc
    */
   TProperty *property(IPropCalculation *calc, const string& key);
 
+  /**
+   * A calculation shipped with results.h5 instead of its raw output and
+   * parsed trace/vibration properties: fill `empty` (made by PropFactory for
+   * `key`, one of the keys property() serves) from the file, with the type,
+   * units, labels and layout the parsers write.  False when the file has no
+   * such data; the caller then has no property, as before.
+   */
+  bool fromFile(IPropCalculation *calc, const string& key, TProperty *empty);
+
+  /** The keys fromFile() can fill for this calculation. */
+  vector<string> keysInFile(IPropCalculation *calc);
+
   /** Drop the cached copy (the calculation's properties were reloaded). */
   void forget(IPropCalculation *calc);
 }
