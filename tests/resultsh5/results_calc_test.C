@@ -9,10 +9,15 @@
 //   results_calc_test views <calc folder>[=keys]... the vibration and trace
 //        properties the views read (ResultsFromCalc::property) against the
 //        Props; `keys` (comma-separated) must come from the file
+//   results_calc_test fileonly <full calc>=<stripped calc>... the stripped
+//        copy has neither the raw output nor the trace/vibration Props
+//        (#883): each key must be listed, have the parsed layout, and give
+//        the views the full calculation's values
 //
 // The calculation modes compare Evaluator::density, ::spinDensity and
 // every occupied orbital at a grid of points between ECCE_RESULTS_H5=0 (the
 // Props) and the stored file, to 1e-8 relative.
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -458,6 +463,114 @@ static void views(string arg)
   setenv("ECCE_RESULTS_H5", "1", 1);
 }
 
+static string joined(const vector<string> *v)
+{
+  string s;
+  if (v) for (const string& x : *v) s += x + " ";
+  return s;
+}
+
+// Row labels, column labels and titles; mode symmetry ("3-E") is the one
+// thing the file does not keep.
+static string layout(TProperty *p, bool dropSymmetry)
+{
+  auto strip = [&](const vector<string> *v) {
+    vector<string> o;
+    if (v) for (string x : *v) {
+      const size_t d = x.find('-');
+      if (dropSymmetry && d != string::npos && x.find_first_not_of("0123456789") == d)
+        x = x.substr(0, d);
+      o.push_back(x);
+    }
+    return joined(&o);
+  };
+  string s = p->type() + "|" + p->units() + "|";
+  if (PropTSVecTable *v = dynamic_cast<PropTSVecTable*>(p))
+    s += v->rowLabel() + "|" + v->columnLabel() + "|" + joined(v->rowLabels()) + "|" +
+         joined(v->colLabels()) + "|" + to_string(v->rows()) + "x" + to_string(v->columns()) +
+         "x" + to_string(v->tables());
+  else if (PropVecTable *v = dynamic_cast<PropVecTable*>(p))
+    s += v->rowLabel() + "|" + v->columnLabel() + "|" + joined(v->rowLabels()) + "|" +
+         joined(v->colLabels()) + "|" + strip(v->tableLabels()) + "|" + to_string(v->rows()) +
+         "x" + to_string(v->columns()) + "x" + to_string(v->tables());
+  else if (PropVector *v = dynamic_cast<PropVector*>(p))
+    s += v->rowLabel() + "|" + strip(v->rowLabels()) + "|" + to_string(v->rows());
+  return s;
+}
+
+static void fileOnly(string arg)
+{
+  const size_t eq = arg.find('=');
+  if (eq == string::npos) { CHECK(false, "fileonly wants <full>=<stripped>"); return; }
+  const string full = arg.substr(0, eq), bare = arg.substr(eq + 1);
+  printf("== %s\n", bare.c_str());
+  setenv("ECCE_RESULTS_H5", "1", 1);
+  IPropCalculation *a = dynamic_cast<IPropCalculation*>(EDSIFactory::getResource(EcceURL("file://" + full)));
+  IPropCalculation *b = dynamic_cast<IPropCalculation*>(EDSIFactory::getResource(EcceURL("file://" + bare)));
+  CHECK(a && b, "both open as calculations");
+  if (!a || !b) return;
+  const vector<string> names = b->propertyNames();
+  const char *keys[] = {"VIBFREQ", "VIBIR", "VIBRAM", "VIB", "SCANGEOM", "SCANENERGY",
+                        "SCANCOORD", "IRCGEOM", "IRCENERGY", "IRCCOORD", "GEOMTRACE", "TEVEC"};
+  int compared = 0;
+  for (const char *key : keys) {
+    TProperty *parsed = a->getProperty(key);
+    if (parsed == 0) continue;
+    const bool listed = find(names.begin(), names.end(), key) != names.end();
+    TProperty *own = b->getProperty(key);
+    if (own == 0) {
+      // The file keeps a companion only with as many points as structures.
+      printf("note: %-10s not in the file; needs the parsed property\n", key);
+      CHECK(!listed, string(key) + " is not listed without data");
+      continue;
+    }
+    ++compared;
+    CHECK(listed, string(key) + " is listed in propertyNames()");
+    const bool sym = string(key).compare(0, 3, "VIB") == 0;
+    string la = layout(parsed, sym), lb = layout(own, sym);
+    // ORCA and Gaussian scan/IRC parsers write "i-X" rows and ORCA's IRCGEOM
+    // the unit "NA" (read as Angstrom); the file gives the elements.
+    if (dynamic_cast<PropTSVecTable*>(parsed)) {
+      const char *el[] = {"H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne", "Na", "Mg",
+                          "Al", "Si", "P", "S", "Cl", "Ar", "K", "Ca", "Br", "I"};
+      for (const char *e : el) {
+        const string from = string("-") + e + " ";
+        for (size_t at; (at = lb.find(from)) != string::npos; ) lb.replace(at, from.size(), "-X ");
+        for (size_t at; (at = la.find(from)) != string::npos; ) la.replace(at, from.size(), "-X ");
+      }
+      if (parsed->units() == "NA" && own->units() == "Angstrom")
+        la.replace(la.find("|NA|"), 4, "|Angstrom|");
+    }
+    CHECK(la == lb, string(key) + " has the parsed layout" + (la == lb ? "" : ":\n   parsed " + la + "\n   file   " + lb));
+    vector<double> x, y;
+    ResultsFromCalc::forget(a);
+    flatValues(ResultsFromCalc::property(a, key), x);
+    ResultsFromCalc::forget(b);
+    flatValues(ResultsFromCalc::property(b, key), y);
+    vector<double> p0;
+    flatValues(parsed, p0);
+    double scale = 0, diff = 0, diffParsed = 0;
+    for (double v : x) scale = max(scale, fabs(v));
+    if (x.size() == y.size())
+      for (size_t i = 0; i < x.size(); i++) diff = max(diff, fabs(x[i] - y[i]));
+    if (p0.size() == y.size())
+      for (size_t i = 0; i < y.size(); i++) diffParsed = max(diffParsed, fabs(p0[i] - y[i]));
+    char msg[240];
+    snprintf(msg, sizeof msg, "%-10s n=%zu file-only vs full view max|diff| %.2e, vs parsed %.2e (scale %.3g %s)",
+             key, y.size(), diff, diffParsed, scale, own->units().c_str());
+    CHECK(x.size() == y.size() && p0.size() == y.size() && diff <= 1e-12*max(scale, 1.0) &&
+          diffParsed <= 1e-6*max(scale, 1.0), msg);
+  }
+  CHECK(compared > 0, "some view property comes from the file alone");
+  setenv("ECCE_RESULTS_H5", "0", 1);
+  ResultsFromCalc::forget(b);
+  b->flushPropertyCache();
+  CHECK(b->getProperty("GEOMTRACE") == 0 && b->getProperty("VIBFREQ") == 0 &&
+        b->getProperty("SCANGEOM") == 0 && b->getProperty("IRCGEOM") == 0,
+        "ECCE_RESULTS_H5=0: nothing from the file");
+  setenv("ECCE_RESULTS_H5", "1", 1);
+}
+
 int main(int argc, char **argv)
 {
   if (argc < 2) { fprintf(stderr, "usage: see the head of this file\n"); return 2; }
@@ -468,6 +581,8 @@ int main(int argc, char **argv)
   else if (mode == "orca" && argc >= 6) orcaBlock(argv[2], argv[3], argv[4], atof(argv[5]));
   else if (mode == "xtb" && argc >= 5) xtbBlock(argv[2], argv[3], atof(argv[4]));
   else if (mode == "emptyspin") emptySpin();
+  else if (mode == "fileonly")
+    for (int i = 2; i < argc; i++) fileOnly(argv[i]);
   else if (mode == "views")
     for (int i = 2; i < argc; i++) views(argv[i]);
   else return 2;
