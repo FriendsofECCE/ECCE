@@ -57,6 +57,7 @@ using namespace xercesc;
 #include "dsm/JCode.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/Session.H"
+#include "dsm/EDSIFactory.H"
 #include "dsm/VDoc.H"
 #include "dsm/TGBSConfig.H"
 
@@ -2295,62 +2296,49 @@ bool DavCalculation::remove()
 
 
 /**
- * Copies calculation to target URL.  Copying a session based
- * calculation is not supported.
+ * Copies calculation to target URL.  A workflow step may be copied into an
+ * ordinary folder, where the copy is a calculation of its own; the
+ * workflow's links live in its linkbase, not in the step.
  */
 bool DavCalculation::copy(EcceURL& target)
 {
-  bool ret = false;
   p_msgStack->clear();
-
-  Session *session = getSession();
-  if (session != 0) {
-    p_msgStack->add("UNABLE_TO_COPY",
-                    "\nCopy of a session based calculation is not supported!");
-    session = 0;
-  }
-  else {
-    ret = Resource::copy(target);
-  }
-
-  return ret;
-
+  return Resource::copy(target);
 }
 
 
 /**
- * Moves calculation to target URL.  Only renames are supported
- * for session based calculations (ie moves within the same collection).
+ * Moves calculation to target URL.  Within its folder this is a rename; a
+ * workflow step moved elsewhere leaves its workflow, links and all, as Delete
+ * does.  Moving INTO a workflow is how Make Workflow adds its first step: the
+ * caller adds the membership.
  */
 bool DavCalculation::move(EcceURL& target)
 {
-  bool ret = false;
   p_msgStack->clear();
 
   Session *session = getSession();
-
-  if (session != 0) {
-
-    // Detect whether it is a rename
-    if (target.getParent() != getURL().getParent()) {
-      p_msgStack->add("UNABLE_TO_MOVE",
-                      "\nMove of a session based calculation is not supported!");
-    }
-    else {
-      if (Resource::move(target)) {
-        session->saveLinkbase();
-        ret = true;
-      }
-    }
-  }
-  else {
-    ret = Resource::move(target);
-  }
+  const bool rename = target.getParent() == getURL().getParent();
 
   // A refused move (the name is taken) must leave this calculation where
   // it is, not pointing at the one that holds the name.
-  if (ret) setURL(target);
-  return ret;
+  if (session == 0 || rename) {
+    if (!Resource::move(target)) return false;
+    if (session) session->saveLinkbase();
+    setURL(target);
+    return true;
+  }
+
+  // Links are matched by pointer, so drop them while the linkbase still
+  // resolves to this calculation's old URL.
+  session->removeMember(this);
+  if (!Resource::move(target)) {
+    session->loadLinkbase();
+    return false;
+  }
+  session->saveLinkbase();
+  setURL(target);
+  return true;
 }
 
 
