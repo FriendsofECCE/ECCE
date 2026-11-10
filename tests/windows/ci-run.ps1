@@ -61,7 +61,13 @@ function RunApp($name, $exe, $arg = "", $wait = 25) {
     Say "   alive, window=$found"
     Stop-Process -Id $p.Id -Force
   } else {
-    Say ("   exited rc={0} (-1073741819 = access violation), window={1}" -f $p.ExitCode, $found)
+    # Name the crash only when it happened: a fixed legend after every rc read
+    # as a crash even on a clean rc=0 (#937).
+    $rc = $p.ExitCode
+    $why = ""
+    if ($rc -lt 0) { $why = " CRASH 0x{0:X8}" -f $rc }
+    if ($rc -eq -1073741819) { $why += " (access violation)" }
+    Say ("   exited rc={0}{1}, window={2}" -f $rc, $why, $found)
   }
   Get-Content "$Out\logs\$name.err.txt" -Tail 6 -ErrorAction SilentlyContinue | ForEach-Object { Say "   | $_" }
 }
@@ -96,4 +102,7 @@ Remove-Item Env:ECCE_VIEWER_SCENE, Env:ECCE_VIEWER_SCENE_OUT
 if (Test-Path "$Out\shots\scene\FAILED") { Say "   scene FAILED: $(Get-Content "$Out\shots\scene\FAILED")" }
 $ppm = Get-ChildItem "$Out\shots\scene" -Filter *.ppm -ErrorAction SilentlyContinue
 if ($ppm) { Say "   scene rendered: $($ppm.Name -join ' ')" }
+# The scene hook exits by itself once the snapshots are written, so here rc=0
+# with a PPM is the pass, not a crash.
+if ($ppm -and -not (Test-Path "$Out\shots\scene\FAILED")) { Say "   scene: ok" } else { Say "   scene: NO IMAGE" }
 exit 0
