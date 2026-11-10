@@ -158,7 +158,10 @@ void VRVector::showThroughMolecule(bool enable)
    SoCallback *on = new SoCallback;
    on->setCallback(depthTestOn);
    pass->addChild(on);
+   // Held by its own reference: removeChild() would otherwise free it
+   // and the next addChild() would insert a deleted node.
    throughPass = pass;
+   throughPass->ref();
    addChild(pass);
 }
 
@@ -306,6 +309,7 @@ void VRVector::constructor()
 /////////////////////////////////////////////////////////////////////////////
 VRVector::~VRVector()
 {
+   if (throughPass) throughPass->unref();
 }
 /////////////////////////////////////////////////////////////////////////////
 // Description
