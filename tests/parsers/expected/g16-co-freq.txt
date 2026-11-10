@@ -37,6 +37,24 @@ args:    '.' 'Vibration' 'SCF' 'RHF' '0'
       values: 0.000000 0.000000 -0.644571 0.000000 0.000000 0.483429
       units: Angstrom
 
+[EGRAD]  Script=gaussian-16.egrad  Freq=all  Skip=0  Lines=1
+  Begin=Cartesian Forces\:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=597 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.054929810 RMS     0.031713741'
+    (script emitted no property)
+
+[EGRADVEC]  Script=gaussian-16.egradvec  Freq=last  Skip=3  Lines=-
+  Begin=             Forces
+  End=--------------------------------------
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=591 fed=3 rc=0 first-fed='      1        6          -0.000000000   -0.000000000   -0.054929810'
+    key: EGRADVEC
+      size: 2 3
+      rowlabels: 1 2
+      columnlabels: X Y Z
+      values: -0.000000000 -0.000000000 0.05492981 -0.000000000 -0.000000000 -0.05492981
+      units: Hartree/Bohr
+
 [DELTAE]  Script=gaussian-16.deltae  Freq=all  Skip=0  Lines=1
   Begin=Delta\-E
   begins=7 delivered=7 buffered_away=0
@@ -122,9 +140,9 @@ args:    '.' 'Vibration' 'SCF' 'RHF' '0'
 
 [EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
   Begin= Thermochemistry
-  End=Cartesian Forces
+  End=^ -{60,}\s*$
   begins=1 delivered=1 buffered_away=0
-  block 1: begin-line=544 fed=54 rc=0 first-fed=' - Thermochemistry -'
+  block 1: begin-line=544 fed=47 rc=0 first-fed=' - Thermochemistry -'
     key: EZEROPT
       size: 1
       values: 0.005925

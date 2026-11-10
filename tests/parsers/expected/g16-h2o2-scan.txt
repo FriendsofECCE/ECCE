@@ -224,12 +224,7 @@ args:    '.' 'Geometry' 'SCF' 'RHF' '0'
       values: 0.000000 0.699630 0.101947 -0.000000 -0.699630 0.101947 0.323833 0.942181 -0.815579 -0.323833 -0.942181 -0.815579
       units: Angstrom
   block 21: begin-line=6351 fed=5 rc=0 first-fed='      1          8           0       -0.000000    0.699630    0.101947'
-    key: GEOMTRACE
-      size: 1 4 3
-      rowlabels: 1-O 2-O 3-H 4-H
-      columnlabels: X Y Z
-      values: -0.000000 0.699630 0.101947 0.000000 -0.699630 0.101947 0.323833 0.942181 -0.815579 -0.323833 -0.942181 -0.815579
-      units: Angstrom
+    (script emitted no property)
 
 [EGRAD]  Script=gaussian-16.egrad  Freq=all  Skip=0  Lines=1
   Begin=Cartesian Forces\:

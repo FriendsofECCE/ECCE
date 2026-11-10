@@ -21,4 +21,94 @@ print "key: IRCCOORD\nsize: \n$n\nvalues: \n", join("\n", @x),
       "\nunits:\nsqrt(amu)*bohr\nEND\n";
 print "key: IRCENERGY\nsize: \n$n\nvalues: \n",
       join("\n", map { sprintf("%.6f", $ts + $_) } @e), "\nunits:\nHartree\nEND\n";
+
+# IRCGEOM: one structure per summary row.  Positive RxCoord is the forward
+# path, held first by gaussian-16.ircgeom; counting away from the TS gives a
+# point's rank in its path.  Without the TS, or with a count that does not
+# match, the frames go out as computed (forward, then reverse).
+my @frames = readLines("$key/g16IrcFrames");
+my ($tsGeom) = readLines("$key/g16IrcTs");
+my @fwd = sort { $x[$a] <=> $x[$b] } grep { $x[$_] > 0 } 0 .. $#x;
+my @rev = sort { $x[$b] <=> $x[$a] } grep { $x[$_] < 0 } 0 .. $#x;
+my @order;
+if (defined $tsGeom && @fwd + @rev == $n - 1 && @frames == $n - 1) {
+  # The TS is the first point of both paths, so its neighbours are the
+  # first forward and the first reverse structure.
+  my @near = grep { defined } ($frames[0], @rev ? $frames[scalar @fwd] : undef);
+  $tsGeom = intoPathFrame($tsGeom, @near) if (@near);
+  my %frameOf;
+  $frameOf{$fwd[$_]} = $frames[$_] for 0 .. $#fwd;
+  $frameOf{$rev[$_]} = $frames[@fwd + $_] for 0 .. $#rev;
+  @order = map { exists $frameOf{$_} ? $frameOf{$_} : $tsGeom } 0 .. $n - 1;
+} else {
+  @order = @frames;
+}
+foreach my $f (@order) {
+  my @rows = split(/,/, $f);
+  my $labels = join("", map { " $_-X" } 1 .. scalar(@rows));
+  print "key: IRCGEOM\nsize:\n1 ", scalar(@rows), " 3\nrowlabels:\n$labels\n",
+        "columnlabels:\nX Y Z\nvalues:\n", join("\n", map { " $_" } @rows),
+        "\nunits:\nAngstrom\nEND\n";
+}
 exit(0);
+
+# A TS read from an earlier job's checkpoint is printed in that job's
+# orientation; the IRC job reorients it.  Rotate it (Horn's quaternion fit)
+# onto the mean of its neighbours when that fits clearly better than as is.
+sub intoPathFrame {
+  my ($ts, @near) = @_;
+  my @a = map { [split] } split(/,/, $ts);
+  my @b = map { [0, 0, 0] } @a;
+  foreach my $f (@near) {
+    my @r = map { [split] } split(/,/, $f);
+    return $ts unless @r == @a;
+    for my $i (0 .. $#a) { $b[$i][$_] += $r[$i][$_] / @near for 0 .. 2; }
+  }
+  my (@ca, @cb);
+  for my $k (0 .. 2) {
+    $ca[$k] = 0; $cb[$k] = 0;
+    for my $i (0 .. $#a) { $ca[$k] += $a[$i][$k] / @a; $cb[$k] += $b[$i][$k] / @a; }
+  }
+  my @S = map { [0, 0, 0] } 0 .. 2;
+  for my $i (0 .. $#a) {
+    for my $j (0 .. 2) { for my $k (0 .. 2) {
+      $S[$j][$k] += ($a[$i][$j] - $ca[$j]) * ($b[$i][$k] - $cb[$k]);
+    } }
+  }
+  my ($xx, $xy, $xz, $yx, $yy, $yz, $zx, $zy, $zz) = map { @$_ } @S;
+  my @N = ([$xx + $yy + $zz, $yz - $zy, $zx - $xz, $xy - $yx],
+           [$yz - $zy, $xx - $yy - $zz, $xy + $yx, $zx + $xz],
+           [$zx - $xz, $xy + $yx, -$xx + $yy - $zz, $yz + $zy],
+           [$xy - $yx, $zx + $xz, $yz + $zy, -$xx - $yy + $zz]);
+  # Power iteration on N + shift*I: the top eigenvector is the rotation.
+  my $shift = 0;
+  $shift += $_ * $_ foreach map { @$_ } @N;
+  $shift = sqrt($shift) + 1e-12;
+  # A generic start: a planar molecule decouples N into 2x2 blocks.
+  my @q = (0.8, 0.37, 0.33, 0.29);
+  for (1 .. 2000) {
+    my @v = map { my $r = $_; my $s = $shift * $q[$r];
+                  $s += $N[$r][$_] * $q[$_] for 0 .. 3; $s } 0 .. 3;
+    my $len = sqrt($v[0]**2 + $v[1]**2 + $v[2]**2 + $v[3]**2);
+    @q = map { $_ / $len } @v;
+  }
+  my ($q0, $q1, $q2, $q3) = @q;
+  my @R = ([$q0*$q0 + $q1*$q1 - $q2*$q2 - $q3*$q3, 2*($q1*$q2 - $q0*$q3), 2*($q1*$q3 + $q0*$q2)],
+           [2*($q1*$q2 + $q0*$q3), $q0*$q0 - $q1*$q1 + $q2*$q2 - $q3*$q3, 2*($q2*$q3 - $q0*$q1)],
+           [2*($q1*$q3 - $q0*$q2), 2*($q2*$q3 + $q0*$q1), $q0*$q0 - $q1*$q1 - $q2*$q2 + $q3*$q3]);
+  my (@out, $dFit, $dAsIs);
+  for my $i (0 .. $#a) {
+    my @d = map { $a[$i][$_] - $ca[$_] } 0 .. 2;
+    my @p = map { my $k = $_; $cb[$k] + $R[$k][0]*$d[0] + $R[$k][1]*$d[1] + $R[$k][2]*$d[2] } 0 .. 2;
+    push(@out, sprintf("%.6f %.6f %.6f", @p));
+    $dFit += ($p[$_] - $b[$i][$_])**2 for 0 .. 2;
+    $dAsIs += ($a[$i][$_] - $b[$i][$_])**2 for 0 .. 2;
+  }
+  return ($dFit * 4 < $dAsIs) ? join(",", @out) : $ts;
+}
+
+sub readLines {
+  my @l;
+  if (open(my $fh, "<", $_[0])) { @l = <$fh>; close($fh); chomp @l; }
+  return grep { length } @l;
+}

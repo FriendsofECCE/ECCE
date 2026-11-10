@@ -152,7 +152,11 @@ CASES = [
         # 16 "CURRENT STRUCTURE" blocks give the structures.
         silent_ok={'EGRAD': 'gated on runtype; IRC is not a Geo/Grad run',
                    'DELTAE': 'gated on runtype', 'RMSDP': 'gated on runtype',
-                   'ESCF1][ESCFVEC': 'gated on runtype'},
+                   'ESCF1][ESCFVEC': 'gated on runtype',
+                   # Side files only: gaussian-16.irc publishes the 17
+                   # structures, TS included, in summary order (#947).
+                   'IRCGEOM': 'holds each structure for gaussian-16.irc',
+                   'IRCTS': 'holds the TS structure for gaussian-16.irc'},
         parse_args=('.', 'IRC', 'SCF', 'RHF', '0'),
         expect={
             'IRCCOORD][IRCENERGY': dict(keys={
@@ -165,8 +169,8 @@ CASES = [
                               '-92.246363 -92.246043 -92.246383 -92.247403 '
                               '-92.249123 -92.251513 -92.254543 -92.258163 '
                               '-92.262293 -92.266863', 'units': 'Hartree'},
+                'IRCGEOM': {'units': 'Angstrom'},
             }),
-            'IRCGEOM': dict(min_blocks=16, keys={'IRCGEOM': {}}),
         },
     ),
     dict(
@@ -182,6 +186,7 @@ CASES = [
                               'runtype =~ /Geo/i. For a non-optimisation job '
                               'the total energy is picked up from the archive '
                               'block instead, by gaussian-16.db.',
+            'EGRAD': 'runtype-gated to /Geo/i, like DELTAE and RMSDP.',
         },
         # Regression guard for issue #85: a diatomic frequency job used to
         # produce NO vibrational data at all.

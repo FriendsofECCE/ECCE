@@ -31,123 +31,151 @@ args:    '.' 'IRC' 'SCF' 'RHF' '0'
       size: 17
       values: -92.261743 -92.258593 -92.255673 -92.253023 -92.250693 -92.248763 -92.247293 -92.246363 -92.246043 -92.246383 -92.247403 -92.249123 -92.251513 -92.254543 -92.258163 -92.262293 -92.266863
       units: Hartree
-
-[IRCGEOM]  Script=gaussian-16.ircgeom  Freq=all  Skip=-  Lines=-
-  Begin=CURRENT STRUCTURE
-  End=CHANGE IN THE REACTION COORDINATE
-  begins=16 delivered=16 buffered_away=0
-  block 1: begin-line=4607 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.614494 0.116817 0.000000 0.527857 -0.183278 -0.000000 -0.017565 1.155608 0.000000
-      units: Angstrom
-  block 2: begin-line=4937 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.610609 0.120040 -0.000000 0.528105 -0.187226 0.000000 -0.067301 1.172104 0.000000
-      units: Angstrom
-  block 3: begin-line=5270 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.606604 0.123320 0.000000 0.528269 -0.191127 0.000000 -0.117356 1.187289 -0.000000
-      units: Angstrom
-  block 4: begin-line=5603 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.602484 0.126666 0.000000 0.528357 -0.194982 -0.000000 -0.167717 1.201040 0.000000
-      units: Angstrom
-  block 5: begin-line=5936 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.598253 0.130091 -0.000000 0.528369 -0.198791 -0.000000 -0.218362 1.213206 0.000000
-      units: Angstrom
-  block 6: begin-line=6256 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.593917 0.133606 -0.000000 0.528310 -0.202555 -0.000000 -0.269255 1.223674 0.000000
-      units: Angstrom
-  block 7: begin-line=6576 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.589485 0.137220 -0.000000 0.528183 -0.206274 -0.000000 -0.320348 1.232346 0.000000
-      units: Angstrom
-  block 8: begin-line=6896 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.584968 0.140943 -0.000000 0.527993 -0.209951 -0.000000 -0.371582 1.239145 0.000000
-      units: Angstrom
-  block 9: begin-line=7248 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.621965 0.110480 0.000000 0.527150 -0.175275 -0.000000 0.081218 1.119863 0.000000
-      units: Angstrom
-  block 10: begin-line=7565 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.625563 0.107326 0.000000 0.526698 -0.171229 0.000000 0.130365 1.101188 -0.000000
-      units: Angstrom
-  block 11: begin-line=7882 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.629077 0.104163 -0.000000 0.526175 -0.167162 -0.000000 0.179485 1.082347 0.000000
-      units: Angstrom
-  block 12: begin-line=8199 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.632528 0.100970 -0.000000 0.525587 -0.163094 -0.000000 0.228748 1.063831 0.000000
-      units: Angstrom
-  block 13: begin-line=8519 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.635929 0.097729 -0.000000 0.524935 -0.159041 -0.000000 0.278314 1.046115 0.000000
-      units: Angstrom
-  block 14: begin-line=8839 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.639289 0.094425 -0.000000 0.524217 -0.155021 -0.000000 0.328301 1.029595 0.000000
-      units: Angstrom
-  block 15: begin-line=9159 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
-    key: IRCGEOM
-      size: 1 3 3
-      rowlabels: 1-X 2-X 3-X
-      columnlabels: X Y Z
-      values: -0.642602 0.091055 -0.000000 0.523427 -0.151046 -0.000000 0.378749 1.014476 0.000000
-      units: Angstrom
-  block 16: begin-line=9478 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
     key: IRCGEOM
       size: 1 3 3
       rowlabels: 1-X 2-X 3-X
       columnlabels: X Y Z
       values: -0.645857 0.087625 -0.000000 0.522559 -0.147114 -0.000000 0.429600 1.000677 0.000000
       units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.642602 0.091055 -0.000000 0.523427 -0.151046 -0.000000 0.378749 1.014476 0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.639289 0.094425 -0.000000 0.524217 -0.155021 -0.000000 0.328301 1.029595 0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.635929 0.097729 -0.000000 0.524935 -0.159041 -0.000000 0.278314 1.046115 0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.632528 0.100970 -0.000000 0.525587 -0.163094 -0.000000 0.228748 1.063831 0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.629077 0.104163 -0.000000 0.526175 -0.167162 -0.000000 0.179485 1.082347 0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.625563 0.107326 0.000000 0.526698 -0.171229 0.000000 0.130365 1.101188 -0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.621965 0.110480 0.000000 0.527150 -0.175275 -0.000000 0.081218 1.119863 0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.618314 0.113473 -0.000000 0.527533 -0.179410 0.000000 0.031882 1.138045 0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.614494 0.116817 0.000000 0.527857 -0.183278 -0.000000 -0.017565 1.155608 0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.610609 0.120040 -0.000000 0.528105 -0.187226 0.000000 -0.067301 1.172104 0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.606604 0.123320 0.000000 0.528269 -0.191127 0.000000 -0.117356 1.187289 -0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.602484 0.126666 0.000000 0.528357 -0.194982 -0.000000 -0.167717 1.201040 0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.598253 0.130091 -0.000000 0.528369 -0.198791 -0.000000 -0.218362 1.213206 0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.593917 0.133606 -0.000000 0.528310 -0.202555 -0.000000 -0.269255 1.223674 0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.589485 0.137220 -0.000000 0.528183 -0.206274 -0.000000 -0.320348 1.232346 0.000000
+      units: Angstrom
+    key: IRCGEOM
+      size: 1 3 3
+      rowlabels: 1-X 2-X 3-X
+      columnlabels: X Y Z
+      values: -0.584968 0.140943 -0.000000 0.527993 -0.209951 -0.000000 -0.371582 1.239145 0.000000
+      units: Angstrom
+
+[IRCTS]  Script=gaussian-16.ircts  Freq=first  Skip=-  Lines=1
+  Begin=Start new reaction path calculation
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=4238 fed=1 rc=0 first-fed='          ******** Start new reaction path calculation ********'
+    (script emitted no property)
+
+[IRCGEOM]  Script=gaussian-16.ircgeom  Freq=all  Skip=-  Lines=-
+  Begin=CURRENT STRUCTURE
+  End=CHANGE IN THE REACTION COORDINATE
+  begins=16 delivered=16 buffered_away=0
+  block 1: begin-line=4607 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 2: begin-line=4937 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 3: begin-line=5270 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 4: begin-line=5603 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 5: begin-line=5936 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 6: begin-line=6256 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 7: begin-line=6576 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 8: begin-line=6896 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 9: begin-line=7248 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 10: begin-line=7565 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 11: begin-line=7882 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 12: begin-line=8199 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 13: begin-line=8519 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 14: begin-line=8839 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 15: begin-line=9159 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
+  block 16: begin-line=9478 fed=11 rc=0 first-fed='                    CURRENT STRUCTURE'
+    (script emitted no property)
 
 [GEOMTRACE]  Script=gaussian-16.geomtrace-input  Freq=all  Skip=5  Lines=-
   Begin=Input orientation\:
@@ -398,7 +426,7 @@ args:    '.' 'IRC' 'SCF' 'RHF' '0'
 
 [EGRAD]  Script=gaussian-16.egrad  Freq=all  Skip=0  Lines=1
   Begin=Cartesian Forces\:
-  begins=25 delivered=25 buffered_away=0
+  begins=26 delivered=26 buffered_away=0
   block 1: begin-line=570 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.063920955 RMS     0.031344116'
     (script emitted no property)
   block 2: begin-line=935 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.027033779 RMS     0.013175197'
@@ -417,43 +445,45 @@ args:    '.' 'IRC' 'SCF' 'RHF' '0'
     (script emitted no property)
   block 9: begin-line=3186 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.000036690 RMS     0.000016679'
     (script emitted no property)
-  block 10: begin-line=4576 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.005932856 RMS     0.003558730'
+  block 10: begin-line=3872 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.000036685 RMS     0.000016678'
     (script emitted no property)
-  block 11: begin-line=4909 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.011917361 RMS     0.007226823'
+  block 11: begin-line=4576 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.005932856 RMS     0.003558730'
     (script emitted no property)
-  block 12: begin-line=5239 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.017810738 RMS     0.010889793'
+  block 12: begin-line=4909 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.011917361 RMS     0.007226823'
     (script emitted no property)
-  block 13: begin-line=5572 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.023322337 RMS     0.014465804'
+  block 13: begin-line=5239 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.017810738 RMS     0.010889793'
     (script emitted no property)
-  block 14: begin-line=5905 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.028295347 RMS     0.017845774'
+  block 14: begin-line=5572 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.023322337 RMS     0.014465804'
     (script emitted no property)
-  block 15: begin-line=6225 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.033043893 RMS     0.020935559'
+  block 15: begin-line=5905 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.028295347 RMS     0.017845774'
     (script emitted no property)
-  block 16: begin-line=6545 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.037795280 RMS     0.023658538'
+  block 16: begin-line=6225 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.033043893 RMS     0.020935559'
     (script emitted no property)
-  block 17: begin-line=6865 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.041862467 RMS     0.025960801'
+  block 17: begin-line=6545 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.037795280 RMS     0.023658538'
     (script emitted no property)
-  block 18: begin-line=7217 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.005836750 RMS     0.003264664'
+  block 18: begin-line=6865 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.041862467 RMS     0.025960801'
     (script emitted no property)
-  block 19: begin-line=7537 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.011160458 RMS     0.006246419'
+  block 19: begin-line=7217 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.005836750 RMS     0.003264664'
     (script emitted no property)
-  block 20: begin-line=7854 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.015761260 RMS     0.008867705'
+  block 20: begin-line=7537 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.011160458 RMS     0.006246419'
     (script emitted no property)
-  block 21: begin-line=8171 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.019607260 RMS     0.011085177'
+  block 21: begin-line=7854 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.015761260 RMS     0.008867705'
     (script emitted no property)
-  block 22: begin-line=8488 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.022671193 RMS     0.012911798'
+  block 22: begin-line=8171 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.019607260 RMS     0.011085177'
     (script emitted no property)
-  block 23: begin-line=8808 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.025051418 RMS     0.014405232'
+  block 23: begin-line=8488 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.022671193 RMS     0.012911798'
     (script emitted no property)
-  block 24: begin-line=9128 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.026964819 RMS     0.015654060'
+  block 24: begin-line=8808 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.025051418 RMS     0.014405232'
     (script emitted no property)
-  block 25: begin-line=9447 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.028670764 RMS     0.016746144'
+  block 25: begin-line=9128 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.026964819 RMS     0.015654060'
+    (script emitted no property)
+  block 26: begin-line=9447 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.028670764 RMS     0.016746144'
     (script emitted no property)
 
 [EGRADVEC]  Script=gaussian-16.egradvec  Freq=last  Skip=3  Lines=-
   Begin=             Forces
   End=--------------------------------------
-  begins=25 delivered=1 buffered_away=24
+  begins=26 delivered=1 buffered_away=25
   block 1: begin-line=9440 fed=4 rc=0 first-fed='      1        6          -0.020139505   -0.021865782   -0.000000000'
     key: EGRADVEC
       size: 3 3
@@ -1665,9 +1695,9 @@ args:    '.' 'IRC' 'SCF' 'RHF' '0'
 
 [EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
   Begin= Thermochemistry
-  End=Cartesian Forces
+  End=^ -{60,}\s*$
   begins=1 delivered=1 buffered_away=0
-  block 1: begin-line=3756 fed=117 rc=0 first-fed=' - Thermochemistry -'
+  block 1: begin-line=3756 fed=109 rc=0 first-fed=' - Thermochemistry -'
     key: EZEROPT
       size: 1
       values: 0.010433
