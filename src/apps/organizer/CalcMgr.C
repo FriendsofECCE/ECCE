@@ -791,6 +791,30 @@ void CalcMgr::runTestCommand(const string& line)
         moveForCommand(a, vector<EcceURL>(1, EcceURL(b)), c, lines);
         for (size_t i = 0; i < lines.size(); i++)
           outcome += (i ? ";" : "") + lines[i];
+      } else if (sub == "paste") {
+        // "server paste copy|cut FOLDER-URL SOURCE-URL...": the GUI Copy/Cut
+        // and Paste, which go through Resource::copy/move, not ecce-copy.
+        // The failure text is taken from paste() instead of its dialog.
+        vector<EcceURL> srcs;
+        for (string u = c; !u.empty(); u.clear(), args >> u)
+          srcs.push_back(EcceURL(u));
+        WxResourceTreeItemData *from = srcs.empty() ? 0
+            : findNode(srcs[0], true, true);
+        WxResourceTreeItemData *to = findNode(EcceURL(b), true, true);
+        if (!from || !to) {
+          outcome = "error: no such node";
+        } else {
+          p_treeCtrl->SelectItem(from->GetId());
+          copySelectionToClipboard(a == "cut");
+          p_clipboard = srcs;
+          p_treeCtrl->SelectItem(to->GetId());
+          p_pasteMessage.clear();
+          paste();
+          string flat = p_pasteMessage;
+          for (size_t i = 0; i < flat.size(); i++)
+            if (flat[i] == '\n') flat.replace(i, 1, " | ");
+          outcome = p_pasteMessage.empty() ? "ok" : "refused: " + flat;
+        }
       } else if (sub == "launchcheck") {
         outcome = refuseAddedLaunch(vector<EcceURL>(1, EcceURL(a)))
                   ? "refused" : "allowed";
@@ -8757,6 +8781,18 @@ void CalcMgr::paste()
         if (p_deleteAfterPaste && newUrl == (*itor))
           continue;
 
+        // A step needs its links and place in the workflow, which Paste
+        // cannot give it (#935); the data layer allows the move, because
+        // Make Workflow uses it.
+        if (dynamic_cast<Session*>(destination->getResource()) &&
+            source->getResource() &&
+            source->getResource()->getContentType() ==
+                ResourceDescriptor::CT_CALCULATION) {
+          msg += "Unable to copy\nA calculation cannot be pasted into a "
+                 "workflow; add a step with New step instead.";
+          break;
+        }
+
         if (isCrossTree(*itor, destinationUrl)) {
           EcceURL made;
           const string why = copyAcrossTrees(*itor, destinationUrl,
@@ -8826,6 +8862,10 @@ void CalcMgr::paste()
   onSelectionChange(false);
 
   if (msg != "") {
+    if (getenv("ECCE_TEST_ORGANIZER")) {
+      p_pasteMessage = msg;
+      return;
+    }
     ewxMessageDialog dlg(this, msg,
                          "Paste Failed!", wxOK|wxICON_EXCLAMATION, 
                          wxDefaultPosition);

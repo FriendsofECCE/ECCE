@@ -753,6 +753,9 @@ protected:
   // True means cut clicked, false means copy clicked.
   bool p_deleteAfterPaste;
 
+  // The last failed paste's text, for the ECCE_TEST_ORGANIZER hook.
+  string p_pasteMessage;
+
   bool p_focusOnTree;
   bool p_menusPending = false;   // MSW: menus rebuilt once per selection
   bool p_menuTitlesChanged = false;  // a top menu's state changed under a hold
