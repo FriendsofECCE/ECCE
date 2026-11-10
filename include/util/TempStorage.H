@@ -42,6 +42,22 @@ class TempStorage
 
       static    string getJobRunDirectoryPath(const EcceURL& url);
 
+      // Removes job folders and ECCE?????? temp files older than `days`
+      // that no job monitor or process still uses; returns how many went.
+      static    int sweepStale(int days = 3);
+
+      // Removes a job folder on scope exit unless keep() was called: an
+      // import or catch-up that fails part way leaves nothing behind, one
+      // whose job store started hands the folder to eccejobmaster.
+      class JobDirGuard {
+         public:
+            explicit JobDirGuard(const string& path) : p_path(path) {}
+            ~JobDirGuard();
+            void keep() { p_path.clear(); }
+         private:
+            string p_path;
+      };
+
 
 };
 
