@@ -34,6 +34,9 @@
 use strict;
 use warnings;
 use Getopt::Std;
+use FindBin;
+use lib $FindBin::RealBin;
+use QEFunctional;
 
 our ($opt_f, $opt_c, $opt_a, $opt_h);
 getopts('f:c:a:h');
@@ -1660,6 +1663,57 @@ sub espresso
   espressoOptions(\@L);
 }
 
+#  The functional in each pseudopotential's UPF header, against each
+#  other and against input_dft.  A mix stops pw.x ("conflicting values
+#  for icorr"); input_dft over different pseudopotentials runs but mixes
+#  two functionals.  Files that are not here (pseudo_dir on the compute
+#  host) are not judged.
+sub espressoFunctional
+{
+  my ($Lref, $inputDft) = @_;
+  my ($dir) = ($whole =~ /^\s*pseudo_dir\s*=\s*['"]([^'"]*)['"]/mi);
+  return unless (defined($dir) && $dir ne "");
+  $dir =~ s{/+$}{};
+  if ($dir !~ m{^/}) {
+    my ($deckDir) = ($opt_f =~ m{^(.*)/[^/]*$});
+    $dir = (defined($deckDir) ? $deckDir : ".") . "/$dir";
+  }
+
+  my (%fun, @order, $inSpecies);
+  foreach my $line (@$Lref) {
+    if ($line =~ /^\s*ATOMIC_SPECIES/i) { $inSpecies = 1; next; }
+    if ($inSpecies && $line =~ /^\s*([A-Za-z]\w*)\s+\S+\s+(\S+)/) {
+      my $f = QEFunctional::ofFile("$dir/$2");
+      if ($f ne "") { $fun{$1} = $f; push(@order, $1); }
+      next;
+    }
+    $inSpecies = 0 if ($inSpecies && $line =~ /\S/);
+  }
+  return unless (@order);
+
+  my $at = cardRange(qr/^\s*ATOMIC_SPECIES/i);
+  my %distinct = map { $fun{$_} => 1 } @order;
+  if (keys(%distinct) > 1) {
+    finding("BAD", $at, "functional",
+            "The pseudopotentials were generated with different " .
+            "functionals (" . join(", ", map { "$_: $fun{$_}" } @order) .
+            "); pw.x stops with \"conflicting values for icorr\".  " .
+            "Use pseudopotentials of one functional.");
+    return;
+  }
+  my $pp = $fun{$order[0]};
+  my $dft = defined($inputDft) ? QEFunctional::canonical($inputDft->[0]) : "";
+  if ($dft ne "" && $dft ne $pp) {
+    finding("UNSURE", $inputDft->[1], "functional",
+            "input_dft = '" . uc($inputDft->[0]) . "' differs from $pp, the " .
+            "functional the pseudopotentials were generated with; pw.x " .
+            "runs, but the result mixes two functionals.");
+  } else {
+    finding("GOOD", $at, "functional",
+            "The pseudopotentials were all generated with $pp.");
+  }
+}
+
 #  Molecular dynamics, dispersion and DFT+U.  What is checked is that the
 #  parts agree with each other and with the species list; whether pw.x
 #  accepts a keyword is for pw.x to say.
@@ -1737,6 +1791,8 @@ sub espressoOptions
     }
     $inSpecies = 0 if ($inSpecies && $line =~ /\S/);
   }
+  espressoFunctional(\@L, $nl{system}{input_dft});
+
   my %transition = map { $_ => 1 }
     qw(Sc Ti V Cr Mn Fe Co Ni Cu Zn Y Zr Nb Mo Tc Ru Rh Pd Ag Cd
        La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg

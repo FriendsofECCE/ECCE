@@ -121,6 +121,13 @@ CASES = [
     #  U on Ni without spin polarisation: a warning, never a BAD.
     ("qe-nio-hubbard-card-nospin.qein", "QuantumESPRESSO", 2,
      [("GOOD", "hubbard"), ("UNSURE", "hubbard")]),
+    #  The functional in each UPF header (qe-upf/ holds the headers of
+    #  Debian quantum-espresso-data files).  Ni PBE + O BLYP is the deck
+    #  ai.qe wrote from that library before #945; pw.x stopped with
+    #  "conflicting values for icorr".
+    ("qe-nio-one-functional.qein", "QuantumESPRESSO", 2, [("GOOD", "functional")]),
+    ("qe-nio-mixed-functionals.qein", "QuantumESPRESSO", 2, [("BAD", "functional")]),
+    ("qe-nio-input-dft-blyp.qein", "QuantumESPRESSO", 2, [("UNSURE", "functional")]),
 
     #  CP2K decks written by ai.cp2k and run by cp2k.psmp 2025.1.
     ("cp2k-silicon.cp2kin",   "CP2K",             2, [("GOOD", "sections"),
