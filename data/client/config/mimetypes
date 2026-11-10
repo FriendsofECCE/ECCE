@@ -62,10 +62,14 @@ chemical/x-ecceqm-guess                  .qmorbin
 chemical/x-ecceqm-output                 .qmout
 chemical/x-mopac-input                   .mop
 chemical/x-mopac-output                  .mopout
+chemical/x-mopac-guess  .denin
+chemical/x-mopac-density  .den
 chemical/x-qe-input                      .pwin
 chemical/x-qe-output                     .pwout
 chemical/x-cp2k-input                    .cp2kin
 chemical/x-cp2k-output                   .cp2kout
+chemical/x-cp2k-guess  .wfnin
+chemical/x-cp2k-wfn  .wfn
 chemical/x-xtb-input                     .xtbin
 chemical/x-xtb-output                    .xtbout
 chemical/x-crest-input                   .crestin

@@ -226,6 +226,8 @@
   <Input  type="primary" mimetype="chemical/x-mopac-input" comment="true" commentstring="*">mopac.mop</Input>
   <Output type="primary" mimetype="chemical/x-mopac-output">mopac.mopout</Output>
   <Output type="parse" verifypattern="MOPAC v" mimetype="chemical/x-mopac-output">mopac.mopout</Output>
+  <Output type="auxiliary" mimetype="chemical/x-mopac-density">mopac.den</Output>
+  <Input type="auxiliary" mimetype="chemical/x-mopac-guess">guess.denin</Input>
 </DataFiles>
 
 <!-- Names of files required for code integration.  These files are
@@ -241,6 +243,7 @@
   <Importer>MOPAC.expt</Importer>
   <ParseSpecification>mopac.desc</ParseSpecification>
   <LaunchPreprocessor>mopac.launchpp</LaunchPreprocessor>
+  <RetainOutputFile>mopac.den</RetainOutputFile>
 </IntegrationFiles>
 
 </appdescriptor>

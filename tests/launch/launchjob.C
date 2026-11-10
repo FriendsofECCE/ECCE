@@ -5,7 +5,7 @@
 //   launchjob create <parentURL> <name> <resourceType> <deckFile> <deckName>
 //                    <machine> <runDir> <user>            prints the calc URL
 //                    [queue=Q] [nodes=N] [procs=P] [threads=T] [wall="D H:M"] [mem=MB]
-//                    [code=<JCode name>] [xyz=<file>]
+//                    [code=<JCode name>] [xyz=<file>] [gui=<SetupParams>]
 //                                 batch settings, as the launcher's queue controls set them;
 //                                 code and structure as the Calculation Editor's save stores
 //                                 them (the Builder's orbital views need both)
@@ -215,6 +215,14 @@ static int doCreate(const vector<string>& a)
       const JCode* jc = CodeFactory::lookup(v.c_str());
       if (!jc || !task->application(jc)) {
         cerr << "could not store the code " << v << endl;
+        return 1;
+      }
+    } else if (k == "gui") {
+      ifstream fin(v.c_str());
+      GUIValues values;
+      ICalculation *calc = dynamic_cast<ICalculation*>(task);
+      if (!fin || values.load(fin) == 0 || !calc || !calc->guiparams(&values)) {
+        cerr << "could not store GUI settings" << endl;
         return 1;
       }
     } else if (k == "xyz") {
@@ -730,6 +738,30 @@ int main(int argc, char** argv)
     TaskJob* t = getTask(a[0]);
     string why;
     cout << (OrbitalGuess::available(t, why) ? "yes" : "no: " + why) << endl;
+    return 0;
+  }
+  if (mode == "guesscompat" && a.size() == 2) {
+    TaskJob *task = getTask(a[0]);
+    ICalculation *calc = dynamic_cast<ICalculation*>(task);
+    if (!calc) return 1;
+    Fragment *frag = calc->fragment();
+    GUIValues *settings = calc->guiparams();
+    if (!frag || frag->numAtoms() < 2) { delete frag; delete settings; return 1; }
+    // Change only in memory: exercise the editor's live compatibility check.
+    if (a[1] == "atom") frag->atomRef(0)->atomicNumber(6);
+    if (a[1] == "order") {
+      const short z = frag->atomRef(0)->atomicNumber();
+      frag->atomRef(0)->atomicNumber(frag->atomRef(1)->atomicNumber());
+      frag->atomRef(1)->atomicNumber(z);
+    }
+    if (a[1] == "basis") {
+      GUIValue *v = new GUIValue();
+      v->setValue("TZVP-MOLOPT-GTH");
+      settings->set("ES.Theory.GPW.BasisLevel", v);
+    }
+    cout << OrbitalGuess::compatibilityWarning(task, frag, settings) << endl;
+    delete frag;
+    delete settings;
     return 0;
   }
   if (mode == "hasguess" && a.size() == 1) {

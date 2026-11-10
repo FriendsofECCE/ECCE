@@ -308,27 +308,31 @@ calculation:
 A geometry optimisation that has reached a minimum has no imaginary
 frequencies.
 
-## Starting from the orbitals of an earlier calculation (ORCA)
+## Starting from the orbitals of an earlier calculation
 
-An ORCA calculation keeps its final orbitals when it has finished. A
-follow-on calculation can start from them instead of from ORCA's own initial
-guess, which saves SCF iterations and helps difficult cases converge.
+ORCA, Gaussian 16, NWChem, ECCE-QM, MOPAC and CP2K calculations can keep
+final orbitals or density for a follow-on calculation's initial guess.
 
-1. Select the finished ORCA calculation and choose **Edit > Duplicate with
-   Final Orbitals**. The copy has the last geometry, as with **Duplicate
-   Setup with Last Geometry**, and the orbitals belong to that geometry.
-   The item is greyed out for other codes and for a calculation that has
-   no stored orbitals; its help line says which.
-2. Open the copy in the Calculation Editor. Under **Settings** it shows
-   **Initial guess: MOs from** the calculation they came from. Change the
-   method, the run type or the basis set as you need.
-3. If you choose another basis set, the line adds **(projected from** the
-   old basis set**)**: ORCA projects the old orbitals onto the new basis.
-4. **Use Default Guess** drops the orbitals and returns to ORCA's own
-   guess.
+1. Select the finished calculation and choose **New from This > Continue
+   from Final Orbitals** in the Organizer. The copy starts from the last
+   geometry and its orbitals. The item is grey when no orbital file was
+   stored. Gaussian 16 needs **Create Checkpoint File** enabled in the source.
+2. Open the copy in the Calculation Editor. Under **Settings**, **Initial
+   guess: MOs from** names the source. Save to generate the input that reads
+   the guess.
+3. ORCA and Gaussian 16 can project onto another basis; the line says
+   **(projected from** the old basis**)**. NWChem and ECCE-QM need the same
+   basis set. CP2K needs the same basis settings in **Theory Details**,
+   including any per-element overrides, and the same atoms in the same order.
+   MOPAC needs the same atoms in the same order; its Hamiltonian may change.
+   The editor reports incompatible basis or atom settings on the guess line.
+4. **Use Default Guess** drops the attached file and restores the program's
+   default guess.
 
-The orbitals are a binary file of a few megabytes, copied to the machine
-that runs the job.
+The binary guess file is copied to the run machine for local and remote
+jobs. Use it with the same program version and a compatible machine.
+MOPAC reads the staged density with `OLDENS`; CP2K reads the staged
+wavefunction with `SCF_GUESS RESTART`.
 
 ## Integration grid (ORCA)
 

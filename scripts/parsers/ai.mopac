@@ -318,6 +318,8 @@ sub KeywordLine {
   push(@kw, &HamiltonianKeyword);
   push(@kw, "UHF") if (&IsUnrestricted);
   push(@kw, &RunTypeKeywords);
+  push(@kw, "DENOUT");
+  push(@kw, "OLDENS") if ($AbiDict{"ES.Theory.SCF.OrbitalGuessFile"});
   push(@kw, "CHARGE=" . &Charge);
   push(@kw, &SpinKeyword);
   my $solvent = &SolventToken;

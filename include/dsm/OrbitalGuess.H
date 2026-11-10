@@ -10,6 +10,8 @@
 #include <string>
 
 class TaskJob;
+class Fragment;
+class GUIValues;
 
 namespace OrbitalGuess {
 
@@ -39,6 +41,10 @@ bool attachHessianFile(TaskJob *target, const std::string &path,
 /** The stored record, "" when `calc` has no guess attached. */
 std::string sourceName(const TaskJob *calc);
 std::string sourceBasis(const TaskJob *calc);
+
+/** Compatibility note for the editor's current atoms and basis settings. */
+std::string compatibilityWarning(const TaskJob *calc, const Fragment *fragment,
+                                 const GUIValues *settings);
 
 }
 
