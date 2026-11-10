@@ -2302,6 +2302,14 @@ add_test(NAME densityfields_cli
 set_tests_properties(densityfields_cli PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=densityfields;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/densityfields-home")
 
+# tests/tdat/planeintegral_test (#749): lineprofile's plane integral against an
+# analytic oracle read from the molden file of the same wavefunction.
+add_test(NAME planeintegral
+  COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/tdat/planeintegral_test.py
+          $<TARGET_FILE:lineprofile> ${CMAKE_SOURCE_DIR}/tests/tdat/planeintegral-fixtures)
+set_tests_properties(planeintegral PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=planeintegral;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/planeintegral-home")
+
 # tests/tdat/densitydifference_test (#726): complex minus fragments.
 add_executable(densitydifference_test tests/tdat/densitydifference_test.C)
 target_include_directories(densitydifference_test PRIVATE ${XercesC_INCLUDE_DIRS})

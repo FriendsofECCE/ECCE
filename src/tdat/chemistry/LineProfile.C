@@ -9,6 +9,31 @@ using namespace std;
 namespace {
 const double BOHR_ANG = 0.52917721092;
 const double MARK_TOLERANCE = 0.3;     // Angstrom
+
+//  Plane grid: a Becke-mapped radial rule r = rm u/(1-u) and an even
+//  angular rule about each centre.
+const int PLANE_RADIAL = 40, PLANE_ANGULAR = 32;
+const double PLANE_RM = 0.35;          // Angstrom
+const double PLANE_ATOM_REACH = 1.5;   // atoms this close to the plane get a centre
+
+void gaussLegendre(int n, double a, double b, vector<double>& x, vector<double>& w)
+{
+  x.assign(n, 0.0);
+  w.assign(n, 0.0);
+  for (int i = 0; i < n; i++) {
+    double z = cos(M_PI * (i + 0.75) / (n + 0.5)), dp = 1;
+    for (int it = 0; it < 100; it++) {
+      double p0 = 1, p1 = 0;
+      for (int k = 1; k <= n; k++) { const double p2 = p1; p1 = p0; p0 = ((2*k - 1) * z * p1 - (k - 1) * p2) / k; }
+      dp = n * (z * p0 - p1) / (z * z - 1);
+      const double dz = p0 / dp;
+      z -= dz;
+      if (fabs(dz) < 1e-15) break;
+    }
+    x[i] = 0.5 * (a + b) - 0.5 * (b - a) * z;
+    w[i] = (b - a) / ((1 - z * z) * dp * dp);
+  }
+}
 }
 
 namespace LineProfile {
@@ -70,11 +95,90 @@ Line throughAtoms(const DensityPlane::Evaluator& ev, int i, int j, double margin
   return l;
 }
 
+void planeIntegrals(const DensityPlane::Evaluator& ev, RadialDist::PointValues& pv,
+                    const double point[3], const double unit[3], double radius,
+                    const vector<RadialDist::Spec>& specs, vector<double>& out)
+{
+  out.assign(specs.size(), 0.0);
+  //  Two directions in the plane.
+  int e = 0;
+  for (int d = 1; d < 3; d++) if (fabs(unit[d]) < fabs(unit[e])) e = d;
+  double ex[3] = { 0, 0, 0 };
+  ex[e] = 1.0;
+  double e1[3] = { ex[1]*unit[2] - ex[2]*unit[1], ex[2]*unit[0] - ex[0]*unit[2],
+                   ex[0]*unit[1] - ex[1]*unit[0] };
+  const double n1 = sqrt(e1[0]*e1[0] + e1[1]*e1[1] + e1[2]*e1[2]);
+  for (int d = 0; d < 3; d++) e1[d] /= n1;
+  const double e2[3] = { unit[1]*e1[2] - unit[2]*e1[1], unit[2]*e1[0] - unit[0]*e1[2],
+                         unit[0]*e1[1] - unit[1]*e1[0] };
+  //  Centres in plane coordinates: the line, then nearby atoms off it.  A
+  //  cylinder is one finer grid about the line: an atom's grid would be cut
+  //  by the cylinder wall between its points.
+  vector<double> cu(1, 0.0), cv(1, 0.0);
+  for (size_t a = 0; radius <= 0 && a < ev.symbols.size(); a++) {
+    double r[3], h = 0, u = 0, v = 0;
+    for (int d = 0; d < 3; d++) r[d] = ev.coordsAng[3*a + d] - point[d];
+    for (int d = 0; d < 3; d++) { h += r[d]*unit[d]; u += r[d]*e1[d]; v += r[d]*e2[d]; }
+    if (fabs(h) > PLANE_ATOM_REACH) continue;
+    bool near = false;
+    for (size_t c = 0; c < cu.size(); c++)
+      if (hypot(u - cu[c], v - cv[c]) < 0.05) near = true;
+    if (!near) { cu.push_back(u); cv.push_back(v); }
+  }
+  const size_t nc = cu.size();
+  //  Radial rule in u = r/(r + rm); a cylinder ends the line's own grid at
+  //  its radius, so the cut falls between grid points there.
+  vector<double> axX, axW, atX, atW;
+  gaussLegendre(PLANE_RADIAL, 0.0, 1.0, atX, atW);
+  if (radius > 0) gaussLegendre(2 * PLANE_RADIAL, 0.0, radius / (radius + PLANE_RM), axX, axW);
+  else { axX = atX; axW = atW; }
+  const int nphi = radius > 0 ? 2 * PLANE_ANGULAR : PLANE_ANGULAR;
+  const double dphi = 2 * M_PI / nphi;
+  const double toAng3 = pow(BOHR_ANG, -3.0);
+  vector<double> dist(nc);
+  for (size_t c = 0; c < nc; c++) {
+    const vector<double>& X = c == 0 ? axX : atX;
+    const vector<double>& W = c == 0 ? axW : atW;
+    for (size_t k = 0; k < X.size(); k++) {
+      const double u = X[k], r = PLANE_RM * u / (1 - u);
+      const double wr = W[k] * PLANE_RM / ((1 - u) * (1 - u)) * r * dphi;
+      for (int j = 0; j < nphi; j++) {
+        const double phi = (j + 0.5) * dphi;
+        const double pu = cu[c] + r * cos(phi), pvv = cv[c] + r * sin(phi);
+        //  Becke's fuzzy cells, in two dimensions.
+        double w = 1.0;
+        if (nc > 1) {
+          for (size_t i = 0; i < nc; i++) dist[i] = hypot(pu - cu[i], pvv - cv[i]);
+          double sum = 0, mine = 0;
+          for (size_t i = 0; i < nc; i++) {
+            double P = 1.0;
+            for (size_t m = 0; m < nc && P > 0; m++) {
+              if (m == i) continue;
+              double mu = (dist[i] - dist[m]) / hypot(cu[i] - cu[m], cv[i] - cv[m]);
+              for (int it = 0; it < 3; it++) mu = 1.5 * mu - 0.5 * mu * mu * mu;
+              P *= 0.5 * (1 - mu);
+            }
+            sum += P;
+            if (i == c) mine = P;
+          }
+          w = sum > 0 ? mine / sum : 0.0;
+        }
+        if (w < 1e-14) continue;
+        double x[3];
+        for (int d = 0; d < 3; d++) x[d] = point[d] + pu * e1[d] + pvv * e2[d];
+        pv.at(x[0], x[1], x[2]);
+        for (size_t q = 0; q < specs.size(); q++)
+          out[q] += w * wr * pv.value(specs[q]) * toAng3;
+      }
+    }
+  }
+}
+
 bool compute(const DensityPlane::Evaluator& ev, const Line& line, int points,
              bool bohr, Quantity q, const vector<RadialDist::Spec>& specs,
              Result& out, std::function<bool(double)> onStep)
 {
-  points = max(2, points);
+  points = max(2, q == PLANE ? min(points, 241) : points);
   double length = 0;
   for (int d = 0; d < 3; d++) length += (line.end[d] - line.start[d]) * (line.end[d] - line.start[d]);
   length = sqrt(length);
@@ -88,7 +192,10 @@ bool compute(const DensityPlane::Evaluator& ev, const Line& line, int points,
   vector<double> ts;
   for (int n = 0; n < points; n++) ts.push_back(double(n) / (points - 1));
   if (length > 0) {
-    const double run = 0.25, step = 0.004;
+    //  The plane integral is costlier per point, so its runs are coarser, but
+    //  wider: its area is the electron count.
+    const double run = q == PLANE ? 0.15 : 0.25, step = q == PLANE ? 0.005 : 0.004;
+    const double run2 = q == PLANE ? 0.8 : 0.0, step2 = 0.02;
     for (int a = 0; a < (int)ev.symbols.size(); a++) {
       double along = 0, perp2 = 0, r[3];
       for (int d = 0; d < 3; d++) {
@@ -102,6 +209,10 @@ bool compute(const DensityPlane::Evaluator& ev, const Line& line, int points,
       if (sqrt(perp2) > MARK_TOLERANCE) continue;
       const double centre = along - startS;         // from the line's start
       for (double u = -run; u <= run + 1e-9; u += step) {
+        const double t = (centre + u) / length;
+        if (t > 0.0 && t < 1.0) ts.push_back(t);
+      }
+      for (double u = -run2; u <= run2 + 1e-9 && run2 > 0; u += step2) {
         const double t = (centre + u) / length;
         if (t > 0.0 && t < 1.0) ts.push_back(t);
       }
@@ -125,6 +236,13 @@ bool compute(const DensityPlane::Evaluator& ev, const Line& line, int points,
     double x[3];
     for (int d = 0; d < 3; d++) x[d] = line.start[d] + t * (line.end[d] - line.start[d]);
     out.s[n] = (startS + t * length) / unitA;
+    if (q == PLANE) {
+      vector<double> vals;
+      planeIntegrals(ev, pv, x, line.unit, line.radius, specs, vals);
+      for (size_t k = 0; k < specs.size(); k++) out.curves[k].p[n] = vals[k] * unitA;
+      if (onStep && n % 4 == 3 && !onStep(double(n + 1) / points)) return false;
+      continue;
+    }
     pv.at(x[0], x[1], x[2]);
     for (size_t k = 0; k < specs.size(); k++) {
       double v;
@@ -133,6 +251,11 @@ bool compute(const DensityPlane::Evaluator& ev, const Line& line, int points,
       out.curves[k].p[n] = v;
     }
     if (onStep && n % 16 == 15 && !onStep(double(n + 1) / points)) return false;
+  }
+  for (RadialDist::Curve& c : out.curves) {
+    c.integral = 0.0;
+    for (int n = 1; n < points; n++)
+      c.integral += 0.5 * (c.p[n] + c.p[n-1]) * (out.s[n] - out.s[n-1]);
   }
   out.marks.clear();
   const int natoms = (int)ev.symbols.size();

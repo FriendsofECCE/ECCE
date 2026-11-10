@@ -5,8 +5,9 @@
 //
 //   lineprofile CALC --atoms A B [--margin M]     along the line A-B
 //        [--shift D [--in-plane]]    the line moved sideways by D Angstrom
+//        [--radius R]                plane: only within R Angstrom of the line
 //   lineprofile CALC --around ATOM [--rmax R]     spherical average about ATOM
-//        [--quantity density|psi2|psi|radial|avg]
+//        [--quantity density|psi2|psi|plane|radial|avg]
 //        [--show all|totalselected|selected|total]
 //        [--mo 1,2,3|occ|homo] [--combine] [--spin alpha|beta|both]
 //        [--bohr] [--points N] [--csv FILE]
@@ -16,7 +17,9 @@
 // density-like quantities) draws the total and each occupied orbital's
 // occupation-weighted contribution and prints how well they sum to the total;
 // selected draws the --mo orbitals unweighted.  Quantities: along a line
-// density (default), psi2, psi; around an atom radial (default), avg.
+// density (default), psi2, psi, plane (the density integrated over the plane
+// perpendicular to the line, electrons per length; its integral along the
+// line is printed); around an atom radial (default), avg.
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -37,9 +40,9 @@ using namespace std;
 
 static void usage()
 {
-  cerr << "usage: lineprofile CALC --atoms A B [--margin M] [--shift D [--in-plane]]\n"
+  cerr << "usage: lineprofile CALC --atoms A B [--margin M] [--shift D [--in-plane]] [--radius R]\n"
           "       lineprofile CALC --around ATOM [--rmax R]\n"
-          "          [--quantity density|psi2|psi|radial|avg]\n"
+          "          [--quantity density|psi2|psi|plane|radial|avg]\n"
           "          [--show all|totalselected|selected|total]\n"
           "          [--mo 1,2,3|occ|homo] [--combine] [--spin alpha|beta|both]\n"
           "          [--bohr] [--points N] [--csv FILE]\n";
@@ -57,7 +60,7 @@ int main(int argc, char **argv)
 {
   string target, mos, csvFile, quantity, show = "all", spinName = "both";
   int atomA = -1, atomB = -1, around = -1;
-  double margin = 2.0, rmax = 0.0, shift = 0.0;
+  double margin = 2.0, rmax = 0.0, shift = 0.0, radius = 0.0;
   bool inPlane = false;
   int points = 0;
   bool bohr = false, combine = false;
@@ -69,6 +72,7 @@ int main(int argc, char **argv)
     else if (a == "--margin" && i+1 < argc) margin = atof(argv[++i]);
     else if (a == "--shift" && i+1 < argc) shift = atof(argv[++i]);
     else if (a == "--in-plane") inPlane = true;
+    else if (a == "--radius" && i+1 < argc) radius = atof(argv[++i]);
     else if (a == "--rmax" && i+1 < argc) rmax = atof(argv[++i]);
     else if (a == "--points" && i+1 < argc) points = atoi(argv[++i]);
     else if (a == "--quantity" && i+1 < argc) quantity = argv[++i];
@@ -99,9 +103,11 @@ int main(int argc, char **argv)
   }
 
   if (quantity.empty()) quantity = radialMode ? "radial" : "density";
-  const bool densityLike = quantity == "density" || quantity == "radial" || quantity == "avg";
+  const bool densityLike = quantity == "density" || quantity == "plane" ||
+                           quantity == "radial" || quantity == "avg";
   if (radialMode ? !(quantity == "radial" || quantity == "avg")
-                 : !(quantity == "density" || quantity == "psi2" || quantity == "psi")) {
+                 : !(quantity == "density" || quantity == "psi2" || quantity == "psi" ||
+                    quantity == "plane")) {
     cerr << "lineprofile: quantity " << quantity << " does not apply to this mode\n";
     return 2;
   }
@@ -159,17 +165,21 @@ int main(int argc, char **argv)
       fclose(f);
     }
   } else {
-    const LineProfile::Line line = LineProfile::throughAtoms(ev, atomA, atomB, margin, shift, !inPlane);
+    LineProfile::Line line = LineProfile::throughAtoms(ev, atomA, atomB, margin, shift, !inPlane);
+    line.radius = radius;
     LineProfile::Result r;
     const LineProfile::Quantity q = quantity == "psi" ? LineProfile::PSI
-        : quantity == "psi2" ? LineProfile::PSI2 : LineProfile::DENSITY;
+        : quantity == "psi2" ? LineProfile::PSI2
+        : quantity == "plane" ? LineProfile::PLANE : LineProfile::DENSITY;
     LineProfile::compute(ev, line, points > 0 ? points : 801, bohr, q, specs, r);
     curves = r.curves;
     for (const LineProfile::Mark& m : r.marks) printf("atom %s at s = %.4f\n", m.label.c_str(), m.s);
     for (const RadialDist::Curve& k : curves) {
       double top = 0, at = 0;
       for (size_t i = 0; i < k.p.size(); i++) if (fabs(k.p[i]) > fabs(top)) { top = k.p[i]; at = r.s[i]; }
-      printf("%s: extreme %.6g at s = %.4f\n", k.spec.label.c_str(), top, at);
+      printf("%s: extreme %.6g at s = %.4f", k.spec.label.c_str(), top, at);
+      if (q == LineProfile::PLANE) printf("  integral %.6f", k.integral);
+      printf("\n");
     }
     if (csvFile.size()) {
       FILE *f = fopen(csvFile.c_str(), "w");

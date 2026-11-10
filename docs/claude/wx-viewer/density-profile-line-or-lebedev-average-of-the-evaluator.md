@@ -3,8 +3,8 @@ type: map
 title: "The Density Profile panel plots DensityPlane::Evaluator along a line through two atoms (LineProfile) or as a Lebedev spherical average about an atom (RadialDist); the evaluator works in bohr, atom shell labels are inferred, aug- sets are refused by ECCE-QM"
 area: wx-viewer
 section: "wxWidgets 3.2/GTK3, the 3D viewer, and C++ pitfalls"
-paths: ["include/tdat/RadialDist.H", "include/tdat/LineProfile.H", "src/tdat/chemistry/RadialDist.C", "src/tdat/chemistry/LineProfile.C", "src/apps/lineprofile/lineprofile.C", "src/apps/builder/DensityProfilePanel.C", "src/apps/builder/XYPlotCanvas.H", "src/apps/builder/BuilderPlotShot.C", "tests/tdat/radialdist_test.C", "tests/apps/densityprofile_panel_test.py", "tests/apps/densityprofile_pick_test.py", "tests/builder/make_radialdist_fixtures.py", "help/src/density-profile.md"]
-issues: []
+paths: ["include/tdat/RadialDist.H", "include/tdat/LineProfile.H", "src/tdat/chemistry/RadialDist.C", "src/tdat/chemistry/LineProfile.C", "src/apps/lineprofile/lineprofile.C", "src/apps/builder/DensityProfilePanel.C", "src/apps/builder/XYPlotCanvas.H", "src/apps/builder/BuilderPlotShot.C", "tests/tdat/radialdist_test.C", "tests/tdat/planeintegral_test.py", "tests/tdat/make_planeintegral_fixtures.py", "tests/apps/densityprofile_panel_test.py", "tests/apps/densityprofile_pick_test.py", "tests/builder/make_radialdist_fixtures.py", "help/src/density-profile.md"]
+issues: [749]
 ---
 - **Core.** `RadialDist::compute` averages a `Spec` (the total density, or a
   weighted sum of |psi|^2 over members) over a Lebedev grid about a centre and
@@ -31,7 +31,18 @@ issues: []
 - **Plot.** `XYPlotCanvas::addVLine` draws a dashed line with its label in its
   own row under the tick labels (a label that would touch the previous one is
   dropped); `setZeroLine` marks psi = 0. The key sits above the plot.
-- **Hooks** `dpopen dpmode dppick dpselect dpatoms dpmargin dpcentre dpquantity dpshow dpmo dpspin
+- **Plane integral (#749).** `LineProfile::PLANE` (panel quantity 3, CLI
+  `--quantity plane [--radius R]`, hook `dpquantity plane`, `dpcylinder R`)
+  integrates over the plane perpendicular to the line: polar grids about the
+  line and about each atom within 1.5 A of the plane, joined by a 2-D Becke
+  partition (one axis grid alone misses off-axis cores). A cylinder
+  (`Line::radius`) uses one finer axis grid ending at R instead: atom grids
+  cut by the cylinder wall were 0.3% off. Values are e per length; each
+  curve's `integral` is its trapezoid area along the line, and needs the
+  wider 0.02 A run through each atom (without it HF gave 10.013 e). Oracle:
+  `planeintegral_test.py`, analytic plane integrals of Cartesian Gaussians
+  from the molden file of the same ECCE-QM run (line along x).
+- **Hooks** `dpopen dpmode dppick dpselect dpatoms dpmargin dpcentre dpquantity dpcylinder dpshow dpmo dpspin
   dpunit dpcombine dpcsv dppng dpstate dpclose` (`Builder::densityProfileCommand`),
   pictures with `plotshot <name> 0 0 Density Profile:docked`;
   `densityprofile_panel_test.py` runs Ne, Ar, H2 and N2 at 1366x768 and 1700x1000.

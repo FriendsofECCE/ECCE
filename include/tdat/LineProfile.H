@@ -21,13 +21,17 @@ namespace LineProfile
   using std::string;
   using std::vector;
 
-  enum Quantity { PSI, PSI2, DENSITY };
+  /** PLANE: psi^2 or the density integrated over the plane perpendicular
+   *  to the line at s, in electrons per length; its integral along a long
+   *  enough line is the number of electrons (1 for one |psi|^2). */
+  enum Quantity { PSI, PSI2, DENSITY, PLANE };
 
   struct Line
   {
     double start[3], end[3];     // Angstrom
     double origin[3];            // the point s = 0 (the first atom)
     double unit[3];              // from the first atom towards the second
+    double radius = 0.0;         // PLANE: only within this distance (A); 0 = whole plane
   };
 
   /**
@@ -54,12 +58,24 @@ namespace LineProfile
    * Sample `specs` at `points` positions, plus a fine run (0.004 Angstrom)
    * through each atom the line passes, where the density is sharpest.  PSI uses each spec's first
    * member, signed; PSI2 and DENSITY the weighted sum of |psi|^2 (the
-   * total density for a total spec).  onStep gets the fraction done and
+   * total density for a total spec).  PLANE samples fewer points (<= 241
+   * plus a coarser run through each atom) and sets each curve's integral
+   * along the line.  onStep gets the fraction done and
    * stops the run (false returned) when it returns false.
    */
   bool compute(const DensityPlane::Evaluator& ev, const Line& line, int points,
                bool bohr, Quantity q, const vector<RadialDist::Spec>& specs,
                Result& out, std::function<bool(double)> onStep = nullptr);
+
+  /**
+   * The integral of `spec` over the plane through `point` perpendicular to
+   * `unit` (or within `radius` A of the line), in electrons per Angstrom.
+   * Polar grids about the line and about each nearby atom's projection,
+   * joined by a Becke partition, so off-axis cores are resolved too.
+   */
+  void planeIntegrals(const DensityPlane::Evaluator& ev, RadialDist::PointValues& pv,
+                      const double point[3], const double unit[3], double radius,
+                      const vector<RadialDist::Spec>& specs, vector<double>& out);
 
   /** "s,label,..." rows. */
   string csv(const Result& r, bool bohr);
