@@ -213,7 +213,8 @@ namespace WorkflowSteps {
   /// Complete, whose source results have been taken and which has a
   /// structure gets its input written (DeckWriter, as the editor's Save) and
   /// becomes Ready (hand-made: only the xTB step New step inserts before CREST,
-  ecce:workflow.auto); a Ready one still waiting goes back to Created; with no launch settings it takes a source's, else those
+  /// ecce:workflow.auto); a Ready one still waiting goes back to Created;
+  /// with no launch settings it takes a source's, else those
   /// of another step of the workflow.  Empty, or why it is not launchable,
   /// which is also stored on the step for its box (kNotReadyProp).
   std::string prepareStep(Session *wf, Resource *step);
