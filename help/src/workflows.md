@@ -119,6 +119,10 @@ tree. The right-click menu of a box is that of the calculation.
 The code buttons are at the right of the view. The text under the drawing
 says what to do next.
 
+**Back to Table** closes the workflow view and shows the calculation table of
+the folder the workflow is in. Selecting the workflow in the tree opens the
+view again.
+
 ## Canvas height and orientation
 
 Drag the divider between the workflow view and the calculation table to change

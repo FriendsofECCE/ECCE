@@ -81,6 +81,8 @@ public:
   std::string playReport();
   /// The auto-run box ticked or cleared as a click does (test hook).
   void clickAutoRun(bool on);
+  /// The Back to Table button pressed as a click does (test hook).
+  void clickClose();
   /// Save Workflow as Recipe: "ok <file>" or "error: ...".
   std::string saveAsRecipe(const std::string& id, const std::string& title);
   /// A step's progress or state changed: redraw its result line (#810).
@@ -119,6 +121,7 @@ private:
   wxString p_helpRaw;
   wxStaticText *p_status;
   wxButton *p_launch;
+  wxButton *p_close;
   wxCheckBox *p_autorun;
   wxButton *p_apply;
   wxPanel *p_empty;

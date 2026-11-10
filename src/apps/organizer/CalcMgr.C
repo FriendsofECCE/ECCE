@@ -1296,6 +1296,9 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflowplay WF       play button of each box: "name:1|0:reason|.."
       //   workflowautorunclick WF on|off   tick the view's auto-run box as a
       //     click does: "ok shown=1|0 autorun=on|off" (#902)
+      //   workflowclose WF press|folder   WF shown, then its Back to Table
+      //     button pressed, or its folder selected in the tree: "ok
+      //     view=table|workflow selected=<url>" (#931)
       //   workflowstate WF STEP   the step's state and why it is not ready (#901)
       //   workflowshot PNG WF   the Organizer showing WF; the drawing's checks
       //   workflowdialogshot PNG WF TYPE SOURCE   the New-step dialog
@@ -1333,6 +1336,7 @@ void CalcMgr::runTestCommand(const string& line)
                  command == "workflowautorun" || command == "workflowlaunchstep" ||
                  command == "workflowsetlaunch" ||
                  command == "workflowautorunclick" || command == "workflowstate" ||
+                 command == "workflowclose" ||
                  command == "workflowmove") {
         args >> a >> b >> c >> d;
       } else if (command == "workflowjoin") {
@@ -1521,6 +1525,24 @@ void CalcMgr::runTestCommand(const string& line)
         else outcome = "ok state=" + ResourceUtils::stateToString(t->getState()) +
                        " notready=" + t->getProp(VDoc::getEcceNamespace() +
                                                  WorkflowSteps::kNotReadyProp);
+      } else if (command == "workflowclose") {
+        p_treeCtrl->SelectItem(wfNode->GetId());
+        for (int i = 0; i < 5; i++) wxYield();
+        SessionProjectContextPanel *spc =
+            dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+        WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+        if (!wp) {
+          outcome = "no workflow panel";
+        } else {
+          if (b == "folder") closeWorkflowView(wf->getURL().toString());
+          else wp->clickClose();
+          for (int i = 0; i < 20; i++) { wxYield(); wxMilliSleep(50); }
+          spc = dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+          WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
+          outcome = string("ok view=") +
+                    (spc && spc->getWorkflowPanel() ? "workflow" : "table") +
+                    " selected=" + (sel ? sel->getUrl().toString() : "-");
+        }
       } else if (command == "workflowautorunclick") {
         p_treeCtrl->SelectItem(wfNode->GetId());
         for (int i = 0; i < 5; i++) wxYield();
@@ -12141,6 +12163,14 @@ void CalcMgr::launchStep(Session *wf, Resource *step, bool interactive,
   WorkflowSteps::refreshFromSources(wf, step);
   vector<EcceURL> urls(1, step->getURL());
   launchSelected(urls, interactive, outcome, "");
+}
+
+
+void CalcMgr::closeWorkflowView(const string& workflowUrl)
+{
+  WxResourceTreeItemData *up =
+      findNode(EcceURL(workflowUrl).getParent(), true, true);
+  if (up) p_treeCtrl->SelectItem(up->GetId());
 }
 
 

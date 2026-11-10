@@ -391,6 +391,9 @@ public:
                   string *outcome);
   /// Auto-run (#736): launch what is ready in a workflow that has it on.
   void autoRunWorkflow(Session *workflow);
+  /// Close a workflow's view: select the folder it is in, which shows that
+  /// folder's calculation table.
+  void closeWorkflowView(const string& workflowUrl);
   void createResource(ResourceType * resource,
                       WxResourceTreeItemData * parent = NULL,
                       const bool& bypassNamePrompt = false);
