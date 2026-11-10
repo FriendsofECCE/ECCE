@@ -71,6 +71,7 @@ WxGridView::WxGridView(wxWindow* parent,
     // Single selection or multiple selection mode
     p_multiSelect = true;
     p_cmdClick = false;
+    p_keepSelection = false;
 
     // Initialize grid properties
     setSelectionColor(ewxStyledWindow::getFocusedSelectionColor());
@@ -396,6 +397,14 @@ void WxGridView::setCursor(int row, int col)
 }
 
 
+void WxGridView::moveCursor(int row, int col)
+{
+  p_keepSelection = true;
+  p_grid->SetGridCursor(row, col);
+  p_keepSelection = false;
+}
+
+
 void WxGridView::setColLabel(int col, const wxString& label)
 {
   int numCols = getColCount();
@@ -622,7 +631,7 @@ void WxGridView::gridSelectCell(wxGridEvent& event)
   // A Ctrl/Cmd+click must keep the rest of the selection: wxGrid toggles
   // the row itself, and selecting it alone here would drop the others.
   // The cell event carries no modifiers, so the click's are remembered.
-  if (!p_cmdClick)
+  if (!p_cmdClick && !p_keepSelection)
     selectRow(event.GetRow());
 
   /*
