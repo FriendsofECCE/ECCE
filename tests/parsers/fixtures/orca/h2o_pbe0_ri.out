@@ -1,0 +1,37 @@
+                                 * O   R   C   A *
+                         Program Version 6.1.1  -  RELEASE   -
+Your calculation utilizes the basis: def2-SVP
+Your calculation utilizes the auxiliary basis: def2/J
+================================================================================
+                                       INPUT FILE
+================================================================================
+NAME = water.inp
+|  1> ! PBE0 D3BJ RIJCOSX def2-SVP def2/J
+|  2> %pal nprocs 2 end
+|  3> %maxcore 256
+|  4> * xyz 0 1
+|  5> O 0 0 0
+|  6> H 0.757 0 0.587
+|  7> H -0.757 0 0.587
+|  8> *
+|  9> 
+| 10>                          ****END OF INPUT****
+================================================================================
+
+                       ****************************
+                       * Single Point Calculation *
+                       ****************************
+
+---------------------------------
+CARTESIAN COORDINATES (ANGSTROEM)
+---------------------------------
+  O      0.000000    0.000000    0.000000
+  H      0.757000    0.000000    0.587000
+  H     -0.757000    0.000000    0.587000
+
+
+ RI-approximation to the Coulomb term is turned on
+   RIJ-COSX (HFX calculated with COS-X)).... on
+FINAL SINGLE POINT ENERGY       -76.276675473907
+                             ****ORCA TERMINATED NORMALLY****
+TOTAL RUN TIME: 0 days 0 hours 0 minutes 2 seconds 601 msec

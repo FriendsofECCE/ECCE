@@ -322,13 +322,21 @@ sub SymmetryToken {
 # RI-J with either COSX or exact exchange; an explicit mode overrides
 # the old checkbox so choosing None also disables RI in older calculations.
 sub RIToken {
+  my %defaults;
+  open(my $settings, "<", "$ENV{ECCE_HOME}/scripts/parsers/orca-ri.defaults")
+    or die "Cannot read ORCA RI defaults: $!\n";
+  while (my $line = <$settings>) {
+    my ($key, $value) = split(/\s+/, $line);
+    $defaults{$key} = $value if (defined($key) && $key !~ /^#/);
+  }
+  close($settings);
   my $mode = $AbiDict{"ES.Theory.SCF.RIMode"};
   if (!defined($mode)) {
-    $mode = $AbiDict{"ES.Theory.SCF.UseRIJCOSX"} eq "1" ? "RIJCOSX" : "None";
+    $mode = $AbiDict{"ES.Theory.SCF.UseRIJCOSX"} eq "1" ? "RIJCOSX" : $defaults{"Mode"};
   }
   if ($mode eq "RIJCOSX" || $mode eq "RIJONX") {
     my $auxBasis = $AbiDict{"ES.Theory.SCF.RIJCOSXAuxBasis"};
-    $auxBasis = "def2/J" if ($auxBasis eq "");
+    $auxBasis = $defaults{"Auxiliary"} if ($auxBasis eq "");
     return "$mode $auxBasis";
   }
   return "";

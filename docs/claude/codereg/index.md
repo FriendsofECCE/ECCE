@@ -217,3 +217,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Gaussian re-contracts general contractions that share primitives: fort.7 is in its basis, not the one ECCE wrote (#863)](gaussian-recontracts-shared-primitive-contractions-863.md)
 - [Starting structure = GEOMTRACE step 0, not chemsys.mvm; structures compared by distances (#874)](stored-structure-of-a-run-calc-can-be-its-final-874.md) — link proposals when several calculations become a workflow
 - [H2 curves (#858): ORCA has no rigid scan, GuessMix per point, closed-shell CCSD gradients; Fit Morse = ecce-morse --json](h2-curves-morse-fit-and-orca-scan-facts-858.md)
+- [ORCA RI summaries need legacy keys and effective output settings (#894)](orca-ri-summary-follows-input-and-output.md)

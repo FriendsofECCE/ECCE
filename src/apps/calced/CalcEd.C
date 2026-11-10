@@ -48,6 +48,7 @@
 #include "dsm/ICalcUtils.H"
 #include "dsm/JCode.H"
 #include "dsm/OrbitalGuess.H"
+#include "dsm/OrcaRIFitting.H"
 #include "dsm/ResourceTool.H"
 #include "dsm/ResourceType.H"
 #include "dsm/SummaryIterator.H"
@@ -3565,13 +3566,8 @@ void CalcEd::refreshBasisSetFields()
     // ORCA RI-J fits the Coulomb term with an auxiliary basis kept in the
     // theory details, not in the basis set (#894).
     string cdName = p_basis->dftChargeFittingName();
-    GUIValue *riMode = p_GUIValues ? p_GUIValues->get("ES.Theory.SCF.RIMode") : 0;
-    GUIValue *riAux = p_GUIValues ?
-        p_GUIValues->get("ES.Theory.SCF.RIJCOSXAuxBasis") : 0;
-    if (cdName.empty() && riMode && riAux &&
-        (riMode->getValueAsString() == "RIJCOSX" ||
-         riMode->getValueAsString() == "RIJONX"))
-      cdName = riAux->getValueAsString();
+    if (cdName.empty())
+      cdName = OrcaRIFitting::resolve(p_iCalc, p_GUIValues).auxiliary;
     ((ewxStaticText*)FindWindow(ID_STATICTEXT_CALCED_CD))
             ->SetLabel(cdName.empty() ? "None" : cdName);
   } else {
@@ -4936,6 +4932,9 @@ void CalcEd::processTheoryInput(const char* databuf)
   if (p_GUIValues->append(databuf)) {
     p_theoryInFlag = true;
     if (!p_theoryHoldFlag) {
+      // RI auxiliary fitting lives in theory details but is displayed in
+      // the Basis Set box, so a live change must refresh both summaries.
+      if (p_codeName == "ORCA") refreshBasisSetFields();
       populateSummaryField("TheorySummary");
       updateNotes();
       if (p_theoryInitFlag && p_feedback->getEditStatus() !=
@@ -4969,6 +4968,7 @@ void CalcEd::processTheoryInput(const char* databuf)
     delete p_theoryOutFile;
 
     p_theoryInitFlag = true;
+    if (p_codeName == "ORCA") refreshBasisSetFields();
 
     FindWindow(ID_BUTTON_CALCED_THEORY)->Enable(isDetailsReady() &&
                 (p_theoryInFlag || hasDetailsValues("ES.Theory")));
