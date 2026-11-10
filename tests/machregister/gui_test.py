@@ -1322,6 +1322,15 @@ expect contains blk:ccmd:hint 'Empty: ECCE runs $orca $inFile > $outFile 2>&1'
 expect label blk:cenv:hint 'e.g. OMP_NUM_THREADS 1'
 expect label blk:csetup:hint 'e.g. module load orca'
 expect field code:orca ''
+set code:crest /opt/crest/crest
+code CREST
+expect label code:check 'CREST needs the xTB program: register xTB on this machine too'
+set code:xtb /opt/xtb/xtb
+expect label code:check ''
+set code:xtb ''
+expect label code:check 'CREST needs the xTB program: register xTB on this machine too'
+set code:crest ''
+expect label code:check ''
 code Gaussian-16
 set blk:cenv %(env)s
 set blk:ccmd %(cmd)s

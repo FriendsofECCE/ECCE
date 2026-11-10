@@ -1,0 +1,19 @@
+ Command line input:
+ > crest crest.xyz --gfn2 --chrg 0 --uhf 0 --ewin 6
+
+ Initial geometry optimization ...
+ *WARNING* Change in topology detected!
+ Topology change compared to the input affects atoms:
+   3   5   6
+
+ * READ THE FOLLOWING CAREFULLY *
+ A topology change was seen in the initial geometry optimization.
+ This could be an artifact of the chosen theory level (e.g. xTB).
+ You can check the optimization trajectory in the "crestopt.log" file.
+ A) Pre-optimize your input seperately and use the optimized
+    structure as input for CREST. (Only recommended if structure is intact)
+ B) Restart the same CREST call as before, but ignore the topology change
+    by using the "--noreftopo" keyword. (May produce artifacts)
+ C) Fix the initial input geometry by introducing bond length constraints
+    or by using a method with fixed topology (e.g. GFN-FF).
+> Setting up backup calculator ...ERROR STOP safety termination of CREST

@@ -1844,7 +1844,29 @@ void WxMachineRegister::showProgramHelp()
         t += ".  " + h.note;
     p_codeExample->SetLabel(wxString::FromUTF8(t.c_str()));
     p_codeExample->Wrap(380);
-    showProgramCheck("");
+    showProgramCheck(crestNeedsXtb());
+}
+
+
+static const char *const kCrestNeedsXtb =
+    "CREST needs the xTB program: register xTB on this machine too";
+
+
+//  CREST runs xTB (gensub refuses to write the script without it), so say it
+//  here, in the message line under the Program box, rather than at launch.
+string WxMachineRegister::crestNeedsXtb() const
+{
+    size_t crest = p_codeNames.size(), xtb = p_codeNames.size();
+    for (size_t i = 0; i < p_codeNames.size(); i++) {
+        if (p_codeNames[i] == "CREST") crest = i;
+        if (p_codeNames[i] == "xTB") xtb = i;
+    }
+    if (crest == p_codeNames.size() || xtb == p_codeNames.size() ||
+        crest >= p_codePaths.size() || xtb >= p_codePaths.size() ||
+        strip((string)p_codePaths[crest]->GetValue()).empty() ||
+        !strip((string)p_codePaths[xtb]->GetValue()).empty())
+        return "";
+    return kCrestNeedsXtb;
 }
 
 
@@ -3546,6 +3568,16 @@ void WxMachineRegister::onFieldChanged(wxCommandEvent& event)
     if (event.GetEventObject() == p_defAccount && !p_inCtrlUpdate &&
         !defaultAccount().empty() && !p_allocAccts->IsChecked())
         p_allocAccts->SetValue(true);
+    //  A path edited for CREST or xTB changes whether CREST has its xTB; only
+    //  the line's own text is replaced, never a Check or Find result.
+    if (!p_inCtrlUpdate && p_codeCheck != NULL &&
+        (p_codeCheckText.empty() ||
+         p_codeCheckText == kCrestNeedsXtb))
+        for (size_t i = 0; i < p_codePaths.size(); i++)
+            if (event.GetEventObject() == p_codePaths[i]) {
+                showProgramCheck(crestNeedsXtb());
+                break;
+            }
     if (p_cshTimer != NULL && !p_inCtrlUpdate)
         p_cshTimer->StartOnce(600);
     this->updateDirty();
