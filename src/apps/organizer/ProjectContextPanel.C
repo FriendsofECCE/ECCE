@@ -116,6 +116,16 @@ void ProjectContextPanel::refresh()
     selUrls.insert(selRows[i].toString());
   }
   
+  // The Shift+click anchor is the grid cursor; keep it as a URL, since a
+  // refill resets the cursor and the rows may move.
+  string anchorUrl;
+  int anchorRow = p_projectView->getCursorRow();
+  if (anchorRow >= 0 && anchorRow < p_projectView->getRowCount()) {
+    GridPropElement *ae =
+      dynamic_cast<GridPropElement*>(p_projectView->getElement(anchorRow, 0));
+    if (ae && ae->getResource()) anchorUrl = ae->getResource()->getURL().toString();
+  }
+
   // Save sort information
   string sortProp = "";
   GridProperty::PropertyType sortPropType = GridProperty::PT_UNDEFINED;
@@ -177,6 +187,20 @@ void ProjectContextPanel::refresh()
   }
   else {
     p_projectView->defaultSort();
+  }
+
+  // After the sort, which moves rows: the anchor back on its calculation.
+  if (!anchorUrl.empty()) {
+    int n = p_projectView->getRowCount();
+    for (int i = 0; i < n; i++) {
+      GridPropElement *ae =
+        dynamic_cast<GridPropElement*>(p_projectView->getElement(i, 0));
+      if (ae && ae->getResource() &&
+          ae->getResource()->getURL().toString() == anchorUrl) {
+        p_projectView->setCursor(i, 0);
+        break;
+      }
+    }
   }
 
   p_initialized = true;
