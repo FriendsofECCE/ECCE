@@ -906,6 +906,16 @@ class Live(object):
                     "" if got == want else ": got %r want %r" % (got, want)))
                 for prob in wellFormed(script, mgr):
                     rep.check(False, prob)
+            if prefix:
+                #  #871: launch_account is what the script's directive names.
+                m = re.search(r"^account=(.*)$", s.driver("launchdata", url)[1], re.M)
+                charged = {"slurm": r"--account=(\S+)", "pbs": r"#PBS -A (\S+)",
+                           "lsf": r"#BSUB -P (\S+)", "moab": r"#MSUB -A (\S+)"}.get(mgr)
+                d = re.search(charged, script) if charged else None
+                if d:
+                    rep.check(m is not None and m.group(1) == d.group(1),
+                              "launch_account %r is the account in the script (%s)"
+                              % (m.group(1) if m else None, d.group(1)))
             if mgr == "htcondor" and jobdir:
                 sub = os.path.join(jobdir, "submit__%s.sub" % name)
                 rep.check(os.path.exists(sub), "the submit command wrote %s" % os.path.basename(sub))

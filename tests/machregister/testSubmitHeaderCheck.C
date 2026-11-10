@@ -52,6 +52,25 @@ int main()
     w = SubmitHeaderCheck::warning(cfg, "Shell", true);
     check(w.empty(), "no queue manager, no warning", w);
 
+    //  #871: the account a generated script charges, from its directives.
+    using SubmitHeaderCheck::submitAccount;
+    w = submitAccount("#!/bin/sh\n#SBATCH --partition=normal\n#SBATCH --account=proj7\n");
+    check(w == "proj7", "Slurm --account=", w);
+    w = submitAccount("#SBATCH -J x --account proj8 -t 1:00\n");
+    check(w == "proj8", "Slurm --account VALUE among other options", w);
+    w = submitAccount("#SBATCH -A naiss2026-1\n");
+    check(w == "naiss2026-1", "Slurm -A", w);
+    w = submitAccount("#PBS -A pbsproj\n");
+    check(w == "pbsproj", "PBS -A", w);
+    w = submitAccount("#BSUB -P lsfproj\n");
+    check(w == "lsfproj", "LSF -P", w);
+    w = submitAccount("#SBATCH --partition=normal\n#SBATCH --time=1:00:00\n");
+    check(w.empty(), "no account directive gives none", w);
+    w = submitAccount("#SBATCH --account=##account_no##\n");
+    check(w.empty(), "an unsubstituted token is not an account", w);
+    w = submitAccount("echo --account=notadirective\n");
+    check(w.empty(), "only directive lines count", w);
+
     printf(failures ? "FAIL\n" : "PASS\n");
     return failures ? 1 : 0;
 }

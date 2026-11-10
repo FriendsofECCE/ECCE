@@ -164,6 +164,7 @@ private:
         bool validateCalculation(void);
         bool validateRemotePerl(void);
         bool generateJobSubmissionFile(void);
+        void recordSubmitAccount(void);
         bool validateRemoteDir(void);
         bool validateScratchDir(void);
         bool moveFiles(void);

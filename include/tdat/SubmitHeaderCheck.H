@@ -55,6 +55,67 @@ namespace SubmitHeaderCheck
         return false;
     }
 
+    // The account a generated submit script charges the job to, "" when its
+    // directives name none: #SBATCH --account/-A, #PBS -A, #BSUB -P.  Read
+    // from the script after gensub has substituted, so it is the account the
+    // scheduler sees whether it came from the launcher, the machine's CONFIG
+    // block or a queue default.  An unsubstituted ##token## or $variable is
+    // not an account.
+    inline std::string submitAccount(const std::string& script)
+    {
+        static const struct { const char* tag; const char* a; const char* b; } kinds[] = {
+            { "#SBATCH", "--account", "-A" },
+            { "#PBS",    "-A",        "-A" },
+            { "#BSUB",   "-P",        "-P" } };
+        size_t pos = 0;
+        while (pos <= script.size())
+        {
+            size_t eol = script.find('\n', pos);
+            if (eol == std::string::npos)
+                eol = script.size();
+            std::string line = script.substr(pos, eol - pos);
+            pos = eol + 1;
+            size_t b = line.find_first_not_of(" \t\r");
+            if (b == std::string::npos)
+                continue;
+            for (size_t k = 0; k < 3; k++)
+            {
+                size_t n = std::string(kinds[k].tag).size();
+                if (line.compare(b, n, kinds[k].tag) != 0)
+                    continue;
+                line.erase(0, b + n);
+                for (size_t i = 0; i < line.size(); i++)
+                    if (line[i] == '=') line[i] = ' ';
+                size_t at = 0;
+                while ((at = line.find_first_not_of(" \t\r", at)) != std::string::npos)
+                {
+                    size_t end = line.find_first_of(" \t\r", at);
+                    std::string tok = line.substr(at, end == std::string::npos
+                                                          ? end : end - at);
+                    if ((tok == kinds[k].a || tok == kinds[k].b) &&
+                        end != std::string::npos)
+                    {
+                        size_t v = line.find_first_not_of(" \t\r", end);
+                        if (v != std::string::npos)
+                        {
+                            size_t ve = line.find_first_of(" \t\r", v);
+                            std::string val = line.substr(v, ve == std::string::npos
+                                                                ? ve : ve - v);
+                            if (!val.empty() && val[0] != '#' && val[0] != '$' &&
+                                val[0] != '-')
+                                return val;
+                        }
+                    }
+                    if (end == std::string::npos)
+                        break;
+                    at = end;
+                }
+                break;
+            }
+        }
+        return "";
+    }
+
     // cfg: the machine's effective CONFIG (RefMachine::config, lower-case
     // keys).  qmgr: the machine's queue manager.  needAccount: the machine
     // uses allocation accounts.  Returns "" when there is nothing to warn
