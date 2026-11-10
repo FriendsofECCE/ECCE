@@ -253,6 +253,8 @@ AddType  chemical/x-ecceqm-output .qmout
 # rather than leaving the output to fall through to text/plain.
 AddType  chemical/x-mopac-input  .mop
 AddType  chemical/x-mopac-output .mopout
+AddType  chemical/x-mopac-guess  .denin
+AddType  chemical/x-mopac-density  .den
 
 # Quantum ESPRESSO (pw.x). Unlike MOPAC, pw.x names NEITHER file itself
 # -- the deck is passed with "-in <file>" and the report goes to stdout
@@ -274,6 +276,8 @@ AddType  chemical/x-qe-output .pwout
 # text/plain and the primary-input lookup would not find the deck.
 AddType  chemical/x-cp2k-input  .cp2kin
 AddType  chemical/x-cp2k-output .cp2kout
+AddType  chemical/x-cp2k-guess  .wfnin
+AddType  chemical/x-cp2k-wfn  .wfn
 
 # xtb. The deck is split by gensub and the report goes to stdout, so the
 # extensions are free; generic names would be typed text/plain.

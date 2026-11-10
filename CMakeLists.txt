@@ -4508,6 +4508,24 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_ecceqm_guess_central PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
+  foreach(_code mopac cp2k)
+    foreach(_mode local central)
+      set(_suffix "")
+      set(_args "")
+      if(_mode STREQUAL "central")
+        set(_suffix "_central")
+        set(_args --central)
+      endif()
+      add_test(NAME launch_${_code}_guess${_suffix}
+               COMMAND ${PYTHON3_EXECUTABLE}
+                       ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/${_code}_guess_test.py
+                       --build ${CMAKE_BINARY_DIR} ${_args}
+               WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+      set_tests_properties(launch_${_code}_guess${_suffix} PROPERTIES
+                           TIMEOUT 900 SKIP_RETURN_CODE 77)
+    endforeach()
+  endforeach()
+
   # A GROMACS MD study through the real editors (private Xvfb), launches and
   # results; skipped (77) without gmx or Xvfb.  Needs the GUI apps built.
   add_test(NAME launch_gromacs

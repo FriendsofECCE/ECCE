@@ -1,5 +1,9 @@
 #include <fstream>
 #include <string>
+#include <sstream>
+#include "tdat/Fragment.H"
+#include "tdat/TAtm.H"
+#include "tdat/GUIValues.H"
 #include <vector>
 
 #include "util/SFile.H"
@@ -43,6 +47,36 @@ EcceURL keptOrbitals(const TaskJob *calc)
   return none;
 }
 
+string atomSequence(const Fragment *fragment)
+{
+  std::ostringstream out;
+  if (fragment != 0)
+    for (int i = 0; i < fragment->numAtoms(); ++i)
+      out << fragment->atomRef(i)->atomicNumber() << " ";
+  return out.str();
+}
+
+string cp2kBasis(const GUIValues *settings)
+{
+  // CP2K chooses its basis in Theory Details, outside the Gaussian basis
+  // model. Include per-element overrides and library files as well.
+  std::ostringstream out;
+  auto value = [&](const string& key, const string& fallback) {
+    GUIValue *v = settings == 0 ? 0 : settings->get("ES.Theory.GPW." + key);
+    string text = v == 0 ? string() : v->getValueAsString();
+    return text.empty() ? fallback : text;
+  };
+  out << value("BasisLevel", "DZVP-MOLOPT-SR-GTH") << "|"
+      << value("BasisFile", "BASIS_MOLOPT") << "|"
+      << value("LibraryDir", "/usr/share/cp2k");
+  for (int i = 1; i <= 6; ++i) {
+    const string row = std::to_string(i);
+    for (const char *key : {"KindElement", "KindBasis", "KindBasisFile"})
+      out << "|" << value(string(key) + row, "");
+  }
+  return out.str();
+}
+
 bool readsGuess(const TaskJob *calc)
 {
   return !calc->orbitalGuessFile().empty();
@@ -56,7 +90,7 @@ bool OrbitalGuess::available(const TaskJob *source, string &why)
   why.clear();
   if (source == 0 || !readsGuess(source)) {
     why = "Only a calculation of a code that can start from earlier "
-          "orbitals (ORCA, Gaussian 16, NWChem, ECCE-QM) can be duplicated with its final "
+          "orbitals (ORCA, Gaussian 16, NWChem, ECCE-QM, MOPAC, CP2K) can be duplicated with its final "
           "orbitals.";
     return false;
   }
@@ -170,6 +204,17 @@ bool OrbitalGuess::attach(TaskJob *target, TaskJob *source, string &why)
       delete config;
     }
   }
+  const string code = source->application()->getCodeName();
+  if (calc != 0 && (code == "MOPAC" || code == "CP2K")) {
+    Fragment *frag = calc->fragment();
+    target->addProp(TaskJob::orbitalGuessSourceProp() + "atoms", atomSequence(frag));
+    delete frag;
+    if (code == "CP2K") {
+      GUIValues *settings = calc->guiparams();
+      target->addProp(TaskJob::orbitalGuessBasisProp() + "settings", cp2kBasis(settings));
+      delete settings;
+    }
+  }
   target->addProp(TaskJob::orbitalGuessSourceProp(), source->getName());
   target->addProp(TaskJob::orbitalGuessBasisProp(), basis);
   return true;
@@ -185,4 +230,26 @@ string OrbitalGuess::sourceName(const TaskJob *calc)
 string OrbitalGuess::sourceBasis(const TaskJob *calc)
 {
   return calc == 0 ? string() : calc->getProp(TaskJob::orbitalGuessBasisProp());
+}
+
+
+string OrbitalGuess::compatibilityWarning(const TaskJob *calc,
+                                          const Fragment *fragment,
+                                          const GUIValues *settings)
+{
+  if (calc == 0 || calc->application() == 0) return "";
+  const string code = calc->application()->getCodeName();
+  if (code != "MOPAC" && code != "CP2K") return "";
+  string note;
+  const string atoms = calc->getProp(TaskJob::orbitalGuessSourceProp() + "atoms");
+  if (!atoms.empty() && atoms != atomSequence(fragment))
+    note += "; " + code + " needs the same atoms in the same order: "
+            "restore them or use the default guess";
+  if (code == "CP2K") {
+    const string basis = calc->getProp(TaskJob::orbitalGuessBasisProp() + "settings");
+    if (!basis.empty() && basis != cp2kBasis(settings))
+      note += "; CP2K needs the same basis set: restore the Theory Details "
+              "basis settings or use the default guess";
+  }
+  return note;
 }

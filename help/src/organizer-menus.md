@@ -17,7 +17,10 @@ Right-click a calculation in the tree or in the project table.
     calculation ended on.
   - **Continue from Final Orbitals**: the same, and the new calculation also
     starts from the final orbitals. It is grey when the code or the stored
-    results cannot give a starting guess; the tooltip says why.
+    results cannot give a starting guess; the tooltip says why. Supported
+    codes are ORCA, Gaussian 16, NWChem, ECCE-QM, MOPAC and CP2K. See
+    [Starting from earlier orbitals](first-calculation.md#starting-from-the-orbitals-of-an-earlier-calculation)
+    for basis and atom compatibility.
 - **Run** collects what is done with the job: **Launch...**, **Reconnect...**,
   **Terminate**, **Re-Parse Outputs** and **Shell in Run Directory**. Items
   that do not fit the state of the calculation are grey. Reconnect is

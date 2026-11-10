@@ -71,6 +71,8 @@
   <Input  type="primary" mimetype="chemical/x-cp2k-input" comment="true" commentstring="#">cp2k.cp2kin</Input>
   <Output type="primary" mimetype="chemical/x-cp2k-output">cp2k.cp2kout</Output>
   <Output type="parse" verifypattern="CP2K\| version string" mimetype="chemical/x-cp2k-output">cp2k.cp2kout</Output>
+  <Output type="auxiliary" mimetype="chemical/x-cp2k-wfn">cp2k-RESTART.wfn</Output>
+  <Input type="auxiliary" mimetype="chemical/x-cp2k-guess">guess.wfnin</Input>
 </DataFiles>
 
 <!-- cp2k.launchpp is required unconditionally (Launch::postProcessInput
@@ -81,6 +83,7 @@
   <InputGenerator>ai.cp2k</InputGenerator>
   <ParseSpecification>cp2k.desc</ParseSpecification>
   <LaunchPreprocessor>cp2k.launchpp</LaunchPreprocessor>
+  <RetainOutputFile>cp2k-RESTART.wfn</RetainOutputFile>
 </IntegrationFiles>
 
 </appdescriptor>

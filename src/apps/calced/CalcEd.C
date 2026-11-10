@@ -3406,6 +3406,7 @@ void CalcEd::updateBasisSetFields()
 void CalcEd::updateDetailsFields()
 {
   refreshDetailsFields();
+  refreshOrbitalGuess();
   enableDetailsFields();
   showDetailsFields();
   GetSizer()->Layout();
@@ -3485,6 +3486,7 @@ void CalcEd::refreshChemSysFields()
     ((ewxStaticText*)FindWindow(ID_STATICTEXT_CALCED_ATOMS))->SetLabel("");
     ((ewxStaticText*)FindWindow(ID_STATICTEXT_CALCED_ELECTRONS))->SetLabel("");
   }
+  refreshOrbitalGuess();
 }
 
 
@@ -3590,9 +3592,8 @@ void CalcEd::refreshBasisSetFields()
 
 /**
  * The initial-guess line under the Settings box: shown only when this
- * calculation carries the orbitals of an earlier one.  A different basis
- * set is a warning-free fact here, the code projects the orbitals, except
- * for NWChem.
+ * calculation carries the orbitals of an earlier one. Compatibility
+ * requirements depend on the code that reads the guess.
  */
 void CalcEd::refreshOrbitalGuess()
 {
@@ -3613,7 +3614,8 @@ void CalcEd::refreshOrbitalGuess()
       text = "Initial guess: MOs from " + OrbitalGuess::sourceName(job);
       string was = OrbitalGuess::sourceBasis(job);
       //  The importer stores the name in lower case, the library in mixed.
-      if (p_basis != 0 && !was.empty() &&
+      if (p_codeName != "MOPAC" && p_codeName != "CP2K" &&
+          p_basis != 0 && !was.empty() &&
           wxString::FromUTF8(was).CmpNoCase(
               wxString::FromUTF8(p_basis->name())) != 0) {
         //  The deck has no "vectors input project": NWChem stops on a
@@ -3627,6 +3629,7 @@ void CalcEd::refreshOrbitalGuess()
         else
           text += " (projected from " + was + ")";
       }
+      text += OrbitalGuess::compatibilityWarning(job, p_fullFrag, p_GUIValues);
       //  A deck made before the orbitals were attached does not read them,
       //  and Save does nothing unless something is marked changed.
       if (editable && !deckNamesOrbitalGuess()) {
@@ -3658,6 +3661,7 @@ bool CalcEd::deckNamesOrbitalGuess()
     StringConverter::streamToText(*is, text);
     delete is;
     TaskJob *job = dynamic_cast<TaskJob*>(p_iCalc);
+    if (p_codeName == "MOPAC") return text.find("OLDENS") != string::npos;
     string name = job != 0 ? job->orbitalGuessFile() : string();
     return !name.empty() && text.find(name) != string::npos;
   } catch (...) {

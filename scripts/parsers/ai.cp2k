@@ -498,7 +498,8 @@ sub needsForces {
 }
 
 sub scfLines {
-  my @l = ("&SCF", "  SCF_GUESS ATOMIC",
+  my $guess = $AbiDict{"ES.Theory.SCF.OrbitalGuessFile"} ? "RESTART" : "ATOMIC";
+  my @l = ("&SCF", "  SCF_GUESS $guess",
            "  MAX_SCF " . &intOr("ES.Theory.GPW.MaxScf", 100),
            "  EPS_SCF " . &numOr("ES.Theory.GPW.EpsScf", "1.0E-6"));
   if (&flag("ES.Theory.GPW.UseOT", 1)) {
@@ -530,7 +531,10 @@ sub scfLines {
              "    ELECTRONIC_TEMPERATURE [K] $temp", "  &END SMEAR")
       if ($temp + 0 > 0);
   }
-  push(@l, "&END SCF");
+  # Keep one final wavefunction under a fixed name for the stored outputs.
+  push(@l, "  &PRINT", "    &RESTART ON",
+           "      FILENAME =cp2k-RESTART.wfn", "      BACKUP_COPIES 0",
+           "    &END RESTART", "  &END PRINT", "&END SCF");
   return @l;
 }
 
@@ -575,6 +579,8 @@ sub kindLines {
 
 sub CP2KForceEval {
   my @dft = ("&DFT");
+  my $guess = $AbiDict{"ES.Theory.SCF.OrbitalGuessFile"};
+  push(@dft, "  WFN_RESTART_FILE_NAME $guess") if ($guess);
   # CP2K reads every BASIS_SET_FILE_NAME line, so one per distinct basis file
   # in use (the calculation's file first) names the per-element overrides.
   push(@dft, "  BASIS_SET_FILE_NAME " . &libraryDeckName($_))

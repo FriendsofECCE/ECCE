@@ -963,6 +963,19 @@ bool Launch::validateLocalDir(void)
 //    a job.  So far, the only thing that can go wrong is if the input
 //    file doesn't actually exist.
 //////////////////////////////////////////////////////////////////////////////
+static string guessRunName(const string& code, const string& input,
+                           const string& name)
+{
+  // OLDENS uses the input job's basename, while the stored input needs its
+  // own MIME type to stay distinct from the calculation's density output.
+  if (code == "MOPAC" && name == "guess.denin") {
+    const size_t dot = input.find_last_of('.');
+    return input.substr(0, dot) + ".den";
+  }
+  return name;
+}
+
+
 bool Launch::validateCalculation(void)
 {
   bool ret = false;
@@ -998,7 +1011,8 @@ bool Launch::validateCalculation(void)
             //  first NUL byte, so this one goes straight to a file.
             if (basvec[ib].getFilePathTail() == p_taskjob->orbitalGuessFile()) {
               inputFilePath = p_cache->directory + "/" +
-                              basvec[ib].getFilePathTail();
+                              guessRunName(p_cache->codeName, inputFileName,
+                                           basvec[ib].getFilePathTail());
               SFile guessDest(inputFilePath);
               if (p_taskjob->getAnyFile(basvec[ib], &guessDest) == 0) {
                 ret = false;
@@ -1979,7 +1993,8 @@ bool Launch::moveFiles(void)
     {
       vector<EcceURL> auxurls = auxInputUrls();
       for (size_t a = 0; a < auxurls.size(); a++)
-        auxvec.push_back(auxurls[a].getFilePathTail());
+        auxvec.push_back(guessRunName(p_cache->codeName, tmpInput,
+                                     auxurls[a].getFilePathTail()));
       // The index file gromacs.launchpp wrote from the task's groups is in
       // the local directory, not on the data server.
       if (p_cache->isGromacs) {
