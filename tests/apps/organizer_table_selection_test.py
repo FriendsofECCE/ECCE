@@ -74,6 +74,14 @@ def run(display):
             send("autoreloads x", "tableselected x")
             send("tableclick 3 shift")      # from the anchor, row 1
             time.sleep(2)
+            # Click row 1, reload, Shift+click row 3: rows 1..3, not 0..3.
+            send("tableclick 1")
+            open(stray, "w").close()
+            os.remove(stray)
+            time.sleep(6)
+            send("autoreloads x")
+            send("tableclick 3 shift")
+            time.sleep(2)
 
         result = apps.run(display, "organizer", windowTimeout=60, settle=30,
                           env={"ECCE_TEST_ORGANIZER": cmds,
@@ -87,7 +95,7 @@ def run(display):
         def ans(word):
             return re.findall(r"ECCE_TEST_ORGANIZER: %s .*?: (.*)$" % word, log, re.M)
         clicks = ans("tableclick")
-        if not check(len(clicks) == 12 and all(c.startswith("ok") for c in clicks),
+        if not check(len(clicks) == 14 and all(c.startswith("ok") for c in clicks),
                      "the click hook answered", log[-2000:]):
             return
 
@@ -114,8 +122,11 @@ def run(display):
         check(reloads and int(reloads[0]) >= 1, "the folder was reloaded", reloads)
         check(kept and names(kept[0]) == rows(1, 3),
               "the reload keeps both rows", kept)
-        # Not checked yet: Shift+click right after an auto-refresh still
-        # extends from row 0 (the anchor is lost when the panel is rebuilt; #925).
+        # The anchor survives a refill (#925): click row 1, reload, Shift+click 3.
+        want = rows(1, 2, 3)
+        check(names(clicks[13]) == want,
+              "Shift+click after an auto-refresh extends from the clicked row",
+              "got %s, want %s" % (names(clicks[13]), want))
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)
