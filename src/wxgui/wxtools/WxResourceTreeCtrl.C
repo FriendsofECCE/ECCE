@@ -17,6 +17,7 @@
  * is no usage of wxTreeItemId in this interface.
  *
  */
+#include <chrono>
 
 #if 000
 #if defined(__GNUG__) && !defined(__APPLE__)
@@ -413,7 +414,9 @@ bool WxResourceTreeCtrl::loadChildren(WxResourceTreeItemData * node, bool refres
     return false;
   }
 
+  const auto treeStarted = std::chrono::steady_clock::now();
   vector<Resource *> * children = resource->getChildren(refresh);
+  const auto childrenLoaded = std::chrono::steady_clock::now();
 
 #ifdef cputimetest
   timer.stop();
@@ -442,6 +445,10 @@ bool WxResourceTreeCtrl::loadChildren(WxResourceTreeItemData * node, bool refres
   cerr << "create tree  nodes..." << timer.elapsedTime() << endl;
 #endif
 
+  if (getenv("ECCE_TEST_ORGANIZER_TIMING"))
+    cerr << "tree-profile rows=" << (children ? children->size() : 0)
+         << " children=" << std::chrono::duration<double>(childrenLoaded - treeStarted).count()
+         << " icons-sort=" << std::chrono::duration<double>(std::chrono::steady_clock::now() - childrenLoaded).count() << endl;
   p_loadingChildren = false;
   return children != 0;
 }

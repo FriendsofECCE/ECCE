@@ -52,7 +52,8 @@ static string p_dcQualifierNamespace = "http://purl.org/dc/terms/";
  * @throw InvalidException  Url is not recognized as a valid VDoc.
  *
  */
-VDoc::VDoc(const EcceURL& url, bool createVdoc) 
+VDoc::VDoc(const EcceURL& url, bool createVdoc)
+  : p_loadingMetaData(false)
 {
   // Set base URL
   p_base = url;
@@ -68,6 +69,17 @@ VDoc::VDoc(const EcceURL& url, bool createVdoc)
     p_currentVdoc = true;
 
     if (!createVdoc) {
+      // The name loaders all read the base resource. Share one snapshot
+      // while constructing it, then discard it so later reads stay fresh.
+      vector<MetaDataRequest> requests;
+      if (!p_edsi->getMetaData(requests, p_loadValues, false))
+        throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
+      if (p_base.getProtocol() == "file") {
+        p_loadNames = p_loadValues;
+      } else if (!p_edsi->describeMetaData(p_loadNames)) {
+        throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
+      }
+      p_loadingMetaData = true;
       // Determine if URL references a Vdoc
       if (!isVdoc()) {
         throw InvalidException("URL not recognized as a Virtual Document", WHERE);
@@ -81,6 +93,9 @@ VDoc::VDoc(const EcceURL& url, bool createVdoc)
 
     // Initialize/Create VDoc
     setVdoc(createVdoc);
+    p_loadingMetaData = false;
+    p_loadValues.clear();
+    p_loadNames.clear();
 
   }
   catch (...) {
@@ -1732,6 +1747,18 @@ void VDoc::removeProperties()
 }
 
 
+bool VDoc::loadMetaData(const vector<MetaDataRequest>& requests,
+                       vector<MetaDataResult>& results)
+{
+  if (!p_loadingMetaData || p_edsi->getURL() != p_base)
+    return p_edsi->getMetaData(requests, results);
+  for (const auto& request : requests)
+    for (const auto& value : p_loadValues)
+      if (value.name == request.name) results.push_back(value);
+  return true;
+}
+
+
 /**
  * Determines if the base Url identifies a valid VDoc.
  *
@@ -1754,7 +1781,7 @@ bool VDoc::isVdoc()
   requests[0].name = resourceProp;
   requests[1].name = contentProp;
   vector<MetaDataResult> results;
-  if (!p_edsi->getMetaData(requests, results)) {
+  if (!loadMetaData(requests, results)) {
     throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
   }
   else {
@@ -1803,7 +1830,7 @@ bool VDoc::isCurrentVdoc()
   vector<MetaDataRequest> requests(1);
   requests[0].name = createdWithProp;
   vector<MetaDataResult> results;
-  if (!p_edsi->getMetaData(requests, results)) {
+  if (!loadMetaData(requests, results)) {
     throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
   }
   else {
@@ -1988,7 +2015,7 @@ void VDoc::loadMoleculeName()
     vector<MetaDataRequest> requests(1);
     requests[0].name = p_moleculeProp;
     vector<MetaDataResult> results;
-    if (!p_edsi->getMetaData(requests, results)) {
+    if (!loadMetaData(requests, results)) {
       throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
     }
     else {
@@ -2041,7 +2068,7 @@ void VDoc::loadOriginalMoleculeName()
   vector<MetaDataRequest> requests(1);
   requests[0].name = p_originalMoleculeProp;
   vector<MetaDataResult> results;
-  if (!p_edsi->getMetaData(requests, results)) {
+  if (!loadMetaData(requests, results)) {
     throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
   }
   else {
@@ -2081,7 +2108,7 @@ void VDoc::loadEspConstraintsName()
     vector<MetaDataRequest> requests(1);
     requests[0].name = p_espConstraintsProp;
     vector<MetaDataResult> results;
-    if (!p_edsi->getMetaData(requests, results)) {
+    if (!loadMetaData(requests, results)) {
       throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
     }
     else {
@@ -2132,7 +2159,7 @@ void VDoc::loadGeometryConstraintsName()
     vector<MetaDataRequest> requests(1);
     requests[0].name = p_geometryConstraintsProp;
     vector<MetaDataResult> results;
-    if (!p_edsi->getMetaData(requests, results)) {
+    if (!loadMetaData(requests, results)) {
       throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
     }
     else {
@@ -2183,7 +2210,7 @@ void VDoc::loadMetaPotentialsName()
     vector<MetaDataRequest> requests(1);
     requests[0].name = p_metaPotentialsProp;
     vector<MetaDataResult> results;
-    if (!p_edsi->getMetaData(requests, results)) {
+    if (!loadMetaData(requests, results)) {
       throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
     }
     else {
@@ -2236,7 +2263,7 @@ void VDoc::loadQMMMTermsName()
     vector<MetaDataRequest> requests(1);
     requests[0].name = p_QMMMTermsProp;
     vector<MetaDataResult> results;
-    if (!p_edsi->getMetaData(requests, results)) {
+    if (!loadMetaData(requests, results)) {
       throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
     }
     else {
@@ -2288,7 +2315,7 @@ void VDoc::loadBasisSetName()
     vector<MetaDataRequest> requests(1);
     requests[0].name = p_basisSetProp;
     vector<MetaDataResult> results;
-    if (!p_edsi->getMetaData(requests, results)) {
+    if (!loadMetaData(requests, results)) {
       throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
     }
     else {
@@ -2346,7 +2373,7 @@ void VDoc::loadRunLogName()
     vector<MetaDataRequest> requests(1);
     requests[0].name = p_runLogProp;
     vector<MetaDataResult> results;
-    if (!p_edsi->getMetaData(requests, results)) {
+    if (!loadMetaData(requests, results)) {
       throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
     }
     else {
@@ -2406,7 +2433,7 @@ void VDoc::loadSetupParametersName()
     vector<MetaDataRequest> requests(1);
     requests[0].name = p_setupParametersProp;
     vector<MetaDataResult> results;
-    if (!p_edsi->getMetaData(requests, results)) {
+    if (!loadMetaData(requests, results)) {
       throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
     }
     else {
@@ -2453,7 +2480,7 @@ void VDoc::loadMdPrepareName()
   vector<MetaDataRequest> requests(1);
   requests[0].name = p_mdPrepareProp;
   vector<MetaDataResult> results;
-  if (!p_edsi->getMetaData(requests, results)) {
+  if (!loadMetaData(requests, results)) {
     throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
   }
   else {
@@ -2489,7 +2516,7 @@ void VDoc::loadMdOptimizeName()
   vector<MetaDataRequest> requests(1);
   requests[0].name = p_mdOptimizeProp;
   vector<MetaDataResult> results;
-  if (!p_edsi->getMetaData(requests, results)) {
+  if (!loadMetaData(requests, results)) {
     throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
   }
   else {
@@ -2525,7 +2552,7 @@ void VDoc::loadMdEnergyName()
   vector<MetaDataRequest> requests(1);
   requests[0].name = p_mdEnergyProp;
   vector<MetaDataResult> results;
-  if (!p_edsi->getMetaData(requests, results)) {
+  if (!loadMetaData(requests, results)) {
     throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
   }
   else {
@@ -2561,7 +2588,7 @@ void VDoc::loadMdDynamicsName()
   vector<MetaDataRequest> requests(1);
   requests[0].name = p_mdDynamicsProp;
   vector<MetaDataResult> results;
-  if (!p_edsi->getMetaData(requests, results)) {
+  if (!loadMetaData(requests, results)) {
     throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
   }
   else {
@@ -2597,7 +2624,7 @@ void VDoc::loadThumbnailName()
   vector<MetaDataRequest> requests(1);
   requests[0].name = p_thumbnailProp;
   vector<MetaDataResult> results;
-  if (!p_edsi->getMetaData(requests, results)) {
+  if (!loadMetaData(requests, results)) {
     throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
   }
   else {
@@ -2644,7 +2671,7 @@ void VDoc::loadConfigurationCollection()
       vector<MetaDataRequest> requests(1);
       requests[0].name = p_configurationCollectionProp;
       vector<MetaDataResult> results;
-      if (!p_edsi->getMetaData(requests, results)) {
+      if (!loadMetaData(requests, results)) {
         throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
       }
       else {
@@ -2706,7 +2733,7 @@ void VDoc::loadInputCollection()
       vector<MetaDataRequest> requests(1);
       requests[0].name = p_inputCollectionProp;
       vector<MetaDataResult> results;
-      if (!p_edsi->getMetaData(requests, results)) {
+      if (!loadMetaData(requests, results)) {
         throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
       }
       else {
@@ -2770,7 +2797,7 @@ void VDoc::loadOutputCollection()
       vector<MetaDataRequest> requests(1);
       requests[0].name = p_outputCollectionProp;
       vector<MetaDataResult> results;
-      if (!p_edsi->getMetaData(requests, results)) {
+      if (!loadMetaData(requests, results)) {
         throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
       }
       else {
@@ -2815,7 +2842,7 @@ void VDoc::loadFileCollection()
       vector<MetaDataRequest> requests(1);
       requests[0].name = p_fileCollectionProp;
       vector<MetaDataResult> results;
-      if (!p_edsi->getMetaData(requests, results)) {
+      if (!loadMetaData(requests, results)) {
         throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
       }
       else {
@@ -2854,7 +2881,7 @@ void VDoc::loadPropertyCollection()
       vector<MetaDataRequest> requests(1);
       requests[0].name = p_propertyCollectionProp;
       vector<MetaDataResult> results;
-      if (!p_edsi->getMetaData(requests, results)) {
+      if (!loadMetaData(requests, results)) {
         throw DavException(p_edsi->m_msgStack.getMessage(), WHERE);
       }
       else {
@@ -3765,6 +3792,12 @@ bool VDoc::resourceExists(const EcceURL& url)
 bool VDoc::propertyExists(const EcceURL& url, const string& property)
 {
   bool ret = false;
+
+  if (p_loadingMetaData && url == p_base) {
+    for (const auto& item : p_loadNames)
+      if (item.name == property) return true;
+    return false;
+  }
 
   vector<MetaDataResult> results;
 

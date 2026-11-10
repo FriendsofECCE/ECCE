@@ -695,11 +695,10 @@ static void appendWanted(const PropMap& props,
 // depth-infinity PROPFIND.  The ecce properties of everything below dir,
 // nested virtual documents excepted, are appended (later ones win in
 // Resource::cacheProps, as there).
-static void appendVirtualMetaData(const string& dir,
+static void appendVirtualMetaData(const string& dir, const MetaStore& store,
                                   const vector<MetaDataRequest>& requests,
                                   vector<MetaDataResult>& out)
 {
-  MetaStore store = loadStore(dir);
   SDirectory sdir(dir);
   vector<SFile> kids = sdir.get_files(false);
   for (size_t i = 0; i < kids.size(); i++) {
@@ -712,7 +711,7 @@ static void appendVirtualMetaData(const string& dir,
       const PropMap *own = findProps(sub, ".");
       if (isVDocProps(own)) continue;
       if (own) appendWanted(*own, requests, out);
-      appendVirtualMetaData(path, requests, out);
+      appendVirtualMetaData(path, sub, requests, out);
     } else {
       const PropMap *props = findProps(store, name);
       if (props) appendWanted(*props, requests, out);
@@ -1001,7 +1000,7 @@ bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests,
     }
   }
   if (getVDocMetaData && key == "." && isVDocProps(own))
-    appendVirtualMetaData(dir, requests, results);
+    appendVirtualMetaData(dir, store, requests, results);
   return true;
 }
 
@@ -1011,7 +1010,8 @@ bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests,
   SFile file(p_url.getPath().c_str());
 
   vector<MetaDataResult> tmp;
-  if (!getMetaData(requests, tmp)) return false;
+  // Reuse the gathered metadata instead of walking the calculation twice.
+  if (!getMetaData(requests, tmp, getVDocMetaData)) return false;
 
   results.url = p_url;
   results.resourcetype = ResourceDescriptor::RT_COLLECTION;
@@ -1024,11 +1024,6 @@ bool FileEDSI::getMetaData(const vector<MetaDataRequest>& requests,
     results.metaData.push_back(tmp[i]);
   }
   applyStoredTypes(results, tmp);
-  if (getVDocMetaData && file.is_dir()) {
-    string dir = trimSlash(file.path());
-    if (isVDocProps(findProps(loadStore(dir), ".")))
-      appendVirtualMetaData(dir, requests, results.metaData);
-  }
   return true;
 }
 

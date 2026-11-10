@@ -64,6 +64,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [A remote view rides ECCE's own login, not an ssh of its own (Tail)](remote-views-use-ecces-own-login.md)
 - [A calculation's molecule and basis properties are stored below it](calculation-properties-live-below-it.md)
 - [`ecce_url_progress`: progress relayed on the owner's topic, last snapshot stored as `ecce:progress` (#284)](progress-message-284.md)
+- [Organizer folder energy cells must not load point orbitals (#928)](organizer-folder-energy-reads-928.md)
 - [The project table's Progress column: made by the Organizer, one cell per message (#284)](progress-table-column-284.md)
 - [Out of contact: silence from the job monitor is "running?", never a final state (#284, #208)](out-of-contact-284.md)
 - [Xvfb's stderr must not go to a pipe nobody reads (CI display wedge, #127)](xvfb-stderr-must-not-be-a-pipe.md)
