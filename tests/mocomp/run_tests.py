@@ -81,7 +81,8 @@ def run_mocomp(build, fixture, mos, beta, method="mulliken", tsv=True):
         home = os.path.join(work, "home")
         os.makedirs(home)
         env = dict(os.environ, ECCE_HOME=REPO, ECCE_REALUSER="mocomp",
-                   ECCE_REALUSERHOME=home)
+                   ECCE_REALUSERHOME=home, HOME=home,
+                   XDG_CACHE_HOME=os.path.join(home, ".cache"))
         env.pop("ECCE_LOCAL_DATA", None)
         cmd = [os.path.join(build, "mocomp"), calc, "--method", method]
         if tsv:

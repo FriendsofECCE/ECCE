@@ -27,19 +27,33 @@ Headless screenshots of the Builder need `ECCE_PANEL_MODE=classic`: in the
 default `detail` mode the molecule and the MOs pane did not appear in a
 private-Xvfb run, with or without this feature.
 
-Unresolved #927: `mopac.mgf` already applies GRAPHF's inverse square root of
-the overlap to store real Slater-AO coefficients. `MoAoBasis::build` instead
-treats the Slater-model flag as an identity metric. For the getting-started
+For MOPAC, `mopac.mgf` applies GRAPHF's inverse square root of
+the overlap to store real Slater-AO coefficients. The Slater-model flag
+from `ICalcUtils` does **not** mean these coefficients use S=I. For the getting-started
 ammonia example, stored MO 5 has c.c = 2.25019454, but c.S.c = 1.00000000
 using GRAPHF's exact matrix; all seven stored orbitals have c.S.c within
 2e-8 of 1. The raw GRAPHF vectors have c.c = 1. ECCE-QM's NH3/6-31G*
 example has all 20 c.S.c within 2e-7 of 1 using independently integrated
 Gaussian overlaps. Neither example needs the #921 code-basis projection.
 
-Changing only the identity-metric bypass is insufficient: GRAPHF's atom
+The overlap must also use the coefficient frame: GRAPHF's atom
 coordinates are in the FORCE frame, whereas the stored GEOMTRACE is in the
 original frame. With the existing stored geometry, real AO overlaps give
 MOPAC norms 0.9814, 0.5868, 0.6622, 0.7965, 1.4869, 2.6324, 2.0622.
-The metric-only change was withdrawn; coordinate-frame handling must also
-be resolved. `tests/mocomp/nh3_norms_test.py` preserves the independent check
-and failing production reproducer; it is not registered in the passing suite.
+`MoAoBasis::overlapMatrix` therefore recovers coordinates from the calculation's
+stored `.mgf` through the data-store interface, checks atom order and exponents
+against SLATERBASIS, and recovers the exact overlap from GRAPHF's
+`INVERSE_MATRIX`: if A = S^(-1/2), then S = A^(-2). Both the matrix and the
+flattened basis therefore use the coefficients' GRAPHF frame. Integrating the
+six-Gaussian Slater expansion in that frame still misses NH3 MO 5's norm by
+0.0011; composition needs GRAPHF's exact metric rather than the renderer's
+approximation. It refuses
+missing, ambiguous or inconsistent GRAPHF data rather than guessing a frame.
+This fixes existing stored calculations without reparsing or changing their
+GEOMTRACE/vibration frame; other codes retain their supplied coordinates.
+It changes composition's overlap only, not the orbital isosurface renderer.
+The parser and stored coefficients need no change.
+
+`tests/mocomp/nh3_norms_test.py` (CTest `mocomp_nh3_norms`) retains the
+independent checks and requires every production norm for MOPAC NH3,
+ECCE-QM NH3 and ORCA water to be within 1e-4 of 1.

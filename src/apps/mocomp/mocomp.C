@@ -238,7 +238,7 @@ int main(int argc, char **argv)
       if (energies && mo <= energies->rows()) printf("  E = %.5f Eh", energies->value(mo-1));
       if (occs && mo <= occs->rows()) printf("  occ %.2f", occs->value(mo-1));
       if (syms && mo <= syms->rows()) printf("  %s", syms->value(mo-1).c_str());
-      printf("\n%s population, normalised to 100%%; c.S.c = %.4f\n",
+      printf("\n%s population, normalised to 100%%; c.S.c = %.8f\n",
              MoAoBasis::methodName(method), comp.norm);
       if (method == MoAoBasis::MULLIKEN && fabs(comp.norm - 1.0) > 0.02)
         printf("WARNING: the orbital is not normalised in this basis; the "

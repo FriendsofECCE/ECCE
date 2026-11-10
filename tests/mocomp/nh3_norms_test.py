@@ -115,7 +115,7 @@ def main(build=None):
         nmo = len(stored_mos(calc))
         rc, out, err = run_mocomp(build, str(calc), range(1, nmo + 1), False, tsv=False)
         norms = [float(v) for v in re.findall(r"c.S.c = ([\d.]+)", out)]
-        ok = rc == 0 and len(norms) == nmo and max(abs(v - 1) for v in norms) < 1e-3
+        ok = rc == 0 and len(norms) == nmo and max(abs(v - 1) for v in norms) < 1e-4
         print(("PASS " if ok else "FAIL ") + name + " production norms: " + str(norms))
         if rc:
             print(err)
