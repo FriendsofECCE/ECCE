@@ -3,20 +3,27 @@
 
     dos_oracle.py <ecce-fragorb> <ecce-results>
 
-Water in an STO-3G basis (s and p shells only).  The overlap matrix S is
-computed here from the Gaussian-overlap recursion (Obara-Saika), MOs are the
-eigenvectors of an extended-Hueckel-type H in the Loewdin basis (any
-S-orthonormal set tests the populations, no SCF is needed), written to a
-Molden file and converted with `ecce-results convert`.  For every MO i the
-textbook quantities
+Three cases, each a water molecule (A = O, B = both H):
+  sto3g    STO-3G (s and p shells), closed shell;
+  d        STO-3G plus a two-primitive spherical d shell on O ([5D] Molden),
+           closed shell;
+  d-open   the same basis, open shell: separate alpha (5 occupied) and beta
+           (4 occupied) orbital sets, checked per spin (--spin alpha|beta).
+The overlap matrix S is computed here from the Gaussian-overlap recursion
+(Obara-Saika); spherical d functions are built from Cartesian monomials
+(d0 ~ 2zz-xx-yy, d+1 ~ xz, d-1 ~ yz, d+2 ~ xx-yy, d-2 ~ xy) and normalised
+numerically.  MOs are the eigenvectors of an extended-Hueckel-type H in the
+Loewdin basis (any S-orthonormal set tests the populations, no SCF is
+needed), written to a Molden file and converted with `ecce-results convert`.
+For every MO i the textbook quantities
     gross(X,i) = sum_{mu in X} c_mu,i (S c_i)_mu
     OP(A,B,i)  = 2 sum_{mu in A, nu in B} c_mu,i c_nu,i S_mu,nu
 are compared with the area under each narrow peak of TDOS, PDOS(A), PDOS(B)
-and OPDOS(A,B) of `dos --json` (closed-shell MOs count twice), and the
-occupied overlap population sum n_i OP_i with the CLI's and with the
-integrated OPDOS at the Fermi level.  A = O, B = both H.
-Tolerance 2e-5 per MO (the CLI prints 8 significant digits).  Exit 77
-without numpy.
+and OPDOS(A,B) of `dos --json` (closed-shell MOs count twice, open-shell
+once; MOs closer than 0.3 eV are compared as one peak), and the occupied
+overlap population sum n_i OP_i with the CLI's and with the integrated OPDOS
+at the Fermi level.  Tolerance 2e-5 per MO (the CLI prints 8 significant
+digits).  Exit 77 without numpy.
 """
 import json
 import os
@@ -36,12 +43,18 @@ BOHR = [("O", 8, (0.0, 0.0, 0.2216648744)),
         ("H", 1, (0.0, 1.4309006216, -0.8866594977)),
         ("H", 1, (0.0, -1.4309006216, -0.8866594977))]
 C1S = [0.15432897, 0.53532814, 0.44463454]
-SHELLS = {  # atom type: [(l, exponents, coefficients)]
+STO3G = {  # atom type: [(l, exponents, coefficients)]
     "O": [(0, [130.70932, 23.808861, 6.4436083], C1S),
           (0, [5.0331513, 1.1695961, 0.38038896], [-0.09996723, 0.39951283, 0.70011547]),
           (1, [5.0331513, 1.1695961, 0.38038896], [0.15591627, 0.60768372, 0.39195739])],
     "H": [(0, [3.42525091, 0.62391373, 0.1688554], C1S)]}
-H_ON_SITE = {("O", 0, 0): -20.5, ("O", 0, 1): -1.0, ("O", 1, 2): -0.5, ("H", 0, 0): -0.5}
+WITH_D = {"O": STO3G["O"] + [(2, [2.314, 0.645], [0.2, 0.9])], "H": STO3G["H"]}
+# on-site energies (Eh) by (atom type, shell index)
+H_ON_SITE = {("O", 0): -20.5, ("O", 1): -1.0, ("O", 2): -0.5, ("O", 3): 0.6, ("H", 0): -0.5}
+# Cartesian monomials of each function in Molden order; spherical d as combinations
+CART = {0: [[(1, (0, 0, 0))]], 1: [[(1, (1, 0, 0))], [(1, (0, 1, 0))], [(1, (0, 0, 1))]]}
+SPH_D = [[(2, (0, 0, 2)), (-1, (2, 0, 0)), (-1, (0, 2, 0))], [(1, (1, 0, 1))], [(1, (0, 1, 1))],
+         [(1, (2, 0, 0)), (-1, (0, 2, 0))], [(1, (1, 1, 0))]]
 
 
 def os1d(a, b, A, B, imax, jmax):
@@ -68,29 +81,32 @@ def prim_overlap(a, la, A, b, lb, B):
 
 
 def pnorm(a, l):
-    return (2 * a / np.pi) ** 0.75 * (2 * np.sqrt(a) if l else 1.0)
+    """Normalisation of a primitive x^l exp(-a r^2): the factor the contraction coefficients refer to."""
+    return (2 * a / np.pi) ** 0.75 * (4 * a) ** (l / 2) / np.sqrt([1, 1, 3, 15][l])
 
 
-def build():
-    """AO list (atom, shell index, l, cartesian power, exps, coeffs), then S."""
+def build(shells):
+    """AO list (atom, shell index, l, monomials, exps, coeffs, element), then S (unit diagonal)."""
     aos = []
     for ia, (el, z, xyz) in enumerate(BOHR):
-        for ish, (l, ex, co) in enumerate(SHELLS[el]):
-            for pw in ([(0, 0, 0)] if l == 0 else [(1, 0, 0), (0, 1, 0), (0, 0, 1)]):
-                aos.append((ia, ish, l, pw, ex, [c * pnorm(e, l) for e, c in zip(ex, co)], el))
+        for ish, (l, ex, co) in enumerate(shells[el]):
+            for terms in (SPH_D if l == 2 else CART[l]):
+                aos.append((ia, ish, l, terms, ex, [c * pnorm(e, l) for e, c in zip(ex, co)], el))
     n = len(aos)
     S = np.zeros((n, n))
     for i in range(n):
         for j in range(n):
             Ai, Bj = BOHR[aos[i][0]][2], BOHR[aos[j][0]][2]
-            S[i, j] = sum(ci * cj * prim_overlap(ei, aos[i][3], Ai, ej, aos[j][3], Bj)
+            S[i, j] = sum(wi * wj * ci * cj * prim_overlap(ei, pi, Ai, ej, pj, Bj)
+                          for wi, pi in aos[i][3] for wj, pj in aos[j][3]
                           for ei, ci in zip(aos[i][4], aos[i][5])
                           for ej, cj in zip(aos[j][4], aos[j][5]))
     d = np.sqrt(np.diag(S))
-    return aos, S / np.outer(d, d), d
+    return aos, S / np.outer(d, d)
 
 
-def molden(path, aos, C, E, occ):
+def molden(path, shells, sets):
+    """sets: [(spin name, C, E, occ)]."""
     with open(path, "w") as f:
         f.write("[Molden Format]\n[Title]\n[Atoms] AU\n")
         for i, (el, z, xyz) in enumerate(BOHR):
@@ -98,32 +114,36 @@ def molden(path, aos, C, E, occ):
         f.write("[GTO]\n")
         for i, (el, z, xyz) in enumerate(BOHR):
             f.write("%d 0\n" % (i + 1))
-            for l, ex, co in SHELLS[el]:
-                f.write(" %s %d 1.0\n" % ("sp"[l], len(ex)))
+            for l, ex, co in shells[el]:
+                f.write(" %s %d 1.0\n" % ("spd"[l], len(ex)))
                 for e, c in zip(ex, co):
                     f.write("  %.12e %.12e\n" % (e, c))
             f.write("\n")
+        if any(l == 2 for el in shells for l, _, _ in shells[el]):
+            f.write("[5D]\n")
         f.write("[MO]\n")
-        for m in range(C.shape[1]):
-            f.write("Sym= %da\nEne= %.14f\nSpin= Alpha\nOccup= %.1f\n" % (m + 1, E[m], occ[m]))
-            for k in range(C.shape[0]):
-                f.write("%d %.14e\n" % (k + 1, C[k, m]))
+        for spin, C, E, occ in sets:
+            for m in range(C.shape[1]):
+                f.write("Sym= %da\nEne= %.14f\nSpin= %s\nOccup= %.1f\n" % (m + 1, E[m], spin, occ[m]))
+                for k in range(C.shape[0]):
+                    f.write("%d %.14e\n" % (k + 1, C[k, m]))
 
 
-def main():
-    frag, resexe = [os.path.abspath(a) for a in sys.argv[1:3]]
-    aos, S, norm = build()
-    n = len(aos)
-    h = np.diag([H_ON_SITE[(a[6], a[2], a[1] if a[2] == 0 else 2)] for a in aos])
+def orbitals(aos, S, shift):
+    """S-orthonormal MOs of an extended-Hueckel H; shift (Eh) on O p makes the beta set differ."""
+    h = np.diag([H_ON_SITE[(a[6], a[1])] + (shift if (a[6], a[2]) == ("O", 1) else 0) for a in aos])
     H = 1.75 * S * (np.add.outer(np.diag(h), np.diag(h)) / 2)
     np.fill_diagonal(H, np.diag(h))
     w, U = np.linalg.eigh(S)
     X = U @ np.diag(w ** -0.5) @ U.T
     E, V = np.linalg.eigh(X @ H @ X)
     C = X @ V
-    occ = np.array([2.0] * 5 + [0.0] * (n - 5))
-    assert np.allclose(C.T @ S @ C, np.eye(n), atol=1e-10)
+    assert np.allclose(C.T @ S @ C, np.eye(len(aos)), atol=1e-10)
+    return C, E
 
+
+def check_channel(frag, h5, env, aos, S, C, E, occ, weight, spin):
+    n = len(aos)
     atom = np.array([a[0] for a in aos])
     A, B = atom == 0, atom >= 1
     SC = S @ C
@@ -131,27 +151,16 @@ def main():
     grossB = np.array([C[B, i] @ SC[B, i] for i in range(n)])
     OP = np.array([2 * C[A, i] @ S[np.ix_(A, B)] @ C[B, i] for i in range(n)])
     occOP = float(occ @ OP)
-
-    work = tempfile.mkdtemp(prefix="dos-oracle-")
-    md, h5 = os.path.join(work, "water.molden"), os.path.join(work, "results.h5")
-    molden(md, aos, C, E, occ)
-    env = dict(os.environ)
-    env.setdefault("ECCE_HOME", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-    env.setdefault("ECCE_REALUSER", "dosoracle")
-    env.setdefault("ECCE_REALUSERHOME", work)
-    env.setdefault("HOME", work)
-    r = subprocess.run([resexe, "convert", md, h5], capture_output=True, text=True, env=env)
-    if r.returncode:
-        print("FAIL convert:", r.stdout, r.stderr)
-        return 1
     fwhm, step = 0.05, 0.005
     eev = E * HARTREE_EV
-    r = subprocess.run([frag, "dos", h5, "--set", "A=1", "--set", "B=2,3", "--pair", "A:B", "--fwhm", str(fwhm),
-                        "--step", str(step), "--emin", "%.3f" % (eev[0] - 3), "--emax", "%.3f" % (eev[-1] + 3), "--json"],
-                       capture_output=True, text=True, env=env)
+    cmd = [frag, "dos", h5, "--set", "A=1", "--set", "B=2,3", "--pair", "A:B", "--fwhm", str(fwhm),
+           "--step", str(step), "--emin", "%.3f" % (eev[0] - 3), "--emax", "%.3f" % (eev[-1] + 3), "--json"]
+    if spin:
+        cmd += ["--spin", spin]
+    r = subprocess.run(cmd, capture_output=True, text=True, env=env)
     if r.returncode:
         print("FAIL dos:", r.stderr)
-        return 1
+        return False
     d = json.loads(r.stdout)
     g = d["grid"]
     e = np.array([x["e"] for x in g])
@@ -160,24 +169,71 @@ def main():
     pb = np.array([x["pdos"][1] for x in g])
     op = np.array([x["opdos"][0] for x in g])
     iop = np.array([x["int_opdos"][0] for x in g])
-    # each peak is integrated between the midpoints to its neighbours
-    edges = np.concatenate([[e[0] - 1], (eev[1:] + eev[:-1]) / 2, [e[-1] + 1]])
+    # peaks: MOs within 0.3 eV form one group, integrated between the midpoints to the neighbouring groups
+    groups = [[0]]
+    for i in range(1, n):
+        if eev[i] - eev[i - 1] < 0.3:
+            groups[-1].append(i)
+        else:
+            groups.append([i])
     worst = 0.0
-    print("MO   E/eV   gross(A) gross(B)  OP(A,B)   | deviation: TDOS/2 PDOS(A)/2 PDOS(B)/2 OPDOS/2")
-    for i in range(n):
-        s = (e >= edges[i]) & (e < edges[i + 1])
-        got = [x[s].sum() * step / 2 for x in (t, pa, pb, op)]
-        want = [1.0, grossA[i], grossB[i], OP[i]]
+    print("%s MO   E/eV   gross(A) gross(B)  OP(A,B)   | deviation: TDOS PDOS(A) PDOS(B) OPDOS (per spin weight %g)"
+          % (spin or "", weight))
+    for k, grp in enumerate(groups):
+        lo = e[0] - 1 if k == 0 else (eev[groups[k - 1][-1]] + eev[grp[0]]) / 2
+        hi = e[-1] + 1 if k == len(groups) - 1 else (eev[grp[-1]] + eev[groups[k + 1][0]]) / 2
+        s = (e >= lo) & (e < hi)
+        got = [x[s].sum() * step / weight for x in (t, pa, pb, op)]
+        want = [float(len(grp)), grossA[grp].sum(), grossB[grp].sum(), OP[grp].sum()]
         dev = [abs(a - b) for a, b in zip(got, want)]
         worst = max(worst, max(dev))
-        print("%2d %9.3f %8.5f %8.5f %9.5f | %.1e %.1e %.1e %.1e" % ((i + 1, eev[i], grossA[i], grossB[i], OP[i]) + tuple(dev)))
+        print("%-12s %9.3f %8.5f %8.5f %9.5f | %.1e %.1e %.1e %.1e"
+              % (("%d" % (grp[0] + 1)) + ("-%d" % (grp[-1] + 1) if len(grp) > 1 else ""), eev[grp[0]],
+                 want[1], want[2], want[3], *dev))
     sums = max(abs(grossA + grossB - 1))
-    fermi = d["fermi_ev"]
-    iopF = iop[np.argmin(abs(e - fermi))]
+    iopF = iop[np.argmin(abs(e - d["fermi_ev"]))]
     print("max |gross(A)+gross(B)-1| (oracle) %.1e; occupied A-B overlap population: oracle %.6f  CLI %.6f  integrated OPDOS at Fermi %.6f"
           % (sums, occOP, d["occupied_overlap"][0], iopF))
-    print("CLI norm_error %.2e; worst per-MO deviation %.2e (tolerance %.0e)" % (d["norm_error"], worst, TOL))
-    ok = worst < TOL and abs(occOP - d["occupied_overlap"][0]) < TOL and abs(occOP - iopF) < 1e-4 and d["norm_error"] < 1e-5
+    print("CLI norm_error %.2e; worst per-MO deviation %.2e (tolerance %.0e); %d peaks for %d MOs"
+          % (d["norm_error"], worst, TOL, len(groups), n))
+    return worst < TOL and abs(occOP - d["occupied_overlap"][0]) < TOL and abs(occOP - iopF) < 1e-4 and d["norm_error"] < 1e-5
+
+
+def run_case(name, shells, open_shell, frag, resexe):
+    print("== case %s" % name)
+    aos, S = build(shells)
+    n = len(aos)
+    Ca, Ea = orbitals(aos, S, 0.0)
+    if open_shell:
+        Cb, Eb = orbitals(aos, S, 0.15)
+        sets = [("Alpha", Ca, Ea, np.array([1.0] * 5 + [0.0] * (n - 5))),
+                ("Beta", Cb, Eb, np.array([1.0] * 4 + [0.0] * (n - 4)))]
+    else:
+        sets = [("Alpha", Ca, Ea, np.array([2.0] * 5 + [0.0] * (n - 5)))]
+    work = tempfile.mkdtemp(prefix="dos-oracle-")
+    md, h5 = os.path.join(work, "water.molden"), os.path.join(work, "results.h5")
+    molden(md, shells, sets)
+    env = dict(os.environ)
+    env.setdefault("ECCE_HOME", os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+    env.setdefault("ECCE_REALUSER", "dosoracle")
+    env.setdefault("ECCE_REALUSERHOME", work)
+    env.setdefault("HOME", work)
+    r = subprocess.run([resexe, "convert", md, h5], capture_output=True, text=True, env=env)
+    if r.returncode:
+        print("FAIL convert:", r.stdout, r.stderr)
+        return False
+    ok = True
+    for spin, C, E, occ in sets:
+        ok &= check_channel(frag, h5, env, aos, S, C, E, occ, 1.0 if open_shell else 2.0,
+                            spin.lower() if open_shell else None)
+    return ok
+
+
+def main():
+    frag, resexe = [os.path.abspath(a) for a in sys.argv[1:3]]
+    ok = True
+    for name, shells, op in (("sto3g", STO3G, False), ("d", WITH_D, False), ("d-open", WITH_D, True)):
+        ok &= run_case(name, shells, op, frag, resexe)
     print("PASS" if ok else "FAIL")
     return 0 if ok else 1
 

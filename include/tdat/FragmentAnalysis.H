@@ -134,6 +134,7 @@ struct DosResult {
   double fermiEv = 0;                  // midpoint of HOMO and LUMO
   double homoEv = 0, lumoEv = 0;
   double normError = 0;                // max |c^T S c - 1| over the MOs used
+  int normWorstMo = 0, normWorstSpin = 0;  // where it is largest (1-based MO, 0 alpha / 1 beta)
   bool unrestricted = false;
 };
 

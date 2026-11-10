@@ -2590,7 +2590,7 @@ void MoPanel::setLocalised(bool localised)
 }
 
 
-bool MoPanel::showOrbital(int orbengIndex)
+bool MoPanel::showOrbital(int orbengIndex, int spin)
 {
    //  A panel nobody has opened has not read the basis or coefficients
    //  yet (initialization is lazy), so p_isValid is still false.
@@ -2611,11 +2611,11 @@ bool MoPanel::showOrbital(int orbengIndex)
    const long wanted = orbengIndex + 1;
 
    for (int row = 0; row < p_mogrid->GetNumberRows(); row++) {
-      //  Alpha orbitals only: the diagram is built from ORBENG, which
-      //  is the alpha set.  Without this an unrestricted calculation
-      //  would match the beta orbital of the same number first,
-      //  wherever it happened to fall in the table.
-      if (offset == 1 && p_mogrid->GetCellValue(row, 0) != "alpha") continue;
+      //  Only rows of the asked spin: the diagram is built from ORBENG (the
+      //  alpha set); otherwise an unrestricted calculation would match the
+      //  other spin's orbital of the same number wherever it falls.
+      if (offset == 1 && p_mogrid->GetCellValue(row, 0) != (spin ? "beta" : "alpha")) continue;
+      if (offset == 0 && spin) return false;
 
       long number = 0;
       if (!p_mogrid->GetCellValue(row, offset).ToLong(&number)) continue;

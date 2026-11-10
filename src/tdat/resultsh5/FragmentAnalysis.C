@@ -477,7 +477,11 @@ bool dosOrbitals(const Model& cx, const DosOptions& opt, DosResult& out, string&
         }
         norm += c[p] * tot;
       }
-      out.normError = std::max(out.normError, std::fabs(norm - 1.0));
+      if (std::fabs(norm - 1.0) > out.normError || out.normWorstMo == 0) {
+        out.normError = std::fabs(norm - 1.0);
+        out.normWorstMo = int(i) + 1;
+        out.normWorstSpin = spin;
+      }
       for (size_t k = 0; k < np; k++) ov[k] = 2.0 * cross[pairs[k].first * nset + pairs[k].second];
       out.moIndex.push_back(int(i) + 1);
       out.moSpin.push_back(spin);
@@ -559,6 +563,8 @@ bool dosSpinPart(const DosResult& all, int spin, bool occupiedOnly, DosResult& p
   part.pairNames = all.pairNames;
   part.unrestricted = all.unrestricted;
   part.normError = all.normError;
+  part.normWorstMo = all.normWorstMo;
+  part.normWorstSpin = all.normWorstSpin;
   size_t nset = all.setNames.size(), np = all.pairNames.size();
   double homo = -1e30, lumo = 1e30;
   for (size_t i = 0; i < all.moEnergy.size(); i++) {

@@ -104,7 +104,7 @@ class MoPanel : public MoGUI,
       * @return false if there is no such orbital, or the panel has no
       *         valid basis to compute one with.
       */
-     bool showOrbital(int orbengIndex);
+     bool showOrbital(int orbengIndex, int spin = 0);   // spin 1: the beta orbital (DOS panel)
 
      /**
       * The composition text of alpha orbitals given by ORBENG index (0-based),
