@@ -31,7 +31,7 @@ SETS = {"getting-started": ("Examples/Getting_Started", 6),
         "spectroscopy": ("Examples/Spectroscopy", 19),
         "genchem": ("Examples/General_Chemistry", 114),
         "workflows": ("Examples/Workflows", 9),
-        "test": ("Examples/Test", 17)}
+        "test": ("Examples/Test", 22)}
 
 # Written per import: who ran it, when, and where (StoredCalcCopy's kSkip).
 VOLATILE = {"owner", "creationdate", "createdWith", "currentVersion",
@@ -198,6 +198,19 @@ def checkSet(work, setId, failures):
         else:
             print("ok    %s/%s: copy and parse agree (%d files)"
                   % (setId, calc, len(files(pcalcs[calc]))))
+    # An imported CREST run whose conformers the topology check all removed
+    # carries the job store's warning, as a launched one does (#831).
+    for label, calcs in (("parse", pcalcs), ("copy", ccalcs)):
+        for calc, path in sorted(calcs.items()):
+            if os.path.basename(calc) != "zinc_aqua_topology":
+                continue
+            reason = [v for (r, k), v in records(os.path.join(path, ".ecce-meta")).items()
+                      if r == "." and k.endswith(":runStatusReason")]
+            if not (reason and reason[0].startswith("All conformers were removed")):
+                failures.append("%s/%s %s arm: no topology-check warning (%r)"
+                                % (setId, calc, label, reason))
+            else:
+                print("ok    %s/%s %s arm: topology-check warning" % (setId, calc, label))
     return 0
 
 

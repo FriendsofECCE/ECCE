@@ -2,24 +2,24 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and Raman. This calculation shows the S–O stretches of a sulfate chelating cobalt through two oxygens in cis-[Co(en)2(O2SO2)]+.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 08 Nov 2026 17:52:23 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 10:03:12 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 08 Nov 2026 17:52:21 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 10:03:09 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
 .	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
-.	http://www.emsl.pnl.gov/ecce:job_clienthost		nerdegg
+.	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
 .	http://www.emsl.pnl.gov/ecce:job_path		<rundir>
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
-.	http://www.emsl.pnl.gov/ecce:launch_machine		nerdegg
+.	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
 .	http://www.emsl.pnl.gov/ecce:launch_maxwall		
 .	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794160342.927 idle=0 at=1794160342\nscf cycle=15 energy=-2460.9850674516001163 dE=-1.31e-08/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-2.53e-01,-8.60e-02,-6.08e-02,-1.33e-01,-1.07e-03,-5.86e-05,-1.60e-05,2.34e-06,-5.40e-06,-4.11e-08,-7.82e-07,-5.69e-08,-4.03e-08,-1.31e-08\nresult disp=D3\nfreq kind=analytic point=93/93 phase=assemble last=Loop real=84 imaginary=0 done=yes zpe=0.25652645\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794304990.858 idle=0 at=1794304990\nscf cycle=15 energy=-2460.9850674516001163 dE=-1.31e-08/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-2.53e-01,-8.60e-02,-6.08e-02,-1.33e-01,-1.07e-03,-5.86e-05,-1.60e-05,2.34e-06,-5.40e-06,-4.11e-08,-7.82e-07,-5.69e-08,-4.03e-08,-1.31e-08\nresult disp=D3\nfreq kind=analytic point=93/93 phase=assemble last=Loop real=84 imaginary=0 done=yes zpe=0.25652645\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Vibration
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 17:52:21 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 10:03:09 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794160341
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794304989
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

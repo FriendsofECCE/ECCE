@@ -416,7 +416,8 @@ void CalculationContextPanel::updateProgress()
   p_progressBox->setStopped(state == ResourceDescriptor::STATE_UNSUCCESSFUL
       ? p_itemData->getResource()->getProp(VDoc::getEcceNamespace() + ":runStatusReason")
       : string());
-  p_progressBox->setWarning(state == ResourceDescriptor::STATE_COMPLETED
+  p_progressBox->setWarning(state == ResourceDescriptor::STATE_COMPLETED ||
+                            state == ResourceDescriptor::STATE_LOADED
       ? p_itemData->getResource()->getProp(VDoc::getEcceNamespace() + ":runStatusReason")
       : string());
   const bool queued = state == ResourceDescriptor::STATE_SUBMITTED;

@@ -1,0 +1,7 @@
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:charge		0
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:empiricalFormula		Cl2H8O4Zn
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:fragmentName		zinc_aqua_topology
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numAtoms		15
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:numElectrons		104
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:symmetrygroup		C1
+chemsys.mvm	http://www.emsl.pnl.gov/ecce:useSymmetry		false

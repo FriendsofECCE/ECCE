@@ -2,24 +2,24 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This calculation shows the C=O stretch of an ester with a longer acyl group.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 08 Nov 2026 17:53:01 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 10:01:04 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 08 Nov 2026 17:52:59 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 10:01:02 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
 .	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
-.	http://www.emsl.pnl.gov/ecce:job_clienthost		nerdegg
+.	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
 .	http://www.emsl.pnl.gov/ecce:job_path		<rundir>
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
-.	http://www.emsl.pnl.gov/ecce:launch_machine		nerdegg
+.	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
 .	http://www.emsl.pnl.gov/ecce:launch_maxwall		
 .	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794160381.547 idle=0 at=1794160381\nscf cycle=12 energy=-307.1257085042213930 dE=-8.73e-10/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-8.30e-02,-3.19e-02,-1.95e-02,-4.29e-02,-1.91e-04,-9.40e-05,-5.76e-07,-6.38e-07,2.57e-08,-7.50e-08,-8.73e-10\nresult disp=D3\nfreq kind=analytic point=45/45 phase=assemble last=Loop real=36 imaginary=0 done=yes zpe=0.11915781\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794304864.218 idle=0 at=1794304864\nscf cycle=12 energy=-307.1257085042213930 dE=-8.73e-10/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-8.30e-02,-3.19e-02,-1.95e-02,-4.29e-02,-1.91e-04,-9.40e-05,-5.76e-07,-6.38e-07,2.57e-08,-7.50e-08,-8.73e-10\nresult disp=D3\nfreq kind=analytic point=45/45 phase=assemble last=Loop real=36 imaginary=0 done=yes zpe=0.11915781\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Vibration
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 17:53:00 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 10:01:03 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794160380
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794304862
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT
