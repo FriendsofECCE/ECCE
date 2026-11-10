@@ -33,6 +33,12 @@
         MAX_SCF 10
         EPS_SCF 1e-06
       &END OUTER_SCF
+      &PRINT
+        &RESTART ON
+          FILENAME =cp2k-RESTART.wfn
+          BACKUP_COPIES 0
+        &END RESTART
+      &END PRINT
     &END SCF
     &XC
       &XC_FUNCTIONAL

@@ -1,4 +1,5 @@
-#P rhf/6-31G* 6D 10F Polar() Symmetry=(PG=C2V,Loose)  Punch=(MO) Pop=(full) 
+#P rhf/6-31G* 6D 10F Polar() Symmetry=(PG=C2V,Loose) GFInput  Punch=(MO)
+Pop=(full) 
 
 g16
 

@@ -3305,7 +3305,8 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calced_hand_edit PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
-  # Saving regenerates each code's deck byte for byte as stored (DeckWriter, #621).
+  # Saving regenerates each code's deck byte for byte as stored (DeckWriter,
+  # #621) and starts at most two commands per Save (#940).
   add_test(NAME apps_deck_regen
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/deck_regen_test.py
