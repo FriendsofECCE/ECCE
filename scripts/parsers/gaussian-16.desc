@@ -38,6 +38,8 @@ End=Largest change from initial coordinates
 
 # Relaxed scan structures (#410): needs the whole log, since a point's
 # converged geometry is only known from the "Optimization completed" after it.
+# The script also passes the log to gaussian-16.scanmos for each point's MOs
+# (#549): eccejobmonitor allows only one parse type per File= file.
 [SCANGEOM]
 Script=gaussian-16.scangeom
 File=g16.g16out
