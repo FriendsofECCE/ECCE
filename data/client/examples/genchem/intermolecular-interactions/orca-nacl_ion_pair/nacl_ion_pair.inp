@@ -1,0 +1,12 @@
+! B3LYP D3BJ def2-TZVP TightSCF TightOpt Freq
+%pal nprocs 2 end
+%maxcore 2000
+%output
+  Print[P_MOs] 1
+  Print[P_OrbEn] 2
+end
+
+* xyz 0 1
+ Na    0.000000    0.000000    0.000000
+ Cl    0.000000    0.000000    2.360000
+*

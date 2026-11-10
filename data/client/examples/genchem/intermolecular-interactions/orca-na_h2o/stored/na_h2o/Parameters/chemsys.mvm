@@ -1,0 +1,27 @@
+title: na_h2o
+type: molecule
+fragment_attributes:
+  point_group: C2v
+  charge: 1
+end_fragment_attributes:
+num_atoms: 4
+atom_info: symbol cart
+atom_list: 
+Na 0.00000 -0.00000 -2.21421
+O -1.00000e-06 0.00000 -0.00304800
+H 0.00000 0.767836 0.583627
+H 0.00000 -0.767836 0.583626
+attr_list:
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+ 0.000000   1   0   0   0
+atom_type_list:
+        0   1
+        6   1
+        1   1
+        1   1
+num_bonds: 2
+bond_list: 
+2 3 1.00000 1
+2 4 1.00000 1
