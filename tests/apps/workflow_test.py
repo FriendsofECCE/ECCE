@@ -1339,6 +1339,7 @@ def run_autorun(display, data, work, shots):
     check("ticking auto-run launched the ready step", play and "d:0:already run" in play[-1],
           str(play))
     run_recipe_ready(display, data, work, shots, rundir)
+    run_hand_ready(display, data, work, shots)
 
 
 def run_recipe_ready(display, data, work, shots, rundir):
@@ -1389,6 +1390,60 @@ def run_recipe_ready(display, data, work, shots, rundir):
           "skipped" not in launch[0].split("preopt", 1)[1].split("|")[0], str(launch))
     check("the step left Created/Ready",
           len(play) == 2 and "preopt:0:already run" in play[1], str(play))
+
+
+def run_hand_ready(display, data, work, shots):
+    """ECCE-QM -> xTB -> CREST made with New step (#926): once ECCE-QM is
+    complete the inserted xTB step is Ready and CREST is not, not even after
+    the editor's Save; CREST becomes Ready only through that Save, once xTB
+    has completed."""
+    project = os.path.join(data, "users", "local", "handready")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(CALC, os.path.join(project, "water"), symlinks=True)
+    proj = "file://" + project
+    wf = proj + "/Workflow"
+    script = os.path.join(work, "handready-commands")
+    commands = [
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/water seed" % (wf, proj),
+        "workflowstep %s ecceqm_es qm %s/seed" % (wf, wf),
+        "setstate %s/qm completed" % wf,
+        "idle 2000",
+        "workflowstep %s crest_es cr %s/qm" % (wf, wf),
+        "workflowstate %s %s/xtb-1" % (wf, wf),
+        "workflowstate %s %s/cr" % (wf, wf),
+        # The Calculation Editor's Save stores Ready.
+        "setstate %s/cr ready" % wf,
+        "idle 2000",
+        "workflowstate %s %s/cr" % (wf, wf),
+        "setstate %s/xtb-1 completed" % wf,
+        "idle 3000",
+        "workflowstate %s %s/cr" % (wf, wf),
+        "setstate %s/cr ready" % wf,
+        "idle 1000",
+        "workflowstate %s %s/cr" % (wf, wf),
+    ]
+    with open(script, "w") as f:
+        f.write("\n".join(commands) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    log = result.log or ""
+    with open(os.path.join(shots, "handready.log"), "w") as f:
+        f.write(log)
+    check("hand-ready Organizer survives", not result.crashed, log)
+    state = re.findall(r"ECCE_TEST_ORGANIZER: workflowstate .*?: (.*)$", log, re.M)
+    state = [s.lower() for s in state]
+    check("after ECCE-QM completes, the inserted xTB step is Ready",
+          len(state) == 5 and state[0].startswith("ok state=ready"), str(state))
+    check("CREST is not Ready before xTB has run",
+          len(state) == 5 and state[1].startswith("ok state=created"), str(state))
+    check("the editor's Save does not make CREST Ready while xTB waits",
+          len(state) == 5 and state[2].startswith("ok state=created"), str(state))
+    check("CREST is not Ready on its own once xTB completes",
+          len(state) == 5 and state[3].startswith("ok state=created"), str(state))
+    check("CREST is Ready after the editor's Save once xTB completed",
+          len(state) == 5 and state[4].startswith("ok state=ready"), str(state))
 
 
 def main():
