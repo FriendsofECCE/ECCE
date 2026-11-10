@@ -19,6 +19,11 @@ calculations in one step. It does the same as **Run Mgmt > Reconnect** (or the
 4. Choose **Reconnect**. A progress window shows the calculation being
    reconnected, and a result list follows.
 
+A calculation in the state **Ready** was never submitted from ECCE. If its
+job is in the queue anyway (a submit that got no answer), ECCE asks for the
+job ID of each such calculation, and reconnects it to that job. **Cancel**
+skips the calculation.
+
 Calculations on the same machine are reconnected one after the other, so a
 login to that machine is asked for once.
 

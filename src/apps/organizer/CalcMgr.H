@@ -164,7 +164,10 @@ public:
   // Reconnect Selected (#601), same selection; `listOnly`/`shot` for tests.
   void reconnectSelected(const vector<EcceURL>& urls, bool interactive,
                          string *outcome = 0, const string& shot = "",
-                         bool listOnly = false, vector<string> *lines = 0);
+                         bool listOnly = false, vector<string> *lines = 0,
+                         const string& readyJobId = "");
+  // Ready -> Submitted with a queue job id (ecce-reconnect jobid=N, the dialog).
+  bool attachJobId(TaskJob *job, const string& jobId, string& why);
   // Launch steps run on a worker thread; a login it needs is asked here.
   bool getAuthorization(AuthEvent& event);
   // Launch Selected (#492); `outcome` and `shot` only for the test hook.
