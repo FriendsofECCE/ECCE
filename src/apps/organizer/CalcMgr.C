@@ -438,6 +438,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
     auto done = std::make_shared<size_t>(0);
     wxTimer *timer = new wxTimer();   // lives until the process exits
     timer->Bind(wxEVT_TIMER, [this, path, done](wxTimerEvent&) {
+      // The example import pumps timers from its progress dialog; a command
+      // that rebuilds the tree there frees Resources the import still uses.
+      if (p_batchImport) return;
       std::ifstream in(path.c_str());
       string line;
       size_t n = 0;
