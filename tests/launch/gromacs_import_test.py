@@ -223,6 +223,12 @@ def main():
             time.sleep(1)
         left = glob.glob(pat)
         check(not left, "staging directories left after the imports: %s" % left)
+        # ... and the job folders each import ran its monitor in (#924).
+        jobs = os.path.join(s.state, "tmp", "*", "jobs", "*")
+        while glob.glob(jobs) and time.time() < end + 60:
+            time.sleep(1)
+        left = glob.glob(jobs)
+        check(not left, "job folders left after the imports: %s" % left)
     finally:
         if org is not None:
             stop(org)

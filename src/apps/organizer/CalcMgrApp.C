@@ -11,6 +11,9 @@
 #pragma implementation "CalcMgrApp.H"
 #endif
 
+#include <thread>
+
+#include "util/TempStorage.H"
 #include <unistd.h>
 #include <stdio.h>
 #include "wx/wxprec.h"
@@ -191,6 +194,10 @@ bool CalcMgrApp::OnInit()
 
   // Calculations left waiting for login when ECCE was last away (#208).
   p_calcMgr->CallAfter([this]() { p_calcMgr->catchUpWaitingJobs(); });
+
+  // Job folders and temp files left by monitors that were stopped or failed
+  // pile up in /tmp, which is RAM on Debian 13 (#924); off the start-up path.
+  std::thread([]() { TempStorage::sweepStale(3); }).detach();
 
   // Desk Top Messages
   subscribe("ecce_quit", (wxJmsCBFunc)&CalcMgrApp::quitMCB);

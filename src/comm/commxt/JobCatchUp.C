@@ -275,6 +275,8 @@ bool JobCatchUp::reparse(TaskJob* calc, std::string& message)
   SDirectory* dir = TempStorage::getTempJobDirectory(
                               calc->getURL().getFilePathTail().c_str());
   const std::string stage = dir->path();
+  delete dir;
+  TempStorage::JobDirGuard stageGuard(stage);
 
   EcceMap kvargs;
   const JCode::CodeFileType kinds[2] = { JCode::PARSE_OUTPUT,
@@ -307,6 +309,7 @@ bool JobCatchUp::reparse(TaskJob* calc, std::string& message)
             launch.moveJobMonitoringFiles() &&
             launch.startJobStore(stage + "/");
   message = ok ? "re-parsing the stored outputs" : launch.message();
+  if (ok) stageGuard.keep();   // eccejobmaster removes it after the parse
   return ok;
 }
 

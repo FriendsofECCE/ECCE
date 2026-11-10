@@ -7,6 +7,13 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
+#include <time.h>
+#include <dirent.h>
+#include <sys/stat.h>
+#include <fstream>
+#include <iterator>
+#include <vector>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -19,6 +26,7 @@ using namespace std;
 #include "util/Ecce.H"
 #include "util/SDirectory.H"
 #include "util/SFile.H"
+#include "util/WaitingJobs.H"
 
 /**
  * The system's temporary directory: /tmp, or on Windows the user's temp
@@ -253,4 +261,161 @@ string TempStorage::getJobRunDirectoryPath(const EcceURL& url)
       fullFile.erase(fullFile.length()-1, 1);
 
   return fullFile;
+}
+
+
+TempStorage::JobDirGuard::~JobDirGuard()
+{
+   if (p_path.empty()) return;
+   SDirectory dir(p_path.c_str());
+   if (dir.exists())
+      (void)dir.remove();
+}
+
+
+namespace {
+
+bool statNoFollow(const string& path, struct stat& st)
+{
+#ifdef _WIN32
+   return stat(path.c_str(), &st) == 0;
+#else
+   return lstat(path.c_str(), &st) == 0;
+#endif
+}
+
+// The mkstemp names TempStorage hands out: <prefix>__XXXXXX for job
+// folders, ECCEXXXXXX for files. Nothing else in these folders is touched.
+bool endsInUniqueTail(const string& name, size_t at)
+{
+   if (name.size() != at + 6) return false;
+   for (size_t i = at; i < name.size(); i++)
+      if (!isalnum((unsigned char)name[i])) return false;
+   return true;
+}
+
+// Newest change in the folder or its own entries: a monitor still writing
+// its logs keeps the folder young.
+time_t newestChange(const string& dir, time_t mtime)
+{
+   time_t newest = mtime;
+   DIR* d = opendir(dir.c_str());
+   if (!d) return newest;
+   while (struct dirent* e = readdir(d)) {
+      // ".." is the jobs folder itself, which every new job makes young.
+      if (strcmp(e->d_name, ".") == 0 || strcmp(e->d_name, "..") == 0)
+         continue;
+      struct stat st;
+      if (statNoFollow(dir + "/" + e->d_name, st) && st.st_mtime > newest)
+         newest = st.st_mtime;
+   }
+   closedir(d);
+   return newest;
+}
+
+string confValue(const string& conf, const string& key)
+{
+   std::ifstream in(conf.c_str());
+   for (string line; std::getline(in, line); )
+      if (line.compare(0, key.size() + 2, key + ": ") == 0) {
+         string v = line.substr(key.size() + 2);
+         while (v.size() > 1 && v.back() == '/') v.pop_back();
+         return v;
+      }
+   return "";
+}
+
+// Linux: the working directories and command lines of the user's own
+// processes, so a folder a live process still names is never removed.
+vector<string> liveProcessPaths()
+{
+   vector<string> out;
+#ifdef __linux__
+   DIR* d = opendir("/proc");
+   if (!d) return out;
+   while (struct dirent* e = readdir(d)) {
+      if (!isdigit((unsigned char)e->d_name[0])) continue;
+      const string pid = string("/proc/") + e->d_name;
+      char buf[4096];
+      ssize_t n = readlink((pid + "/cwd").c_str(), buf, sizeof buf - 1);
+      if (n > 0) out.push_back(string(buf, n) + "/");
+      std::ifstream cl((pid + "/cmdline").c_str(), std::ios::binary);
+      string args((std::istreambuf_iterator<char>(cl)),
+                  std::istreambuf_iterator<char>());
+      for (char& c : args) if (c == '\0') c = ' ';
+      if (!args.empty()) out.push_back(args);
+   }
+   closedir(d);
+#endif
+   return out;
+}
+
+}  // namespace
+
+
+int TempStorage::sweepStale(int days)
+{
+   const time_t cutoff = time(0) - (time_t)days * 24 * 3600;
+   const string root = getTempRootPath();
+   const string jobs = root + "/jobs";
+   int removed = 0;
+
+   struct Folder { string path; time_t newest; };
+   vector<Folder> old;
+   vector<string> inUse;   // folders a running job monitor still owns
+   if (DIR* d = opendir(jobs.c_str())) {
+      while (struct dirent* e = readdir(d)) {
+         const string name = e->d_name;
+         const size_t sep = name.rfind("__");
+         if (sep == string::npos || sep == 0 || !endsInUniqueTail(name, sep + 2))
+            continue;
+         const string path = jobs + "/" + name;
+         struct stat st;
+         if (!statNoFollow(path, st) || !S_ISDIR(st.st_mode)) continue;
+         // eccejobmaster holds the calculation's watch lock while it runs;
+         // its config names the import folder the monitor runs in.
+         const string conf = path + "/eccejobstore.conf";
+         const string url = confValue(conf, "calcURL");
+         if (!url.empty() && WaitingJobs::watched(url)) {
+            inUse.push_back(path);
+            inUse.push_back(confValue(conf, "remoteDir"));
+            continue;
+         }
+         const time_t newest = newestChange(path, st.st_mtime);
+         if (newest < cutoff) old.push_back({path, newest});
+      }
+      closedir(d);
+   }
+
+   if (!old.empty()) {
+      const vector<string> live = liveProcessPaths();
+      for (const Folder& f : old) {
+         bool used = false;
+         for (const string& u : inUse)
+            if (u == f.path) used = true;
+         const string slash = f.path + "/";
+         for (const string& l : live)
+            if (l.compare(0, slash.size(), slash) == 0 ||
+                l.find(f.path) != string::npos)
+               used = true;
+         if (used) continue;
+         SDirectory dir(f.path.c_str());
+         if (dir.remove()) removed++;
+      }
+   }
+
+   if (DIR* d = opendir(root.c_str())) {
+      while (struct dirent* e = readdir(d)) {
+         const string name = e->d_name;
+         if (name.compare(0, 4, "ECCE") != 0 || !endsInUniqueTail(name, 4))
+            continue;
+         const string path = root + "/" + name;
+         struct stat st;
+         if (statNoFollow(path, st) && S_ISREG(st.st_mode) &&
+             st.st_mtime < cutoff && unlink(path.c_str()) == 0)
+            removed++;
+      }
+      closedir(d);
+   }
+   return removed;
 }
