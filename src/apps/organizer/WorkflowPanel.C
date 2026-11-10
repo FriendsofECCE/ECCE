@@ -848,7 +848,7 @@ WorkflowPanel::WorkflowPanel(CalcMgr *calcMgr, WxResourceTreeItemData *node,
                              wxWindow *parent)
   : ewxPanel(parent, wxID_ANY), p_calcMgr(calcMgr),
     p_session(dynamic_cast<Session*>(node->getResource())),
-    p_canvas(0), p_help(0), p_status(0), p_launch(0), p_autorun(0), p_apply(0), p_empty(0),
+    p_canvas(0), p_help(0), p_status(0), p_launch(0), p_close(0), p_autorun(0), p_apply(0), p_empty(0),
     p_left(0), p_top(0), p_recipe(0), p_vertical(false),
     p_toolbar(0), p_orientationId(wxWindow::NewControlId())
 {
@@ -943,6 +943,16 @@ void WorkflowPanel::createControls()
     say(got.compare(0, 3, "ok ") == 0 ? "Saved as a recipe: " + got.substr(3) : got);
   });
   noteSizer->Add(texts, 0, wxEXPAND);
+  p_close = new wxButton(notes, wxID_ANY, "Back to Table");
+  p_close->SetToolTip("Close the workflow view and show the calculation table "
+                      "of the folder this workflow is in");
+  p_close->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
+    // Selecting the folder replaces this panel, so leave the handler first.
+    const string url = p_session->getURL().toString();
+    CalcMgr *cm = p_calcMgr;
+    cm->CallAfter([cm, url]() { cm->closeWorkflowView(url); });
+  });
+  btnRow->Add(p_close, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxLEFT, 8);
   btnRow->Add(saveRecipe, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxLEFT, 8);
   btnRow->Add(p_apply, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxLEFT, 8);
   btnRow->AddStretchSpacer(1);
@@ -1236,6 +1246,14 @@ void WorkflowPanel::clickAutoRun(bool on)
   evt.SetEventObject(p_autorun);
   evt.SetInt(on ? 1 : 0);
   p_autorun->GetEventHandler()->ProcessEvent(evt);
+}
+
+
+void WorkflowPanel::clickClose()
+{
+  wxCommandEvent evt(wxEVT_BUTTON, p_close->GetId());
+  evt.SetEventObject(p_close);
+  p_close->GetEventHandler()->ProcessEvent(evt);
 }
 
 
