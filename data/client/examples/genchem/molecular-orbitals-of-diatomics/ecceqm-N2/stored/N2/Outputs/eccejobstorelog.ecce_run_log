@@ -1,25 +1,26 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <eccejobstore>
-     <event  type="Message"  name="Job log started for calculation"  date="Sun, 08 Nov 2026 18:49:51 CET" >file://&lt;home&gt;/ecce-offload/cache/ecce-apps-s3ya35tg/examples-arm-qcijhv7u/data/users/local/Examples/General_Chemistry/Molecular_orbitals_of_diatomics/N2     </event>
-     <event  type="Message"  name="eccejobstore running on client"  date="Sun, 08 Nov 2026 18:49:51 CET" >nerdegg     </event>
-     <event  type="Message"  name="Cache"  date="Sun, 08 Nov 2026 18:49:51 CET" >Successfully started property parsing cache     </event>
-     <event  type="Message"  name="Local cache directory"  date="Sun, 08 Nov 2026 18:49:51 CET" >&lt;rundir&gt;     </event>
-     <event  type="Message"  name="Job Monitor"  date="Sun, 08 Nov 2026 18:49:51 CET" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
-     <event  type="Message"  name="System"  date="Sun, 08 Nov 2026 18:49:51 CET" >Started local RCommand connection     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sun, 08 Nov 2026 18:49:51 CET" >Receiving calculation output from eccejobmonitor     </event>
-     <event  type="Message"  name="eccejobstore"  date="Sun, 08 Nov 2026 18:49:51 CET" >out of contact after 60 s of silence, reconnect after 180 s     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Sun, 08 Nov 2026 18:49:51 CET" >Running     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sun, 08 Nov 2026 18:49:53 CET" >File marked to copy from compute host: N2.qmout     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sun, 08 Nov 2026 18:49:53 CET" >File marked to copy from compute host: N2.qmout     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Sun, 08 Nov 2026 18:49:53 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/ecce-offload/cache/ecce-apps-s3ya35tg/ecce-home/data/client/examples/genchem/molecular-orbitals-of-diatomics/ecceqm-N2/ecceqm.qmorb' does not exist     </event>
-     <event  type="Message"  name="Benchmark"  date="Sun, 08 Nov 2026 18:49:53 CET" >Before file copy of output files     </event>
-     <event  type="Message"  name="Benchmark"  date="Sun, 08 Nov 2026 18:49:53 CET" >After file copy of output files     </event>
-     <event  type="Message"  name="File Copy"  date="Sun, 08 Nov 2026 18:49:53 CET" >Successfully copied files from server
+     <event  type="Message"  name="Job log started for calculation"  date="Tue, 10 Nov 2026 12:14:25 CET" >file://&lt;home&gt;/tmp/ecce/ECCE-749/t/regen/cache/ecce-apps-70kgdm_r/examples-arm-aaujw0wj/data/users/local/Examples/General_Chemistry/Molecular_orbitals_of_diatomics/N2     </event>
+     <event  type="Message"  name="eccejobstore running on client"  date="Tue, 10 Nov 2026 12:14:25 CET" >niobium     </event>
+     <event  type="Message"  name="Cache"  date="Tue, 10 Nov 2026 12:14:25 CET" >Successfully started property parsing cache     </event>
+     <event  type="Message"  name="Local cache directory"  date="Tue, 10 Nov 2026 12:14:25 CET" >&lt;rundir&gt;     </event>
+     <event  type="Message"  name="Job Monitor"  date="Tue, 10 Nov 2026 12:14:25 CET" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
+     <event  type="Message"  name="System"  date="Tue, 10 Nov 2026 12:14:25 CET" >Started local RCommand connection     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 12:14:25 CET" >Receiving calculation output from eccejobmonitor     </event>
+     <event  type="Message"  name="eccejobstore"  date="Tue, 10 Nov 2026 12:14:25 CET" >out of contact after 60 s of silence, reconnect after 180 s     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Tue, 10 Nov 2026 12:14:25 CET" >Running     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 12:14:26 CET" >File marked to copy from compute host: N2.qmout     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 12:14:26 CET" >File marked to copy from compute host: N2.qmout     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 12:14:26 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-749/t/regen/cache/ecce-apps-70kgdm_r/ecce-home/data/client/examples/genchem/molecular-orbitals-of-diatomics/ecceqm-N2/ecceqm.qmorb' does not exist     </event>
+     <event  type="Message"  name="Benchmark"  date="Tue, 10 Nov 2026 12:14:26 CET" >Before file copy of output files     </event>
+     <event  type="Message"  name="Benchmark"  date="Tue, 10 Nov 2026 12:14:26 CET" >After file copy of output files     </event>
+     <event  type="Message"  name="File Copy"  date="Tue, 10 Nov 2026 12:14:27 CET" >Successfully copied files from server
 N2.qmout: N2.qmout  
 no files matched *.cub
-no files matched *.cube     </event>
-     <event  type="Message"  name="File Copy"  date="Sun, 08 Nov 2026 18:49:53 CET" >No cube, PDOS or other wildcard output files arrived     </event>
-     <event  type="Message"  name="results.h5"  date="Sun, 08 Nov 2026 18:49:53 CET" >results.h5 stored; checks passed: alpha tr(PS) 14.000000 of 14.0000, rel err 9.3e-09, max |C'SC-1| 3.8e-08, 28 AOs     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Sun, 08 Nov 2026 18:49:53 CET" >Loaded     </event>
-     <event  type="Message"  name="eccejobstore exit"  date="Sun, 08 Nov 2026 18:49:53 CET" >eccejobstore terminating normally, exit status 0     </event>
+no files matched *.cube
+no files matched results.h5     </event>
+     <event  type="Message"  name="File Copy"  date="Tue, 10 Nov 2026 12:14:27 CET" >No cube, PDOS or other wildcard output files arrived     </event>
+     <event  type="Message"  name="results.h5"  date="Tue, 10 Nov 2026 12:14:27 CET" >results.h5 stored; checks passed: alpha tr(PS) 14.000000 of 14.0000, rel err 9.3e-09, max |C'SC-1| 3.8e-08, 28 AOs     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Tue, 10 Nov 2026 12:14:27 CET" >Loaded     </event>
+     <event  type="Message"  name="eccejobstore exit"  date="Tue, 10 Nov 2026 12:14:27 CET" >eccejobstore terminating normally, exit status 0     </event>
 </eccejobstore>

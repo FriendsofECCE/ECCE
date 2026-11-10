@@ -2,24 +2,24 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the occupied orbitals of the sulfur atom, filled in order of increasing energy.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 08 Nov 2026 17:49:42 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:14:11 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 08 Nov 2026 17:49:40 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:14:09 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
 .	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
 .	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
-.	http://www.emsl.pnl.gov/ecce:job_clienthost		nerdegg
+.	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
 .	http://www.emsl.pnl.gov/ecce:job_clientid		
 .	http://www.emsl.pnl.gov/ecce:job_jobid		
 .	http://www.emsl.pnl.gov/ecce:job_path		<rundir>
 .	http://www.emsl.pnl.gov/ecce:killreason		
 .	http://www.emsl.pnl.gov/ecce:killrequested		
 .	http://www.emsl.pnl.gov/ecce:launch_account		
-.	http://www.emsl.pnl.gov/ecce:launch_machine		nerdegg
+.	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
 .	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
 .	http://www.emsl.pnl.gov/ecce:launch_maxwall		
 .	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794160181.953 idle=0 at=1794160181\nscf cycle=46 energy=-398.0765618689 dE=-3.38e-11/1e-10 grad=5.09e-08/1e-07 converged=yes\nscf~ dE=-8.89e-02,3.88e-03,-1.45e-03,-2.01e-03,2.88e-03,-3.60e-05,-4.83e-04,-4.99e-04,-1.35e-05,2.30e-04,-2.44e-03,2.10e-03,1.01e-04,1.96e-03,-1.13e-03,-3.67e-04,-5.71e-04,3.74e-04,-4.45e-04,4.82e-04,-5.08e-03,-1.61e-04,-2.64e-05,-2.75e-07,-3.09e-09,-3.38e-11,6.63e-03,2.95e-09,2.04e-09,7.98e-09,2.22e-07,-2.31e-07,2.88e-07,-3.44e-07,1.29e-04,-6.08e-05,-1.36e-03,-2.30e-03,1.47e-04,8.95e-04,-3.91e-04,-1.46e-04,-6.34e-04,1.65e-04,-3.38e-11\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309250.906 idle=0 at=1794309250\nscf cycle=46 energy=-398.0765618689 dE=-3.38e-11/1e-10 grad=5.09e-08/1e-07 converged=yes\nscf~ dE=-8.89e-02,3.88e-03,-1.45e-03,-2.01e-03,2.88e-03,-3.60e-05,-4.83e-04,-4.99e-04,-1.35e-05,2.30e-04,-2.44e-03,2.10e-03,1.01e-04,1.96e-03,-1.13e-03,-3.67e-04,-5.71e-04,3.74e-04,-4.45e-04,4.82e-04,-5.08e-03,-1.61e-04,-2.64e-05,-2.75e-07,-3.09e-09,-3.38e-11,6.63e-03,2.95e-09,2.04e-09,7.98e-09,2.22e-07,-2.31e-07,2.88e-07,-3.44e-07,1.29e-04,-6.08e-05,-1.36e-03,-2.30e-03,1.47e-04,8.95e-04,-3.91e-04,-1.46e-04,-6.34e-04,1.65e-04,-3.38e-11\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Triplet
-.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 17:49:40 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:14:09 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794160180
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794309249
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT
