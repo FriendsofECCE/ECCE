@@ -646,15 +646,18 @@ bool Launch::crestFromOptimisation(TaskJob *task)
         prov = l->source;
         break;
       }
-  return isXtbOptimisation(dynamic_cast<TaskJob*>(prov));
+  // An xTB optimisation that has not run yet still counts: its result is
+  // what CREST will start from, and an unfinished source is reported apart.
+  return isXtbOptimisation(dynamic_cast<TaskJob*>(prov), false);
 }
 
-bool Launch::isXtbOptimisation(TaskJob *task)
+bool Launch::isXtbOptimisation(TaskJob *task, bool mustBeCompleted)
 {
   ICalculation *calc = dynamic_cast<ICalculation*>(task);
   if (calc == 0 || task->application() == 0 ||
       strcasecmp(task->application()->getCodeName().c_str(), "xtb") != 0 ||
-      task->getState() != ResourceDescriptor::STATE_COMPLETED)
+      (mustBeCompleted &&
+       task->getState() != ResourceDescriptor::STATE_COMPLETED))
     return false;
   const string rt = calc->runtype().name();
   return rt == "Geometry" || rt == "GeoVib";
