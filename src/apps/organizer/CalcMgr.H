@@ -193,6 +193,11 @@ public:
                        const LaunchBatch::Target& target, vector<string>& lines,
                        bool lastGeom = false, unsigned long cores = 0,
                        const string& wall = "");
+  // ecce-launch --move (#830): cancel a still-queued Slurm job and submit
+  // the calculation on target.machine; same line format as launchForCommand.
+  bool moveLaunchForCommand(const vector<EcceURL>& urls,
+                            const LaunchBatch::Target& target,
+                            vector<string>& lines);
   // ecce-terminate (#695): Terminate Selected without the dialog; same line
   // format as launchForCommand. False, with lines empty, while a batch submits.
   bool terminateForCommand(const vector<EcceURL>& urls, const string& reason,

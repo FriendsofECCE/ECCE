@@ -108,6 +108,21 @@ Without a running ECCE session the command says `ECCE is not running: start
 ECCE first` and launches nothing. While a Launch Selected batch is submitting,
 it asks to be run again later.
 
+### Moving a queued calculation to another machine
+
+    ecce-launch --move on=MACHINE <calculation folder or URL>...
+
+moves a Submitted calculation whose job is still waiting in the queue: the
+queued job is cancelled, and the calculation is submitted again on `on=`
+under the same name, with its inputs and run log. The log gets the line
+`moved from A to B, job N cancelled`. Before anything is cancelled, ECCE asks
+the machine's queue about the job. If the job has started, has left the
+queue, or the queue cannot be asked, the line says so and nothing changes.
+Only Slurm machines are supported. The new submit is the one `ecce-launch`
+makes, so the same notes appear. One line is printed for each calculation,
+`name: job id N` or `name: not moved: reason`; the exit status is 0 only when
+all were moved.
+
 ### Terminating from the command line
 
     ecce-terminate [--reason "text"] <calculation folder or URL>...

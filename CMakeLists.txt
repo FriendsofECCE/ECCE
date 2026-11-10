@@ -4375,6 +4375,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(ecce_launch PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #830: ecce-launch --move cancels a pending Slurm job and resubmits elsewhere.
+  add_test(NAME ecce_launch_move
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/ecce_launch_move_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(ecce_launch_move PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
   # #695: ecce-terminate cancels a running calculation inside the running
   # Organizer's session and keeps the given reason; skipped (77) without Xvfb.

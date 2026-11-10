@@ -10,6 +10,8 @@
  * with "name: note: ..." before it for a setting that was filled in or
  * dropped (no stored queue, a machine that passes no time limit).
  * Every calculation given gets one line, also when ECCE gives no answer.
+ * --move on=M: a Submitted calculation whose Slurm job is still pending is
+ * cancelled and submitted on M (#830); lines read "not moved: ..." if refused.
  * Exit 4: no answer in time (it may have been carried out); 5: the Organizer ended before answering. Exit 0: all launched; 1: some were not; 2: no running
  * ECCE session; 3: the Organizer is busy with a Launch Selected batch;
  * 64: usage.
@@ -146,6 +148,7 @@ int main(int argc, char **argv)
   }
 
   string on, profile, queue, wall;
+  bool move = false;
   vector<string> args;
   for (int i = 1; i < argc; i++) {
     string a = argv[i];
@@ -153,11 +156,13 @@ int main(int argc, char **argv)
     else if (a.compare(0, 8, "profile=") == 0) profile = a.substr(8);
     else if (a.compare(0, 6, "queue=") == 0) queue = a.substr(6);
     else if (a.compare(0, 5, "wall=") == 0) wall = a.substr(5);
+    else if (a == "--move") move = true;
     else args.push_back(a);
   }
-  if (args.empty()) {
-    std::cerr << "usage: ecce-launch [on=MACHINE] [profile=NAME] [queue=QUEUE] "
-                 "[wall=H:MM] <calculation path or URL>..." << std::endl;
+  if (args.empty() || (move && on.empty())) {
+    std::cerr << "usage: ecce-launch [--move] [on=MACHINE] [profile=NAME] [queue=QUEUE] "
+                 "[wall=H:MM] <calculation path or URL>...\n"
+                 "       --move needs on=MACHINE" << std::endl;
     return 64;
   }
 
@@ -201,6 +206,7 @@ int main(int argc, char **argv)
   msg->addProperty("profile", profile);
   msg->addProperty("queue", queue);
   msg->addProperty("wall", wall);
+  msg->addProperty("move", move ? "yes" : "no");
   msg->addIntProperty("n", (int)urls.size());
   for (size_t i = 0; i < urls.size(); i++)
     msg->addProperty("url" + std::to_string(i), urls[i]);
@@ -253,7 +259,7 @@ int main(int argc, char **argv)
     if (ok != "warn") answered.push_back(name);
     if (ok == "warn") std::cout << name << ": note: " << text << std::endl;
     else if (ok == "ok") std::cout << name << ": job id " << text << std::endl;
-    else { std::cout << name << ": not launched: " << text << std::endl; allOk = false; }
+    else { std::cout << name << (move ? ": not moved: " : ": not launched: ") << text << std::endl; allOk = false; }
   }
   //  The Organizer answers one line per calculation; match names only when
   //  some are missing, as a stored name need not equal its folder name.

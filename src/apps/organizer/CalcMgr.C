@@ -90,6 +90,9 @@ static std::string s_registerMessage;
 #include "tdat/AuthCache.H"
 #include "tdat/PropTSVecTable.H"
 #include "tdat/RefMachine.H"
+#include "tdat/QueueMgr.H"
+#include "util/StringTokenizer.H"
+#include "dsm/ActivityLog.H"
 
 #include "dsm/DavCalculation.H"
 #include "dsm/NWChemMDModel.H"
@@ -5026,6 +5029,135 @@ bool CalcMgr::launchForCommand(const vector<EcceURL>& urls,
       line += "ok\t" + (id.empty() ? string("not reported") : id);
     } else line += "no\t" + r.outcome;
     lines.push_back(line);
+  }
+  return true;
+}
+
+
+//  A Slurm "squeue" line: ST column PD (or the word PENDING) means the job
+//  has not started. Anything else, including a line in another format, is
+//  treated as started so that nothing is cancelled on a guess.
+static bool slurmLinePending(const string& line)
+{
+  StringTokenizer t(line);
+  vector<string> f = t.tokenize(" \t");
+  return f.size() > 4 && (f[4] == "PD" || f[4] == "PENDING");
+}
+
+
+//  ecce-launch --move: a Submitted calculation whose queue job has not
+//  started goes to another machine under its own name. Checked first through
+//  RunMgmt::checkOnMachine (Check Job on Machine), cancelled by the terminate
+//  path, returned to Ready (run log kept) and submitted by launchForCommand.
+bool CalcMgr::moveLaunchForCommand(const vector<EcceURL>& urls,
+                                   const LaunchBatch::Target& target,
+                                   vector<string>& lines)
+{
+  lines.clear();
+  if (p_batch) return false;
+  const string ns = VDoc::getEcceNamespace();
+  for (const EcceURL& url : urls) {
+    WxResourceTreeItemData *item = findNodeFresh(url, false);
+    TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
+    if (!task) {
+      lines.push_back(url.toString() + "\tno\tnot a calculation in this session");
+      continue;
+    }
+    const string name = item->getName();
+    auto no = [&](const string& why) { lines.push_back(name + "\tno\t" + why); };
+    const ResourceDescriptor::RUNSTATE st = task->getState();
+    if (st != ResourceDescriptor::STATE_SUBMITTED) {
+      no("state is " + ResourceUtils::stateToString(st) +
+         "; --move is for a Submitted calculation whose job has not started");
+      continue;
+    }
+    const string from = task->launchdata().machine;
+    const string id = task->jobdata().jobid;
+    const QueueManager *qMgr = QueueManager::lookup(from);
+    const string mgr = qMgr ? qMgr->queueMgrName() : string("Shell");
+    if (mgr != "Slurm") {
+      no("cannot tell whether a job has started on a " + mgr +
+         " machine; only Slurm is supported. Nothing changed");
+      continue;
+    }
+    RunMgmt::MachineCheck chk;
+    {
+      ReconnectSelected::DeferMessages defer;
+      chk = RunMgmt::checkOnMachine(task,
+          [this](const RCommandLogin& l, RCommand*& c, string& why) {
+            return ReconnectSelected::openLogin(this, 0, l, c, why);
+          });
+    }
+    if (!chk.reached) {
+      no("cannot check the queue on " + from + ": " + chk.error + ". Nothing changed");
+      continue;
+    }
+    if (chk.present != 1) {
+      no("job " + id + " is not in the queue on " + from +
+         " (it may have started and ended). Nothing changed");
+      continue;
+    }
+    if (!slurmLinePending(chk.jobLine)) {
+      no("job " + id + " has started on " + from + ": " + chk.jobLine +
+         ". Nothing changed");
+      continue;
+    }
+
+    vector<string> ended;
+    terminateForCommand(vector<EcceURL>(1, url), "", ended);
+    const size_t a = ended.empty() ? string::npos : ended[0].find('\t');
+    const size_t b = a == string::npos ? a : ended[0].find('\t', a + 1);
+    if (b == string::npos || ended[0].substr(a + 1, b - a - 1) != "ok") {
+      no("not cancelled: " + (b == string::npos ? string("no answer") : ended[0].substr(b + 1)));
+      continue;
+    }
+    // The job monitor records the cancel as Killed; wait for that and for
+    // the monitor to go, or it would overwrite the Ready state below.
+    bool settled = false;
+    for (int i = 0; i < 120 && !settled; i++) {
+      item = findNodeFresh(url, false);
+      task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
+      if (!task) break;
+      task->killRequested();   // re-reads the properties from the store
+      const ResourceDescriptor::RUNSTATE now = task->getState();
+      settled = now != ResourceDescriptor::STATE_SUBMITTED &&
+                now != ResourceDescriptor::STATE_RUNNING &&
+                now != ResourceDescriptor::STATE_WAITING;
+      if (!settled) { wxYield(); wxMilliSleep(500); }
+    }
+    if (!task || !settled || !stopOldMonitor(url)) {
+      no("job " + id + " was cancelled but the Organizer has not seen it end; "
+         "check it, then ecce-launch it");
+      continue;
+    }
+
+    const string reason = "moved from " + from + " to " + target.machine +
+                          ", job " + id + " cancelled";
+    vector<MetaDataResult> r(3);
+    r[0].name = ns + ":submitdate";
+    r[1].name = ns + ":submituncertain";
+    r[2].name = ns + ":runStatusReason";
+    task->jobdata(Jobdata());
+    task->addProps(r);
+    task->killReason("");
+    task->setState(ResourceDescriptor::STATE_READY);
+    try {
+      TDateTime date;
+      const string entry = ActivityLog::entry(ActivityLog::INFO, "Job moved",
+                                              date, reason.c_str());
+      task->appendJobLogCreating("eccejobstore", entry.c_str());
+    } catch (...) {}
+    p_contact.erase(progressKey(url));
+    p_machineCheck.erase(progressKey(url));
+    updateUrl(url);
+
+    vector<string> launched;
+    if (!launchForCommand(vector<EcceURL>(1, url), target, launched)) {
+      no("job " + id + " cancelled and the calculation is Ready, but the "
+         "Organizer is busy: ecce-launch it");
+      continue;
+    }
+    for (const string& line : launched) lines.push_back(line);
   }
   return true;
 }
