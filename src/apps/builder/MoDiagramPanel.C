@@ -1555,6 +1555,7 @@ namespace {
 
     TGBSConfig *config = escalc->gbsConfig();
     if (config == 0 || config->empty()) return mosymFail(19, "config == 0 || config->empty()");
+    ICalcUtils::applyCodeContraction(calc, config);
 
     const JCode *code = escalc->application();
     if (code == 0) return mosymFail(22, "code == 0");

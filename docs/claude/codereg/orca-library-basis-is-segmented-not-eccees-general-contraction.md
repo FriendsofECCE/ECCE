@@ -2,7 +2,7 @@
 type: pitfall
 title: "ORCA's built-in cc-pVXZ is segmented; the basis ECCE stores is the general contraction, so the MO coefficients do not fit it"
 area: codereg
-paths: ["scripts/parsers/wrORCAGBS.pm", "scripts/parsers/ORCA.expt", "src/tdat/chemistry/MoAoBasis.C", "src/tdat/chemistry/ResultsFromCalc.C", "data/admin/basissets/cc-pVTZ.BAS"]
+paths: ["scripts/parsers/wrORCAGBS.pm", "scripts/parsers/ORCA.expt", "scripts/parsers/orca.basispattern", "src/dsm/edsiimpl/ICalcUtils.C", "src/viz/propsgcommands/ComputeMoCmd.C", "src/apps/builder/MoDiagramPanel.C", "tests/basis/code_contraction_test.py", "src/tdat/chemistry/MoAoBasis.C", "src/tdat/chemistry/ResultsFromCalc.C", "data/admin/basissets/cc-pVTZ.BAS"]
 issues: [942]
 ---
 `wrORCAGBS.pm` writes a library basis by name (`NewGTO H "cc-pVTZ" end`) and
@@ -25,3 +25,20 @@ Zeroing the duplicated primitives' coefficients in a stored
 `BasisSet.ecce_basisset` makes `ecce-results write` pass (2.000005).
 An element written explicitly (one with an ECP) keeps ECCE's general form,
 so a blanket "ORCA segments" rule in the flattener would be wrong for it.
+
+**What reads it now.** `orca.basispattern` stores the printed patterns as
+BASISPATTERN (PropString, "C 8811/311/11/1|H 311/11/1").
+`ICalcUtils::applyCodeContraction(calc, config)` zeroes, per element, the
+duplicated primitives' coefficients in a fresh `gbsConfig()` copy, but only
+when the stored contraction differs from the pattern and dropping them gives
+it exactly (same order); otherwise the basis is left and the checks report
+it. It is called wherever primitives are flattened for orbitals:
+`MoAoBasis::flatBasis` (results.h5, Density Map/Profile, MO composition,
+`ecce-density-field`), `ComputeMoCmd::execute` (isosurfaces, also for the
+as-stored fallback) and the MO diagram's symmetry flatten in
+`MoDiagramPanel.C`. Readers that only count or label functions (MoCoeffs,
+Mulliken, MoAoOrder) do not need it. A calculation parsed before
+BASISPATTERN existed has none: re-parse it. Not every cc set differs:
+ECCE's cc-pVDZ.BAS is already segmented, cc-pVTZ.BAS is general.
+`tests/basis/code_contraction_test.py` (ctest `gbscodecontraction`) compares
+the result with ORCA's own `Print[P_Basis] 2` for H and C.

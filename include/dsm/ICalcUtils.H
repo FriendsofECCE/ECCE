@@ -66,6 +66,20 @@ class ICalcUtils
      static TGBSConfig* slaterBasisConfig(IPropCalculation* calc,
                                           bool* orthonormal = 0);
 
+     /** ORCA's own copy of a named library basis can be the segmented
+      *  form of the general contraction ECCE stores (cc-pVXZ): each
+      *  contraction lacks the primitives that are also uncontracted
+      *  functions of the same l, and the MO coefficients belong to that
+      *  basis. Per element in the run's BASISPATTERN, where dropping those
+      *  primitives gives the printed pattern exactly, their coefficients
+      *  are zeroed in config. Anything else is left for the tr(PS) and
+      *  C'SC checks to report. Returns true if config changed. */
+     static bool applyCodeContraction(IPropCalculation* calc,
+                                      TGBSConfig* config);
+     /** The same from the BASISPATTERN text itself. */
+     static bool applyContractionPattern(const std::string& patterns,
+                                         TGBSConfig* config);
+
 
   private:
 

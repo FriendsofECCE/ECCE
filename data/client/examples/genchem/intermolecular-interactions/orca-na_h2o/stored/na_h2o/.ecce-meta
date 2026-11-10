@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This calculation shows a sodium ion held at the oxygen end of a water molecule: on a Density Profile line from Na to O the density between them falls to a low minimum, far below that of a covalent bond.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 08:50:39 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 10:55:55 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 08:50:34 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 10:55:51 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=3 sent=1794300637.806 idle=0 at=1794300638\nopt step=8 energy=-238.523399623 dE=-0.0000050856/0.0000010000 rmsgrad=0.0000203762/0.0000300000 maxgrad=0.0000371582/0.0001000000 rmsstep=0.0001025195/0.0006000000 maxstep=0.0002390989/0.0010000000 converged=yes\nopt~ rmsgrad=0.0026387158,0.0006851883,0.0005564486,0.0003160911,0.0002634557,0.0002168953,0.0001208751,0.0000203762\nopt~ maxgrad=0.0045004423,0.0011871690,0.0010422400,0.0006177025,0.0004800319,0.0003119033,0.0002075757,0.0000371582\nscf cycle=3 energy=-238.5213042155295398 dE=-9.52e-11/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-1.80e-10,-9.52e-11\nresult disp=D3\nfreq kind=analytic point=12/12 phase=assemble last=Van real=6 imaginary=0 done=yes zpe=0.02371436\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=3 sent=1794308153.919 idle=0 at=1794308154\nopt step=8 energy=-238.523399623 dE=-0.0000050856/0.0000010000 rmsgrad=0.0000203762/0.0000300000 maxgrad=0.0000371582/0.0001000000 rmsstep=0.0001025195/0.0006000000 maxstep=0.0002390989/0.0010000000 converged=yes\nopt~ rmsgrad=0.0026387158,0.0006851883,0.0005564486,0.0003160911,0.0002634557,0.0002168953,0.0001208751,0.0000203762\nopt~ maxgrad=0.0045004423,0.0011871690,0.0010422400,0.0006177025,0.0004800319,0.0003119033,0.0002075757,0.0000371582\nscf cycle=3 energy=-238.5213042155295398 dE=-9.52e-11/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-1.80e-10,-9.52e-11\nresult disp=D3\nfreq kind=analytic point=12/12 phase=assemble last=Van real=6 imaginary=0 done=yes zpe=0.02371436\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 08:50:35 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 10:55:51 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794300635
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794308151
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

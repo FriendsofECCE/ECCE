@@ -106,6 +106,16 @@ args:    '.' 'Energy' 'DFT' 'B3LYP' '0'
       values: 0.140186 -0.118159 -0.011014 -0.011014
       units: e
 
+[BASISPATTERN]  Script=orca.basispattern  Freq=first  Skip=1  Lines=-
+  Begin=^BASIS SET INFORMATION
+  End=^Atom\s+\d
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=262 fed=8 rc=0 first-fed='---------------------'
+    key: BASISPATTERN
+      size: 1
+      values: C 511/31/1|O 511/31/1|H 31/1
+      units: NA
+
 [DELTAE]  Script=orca.deltae  Freq=all  Skip=0  Lines=1
   Begin=^\s*\d+\s+-?\d+\.\d+\s+-?\d+\.\d+[eE][+-]\d+
   begins=12 delivered=12 buffered_away=0

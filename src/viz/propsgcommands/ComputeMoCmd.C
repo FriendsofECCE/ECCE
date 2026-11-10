@@ -647,6 +647,7 @@ bool ComputeMoCmd::execute()
       //  is read before it, so a missing basis used to be a null
       //  dereference and not the clean refusal it was written to be.
       if (gbsConfig == (TGBSConfig *)0) return false;
+      ICalcUtils::applyCodeContraction(calc, gbsConfig);
 
       //  An output made without part of the basis ECCE now completes from
       //  its library (a Gaussian deck written out explicitly by an ECCE
@@ -678,6 +679,7 @@ bool ComputeMoCmd::execute()
                  << "basis as stored, not the completed one" << endl;
             delete gbsConfig;
             gbsConfig = stored;
+            ICalcUtils::applyCodeContraction(calc, gbsConfig);
           } else {
             delete stored;
           }
