@@ -3,11 +3,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		Gaussian 16, B3LYP/6-31+G(d), charge -1, IRC in both directions from the transition state. This calculation shows the path from the transition state towards the reactant side and the product side.
 .	http://www.emsl.pnl.gov/ecce:application		Gaussian-16
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:13:11 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 14:11:32 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:13:02 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 14:11:25 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -39,7 +39,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=5 sent=1794309187.971 idle=0 at=1794309191\nscf cycle=9 energy=-3071.92402764 dE=-0.000000000002 converged=yes\nscf~ dE=-0.000290566636,0.000027328570,-0.000052126782,-0.000000486836,-0.000000045545,-0.000000003916,-0.000000000210,-0.000000000002\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=5 sent=1794319890.205 idle=0 at=1794319892\nscf cycle=9 energy=-3071.92402764 dE=-0.000000000002 converged=yes\nscf~ dE=-0.000290566636,0.000027328570,-0.000052126782,-0.000000486836,-0.000000045545,-0.000000003916,-0.000000000210,-0.000000000002\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -53,5 +53,5 @@
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
 .	http://www.emsl.pnl.gov/ecce:startdate		Fri, 30 Oct 2026 04:36:27 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309183
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794319885
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

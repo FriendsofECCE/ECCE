@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
-<tsvectable columnLabel="Atom" columnLabels="X Y Z" columns="3" name="GEOMTRACE" rowLabel="Geometry Step" rowLabels="1-C 2-H 3-H 4-H 5-Br 6-Cl" rows="6" units="Hartree" vectorLabel="Coordinate" vectors="1">
+<tsvectable columnLabel="Atom" columnLabels="X Y Z" columns="3" name="GEOMTRACE" rowLabel="Geometry Step" rowLabels="1-C 2-H 3-H 4-H 5-Br 6-Cl" rows="6" units="Angstrom" vectorLabel="Coordinate" vectors="1">
 
   <step number="1">-1.461489   0.000741   -0.000269   -1.095998
 0.988309   -0.273497   -1.095357   -0.256093

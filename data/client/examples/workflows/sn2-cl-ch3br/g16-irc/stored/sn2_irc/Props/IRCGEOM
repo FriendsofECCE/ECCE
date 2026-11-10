@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
-<tsvectable columnLabel="Atom" columnLabels="X Y Z" columns="3" name="IRCGEOM" rowLabel="IRC Step" rowLabels="1-X 2-X 3-X 4-X 5-X 6-X" rows="6" units="Hartree" vectorLabel="Coordinate" vectors="1">
+<tsvectable columnLabel="Atom" columnLabels="X Y Z" columns="3" name="IRCGEOM" rowLabel="IRC Step" rowLabels="1-X 2-X 3-X 4-X 5-X 6-X" rows="6" units="Angstrom" vectorLabel="Coordinate" vectors="1">
 
   <step number="1">-0.000021   0.000004   -0.903100   1.074232
 0.000005   -0.880854   -0.537141   0.930337

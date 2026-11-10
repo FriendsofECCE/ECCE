@@ -1,31 +1,31 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <eccejobstore>
-     <event  type="Message"  name="Job log started for calculation"  date="Tue, 10 Nov 2026 12:13:03 CET" >file://&lt;home&gt;/tmp/ecce/ECCE-749/t/regen/cache/ecce-apps-v3tqylbt/examples-arm-mo1j_dcz/data/users/local/Examples/Workflows/SN2_Cl-_and_CH3Br/sn2_irc     </event>
-     <event  type="Message"  name="eccejobstore running on client"  date="Tue, 10 Nov 2026 12:13:03 CET" >niobium     </event>
-     <event  type="Message"  name="Cache"  date="Tue, 10 Nov 2026 12:13:03 CET" >Successfully started property parsing cache     </event>
-     <event  type="Message"  name="Local cache directory"  date="Tue, 10 Nov 2026 12:13:03 CET" >&lt;rundir&gt;     </event>
-     <event  type="Message"  name="Job Monitor"  date="Tue, 10 Nov 2026 12:13:03 CET" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
-     <event  type="Message"  name="System"  date="Tue, 10 Nov 2026 12:13:03 CET" >Started local RCommand connection     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 12:13:03 CET" >Receiving calculation output from eccejobmonitor     </event>
-     <event  type="Message"  name="eccejobstore"  date="Tue, 10 Nov 2026 12:13:03 CET" >out of contact after 60 s of silence, reconnect after 180 s     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Tue, 10 Nov 2026 12:13:03 CET" >Running     </event>
-     <event  type="Error"  name="Parser"  date="Tue, 10 Nov 2026 12:13:03 CET" >Couldn't parse property: Failed executing command gaussian-16.routeflag . "IRC" "DFT" "RDFT" "0" >parseOut <parseIn
+     <event  type="Message"  name="Job log started for calculation"  date="Tue, 10 Nov 2026 15:11:25 CET" >file://&lt;home&gt;/tmp/ecce/ECCE-749/t/946p/cache/ecce-apps-jdazi2ef/examples-arm-4vj9n96a/data/users/local/Examples/Workflows/SN2_Cl-_and_CH3Br/sn2_irc     </event>
+     <event  type="Message"  name="eccejobstore running on client"  date="Tue, 10 Nov 2026 15:11:25 CET" >niobium     </event>
+     <event  type="Message"  name="Cache"  date="Tue, 10 Nov 2026 15:11:25 CET" >Successfully started property parsing cache     </event>
+     <event  type="Message"  name="Local cache directory"  date="Tue, 10 Nov 2026 15:11:25 CET" >&lt;rundir&gt;     </event>
+     <event  type="Message"  name="Job Monitor"  date="Tue, 10 Nov 2026 15:11:25 CET" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
+     <event  type="Message"  name="System"  date="Tue, 10 Nov 2026 15:11:25 CET" >Started local RCommand connection     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 15:11:25 CET" >Receiving calculation output from eccejobmonitor     </event>
+     <event  type="Message"  name="eccejobstore"  date="Tue, 10 Nov 2026 15:11:25 CET" >out of contact after 60 s of silence, reconnect after 180 s     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Tue, 10 Nov 2026 15:11:25 CET" >Running     </event>
+     <event  type="Error"  name="Parser"  date="Tue, 10 Nov 2026 15:11:25 CET" >Couldn't parse property: Failed executing command gaussian-16.routeflag . "IRC" "DFT" "RDFT" "0" >parseOut <parseIn
 Command [gaussian-16.routeflag . "IRC" "DFT" "RDFT" "0" >parseOut <parseIn] Codename [Gaussian-16] PropKey [routeflag]     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 12:13:11 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-749/t/regen/cache/ecce-apps-v3tqylbt/ecce-home/data/client/examples/workflows/sn2-cl-ch3br/g16-irc/g16.g16out' does not exist     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 12:13:11 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-749/t/regen/cache/ecce-apps-v3tqylbt/ecce-home/data/client/examples/workflows/sn2-cl-ch3br/g16-irc/grid.dat' does not exist     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 12:13:11 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-749/t/regen/cache/ecce-apps-v3tqylbt/ecce-home/data/client/examples/workflows/sn2-cl-ch3br/g16-irc/fort.7' does not exist     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 12:13:11 CET" >File marked to copy from compute host: sn2_irc.out     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 12:13:11 CET" >File marked to copy from compute host: sn2_irc.out     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 12:13:11 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-749/t/regen/cache/ecce-apps-v3tqylbt/ecce-home/data/client/examples/workflows/sn2-cl-ch3br/g16-irc/g16.chk' does not exist     </event>
-     <event  type="Message"  name="Benchmark"  date="Tue, 10 Nov 2026 12:13:11 CET" >Before file copy of output files     </event>
-     <event  type="Message"  name="Benchmark"  date="Tue, 10 Nov 2026 12:13:11 CET" >After file copy of output files     </event>
-     <event  type="Message"  name="File Copy"  date="Tue, 10 Nov 2026 12:13:11 CET" >Successfully copied files from server
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 15:11:32 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-749/t/946p/cache/ecce-apps-jdazi2ef/ecce-home/data/client/examples/workflows/sn2-cl-ch3br/g16-irc/g16.g16out' does not exist     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 15:11:32 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-749/t/946p/cache/ecce-apps-jdazi2ef/ecce-home/data/client/examples/workflows/sn2-cl-ch3br/g16-irc/grid.dat' does not exist     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 15:11:32 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-749/t/946p/cache/ecce-apps-jdazi2ef/ecce-home/data/client/examples/workflows/sn2-cl-ch3br/g16-irc/fort.7' does not exist     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 15:11:32 CET" >File marked to copy from compute host: sn2_irc.out     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 15:11:32 CET" >File marked to copy from compute host: sn2_irc.out     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 15:11:32 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-749/t/946p/cache/ecce-apps-jdazi2ef/ecce-home/data/client/examples/workflows/sn2-cl-ch3br/g16-irc/g16.chk' does not exist     </event>
+     <event  type="Message"  name="Benchmark"  date="Tue, 10 Nov 2026 15:11:32 CET" >Before file copy of output files     </event>
+     <event  type="Message"  name="Benchmark"  date="Tue, 10 Nov 2026 15:11:32 CET" >After file copy of output files     </event>
+     <event  type="Message"  name="File Copy"  date="Tue, 10 Nov 2026 15:11:33 CET" >Successfully copied files from server
 sn2_irc.out: sn2_irc.out  
 no files matched *.cub
 no files matched *.cube
 no files matched results.h5     </event>
-     <event  type="Message"  name="File Copy"  date="Tue, 10 Nov 2026 12:13:11 CET" >No cube, PDOS or other wildcard output files arrived     </event>
-     <event  type="Message"  name="results.h5"  date="Tue, 10 Nov 2026 12:13:11 CET" >results.h5 not written: no MO coefficients     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Tue, 10 Nov 2026 12:13:11 CET" >Loaded     </event>
-     <event  type="Message"  name="eccejobstore exit"  date="Tue, 10 Nov 2026 12:13:11 CET" >eccejobstore terminating normally, exit status 0     </event>
+     <event  type="Message"  name="File Copy"  date="Tue, 10 Nov 2026 15:11:33 CET" >No cube, PDOS or other wildcard output files arrived     </event>
+     <event  type="Message"  name="results.h5"  date="Tue, 10 Nov 2026 15:11:33 CET" >results.h5 stored; no orbitals (no MO coefficients): atoms, vibrations and traces only     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Tue, 10 Nov 2026 15:11:33 CET" >Loaded     </event>
+     <event  type="Message"  name="eccejobstore exit"  date="Tue, 10 Nov 2026 15:11:33 CET" >eccejobstore terminating normally, exit status 0     </event>
 </eccejobstore>

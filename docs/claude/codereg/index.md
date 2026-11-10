@@ -212,6 +212,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Allocation profiles (#541): Default is the MachPrefs line, the rest are in MachProfiles, each calculation stores its own](allocation-profiles-541.md)
 - [results.h5: internal results format (format_version 1), canonical AO order, converters, gates](results-h5-format.md) — layout, units, why the AO order is not the viewer's per-code order
 - [results.h5 written from the Props at the end of the job store; the views switch in one place](results-h5-written-from-props.md) — where it hooks in, checks, `ResultsFromCalc::stored`, what is not switched
+- [A wrong unit label keeps a trace out of results.h5 (#946)](a-wrong-unit-label-keeps-a-trace-out-of-results-h5-946.md) — views ignore GEOMTRACE/IRCGEOM units, `toBohr` does not; `parsers_g16_units`
 - [NWChem eprint MO coefficients have 3 decimals; results.h5 reads nwchem.movecs](nwchem-eprint-coefficients-have-three-decimals.md) — why NWChem orbitals failed tr(PS) (#944) and when the movecs is used
 - [ORCA's built-in cc-pVXZ is segmented, ECCE stores the general contraction](orca-library-basis-is-segmented-not-eccees-general-contraction.md) — why ORCA cc-pVXZ results.h5 fail their check (#942)
 - [The ML potential code (MLP): Python as the program, runner inlined by gensub, VERSION in .ecce-meta (#728)](ml-potential-code-registration-stage-1-728.md)
