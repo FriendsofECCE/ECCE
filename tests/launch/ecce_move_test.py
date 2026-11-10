@@ -17,6 +17,7 @@ Exit status 77 (CTest SKIP) without Xvfb or the built binaries.
 import argparse
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -323,6 +324,27 @@ def main():
         check(rc == 1 and "not moved" in out and org.poll() is None,
               "a URL outside the data is refused and the Organizer survives (rc=%s)" % rc)
         check(send("tree").startswith("ok"), "the Organizer still answers")
+
+        #  An Organizer that ends after acknowledging (#816): the command
+        #  must say so within seconds, not wait out the batch timeout.
+        urls["die"] = make(home, "die")
+        open(slowfile, "w").write("120")
+        t0 = time.time()
+        doomed = subprocess.Popen([mv, Q("die"), d2], env=s.env(),
+                                  stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        time.sleep(4)
+        check(doomed.poll() is None, "the slowed move is waiting for its answer")
+        os.killpg(org.pid, signal.SIGKILL)
+        try:
+            out, err = doomed.communicate(timeout=20)
+        except subprocess.TimeoutExpired:
+            doomed.kill()
+            out, err = doomed.communicate()
+        out, err = out.decode("utf-8", "replace"), err.decode("utf-8", "replace")
+        check(doomed.returncode == 5 and "ended before answering" in err and
+              time.time() - t0 < 30,
+              "a killed Organizer: exit 5 within seconds (rc=%s %r %r, %.0fs)"
+              % (doomed.returncode, out, err, time.time() - t0))
     finally:
         if org and org.poll() is None:
             org.terminate()

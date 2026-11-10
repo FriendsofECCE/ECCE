@@ -8,6 +8,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "util/PosixCompat.H"
 #include <sys/stat.h>
 #include <unistd.h>
@@ -250,5 +251,32 @@ vector<Holder> othersUsingServices() { return collect(false); }
 // Every other program of this state directory, whatever its session: the
 // ssh masters are the state directory's, not a session's (#631).
 vector<Holder> otherPrograms() { return collect(true); }
+
+}  // namespace SessionLease
+
+namespace SessionLease {
+
+ProgramWatch::ProgramWatch(const std::string& key, const std::string& name)
+  : p_key(key), p_name(name), p_pid(0), p_lastCheck(0) {}
+
+void ProgramWatch::arm()
+{
+  if (p_pid || p_key.empty()) return;
+  vector<Holder> h = live(string(Ecce::realUserHome()) + "/.ECCE", p_key);
+  for (size_t i = 0; i < h.size(); i++)
+    if (h[i].name == p_name) { p_pid = h[i].pid; return; }
+}
+
+bool ProgramWatch::gone()
+{
+  if (!p_pid) return false;
+  long now = (long)time(0);
+  if (now == p_lastCheck) return false;   // a directory scan a second is enough
+  p_lastCheck = now;
+  vector<Holder> h = live(string(Ecce::realUserHome()) + "/.ECCE", p_key);
+  for (size_t i = 0; i < h.size(); i++)
+    if (h[i].pid == p_pid) return false;
+  return true;
+}
 
 }  // namespace SessionLease

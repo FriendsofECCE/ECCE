@@ -8,7 +8,7 @@
  *
  * Without patterns: *.cube *.cub *.pdos. --list only lists the directory.
  * Prints "name: fetched (N bytes)", "pattern: no file matched" or
- * "calc: not fetched: reason". Exit 4: no answer in time (it may have been carried out). Exit 0: all fetched; 1: some not ; 2: no running ECCE session; 3: the Organizer is busy with a
+ * "calc: not fetched: reason". Exit 4: no answer in time (it may have been carried out); 5: the Organizer ended before answering. Exit 0: all fetched; 1: some not ; 2: no running ECCE session; 3: the Organizer is busy with a
  * Launch Selected batch; 64: usage.
  */
 #include <sys/stat.h>
@@ -30,6 +30,7 @@
 #include "util/JMSSubscriber.H"
 #include "util/LocalData.H"
 #include "util/MqttLink.H"
+#include "util/SessionLease.H"
 
 using std::string;
 using std::vector;
@@ -38,6 +39,8 @@ namespace {
 
 const char *const kNoAnswer =
     "no answer from the Organizer; it may have been carried out — check before repeating";
+const char *const kOrganizerEnded =
+    "the Organizer ended before answering; the request may have been carried out — check before repeating";
 const int kAckSeconds = 8;          // an Organizer answers at once
 const int kBatchSeconds = 5 * 60;   // each cancel is a login round trip
 
@@ -141,7 +144,8 @@ int main(int argc, char **argv)
       return 64;
     }
 
-  if (sessionKey().empty()) return notRunning();
+  const string sessKey = sessionKey();
+  if (sessKey.empty()) return notRunning();
 
   bool allOk = true;
   string url, why;
@@ -165,6 +169,9 @@ int main(int argc, char **argv)
   if (!MqttLink::instance().connected()) return notRunning();
 
   gReplyId = std::to_string(getpid()) + "-" + std::to_string(time(0));
+  // Armed before the request: the pid that will answer it (#816).
+  SessionLease::ProgramWatch organizer(sessKey, "organizer");
+  organizer.arm();
   JMSPublisher pub("EcceFetch");
   JMSMessage *msg = pub.newMessage();
   msg->addProperty("reply_id", gReplyId);
@@ -178,16 +185,22 @@ int main(int argc, char **argv)
   if (!sent) return notRunning();
 
   end = clock::now() + std::chrono::seconds(kAckSeconds);
+  bool organizerEnded = false;
   bool timedOut = false, batchLimitSet = false;
   while (!gDone) {
     if (clock::now() >= end) { timedOut = true; break; }
     sub.processMessage();
     if (gDone) break;
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    if (gAck && !gDone && organizer.gone()) { organizerEnded = true; break; }
     if (gAck && !gDone && !batchLimitSet) {
       batchLimitSet = true;   // once: resetting every pass would never time out
       end = clock::now() + std::chrono::seconds(kBatchSeconds);
     }
+  }
+  if (organizerEnded) {
+    std::cerr << "ecce-fetch: " << kOrganizerEnded << std::endl;
+    return 5;
   }
   if (timedOut) {
     if (!gAck) return notRunning();
