@@ -671,14 +671,20 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
              wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
   p_base = base;
+  // Everything but the button row scrolls: the natural size (table, results, details, chart)
+  // is taller than a 768 px display, and a plain sizer squeezes the chart to a strip.
+  p_body = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                                wxVSCROLL | wxHSCROLL | wxTAB_TRAVERSAL);
+  p_body->SetScrollRate(10, 10);
+  wxScrolledWindow *body = p_body;
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
-  wxStaticText *head = new wxStaticText(this, wxID_ANY, _("Reactions"));
+  wxStaticText *head = new wxStaticText(body, wxID_ANY, _("Reactions"));
   head->SetFont(head->GetFont().Bold());
   top->Add(head, 0, wxLEFT | wxRIGHT | wxTOP, 8);
-  p_note = new wxStaticText(this, wxID_ANY, "");
+  p_note = new wxStaticText(body, wxID_ANY, "");
   p_note->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
   top->Add(p_note, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
-  p_table = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxSize(720, -1), wxBORDER_THEME);
+  p_table = new wxPanel(body, wxID_ANY, wxDefaultPosition, wxSize(720, -1), wxBORDER_THEME);
   p_tableSizer = new wxFlexGridSizer(6, 4, 14);
   p_tableSizer->AddGrowableCol(0, 1);
   p_tableSizer->AddGrowableCol(2, 1);
@@ -686,10 +692,10 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
   p_table->SetSizer(p_tableSizer);
   top->Add(p_table, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
   wxBoxSizer *rb = new wxBoxSizer(wxHORIZONTAL);
-  wxButton *add = new wxButton(this, wxID_ANY, _("Add Reaction..."));
+  wxButton *add = new wxButton(body, wxID_ANY, _("Add Reaction..."));
   add->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { pick(-1); });
   add->Enable(!calcsOf(base).empty());
-  p_editButton = new wxButton(this, wxID_ANY, _("Edit..."));
+  p_editButton = new wxButton(body, wxID_ANY, _("Edit..."));
   p_editButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { pick(p_sel); });
   rb->Add(add, 0, wxRIGHT, 8);
   rb->Add(p_editButton, 0);
@@ -714,34 +720,34 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
   rebuildTable();
 
   wxBoxSizer *bar = new wxBoxSizer(wxHORIZONTAL);
-  bar->Add(new wxStaticText(this, wxID_ANY, _("G treatment:")), 0,
+  bar->Add(new wxStaticText(body, wxID_ANY, _("G treatment:")), 0,
            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-  p_treatment = new wxChoice(this, wxID_ANY);
+  p_treatment = new wxChoice(body, wxID_ANY);
   for (const ThermoTreatmentInfo& t : thermoTreatments())
     p_treatment->Append(wxString::FromUTF8(t.label));
   p_treatment->SetSelection(2);   // Grimme qRRHO, 100 cm-1
   p_treatment->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { update(); });
   bar->Add(p_treatment, 0, wxRIGHT, 12);
-  wxButton *run = new wxButton(this, wxID_ANY, _("Update"));
+  wxButton *run = new wxButton(body, wxID_ANY, _("Update"));
   run->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { update(); });
-  bar->Add(new wxStaticText(this, wxID_ANY, _("T / K:")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-  p_T = new wxTextCtrl(this, wxID_ANY, "298.15", wxDefaultPosition, wxSize(80, -1),
+  bar->Add(new wxStaticText(body, wxID_ANY, _("T / K:")), 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  p_T = new wxTextCtrl(body, wxID_ANY, "298.15", wxDefaultPosition, wxSize(80, -1),
                        wxTE_PROCESS_ENTER);
   p_T->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { update(); });
   bar->Add(p_T, 0, wxRIGHT, 12);
   bar->Add(run, 0);
   top->Add(bar, 0, wxALL, 8);
 
-  p_results = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_THEME);
+  p_results = new wxPanel(body, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_THEME);
   p_resSizer = new wxFlexGridSizer(9, 4, 16);
   p_resSizer->AddGrowableCol(1, 1);
   p_results->SetSizer(p_resSizer);
   top->Add(p_results, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
-  p_units = new wxStaticText(this, wxID_ANY, "");
+  p_units = new wxStaticText(body, wxID_ANY, "");
   p_units->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
   top->Add(p_units, 0, wxALL, 8);
 
-  p_pane = new wxCollapsiblePane(this, wxID_ANY, _("Details: soft modes and tunnelling"));
+  p_pane = new wxCollapsiblePane(body, wxID_ANY, _("Details: soft modes and tunnelling"));
   p_detail = new wxHtmlWindow(p_pane->GetPane(), wxID_ANY, wxDefaultPosition, wxSize(720, 180),
                               wxHW_SCROLLBAR_AUTO | wxBORDER_SUNKEN);
   p_detail->SetMinSize(wxSize(300, 150));
@@ -757,22 +763,22 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
   p_pane->GetPane()->SetSizer(ps);
   p_pane->Expand();
   p_pane->Bind(wxEVT_COLLAPSIBLEPANE_CHANGED, [this](wxCollapsiblePaneEvent&) {
-    Layout();
-    if (GetSizer()) SetMinSize(ClientToWindowSize(GetSizer()->GetMinSize()));
+    p_body->Layout();
+    p_body->FitInside();
   });
   top->Add(p_pane, 1, wxEXPAND | wxALL, 8);
 
   wxBoxSizer *pick = new wxBoxSizer(wxHORIZONTAL);
-  p_profileLabel = new wxStaticText(this, wxID_ANY, _("Energy profile of:"));
+  p_profileLabel = new wxStaticText(body, wxID_ANY, _("Energy profile of:"));
   pick->Add(p_profileLabel, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-  p_profileChoice = new wxChoice(this, wxID_ANY);
+  p_profileChoice = new wxChoice(body, wxID_ANY);
   p_profileChoice->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) {
     const int i = p_profileChoice->GetSelection();
     if (i >= 0 && i < (int)p_profiles.size()) p_plot->setProfile(p_profiles[i]);
   });
   pick->Add(p_profileChoice, 1);
   top->Add(pick, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
-  p_plot = new EnergyProfileCanvas(this);
+  p_plot = new EnergyProfileCanvas(body);
   p_plot->SetMinSize(wxSize(720, 380));
   p_plot->SetToolTip(_("Right-click to copy the numbers"));
   top->Add(p_plot, 2, wxEXPAND | wxLEFT | wxRIGHT, 8);
@@ -795,9 +801,14 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
   p_pngButton = png;
   buttons->AddStretchSpacer();
   buttons->Add(new wxButton(this, wxID_CLOSE, _("Close")));
-  top->Add(buttons, 0, wxEXPAND | wxALL, 8);
+  body->SetSizer(top);
+  wxBoxSizer *outer = new wxBoxSizer(wxVERTICAL);
+  outer->Add(body, 1, wxEXPAND);
+  outer->Add(buttons, 0, wxEXPAND | wxALL, 8);
+  // The scroller's own minimum is small; the dialog's size comes from fitContent().
+  body->SetMinSize(wxSize(320, 200));
+  SetSizer(outer);
   update();
-  SetSizerAndFit(top);
   SetEscapeId(wxID_CLOSE);
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     if (IsModal()) EndModal(wxID_CLOSE); else Hide();
@@ -1178,25 +1189,31 @@ void ReactionOverviewDialog::showProfiles()
   p_profileChoice->Show(p_profiles.size() > 1);
   p_plot->Show(any);
   p_pngButton->Enable(any);
-  if (GetSizer()) {
-    // The dialog was fitted while the chart was hidden; a chart shown later needs the
-    // window to grow, or the layout squeezes it to a strip.
-    Layout();
-    const wxSize need = GetSizer()->GetMinSize();
-    wxSize want = GetClientSize();
-    if (any) {
-      want.x = std::max(want.x, std::max(need.x, 900));
-      want.y = std::max(want.y, std::max(need.y, 800));
-    }
-    want.x = std::max(want.x, need.x);
-    want.y = std::max(want.y, need.y);
-    const wxRect area = wxDisplay(wxDisplay::GetFromWindow(this) < 0 ? 0 : wxDisplay::GetFromWindow(this))
-                            .GetClientArea();
-    want.x = std::min(want.x, std::max(need.x, area.width - 80));
-    want.y = std::min(want.y, std::max(need.y, area.height - 120));
-    if (want != GetClientSize()) SetClientSize(want);
-    Layout();
+  fitContent(any);
+}
+
+// Size the dialog to the content, capped to the display; what does not fit scrolls.
+// A chart shown after the first fit makes the dialog grow rather than squeeze to a strip.
+void ReactionOverviewDialog::fitContent(bool wantChart)
+{
+  if (!p_body->GetSizer()) return;
+  p_body->Layout();
+  const wxSize need = p_body->GetSizer()->GetMinSize();
+  const wxSize foot = GetSizer()->GetMinSize() - p_body->GetMinSize();   // the button row
+  wxSize want = GetClientSize();
+  want.x = std::max(want.x, need.x + 16);
+  want.y = std::max(want.y, need.y + foot.y);
+  if (wantChart) {
+    want.x = std::max(want.x, 900);
+    want.y = std::max(want.y, 800);
   }
+  const int d = wxDisplay::GetFromWindow(this);
+  const wxRect area = wxDisplay(d < 0 ? 0 : d).GetClientArea();
+  want.x = std::min(want.x, area.width - 80);
+  want.y = std::min(want.y, area.height - 120);
+  if (want != GetClientSize()) SetClientSize(want);
+  Layout();
+  p_body->FitInside();
 }
 
 string ReactionOverviewDialog::rateLines(int n) const
@@ -1314,7 +1331,10 @@ string ReactionOverviewDialog::layoutReport(const string& shot)
   string r = "dialog=" + sz(this) + " plot=" + sz(p_plot) + " plotshown=" + (p_plot->IsShownOnScreen() ? "1" : "0") +
              " choice=" + sz(p_profileChoice) + " choiceshown=" + (p_profileChoice->IsShownOnScreen() ? "1" : "0") +
              " treatment=" + sz(p_treatment) + " treatmentenabled=" + (p_treatment->IsEnabled() ? "1" : "0") +
-             " detailenabled=" + (p_detail->IsEnabled() ? "1" : "0") + " detail=" + sz(p_detail);
+             " detailenabled=" + (p_detail->IsEnabled() ? "1" : "0") + " detail=" + sz(p_detail) +
+             " body=" + sz(p_body) + " virtual=" + std::to_string(p_body->GetVirtualSize().x) + "x" +
+             std::to_string(p_body->GetVirtualSize().y) + " screen=" +
+             std::to_string(wxDisplay(std::max(0, wxDisplay::GetFromWindow(this))).GetClientArea().height);
   if (!shot.empty() && shot != "-") r += ecceWindowShot(this, wxString::FromUTF8(shot.c_str())) ? " shot=saved" : " shot=failed";
   return r;
 }
