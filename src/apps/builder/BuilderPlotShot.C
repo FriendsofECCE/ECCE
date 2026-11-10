@@ -559,6 +559,7 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
 //  Scene commands for the Density of States (OPDOS) panel (#171):
 //    opdosopen | opdosatoms "A" "B" | opdosselect A|B A1 A2 ... (viewer selection, then Use selection)
 //    opdoswidth EV | opdossticks 0|1 | opdosoccupied 0|1 | opdosint 0|1
+//    opdosshape gaussian|lorentzian | opdosshow ROW (double-click on MO list row, 0-based)
 //    opdosclick EV | opdoscsv <name> | opdospng <name> <w> <h> | opdosstate
 bool Builder::opdosCommand(SceneScript& s, const vector<string>& w, const string& outdir)
 {
@@ -601,6 +602,10 @@ bool Builder::opdosCommand(SceneScript& s, const vector<string>& w, const string
     ok = op->setWindow(atof(w[1].c_str()), atof(w[2].c_str()));
   } else if (cmd == "opdosreset" && w.size() == 1) {
     ok = op->resetWindow();
+  } else if (cmd == "opdosshape" && w.size() == 2) {
+    ok = op->setLineShape(w[1] == "lorentzian");
+  } else if (cmd == "opdosshow" && w.size() == 2) {
+    ok = op->showListedMo(atoi(w[1].c_str()));
   } else if (cmd == "opdosclick" && w.size() == 2) {
     ok = op->clickEnergy(atof(w[1].c_str()));
   } else if (cmd == "opdoscsv" && w.size() == 2) {

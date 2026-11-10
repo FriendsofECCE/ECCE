@@ -10,6 +10,9 @@
 
 class wxButton;
 class wxCheckBox;
+class wxChoice;
+class wxListCtrl;
+class wxSizer;
 class wxSpinCtrlDouble;
 class wxHtmlWindow;
 class wxStaticText;
@@ -52,9 +55,11 @@ class OpdosPanel : public VizPropertyPanel, public ecce::Listener
       bool setSticks(bool on);
       bool setOccupiedOnly(bool on);
       bool setIntegrated(bool on);
+      bool setLineShape(bool lorentzian);
       bool setWindow(double from, double to);                       // eV, both plots; to <= from refused
       bool resetWindow();
       bool clickEnergy(double ev);                                  // as a click on a peak
+      bool showListedMo(int row);     // as a double-click on row (0-based) of the MO list
       bool savePng(const wxString& path, int width, int height);
       bool exportCsv(const wxString& path);
       /** "key value" lines for headless checks. */
@@ -78,6 +83,9 @@ class OpdosPanel : public VizPropertyPanel, public ecce::Listener
       fragorb::DosResult p_all, p_part[2];
       bool p_ok = false, p_unres = false, p_haveAll = false;
       std::string p_error;
+      struct ListedMo { int mo, spin; };
+      std::vector<ListedMo> p_listed;   // rows of p_moList
+      wxString p_drawn, p_normNote;
       std::vector<int> p_a, p_b;     // 0-based
       wxString p_head, p_clicked, p_headPlain;
       std::vector<double> p_S;       // overlap matrix, the same for every A/B choice
@@ -89,6 +97,9 @@ class OpdosPanel : public VizPropertyPanel, public ecce::Listener
       wxSpinCtrlDouble *p_from = nullptr, *p_to = nullptr;
       wxSpinCtrlDouble *p_width = nullptr;
       wxCheckBox *p_sticks = nullptr, *p_occ = nullptr, *p_int = nullptr;
+      wxChoice *p_shape = nullptr;
+      wxListCtrl *p_moList = nullptr;
+      wxSizer *p_listRow = nullptr;
       XYPlotCanvas *p_plot = nullptr, *p_intPlot = nullptr;
 };
 

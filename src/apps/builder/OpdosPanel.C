@@ -5,15 +5,18 @@
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
+#include <set>
 
 #include <wx/bitmap.h>
 #include <wx/button.h>
 #include <wx/checkbox.h>
+#include <wx/choice.h>
 #include <wx/dcmemory.h>
 #include <wx/filedlg.h>
 #include <wx/html/htmlwin.h>
 #include <wx/image.h>
 #include <wx/link.h>
+#include <wx/listctrl.h>
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
 #include <wx/stattext.h>
@@ -26,11 +29,14 @@
 #include "tdat/Fragment.H"
 #include "tdat/ResultsFromCalc.H"
 #include "tdat/ResultsH5.H"
+#include "tdat/PropVector.H"
+#include "tdat/PropVecString.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
 #include "wxgui/ewxConfig.H"
 #include "wxgui/ewxProgressDialog.H"
 #include "wxviz/SGViewer.H"
+#include "MoPanel.H"
 #include "OpdosPanel.H"
 #include "XYPlotCanvas.H"
 
@@ -165,8 +171,15 @@ void OpdosPanel::build()
   p_width = new wxSpinCtrlDouble(this, wxID_ANY, "0.30", wxDefaultPosition, wxSize(130, -1),
                                  wxSP_ARROW_KEYS, 0.02, 3.0, 0.3, 0.05);
   p_width->SetMinSize(wxSize(130, -1));
-  p_width->SetToolTip("Full width at half maximum of the Gaussian drawn for each orbital");
+  p_width->SetToolTip("Full width at half maximum of the line drawn for each orbital");
   row2->Add(p_width, 0, RIGHT, 12);
+  row2->Add(new wxStaticText(this, wxID_ANY, "Shape"), 0, RIGHT, 4);
+  const wxString shapes[] = {"Gaussian", "Lorentzian"};
+  p_shape = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 2, shapes);
+  p_shape->SetSelection(0);
+  p_shape->SetToolTip("Line shape of each orbital's peak; Lorentzian tails are long, so neighbouring peaks overlap more");
+  row2->Add(p_shape, 0, RIGHT, 12);
+  p_shape->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { redraw(); });
   p_width->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { redraw(); });
   p_width->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { redraw(); });
   auto check = [&](wxCheckBox *&c, const char *label, const char *tip, bool on) {
@@ -229,6 +242,24 @@ void OpdosPanel::build()
                           wxTE_MULTILINE | wxTE_READONLY);
   top->Add(p_plot, 3, wxEXPAND | wxALL, 4);
   top->Add(p_intPlot, 2, wxEXPAND | wxALL, 4);
+  //  The MOs under a clicked peak; hidden until the first click.
+  p_moList = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 110),
+                            wxLC_REPORT | wxLC_SINGLE_SEL | wxBORDER_SUNKEN);
+  const char *cols[] = {"MO", "Spin", "E (eV)", "Occ.", "OP(A,B)", "A", "B"};
+  for (int c = 0; c < 7; c++) p_moList->AppendColumn(cols[c], c > 1 ? wxLIST_FORMAT_RIGHT : wxLIST_FORMAT_LEFT, c == 1 ? 50 : 72);
+  p_moList->SetToolTip("Orbitals under the clicked peak; double-click one to draw its isosurface");
+  p_moList->Bind(wxEVT_LIST_ITEM_ACTIVATED, [this](wxListEvent& e) { showListedMo(int(e.GetIndex())); });
+  wxButton *draw = new wxButton(this, wxID_ANY, "Draw orbital");
+  draw->SetToolTip("Draw the selected orbital's isosurface in the viewer, as the MOs panel does");
+  draw->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    const long row = p_moList->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+    showListedMo(row >= 0 ? int(row) : 0);
+  });
+  p_listRow = new wxBoxSizer(wxHORIZONTAL);
+  p_listRow->Add(p_moList, 1, wxEXPAND | wxRIGHT, 6);
+  p_listRow->Add(draw, 0, wxALIGN_TOP, 0);
+  top->Add(p_listRow, 0, wxEXPAND | wxALL, 4);
+  top->Show(p_listRow, false);
   top->Add(p_html, 2, wxEXPAND | wxALL, 4);
   top->Add(p_text, 0, wxEXPAND | wxALL, 4);
   auto handler = [this](int c, int i) {
@@ -308,10 +339,11 @@ void OpdosPanel::recomputeOrbitals(OpdosProgress *progress)
   }
   //  cTSc = 1 for every MO, as the MO diagram checks: a wrong AO order or
   //  normalisation for a code would make every number here wrong.
+  const char *worstSpin = p_unres ? (p_all.normWorstSpin ? " beta" : " alpha") : "";
   if (p_all.normError > 1e-3) {
     char buf[300];
-    snprintf(buf, sizeof buf, "The orbital coefficients do not match this basis (max |cTSc - 1| = %.3g), "
-             "so no overlap populations are drawn.", p_all.normError);
+    snprintf(buf, sizeof buf, "The orbital coefficients do not match this basis (max |cTSc - 1| = %.3g, at MO %d%s), "
+             "so no overlap populations are drawn.", p_all.normError, p_all.normWorstMo, worstSpin);
     p_error = buf;
     p_plot->clearCurves();
     p_intPlot->clearCurves();
@@ -321,7 +353,13 @@ void OpdosPanel::recomputeOrbitals(OpdosProgress *progress)
   }
   p_error.clear();
   p_haveAll = true;
-  setText(wxString());
+  //  Small but above rounding of printed coefficients: drawn, with a warning.
+  p_normNote.clear();
+  if (p_all.normError > 1e-4)
+    p_normNote = wxString::Format("Warning: the orbitals are not quite normalised in this basis "
+                                  "(max |cTSc - 1| = %.2g, at MO %d%s); populations are approximate.",
+                                  p_all.normError, p_all.normWorstMo, worstSpin);
+  setText(p_normNote);
   redraw();
 }
 
@@ -331,6 +369,7 @@ void OpdosPanel::redraw()
   const bool occOnly = p_occ->GetValue();
   fragorb::DosOptions opt;
   opt.fwhmEv = p_width->GetValue();
+  opt.lorentzian = p_shape->GetSelection() == 1;
   opt.emin = p_all.homoEv - 20;
   opt.emax = std::max(p_all.lumoEv, p_all.homoEv) + 10;
   opt.step = 0.05;
@@ -478,7 +517,7 @@ void OpdosPanel::showExplanation(double occOp)
     "<p>i: molecular orbital, &#949;<sub>i</sub> its energy<br>"
     "c<sub>&#956;i</sub>: coefficient of basis function &#956; in orbital i<br>"
     "S<sub>&#956;&#957;</sub>: overlap of basis functions &#956; and &#957;<br>"
-    "g: Gaussian of the chosen width, area 1<br>"
+    "g: " + std::string(p_shape->GetSelection() == 1 ? "Lorentzian" : "Gaussian") + " of the chosen width (FWHM), area 1<br>"
     "PDOS(X): Mulliken gross population of X in each orbital<br>"
     "Unit: states per eV; each closed-shell orbital counts twice. "
     "Positive OPDOS is bonding between A and B, negative antibonding.</p>"
@@ -513,17 +552,50 @@ void OpdosPanel::listMos(double ev)
       }
   }
   std::sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) { return a.d < b.d; });
-  wxString t = wxString::Format("MOs within %.2f eV of %.3f eV:", w, ev);
-  if (rows.empty()) t += " none";
-  for (size_t k = 0; k < rows.size() && k < 12; k++) {
+  p_listed.clear();
+  p_moList->DeleteAllItems();
+  for (size_t k = 0; k < rows.size() && k < 40; k++) {
     const fragorb::DosResult& r = p_part[rows[k].ch];
     const int i = rows[k].idx;
-    t += wxString::Format("\n  MO %d%s  E %.3f eV  occ %.1f  gross A %.3f  B %.3f  OP(A,B) %+.4f",
-                          r.moIndex[i], p_unres ? (rows[k].ch ? " beta" : " alpha") : "", r.moEnergy[i],
-                          r.moOccupation[i], r.moGross[i * 2], r.moGross[i * 2 + 1], r.moOverlap[i]);
+    const long it = p_moList->InsertItem(long(k), wxString::Format("%d", r.moIndex[i]));
+    p_moList->SetItem(it, 1, p_unres ? (rows[k].ch ? "beta" : "alpha") : "");
+    p_moList->SetItem(it, 2, wxString::Format("%.3f", r.moEnergy[i]));
+    p_moList->SetItem(it, 3, wxString::Format("%.2f", r.moOccupation[i]));
+    p_moList->SetItem(it, 4, wxString::Format("%+.4f", r.moOverlap[i]));
+    p_moList->SetItem(it, 5, wxString::Format("%.3f", r.moGross[i * 2]));
+    p_moList->SetItem(it, 6, wxString::Format("%.3f", r.moGross[i * 2 + 1]));
+    ListedMo m = {r.moIndex[i], p_unres ? rows[k].ch : 0};
+    p_listed.push_back(m);
   }
-  p_clicked = t;
+  if (!p_listed.empty()) p_moList->SetItemState(0, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+  GetSizer()->Show(p_listRow, !p_listed.empty());
+  Layout();
+  p_clicked = wxString::Format("MOs within %.2f eV of %.3f eV: %s", w, ev,
+      p_listed.empty() ? wxString("none") : wxString::Format("%zu, listed below; double-click one to draw it", p_listed.size()));
   setText(p_head);
+}
+
+bool OpdosPanel::showListedMo(int row)
+{
+  if (!p_ok || row < 0 || row >= int(p_listed.size())) return false;
+  const ListedMo m = p_listed[row];
+  const wxString name = wxString::Format("MO %d%s", m.mo, p_unres ? (m.spin ? " beta" : " alpha") : "");
+  //  The same path as a click on an MO-diagram level: the MOs panel computes the surface.
+  MoPanel *mo = nullptr;
+  std::set<PropertyPanel*> panels = PropertyPanel::getPanels(getCalculation()->getURL().toString(), "MOs");
+  for (std::set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end() && !mo; ++it)
+    mo = dynamic_cast<MoPanel*>(*it);
+  p_drawn.clear();
+  if (!mo) {
+    p_clicked = "Open the MOs panel (Properties menu) to draw " + name + ".";
+  } else if (!mo->showOrbital(m.mo - 1, m.spin)) {
+    p_clicked = name + " cannot be drawn: the MOs panel has no basis set or no coefficients for it.";
+  } else {
+    p_drawn = name;
+    p_clicked = name + " drawn in the viewer (MOs panel).";
+  }
+  setText(p_head);
+  return !p_drawn.empty();
 }
 
 bool OpdosPanel::clickEnergy(double ev)
@@ -588,6 +660,7 @@ bool OpdosPanel::setWidth(double ev)
 bool OpdosPanel::setSticks(bool on) { if (!p_ok) return false; p_sticks->SetValue(on); redraw(); return true; }
 bool OpdosPanel::setOccupiedOnly(bool on) { if (!p_ok) return false; p_occ->SetValue(on); redraw(); return true; }
 bool OpdosPanel::setIntegrated(bool on) { if (!p_ok) return false; p_int->SetValue(on); redraw(); return true; }
+bool OpdosPanel::setLineShape(bool lorentzian) { if (!p_ok) return false; p_shape->SetSelection(lorentzian ? 1 : 0); redraw(); return true; }
 
 bool OpdosPanel::savePng(const wxString& path, int width, int height)
 {
@@ -623,7 +696,8 @@ bool OpdosPanel::exportCsv(const wxString& path)
   if (!out) return false;
   const int nch = p_unres ? 2 : 1;
   out << "# Mulliken populations; A=" << atomText(p_a) << " B=" << atomText(p_b)
-      << "; width " << p_width->GetValue() << " eV (FWHM); states/eV\nE_eV";
+      << "; width " << p_width->GetValue() << " eV (FWHM, " << (p_shape->GetSelection() == 1 ? "Lorentzian" : "Gaussian")
+      << "); states/eV\nE_eV";
   for (int s = 0; s < nch; s++) {
     const char *tag = p_unres ? (s ? "_beta" : "_alpha") : "";
     out << ",TDOS" << tag << ",PDOS_A" << tag << ",PDOS_B" << tag << ",OPDOS_AB" << tag << ",intOPDOS_AB" << tag;
@@ -652,7 +726,7 @@ std::string OpdosPanel::state() const
            p_haveAll ? 1 : 0, p_error.empty() ? "-" : p_error.c_str(), p_model->natoms(),
            atomText(p_a).c_str(), atomText(p_b).c_str(), p_unres ? 1 : 0);
   s += buf;
-  if (!p_haveAll) return s;
+  if (!p_haveAll) return s + "text " + std::string(p_text ? p_text->GetValue().ToUTF8().data() : "") + "\n";
   {
     //  Positions inside the panel, for layout checks.
     auto where = [this](const char *name, const wxWindow *w) {
@@ -677,10 +751,30 @@ std::string OpdosPanel::state() const
   }
   const int nch = p_unres ? 2 : 1;
   const double step = p_part[0].energy.size() > 1 ? p_part[0].energy[1] - p_part[0].energy[0] : 0;
-  snprintf(buf, sizeof buf, "width %.3f\nsticks %d\noccupied_only %d\nnorm_error %.3e\ncurves %d\n",
-           p_width->GetValue(), p_sticks->GetValue() ? 1 : 0, p_occ->GetValue() ? 1 : 0, p_all.normError,
-           p_plot->curveCount());
+  snprintf(buf, sizeof buf, "width %.3f\nshape %s\nsticks %d\noccupied_only %d\nnorm_error %.3e\nnorm_worst %d %d\ncurves %d\n",
+           p_width->GetValue(), p_shape->GetSelection() == 1 ? "lorentzian" : "gaussian", p_sticks->GetValue() ? 1 : 0,
+           p_occ->GetValue() ? 1 : 0, p_all.normError, p_all.normWorstMo, p_all.normWorstSpin, p_plot->curveCount());
   s += buf;
+  //  Each named curve's range: beta drawn downwards shows as max <= 0.
+  for (XYPlotCanvas *pl : {p_plot, p_intPlot})
+    for (int c = 0; c < pl->curveCount(); c++) {
+      if (pl->curveName(c).empty()) continue;
+      double lo = 0, hi = 0;
+      for (int i = 0; i < pl->pointCount(c); i++) { lo = std::min(lo, pl->yAt(c, i)); hi = std::max(hi, pl->yAt(c, i)); }
+      snprintf(buf, sizeof buf, "%s %s|%.4f|%.4f\n", pl == p_plot ? "curve" : "intcurve",
+               pl->curveName(c).ToStdString().c_str(), lo, hi);
+      s += buf;
+    }
+  snprintf(buf, sizeof buf, "list_rows %zu\nlist_shown %d\ndrawn %s\n", p_listed.size(),
+           p_moList && p_moList->IsShown() ? 1 : 0, p_drawn.empty() ? "-" : p_drawn.ToStdString().c_str());
+  s += buf;
+  for (size_t k = 0; k < p_listed.size(); k++) {
+    snprintf(buf, sizeof buf, "list_row%zu %s|%s|%s|%s|%s\n", k,
+             p_moList->GetItemText(long(k), 0).ToStdString().c_str(), p_moList->GetItemText(long(k), 1).ToStdString().c_str(),
+             p_moList->GetItemText(long(k), 2).ToStdString().c_str(), p_moList->GetItemText(long(k), 3).ToStdString().c_str(),
+             p_moList->GetItemText(long(k), 4).ToStdString().c_str());
+    s += buf;
+  }
   for (int c = 0; c < nch; c++) {
     const fragorb::DosResult& r = p_part[c];
     double it = 0, ia = 0, ib = 0, io = 0;
