@@ -33,6 +33,10 @@
 using std::ostrstream;
 
 #include <string.h>
+#ifndef _WIN32
+#include <pwd.h>
+#include <unistd.h>
+#endif
 #include <stdlib.h>              // getenv
 #include "util/PosixCompat.H"      // access, gethostname, setenv
 #include <locale.h>
@@ -175,9 +179,21 @@ const char * Ecce::buildCommit()
 //    Run-Time errors are signalled if required environment variables
 //    are not defined.
 ///////////////////////////////////////////////////////////////////////////////
+//  Without the variables (a command-line tool run outside the ecce wrapper)
+//  fall back to what the wrappers export by default: the login name and
+//  $HOME.  Load-time objects (preferences, the periodic table) read these,
+//  so a missing variable aborted ecce-thermo and ecce-rate before main().
 const char* Ecce::realUser(void)
 {
   static const char* realUser = getenv(Ecce::realUserVar);
+  if (realUser == (const char*)0) {
+#ifdef _WIN32
+    realUser = getenv("USERNAME");
+#else
+    struct passwd *pw = getpwuid(getuid());
+    realUser = pw ? strdup(pw->pw_name) : getenv("USER");
+#endif
+  }
   EE_RT_ASSERT(realUser !=  (const char*)0, EE_FATAL,
 	       string("You Must Define ") + Ecce::realUserVar);
   return realUser;
@@ -317,6 +333,13 @@ string Ecce::newSessionId()
 const char* Ecce::realUserHome(void)
 {
   static const char* userHome = getenv("ECCE_REALUSERHOME");
+  if (userHome == (const char*)0) {
+#ifdef _WIN32
+    userHome = getenv("USERPROFILE");
+#else
+    userHome = getenv("HOME");
+#endif
+  }
   EE_RT_ASSERT(userHome !=  (const char*)0, EE_FATAL,
 	       "You Must Define ECCE_REALUSERHOME");
   return userHome;
