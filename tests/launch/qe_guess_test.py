@@ -149,8 +149,11 @@ def main():
             check(os.path.getsize(stored) > 100, "and it is a full file (%d bytes)"
                   % os.path.getsize(stored))
             with tarfile.open(stored) as archive:
-                check(set(archive.getnames()) == {"charge-density.dat", "data-file-schema.xml"},
-                      "only density and metadata are retained, without wavefunctions")
+                # paw.txt only with PAW pseudopotentials (the becsum pw.x reads back).
+                names = set(archive.getnames())
+                check({"charge-density.dat", "data-file-schema.xml"} <= names
+                      and names <= {"charge-density.dat", "data-file-schema.xml", "paw.txt"},
+                      "only density, metadata and the PAW becsum are retained, without wavefunctions")
                 for member in archive.getnames():
                     ran = [os.path.join(d, member) for d, _, fs in os.walk(s.state)
                            if member in fs and d.endswith("water.save")]

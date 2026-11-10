@@ -2540,6 +2540,10 @@ if [ -f guess.qesavein ] && grep -qi "startingpot[[:space:]]*=[[:space:]]*['\"]f
       exit 1
     fi
   done
+  # PAW pseudopotentials restart from paw.txt (the becsum) as well.
+  if tar -tf guess.qesavein 2>/dev/null | grep -qx "paw.txt"; then
+    tar -xOf guess.qesavein paw.txt > "$qeSave/paw.txt" || exit 1
+  fi
 fi
 };
 
@@ -2554,7 +2558,9 @@ fi
   $retval .= q{
 qeStatus=$?
 if [ "$qeStatus" -eq 0 ] && [ -s "$qeSave/charge-density.dat" ] && [ -s "$qeSave/data-file-schema.xml" ]; then
-  tar -cf qe.qesave -C "$qeSave" charge-density.dat data-file-schema.xml || rm -f qe.qesave
+  qeMembers="charge-density.dat data-file-schema.xml"
+  [ -s "$qeSave/paw.txt" ] && qeMembers="$qeMembers paw.txt"
+  tar -cf qe.qesave -C "$qeSave" $qeMembers || rm -f qe.qesave
 fi
 (exit "$qeStatus")
 };
