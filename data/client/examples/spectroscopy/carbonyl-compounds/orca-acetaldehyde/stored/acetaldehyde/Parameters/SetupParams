@@ -1,1 +1,3 @@
 ES.Theory.DFT.XCFunctionals|PBE0||1|1|menu_input
+ES.Theory.SCF.RIJCOSXAuxBasis|def2/J||1|1|menu_input
+ES.Theory.SCF.RIMode|RIJCOSX||1|1|menu_input
