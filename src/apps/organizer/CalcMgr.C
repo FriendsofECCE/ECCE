@@ -809,7 +809,10 @@ void CalcMgr::runTestCommand(const string& line)
           p_treeCtrl->SelectItem(to->GetId());
           p_pasteMessage.clear();
           paste();
-          outcome = p_pasteMessage.empty() ? "ok" : "refused: " + p_pasteMessage;
+          string flat = p_pasteMessage;
+          for (size_t i = 0; i < flat.size(); i++)
+            if (flat[i] == '\n') flat.replace(i, 1, " | ");
+          outcome = p_pasteMessage.empty() ? "ok" : "refused: " + flat;
         }
       } else if (sub == "launchcheck") {
         outcome = refuseAddedLaunch(vector<EcceURL>(1, EcceURL(a)))
@@ -1453,7 +1456,9 @@ void CalcMgr::runTestCommand(const string& line)
         ICalculation *from = dynamic_cast<ICalculation*>(
             EDSIFactory::getResource(EcceURL(b)));
         EcceURL to = wf->getURL().getChild(c);
-        if (!from || !from->copy(to)) outcome = "error: copy failed";
+        // Resource::copy, not the virtual copy: Paste into a workflow is
+        // refused by DavCalculation::copy (#935), this hook sets one up.
+        if (!from || !from->Resource::copy(to)) outcome = "error: copy failed";
         else {
           Resource *made = EDSIFactory::getResource(to);
           wf->addMember(made);
