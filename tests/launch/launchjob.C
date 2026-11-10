@@ -887,7 +887,8 @@ int main(int argc, char** argv)
     Launchdata l = task->launchdata();
     cout << "machine=" << l.machine << "\nqueue=" << l.queue << "\nprocs=" << l.totalprocs
          << "\nnodes=" << l.nodes << "\nwall=" << l.maxwall << "\nmemory=" << l.maxmemory
-         << "\nrundir=" << l.rundir << "\nprofile=" << l.profile << endl;
+         << "\nrundir=" << l.rundir << "\nprofile=" << l.profile
+         << "\naccount=" << l.account << endl;
     return 0;
   }
   if (mode == "props") {

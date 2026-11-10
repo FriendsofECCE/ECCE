@@ -16,6 +16,7 @@
   using std::ios;
 #include <fstream>
 #include <sstream>
+#include <iterator>
 #ifdef _WIN32
 #include "util/Filesystem.H"
 #endif
@@ -1917,10 +1918,28 @@ void Launch::substituteRealFileName(string& fileName)
 }
 
 
+//  The account on the script's own directives is the one the job is charged
+//  to; the launcher's field can be empty while the machine's CONFIG or queue
+//  default supplies it.  Shared by the GUI launch and ecce-launch.  Only a
+//  found account is stored, and no allocation query is made here.
+void Launch::recordSubmitAccount(void)
+{
+  ifstream in((p_cache->directory + "/" + p_cache->scriptName).c_str());
+  if (!in) return;
+  string script((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+  const string account = SubmitHeaderCheck::submitAccount(script);
+  if (account.empty()) return;
+  Launchdata l = p_taskjob->launchdata();
+  if (l.account == account) return;
+  l.account = account;
+  p_taskjob->launchdata(l);
+}
+
 bool Launch::generateJobSubmissionFile(void)
 {
   bool ret = Launch::postProcessInput();
   if (ret) ret = Launch::instanceScript(*p_options);
+  if (ret && !p_cache->reparse) recordSubmitAccount();
 
   return ret;
 }

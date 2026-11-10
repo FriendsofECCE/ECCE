@@ -153,3 +153,13 @@ some jobs. Tools > Allocations (live, with the time read) is the one place for
 the allocation left. Old stored calculations still carry `launch_allocleft`;
 it stays in `StoredCalcCopy`'s kSkip and the examples_preparsed volatile
 list, and nothing reads it.
+
+## launch_account is read from the generated script (#871)
+The launcher's account field can be empty while the machine's CONFIG block
+or a queue default puts `#SBATCH --account=...` (or `#PBS -A`, `#BSUB -P`) in
+the header. `Launch::generateJobSubmissionFile` therefore reads the account
+back from the script after gensub (`SubmitHeaderCheck::submitAccount`) and
+stores it in `launch_account`, for the GUI launch and `ecce-launch` alike (both
+run `Launch`). A script with no account directive leaves the stored value
+alone. `launch_allocleft` stays unwritten (see above): ECCE has no number at
+submit time and adds no query there.
