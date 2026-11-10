@@ -94,3 +94,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [A copy-back from a host that cannot be asked "succeeded" with nothing copied and stored a 0-byte output; sizes now checked, Complete needs the normal-end line (#732)](copy-back-unreachable-host-732.md)
 - [A cancelled job's program outlived scancel (linuxproc, job shell died on TERM); TERM trapped, run directory swept after the cancel (#855)](terminate-leaves-program-running-855.md)
 - [Offload hosts: 6 physical cores, memory not enforced by Slurm; overlapping builds swapped NerdEgg to a standstill (2026-11-07)](offload-hosts-memory-overload-2026-11-07.md)
+- [A tree reload from a timer inside the example import or a wxYield freed Resources the caller held: Organizer 0xC0000005 in the Windows probe (#932, #889)](organizer-reload-inside-a-yield-frees-held-resources.md)
