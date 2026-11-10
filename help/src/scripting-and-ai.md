@@ -68,6 +68,13 @@ original; on a failure the partial copy is removed and the original stays.
 A name that exists in the target is never overwritten. See
 [Copying and moving between trees](installation.md#copying-and-moving-between-trees).
 
+## Moving a queued calculation
+
+`ecce-launch --move on=MACHINE <calculation>...` cancels a Submitted job that
+is still pending in a Slurm queue and submits the calculation on `MACHINE`,
+keeping its name and run log. A job that has started is refused. See
+[Launch Selected](launch-selected.md). Exit status as for `ecce-launch`.
+
 ## Rerunning a calculation
 
 `ecce-rerun [on=MACHINE] [launch] <calculation>...` asks the running

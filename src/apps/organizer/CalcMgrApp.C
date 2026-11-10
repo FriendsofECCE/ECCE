@@ -334,7 +334,9 @@ void CalcMgrApp::launchRequestMCB(JMSMessage& msg)
     urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
 
   vector<string> lines;
-  if (!p_calcMgr->launchForCommand(urls, target, lines))
+  const bool moved = msg.getProperty("move") == "yes";
+  if (!(moved ? p_calcMgr->moveLaunchForCommand(urls, target, lines)
+              : p_calcMgr->launchForCommand(urls, target, lines)))
     reply("busy", lines);
   else
     reply("done", lines);
