@@ -597,6 +597,10 @@ bool Builder::opdosCommand(SceneScript& s, const vector<string>& w, const string
     ok = op->setOccupiedOnly(w[1] != "0");
   } else if (cmd == "opdosint" && w.size() == 2) {
     ok = op->setIntegrated(w[1] != "0");
+  } else if (cmd == "opdosrange" && w.size() == 3) {
+    ok = op->setWindow(atof(w[1].c_str()), atof(w[2].c_str()));
+  } else if (cmd == "opdosreset" && w.size() == 1) {
+    ok = op->resetWindow();
   } else if (cmd == "opdosclick" && w.size() == 2) {
     ok = op->clickEnergy(atof(w[1].c_str()));
   } else if (cmd == "opdoscsv" && w.size() == 2) {

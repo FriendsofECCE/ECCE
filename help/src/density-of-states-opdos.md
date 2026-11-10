@@ -9,14 +9,21 @@ The panel says which population scheme it uses: **Mulliken**, for both OPDOS and
 ## Controls
 
 - **A** and **B**: the atom numbers of the two groups as shown in the structure, for example `1,2,5-8`. Press Enter to apply. A starts as the first transition-metal atom (or the first atom) and B as all other atoms. No atom may be in both groups.
-- **Use selection** (next to each group): take the atoms selected in the 3-D view for that group.
+- **Use selection** (under each group's box): take the atoms selected in the 3-D view for that group. If you type a new list for one group and the other group still holds some of those atoms, the other group gives them up and the text field says so.
 - **Width (eV)**: the full width at half maximum of the Gaussian drawn for each orbital, 0.30 eV to begin with. A narrow width resolves single orbitals, a wide one shows bands.
 - **Sticks**: one thin line per orbital at its energy, as high as its OPDOS contribution.
 - **Integrated OPDOS**: the running integral of OPDOS in a second plot. At the HOMO it equals the total overlap population between A and B (the sum of occupation times OP(A,B) over the orbitals); the text under the plots gives that number.
 - **Occupied only**: leave out the empty orbitals. Mulliken overlap populations of virtual orbitals in a diffuse basis are large, of both signs, and cancel, so the empty part of the curves can be misleading; this switch removes them.
+- **From** and **To** (eV): the energy range shown, in both plots; the vertical scale fits the part inside. **Reset** shows the whole range again. The range is remembered for this panel, so the region around the HOMO stays enlarged the next time it opens.
 - **Export CSV** writes all curves on the energy grid; **Export PNG** saves the plot.
 
 The occupied energy region is shaded and the HOMO is marked with a dashed line. For an open-shell calculation the alpha curves are drawn upwards and the beta curves downwards (dashed).
+
+The explanation below the plots is formatted text: the formula OPDOS(A,B) = Σᵢ 2 Σ c c S g(E − εᵢ) with the sum over μ in A and ν in B, what each symbol means, a small table with A, B, the occupied A–B overlap population (in electrons) and the largest deviation of CᵀSC from 1, and the caution about diffuse basis sets on its own highlighted line. Messages (a refused atom list, the orbitals listed after a click) appear in the small text field under it, never among the controls.
+
+The first time a calculation is opened, building the overlap matrix and the populations for a large basis can take a while. A progress dialog appears after half a second and names the stage (reading the stored results, building the overlap matrix of the basis, computing the overlap populations). The overlap matrix is kept while the panel is open, so changing A or B afterwards is faster.
+
+Both plots have axis titles: Energy (eV) on x; states / eV (upper) and Integrated OPDOS (electrons) (lower) on y.
 
 ## Reading the plot
 

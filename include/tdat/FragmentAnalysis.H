@@ -18,6 +18,7 @@
 #ifndef FRAGMENTANALYSIS_HH
 #define FRAGMENTANALYSIS_HH
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -110,6 +111,11 @@ struct DosOptions {
   int spin = -1;                       // -1 both channels, 0 alpha, 1 beta (open shell)
   bool occupiedOnly = false;           // leave out the empty MOs (diffuse virtuals)
   double emin = 0, emax = 0, step = 0.05;   // eV; emin == emax: HOMO-20 .. LUMO+10
+  // Overlap matrix of the complex when the caller has it already (S does not
+  // depend on the atom sets); null: dosOrbitals computes it.
+  const vector<double>* overlap = nullptr;
+  // Called with the fraction (0..1) done of the per-orbital loop.
+  std::function<void(double)> progress;
 };
 
 struct DosResult {
@@ -133,6 +139,10 @@ struct DosResult {
 
 // dosOrbitals: S and the per-MO populations (slow); dosCurves: the broadening,
 // repeatable with another width on the same DosResult.
+// "1,2,5-8" (1-based, each within 1..natoms) to sorted unique 0-based atoms.
+bool parseAtomList(const string& text, size_t natoms, vector<int>& atoms);
+// The overlap matrix dosOrbitals needs, for reuse across atom sets (DosOptions::overlap).
+bool dosOverlap(const resultsh5::Model& complex, vector<double>& S, string& err);
 bool dosOrbitals(const resultsh5::Model& complex, const DosOptions& opt, DosResult& out, string& err);
 bool dosCurves(const DosOptions& opt, DosResult& out, string& err);
 // The MOs of one spin channel (spin < 0: all) of a dosOrbitals result, optionally
