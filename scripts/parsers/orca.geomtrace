@@ -31,6 +31,12 @@ while (<STDIN>) {
 }
 
 my $size = $#coordlines + 1;
+# An IRC's TS: the last block before the path, the first live frame (orca.irctrj).
+if ($size >= 1 && $runtype =~ /IRC/i && open(my $fh, ">", "$key/orcaIrcXyz")) {
+  my @sym = map { /^(\d+)-(\S+)/ ? $2 : 'X' } split(' ', $rowLabels);
+  print $fh map { "$sym[$_] $coordlines[$_]\n" } (0 .. $size - 1);
+  close($fh);
+}
 if ($size >= 1) {
   print "key: GEOMTRACE\n";
   print "size:\n1 $size 3\n";

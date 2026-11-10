@@ -7,9 +7,11 @@
 #   a row of the iteration table ("k  E  dE  max(|G|)  RMS(G)"): point k+1 of
 #     that direction, coordinate +(k+1) forward, -(k+1) backward, the numbers
 #     the IRC PATH SUMMARY gives the same point (orca.irc).
-# ORCA prints no structure per point (they are in <input>_IRC_F/B_trj.xyz, read
-# at the end), so IRCCOORD/IRCENERGY are re-sent whole in path order (backward
-# end, TS, forward end); the summary replaces them at the end.
+# IRCCOORD/IRCENERGY are re-sent whole: in run order (TS, forward, backward,
+# as received) once orca.irctrj has sent structures in that order, so point i
+# is frame i; in path order while there are none (an import, which reads the
+# structures at the end), as unsorted vectors without frames draw a zigzag.
+# The summary replaces them at the end.
 $| = 1;
 ($key, $runtype) = @ARGV;
 exit(0) unless ($runtype =~ /IRC/i);
@@ -44,7 +46,8 @@ if ($line =~ /^\s*\*\s+(FORWARD|BACKWARD) IRC\s+\*/) {
   exit(0);
 }
 
-my @pts = sort { $a->[0] <=> $b->[0] } points();
+my @pts = points();
+@pts = sort { $a->[0] <=> $b->[0] } @pts unless (-e "$key/orcaIrcFrames");
 exit(0) unless (@pts);
 my $n = scalar(@pts);
 print "key: IRCCOORD\nsize: \n$n\nvalues: \n", join("\n", map { $_->[0] } @pts),
