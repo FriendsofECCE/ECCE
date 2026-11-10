@@ -5,6 +5,8 @@
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
+#include <fstream>
 #include <ctime>
 #include "util/Filesystem.H"
 #include <map>
@@ -172,6 +174,89 @@ void addTraces(IPropCalculation *calc, Model& m)
       : (calc->getProperty("CONFREL") || calc->getProperty("POSESCORE")) ? "ensemble"
       : "optimization";
   addTrace(m, name, g, vectorOf(calc, "TEVEC"), 0, time, table("LATTICEVEC"));
+}
+
+
+string scratchFile()
+{
+  static int counter = 0;
+  std::error_code ec;
+  ecce::fs::path dir = ecce::fs::temp_directory_path(ec);
+  if (ec) dir = ".";
+  return (dir / ("ecce-results-" + std::to_string((long)getpid()) + "-" +
+                 std::to_string(++counter) + ".h5")).string();
+}
+
+// NWChem's movecs file (Fortran unformatted, 4-byte record markers): header
+// records, then nsets, nbf, nmo per set, and per set occupations, energies
+// and one record per MO.  Integers are 4 or 8 bytes depending on the build.
+bool readMovecs(const string& path, vector<vector<vector<double> > >& sets)
+{
+  std::ifstream in(path.c_str(), std::ios::binary);
+  vector<string> recs;
+  int32_t n = 0;
+  while (in.read(reinterpret_cast<char*>(&n), 4)) {
+    if (n < 0 || n > (1 << 28)) return false;
+    string r(n, '\0');
+    int32_t tail = 0;
+    if (!in.read(&r[0], n) || !in.read(reinterpret_cast<char*>(&tail), 4) || tail != n)
+      return false;
+    recs.push_back(r);
+  }
+  auto integer = [&](size_t k, size_t i, long& v) {
+    const string& r = recs[k];
+    if (r.size() % 8 == 0 && r.size() >= 8*(i + 1)) { int64_t x; memcpy(&x, &r[8*i], 8); v = (long)x; }
+    else if (r.size() % 4 == 0 && r.size() >= 4*(i + 1)) { int32_t x; memcpy(&x, &r[4*i], 4); v = x; }
+    else return false;
+    return true;
+  };
+  // records 0-5: checksum, scftype, title length, title, basis length, basis name
+  long nsets = 0, nbf = 0;
+  if (recs.size() < 9 || !integer(6, 0, nsets) || !integer(7, 0, nbf) ||
+      nsets < 1 || nsets > 2 || nbf < 1)
+    return false;
+  // with 8-byte integers nmo has one entry per set: tell 4 from 8 by size
+  const bool i8 = recs[8].size() == 8*(size_t)nsets;
+  size_t k = 9;
+  sets.assign(nsets, vector<vector<double> >());
+  for (long s = 0; s < nsets; s++) {
+    long nmo = 0;
+    if (i8) { int64_t x; memcpy(&x, &recs[8][8*s], 8); nmo = (long)x; }
+    else if (recs[8].size() >= 4*(size_t)(s + 1)) { int32_t x; memcpy(&x, &recs[8][4*s], 4); nmo = x; }
+    if (nmo < 1 || nmo > nbf || k + 2 + nmo > recs.size()) return false;
+    k += 2;                                   // occupations, energies
+    for (long j = 0; j < nmo; j++, k++) {
+      if (recs[k].size() != 8*(size_t)nbf) return false;
+      vector<double> v(nbf);
+      memcpy(v.data(), recs[k].data(), 8*nbf);
+      sets[s].push_back(v);
+    }
+  }
+  return true;
+}
+
+// NWChem's eprint holds the MO coefficients to 3 decimals, which fails
+// tr(PS) = N by about 1e-3 (#944).  The job keeps nwchem.movecs at full
+// precision; use it when it is the same set of orbitals as the parsed one.
+bool fullPrecisionNwchem(IPropCalculation *calc, Parsed& out)
+{
+  const string tmp = scratchFile();
+  vector<vector<vector<double> > > sets;
+  const bool read = calc->fetchStoredFile("nwchem.movecs", tmp) && readMovecs(tmp, sets);
+  unlink(tmp.c_str());
+  const size_t nspin = out.rows[1].empty() ? 1 : 2;
+  if (!read || sets.size() != nspin) return false;
+  for (size_t sp = 0; sp < nspin; sp++) {
+    const vector<vector<double> >& rows = out.rows[sp];
+    if (sets[sp].size() != rows.size()) return false;
+    for (size_t r = 0; r < rows.size(); r++) {
+      if (sets[sp][r].size() != rows[r].size()) return false;
+      for (size_t i = 0; i < rows[r].size(); i++)
+        if (std::fabs(sets[sp][r][i] - rows[r][i]) > 6e-4) return false;
+    }
+  }
+  for (size_t sp = 0; sp < nspin; sp++) out.rows[sp] = sets[sp];
+  return true;
 }
 
 }  // namespace
@@ -416,6 +501,7 @@ bool gather(IPropCalculation *calc, Parsed& out, string& why)
     TGBSConfig *gbs = ic->gbsConfig();
     if (gbs != 0) { out.basisName = gbs->name(); delete gbs; }
   }
+  if (out.code == "NWChem") fullPrecisionNwchem(calc, out);
   return true;
 }
 
@@ -518,7 +604,9 @@ string check(Model& m)
         orthoErr = std::max(orthoErr, std::fabs(x - (a == b ? 1.0 : 0.0)));
       }
     }
-    const double rel = N > 0 ? std::fabs(tr - N)/N : 1.0;
+    // An empty channel (the beta of H2+) has tr(PS) = 0 exactly: compare it
+    // absolutely, since there is no N to divide by.
+    const double rel = N > 0 ? std::fabs(tr - N)/N : std::fabs(tr);
     traceErr = std::max(traceErr, rel);
     perSpin += (perSpin.empty() ? "" : "; ") + string(mo.spin ? "beta" : "alpha") +
                " tr(PS) " + num("%.6f", tr) + " of " + num("%.4f", N);
@@ -583,19 +671,6 @@ bool build(IPropCalculation *calc, Model& m, string& line, string& why)
 }
 
 
-namespace {
-
-string scratchFile()
-{
-  static int counter = 0;
-  std::error_code ec;
-  ecce::fs::path dir = ecce::fs::temp_directory_path(ec);
-  if (ec) dir = ".";
-  return (dir / ("ecce-results-" + std::to_string((long)getpid()) + "-" +
-                 std::to_string(++counter) + ".h5")).string();
-}
-
-}  // namespace
 
 
 bool store(IPropCalculation *calc, string& line)

@@ -66,6 +66,7 @@ def main():
                 open(os.path.join(dst, ".ecce-meta"), "w").write(meta)
             copies.append(dst if src not in EXPECT_FAILED else "failed:" + dst)
         rc |= run([exe, "fixture"] + copies, env)
+        rc |= run([exe, "emptyspin"], env)
 
         if cli:
             # back-fill an existing calculation, then read it with the checker
@@ -82,6 +83,21 @@ def main():
             out = os.path.join(tmp, "elsewhere.h5")
             rc |= run([cli, "write", target, out], env)
             rc |= run([cli, "show", out], env)
+
+            # NWChem: the eprint's 3-decimal coefficients fail the checks; the
+            # kept nwchem.movecs (same orbitals) gives full precision (#944)
+            nw = os.path.join(tmp, "nwchem-methane-movecs")
+            shutil.copytree(os.path.join(HERE, "fixtures", "nwchem-methane-movecs"), nw)
+            for keep, want in ((True, "checks passed"), (False, "checks FAILED")):
+                if not keep:
+                    os.remove(os.path.join(nw, "Outputs", "nwchem.movecs"))
+                r = subprocess.run([cli, "write", nw, os.path.join(tmp, "nw.h5")],
+                                   env=env, capture_output=True, text=True)
+                sys.stdout.write(r.stdout)
+                ok = want in r.stdout
+                print("%s NWChem %s movecs: %s" % ("ok:  " if ok else "FAIL:",
+                                                  "with" if keep else "without", want))
+                rc |= 0 if ok else 1
 
         # real ORCA blocks: CrO/def2-SVP (f functions, a metal) and HF/cc-pVQZ (g)
         for block, nb, xyz, nel in (
