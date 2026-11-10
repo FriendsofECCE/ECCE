@@ -66,6 +66,8 @@ chemical/x-mopac-guess  .denin
 chemical/x-mopac-density  .den
 chemical/x-qe-input                      .pwin
 chemical/x-qe-output                     .pwout
+chemical/x-qe-save                     .qesave
+chemical/x-qe-guess                    .qesavein
 chemical/x-cp2k-input                    .cp2kin
 chemical/x-cp2k-output                   .cp2kout
 chemical/x-cp2k-guess  .wfnin

@@ -270,6 +270,8 @@ AddType  chemical/x-mopac-density  .den
 # already running.
 AddType  chemical/x-qe-input  .pwin
 AddType  chemical/x-qe-output .pwout
+AddType  chemical/x-qe-save  .qesave
+AddType  chemical/x-qe-guess  .qesavein
 
 # CP2K. The input is given with "-i" and the report goes to stdout, so, as
 # for pw.x, the extensions are free; generic .inp/.out would be typed

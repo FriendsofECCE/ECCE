@@ -310,7 +310,7 @@ frequencies.
 
 ## Starting from the orbitals of an earlier calculation
 
-ORCA, Gaussian 16, NWChem, ECCE-QM, MOPAC and CP2K calculations can keep
+ORCA, Gaussian 16, NWChem, ECCE-QM, MOPAC, CP2K and Quantum ESPRESSO calculations can keep
 final orbitals or density for a follow-on calculation's initial guess.
 
 1. Select the finished calculation and choose **New from This > Continue
@@ -325,7 +325,9 @@ final orbitals or density for a follow-on calculation's initial guess.
    basis set. CP2K needs the same basis settings in **Theory Details**,
    including any per-element overrides, and the same atoms in the same order.
    MOPAC needs the same atoms in the same order; its Hamiltonian may change.
-   The editor reports incompatible basis or atom settings on the guess line.
+   Quantum ESPRESSO reuses the charge density, with the same atoms at the
+   same positions, cell and wavefunction and charge-density cutoff settings.
+   The editor reports incompatible structure or basis settings on the guess line.
 4. **Use Default Guess** drops the attached file and restores the program's
    default guess.
 
@@ -333,6 +335,14 @@ The binary guess file is copied to the run machine for local and remote
 jobs. Use it with the same program version and a compatible machine.
 MOPAC reads the staged density with `OLDENS`; CP2K reads the staged
 wavefunction with `SCF_GUESS RESTART`.
+
+### Quantum ESPRESSO: starting from a stored density
+
+The copy reads the source's converged charge density with `startingpot='file'`.
+Wavefunctions are generated afresh: storing just the density and its metadata
+keeps transfers small, including when the source did not keep wavefunctions.
+Use the same pseudopotentials and spin settings as the source. If you change
+atoms, cell or cutoff settings, restore them or choose **Use Default Guess**.
 
 ## Integration grid (ORCA)
 

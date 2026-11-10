@@ -4531,7 +4531,7 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_ecceqm_guess_central PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
-  foreach(_code mopac cp2k)
+  foreach(_code mopac cp2k qe)
     foreach(_mode local central)
       set(_suffix "")
       set(_args "")

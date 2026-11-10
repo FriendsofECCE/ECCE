@@ -110,6 +110,7 @@
 #include "dsm/Session.H"
 #include "dsm/TaskJob.H"
 #include "tdat/Fragment.H"
+#include "tdat/LatticeDef.H"
 #include "dsm/VDoc.H"
 #include "util/TDateTime.H"
 #include "tdat/AuthCache.H"
@@ -207,6 +208,7 @@ static int doCreate(const vector<string>& a)
     if (k == "queue") ldat.queue = v;
     else if (k == "nodes") ldat.nodes = strtoul(v.c_str(), 0, 10);
     else if (k == "procs") ldat.totalprocs = strtoul(v.c_str(), 0, 10);
+    else if (k == "scratch") ldat.scratchdir = v;
     else if (k == "threads") ldat.threads = strtoul(v.c_str(), 0, 10);
     else if (k == "wall") ldat.maxwall = v;
     else if (k == "mem") ldat.maxmemory = strtoul(v.c_str(), 0, 10);
@@ -225,11 +227,12 @@ static int doCreate(const vector<string>& a)
         cerr << "could not store GUI settings" << endl;
         return 1;
       }
-    } else if (k == "xyz") {
+    } else if (k == "xyz" || k == "mvm") {
       ifstream fin(v.c_str());
       Fragment frag;
       PropertyTask* pt = dynamic_cast<PropertyTask*>(task);
-      if (!fin || !frag.restoreXYZ(fin) || !pt || !pt->fragment(&frag)) {
+      if (!fin || !(k == "mvm" ? frag.restoreMVM(fin) : frag.restoreXYZ(fin)) ||
+          !pt || !pt->fragment(&frag)) {
         cerr << "could not store the structure " << v << endl;
         return 1;
       }
@@ -447,6 +450,7 @@ static int doMdSetup(const vector<string>& a)
     if (k == "queue") ldat.queue = v;
     else if (k == "nodes") ldat.nodes = strtoul(v.c_str(), 0, 10);
     else if (k == "procs") ldat.totalprocs = strtoul(v.c_str(), 0, 10);
+    else if (k == "scratch") ldat.scratchdir = v;
     else if (k == "threads") ldat.threads = strtoul(v.c_str(), 0, 10);
     else if (k == "wall") ldat.maxwall = v;
     else if (k == "mem") ldat.maxmemory = strtoul(v.c_str(), 0, 10);
@@ -753,6 +757,16 @@ int main(int argc, char** argv)
       const short z = frag->atomRef(0)->atomicNumber();
       frag->atomRef(0)->atomicNumber(frag->atomRef(1)->atomicNumber());
       frag->atomRef(1)->atomicNumber(z);
+    }
+    if (a[1] == "position") {
+      const double *xyz = frag->atomRef(0)->coordinates();
+      frag->atomRef(0)->coordinates(xyz[0] + 0.1, xyz[1], xyz[2]);
+    }
+    if (a[1] == "cell") frag->setLattice(new LatticeDef(7, 6, 6, 90, 90, 90));
+    if (a[1] == "cutoff" || a[1] == "densitycutoff") {
+      GUIValue *v = new GUIValue();
+      v->setValue("200");
+      settings->set(a[1] == "cutoff" ? "ES.Theory.PW.EcutWfc" : "ES.Theory.PW.EcutRho", v);
     }
     if (a[1] == "basis") {
       GUIValue *v = new GUIValue();

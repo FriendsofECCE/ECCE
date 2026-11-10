@@ -182,7 +182,10 @@
   <Input  type="primary" mimetype="chemical/x-qe-input" comment="true" commentstring="!">qe.pwin</Input>
   <Output type="primary" mimetype="chemical/x-qe-output">qe.pwout</Output>
   <Output type="parse" verifypattern="Program PWSCF" mimetype="chemical/x-qe-output">qe.pwout</Output>
+  <Output type="auxiliary" mimetype="chemical/x-qe-save">qe.qesave</Output>
+  <Input type="auxiliary" mimetype="chemical/x-qe-guess">guess.qesavein</Input>
 </DataFiles>
+<RetainOutputFile>qe.qesave</RetainOutputFile>
 
 <!-- Names of files required for code integration.  These files are
      assumed to be in the ecce path as managed by the ecce_env script.
