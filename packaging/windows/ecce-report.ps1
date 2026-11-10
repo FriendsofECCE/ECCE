@@ -94,6 +94,13 @@ try {
     Say "AppLocker: $rules rules in effect"
     $al | Set-Content -Path (Join-Path $work "applocker.txt")
 } catch { Say "AppLocker: could not read" }
+# Smart App Control blocks unsigned programs with "your organization's Device
+# Guard policy", also on Windows 11 Home after its evaluation period (#933).
+try {
+    $sac = (Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy" -Name VerifiedAndReputablePolicyState -ErrorAction Stop).VerifiedAndReputablePolicyState
+    $sacText = switch ($sac) { 0 { "off" } 1 { "ON (blocks unsigned programs such as ECCE)" } 2 { "evaluation (may switch on by itself)" } default { "state $sac" } }
+    Say "Smart App Control: $sacText"
+} catch { Say "Smart App Control: not present or could not read" }
 try {
     $mp = Get-MpComputerStatus -ErrorAction Stop
     Say "Defender real-time protection: $($mp.RealTimeProtectionEnabled)"
