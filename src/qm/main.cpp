@@ -15,6 +15,7 @@
 #include "charges.hpp"
 #include "gradient.hpp"
 #include "hessian.hpp"
+#include "results_h5.hpp"
 #include "input.hpp"
 #include "integrals.hpp"
 #include "output.hpp"
@@ -28,18 +29,19 @@
 static const int kNotConverged = 241;
 
 int main(int argc, char** argv) {
-  std::string inp, outp, molden, bdir;
+  std::string inp, outp, molden, bdir, results;
   bool verbose = false;
   std::vector<double> probe;  // x y z in angstrom
   for (int i = 1; i < argc; ++i) {
     std::string a = argv[i];
     if (a == "--basis-dir" && i + 1 < argc) bdir = argv[++i];
     else if (a == "--molden" && i + 1 < argc) molden = argv[++i];
+    else if (a == "--results" && i + 1 < argc) results = argv[++i];
     else if (a == "-o" && i + 1 < argc) outp = argv[++i];
     else if (a == "-v") verbose = true;
     else if (a == "--probe" && i + 3 < argc) { for (int k = 0; k < 3; ++k) probe.push_back(std::atof(argv[++i])); }
     else if (a == "-h" || a == "--help") {
-      std::cout << "usage: ecce-qm [--basis-dir DIR] [--molden FILE] [-o OUT] [-v] input\n";
+      std::cout << "usage: ecce-qm [--basis-dir DIR] [--molden FILE] [--results FILE.h5] [-o OUT] [-v] input\n";
       return 0;
     } else inp = a;
   }
@@ -114,6 +116,21 @@ int main(int argc, char** argv) {
         po->alpha = qm::static_polarizability(*basis, at, in.scf, r, in.field_step);
       }
       return po;
+    };
+    qm::ResultsTraces traces;
+    // Never fails the run: the job store writes the file from the output then.
+    auto write_results = [&](const qm::FrequencyOutput* fo) {
+      if (results.empty() || !r.converged) return;
+      std::string why;
+      if (!qm::write_results_h5(results, in, *basis, at, r, fo, traces, why))
+        std::cerr << "ecce-qm: results.h5 not written: " << why << "\n";
+    };
+    auto trace_point = [](const qm::OptStep& st) {
+      qm::TracePoint p;
+      p.mol = st.mol;
+      p.energy = st.energy;
+      p.grad = st.grad;
+      return p;
     };
     auto same = [](const qm::Molecule& a, const qm::Molecule& b) {
       for (size_t i = 0; i < a.atoms.size(); ++i)
@@ -200,6 +217,7 @@ int main(int argc, char** argv) {
       for (double v : g0) fo.max_gradient = std::max(fo.max_gradient, std::fabs(v));
       const qm::Derivatives d = derivatives(ref, fo.step);
       fo.vib = qm::analyse_vibrations(ref, d);
+      fo.hessian = d.hessian;
       fo.thermo = qm::thermochemistry(ref, fo.vib, in.temperature, in.pressure, in.symmetry_number);
       qm::write_progress_freq_end(os, (fo.step == 0 ? 3 : 6) * static_cast<int>(ref.atoms.size()), fo);
       return fo;
@@ -278,6 +296,7 @@ int main(int argc, char** argv) {
         opt.constraints.push_back(sc);
         int last_step = 0;
         res = qm::optimize_geometry(cur, opt, evaluate, [&](const qm::OptStep& st) {
+          traces.optimization.push_back(trace_point(st));
           qm::write_opt_step(os, st);
           qm::write_progress_opt(os, st, opt);
           last_step = st.index;
@@ -290,6 +309,12 @@ int main(int argc, char** argv) {
         p.energy = r.energy;
         p.converged = res.converged;
         pts.push_back(p);
+        qm::TracePoint tp;
+        tp.mol = res.mol;
+        tp.energy = r.energy;
+        tp.value = in.scan.value(k);
+        traces.scan.push_back(tp);
+        traces.scan_unit = bond ? "bohr" : "radian";
         qm::write_scan_geometry(os, k + 1, p.value, res.mol);
         qm::write_point_orbitals(os, k + 1, qm::point_orbitals(r));
         qm::write_scan_table(os, pts, bond);
@@ -305,11 +330,13 @@ int main(int argc, char** argv) {
         std::ofstream f(molden);
         qm::write_molden(f, in, *basis, r, nullptr);
       }
+      write_results(nullptr);
       return all ? 0 : 1;
     }
     if (qm::does_optimize(in.runtype)) {
       int last_step = 0;
       auto on_step = [&](const qm::OptStep& st) {
+        traces.optimization.push_back(trace_point(st));
         qm::write_opt_step(os, st);
         qm::write_progress_opt(os, st, in.opt);
         last_step = st.index;
@@ -341,6 +368,7 @@ int main(int argc, char** argv) {
         std::ofstream f(molden);
         qm::write_molden(f, in, *basis, r, fo.get());
       }
+      write_results(fo.get());
       // A converged search can still sit on another reaction's saddle or on a
       // dissociated structure; say so in the output and the run log, and still
       // end Complete.
@@ -378,6 +406,7 @@ int main(int argc, char** argv) {
       std::ofstream f(molden);
       qm::write_molden(f, in, *basis, r, fo.get());
     }
+    write_results(fo.get());
     if (probe.size() == 3) {
       // orbital values and electron density at a point, for checking exports
       double p[3] = {probe[0] * qm::kAngstromToBohr, probe[1] * qm::kAngstromToBohr, probe[2] * qm::kAngstromToBohr};

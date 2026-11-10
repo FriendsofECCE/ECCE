@@ -17,6 +17,8 @@
 #include "tdat/Fragment.H"
 #include "tdat/MoAoBasis.H"
 #include "tdat/PropTable.H"
+#include "tdat/PropTSVecTable.H"
+#include "tdat/PropVecTable.H"
 #include "tdat/PropValue.H"
 #include "tdat/PropVector.H"
 #include "tdat/TAtm.H"
@@ -80,6 +82,96 @@ string num(const char *fmt, double v)
   char b[64];
   snprintf(b, sizeof b, fmt, v);
   return b;
+}
+
+
+// Factor to hartree / bohr from ECCE's unit names; 0 for one not known, so
+// a value in an unexpected unit is left out rather than stored wrong.
+double toHartree(const string& u)
+{
+  if (u == "Hartree" || u == "hartree" || u == "au") return 1.0;
+  if (u == "kcal/mol" || u == "kCal/Mole" || u == "kcal/mole") return 1/627.509474;
+  if (u == "kJ/mol" || u == "kJoule/Mole" || u == "kJ/mole") return 1/2625.499639;
+  if (u == "eV") return 1/27.211386246;
+  return 0;
+}
+
+double toBohr(const string& u)
+{
+  if (u == "Angstrom" || u == "angstrom" || u.empty()) return bohrPerAngstrom();
+  if (u == "Bohr" || u == "bohr") return 1.0;
+  if (u == "nm") return 10*bohrPerAngstrom();
+  return 0;
+}
+
+PropVector *vectorOf(IPropCalculation *calc, const char *key)
+{
+  PropVector *v = dynamic_cast<PropVector*>(calc->getProperty(key));
+  return v != 0 && v->rows() > 0 ? v : 0;
+}
+
+// One trace from a structure property and its per-point companions; a
+// companion whose length does not match the structures is left out.
+void addTrace(Model& m, const string& name, PropTSVecTable *geom,
+              PropVector *energy, PropVector *value, PropVector *time,
+              PropTSVecTable *cell)
+{
+  const size_t N = m.natoms();
+  if (geom == 0 || N == 0 || geom->tables() == 0) return;
+  const double lf = toBohr(geom->units());
+  if (lf == 0) return;
+  const size_t np = geom->tables();
+  resultsh5::Trace t;
+  t.name = name;
+  for (size_t i = 0; i < np; i++) {
+    //  CREST protomers change the atom count: no fixed-shape trace.
+    const vector<double>& x = geom->values((int)i);
+    if (x.size() != 3*N) return;
+    for (size_t k = 0; k < x.size(); k++) t.coord.push_back(x[k]*lf);
+  }
+  if (energy != 0 && (size_t)energy->rows() == np) {
+    const double ef = toHartree(energy->units());
+    if (ef != 0) for (size_t i = 0; i < np; i++) t.energy.push_back(energy->value((int)i)*ef);
+  }
+  if (value != 0 && (size_t)value->rows() == np) {
+    double f = 1.0;
+    t.valueUnit = value->units();
+    if (t.valueUnit == "Degree") { f = 3.14159265358979323846/180; t.valueUnit = "radian"; }
+    else if (t.valueUnit == "Angstrom") { f = bohrPerAngstrom(); t.valueUnit = "bohr"; }
+    for (size_t i = 0; i < np; i++) t.value.push_back(value->value((int)i)*f);
+  }
+  if (time != 0 && (size_t)time->rows() == np)
+    for (size_t i = 0; i < np; i++) t.time.push_back(time->value((int)i));
+  if (cell != 0 && (size_t)cell->tables() == np && toBohr(cell->units()) != 0) {
+    const double cf = toBohr(cell->units());
+    for (size_t i = 0; i < np && t.cell.size() == 9*i; i++) {
+      const vector<double>& c = cell->values((int)i);
+      if (c.size() != 9) { t.cell.clear(); break; }
+      for (size_t k = 0; k < 9; k++) t.cell.push_back(c[k]*cf);
+    }
+  }
+  m.trace.push_back(t);
+}
+
+// Scans and IRCs: one optimised structure per point.  GEOMTRACE: every
+// optimisation step, MD frame (TIMEVEC) or ensemble member (CONFREL,
+// POSESCORE); a scan's GEOMTRACE holds all its optimisation steps.
+void addTraces(IPropCalculation *calc, Model& m)
+{
+  auto table = [&](const char *key) {
+    return dynamic_cast<PropTSVecTable*>(calc->getProperty(key));
+  };
+  addTrace(m, "scan", table("SCANGEOM"), vectorOf(calc, "SCANENERGY"),
+           vectorOf(calc, "SCANCOORD"), 0, 0);
+  addTrace(m, "irc", table("IRCGEOM"), vectorOf(calc, "IRCENERGY"),
+           vectorOf(calc, "IRCCOORD"), 0, 0);
+  PropTSVecTable *g = table("GEOMTRACE");
+  if (g == 0 || g->tables() < 2) return;
+  PropVector *time = vectorOf(calc, "TIMEVEC");
+  const char *name = time != 0 ? "md"
+      : (calc->getProperty("CONFREL") || calc->getProperty("POSESCORE")) ? "ensemble"
+      : "optimization";
+  addTrace(m, name, g, vectorOf(calc, "TEVEC"), 0, time, table("LATTICEVEC"));
 }
 
 }  // namespace
@@ -370,8 +462,20 @@ void addProperties(IPropCalculation *calc, Model& m)
     PropVector *ir = dynamic_cast<PropVector*>(calc->getProperty("VIBIR"));
     if (ir != 0 && ir->rows() == fr->rows())
       for (int i = 0; i < ir->rows(); i++) v.irIntensity.push_back(ir->value(i));
+    PropVector *ram = dynamic_cast<PropVector*>(calc->getProperty("VIBRAM"));
+    if (ram != 0 && ram->rows() == fr->rows())
+      for (int i = 0; i < ram->rows(); i++) v.ramanActivity.push_back(ram->value(i));
+    //  One displacement table per frequency, one row per atom, or none.
+    PropVecTable *modes = dynamic_cast<PropVecTable*>(calc->getProperty("VIB"));
+    if (modes != 0 && modes->tables() == fr->rows() && modes->rows() == (int)N &&
+        modes->columns() == 3)
+      for (int k = 0; k < modes->tables(); k++) {
+        const vector<double>& t = modes->values(k);
+        v.mode.insert(v.mode.end(), t.begin(), t.end());
+      }
     m.vib.push_back(v);
   }
+  addTraces(calc, m);
 }
 
 
@@ -429,10 +533,50 @@ string check(Model& m)
 }
 
 
+namespace {
+
+// Atoms and final geometry only: for a calculation without Gaussian
+// orbitals (MD, MOPAC, force fields) whose vibrations or traces are kept.
+bool geometryOnly(IPropCalculation *calc, Model& m)
+{
+  std::unique_ptr<Fragment> frag(calc->getFragmentStep(-1));
+  vector<string> symbols;
+  vector<double> xyz;
+  if (!frag || frag->numAtoms() == 0 ||
+      !MoAoBasis::fragmentGeometry(frag.get(), symbols, xyz))
+    return false;
+  m = Model();
+  vector<TAtm*> *atoms = frag->atoms();
+  if (atoms == 0) return false;
+  for (size_t a = 0; a < atoms->size(); a++)
+    m.atomicNumber.push_back((*atoms)[a]->atomicNumber());
+  delete atoms;
+  if (m.atomicNumber.size() != symbols.size()) return false;
+  m.label = symbols;
+  for (size_t i = 0; i < xyz.size(); i++) m.coord.push_back(xyz[i]*bohrPerAngstrom());
+  m.basis.type = "none";
+  ICalculation *ic = dynamic_cast<ICalculation*>(calc);
+  if (ic != 0 && ic->application() != 0) m.provenance["code"] = ic->application()->name();
+  m.provenance["converter_version"] = resultsh5::CONVERTER_VERSION;
+  return true;
+}
+
+}  // namespace
+
+
 bool build(IPropCalculation *calc, Model& m, string& line, string& why)
 {
   Parsed in;
-  if (!gather(calc, in, why) || !convert(in, m, why)) return false;
+  if (!gather(calc, in, why) || !convert(in, m, why)) {
+    Model g;
+    if (!geometryOnly(calc, g)) return false;
+    addProperties(calc, g);
+    if (g.vib.empty() && g.trace.empty()) return false;
+    g.checks = "ok: no orbitals (" + why + ")";
+    m = g;
+    line = "no orbitals (" + why + "): atoms, vibrations and traces only";
+    return true;
+  }
   addProperties(calc, m);
   line = check(m);
   return true;
@@ -457,6 +601,25 @@ string scratchFile()
 bool store(IPropCalculation *calc, string& line)
 {
   if (!enabled()) { line = "results.h5 is switched off (ECCE_RESULTS_H5=0)"; return false; }
+  //  ECCE-QM writes the file from its own full-precision data, with the
+  //  Hessian the parsed properties lack; one that passes the same checks is
+  //  kept, as the properties cannot reproduce it.
+  {
+    const string own = scratchFile();
+    Model q;
+    string err;
+    bool keep = false;
+    if (calc->fetchStoredFile(FILE_NAME, own) && resultsh5::readFile(own, q, err) &&
+        q.provenance.count("writer") && q.provenance["writer"] == "ecce-qm") {
+      const string l = check(q);
+      if (q.checks.compare(0, 3, "ok:") == 0) {
+        keep = true;
+        line = "results.h5 written by ECCE-QM kept; " + l;
+      }
+    }
+    std::remove(own.c_str());
+    if (keep) { forget(calc); return true; }
+  }
   Model m;
   string why;
   if (!build(calc, m, line, why)) {

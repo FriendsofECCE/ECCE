@@ -1609,7 +1609,9 @@ sub ecceqm()
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } else {
-    $retval .= "\"\$ecceqm\" $::inFile > $::outFile 2>&1\n";
+    # results.h5 at full precision; the job store keeps it when it passes
+    # its checks (#690).
+    $retval .= "\"\$ecceqm\" --results results.h5 $::inFile > $::outFile 2>&1\n";
   }
   return $retval;
   nouse strict vars;

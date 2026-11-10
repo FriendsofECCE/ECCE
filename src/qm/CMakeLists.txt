@@ -99,8 +99,19 @@ get_filename_component(_ecce_root "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
 target_compile_definitions(eccems PRIVATE
   ECCE_QM_DEFAULT_BASIS_DIR="${_ecce_root}/data/admin/basissets")
 
-add_executable(ecce-qm main.cpp)
+add_executable(ecce-qm main.cpp results_h5.cpp)
 target_link_libraries(ecce-qm PRIVATE eccems)
+# results.h5 (#690): the same layout and checks as ECCE's own writer, from
+# the sources eccetdat uses; only inside the ECCE tree with HDF5.
+if(ECCE_HAVE_RESULTSH5)
+  set(_qm_r5 ${_ecce_root}/src/tdat/resultsh5/ResultsBasis.C ${_ecce_root}/src/tdat/resultsh5/ResultsH5Io.C
+             ${_ecce_root}/src/tdat/chemistry/EspField.C ${_ecce_root}/src/tdat/chemistry/CoulombIntegrals.C)
+  set_source_files_properties(${_qm_r5} PROPERTIES LANGUAGE CXX)
+  target_sources(ecce-qm PRIVATE ${_qm_r5})
+  target_include_directories(ecce-qm PRIVATE ${_ecce_root}/include ${_ecce_root}/src/tdat/resultsh5 ${HDF5_INCLUDE_DIRS})
+  target_compile_definitions(ecce-qm PRIVATE ECCE_QM_RESULTS_H5)
+  target_link_libraries(ecce-qm PRIVATE ${HDF5_LIBRARIES})
+endif()
 # Shipped stripped on every platform (the debug info of the fetched libraries
 # makes it 150 MB otherwise).
 if(APPLE)

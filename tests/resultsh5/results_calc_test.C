@@ -112,7 +112,9 @@ static void fixture(string path)
   const long size = fsize(h5);
   long sources = 0;
   const char *props[] = {"MO", "MOBETA", "ORBENG", "ORBENGBETA", "ORBOCC", "ORBOCCBETA",
-                         "TE", "MULLIKEN", "DIPOLE", "EGRADVEC", "VIBFREQ", "VIBIR"};
+                         "TE", "MULLIKEN", "DIPOLE", "EGRADVEC", "VIBFREQ", "VIBIR",
+                         "VIB", "VIBRAM", "GEOMTRACE", "TEVEC", "SCANGEOM", "SCANENERGY",
+                         "SCANCOORD", "IRCGEOM", "IRCENERGY", "IRCCOORD", "TIMEVEC", "LATTICEVEC"};
   for (size_t i = 0; i < sizeof props/sizeof *props; i++) {
     long s = fsize(path + "/Props/" + props[i]);
     if (s > 0) sources += s;
@@ -121,9 +123,10 @@ static void fixture(string path)
   std::shared_ptr<const resultsh5::Model> m = ResultsFromCalc::stored(calc);
   CHECK(m != 0, "the stored file is read back unmarked");
   //  4 kB is HDF5's fixed cost for the orbital file; each further group
-  //  (gradient, charges, dipole, vibrations) costs about 0.25 kB more, which
+  //  (gradient, charges, dipole, vibrations, traces) costs about 0.25 kB more, which
   //  only a 3-atom file notices.
-  long groups = m ? long(m->gradient.size() + m->charges.size() + m->multipoles.size() + m->vib.size()) : 0;
+  long groups = m ? long(m->gradient.size() + m->charges.size() + m->multipoles.size() + m->vib.size() +
+                                m->trace.size()) : 0;
   CHECK(size > 0 && size <= sources + 4096 + 256*groups,
         "results.h5 is not larger than its sources plus 4 kB plus 0.25 kB per extra group (" +
         std::to_string(groups) + ")");

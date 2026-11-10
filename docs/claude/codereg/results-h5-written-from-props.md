@@ -2,8 +2,8 @@
 type: map
 title: "results.h5 is written from the Props at the end of the job store, and the views switch in one place"
 area: codereg
-paths: ["src/tdat/chemistry/ResultsFromCalc.C", "include/tdat/ResultsFromCalc.H", "src/tdat/chemistry/MoAoBasis.C", "src/tdat/chemistry/DensityPlane.C", "src/comm/commxt/JobStore.C", "src/dsm/edsiimpl/PropertyTask.C", "src/tdat/resultsh5/ecce_results.C", "tests/resultsh5/results_calc_test.C"]
-issues: [690]
+paths: ["src/tdat/chemistry/ResultsFromCalc.C", "src/qm/results_h5.cpp", "tests/resultsh5/trace_vib_test.py", "include/tdat/ResultsFromCalc.H", "src/tdat/chemistry/MoAoBasis.C", "src/tdat/chemistry/DensityPlane.C", "src/comm/commxt/JobStore.C", "src/dsm/edsiimpl/PropertyTask.C", "src/tdat/resultsh5/ecce_results.C", "tests/resultsh5/results_calc_test.C"]
+issues: [690, 883]
 ---
 **Write.** `jobstore_main` calls `resultsFileStore()` just before `cleanup(0)`
 (so before the final run state), after every run and every Re-parse (a
@@ -49,6 +49,30 @@ cannot reach the data store itself. The resultsh5 sources now compile into
 `eccetdat` (HDF5 linked there) and `ecce-results` links the data-store
 libraries; `ecceresultsh5` as a separate target is gone.
 
-**Test.** `ctest -R resultsh5_calc`: stored ECCE-QM/ORCA/G16/NWChem calcs
+**Vibrations and traces (#883).** `addProperties` also stores VIB (modes,
+as the code printed them), VIBRAM, and `/trace/<name>`: `scan` (SCANGEOM,
+SCANENERGY, SCANCOORD), `irc` (IRCGEOM, IRCENERGY, IRCCOORD) and from
+GEOMTRACE (>= 2 frames) with TEVEC one of `md` (TIMEVEC present, cell from
+LATTICEVEC), `ensemble` (CONFREL/POSESCORE) or `optimization`. A companion
+whose length differs from the structures is dropped; energies in an unknown
+unit are dropped (toHartree returns 0); frames with differing atom counts
+(CREST protomers) give no trace. No Prop holds a Hessian or per-step
+gradient vectors, so the job store writes neither; ECCE-QM does. A
+calculation without Gaussian orbitals (MD, MOPAC) now gets a file with
+atoms, vibrations and traces only, `checks = "ok: no orbitals (...)"`;
+`stored()` still ignores it (no MOs).
+
+**ECCE-QM writes its own file.** gensub runs `ecce-qm --results results.h5`
+(src/qm/results_h5.cpp, compiled only in the ECCE tree with HDF5, from the
+same ResultsH5Io/ResultsBasis/EspField sources). The job store fetches
+`results.h5` with the wildcard files and `store()` KEEPS a stored file with
+provenance `writer = ecce-qm` when it passes `check()`; otherwise it is
+rebuilt from the Props. Not identical by design: ecce-qm lists an atom's s
+shells first (the Props keep the library's s,sp order), stores only the
+3N-6 vibrations, full-precision orbitals and the Hessian.
+
+**Test.** `ctest -R resultsh5_trace` (raw-output oracles: ORCA benzene
+modes/IR/opt path, ORCA H2 scan table, ECCE-QM butane scan; ECCE-QM water own
+file against the Props file, matched by AO keys). `ctest -R resultsh5_calc`: stored ECCE-QM/ORCA/G16/NWChem calcs
 (closed and open shell), ORCA CrO and HF/cc-pVQZ (g) blocks, xtb; density
 equality between the two paths to 1e-8; `ecce-results write` back-fill.
