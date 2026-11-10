@@ -157,6 +157,16 @@ args:    '.' 'Vibration' 'SCF' 'RHF' '0'
       values: 0 0 0 0 0 0 0.750000 0.750000 0.750000 0.750000 0.750000 0.000000 0.750000 0.750000 0.750000
       units: NA
 
+[BASISPATTERN]  Script=orca.basispattern  Freq=first  Skip=1  Lines=-
+  Begin=^BASIS SET INFORMATION
+  End=^Atom\s+\d
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=256 fed=7 rc=0 first-fed='---------------------'
+    key: BASISPATTERN
+      size: 1
+      values: C 511/31/1|H 31/1
+      units: NA
+
 [PNTGRP][THERMOSIGMA]  Script=orca.pntgrp  Freq=last  Skip=0  Lines=1
   Begin=Point Group:
   begins=1 delivered=1 buffered_away=0

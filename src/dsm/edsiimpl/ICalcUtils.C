@@ -11,6 +11,7 @@
 //    
 ///////////////////////////////////////////////////////////////////////////////
 #include <cmath>
+#include <map>
 #include <set>
 #include <stdio.h>
 
@@ -34,6 +35,8 @@ using std::endl;
 #include "dsm/IPropCalculation.H"
 
 #include "tdat/PropTable.H"
+#include "tdat/PropString.H"
+#include "dsm/TGaussianBasisSet.H"
 #include "tdat/SlaterBasisSet.H"
 #include "tdat/TAtm.H"
 
@@ -831,4 +834,104 @@ TGBSConfig* ICalcUtils::slaterBasisConfig(IPropCalculation* calc,
     config = (TGBSConfig*)0;
   }
   return config;
+}
+
+
+bool ICalcUtils::applyCodeContraction(IPropCalculation* calc,
+                                      TGBSConfig* config)
+{
+  if (calc == 0 || config == 0 || config->empty()) return false;
+  PropString *prop = dynamic_cast<PropString*>(calc->getProperty("BASISPATTERN"));
+  if (prop == 0) return false;
+  return applyContractionPattern(prop->value(), config);
+}
+
+
+bool ICalcUtils::applyContractionPattern(const string& all, TGBSConfig* config)
+{
+  if (config == 0 || config->empty()) return false;
+  //  "H 311/11/1|C 8811/311/11/1"; an element printed twice with two
+  //  patterns (atoms with their own basis) is not decidable here.
+  std::map<string, string> wanted;
+  std::set<string> ambiguous;
+  {
+    size_t pos = 0;
+    while (pos <= all.size()) {
+      size_t bar = all.find('|', pos);
+      if (bar == string::npos) bar = all.size();
+      std::istringstream rec(all.substr(pos, bar - pos));
+      pos = bar + 1;
+      string el, pat;
+      if (!(rec >> el >> pat)) continue;
+      std::map<string, string>::iterator it = wanted.find(el);
+      if (it != wanted.end() && it->second != pat) ambiguous.insert(el);
+      wanted[el] = pat;
+    }
+  }
+
+  struct Fn { Contraction_ *c; size_t col; vector<size_t> rows; };
+  bool changed = false;
+  for (std::map<string, string>::const_iterator w = wanted.begin();
+       w != wanted.end(); ++w) {
+    const string& el = w->first;
+    if (ambiguous.count(el)) continue;
+    if (config->findGroup(el) == 0) continue;
+    vector<const TGaussianBasisSet*> list = config->getGBSList(el);
+    vector<vector<Fn> > byL;
+    bool bad = list.empty();
+    for (size_t g = 0; g < list.size() && !bad; g++) {
+      const TGaussianBasisSet *gbs = list[g];
+      if (gbs->p_contractions.find(el) == gbs->p_contractions.end()) continue;
+      const size_t nsets = gbs->num_contracted_sets(el.c_str());
+      for (size_t ics = 0; ics < nsets && !bad; ics++) {
+        Contraction_ *c = gbs->getContraction(el.c_str(), ics);
+        vector<TGaussianBasisSet::AngularMomentum> types =
+            gbs->func_types(el.c_str(), ics);
+        if (c == 0 || types.size() != c->num_coefficients) { bad = true; break; }
+        for (size_t col = 0; col < types.size(); col++) {
+          Fn f = { c, col, vector<size_t>() };
+          for (size_t r = 0; r < c->num_exponents; r++)
+            if (c->coefficient(r, col) != 0.0) f.rows.push_back(r);
+          const size_t l = (size_t)types[col];
+          if (byL.size() <= l) byL.resize(l + 1);
+          byL[l].push_back(f);
+        }
+      }
+    }
+    if (bad) continue;
+
+    string stored, segmented;
+    vector<std::pair<Fn*, size_t> > drops;
+    for (size_t l = 0; l < byL.size(); l++) {
+      if (l > 0) { stored += "/"; segmented += "/"; }
+      vector<double> single;
+      for (size_t k = 0; k < byL[l].size(); k++)
+        if (byL[l][k].rows.size() == 1)
+          single.push_back(byL[l][k].c->exponents[byL[l][k].rows[0]]);
+      for (size_t k = 0; k < byL[l].size(); k++) {
+        Fn& f = byL[l][k];
+        size_t kept = f.rows.size();
+        if (f.rows.size() > 1) {
+          for (size_t r = 0; r < f.rows.size(); r++) {
+            const double e = f.c->exponents[f.rows[r]];
+            for (size_t u = 0; u < single.size(); u++) {
+              if (fabs(e - single[u]) <= 1.0e-10*std::max(fabs(e), fabs(single[u]))) {
+                drops.push_back(std::make_pair(&f, f.rows[r]));
+                kept--;
+                break;
+              }
+            }
+          }
+        }
+        stored += std::to_string(f.rows.size());
+        segmented += std::to_string(kept);
+      }
+    }
+    if (drops.empty() || stored == w->second || segmented != w->second)
+      continue;
+    for (size_t d = 0; d < drops.size(); d++)
+      drops[d].first->c->coefficient(drops[d].second, drops[d].first->col, 0.0);
+    changed = true;
+  }
+  return changed;
 }

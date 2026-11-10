@@ -293,6 +293,9 @@ EStruct		MO AO Column Order			MOAOORDER	NA		PropString
 #  The basis Gaussian itself used (its GFInput echo, one line of
 #  "<centre> <L> exp coef ..." records joined by "|"); see MoAoOrder.
 EStruct		Code's Own Basis (Gaussian)		CODEBASIS	NA		PropString
+#  ORCA's contraction pattern per element ("H 311/11/1|C 8811/311/11/1"):
+#  its cc-pVXZ is segmented where ECCE stores the general contraction (#942).
+EStruct		Basis Contraction Pattern (ORCA)	BASISPATTERN	NA		PropString
 EStruct		One Density Matrix			DMAT1		Electrons	PropTable<Basis Function,Basis Function>
 #  The Slater exponents of a semiempirical code's valence basis, one row
 #  per atom: atomic number then the s, p and d exponents.  Not a result a

@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This calculation shows a covalent bond to set beside the NaCl ion pair: on a Density Profile line from H to Cl the density stays high between the atoms.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 08:50:37 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 10:55:53 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 08:50:34 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 10:55:50 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794300636.146 idle=0 at=1794300636\nopt step=3 energy=-460.766826357 dE=-0.0000018356/0.0000010000 rmsgrad=0.0000028089/0.0000300000 maxgrad=0.0000028089/0.0001000000 rmsstep=0.0000088023/0.0006000000 maxstep=0.0000088023/0.0010000000 converged=yes\nopt~ rmsgrad=0.0013119971,0.0002592566,0.0000028089\nopt~ maxgrad=0.0013119971,0.0002592566,0.0000028089\nscf cycle=2 energy=-460.7662622345757768 dE=3.41e-13/1.000e-08 converged=yes\nscf~ dE=0.00e+00,3.41e-13\nresult disp=D3\nfreq kind=analytic point=6/6 phase=assemble last=Van real=1 imaginary=0 done=yes zpe=0.00669391\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794308152.395 idle=0 at=1794308152\nopt step=3 energy=-460.766826357 dE=-0.0000018356/0.0000010000 rmsgrad=0.0000028089/0.0000300000 maxgrad=0.0000028089/0.0001000000 rmsstep=0.0000088023/0.0006000000 maxstep=0.0000088023/0.0010000000 converged=yes\nopt~ rmsgrad=0.0013119971,0.0002592566,0.0000028089\nopt~ maxgrad=0.0013119971,0.0002592566,0.0000028089\nscf cycle=2 energy=-460.7662622345757768 dE=3.41e-13/1.000e-08 converged=yes\nscf~ dE=0.00e+00,3.41e-13\nresult disp=D3\nfreq kind=analytic point=6/6 phase=assemble last=Van real=1 imaginary=0 done=yes zpe=0.00669391\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 08:50:35 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 10:55:51 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794300634
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794308150
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

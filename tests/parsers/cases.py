@@ -450,6 +450,20 @@ CASES = [
     # -----------------------------------------------------------------
     # ORCA
     # -----------------------------------------------------------------
+    # #942: ORCA's per-element contraction pattern; its cc-pVTZ is segmented
+    # ({311/...}, {8811/...}) where ECCE stores the general contraction.
+    dict(
+        name='orca-ch4-ccpvtz-basispattern',
+        desc='orca.desc',
+        fixture='orca/ch4_ccpvtz_basis.out',
+        silent_ok={'ORBSYM][ORBSYMBETA': 'no UseSym in this deck, so ORCA '
+                                         'prints no Irrep column'},
+        parse_args=('.', 'Energy', 'SCF', 'RHF', '0'),
+        expect={
+            'BASISPATTERN': dict(keys={'BASISPATTERN': {
+                'values': 'C 8811/311/11/1|H 311/11/1'}}),
+        },
+    ),
     # #298: NH3 + dummy atom DA (ORCA prints it as XX) with constrained
     # angles; the trace keeps the dummy as atom 5.
     dict(

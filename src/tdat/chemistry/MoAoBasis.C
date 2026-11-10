@@ -168,6 +168,7 @@ bool MoAoBasis::flatBasis(IPropCalculation *expt,
     if (slater != 0) { delete config; config = slater; }
   }
   if (config == 0 || config->empty()) { delete config; return false; }
+  ICalcUtils::applyCodeContraction(expt, config);
 
   const JCode *code = escalc->application();
   if (code == 0) { delete config; return false; }

@@ -307,6 +307,16 @@ args:    '.' 'Geometry' 'SCF' 'RHF' '0'
       values: -0.231553 0.115776 0.115776
       units: e
 
+[BASISPATTERN]  Script=orca.basispattern  Freq=first  Skip=1  Lines=-
+  Begin=^BASIS SET INFORMATION
+  End=^Atom\s+\d
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=296 fed=7 rc=0 first-fed='---------------------'
+    key: BASISPATTERN
+      size: 1
+      values: O 33/3|H 3
+      units: NA
+
 [DELTAE]  Script=orca.deltae  Freq=all  Skip=0  Lines=1
   Begin=^\s*\d+\s+-?\d+\.\d+\s+-?\d+\.\d+[eE][+-]\d+
   begins=28 delivered=28 buffered_away=0

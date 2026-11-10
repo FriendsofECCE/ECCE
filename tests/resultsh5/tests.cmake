@@ -22,3 +22,10 @@ add_test(NAME resultsh5_trace
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/resultsh5/trace_vib_test.py
           $<TARGET_FILE:ecce-results> $<TARGET_FILE:ecce-qm>)
 set_tests_properties(resultsh5_trace PROPERTIES TIMEOUT 600)
+
+# ORCA's segmented cc-pVTZ against ECCE's general contraction (#942).
+add_test(NAME resultsh5_orca_segmented
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/resultsh5/orca_segmented_test.py
+          $<TARGET_FILE:ecce-results>)
+set_tests_properties(resultsh5_orca_segmented PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=resultsh5;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/resultsh5-home")

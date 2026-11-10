@@ -1,26 +1,28 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
 <eccejobstore>
-     <event  type="Message"  name="Job log started for calculation"  date="Tue, 10 Nov 2026 09:50:34 CET" >file://&lt;home&gt;/tmp/ecce/ECCE-night3/t/preparse724b/cache/ecce-apps-ql4fvd91/examples-arm-h6ipx70i/data/users/local/Examples/General_Chemistry/Intermolecular_interactions/h2o_dimer     </event>
-     <event  type="Message"  name="eccejobstore running on client"  date="Tue, 10 Nov 2026 09:50:34 CET" >niobium     </event>
-     <event  type="Message"  name="Cache"  date="Tue, 10 Nov 2026 09:50:34 CET" >Successfully started property parsing cache     </event>
-     <event  type="Message"  name="Local cache directory"  date="Tue, 10 Nov 2026 09:50:34 CET" >&lt;rundir&gt;     </event>
-     <event  type="Message"  name="Job Monitor"  date="Tue, 10 Nov 2026 09:50:34 CET" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
-     <event  type="Message"  name="System"  date="Tue, 10 Nov 2026 09:50:34 CET" >Started local RCommand connection     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 09:50:34 CET" >Receiving calculation output from eccejobmonitor     </event>
-     <event  type="Message"  name="eccejobstore"  date="Tue, 10 Nov 2026 09:50:34 CET" >out of contact after 60 s of silence, reconnect after 180 s     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Tue, 10 Nov 2026 09:50:34 CET" >Running     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 09:50:58 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-night3/t/preparse724b/cache/ecce-apps-ql4fvd91/ecce-home/data/client/examples/genchem/intermolecular-interactions/orca-h2o_dimer/orca.orcain_IRC_Full_trj.xyz' does not exist     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 09:50:58 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-night3/t/preparse724b/cache/ecce-apps-ql4fvd91/ecce-home/data/client/examples/genchem/intermolecular-interactions/orca-h2o_dimer/orca.orcain.allxyz' does not exist     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 09:50:58 CET" >File marked to copy from compute host: h2o_dimer.out     </event>
-     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 09:50:58 CET" >File marked to copy from compute host: h2o_dimer.out     </event>
-     <event  type="Message"  name="Benchmark"  date="Tue, 10 Nov 2026 09:50:58 CET" >Before file copy of output files     </event>
-     <event  type="Message"  name="Benchmark"  date="Tue, 10 Nov 2026 09:50:58 CET" >After file copy of output files     </event>
-     <event  type="Message"  name="File Copy"  date="Tue, 10 Nov 2026 09:50:58 CET" >Successfully copied files from server
+     <event  type="Message"  name="Job log started for calculation"  date="Tue, 10 Nov 2026 11:55:50 CET" >file://&lt;home&gt;/tmp/ecce/ECCE-749/t/pp&lt;home&gt;/ecce-apps-oaqlys0b/examples-arm-ev8nwfr5/data/users/local/Examples/General_Chemistry/Intermolecular_interactions/h2o_dimer     </event>
+     <event  type="Message"  name="eccejobstore running on client"  date="Tue, 10 Nov 2026 11:55:50 CET" >niobium     </event>
+     <event  type="Message"  name="Cache"  date="Tue, 10 Nov 2026 11:55:50 CET" >Successfully started property parsing cache     </event>
+     <event  type="Message"  name="Local cache directory"  date="Tue, 10 Nov 2026 11:55:50 CET" >&lt;rundir&gt;     </event>
+     <event  type="Message"  name="Job Monitor"  date="Tue, 10 Nov 2026 11:55:50 CET" >Started job monitor (stdio comms) with command: perl eccejobmonitor -configFile eccejobmonitor.conf -progress 1 -bookmark 0; echo eccejobmonitor_went_bye_bye     </event>
+     <event  type="Message"  name="System"  date="Tue, 10 Nov 2026 11:55:50 CET" >Started local RCommand connection     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 11:55:50 CET" >Receiving calculation output from eccejobmonitor     </event>
+     <event  type="Message"  name="eccejobstore"  date="Tue, 10 Nov 2026 11:55:50 CET" >out of contact after 60 s of silence, reconnect after 180 s     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Tue, 10 Nov 2026 11:55:50 CET" >Running     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 11:56:13 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-749/t/pp&lt;home&gt;/ecce-apps-oaqlys0b/ecce-home/data/client/examples/genchem/intermolecular-interactions/orca-h2o_dimer/orca.orcain_IRC_Full_trj.xyz' does not exist     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 11:56:13 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-749/t/pp&lt;home&gt;/ecce-apps-oaqlys0b/ecce-home/data/client/examples/genchem/intermolecular-interactions/orca-h2o_dimer/orca.orcain.allxyz' does not exist     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 11:56:13 CET" >ECCE JOB MONITOR INFO: MsgSendFile: file '&lt;home&gt;/tmp/ecce/ECCE-749/t/pp&lt;home&gt;/ecce-apps-oaqlys0b/ecce-home/data/client/examples/genchem/intermolecular-interactions/orca-h2o_dimer/orca.orcaout' does not exist     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 11:56:13 CET" >File marked to copy from compute host: h2o_dimer.out     </event>
+     <event  type="Message"  name="eccejobmonitor"  date="Tue, 10 Nov 2026 11:56:13 CET" >File marked to copy from compute host: h2o_dimer.out     </event>
+     <event  type="Message"  name="Benchmark"  date="Tue, 10 Nov 2026 11:56:13 CET" >Before file copy of output files     </event>
+     <event  type="Message"  name="Benchmark"  date="Tue, 10 Nov 2026 11:56:13 CET" >After file copy of output files     </event>
+     <event  type="Message"  name="File Copy"  date="Tue, 10 Nov 2026 11:56:13 CET" >Successfully copied files from server
 h2o_dimer.out: h2o_dimer.out  
 no files matched *.cub
-no files matched *.cube     </event>
-     <event  type="Message"  name="File Copy"  date="Tue, 10 Nov 2026 09:50:58 CET" >No cube, PDOS or other wildcard output files arrived     </event>
-     <event  type="Message"  name="results.h5"  date="Tue, 10 Nov 2026 09:50:58 CET" >results.h5 stored; checks passed: alpha tr(PS) 19.999997 of 20.0000, rel err 1.4e-07, max |C'SC-1| 2.1e-06, 86 AOs     </event>
-     <event  type="Message"  name="Calculation State Change"  date="Tue, 10 Nov 2026 09:50:58 CET" >Loaded     </event>
-     <event  type="Message"  name="eccejobstore exit"  date="Tue, 10 Nov 2026 09:50:58 CET" >eccejobstore terminating normally, exit status 0     </event>
+no files matched *.cube
+no files matched results.h5     </event>
+     <event  type="Message"  name="File Copy"  date="Tue, 10 Nov 2026 11:56:13 CET" >No cube, PDOS or other wildcard output files arrived     </event>
+     <event  type="Message"  name="results.h5"  date="Tue, 10 Nov 2026 11:56:13 CET" >results.h5 stored; checks passed: alpha tr(PS) 19.999997 of 20.0000, rel err 1.4e-07, max |C'SC-1| 2.1e-06, 86 AOs     </event>
+     <event  type="Message"  name="Calculation State Change"  date="Tue, 10 Nov 2026 11:56:13 CET" >Loaded     </event>
+     <event  type="Message"  name="eccejobstore exit"  date="Tue, 10 Nov 2026 11:56:13 CET" >eccejobstore terminating normally, exit status 0     </event>
 </eccejobstore>

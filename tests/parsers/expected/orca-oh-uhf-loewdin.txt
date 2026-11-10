@@ -152,6 +152,16 @@ args:    '.' 'Energy' 'SCF' 'UHF' '1'
       values: -0.109515 0.109515
       units: e
 
+[BASISPATTERN]  Script=orca.basispattern  Freq=first  Skip=1  Lines=-
+  Begin=^BASIS SET INFORMATION
+  End=^Atom\s+\d
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=248 fed=7 rc=0 first-fed='---------------------'
+    key: BASISPATTERN
+      size: 1
+      values: O 33/3|H 3
+      units: NA
+
 [DELTAE]  Script=orca.deltae  Freq=all  Skip=0  Lines=1
   Begin=^\s*\d+\s+-?\d+\.\d+\s+-?\d+\.\d+[eE][+-]\d+
   begins=10 delivered=10 buffered_away=0

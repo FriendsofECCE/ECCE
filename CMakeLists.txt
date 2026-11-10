@@ -4190,6 +4190,21 @@ if(PYTHON3_EXECUTABLE)
     target_link_libraries(gbscoordsys PRIVATE
       "$<LINK_GROUP:RESCAN,${_gbs_libs}>" ${XercesC_LIBRARIES})
   endif()
+  # tests/basis/testCodeContraction (#942): ORCA's segmented copy of a
+  # general contraction, compared with ORCA's own print of its basis.
+  add_executable(gbscodecontraction tests/basis/testCodeContraction.C)
+  target_include_directories(gbscodecontraction PRIVATE ${XercesC_INCLUDE_DIRS})
+  if(APPLE)
+    target_link_libraries(gbscodecontraction PRIVATE ${_gbs_libs} ${XercesC_LIBRARIES})
+  else()
+    target_link_libraries(gbscodecontraction PRIVATE
+      "$<LINK_GROUP:RESCAN,${_gbs_libs}>" ${XercesC_LIBRARIES})
+  endif()
+  add_test(NAME gbscodecontraction COMMAND python3
+    ${CMAKE_SOURCE_DIR}/tests/basis/code_contraction_test.py
+    $<TARGET_FILE:gbscodecontraction>)
+  set_tests_properties(gbscodecontraction PROPERTIES ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=gbscodecontraction;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/gbscodecontraction-home")
   # tests/basis/testDuplicateOrbitalBasis (#497): identical orbital sets
   # listed twice for one element count once.
   add_executable(gbsdupbasis tests/basis/testDuplicateOrbitalBasis.C)

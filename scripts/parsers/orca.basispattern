@@ -1,0 +1,22 @@
+#!/usr/bin/env perl
+###############################################################################
+# BASISPATTERN: ORCA's contraction pattern per element, from "BASIS SET
+# INFORMATION":
+#   Group   1 Type H   : 5s2p1d contracted to 3s2p1d pattern {311/11/1}
+# ORCA's own copy of a named cc-pVXZ basis is segmented while ECCE stores the
+# general contraction; ICalcUtils::applyCodeContraction() uses this to flatten
+# the basis the MO coefficients belong to (#942).
+# Stored as one PropString, records joined by "|": "H 311/11/1|C 8811/311/11/1".
+###############################################################################
+$| = 1;
+my @rec;
+my %seen;
+while (<STDIN>) {
+  last if /^Atom\s+\d/;
+  next unless /^\s*Group\s+\d+\s+Type\s+(\S+)\s*:.*pattern\s*\{([^}]+)\}/;
+  my $r = "$1 $2";
+  push @rec, $r unless $seen{$r}++;
+}
+exit(0) unless @rec;
+print "key: BASISPATTERN\nsize:\n1\nvalues:\n", join("|", @rec), "\nunits:\nNA\nEND\n";
+exit(0);
