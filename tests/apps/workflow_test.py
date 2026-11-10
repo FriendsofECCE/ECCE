@@ -1380,7 +1380,7 @@ def run_recipe_ready(display, data, work, shots, rundir):
     check("after Apply Recipe the first step is Ready with nothing missing",
           len(state) == 1 and state[0].lower().startswith("ok state=ready") and
           state[0].endswith("notready="), str(state))
-    deck = os.path.join(project, "Workflow", "preopt", "xtb.xtbin")
+    deck = os.path.join(project, "Workflow", "preopt", "Inputs", "xtb.xtbin")
     check("its input was written without the editor", os.path.isfile(deck), deck)
     play = answers("workflowplay")
     check("its play button is enabled", play and "preopt:1:|" in play[0] + "|", str(play))
