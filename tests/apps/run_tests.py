@@ -47,6 +47,7 @@ import organizer_tree_icons_test                             # noqa: E402
 import vib_frame_builder_test                                 # noqa: E402
 import builder_mode_test                                      # noqa: E402
 import builder_metal_test                                     # noqa: E402
+import builder_nub_shape_test                                 # noqa: E402
 import builder_select_within_test
 import builder_select_style_test                              # noqa: E402
 import builder_panes_test                                     # noqa: E402
@@ -466,6 +467,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--app", action="append", help="only this app")
     parser.add_argument("--list", action="store_true")
+    parser.add_argument("--check", action="append", metavar="MODULE",
+                        help="skip the app sweep and run only this check "
+                        "module's check(display, results), e.g. "
+                        "builder_nub_shape_test")
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("--display", type=int, default=None,
                         help="use this X display number instead of picking a "
@@ -509,7 +514,14 @@ def main():
         return SKIP
 
     selected = [n for n in binaries if not args.app or n in args.app]
-    if not selected:
+    if args.check:
+        missing = [m for m in args.check
+                   if not hasattr(globals().get(m), "check")]
+        if missing:
+            print("no check module %s" % ", ".join(missing), file=sys.stderr)
+            return 2
+        selected = []
+    elif not selected:
         print("no such app; --list shows what is installed", file=sys.stderr)
         return 2
 
@@ -677,7 +689,14 @@ def main():
                        if display.serverLog() else ""))
                 break
 
-        if not args.app and not stalled:
+        if args.check:
+            restorePrefs = fixture.settleUpgradeNotices()
+            try:
+                for module in args.check:
+                    globals()[module].check(display, results)
+            finally:
+                restorePrefs()
+        elif not args.app and not stalled:
             checkCalculation(display, results, verbose=args.verbose)
             checkStructureFiles(display, results, verbose=args.verbose)
             restorePrefs = fixture.settleUpgradeNotices()
@@ -689,6 +708,7 @@ def main():
                 vib_frame_builder_test.check(display, results)
                 builder_mode_test.check(display, results)
                 builder_metal_test.check(display, results)
+                builder_nub_shape_test.check(display, results)
                 builder_select_style_test.check(display, results)
                 builder_select_within_test.check(display, results)
                 builder_panes_test.check(display, results)
