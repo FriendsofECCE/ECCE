@@ -1,0 +1,6 @@
+ Command line input:
+ > crest crest.xyz --gfn2 --noreftopo
+ *WARNING* Change in topology detected!
+ Topology change compared to the input affects atoms:
+   3   5   6
+ Taking new topology as reference and continue ...

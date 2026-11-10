@@ -264,6 +264,7 @@ class WxMachineRegister: public ewxFrame
         void findProgram();
         string checkProgram();
         void showProgramCheck(const string& text);
+        string crestNeedsXtb() const;
         void browseProgram();
         string defaultAccount() const;
         bool userPrefsDiffer() const;

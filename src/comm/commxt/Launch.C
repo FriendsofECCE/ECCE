@@ -422,6 +422,20 @@ Launch::Launch(TaskJob* task,
     p_launchWarning = p_launchWarning.empty() ? w : p_launchWarning + "\n" + w;
   }
 
+  // The QCG solvation shell docks with `xtb dock`, which aborts in xtb 6.7.1
+  // and older (#758).  ECCE does not record the xTB version at registration
+  // and a check at launch would need a remote command, so say so, not guess.
+  if (task != 0 && task->application() != 0 &&
+      strcasecmp(task->application()->getCodeName().c_str(), "CREST") == 0) {
+    ICalculation *qcg = dynamic_cast<ICalculation*>(task);
+    if (qcg != 0 && qcg->runtype().name() == "Solvation Shell") {
+      const string w = "CREST Solvation Shell needs an xTB newer than 6.7.1; "
+        "its docking step aborts in 6.7.1 and older. ECCE could not check "
+        "the version of the xTB registered on this machine.";
+      p_launchWarning = p_launchWarning.empty() ? w : p_launchWarning + "\n" + w;
+    }
+  }
+
   p_valid = true;
   p_storeStarted = false;
   p_connection = (RCommand*)0;

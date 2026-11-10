@@ -18,7 +18,9 @@ the machine in **Register Machines**, register **xTB** (see [xTB](xtb.md)) and
 **CREST**. For CREST set **Program** to the full path of the program, such as
 `/usr/local/bin/crest`; **Find** looks for it. A CREST job uses the xTB path
 registered for the same machine. The CREST button in the code bar, next to
-xTB, starts a calculation with this code.
+xTB, starts a calculation with this code. When CREST has a program path but
+xTB has none on the machine, the message line under the Program box says
+"CREST needs the xTB program: register xTB on this machine too".
 
 CREST must start from an optimised structure; from an unoptimised one the job
 fails. Optimise with xTB first (**New step > xTB**, run type Geometry) and start
@@ -78,7 +80,10 @@ message when the input is generated.
   (Debian 13's package and the 6.7.1 release alike); the job then ends without
   a result, and the output file shows CREST's own error. A newer xtb (the
   developers' current build) docks; register its path as the machine's xTB,
-  which CREST uses. The same holds for xTB's own Docking run type.
+  which CREST uses. The same holds for xTB's own Docking run type. ECCE does not
+  record the xTB version, so Launch always warns for this run type that it
+  needs an xTB newer than 6.7.1 and that the version could not be checked
+  (**Launch anyway** goes on).
 
 ## Conformer Search
 
@@ -102,6 +107,11 @@ message when the input is generated.
 
 The number of cores is the processor count chosen in the Launcher. A search
 takes from seconds for a small molecule with GFN-FF to hours for a large one.
+
+If CREST stops after its first optimisation because the bonding changed, the
+Progress box says "CREST: bonding changed in the first optimisation", with the
+atoms CREST names. Check the starting structure (`crestopt.log` in Outputs), or
+tick **Skip the reference-topology check** (`--noreftopo`) to let CREST go on.
 
 ## The input file
 

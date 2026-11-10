@@ -220,6 +220,22 @@ int main(int argc, char** argv)
     expectShortSingleLine("cp2k box reason is short", reason);
   }
 
+  // CREST: a stop on a topology change names the cause and the override
+  // (fixture text from CREST's own message strings, atom line assumed); with
+  // --noreftopo CREST goes on and nothing is reported.
+  {
+    vector<string> files;
+    files.push_back(fx + "/synthetic/crest-topology-stop.crestout");
+    string reason = JobFailureReason::extractReason(files);
+    expectContains("crest topology stop", reason, "bonding changed");
+    expectContains("crest topology atoms", reason, "atoms 3 5 6");
+    expectContains("crest topology override", reason, "--noreftopo");
+    expectShortSingleLine("crest topology reason is short", reason);
+    files.clear();
+    files.push_back(fx + "/synthetic/crest-topology-continue.crestout");
+    expectEmpty("crest topology continue", JobFailureReason::extractReason(files));
+  }
+
   // GROMACS: the Fatal error paragraph of the tool that failed (real gmx
   // 2025.2 output); for grompp the ERROR paragraph above its own box.
   {

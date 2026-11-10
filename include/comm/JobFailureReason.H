@@ -463,6 +463,47 @@ inline bool matchGromacsError(const std::vector<std::string>& lines,
 }
 
 // ------------------------------------------------------------------------
+// CREST stops after its first optimisation when the bonding changed ("A
+// topology change was seen in the initial geometry optimization"); its own
+// ERROR STOP line says nothing of that.  With --noreftopo CREST goes on
+// ("Taking new topology as reference"), which is not an error.
+// ------------------------------------------------------------------------
+inline bool matchCrestTopologyStop(const std::vector<std::string>& lines,
+                                   std::string& reason)
+{
+  bool stop = false, goOn = false;
+  size_t atomsAt = lines.size();
+  for (size_t i = 0; i < lines.size(); i++) {
+    if (lines[i].find("A topology change was seen in the initial geometry "
+                      "optimization") != std::string::npos)
+      stop = true;
+    if (lines[i].find("Taking new topology as reference") != std::string::npos)
+      goOn = true;
+    if (atomsAt == lines.size() &&
+        lines[i].find("Topology change compared to the input affects atoms")
+            != std::string::npos)
+      atomsAt = i;
+  }
+  if (!stop || goOn)
+    return false;
+  // The atom numbers follow on the next line(s), up to the first text line.
+  std::string atoms;
+  for (size_t j = atomsAt + 1; j < lines.size() && j < atomsAt + 6; j++) {
+    const std::string t = trimmed(lines[j]);
+    if (t.empty() || t.find_first_not_of("0123456789 \t,") != std::string::npos)
+      break;
+    std::string u = t, tok;
+    for (size_t k = 0; k < u.size(); k++) if (u[k] == ',') u[k] = ' ';
+    std::istringstream in2(u);
+    while (in2 >> tok) atoms += (atoms.empty() ? "" : " ") + tok;
+  }
+  reason = "CREST: bonding changed in the first optimisation" +
+           (atoms.empty() ? std::string() : " (atoms " + atoms + ")") +
+           "; check the start structure (crestopt.log) or use --noreftopo";
+  return true;
+}
+
+// ------------------------------------------------------------------------
 // Try every known pattern, in priority order (most specific/actionable
 // first), across the primary output file and then any auxiliary files
 // (stderr, etc) already available locally.  Returns "" if nothing
@@ -473,6 +514,7 @@ inline std::string extractReason(const std::vector<std::string>& filePaths)
 {
   typedef bool (*Matcher)(const std::vector<std::string>&, std::string&);
   static const Matcher matchers[] = {
+    matchCrestTopologyStop,   // before ORCA's loose "ERROR" match
     matchOpenMpiBindOversubscribe,
     matchOpenMpiNotEnoughSlots,
     matchSlurmCancellation,
