@@ -2524,6 +2524,25 @@ sub quantumespresso()
     "  echo \"pseudo_dir set to \$ESPRESSO_PSEUDO\" >> $::logfile\n" .
     "fi\n";
 
+  # Read the staged deck after launchpp has resolved its scratch directory.
+  # Archive members have fixed names: never extract paths supplied by a tar.
+  $retval .= "qeInput=" . &shWord($::inFile) . "\n";
+  $retval .= q{
+qePrefix=$(sed -n "s/^[[:space:]]*prefix[[:space:]]*=[[:space:]]*['\"]\([^'\"]*\)['\"].*/\1/p" "$qeInput" | head -n 1)
+qeOutdir=$(sed -n "s/^[[:space:]]*outdir[[:space:]]*=[[:space:]]*['\"]\([^'\"]*\)['\"].*/\1/p" "$qeInput" | head -n 1)
+qeSave="$qeOutdir/$qePrefix.save"
+rm -f qe.qesave
+if [ -f guess.qesavein ] && grep -qi "startingpot[[:space:]]*=[[:space:]]*['\"]file['\"]" "$qeInput"; then
+  mkdir -p "$qeSave" || exit 1
+  for qeMember in charge-density.dat data-file-schema.xml; do
+    if ! tar -xOf guess.qesavein "$qeMember" > "$qeSave/$qeMember"; then
+      echo "Cannot unpack Quantum ESPRESSO starting density" >&2
+      exit 1
+    fi
+  done
+fi
+};
+
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } elsif ($::totalprocs <= 1) {
@@ -2532,6 +2551,13 @@ sub quantumespresso()
     $retval .= "\n$::CC - pw.x is a plain MPI program; mpirun wraps it.\n";
     $retval .= "mpirun -np $::totalprocs \"\$pw\" -in $::inFile > $::outFile 2>&1 < /dev/null\n";
   }
+  $retval .= q{
+qeStatus=$?
+if [ "$qeStatus" -eq 0 ] && [ -s "$qeSave/charge-density.dat" ] && [ -s "$qeSave/data-file-schema.xml" ]; then
+  tar -cf qe.qesave -C "$qeSave" charge-density.dat data-file-schema.xml || rm -f qe.qesave
+fi
+(exit "$qeStatus")
+};
   return $retval;
   nouse strict vars;
 }

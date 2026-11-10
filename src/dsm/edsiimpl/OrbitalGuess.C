@@ -1,9 +1,13 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <iomanip>
+#include <cmath>
+#include "tdat/LatticeDef.H"
 #include "tdat/Fragment.H"
 #include "tdat/TAtm.H"
 #include "tdat/GUIValues.H"
+#include "tdat/PropTSVecTable.H"
 #include <vector>
 
 #include "util/SFile.H"
@@ -13,6 +17,7 @@
 #include "dsm/JCode.H"
 #include "dsm/OrbitalGuess.H"
 #include "dsm/TaskJob.H"
+#include "dsm/PropertyTask.H"
 
 using std::string;
 using std::vector;
@@ -77,6 +82,48 @@ string cp2kBasis(const GUIValues *settings)
   return out.str();
 }
 
+string qeGeometry(const Fragment *fragment, bool cell)
+{
+  std::ostringstream out;
+  out << std::setprecision(17);
+  if (fragment == 0) return "";
+  if (cell) {
+    if (fragment->getLattice() == 0) return "";
+    vector<MPoint> *vectors = fragment->getLattice()->toVectors();
+    for (auto &v : *vectors) out << v.x() << " " << v.y() << " " << v.z() << " ";
+    delete vectors;
+  } else {
+    for (int i = 0; i < fragment->numAtoms(); ++i) {
+      const double *xyz = fragment->atomRef(i)->coordinates();
+      out << xyz[0] << " " << xyz[1] << " " << xyz[2] << " ";
+    }
+  }
+  return out.str();
+}
+
+bool sameGeometry(const string &before, const string &after)
+{
+  std::istringstream a(before), b(after);
+  double x, y;
+  while (a >> x) {
+    if (!(b >> y) || std::abs(x - y) > 1.e-6) return false;
+  }
+  return !(b >> y);
+}
+
+string qeCutoffs(const GUIValues *settings)
+{
+  auto value = [&](const string &key, double fallback) {
+    GUIValue *v = settings == 0 ? 0 : settings->get("ES.Theory.PW." + key);
+    return v == 0 ? fallback : v->getValueAsDouble();
+  };
+  std::ostringstream out;
+  out << std::setprecision(17) << value("EcutWfc", 30.) << " ";
+  const bool explicitRho = value("UseEcutRho", 0.) != 0.;
+  out << explicitRho << " " << (explicitRho ? value("EcutRho", 240.) : 0.);
+  return out.str();
+}
+
 bool readsGuess(const TaskJob *calc)
 {
   return !calc->orbitalGuessFile().empty();
@@ -90,7 +137,7 @@ bool OrbitalGuess::available(const TaskJob *source, string &why)
   why.clear();
   if (source == 0 || !readsGuess(source)) {
     why = "Only a calculation of a code that can start from earlier "
-          "orbitals (ORCA, Gaussian 16, NWChem, ECCE-QM, MOPAC, CP2K) can be duplicated with its final "
+          "orbitals (ORCA, Gaussian 16, NWChem, ECCE-QM, MOPAC, CP2K, Quantum ESPRESSO) can be duplicated with its final "
           "orbitals.";
     return false;
   }
@@ -205,9 +252,34 @@ bool OrbitalGuess::attach(TaskJob *target, TaskJob *source, string &why)
     }
   }
   const string code = source->application()->getCodeName();
-  if (calc != 0 && (code == "MOPAC" || code == "CP2K")) {
+  if (calc != 0 && (code == "MOPAC" || code == "CP2K" || code == "QuantumESPRESSO")) {
     Fragment *frag = calc->fragment();
+    if (code == "QuantumESPRESSO" && frag != 0) {
+      // The stored input structure can precede a relaxation; the density
+      // belongs to the final geometry and, for vc-relax, the final cell.
+      PropertyTask *properties = dynamic_cast<PropertyTask*>(source);
+      if (properties != 0) {
+        properties->getFragmentStep(frag, -1);
+        PropTSVecTable *cells = dynamic_cast<PropTSVecTable*>(properties->getProperty("LATTICEVEC"));
+        if (cells != 0 && cells->tables() > 0) {
+          const vector<double> &v = cells->values(cells->tables() - 1);
+          if (v.size() == 9) {
+            LatticeDef *cell = new LatticeDef(1, 1, 1, 90, 90, 90);
+            cell->assign(MPoint(v[0], v[1], v[2]), MPoint(v[3], v[4], v[5]),
+                         MPoint(v[6], v[7], v[8]));
+            frag->setLattice(cell);
+          }
+        }
+      }
+    }
     target->addProp(TaskJob::orbitalGuessSourceProp() + "atoms", atomSequence(frag));
+    if (code == "QuantumESPRESSO") {
+      target->addProp(TaskJob::orbitalGuessSourceProp() + "positions", qeGeometry(frag, false));
+      target->addProp(TaskJob::orbitalGuessSourceProp() + "cell", qeGeometry(frag, true));
+      GUIValues *settings = calc->guiparams();
+      target->addProp(TaskJob::orbitalGuessBasisProp() + "settings", qeCutoffs(settings));
+      delete settings;
+    }
     delete frag;
     if (code == "CP2K") {
       GUIValues *settings = calc->guiparams();
@@ -239,12 +311,25 @@ string OrbitalGuess::compatibilityWarning(const TaskJob *calc,
 {
   if (calc == 0 || calc->application() == 0) return "";
   const string code = calc->application()->getCodeName();
-  if (code != "MOPAC" && code != "CP2K") return "";
+  if (code != "MOPAC" && code != "CP2K" && code != "QuantumESPRESSO") return "";
   string note;
   const string atoms = calc->getProp(TaskJob::orbitalGuessSourceProp() + "atoms");
   if (!atoms.empty() && atoms != atomSequence(fragment))
     note += "; " + code + " needs the same atoms in the same order: "
             "restore them or use the default guess";
+  if (code == "QuantumESPRESSO") {
+    const string positions = calc->getProp(TaskJob::orbitalGuessSourceProp() + "positions");
+    const string cell = calc->getProp(TaskJob::orbitalGuessSourceProp() + "cell");
+    const string cutoffs = calc->getProp(TaskJob::orbitalGuessBasisProp() + "settings");
+    if (!sameGeometry(positions, qeGeometry(fragment, false)))
+      note += "; Quantum ESPRESSO needs the same atoms at the same positions: "
+              "restore the structure or use the default guess";
+    if (!sameGeometry(cell, qeGeometry(fragment, true)))
+      note += "; Quantum ESPRESSO needs the same cell: restore it or use the default guess";
+    if (!sameGeometry(cutoffs, qeCutoffs(settings)))
+      note += "; Quantum ESPRESSO needs the same cutoffs: restore the Theory Details "
+              "cutoff settings or use the default guess";
+  }
   if (code == "CP2K") {
     const string basis = calc->getProp(TaskJob::orbitalGuessBasisProp() + "settings");
     if (!basis.empty() && basis != cp2kBasis(settings))

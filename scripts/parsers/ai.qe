@@ -859,6 +859,11 @@ sub SmearingKeyword {
 sub QEElectrons {
   my @l = ();
   push(@l, "&ELECTRONS");
+  if ($AbiDict{"ES.Theory.SCF.OrbitalGuessFile"} eq "guess.qesavein") {
+    # Density alone avoids transporting the much larger wavefunction files.
+    push(@l, "  startingpot = 'file'");
+    push(@l, "  startingwfc = 'atomic+random'");
+  }
   push(@l, "  conv_thr = " . &numOr("ES.Theory.PW.ConvergenceEnergy", "1.0e-6"));
   push(@l, "  mixing_beta = " . &numOr("ES.Theory.PW.MixingBeta", "0.7"));
   my $maxstep = $AbiDict{"ES.Theory.PW.ConvergenceIterations"};
