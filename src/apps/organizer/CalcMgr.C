@@ -185,6 +185,7 @@ static const char *const kFirstStartSet = "getting-started";
 #include "CalcMgr.H"
 #include <wx/filename.h>
 #include <wx/fswatcher.h>
+#include <wx/evtloop.h>
 #include "CompareEnergies.H"
 #include "CompareEnergiesDialog.H"
 #include "ReactionOverviewDialog.H"
@@ -474,6 +475,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
     auto done = std::make_shared<size_t>(0);
     wxTimer *timer = new wxTimer();   // lives until the process exits
     timer->Bind(wxEVT_TIMER, [this, path, done](wxTimerEvent&) {
+      // The example import pumps timers from its progress dialog; a command
+      // that rebuilds the tree there frees Resources the import still uses.
+      if (p_batchImport) return;
       std::ifstream in(path.c_str());
       string line;
       size_t n = 0;
@@ -13776,6 +13780,12 @@ void CalcMgr::autoRefreshCheck()
 bool CalcMgr::autoRefreshIdle() const
 {
   if (p_disablerCount > 0 || p_disabler || p_uiBusy > 0 || p_batch) return false;
+  // A reload deletes and rebuilds the folder's tree items and Resources.  The
+  // example import (its progress dialog) and wxYield loops pump timers while
+  // holding such pointers, so a reload from inside them is a use-after-free.
+  if (p_batchImport) return false;
+  if (wxEventLoopBase *loop = wxEventLoopBase::GetActive())
+    if (loop->IsYielding()) return false;
   if (wxWindow::GetCapture()) return false;
   for (wxWindowList::compatibility_iterator n = wxTopLevelWindows.GetFirst();
        n; n = n->GetNext()) {
