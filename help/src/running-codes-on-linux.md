@@ -47,6 +47,22 @@ reader instead of ORCA stops and says so in its output.
 On Fedora, Rocky Linux and RHEL, some of these codes are in Fedora or EPEL;
 `dnf search nwchem` (and so on) shows what your system offers.
 
+## MOPAC COSMO solvent
+
+In MOPAC's **Theory Details**, the **Solvent** section offers **None**
+(gas phase) or **COSMO**. Choose a common solvent from the list, or choose
+**Custom** and enter its dimensionless dielectric constant (at least 1).
+The common-solvent list uses Water 78.4, Methanol 33.0, Cyclohexane 2.0243,
+Benzene 2.2825 and Acetonitrile 36.64.
+
+COSMO writes `EPS=<dielectric constant>` on the keyword line, including
+energy calculations and geometry optimisations. **None** writes no `EPS`.
+The solvent radius stays at MOPAC's default. The parsed results record
+the COSMO model and dielectric constant as `SOLVMODEL`, so **Compare
+Energies** flags calculations with different solvation settings. An output
+with only `EPS` identifies the dielectric constant rather than a unique
+solvent name.
+
 ## ORCA
 
 ORCA is free for academic use but is not in any distribution's archive.

@@ -257,6 +257,31 @@ SKIP_DIALOGS = {}
 # ---------------------------------------------------------------------------
 RESTORE_CASES = [
     dict(
+        name="mopac-no-solvent",
+        script="mopactheory.py", category="SE", theory="RPM7",
+        changes={"ES.Theory.SCF.SolvationModel": ("None", None),
+                 "ES.Theory.SCF.Solvent": ("Custom", None)},
+        expect={"ES.Theory.SCF.SolvationModel": {"value": "None"},
+                "ES.Theory.SCF.Solvent": {"value": "Custom"}},
+        why="The gas-phase model must survive reopening with a saved solvent."),
+    dict(
+        name="mopac-water-solvent",
+        script="mopactheory.py", category="SE", theory="RPM7",
+        changes={"ES.Theory.SCF.SolvationModel": ("COSMO", None),
+                 "ES.Theory.SCF.Solvent": ("Water", None)},
+        expect={"ES.Theory.SCF.SolvationModel": {"value": "COSMO"},
+                "ES.Theory.SCF.Solvent": {"value": "Water"}},
+        why="Named COSMO solvents use the shared dielectric constants."),
+    dict(
+        name="mopac-custom-solvent",
+        script="mopactheory.py", category="SE", theory="RPM7",
+        changes={"ES.Theory.SCF.SolvationModel": ("COSMO", None),
+                 "ES.Theory.SCF.Solvent": ("Custom", None),
+                 "ES.Theory.SCF.Dielectric": ("30.125", None)},
+        expect={"ES.Theory.SCF.Solvent": {"value": "Custom"},
+                "ES.Theory.SCF.Dielectric": {"value": "30.125"}},
+        why="The custom dielectric must survive reopening a calculation."),
+    dict(
         name="orca-legacy-grid-in-functional",
         script="orcatheory.py", category="DFT", theory="RDFT",
         changes={"ES.Theory.DFT.XCFunctionals": ("PBE0 DEFGRID3 D3BJ", None)},

@@ -15,7 +15,7 @@
 # data/client/cap/MOPAC.edml -- the six semiempirical Hamiltonians
 # PM7/PM6/PM3/AM1/RM1/MNDO, each in an R (RHF) and U (UHF) flavor,
 # crossed with Energy/Gradient/Geometry/Vibration/GeoVib.  No geometry
-# constraints, no symmetry handling, no solvation (COSMO), no MOZYME,
+# constraints, no symmetry handling, no MOZYME,
 # no reaction paths (IRC/DRC/SADDLE/LOCATE-TS).
 #
 # MOPAC IS SEMIEMPIRICAL, so unlike every other ai.<code> in this
@@ -49,6 +49,7 @@
 ################################################################################
 
 use Getopt::Std;
+use POSIX qw(isfinite);
 use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t
             $opt_e $opt_s $opt_q);
 
@@ -302,6 +303,8 @@ sub MOPACSecondJob {
     push(@kw, "CHARGE=" . &Charge);
     push(@kw, &SpinKeyword);
     push(@kw, "PRECISE") if ($AbiDict{"ES.Theory.SCF.Precise"} eq "1");
+    my $solvent = &SolventToken;
+    push(@kw, $solvent) if ($solvent ne "");
     $result = "\n" . join(" ", @kw) . "\n" . &TitleLine .
               "\n" . "Vibrational analysis at the optimized geometry";
   }
@@ -317,6 +320,8 @@ sub KeywordLine {
   push(@kw, &RunTypeKeywords);
   push(@kw, "CHARGE=" . &Charge);
   push(@kw, &SpinKeyword);
+  my $solvent = &SolventToken;
+  push(@kw, $solvent) if ($solvent ne "");
 
   #  VECTORS prints the eigenvectors; ALLVEC extends that to the virtual
   #  orbitals as well, which ECCE needs because its MO table and the
@@ -379,6 +384,30 @@ sub KeywordLine {
   push(@kw, "THREADS=$nprocs") if ($nprocs ne "" && $nprocs > 1);
 
   return join(" ", @kw);
+}
+
+sub SolventToken {
+  my $model = $AbiDict{"ES.Theory.SCF.SolvationModel"};
+  return "" if (!defined($model) || $model eq "" || $model eq "None");
+  die "ai.mopac error: unsupported solvent model '$model'\n" if ($model ne "COSMO");
+  my $solvent = $AbiDict{"ES.Theory.SCF.Solvent"};
+  $solvent = "Water" if (!defined($solvent) || $solvent eq "");
+  my $eps;
+  if ($solvent eq "Custom") {
+    $eps = $AbiDict{"ES.Theory.SCF.Dielectric"};
+  } else {
+    open(my $table, "<", "$ENV{ECCE_HOME}/scripts/codereg/cosmo_solvents.dat")
+      or die "ai.mopac error: cannot read COSMO solvents: $!\n";
+    while (my $line = <$table>) {
+      if ($line =~ /^\Q$solvent\E:\s*(\S+)\s*$/) { $eps = $1; last; }
+    }
+    close($table);
+    die "ai.mopac error: unknown COSMO solvent '$solvent'\n" if (!defined($eps));
+  }
+  die "ai.mopac error: COSMO dielectric constant must be a finite number >= 1\n"
+    if (!defined($eps) || $eps !~ /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/
+        || $eps < 1 || !isfinite($eps));
+  return "EPS=$eps";
 }
 
 # Line 2: the calculation title.  Never blank (see header note).
