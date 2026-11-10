@@ -33,4 +33,7 @@ theories GFN2-xTB, GFN-FF, GFN2//GFN-FF.
   `tests/jobstore/testCrestCheck.C`) compares the lowest frame's bonding with it
   and reads CREGEN's "topology-based structure removals" count. JobStore
   records the text as `runStatusReason` while the state stays Complete;
-  ProgressBox shows it as "Warning:" only for a Complete calculation.
+  ProgressBox and the Organizer message area show it as a warning for a
+  Complete or Loaded calculation. An import (File > Import, the examples)
+  runs through the same job store and ends Loaded, so it gets the warning
+  too; a stored example copy carries it in its `.ecce-meta` (#915).

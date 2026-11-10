@@ -996,9 +996,11 @@ void cleanup(int exitStatus)
       recordStatusReason(calculation->killReason());
     } else {
       // A normal CREST end can still be a result to question (#831); the
-      // state stays Complete, the reason is shown as a warning.
+      // state stays Complete (Loaded for an import), the reason is shown as
+      // a warning.
       string warn;
-      if (endState == ResourceDescriptor::STATE_COMPLETED && !gReparse) {
+      if ((endState == ResourceDescriptor::STATE_COMPLETED ||
+           endState == ResourceDescriptor::STATE_LOADED) && !gReparse) {
         const JCode* jc = calculation->application();
         TypedFile oFile;
         calculation->getDataFile(JCode::PRIMARY_OUTPUT, oFile);

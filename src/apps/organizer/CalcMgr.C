@@ -13780,9 +13780,11 @@ void CalcMgr::updateSelectionMenus()
           }
         }
         //  A Ready calculation carries a reason only after a failed submit.
-        //  A Complete CREST run may carry a warning about its result (#831).
+        //  A Complete or imported (Loaded) CREST run may carry a warning
+        //  about its result (#831).
         if (state == ResourceDescriptor::STATE_READY ||
             state == ResourceDescriptor::STATE_COMPLETED ||
+            state == ResourceDescriptor::STATE_LOADED ||
             state == ResourceDescriptor::STATE_UNSUCCESSFUL ||
             state == ResourceDescriptor::STATE_FAILED ||
             state == ResourceDescriptor::STATE_SYSTEM_FAILURE ||
