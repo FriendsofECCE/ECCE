@@ -157,6 +157,31 @@ def main():
                     print("ok    nci colour bar: %s" % info.replace(" | ", " / "))
                 if elf.get("espbar_shown") == "1":
                     fail("elf colour bar", "shown for ELF")
+                # #907: switching the surface kind removes the old surface at
+                # once (field -> MO, MO -> field, field -> field, Surfaces -> MOs).
+                out = os.path.join(work, "switch")
+                scene = ("mofield ELF\nmopanel elf\nmosurf s_elf\n"
+                         "mofield MO\nmosurf s_mo\n"
+                         "mofield ELF\nmopanel elf2\nmosurf s_elf2\n"
+                         "mofield Density\nmosurf s_dens\n"
+                         "mopanel dens\nmosurf s_dens2\n"
+                         "mofield MO\nmosurf s_mo2\n")
+                res = omo.runBuilder(display, url, out, scene)
+                st = {k: omo.readState(out, k) or {} for k in
+                      ("s_elf", "s_mo", "s_elf2", "s_dens", "s_dens2", "s_mo2")}
+                def nodes(k):
+                    return int(st[k].get("surface_nodes", "-1"))
+                if nodes("s_elf") < 1 or st["s_elf"].get("surface_type") != "ELF":
+                    fail("surface switch", "no ELF surface to switch from: %r"
+                         % st["s_elf"], res.log)
+                for k in ("s_mo", "s_dens", "s_mo2"):
+                    if nodes(k) != 0 or st[k].get("surface_type", "x") != "":
+                        fail("surface switch", "%s: stale surface %r" % (k, st[k]))
+                if nodes("s_elf2") < 1 or nodes("s_dens2") < 1:
+                    fail("surface switch", "recompute drew nothing: %r %r"
+                         % (st["s_elf2"], st["s_dens2"]))
+                if not failures:
+                    print("ok    surface kind switch clears the previous surface")
             finally:
                 subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")],
                                env=display.env(), timeout=120)

@@ -579,10 +579,7 @@ void MoPanel::setSurfaceMode(bool on)
    ensureInitialized();
    p_surfaceMode = on;
    //  A surface from the other mode would sit under the wrong controls.
-   getFW().getSceneGraph().clearGrids();
-   p_drawnType.clear();
-   p_espDrawnType.clear();
-   hideEspBar();
+   dropDrawnSurface();
    if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this)))
       builder->setPaneCaption(this, on ? "Surfaces" : "MOs");
    populateTypeChoice();
@@ -3415,6 +3412,28 @@ void MoPanel::layoutSpinView()
 }
 
 
+/**
+ * Remove the drawn surface.  clearGrids() only empties the grid cache; the
+ * isosurface nodes stay in the scene until clearGridScene() removes them.
+ */
+void MoPanel::dropDrawnSurface()
+{
+   SGContainer& sg = getFW().getSceneGraph();
+   sg.clearGrids();
+   sg.clearGridScene();
+   p_drawnType.clear();
+   p_espDrawnType.clear();
+   hideEspBar();
+}
+
+/** Scene-script report: the surface kind the panel holds as drawn, and the nodes in the scene. */
+string MoPanel::surfaceState() const
+{
+   SoSwitch *iso = (SoSwitch*)(getFW().getSceneGraph().getMORoot()->getChild(0));
+   return "surface_nodes " + std::to_string(iso->getNumChildren()) + "\n" +
+          "surface_type " + p_drawnType + "\n";
+}
+
 /** The field-type combo decides whether a range is meaningful. */
 void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
 {
@@ -3439,16 +3458,10 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
          if (spin) fillSpinView();
          showMainView();
       }
-      //  A field-view surface (ELF, LOL, NCI) would otherwise stay drawn
-      //  under the orbital controls until an orbital is computed.
-      if ((chosen == "MO" || chosen == "Localised MO") &&
-          (p_drawnType == ELF_FIELD_TYPE || p_drawnType == LOL_FIELD_TYPE ||
-           p_drawnType == NCI_FIELD_TYPE)) {
-         getFW().getSceneGraph().clearGrids();
-         p_drawnType.clear();
-         p_espDrawnType.clear();
-         hideEspBar();
-      }
+      //  A surface of another kind would otherwise stay drawn under the new
+      //  kind's controls until it is computed.
+      if (!p_drawnType.empty() && !chosen.empty() && chosen != p_drawnType)
+         dropDrawnSurface();
       if ((chosen == "MO" || chosen == "Localised MO") &&
           p_localised != (chosen == "Localised MO"))
          setLocalised(chosen == "Localised MO");
