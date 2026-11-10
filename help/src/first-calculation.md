@@ -83,7 +83,8 @@ Hydrogen** fills each open bond with a hydrogen atom.
 
 To join two atoms yourself, click the **Bond** button in the Mode Toolbar
 (two grey balls joined by a stick; tooltip **Draw bonds**), or choose
-**Mode > Bond** (Ctrl+6). Click the first atom, then the second. The kind of
+**Mode > Bond** (Ctrl+6). Click the first atom, then hold Shift and click the
+second. The kind of
 bond (Covalent or Metal-π) is chosen in the Build panel, not on the button.
 The button stays pressed while Bond mode is active; press **Esc** or click
 another mode button to leave it.

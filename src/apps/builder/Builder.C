@@ -3367,7 +3367,7 @@ void Builder::updateModeText()
   if (p_currentMode == ID_MODE_BOND)
     modeTxt += p_currentBond == TBond::Metal
       ? " (metal-pi): select a metal and a pi system, then click to join them"
-      : " (covalent): click two atoms to bond them";
+      : " (covalent): click an atom, then Shift+click the second to bond them";
   Residue* res ;
 
   // add the residue edit information, if applicable
