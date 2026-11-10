@@ -57,16 +57,11 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
       values: 0.000000 0.000000 0.121348 0.000000 0.757657 -0.485394 -0.000000 -0.757657 -0.485394
       units: Angstrom
   block 4: begin-line=1214 fed=4 rc=0 first-fed='      1          8           0       -0.000000    0.000000    0.121348'
-    key: GEOMTRACE
-      size: 1 3 3
-      rowlabels: 1-O 2-H 3-H
-      columnlabels: X Y Z
-      values: -0.000000 0.000000 0.121348 -0.000000 0.757657 -0.485394 -0.000000 -0.757657 -0.485394
-      units: Angstrom
+    (script emitted no property)
 
 [EGRAD]  Script=gaussian-16.egrad  Freq=all  Skip=0  Lines=1
   Begin=Cartesian Forces\:
-  begins=3 delivered=3 buffered_away=0
+  begins=4 delivered=4 buffered_away=0
   block 1: begin-line=497 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.018231349 RMS     0.008378223'
     key: EGRAD
       size: 1
@@ -82,17 +77,22 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
       size: 1
       values: 0.000097361
       units: Hartree/Bohr
+  block 4: begin-line=1808 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.000097361 RMS     0.000048484'
+    key: EGRAD
+      size: 1
+      values: 0.000097361
+      units: Hartree/Bohr
 
 [EGRADVEC]  Script=gaussian-16.egradvec  Freq=last  Skip=3  Lines=-
   Begin=             Forces
   End=--------------------------------------
-  begins=3 delivered=1 buffered_away=2
-  block 1: begin-line=1125 fed=4 rc=0 first-fed='      1        8          -0.000000000    0.000000000   -0.000038280'
+  begins=4 delivered=1 buffered_away=3
+  block 1: begin-line=1801 fed=4 rc=0 first-fed='      1        8          -0.000000000    0.000000000   -0.000038280'
     key: EGRADVEC
       size: 3 3
       rowlabels: 1 2 3
       columnlabels: X Y Z
-      values: -0.000000000 0.000000000 3.828e-05 0.000000000 -9.7361e-05 -1.914e-05 0.000000000 9.7361e-05 -1.914e-05
+      values: -0.000000000 0.000000000 3.828e-05 -0.000000000 -9.7361e-05 -1.914e-05 0.000000000 9.7361e-05 -1.914e-05
       units: Hartree/Bohr
 
 [DELTAE]  Script=gaussian-16.deltae  Freq=all  Skip=0  Lines=1
@@ -371,9 +371,9 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
 
 [EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES][THERMOSIGMA]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
   Begin= Thermochemistry
-  End=Cartesian Forces
+  End=^ -{60,}\s*$
   begins=1 delivered=1 buffered_away=0
-  block 1: begin-line=1723 fed=86 rc=0 first-fed=' - Thermochemistry -'
+  block 1: begin-line=1723 fed=78 rc=0 first-fed=' - Thermochemistry -'
     key: EZEROPT
       size: 1
       values: 0.020987

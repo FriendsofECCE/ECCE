@@ -10,4 +10,5 @@ $| = 1;
 my ($rows, $labels) = readBlock();
 takeStash($key);
 emitFrame($key, $rows, $labels);
+saveIrcInput($key, $rows) if ($runtype =~ /IRC/i);
 exit(0);

@@ -2925,6 +2925,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/g16_units_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # Gaussian 16 traces: one structure per energy point (#947).
+  add_test(NAME parsers_g16_trace_align
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/g16_trace_align_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # The same fixtures cut off part-way, through the real eccejobmonitor and
   # parser scripts (#107 part B).
   add_test(NAME parsers_partial

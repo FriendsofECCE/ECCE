@@ -51,6 +51,15 @@ Frequency=last
 End=Total number of points
 [END]
 
+# The TS point has no CURRENT STRUCTURE block: the last Input orientation
+# before the path starts is its structure (gaussian-16.ircts).
+[IRCTS]
+Script=gaussian-16.ircts
+Begin=Start new reaction path calculation
+Frequency=first
+Lines=1
+[END]
+
 [IRCGEOM]
 Script=gaussian-16.ircgeom
 Begin=CURRENT STRUCTURE
@@ -183,14 +192,15 @@ Frequency=first
 End=Harmonic frequencies
 [END]
 
-# The block also swallows the rest of the output up to the next
-# "Cartesian Forces" line, as the NULL2 entry it replaces did, so the
-# entries below cannot match inside it.
+# The block also swallows the ASCII IR spectrum that follows, so the entries
+# below cannot match inside it.  It ends on the rule above the next table,
+# not at "Cartesian Forces": that would take the frequency job's Forces
+# table, the last one, away from EGRADVEC.
 [EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES][THERMOSIGMA]
 Script=gaussian-16.thermo
 Begin= Thermochemistry
 Frequency=last
-End=Cartesian Forces
+End=^ -{60,}\s*$
 [END]
 
 # Model and solvent from the last PCM block (the final geometry).  End on
