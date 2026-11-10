@@ -154,27 +154,8 @@ void OpdosPanel::build()
     col->Add(use, 0, wxALIGN_RIGHT, 0);
     row1->Add(col, 0, wxRIGHT, 16);
     use->Bind(wxEVT_BUTTON, [this, which](wxCommandEvent&) { useSelection(which); });
-    //  Typing one group against the other's applied atoms would collide: the
-    //  untouched group gives up the atoms the edited one takes.
-    box->Bind(wxEVT_TEXT_ENTER, [this, which](wxCommandEvent&) {
-      const std::string ta = p_atomsA->GetValue().ToStdString(), tb = p_atomsB->GetValue().ToStdString();
-      std::vector<int> va, vb;
-      const size_t n = p_model->natoms();
-      if (fragorb::parseAtomList(ta, n, va) && fragorb::parseAtomList(tb, n, vb)) {
-        std::vector<int>& other = which ? va : vb;
-        const std::vector<int>& mine = which ? vb : va;
-        const bool otherUntouched = which ? ta == atomText(p_a) : tb == atomText(p_b);
-        std::vector<int> keep;
-        for (size_t i = 0; i < other.size(); i++)
-          if (!std::binary_search(mine.begin(), mine.end(), other[i])) keep.push_back(other[i]);
-        if (otherUntouched && !keep.empty() && keep.size() < other.size()) {
-          other = keep;
-          const bool ok = setAtoms(atomText(va), atomText(vb));
-          if (ok) setText(wxString::Format("Atoms taken by %s were removed from %s.", which ? "B" : "A", which ? "A" : "B"));
-          return;
-        }
-      }
-      setAtoms(ta, tb);
+    box->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) {
+      setAtoms(p_atomsA->GetValue().ToStdString(), p_atomsB->GetValue().ToStdString());
     });
   };
   atomsBox(p_atomsA, p_useA, "A", 0);
@@ -590,7 +571,11 @@ bool OpdosPanel::useSelection(int which)
     return false;
   }
   std::sort(picked.begin(), picked.end());
-  return setAtoms(which ? atomText(p_a) : atomText(picked), which ? atomText(picked) : atomText(p_b));
+  //  The other group as typed in its box, not as last applied: "A = 1" typed
+  //  without Enter, then Use selection for B, collided with A's old atoms.
+  const std::string ta = p_atomsA->GetValue().ToStdString();
+  const std::string tb = p_atomsB->GetValue().ToStdString();
+  return setAtoms(which ? ta : atomText(picked), which ? atomText(picked) : tb);
 }
 
 bool OpdosPanel::setWidth(double ev)
