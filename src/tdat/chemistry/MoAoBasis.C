@@ -3,9 +3,11 @@
 #include <cstdio>
 #include <map>
 #include <memory>
+#include <sstream>
 
 #include "tdat/MoAoBasis.H"
 #include "tdat/MoAoOrder.H"
+#include "tdat/MoComposition.H"
 #include "tdat/BasisFlatten.H"
 #include "tdat/EspField.H"
 #include "tdat/Fragment.H"
@@ -105,17 +107,15 @@ bool MoAoBasis::functionCounts(IPropCalculation *expt,
 
   TGBSConfig *config = escalc->gbsConfig();
 
-  //  A semiempirical code writes no basis set; rebuild one from the
-  //  Slater exponents it did report.  Its coefficients are already in an
-  //  orthonormal basis (S=I), so a caller must not push them through a
-  //  real Slater overlap (#175).
+  //  Rebuild the semiempirical basis from its reported exponents.
+  //  MOPAC's parser back-transforms GRAPHF vectors into this AO basis.
   if (config == 0 || config->empty()) {
     bool orthonormal = false;
     TGBSConfig *slater = ICalcUtils::slaterBasisConfig(expt, &orthonormal);
     if (slater != 0) {
       delete config;
       config = slater;
-      //  Only MOPAC's SLATERBASIS is orthonormal; xtb's GTOBASIS is not.
+      //  This flag identifies the Slater model, not the stored MO metric.
       if (semiempirical != 0) *semiempirical = orthonormal;
     }
   }
@@ -206,6 +206,94 @@ bool MoAoBasis::flatBasis(IPropCalculation *expt,
 
 
 
+//  GRAPHF's AO coefficients use its own frame, which can differ from
+//  GEOMTRACE after a FORCE run. Its exact metric also avoids the error of
+//  the Gaussian expansion used to render Slater functions.
+static bool graphfBasisMetric(IPropCalculation *calc,
+                           const vector<string>& symbols,
+                           int width, vector<double>& coords,
+                           vector<double>& overlap)
+{
+  ICalculation *escalc = dynamic_cast<ICalculation*>(calc);
+  PropTable *slater = (PropTable*)calc->getProperty("SLATERBASIS");
+  if (!escalc || !slater || slater->rows() != (int)symbols.size() ||
+      slater->columns() != 4) return false;
+  string name;
+  for (const string& file : escalc->getAllFileNames()) {
+    if (file.size() < 4 || file.substr(file.size()-4) != ".mgf") continue;
+    if (!name.empty()) return false;
+    name = file;
+  }
+  if (name.empty()) return false;
+  std::unique_ptr<std::istream> in(escalc->getAnyFile(name));
+  string line;
+  int n = 0;
+  if (!in || !std::getline(*in, line) ||
+      !(std::istringstream(line) >> n) || n != (int)symbols.size()) return false;
+  vector<double> xyz;
+  for (int a = 0; a < n; a++) {
+    int z;
+    double x, y, zz;
+    if (!std::getline(*in, line)) return false;
+    std::istringstream row(line);
+    if (!(row >> z >> x >> y >> zz) || z != (int)slater->value(a, 0) ||
+        TAtm((short)z).atomicSymbol() != symbols[a] ||
+        !std::isfinite(x) || !std::isfinite(y) || !std::isfinite(zz)) return false;
+    xyz.insert(xyz.end(), {x, y, zz});
+  }
+  for (int a = 0; a < n; a++) {
+    if (!std::getline(*in, line)) return false;
+    std::istringstream row(line);
+    for (int k = 1; k <= 3; k++) {
+      double zeta;
+      if (!(row >> zeta) || !std::isfinite(zeta) ||
+          fabs(zeta - slater->value(a, k)) > 1.0e-7) return false;
+    }
+  }
+  int rows = 0, cols = 0;
+  bool found = false;
+  while (std::getline(*in, line)) {
+    if (sscanf(line.c_str(), " INVERSE_MATRIX[%dx%d]=", &rows, &cols) == 2) {
+      found = true;
+      break;
+    }
+  }
+  if (!found || rows != width || cols != width || width <= 0) return false;
+  vector<double> triangle;
+  while (std::getline(*in, line)) {
+    if (line.find("Keywords:") != string::npos) break;
+    std::replace(line.begin(), line.end(), 'D', 'E');
+    std::replace(line.begin(), line.end(), 'd', 'e');
+    std::istringstream row(line);
+    double v;
+    while (row >> v) {
+      if (!std::isfinite(v)) return false;
+      triangle.push_back(v);
+    }
+  }
+  if (triangle.size() != (size_t)width*(width+1)/2) return false;
+  vector<vector<double>> inverseHalf(width, vector<double>(width));
+  size_t t = 0;
+  for (int i = 0; i < width; i++)
+    for (int j = 0; j <= i; j++)
+      inverseHalf[i][j] = inverseHalf[j][i] = triangle[t++];
+  vector<double> values;
+  vector<vector<double>> vectors;
+  if (!MoComposition::jacobiEigen(inverseHalf, values, vectors)) return false;
+  overlap.assign((size_t)width*width, 0.0);
+  //  The parser uses A = S^(-1/2), so S = V diag(lambda^-2) V^T.
+  for (int k = 0; k < width; k++) {
+    if (!std::isfinite(values[k]) || values[k] <= 1.0e-10) return false;
+    const double s = 1.0/(values[k]*values[k]);
+    for (int i = 0; i < width; i++)
+      for (int j = 0; j < width; j++)
+        overlap[i*width+j] += vectors[i][k]*s*vectors[j][k];
+  }
+  coords.swap(xyz);
+  return true;
+}
+
+
 bool MoAoBasis::overlapMatrix(IPropCalculation *expt,
                               const vector<string>& storedElements,
                               const vector<double>& storedCoords, int width,
@@ -216,11 +304,15 @@ bool MoAoBasis::overlapMatrix(IPropCalculation *expt,
   perAtom.clear();
   Sflat.clear();
 
-  perAtom.clear();
-  Sflat.clear();
-
   vector<EspBasisFunction> basis;
-  if (!flatBasis(expt, storedElements, storedCoords, width, basis))
+  vector<double> graphCoords;
+  const vector<double> *coords = &storedCoords;
+  if (expt->getProperty("SLATERBASIS")) {
+    if (!graphfBasisMetric(expt, storedElements, width, graphCoords, Sflat))
+      return false;
+    coords = &graphCoords;
+  }
+  if (!flatBasis(expt, storedElements, *coords, width, basis))
     return false;
   const unsigned long natoms = storedElements.size();
 
@@ -239,11 +331,15 @@ bool MoAoBasis::overlapMatrix(IPropCalculation *expt,
   if (perAtom.size() != natoms) { perAtom.clear(); return false; }
 
   const size_t nbasis = basis.size();
-  Sflat.assign(nbasis*nbasis, 0.0);
-  for (size_t i = 0; i < nbasis; i++) {
-    for (size_t j = 0; j < nbasis; j++)
-      Sflat[i*nbasis + j] = EspField::overlapOf(basis[i], basis[j]);
-    if (onRow) onRow((i+1.0)/nbasis);
+  if (Sflat.empty()) {
+    Sflat.assign(nbasis*nbasis, 0.0);
+    for (size_t i = 0; i < nbasis; i++) {
+      for (size_t j = 0; j < nbasis; j++)
+        Sflat[i*nbasis + j] = EspField::overlapOf(basis[i], basis[j]);
+      if (onRow) onRow((i+1.0)/nbasis);
+    }
+  } else if (onRow) {
+    onRow(1.0);
   }
 
   if (basisOut != 0) basisOut->swap(basis);
@@ -300,8 +396,7 @@ bool MoAoBasis::build(IPropCalculation *calc, const vector<string>& symbols,
   complaint.clear();
 
   vector<int> counts, shellOf, seq, comp;
-  bool semi = false;
-  if (!functionCounts(calc, symbols, width, counts, shellOf, &semi, &seq,
+  if (!functionCounts(calc, symbols, width, counts, shellOf, nullptr, &seq,
                       &comp)) {
     complaint = "no basis set, or one that does not match the "
                 "orbital coefficients";
@@ -309,14 +404,12 @@ bool MoAoBasis::build(IPropCalculation *calc, const vector<string>& symbols,
   }
 
   vector<EspBasisFunction> basis;
-  if (semi) {
-    orthonormal = true;
-  } else if (!overlapMatrix(calc, symbols, coordsAng, width, perAtom,
+  if (!overlapMatrix(calc, symbols, coordsAng, width, perAtom,
                             overlap, onRow, &basis) ||
              perAtom != counts) {
     perAtom.clear(); overlap.clear();
     complaint = "the overlap matrix of the stored basis could not be "
-                "built";
+                "built in the orbital frame (MOPAC requires its GRAPHF file)";
     return false;
   }
   if (perAtom.empty()) perAtom = counts;
