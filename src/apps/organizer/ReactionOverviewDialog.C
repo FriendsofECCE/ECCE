@@ -616,7 +616,7 @@ string ReactionOverviewDialog::buildDetailHtml(const string& treatment, const st
     }
     h += "<p>\xCE\x94" "E<sub>el</sub> = " + num(r.dE, "%.2f") + ",  \xCE\x94G = " + num(r.dG, "%.2f") +
          ",  spread " + num(r.spread, "%.2f") + " (\xCE\x94G from " + num(r.lo, "%.2f") + " to " +
-         num(r.hi, "%.2f") + " over the six G treatments)</p>\n";
+         num(r.hi, "%.2f") + " depending on the treatment of the soft modes)</p>\n";
     h += "<p><b>Soft modes</b> (&lt; 100 cm<sup>-1</sup>)</p>\n";
     if (r.modes.empty()) h += "<p>none</p>\n";
     else {
@@ -1168,8 +1168,8 @@ void ReactionOverviewDialog::showResults()
     const double ke = rate ? r.rate.rows[0].kEckart : 0;
     cell(rate && ke == ke ? rateNum(ke) : dash, false, true);
   }
-  p_units->SetLabel(wxString::FromUTF8(("k at the T above. Spread: how much \xCE\x94G changes with the "
-      "G treatment (largest minus smallest over the six treatments in the G treatment list).")));
+  p_units->SetLabel(wxString::FromUTF8(("k at the T above. Spread: how much \xCE\x94G changes with the treatment of the soft "
+      "(low-frequency) modes; a large spread means \xCE\x94G depends on them.")));
   p_results->Layout();
 }
 

@@ -80,13 +80,35 @@ lines.
 
 ## G over treatments
 
+All treatments use G = H − TS. They differ only in how the vibrational
+entropy S (and for Truhlar and Head-Gordon also H) of the soft modes, those below about
+100 cm⁻¹, is computed.
+
+H and S come from the frequencies, each vibration treated as a harmonic
+oscillator. That is good for stiff modes. For a mode near zero frequency the
+harmonic entropy grows without limit (roughly as −R ln ν), and such modes
+are usually torsions, methyl rotations or motions between the molecules of
+a complex: poorly described as vibrations, and their computed frequencies are
+the least reliable. One 15 cm⁻¹ mode can move G by several kJ/mol. This
+matters most for ΔG of association (A + B → AB) and for flexible molecules.
+
+The six treatments:
+
+- **RRHO**: every mode harmonic; the textbook G = H − TS.
+- **Grimme qRRHO, ω0 = 50, 100 or 200 cm⁻¹**: below about ω0 each mode's
+  entropy is gradually replaced by that of a free rotor, which stays finite
+  as ν → 0. Only S changes. 100 cm⁻¹ is Grimme's choice and ORCA's default.
+- **Truhlar**: every frequency below 100 cm⁻¹ is raised to 100 cm⁻¹ before
+  S, H and the zero-point energy are computed.
+- **Head-Gordon**: as Grimme's, but the enthalpy of the soft modes is
+  interpolated as well.
+
 When every calculation has stored frequencies, the **G** row has an extra
-column, **G spread**: the largest minus the smallest **B - A** of G over six
-treatments of the low frequencies (RRHO; Grimme's quasi-RRHO entropy with
-omega0 = 50, 100 and 200 cm-1; Truhlar's raising of modes to 100 cm-1;
-Head-Gordon's quasi-RRHO enthalpy), in kJ/mol at 1 atm. A large spread says
-that the reaction G depends on how the soft modes are treated, which matters
-for loosely bound complexes and clusters.
+column, **G spread**: the largest minus the smallest **B - A** of G over
+these six treatments, in kJ/mol at 1 atm. It is a warning, not a choice to
+make: a spread of about 1 kJ/mol says the soft modes do not matter for this
+reaction; a spread of 10 kJ/mol or more says ΔG depends on how they are
+treated, which is common for loosely bound complexes and clusters.
 
 **G treatment** chooses what the G row itself shows: the code's own Gibbs energy (the
 default) or G recomputed with one of the treatments. The recomputed numbers

@@ -162,6 +162,13 @@ std::vector<std::pair<string, string> > calculationsIn(const string& projectUrl)
 }
 
 
+// Says what the G spread is for: the treatments differ only in the soft modes.
+static const char *const kSpreadNote =
+    "G spread: how much \xCE\x94G changes with the treatment of the soft "
+    "(low-frequency) modes, over six treatments at 1 atm. A large spread means "
+    "\xCE\x94G depends on modes that are poorly described as vibrations "
+    "(Help: G over treatments).";
+
 string applyThermoTreatments(SumResult& r, const vector<EnergyTerm>& a,
                              const vector<EnergyTerm>& b, const string& treatment)
 {
@@ -202,12 +209,10 @@ string applyThermoTreatments(SumResult& r, const vector<EnergyTerm>& a,
     for (const ThermoTreatmentInfo& info : tr)
       if (treatment == info.cli)
         r.notes.push_back(string("G is recomputed by ecce-thermo: ") + info.label +
-                          ", 1 atm; the spread is the largest minus the smallest "
-                          "\xCE\x94G over the six treatments of the low frequencies under G treatment (RRHO; Grimme qRRHO with \xCF\x89" "0 = 50, 100 and 200 cm\xE2\x81\xBB\xC2\xB9; Truhlar; Head-Gordon).");
+                          ", 1 atm. " + kSpreadNote);
   }
   if (treatment.empty())
-    r.notes.push_back("G is the code's own; the spread is the largest minus the "
-                      "smallest \xCE\x94G over the six treatments of the low frequencies under G treatment (RRHO; Grimme qRRHO with \xCF\x89" "0 = 50, 100 and 200 cm\xE2\x81\xBB\xC2\xB9; Truhlar; Head-Gordon), at 1 atm.");
+    r.notes.push_back(string("G is the code's own. ") + kSpreadNote);
   g->hasSpread = true;
   g->spread = hi - lo;
   return "";
