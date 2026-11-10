@@ -135,7 +135,7 @@ def piCase(display, results, expect):
 def cpCase(display, results, expect):
     log = run(display, "cp", [
         "wait 3000", "add Fe Tetrahedral 8 0 0", "select -1",
-        "library Ligands Cyclopentadienyl", "click",
+        "library Inorganic/Ligands Cyclopentadienyl", "click",
         "info", "bondkind metal", "mode bond", "selectelem Fe",
         "addelem C", "click", "info", "bonds Fe C", "coords", "clean",
         "coords", "info", "quit"])
