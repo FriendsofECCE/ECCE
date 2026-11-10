@@ -117,9 +117,17 @@ static void depthTestOn(void*, SoAction*)
  * it.  The first pass stays opaque and depth tested, so the visible part
  * is unchanged and the hidden part shows through at 40 %.
  */
-void VRVector::showThroughMolecule()
+void VRVector::showThroughMolecule(bool enable)
 {
-   if (throughMat) return;
+   if (throughPass) {
+      // Added and removed rather than built again: the decision is redone
+      // whenever the style or the arrow changes.
+      const int at = findChild(throughPass);
+      if (enable && at < 0) addChild(throughPass);
+      else if (!enable && at >= 0) removeChild(at);
+      return;
+   }
+   if (!enable) return;
    SoSeparator *pass = new SoSeparator;
    SoCallback *off = new SoCallback;
    off->setCallback(depthTestOff);
@@ -150,7 +158,21 @@ void VRVector::showThroughMolecule()
    SoCallback *on = new SoCallback;
    on->setCallback(depthTestOn);
    pass->addChild(on);
+   throughPass = pass;
    addChild(pass);
+}
+
+/**
+ * Where the head's tip is drawn, in the coordinates of the position.
+ */
+void VRVector::tip(double out[3]) const
+{
+   const double len = sqrt(p_direction[0]*p_direction[0] + p_direction[1]*p_direction[1]
+                           + p_direction[2]*p_direction[2]);
+   // Fixed thickness: the tip is 1.075 |d| along the axis; otherwise the
+   // unit arrow is scaled by |d| and is about 1.075 long as well.
+   const double k = (len > 0.0) ? 1.075 : 0.0;
+   for (int i = 0; i < 3; i++) out[i] = p_position[i] + k*p_direction[i];
 }
 
 void VRVector::startRadius(double r)
@@ -228,6 +250,7 @@ void VRVector::constructor()
 {
      p_fixed = false;
      throughMat = 0;
+     throughPass = 0;
      p_shaftRadius = 0.035f;
      p_headRadius = 0.09f;
      p_headLength = 0.18f;

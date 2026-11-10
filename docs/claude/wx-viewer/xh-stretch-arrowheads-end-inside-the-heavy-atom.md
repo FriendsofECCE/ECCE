@@ -14,3 +14,9 @@ the blended depth-test-off pass the dipole arrow uses, so the hidden part
 shows at 40 %. `tests/apps/vib_arrows_builder_test.py` counts arrow-tinted
 pixels inside the nitrogen ball of an ammonia N-H stretch (Ball And Stick and
 CPK); the viewer draws the negative of the mode by default.
+
+Only an arrow whose head tip (`VRVector::tip()`, position + 1.075 d) lies
+inside another atom's drawn ball (`SGContainer::displayedSphereRadius`) gets
+the pass; the rest are depth tested and hidden behind atoms (#936). The
+decision is made in `SGContainer::updateNMVecStarts()`, which every style,
+radius and arrow change already goes through.
