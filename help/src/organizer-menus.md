@@ -5,6 +5,11 @@
 Right-click a calculation in the tree or in the project table.
 
 - **Cut**, **Copy**, **Paste**, **Rename** and **Delete** work as for any item.
+- **Move to...** and **Copy to...** open a list of folders, and put the
+  selection in the one you choose, as Cut or Copy followed by Paste would. The
+  folder the item is in is selected to begin with, and **OK** stays grey for a
+  folder that cannot take it, with the reason below the list. The list shows
+  every tree the Organizer shows, so it can also move work to a server.
 - **New from This** makes a new calculation from this one:
   - **Rerun**: a copy with the same structure and settings, reset and ready
     to launch.
