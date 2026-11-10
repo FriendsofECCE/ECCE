@@ -2931,6 +2931,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/g16_trace_align_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # ORCA IRC points while the IRC runs (#949).
+  add_test(NAME parsers_orca_irc_live
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/orca_irc_live_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # The same fixtures cut off part-way, through the real eccejobmonitor and
   # parser scripts (#107 part B).
   add_test(NAME parsers_partial

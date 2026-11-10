@@ -366,6 +366,52 @@ def partialCase(s, display, env, wrappers, project, png):
           "partial IRC: the TS is shown in its neighbours' frame")
 
 
+def partialOrcaCase(s, display, env, wrappers, project, png):
+    """A running ORCA IRC (#949): the real parser on hcn_irc.out cut in the
+    backward path gives the TS, the forward points and some backward ones in
+    path order, with no structures yet (those come from the trajectory file at
+    the end); the panel shows every point and says it has no structure."""
+    sys.path.insert(0, os.path.join(REPO, "tests", "parsers"))
+    import orca_irc_live_test as ol
+    lines = open(os.path.join(ORCA_DIR, "hcn_irc.out")).read().splitlines()
+    back = next(i for i, l in enumerate(lines) if ol.BANNER.match(l) and "BACKWARD" in l)
+    rows = [i for i in range(back, len(lines)) if ol.ROW.match(lines[i])]
+    cut = os.path.join(s.state, "hcn_irc_cut.out")
+    with open(cut, "w") as f:
+        f.write("\n".join(lines[:rows[3] + 1]) + "\n")
+    recs = ol.records(cut)
+    coord, energy = ol.last(recs, "IRCCOORD"), ol.last(recs, "IRCENERGY")
+    check(len(coord) == len(energy) == 15 and coord == sorted(coord) and coord[0] == -4,
+          "partial ORCA IRC: the parser gives 15 points (4 backward, TS, 10 forward)")
+    calc = os.path.join(project, "calc-orca-irc-partial")
+    shutil.rmtree(calc, ignore_errors=True)
+    shutil.copytree(BASE, calc, symlinks=True)
+    props = os.path.join(calc, "Props")
+    for name in os.listdir(props):
+        if name != "ESCF":
+            os.unlink(os.path.join(props, name))
+    with open(os.path.join(calc, "Parameters", "chemsys.mvm"), "w") as f:
+        f.write(HCN)
+    with open(os.path.join(props, "IRCCOORD"), "w") as f:
+        f.write(vector("IRCCOORD", coord, "Point"))
+    with open(os.path.join(props, "IRCENERGY"), "w") as f:
+        f.write(vector("IRCENERGY", energy, "Hartree"))
+    csv = os.path.join(s.state, "irc-orca-partial.csv")
+    text, _ = bo.runScript(
+        s, display, env, wrappers, ["-context", "file://" + calc + "/"],
+        ["wait 6000", "ircpath %s" % csv, "ircclick 4", "quit"],
+        png, "ircorcapartial", {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "IRC Path"})
+    check("ircpath points=15 ok" in text, "partial ORCA IRC: the panel shows 15 points")
+    rows = [l.split(",") for l in open(csv).read().splitlines()
+            if l and not l.startswith("#")][1:] if os.path.exists(csv) else []
+    check(len(rows) == 15 and all(abs(float(r[1]) - x) < 1e-4 and abs(float(r[2]) - e) < 2e-6
+                                  for r, x, e in zip(rows, coord, energy)),
+          "partial ORCA IRC: the rows run from the backward end to the forward end")
+    click = re.search(r"BUILDER: ircclick 4 frame=(\S+)", text)
+    check(click is not None and click.group(1) == "none",
+          "partial ORCA IRC: a point has no structure before the trajectory arrives")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
@@ -484,6 +530,7 @@ def main():
         exampleCase(s, display, env, wrappers, project, png)
         qmCase(s, display, env, wrappers, project, png)
         partialCase(s, display, env, wrappers, project, png)
+        partialOrcaCase(s, display, env, wrappers, project, png)
     finally:
         if display:
             display.__exit__(None, None, None)

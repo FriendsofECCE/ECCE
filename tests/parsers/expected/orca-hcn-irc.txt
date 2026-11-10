@@ -18,6 +18,201 @@ args:    '.' 'IRC' 'SCF' 'RHF' '0'
       values: -92.343482 -92.335119 -92.324933 -92.313264 -92.300378 -92.287038 -92.274821 -92.262659 -92.254380 -92.248100 -92.246043 -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805 -92.284290
       units: Hartree
 
+[IRCPOINT][IRCCOORD][IRCENERGY]  Script=orca.ircpoint  Freq=all  Skip=-  Lines=1
+  Begin=^(\s*\*\s+(FORWARD|BACKWARD) IRC\s+\*|\s+\d+\s+-\d+\.\d{6}\s+-?\d+\.\d{6}\s+\d+\.\d{6}\s+\d+\.\d{6})\s*$
+  begins=22 delivered=22 buffered_away=0
+  block 1: begin-line=2776 fed=1 rc=0 first-fed='         *                          FORWARD IRC                      *'
+    (script emitted no property)
+  block 2: begin-line=2781 fed=1 rc=0 first-fed='    0       -92.247913   -1.173329    0.013800  0.007498'
+    key: IRCCOORD
+      size: 1
+      values: 1
+      units: Point
+    key: IRCENERGY
+      size: 1
+      values: -92.247913
+      units: Hartree
+  block 3: begin-line=2782 fed=1 rc=0 first-fed='    1       -92.253878   -4.916978    0.070136  0.030211'
+    key: IRCCOORD
+      size: 2
+      values: 1 2
+      units: Point
+    key: IRCENERGY
+      size: 2
+      values: -92.247913 -92.253878
+      units: Hartree
+  block 4: begin-line=2783 fed=1 rc=0 first-fed='    2       -92.256148   -6.341190    0.033728  0.017284'
+    key: IRCCOORD
+      size: 3
+      values: 1 2 3
+      units: Point
+    key: IRCENERGY
+      size: 3
+      values: -92.247913 -92.253878 -92.256148
+      units: Hartree
+  block 5: begin-line=2784 fed=1 rc=0 first-fed='    3       -92.259286   -8.310331    0.026400  0.015890'
+    key: IRCCOORD
+      size: 4
+      values: 1 2 3 4
+      units: Point
+    key: IRCENERGY
+      size: 4
+      values: -92.247913 -92.253878 -92.256148 -92.259286
+      units: Hartree
+  block 6: begin-line=2785 fed=1 rc=0 first-fed='    4       -92.263157   -10.739464    0.032283  0.018856'
+    key: IRCCOORD
+      size: 5
+      values: 1 2 3 4 5
+      units: Point
+    key: IRCENERGY
+      size: 5
+      values: -92.247913 -92.253878 -92.256148 -92.259286 -92.263157
+      units: Hartree
+  block 7: begin-line=2786 fed=1 rc=0 first-fed='    5       -92.266891   -13.082457    0.030588  0.017944'
+    key: IRCCOORD
+      size: 6
+      values: 1 2 3 4 5 6
+      units: Point
+    key: IRCENERGY
+      size: 6
+      values: -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891
+      units: Hartree
+  block 8: begin-line=2787 fed=1 rc=0 first-fed='    6       -92.271134   -15.745251    0.032302  0.019856'
+    key: IRCCOORD
+      size: 7
+      values: 1 2 3 4 5 6 7
+      units: Point
+    key: IRCENERGY
+      size: 7
+      values: -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134
+      units: Hartree
+  block 9: begin-line=2788 fed=1 rc=0 first-fed='    7       -92.275319   -18.371164    0.033804  0.019460'
+    key: IRCCOORD
+      size: 8
+      values: 1 2 3 4 5 6 7 8
+      units: Point
+    key: IRCENERGY
+      size: 8
+      values: -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319
+      units: Hartree
+  block 10: begin-line=2789 fed=1 rc=0 first-fed='    8       -92.279805   -21.186150    0.034902  0.020348'
+    key: IRCCOORD
+      size: 9
+      values: 1 2 3 4 5 6 7 8 9
+      units: Point
+    key: IRCENERGY
+      size: 9
+      values: -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805
+      units: Hartree
+  block 11: begin-line=2790 fed=1 rc=0 first-fed='    9       -92.284290   -24.000391    0.035507  0.020284'
+    key: IRCCOORD
+      size: 10
+      values: 1 2 3 4 5 6 7 8 9 10
+      units: Point
+    key: IRCENERGY
+      size: 10
+      values: -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805 -92.284290
+      units: Hartree
+  block 12: begin-line=2798 fed=1 rc=0 first-fed='         *                          BACKWARD IRC                     *'
+    key: IRCCOORD
+      size: 10
+      values: 1 2 3 4 5 6 7 8 9 10
+      units: Point
+    key: IRCENERGY
+      size: 10
+      values: -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805 -92.284290
+      units: Hartree
+  block 13: begin-line=2803 fed=1 rc=0 first-fed='    0       -92.248100   -1.291181    0.014324  0.009084'
+    key: IRCCOORD
+      size: 11
+      values: -1 1 2 3 4 5 6 7 8 9 10
+      units: Point
+    key: IRCENERGY
+      size: 11
+      values: -92.248100 -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805 -92.284290
+      units: Hartree
+  block 14: begin-line=2804 fed=1 rc=0 first-fed='    1       -92.254380   -5.231755    0.046473  0.021240'
+    key: IRCCOORD
+      size: 12
+      values: -2 -1 1 2 3 4 5 6 7 8 9 10
+      units: Point
+    key: IRCENERGY
+      size: 12
+      values: -92.254380 -92.248100 -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805 -92.284290
+      units: Hartree
+  block 15: begin-line=2805 fed=1 rc=0 first-fed='    2       -92.262659   -10.426805    0.038737  0.023239'
+    key: IRCCOORD
+      size: 13
+      values: -3 -2 -1 1 2 3 4 5 6 7 8 9 10
+      units: Point
+    key: IRCENERGY
+      size: 13
+      values: -92.262659 -92.254380 -92.248100 -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805 -92.284290
+      units: Hartree
+  block 16: begin-line=2806 fed=1 rc=0 first-fed='    3       -92.274821   -18.058402    0.066673  0.030892'
+    key: IRCCOORD
+      size: 14
+      values: -4 -3 -2 -1 1 2 3 4 5 6 7 8 9 10
+      units: Point
+    key: IRCENERGY
+      size: 14
+      values: -92.274821 -92.262659 -92.254380 -92.248100 -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805 -92.284290
+      units: Hartree
+  block 17: begin-line=2807 fed=1 rc=0 first-fed='    4       -92.287038   -25.725108    0.052002  0.029658'
+    key: IRCCOORD
+      size: 15
+      values: -5 -4 -3 -2 -1 1 2 3 4 5 6 7 8 9 10
+      units: Point
+    key: IRCENERGY
+      size: 15
+      values: -92.287038 -92.274821 -92.262659 -92.254380 -92.248100 -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805 -92.284290
+      units: Hartree
+  block 18: begin-line=2808 fed=1 rc=0 first-fed='    5       -92.300378   -34.095834    0.049350  0.029498'
+    key: IRCCOORD
+      size: 16
+      values: -6 -5 -4 -3 -2 -1 1 2 3 4 5 6 7 8 9 10
+      units: Point
+    key: IRCENERGY
+      size: 16
+      values: -92.300378 -92.287038 -92.274821 -92.262659 -92.254380 -92.248100 -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805 -92.284290
+      units: Hartree
+  block 19: begin-line=2809 fed=1 rc=0 first-fed='    6       -92.313264   -42.181806    0.057422  0.028204'
+    key: IRCCOORD
+      size: 17
+      values: -7 -6 -5 -4 -3 -2 -1 1 2 3 4 5 6 7 8 9 10
+      units: Point
+    key: IRCENERGY
+      size: 17
+      values: -92.313264 -92.300378 -92.287038 -92.274821 -92.262659 -92.254380 -92.248100 -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805 -92.284290
+      units: Hartree
+  block 20: begin-line=2810 fed=1 rc=0 first-fed='    7       -92.324933   -49.504186    0.043465  0.025175'
+    key: IRCCOORD
+      size: 18
+      values: -8 -7 -6 -5 -4 -3 -2 -1 1 2 3 4 5 6 7 8 9 10
+      units: Point
+    key: IRCENERGY
+      size: 18
+      values: -92.324933 -92.313264 -92.300378 -92.287038 -92.274821 -92.262659 -92.254380 -92.248100 -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805 -92.284290
+      units: Hartree
+  block 21: begin-line=2811 fed=1 rc=0 first-fed='    8       -92.335119   -55.896295    0.047694  0.021686'
+    key: IRCCOORD
+      size: 19
+      values: -9 -8 -7 -6 -5 -4 -3 -2 -1 1 2 3 4 5 6 7 8 9 10
+      units: Point
+    key: IRCENERGY
+      size: 19
+      values: -92.335119 -92.324933 -92.313264 -92.300378 -92.287038 -92.274821 -92.262659 -92.254380 -92.248100 -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805 -92.284290
+      units: Hartree
+  block 22: begin-line=2812 fed=1 rc=0 first-fed='    9       -92.343482   -61.144266    0.032015  0.017070'
+    key: IRCCOORD
+      size: 20
+      values: -10 -9 -8 -7 -6 -5 -4 -3 -2 -1 1 2 3 4 5 6 7 8 9 10
+      units: Point
+    key: IRCENERGY
+      size: 20
+      values: -92.343482 -92.335119 -92.324933 -92.313264 -92.300378 -92.287038 -92.274821 -92.262659 -92.254380 -92.248100 -92.247913 -92.253878 -92.256148 -92.259286 -92.263157 -92.266891 -92.271134 -92.275319 -92.279805 -92.284290
+      units: Hartree
+
 [GEOMTRACE]  Script=orca.geomtrace  Freq=all  Skip=2  Lines=-
   Begin=CARTESIAN COORDINATES \(ANGSTROEM\)
   End=CARTESIAN COORDINATES \(A\.U\.\)

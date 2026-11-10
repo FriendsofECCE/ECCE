@@ -35,6 +35,16 @@ Frequency=last
 End=SUGGESTED CITATIONS FOR THIS RUN
 [END]
 
+# IRC points as they are computed (#949): the direction banners and each row
+# of the iteration tables, one entry so the script sees them in output order.
+# The summary above replaces them at the end.
+[IRCPOINT][IRCCOORD][IRCENERGY]
+Script=orca.ircpoint
+Begin=^(\s*\*\s+(FORWARD|BACKWARD) IRC\s+\*|\s+\d+\s+-\d+\.\d{6}\s+-?\d+\.\d{6}\s+\d+\.\d{6}\s+\d+\.\d{6})\s*$
+Frequency=all
+Lines=1
+[END]
+
 # Relaxed scan (#393): the optimised energy of each scan point.  Ends on the
 # second table's heading, which no other entry begins on.
 [SCANCOORD][SCANENERGY]
