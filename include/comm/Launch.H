@@ -81,8 +81,10 @@ public:
         // structure from while that provider is not Complete; "" otherwise.
         static string waitsFor(TaskJob *task);
         static bool crestFromOptimisation(TaskJob *task);
-        // A completed xTB Geometry/GeoVib step (what CREST should start from).
-        static bool isXtbOptimisation(TaskJob *task);
+        // An xTB Geometry/GeoVib step (what CREST should start from); by
+        // default only a completed one.
+        static bool isXtbOptimisation(TaskJob *task,
+                                      bool mustBeCompleted = true);
         // The extra copy-back wildcard a CP2K deck asks for: *.pdos when it
         // has a &PDOS section (case-insensitive), else "" (#720).
         static string cp2kCopyBackPatterns(const string& deck);
