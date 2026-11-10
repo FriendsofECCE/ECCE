@@ -47,6 +47,7 @@ import organizer_tree_icons_test                             # noqa: E402
 import vib_frame_builder_test                                 # noqa: E402
 import builder_mode_test                                      # noqa: E402
 import builder_metal_test                                     # noqa: E402
+import builder_nub_shape_test                                 # noqa: E402
 import builder_select_within_test
 import builder_select_style_test                              # noqa: E402
 import builder_panes_test                                     # noqa: E402
@@ -689,6 +690,7 @@ def main():
                 vib_frame_builder_test.check(display, results)
                 builder_mode_test.check(display, results)
                 builder_metal_test.check(display, results)
+                builder_nub_shape_test.check(display, results)
                 builder_select_style_test.check(display, results)
                 builder_select_within_test.check(display, results)
                 builder_panes_test.check(display, results)
