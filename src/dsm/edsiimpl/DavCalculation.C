@@ -2299,30 +2299,15 @@ bool DavCalculation::remove()
 bool DavCalculation::copy(EcceURL& target)
 {
   p_msgStack->clear();
-  if (intoSession(target)) {
-    p_msgStack->add("UNABLE_TO_COPY",
-                    "\nA calculation cannot be pasted into a workflow; "
-                    "add a step with New step instead.");
-    return false;
-  }
   return Resource::copy(target);
 }
 
 
 /**
- * Whether target lies directly in a workflow (Session).
- */
-bool DavCalculation::intoSession(const EcceURL& target) const
-{
-  return dynamic_cast<Session*>(
-             EDSIFactory::getResource(target.getParent())) != 0;
-}
-
-
-/**
  * Moves calculation to target URL.  Within its folder this is a rename; a
- * workflow step moved to an ordinary folder leaves the workflow, links and
- * all, as Delete does.  Moving into a workflow is not supported.
+ * workflow step moved elsewhere leaves its workflow, links and all, as Delete
+ * does.  Moving INTO a workflow is how Make Workflow adds its first step: the
+ * caller adds the membership.
  */
 bool DavCalculation::move(EcceURL& target)
 {
@@ -2331,12 +2316,6 @@ bool DavCalculation::move(EcceURL& target)
   Session *session = getSession();
   const bool rename = target.getParent() == getURL().getParent();
 
-  if (!rename && intoSession(target)) {
-    p_msgStack->add("UNABLE_TO_MOVE",
-                    "\nA calculation cannot be moved into a workflow; "
-                    "add a step with New step instead.");
-    return false;
-  }
   // A refused move (the name is taken) must leave this calculation where
   // it is, not pointing at the one that holds the name.
   if (session == 0 || rename) {

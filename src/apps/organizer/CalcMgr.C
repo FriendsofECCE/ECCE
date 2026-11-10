@@ -1456,9 +1456,7 @@ void CalcMgr::runTestCommand(const string& line)
         ICalculation *from = dynamic_cast<ICalculation*>(
             EDSIFactory::getResource(EcceURL(b)));
         EcceURL to = wf->getURL().getChild(c);
-        // Resource::copy, not the virtual copy: Paste into a workflow is
-        // refused by DavCalculation::copy (#935), this hook sets one up.
-        if (!from || !from->Resource::copy(to)) outcome = "error: copy failed";
+        if (!from || !from->copy(to)) outcome = "error: copy failed";
         else {
           Resource *made = EDSIFactory::getResource(to);
           wf->addMember(made);
@@ -8681,6 +8679,18 @@ void CalcMgr::paste()
         // If cut and paste into the same location, do nothing.
         if (p_deleteAfterPaste && newUrl == (*itor))
           continue;
+
+        // A step needs its links and place in the workflow, which Paste
+        // cannot give it (#935); the data layer allows the move, because
+        // Make Workflow uses it.
+        if (dynamic_cast<Session*>(destination->getResource()) &&
+            source->getResource() &&
+            source->getResource()->getContentType() ==
+                ResourceDescriptor::CT_CALCULATION) {
+          msg += "Unable to copy\nA calculation cannot be pasted into a "
+                 "workflow; add a step with New step instead.";
+          break;
+        }
 
         if (isCrossTree(*itor, destinationUrl)) {
           EcceURL made;
