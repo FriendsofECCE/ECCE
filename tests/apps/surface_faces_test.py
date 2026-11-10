@@ -31,14 +31,28 @@ DIATOMICS = os.path.join(REPO, "data", "client", "examples", "genchem",
                          "molecular-orbitals-of-diatomics")
 N2 = os.path.join(DIATOMICS, "ecceqm-N2", "stored", "N2")
 LI2 = os.path.join(DIATOMICS, "ecceqm-Li2", "stored", "Li2")
-CASES = (("n2", N2, False, range(1, 9)), ("li2", LI2, False, range(1, 4)),
-         ("li2loc", LI2, True, range(1, 4)))
+SULFATE = os.path.join(REPO, "data", "client", "examples", "spectroscopy",
+                       "sulfate-coordination", "orca-co_nh3_5_oso3", "stored",
+                       "co_nh3_5_oso3")
+#  (name, calculation, localised, MO numbers, field, log10 isovalue or None)
+CASES = (("n2", N2, False, range(1, 9), "MO", None),
+         ("li2", LI2, False, range(1, 4), "MO", None),
+         ("li2loc", LI2, True, range(1, 4), "Localised MO", None),
+         #  A 20-atom complex: the density at a low isovalue reaches far
+         #  past the default box, and the lowered slider must close it.
+         ("cluster-rho", SULFATE, False, (0,), "Density", -3.0),
+         ("cluster-rho-low", SULFATE, False, (0,), "Density", -4.0))
 MAX_EDGE = 40.0
 
 
-def scene(localised, mo, shot):
-    lines = ["mofield Localised MO"] if localised else ["mofield MO"]
-    lines += ["moselect %d" % mo, "mopanel run", "gridfaces faces"]
+def scene(field, mo, shot, iso=None):
+    lines = ["mofield " + field]
+    if mo:
+        lines.append("moselect %d" % mo)
+    lines.append("mopanel run")
+    if iso is not None:
+        lines.append("moiso %g" % iso)
+    lines.append("gridfaces faces")
     if shot:
         lines.append("background 1 1 1")
     return "\n".join(lines) + "\n"
@@ -81,7 +95,7 @@ def main():
             subprocess.run([os.path.join(apps.INSTALL, "bin",
                                          "ecce-gateway-start")],
                            env=display.env(), timeout=180)
-            for name, source, loc, mos in CASES:
+            for name, source, loc, mos, field, iso in CASES:
                 url = base.makeCalc(data, name, source=source)
                 for mo in mos:
                     tag = "%s-mo%d" % (name, mo)
@@ -90,15 +104,16 @@ def main():
                         shot = os.path.join(opts.shot, tag + ".png")
                     out = os.path.join(work, tag)
                     res = base.runBuilder(display, url, out,
-                                          scene(loc, mo, shot), shot=shot)
+                                          scene(field, mo, shot, iso), shot=shot)
                     got = faces(out)
                     if res.crashed or got is None:
                         print("FAIL  %s: no result" % tag)
                         failures.append(tag)
                         print((res.log or "")[-1500:])
                         continue
-                    iso, edge, fc = got["iso"][0], got["edge"], got["faces"]
+                    edge, fc = got["edge"], got["faces"]
                     worst = max(fc)
+                    iso = got["iso"][0]
                     ok = worst <= iso or max(edge) >= MAX_EDGE - 0.01
                     print("%s %s: isovalue %.4g, edges %s A, largest face "
                           "value %.4g" % ("ok   " if ok else "FAIL ", tag, iso,

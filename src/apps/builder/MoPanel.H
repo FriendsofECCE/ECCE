@@ -132,6 +132,8 @@ class MoPanel : public MoGUI,
 
      /** The isovalue (linear) the grid's outer faces were last checked at; 0 before a surface. */
      double facesCheckedIso() const { return p_facesCheckedIso; }
+     /** Set the slider to log10(isovalue) and re-check the grid faces. */
+     void setIsoLog(double isoLog);
      /** Choose a field type as a click in the type drop-down does. */
      bool selectFieldType(const string& name);
      struct SurfaceEntry { string label; string description; };
@@ -173,7 +175,7 @@ class MoPanel : public MoGUI,
      void updateGridDlg();
      void showGridDlg();
      /** Sides of the drawn grid where |field| exceeds `iso` (bit 0..5: -x +x -y +y -z +z). */
-     int gridFacesCut(double iso) const;
+     int gridFacesCut(double iso, double *faceMax = 0) const;
      /** Re-check the faces at a lowered isovalue; recompute with a larger box if cut. */
      void recheckGridFaces(double isoLog);
      int  fillTable(const string& type,

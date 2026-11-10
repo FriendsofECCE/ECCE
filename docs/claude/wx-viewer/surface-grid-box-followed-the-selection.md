@@ -28,3 +28,9 @@ Since #892 `ComputeMoCmd` fills Density, Spin Density and MO grids from
 calculations without one and for localised orbitals.
 `tests/apps/surface_nuclei_test.py` compares the grid at every nucleus
 with `ecce-density-field --at` (scene command `gridnuclei`).
+
+The growth step of the face check is not a fixed 2 A: it is
+`ln(faceMax/iso) + 1` A per cut side (2..8 A), up to 6 rounds, so a low
+isovalue on a many-atom cluster closes in a few recomputes. Field views
+(ELF/LOL/NCI) are not face-checked. Scene command `moiso <log10 iso>`
+moves the slider; `surface_faces_test.py` has cluster density cases.
