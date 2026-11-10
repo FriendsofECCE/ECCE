@@ -56,7 +56,11 @@ def main():
         outside = os.path.join(top, "user-output.out")
         make(outside, True, isdir=False)
         make(os.path.join(jobs, "h2o__Ab12Cd"), True)
-        os.symlink(outside, os.path.join(jobs, "h2o__Ab12Cd", "h2o.out"))
+        link = os.path.join(jobs, "h2o__Ab12Cd", "h2o.out")
+        os.symlink(outside, link)
+        # The link and the entry it adds would make the folder young.
+        os.utime(link, (OLD, OLD), follow_symlinks=False)
+        os.utime(os.path.join(jobs, "h2o__Ab12Cd"), (OLD, OLD))
         make(os.path.join(jobs, "dynamics__Lk78Mn"), True)
         make(os.path.join(jobs, "fresh__Xy34Zw"), False)
         make(os.path.join(jobs, "busy__Qw56Er"), True)

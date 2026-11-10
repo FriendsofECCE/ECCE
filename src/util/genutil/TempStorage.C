@@ -302,6 +302,9 @@ time_t newestChange(const string& dir, time_t mtime)
    DIR* d = opendir(dir.c_str());
    if (!d) return newest;
    while (struct dirent* e = readdir(d)) {
+      // ".." is the jobs folder itself, which every new job makes young.
+      if (strcmp(e->d_name, ".") == 0 || strcmp(e->d_name, "..") == 0)
+         continue;
       struct stat st;
       if (statNoFollow(dir + "/" + e->d_name, st) && st.st_mtime > newest)
          newest = st.st_mtime;
