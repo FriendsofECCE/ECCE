@@ -1372,7 +1372,9 @@ bool NModePanel::matchBands(const string& otherName, const string& atoms,
       string script = home && *home ? string(home) + "/bin/ecce-bandshift"
                                     : string("ecce-bandshift");
       string args = "'" + (tmp / "a").string() + "' '" + (tmp / "b").string() +
-                    "' --lines" +
+                    "' --lines --name-a '" +
+                    self->getURL().getFilePathTail() + "' --name-b '" +
+                    otherName + "'" +
                     (atoms.empty() ? string() : " --atoms '" + atoms + "'");
 #ifdef _WIN32
       fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
@@ -1401,13 +1403,13 @@ bool NModePanel::matchBands(const string& otherName, const string& atoms,
       p_bandNote = new wxStaticText(pane, wxID_ANY, "");
       top->Add(p_bandNote, 0, wxEXPAND | wxALL, 6);
       p_bandGrid = new wxGrid(pane, wxID_ANY);
-      p_bandGrid->CreateGrid(0, 8);
+      p_bandGrid->CreateGrid(0, 9);
       p_bandGrid->EnableEditing(false);
       p_bandGrid->SetRowLabelSize(0);
       p_bandGrid->SetSelectionMode(wxGrid::wxGridSelectRows);
       const char *cols[] = {"Mode A", "cm-1 A", "IR A", "Mode B", "cm-1 B",
-                            "IR B", "Shift", "Overlap"};
-      for (int c = 0; c < 8; c++) p_bandGrid->SetColLabelValue(c, cols[c]);
+                            "IR B", "Shift", "Overlap", "Split"};
+      for (int c = 0; c < 9; c++) p_bandGrid->SetColLabelValue(c, cols[c]);
       p_bandGrid->Bind(wxEVT_GRID_SELECT_CELL, [this](wxGridEvent& e) {
          long m = 0;
          if (e.GetRow() >= 0 && p_bandGrid->GetCellValue(e.GetRow(), 0).ToLong(&m) &&
@@ -1427,7 +1429,7 @@ bool NModePanel::matchBands(const string& otherName, const string& atoms,
        " matched with " + otherName).c_str()));
    if (p_bandGrid->GetNumberRows() > 0)
       p_bandGrid->DeleteRows(0, p_bandGrid->GetNumberRows());
-   wxString note, unmatched;
+   wxString note, unmatched, common;
    std::istringstream in(text);
    string line;
    while (std::getline(in, line)) {
@@ -1437,11 +1439,18 @@ bool NModePanel::matchBands(const string& otherName, const string& atoms,
       string cell;
       while (std::getline(ls, cell, '\t')) f.push_back(cell);
       if (f.size() >= 4 && f[0] == "header")
-         note = wxString::Format("%s common atoms, fit RMSD %s A, overlap "
-                                 "threshold %s. Shift is B minus A, A being "
-                                 "this calculation.",
-                                 f[1], f[2], f[3]);
-      else if (f.size() == 9 && f[0] == "match") {
+         note = wxString::Format("Overlap threshold %s. Shift is the other "
+                                 "calculation minus this one.", f[3]);
+      else if (f.size() >= 5 && f[0] == "common")
+         common += wxString::Format("Common atoms (this = other): %s = %s, "
+                                    "fit RMSD %.2f ",
+                                    wxString::FromUTF8(f[1].c_str()),
+                                    wxString::FromUTF8(f[2].c_str()),
+                                    atof(f[3].c_str())) +
+                 wxString::FromUTF8("\xc3\x85\n");
+      else if (f.size() >= 2 && f[0] == "note")
+         common += wxString::FromUTF8(f[1].c_str()) + "\n";
+      else if (f.size() >= 10 && f[0] == "match") {
          const int r = p_bandGrid->GetNumberRows();
          p_bandGrid->AppendRows(1);
          auto fmt = [](const string& v, const char *pat) {
@@ -1455,7 +1464,8 @@ bool NModePanel::matchBands(const string& otherName, const string& atoms,
          p_bandGrid->SetCellValue(r, 5, fmt(f[6], "%.1f"));
          p_bandGrid->SetCellValue(r, 6, wxString::Format("%+.1f", atof(f[7].c_str())));
          p_bandGrid->SetCellValue(r, 7, wxString::Format("%.3f", atof(f[8].c_str())));
-         for (int c = 0; c < 8; c++)
+         p_bandGrid->SetCellValue(r, 8, atoi(f[9].c_str()) > 1 ? f[9] : string());
+         for (int c = 0; c < 9; c++)
             p_bandGrid->SetCellAlignment(r, c, wxALIGN_RIGHT, wxALIGN_CENTRE);
       } else if (f.size() == 6 && f[0] == "unmatched") {
          unmatched += wxString::Format("%s%s mode %s (%.1f cm-1)", unmatched.empty() ? "" : "; ",
@@ -1463,7 +1473,9 @@ bool NModePanel::matchBands(const string& otherName, const string& atoms,
       }
    }
    if (!unmatched.empty()) note += "\nUnmatched: " + unmatched + ".";
-   p_bandNote->SetLabel(note);
+   p_bandNote->SetLabel(common + note);
+   // A large molecule's atom list would widen the window otherwise.
+   p_bandNote->Wrap(p_bandFrame->FromDIP(560));
    p_bandGrid->AutoSizeColumns();
    p_bandFrame->Layout();
    p_bandFrame->Show(true);
@@ -1586,22 +1598,22 @@ void NModePanel::importExperimentalDialog()
 
 void NModePanel::matchBandsDialog(IPropCalculation *other)
 {
-  string atoms;
-  Fragment fa, fb;
-  if (getCalculation()->getFragment(fa) && other->getFragment(fb) &&
-      fa.numAtoms() != fb.numAtoms()) {
-    wxString a = wxGetTextFromUser(
-        wxString::Format("This calculation has %d atoms and the other %d.\n"
-                         "The common atoms, this one's first, 1-based: for\n"
-                         "example 1-12:5-16 maps this calculation's atoms\n"
-                         "1-12 to the other's 5-16.", (int)fa.numAtoms(), (int)fb.numAtoms()),
-        "Match bands: common atoms", "", this);
-    if (a.empty()) return;
-    atoms = (const char*)a.utf8_str();
-  }
+  // The common atoms are found by ecce-bandshift; nothing is typed.
   wxString err;
-  if (!matchBands(other->getURL().getFilePathTail(), atoms, &err))
-    wxMessageBox(err, "Match bands", wxOK | wxICON_INFORMATION, this);
+  if (!matchBands(other->getURL().getFilePathTail(), "", &err))
+  {
+    // wx dialogs size to the longest line, so break long messages here.
+    wxString msg, line;
+    err.Trim();
+    for (const wxString& w : wxSplit(err, ' ')) {
+      if (!line.empty() && line.length() + w.length() > 60) {
+        msg += line + "\n";
+        line.clear();
+      }
+      line += (line.empty() ? "" : " ") + w;
+    }
+    wxMessageBox(msg + line, "Match bands", wxOK | wxICON_INFORMATION, this);
+  }
 }
 
 
