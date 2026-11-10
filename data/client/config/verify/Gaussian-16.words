@@ -59,6 +59,7 @@ $primcnt\n
 $prim{rexponent}
 $qstblocks[0]->{xyz}[$index]\n
 $recalc
+$result
 $result\
 $revision:
 $revision\n
@@ -92,6 +93,7 @@ $z
 &$sub
 &$subname
 &$subname;
+&orbitalguesscards
 '$value'
 '%s'
 'illegal
@@ -273,6 +275,7 @@ californium
 cam-b3lyp
 cannot
 carbon
+cards
 cartesian
 cas
 casscf
@@ -642,6 +645,7 @@ must
 my
 n12
 n12sx
+n\n
 name_gbs
 nbo6
 nbo7
