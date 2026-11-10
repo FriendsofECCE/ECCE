@@ -16,5 +16,5 @@ while (<STDIN>) {
 }
 exit(0) unless (@coord);
 print "key: IRCGEOM\nsize:\n1 ", scalar(@coord), " 3\nrowlabels:\n$labels\n",
-      "columnlabels:\nX Y Z\nvalues:\n", join("\n", @coord), "\nunits:\nHartree\nEND\n";
+      "columnlabels:\nX Y Z\nvalues:\n", join("\n", @coord), "\nunits:\nAngstrom\nEND\n";
 exit(0);

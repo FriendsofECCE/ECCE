@@ -41,7 +41,7 @@ sub emitFrame {
   print "rowlabels:\n " . join(" ", @$labels) . "\n";
   print "columnlabels:\nX Y Z\nvalues:\n";
   print " $_\n" foreach @$rows;
-  print "units:\nHartree\nEND\n";
+  print "units:\nAngstrom\nEND\n";
 }
 
 sub stashFile { return $_[0] . "/g16InputGeom"; }

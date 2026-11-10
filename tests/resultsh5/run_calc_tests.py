@@ -46,6 +46,11 @@ VIEW_CASES = [
      "SCANGEOM,SCANENERGY,SCANCOORD"),
     ("getting-started/ecceqm-water/stored/water", "VIBFREQ,VIBIR,VIB"),
     ("organic/reactions/orca-sn2_irc/stored/sn2_irc", "IRCGEOM,IRCENERGY,IRCCOORD"),
+    # Gaussian 16 traces reach the file only with their Angstrom label (#946).
+    # IRCGEOM has one structure fewer than IRCENERGY/IRCCOORD (no TS frame),
+    # so the file drops those companions and they stay on the Props.
+    ("workflows/sn2-cl-ch3br/g16-irc/stored/sn2_irc", "IRCGEOM,GEOMTRACE"),
+    ("workflows/sn2-cl-ch3br/g16-product/stored/sn2_product", "GEOMTRACE,TEVEC"),
 ]
 
 
