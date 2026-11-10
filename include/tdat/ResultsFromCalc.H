@@ -55,6 +55,15 @@ namespace ResultsFromCalc
   /** The calculation's geometry, MOs and flattened basis. */
   bool gather(IPropCalculation *calc, Parsed& out, string& why);
 
+  /**
+   * The inverse of convert(): the file's orbitals (rows[0] alpha or
+   * restricted, rows[1] beta or empty) over the calculation's own basis
+   * columns, in MoAoBasis::coefficients order and normalisation, which for
+   * Gaussian is the order Punch=MO writes and Guess=Cards reads.
+   */
+  bool codeColumns(IPropCalculation *calc, const resultsh5::Model& file,
+                   vector<vector<double> > rows[2], string& why);
+
   /** Energy, charges, dipole, gradient, vibrations from the Props. */
   void addProperties(IPropCalculation *calc, resultsh5::Model& m);
 

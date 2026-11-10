@@ -18,6 +18,10 @@
 #include "dsm/OrbitalGuess.H"
 #include "dsm/TaskJob.H"
 #include "dsm/PropertyTask.H"
+#include "dsm/IPropCalculation.H"
+#include "tdat/ResultsFromCalc.H"
+#include <cstdio>
+#include <memory>
 
 using std::string;
 using std::vector;
@@ -129,6 +133,108 @@ bool readsGuess(const TaskJob *calc)
   return !calc->orbitalGuessFile().empty();
 }
 
+const char *const G16_CARDS = "guess.cardsin";
+
+bool isGaussian16(const TaskJob *calc)
+{
+  return calc != 0 && calc->application() != 0 &&
+         calc->application()->getCodeName() == "Gaussian-16";
+}
+
+//  A Gaussian 16 calculation whose checkpoint is gone can still give its
+//  orbitals from results.h5, as Guess=Cards input.
+std::shared_ptr<const resultsh5::Model> h5Orbitals(const TaskJob *calc)
+{
+  std::shared_ptr<const resultsh5::Model> none;
+  if (!isGaussian16(calc)) return none;
+  IPropCalculation *props =
+      dynamic_cast<IPropCalculation*>(const_cast<TaskJob*>(calc));
+  if (props == 0) return none;
+  try {
+    std::shared_ptr<const resultsh5::Model> m = ResultsFromCalc::stored(props);
+    if (m && !m->mos.empty()) return m;
+  } catch (...) {}
+  return none;
+}
+
+//  Fortran D notation, mantissa in [0.1, 1), as Gaussian writes it.
+string fortranD(double v, int width, int digits)
+{
+  int e = 0;
+  double a = std::fabs(v);
+  if (a != 0) {
+    e = (int)std::floor(std::log10(a)) + 1;
+    a /= std::pow(10.0, e);
+    if (a >= 1) { a /= 10; ++e; }
+    if (a < 0.1) { a *= 10; --e; }
+  }
+  char mant[64], buf[96];
+  snprintf(mant, sizeof mant, "%.*f", digits, a);
+  if (mant[0] == '1') {          // rounding carried to 1.000...
+    snprintf(mant, sizeof mant, "%.*f", digits, 0.1);
+    ++e;
+  }
+  snprintf(buf, sizeof buf, "%s%sD%c%02d", v < 0 ? "-" : "", mant,
+           e < 0 ? '-' : '+', std::abs(e));
+  string out(buf);
+  if ((int)out.size() < width) out.insert(0, width - out.size(), ' ');
+  return out;
+}
+
+//  The layout Punch=(MO) writes and Guess=Cards reads: one format line, then
+//  per orbital a header and its coefficients.  The header number says which
+//  orbital is replaced; a 0 ends the alpha set, else beta overwrites it.
+void writeGaussianCards(const vector<vector<double> > rows[2],
+                        const resultsh5::Model &m, std::ostream &out)
+{
+  out << "(4D20.12)\n";
+  for (int sp = 0; sp < 2; sp++) {
+    if (sp == 1 && !rows[1].empty()) out << "    0\n";
+    const vector<double> *energy = 0;
+    for (const resultsh5::Mos &mo : m.mos)
+      if (mo.spin == sp && mo.geometry == 0) { energy = &mo.energy; break; }
+    for (size_t r = 0; r < rows[sp].size(); r++) {
+      char head[32];
+      snprintf(head, sizeof head, "%5zu ", r + 1);
+      const double e = energy != 0 && r < energy->size() ? (*energy)[r] : 0.0;
+      out << head << (sp == 0 ? "Alpha" : "Beta") << " MO OE="
+          << fortranD(e, 0, 8) << "\n";
+      const vector<double> &c = rows[sp][r];
+      for (size_t i = 0; i < c.size(); i++) {
+        out << fortranD(c[i], 20, 12);
+        if (i % 4 == 3 || i + 1 == c.size()) out << "\n";
+      }
+    }
+  }
+}
+
+bool attachFromResults(TaskJob *target, TaskJob *source, string &why)
+{
+  vector<string> names = target->orbitalGuessFiles();
+  bool reads = false;
+  for (size_t i = 0; i < names.size(); i++) if (names[i] == G16_CARDS) reads = true;
+  std::shared_ptr<const resultsh5::Model> m = h5Orbitals(source);
+  if (!reads || !m) {
+    why = "The duplicate's code cannot read orbitals from results.h5.";
+    return false;
+  }
+  vector<vector<double> > rows[2];
+  string err;
+  if (!ResultsFromCalc::codeColumns(dynamic_cast<IPropCalculation*>(source),
+                                    *m, rows, err)) {
+    why = "The orbitals in results.h5 could not be put in Gaussian's order: " + err;
+    return false;
+  }
+  std::ostringstream text;
+  writeGaussianCards(rows, *m, text);
+  std::istringstream in(text.str());
+  if (!target->putInputFile(G16_CARDS, &in)) {
+    why = "The orbitals could not be stored in the duplicate.";
+    return false;
+  }
+  return true;
+}
+
 }
 
 
@@ -141,10 +247,11 @@ bool OrbitalGuess::available(const TaskJob *source, string &why)
           "orbitals.";
     return false;
   }
-  if (keptOrbitals(source).toString().empty()) {
+  if (keptOrbitals(source).toString().empty() && !h5Orbitals(source)) {
     why = "This calculation has no stored orbital file. It is kept for "
           "runs made with this version of ECCE, once the run has finished "
-          "(Gaussian: with Create Checkpoint File on).";
+          "(Gaussian: with Create Checkpoint File on, or a results.h5 "
+          "with orbitals).";
     return false;
   }
   return true;
@@ -219,21 +326,34 @@ bool OrbitalGuess::attach(TaskJob *target, TaskJob *source, string &why)
     return false;
   }
 
-  SFile *temp = TempStorage::getTempFile();
-  SFile *got = source->getAnyFile(keptOrbitals(source), temp);
-  if (got == 0 || !temp->exists()) {
+  //  A copy inherits the source's own guess input; only the new one may stay.
+  const EcceURL kept = keptOrbitals(source);
+  const string guessName = kept.toString().empty() ? string(G16_CARDS)
+                                                   : target->orbitalGuessFile();
+  vector<string> names = target->orbitalGuessFiles();
+  for (size_t i = 0; i < names.size(); i++)
+    if (names[i] != guessName) target->putInputFile(names[i], (istream*)0);
+
+  if (kept.toString().empty()) {
+    //  The checkpoint wins when both exist: it is exact and projects.
+    if (!attachFromResults(target, source, why)) return false;
+  } else {
+    SFile *temp = TempStorage::getTempFile();
+    SFile *got = source->getAnyFile(kept, temp);
+    if (got == 0 || !temp->exists()) {
+      delete temp;
+      why = "The orbital file could not be copied from the data server.";
+      return false;
+    }
+    std::ifstream in(temp->path().c_str(), std::ios::in | std::ios::binary);
+    bool ok = target->putInputFile(target->orbitalGuessFile(), &in);
+    in.close();
+    temp->remove();
     delete temp;
-    why = "The orbital file could not be copied from the data server.";
-    return false;
-  }
-  std::ifstream in(temp->path().c_str(), std::ios::in | std::ios::binary);
-  bool ok = target->putInputFile(target->orbitalGuessFile(), &in);
-  in.close();
-  temp->remove();
-  delete temp;
-  if (!ok) {
-    why = "The orbital file could not be stored in the duplicate.";
-    return false;
+    if (!ok) {
+      why = "The orbital file could not be stored in the duplicate.";
+      return false;
+    }
   }
 
   //  The Hessian is optional: a run that computed none leaves no .hess.
@@ -252,6 +372,13 @@ bool OrbitalGuess::attach(TaskJob *target, TaskJob *source, string &why)
     }
   }
   const string code = source->application()->getCodeName();
+  if (calc != 0 && code == "Gaussian-16") {
+    //  Cards are not projected: the editor checks the atoms (and basis).
+    Fragment *frag = calc->fragment();
+    target->addProp(TaskJob::orbitalGuessSourceProp() + "atoms",
+                    guessName == G16_CARDS ? atomSequence(frag) : string());
+    delete frag;
+  }
   if (calc != 0 && (code == "MOPAC" || code == "CP2K" || code == "QuantumESPRESSO")) {
     Fragment *frag = calc->fragment();
     if (code == "QuantumESPRESSO" && frag != 0) {
@@ -311,9 +438,16 @@ string OrbitalGuess::compatibilityWarning(const TaskJob *calc,
 {
   if (calc == 0 || calc->application() == 0) return "";
   const string code = calc->application()->getCodeName();
-  if (code != "MOPAC" && code != "CP2K" && code != "QuantumESPRESSO") return "";
+  if (code != "MOPAC" && code != "CP2K" && code != "QuantumESPRESSO" &&
+      code != "Gaussian-16") return "";
   string note;
   const string atoms = calc->getProp(TaskJob::orbitalGuessSourceProp() + "atoms");
+  if (code == "Gaussian-16") {
+    if (!atoms.empty() && atoms != atomSequence(fragment))
+      note += "; orbitals from results.h5 need the same atoms in the same "
+              "order: restore them or use the default guess";
+    return note;
+  }
   if (!atoms.empty() && atoms != atomSequence(fragment))
     note += "; " + code + " needs the same atoms in the same order: "
             "restore them or use the default guess";

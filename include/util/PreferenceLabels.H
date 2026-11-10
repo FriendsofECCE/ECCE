@@ -60,6 +60,7 @@ static const char *LOCALDATA        ;   // Boolean: local data folder, not a ser
 static const char *LOCALDATAFOLDER  ;   // String: that folder; empty is ~/.ECCE-local
 static const char *LOCALDATAMOVETO  ;   // String: move it here at the next start
 static const char *BUILTINSSH       ;   // Boolean: unused; old preference files still carry it
+static const char *DISCARDBINARIES  ;   // Boolean: drop a code's binary files once results.h5 passed its checks (G16 .chk)
 static const char *ECCEQMMODIAGRAM  ;   // Boolean: offer the MO diagram for ECCE-QM calculations
 static const char *UPDATECHECK      ;   // Boolean: look for newer releases (#273)
 static const char *UPDATEPREVIEWS   ;   // Boolean: previews too, for a stable install

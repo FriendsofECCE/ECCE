@@ -13,7 +13,14 @@ eccejobstore:
      the old deck and is staged to the run directory, and Gaussian reads it
      and needs fewer SCF cycles than A;
   3. a job with "Create Checkpoint File" off keeps no g16.chk and offers no
-     duplicate.
+     duplicate;
+  4. without the checkpoint (#690): water RHF/6-31G* with its g16.chk deleted,
+     and triplet O2 UHF/6-31G* run with Preferences > Data "Discard the
+     programs' own binary files" on, so the job store drops g16.chk after
+     results.h5 passed its checks.  The duplicate gets guess.cardsin, the
+     orbitals from results.h5 in Gaussian's order, read with Guess=Cards;
+     Gaussian reports the replacement orbitals and converges in a few
+     cycles to the same energy.
 
     tests/launch/g16_guess_test.py [--build build-cmake] [--central] [--keep]
 
@@ -53,23 +60,30 @@ def findG16():
     return ""
 
 
-def makeDeck(work, name, guess, checkpoint=True):
-    """The deck as the Calculation Editor makes it, from the real ai.gauss16."""
+WATER = ("RHF", 10, 1, ["O 0.0 0.0 0.1173", "H 0.0 0.7572 -0.4692", "H 0.0 -0.7572 -0.4692"])
+O2 = ("UHF", 16, 3, ["O 0.0 0.0 0.6037", "O 0.0 0.0 -0.6037"])
+
+
+def makeDeck(work, name, guess, checkpoint=True, mol=WATER, basis="STO-3G"):
+    """The deck as the Calculation Editor makes it, from the real ai.gauss16.
+    `guess` is the attached guess file name (True: guess.chkin)."""
+    if guess is True:
+        guess = "guess.chkin"
+    theory, nelec, mult, atoms = mol
     folder = os.path.join(work, name)
     os.makedirs(folder)
     with open(os.path.join(folder, "w.param"), "w") as f:
-        f.write("title: w\nannotation: water\nCategory: SCF\nTheory: RHF\nRunType: Energy\nCharge: 0\n"
-                "Symmetry: C1\nNumElectrons: 10\nChemSys.Multiplicity: 1\n"
+        f.write("title: w\nannotation: w\nCategory: SCF\nTheory: %s\nRunType: Energy\nCharge: 0\n"
+                "Symmetry: C1\nNumElectrons: %d\nChemSys.Multiplicity: %d\n"
                 "CreateCheckpoint: %d\nMemorySize: 1\n"
-                "SCF.InitialGuess: Gaussian Guess\n" % (1 if checkpoint else 0))
+                "SCF.InitialGuess: Gaussian Guess\n" % (theory, nelec, mult, 1 if checkpoint else 0))
         if guess:
-            f.write("ES.Theory.SCF.OrbitalGuessFile: guess.chkin\n")
+            f.write("ES.Theory.SCF.OrbitalGuessFile: %s\n" % guess)
     with open(os.path.join(folder, "w.frag"), "w") as f:
-        f.write("fragment\ntitle: w\nnum_atoms: 3\natom_info: symbol\n"
-                "atom_list:\n"
-                "O 0.0 0.0 0.1173\nH 0.0 0.7572 -0.4692\nH 0.0 -0.7572 -0.4692\n")
+        f.write("fragment\ntitle: w\nnum_atoms: %d\natom_info: symbol\n"
+                "atom_list:\n%s\n" % (len(atoms), "\n".join(atoms)))
     with open(os.path.join(folder, "w.basis"), "w") as f:
-        f.write("useRouteCard STO-3G false\n")
+        f.write("useRouteCard %s false\n" % basis)
     deck = os.path.join(folder, "deck")
     shutil.copy(os.path.join(PARSERS, "g16.tpl"), deck)
     subprocess.run(["perl", os.path.join(PARSERS, "ai.gauss16"), "-n", "w", "-p",
@@ -77,6 +91,93 @@ def makeDeck(work, name, guess, checkpoint=True):
                    env=dict(os.environ, ECCE_HOME=REPO), check=True,
                    capture_output=True)
     return deck
+
+
+def importFiles(g16, work, name):
+    """What Import Calculation does: Gaussian once on the deck, its output
+    read by Gaussian-16.expt, which writes the molecule, basis and theory."""
+    pre = os.path.join(work, "pre-" + name)
+    os.makedirs(pre)
+    shutil.copy(os.path.join(work, name, "deck"), os.path.join(pre, "g16.g16in"))
+    with open(os.path.join(pre, "g16.g16in")) as inp, \
+            open(os.path.join(pre, "g16.g16out"), "w") as out:
+        subprocess.run([g16], cwd=pre, stdin=inp, stdout=out,
+                       stderr=subprocess.STDOUT, check=True,
+                       env=dict(os.environ, GAUSS_SCRDIR=pre))
+    subprocess.run(["perl", os.path.join(PARSERS, "Gaussian-16.expt"), "g16.g16out"],
+                   cwd=pre, env=dict(os.environ, ECCE_HOME=REPO), check=True,
+                   capture_output=True)
+    return pre
+
+
+def stored(calc, name):
+    return [os.path.join(d, name) for d, _, fs in os.walk(calc) if name in fs]
+
+
+def fromResults(s, g16, work, rundir, tag, mol, discard):
+    """Duplicate with Final Orbitals when the source kept no checkpoint (#690)."""
+    say("-- %s: orbitals from results.h5 (%s)" % (tag, "switch on" if discard else "g16.chk deleted"))
+    prefs = os.path.join(s.state, ".ECCE", "EcceGlobal")
+    lines = [l for l in (open(prefs).read().splitlines() if os.path.exists(prefs) else [])
+             if not l.startswith("DiscardBinaryOutputs")]
+    if discard:
+        lines.append("DiscardBinaryOutputs:\ttrue")
+    with open(prefs, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    urlA = runJob(s, tag + "-a", makeDeck(work, tag + "a", False, mol=mol, basis="6-31G*"), rundir)
+    if not urlA:
+        return
+    rc, out = s.driver("setup", urlA, importFiles(g16, work, tag + "a"), "g16.g16out")
+    if not check(rc == 0, "%s: molecule, basis and theory stored (setup)" % tag):
+        say(out)
+    calcA = finish(s, urlA, tag + " A")
+    if not calcA:
+        return
+    check(stored(calcA, "results.h5"), "%s: results.h5 was stored" % tag)
+    if discard:
+        check(not stored(calcA, "g16.chk"), "%s: the job store discarded g16.chk" % tag)
+    else:
+        for f in stored(calcA, "g16.chk"):
+            os.unlink(f)
+    rc, out = s.driver("available", urlA)
+    check(out.strip() == "yes", "%s: without the checkpoint Duplicate with Final Orbitals "
+          "is available (%s)" % (tag, out.strip()))
+    base, ea = cycles(log(calcA)), energy(log(calcA))
+    rc, out = s.driver("dup3", urlA)
+    if not check(rc == 0, "%s: duplicated with its final orbitals" % tag):
+        say(out)
+        return
+    urlB = out.strip().splitlines()[-1]
+    calcB = calcDir(s, urlB)
+    check(os.path.exists(os.path.join(calcB, "Inputs", "guess.cardsin")) and
+          not os.path.exists(os.path.join(calcB, "Inputs", "guess.chkin")),
+          "%s: B carries guess.cardsin and no guess.chkin" % tag)
+    s.driver("uncreate", urlB)
+    rc, out = s.driver("hasguess", urlB)
+    check(out.startswith("yes"), "%s: the guess survives the removal of the deck" % tag)
+    deckB = makeDeck(work, tag + "b", "guess.cardsin", mol=mol, basis="6-31G*")
+    text = open(deckB).read()
+    check("Guess=Cards" in text and "\n\n@guess.cardsin/N\n" in text and
+          "%OldChk" not in text and "\n\n\n@" not in text,
+          "%s: the deck reads guess.cardsin with Guess=Cards" % tag)
+    s.driver("restart", urlB, deckB, "g16.g16in")
+    for f in stored(rundir, "g16.chk"):
+        os.unlink(f)
+    calcB = finish(s, urlB, tag + " B")
+    if not calcB:
+        return
+    outB = log(calcB)
+    n, eb = cycles(outB), energy(outB)
+    say("  %s: A %s cycles, B %s cycles from results.h5; E %s / %s" % (tag, base, n, ea, eb))
+    check("Replacement alpha orbitals read in format (4D20.12)" in outB,
+          "%s: Gaussian read the alpha orbitals from the cards" % tag)
+    if mol[0] == "UHF":
+        check("Replacement beta orbitals read in format (4D20.12)" in outB,
+              "%s: and the beta orbitals" % tag)
+    check(n is not None and base is not None and n <= 3 and n < base,
+          "%s: B converged in at most 3 cycles (A: %s, B: %s)" % (tag, base, n))
+    check(ea is not None and eb is not None and abs(ea - eb) < 1e-6,
+          "%s: the same energy (%s, %s)" % (tag, ea, eb))
 
 
 def calcDir(s, url):
@@ -219,6 +320,10 @@ def main():
                   "without a checkpoint there is no g16.chk")
             rc, out = s.driver("available", urlC)
             check(out.strip().startswith("no"), "and no Duplicate with Final Orbitals")
+
+        # ---- D: no checkpoint, the orbitals from results.h5 ----------------
+        fromResults(s, g16, work, rundir, "water", WATER, False)
+        fromResults(s, g16, work, rundir, "o2", O2, True)
     finally:
         left = s.stop()
         if left:

@@ -261,7 +261,7 @@ sub CheckpointFile {
   #  calculation's name (the stored g16.chk is what the next duplicate reads).
   $result = "";
   $result = "%OldChk=" . &OrbitalGuessFile() . "\n"
-    if (&OrbitalGuessFile() ne "");
+    if (&OrbitalGuessFile() ne "" && !&OrbitalGuessCards());
   if ($AbiDict{"CreateCheckpoint"} == 1) {
     $result .= "%Chk=g16.chk";
   }
@@ -352,7 +352,8 @@ sub G09Route {
   # to its own functions; the echo lets the import project them back (#921).
   $route .= "GFInput ";
   $route .= &IntOptions ;
-  $route .= (&OrbitalGuessFile() ne "") ? "Guess=Read "
+  $route .= &OrbitalGuessCards() ? "Guess=Cards "
+          : (&OrbitalGuessFile() ne "") ? "Guess=Read "
           : &InitialGuess($AbiDict{"SCF.InitialGuess"});
   $route .= &MaxDisk($AbiDict{"DiskSize"});
   if ($AbiDict{"Category"} ne "SE") {
@@ -752,6 +753,12 @@ sub FrozenCore {
 #  empty window adds no blank line before the SCRF section (see cleanup).
 sub OrbitalsToCorrelate {
   my $result = &WindowSection(@_) . &SCRFInput();
+  #  Guess=Cards input follows the basis set and precedes these sections;
+  #  the run directory holds the staged file, included without echo.
+  if (&OrbitalGuessCards()) {
+    $result = "@" . &OrbitalGuessFile() . "/N\n" .
+              ($result ne "" ? "\n" . $result : "");
+  }
   $_ = $result;
   return $result;
 }
@@ -2093,6 +2100,11 @@ sub OrbitalGuessFile {
   return defined($f) ? $f : "";
 }
 
+#  Orbitals rebuilt from results.h5 (no checkpoint): text for Guess=Cards.
+sub OrbitalGuessCards {
+  return (&OrbitalGuessFile() =~ /\.cardsin$/) ? 1 : 0;
+}
+
 ##
 ## Unsigned Exponent
 ##
@@ -2333,11 +2345,13 @@ sub cleanup {
   #  Empty sections (a route-card basis, no frozen-core window) each leave
   #  a blank line, and Gaussian ends the input at the second one, before
   #  the SCRF=Read section ("Must specify Eps for generic solvent").
-  if (&SCRFInput() ne "" && open(my $in, "<", "tmpfile")) {
+  #  Guess=Cards would read that blank line as its format line.
+  if ((&SCRFInput() ne "" || &OrbitalGuessCards()) && open(my $in, "<", "tmpfile")) {
     local $/;
     my $text = <$in>;
     close($in);
     $text =~ s/\n(?:[ \t]*\n){2,}(?=Eps=)/\n\n/;
+    $text =~ s/\n(?:[ \t]*\n){2,}(?=\@guess\.)/\n\n/;
     if (open(my $out, ">", "tmpfile")) { print $out $text; close($out); }
   }
   # Close the source before replacing it; the copy overwrites existing targets

@@ -3613,6 +3613,11 @@ void CalcEd::refreshOrbitalGuess()
     } else {
       text = (p_codeName == "QuantumESPRESSO" ? "Initial guess: charge density from " :
               "Initial guess: MOs from ") + OrbitalGuess::sourceName(job);
+      //  Gaussian 16 reads the checkpoint when it was kept, else the
+      //  orbitals rebuilt from results.h5 (no projection then).
+      const bool cards = job->attachedOrbitalGuessFile() == "guess.cardsin";
+      if (p_codeName == "Gaussian-16")
+        text += cards ? ", from its results.h5" : ", from its checkpoint";
       string was = OrbitalGuess::sourceBasis(job);
       //  The importer stores the name in lower case, the library in mixed.
       if (p_codeName != "MOPAC" && p_codeName != "CP2K" &&
@@ -3628,6 +3633,10 @@ void CalcEd::refreshOrbitalGuess()
         else if (p_codeName == "NWChem")
           text += "; NWChem needs the same basis set (" + was +
                   "): choose it again or use the default guess";
+        else if (p_codeName == "Gaussian-16" && cards)
+          text += "; Gaussian 16 needs the same basis set (" + was +
+                  ") for orbitals from results.h5: choose it again or use "
+                  "the default guess";
         else
           text += " (projected from " + was + ")";
       }
@@ -3666,7 +3675,7 @@ bool CalcEd::deckNamesOrbitalGuess()
     if (p_codeName == "MOPAC") return text.find("OLDENS") != string::npos;
     if (p_codeName == "QuantumESPRESSO")
       return text.find("startingpot = 'file'") != string::npos;
-    string name = job != 0 ? job->orbitalGuessFile() : string();
+    string name = job != 0 ? job->attachedOrbitalGuessFile() : string();
     return !name.empty() && text.find(name) != string::npos;
   } catch (...) {
     return true;

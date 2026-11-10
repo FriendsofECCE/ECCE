@@ -694,6 +694,20 @@ void GlobalPrefs::createDataPage(wxWindow* page)
 
   p_localNote = new ewxStaticText(page, wxID_ANY, wxEmptyString);
   outer->Add(p_localNote, 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD*2);
+
+  wxStaticBoxSizer* fbox = new wxStaticBoxSizer(wxVERTICAL, page, _("Stored results"));
+  wxWindow* fs = fbox->GetStaticBox();
+  p_discardBinaries = new ewxCheckBox(fs, wxID_ANY,
+      _("Discard the programs' own binary files once results.h5 is written"),
+      wxDefaultPosition, wxDefaultSize, wxCHK_2STATE);
+  p_discardBinaries->Bind(wxEVT_CHECKBOX, &GlobalPrefs::OnGlobalChange, this);
+  fbox->Add(p_discardBinaries, 0, wxLEFT|wxRIGHT|wxTOP, PAD);
+  fbox->Add(new ewxStaticText(fs, wxID_ANY,
+      _("Applies to jobs that finish afterwards, Gaussian 16 checkpoints only.\n"
+        "Continue from Final Orbitals then reads the orbitals from results.h5\n"
+        "(the same basis set and atoms are needed).")),
+      0, wxALL, PAD);
+  outer->Add(fbox, 0, wxGROW|wxALL, PAD);
   page->SetSizer(outer);
 
   p_changeFolder->Bind(wxEVT_BUTTON, &GlobalPrefs::OnChangeDataFolder, this);
@@ -1147,6 +1161,7 @@ void GlobalPrefs::saveSettings()
   eccePref.setBool(PrefLabels::FOCUSFOLLOWMOUSE, p_focus->GetValue());
   eccePref.setBool(PrefLabels::QUICKTRANSPARENCY, p_quickTransp->GetValue());
   eccePref.setBool(PrefLabels::ECCEQMMODIAGRAM, p_ecceQmMoDiagram->GetValue());
+  eccePref.setBool(PrefLabels::DISCARDBINARIES, p_discardBinaries->GetValue());
   eccePref.setBool(PrefLabels::UPDATECHECK, p_updateCheck->GetValue());
   eccePref.setBool(PrefLabels::UPDATEPREVIEWS, p_updatePreviews->GetValue());
   eccePref.setString(PrefLabels::EDITOR, programValue(p_editor));
@@ -1245,6 +1260,10 @@ void GlobalPrefs::restoreSettings()
   if (!eccePref.getBool(PrefLabels::ECCEQMMODIAGRAM, boolBuf))
     boolBuf = p_ecceQmMoDiagramDefault;
   p_ecceQmMoDiagram->SetValue(boolBuf);
+
+  if (!eccePref.getBool(PrefLabels::DISCARDBINARIES, boolBuf))
+    boolBuf = p_discardBinariesDefault;
+  p_discardBinaries->SetValue(boolBuf);
 
   if (!eccePref.getBool(PrefLabels::UPDATECHECK, boolBuf))
     boolBuf = p_updateCheckDefault;
@@ -1423,6 +1442,20 @@ string GlobalPrefs::dataTest(const string& line)
   if (op == "snap") {
     vector<string> w = words();
     return !w.empty() && ecceClientShot(this, wxString::FromUTF8(w[0].c_str())) ? "saved" : "not saved";
+  }
+  if (op == "discard") {
+    // discard [on|off]: tick or clear as a click does, then the box and the file
+    vector<string> w = words();
+    if (!w.empty()) {
+      p_discardBinaries->SetValue(w[0] == "on");
+      wxCommandEvent ev(wxEVT_CHECKBOX, p_discardBinaries->GetId());
+      ev.SetEventObject(p_discardBinaries);
+      OnGlobalChange(ev);
+    }
+    bool stored = false, set = Preferences(PrefLabels::GLOBALPREFFILE)
+                                  .getBool(PrefLabels::DISCARDBINARIES, stored);
+    return string("box=") + (p_discardBinaries->GetValue() ? "on" : "off") +
+           ";file=" + (set ? (stored ? "on" : "off") : "unset");
   }
   if (op == "file") {
     string out;

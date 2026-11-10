@@ -40,6 +40,7 @@
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/Preferences.H"
+#include "util/PreferenceLabels.H"
 #include "util/SFile.H"
 #include "util/EcceURL.H"
 #include "util/TDateTime.H"
@@ -813,6 +814,27 @@ void recordStatusReason(const string& reason)
 // ------------------------------------------------------------------------- //
 // results.h5 from what was just parsed (#690), before the final state is
 // set.  Whatever happens here the job's own result stands.
+//  Opt-in (Preferences > Data): once results.h5 holds orbitals that passed
+//  its checks it can stand in for the Gaussian 16 checkpoint, which goes.
+static void discardBinaries(IPropCalculation *props)
+{
+  bool on = false;
+  Preferences prefs(PrefLabels::GLOBALPREFFILE);
+  if (!prefs.getBool(PrefLabels::DISCARDBINARIES, on) || !on) return;
+  const JCode *code = calculation->application();
+  if (code == 0 || code->getCodeName() != "Gaussian-16") return;
+  ResultsFromCalc::forget(props);
+  if (!ResultsFromCalc::stored(props)) return;
+  vector<EcceURL> kept = calculation->getDataFiles(JCode::AUXILIARY_OUTPUT);
+  for (size_t i = 0; i < kept.size(); i++)
+    if (kept[i].getFilePathTail() == "g16.chk") {
+      const bool gone = props->removeStoredFile("g16.chk");
+      logMessage("results.h5", gone ? "g16.chk discarded: results.h5 holds the orbitals"
+                                    : "g16.chk could not be discarded");
+    }
+}
+
+
 static void resultsFileStore()
 {
   if (calculation == 0) return;
@@ -823,6 +845,7 @@ static void resultsFileStore()
     string line;
     ResultsFromCalc::store(props, line);
     logMessage("results.h5", line);
+    discardBinaries(props);
   } catch (...) {
     logMessage("results.h5", "results.h5 not written: an error while reading the properties");
   }

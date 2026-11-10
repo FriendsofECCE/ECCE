@@ -161,6 +161,11 @@ class TaskJob : public Job,
       /** Name of the guess input the code declares (an auxiliary input
           called guess.*), "" for a code without one. */
       string orbitalGuessFile() const;
+      /** Every guess input the code declares (Gaussian 16: the checkpoint
+          copy and the Guess=Cards orbitals rebuilt from results.h5). */
+      vector<string> orbitalGuessFiles() const;
+      /** The guess input this calculation carries, "" when none. */
+      string attachedOrbitalGuessFile() const;
       static string orbitalGuessSourceProp();
       /// Name of the calculation whose Hessian is this one's initial Hessian.
       static string hessianFromSourceProp();

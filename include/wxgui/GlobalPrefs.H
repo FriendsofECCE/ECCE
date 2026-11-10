@@ -139,6 +139,7 @@ private:
   ewxButton* p_changeFolder;
   ewxButton* p_openFolder;
   ewxStaticText* p_localNote;
+  ewxCheckBox* p_discardBinaries;
   // The Servers box: the user's ServerList plus what the installation or an
   // earlier start set, which are shown but not stored in it.
   struct ServerRow {
@@ -182,6 +183,8 @@ private:
   const static bool p_focusDefault = false;
   const static bool p_quickTranspDefault = false;
   const static bool p_ecceQmMoDiagramDefault = true;
+  //  The programs' binary files stay with results.h5 until it has proven itself.
+  const static bool p_discardBinariesDefault = false;
   const static bool p_updateCheckDefault = true;
   const static bool p_updatePreviewsDefault = false;
   const static bool p_confirmExitDefault = true;
