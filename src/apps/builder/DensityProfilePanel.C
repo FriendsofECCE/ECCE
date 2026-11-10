@@ -50,7 +50,8 @@ const wxWindowID ID_MODE = wxNewId(), ID_ATOM = wxNewId(), ID_QUANTITY = wxNewId
                  ID_LIST = wxNewId(), ID_COMBINE = wxNewId(), ID_CLIP = wxNewId(), ID_MARGIN = wxNewId(),
                  ID_PNG = wxNewId(), ID_CSV = wxNewId(), ID_XAXIS = wxNewId(),
                  ID_YAXIS = wxNewId(), ID_WHOLE = wxNewId(), ID_MORE = wxNewId(),
-                 ID_SHIFT = wxNewId(), ID_SHIFTDIR = wxNewId(), ID_DIFF = wxNewId();
+                 ID_SHIFT = wxNewId(), ID_SHIFTDIR = wxNewId(), ID_DIFF = wxNewId(),
+                 ID_CYLINDER = wxNewId();
 
 const double BOHR_ANG = 0.52917721092;
 
@@ -248,6 +249,17 @@ void DensityProfilePanel::build()
 
   p_quantity = new wxChoice(this, ID_QUANTITY);
   row1->Add(p_quantity, 0, RIGHT, 12);
+  //  Only for the plane integral: how much charge lies near the line.
+  p_cylinder = new wxSpinCtrlDouble(this, ID_CYLINDER, "0.0", wxDefaultPosition,
+                                    wxSize(130, -1), wxSP_ARROW_KEYS, 0.0, 10.0, 0.0, 0.25);
+  p_cylinder->SetMinSize(wxSize(130, -1));
+  p_cylinder->SetToolTip(U("Integrate only within this distance of the line, in \xC3\x85 "
+                           "(a cylinder about the bond); 0 integrates over the whole plane"));
+  p_labelCylinder = new wxStaticText(this, wxID_ANY, "within radius (0 = all)");
+  wxBoxSizer *cylPair = new wxBoxSizer(wxHORIZONTAL);
+  cylPair->Add(p_labelCylinder, 0, RIGHT, 4);
+  cylPair->Add(p_cylinder, 0, wxALIGN_CENTER_VERTICAL);
+  row1->Add(cylPair, 0, RIGHT, 12);
   p_show = new wxChoice(this, ID_SHOW);
   row1->Add(p_show, 0, RIGHT, 12);
   p_spin = new wxChoice(this, ID_SPIN);
@@ -496,7 +508,10 @@ void DensityProfilePanel::fillQuantities(bool resetShow)
     p_quantity->Append(U("Density, n\xC2\xB7\xCF\x88\xC2\xB2 per orbital"));
     p_quantity->Append(U("\xCF\x88\xC2\xB2 of each orbital"));
     p_quantity->Append(U("\xCF\x88, signed"));
-    p_quantity->SetToolTip(U("\xCF\x88 shows the sign (phase) and the nodes of an orbital"));
+    p_quantity->Append("Electrons per length (plane integral)");
+    p_quantity->SetToolTip(U("\xCF\x88 shows the sign (phase) and the nodes of an orbital; "
+                             "the plane integral adds up the density over each plane "
+                             "perpendicular to the line (area = number of electrons)"));
   }
   p_quantity->SetSelection(q >= 0 && q < (int)p_quantity->GetCount() ? q : 0);
   p_show->Clear();
@@ -558,7 +573,8 @@ void DensityProfilePanel::chooseFragments()
 
 bool DensityProfilePanel::densityLike() const
 {
-  return p_mode->GetSelection() == 1 || p_quantity->GetSelection() <= 0;
+  return p_mode->GetSelection() == 1 || p_quantity->GetSelection() <= 0 ||
+         p_quantity->GetSelection() == 3;
 }
 
 void DensityProfilePanel::syncControls()
@@ -569,6 +585,8 @@ void DensityProfilePanel::syncControls()
     w->Show(!atom);
   p_centre->Show(atom);
   p_labelCentre->Show(atom);
+  p_cylinder->Show(!atom && p_quantity->GetSelection() == 3);
+  p_labelCylinder->Show(!atom && p_quantity->GetSelection() == 3);
   p_combine->Enable(!(!atom && p_quantity->GetSelection() == 2));
   p_clip->Show(!atom);
   //  The r axis is only a choice about an atom; a line has one length.
@@ -697,10 +715,12 @@ void DensityProfilePanel::recompute()
       p_text->SetValue("Choose two different atoms.");
       return;
     }
-    const LineProfile::Line line = LineProfile::throughAtoms(*p_eval, a, b, p_margin->GetValue(),
+    LineProfile::Line line = LineProfile::throughAtoms(*p_eval, a, b, p_margin->GetValue(),
         p_shift->GetValue(),
         p_shiftDir->GetSelection() == 0);
-    const LineProfile::Quantity q = quantity == 2 ? LineProfile::PSI
+    line.radius = p_cylinder->GetValue();
+    const LineProfile::Quantity q = quantity == 3 ? LineProfile::PLANE
+        : quantity == 2 ? LineProfile::PSI
         : quantity == 1 ? LineProfile::PSI2 : LineProfile::DENSITY;
     work = [ev, line, bohr, q, specs](AverageJob& job) {
       LineProfile::Result r;
@@ -713,7 +733,11 @@ void DensityProfilePanel::recompute()
       return true;
     };
     xLabel = "position along the line (" + length + ")";
-    yLabel = quantity == 2 ? U("ψ (") + length + U("⁻³/²)")
+    const wxString within = line.radius > 0
+        ? wxString::Format(U(" within %.2f Å"), line.radius) : wxString();
+    yLabel = quantity == 3 ? (diff ? U("Δρ") : U("electrons")) + U(" per ") + length +
+                             U(", plane integral") + within
+           : quantity == 2 ? U("ψ (") + length + U("⁻³/²)")
            : quantity == 1 ? U("ψ² (") + perVol + ")"
            : diff ? U("density difference Δρ (") + perVol + ")"
                            : U("density ρ (") + perVol + ")";
@@ -762,7 +786,7 @@ void DensityProfilePanel::recompute()
     p_plot->setMessage(wxString());
   //  Line: the cut is the highest value 0.35 A or more from every atom.
   double limit = 0.0;
-  if (!atom && !yLog && !diff && p_clip->GetValue() && quantity != 2 && !p_marks.empty()) {
+  if (!atom && !yLog && !diff && p_clip->GetValue() && quantity < 2 && !p_marks.empty()) {
     const double away = 0.35 / (bohr ? BOHR_ANG : 1.0);
     double top = 0, all = 0;
     for (const RadialDist::Curve& c : curves)
@@ -783,6 +807,15 @@ void DensityProfilePanel::recompute()
     text += U("On this r axis the area under a curve is no longer the electron count.\n");
   if (limit > 0)
     text += U("Peaks at the nuclei are cut off; \"Show all\" shows them.\n");
+  if (!atom && quantity == 3 && !curves.empty()) {
+    //  The area: the electron count over the shown stretch of the line.
+    text += "Electrons between the ends of the line:";
+    int listed = 0;
+    for (auto it = curves.rbegin(); it != curves.rend() && listed < 6; ++it, ++listed)
+      text += wxString::Format(" %s %.3f;", U(it->spec.label.c_str()), it->integral);
+    text.RemoveLast();
+    text += ".\n";
+  }
   int series = 0, colourIndex = 0;
   for (const RadialDist::Curve& c : curves) {
     std::vector<double> plotR(axis), plotP(c.p);
@@ -1125,9 +1158,9 @@ bool DensityProfilePanel::setQuantity(const std::string& name)
 {
   if (!p_ok) return false;
   const bool atom = p_mode->GetSelection() == 1;
-  static const char *lineNames[] = { "density", "psi2", "psi" };
+  static const char *lineNames[] = { "density", "psi2", "psi", "plane" };
   static const char *atomNames[] = { "radial", "avg" };
-  const int n = atom ? 2 : 3;
+  const int n = atom ? 2 : 4;
   for (int i = 0; i < n; i++) {
     if (name == (atom ? atomNames[i] : lineNames[i])) {
       p_quantity->SetSelection(i);
@@ -1221,6 +1254,14 @@ bool DensityProfilePanel::setYAxis(const std::string& name)
   const int i = name == "linear" ? 0 : name == "log" ? 1 : name == "sqrt" ? 2 : -1;
   if (i < 0 || (i == 1 && p_mode->GetSelection() != 1 && p_quantity->GetSelection() == 2)) return false;
   p_yaxis->SetSelection(i);
+  recompute();
+  return true;
+}
+
+bool DensityProfilePanel::setCylinder(double angstrom)
+{
+  if (!p_ok || angstrom < 0 || angstrom > 10) return false;
+  p_cylinder->SetValue(angstrom);
   recompute();
   return true;
 }
@@ -1339,6 +1380,10 @@ std::string DensityProfilePanel::state() const
     s += "yticks";
     for (double v : p_plot->yTickValues()) { snprintf(buf, sizeof buf, " %.6g", v); s += buf; }
     s += "\n";
+    snprintf(buf, sizeof buf, "cylinder %.3f %d\n", p_cylinder->GetValue(),
+             p_cylinder->IsShown() ? 1 : 0);
+    s += buf;
+
     //  What the lists say for the atom; the test compares it with the
     //  viewer's own numbering.
     s += "centrelabel " + std::string(p_centre->GetStringSelection().utf8_str()) + "\n";

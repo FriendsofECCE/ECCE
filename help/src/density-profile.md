@@ -53,6 +53,26 @@ with that atom as **Centre**. The lists stay available.
 - **ψ, signed**: the orbital itself. A zero line is drawn. Where the curve crosses
   it the orbital changes sign: a node. Parts above and below the line have
   opposite phase, which is what makes an orbital bonding or antibonding.
+- **Electrons per length (plane integral)**: at each position, the density
+  added up over the whole plane perpendicular to the line there, in electrons
+  per ångström (or per bohr). The area under the curve between two positions is
+  the number of electrons in the slab between the two planes; over a line long
+  enough to hold the tails it is the number of electrons for the total density,
+  and 1 for one orbital under **Selected orbitals**. The panel prints the area
+  of each curve beneath the plot. **within radius** (shown with this quantity)
+  integrates only within that distance of the line, a cylinder about the bond,
+  so the curve says how much charge lies near the bond; 0 is the whole plane.
+  This quantity takes longer to compute than the others.
+
+**Density at a point and charge per ångström.** The density is a value at one
+point, in electrons per Å³: the charge in a tiny box about that point divided by
+the box's volume. The plane integral is charge itself, spread along the line:
+it counts every electron that lies level with that position, however far from
+the line. The two can tell different stories. A π orbital, such as the C=C π
+bond of ethene or the π pair of HF, is zero everywhere on the line through the
+nuclei, because the line lies in its nodal plane; its density on that line is
+zero. Its plane integral is not: the electron lies above and below the line,
+and each plane through the bond holds a share of it, largest between the atoms.
 
 **Around an atom**
 
@@ -98,7 +118,7 @@ When an orbital is zero everywhere on the line the plot says so instead of
 drawing an empty axis.
 
 The axes are labelled with their units: ψ in length<sup>−3/2</sup>, ψ² and the density in
-length⁻³, the radial distribution in 1/length, where the length is ångström or
+length⁻³, the radial distribution and the plane integral in 1/length, where the length is ångström or
 bohr, as chosen under **Unit**.
 
 ## Which orbitals
@@ -116,7 +136,7 @@ bohr, as chosen under **Unit**.
 - **Total + selected orbitals**: the total and the contributions of the orbitals
   ticked in the list.
 - **Selected orbitals**: the ticked orbitals alone, without the occupation, so
-  that each integrates to 1 in the radial view.
+  that each integrates to 1 in the radial view and in the plane integral.
 - **Total only**.
 
 For ψ and ψ² the choices are **Selected orbitals** and **All occupied
