@@ -43,28 +43,28 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
       rowlabels: 1-O 2-H 3-H
       columnlabels: X Y Z
       values: 0.000000 0.117298 0.000000 0.757866 -0.471972 0.000000 -0.757866 -0.466410 0.000000
-      units: Hartree
+      units: Angstrom
   block 2: begin-line=482 fed=4 rc=0 first-fed='      1          8           0       -0.000000    0.129833    0.000000'
     key: GEOMTRACE
       size: 1 3 3
       rowlabels: 1-O 2-H 3-H
       columnlabels: X Y Z
       values: -0.000000 0.129833 0.000000 0.751013 -0.518548 0.000000 -0.751013 -0.520114 -0.000000
-      units: Hartree
+      units: Angstrom
   block 3: begin-line=760 fed=4 rc=0 first-fed='      1          8           0        0.000000    0.126470    0.000000'
     key: GEOMTRACE
       size: 1 3 3
       rowlabels: 1-O 2-H 3-H
       columnlabels: X Y Z
       values: 0.000000 0.126470 0.000000 0.763525 -0.505778 -0.000000 -0.763525 -0.505982 0.000000
-      units: Hartree
+      units: Angstrom
   block 4: begin-line=1024 fed=4 rc=0 first-fed='      1          8           0        0.000000    0.127142   -0.000000'
     key: GEOMTRACE
       size: 1 3 3
       rowlabels: 1-O 2-H 3-H
       columnlabels: X Y Z
       values: 0.000000 0.127142 -0.000000 0.757982 -0.508615 0.000000 -0.757982 -0.508525 0.000000
-      units: Hartree
+      units: Angstrom
   block 5: begin-line=1273 fed=4 rc=0 first-fed='      1          8           0        0.000000    0.127142   -0.000000'
     (script emitted no property)
 

@@ -35,7 +35,7 @@ args:    '.' 'Energy' 'DFT' 'B3LYP' '0'
       rowlabels: 1-O 2-H 3-H
       columnlabels: X Y Z
       values: 0.000000 -0.000000 0.117300 0.000000 0.757200 -0.469200 -0.000000 -0.757200 -0.469200
-      units: Hartree
+      units: Angstrom
 
 [KE][NNREPUL]  Script=gaussian-16.ke  Freq=all  Skip=0  Lines=1
   Begin=N\-N\=

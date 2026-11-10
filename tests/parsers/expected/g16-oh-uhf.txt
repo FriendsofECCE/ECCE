@@ -43,7 +43,7 @@ args:    '.' 'Energy' 'SCF' 'UHF' '1'
       rowlabels: 1-O 2-H
       columnlabels: X Y Z
       values: 0.000000 0.000000 0.107778 0.000000 0.000000 -0.862222
-      units: Hartree
+      units: Angstrom
 
 [DELTAE]  Script=gaussian-16.deltae  Freq=all  Skip=0  Lines=1
   Begin=Delta\-E

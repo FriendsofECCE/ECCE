@@ -35,7 +35,7 @@ args:    '.' 'Vibration' 'SCF' 'RHF' '0'
       rowlabels: 1-C 2-O
       columnlabels: X Y Z
       values: 0.000000 0.000000 -0.644571 0.000000 0.000000 0.483429
-      units: Hartree
+      units: Angstrom
 
 [DELTAE]  Script=gaussian-16.deltae  Freq=all  Skip=0  Lines=1
   Begin=Delta\-E

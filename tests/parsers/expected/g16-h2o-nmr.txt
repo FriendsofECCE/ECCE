@@ -20,7 +20,7 @@ args:    '.' 'Magnetic' 'SCF' 'RHF' '0'
       rowlabels: 1-O 2-H 3-H
       columnlabels: X Y Z
       values: 0.000000 0.000000 0.117790 0.000000 0.755450 -0.471160 0.000000 -0.755450 -0.471160
-      units: Hartree
+      units: Angstrom
 
 [DELTAE]  Script=gaussian-16.deltae  Freq=all  Skip=0  Lines=1
   Begin=Delta\-E

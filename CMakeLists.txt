@@ -2505,6 +2505,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/vib_frame_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # Gaussian 16 properties declare the unit their values are in (#946).
+  add_test(NAME parsers_g16_units
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/g16_units_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # The same fixtures cut off part-way, through the real eccejobmonitor and
   # parser scripts (#107 part B).
   add_test(NAME parsers_partial
