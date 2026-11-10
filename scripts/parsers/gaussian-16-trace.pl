@@ -79,7 +79,7 @@ sub takeStash {
   return (\@rows, \@labels);
 }
 
-# IRC side files (gaussian-16.ircgeom, .ircts, .irc): one structure per line,
+# IRC side file (gaussian-16.ircgeom): one structure per line,
 # its atoms' "x y z" joined by ",".
 sub saveIrcInput {
   my ($key, $rows) = @_;
