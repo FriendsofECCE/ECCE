@@ -6975,6 +6975,18 @@ void Builder::updatePropertyMenus()
             return s.fail("mofield: no field type " + type);
           return true;
         }
+        //  "moiso <log10 isovalue>": the slider moved, as a drag does.
+        if (w[0] == "moiso" && w.size() == 2) {
+          MoPanel *mo = 0;
+          set<PropertyPanel*> mp =
+              PropertyPanel::getPanels(p_calculation->getURL().toString());
+          for (set<PropertyPanel*>::iterator it = mp.begin();
+               it != mp.end() && !mo; ++it)
+            mo = dynamic_cast<MoPanel*>(*it);
+          if (!mo) return s.fail("moiso: no MO panel");
+          mo->setIsoLog(atof(w[1].c_str()));
+          return true;
+        }
         if ((w[0] != "mopanel" && w[0] != "motable" && w[0] != "mobar") ||
             w.size() != 2)
           return s.fail("unknown command: " + w[0]);

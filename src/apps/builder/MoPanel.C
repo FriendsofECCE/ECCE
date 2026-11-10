@@ -1974,15 +1974,21 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
       //  A surface cut at the grid faces is not the orbital's: enlarge the
       //  box on those sides and compute again, within a size limit.
       if (!fieldView) {
-         const int cut = gridFacesCut(p_facesCheckedIso);
+         double faceMax[6];
+         const int cut = gridFacesCut(p_facesCheckedIso, faceMax);
          if (cut) {
-            const float s_grow = 2.0, s_maxEdge = 40.0;
+            //  The tail falls off at least ~e-fold per Angstrom, so the
+            //  step follows how far above the isovalue the face still is
+            //  instead of a fixed 2 A that ran out after three rounds.
+            const float s_maxEdge = 40.0;
             const double *o = grid->origin(), *cr = grid->corner();
             bool grown = false;
-            for (int k = 0; k < 6 && p_gridRound < 3; k++) {
+            for (int k = 0; k < 6 && p_gridRound < 6; k++) {
                if (!(cut & (1 << k))) continue;
-               if (fabs(cr[k/2] - o[k/2]) + s_grow > s_maxEdge) continue;
-               p_gridGrow[k] += s_grow;
+               const double step = std::min(8.0, std::max(2.0,
+                  log(faceMax[k] / p_facesCheckedIso) + 1.0));
+               if (fabs(cr[k/2] - o[k/2]) + step > s_maxEdge) continue;
+               p_gridGrow[k] += step;
                grown = true;
             }
             if (grown) {
@@ -2354,9 +2360,10 @@ void MoPanel::OnSliderTextEnter(wxCommandEvent& event)
    event.Skip();
 }
 
-/** Sides (bit 0..5: -x +x -y +y -z +z) where |field| on the grid's outer faces exceeds iso. */
-int MoPanel::gridFacesCut(double iso) const
+/** Sides (bit 0..5: -x +x -y +y -z +z) where |field| on the grid's outer faces exceeds iso; faceMax gets the largest |field| per side. */
+int MoPanel::gridFacesCut(double iso, double *faceMax) const
 {
+   if (faceMax) for (int k = 0; k < 6; k++) faceMax[k] = 0;
    SingleGrid *grid = const_cast<MoPanel*>(this)->getFW().getSceneGraph().getCurrentGrid();
    if (!grid || !grid->fieldData()) return 0;
    const int *d = grid->dimensions();
@@ -2370,14 +2377,15 @@ int MoPanel::gridFacesCut(double iso) const
                ix = d[0] - 2;        // the interior: jump to the +x face
                continue;
             }
-            if (fabs(f[ix + (size_t)d[0] * (iy + (size_t)d[1] * iz)]) <= iso)
-               continue;
-            if (ix == 0) cut |= 1;
-            if (ix == d[0]-1) cut |= 2;
-            if (iy == 0) cut |= 4;
-            if (iy == d[1]-1) cut |= 8;
-            if (iz == 0) cut |= 16;
-            if (iz == d[2]-1) cut |= 32;
+            const double v = fabs(f[ix + (size_t)d[0] * (iy + (size_t)d[1] * iz)]);
+            if (v <= iso) continue;
+            const int side[6] = {ix == 0, ix == d[0]-1, iy == 0, iy == d[1]-1,
+                                 iz == 0, iz == d[2]-1};
+            for (int k = 0; k < 6; k++) {
+               if (!side[k]) continue;
+               cut |= 1 << k;
+               if (faceMax) faceMax[k] = std::max(faceMax[k], v);
+            }
          }
       }
    }
@@ -2407,6 +2415,15 @@ void MoPanel::recheckGridFaces(double isoLog)
    OnButtonMoComputeClick(ev);
    p_gridRound = 0;
    p_keepIso = false;
+}
+
+
+/** Move the isovalue slider as a drag does (scene command "moiso"). */
+void MoPanel::setIsoLog(double isoLog)
+{
+   p_slider->SetValue(isoLog);
+   updateIsoValue(isoLog);
+   recheckGridFaces(isoLog);
 }
 
 
