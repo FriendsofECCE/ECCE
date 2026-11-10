@@ -53,7 +53,9 @@ done
     esac
 ) 7>"$OFF/locks/git" || fail "git fetch"
 cd "$OFF/src"
-sha=$(git rev-parse --verify -q "$ref^{commit}" || git rev-parse --verify -q "origin/$ref^{commit}") \
+# The just-fetched origin/<ref> first: a stale local branch of the same
+# name (radium has an old local main) must not win.
+sha=$(git rev-parse --verify -q "origin/$ref^{commit}" || git rev-parse --verify -q "$ref^{commit}") \
     || fail "ref $ref not found on GitHub (push it first)"
 # Every ref keeps a build tree of 8-16 GB; without a limit they filled
 # radium's 3 TB disk.  Drop the oldest beyond $KEEP, then insist on room.
