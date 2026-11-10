@@ -84,12 +84,23 @@ set(WITH_RANGE_COULOMB OFF)
 set(BUILD_MARCH_NATIVE OFF)
 FetchContent_MakeAvailable(libcint)
 
+# --- D3 reference data: converted at build time from the unchanged
+# simple-dftd3/mctc-lib files (third_party/simple-dftd3-data) --------------
+get_filename_component(_d3_data "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/simple-dftd3-data" ABSOLUTE)
+add_executable(qm_d3_data_gen tools/d3_data_gen.cpp)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/d3_data.inc
+  COMMAND qm_d3_data_gen ${_d3_data}/reference.f90 ${_d3_data}/r4r2.f90
+          ${_d3_data}/mctc-lib/covrad.f90 ${CMAKE_CURRENT_BINARY_DIR}/d3_data.inc
+  DEPENDS qm_d3_data_gen ${_d3_data}/reference.f90 ${_d3_data}/r4r2.f90 ${_d3_data}/mctc-lib/covrad.f90
+  COMMENT "Converting the D3 reference data")
+
 # --- the library and the command line tool ---------------------------------
 add_library(eccems STATIC
   molecule.cpp basislib.cpp basis.cpp integrals.cpp ao.cpp grid.cpp xc.cpp
-  scf.cpp charges.cpp gradient.cpp hessian.cpp optimizer.cpp tscheck.cpp irc.cpp vibration.cpp polar.cpp localise.cpp solvent.cpp input.cpp output.cpp)
+  scf.cpp charges.cpp gradient.cpp hessian.cpp optimizer.cpp tscheck.cpp irc.cpp vibration.cpp polar.cpp localise.cpp solvent.cpp input.cpp output.cpp d3.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/d3_data.inc)
 target_include_directories(eccems PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${libcint_SOURCE_DIR}/include
-  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+  PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 target_link_libraries(eccems PUBLIC Eigen3::Eigen cint qm_xc)
 if(OpenMP_CXX_FOUND)
   target_link_libraries(eccems PUBLIC OpenMP::OpenMP_CXX)
@@ -125,6 +136,9 @@ set(_qm_tests ${_ecce_root}/tests/qm)
 add_executable(qm_unit_test ${_qm_tests}/unit_test.cpp)
 target_link_libraries(qm_unit_test PRIVATE eccems)
 add_test(NAME qm_unit COMMAND qm_unit_test ${_ecce_root}/data/admin/basissets)
+add_executable(qm_d3_test ${_qm_tests}/d3_test.cpp)
+target_link_libraries(qm_d3_test PRIVATE eccems)
+add_test(NAME qm_d3 COMMAND qm_d3_test ${_qm_tests}/d3bj_orca.txt)
 find_program(QM_PYTHON3 NAMES python3)
 if(QM_PYTHON3)
   add_test(NAME qm_scf_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/run_tests.py $<TARGET_FILE:ecce-qm> --quick)

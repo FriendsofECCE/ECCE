@@ -153,6 +153,9 @@
   <TheorySummary>
     <item key="ES.Theory.DFT.XCFunctionals" label="DFT Functional"></item>
   </TheorySummary>
+  <TheorySummary toggleSet="true">
+    <item key="ES.Theory.ECCEQM.Dispersion" label="Dispersion: D3(BJ)"></item>
+  </TheorySummary>
 </Editor>
 
 <DataFiles>

@@ -119,6 +119,19 @@ orbitals are IVO.
 It is ticked by default; unticked, the calculation does not localise the
 orbitals and the MOs panel has no **Localised MO** entry.
 
+**Theory Details** has a **D3(BJ)** tick box under **Dispersion correction**:
+Grimme's D3 dispersion correction with Becke-Johnson damping, for
+Hartree-Fock, PBE, B3LYP and PBE0 (there are no D3(BJ) parameters for SVWN,
+so the box is greyed out for it). The dispersion energy is added to the total
+energy and its gradient to the forces, so optimisations, scans, transition
+states and frequencies all include it; it is listed as **Dispersion
+Correction** among the components of the energy. Only the two-body (C6 and
+C8) terms are included, without the three-body term, as in ORCA's D3BJ.
+Frequencies with D3(BJ) use the finite-difference Hessian, as with a solvent:
+there is no analytic Hessian for the dispersion term. The damping parameters
+are those of the original paper; the reference C6 coefficients come from the
+simple-dftd3 project.
+
 The implicit solvent (**Solvent** in **Theory Details**) works for every run
 type except Raman intensities. With a solvent set and Raman ticked, the notes
 line above the log in the Calculation Editor says so, and Launch asks before it
@@ -222,6 +235,9 @@ were also checked with 6-31G, 6-31+G*, 6-311G*, aug-cc-pVDZ and cc-pVTZ.
   hydrogen fluoride. Raman activities agree with ORCA's to 0.1 % and
   depolarization ratios to 3e-4 for water, ammonia and methane; the
   frequencies of those calculations agree to 1.5 cm-1.
+- The D3(BJ) dispersion energy agrees with ORCA's to 2e-9 hartree and its
+  gradient to 3e-9 hartree/bohr, for the water dimer, benzene, the argon dimer
+  and a sodium chloride ion pair with HF, PBE, B3LYP and PBE0.
 - Löwdin charges agree with ORCA's to 1e-5 e. CHELPG charges agree with
   ORCA's within 0.005 e; the small differences come from the points where the
   potential is sampled, which each program chooses in its own way.
@@ -239,3 +255,6 @@ ECCE](citing-ecce.md), and name the functional and basis set you used, as for
 any calculation. The functionals are evaluated with Libxc and the integrals
 with Libcint; their authors ask to be cited as well (S. Lehtola et al.,
 SoftwareX 7, 1 (2018); Q. Sun, J. Comput. Chem. 36, 1664 (2015)).
+A calculation with D3(BJ) should cite the method: S. Grimme, J. Antony,
+S. Ehrlich and H. Krieg, J. Chem. Phys. 132, 154104 (2010), and S. Grimme,
+S. Ehrlich and L. Goerigk, J. Comput. Chem. 32, 1456 (2011).

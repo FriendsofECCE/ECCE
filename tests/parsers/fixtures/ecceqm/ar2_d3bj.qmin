@@ -1,0 +1,9 @@
+method b3lyp
+basis def2-SVP
+dispersion d3bj
+runtype gradient
+conv_energy 1e-11
+geometry
+Ar 0 0 0
+Ar 0 0 3.8
+end

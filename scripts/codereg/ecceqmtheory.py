@@ -114,6 +114,13 @@ class EcceqmTheoryPanel(EccePanel):
                                         label="Virtual orbitals:",
                                         export=1))
         self.panelSizer.Add(locSizer)
+        # Grimme D3(BJ); there are no published parameters for SVWN.
+        dispSizer = EcceBoxSizer(self, label="Dispersion correction", cols=1)
+        self.dispersion = EcceCheckBox(self, label=" D3(BJ) (Grimme, Becke-Johnson damping)",
+                                       name="ES.Theory.ECCEQM.Dispersion",
+                                       default=False, export=1)
+        dispSizer.AddWidget(self.dispersion)
+        self.panelSizer.Add(dispSizer)
         # CPCM implicit solvent, all run types except Raman (warned about by
         # the Calculation Editor and the Launcher, which see the Raman tick).
         solvSizer = EcceBoxSizer(self, label="Solvent", cols=1)
@@ -144,6 +151,8 @@ class EcceqmTheoryPanel(EccePanel):
         self.closedNote.Show(not openShell)
         solvent = self.solvent.GetValue()
         self.epsilon.Enable(solvent == "Custom")
+        svwn = EcceGlobals.Category == "DFT" and self.xcFunc.GetValue() == "SVWN"
+        self.dispersion.Enable(not svwn)
         self.Layout()
 
 

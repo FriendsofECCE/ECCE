@@ -304,6 +304,11 @@ sub QMControl {
   $result .= "localise false\n" if ($AbiDict{"ES.Theory.ECCEQM.Localise"} eq "0");
   # Canonical virtuals are the engine default and are not written.
   $result .= "virtuals ivo\n" if ($AbiDict{"ES.Theory.ECCEQM.Virtuals"} eq "Improved (IVO)");
+  # D3(BJ) has no parameters for SVWN, where the dialog greys the box out.
+  if ($AbiDict{"ES.Theory.ECCEQM.Dispersion"} eq "1" &&
+      !($AbiDict{"Category"} eq "DFT" && $AbiDict{"ES.Theory.DFT.XCFunctionals"} eq "SVWN")) {
+    $result .= "dispersion d3bj\n";
+  }
   # Implicit solvent (CPCM); none is the engine default and is not written.
   my $solv = $AbiDict{"ES.Theory.ECCEQM.Solvent"};
   if (defined($solv) && $solv eq "Custom") {

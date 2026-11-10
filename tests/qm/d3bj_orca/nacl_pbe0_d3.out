@@ -1,0 +1,13 @@
+                         Program Version 6.1.1  -  RELEASE   -
+|  1> ! PBE0 D3BJ def2-SVP VeryTightSCF EnGrad NoUseSym
+|  2> %maxcore 1000
+|  3> * xyz 0 1
+|  4> Na    0.000000    0.000000    0.000000
+|  5> Cl    0.000000    0.000000    2.360000
+|  6> *
+|  7> 
+|  8>                          ****END OF INPUT****
+ Edisp/kcal,au: -0.452246111951  -0.000720699977 
+Dispersion correction           -0.000720700
+FINAL SINGLE POINT ENERGY      -622.102037189528
+Dispersion correction             ... done (  0.0 sec)
