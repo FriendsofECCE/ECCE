@@ -1307,7 +1307,8 @@ void CalcMgr::runTestCommand(const string& line)
       //     flags: geomfrom=CALC-URL (its input geometry), charge=N, mult=N
       //   workflowcopy WF CALC-URL NAME   a stored calculation as a first step
       //   workflowready WF      the steps Launch Ready Steps would launch
-      //   workflowautorun WF on|off|query   the auto-run setting (#736)
+      //   workflowautorun WF on|off|query   the auto-run setting and "started=1|0",
+      //     set by Launch Ready Steps (#736, #926)
       //   workflowlaunchstep WF STEP   launch that one step if it is ready
       //   workflowplay WF       play button of each box: "name:1|0:reason|.."
       //   workflowautorunclick WF on|off   tick the view's auto-run box as a
@@ -1510,7 +1511,8 @@ void CalcMgr::runTestCommand(const string& line)
         launchReadySteps(wf, false, &outcome, "");
       } else if (command == "workflowautorun") {
         if (b == "on" || b == "off") WorkflowSteps::setAutoRun(wf, b == "on");
-        outcome = string("ok autorun=") + (WorkflowSteps::autoRun(wf) ? "on" : "off");
+        outcome = string("ok autorun=") + (WorkflowSteps::autoRun(wf) ? "on" : "off") +
+                  " started=" + (WorkflowSteps::runStarted(wf) ? "1" : "0");
       } else if (command == "workflowsetlaunch") {
         // workflowsetlaunch WF STEP MACHINE RUNDIR: the launch settings the
         // Launcher would store on the step.
@@ -12190,8 +12192,8 @@ void CalcMgr::processEditCompletion(const EditEvent& ee)
 
 /**
  * A new step of a Workflow, started from source (null for the first one).
- * The tree and the workflow view follow, and the code's Calculation Editor
- * opens on the new step.  On failure the step is not left behind and
+ * The tree and the workflow view follow; no Calculation Editor opens (#926),
+ * the user opens the step's when there is something to set.  On failure the step is not left behind and
  * *outcome says why.
  */
 Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
@@ -12298,10 +12300,6 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
     setContextPanel();
     if (p_contextPanel) p_contextPanel->selectResource(newurl);
   }
-  if (ask && !p_testStepDialogs) {
-    ResourceTool *tool = made->getDefaultTool();
-    if (tool) startApp(tool->getName(), 0, newurl.toString());
-  }
   if (!preoptNote.empty()) setMessage(preoptNote, WxFeedback::INFO);
   if (outcome) *outcome = urls;
   return made;
@@ -12309,8 +12307,8 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
 
 
 /**
- * A join (WorkflowSteps::createJoin): the tree and the view follow and the
- * Calculation Editor opens on the new step, where TS Search shows the picks.
+ * A join (WorkflowSteps::createJoin): the tree and the view follow; its
+ * Calculation Editor, where TS Search shows the picks, opens on request.
  */
 Resource *CalcMgr::newWorkflowJoin(Session *wf, ResourceType *rt,
                                    const vector<WorkflowSteps::JoinSource>& given,
@@ -12355,10 +12353,6 @@ Resource *CalcMgr::newWorkflowJoin(Session *wf, ResourceType *rt,
     if (p_contextPanel) p_contextPanel->selectResource(newurl);
   }
   notifyCreate(newurl.toString());
-  if (ask) {
-    ResourceTool *tool = made->getDefaultTool();
-    if (tool) startApp(tool->getName(), 0, newurl.toString());
-  }
   if (outcome) *outcome = newurl.toString();
   return made;
 }
@@ -12423,6 +12417,8 @@ vector<Resource*> CalcMgr::newRecipeSteps(Session *wf, const Recipe& recipe,
 void CalcMgr::launchReadySteps(Session *wf, bool interactive, string *outcome,
                                const string& shot)
 {
+  // The run button starts the run auto-run continues, if it is ticked (#926).
+  if (!WorkflowSteps::allComplete(wf)) WorkflowSteps::setRunStarted(wf, true);
   vector<string> waiting;
   vector<string> excluded;
   vector<Resource*> ready = WorkflowSteps::readySteps(wf, &waiting, &excluded);
@@ -12482,11 +12478,15 @@ void CalcMgr::closeWorkflowView(const string& workflowUrl)
 
 void CalcMgr::autoRunWorkflow(Session *wf)
 {
-  if (!wf || !WorkflowSteps::autoRun(wf)) return;
-  // Opening a workflow in a folder the user cannot write to (a shared
-  // project) must not write decks or launch from it (#950).
+  if (!wf || !WorkflowSteps::autoRun(wf) || !WorkflowSteps::runStarted(wf)) return;
+  // A workflow in a folder the user cannot write to (a shared project)
+  // must not get decks written or launched from it (#950).
   if (wf->getURL().isLocal() && access(wf->getURL().getPath().c_str(), W_OK) != 0)
     return;
+  if (WorkflowSteps::allComplete(wf)) {
+    WorkflowSteps::setRunStarted(wf, false);
+    return;
+  }
   // One launch batch at a time; this workflow is looked at when it ends.
   if (p_batch) { p_autoPending.insert(wf->getURL().toString()); return; }
   // A step seen past Created is launched for good; forget it.

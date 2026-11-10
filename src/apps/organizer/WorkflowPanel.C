@@ -880,8 +880,6 @@ WorkflowPanel::WorkflowPanel(CalcMgr *calcMgr, WxResourceTreeItemData *node,
   prefs.getBool("Organizer.Workflow.Vertical", p_vertical);
   createControls();
   Bind(wxEVT_MENU, [this](wxCommandEvent &) { recipeFromHere(); }, recipeHereId());
-  // Catch up: a step finished while this workflow was not open.
-  CallAfter([this]() { p_calcMgr->autoRunWorkflow(p_session); });
 }
 
 
@@ -971,12 +969,13 @@ void WorkflowPanel::createControls()
   btnRow->Add(p_apply, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxLEFT, 8);
   btnRow->AddStretchSpacer(1);
   p_autorun = new wxCheckBox(notes, wxID_ANY, "Run the remaining steps automatically");
-  p_autorun->SetToolTip("Launch each step as soon as the step it starts from is "
-                        "Complete. Works while the Organizer is open.");
+  p_autorun->SetToolTip("Arms auto-run: once Launch Ready Steps has been pressed, each "
+                        "further step is launched when the step it starts from is "
+                        "Complete. Ticking launches nothing. Works while the Organizer is open.");
   p_autorun->SetValue(WorkflowSteps::autoRun(p_session));
+  // Only stores the setting: launching starts with Launch Ready Steps (#926).
   p_autorun->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent &) {
     WorkflowSteps::setAutoRun(p_session, p_autorun->GetValue());
-    p_calcMgr->autoRunWorkflow(p_session);
   });
   wxBoxSizer *launchCol = new wxBoxSizer(wxVERTICAL);
   launchCol->Add(p_launch, 0, wxALIGN_RIGHT);

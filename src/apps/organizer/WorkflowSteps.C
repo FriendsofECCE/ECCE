@@ -696,6 +696,30 @@ bool WorkflowSteps::autoRun(Session *wf)
 void WorkflowSteps::setAutoRun(Session *wf, bool on)
 {
   if (wf) wf->addProp(VDoc::getEcceNamespace() + ":autorun", on ? "1" : "0");
+  if (!on) setRunStarted(wf, false);
+}
+
+
+bool WorkflowSteps::runStarted(Session *wf)
+{
+  return wf && wf->getProp(VDoc::getEcceNamespace() + ":autorun.started") == "1";
+}
+
+
+void WorkflowSteps::setRunStarted(Session *wf, bool on)
+{
+  // Stored on the workflow, so a run goes on after an Organizer restart.
+  if (wf && runStarted(wf) != on)
+    wf->addProp(VDoc::getEcceNamespace() + ":autorun.started", on ? "1" : "0");
+}
+
+
+bool WorkflowSteps::allComplete(Session *wf)
+{
+  if (!wf) return false;
+  for (Resource *m : wf->getMembers())
+    if (!isComplete(m)) return false;
+  return true;
 }
 
 
