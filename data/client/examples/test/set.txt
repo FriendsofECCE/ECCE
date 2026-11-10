@@ -6,3 +6,6 @@ isomer-ranking|Isomer ranking
 mo-table-check|MO table check
 density-difference|Density difference
 series-from-structures|Series from structures
+compare-forces|Compare forces
+crest-topology-check|CREST topology check
+code-icons|Code icons

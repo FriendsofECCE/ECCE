@@ -6327,7 +6327,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "40";
+const char *const kExampleSetVersion = "41";
 
 string treeName(string s)
 {
@@ -6903,6 +6903,11 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
 
   // What each example is for, in its Annotation field.
   static const struct { const char *name, *text; } kNotes[] = {
+    {"water_forces_hf", "ECCE-QM, HF/6-31G, energy and gradient. This calculation shows the stored forces at a fixed water geometry for Compare Forces."},
+    {"water_forces_b3lyp", "ORCA, B3LYP/def2-SVP, energy and gradient. This calculation shows different stored forces at the same water geometry for Compare Forces."},
+    {"CREST_topology_check/zinc_aqua_topology", "CREST, GFN2-xTB, conformer search. This calculation shows the warning when the topology check removes all sampled conformers of a zinc aqua complex with loosely bound chloride ions."},
+    {"Code_icons/zinc_aqua_topology", "CREST, GFN2-xTB, conformer search. This calculation shows the CREST code icon beside the xTB calculation in the same folder."},
+    {"Code_icons/water_xtb", "xTB, GFN2-xTB, optimisation and frequencies. This calculation shows the xTB code icon beside the CREST calculation in the same folder."},
     {"water", "ECCE-QM, B3LYP/6-31G*. This calculation shows how a frequency "
               "calculation gives the IR spectrum of a molecule, and how the "
               "computed atomic charges depend on the partitioning scheme "

@@ -1,0 +1,11 @@
+title Water force comparison
+charge 0
+multiplicity 1
+method hf
+basis 6-31G
+runtype gradient
+geometry
+O -0.0000000000 -0.0000000000 0.1183961577
+H 0.0000000000 0.7627685653 -0.4791980788
+H -0.0000000000 -0.7627685653 -0.4791980788
+end

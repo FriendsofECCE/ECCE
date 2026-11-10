@@ -51,6 +51,23 @@ def run(display):
                                   (["--json"] if as_json else []),
                                   env=env, text=True, capture_output=True, timeout=60)
 
+        examples = os.path.join(HERE, "..", "..", "data", "client", "examples",
+                                "test", "compare-forces")
+        pair = []
+        for folder, name in (("ecceqm-water-forces-hf", "water_forces_hf"),
+                             ("orca-water-forces-b3lyp", "water_forces_b3lyp")):
+            dest = os.path.join(project, name)
+            shutil.copytree(os.path.join(examples, folder, "stored", name), dest)
+            pair.append(dest)
+        actual = cli(*pair)
+        check(actual.returncode == 0, "shipped water forces compare", actual.stdout + actual.stderr)
+        actual_rows = json.loads(actual.stdout)
+        check(actual_rows["ok"] and actual_rows["geometry_rms_angstrom"] < 1e-5,
+              "shipped water pair has the same fixed geometry and atom order")
+        check(any(row["max"] > 0 for row in actual_rows["rows"]) and
+              actual_rows["delta_e_ev"] is None,
+              "shipped water pair has different forces and suppresses cross-method energy")
+
         result = cli(a, b)
         check(result.returncode == 0, "CLI succeeds", result.stderr + result.stdout)
         r = json.loads(result.stdout)
@@ -83,6 +100,8 @@ def run(display):
         png = os.path.join(work, "forces.png")
         with open(cmds, "w") as handle:
             handle.write("compareforcesdialog file://%s file://%s %s\n" % (a,b,png))
+            handle.write("compareforcesdialog file://%s file://%s %s\n" %
+                         (*pair, os.path.join(work, "water-forces.png")))
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                           env={"ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_ORGANIZER_OPEN": "file://" + a,
@@ -97,6 +116,10 @@ def run(display):
         check("eV/cell" in text and "meV/atom" in text and "Warning:" in text,
               "dialog includes energy and geometry warning", text)
         check(os.path.isfile(png) and os.path.getsize(png) > 1000, "dialog screenshot captured")
+        check(len(answers) == 2 and "all atoms" in answers[1] and
+              "No energy difference" in answers[1] and "Warning:" not in answers[1],
+              "shipped water pair opens in the force dialog with no geometry warning",
+              answers[1] if len(answers) > 1 else result.log or "")
         os.remove(os.path.join(b, "Props", "EGRADVEC"))
         missing = cli(a, b)
         check(missing.returncode == 1 and not json.loads(missing.stdout)["ok"], "missing forces refused")
