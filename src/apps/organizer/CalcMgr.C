@@ -199,6 +199,14 @@ static const char *const kFirstStartSet = "getting-started";
 #include "ChecksDialog.H"
 #include "AllocationsDialog.H"
 
+// The table shown: a project's, or the one under a workflow or study (#951).
+static ProjectContextPanel *tableOf(ContextPanelInterface *panel)
+{
+  if (ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(panel)) return t;
+  SessionProjectContextPanel *s = dynamic_cast<SessionProjectContextPanel*>(panel);
+  return s ? s->getTable() : 0;
+}
+
 IMPLEMENT_CLASS( CalcMgr, wxFrame )
 
 
@@ -1304,9 +1312,8 @@ void CalcMgr::runTestCommand(const string& line)
       //   workflowplay WF       play button of each box: "name:1|0:reason|.."
       //   workflowautorunclick WF on|off   tick the view's auto-run box as a
       //     click does: "ok shown=1|0 autorun=on|off" (#902)
-      //   workflowclose WF press|folder   WF shown, then its Back to Table
-      //     button pressed, or its folder selected in the tree: "ok
-      //     view=table|workflow selected=<url>" (#931)
+      //   workflowclose WF folder   WF shown, then its folder selected in
+      //     the tree: "ok view=table|workflow selected=<url>" (#931)
       //   workflowstate WF STEP   the step's state and why it is not ready (#901)
       //   workflowshot PNG WF   the Organizer showing WF; the drawing's checks
       //   workflowdialogshot PNG WF TYPE SOURCE   the New-step dialog
@@ -1542,8 +1549,7 @@ void CalcMgr::runTestCommand(const string& line)
         if (!wp) {
           outcome = "no workflow panel";
         } else {
-          if (b == "folder") closeWorkflowView(wf->getURL().toString());
-          else wp->clickClose();
+          closeWorkflowView(wf->getURL().toString());
           for (int i = 0; i < 20; i++) { wxYield(); wxMilliSleep(50); }
           spc = dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
           WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
@@ -1818,10 +1824,28 @@ void CalcMgr::runTestCommand(const string& line)
              c = p_treeCtrl->GetNextChild(node->GetId(), ck))
           outcome += " " + string(p_treeCtrl->GetItemText(c).ToUTF8());
       }
+    } else if (command == "toolselection") {
+      // "toolselection": what Tools > Energy Calculator and the other
+      // tools act on, the selection getSelection() reads (#951).
+      getSelection();
+      outcome = "ok";
+      for (const EcceURL &u : p_currentSelection) outcome += " " + u.toString();
+    } else if (command == "boxpoint") {
+      // "boxpoint STEP-URL": "X Y", the screen point of a click on that
+      // step's box in the workflow view shown (#951).
+      SessionProjectContextPanel *spc =
+          dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+      WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+      outcome = !wp ? "no workflow view" : "ok " + wp->boxPoint(EcceURL(calcName));
+    } else if (command == "tablerow") {
+      // "tablerow ROW": "X Y URL", the screen centre of that row of the
+      // project or workflow/study folder table, for a real click (#951).
+      ProjectContextPanel *t = tableOf(p_contextPanel);
+      outcome = !t ? "no table" : "ok " + t->rowAt(atoi(calcName.c_str()));
     } else if (command == "tableclick") {
       // "tableclick ROW [ctrl] [shift]": a left click on that row of the
       // project table, with those keys held; answers the selected rows.
-      ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      ProjectContextPanel *t = tableOf(p_contextPanel);
       if (!t) outcome = "no table";
       else {
         t->clickRow(atoi(calcName.c_str()), calcName.find("ctrl") != string::npos,
@@ -1831,7 +1855,7 @@ void CalcMgr::runTestCommand(const string& line)
       }
     } else if (command == "tableselect" || command == "tableselected") {
       // "tableselect URL": select that row; "tableselected": the selected rows
-      ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      ProjectContextPanel *t = tableOf(p_contextPanel);
       if (!t) outcome = "no table";
       else {
         if (command == "tableselect") t->selectResources(vector<EcceURL>(1, EcceURL(calcName)));
@@ -3081,6 +3105,12 @@ void CalcMgr::runTestCommand(const string& line)
     outcome = string("exception: ") + ex.what();
   }
   cerr << "ECCE_TEST_ORGANIZER: " << line << ": " << outcome << endl;
+  // A test that acts on answers while the Organizer runs (real clicks at a
+  // row's position, #951) reads them from this file; stderr comes at the end.
+  if (const char *out = getenv("ECCE_TEST_ORGANIZER_ANSWERS")) {
+    std::ofstream f(out, std::ios::app);
+    f << line << ": " << outcome << endl;
+  }
 }
 
 
@@ -8346,8 +8376,16 @@ void CalcMgr::OnTreectrlItemMenu( wxTreeEvent& event )
 void CalcMgr::OnPanelSelection( wxCommandEvent& event )
 {
   vector<EcceURL> urls = EcceURL::toVector(event.GetString().ToStdString());
-  if (urls.size() == 1 && p_contextPanel != 0) {
+  // A workflow's boxes and its table show one selection (#951).
+  SessionProjectContextPanel *spc =
+      dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+  WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+  if (wp && event.GetEventObject() == wp) {
+    spc->getTable()->selectResources(urls);
+  } else if (urls.size() == 1 && p_contextPanel != 0) {
     p_contextPanel->selectResource(urls[0]);
+  } else if (wp) {
+    wp->setPicked(urls);
   }
 
   p_focusOnTree = false;
@@ -12229,6 +12267,12 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
   } else if (Resource *one = WorkflowSteps::create(wf, rt, name, source, carry, why)) {
     all.push_back(one);
   }
+  // CREST after an xTB optimisation has nothing to edit before it runs, so
+  // it is written and made Ready once that step completes, as auto-run needs.
+  if (code->label == string("CREST") && source && carry.geometry &&
+      (preopt || WorkflowSteps::isXtbOptimisation(source)))
+    for (Resource *s : all)
+      s->addProp(VDoc::getEcceNamespace() + ":workflow.auto", "1");
   if (all.empty()) {
     if (outcome) *outcome = why.empty() ? "not created" : why;
     if (ask) setMessage(why, WxFeedback::INFO);
@@ -12439,6 +12483,10 @@ void CalcMgr::closeWorkflowView(const string& workflowUrl)
 void CalcMgr::autoRunWorkflow(Session *wf)
 {
   if (!wf || !WorkflowSteps::autoRun(wf)) return;
+  // Opening a workflow in a folder the user cannot write to (a shared
+  // project) must not write decks or launch from it (#950).
+  if (wf->getURL().isLocal() && access(wf->getURL().getPath().c_str(), W_OK) != 0)
+    return;
   // One launch batch at a time; this workflow is looked at when it ends.
   if (p_batch) { p_autoPending.insert(wf->getURL().toString()); return; }
   // A step seen past Created is launched for good; forget it.

@@ -47,7 +47,11 @@ public:
 
   /// Ctrl-click on a box adds it to (or takes it from) the boxes a join
   /// takes; a plain click leaves only that box.
-  void pick(const EcceURL& step, bool add);
+  void pick(const EcceURL& step, bool add, bool range = false);
+  /// The boxes shown as picked: the rows selected in the table.
+  void setPicked(const std::vector<EcceURL>& urls);
+  /// "X Y" on screen of a click on that step's box (test hook).
+  std::string boxPoint(const EcceURL& url);
 
   /// The boxes a code button works on: the picked ones, or the selected one.
   std::vector<Resource*> pickedSteps() const;
@@ -81,8 +85,6 @@ public:
   std::string playReport();
   /// The auto-run box ticked or cleared as a click does (test hook).
   void clickAutoRun(bool on);
-  /// The Back to Table button pressed as a click does (test hook).
-  void clickClose();
   /// Save Workflow as Recipe: "ok <file>" or "error: ...".
   std::string saveAsRecipe(const std::string& id, const std::string& title);
   /// A step's progress or state changed: redraw its result line (#810).
@@ -121,7 +123,6 @@ private:
   wxString p_helpRaw;
   wxStaticText *p_status;
   wxButton *p_launch;
-  wxButton *p_close;
   wxCheckBox *p_autorun;
   wxButton *p_apply;
   wxPanel *p_empty;

@@ -1308,9 +1308,7 @@ def run_autorun(display, data, work, shots):
         "workflowplay %s" % wf,
         "workflowplay %s" % wf,
         "workflowautorun %s query" % wf,
-        # #931: Back to Table shows the folder's table; the folder in the tree
-        # does the same after the workflow was opened again.
-        "workflowclose %s press" % wf,
+        # #931: the folder in the tree leaves the view for the folder's table.
         "workflowclose %s folder" % wf,
         "workflowshot %s %s" % (os.path.join(shots, "workflow-play-buttons.png"), wf),
     ]
@@ -1332,14 +1330,99 @@ def run_autorun(display, data, work, shots):
     check("ticking auto-run keeps the workflow view shown (#902)",
           click == ["ok shown=1 autorun=on"], str(click))
     closed = answers("workflowclose")
-    check("Back to Table shows the folder's table, selecting the folder does too (#931)",
-          len(closed) == 2 and all(c.startswith("ok view=table selected=") and
+    check("selecting the folder shows the folder's table (#931)",
+          len(closed) == 1 and all(c.startswith("ok view=table selected=") and
                                    not c.endswith("/" + wf) for c in closed),
           str(closed))
     check("ticking auto-run launched the ready step", play and "d:0:already run" in play[-1],
           str(play))
     run_recipe_ready(display, data, work, shots, rundir)
     run_hand_ready(display, data, work, shots)
+    run_no_theory(display, data, work, shots, rundir)
+
+
+def run_no_theory(display, data, work, shots, rundir):
+    """Opening a workflow with auto-run on whose Created recipe step stores
+    no theory, as recipe steps made before #910 do (#950): the Organizer
+    crashed writing its deck.  The step gets its code's default theory and
+    goes on; a copy in a folder the user cannot write to is left alone."""
+    project = os.path.join(data, "users", "local", "notheory")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(CALC, os.path.join(project, "water"), symlinks=True)
+    proj = "file://" + project
+    wf = proj + "/Workflow"
+    script = os.path.join(work, "notheory-commands")
+    with open(script, "w") as f:
+        f.write("\n".join([
+            "new %s workflow" % proj,
+            "workflowcopy %s %s/water seed" % (wf, proj),
+            "workflowsetlaunch %s %s/seed localhost %s" % (wf, wf, rundir),
+            "workflowrecipe %s xtb-crest orca %s/seed" % (wf, wf),
+        ]) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=40,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    check("no-theory setup Organizer survives", not result.crashed, result.log or "")
+    folder = os.path.join(project, "Workflow")
+    ns = "http://www.emsl.pnl.gov/ecce:"
+
+    def edit(meta, drop, add):
+        lines = [l for l in open(meta).read().splitlines()
+                 if not any(l.startswith(".\t" + ns + k + "\t") for k in drop)]
+        lines += [".\t%s%s\t\t%s" % (ns, k, v) for k, v in add]
+        with open(meta, "w") as h:
+            h.write("\n".join(lines) + "\n")
+    edit(os.path.join(folder, "xtb", ".ecce-meta"), ("theory", "state"),
+         [("state", "Created")])
+    edit(os.path.join(folder, ".ecce-meta"), ("autorun",), [("autorun", "1")])
+    # The same workflow in a folder the user cannot write to.
+    ro = os.path.join(data, "users", "local", "notheory-ro")
+    shutil.copytree(project, ro, symlinks=True)
+    # The linkbase and metadata name the steps by full URL.
+    for top, _, files in os.walk(ro):
+        for name in files:
+            path = os.path.join(top, name)
+            try:
+                text = open(path).read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if project in text:
+                with open(path, "w") as h:
+                    h.write(text.replace(project + "/", ro + "/"))
+    ro_inputs = sorted(os.listdir(os.path.join(ro, "Workflow", "xtb", "Inputs")))
+    subprocess.run(["chmod", "-R", "a-w", ro])
+    rwf = "file://" + ro + "/Workflow"
+    script = os.path.join(work, "notheory-commands2")
+    with open(script, "w") as f:
+        f.write("\n".join([
+            "select %s" % wf, "idle 3000",
+            "workflowstate %s %s/xtb" % (wf, wf),
+            "workflowinfo %s" % wf,
+            "select %s" % rwf, "idle 3000",
+            "workflowstate %s %s/xtb" % (rwf, rwf),
+        ]) + "\n")
+    try:
+        result = apps.run(display, "organizer", windowTimeout=60, settle=40,
+                          env={"ECCE_TEST_ORGANIZER": script})
+    finally:
+        subprocess.run(["chmod", "-R", "u+w", ro])
+    log = result.log or ""
+    with open(os.path.join(shots, "notheory.log"), "w") as f:
+        f.write(log)
+    check("opening a workflow whose ready step has no theory does not crash (#950)",
+          not result.crashed and "ended by SIG" not in log, log[-3000:])
+    state = re.findall(r"ECCE_TEST_ORGANIZER: workflowstate .*?: (.*)$", log, re.M)
+    meta = open(os.path.join(ro, "Workflow", "xtb", ".ecce-meta")).read()
+    check("in a read-only folder auto-run writes and launches nothing",
+          ns + "state\t\tCreated" in meta and
+          sorted(os.listdir(os.path.join(ro, "Workflow", "xtb", "Inputs"))) == ro_inputs,
+          str(state))
+    check("the step without a theory gets its code's and goes on",
+          len(state) >= 1 and not state[0].lower().startswith("ok state=created"),
+          str(state))
+    info = re.findall(r"ECCE_TEST_ORGANIZER: workflowinfo .*?: (.*)$", log, re.M)
+    info = steps(info[-1].partition("ok ")[2]).get("xtb", {}) if info else {}
+    check("the step stores a theory again", info.get("theory") == "GFN2-xTB", str(info))
 
 
 def run_recipe_ready(display, data, work, shots, rundir):
@@ -1395,8 +1478,7 @@ def run_recipe_ready(display, data, work, shots, rundir):
 def run_hand_ready(display, data, work, shots):
     """ECCE-QM -> xTB -> CREST made with New step (#926): once ECCE-QM is
     complete the inserted xTB step is Ready and CREST is not, not even after
-    the editor's Save; CREST becomes Ready only through that Save, once xTB
-    has completed."""
+    the editor's Save; CREST becomes Ready once xTB has completed."""
     project = os.path.join(data, "users", "local", "handready")
     os.makedirs(project)
     shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
@@ -1440,8 +1522,9 @@ def run_hand_ready(display, data, work, shots):
           len(state) == 5 and state[1].startswith("ok state=created"), str(state))
     check("the editor's Save does not make CREST Ready while xTB waits",
           len(state) == 5 and state[2].startswith("ok state=created"), str(state))
-    check("CREST is not Ready on its own once xTB completes",
-          len(state) == 5 and state[3].startswith("ok state=created"), str(state))
+    # Nothing to edit in CREST after xTB: auto-run needs it Ready (#926).
+    check("CREST is Ready on its own once xTB completes",
+          len(state) == 5 and state[3].startswith("ok state=ready"), str(state))
     check("CREST is Ready after the editor's Save once xTB completed",
           len(state) == 5 and state[4].startswith("ok state=ready"), str(state))
 

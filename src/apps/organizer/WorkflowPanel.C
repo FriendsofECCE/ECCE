@@ -460,6 +460,24 @@ public:
     return out;
   }
 
+  /// The steps in box order (Shift+click ranges).
+  vector<EcceURL> stepOrder() const
+  {
+    vector<EcceURL> out;
+    for (const WfBox &b : p_boxes) out.push_back(b.step->getURL());
+    return out;
+  }
+
+  /// "X Y": the screen point of a plain click on that step's box (test hook).
+  string boxPoint(const EcceURL &url)
+  {
+    const WfBox *b = boxOf(url);
+    if (!b) return "";
+    wxPoint at = ClientToScreen(CalcScrolledPosition(
+        wxPoint(b->rect.x + b->rect.width / 4, b->rect.y + b->rect.height / 2)));
+    return std::to_string(at.x) + " " + std::to_string(at.y);
+  }
+
   const WfBox *boxOf(const EcceURL &url) const
   {
     for (size_t i = 0; i < p_boxes.size(); i++)
@@ -480,18 +498,24 @@ public:
 private:
   // A right-click selects synchronously: the menu is built from the
   // selection, and a pending event would leave it on the previous one.
-  void select(const WfBox *b, bool now = false, bool add = false)
+  // The boxes picked are sent whole: the Organizer selects the same rows in
+  // the table, which is what Energy Calculator and the other tools read (#951).
+  void select(const WfBox *b, bool now = false, bool add = false, bool range = false)
   {
     if (!b) return;
+    const EcceURL url = b->step->getURL();
+    vector<EcceURL> &picked = p_panel->p_picked;
     if (!now)
-      p_panel->pick(b->step->getURL(), add);
-    else if (std::find(p_panel->p_picked.begin(), p_panel->p_picked.end(),
-                       b->step->getURL()) == p_panel->p_picked.end())
-      p_panel->pick(b->step->getURL(), false);
+      p_panel->pick(url, add, range);
+    else if (std::find(picked.begin(), picked.end(), url) == picked.end())
+      p_panel->pick(url, false);
     wxCommandEvent evt(wxEVT_COMMAND_MENU_SELECTED, wxID_PANEL_SELECTION);
-    evt.SetString(b->step->getURL().toString());
-    evt.SetInt(1);
-    p_panel->p_selected = b->step->getURL();
+    evt.SetString(EcceURL::toString(picked));
+    evt.SetInt((int)picked.size());
+    evt.SetEventObject(p_panel);
+    // A Shift+click keeps the anchor; a Ctrl+click that drops a box leaves it.
+    if (!range && std::find(picked.begin(), picked.end(), url) != picked.end())
+      p_panel->p_selected = url;
     if (now) p_panel->GetEventHandler()->ProcessEvent(evt);
     else p_panel->AddPendingEvent(evt);
     Refresh();
@@ -506,7 +530,7 @@ private:
       p_panel->playClicked(b->step->getURL());
       return;
     }
-    select(b, false, e.CmdDown());
+    select(b, false, e.CmdDown(), e.ShiftDown() && !e.CmdDown());
   }
 
   void OnMotion(wxMouseEvent &e)
@@ -848,7 +872,7 @@ WorkflowPanel::WorkflowPanel(CalcMgr *calcMgr, WxResourceTreeItemData *node,
                              wxWindow *parent)
   : ewxPanel(parent, wxID_ANY), p_calcMgr(calcMgr),
     p_session(dynamic_cast<Session*>(node->getResource())),
-    p_canvas(0), p_help(0), p_status(0), p_launch(0), p_close(0), p_autorun(0), p_apply(0), p_empty(0),
+    p_canvas(0), p_help(0), p_status(0), p_launch(0), p_autorun(0), p_apply(0), p_empty(0),
     p_left(0), p_top(0), p_recipe(0), p_vertical(false),
     p_toolbar(0), p_orientationId(wxWindow::NewControlId())
 {
@@ -943,16 +967,6 @@ void WorkflowPanel::createControls()
     say(got.compare(0, 3, "ok ") == 0 ? "Saved as a recipe: " + got.substr(3) : got);
   });
   noteSizer->Add(texts, 0, wxEXPAND);
-  p_close = new wxButton(notes, wxID_ANY, "Back to Table");
-  p_close->SetToolTip("Close the workflow view and show the calculation table "
-                      "of the folder this workflow is in");
-  p_close->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
-    // Selecting the folder replaces this panel, so leave the handler first.
-    const string url = p_session->getURL().toString();
-    CalcMgr *cm = p_calcMgr;
-    cm->CallAfter([cm, url]() { cm->closeWorkflowView(url); });
-  });
-  btnRow->Add(p_close, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxLEFT, 8);
   btnRow->Add(saveRecipe, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxLEFT, 8);
   btnRow->Add(p_apply, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxLEFT, 8);
   btnRow->AddStretchSpacer(1);
@@ -1163,9 +1177,24 @@ string WorkflowPanel::resultLines()
 
 void WorkflowPanel::selectResource(const EcceURL &url)
 {
-  if (url != p_selected) p_picked.clear();
+  if (url != p_selected || p_picked.size() > 1) p_picked.assign(1, url);
   p_selected = url;
   p_canvas->Refresh();
+}
+
+
+void WorkflowPanel::setPicked(const vector<EcceURL> &urls)
+{
+  p_picked = urls;
+  if (!urls.empty() && std::find(urls.begin(), urls.end(), p_selected) == urls.end())
+    p_selected = urls[0];
+  p_canvas->Refresh();
+}
+
+
+string WorkflowPanel::boxPoint(const EcceURL &url)
+{
+  return p_canvas->boxPoint(url);
 }
 
 
@@ -1175,10 +1204,20 @@ void WorkflowPanel::loseFocus()
 }
 
 
-void WorkflowPanel::pick(const EcceURL &step, bool add)
+void WorkflowPanel::pick(const EcceURL &step, bool add, bool range)
 {
+  if (range && p_selected != EcceURL()) {
+    const vector<EcceURL> order = p_canvas->stepOrder();
+    auto a = std::find(order.begin(), order.end(), p_selected);
+    auto b = std::find(order.begin(), order.end(), step);
+    if (a != order.end() && b != order.end()) {
+      if (b < a) std::swap(a, b);
+      p_picked.assign(a, b + 1);
+      return;
+    }
+  }
   if (!add) {
-    p_picked.clear();
+    p_picked.assign(1, step);
     return;
   }
   if (p_picked.empty() && p_selected != EcceURL()) p_picked.push_back(p_selected);
@@ -1246,14 +1285,6 @@ void WorkflowPanel::clickAutoRun(bool on)
   evt.SetEventObject(p_autorun);
   evt.SetInt(on ? 1 : 0);
   p_autorun->GetEventHandler()->ProcessEvent(evt);
-}
-
-
-void WorkflowPanel::clickClose()
-{
-  wxCommandEvent evt(wxEVT_BUTTON, p_close->GetId());
-  evt.SetEventObject(p_close);
-  p_close->GetEventHandler()->ProcessEvent(evt);
 }
 
 

@@ -829,7 +829,7 @@ bool JCode::theoryNeedsBasis(const TTheory& theory) const
 {
   bool ret = true;
 
-  for (int it=0; it < p_theories->size(); it++) {
+  for (int it=0; p_theories && it < p_theories->size(); it++) {
     if ((*p_theories)[it] == theory) {
       ret = (*p_theories)[it].needsBasis();
       break;

@@ -674,7 +674,10 @@ void WxGridView::gridRangeSelect(wxGridRangeSelectEvent& event)
   if ( (topRow >= 0) && (bottomRow <= (numRows - 1)) ) {
     if (event.Selecting()) {
       if (!p_multiSelect && (topRow != bottomRow || event.ControlDown())) {
-        selectRow(getCursorRow());
+        // One row only: the one clicked.  The cursor is still on the
+        // previous row here (Ctrl) or is the far end of the block (Shift).
+        const int cursor = getCursorRow();
+        selectRow(event.ControlDown() || topRow != cursor ? topRow : bottomRow);
       }
       else {
         p_grid->SetSelectionBackground(ewxStyledWindow::getFocusedSelectionColor());

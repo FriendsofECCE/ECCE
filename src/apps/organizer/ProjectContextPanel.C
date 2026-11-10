@@ -579,6 +579,19 @@ void ProjectContextPanel::clickRow(int row, bool ctrl, bool shift)
 }
 
 
+string ProjectContextPanel::rowAt(int row)
+{
+  if (row < 0 || row >= p_projectView->getRowCount()) return "";
+  ewxGrid *grid = p_projectView->getGrid();
+  wxRect r = grid->CellToRect(row, 0);
+  wxPoint at = grid->GetGridWindow()->ClientToScreen(grid->CalcScrolledPosition(
+      wxPoint(r.x + r.width / 2, r.y + r.height / 2)));
+  GridPropElement *e = dynamic_cast<GridPropElement*>(p_projectView->getElement(row, 0));
+  return std::to_string(at.x) + " " + std::to_string(at.y) + " " +
+         (e && e->getResource() ? e->getResource()->getURL().toString() : string("-"));
+}
+
+
 void ProjectContextPanel::loseFocus()
 {
   p_projectView->setSelectionColor(ewxStyledWindow::getUnfocusedSelectionColor());

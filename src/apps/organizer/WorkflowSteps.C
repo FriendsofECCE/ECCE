@@ -200,8 +200,8 @@ namespace { void applyDefaultTheory(Resource *step); }
 namespace {
 // Set on a hand-made step whose source had not run when it was made.
 const char *const kCarryPendingProp = ":workflow.carry";
-// Marks the xTB optimisation New step inserts before CREST; only it is
-// written and made Ready without its editor.
+// Marks the hand-made steps written and made Ready without their editor:
+// the xTB optimisation New step inserts before CREST, and that CREST step.
 const char *const kAutoReadyProp = ":workflow.auto";
 }
 
@@ -1350,8 +1350,18 @@ string WorkflowSteps::prepareStep(Session *wf, Resource *step)
     Fragment *frag = task ? task->fragment() : 0;
     const bool atoms = frag && frag->numAtoms() > 0;
     delete frag;
+    // Steps made before #910 stored no theory, and the deck needs one (#950).
+    TTheory *th = calc->theory();
+    if (!th) {
+      applyDefaultTheory(step);
+      th = calc->theory();
+    }
+    const bool theory = th != 0;
+    delete th;
     if (!atoms) {
       why = "no structure yet";
+    } else if (!theory) {
+      why = "no theory yet (open it in the Calculation Editor)";
     } else {
       DeckWriter::Result r = DeckWriter::generate(calc);
       if (r.ok) {

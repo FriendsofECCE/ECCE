@@ -119,9 +119,14 @@ tree. The right-click menu of a box is that of the calculation.
 The code buttons are at the right of the view. The text under the drawing
 says what to do next.
 
-**Back to Table** closes the workflow view and shows the calculation table of
-the folder the workflow is in. Selecting the workflow in the tree opens the
+Selecting the folder the workflow is in, in the tree, closes the workflow view
+and shows that folder's calculation table. Selecting the workflow opens the
 view again.
+
+Clicking a box selects that step; Ctrl+click adds or removes a box and
+Shift+click selects the boxes from the last one clicked. The table below the
+view selects the same steps, and Tools such as the Energy Calculator act on
+them.
 
 ## Canvas height and orientation
 

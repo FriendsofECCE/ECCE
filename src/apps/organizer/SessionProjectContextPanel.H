@@ -50,6 +50,7 @@ public:
   void OnSashPosChanged( wxSplitterEvent & event );
 
   WorkflowPanel * getWorkflowPanel() { return p_workflow; }
+  ProjectContextPanel * getTable() { return p_project; }
 
 
 protected:
