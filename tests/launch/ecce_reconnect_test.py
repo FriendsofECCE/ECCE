@@ -108,7 +108,7 @@ def main():
             check(False, "services came up")
             return 1
         urls = {}
-        for name in ("one", "done", "idle", "late"):
+        for name in ("one", "done", "idle", "late", "gui"):
             url, out = s.create(name, "cp2k_es", deck, "cp2k.cp2kin", rundir,
                                 extra=("procs=1", "queue=normal", "nodes=1",
                                        "wall=0 1:0"))
@@ -145,8 +145,14 @@ def main():
         genv = s.env({"DISPLAY": display.name,
                       "PATH": wrappers + os.pathsep + s.env()["PATH"]})
         olog = os.path.join(s.state, "organizer.log")
+        cmds = os.path.join(s.state, "organizer-commands")
+        open(cmds, "w").close()
+        import sessionkey
+        with open(os.path.join(s.state, ".ECCE", "waiting", "session"), "w") as h:
+            h.write(sessionkey.key(genv.get("ECCE_SESSION_ID", ""), genv) + "\n")
         org = subprocess.Popen(
-            [os.path.join(wrappers, "ecce-organizer")], env=genv,
+            [os.path.join(wrappers, "ecce-organizer")],
+            env=dict(genv, ECCE_TEST_ORGANIZER=cmds),
             cwd=os.path.join(s.home, "bin"), stdout=open(olog, "w"),
             stderr=subprocess.STDOUT, start_new_session=True)
 
@@ -213,6 +219,32 @@ def main():
         rc, got = s.driver("jobid", urls["late"])
         check(got.strip() == jid, "its job id is stored (%r)" % got.strip())
         check(monitoring(s, urls["late"]), "its monitor is running")
+
+        #  The same through Reconnect Selected: the hook's jobid= stands for
+        #  the dialog's answer.
+        parts = urls["gui"].rstrip("/").split("/")
+        os.makedirs(os.path.join(rundir, parts[-2], parts[-1]), exist_ok=True)
+
+        def send(line, timeout=300):
+            seen = len(open(olog, errors="replace").read().splitlines())
+            with open(cmds, "a") as h:
+                h.write(line + "\n")
+            want = "ECCE_TEST_ORGANIZER: %s: " % line
+            end = time.time() + timeout
+            while time.time() < end:
+                for t in open(olog, errors="replace").read().splitlines()[seen:]:
+                    if t.startswith(want):
+                        return t[len(want):]
+                time.sleep(0.5)
+            return "no answer"
+
+        ans = send("reconnectselected %s jobid=%s" % (urls["gui"], jid))
+        say("  gui: %s" % ans)
+        check("gui: reconnected" in ans, "Reconnect Selected: Ready one reconnected")
+        check(s.state_of(urls["gui"]) in ("submitted", "running"),
+              "the Ready calculation is Submitted")
+        rc, got = s.driver("jobid", urls["gui"])
+        check(got.strip() == jid, "its job id is stored (%r)" % got.strip())
     finally:
         if org and org.poll() is None:
             org.terminate()

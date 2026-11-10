@@ -2756,9 +2756,15 @@ void CalcMgr::runTestCommand(const string& line)
       std::istringstream args(calcName);
       string png, u;
       if (command == "reconnectselectedshot") args >> png;
+      // "jobid=N" among the URLs answers the job-id question of a Ready one.
       vector<EcceURL> urls;
-      while (args >> u) urls.push_back(EcceURL(u));
-      reconnectSelected(urls, false, &outcome, png, command == "reconnectselectedlist");
+      string readyId;
+      while (args >> u) {
+        if (u.compare(0, 6, "jobid=") == 0) readyId = u.substr(6);
+        else urls.push_back(EcceURL(u));
+      }
+      reconnectSelected(urls, false, &outcome, png, command == "reconnectselectedlist",
+                        0, readyId);
     } else if (command == "newseries") {
       // "newseries TEMPLATE_URL SOURCE...": New Series without dialogs; the
       // answer is the report, newlines as " | ".
@@ -5210,6 +5216,30 @@ bool CalcMgr::terminateForCommand(const vector<EcceURL>& urls,
 }
 
 
+//  Marks a Ready calculation whose submit gave no answer as Submitted with
+//  the queue job id found by hand, so that the ordinary reconnect starts the
+//  monitor. Shared by ecce-reconnect jobid=N and Reconnect Selected.
+bool CalcMgr::attachJobId(TaskJob *job, const string& jobId, string& why)
+{
+  Jobdata jd = job->jobdata();
+  if (job->launchdata().machine.empty() || jd.jobpath.empty()) {
+    why = "no machine or run directory stored: "
+          "the calculation was not submitted from here";
+    return false;
+  }
+  jd.jobid = jobId;
+  job->jobdata(jd);
+  job->addProp(VDoc::getEcceNamespace() + ":submitdate",
+               std::to_string((long long)time(0)));
+  vector<MetaDataResult> r(1);
+  r[0].name = VDoc::getEcceNamespace() + ":submituncertain";
+  r[0].value = "";
+  try { job->addProps(r); } catch (...) {}
+  job->setState(ResourceDescriptor::STATE_SUBMITTED);
+  return true;
+}
+
+
 //  Reconnect Selected for a request from another process: the same
 //  reconnectSelected, without the confirmation. One line per calculation,
 //  "name\tok\tjob id" or "name\tno\treason".
@@ -5239,21 +5269,11 @@ bool CalcMgr::reconnectForCommand(const vector<EcceURL>& urls,
         lines.push_back(name + "\tno\tjobid= only for a Ready calculation");
         continue;
       }
-      Jobdata jd = job->jobdata();
-      if (job->launchdata().machine.empty() || jd.jobpath.empty()) {
-        lines.push_back(name + "\tno\tno machine or run directory stored: "
-                        "the calculation was not submitted from here");
+      string why;
+      if (!attachJobId(job, jobId, why)) {
+        lines.push_back(name + "\tno\t" + why);
         continue;
       }
-      jd.jobid = jobId;
-      job->jobdata(jd);
-      job->addProp(VDoc::getEcceNamespace() + ":submitdate",
-                   std::to_string((long long)time(0)));
-      vector<MetaDataResult> r(1);
-      r[0].name = VDoc::getEcceNamespace() + ":submituncertain";
-      r[0].value = "";
-      try { job->addProps(r); } catch (...) {}
-      job->setState(ResourceDescriptor::STATE_SUBMITTED);
       updateUrl(urls[i]);
     }
     tasks.push_back(urls[i]);
@@ -5499,13 +5519,38 @@ void CalcMgr::reparseFinished(const EcceURL& url, const string& result)
 
 void CalcMgr::reconnectSelected(const vector<EcceURL>& urls, bool interactive,
                                 string *outcome, const string& shot, bool listOnly,
-                                vector<string> *lines)
+                                vector<string> *lines, const string& readyJobId)
 {
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
     WxResourceTreeItemData *item = findNode(urls[i], true, true);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
-    if (task) tasks.push_back(task);
+    if (!task) continue;
+    // A Ready calculation was never submitted from here: its job id, if the
+    // job is in the queue, is asked for once and attached as ecce-reconnect
+    // jobid=N does, which makes it an ordinary Submitted row below.
+    if (!listOnly && shot.empty() && task->getState() == ResourceDescriptor::STATE_READY &&
+        (interactive || !readyJobId.empty())) {
+      string id = readyJobId;
+      if (id.empty()) {
+        if (const char *t = getenv("ECCE_TEST_RECONNECT_JOBID")) id = t;
+        else {
+          ewxTextEntryDialog ask(this,
+              "Job ID of " + item->getName() + " in the queue.\n"
+              "The calculation was not submitted from ECCE.\n"
+              "Leave empty or Cancel to skip it.",
+              "Reconnect Selected: Job ID", "", wxOK | wxCANCEL);
+          if (ask.ShowModal() == wxID_OK) id = ask.GetValue().ToStdString();
+        }
+      }
+      id.erase(0, id.find_first_not_of(" \t"));
+      id.erase(id.find_last_not_of(" \t") + 1);
+      string why;
+      if (!id.empty() && attachJobId(task, id, why)) updateUrl(urls[i]);
+      else if (!id.empty() && lines)
+        lines->push_back(item->getName() + "\tno\t" + why);
+    }
+    tasks.push_back(task);
   }
   if (tasks.empty()) {
     if (outcome) *outcome = "no calculations";
