@@ -1640,7 +1640,7 @@ void interactGetFiles(void)
   // space-separated CP2K pattern the deck asked for, possibly MD Traject.trj,
   // .rst, and .pmf dependent upon whether trajectories will be stored, and
   // the null entry at the end of the array
-  int extraCount = 4;  // .cub, .cube, .file30, and the null entry
+  int extraCount = 5;  // .cub, .cube, .file30, results.h5, and the null entry
   for (size_t start = 0; start < cpExtraPatterns.size(); ) {
     size_t sp = cpExtraPatterns.find(' ', start);
     if (sp != start)
@@ -1680,6 +1680,9 @@ void interactGetFiles(void)
   fileStrs[it++] = strdup((char*)fullFile.c_str());
 
   fullFile = cpRemoteDir + "/*.cube";
+  fileStrs[it++] = strdup((char*)fullFile.c_str());
+  // ECCE-QM's own results.h5 (#690); resultsFileStore keeps it if it passes.
+  fullFile = cpRemoteDir + "/results.h5";
   fileStrs[it++] = strdup((char*)fullFile.c_str());
 
   // The CP2K wildcard the deck asked for (.pdos), added only if not already
@@ -1873,6 +1876,7 @@ void interactGetFiles(void)
   storeMatches("*.cub");
   storeMatches("*.cube");
   storeMatches("*.pdos");
+  storeMatches("results.h5");
   gromacsMdAnalysisFallback(parsedMd);
 
   //  The auxiliary output a code asks to keep (ORCA's .gbw).  Only a

@@ -19,6 +19,7 @@ struct FrequencyOutput {
   Thermo thermo;
   double step = 0;          // finite-difference step, bohr
   double max_gradient = 0;  // at the geometry the Hessian belongs to, hartree/bohr
+  Mat hessian;              // 3N x 3N, hartree/bohr^2 (for results.h5)
 };
 
 // Static polarisability tensor of the final geometry (bohr^3).

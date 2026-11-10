@@ -43,7 +43,12 @@ Empty datasets are never written.
 - `hessian/<n>` (dataset: upper triangle of the 3N x 3N Cartesian Hessian,
   row-wise, Eh/bohr2; attributes geometry, method), `gradient/<n>`,
   `charges/<scheme>`, `multipoles/<n>` (dipole, quadrupole xx xy xz yy yz
-  zz), `vib/<n>` (frequency, ir_intensity, reduced_mass, mode [nmodes,3N]),
+  zz), `vib/<n>` (frequency, ir_intensity, raman_activity, reduced_mass,
+  mode [nmodes,3N] as the code printed it),
+  `trace/<name>` (optimization|scan|irc|md|ensemble; attribute npoint;
+  coord [npoint,natoms,3] bohr, energy Eh, value with attribute unit
+  (bohr, radian, or the code's IRC unit), gradient [npoint,natoms,3],
+  cell [npoint,3,3] bohr, time ps),
   `tensors/<name>` (polarizability, Raman, quadrupole), `bands`
   (plane-wave codes: kpoint, weight, energy/occupation [spin,k,band],
   fermi_energy; never wavefunctions), `trajectory/<n>` (reference only:

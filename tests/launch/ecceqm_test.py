@@ -256,7 +256,8 @@ def checkResultsFile(env, build, calc):
     if not check(os.path.exists(h5), "the job store stored Outputs/results.h5"):
         return
     with open(os.path.join(calc, "Outputs", "eccejobstorelog.ecce_run_log"), errors="replace") as handle:
-        log = [l for l in handle.read().splitlines() if "results.h5" in l]
+        # The result message only: the copy-back logs its own results.h5 line.
+        log = [l for l in handle.read().splitlines() if 'name="results.h5"' in l]
     say("  run log: " + (log[-1].strip() if log else "(no results.h5 line)"))
     check(len(log) == 1 and "checks passed" in log[0],
           "the run log has one results.h5 line, checks passed")

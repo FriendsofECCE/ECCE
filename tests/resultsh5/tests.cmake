@@ -15,3 +15,10 @@ add_test(NAME resultsh5_calc
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/resultsh5/run_calc_tests.py
           $<TARGET_FILE:results_calc_test> $<TARGET_FILE:ecce-results>)
 set_tests_properties(resultsh5_calc PROPERTIES TIMEOUT 900)
+
+# Vibrations and /trace against the programs' raw output; ECCE-QM's own file
+# against the one from the parsed properties (#690, #883).
+add_test(NAME resultsh5_trace
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/resultsh5/trace_vib_test.py
+          $<TARGET_FILE:ecce-results> $<TARGET_FILE:ecce-qm>)
+set_tests_properties(resultsh5_trace PROPERTIES TIMEOUT 600)
