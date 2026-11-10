@@ -13,6 +13,7 @@
 #include "dsm/ICalculation.H"
 #include "dsm/IPropCalculation.H"
 
+#include "tdat/ResultsFromCalc.H"
 #include "tdat/SingleGrid.H"
 #include "tdat/PropVecTable.H"
 #include "tdat/TAtm.H"
@@ -97,7 +98,7 @@ bool NModeTraceCmd::execute()
 
 
   // Get the property 
-  PropVecTable* nmodes = dynamic_cast<PropVecTable*>(calc->getProperty("VIB"));
+  PropVecTable* nmodes = dynamic_cast<PropVecTable*>(ResultsFromCalc::property(calc, "VIB"));
   
   //  One vector per atom: an edited structure is not the one these modes
   //  belong to, and must not be replaced by the calculation's.

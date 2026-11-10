@@ -34,6 +34,19 @@ EXPECT_FAILED = [os.path.join(T, "apps", "fixtures", "calc-water-opt")]
 G16 = os.path.join(T, "apps", "fixtures", "calc-water-vib")   # Gaussian 16, properties only
 ORCA_META = os.path.join(T, "apps", "fixtures", "calc-orca-water-ccpvdz", ".ecce-meta")
 XTB_CASES = [("h2o", 8), ("so2", 18)]
+EX = os.path.join(ROOT, "data", "client", "examples")
+# Views reading vibrations and traces from results.h5 against the Props:
+# (stored example, keys that must come from the file).  An example stored
+# without results.h5 gets one from `ecce-results write` first.
+VIEW_CASES = [
+    ("getting-started/orca-benzene/stored/benzene", "VIBFREQ,VIBIR,VIB,GEOMTRACE,TEVEC"),
+    ("organic/conformations/ecceqm-butane-scan/stored/butane_scan",
+     "SCANGEOM,SCANENERGY,SCANCOORD,GEOMTRACE,TEVEC"),
+    ("computational/h2-dissociation/orca-h2_ccsd_scan/stored/h2_ccsd_scan",
+     "SCANGEOM,SCANENERGY,SCANCOORD"),
+    ("getting-started/ecceqm-water/stored/water", "VIBFREQ,VIBIR,VIB"),
+    ("organic/reactions/orca-sn2_irc/stored/sn2_irc", "IRCGEOM,IRCENERGY,IRCCOORD"),
+]
 
 
 def run(cmd, env, **kw):
@@ -98,6 +111,17 @@ def main():
                 print("%s NWChem %s movecs: %s" % ("ok:  " if ok else "FAIL:",
                                                   "with" if keep else "without", want))
                 rc |= 0 if ok else 1
+
+        if cli:
+            args = []
+            for i, (rel, keys) in enumerate(VIEW_CASES):
+                dst = os.path.join(tmp, "view%d-%s" % (i, os.path.basename(rel)))
+                shutil.copytree(os.path.join(EX, rel), dst, ignore=shutil.ignore_patterns(".DAV"))
+                os.makedirs(os.path.join(dst, "Outputs"), exist_ok=True)
+                if not os.path.exists(os.path.join(dst, "Outputs", "results.h5")):
+                    rc |= run([cli, "write", dst], env)
+                args.append(dst + ("=" + keys if keys else ""))
+            rc |= run([exe, "views"] + args, env)
 
         # real ORCA blocks: CrO/def2-SVP (f functions, a metal) and HF/cc-pVQZ (g)
         for block, nb, xyz, nel in (

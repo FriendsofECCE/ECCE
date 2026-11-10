@@ -3,6 +3,7 @@
 #include "util/Ecce.H"
 #include "dsm/ICalculation.H"
 #include "dsm/TaskJob.H"
+#include "tdat/ResultsFromCalc.H"
 #include "tdat/TRunType.H"
 #include "dsm/VDoc.H"
 #include <cmath>
@@ -520,7 +521,7 @@ bool NModePanel::modesApply()
 {
    SGFragment *frag = getFW().getSceneGraph().getFragment();
    PropVecTable *vib =
-         dynamic_cast<PropVecTable*>(getCalculation()->getProperty("VIB"));
+         dynamic_cast<PropVecTable*>(ResultsFromCalc::property(getCalculation(), "VIB"));
    if (!frag || !vib) return false;
    const size_t n = frag->numAtoms();
    if ((int)n != vib->rows() || n != p_calcElements.size()) return false;
@@ -1153,9 +1154,9 @@ int NModePanel::getSelectedMode() const
 static bool spectrumOf(IPropCalculation *expt, VibSpectrum& spectrum,
                        bool *hasIntensities = 0)
 {
-  PropVector *vec =  (PropVector*) expt->getProperty("VIBFREQ");
-  PropVector *ivec = (PropVector*) expt->getProperty("VIBIR");
-  PropVector *rvec = (PropVector*) expt->getProperty("VIBRAM");
+  PropVector *vec =  (PropVector*) ResultsFromCalc::property(expt, "VIBFREQ");
+  PropVector *ivec = (PropVector*) ResultsFromCalc::property(expt, "VIBIR");
+  PropVector *rvec = (PropVector*) ResultsFromCalc::property(expt, "VIBRAM");
   PropVecString *symvec = (PropVecString*) expt->getProperty("VIBSYM");
   if (vec == 0) return false;
 
@@ -1310,9 +1311,9 @@ void NModePanel::compareDialog()
 bool NModePanel::writeModesFile(IPropCalculation *calc, const string& path,
                                 wxString *error)
 {
-   PropVector *vec = calc ? (PropVector*) calc->getProperty("VIBFREQ") : 0;
-   PropVector *ir = calc ? (PropVector*) calc->getProperty("VIBIR") : 0;
-   PropVecTable *vib = calc ? dynamic_cast<PropVecTable*>(calc->getProperty("VIB")) : 0;
+   PropVector *vec = calc ? (PropVector*) ResultsFromCalc::property(calc, "VIBFREQ") : 0;
+   PropVector *ir = calc ? (PropVector*) ResultsFromCalc::property(calc, "VIBIR") : 0;
+   PropVecTable *vib = calc ? dynamic_cast<PropVecTable*>(ResultsFromCalc::property(calc, "VIB")) : 0;
    Fragment frag;
    if (!vec || !vib || !calc->getFragment(frag)) {
       if (error) *error = "This calculation has no stored normal modes and structure.";
@@ -2092,9 +2093,9 @@ void NModePanel::fillTable()
    p_grid->DeleteRows(0,p_grid->GetNumberRows());
 
    // Get the required properties 
-   PropVector *vec =  (PropVector*) expt->getProperty("VIBFREQ");
-   PropVector *ivec = (PropVector*) expt->getProperty("VIBIR");
-   PropVector *rvec = (PropVector*) expt->getProperty("VIBRAM");
+   PropVector *vec =  (PropVector*) ResultsFromCalc::property(expt, "VIBFREQ");
+   PropVector *ivec = (PropVector*) ResultsFromCalc::property(expt, "VIBIR");
+   PropVector *rvec = (PropVector*) ResultsFromCalc::property(expt, "VIBRAM");
 
    if (vec != (PropVector*)0) {
       analyseModes();
@@ -2191,8 +2192,8 @@ void NModePanel::analyseModes()
    p_vib = VibResult();
    p_codeSym.clear();
    IPropCalculation *expt = getCalculation();
-   PropVector *vec = (PropVector*) expt->getProperty("VIBFREQ");
-   PropVecTable *vib = dynamic_cast<PropVecTable*>(expt->getProperty("VIB"));
+   PropVector *vec = (PropVector*) ResultsFromCalc::property(expt, "VIBFREQ");
+   PropVecTable *vib = dynamic_cast<PropVecTable*>(ResultsFromCalc::property(expt, "VIB"));
    PropVecString *symvec = (PropVecString*) expt->getProperty("VIBSYM");
    if (symvec != 0)
       for (int i = 0; i < symvec->rows(); i++) p_codeSym.push_back(symvec->value(i));
@@ -2225,8 +2226,8 @@ string NModePanel::displaceCalculation(int mode, double amplitude,
 {
    IPropCalculation *calc = getCalculation();
    Resource *res = dynamic_cast<Resource*>(calc);
-   PropVector *vec = calc ? (PropVector*) calc->getProperty("VIBFREQ") : 0;
-   PropVecTable *vib = calc ? dynamic_cast<PropVecTable*>(calc->getProperty("VIB")) : 0;
+   PropVector *vec = calc ? (PropVector*) ResultsFromCalc::property(calc, "VIBFREQ") : 0;
+   PropVecTable *vib = calc ? dynamic_cast<PropVecTable*>(ResultsFromCalc::property(calc, "VIB")) : 0;
    Fragment frag;
    if (!res || !vec || !vib || !calc->getFragment(frag))
       return "This calculation has no stored normal modes and structure.";
@@ -3233,8 +3234,8 @@ bool NModePanel::compositionRows(bool chBends, VibComposition& comp,
 {
    auto fail = [&](const wxString& why) { if (error) *error = why; return false; };
    IPropCalculation *expt = getCalculation();
-   PropVector *vec = expt ? (PropVector*) expt->getProperty("VIBFREQ") : 0;
-   PropVecTable *vib = expt ? dynamic_cast<PropVecTable*>(expt->getProperty("VIB")) : 0;
+   PropVector *vec = expt ? (PropVector*) ResultsFromCalc::property(expt, "VIBFREQ") : 0;
+   PropVecTable *vib = expt ? dynamic_cast<PropVecTable*>(ResultsFromCalc::property(expt, "VIB")) : 0;
    if (vec == 0 || vib == 0) return fail("This calculation has no normal modes.");
    Fragment frag;
    if (!expt->getFragment(frag)) return fail("The calculation's structure is not available.");
@@ -3580,8 +3581,8 @@ std::string NModePanel::highlightAtoms(const std::vector<int>& atoms)
       VibComposition comp;
       vector<double> freqs;
       IPropCalculation *expt = getCalculation();
-      PropVector *vec = expt ? (PropVector*) expt->getProperty("VIBFREQ") : 0;
-      PropVecTable *vib = expt ? dynamic_cast<PropVecTable*>(expt->getProperty("VIB")) : 0;
+      PropVector *vec = expt ? (PropVector*) ResultsFromCalc::property(expt, "VIBFREQ") : 0;
+      PropVecTable *vib = expt ? dynamic_cast<PropVecTable*>(ResultsFromCalc::property(expt, "VIB")) : 0;
       Fragment frag;
       if (vec && vib && expt->getFragment(frag) &&
           vib->rows() == (int)frag.numAtoms() && vib->tables() == vec->rows()) {

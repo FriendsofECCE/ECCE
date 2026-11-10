@@ -11,6 +11,7 @@
 #include "dsm/ICalculation.H"
 #include "dsm/IPropCalculation.H"
 
+#include "tdat/ResultsFromCalc.H"
 #include "tdat/SingleGrid.H"
 #include "tdat/PropVecTable.H"
 #include "tdat/TAtm.H"
@@ -68,7 +69,7 @@ bool NModeVectCmd::execute()
 
 
    // Get the property 
-   PropVecTable* vecTable = (PropVecTable*)calc->getProperty("VIB");
+   PropVecTable* vecTable = dynamic_cast<PropVecTable*>(ResultsFromCalc::property(calc, "VIB"));
    // One vector per atom, or none at all.
    if (vecTable && vecTable->rows() != (int)sgfrag->numAtoms()) {
       vecTable = 0;

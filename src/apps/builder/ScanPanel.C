@@ -20,6 +20,7 @@
 #include <wx/image.h>
 #include <wx/utils.h>
 
+#include "tdat/ResultsFromCalc.H"
 #include "tdat/PropVector.H"
 #include "tdat/PropTSVecTable.H"
 #include "tdat/TProperty.H"
@@ -210,8 +211,8 @@ void ScanPanel::fill()
   p_hartree.clear();
   p_frame.clear();
   IPropCalculation *calc = getCalculation();
-  PropVector *c = calc ? dynamic_cast<PropVector*>(calc->getProperty("SCANCOORD")) : 0;
-  PropVector *e = calc ? dynamic_cast<PropVector*>(calc->getProperty("SCANENERGY")) : 0;
+  PropVector *c = calc ? dynamic_cast<PropVector*>(ResultsFromCalc::property(calc, "SCANCOORD")) : 0;
+  PropVector *e = calc ? dynamic_cast<PropVector*>(ResultsFromCalc::property(calc, "SCANENERGY")) : 0;
   if (!c || !e) return;
   const size_t n = std::min(c->values().size(), e->values().size());
   p_coord.assign(c->values().begin(), c->values().begin() + n);
@@ -220,7 +221,7 @@ void ScanPanel::fill()
 
   // One structure per point, or none: a partial set cannot be matched up.
   PropTSVecTable *geom =
-      calc ? dynamic_cast<PropTSVecTable*>(calc->getProperty("SCANGEOM")) : 0;
+      calc ? dynamic_cast<PropTSVecTable*>(ResultsFromCalc::property(calc, "SCANGEOM")) : 0;
   p_frame.assign(n, -1);
   if (geom && geom->tables() == n)
     for (size_t i = 0; i < n; i++) p_frame[i] = (int)i;
@@ -490,7 +491,7 @@ void ScanPanel::loseFocus()
   // With per-point orbitals the selected point's structure stays with them.
   if (calc && calc->hasPointOrbitals()) return;
   PropTSVecTable *trace =
-      calc ? dynamic_cast<PropTSVecTable*>(calc->getProperty("GEOMTRACE")) : 0;
+      calc ? dynamic_cast<PropTSVecTable*>(ResultsFromCalc::property(calc, "GEOMTRACE")) : 0;
   if (!trace || trace->tables() == 0) return;
   SGContainer& sg = getFW().getSceneGraph();
   Command *cmd = new GTStepCmd("Trace Step", &sg, calc);
@@ -633,8 +634,8 @@ std::vector<Candidate> scansBeside(IPropCalculation *calc, const std::string& un
   for (Resource *r : *kids) {
     IPropCalculation *other = dynamic_cast<IPropCalculation*>(r);
     if (!other || other->getURL().toString() == own) continue;
-    PropVector *c = dynamic_cast<PropVector*>(other->getProperty("SCANCOORD"));
-    PropVector *e = dynamic_cast<PropVector*>(other->getProperty("SCANENERGY"));
+    PropVector *c = dynamic_cast<PropVector*>(ResultsFromCalc::property(other, "SCANCOORD"));
+    PropVector *e = dynamic_cast<PropVector*>(ResultsFromCalc::property(other, "SCANENERGY"));
     if (!c || !e || (c->units() == "Degree") != (unit == "degree")) continue;
     const size_t n = std::min(c->values().size(), e->values().size());
     if (n < 2) continue;
