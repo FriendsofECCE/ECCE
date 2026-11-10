@@ -1,0 +1,16 @@
+title Water dimer, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies
+charge 0
+multiplicity 1
+method b3lyp
+dispersion d3bj
+basis def2-TZVP
+runtype optfreq
+opt_conv tight
+geometry
+ O 0.000000 0.000000 0.000000
+ H 0.965000 0.000000 0.000000
+ H -0.240000 0.930000 0.000000
+ O 2.910000 0.000000 0.000000
+ H 3.229000 0.491000 0.757000
+ H 3.229000 0.491000 -0.757000
+end

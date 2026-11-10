@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="EGRAD" rowLabel="Geometry Step" rows="1" units="Hartree/Bohr">
+
+  <step number="1">0.0149534415</step>
+  <step number="2">0.0062747360</step>
+  <step number="3">0.0066855511</step>
+  <step number="4">0.0042050463</step>
+  <step number="5">0.0056475866</step>
+  <step number="6">0.0030099885</step>
+  <step number="7">0.0043126232</step>
+  <step number="8">0.0033996897</step>
+  <step number="9">0.0027215898</step>
+  <step number="10">0.0024069508</step>
+  <step number="11">0.0070880858</step>
+  <step number="12">0.0022017533</step>
+  <step number="13">0.0017903905</step>
+  <step number="14">0.0071083495</step>
+  <step number="15">0.0034959896</step>
+  <step number="16">0.0074983748</step>
+  <step number="17">0.0108359979</step>
+  <step number="18">0.0051754469</step>
+  <step number="19">0.0041929687</step>
+  <step number="20">0.0086063271</step>
+  <step number="21">0.0038443010</step>
+  <step number="22">0.0048406650</step>
+  <step number="23">0.0047935095</step>
+  <step number="24">0.0023444600</step>
+  <step number="25">0.0087932712</step>
+  <step number="26">0.0041676823</step>
+  <step number="27">0.0022520256</step>
+  <step number="28">0.0039325147</step>
+  <step number="29">0.0025685333</step>
+  <step number="30">0.0025548080</step>
+  <step number="31">0.0009125390</step>
+  <step number="32">0.0007141672</step>
+  <step number="33">0.0001260957</step>
+  <step number="34">0.0001822571</step>
+  <step number="35">0.0002310724</step>
+  <step number="36">0.0001622743</step>
+  <step number="37">0.0000744405</step>
+
+</tsvector>

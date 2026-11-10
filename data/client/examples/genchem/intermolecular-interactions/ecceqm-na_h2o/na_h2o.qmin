@@ -1,0 +1,14 @@
+title Na+ water, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies
+charge 1
+multiplicity 1
+method b3lyp
+dispersion d3bj
+basis def2-TZVP
+runtype optfreq
+opt_conv tight
+geometry
+ Na 0.000000 0.000000 -2.230000
+ O 0.000000 0.000000 0.000000
+ H 0.000000 0.760000 0.590000
+ H 0.000000 -0.760000 0.590000
+end
