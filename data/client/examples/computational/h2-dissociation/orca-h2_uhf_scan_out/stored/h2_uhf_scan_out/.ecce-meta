@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, UHF/cc-pVTZ without a broken-symmetry guess, scan of the H-H distance outwards from 0.5 to 4.0 Å. This calculation shows the SCF following its closed-shell solution from point to point, so it stays on the RHF curve where the inward broken-symmetry scan does not.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 10:54:50 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:11:07 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 10:54:36 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:10:53 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=14 sent=1794308090.384 idle=0 at=1794308090\nscan point=36/\nopt step=1 energy=-0.788388690 rmsgrad=0.0000000000/0.0001000000 maxgrad=0.0000000000/0.0003000000 rmsstep=0.0000000000/0.0020000000 maxstep=0.0000000000/0.0040000000 converged=yes\nopt~ rmsgrad=0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000\nopt~ maxgrad=0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000\nscf cycle=2 energy=-0.7883886900985009 dE=-7.55e-15/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-7.55e-15\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=14 sent=1794309067.210 idle=0 at=1794309067\nscan point=36/\nopt step=1 energy=-0.788388690 rmsgrad=0.0000000000/0.0001000000 maxgrad=0.0000000000/0.0003000000 rmsstep=0.0000000000/0.0020000000 maxstep=0.0000000000/0.0040000000 converged=yes\nopt~ rmsgrad=0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000\nopt~ maxgrad=0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000\nscf cycle=2 energy=-0.7883886900985009 dE=-7.55e-15/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-7.55e-15\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Geometry
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 10:54:37 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:10:54 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794308076
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794309053
 .	http://www.emsl.pnl.gov/ecce:theory		SCF/UHF

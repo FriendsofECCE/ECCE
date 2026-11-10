@@ -6,7 +6,7 @@
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 10:01:00 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:13:36 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=4 sent=1794304864.440 idle=0 at=1794304864\nopt step=13 energy=-620.743335863 dE=-0.0000155201/0.0000050000 rmsgrad=0.0000581402/0.0001000000 maxgrad=0.0002018305/0.0003000000 rmsstep=0.0010752681/0.0020000000 maxstep=0.0035082276/0.0040000000 converged=yes\nopt~ rmsgrad=0.0037842312,0.0031802382,0.0021709895,0.0013455949,0.0006421009,0.0004219510,0.0002961406,0.0002599684,0.0002608517,0.0002624871,0.0002270339,0.0001397684,0.0000581402\nopt~ maxgrad=0.0168003034,0.0147805552,0.0080831370,0.0043046909,0.0021423120,0.0013085881,0.0007889811,0.0006757938,0.0006426874,0.0008664094,0.0007928387,0.0003940253,0.0002018305\nscf cycle=5 energy=-620.7553099957415270 dE=3.56e-10/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-6.42e-07,-1.72e-08,-2.29e-08,3.56e-10\nresult disp=D4 gcp=gCP\nfreq kind=analytic point=57/57 phase=assemble last=GCP-Hessian real=51 imaginary=0 done=yes zpe=0.14620180\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=4 sent=1794309220.390 idle=0 at=1794309220\nopt step=13 energy=-620.743335863 dE=-0.0000155201/0.0000050000 rmsgrad=0.0000581402/0.0001000000 maxgrad=0.0002018305/0.0003000000 rmsstep=0.0010752681/0.0020000000 maxstep=0.0035082276/0.0040000000 converged=yes\nopt~ rmsgrad=0.0037842312,0.0031802382,0.0021709895,0.0013455949,0.0006421009,0.0004219510,0.0002961406,0.0002599684,0.0002608517,0.0002624871,0.0002270339,0.0001397684,0.0000581402\nopt~ maxgrad=0.0168003034,0.0147805552,0.0080831370,0.0043046909,0.0021423120,0.0013085881,0.0007889811,0.0006757938,0.0006426874,0.0008664094,0.0007928387,0.0003940253,0.0002018305\nscf cycle=5 energy=-620.7553099957415270 dE=3.56e-10/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-6.42e-07,-1.72e-08,-2.29e-08,3.56e-10\nresult disp=D4 gcp=gCP\nfreq kind=analytic point=57/57 phase=assemble last=GCP-Hessian real=51 imaginary=0 done=yes zpe=0.14620180\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -52,5 +52,5 @@
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
 .	http://www.emsl.pnl.gov/ecce:startdate		Mon, 02 Nov 2026 02:51:10 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794304861
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794309216
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		Quantum ESPRESSO, PBE, plane waves, the conventional cubic cell. This calculation shows the rock-salt structure of sodium chloride: a face-centred cubic lattice with a two-ion basis, in which each ion has six nearest neighbours of the other kind, arranged octahedrally.
 .	http://www.emsl.pnl.gov/ecce:application		QuantumESPRESSO
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Sun, 08 Nov 2026 18:42:15 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:14:47 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Sun, 08 Nov 2026 18:42:13 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:14:45 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794163335.187 idle=0 at=1794163335\nscf cycle=8 scferr=7.2E-09/1.0E-08 converged=yes\nscf~ scferr=0.20388656,0.04359933,0.00094723,0.00026090,0.00002468,0.00000860,0.00000017,7.2E-09\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309287.147 idle=0 at=1794309287\nscf cycle=8 scferr=7.2E-09/1.0E-08 converged=yes\nscf~ scferr=0.20388656,0.04359933,0.00094723,0.00026090,0.00002468,0.00000860,0.00000017,7.2E-09\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,8 +50,8 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 18:42:14 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:14:46 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794163333
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794309285
 .	http://www.emsl.pnl.gov/ecce:theory		PW/PW
 .	http://www.emsl.pnl.gov/ecce:version		PWSCF 6.7MaX

@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, UHF/cc-pVTZ with a broken-symmetry guess, scan of the H-H distance from 4.0 to 0.3 Å. This calculation shows the unrestricted solution reaching the energy of two hydrogen atoms, with <S²> rising from 0 towards 1 beyond the Coulson-Fischer point between 1.2 and 1.3 Å.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 10:54:59 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:11:16 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 10:54:36 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:10:53 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=19 sent=1794308095.356 idle=0 at=1794308099\nscan point=38/\nopt step=1 energy=-0.655909131 rmsgrad=0.0000000000/0.0001000000 maxgrad=0.0000000000/0.0003000000 rmsstep=0.0000000000/0.0020000000 maxstep=0.0000000000/0.0040000000 converged=yes\nopt~ rmsgrad=0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000\nopt~ maxgrad=0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000\nscf cycle=13 energy=-0.6559091303844877 dE=-9.18e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-1.26e-01,-1.19e-01,-9.91e-02,-2.90e-01,-6.51e-03,-1.48e-03,-3.15e-04,-6.99e-05,-2.06e-05,-1.19e-06,-2.88e-07,-9.18e-09\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=20 sent=1794309072.938 idle=0 at=1794309076\nscan point=38/\nopt step=1 energy=-0.655909131 rmsgrad=0.0000000000/0.0001000000 maxgrad=0.0000000000/0.0003000000 rmsstep=0.0000000000/0.0020000000 maxstep=0.0000000000/0.0040000000 converged=yes\nopt~ rmsgrad=0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000\nopt~ maxgrad=0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000,0.0000000000\nscf cycle=13 energy=-0.6559091303844877 dE=-9.18e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-1.26e-01,-1.19e-01,-9.91e-02,-2.90e-01,-6.51e-03,-1.48e-03,-3.15e-04,-6.99e-05,-2.06e-05,-1.19e-06,-2.88e-07,-9.18e-09\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Geometry
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 10:54:36 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:10:53 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794308076
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794309053
 .	http://www.emsl.pnl.gov/ecce:theory		SCF/UHF

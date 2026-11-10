@@ -7,7 +7,7 @@
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 10:03:44 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:13:02 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -39,7 +39,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=3 sent=1794305026.518 idle=0 at=1794305026\nopt step=5 energy=-303.903584290 dE=-0.0000020116/0.0000050000 rmsgrad=0.0000502882/0.0001000000 maxgrad=0.0002110376/0.0003000000 rmsstep=0.0001513679/0.0020000000 maxstep=0.0004534938/0.0040000000 converged=yes\nopt~ rmsgrad=0.0041583465,0.0011077380,0.0003530244,0.0001459189,0.0000502882\nopt~ maxgrad=0.0178073253,0.0039208203,0.0009788986,0.0005856427,0.0002110376\nscf cycle=5 energy=-303.9092795173546051 dE=-2.13e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-8.03e-08,4.03e-08,-5.15e-08,-2.13e-09\nresult disp=D4 gcp=gCP\nfreq kind=analytic point=42/42 phase=assemble last=GCP-Hessian real=36 imaginary=0 done=yes zpe=0.11888816\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=3 sent=1794309184.623 idle=0 at=1794309184\nopt step=5 energy=-303.903584290 dE=-0.0000020116/0.0000050000 rmsgrad=0.0000502882/0.0001000000 maxgrad=0.0002110376/0.0003000000 rmsstep=0.0001513679/0.0020000000 maxstep=0.0004534938/0.0040000000 converged=yes\nopt~ rmsgrad=0.0041583465,0.0011077380,0.0003530244,0.0001459189,0.0000502882\nopt~ maxgrad=0.0178073253,0.0039208203,0.0009788986,0.0005856427,0.0002110376\nscf cycle=5 energy=-303.9092795173546051 dE=-2.13e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-8.03e-08,4.03e-08,-5.15e-08,-2.13e-09\nresult disp=D4 gcp=gCP\nfreq kind=analytic point=42/42 phase=assemble last=GCP-Hessian real=36 imaginary=0 done=yes zpe=0.11888816\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -53,5 +53,5 @@
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
 .	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 19:43:24 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794305024
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794309182
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT
