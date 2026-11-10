@@ -1,5 +1,6 @@
 // Library tests for FragmentAnalysis (#201): exactness on a synthetic
 // fragment set, the refusals, and OPDOS against an independent P.S sum.
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -246,6 +247,25 @@ int main(int argc, char** argv) {
     for (size_t i = 0; i < o.moOccupation.size(); i++) mx = std::max(mx, o.moEnergy[i]);
     CHECK(o.moEnergy.size() < d.moEnergy.size() && mx <= d.homoEv + 1e-9, "occupied only keeps %zu of %zu MOs, max E %.4f homo %.4f", o.moEnergy.size(), d.moEnergy.size(), mx, d.homoEv);
     CHECK(std::fabs(o.occupiedOverlap[0] - d.occupiedOverlap[0]) < 1e-9, "occupied-only overlap population");
+  }
+  //  #934: A = "1", B = "2-60" on 60 atoms are disjoint lists.
+  {
+    vector<int> pa, pb;
+    CHECK(parseAtomList("1", 60, pa) && parseAtomList("2-60", 60, pb), "atom lists parse");
+    bool both = false;
+    for (int x : pa) if (std::binary_search(pb.begin(), pb.end(), x)) both = true;
+    CHECK(pa.size() == 1 && pb.size() == 59 && !both && pb.front() == 1 && pb.back() == 59, "1 and 2-60 overlap (%zu, %zu)", pa.size(), pb.size());
+    CHECK(!parseAtomList("2-61", 60, pb) && !parseAtomList("5-3", 60, pb) && !parseAtomList("", 60, pb), "bad lists refused");
+    //  The overlap matrix handed in gives the numbers computed without it.
+    vector<double> S2;
+    DosOptions o2 = dopt;
+    DosResult r2, r3;
+    int ticks = 0;
+    o2.progress = [&](double) { ticks++; };
+    CHECK(dosOverlap(cx, S2, err), "%s", err.c_str());
+    o2.overlap = &S2;
+    CHECK(dosOrbitals(cx, o2, r2, err) && dosOrbitals(cx, dopt, r3, err), "%s", err.c_str());
+    CHECK(ticks > 0 && r2.moOverlap == r3.moOverlap && r2.moGross == r3.moGross, "shared S gives the same MO numbers");
   }
   printf(fails ? "RESULT FAIL\n" : "RESULT OK\n");
   return fails ? 1 : 0;

@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdarg>
 #include <cstdio>
+#include <cstdlib>
 #include <set>
 #include <sstream>
 
@@ -386,13 +387,43 @@ FieldCheck fieldCheck(const Analysis& a, double dMin, double occMin) {
   return r;
 }
 
+bool parseAtomList(const string& s, size_t natoms, vector<int>& out) {
+  out.clear();
+  size_t i = 0;
+  while (i < s.size()) {
+    while (i < s.size() && (s[i] == ' ' || s[i] == ',')) i++;
+    if (i >= s.size()) break;
+    char *end = 0;
+    long a = std::strtol(s.c_str() + i, &end, 10), b = a;
+    if (end == s.c_str() + i) return false;
+    i = end - s.c_str();
+    if (i < s.size() && s[i] == '-') {
+      const char *p = s.c_str() + i + 1;
+      b = std::strtol(p, &end, 10);
+      if (end == p) return false;
+      i = end - s.c_str();
+    }
+    if (a < 1 || b < a || b > long(natoms)) return false;
+    for (long x = a; x <= b; x++) out.push_back(int(x) - 1);
+  }
+  std::sort(out.begin(), out.end());
+  out.erase(std::unique(out.begin(), out.end()), out.end());
+  return !out.empty();
+}
+
+bool dosOverlap(const Model& cx, vector<double>& S, string& err) {
+  return overlapMatrix(cx, geometryOf(cx), S, err);
+}
+
 bool dosOrbitals(const Model& cx, const DosOptions& opt, DosResult& out, string& err) {
   out = DosResult();
   if (cx.basis.type != "GTO" || cx.basis.orthonormal || cx.mos.empty()) { err = "no Gaussian-basis orbitals"; return false; }
   if (opt.sets.empty()) { err = "no atom sets"; return false; }
   size_t nao = cx.basis.nao(), nset = opt.sets.size();
-  vector<double> S;
-  if (!overlapMatrix(cx, geometryOf(cx), S, err)) return false;
+  vector<double> Sown;
+  if (!opt.overlap && !overlapMatrix(cx, geometryOf(cx), Sown, err)) return false;
+  const vector<double>& S = opt.overlap ? *opt.overlap : Sown;
+  if (S.size() != nao * nao) { err = "overlap matrix does not match the basis"; return false; }
   vector<AtomShells> cs = shellsByAtom(cx);
   vector<int> setOf(nao, -1);
   for (size_t s = 0; s < nset; s++) {
@@ -422,24 +453,31 @@ bool dosOrbitals(const Model& cx, const DosOptions& opt, DosResult& out, string&
     if (!m) { err = "missing spin set"; return false; }
     for (size_t i = 0; i < m->nmo; i++) {
       if (opt.occupiedOnly && !(i < m->occupation.size() && m->occupation[i] > 0.5 * (unres ? 1.0 : 2.0) - 1e-6)) continue;
+      if (opt.progress && (i % 8) == 0) opt.progress((double(i) + (spin ? m->nmo : 0)) / double(m->nmo * (unres ? 2 : 1)));
       const double* c = &m->coef[i * nao];
-      vector<double> Sc(nao, 0.0);
+      // One pass over S: row p of S c split by the set of the column, which
+      // gives the norm, the gross populations and the set-set cross terms.
+      vector<double> gross(nset, 0.0), cross(nset * nset, 0.0), part(nset, 0.0), ov(np, 0.0);
+      double norm = 0;
       for (size_t p = 0; p < nao; p++) {
-        double s = 0;
-        for (size_t q = 0; q < nao; q++) s += S[p * nao + q] * c[q];
-        Sc[p] = s;
+        const double* Sp = &S[p * nao];
+        double tot = 0;
+        if (setOf[p] >= 0) {
+          std::fill(part.begin(), part.end(), 0.0);
+          for (size_t q = 0; q < nao; q++) {
+            const double v = Sp[q] * c[q];
+            tot += v;
+            if (setOf[q] >= 0) part[setOf[q]] += v;
+          }
+          for (size_t t = 0; t < nset; t++) cross[setOf[p] * nset + t] += c[p] * part[t];
+          // Mulliken gross population: own block plus half of each overlap
+          gross[setOf[p]] += c[p] * tot;
+        } else {
+          for (size_t q = 0; q < nao; q++) tot += Sp[q] * c[q];
+        }
+        norm += c[p] * tot;
       }
-      vector<double> gross(nset, 0.0), ov(np, 0.0);
-      // cross[a][b] = sum over mu in a, nu in b of c_mu c_nu S_mu,nu
-      vector<double> cross(nset * nset, 0.0);
-      for (size_t p = 0; p < nao; p++) {
-        if (setOf[p] < 0) continue;
-        for (size_t q = 0; q < nao; q++)
-          if (setOf[q] >= 0) cross[setOf[p] * nset + setOf[q]] += c[p] * c[q] * S[p * nao + q];
-      }
-      // Mulliken gross population: own block plus half of each overlap
-      for (size_t p = 0; p < nao; p++) if (setOf[p] >= 0) gross[setOf[p]] += c[p] * Sc[p];
-      { double n = 0; for (size_t p = 0; p < nao; p++) n += c[p] * Sc[p]; out.normError = std::max(out.normError, std::fabs(n - 1.0)); }
+      out.normError = std::max(out.normError, std::fabs(norm - 1.0));
       for (size_t k = 0; k < np; k++) ov[k] = 2.0 * cross[pairs[k].first * nset + pairs[k].second];
       out.moIndex.push_back(int(i) + 1);
       out.moSpin.push_back(spin);
