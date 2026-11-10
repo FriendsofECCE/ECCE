@@ -39,30 +39,34 @@ args:    '.' 'Vibration' 'DFT' 'B3LYP' '0'
 
 [EGRAD]  Script=gaussian-16.egrad  Freq=all  Skip=0  Lines=1
   Begin=Cartesian Forces\:
-  begins=6 delivered=6 buffered_away=0
-  block 1: begin-line=1069 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.109958578 RMS     0.049990636'
+  begins=8 delivered=8 buffered_away=0
+  block 1: begin-line=728 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.107509494 RMS     0.049301035'
     (script emitted no property)
-  block 2: begin-line=1407 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.104960642 RMS     0.048586992'
+  block 2: begin-line=1069 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.109958578 RMS     0.049990636'
     (script emitted no property)
-  block 3: begin-line=1734 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.097099877 RMS     0.043900204'
+  block 3: begin-line=1407 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.104960642 RMS     0.048586992'
     (script emitted no property)
-  block 4: begin-line=2060 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.118352225 RMS     0.054965517'
+  block 4: begin-line=1734 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.097099877 RMS     0.043900204'
     (script emitted no property)
-  block 5: begin-line=2409 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.107783448 RMS     0.050005906'
+  block 5: begin-line=2060 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.118352225 RMS     0.054965517'
     (script emitted no property)
-  block 6: begin-line=2758 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.107783448 RMS     0.050005906'
+  block 6: begin-line=2409 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.107783448 RMS     0.050005906'
+    (script emitted no property)
+  block 7: begin-line=2758 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.107783448 RMS     0.050005906'
+    (script emitted no property)
+  block 8: begin-line=2958 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.107509494 RMS     0.049301035'
     (script emitted no property)
 
 [EGRADVEC]  Script=gaussian-16.egradvec  Freq=last  Skip=3  Lines=-
   Begin=             Forces
   End=--------------------------------------
-  begins=6 delivered=1 buffered_away=5
-  block 1: begin-line=2751 fed=4 rc=0 first-fed='      1        8          -0.000000000   -0.016747604    0.107783448'
+  begins=8 delivered=1 buffered_away=7
+  block 1: begin-line=2951 fed=4 rc=0 first-fed='      1        8          -0.000000000    0.000000000    0.107509494'
     key: EGRADVEC
       size: 3 3
       rowlabels: 1 2 3
       columnlabels: X Y Z
-      values: -0.000000000 0.016747604 -0.107783448 0.000000000 -0.056176243 0.060545201 0.000000000 0.03942864 0.047238248
+      values: -0.000000000 0.000000000 -0.107509494 0.000000000 -0.047633451 0.053754747 0.000000000 0.047633451 0.053754747
       units: Hartree/Bohr
 
 [DELTAE]  Script=gaussian-16.deltae  Freq=all  Skip=0  Lines=1
@@ -356,9 +360,9 @@ args:    '.' 'Vibration' 'DFT' 'B3LYP' '0'
 
 [EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES][THERMOSIGMA]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
   Begin= Thermochemistry
-  End=Cartesian Forces
+  End=^ -{60,}\s*$
   begins=2 delivered=1 buffered_away=1
-  block 1: begin-line=2841 fed=118 rc=0 first-fed=' - Thermochemistry -'
+  block 1: begin-line=2841 fed=110 rc=0 first-fed=' - Thermochemistry -'
     key: EZEROPT
       size: 1
       values: 0.024655

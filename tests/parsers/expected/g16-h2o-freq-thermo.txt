@@ -61,7 +61,7 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
 
 [EGRAD]  Script=gaussian-16.egrad  Freq=all  Skip=0  Lines=1
   Begin=Cartesian Forces\:
-  begins=3 delivered=3 buffered_away=0
+  begins=4 delivered=4 buffered_away=0
   block 1: begin-line=453 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.013927073 RMS     0.006782353'
     key: EGRAD
       size: 1
@@ -77,17 +77,22 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
       size: 1
       values: 0.000098992
       units: Hartree/Bohr
+  block 4: begin-line=1591 fed=1 rc=0 first-fed=' Cartesian Forces:  Max     0.000098993 RMS     0.000053956'
+    key: EGRAD
+      size: 1
+      values: 0.000098993
+      units: Hartree/Bohr
 
 [EGRADVEC]  Script=gaussian-16.egradvec  Freq=last  Skip=3  Lines=-
   Begin=             Forces
   End=--------------------------------------
-  begins=3 delivered=1 buffered_away=2
-  block 1: begin-line=964 fed=4 rc=0 first-fed='      1        8          -0.000000000   -0.000000000   -0.000098992'
+  begins=4 delivered=1 buffered_away=3
+  block 1: begin-line=1584 fed=4 rc=0 first-fed='      1        8          -0.000000000   -0.000000000   -0.000098993'
     key: EGRADVEC
       size: 3 3
       rowlabels: 1 2 3
       columnlabels: X Y Z
-      values: -0.000000000 -0.000000000 9.8992e-05 0.000000000 -7.5837e-05 -4.9496e-05 0.000000000 7.5837e-05 -4.9496e-05
+      values: -0.000000000 -0.000000000 9.8993e-05 -0.000000000 -7.5837e-05 -4.9496e-05 0.000000000 7.5837e-05 -4.9496e-05
       units: Hartree/Bohr
 
 [DELTAE]  Script=gaussian-16.deltae  Freq=all  Skip=0  Lines=1
@@ -376,9 +381,9 @@ args:    '.' 'GeoVib' 'SCF' 'RHF' '0'
 
 [EZEROPT][ETHERM][ENTHALPY][EGIBBS][ENTROPY][THERMOTEMP][THERMOPRES][THERMOSIGMA]  Script=gaussian-16.thermo  Freq=last  Skip=-  Lines=-
   Begin= Thermochemistry
-  End=Cartesian Forces
+  End=^ -{60,}\s*$
   begins=1 delivered=1 buffered_away=0
-  block 1: begin-line=1506 fed=86 rc=0 first-fed=' - Thermochemistry -'
+  block 1: begin-line=1506 fed=78 rc=0 first-fed=' - Thermochemistry -'
     key: EZEROPT
       size: 1
       values: 0.021164

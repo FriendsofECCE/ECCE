@@ -1,20 +1,22 @@
 #!/usr/bin/env perl
 # IRC (#417): the converged structure of one path point (the "CURRENT
-# STRUCTURE" block).  One frame per call; the frames arrive FORWARD points
-# first, then REVERSE, and the IRC panel maps them onto the summary table.
+# STRUCTURE" block).  Gaussian computes the FORWARD points first, then
+# REVERSE; the frames are held in $key/g16IrcFrames and gaussian-16.irc
+# publishes them in the summary's order with the TS, one per IRCENERGY point.
 # Dummy centres are left out, as in gaussian-16.geomtrace (#27).
 $| = 1;
 ($key, $runtype) = @ARGV;
 exit(0) unless ($runtype =~ /IRC/i);
 
-my (@coord, $labels, $row);
+my @coord;
 while (<STDIN>) {
   next unless (/^\s+\d+\s+(-?\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/);
   next if ($1 < 0);
-  push(@coord, " $2 $3 $4");
-  $labels .= " " . (++$row) . "-X";
+  push(@coord, "$2 $3 $4");
 }
 exit(0) unless (@coord);
-print "key: IRCGEOM\nsize:\n1 ", scalar(@coord), " 3\nrowlabels:\n$labels\n",
-      "columnlabels:\nX Y Z\nvalues:\n", join("\n", @coord), "\nunits:\nAngstrom\nEND\n";
+if (open(my $fh, ">>", "$key/g16IrcFrames")) {
+  print $fh join(",", @coord), "\n";
+  close($fh);
+}
 exit(0);

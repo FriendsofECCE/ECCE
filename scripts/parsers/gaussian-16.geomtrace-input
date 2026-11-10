@@ -12,4 +12,8 @@ my ($rows, $labels) = readBlock();
 my ($oldRows, $oldLabels) = takeStash($key);
 emitFrame($key, $oldRows, $oldLabels);
 saveStash($key, $rows, $labels);
+# The IRC starts from the last structure printed before its path begins
+# (Input, or Standard when it was read from an earlier job's checkpoint):
+# that is the TS point, which has no CURRENT STRUCTURE block (gaussian-16.ircts).
+saveIrcInput($key, $rows) if ($runtype =~ /IRC/i);
 exit(0);

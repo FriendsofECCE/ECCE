@@ -110,8 +110,9 @@ chop $inline;
 $sav_inline = $inline;
 
 
-# See comments in file header.
-if ($runtype =~ /Geo/i) {
+# See comments in file header.  A transition-state search (Opt=TS, QST2/3)
+# is an optimisation too: one energy per step.
+if ($runtype =~ /Geo|Transition State/i) {
 
   #####
   # If you handle a different type of energy, be sure to:

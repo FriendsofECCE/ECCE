@@ -15,6 +15,7 @@ is not cosmetic.
 """
 import atexit
 import glob
+import math
 import os
 import re
 import shutil
@@ -104,6 +105,11 @@ def close(a, b, tol=2e-6):
     return len(a) == len(b) and all(abs(x - y) <= tol for x, y in zip(a, b))
 
 
+def distances(xyz):
+    p = [xyz[k:k + 3] for k in range(0, len(xyz), 3)]
+    return [math.dist(p[i], p[j]) for i in range(len(p)) for j in range(i)]
+
+
 def main():
     bad = []
     seen, unlisted = set(), set()
@@ -131,8 +137,13 @@ def main():
 
         # Coordinates: the parsed frames are the "(Angstroms)" tables.
         ang = [sum(t, []) for t in tables(text, "Coordinates (Angstroms)")]
+        # The IRC's TS may be moved rigidly into the path's frame (#947):
+        # its interatomic distances are still a table's.
+        dist = [distances(a) for a in ang]
         for key in ("GEOMTRACE", "IRCGEOM"):
             for k, f in enumerate(frames(key)):
+                if key == "IRCGEOM" and any(close(distances(f), d, 1e-4) for d in dist):
+                    continue
                 if not any(close(f, a) for a in ang):
                     bad.append("%s: %s frame %d is no Angstrom table of the log"
                                % (name, key, k + 1))

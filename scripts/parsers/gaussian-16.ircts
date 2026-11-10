@@ -1,0 +1,8 @@
+#!/usr/bin/env perl
+# IRC: the path starts here, so the structure held by gaussian-16.geomtrace-input
+# is the TS point; gaussian-16.irc puts it between the two paths.
+$| = 1;
+($key, $runtype) = @ARGV;
+exit(0) unless ($runtype =~ /IRC/i);
+rename("$key/g16IrcInput", "$key/g16IrcTs") if (-e "$key/g16IrcInput");
+exit(0);

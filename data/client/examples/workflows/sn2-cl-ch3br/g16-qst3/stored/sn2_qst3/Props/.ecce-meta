@@ -5,6 +5,7 @@ EGRADVEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 ENTHALPY	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 ENTROPY	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 ESCF	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+ESCFVEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 ETHERM	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 EZEROPT	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 GEOMTRACE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
@@ -18,6 +19,7 @@ ORBSYM	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 POLARIZ	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 QUADPOLE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 TE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+TEVEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 THERMOPRES	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 THERMOSIGMA	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 THERMOTEMP	http://www.emsl.pnl.gov/ecce:mime-type		text/xml

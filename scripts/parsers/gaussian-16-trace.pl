@@ -24,7 +24,16 @@ sub readBlock {
 
 # Gaussian prints the converged geometry once more after "Optimization
 # completed" (and again for a following frequency job); that repeat is not a
-# step, so a frame equal to the last published one is dropped.
+# step, so a frame equal to the last published one is dropped.  Equal means
+# numerically: the repeat can print -0.000000 where the step printed 0.000000.
+sub sameFrame {
+  my @a = split(" ", $_[0]);
+  my @b = split(" ", $_[1]);
+  return 0 unless @a == @b;
+  for my $i (0 .. $#a) { return 0 unless $a[$i] == $b[$i]; }
+  return 1;
+}
+
 sub emitFrame {
   my ($key, $rows, $labels) = @_;
   return unless @$rows;
@@ -34,7 +43,7 @@ sub emitFrame {
     my $last = <$fh>;
     close($fh);
     chomp $last if defined $last;
-    return if (defined $last && $last eq $sig);
+    return if (defined $last && sameFrame($last, $sig));
   }
   if (open(my $fh, ">", $lastFile)) { print $fh "$sig\n"; close($fh); }
   print "key: GEOMTRACE\nsize:\n1 " . scalar(@$rows) . " 3\n";
@@ -68,6 +77,17 @@ sub takeStash {
   }
   unlink(stashFile($key));
   return (\@rows, \@labels);
+}
+
+# IRC side files (gaussian-16.ircgeom, .ircts, .irc): one structure per line,
+# its atoms' "x y z" joined by ",".
+sub saveIrcInput {
+  my ($key, $rows) = @_;
+  return unless @$rows;
+  if (open(my $fh, ">", "$key/g16IrcInput")) {
+    print $fh join(",", @$rows), "\n";
+    close($fh);
+  }
 }
 
 1;
