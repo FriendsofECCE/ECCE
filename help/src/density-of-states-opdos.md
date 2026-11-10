@@ -9,7 +9,7 @@ The panel says which population scheme it uses: **Mulliken**, for both OPDOS and
 ## Controls
 
 - **A** and **B**: the atom numbers of the two groups as shown in the structure, for example `1,2,5-8`. Press Enter to apply. A starts as the first transition-metal atom (or the first atom) and B as all other atoms. No atom may be in both groups.
-- **Use selection** (under each group's box): take the atoms selected in the 3-D view for that group. If you type a new list for one group and the other group still holds some of those atoms, the other group gives them up and the text field says so.
+- **Use selection** (under each group's box): take the atoms selected in the 3-D view for that group. The other group is taken as it stands in its box, typed or not. An atom can belong to only one group: if it is in both, nothing is changed and the message names the atom.
 - **Width (eV)**: the full width at half maximum of the peak drawn for each orbital, 0.30 eV to begin with. A narrow width resolves single orbitals, a wide one shows bands.
 - **Shape**: Gaussian (the default) or Lorentzian peaks, both of area 1. Lorentzian peaks have long tails, so neighbouring orbitals overlap more and a little of each peak lies outside the energy range shown.
 - **Sticks**: one thin line per orbital at its energy, as high as its OPDOS contribution.
