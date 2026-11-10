@@ -99,7 +99,7 @@ std::vector<string> filesEndingIn(const string& suffix)
   std::vector<string> names;
   std::error_code ec;
   for (const auto& e : std::filesystem::directory_iterator(".", ec)) {
-    const string n = e.path().filename().string();
+    const string n = e.path().filename().u8string();   // UTF-8 on MSW too
     if (n.size() >= suffix.size() && n[0] != '.' &&
         n.compare(n.size() - suffix.size(), suffix.size(), suffix) == 0 &&
         e.is_regular_file(ec))
@@ -349,8 +349,14 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
     const string dir = Ecce::ecceDataControllersPath();
     const char *old = getenv("PATH");
     const string path = old ? old : "";
-    if (!dir.empty() && ("::" + path + ":").find(":" + dir + ":") == string::npos)
-      setenv("PATH", (dir + (path.empty() ? "" : ":") + path).c_str(), 1);
+#ifdef _WIN32
+    const string sep = ";";   // a ':' would glue dir onto the first entry
+#else
+    const string sep = ":";
+#endif
+    if (!dir.empty() &&
+        (sep + path + sep).find(sep + dir + sep) == string::npos)
+      setenv("PATH", (dir + (path.empty() ? "" : sep) + path).c_str(), 1);
   }
   Result r;
   string &message = r.message;
