@@ -398,6 +398,57 @@ bool fullPrecisionNwchem(IPropCalculation *calc, Parsed& out)
   return true;
 }
 
+//  Each flat function is a multiple of one canonical function of its shell
+//  (a permutation, a sign and a scale): flat[i] = canonical[to[i]]*scale[i]
+//  in coefficient terms.  The shells of m must follow the flat order.
+bool matchShells(const vector<EspBasisFunction>& flat, Model& m,
+                 vector<size_t>& to, vector<double>& scale, string& why)
+{
+  const size_t n = flat.size();
+  //  Canonical functions sit on the flat ones' centres, so a geometry
+  //  stored to fewer digits cannot spoil the match.
+  size_t at = 0;
+  for (const Shell& s : m.basis.shells) {
+    if (at >= n) { why = "the basis has more shells than functions"; return false; }
+    if (s.atom >= 0 && 3*(size_t)s.atom + 2 < m.coord.size())
+      for (int k = 0; k < 3; k++) m.coord[3*s.atom + k] = flat[at].center[k];
+    at += s.cartesian ? (s.l + 1)*(s.l + 2)/2 : 2*s.l + 1;
+  }
+  vector<EspBasisFunction> can;
+  string err;
+  if (!resultsh5::buildAos(m, 0, can, err) || can.size() != n) {
+    why = "canonical basis: " + (err.empty() ? string("size differs") : err);
+    return false;
+  }
+  to.assign(n, 0);
+  scale.assign(n, 0.0);
+  size_t i = 0;
+  for (size_t sh = 0; sh < m.basis.shells.size(); sh++) {
+    const Shell& s = m.basis.shells[sh];
+    const size_t size = s.cartesian ? (s.l + 1)*(s.l + 2)/2 : 2*s.l + 1;
+    vector<char> used(size, 0);
+    for (size_t t = 0; t < size; t++) {
+      const double self = EspField::overlapOf(flat[i + t], flat[i + t]);
+      size_t best = size;
+      double bov = 0;
+      for (size_t j = 0; j < size; j++) {
+        const double ov = EspField::overlapOf(flat[i + t], can[i + j]);
+        if (std::fabs(ov) > std::fabs(bov)) { bov = ov; best = j; }
+      }
+      if (best == size || !(self > 0) ||
+          1 - bov*bov/self > 1e-8 || used[best]) {
+        why = "a basis function is not a canonical function of its shell";
+        return false;
+      }
+      used[best] = 1;
+      to[i + t] = i + best;
+      scale[i + t] = bov;
+    }
+    i += size;
+  }
+  return true;
+}
+
 }  // namespace
 
 
@@ -489,42 +540,9 @@ bool convert(const Parsed& in, Model& m, string& why)
   m.geomEnergy.clear();
   for (size_t a = 0; a < natoms; a++) m.label.push_back(in.symbols[a]);
 
-  //  Canonical AOs against ECCE's: each flat function is a multiple of one
-  //  canonical function of its shell (a permutation, a sign, a scale).
-  vector<EspBasisFunction> can;
-  string err;
-  if (!resultsh5::buildAos(m, 0, can, err) || can.size() != n) {
-    why = "canonical basis: " + err;
-    return false;
-  }
-  vector<size_t> to(n);
-  vector<double> scale(n);
-  {
-    size_t i = 0;
-    for (size_t sh = 0; sh < m.basis.shells.size(); sh++) {
-      const Shell& s = m.basis.shells[sh];
-      const size_t size = s.cartesian ? (s.l + 1)*(s.l + 2)/2 : 2*s.l + 1;
-      vector<char> used(size, 0);
-      for (size_t t = 0; t < size; t++) {
-        const double self = EspField::overlapOf(in.basis[i + t], in.basis[i + t]);
-        size_t best = size;
-        double bov = 0;
-        for (size_t j = 0; j < size; j++) {
-          const double ov = EspField::overlapOf(in.basis[i + t], can[i + j]);
-          if (std::fabs(ov) > std::fabs(bov)) { bov = ov; best = j; }
-        }
-        if (best == size || !(self > 0) ||
-            1 - bov*bov/self > 1e-8 || used[best]) {
-          why = "a basis function is not a canonical function of its shell";
-          return false;
-        }
-        used[best] = 1;
-        to[i + t] = i + best;
-        scale[i + t] = bov;
-      }
-      i += size;
-    }
-  }
+  vector<size_t> to;
+  vector<double> scale;
+  if (!matchShells(in.basis, m, to, scale, why)) return false;
 
   for (int sp = 0; sp < 2; sp++) {
     const vector<vector<double> >& rows = in.rows[sp];
@@ -641,6 +659,44 @@ bool gather(IPropCalculation *calc, Parsed& out, string& why)
     if (gbs != 0) { out.basisName = gbs->name(); delete gbs; }
   }
   if (out.code == "NWChem") fullPrecisionNwchem(calc, out);
+  return true;
+}
+
+
+bool codeColumns(IPropCalculation *calc, const Model& file,
+                 vector<vector<double> > rows[2], string& why)
+{
+  rows[0].clear();
+  rows[1].clear();
+  if (calc == 0 || file.mos.empty()) { why = "no orbitals in results.h5"; return false; }
+  std::unique_ptr<Fragment> frag(calc->getFragmentStep(-1));
+  vector<string> symbols;
+  vector<double> coords;
+  if (frag == 0 || !MoAoBasis::fragmentGeometry(frag.get(), symbols, coords)) {
+    why = "no chemical system";
+    return false;
+  }
+  const size_t n = file.mos[0].nao;
+  vector<EspBasisFunction> flat;
+  if (!MoAoBasis::flatBasis(calc, symbols, coords, (int)n, flat) ||
+      flat.size() != n) {
+    why = "the calculation's basis set does not match results.h5";
+    return false;
+  }
+  Model m = file;
+  vector<size_t> to;
+  vector<double> scale;
+  if (!matchShells(flat, m, to, scale, why)) return false;
+  for (const resultsh5::Mos& mo : file.mos) {
+    if (mo.geometry != 0 || mo.spin < 0 || mo.spin > 1 || mo.nao != n ||
+        mo.coef.size() != mo.nmo*n || !rows[mo.spin].empty())
+      continue;
+    vector<vector<double> >& out = rows[mo.spin];
+    out.assign(mo.nmo, vector<double>(n));
+    for (size_t r = 0; r < mo.nmo; r++)
+      for (size_t i = 0; i < n; i++) out[r][i] = mo.coef[r*n + to[i]]/scale[i];
+  }
+  if (rows[0].empty()) { why = "no alpha orbitals in results.h5"; return false; }
   return true;
 }
 
@@ -1226,6 +1282,7 @@ vector<string> keysInFile(IPropCalculation *calc)
 
 bool convert(const Parsed&, resultsh5::Model&, string& why) { why = "built without HDF5"; return false; }
 bool gather(IPropCalculation*, Parsed&, string& why) { why = "built without HDF5"; return false; }
+bool codeColumns(IPropCalculation*, const resultsh5::Model&, vector<vector<double> >*, string& why) { why = "built without HDF5"; return false; }
 void addProperties(IPropCalculation*, resultsh5::Model&) {}
 string check(resultsh5::Model&) { return string(); }
 bool build(IPropCalculation*, resultsh5::Model&, string&, string& why) { why = "built without HDF5"; return false; }

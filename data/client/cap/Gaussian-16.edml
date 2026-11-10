@@ -602,6 +602,9 @@
        the guess it reads. -->
   <Output type="auxiliary" mimetype="chemical/x-gaussian-16-chk">g16.chk</Output>
   <Input   type="auxiliary" mimetype="chemical/x-gaussian-16-guess">guess.chkin</Input>
+  <!-- Without the checkpoint: the orbitals rebuilt from results.h5, read
+       with Guess=Cards (text, Punch=MO layout). -->
+  <Input   type="auxiliary" mimetype="chemical/x-gaussian-16-guess-cards">guess.cardsin</Input>
 </DataFiles>
 
 <!-- Names of files required for code integration.  These files are

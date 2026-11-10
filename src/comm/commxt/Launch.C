@@ -9,6 +9,7 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#include <algorithm>
 #include <string>
   using std::string;
 
@@ -1009,10 +1010,12 @@ bool Launch::validateCalculation(void)
 
           // process any auxiliary basis set files (Amica)
           vector<EcceURL> basvec = auxInputUrls();
+          const vector<string> guesses = p_taskjob->orbitalGuessFiles();
           for (int ib=0; ib<basvec.size(); ib++) {
             //  Binary, and the stream form of a stored file stops at the
             //  first NUL byte, so this one goes straight to a file.
-            if (basvec[ib].getFilePathTail() == p_taskjob->orbitalGuessFile()) {
+            if (std::find(guesses.begin(), guesses.end(),
+                          basvec[ib].getFilePathTail()) != guesses.end()) {
               inputFilePath = p_cache->directory + "/" +
                               guessRunName(p_cache->codeName, inputFileName,
                                            basvec[ib].getFilePathTail());

@@ -316,7 +316,8 @@ final orbitals or density for a follow-on calculation's initial guess.
 1. Select the finished calculation and choose **New from This > Continue
    from Final Orbitals** in the Organizer. The copy starts from the last
    geometry and its orbitals. The item is grey when no orbital file was
-   stored. Gaussian 16 needs **Create Checkpoint File** enabled in the source.
+   stored. Gaussian 16 needs **Create Checkpoint File** enabled in the source,
+   or a stored results.h5 with orbitals (see below).
 2. Open the copy in the Calculation Editor. Under **Settings**, **Initial
    guess: MOs from** names the source. Save to generate the input that reads
    the guess.
@@ -335,6 +336,22 @@ The binary guess file is copied to the run machine for local and remote
 jobs. Use it with the same program version and a compatible machine.
 MOPAC reads the staged density with `OLDENS`; CP2K reads the staged
 wavefunction with `SCF_GUESS RESTART`.
+
+### Gaussian 16 without the checkpoint
+
+When a Gaussian 16 calculation has no stored checkpoint (it was deleted, or
+the Preferences switch below discarded it) but has a results.h5 with
+orbitals, **Continue from Final Orbitals** writes those orbitals into the
+copy's input and Gaussian reads them with `Guess=Cards`. The guess line in
+the Calculation Editor ends with **from its results.h5** (or **from its
+checkpoint** when the checkpoint is used; it is preferred when both exist).
+Orbitals read this way are not projected: the copy needs the same basis set
+and the same atoms in the same order, and the line says so when they differ.
+
+**Edit > Preferences**, tab **Data**, **Discard the programs' own binary
+files once results.h5 is written** is off by default. When it is on, a
+Gaussian 16 job that finishes afterwards keeps no checkpoint once its
+results.h5 has passed its checks; the text outputs are always kept.
 
 ### Quantum ESPRESSO: starting from a stored density
 

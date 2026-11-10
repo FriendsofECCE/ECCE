@@ -766,6 +766,33 @@ string TaskJob::orbitalGuessFile() const
 }
 
 
+vector<string> TaskJob::orbitalGuessFiles() const
+{
+  vector<string> names;
+  const JCode *code = application();
+  if (code == 0) return names;
+  vector<TypedFile> in = code->getCodeFiles(JCode::AUXILIARY_INPUT);
+  for (size_t i = 0; i < in.size(); i++)
+    if (in[i].name().compare(0, 6, "guess.") == 0) names.push_back(in[i].name());
+  return names;
+}
+
+
+string TaskJob::attachedOrbitalGuessFile() const
+{
+  try {
+    vector<string> names = orbitalGuessFiles();
+    if (names.empty()) return string();
+    vector<EcceURL> urls = getVDoc()->getInputs();
+    for (size_t i = 0; i < urls.size(); i++)
+      for (size_t n = 0; n < names.size(); n++)
+        if (urls[i].getFilePathTail() == names[n]) return names[n];
+  }
+  catch (...) {}
+  return string();
+}
+
+
 string TaskJob::hessianInputFile() const
 {
   const JCode *code = application();
@@ -836,21 +863,16 @@ string TaskJob::orbitalGuessBasisProp()
 
 bool TaskJob::hasOrbitalGuess() const
 {
-  try {
-    const string name = orbitalGuessFile();
-    if (name.empty()) return false;
-    vector<EcceURL> urls = getVDoc()->getInputs();
-    for (size_t i = 0; i < urls.size(); i++)
-      if (urls[i].getFilePathTail() == name) return true;
-  }
-  catch (...) {}
-  return false;
+  return !attachedOrbitalGuessFile().empty();
 }
 
 
 bool TaskJob::clearOrbitalGuess()
 {
-  bool ret = putInputFile(orbitalGuessFile(), (istream*)0);
+  bool ret = true;
+  vector<string> names = orbitalGuessFiles();
+  for (size_t i = 0; i < names.size(); i++)
+    ret = putInputFile(names[i], (istream*)0) && ret;
   addProp(orbitalGuessSourceProp(), "");
   addProp(orbitalGuessBasisProp(), "");
   return ret;
@@ -864,13 +886,14 @@ bool TaskJob::removeInputFiles()
   try {
     //  The guess is not part of the generated deck, and every Save
     //  regenerates the deck.
-    if (hasOrbitalGuess() || hasHessianInput() || hasPointChargeInput()) {
+    const string guess = attachedOrbitalGuessFile();
+    if (!guess.empty() || hasHessianInput() || hasPointChargeInput()) {
       vector<EcceURL> urls = getVDoc()->getInputs();
       for (size_t i = 0; i < urls.size(); i++) {
         const string name = urls[i].getFilePathTail();
         if (name == hessianInputFile() && !name.empty()) continue;
         if (name == pointChargeInputFile() && !name.empty()) continue;
-        if (!hasOrbitalGuess() || name != orbitalGuessFile())
+        if (guess.empty() || name != guess)
           getVDoc()->removeInput(name);
       }
     } else {

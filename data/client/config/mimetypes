@@ -54,6 +54,7 @@ chemical/x-orca-guess                    .gbwin
 chemical/x-orca-pc                       .pc
 chemical/x-gaussian-16-chk               .chk
 chemical/x-gaussian-16-guess             .chkin
+chemical/x-gaussian-16-guess-cards       .cardsin
 chemical/x-nwchem-movecs                 .movecs
 chemical/x-nwchem-guess                  .movecsin
 chemical/x-ecceqm-input                  .qmin

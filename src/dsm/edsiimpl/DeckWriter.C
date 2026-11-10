@@ -258,8 +258,9 @@ bool writeParams(ICalculation *calc, const string& file,
   if (gv) gv->dumpKeyVals(os);
 
   TaskJob *job = dynamic_cast<TaskJob*>(calc);
-  if (job && job->hasOrbitalGuess())
-    os << "ES.Theory.SCF.OrbitalGuessFile: " << job->orbitalGuessFile() << endl;
+  const string guess = job ? job->attachedOrbitalGuessFile() : string();
+  if (!guess.empty())
+    os << "ES.Theory.SCF.OrbitalGuessFile: " << guess << endl;
   if (job && job->hasPointChargeInput())
     os << "ES.Theory.SCF.PointChargeFile: " << job->pointChargeInputFile() << endl;
   if (job && job->hasHessianInput()) {

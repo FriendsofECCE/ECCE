@@ -37,6 +37,10 @@ SSH = "ssh|Cluster storage|sftp://me@hpc.example.edu/home/me/ecce"
 PLAIN = [
     ("prefs data show", lambda a: a.startswith("rows=1;This installation|ecce|Set by your administrator;")),
     ("prefs data snap " + shot("data-empty"), lambda a: a == "saved"),
+    # #690: the switch is off until ticked, and the tick reaches EcceGlobal
+    ("prefs data discard", lambda a: a == "box=off;file=unset"),
+    ("prefs data discard on", lambda a: a == "box=on;file=on"),
+    ("prefs data discard off", lambda a: a == "box=off;file=off"),
     ("prefs data form ssh " + shot("add-ssh"), lambda a: a == "saved"),
     ("prefs data form ecce " + shot("add-ecce"), lambda a: a == "saved"),
     ("prefs data add ecce Course_server https://ecce.example.edu " + shot("add-ecce-filled"),

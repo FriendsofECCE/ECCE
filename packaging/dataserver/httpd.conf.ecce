@@ -232,6 +232,7 @@ AddType  chemical/x-orca-guess   .gbwin
 AddType  chemical/x-orca-pc      .pc
 AddType  chemical/x-gaussian-16-chk    .chk
 AddType  chemical/x-gaussian-16-guess  .chkin
+AddType  chemical/x-gaussian-16-guess-cards  .cardsin
 AddType  chemical/x-nwchem-movecs      .movecs
 AddType  chemical/x-nwchem-guess       .movecsin
 
