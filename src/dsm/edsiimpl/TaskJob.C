@@ -1463,6 +1463,9 @@ void TaskJob::getDataFile(JCode::CodeFileType type, TypedFile& dataFile) const
     for (size_t i = 0; i < outputs.size(); i++) {
       const string tail = outputs[i].getFilePathTail();
       if (tail.find(".ecce_run_log") != string::npos) continue;
+      // ECCE writes results.h5 for every stored job; it is never the
+      // program's output, and counting it hid the one real candidate.
+      if (tail == "results.h5") continue;
       if (find(declared.begin(), declared.end(), tail) != declared.end()) continue;
       candidates.push_back(outputs[i]);
     }

@@ -231,7 +231,13 @@ class Case(object):
         props = out.split()
         for prop in REQUIRED_PROPS:
             self.check(prop in props, "%s stored" % prop)
-        self.check("Monitoring stopped" not in self.reason().splitlines()[0],
+        # The job store sets the state before it clears the reason, so poll.
+        deadline = time.time() + 20
+        first = self.reason().splitlines()[0]
+        while "Monitoring stopped" in first and time.time() < deadline:
+            time.sleep(1)
+            first = self.reason().splitlines()[0]
+        self.check("Monitoring stopped" not in first,
                    "the waiting reason was cleared")
 
 
