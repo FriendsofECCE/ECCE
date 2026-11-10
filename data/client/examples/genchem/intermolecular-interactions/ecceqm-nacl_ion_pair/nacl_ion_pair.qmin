@@ -1,0 +1,12 @@
+title NaCl ion pair, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies
+charge 0
+multiplicity 1
+method b3lyp
+dispersion d3bj
+basis def2-TZVP
+runtype optfreq
+opt_conv tight
+geometry
+ Na 0.000000 0.000000 0.000000
+ Cl 0.000000 0.000000 2.360000
+end

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
-<tsvector name="EGRAD" rowLabel="Geometry Step" rows="1" units="Hartree/Bohr">
-
-  <step number="1">0.0093396150</step>
-  <step number="2">0.0012784432</step>
-  <step number="3">0.0006534726</step>
-  <step number="4">0.0000093152</step>
-
-</tsvector>

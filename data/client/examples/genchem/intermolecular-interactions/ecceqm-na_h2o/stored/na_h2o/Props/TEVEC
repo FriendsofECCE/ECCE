@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="TEVEC" rowLabel="Geometry Step" rows="1" units="Hartree">
+
+  <step number="1">-238.523179569102</step>
+  <step number="2">-238.523249669353</step>
+  <step number="3">-238.523261851723</step>
+  <step number="4">-238.523262784215</step>
+  <step number="5">-238.523262964234</step>
+
+</tsvector>

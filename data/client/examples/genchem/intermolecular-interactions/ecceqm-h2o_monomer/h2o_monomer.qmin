@@ -1,0 +1,13 @@
+title Water, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies
+charge 0
+multiplicity 1
+method b3lyp
+dispersion d3bj
+basis def2-TZVP
+runtype optfreq
+opt_conv tight
+geometry
+ O 0.000000 0.000000 0.117300
+ H 0.000000 0.757200 -0.469200
+ H 0.000000 -0.757200 -0.469200
+end

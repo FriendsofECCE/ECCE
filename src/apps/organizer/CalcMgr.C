@@ -6327,7 +6327,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "42";
+const char *const kExampleSetVersion = "43";
 
 string treeName(string s)
 {
@@ -7565,31 +7565,31 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "density shifted towards the more electronegative chlorine atom, which "
      "gives the molecule a dipole moment."},
     {"h2o_dimer",
-     "ORCA, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This "
+     "ECCE-QM, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This "
      "calculation shows a hydrogen bond: a Density Profile line from the "
      "bridging H to the O of the other molecule dips to a low minimum "
      "that is not zero, far below that along the O-H bond itself."},
     {"h2o_monomer",
-     "ORCA, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This "
+     "ECCE-QM, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This "
      "calculation shows a single water molecule, whose Density Map can be "
      "set beside those of the water dimer and of Na⁺·H₂O."},
     {"na_h2o",
-     "ORCA, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This "
+     "ECCE-QM, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This "
      "calculation shows a sodium ion held at the oxygen end of a water "
      "molecule: on a Density Profile line from Na to O the density between "
      "them falls to a low minimum, far below that of a covalent bond."},
     {"nacl_ion_pair",
-     "ORCA, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This "
+     "ECCE-QM, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This "
      "calculation shows an ionic bond: on a Density Profile line from Na to "
      "Cl the density between the two ions falls to a low minimum, far below "
      "that between H and Cl in HCl."},
     {"hcl_covalent",
-     "ORCA, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This "
+     "ECCE-QM, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This "
      "calculation shows a covalent bond to set beside the NaCl ion pair: on "
      "a Density Profile line from H to Cl the density stays high between "
      "the atoms."},
     {"ar_dimer",
-     "ORCA, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This "
+     "ECCE-QM, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This "
      "calculation shows two argon atoms held together by London dispersion: "
      "a Density Profile line from one atom to the other finds almost no "
      "density between them, so this attraction cannot be seen in the "

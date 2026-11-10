@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<vecstring name="LOCMOLABEL" rowLabel="Basis Function" rowLabels="1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18" rows="18" units="NA">core_Ar1   core_Ar1   core_Ar1   core_Ar1
+core_Ar1   core_Ar2   core_Ar2   core_Ar2
+core_Ar2   core_Ar2   lone_pair_Ar1_(sp0.1)   lone_pair_Ar1_(sp8.7)
+lone_pair_Ar1_(p)   lone_pair_Ar1_(p)   lone_pair_Ar2_(sp0.1)   lone_pair_Ar2_(sp8.7)
+lone_pair_Ar2_(p)   lone_pair_Ar2_(p)</vecstring>

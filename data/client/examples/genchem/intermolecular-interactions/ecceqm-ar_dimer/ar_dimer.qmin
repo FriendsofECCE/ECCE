@@ -1,0 +1,12 @@
+title Ar2, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies
+charge 0
+multiplicity 1
+method b3lyp
+dispersion d3bj
+basis def2-TZVP
+runtype optfreq
+opt_conv tight
+geometry
+ Ar 0.000000 0.000000 0.000000
+ Ar 0.000000 0.000000 3.800000
+end

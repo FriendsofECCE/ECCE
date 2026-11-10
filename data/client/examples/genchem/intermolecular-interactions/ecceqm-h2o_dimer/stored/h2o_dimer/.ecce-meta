@@ -1,0 +1,56 @@
+.	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/BasisSet.ecce_basisset" xlink:type="simple"></rdf:href></rdf:li><rdf:li><rdf:href xlink:href="Parameters/SetupParams" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This calculation shows a hydrogen bond: a Density Profile line from the bridging H to the O of the other molecule dips to a low minimum that is not zero, far below that along the O-H bond itself.
+.	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
+.	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
+.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 13:55:53 GMT
+.	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
+.	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
+.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 13:55:50 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
+.	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
+.	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
+.	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
+.	http://www.emsl.pnl.gov/ecce:job_clienthost		niobium
+.	http://www.emsl.pnl.gov/ecce:job_clientid		
+.	http://www.emsl.pnl.gov/ecce:job_jobid		
+.	http://www.emsl.pnl.gov/ecce:job_path		<rundir>
+.	http://www.emsl.pnl.gov/ecce:killreason		
+.	http://www.emsl.pnl.gov/ecce:killrequested		
+.	http://www.emsl.pnl.gov/ecce:launch_account		
+.	http://www.emsl.pnl.gov/ecce:launch_machine		niobium
+.	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
+.	http://www.emsl.pnl.gov/ecce:launch_maxwall		
+.	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
+.	http://www.emsl.pnl.gov/ecce:launch_nodes		0
+.	http://www.emsl.pnl.gov/ecce:launch_priority		
+.	http://www.emsl.pnl.gov/ecce:launch_profile		
+.	http://www.emsl.pnl.gov/ecce:launch_queue		
+.	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
+.	http://www.emsl.pnl.gov/ecce:launch_rundir		
+.	http://www.emsl.pnl.gov/ecce:launch_scratchdir		
+.	http://www.emsl.pnl.gov/ecce:launch_threads		0
+.	http://www.emsl.pnl.gov/ecce:launch_totalprocs		0
+.	http://www.emsl.pnl.gov/ecce:launch_user		
+.	http://www.emsl.pnl.gov/ecce:metaPotentialsDocument		MetaPotentialModel.mpot
+.	http://www.emsl.pnl.gov/ecce:moleculeDocument		chemsys.mvm
+.	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
+.	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
+.	http://www.emsl.pnl.gov/ecce:owner		andy
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794318951.926 idle=0 at=1794318952\nscf cycle=6 energy=-152.8628635399 dE=-2.13e-12/1e-10 grad=7.29e-08/1e-07 converged=yes\nscf~ dE=-7.32e-07,-6.30e-09,-1.53e-10,-2.17e-10,-2.13e-12\nopt step=40 energy=-152.8628635399 maxgrad=3.64e-05/1e-04 rmsgrad=1.75e-05/3e-05 maxstep=4.76e-04/1e-03 rmsstep=1.91e-04/6e-04 dE=-2.92e-08/1e-06 converged=yes\nopt~ maxgrad=7.41e-03,4.34e-03,4.06e-03,2.29e-03,2.81e-03,1.92e-03,2.17e-03,1.95e-03,1.43e-03,1.37e-03,3.97e-03,8.74e-04,7.87e-04,4.60e-03,2.07e-03,5.21e-03,8.14e-03,3.95e-03,2.08e-03,5.48e-03,2.12e-03,2.34e-03,2.93e-03,1.46e-03,4.96e-03,2.13e-03,1.19e-03,2.16e-03,1.29e-03,1.18e-03,4.52e-04,3.29e-04,7.82e-05,1.09e-04,1.28e-04,8.17e-05,3.64e-05\nopt~ rmsgrad=3.52e-03,1.48e-03,1.58e-03,9.91e-04,1.33e-03,7.09e-04,1.02e-03,8.01e-04,6.41e-04,5.67e-04,1.67e-03,5.19e-04,4.22e-04,1.68e-03,8.24e-04,1.77e-03,2.55e-03,1.22e-03,9.88e-04,2.03e-03,9.06e-04,1.14e-03,1.13e-03,5.53e-04,2.07e-03,9.82e-04,5.31e-04,9.27e-04,6.05e-04,6.02e-04,2.15e-04,1.68e-04,2.97e-05,4.30e-05,5.45e-05,3.82e-05,1.75e-05\nfreq kind=numerical point=36/36 done=yes real=12 imaginary=0 zpe=0.0457219087\n
+.	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
+.	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
+.	http://www.emsl.pnl.gov/ecce:rerun		false
+.	http://www.emsl.pnl.gov/ecce:resourcetype		virtual_document
+.	http://www.emsl.pnl.gov/ecce:reviewed		false
+.	http://www.emsl.pnl.gov/ecce:reviewedDate		
+.	http://www.emsl.pnl.gov/ecce:runLogDocument		eccejobstorelog.ecce_run_log
+.	http://www.emsl.pnl.gov/ecce:runStatusReason		
+.	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
+.	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
+.	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
+.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 13:55:50 GMT
+.	http://www.emsl.pnl.gov/ecce:state		Loaded
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794318950
+.	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

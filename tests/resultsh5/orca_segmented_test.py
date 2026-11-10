@@ -22,7 +22,7 @@ CALCS = [("computational/h2-dissociation/orca-h2_rhf_scan", "h2_rhf_scan", [2]),
          ("computational/h2-dissociation/orca-h2_ccsd_scan", "h2_ccsd_scan", [2]),
          ("genchem/bond-formation/orca-h2_bond_curve", "h2_bond_curve", [2]),
          # def2: segmented in both, must stay as it was
-         ("genchem/intermolecular-interactions/orca-h2o_dimer", "h2o_dimer", [20])]
+         ("spectroscopy/carbonyl-compounds/orca-formaldehyde", "formaldehyde", [16])]
 
 
 def main():
