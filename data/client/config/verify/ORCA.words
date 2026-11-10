@@ -2,6 +2,7 @@
 ##$keysave##
 ##$tag##
 ##$tag##:
+$!\n
 $_
 $abidict{
 $abifile\n
@@ -12,6 +13,7 @@ $coords{$index
 $en
 $en\n
 $env{ecce_home}/scripts/parsers
+$env{ecce_home}/scripts/parsers/orca-ri.defaults
 $eps\n
 $fragfile\n
 $func
@@ -23,7 +25,7 @@ $lmax\n
 $maxcore.
 $maxcore\n
 $maxcoregb
-$maxiter\nend\n
+$maxiter\n
 $maxsteps\n
 $message\n
 $mode
@@ -50,6 +52,7 @@ $useexplicitbasis
 $value
 $wrote
 %-46s
+%.6f
 %3d%17.8f%16.8f\n
 %3d%17.8f%18.8f%4d\n
 %basis\n
@@ -63,8 +66,9 @@ $wrote
 %moinp
 %neb\n
 %output\n
+%pointcharges
 %s
-%scf\n
+%scf\n$scf
 %tddft\n
 &$sub
 &$subname
@@ -111,6 +115,7 @@ $wrote
 6-31g
 6-31g*
 6-31g**
+75\n
 :n:t:pfbcqeshv
 <basename>
 <basis>/c
@@ -173,6 +178,7 @@ aug-pcsseg-1
 aug-pcsseg-2
 aug-pcsseg-3
 automatic
+auxiliary
 b
 b2gp-plyp
 b2plyp
@@ -268,6 +274,8 @@ d6d
 d6h
 d8h
 da
+def2-mtzvp
+def2-mtzvpp
 def2-qzvp
 def2-qzvpp
 def2-sv
@@ -275,7 +283,7 @@ def2-svp
 def2-svp/c
 def2-tzvp
 def2-tzvpp
-def2/j
+defaults:
 defgrid
 defgrid3
 descriptive
@@ -321,12 +329,14 @@ es.runtype.vibration.method
 es.runtype.vibration.useraman
 es.theory.dft.grid
 es.theory.dft.xcfunctionals
+es.theory.scf.brokensymmetryguess
 es.theory.scf.convergenceiterations
 es.theory.scf.convergencetolerance
 es.theory.scf.dielectric
 es.theory.scf.dispersion
 es.theory.scf.memorysize
 es.theory.scf.orbitalguessfile
+es.theory.scf.pointchargefile
 es.theory.scf.refractiveindex
 es.theory.scf.rijcosxauxbasis
 es.theory.scf.rimode
@@ -364,6 +374,7 @@ geovib
 gga
 gigabytes
 gradient
+guessmix
 h
 has
 help\n
@@ -406,6 +417,7 @@ loosescf|tightscf|verytightscf
 m06
 m062x
 m06l
+ma-def2-svp
 magnetic
 main
 maxiter
@@ -416,6 +428,7 @@ method
 midi
 mini
 missing
+mode
 model
 model.\n
 molecular
@@ -445,10 +458,12 @@ not
 nroots
 numerical
 numfreq
+numgrad
 nwchem
 o
 off
 oh
+on
 one
 open
 opt
@@ -478,6 +493,7 @@ pcsseg-3
 pcsseg-4
 pertab.pl
 pick
+please
 polar
 polarization
 potential
@@ -504,10 +520,14 @@ retrying
 revpbe
 revtpss
 rhf
+ri
 rijcosx
 rijonx
 rks
 rmp2
+rodft
+rohf
+roks
 rpbe
 runtype
 s
@@ -582,6 +602,7 @@ useroutecard
 usesym
 value
 vdz
+vdzp
 version\n
 very
 verytightopt

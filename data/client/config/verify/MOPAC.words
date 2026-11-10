@@ -1,14 +1,18 @@
+!defined
 ##$key##
 ##$keysave##
 ##$tag##
 ##$tag##:
+$!\n
 $abidict{
 $abifile\n
 $env{ecce_home}/scripts/parsers
+$eps
 $fragfile\n
 $gnorm
 $maxiter
 $message\n
+$model
 $nprocs
 $opt_n.basis
 $opt_n.con
@@ -18,6 +22,7 @@ $result\
 $revision:
 $revision\n
 $runtype
+$solvent
 $steps
 $theory
 $value
@@ -30,6 +35,8 @@ $wrote
 &$sub
 &$subname
 &$subname;
+'$model'\n
+'$solvent'\n
 '$value'
 '%s'
 -f
@@ -95,14 +102,17 @@ c6v
 c7
 c8
 calculation
+cannot
 charge
 charges
 chemsys.multiplicity
 ci
+cosmo
 couldn't
 covers
 criteria
 cs
+custom
 cycles
 cycles>
 d2
@@ -122,6 +132,7 @@ d6d
 d6h
 d8h
 defined
+denout
 dictionary
 directly
 do
@@ -135,6 +146,7 @@ ef
 eigenvectors
 energy
 energy/gradient/geometry/vibration/geovib
+eps
 eq
 error:
 es.runtype.geomopt.convergencegradient.value
@@ -142,10 +154,14 @@ es.runtype.geomopt.maximumstepsvalue
 es.runtype.geomopt.searchfor
 es.runtype.vibration.thermo
 es.theory.scf.convergenceiterations
+es.theory.scf.dielectric
 es.theory.scf.espcharges
 es.theory.scf.numprocessors
+es.theory.scf.orbitalguessfile
 es.theory.scf.precise
 es.theory.scf.printmos
+es.theory.scf.solvationmodel
+es.theory.scf.solvent
 esp
 exit
 false
@@ -191,6 +207,7 @@ memory
 minimum
 missing
 mndo
+model
 mopac
 n
 ne
@@ -204,6 +221,7 @@ o
 octet
 of
 oh
+oldens
 oldgeo
 omits
 one
@@ -253,6 +271,8 @@ settings
 sextet
 singlet
 so
+solvent
+solvents:
 specified
 spin
 state
@@ -287,7 +307,9 @@ uam1
 uhf
 umndo
 undefined
+unknown
 unlike
+unsupported
 upm3
 upm6
 upm7
@@ -300,6 +322,7 @@ version\n
 vibration
 vibrational
 warning
+water
 when
 will
 with
