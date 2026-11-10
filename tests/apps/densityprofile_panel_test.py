@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-The Density Profile panel on stored ECCE-QM Ne, Ar, H2 and N2, headless:
+The Density Profile panel on stored ECCE-QM Ne, Ar, H2, N2 and ethene, headless:
 Builder scene commands (dp*, plotshot), no input events.  Checked per case:
 the default view of an atom (shells about it) and of a molecule (a line
 through the first bond), curve labels, the number of maxima and atom marks,
@@ -34,6 +34,7 @@ from ecceqm_builder_test import installLocal   # noqa: E402
 
 FIX = os.path.join(REPO, "tests", "builder", "radialdist-fixtures")
 CALCS = {n: os.path.join(FIX, n) for n in ("ne", "ar", "h2", "n2", "hcn")}
+CALCS["c2h4"] = os.path.join(REPO, "tests", "tdat", "planeintegral-fixtures", "c2h4")
 CALCS["hcnmore"] = CALCS["hcn"]     # the folded controls, open, in a session of their own
 SCREENS = os.environ.get("ECCE_DP_SCREENS", "1366x768x24,1700x1000x24").split(",")
 
@@ -112,6 +113,22 @@ plotshot {t}-hcnmore 0 0 Density Profile:docked
 dpmore 0
 hold 1
 """,
+    #  The plane integral (#749): the pi orbital (MO 8) over whole planes,
+    #  then within 0.5 A of the C=C line.
+    "c2h4": """dpopen
+dpatoms 1 2
+dpquantity plane
+dpshow selected
+dpmo 8
+dpstate
+dpcylinder 0.5
+dpstate
+dpcsv {t}-c2h4
+plotshot {t}-c2h4 0 0 Density Profile:docked
+dpquantity density
+dpstate
+hold 1
+""",
     "h2": """dpopen
 dpstate
 dpquantity psi2
@@ -159,6 +176,7 @@ def blocks(log, command):
                     b.setdefault("colours", []).append((col.group(1), col.group(2)))
                 elif m:
                     b["curves"].append((m.group(1), int(m.group(3))))
+                    b.setdefault("integral", float(m.group(2)))
                 elif item.startswith("mark "):
                     b["marks"].append(item.split()[1])
                 else:
@@ -222,6 +240,28 @@ def checkHcn(first, sel):
     return p
 
 
+def checkPlane(sel):
+    """The pi orbital's plane integral is about 1 over the line (2 A margins),
+    less within a 0.5 A cylinder; the radius control only with the quantity."""
+    if len(sel) < 3:
+        return ["c2h4: %d states" % len(sel)]
+    problems = []
+    whole, cyl, back = sel[0], sel[1], sel[2]
+    if whole.get("s_quantity") != "3" or whole.get("s_cylinder") != "0.000 1":
+        problems.append("plane quantity %s, cylinder %s" % (whole.get("s_quantity"),
+                                                           whole.get("s_cylinder")))
+    a0, a1 = whole.get("integral"), cyl.get("integral")
+    if a0 is None or not 0.95 < a0 < 1.001:
+        problems.append("pi area over whole planes %s, not ~1" % a0)
+    if a1 is None or a0 is None or not 0 < a1 < 0.8 * a0:
+        problems.append("pi area within 0.5 A %s (whole %s)" % (a1, a0))
+    if cyl.get("s_cylinder") != "0.500 1":
+        problems.append("cylinder state %s" % cyl.get("s_cylinder"))
+    if back.get("s_quantity") != "0" or not back.get("s_cylinder", "").endswith(" 0"):
+        problems.append("radius control shown with the density (%s)" % back.get("s_cylinder"))
+    return problems
+
+
 def check(case, log, t, out):
     problems = []
     states = blocks(log, "dpstate") + blocks(log, "dpopen")
@@ -273,12 +313,14 @@ def check(case, log, t, out):
             problems.append("N2 selection %s" % sel[0]["curves"])
         if len(sel) > 1 and len(sel[1]["curves"]) != 3:
             problems.append("N2 psi view has %d curves" % len(sel[1]["curves"]))
+    if case == "c2h4":
+        problems += checkPlane(sel)
     if case not in ("ar", "hcn", "hcnmore"):
         for ext in ("csv",):
             f = os.path.join(out, "%s-%s.%s" % (t, case, ext))
             if not os.path.exists(f):
                 problems.append("no " + f)
-            elif "Total density" not in open(f).read() and case != "h2":
+            elif "Total density" not in open(f).read() and case not in ("h2", "c2h4"):
                 problems.append("csv lacks the total")
     png = os.path.join(out, "%s-%s.png" % (t, case))
     if not os.path.exists(png):

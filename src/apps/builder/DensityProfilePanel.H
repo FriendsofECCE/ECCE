@@ -91,6 +91,7 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
       bool setXAxis(const std::string& name);         // linear sqrt log (atom mode)
       bool setYAxis(const std::string& name);         // linear log
       bool setShift(double angstrom, bool outOfPlane);  // sideways, line mode
+      bool setCylinder(double angstrom);              // plane integral radius, 0 = whole plane
       bool zoom(const std::string& what);             // whole fit in out
       bool setMoreOpen(bool open);                    // the folded controls
 
@@ -168,7 +169,8 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
 
       wxChoice *p_mode, *p_atomA, *p_atomB, *p_centre, *p_quantity, *p_show,
                *p_spin, *p_unit, *p_xaxis, *p_yaxis, *p_shiftDir;
-      wxSpinCtrlDouble *p_margin, *p_shift;
+      wxSpinCtrlDouble *p_margin, *p_shift, *p_cylinder = nullptr;
+      wxStaticText *p_labelCylinder = nullptr;
       wxPanel *p_more;
       wxButton *p_moreButton;
       wxSplitterWindow *p_outer, *p_inner;

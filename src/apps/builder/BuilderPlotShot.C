@@ -427,7 +427,8 @@ bool Builder::atomNumbersCommand(SceneScript& s, const vector<string>& w)
 //    dpopen | dpclose
 //    dpmode line|atom
 //    dpselect A [B] (viewer selection + event) | dppick A [B] | dpatoms A B | dpmargin ANGSTROM | dpcentre N     (atoms 1-based as labelled)
-//    dpquantity density|psi2|psi (line) or radial|avg (atom)
+//    dpquantity density|psi2|psi|plane (line) or radial|avg (atom)
+//    dpcylinder ANGSTROM    plane integral only within this radius of the line (0: whole plane)
 //    dpshow all|totalselected|selected|total
 //    dpmo N,N,...|none    exactly these orbitals ticked
 //    dpspin alpha|beta|both | dpunit A|bohr | dpcombine 0|1 | dpclip 0|1
@@ -519,6 +520,8 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
     ok = dp->setXAxis(w[1]);
   } else if (cmd == "dpyaxis" && w.size() == 2) {
     ok = dp->setYAxis(w[1]);
+  } else if (cmd == "dpcylinder" && w.size() == 2) {
+    ok = dp->setCylinder(atof(w[1].c_str()));
   } else if (cmd == "dpshift" && w.size() >= 2) {
     ok = dp->setShift(atof(w[1].c_str()), w.size() < 3 || w[2] != "in");
   } else if (cmd == "dpzoom" && w.size() == 2) {
