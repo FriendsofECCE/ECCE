@@ -9,7 +9,8 @@ lines of independent parsing (not ECCE's parsers):
   ORCA benzene opt+freq: frequencies, normal modes, IR intensities, and the
     optimisation trace (energies, coordinates);
   ORCA H2 relaxed scan: scan values and energies from ORCA's surface table;
-  ECCE-QM butane torsion scan: scan values, energies, structures.
+  ECCE-QM butane torsion scan: scan values, energies, structures;
+  G16 SN2 IRC: points in path order from the run-order Props, TS fitted.
 With ecce-qm: the water opt+freq run again with --results; the file ECCE-QM
 writes is compared with the one written from the parsed properties, and the
 job store must keep ECCE-QM's file.
@@ -253,6 +254,44 @@ def ecceqm_water(cli, qm, tmp, env):
     print("sizes (bytes): ecce-qm %d, from properties %d" % (os.path.getsize(own), os.path.getsize(h5)))
 
 
+def g16_sn2_irc(cli, tmp, env):
+    """The parser stores the points in run order (TS, forward, reverse, #948);
+    the file has them from the reverse end to the forward end, the TS fitted
+    onto its neighbours' frame."""
+    d = os.path.join(EX, "workflows", "sn2-cl-ch3br", "g16-irc")
+    stored = os.path.join(d, "stored", "sn2_irc")
+    calc, h5, done = write(cli, stored, tmp, env, "sn2irc")
+    ok(done, "G16 SN2 IRC: ecce-results write")
+    if not done:
+        return
+    r = dump(cli, h5, env)
+    text = open(os.path.join(d, "sn2_irc.out")).read()
+    ts = float(re.search(r"relative to the TS energy of\s+(-?\d+\.\d+)", text).group(1))
+    summary = text.split("Summary of reaction path following")[-1].split("Total number of points")[0]
+    rows = [(float(e), float(x)) for e, x in
+            re.findall(r"^\s+\d+\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$", summary, re.M)]
+    v = r.get("trace/irc/value", [])
+    e = r.get("trace/irc/energy", [])
+    c = r.get("trace/irc/coord", [])
+    ok(len(v) == len(rows) and maxdiff(v, [x for _, x in rows]) <= 1e-9,
+       "G16 SN2 IRC: %d coordinates in the summary's order" % len(rows))
+    ok(maxdiff(e, [ts + rel for rel, _ in rows]) <= 2e-6,
+       "G16 SN2 IRC: energies are the summary's (max diff %.2g Eh)" % maxdiff(e, [ts + rel for rel, _ in rows]))
+    n = len(c) // len(v) if v else 0
+    frames = [c[i * n:(i + 1) * n] for i in range(len(v))]
+    t = min(range(len(v)), key=lambda i: abs(v[i])) if v else 0
+
+    def rmsd(a, b):
+        return math.sqrt(sum((x - y) ** 2 for x, y in zip(a, b)) / (len(a) / 3))
+    if 0 < t < len(v) - 1:
+        a, f, b = frames[t - 1], frames[t], frames[t + 1]
+        ok(max(rmsd(f, a), rmsd(f, b)) < rmsd(a, b),
+           "G16 SN2 IRC: the TS lies between its neighbours (rmsd %.3f, %.3f < %.3f bohr)"
+           % (rmsd(f, a), rmsd(f, b), rmsd(a, b)))
+    else:
+        ok(False, "G16 SN2 IRC: the TS is an inner point")
+
+
 def main():
     if len(sys.argv) < 2:
         print(__doc__)
@@ -265,6 +304,7 @@ def main():
         orca_benzene(cli, tmp, env)
         orca_h2_scan(cli, tmp, env)
         ecceqm_butane(cli, tmp, env)
+        g16_sn2_irc(cli, tmp, env)
         if qm and os.access(qm, os.X_OK):
             ecceqm_water(cli, qm, tmp, env)
     finally:

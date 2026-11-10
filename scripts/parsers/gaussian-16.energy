@@ -97,6 +97,7 @@
 ###############################################################################
 
 # Force output to be flushed
+use File::Spec;
 $| = 1;
 
 ($key, $runtype, $ucCategory, $theory) = @ARGV;
@@ -111,8 +112,15 @@ $sav_inline = $inline;
 
 
 # See comments in file header.  A transition-state search (Opt=TS, QST2/3)
-# is an optimisation too: one energy per step.
-if ($runtype =~ /Geo|Transition State/i) {
+# is an optimisation too: one energy per step.  An IRC prints none of these;
+# its last total energy is kept for the path point it belongs to
+# (gaussian-16.ircgeom, #948).
+my $irc = ($runtype =~ /IRC/i);
+if ($irc) {
+  open(my $null, ">", File::Spec->devnull());
+  select($null);
+}
+if ($runtype =~ /Geo|Transition State|IRC/i) {
 
   #####
   # If you handle a different type of energy, be sure to:
@@ -315,6 +323,10 @@ if ($runtype =~ /Geo|Transition State/i) {
     }
   }
   # An Opt TD run plots the excited-state energy (gaussian-16.tdenergy) as TE.
+  if ($irc && isTE($lcTheory,$inline) && open(my $fh, ">", "$key/g16IrcE")) {
+    print $fh "$energy\n";
+    close($fh);
+  }
   if (isTE($lcTheory,$inline) && !(-e "$key/g16TdOpt")) {
 
     &printScalar("TE",$energy);

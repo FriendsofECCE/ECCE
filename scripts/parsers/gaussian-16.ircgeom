@@ -1,22 +1,70 @@
 #!/usr/bin/env perl
-# IRC (#417): the converged structure of one path point (the "CURRENT
-# STRUCTURE" block).  Gaussian computes the FORWARD points first, then
-# REVERSE; the frames are held in $key/g16IrcFrames and gaussian-16.irc
-# publishes them in the summary's order with the TS, one per IRCENERGY point.
-# Dummy centres are left out, as in gaussian-16.geomtrace (#27).
+# IRC (#417, #948): the path as Gaussian computes it, one point at a time, so
+# a running IRC can be watched.  Three blocks come here:
+#   "Start new reaction path calculation": the TS, i.e. the last structure
+#     held by gaussian-16.geomtrace-input, with the last energy;
+#   "Point Number N in FORWARD|REVERSE path direction": the sign of the
+#     coordinates that follow;
+#   "CURRENT STRUCTURE" .. "NET REACTION COORDINATE": a converged point.
+# Each point appends one IRCGEOM frame and re-sends IRCCOORD and IRCENERGY
+# whole (vectors are replaced, frames appended), all three in run order, so
+# frame i belongs to energy i.  The readers sort by coordinate and fit the TS
+# onto the path's frame (ResultsFromCalc).  Dummy centres are left out (#27).
 $| = 1;
 ($key, $runtype) = @ARGV;
 exit(0) unless ($runtype =~ /IRC/i);
 
-my @coord;
+my (@coord, $net, $start, $dir);
 while (<STDIN>) {
+  $start = 1 if (/Start new reaction path calculation/);
+  $dir = $1 if (/in (FORWARD|REVERSE) path direction/);
+  $net = $1 if (/NET REACTION COORDINATE UP TO THIS POINT\s*=\s*(-?\d+\.\d+)/);
   next unless (/^\s+\d+\s+(-?\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/);
   next if ($1 < 0);
   push(@coord, "$2 $3 $4");
 }
-exit(0) unless (@coord);
-if (open(my $fh, ">>", "$key/g16IrcFrames")) {
-  print $fh join(",", @coord), "\n";
+
+if (defined $dir) {
+  writeLine("$key/g16IrcDir", $dir);
+  exit(0);
+}
+my ($energy) = readLines("$key/g16IrcE");
+if ($start) {
+  my ($ts) = readLines("$key/g16IrcInput");
+  unlink("$key/g16IrcInput", "$key/g16IrcPoints");
+  # Without its energy the TS cannot stand in the energy series; the
+  # summary then gives the energies and the TS has no frame.
+  exit(0) unless (defined $ts && defined $energy);
+  @coord = split(/,/, $ts);
+  $net = 0;
+} else {
+  exit(0) unless (@coord && defined $net && defined $energy);
+  my ($d) = readLines("$key/g16IrcDir");
+  $net = -$net if (defined $d && $d eq "REVERSE");
+}
+
+if (open(my $fh, ">>", "$key/g16IrcPoints")) {
+  print $fh "$net $energy\n";
   close($fh);
 }
+my @pts = map { [split] } readLines("$key/g16IrcPoints");
+my $labels = join("", map { " $_-X" } 1 .. scalar(@coord));
+print "key: IRCGEOM\nsize:\n1 ", scalar(@coord), " 3\nrowlabels:\n$labels\n",
+      "columnlabels:\nX Y Z\nvalues:\n", join("\n", map { " $_" } @coord),
+      "\nunits:\nAngstrom\nEND\n";
+my $n = scalar(@pts);
+print "key: IRCCOORD\nsize: \n$n\nvalues: \n", join("\n", map { $_->[0] } @pts),
+      "\nunits:\nsqrt(amu)*bohr\nEND\n";
+print "key: IRCENERGY\nsize: \n$n\nvalues: \n", join("\n", map { $_->[1] } @pts),
+      "\nunits:\nHartree\nEND\n";
 exit(0);
+
+sub writeLine {
+  if (open(my $fh, ">", $_[0])) { print $fh "$_[1]\n"; close($fh); }
+}
+
+sub readLines {
+  my @l;
+  if (open(my $fh, "<", $_[0])) { @l = <$fh>; close($fh); chomp @l; }
+  return grep { length } @l;
+}

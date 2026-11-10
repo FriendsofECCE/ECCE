@@ -11,6 +11,11 @@
 #include "util/Filesystem.H"
 #include <map>
 #include <memory>
+#include <numeric>
+
+#include "tdat/PropTSVecTable.H"
+#include "tdat/PropVector.H"
+#include "dsm/IPropCalculation.H"
 
 #ifdef ECCE_HAVE_HDF5
 #include <strings.h>
@@ -43,6 +48,127 @@ bool enabled()
 }
 
 double bohrPerAngstrom() { return 1/0.52917724924; }
+
+namespace {
+
+//  An IRC's points come in run order (Gaussian: TS, forward, reverse) and
+//  grow while the job runs (#948); views and results.h5 want the path from
+//  one end to the other, by reaction coordinate.  A frame's index is its
+//  energy's, so all three keys are reordered together.
+struct IrcPath
+{
+  PropVector *coord = 0, *energy = 0;
+  PropTSVecTable *geom = 0;
+  vector<size_t> order;
+  vector<vector<double> > frames;   // in path order, TS fitted
+};
+
+//  Rotates the TS (printed in the orientation it was read in) rigidly onto
+//  the mean of its neighbours (Horn's quaternion fit), when that fits clearly
+//  better than as is; distances are unchanged.
+void fitTs(vector<double>& ts, const vector<const vector<double>*>& near)
+{
+  const size_t n = ts.size()/3;
+  if (n < 2 || near.empty()) return;
+  vector<double> b(ts.size(), 0.0);
+  for (const vector<double> *f : near) {
+    if (f->size() != ts.size()) return;
+    for (size_t k = 0; k < ts.size(); k++) b[k] += (*f)[k]/near.size();
+  }
+  double ca[3] = {0, 0, 0}, cb[3] = {0, 0, 0};
+  for (size_t i = 0; i < n; i++)
+    for (int k = 0; k < 3; k++) { ca[k] += ts[3*i+k]/n; cb[k] += b[3*i+k]/n; }
+  double S[3][3] = {{0}};
+  for (size_t i = 0; i < n; i++)
+    for (int j = 0; j < 3; j++)
+      for (int k = 0; k < 3; k++) S[j][k] += (ts[3*i+j] - ca[j])*(b[3*i+k] - cb[k]);
+  const double xx = S[0][0], xy = S[0][1], xz = S[0][2], yx = S[1][0], yy = S[1][1],
+               yz = S[1][2], zx = S[2][0], zy = S[2][1], zz = S[2][2];
+  const double N[4][4] = {{xx + yy + zz, yz - zy, zx - xz, xy - yx},
+                          {yz - zy, xx - yy - zz, xy + yx, zx + xz},
+                          {zx - xz, xy + yx, -xx + yy - zz, yz + zy},
+                          {xy - yx, zx + xz, yz + zy, -xx - yy + zz}};
+  //  Power iteration on N + shift*I gives the top eigenvector; a generic
+  //  start, as a planar molecule decouples N into 2x2 blocks.
+  double shift = 0;
+  for (auto& r : N) for (double v : r) shift += v*v;
+  shift = sqrt(shift) + 1e-12;
+  double q[4] = {0.8, 0.37, 0.33, 0.29};
+  for (int it = 0; it < 2000; it++) {
+    double v[4], len = 0;
+    for (int r = 0; r < 4; r++) {
+      v[r] = shift*q[r];
+      for (int c = 0; c < 4; c++) v[r] += N[r][c]*q[c];
+      len += v[r]*v[r];
+    }
+    len = sqrt(len);
+    for (int r = 0; r < 4; r++) q[r] = v[r]/len;
+  }
+  const double q0 = q[0], q1 = q[1], q2 = q[2], q3 = q[3];
+  const double R[3][3] = {
+    {q0*q0 + q1*q1 - q2*q2 - q3*q3, 2*(q1*q2 - q0*q3), 2*(q1*q3 + q0*q2)},
+    {2*(q1*q2 + q0*q3), q0*q0 - q1*q1 + q2*q2 - q3*q3, 2*(q2*q3 - q0*q1)},
+    {2*(q1*q3 - q0*q2), 2*(q2*q3 + q0*q1), q0*q0 - q1*q1 - q2*q2 + q3*q3}};
+  vector<double> out(ts.size());
+  double dFit = 0, dAsIs = 0;
+  for (size_t i = 0; i < n; i++) {
+    const double d[3] = {ts[3*i] - ca[0], ts[3*i+1] - ca[1], ts[3*i+2] - ca[2]};
+    for (int k = 0; k < 3; k++) {
+      out[3*i+k] = cb[k] + R[k][0]*d[0] + R[k][1]*d[1] + R[k][2]*d[2];
+      dFit += (out[3*i+k] - b[3*i+k])*(out[3*i+k] - b[3*i+k]);
+      dAsIs += (ts[3*i+k] - b[3*i+k])*(ts[3*i+k] - b[3*i+k]);
+    }
+  }
+  if (dFit*4 < dAsIs) ts.swap(out);
+}
+
+//  False unless there is one structure and one energy per coordinate.
+bool ircPath(PropVector *c, PropVector *e, PropTSVecTable *g, IrcPath& path)
+{
+  if (c == 0 || e == 0 || g == 0) return false;
+  const size_t n = c->values().size();
+  if (n == 0 || e->values().size() != n || (size_t)g->tables() != n) return false;
+  const vector<double>& x = c->values();
+  path.coord = c; path.energy = e; path.geom = g;
+  path.order.resize(n);
+  std::iota(path.order.begin(), path.order.end(), 0);
+  std::stable_sort(path.order.begin(), path.order.end(),
+                   [&](size_t a, size_t b) { return x[a] < x[b]; });
+  path.frames.clear();
+  for (size_t i : path.order) path.frames.push_back(g->values((int)i));
+  //  The TS is the point at coordinate 0; its neighbours the nearest points
+  //  on either side.
+  size_t ts = 0;
+  for (size_t i = 1; i < n; i++) if (fabs(x[path.order[i]]) < fabs(x[path.order[ts]])) ts = i;
+  if (x[path.order[ts]] != 0) return true;
+  vector<const vector<double>*> near;
+  if (ts > 0) near.push_back(&path.frames[ts - 1]);
+  if (ts + 1 < n) near.push_back(&path.frames[ts + 1]);
+  fitTs(path.frames[ts], near);
+  return true;
+}
+
+vector<double> inOrder(const vector<double>& v, const vector<size_t>& order)
+{
+  vector<double> out;
+  for (size_t i : order) out.push_back(v[i]);
+  return out;
+}
+
+//  A copy of one of the path's three properties in path order.
+TProperty *ircCopy(const IrcPath& path, const string& key)
+{
+  if (key == "IRCGEOM") {
+    PropTSVecTable *t = new PropTSVecTable(*path.geom);
+    t->setValues(new vector<vector<double> >(path.frames), path.geom->rows(), 3);
+    return t;
+  }
+  PropVector *v = new PropVector(key == "IRCCOORD" ? *path.coord : *path.energy);
+  v->values(inOrder(v->values(), path.order));
+  return v;
+}
+
+}  // namespace
 
 #ifdef ECCE_HAVE_HDF5
 
@@ -170,8 +296,16 @@ void addTraces(IPropCalculation *calc, Model& m)
   };
   addTrace(m, "scan", table("SCANGEOM"), vectorOf(calc, "SCANENERGY"),
            vectorOf(calc, "SCANCOORD"), 0, 0);
-  addTrace(m, "irc", table("IRCGEOM"), vectorOf(calc, "IRCENERGY"),
-           vectorOf(calc, "IRCCOORD"), 0, 0);
+  IrcPath path;
+  if (ircPath(vectorOf(calc, "IRCCOORD"), vectorOf(calc, "IRCENERGY"), table("IRCGEOM"), path)) {
+    std::unique_ptr<TProperty> g(ircCopy(path, "IRCGEOM")), e(ircCopy(path, "IRCENERGY")),
+        c(ircCopy(path, "IRCCOORD"));
+    addTrace(m, "irc", dynamic_cast<PropTSVecTable*>(g.get()), dynamic_cast<PropVector*>(e.get()),
+             dynamic_cast<PropVector*>(c.get()), 0, 0);
+  } else {
+    addTrace(m, "irc", table("IRCGEOM"), vectorOf(calc, "IRCENERGY"),
+             vectorOf(calc, "IRCCOORD"), 0, 0);
+  }
   PropTSVecTable *g = table("GEOMTRACE");
   if (g == 0 || g->tables() < 2) return;
   PropVector *time = vectorOf(calc, "TIMEVEC");
@@ -893,7 +1027,7 @@ long shapeOf(TProperty *p)
 }  // namespace
 
 
-TProperty *property(IPropCalculation *calc, const string& key)
+static TProperty *fileProperty(IPropCalculation *calc, const string& key)
 {
   TProperty *p = calc ? calc->getProperty(key) : 0;
   if (p == 0) return 0;
@@ -1098,11 +1232,54 @@ bool build(IPropCalculation*, resultsh5::Model&, string&, string& why) { why = "
 bool store(IPropCalculation*, string& line) { line = "built without HDF5"; return false; }
 std::shared_ptr<const resultsh5::Model> stored(IPropCalculation*) { return std::shared_ptr<const resultsh5::Model>(); }
 std::shared_ptr<const resultsh5::Model> storedAny(IPropCalculation*) { return std::shared_ptr<const resultsh5::Model>(); }
-TProperty *property(IPropCalculation *calc, const string& key) { return calc ? calc->getProperty(key) : 0; }
+static TProperty *fileProperty(IPropCalculation *calc, const string& key) { return calc ? calc->getProperty(key) : 0; }
 void forget(IPropCalculation*) {}
 bool fromFile(IPropCalculation*, const string&, TProperty*) { return false; }
 vector<string> keysInFile(IPropCalculation*) { return vector<string>(); }
 
 #endif
+
+namespace {
+
+struct IrcView
+{
+  TProperty *src[3] = {0, 0, 0};
+  long frames = -1;
+  vector<double> coord, energy;
+  std::unique_ptr<TProperty> prop;
+};
+std::map<string, IrcView> g_irc;
+vector<std::unique_ptr<TProperty> > g_ircRetired;
+
+}  // namespace
+
+TProperty *property(IPropCalculation *calc, const string& key)
+{
+  TProperty *p = fileProperty(calc, key);
+  if (p == 0 || (key != "IRCGEOM" && key != "IRCENERGY" && key != "IRCCOORD")) return p;
+  PropVector *c = dynamic_cast<PropVector*>(fileProperty(calc, "IRCCOORD"));
+  PropVector *e = dynamic_cast<PropVector*>(fileProperty(calc, "IRCENERGY"));
+  PropTSVecTable *g = dynamic_cast<PropTSVecTable*>(fileProperty(calc, "IRCGEOM"));
+  //  Views keep the pointers they get: a copy is made again only when one of
+  //  the three changed (the summary replaces the live values) or grew, and
+  //  the old one is retired, not freed.
+  IrcView& v = g_irc[calc->getURL().toString() + "\n" + key];
+  TProperty *src[3] = {c, e, g};
+  const long frames = g ? (long)g->tables() : -1;
+  const vector<double> coord = c ? c->values() : vector<double>();
+  const vector<double> energy = e ? e->values() : vector<double>();
+  if (std::equal(src, src + 3, v.src) && frames == v.frames && coord == v.coord &&
+      energy == v.energy)
+    return v.prop ? v.prop.get() : p;
+  std::copy(src, src + 3, v.src);
+  v.frames = frames;
+  v.coord = coord;
+  v.energy = energy;
+  if (v.prop) g_ircRetired.push_back(std::move(v.prop));
+  IrcPath path;
+  if (!ircPath(c, e, g, path)) return p;
+  v.prop.reset(ircCopy(path, key));
+  return v.prop.get();
+}
 
 }

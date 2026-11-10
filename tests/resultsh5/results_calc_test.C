@@ -419,6 +419,20 @@ static bool flatValues(TProperty *p, vector<double>& out)
   return false;
 }
 
+//  The parsed values as a view shows them without results.h5: an IRC's
+//  points are stored in run order and shown in path order (#948).
+static bool isIrc(const string& key) { return key.compare(0, 3, "IRC") == 0; }
+
+static void parsedView(IPropCalculation *calc, const string& key, vector<double>& out)
+{
+  if (!isIrc(key)) { flatValues(calc->getProperty(key), out); return; }
+  setenv("ECCE_RESULTS_H5", "0", 1);
+  ResultsFromCalc::forget(calc);
+  flatValues(ResultsFromCalc::property(calc, key), out);
+  setenv("ECCE_RESULTS_H5", "1", 1);
+  ResultsFromCalc::forget(calc);
+}
+
 //  The two paths of every view property: values from results.h5 must equal
 //  the parsed ones to 1e-6 of the largest magnitude (the Props hold the
 //  code's printed digits; ECCE-QM's own file holds full precision), and
@@ -443,7 +457,7 @@ static void views(string arg)
     TProperty *viewed = ResultsFromCalc::property(calc, key);
     const bool fromFile = viewed != parsed;
     vector<double> a, b;
-    flatValues(parsed, a);
+    parsedView(calc, key, a);
     flatValues(viewed, b);
     double scale = 0, diff = 0;
     for (double x : a) scale = max(scale, fabs(x));
@@ -457,8 +471,17 @@ static void views(string arg)
       CHECK(fromFile, string(key) + " is read from results.h5");
     setenv("ECCE_RESULTS_H5", "0", 1);
     ResultsFromCalc::forget(calc);
-    CHECK(ResultsFromCalc::property(calc, key) == parsed,
-          string(key) + ": ECCE_RESULTS_H5=0 gives the parsed property");
+    TProperty *alone = ResultsFromCalc::property(calc, key);
+    if (isIrc(key)) {
+      vector<double> c, p;
+      flatValues(alone, c);
+      flatValues(parsed, p);
+      if (key == string("IRCCOORD")) sort(p.begin(), p.end());
+      CHECK(c.size() == p.size() && (key != string("IRCCOORD") || c == p),
+            string(key) + ": ECCE_RESULTS_H5=0 gives the parsed points in path order");
+    } else {
+      CHECK(alone == parsed, string(key) + ": ECCE_RESULTS_H5=0 gives the parsed property");
+    }
   }
   setenv("ECCE_RESULTS_H5", "1", 1);
 }
@@ -548,7 +571,7 @@ static void fileOnly(string arg)
     ResultsFromCalc::forget(b);
     flatValues(ResultsFromCalc::property(b, key), y);
     vector<double> p0;
-    flatValues(parsed, p0);
+    parsedView(a, key, p0);
     double scale = 0, diff = 0, diffParsed = 0;
     for (double v : x) scale = max(scale, fabs(v));
     if (x.size() == y.size())

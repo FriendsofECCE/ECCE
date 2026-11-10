@@ -308,6 +308,64 @@ def qmCase(s, display, env, wrappers, project, png):
           "the status line names the point shown")
 
 
+def partialCase(s, display, env, wrappers, project, png):
+    """A running Gaussian IRC (#948): the real parser on hcn_irc.log cut in
+    the reverse path gives the TS, the forward points and some reverse ones in
+    run order; the panel shows them from the reverse end to the forward end,
+    and the TS point has its structure."""
+    sys.path.insert(0, os.path.join(REPO, "tests", "parsers"))
+    import g16_trace_align_test as ta
+    lines = open(LOG).read().splitlines()
+    nets = [i for i, l in enumerate(lines) if "NET REACTION COORDINATE" in l]
+    cut = os.path.join(s.state, "hcn_irc_cut.log")
+    with open(cut, "w") as f:
+        f.write("\n".join(lines[:nets[11] + 40]) + "\n")
+    recs = ta.records(cut, "IRC")
+    frames = [[v[k:k + 3] for k in range(0, len(v), 3)] for v in ta.values(recs, "IRCGEOM")]
+    coord = ta.values(recs, "IRCCOORD")[-1]
+    energy = ta.values(recs, "IRCENERGY")[-1]
+    check(len(frames) == len(coord) == len(energy) == 13,
+          "partial IRC: the parser gives 13 points (TS, 8 forward, 4 reverse)")
+    calc = os.path.join(project, "calc-hcn-irc-partial")
+    shutil.rmtree(calc, ignore_errors=True)
+    shutil.copytree(BASE, calc, symlinks=True)
+    props = os.path.join(calc, "Props")
+    for name in os.listdir(props):
+        if name != "ESCF":
+            os.unlink(os.path.join(props, name))
+    with open(os.path.join(calc, "Parameters", "chemsys.mvm"), "w") as f:
+        f.write(HCN)
+    with open(os.path.join(props, "IRCCOORD"), "w") as f:
+        f.write(vector("IRCCOORD", coord, "sqrt(amu)*bohr"))
+    with open(os.path.join(props, "IRCENERGY"), "w") as f:
+        f.write(vector("IRCENERGY", energy, "Hartree"))
+    with open(os.path.join(props, "IRCGEOM"), "w") as f:
+        f.write(tsvector(frames))
+    csv = os.path.join(s.state, "irc-partial.csv")
+    text, _ = bo.runScript(
+        s, display, env, wrappers, ["-context", "file://" + calc + "/"],
+        ["wait 6000", "shot panel", "ircpath %s" % csv, "ircclick 4", "ircclick 0", "quit"],
+        png, "ircpartial", {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "IRC Path"})
+    check("ircpath points=13 ok" in text, "partial IRC: the panel shows 13 points")
+    rows = [l.split(",") for l in open(csv).read().splitlines()
+            if l and not l.startswith("#")][1:] if os.path.exists(csv) else []
+    order = sorted(range(len(coord)), key=lambda i: coord[i])
+    check(len(rows) == 13 and all(abs(float(r[1]) - coord[i]) < 1e-4 and
+                                  abs(float(r[2]) - energy[i]) < 2e-6
+                                  for r, i in zip(rows, order)),
+          "partial IRC: the rows run from the reverse end to the forward end")
+    clicks = dict((m[0], m[1]) for m in re.findall(r"BUILDER: ircclick (\d+) frame=(\S+)", text))
+    check(clicks.get("4") not in (None, "none"), "partial IRC: the TS point (row 5) has a structure")
+    check(clicks.get("0") not in (None, "none"), "partial IRC: the reverse end has a structure")
+    # The log prints the TS in the previous job's orientation; the panel's
+    # is fitted onto its neighbours' frame (rows 4 and 6).
+    ts = re.search(r"BUILDER: ircclick 4 frame=\S+ atoms: (\S+) (\S+) (\S+) (\S+) (\S+) (\S+)", text)
+    near = [frames[order[3]], frames[order[5]]]
+    mean = [(near[0][a][k] + near[1][a][k]) / 2 for a in (0, 1) for k in range(3)]
+    check(ts is not None and max(abs(float(g) - m) for g, m in zip(ts.groups(), mean)) < 0.05,
+          "partial IRC: the TS is shown in its neighbours' frame")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
@@ -425,6 +483,7 @@ def main():
         orcaCase(s, display, env, wrappers, project, png)
         exampleCase(s, display, env, wrappers, project, png)
         qmCase(s, display, env, wrappers, project, png)
+        partialCase(s, display, env, wrappers, project, png)
     finally:
         if display:
             display.__exit__(None, None, None)

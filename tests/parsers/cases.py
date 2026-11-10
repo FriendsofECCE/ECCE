@@ -148,27 +148,28 @@ CASES = [
         fixture='gaussian-16/hcn_irc.log',
         # HF/3-21G IRC from the HCN/HNC TS, both directions, 8 points each
         # (#417).  Values are the "Summary of reaction path following" rows
-        # (relative energies added to the printed TS energy -92.246043);
-        # 16 "CURRENT STRUCTURE" blocks give the structures.
+        # (relative energies added to the printed TS energy -92.246043),
+        # in run order: the TS, the 8 forward points, the 8 reverse ones,
+        # as the live points came (#948).  16 "CURRENT STRUCTURE" blocks
+        # and the TS give the 17 structures.
         silent_ok={'EGRAD': 'gated on runtype; IRC is not a Geo/Grad run',
                    'DELTAE': 'gated on runtype', 'RMSDP': 'gated on runtype',
                    'ESCF1][ESCFVEC': 'gated on runtype',
-                   # Side files only: gaussian-16.irc publishes the 17
-                   # structures, TS included, in summary order (#947).
-                   'IRCGEOM': 'holds each structure for gaussian-16.irc',
-                   'IRCTS': 'holds the TS structure for gaussian-16.irc'},
+                   'IRCDIR': 'holds the direction of the next point for gaussian-16.ircgeom'},
         parse_args=('.', 'IRC', 'SCF', 'RHF', '0'),
         expect={
             'IRCCOORD][IRCENERGY': dict(keys={
-                'IRCCOORD': {'values': '-0.86757 -0.75913 -0.65068 -0.54224 '
-                             '-0.43379 -0.32535 -0.21690 -0.10847 0.00000 '
-                             '0.10847 0.21690 0.32533 0.43377 0.54221 '
-                             '0.65065 0.75910 0.86754'},
-                'IRCENERGY': {'values': '-92.261743 -92.258593 -92.255673 '
-                              '-92.253023 -92.250693 -92.248763 -92.247293 '
-                              '-92.246363 -92.246043 -92.246383 -92.247403 '
+                'IRCCOORD': {'values': '0.00000 0.10847 0.21690 0.32533 '
+                             '0.43377 0.54221 0.65065 0.75910 0.86754 '
+                             '-0.10847 -0.21690 -0.32535 -0.43379 -0.54224 '
+                             '-0.65068 -0.75913 -0.86757'},
+                'IRCENERGY': {'values': '-92.246043 -92.246383 -92.247403 '
                               '-92.249123 -92.251513 -92.254543 -92.258163 '
-                              '-92.262293 -92.266863', 'units': 'Hartree'},
+                              '-92.262293 -92.266863 -92.246363 -92.247293 '
+                              '-92.248763 -92.250693 -92.253023 -92.255673 '
+                              '-92.258593 -92.261743', 'units': 'Hartree'},
+            }),
+            'IRCGEOM][IRCCOORD][IRCENERGY': dict(keys={
                 'IRCGEOM': {'units': 'Angstrom'},
             }),
         },
