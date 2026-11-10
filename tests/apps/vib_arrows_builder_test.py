@@ -59,15 +59,18 @@ def mode(atoms):
 
 
 def behindGeometry():
-    """N at the origin and one H 3 A behind it on the z axis, no bond."""
-    return [("N", 0.0, 0.0, 0.0), ("H", 0.0, 0.0, -3.0)]
+    """The home view looks down -z.  N at the origin; one H 2 A behind it and
+    1.2 A to the side; two H far off.  Four atoms like the copied ammonia,
+    whose other per-atom properties would otherwise name missing atoms."""
+    return [("N", 0.0, 0.0, 0.0), ("H", -1.2, 0.0, -2.0),
+            ("H", 3.0, 0.0, -3.0), ("H", -3.0, 0.0, -3.0)]
 
 
 def behindMode(atoms):
-    """H moves away from N in the file, so toward N on screen (see mode()):
-    its arrow runs from the H ball to 2 A from N, along the viewing axis and
-    so behind the nitrogen ball, with its head outside every ball."""
-    return [0.0, 0.0, 0.0, 0.0, 0.0, -1.0]
+    """Only the near H moves, along -x in the file, so +x on screen (the
+    viewer draws the negative, see mode()): its arrow crosses BEHIND the
+    nitrogen ball sideways, its head 2 A behind N and so in no ball."""
+    return [0.0, 0.0, 0.0, -1.0, 0.0, 0.0] + [0.0] * 6
 
 
 def makeCalc(dest, atoms=None, modevec=None):
