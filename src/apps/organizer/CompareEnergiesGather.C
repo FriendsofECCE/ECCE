@@ -203,11 +203,11 @@ string applyThermoTreatments(SumResult& r, const vector<EnergyTerm>& a,
       if (treatment == info.cli)
         r.notes.push_back(string("G is recomputed by ecce-thermo: ") + info.label +
                           ", 1 atm; the spread is the largest minus the smallest "
-                          "delta G over the six treatments.");
+                          "\xCE\x94G over the six treatments of the low frequencies under G treatment (RRHO; Grimme qRRHO with \xCF\x89" "0 = 50, 100 and 200 cm\xE2\x81\xBB\xC2\xB9; Truhlar; Head-Gordon).");
   }
   if (treatment.empty())
     r.notes.push_back("G is the code's own; the spread is the largest minus the "
-                      "smallest delta G over the six ecce-thermo treatments at 1 atm.");
+                      "smallest \xCE\x94G over the six treatments of the low frequencies under G treatment (RRHO; Grimme qRRHO with \xCF\x89" "0 = 50, 100 and 200 cm\xE2\x81\xBB\xC2\xB9; Truhlar; Head-Gordon), at 1 atm.");
   g->hasSpread = true;
   g->spread = hi - lo;
   return "";

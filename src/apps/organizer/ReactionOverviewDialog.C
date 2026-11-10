@@ -616,7 +616,7 @@ string ReactionOverviewDialog::buildDetailHtml(const string& treatment, const st
     }
     h += "<p>\xCE\x94" "E<sub>el</sub> = " + num(r.dE, "%.2f") + ",  \xCE\x94G = " + num(r.dG, "%.2f") +
          ",  spread " + num(r.spread, "%.2f") + " (\xCE\x94G from " + num(r.lo, "%.2f") + " to " +
-         num(r.hi, "%.2f") + " over the six treatments)</p>\n";
+         num(r.hi, "%.2f") + " over the six G treatments)</p>\n";
     h += "<p><b>Soft modes</b> (&lt; 100 cm<sup>-1</sup>)</p>\n";
     if (r.modes.empty()) h += "<p>none</p>\n";
     else {

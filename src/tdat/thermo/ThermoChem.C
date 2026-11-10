@@ -261,7 +261,7 @@ std::vector<double> realVibrations(const std::vector<double>& storedFreqs,
     if (VibFrequency::isReal(f)) out.push_back(f);
   }
   if (dropped)
-    notes.push_back(num(dropped, 0) + " translation/rotation mode(s) below 1 cm-1 "
+    notes.push_back(num(dropped, 0) + " translation/rotation mode(s) below 1 cm\xE2\x81\xBB\xC2\xB9 "
                     "were not counted as vibrations.");
   if (imag)
     notes.push_back(num(imag, 0) + " imaginary mode(s) were skipped.");
@@ -273,7 +273,7 @@ const char* treatmentName(ThermoTreatment t)
   switch (t) {
     case THERMO_RRHO: return "RRHO";
     case THERMO_GRIMME_QRRHO: return "Grimme quasi-RRHO entropy";
-    case THERMO_TRUHLAR_RAISE: return "Truhlar raise-to-100 cm-1";
+    case THERMO_TRUHLAR_RAISE: return "Truhlar raise-to-100 cm\xE2\x81\xBB\xC2\xB9";
     case THERMO_HEADGORDON_QRRHO: return "Head-Gordon quasi-RRHO enthalpy";
   }
   return "unknown";
@@ -318,7 +318,7 @@ std::string symmetryWarning(const ThermoInput& in)
   if (sig <= in.symmetryNumber && !(lin && !in.linear)) return std::string();
   char tol[32];
   snprintf(tol, sizeof tol, "%g", in.nearTolerance);
-  return "The structure is within " + std::string(tol) + " A of point group " +
+  return "The structure is within " + std::string(tol) + " \xC3\x85 of point group " +
          in.nearGroup + ", which has rotational symmetry number " +
          std::to_string(sig) + (lin ? " and a linear rotor" : "") +
          "; the thermochemistry used \xCF\x83 = " + std::to_string(in.symmetryNumber) +

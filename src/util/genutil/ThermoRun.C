@@ -19,10 +19,10 @@ const vector<ThermoTreatmentInfo>& thermoTreatments()
 {
   static const vector<ThermoTreatmentInfo> t = {
     {"rrho", "RRHO"},
-    {"qrrho-grimme:50", "Grimme qRRHO, \xCF\x89" "0 = 50 cm-1"},
-    {"qrrho-grimme:100", "Grimme qRRHO, \xCF\x89" "0 = 100 cm-1"},
-    {"qrrho-grimme:200", "Grimme qRRHO, \xCF\x89" "0 = 200 cm-1"},
-    {"truhlar", "Truhlar (modes raised to 100 cm-1)"},
+    {"qrrho-grimme:50", "Grimme qRRHO, \xCF\x89" "0 = 50 cm\xE2\x81\xBB\xC2\xB9"},
+    {"qrrho-grimme:100", "Grimme qRRHO, \xCF\x89" "0 = 100 cm\xE2\x81\xBB\xC2\xB9"},
+    {"qrrho-grimme:200", "Grimme qRRHO, \xCF\x89" "0 = 200 cm\xE2\x81\xBB\xC2\xB9"},
+    {"truhlar", "Truhlar (modes raised to 100 cm\xE2\x81\xBB\xC2\xB9)"},
     {"head-gordon", "Head-Gordon qRRHO (enthalpy and entropy)"}};
   return t;
 }
