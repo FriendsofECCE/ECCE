@@ -846,6 +846,21 @@ void ewxWindowUtils::keepOnDisplay(wxTopLevelWindow *win)
 }
 
 
+void ewxWindowUtils::detachFromParent(wxTopLevelWindow *win)
+{
+#if defined(__WXGTK__)
+  GtkWidget *w = win ? win->GetHandle() : 0;
+  if (w && GTK_IS_WINDOW(w)) {
+    gtk_window_set_transient_for(GTK_WINDOW(w), NULL);
+    if (!gtk_widget_get_mapped(w))
+      gtk_window_set_type_hint(GTK_WINDOW(w), GDK_WINDOW_TYPE_HINT_NORMAL);
+  }
+#else
+  (void)win;
+#endif
+}
+
+
 void ewxWindowUtils::fitToDisplay(wxTopLevelWindow *win, wxSizer *fixedRow)
 {
   if (win == NULL)

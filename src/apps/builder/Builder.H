@@ -40,6 +40,7 @@
 #include "wxviz/MotionListener.H"
 #include "wxviz/WxVizTool.H"
 #include "wxviz/WxVizToolFW.H"
+#include "wxgui/ewxWindowUtils.H"
 
 #include "BuilderGUI.H"
 
@@ -90,15 +91,20 @@ class BuilderRedrawHold
 //  Floating panels are ordinary windows: wxAUI's default floating frame is
 //  always-on-top of the Builder (FLOAT_ON_PARENT) and hides it from the
 //  taskbar, which buries the viewer behind a floated MO Diagram (#895).
+//  On GTK the frame is a wxMiniFrame, transient for the Builder regardless
+//  of style, so that link is cut as well.
 class BuilderAuiManager : public wxAuiManager
 {
 public:
   wxAuiFloatingFrame* CreateFloatingFrame(wxWindow* parent,
                                           const wxAuiPaneInfo& p) override
   {
-    return new wxAuiFloatingFrame(parent, this, p, wxID_ANY,
-                                  wxRESIZE_BORDER | wxSYSTEM_MENU |
-                                  wxCAPTION | wxCLIP_CHILDREN);
+    wxAuiFloatingFrame *f =
+        new wxAuiFloatingFrame(parent, this, p, wxID_ANY,
+                               wxRESIZE_BORDER | wxSYSTEM_MENU |
+                               wxCAPTION | wxCLIP_CHILDREN);
+    ewxWindowUtils::detachFromParent(f);
+    return f;
   }
 };
 
