@@ -51,6 +51,24 @@ std::vector<Holder> othersUsingServices();
 // Every other live program of this state directory, in any session.
 std::vector<Holder> otherPrograms();
 
+// For a command that waits on another program of its session (ecce-launch,
+// ecce-terminate ... wait on the Organizer, #816): arm() notes the pid of the
+// program named `name` while its lease is visible, gone() says that pid has
+// since left. Never true if no lease was seen (no lease support, e.g.
+// Windows, or a program not of $ECCE_HOME/bin), so the caller keeps its
+// timeout. The lease is the program's own, so this is valid only on the
+// machine it runs on; a data-server session still has its Organizer here.
+class ProgramWatch {
+ public:
+  ProgramWatch(const std::string& key, const std::string& name);
+  void arm();
+  bool gone();
+ private:
+  std::string p_key, p_name;
+  long p_pid;
+  long p_lastCheck;
+};
+
 }  // namespace SessionLease
 
 #endif

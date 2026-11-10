@@ -12,7 +12,7 @@
  * --exclude <calc>... "reason" marks calculations as excluded (#617): the
  * same path, property ecce:excluded; --include <calc>... clears the mark.
  *
- * Prints "name: annotated" or "name: not annotated: reason". Exit 4: no answer in time (it may have been carried out). Exit 0: all
+ * Prints "name: annotated" or "name: not annotated: reason". Exit 4: no answer in time (it may have been carried out); 5: the Organizer ended before answering. Exit 0: all
  * annotated; 1: some were not; 2: no running ECCE session
  * and no local data folder; 64: usage.
  */
@@ -38,6 +38,7 @@
 #include "util/JMSSubscriber.H"
 #include "util/LocalData.H"
 #include "util/MqttLink.H"
+#include "util/SessionLease.H"
 
 using std::string;
 using std::vector;
@@ -46,6 +47,8 @@ namespace {
 
 const char *const kNoAnswer =
     "no answer from the Organizer; it may have been carried out — check before repeating";
+const char *const kOrganizerEnded =
+    "the Organizer ended before answering; the request may have been carried out — check before repeating";
 const int kAckSeconds = 8;          // an Organizer answers at once
 const int kBatchSeconds = 60;
 
@@ -149,7 +152,8 @@ int main(int argc, char **argv)
   const string text = noText ? string() : args.back();
   if (!noText) args.pop_back();
 
-  const bool running = !sessionKey().empty();
+  const string sessKey = sessionKey();
+  const bool running = !sessKey.empty();
   if (!running && LocalData::dir().empty()) return notRunning();
 
   bool allOk = true;
@@ -196,6 +200,9 @@ int main(int argc, char **argv)
   if (!MqttLink::instance().connected()) return notRunning();
 
   gReplyId = std::to_string(getpid()) + "-" + std::to_string(time(0));
+  // Armed before the request: the pid that will answer it (#816).
+  SessionLease::ProgramWatch organizer(sessKey, "organizer");
+  organizer.arm();
   JMSPublisher pub("EcceAnnotate");
   JMSMessage *msg = pub.newMessage();
   msg->addProperty("reply_id", gReplyId);
@@ -209,16 +216,22 @@ int main(int argc, char **argv)
   if (!sent) return notRunning();
 
   end = clock::now() + std::chrono::seconds(kAckSeconds);
+  bool organizerEnded = false;
   bool timedOut = false, batchLimitSet = false;
   while (!gDone) {
     if (clock::now() >= end) { timedOut = true; break; }
     sub.processMessage();
     if (gDone) break;
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    if (gAck && !gDone && organizer.gone()) { organizerEnded = true; break; }
     if (gAck && !gDone && !batchLimitSet) {
       batchLimitSet = true;   // once: resetting every pass would never time out
       end = clock::now() + std::chrono::seconds(kBatchSeconds);
     }
+  }
+  if (organizerEnded) {
+    std::cerr << "ecce-annotate: " << kOrganizerEnded << std::endl;
+    return 5;
   }
   if (timedOut) {
     if (!gAck) return notRunning();
