@@ -3,6 +3,7 @@
  *
  *
  */
+#include <chrono>
 
 #include <iostream>
   using std::cout;
@@ -427,6 +428,9 @@ bool Resource::move(EcceURL& target)
  */
 vector<Resource*> * Resource::getChildren(bool refresh) 
 {
+  using Clock = std::chrono::steady_clock;
+  const auto started = Clock::now();
+  double listing = 0, metadata = 0;
   EcceURL originalUrl = getEDSI()->getURL();
 
   int idx;
@@ -449,6 +453,8 @@ vector<Resource*> * Resource::getChildren(bool refresh)
     getEDSI()->setURL(url);
     vector<ResourceMetaDataResult> children;
     if (getEDSI()->listCollection(vmdr,children)) {
+      listing = std::chrono::duration<double>(Clock::now() - started).count();
+      const auto propsStarted = Clock::now();
       clearChildren();
       p_children = new vector<Resource*>;
 
@@ -474,6 +480,10 @@ vector<Resource*> * Resource::getChildren(bool refresh)
           p_children->push_back(resource);
         }
       }
+      metadata = std::chrono::duration<double>(Clock::now() - propsStarted).count();
+      if (getenv("ECCE_TEST_ORGANIZER_TIMING"))
+        std::cerr << "listing-profile rows=" << p_children->size()
+                  << " list=" << listing << " metadata=" << metadata << std::endl;
       noteAccess(true);
     } 
     else {

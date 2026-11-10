@@ -159,6 +159,12 @@ class VDoc {
 
   private:
 
+    bool loadMetaData(const vector<MetaDataRequest>& requests,
+                      vector<MetaDataResult>& results);
+    bool p_loadingMetaData;
+    vector<MetaDataResult> p_loadValues;
+    vector<MetaDataResult> p_loadNames;
+
     bool isVdoc();
     bool isCurrentVdoc();
     void setVdoc(bool createVdoc) 

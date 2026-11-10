@@ -3,6 +3,8 @@
  *
  *
  */
+#include <chrono>
+#include <fstream>
 #include <algorithm>
 #include <iostream>
   using std::cerr;
@@ -307,6 +309,9 @@ void ProjectContextPanel::updateProgress(const EcceURL &url)
  */
 void ProjectContextPanel::initialize()
 {
+  using Clock = std::chrono::steady_clock;
+  const auto started = Clock::now();
+  double energySeconds = 0;
   p_propertyView = ResourceDescriptor::getResourceDescriptor().
     getPropertyView(p_calcMgr->getProjectViewId());
 
@@ -373,8 +378,10 @@ void ProjectContextPanel::initialize()
             cellValue->setValue(wxString::FromUTF8(
                 p_calcMgr->progressCellText(resource).c_str()));
           } else if (property->getType() == GridProperty::PT_TOTAL_ENERGY) {
+            const auto energyStarted = Clock::now();
             cellValue->setValue(wxString::FromUTF8(
                 p_calcMgr->totalEnergyCellText(resource).c_str()));
+            energySeconds += std::chrono::duration<double>(Clock::now() - energyStarted).count();
           } else if (property->getType() == GridProperty::PT_RUNSTATE_ICON) {
             cellValue->setValue(wxString::FromUTF8(
                 stateCellText(resource).c_str()));
@@ -399,10 +406,36 @@ void ProjectContextPanel::initialize()
 
   // Go ahead and assign data model to grid
   // WxGridView takes ownership of pointer
+  const auto filled = Clock::now();
   p_projectView->setModel(gridModel);
 
   // Restore sort settings
   restoreSortSettings();
+  if (const char *path = getenv("ECCE_TEST_ORGANIZER_TABLE_SNAPSHOT")) {
+    std::ofstream out(path);
+    for (int col = 0; col < p_projectView->getColCount(); ++col) {
+      if (col) out << '\t';
+      out << string(gridModel->GetColLabelValue(col).ToUTF8());
+    }
+    out << '\n';
+    for (int row = 0; row < p_projectView->getRowCount(); ++row) {
+      for (int col = 0; col < p_projectView->getColCount(); ++col) {
+        GridElement *cell = p_projectView->getElement(row, col);
+        if (col) out << '\t';
+        GridPropElement *prop = dynamic_cast<GridPropElement*>(cell);
+        out << (prop && prop->getPropertyType() == GridProperty::PT_RESOURCE_ICON
+            ? prop->getResource()->getProp(VDoc::getEcceNamespace() + ":application")
+            : string(cell->getValue().ToUTF8()));
+      }
+      out << '\n';
+    }
+  }
+
+  if (getenv("ECCE_TEST_ORGANIZER_TIMING"))
+    cerr << "table-profile rows=" << p_projectView->getRowCount()
+         << " fill=" << std::chrono::duration<double>(filled - started).count()
+         << " energy=" << energySeconds
+         << " grid=" << std::chrono::duration<double>(Clock::now() - filled).count() << endl;
 }
 
 

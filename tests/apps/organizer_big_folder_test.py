@@ -9,18 +9,20 @@ and the row count is that of its sub-folders.
 
 Copies the stored water calculation N times (default 200) into a folder,
 selects the folder through the Organizer test hook "foldertable" and
-checks that N rows show.  The elapsed time is printed and must stay
-under LIMIT seconds.
+checks the names, states, codes, energies and chemistry columns of all N
+rows. Phase timings are printed; opening must stay under LIMIT seconds.
 
 Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME).
 Exit 77 (skip) without an install or Xvfb.
 """
+import csv
 import os
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ET
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -36,7 +38,7 @@ PROJECT_META = os.path.join(ROOT, "tools", "screenshots", "data",
 CALC = os.path.join(HERE, "fixtures", "calc-water-opt")
 N = 200
 SOURCE = None
-LIMIT = 20.0
+LIMIT = 1.5
 
 failures = []
 
@@ -61,13 +63,24 @@ def run(display, data, work):
         for i in range(N):
             shutil.copytree(CALC, os.path.join(project, "calc%03d" % i),
                             symlinks=True)
+    snapshot = os.path.join(work, "table.tsv")
     script = os.path.join(work, "commands")
     with open(script, "w") as handle:
         handle.write("foldertable file://%s\n" % project)
-    result = apps.run(display, "organizer", windowTimeout=60, settle=90,
+    result = apps.run(display, "organizer", windowTimeout=60, settle=30,
                       env={"ECCE_TEST_ORGANIZER": script,
-                           "ECCE_TEST_ORGANIZER_NOLAUNCH": "1"})
+                           "ECCE_TEST_ORGANIZER_NOLAUNCH": "1",
+                           "ECCE_TEST_ORGANIZER_TIMING": "1",
+                           "ECCE_TEST_ORGANIZER_TABLE_SNAPSHOT": snapshot})
     log = result.log or ""
+    for line in log.splitlines():
+        if "-profile " in line:
+            print("      " + line)
+    if os.environ.get("ECCE_BIG_FOLDER_REPORT"):
+        with open(os.environ["ECCE_BIG_FOLDER_REPORT"], "w") as report:
+            report.write(log)
+        if os.path.exists(snapshot):
+            shutil.copy(snapshot, os.environ["ECCE_BIG_FOLDER_REPORT"] + ".tsv")
     what = "Organizer, folder of %d calculations" % N
     if result.crashed:
         return fail(what, "CRASHED (%s)" % result.signalName, log)
@@ -78,8 +91,28 @@ def run(display, data, work):
     print("      %d rows in %.2f s" % (rows, seconds))
     if rows != N:
         return fail(what, "%d rows shown, expected %d" % (rows, N), log)
+    if not SOURCE:
+        if not os.path.exists(snapshot):
+            return fail(what, "table snapshot missing", log)
+        with open(snapshot) as handle:
+            records = list(csv.DictReader(handle, delimiter="\t"))
+        energy = float(ET.parse(os.path.join(CALC, "Props", "TE")).getroot().text)
+        expected = {"Type": "NWChem", "State": "Complete", "Progress": "",
+                    "Total energy": "−%.6f" % abs(energy), "Formula": "H2O",
+                    "Theory": "SCF/RHF", "Run Type": "Geometry"}
+        names = [r.get("Name") for r in records]
+        if None in names or sorted(names) != sorted("calc%03d" % i for i in range(N)):
+            return fail(what, "table names differ from the fixture copies", log)
+        for row in records:
+            for key, value in expected.items():
+                if row.get(key) != value:
+                    return fail(what, "%s: %s=%r, expected %r" % (
+                        row.get("Name"), key, row.get(key), value), log)
+        print("      names, states, codes, energies and chemistry columns identical")
+    if N == 200 and len(re.findall(r"listing-profile rows=200\b", log)) != 1:
+        return fail(what, "expected one folder listing", log)
     if seconds > LIMIT:
-        return fail(what, "took %.1f s (limit %.0f s)" % (seconds, LIMIT))
+        return fail(what, "took %.1f s (limit %.1f s)" % (seconds, LIMIT))
     print("ok    %s" % what)
 
 

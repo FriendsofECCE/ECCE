@@ -424,7 +424,12 @@ TProperty* PropertyTask::updateProperty(const string& name, const string& value)
  */
 TProperty* PropertyTask::getProperty(const string& name)
 {
-  if (p_orbitalPoint >= 0 || orbitalsAtSomePointsOnly()) {
+  // Scalar results must not load point-orbital tables or list the property
+  // collection. Only these properties can depend on the selected point.
+  const bool orbital = name == "MO" || name == "MOBETA" ||
+      name == "ORBENG" || name == "ORBOCC" || name == "ORBENGBETA" ||
+      name == "ORBOCCBETA" || name.compare(0, 5, "LOCMO") == 0;
+  if (orbital && (p_orbitalPoint >= 0 || orbitalsAtSomePointsOnly())) {
     bool hide = false;
     TProperty *pt = pointOrbitalProperty(name, hide);
     if (pt || hide) return pt;
