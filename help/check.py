@@ -36,7 +36,9 @@ def main():
         for url in re.findall(r'<img src="([^"]+)"', h):
             if not os.path.exists(os.path.join(out, url)):
                 bad.append("%s: broken image %s" % (p, url))
-        if "<p>" not in h or "](" in h:
+        # Code may contain "](" legitimately (SMILES such as [C@@H](C...)).
+        prose = re.sub(r"<(code|pre)\b.*?</\1>", "", h, flags=re.S)
+        if "<p>" not in h or "](" in prose:
             bad.append("%s: unconverted Markdown" % p)
     with open(os.path.join(out, "toc.txt"), encoding="utf-8") as fh:
         toc = [l.split("\t")[0] for l in fh]
