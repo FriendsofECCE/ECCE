@@ -18,6 +18,75 @@ args:    '.' 'IRC' 'SCF' 'RHF' '0'
       values: -92.262659 -92.254380 -92.248100 -92.246043 -92.247913 -92.253872 -92.256136
       units: Hartree
 
+[IRCPOINT][IRCCOORD][IRCENERGY]  Script=orca.ircpoint  Freq=all  Skip=-  Lines=1
+  Begin=^(\s*\*\s+(FORWARD|BACKWARD) IRC\s+\*|\s+\d+\s+-\d+\.\d{6}\s+-?\d+\.\d{6}\s+\d+\.\d{6}\s+\d+\.\d{6})\s*$
+  begins=8 delivered=8 buffered_away=0
+  block 1: begin-line=1281 fed=1 rc=0 first-fed='         *                          FORWARD IRC                      *'
+    (script emitted no property)
+  block 2: begin-line=1286 fed=1 rc=0 first-fed='    0       -92.247913   -1.173329    0.013799  0.007498'
+    key: IRCCOORD
+      size: 1
+      values: 1
+      units: Point
+    key: IRCENERGY
+      size: 1
+      values: -92.247913
+      units: Hartree
+  block 3: begin-line=1287 fed=1 rc=0 first-fed='    1       -92.253872   -4.913246    0.069951  0.030132'
+    key: IRCCOORD
+      size: 2
+      values: 1 2
+      units: Point
+    key: IRCENERGY
+      size: 2
+      values: -92.247913 -92.253872
+      units: Hartree
+  block 4: begin-line=1288 fed=1 rc=0 first-fed='    2       -92.256136   -6.333449    0.033659  0.017262'
+    key: IRCCOORD
+      size: 3
+      values: 1 2 3
+      units: Point
+    key: IRCENERGY
+      size: 3
+      values: -92.247913 -92.253872 -92.256136
+      units: Hartree
+  block 5: begin-line=1296 fed=1 rc=0 first-fed='         *                          BACKWARD IRC                     *'
+    key: IRCCOORD
+      size: 3
+      values: 1 2 3
+      units: Point
+    key: IRCENERGY
+      size: 3
+      values: -92.247913 -92.253872 -92.256136
+      units: Hartree
+  block 6: begin-line=1301 fed=1 rc=0 first-fed='    0       -92.248100   -1.291198    0.014323  0.009084'
+    key: IRCCOORD
+      size: 4
+      values: -1 1 2 3
+      units: Point
+    key: IRCENERGY
+      size: 4
+      values: -92.248100 -92.247913 -92.253872 -92.256136
+      units: Hartree
+  block 7: begin-line=1302 fed=1 rc=0 first-fed='    1       -92.254380   -5.231987    0.046485  0.021243'
+    key: IRCCOORD
+      size: 5
+      values: -2 -1 1 2 3
+      units: Point
+    key: IRCENERGY
+      size: 5
+      values: -92.254380 -92.248100 -92.247913 -92.253872 -92.256136
+      units: Hartree
+  block 8: begin-line=1303 fed=1 rc=0 first-fed='    2       -92.262659   -10.426572    0.038739  0.023239'
+    key: IRCCOORD
+      size: 6
+      values: -3 -2 -1 1 2 3
+      units: Point
+    key: IRCENERGY
+      size: 6
+      values: -92.262659 -92.254380 -92.248100 -92.247913 -92.253872 -92.256136
+      units: Hartree
+
 [GEOMTRACE]  Script=orca.geomtrace  Freq=all  Skip=2  Lines=-
   Begin=CARTESIAN COORDINATES \(ANGSTROEM\)
   End=CARTESIAN COORDINATES \(A\.U\.\)

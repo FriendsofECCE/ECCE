@@ -40,6 +40,12 @@ if (/FINAL SINGLE POINT ENERGY\s+(-?\d+\.\d+)/) {
 }
 exit(0) if (!defined($value));
 
+# The TS energy of an IRC: the IRC banner starts the path with it (orca.ircpoint).
+if ($runtype =~ /IRC/i && open(my $fh, ">", "$key/orcaIrcE")) {
+  print $fh "$value\n";
+  close($fh);
+}
+
 print "key: TE\n";
 print "size:\n1\n";
 print "values:\n$value\n";

@@ -31,6 +31,5 @@ three keys together by coordinate (reverse end, TS, forward end) and fit the
 TS rigidly onto its two neighbours (a Link1 IRC prints it in the previous
 job's orientation), whenever there is one frame and one energy per
 coordinate; otherwise (pre-#947 stored calcs, 16 frames for 17 points) the
-parsed properties are shown as they are. ORCA's IRC is unchanged and still
-arrives whole at the end (summary Frequency=last, IRCGEOM from the
-`_IRC_Full_trj.xyz` file).
+parsed properties are shown as they are. ORCA's IRC energies arrive live
+in path order and its structures at the end (`orca-irc-points-arrive-live-949.md`).
