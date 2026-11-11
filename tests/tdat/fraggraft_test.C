@@ -90,6 +90,13 @@ int main()
    int q = 0;
    for (int c : z.charge) q += c;
    check(z.el.size() == 13 && q == -1, "cysteine zwitterion: 13 atoms, charge -1");
+   // The charge before the hydrogens, as MOE writes it (#961).
+   Mol mq;
+   check(smilesTo3D("C[N+H](C)C", mq, err), "[N+H] (charge first) reads");
+   q = 0;
+   for (int c : mq.charge) q += c;
+   check(mq.el.size() == 14 && q == 1, "trimethylammonium: 14 atoms, charge +1");
+   check(smilesTo3D("C[N+H2]C", mq, err) && mq.el.size() == 11, "[N+H2]: 11 atoms");
    Mol b;
    check(smilesTo3D("CCCCCCCC", b, err), "octane from SMILES");
    extendTorsions(b);
