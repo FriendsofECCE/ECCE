@@ -106,7 +106,11 @@ def run(work, mode, job=None, steps=()):
     except subprocess.TimeoutExpired:
         proc.kill()
         check(False, "%s monitor ended" % mode)
-    check(proc.returncode == 0, "%s monitor exit status %s" % (mode, proc.returncode))
+    ok = proc.returncode == 0
+    check(ok, "%s monitor exit status %s" % (mode, proc.returncode))
+    if not ok:
+        # The follow checks below only fail as a consequence; the cause is here.
+        sys.stdout.write(proc.stderr.read().decode("utf-8", "replace"))
     return messages(out), running
 
 

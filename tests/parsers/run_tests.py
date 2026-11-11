@@ -30,6 +30,14 @@ import sys
 import tempfile
 import time
 
+# Windows consoles default to cp1252, which cannot print the Greek letters in
+# some case names; a crash while listing failures hides which check failed.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 SCRIPTS = os.path.join(REPO, 'scripts', 'parsers')
