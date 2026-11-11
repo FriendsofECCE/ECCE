@@ -41,6 +41,16 @@ mv "$W/python" "$DEST"
 env -u MACOSX_DEPLOYMENT_TARGET "$DEST/bin/python3" -m pip install \
   --disable-pip-version-check --no-deps --no-compile --only-binary=:all: \
   "wxPython==$WX_VERSION"
+# numpy for the QSAR PCA/PLS (ecce-qsar). The platform is pinned because pip
+# would otherwise take the runner's newest wheel (arm64: macOS 14 only).
+case "$(uname -m)" in
+  arm64) np_plat=macosx_11_0_arm64 ;;
+  x86_64) np_plat=macosx_10_13_x86_64 ;;
+esac
+"$DEST/bin/python3" -m pip install \
+  --disable-pip-version-check --no-deps --no-compile --only-binary=:all: \
+  --platform "$np_plat" --target "$DEST/lib/python3.13/site-packages" --upgrade \
+  "numpy==2.2.6"
 
 # Not needed to run the dialogs: the package tools, Tk, docs, tests, headers.
 P=$DEST/lib/python3.13
@@ -57,5 +67,5 @@ find "$DEST/bin" -type f ! -name 'python*' -delete
 find "$DEST" -name __pycache__ -type d -prune -exec rm -rf {} +
 
 # What the dialogs need, in the state they will run in.
-env -i PATH=/usr/bin:/bin "$DEST/bin/python3" -c 'import wx, sys; print("bundled", sys.version.split()[0], "wxPython", wx.version())'
+env -i PATH=/usr/bin:/bin "$DEST/bin/python3" -c 'import wx, numpy, sys; print("bundled", sys.version.split()[0], "wxPython", wx.version(), "numpy", numpy.__version__)'
 du -sh "$DEST"
