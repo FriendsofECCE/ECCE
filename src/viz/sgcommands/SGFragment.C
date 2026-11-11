@@ -1131,6 +1131,79 @@ void SGFragment::getIons(vector<bool>& atombits, vector<bool>& bondbits)
     if (roles[i] == ION) selectAtomAndBonds(atomRef(i), atombits, bondbits);
 }
 
+// Names only: what a PDB or mmCIF file gives.  Terminal forms are AMBER's
+// four-character NALA/CALA; ACE/NME cap a chain and belong to it.
+SGFragment::ResidueClass SGFragment::residueClass(const string& residueName)
+{
+  string key = residueName;
+  STLUtil::stripLeadingAndTrailingWhiteSpace(key);
+  for (char& c : key) c = toupper((unsigned char)c);
+  static const std::set<std::string> extraPolymer = {"ACE", "NME", "NMA", "MSE", "HSD",
+      "HSE", "HSP", "CYM", "ASH", "GLH", "LYN"};
+  static const std::set<std::string> additives = {"GOL", "EDO", "SO4", "PO4", "ACT",
+      "DMS", "DMSO", "PEG", "PGE", "PG4", "P6G", "1PE", "PE4", "MPD", "BME",
+      "FMT", "NO3", "TRS", "EPE", "MES", "IPA", "EOH", "ACY", "SO3", "CIT",
+      "TAR"};
+  TResTab restab;
+  if (restab.verify(key.c_str()) != TResItem::Other ||
+      extraPolymer.count(key) > 0)
+    return RES_POLYMER;
+  if (key.size() == 4 && (key[0] == 'N' || key[0] == 'C') &&
+      restab.verify(key.substr(1).c_str()) == TResItem::AminoAcid)
+    return RES_POLYMER;
+  if (isWaterName(key)) return RES_WATER;
+  if (isIonName(key)) return RES_ION;
+  if (additives.count(key) > 0) return RES_ADDITIVE;
+  return RES_OTHER;
+}
+
+void SGFragment::getProtein(vector<bool>& atombits, vector<bool>& bondbits)
+{
+  if (numResidues() == 0) return;
+  for (int i = 0; i < numAtoms(); i++) {
+    const Residue *res = atomRef(i)->getResidue();
+    if (res && residueClass(res->name()) == RES_POLYMER)
+      selectAtomAndBonds(atomRef(i), atombits, bondbits);
+  }
+}
+
+bool SGFragment::getLigand(vector<bool>& atombits, vector<bool>& bondbits,
+                           string& message)
+{
+  message.clear();
+  if (numResidues() == 0) return false;
+  map<const Residue*, int> size;
+  vector<const Residue*> order;
+  for (int i = 0; i < numAtoms(); i++) {
+    const Residue *res = atomRef(i)->getResidue();
+    if (!res || residueClass(res->name()) != RES_OTHER) continue;
+    if (size[res]++ == 0) order.push_back(res);
+  }
+  const Residue *best = 0;
+  int others = 0;
+  for (size_t k = 0; k < order.size(); k++) {
+    if (size[order[k]] < 2) continue;       // a lone atom is an ion, not a ligand
+    if (!best || size[order[k]] > size[best]) best = order[k];
+    others++;
+  }
+  if (!best) return false;
+  others--;
+  for (int i = 0; i < numAtoms(); i++)
+    if (atomRef(i)->getResidue() == best)
+      selectAtomAndBonds(atomRef(i), atombits, bondbits);
+  char buf[160];
+  string name = residueKey(best);
+  snprintf(buf, sizeof buf, "Selected ligand %s %d (%d atoms).", name.c_str(),
+           best->number(), size[best]);
+  message = buf;
+  if (others > 0) {
+    snprintf(buf, sizeof buf, " %d other non-polymer residue%s found; the "
+             "largest was chosen.", others, others == 1 ? "" : "s");
+    message += buf;
+  }
+  return true;
+}
+
 void SGFragment::getSolute(vector<bool>& atombits, vector<bool>& bondbits)
 {
   vector<AtomRole> roles = atomRoles();

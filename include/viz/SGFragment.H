@@ -182,6 +182,19 @@ SoINTERNAL public:
                       vector<bool>& bondbits);
     enum AtomRole { SOLUTE, SOLVENT, ION };
     vector<AtomRole> atomRoles();
+
+    /// Residue classes by name; the one rule for Select Protein/Ligand and
+    /// the docking ligand choice.  POLYMER is amino acid or nucleic acid.
+    enum ResidueClass { RES_POLYMER, RES_WATER, RES_ION, RES_ADDITIVE,
+                        RES_OTHER };
+    static ResidueClass residueClass(const string& residueName);
+    /// Residues that are polymer, as joined chains.
+    void getProtein(vector<bool>& atombits, vector<bool>& bondbits);
+    /// The largest residue that is a ligand candidate (RES_OTHER, more than
+    /// one atom); selects it and describes the choice, and any others, in
+    /// message.  Returns false, selecting nothing, when there is none.
+    bool getLigand(vector<bool>& atombits, vector<bool>& bondbits,
+                   string& message);
     void getFullResidue(TAtm *atm, vector<bool>& atombits, vector<bool>& bondbits);
 
     // Methods to get parameters using NWChem string selections
