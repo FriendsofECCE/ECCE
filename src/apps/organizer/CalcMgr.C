@@ -663,6 +663,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * qsarpca <outdir> <url>,<url>... [scaling] [components] [png]
  *                 QSAR Analysis (#961): the PCA of the descriptor table, its
  *                 result files written to <outdir>
+ * qsarpls <outdir> <url>,<url>... <y> [scaling] [components] [test%] [permutations] [png]
+ *                 the same for PLS of the measured column <y>
  * batchsmilesdialog <folder url> <table> [png]
  *                 Tools > Batch Add from SMILES with the table loaded (#961):
  *                 "ok | name=... smiles=... responses=... rows=N problems=M"
@@ -2591,14 +2593,19 @@ void CalcMgr::runTestCommand(const string& line)
       string why;
       if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
       else outcome = "failed: " + why;
-    } else if (command == "qsarpca") {
-      // "qsarpca <outdir> <url>,<url>... [scaling] [components] [png]": the QSAR
-      // Analysis dialog's PCA on the calculations, its result files saved in
-      // <outdir>; the report, " | " separated (#961).
+    } else if (command == "qsarpca" || command == "qsarpls") {
+      // "qsarpca <outdir> <url>,<url>... [scaling] [components] [png]" and
+      // "qsarpls <outdir> <url>,<url>... <y> [scaling] [components] [test%]
+      // [permutations] [png]": the QSAR Analysis dialog's PCA or PLS on the
+      // calculations, its result files saved in <outdir> (#961).
       std::istringstream args(calcName);
-      string outdir, urls, scaling = "uv", png;
-      int comps = 0;
-      args >> outdir >> urls >> scaling >> comps >> png;
+      string outdir, urls, scaling = "uv", png, y;
+      int comps = 0, testPct = 0, perms = 0;
+      args >> outdir >> urls;
+      if (command == "qsarpls") args >> y;
+      args >> scaling >> comps;
+      if (command == "qsarpls") args >> testPct >> perms;
+      args >> png;
       vector<EcceURL> roots;
       for (size_t at = 0; at < urls.size(); ) {
         size_t end = urls.find(',', at);
@@ -2608,7 +2615,10 @@ void CalcMgr::runTestCommand(const string& line)
       }
       QsarDialog *d = new QsarDialog(this, calculationsUnder(roots));
       string why;
-      if (!d->ok(why) || !d->runPca(scaling, comps, why)) outcome = "failed: " + why;
+      const bool ran = d->ok(why) && (command == "qsarpca"
+          ? d->runPca(scaling, comps, why)
+          : d->runPls(y, scaling, comps, testPct, perms, why));
+      if (!ran) outcome = "failed: " + why;
       else if (!d->saveResults(outdir, why)) outcome = "failed: " + why;
       else {
         d->SetSize(wxSize(1000, 560));

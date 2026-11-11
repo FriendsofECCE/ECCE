@@ -27,6 +27,12 @@ public:
   /// cross-validation); the text report and plot are refreshed.
   bool runPca(const std::string& scaling, int components, std::string& why);
 
+  /// PLS of the measured column `y` (a header from measuredColumns()) with the
+  /// share `testPercent` of the rows kept out of the fit and `permutations`
+  /// Y-permutation runs; the report and the observed-vs-predicted plot follow.
+  bool runPls(const std::string& y, const std::string& scaling, int components,
+              int testPercent, int permutations, std::string& why);
+
   /// ecce-qsar's report of the last run.
   std::string summary() const { return p_summary; }
   /// Directory with pca_scores.csv, pca_loadings.csv, pca_components.csv.
@@ -37,7 +43,9 @@ public:
 
 private:
   void OnRun(wxCommandEvent&);
+  void OnRunPls(wxCommandEvent&);
   void OnSave(wxCommandEvent&);
+  void setPcaPlot();
   std::string run(const std::string& args, int& status) const;
 
   std::vector<EcceURL> p_calcs;
@@ -46,6 +54,8 @@ private:
   bool p_ok = false;
   wxChoice *p_scale = nullptr;
   wxSpinCtrl *p_comps = nullptr;
+  wxChoice *p_y = nullptr;
+  wxSpinCtrl *p_test = nullptr, *p_perm = nullptr;
   wxTextCtrl *p_text = nullptr;
   QsarPlot *p_plot = nullptr;
 };

@@ -2827,6 +2827,10 @@ add_test(NAME qsar_pca
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/qsar/pca_test.py)
 
+add_test(NAME qsar_pls
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/qsar/pls_test.py)
+
 # tests/siexport/rank_test.py -- ecce-si-export --rank (#703).
 add_test(NAME rank_table
          COMMAND ${PYTHON3_EXECUTABLE}
@@ -3846,6 +3850,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/qsar_pca_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_qsar_pca PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # QSAR Analysis: the dialog's PLS equals ecce-qsar pls (#961).
+  add_test(NAME apps_qsar_pls
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/qsar_pls_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_qsar_pls PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Rank table: the dialog's deltas equal ecce-si-export --rank (#703).

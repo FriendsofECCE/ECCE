@@ -24,3 +24,8 @@ issues: [961]
   element-wise CV; leaving whole rows out makes PRESS fall with every extra
   component, so the "significant components" rule would never stop. The
   Organizer dialog (`QsarDialog`) only runs `ecce-qsar` and draws its CSV files.
+- PLS (`pls_model`, `ecce-qsar pls|predict`) is PLS1 only. CV leaves out every
+  7th row and rescales on the training rows (SIMCA scales on all rows, so its
+  Q2 can be slightly higher). `ecce-qsar` writes tables through `_fmt`: numpy 2
+  floats are `float` subclasses whose repr is `np.float64(...)`, so convert
+  with `float()` before `repr`.

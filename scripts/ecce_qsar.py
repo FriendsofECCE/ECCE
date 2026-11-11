@@ -7,6 +7,10 @@ Wx-free; reads stored calculation folders and talks to no ECCE session.
   ecce-qsar table --from-csv FILE [--smiles-col N] [--name-col N] ...
   ecce-qsar pca TABLE.csv [--y COL]... [--exclude COL]... [--scale uv|pareto|ctr|none]
                 [--components N] [--cv G] [--outdir DIR] [--json]
+  ecce-qsar pls TABLE.csv --y COL [--exclude COL]... [--scale uv|pareto|ctr|none]
+                [--components N] [--cv G] [--test-names A,B | --test-fraction F --seed S]
+                [--permutations N] [--save-model FILE] [--outdir DIR] [--json]
+  ecce-qsar predict MODEL.json TABLE.csv [--csv FILE]
   ecce-qsar columns TABLE.csv
   ecce-qsar groups
 
@@ -384,6 +388,150 @@ def cmd_pca(a):
     return 0
 
 
+def _model_json(m, xn, yname):
+    keys = ("scaling", "n", "k", "x_mean", "x_scale", "y_mean", "y_scale", "coef",
+            "intercept", "ncomp", "score_var", "s0", "wstar", "t2_limit", "dmodx_limit",
+            "rmsee", "r2y_final", "q2_final", "rmsecv", "rmsep")
+    d = {k: m[k] for k in keys if k in m}
+    d["loadings"] = m["loadings"][:, :m["ncomp"]]
+    d["variables"] = xn
+    d["y"] = yname
+    return _jsonable(d)
+
+
+def cmd_pls(a):
+    import numpy as np
+    _chemo()
+    head, rows = load_table(a.table)
+    if len(a.y or []) != 1:
+        _fail("pls needs exactly one --y column", 64)
+    keep, xn, X, yn, Y, notes = select_xy(head, rows, a.y, a.exclude or [],
+                                          not a.keep_unconverged)
+    if X.shape[0] < 8 or X.shape[1] < 2:
+        _fail("need at least 8 rows and 2 usable descriptor columns (have %d x %d)" % X.shape)
+    ni = head.index("name") if "name" in head else 0
+    names = [rows[i][ni] for i in keep]
+    y = Y[:, 0]
+    test = np.zeros(len(y), bool)
+    if a.test_names:
+        want = set(a.test_names.split(","))
+        test = np.array([n in want for n in names])
+        for w in want - set(names):
+            notes.append("test molecule %s not in the table" % w)
+    elif a.test_fraction:
+        rng = np.random.RandomState(a.seed)
+        k = max(1, int(round(a.test_fraction * len(y))))
+        test[rng.permutation(len(y))[:k]] = True
+    m = CH.pls_model(X, y, a.scale, a.components, a.cv, test=test,
+                     permutations=a.permutations, seed=a.seed)
+    A = m["ncomp"]
+    tri, tei = m["train_index"], m["test_index"]
+    out = {"y": yn[0], "scaling": a.scale, "n": m["n"], "n_test": m["n_test"], "k": m["k"],
+           "ncomp": A, "r2y_cum": m["r2y_cum"], "r2x_cum": m["r2x_cum"], "q2": m["q2"],
+           "q2_cum": m["q2_cum"], "rmsee": m["rmsee"], "rmsecv": m["rmsecv"],
+           "rmsep": m["rmsep"], "q2_ext": m["q2_ext"], "t2_limit": m["t2_limit"],
+           "dmodx_limit": m["dmodx_limit"], "variables": xn, "vip": m["vip"],
+           "coef": m["coef"], "intercept": m["intercept"], "notes": notes,
+           "names": names}
+    if "permutation" in m:
+        out["permutation"] = {"r2_intercept": m["permutation"]["r2_intercept"],
+                              "q2_intercept": m["permutation"]["q2_intercept"],
+                              "n": a.permutations}
+    cvp = m["cv_predicted"][:, A - 1] if m["cv_predicted"] is not None else None
+    if a.outdir:
+        os.makedirs(a.outdir, exist_ok=True)
+        nc = len(m["r2y"])
+        _write_rows(os.path.join(a.outdir, "pls_components.csv"),
+                    ["component", "R2X", "R2X_cum", "R2Y", "R2Y_cum", "Q2", "Q2_cum", "RMSECV"],
+                    [[i + 1, m["r2x"][i], m["r2x_cum"][i], m["r2y"][i], m["r2y_cum"][i],
+                      m["q2"][i] if m["q2"] is not None else None,
+                      m["q2_cum"][i] if m["q2_cum"] is not None else None,
+                      m["rmsecv"][i] if m["rmsecv"] is not None else None] for i in range(nc)])
+        _write_rows(os.path.join(a.outdir, "pls_scores.csv"),
+                    ["name"] + ["t%d" % (i + 1) for i in range(A)] + ["T2", "DModX"],
+                    [[names[j]] + list(m["scores"][i, :A]) + [m["t2"][i], m["dmodx"][i]]
+                     for i, j in enumerate(tri)])
+        _write_rows(os.path.join(a.outdir, "pls_vip.csv"),
+                    ["variable", "VIP", "coefficient_scaled", "coefficient"],
+                    [[xn[j], m["vip"][j], m["coef_scaled"][j], m["coef"][j]]
+                     for j in range(len(xn))])
+        pred = []
+        for i, j in enumerate(tri):
+            pred.append([names[j], "train", y[j], m["fitted"][i],
+                         cvp[i] if cvp is not None else None])
+        for i, j in enumerate(tei):
+            pred.append([names[j], "test", y[j], m["test_predicted"][i], None])
+        _write_rows(os.path.join(a.outdir, "pls_predictions.csv"),
+                    ["name", "set", "observed", "predicted", "cv_predicted"], pred)
+        if "permutation" in m:
+            pm = m["permutation"]
+            _write_rows(os.path.join(a.outdir, "pls_permutation.csv"),
+                        ["correlation", "R2Y", "Q2Y"],
+                        [[pm["correlation"][i], pm["r2"][i], pm["q2"][i]]
+                         for i in range(len(pm["r2"]))])
+    if a.save_model:
+        with open(a.save_model, "w") as f:
+            json.dump(_model_json(m, xn, yn[0]), f)
+    if a.json:
+        json.dump(_jsonable(out), sys.stdout)
+        sys.stdout.write("\n")
+        return 0
+    print("PLS of %s: %d training rows%s, %d descriptors, %s scaling, %d components"
+          % (yn[0], m["n"], " (+%d test)" % m["n_test"] if m["n_test"] else "", m["k"],
+             a.scale, A))
+    print("comp   R2X cum  R2Y cum   Q2     Q2 cum  RMSECV")
+    for i in range(len(m["r2y"])):
+        q = m["q2"][i] if m["q2"] is not None else float("nan")
+        qc = m["q2_cum"][i] if m["q2_cum"] is not None else float("nan")
+        rc = m["rmsecv"][i] if m["rmsecv"] is not None else float("nan")
+        print("%4d  %7.3f  %7.3f  %6.3f  %6.3f  %7.3f%s" % (
+            i + 1, m["r2x_cum"][i], m["r2y_cum"][i], q, qc, rc, "  *" if i < A else ""))
+    print("R2Y %.3f  Q2 %.3f  RMSEE %.4g  RMSECV %.4g" % (
+        m["r2y_final"], m["q2_final"] if m["q2_final"] is not None else float("nan"),
+        m["rmsee"], m["rmsecv"][A - 1] if m["rmsecv"] is not None else float("nan")))
+    if m["n_test"]:
+        print("test set: %d rows  RMSEP %.4g  Q2(ext) %.3f" % (m["n_test"], m["rmsep"], m["q2_ext"]))
+    if "permutation" in m:
+        print("permutation (%d): R2Y intercept %.3f, Q2Y intercept %.3f"
+              % (a.permutations, m["permutation"]["r2_intercept"], m["permutation"]["q2_intercept"]))
+    top = np.argsort(-m["vip"])[:10]
+    print("largest VIP: " + ", ".join("%s %.2f" % (xn[j], m["vip"][j]) for j in top))
+    print("T2 limit %.3f, DModX limit %.3f" % (m["t2_limit"], m["dmodx_limit"]))
+    for n in notes:
+        print("note: " + n)
+    return 0
+
+
+def cmd_predict(a):
+    import numpy as np
+    _chemo()
+    model = json.load(open(a.model))
+    m = {k: (np.array(v) if isinstance(v, list) else v) for k, v in model.items()
+         if k != "variables"}
+    head, rows = load_table(a.table)
+    col = {h: i for i, h in enumerate(head)}
+    miss = [v for v in model["variables"] if v not in col]
+    if miss:
+        _fail("the table lacks %d descriptor columns of the model, e.g. %s" % (len(miss), miss[0]))
+    ni = col.get("name", 0)
+    X = np.array([[_num(r[col[v]]) for v in model["variables"]] for r in rows], float)
+    ok = np.all(np.isfinite(X), axis=1)
+    pred = np.full(len(rows), np.nan)
+    t2 = np.full(len(rows), np.nan)
+    dm = np.full(len(rows), np.nan)
+    if ok.any():
+        pred[ok] = CH.pls_predict(m, X[ok])
+        t2[ok], dm[ok] = CH.pls_diagnose(m, X[ok])
+    head_out = ["name", "predicted_" + model["y"], "T2", "DModX", "in_domain"]
+    out = []
+    for i, r in enumerate(rows):
+        dom = "" if not ok[i] else ("yes" if t2[i] <= model["t2_limit"] * 1.0 and
+                                    dm[i] <= model["dmodx_limit"] else "no")
+        out.append([r[ni], pred[i], t2[i], dm[i], dom or "missing descriptors"])
+    _write_rows(a.csv or "/dev/stdout", head_out, out)
+    return 0
+
+
 def measured_columns(head):
     """Columns that are neither descriptors nor bookkeeping: the measured values."""
     known = set(NON_X) | set(C.QM_NAMES)
@@ -431,6 +579,27 @@ def main(argv=None):
     pc.add_argument("--outdir", help="write pca_scores.csv, pca_loadings.csv, pca_components.csv")
     pc.add_argument("--json", action="store_true")
     pc.set_defaults(fn=cmd_pca)
+    pl = sub.add_parser("pls", help="PLS regression of one measured value on the descriptors")
+    pl.add_argument("table")
+    pl.add_argument("--y", action="append", help="the measured column to model")
+    pl.add_argument("--exclude", action="append")
+    pl.add_argument("--scale", default="uv", choices=("uv", "pareto", "ctr", "none"))
+    pl.add_argument("--components", type=int)
+    pl.add_argument("--cv", type=int, default=7)
+    pl.add_argument("--test-names", help="comma list of molecules kept out of the fit")
+    pl.add_argument("--test-fraction", type=float, help="random share kept out of the fit")
+    pl.add_argument("--seed", type=int, default=1)
+    pl.add_argument("--permutations", type=int, default=0, help="Y-permutation runs (0: none)")
+    pl.add_argument("--keep-unconverged", action="store_true")
+    pl.add_argument("--save-model", help="write the model for `ecce-qsar predict`")
+    pl.add_argument("--outdir")
+    pl.add_argument("--json", action="store_true")
+    pl.set_defaults(fn=cmd_pls)
+    pr = sub.add_parser("predict", help="predict a saved PLS model on a descriptor table")
+    pr.add_argument("model")
+    pr.add_argument("table")
+    pr.add_argument("--csv")
+    pr.set_defaults(fn=cmd_predict)
     cc = sub.add_parser("columns", help="the measured-value columns of a table")
     cc.add_argument("table")
     cc.set_defaults(fn=cmd_columns)

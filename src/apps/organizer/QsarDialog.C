@@ -56,7 +56,14 @@ public:
   void set(const vector<string>& names, const vector<double>& x, const vector<double>& y,
            const vector<double>& r2x)
   {
-    p_names = names; p_x = x; p_y = y; p_r2 = r2x;
+    p_names = names; p_x = x; p_y = y; p_r2 = r2x; p_parity = false; p_test.clear();
+    Refresh();
+  }
+  /// Observed (x) against predicted (y); `test` marks the rows kept out of the fit.
+  void setParity(const vector<string>& names, const vector<double>& obs,
+                 const vector<double>& pred, const vector<bool>& test)
+  {
+    p_names = names; p_x = obs; p_y = pred; p_r2.clear(); p_parity = true; p_test = test;
     Refresh();
   }
 
@@ -81,18 +88,25 @@ private:
     auto Y = [&](double v) { return m + h - (int)((v - y0) / (y1 - y0) * h); };
     dc.SetPen(*wxLIGHT_GREY_PEN);
     dc.DrawRectangle(m, m, w, h);
+    if (p_parity) {  // one scale for both axes, and the line y = x
+      const double lo = std::min(x0, y0), hi = std::max(x1, y1);
+      x0 = y0 = lo; x1 = y1 = hi;
+      dc.DrawLine(X(lo), Y(lo), X(hi), Y(hi));
+    }
     if (x0 < 0 && x1 > 0) dc.DrawLine(X(0), m, X(0), m + h);
     if (y0 < 0 && y1 > 0) dc.DrawLine(m, Y(0), m + w, Y(0));
     dc.SetPen(*wxBLACK_PEN);
     dc.SetBrush(wxBrush(wxColour(30, 90, 170)));
     dc.SetFont(*wxSMALL_FONT);
     for (size_t i = 0; i < p_x.size() && i < p_y.size(); i++) {
+      dc.SetBrush(wxBrush(i < p_test.size() && p_test[i] ? wxColour(200, 50, 40)
+                                                         : wxColour(30, 90, 170)));
       dc.DrawCircle(X(p_x[i]), Y(p_y[i]), 3);
       if (p_x.size() <= 60)
         dc.DrawText(wxString::FromUTF8(p_names[i].c_str()), X(p_x[i]) + 4, Y(p_y[i]) - 6);
     }
-    dc.DrawText("t1", m + w - 12, m + h + 2);
-    dc.DrawText("t2", 4, m - 2);
+    dc.DrawText(p_parity ? "observed" : "t1", m + w - 30, m + h + 2);
+    dc.DrawText(p_parity ? "predicted (red: not in the fit)" : "t2", 4, m - 2);
     const int by = sz.y - barH + 8;
     dc.DrawText("R2X per component", m, by - 8);
     const size_t nb = p_r2.size();
@@ -107,6 +121,8 @@ private:
   }
   vector<string> p_names;
   vector<double> p_x, p_y, p_r2;
+  vector<bool> p_test;
+  bool p_parity = false;
 };
 
 
@@ -174,6 +190,25 @@ QsarDialog::QsarDialog(wxWindow *parent, const vector<EcceURL>& calcs)
   wxButton *save = new wxButton(this, wxID_ANY, "Save Results...");
   row->Add(save, 0, wxALL, 5);
   top->Add(row, 0, wxEXPAND);
+  wxBoxSizer *row2 = new wxBoxSizer(wxHORIZONTAL);
+  row2->Add(new wxStaticText(this, wxID_ANY, "PLS: measured value:"), 0,
+            wxALIGN_CENTER_VERTICAL | wxALL, 5);
+  p_y = new wxChoice(this, wxID_ANY);
+  for (const string& y : p_measured) p_y->Append(wxString::FromUTF8(y.c_str()));
+  if (p_y->GetCount()) p_y->SetSelection(0);
+  row2->Add(p_y, 0, wxALL, 5);
+  row2->Add(new wxStaticText(this, wxID_ANY, "Test set %:"), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+  p_test = new wxSpinCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize,
+                          wxSP_ARROW_KEYS, 0, 50, 0);
+  row2->Add(p_test, 0, wxALL, 5);
+  row2->Add(new wxStaticText(this, wxID_ANY, "Permutations:"), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+  p_perm = new wxSpinCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize,
+                          wxSP_ARROW_KEYS, 0, 500, 0);
+  row2->Add(p_perm, 0, wxALL, 5);
+  wxButton *runPls = new wxButton(this, wxID_ANY, "Run PLS");
+  runPls->Enable(p_y->GetCount() > 0);
+  row2->Add(runPls, 0, wxALL, 5);
+  top->Add(row2, 0, wxEXPAND);
   wxBoxSizer *mid = new wxBoxSizer(wxHORIZONTAL);
   p_text = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(500, 380),
                           wxTE_MULTILINE | wxTE_READONLY | wxTE_DONTWRAP);
@@ -185,6 +220,7 @@ QsarDialog::QsarDialog(wxWindow *parent, const vector<EcceURL>& calcs)
   top->Add(new wxButton(this, wxID_CLOSE, "Close"), 0, wxALIGN_RIGHT | wxALL, 5);
   SetSizer(top);
   run->Bind(wxEVT_BUTTON, &QsarDialog::OnRun, this);
+  runPls->Bind(wxEVT_BUTTON, &QsarDialog::OnRunPls, this);
   save->Bind(wxEVT_BUTTON, &QsarDialog::OnSave, this);
   FindWindow(wxID_CLOSE)->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { EndModal(wxID_CLOSE); });
 }
@@ -230,11 +266,57 @@ bool QsarDialog::runPca(const string& scaling, int components, string& why)
   return true;
 }
 
+bool QsarDialog::runPls(const string& y, const string& scaling, int components,
+                        int testPercent, int permutations, string& why)
+{
+  if (!p_ok) { why = p_why; return false; }
+  string args = "pls " + quote(p_table) + " --y " + quote(y) + " --scale " + scaling +
+                " --outdir " + quote(p_dir) + " --save-model " + quote(p_dir + "/pls_model.json");
+  if (components > 0) args += " --components " + std::to_string(components);
+  if (testPercent > 0) args += " --test-fraction " + std::to_string(testPercent / 100.0);
+  if (permutations > 0) args += " --permutations " + std::to_string(permutations);
+  int st = 0;
+  p_summary = run(args, st);
+  if (p_text) p_text->SetValue(wxString::FromUTF8(p_summary.c_str()));
+  if (st != 0) {
+    const size_t e = p_summary.find("error: ");
+    why = e == string::npos ? "ecce-qsar pls failed" :
+        p_summary.substr(e + 7, p_summary.find('\n', e) - e - 7);
+    return false;
+  }
+  std::ifstream f(fs::path(p_dir) / "pls_predictions.csv");
+  vector<vector<string>> pr = parseCsv(string(std::istreambuf_iterator<char>(f),
+                                              std::istreambuf_iterator<char>()));
+  vector<string> names;
+  vector<double> obs, pred;
+  vector<bool> test;
+  for (size_t i = 1; i < pr.size(); i++) {
+    if (pr[i].size() < 4) continue;
+    names.push_back(pr[i][0]);
+    test.push_back(pr[i][1] == "test");
+    obs.push_back(atof(pr[i][2].c_str()));
+    pred.push_back(atof(pr[i][3].c_str()));
+  }
+  if (p_plot) p_plot->setParity(names, obs, pred, test);
+  return true;
+}
+
+void QsarDialog::OnRunPls(wxCommandEvent&)
+{
+  string why;
+  if (!runPls(p_y->GetStringSelection().ToStdString(wxConvUTF8),
+              p_scale->GetStringSelection().ToStdString(), p_comps->GetValue(),
+              p_test->GetValue(), p_perm->GetValue(), why))
+    wxMessageBox(wxString::FromUTF8(why.c_str()), "QSAR Analysis", wxOK | wxICON_ERROR, this);
+}
+
 bool QsarDialog::saveResults(const string& dir, string& why) const
 {
   std::error_code ec;
   fs::create_directories(dir, ec);
-  for (const char *f : {"table.csv", "pca_scores.csv", "pca_loadings.csv", "pca_components.csv"}) {
+  for (const char *f : {"table.csv", "pca_scores.csv", "pca_loadings.csv", "pca_components.csv",
+                        "pls_components.csv", "pls_scores.csv", "pls_vip.csv",
+                        "pls_predictions.csv", "pls_permutation.csv", "pls_model.json"}) {
     const fs::path src = fs::path(p_dir) / f;
     if (!fs::exists(src)) continue;
     fs::copy_file(src, fs::path(dir) / f, fs::copy_options::overwrite_existing, ec);
