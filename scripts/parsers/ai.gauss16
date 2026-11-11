@@ -418,6 +418,10 @@ sub G09Route {
   push @pop, "MK" if $AbiDict{"ESPCharges"} =~ /Merz/;
   push @pop, "CHelpG" if $AbiDict{"ESPCharges"} =~ /CHelpG/;
   push @pop, "full";
+  # A relaxed scan prints MOs only at its first and last step; Always prints
+  # them at every step, so each scan point keeps its own orbitals (#549).
+  # Not with NBO, which would then run at every optimisation step too.
+  push @pop, "Always" if (&isRelaxedScan() && !$AbiDict{"UseNBO"});
   my $popKey = " Pop=(" . join(",", @pop) . ")";
   if ((($tmpTheory =~ /MP4/ || $tmpTheory =~ /MP5/) &&  $tmpTheory !~ /SDQ/) || 
         $tmpTheory =~ /CCSD/ || $tmpTheory =~ /QCISD.T./ ||
@@ -1863,6 +1867,17 @@ sub Symmetry {
   }
 
   return $result;
+}
+
+# True when the optimisation scans a coordinate (a constraint with steps).
+sub isRelaxedScan {
+  return 0 unless ($AbiDict{"RunType"} =~ /^(Geometry|GeoVib)$/);
+  return 0 if ($CnstrntFILE eq "" || !open(my $fh, "<", $CnstrntFILE));
+  while (<$fh>) {
+    if (/<Scan\s+steps="(\d+)"/i && $1 > 0) { close($fh); return 1; }
+  }
+  close($fh);
+  return 0;
 }
 
 sub ZcoordConstraints {

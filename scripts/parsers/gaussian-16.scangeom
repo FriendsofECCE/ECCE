@@ -10,8 +10,9 @@ $| = 1;
 ($key, $runtype) = @ARGV;
 exit(0) unless ($runtype =~ /Geo/i);
 
-my (@cur, $in, $scan, @out);
+my (@cur, $in, $scan, @out, @log);
 while (<STDIN>) {
+  push(@log, $_);
   $scan = 1 if (/^\s*!.*\sScan\s+!\s*$/);
   if (/Input orientation:/) { @cur = (); $in = 1; next; }
   if (/Standard orientation:|Z-Matrix orientation:|Rotational constants/) { $in = 0; next; }
@@ -29,4 +30,11 @@ while (<STDIN>) {
   }
 }
 print @out if ($scan);
+# Each point's orbitals come from the same log; see gaussian-16.scanmos.
+if ($scan && @out) {
+  use File::Basename qw(dirname);
+  open(my $mos, '|-', $^X, dirname($0) . '/gaussian-16.scanmos', @ARGV) or exit(0);
+  print {$mos} @log;
+  close($mos);
+}
 exit(0);

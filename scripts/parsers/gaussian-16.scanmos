@@ -1,0 +1,90 @@
+#!/usr/bin/env perl
+# Relaxed scan orbitals (#549), from the whole log, which
+# gaussian-16.scangeom passes on (one File= parse type per file).  With
+# Pop=Always (ai.gauss16 adds it for scans) every optimisation step prints
+# its MOs; a point's set is the last one before its
+# "Optimization completed", which is also the structure SCANGEOM stores.
+# fort.7 holds only the last point, so the log's 5-decimal table is used.
+$| = 1;
+use strict;
+use warnings;
+
+my ($key, $runtype) = @ARGV;
+exit(0) unless (defined($runtype) && $runtype =~ /Geo/i);
+
+my ($scan, %set, $fresh, @points, $spin, $occ, @energy, @occ, @coef, $base);
+my $ok = 1;
+
+sub finishBlock {
+  return unless (defined($spin) && @energy);
+  $set{$spin} = [[@energy], [@occ], [@coef]];
+  $fresh = 1;
+  undef $spin;
+}
+
+while (<STDIN>) {
+  $scan = 1 if (/^\s*!.*\sScan\s+!\s*$/);
+  if (/^\s+(Alpha |Beta )?Molecular Orbital Coefficients:/) {
+    &finishBlock();
+    my $which = defined($1) ? $1 : "";
+    %set = () if ($which ne "Beta ");
+    $spin = ($which eq "Beta ") ? "beta" : "alpha";
+    $occ = ($which eq "") ? 2 : 1;
+    (@energy, @occ, @coef) = ((), (), ());
+    next;
+  }
+  if (/Optimization completed/) {
+    &finishBlock();
+    # A point without its own MOs (a log written without Pop=Always) means
+    # the sequence would mislabel points, so nothing is stored.
+    $ok = 0 unless ($fresh && $set{alpha});
+    push(@points, {%set});
+    $fresh = 0;
+    next;
+  }
+  next unless (defined($spin));
+  if (/^\s+(\d+\s+)+$/) {               # orbital numbers of a column group
+    $base = scalar(@energy);
+    next;
+  }
+  if (/Eigenvalues --(.*)$/) {
+    push(@energy, $1 =~ /(-?\d+\.\d{5})/g);
+    next;
+  }
+  if (/^\s+(?:\(\S+\)--)?[OV](\s+(?:\(\S+\)--)?[OV])*\s*$/) {
+    push(@occ, map { /O$/ ? $occ : 0 } split);
+    next;
+  }
+  if (/^\s+(\d+)\s+\S/ && defined($base)) {   # one AO row of a column group
+    my $ao = $1 - 1;
+    my @v = (substr($_, 20) =~ /(-?\d+\.\d{5})/g);
+    $coef[$base + $_][$ao] = $v[$_] for (0 .. $#v);
+    next;
+  }
+  &finishBlock();                        # Density Matrix and the like
+}
+
+exit(0) unless ($scan && $ok && @points);
+
+sub printTables {
+  my ($orbKey, $moKey, $s) = @_;
+  my ($e, $o, $c) = @$s;
+  my $nmo = scalar(@$e);
+  my $nbas = scalar(@{$c->[0]});
+  return if ($nmo == 0 || $nbas == 0 || scalar(@$o) != $nmo || scalar(@$c) != $nmo);
+  print "key: $orbKey\nsize:\n1 $nmo 2\nrowlabels:\n",
+        join(" ", map { "MO-$_" } 1 .. $nmo), "\ncolumnlabels:\nEnergy Occupation\nvalues:\n";
+  print "$e->[$_] $o->[$_]\n" for (0 .. $nmo - 1);
+  print "units:\nNA\nEND\n";
+  print "key: $moKey\nsize:\n1 $nmo $nbas\nrowlabels:\n",
+        join(" ", map { "MO-$_" } 1 .. $nmo), "\ncolumnlabels:\n",
+        join(" ", map { "BasFun-$_" } 1 .. $nbas), "\nvalues:\n";
+  print join(" ", @{$c->[$_]}), "\n" for (0 .. $nmo - 1);
+  print "units:\nElectrons\nEND\n";
+}
+
+for my $p (@points) {
+  &printTables("PTORB", "PTMO", $p->{alpha});
+  &printTables("PTORBBETA", "PTMOBETA", $p->{beta}) if ($p->{beta});
+}
+exit(0);

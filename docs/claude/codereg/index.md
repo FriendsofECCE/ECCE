@@ -230,6 +230,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [MOPAC and CP2K final orbitals: density staging and restart retention (#407)](mopac-cp2k-final-orbitals-407.md)
 
 - [ORCA scan point orbitals: select converged final evaluations, not optimizer iterations (#549)](orca-scan-point-orbitals-549.md)
+- [Gaussian 16 scan orbitals need Pop=Always](g16-scan-point-orbitals-need-pop-always-549.md) — per-point MOs from the log; scangeom pipes to scanmos (one File= type per file)
 
 - [QE final-density guess: two .save members in a flat archive (#407)](qe-final-density-407.md)
 - [Gaussian 16 final orbitals without the checkpoint (#690)](g16-final-orbitals-from-results-h5-690.md)
