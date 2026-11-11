@@ -317,10 +317,52 @@ int main(int argc, char** argv) {
     check(!analytic_hessian_available(so, r), "ROKS keeps finite differences");
     so.reference = r.reference = Reference::Restricted;
     so.solvent_eps = 78.4;
-    check(!analytic_hessian_available(so, r), "solvent keeps finite differences");
-    so.solvent_eps = 0;
     so.dispersion = "d3bj";
-    check(!analytic_hessian_available(so, r), "D3 keeps finite differences");
+    check(analytic_hessian_available(so, r), "CPCM and D3 take the analytic Hessian");
+    so.field[2] = 0.001;
+    check(!analytic_hessian_available(so, r), "a field keeps finite differences");
+  }
+
+  // Analytic Hessian in a CPCM dielectric against finite differences of the
+  // analytic CPCM gradient: the cavity terms (points riding with their atom,
+  // switching functions), the reaction field in CPHF/CPKS and, with B3LYP,
+  // the D3(BJ) term.  Closed shell H2O and the NH2 radical, off equilibrium.
+  {
+    struct Case { const char* fn; bool open, d3; };
+    for (const Case& c : {Case{"hf", false, false}, Case{"b3lyp", false, true}, Case{"hf", true, false}}) {
+      Molecule m;
+      if (c.open) {
+        m.atoms = {{7, {0, 0, 0.25}}, {1, {0, 1.55, -0.95}}, {1, {0, -1.5, -1.0}}};
+        m.multiplicity = 2;
+      } else {
+        m.atoms = {{8, {0, 0, 0.2216}}, {1, {0, 1.4309, -0.8867}}, {1, {0, -1.37, -0.9}}};
+      }
+      ScfOptions so;
+      so.method = c.fn;
+      if (c.open) so.reference = Reference::Unrestricted;
+      if (c.d3) so.dispersion = "d3bj";
+      so.solvent_eps = 78.3553;
+      so.conv_grad = 1e-9;
+      so.conv_energy = 1e-12;
+      Basis b0(m, lib, "6-31G*", 1);
+      const ScfResult ref = run_scf(b0, m, so);
+      check(analytic_hessian_available(so, ref), std::string("analytic Hessian available in water for ") + c.fn);
+      auto point = [&](const Molecule& mm) {
+        Basis b(mm, lib, "6-31G*", 1);
+        ScfResult r = run_scf(b, mm, so, &ref);
+        PointEval pe;
+        pe.grad = scf_gradient(b, mm, so, r);
+        for (int k = 0; k < 3; ++k) pe.dipole[k] = r.dipole[k];
+        return pe;
+      };
+      const Derivatives num = finite_difference_derivatives(m, 0.002, point);
+      const Derivatives ana = rhf_hessian(b0, m, so, ref);
+      const std::string tag = std::string(c.open ? "NH2" : "H2O") + "/6-31G* water " + (c.open ? "u" : "") + c.fn + (c.d3 ? "-D3" : "");
+      check((ana.hessian - num.hessian).cwiseAbs().maxCoeff() < 2e-5, "analytic CPCM Hessian matches finite difference " + tag,
+            (ana.hessian - num.hessian).cwiseAbs().maxCoeff());
+      check((ana.dmu - num.dmu).cwiseAbs().maxCoeff() < 1e-5, "analytic CPCM dipole derivatives match finite difference " + tag,
+            (ana.dmu - num.dmu).cwiseAbs().maxCoeff());
+    }
   }
 
   // Analytic UHF/UKS Hessian of a radical (NH2, off equilibrium) against finite

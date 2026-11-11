@@ -6,8 +6,10 @@
 #include <omp.h>
 #endif
 #include "cint_wrap.hpp"
+#include "d3.hpp"
 #include "grid.hpp"
 #include "integrals.hpp"
+#include "solvent.hpp"
 #include "xc.hpp"
 
 namespace qm {
@@ -90,24 +92,22 @@ void add_second(Mat& H, const Mat& w, const MatV& ii, const MatV& ij, const std:
 }  // namespace
 
 bool analytic_hessian_available(const ScfOptions& opt, const ScfResult& r) {
-  // The analytic Hessian has no reaction-field or dispersion term; with a
-  // solvent or D3 the finite-difference one (of full gradients) is used.
   // Kohn-Sham: LDA, GGA and global hybrids; IVO virtuals are not canonical,
   // which the CPKS denominators assume.  ROHF/ROKS orbitals are not
   // eigenvectors of one Fock matrix per spin, so the per-spin response
-  // equations below do not apply to them.
+  // equations below do not apply to them.  A field has no derivative terms here.
   bool fn_ok = false;
   try { fn_ok = xc_analytic_hessian_supported(functional_by_name(opt.method)); } catch (const Error&) {}
   const bool closed = opt.reference == Reference::Restricted && r.reference == Reference::Restricted && r.nalpha == r.nbeta;
   const bool unrestricted = opt.reference == Reference::Unrestricted && r.reference == Reference::Unrestricted;
-  return fn_ok && !opt.ivo && !r.ivo_applied && opt.solvent_eps <= 0 && opt.dispersion.empty() && (closed || unrestricted) &&
-         r.nalpha > 0 && r.nbeta > 0 && opt.field[0] == 0 && opt.field[1] == 0 && opt.field[2] == 0;
+  return fn_ok && !opt.ivo && !r.ivo_applied && (closed || unrestricted) && r.nalpha > 0 && r.nbeta > 0 &&
+         opt.field[0] == 0 && opt.field[1] == 0 && opt.field[2] == 0;
 }
 
 Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt, const ScfResult& r,
                         const HessianProgress& on_progress) {
   if (!analytic_hessian_available(opt, r))
-    throw Error("analytic Hessian needs an RHF/UHF or RKS/UKS reference (LDA, GGA or global hybrid)");
+    throw Error("analytic Hessian needs an RHF/UHF or RKS/UKS reference (LDA, GGA or global hybrid) and no field");
   const FunctionalSpec fs = functional_by_name(opt.method);
   const double exx = fs.exx;  // 1 for HF, the hybrid's fraction, 0 for a pure functional
   const int n = basis.nbf(), natm = static_cast<int>(mol.atoms.size()), P = 3 * natm, ns = basis.nshl();
@@ -304,6 +304,91 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
       for (int p = 0; p < P; ++p) Fx[c][p] += Vx[c][p];
   }
 
+
+  // ---- CPCM reaction field (scf_gradient's model: points ride with their
+  // atom, exponents fixed, the switching functions follow every atom).  With
+  // E_pol = q.V/2, A q = -f V, the fixed-density second derivative is
+  // q.V'' + q.A''.q/(2f) - u_x.A^-1.u_y/f, u = f V' + A' q, and the
+  // derivative Fock matrix gains -sum_k (q'_k L_k + q_k L'_k), q' = -A^-1 u. ----
+  std::unique_ptr<CpcmField> pcm;
+  if (opt.solvent_eps > 0) {
+    pcm.reset(new CpcmField(basis, mol, opt.solvent_eps, opt.cavity_scale));
+    const Cpcm& cav = pcm->cavity();
+    const int np = cav.size();
+    const double f = cav.factor();
+    const Vec q = cav.charges(pcm->potential(Dt));
+    cav.add_hessian(mol, q, H);
+    Mat U = cav.first_derivatives(mol, q);
+    MatV Fsx(P, Mat::Zero(n, n));
+    // Per atom: the q-weighted operator derivatives of its points, and every
+    // point's electronic potential derivative (into U).
+    std::vector<std::vector<int>> on(natm);
+    for (int k = 0; k < np; ++k) on[cav.atom_of(k)].push_back(k);
+    Fn* fi1 = sp ? int1e_iprinv_sph : int1e_iprinv_cart;
+    Fn* fi2 = sp ? int1e_ipiprinv_sph : int1e_ipiprinv_cart;
+    Fn* fi3 = sp ? int1e_iprinvip_sph : int1e_iprinvip_cart;
+    for (int C = 0; C < natm; ++C) {
+      if (on[C].empty()) continue;
+      MatV L1(3, Mat::Zero(n, n)), Lii(9, Mat::Zero(n, n)), Lij(9, Mat::Zero(n, n));
+#pragma omp parallel
+      {
+        std::vector<double> env = basis.env(), b1, b2, b3, cache;
+        MatV l1(3, Mat::Zero(n, n)), lii(9, Mat::Zero(n, n)), lij(9, Mat::Zero(n, n));
+        auto run = [&](Fn* fn, int* shls, std::vector<double>& b, size_t len) {
+          b.assign(len, 0.0);
+          const size_t cs = fn(nullptr, nullptr, shls, basis.atm().data(), basis.natm(), basis.bas().data(), ns, env.data(), nullptr, nullptr);
+          if (cache.size() < cs + 16) cache.resize(cs + 16);
+          fn(b.data(), nullptr, shls, basis.atm().data(), basis.natm(), basis.bas().data(), ns, env.data(), nullptr, cache.data());
+        };
+#pragma omp for schedule(dynamic, 4)
+        for (size_t t = 0; t < on[C].size(); ++t) {
+          const int k = on[C][t];
+          const double qk = q(k);
+          for (int c = 0; c < 3; ++c) env[PTR_RINV_ORIG + c] = cav.points()[k][c];
+          double tot[3] = {0, 0, 0};
+          for (int I = 0; I < ns; ++I)
+            for (int J = 0; J < ns; ++J) {
+              int shls[2] = {I, J};
+              const int ni = sh[I].nao, nj = sh[J].nao, nn = ni * nj;
+              run(fi1, shls, b1, 3 * nn);
+              run(fi2, shls, b2, 9 * nn);
+              run(fi3, shls, b3, 9 * nn);
+              const int aI = sh[I].atom;
+              for (int j = 0; j < nj; ++j)
+                for (int i = 0; i < ni; ++i) {
+                  const int a = sh[I].ao0 + i, b = sh[J].ao0 + j, x = j * ni + i;
+                  for (int c = 0; c < 3; ++c) {
+                    const double v = b1[c * nn + x];
+                    l1[c](a, b) += qk * v;
+                    const double dv = 2.0 * Dt(a, b) * v;  // dV_el,k / d(atom of a)
+                    U(k, 3 * aI + c) += f * dv;
+                    tot[c] += dv;
+                  }
+                  for (int c = 0; c < 9; ++c) {
+                    lii[c](a, b) += qk * b2[c * nn + x];
+                    lij[c](a, b) += qk * b3[c * nn + x];
+                  }
+                }
+            }
+          for (int c = 0; c < 3; ++c) U(k, 3 * C + c) -= f * tot[c];
+        }
+#pragma omp critical
+        {
+          for (int c = 0; c < 3; ++c) L1[c] += l1[c];
+          for (int c = 0; c < 9; ++c) { Lii[c] += lii[c]; Lij[c] += lij[c]; }
+        }
+      }
+      add_first(Fsx, L1, 1.0, aoatom, C);
+      add_second(H, -Dt, Lii, Lij, aoatom, C);
+    }
+    const Mat Z = cav.solve(U);  // -q'
+    H -= U.transpose() * Z / f;
+    const MatV Fq = pcm->fock_many(Z);  // -sum_k Z_k L_k
+    for (int p = 0; p < P; ++p) Fsx[p] -= Fq[p];
+    for (int c = 0; c < nch; ++c)
+      for (int p = 0; p < P; ++p) Fx[c][p] += Fsx[p];
+  }
+
   // ---- coupled-perturbed HF / KS ----
   Mat Co[2], Cv[2], dE[2];
   Vec eo[2];
@@ -331,6 +416,13 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
       for (int c = 0; c < nch; ++c) part.insert(part.end(), Ds[c].begin() + s, Ds[c].begin() + e);
       MatV J, K;
       eri.jk(part, J, K, exx != 0.0);
+      MatV Rs;  // reaction field of the total first-order density, alike for both spins
+      if (pcm) {
+        MatV Dt1(m, Mat::Zero(n, n));
+        for (int c = 0; c < nch; ++c)
+          for (size_t k = 0; k < m; ++k) Dt1[k] += wch * part[c * m + k];
+        Rs = pcm->response(Dt1);
+      }
       std::vector<MatV> X;
       if (xc) {
         std::vector<MatV> sub(nch);
@@ -345,6 +437,7 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
           Mat g = jt;
           if (exx != 0.0) g -= exx * K[c * m + k];
           if (xc) g += X[c][k];
+          if (pcm) g += Rs[k];
           out[c].push_back(g);
         }
       }
@@ -435,6 +528,23 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
       Hr(x, y) = v;
     }
   H += Hr;
+
+  // ---- D3(BJ): central differences of its analytic gradient (no SCF, cheap
+  // and accurate to ~1e-9 at this step). ----
+  D3Params dp;
+  if (!opt.dispersion.empty() && d3bj_params(opt.method, dp)) {
+    const double h = 1e-4;
+    Molecule mm = mol;
+    for (int p = 0; p < P; ++p) {
+      std::vector<double> gp(P, 0.0), gm(P, 0.0);
+      mm.atoms[p / 3].x[p % 3] = mol.atoms[p / 3].x[p % 3] + h;
+      d3bj_energy(mm, dp, &gp);
+      mm.atoms[p / 3].x[p % 3] = mol.atoms[p / 3].x[p % 3] - h;
+      d3bj_energy(mm, dp, &gm);
+      mm.atoms[p / 3].x[p % 3] = mol.atoms[p / 3].x[p % 3];
+      for (int x = 0; x < P; ++x) H(x, p) += (gp[x] - gm[x]) / (2 * h);
+    }
+  }
 
   Derivatives d;
   d.hessian = 0.5 * (H + H.transpose());

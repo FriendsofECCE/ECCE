@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
       so.conv_energy = std::min(so.conv_energy, 1e-11);
       so.max_iter = std::max(so.max_iter, 200);
       so.on_cycle = [&](const qm::ScfCycle& c) { qm::write_progress_scf(os, c, so); };
-      // Closed-shell RHF/RKS: analytic Hessian and dipole derivatives (one tightly
+      // RHF/UHF, RKS/UKS (also in CPCM, with D3): analytic Hessian and dipole derivatives (one tightly
       // converged SCF).  Raman needs polarisability derivatives, and the
       // in-core integrals may not fit; both keep the finite-difference path.
       if (!in.numeric_hessian && !std::getenv("ECCE_QM_NUMERIC_HESSIAN") && !in.raman &&

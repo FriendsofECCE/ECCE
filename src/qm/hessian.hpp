@@ -1,7 +1,8 @@
 // Analytic second derivatives of the RHF/UHF and RKS/UKS energy
 // (coupled-perturbed HF/KS; LDA, GGA and global hybrids), and the dipole
-// derivatives that go with them.  ROHF/ROKS, meta-GGAs, range-separated
-// hybrids, solvent and D3 use the finite-difference path in vibration.hpp.
+// derivatives that go with them, with CPCM solvent and D3(BJ).  ROHF/ROKS,
+// meta-GGAs, range-separated hybrids, a field and IVO virtuals use the
+// finite-difference path in vibration.hpp.
 #pragma once
 #include <functional>
 
@@ -13,8 +14,7 @@
 namespace qm {
 
 // True when rhf_hessian applies: restricted closed shell or unrestricted, HF
-// or a functional xc_analytic_hessian_supported accepts, no solvent, D3,
-// field or IVOs.
+// or a functional xc_analytic_hessian_supported accepts, no field or IVOs.
 bool analytic_hessian_available(const ScfOptions& opt, const ScfResult& r);
 
 // Hessian (hartree/bohr^2, 3N x 3N) and dipole derivatives (a.u., 3 x 3N) at

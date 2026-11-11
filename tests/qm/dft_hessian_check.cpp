@@ -2,7 +2,8 @@
 // differences of the analytic gradient and dipole, for any method ecce-qm
 // accepts.  Not a ctest (too slow for the full table); qm_unit covers a small
 // case.  Usage:
-//   qm_dft_hessian_check BASISDIR METHOD BASIS MOLECULE NRAD NANG [STEP] [PRUNE]
+//   qm_dft_hessian_check BASISDIR METHOD BASIS MOLECULE NRAD NANG [STEP] [PRUNE] [EPS] [D3]
+// EPS > 0 puts the molecule in a CPCM dielectric; D3 = 1 adds D3(BJ).
 // MOLECULE: h2o nh3 c2h4 ch2o benzene (closed shell); oh ch3 nh2 h2o+ phenyl
 // (doublets) and o2 (triplet), which take the unrestricted reference; METHOD
 // uhf means hf unrestricted.  With STEP = 0 only the analytic run is timed.  Prints max |dH|, max |d freq|, max |d dmu| and |d IR| and timings.
@@ -39,7 +40,11 @@ int main(int argc, char** argv) {
       {"nh2", {{7, 0, 0, 0.25}, {1, 0, 1.55, -0.95}, {1, 0, -1.5, -1.0}}},
       {"o2", {{8, 0, 0, 1.15}, {8, 0, 0.05, -1.14}}},
       {"h2o+", {{8, 0, 0, 0.2}, {1, 0, 1.5, -0.85}, {1, 0, -1.45, -0.9}}},
-      {"phenyl", {}}};
+      {"phenyl", {}},
+      {"glycine", {{7, -3.2797, 0.4157, 0.0}, {6, -0.8505, -0.9864, 0.0}, {6, 1.4930, 0.7787, 0.0},
+                   {8, 1.1060, 3.1305, 0.0}, {8, 3.5435, -0.3591, 0.0}, {1, -3.2000, 1.6200, 1.5600},
+                   {1, -3.2000, 1.6200, -1.5600}, {1, -4.8300, -0.6600, 0.0}, {1, -0.7900, -2.2000, 1.6700},
+                   {1, -0.7900, -2.2000, -1.6700}}}};
   for (int k = 0; k < 6; ++k) {
     const double a = k * M_PI / 3, rc = 2.6366, rh = 4.6834;
     geo["benzene"].push_back({6, rc * std::cos(a), rc * std::sin(a), 0});
@@ -61,6 +66,8 @@ int main(int argc, char** argv) {
   so.grid_radial = std::atoi(argv[5]);
   so.grid_angular = std::atoi(argv[6]);
   so.grid_prune = prune;
+  if (argc > 9) so.solvent_eps = std::atof(argv[9]);
+  if (argc > 10 && std::atoi(argv[10]) != 0) so.dispersion = "d3bj";
   so.conv_grad = 1e-9;
   so.conv_energy = 1e-12;
   so.max_iter = 300;
@@ -71,8 +78,8 @@ int main(int argc, char** argv) {
   auto t0 = clk::now();
   const Derivatives ana = rhf_hessian(b0, m, so, ref);
   const double ta = std::chrono::duration<double>(clk::now() - t0).count();
-  std::printf("%s %s %s grid %d/%d%s nbf %d <S2> %.4f: analytic %.1f s\n", name.c_str(), method.c_str(), bas.c_str(),
-              so.grid_radial, so.grid_angular, prune ? "" : " unpruned", b0.nbf(), ref.s2, ta);
+  std::printf("%s %s %s grid %d/%d%s eps %g%s nbf %d <S2> %.4f E %.10f: analytic %.1f s\n", name.c_str(), method.c_str(), bas.c_str(),
+              so.grid_radial, so.grid_angular, prune ? "" : " unpruned", so.solvent_eps, so.dispersion.empty() ? "" : " d3bj", b0.nbf(), ref.s2, ref.energy, ta);
   if (step <= 0) return 0;
   auto point = [&](const Molecule& mm) {
     Basis b(mm, lib, bas, 1);
