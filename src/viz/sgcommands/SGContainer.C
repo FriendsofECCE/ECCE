@@ -1912,9 +1912,10 @@ void SGContainer::updateCellImages()
    SGFragment *frag = getFragment();
    LatticeDef *lattice = frag ? frag->getLattice() : 0;
    if (!lattice || !sw || sw->whichChild.getValue() == SO_SWITCH_NONE) return;
-   int na, nb, nc;
-   lattice->getReplicationFactors(na, nb, nc);
-   if (na != 1 || nb != 1 || nc != 1) return;   // replicas are real atoms
+   // After Replicate the replicas are real atoms, so the box whose faces
+   // get images is the whole replicated block.
+   int nrep[3];
+   lattice->getReplicationFactors(nrep[0], nrep[1], nrep[2]);
 
    // Fractions are taken from the corner the box is drawn from.
    MPoint corner = lattice->getLatticeCorner();
@@ -1923,6 +1924,8 @@ void SGContainer::updateCellImages()
                      {(*vecs)[1].x(), (*vecs)[1].y(), (*vecs)[1].z()},
                      {(*vecs)[2].x(), (*vecs)[2].y(), (*vecs)[2].z()}};
    delete vecs;
+   for (int k = 0; k < 3; k++)
+      for (int x = 0; x < 3; x++) v[k][x] *= (nrep[k] > 0 ? nrep[k] : 1);
    // Fractional coordinates f_k = r . (v_(k+1) x v_(k+2)) / vol
    double cr[3][3];
    for (int k = 0; k < 3; k++) {
