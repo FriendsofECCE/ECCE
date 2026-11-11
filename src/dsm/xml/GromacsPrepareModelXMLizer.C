@@ -53,6 +53,7 @@ void GromacsPrepareModelXMLizer::deserialize(const string& data,
    if (!(v = getTagValue(root, "BoxDistance")).empty())
       m->boxDistance(atof(v.c_str()));
    m->boxCenter(getTagValue(root, "BoxCenter"));
+   m->boxSize(getTagValue(root, "BoxSize"));
    if (!(v = getTagValue(root, "IonConcentration")).empty())
       m->ionConcentration(atof(v.c_str()));
    if (!(v = getTagValue(root, "IonMinDistance")).empty())
@@ -97,6 +98,7 @@ void GromacsPrepareModelXMLizer::serialize(const Serializable& object,
       << "<BoxType>" << m->boxType() << "</BoxType>\n"
       << "<BoxDistance>" << m->boxDistance() << "</BoxDistance>\n"
       << "<BoxCenter>" << m->boxCenter() << "</BoxCenter>\n"
+      << "<BoxSize>" << m->boxSize() << "</BoxSize>\n"
       << "<IonConcentration>" << m->ionConcentration()
       << "</IonConcentration>\n"
       << "<IonMinDistance>" << m->ionMinDistance() << "</IonMinDistance>\n"

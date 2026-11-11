@@ -2,7 +2,7 @@
 type: pitfall
 title: "GROMACS COM pull: grompp wants a pbc atom for chain-sized groups, the distance cannot pass half the box, and 0.1 nm/ps drags a chain nowhere"
 area: codereg
-paths: [scripts/parsers/ai.gromacs, scripts/parsers/md.gmxtask, scripts/parsers/gromacs.pull, scripts/parsers/gromacs.desc, scripts/gensub, src/wxgui/mdtools/GromacsRunPanel.C, src/apps/builder/PullPanel.C, tests/gromacs_md/pull_test.py]
+paths: [src/wxgui/mdtools/GromacsPreparePanel.C, include/dsm/GromacsPrepareModel.H, scripts/parsers/md.gmxprep, scripts/parsers/ai.gromacs, scripts/parsers/md.gmxtask, scripts/parsers/gromacs.pull, scripts/parsers/gromacs.desc, scripts/gensub, src/wxgui/mdtools/GromacsRunPanel.C, src/apps/builder/PullPanel.C, tests/gromacs_md/pull_test.py]
 issues: [410]
 ---
 - Settings live in `GromacsRun` (`GmxPull*` tags) -> `md.gmxtask`
@@ -20,6 +20,12 @@ issues: [410]
   reads (defines from the .mdp `define` line and `#define`): GROMOS
   `spc.itp` lists SOL twice (HEAVY_H), which made every chain group fail with
   "the topology's molecules hold N atoms" on gromos53a6 + SPC.
+- Room in the box for a pull along one axis: GROMACS Prepare's Box size
+  (x y z, nm; `BoxSize` -> md.gmxprep `SIZE` -> gensub `editconf -bt
+  triclinic -box`) with the solute centre near one end, as in the usual
+  umbrella-sampling setup. It replaces the distance to edge and the box
+  type; a solute that reaches past it (from the task's structure) is a
+  warning in the editor, never a block.
 - With `geometry = distance` the distance is a minimum-image one: a pull that
   starts at d and runs at rate r for t ps stalls at half the shortest box
   vector, with the force still rising. Leave room in the box.

@@ -1663,11 +1663,11 @@ sub gromacsPrepare()
 
 @@CC@@ - Read the recipe; md.gmxprep has checked every value.
 SOURCE=protein FF=amber99sb-ildn WATER=tip3p HIS=auto IGNH=1 MERGE=1 NEUT=1
-BOX=dodecahedron DIST=1.0 CENTER= CONC=0.15 RMIN=0.6 PNAME=NA NNAME=CL PQ=1
+BOX=dodecahedron DIST=1.0 CENTER= SIZE= CONC=0.15 RMIN=0.6 PNAME=NA NNAME=CL PQ=1
 while IFS='=' read -r k v; do
   case "$k" in
     SOURCE) SOURCE=$v;; FF) FF=$v;; WATER) WATER=$v;; HIS) HIS=$v;;
-    IGNH) IGNH=$v;; NEUT) NEUT=$v;; MERGE) MERGE=$v;; BOX) BOX=$v;; DIST) DIST=$v;; CENTER) CENTER=$v;;
+    IGNH) IGNH=$v;; NEUT) NEUT=$v;; MERGE) MERGE=$v;; BOX) BOX=$v;; DIST) DIST=$v;; CENTER) CENTER=$v;; SIZE) SIZE=$v;;
     CONC) CONC=$v;; RMIN) RMIN=$v;; PNAME) PNAME=$v;; NNAME) NNAME=$v;; PQ) PQ=$v;;
   esac
 done < @@IN@@
@@ -1800,7 +1800,13 @@ GENION_RMIN=""
     # the box is sized round the solute, which is then placed at CENTER
     CENTERARG=""
     [ -n "$CENTER" ] && CENTERARG="-center $CENTER"
-    prepRun "$gmx" editconf -f step1.gro -o step2.gro -c $CENTERARG -bt "$BOX" -d "$DIST" || exit 1
+    if [ -n "$SIZE" ]; then
+      # a box of the user's size (an off-centre solute with room to pull);
+      # three lengths make it rectangular, whatever BOX says
+      prepRun "$gmx" editconf -f step1.gro -o step2.gro -c $CENTERARG -bt triclinic -box $SIZE || exit 1
+    else
+      prepRun "$gmx" editconf -f step1.gro -o step2.gro -c $CENTERARG -bt "$BOX" -d "$DIST" || exit 1
+    fi
   fi
   cp prep.step prep.editconf
 

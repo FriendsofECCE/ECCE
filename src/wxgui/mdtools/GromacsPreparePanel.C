@@ -68,6 +68,7 @@ static const wxWindowID ID_DIST = wxNewId();
 static const wxWindowID ID_CONC = wxNewId();
 static const wxWindowID ID_RMIN = wxNewId();
 static const wxWindowID ID_CENTER = wxNewId();
+static const wxWindowID ID_SIZE = wxNewId();
 static const wxWindowID ID_MIONS = wxNewId();
 static const wxWindowID ID_MFF = wxNewId();
 static const wxWindowID ID_MBEND = wxNewId();
@@ -188,6 +189,17 @@ static bool isNumber(const string& s, double& v, bool allowZero)
   v = strtod(s.c_str(), &end);
   if (s.empty() || *end != 0 || end == s.c_str()) return false;
   return allowZero ? v >= 0 : v > 0;
+}
+
+// Empty, or three lengths all above zero ("x y z" as parseCenter writes it).
+static bool positiveTriple(const string& s)
+{
+  if (s.empty()) return true;
+  std::istringstream in(s);
+  double v;
+  int n = 0;
+  while (in >> v) { if (!(v > 0)) return false; n++; }
+  return n == 3;
 }
 
 // "" (centred) or three numbers, separated by spaces or commas; out is "x y z".
@@ -519,6 +531,17 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   p_proteinOnly.push_back(p_center);
   p_center->SetMinSize(wxSize(p_center->GetTextExtent("00.00 00.00 00.00").x + 24, -1));
   g->Add(withUnit(box, p_center, _("nm")), 0);
+  lab = label(box, _("Box size (x y z):"));
+  p_proteinOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
+  p_size = new ewxTextCtrl(box, ID_SIZE, wxEmptyString);
+  p_size->SetToolTip(_("A rectangular box of this size, in nm, as three numbers "
+                       "(for example 6.6 4.4 12). Empty sizes the box from the "
+                       "distance to edge. With a solute centre near one end it "
+                       "leaves room to pull along the long axis."));
+  p_proteinOnly.push_back(p_size);
+  p_size->SetMinSize(wxSize(p_size->GetTextExtent("00.00 00.00 00.00").x + 24, -1));
+  g->Add(withUnit(box, p_size, _("nm")), 0);
   sb->Add(g, 0, wxALL | wxEXPAND, 6);
   right->Add(sb, 0, wxALL | wxEXPAND, 4);
 
@@ -582,6 +605,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   Bind(wxEVT_TEXT, &GromacsPreparePanel::OnNumber, this, ID_CONC);
   Bind(wxEVT_TEXT, &GromacsPreparePanel::OnNumber, this, ID_RMIN);
   Bind(wxEVT_TEXT, &GromacsPreparePanel::OnNumber, this, ID_CENTER);
+  Bind(wxEVT_TEXT, &GromacsPreparePanel::OnNumber, this, ID_SIZE);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnMinffChoice, this, ID_MIONS);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnMineralForceField, this, ID_MFF);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnMinffChoice, this, ID_MBEND);
@@ -684,6 +708,9 @@ void GromacsPreparePanel::showFields()
   p_box->Enable(p_editable);
   p_dist->Enable(p_editable);
   p_center->Enable(p_editable);
+  p_size->Enable(p_editable);
+  p_box->Enable(p_editable && p_model && p_model->boxSize().empty());
+  p_dist->Enable(p_editable && (isMinff() || !p_model || p_model->boxSize().empty()));
   p_conc->Enable(p_editable);
   p_rmin->Enable(p_editable);
   p_pion->Enable(p_editable);
@@ -886,6 +913,7 @@ void GromacsPreparePanel::refreshGUI()
   os << p_model->boxDistance();
   p_dist->SetValue(U(os.str().c_str()));
   p_center->ChangeValue(U(p_model->boxCenter().c_str()));
+  p_size->ChangeValue(U(p_model->boxSize().c_str()));
   std::ostringstream oc;
   oc << p_model->ionConcentration();
   p_conc->SetValue(U(oc.str().c_str()));
@@ -1156,6 +1184,47 @@ string GromacsPreparePanel::cellWarning() const
   return head + out;
 }
 
+// Where the structure, placed at the solute centre (or the box centre),
+// reaches past an explicit box size.  A warning only: editconf and solvate
+// still run, and the user may mean it.
+string GromacsPreparePanel::sizeWarning() const
+{
+  if (p_model == 0 || isMinff() || p_model->boxSize().empty()) return "";
+  double size[3] = {0, 0, 0}, cen[3] = {0, 0, 0};
+  std::istringstream sin(p_model->boxSize());
+  if (!(sin >> size[0] >> size[1] >> size[2])) return "";
+  for (int i = 0; i < 3; i++) cen[i] = size[i] / 2.0;
+  if (!p_model->boxCenter().empty()) {
+    std::istringstream cin(p_model->boxCenter());
+    cin >> cen[0] >> cen[1] >> cen[2];
+  }
+  MdTask *t = task();
+  Fragment frag;
+  if (t == 0 || !t->getFragment(frag) || frag.numAtoms() == 0) return "";
+  double lo[3] = { 1e30, 1e30, 1e30 }, hi[3] = { -1e30, -1e30, -1e30 };
+  for (size_t a = 0; a < frag.numAtoms(); a++) {
+    const double *x = frag.atomRef((int)a)->coordinates();
+    for (int i = 0; i < 3; i++) {
+      lo[i] = std::min(lo[i], x[i] / 10.0);   // Angstrom -> nm
+      hi[i] = std::max(hi[i], x[i] / 10.0);
+    }
+  }
+  const char axis[3] = { 'x', 'y', 'z' };
+  string out;
+  for (int i = 0; i < 3; i++) {
+    const double half = (hi[i] - lo[i]) / 2.0;
+    if (cen[i] - half >= 0.0 && cen[i] + half <= size[i]) continue;
+    char buf[200];
+    snprintf(buf, sizeof buf, "%sthe solute is %.2f nm wide along %c, centred at "
+             "%.2f nm in a %.2f nm box", out.empty() ? "" : "; ",
+             2.0 * half, axis[i], cen[i], size[i]);
+    out += buf;
+  }
+  if (out.empty()) return "";
+  return "The solute reaches outside the box (" + out + "). Make the box larger "
+         "or move the solute centre; it runs as it is.";
+}
+
 // The built mineral's cell vectors (nm), c lengthened by the water layer.
 bool GromacsPreparePanel::cellVectors(double v[3][3]) const
 {
@@ -1184,6 +1253,8 @@ void GromacsPreparePanel::showCellWarning()
 {
   if (p_owner == 0) return;
   string warn = cellWarning();
+  const string sw = sizeWarning();
+  if (!sw.empty()) warn += (warn.empty() ? "" : "\n") + sw;
   if (!p_buildWarnings.empty()) warn += (warn.empty() ? "" : "\n") + p_buildWarnings;
   string why;
   if (!warn.empty()) p_owner->getFeedback().setMessage(warn, WxFeedback::WARNING);
@@ -1194,6 +1265,7 @@ bool GromacsPreparePanel::validate(string& why) const
 {
   if (!p_badDistance.empty()) { why = p_badDistance; return false; }
   if (!p_badCenter.empty()) { why = p_badCenter; return false; }
+  if (!p_badSize.empty()) { why = p_badSize; return false; }
   if (!p_badConcentration.empty()) { why = p_badConcentration; return false; }
   if (!p_badRmin.empty()) { why = p_badRmin; return false; }
   if (p_ff->GetSelection() == otherIndex()) {
@@ -1722,6 +1794,16 @@ void GromacsPreparePanel::OnNumber(wxCommandEvent&)
   } else {
     p_badCenter = "The solute centre must be empty or three numbers (x y z) in nm.";
   }
+  string size;
+  if (parseCenter(string(p_size->GetValue().ToUTF8()), size) && positiveTriple(size)) {
+    p_model->boxSize(size);
+    p_badSize.clear();
+    // the size replaces the distance and the box shape
+    p_box->Enable(p_editable && size.empty());
+    if (!isMinff()) p_dist->Enable(p_editable && size.empty());
+  } else {
+    p_badSize = "The box size must be empty or three lengths (x y z) above 0 nm.";
+  }
   string c(p_conc->GetValue().ToUTF8());
   if (isNumber(c, v, true)) {
     p_model->ionConcentration(v);
@@ -1872,6 +1954,10 @@ bool GromacsPreparePanel::testSet(const string& field, const string& value,
     p_center->SetValue(value == "-" ? wxString() : U(value.c_str()));
     OnNumber(ev);
     if (!p_badCenter.empty()) { message = p_badCenter; return false; }
+  } else if (field == "size") {
+    p_size->SetValue(value == "-" ? wxString() : U(value.c_str()));
+    OnNumber(ev);
+    if (!p_badSize.empty()) { message = p_badSize; return false; }
   } else if (field == "conc") {
     p_conc->SetValue(U(value.c_str()));
     OnNumber(ev);
@@ -1980,6 +2066,7 @@ string GromacsPreparePanel::summary() const
      << " rigid=" << (p_model->clayffRigidWater() ? 1 : 0)
      << " buildwarn=" << (p_buildWarnings.empty() ? 0 : 1)
      << " cellwarning=" << (cellWarning().empty() ? 0 : 1)
+     << " sizewarning=" << (sizeWarning().empty() ? 0 : 1)
      << " repshown=" << repeat()
      << " repfields=" << p_mrep[0]->GetValue().ToUTF8() << "|"
      << p_mrep[1]->GetValue().ToUTF8() << "|" << p_mrep[2]->GetValue().ToUTF8()
