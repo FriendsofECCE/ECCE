@@ -86,8 +86,10 @@ def run(work, mode, job=None, steps=()):
            "-timePauseFileExist", "1", "-timePauseFileExistStat", "1"]
     if job:
         cmd += ["-jobQ", "shell", "-jobId", str(job.pid)]
+    # A file, not a pipe: nothing reads the pipe while the monitor runs.
+    log = open(os.path.join(work, "monitor-%s.log" % mode), "w+b")
     proc = subprocess.Popen(cmd, cwd=work, stdin=subprocess.DEVNULL,
-                            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+                            stdout=log, stderr=subprocess.STDOUT)
     sizes = []
     for step in steps:
         time.sleep(2.5)
@@ -106,7 +108,16 @@ def run(work, mode, job=None, steps=()):
     except subprocess.TimeoutExpired:
         proc.kill()
         check(False, "%s monitor ended" % mode)
-    check(proc.returncode == 0, "%s monitor exit status %s" % (mode, proc.returncode))
+    ok = proc.returncode == 0
+    check(ok, "%s monitor exit status %s" % (mode, proc.returncode))
+    if not ok:
+        # The follow checks below only fail as a consequence; the cause is here.
+        log.seek(0)
+        sys.stdout.write(log.read().decode("utf-8", "replace"))
+        mlog = os.path.join(work, "m-%s.log" % mode)
+        if os.path.exists(mlog):
+            sys.stdout.write(open(mlog, encoding="utf-8", errors="replace").read()[-4000:])
+    log.close()
     return messages(out), running
 
 
