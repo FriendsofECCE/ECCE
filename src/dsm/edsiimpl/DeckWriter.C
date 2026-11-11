@@ -1,3 +1,4 @@
+#include <memory>
 #include <unistd.h>
 
 #include <cstdio>
@@ -150,7 +151,10 @@ bool writeGbs(ICalculation *calc, const string& file, bool useExpCoeff,
   bool status = false;
   fileFlag = ecp = spherical = false;
   const JCode *code = calc->application();
-  if (code->theoryNeedsBasis(*(calc->theory()))) {
+  // A step nobody has opened in the editor may store no theory (#950).
+  std::unique_ptr<TTheory> theory(calc->theory());
+  if (!code || !theory) return false;
+  if (code->theoryNeedsBasis(*theory)) {
     TGBSConfig *const cfg = calc->gbsConfig();
     if (cfg) {
       // dump() returns null when the translator fails.
@@ -305,8 +309,11 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
   const JCode *codecap = calc->application();
   RCommand localconn("system");
 
+  std::unique_ptr<TTheory> theory(calc->theory());
   if (codecap == (JCode*)0)
     message = "Input files could not be generated--code does not exist";
+  else if (!theory)
+    message = "Input files could not be generated--no theory yet";
   else if (!localconn.isOpen())
     message = "Unable to create local command shell.";
   else if (!localconn.directory(dir->path()))

@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Project-table multi-selection (#925), headless.
+"""Project-table multi-selection (#925) and the workflow folder's table
+and boxes (#951), headless.
 
 Clicks go through the grid window's own handlers (hook "tableclick ROW
 [ctrl] [shift]"): a click selects one row, Shift+click extends or shrinks a
@@ -9,6 +10,7 @@ Xvfb.
 """
 import os
 import re
+import subprocess
 import shutil
 import sys
 import tempfile
@@ -147,9 +149,167 @@ def run(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def run_workflow(display):
+    """A workflow folder's table and its boxes (#951), with real X clicks on
+    the test's own Xvfb display: a click selects one step, Ctrl+click adds
+    and removes, Shift+click selects a range, and the tools (Energy
+    Calculator) act on what the boxes show.  The steps are made in an order
+    other than the table's."""
+    if not shutil.which("xdotool"):
+        print("SKIP workflow table: no xdotool")
+        return
+    env = display.env()
+    if env.get("DISPLAY", ":0") in (":0", ":0.0", os.environ.get("ECCE_LIVE_DISPLAY", "-")):
+        check(False, "a test display of its own", env.get("DISPLAY"))
+        return
+    data = tempfile.mkdtemp(prefix="ecce-wsel-data-")
+    work = tempfile.mkdtemp(prefix="ecce-wsel-")
+    try:
+        project = os.path.join(data, "users", "local", "wsel")
+        os.makedirs(project)
+        shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+        shutil.copytree(SRC, os.path.join(project, "water"), symlinks=True)
+        u = "file://" + project
+        wf = u + "/Workflow"
+        cmds = os.path.join(work, "commands")
+        answers = os.path.join(work, "answers")
+        open(cmds, "w").close()
+        open(answers, "w").close()
+        got = []
+
+        def send(line, wait=1.5):
+            n = len(open(answers).read().splitlines())
+            with open(cmds, "a") as h:
+                h.write(line + "\n")
+            for _ in range(int(wait * 20) + 100):
+                for l in open(answers).read().splitlines()[n:]:
+                    if l.startswith(line + ": "):
+                        got.append(l)
+                        return l[len(line) + 2:]
+                time.sleep(0.05)
+            got.append(line + ": (no answer)")
+            return ""
+
+        def click(xy, *keys):
+            x, y = xy
+            seq = ["xdotool", "mousemove", "--sync", str(x), str(y)]
+            for k in keys:
+                seq += ["keydown", k]
+            seq += ["click", "1"]
+            for k in keys:
+                seq += ["keyup", k]
+            subprocess.run(seq, env=env, timeout=20)
+            time.sleep(1.0)
+
+        def names(answer):
+            return sorted(os.path.basename(x.rstrip("/"))
+                          for x in answer.split()[1:])
+
+        def drive(_display):
+            for line in ["new %s workflow" % u,
+                         "workflowcopy %s %s/water seed" % (wf, u),
+                         "workflowstep %s xtb_es zeta %s/seed" % (wf, wf),
+                         "workflowstep %s xtb_es alpha %s/seed" % (wf, wf),
+                         "workflowstep %s xtb_es mid %s/seed" % (wf, wf)]:
+                send(line, 10)
+            send("select " + wf, 5)
+            time.sleep(3)
+            rows = []
+            for i in range(4):
+                a = send("tablerow %d" % i).split()
+                if len(a) == 4 and a[0] == "ok":
+                    rows.append(((int(a[1]), int(a[2])), os.path.basename(a[3].rstrip("/"))))
+            out = {"rows": [r[1] for r in rows]}
+            if len(rows) != 4:
+                return out
+            pos = [r[0] for r in rows]
+            res = []
+
+            def state():
+                res.append((names(send("tableselected x")), names(send("toolselection x"))))
+            click(pos[0]); state()
+            click(pos[2], "ctrl"); state()
+            click(pos[3], "ctrl"); state()
+            click(pos[2], "ctrl"); state()
+            click(pos[1]); state()
+            click(pos[3], "shift"); state()
+            click(pos[0]); state()
+            out["table"] = res
+            # The boxes, by step name, with the view tall enough to show them.
+            send("workflowsash 700", 3)
+            time.sleep(1)
+            box = {}
+            # The third row of boxes is below a 1024x768 screen.
+            for n in ("seed", "zeta", "alpha", "mid"):
+                a = send("boxpoint %s/%s" % (wf, n)).split()
+                if len(a) == 3 and a[0] == "ok":
+                    box[n] = (int(a[1]), int(a[2]))
+            out["box"] = {}
+            if len(box) == 4:
+                bres = []
+
+                def bstate():
+                    bres.append((names(send("tableselected x")), names(send("toolselection x"))))
+                click(box["zeta"]); bstate()
+                click(box["alpha"], "ctrl"); bstate()
+                click(box["seed"], "ctrl"); bstate()
+                click(box["alpha"], "ctrl"); bstate()
+                click(box["seed"]); bstate()
+                out["boxes"] = bres
+                out["box"] = box
+            return out
+
+        result = apps.run(display, "organizer", windowTimeout=60, settle=30,
+                          env={"ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_TEST_ORGANIZER_ANSWERS": answers,
+                               "ECCE_ORGANIZER_OPEN": u,
+                               "ECCE_LOCAL_DATA": data}, inspect=drive)
+        if result.crashed:
+            check(False, "the Organizer ran (workflow)", "CRASHED (%s)" % result.signalName)
+            return
+        out = result.inspected or {}
+        row = out.get("rows", [])
+        if not check(sorted(row) == ["alpha", "mid", "seed", "zeta"],
+                     "the workflow table lists the steps", "\n".join(got[-20:])):
+            return
+        check(row != ["seed", "zeta", "alpha", "mid"],
+              "the table is not in creation order", row)
+
+        def rows(*idx):
+            return sorted(row[i] for i in idx)
+        want = [("click selects that row", rows(0)),
+                ("Ctrl+click adds a row", rows(0, 2)),
+                ("Ctrl+click adds another", rows(0, 2, 3)),
+                ("Ctrl+click removes a row", rows(0, 3)),
+                ("a click selects that row alone", rows(1)),
+                ("Shift+click selects the range", rows(1, 2, 3)),
+                ("a click after a range selects one row", rows(0))]
+        for (what, w), (t, tools) in zip(want, out.get("table", [])):
+            check(t == w, "workflow table: " + what, "got %s, want %s" % (t, w))
+            check(tools == w, "workflow table: tools act on it: " + what,
+                  "got %s, want %s" % (tools, w))
+        check(len(out.get("table", [])) == len(want), "the table clicks were answered",
+              "\n".join(got[-30:]))
+        bwant = [("a box click selects that step", ["zeta"]),
+                 ("Ctrl+click on a box adds it", ["alpha", "zeta"]),
+                 ("Ctrl+click on another adds it", ["alpha", "seed", "zeta"]),
+                 ("Ctrl+click on a picked box removes it", ["seed", "zeta"]),
+                 ("a plain box click selects it alone", ["seed"])]
+        for (what, w), (t, tools) in zip(bwant, out.get("boxes", [])):
+            check(t == w, "boxes: " + what + " (table)", "got %s, want %s" % (t, w))
+            check(tools == w, "boxes: " + what + " (Energy Calculator)",
+                  "got %s, want %s" % (tools, w))
+        check(len(out.get("boxes", [])) == len(bwant), "the box clicks were answered " + str(out.get("box")),
+              "\n".join(got[-30:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         run(display)
+        run_workflow(display)
         if failures:
             results.fail("tableselection", "table selection wrong: %s" % ", ".join(failures))
     run_tests.checkApp = checkApp

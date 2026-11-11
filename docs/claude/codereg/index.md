@@ -231,3 +231,5 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 
 - [QE final-density guess: two .save members in a flat archive (#407)](qe-final-density-407.md)
 - [Gaussian 16 final orbitals without the checkpoint (#690)](g16-final-orbitals-from-results-h5-690.md)
+- [A workflow step may store no theory: no deck, no crash (#950)](workflow-step-without-theory-950.md)
+- [Auto-run: the tick arms, Launch Ready Steps starts; no editor opens by itself (#926)](workflow-autorun-armed-by-tick-started-by-launch-926.md)

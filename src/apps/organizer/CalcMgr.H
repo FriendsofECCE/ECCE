@@ -397,7 +397,8 @@ public:
   /// why not.
   void launchStep(Session *workflow, Resource *step, bool interactive,
                   string *outcome);
-  /// Auto-run (#736): launch what is ready in a workflow that has it on.
+  /// Auto-run (#736): launch what is ready in a workflow that has it on
+  /// and whose run the user started with Launch Ready Steps (#926).
   void autoRunWorkflow(Session *workflow);
   /// Close a workflow's view: select the folder it is in, which shows that
   /// folder's calculation table.
