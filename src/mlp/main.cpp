@@ -198,10 +198,18 @@ int main(int argc, char** argv) {
   auto record = [&](const mlp::Structure& t, const mlp::Result& r, double fm) {
     ++frames;
     traj << mlp::extxyz_frame(t, r.energy) << std::flush;
-    say("Step %4d", frames - 1);
-    say("  Energy %.8f eV", r.energy);
-    say("  Fmax   %.5f eV/A", fm);
-    say("  Time   %.1f s", elapsed());
+    // Only an optimisation has steps: an Energy or Vibration run printing a
+    // Step block would show an Optimisation in the Progress box.  The Eh
+    // value is what the box reads (it shows every energy in Eh).
+    if (runtype == "Geometry") {
+      say("Step %4d", frames - 1);
+      say("  Energy %.8f eV  %.8f Eh", r.energy, r.energy * EV_TO_HARTREE);
+      say("  Fmax   %.5f eV/A", fm);
+      say("  Time   %.1f s", elapsed());
+    } else {
+      say("Energy:       %.8f eV", r.energy);
+      say("Fmax:         %.5f eV/A", fm);
+    }
     frame_block(frames, t, r.energy);
   };
 
@@ -261,8 +269,8 @@ int main(int argc, char** argv) {
             std::snprintf(extra, sizeof extra, " time=%.6f", f.time_ps);
             traj << mlp::extxyz_frame(t, r.energy, extra) << std::flush;
             say("MD step %6d  time %.4f ps  Epot %.8f eV  Ekin %.8f eV  T %.2f K  Etot %.8f eV  "
-                "Time %.1f s", f.step, f.time_ps, f.epot, f.ekin, f.temperature, f.epot + f.ekin,
-                elapsed());
+                "Etot %.8f Eh  Time %.1f s", f.step, f.time_ps, f.epot, f.ekin, f.temperature,
+                f.epot + f.ekin, (f.epot + f.ekin) * EV_TO_HARTREE, elapsed());
             frame_block(frames, t, r.energy, f.time_ps);
           },
           elapsed);
