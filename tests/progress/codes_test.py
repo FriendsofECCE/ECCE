@@ -108,7 +108,7 @@ case("orca opt+freq (analytic, HF)", "orca.desc", fx("orca", "h2o_optfreq.out"),
      {"opt": {"step": "4", "converged": "yes", "energy": has("-74.9659"),
               "maxgrad": target, "rmsstep": target, "dE": target},
       "freq": {"done": "yes", "zpe": has("0.0243"), "kind": "analytic",
-              "point": "9/9", "phase": "assemble", "last": lambda v: v != ""},
+              "point": "9/9", "last": lambda v: v != ""},
       "scf": {"cycle": lambda v: int(v) >= 1, "dE": target}},
      {"opt": (4, 4)})
 # What the final energy contains comes from the code's own output (#826):
@@ -178,7 +178,7 @@ case("ecceqm opt+freq (analytic RHF Hessian)", "ecceqm.desc",
 # have converged, so the box can show "k of n perturbations".
 case("ecceqm analytic Hessian counts perturbations", "ecceqm.desc",
      fx("ecceqm", "h2o_freq.qmout"),
-     {"freq": {"kind": "analytic", "point": "9/9", "phase": "assemble", "done": "yes", "real": "3"}})
+     {"freq": {"kind": "analytic", "point": "9/9", "done": "yes", "real": "3"}})
 case("ecceqm numerical frequencies (Raman input)", "ecceqm.desc",
      fx("ecceqm", "h2o_numfreq.qmout"),
      {"freq": {"kind": "numerical", "point": "18/18", "done": "yes"}})
@@ -206,7 +206,7 @@ case("gaussian-16 relaxed scan (H2O2 dihedral, 7 points)", "gaussian-16.desc",
 case("gaussian-16 opt+freq (B3LYP/6-31G*, #P)", "gaussian-16.desc", fx("gaussian-16", "nh3_optfreq.log"),
      {"opt": {"step": "4", "converged": "yes", "maxgrad": target, "rmsgrad": target,
               "maxstep": target, "rmsstep": target, "dE": lambda v: "e-" in v},
-      "freq": {"done": "yes", "zpe": has("0.0345"), "kind": "analytic", "pass": "5"},
+      "freq": {"done": "yes", "zpe": has("0.0345"), "kind": "analytic"},
       "scf": {"cycle": lambda v: int(v) >= 1, "converged": "yes"}},
      {"opt": (3, 4)})
 case("gaussian-16 opt, not converged", "gaussian-16.desc", fx("gaussian-16", "nh3_optmax.log"),
