@@ -190,6 +190,10 @@ describe what you did and what happened.
 36. [New Series](new-series.md): one calculation's setup applied to a list of
    structures (xyz files or calculations), with `ecce-series`.
 
+37. [QSAR: batch from SMILES](batch-from-smiles.md): a table of names, SMILES
+   and measured values as one calculation per molecule, all with one setup,
+   launched together (Tools > Batch Add from SMILES, `ecce-batch-smiles`).
+
 Reference:
 
 - [ORCA composite methods](orca-composite-methods.md): r2SCAN-3c, B97-3c,

@@ -54,7 +54,7 @@ def treeInstall(state, build):
         link(os.path.join(build, "ecce-mlp-driver"),
              os.path.join(home, "bin", "ecce-mlp-driver"))
     #  Site screening (#728): ecce-site-screen runs ecce-sites from $ECCE_HOME/bin.
-    for tool in ("ecce-site-screen", "ecce-sites"):
+    for tool in ("ecce-site-screen", "ecce-sites", "ecce-batch-smiles"):
         if os.path.exists(os.path.join(build, tool)):
             link(os.path.join(build, tool), os.path.join(home, "bin", tool))
     for sub in ("gateway", "dataserver"):

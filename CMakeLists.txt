@@ -597,6 +597,12 @@ target_include_directories(ecce-series PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-series PRIVATE
   eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
   eccetdat ecceutil ${XercesC_LIBRARIES})
+# A table of names and SMILES as one calculation per row (#961).
+add_executable(ecce-batch-smiles src/apps/launch/ecce-batch-smiles.C)
+target_include_directories(ecce-batch-smiles PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-batch-smiles PRIVATE
+  eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+  eccetdat ecceutil ${XercesC_LIBRARIES})
 # MLP site screening: host + one calculation per site, and the results (#728).
 add_executable(ecce-site-screen src/apps/launch/ecce-site-screen.C)
 target_include_directories(ecce-site-screen PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -1244,7 +1250,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-site-screen ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-batch-smiles ecce-site-screen ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -4452,6 +4458,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_site_screen PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # #961: Batch Add from SMILES, five xTB optimisations through Launch.
+  add_test(NAME launch_batch_smiles
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/batch_smiles_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_batch_smiles PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   # #329: a CP2K calculation in the real Calculation Editor (script hook, private
   # Xvfb): settings sent as the dialogs send them, the saved deck checked.
   add_test(NAME launch_cp2k_calced
@@ -5207,6 +5220,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-mkdir=bin/ecce-mkdir
   ecce-workflow=bin/ecce-workflow
   ecce-series=bin/ecce-series
+  ecce-batch-smiles=bin/ecce-batch-smiles
   ecce-site-screen=bin/ecce-site-screen
   ecce-reconnect=bin/ecce-reconnect
   ecce-fetch=bin/ecce-fetch
