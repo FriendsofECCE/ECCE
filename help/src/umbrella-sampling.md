@@ -92,9 +92,19 @@ force output (`pullf.xvg`) and shows:
   Where two barely do (less than 5 % shared), a warning names the distance:
   add a window there (a smaller spacing over that range, or a window cut from
   a frame near that distance) and run WHAM again;
-- the minima and maxima found on the PMF.
+- a summary: the deepest minimum, the other minima and maxima that differ
+  from their neighbouring extremum by more than the **Noise (kJ/mol)** field
+  (empty: kT at the run temperature, 2.6 kJ/mol at 310 K), each maximum's
+  barrier above the deepest minimum, and the highest minus the lowest PMF
+  value. Smaller wiggles are statistical noise and are not listed.
 
-**Export .csv...** writes the PMF and the histograms.
+The PMF is shown only where the windows sampled: at the two ends, bins in
+which the summed histograms hold less than 1 % of the fullest bin are cut,
+since `gmx wham` extrapolates there and the profile shoots up.
+
+**Export .csv...** writes the whole PMF, including the cut ends (column
+`supported` is 0 there), every minimum and maximum found (`extremum`, with
+`significant` 1 for those in the summary) and the histograms.
 
 **Remove the 2RT ln r volume term.** Along a distance between two centres of
 mass, more space is available at larger distances (a shell of radius r has

@@ -1320,7 +1320,7 @@ void Builder::runBuilderScript(const std::string& file)
         }
       } else if (w[0].compare(0, 8, "umbrella") == 0) {
         //  umbrellafind <spacing> [from to]; umbrellacreate <eq> <prod>;
-        //  umbrellawham [jacobian]; umbrellaexport <path>; umbrellashot
+        //  umbrellawham [jacobian] [noise=<kJ/mol>]; umbrellaexport <path>; umbrellashot
         //  <png> [w h]; umbrellastate (Pull Force panel > Umbrella sampling).
         PullPanel *pp = 0;
         if (p_calculation)
@@ -1340,7 +1340,12 @@ void Builder::runBuilderScript(const std::string& file)
                   pp->umbrellaCreate(atoi(w[1].c_str()), atoi(w[2].c_str()))
                       ? "ok" : "failed");
         } else if (w[0] == "umbrellawham") {
-          const bool ok = pp->umbrellaWham(w.size() > 1 && w[1] == "jacobian");
+          bool jac = false;
+          for (size_t k = 1; k < w.size(); k++) {
+            if (w[k] == "jacobian") jac = true;
+            else if (w[k].compare(0, 6, "noise=") == 0) pp->setNoise(w[k].substr(6));
+          }
+          const bool ok = pp->umbrellaWham(jac);
           fprintf(stderr, "BUILDER: umbrellawham %s %s\n", ok ? "ok" : "failed",
                   pp->umbrellaState().utf8_str().data());
         } else if (w[0] == "umbrellaexport" && w.size() >= 2) {

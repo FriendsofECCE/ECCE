@@ -59,7 +59,7 @@ IMPLEMENT_DYNAMIC_CLASS(PullPanel, PropertyPanel)
 PullPanel::PullPanel()
   : PropertyPanel(), p_force(NULL), p_dist(NULL), p_text(NULL),
     p_book(NULL), p_spacing(NULL), p_from(NULL), p_to(NULL), p_eq(NULL),
-    p_prod(NULL), p_info(NULL), p_jacobian(NULL), p_windows(NULL),
+    p_prod(NULL), p_noise(NULL), p_info(NULL), p_jacobian(NULL), p_windows(NULL),
     p_pmf(NULL), p_hist(NULL), p_haveWham(false)
 {
 }
@@ -69,7 +69,7 @@ PullPanel::PullPanel(IPropCalculation *calculation,
         const wxSize& size, long style, const wxString& name)
   : PropertyPanel(), p_force(NULL), p_dist(NULL), p_text(NULL),
     p_book(NULL), p_spacing(NULL), p_from(NULL), p_to(NULL), p_eq(NULL),
-    p_prod(NULL), p_info(NULL), p_jacobian(NULL), p_windows(NULL),
+    p_prod(NULL), p_noise(NULL), p_info(NULL), p_jacobian(NULL), p_windows(NULL),
     p_pmf(NULL), p_hist(NULL), p_haveWham(false)
 {
   Create(calculation, parent, id, pos, size, style, name);
@@ -176,6 +176,11 @@ bool PullPanel::Create(IPropCalculation *calculation,
   field("To (nm)", "", &p_to);
   field("Equilibration steps", "50000", &p_eq);
   field("Production steps", "250000", &p_prod);
+  //  empty = kT at the run temperature; the hint says so
+  field("Noise (kJ/mol)", "", &p_noise);
+  p_noise->SetHint("kT");
+  p_noise->SetToolTip("Minima and maxima that differ from their neighbour by less than "
+                      "this are not listed (empty: kT, 2.5 kJ/mol at 300 K)");
   us->Add(row, 0, wxEXPAND | wxALL, 4);
   wxWrapSizer *b1 = new wxWrapSizer(wxHORIZONTAL);
   b1->Add(new wxButton(u, ID_FIND, "Find windows"), 0, wxRIGHT | wxBOTTOM, 6);
@@ -215,6 +220,13 @@ bool PullPanel::Create(IPropCalculation *calculation,
   Bind(wxEVT_BUTTON, &PullPanel::OnUmbrellaExport, this, ID_UEXPORT);
   showPage(0);
   return true;
+}
+
+double PullPanel::noiseValue() const
+{
+  double v = 0;
+  if (!p_noise || !p_noise->GetValue().Trim().ToDouble(&v) || v < 0) return 0;
+  return v;
 }
 
 void PullPanel::umbrellaSay(const wxString& text)
@@ -300,7 +312,7 @@ bool PullPanel::umbrellaWham(bool jacobian)
   MiniJson j;
   std::string why;
   int used = 0;
-  if (!UmbrellaWindows::wham(t, temp, jacobian, false, &j, 0, &used, &why)) {
+  if (!UmbrellaWindows::wham(t, temp, jacobian, noiseValue(), false, &j, 0, &used, &why)) {
     umbrellaSay(U8(why));
     return false;
   }
@@ -319,13 +331,22 @@ bool PullPanel::umbrellaWham(bool jacobian)
   int w = 0;
   for (const MiniJson& c : j.get("histograms").get("counts").items())
     p_hist->addCurve(hx, column(c), wxString::Format("%d", ++w));
-  wxString text = wxString::Format("%d windows, %g K.", used, temp);
+  //  only the extrema that stand out from the noise; the CSV has them all
+  wxString text = wxString::Format("%d windows, %g K. Profile %.3f to %.3f nm (the "
+      "ends without histogram data are cut); extrema that differ from their "
+      "neighbour by more than %.2f kJ/mol:", used, temp,
+      numOf(j.get("supported").get("from")), numOf(j.get("supported").get("to")),
+      numOf(j.get("noise")));
+  const double gmin = j.get("global_minimum").isNull() ? 0
+                    : numOf(j.get("global_minimum").get("distance"));
   for (const MiniJson& m : j.get("minima").items())
-    text += wxString::Format("\nminimum %.3f nm  %.2f kJ/mol",
-                             numOf(m.get("distance")), numOf(m.get("pmf")));
-  for (const MiniJson& m : j.get("maxima").items())
-    text += wxString::Format("\nmaximum %.3f nm  %.2f kJ/mol",
-                             numOf(m.get("distance")), numOf(m.get("pmf")));
+    text += wxString::Format("\nminimum %.3f nm  %.2f kJ/mol%s",
+                             numOf(m.get("distance")), numOf(m.get("pmf")),
+                             numOf(m.get("distance")) == gmin ? "  (deepest)" : "");
+  for (const MiniJson& m : j.get("barriers").items())
+    text += wxString::Format("\nmaximum %.3f nm  %.2f kJ/mol: barrier %.2f kJ/mol "
+                             "above the deepest minimum", numOf(m.get("distance")),
+                             numOf(m.get("pmf")), numOf(m.get("height")));
   if (!j.get("depth").isNull())
     text += wxString::Format("\nhighest - lowest: %.2f kJ/mol", numOf(j.get("depth")));
   for (const MiniJson& m : j.get("warnings").items()) text += "\n" + U8(m.str());
@@ -343,7 +364,8 @@ bool PullPanel::umbrellaExport(const wxString& path)
   if (DynamicsModel *dm = model.getDynamicsModel())
     if (dm->getNVTTemperature() > 0) temp = dm->getNVTTemperature();
   std::string text, why;
-  if (!UmbrellaWindows::wham(t, temp, p_jacobian->GetValue(), true, 0, &text, 0, &why)) {
+  if (!UmbrellaWindows::wham(t, temp, p_jacobian->GetValue(), noiseValue(), true, 0,
+                             &text, 0, &why)) {
     umbrellaSay(U8(why));
     return false;
   }

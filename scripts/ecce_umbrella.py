@@ -59,6 +59,8 @@ R_KJ = 8.314462618e-3
 # Neighbouring windows whose normalised histograms share less than this are
 # reported: the WHAM profile across such a gap is not trustworthy.
 MIN_OVERLAP = 0.05
+# summed window counts below this fraction of the fullest bin: no support
+SUPPORT_FRACTION = 0.01
 
 
 # --- pull data ---------------------------------------------------------------
@@ -214,10 +216,105 @@ def minima_and_barriers(x, y):
     for i in range(1, n - 1):
         left, right = s[max(0, i - 3):i], s[i + 1:i + 4]
         if s[i] < min(left) and s[i] <= min(right):
-            mins.append({"distance": x[i], "pmf": y[i]})
+            mins.append({"distance": x[i], "pmf": y[i], "kind": "minimum"})
         if s[i] > max(left) and s[i] >= max(right):
-            maxs.append({"distance": x[i], "pmf": y[i]})
+            maxs.append({"distance": x[i], "pmf": y[i], "kind": "maximum"})
     return mins, maxs
+
+
+def significant(x, y, extrema, noise):
+    """Mark the extrema that stand out from the noise.
+
+    Neighbouring minimum/maximum pairs closer than `noise` in height are
+    removed, smallest difference first (persistence), so a wiggle on a slope
+    or a plateau never shows up as a barrier. The profile's two ends take
+    part as boundaries but are not reported."""
+    ext = sorted(extrema, key=lambda e: e["distance"])
+    # merge same-kind runs (smoothing can leave two maxima without a minimum)
+    seq = []
+    for e in ext:
+        if seq and seq[-1]["kind"] == e["kind"]:
+            lower = e["pmf"] < seq[-1]["pmf"]
+            if lower == (e["kind"] == "minimum"):
+                seq[-1] = e
+            continue
+        seq.append(e)
+    if not seq:
+        return []
+    other = {"minimum": "maximum", "maximum": "minimum"}
+    seq = ([{"distance": x[0], "pmf": y[0], "kind": other[seq[0]["kind"]], "end": True}] + seq +
+           [{"distance": x[-1], "pmf": y[-1], "kind": other[seq[-1]["kind"]], "end": True}])
+
+    def more_extreme(a, b):
+        if a["kind"] == "minimum":
+            return a if a["pmf"] <= b["pmf"] else b
+        return a if a["pmf"] >= b["pmf"] else b
+
+    while len(seq) > 2:
+        k = min(range(len(seq) - 1), key=lambda i: abs(seq[i]["pmf"] - seq[i + 1]["pmf"]))
+        if abs(seq[k]["pmf"] - seq[k + 1]["pmf"]) >= noise:
+            break
+        a, b = seq[k], seq[k + 1]
+        if not a.get("end") and not b.get("end"):
+            del seq[k:k + 2]
+        else:
+            del seq[k + 1 if a.get("end") else k]
+        # an end next to an extremum of its own kind: keep the more extreme one
+        j = 0
+        while j < len(seq) - 1:
+            if seq[j]["kind"] == seq[j + 1]["kind"]:
+                keep = more_extreme(seq[j], seq[j + 1])
+                seq[j:j + 2] = [keep]
+            else:
+                j += 1
+    return [e for e in seq if not e.get("end")]
+
+
+def supported_range(px, hx, counts, fraction=SUPPORT_FRACTION):
+    """First and last PMF index with histogram support: the summed counts of
+    all windows at least `fraction` of their largest bin. Outside it gmx wham
+    extrapolates, which gives the spike at the ends."""
+    if not hx or not counts:
+        return 0, len(px) - 1
+    total = [sum(c[i] for c in counts if i < len(c)) for i in range(len(hx))]
+    top = max(total) if total else 0.0
+    if top <= 0:
+        return 0, len(px) - 1
+
+    def ok(r):
+        k = min(range(len(hx)), key=lambda i: abs(hx[i] - r))
+        return total[k] >= fraction * top
+    good = [i for i, r in enumerate(px) if ok(r)]
+    if len(good) < 2:
+        return 0, len(px) - 1
+    return good[0], good[-1]
+
+
+def summarise(x, y, noise):
+    """Global minimum, significant extrema and barriers above the deepest
+    minimum, over the supported part of the profile."""
+    pts = [(r, v) for r, v in zip(x, y) if math.isfinite(v)]
+    if not pts:
+        return {"all": [], "minima": [], "maxima": [], "global_minimum": None,
+                "barriers": [], "depth": None}
+    fx, fy = [p[0] for p in pts], [p[1] for p in pts]
+    mins, maxs = minima_and_barriers(fx, fy)
+    sig = significant(fx, fy, mins + maxs, noise)
+    g = min(range(len(fy)), key=lambda i: fy[i])
+    gmin = {"distance": fx[g], "pmf": fy[g], "kind": "minimum"}
+    keys = {(e["distance"], e["kind"]) for e in sig}
+    allx = sorted(mins + maxs, key=lambda e: e["distance"])
+    for e in allx:
+        e["significant"] = (e["distance"], e["kind"]) in keys
+    smins = [e for e in sig if e["kind"] == "minimum"]
+    # the deepest point is always listed, even at the edge of the support
+    if not any(abs(e["pmf"] - gmin["pmf"]) < 1e-9 for e in smins):
+        smins = sorted(smins + [gmin], key=lambda e: e["distance"])
+    smaxs = [e for e in sig if e["kind"] == "maximum"]
+    barriers = [{"distance": e["distance"], "pmf": e["pmf"], "height": e["pmf"] - gmin["pmf"]}
+                for e in smaxs]
+    return {"all": allx, "minima": smins, "maxima": smaxs, "global_minimum": gmin,
+            "barriers": barriers, "depth": max(fy) - min(fy)}
 
 
 def do_wham(a, gmx):
@@ -254,29 +351,35 @@ def do_wham(a, gmx):
     finally:
         shutil.rmtree(work, ignore_errors=True)
     x, y = prof[0], prof[1]
+    lo, hi = supported_range(x, hist[0], hist[1:], a.support)
     if a.jacobian:
         # distance geometry: remove the 4 pi r^2 volume term, W(r) = A(r) + 2RT ln r
         y = [v + 2 * R_KJ * a.temp * math.log(r) if r > 0 else v for r, v in zip(x, y)]
-    finite = [v for v in y if math.isfinite(v)]
+    tx, ty = x[lo:hi + 1], y[lo:hi + 1]
+    finite = [v for v in ty if math.isfinite(v)]
+    z = 0.0
     if a.zero == "end" and finite:
-        ref = [v for v in y[-max(1, len(y) // 20):] if math.isfinite(v)]
+        ref = [v for v in ty[-max(1, len(ty) // 20):] if math.isfinite(v)]
         z = sum(ref) / len(ref) if ref else 0.0
-        y = [v - z for v in y]
     elif a.zero == "min" and finite:
         z = min(finite)
-        y = [v - z for v in y]
-    mins, maxs = minima_and_barriers(x, y)
+    y = [v - z for v in y]
+    tx, ty = x[lo:hi + 1], y[lo:hi + 1]
+    noise = a.noise if a.noise > 0 else R_KJ * a.temp
+    summ = summarise(tx, ty, noise)
     ov = overlaps(hist[0], hist[1:])
     warnings = ["windows %d and %d barely overlap near %.3f nm (%.0f %%): add a window there"
                 % (o["from"], o["to"], o["at"], 100 * o["overlap"])
                 for o in ov if o["overlap"] < MIN_OVERLAP]
-    fy = [v for v in y if math.isfinite(v)]
     return {"analysis": "wham", "windows": calcs, "temperature": a.temp,
-            "jacobian": a.jacobian, "zero": a.zero,
-            "pmf": {"distance": x, "pmf": y, "unit": "kJ/mol"},
+            "jacobian": a.jacobian, "zero": a.zero, "noise": noise,
+            "pmf": {"distance": tx, "pmf": ty, "unit": "kJ/mol"},
+            "pmf_full": {"distance": x, "pmf": y},
+            "supported": {"from": x[lo], "to": x[hi]},
             "histograms": {"distance": hist[0], "counts": hist[1:]},
-            "overlap": ov, "minima": mins, "maxima": maxs,
-            "depth": (max(fy) - min(fy)) if fy else None,
+            "overlap": ov, "extrema": summ["all"], "minima": summ["minima"],
+            "maxima": summ["maxima"], "global_minimum": summ["global_minimum"],
+            "barriers": summ["barriers"], "depth": summ["depth"],
             "warnings": warnings, "commands": [" ".join(c) for c in g.commands]}
 
 
@@ -294,10 +397,16 @@ def text_report(res):
     else:
         out.write("PMF from %d windows at %g K%s\n" % (len(res["windows"]), res["temperature"],
                   ", with the 2RT ln r term" if res["jacobian"] else ""))
+        out.write("supported %.3f to %.3f nm; extrema that differ from their neighbour "
+                  "by more than %.2f kJ/mol\n" % (res["supported"]["from"],
+                                                  res["supported"]["to"], res["noise"]))
+        g = res["global_minimum"]
         for m in res["minima"]:
-            out.write("minimum  %.3f nm  %8.2f kJ/mol\n" % (m["distance"], m["pmf"]))
-        for m in res["maxima"]:
-            out.write("maximum  %.3f nm  %8.2f kJ/mol\n" % (m["distance"], m["pmf"]))
+            out.write("minimum  %.3f nm  %8.2f kJ/mol%s\n" % (m["distance"], m["pmf"],
+                      "  (deepest)" if g and m["distance"] == g["distance"] else ""))
+        for m in res["barriers"]:
+            out.write("maximum  %.3f nm  %8.2f kJ/mol  barrier %.2f kJ/mol above the deepest "
+                      "minimum\n" % (m["distance"], m["pmf"], m["height"]))
         if res["depth"] is not None:
             out.write("highest - lowest: %.2f kJ/mol\n" % res["depth"])
         for w in res["warnings"]:
@@ -309,11 +418,17 @@ def csv_report(res):
     out = io.StringIO()
     w = csv.writer(out)
     if res["analysis"] == "wham":
+        # the full profile and every extremum; the panel shows the supported part
         n = len(res["histograms"]["counts"])
-        w.writerow(["distance_nm", "pmf_kJ_per_mol"] + ["hist_%d" % (i + 1) for i in range(n)])
+        w.writerow(["distance_nm", "pmf_kJ_per_mol", "supported", "extremum", "significant"] +
+                   ["hist_%d" % (i + 1) for i in range(n)])
         hx = res["histograms"]["distance"]
-        for i, (x, y) in enumerate(zip(res["pmf"]["distance"], res["pmf"]["pmf"])):
-            row = [x, y]
+        ext = {e["distance"]: e for e in res["extrema"]}
+        lo, hi = res["supported"]["from"], res["supported"]["to"]
+        for i, (x, y) in enumerate(zip(res["pmf_full"]["distance"], res["pmf_full"]["pmf"])):
+            e = ext.get(x)
+            row = [x, y, int(lo <= x <= hi), e["kind"] if e else "",
+                   (int(e["significant"]) if e else "")]
             if i < len(hx):
                 row += [c[i] for c in res["histograms"]["counts"]]
             w.writerow(row)
@@ -346,6 +461,10 @@ def main(argv=None):
     s.add_argument("--begin", type=float, default=0.0, help="ps of each window to skip")
     s.add_argument("--zero", choices=("end", "min", "none"), default="end")
     s.add_argument("--jacobian", action="store_true")
+    s.add_argument("--noise", type=float, default=0.0,
+                   help="kJ/mol: extrema closer than this to their neighbour are noise (kT)")
+    s.add_argument("--support", type=float, default=SUPPORT_FRACTION,
+                   help="fraction of the fullest histogram bin below which the ends are cut")
     s.add_argument("--threads", type=int, default=1)
     a = p.parse_args(argv)
     try:
@@ -359,7 +478,7 @@ def main(argv=None):
         return 1
     if a.json:
         print(json.dumps(res, allow_nan=False, default=lambda v: None)
-              if all(math.isfinite(v) for v in res.get("pmf", {}).get("pmf", [0]))
+              if all(math.isfinite(v) for v in res.get("pmf_full", {}).get("pmf", [0]))
               else json.dumps(res).replace("Infinity", "null").replace("NaN", "null"))
     elif a.csv:
         sys.stdout.write(csv_report(res))

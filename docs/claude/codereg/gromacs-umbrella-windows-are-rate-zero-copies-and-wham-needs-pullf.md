@@ -30,6 +30,15 @@ issues: [762, 410]
   shallow and the plateau never flattens; `--jacobian` adds 2RT ln r. Off by
   default so the numbers match what gmx wham alone gives (the lab's numbers);
   the two differ by several kJ/mol over 0.3 to 1.2 nm.
+- Summary (`summarise`): local extrema of the 5-bin-smoothed PMF, then
+  neighbouring min/max pairs closer than `--noise` (default kT) removed
+  smallest-first, with the profile ends as boundaries (persistence); the
+  deepest point is always listed and barriers are maxima minus it. Before
+  that the ends are cut where the summed histograms hold < 1 % of the
+  fullest bin (`--support`): gmx wham's profile shoots up there. JSON `pmf`
+  is the cut profile, `pmf_full` the whole one (the CSV writes it with
+  `supported`/`extremum`/`significant` columns). Zeroing at the end uses
+  the cut profile's end, not the spike.
 - Overlap check: normalised histograms of neighbouring windows (ordered by
   mean) sharing less than 5 % give a warning naming the distance.
 - Window tasks (`UmbrellaWindows::create`): `MdTask::copy` would keep the
@@ -51,7 +60,7 @@ issues: [762, 410]
   and without it the pull page says so under its summary (no dialog).
 - Hooks: Organizer `umbrellawindows <pull-url> <spacing> <from|-> <to|-> <eq>
   <prod>`; Builder `umbrellafind`, `umbrellacreate`, `umbrellawham
-  [jacobian]`, `umbrellaexport`, `umbrellashot`, `umbrellastate`, `umbrellaanalysis rms|gyrate`.
+  [jacobian] [noise=<kJ/mol>]`, `umbrellaexport`, `umbrellashot`, `umbrellastate`, `umbrellaanalysis rms|gyrate`.
 - Test: `tests/gromacs_md/umbrella_test.py` (Na+ Cl- in TIP3P; the NPT
   equilibration holds the pair at 0.28 nm, or it can drift to 0.5 nm and
   the pull leaves no windows at contact and runs past half the box; `--quick`

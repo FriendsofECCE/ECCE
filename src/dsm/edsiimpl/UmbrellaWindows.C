@@ -314,7 +314,7 @@ bool UmbrellaWindows::find(MdTask *pull, double spacing, const string& from,
   return true;
 }
 
-bool UmbrellaWindows::wham(MdTask *pull, double temperature, bool jacobian,
+bool UmbrellaWindows::wham(MdTask *pull, double temperature, bool jacobian, double noise,
                            bool csv, MiniJson *json, string *csvText,
                            int *used, string *why)
 {
@@ -341,6 +341,10 @@ bool UmbrellaWindows::wham(MdTask *pull, double temperature, bool jacobian,
   snprintf(tbuf, sizeof tbuf, "%g", temperature);
   args.push_back("--temp"); args.push_back(tbuf);
   if (jacobian) args.push_back("--jacobian");
+  if (noise > 0) {
+    snprintf(tbuf, sizeof tbuf, "%g", noise);
+    args.push_back("--noise"); args.push_back(tbuf);
+  }
   if (!csv) return runCli(args, json, why);
   //  --csv replaces --json: run it as a plain command.
   const char *home = getenv("ECCE_HOME");

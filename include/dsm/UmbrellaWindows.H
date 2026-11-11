@@ -51,8 +51,9 @@ public:
                    std::string *why);
 
   /** `wham` over the production tasks that are Complete; csv gives the CSV
-      text in *csv instead of the JSON. */
-  static bool wham(MdTask *pull, double temperature, bool jacobian,
+      text in *csv instead of the JSON. noise (kJ/mol) is the height below
+      which a minimum/maximum pair counts as noise; 0 means kT. */
+  static bool wham(MdTask *pull, double temperature, bool jacobian, double noise,
                    bool csv, MiniJson *json, std::string *csvText,
                    int *used, std::string *why);
 
