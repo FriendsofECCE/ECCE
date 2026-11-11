@@ -40,4 +40,5 @@ special case written separately would drift.
   `analytic_hessian_available` holds (main.cpp, `ts_hessian_every` default).
   It is decided before any SCF has run, so it is judged from the input's
   reference and the molecule's electron counts, not from a ScfResult (an
-  empty one has nalpha 0 and silently turned the default off).
+  empty one has nalpha 0 and silently turned the default off). With CPCM
+  and D3 too since ecceqm-analytic-cpcm-hessian.md.

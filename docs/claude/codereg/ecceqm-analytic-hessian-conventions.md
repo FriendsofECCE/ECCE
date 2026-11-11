@@ -8,7 +8,7 @@ issues: [394]
 ---
 `rhf_hessian` is used for closed-shell and unrestricted HF and Kohn-Sham frequency runs (DFT: see ecceqm-analytic-rks-hessian.md; open shells: ecceqm-analytic-uhf-uks-hessian.md; not
 ROHF/ROKS, Raman, or when `numeric_hessian true` / `ECCE_QM_NUMERIC_HESSIAN`
-is set); everything else uses the finite-difference path.
+is set; CPCM and D3: ecceqm-analytic-cpcm-hessian.md); everything else uses the finite-difference path.
 Three silent traps, each found by comparing against a finite-difference oracle
 piece by piece (nuclear, S, T, V, 2e skeleton separately):
 * libcint's `ip` integrals are grad on the function; a derivative with respect

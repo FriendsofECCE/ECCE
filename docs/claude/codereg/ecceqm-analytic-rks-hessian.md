@@ -11,9 +11,9 @@ svwn, pbe, b3lyp, pbe0). `xc_analytic_hessian_supported` decides from libxc
 (family LDA/GGA/HYB_GGA, fxc present, `cam_omega == 0`), so a meta-GGA or a
 range-separated hybrid added to `functional_by_name` later stays on finite
 differences without further code. UKS takes the same code over two spin
-channels (ecceqm-analytic-uhf-uks-hessian.md). CPCM, D3, a field and IVO
-virtuals (non-canonical, the CPKS denominators assume canonical) stay on
-finite differences.
+channels (ecceqm-analytic-uhf-uks-hessian.md), CPCM and D3 are in
+ecceqm-analytic-cpcm-hessian.md. A field and IVO virtuals (non-canonical,
+the CPKS denominators assume canonical) stay on finite differences.
 * The exact-exchange part is the RHF code with every exchange term scaled by
   `exx`; the XC part is `XcIntegrator::hessian_terms` (skeleton second
   derivatives and dVxc/dx at fixed density) and `XcIntegrator::kernel`

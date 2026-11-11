@@ -71,7 +71,7 @@ settings for a hard start, such as a point from a relaxed scan:
 * **New Hessian every n steps**: how often the second derivatives are
   computed again. 0 is automatic: every step where the Hessian is analytic
   and cheap (Hartree-Fock and the LDA, GGA and global-hybrid functionals,
-  restricted closed shell or unrestricted, without solvent or D3), and
+  restricted closed shell or unrestricted, also with a solvent or D3), and
   otherwise at the start and whenever the updated Hessian no longer has a
   negative curvature. A finite-difference Hessian costs two gradient
   calculations per coordinate.
@@ -79,7 +79,7 @@ settings for a hard start, such as a point from a relaxed scan:
 The optimiser stops under the same thresholds as ORCA's default optimisation.
 The vibration calculation takes the second derivatives analytically for
 Hartree-Fock and the LDA, GGA and global-hybrid functionals (restricted closed
-shell or unrestricted, without solvent or D3) and otherwise from finite
+shell or unrestricted, also with a solvent or D3(BJ)) and otherwise from finite
 differences of the analytic forces. Either way it is only meaningful at a
 stationary point of the same method and basis set: run **GeoVib**, or optimise first. Thermochemistry
 is for an ideal gas at 298.15 K and 1 atm in the rigid-rotor, harmonic
@@ -131,15 +131,19 @@ energy and its gradient to the forces, so optimisations, scans, transition
 states and frequencies all include it; it is listed as **Dispersion
 Correction** among the components of the energy. Only the two-body (C6 and
 C8) terms are included, without the three-body term, as in ORCA's D3BJ.
-Frequencies with D3(BJ) use the finite-difference Hessian, as with a solvent:
-there is no analytic Hessian for the dispersion term. The damping parameters
+Frequencies with D3(BJ) keep the analytic Hessian where the method has one;
+the dispersion part of it comes from differences of the dispersion forces,
+which needs no further SCF. The damping parameters
 are those of the original paper; the reference C6 coefficients come from the
 simple-dftd3 project.
 
 The implicit solvent (**Solvent** in **Theory Details**) works for every run
 type except Raman intensities. With a solvent set and Raman ticked, the notes
 line above the log in the Calculation Editor says so, and Launch asks before it
-starts the job; **Launch anyway** is the default answer.
+starts the job; **Launch anyway** is the default answer. Frequencies in a
+solvent are those of the solvated molecule: the second derivatives include
+the reaction field's response to the moving electrons and the cavity moving
+with the atoms, and are analytic wherever the method has an analytic Hessian.
 
 For Vibration and GeoVib, **Runtype Details** has a **Raman activities** tick
 box. It adds the Raman activity and the depolarization ratio of every mode,
