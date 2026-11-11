@@ -323,6 +323,11 @@ bool PullPanel::umbrellaShot(const wxString& path, int width, int height)
   return bmp.SaveFile(path, wxBITMAP_TYPE_PNG);
 }
 
+void PullPanel::showUmbrella()
+{
+  p_book->SetSelection(1);
+}
+
 wxString PullPanel::umbrellaState() const
 {
   return wxString::Format("windows=%d pmf=%d hist=%d",

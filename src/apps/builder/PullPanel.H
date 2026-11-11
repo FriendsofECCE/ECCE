@@ -51,6 +51,7 @@ class PullPanel : public PropertyPanel
       /** The PMF plot as a PNG on a white background. */
       bool umbrellaShot(const wxString& path, int width = 900, int height = 600);
       wxString umbrellaState() const;
+      void showUmbrella();
 
    protected:
       void OnExport(wxCommandEvent& event);

@@ -66,22 +66,30 @@ static bool writeInput(MdTask *task, GromacsMDModel& model, string *why)
   }
   SFile *in = TempStorage::getTempFile();
   SFile *out = TempStorage::getTempFile();
+  SFile *err = TempStorage::getTempFile();
   {
     std::ofstream o(in->path().c_str());
     o << task->serializeModel(&model);
   }
   const string cmd = Ecce::scriptCommand(string(Ecce::ecceDataControllersPath()) +
                                          "/" + gen) +
-                     " < \"" + in->path() + "\" > \"" + out->path() + "\"";
+                     " < \"" + in->path() + "\" > \"" + out->path() + "\" 2> \"" + err->path() + "\"";
   bool ok = Ecce::runCommand(cmd) == 0;
   if (ok) {
     std::ifstream ifs(out->path().c_str());
     ok = task->putInputFile(inputFile, &ifs);
   }
   if (ok) task->setState(ResourceDescriptor::STATE_READY);
-  else if (why) *why = "the input of " + task->getName() + " could not be generated";
+  else if (why) {
+    std::ifstream e(err->path().c_str());
+    string line;
+    std::getline(e, line);
+    *why = "the input of " + task->getName() + " could not be generated" +
+           (line.empty() ? string() : ": " + line);
+  }
   in->remove(); delete in;
   out->remove(); delete out;
+  err->remove(); delete err;
   return ok;
 }
 
@@ -108,6 +116,8 @@ static MdTask *makeTask(Session *session, ResourceType *type, MdTask *from,
   //  the study's defaults, but the pull settings must be the pull task's.
   GromacsMDModel model(task->getContentType());
   pull->getTaskModel(model);
+  //  The input generator reads the task type from the model's URL.
+  model.setUrl(task->getURL().toString());
   if (InteractionModel *im = model.getInteractionModel()) {
     GromacsRun run = im->getGromacsRun();
     run.pullRate = 0;
@@ -333,8 +343,9 @@ bool UmbrellaWindows::wham(MdTask *pull, double temperature, bool jacobian,
   const char *home = getenv("ECCE_HOME");
   string cmd = home && *home ? quote(string(home) + "/bin/ecce-umbrella")
                              : string("ecce-umbrella");
+  cmd += " --csv";   // a global option: it comes before the subcommand
   for (const string& a : args) cmd += " " + quote(a);
-  cmd += " --csv 2>/dev/null";
+  cmd += " 2>/dev/null";
   string text;
   const int rc = Ecce::readCommand(cmd, text);
   if (rc != 0 || text.empty()) { if (why) *why = "ecce-umbrella wham --csv failed"; return false; }

@@ -1330,19 +1330,19 @@ void Builder::runBuilderScript(const std::string& file)
         if (!pp) {
           outcome = "no Pull Force panel";
         } else if (w[0] == "umbrellafind" && w.size() >= 2) {
-          fprintf(stderr, "BUILDER: umbrellafind %s %s\n",
-                  pp->umbrellaFind(atof(w[1].c_str()),
-                                   w.size() > 3 ? wxString(w[2]) : wxString(),
-                                   w.size() > 3 ? wxString(w[3]) : wxString())
-                      ? "ok" : "failed", pp->umbrellaState().utf8_str().data());
+          const bool ok = pp->umbrellaFind(atof(w[1].c_str()),
+                                           w.size() > 3 ? wxString(w[2]) : wxString(),
+                                           w.size() > 3 ? wxString(w[3]) : wxString());
+          fprintf(stderr, "BUILDER: umbrellafind %s %s\n", ok ? "ok" : "failed",
+                  pp->umbrellaState().utf8_str().data());
         } else if (w[0] == "umbrellacreate" && w.size() >= 3) {
           fprintf(stderr, "BUILDER: umbrellacreate %s\n",
                   pp->umbrellaCreate(atoi(w[1].c_str()), atoi(w[2].c_str()))
                       ? "ok" : "failed");
         } else if (w[0] == "umbrellawham") {
-          fprintf(stderr, "BUILDER: umbrellawham %s %s\n",
-                  pp->umbrellaWham(w.size() > 1 && w[1] == "jacobian")
-                      ? "ok" : "failed", pp->umbrellaState().utf8_str().data());
+          const bool ok = pp->umbrellaWham(w.size() > 1 && w[1] == "jacobian");
+          fprintf(stderr, "BUILDER: umbrellawham %s %s\n", ok ? "ok" : "failed",
+                  pp->umbrellaState().utf8_str().data());
         } else if (w[0] == "umbrellaexport" && w.size() >= 2) {
           fprintf(stderr, "BUILDER: umbrellaexport %s\n",
                   pp->umbrellaExport(wxString::FromUTF8(w[1].c_str())) ? "ok" : "failed");
@@ -1352,6 +1352,8 @@ void Builder::runBuilderScript(const std::string& file)
                                    w.size() > 3 ? atoi(w[2].c_str()) : 900,
                                    w.size() > 3 ? atoi(w[3].c_str()) : 600)
                       ? "ok" : "failed");
+        } else if (w[0] == "umbrellapage") {
+          pp->showUmbrella();
         } else if (w[0] == "umbrellastate") {
           fprintf(stderr, "BUILDER: umbrellastate %s\n", pp->umbrellaState().utf8_str().data());
         } else {

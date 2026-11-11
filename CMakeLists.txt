@@ -4670,6 +4670,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_overlay PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
+  # Umbrella sampling (#762): window tasks from a stored pull run, WHAM and
+  # the PMF in the Pull Force panel; skipped (77) without gmx or Xvfb.
+  add_test(NAME apps_umbrella_panel
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/umbrella_panel_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_umbrella_panel PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Stepping and playing a geometry trace (GROMACS box, ORCA optimisation)
   # keeps a zoomed-in camera; skipped (77) without Xvfb.
   add_test(NAME apps_trace_camera
