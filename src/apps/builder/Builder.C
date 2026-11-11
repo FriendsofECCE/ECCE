@@ -8051,6 +8051,10 @@ bool Builder::clipCommand(SceneScript& s, const vector<string>& w, const string&
     ok = false;
   }
   if (!ok) return s.fail(c + ": bad arguments");
-  settle(400);
+  wxLongLong end = wxGetLocalTimeMillis() + 400;
+  do {
+    wxTheApp->Yield(true);
+    wxMilliSleep(2);
+  } while (wxGetLocalTimeMillis() < end);
   return true;
 }
