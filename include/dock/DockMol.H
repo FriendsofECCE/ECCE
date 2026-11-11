@@ -30,6 +30,7 @@ struct DockAtom
   bool aromatic = false;
   bool inRing = false;
   DockHybrid hybrid = DOCK_HYB_UNKNOWN;
+  bool donorOnly = false;      ///< residue says it donates but never accepts
   bool merged = false;           ///< nonpolar H folded into its heavy atom
   int serial = 0;                ///< PDBQT serial, filled by the writer
 };
@@ -93,6 +94,7 @@ class DockMol
 
     mutable std::vector< std::vector<int> > p_adj;
     mutable bool p_adjValid = false;
+    bool p_geomBonds = false;   ///< bonds came from distances, not a file
     std::vector< std::vector<int> > p_rings;
 };
 

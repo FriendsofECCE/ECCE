@@ -64,7 +64,7 @@ void DockTyper::assign(DockMol& mol)
   for (int i = 0; i < mol.numAtoms(); i++) {
     DockAtom& a = mol.atoms[i];
     if (a.z != 7) continue;
-    if (a.formalCharge > 0) { a.adType = "N"; continue; }
+    if (a.formalCharge > 0 || a.donorOnly) { a.adType = "N"; continue; }
     if (mol.connections(i) != 3 || mol.valence(i) != 3) continue;
     const std::vector<int>& nb = mol.neighbors(i);
     for (size_t k = 0; k < nb.size(); k++) {

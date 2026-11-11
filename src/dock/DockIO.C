@@ -213,6 +213,19 @@ const PolarH POLAR_H[] = {
 };
 const int NPOLAR = (int)(sizeof(POLAR_H)/sizeof(PolarH));
 
+/** Formal charges of the standard residues at pH 7. */
+struct ResCharge { const char* res; const char* atom; int q; };
+const ResCharge RES_CHARGE[] = {
+  {"LYS", "NZ",  +1}, {"ARG", "NH1", +1}, {"HIP", "ND1", +1},
+  {"ASP", "OD2", -1}, {"GLU", "OE2", -1}
+};
+/** Nitrogens a residue only ever donates from: ammonium and guanidinium. */
+const ResCharge RES_DONOR[] = {
+  {"LYS", "NZ", 1}, {"ARG", "NE", 1}, {"ARG", "NH1", 1}, {"ARG", "NH2", 1}
+};
+const int NRESD = (int)(sizeof(RES_DONOR)/sizeof(ResCharge));
+const int NRESQ = (int)(sizeof(RES_CHARGE)/sizeof(ResCharge));
+
 void norm(double v[3])
 {
   double n = sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
@@ -241,6 +254,18 @@ int DockProtonator::completePolarHydrogens(DockMol& mol)
 static int addPolarH(DockMol& mol, bool byTemplate)
 {
   int n0 = mol.numAtoms();
+  if (byTemplate)
+    for (int i = 0; i < n0; i++)
+      for (int r = 0; r < NRESQ; r++)
+        if (mol.atoms[i].resName == RES_CHARGE[r].res &&
+            mol.atoms[i].name == RES_CHARGE[r].atom)
+          mol.atoms[i].formalCharge = RES_CHARGE[r].q;
+  if (byTemplate)
+    for (int i = 0; i < n0; i++)
+      for (int r = 0; r < NRESD; r++)
+        if (mol.atoms[i].resName == RES_DONOR[r].res &&
+            mol.atoms[i].name == RES_DONOR[r].atom)
+          mol.atoms[i].donorOnly = true;
   std::vector<DockAtom> add;
   std::vector< std::pair<int,int> > addBonds;   // (heavy, index into add)
 

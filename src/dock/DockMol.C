@@ -130,6 +130,7 @@ int DockMol::valence(int i) const
 
 void DockMol::perceiveBonds()
 {
+  p_geomBonds = true;
   bonds.clear();
   p_adjValid = false;
   // O(N^2) is fine: receptors are split per chain before this is called and
@@ -314,7 +315,7 @@ void DockMol::perceive(bool withBonds)
   perceiveAromaticity();
   // Geometry-perceived bonds are all single, so the electron count can never
   // find a ring; fall back to the planarity test.
-  if (withBonds) perceiveAromaticityPlanar();
+  if (p_geomBonds) perceiveAromaticityPlanar();
 }
 
 void DockMol::perceiveAromaticityPlanar()
