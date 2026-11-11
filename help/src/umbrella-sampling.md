@@ -8,8 +8,10 @@ or between two ions. The procedure has three steps, all done in ECCE:
    rate. Its trajectory passes through every distance you want to sample.
 2. **Windows.** Frames of the pull trajectory are taken at a chosen spacing of
    the distance (0.2 nm by default). Each frame starts a window: a short
-   equilibration and a production run, with the two groups held near that
-   frame's distance by a harmonic spring.
+   equilibration and a production run, with the two groups held at the
+   window's distance (0.4, 0.6, ... nm) by a harmonic spring. The spring's
+   centre stays there for the whole window, also on a barrier, where the
+   system would rather slide into the well beside it.
 3. **WHAM.** `gmx wham` combines the windows' histograms into the PMF. ECCE
    plots the PMF and the histograms, and warns where neighbouring windows
    barely overlap.
@@ -25,8 +27,11 @@ away from another:
   its own with its own position restraints.
 - Leave room in the box along the direction of the pull. The distance GROMACS
   measures is the shortest one through the periodic box, so the pull stalls
-  at half the box length. An off-centre placement (**Solute centre (x y z)** in the Prepare) puts the
-  solute near one side so that the other side is free.
+  at half the box length. In the Prepare, give the box a **Box size (x y z)**
+  in nm, long along the pull, and a **Solute centre (x y z)** near one end
+  of it, so that the other end is free: for example a 6.6 × 4.4 × 12 nm box
+  with the solute centred at z = 2.4 nm. The editor warns when the solute
+  reaches outside the box.
 - Define a group for each chain under **Groups by residue name** on the run
   settings page: `Chain_A = mol:Protein_chain_A`,
   `Chain_B = mol:Protein_chain_B`.
@@ -50,7 +55,9 @@ editor. On the run settings page:
 
 When the run is complete, its **Properties** list has **Pull Force**: the
 pull force and the centre-of-mass distance against time, with **Export
-.csv...**.
+.csv...**. **RMSD...** and **Radius of gyration...** open **MD Analysis** on
+the same run, to check whether a chain unfolded or stayed compact while it
+was pulled (the run needs a stored trajectory).
 
 ## 2. The windows
 
@@ -99,11 +106,15 @@ Leave it unticked to get the numbers `gmx wham` alone gives.
 ## An example: a sodium chloride ion pair
 
 The test system of this procedure is Na⁺ and Cl⁻ in a 3.2 nm box of TIP3P
-water (AMBER99SB-ILDN ions), pulled at 0.01 nm/ps from contact to 1.3 nm,
-with windows every 0.05 nm and k = 4000 kJ/mol/nm². The PMF shows the
-contact ion pair near 0.28 nm, a barrier near 0.36 nm and the
-solvent-separated pair near 0.50 nm, the shape known from simulations of
-NaCl in water.
+water (AMBER99SB-ILDN ions), held at contact during the NPT equilibration and
+pulled at 0.01 nm/ps from contact to 1.3 nm. Windows every 0.04 nm from 0.24
+to 1.2 nm (24 windows, k = 6000 kJ/mol/nm², 5 ps equilibration and 100 ps
+production each) overlap their neighbours everywhere. With the 2RT ln r term
+removed and the PMF zero at large distance, it shows the contact ion pair at
+0.27 nm (about −7 kJ/mol), the barrier at 0.37 nm (about +8 kJ/mol) and the
+solvent-separated pair at 0.52 nm (about 0 kJ/mol): the positions known from
+simulations of NaCl in water. Windows of 100 ps leave the curve noisy by about
+1 kJ/mol.
 
 ## Command line
 

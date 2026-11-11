@@ -327,7 +327,7 @@ bool PullPanel::umbrellaWham(bool jacobian)
     text += wxString::Format("\nmaximum %.3f nm  %.2f kJ/mol",
                              numOf(m.get("distance")), numOf(m.get("pmf")));
   if (!j.get("depth").isNull())
-    text += "\ndepth " + U8(j.get("depth").str()) + " kJ/mol";
+    text += wxString::Format("\nhighest - lowest: %.2f kJ/mol", numOf(j.get("depth")));
   for (const MiniJson& m : j.get("warnings").items()) text += "\n" + U8(m.str());
   umbrellaSay(text);
   return true;
