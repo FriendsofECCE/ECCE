@@ -105,6 +105,7 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     std::vector<Member> p_members;   // as shown (sorted by the user's column)
     std::string p_deName;            // energy column header
     bool p_hasPatterns;
+    bool p_isSites = false;         // MLP site screen: eV, environment column
     bool p_inSelect;
     int p_selRank;
     int p_sortCol;

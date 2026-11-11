@@ -335,7 +335,12 @@ vector<Resource*> WorkflowSteps::createRanks(Session *wf, ResourceType *rt,
       return made;
     }
     char note[200];
-    if (ScanPoint::ensembleIsPoses(task))
+    if (ScanPoint::ensembleIsSites(task))
+      snprintf(note, sizeof note,
+               "Site %d of %d from %s, E - E(host) %.3f eV (MLP only).",
+               k, size, source->getName().c_str(),
+               ScanPoint::conformerEnergy(task, k));
+    else if (ScanPoint::ensembleIsPoses(task))
       snprintf(note, sizeof note,
                "Pose %d of %d from %s, score %.3f kcal/mol "
                "(within this docking run only).",

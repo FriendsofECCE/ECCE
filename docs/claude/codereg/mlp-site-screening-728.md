@@ -35,3 +35,27 @@ issues: [728]
 - References used by tests/mlp/sites_test.py are International Tables
   Vol. A: rock salt 8c and fluorite 4b (Fm-3m), rutile 4d (P4_2/mnm), and the fcc pair shells of a
   2x2x2 supercell (192/48/192/48/16 = C(32,2)).
+- **One code path for GUI and CLI**: `SiteScreen` (src/dsm/edsiimpl,
+  include/dsm) runs ecce-sites and Series::make; `ecce-site-screen make|results`
+  and the Organizer ("New from This" > Screen Sites with MLP..., Site Screening
+  Results; hooks `sitescreen`, `sitescreenresults`) both call it. Calcs are
+  named host and site-NN because Series names them after the xyz files.
+- **The site description is the calculation's Annotation** (`screen=...
+  site=N weight=W cn=C env="..."`): arbitrary resource properties are not
+  read back by getProp, the Annotation survives Resource::copy and is
+  readable without wx. A user editing the Annotation loses that site's
+  description.
+- **Results are an ensemble calculation "<folder> results"**: a copy of the
+  best finished site with its Props removed and GEOMTRACE (final structures,
+  sorted), SITEDE (eV) and SITEENV written through
+  `EDSIFactory::getVdoc(url)->addProperty(name, istream*)`, as JobStore does
+  (`PropertyTask::putProperty` is a no-op). ScanPoint::ensembleKeys accepts
+  SITEDE as a third score next to CONFREL/POSESCORE, so the Sites panel is
+  EnsemblePropertyPanel: superposition, Export and #708 New calculation from
+  selected unchanged. The host (different atom count) is not in the
+  ensemble, only in the CLI/JSON rows; members whose atom count differs from
+  the first site are dropped. SITEENV values use `_` for spaces because the
+  property parser splits on whitespace.
+- **MLP had never been through Series**: JCode::theoryNeedsBasis and
+  DeckWriter's writeGbs crashed on an MLP calculation stored without a
+  theory list/theory; both now guard the null.

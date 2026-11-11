@@ -29,6 +29,8 @@ namespace ScanPoint {
 
   /// True if the ensemble is a docking pose ensemble (POSESCORE), not CREST's.
   bool ensembleIsPoses(PropertyTask *calc);
+  // SITEDE: one member per MLP-screened site, energy relative to the host in eV.
+  bool ensembleIsSites(PropertyTask *calc);
 
   /// Relative energy or score (kcal/mol) of the member of rank `rank`, 0 if none.
   double conformerEnergy(PropertyTask *calc, int rank);

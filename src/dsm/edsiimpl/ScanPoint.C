@@ -52,8 +52,8 @@ Keys ensembleKeys(PropertyTask *task)
   IPropCalculation *calc = task;
   if (!calc) return k;
   PropTSVecTable *g = dynamic_cast<PropTSVecTable*>(calc->getProperty("GEOMTRACE"));
-  static const char *score[] = {"CONFREL", "POSESCORE"};
-  for (int i = 0; i < 2 && !k.geom; i++) {
+  static const char *score[] = {"CONFREL", "POSESCORE", "SITEDE"};
+  for (int i = 0; i < 3 && !k.geom; i++) {
     PropVector *e = dynamic_cast<PropVector*>(calc->getProperty(score[i]));
     if (e && g && !e->values().empty() && g->tables() == e->values().size()) {
       k.energy = e;
@@ -96,6 +96,14 @@ bool ScanPoint::ensembleIsPoses(PropertyTask *calc)
 {
   IPropCalculation *c = calc;
   return c && !c->getProperty("CONFREL") && c->getProperty("POSESCORE");
+}
+
+
+bool ScanPoint::ensembleIsSites(PropertyTask *calc)
+{
+  IPropCalculation *c = calc;
+  return c && !c->getProperty("CONFREL") && !c->getProperty("POSESCORE") &&
+         c->getProperty("SITEDE");
 }
 
 

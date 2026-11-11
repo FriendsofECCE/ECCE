@@ -229,9 +229,27 @@ static int doCreate(const vector<string>& a)
       }
     } else if (k == "xyz" || k == "mvm") {
       ifstream fin(v.c_str());
+      LatticeDef *latticeToSet = 0;
       Fragment frag;
       PropertyTask* pt = dynamic_cast<PropertyTask*>(task);
+      if (fin && k == "xyz") {
+        //  An extended xyz with Lattice="9 numbers" makes the structure periodic.
+        ifstream again(v.c_str());
+        string l1, l2;
+        getline(again, l1);
+        getline(again, l2);
+        string::size_type p = l2.find("Lattice=\"");
+        double m[9];
+        if (p != string::npos &&
+            sscanf(l2.c_str() + p + 9, "%lf %lf %lf %lf %lf %lf %lf %lf %lf", m, m + 1, m + 2,
+                   m + 3, m + 4, m + 5, m + 6, m + 7, m + 8) == 9) {
+          LatticeDef *cell = new LatticeDef(1, 1, 1, 90, 90, 90);
+          cell->assign(MPoint(m[0], m[1], m[2]), MPoint(m[3], m[4], m[5]), MPoint(m[6], m[7], m[8]));
+          latticeToSet = cell;
+        }
+      }
       if (!fin || !(k == "mvm" ? frag.restoreMVM(fin) : frag.restoreXYZ(fin)) ||
+          (latticeToSet && (frag.setLattice(latticeToSet), false)) ||
           !pt || !pt->fragment(&frag)) {
         cerr << "could not store the structure " << v << endl;
         return 1;

@@ -12,6 +12,7 @@
 #include "tdat/Fragment.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
+#include "tdat/LatticeDef.H"
 #include "tdat/SpinMult.H"
 #include "tdat/TAtm.H"
 #include "tdat/TTheory.H"
@@ -68,6 +69,19 @@ Fragment *readXyz(const string& path, int defCharge, int& charge, int& mult,
   word(line, "charge", charge);
   word(line, "mult", mult);
   Fragment *frag = new Fragment;
+  //  Extended xyz: a Lattice="..." entry (three row vectors) makes the
+  //  structure periodic, as ecce-sites writes it for a site screen (#728).
+  string::size_type lat = line.find("Lattice=\"");
+  if (lat != string::npos) {
+    std::istringstream vs(line.substr(lat + 9, line.find('"', lat + 9) - lat - 9));
+    double v[9];
+    int got = 0;
+    while (got < 9 && vs >> v[got]) got++;
+    if (got != 9) { why = "Lattice= needs 9 numbers"; delete frag; return 0; }
+    LatticeDef *cell = new LatticeDef(1, 1, 1, 90, 90, 90);
+    cell->assign(MPoint(v[0], v[1], v[2]), MPoint(v[3], v[4], v[5]), MPoint(v[6], v[7], v[8]));
+    frag->setLattice(cell);
+  }
   for (int i = 0; i < n; i++) {
     string sym;
     double xyz[3];

@@ -150,7 +150,8 @@ bool writeGbs(ICalculation *calc, const string& file, bool useExpCoeff,
   bool status = false;
   fileFlag = ecp = spherical = false;
   const JCode *code = calc->application();
-  if (code->theoryNeedsBasis(*(calc->theory()))) {
+  // A calculation stored without a theory (a script-made MLP one) has no basis set.
+  if (calc->theory() && code->theoryNeedsBasis(*(calc->theory()))) {
     TGBSConfig *const cfg = calc->gbsConfig();
     if (cfg) {
       // dump() returns null when the translator fails.
