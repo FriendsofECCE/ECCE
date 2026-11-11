@@ -167,7 +167,7 @@ def _fmt(v):
     if v is None:
         return ""
     if isinstance(v, float):
-        return repr(round(v, 8)) if v == v else ""
+        return repr(float(round(v, 8))) if v == v else ""
     return str(v)
 
 
