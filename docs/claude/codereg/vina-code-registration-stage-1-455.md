@@ -1,9 +1,9 @@
 ---
 type: map
-title: "AutoDock Vina is registered like CREST on the shared docking layer; the deck carries the structure because only the input file reaches the run directory (#455)"
+title: "AutoDock Vina is registered like CREST on the shared docking layer; the structure is the auxiliary input vina.vinafrag (#455)"
 area: codereg
 section: "Getting a calculation set up (the \"code registration\" system)"
-paths: ["data/client/cap/Vina.edml", "scripts/parsers/ai.vina", "scripts/parsers/vina.desc", "scripts/gensub", "scripts/codereg/vinaruntype.py", "scripts/codereg/vinatheory.py", "scripts/parsers/verifyinput", "src/apps/builder/EnsemblePropertyPanel.C", "tests/launch/vina_test.py"]
+paths: ["data/client/cap/Vina.edml", "scripts/parsers/ai.vina", "scripts/parsers/vina.desc", "scripts/gensub", "scripts/codereg/vinaruntype.py", "scripts/codereg/vinatheory.py", "scripts/parsers/verifyinput", "data/client/config/mimetypes", "src/comm/commxt/Launch.C", "src/apps/builder/EnsemblePropertyPanel.C", "tests/launch/vina_test.py"]
 issues: [455]
 ---
 Application type `Vina` (resource `vina_es`, CONFIG key `vina`, gensub sub
@@ -11,12 +11,19 @@ Application type `Vina` (resource `vina_es`, CONFIG key `vina`, gensub sub
 semi-empirical group of the code bar; no basis). Not bundled: the program is
 registered per machine like any other.
 
-- **The deck is Vina's config plus `#|` lines.** `DeckWriter` stores only the
-  primary input file (`vina.vinain`); a second file written by `ai.vina`
-  never reaches the run directory. So `ai.vina` appends the `.frag` verbatim
-  and the atom lists as `#| ...` comment lines (Vina's config reader skips
-  `#` lines), and gensub turns them back into `vina.frag`/`vina.ecceprep`
-  before running `ecce-pdbqt`.
+- **The structure is an auxiliary input, not part of the config.** `ai.vina`
+  writes the `.frag` verbatim to `vina.vinafrag`; Vina.edml declares it as
+  `<Input type="auxiliary" mimetype="chemical/x-vina-structure">`, so
+  DeckWriter stores it beside the deck (its `*<aux name>` file match) and
+  Launch copies it to the run directory (`auxInputUrls`). The MIME type is
+  found from the extension, so `.vinafrag` is in `data/client/config/mimetypes`.
+  The config keeps `#| LIGAND_ATOMS=`, `#| RECEPTOR_ATOMS=` (as ranges,
+  `1-2229`) and `#| FLEXIBLE_AMIDES=` (Vina skips `#` lines). gensub copies
+  `vina.vinafrag` to `vina.frag`, falls back to a `#| BEGIN-FRAG` block for a
+  deck stored before this, and expands the ligand ranges for the frame awk.
+  Until 2026-11 the whole structure rode in the config as `#|` lines; a
+  protein's receptor list was then a 10 kB line, which Launch's old 255-byte
+  line copy cut off (`launch-copies-stored-files-line-by-line.md`).
 - **Split is `docking.pl`**, as for xtb: `ES.Runtype.Docking.LigandAtoms` and
   `LigandCharge`. The box (`BoxAuto`, default on) is computed in `ai.vina`
   from the ligand atoms: bounding box + 5 A each side, at least 16 A.
@@ -40,8 +47,9 @@ registered per machine like any other.
 - **No normal-termination line.** Vina 1.2.7 prints none at the default
   verbosity; gensub requires the word `affinity` (the result table header),
   and a failed run exits non-zero anyway.
-- **verifyinput** skips its geometry check for Vina (the atoms are in `#|`
-  lines) and judges the config keys and a positive box instead.
+- **verifyinput** skips its geometry check for Vina (it sees only the
+  config) and judges the config keys, a positive box and the two
+  `#| ..._ATOMS=` lines instead.
 - The viewer's box-picking tool does not exist yet; the box is typed or
   automatic.
 - Test: `tests/launch/vina_test.py` (deck checks always; the run needs vina and

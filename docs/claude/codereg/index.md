@@ -219,7 +219,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [NWChem eprint MO coefficients have 3 decimals; results.h5 reads nwchem.movecs](nwchem-eprint-coefficients-have-three-decimals.md) — why NWChem orbitals failed tr(PS) (#944) and when the movecs is used
 - [ORCA's built-in cc-pVXZ is segmented, ECCE stores the general contraction](orca-library-basis-is-segmented-not-eccees-general-contraction.md) — why ORCA cc-pVXZ results.h5 fail their check (#942)
 - [The ML potential code (MLP): Python as the program, runner inlined by gensub, VERSION in .ecce-meta (#728)](ml-potential-code-registration-stage-1-728.md)
-- [AutoDock Vina: registered like CREST on the docking layer; the deck carries the structure as #| lines because only the input file reaches the run directory (#455)](vina-code-registration-stage-1-455.md)
+- [AutoDock Vina: registered like CREST on the docking layer; the structure is the auxiliary input vina.vinafrag, the atom lists are ranges in the config (#455)](vina-code-registration-stage-1-455.md)
 - [xTB "Conformer search (simple)": ecce-confsearch inlined by gensub, ensemble in CREST frame format (#682)](xtb-simple-conformer-search-682.md)
 - [A code's spherical MOOrdering stops below the basis's highest shell: empty functions, every orbital view refuses (ORCA g, #861)](angular-table-below-the-basis-highest-shell-861.md)
 - [Gaussian re-contracts general contractions that share primitives: fort.7 is in its basis, not the one ECCE wrote (#863)](gaussian-recontracts-shared-primitive-contractions-863.md)

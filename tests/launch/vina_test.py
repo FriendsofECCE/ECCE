@@ -95,6 +95,8 @@ def deck(atoms=ATOMS, extra=""):
             ["perl", os.path.join(REPO, "scripts", "parsers", "ai.vina"),
              "-p", "-f", "-n", "x", "-t", "vina.vinain"],
             cwd=tmp, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        frag = os.path.join(tmp, "vina.vinafrag")
+        deck.structure = open(frag).read() if os.path.exists(frag) else ""
         return open(os.path.join(tmp, "vina.vinain")).read(), res.returncode
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -143,10 +145,12 @@ def deckChecks():
               for k in range(3)), "box size is the ligand plus a margin, at least 16: %r" % size)
     check((cfg.get("exhaustiveness"), cfg.get("num_modes"), cfg.get("energy_range"))
           == ("8", "9", "3") and "seed" not in cfg, "defaults: %r" % cfg)
-    check("#| LIGAND_ATOMS=%s" % ",".join(str(i) for i in range(NREC + 1, N + 1))
-          in text, "ligand atoms are the last nine")
-    check("#| RECEPTOR_ATOMS=1,2,3" in text and "#| BEGIN-FRAG" in text and
-          text.count("#| ") > N, "receptor atoms and the structure are in the deck")
+    check("#| LIGAND_ATOMS=%d-%d\n" % (NREC + 1, N) in text,
+          "ligand atoms are the last nine, as a range")
+    check("#| RECEPTOR_ATOMS=1-%d\n" % NREC in text and "BEGIN-FRAG" not in text,
+          "receptor atoms are a range and the structure is not in the deck")
+    check(deck.structure.count("\n") >= N + 6 and "num_atoms:\t%d" % N in deck.structure,
+          "the structure is the auxiliary input vina.vinafrag")
 
     text, rc = deck(extra=(
         "ES.Runtype.Docking.LigandAtoms:\t43-51\n"
@@ -212,13 +216,16 @@ def main():
         name = "v-%d" % int(time.time())
         path = os.path.join(work, name + ".vinain")
         open(path, "w").write(text)
+        structure = os.path.join(work, "vina.vinafrag")
+        open(structure, "w").write(deck.structure)
         xyz = os.path.join(work, name + ".xyz")
         with open(xyz, "w") as h:
             h.write("%d\n%s\n" % (N, name))
             for a in ATOMS:
                 h.write("%s %.6f %.6f %.6f\n" % a)
         url, out = s.create(name, "vina_es", path, "vina.vinain", rundir,
-                            extra=("procs=2", "code=Vina", "xyz=" + xyz))
+                            extra=("procs=2", "code=Vina", "xyz=" + xyz,
+                                   "input=" + structure))
         if not check(url is not None, "calculation created"):
             say(out)
             return 1

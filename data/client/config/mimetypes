@@ -79,6 +79,7 @@ chemical/x-crest-input                   .crestin
 chemical/x-crest-output                  .crestout
 chemical/x-vina-input                    .vinain
 chemical/x-vina-output                   .vinaout
+chemical/x-vina-structure                .vinafrag
 chemical/x-mlp-input                     .mlpin
 chemical/x-mlp-output                    .mlpout
 application/x-compress                   .Z

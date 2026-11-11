@@ -8,9 +8,10 @@
    group of the code bar).  The receptor/ligand split is the shared docking
    layer's (ES.Runtype.Docking.*, docking.pl).
 
-   The deck is Vina's configuration with the structure as "#|" comment lines:
-   only the input file reaches the run directory, and scripts/gensub makes the
-   PDBQT files from it.  The name must be .vinain for the Apache MIME mapping.
+   The deck is Vina's configuration with the receptor and ligand atom ranges
+   as "#|" comment lines; the structure is the auxiliary input vina.vinafrag.
+   scripts/gensub makes the PDBQT files from both.  The extensions must match
+   data/client/config/mimetypes, which is how a stored file finds its type.
    The poses are appended to the output between ECCE-DOCK-FRAME markers and
    read by vina.desc as GEOMTRACE and POSESCORE.
 -->
@@ -37,6 +38,7 @@
 
 <DataFiles>
   <Input  type="primary" mimetype="chemical/x-vina-input" comment="false">vina.vinain</Input>
+  <Input  type="auxiliary" mimetype="chemical/x-vina-structure">vina.vinafrag</Input>
   <Output type="primary" mimetype="chemical/x-vina-output">vina.vinaout</Output>
   <Output type="parse" verifypattern="AutoDock Vina" mimetype="chemical/x-vina-output">vina.vinaout</Output>
 </DataFiles>

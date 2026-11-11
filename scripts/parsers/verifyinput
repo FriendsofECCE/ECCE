@@ -2222,8 +2222,8 @@ sub ecceqm
 #  Vina
 #
 #  Vina's configuration file: receptor, ligand, the search box and the
-#  search settings, plus "#|" lines that carry the structure (read by
-#  gensub).  Only the keys are judged; the PDBQT files do not exist yet.
+#  search settings, plus "#|" lines with the receptor and ligand atoms
+#  (read by gensub; the structure is the auxiliary input vina.vinafrag).  Only the keys are judged; the PDBQT files do not exist yet.
 #  ====================================================================
 sub vina
 {
@@ -2250,9 +2250,12 @@ sub vina
     finding("GOOD", 1, "options",
             "Receptor, ligand and the search box are given.");
   }
-  finding("BAD", 1, "structure", "The deck carries no structure for the " .
-          "PDBQT preparation (no \"#| BEGIN-FRAG\" block).")
-      unless (grep { /^#\| BEGIN-FRAG/ } @stripped);
+  #  The structure itself is the auxiliary input vina.vinafrag.
+  foreach my $part ("LIGAND", "RECEPTOR") {
+    finding("BAD", 1, "structure", "The deck names no " . lc($part) .
+            " atoms for the PDBQT preparation (no \"#| ${part}_ATOMS=\" line).")
+        unless (grep { /^#\| ${part}_ATOMS=\d/ } @stripped);
+  }
 }
 
 

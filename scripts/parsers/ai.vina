@@ -7,11 +7,11 @@
 # PURPOSE:
 #       Take the ECCE dictionary (.param) and fragment (.frag) and produce the
 #       AutoDock Vina configuration (vina.vinain).  The receptor and ligand
-#       are the two atom lists of docking.pl.  The PDBQT files cannot be made
-#       here: only the input file travels to the run directory, so the deck
-#       also carries the structure (the .frag, verbatim) and the two atom
-#       lists as "#|" comment lines, which Vina's config reader ignores and
-#       scripts/gensub turns back into files before running ecce-pdbqt.
+#       are the two atom lists of docking.pl.  The PDBQT files are made in
+#       the run directory by scripts/gensub: the structure goes there as the
+#       auxiliary input vina.vinafrag (the .frag, verbatim), and the two atom
+#       lists ride in the config as "#|" comment lines of ranges, which
+#       Vina's config reader ignores.
 ################################################################################
 
 use Getopt::Std;
@@ -251,16 +251,33 @@ sub VinaDeck {
   $title =~ s/^\s+|\s+$//g;
   # Read by gensub; Vina ignores comment lines.
   push(@out, "#| ECCE-PREP " . ($title eq "" ? "ECCE Vina calculation" : $title));
-  push(@out, "#| LIGAND_ATOMS=" . join(",", map { $_ + 1 } @$lig));
-  push(@out, "#| RECEPTOR_ATOMS=" . join(",", map { $_ + 1 } @$rec));
+  push(@out, "#| LIGAND_ATOMS=" . &ranges($lig));
+  push(@out, "#| RECEPTOR_ATOMS=" . &ranges($rec));
   push(@out, "#| FLEXIBLE_AMIDES=" . (&flag("ES.Runtype.Vina.FlexibleAmides", 0) ? 1 : 0));
-  push(@out, "#| BEGIN-FRAG");
+  # DeckWriter stores it beside the deck as the code's auxiliary input
+  # (Vina.edml) and Launch puts it in the run directory.
   open(FRAGCOPY, $FragFILE) || die "ai.vina error: Couldn't open $FragFILE\n";
-  while (<FRAGCOPY>) { chomp; push(@out, "#| $_"); }
+  open(STRUCT, ">vina.vinafrag") || die "ai.vina error: Couldn't write vina.vinafrag\n";
+  print STRUCT while (<FRAGCOPY>);
+  close(STRUCT);
   close(FRAGCOPY);
-  push(@out, "#| END-FRAG");
   $_ = join("\n", @out);
   return $_;
+}
+
+# 0-based atom indices as a 1-based list of ranges, "1-2229,2240": a protein
+# receptor as single numbers is a 10 kB line.
+sub ranges {
+  my ($atoms) = @_;
+  my @n = sort { $a <=> $b } map { $_ + 1 } @$atoms;
+  my @out;
+  while (@n) {
+    my $lo = shift(@n);
+    my $hi = $lo;
+    $hi = shift(@n) while (@n && $n[0] == $hi + 1);
+    push(@out, $lo == $hi ? "$lo" : "$lo-$hi");
+  }
+  return join(",", @out);
 }
 
 # The box: given, or (BoxAuto, the default) the ligand atoms' bounding box plus

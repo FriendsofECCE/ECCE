@@ -219,6 +219,14 @@ static int doCreate(const vector<string>& a)
         cerr << "could not store the code " << v << endl;
         return 1;
       }
+    } else if (k == "input") {
+      // A further input stored under its own file name (an auxiliary input).
+      ifstream fin(v.c_str(), std::ios::binary);
+      const string base = v.substr(v.find_last_of('/') + 1);
+      if (!fin || !task->putInputFile(base, &fin)) {
+        cerr << "could not store the input " << v << endl;
+        return 1;
+      }
     } else if (k == "gui") {
       ifstream fin(v.c_str());
       GUIValues values;

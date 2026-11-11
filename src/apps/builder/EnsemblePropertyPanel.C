@@ -861,14 +861,34 @@ bool EnsemblePropertyPanel::makeThumbnail(int rank)
   }
   cam->orientation = p_thumbOrientation;
   root->addChild(cam);
-  root->addChild(molecule(g, g.xyz));
+  // In the pocket view a pose's thumbnail is its ligand: the whole receptor
+  // fills a 72 px image with the same grey ball for every pose.
+  Geometry ligandOnly;
+  const Geometry *shown = &g;
+  const int n = (int)g.elements.size();
+  const vector<int> lig = (p_pocket && kind() == "Poses") ? ligandAtoms() : vector<int>();
+  if (!lig.empty() && (int)lig.size() < n) {
+    vector<char> keep(n, 0);
+    for (int i : lig) if (i >= 0 && i < n) keep[i] = 1;
+    ligandOnly = g;
+    for (int i = 0; i < n; i++) if (!keep[i]) ligandOnly.elements[i] = 0;
+    ligandOnly.bonds.clear();
+    for (const auto& b : g.bonds)
+      if (b.first >= 0 && b.first < n && b.second >= 0 && b.second < n &&
+          keep[b.first] && keep[b.second])
+        ligandOnly.bonds.push_back(b);
+    shown = &ligandOnly;
+  }
+  root->addChild(molecule(*shown, g.xyz));
   SbViewportRegion vp;
   vp.setWindowSize(SbVec2s(thumbWidth, thumbHeight));
   cam->viewAll(root, vp, 1.1f);
   // Reuse the context, as the existing calculation thumbnail renderer does.
   static SoOffscreenRenderer *renderer = new SoOffscreenRenderer(vp);
   renderer->setComponents(SoOffscreenRenderer::RGB);
-  renderer->setBackgroundColor(getFW().getViewer().getBackgroundColor());
+  const SbColor& bg = getFW().getViewer().getBackgroundColor();
+  renderer->setBackgroundColor(bg);
+  for (int k = 0; k < 3; k++) p_thumbBg[k] = bg[k];
   const bool ok = renderer->render(root) && renderer->getBuffer();
   if (ok) {
     wxImage image(thumbWidth, thumbHeight);
@@ -887,15 +907,28 @@ bool EnsemblePropertyPanel::makeThumbnail(int rank)
   return ok;
 }
 
+// The timer keeps running slowly once all are made: the thumbnails are drawn
+// on the viewer's background, and a later change of it would leave them on
+// the old one (black thumbnails on a white viewer).
 void EnsemblePropertyPanel::thumbnailBatch()
 {
+  if (!p_thumbnails.empty()) {
+    const SbColor& bg = getFW().getViewer().getBackgroundColor();
+    if (bg[0] != p_thumbBg[0] || bg[1] != p_thumbBg[1] || bg[2] != p_thumbBg[2]) {
+      p_thumbnails.clear();
+      p_imageIndex.clear();
+      p_images->RemoveAll();
+      for (long row = 0; row < p_table->GetItemCount(); row++)
+        p_table->SetItemImage(row, -1);
+    }
+  }
   int made = 0;
   for (const Member& m : p_members) {
     if (p_thumbnails.count(m.rank)) continue;
     if (!makeThumbnail(m.rank)) { p_thumbTimer.Stop(); return; }
-    if (++made == 2) return;
+    if (++made == 2) { p_thumbTimer.Start(20); return; }
   }
-  p_thumbTimer.Stop();
+  p_thumbTimer.Start(500);
 }
 
 vector<int> EnsemblePropertyPanel::thumbnailRanks() const
@@ -1004,6 +1037,7 @@ vector<int> EnsemblePropertyPanel::ligandAtoms()
 
 void EnsemblePropertyPanel::setPocketView(bool on)
 {
+  p_thumbBg[0] = -1.f;   // redraw the thumbnails: ligand only, or whole
   p_pocket = on;
   if (!on) {
     SGContainer& sg = getFW().getSceneGraph();

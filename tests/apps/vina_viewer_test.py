@@ -169,16 +169,25 @@ def main():
                         proc.wait(timeout=20)
                     except (OSError, subprocess.TimeoutExpired):
                         pass
-        deck = ""
-        for root, _dirs, files in os.walk(s.localData()):
-            if "vina.vinain" in files and name in root:
-                deck = open(os.path.join(root, "vina.vinain"), errors="replace").read()
+        def stored(fname):
+            for root, _dirs, files in os.walk(s.localData()):
+                if fname in files and name in root:
+                    return open(os.path.join(root, fname), errors="replace").read()
+            return ""
+        deck = stored("vina.vinain")
         check("center_x" in deck and "ligand" in deck,
               "the editor's Save wrote a real Vina config")
-        check("#|" in deck, "the structure travels with the deck")
+        check(re.search(r"^#\| RECEPTOR_ATOMS=1-\d+", deck, re.M) is not None and
+              "#| LIGAND_ATOMS=%s\n" % ligand in deck,
+              "receptor and ligand atoms are ranges in the deck")
+        structure = stored("vina.vinafrag")
+        check(re.search(r"^num_atoms:\s+%d$" % last, structure, re.M) is not None and
+              structure.count("\n") > last, "the structure is stored as vina.vinafrag")
 
         rc, out = s.launch(url)
         check(rc == 0, "Launch ran to the end")
+        # Launch copies the deck to its cache and stores that copy back.
+        check(stored("vina.vinain") == deck, "Launch stored the deck back unchanged")
         state = s.waitState(url, seconds=2400)
         if not check(state == "completed", "reached completed (last: %s)" % state):
             say(s.driver("reason", url)[1])

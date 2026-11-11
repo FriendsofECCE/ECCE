@@ -2463,9 +2463,12 @@ sub vina()
   $retval .= &pathVar("pdbqt", "$::ecceHome/bin/ecce-pdbqt", "ECCE_PDBQT");
   $retval .= "echo \"Using vina path: \$vina, ecce-pdbqt path: \$pdbqt\" >> $::logfile\n";
 
-  $retval .= "\n$::CC - The structure and the atom lists the deck carries as #| lines.\n";
+  $retval .= "\n$::CC - The structure (auxiliary input vina.vinafrag; a deck made before it\n";
+  $retval .= "$::CC - existed carries it between #| BEGIN-FRAG/END-FRAG) and the atom lists.\n";
   $retval .= "rm -f vina.frag vina.ecceprep receptor.pdbqt ligand.pdbqt ligand.map poses.pdbqt vina.prep.log\n";
+  $retval .= "if [ -s vina.vinafrag ]; then cp vina.vinafrag vina.frag; else\n";
   $retval .= "awk '/^#\\| END-FRAG/ {f=0} f {sub(/^#\\| ?/, \"\"); print} /^#\\| BEGIN-FRAG/ {f=1}' $::inFile > vina.frag\n";
+  $retval .= "fi\n";
   $retval .= "awk '/^#\\| (LIGAND_ATOMS|RECEPTOR_ATOMS|FLEXIBLE_AMIDES)=/ {sub(/^#\\| /, \"\"); print}' $::inFile > vina.ecceprep\n";
   $retval .= "LIGAND_ATOMS=`sed -n 's/^LIGAND_ATOMS=//p' vina.ecceprep`\n";
   $retval .= "RECEPTOR_ATOMS=`sed -n 's/^RECEPTOR_ATOMS=//p' vina.ecceprep`\n";
@@ -2576,7 +2579,7 @@ function frameOf(X, Y, Z, p, a, b,   ax, ay, az, bx, by, bz, t) {
 function dist(i, j) { return sqrt((x0[i]-x0[j])^2 + (y0[i]-y0[j])^2 + (z0[i]-z0[j])^2) }
 AWKEOF
   $retval .= "ECCE_VINA_AWK_EOF\n";
-  $retval .= "echo \"\$LIGAND_ATOMS\" | tr ',' '\\n' > vina.ligatoms\n";
+  $retval .= "echo \"\$LIGAND_ATOMS\" | tr ',' '\\n' | awk -F- 'NF == 2 { for (i = \$1; i <= \$2; i++) print i; next } { print }' > vina.ligatoms\n";
   $retval .= "awk -v ligfile=vina.ligatoms -f vina-frames.awk vina.frag ligand.map poses.pdbqt >> $::outFile\n";
   $retval .= "fi\n";
   $retval .= "(exit \$vinaStatus)\n";

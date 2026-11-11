@@ -73,3 +73,13 @@ monolithic package); `/usr/bin/vina` is found by `CodePrograms::findOnPath`
 at first-start registration, as for the other codes. Windows and macOS have
 no Vina package: see the bundling note in
 `pdbqt-preparation-455.md`.
+
+**Thumbnails.** In the pocket view a pose's thumbnail is its ligand only
+(the whole receptor gave every pose the same grey ball). They are drawn on
+the viewer's background; `thumbnailBatch` keeps its timer running at 500 ms
+and redraws them when the background changes or the pocket view is toggled,
+because a script or user setting the background after the panel opened left
+black thumbnails on a white viewer. The pocket view does not zoom the camera:
+`viewAll()` after hiding the receptor still framed the whole system (hidden
+atoms count), so the 3-D view stays small in a 72 px-thumbnail-sized pocket
+until the user zooms.

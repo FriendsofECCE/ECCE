@@ -140,6 +140,7 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     wxTimer p_thumbTimer, p_selectTimer;
     SbRotation p_thumbOrientation;
     bool p_haveOrientation = false;
+    float p_thumbBg[3] = {-1.f, -1.f, -1.f};   // viewer background of the thumbnails
     bool p_overlay = false;
     bool p_updatingSelection = false;
     int p_savedCS = 0;
