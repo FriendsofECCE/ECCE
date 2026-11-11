@@ -11,9 +11,15 @@ issues: [410]
   (`Chain_A = mol:Protein_chain_A`). A reference chain held in place is the
   existing Restrain positions with `POSRES_A`.
 - grompp 2025.2 refuses a group larger than a quarter of the box without a
-  hand-picked `pull-group1-pbcatom`. ECCE writes
-  `pull-pbc-ref-prev-step-com = yes` instead (no atom number to choose;
-  cosine weighting is no use, it allows one pull dimension only).
+  `pull-groupN-pbcatom`, even with `pull-pbc-ref-prev-step-com = yes` (a
+  2BEG strand in a 1.5 nm-margin box). `gromacs.mkndx`, which already has the
+  groups and the staged conf.gro at launch, appends the atom nearest each
+  pull group's centre to the staged .mdp unless the user gave one. A
+  user-attached .ndx skips mkndx, so then the pbc atom is the user's job.
+- `gromacs.mkndx` counts `[ atoms ]` only in the `#ifdef` branch grompp
+  reads (defines from the .mdp `define` line and `#define`): GROMOS
+  `spc.itp` lists SOL twice (HEAVY_H), which made every chain group fail with
+  "the topology's molecules hold N atoms" on gromos53a6 + SPC.
 - With `geometry = distance` the distance is a minimum-image one: a pull that
   starts at d and runs at rate r for t ps stalls at half the shortest box
   vector, with the force still rising. Leave room in the box.
