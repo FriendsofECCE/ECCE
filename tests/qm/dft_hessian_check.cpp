@@ -1,10 +1,11 @@
-// Analytic closed-shell Hessian and dipole derivatives against central finite
+// Analytic Hessian and dipole derivatives against central finite
 // differences of the analytic gradient and dipole, for any method ecce-qm
 // accepts.  Not a ctest (too slow for the full table); qm_unit covers a small
 // case.  Usage:
 //   qm_dft_hessian_check BASISDIR METHOD BASIS MOLECULE NRAD NANG [STEP] [PRUNE]
-// MOLECULE: h2o nh3 c2h4 ch2o benzene.  With STEP = 0 only the analytic run is
-// timed.  Prints max |dH|, max |d freq|, max |d dmu| and |d IR| and timings.
+// MOLECULE: h2o nh3 c2h4 ch2o benzene (closed shell); oh ch3 nh2 h2o+ phenyl
+// (doublets) and o2 (triplet), which take the unrestricted reference; METHOD
+// uhf means hf unrestricted.  With STEP = 0 only the analytic run is timed.  Prints max |dH|, max |d freq|, max |d dmu| and |d IR| and timings.
 #include <chrono>
 #include <cmath>
 #include <cstdio>
@@ -32,16 +33,31 @@ int main(int argc, char** argv) {
       {"nh3", {{7, 0, 0, 0.12}, {1, 1.77, 0, -0.55}, {1, -0.9, 1.5, -0.5}, {1, -0.85, -1.55, -0.6}}},
       {"c2h4", {{6, 0, 0, 1.26}, {6, 0, 0.1, -1.27}, {1, 0, 1.75, 2.33}, {1, 0.1, -1.75, 2.35}, {1, 0, 1.72, -2.36}, {1, 0, -1.74, -2.33}}},
       {"ch2o", {{6, 0, 0, -1.0}, {8, 0, 0, 1.28}, {1, 0, 1.77, -2.1}, {1, 0.05, -1.75, -2.08}}},
-      {"benzene", {}}};
+      {"benzene", {}},
+      {"oh", {{8, 0, 0, 0}, {1, 0, 0.1, 1.85}}},
+      {"ch3", {{6, 0, 0, 0.05}, {1, 2.04, 0, -0.1}, {1, -1.0, 1.78, 0}, {1, -1.05, -1.75, 0.05}}},
+      {"nh2", {{7, 0, 0, 0.25}, {1, 0, 1.55, -0.95}, {1, 0, -1.5, -1.0}}},
+      {"o2", {{8, 0, 0, 1.15}, {8, 0, 0.05, -1.14}}},
+      {"h2o+", {{8, 0, 0, 0.2}, {1, 0, 1.5, -0.85}, {1, 0, -1.45, -0.9}}},
+      {"phenyl", {}}};
   for (int k = 0; k < 6; ++k) {
     const double a = k * M_PI / 3, rc = 2.6366, rh = 4.6834;
     geo["benzene"].push_back({6, rc * std::cos(a), rc * std::sin(a), 0});
     geo["benzene"].push_back({1, rh * std::cos(a), rh * std::sin(a), 0});
+    geo["phenyl"].push_back({6, rc * std::cos(a), rc * std::sin(a), 0});
+    if (k) geo["phenyl"].push_back({1, rh * std::cos(a), rh * std::sin(a), 0});
   }
   Molecule m;
   for (auto& r : geo.at(name)) { Atom at; at.Z = static_cast<int>(r[0]); for (int k = 0; k < 3; ++k) at.x[k] = r[k + 1]; m.atoms.push_back(at); }
+  const std::map<std::string, std::pair<int, int>> open = {
+      {"oh", {0, 2}}, {"ch3", {0, 2}}, {"nh2", {0, 2}}, {"o2", {0, 3}}, {"h2o+", {1, 2}}, {"phenyl", {0, 2}}};
   ScfOptions so;
-  so.method = method;
+  so.method = method == "uhf" ? "hf" : method;
+  if (open.count(name)) {
+    m.charge = open.at(name).first;
+    m.multiplicity = open.at(name).second;
+  }
+  if (open.count(name) || method == "uhf") so.reference = Reference::Unrestricted;
   so.grid_radial = std::atoi(argv[5]);
   so.grid_angular = std::atoi(argv[6]);
   so.grid_prune = prune;
@@ -55,8 +71,8 @@ int main(int argc, char** argv) {
   auto t0 = clk::now();
   const Derivatives ana = rhf_hessian(b0, m, so, ref);
   const double ta = std::chrono::duration<double>(clk::now() - t0).count();
-  std::printf("%s %s %s grid %d/%d%s nbf %d: analytic %.1f s\n", name.c_str(), method.c_str(), bas.c_str(), so.grid_radial,
-              so.grid_angular, prune ? "" : " unpruned", b0.nbf(), ta);
+  std::printf("%s %s %s grid %d/%d%s nbf %d <S2> %.4f: analytic %.1f s\n", name.c_str(), method.c_str(), bas.c_str(),
+              so.grid_radial, so.grid_angular, prune ? "" : " unpruned", b0.nbf(), ref.s2, ta);
   if (step <= 0) return 0;
   auto point = [&](const Molecule& mm) {
     Basis b(mm, lib, bas, 1);

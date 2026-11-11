@@ -311,14 +311,50 @@ int main(int argc, char** argv) {
     ScfResult r;
     r.nalpha = r.nbeta = 5;
     check(analytic_hessian_available(so, r), "RKS PBE takes the analytic Hessian");
-    so.reference = Reference::Unrestricted;
+    so.reference = r.reference = Reference::Unrestricted;
     check(!analytic_hessian_available(so, r), "UKS keeps finite differences");
-    so.reference = Reference::Restricted;
+    so.reference = r.reference = Reference::RestrictedOpen;
+    check(!analytic_hessian_available(so, r), "ROKS keeps finite differences");
+    so.reference = r.reference = Reference::Restricted;
     so.solvent_eps = 78.4;
     check(!analytic_hessian_available(so, r), "solvent keeps finite differences");
     so.solvent_eps = 0;
     so.dispersion = "d3bj";
     check(!analytic_hessian_available(so, r), "D3 keeps finite differences");
+  }
+
+  // Analytic UHF/UKS Hessian of a radical (OH, off equilibrium) against finite
+  // differences of the gradient: alpha and beta CPHF/CPKS blocks and the
+  // spin-polarised XC kernel.
+  {
+    Molecule m;
+    m.atoms = {{8, {0, 0, 0}}, {1, {0, 0.1, 1.85}}};
+    m.multiplicity = 2;
+    for (const char* fn : {"hf"}) {
+      ScfOptions so;
+      so.method = fn;
+      so.reference = Reference::Unrestricted;
+      so.conv_grad = 1e-9;
+      so.conv_energy = 1e-12;
+      Basis b0(m, lib, "6-31G*", 1);
+      const ScfResult ref = run_scf(b0, m, so);
+      check(analytic_hessian_available(so, ref), std::string("analytic Hessian available for unrestricted ") + fn);
+      auto point = [&](const Molecule& mm) {
+        Basis b(mm, lib, "6-31G*", 1);
+        ScfResult r = run_scf(b, mm, so, &ref);
+        PointEval pe;
+        pe.grad = scf_gradient(b, mm, so, r);
+        for (int k = 0; k < 3; ++k) pe.dipole[k] = r.dipole[k];
+        return pe;
+      };
+      const Derivatives num = finite_difference_derivatives(m, 0.002, point);
+      const Derivatives ana = rhf_hessian(b0, m, so, ref);
+      const std::string tag = std::string("OH/6-31G* unrestricted ") + fn;
+      check((ana.hessian - num.hessian).cwiseAbs().maxCoeff() < 2e-5, "analytic open-shell Hessian matches finite difference " + tag,
+            (ana.hessian - num.hessian).cwiseAbs().maxCoeff());
+      check((ana.dmu - num.dmu).cwiseAbs().maxCoeff() < 1e-5, "analytic open-shell dipole derivatives match finite difference " + tag,
+            (ana.dmu - num.dmu).cwiseAbs().maxCoeff());
+    }
   }
 
   // Localised orbitals: the same occupied space (density, orbital-energy trace)

@@ -93,29 +93,44 @@ bool analytic_hessian_available(const ScfOptions& opt, const ScfResult& r) {
   // The analytic Hessian has no reaction-field or dispersion term; with a
   // solvent or D3 the finite-difference one (of full gradients) is used.
   // Kohn-Sham: LDA, GGA and global hybrids; IVO virtuals are not canonical,
-  // which the CPKS denominators assume.
+  // which the CPKS denominators assume.  ROHF/ROKS orbitals are not
+  // eigenvectors of one Fock matrix per spin, so the per-spin response
+  // equations below do not apply to them.
   bool fn_ok = false;
   try { fn_ok = xc_analytic_hessian_supported(functional_by_name(opt.method)); } catch (const Error&) {}
-  return fn_ok && !opt.ivo && !r.ivo_applied && opt.solvent_eps <= 0 && opt.dispersion.empty() &&
-         opt.reference == Reference::Restricted && r.reference == Reference::Restricted &&
-         r.nalpha == r.nbeta && r.nalpha > 0 && opt.field[0] == 0 && opt.field[1] == 0 && opt.field[2] == 0;
+  const bool closed = opt.reference == Reference::Restricted && r.reference == Reference::Restricted && r.nalpha == r.nbeta;
+  const bool unrestricted = opt.reference == Reference::Unrestricted && r.reference == Reference::Unrestricted && opt.method == "hf";
+  return fn_ok && !opt.ivo && !r.ivo_applied && opt.solvent_eps <= 0 && opt.dispersion.empty() && (closed || unrestricted) &&
+         r.nalpha > 0 && r.nbeta > 0 && opt.field[0] == 0 && opt.field[1] == 0 && opt.field[2] == 0;
 }
 
 Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt, const ScfResult& r,
                         const HessianProgress& on_progress) {
-  if (!analytic_hessian_available(opt, r)) throw Error("analytic Hessian needs a closed-shell RHF/RKS reference (LDA, GGA or global hybrid)");
+  if (!analytic_hessian_available(opt, r))
+    throw Error("analytic Hessian needs an RHF/UHF or RKS/UKS reference (LDA, GGA or global hybrid)");
   const FunctionalSpec fs = functional_by_name(opt.method);
   const double exx = fs.exx;  // 1 for HF, the hybrid's fraction, 0 for a pure functional
   const int n = basis.nbf(), natm = static_cast<int>(mol.atoms.size()), P = 3 * natm, ns = basis.nshl();
-  const int no = r.nalpha, nv = n - no;
   const bool sp = basis.spherical();
   const auto& sh = basis.shells();
   std::vector<int> aoatom(n);
   for (const Shell& s : sh)
     for (int k = 0; k < s.nao; ++k) aoatom[s.ao0 + k] = s.atom;
 
+  // Spin channels: a closed shell has one (the alpha orbitals standing for
+  // both spins, weight 2), an unrestricted reference alpha and beta (weight 1).
+  // Every per-spin quantity below is that of one spin; totals sum wch times it.
+  const int nch = r.reference == Reference::Unrestricted ? 2 : 1;
+  const double wch = nch == 2 ? 1.0 : 2.0;
+  const Mat* Dc[2] = {&r.D_a, &r.D_b};
+  const Mat* Fc[2] = {&r.F_a, &r.F_b};
+  const Mat* Cc[2] = {&r.C_a, &r.C_b};
+  const Vec* Ec[2] = {&r.eps_a, &r.eps_b};
+  const int noc[2] = {r.nalpha, r.nbeta};
+
   const Mat Dt = r.D_a + r.D_b;
-  const Mat W = 0.5 * Dt * r.F_a * Dt;  // energy-weighted density, = sum_i 2 eps_i c_i c_i^T
+  Mat W = Mat::Zero(n, n);  // energy-weighted density, sum over spins of sum_i eps_i c_i c_i^T
+  for (int c = 0; c < nch; ++c) W += wch * (*Dc[c]) * (*Fc[c]) * (*Dc[c]);
   const EriStore eri(basis);
 
   Mat H = Mat::Zero(P, P);
@@ -136,10 +151,10 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
     }
 
   // ---- one-electron derivative matrices (fixed orbitals) and skeleton second derivatives ----
-  MatV Fx(P, Mat::Zero(n, n)), Sx(P, Mat::Zero(n, n));
+  MatV hx(P, Mat::Zero(n, n)), Sx(P, Mat::Zero(n, n));
   {
     add_first(Sx, pair_ints(basis, sp ? int1e_ipovlp_sph : int1e_ipovlp_cart, 3), -1.0, aoatom, -1);
-    add_first(Fx, pair_ints(basis, sp ? int1e_ipkin_sph : int1e_ipkin_cart, 3), -1.0, aoatom, -1);
+    add_first(hx, pair_ints(basis, sp ? int1e_ipkin_sph : int1e_ipkin_cart, 3), -1.0, aoatom, -1);
     add_second(H, -W, pair_ints(basis, sp ? int1e_ipipovlp_sph : int1e_ipipovlp_cart, 9),
                pair_ints(basis, sp ? int1e_ipovlpip_sph : int1e_ipovlpip_cart, 9), aoatom, -1);
     add_second(H, Dt, pair_ints(basis, sp ? int1e_ipipkin_sph : int1e_ipipkin_cart, 9),
@@ -147,16 +162,18 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
     for (int C = 0; C < natm; ++C) {
       for (int k = 0; k < 3; ++k) basis.env()[PTR_RINV_ORIG + k] = mol.atoms[C].x[k];
       const double Z = mol.atoms[C].Z;
-      add_first(Fx, pair_ints(basis, sp ? int1e_iprinv_sph : int1e_iprinv_cart, 3), Z, aoatom, C);
+      add_first(hx, pair_ints(basis, sp ? int1e_iprinv_sph : int1e_iprinv_cart, 3), Z, aoatom, C);
       add_second(H, -Z * Dt, pair_ints(basis, sp ? int1e_ipiprinv_sph : int1e_ipiprinv_cart, 9),
                  pair_ints(basis, sp ? int1e_iprinvip_sph : int1e_iprinvip_cart, 9), aoatom, C);
     }
   }
+  // Fx[c][p]: derivative Fock matrix of spin channel c at fixed orbitals
+  std::vector<MatV> Fx(nch, hx);
 
   // ---- two-electron: skeleton second derivatives and derivative Fock matrices ----
   // Over every ordered quartet, with the derivative on the first function and
-  // Gamma = D_ij D_kl - (D_ik D_jl + D_il D_jk)/4 symmetric under the eight
-  // permutations, the sum over centre pairs reduces to
+  // Gamma = D_ij D_kl - exx/2 sum_spin (D_ik D_jl + D_il D_jk) symmetric under
+  // the eight permutations, the sum over centre pairs reduces to
   //   2 ipip1 -> (i,i), 2 ipvip1 -> (i,j), 4 ip1ip2 -> (i,k).
   {
     CINTOpt *o1 = nullptr, *o2 = nullptr, *o3 = nullptr, *o4 = nullptr;
@@ -175,14 +192,19 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
     int maxn = 0;
     for (auto& s : sh) maxn = std::max(maxn, s.nao);
     const std::vector<double> Qd = schwarz_bounds(basis, true);
-    std::vector<double> dm(static_cast<size_t>(ns) * ns, 0.0);
+    // dm: |total density| per shell pair; dk: the largest |wch D_spin| (exchange)
+    std::vector<double> dm(static_cast<size_t>(ns) * ns, 0.0), dk(dm.size(), 0.0);
     for (int I = 0; I < ns; ++I)
-      for (int J = 0; J < ns; ++J)
+      for (int J = 0; J < ns; ++J) {
         dm[I * ns + J] = Dt.block(sh[I].ao0, sh[J].ao0, sh[I].nao, sh[J].nao).cwiseAbs().maxCoeff();
+        for (int c = 0; c < nch; ++c)
+          dk[I * ns + J] = std::max(dk[I * ns + J], wch * Dc[c]->block(sh[I].ao0, sh[J].ao0, sh[I].nao, sh[J].nao).cwiseAbs().maxCoeff());
+      }
     const size_t maxblk = static_cast<size_t>(maxn) * maxn * maxn * maxn;
 #pragma omp parallel
     {
-      MatV g(P, Mat::Zero(n, n));
+      MatV gj(P, Mat::Zero(n, n));
+      std::vector<MatV> gk(exx != 0.0 ? nch : 0, MatV(P, Mat::Zero(n, n)));
       Mat h = Mat::Zero(P, P);
       std::vector<double> b1(3 * maxblk), b2(9 * maxblk), b3(9 * maxblk), b4(9 * maxblk), cache;
 #pragma omp for schedule(dynamic, 1)
@@ -191,7 +213,7 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
         for (int K = 0; K < ns; ++K)
           for (int L = 0; L < ns; ++L) {
             const double wmax = dm[I * ns + J] * dm[K * ns + L] +
-                                0.5 * exx * (dm[I * ns + K] * dm[J * ns + L] + dm[I * ns + L] * dm[J * ns + K]);
+                                0.5 * exx * (dk[I * ns + K] * dk[J * ns + L] + dk[I * ns + L] * dk[J * ns + K]);
             // the second derivatives are not bounded by the first-derivative
             // bound, but sit within a small factor of it
             if (Qd[I * ns + J] * Qd[K * ns + L] * wmax < 0.01 * kSchwarzThreshold) continue;
@@ -214,7 +236,12 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
                     const int a = sh[I].ao0 + i, b = sh[J].ao0 + j, kk = sh[K].ao0 + k, ll = sh[L].ao0 + l;
                     const size_t idx = i + ni * (j + nj * (k + static_cast<size_t>(nk) * l));
                     const double dij = Dt(a, b), dkl = Dt(kk, ll);
-                    const double gam = dij * dkl - 0.25 * exx * (Dt(a, kk) * Dt(b, ll) + Dt(a, ll) * Dt(b, kk));
+                    double xg = 0;
+                    for (int c = 0; c < nch; ++c) {
+                      const Mat& D = *Dc[c];
+                      xg += wch * (D(a, kk) * D(b, ll) + D(a, ll) * D(b, kk));
+                    }
+                    const double gam = dij * dkl - 0.5 * exx * xg;
                     for (int q = 0; q < 9; ++q) {
                       if (k2) acc2[q] += gam * b2[q * blk + idx];
                       if (k3) acc3[q] += gam * b3[q * blk + idx];
@@ -223,16 +250,21 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
                     if (k1)
                       for (int c = 0; c < 3; ++c) {
                         const double v = -b1[c * blk + idx];  // centre derivative = -grad
-                        Mat& G = g[3 * aI + c];
+                        Mat& G = gj[3 * aI + c];
                         G(a, b) += dkl * v;
                         G(b, a) += dkl * v;
                         G(kk, ll) += dij * v;
                         G(ll, kk) += dij * v;
-                        const double xv = 0.5 * exx * v;
-                        G(a, kk) -= Dt(b, ll) * xv;
-                        G(b, kk) -= Dt(a, ll) * xv;
-                        G(kk, a) -= Dt(ll, b) * xv;
-                        G(kk, b) -= Dt(ll, a) * xv;
+                        if (exx == 0.0) continue;
+                        const double xv = exx * v;
+                        for (int s = 0; s < nch; ++s) {
+                          const Mat& D = *Dc[s];
+                          Mat& X = gk[s][3 * aI + c];
+                          X(a, kk) -= D(b, ll) * xv;
+                          X(b, kk) -= D(a, ll) * xv;
+                          X(kk, a) -= D(ll, b) * xv;
+                          X(kk, b) -= D(ll, a) * xv;
+                        }
                       }
                   }
             for (int c1 = 0; c1 < 3; ++c1)
@@ -245,7 +277,11 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
       }
 #pragma omp critical
       {
-        for (int p = 0; p < P; ++p) Fx[p] += g[p];
+        for (int c = 0; c < nch; ++c)
+          for (int p = 0; p < P; ++p) {
+            Fx[c][p] += gj[p];
+            if (exx != 0.0) Fx[c][p] += gk[c][p];
+          }
         H += h;
       }
     }
@@ -256,103 +292,148 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
   }
 
   // ---- exchange-correlation: skeleton second derivatives and Vxc derivatives
-  // at fixed density; the grid is that of the SCF and does not move ----
+  // at fixed density; the grid is that of the SCF and does not move.  A closed
+  // shell goes through libxc unpolarised with the total density. ----
   std::unique_ptr<XcIntegrator> xc;
+  const std::vector<Mat> Pxc = nch == 2 ? std::vector<Mat>{r.D_a, r.D_b} : std::vector<Mat>{Dt};
   if (!fs.is_hf()) {
     xc.reset(new XcIntegrator(basis, fs, make_grid(mol, opt.grid_radial, opt.grid_angular, opt.grid_prune)));
-    xc->hessian_terms(Dt, H, Fx);
+    std::vector<MatV> Vx(nch, MatV(P, Mat::Zero(n, n)));
+    xc->hessian_terms(Pxc, H, Vx);
+    for (int c = 0; c < nch; ++c)
+      for (int p = 0; p < P; ++p) Fx[c][p] += Vx[c][p];
   }
 
   // ---- coupled-perturbed HF / KS ----
-  const Mat Co = r.C_a.leftCols(no), Cv = r.C_a.rightCols(nv);
-  const Vec eo = r.eps_a.head(no), evir = r.eps_a.tail(nv);
+  Mat Co[2], Cv[2], dE[2];
+  Vec eo[2];
+  for (int c = 0; c < nch; ++c) {
+    const int no = noc[c], nv = n - no;
+    Co[c] = Cc[c]->leftCols(no);
+    Cv[c] = Cc[c]->rightCols(nv);
+    eo[c] = Ec[c]->head(no);
+    const Vec ev = Ec[c]->tail(nv);
+    dE[c].resize(nv, no);
+    for (int a = 0; a < nv; ++a)
+      for (int i = 0; i < no; ++i) dE[c](a, i) = ev(a) - eo[c](i);
+  }
 
-  // G(D) = J(D) - exx K(D)/2 + the XC kernel's response, for symmetric AO
-  // densities, in chunks to bound the per-thread J and K copies.
-  const size_t chunk = std::max<size_t>(1, static_cast<size_t>(4e8 / (16.0 * n * n * thread_count())));
-  auto gmat = [&](const MatV& Ds) {
-    MatV out;
-    out.reserve(Ds.size());
-    for (size_t s = 0; s < Ds.size(); s += chunk) {
-      const MatV part(Ds.begin() + s, Ds.begin() + std::min(Ds.size(), s + chunk));
+  // G_c(D) = J(D_total) - exx K(D_c) + the XC kernel's response, for the
+  // per-spin first-order densities Ds[c][k] (symmetric), in chunks to bound
+  // the per-thread J and K copies.
+  const size_t chunk = std::max<size_t>(1, static_cast<size_t>(4e8 / (16.0 * n * n * thread_count() * nch)));
+  auto gmat = [&](const std::vector<MatV>& Ds) {
+    const size_t nd = Ds[0].size();
+    std::vector<MatV> out(nch);
+    for (size_t s = 0; s < nd; s += chunk) {
+      const size_t e = std::min(nd, s + chunk), m = e - s;
+      MatV part;
+      for (int c = 0; c < nch; ++c) part.insert(part.end(), Ds[c].begin() + s, Ds[c].begin() + e);
       MatV J, K;
       eri.jk(part, J, K, exx != 0.0);
-      MatV X;
-      if (xc) X = xc->kernel(Dt, part);
-      for (size_t k = 0; k < part.size(); ++k) {
-        Mat g = J[k];
-        if (exx != 0.0) g -= 0.5 * exx * K[k];
-        if (xc) g += X[k];
-        out.push_back(g);
+      std::vector<MatV> X;
+      if (xc) {
+        std::vector<MatV> sub(nch);
+        for (int c = 0; c < nch; ++c)
+          for (size_t k = 0; k < m; ++k) sub[c].push_back(nch == 2 ? part[c * m + k] : Mat(wch * part[k]));
+        X = xc->kernel(Pxc, sub);
+      }
+      for (size_t k = 0; k < m; ++k) {
+        Mat jt = Mat::Zero(n, n);
+        for (int c = 0; c < nch; ++c) jt += wch * J[c * m + k];
+        for (int c = 0; c < nch; ++c) {
+          Mat g = jt;
+          if (exx != 0.0) g -= exx * K[c * m + k];
+          if (xc) g += X[c][k];
+          out[c].push_back(g);
+        }
       }
     }
     return out;
   };
-  auto vo_density = [&](const Mat& U) {
-    const Mat t = Cv * U * Co.transpose();
-    return Mat(2.0 * (t + t.transpose()));
+  auto vo_density = [&](int c, const Mat& U) {
+    const Mat t = Cv[c] * U * Co[c].transpose();
+    return Mat(t + t.transpose());
   };
 
-  MatV Dy(P);  // D^y in the AO basis
+  std::vector<MatV> Dy(nch, MatV(P));  // per-spin D^y in the AO basis
   {
-    MatV Doo(P);
-    for (int p = 0; p < P; ++p) Doo[p] = -2.0 * Co * (Co.transpose() * Sx[p] * Co) * Co.transpose();
-    const MatV Goo = gmat(Doo);
-    MatV R(P);  // -B, nv x no
-    for (int p = 0; p < P; ++p)
-      R[p] = -(Cv.transpose() * (Fx[p] + Goo[p]) * Co - Cv.transpose() * Sx[p] * Co * eo.asDiagonal());
+    std::vector<MatV> Doo(nch, MatV(P));
+    for (int c = 0; c < nch; ++c)
+      for (int p = 0; p < P; ++p) Doo[c][p] = -Co[c] * (Co[c].transpose() * Sx[p] * Co[c]) * Co[c].transpose();
+    const std::vector<MatV> Goo = gmat(Doo);
     // Preconditioned conjugate gradients on (eps_a - eps_i) U + G_vo(U) = -B,
-    // every perturbation in step so the integral passes are shared.
-    Mat dE(nv, no);
-    for (int a = 0; a < nv; ++a)
-      for (int i = 0; i < no; ++i) dE(a, i) = evir(a) - eo(i);
-    MatV X(P, Mat::Zero(nv, no)), Z(P), D(P);
+    // both spins of a perturbation as one vector, every perturbation in step
+    // so the integral passes are shared.
+    std::vector<MatV> R(nch, MatV(P)), X(nch, MatV(P)), Z(nch, MatV(P)), D(nch, MatV(P));
     std::vector<double> rz(P, 0.0);
     std::vector<char> active(P, 1);
-    for (int p = 0; p < P; ++p) {
-      Z[p] = R[p].cwiseQuotient(dE);
-      D[p] = Z[p];
-      rz[p] = R[p].cwiseProduct(Z[p]).sum();
-    }
+    for (int c = 0; c < nch; ++c)
+      for (int p = 0; p < P; ++p) {
+        R[c][p] = -(Cv[c].transpose() * (Fx[c][p] + Goo[c][p]) * Co[c] - Cv[c].transpose() * Sx[p] * Co[c] * eo[c].asDiagonal());
+        X[c][p] = Mat::Zero(dE[c].rows(), dE[c].cols());
+        Z[c][p] = R[c][p].cwiseQuotient(dE[c]);
+        D[c][p] = Z[c][p];
+        rz[p] += R[c][p].cwiseProduct(Z[c][p]).sum();
+      }
     for (int it = 0;; ++it) {
       std::vector<int> act;
       for (int p = 0; p < P; ++p) {
-        if (active[p] && R[p].cwiseAbs().maxCoeff() < 1e-10) active[p] = 0;
+        double rmax = 0;
+        for (int c = 0; c < nch; ++c) rmax = std::max(rmax, R[c][p].size() ? R[c][p].cwiseAbs().maxCoeff() : 0.0);
+        if (active[p] && rmax < 1e-10) active[p] = 0;
         if (active[p]) act.push_back(p);
       }
       if (on_progress) on_progress(P - static_cast<int>(act.size()), P, it, false);
       if (act.empty()) break;
       if (it >= 100) throw Error("coupled-perturbed SCF did not converge");
-      MatV Ds;
-      for (int p : act) Ds.push_back(vo_density(D[p]));
-      const MatV Gd = gmat(Ds);
+      std::vector<MatV> Ds(nch);
+      for (int c = 0; c < nch; ++c)
+        for (int p : act) Ds[c].push_back(vo_density(c, D[c][p]));
+      const std::vector<MatV> Gd = gmat(Ds);
       for (size_t q = 0; q < act.size(); ++q) {
         const int p = act[q];
-        const Mat AD = D[p].cwiseProduct(dE) + Cv.transpose() * Gd[q] * Co;
-        const double alpha = rz[p] / D[p].cwiseProduct(AD).sum();
-        X[p] += alpha * D[p];
-        R[p] -= alpha * AD;
-        Z[p] = R[p].cwiseQuotient(dE);
-        const double rzn = R[p].cwiseProduct(Z[p]).sum();
-        D[p] = Z[p] + (rzn / rz[p]) * D[p];
+        Mat AD[2];
+        double dad = 0;
+        for (int c = 0; c < nch; ++c) {
+          AD[c] = D[c][p].cwiseProduct(dE[c]) + Cv[c].transpose() * Gd[c][q] * Co[c];
+          dad += D[c][p].cwiseProduct(AD[c]).sum();
+        }
+        const double alpha = rz[p] / dad;
+        double rzn = 0;
+        for (int c = 0; c < nch; ++c) {
+          X[c][p] += alpha * D[c][p];
+          R[c][p] -= alpha * AD[c];
+          Z[c][p] = R[c][p].cwiseQuotient(dE[c]);
+          rzn += R[c][p].cwiseProduct(Z[c][p]).sum();
+        }
+        for (int c = 0; c < nch; ++c) D[c][p] = Z[c][p] + (rzn / rz[p]) * D[c][p];
         rz[p] = rzn;
       }
     }
-    for (int p = 0; p < P; ++p) Dy[p] = Doo[p] + vo_density(X[p]);
+    for (int c = 0; c < nch; ++c)
+      for (int p = 0; p < P; ++p) Dy[c][p] = Doo[c][p] + vo_density(c, X[c][p]);
   }
 
   if (on_progress) on_progress(P, P, 0, true);
-  // ---- response terms: sum D^y F^x - sum W^y S^x, with W = D F D / 2 ----
-  const MatV Gy = gmat(Dy);
-  MatV Wy(P);
-  for (int p = 0; p < P; ++p) {
-    const Mat Fy = Fx[p] + Gy[p];
-    Wy[p] = 0.5 * (Dy[p] * r.F_a * Dt + Dt * Fy * Dt + Dt * r.F_a * Dy[p]);
+  // ---- response terms: sum over spins of D^y F^x - W^y S^x, with W = D F D ----
+  const std::vector<MatV> Gy = gmat(Dy);
+  std::vector<MatV> Wy(nch, MatV(P));
+  for (int c = 0; c < nch; ++c) {
+    const Mat &Ds = *Dc[c], &F = *Fc[c];
+    for (int p = 0; p < P; ++p) {
+      const Mat Fy = Fx[c][p] + Gy[c][p];
+      Wy[c][p] = Dy[c][p] * F * Ds + Ds * Fy * Ds + Ds * F * Dy[c][p];
+    }
   }
   Mat Hr = Mat::Zero(P, P);
 #pragma omp parallel for schedule(static)
   for (int y = 0; y < P; ++y)
-    for (int x = 0; x < P; ++x) Hr(x, y) = Dy[y].cwiseProduct(Fx[x]).sum() - Wy[y].cwiseProduct(Sx[x]).sum();
+    for (int x = 0; x < P; ++x) {
+      double v = 0;
+      for (int c = 0; c < nch; ++c) v += wch * (Dy[c][y].cwiseProduct(Fx[c][x]).sum() - Wy[c][y].cwiseProduct(Sx[x]).sum());
+      Hr(x, y) = v;
+    }
   H += Hr;
 
   Derivatives d;
@@ -368,6 +449,8 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
     for (int A = 0; A < natm; ++A)
       for (int k = 0; k < 3; ++k) {
         const int p = 3 * A + k;
+        Mat Dyt = Mat::Zero(n, n);
+        for (int c = 0; c < nch; ++c) Dyt += wch * Dy[c][p];
         for (int c = 0; c < 3; ++c) {
           double fix = 0;
           for (int i = 0; i < n; ++i)
@@ -376,7 +459,7 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
               if (aoatom[i] == A) fix += dij * ((c == k ? r.S(i, j) : 0.0) + t);
               if (aoatom[j] == A) fix -= dij * t;
             }
-          d.dmu(c, p) = mol.atoms[A].Z * (c == k ? 1.0 : 0.0) - Dy[p].cwiseProduct(oe.dip[c]).sum() - fix;
+          d.dmu(c, p) = mol.atoms[A].Z * (c == k ? 1.0 : 0.0) - Dyt.cwiseProduct(oe.dip[c]).sum() - fix;
         }
       }
   }
