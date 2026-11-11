@@ -260,6 +260,35 @@ std::vector<Site> find_voids(const Structure& host, const std::vector<SymOp>& op
   // the images that fall back onto it (its site-symmetry group) puts a
   // special position exactly on its special point.
   const double snap = std::max(0.3, 2.0 * o.grid);
+  // The grid maximum is then climbed to the true one (a pattern search: the
+  // clearance is a max-min function without a usable gradient); a 0.2 A grid
+  // alone ranked rutile's 4d channel site below two spurious ones.
+  for (Cand& c : cands) {
+    double step = o.grid / 2;
+    double best = clearance(c.f);
+    while (step > 1e-4) {
+      bool moved = false;
+      for (int dx = -1; dx <= 1; ++dx)
+        for (int dy = -1; dy <= 1; ++dy)
+          for (int dz = -1; dz <= 1; ++dz) {
+            if (!dx && !dy && !dz) continue;
+            double cart[3], trial[3];
+            to_cart(host, c.f, cart);
+            double n = std::sqrt(double(dx * dx + dy * dy + dz * dz));
+            cart[0] += step * dx / n;
+            cart[1] += step * dy / n;
+            cart[2] += step * dz / n;
+            to_frac(host, cart, trial);
+            double v = clearance(trial);
+            if (v > best + 1e-9) {
+              best = v;
+              for (int k = 0; k < 3; ++k) c.f[k] = wrap(trial[k]);
+              moved = true;
+            }
+          }
+      if (!moved) step /= 2;
+    }
+  }
   for (Cand& c : cands) {
     for (int pass = 0; pass < 3; ++pass) {
       double sum[3] = {0, 0, 0};

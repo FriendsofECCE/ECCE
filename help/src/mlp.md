@@ -226,3 +226,52 @@ file prints eV). The forces are stored as a gradient, in Hartree/Bohr. The
 stress is in kbar with the sign of the pressure, positive when the cell is
 compressed, as for Quantum ESPRESSO. The Builder's Geometry Trace shows the
 steps, with the cell when it changes.
+
+## Site screening
+
+Site screening asks where an extra ion or atom fits in a periodic host, or
+which pair of atoms of one element is the easiest to remove. It makes one MLP
+calculation per symmetry-distinct choice, plus the host itself, so that the
+energies can be compared and the best few passed on to CP2K or Quantum
+ESPRESSO.
+
+Start from an MLP (MACE) calculation of the host with its cell; its run type,
+model and cell relaxation are used for every site (a Geometry run with the
+atoms relaxed and the cell fixed is the usual choice). In the Organizer,
+right-click it and choose **Screen Sites with MLP...**. For a host set up for
+another code, duplicate it as an MLP calculation first.
+
+- **One atom per void**: the element to insert, and two distances.
+  **Minimum distance to host atoms** (1.6 Å by default) keeps only voids at
+  least that far from every atom of the host. **Minimum distance between
+  sites** (1.0 Å by default) merges void positions closer than that into one.
+- **Vacancy pairs**: the element whose atoms are removed in pairs, and
+  **Maximum pair distance** (Å, 0 for no limit).
+
+Positions that the host's symmetry makes equivalent are calculated once. The
+symmetry is the host's space group found from its atoms (all operations that
+map the cell onto itself within 0.05 Å); the number of equivalent positions in
+the cell is listed as the site's weight. Voids are the points farthest from
+their nearest host atom, moved onto their exact special positions. The cell
+should be large enough that an inserted atom or a vacancy pair does not see
+its own periodic images: use a supercell.
+
+The calculations go into a new folder named after the host, and are launched
+like any series (select the folder, Launch Selected).
+
+**Site Screening Results** (right-click the folder) lists the finished sites
+sorted by energy: E(host+X) − E(host) for an inserted atom, or E(host without
+the pair) − E(host) for a vacancy pair, in eV, with the site's environment
+(the nearest neighbours and their distances, and the coordination number:
+the neighbours within 10 % of the nearest distance). As for a CREST ensemble,
+rows selected in the table are superposed in the Builder, and **New
+calculation from selected** passes them on to another code.
+
+These energies rank sites; they are not formation energies for a report.
+The comparison is between structures with the same atoms, so the chemical
+potential of X cancels only within one screen.
+
+On the command line, `ecce-sites interstitial host.xyz --element Li` and
+`ecce-sites vacancy host.xyz --element Cl --max-dist 6` print the distinct
+sites (add `--out DIR` for one structure file per site); the host is an
+extended xyz file with a `Lattice=` entry.

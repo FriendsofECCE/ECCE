@@ -12,6 +12,9 @@ References (International Tables for Crystallography, Vol. A, Fm-3m, No. 225):
 - in a 2x2x2 rock-salt supercell the 32 Cl (an fcc lattice) form C(32,2) = 496
   pairs in 5 minimum-image shells, (a/2)(110), (200), (211), (220), (222):
   192, 48, 192, 48 and 16 pairs.
+- rutile TiO2 (P4_2/mnm, No. 136, 16 operations; Ti 2a, O 4f, u = 0.305): the
+  largest void is 4d (0,1/2,1/4) in the c channels, 4 per cell, 4 O at
+  sqrt((0.305^2 + 0.195^2) a^2 + (c/4)^2) = 1.82 A.
 SKIPs (77) without the program.
 """
 import argparse
@@ -101,6 +104,22 @@ def main():
             check(all(abs(v) < 1e-6 or abs(v - .5) < 1e-6 for v in f), "at 4b (1/2,1/2,1/2): %s" % r[1:4])
             check(r[5] == "4" and r[6] == "8" and r[7].startswith("F 2.37 x8"),
                   "weight 4, 8 F at a*sqrt(3)/4: %s %s %s" % (r[5], r[6], r[7]))
+
+        ra, rc_, u = 4.594, 2.959, 0.305
+        rut = [("Ti", 0, 0, 0), ("Ti", .5, .5, .5), ("O", u, u, 0), ("O", 1 - u, 1 - u, 0),
+               ("O", .5 + u, .5 - u, .5), ("O", .5 - u, .5 + u, .5)]
+        text = "6\nLattice=\"%g 0 0 0 %g 0 0 0 %g\"\n" % (ra, ra, rc_) + "".join(
+            "%s %.6f %.6f %.6f\n" % (s, x * ra, y * ra, z * rc_) for s, x, y, z in rut)
+        rc, rows, err = run(args.sites, work, "rutile", text, "interstitial", "--element", "Li",
+                            "--min-host", "1.5")
+        print("   ", err.strip())
+        if check(rc == 0 and rows and "16 operations" in err, "rutile: 16 operations, sites found"):
+            r = rows[0]
+            f = sorted(float(v) for v in r[1:4])
+            want = math.sqrt(((u ** 2 + (.5 - u) ** 2) * ra * ra) + (rc_ / 4) ** 2)
+            check(f == [0.0, 0.25, 0.5] and r[5] == "4" and r[7] == "O 1.82 x4"
+                  and abs(float(r[4]) - want) < 2e-3,
+                  "largest void 4d (0,1/2,1/4), weight 4, 4 O at %.3f: %s" % (want, r))
 
         sup = cubic(a, NACL, rep=2)
         rc, rows, err = run(args.sites, work, "nacl222", sup, "vacancy", "--element", "Cl")
