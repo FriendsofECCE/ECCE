@@ -4842,6 +4842,20 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_select_within PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  add_test(NAME apps_builder_select_protein_ligand
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_select_protein_ligand_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_select_protein_ligand PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # A click in the Properties list selects the row clicked, also on a
+  # scrolled list, with real X clicks (#965).
+  add_test(NAME apps_property_list_click
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/property_list_click_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_property_list_click PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # Edit > Take Coordinates From...: atoms from another structure, and undo (#620).
   add_test(NAME apps_builder_takecoords
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -5336,6 +5350,10 @@ add_test(NAME pdbqt_redock_1iep COMMAND ${PYTHON3_EXECUTABLE}
   ${CMAKE_SOURCE_DIR}/tests/dock/fixtures/1iep.pdb
   ${CMAKE_BINARY_DIR}/pdbqt_redock)
 set_tests_properties(pdbqt_redock_1iep PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
+# Automatic ligand choice in ai.vina/docking.pl and the atom-list checks of
+# verifyinput (#962, #963); scripts only, needs perl.
+add_test(NAME vina_autoligand COMMAND ${PYTHON3_EXECUTABLE}
+  ${CMAKE_SOURCE_DIR}/tests/dock/vina_autoligand_test.py ${CMAKE_SOURCE_DIR})
 
 add_executable(smiles_test tests/tdat/smiles_test.C)
 target_link_libraries(smiles_test PRIVATE eccetdat ecceutil)
@@ -5387,4 +5405,12 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_vina_viewer PROPERTIES TIMEOUT 3600 SKIP_RETURN_CODE 77)
+
+  # #964: a Save of the 4710-atom 1IEP structure, timed per step.
+  add_test(NAME apps_vina_save_timing
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/vina_save_timing_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_vina_save_timing PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 endif()

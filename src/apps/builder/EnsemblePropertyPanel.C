@@ -1,8 +1,10 @@
 #include <algorithm>
 #include "tdat/PropVecString.H"
 #include <functional>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <memory>
 
 #include <wx/button.h>
@@ -83,6 +85,38 @@ namespace {
 
 const double kcalPerMolK = 0.0019872041;
 const double kelvin = 298.15;
+
+// ECCE_PANEL_TIMING=1 prints how long each part of opening the panel takes.
+// Every part scales with the system, and only a protein-sized case shows
+// which one dominates; a small fixture hid it (#966).
+bool panelTiming()
+{
+  static const bool on = getenv("ECCE_PANEL_TIMING") != 0;
+  return on;
+}
+
+class Timed
+{
+  public:
+    Timed(const char *what, long detail = -1)
+      : p_what(what), p_detail(detail),
+        p_start(std::chrono::steady_clock::now()) {}
+    ~Timed()
+    {
+      if (!panelTiming()) return;
+      const double ms = std::chrono::duration<double, std::milli>(
+          std::chrono::steady_clock::now() - p_start).count();
+      if (p_detail >= 0)
+        fprintf(stderr, "[panel-timing] %s(%ld) %.1f ms\n", p_what, p_detail, ms);
+      else
+        fprintf(stderr, "[panel-timing] %s %.1f ms\n", p_what, ms);
+      fflush(stderr);
+    }
+  private:
+    const char *p_what;
+    long p_detail;
+    std::chrono::steady_clock::time_point p_start;
+};
 
 // The noun of one member, for the plot's x axis.
 std::string noun(const std::string& kind)
@@ -183,6 +217,7 @@ wxWindow * EnsemblePropertyPanel::GetTearableContent()
 
 void EnsemblePropertyPanel::load()
 {
+  Timed timed("load");
   PropertyTask *task = dynamic_cast<PropertyTask*>(getCalculation());
   const int n = ScanPoint::ensembleSize(task);
   p_members.clear();
@@ -232,6 +267,7 @@ void EnsemblePropertyPanel::load()
 
 void EnsemblePropertyPanel::initialize()
 {
+  Timed timed("initialize");
   if (!GetSizer()) SetSizer(new wxBoxSizer(wxVERTICAL));
   load();
 
@@ -331,6 +367,7 @@ void EnsemblePropertyPanel::initialize()
 
 void EnsemblePropertyPanel::fillTable()
 {
+  Timed timed("fillTable", (long)p_members.size());
   p_inSelect = true;
   p_table->DeleteAllItems();
   for (size_t i = 0; i < p_members.size(); i++) {
@@ -354,6 +391,7 @@ void EnsemblePropertyPanel::fillTable()
 
 void EnsemblePropertyPanel::fillPlot()
 {
+  Timed timed("fillPlot");
   p_plotCtrl->clearCurves();
   vector<double> x, y;
   vector<Member> byRank = p_members;
@@ -382,7 +420,9 @@ void EnsemblePropertyPanel::fillPlot()
 
 void EnsemblePropertyPanel::refresh()
 {
+  Timed timed("refresh");
   if (!p_table) return;
+  p_pocketFragment = 0;   // new data: apply the pocket styles in full again
   clearOverlay();
   p_geometry.clear();
   p_thumbnails.clear();
@@ -464,6 +504,7 @@ bool EnsemblePropertyPanel::selectRanks(const vector<int>& ranks)
 // The base maps a frame to a plot point; this plot is in rank order.
 void EnsemblePropertyPanel::processStep(int step)
 {
+  Timed timed("processStep", step);
   GeomTracePropertyPanel::processStep(step);
   if (p_plotCtrl && p_selRank > 0) p_plotCtrl->setSelectedPoint(0, p_selRank - 1);
 }
@@ -688,6 +729,7 @@ const EnsemblePropertyPanel::Geometry& EnsemblePropertyPanel::geometry(int rank)
 {
   auto found = p_geometry.find(rank);
   if (found != p_geometry.end()) return found->second;
+  Timed timed("geometry", rank);
   Geometry g;
   string why;
   PropertyTask *task = dynamic_cast<PropertyTask*>(getCalculation());
@@ -713,8 +755,11 @@ const EnsemblePropertyPanel::Geometry& EnsemblePropertyPanel::geometry(int rank)
   }
   if (!f) f.reset(ScanPoint::fragment(task, spec, why));
   if (f) {
-    f->deleteAllBonds();
-    f->addCovalentBonds();
+    {
+      Timed bonds("geometry.addCovalentBonds", f->numAtoms());
+      f->deleteAllBonds();
+      f->addCovalentBonds();
+    }
     for (int i = 0; i < f->numAtoms(); i++) {
       const TAtm *a = f->atomRef(i);
       g.elements.push_back(a->atomicNumber());
@@ -797,6 +842,7 @@ void EnsemblePropertyPanel::updateSelection()
     explicit Guard(bool& value) : active(value) { active = true; }
     ~Guard() { active = false; }
   } guard(p_updatingSelection);
+  Timed timed("updateSelection", (long)p_selection.size());
   const vector<int> requested = p_selection;
   const bool wasFocused = hasFocus();
   clearOverlay();
@@ -815,6 +861,7 @@ void EnsemblePropertyPanel::updateSelection()
   if (requested != p_selection) { p_selectTimer.StartOnce(30); return; }
   if (p_selection.size() < 2) return;
 
+  Timed rmsdTimed("updateSelection.superpose", (long)p_selection.size());
   const Geometry& ref = geometry(p_selRank);
   if (ref.xyz.empty()) return;
   vector<double> heavyRef;
@@ -875,6 +922,7 @@ vector<string> EnsemblePropertyPanel::superpositionRows() const { return p_fits;
 bool EnsemblePropertyPanel::makeThumbnail(int rank)
 {
   if (p_thumbnails.count(rank)) return true;
+  Timed timed("makeThumbnail", rank);
   const Geometry& g = geometry(rank);
   if (g.xyz.empty()) return false;
   SoSeparator *root = new SoSeparator;
@@ -1029,6 +1077,7 @@ bool EnsemblePropertyPanel::isVina(IPropCalculation *calc)
 // 1-based ranges); empty means the smallest molecule, as docking.pl takes it.
 vector<int> EnsemblePropertyPanel::ligandAtoms()
 {
+  Timed timed("ligandAtoms");
   vector<int> out;
   ICalculation *ic = dynamic_cast<ICalculation*>(getCalculation());
   GUIValues *g = ic ? ic->guiparams() : 0;
@@ -1065,6 +1114,7 @@ void EnsemblePropertyPanel::setPocketView(bool on)
 {
   p_thumbBg[0] = -1.f;   // redraw the thumbnails: ligand only, or whole
   p_pocket = on;
+  p_pocketFragment = 0;  // the next showPocket applies the styles in full
   if (!on) {
     SGContainer& sg = getFW().getSceneGraph();
     Command *cmd = new DisplayAtomsCmd("DisplayAtoms", &sg);
@@ -1099,6 +1149,7 @@ void EnsemblePropertyPanel::showPocket()
   for (int& c : p_pocketCounts) c = 0;
   p_pocketBonds[0] = p_pocketBonds[1] = 0;
   if (!p_pocket || kind() != "Poses") return;
+  Timed timed("showPocket");
   SGContainer& sg = getFW().getSceneGraph();
   SGFragment *frag = sg.getFragment();
   const int n = frag ? frag->numAtoms() : 0;
@@ -1108,6 +1159,7 @@ void EnsemblePropertyPanel::showPocket()
   for (int i : lig) if (i >= 0 && i < n) role[i] = 1;
   const double r2 = pocketRadius * pocketRadius;
   std::set<const void*> residues;
+  std::unique_ptr<Timed> phase(new Timed("showPocket.residues", n));
   for (int a = 0; a < n; a++) {
     if (role[a] == 1) continue;
     const double *p = frag->atomRef(a)->coordinates();
@@ -1130,20 +1182,23 @@ void EnsemblePropertyPanel::showPocket()
   // drawn by the display its own style names: with atoms alone selected the
   // bonds stayed in the old style and the pocket drew as bare atoms. A bond
   // goes with its atoms; one leaving a shown residue goes with the hidden part.
+  phase.reset(new Timed("showPocket.bondRoles"));
   std::unique_ptr<vector<TBond*> > allBonds(frag->bonds());
   vector<char> bondRole(allBonds->size(), 0);
   for (size_t b = 0; b < allBonds->size(); b++) {
     const int i = (*allBonds)[b]->atom1()->index(), j = (*allBonds)[b]->atom2()->index();
     if (i >= 0 && i < n && j >= 0 && j < n && role[i] == role[j]) bondRole[b] = role[i];
   }
+  for (int a = 0; a < n; a++)
+    p_pocketCounts[role[a] == 1 ? 0 : role[a] == 2 ? 1 : 2]++;
   auto selectRole = [&](int which) {
     frag->m_atomHighLight.clear();
     frag->m_bondHighLight.clear();
     for (int a = 0; a < n; a++)
-      if (role[a] == which) frag->m_atomHighLight.push_back(a);
+      if (which < 0 ? role[a] != 0 : role[a] == which) frag->m_atomHighLight.push_back(a);
     for (size_t b = 0; b < bondRole.size(); b++)
-      if (bondRole[b] == which) frag->m_bondHighLight.push_back((int)b);
-    p_pocketCounts[which == 1 ? 0 : which == 2 ? 1 : 2] = (int)frag->m_atomHighLight.size();
+      if (which < 0 ? bondRole[b] != 0 : bondRole[b] == which)
+        frag->m_bondHighLight.push_back((int)b);
   };
   auto style = [&](DisplayStyle::Style st, const string& name) {
     const string s = DisplayStyle::fromStyle(st);
@@ -1154,20 +1209,28 @@ void EnsemblePropertyPanel::showPocket()
     cmd->getParameter("all")->setBoolean(false);
     getFW().execute(cmd);
   };
-  // Show everything first: the previous pose's pocket may differ.
-  Command *show = new DisplayAtomsCmd("DisplayAtoms", &sg);
-  show->getParameter("all")->setBoolean(true);
-  show->getParameter("show")->setBoolean(true);
-  getFW().execute(show);
-  selectRole(2);
-  style(DisplayStyle::STICK, "Pocket");
-  selectRole(1);
-  style(DisplayStyle::BALLSTICK, "Ligand");
-  selectRole(0);
-  if (!frag->m_atomHighLight.empty()) {
-    Command *hide = new DisplayAtomsCmd("DisplayAtoms", &sg);
-    hide->getParameter("selected")->setBoolean(true);
-    getFW().execute(hide);
+  // Stepping to the next pose moves the ligand inside the same pocket, so
+  // the same atoms stay shown in the same styles: redrawing them all again
+  // is a second per step on a protein, and nothing changes (#966).
+  const bool same = frag == p_pocketFragment && role == p_pocketRole &&
+                    bondRole == p_pocketBondRole;
+  if (!same) {
+    // One command, not two: showing exactly the pocket and the ligand hides
+    // the rest of the receptor in the same pass.
+    phase.reset(new Timed("showPocket.showShown"));
+    selectRole(-1);
+    Command *show = new DisplayAtomsCmd("DisplayAtoms", &sg);
+    show->getParameter("selected")->setBoolean(false);
+    getFW().execute(show);
+    phase.reset(new Timed("showPocket.stylePocket"));
+    selectRole(2);
+    style(DisplayStyle::STICK, "Pocket");
+    phase.reset(new Timed("showPocket.styleLigand"));
+    selectRole(1);
+    style(DisplayStyle::BALLSTICK, "Ligand");
+    p_pocketFragment = frag;
+    p_pocketRole = role;
+    p_pocketBondRole = bondRole;
   }
   frag->m_atomHighLight.clear();
   frag->m_bondHighLight.clear();
@@ -1180,7 +1243,9 @@ void EnsemblePropertyPanel::showPocket()
       else if (ds.getName() == "Pocket") p_pocketBonds[1]++;
     }
   }
+  phase.reset(new Timed("showPocket.fixAllNubs"));
   sg.fixAllNubs();
+  phase.reset();
   // Frame once per switch-on, so stepping through poses keeps the user's zoom.
   if (!p_pocketFitted) {
     vector<const double*> shown;
@@ -1196,11 +1261,14 @@ void EnsemblePropertyPanel::showPocket()
 // middle of the whole receptor. Frame the shown atoms and the search box.
 void EnsemblePropertyPanel::fitPocketCamera(const vector<const double*>& atoms)
 {
+  Timed timed("fitPocketCamera", (long)atoms.size());
   SGViewer& viewer = getFW().getViewer();
   SoCamera *cam = viewer.getCamera();
   if (!cam || atoms.empty()) return;
   SbBox3f bbox;
   for (const double *p : atoms) bbox.extendBy(SbVec3f((float)p[0], (float)p[1], (float)p[2]));
+  float ax, ay, az;
+  bbox.getSize(ax, ay, az);
   SoSwitch *sw = getFW().getSceneGraph().getPropertySwitch("VinaSearchBox");
   if (sw && sw->whichChild.getValue() != SO_SWITCH_NONE) {
     SoGetBoundingBoxAction bba(viewer.getViewportRegion());
@@ -1242,4 +1310,11 @@ void EnsemblePropertyPanel::fitPocketCamera(const vector<const double*>& atoms)
   float dx, dy, dz;
   bbox.getSize(dx, dy, dz);
   p_pocketFit = std::sqrt(dx * dx + dy * dy + dz * dz);
+  if (panelTiming()) {
+    const SbVec3f pos = cam->position.getValue();
+    fprintf(stderr, "[panel-timing] fit atoms=%.1fx%.1fx%.1f framed=%.1fx%.1fx%.1f "
+            "half=%.1f dist=%.1f pos=%.1f,%.1f,%.1f\n", ax, ay, az, dx, dy, dz,
+            half, dist, pos[0], pos[1], pos[2]);
+    fflush(stderr);
+  }
 }

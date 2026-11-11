@@ -397,6 +397,10 @@ class Builder: public BuilderGUI,
       virtual void OnSelectMoleculeClick( wxCommandEvent& event );
       virtual void OnSelectSolventClick( wxCommandEvent& event );
       virtual void OnSelectIonsClick( wxCommandEvent& event );
+      virtual void OnSelectProteinClick( wxCommandEvent& event );
+      virtual void OnSelectLigandClick( wxCommandEvent& event );
+      virtual void OnUpdateSelectResidueItem( wxUpdateUIEvent& event );
+      bool selectResidueClass(bool ligand);
       virtual void OnDistortBondsClick( wxCommandEvent& event );
       void applyDistortDialog();
       void refreshDistortDialog();

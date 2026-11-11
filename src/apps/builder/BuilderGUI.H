@@ -163,6 +163,11 @@ public:
     /// Edit > Take Coordinates From...
     virtual    void OnTakeCoordsClick( wxCommandEvent& event ) { event.Skip(); }
 
+    /// Edit > Select Protein / Select Ligand (#967)
+    virtual    void OnSelectProteinClick( wxCommandEvent& event ) { event.Skip(); }
+    virtual    void OnSelectLigandClick( wxCommandEvent& event ) { event.Skip(); }
+    virtual    void OnUpdateSelectResidueItem( wxUpdateUIEvent& event ) { event.Skip(); }
+
     /// Edit > Select Ions
     virtual    void OnSelectIonsClick( wxCommandEvent& event );
 
@@ -217,6 +222,8 @@ public:
     static const wxWindowID ID_DUMPSG;
     static const wxWindowID ID_SELECT_SOLVENT;
     static const wxWindowID ID_SELECT_IONS;
+    static const wxWindowID ID_SELECT_PROTEIN;
+    static const wxWindowID ID_SELECT_LIGAND;
     static const wxWindowID ID_DISTORT_BONDS;
     static const wxWindowID ID_TAKE_COORDS;
     static const wxWindowID ID_SAVE_THUMB;

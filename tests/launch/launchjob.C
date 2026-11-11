@@ -258,7 +258,7 @@ static int doCreate(const vector<string>& a)
       }
       //  pdb: residues kept, as the Builder's import reads a protein.
       if (!fin || !(k == "mvm" ? frag.restoreMVM(fin)
-                    : k == "pdb" ? frag.restorePDB(fin, 1.0, true, 1, " ", true, false, " ")
+                    : k == "pdb" ? frag.restorePDB(fin, 1.0, true, 1, " ", true, false, " ", false)
                     : frag.restoreXYZ(fin)) ||
           (latticeToSet && (frag.setLattice(latticeToSet), false)) ||
           !pt || !pt->fragment(&frag)) {
@@ -327,7 +327,7 @@ static int doMdStudy(const vector<string>& a, bool gromacs)
       Fragment frag;
       MdTask* md = dynamic_cast<MdTask*>(task);
       bool pdb = fragFile.size() > 4 && fragFile.compare(fragFile.size() - 4, 4, ".pdb") == 0;
-      bool read = fin && (pdb ? frag.restorePDB(fin, 1.0, true, 1, " ", true, false, " ")
+      bool read = fin && (pdb ? frag.restorePDB(fin, 1.0, true, 1, " ", true, false, " ", false)
                               : frag.restoreMVM(fin));
       if (!read || !md || !md->fragment(&frag)) {
         cerr << "could not store the fragment " << fragFile << endl;

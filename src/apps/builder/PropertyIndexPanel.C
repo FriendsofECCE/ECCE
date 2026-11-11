@@ -242,6 +242,50 @@ void PropertyIndexPanel::OnSelChanged(wxTreeEvent& event)
 }
 
 
+std::vector<std::string> PropertyIndexPanel::rowRects() const
+{
+  std::vector<std::string> out;
+  wxPoint org = p_tree->GetScreenPosition();
+  wxSize sz = p_tree->GetClientSize();
+  int sx = 0, sy = 0;
+  p_tree->GetViewStart(&sx, &sy);
+  int ux = 0, uy = 0;
+  p_tree->GetScrollPixelsPerUnit(&ux, &uy);
+  char buf[256];
+  snprintf(buf, sizeof(buf), "treewin %d %d %d %d view %d %d unit %d %d",
+           org.x, org.y, sz.x, sz.y, sx, sy, ux, uy);
+  out.push_back(buf);
+  wxTreeItemId root = p_tree->GetRootItem();
+  if (!root.IsOk()) return out;
+  wxTreeItemIdValue c1;
+  for (wxTreeItemId it = p_tree->GetFirstChild(root, c1); it.IsOk();
+       it = p_tree->GetNextChild(root, c1)) {
+    wxTreeItemId items[1] = { it };
+    for (int k = 0; k < 1; ++k) {
+      wxRect r;
+      if (p_tree->GetBoundingRect(items[k], r, true)) {
+        snprintf(buf, sizeof(buf), "row %d %d %d %d %s", org.x + r.x,
+                 org.y + r.y, r.width, r.height,
+                 p_tree->GetItemText(items[k]).ToStdString().c_str());
+        out.push_back(buf);
+      }
+    }
+    wxTreeItemIdValue c2;
+    for (wxTreeItemId ch = p_tree->GetFirstChild(it, c2); ch.IsOk();
+         ch = p_tree->GetNextChild(it, c2)) {
+      wxRect r;
+      if (p_tree->GetBoundingRect(ch, r, true)) {
+        snprintf(buf, sizeof(buf), "row %d %d %d %d %s", org.x + r.x,
+                 org.y + r.y, r.width, r.height,
+                 p_tree->GetItemText(ch).ToStdString().c_str());
+        out.push_back(buf);
+      }
+    }
+  }
+  return out;
+}
+
+
 std::vector<std::string> PropertyIndexPanel::listing() const
 {
   std::vector<std::string> out;

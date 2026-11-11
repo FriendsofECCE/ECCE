@@ -6815,6 +6815,8 @@ void Builder::updatePropertyMenus()
           out << "shown " << shown << "\n";
           if (p_index) for (const auto& entry : p_index->listing())
             out << "entry " << entry << "\n";
+          if (p_index) for (const auto& line : p_index->rowRects())
+            out << line << "\n";
           return true;
         }
         //  "property <menu item>" / "list <entry>": a Properties menu choice

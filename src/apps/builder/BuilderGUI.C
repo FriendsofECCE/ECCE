@@ -46,6 +46,8 @@ const wxWindowID BuilderGUI::ID_SELECT_MOLECULE = wxNewId();
 const wxWindowID BuilderGUI::ID_DUMPSG = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_SOLVENT = wxNewId();
 const wxWindowID BuilderGUI::ID_SELECT_IONS = wxNewId();
+const wxWindowID BuilderGUI::ID_SELECT_PROTEIN = wxNewId();
+const wxWindowID BuilderGUI::ID_SELECT_LIGAND = wxNewId();
 const wxWindowID BuilderGUI::ID_DISTORT_BONDS = wxNewId();
 const wxWindowID BuilderGUI::ID_TAKE_COORDS = wxNewId();
 const wxWindowID BuilderGUI::ID_SAVE_THUMB = wxNewId();
@@ -111,6 +113,10 @@ BEGIN_EVENT_TABLE( BuilderGUI, ewxTool )
 
     EVT_MENU( ID_SELECT_SOLVENT, BuilderGUI::OnSelectSolventClick )
     EVT_MENU( ID_SELECT_IONS, BuilderGUI::OnSelectIonsClick )
+    EVT_MENU( ID_SELECT_PROTEIN, BuilderGUI::OnSelectProteinClick )
+    EVT_MENU( ID_SELECT_LIGAND, BuilderGUI::OnSelectLigandClick )
+    EVT_UPDATE_UI( ID_SELECT_PROTEIN, BuilderGUI::OnUpdateSelectResidueItem )
+    EVT_UPDATE_UI( ID_SELECT_LIGAND, BuilderGUI::OnUpdateSelectResidueItem )
     EVT_MENU( ID_DISTORT_BONDS, BuilderGUI::OnDistortBondsClick )
     EVT_MENU( ID_TAKE_COORDS, BuilderGUI::OnTakeCoordsClick )
 
@@ -209,6 +215,8 @@ void BuilderGUI::CreateControls()
     itemMenu16->Append(ID_SELECT_WITHIN, _("Select Within Distance..."), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_SOLVENT, _("Select Solvent"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_IONS, _("Select Ions"), _T(""), wxITEM_NORMAL);
+    itemMenu16->Append(ID_SELECT_PROTEIN, _("Select Protein"), _T(""), wxITEM_NORMAL);
+    itemMenu16->Append(ID_SELECT_LIGAND, _("Select Ligand"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_BACKBONE, _("Select Backbone"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_SIDECHAINS, _("Select Side Chains"), _T(""), wxITEM_NORMAL);
     itemMenu16->Append(ID_SELECT_REVERSE, _("Reverse Selection\tCtrl+r"), _T(""), wxITEM_NORMAL);

@@ -152,15 +152,17 @@ my $qstWanted = 0;
   $qstWanted = $1 if ($rc =~ /\bqst([23])\b/i);
 }
 
-if (!$atoms && $whole_early =~ /geom\s*=\s*\(?[^)\n]*check/i) {
+if ($code eq "Vina") {
+  #  A Vina deck holds no coordinates by design; the structure is the auxiliary
+  #  input vina.vinafrag and the atom lists are judged in vina().
+} elsif (!$atoms && $whole_early =~ /geom\s*=\s*\(?[^)\n]*check/i) {
   #  A deck that says it takes its geometry from the checkpoint file
   #  is right to have none here.
   finding("UNSURE", 0, "geometry",
           "There is no geometry in this file, but the route card reads " .
           "it from the checkpoint file. Whether that checkpoint holds " .
           "what you expect cannot be judged from here.");
-} elsif (!$atoms && $code ne "Vina") {
-  #  A Vina deck carries its structure as "#|" lines, judged in vina().
+} elsif (!$atoms) {
   finding("BAD", 0, "geometry",
           "No geometry was found: no line holds an element symbol and " .
           "three coordinates. The calculation has nothing to run on.");
@@ -2256,6 +2258,45 @@ sub vina
             " atoms for the PDBQT preparation (no \"#| ${part}_ATOMS=\" line).")
         unless (grep { /^#\| ${part}_ATOMS=\d/ } @stripped);
   }
+
+  #  Together the two lists must cover every atom of the calculation once.
+  my (%seen, %lists, $bad);
+  foreach my $part ("LIGAND", "RECEPTOR") {
+    my ($line) = grep { /^#\| ${part}_ATOMS=\d/ } @stripped;
+    next unless (defined($line));
+    $line =~ /_ATOMS=(\S*)/;
+    foreach my $r (split(/,/, $1)) {
+      my ($lo, $hi) = $r =~ /^(\d+)(?:-(\d+))?$/ ? ($1, defined($2) ? $2 : $1) : ();
+      if (!defined($lo) || $lo > $hi) {
+        finding("BAD", 1, "structure", "$part\_ATOMS has '$r', which is not " .
+                "an atom number or a range.");
+        $bad = 1;
+        next;
+      }
+      push(@{$lists{$_}}, $part) foreach ($lo .. $hi);
+    }
+  }
+  return if ($bad || keys(%lists) == 0);
+  my $total = (defined($opt_a) && $opt_a =~ /^\d+$/ && $opt_a > 0) ? $opt_a : 0;
+  my (@dup, @gap, @out);
+  foreach my $i (sort { $a <=> $b } keys %lists) {
+    push(@dup, $i) if (@{$lists{$i}} > 1);
+    push(@out, $i) if ($total && $i > $total);
+  }
+  if ($total) {
+    foreach my $i (1 .. $total) { push(@gap, $i) if (!$lists{$i}); }
+  }
+  my $show = sub { my @a = @_; my $t = join(",", @a[0 .. ($#a < 9 ? $#a : 9)]);
+                   $t .= ",... (" . scalar(@a) . " in all)" if (@a > 10); $t };
+  finding("BAD", 1, "structure", "Atoms in both the ligand and the receptor " .
+          "lists: " . $show->(@dup) . ".") if (@dup);
+  finding("BAD", 1, "structure", "Atoms in neither list: " . $show->(@gap) .
+          ".") if (@gap);
+  finding("BAD", 1, "structure", "Atom numbers beyond the calculation's " .
+          "$total atoms: " . $show->(@out) . ".") if (@out);
+  finding("GOOD", 1, "structure", ($total ? "All $total atoms" : "The atoms") .
+          " are in exactly one of the ligand and receptor lists.")
+      if (!@dup && !@gap && !@out);
 }
 
 

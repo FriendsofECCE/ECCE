@@ -33,6 +33,8 @@
 //    select N                    select atom (or Nub) number N (from 1), as a click
 //                                does; 0 or less none
 //    select_within R [molecules] [replace]  extend by distance in Angstrom
+//    select_protein              Edit > Select Protein (adds to the selection)
+//    select_ligand               Edit > Select Ligand: the largest ligand
 //    selectelem A                select the first atom of element A
 //    addelem A                   add the last atom of element A to the selection
 //    bondkind covalent|metal     the kind of bond Bond mode makes
@@ -139,6 +141,7 @@
 #include "viz/SGContainer.H"
 #include "viz/SGLattice.H"
 #include "viz/SGFragment.H"
+#include "viz/SelectCmd.H"
 #include "viz/AtomMeasureDist.H"
 #include "viz/AtomMeasureAngle.H"
 #include "viz/AtomMeasureTorsion.H"
@@ -685,6 +688,10 @@ void Builder::runBuilderScript(const std::string& file)
             radius < 0.1 || radius > 50.0 || !valid || frag->m_atomHighLight.empty())
           outcome = "FAIL: select_within needs a selection and distance 0.1-50";
         else selectWithin(radius, molecules, keep);
+      } else if ((w[0] == "select_protein" || w[0] == "select_ligand") &&
+                 w.size() == 1 && frag) {
+        if (!selectResidueClass(w[0] == "select_ligand"))
+          outcome = "FAIL: nothing selected";
       } else if (w[0] == "selectelem" && w.size() == 2 && frag) {
         //  The first atom of element A, as a click on it selects it.
         outcome = "FAIL: no such atom";
@@ -1934,4 +1941,61 @@ void Builder::runBuilderScript(const std::string& file)
     fflush(stderr);
   });
   timer->Start(500);
+}
+
+
+//  Edit > Select Protein / Select Ligand (#967).  Without residue
+//  information, or with nothing of the kind, it warns and selects nothing.
+bool Builder::selectResidueClass(bool ligand)
+{
+  SGFragment *frag = getSG()->getFragment();
+  if (!frag || frag->numResidues() == 0) {
+    showMessage(ligand ? "Select Ligand: this structure has no residue "
+                         "information, so a ligand cannot be told from the "
+                         "rest."
+                       : "Select Protein: this structure has no residue "
+                         "information.");
+    return false;
+  }
+  SelectCmd *cmd = new SelectCmd(ligand ? "Select Ligand" : "Select Protein",
+                                 getSG());
+  cmd->getParameter(ligand ? "ligand" : "protein")->setBoolean(true);
+  size_t before = frag->m_atomHighLight.size();
+  execute(cmd);
+  if (ligand) {
+    showMessage(cmd->message().empty()
+                ? "Select Ligand: no ligand found; every residue is polymer, "
+                  "water, an ion or a common additive."
+                : cmd->message());
+    return !cmd->message().empty();
+  }
+  if (frag->m_atomHighLight.size() == before) {
+    showMessage("Select Protein: no amino acid or nucleic acid residues found.");
+    return false;
+  }
+  return true;
+}
+
+void Builder::OnSelectProteinClick(wxCommandEvent&)
+{
+  selectResidueClass(false);
+}
+
+void Builder::OnSelectLigandClick(wxCommandEvent&)
+{
+  selectResidueClass(true);
+}
+
+//  Greyed, with the reason in the label, while there are no residues; the
+//  handler still explains itself if it is reached anyway.
+void Builder::OnUpdateSelectResidueItem(wxUpdateUIEvent& event)
+{
+  SGContainer *sg = p_sgMgr ? getSG() : NULL;
+  SGFragment *frag = sg ? sg->getFragment() : NULL;
+  const bool has = frag && frag->numResidues() > 0;
+  event.Enable(has);
+  const bool ligand = event.GetId() == ID_SELECT_LIGAND;
+  event.SetText(has ? (ligand ? _("Select Ligand") : _("Select Protein"))
+                    : (ligand ? _("Select Ligand (no residue information)")
+                              : _("Select Protein (no residue information)")));
 }

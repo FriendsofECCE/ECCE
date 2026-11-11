@@ -142,10 +142,12 @@ bool PdbCalculation::getFragment(Fragment &frag)
       altLoc = prompt.getAltLocation();
       chain = prompt.getChainID();
       if (chain == "All") chain = " ";
-      ret = frag.restorePDB(is,1.0,true,model,altLoc,true,false,chain);
+      //  A molecular calculation has no cell: CRYST1 would make the
+      //  structure periodic and draw a box round a speck (#968).
+      ret = frag.restorePDB(is,1.0,true,model,altLoc,true,false,chain,false);
     }
   } else {
-    ret = frag.restorePDB(is, 1.0, true);
+    ret = frag.restorePDB(is, 1.0, true, 1, " ", true, false, " ", false);
   }
 
   is.close();
