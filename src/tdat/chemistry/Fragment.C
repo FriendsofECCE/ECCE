@@ -4554,10 +4554,15 @@ bool Fragment::restoreCAR(istream& infile, double mult, bool genBonds)
  * @param chainID - chain to process; currently interpreted as a string
  *   of one character which specifies the chain. The value " " means
  *   all chains.
+ * @param useCell - take CRYST1 as the cell of a periodic system.  A
+ *   crystallographic entry always carries one, and for a molecular
+ *   calculation it is meaningless: the caller that knows the structure is
+ *   finite (a receptor, a library ligand) passes false, and the cell is
+ *   then neither stored nor drawn nor able to frame the camera.
  */
 bool Fragment::restorePDB(istream& infile, double mult, bool genBonds,
     const int& selectMdl, const string& selectAlt, const bool& groupFlg,
-    bool readBonds, const string& chainID)
+    bool readBonds, const string& chainID, bool useCell)
 {
   bool ret = true;
   TPerTab pertable;
@@ -4617,7 +4622,8 @@ bool Fragment::restorePDB(istream& infile, double mult, bool genBonds,
 //  CRYST1 is the cell of a periodic system (GROMACS' solvated box, a
 //  triclinic one included).  A 1 1 1 90 90 90 record is the "no cell"
 //  placeholder many programs write.
-    if (strncmp(record,"CRYST1",6) == 0 && p_lattice == 0 && strlen(buf) >= 54) {
+    if (strncmp(record,"CRYST1",6) == 0 && useCell && p_lattice == 0 &&
+        strlen(buf) >= 54) {
       double cell[6];
       static const int start[6] = {6, 15, 24, 33, 40, 47};
       static const int width[6] = {9, 9, 9, 7, 7, 7};

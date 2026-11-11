@@ -364,6 +364,7 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
   }
   Result r;
   string &message = r.message;
+  DeckWriter::StepTimer timer("DeckWriter");
 
   SDirectory *dir = TempStorage::getTempJobDirectory(
                         calc->getURL().getFilePathTail().c_str());
@@ -426,11 +427,12 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
       }
     }
 
+    timer.lap("setup, QST files");
     if (opt.stage) opt.stage("Writing the structure and basis set");
     if (!writeCS(calc, fragFile))
       message = "Input files could not be generated--failed writing "
                 "chemical system";
-    else if (!qstOk)
+    else if (!(timer.lap("write .frag (fetch+dump)"), qstOk))
       message = "Input files could not be generated--failed writing "
                 "the QST structures";
     else if (!writeESP(calc, espFile, espFlag))
@@ -442,10 +444,12 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
                        spherical))
       message = "Input files could not be generated--failed writing "
                 "basis set";
-    else if (!writeParams(calc, paramFile, opt, r.fullMoleculeWarning))
+    else if (!(timer.lap("write .esp/.con/.basis"),
+               writeParams(calc, paramFile, opt, r.fullMoleculeWarning)))
       message = "Input files could not be generated--failed writing "
                 "output file " + paramFile;
     else {
+      timer.lap("write .param");
       bool haveTemplate = false;
       if (!templateFile.empty()) {
         string tp = string(Ecce::ecceDataControllersPath()) + "/" + templateFile;
@@ -478,7 +482,9 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
           if (opt.stage) opt.stage("Running the " + codecap->name() +
                                    " input generator");
           string out;
-          if (!localconn.execout(parserPath, out)) {
+          const bool genOk = localconn.execout(parserPath, out);
+          timer.lap("generator process (ai.<code>)");
+          if (!genOk) {
             message = "Input files could not be generated.";
             if (!out.empty()) message += "\n\n" + out;
             message += "\n(command: " + parserPath + ")";
@@ -502,6 +508,7 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
               }
             }
             if (opt.stage) opt.stage("Storing the input file");
+            timer.lap("parse generator warnings");
             if (!prettyCopy(origInput, inputFile))
               message = "Input files could not be generated--could not "
                         "write " + inputFile;
@@ -511,8 +518,11 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
               message = "Input files could not be deleted from DAV before "
                         "regeneration";
             else {
+              timer.lap("prettyCopy + removeInputFiles");
               std::ifstream ifs(inputFile.c_str());
-              if (calc->putInputFile(inputFile, &ifs)) r.ok = true;
+              const bool putOk = calc->putInputFile(inputFile, &ifs);
+              timer.lap("store " + inputFile);
+              if (putOk) r.ok = true;
               else message = "Input files could not be generated--input file "
                              "copy to DAV failed";
               ifs.close();
@@ -532,8 +542,11 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
               TypedFile aux = codecap->getCodeFile(JCode::AUXILIARY_INPUT);
               if (aux.name() != "") {
                 for (const string& name : filesEndingIn(aux.name())) {
+                  if (opt.stage) opt.stage("Storing " + name);
                   std::ifstream in(name.c_str());
-                  if (!calc->putInputFile(name, &in)) {
+                  const bool auxOk = calc->putInputFile(name, &in);
+                  timer.lap("store auxiliary " + name);
+                  if (!auxOk) {
                     r.ok = false;
                     message = "Input files could not be generated--basis "
                               "file copy to DAV failed";
@@ -552,6 +565,7 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
   if (lastDir != "") changeWD(lastDir);
   if (!opt.keepFiles) dir->remove();
   else r.keptDir = dir->path();
+  timer.lap("cleanup");
   return r;
 }
 
