@@ -105,6 +105,10 @@ Energy		Relative Conformer Energy		CONFREL		NA		PropTSVector<Geometry Step>
 # Docking poses: one GEOMTRACE frame and one score per pose (kcal/mol), ranked by
 # the score within one run; another docking code gives its score its own key.
 Energy		Interaction energy (kcal/mol, monomers not relaxed)			POSESCORE	NA		PropTSVector<Geometry Step>
+# MLP site screening (#728): E(site) - E(host) in eV (class NA: not rescaled) and the
+# neighbour shells of each site, one per GEOMTRACE frame of the results calculation.
+Energy		Site energy relative to host			SITEDE		NA		PropTSVector<Geometry Step>
+Energy		Site environment				SITEENV		NA		PropVecString<Site>
 #
 Energy		Zero Point Energy			EZEROPT		Energy		PropValue	Thermochemistry
 #

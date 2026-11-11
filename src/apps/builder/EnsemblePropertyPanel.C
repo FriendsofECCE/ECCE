@@ -1,4 +1,5 @@
 #include <algorithm>
+#include "tdat/PropVecString.H"
 #include <cmath>
 #include <cstdio>
 #include <memory>
@@ -72,6 +73,7 @@ std::string noun(const std::string& kind)
   if (kind == "Tautomers") return "Tautomer";
   if (kind == "Clusters") return "Cluster";
   if (kind == "Poses") return "Pose";
+  if (kind == "Sites") return "Site";
   return "Conformer";
 }
 
@@ -82,6 +84,7 @@ std::string tag(const std::string& kind)
   if (kind == "Tautomers") return "taut";
   if (kind == "Clusters") return "cluster";
   if (kind == "Poses") return "pose";
+  if (kind == "Sites") return "site";
   return "conf";
 }
 
@@ -129,6 +132,7 @@ std::string EnsemblePropertyPanel::kindFor(const std::string& rt, bool scored)
 
 std::string EnsemblePropertyPanel::kindOf(IPropCalculation *calc)
 {
+  if (ScanPoint::ensembleIsSites(dynamic_cast<PropertyTask*>(calc))) return "Sites";
   ICalculation *c = dynamic_cast<ICalculation*>(calc);
   return kindFor(c ? c->runtype().name() : std::string(),
                  ScanPoint::ensembleIsPoses(dynamic_cast<PropertyTask*>(calc)));
@@ -164,12 +168,23 @@ void EnsemblePropertyPanel::load()
   PropertyTask *task = dynamic_cast<PropertyTask*>(getCalculation());
   const int n = ScanPoint::ensembleSize(task);
   p_members.clear();
-  p_deName = ScanPoint::ensembleIsPoses(task)
+  p_isSites = ScanPoint::ensembleIsSites(task);
+  p_deName = p_isSites ? "E − E(host) (eV)"
+             : ScanPoint::ensembleIsPoses(task)
                  ? "Interaction energy (kcal mol⁻¹)" : "ΔE (kcal mol⁻¹)";
 
   vector<ScanPoint::Pattern> pats;
   string why;
-  p_hasPatterns = ScanPoint::ensemblePatterns(task, pats, why);
+  p_hasPatterns = p_isSites ? false : ScanPoint::ensemblePatterns(task, pats, why);
+  // The stored environment of each site, in the order of the frames (rank).
+  vector<string> siteEnv;
+  if (p_isSites) {
+    if (PropVecString *e = dynamic_cast<PropVecString*>(task->getProperty("SITEENV")))
+      siteEnv = e->values();
+    p_hasPatterns = siteEnv.size() == (size_t)n;
+  }
+  // The weights of the Boltzmann population are kcal/mol.
+  const double toKcal = p_isSites ? 23.0605419 : 1.0;
 
   double lowest = n ? ScanPoint::conformerEnergy(task, 1) : 0;
   double z = 0;
@@ -177,12 +192,16 @@ void EnsemblePropertyPanel::load()
     Member m;
     m.rank = k;
     m.de = ScanPoint::conformerEnergy(task, k);
-    m.pop = std::exp(-(m.de - lowest) / (kcalPerMolK * kelvin));
+    m.pop = std::exp(-(m.de - lowest) * toKcal / (kcalPerMolK * kelvin));
     z += m.pop;
     for (size_t g = 0; g < pats.size(); g++)
       if (std::find(pats[g].members.begin(), pats[g].members.end(), k) !=
           pats[g].members.end())
         m.pattern = pats[g].label;
+    if (p_isSites && p_hasPatterns) {
+      m.pattern = siteEnv[k - 1];
+      std::replace(m.pattern.begin(), m.pattern.end(), '_', ' ');
+    }
     p_members.push_back(m);
   }
   for (size_t i = 0; i < p_members.size(); i++) p_members[i].pop *= 100.0 / z;
@@ -209,7 +228,7 @@ void EnsemblePropertyPanel::initialize()
       std::max(150, p_table->GetTextExtent(energyLabel).x + 24));
   p_table->AppendColumn("Population (%)", wxLIST_FORMAT_RIGHT, 110);
   if (p_hasPatterns)
-    p_table->AppendColumn("Coordination pattern", wxLIST_FORMAT_LEFT, 240);
+    p_table->AppendColumn(p_isSites ? "Environment" : "Coordination pattern", wxLIST_FORMAT_LEFT, 240);
   p_table->SetToolTip("One row per member, lowest energy first; click a column "
       "heading to sort and a row to show that structure; Ctrl/Shift selects "
       "several members to superpose. Population is the "
@@ -307,7 +326,7 @@ void EnsemblePropertyPanel::fillPlot()
   p_plotCtrl->setIntegerX(true);
   const int curve = p_plotCtrl->addCurve(x, y);
   for (size_t i = 0; i < byRank.size(); i++)
-    p_plotCtrl->setPointLabel(curve, (int)i, wxString::Format("%s %d: %.3f kcal/mol, %.1f %%",
+    p_plotCtrl->setPointLabel(curve, (int)i, wxString::Format(p_isSites ? "%s %d: %.3f eV, %.1f %%" : "%s %d: %.3f kcal/mol, %.1f %%",
         wxString::FromUTF8(noun(kind()).c_str()), byRank[i].rank, byRank[i].de,
         byRank[i].pop));
   p_plotCtrl->setXAxisLabel(wxString::FromUTF8((noun(kind()) + " (lowest first)").c_str()));
@@ -430,8 +449,8 @@ bool EnsemblePropertyPanel::exportCsv(const std::string& path) const
 {
   FILE *out = fopen(path.c_str(), "wb");
   if (!out) return false;
-  fprintf(out, "rank,energy_kcal_per_mol,population_percent%s%s\n",
-          p_hasPatterns ? ",pattern" : "", p_fits.empty() ? "" :
+  fprintf(out, "rank,%s,population_percent%s%s\n", p_isSites ? "energy_eV" : "energy_kcal_per_mol",
+          p_hasPatterns ? (p_isSites ? ",environment" : ",pattern") : "", p_fits.empty() ? "" :
           ",reference_rank,heavy_atom_rmsd_angstrom,colour");
   for (size_t i = 0; i < p_members.size(); i++) {
     const Member& m = p_members[i];
@@ -880,7 +899,7 @@ bool EnsemblePropertyPanel::exportPng(const string& path)
   dc.SetTextForeground(*wxBLACK);
   dc.SetPen(wxPen(wxColour(210,210,210)));
   vector<wxString> labels = {"Structure", "Rank", wxString::FromUTF8(p_deName.c_str()), "Population (%)"};
-  if (p_hasPatterns) labels.push_back("Coordination pattern");
+  if (p_hasPatterns) labels.push_back(p_isSites ? "Environment" : "Coordination pattern");
   int x = 0;
   for (size_t i = 0; i < widths.size(); i++) {
     dc.DrawText(labels[i], x + 6, 7);

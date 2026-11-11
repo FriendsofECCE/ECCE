@@ -597,6 +597,12 @@ target_include_directories(ecce-series PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-series PRIVATE
   eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
   eccetdat ecceutil ${XercesC_LIBRARIES})
+# MLP site screening: host + one calculation per site, and the results (#728).
+add_executable(ecce-site-screen src/apps/launch/ecce-site-screen.C)
+target_include_directories(ecce-site-screen PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-site-screen PRIVATE
+  eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+  eccetdat ecceutil ${XercesC_LIBRARIES})
 # Reconnects calculations inside the running session.
 add_executable(ecce-reconnect src/apps/launch/ecce-reconnect.C)
 target_include_directories(ecce-reconnect PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -1232,7 +1238,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-site-screen ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -1392,8 +1398,17 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_si_export.py
         COMPONENT client)
 
 # scripts/ecce-mlp (#728): gensub copies it into the run directory of an ML
-# Potential job, so it only has to exist on the client.
+# Potential job, so it only has to exist on the client.  ecce-mlp-driver
+# (src/mlp) runs its optimisers and dynamics; its one-file source goes to
+# scripts/ for ecce-mlp-setup to compile on a machine without ECCE.
+if(UNIX)
+  add_subdirectory(src/mlp)
+  install(TARGETS ecce-mlp-driver ecce-sites RUNTIME DESTINATION bin COMPONENT client)
+  install(FILES ${CMAKE_BINARY_DIR}/src/mlp/ecce-mlp-driver.cpp
+          DESTINATION scripts COMPONENT client)
+endif()
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp
+                 ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp-setup
         DESTINATION scripts
         COMPONENT client)
 
@@ -2797,6 +2812,20 @@ add_test(NAME mlp_mace
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/mlp/mace_test.py)
 set_tests_properties(mlp_mace PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+# ecce-mlp-driver against ASE (#728), built-in Lennard-Jones; the real-MACE
+# part needs --mace <python> and is run by hand.
+if(TARGET ecce-mlp-driver)
+  add_test(NAME mlp_driver
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_SOURCE_DIR}/tests/mlp/driver_test.py
+                   --driver $<TARGET_FILE:ecce-mlp-driver>)
+  set_tests_properties(mlp_driver PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # Site screening: interstitial sites and vacancy pairs against crystallography.
+  add_test(NAME mlp_sites
+           COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/mlp/sites_test.py
+                   --sites $<TARGET_FILE:ecce-sites>)
+  set_tests_properties(mlp_sites PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+endif()
 
 # tests/minff -- MINFF topology builder (scripts/minff_topology.py, #241)
 # against atomipy run directly, then grompp + a short EM.  SKIPs (77)
@@ -4408,6 +4437,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_mlp PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #728: MLP site screening (ecce-sites, ecce-site-screen) through Launch.
+  add_test(NAME launch_site_screen
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/site_screen_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_site_screen PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   # #329: a CP2K calculation in the real Calculation Editor (script hook, private
   # Xvfb): settings sent as the dialogs send them, the saved deck checked.
   add_test(NAME launch_cp2k_calced
@@ -5163,6 +5199,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-mkdir=bin/ecce-mkdir
   ecce-workflow=bin/ecce-workflow
   ecce-series=bin/ecce-series
+  ecce-site-screen=bin/ecce-site-screen
   ecce-reconnect=bin/ecce-reconnect
   ecce-fetch=bin/ecce-fetch
   ecce-localdata=bin/ecce-localdata

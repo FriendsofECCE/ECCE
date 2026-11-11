@@ -99,6 +99,9 @@ static std::string s_registerMessage;
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
 #include "dsm/Series.H"
+#include "dsm/SiteScreen.H"
+#include <wx/spinctrl.h>
+#include <wx/radiobox.h>
 #include "dsm/DeckWriter.H"
 #include "dsm/QstStructures.H"
 #include "dsm/CodeFactory.H"
@@ -220,6 +223,90 @@ IMPLEMENT_CLASS( CalcMgr, wxFrame )
  * Constructor.
  * Should never be used.
  */
+namespace {
+
+// What to screen for (#728); the note area carries the messages.
+class SiteScreenDialog : public wxDialog {
+public:
+  SiteScreenDialog(wxWindow *parent, const wxString& calcName, const wxString& basis)
+    : wxDialog(parent, wxID_ANY, "Screen Sites with MLP", wxDefaultPosition, wxDefaultSize,
+               wxDEFAULT_DIALOG_STYLE) {
+    wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+    top->Add(new wxStaticText(this, wxID_ANY, "Host: " + calcName), 0, wxALL, 8);
+    wxArrayString modes;
+    modes.Add("One atom per void");
+    modes.Add("Vacancy pairs");
+    p_mode = new wxRadioBox(this, wxID_ANY, "Search for", wxDefaultPosition, wxDefaultSize,
+                            modes, 1, wxRA_SPECIFY_COLS);
+    p_mode->SetToolTip("One atom per void: symmetry-distinct interstitial sites for one "
+                       "added atom. Vacancy pairs: symmetry-distinct pairs of atoms of "
+                       "the element removed together.");
+    top->Add(p_mode, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
+    wxFlexGridSizer *g = new wxFlexGridSizer(2, 6, 8);
+    p_element = new wxTextCtrl(this, wxID_ANY, "Li");
+    p_element->SetToolTip("Element symbol: the atom added, or the one removed in pairs.");
+    p_minHost = new wxSpinCtrlDouble(this, wxID_ANY, "1.6", wxDefaultPosition, wxDefaultSize,
+                                     wxSP_ARROW_KEYS, 0.5, 6.0, 1.6, 0.1);
+    p_minHost->SetToolTip("Smallest distance from a new atom to any host atom (Angstrom).");
+    p_minSep = new wxSpinCtrlDouble(this, wxID_ANY, "1.0", wxDefaultPosition, wxDefaultSize,
+                                    wxSP_ARROW_KEYS, 0.1, 6.0, 1.0, 0.1);
+    p_minSep->SetToolTip("Sites closer than this to each other count as one (Angstrom).");
+    p_maxDist = new wxSpinCtrlDouble(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize,
+                                     wxSP_ARROW_KEYS, 0.0, 50.0, 0.0, 0.5);
+    p_maxDist->SetToolTip("Largest distance between the two removed atoms (Angstrom); "
+                          "0 = no limit. Vacancy pairs only.");
+    g->Add(new wxStaticText(this, wxID_ANY, "Element"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(p_element, 1, wxEXPAND);
+    g->Add(new wxStaticText(this, wxID_ANY, "Minimum distance to host atoms (A)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(p_minHost);
+    g->Add(new wxStaticText(this, wxID_ANY, "Minimum distance between sites (A)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(p_minSep);
+    g->Add(new wxStaticText(this, wxID_ANY, "Maximum pair distance (A, 0 = no limit)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(p_maxDist);
+    top->Add(g, 0, wxEXPAND | wxALL, 8);
+    p_note = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 70),
+                            wxTE_MULTILINE | wxTE_READONLY);
+    p_note->SetValue("The run type, model and cell relaxation of " + calcName +
+                     " apply to every site; the host is calculated too, with the same "
+                     "settings. " + basis);
+    top->Add(p_note, 1, wxEXPAND | wxLEFT | wxRIGHT, 8);
+    wxBoxSizer *b = new wxBoxSizer(wxHORIZONTAL);
+    wxButton *help = new wxButton(this, wxID_HELP);
+    help->Bind(wxEVT_BUTTON, [](wxCommandEvent&) { WxHelpViewer::show("mlp.html#site-screening"); });
+    b->Add(help, 0, wxALL, 6);
+    b->AddStretchSpacer();
+    b->Add(new wxButton(this, wxID_CANCEL), 0, wxALL, 6);
+    wxButton *ok = new wxButton(this, wxID_OK);
+    ok->SetDefault();
+    b->Add(ok, 0, wxALL, 6);
+    top->Add(b, 0, wxEXPAND);
+    SetSizerAndFit(top);
+    Bind(wxEVT_BUTTON, &SiteScreenDialog::OnOk, this, wxID_OK);
+  }
+  bool vacancy() const { return p_mode->GetSelection() == 1; }
+  string element() const { return string(p_element->GetValue().Trim().ToUTF8()); }
+  double minHost() const { return p_minHost->GetValue(); }
+  double minSep() const { return p_minSep->GetValue(); }
+  double maxDist() const { return p_maxDist->GetValue(); }
+private:
+  void OnOk(wxCommandEvent& e) {
+    const string el = element();
+    if (el.empty() || el.size() > 2 ||
+        el.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") != string::npos) {
+      p_note->SetValue("Give the element as a symbol of one or two letters, for example Li.");
+      p_element->SetFocus();
+      return;
+    }
+    e.Skip();
+  }
+  wxRadioBox *p_mode;
+  wxTextCtrl *p_element, *p_note;
+  wxSpinCtrlDouble *p_minHost, *p_minSep, *p_maxDist;
+};
+
+}  // namespace
+
+
 namespace {
 // One-shot timer that runs its function and deletes itself.
 class OnceTimer : public wxTimer
@@ -566,6 +653,13 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * newseries <template url> <source>...
  *                 New Series from This (#621) without dialogs; the report,
  *                 lines separated by " | "
+ * sitescreen <template url> interstitial|vacancy <element> <min host> <min sep> [max dist]
+ *                 Screen Sites with MLP (#728) without dialogs; the report,
+ *                 lines separated by " | "
+ * sitescreendialog <template url> [png]
+ *                 the Screen Sites dialog: its defaults, and a capture
+ * sitescreenresults <url>
+ *                 Site Screening Results for the folder of <url>, as above
  * duplicate <url> [last]
  *                 right-click <url> > Duplicate for Rerun (or Duplicate
  *                 Setup with Last Geometry); the tree's selection and
@@ -2881,6 +2975,35 @@ void CalcMgr::runTestCommand(const string& line)
       vector<string> sources;
       while (args >> s) sources.push_back(s);
       newSeries(EcceURL(t), sources, &outcome);
+      for (size_t p; (p = outcome.find('\n')) != string::npos;)
+        outcome.replace(p, 1, " | ");
+    } else if (command == "sitescreen") {
+      std::istringstream args(calcName);
+      string t, mode, el;
+      double mh = 1.6, ms = 1.0, md = 0;
+      args >> t >> mode >> el >> mh >> ms >> md;
+      screenSites(EcceURL(t), false, mode == "vacancy", el, mh, ms, md, &outcome);
+      for (size_t p; (p = outcome.find('\n')) != string::npos;)
+        outcome.replace(p, 1, " | ");
+    } else if (command == "sitescreendialog") {
+      // "sitescreendialog <url> [png]": the dialog as the menu opens it, its
+      // defaults, and a capture.
+      std::istringstream args(calcName);
+      string t, png;
+      args >> t >> png;
+      WxResourceTreeItemData *n = findNode(EcceURL(t), true, true);
+      SiteScreenDialog *d = new SiteScreenDialog(this, wxString::FromUTF8(
+          n ? n->getResource()->getName().c_str() : "host"), "");
+      d->Show();
+      for (int i = 0; i < 5; ++i) wxYield();
+      if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+      char b[200];
+      snprintf(b, sizeof b, "ok | vacancy=%d element=%s minhost=%g minsep=%g maxdist=%g",
+               d->vacancy(), d->element().c_str(), d->minHost(), d->minSep(), d->maxDist());
+      outcome = b;
+      d->Destroy();
+    } else if (command == "sitescreenresults") {
+      siteResults(EcceURL(calcName), false, &outcome);
       for (size_t p; (p = outcome.find('\n')) != string::npos;)
         outcome.replace(p, 1, " | ");
     } else if (command == "reparseoutputs") {
@@ -5685,6 +5808,81 @@ void CalcMgr::newSeries(const EcceURL& templ, const vector<string>& sources,
   if (made) p_treeCtrl->refresh(container);
   report += "Select the new calculations and use Run Mgmt > Launch Selected.";
   if (outcome) *outcome = report;
+}
+
+
+
+
+void CalcMgr::screenSites(const EcceURL& templ, bool dialog, bool vacancy,
+                          const string& element, double minHost, double minSep,
+                          double maxDist, string *outcome)
+{
+  const string why = SiteScreen::templateProblem(templ);
+  if (!why.empty()) {
+    if (outcome) *outcome = why;
+    if (dialog)
+      wxMessageBox(wxString::FromUTF8(why.c_str()), _("Screen Sites with MLP"),
+                   wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  SiteScreen::Options opt;
+  opt.vacancy = vacancy;
+  opt.element = element;
+  opt.minHost = minHost;
+  opt.minSep = minSep;
+  opt.maxDist = maxDist;
+  if (dialog) {
+    WxResourceTreeItemData *n = findNode(templ, true, true);
+    SiteScreenDialog dlg(this, wxString::FromUTF8(n ? n->getResource()->getName().c_str() : "host"), "");
+    if (dlg.ShowModal() != wxID_OK) return;
+    opt.vacancy = dlg.vacancy();
+    opt.element = dlg.element();
+    opt.minHost = dlg.minHost();
+    opt.minSep = dlg.minSep();
+    opt.maxDist = dlg.maxDist();
+  }
+  wxBusyCursor busy;
+  SiteScreen::MadeSites r = SiteScreen::make(templ, opt);
+  string report;
+  for (size_t i = 0; i < r.outcomes.size(); i++) {
+    if (r.outcomes[i].ok) notifyCreate(r.outcomes[i].url);
+    report += r.outcomes[i].name + (r.outcomes[i].ok ? ": made" : ": not made: " + r.outcomes[i].note) + "\n";
+  }
+  WxResourceTreeItemData *node = findNode(templ, true, true);
+  WxResourceTreeItemData *container = node ? nearestContainer(node, 0) : 0;
+  if (r.ok && container) p_treeCtrl->refresh(container);
+  report += r.message;
+  if (r.ok) report += "\nSelect the folder and use Run > Launch Selected, then Site Screening Results.";
+  if (outcome) *outcome = report;
+  if (dialog)
+    wxMessageBox(wxString::FromUTF8(report.c_str()), _("Screen Sites with MLP"),
+                 wxOK | (r.ok ? wxICON_INFORMATION : wxICON_WARNING), this);
+}
+
+
+void CalcMgr::siteResults(const EcceURL& at, bool interactive, string *outcome)
+{
+  wxBusyCursor busy;
+  SiteScreen::Report r = SiteScreen::results(at, true);
+  string text = r.message + "\n";
+  for (size_t i = 0; i < r.rows.size(); i++) {
+    char b[200];
+    const SiteScreen::Row& w = r.rows[i];
+    if (w.finished) snprintf(b, sizeof b, "%s: %.4f eV%s", w.name.c_str(), w.host ? 0.0 : w.de,
+                             w.converged ? "" : " (not converged)");
+    else snprintf(b, sizeof b, "%s: %s", w.name.c_str(), w.state.c_str());
+    text += string(b) + (w.env.empty() ? "" : "  " + w.env) + "\n";
+  }
+  if (!r.resultsUrl.empty()) {
+    notifyCreate(r.resultsUrl);
+    WxResourceTreeItemData *node = findNode(EcceURL(r.folderUrl), true, true);
+    if (node) p_treeCtrl->refresh(node);
+    text += "Open the results calculation in the Builder: Geometry > Sites.";
+  }
+  if (outcome) *outcome = text;
+  if (interactive)
+    wxMessageBox(wxString::FromUTF8(text.c_str()), _("Site Screening Results"),
+                 wxOK | (r.ok ? wxICON_INFORMATION : wxICON_WARNING), this);
 }
 
 
@@ -9469,6 +9667,20 @@ void CalcMgr::getContextMenu(wxMenu & menu)
         can ? _("A copy with the last geometry that starts from this "
                 "calculation's final orbitals") : wxString(why));
     item->Enable(can);
+    {
+      //  Offered for any periodic calculation, so it can say what is
+      //  missing when the code is not MLP.
+      const EcceURL turl = itemData->getResource()->getURL();
+      if (SiteScreen::isPeriodic(turl)) {
+        int sid = wxWindow::NewControlId();
+        from->Append(sid, _("Screen Sites with MLP..."),
+                     _("Interstitial sites or vacancy pairs of this periodic host, "
+                       "one MLP calculation each"));
+        menu.Bind(wxEVT_MENU, [this, turl](wxCommandEvent&) {
+          CallAfter([this, turl]() { screenSites(turl, true, false, "", 1.6, 1.0, 0, 0); });
+        }, sid);
+      }
+    }
     menu.AppendSubMenu(from, _("New from This"));
     {
       const string refusal =
@@ -9617,6 +9829,20 @@ void CalcMgr::getContextMenu(wxMenu & menu)
                   "selected calculations, or of the calculations in this folder"));
       menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
         CallAfter([this]() { wxCommandEvent e; OnRank(e); });
+      }, id);
+    }
+  }
+  //  The folder of a site screen (#728): its host calculation is there.
+  if (itemData && itemData->getResource()) {
+    const EcceURL here = itemData->getResource()->getURL();
+    const EcceURL folder = isCalculationNode ? here.getParent() : here;
+    if (EDSIFactory::getResource(folder.getChild("host"))) {
+      int id = wxWindow::NewControlId();
+      menu.AppendSeparator();
+      menu.Append(id, _("Site Screening Results"), _("E - E(host) of the finished site "
+                  "calculations of this folder, as an ensemble to show in the Builder"));
+      menu.Bind(wxEVT_MENU, [this, here](wxCommandEvent&) {
+        CallAfter([this, here]() { siteResults(here, true, 0); });
       }, id);
     }
   }

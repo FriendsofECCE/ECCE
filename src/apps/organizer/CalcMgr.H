@@ -156,6 +156,12 @@ public:
   void OnNewSeriesClick( wxCommandEvent& event );
   void newSeries(const EcceURL& templ, const vector<string>& sources,
                  string *outcome);
+  /// MLP site screening (#728): the template's host and one calculation per
+  /// site in a new folder, and the results of that folder as an ensemble.
+  void screenSites(const EcceURL& templ, bool dialog, bool vacancy,
+                   const string& element, double minHost, double minSep,
+                   double maxDist, string *outcome);
+  void siteResults(const EcceURL& at, bool interactive, string *outcome);
   void OnTerminateSelectedClick( wxCommandEvent& event );
   void reparseOutputs(const vector<EcceURL>& urls, bool interactive,
                       string *outcome = 0);

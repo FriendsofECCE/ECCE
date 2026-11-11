@@ -161,12 +161,14 @@ vector<string> PropertyTask::propertyNames()
       names.push_back("Run Statistics");
    }
 
-   // Only report GEOMTRACE key if we have more than one step.
+   // Only report GEOMTRACE key if we have more than one step, unless it is
+   // an ensemble: one conformer, pose or site is still a member to show.
    vector<string>::iterator geokey =
           find(names.begin(), names.end(), "GEOMTRACE");
    if (geokey != names.end()) {
      PropTSVecTable *geotrace = (PropTSVecTable*)getProperty("GEOMTRACE");
-     if (geotrace && geotrace->tables() <= 1) {
+     if (geotrace && geotrace->tables() <= 1 &&
+         ScanPoint::ensembleSize(this) == 0) {
        names.erase(geokey);
      }
    }

@@ -2,8 +2,8 @@
 type: map
 title: Series (#621) copies the template calculation and regenerates the deck through DeckWriter
 area: services
-paths: [src/dsm/edsiimpl/Series.C, src/dsm/edsiimpl/DeckWriter.C, src/apps/launch/ecce-series.C, src/apps/calced/ESInputController.C, tests/series/series_test.py, tests/apps/deck_regen_test.py]
-issues: [621]
+paths: [src/dsm/edsiimpl/Series.C, src/dsm/edsiimpl/DeckWriter.C, src/apps/launch/ecce-series.C, src/apps/calced/ESInputController.C, tests/series/series_test.py, tests/launch/launchjob.C, tests/apps/deck_regen_test.py]
+issues: [621, 728]
 ---
 `Series::make` copies the template (`Resource::copy` to a new URL in the folder,
 so the stored code, theory, GUI values, basis and `launch_*` properties come
@@ -20,3 +20,10 @@ of eight codes byte for byte (stored under `tests/apps/fixtures/decks/`).
   warning note, not a changed theory.
 - `rebuildBasis` does not call the editor's `makeRuntypeNoSphericalConsistent`
   (GUI state).
+- `make` clears the copy's job data (`jobdata(Jobdata())`): the copied
+  `job_path` is the template's run directory. The Organizer's Launch and the
+  Launcher recompute it from the copy's URL, but anything that reads it
+  before a launch used the template's: Clean Run Directory (RunMgmt::
+  cleanServerDirs, `rm -f dir/*`) on an unlaunched copy would empty the
+  template's directory, and tests/launch/launchjob.C ran every copy there
+  (#728).

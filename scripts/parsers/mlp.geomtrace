@@ -1,17 +1,20 @@
 #!/usr/bin/env perl
-# One ECCE-MLP-FRAME block of the output: the energy (eV), the cell of a
-# periodic structure (9 numbers), then the atoms.  GEOMTRACE, TEVEC and
+# One ECCE-MLP-FRAME block of the output: the energy (eV), for an MD frame
+# its time (ps, TIMEVEC, the MD plots' time axis), the cell of a periodic
+# structure (9 numbers), then the atoms.  GEOMTRACE, TEVEC and
 # LATTICEVEC come from the same frame so they stay the same length.
 $| = 1;
 ($key, $runtype, $ucCategory, $theory) = @ARGV;
 
 use constant EV_TO_HARTREE => 1.0 / 27.211386245988;
 
-my (@coordlines, $rowLabels, $energy, @cell);
+my (@coordlines, $rowLabels, $energy, $time, @cell);
 $rowLabels = "";
 while (<STDIN>) {
   if (/^energy:\s*(-?\d+\.\d+)/) {
     $energy = $1;
+  } elsif (/^time:\s*(\d+\.\d+)/) {
+    $time = $1;
   } elsif (/^cell:\s*(.+?)\s*$/) {
     @cell = split(/\s+/, $1);
   } elsif (/^\s*([A-Za-z]{1,2})\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s*$/) {
@@ -31,6 +34,10 @@ print "units:\nAngstrom\nEND\n";
 if (defined($energy)) {
   printf("key: TEVEC\nsize:\n1\nvalues:\n%.10f\nunits:\nHartree\nEND\n",
          $energy * EV_TO_HARTREE);
+}
+
+if (defined($time)) {
+  print "key: TIMEVEC\nsize:\n1\nvalues:\n$time\nunits:\nps\nEND\n";
 }
 
 if (scalar(@cell) == 9) {

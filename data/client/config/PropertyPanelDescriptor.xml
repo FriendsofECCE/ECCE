@@ -226,6 +226,14 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>Sites</name>
+    <group>Geometry</group>
+    <class>EnsemblePropertyPanel</class>
+    <consumer>false</consumer>
+    <property name="GEOMTRACE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>Reaction Trace</name>
     <group>Geometry</group>
     <class>ReactionTracePropertyPanel</class>

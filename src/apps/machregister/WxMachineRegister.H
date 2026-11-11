@@ -266,6 +266,7 @@ class WxMachineRegister: public ewxFrame
         void showProgramCheck(const string& text);
         string crestNeedsXtb() const;
         void browseProgram();
+        void setupMlp();
         string defaultAccount() const;
         bool userPrefsDiffer() const;
         void saveDefaultAccount(const string& name);
@@ -385,6 +386,7 @@ class WxMachineRegister: public ewxFrame
         wxListBox           *p_codeList;
         wxStaticText        *p_codeTitle;
         wxStaticText        *p_codeExample;
+        ewxButton           *p_mlpSetup;
         wxStaticText        *p_codeCheck;
         string              p_codeCheckText;
         wxStaticText        *p_setupNote, *p_wrapupNote;

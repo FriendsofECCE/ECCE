@@ -1676,6 +1676,31 @@ quit
     clean(p, "a retired code is listed when the machine has a key for it")
 
 
+def mlp_setup(tmp, display, build):
+    print("codes tab: MLP (MACE) Set up... builds the environment and fills Program")
+    e = Env(tmp, "mlp-setup")
+    tool_machine(e)
+    folder = os.path.join(tmp, "mlp setup")      # a space must survive the quoting
+    # The mock creates the venv and skips the downloads.
+    extra = dict(LOCALUSER, ECCE_TEST_MLP_SETUP_DIR=folder, ECCE_MLP_SETUP_MOCK="1")
+    p = run(display, build, e, """
+select stubm
+tab codes
+expect contains code:list 'MLP (MACE)'
+code MLP
+click code:setup
+expect field code:mlp '%s/venv/bin/python'
+expect dirty 1
+quit
+""" % folder, extra=extra)
+    clean(p, "Set up runs ecce-mlp-setup on the machine and fills in its Python")
+    status = read(os.path.join(folder, "setup.status")).strip()
+    check(status == "done %s/venv/bin/python" % folder, "setup.status says done: %r" % status)
+    log = read(os.path.join(folder, "setup.log"))
+    check(log.count("ECCE-MLP-SETUP step") == 5, "the log has the five steps")
+    check(os.path.exists(os.path.join(folder, "venv", "bin", "python")), "the venv exists")
+
+
 def codes_find(tmp, display, build):
     print("codes tab: unavailable codes hidden, Program examples, Find")
     e = Env(tmp, "codes-find")
@@ -2879,6 +2904,7 @@ def main():
             codes_retired(tmp, disp, build)
             codes_skeleton(tmp, disp, build)
             codes_find(tmp, disp, build)
+            mlp_setup(tmp, disp, build)
             find_before_save_with_stale_prefs(tmp, disp, build)
             discovery(tmp, disp, build)
             preview(tmp, disp, build)

@@ -335,7 +335,12 @@ vector<Resource*> WorkflowSteps::createRanks(Session *wf, ResourceType *rt,
       return made;
     }
     char note[200];
-    if (ScanPoint::ensembleIsPoses(task))
+    if (ScanPoint::ensembleIsSites(task))
+      snprintf(note, sizeof note,
+               "Site %d of %d from %s, E - E(host) %.3f eV (MLP only).",
+               k, size, source->getName().c_str(),
+               ScanPoint::conformerEnergy(task, k));
+    else if (ScanPoint::ensembleIsPoses(task))
       snprintf(note, sizeof note,
                "Pose %d of %d from %s, score %.3f kcal/mol "
                "(within this docking run only).",
@@ -1554,6 +1559,9 @@ string WorkflowSteps::resultLine(Resource *step, const string& progress)
     const string rt = calc->runtype().name();
     string many, one;
     ensembleWords(rt, many, one);
+    // A site screen's results copy the MLP run type, not a CREST one.
+    if (ScanPoint::ensembleIsSites(task))
+      return std::to_string(n) + (n == 1 ? " site" : " sites");
     string line = std::to_string(n) + " " + (n == 1 ? one : many);
     // Protonation and tautomer runs have no window of their own.
     if (rt != "Protonation Sites" && rt != "Tautomers" && rt != "Solvation Shell") {

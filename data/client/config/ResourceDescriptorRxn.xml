@@ -2216,7 +2216,7 @@
     </Icons>
     <Label>Calculation</Label>
     <StateBased>true</StateBased>
-    <MenuItem>New ML Potential Calculation...</MenuItem>
+    <MenuItem>New MLP (MACE) Calculation...</MenuItem>
     <DescriptorFile>MLP.edml</DescriptorFile>
     <FactoryCategory>EsCalculation</FactoryCategory>
     <IsExpandable>true</IsExpandable>
