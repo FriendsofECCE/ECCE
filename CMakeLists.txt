@@ -2674,6 +2674,10 @@ if(PYTHON3_FOR_SPECTRUM)
            COMMAND ${PYTHON3_FOR_SPECTRUM}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/progress/codes_test.py)
   set_tests_properties(progress-codes PROPERTIES SKIP_RETURN_CODE 77)
+  # every registered code that runs jobs has [PROGRESS] entries (#970)
+  add_test(NAME progress-registry
+           COMMAND ${PYTHON3_FOR_SPECTRUM}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/progress/registry_test.py)
 endif()
 
 # tests/session -- the session id and key (#233): shell and C++ derivations
