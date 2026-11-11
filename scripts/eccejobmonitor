@@ -4901,6 +4901,14 @@ sub ProgressLine
             $$st{'f'}{$_} = $set{$_};
         }
 
+        #  An analytic Hessian's end line has no new record to clear its
+        #  CPHF pass and assembly phase; a finished stage shows neither.
+        if (defined $set{'done'} && $set{'done'} eq 'yes')
+        {
+            delete @{$$st{'f'}}{qw(pass phase)};
+            $$st{'keys'} = [grep { exists $$st{'f'}{$_} } @{$$st{'keys'}}];
+        }
+
         foreach my $hk (split /,/, (defined $$entry[2] ? $$entry[2] : ''))
         {
             next unless (exists $set{$hk});

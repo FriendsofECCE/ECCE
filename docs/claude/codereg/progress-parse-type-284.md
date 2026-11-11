@@ -4,7 +4,7 @@ title: "`[PROGRESS]` entries in a `.desc`: job progress, not properties; matched
 area: codereg
 section: "Getting a calculation set up (the "code registration" system)"
 paths: ["scripts/eccejobmonitor", "scripts/parsers/ecceqm.desc", "src/qm/output.cpp", "src/qm/main.cpp", "tests/progress/monitor_test.py", "tests/parsers/eccejobmonitor_sim.py", "src/comm/commxt/JobStore.C"]
-issues: [284, 303]
+issues: [284, 303, 394]
 ---
 A code gets progress in the Organizer by `.desc` entries alone:
 
@@ -24,7 +24,9 @@ A code gets progress in the Organizer by `.desc` entries alone:
 - **The snapshot.** Per stage the monitor keeps the latest fields. A record
   key (`cycle`, `step` or `point`, the first one present) that changes
   clears the stage's other fields; one that goes down (a new SCF) also
-  clears its history. So a multi-line block (ORCA's convergence table) is
+  clears its history. A line with `done=yes` drops `pass` and `phase`
+  (an analytic Hessian's end line repeats no record, so its CPHF pass and
+  assembly phase stayed in the final snapshot, #394). So a multi-line block (ORCA's convergence table) is
   one entry per line, all setting fields of the same `opt` stage, with the
   step line first. A value `a/b` is a quantity and its target (the box
   shows a tick or a cross); `point=k/n` gets `eta=` seconds from the
