@@ -36,6 +36,7 @@
 #include "tdat/GeomConstraint.H"
 #include "tdat/GUIValues.H"
 
+#include "dsm/DeckWriter.H"
 #include "dsm/GBSRules.H"
 #include "dsm/TGBSConfig.H"
 #include "dsm/TGBSGroup.H"
@@ -2038,7 +2039,14 @@ void CalcEd::detailsMCB(wxCommandEvent& event)
     changed = true;
   }
   delete stored;
-  if (!changed || p_feedback->getEditStatus() == WxFeedback::READONLY) return;
+  if (!changed) return;
+  // The Builder reset the state before this message; the state message may
+  // not have reached us yet, so lift READONLY here or Save stays disabled.
+  if (p_feedback->getEditStatus() == WxFeedback::READONLY) {
+    if (p_iCalc->getState() > ResourceDescriptor::STATE_READY) return;
+    setEditStatus(WxFeedback::EDIT);
+    enableAllFields();
+  }
   populateSummaryField("RuntypeSummary");
   p_feedback->setMessage("The docking box was set in the Builder.  Save to "
                          "write it into the input file.", WxFeedback::WARNING);
@@ -2082,7 +2090,8 @@ void CalcEd::stateMCB(wxCommandEvent& event)
 {
   if (p_iCalc->getState() > ResourceDescriptor::STATE_READY) {
     setEditStatus(WxFeedback::READONLY);
-  } else {
+  } else if (p_feedback->getEditStatus() == WxFeedback::READONLY) {
+    // Not from MODIFIED: a state message must not drop unsaved edits.
     setEditStatus(WxFeedback::EDIT);
   }
   enableAllFields();
@@ -4268,7 +4277,9 @@ bool CalcEd::generateInput(const bool& paramFlag)
     //  one moment the file can have changed, so it is also the only
     //  moment worth spending a WebDAV fetch and a process on.
     if (p_saveStage) p_saveStage("Checking the input file");
+    DeckWriter::StepTimer verifyTimer("CalcEd");
     verifyInput();
+    verifyTimer.lap("verifyInput (fetch deck + checker)");
   }
 
   return success;
@@ -4406,6 +4417,7 @@ void CalcEd::doSave()
     }
 
     wxBusyCursor busy;
+    DeckWriter::StepTimer saveTimer("CalcEd::doSave");
     SaveProgress progress(this);
     p_saveStage = [&progress](const string& what) { progress.stage(what); };
     struct ClearStage {
@@ -4422,6 +4434,7 @@ void CalcEd::doSave()
     }
     if (currentCode) currentCode = 0;
 
+    if (p_saveStage) p_saveStage("Storing the structure and settings");
     // save frag and spin and open shells
     // name, charge, and use irreducible are part of the frag
     bool saveFrag = false;
@@ -4504,10 +4517,12 @@ void CalcEd::doSave()
       saveRuntype = true;
     }
 
+    if (p_saveStage) p_saveStage("Storing the calculation settings");
     // save GUIValues; the input is generated from what the box shows
     storeUseSymmetry(useSymmetryBox());
     syncTsKeys();
     p_iCalc->guiparams(p_GUIValues);
+    saveTimer.lap("store settings (code..guiparams)");
 
     // determine whether to save intermediate files for debugging
     // save if shift key is held down
@@ -4520,13 +4535,14 @@ void CalcEd::doSave()
       p_keepHandInput = false;
       p_feedback->setMessage("Settings saved; your edited input file was "
                              "kept.", WxFeedback::INFO);
-    } else if (generateInput(save_param)) {
+    } else if ((saveTimer.lap("hand-edit check"), generateInput(save_param))) {
       p_feedback->setMessage("New input file generated.", WxFeedback::INFO);
       if (p_iCalc->getState() != p_feedback->getRunState()) {
         p_iCalc->setState(p_feedback->getRunState());
       }
     }
 
+    saveTimer.lap("generateInput (all)");
     // reset the save status indicator
     enableSave(false);
 
