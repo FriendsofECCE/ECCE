@@ -114,6 +114,9 @@ def run(work, mode, job=None, steps=()):
         # The follow checks below only fail as a consequence; the cause is here.
         log.seek(0)
         sys.stdout.write(log.read().decode("utf-8", "replace"))
+        mlog = os.path.join(work, "m-%s.log" % mode)
+        if os.path.exists(mlog):
+            sys.stdout.write(open(mlog, encoding="utf-8", errors="replace").read()[-4000:])
     log.close()
     return messages(out), running
 
