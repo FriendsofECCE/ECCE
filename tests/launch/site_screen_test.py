@@ -23,6 +23,7 @@ import argparse
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import time
@@ -142,10 +143,9 @@ class Organizer:
     def sitesShot(self, results, png):
         """The Builder on the results calculation, Sites panel, white viewer."""
         if self.org and self.org.poll() is None:
-            #  Alone on the screen: the capture is of the whole display.
-            self.send("quit", timeout=20)
-            self.org.terminate()
-            self.org.wait(30)
+            #  Alone on the screen: the capture is of the whole display. The
+            #  wrapper shell does not pass SIGTERM on, so end its whole group.
+            self.stopGroup()
         out, shots = self.bo.runScript(
             self.s, self.display, self.env, self.wrappers,
             ["-context", results.rstrip("/") + "/"],
@@ -160,13 +160,23 @@ class Organizer:
         if "sites" in shots:
             shutil.move(shots["sites"], png)
 
-    def close(self):
-        if self.org and self.org.poll() is None:
-            self.org.terminate()
+    def stopGroup(self):
+        if not self.org:
+            return
+        for sig in (signal.SIGTERM, signal.SIGKILL):
+            try:
+                os.killpg(self.org.pid, sig)
+            except ProcessLookupError:
+                break
             try:
                 self.org.wait(30)
+                time.sleep(2)
+                break
             except subprocess.TimeoutExpired:
-                self.org.kill()
+                pass
+
+    def close(self):
+        self.stopGroup()
         self.display.__exit__(None, None, None)
 
 
@@ -208,9 +218,13 @@ def screen(s, work, rundir, name, atoms, cell, mode, extra, nsites, org=None,
     check(rc != 0, "results before the run: refused (%s)" % out.strip()[:80])
 
     urls = [folder.rstrip("/") + "/" + m for m in made]
+    dirs = []
     for u in urls:
         rc, o = s.launch(u)
         check(rc == 0, "launch %s" % u.rsplit("/", 1)[-1])
+        dirs += [l.split(": ", 1)[1] for l in o.splitlines() if l.startswith("run directory: ")]
+    #  Concurrent jobs in one directory overwrite each other's output.
+    check(len(set(dirs)) == len(urls), "one run directory per calculation")
     for u in urls:
         state = s.waitState(u, seconds=600)
         check(state == "completed", "%s completed (%s)" % (u.rsplit("/", 1)[-1], state))

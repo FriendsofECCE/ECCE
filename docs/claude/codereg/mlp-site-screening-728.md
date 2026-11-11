@@ -3,7 +3,7 @@ type: map
 title: "MLP site screening (#728 stage 2C): ecce-sites finds symmetry-distinct voids and vacancy pairs; a series of MLP calculations per site; results as an ensemble"
 area: codereg
 section: "Getting a calculation set up (the \"code registration\" system)"
-paths: ["src/apps/organizer/CalcMgr.C", "src/apps/organizer/WorkflowSteps.C", "tests/launch/site_screen_test.py", "src/mlp/sites.hpp", "src/mlp/sites.cpp", "src/mlp/sites_main.cpp", "src/dsm/edsiimpl/Series.C", "tests/mlp/sites_test.py", "help/src/mlp.md"]
+paths: ["src/apps/organizer/CalcMgr.C", "src/apps/organizer/WorkflowSteps.C", "tests/launch/site_screen_test.py", "src/mlp/sites.hpp", "src/mlp/sites.cpp", "src/mlp/sites_main.cpp", "src/dsm/edsiimpl/Series.C", "src/dsm/edsiimpl/SiteScreen.C", "src/dsm/edsiimpl/PropertyTask.C", "tests/launch/launchjob.C", "tests/mlp/sites_test.py", "help/src/mlp.md"]
 issues: [728]
 ---
 - **Symmetry is ECCE's own, not autosym.** autosym/SymmetryOps work on
@@ -73,3 +73,20 @@ issues: [728]
   script `background 1 1 1`, ECCE_OPEN_PANEL=Sites).
 - **The Organizer's result line for the results calculation** says "N sites":
   it copies the MLP run type, which ensembleWords would call conformers.
+- **A one-site screen had no Sites panel**: `PropertyTask::propertyNames`
+  drops GEOMTRACE when it has one step (a single-point trace is not worth a
+  panel), and every panel of the ensemble family is keyed on GEOMTRACE. With
+  one member (Li in 8-atom NaCl) the key vanished and ECCE_OPEN_PANEL found
+  no panel; two or more sites worked. GEOMTRACE now stays when
+  `ScanPoint::ensembleSize` > 0 (also a one-conformer CREST run).
+- **The results calculation drops the copied site's outputs and job_path**:
+  its Outputs/results.h5 added the site's TEVEC to the property list and
+  would serve the site's trace through ResultsFromCalc.
+- **Series copies carried the template's job_path** (see the Series entry).
+  tests/launch/launchjob.C `launch` used the stored job_path as it was, so
+  host and sites ran in the template's run directory at once; with real MACE
+  (seconds per job) they overlapped and overwrote each other's output (host
+  and site 'unsuccessful', dE 0), with the mock they finished before the
+  next launch. It was the harness launch, not the Organizer: both paths
+  launch through launchjob. launchjob now stores the run directory as
+  LaunchBatch does, and the test checks one run directory per calculation.

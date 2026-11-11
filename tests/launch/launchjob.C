@@ -565,6 +565,12 @@ static int doLaunch(const string& url)
 {
   TaskJob* task = getTask(url);
   if (!task) { cerr << "not a calculation: " << url << endl; return 1; }
+  // As the Organizer's Launch: the run directory follows this calculation's
+  // URL, never a job_path copied from another calculation.
+  if (!LaunchBatch::storeRunDirectory(task)) {
+    cerr << "could not store the run directory" << endl;
+    return 1;
+  }
   EcceMap kv;
   buildArgs(task, kv);
   cout << "files: input=" << kv["##input##"] << " output=" << kv["##output##"]

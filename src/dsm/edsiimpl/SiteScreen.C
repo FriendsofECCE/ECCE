@@ -348,6 +348,10 @@ SiteScreen::Report SiteScreen::results(const EcceURL& at, bool writeEnsemble)
   VDoc *vdoc = EDSIFactory::getVdoc(target);
   if (!res || !vdoc) { rep.message += " The results calculation could not be made."; return rep; }
   res->deleteProperties();
+  // The copied site's outputs (results.h5 would add its energy trace) and
+  // run directory are not the ensemble's.
+  res->removeOutputFiles();
+  res->jobdata(Jobdata());
 
   std::ostringstream geo, de, env;
   string labels;
