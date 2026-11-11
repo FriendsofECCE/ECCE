@@ -46,7 +46,7 @@ private:
   wxTextCtrl *p_wavelength, *p_distance, *p_film, *p_b, *p_length, *p_mis,
              *p_repeat, *p_gamma;
   wxChoice *p_axis, *p_scale;
-  wxCheckBox *p_selectedOnly;
+  wxCheckBox *p_selectedOnly, *p_invert;
   wxSlider *p_opacity;
   wxStaticText *p_status, *p_pointer;
   DiffractionPanel *p_panel;

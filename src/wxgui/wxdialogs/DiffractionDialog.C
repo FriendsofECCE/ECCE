@@ -172,11 +172,11 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
     return t;
   };
   p_wavelength = field("Wavelength (A)", "1.5418", "Cu K-alpha is 1.5418");
-  p_distance = field("Film distance (mm)", "50", "Sample to flat film");
-  p_film = field("Film size (mm)", "100", "Edge of the square film");
-  p_b = field("B (A^2)", "0", "Isotropic temperature factor");
-  p_length = field("Fibre length (A)", "0", "Gaussian broadening along the layer lines; 0 = none");
-  p_mis = field("Misalignment (deg)", "0", "Spread of the fibre axes: arcs");
+  p_distance = field("Film distance (mm)", "30", "Sample to flat film");
+  p_film = field("Film size (mm)", "40", "Edge of the square film");
+  p_b = field("B (A^2)", "20", "Isotropic temperature factor");
+  p_length = field("Fibre length (A)", "100", "Gaussian broadening along the layer lines; 0 = none");
+  p_mis = field("Misalignment (deg)", "8", "Spread of the fibre axes: arcs");
   p_repeat = field("Repeat (A)", "0", "Axial repeat; the pointer then reports the layer line l = Z * repeat");
   p_gamma = field("Gamma", "1", "Display exponent");
   grid->Add(new wxStaticText(this, wxID_ANY, "Axis"), 0, wxALIGN_CENTER_VERTICAL);
@@ -191,6 +191,9 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_scale->SetSelection(0);
   grid->Add(p_scale, 0);
   left->Add(grid, 0, wxALL, 6);
+  p_invert = new wxCheckBox(this, wxID_ANY, "Dark spots on white");
+  p_invert->SetValue(true);
+  left->Add(p_invert, 0, wxLEFT | wxRIGHT, 6);
   p_selectedOnly = new wxCheckBox(this, wxID_ANY, "Selected atoms only");
   p_selectedOnly->SetValue(!selection.empty());
   p_selectedOnly->Enable(!selection.empty());
@@ -299,6 +302,8 @@ bool DiffractionDialog::calculate(string& why)
                       "--length-broadening", num(number(p_length)),
                       "--misalignment", num(number(p_mis)),
                       "--scale", p_scale->GetStringSelection().ToStdString(),
+                      "--decades", "2.5",
+                      p_invert->IsChecked() ? "--invert" : "--no-invert",
                       "--gamma", num(number(p_gamma)),
                       "--out", p_png, "--out", p_csv};
   if (p_selectedOnly->IsChecked() && !p_selectionText.empty()) {

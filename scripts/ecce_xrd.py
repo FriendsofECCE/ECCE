@@ -303,8 +303,8 @@ def write_png(path, gray):
 
 # --------------------------------------------------------------------- fibre
 
-def fibre_pattern(model, wavelength=1.5418, distance=50.0, film=100.0, pixels=400,
-                  bfactor=0.0, length=0.0, misalignment=0.0, tilt=0.0,
+def fibre_pattern(model, wavelength=1.5418, distance=30.0, film=40.0, pixels=400,
+                  bfactor=20.0, length=100.0, misalignment=8.0, tilt=0.0,
                   map_kind="film", rmax=None, zmax=None, step=0.005):
     """The pattern as a dict: x, y (axes of the image), R, Z, I, all [ny, nx]."""
     if map_kind == "film":
@@ -403,23 +403,24 @@ def build_parser():
     f.add_argument("--select", default="", help="atom numbers from 1, e.g. 1-40,57")
     f.add_argument("--axis", type=_axis_arg, default=None, help="auto (principal axis), selection (first to last selected atom) or x,y,z")
     f.add_argument("--wavelength", type=float, default=1.5418, help="Angstrom (Cu Ka)")
-    f.add_argument("--distance", type=float, default=50.0, help="sample-film, mm")
-    f.add_argument("--film-size", type=float, default=100.0, help="film edge, mm")
+    f.add_argument("--distance", type=float, default=30.0, help="sample-film, mm")
+    f.add_argument("--film-size", type=float, default=40.0, help="film edge, mm")
     f.add_argument("--pixels", type=int, default=400)
     f.add_argument("--rmax", type=float, help="rz map: R range, 1/Angstrom")
     f.add_argument("--zmax", type=float, help="rz map: Z range, 1/Angstrom")
     f.add_argument("--step", type=float, default=0.005, help="(R,Z) grid step, 1/Angstrom")
-    f.add_argument("--B", type=float, default=0.0, help="isotropic B, Angstrom^2")
-    f.add_argument("--length-broadening", type=float, default=0.0,
+    f.add_argument("--B", type=float, default=20.0, help="isotropic B, Angstrom^2")
+    f.add_argument("--length-broadening", type=float, default=100.0,
                    help="effective fibre length, Angstrom (0 = off)")
-    f.add_argument("--misalignment", type=float, default=0.0, help="axis spread, degrees")
+    f.add_argument("--misalignment", type=float, default=8.0, help="axis spread, degrees")
     f.add_argument("--tilt", type=float, default=0.0, help="fibre tilt out of the film plane, degrees")
     f.add_argument("--map", choices=("film", "rz"), default="film")
     f.add_argument("--scale", choices=("log", "sqrt", "linear"), default="log")
-    f.add_argument("--decades", type=float, default=3.0, help="log scale range")
+    f.add_argument("--decades", type=float, default=2.5, help="log scale range")
     f.add_argument("--gamma", type=float, default=1.0)
     f.add_argument("--beamstop", type=float, default=0.012, help="masked |S| for scaling, 1/Angstrom")
-    f.add_argument("--invert", action="store_true", help="dark spots on white")
+    f.add_argument("--invert", action=argparse.BooleanOptionalAction, default=True,
+                   help="dark spots on white (default); --no-invert for light on dark")
     f.add_argument("--out", action="append", help=".png, .npy or .csv (repeatable)")
     f.add_argument("--json", action="store_true")
     f.set_defaults(func=run_fibre)

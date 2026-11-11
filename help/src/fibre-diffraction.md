@@ -23,25 +23,29 @@ the Bessel function J_n(2 pi R r) of order n allowed by the helical symmetry.
 
 The fields:
 
-- **Wavelength** (Cu K-alpha, 1.5418 A, by default) and **Film distance** and
-  **Film size**: a flat film perpendicular to the beam, the fibre across the
+- **Wavelength** (Cu K-alpha, 1.5418 A, by default) and **Film distance** (30 mm)
+  and **Film size** (40 mm): a flat film perpendicular to the beam, the fibre across the
   beam. The picture is the film. Where a reflection falls on it follows from
   the Ewald sphere, so the meridional reflections of high layer lines are
   displaced from the vertical axis or missing, as in a real photograph with an
   untilted fibre.
-- **B**: an isotropic temperature factor, damping the high angles.
+- **B** (20 A^2 by default): an isotropic temperature factor, damping the high angles.
 - **Fibre length**: broadens the layer lines along Z as a fibre of that length
-  would. It is added to the broadening of the molecule's own length. 0 is off.
-- **Misalignment**: the spread of the fibre axes in degrees, which draws the
+  would (100 A by default). It is added to the broadening of the molecule's own
+  length. 0 is off.
+- **Misalignment** (8 degrees by default): the spread of the fibre axes, which draws the
   spots out into arcs. The smearing follows circles of constant |S| and ignores
   the change of the orientation weight along the arc, so it is a good picture
   of the arcs and not a quantitative profile.
 - **Axis**: the principal axis of the atoms (the helix axis of a helix), or the
   line from the first to the last selected atom.
-- **Scaling**: logarithmic, square root or linear, and a gamma exponent. The
-  intensity range of a pattern is wide; the logarithmic scale shows 3 decades
+- **Dark spots on white** (on by default, `--no-invert` on the command line)
+  turns the picture to light on dark. **Scaling**: logarithmic, square root or linear, and a gamma exponent. The
+  intensity range of a pattern is wide; the logarithmic scale shows 2.5 decades
   below the strongest reflection. The centre, where the undiffracted beam
-  would be, is left out of the scaling.
+  would be, is left out of the scaling. The defaults give a picture like a
+  photographic print of a fibre film; set B, fibre length and misalignment to 0
+  for the sharp calculated pattern.
 
 Form factors are the Cromer-Mann coefficients of the International Tables
 (Vol. C, Table 6.1.1.4), for H, C, N, O, Na, Mg, P, S, Cl, K, Ca, Fe and Zn.
