@@ -210,10 +210,12 @@ def minima_and_barriers(x, y):
     n = len(y)
     s = [sum(y[max(0, i - 2):i + 3]) / len(y[max(0, i - 2):i + 3]) for i in range(n)]
     mins, maxs = [], []
-    for i in range(3, n - 3):
-        if s[i] < min(s[i - 3:i]) and s[i] <= min(s[i + 1:i + 4]):
+    # the contact minimum of an ion pair can sit next to the first bin
+    for i in range(1, n - 1):
+        left, right = s[max(0, i - 3):i], s[i + 1:i + 4]
+        if s[i] < min(left) and s[i] <= min(right):
             mins.append({"distance": x[i], "pmf": y[i]})
-        if s[i] > max(s[i - 3:i]) and s[i] >= max(s[i + 1:i + 4]):
+        if s[i] > max(left) and s[i] >= max(right):
             maxs.append({"distance": x[i], "pmf": y[i]})
     return mins, maxs
 
