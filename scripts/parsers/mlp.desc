@@ -32,6 +32,16 @@ Frequency=last
 End=^ECCE-MLP-ENDFINAL
 [END]
 
+# Vibration: all 3N modes, the rigid ones first at 0 (as for ORCA and xTB).
+# No dipole, so no VIBIR.
+[VIBFREQ][VIB]
+Script=mlp.vib
+Begin=^ECCE-MLP-VIB\s
+Skip=0
+Frequency=last
+End=^ECCE-MLP-ENDVIB
+[END]
+
 # The optimiser's criterion is printed once.
 [PROGRESS]
 Begin=^convergence: fmax\s+(\S+)\s

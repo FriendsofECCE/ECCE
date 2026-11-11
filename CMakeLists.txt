@@ -1394,6 +1394,7 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_si_export.py
 # scripts/ecce-mlp (#728): gensub copies it into the run directory of an ML
 # Potential job, so it only has to exist on the client.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp
+                 ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp-setup
         DESTINATION scripts
         COMPONENT client)
 

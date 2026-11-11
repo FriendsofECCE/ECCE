@@ -1,6 +1,6 @@
-# ML Potential: energies and geometries with a machine-learned potential
+# MLP (MACE): energies, geometries and vibrations with a machine-learned potential
 
-The **MLP** code button runs a machine-learned interatomic potential through
+The **MLP (MACE)** code button runs a machine-learned interatomic potential through
 ASE. The first potential is MACE, trained on a large set of DFT calculations
 of crystals (MACE-MP-0 and its successors). It gives an energy, the forces
 and, for a periodic cell, the stress in seconds to minutes where a DFT
@@ -13,22 +13,58 @@ that are alike. They are not DFT energies and are not a result to quote.
 
 ## Setting it up
 
-ECCE does not ship PyTorch, MACE or any model weights. Make a Python
-environment that has them, for example
+ECCE does not ship PyTorch, MACE or any model weights. **Register Machines**
+builds the environment for you: on the **Codes** tab of the machine, select
+**MLP (MACE)** and press **Set up...** next to **Program**. Give a folder on
+that machine (`~/ecce-mlp` by default). ECCE then, on that machine:
 
-    python3 -m venv ~/mlp-venv
-    ~/mlp-venv/bin/pip install ase mace-torch
+1. creates a Python environment in `<folder>/venv` (this needs Python 3 with
+   its `venv` module; on Debian or Ubuntu: `apt install python3-venv`);
+2. installs PyTorch, the CPU-only build unless `nvidia-smi` finds an NVIDIA
+   GPU, in which case the CUDA build;
+3. installs `mace-torch` and ASE;
+4. downloads the default model, `medium-mpa-0`, into `<folder>/venv/cache`,
+   where the job looks first, so compute nodes need no internet access;
+5. checks that the new environment imports them,
 
-and add `torch-dftd` if you want the D3 dispersion correction. On the
-**Codes** tab of the machine in **Register Machines**, register **MLP** and set
-**Program** to the Python of that environment, such as
-`/home/you/mlp-venv/bin/python3`. A cluster needs the same environment on the
-cluster and that path on its machine entry. The runner itself is written into
-the run directory by the job script, so ECCE need not be installed there.
+and sets **Program** to `<folder>/venv/bin/python`. A window shows the step
+and the last line of the log, `<folder>/setup.log`; **Cancel** stops the
+set-up. The CPU-only environment takes about 1 GB of disk and several minutes,
+most of it the PyTorch download. For a cluster, choose a folder the compute
+nodes can read (usually under your home directory): the set-up runs on the
+login node over the machine's own connection.
 
-The model weights are downloaded the first time a model is used, into the
-cache of the user the job runs as. A cluster node without internet access needs
-the weights downloaded beforehand.
+The same steps without the window, on any Linux or macOS machine:
+
+    sh $ECCE_HOME/scripts/ecce-mlp-setup ~/ecce-mlp
+
+The GPU test runs where the set-up runs. On a cluster whose login node has no
+GPU but whose compute nodes do (or the other way round), run the script by
+hand with the build named, `cpu` or `cuda`:
+
+    sh ecce-mlp-setup ~/ecce-mlp medium-mpa-0 cuda
+
+The CUDA build is several GB.
+
+To set up by hand instead, make an environment that has `ase` and
+`mace-torch` and set **Program** to its Python, such as
+`/home/you/mlp-venv/bin/python3`. Add `torch-dftd` if you want the D3
+dispersion correction (the set-up does not install it). The runner itself is
+written into the run directory by the job script, so ECCE need not be
+installed on a cluster.
+
+A model that is not in `<folder>/venv/cache` (another model, or a hand-made
+environment) is downloaded the first time it is used, into the cache of the
+user the job runs as; a node without internet access then needs it
+downloaded beforehand.
+
+## In the Calculation Editor
+
+The Notes row under the controls says that **MLP energies are for screening,
+not for reporting**. When the structure has a charge or a multiplicity above
+1, it also says **MACE-MP has no charge or spin; this result ignores both**.
+The calculation can still be run: the potential sees a neutral closed-shell
+structure.
 
 ## Theory: MACE
 
@@ -84,6 +120,29 @@ at the Progress box, which shows the step, the energy and the largest force
 as the run goes. The number of CPU threads is the processor count chosen in
 the Launcher.
 
+**Vibration** gives the harmonic frequencies and normal modes at the given
+geometry, for a molecule or a periodic structure. The Hessian is built from
+central differences of the forces: each atom is moved by plus and minus a
+small step along x, y and z, so the run takes 6N force calculations for N
+atoms. **Runtype Details** has:
+
+- **Displacement** (A, 0.01 by default): the step. Smaller steps follow the
+  curvature more closely but magnify the noise in the forces; between 0.005
+  and 0.02 A the frequencies agree to well within 1 cm⁻¹ for `float64`.
+
+Optimise the structure first (a Geometry run, then a new calculation from its
+last structure): at a geometry that is not a minimum the frequencies have no
+meaning, and the output warns when the largest force is above 0.05 eV/A. The
+translations, and for a molecule the rotations, are removed from the Hessian
+and listed first with a frequency of 0, as for the other codes; an imaginary
+frequency is shown as a negative number. For a periodic structure the
+frequencies are those at the centre of the Brillouin zone (the Gamma point)
+of the cell as given: a larger supercell gives more of the phonon spectrum.
+There is no dipole moment, so there are no IR intensities, and no
+thermochemistry. The modes appear in the Builder's Vibrations panel like those
+of the other codes. `float32` changes the frequencies by about 0.1 cm⁻¹ or
+less for small systems; use `float64` to be sure.
+
 ## The input file
 
 The input is one file. Line 1 is `mlp` followed by the settings, and the rest
@@ -95,6 +154,8 @@ comment line when there is one:
     Lattice="4.0 0 0 0 4.0 0 0 0 4.0" Properties=species:S:1:pos:R:3 pbc="T T T"
     Na 0.0 0.0 0.0
     Cl 2.0 2.0 2.0
+
+A Vibration run adds `delta=<step>` to line 1.
 
 ## Results
 

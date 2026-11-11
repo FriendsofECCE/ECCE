@@ -5,13 +5,14 @@
 
 The deck is what scripts/parsers/ai.mlp writes: line 1 is "mlp key=value ...",
 the rest an extended-xyz structure (a Lattice= entry makes it periodic).
-Keys: runtype (Energy|Geometry), model, dtype (float32|float64),
+Keys: runtype (Energy|Geometry|Vibration), model, dtype (float32|float64),
 dispersion (on|off), optimizer (FIRE|BFGS), relax (atoms|cell), fmax (eV/A),
-steps, timelimit (minutes, 0 = none).
+steps, timelimit (minutes, 0 = none), delta (Vibration: displacement in A).
 
 Everything goes to stdout, which ECCE reads: a header naming the model, one
 Step/Energy/Fmax block per optimiser step, each structure between
-ECCE-MLP-FRAME markers, then an ECCE-MLP-FINAL block (energy, forces, stress).
+ECCE-MLP-FRAME markers, then an ECCE-MLP-FINAL block (energy, forces, stress)
+and, for Vibration, an ECCE-MLP-VIB block (frequencies and normal modes).
 The trajectory is also written to ecce-mlp.extxyz as it goes.
 
 ECCE_MLP_MOCK=lj|emt swaps the network for an ASE calculator that needs no
@@ -78,6 +79,11 @@ def make_calculator(opts):
         return (LennardJones(sigma=2.5, epsilon=0.1, rc=8.0),
                 "mock (ASE Lennard-Jones)", "ase", "none (test calculator)")
 
+    # An environment built by ecce-mlp-setup holds the weights in
+    # <env>/cache/mace, so compute nodes need no internet.
+    cache = os.path.join(sys.prefix, "cache")
+    if os.path.isdir(os.path.join(cache, "mace")):
+        os.environ["XDG_CACHE_HOME"] = cache
     model = opts.get("model", "medium-mpa-0")
     if model not in MODELS:
         fail("unknown model '%s'; choose one of: %s" % (model, ", ".join(MODELS)))
@@ -128,13 +134,105 @@ def frame_block(index, atoms, energy):
     return "\n".join(out)
 
 
+def hessian(atoms, delta, start):
+    """Central differences of the forces, symmetrised (eV/A^2)."""
+    import numpy as np
+    pos0 = atoms.get_positions().copy()
+    n = len(atoms)
+    hess = np.zeros((3 * n, 3 * n))
+    for i in range(3 * n):
+        a, c = divmod(i, 3)
+        forces = []
+        for sign in (1, -1):
+            pos = pos0.copy()
+            pos[a, c] += sign * delta
+            atoms.set_positions(pos)
+            forces.append(atoms.get_forces().ravel())
+        hess[i] = -(forces[0] - forces[1]) / (2 * delta)
+        say("Displacement %d of %d   Time %.1f s" % (i + 1, 3 * n, time.time() - start))
+    atoms.set_positions(pos0)
+    return 0.5 * (hess + hess.T)
+
+
+def rigid_vectors(atoms):
+    """Mass-weighted translations, and for a molecule rotations, orthonormal."""
+    import numpy as np
+    m = np.sqrt(atoms.get_masses())
+    n = len(atoms)
+    vecs = []
+    for k in range(3):
+        v = np.zeros((n, 3))
+        v[:, k] = m
+        vecs.append(v.ravel())
+    if not atoms.pbc.any():
+        r = atoms.get_positions() - atoms.get_center_of_mass()
+        for k in range(3):
+            axis = np.zeros(3)
+            axis[k] = 1.0
+            vecs.append((np.cross(axis, r) * m[:, None]).ravel())
+    u, s, _ = np.linalg.svd(np.array(vecs).T, full_matrices=False)
+    # A linear molecule has one rotation fewer.
+    return u[:, s > 1e-6 * s.max()]
+
+
+def vibrations(atoms, delta, fmax, start):
+    """Harmonic frequencies and normal modes at the Gamma point.
+
+    The rigid motions (translations; rotations too for a molecule) are
+    projected out and printed as 0 first, like ORCA; the vectors are
+    Cartesian displacements normalised to 1, the form VIB holds."""
+    import numpy as np
+    from ase import units
+    if fmax > 0.05:
+        say("Warning:      the forces are not small (Fmax %.3f eV/A); the "
+            "frequencies are only meaningful at a minimum." % fmax)
+    hess = hessian(atoms, delta, start)
+    inv = 1.0 / np.sqrt(np.repeat(atoms.get_masses(), 3))
+    hm = hess * np.outer(inv, inv)
+    rigid = rigid_vectors(atoms)
+    proj = np.eye(len(hm)) - rigid @ rigid.T
+    w, v = np.linalg.eigh(proj @ hm @ proj)
+    # The same conversion as ase.vibrations: eV/A^2/amu to cm-1.
+    to_cm = units._hbar * 1e10 / np.sqrt(units._e * units._amu) / units.invcm
+    overlap = ((rigid.T @ v) ** 2).sum(axis=0)
+    order = [i for i in np.argsort(w) if overlap[i] > 0.5][:rigid.shape[1]]
+    order += [i for i in np.argsort(w) if i not in order]
+    n = len(atoms)
+    say("")
+    say("ECCE-MLP-VIB %d %d" % (3 * n, n))
+    for k, i in enumerate(order):
+        if k < rigid.shape[1]:
+            freq, disp = 0.0, np.zeros(3 * n)
+        else:
+            freq = to_cm * np.sign(w[i]) * np.sqrt(abs(w[i]))
+            disp = v[:, i] * inv
+            disp /= np.linalg.norm(disp)
+        say("mode %d %.4f" % (k + 1, freq))
+        for row in disp.reshape(n, 3):
+            say("%16.10f %16.10f %16.10f" % tuple(row))
+    say("ECCE-MLP-ENDVIB")
+    say("")
+    freqs = [to_cm * np.sign(w[i]) * np.sqrt(abs(w[i]))
+             for i in order[rigid.shape[1]:]]
+    say("Frequencies (cm-1; negative = imaginary), %d rigid motions removed:"
+        % rigid.shape[1])
+    for k in range(0, len(freqs), 6):
+        say("  " + " ".join("%10.2f" % f for f in freqs[k:k + 6]))
+    nimag = sum(1 for f in freqs if f < -1e-6)
+    if nimag:
+        say("Imaginary frequencies: %d" % nimag)
+
+
 def main():
     if len(sys.argv) != 2:
         fail("usage: ecce-mlp <deck>")
     opts, body = read_deck(sys.argv[1])
     runtype = opts.get("runtype", "Energy")
-    if runtype not in ("Energy", "Geometry"):
-        fail("runtype must be Energy or Geometry")
+    if runtype not in ("Energy", "Geometry", "Vibration"):
+        fail("runtype must be Energy, Geometry or Vibration")
+    delta = number(opts, "delta", 0.01)
+    if not 0 < delta <= 0.1:
+        fail("delta must be between 0 and 0.1 A")
     fmax = number(opts, "fmax", 0.05)
     steps = number(opts, "steps", 200, int)
     limit = number(opts, "timelimit", 0.0) * 60.0
@@ -177,6 +275,11 @@ def main():
         say("convergence: fmax %g eV/A" % fmax)
         say("Limits:       %d steps%s" % (steps, ", %g minutes" % (limit / 60)
                                          if limit > 0 else ""))
+    if runtype == "Vibration":
+        say("Hessian:      central differences of the forces, step %g A, "
+            "%d force calls" % (delta, 6 * len(atoms)))
+    if os.environ.get("XDG_CACHE_HOME", "").startswith(sys.prefix):
+        say("Weights:      cached in %s" % os.environ["XDG_CACHE_HOME"])
     say("Note:         energies are for screening, not for reporting.")
     say("")
 
@@ -202,8 +305,10 @@ def main():
         return fm
 
     converged = True
-    if runtype == "Energy":
-        record(atoms)
+    if runtype in ("Energy", "Vibration"):
+        fm = record(atoms)
+        if runtype == "Vibration":
+            vibrations(atoms, delta, fm, start)
     else:
         from ase.optimize import BFGS, FIRE
         target = atoms

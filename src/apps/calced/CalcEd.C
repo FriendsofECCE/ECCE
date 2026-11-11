@@ -479,7 +479,7 @@ void CalcEd::createCodeButtons()
                                wxCUSTBUT_BUT_DCLICK_TOG);
       codeButton->SetClientData((void*)it);
       codeButton->SetMargins(margins);
-      codeButton->SetToolTip(codes[it]);
+      codeButton->SetToolTip(CodeFactory::displayName(codes[it]));
       const string& c = codes[it];
       const int g = c=="GROMACS" ? 3
                   : (c=="QuantumESPRESSO" || c=="CP2K" || c=="MLP") ? 2
@@ -733,7 +733,7 @@ void CalcEd::doSetContext(const string& codeName)
 
   fixBuilderButtonId();
 
-  SetTitle("ECCE " + p_code->name() + " Editor");
+  SetTitle("ECCE " + CodeFactory::displayName(p_code->name()) + " Editor");
   p_detailsBox->SetLabel(p_code->name() + " Settings");
 
   createCodeButtons();
@@ -1213,6 +1213,7 @@ void CalcEd::OnComboboxCalcedChargeSelected( wxCommandEvent& event )
       p_fullFrag->charge(value);
       updateChemSysFields();
       restrictSpinByCharge();
+      updateNotes();
     }
   }
 
@@ -1232,6 +1233,7 @@ void CalcEd::OnComboboxCalcedSpinMultSelected( wxCommandEvent& event )
   setOpenShells(getSpinMult() - 1);
   restrictTheoriesBySpin();
   enableSave();
+  updateNotes();
 
   event.Skip();
 }
@@ -1245,6 +1247,7 @@ void CalcEd::OnComboboxCalcedSpinMultEnter( wxCommandEvent& event )
     setOpenShells(getSpinMult() - 1);
     restrictTheoriesBySpin();
     enableSave();
+    updateNotes();
   }
 
   event.Skip();
@@ -1563,6 +1566,14 @@ void CalcEd::updateNotes()
   }
   for (const string& w : tsWarnings())
     note += string(note.empty() ? "" : "\n") + w;
+  if (p_codeName == "MLP") {
+    note += string(note.empty() ? "" : "\n") +
+        "MLP energies are for screening, not for reporting.";
+    //  Only a warning: the run goes ahead with a neutral closed-shell model.
+    if ((p_frag != NULL && p_frag->charge() != 0) ||
+        getSpinMult() > SpinMult::singlet)
+      note += "\nMACE-MP has no charge or spin; this result ignores both.";
+  }
   if (!p_notReadyWhy.empty())
     note += string(note.empty() ? "" : "\n") + p_notReadyWhy;
   const wxString text = wxString::FromUTF8(note);

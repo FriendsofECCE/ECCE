@@ -37,6 +37,9 @@ class CodeFactory
   // i.e. calculations can be created with it.  A code with only an .edml and
   // a job-script sub (groundwork) is not registered.
   static bool isRegistered(const string& codeName);
+  // The name users see; the stored code id stays as it is, so old
+  // calculations still open.
+  static string displayName(const string& codeName);
 
   protected:
 

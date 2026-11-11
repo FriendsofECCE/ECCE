@@ -35,6 +35,58 @@ Cl 2.85 2.85 2.85
 """
 
 
+# Runs in the MACE environment: ase.vibrations as the reference.  The
+# molecule is relaxed first so the rigid motions (projected out by ecce-mlp,
+# not by ase) do not mix with the vibrations.
+REFERENCE = r"""
+import io, json, sys
+from ase.io import read, write
+from ase.optimize import BFGS
+from ase.vibrations import Vibrations
+from mace.calculators import mace_mp
+atoms = read(io.StringIO(sys.stdin.read()), format="extxyz")
+atoms.calc = mace_mp(model="medium-mpa-0", default_dtype=sys.argv[1])
+if not atoms.pbc.any():
+    BFGS(atoms, logfile=None).run(fmax=1e-4)
+vib = Vibrations(atoms, delta=0.01)
+vib.clean(); vib.run(); f = vib.get_frequencies(); vib.clean()
+buf = io.StringIO()
+write(buf, atoms, format="extxyz", columns=["symbols", "positions"])
+print(json.dumps({"freq": [x.real if abs(x.imag) < 1e-9 else -abs(x.imag) for x in f],
+                  "xyz": buf.getvalue()}))
+"""
+
+
+def vibration_checks(python, env, work, a, check):
+    import json
+    h = a / 2
+    nacl = ("8\nLattice=\"%g 0 0 0 %g 0 0 0 %g\" Properties=species:S:1:pos:R:3 pbc=\"T T T\"\n"
+            % (a, a, a)) + "".join("%s %g %g %g\n" % (s, x * h, y * h, z * h) for s, x, y, z in
+            [("Na", 0, 0, 0), ("Na", 1, 1, 0), ("Na", 1, 0, 1), ("Na", 0, 1, 1),
+             ("Cl", 1, 0, 0), ("Cl", 0, 1, 0), ("Cl", 0, 0, 1), ("Cl", 1, 1, 1)])
+    water = "3\nProperties=species:S:1:pos:R:3\nO 0 0 0\nH 0.76 0.59 0\nH -0.76 0.59 0\n"
+    for what, structure, nrigid in (("water", water, 6), ("NaCl (Gamma)", nacl, 3)):
+        for dtype in ("float64", "float32"):
+            ref = subprocess.run([python, "-c", REFERENCE, dtype], input=structure, cwd=work,
+                                 stdout=subprocess.PIPE, universal_newlines=True, env=env)
+            data = json.loads(ref.stdout.strip().splitlines()[-1])
+            deck = os.path.join(work, "vib.mlpin")
+            with open(deck, "w") as handle:
+                handle.write("mlp runtype=Vibration model=medium-mpa-0 dtype=%s delta=0.01\n%s"
+                             % (dtype, data["xyz"]))
+            res = subprocess.run([python, RUNNER, deck], cwd=work, env=env,
+                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                 universal_newlines=True)
+            ours = [float(f) for f in re.findall(r"^mode \d+ (\S+)", res.stdout, re.M)]
+            want = sorted(sorted(data["freq"], key=abs)[nrigid:])
+            got = sorted(ours[nrigid:])
+            diff = max(abs(x - y) for x, y in zip(got, want)) if got else 99
+            print("  %s %s: %s" % (what, dtype, " ".join("%.1f" % f for f in got)))
+            check(len(ours) == len(data["freq"]) and diff < 1.0,
+                  "%s, %s: frequencies match ase.vibrations to 1 cm-1 (max diff %.3f)"
+                  % (what, dtype, diff))
+
+
 def main():
     python = os.path.expanduser(os.environ.get("ECCE_MLP_PYTHON", sys.executable))
     probe = subprocess.run([python, "-c", "import mace, torch, ase"],
@@ -75,6 +127,7 @@ def main():
         per_atom = float(m.group(1)) / 8
         check(-4.0 < per_atom < -2.8, "energy %.3f eV/atom is in the range for NaCl" % per_atom)
     check(os.path.exists(os.path.join(work, "ecce-mlp.extxyz")), "the extxyz trajectory exists")
+    vibration_checks(python, env, work, a if cells else 5.7, check)
     print("")
     if failures:
         print("FAILED (%d): %s" % (len(failures), "; ".join(failures)))

@@ -59,8 +59,20 @@ class MlpRunTypePanel(EccePanel):
                 label="A run that reaches a limit keeps its last structure."))
             self.panelSizer.Add(optSizer)
 
-        self.panelSizer.Add(wx.StaticText(self,
-            label="These energies are for screening, not for reporting."))
+        if EcceGlobals.RunType == "Vibration":
+            vibSizer = EcceBoxSizer(self, label="Vibrations", cols=1)
+            # Central differences: 6N force calls at +/- this step.
+            self.step = EcceFloatInput(self,
+                                       unit="A",
+                                       name="ES.Runtype.Vibration.Step",
+                                       default=0.01,
+                                       hardRange="(0..0.1]",
+                                       softRange="[0.001..0.05]",
+                                       label="Displacement:",
+                                       export=1)
+            vibSizer.AddWidget(self.step)
+            self.panelSizer.Add(vibSizer)
+
         self.AddButtons()
 
     def CheckDependency(self):
@@ -68,6 +80,6 @@ class MlpRunTypePanel(EccePanel):
 
 
 frame = MlpRunTypeFrame(None,
-                        title="ECCE ML Potential Editor: Runtype Details",
+                        title="ECCE MLP (MACE) Editor: Runtype Details",
                         app=app,
                         helpURL="")

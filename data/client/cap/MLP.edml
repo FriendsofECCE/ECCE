@@ -27,6 +27,7 @@
   <Theory category="SE" name="MACE" needsBasis="false">
     <runtype>Energy</runtype>
     <runtype>Geometry</runtype>
+    <runtype>Vibration</runtype>
   </Theory>
 
   <TheorySummary>
@@ -46,6 +47,9 @@
   </RuntypeSummary>
   <RuntypeSummary>
     <item key="ES.Runtype.GeomOpt.Fmax" label="Force Limit (eV/A)"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.Vibration.Step" label="Displacement (A)"></item>
   </RuntypeSummary>
 </Editor>
 

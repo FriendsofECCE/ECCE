@@ -1,7 +1,5 @@
 from templates import *
 
-NOTE = "These energies are for screening, not for reporting."
-
 # MIT first; the ASL models get a licence notice when chosen.
 MODELS = ["medium-mpa-0", "medium-0b3", "small", "medium", "large",
           "medium-omat-0 (ASL)", "small-omat-0 (ASL)",
@@ -47,8 +45,6 @@ class MlpTheoryPanel(EccePanel):
         modelSizer.AddWidget(self.dispersion)
         self.panelSizer.Add(modelSizer)
 
-        modelSizer.AddWidget(wx.StaticText(self, label=NOTE))
-
         self.AddButtons()
 
     def CheckDependency(self):
@@ -57,6 +53,6 @@ class MlpTheoryPanel(EccePanel):
 
 
 frame = MlpTheoryFrame(None,
-                       title="ECCE ML Potential Editor: Theory Details",
+                       title="ECCE MLP (MACE) Editor: Theory Details",
                        app=app,
                        helpURL="")

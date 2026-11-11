@@ -248,8 +248,8 @@ sub CommentLine {
 sub OptionLine {
   my @kw = ("mlp");
   my $runtype = $AbiDict{"RunType"};
-  die "ai.mlp error: unsupported runtype '$runtype' (Energy and Geometry only)\n"
-    if ($runtype ne "Energy" && $runtype ne "Geometry");
+  die "ai.mlp error: unsupported runtype '$runtype' (Energy, Geometry and Vibration only)\n"
+    if ($runtype ne "Energy" && $runtype ne "Geometry" && $runtype ne "Vibration");
   push(@kw, "runtype=$runtype");
   push(@kw, "model=" . &Model);
   push(@kw, "dtype=" . &Precision);
@@ -265,6 +265,8 @@ sub OptionLine {
     push(@kw, "steps=" . int(&Positive("ES.Runtype.GeomOpt.MaxSteps", 200)));
     push(@kw, "timelimit=" . &NonNegative("ES.Runtype.GeomOpt.TimeLimit", 0));
   }
+  push(@kw, "delta=" . &Positive("ES.Runtype.Vibration.Step", 0.01))
+    if ($runtype eq "Vibration");
   return join(" ", @kw);
 }
 
