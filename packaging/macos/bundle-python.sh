@@ -51,6 +51,11 @@ esac
   --disable-pip-version-check --no-deps --no-compile --only-binary=:all: \
   --platform "$np_plat" --target "$DEST/lib/python3.13/site-packages" --upgrade \
   "numpy==2.2.6"
+# numpy's command-line tools are not used, and its build record names the
+# machine numpy was built on; the release check rejects build paths.
+rm -rf "$DEST/lib/python3.13/site-packages/bin"
+sed -i '' 's|/Users/runner/work/numpy/numpy|numpy-build|g' \
+  "$DEST/lib/python3.13/site-packages/numpy/__config__.py"
 
 # Not needed to run the dialogs: the package tools, Tk, docs, tests, headers.
 P=$DEST/lib/python3.13
