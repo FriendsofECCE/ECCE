@@ -45,6 +45,7 @@
 #include "MemoryUnits.H"
 #include "SchedulerQuery.H"
 #include "RemoteFileChooser.H"
+#include <wx/choicdlg.h>
 #include <wx/filedlg.h>
 #include <wx/filename.h>
 #include "WxMachineRegister.H"
@@ -1270,18 +1271,26 @@ void WxMachineRegister::setupMlp()
         displayMessage("Cannot read " + script + ".");
         return;
     }
+    //  ECCE's optimiser/dynamics driver as one source file, built there by
+    //  the set-up script (a cluster has no ECCE installation).
+    std::ifstream drv((string(Ecce::ecceHome()) + "/scripts/ecce-mlp-driver.cpp").c_str());
+    std::stringstream driver;
+    driver << drv.rdbuf();
     string dir = "~/ecce-mlp";
+    string torch = "cpu";
     if (p_scripted)
     {
         const char* d = getenv("ECCE_TEST_MLP_SETUP_DIR");
         if (d && *d) dir = d;
-        fprintf(stderr, "[MACHREG] mlp setup in %s\n", dir.c_str());
+        const char* t = getenv("ECCE_TEST_MLP_SETUP_TORCH");
+        if (t && (string(t) == "cuda" || string(t) == "auto")) torch = t;
+        fprintf(stderr, "[MACHREG] mlp setup in %s (%s)\n", dir.c_str(), torch.c_str());
     }
     else
     {
         wxTextEntryDialog ask(this,
             "ECCE will create a Python environment in this folder on " +
-            machine + ": PyTorch (CPU-only unless an NVIDIA GPU is found), "
+            machine + ": PyTorch (CPU or GPU build, asked next), "
             "mace-torch and ASE, and download the MACE model medium-mpa-0 "
             "into it, so compute nodes need no internet. This downloads about "
             "1 GB (more with a GPU) and takes several minutes.\n\nFolder:",
@@ -1291,15 +1300,32 @@ void WxMachineRegister::setupMlp()
         dir = stripped((string)ask.GetValue());
         if (dir.empty())
             return;
+        //  The CUDA build of PyTorch is several GB; CPU suits most machines.
+        wxArrayString builds;
+        builds.Add("CPU (about 1.5 GB in all)");
+        builds.Add("NVIDIA GPU, CUDA (several GB more)");
+        wxSingleChoiceDialog which(this,
+            "Which PyTorch build should the environment on " + machine +
+            " have? Choose the GPU build only if the machine that runs the "
+            "calculations (on a cluster: the compute nodes) has an NVIDIA GPU.",
+            "Set up MLP (MACE)", builds);
+        which.SetSelection(0);
+        if (which.ShowModal() != wxID_OK)
+            return;
+        torch = which.GetSelection() == 1 ? "cuda" : "cpu";
     }
     const string d = "d=" + shellFolder(dir) + "\n";
     const string start = d +
         "mkdir -p \"$d\" || exit 1\n"
         "cat > \"$d/ecce-mlp-setup\" <<'ECCE_MLP_SETUP_EOF'\n" + source.str() +
-        "ECCE_MLP_SETUP_EOF\n"
+        "ECCE_MLP_SETUP_EOF\n" +
+        (driver.str().empty() ? string() :
+         "cat > \"$d/ecce-mlp-driver.cpp\" <<'ECCE_MLP_DRIVER_EOF'\n" + driver.str() +
+         "ECCE_MLP_DRIVER_EOF\n") +
         "rm -f \"$d/setup.status\"\n"
         "if command -v setsid >/dev/null 2>&1; then s=setsid; else s=; fi\n"
-        "nohup $s sh \"$d/ecce-mlp-setup\" \"$d\" > \"$d/setup.log\" 2>&1 < /dev/null &\n"
+        "nohup $s sh \"$d/ecce-mlp-setup\" \"$d\" medium-mpa-0 " + torch +
+        " > \"$d/setup.log\" 2>&1 < /dev/null &\n"
         "echo ECCE-MLP-SETUP-STARTED\n";
     SchedulerQuery::Remote r(this->connection());
     string output, err;
@@ -1319,7 +1345,10 @@ void WxMachineRegister::setupMlp()
     }
     const string poll = d +
         "grep '^ECCE-MLP-SETUP step' \"$d/setup.log\" 2>/dev/null | tail -n 1\n"
-        "tail -n 1 \"$d/setup.log\" 2>/dev/null\n"
+        //  A download's progress line ends in CR and has no newline yet, so
+        //  without the printf ECCE-ALIVE would be glued to it and missed.
+        "printf '%s\\n' \"$(tail -n 1 \"$d/setup.log\" 2>/dev/null | tr '\\r' '\\n' | "
+        "grep . | tail -n 1)\"\n"
         "if [ -f \"$d/setup.pid\" ] && kill -0 \"$(cat \"$d/setup.pid\")\" 2>/dev/null; "
         "then echo ECCE-ALIVE; fi\n"
         "echo ECCE-STATUS; cat \"$d/setup.status\" 2>/dev/null; exit 0\n";

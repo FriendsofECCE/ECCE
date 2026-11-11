@@ -59,6 +59,8 @@ def run(work, opts, structure, mock="lj"):
         handle.write("mlp " + opts + "\n" + structure)
     env = dict(os.environ)
     env.pop("ECCE_MLP_MOCK", None)
+    # The ASE path; ecce-mlp-driver has its own test (driver_test.py).
+    env["ECCE_MLP_ENGINE"] = "ase"
     if mock:
         env["ECCE_MLP_MOCK"] = mock
     res = subprocess.run([sys.executable, RUNNER, deck], cwd=work, env=env,
@@ -264,7 +266,11 @@ def main():
         rc, text = deck(base + "RunType:\tVibration\nES.Runtype.Vibration.Step:\t0.005\n", False)
         check(rc == 0 and text.splitlines()[0].endswith(" delta=0.005"),
               "Vibration line: %r" % text.splitlines()[0])
-        rc, text = deck(base + "RunType:\tMolecular Dynamics\n", False)
+        rc, text = deck(base + "RunType:\tMolecular Dynamics\nES.Runtype.MD.Ensemble:\tNVE\n", False)
+        check(rc == 0 and " runtype=MD " in text.splitlines()[0] and
+              " ensemble=NVE timestep=1 temperature=300 tau=100 mdsteps=1000 every=10 seed=1"
+              in text.splitlines()[0], "MD line: %r" % text.splitlines()[0])
+        rc, text = deck(base + "RunType:\tGradient\n", False)
         check(rc != 0, "an unsupported run type is refused")
 
         print("--- Vibration against ase.vibrations (EMT mock)")

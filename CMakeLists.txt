@@ -1392,7 +1392,15 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_si_export.py
         COMPONENT client)
 
 # scripts/ecce-mlp (#728): gensub copies it into the run directory of an ML
-# Potential job, so it only has to exist on the client.
+# Potential job, so it only has to exist on the client.  ecce-mlp-driver
+# (src/mlp) runs its optimisers and dynamics; its one-file source goes to
+# scripts/ for ecce-mlp-setup to compile on a machine without ECCE.
+if(UNIX)
+  add_subdirectory(src/mlp)
+  install(TARGETS ecce-mlp-driver RUNTIME DESTINATION bin COMPONENT client)
+  install(FILES ${CMAKE_BINARY_DIR}/src/mlp/ecce-mlp-driver.cpp
+          DESTINATION scripts COMPONENT client)
+endif()
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp
                  ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp-setup
         DESTINATION scripts
@@ -2798,6 +2806,15 @@ add_test(NAME mlp_mace
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/mlp/mace_test.py)
 set_tests_properties(mlp_mace PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+# ecce-mlp-driver against ASE (#728), built-in Lennard-Jones; the real-MACE
+# part needs --mace <python> and is run by hand.
+if(TARGET ecce-mlp-driver)
+  add_test(NAME mlp_driver
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_SOURCE_DIR}/tests/mlp/driver_test.py
+                   --driver $<TARGET_FILE:ecce-mlp-driver>)
+  set_tests_properties(mlp_driver PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+endif()
 
 # tests/minff -- MINFF topology builder (scripts/minff_topology.py, #241)
 # against atomipy run directly, then grompp + a short EM.  SKIPs (77)

@@ -2463,6 +2463,9 @@ sub mlp()
   $retval .= "OMP_NUM_THREADS=$::totalprocs; export OMP_NUM_THREADS\n";
   $retval .= "MKL_NUM_THREADS=$::totalprocs; export MKL_NUM_THREADS\n";
   $retval .= "rm -f ecce-mlp.extxyz\n";
+  # ECCE's optimiser/dynamics driver, when this machine has it here; on a
+  # cluster ecce-mlp-setup builds it into the environment instead.
+  $retval .= "ECCE_MLP_DRIVER=$::ecceHome/bin/ecce-mlp-driver; export ECCE_MLP_DRIVER\n";
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } else {

@@ -1,13 +1,26 @@
 #!/usr/bin/env python3
-"""ecce-mlp: energy and geometry with a machine-learned potential, through ASE.
+"""ecce-mlp: energy, geometry, vibrations and dynamics with a machine-learned
+potential.
 
     ecce-mlp <deck>
+    ecce-mlp --worker          (started by ecce-mlp-driver)
+
+The optimisers, cell relaxation, dynamics and vibrations are ECCE's own
+(ecce-mlp-driver, C++, src/mlp); this script hands the deck to it and then
+serves as its worker, which only runs the network: one request per
+structure over a pipe, energy, forces and stress back.  ecce-mlp-driver is
+looked for in $ECCE_MLP_DRIVER, next to this Python (ecce-mlp-setup builds it
+there) and on PATH.  engine=ase in the deck, ECCE_MLP_ENGINE=ase, or no driver
+found: the former ASE optimisers (kept as the reference the tests compare
+with; no MD).
 
 The deck is what scripts/parsers/ai.mlp writes: line 1 is "mlp key=value ...",
 the rest an extended-xyz structure (a Lattice= entry makes it periodic).
-Keys: runtype (Energy|Geometry|Vibration), model, dtype (float32|float64),
+Keys: runtype (Energy|Geometry|Vibration|MD), model, dtype (float32|float64),
 dispersion (on|off), optimizer (FIRE|BFGS), relax (atoms|cell), fmax (eV/A),
-steps, timelimit (minutes, 0 = none), delta (Vibration: displacement in A).
+steps, timelimit (minutes, 0 = none), pressure (GPa, with relax=cell),
+delta (Vibration: displacement in A); MD: ensemble (NVE|NVT), timestep (fs),
+temperature (K), tau (fs, NVT), mdsteps, every (frame interval), seed.
 
 Everything goes to stdout, which ECCE reads: a header naming the model, one
 Step/Energy/Fmax block per optimiser step, each structure between
@@ -15,8 +28,9 @@ ECCE-MLP-FRAME markers, then an ECCE-MLP-FINAL block (energy, forces, stress)
 and, for Vibration, an ECCE-MLP-VIB block (frequencies and normal modes).
 The trajectory is also written to ecce-mlp.extxyz as it goes.
 
-ECCE_MLP_MOCK=lj|emt swaps the network for an ASE calculator that needs no
-model; it exists for the tests and the numbers mean nothing.
+ECCE_MLP_MOCK=lj|emt swaps the network for a calculator that needs no model:
+lj is built into ecce-mlp-driver (no Python packages needed), emt is ASE's.
+They exist for the tests and the numbers mean nothing.
 """
 
 import io
@@ -223,13 +237,84 @@ def vibrations(atoms, delta, fmax, start):
         say("Imaginary frequencies: %d" % nimag)
 
 
+def find_driver():
+    """ecce-mlp-driver, or None."""
+    import shutil
+    for path in (os.environ.get("ECCE_MLP_DRIVER", ""),
+                 os.path.join(sys.prefix, "bin", "ecce-mlp-driver"),
+                 shutil.which("ecce-mlp-driver") or ""):
+        if path and os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+    return None
+
+
+def worker():
+    """Serve ecce-mlp-driver: the network only.  Requests on stdin, replies
+    on fd 3, so that what torch and mace print stays in the job output."""
+    import numpy as np
+    reply = os.fdopen(3, "w")
+    head = sys.stdin.readline().split()
+    if len(head) != 6 or head[0] != "init":
+        sys.exit("ecce-mlp --worker: bad init line")
+    n, pbc = int(head[1]), head[2] == "1"
+    symbols = sys.stdin.readline().split()
+    opts = {"model": head[3], "dtype": head[4], "dispersion": head[5]}
+    try:
+        calc, name, version, licence = make_calculator(opts)
+        from ase import Atoms
+    except SystemExit:
+        reply.write("error\tthe model could not be loaded (see above)\n")
+        reply.flush()
+        raise
+    atoms = Atoms(symbols, positions=np.zeros((n, 3)), pbc=pbc)
+    atoms.calc = calc
+    cache = os.environ.get("XDG_CACHE_HOME", "")
+    weights = cache if cache.startswith(sys.prefix) else "-"
+    reply.write("ok\t%s\t%s\t%s\t%s\n" % (name, version, licence, weights))
+    reply.flush()
+    while True:
+        line = sys.stdin.readline()
+        if not line or line.strip() != "eval":
+            break
+        cell = sys.stdin.readline().split()
+        pos = np.array(sys.stdin.readline().split(), dtype=float).reshape(n, 3)
+        try:
+            if pbc:
+                atoms.set_cell(np.array(cell, dtype=float).reshape(3, 3))
+            atoms.set_positions(pos)
+            energy = atoms.get_potential_energy()
+            forces = atoms.get_forces()
+            stress = atoms.get_stress() if pbc else None
+        except Exception as err:
+            reply.write("error %s\n" % str(err).replace("\n", " "))
+            reply.flush()
+            break
+        reply.write("ok %r\n%s\n%s\n" % (
+            float(energy), " ".join(repr(float(v)) for v in forces.ravel()),
+            "none" if stress is None else " ".join(repr(float(v)) for v in stress)))
+        reply.flush()
+
+
 def main():
+    if sys.argv[1:] == ["--worker"]:
+        worker()
+        return
     if len(sys.argv) != 2:
         fail("usage: ecce-mlp <deck>")
     opts, body = read_deck(sys.argv[1])
     runtype = opts.get("runtype", "Energy")
-    if runtype not in ("Energy", "Geometry", "Vibration"):
-        fail("runtype must be Energy, Geometry or Vibration")
+    if runtype not in ("Energy", "Geometry", "Vibration", "MD"):
+        fail("runtype must be Energy, Geometry, Vibration or MD")
+    engine = os.environ.get("ECCE_MLP_ENGINE") or opts.get("engine", "ecce")
+    driver = find_driver() if engine != "ase" else None
+    if driver:
+        sys.stdout.flush()
+        os.execv(driver, [driver, sys.argv[1], sys.executable,
+                          os.path.abspath(__file__)])
+    if runtype == "MD":
+        fail("molecular dynamics needs ecce-mlp-driver, which was not found "
+             "(ECCE_MLP_DRIVER, %s, PATH); Set up in Register Machines builds "
+             "it" % os.path.join(sys.prefix, "bin"))
     delta = number(opts, "delta", 0.01)
     if not 0 < delta <= 0.1:
         fail("delta must be between 0 and 0.1 A")
@@ -266,6 +351,8 @@ def main():
         say("Notice:       " + ASL_NOTICE)
     say("Precision:    %s" % opts.get("dtype", "float32"))
     say("Dispersion:   %s" % opts.get("dispersion", "off"))
+    say("Engine:       ASE%s" % ("" if engine == "ase" else
+                                  " (ecce-mlp-driver not found)"))
     say("Run type:     %s" % runtype)
     say("Atoms:        %d   periodic: %s" % (len(atoms), "yes" if periodic else "no"))
     if runtype == "Geometry":
@@ -317,7 +404,8 @@ def main():
                 from ase.filters import FrechetCellFilter
             except ImportError:
                 fail("relax=cell needs ASE 3.23 or newer (FrechetCellFilter)")
-            target = FrechetCellFilter(atoms)
+            target = FrechetCellFilter(
+                atoms, scalar_pressure=number(opts, "pressure", 0.0) / 160.21766208)
         opt = (FIRE if optimizer == "FIRE" else BFGS)(target, logfile=None)
         opt.attach(lambda: record(target), interval=1)
         converged = False

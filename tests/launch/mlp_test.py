@@ -178,6 +178,29 @@ def main():
             check(ver and "Lennard-Jones" in ver[0] and "licence" in ver[0],
                   "the model, version and licence are stored: %r" % ver[:1])
 
+        say("--- Molecular Dynamics, NVT, through ecce-mlp-driver")
+        text, rc = deck(NACL, "Molecular Dynamics",
+                        "ES.Runtype.MD.Steps:\t40\n"
+                        "ES.Runtype.MD.Every:\t10\n"
+                        "ES.Runtype.MD.TimeStep:\t2\n")
+        first = text.splitlines()[0]
+        check(rc == 0 and "runtype=MD " in first and
+              "ensemble=NVT timestep=2 temperature=300 " in first,
+              "MD deck: %r" % first)
+        calc = runJob(s, "d-%d" % int(time.time()), text, work, rundir, NACL)
+        if calc:
+            out = storedOutput(calc)
+            check("Engine:       ECCE" in out and "MD finished" in out,
+                  "the driver ran the dynamics")
+            props = s.props("file://" + calc)
+            for key in ("GEOMTRACE", "TEVEC", "TIMEVEC", "LATTICEVEC"):
+                check(key in props, "%s present in Props/" % key)
+            times = numbers(calc, "TIMEVEC")
+            check(len(times) == 5 and abs(times[-1] - 0.08) < 1e-9 and
+                  len(numbers(calc, "TEVEC")) == 5 and
+                  len(numbers(calc, "GEOMTRACE")) == 5 * 8 * 3,
+                  "5 frames, one time each, last at 0.08 ps: %r" % times)
+
         say("--- stopped at the step limit")
         text, rc = deck(NACL, "Geometry",
                         "ES.Runtype.GeomOpt.RelaxCell:\t1\n"

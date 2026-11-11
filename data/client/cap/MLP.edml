@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8" ?>
 
 <!--
-   Machine-learned potential (ASE) registration, stage 1: energy and geometry
-   (atoms, and the cell of a periodic structure) with MACE.  Modeled on
-   xTB.edml.  The potential is a calculator behind ASE, so another backend
-   is another Theory.
+   Machine-learned potential registration: energy, geometry (atoms, and the
+   cell of a periodic structure), vibrations and MD with MACE.  Modeled on
+   xTB.edml.  The optimisers and dynamics are ECCE's ecce-mlp-driver; the
+   network is an ASE calculator in a Python worker, so another backend is
+   another Theory.
 
    No basis set, charge or spin.  The "program" registered in Register
    Machines is the Python of an environment that has ASE and mace-torch;
@@ -28,6 +29,7 @@
     <runtype>Energy</runtype>
     <runtype>Geometry</runtype>
     <runtype>Vibration</runtype>
+    <runtype>Molecular Dynamics</runtype>
   </Theory>
 
   <TheorySummary>
@@ -47,6 +49,15 @@
   </RuntypeSummary>
   <RuntypeSummary>
     <item key="ES.Runtype.GeomOpt.Fmax" label="Force Limit (eV/A)"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.GeomOpt.Pressure" label="Pressure (GPa)"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.MD.Ensemble" label="Ensemble"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.MD.Steps" label="MD Steps"></item>
   </RuntypeSummary>
   <RuntypeSummary>
     <item key="ES.Runtype.Vibration.Step" label="Displacement (A)"></item>

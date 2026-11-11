@@ -1,7 +1,9 @@
-# MLP (MACE): energies, geometries and vibrations with a machine-learned potential
+# MLP (MACE): energies, geometries, vibrations and dynamics with a machine-learned potential
 
-The **MLP (MACE)** code button runs a machine-learned interatomic potential through
-ASE. The first potential is MACE, trained on a large set of DFT calculations
+The **MLP (MACE)** code button runs a machine-learned interatomic potential.
+The network runs in Python (PyTorch and `mace-torch`); the optimisers, the
+cell relaxation, the molecular dynamics and the vibrations are ECCE's own
+(`ecce-mlp-driver`). The first potential is MACE, trained on a large set of DFT calculations
 of crystals (MACE-MP-0 and its successors). It gives an energy, the forces
 and, for a periodic cell, the stress in seconds to minutes where a DFT
 calculation takes hours. It is meant for screening: relaxing many candidate
@@ -16,20 +18,29 @@ that are alike. They are not DFT energies and are not a result to quote.
 ECCE does not ship PyTorch, MACE or any model weights. **Register Machines**
 builds the environment for you: on the **Codes** tab of the machine, select
 **MLP (MACE)** and press **Set up...** next to **Program**. Give a folder on
-that machine (`~/ecce-mlp` by default). ECCE then, on that machine:
+that machine (`~/ecce-mlp` by default), then the PyTorch build:
+
+- **CPU** (the default): about 1.5 GB in all; right for most machines.
+- **NVIDIA GPU, CUDA**: several GB more. Choose it only when the machine
+  that runs the calculations (on a cluster, the compute nodes) has an NVIDIA
+  GPU.
+
+ECCE then, on that machine:
 
 1. creates a Python environment in `<folder>/venv` (this needs Python 3 with
    its `venv` module; on Debian or Ubuntu: `apt install python3-venv`);
-2. installs PyTorch, the CPU-only build unless `nvidia-smi` finds an NVIDIA
-   GPU, in which case the CUDA build;
+2. installs PyTorch, the build you chose;
 3. installs `mace-torch` and ASE;
 4. downloads the default model, `medium-mpa-0`, into `<folder>/venv/cache`,
    where the job looks first, so compute nodes need no internet access;
-5. checks that the new environment imports them,
+5. checks that the new environment imports them and builds ECCE's
+   optimiser and dynamics program, `ecce-mlp-driver`, into
+   `<folder>/venv/bin` with the machine's C++ compiler (`c++`, C++17; on
+   Debian or Ubuntu: `apt install g++`),
 
 and sets **Program** to `<folder>/venv/bin/python`. A window shows the step
 and the last line of the log, `<folder>/setup.log`; **Cancel** stops the
-set-up. The CPU-only environment takes about 1 GB of disk and several minutes,
+set-up. The CPU-only environment takes about 1.5 GB of disk and several minutes,
 most of it the PyTorch download. For a cluster, choose a folder the compute
 nodes can read (usually under your home directory): the set-up runs on the
 login node over the machine's own connection.
@@ -38,13 +49,19 @@ The same steps without the window, on any Linux or macOS machine:
 
     sh $ECCE_HOME/scripts/ecce-mlp-setup ~/ecce-mlp
 
-The GPU test runs where the set-up runs. On a cluster whose login node has no
-GPU but whose compute nodes do (or the other way round), run the script by
-hand with the build named, `cpu` or `cuda`:
+This builds the CPU version. For the GPU build name it, `cuda`; `auto` picks
+CUDA when `nvidia-smi` finds a GPU on the machine where the script runs:
 
     sh ecce-mlp-setup ~/ecce-mlp medium-mpa-0 cuda
 
-The CUDA build is several GB.
+The script builds `ecce-mlp-driver` only when `ecce-mlp-driver.cpp` is in the
+folder; copy it there from `$ECCE_HOME/scripts` first.
+
+**Without `ecce-mlp-driver`** (no C++ compiler on the machine, or a
+hand-made environment) the job falls back to ASE's optimisers and says so in
+the output (`Engine: ASE`); Energy, Geometry and Vibration still work, but
+there is no Molecular Dynamics. On the machine ECCE runs on, the driver
+installed with ECCE is used.
 
 To set up by hand instead, make an environment that has `ase` and
 `mace-torch` and set **Program** to its Python, such as
@@ -95,15 +112,20 @@ elements and the positions.
 **Energy** gives the energy, the forces and, for a periodic structure, the
 stress, at the given geometry.
 
-**Geometry** relaxes the atoms with ASE's optimiser. **Runtype Details** has:
+**Geometry** relaxes the atoms. **Runtype Details** has:
 
 - **Optimizer**: FIRE (the default, robust for a poor starting structure) or
-  BFGS (fewer steps near the minimum).
+  BFGS (fewer steps near the minimum). Both follow ASE's algorithms and
+  settings step for step, so they take the same path as ASE would.
 - **Relax the cell as well as the atoms.** For a periodic structure the cell
-  vectors and the atoms are relaxed together (ASE's `FrechetCellFilter`),
-  so the volume and the shape change until the stress is zero. This needs a
+  vectors and the atoms are relaxed together (the cell is varied through the
+  logarithm of its deformation, as in ASE's `FrechetCellFilter`), so the
+  volume and the shape change until the stress balances the pressure. This needs a
   cell: create one in the Builder's Periodic Builder, or the input is
   refused with a message. Without the tick the cell is kept.
+- **External pressure** (GPa, 0 by default; with the cell relaxed only): the
+  relaxation minimises the enthalpy E + pV, so the cell ends where the stress
+  equals this pressure. A negative value stretches the cell.
 - **Force limit** (eV/A, 0.05 by default): the run has converged when the
   largest force on an atom, and with the cell relaxed the corresponding stress
   term, is below this.
@@ -143,6 +165,39 @@ thermochemistry. The modes appear in the Builder's Vibrations panel like those
 of the other codes. `float32` changes the frequencies by about 0.1 cm⁻¹ or
 less for small systems; use `float64` to be sure.
 
+**Molecular Dynamics** integrates Newton's equations with velocity Verlet,
+for a molecule or a periodic box (periodic boundary conditions in all three
+directions). The run starts from random velocities at the given temperature
+(Maxwell-Boltzmann, with no overall drift). **Runtype Details** has:
+
+- **Ensemble**: **NVT (Bussi thermostat)**, the default, keeps the
+  temperature by rescaling the velocities stochastically (Bussi, Donadio and
+  Parrinello, 2007), which samples the canonical ensemble; **NVE** keeps the
+  total energy, with no thermostat.
+- **Temperature** (K, 300 by default): the thermostat's, and the starting
+  velocities' for NVE.
+- **Time step** (fs, 1 by default): 1 fs for structures with hydrogen, up
+  to 2 to 5 fs for heavier atoms only. A time step that is too long shows as
+  a total energy that drifts in NVE.
+- **Steps** (1000 by default): the length of the run is steps x time step.
+- **Thermostat time constant** (fs, 100 by default; NVT only): how fast the
+  temperature is brought back. Shorter holds it more tightly but disturbs the
+  dynamics more.
+- **Save a frame every** (steps, 10 by default): how often a structure goes
+  into the trajectory and a line into the output. Each frame is stored, so
+  keep the number of frames (steps / interval) to a few thousand at most.
+- **Random seed** (1 by default): the same seed gives the same starting
+  velocities and the same run.
+- **Time limit** in minutes (0 for none): the run stops and keeps its last
+  structure.
+
+The output has one line per saved frame with the time, the potential,
+kinetic and total energy and the temperature, and at the end the mean
+temperature and the drift of the total energy (eV per atom per ps). In ECCE
+the Builder's Geometry Trace plays the trajectory, and the energy plot is
+against time in ps. The cell is fixed during MD; atoms that leave the cell
+are not wrapped back, so molecules stay whole.
+
 ## The input file
 
 The input is one file. Line 1 is `mlp` followed by the settings, and the rest
@@ -155,7 +210,10 @@ comment line when there is one:
     Na 0.0 0.0 0.0
     Cl 2.0 2.0 2.0
 
-A Vibration run adds `delta=<step>` to line 1.
+A Vibration run adds `delta=<step>` to line 1, a cell relaxation
+`pressure=<GPa>`, and a Molecular Dynamics run `runtype=MD` with
+`ensemble=NVT|NVE timestep=<fs> temperature=<K> tau=<fs> mdsteps=<n>
+every=<n> seed=<n>`.
 
 ## Results
 

@@ -1,15 +1,17 @@
 #!/bin/sh
 # ecce-mlp-setup: build the Python environment for ECCE's MLP (MACE) code.
 #
-#     ecce-mlp-setup <folder> [model] [auto|cpu|cuda]
+#     ecce-mlp-setup <folder> [model] [cpu|cuda|auto]
 #
-# Creates <folder>/venv with PyTorch (with "auto", the default: CPU-only
-# unless nvidia-smi finds an NVIDIA GPU), mace-torch and ASE, and downloads the MACE model (default
-# medium-mpa-0) into <folder>/venv/cache/mace, where ecce-mlp looks first, so
-# compute nodes need no internet.  A cluster whose login node differs from its
-# compute nodes needs "cpu" or "cuda" given, since detection runs where this
-# script does.  The Python to register for the code is
-# <folder>/venv/bin/python.
+# Creates <folder>/venv with PyTorch (CPU-only by default, about 1.5 GB in
+# all; "cuda" is the NVIDIA build, several GB more; "auto" picks cuda when
+# nvidia-smi finds a GPU here), mace-torch and ASE, and downloads the MACE
+# model (default medium-mpa-0) into <folder>/venv/cache/mace, where ecce-mlp
+# looks first, so compute nodes need no internet.  When <folder> holds
+# ecce-mlp-driver.cpp (Register Machines sends it) and the machine has a C++
+# compiler, ECCE's optimiser/dynamics driver is built into venv/bin; without
+# it ecce-mlp falls back to ASE's optimisers and has no MD.  The Python to
+# register for the code is <folder>/venv/bin/python.
 #
 # Register Machines runs this detached on the machine (local or over ssh) and
 # follows <folder>/setup.log; the last line of <folder>/setup.status is
@@ -19,10 +21,10 @@
 # ECCE_MLP_SETUP_MOCK=1: create the environment but install and download
 # nothing (for the tests).
 
-dir=${1:?usage: ecce-mlp-setup <folder> [model] [auto|cpu|cuda]}
+dir=${1:?usage: ecce-mlp-setup <folder> [model] [cpu|cuda|auto]}
 model=${2:-medium-mpa-0}
-torch=${3:-auto}
-case "$torch" in auto|cpu|cuda) ;; *) echo "ecce-mlp-setup: the third argument is auto, cpu or cuda"; exit 1 ;; esac
+torch=${3:-cpu}
+case "$torch" in auto|cpu|cuda) ;; *) echo "ecce-mlp-setup: the third argument is cpu, cuda or auto"; exit 1 ;; esac
 base=${ECCE_MLP_SETUP_PYTHON:-python3}
 mock=${ECCE_MLP_SETUP_MOCK:-}
 
@@ -94,7 +96,16 @@ from mace.calculators.foundations_models import download_mace_mp_checkpoint as g
 print(get(sys.argv[1]))" "$model" || fail "the model $model could not be downloaded"
 fi
 
-step 5 "checking the environment"
+step 5 "checking the environment and building ecce-mlp-driver"
+if [ -f "$dir/ecce-mlp-driver.cpp" ]; then
+    cxx=${CXX:-c++}
+    if command -v "$cxx" >/dev/null 2>&1 &&
+        "$cxx" -O2 -std=c++17 -o "$env/bin/ecce-mlp-driver" "$dir/ecce-mlp-driver.cpp"; then
+        echo "ecce-mlp-driver: built with $cxx"
+    else
+        echo "ecce-mlp-driver: NOT built (no working C++17 compiler '$cxx'); ecce-mlp will use ASE's optimisers and offers no MD"
+    fi
+fi
 if [ -z "$mock" ]; then
     "$py" -c "
 import torch, ase
