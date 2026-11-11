@@ -101,7 +101,43 @@ struct Func {
   }
   ~Func() { xc_func_end(&f); }
 };
+
+// Closed-shell libxc derivatives of the energy density with respect to the
+// total rho and sigma = |grad rho|^2: first (vr, vs) and second (frr, frs, fss).
+struct Kern {
+  std::vector<double> vr, vs, frr, frs, fss;
+};
+void eval_kernel(std::vector<std::unique_ptr<Func>>& fs, bool gga, int n, const double* rho, const double* sig, Kern& k) {
+  k.vr.assign(n, 0.0); k.frr.assign(n, 0.0);
+  k.vs.assign(gga ? n : 0, 0.0); k.frs.assign(gga ? n : 0, 0.0); k.fss.assign(gga ? n : 0, 0.0);
+  std::vector<double> a(n), b(n), c(n), d(n), e(n);
+  for (auto& fp : fs) {
+    const xc_func_type* p = &fp->f;
+    if (p->info->family == XC_FAMILY_LDA) {
+      xc_lda_vxc_fxc(p, n, rho, a.data(), c.data());
+      for (int g = 0; g < n; ++g) { k.vr[g] += a[g]; k.frr[g] += c[g]; }
+    } else {
+      xc_gga_vxc_fxc(p, n, rho, sig, a.data(), b.data(), c.data(), d.data(), e.data());
+      for (int g = 0; g < n; ++g) {
+        k.vr[g] += a[g]; k.vs[g] += b[g]; k.frr[g] += c[g]; k.frs[g] += d[g]; k.fss[g] += e[g];
+      }
+    }
+  }
+}
 }  // namespace
+
+bool xc_analytic_hessian_supported(const FunctionalSpec& f) {
+  for (int id : f.libxc_ids) {
+    Func fn(id, 0);
+    const int fam = fn.f.info->family;
+    if (fam != XC_FAMILY_LDA && fam != XC_FAMILY_GGA && fam != XC_FAMILY_HYB_GGA) return false;
+    if (!(fn.f.info->flags & XC_FLAGS_HAVE_FXC)) return false;
+    double om = 0, al = 0, be = 0;
+    xc_hyb_cam_coef(&fn.f, &om, &al, &be);
+    if (om != 0.0) return false;
+  }
+  return true;
+}
 
 double XcIntegrator::compute(const Mat& Da, const Mat& Db, bool closed, Mat& Va, Mat& Vb, double* nel) {
   const int nb = basis_.nbf();
@@ -339,6 +375,213 @@ void XcIntegrator::gradient(const Mat& Da, const Mat& Db, bool closed, std::vect
     }
 #pragma omp critical
     for (int k = 0; k < 3 * natm; ++k) grad[k] += gt[k];
+  }
+}
+
+// The Vxc matrix is V_mn = sum_g w [vr phi_m phi_n + 2 vs grad(rho) . grad(phi_m phi_n)].
+// A first-order density (drho, dgrad) changes it through vr, vs (kernel) and
+// through grad(rho) itself; a0 and ad below are the coefficients of phi_m phi_n
+// and of grad_d(phi_m phi_n) in that change.
+std::vector<Mat> XcIntegrator::kernel(const Mat& P, const std::vector<Mat>& D1) {
+  const int nb = basis_.nbf(), nd = static_cast<int>(D1.size());
+  const bool gga = spec_.gga;
+  const int nblk = static_cast<int>(impl_->batches.size());
+  std::vector<Mat> out(nd, Mat::Zero(nb, nb));
+#pragma omp parallel
+  {
+    std::vector<std::unique_ptr<Func>> fs;
+    for (int id : spec_.libxc_ids) fs.emplace_back(new Func(id, 0));
+    std::vector<Mat> ot(nd, Mat::Zero(nb, nb));
+    AoValues ao;
+    std::vector<double> xyz(3 * kBatch);
+    Kern K;
+#pragma omp for schedule(dynamic)
+    for (int ib = 0; ib < nblk; ++ib) {
+      const Impl::Batch& B = impl_->batches[ib];
+      const size_t g0 = B.g0;
+      const int n = B.n;
+      for (int g = 0; g < n; ++g) {
+        xyz[3 * g] = grid_.x[g0 + g]; xyz[3 * g + 1] = grid_.y[g0 + g]; xyz[3 * g + 2] = grid_.z[g0 + g];
+      }
+      eval_ao(basis_, xyz.data(), n, gga ? 1 : 0, ao, &B.shells);
+      const Mat* d1[3] = {&ao.dx, &ao.dy, &ao.dz};
+      const Mat t = ao.phi * P(B.ao, B.ao);
+      const Vec rho = (t.array() * ao.phi.array()).rowwise().sum();
+      Vec gr[3], w(n);
+      std::vector<double> sig(gga ? n : 0);
+      if (gga) {
+        for (int e = 0; e < 3; ++e) gr[e] = 2 * (t.array() * d1[e]->array()).rowwise().sum();
+        for (int g = 0; g < n; ++g) sig[g] = gr[0][g] * gr[0][g] + gr[1][g] * gr[1][g] + gr[2][g] * gr[2][g];
+      }
+      for (int g = 0; g < n; ++g) w[g] = grid_.w[g0 + g];
+      eval_kernel(fs, gga, n, rho.data(), sig.data(), K);
+      for (int k = 0; k < nd; ++k) {
+        const Mat u = ao.phi * D1[k](B.ao, B.ao);
+        const Vec dr = (u.array() * ao.phi.array()).rowwise().sum();
+        Vec a0(n), ad[3];
+        if (!gga) {
+          for (int g = 0; g < n; ++g) a0[g] = w[g] * K.frr[g] * dr[g];
+        } else {
+          Vec dg[3];
+          for (int e = 0; e < 3; ++e) { dg[e] = 2 * (u.array() * d1[e]->array()).rowwise().sum(); ad[e].resize(n); }
+          for (int g = 0; g < n; ++g) {
+            const double ds = 2 * (gr[0][g] * dg[0][g] + gr[1][g] * dg[1][g] + gr[2][g] * dg[2][g]);
+            const double dvr = K.frr[g] * dr[g] + K.frs[g] * ds, dvs = K.frs[g] * dr[g] + K.fss[g] * ds;
+            a0[g] = w[g] * dvr;
+            for (int e = 0; e < 3; ++e) ad[e][g] = 2 * w[g] * (dvs * gr[e][g] + K.vs[g] * dg[e][g]);
+          }
+        }
+        Mat A = ao.phi.array().colwise() * (0.5 * a0).array();
+        if (gga)
+          for (int e = 0; e < 3; ++e) A.array() += d1[e]->array().colwise() * ad[e].array();
+        const Mat M = ao.phi.transpose() * A;
+        ot[k](B.ao, B.ao) += M + M.transpose();
+      }
+    }
+#pragma omp critical
+    for (int k = 0; k < nd; ++k) out[k] += ot[k];
+  }
+  return out;
+}
+
+// Perturbation x = (atom A, direction c) moves the functions on A, so at fixed
+// P: drho^x = -2 sum_{m on A} d_c(phi_m) (phi P)_m and dgrad^x its gradient;
+// d2Exc/dxdy = kernel(drho^x, drho^y) + sum_g w [vr rho^xy + 2 vs grad(rho).grad(rho^xy)],
+// rho^xy = 2 sum P [d_A,B d_cd(phi_m) phi_n + d_c(phi_m) d_d(phi_n), m on A, n on B].
+// GGAs need third AO derivatives for grad(rho^xy).
+void XcIntegrator::hessian_terms(const Mat& P, Mat& H, std::vector<Mat>& Vx) {
+  const int nb = basis_.nbf(), NP = 3 * basis_.natm();
+  const bool gga = spec_.gga;
+  const int nblk = static_cast<int>(impl_->batches.size());
+#pragma omp parallel
+  {
+    std::vector<std::unique_ptr<Func>> fs;
+    for (int id : spec_.libxc_ids) fs.emplace_back(new Func(id, 0));
+    Mat Ht = Mat::Zero(NP, NP);
+    std::vector<Mat> Vt(NP, Mat::Zero(nb, nb));
+    AoValues ao;
+    std::vector<double> xyz(3 * kBatch);
+    Kern K;
+#pragma omp for schedule(dynamic)
+    for (int ib = 0; ib < nblk; ++ib) {
+      const Impl::Batch& B = impl_->batches[ib];
+      const size_t g0 = B.g0;
+      const int n = B.n, nl = static_cast<int>(B.ao.size());
+      for (int g = 0; g < n; ++g) {
+        xyz[3 * g] = grid_.x[g0 + g]; xyz[3 * g + 1] = grid_.y[g0 + g]; xyz[3 * g + 2] = grid_.z[g0 + g];
+      }
+      eval_ao(basis_, xyz.data(), n, gga ? 3 : 2, ao, &B.shells);
+      const Mat* d1[3] = {&ao.dx, &ao.dy, &ao.dz};
+      const Mat* d2[3][3] = {{&ao.dxx, &ao.dxy, &ao.dxz}, {&ao.dxy, &ao.dyy, &ao.dyz}, {&ao.dxz, &ao.dyz, &ao.dzz}};
+      const Mat Ps = P(B.ao, B.ao);
+      const Mat t = ao.phi * Ps;
+      const Vec rho = (t.array() * ao.phi.array()).rowwise().sum();
+      Mat td[3];
+      Vec gr[3], w(n), wvr(n), s[3];  // s_e = 2 w vs grad_e(rho)
+      std::vector<double> sig(gga ? n : 0);
+      if (gga) {
+        for (int e = 0; e < 3; ++e) {
+          td[e] = *d1[e] * Ps;
+          gr[e] = 2 * (t.array() * d1[e]->array()).rowwise().sum();
+        }
+        for (int g = 0; g < n; ++g) sig[g] = gr[0][g] * gr[0][g] + gr[1][g] * gr[1][g] + gr[2][g] * gr[2][g];
+      }
+      eval_kernel(fs, gga, n, rho.data(), sig.data(), K);
+      for (int g = 0; g < n; ++g) { w[g] = grid_.w[g0 + g]; wvr[g] = w[g] * K.vr[g]; }
+      if (gga)
+        for (int e = 0; e < 3; ++e) {
+          s[e].resize(n);
+          for (int g = 0; g < n; ++g) s[e][g] = 2 * w[g] * K.vs[g] * gr[e][g];
+        }
+
+      // atoms with functions in this batch; M(m, a) = 1 when AO m sits on local atom a
+      std::vector<int> atoms, la(nl);
+      for (int m = 0; m < nl; ++m) {
+        auto it = std::find(atoms.begin(), atoms.end(), B.aoatom[m]);
+        la[m] = static_cast<int>(it - atoms.begin());
+        if (it == atoms.end()) atoms.push_back(B.aoatom[m]);
+      }
+      const int nal = static_cast<int>(atoms.size()), nx = 3 * nal;
+      Mat M = Mat::Zero(nl, nal);
+      for (int m = 0; m < nl; ++m) M(m, la[m]) = 1.0;
+
+      // first-order densities of the nx local perturbations, column 3a+c
+      Mat dr(n, nx), dg[3];
+      if (gga) for (int e = 0; e < 3; ++e) dg[e].resize(n, nx);
+      for (int c = 0; c < 3; ++c) {
+        const Mat r = -2.0 * (d1[c]->array() * t.array()).matrix() * M;
+        for (int a = 0; a < nal; ++a) dr.col(3 * a + c) = r.col(a);
+        if (gga)
+          for (int e = 0; e < 3; ++e) {
+            const Mat q = -2.0 * (d2[c][e]->array() * t.array() + d1[c]->array() * td[e].array()).matrix() * M;
+            for (int a = 0; a < nal; ++a) dg[e].col(3 * a + c) = q.col(a);
+          }
+      }
+      Mat a0(n, nx), ad[3];
+      if (!gga) {
+        a0 = dr.array().colwise() * (w.array() * Eigen::Map<const Vec>(K.frr.data(), n).array());
+      } else {
+        for (int e = 0; e < 3; ++e) ad[e].resize(n, nx);
+        for (int x = 0; x < nx; ++x)
+          for (int g = 0; g < n; ++g) {
+            const double ds = 2 * (gr[0][g] * dg[0](g, x) + gr[1][g] * dg[1](g, x) + gr[2][g] * dg[2](g, x));
+            const double dvr = K.frr[g] * dr(g, x) + K.frs[g] * ds, dvs = K.frs[g] * dr(g, x) + K.fss[g] * ds;
+            a0(g, x) = w[g] * dvr;
+            for (int e = 0; e < 3; ++e) ad[e](g, x) = 2 * w[g] * (dvs * gr[e][g] + K.vs[g] * dg[e](g, x));
+          }
+      }
+
+      // second derivatives: kernel part, then rho^xy
+      Mat hl = a0.transpose() * dr;
+      if (gga) for (int e = 0; e < 3; ++e) hl += ad[e].transpose() * dg[e];
+      for (int c = 0; c < 3; ++c)
+        for (int d = 0; d < 3; ++d) {
+          Mat Q = (d2[c][d]->array() * t.array()).colwise() * wvr.array();
+          if (gga)
+            for (int e = 0; e < 3; ++e)
+              Q.array() += (ao.d3[ao_d3_index(c, d, e)].array() * t.array() + d2[c][d]->array() * td[e].array()).colwise() * s[e].array();
+          const Vec same = 2.0 * M.transpose() * Q.colwise().sum().transpose();
+          for (int a = 0; a < nal; ++a) hl(3 * a + c, 3 * a + d) += same[a];
+          Mat Kcd = d1[c]->transpose() * (d1[d]->array().colwise() * wvr.array()).matrix();
+          if (gga)
+            for (int e = 0; e < 3; ++e)
+              Kcd += d2[c][e]->transpose() * (d1[d]->array().colwise() * s[e].array()).matrix() +
+                     d1[c]->transpose() * (d2[d][e]->array().colwise() * s[e].array()).matrix();
+          const Mat pair = 2.0 * M.transpose() * Ps.cwiseProduct(Kcd) * M;
+          for (int a = 0; a < nal; ++a)
+            for (int b = 0; b < nal; ++b) hl(3 * a + c, 3 * b + d) += pair(a, b);
+        }
+      for (int a = 0; a < nal; ++a)
+        for (int b = 0; b < nal; ++b)
+          Ht.block(3 * atoms[a], 3 * atoms[b], 3, 3) += hl.block(3 * a, 3 * b, 3, 3);
+
+      // Fock derivatives: the functions' own motion, then the kernel part
+      Mat base = ao.phi.array().colwise() * wvr.array();
+      if (gga) for (int e = 0; e < 3; ++e) base.array() += d1[e]->array().colwise() * s[e].array();
+      for (int c = 0; c < 3; ++c) {
+        Mat Mc = d1[c]->transpose() * base;
+        if (gga)
+          for (int e = 0; e < 3; ++e) Mc += d2[c][e]->transpose() * (ao.phi.array().colwise() * s[e].array()).matrix();
+        for (int m = 0; m < nl; ++m) {
+          Mat& V = Vt[3 * B.aoatom[m] + c];
+          for (int k = 0; k < nl; ++k) {
+            V(B.ao[m], B.ao[k]) -= Mc(m, k);
+            V(B.ao[k], B.ao[m]) -= Mc(m, k);
+          }
+        }
+      }
+      for (int x = 0; x < nx; ++x) {
+        Mat A = ao.phi.array().colwise() * (0.5 * a0.col(x)).array();
+        if (gga) for (int e = 0; e < 3; ++e) A.array() += d1[e]->array().colwise() * ad[e].col(x).array();
+        const Mat Mm = ao.phi.transpose() * A;
+        Vt[3 * atoms[x / 3] + x % 3](B.ao, B.ao) += Mm + Mm.transpose();
+      }
+    }
+#pragma omp critical
+    {
+      H += Ht;
+      for (int p = 0; p < NP; ++p) Vx[p] += Vt[p];
+    }
   }
 }
 

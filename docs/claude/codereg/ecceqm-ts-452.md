@@ -8,7 +8,7 @@ issues: [452, 419]
 `runtype ts` in the engine input is `optimize_ts` (partitioned RFO from a
 computed Hessian, Bofill updates, `ts_hessian_every n` to recompute) followed
 by the ordinary frequency run; stage 1 of #452, IRC is not part of it. The
-Hessian is the one frequency runs use (analytic for closed-shell RHF,
+Hessian is the one frequency runs use (analytic for closed-shell RHF/RKS,
 finite differences otherwise), now behind the `derivatives` lambda in
 `main.cpp`.
 

@@ -1,11 +1,14 @@
 #include "hessian.hpp"
 #include <algorithm>
 #include <cmath>
+#include <memory>
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 #include "cint_wrap.hpp"
+#include "grid.hpp"
 #include "integrals.hpp"
+#include "xc.hpp"
 
 namespace qm {
 
@@ -89,13 +92,20 @@ void add_second(Mat& H, const Mat& w, const MatV& ii, const MatV& ij, const std:
 bool analytic_hessian_available(const ScfOptions& opt, const ScfResult& r) {
   // The analytic Hessian has no reaction-field or dispersion term; with a
   // solvent or D3 the finite-difference one (of full gradients) is used.
-  return opt.solvent_eps <= 0 && opt.dispersion.empty() && opt.method == "hf" && opt.reference == Reference::Restricted && r.reference == Reference::Restricted &&
+  // Kohn-Sham: LDA, GGA and global hybrids; IVO virtuals are not canonical,
+  // which the CPKS denominators assume.
+  bool fn_ok = false;
+  try { fn_ok = xc_analytic_hessian_supported(functional_by_name(opt.method)); } catch (const Error&) {}
+  return fn_ok && !opt.ivo && !r.ivo_applied && opt.solvent_eps <= 0 && opt.dispersion.empty() &&
+         opt.reference == Reference::Restricted && r.reference == Reference::Restricted &&
          r.nalpha == r.nbeta && r.nalpha > 0 && opt.field[0] == 0 && opt.field[1] == 0 && opt.field[2] == 0;
 }
 
 Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt, const ScfResult& r,
                         const HessianProgress& on_progress) {
-  if (!analytic_hessian_available(opt, r)) throw Error("analytic Hessian needs a closed-shell RHF reference");
+  if (!analytic_hessian_available(opt, r)) throw Error("analytic Hessian needs a closed-shell RHF/RKS reference (LDA, GGA or global hybrid)");
+  const FunctionalSpec fs = functional_by_name(opt.method);
+  const double exx = fs.exx;  // 1 for HF, the hybrid's fraction, 0 for a pure functional
   const int n = basis.nbf(), natm = static_cast<int>(mol.atoms.size()), P = 3 * natm, ns = basis.nshl();
   const int no = r.nalpha, nv = n - no;
   const bool sp = basis.spherical();
@@ -181,7 +191,7 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
         for (int K = 0; K < ns; ++K)
           for (int L = 0; L < ns; ++L) {
             const double wmax = dm[I * ns + J] * dm[K * ns + L] +
-                                0.5 * (dm[I * ns + K] * dm[J * ns + L] + dm[I * ns + L] * dm[J * ns + K]);
+                                0.5 * exx * (dm[I * ns + K] * dm[J * ns + L] + dm[I * ns + L] * dm[J * ns + K]);
             // the second derivatives are not bounded by the first-derivative
             // bound, but sit within a small factor of it
             if (Qd[I * ns + J] * Qd[K * ns + L] * wmax < 0.01 * kSchwarzThreshold) continue;
@@ -204,7 +214,7 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
                     const int a = sh[I].ao0 + i, b = sh[J].ao0 + j, kk = sh[K].ao0 + k, ll = sh[L].ao0 + l;
                     const size_t idx = i + ni * (j + nj * (k + static_cast<size_t>(nk) * l));
                     const double dij = Dt(a, b), dkl = Dt(kk, ll);
-                    const double gam = dij * dkl - 0.25 * (Dt(a, kk) * Dt(b, ll) + Dt(a, ll) * Dt(b, kk));
+                    const double gam = dij * dkl - 0.25 * exx * (Dt(a, kk) * Dt(b, ll) + Dt(a, ll) * Dt(b, kk));
                     for (int q = 0; q < 9; ++q) {
                       if (k2) acc2[q] += gam * b2[q * blk + idx];
                       if (k3) acc3[q] += gam * b3[q * blk + idx];
@@ -218,10 +228,11 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
                         G(b, a) += dkl * v;
                         G(kk, ll) += dij * v;
                         G(ll, kk) += dij * v;
-                        G(a, kk) -= 0.5 * Dt(b, ll) * v;
-                        G(b, kk) -= 0.5 * Dt(a, ll) * v;
-                        G(kk, a) -= 0.5 * Dt(ll, b) * v;
-                        G(kk, b) -= 0.5 * Dt(ll, a) * v;
+                        const double xv = 0.5 * exx * v;
+                        G(a, kk) -= Dt(b, ll) * xv;
+                        G(b, kk) -= Dt(a, ll) * xv;
+                        G(kk, a) -= Dt(ll, b) * xv;
+                        G(kk, b) -= Dt(ll, a) * xv;
                       }
                   }
             for (int c1 = 0; c1 < 3; ++c1)
@@ -244,14 +255,20 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
     CINTdel_optimizer(&o4);
   }
 
+  // ---- exchange-correlation: skeleton second derivatives and Vxc derivatives
+  // at fixed density; the grid is that of the SCF and does not move ----
+  std::unique_ptr<XcIntegrator> xc;
+  if (!fs.is_hf()) {
+    xc.reset(new XcIntegrator(basis, fs, make_grid(mol, opt.grid_radial, opt.grid_angular, opt.grid_prune)));
+    xc->hessian_terms(Dt, H, Fx);
+  }
 
-
-  // ---- coupled-perturbed HF ----
+  // ---- coupled-perturbed HF / KS ----
   const Mat Co = r.C_a.leftCols(no), Cv = r.C_a.rightCols(nv);
   const Vec eo = r.eps_a.head(no), evir = r.eps_a.tail(nv);
 
-  // G(D) = J(D) - K(D)/2 for symmetric AO densities, in chunks to bound the
-  // per-thread J and K copies.
+  // G(D) = J(D) - exx K(D)/2 + the XC kernel's response, for symmetric AO
+  // densities, in chunks to bound the per-thread J and K copies.
   const size_t chunk = std::max<size_t>(1, static_cast<size_t>(4e8 / (16.0 * n * n * thread_count())));
   auto gmat = [&](const MatV& Ds) {
     MatV out;
@@ -259,8 +276,15 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
     for (size_t s = 0; s < Ds.size(); s += chunk) {
       const MatV part(Ds.begin() + s, Ds.begin() + std::min(Ds.size(), s + chunk));
       MatV J, K;
-      eri.jk(part, J, K, true);
-      for (size_t k = 0; k < part.size(); ++k) out.push_back(J[k] - 0.5 * K[k]);
+      eri.jk(part, J, K, exx != 0.0);
+      MatV X;
+      if (xc) X = xc->kernel(Dt, part);
+      for (size_t k = 0; k < part.size(); ++k) {
+        Mat g = J[k];
+        if (exx != 0.0) g -= 0.5 * exx * K[k];
+        if (xc) g += X[k];
+        out.push_back(g);
+      }
     }
     return out;
   };
@@ -298,7 +322,7 @@ Derivatives rhf_hessian(Basis& basis, const Molecule& mol, const ScfOptions& opt
       }
       if (on_progress) on_progress(P - static_cast<int>(act.size()), P, it, false);
       if (act.empty()) break;
-      if (it >= 100) throw Error("coupled-perturbed HF did not converge");
+      if (it >= 100) throw Error("coupled-perturbed SCF did not converge");
       MatV Ds;
       for (int p : act) Ds.push_back(vo_density(D[p]));
       const MatV Gd = gmat(Ds);
