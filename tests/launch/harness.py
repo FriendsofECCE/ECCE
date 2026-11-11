@@ -309,8 +309,8 @@ class Session(object):
                         extra=extra, cwd=os.path.join(self.home, "bin"), timeout=timeout)
 
     def registerMachine(self, name, manager, codes, queues=("normal", "debug"),
-                        limits=None, config=None, size="1:16"):
-        """Register `name` (this host, reached as localhost) under a queue manager.
+                        limits=None, config=None, size="1:16", host="localhost"):
+        """Register `name` (by default this host, reached as localhost) under a queue manager.
 
         Writes what Machine Registration and the Queues preference would:
         MyMachines, Queues, <name>.Q and CONFIG.<name> in the user's ~/.ECCE.
@@ -324,11 +324,14 @@ class Session(object):
         self.machineCodes[name] = codes
         self.machineSize = getattr(self, "machineSize", {})
         self.machineSize[name] = size
+        self.machineHost = getattr(self, "machineHost", {})
+        self.machineHost[name] = host
         with open(os.path.join(prefs, "MyMachines"), "w") as h:
             for m in self.machines:
-                h.write("%s\tlocalhost\tGeneric\tqueue test machine\tUnspecified\t"
+                h.write("%s\t%s\tGeneric\tqueue test machine\tUnspecified\t"
                         "%s\tssh\t:%s\tMN:RD:SD:Q:TL:MM:SS:AA\n"
-                        % (m, self.machineSize[m], ":".join(sorted(self.machineCodes[m]))))
+                        % (m, self.machineHost.get(m, "localhost"), self.machineSize[m],
+                           ":".join(sorted(self.machineCodes[m]))))
         with open(os.path.join(prefs, "Queues"), "w") as h:
             h.write("Queues: %s\n" % " ".join(self.machines))
             for m, mgr in self.machines.items():
