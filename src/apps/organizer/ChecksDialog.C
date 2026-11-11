@@ -79,16 +79,18 @@ bool ChecksDialog::load(wxWindow *parent, bool withProgress)
   // More than a few calculations take a while to gather: show n of N.
   std::unique_ptr<wxProgressDialog> pd;
   GatherProgress progress;
-  if (p_rank && withProgress && p_calcs.size() > 3) {
-    pd.reset(new wxProgressDialog("Compare Energies", "Starting...",
+  if ((p_rank || p_qsar) && withProgress && p_calcs.size() > 3) {
+    pd.reset(new wxProgressDialog(p_qsar ? "QSAR table" : "Compare Energies", "Starting...",
         (int)p_calcs.size(), parent, wxPD_CAN_ABORT | wxPD_AUTO_HIDE | wxPD_APP_MODAL));
     progress = [&pd](size_t i, size_t n, const string& name) {
       return pd->Update((int)i, wxString::Format("Reading %zu of %zu: %s",
           i + 1, n, wxString::FromUTF8(name.c_str())));
     };
   }
-  if (!(p_rank ? rankTable(p_calcs, "csv", text, p_why, progress, p_ref)
-                : checksTable(p_calcs, "csv", text, p_why))) return false;
+  if (p_qsar) {
+    if (!qsarTable(p_calcs, p_groups, text, p_why, progress)) return false;
+  } else if (!(p_rank ? rankTable(p_calcs, "csv", text, p_why, progress, p_ref)
+                      : checksTable(p_calcs, "csv", text, p_why))) return false;
   vector<vector<string>> all = parseCsv(text);
   if (all.empty()) { p_why = "The table is empty."; return false; }
   p_head = all[0];
@@ -112,11 +114,13 @@ bool ChecksDialog::setReference(const string& name, string& why)
   return true;
 }
 
-ChecksDialog::ChecksDialog(wxWindow *parent, const vector<EcceURL>& calcs, bool rank)
-  : wxDialog(parent, wxID_ANY, rank ? "Compare Energies" : "Checks table", wxDefaultPosition,
-             wxSize(1100, 480), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
-    p_calcs(calcs), p_rank(rank)
+ChecksDialog::ChecksDialog(wxWindow *parent, const vector<EcceURL>& calcs, bool rank,
+                           const string *qsarGroups)
+  : wxDialog(parent, wxID_ANY, qsarGroups ? "QSAR table" : rank ? "Compare Energies" : "Checks table",
+             wxDefaultPosition, wxSize(1100, 480), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
+    p_calcs(calcs), p_rank(rank), p_qsar(qsarGroups != nullptr)
 {
+  if (qsarGroups) p_groups = *qsarGroups;
   if (!load(parent, true)) return;
   p_ok = true;
 
@@ -147,7 +151,8 @@ ChecksDialog::ChecksDialog(wxWindow *parent, const vector<EcceURL>& calcs, bool 
   wxButton *c = new wxButton(this, wxID_ANY, "Export CSV...");
   wxButton *l = new wxButton(this, wxID_ANY, "Export LaTeX...");
   row->Add(c, 0, wxALL, 5);
-  row->Add(l, 0, wxALL, 5);
+  if (p_qsar) l->Hide();
+  else row->Add(l, 0, wxALL, 5);
   row->AddStretchSpacer();
   row->Add(new wxButton(this, wxID_CLOSE, "Close"), 0, wxALL, 5);
   top->Add(row, 0, wxEXPAND);
@@ -259,7 +264,9 @@ string ChecksDialog::csv() const
 
 void ChecksDialog::exportAs(const string& format)
 {
-  wxFileDialog dlg(this, p_rank ? "Write the Compare Energies table to" : "Write the Checks table to", "",
+  wxFileDialog dlg(this, p_qsar ? "Write the QSAR table to" :
+                   p_rank ? "Write the Compare Energies table to" : "Write the Checks table to", "",
+                   p_qsar ? "qsar.csv" :
                    format == "csv" ? (p_rank ? "rank.csv" : "checks.csv") : (p_rank ? "rank.tex" : "checks.tex"), "*",
                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
   if (dlg.ShowModal() != wxID_OK) return;

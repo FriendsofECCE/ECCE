@@ -1376,6 +1376,16 @@ install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_rates.py
         DESTINATION scripts
         COMPONENT client)
 
+# ecce-qsar (#961): descriptor table, PCA and PLS; ecce_qsar_chem.py and
+# ecce_qsar_crippen.py are its libraries (modules in scripts/, not commands).
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar.py
+        DESTINATION bin RENAME ecce-qsar
+        COMPONENT client)
+install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar_chem.py
+              ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar_crippen.py
+        DESTINATION scripts
+        COMPONENT client)
+
 # ecce-morse (#858): Morse fit of a bond scan; the Relaxed Scan panel runs it.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_morse.py
         DESTINATION bin RENAME ecce-morse
@@ -2806,6 +2816,12 @@ add_test(NAME checks_table
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/siexport/checks_test.py)
 
+# tests/qsar -- scripts/ecce_qsar*.py (#961): descriptors against RDKit's published
+# values, Open Babel (skips that part without obabel) and the stored water calculation.
+add_test(NAME qsar_descriptors
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/qsar/descriptors_test.py)
+
 # tests/siexport/rank_test.py -- ecce-si-export --rank (#703).
 add_test(NAME rank_table
          COMMAND ${PYTHON3_EXECUTABLE}
@@ -3809,6 +3825,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/checks_table_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_checks_table PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # QSAR table: the dialog's rows equal ecce-qsar table (#961).
+  add_test(NAME apps_qsar_table
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/qsar_table_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_qsar_table PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Rank table: the dialog's deltas equal ecce-si-export --rank (#703).
@@ -5235,6 +5259,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-ensemble=bin/ecce-ensemble
   ecce-rate=bin/ecce-rate
   ecce-morse=bin/ecce-morse
+  ecce-qsar=bin/ecce-qsar
   ecce-gmxanalysis=bin/ecce-gmxanalysis
   ecce-spectrum=bin/ecce-spectrum
   ecce-displace=bin/ecce-displace

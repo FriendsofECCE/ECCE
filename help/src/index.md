@@ -194,6 +194,10 @@ describe what you did and what happened.
    and measured values as one calculation per molecule, all with one setup,
    launched together (Tools > Batch Add from SMILES, `ecce-batch-smiles`).
 
+38. [QSAR: descriptor table](qsar-table.md): descriptors, measured values and
+   calculation results as one table per folder, exported as CSV (Tools > QSAR
+   Table, `ecce-qsar table`).
+
 Reference:
 
 - [ORCA composite methods](orca-composite-methods.md): r2SCAN-3c, B97-3c,

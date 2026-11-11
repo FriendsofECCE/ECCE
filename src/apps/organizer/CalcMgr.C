@@ -100,6 +100,7 @@ static std::string s_registerMessage;
 #include "dsm/StoredCalcCopy.H"
 #include "dsm/Series.H"
 #include "dsm/SmilesBatch.H"
+#include <wx/choicdlg.h>
 #include "BatchSmilesDialog.H"
 #include "dsm/SiteScreen.H"
 #include <wx/spinctrl.h>
@@ -655,6 +656,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * newseries <template url> <source>...
  *                 New Series from This (#621) without dialogs; the report,
  *                 lines separated by " | "
+ * qsartable <out.csv> <url>,<url>... [groups]
+ *                 the QSAR Table dialog's rows (#961), as for "checks"; groups
+ *                 is a comma list of counts,topology,models,charges,vsa,qm
  * batchsmilesdialog <folder url> <table> [png]
  *                 Tools > Batch Add from SMILES with the table loaded (#961):
  *                 "ok | name=... smiles=... responses=... rows=N problems=M"
@@ -721,6 +725,7 @@ static const int ID_COMPARE_ENERGIES = wxNewId();
 static const int ID_SI_EXPORT = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
 static const int ID_BATCH_SMILES = wxNewId();
+static const int ID_QSAR_TABLE = wxNewId();
 static vector<std::pair<string, string> > folderCalculations(Resource *folder);
 
 // Include submenu paths so tests can check the action and its enabled state.
@@ -2562,6 +2567,25 @@ void CalcMgr::runTestCommand(const string& line)
         outcome += " | " + referenceResult + " | reference=" + dlg.selectedReference();
         for (const string& name : dlg.referenceChoices()) outcome += " | choice=" + name;
       }
+    } else if (command == "qsartable") {
+      // "qsartable <out.csv> <url>,<url>... [groups]": the QSAR Table dialog's
+      // rows (folders expanded to their calculations) written as CSV (#961).
+      std::istringstream args(calcName);
+      string out, urls, groups = "counts,topology,models,charges,vsa,qm";
+      args >> out >> urls;
+      string g;
+      if (args >> g) groups = g;
+      vector<EcceURL> roots;
+      for (size_t at = 0; at < urls.size(); ) {
+        size_t end = urls.find(',', at);
+        if (end == string::npos) end = urls.size();
+        roots.push_back(EcceURL(urls.substr(at, end - at)));
+        at = end + 1;
+      }
+      ChecksDialog dlg(this, calculationsUnder(roots), false, &groups);
+      string why;
+      if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
+      else outcome = "failed: " + why;
     } else if (command == "compareforcesdialog") {
       std::istringstream args(calcName);
       string a, b, png;
@@ -10344,6 +10368,12 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
             wxCommandEventHandler(CalcMgr::OnBatchSmiles));
     p_batchSmilesWired = true;
   }
+  menu.Append(ID_QSAR_TABLE, _("QSAR Table..."));
+  if (!p_qsarTableWired) {
+    Connect(ID_QSAR_TABLE, wxEVT_COMMAND_MENU_SELECTED,
+            wxCommandEventHandler(CalcMgr::OnQsarTable));
+    p_qsarTableWired = true;
+  }
   added = true;
 
   if (added) menu.AppendSeparator();
@@ -10398,6 +10428,43 @@ void CalcMgr::OnRank(wxCommandEvent&)
     if (why != "Cancelled.")
       wxMessageBox(wxString::FromUTF8(why.c_str()), _("Compare Energies"),
                    wxOK | wxICON_ERROR, this);
+    return;
+  }
+  dlg.ShowModal();
+}
+
+// Tools > QSAR Table (#961): descriptors and measured values of the calculations
+// of the selected folder, the groups ticked first.
+void CalcMgr::OnQsarTable(wxCommandEvent&)
+{
+  getSelection();
+  const vector<EcceURL> calcs = calculationsUnder(launchSelection());
+  if (calcs.empty()) {
+    wxMessageBox(_("Select the project folder (or calculations) of the batch first."),
+                 _("QSAR Table"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  static const char *const names[] = {"counts", "topology", "models", "charges", "vsa", "qm"};
+  wxArrayString labels;
+  labels.Add(_("Counts: atoms, bonds, rings, donors/acceptors, rotatable bonds"));
+  labels.Add(_("Topological indices: Wiener, Zagreb, chi, Kier, Balaban, information content"));
+  labels.Add(_("Property models: SlogP, SMR, TPSA, surface area"));
+  labels.Add(_("Gasteiger charges: Q_PC+, Q_PC-, extremes"));
+  labels.Add(_("Surface areas by charge, SlogP and SMR (VSA)"));
+  labels.Add(_("From the calculations: HOMO, LUMO, gap, dipole, charges"));
+  wxMultiChoiceDialog pick(this, _("Descriptors to include:"), _("QSAR Table"), labels);
+  wxArrayInt all;
+  for (size_t i = 0; i < labels.size(); ++i) all.Add((int)i);
+  pick.SetSelections(all);
+  if (pick.ShowModal() != wxID_OK) return;
+  string groups;
+  for (int i : pick.GetSelections()) groups += (groups.empty() ? "" : ",") + string(names[i]);
+  if (groups.empty()) return;
+  ChecksDialog dlg(this, calcs, false, &groups);
+  string why;
+  if (!dlg.ok(why)) {
+    if (why != "Cancelled.")
+      wxMessageBox(wxString::FromUTF8(why.c_str()), _("QSAR Table"), wxOK | wxICON_ERROR, this);
     return;
   }
   dlg.ShowModal();

@@ -593,6 +593,9 @@ protected:
   // Tools > Batch Add from SMILES (#961).
   void OnBatchSmiles(wxCommandEvent& event);
   bool p_batchSmilesWired = false;
+  // Tools > QSAR Table (#961).
+  void OnQsarTable(wxCommandEvent& event);
+  bool p_qsarTableWired = false;
   // Ids already wired to OnGlobalTool, so rebuilding the menu does not
   // stack duplicate handlers.
   std::set<int> p_globalToolIds;
