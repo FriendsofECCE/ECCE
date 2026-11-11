@@ -127,7 +127,7 @@ def main():
             if name == "cu_fcc":
                 # Replicate 2x2x2: 32 real atoms; the block's faces get
                 # 2^z - 1 images per atom with z coordinates on a lower face.
-                lines += ["pbc replicate 2 2 2", "wait 1500", "info"]
+                lines += ["pbcopen", "wait 1000", "pbc replicate 2 2 2", "wait 1500", "info"]
             lines += ["quit"]
             text, shots = bo.runScript(s, display, env, wrappers,
                                        ["-context", url], lines, png,
@@ -156,10 +156,10 @@ def main():
             # left where it was drawn before centring changed floats off the atoms.
             d = re.search(r"lattice_drawn=" + " ".join([r"(\S+)"] * 6), text)
             v = re.findall(r"BUILDER: lattice_vector=(\S+) (\S+) (\S+)", text)
-            if bo.check(d is not None and c is not None and len(v) == 3,
+            if bo.check(d is not None and c is not None and len(v) >= 3,
                         "%s: drawn box and vectors reported" % name):
                 corner = [float(c.group(i)) for i in (2, 3, 4)]
-                vecs = [[float(x) for x in t] for t in v]
+                vecs = [[float(x) for x in t] for t in v[:3]]
                 lo = [corner[k] + sum(min(0.0, u[k]) for u in vecs) for k in range(3)]
                 hi = [corner[k] + sum(max(0.0, u[k]) for u in vecs) for k in range(3)]
                 drawn = [float(d.group(i)) for i in range(1, 7)]
