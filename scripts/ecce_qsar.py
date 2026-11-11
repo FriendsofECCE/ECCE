@@ -5,6 +5,9 @@ Wx-free; reads stored calculation folders and talks to no ECCE session.
 
   ecce-qsar table <folder|calc>... [--groups G,...] [--no-qm] [--csv FILE] [--json]
   ecce-qsar table --from-csv FILE [--smiles-col N] [--name-col N] ...
+  ecce-qsar pca TABLE.csv [--y COL]... [--exclude COL]... [--scale uv|pareto|ctr|none]
+                [--components N] [--cv G] [--outdir DIR] [--json]
+  ecce-qsar columns TABLE.csv
   ecce-qsar groups
 
 One row per calculation of a folder made by Batch Add from SMILES (the SMILES is
@@ -240,6 +243,162 @@ def cmd_table(a):
     return 0
 
 
+NON_X = ("name", "state", "opt_converged", "problems")
+
+
+def load_table(path):
+    """-> (header, rows as lists of strings)."""
+    with open(path, newline="", errors="replace") as f:
+        rd = list(csv.reader(f))
+    if not rd:
+        _fail("%s is empty" % path)
+    return rd[0], rd[1:]
+
+
+def _num(v):
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return float("nan")
+
+
+def _chemo():
+    global CH
+    try:
+        CH = _load("ecce_qsar_chemo", "ecce_qsar_chemo.py")
+    except ImportError as e:
+        _fail("PCA and PLS need numpy (%s)" % e)
+    return CH
+
+
+def select_xy(head, rows, ys, exclude, skip_unconverged=True):
+    """-> (kept row indices, x column names, X, y column names, Y, notes)."""
+    import numpy as np
+    notes = []
+    for c in list(ys) + list(exclude):
+        if c not in head:
+            _fail("no column %r in the table" % c)
+    col = {h: i for i, h in enumerate(head)}
+    keep = []
+    for i, r in enumerate(rows):
+        if skip_unconverged and "opt_converged" in col and r[col["opt_converged"]] == "no":
+            notes.append("%s left out: optimisation not converged" % r[col["name"]])
+        elif ys and any(not np.isfinite(_num(r[col[y]])) for y in ys):
+            notes.append("%s left out: no measured value" % r[col["name"]])
+        else:
+            keep.append(i)
+    xnames = []
+    for h in head:
+        if h in NON_X or h in ys or h in exclude:
+            continue
+        vals = [_num(rows[i][col[h]]) for i in keep]
+        if any(np.isfinite(v) for v in vals):
+            xnames.append(h)
+    X = np.array([[_num(rows[i][col[h]]) for h in xnames] for i in keep], float)
+    Y = np.array([[_num(rows[i][col[y]]) for y in ys] for i in keep], float) if ys else None
+    use, why = CH.usable_columns(X, xnames)
+    for h, w in why.items():
+        notes.append("column %s left out: %s" % (h, w))
+    return keep, [xnames[j] for j in use], X[:, use], list(ys), Y, notes
+
+
+def _jsonable(o):
+    import numpy as np
+    if isinstance(o, np.ndarray):
+        return [None if (isinstance(x, float) and x != x) else x for x in o.tolist()] \
+            if o.ndim == 1 else [_jsonable(r) for r in o]
+    if isinstance(o, dict):
+        return {k: _jsonable(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_jsonable(v) for v in o]
+    if isinstance(o, (np.floating, float)):
+        return None if o != o else float(o)
+    if isinstance(o, np.integer):
+        return int(o)
+    return o
+
+
+def _write_rows(path, head, rows):
+    with open(path, "w", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(head)
+        for r in rows:
+            w.writerow([_fmt(v) for v in r])
+
+
+def cmd_pca(a):
+    _chemo()
+    head, rows = load_table(a.table)
+    keep, xn, X, _, _, notes = select_xy(head, rows, a.y or [], a.exclude or [],
+                                         not a.keep_unconverged)
+    if X.shape[0] < 4 or X.shape[1] < 2:
+        _fail("need at least 4 rows and 2 usable descriptor columns (have %d x %d)"
+              % X.shape)
+    ni = head.index("name") if "name" in head else 0
+    names = [rows[i][ni] for i in keep]
+    m = CH.pca_model(X, a.scale, a.components, a.cv)
+    out = {"scaling": a.scale, "n": m["n"], "k": m["k"], "ncomp": m["ncomp"],
+           "eigenvalues": m["eigenvalues"], "r2x": m["r2x"], "r2x_cum": m["r2x_cum"],
+           "q2": m["q2"], "q2_cum": m["q2_cum"], "t2_limit": m["t2_limit"],
+           "dmodx_limit": m["dmodx_limit"], "names": names, "variables": xn,
+           "scores": m["scores"], "loadings": m["loadings"], "t2": m["t2"],
+           "dmodx": m["dmodx"], "notes": notes}
+    A = m["ncomp"]
+    if a.outdir:
+        os.makedirs(a.outdir, exist_ok=True)
+        _write_rows(os.path.join(a.outdir, "pca_scores.csv"),
+                    ["name"] + ["t%d" % (i + 1) for i in range(A)] + ["T2", "DModX"],
+                    [[names[i]] + list(m["scores"][i]) + [m["t2"][i], m["dmodx"][i]]
+                     for i in range(len(names))])
+        _write_rows(os.path.join(a.outdir, "pca_loadings.csv"),
+                    ["variable"] + ["p%d" % (i + 1) for i in range(A)],
+                    [[xn[j]] + list(m["loadings"][j]) for j in range(len(xn))])
+        _write_rows(os.path.join(a.outdir, "pca_components.csv"),
+                    ["component", "eigenvalue", "R2X", "R2X_cum", "Q2", "Q2_cum"],
+                    [[i + 1, m["eigenvalues"][i], m["r2x"][i], m["r2x_cum"][i],
+                      (m["q2"][i] if m["q2"] else None),
+                      (m["q2_cum"][i] if m["q2_cum"] else None)]
+                     for i in range(len(m["eigenvalues"]))])
+    if a.json:
+        json.dump(_jsonable(out), sys.stdout)
+        sys.stdout.write("\n")
+    else:
+        print("PCA: %d rows, %d descriptors, %s scaling, %d components"
+              % (m["n"], m["k"], a.scale, A))
+        print("comp  eigenvalue   R2X   cumR2X     Q2    cumQ2")
+        for i in range(len(m["eigenvalues"])):
+            q = m["q2"][i] if m["q2"] else float("nan")
+            qc = m["q2_cum"][i] if m["q2_cum"] else float("nan")
+            print("%4d  %10.4f  %5.3f  %6.3f  %6.3f  %6.3f%s" % (
+                i + 1, m["eigenvalues"][i], m["r2x"][i], m["r2x_cum"][i], q, qc,
+                "  *" if i < A else ""))
+        print("T2 limit (95%%) %.3f, DModX limit (95%%) %.3f" % (m["t2_limit"], m["dmodx_limit"]))
+        out_t = [names[i] for i in range(len(names)) if m["t2"][i] > m["t2_limit"]]
+        out_d = [names[i] for i in range(len(names)) if m["dmodx"][i] > m["dmodx_limit"]]
+        if out_t:
+            print("outside T2 limit: " + ", ".join(out_t))
+        if out_d:
+            print("outside DModX limit: " + ", ".join(out_d))
+        for n in notes:
+            print("note: " + n)
+    return 0
+
+
+def measured_columns(head):
+    """Columns that are neither descriptors nor bookkeeping: the measured values."""
+    known = set(NON_X) | set(C.QM_NAMES)
+    for names in C.GROUPS.values():
+        known.update(names)
+    return [h for h in head if h not in known]
+
+
+def cmd_columns(a):
+    head, _ = load_table(a.table)
+    for h in measured_columns(head):
+        print(h)
+    return 0
+
+
 def cmd_groups(a):
     for g, names in C.GROUPS.items():
         print("%-9s %d: %s" % (g, len(names), ", ".join(names)))
@@ -261,6 +420,20 @@ def main(argv=None):
     t.add_argument("--name-col")
     t.add_argument("--smiles-col")
     t.set_defaults(fn=cmd_table)
+    pc = sub.add_parser("pca", help="principal component analysis of a descriptor table")
+    pc.add_argument("table")
+    pc.add_argument("--y", action="append", help="a measured column, not a descriptor (repeatable)")
+    pc.add_argument("--exclude", action="append", help="a column to leave out (repeatable)")
+    pc.add_argument("--scale", default="uv", choices=("uv", "pareto", "ctr", "none"))
+    pc.add_argument("--components", type=int, help="fixed number (default: by cross-validation)")
+    pc.add_argument("--cv", type=int, default=7, help="cross-validation groups (0: none)")
+    pc.add_argument("--keep-unconverged", action="store_true")
+    pc.add_argument("--outdir", help="write pca_scores.csv, pca_loadings.csv, pca_components.csv")
+    pc.add_argument("--json", action="store_true")
+    pc.set_defaults(fn=cmd_pca)
+    cc = sub.add_parser("columns", help="the measured-value columns of a table")
+    cc.add_argument("table")
+    cc.set_defaults(fn=cmd_columns)
     g = sub.add_parser("groups", help="list the descriptor groups")
     g.set_defaults(fn=cmd_groups)
     a = p.parse_args(argv)

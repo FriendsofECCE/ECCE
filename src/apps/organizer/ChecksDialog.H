@@ -56,6 +56,9 @@ private:
   std::string p_ref;
 };
 
+/// CSV text as records (quotes undoubled).
+std::vector<std::vector<std::string>> parseCsv(const std::string& text);
+
 /// The calculations at or below each of `roots`, in tree order.
 std::vector<EcceURL> calculationsUnder(const std::vector<EcceURL>& roots);
 

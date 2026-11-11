@@ -23,8 +23,6 @@
 using std::string;
 using std::vector;
 
-namespace {
-
 // One CSV record, quotes undoubled; the script quotes only what needs it.
 vector<vector<string>> parseCsv(const string& t)
 {
@@ -47,6 +45,8 @@ vector<vector<string>> parseCsv(const string& t)
   if (out.back().empty()) out.pop_back();
   return out;
 }
+
+namespace {
 
 string quoteCsv(const string& v)
 {

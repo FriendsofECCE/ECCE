@@ -20,3 +20,7 @@ issues: [961]
   the patterns of `ecce_qsar_crippen.py`; a new pattern with recursive SMARTS
   or ring bonds is not supported.
 - `ecce_qsar_crippen.py` is RDKit's Crippen.txt (BSD 3-clause); keep its notice.
+- PCA/PLS (`ecce_qsar_chemo.py`, `ecce-qsar pca`): Q2 of PCA must be Wold's
+  element-wise CV; leaving whole rows out makes PRESS fall with every extra
+  component, so the "significant components" rule would never stop. The
+  Organizer dialog (`QsarDialog`) only runs `ecce-qsar` and draws its CSV files.

@@ -1383,6 +1383,7 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar.py
         COMPONENT client)
 install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar_chem.py
               ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar_crippen.py
+              ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar_chemo.py
         DESTINATION scripts
         COMPONENT client)
 
@@ -2822,6 +2823,10 @@ add_test(NAME qsar_descriptors
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/qsar/descriptors_test.py)
 
+add_test(NAME qsar_pca
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/qsar/pca_test.py)
+
 # tests/siexport/rank_test.py -- ecce-si-export --rank (#703).
 add_test(NAME rank_table
          COMMAND ${PYTHON3_EXECUTABLE}
@@ -3833,6 +3838,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/qsar_table_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_qsar_table PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # QSAR Analysis: the dialog's PCA equals ecce-qsar pca (#961).
+  add_test(NAME apps_qsar_pca
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/qsar_pca_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_qsar_pca PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Rank table: the dialog's deltas equal ecce-si-export --rank (#703).

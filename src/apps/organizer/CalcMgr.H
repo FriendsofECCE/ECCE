@@ -596,6 +596,9 @@ protected:
   // Tools > QSAR Table (#961).
   void OnQsarTable(wxCommandEvent& event);
   bool p_qsarTableWired = false;
+  // Tools > QSAR Analysis (#961).
+  void OnQsarAnalysis(wxCommandEvent& event);
+  bool p_qsarAnalysisWired = false;
   // Ids already wired to OnGlobalTool, so rebuilding the menu does not
   // stack duplicate handlers.
   std::set<int> p_globalToolIds;

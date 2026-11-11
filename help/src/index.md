@@ -198,6 +198,10 @@ describe what you did and what happened.
    calculation results as one table per folder, exported as CSV (Tools > QSAR
    Table, `ecce-qsar table`).
 
+39. [QSAR: PCA and PLS](qsar-analysis.md): scores, loadings, cross-validated
+   Q2, T2 and DModX of the descriptor table (Tools > QSAR Analysis,
+   `ecce-qsar pca`).
+
 Reference:
 
 - [ORCA composite methods](orca-composite-methods.md): r2SCAN-3c, B97-3c,

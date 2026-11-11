@@ -101,6 +101,7 @@ static std::string s_registerMessage;
 #include "dsm/Series.H"
 #include "dsm/SmilesBatch.H"
 #include <wx/choicdlg.h>
+#include "QsarDialog.H"
 #include "BatchSmilesDialog.H"
 #include "dsm/SiteScreen.H"
 #include <wx/spinctrl.h>
@@ -659,6 +660,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * qsartable <out.csv> <url>,<url>... [groups]
  *                 the QSAR Table dialog's rows (#961), as for "checks"; groups
  *                 is a comma list of counts,topology,models,charges,vsa,qm
+ * qsarpca <outdir> <url>,<url>... [scaling] [components] [png]
+ *                 QSAR Analysis (#961): the PCA of the descriptor table, its
+ *                 result files written to <outdir>
  * batchsmilesdialog <folder url> <table> [png]
  *                 Tools > Batch Add from SMILES with the table loaded (#961):
  *                 "ok | name=... smiles=... responses=... rows=N problems=M"
@@ -726,6 +730,7 @@ static const int ID_SI_EXPORT = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
 static const int ID_BATCH_SMILES = wxNewId();
 static const int ID_QSAR_TABLE = wxNewId();
+static const int ID_QSAR_ANALYSIS = wxNewId();
 static vector<std::pair<string, string> > folderCalculations(Resource *folder);
 
 // Include submenu paths so tests can check the action and its enabled state.
@@ -2586,6 +2591,33 @@ void CalcMgr::runTestCommand(const string& line)
       string why;
       if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
       else outcome = "failed: " + why;
+    } else if (command == "qsarpca") {
+      // "qsarpca <outdir> <url>,<url>... [scaling] [components] [png]": the QSAR
+      // Analysis dialog's PCA on the calculations, its result files saved in
+      // <outdir>; the report, " | " separated (#961).
+      std::istringstream args(calcName);
+      string outdir, urls, scaling = "uv", png;
+      int comps = 0;
+      args >> outdir >> urls >> scaling >> comps >> png;
+      vector<EcceURL> roots;
+      for (size_t at = 0; at < urls.size(); ) {
+        size_t end = urls.find(',', at);
+        if (end == string::npos) end = urls.size();
+        roots.push_back(EcceURL(urls.substr(at, end - at)));
+        at = end + 1;
+      }
+      QsarDialog *d = new QsarDialog(this, calculationsUnder(roots));
+      string why;
+      if (!d->ok(why) || !d->runPca(scaling, comps, why)) outcome = "failed: " + why;
+      else if (!d->saveResults(outdir, why)) outcome = "failed: " + why;
+      else {
+        d->SetSize(wxSize(1000, 560));
+        d->Show();
+        for (int i = 0; i < 5; ++i) wxYield();
+        if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+        outcome = "ok";
+      }
+      d->Destroy();
     } else if (command == "compareforcesdialog") {
       std::istringstream args(calcName);
       string a, b, png;
@@ -10374,6 +10406,12 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
             wxCommandEventHandler(CalcMgr::OnQsarTable));
     p_qsarTableWired = true;
   }
+  menu.Append(ID_QSAR_ANALYSIS, _("QSAR Analysis..."));
+  if (!p_qsarAnalysisWired) {
+    Connect(ID_QSAR_ANALYSIS, wxEVT_COMMAND_MENU_SELECTED,
+            wxCommandEventHandler(CalcMgr::OnQsarAnalysis));
+    p_qsarAnalysisWired = true;
+  }
   added = true;
 
   if (added) menu.AppendSeparator();
@@ -10465,6 +10503,26 @@ void CalcMgr::OnQsarTable(wxCommandEvent&)
   if (!dlg.ok(why)) {
     if (why != "Cancelled.")
       wxMessageBox(wxString::FromUTF8(why.c_str()), _("QSAR Table"), wxOK | wxICON_ERROR, this);
+    return;
+  }
+  dlg.ShowModal();
+}
+
+// Tools > QSAR Analysis (#961): PCA of the descriptor table of the selected folder.
+void CalcMgr::OnQsarAnalysis(wxCommandEvent&)
+{
+  getSelection();
+  const vector<EcceURL> calcs = calculationsUnder(launchSelection());
+  if (calcs.empty()) {
+    wxMessageBox(_("Select the project folder (or calculations) of the batch first."),
+                 _("QSAR Analysis"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  QsarDialog dlg(this, calcs);
+  string why;
+  if (!dlg.ok(why)) {
+    if (why != "Cancelled.")
+      wxMessageBox(wxString::FromUTF8(why.c_str()), _("QSAR Analysis"), wxOK | wxICON_ERROR, this);
     return;
   }
   dlg.ShowModal();
