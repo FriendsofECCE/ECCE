@@ -127,7 +127,7 @@ def main():
             if name == "cu_fcc":
                 # Replicate 2x2x2: 32 real atoms; the block's faces get
                 # 2^z - 1 images per atom with z coordinates on a lower face.
-                lines += ["pbcopen", "wait 1000", "pbc replicate 2 2 2", "wait 1500", "info"]
+                lines += ["pbc replicate 2 2 2", "wait 1500", "info"]
             lines += ["quit"]
             text, shots = bo.runScript(s, display, env, wrappers,
                                        ["-context", url], lines, png,
