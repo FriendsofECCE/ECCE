@@ -1,3 +1,4 @@
+#include <wx/tokenzr.h>
 #include <cstdio>
 #include <cstdlib>
 #include <unistd.h>
@@ -318,14 +319,39 @@ bool PullPanel::umbrellaShot(const wxString& path, int width, int height)
 {
   static bool handlers = false;
   if (!handlers) { wxInitAllImageHandlers(); handlers = true; }
+  //  PMF, window histograms and the text under it, on white, as one picture.
   wxBitmap bmp(width, height);
-  { wxMemoryDC dc(bmp); p_pmf->paintOnto(dc, wxSize(width, height)); }
+  {
+    wxMemoryDC dc(bmp);
+    dc.SetBackground(*wxWHITE_BRUSH);
+    dc.Clear();
+    const int pmfH = height * 11 / 20, histH = height * 5 / 20;
+    //  paintOnto clears the whole surface, so each plot gets its own clip.
+    dc.SetClippingRegion(0, 0, width, pmfH);
+    p_pmf->paintOnto(dc, wxSize(width, pmfH));
+    dc.DestroyClippingRegion();
+    dc.SetDeviceOrigin(0, pmfH);
+    dc.SetClippingRegion(0, 0, width, histH);
+    p_hist->paintOnto(dc, wxSize(width, histH));
+    dc.DestroyClippingRegion();
+    dc.SetDeviceOrigin(0, pmfH + histH);
+    dc.SetTextForeground(*wxBLACK);
+    int y = 4;
+    wxString text = p_info->GetValue();
+    wxStringTokenizer lines(text, "\n");
+    while (lines.HasMoreTokens() && y < height - pmfH - histH - 12) {
+      dc.DrawText(lines.GetNextToken(), 8, y);
+      y += dc.GetCharHeight() + 1;
+    }
+    dc.SetDeviceOrigin(0, 0);
+  }
   return bmp.SaveFile(path, wxBITMAP_TYPE_PNG);
 }
 
 void PullPanel::showUmbrella()
 {
   p_book->SetSelection(1);
+  p_book->GetCurrentPage()->Layout();
 }
 
 wxString PullPanel::umbrellaState() const

@@ -96,7 +96,7 @@ def main():
     ap.add_argument("--fixture", default=FIX, help="folder with pull/ and wNN/ (the full run's too)")
     ap.add_argument("--jacobian", action="store_true")
     ap.add_argument("--windows", type=int, default=0, help="at most this many windows (0: all)")
-    ap.add_argument("--full", action="store_true", help="skip the checks of the creation step")
+    ap.add_argument("--panel-mode", default="detail", help="detail (docked) or classic (own window)")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
     gmx = shutil.which("gmx")
@@ -230,7 +230,7 @@ def main():
             ["wait 6000", "umbrellapage", "umbrellafind 0.04 0.24 1.2",
              "umbrellawham" + (" jacobian" if args.jacobian else ""), "umbrellaexport %s" % csv,
              "umbrellashot %s 900 600" % shot, "umbrellastate", "wait 1500", "shot page", "quit"],
-            png, "umbrella", {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Pull Force",
+            png, "umbrella", {"ECCE_PANEL_MODE": args.panel_mode, "ECCE_OPEN_PANEL": "Pull Force",
                               "ECCE_OPEN_PANEL_SIZE": "1000x1000"})
         for l in text.splitlines():
             if l.startswith("BUILDER: umbrella"):
