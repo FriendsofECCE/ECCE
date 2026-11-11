@@ -27,3 +27,8 @@ differences.
   0.18, 0.07, 0.008 cm-1). Do not judge the code on a coarse grid.
 * Benchmark program: `qm_dft_hessian_check` (EXCLUDE_FROM_ALL; `ninja
   qm_dft_hessian_check`), arguments in its header.
+* Reference numbers (99/590 pruned, step 0.002 bohr, H2O/NH3/C2H4/CH2O x
+  SVWN/PBE/B3LYP x 6-31G*/def2-SVP): max |dH| 1.7e-6 to 7.2e-5 (largest for
+  CH2O), frequencies within 0.06 cm-1, dipole derivatives within 1.7e-5 au.
+  Benzene B3LYP/6-31G* frequency run on 4 threads: 191 s analytic, 594 s
+  finite differences.
