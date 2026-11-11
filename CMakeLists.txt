@@ -1369,6 +1369,11 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_gmxanalysis.py
         DESTINATION bin RENAME ecce-gmxanalysis
         COMPONENT client)
 
+# ecce-umbrella (#762): windows from a pull run, WHAM; the Pull Force panel runs it.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_umbrella.py
+        DESTINATION bin RENAME ecce-umbrella
+        COMPONENT client)
+
 # ecce-bandshift (#707): matched bands and their shifts between two calculations.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_bandshift.py
         DESTINATION bin RENAME ecce-bandshift
@@ -5157,6 +5162,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-rate=bin/ecce-rate
   ecce-morse=bin/ecce-morse
   ecce-gmxanalysis=bin/ecce-gmxanalysis
+  ecce-umbrella=bin/ecce-umbrella
   ecce-spectrum=bin/ecce-spectrum
   ecce-displace=bin/ecce-displace
   ecce-si-export=bin/ecce-si-export
