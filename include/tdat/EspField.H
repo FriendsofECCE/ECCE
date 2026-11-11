@@ -19,6 +19,7 @@
 #ifndef ESPFIELD_HH
 #define ESPFIELD_HH
 
+#include <cstddef>
 #include <vector>
 using std::vector;
 
