@@ -11,6 +11,7 @@
 #include <unistd.h>
 #endif
 
+#include "dsm/EDSI.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/ICalculation.H"
 #include "dsm/JCode.H"
@@ -236,7 +237,8 @@ SiteScreen::MadeSites SiteScreen::make(const EcceURL& templ, const Options& opt)
   char buf[200];
   snprintf(buf, sizeof buf, "%d of %d calculations made in %s (host and %d %s).",
            made, (int)sources.size(), folderName.c_str(), (int)files.size(),
-           opt.vacancy ? "vacancy pairs" : "interstitial sites");
+           opt.vacancy ? (files.size() == 1 ? "vacancy pair" : "vacancy pairs")
+                       : (files.size() == 1 ? "interstitial site" : "interstitial sites"));
   out.message = buf;
   return out;
 }
@@ -268,8 +270,13 @@ SiteScreen::Report SiteScreen::results(const EcceURL& at, bool writeEnsemble)
     m.row.description = k->getProp(kNote);
     m.row.env = field(m.row.description, "env");
     m.site = atoi(field(m.row.description, "site").c_str());
-    m.row.finished = job->getState() == ResourceDescriptor::STATE_COMPLETED;
-    m.row.state = m.row.finished ? "completed" : "not completed";
+    // An MLP run that stops at its step or time limit ends unsuccessful with
+    // its last structure and energy stored: usable for ranking, but flagged.
+    const ResourceDescriptor::RUNSTATE st = job->getState();
+    m.row.finished = st == ResourceDescriptor::STATE_COMPLETED ||
+                     st == ResourceDescriptor::STATE_UNSUCCESSFUL;
+    m.row.converged = st == ResourceDescriptor::STATE_COMPLETED;
+    m.row.state = !m.row.finished ? "not completed" : m.row.converged ? "completed" : "not converged";
     if (!m.row.host && m.row.description.find("screen=") == string::npos) continue;
     if (m.row.finished) {
       PropValue *te = dynamic_cast<PropValue*>(task->getProperty("TE"));
@@ -315,6 +322,16 @@ SiteScreen::Report SiteScreen::results(const EcceURL& at, bool writeEnsemble)
   char buf[160];
   snprintf(buf, sizeof buf, "%d of %d site calculations completed.", (int)done.size(), (int)members.size());
   rep.message = buf;
+  int stopped = 0;
+  for (const Member *m : done) if (!m->row.converged) stopped++;
+  if (stopped) {
+    snprintf(buf, sizeof buf, " %d stopped at the step limit before converging; their last structures "
+             "are used and marked \"not converged\".", stopped);
+    rep.message += buf;
+  }
+  if (!host.row.converged)
+    rep.message += " The host stopped at the step limit before converging: every difference "
+                   "carries its error.";
   if (!writeEnsemble) return rep;
   if (done.empty()) { rep.message += " Nothing to collect yet."; return rep; }
 
@@ -352,6 +369,7 @@ SiteScreen::Report SiteScreen::results(const EcceURL& at, bool writeEnsemble)
     snprintf(b, sizeof b, "%.8f", done[k]->row.de);
     de << "<step number=\"" << k + 1 << "\">" << b << "</step>\n";
     string e = done[k]->row.env.empty() ? "-" : done[k]->row.env;
+    if (!done[k]->row.converged) e = "not converged; " + e;
     std::replace(e.begin(), e.end(), ' ', '_');
     envLabels += (k ? " " : "") + std::to_string(k + 1) + "-" + done[k]->row.name;
     envValues += (k ? " " : "") + e;
@@ -363,9 +381,17 @@ SiteScreen::Report SiteScreen::results(const EcceURL& at, bool writeEnsemble)
       << xmlEscape(envValues) << "</vecstring>\n";
   std::istringstream g(geo.str()), d(de.str()), e(env.str());
   try {
-    vdoc->addProperty("GEOMTRACE", &g);
-    vdoc->addProperty("SITEDE", &d);
-    vdoc->addProperty("SITEENV", &e);
+    // Without the mime-type the stored file is not listed as a property
+    // (DavPropCache sets it the same way after its put).
+    vector<MetaDataResult> mime(1);
+    mime[0].name = VDoc::getEcceNamespace() + ":mime-type";
+    mime[0].value = "text/xml";
+    std::istream *in[] = {&g, &d, &e};
+    const char *names[] = {"GEOMTRACE", "SITEDE", "SITEENV"};
+    for (int i = 0; i < 3; i++) {
+      EDSI *edsi = EDSIFactory::getEDSI(vdoc->addProperty(names[i], in[i]));
+      if (edsi) { edsi->putMetaData(mime); delete edsi; }
+    }
   } catch (...) {
     rep.message += " The results could not be stored.";
     return rep;

@@ -44,12 +44,13 @@ namespace SiteScreen {
   struct Row {
     std::string name, url, state;
     bool host, finished;
+    bool converged;                    // false: stopped at the step limit, last structure used
     double te;                         // Hartree
     double de;                         // eV against the host
     std::string description;           // the stored "screen=... site=..." text
     std::string env;
     std::string cell;                  // final cell, nine numbers
-    Row() : host(false), finished(false), te(0), de(0) {}
+    Row() : host(false), finished(false), converged(true), te(0), de(0) {}
   };
 
   struct Report {

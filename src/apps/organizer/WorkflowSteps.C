@@ -1525,6 +1525,9 @@ string WorkflowSteps::resultLine(Resource *step, const string& progress)
     const string rt = calc->runtype().name();
     string many, one;
     ensembleWords(rt, many, one);
+    // A site screen's results copy the MLP run type, not a CREST one.
+    if (ScanPoint::ensembleIsSites(task))
+      return std::to_string(n) + (n == 1 ? " site" : " sites");
     string line = std::to_string(n) + " " + (n == 1 ? one : many);
     // Protonation and tautomer runs have no window of their own.
     if (rt != "Protonation Sites" && rt != "Tautomers" && rt != "Solvation Shell") {

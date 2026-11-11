@@ -106,6 +106,7 @@ int main(int argc, char **argv)
       snprintf(b, sizeof b, ",\"te_hartree\":%.10f,\"de_ev\":%.8f", w.te, w.de);
       std::cout << (i ? "," : "") << "{\"name\":" << json(w.name) << ",\"url\":" << json(w.url)
                 << ",\"host\":" << (w.host ? "true" : "false") << ",\"state\":" << json(w.state)
+                << ",\"converged\":" << (w.converged ? "true" : "false")
                 << (w.finished ? b : "") << ",\"description\":" << json(w.description)
                 << ",\"environment\":" << json(w.env) << ",\"cell\":" << json(w.cell) << "}";
     }
@@ -114,7 +115,8 @@ int main(int argc, char **argv)
     std::cout << r.message << std::endl;
     for (const SiteScreen::Row& w : r.rows) {
       char b[200];
-      if (w.finished) snprintf(b, sizeof b, "%-10s %16.8f Ha %12.4f eV", w.name.c_str(), w.te, w.host ? 0.0 : w.de);
+      if (w.finished) snprintf(b, sizeof b, "%-10s %16.8f Ha %12.4f eV%s", w.name.c_str(), w.te,
+                               w.host ? 0.0 : w.de, w.converged ? "" : "  not converged");
       else snprintf(b, sizeof b, "%-10s %s", w.name.c_str(), w.state.c_str());
       std::cout << b << "  " << w.env << std::endl;
     }

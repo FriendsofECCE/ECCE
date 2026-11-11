@@ -216,6 +216,90 @@ IMPLEMENT_CLASS( CalcMgr, wxFrame )
  * Should never be used.
  */
 namespace {
+
+// What to screen for (#728); the note area carries the messages.
+class SiteScreenDialog : public wxDialog {
+public:
+  SiteScreenDialog(wxWindow *parent, const wxString& calcName, const wxString& basis)
+    : wxDialog(parent, wxID_ANY, "Screen Sites with MLP", wxDefaultPosition, wxDefaultSize,
+               wxDEFAULT_DIALOG_STYLE) {
+    wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+    top->Add(new wxStaticText(this, wxID_ANY, "Host: " + calcName), 0, wxALL, 8);
+    wxArrayString modes;
+    modes.Add("One atom per void");
+    modes.Add("Vacancy pairs");
+    p_mode = new wxRadioBox(this, wxID_ANY, "Search for", wxDefaultPosition, wxDefaultSize,
+                            modes, 1, wxRA_SPECIFY_COLS);
+    p_mode->SetToolTip("One atom per void: symmetry-distinct interstitial sites for one "
+                       "added atom. Vacancy pairs: symmetry-distinct pairs of atoms of "
+                       "the element removed together.");
+    top->Add(p_mode, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
+    wxFlexGridSizer *g = new wxFlexGridSizer(2, 6, 8);
+    p_element = new wxTextCtrl(this, wxID_ANY, "Li");
+    p_element->SetToolTip("Element symbol: the atom added, or the one removed in pairs.");
+    p_minHost = new wxSpinCtrlDouble(this, wxID_ANY, "1.6", wxDefaultPosition, wxDefaultSize,
+                                     wxSP_ARROW_KEYS, 0.5, 6.0, 1.6, 0.1);
+    p_minHost->SetToolTip("Smallest distance from a new atom to any host atom (Angstrom).");
+    p_minSep = new wxSpinCtrlDouble(this, wxID_ANY, "1.0", wxDefaultPosition, wxDefaultSize,
+                                    wxSP_ARROW_KEYS, 0.1, 6.0, 1.0, 0.1);
+    p_minSep->SetToolTip("Sites closer than this to each other count as one (Angstrom).");
+    p_maxDist = new wxSpinCtrlDouble(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize,
+                                     wxSP_ARROW_KEYS, 0.0, 50.0, 0.0, 0.5);
+    p_maxDist->SetToolTip("Largest distance between the two removed atoms (Angstrom); "
+                          "0 = no limit. Vacancy pairs only.");
+    g->Add(new wxStaticText(this, wxID_ANY, "Element"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(p_element, 1, wxEXPAND);
+    g->Add(new wxStaticText(this, wxID_ANY, "Minimum distance to host atoms (A)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(p_minHost);
+    g->Add(new wxStaticText(this, wxID_ANY, "Minimum distance between sites (A)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(p_minSep);
+    g->Add(new wxStaticText(this, wxID_ANY, "Maximum pair distance (A, 0 = no limit)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(p_maxDist);
+    top->Add(g, 0, wxEXPAND | wxALL, 8);
+    p_note = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 70),
+                            wxTE_MULTILINE | wxTE_READONLY);
+    p_note->SetValue("The run type, model and cell relaxation of " + calcName +
+                     " apply to every site; the host is calculated too, with the same "
+                     "settings. " + basis);
+    top->Add(p_note, 1, wxEXPAND | wxLEFT | wxRIGHT, 8);
+    wxBoxSizer *b = new wxBoxSizer(wxHORIZONTAL);
+    wxButton *help = new wxButton(this, wxID_HELP);
+    help->Bind(wxEVT_BUTTON, [](wxCommandEvent&) { WxHelpViewer::show("mlp.html#site-screening"); });
+    b->Add(help, 0, wxALL, 6);
+    b->AddStretchSpacer();
+    b->Add(new wxButton(this, wxID_CANCEL), 0, wxALL, 6);
+    wxButton *ok = new wxButton(this, wxID_OK);
+    ok->SetDefault();
+    b->Add(ok, 0, wxALL, 6);
+    top->Add(b, 0, wxEXPAND);
+    SetSizerAndFit(top);
+    Bind(wxEVT_BUTTON, &SiteScreenDialog::OnOk, this, wxID_OK);
+  }
+  bool vacancy() const { return p_mode->GetSelection() == 1; }
+  string element() const { return string(p_element->GetValue().Trim().ToUTF8()); }
+  double minHost() const { return p_minHost->GetValue(); }
+  double minSep() const { return p_minSep->GetValue(); }
+  double maxDist() const { return p_maxDist->GetValue(); }
+private:
+  void OnOk(wxCommandEvent& e) {
+    const string el = element();
+    if (el.empty() || el.size() > 2 ||
+        el.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") != string::npos) {
+      p_note->SetValue("Give the element as a symbol of one or two letters, for example Li.");
+      p_element->SetFocus();
+      return;
+    }
+    e.Skip();
+  }
+  wxRadioBox *p_mode;
+  wxTextCtrl *p_element, *p_note;
+  wxSpinCtrlDouble *p_minHost, *p_minSep, *p_maxDist;
+};
+
+}  // namespace
+
+
+namespace {
 // One-shot timer that runs its function and deletes itself.
 class OnceTimer : public wxTimer
 {
@@ -564,6 +648,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * sitescreen <template url> interstitial|vacancy <element> <min host> <min sep> [max dist]
  *                 Screen Sites with MLP (#728) without dialogs; the report,
  *                 lines separated by " | "
+ * sitescreendialog <template url> [png]
+ *                 the Screen Sites dialog: its defaults, and a capture
  * sitescreenresults <url>
  *                 Site Screening Results for the folder of <url>, as above
  * duplicate <url> [last]
@@ -2873,6 +2959,23 @@ void CalcMgr::runTestCommand(const string& line)
       screenSites(EcceURL(t), false, mode == "vacancy", el, mh, ms, md, &outcome);
       for (size_t p; (p = outcome.find('\n')) != string::npos;)
         outcome.replace(p, 1, " | ");
+    } else if (command == "sitescreendialog") {
+      // "sitescreendialog <url> [png]": the dialog as the menu opens it, its
+      // defaults, and a capture.
+      std::istringstream args(calcName);
+      string t, png;
+      args >> t >> png;
+      WxResourceTreeItemData *n = findNode(EcceURL(t), true, true);
+      SiteScreenDialog *d = new SiteScreenDialog(this, wxString::FromUTF8(
+          n ? n->getResource()->getName().c_str() : "host"), "");
+      d->Show();
+      for (int i = 0; i < 5; ++i) wxYield();
+      if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+      char b[200];
+      snprintf(b, sizeof b, "ok | vacancy=%d element=%s minhost=%g minsep=%g maxdist=%g",
+               d->vacancy(), d->element().c_str(), d->minHost(), d->minSep(), d->maxDist());
+      outcome = b;
+      d->Destroy();
     } else if (command == "sitescreenresults") {
       siteResults(EcceURL(calcName), false, &outcome);
       for (size_t p; (p = outcome.find('\n')) != string::npos;)
@@ -5676,88 +5779,6 @@ void CalcMgr::newSeries(const EcceURL& templ, const vector<string>& sources,
 }
 
 
-namespace {
-
-// What to screen for (#728); the note area carries the messages.
-class SiteScreenDialog : public wxDialog {
-public:
-  SiteScreenDialog(wxWindow *parent, const wxString& calcName, const wxString& basis)
-    : wxDialog(parent, wxID_ANY, "Screen Sites with MLP", wxDefaultPosition, wxDefaultSize,
-               wxDEFAULT_DIALOG_STYLE) {
-    wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
-    top->Add(new wxStaticText(this, wxID_ANY, "Host: " + calcName), 0, wxALL, 8);
-    wxArrayString modes;
-    modes.Add("One atom per void");
-    modes.Add("Vacancy pairs");
-    p_mode = new wxRadioBox(this, wxID_ANY, "Search for", wxDefaultPosition, wxDefaultSize,
-                            modes, 1, wxRA_SPECIFY_COLS);
-    p_mode->SetToolTip("One atom per void: symmetry-distinct interstitial sites for one "
-                       "added atom. Vacancy pairs: symmetry-distinct pairs of atoms of "
-                       "the element removed together.");
-    top->Add(p_mode, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
-    wxFlexGridSizer *g = new wxFlexGridSizer(2, 6, 8);
-    p_element = new wxTextCtrl(this, wxID_ANY, "Li");
-    p_element->SetToolTip("Element symbol: the atom added, or the one removed in pairs.");
-    p_minHost = new wxSpinCtrlDouble(this, wxID_ANY, "1.6", wxDefaultPosition, wxDefaultSize,
-                                     wxSP_ARROW_KEYS, 0.5, 6.0, 1.6, 0.1);
-    p_minHost->SetToolTip("Smallest distance from a new atom to any host atom (Angstrom).");
-    p_minSep = new wxSpinCtrlDouble(this, wxID_ANY, "1.0", wxDefaultPosition, wxDefaultSize,
-                                    wxSP_ARROW_KEYS, 0.1, 6.0, 1.0, 0.1);
-    p_minSep->SetToolTip("Sites closer than this to each other count as one (Angstrom).");
-    p_maxDist = new wxSpinCtrlDouble(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize,
-                                     wxSP_ARROW_KEYS, 0.0, 50.0, 0.0, 0.5);
-    p_maxDist->SetToolTip("Largest distance between the two removed atoms (Angstrom); "
-                          "0 = no limit. Vacancy pairs only.");
-    g->Add(new wxStaticText(this, wxID_ANY, "Element"), 0, wxALIGN_CENTER_VERTICAL);
-    g->Add(p_element, 1, wxEXPAND);
-    g->Add(new wxStaticText(this, wxID_ANY, "Minimum distance to host atoms (A)"), 0, wxALIGN_CENTER_VERTICAL);
-    g->Add(p_minHost);
-    g->Add(new wxStaticText(this, wxID_ANY, "Minimum distance between sites (A)"), 0, wxALIGN_CENTER_VERTICAL);
-    g->Add(p_minSep);
-    g->Add(new wxStaticText(this, wxID_ANY, "Maximum pair distance (A, 0 = no limit)"), 0, wxALIGN_CENTER_VERTICAL);
-    g->Add(p_maxDist);
-    top->Add(g, 0, wxEXPAND | wxALL, 8);
-    p_note = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 70),
-                            wxTE_MULTILINE | wxTE_READONLY);
-    p_note->SetValue("The run type, model and cell relaxation of " + calcName +
-                     " apply to every site; the host is calculated too, with the same "
-                     "settings. " + basis);
-    top->Add(p_note, 1, wxEXPAND | wxLEFT | wxRIGHT, 8);
-    wxBoxSizer *b = new wxBoxSizer(wxHORIZONTAL);
-    wxButton *help = new wxButton(this, wxID_HELP);
-    help->Bind(wxEVT_BUTTON, [](wxCommandEvent&) { WxHelpViewer::show("mlp.html#site-screening"); });
-    b->Add(help, 0, wxALL, 6);
-    b->AddStretchSpacer();
-    b->Add(new wxButton(this, wxID_CANCEL), 0, wxALL, 6);
-    wxButton *ok = new wxButton(this, wxID_OK);
-    ok->SetDefault();
-    b->Add(ok, 0, wxALL, 6);
-    top->Add(b, 0, wxEXPAND);
-    SetSizerAndFit(top);
-    Bind(wxEVT_BUTTON, &SiteScreenDialog::OnOk, this, wxID_OK);
-  }
-  bool vacancy() const { return p_mode->GetSelection() == 1; }
-  string element() const { return string(p_element->GetValue().Trim().ToUTF8()); }
-  double minHost() const { return p_minHost->GetValue(); }
-  double minSep() const { return p_minSep->GetValue(); }
-  double maxDist() const { return p_maxDist->GetValue(); }
-private:
-  void OnOk(wxCommandEvent& e) {
-    const string el = element();
-    if (el.empty() || el.size() > 2 ||
-        el.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") != string::npos) {
-      p_note->SetValue("Give the element as a symbol of one or two letters, for example Li.");
-      p_element->SetFocus();
-      return;
-    }
-    e.Skip();
-  }
-  wxRadioBox *p_mode;
-  wxTextCtrl *p_element, *p_note;
-  wxSpinCtrlDouble *p_minHost, *p_minSep, *p_maxDist;
-};
-
-}  // namespace
 
 
 void CalcMgr::screenSites(const EcceURL& templ, bool dialog, bool vacancy,
@@ -5815,7 +5836,8 @@ void CalcMgr::siteResults(const EcceURL& at, bool interactive, string *outcome)
   for (size_t i = 0; i < r.rows.size(); i++) {
     char b[200];
     const SiteScreen::Row& w = r.rows[i];
-    if (w.finished) snprintf(b, sizeof b, "%s: %.4f eV", w.name.c_str(), w.host ? 0.0 : w.de);
+    if (w.finished) snprintf(b, sizeof b, "%s: %.4f eV%s", w.name.c_str(), w.host ? 0.0 : w.de,
+                             w.converged ? "" : " (not converged)");
     else snprintf(b, sizeof b, "%s: %s", w.name.c_str(), w.state.c_str());
     text += string(b) + (w.env.empty() ? "" : "  " + w.env) + "\n";
   }

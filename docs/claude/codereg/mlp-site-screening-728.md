@@ -3,7 +3,7 @@ type: map
 title: "MLP site screening (#728 stage 2C): ecce-sites finds symmetry-distinct voids and vacancy pairs; a series of MLP calculations per site; results as an ensemble"
 area: codereg
 section: "Getting a calculation set up (the \"code registration\" system)"
-paths: ["src/mlp/sites.hpp", "src/mlp/sites.cpp", "src/mlp/sites_main.cpp", "src/dsm/edsiimpl/Series.C", "tests/mlp/sites_test.py", "help/src/mlp.md"]
+paths: ["src/apps/organizer/CalcMgr.C", "src/apps/organizer/WorkflowSteps.C", "tests/launch/site_screen_test.py", "src/mlp/sites.hpp", "src/mlp/sites.cpp", "src/mlp/sites_main.cpp", "src/dsm/edsiimpl/Series.C", "tests/mlp/sites_test.py", "help/src/mlp.md"]
 issues: [728]
 ---
 - **Symmetry is ECCE's own, not autosym.** autosym/SymmetryOps work on
@@ -59,3 +59,17 @@ issues: [728]
 - **MLP had never been through Series**: JCode::theoryNeedsBasis and
   DeckWriter's writeGbs crashed on an MLP calculation stored without a
   theory list/theory; both now guard the null.
+- **A step-limited site is usable, flagged.** ecce-mlp ends a Geometry run
+  stopped at its step limit as unsuccessful (`NOT CONVERGED`, %notConverged)
+  with TE and the last structure stored. `SiteScreen::results` takes
+  COMPLETED and UNSUCCESSFUL members alike when TE and a structure exist,
+  sets `Row::converged = false` for the latter, prefixes its SITEENV value
+  with "not converged; " (the Sites table's Environment column), and the
+  report counts them (warn, never block). FAILED/system failure stay out.
+- **Organizer hooks** `sitescreendialog <url> [png]` (the dialog's defaults
+  and a capture), `sitescreen`, `sitescreenresults`;
+  tests/launch/site_screen_test.py --organizer drives them under Xvfb, --mace
+  PYTHON uses the real network, --png photographs the Sites panel (Builder
+  script `background 1 1 1`, ECCE_OPEN_PANEL=Sites).
+- **The Organizer's result line for the results calculation** says "N sites":
+  it copies the MLP run type, which ensembleWords would call conformers.

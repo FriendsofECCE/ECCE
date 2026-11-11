@@ -267,6 +267,13 @@ the neighbours within 10 % of the nearest distance). As for a CREST ensemble,
 rows selected in the table are superposed in the Builder, and **New
 calculation from selected** passes them on to another code.
 
+A site whose Geometry run stopped at its step limit before converging is
+still listed, with the energy of its last structure, and marked **not
+converged** in the Environment column; the report says how many there are.
+Its energy is an upper bound for that site, so it may rank too high. Raise the
+step limit of the host calculation and screen again if the order matters.
+If the host itself did not converge, every difference carries that error.
+
 These energies rank sites; they are not formation energies for a report.
 The comparison is between structures with the same atoms, so the chemical
 potential of X cancels only within one screen.
