@@ -85,7 +85,7 @@ def run(work, mode, job=None, steps=()):
            "-timePauseReadLine", "1", "-timePauseJobExist", "1",
            "-timePauseFileExist", "1", "-timePauseFileExistStat", "1"]
     if job:
-        cmd += ["-jobQ", "shell", "-jobId", str(job.pid)]
+        cmd += ["-jobQ", "shell", "-jobId", str(job.shell_pid)]
     # A file, not a pipe: nothing reads the pipe while the monitor runs.
     log = open(os.path.join(work, "monitor-%s.log" % mode), "w+b")
     proc = subprocess.Popen(cmd, cwd=work, stdin=subprocess.DEVNULL,
@@ -98,7 +98,7 @@ def run(work, mode, job=None, steps=()):
     if job:
         time.sleep(2.5)
         running = messages(out) if os.path.exists(out) else []
-        job.kill()
+        subprocess.run(["kill", str(job.shell_pid)])
         job.wait()
         open(os.path.join(work, ".ecce.status"), "w").write("0\n")
     else:
@@ -124,24 +124,34 @@ def run(work, mode, job=None, steps=()):
 def main():
     work = tempfile.mkdtemp(prefix="ecce-follow-")
     try:
-        open(os.path.join(work, "t.desc"), "w").write(DESC)
-        open(os.path.join(work, "end.dat"), "w").write("x\n")
+        # newline="\n": the follow checks compare bytes, and Windows text
+        # mode would write CRLF.
+        def write(path, text, mode="w"):
+            with open(path, mode, newline="\n") as handle:
+                handle.write(text)
+
+        write(os.path.join(work, "t.desc"), DESC)
+        write(os.path.join(work, "end.dat"), "x\n")
         grow = os.path.join(work, "grow.xyz")
         out = os.path.join(work, "job.out")
-        open(out, "w").write("point 1\n")
-        open(grow, "w").write("3\nframe 1\n")
+        write(out, "point 1\n")
+        write(grow, "3\nframe 1\n")
 
         def append(path, text):
-            return lambda: open(path, "a").write(text)
+            return lambda: write(path, text, "a")
 
         steps = [append(grow, "C 0 0 0\nN 1 0 0\nH 2 0"),   # half a line
                  append(grow, " 0\n3\nframe 2\nC 0 0 1\n"),
                  append(out, "point 2\n"),
                  append(grow, "N 1 0 1\nH 2 0 1\n")]
-        job = subprocess.Popen(["sleep", "120"])
+        # The monitor checks the job by the process id of the shell it runs
+        # under (MSYS on Windows, where Python's pid is a Windows one).
+        job = subprocess.Popen(["sh", "-c", "echo $$; exec sleep 120"],
+                               stdout=subprocess.PIPE, text=True)
+        job.shell_pid = int(job.stdout.readline())
         msgs, running = run(work, "live", job, steps)
         blocks = follow_blocks(msgs)
-        whole = open(grow).read()
+        whole = open(grow, newline="").read()
         got, pos, ok = "", 0, True
         for b in blocks:
             body = b[4]
