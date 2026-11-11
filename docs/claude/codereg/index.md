@@ -88,6 +88,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [ECCE-QM D3(BJ): C++ code, upstream data converted at build time, where it is wired](ecceqm-d3bj-dispersion-453.md)
 - [ECCE-QM analytic RHF Hessian: libcint derivative sign, ordered-pair double counting, scope](ecceqm-analytic-hessian-conventions.md)
 - [ECCE-QM analytic RKS Hessian: fixed grid, what it agrees with, which functionals](ecceqm-analytic-rks-hessian.md)
+- [ECCE-QM analytic UHF/UKS Hessian: spin channels, polarised fxc, why ROHF/ROKS stay numerical (#394)](ecceqm-analytic-uhf-uks-hessian.md)
 - [A `.desc` bracket group's names are labels, not the stored key](labels-not-the-stored-key.md)
 - [NWChem's `.desc` `Begin` patterns match the `ecce_print` trace file, not NWChem's stdout](nwchems-desc-begin-patterns-begin-end-task.md)
 - [NWChem MP2 and coupled cluster: which module each theory uses, and why MP/CC decks once aborted (#297)](nwchem-mp2-and-coupled-cluster-297.md)

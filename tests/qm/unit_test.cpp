@@ -312,7 +312,7 @@ int main(int argc, char** argv) {
     r.nalpha = r.nbeta = 5;
     check(analytic_hessian_available(so, r), "RKS PBE takes the analytic Hessian");
     so.reference = r.reference = Reference::Unrestricted;
-    check(!analytic_hessian_available(so, r), "UKS keeps finite differences");
+    check(analytic_hessian_available(so, r), "UKS PBE takes the analytic Hessian");
     so.reference = r.reference = Reference::RestrictedOpen;
     check(!analytic_hessian_available(so, r), "ROKS keeps finite differences");
     so.reference = r.reference = Reference::Restricted;
@@ -323,14 +323,15 @@ int main(int argc, char** argv) {
     check(!analytic_hessian_available(so, r), "D3 keeps finite differences");
   }
 
-  // Analytic UHF/UKS Hessian of a radical (OH, off equilibrium) against finite
+  // Analytic UHF/UKS Hessian of a radical (NH2, off equilibrium) against finite
   // differences of the gradient: alpha and beta CPHF/CPKS blocks and the
-  // spin-polarised XC kernel.
+  // spin-polarised XC kernel.  Not OH: its GGA grid response at 99/590 is
+  // ~9e-5 (1e-5 at 150/974), which would test the grid, not the code.
   {
     Molecule m;
-    m.atoms = {{8, {0, 0, 0}}, {1, {0, 0.1, 1.85}}};
+    m.atoms = {{7, {0, 0, 0.25}}, {1, {0, 1.55, -0.95}}, {1, {0, -1.5, -1.0}}};
     m.multiplicity = 2;
-    for (const char* fn : {"hf"}) {
+    for (const char* fn : {"hf", "pbe", "b3lyp"}) {
       ScfOptions so;
       so.method = fn;
       so.reference = Reference::Unrestricted;
@@ -349,7 +350,7 @@ int main(int argc, char** argv) {
       };
       const Derivatives num = finite_difference_derivatives(m, 0.002, point);
       const Derivatives ana = rhf_hessian(b0, m, so, ref);
-      const std::string tag = std::string("OH/6-31G* unrestricted ") + fn;
+      const std::string tag = std::string("NH2/6-31G* unrestricted ") + fn;
       check((ana.hessian - num.hessian).cwiseAbs().maxCoeff() < 2e-5, "analytic open-shell Hessian matches finite difference " + tag,
             (ana.hessian - num.hessian).cwiseAbs().maxCoeff());
       check((ana.dmu - num.dmu).cwiseAbs().maxCoeff() < 1e-5, "analytic open-shell dipole derivatives match finite difference " + tag,

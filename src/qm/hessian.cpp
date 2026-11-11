@@ -99,7 +99,7 @@ bool analytic_hessian_available(const ScfOptions& opt, const ScfResult& r) {
   bool fn_ok = false;
   try { fn_ok = xc_analytic_hessian_supported(functional_by_name(opt.method)); } catch (const Error&) {}
   const bool closed = opt.reference == Reference::Restricted && r.reference == Reference::Restricted && r.nalpha == r.nbeta;
-  const bool unrestricted = opt.reference == Reference::Unrestricted && r.reference == Reference::Unrestricted && opt.method == "hf";
+  const bool unrestricted = opt.reference == Reference::Unrestricted && r.reference == Reference::Unrestricted;
   return fn_ok && !opt.ivo && !r.ivo_applied && opt.solvent_eps <= 0 && opt.dispersion.empty() && (closed || unrestricted) &&
          r.nalpha > 0 && r.nbeta > 0 && opt.field[0] == 0 && opt.field[1] == 0 && opt.field[2] == 0;
 }

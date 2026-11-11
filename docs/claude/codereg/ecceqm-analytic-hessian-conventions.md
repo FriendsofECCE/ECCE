@@ -6,8 +6,8 @@ section: "ECCE-QM engine"
 paths: ["src/qm/hessian.cpp", "src/qm/main.cpp", "tests/qm/unit_test.cpp"]
 issues: [394]
 ---
-`rhf_hessian` is used for closed-shell HF and Kohn-Sham frequency runs (DFT: see ecceqm-analytic-rks-hessian.md; not
-UHF/ROHF, Raman, or when `numeric_hessian true` / `ECCE_QM_NUMERIC_HESSIAN`
+`rhf_hessian` is used for closed-shell and unrestricted HF and Kohn-Sham frequency runs (DFT: see ecceqm-analytic-rks-hessian.md; open shells: ecceqm-analytic-uhf-uks-hessian.md; not
+ROHF/ROKS, Raman, or when `numeric_hessian true` / `ECCE_QM_NUMERIC_HESSIAN`
 is set); everything else uses the finite-difference path.
 Three silent traps, each found by comparing against a finite-difference oracle
 piece by piece (nuclear, S, T, V, 2e skeleton separately):
