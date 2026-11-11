@@ -98,6 +98,14 @@ force output (`pullf.xvg`) and shows:
   barrier above the deepest minimum, and the highest minus the lowest PMF
   value. Smaller wiggles are statistical noise and are not listed.
 
+**Details...** opens the full text in a window of its own, which can be
+resized and from which text can be selected and copied: every minimum and
+maximum found (significant ones marked `*`), the range shown, the overlap of
+each pair of neighbouring windows in per cent, the warnings, the window
+calculations used and the `gmx wham` command. It has its own **Export
+.csv...**. The picture of the page (the PMF, the histograms and the short
+summary) leaves these details out.
+
 The PMF is shown only where the windows sampled: at the two ends, bins in
 which the summed histograms hold less than 1 % of the fullest bin are cut,
 since `gmx wham` extrapolates there and the profile shoots up.
@@ -125,6 +133,47 @@ removed and the PMF zero at large distance, it shows the contact ion pair at
 solvent-separated pair at 0.52 nm (about 0 kJ/mol): the positions known from
 simulations of NaCl in water. Windows of 100 ps leave the curve noisy by about
 1 kJ/mol.
+
+## Worked example: two strands of an amyloid fibril (2BEG)
+
+PDB entry 2BEG is a fibril of five Aβ(17–42) chains (A–E). The free energy of
+taking chain A off the end of the fibril is found as follows; every step is
+done in ECCE.
+
+1. **New GROMACS MD Study**, then add a Prepare, an Optimize, an Equilibrate
+   and a Dynamics task.
+2. **Prepare**: Source Protein, the first model of 2BEG as the structure,
+   force field `gromos53a6`, water `spc`, **Ignore hydrogens** ticked,
+   **Merge chains into one molecule** unticked. **Box size (x y z)**
+   `6.560 4.362 12` and **Solute centre (x y z)** `3.280 2.181 2.4775`, so the
+   fibril sits near one end of a box that is long in z. **Neutralise** ticked
+   and a salt concentration of 0.1 mol/L (NaCl). Launch it.
+3. **Optimize**: steepest descent, 50000 steps at most, with
+   `emtol = 1000` under the extra lines. Launch.
+4. **Equilibrate**: constant pressure (NPT) at 310 K, every chain restrained
+   (**Restrain chain A** to **E**). The lab protocol runs 0.5 ns; 100 ps is
+   enough for the box to settle.
+5. **Dynamics (the pull run)**: NPT at 310 K, **Restrain chain B** only.
+   Groups `Chain_A = mol:Protein_chain_A` and
+   `Chain_B = mol:Protein_chain_B`; tick **Pull group 2 away from group 1**
+   with group 1 `Chain_B` (the restrained reference) and group 2 `Chain_A`;
+   coordinate `distance`,
+   rate 0.01 nm/ps, k = 1000 kJ/mol/nm². Add the extra lines
+   `pull-coord1-dim = N N Y` (along z only) and `nstxout-compressed = 2500`
+   (a frame every 5 ps, 0.05 nm of pull). 200000 steps (400 ps) take chain A
+   from 0.45 nm to about 5 nm; a longer pull stops when the distance reaches
+   half the box length.
+6. When the pull run is Complete, open **Pull Force** in its Properties.
+   Check the force and distance plots, and **RMSD...** and **Radius of
+   gyration...** for the chains.
+7. On the **Umbrella sampling** page: spacing 0.2 nm, **Find windows**, then
+   **Create window calculations** (equilibration and production steps as
+   wanted). Launch the -eq tasks, and each production task when its -eq is
+   Complete.
+8. **Run WHAM** when the production runs are Complete. Read the binding free
+   energy as the depth of the deepest minimum below the plateau at large
+   distance, if the PMF has levelled off; if a warning names a gap, add a
+   window there and run WHAM again.
 
 ## Command line
 

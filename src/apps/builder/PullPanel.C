@@ -17,6 +17,8 @@
 #include <wx/filedlg.h>
 #include <wx/msgdlg.h>
 #include <wx/sizer.h>
+#include <wx/dialog.h>
+#include <wx/font.h>
 #include <wx/stattext.h>
 
 #include "tdat/PropVector.H"
@@ -40,6 +42,7 @@ const wxWindowID ID_FIND = wxNewId();
 const wxWindowID ID_CREATE = wxNewId();
 const wxWindowID ID_WHAM = wxNewId();
 const wxWindowID ID_UEXPORT = wxNewId();
+const wxWindowID ID_UDETAILS = wxNewId();
 const wxWindowID ID_RMSD = wxNewId();
 const wxWindowID ID_GYRATE = wxNewId();
 const wxWindowID ID_TAB0 = wxNewId();
@@ -60,7 +63,7 @@ IMPLEMENT_DYNAMIC_CLASS(PullPanel, PropertyPanel)
 PullPanel::PullPanel()
   : PropertyPanel(), p_force(NULL), p_dist(NULL), p_text(NULL),
     p_book(NULL), p_spacing(NULL), p_from(NULL), p_to(NULL), p_eq(NULL),
-    p_prod(NULL), p_noise(NULL), p_info(NULL), p_jacobian(NULL), p_windows(NULL),
+    p_prod(NULL), p_noise(NULL), p_detailsDlg(NULL), p_detailsText(NULL), p_info(NULL), p_jacobian(NULL), p_windows(NULL),
     p_pmf(NULL), p_hist(NULL), p_haveWham(false)
 {
 }
@@ -70,7 +73,7 @@ PullPanel::PullPanel(IPropCalculation *calculation,
         const wxSize& size, long style, const wxString& name)
   : PropertyPanel(), p_force(NULL), p_dist(NULL), p_text(NULL),
     p_book(NULL), p_spacing(NULL), p_from(NULL), p_to(NULL), p_eq(NULL),
-    p_prod(NULL), p_noise(NULL), p_info(NULL), p_jacobian(NULL), p_windows(NULL),
+    p_prod(NULL), p_noise(NULL), p_detailsDlg(NULL), p_detailsText(NULL), p_info(NULL), p_jacobian(NULL), p_windows(NULL),
     p_pmf(NULL), p_hist(NULL), p_haveWham(false)
 {
   Create(calculation, parent, id, pos, size, style, name);
@@ -188,6 +191,7 @@ bool PullPanel::Create(IPropCalculation *calculation,
   b1->Add(new wxButton(u, ID_CREATE, "Create window calculations"), 0, wxRIGHT | wxBOTTOM, 6);
   b1->Add(new wxButton(u, ID_WHAM, "Run WHAM"), 0, wxRIGHT | wxBOTTOM, 6);
   b1->Add(new wxButton(u, ID_UEXPORT, "Export .csv..."), 0, wxRIGHT | wxBOTTOM, 6);
+  b1->Add(new wxButton(u, ID_UDETAILS, "Details..."), 0, wxRIGHT | wxBOTTOM, 6);
   p_jacobian = new wxCheckBox(u, wxID_ANY, "Remove the 2RT ln r volume term");
   b1->Add(p_jacobian, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM, 6);
   us->Add(b1, 0, wxEXPAND | wxLEFT | wxRIGHT, 4);
@@ -219,6 +223,7 @@ bool PullPanel::Create(IPropCalculation *calculation,
   Bind(wxEVT_BUTTON, &PullPanel::OnCreate, this, ID_CREATE);
   Bind(wxEVT_BUTTON, &PullPanel::OnWham, this, ID_WHAM);
   Bind(wxEVT_BUTTON, &PullPanel::OnUmbrellaExport, this, ID_UEXPORT);
+  Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { umbrellaDetails(true); }, ID_UDETAILS);
   showPage(0);
   return true;
 }
@@ -343,12 +348,9 @@ bool PullPanel::umbrellaWham(bool jacobian)
   int w = 0;
   for (const MiniJson& c : j.get("histograms").get("counts").items())
     p_hist->addCurve(hx, column(c), wxString::Format("%d", ++w));
-  //  only the extrema that stand out from the noise; the CSV has them all
-  wxString text = wxString::Format("%d windows, %g K. Profile %.3f to %.3f nm (the "
-      "ends without histogram data are cut); extrema that differ from their "
-      "neighbour by more than %.2f kJ/mol:", used, temp,
-      numOf(j.get("supported").get("from")), numOf(j.get("supported").get("to")),
-      numOf(j.get("noise")));
+  //  The panel says only what a student reads off: the deepest minimum, the
+  //  extrema above the noise, the barriers. Everything else is in Details.
+  wxString text = wxString::Format("%d windows, %g K.", used, temp);
   const double gmin = j.get("global_minimum").isNull() ? 0
                     : numOf(j.get("global_minimum").get("distance"));
   for (const MiniJson& m : j.get("minima").items())
@@ -361,7 +363,37 @@ bool PullPanel::umbrellaWham(bool jacobian)
                              numOf(m.get("pmf")), numOf(m.get("height")));
   if (!j.get("depth").isNull())
     text += wxString::Format("\nhighest - lowest: %.2f kJ/mol", numOf(j.get("depth")));
-  for (const MiniJson& m : j.get("warnings").items()) text += "\n" + U8(m.str());
+  const int nwarn = (int)j.get("warnings").items().size();
+  if (nwarn)
+    text += wxString::Format("\n%d gap%s between windows: see Details...", nwarn,
+                             nwarn == 1 ? "" : "s");
+
+  wxString d = wxString::Format("PMF from %d windows at %g K%s.\nProfile shown from %.3f "
+      "to %.3f nm (the ends without histogram data are cut).\nExtrema are significant "
+      "when they differ from their neighbour by more than %.2f kJ/mol.\n\n"
+      "Every minimum and maximum (* significant):", used, temp,
+      p_jacobian->GetValue() ? ", with the 2RT ln r term" : "",
+      numOf(j.get("supported").get("from")), numOf(j.get("supported").get("to")),
+      numOf(j.get("noise")));
+  for (const MiniJson& m : j.get("extrema").items())
+    d += wxString::Format("\n%s %s %.3f nm  %8.2f kJ/mol",
+                          m.get("significant").boolean() ? "*" : " ",
+                          U8(m.get("kind").str()), numOf(m.get("distance")),
+                          numOf(m.get("pmf")));
+  d += "\n\nOverlap of neighbouring windows (by mean distance):";
+  for (const MiniJson& o : j.get("overlap").items())
+    d += wxString::Format("\nwindows %2s and %2s near %.3f nm: %5.1f %%",
+                          U8(o.get("from").str()), U8(o.get("to").str()),
+                          numOf(o.get("at")), 100 * numOf(o.get("overlap")));
+  for (const MiniJson& m : j.get("warnings").items()) d += "\nwarning: " + U8(m.str());
+  d += "\n\nWindows:";
+  int wn = 0;
+  for (const MiniJson& w : j.get("windows").items())
+    d += wxString::Format("\n%2d  %s", ++wn, U8(w.str()).AfterLast('/'));
+  d += "\n\nCommands:";
+  for (const MiniJson& c : j.get("commands").items()) d += "\n" + U8(c.str());
+  p_details = d;
+  if (p_detailsDlg) { p_detailsText->SetValue(p_details); p_detailsText->ShowPosition(0); }
   umbrellaSay(text);
   return true;
 }
@@ -497,6 +529,44 @@ void PullPanel::OnCreate(wxCommandEvent&)
 void PullPanel::OnWham(wxCommandEvent&)
 {
   umbrellaWham(p_jacobian->GetValue());
+}
+
+bool PullPanel::umbrellaDetails(bool show)
+{
+  if (!show) {
+    if (p_detailsDlg) p_detailsDlg->Destroy();
+    p_detailsDlg = 0;
+    return true;
+  }
+  if (p_details.empty()) { umbrellaSay("Run WHAM first."); return false; }
+  if (!p_detailsDlg) {
+    //  own window, resizable, text selectable for copying
+    p_detailsDlg = new wxDialog(this, wxID_ANY, "Umbrella sampling: WHAM details",
+                                wxDefaultPosition, wxSize(640, 520),
+                                wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
+    wxBoxSizer *s = new wxBoxSizer(wxVERTICAL);
+    p_detailsText = new wxTextCtrl(p_detailsDlg, wxID_ANY, p_details, wxDefaultPosition,
+                                   wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY | wxHSCROLL);
+    p_detailsText->SetFont(wxFont(wxFontInfo().Family(wxFONTFAMILY_TELETYPE)));
+    s->Add(p_detailsText, 1, wxEXPAND | wxALL, 6);
+    wxBoxSizer *b = new wxBoxSizer(wxHORIZONTAL);
+    wxButton *ex = new wxButton(p_detailsDlg, wxID_ANY, "Export .csv...");
+    wxButton *cl = new wxButton(p_detailsDlg, wxID_CLOSE, "Close");
+    b->Add(ex, 0, wxRIGHT, 6);
+    b->AddStretchSpacer();
+    b->Add(cl, 0);
+    s->Add(b, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
+    p_detailsDlg->SetSizer(s);
+    ex->Bind(wxEVT_BUTTON, [this](wxCommandEvent& e) { OnUmbrellaExport(e); });
+    cl->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { umbrellaDetails(false); });
+    p_detailsDlg->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent&) { umbrellaDetails(false); });
+  }
+  p_detailsDlg->Show();
+  p_detailsDlg->Raise();
+  //  start at the top: SetValue leaves GTK scrolled to the end
+  p_detailsText->SetInsertionPoint(0);
+  p_detailsText->ShowPosition(0);
+  return true;
 }
 
 void PullPanel::OnUmbrellaExport(wxCommandEvent&)

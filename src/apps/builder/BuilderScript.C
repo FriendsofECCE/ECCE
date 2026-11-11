@@ -1321,7 +1321,7 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0].compare(0, 8, "umbrella") == 0) {
         //  umbrellafind <spacing> [from to]; umbrellacreate <eq> <prod>;
         //  umbrellawham [jacobian] [noise=<kJ/mol>]; umbrellaexport <path>; umbrellashot
-        //  <png> [w h]; umbrellastate; umbrellaclip (Pull Force panel > Umbrella sampling).
+        //  <png> [w h]; umbrellastate; umbrelladetails [close]; umbrellaclip (Pull Force panel > Umbrella sampling).
         PullPanel *pp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
@@ -1359,6 +1359,12 @@ void Builder::runBuilderScript(const std::string& file)
                       ? "ok" : "failed");
         } else if (w[0] == "umbrellapage") {
           pp->showUmbrella();
+        } else if (w[0] == "umbrelladetails") {
+          //  umbrelladetails [close]: the Details... window
+          const bool open = !(w.size() > 1 && w[1] == "close");
+          const bool ok = pp->umbrellaDetails(open);
+          fprintf(stderr, "BUILDER: umbrelladetails %s lines=%d\n", ok ? "ok" : "failed",
+                  (int)pp->umbrellaDetailsText().Freq('\n') + 1);
         } else if (w[0] == "umbrellaclip") {
           pp->clipAudit();
           fprintf(stderr, "BUILDER: umbrellaclip done\n");

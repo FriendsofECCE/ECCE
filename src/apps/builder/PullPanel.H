@@ -11,6 +11,7 @@ class wxSimplebook;
 class wxToggleButton;
 class wxTextCtrl;
 class wxCheckBox;
+class wxDialog;
 class wxListCtrl;
 class XYPlotCanvas;
 
@@ -48,7 +49,9 @@ class PullPanel : public PropertyPanel
       bool umbrellaFind(double spacing, const wxString& from, const wxString& to);
       bool umbrellaCreate(int eqSteps, int prodSteps);
       bool umbrellaWham(bool jacobian);
-      void clipAudit();   // both pages, under ECCE_CLIP_AUDIT
+      void clipAudit();
+      bool umbrellaDetails(bool show);   // the Details... window
+      wxString umbrellaDetailsText() const { return p_details; }   // both pages, under ECCE_CLIP_AUDIT
       void setNoise(const std::string& kj) { if (p_noise) p_noise->SetValue(wxString::FromUTF8(kj.c_str())); }
       bool umbrellaExport(const wxString& path);
       /** The PMF plot as a PNG on a white background. */
@@ -75,7 +78,10 @@ class PullPanel : public PropertyPanel
       wxStaticText *p_text;
       wxSimplebook *p_book;
       wxToggleButton *p_tab[2];
-      wxTextCtrl *p_spacing, *p_from, *p_to, *p_eq, *p_prod, *p_noise, *p_info;
+      wxTextCtrl *p_spacing, *p_from, *p_to, *p_eq, *p_prod, *p_noise;
+      wxDialog *p_detailsDlg;      // Details...: the full WHAM text
+      wxTextCtrl *p_detailsText, *p_info;
+      wxString p_details;
       wxCheckBox *p_jacobian;
       double noiseValue() const;  // 0 = kT
       wxListCtrl *p_windows;

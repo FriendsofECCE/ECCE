@@ -233,6 +233,7 @@ def main():
             ["wait 6000", "umbrellapage", "umbrellafind 0.04 0.24 1.2",
              "umbrellawham" + (" jacobian" if args.jacobian else ""), "umbrellaexport %s" % csv,
              "umbrellashot %s 900 600" % shot, "umbrellastate", "wait 1500", "shot page",
+             "umbrelladetails", "wait 1500", "shot details", "umbrelladetails close",
              "umbrellaanalysis gyrate", "wait 1500", "shot analysis", "quit"],
             png, "umbrella", {"ECCE_PANEL_MODE": args.panel_mode, "ECCE_OPEN_PANEL": "Pull Force",
                               "ECCE_OPEN_PANEL_SIZE": "1000x1000"})
@@ -245,6 +246,9 @@ def main():
         check(wh and int(wh.group(1)) == 1 and int(wh.group(2)) >= len(wins) - 1,
               "WHAM drew the PMF and %s histograms" % (wh.group(2) if wh else "no"))
         check("umbrellaexport ok" in text and "umbrellashot ok" in text, "export and shot reported ok")
+        det = re.search(r"BUILDER: umbrelladetails ok lines=(\d+)", text)
+        check(det and int(det.group(1)) > 10, "Details... opened its window (%s lines)"
+              % (det.group(1) if det else "no"))
         # the pull page's link opens MD Analysis on the radius of gyration when
         # the run has a trajectory; the fixture's may not, and then it says so
         an = re.search(r"BUILDER: umbrellaanalysis (\w+)", text)
@@ -279,7 +283,7 @@ def main():
             check(False, "the CSV exists")
         check(os.path.exists(shot) and os.path.getsize(shot) > 2000, "the PMF picture was saved")
         if args.png:
-            for k in ("page",):
+            for k in ("page", "details"):
                 if k in shots:
                     shutil.copy(shots[k], args.png)
             shutil.copy(shot, os.path.splitext(args.png)[0] + "-plot.png")
