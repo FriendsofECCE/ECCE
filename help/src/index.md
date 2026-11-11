@@ -202,6 +202,11 @@ describe what you did and what happened.
    Q2, T2 and DModX of the descriptor table (Tools > QSAR Analysis,
    `ecce-qsar pca`).
 
+40. [Diffraction: fibre patterns](fibre-diffraction.md): the calculated X-ray
+   fibre pattern of a structure or a selection, for example B-DNA and an
+   alpha-helix, on a film or as a map, with a measured image behind it (Tools >
+   Diffraction, `ecce-xrd fibre`).
+
 Reference:
 
 - [ORCA composite methods](orca-composite-methods.md): r2SCAN-3c, B97-3c,
