@@ -48,6 +48,10 @@ struct GromacsRun
    string pullDim;       ///< "Y Y Y": the axes the distance is measured on
    double pullRate;      ///< nm/ps
    double pullK;         ///< kJ/mol/nm^2
+   /// Fixed reference (nm) instead of the starting distance; < 0: unset.
+   /// An umbrella window must stay at its target even where the PMF
+   /// pushes it away during equilibration.
+   double pullInit;
 
    /** Empty when grompp takes the barostat/type pair, else why not. */
    static string pairProblem(int barostat, int pcoupltype);

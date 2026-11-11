@@ -237,6 +237,8 @@ if (get("Interaction", "GmxPull", 0) == 1 && $runtype{$task} eq "Dynamics") {
   $p{"ES.Runtype.MD.PullDim"} = $dim;
   $p{"ES.Runtype.MD.PullRate"} = get("Interaction", "GmxPullRate", 0.01);
   $p{"ES.Runtype.MD.PullK"} = get("Interaction", "GmxPullK", 1000);
+  my $init = get("Interaction", "GmxPullInit", -1);
+  $p{"ES.Runtype.MD.PullInit"} = $init if ($init >= 0);
 }
 
 # lines of the user's own, merged over ours by ai.gromacs

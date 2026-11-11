@@ -121,6 +121,7 @@ static MdTask *makeTask(Session *session, ResourceType *type, MdTask *from,
   if (InteractionModel *im = model.getInteractionModel()) {
     GromacsRun run = im->getGromacsRun();
     run.pullRate = 0;
+    run.pullInit = w.target;
     im->setGromacsRun(run);
   }
   if (DynamicsModel *dm = model.getDynamicsModel()) {
@@ -145,7 +146,7 @@ static MdTask *makeTask(Session *session, ResourceType *type, MdTask *from,
   char num[16];
   snprintf(num, sizeof num, "%d", w.number);
   char dist[32];
-  snprintf(dist, sizeof dist, "%.4f", w.distance);
+  snprintf(dist, sizeof dist, "%.4f", w.target);
   task->addProp(UmbrellaWindows::propName("pull"), pull->getURL().toString());
   task->addProp(UmbrellaWindows::propName("window"), num);
   task->addProp(UmbrellaWindows::propName("role"), role);
@@ -303,6 +304,8 @@ bool UmbrellaWindows::find(MdTask *pull, double spacing, const string& from,
       Window x;
       x.number = ++n;
       x.distance = atof(w.get("distance").str().c_str());
+      const string t = w.get("target").str();
+      x.target = t.empty() ? x.distance : atof(t.c_str());
       x.groFile = w.get("file").str();
       windows->push_back(x);
     }

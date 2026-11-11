@@ -2,14 +2,18 @@
 type: pitfall
 title: "GROMACS umbrella sampling (#762): a window is the pull run with rate 0; WHAM reads tpr + pullf; the r^2 volume term is in gmx wham's PMF"
 area: codereg
-paths: [scripts/ecce_umbrella.py, src/dsm/edsiimpl/UmbrellaWindows.C, src/comm/commxt/Launch.C, src/comm/commxt/JobStore.C, tests/gromacs_md/umbrella_test.py, scripts/parsers/ai.gromacs, src/apps/builder/PullPanel.C]
+paths: [scripts/ecce_umbrella.py, scripts/parsers/md.gmxtask, include/tdat/InteractionModel.H, src/dsm/xml/NWChemMDModelXMLizer.C, src/dsm/edsiimpl/UmbrellaWindows.C, src/comm/commxt/Launch.C, src/comm/commxt/JobStore.C, tests/gromacs_md/umbrella_test.py, scripts/parsers/ai.gromacs, src/apps/builder/PullPanel.C]
 issues: [762, 410]
 ---
-- `ai.gromacs` always writes `pull-coord1-start = yes`. With rate 0 grompp
-  adds the starting COM distance to `pull-coord1-init`, so a window made
-  from a pull-trajectory frame is restrained at its own distance and the
-  value is in its `topol.tpr`. No reference-distance setting exists or is
-  needed; a window is the pull task's model with `GmxPullRate` 0.
+- A window is the pull task's model with `GmxPullRate` 0 and `GmxPullInit`
+  at the window's target distance (`GromacsRun::pullInit`, < 0 = unset):
+  `ai.gromacs` then writes `pull-coord1-start = no` and `pull-coord1-init`.
+  With `start = yes` (the pull run's own setting) grompp adds the starting
+  COM distance, so a window on the barrier was restrained wherever the
+  frame happened to be and slid into the well during equilibration: a gap
+  at 0.35 nm in the Na+ Cl- PMF. Window targets come from `ecce-umbrella`'s
+  `target` (Window::target); the frame's own `distance` may be up to half a
+  spacing away and the equilibration brings it there.
 - Frames: `ecce-umbrella` takes the frame times from `gmx check -f traj.xtc`
   and the distance at each frame by interpolating pullx (every 50 steps), so
   the xtc interval decides how finely windows can be placed. A target whose
@@ -38,8 +42,17 @@ issues: [762, 410]
   without the provider clock: a window's time starts at 0.
 - pullx.xvg/pullf.xvg reach `<calc>/Outputs` only because both Launch's
   filesToTransfer (when pull is on) and `JobStore::isGromacsResult` name them.
+- Panel: the Pull run / Umbrella sampling pages are a wxSimplebook behind
+  two toggle buttons, each page a vertical wxScrolledWindow with wrap
+  sizers. With GTK's native wxNotebook the Pull run page's Export button
+  stayed drawn over the docked Umbrella page. RMSD... and Radius of
+  gyration... open MD Analysis (`Builder::openPropertyPanel`, the same path
+  as ECCE_OPEN_PANEL) and pick `rms`/`gyrate`; MD Analysis needs GEOMTRACE,
+  and without it the pull page says so under its summary (no dialog).
 - Hooks: Organizer `umbrellawindows <pull-url> <spacing> <from|-> <to|-> <eq>
   <prod>`; Builder `umbrellafind`, `umbrellacreate`, `umbrellawham
-  [jacobian]`, `umbrellaexport`, `umbrellashot`, `umbrellastate`.
-- Test: `tests/gromacs_md/umbrella_test.py` (Na+ Cl- in TIP3P; `--quick`
+  [jacobian]`, `umbrellaexport`, `umbrellashot`, `umbrellastate`, `umbrellaanalysis rms|gyrate`.
+- Test: `tests/gromacs_md/umbrella_test.py` (Na+ Cl- in TIP3P; the NPT
+  equilibration holds the pair at 0.28 nm, or it can drift to 0.5 nm and
+  the pull leaves no windows at contact and runs past half the box; `--quick`
   for minutes, full run about an hour on 4 threads).

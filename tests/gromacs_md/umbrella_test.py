@@ -4,9 +4,9 @@
 A Na+ Cl- pair in TIP3P water (AMBER99SB-ILDN ions) is minimised, pulled
 apart through the real md.gmxtask / launchpp / gensub job script, windows are
 picked and cut from the pull trajectory by ecce-umbrella, each window is
-equilibrated and sampled with the pull rate set to 0 (the window's own
-distance is its reference, as the pull run's copies are), and ecce-umbrella
-wham makes the PMF.  The reference is the known shape of the NaCl PMF in
+equilibrated and sampled with the pull rate set to 0 and the reference fixed
+at the window's target distance (GmxPullInit, as the window tasks made from
+a pull run have), and ecce-umbrella wham makes the PMF.  The reference is the known shape of the NaCl PMF in
 water (e.g. Smith & Dang, J. Chem. Phys. 100, 3757 (1994); Fennell et al.,
 J. Phys. Chem. B 113, 6782 (2009)): a contact minimum near 0.27-0.29 nm, a
 barrier near 0.35-0.38 nm, a solvent-separated minimum near 0.49-0.53 nm.
@@ -43,10 +43,11 @@ def tag(name, value):
     return "    <%s>%s</%s>\n" % (name, str(value).replace("\n", "&#10;"), name)
 
 
-def pull_inter(rate, k):
+def pull_inter(rate, k, init=None):
     return (tag("GmxGroups", "Na = NA\nCl = CL") + tag("GmxPull", 1)
             + tag("GmxPullGroup1", "Na") + tag("GmxPullGroup2", "Cl")
-            + tag("GmxPullRate", rate) + tag("GmxPullK", k))
+            + tag("GmxPullRate", rate) + tag("GmxPullK", k)
+            + (tag("GmxPullInit", "%.4f" % init) if init is not None else ""))
 
 
 def files_traj(every):
@@ -99,8 +100,12 @@ def main():
                       start, nprocs=NT, topology=top)
         if em is None:
             return 1
+        # held at contact (fixed reference 0.28 nm): left free, the pair can
+        # drift apart while the water settles and the pull then starts at
+        # 0.5 nm or more and leaves no windows at the contact minimum
         eq = rt.stage(gmx, home, tmp, "npt", "ecceMdEquilibrate",
-                      dict(dynamics=rt.dyn(5000, False, npt=True)), em["gro"],
+                      dict(interaction=pull_inter(0, K, 0.28),
+                           dynamics=rt.dyn(5000, False, npt=True)), em["gro"],
                       nprocs=NT, topology=top)
         if eq is None:
             return 1
@@ -123,7 +128,7 @@ def main():
 
         prods = []
         for i, w in enumerate(ws):
-            inter = pull_inter(0, K)
+            inter = pull_inter(0, K, w["target"])
             e = rt.stage(gmx, home, tmp, "w%02d-eq" % (i + 1), "ecceMdEquilibrate",
                          dict(interaction=inter, dynamics=rt.dyn(EQ_STEPS, False, npt=True)),
                          w["file"], nprocs=NT, topology=top)
@@ -154,6 +159,9 @@ def main():
             "%.3f nm %.2f" % (m["distance"], m["pmf"]) for m in res[False]["minima"]))
         for wmsg in r["warnings"]:
             print("  " + wmsg)
+        if not QUICK:
+            check(not r["warnings"], "every pair of neighbouring windows overlaps by 5 %% or more"
+                  " (%d warnings)" % len(r["warnings"]))
         contact = [m for m in mins if 0.24 <= m["distance"] <= 0.33]
         ssm = [m for m in mins if 0.44 <= m["distance"] <= 0.60]
         check(contact, "a contact minimum between 0.24 and 0.33 nm")

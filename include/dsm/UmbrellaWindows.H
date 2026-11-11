@@ -20,6 +20,7 @@ public:
   struct Window {
     int number;            ///< 1-based
     double distance;       ///< nm, where the pull run was at this window
+    double target;         ///< nm, where the window is restrained
     std::string groFile;   ///< local .gro of the whole system with its box
   };
 
