@@ -30,4 +30,11 @@ bool rankTable(const std::vector<EcceURL>& calcs, const std::string& format,
                const GatherProgress& progress = GatherProgress(),
                const std::string& ref = std::string());
 
+/// The QSAR descriptor table (#961) of `calcs`: ecce-qsar table with the
+/// comma list of descriptor `groups` (counts, topology, models, charges, vsa,
+/// qm), as CSV text.
+bool qsarTable(const std::vector<EcceURL>& calcs, const std::string& groups,
+               std::string& text, std::string& why,
+               const GatherProgress& progress = GatherProgress());
+
 #endif

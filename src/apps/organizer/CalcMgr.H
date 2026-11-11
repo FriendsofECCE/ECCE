@@ -60,6 +60,8 @@ class WxConfigureNwfsArchive;
 //  the dialog it is used in.
 #define ID_ORGANIZER_QUIT_STOP_SERVER 10104
 
+#include "dsm/SmilesBatch.H"
+
 class CalcMgr: public CalcMgrGUI
              , public EditListener
              , public WxDavAuth
@@ -156,6 +158,11 @@ public:
   void OnNewSeriesClick( wxCommandEvent& event );
   void newSeries(const EcceURL& templ, const vector<string>& sources,
                  string *outcome);
+  /// Batch Add from SMILES (#961): one calculation per row in folder; the
+  /// report, and the new calculations in made.
+  void batchSmiles(const EcceURL& folder, const string& templ,
+                   const vector<SmilesBatch::Row>& rows, bool replace,
+                   bool interactive, string& report, vector<EcceURL>& made);
   /// MLP site screening (#728): the template's host and one calculation per
   /// site in a new folder, and the results of that folder as an ensemble.
   void screenSites(const EcceURL& templ, bool dialog, bool vacancy,
@@ -583,6 +590,15 @@ protected:
   // Tools > Allocations (#613).
   void OnAllocations(wxCommandEvent& event);
   bool p_allocationsWired = false;
+  // Tools > Batch Add from SMILES (#961).
+  void OnBatchSmiles(wxCommandEvent& event);
+  bool p_batchSmilesWired = false;
+  // Tools > QSAR Table (#961).
+  void OnQsarTable(wxCommandEvent& event);
+  bool p_qsarTableWired = false;
+  // Tools > QSAR Analysis (#961).
+  void OnQsarAnalysis(wxCommandEvent& event);
+  bool p_qsarAnalysisWired = false;
   // Ids already wired to OnGlobalTool, so rebuilding the menu does not
   // stack duplicate handlers.
   std::set<int> p_globalToolIds;
