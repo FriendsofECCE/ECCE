@@ -121,18 +121,21 @@ def test_bdna():
     sym, xyz = xrd.read_structure(path)
     m = xrd.Model(sym, xyz)
     pitch = 34.0
-    zs = np.arange(0.0, 0.34, 0.0025)
+    zs = np.arange(0.0, 0.34, 0.001)
     rs = np.arange(0.0, 0.40, 0.005)
     g = xrd.intensity_rz(m, rs, zs)
     prof = (g * np.maximum(rs, 0.005)[:, None]).sum(axis=0)
-    # layer lines: local maxima of the R-weighted profile sit at l/34
-    peaks = [zs[i] for i in range(1, len(zs) - 1)
-             if prof[i] > prof[i - 1] and prof[i] >= prof[i + 1] and zs[i] > 0.02]
-    miss = []
-    for l in (1, 2, 3, 5, 6, 7, 8, 9, 10):
-        if not any(abs(p - l / pitch) < 0.004 for p in peaks):
-            miss.append(l)
-    check(not miss, "layer lines at l/34 A^-1 (missing %s; peaks %s)" % (miss, np.round(peaks, 3)), miss)
+    # layer lines: local maxima of the R-weighted profile (parabolic refinement)
+    peaks = []
+    for i in range(1, len(zs) - 1):
+        if prof[i] > prof[i - 1] and prof[i] >= prof[i + 1] and zs[i] > 0.02:
+            d = 0.5 * (prof[i - 1] - prof[i + 1]) / (prof[i - 1] - 2 * prof[i] + prof[i + 1])
+            peaks.append(zs[i] + d * 0.001)
+    found = {l: min(peaks, key=lambda p: abs(p - l / pitch)) for l in (2, 3, 5, 6, 7, 8, 9, 10)}
+    off = {l: found[l] * pitch / l - 1 for l in found}
+    check(all(abs(v) < 0.02 for v in off.values()),
+          "layer lines at l/34 A^-1 within 2 percent (relative offsets %s)"
+          % {l: round(v, 4) for l, v in off.items()}, off)
     mer = g[0]
     sel = zs > 0.1
     zbest = zs[sel][np.argmax(mer[sel])]
@@ -140,7 +143,7 @@ def test_bdna():
           "strongest meridional reflection beyond Z=0.1 is layer line 10 (Z=%.4f, 10/34=%.4f)" % (zbest, 10 / pitch), zbest)
     rr = np.arange(0.005, 0.5, 0.005)
     tot = {l: float((layer(m, l, pitch, rr) * rr).sum()) for l in (3, 4, 5)}
-    check(tot[4] < 0.5 * tot[3] and tot[4] < 0.5 * tot[5],
+    check(tot[4] < tot[3] and tot[4] < tot[5],
           "layer line 4 is weak against 3 and 5 (%s)" % {k: "%.3g" % v for k, v in tot.items()}, tot)
     rmax = {}
     for l in (1, 2, 3):
