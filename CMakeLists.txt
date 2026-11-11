@@ -5272,6 +5272,10 @@ add_test(NAME pdbqt_redock_1iep COMMAND ${PYTHON3_EXECUTABLE}
   ${CMAKE_SOURCE_DIR}/tests/dock/fixtures/1iep.pdb
   ${CMAKE_BINARY_DIR}/pdbqt_redock)
 set_tests_properties(pdbqt_redock_1iep PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
+# Automatic ligand choice in ai.vina/docking.pl and the atom-list checks of
+# verifyinput (#962, #963); scripts only, needs perl.
+add_test(NAME vina_autoligand COMMAND ${PYTHON3_EXECUTABLE}
+  ${CMAKE_SOURCE_DIR}/tests/dock/vina_autoligand_test.py ${CMAKE_SOURCE_DIR})
 
 add_executable(smiles_test tests/tdat/smiles_test.C)
 target_link_libraries(smiles_test PRIVATE eccetdat ecceutil)
