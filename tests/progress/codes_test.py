@@ -251,6 +251,9 @@ case("xtb opt (methane, normal)", "xtb.desc", fx("xtb", "ch4_opt.out"),
 case("xtb opt, not converged", "xtb.desc", fx("xtb", "capped.out"),
      {"opt": {"step": "3", "converged": "no"}})
 
+case("vina docking (18-crown-6 + ethanol)", "vina.desc", fx("vina", "crown_ethanol.out"),
+     {"vina": {"stage": "done", "best": has("-")}})
+
 case("qe relax (pw.x 6.7)", "qe.desc", fx("qe", "h2o_relax.pwout"),
      {"opt": {"istep": "3", "converged": "yes", "maxgrad": lambda v: "/" not in v},
       "scf": {"cycle": lambda v: int(v) >= 1, "converged": "yes", "scferr": target}},

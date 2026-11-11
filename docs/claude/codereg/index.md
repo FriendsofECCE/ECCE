@@ -226,6 +226,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [The ML potential code (MLP): Python as the program, runner inlined by gensub, VERSION in .ecce-meta (#728)](ml-potential-code-registration-stage-1-728.md)
 - [MLP (MACE) stage 2A: Set up builds the environment detached with the model cache inside; Vibration lists projected rigid modes first at 0 (#728)](mlp-stage-2a-setup-and-vibration-728.md)
 - [MLP site screening: ecce-sites (own space-group finder, voids, vacancy pairs), Series reads Lattice= from xyz, results as an ensemble (#728)](mlp-site-screening-728.md)
+- [AutoDock Vina: registered like CREST on the docking layer; the structure is the auxiliary input vina.vinafrag, the atom lists are ranges in the config (#455)](vina-code-registration-stage-1-455.md)
 - [xTB "Conformer search (simple)": ecce-confsearch inlined by gensub, ensemble in CREST frame format (#682)](xtb-simple-conformer-search-682.md)
 - [A code's spherical MOOrdering stops below the basis's highest shell: empty functions, every orbital view refuses (ORCA g, #861)](angular-table-below-the-basis-highest-shell-861.md)
 - [Gaussian re-contracts general contractions that share primitives: fort.7 is in its basis, not the one ECCE wrote (#863)](gaussian-recontracts-shared-primitive-contractions-863.md)
@@ -242,3 +243,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [A workflow step may store no theory: no deck, no crash (#950)](workflow-step-without-theory-950.md)
 - [Auto-run: the tick arms, Launch Ready Steps starts; no editor opens by itself (#926)](workflow-autorun-armed-by-tick-started-by-launch-926.md)
 - [A Save starts at most two shell commands: file work in process (#940)](save-starts-two-processes-940.md)
+- [The Vina search box in the viewer and the Poses panel for docking](vina-box-and-poses-455.md) - picking and drawing the box, the pose panel without a Boltzmann population, pocket view (#455).

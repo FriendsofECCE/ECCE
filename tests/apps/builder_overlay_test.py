@@ -178,6 +178,10 @@ def runScript(s, display, env, wrappers, argv, lines, png, prefix, extra=None):
             name = shots[0]
             ready = os.path.join(work, name + ".ready")
             if os.path.exists(ready):
+                # A pointer left over a control shows its tooltip in the shot.
+                if shutil.which("xdotool"):
+                    subprocess.run(["xdotool", "mousemove", "4000", "4000"], env=env,
+                                   stderr=subprocess.DEVNULL)
                 time.sleep(1.5)
                 path = os.path.join(png, "%s-%s.png" % (prefix, name))
                 if snap(display, env, path):

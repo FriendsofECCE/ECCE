@@ -1,5 +1,6 @@
 #include <algorithm>
 #include "tdat/PropVecString.H"
+#include <functional>
 #include <cmath>
 #include <cstdio>
 #include <memory>
@@ -15,6 +16,9 @@
 #include <wx/dcmemory.h>
 #include <wx/imaglist.h>
 #include <wx/stattext.h>
+#include <wx/checkbox.h>
+#include <set>
+#include <sstream>
 
 #include "inv/SoOffscreenRenderer.H"
 #include "inv/nodes/SoOrthographicCamera.H"
@@ -27,6 +31,12 @@
 #include "inv/nodes/SoDrawStyle.H"
 #include "inv/nodes/SoComplexity.H"
 #include "inv/nodes/SoLightModel.H"
+#include "inv/nodes/SoPerspectiveCamera.H"
+#include "inv/nodes/SoSwitch.H"
+#include "inv/nodes/SoCamera.H"
+#include "inv/actions/SoGetBoundingBoxAction.H"
+#include "wxviz/SGViewer.H"
+#include "viz/SGContainer.H"
 #include "tdat/AtomMap.H"
 #include "tdat/TBond.H"
 #include "tdat/TPerTab.H"
@@ -42,6 +52,14 @@
 #include "dsm/Session.H"
 #include "tdat/Fragment.H"
 #include "tdat/TRunType.H"
+#include "tdat/GUIValues.H"
+#include "tdat/DisplayDescriptor.H"
+#include "tdat/DisplayStyle.H"
+#include "dsm/TaskJob.H"
+#include "dsm/JCode.H"
+#include "viz/CSStyleCmd.H"
+#include "viz/DisplayAtomsCmd.H"
+#include "viz/SGFragment.H"
 #include "WorkflowSteps.H"
 #include "dsm/IPropCalculation.H"
 #include "dsm/PropertyTask.H"
@@ -123,7 +141,7 @@ std::string EnsemblePropertyPanel::kindFor(const std::string& rt, bool scored)
   if (rt == "Protonation Sites") return "Protonation Sites";
   if (rt == "Tautomers") return "Tautomers";
   if (rt == "Solvation Shell") return "Clusters";
-  if (rt == "Docking (aISS)") return "Poses";
+  if (rt == "Docking (aISS)" || rt == "Docking (Vina)") return "Poses";
   if (rt == "Conformer Search" || rt == "Conformer search (simple)")
     return "Conformers";
   return scored ? "Poses" : "Conformers";
@@ -169,8 +187,12 @@ void EnsemblePropertyPanel::load()
   const int n = ScanPoint::ensembleSize(task);
   p_members.clear();
   p_isSites = ScanPoint::ensembleIsSites(task);
-  p_deName = p_isSites ? "E − E(host) (eV)"
-             : ScanPoint::ensembleIsPoses(task)
+  const bool vina = isVina(getCalculation());
+  p_population = !vina;
+  // Vina's score is an empirical estimate, not an interaction energy.
+  p_deName = vina ? "Vina score (kcal mol⁻¹)"
+           : p_isSites ? "E − E(host) (eV)"
+           : ScanPoint::ensembleIsPoses(task)
                  ? "Interaction energy (kcal mol⁻¹)" : "ΔE (kcal mol⁻¹)";
 
   vector<ScanPoint::Pattern> pats;
@@ -226,14 +248,20 @@ void EnsemblePropertyPanel::initialize()
   const wxString energyLabel = wxString::FromUTF8(p_deName.c_str());
   p_table->AppendColumn(energyLabel, wxLIST_FORMAT_RIGHT,
       std::max(150, p_table->GetTextExtent(energyLabel).x + 24));
-  p_table->AppendColumn("Population (%)", wxLIST_FORMAT_RIGHT, 110);
+  if (p_population)
+    p_table->AppendColumn("Population (%)", wxLIST_FORMAT_RIGHT, 110);
   if (p_hasPatterns)
     p_table->AppendColumn(p_isSites ? "Environment" : "Coordination pattern", wxLIST_FORMAT_LEFT, 240);
-  p_table->SetToolTip("One row per member, lowest energy first; click a column "
-      "heading to sort and a row to show that structure; Ctrl/Shift selects "
-      "several members to superpose. Population is the "
-      "Boltzmann weight at 298.15 K of the energy shown, within this method "
-      "only: it is not a measured or cross-method population.");
+  p_table->SetToolTip(p_population
+      ? "One row per member, lowest energy first; click a column "
+        "heading to sort and a row to show that structure; Ctrl/Shift selects "
+        "several members to superpose. Population is the "
+        "Boltzmann weight at 298.15 K of the energy shown, within this method "
+        "only: it is not a measured or cross-method population."
+      : "One row per pose, best score first; click a column heading to sort "
+        "and a row to show that pose; Ctrl/Shift selects several poses to "
+        "superpose. The Vina score is an empirical estimate of the binding "
+        "affinity, not an energy, so no Boltzmann population is given.");
   p_table->Bind(wxEVT_LIST_ITEM_SELECTED, &EnsemblePropertyPanel::OnRowSelected, this);
   p_table->Bind(wxEVT_LIST_ITEM_DESELECTED, &EnsemblePropertyPanel::OnRowSelected, this);
   p_table->Bind(wxEVT_LIST_COL_CLICK, &EnsemblePropertyPanel::OnColumn, this);
@@ -249,6 +277,9 @@ void EnsemblePropertyPanel::initialize()
 
   p_plotCtrl = new XYPlotCanvas(this);
   p_plotCtrl->setPointHandler([this](int, int index) { selectRank(index + 1); });
+  // A floor: in a short pane the tables above would otherwise squeeze the
+  // plot until its axis labels are cut off.
+  p_plotCtrl->SetMinSize(wxSize(-1, 220));
   GetSizer()->Add(p_plotCtrl, 1, wxEXPAND);
 
   p_export = new wxButton(this, wxID_ANY, "Export .csv...");
@@ -273,6 +304,15 @@ void EnsemblePropertyPanel::initialize()
                     wxOK | wxICON_ERROR, this);
   });
   buttons->Add(png, 0, wxALL, 4);
+  if (kind() == "Poses") {
+    wxCheckBox *pocket = new wxCheckBox(this, wxID_ANY, "Pocket view");
+    pocket->SetValue(p_pocket);
+    pocket->SetToolTip(wxString::FromUTF8("Show the selected pose with the "
+        "receptor's residues within 6 Å of its ligand as sticks and hide the "
+        "rest of the receptor; untick to show the whole receptor."));
+    pocket->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent& e) { setPocketView(e.IsChecked()); });
+    buttons->Add(pocket, 0, wxALL | wxALIGN_CENTER_VERTICAL, 4);
+  }
   GetSizer()->Add(buttons, 0);
 
   p_selectTimer.SetOwner(this);
@@ -299,9 +339,10 @@ void EnsemblePropertyPanel::fillTable()
     long row = p_table->InsertItem((long)i, "", image == p_imageIndex.end() ? -1 : image->second);
     p_table->SetItem(row, 1, wxString::Format("%d", m.rank));
     p_table->SetItem(row, 2, wxString::Format("%.3f", m.de));
-    p_table->SetItem(row, 3, wxString::Format("%.1f", m.pop));
+    if (p_population)
+      p_table->SetItem(row, 3, wxString::Format("%.1f", m.pop));
     if (p_hasPatterns)
-      p_table->SetItem(row, 4, wxString::FromUTF8(m.pattern.c_str()));
+      p_table->SetItem(row, p_population ? 4 : 3, wxString::FromUTF8(m.pattern.c_str()));
     p_table->SetItemData(row, m.rank);
     if (std::find(p_selection.begin(), p_selection.end(), m.rank) != p_selection.end())
       p_table->SetItemState(row, wxLIST_STATE_SELECTED,
@@ -326,9 +367,13 @@ void EnsemblePropertyPanel::fillPlot()
   p_plotCtrl->setIntegerX(true);
   const int curve = p_plotCtrl->addCurve(x, y);
   for (size_t i = 0; i < byRank.size(); i++)
-    p_plotCtrl->setPointLabel(curve, (int)i, wxString::Format(p_isSites ? "%s %d: %.3f eV, %.1f %%" : "%s %d: %.3f kcal/mol, %.1f %%",
-        wxString::FromUTF8(noun(kind()).c_str()), byRank[i].rank, byRank[i].de,
-        byRank[i].pop));
+    p_plotCtrl->setPointLabel(curve, (int)i, p_population
+        ? wxString::Format(p_isSites ? "%s %d: %.3f eV, %.1f %%" : "%s %d: %.3f kcal/mol, %.1f %%",
+              wxString::FromUTF8(noun(kind()).c_str()), byRank[i].rank,
+              byRank[i].de, byRank[i].pop)
+        : wxString::Format("%s %d: %.3f kcal/mol",
+              wxString::FromUTF8(noun(kind()).c_str()), byRank[i].rank,
+              byRank[i].de));
   p_plotCtrl->setXAxisLabel(wxString::FromUTF8((noun(kind()) + " (lowest first)").c_str()));
   p_plotCtrl->setYAxisLabel(wxString::FromUTF8(p_deName.c_str()));
   if (p_selRank > 0) p_plotCtrl->setSelectedPoint(0, p_selRank - 1);
@@ -366,8 +411,9 @@ void EnsemblePropertyPanel::OnRowSelected(wxListEvent& event)
 
 void EnsemblePropertyPanel::OnColumn(wxListEvent& event)
 {
-  const int col = event.GetColumn() - 1;
+  int col = event.GetColumn() - 1;
   if (col < 0) return;
+  if (!p_population && col >= 2) col++;   // no population column
   p_sortUp = col == p_sortCol ? !p_sortUp : true;
   p_sortCol = col;
   sortTable(col, p_sortUp);
@@ -438,7 +484,10 @@ vector<string> EnsemblePropertyPanel::tableRows() const
   for (size_t i = 0; i < p_members.size(); i++) {
     const Member& m = p_members[i];
     char buf[96];
-    snprintf(buf, sizeof buf, "%d | %.3f | %.1f", m.rank, m.de, m.pop);
+    if (p_population)
+      snprintf(buf, sizeof buf, "%d | %.3f | %.1f", m.rank, m.de, m.pop);
+    else
+      snprintf(buf, sizeof buf, "%d | %.3f", m.rank, m.de);
     rows.push_back(string(buf) + (p_hasPatterns ? " | " + m.pattern : string()));
   }
   return rows;
@@ -449,12 +498,15 @@ bool EnsemblePropertyPanel::exportCsv(const std::string& path) const
 {
   FILE *out = fopen(path.c_str(), "wb");
   if (!out) return false;
-  fprintf(out, "rank,%s,population_percent%s%s\n", p_isSites ? "energy_eV" : "energy_kcal_per_mol",
+  fprintf(out, "rank,%s%s%s\n",
+          p_population ? (p_isSites ? "energy_eV,population_percent" : "energy_kcal_per_mol,population_percent")
+                       : "vina_score_kcal_per_mol",
           p_hasPatterns ? (p_isSites ? ",environment" : ",pattern") : "", p_fits.empty() ? "" :
           ",reference_rank,heavy_atom_rmsd_angstrom,colour");
   for (size_t i = 0; i < p_members.size(); i++) {
     const Member& m = p_members[i];
-    fprintf(out, "%d,%.3f,%.2f", m.rank, m.de, m.pop);
+    if (p_population) fprintf(out, "%d,%.3f,%.2f", m.rank, m.de, m.pop);
+    else fprintf(out, "%d,%.3f", m.rank, m.de);
     if (p_hasPatterns) fprintf(out, ",\"%s\"", m.pattern.c_str());
     if (!p_fits.empty()) {
       bool selected = false;
@@ -508,8 +560,10 @@ vector<string> EnsemblePropertyPanel::codeChoices(int& dflt)
   vector<ResourceType*> types = rd.getResourceTypes();
   const vector<WorkflowSteps::Code>& codes = WorkflowSteps::codes();
   for (size_t i = 0; i < codes.size(); i++) {
-    // CREST has no Geometry run type; a conformer is for a further calculation.
-    if (string(codes[i].typeName) == "crest_es") continue;
+    // CREST and Vina have no Geometry run type; a conformer or pose is for a
+    // further calculation.
+    if (string(codes[i].typeName) == "crest_es" ||
+        string(codes[i].typeName) == "vina_es") continue;
     bool installed = false;
     for (size_t t = 0; t < types.size(); t++)
       if (types[t]->getName() == codes[i].typeName) installed = true;
@@ -756,6 +810,7 @@ void EnsemblePropertyPanel::updateSelection()
                              "c" + std::to_string(p_selRank), why);
   if (frame < 0) return;
   processStep(frame);
+  showPocket();
   if (wasFocused && !hasFocus()) return;
   if (requested != p_selection) { p_selectTimer.StartOnce(30); return; }
   if (p_selection.size() < 2) return;
@@ -832,14 +887,34 @@ bool EnsemblePropertyPanel::makeThumbnail(int rank)
   }
   cam->orientation = p_thumbOrientation;
   root->addChild(cam);
-  root->addChild(molecule(g, g.xyz));
+  // In the pocket view a pose's thumbnail is its ligand: the whole receptor
+  // fills a 72 px image with the same grey ball for every pose.
+  Geometry ligandOnly;
+  const Geometry *shown = &g;
+  const int n = (int)g.elements.size();
+  const vector<int> lig = (p_pocket && kind() == "Poses") ? ligandAtoms() : vector<int>();
+  if (!lig.empty() && (int)lig.size() < n) {
+    vector<char> keep(n, 0);
+    for (int i : lig) if (i >= 0 && i < n) keep[i] = 1;
+    ligandOnly = g;
+    for (int i = 0; i < n; i++) if (!keep[i]) ligandOnly.elements[i] = 0;
+    ligandOnly.bonds.clear();
+    for (const auto& b : g.bonds)
+      if (b.first >= 0 && b.first < n && b.second >= 0 && b.second < n &&
+          keep[b.first] && keep[b.second])
+        ligandOnly.bonds.push_back(b);
+    shown = &ligandOnly;
+  }
+  root->addChild(molecule(*shown, g.xyz));
   SbViewportRegion vp;
   vp.setWindowSize(SbVec2s(thumbWidth, thumbHeight));
   cam->viewAll(root, vp, 1.1f);
   // Reuse the context, as the existing calculation thumbnail renderer does.
   static SoOffscreenRenderer *renderer = new SoOffscreenRenderer(vp);
   renderer->setComponents(SoOffscreenRenderer::RGB);
-  renderer->setBackgroundColor(getFW().getViewer().getBackgroundColor());
+  const SbColor& bg = getFW().getViewer().getBackgroundColor();
+  renderer->setBackgroundColor(bg);
+  for (int k = 0; k < 3; k++) p_thumbBg[k] = bg[k];
   const bool ok = renderer->render(root) && renderer->getBuffer();
   if (ok) {
     wxImage image(thumbWidth, thumbHeight);
@@ -858,15 +933,28 @@ bool EnsemblePropertyPanel::makeThumbnail(int rank)
   return ok;
 }
 
+// The timer keeps running slowly once all are made: the thumbnails are drawn
+// on the viewer's background, and a later change of it would leave them on
+// the old one (black thumbnails on a white viewer).
 void EnsemblePropertyPanel::thumbnailBatch()
 {
+  if (!p_thumbnails.empty()) {
+    const SbColor& bg = getFW().getViewer().getBackgroundColor();
+    if (bg[0] != p_thumbBg[0] || bg[1] != p_thumbBg[1] || bg[2] != p_thumbBg[2]) {
+      p_thumbnails.clear();
+      p_imageIndex.clear();
+      p_images->RemoveAll();
+      for (long row = 0; row < p_table->GetItemCount(); row++)
+        p_table->SetItemImage(row, -1);
+    }
+  }
   int made = 0;
   for (const Member& m : p_members) {
     if (p_thumbnails.count(m.rank)) continue;
     if (!makeThumbnail(m.rank)) { p_thumbTimer.Stop(); return; }
-    if (++made == 2) return;
+    if (++made == 2) { p_thumbTimer.Start(20); return; }
   }
-  p_thumbTimer.Stop();
+  p_thumbTimer.Start(500);
 }
 
 vector<int> EnsemblePropertyPanel::thumbnailRanks() const
@@ -882,7 +970,8 @@ bool EnsemblePropertyPanel::exportPng(const string& path)
   const int rowHeight = 62;
   wxMemoryDC dc;
   dc.SetFont(p_table->GetFont());
-  vector<int> widths = {86, 60, 160, 120};
+  vector<int> widths = {86, 60, 160};
+  if (p_population) widths.push_back(120);
   widths[2] = std::max(widths[2], dc.GetTextExtent(wxString::FromUTF8(p_deName.c_str())).x + 16);
   int patternWidth = 200;
   for (const Member& m : p_members)
@@ -898,7 +987,8 @@ bool EnsemblePropertyPanel::exportPng(const string& path)
   dc.Clear();
   dc.SetTextForeground(*wxBLACK);
   dc.SetPen(wxPen(wxColour(210,210,210)));
-  vector<wxString> labels = {"Structure", "Rank", wxString::FromUTF8(p_deName.c_str()), "Population (%)"};
+  vector<wxString> labels = {"Structure", "Rank", wxString::FromUTF8(p_deName.c_str())};
+  if (p_population) labels.push_back("Population (%)");
   if (p_hasPatterns) labels.push_back(p_isSites ? "Environment" : "Coordination pattern");
   int x = 0;
   for (size_t i = 0; i < widths.size(); i++) {
@@ -910,8 +1000,9 @@ bool EnsemblePropertyPanel::exportPng(const string& path)
     dc.DrawLine(0, y, width, y);
     dc.DrawBitmap(p_thumbnails.at(m.rank), 5, y + 3);
     vector<wxString> text = {"", wxString::Format("%d", m.rank),
-        wxString::Format("%.3f", m.de), wxString::Format("%.1f", m.pop),
-        wxString::FromUTF8(m.pattern.c_str())};
+        wxString::Format("%.3f", m.de)};
+    if (p_population) text.push_back(wxString::Format("%.1f", m.pop));
+    text.push_back(wxString::FromUTF8(m.pattern.c_str()));
     x = widths[0];
     for (size_t i = 1; i < widths.size(); i++) {
       dc.DrawText(text[i], x + 6, y + (rowHeight - dc.GetCharHeight())/2);
@@ -921,4 +1012,234 @@ bool EnsemblePropertyPanel::exportPng(const string& path)
   }
   dc.SelectObject(wxNullBitmap);
   return bitmap.SaveFile(wxString::FromUTF8(path.c_str()), wxBITMAP_TYPE_PNG);
+}
+
+bool EnsemblePropertyPanel::isVina(IPropCalculation *calc)
+{
+  // The code as well as the run type: a calculation stored without its run
+  // type (an import, a script) is still a Vina one.
+  TaskJob *job = dynamic_cast<TaskJob*>(calc);
+  if (job && job->application() && job->application()->name() == "Vina")
+    return true;
+  ICalculation *ic = dynamic_cast<ICalculation*>(calc);
+  return ic && ic->runtype().name() == "Docking (Vina)";
+}
+
+// The ligand as the docking split defines it (ES.Runtype.Docking.LigandAtoms,
+// 1-based ranges); empty means the smallest molecule, as docking.pl takes it.
+vector<int> EnsemblePropertyPanel::ligandAtoms()
+{
+  vector<int> out;
+  ICalculation *ic = dynamic_cast<ICalculation*>(getCalculation());
+  GUIValues *g = ic ? ic->guiparams() : 0;
+  GUIValue *v = g ? g->get("ES.Runtype.Docking.LigandAtoms") : 0;
+  string spec = v ? v->getValueAsString() : "";
+  for (char& c : spec) if (c == ',') c = ' ';
+  std::istringstream in(spec);
+  string part;
+  while (in >> part) {
+    int a = 0, b = 0;
+    if (sscanf(part.c_str(), "%d-%d", &a, &b) == 2) {
+      for (int i = a; i <= b; i++) out.push_back(i - 1);
+    } else if (sscanf(part.c_str(), "%d", &a) == 1) {
+      out.push_back(a - 1);
+    }
+  }
+  delete g;
+  if (!out.empty() || p_members.empty()) return out;
+  const Geometry& geo = geometry(p_members.front().rank);
+  const int n = (int)geo.elements.size();
+  vector<int> root(n);
+  for (int i = 0; i < n; i++) root[i] = i;
+  std::function<int(int)> find = [&](int i) { return root[i] == i ? i : root[i] = find(root[i]); };
+  for (const auto& b : geo.bonds) root[find(b.first)] = find(b.second);
+  std::map<int, vector<int> > parts;
+  for (int i = 0; i < n; i++) parts[find(i)].push_back(i);
+  if (parts.size() < 2) return out;
+  for (const auto& p : parts)
+    if (out.empty() || p.second.size() < out.size()) out = p.second;
+  return out;
+}
+
+void EnsemblePropertyPanel::setPocketView(bool on)
+{
+  p_thumbBg[0] = -1.f;   // redraw the thumbnails: ligand only, or whole
+  p_pocket = on;
+  if (!on) {
+    SGContainer& sg = getFW().getSceneGraph();
+    Command *cmd = new DisplayAtomsCmd("DisplayAtoms", &sg);
+    cmd->getParameter("all")->setBoolean(true);
+    cmd->getParameter("show")->setBoolean(true);
+    getFW().execute(cmd);
+    for (int& c : p_pocketCounts) c = 0;
+    p_pocketBonds[0] = p_pocketBonds[1] = 0;
+    p_pocketFit = 0;
+    getFW().getViewer().viewAll();
+    getFW().getViewer().refreshRenderArea();
+  } else {
+    p_pocketFitted = false;
+    showPocket();
+  }
+}
+
+std::string EnsemblePropertyPanel::pocketInfo() const
+{
+  char buf[128];
+  snprintf(buf, sizeof buf, "ligand=%d pocket=%d hidden=%d fit=%.1f bonds=%d/%d",
+           p_pocketCounts[0], p_pocketCounts[1], p_pocketCounts[2], p_pocketFit,
+           p_pocketBonds[0], p_pocketBonds[1]);
+  return buf;
+}
+
+// The receptor's whole residues with any atom within pocketRadius of the
+// ligand as sticks, the ligand as balls and sticks, the rest hidden: a
+// 2000-atom receptor drawn in full hides the pose it surrounds.
+void EnsemblePropertyPanel::showPocket()
+{
+  for (int& c : p_pocketCounts) c = 0;
+  p_pocketBonds[0] = p_pocketBonds[1] = 0;
+  if (!p_pocket || kind() != "Poses") return;
+  SGContainer& sg = getFW().getSceneGraph();
+  SGFragment *frag = sg.getFragment();
+  const int n = frag ? frag->numAtoms() : 0;
+  const vector<int> lig = ligandAtoms();
+  if (lig.empty() || (int)lig.size() >= n) return;
+  vector<char> role(n, 0);   // 1 ligand, 2 pocket, 0 hidden
+  for (int i : lig) if (i >= 0 && i < n) role[i] = 1;
+  const double r2 = pocketRadius * pocketRadius;
+  std::set<const void*> residues;
+  for (int a = 0; a < n; a++) {
+    if (role[a] == 1) continue;
+    const double *p = frag->atomRef(a)->coordinates();
+    for (int l : lig) {
+      if (l < 0 || l >= n) continue;
+      const double *q = frag->atomRef(l)->coordinates();
+      const double d = (p[0]-q[0])*(p[0]-q[0]) + (p[1]-q[1])*(p[1]-q[1]) +
+                       (p[2]-q[2])*(p[2]-q[2]);
+      if (d < r2) { role[a] = 2; break; }
+    }
+    if (role[a] == 2 && frag->atomRef(a)->getResidue())
+      residues.insert(frag->atomRef(a)->getResidue());
+  }
+  for (int a = 0; a < n; a++)
+    if (!role[a] && frag->atomRef(a)->getResidue() &&
+        residues.count(frag->atomRef(a)->getResidue()))
+      role[a] = 2;
+
+  // A style or hide command acts only on the selected bonds, and a bond is
+  // drawn by the display its own style names: with atoms alone selected the
+  // bonds stayed in the old style and the pocket drew as bare atoms. A bond
+  // goes with its atoms; one leaving a shown residue goes with the hidden part.
+  std::unique_ptr<vector<TBond*> > allBonds(frag->bonds());
+  vector<char> bondRole(allBonds->size(), 0);
+  for (size_t b = 0; b < allBonds->size(); b++) {
+    const int i = (*allBonds)[b]->atom1()->index(), j = (*allBonds)[b]->atom2()->index();
+    if (i >= 0 && i < n && j >= 0 && j < n && role[i] == role[j]) bondRole[b] = role[i];
+  }
+  auto selectRole = [&](int which) {
+    frag->m_atomHighLight.clear();
+    frag->m_bondHighLight.clear();
+    for (int a = 0; a < n; a++)
+      if (role[a] == which) frag->m_atomHighLight.push_back(a);
+    for (size_t b = 0; b < bondRole.size(); b++)
+      if (bondRole[b] == which) frag->m_bondHighLight.push_back((int)b);
+    p_pocketCounts[which == 1 ? 0 : which == 2 ? 1 : 2] = (int)frag->m_atomHighLight.size();
+  };
+  auto style = [&](DisplayStyle::Style st, const string& name) {
+    const string s = DisplayStyle::fromStyle(st);
+    DisplayDescriptor dd(name, s, "Element");
+    dd.setColorScheme(dd.getDefaultColorScheme(s));
+    Command *cmd = new CSStyleCmd("Style", (Receiver*)&sg);
+    cmd->getParameter("descriptor")->setString(dd.toString());
+    cmd->getParameter("all")->setBoolean(false);
+    getFW().execute(cmd);
+  };
+  // Show everything first: the previous pose's pocket may differ.
+  Command *show = new DisplayAtomsCmd("DisplayAtoms", &sg);
+  show->getParameter("all")->setBoolean(true);
+  show->getParameter("show")->setBoolean(true);
+  getFW().execute(show);
+  selectRole(2);
+  style(DisplayStyle::STICK, "Pocket");
+  selectRole(1);
+  style(DisplayStyle::BALLSTICK, "Ligand");
+  selectRole(0);
+  if (!frag->m_atomHighLight.empty()) {
+    Command *hide = new DisplayAtomsCmd("DisplayAtoms", &sg);
+    hide->getParameter("selected")->setBoolean(true);
+    getFW().execute(hide);
+  }
+  frag->m_atomHighLight.clear();
+  frag->m_bondHighLight.clear();
+  p_pocketBonds[0] = p_pocketBonds[1] = 0;
+  {
+    for (const TBond *b : *allBonds) {
+      const DisplayStyle ds = b->displayStyle();
+      if (!ds.isDisplayed()) continue;
+      if (ds.getName() == "Ligand") p_pocketBonds[0]++;
+      else if (ds.getName() == "Pocket") p_pocketBonds[1]++;
+    }
+  }
+  sg.fixAllNubs();
+  // Frame once per switch-on, so stepping through poses keeps the user's zoom.
+  if (!p_pocketFitted) {
+    vector<const double*> shown;
+    for (int a = 0; a < n; a++)
+      if (role[a]) shown.push_back(frag->atomRef(a)->coordinates());
+    fitPocketCamera(shown);
+    p_pocketFitted = true;
+  }
+  getFW().getViewer().refreshRenderArea();
+}
+
+// viewAll() frames hidden atoms too, so the pocket would stay a speck in the
+// middle of the whole receptor. Frame the shown atoms and the search box.
+void EnsemblePropertyPanel::fitPocketCamera(const vector<const double*>& atoms)
+{
+  SGViewer& viewer = getFW().getViewer();
+  SoCamera *cam = viewer.getCamera();
+  if (!cam || atoms.empty()) return;
+  SbBox3f bbox;
+  for (const double *p : atoms) bbox.extendBy(SbVec3f((float)p[0], (float)p[1], (float)p[2]));
+  SoSwitch *sw = getFW().getSceneGraph().getPropertySwitch("VinaSearchBox");
+  if (sw && sw->whichChild.getValue() != SO_SWITCH_NONE) {
+    SoGetBoundingBoxAction bba(viewer.getViewportRegion());
+    bba.apply(sw);
+    if (!bba.getBoundingBox().isEmpty()) bbox.extendBy(bba.getBoundingBox());
+  }
+  // Fit the box's corners in the camera's own frame: viewAll's bounding
+  // sphere leaves a box drawn at a third of a tall, narrow viewer.
+  const SbVec3f centre = bbox.getCenter();
+  const SbRotation rot = cam->orientation.getValue();
+  SbVec3f right, up, back;
+  rot.multVec(SbVec3f(1, 0, 0), right);
+  rot.multVec(SbVec3f(0, 1, 0), up);
+  rot.multVec(SbVec3f(0, 0, 1), back);
+  const SbVec3f lo = bbox.getMin(), hi = bbox.getMax();
+  float hx = 0, hy = 0, hz = 0;
+  for (int i = 0; i < 8; i++) {
+    const SbVec3f d = SbVec3f((i & 1) ? hi[0] : lo[0], (i & 2) ? hi[1] : lo[1],
+                              (i & 4) ? hi[2] : lo[2]) - centre;
+    hx = std::max(hx, std::fabs(d.dot(right)));
+    hy = std::max(hy, std::fabs(d.dot(up)));
+    hz = std::max(hz, std::fabs(d.dot(back)));
+  }
+  const float aspect = viewer.getViewportRegion().getViewportAspectRatio();
+  // ADJUST_CAMERA maps the height angle onto the shorter side of the viewport.
+  const float half = 1.05f * (aspect < 1 ? std::max(hx, hy * aspect)
+                                         : std::max(hy, hx / aspect));
+  float dist = hz + 1.0f;
+  if (cam->isOfType(SoPerspectiveCamera::getClassTypeId())) {
+    const float angle = ((SoPerspectiveCamera*)cam)->heightAngle.getValue();
+    dist = hz + half / std::tan(angle / 2);
+  } else if (cam->isOfType(SoOrthographicCamera::getClassTypeId())) {
+    ((SoOrthographicCamera*)cam)->height = 2 * half;
+  }
+  cam->position = centre + back * dist;
+  cam->focalDistance = dist;
+  cam->nearDistance = std::max(0.1f, dist - 2 * hz);
+  cam->farDistance = dist + 2 * hz;
+  float dx, dy, dz;
+  bbox.getSize(dx, dy, dz);
+  p_pocketFit = std::sqrt(dx * dx + dy * dy + dz * dz);
 }

@@ -4335,6 +4335,10 @@ static string builtinCommand(const string& code)
         return "$mlp ecce-mlp.py $inFile > $outFile 2>&1\n# $mlp is the "
                "Python registered for MLP (MACE); gensub writes ecce-mlp.py "
                "into the run directory";
+    if (code == "Vina")
+        return "$vina --config vina.vinain --out poses.pdbqt > $outFile "
+               "2>&1\n# gensub first writes receptor.pdbqt and ligand.pdbqt "
+               "from the structure in $inFile with ecce-pdbqt";
     if (code == "MOPAC")
         return "$mopac $inFile >> $runDir/ecce.submit.log 2>&1\n"
                "# before it, $outFile is linked to the .out file MOPAC "
@@ -4393,6 +4397,8 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
             return "e.g. CUDA_VISIBLE_DEVICES=0 $mlp ecce-mlp.py $inFile > $outFile";
         if (code == "CREST")
             return "e.g. nice $crest crest.xyz --gfnff --xnam $xtb > $outFile";
+        if (code == "Vina")
+            return "e.g. nice $vina --config vina.vinain --cpu 4 --out poses.pdbqt > $outFile";
         if (code == "xTB")
             return "e.g. nice $xtb xtb.xyz --gfn 2 > $outFile";
         if (code == "MOPAC")

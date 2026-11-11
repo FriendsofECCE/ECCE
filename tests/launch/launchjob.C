@@ -5,7 +5,7 @@
 //   launchjob create <parentURL> <name> <resourceType> <deckFile> <deckName>
 //                    <machine> <runDir> <user>            prints the calc URL
 //                    [queue=Q] [nodes=N] [procs=P] [threads=T] [wall="D H:M"] [mem=MB]
-//                    [code=<JCode name>] [xyz=<file>] [gui=<SetupParams>]
+//                    [code=<JCode name>] [xyz=<file>|pdb=<file>] [gui=<SetupParams>]
 //                                 batch settings, as the launcher's queue controls set them;
 //                                 code and structure as the Calculation Editor's save stores
 //                                 them (the Builder's orbital views need both)
@@ -219,6 +219,14 @@ static int doCreate(const vector<string>& a)
         cerr << "could not store the code " << v << endl;
         return 1;
       }
+    } else if (k == "input") {
+      // A further input stored under its own file name (an auxiliary input).
+      ifstream fin(v.c_str(), std::ios::binary);
+      const string base = v.substr(v.find_last_of('/') + 1);
+      if (!fin || !task->putInputFile(base, &fin)) {
+        cerr << "could not store the input " << v << endl;
+        return 1;
+      }
     } else if (k == "gui") {
       ifstream fin(v.c_str());
       GUIValues values;
@@ -227,7 +235,7 @@ static int doCreate(const vector<string>& a)
         cerr << "could not store GUI settings" << endl;
         return 1;
       }
-    } else if (k == "xyz" || k == "mvm") {
+    } else if (k == "xyz" || k == "mvm" || k == "pdb") {
       ifstream fin(v.c_str());
       LatticeDef *latticeToSet = 0;
       Fragment frag;
@@ -248,7 +256,10 @@ static int doCreate(const vector<string>& a)
           latticeToSet = cell;
         }
       }
-      if (!fin || !(k == "mvm" ? frag.restoreMVM(fin) : frag.restoreXYZ(fin)) ||
+      //  pdb: residues kept, as the Builder's import reads a protein.
+      if (!fin || !(k == "mvm" ? frag.restoreMVM(fin)
+                    : k == "pdb" ? frag.restorePDB(fin, 1.0, true, 1, " ", true, false, " ")
+                    : frag.restoreXYZ(fin)) ||
           (latticeToSet && (frag.setLattice(latticeToSet), false)) ||
           !pt || !pt->fragment(&frag)) {
         cerr << "could not store the structure " << v << endl;

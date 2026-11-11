@@ -643,6 +643,12 @@ target_include_directories(lineprofile PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(lineprofile PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
   ${XercesC_LIBRARIES})
+# PDBQT preparation for docking (#455).  wx-free and self-contained so the
+# command, the job script and the editor cannot drift apart.
+ecce_library(eccedock src/dock)
+add_executable(ecce-pdbqt src/apps/pdbqt/ecce-pdbqt.C)
+target_link_libraries(ecce-pdbqt PRIVATE eccedock)
+
 # Recompute H, S, G from a calculation's stored frequencies with a chosen
 # low-frequency treatment (#692); the thermochemistry lives in tdat/thermo.
 add_executable(ecce-thermo
@@ -1238,7 +1244,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-site-screen ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-site-screen ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -1913,7 +1919,7 @@ set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, pyth
 # openssh-client: RCommand drives ssh/scp/sftp for remote machines;
 # a purely local install never uses it.
 # www-browser: the Help menu (BrowserHelp.C).
-set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem, openssh-client")
+set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem, openssh-client, autodock-vina")
 set(CPACK_DEBIAN_PACKAGE_SUGGESTS "www-browser")
 # RelWithDebInfo keeps -g everywhere (useful while porting - see the
 # CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
@@ -2108,7 +2114,9 @@ if(ECCE_SPLIT_PACKAGES)
   # a client of an already-central server (#167/#138 -- the teaching
   # deployment) has no use for a local data server or broker at all, so
   # this is Recommends, not Depends, matching the design brief.
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, mosquitto, nwchem, openssh-client")
+  # autodock-vina: Debian's Vina 1.2.x, /usr/bin/vina, which the first-start
+  # registration finds on PATH; docking is optional, so not a Depends (#455).
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, mosquitto, nwchem, openssh-client, autodock-vina")
   set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "www-browser")
   # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
   # without this, installing ecce-client while the old ecce package still
@@ -5204,6 +5212,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-fetch=bin/ecce-fetch
   ecce-localdata=bin/ecce-localdata
   ecce-thermo=bin/ecce-thermo
+  ecce-pdbqt=bin/ecce-pdbqt
   ecce-force-compare=bin/ecce-force-compare
   ecce-check-props=bin/ecce-check-props
   ecce-contacts=bin/ecce-contacts
@@ -5252,6 +5261,18 @@ target_link_libraries(fraggraft_test PRIVATE eccetdat ecceutil)
 add_test(NAME fraggraft COMMAND fraggraft_test)
 set_tests_properties(fraggraft PROPERTIES SKIP_RETURN_CODE 77)
 # Own SMILES reader and 3-D builder (#867); Open Babel is only an oracle there.
+# PDBQT preparation (#455).  Meeko is a test-only oracle and 1IEP is not in
+# the tree, so both tests skip when what they need is absent.
+add_test(NAME pdbqt_meeko COMMAND ${PYTHON3_EXECUTABLE}
+  ${CMAKE_SOURCE_DIR}/tests/dock/meeko_compare.py $<TARGET_FILE:ecce-pdbqt>
+  ${CMAKE_BINARY_DIR}/pdbqt_meeko)
+set_tests_properties(pdbqt_meeko PROPERTIES SKIP_RETURN_CODE 77)
+add_test(NAME pdbqt_redock_1iep COMMAND ${PYTHON3_EXECUTABLE}
+  ${CMAKE_SOURCE_DIR}/tests/dock/redock_1iep.py $<TARGET_FILE:ecce-pdbqt>
+  ${CMAKE_SOURCE_DIR}/tests/dock/fixtures/1iep.pdb
+  ${CMAKE_BINARY_DIR}/pdbqt_redock)
+set_tests_properties(pdbqt_redock_1iep PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
+
 add_executable(smiles_test tests/tdat/smiles_test.C)
 target_link_libraries(smiles_test PRIVATE eccetdat ecceutil)
 add_test(NAME smiles COMMAND smiles_test ${CMAKE_SOURCE_DIR}/tests/tdat/smiles_corpus.txt)
@@ -5282,4 +5303,24 @@ if(WIN32)
   set_property(SOURCE ${CMAKE_SOURCE_DIR}/packaging/windows/ecce-utf8.rc APPEND
                PROPERTY COMPILE_OPTIONS "-I${CMAKE_SOURCE_DIR}/packaging/windows")
   ecce_utf8_manifest_dir(${CMAKE_SOURCE_DIR})
+endif()
+
+# #455: AutoDock Vina docking of ethanol in 18-crown-6 through Launch; the deck
+# checks always run, the run is skipped (77) without vina and ecce-pdbqt.
+if(PYTHON3_EXECUTABLE)
+  add_test(NAME launch_vina
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/vina_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_vina PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #455 stage 2: the same code through the Calculation Editor, then the
+  # search box and the Poses panel in the Builder.  Needs the 1IEP entry
+  # (not shipped), vina and Xvfb; skips (77) without them.
+  add_test(NAME apps_vina_viewer
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/vina_viewer_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_vina_viewer PROPERTIES TIMEOUT 3600 SKIP_RETURN_CODE 77)
 endif()

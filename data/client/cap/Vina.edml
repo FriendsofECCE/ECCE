@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8" ?>
+
+<!--
+   AutoDock Vina registration: one run type, Docking (Vina).  Modeled on CREST.edml.
+
+   Vina scores a ligand in a receptor with an empirical function, so there is
+   no basis set; the theory is a single entry (category SE, the semi-empirical
+   group of the code bar).  The receptor/ligand split is the shared docking
+   layer's (ES.Runtype.Docking.*, docking.pl).
+
+   The deck is Vina's configuration with the receptor and ligand atom ranges
+   as "#|" comment lines; the structure is the auxiliary input vina.vinafrag.
+   scripts/gensub makes the PDBQT files from both.  The extensions must match
+   data/client/config/mimetypes, which is how a stored file finds its type.
+   The poses are appended to the output between ECCE-DOCK-FRAME markers and
+   read by vina.desc as GEOMTRACE and POSESCORE.
+-->
+
+<appdescriptor>
+
+<SupportsConstraints>false</SupportsConstraints>
+
+<Editor theorydialog="vinatheory.py" runtypedialog="vinaruntype.py">
+  <Theory category="SE" name="Vina" needsBasis="false">
+    <runtype>Docking (Vina)</runtype>
+  </Theory>
+
+  <RuntypeSummary>
+    <item key="ES.Runtype.Docking.LigandAtoms" label="Ligand Atoms"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.Vina.Exhaustiveness" label="Exhaustiveness"></item>
+  </RuntypeSummary>
+  <RuntypeSummary>
+    <item key="ES.Runtype.Vina.NumPoses" label="Number of Poses"></item>
+  </RuntypeSummary>
+</Editor>
+
+<DataFiles>
+  <Input  type="primary" mimetype="chemical/x-vina-input" comment="false">vina.vinain</Input>
+  <Input  type="auxiliary" mimetype="chemical/x-vina-structure">vina.vinafrag</Input>
+  <Output type="primary" mimetype="chemical/x-vina-output">vina.vinaout</Output>
+  <Output type="parse" verifypattern="AutoDock Vina" mimetype="chemical/x-vina-output">vina.vinaout</Output>
+</DataFiles>
+
+<IntegrationFiles>
+  <Template>vina.tpl</Template>
+  <InputGenerator>ai.vina</InputGenerator>
+  <ParseSpecification>vina.desc</ParseSpecification>
+  <LaunchPreprocessor>vina.launchpp</LaunchPreprocessor>
+</IntegrationFiles>
+
+</appdescriptor>
