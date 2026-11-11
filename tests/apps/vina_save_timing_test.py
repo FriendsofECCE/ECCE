@@ -68,6 +68,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
     ap.add_argument("--limit", type=float, default=30.0)
+    ap.add_argument("--pdb", default=os.path.join(REPO, "tests", "dock", "fixtures", "1iep.pdb"),
+                    help="the real 4710-atom entry; the generated one is used when it is absent")
     ap.add_argument("--keep", action="store_true")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
@@ -97,7 +99,13 @@ def main():
     os.makedirs(work, exist_ok=True)
     os.makedirs(rundir, exist_ok=True)
     pdb = os.path.join(work, "big.pdb")
-    total, ligand = bigPdb(pdb)
+    if os.path.exists(args.pdb):
+        shutil.copy(args.pdb, pdb)
+        recs = [l for l in open(pdb) if l.startswith(("ATOM", "HETATM"))]
+        sti = [i + 1 for i, l in enumerate(recs) if l[17:20] == "STI"]
+        total, ligand = len(recs), "%d-%d" % (sti[0], sti[-1])
+    else:
+        total, ligand = bigPdb(pdb)
     say("  %d atoms, ligand %s" % (total, ligand))
     display = None
     try:

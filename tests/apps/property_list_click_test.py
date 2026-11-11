@@ -153,8 +153,23 @@ def main():
                 end = time.time() + 120
                 while not os.path.exists(ready) and time.time() < end:
                     time.sleep(0.3)
+                if os.environ.get("ECCE_LIST_SHOT"):
+                    f = state["win"].split()
+                    subprocess.run(["import", "-display", disp.name,
+                                    "-window", "root", "-crop",
+                                    "%sx%s+%s+%s" % (f[3], f[4], f[1], f[2]),
+                                    "+repage",
+                                    os.environ["ECCE_LIST_SHOT"] + "-%d.png" % n],
+                                   check=False)
+                while not os.path.exists(ready) and time.time() < end:
+                    time.sleep(0.3)
+                #  Press and release apart, as a hand does: the panel the
+                #  press opens relays the column out in between.
                 subprocess.run(["xdotool", "mousemove", str(x + 10),
-                                str(y + h // 2), "click", "1"], env=env,
+                                str(y + h // 2), "mousedown", "1"], env=env,
+                               stderr=subprocess.DEVNULL)
+                time.sleep(float(os.environ.get("ECCE_CLICK_HOLD", "0.0")))
+                subprocess.run(["xdotool", "mouseup", "1"], env=env,
                                stderr=subprocess.DEVNULL)
                 time.sleep(1.5)
                 open(os.path.join(out, "s%d.go" % n), "w").close()

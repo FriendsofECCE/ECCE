@@ -4562,8 +4562,11 @@ void CalcEd::doSave()
                                ". Input file generated with warnings. "
                                "See Verify.", WxFeedback::WARNING);
     }
+    saveTimer.lap("state, messages, tooltip");
     enableLaunch();
+    saveTimer.lap("enableLaunch");
     refreshTsBox();
+    saveTimer.lap("refreshTsBox");
 
     if (saveCode)    urlChangeNotify("ecce_url_code");
     if (saveFrag)    urlChangeNotify("ecce_url_subject");
@@ -4575,6 +4578,7 @@ void CalcEd::doSave()
     // Details always change because any calced change
     // triggers them to be reset
     urlChangeNotify("ecce_url_details");
+    saveTimer.lap("notify other apps");
   }
 }
 
