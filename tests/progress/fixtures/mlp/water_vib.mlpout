@@ -1,0 +1,101 @@
+/home/user/opt/mace-venv/lib/python3.13/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/mace/calculators/mace.py:274: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+ecce-mlp 1.0
+Model:        MACE medium-mpa-0
+Version:      mace-torch 0.3.17
+Licence:      MIT
+Precision:    float64
+Dispersion:   off
+Engine:       ECCE (ecce-mlp-driver)
+Run type:     Vibration
+Atoms:        3   periodic: no
+Hessian:      central differences of the forces, step 0.01 A, 18 force calls
+Note:         energies are for screening, not for reporting.
+
+Energy:       -13.78142722 eV
+Fmax:         0.69452 eV/A
+ECCE-MLP-FRAME 1 3
+energy: -13.7814272203
+O      0.0000000000     0.0000000000     0.1200000000
+H      0.0000000000     0.8000000000    -0.4500000000
+H      0.0000000000    -0.7400000000    -0.5000000000
+ECCE-MLP-ENDFRAME
+Warning:      the forces are not small (Fmax 0.695 eV/A); the frequencies are only meaningful at a minimum.
+Displacement 1 of 9   Time 8.6 s
+Displacement 2 of 9   Time 8.8 s
+Displacement 3 of 9   Time 9.0 s
+Displacement 4 of 9   Time 9.2 s
+Displacement 5 of 9   Time 9.4 s
+Displacement 6 of 9   Time 9.6 s
+Displacement 7 of 9   Time 9.8 s
+Displacement 8 of 9   Time 9.9 s
+Displacement 9 of 9   Time 10.1 s
+
+ECCE-MLP-VIB 9 3
+mode 1 0.0000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+mode 2 0.0000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+mode 3 0.0000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+mode 4 0.0000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+mode 5 0.0000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+mode 6 0.0000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+    0.0000000000     0.0000000000     0.0000000000
+mode 7 1675.2929
+    0.0000000000    -0.0037268165     0.0713497114
+    0.0000000000    -0.3896453358    -0.5806364786
+    0.0000000000     0.4487974556    -0.5518278403
+mode 8 3641.1784
+    0.0000000000     0.0305886518    -0.0431701862
+    0.0000000000    -0.7884631093     0.4991142155
+    0.0000000000     0.3029592990     0.1860840074
+mode 9 3918.9314
+   -0.0000000000    -0.0628330062    -0.0236369341
+    0.0000000000     0.2667151839    -0.2125709973
+   -0.0000000000     0.7305717859     0.5877369787
+ECCE-MLP-ENDVIB
+
+Frequencies (cm-1; negative = imaginary), 6 rigid motions removed:
+     1675.29    3641.18    3918.93
+
+ECCE-MLP-FINAL
+energy: -13.7814272203
+forces:
+O      0.0000000000     0.6889543618    -0.0877174678
+H      0.0000000000    -0.5342095734     0.3021767220
+H      0.0000000000    -0.1547447884    -0.2144592541
+ECCE-MLP-ENDFINAL
+
+Total energy: -13.78142722 eV (-0.50645811 Hartree)
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+Using medium MPA-0 model as default MACE-MP model, to use previous (before 3.10) default model please specify 'medium' as model argument
+Using Materials Project MACE for MACECalculator with /home/user/tmp/970/home/.cache/mace/macempa0mediummodel
+Using float64 for MACECalculator, which is slower but more accurate. Recommended for geometry optimization.
+ecce-mlp terminated normally

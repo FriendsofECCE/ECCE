@@ -1,0 +1,84 @@
+/home/user/opt/mace-venv/lib/python3.13/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/mace/calculators/mace.py:274: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+ecce-mlp 1.0
+Model:        MACE medium-mpa-0
+Version:      mace-torch 0.3.17
+Licence:      MIT
+Precision:    float64
+Dispersion:   off
+Engine:       ECCE (ecce-mlp-driver)
+Run type:     MD
+Atoms:        3   periodic: no
+Dynamics:     NVT, velocity Verlet, time step 0.5 fs, 40 steps, a frame every 10 steps
+Temperature:  300 K (Bussi thermostat, time constant 50 fs)
+Note:         energies are for screening, not for reporting.
+
+MD step      0  time 0.0000 ps  Epot -13.78142722 eV  Ekin 0.07755597 eV  T 300.00 K  Etot -13.70387125 eV  Etot -0.50360798 Eh  Time 7.2 s
+ECCE-MLP-FRAME 1 3
+energy: -13.7814272203
+time: 0.000000
+O      0.0000000000     0.0000000000     0.1200000000
+H      0.0000000000     0.8000000000    -0.4500000000
+H      0.0000000000    -0.7400000000    -0.5000000000
+ECCE-MLP-ENDFRAME
+MD step     10  time 0.0050 ps  Epot -13.77434989 eV  Ekin 0.03100700 eV  T 119.94 K  Etot -13.74334289 eV  Etot -0.50505854 Eh  Time 8.8 s
+ECCE-MLP-FRAME 2 3
+energy: -13.7743498886
+time: 0.005000
+O     -0.0071789839     0.0008630714     0.1227959825
+H     -0.0187914650     0.7710065042    -0.4655533960
+H      0.1327364691    -0.7247051932    -0.5288245054
+ECCE-MLP-ENDFRAME
+MD step     20  time 0.0100 ps  Epot -13.78073205 eV  Ekin 0.07080651 eV  T 273.89 K  Etot -13.70992554 eV  Etot -0.50383047 Eh  Time 9.7 s
+ECCE-MLP-FRAME 3 3
+energy: -13.7807320493
+time: 0.010000
+O     -0.0127158253    -0.0014128521     0.1180375915
+H     -0.0437440174     0.7874853455    -0.4434745456
+H      0.2455698986    -0.7050605238    -0.4753780594
+ECCE-MLP-ENDFRAME
+MD step     30  time 0.0150 ps  Epot -13.76107755 eV  Ekin 0.08559436 eV  T 331.09 K  Etot -13.67548319 eV  Etot -0.50256474 Eh  Time 10.7 s
+ECCE-MLP-FRAME 4 3
+energy: -13.7610775544
+time: 0.015000
+O     -0.0212263666    -0.0033770284     0.1136937781
+H     -0.0753668759     0.8158103634    -0.4201628481
+H      0.4122722719    -0.7022100879    -0.4297446483
+ECCE-MLP-ENDFRAME
+MD step     40  time 0.0200 ps  Epot -13.77610767 eV  Ekin 0.06422854 eV  T 248.45 K  Etot -13.71187913 eV  Etot -0.50390226 Eh  Time 11.6 s
+ECCE-MLP-FRAME 5 3
+energy: -13.7761076745
+time: 0.020000
+O     -0.0297637253    -0.0076064897     0.1117999043
+H     -0.0724709845     0.7758705981    -0.4282287523
+H      0.5448815418    -0.5951402131    -0.3916191335
+ECCE-MLP-ENDFRAME
+
+MD finished: 40 steps, mean temperature 241.44 K, total energy drift 8.123e-01 eV/atom/ps
+
+ECCE-MLP-FINAL
+energy: -13.7761076745
+forces:
+O     -0.0887336744    -0.5760723919     0.5981870529
+H     -0.0988261858     0.8401408380    -0.4903083958
+H      0.1875598601    -0.2640684461    -0.1078786571
+ECCE-MLP-ENDFINAL
+
+Total energy: -13.77610767 eV (-0.50626262 Hartree)
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+Using medium MPA-0 model as default MACE-MP model, to use previous (before 3.10) default model please specify 'medium' as model argument
+Using Materials Project MACE for MACECalculator with /home/user/tmp/970/home/.cache/mace/macempa0mediummodel
+Using float64 for MACECalculator, which is slower but more accurate. Recommended for geometry optimization.
+ecce-mlp terminated normally

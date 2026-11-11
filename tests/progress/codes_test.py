@@ -254,6 +254,22 @@ case("xtb opt, not converged", "xtb.desc", fx("xtb", "capped.out"),
 case("vina docking (18-crown-6 + ethanol)", "vina.desc", fx("vina", "crown_ethanol.out"),
      {"vina": {"stage": "done", "best": has("-")}})
 
+# MLP (MACE medium-mpa-0, water, ecce-mlp-driver): energies in Eh (the
+# output prints eV and Eh), MD keeps its time and temperature at the end.
+case("mlp geometry (water, BFGS)", "mlp.desc", fx("mlp", "water_opt.mlpout"),
+     {"opt": {"step": "4", "converged": "yes", "energy": has("-0.506629"),
+              "grad": "0.00220/0.01"}},
+     {"opt": (5, 5)})
+case("mlp md (water, NVT, 40 steps)", "mlp.desc", fx("mlp", "water_md.mlpout"),
+     {"md": {"point": "40/40", "time": "0.0200", "temp": "248.45",
+             "energy": has("-0.5039"), "done": "yes"}},
+     {"md": (5, 5)})
+# An Energy or Vibration run has no steps, so no Optimisation block.
+case("mlp energy: no optimisation", "mlp.desc", fx("mlp", "water_energy.mlpout"),
+     {"!opt": {}, "!md": {}})
+case("mlp vibration: no optimisation", "mlp.desc", fx("mlp", "water_vib.mlpout"),
+     {"!opt": {}})
+
 case("qe relax (pw.x 6.7)", "qe.desc", fx("qe", "h2o_relax.pwout"),
      {"opt": {"istep": "3", "converged": "yes", "maxgrad": lambda v: "/" not in v},
       "scf": {"cycle": lambda v: int(v) >= 1, "converged": "yes", "scferr": target}},
@@ -307,7 +323,10 @@ case("gromacs prepare (Trp-cage, 2025.2)", "gromacs.desc",
 
 def run_case(name, desc, out, want, hist, out2):
     n, stages, text = replay(os.path.join(PARSERS, desc), out, "ALL", out2)
-    check(n is not None and n >= 1, "%s: monitor ran, %s snapshot(s)" % (name, n))
+    # A case that only forbids stages may rightly produce no snapshot.
+    absent_only = all(st.startswith("!") for st in want) and not hist
+    check(n is not None and (n >= 1 or absent_only),
+          "%s: monitor ran, %s snapshot(s)" % (name, n))
     if not n:
         return
     for stage, keys in want.items():

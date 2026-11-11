@@ -1,0 +1,94 @@
+/home/user/opt/mace-venv/lib/python3.13/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/mace/calculators/mace.py:274: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+ecce-mlp 1.0
+Model:        MACE medium-mpa-0
+Version:      mace-torch 0.3.17
+Licence:      MIT
+Precision:    float64
+Dispersion:   off
+Engine:       ECCE (ecce-mlp-driver)
+Run type:     Geometry
+Atoms:        3   periodic: no
+Optimiser:    BFGS, atoms only
+convergence: fmax 0.01 eV/A
+Limits:       200 steps
+Note:         energies are for screening, not for reporting.
+
+Step    0
+  Energy -13.78142722 eV  -0.50645811 Eh
+  Fmax   0.69452 eV/A
+  Time   7.0 s
+ECCE-MLP-FRAME 1 3
+energy: -13.7814272203
+O      0.0000000000     0.0000000000     0.1200000000
+H      0.0000000000     0.8000000000    -0.4500000000
+H      0.0000000000    -0.7400000000    -0.5000000000
+ECCE-MLP-ENDFRAME
+Step    1
+  Energy -13.78419519 eV  -0.50655983 Eh
+  Fmax   0.46050 eV/A
+  Time   7.6 s
+ECCE-MLP-FRAME 2 3
+energy: -13.7841951859
+O      0.0000000000     0.0098422052     0.1187468933
+H      0.0000000000     0.7923684347    -0.4456831897
+H      0.0000000000    -0.7422106398    -0.5030637036
+ECCE-MLP-ENDFRAME
+Step    2
+  Energy -13.78586468 eV  -0.50662118 Eh
+  Fmax   0.05245 eV/A
+  Time   7.8 s
+ECCE-MLP-FRAME 3 3
+energy: -13.7858646779
+O      0.0000000000     0.0059682571     0.1192182521
+H     -0.0000000000     0.7939013353    -0.4474265929
+H      0.0000000000    -0.7398695923    -0.5017916592
+ECCE-MLP-ENDFRAME
+Step    3
+  Energy -13.78596187 eV  -0.50662475 Eh
+  Fmax   0.04258 eV/A
+  Time   7.9 s
+ECCE-MLP-FRAME 4 3
+energy: -13.7859618719
+O     -0.0000000000     0.0058733583     0.1198493725
+H      0.0000000000     0.7932004861    -0.4477968310
+H      0.0000000000    -0.7390738444    -0.5020525415
+ECCE-MLP-ENDFRAME
+Step    4
+  Energy -13.78608190 eV  -0.50662917 Eh
+  Fmax   0.00220 eV/A
+  Time   8.0 s
+ECCE-MLP-FRAME 5 3
+energy: -13.7860819001
+O     -0.0000000000     0.0058658915     0.1215650579
+H      0.0000000000     0.7909945710    -0.4487119138
+H      0.0000000000    -0.7368604624    -0.5028531441
+ECCE-MLP-ENDFRAME
+
+ECCE-MLP-FINAL
+energy: -13.7860819001
+forces:
+O     -0.0000000000     0.0021552528     0.0004599409
+H     -0.0000000000    -0.0010354934     0.0006205471
+H      0.0000000000    -0.0011197594    -0.0010804880
+ECCE-MLP-ENDFINAL
+
+Optimisation converged after 4 steps.
+Total energy: -13.78608190 eV (-0.50662917 Hartree)
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+Using medium MPA-0 model as default MACE-MP model, to use previous (before 3.10) default model please specify 'medium' as model argument
+Using Materials Project MACE for MACECalculator with /home/user/tmp/970/home/.cache/mace/macempa0mediummodel
+Using float64 for MACECalculator, which is slower but more accurate. Recommended for geometry optimization.
+ecce-mlp terminated normally
