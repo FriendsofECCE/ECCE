@@ -60,3 +60,12 @@ exactly); it skips when Meeko is absent and Meeko is never shipped.
 `tests/dock/redock_1iep.py` redocks imatinib into 1IEP from an entirely
 ECCE-prepared receptor and ligand and requires the top pose within 2 A of the
 crystal ligand; it skips without the PDB entry or without Vina.
+
+**Bundling Vina is not done here.** Stage 1 finds `vina` on the machine like
+any other registered code. Bundling it would need: the Apache-2.0 licence
+text shipped beside the binary and listed in the package's licence files; a
+CMake `install(PROGRAMS ...)` of the executable into `bin` for the client
+component, with the per-platform binary built natively on each target rather
+than cross-compiled; and a Windows and a macOS build of Vina itself, since
+only Debian has a package. The search for the executable would then prefer
+the bundled copy and fall back to the registered one, as a bundled code does.
