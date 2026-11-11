@@ -739,7 +739,7 @@ def run_expt_cases(res, args):
         golden_path = os.path.join(EXPECTED, name + '.txt')
         golden = make_expt_golden(case, produced)
         if args.update:
-            with open(golden_path, 'w') as fh:
+            with open(golden_path, 'w', encoding='utf-8') as fh:
                 fh.write(golden)
             print('  updated %s' % os.path.relpath(golden_path, HERE))
         elif not os.path.exists(golden_path):
@@ -748,7 +748,7 @@ def run_expt_cases(res, args):
                       'result before committing it'
                       % os.path.relpath(golden_path, HERE))
         else:
-            with open(golden_path) as fh:
+            with open(golden_path, encoding='utf-8') as fh:
                 want = fh.read()
             if want != golden:
                 diff = list(difflib.unified_diff(
@@ -834,7 +834,7 @@ def run_gaussian_name_table_checks(res):
     """
     for script in ('Gaussian-16.expt', 'Gaussian-09.expt', 'Gaussian-03.expt'):
         path = os.path.join(SCRIPTS, script)
-        with open(path) as fh:
+        with open(path, encoding='utf-8') as fh:
             text = fh.read()
         res.check(
             '$NameToBasis{"6-31++g*"} = "6-31++G*";' in text, script,
@@ -925,7 +925,7 @@ def main():
         golden_path = os.path.join(EXPECTED, case['name'] + '.txt')
         golden = make_golden(case, result, body)
         if args.update:
-            with open(golden_path, 'w') as fh:
+            with open(golden_path, 'w', encoding='utf-8') as fh:
                 fh.write(golden)
             print('  updated %s' % os.path.relpath(golden_path, HERE))
         elif not os.path.exists(golden_path):
@@ -934,7 +934,7 @@ def main():
                       'result before committing it'
                       % os.path.relpath(golden_path, HERE))
         else:
-            with open(golden_path) as fh:
+            with open(golden_path, encoding='utf-8') as fh:
                 want = fh.read()
             if want != golden:
                 diff = list(difflib.unified_diff(
