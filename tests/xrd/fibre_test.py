@@ -191,7 +191,7 @@ def test_cli():
         check(r.returncode == 0 and open(png, "rb").read(8) == b"\x89PNG\r\n\x1a\n" and
               len(open(csv).read().splitlines()) == 120 * 120 + 1,
               "CLI writes the PNG and the CSV", r.stderr[-300:])
-        r = subprocess.run(cmd[:3] + ["--select", "999999"], capture_output=True, text=True)
+        r = subprocess.run(cmd[:4] + ["--select", "999999"], capture_output=True, text=True)
         check(r.returncode == 1 and "error:" in r.stderr, "a bad selection is an error, not a traceback")
 
 

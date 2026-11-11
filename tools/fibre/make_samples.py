@@ -4,8 +4,8 @@
     make_samples.py helix OUT.mvm [--residues 20]      polyalanine alpha-helix
     make_samples.py xyz2mvm IN.xyz OUT.mvm TITLE        bonds by covalent radius
 
-The helix is built from internal coordinates (phi -57, psi -47, omega 180,
-Engh-Huber-type ideal bond lengths and angles), so its rise and turn are a
+The helix is built from internal coordinates (phi -57, psi -47, omega 180, N-CA-C 109.5,
+Engh-Huber bond lengths and other angles; N-CA-C 111.2 would give a 5.64 A pitch), so its rise and turn are a
 result of the torsions and can be checked independently.
 """
 import argparse
@@ -36,7 +36,7 @@ def polyalanine(nres, phi=-57.0, psi=-47.0):
     atoms = []
     n = np.array([0.0, 0.0, 0.0])
     ca = np.array([1.458, 0.0, 0.0])
-    c = ca + 1.525 * np.array([-math.cos(math.radians(111.2)), math.sin(math.radians(111.2)), 0.0])
+    c = ca + 1.525 * np.array([-math.cos(math.radians(109.5)), math.sin(math.radians(109.5)), 0.0])
     prev_c = None
     for i in range(nres):
         o = place(n, ca, c, 1.231, 120.8, psi + 180.0)
@@ -52,7 +52,7 @@ def polyalanine(nres, phi=-57.0, psi=-47.0):
         atoms += [("H", h) for h in hb] + [("C", c), ("O", o)]
         n2 = place(n, ca, c, 1.329, 116.2, psi)
         ca2 = place(ca, c, n2, 1.458, 121.7, 180.0)
-        c2 = place(c, n2, ca2, 1.525, 111.2, phi)
+        c2 = place(c, n2, ca2, 1.525, 109.5, phi)
         prev_c, n, ca, c = c, n2, ca2, c2
     return atoms
 
