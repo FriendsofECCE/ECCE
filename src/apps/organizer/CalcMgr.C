@@ -7827,6 +7827,26 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     p_treeCtrl->refresh(projNode);
   findNode(project, true, true);
   setContextPanel();
+  // A step whose copy and parse both failed left nothing behind, and a
+  // workflow then lost its links with it (#954): say which are missing.
+  {
+    string lost;
+    Resource *projNow = EDSIFactory::getResource(project);
+    for (const ExampleTopic &topic : set->topics) {
+      Resource *folder = topic.name.empty()
+          ? projNow : childOf(projNow, treeName(topic.name));
+      for (const ExampleOut &ex : topic.outputs)
+        if (!childOf(folder, ex.calc))
+          lost += (lost.empty() ? "" : ", ") +
+                  (topic.name.empty() ? "" : treeName(topic.name) + "/") +
+                  ex.calc;
+    }
+    if (!lost.empty()) {
+      cerr << "Organizer: examples not imported: " << lost << endl;
+      p_batchError = (p_batchError.empty() ? "" : p_batchError + "; ") +
+                     "missing after the import: " + lost;
+    }
+  }
   if (!p_batchError.empty()) {
     message = "An example could not be imported: " + p_batchError;
     p_batchError.clear();
@@ -7863,10 +7883,37 @@ void CalcMgr::importExamplesOnce()
   Preferences prefs("Organizer");
   string done;
   prefs.getString("Organizer.ExampleSet", done);
-  if (done == kExampleSetVersion) return;
-
   EDSIServerCentral central;
   EcceURL home = central.getDefaultUserHome();
+  if (done == kExampleSetVersion) {
+    // A workflow session that lacks one of its shipped steps has lost its
+    // links too and stays broken until the next version (#954): top it up.
+    if (!EDSIFactory::getResource(home)) return;
+    for (const ExampleSet &set : exampleSets()) {
+      Resource *proj = EDSIFactory::getResource(
+          home.getChild(kExamplesTop).getChild(set.project));
+      bool broken = false;
+      for (const ExampleTopic &t : set.topics) {
+        if (!proj || !t.workflow || t.name.empty()) continue;
+        Resource *flow = EDSIFactory::getResource(
+            proj->getURL().getChild(treeName(t.name)));
+        for (const ExampleOut &o : t.outputs)
+          if (flow && !EDSIFactory::getResource(
+                          flow->getURL().getChild(o.calc)))
+            broken = true;
+      }
+      if (!broken) continue;
+      cerr << "Organizer: example workflow incomplete, topping up "
+           << set.id << endl;
+      string message;
+      bool created = false;
+      startDisabler();
+      if (openExampleSet(set.id, message, created).empty())
+        setMessage(message, WxFeedback::WARNING);
+      stopDisabler();
+    }
+    return;
+  }
   if (!EDSIFactory::getResource(home)) return;   // not logged in: next start
   cerr << "Organizer: examples import started" << endl;
   startDisabler();
@@ -7884,11 +7931,19 @@ void CalcMgr::importExamplesOnce()
     //  An upgrade that finds no example set (an earlier start removed the
     //  old ones and stopped) still gets the first-start set.
     if (sets.empty()) sets.insert(kFirstStartSet);
+    // A failure stays on the message line: the closing note would
+    // otherwise replace it at once.
+    string failed;
     for (const string &id : sets)
-      if (openExampleSet(id, message, created).empty())
-        setMessage(message, WxFeedback::WARNING);
-    setMessage("The example calculations are now in Examples, sorted by "
-               "topic.", WxFeedback::INFO);
+      if (openExampleSet(id, message, created).empty()) {
+        cerr << "Organizer: " << message << endl;
+        failed += (failed.empty() ? "" : " ") + message;
+      }
+    if (!failed.empty())
+      setMessage(failed, WxFeedback::WARNING);
+    else
+      setMessage("The example calculations are now in Examples, sorted by "
+                 "topic.", WxFeedback::INFO);
   } else if (!EDSIFactory::getResource(home.getChild("Examples"))) {
     string made = openExampleSet(kFirstStartSet, message, created);
     if (made.empty()) {
