@@ -1,13 +1,17 @@
 # ecce-mlp-driver (#728): ECCE's optimisers, cell relaxation, dynamics and
 # vibrations for machine-learned potentials; the network runs in a Python
 # worker (scripts/ecce-mlp --worker).  POSIX pipes, so not on Windows.
-add_library(eccemlp STATIC mlpdriver.cpp)
+add_library(eccemlp STATIC mlpdriver.cpp sites.cpp)
 target_include_directories(eccemlp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_compile_features(eccemlp PUBLIC cxx_std_17)
 add_executable(ecce-mlp-driver main.cpp)
 target_link_libraries(ecce-mlp-driver PRIVATE eccemlp)
 # Beside the other programs, where the tests' tree install finds it.
 set_target_properties(ecce-mlp-driver PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+# Site screening: symmetry-distinct interstitial sites and vacancy pairs.
+add_executable(ecce-sites sites_main.cpp)
+target_link_libraries(ecce-sites PRIVATE eccemlp)
+set_target_properties(ecce-sites PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # One self-contained source, which ecce-mlp-setup compiles on a machine
 # that has no ECCE installation (a cluster).

@@ -1397,7 +1397,7 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_si_export.py
 # scripts/ for ecce-mlp-setup to compile on a machine without ECCE.
 if(UNIX)
   add_subdirectory(src/mlp)
-  install(TARGETS ecce-mlp-driver RUNTIME DESTINATION bin COMPONENT client)
+  install(TARGETS ecce-mlp-driver ecce-sites RUNTIME DESTINATION bin COMPONENT client)
   install(FILES ${CMAKE_BINARY_DIR}/src/mlp/ecce-mlp-driver.cpp
           DESTINATION scripts COMPONENT client)
 endif()
@@ -2814,6 +2814,11 @@ if(TARGET ecce-mlp-driver)
                    ${CMAKE_SOURCE_DIR}/tests/mlp/driver_test.py
                    --driver $<TARGET_FILE:ecce-mlp-driver>)
   set_tests_properties(mlp_driver PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # Site screening: interstitial sites and vacancy pairs against crystallography.
+  add_test(NAME mlp_sites
+           COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/mlp/sites_test.py
+                   --sites $<TARGET_FILE:ecce-sites>)
+  set_tests_properties(mlp_sites PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
 endif()
 
 # tests/minff -- MINFF topology builder (scripts/minff_topology.py, #241)
