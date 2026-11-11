@@ -6,6 +6,7 @@
 #include <locale>
 #include <sstream>
 
+#include <wx/dcbuffer.h>
 #include <wx/filedlg.h>
 #include <wx/process.h>
 #include <wx/progdlg.h>
