@@ -86,8 +86,9 @@ def run(display):
         gui = list(csv.reader(open(out + "/pca_scores.csv")))
         ref = list(csv.reader(open(work + "/cli/pca_scores.csv")))
         check(len(gui) == len(ref) == 7 and gui[0] == ref[0], "same rows and columns", (gui[:1], ref[:1]))
-        bad = [(g[0], g[1], r[1]) for g, r in zip(gui[1:], ref[1:])
-               if g[0] != r[0] or abs(float(g[1]) - float(r[1])) > 1e-6 * (1 + abs(float(r[1])))]
+        refd = {r[0]: r for r in ref[1:]}
+        bad = [(g[0], g[1], refd.get(g[0], [0, "missing"])[1]) for g in gui[1:]
+               if g[0] not in refd or abs(float(g[1]) - float(refd[g[0]][1])) > 1e-6 * (1 + abs(float(g[1])))]
         check(not bad, "scores equal the CLI's", bad)
         check("PCA: 6 rows" in cli, "CLI report", cli[:200])
     finally:
