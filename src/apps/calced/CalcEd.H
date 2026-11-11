@@ -1,6 +1,7 @@
 #ifndef _CALCED_H_
 #define _CALCED_H_
 
+#include <functional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -358,6 +359,8 @@ class CalcEd: public CalcEdGUI,
     //  does, and remember where they went.
     bool   p_testKeepParams = false;
     string p_keptGeneratorDir;
+    /** Set during a Save: names each slow step for the progress dialog. */
+    std::function<void(const string&)> p_saveStage;
 
     WxFeedback *p_feedback;
     EcceTool   *p_builderTool;

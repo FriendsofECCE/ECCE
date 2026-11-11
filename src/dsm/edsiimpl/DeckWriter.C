@@ -1,7 +1,11 @@
 #include <memory>
 #include <unistd.h>
 
+#include <sys/stat.h>
+
+#include <algorithm>
 #include <cstdio>
+#include <filesystem>
 #include <fstream>
 
 #include "comm/RCommand.H"
@@ -26,6 +30,7 @@
 #include "util/Ecce.H"
 #include "util/EcceMap.H"
 #include "util/SDirectory.H"
+#include "util/SFile.H"
 #include "util/STLUtil.H"
 #include "util/TempStorage.H"
 #include "util/TypedFile.H"
@@ -48,6 +53,61 @@ string changeWD(const string& newDir)
       oldPath = cwd;
   }
   return oldPath;
+}
+
+// File work is done here rather than through shell commands: every process
+// costs a noticeable fraction of a second on Windows (#940).
+bool copyTemplate(const string& from, const string& to)
+{
+  std::ifstream in(from.c_str(), std::ios::binary);
+  std::ofstream out(to.c_str(), std::ios::binary | std::ios::trunc);
+  if (!in || !out) return false;
+  out << in.rdbuf();
+  out.close();
+  if (!out) return false;
+#ifndef _WIN32
+  chmod(to.c_str(), 0666);   // the generator rewrites it in place
+#endif
+  return true;
+}
+
+// What scripts/parsers/prettyInput does: a run of blank lines becomes the
+// first of them.  Text mode on both sides, as Perl's own I/O on Windows.
+bool prettyCopy(const string& from, const string& to)
+{
+  std::ifstream in(from.c_str());
+  std::ofstream out(to.c_str(), std::ios::trunc);
+  if (!in || !out) return false;
+  string line;
+  bool lastBlank = false;
+  while (std::getline(in, line)) {
+    const bool blank =
+        line.find_first_not_of(" \t\r\n\f\v") == string::npos;
+    if (!blank || !lastBlank) {
+      out << line;
+      if (!in.eof()) out << '\n';
+    }
+    lastBlank = blank;
+  }
+  out.close();
+  return !in.bad() && !out.fail();
+}
+
+// The non-hidden files in the working directory whose names end in suffix,
+// as `ls -1 *suffix` lists them.
+std::vector<string> filesEndingIn(const string& suffix)
+{
+  std::vector<string> names;
+  std::error_code ec;
+  for (const auto& e : std::filesystem::directory_iterator(".", ec)) {
+    const string n = e.path().filename().u8string();   // UTF-8 on MSW too
+    if (n.size() >= suffix.size() && n[0] != '.' &&
+        n.compare(n.size() - suffix.size(), suffix.size(), suffix) == 0 &&
+        e.is_regular_file(ec))
+      names.push_back(n);
+  }
+  std::sort(names.begin(), names.end());
+  return names;
 }
 
 unsigned long coreElectrons(unsigned long atomicNumber)
@@ -293,8 +353,14 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
     const string dir = Ecce::ecceDataControllersPath();
     const char *old = getenv("PATH");
     const string path = old ? old : "";
-    if (!dir.empty() && ("::" + path + ":").find(":" + dir + ":") == string::npos)
-      setenv("PATH", (dir + (path.empty() ? "" : ":") + path).c_str(), 1);
+#ifdef _WIN32
+    const string sep = ";";   // a ':' would glue dir onto the first entry
+#else
+    const string sep = ":";
+#endif
+    if (!dir.empty() &&
+        (sep + path + sep).find(sep + dir + sep) == string::npos)
+      setenv("PATH", (dir + (path.empty() ? "" : sep) + path).c_str(), 1);
   }
   Result r;
   string &message = r.message;
@@ -316,15 +382,13 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
     message = "Input files could not be generated--no theory yet";
   else if (!localconn.isOpen())
     message = "Unable to create local command shell.";
-  else if (!localconn.directory(dir->path()))
+  else if (!SFile::is_dir(dir->path()))
     message = "Unable to create temporary local calculation directory " +
               dir->path() + ". Out of disk space or permissions failure?";
-  else if (!localconn.writable(dir->path()))
+  else if (!SFile(dir->path()).is_writable())
     message = "Unable to write to the temporary local calculation directory " +
               dir->path() + ". Out of disk space?";
-  else if (!localconn.cd(dir->path()))
-    message = "Input files could not be generated--temporary local directory " +
-              dir->path() + " does not exist";
+  // The generator inherits this working directory: localconn has no cd.
   else if ((lastDir = changeWD(dir->path())) == "")
     message = "Input files could not be generated--temporary local directory " +
               dir->path() + " does not exist";
@@ -362,6 +426,7 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
       }
     }
 
+    if (opt.stage) opt.stage("Writing the structure and basis set");
     if (!writeCS(calc, fragFile))
       message = "Input files could not be generated--failed writing "
                 "chemical system";
@@ -384,11 +449,7 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
       bool haveTemplate = false;
       if (!templateFile.empty()) {
         string tp = string(Ecce::ecceDataControllersPath()) + "/" + templateFile;
-        if (localconn.exists(tp) &&
-            localconn.exec("/bin/cp " + RCommand::quotePath(tp) + " " +
-                           RCommand::quotePath(origInput)))
-          haveTemplate = localconn.exec("chmod 666 " +
-                                        RCommand::quotePath(origInput));
+        haveTemplate = SFile(tp).exists() && copyTemplate(tp, origInput);
       }
       if (!haveTemplate) {
         message = "Input files could not be generated--failed writing "
@@ -399,7 +460,7 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
         message = "Input files could not be generated--input parser not found";
       else {
         string parserPath = string(Ecce::ecceDataControllersPath()) + "/" + parser;
-        if (!localconn.exists(parserPath))
+        if (!SFile(parserPath).exists())
           message = "Input files could not be generated--parser file " +
                     parserPath + " not found";
         else {
@@ -414,6 +475,8 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
           parserPath += " -t " + RCommand::quotePath(origInput);
 
           // The generator's own output says what was wrong, so it leads.
+          if (opt.stage) opt.stage("Running the " + codecap->name() +
+                                   " input generator");
           string out;
           if (!localconn.execout(parserPath, out)) {
             message = "Input files could not be generated.";
@@ -438,13 +501,10 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
                     line.substr(close + 3, end + 1 - (close + 3))));
               }
             }
-            string pretty = RCommand::quotePath(
-                string(Ecce::ecceDataControllersPath()) + "/prettyInput") +
-                " <" + RCommand::quotePath(origInput) + " >" +
-                RCommand::quotePath(inputFile);
-            if (!localconn.exec(pretty))
-              message = "Input files could not be generated--pretty parsing "
-                        "command " + pretty + " failed";
+            if (opt.stage) opt.stage("Storing the input file");
+            if (!prettyCopy(origInput, inputFile))
+              message = "Input files could not be generated--could not "
+                        "write " + inputFile;
             // Only now that there is a new deck: a failed generation leaves
             // the last good one for Final Edit.
             else if (!calc->removeInputFiles())
@@ -471,21 +531,13 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
               // auxiliary basis set files (Amica)
               TypedFile aux = codecap->getCodeFile(JCode::AUXILIARY_INPUT);
               if (aux.name() != "") {
-                string ls;
-                if (localconn.execout("ls -1 *" + aux.name(), ls)) {
-                  char *tok;
-                  for (tok = strtok((char*)ls.c_str(), "\n"); tok != NULL;
-                       tok = strtok(NULL, "\n")) {
-                    tok[strlen(tok)-1] = '\0';
-                    ifs.open(tok);
-                    if (!calc->putInputFile(tok, &ifs)) {
-                      r.ok = false;
-                      message = "Input files could not be generated--basis "
-                                "file copy to DAV failed";
-                      ifs.close();
-                      break;
-                    }
-                    ifs.close();
+                for (const string& name : filesEndingIn(aux.name())) {
+                  std::ifstream in(name.c_str());
+                  if (!calc->putInputFile(name, &in)) {
+                    r.ok = false;
+                    message = "Input files could not be generated--basis "
+                              "file copy to DAV failed";
+                    break;
                   }
                 }
               }

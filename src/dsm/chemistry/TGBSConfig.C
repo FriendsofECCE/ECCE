@@ -38,6 +38,54 @@
 #include "dsm/JCode.H"
 #include "dsm/CodeFactory.H"
 
+#ifndef _WIN32
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <spawn.h>
+#include <sys/wait.h>
+extern char **environ;
+
+namespace {
+
+// The translator straight from PATH with stdin and stdout on files, as
+// system("name < in > out") without the shell: one process fewer per
+// Save (#940).  SIGCHLD stays blocked while waiting, as in system(), so a
+// process-wide reaper cannot take the child's status first.
+int runTranslator(const std::string& name, const std::string& in,
+                  const std::string& out)
+{
+  sigset_t chld, old;
+  sigemptyset(&chld);
+  sigaddset(&chld, SIGCHLD);
+  sigprocmask(SIG_BLOCK, &chld, &old);
+  posix_spawn_file_actions_t fa;
+  posix_spawn_file_actions_init(&fa);
+  posix_spawn_file_actions_addopen(&fa, 0, in.c_str(), O_RDONLY, 0);
+  posix_spawn_file_actions_addopen(&fa, 1, out.c_str(),
+                                   O_WRONLY | O_CREAT | O_TRUNC, 0666);
+  posix_spawnattr_t at;
+  posix_spawnattr_init(&at);
+  posix_spawnattr_setsigmask(&at, &old);
+  posix_spawnattr_setflags(&at, POSIX_SPAWN_SETSIGMASK);
+  char *argv[] = {const_cast<char*>(name.c_str()), 0};
+  pid_t pid;
+  int rc = posix_spawnp(&pid, name.c_str(), &fa, &at, argv, environ);
+  posix_spawn_file_actions_destroy(&fa);
+  posix_spawnattr_destroy(&at);
+  if (rc != 0) rc = 127;               // what sh says for "not found"
+  else {
+    int st = 0;
+    while ((rc = waitpid(pid, &st, 0)) < 0 && errno == EINTR) {}
+    rc = rc < 0 ? -1 : (WIFEXITED(st) ? WEXITSTATUS(st) : -1);
+  }
+  sigprocmask(SIG_SETMASK, &old, 0);
+  return rc;
+}
+
+}  // namespace
+#endif
+
   
 // Static conversion arrays
 
@@ -2304,9 +2352,10 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
   string command = "perl \"" + string(Ecce::ecceDataControllersPath()) + "/" +
     codeName + "\" < \"" + sourceFile->path() + "\" > \"" +
     resultsFile->path() + "\"";
+  const int status = Ecce::runCommand(command);
 #else
-  string command = codeName + " < \"" + sourceFile->path() + "\" > \"" +
-    resultsFile->path() + "\"";
+  const int status = runTranslator(codeName, sourceFile->path(),
+                                   resultsFile->path());
 #endif
 
   // system()'s return value is a raw wait-status, not an errno-style
@@ -2317,7 +2366,7 @@ const char* TGBSConfig::dump(const char* code_name, bool useNames)
   // read back an empty resultsFile, which is exactly what
   // ESInputController::write_gbsconfig()'s generic "failed writing basis
   // set" was masking.
-  if(Ecce::runCommand(command) != 0) {
+  if (status != 0) {
     EE_ASSERT(0, EE_WARNING, "Cannot execute script: " + codeName);
     sourceFile->remove();
     resultsFile->remove();

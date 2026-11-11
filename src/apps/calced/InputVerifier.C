@@ -25,7 +25,9 @@ bool InputVerifier::run(const string& text,
   checker += "/verifyinput";
 
   RCommand localconn;
-  if (!localconn.exists(checker)) {
+  //  In process: a `test -e` through the shell is one more process per
+  //  check, and processes are slow to start on Windows (#940).
+  if (!SFile(checker).exists()) {
     //  Say where it looked.  The one recurring packaging fault in this
     //  tree is a script that exists in the repository and is absent
     //  from the installed .deb, and "not found" without a path sends

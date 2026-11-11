@@ -77,6 +77,7 @@
 #include "dsm/QstStructures.H"
 #include "VerifyReportDialog.H"
 #include "PartialCharge.H"
+#include "wxgui/ewxProgressDialog.H"
 
 //#define DEBUG
 
@@ -4185,6 +4186,7 @@ bool CalcEd::generateInput(const bool& paramFlag)
     //  than in enableLaunch(), which runs on every edit: this is the
     //  one moment the file can have changed, so it is also the only
     //  moment worth spending a WebDAV fetch and a process on.
+    if (p_saveStage) p_saveStage("Checking the input file");
     verifyInput();
   }
 
@@ -4264,6 +4266,34 @@ bool CalcEd::inputEditedByHand()
 }
 
 
+namespace {
+//  Save runs the input generator and the checker as processes, which are
+//  slow to start on Windows; the dialog appears only once a Save has taken
+//  half a second, at the next step, so quick Saves never flash it.
+class SaveProgress
+{
+  public:
+    explicit SaveProgress(wxWindow *parent) : p_parent(parent) {}
+    ~SaveProgress() { if (p_dlg) p_dlg->Destroy(); }
+    void stage(const string& what)
+    {
+      const wxString msg = wxString::FromUTF8(what.c_str());
+      if (!p_dlg) {
+        if (p_watch.Time() < 500) return;
+        p_dlg = new ewxProgressDialog("Saving", msg, 100, p_parent,
+                                      wxPD_AUTO_HIDE | wxPD_APP_MODAL);
+        p_dlg->Show();
+      }
+      p_dlg->Pulse(msg);
+    }
+  private:
+    wxWindow *p_parent;
+    ewxProgressDialog *p_dlg = nullptr;
+    wxStopWatch p_watch;
+};
+}
+
+
 void CalcEd::doSave()
 {
   // check that there's really been something changed
@@ -4293,6 +4323,14 @@ void CalcEd::doSave()
       if (answer == wxID_CANCEL) return;
       p_keepHandInput = (answer == wxID_YES);
     }
+
+    wxBusyCursor busy;
+    SaveProgress progress(this);
+    p_saveStage = [&progress](const string& what) { progress.stage(what); };
+    struct ClearStage {
+      std::function<void(const string&)>& f;
+      ~ClearStage() { f = nullptr; }
+    } clearStage{p_saveStage};
 
     // save code
     bool saveCode = false;

@@ -55,6 +55,7 @@ bool CalcEd::input_controller(const bool& saveParamFlag,
   opt.useExpCoeff = useExpCoeff;
   opt.keepFiles = saveParamFlag;
   opt.openShells = getOpenShells();
+  opt.stage = p_saveStage;
   DeckWriter::Result r = DeckWriter::generate(p_iCalc, opt);
 
   p_qstStatus = r.qstStatus;
