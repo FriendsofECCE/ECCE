@@ -120,7 +120,7 @@ std::string EnsemblePropertyPanel::kindFor(const std::string& rt, bool scored)
   if (rt == "Protonation Sites") return "Protonation Sites";
   if (rt == "Tautomers") return "Tautomers";
   if (rt == "Solvation Shell") return "Clusters";
-  if (rt == "Docking (aISS)") return "Poses";
+  if (rt == "Docking (aISS)" || rt == "Docking (Vina)") return "Poses";
   if (rt == "Conformer Search" || rt == "Conformer search (simple)")
     return "Conformers";
   return scored ? "Poses" : "Conformers";
@@ -164,7 +164,11 @@ void EnsemblePropertyPanel::load()
   PropertyTask *task = dynamic_cast<PropertyTask*>(getCalculation());
   const int n = ScanPoint::ensembleSize(task);
   p_members.clear();
-  p_deName = ScanPoint::ensembleIsPoses(task)
+  ICalculation *icalc = dynamic_cast<ICalculation*>(task);
+  const bool vina = icalc && icalc->runtype().name() == "Docking (Vina)";
+  // Vina's score is an empirical estimate, not an interaction energy.
+  p_deName = vina ? "Vina score (kcal mol⁻¹)"
+           : ScanPoint::ensembleIsPoses(task)
                  ? "Interaction energy (kcal mol⁻¹)" : "ΔE (kcal mol⁻¹)";
 
   vector<ScanPoint::Pattern> pats;
@@ -489,8 +493,10 @@ vector<string> EnsemblePropertyPanel::codeChoices(int& dflt)
   vector<ResourceType*> types = rd.getResourceTypes();
   const vector<WorkflowSteps::Code>& codes = WorkflowSteps::codes();
   for (size_t i = 0; i < codes.size(); i++) {
-    // CREST has no Geometry run type; a conformer is for a further calculation.
-    if (string(codes[i].typeName) == "crest_es") continue;
+    // CREST and Vina have no Geometry run type; a conformer or pose is for a
+    // further calculation.
+    if (string(codes[i].typeName) == "crest_es" ||
+        string(codes[i].typeName) == "vina_es") continue;
     bool installed = false;
     for (size_t t = 0; t < types.size(); t++)
       if (types[t]->getName() == codes[i].typeName) installed = true;

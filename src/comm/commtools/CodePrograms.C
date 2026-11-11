@@ -33,6 +33,8 @@ vector<string> CodePrograms::names(const string& code)
         n.push_back("xtb");
     else if (code == "CREST")
         n.push_back("crest");
+    else if (code == "Vina")
+        n.push_back("vina");
     else if (code == "MLP")
         n.push_back("python3");
     else if (code == "MOPAC")

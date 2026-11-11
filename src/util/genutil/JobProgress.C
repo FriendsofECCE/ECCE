@@ -159,6 +159,7 @@ string JobProgress::title(const string& stage)
   if (stage == "neb") return "NEB";
   if (stage == "prepare") return "Prepare";
   if (stage == "crest") return "CREST";
+  if (stage == "vina") return "Vina";
   // GROMACS names the stage by its integrator.
   if (stage == "steep" || stage == "cg" || stage == "l-bfgs" || stage == "nm")
     return "Minimisation";

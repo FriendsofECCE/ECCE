@@ -230,6 +230,11 @@ static ProgramHelp baseHelp(const string& code)
         h.examples.push_back("/usr/local/bin/crest");
         h.signature = "crest";
     }
+    else if (code == "Vina")
+    {
+        h.examples.push_back("/usr/bin/vina");
+        h.signature = "AutoDock Vina";
+    }
     else if (code == "MLP")
     {
         // The Python of the environment that has ASE and the potential

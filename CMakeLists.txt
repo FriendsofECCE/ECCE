@@ -5246,3 +5246,14 @@ if(WIN32)
                PROPERTY COMPILE_OPTIONS "-I${CMAKE_SOURCE_DIR}/packaging/windows")
   ecce_utf8_manifest_dir(${CMAKE_SOURCE_DIR})
 endif()
+
+# #455: AutoDock Vina docking of ethanol in 18-crown-6 through Launch; the deck
+# checks always run, the run is skipped (77) without vina and ecce-pdbqt.
+if(PYTHON3_EXECUTABLE)
+  add_test(NAME launch_vina
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/vina_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_vina PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+endif()

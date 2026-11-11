@@ -1,0 +1,399 @@
+#!/usr/bin/env perl
+################################################################################
+# FILENAME:  ai.vina
+#
+# SYNTAX: ai.vina -p -f -n <basename> -t <template> [-h] [-v]
+#
+# PURPOSE:
+#       Take the ECCE dictionary (.param) and fragment (.frag) and produce the
+#       AutoDock Vina configuration (vina.vinain).  The receptor and ligand
+#       are the two atom lists of docking.pl.  The PDBQT files cannot be made
+#       here: only the input file travels to the run directory, so the deck
+#       also carries the structure (the .frag, verbatim) and the two atom
+#       lists as "#|" comment lines, which Vina's config reader ignores and
+#       scripts/gensub turns back into files before running ecce-pdbqt.
+################################################################################
+
+use Getopt::Std;
+use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t
+            $opt_e $opt_s $opt_q);
+
+push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
+require "pertab.pl";
+require "docking.pl";
+&loadPT;
+
+$| = 1;
+
+&getopts(':n:t:pfbcqeshv');
+&handle_options;
+
+%AbiDict = ();
+
+if ($TplFILE eq "") {
+  &usage;
+}
+
+&verifyAbiFile;
+&verifyFragFile;
+&readDict;
+&aiDebugDict;
+&readChemSys;
+&modifyInputFile;
+&cleanup;
+exit(0);
+
+################################################################################
+# Generic ##tag## substitution engine -- identical to ai.orca's/ai.gauss16's
+# modifyInputFile. Walks the template line by line, replaces ##key## with
+# either &key(value) if such a sub exists, else the raw dictionary value,
+# else (no match at any level of the dot-separated key) drops the line.
+#
+# CONTRACT (same as ai.gauss16's CheckpointFile / ai.orca's ORCABlocks): a
+# sub that wants to emit nothing must set $_ = "" itself, because the
+# engine only overwrites $_ when the sub's return value is non-empty.
+################################################################################
+################################################################################
+# Verbose troubleshooting output for the ##tag## substitution engine.
+#
+# Every silent-failure bug this project has chased through the input
+# generators has one shape: a tag resolves to the empty string, its line is
+# dropped, and the setting the user picked is simply not in the deck.  Nothing
+# says so -- the script exits 0 and the job runs with different settings than
+# the dialog showed.  (The NWChem BP86 case: the dialog offered "BP86 (GGA)",
+# the resolver only matched "BP86 (hybrid)", and every such job silently ran
+# on the default LDA instead.)
+#
+# Set ECCE_AI_DEBUG=1 for one line per tag on STDERR saying what it resolved
+# to and, crucially, when it resolved to nothing.  An environment variable
+# rather than a switch because these scripts are invoked with a fixed argument
+# list from C++, so this needs no C++ change to turn on.
+################################################################################
+sub aiDebug {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  my ($message) = @_;
+  print STDERR "[ecce-ai] $message\n";
+}
+
+# A resolver that returns "" is not automatically a bug.  The convention in
+# these scripts is that a resolver which produces several lines either sets $_
+# itself or prints straight to NEWFILE, and returns "" either way.  Four
+# outcomes have to be told apart, and only the first two are trouble:
+#
+#   $_ still holds ##tag##   nothing replaced it; the literal tag text is
+#                            about to be written into the input deck
+#   nothing written at all   the line is dropped.  Intentional for an optional
+#                            setting, and the silent-drop bug when it is not --
+#                            the message names the tag, so a user report names
+#                            the setting that vanished
+#   bytes went to NEWFILE    the resolver wrote its own output (chemsys and
+#                            friends do this); fine
+#   $_ became something else likewise fine
+#
+# The NEWFILE byte count is what separates "dropped" from "written another
+# way"; without it every multi-line resolver looks like a silent drop.
+# Called from the `else { &aiUnmatched(@_); $result = ""; }` fallback that ends almost every
+# translator in these scripts.  That fallback IS the silent-failure mechanism:
+# the dialog offered a string, this sub has no case for it, the empty result
+# propagates, and the job runs without the setting -- or, as with the Gaussian
+# "None" case, the whole method string collapses to a bare "r".  @_ is the
+# sub's own argument list, so the unmatched value reports itself without each
+# call site having to name its parameter.
+sub aiUnmatched {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  my $sub = (caller(1))[3] || "main";
+  $sub =~ s/^main:://;
+  my $value = defined($_[0]) ? $_[0] : "(no argument)";
+  &aiDebug("  !! &$sub has no case for '$value' -- returning empty. If that "
+           . "value came from a dialog, the dialog and this script disagree "
+           . "and the setting will be missing from the input.");
+}
+
+# The full dictionary the dialogs and calced handed this script.  Logged once
+# at startup because every "the job ran with the wrong settings" report needs
+# both halves: what was asked for, and what reached the deck.
+sub aiDebugDict {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  # readDict() stores every dotted SUFFIX of each key, so a single setting
+  # appears four or five times.  Print only the longest form of each -- a key
+  # that no other key ends with -- or the dump is mostly noise.
+  my @keys = sort keys %AbiDict;
+  my %isSuffix;
+  foreach my $key (@keys) {
+    foreach my $other (@keys) {
+      $isSuffix{$key} = 1 if ($other ne $key && $other =~ /\.\Q$key\E$/);
+    }
+  }
+  &aiDebug("dictionary as read from the .param file:");
+  foreach my $key (@keys) {
+    next if $isSuffix{$key};
+    &aiDebug(sprintf("    %-46s = '%s'", $key, $AbiDict{$key}));
+  }
+}
+
+sub aiDebugEmpty {
+  return unless $ENV{"ECCE_AI_DEBUG"};
+  my ($tag, $sub, $tellBefore) = @_;
+  my $wrote = tell(NEWFILE) - $tellBefore;
+  if ($_ =~ /\#\#\Q$tag\E\#\#/) {
+    &aiDebug("  ##$tag##: &$sub returned EMPTY and nothing replaced the tag "
+             . "-- the literal ##$tag## text will appear in the input file");
+  } elsif ($wrote > 0) {
+    &aiDebug("  ##$tag##: &$sub wrote $wrote bytes to the input directly");
+  } elsif ($_ eq "") {
+    &aiDebug("  ##$tag##: &$sub returned EMPTY and wrote nothing -- the line "
+             . "was dropped; if that setting was chosen in the GUI, it is NOT "
+             . "in the generated input");
+  } else {
+    &aiDebug("  ##$tag##: &$sub replaced the line itself");
+  }
+}
+
+sub modifyInputFile {
+  local($keysave, $key, $subname, $prefix, $postfix, $finished);
+  $inputFile = $TplFILE;
+  open(TEMPLATE, $inputFile);
+  open(NEWFILE, ">tmpfile");
+  while (<TEMPLATE>) {
+    if (/([^#]*)##([^#]*)##(.*)/) {
+      $prefix = $1;
+      $postfix = $3;
+      $keysave = $key = $2;
+      &aiDebug("tag ##$key## (template line $.)");
+      $finished = 0;
+      while ($finished == 0) {
+        $subname = $key;
+        $subname =~ s/\./_/g;
+        if (defined($AbiDict{$key})) {
+          $finished = 1;
+          $value = $AbiDict{$key};
+          $fct = "&$subname('$value')";
+          $eccePrevLine = $_;
+          $eccePrevTell = tell(NEWFILE);
+          $result = eval $fct;
+          # #92: eval catches a die() inside the resolver, and the engine
+          # reads undef as "no such sub / no substitution" -- so a
+          # deliberate error used to vanish along with the tag's line and
+          # the script exited 0 with a quietly incomplete deck. Re-raise
+          # anything that is a real error; an "Undefined subroutine"
+          # failure IS the no-substitution case the engine relies on, so
+          # it stays silent.
+          if ($@ && $@ !~ /Undefined subroutine/) { die $@; }
+          if (!(defined $result)) {
+            s/##$keysave##/$value/;
+          } elsif ($result eq "") {
+            &aiDebugEmpty($keysave, $subname, $eccePrevTell);
+          } elsif ($result ne "") {
+            &aiDebug("  ##$keysave## -> \'$result\'");
+            $_ = $prefix . $result . $postfix . "\n";
+          }
+        } else {
+          $finished = 1;
+          $fct = "&$subname";
+          $eccePrevLine = $_;
+          $eccePrevTell = tell(NEWFILE);
+          $result = eval $fct;
+          # #92: eval catches a die() inside the resolver, and the engine
+          # reads undef as "no such sub / no substitution" -- so a
+          # deliberate error used to vanish along with the tag's line and
+          # the script exited 0 with a quietly incomplete deck. Re-raise
+          # anything that is a real error; an "Undefined subroutine"
+          # failure IS the no-substitution case the engine relies on, so
+          # it stays silent.
+          if ($@ && $@ !~ /Undefined subroutine/) { die $@; }
+          if (!(defined $result)) {
+            if (index($key, ".") >= $[) {
+              $key =~ s/\.[^\.]*$//;
+              &aiDebug("  no &$subname; retrying as ##$key##");
+              $finished = 0;
+            } else {
+              &aiDebug("  ##$keysave##: no dictionary value and no resolver -- LINE REMOVED");
+              $_ = "";
+            }
+          } elsif ($result eq "") {
+            &aiDebugEmpty($keysave, $subname, $eccePrevTell);
+          } elsif ($result ne "") {
+            &aiDebug("  ##$keysave## -> \'$result\'");
+            $_ = $prefix . $result . $postfix . "\n";
+          }
+        }
+      }
+    }
+    print(NEWFILE);
+  }
+  close(TEMPLATE);
+  close(NEWFILE);
+}
+
+################################################################################
+
+################################################################################
+# Code-specific tag resolvers
+################################################################################
+
+sub VinaDeck {
+  my ($rec, $lig) = &dockSplit(\%AbiDict, $chemsys_atoms, \%tags, \%coords);
+  die "ai.vina error: Vina has no dummy atom\n"
+      if (grep { $tags{$_} eq "X" } (@$rec, @$lig));
+  my @out;
+  push(@out, "receptor = receptor.pdbqt", "ligand = ligand.pdbqt");
+  my @box = &SearchBox($lig);
+  push(@out, sprintf("center_x = %.1f", $box[0]), sprintf("center_y = %.1f", $box[1]),
+       sprintf("center_z = %.1f", $box[2]), sprintf("size_x = %.1f", $box[3]),
+       sprintf("size_y = %.1f", $box[4]), sprintf("size_z = %.1f", $box[5]));
+  push(@out, "exhaustiveness = " . &IntOption("ES.Runtype.Vina.Exhaustiveness", 8, 1));
+  push(@out, "num_modes = " . &IntOption("ES.Runtype.Vina.NumPoses", 9, 1));
+  my $range = &NumOption("ES.Runtype.Vina.EnergyRange", 3.0);
+  push(@out, "energy_range = $range");
+  my $seed = &IntOption("ES.Runtype.Vina.Seed", 0, 0);
+  push(@out, "seed = $seed") if ($seed != 0);
+  my $title = $AbiDict{"title"};
+  $title =~ s/^\s+|\s+$//g;
+  # Read by gensub; Vina ignores comment lines.
+  push(@out, "#| ECCE-PREP " . ($title eq "" ? "ECCE Vina calculation" : $title));
+  push(@out, "#| LIGAND_ATOMS=" . join(",", map { $_ + 1 } @$lig));
+  push(@out, "#| RECEPTOR_ATOMS=" . join(",", map { $_ + 1 } @$rec));
+  push(@out, "#| FLEXIBLE_AMIDES=" . (&flag("ES.Runtype.Vina.FlexibleAmides", 0) ? 1 : 0));
+  push(@out, "#| BEGIN-FRAG");
+  open(FRAGCOPY, $FragFILE) || die "ai.vina error: Couldn't open $FragFILE\n";
+  while (<FRAGCOPY>) { chomp; push(@out, "#| $_"); }
+  close(FRAGCOPY);
+  push(@out, "#| END-FRAG");
+  $_ = join("\n", @out);
+  return $_;
+}
+
+# The box: given, or (BoxAuto, the default) the ligand atoms' bounding box plus
+# 5 A on each side, at least 16 A, so the search can move the ligand about.
+sub SearchBox {
+  my ($lig) = @_;
+  if (&flag("ES.Runtype.Vina.BoxAuto", 1)) {
+    my (@lo, @hi);
+    foreach my $i (@$lig) {
+      foreach my $k (0 .. 2) {
+        $lo[$k] = $coords{$i,$k} if (!defined($lo[$k]) || $coords{$i,$k} < $lo[$k]);
+        $hi[$k] = $coords{$i,$k} if (!defined($hi[$k]) || $coords{$i,$k} > $hi[$k]);
+      }
+    }
+    my @c = map { &round1(($lo[$_] + $hi[$_]) / 2) } (0 .. 2);
+    my @s = map { my $v = &round1($hi[$_] - $lo[$_] + 10.0); $v < 16 ? 16 : $v } (0 .. 2);
+    return (@c, @s);
+  }
+  my @box;
+  foreach my $axis ("X", "Y", "Z") { push(@box, &NumOption("ES.Runtype.Vina.BoxCenter$axis", 0)); }
+  foreach my $axis ("X", "Y", "Z") {
+    my $v = &NumOption("ES.Runtype.Vina.BoxSize$axis", 20);
+    die "ai.vina error: the search box size must be positive (got $v)\n" if ($v <= 0);
+    push(@box, $v);
+  }
+  return @box;
+}
+
+sub round1 {
+  my $v = sprintf("%.1f", $_[0]);
+  return $v + 0;
+}
+
+sub flag {
+  my ($key, $default) = @_;
+  my $v = $AbiDict{$key};
+  return $default if (!defined($v) || $v eq "");
+  return ($v =~ /^(1|true|yes|on)$/i) ? 1 : 0;
+}
+
+sub NumOption {
+  my ($key, $default) = @_;
+  my $v = $AbiDict{$key};
+  return $default if (!defined($v) || $v !~ /^\s*-?\d+\.?\d*(e-?\d+)?\s*$/i);
+  return $v + 0;
+}
+
+sub IntOption {
+  my ($key, $default, $min) = @_;
+  my $v = $AbiDict{$key};
+  return $default if (!defined($v) || $v !~ /^\s*-?\d+\s*$/);
+  die "ai.vina error: $key must be at least $min (got $v)\n" if ($v < $min);
+  return $v + 0;
+}
+
+# No coordinates are written here; the deck is the configuration.
+sub chemsys {
+  ($chemsys_atoms != 0) || die "ai.vina error: Fragment has no atoms!\n";
+  return &VinaDeck;
+}
+
+sub verifyAbiFile {
+  open(ABIDICT, $AbiFILE) || die "ai.vina error: Couldn't open $AbiFILE\n";
+}
+
+sub verifyFragFile {
+  open(CHEMSYS, $FragFILE) || die "ai.vina error: Couldn't open $FragFILE\n";
+}
+
+sub cleanup {
+  rename("tmpfile", $inputFile);   # perl itself: Windows perl has no /bin/mv
+  close(ABIDICT);
+}
+
+sub readDict {
+  while (<ABIDICT>) {
+    $_ =~ s/\s*!.*$//;
+    if (/:/) {
+      my ($key, $value) = split(/:/);
+      $key =~ s/^\s*//;
+      $key =~ s/\s*$//;
+      $value =~ s/^\s*//;
+      $value =~ s/\s*$//;
+      my $tagkey = $key;
+      while ($tagkey ne "") {
+        $AbiDict{$tagkey} = $value;
+        $tagkey =~ s/^[^\.]*//;
+        $tagkey =~ s/^\.//;
+      }
+    }
+  }
+}
+
+sub readChemSys {
+  my $symbols = 0;
+  $chemsys_atoms = 0;
+  $_ = <CHEMSYS>;
+  while (<CHEMSYS>) {
+    if (/^num_atoms:/) {
+      (undef, $chemsys_atoms) = split;
+    } elsif (/^title:/) {
+      (undef, $chemsys_name) = split;
+    } elsif (/^atom_info:/) {
+      $symbols = /symbol/;
+    } elsif (/^atom_list:/) {
+      for (my $index = 0; $index < $chemsys_atoms; $index++) {
+        $_ = <CHEMSYS>;
+        ($tags{$index}, $coords{$index,0}, $coords{$index,1}, $coords{$index,2}) = split;
+        if (!$symbols) {
+          $tags{$index} = $number_to_symbol{$tags{$index}};
+        }
+      }
+    }
+  }
+}
+
+sub usage {
+  print "Usage: ai.vina -p -f -n <basename> -t <template>\n";
+  print "Options:    -h        this help\n";
+  print "            -v        version\n";
+  exit;
+}
+
+sub handle_options {
+  &usage && exit if ($opt_h || $opt_help);
+  my $revision = '$Revision: 1 $';
+  $revision =~ s/\$//g;
+  print "$revision\n" if ($opt_v);
+  exit if ($opt_v);
+  $AbiFILE = "$opt_n.param" if ($opt_p);
+  $FragFILE = "$opt_n.frag" if ($opt_f);
+  $BasisFILE = "$opt_n.basis" if ($opt_b);
+  $CnstrntFILE = "$opt_n.con" if ($opt_c);
+  $TplFILE = $opt_t;
+}
+

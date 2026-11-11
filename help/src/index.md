@@ -61,6 +61,8 @@ describe what you did and what happened.
    [CREST: conformer search and related run types](crest.md): the low-energy
    conformers, protonation sites and tautomers of a molecule, a non-covalent
    complex, and a solvation shell, shown in the Viewer.
+   [Vina: docking a ligand into a receptor](vina.md): AutoDock Vina poses
+   and scores for a ligand in a receptor, shown in the Poses panel.
    [ML Potential: a machine-learned potential (MACE)](mlp.md): screening
    energies and relaxations of periodic cells.
    [Your first GROMACS calculation](gromacs-first-calculation.md): a small

@@ -52,6 +52,7 @@ const vector<WorkflowSteps::Code>& WorkflowSteps::codes()
   static const vector<Code> list = {
     {"xtb",     "xtb_es",        0x7a, 0x4f, 0xa3},
     {"CREST",   "crest_es",      0x5a, 0x3f, 0x8f},
+    {"Vina",    "vina_es",       0x0f, 0x7c, 0x7c},
     {"ORCA",    "orca_es",       0x1f, 0x6f, 0xb2},
     {"ECCE-QM", "ecceqm_es",     0x2b, 0x8a, 0x3e},
     {"G16",     "gaussian16_es", 0xb3, 0x5c, 0x00},
@@ -421,7 +422,7 @@ string WorkflowSteps::stepTag(Resource *step)
   if (rt == "Conformer Search" || rt == "Conformer search (simple)")
     return "Conformer search";
   if (rt == "Molecular Dynamics") return "MD";
-  if (rt == "Docking (aISS)") return "Docking";
+  if (rt == "Docking (aISS)" || rt == "Docking (Vina)") return "Docking";
   return rt;
 }
 
