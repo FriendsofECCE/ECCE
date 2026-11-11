@@ -94,6 +94,7 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
 
 | 9.x | 8.x (bug fixes) |
 |---|---|
+| **v9.4.14** — Windows: the Smart App Control warning is now shown (the check never ran in 9.4.13) (#973); clipping plane in the Builder/Viewer (#879); Replicate shows the boundary atoms of the whole block (#974) |  |
 | **v9.4.13** — Windows: the message broker waits up to 60 s at start and retries cleanly, so ECCE starts on computers where virus scanning is slow (#958); an input line of 254 or more characters no longer cuts the input file at launch (#957); Windows says in words when Smart App Control blocks ECCE (#933) |  |
 | **v9.4.12** — Windows starts for user names with å/ä/ö and other letters, and a failed start is always reported (#922); folders with spaces or å/ä/ö run jobs (#922); macOS: Intel app from 10.15, separate dmg for 10.13 (#923); 9.4.x announces only 9.4 updates |  |
 | **v9.4.11** — bond dipoles in the Dipole Moment panel (#849); H₂ examples with orbitals (#858); NaCl and CsCl in Packing in solids (#916); ma-def2-SVP in the basis library (#898); dielectric constant without a unit (#848); surfaces cover every atom (#892) |  |
