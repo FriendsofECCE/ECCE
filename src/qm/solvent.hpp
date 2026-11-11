@@ -48,6 +48,13 @@ class Cpcm {
   // their atom; the Gaussian exponents are fixed.
   void add_gradient(const Molecule& mol, const Vec& q, std::vector<double>& g) const;
   int atom_of(int k) const { return atom_[k]; }
+  // A^-1 Y column by column (charges(V) = solve(-f V)).
+  Mat solve(const Mat& Y) const;
+  // Analytic Hessian pieces with the electrons held fixed: adds
+  // q.d2V_nuc/dxdy + q.(d2A/dxdy).q/(2f) to H, and returns U (points x 3N),
+  // U(:,x) = f dV_nuc/dx + (dA/dx) q.  Points move with their atom.
+  void add_hessian(const Molecule& mol, const Vec& q, Mat& H) const;
+  Mat first_derivatives(const Molecule& mol, const Vec& q) const;
 
  private:
   double f_;
@@ -72,6 +79,12 @@ class CpcmField {
   // Adds q.dV_el/dx (basis-centre and point derivatives of the electronic
   // potential) to g.
   void add_electronic_gradient(const Mat& Dt, const Vec& q, std::vector<double>& g);
+  // Batched: electronic potential -<D|1/|r-r_k||> of each density (points x m),
+  // and -sum_k Q(k,j) <mu|1/|r-r_k||nu> for each column j of Q.
+  Mat electronic_potential(const std::vector<Mat>& D);
+  std::vector<Mat> fock_many(const Mat& Q);
+  // Reaction-field Fock response to first-order total densities D1.
+  std::vector<Mat> response(const std::vector<Mat>& D1) { return fock_many(cav_.solve(-cav_.factor() * electronic_potential(D1))); }
 
  private:
   Basis& basis_;

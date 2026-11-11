@@ -274,6 +274,132 @@ int main(int argc, char** argv) {
     }
   }
 
+  // Analytic RKS Hessian (LDA, GGA, global hybrid) against finite differences
+  // of the gradient.  The analytic one holds the grid fixed while the
+  // displaced points move it, so the agreement depends on the grid: 99/590
+  // gives ~3e-6, 50/194 ~3e-3.
+  {
+    Molecule m;
+    m.atoms = {{8, {0, 0, 0.2216}}, {1, {0, 1.4309, -0.8867}}, {1, {0, -1.37, -0.9}}};
+    for (const char* fn : {"svwn", "pbe", "b3lyp"}) {
+      ScfOptions so;
+      so.method = fn;
+      so.conv_grad = 1e-9;
+      so.conv_energy = 1e-12;
+      Basis b0(m, lib, "6-31G*", 1);
+      const ScfResult ref = run_scf(b0, m, so);
+      check(analytic_hessian_available(so, ref), std::string("analytic Hessian available for ") + fn);
+      auto point = [&](const Molecule& mm) {
+        Basis b(mm, lib, "6-31G*", 1);
+        ScfResult r = run_scf(b, mm, so, &ref);
+        PointEval pe;
+        pe.grad = scf_gradient(b, mm, so, r);
+        for (int k = 0; k < 3; ++k) pe.dipole[k] = r.dipole[k];
+        return pe;
+      };
+      const Derivatives num = finite_difference_derivatives(m, 0.002, point);
+      const Derivatives ana = rhf_hessian(b0, m, so, ref);
+      const std::string tag = std::string("H2O/6-31G* ") + fn;
+      check((ana.hessian - num.hessian).cwiseAbs().maxCoeff() < 2e-5, "analytic RKS Hessian matches finite difference " + tag,
+            (ana.hessian - num.hessian).cwiseAbs().maxCoeff());
+      check((ana.dmu - num.dmu).cwiseAbs().maxCoeff() < 1e-5, "analytic RKS dipole derivatives match finite difference " + tag,
+            (ana.dmu - num.dmu).cwiseAbs().maxCoeff());
+    }
+    // what stays on finite differences
+    ScfOptions so;
+    so.method = "pbe";
+    ScfResult r;
+    r.nalpha = r.nbeta = 5;
+    check(analytic_hessian_available(so, r), "RKS PBE takes the analytic Hessian");
+    so.reference = r.reference = Reference::Unrestricted;
+    check(analytic_hessian_available(so, r), "UKS PBE takes the analytic Hessian");
+    so.reference = r.reference = Reference::RestrictedOpen;
+    check(!analytic_hessian_available(so, r), "ROKS keeps finite differences");
+    so.reference = r.reference = Reference::Restricted;
+    so.solvent_eps = 78.4;
+    so.dispersion = "d3bj";
+    check(analytic_hessian_available(so, r), "CPCM and D3 take the analytic Hessian");
+    so.field[2] = 0.001;
+    check(!analytic_hessian_available(so, r), "a field keeps finite differences");
+  }
+
+  // Analytic Hessian in a CPCM dielectric against finite differences of the
+  // analytic CPCM gradient: the cavity terms (points riding with their atom,
+  // switching functions), the reaction field in CPHF/CPKS and, with B3LYP,
+  // the D3(BJ) term.  Closed shell H2O and the NH2 radical, off equilibrium.
+  {
+    struct Case { const char* fn; bool open, d3; };
+    for (const Case& c : {Case{"hf", false, false}, Case{"b3lyp", false, true}, Case{"hf", true, false}}) {
+      Molecule m;
+      if (c.open) {
+        m.atoms = {{7, {0, 0, 0.25}}, {1, {0, 1.55, -0.95}}, {1, {0, -1.5, -1.0}}};
+        m.multiplicity = 2;
+      } else {
+        m.atoms = {{8, {0, 0, 0.2216}}, {1, {0, 1.4309, -0.8867}}, {1, {0, -1.37, -0.9}}};
+      }
+      ScfOptions so;
+      so.method = c.fn;
+      if (c.open) so.reference = Reference::Unrestricted;
+      if (c.d3) so.dispersion = "d3bj";
+      so.solvent_eps = 78.3553;
+      so.conv_grad = 1e-9;
+      so.conv_energy = 1e-12;
+      Basis b0(m, lib, "6-31G*", 1);
+      const ScfResult ref = run_scf(b0, m, so);
+      check(analytic_hessian_available(so, ref), std::string("analytic Hessian available in water for ") + c.fn);
+      auto point = [&](const Molecule& mm) {
+        Basis b(mm, lib, "6-31G*", 1);
+        ScfResult r = run_scf(b, mm, so, &ref);
+        PointEval pe;
+        pe.grad = scf_gradient(b, mm, so, r);
+        for (int k = 0; k < 3; ++k) pe.dipole[k] = r.dipole[k];
+        return pe;
+      };
+      const Derivatives num = finite_difference_derivatives(m, 0.002, point);
+      const Derivatives ana = rhf_hessian(b0, m, so, ref);
+      const std::string tag = std::string(c.open ? "NH2" : "H2O") + "/6-31G* water " + (c.open ? "u" : "") + c.fn + (c.d3 ? "-D3" : "");
+      check((ana.hessian - num.hessian).cwiseAbs().maxCoeff() < 2e-5, "analytic CPCM Hessian matches finite difference " + tag,
+            (ana.hessian - num.hessian).cwiseAbs().maxCoeff());
+      check((ana.dmu - num.dmu).cwiseAbs().maxCoeff() < 1e-5, "analytic CPCM dipole derivatives match finite difference " + tag,
+            (ana.dmu - num.dmu).cwiseAbs().maxCoeff());
+    }
+  }
+
+  // Analytic UHF/UKS Hessian of a radical (NH2, off equilibrium) against finite
+  // differences of the gradient: alpha and beta CPHF/CPKS blocks and the
+  // spin-polarised XC kernel.  Not OH: its GGA grid response at 99/590 is
+  // ~9e-5 (1e-5 at 150/974), which would test the grid, not the code.
+  {
+    Molecule m;
+    m.atoms = {{7, {0, 0, 0.25}}, {1, {0, 1.55, -0.95}}, {1, {0, -1.5, -1.0}}};
+    m.multiplicity = 2;
+    for (const char* fn : {"hf", "pbe", "b3lyp"}) {
+      ScfOptions so;
+      so.method = fn;
+      so.reference = Reference::Unrestricted;
+      so.conv_grad = 1e-9;
+      so.conv_energy = 1e-12;
+      Basis b0(m, lib, "6-31G*", 1);
+      const ScfResult ref = run_scf(b0, m, so);
+      check(analytic_hessian_available(so, ref), std::string("analytic Hessian available for unrestricted ") + fn);
+      auto point = [&](const Molecule& mm) {
+        Basis b(mm, lib, "6-31G*", 1);
+        ScfResult r = run_scf(b, mm, so, &ref);
+        PointEval pe;
+        pe.grad = scf_gradient(b, mm, so, r);
+        for (int k = 0; k < 3; ++k) pe.dipole[k] = r.dipole[k];
+        return pe;
+      };
+      const Derivatives num = finite_difference_derivatives(m, 0.002, point);
+      const Derivatives ana = rhf_hessian(b0, m, so, ref);
+      const std::string tag = std::string("NH2/6-31G* unrestricted ") + fn;
+      check((ana.hessian - num.hessian).cwiseAbs().maxCoeff() < 2e-5, "analytic open-shell Hessian matches finite difference " + tag,
+            (ana.hessian - num.hessian).cwiseAbs().maxCoeff());
+      check((ana.dmu - num.dmu).cwiseAbs().maxCoeff() < 1e-5, "analytic open-shell dipole derivatives match finite difference " + tag,
+            (ana.dmu - num.dmu).cwiseAbs().maxCoeff());
+    }
+  }
+
   // Localised orbitals: the same occupied space (density, orbital-energy trace)
   // and the valence-bond picture of ethene and formamide.
   {

@@ -57,7 +57,8 @@
 //                                direction (20), Hessian updated (0) or
 //                                recomputed every n points
 //   ts_hessian_every <n>         ts: recompute the Hessian every n steps
-//                                (default 0: only at the start)
+//                                (default 1 where the Hessian is analytic,
+//                                else 0: only at the start)
 //   hessian_step <bohr>          frequency: finite-difference step (0.005)
 //   temperature <K>, pressure <atm>   thermochemistry (298.15, 1)
 //   symmetry_number <n>          rotational symmetry number (default: from the geometry)

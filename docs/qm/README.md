@@ -212,13 +212,12 @@ and `opt_conv normal|tight` (default normal) tune the latter.
 
 * `runtype ts`: a first-order saddle point from the structure in the input,
   then the frequency run, in the form `optfreq` uses (analytic Hessian for
-  closed-shell RHF, finite differences otherwise; `numeric_hessian true`
+  RHF/UHF and RKS/UKS, finite differences otherwise; `numeric_hessian true`
   forces the latter). No constraints, no dummy atoms.
 * The step is partitioned RFO: uphill along one Hessian mode, downhill along
   all others, capped by the trust radius. The Hessian is computed at the
-  start; `ts_hessian_every n` recomputes it every n steps (default 1 for
-  closed-shell RHF, where the analytic Hessian is cheap, otherwise 0: Bofill
-  updates only). The model is also recomputed whenever the updated Hessian has
+  start; `ts_hessian_every n` recomputes it every n steps (default 1
+  wherever the analytic Hessian applies, otherwise 0: Bofill updates only). The model is also recomputed whenever the updated Hessian has
   lost its last negative eigenvalue. The followed mode at the first step is
   the lowest, or the `ts_mode n` (n-th lowest, from 1), or the one that
   overlaps most with `ts_follow bond 1 2` (also `angle`, `torsion`; for
@@ -244,7 +243,7 @@ and `opt_conv normal|tight` (default normal) tune the latter.
 `runtype frequency` computes the harmonic vibrations at the given geometry,
 `runtype optfreq` optimises first (and does nothing more if the optimisation
 did not converge). Further keywords: `hessian_step` (bohr, default 0.005),
-`numeric_hessian` (`true` forces finite differences; closed-shell RHF is analytic by default, also `ECCE_QM_NUMERIC_HESSIAN` in the environment), `temperature` (K, 298.15), `pressure` (atm, 1), `symmetry_number` (default: worked out).
+`numeric_hessian` (`true` forces finite differences; RHF/UHF and RKS/UKS with LDA, GGA or global-hybrid functionals are analytic by default, also `ECCE_QM_NUMERIC_HESSIAN` in the environment), `temperature` (K, 298.15), `pressure` (atm, 1), `symmetry_number` (default: worked out).
 
 * Hessian (`vibration.cpp`): central differences of the analytic gradient over
   every Cartesian coordinate, step 0.005 bohr, so 6N gradient evaluations

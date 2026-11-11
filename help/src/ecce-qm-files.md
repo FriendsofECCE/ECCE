@@ -49,7 +49,7 @@ names the line.
 | `raman` | `true` or `false`: with `frequency` or `optfreq`, also compute Raman activities and depolarization ratios (see below) | `false` |
 | `field_step` | number, in atomic units: electric field of the finite-field polarizability | 0.001 |
 | `hessian_step` | number, in bohr: displacement for the finite-difference frequencies | 0.005 |
-| `numeric_hessian` | `true` or `false`: closed-shell Hartree-Fock frequencies use the analytic Hessian; `true` forces the finite-difference one (used anyway for DFT, open-shell and Raman) | `false` |
+| `numeric_hessian` | `true` or `false`: Hartree-Fock and LDA, GGA and global-hybrid DFT frequencies (closed shell or unrestricted) use the analytic Hessian; `true` forces the finite-difference one (used anyway for restricted open shell, other functionals, solvent, D3 and Raman) | `false` |
 | `temperature` | number, in K: for the thermochemistry | 298.15 |
 | `pressure` | number, in atm: for the thermochemistry | 1 |
 | `symmetry_number` | whole number: rotational symmetry number for the thermochemistry | found from the geometry |
