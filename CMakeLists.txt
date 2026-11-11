@@ -637,6 +637,12 @@ target_include_directories(lineprofile PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(lineprofile PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
   ${XercesC_LIBRARIES})
+# PDBQT preparation for docking (#455).  wx-free and self-contained so the
+# command, the job script and the editor cannot drift apart.
+ecce_library(eccedock src/dock)
+add_executable(ecce-pdbqt src/apps/pdbqt/ecce-pdbqt.C)
+target_link_libraries(ecce-pdbqt PRIVATE eccedock)
+
 # Recompute H, S, G from a calculation's stored frequencies with a chosen
 # low-frequency treatment (#692); the thermochemistry lives in tdat/thermo.
 add_executable(ecce-thermo
@@ -1232,7 +1238,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -5148,6 +5154,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-fetch=bin/ecce-fetch
   ecce-localdata=bin/ecce-localdata
   ecce-thermo=bin/ecce-thermo
+  ecce-pdbqt=bin/ecce-pdbqt
   ecce-force-compare=bin/ecce-force-compare
   ecce-check-props=bin/ecce-check-props
   ecce-contacts=bin/ecce-contacts
@@ -5196,6 +5203,18 @@ target_link_libraries(fraggraft_test PRIVATE eccetdat ecceutil)
 add_test(NAME fraggraft COMMAND fraggraft_test)
 set_tests_properties(fraggraft PROPERTIES SKIP_RETURN_CODE 77)
 # Own SMILES reader and 3-D builder (#867); Open Babel is only an oracle there.
+# PDBQT preparation (#455).  Meeko is a test-only oracle and 1IEP is not in
+# the tree, so both tests skip when what they need is absent.
+add_test(NAME pdbqt_meeko COMMAND ${PYTHON3_EXECUTABLE}
+  ${CMAKE_SOURCE_DIR}/tests/dock/meeko_compare.py $<TARGET_FILE:ecce-pdbqt>
+  ${CMAKE_BINARY_DIR}/pdbqt_meeko)
+set_tests_properties(pdbqt_meeko PROPERTIES SKIP_RETURN_CODE 77)
+add_test(NAME pdbqt_redock_1iep COMMAND ${PYTHON3_EXECUTABLE}
+  ${CMAKE_SOURCE_DIR}/tests/dock/redock_1iep.py $<TARGET_FILE:ecce-pdbqt>
+  ${CMAKE_SOURCE_DIR}/tests/dock/fixtures/1iep.pdb
+  ${CMAKE_BINARY_DIR}/pdbqt_redock)
+set_tests_properties(pdbqt_redock_1iep PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
+
 add_executable(smiles_test tests/tdat/smiles_test.C)
 target_link_libraries(smiles_test PRIVATE eccetdat ecceutil)
 add_test(NAME smiles COMMAND smiles_test ${CMAKE_SOURCE_DIR}/tests/tdat/smiles_corpus.txt)
