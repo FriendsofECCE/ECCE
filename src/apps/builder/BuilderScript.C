@@ -1318,6 +1318,45 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: pullcsv points=%d %s\n", pp->points(),
                   pp->exportCsv(wxString::FromUTF8(w[1].c_str())) ? "ok" : "failed");
         }
+      } else if (w[0].compare(0, 8, "umbrella") == 0) {
+        //  umbrellafind <spacing> [from to]; umbrellacreate <eq> <prod>;
+        //  umbrellawham [jacobian]; umbrellaexport <path>; umbrellashot
+        //  <png> [w h]; umbrellastate (Pull Force panel > Umbrella sampling).
+        PullPanel *pp = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((pp = dynamic_cast<PullPanel*>(p)) != 0) break;
+        if (!pp) {
+          outcome = "no Pull Force panel";
+        } else if (w[0] == "umbrellafind" && w.size() >= 2) {
+          fprintf(stderr, "BUILDER: umbrellafind %s %s\n",
+                  pp->umbrellaFind(atof(w[1].c_str()),
+                                   w.size() > 3 ? wxString(w[2]) : wxString(),
+                                   w.size() > 3 ? wxString(w[3]) : wxString())
+                      ? "ok" : "failed", pp->umbrellaState().utf8_str().data());
+        } else if (w[0] == "umbrellacreate" && w.size() >= 3) {
+          fprintf(stderr, "BUILDER: umbrellacreate %s\n",
+                  pp->umbrellaCreate(atoi(w[1].c_str()), atoi(w[2].c_str()))
+                      ? "ok" : "failed");
+        } else if (w[0] == "umbrellawham") {
+          fprintf(stderr, "BUILDER: umbrellawham %s %s\n",
+                  pp->umbrellaWham(w.size() > 1 && w[1] == "jacobian")
+                      ? "ok" : "failed", pp->umbrellaState().utf8_str().data());
+        } else if (w[0] == "umbrellaexport" && w.size() >= 2) {
+          fprintf(stderr, "BUILDER: umbrellaexport %s\n",
+                  pp->umbrellaExport(wxString::FromUTF8(w[1].c_str())) ? "ok" : "failed");
+        } else if (w[0] == "umbrellashot" && w.size() >= 2) {
+          fprintf(stderr, "BUILDER: umbrellashot %s\n",
+                  pp->umbrellaShot(wxString::FromUTF8(w[1].c_str()),
+                                   w.size() > 3 ? atoi(w[2].c_str()) : 900,
+                                   w.size() > 3 ? atoi(w[3].c_str()) : 600)
+                      ? "ok" : "failed");
+        } else if (w[0] == "umbrellastate") {
+          fprintf(stderr, "BUILDER: umbrellastate %s\n", pp->umbrellaState().utf8_str().data());
+        } else {
+          outcome = "unknown umbrella command";
+        }
       } else if (w[0] == "gmxa" && w.size() >= 2) {
         //  The MD Analysis panel (#877): gmxa analysis <rdf|energy|...>;
         //  gmxa set <field> <value...>; gmxa run (the script waits for it,

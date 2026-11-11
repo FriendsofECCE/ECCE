@@ -4,8 +4,13 @@
 #include <string>
 #include "PropertyPanel.H"
 #include "PullAnalysis.H"
+#include "util/MiniJson.H"
 
 class wxStaticText;
+class wxNotebook;
+class wxTextCtrl;
+class wxCheckBox;
+class wxListCtrl;
 class XYPlotCanvas;
 
 /**
@@ -38,14 +43,35 @@ class PullPanel : public PropertyPanel
       /** The run as CSV; false if the file cannot be written. */
       bool exportCsv(const wxString& path);
 
+      //  Umbrella sampling (#762); each is a button, and a script hook.
+      bool umbrellaFind(double spacing, const wxString& from, const wxString& to);
+      bool umbrellaCreate(int eqSteps, int prodSteps);
+      bool umbrellaWham(bool jacobian);
+      bool umbrellaExport(const wxString& path);
+      /** The PMF plot as a PNG on a white background. */
+      bool umbrellaShot(const wxString& path, int width = 900, int height = 600);
+      wxString umbrellaState() const;
+
    protected:
       void OnExport(wxCommandEvent& event);
+      void OnFind(wxCommandEvent& event);
+      void OnCreate(wxCommandEvent& event);
+      void OnWham(wxCommandEvent& event);
+      void OnUmbrellaExport(wxCommandEvent& event);
 
    private:
       PullSeries p_series;
       XYPlotCanvas *p_force;
       XYPlotCanvas *p_dist;
       wxStaticText *p_text;
+      wxNotebook *p_book;
+      wxTextCtrl *p_spacing, *p_from, *p_to, *p_eq, *p_prod, *p_info;
+      wxCheckBox *p_jacobian;
+      wxListCtrl *p_windows;
+      XYPlotCanvas *p_pmf, *p_hist;
+      MiniJson p_wham;
+      bool p_haveWham;
+      void umbrellaSay(const wxString& text);
 };
 
 #endif
