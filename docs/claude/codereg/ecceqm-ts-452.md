@@ -8,7 +8,7 @@ issues: [452, 419]
 `runtype ts` in the engine input is `optimize_ts` (partitioned RFO from a
 computed Hessian, Bofill updates, `ts_hessian_every n` to recompute) followed
 by the ordinary frequency run; stage 1 of #452, IRC is not part of it. The
-Hessian is the one frequency runs use (analytic for closed-shell RHF/RKS,
+Hessian is the one frequency runs use (analytic for RHF/UHF and RKS/UKS,
 finite differences otherwise), now behind the `derivatives` lambda in
 `main.cpp`.
 
@@ -33,8 +33,8 @@ finite differences otherwise), now behind the `derivatives` lambda in
   geometry is a bridged guess in `ts_cases.py`.
 * #509: from a relaxed-scan point (Cl- + CH3F, C-Cl 2.0 A) the updated Hessian
   lost its negative eigenvalue after two steps and the walk drifted along a
-  flat ridge. Fixes: exact Hessian at every step by default for closed-shell
-  RHF (`ts_hessian_every` -1 = auto, decided in `main.cpp`), recompute when no
+  flat ridge. Fixes: exact Hessian at every step by default wherever
+  `analytic_hessian_available` holds (`ts_hessian_every` -1 = auto, decided in `main.cpp`), recompute when no
   negative curvature is left, overlap-follow falls back to the lowest mode
   below 0.5 overlap, wrong-sign steps are retried shorter. `ts_follow` picks
   the first mode by overlap with a scanned coordinate but is NOT the default:

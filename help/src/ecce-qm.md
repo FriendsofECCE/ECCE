@@ -69,15 +69,19 @@ settings for a hard start, such as a point from a relaxed scan:
   that is not the reaction mode, so leave this empty unless the default
   search fails.
 * **New Hessian every n steps**: how often the second derivatives are
-  computed again. 0 is automatic: every step for a closed-shell Hartree-Fock
-  calculation, where it is cheap, and otherwise at the start and whenever the
-  updated Hessian no longer has a negative curvature. A computed Hessian for
-  DFT costs two gradient calculations per coordinate.
+  computed again. 0 is automatic: every step where the Hessian is analytic
+  and cheap (Hartree-Fock and the LDA, GGA and global-hybrid functionals,
+  restricted closed shell or unrestricted, without solvent or D3), and
+  otherwise at the start and whenever the updated Hessian no longer has a
+  negative curvature. A finite-difference Hessian costs two gradient
+  calculations per coordinate.
 
 The optimiser stops under the same thresholds as ORCA's default optimisation.
-The vibration calculation takes the second derivatives from finite differences
-of the analytic forces, so it is only meaningful at a stationary point of the
-same method and basis set: run **GeoVib**, or optimise first. Thermochemistry
+The vibration calculation takes the second derivatives analytically for
+Hartree-Fock and the LDA, GGA and global-hybrid functionals (restricted closed
+shell or unrestricted, without solvent or D3) and otherwise from finite
+differences of the analytic forces. Either way it is only meaningful at a
+stationary point of the same method and basis set: run **GeoVib**, or optimise first. Thermochemistry
 is for an ideal gas at 298.15 K and 1 atm in the rigid-rotor, harmonic
 oscillator approximation; the symmetry number is found from the geometry.
 
