@@ -231,3 +231,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 
 - [QE final-density guess: two .save members in a flat archive (#407)](qe-final-density-407.md)
 - [Gaussian 16 final orbitals without the checkpoint (#690)](g16-final-orbitals-from-results-h5-690.md)
+- [GROMACS umbrella sampling: windows are rate-0 copies made with createChild + addMemberAsTarget; WHAM reads tpr + pullf (#762)](gromacs-umbrella-windows-are-rate-zero-copies-and-wham-needs-pullf.md)

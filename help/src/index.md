@@ -139,14 +139,17 @@ describe what you did and what happened.
 24b. [MD Analysis](md-analysis.md): GROMACS's g(r) and coordination numbers,
    energy terms, RMSD, radius of gyration, density profiles and hydrogen
    bonds on a run's trajectory and energy file.
+24a. [Thermochemistry](thermochemistry.md): H, S and G recomputed from the
+   stored frequencies with a chosen low-frequency treatment, temperature and
+   standard state.
+
+24c. [Umbrella sampling with GROMACS](umbrella-sampling.md): a pull run,
+   windows cut from its trajectory, and the PMF from `gmx wham`, with the
+   histograms and an overlap check.
 
 25. [Energy Calculator](energy-calculator.md): the difference between the final
    energies of two calculations in Hartree, kJ/mol, kcal/mol and eV, and the
    notes on differing code, method or basis set.
-
-24a. [Thermochemistry](thermochemistry.md): H, S and G recomputed from the
-   stored frequencies with a chosen low-frequency treatment, temperature and
-   standard state.
 
 26. [Reconnect Selected](reconnect-selected.md): reconnecting several jobs
    to their calculations after a restart or a lost connection, in one step.

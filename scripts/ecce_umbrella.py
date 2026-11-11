@@ -243,8 +243,8 @@ def do_wham(a, gmx):
         args = ["wham", "-it", "tpr.dat", "-if", "pullf.dat", "-o", "profile.xvg",
                 "-hist", "histo.xvg", "-unit", "kJ", "-bins", str(a.bins),
                 "-temp", "%g" % a.temp]
-        if a.begin:
-            args += ["-b", "%g" % a.begin]
+        # gmx wham skips the first 50 ps unless told otherwise
+        args += ["-b", "%g" % a.begin]
         g = GA.Gmx(gmx, work, a.threads)
         g.run(args)
         prof = GA.read_xvg(os.path.join(work, "profile.xvg"))[0]
