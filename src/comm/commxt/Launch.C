@@ -214,16 +214,17 @@ static vector<EcceURL> gromacsStartFile(TaskJob *t, JCode::CodeFileType type,
 }
 
 // Copies a stored file to the run directory.  GROMACS files go across
-// whole: the legacy loop below breaks lines at 255 characters and always
-// ends the file with a newline, neither of which a topology survives.
+// whole, since the line copy always ends the file with a newline.  Lines have
+// no length limit: a fixed-buffer getline stops at the first long line and
+// postProcessInput() then stores the cut copy over the deck.
 static void copyStoredFile(istream *is, ofstream &ofs, bool whole)
 {
   if (whole) {
     if (is->peek() != EOF) ofs << is->rdbuf();
   } else {
-    char buf[256];
-    while (is->getline(buf, 255))
-      ofs << buf << endl;
+    string line;
+    while (std::getline(*is, line))
+      ofs << line << endl;
   }
 }
 
@@ -860,9 +861,7 @@ bool Launch::validateCalculation(void)
         ofstream ofs(inputFilePath.c_str());
 
         if (ofs) {
-          char buf[256];
-          while (is->getline(buf, 255))
-            ofs << buf << endl;
+          copyStoredFile(is, ofs, false);
 
           delete is;
           is = 0;
@@ -990,9 +989,7 @@ bool Launch::validateCalculation(void)
               inputFilePath = p_cache->directory + "/" + p_cache->mdSystemName + ".pdb";
               ofs.open(inputFilePath.c_str());
               if (ofs) {
-                while (is->getline(buf, 255)) {
-                  ofs << buf << endl;
-                }
+                copyStoredFile(is, ofs, false);
                 ofs.close();
               } else {
                 ret = false;
@@ -1804,9 +1801,7 @@ bool Launch::moveFiles(void)
             ofstream ofs(fu30FilePath.c_str());
 
             if (ofs) {
-              char buf[256];
-              while (is->getline(buf, 255))
-                ofs << buf << endl;
+              copyStoredFile(is, ofs, false);
 
               delete is;
               ofs.close();
