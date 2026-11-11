@@ -18,6 +18,9 @@ $pins = @{
   # pythonhosted.org file path of wxpython-4.3.1-cp313-cp313-win_amd64.whl
   wxpython   = @{ url = "";
                   sha256 = "0ae85e266dbb99fe46bc26920aa87b22fa3f83dc51b321bcd9afa51fa68340e7" }
+  # numpy for the QSAR PCA/PLS (ecce-qsar)
+  numpy      = @{ url = "https://files.pythonhosted.org/packages/cp313/n/numpy/numpy-2.2.6-cp313-cp313-win_amd64.whl";
+                  sha256 = "b0544343a702fa80c95ad5d3d608ea3599dd54d4632df855e4c8d24eb6ecfa1c" }
 }
 
 function Fetch($name, $url, $sha, $file) {
@@ -76,6 +79,8 @@ $site = "$py\Lib\site-packages"
 New-Item -ItemType Directory -Force $site | Out-Null
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::ExtractToDirectory($whl, $site)
+$npwhl = Fetch "numpy" $pins.numpy.url $pins.numpy.sha256 "numpy-2.2.6-cp313-cp313-win_amd64.whl"
+[System.IO.Compression.ZipFile]::ExtractToDirectory($npwhl, $site)
 Get-ChildItem $site -Recurse -Include *.pyi -File | Remove-Item -Force
 # site-packages on sys.path, and `import site` on (the embeddable default is off).
 $pth = Get-ChildItem $py -Filter "python*._pth" | Select-Object -First 1
@@ -85,4 +90,6 @@ $pth = Get-ChildItem $py -Filter "python*._pth" | Select-Object -First 1
 Set-Content -Encoding ascii $pth.FullName @("python313.zip", ".", "Lib\site-packages", "..\scripts\codereg", "import site")
 Copy-Item "$py\python.exe" "$py\python3.exe"
 Copy-Item "$py\pythonw.exe" "$py\python3w.exe"
+& "$py\python.exe" -c "import numpy; print('numpy', numpy.__version__)"
+if ($LASTEXITCODE -ne 0) { throw "bundled python cannot import numpy" }
 "python bundled: $(Size $py)"
