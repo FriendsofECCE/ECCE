@@ -82,7 +82,11 @@ def numbers(calc, key):
     return [float(v) for v in re.findall(r"[-+]?\d+\.\d+(?:[eE][-+]?\d+)?", body)]
 
 
+LAST_URL = None
+
+
 def runJob(s, name, text, work, rundir, atoms=None, want="completed"):
+    global LAST_URL
     path = os.path.join(work, name + ".mlpin")
     open(path, "w").write(text)
     #  The code and the structure, as the Calculation Editor stores them:
@@ -100,6 +104,7 @@ def runJob(s, name, text, work, rundir, atoms=None, want="completed"):
     if not check(url is not None, "%s created" % name):
         say(out)
         return None
+    LAST_URL = url
     rc, out = s.launch(url)
     say("\n".join("  | " + l for l in out.strip().splitlines()[-6:]))
     if not check(rc == 0, "%s: Launch ran to the end" % name):
@@ -160,6 +165,12 @@ def main():
             out = storedOutput(calc)
             check("ecce-mlp terminated normally" in out, "ecce-mlp ended normally")
             check("Optimisation converged" in out, "the optimisation converged")
+            # What the Organizer's Progress box shows: the job store's last
+            # relayed snapshot, stored with the calculation (#970).
+            rc, stored = s.driver("progress", LAST_URL)
+            check(rc == 0 and re.search(r"^opt step=\d+ energy=-?\d.* converged=yes",
+                                        stored, re.M) is not None,
+                  "the stored progress has the converged optimisation: %r" % stored[-300:])
             props = s.props("file://" + calc)
             say("  properties: " + " ".join(props))
             for key in ("GEOMTRACE", "TEVEC", "LATTICEVEC", "TE", "EGRADVEC",
@@ -192,6 +203,10 @@ def main():
             out = storedOutput(calc)
             check("Engine:       ECCE" in out and "MD finished" in out,
                   "the driver ran the dynamics")
+            rc, stored = s.driver("progress", LAST_URL)
+            check(rc == 0 and re.search(r"^md point=40/40 time=\S+ temp=\S+ .*done=yes",
+                                        stored, re.M) is not None,
+                  "the stored progress has the finished MD: %r" % stored[-300:])
             props = s.props("file://" + calc)
             for key in ("GEOMTRACE", "TEVEC", "TIMEVEC", "LATTICEVEC"):
                 check(key in props, "%s present in Props/" % key)

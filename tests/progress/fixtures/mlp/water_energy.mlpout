@@ -1,0 +1,48 @@
+/home/user/opt/mace-venv/lib/python3.13/site-packages/e3nn/o3/_wigner.py:10: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  _Jd, _W3j_flat, _W3j_indices = torch.load(os.path.join(os.path.dirname(__file__), 'constants.pt'))
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/mace/calculators/mace.py:274: UserWarning: Environment variable TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD detected, since the`weights_only` argument was not explicitly passed to `torch.load`, forcing weights_only=False.
+  torch.load(f=model_path, map_location=device)
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+/home/user/opt/mace-venv/lib/python3.13/site-packages/torch/jit/_serialization.py:176: FutureWarning: `torch.jit.load` is deprecated. Please switch to `torch.export`.
+  warnings.warn(
+ecce-mlp 1.0
+Model:        MACE medium-mpa-0
+Version:      mace-torch 0.3.17
+Licence:      MIT
+Precision:    float64
+Dispersion:   off
+Engine:       ECCE (ecce-mlp-driver)
+Run type:     Energy
+Atoms:        3   periodic: no
+Note:         energies are for screening, not for reporting.
+
+Energy:       -13.78142722 eV
+Fmax:         0.69452 eV/A
+ECCE-MLP-FRAME 1 3
+energy: -13.7814272203
+O      0.0000000000     0.0000000000     0.1200000000
+H      0.0000000000     0.8000000000    -0.4500000000
+H      0.0000000000    -0.7400000000    -0.5000000000
+ECCE-MLP-ENDFRAME
+
+ECCE-MLP-FINAL
+energy: -13.7814272203
+forces:
+O      0.0000000000     0.6889543618    -0.0877174678
+H      0.0000000000    -0.5342095734     0.3021767220
+H      0.0000000000    -0.1547447884    -0.2144592541
+ECCE-MLP-ENDFINAL
+
+Total energy: -13.78142722 eV (-0.50645811 Hartree)
+cuequivariance or cuequivariance_torch is not available. Cuequivariance acceleration will be disabled.
+Using medium MPA-0 model as default MACE-MP model, to use previous (before 3.10) default model please specify 'medium' as model argument
+Using Materials Project MACE for MACECalculator with /home/user/tmp/970/home/.cache/mace/macempa0mediummodel
+Using float64 for MACECalculator, which is slower but more accurate. Recommended for geometry optimization.
+ecce-mlp terminated normally
