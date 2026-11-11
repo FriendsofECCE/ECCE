@@ -173,6 +173,7 @@ public:
     /// Sets both switches (NPT also keeps the thermostat), the two sub-tabs'
     /// check boxes and the Ensemble radio buttons; the model is the one source.
     void setEnsemble(int e);
+    void setTemperature(double kelvin);   // as typed into the field
 
 private:
     void buildEnsembleRow();

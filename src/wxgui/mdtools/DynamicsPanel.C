@@ -639,6 +639,14 @@ void DynamicsPanel::OnCheckboxDynmcUsenvtClick( wxCommandEvent& event )
     event.Skip();
 }
 
+void DynamicsPanel::setTemperature(double kelvin)
+{
+    ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_DYNMC_NVTTMP));
+    text->setValueAsDouble(kelvin);
+    getDynamicsModel()->setNVTTemperature(text->getBaseValueAsDouble());
+    p_helper->setSaveState(true);
+}
+
 void DynamicsPanel::OnTextctrlDynmcNvttmpEnter( wxCommandEvent& event )
 {
     ewxTextCtrl *text = ((ewxTextCtrl*)FindWindow(ID_TEXTCTRL_DYNMC_NVTTMP));

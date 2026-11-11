@@ -14,7 +14,9 @@ correct ensemble"); Parrinello-Rahman and C-rescale otherwise pass.
 
 Two traps in the same area. A restrained topology needs
 `refcoord-scaling = com` once a barostat is on, so the editor writes it for
-"Restrain positions" with constant pressure. And a `-maxwarn 0` run fails on
+"Restrain positions" with constant pressure, and `md.gmxtask` also for a
+`-DPOSRES*` in the defines alone (the per-chain "Restrain chain" boxes, #762:
+an NPT with every 2BEG chain restrained stopped on this warning). And a `-maxwarn 0` run fails on
 an unrelated warning when the structure's atom names differ from the
 topology's ("N non-matching atom names"): the clay workflow this was
 checked against has 4284 of them between `preem.gro` and `opc3.itp`, and its

@@ -367,9 +367,14 @@ void MDDynamics::authMCB(JMSMessage& msg)
 }
 
 
-/** Test hook: "ensemble" tells nve, nvt or npt; "ensemble-set <name>" sets it. */
+/** Test hook: "ensemble" tells nve, nvt or npt; "ensemble-set <name>" sets it;
+    "temperature-set <K>" types the thermostat temperature. */
 string MDDynamics::runTestCommand(const string& line)
 {
+   if (line.compare(0, 16, "temperature-set ") == 0) {
+      p_dynamics->setTemperature(atof(line.substr(16).c_str()));
+      return "ok";
+   }
    if (line == "ensemble" || line.compare(0, 13, "ensemble-set ") == 0) {
       static const char *names[3] = { "nve", "nvt", "npt" };
       if (line != "ensemble") {

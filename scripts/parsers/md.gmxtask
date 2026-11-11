@@ -175,12 +175,14 @@ if (get("Interaction", "GmxPosres", 0) == 1) {
     $defs .= " " if ($defs ne "");
     $defs .= "-D$name" if ($defs !~ /(^| )-D\Q$name\E(=\S*)?( |$)/);
   }
-  # grompp objects to restraints with a barostat unless the reference
-  # coordinates scale with the centre of mass
-  $p{"ES.Runtype.MD.RefcoordScaling"} = "com"
-    if ($runtype{$task} eq "Dynamics" && get("Dynamics", "UseNPT", 0) == 1);
 }
 $p{"ES.Runtype.MD.Defines"} = $defs if ($defs ne "");
+# grompp objects to restraints with a barostat unless the reference
+# coordinates scale with the centre of mass; the per-chain boxes restrain
+# through the defines alone (-DPOSRES_A), without GmxPosres
+$p{"ES.Runtype.MD.RefcoordScaling"} = "com"
+  if ($defs =~ /(^| )-DPOSRES/ && $runtype{$task} eq "Dynamics"
+      && get("Dynamics", "UseNPT", 0) == 1);
 
 # groups by residue name: "name = RES RES" per line
 my @groups;
