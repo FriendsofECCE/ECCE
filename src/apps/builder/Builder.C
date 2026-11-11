@@ -1002,12 +1002,10 @@ void Builder::createMainPanel()
 
 void Builder::createRotators(wxWindow *parent)
 {
-  //  Where the scaled controls no longer fit the pane's width the row wraps
-  //  instead of drawing the corner buttons over each other.
-  if (ewxBitmap::dpiScale() > 1)
-    p_rotSizer = new wxWrapSizer(wxHORIZONTAL);
-  else
-    p_rotSizer = new wxBoxSizer(wxHORIZONTAL);
+  //  Where the row no longer fits the pane's width it wraps.  A box sizer
+  //  squeezed the Y and Z spin controls to 0 px when the docks on both
+  //  sides left the viewer narrow (classic layout, 1366x768, #839).
+  p_rotSizer = new wxWrapSizer(wxHORIZONTAL);
   p_mainSizer->Add(p_rotSizer, 0, wxEXPAND|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Rotation: X"), 0,
                   wxALIGN_CENTER|wxLEFT, 5);
