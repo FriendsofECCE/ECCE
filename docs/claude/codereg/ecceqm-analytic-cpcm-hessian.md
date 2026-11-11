@@ -32,5 +32,9 @@ CPCM gradient (ecceqm-cpcm-solvent.md), so it carries the same cavity model:
   (1e-4 bohr) of `d3bj_energy`'s analytic gradient, cheap because no SCF is
   involved. The analytic C6(CN) chain rule was not worth it.
 * Reference numbers (water, eps 78.3553, 6-31G*, 99/590, step 0.002 bohr,
-  FD of the analytic CPCM gradient): table on #394. `qm_dft_hessian_check
+  FD of the analytic CPCM gradient): H2O, NH3, CH2O, OH x HF/PBE/B3LYP max
+  |dH| 1.5e-6 to 9e-5, frequencies within 0.05 cm-1. Glycine HF in water
+  4.3e-6. Glycine B3LYP is 4.4e-4 (0.8 cm-1) in water and in vacuum alike:
+  the fixed-grid response (ecceqm-analytic-rks-hessian.md), 1.05e-4 and
+  0.15 cm-1 at 150/974. Judge solvent terms on HF. `qm_dft_hessian_check
   ... STEP PRUNE EPS D3` reproduces it; `glycine` is the timing case.
