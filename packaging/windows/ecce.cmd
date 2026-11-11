@@ -22,8 +22,9 @@ for %%A in ("%ECCE_STARTLOG%") do if %%~zA GTR 200000 del "%ECCE_STARTLOG%"
 rem Smart App Control (Windows 11) blocks ECCE's unsigned DLLs with an error
 rem that names a DLL, not the cause (#933); say it in words first.  Only
 rem PowerShell (signed by Microsoft) can show the message in that case.
+rem find.exe by its full path: ECCE's usr\bin (GNU find) is ahead of System32 on PATH.
 set "_sac="
-for /f "tokens=3" %%V in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy" /v VerifiedAndReputablePolicyState 2^>nul ^| find "VerifiedAndReputablePolicyState"') do set "_sac=%%V"
+for /f "tokens=3" %%V in ('reg query "HKLM\SYSTEM\CurrentControlSet\Control\CI\Policy" /v VerifiedAndReputablePolicyState 2^>nul ^| %SystemRoot%\System32\find.exe "VerifiedAndReputablePolicyState"') do set "_sac=%%V"
 if "%_sac%"=="0x1" (
   >>"%ECCE_STARTLOG%" echo %DATE% %TIME% ecce.cmd: Smart App Control is on
   if not defined ECCE_NO_FIRST_START (
@@ -63,7 +64,7 @@ goto local
 rem The Organizer that switched (its process id) ends first, with its session.
 set /a "_wait=0"
 :waitold
-tasklist /FI "PID eq %ECCE_SWITCHED_LOCAL%" /NH 2>nul | find " %ECCE_SWITCHED_LOCAL% " >nul || goto waited
+tasklist /FI "PID eq %ECCE_SWITCHED_LOCAL%" /NH 2>nul | %SystemRoot%\System32\find.exe " %ECCE_SWITCHED_LOCAL% " >nul || goto waited
 set /a "_wait+=1"
 if %_wait% GEQ 30 goto waited
 ping -n 2 127.0.0.1 >nul
