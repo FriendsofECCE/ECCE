@@ -422,6 +422,7 @@ void EnsemblePropertyPanel::refresh()
 {
   Timed timed("refresh");
   if (!p_table) return;
+  p_pocketFragment = 0;   // new data: apply the pocket styles in full again
   clearOverlay();
   p_geometry.clear();
   p_thumbnails.clear();
@@ -1113,6 +1114,7 @@ void EnsemblePropertyPanel::setPocketView(bool on)
 {
   p_thumbBg[0] = -1.f;   // redraw the thumbnails: ligand only, or whole
   p_pocket = on;
+  p_pocketFragment = 0;  // the next showPocket applies the styles in full
   if (!on) {
     SGContainer& sg = getFW().getSceneGraph();
     Command *cmd = new DisplayAtomsCmd("DisplayAtoms", &sg);
@@ -1187,14 +1189,16 @@ void EnsemblePropertyPanel::showPocket()
     const int i = (*allBonds)[b]->atom1()->index(), j = (*allBonds)[b]->atom2()->index();
     if (i >= 0 && i < n && j >= 0 && j < n && role[i] == role[j]) bondRole[b] = role[i];
   }
+  for (int a = 0; a < n; a++)
+    p_pocketCounts[role[a] == 1 ? 0 : role[a] == 2 ? 1 : 2]++;
   auto selectRole = [&](int which) {
     frag->m_atomHighLight.clear();
     frag->m_bondHighLight.clear();
     for (int a = 0; a < n; a++)
-      if (role[a] == which) frag->m_atomHighLight.push_back(a);
+      if (which < 0 ? role[a] != 0 : role[a] == which) frag->m_atomHighLight.push_back(a);
     for (size_t b = 0; b < bondRole.size(); b++)
-      if (bondRole[b] == which) frag->m_bondHighLight.push_back((int)b);
-    p_pocketCounts[which == 1 ? 0 : which == 2 ? 1 : 2] = (int)frag->m_atomHighLight.size();
+      if (which < 0 ? bondRole[b] != 0 : bondRole[b] == which)
+        frag->m_bondHighLight.push_back((int)b);
   };
   auto style = [&](DisplayStyle::Style st, const string& name) {
     const string s = DisplayStyle::fromStyle(st);
@@ -1205,24 +1209,28 @@ void EnsemblePropertyPanel::showPocket()
     cmd->getParameter("all")->setBoolean(false);
     getFW().execute(cmd);
   };
-  // Show everything first: the previous pose's pocket may differ.
-  phase.reset(new Timed("showPocket.showAll"));
-  Command *show = new DisplayAtomsCmd("DisplayAtoms", &sg);
-  show->getParameter("all")->setBoolean(true);
-  show->getParameter("show")->setBoolean(true);
-  getFW().execute(show);
-  phase.reset(new Timed("showPocket.stylePocket"));
-  selectRole(2);
-  style(DisplayStyle::STICK, "Pocket");
-  phase.reset(new Timed("showPocket.styleLigand"));
-  selectRole(1);
-  style(DisplayStyle::BALLSTICK, "Ligand");
-  phase.reset(new Timed("showPocket.hideRest"));
-  selectRole(0);
-  if (!frag->m_atomHighLight.empty()) {
-    Command *hide = new DisplayAtomsCmd("DisplayAtoms", &sg);
-    hide->getParameter("selected")->setBoolean(true);
-    getFW().execute(hide);
+  // Stepping to the next pose moves the ligand inside the same pocket, so
+  // the same atoms stay shown in the same styles: redrawing them all again
+  // is a second per step on a protein, and nothing changes (#966).
+  const bool same = frag == p_pocketFragment && role == p_pocketRole &&
+                    bondRole == p_pocketBondRole;
+  if (!same) {
+    // One command, not two: showing exactly the pocket and the ligand hides
+    // the rest of the receptor in the same pass.
+    phase.reset(new Timed("showPocket.showShown"));
+    selectRole(-1);
+    Command *show = new DisplayAtomsCmd("DisplayAtoms", &sg);
+    show->getParameter("selected")->setBoolean(false);
+    getFW().execute(show);
+    phase.reset(new Timed("showPocket.stylePocket"));
+    selectRole(2);
+    style(DisplayStyle::STICK, "Pocket");
+    phase.reset(new Timed("showPocket.styleLigand"));
+    selectRole(1);
+    style(DisplayStyle::BALLSTICK, "Ligand");
+    p_pocketFragment = frag;
+    p_pocketRole = role;
+    p_pocketBondRole = bondRole;
   }
   frag->m_atomHighLight.clear();
   frag->m_bondHighLight.clear();

@@ -102,6 +102,11 @@ def main():
     ap.add_argument("--png")
     ap.add_argument("--budget", type=float, default=10000.0,
                     help="ms the panel may take to open (default 10000)")
+    ap.add_argument("--energy-range", type=float, default=1000.0,
+                    help="keep every mode Vina finds, so the panel gets a full "
+                         "pose set at a low search effort")
+    ap.add_argument("--exhaustiveness", type=int, default=2,
+                    help="Vina search effort; the panel, not the docking, is measured")
     ap.add_argument("--keep", action="store_true")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
@@ -180,9 +185,10 @@ def main():
                 for key, val in (("ES.Runtype.Docking.LigandAtoms", ligand),
                                  ("ES.Runtype.Vina.BoxAuto", "1"),
                                  ("ES.Runtype.Vina.BoxMargin", "5"),
-                                 ("ES.Runtype.Vina.Exhaustiveness", "2"),
+                                 ("ES.Runtype.Vina.Exhaustiveness", str(args.exhaustiveness)),
                                  ("ES.Runtype.Vina.NumPoses", "9"),
-                                 ("ES.Runtype.Vina.EnergyRange", "10"),
+                                 ("ES.Runtype.Vina.EnergyRange",
+                                  str(args.energy_range)),
                                  ("ES.Runtype.Vina.Seed", "7")):
                     vv.ask(cmdfile, logpath, proc, "detail %s %s" % (key, val), asked)
                 say("    save -> %s" % vv.ask(cmdfile, logpath, proc, "save", asked, 600))
@@ -212,17 +218,25 @@ def main():
             s, display, benv, wrappers, ["-context", url],
             ["wait 8000",
              "background 1 1 1",
-             "fragdump",
+             "poses info",
+             # The thumbnails are made two per timer tick: let them finish, so
+             # the measurement covers every per-pose part of the open.
+             "wait 20000",
+             "poses info",
+             "poses pocket on",
+             "wait 4000",
              "poses info",
              "shot poses",
-             "poses select 2",
-             "wait 2000",
+             # Stepping the poses is what the hand test did: each step
+             # restyles the pocket and steps the trace.
+             ] + sum([["poses select %d" % k, "wait 1500"] for k in range(1, 10)], []) + [
              "poses info",
              "shot pose2",
              "quit"], png, "vinalarge",
             {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Poses",
              "ECCE_PANEL_TIMING": "1"})
 
+        open(os.path.join(png, "builder.txt"), "w").write(text)
         parts = timings(text)
         say("  panel timings (ms, protein-sized system):")
         for part in sorted(parts, key=lambda p: -sum(parts[p])):
@@ -230,15 +244,25 @@ def main():
             say("    %-28s n=%-3d total=%8.1f  max=%8.1f" %
                 (part, len(vals), sum(vals), max(vals)))
         check(bool(parts), "the panel printed its timings")
-        opened = sum(parts.get("initialize", [0])) + sum(parts.get("updateSelection", [0]))
+        # Opening the panel is `initialize` plus the first selection; the
+        # later ones are the cost of stepping a pose, reported separately.
+        opened = sum(parts.get("initialize", [0])) + max(parts.get("updateSelection", [0]))
+        steps = parts.get("updateSelection", [])
         check(opened < args.budget,
               "the panel opens in %.0f ms (budget %.0f)" % (opened, args.budget))
+        check(not steps or max(steps) < args.budget / 2,
+              "stepping a pose costs at most %.0f ms" % (max(steps) if steps else 0))
 
         # #968: a crystallographic file must not make a docking structure
         # periodic, or the cell is drawn and frames the camera.
-        dump = "\n".join(l for l in text.splitlines() if "fragdump" in l)
-        check("latticeshown=0" in dump or "lattice=0" in dump,
-              "no cell drawn for the docking structure: %s" % dump[:200])
+        # The Builder has no cell hook, so the stored structure is the check:
+        # a lattice there is drawn and frames the camera (#968).
+        frag = ""
+        for root, _dirs, files in os.walk(s.localData()):
+            if "vina.vinafrag" in files and name in root:
+                frag = open(os.path.join(root, "vina.vinafrag"), errors="replace").read()
+        check(frag and "lattice_vectors" not in frag,
+              "the docking structure is not periodic (no cell from CRYST1)")
 
         infos = re.findall(r"poses info: (.*)", text)
         fit = re.search(r"fit=([\d.]+)", infos[-1]) if infos else None
