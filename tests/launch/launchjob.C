@@ -5,7 +5,7 @@
 //   launchjob create <parentURL> <name> <resourceType> <deckFile> <deckName>
 //                    <machine> <runDir> <user>            prints the calc URL
 //                    [queue=Q] [nodes=N] [procs=P] [threads=T] [wall="D H:M"] [mem=MB]
-//                    [code=<JCode name>] [xyz=<file>] [gui=<SetupParams>]
+//                    [code=<JCode name>] [xyz=<file>|pdb=<file>] [gui=<SetupParams>]
 //                                 batch settings, as the launcher's queue controls set them;
 //                                 code and structure as the Calculation Editor's save stores
 //                                 them (the Builder's orbital views need both)
@@ -227,11 +227,14 @@ static int doCreate(const vector<string>& a)
         cerr << "could not store GUI settings" << endl;
         return 1;
       }
-    } else if (k == "xyz" || k == "mvm") {
+    } else if (k == "xyz" || k == "mvm" || k == "pdb") {
       ifstream fin(v.c_str());
       Fragment frag;
       PropertyTask* pt = dynamic_cast<PropertyTask*>(task);
-      if (!fin || !(k == "mvm" ? frag.restoreMVM(fin) : frag.restoreXYZ(fin)) ||
+      //  pdb: residues kept, as the Builder's import reads a protein.
+      if (!fin || !(k == "mvm" ? frag.restoreMVM(fin)
+                    : k == "pdb" ? frag.restorePDB(fin, 1.0, true, 1, " ", true, false, " ")
+                    : frag.restoreXYZ(fin)) ||
           !pt || !pt->fragment(&frag)) {
         cerr << "could not store the structure " << v << endl;
         return 1;

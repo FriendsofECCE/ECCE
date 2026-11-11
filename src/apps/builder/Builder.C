@@ -935,6 +935,10 @@ void Builder::createMenus()
   p_toolMenu->Append(ID_REPLACE_GROUP, _("Replace Group..."),
                      _("Replace the selected terminal group by a SMILES fragment"));
   Bind(wxEVT_MENU, &Builder::OnReplaceGroup, this, ID_REPLACE_GROUP);
+  p_toolMenu->Append(ID_VINA_BOX, _("Docking Box Around Selection"),
+                     _("Set the AutoDock Vina search box of this calculation "
+                       "around the selected atoms, plus the margin"));
+  Bind(wxEVT_MENU, &Builder::OnVinaBoxFromSelection, this, ID_VINA_BOX);
 
   p_propertyMenu = GetMenuBar()->GetMenu(
                    GetMenuBar()->FindMenu(_("Properties")));
@@ -1751,6 +1755,7 @@ void Builder::setContext(const string& url, const bool& force)
 
   // Refresh Tool panels
   EventDispatcher::getDispatcher().publish(Event("UpdateUI"));
+  updateVinaBox();
 
   // auto-open single panels
   set<PropertyPanel*> panels =
@@ -6030,6 +6035,7 @@ void Builder::updateMenus()
    // Never greyed: opening it on a structure without residues gives that
    // structure default ones to name (OnToolMenuClick).
    GetMenuBar()->Enable(GetMenuBar()->FindMenuItem("Tools", "Residue Table"), true);
+   p_toolMenu->Enable(ID_VINA_BOX, vinaJob() != 0);
 }
 
 /**

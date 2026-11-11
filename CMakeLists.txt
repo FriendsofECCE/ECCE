@@ -1904,7 +1904,7 @@ set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, pyth
 # openssh-client: RCommand drives ssh/scp/sftp for remote machines;
 # a purely local install never uses it.
 # www-browser: the Help menu (BrowserHelp.C).
-set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem, openssh-client")
+set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem, openssh-client, autodock-vina")
 set(CPACK_DEBIAN_PACKAGE_SUGGESTS "www-browser")
 # RelWithDebInfo keeps -g everywhere (useful while porting - see the
 # CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
@@ -2099,7 +2099,9 @@ if(ECCE_SPLIT_PACKAGES)
   # a client of an already-central server (#167/#138 -- the teaching
   # deployment) has no use for a local data server or broker at all, so
   # this is Recommends, not Depends, matching the design brief.
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, mosquitto, nwchem, openssh-client")
+  # autodock-vina: Debian's Vina 1.2.x, /usr/bin/vina, which the first-start
+  # registration finds on PATH; docking is optional, so not a Depends (#455).
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, mosquitto, nwchem, openssh-client, autodock-vina")
   set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "www-browser")
   # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
   # without this, installing ecce-client while the old ecce package still
@@ -5256,4 +5258,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_vina PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #455 stage 2: the same code through the Calculation Editor, then the
+  # search box and the Poses panel in the Builder.  Needs the 1IEP entry
+  # (not shipped), vina and Xvfb; skips (77) without them.
+  add_test(NAME apps_vina_viewer
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/vina_viewer_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_vina_viewer PROPERTIES TIMEOUT 3600 SKIP_RETURN_CODE 77)
 endif()

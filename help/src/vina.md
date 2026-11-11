@@ -42,14 +42,27 @@ numbers.
 **Search Box.** Vina searches for the ligand only inside a box.
 
 - *Centre the box on the ligand* is on by default. The box is then the
-  ligand's own extent with 5 Å added on every side, and never less than 16 Å
-  in any direction, so the ligand can move about its starting place. The six
-  numbers below it are ignored.
+  ligand's own extent with the margin added on every side, and never less
+  than 16 Å in any direction, so the ligand can move about its starting
+  place. The six numbers below it are ignored.
+- *Margin around the atoms* is how much room, in Å, is left around the atoms
+  the box is built from, 5 Å by default. It is used both by the automatic box
+  and by **Docking Box Around Selection** in the Builder.
 - *Centre X, Y, Z* are the centre of the box in Å, in the coordinates of the
   structure. Used when the box is not centred on the ligand.
 - *Size X, Y, Z* are the lengths of the box in Å. A box much larger than the
   pocket makes the search slower and less reliable; 20 to 25 Å is common for a
   protein pocket.
+
+**The box in the Builder.** With the calculation open in the Builder, select
+the atoms the box should cover -- the co-crystallised ligand, or the residues
+that line the pocket -- and choose **Tools > Docking Box Around Selection**.
+The centre and the size are set from those atoms plus the margin, *Centre the
+box on the ligand* is turned off, and the box is drawn in the viewer as a
+green wireframe. The box is also drawn for an automatic box, and it follows
+the numbers in the Runtype Details dialog as you change them. The Calculation
+Editor picks the new box up; save the calculation there to write it into the
+input file.
 
 **Search.**
 
@@ -71,8 +84,18 @@ numbers.
 ## Results
 
 The poses are stored with the calculation. They appear in the **Poses** panel
-of the Builder, one row per pose with its Vina score, best first, and in the
-Geometry Trace. Each pose is the whole system: the receptor stays where it
+of the Builder, one row per pose with a picture of it and its Vina score, best
+first, and in the Geometry Trace. There is no population column: a Boltzmann
+weight of an empirical score would not mean anything.
+
+Click a row to show that pose. With **Pocket view** ticked, which it is by
+default, the viewer shows the pose's ligand as balls and sticks and only the
+receptor residues that have an atom within 6 Å of it as sticks; the rest of
+the receptor is hidden, so the pose in its pocket is visible instead of being
+buried in the protein. Untick it to get the whole receptor back. Hydrogen
+bonds between the pose and the pocket are drawn by **Render > Show Hydrogen
+Bonds**, as for any structure. Select several rows with Ctrl or Shift to
+superpose poses and read their RMSD. Each pose is the whole system: the receptor stays where it
 was and the ligand is moved to the pose. The atom order is the one of the
 calculation. The Progress box shows the grid and the search, and the best
 score when the run ends.

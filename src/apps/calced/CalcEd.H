@@ -242,6 +242,7 @@ class CalcEd: public CalcEdGUI,
 
     void makeRuntypeNoSphericalConsistent();
     void urlChangeNotify(const string& topic) const;
+    void publishVinaBox() const;
     bool generateInput(const bool& paramFlag);
     void storeInputFingerprint();
     bool inputEditedByHand();

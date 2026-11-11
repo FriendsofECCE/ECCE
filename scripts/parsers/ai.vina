@@ -264,7 +264,8 @@ sub VinaDeck {
 }
 
 # The box: given, or (BoxAuto, the default) the ligand atoms' bounding box plus
-# 5 A on each side, at least 16 A, so the search can move the ligand about.
+# the margin (5 A) on each side, at least 16 A, so the search can move the
+# ligand about.  The Builder draws the same box (BuilderVinaBox.C).
 sub SearchBox {
   my ($lig) = @_;
   if (&flag("ES.Runtype.Vina.BoxAuto", 1)) {
@@ -276,7 +277,9 @@ sub SearchBox {
       }
     }
     my @c = map { &round1(($lo[$_] + $hi[$_]) / 2) } (0 .. 2);
-    my @s = map { my $v = &round1($hi[$_] - $lo[$_] + 10.0); $v < 16 ? 16 : $v } (0 .. 2);
+    my $m = &NumOption("ES.Runtype.Vina.BoxMargin", 5);
+    $m = 5 if ($m < 0);
+    my @s = map { my $v = &round1($hi[$_] - $lo[$_] + 2 * $m); $v < 16 ? 16 : $v } (0 .. 2);
     return (@c, @s);
   }
   my @box;

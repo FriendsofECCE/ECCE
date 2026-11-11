@@ -34,11 +34,22 @@ class VinaRunTypePanel(EccePanel):
         boxSizer = EcceBoxSizer(self, label="Search Box", cols=1)
         # ai.vina computes the box from the ligand atoms when this is on.
         self.auto = EcceCheckBox(self,
-                                 label=" Centre the box on the ligand (5 A margin)",
+                                 label=" Centre the box on the ligand",
                                  name="ES.Runtype.Vina.BoxAuto",
                                  default=True,
                                  export=1)
         boxSizer.AddWidget(self.auto)
+        # Also the margin of the Builder's Tools > Docking Box Around
+        # Selection, which writes the centre and size below.
+        self.margin = EcceFloatInput(self,
+                                     unit="A",
+                                     name="ES.Runtype.Vina.BoxMargin",
+                                     default=5.0,
+                                     hardRange="[0..)",
+                                     softRange="[2..10]",
+                                     label="Margin around the atoms:",
+                                     export=1)
+        boxSizer.AddWidget(self.margin)
         self.center = []
         self.size = []
         for axis in ("X", "Y", "Z"):

@@ -4,6 +4,7 @@
 #endif
 #include <cstdint>
 #include <fstream>
+#include <sstream>
 #include <memory>
   using std::flush;
   using std::ofstream;
@@ -295,6 +296,8 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
  *   builder           the Builder button (startApp of the Builder)
  *   launcher          the Launch... button's tool request
  *   runtype <label>   choose a run type as the Runtype menu does
+ *   detail <key> <v>  set one run type/theory detail, as its dialog sends it
+ *   details <prefix>  the details whose key starts with <prefix>
  */
 void CalcEd::runTestCommand(const string& line)
 {
@@ -358,6 +361,35 @@ void CalcEd::runTestCommand(const string& line)
         ResourceDescriptor::getResourceDescriptor().getTool(LAUNCHER);
     if (tool) startApp(tool->getName(), 0, p_context);
     outcome = tool ? "requested" : "no Launcher tool";
+  } else if (line.compare(0, 7, "detail ") == 0) {
+    std::istringstream in(line.substr(7));
+    string key, val;
+    in >> key >> val;
+    GUIValue *v = p_GUIValues ? p_GUIValues->get(key) : 0;
+    if (key.empty() || !p_GUIValues) {
+      outcome = "no key";
+    } else {
+      if (!v) {
+        GUIValue nv;
+        nv.m_key = key;
+        nv.m_type = "unknown";
+        nv.m_sensitive = true;
+        nv.m_write = true;
+        p_GUIValues->set(key, v = new GUIValue(nv));
+      }
+      v->setValue(val);
+      if (key.compare(0, 16, "ES.Runtype.Vina.") == 0 ||
+          key == "ES.Runtype.Docking.LigandAtoms")
+        publishVinaBox();
+      enableSave();
+      outcome = "ok";
+    }
+  } else if (line.compare(0, 8, "details ") == 0) {
+    const string prefix = line.substr(8);
+    if (p_GUIValues)
+      for (const auto& kv : *p_GUIValues)
+        if (kv.first.compare(0, prefix.size(), prefix) == 0)
+          outcome += kv.first + "=" + kv.second->getValueAsString() + " ";
   } else if (line.compare(0, 8, "runtype ") == 0) {
     ewxChoice *choice = (ewxChoice*)FindWindow(ID_CHOICE_CALCED_RUNTYPE);
     if (!choice->SetStringSelection(line.substr(8))) {
@@ -1977,6 +2009,44 @@ void CalcEd::codeMCB(wxCommandEvent& event)
 
 void CalcEd::detailsMCB(wxCommandEvent& event)
 {
+  //  The Builder's Docking Box Around Selection stores the Vina box with the
+  //  calculation (#455).  Only those keys are taken, so unsaved edits of
+  //  other details survive; the editor's own Save also lands here, with
+  //  nothing different.
+  if (!p_iCalc || !p_GUIValues || p_codeName != "Vina") return;
+  GUIValues *stored = p_iCalc->guiparams();
+  if (!stored) return;
+  bool changed = false;
+  for (const auto& kv : *stored) {
+    if (kv.first.compare(0, 19, "ES.Runtype.Vina.Box") != 0) continue;
+    GUIValue *mine = p_GUIValues->get(kv.first);
+    if (mine && mine->getValueAsString() == kv.second->getValueAsString())
+      continue;
+    p_GUIValues->set(kv.first, new GUIValue(*kv.second));
+    changed = true;
+  }
+  delete stored;
+  if (!changed || p_feedback->getEditStatus() == WxFeedback::READONLY) return;
+  populateSummaryField("RuntypeSummary");
+  p_feedback->setMessage("The docking box was set in the Builder.  Save to "
+                         "write it into the input file.", WxFeedback::WARNING);
+  enableSave();
+}
+
+
+//  The box numbers as the run type dialog sends them, before any Save, so
+//  the Builder redraws the box while they are typed (#455).
+void CalcEd::publishVinaBox() const
+{
+  if (!p_iCalc || !p_GUIValues || p_codeName != "Vina") return;
+  JMSMessage *msg = newMessage();
+  msg->addProperty("url", p_iCalc->getURL().toString());
+  for (const auto& kv : *p_GUIValues)
+    if (kv.first.compare(0, 16, "ES.Runtype.Vina.") == 0 ||
+        kv.first == "ES.Runtype.Docking.LigandAtoms")
+      msg->addProperty(kv.first, kv.second->getValueAsString());
+  publish("ecce_vina_box", *msg);
+  delete msg;
 }
 
 
@@ -5019,6 +5089,9 @@ void CalcEd::processRuntypeInput(const char* databuf)
 
   if (p_GUIValues->append(databuf)) {
     p_runtypeInFlag = true;
+    if (strstr(databuf, "ES.Runtype.Vina.Box") ||
+        strstr(databuf, "ES.Runtype.Docking.LigandAtoms"))
+      publishVinaBox();
     if (!p_runtypeHoldFlag) {
       populateSummaryField("RuntypeSummary");
       updateNotes();

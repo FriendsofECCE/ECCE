@@ -73,6 +73,18 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
                                                std::string& why);
     bool exportCsv(const std::string& path) const;
     std::string kind() const;
+    const std::string& energyLabel() const { return p_deName; }
+    // A Vina calculation (code or run type): its score is empirical, so the
+    // panel shows no Boltzmann population for it.
+    static bool isVina(IPropCalculation *calc);
+    bool hasPopulation() const { return p_population; }
+    // Docking poses: the receptor's residues within this distance of the
+    // pose's ligand are drawn as sticks, the rest of the receptor hidden.
+    static constexpr double pocketRadius = 6.0;
+    void setPocketView(bool on);
+    bool pocketView() const { return p_pocket; }
+    // "ligand=<n> pocket=<n> hidden=<n>" for the pose shown, for tests.
+    std::string pocketInfo() const;
 
   protected:
     virtual void initialize();
@@ -81,6 +93,9 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     virtual void loseFocus();
 
     struct Member { int rank; double de; double pop; std::string pattern; };
+
+    std::vector<int> ligandAtoms();
+    void showPocket();
 
     void load();
     void fillTable();
@@ -116,6 +131,9 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     std::vector<std::string> p_fits;
     std::map<int, Geometry> p_geometry;
     std::map<int, wxBitmap> p_thumbnails;
+    bool p_population = true;
+    bool p_pocket = true;
+    int p_pocketCounts[3] = {0, 0, 0};
     std::map<int, int> p_imageIndex;
     wxImageList *p_images = NULL;
     wxListCtrl *p_key = NULL;
