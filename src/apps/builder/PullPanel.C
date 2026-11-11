@@ -27,6 +27,7 @@
 #include "tdat/DynamicsModel.H"
 #include "util/Ecce.H"
 #include "util/Filesystem.H"
+#include "wxgui/ewxWindowUtils.H"
 #include "XYPlotCanvas.H"
 
 #include "PullPanel.H"
@@ -220,6 +221,17 @@ bool PullPanel::Create(IPropCalculation *calculation,
   Bind(wxEVT_BUTTON, &PullPanel::OnUmbrellaExport, this, ID_UEXPORT);
   showPage(0);
   return true;
+}
+
+void PullPanel::clipAudit()
+{
+  //  each page in turn: the hidden one is not laid out until shown
+  for (int n = 0; n < 2; n++) {
+    showPage(n);
+    for (int i = 0; i < 10; i++) { wxTheApp->Yield(true); wxMilliSleep(30); }
+    ewxWindowUtils::clipAuditReport(this, n ? "PullForce-umbrella" : "PullForce-pull");
+  }
+  showPage(0);
 }
 
 double PullPanel::noiseValue() const

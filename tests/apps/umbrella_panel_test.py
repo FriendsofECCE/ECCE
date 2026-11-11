@@ -96,6 +96,8 @@ def main():
     ap.add_argument("--fixture", default=FIX, help="folder with pull/ and wNN/ (the full run's too)")
     ap.add_argument("--jacobian", action="store_true")
     ap.add_argument("--windows", type=int, default=0, help="at most this many windows (0: all)")
+    ap.add_argument("--clip", action="store_true",
+                    help="clip audit of both pages, docked, on a 1366x768 screen")
     ap.add_argument("--panel-mode", default="detail", help="detail (docked) or classic (own window)")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
@@ -159,7 +161,8 @@ def main():
             with open(os.path.join(props, key), "w") as f:
                 f.write(vector(key, vals, units))
 
-        display = xdisplay.Display(screen="1500x1000x24").__enter__()
+        display = xdisplay.Display(
+            screen="1366x768x24" if args.clip else "1500x1000x24").__enter__()
         env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita",
                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
         org = Organizer(s, display, wrappers, env)
@@ -246,6 +249,27 @@ def main():
         # the run has a trajectory; the fixture's may not, and then it says so
         an = re.search(r"BUILDER: umbrellaanalysis (\w+)", text)
         check(an is not None, "the Radius of gyration link answered (%s)" % (an.group(1) if an else "nothing"))
+        if args.clip:
+            # docked at the size the layout gives on a 1366x768 screen
+            audit = os.path.join(s.state, "clip.txt")
+            open(audit, "w").close()
+            cdir = os.path.join(args.png if args.png and os.path.isdir(args.png) else png, "clip")
+            os.makedirs(cdir, exist_ok=True)
+            text, _ = bo.runScript(
+                s, display, env, wrappers, ["-context", pull],
+                ["wait 6000", "umbrellawham", "umbrellaclip", "wait 500", "shot docked",
+                 "umbrellapage", "wait 1000", "shot dockedumb", "quit"],
+                png, "clip", {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Pull Force",
+                              "ECCE_CLIP_AUDIT": audit})
+            found = [l for l in open(audit).read().splitlines() if l.strip()]
+            for l in found:
+                say("  clip: " + l)
+            for k in ("docked", "dockedumb"):
+                if k in _:
+                    shutil.copy(_[k], os.path.join(cdir, k + ".png"))
+            check("umbrellaclip done" in text, "the clip audit ran on both pages")
+            bad = [l for l in found if l.startswith("FINDING\tPullForce")]
+            check(not bad, "nothing clipped on the Pull Force pages at 1366x768: %s" % bad)
         if os.path.exists(csv):
             lines = [l for l in open(csv).read().splitlines() if l and l[0] != "#"]
             head = lines[0].lower()

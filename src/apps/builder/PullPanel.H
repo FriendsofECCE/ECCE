@@ -48,6 +48,7 @@ class PullPanel : public PropertyPanel
       bool umbrellaFind(double spacing, const wxString& from, const wxString& to);
       bool umbrellaCreate(int eqSteps, int prodSteps);
       bool umbrellaWham(bool jacobian);
+      void clipAudit();   // both pages, under ECCE_CLIP_AUDIT
       void setNoise(const std::string& kj) { if (p_noise) p_noise->SetValue(wxString::FromUTF8(kj.c_str())); }
       bool umbrellaExport(const wxString& path);
       /** The PMF plot as a PNG on a white background. */
