@@ -20,6 +20,9 @@
 #include "util/Filesystem.H"
 #include "util/MiniJson.H"
 #include "util/SFile.H"
+#include "util/TempStorage.H"
+#include "dsm/JCode.H"
+#include "util/TypedFile.H"
 #include <unistd.h>
 #include "dsm/VDoc.H"
 
@@ -46,6 +49,40 @@ static string readFile(const string& path)
   std::ostringstream all;
   all << in.rdbuf();
   return all.str();
+}
+
+//  The editor's Save writes the .mdp (md.gmxtask, then ai.gromacs) and sets
+//  Ready; windows are many, so the same is done here and they can be launched
+//  with Launch Selected without opening each one.
+static bool writeInput(MdTask *task, GromacsMDModel& model, string *why)
+{
+  const JCode *codecap = task->application();
+  string gen;
+  if (codecap) codecap->get_string("TaskInputGenerator", gen);
+  const string inputFile = codecap ? codecap->getCodeFile(JCode::PRIMARY_INPUT).name() : "";
+  if (gen.empty() || inputFile.empty()) {
+    if (why) *why = "no input generator for " + task->getName();
+    return false;
+  }
+  SFile *in = TempStorage::getTempFile();
+  SFile *out = TempStorage::getTempFile();
+  {
+    std::ofstream o(in->path().c_str());
+    o << task->serializeModel(&model);
+  }
+  const string cmd = Ecce::scriptCommand(string(Ecce::ecceDataControllersPath()) +
+                                         "/" + gen) +
+                     " < \"" + in->path() + "\" > \"" + out->path() + "\"";
+  bool ok = Ecce::runCommand(cmd) == 0;
+  if (ok) {
+    std::ifstream ifs(out->path().c_str());
+    ok = task->putInputFile(inputFile, &ifs);
+  }
+  if (ok) task->setState(ResourceDescriptor::STATE_READY);
+  else if (why) *why = "the input of " + task->getName() + " could not be generated";
+  in->remove(); delete in;
+  out->remove(); delete out;
+  return ok;
 }
 
 //  One window task: linked after `from`, the pull task's model with no
@@ -93,6 +130,7 @@ static MdTask *makeTask(Session *session, ResourceType *type, MdTask *from,
     }
   }
   task->launchdata(pull->launchdata());
+  if (!writeInput(task, model, why)) return 0;
 
   char num[16];
   snprintf(num, sizeof num, "%d", w.number);
