@@ -4786,6 +4786,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_select_protein_ligand PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # A click in the Properties list selects the row clicked, also on a
+  # scrolled list, with real X clicks (#965).
+  add_test(NAME apps_property_list_click
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/property_list_click_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_property_list_click PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # Edit > Take Coordinates From...: atoms from another structure, and undo (#620).
   add_test(NAME apps_builder_takecoords
            COMMAND ${PYTHON3_EXECUTABLE}
