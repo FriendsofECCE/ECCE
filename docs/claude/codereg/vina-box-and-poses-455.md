@@ -79,7 +79,27 @@ no Vina package: see the bundling note in
 the viewer's background; `thumbnailBatch` keeps its timer running at 500 ms
 and redraws them when the background changes or the pocket view is toggled,
 because a script or user setting the background after the panel opened left
-black thumbnails on a white viewer. The pocket view does not zoom the camera:
-`viewAll()` after hiding the receptor still framed the whole system (hidden
-atoms count), so the 3-D view stays small in a 72 px-thumbnail-sized pocket
-until the user zooms.
+black thumbnails on a white viewer. Switching the pocket view on frames the camera on the shown atoms
+(ligand + pocket residues) and the drawn search box
+(`EnsemblePropertyPanel::fitPocketCamera`), once per switch-on, so stepping
+through poses keeps the user's zoom; switching it off calls `viewAll()`.
+`viewAll()` alone is no use here: hidden atoms count in its bounding box.
+The fit projects the box corners on the camera axes rather than using
+`SoCamera::viewAll` on a proxy: the bounding sphere left the pocket at a third
+of the narrow viewer. *ADJUST_CAMERA puts the height angle on the shorter side
+of the viewport*: in a tall viewer (aspect < 1) it spans the width, so the
+half extent is `max(hx, hy*aspect)`, not `max(hy, hx/aspect)` (that zoomed out
+by 1/aspect). Hook: `poses info`/`poses pocket on` report `fit=<diagonal A>`
+of the framed box (0 when off); the test checks 0 < fit < 60 A.
+
+**Fewer poses than NumPoses is Vina, not the parser.** Vina 1.2.7 prints all
+`num_modes` in its log table but writes to `--out` only the modes within
+`energy_range` of the best. 1IEP + imatinib, seed 7, exhaustiveness 4: the log
+lists -13.47, -10.52, -9.83, -9.70; `poses.pdbqt` holds the first two with
+`energy_range = 3`, all four with 10 (checked by hand on the prepared files).
+
+**Open:** in the pocket view of 1IEP the pocket atoms draw as crosses and the
+ligand as balls without sticks, i.e. no bonds are drawn after the
+GEOMTRACE step, although the stored `vina.vinafrag` has 2329 bonds and the
+fragment is not bond-less (an `addCovalentBonds` when `bonds()` is empty did
+not change it).

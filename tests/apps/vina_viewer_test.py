@@ -208,6 +208,8 @@ def main():
              "selectatoms " + ligand,
              "vinabox 5",
              "vinaboxinfo",
+             "poses pocket off",
+             "poses pocket on",
              "wait 3000",
              "poses info",
              "shot pocket",
@@ -229,6 +231,10 @@ def main():
             pocket = re.search(r"ligand=(\d+) pocket=(\d+) hidden=(\d+)", infos[-1])
             check(bool(pocket) and int(pocket.group(2)) > 0 and int(pocket.group(3)) > 0,
                   "pocket view: %s" % (pocket.group(0) if pocket else "absent"))
+            # The camera frames the pocket and the box, not the hidden receptor.
+            fit = re.search(r"fit=([\d.]+)", infos[-1])
+            check(bool(fit) and 0 < float(fit.group(1)) < 60,
+                  "pocket view framed: %s A across" % (fit.group(1) if fit else "absent"))
         box = re.findall(r"vinaboxinfo: (.*)", text)
         check(bool(box) and box[0].startswith("drawn=1"),
               "the search box is drawn: %s" % (box[0] if box else "absent"))

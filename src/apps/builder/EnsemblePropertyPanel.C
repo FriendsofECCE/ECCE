@@ -30,6 +30,12 @@
 #include "inv/nodes/SoDrawStyle.H"
 #include "inv/nodes/SoComplexity.H"
 #include "inv/nodes/SoLightModel.H"
+#include "inv/nodes/SoPerspectiveCamera.H"
+#include "inv/nodes/SoSwitch.H"
+#include "inv/nodes/SoCamera.H"
+#include "inv/actions/SoGetBoundingBoxAction.H"
+#include "wxviz/SGViewer.H"
+#include "viz/SGContainer.H"
 #include "tdat/AtomMap.H"
 #include "tdat/TBond.H"
 #include "tdat/TPerTab.H"
@@ -1046,17 +1052,20 @@ void EnsemblePropertyPanel::setPocketView(bool on)
     cmd->getParameter("show")->setBoolean(true);
     getFW().execute(cmd);
     for (int& c : p_pocketCounts) c = 0;
+    p_pocketFit = 0;
+    getFW().getViewer().viewAll();
     getFW().getViewer().refreshRenderArea();
   } else {
+    p_pocketFitted = false;
     showPocket();
   }
 }
 
 std::string EnsemblePropertyPanel::pocketInfo() const
 {
-  char buf[96];
-  snprintf(buf, sizeof buf, "ligand=%d pocket=%d hidden=%d",
-           p_pocketCounts[0], p_pocketCounts[1], p_pocketCounts[2]);
+  char buf[128];
+  snprintf(buf, sizeof buf, "ligand=%d pocket=%d hidden=%d fit=%.1f",
+           p_pocketCounts[0], p_pocketCounts[1], p_pocketCounts[2], p_pocketFit);
   return buf;
 }
 
@@ -1128,5 +1137,65 @@ void EnsemblePropertyPanel::showPocket()
   frag->m_atomHighLight.clear();
   frag->m_bondHighLight.clear();
   sg.fixAllNubs();
+  // Frame once per switch-on, so stepping through poses keeps the user's zoom.
+  if (!p_pocketFitted) {
+    vector<const double*> shown;
+    for (int a = 0; a < n; a++)
+      if (role[a]) shown.push_back(frag->atomRef(a)->coordinates());
+    fitPocketCamera(shown);
+    p_pocketFitted = true;
+  }
   getFW().getViewer().refreshRenderArea();
+}
+
+// viewAll() frames hidden atoms too, so the pocket would stay a speck in the
+// middle of the whole receptor. Frame the shown atoms and the search box.
+void EnsemblePropertyPanel::fitPocketCamera(const vector<const double*>& atoms)
+{
+  SGViewer& viewer = getFW().getViewer();
+  SoCamera *cam = viewer.getCamera();
+  if (!cam || atoms.empty()) return;
+  SbBox3f bbox;
+  for (const double *p : atoms) bbox.extendBy(SbVec3f((float)p[0], (float)p[1], (float)p[2]));
+  SoSwitch *sw = getFW().getSceneGraph().getPropertySwitch("VinaSearchBox");
+  if (sw && sw->whichChild.getValue() != SO_SWITCH_NONE) {
+    SoGetBoundingBoxAction bba(viewer.getViewportRegion());
+    bba.apply(sw);
+    if (!bba.getBoundingBox().isEmpty()) bbox.extendBy(bba.getBoundingBox());
+  }
+  // Fit the box's corners in the camera's own frame: viewAll's bounding
+  // sphere leaves a box drawn at a third of a tall, narrow viewer.
+  const SbVec3f centre = bbox.getCenter();
+  const SbRotation rot = cam->orientation.getValue();
+  SbVec3f right, up, back;
+  rot.multVec(SbVec3f(1, 0, 0), right);
+  rot.multVec(SbVec3f(0, 1, 0), up);
+  rot.multVec(SbVec3f(0, 0, 1), back);
+  const SbVec3f lo = bbox.getMin(), hi = bbox.getMax();
+  float hx = 0, hy = 0, hz = 0;
+  for (int i = 0; i < 8; i++) {
+    const SbVec3f d = SbVec3f((i & 1) ? hi[0] : lo[0], (i & 2) ? hi[1] : lo[1],
+                              (i & 4) ? hi[2] : lo[2]) - centre;
+    hx = std::max(hx, std::fabs(d.dot(right)));
+    hy = std::max(hy, std::fabs(d.dot(up)));
+    hz = std::max(hz, std::fabs(d.dot(back)));
+  }
+  const float aspect = viewer.getViewportRegion().getViewportAspectRatio();
+  // ADJUST_CAMERA maps the height angle onto the shorter side of the viewport.
+  const float half = 1.05f * (aspect < 1 ? std::max(hx, hy * aspect)
+                                         : std::max(hy, hx / aspect));
+  float dist = hz + 1.0f;
+  if (cam->isOfType(SoPerspectiveCamera::getClassTypeId())) {
+    const float angle = ((SoPerspectiveCamera*)cam)->heightAngle.getValue();
+    dist = hz + half / std::tan(angle / 2);
+  } else if (cam->isOfType(SoOrthographicCamera::getClassTypeId())) {
+    ((SoOrthographicCamera*)cam)->height = 2 * half;
+  }
+  cam->position = centre + back * dist;
+  cam->focalDistance = dist;
+  cam->nearDistance = std::max(0.1f, dist - 2 * hz);
+  cam->farDistance = dist + 2 * hz;
+  float dx, dy, dz;
+  bbox.getSize(dx, dy, dz);
+  p_pocketFit = std::sqrt(dx * dx + dy * dy + dz * dz);
 }

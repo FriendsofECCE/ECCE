@@ -134,6 +134,9 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     bool p_population = true;
     bool p_pocket = true;
     int p_pocketCounts[3] = {0, 0, 0};
+    bool p_pocketFitted = false;   // camera framed since the view was switched on
+    float p_pocketFit = 0;         // diagonal of the framed box, for the hook
+    void fitPocketCamera(const std::vector<const double*>& atoms);
     std::map<int, int> p_imageIndex;
     wxImageList *p_images = NULL;
     wxListCtrl *p_key = NULL;
