@@ -179,6 +179,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Example calculations ship as program outputs; File > Open Example Calculations imports a fresh copy (and MOPAC has an importer)](example-calculations-are-outputs-not-stored-calcs.md)
 - [Example import copies a pre-parsed calculation; the parse is the fallback (#448)](example-import-copies-the-preparsed-calculation.md)
 - [Example notes are keyed by calculation name; a repeated name takes the wrong note (#784)](example-notes-are-keyed-by-calc-name.md)
+- [An example workflow step that failed to import was lost silently and stayed lost (#954)](example-workflow-step-lost-stays-lost-954.md)
 - [A property stored with no values is an empty element; reading one used to end the app (#429)](an-empty-stored-property-element-crashed-its-reader.md)
 - [The dummy atom X has no basis, no electrons, no formula entry - and each code numbers it differently](dummy-atom-x-is-not-an-element-and-each-code-numbers-it-differently.md)
 - [Geometry constraints are edited in the Builder and stored with the calculation; the input uses them only for Geometry/GeoVib](geometry-constraints-are-edited-in-the-builder-and-stored-with-the-calculation.md)
