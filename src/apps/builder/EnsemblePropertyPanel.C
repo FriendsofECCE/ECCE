@@ -1052,6 +1052,7 @@ void EnsemblePropertyPanel::setPocketView(bool on)
     cmd->getParameter("show")->setBoolean(true);
     getFW().execute(cmd);
     for (int& c : p_pocketCounts) c = 0;
+    p_pocketBonds[0] = p_pocketBonds[1] = 0;
     p_pocketFit = 0;
     getFW().getViewer().viewAll();
     getFW().getViewer().refreshRenderArea();
@@ -1064,8 +1065,9 @@ void EnsemblePropertyPanel::setPocketView(bool on)
 std::string EnsemblePropertyPanel::pocketInfo() const
 {
   char buf[128];
-  snprintf(buf, sizeof buf, "ligand=%d pocket=%d hidden=%d fit=%.1f",
-           p_pocketCounts[0], p_pocketCounts[1], p_pocketCounts[2], p_pocketFit);
+  snprintf(buf, sizeof buf, "ligand=%d pocket=%d hidden=%d fit=%.1f bonds=%d/%d",
+           p_pocketCounts[0], p_pocketCounts[1], p_pocketCounts[2], p_pocketFit,
+           p_pocketBonds[0], p_pocketBonds[1]);
   return buf;
 }
 
@@ -1075,6 +1077,7 @@ std::string EnsemblePropertyPanel::pocketInfo() const
 void EnsemblePropertyPanel::showPocket()
 {
   for (int& c : p_pocketCounts) c = 0;
+  p_pocketBonds[0] = p_pocketBonds[1] = 0;
   if (!p_pocket || kind() != "Poses") return;
   SGContainer& sg = getFW().getSceneGraph();
   SGFragment *frag = sg.getFragment();
@@ -1103,11 +1106,23 @@ void EnsemblePropertyPanel::showPocket()
         residues.count(frag->atomRef(a)->getResidue()))
       role[a] = 2;
 
+  // A style or hide command acts only on the selected bonds, and a bond is
+  // drawn by the display its own style names: with atoms alone selected the
+  // bonds stayed in the old style and the pocket drew as bare atoms. A bond
+  // goes with its atoms; one leaving a shown residue goes with the hidden part.
+  std::unique_ptr<vector<TBond*> > allBonds(frag->bonds());
+  vector<char> bondRole(allBonds->size(), 0);
+  for (size_t b = 0; b < allBonds->size(); b++) {
+    const int i = (*allBonds)[b]->atom1()->index(), j = (*allBonds)[b]->atom2()->index();
+    if (i >= 0 && i < n && j >= 0 && j < n && role[i] == role[j]) bondRole[b] = role[i];
+  }
   auto selectRole = [&](int which) {
     frag->m_atomHighLight.clear();
     frag->m_bondHighLight.clear();
     for (int a = 0; a < n; a++)
       if (role[a] == which) frag->m_atomHighLight.push_back(a);
+    for (size_t b = 0; b < bondRole.size(); b++)
+      if (bondRole[b] == which) frag->m_bondHighLight.push_back((int)b);
     p_pocketCounts[which == 1 ? 0 : which == 2 ? 1 : 2] = (int)frag->m_atomHighLight.size();
   };
   auto style = [&](DisplayStyle::Style st, const string& name) {
@@ -1136,6 +1151,15 @@ void EnsemblePropertyPanel::showPocket()
   }
   frag->m_atomHighLight.clear();
   frag->m_bondHighLight.clear();
+  p_pocketBonds[0] = p_pocketBonds[1] = 0;
+  {
+    for (const TBond *b : *allBonds) {
+      const DisplayStyle ds = b->displayStyle();
+      if (!ds.isDisplayed()) continue;
+      if (ds.getName() == "Ligand") p_pocketBonds[0]++;
+      else if (ds.getName() == "Pocket") p_pocketBonds[1]++;
+    }
+  }
   sg.fixAllNubs();
   // Frame once per switch-on, so stepping through poses keeps the user's zoom.
   if (!p_pocketFitted) {

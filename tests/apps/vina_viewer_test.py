@@ -231,6 +231,12 @@ def main():
             pocket = re.search(r"ligand=(\d+) pocket=(\d+) hidden=(\d+)", infos[-1])
             check(bool(pocket) and int(pocket.group(2)) > 0 and int(pocket.group(3)) > 0,
                   "pocket view: %s" % (pocket.group(0) if pocket else "absent"))
+            # Bonds must follow their atoms into the Pocket and Ligand styles,
+            # or the pocket draws as bare atoms.
+            bonds = re.search(r"bonds=(\d+)/(\d+)", infos[-1])
+            check(bool(bonds) and int(bonds.group(1)) > 0 and int(bonds.group(2)) > 0,
+                  "pocket view draws bonds: ligand/pocket %s" % (
+                      "/".join(bonds.groups()) if bonds else "absent"))
             # The camera frames the pocket and the box, not the hidden receptor.
             fit = re.search(r"fit=([\d.]+)", infos[-1])
             check(bool(fit) and 0 < float(fit.group(1)) < 60,

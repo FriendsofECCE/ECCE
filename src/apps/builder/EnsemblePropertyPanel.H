@@ -134,6 +134,7 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     bool p_population = true;
     bool p_pocket = true;
     int p_pocketCounts[3] = {0, 0, 0};
+    int p_pocketBonds[2] = {0, 0};  // bonds drawn in the Ligand/Pocket styles, for the hook
     bool p_pocketFitted = false;   // camera framed since the view was switched on
     float p_pocketFit = 0;         // diagonal of the framed box, for the hook
     void fitPocketCamera(const std::vector<const double*>& atoms);

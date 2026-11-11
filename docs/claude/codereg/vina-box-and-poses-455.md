@@ -98,8 +98,15 @@ of the framed box (0 when off); the test checks 0 < fit < 60 A.
 lists -13.47, -10.52, -9.83, -9.70; `poses.pdbqt` holds the first two with
 `energy_range = 3`, all four with 10 (checked by hand on the prepared files).
 
-**Open:** in the pocket view of 1IEP the pocket atoms draw as crosses and the
-ligand as balls without sticks, i.e. no bonds are drawn after the
-GEOMTRACE step, although the stored `vina.vinafrag` has 2329 bonds and the
-fragment is not bond-less (an `addCovalentBonds` when `bonds()` is empty did
-not change it).
+**Pocket view: bonds go with their atoms.** `showPocket` restyles the
+ligand (Ball and Stick) and the pocket residues (Stick) and hides the rest
+with `CSStyleCmd`/`DisplayAtomsCmd` on the selection, and both commands change
+only the bonds in `m_bondHighLight`. A bond is drawn by the ChemDisplay whose
+style name it carries (`SGContainer::touchChemDisplay`), and that display draws
+it only with its atoms; with atoms alone selected every bond kept the old
+style, so the pocket drew as bare-atom crosses and the ligand as balls without
+sticks on any receptor (frames and the stored bonds were never the problem;
+CREST/MLP ensembles do not use the pocket view). Each role now selects its
+bonds too: a bond takes the role of its two atoms, and one between a shown
+and a hidden residue is hidden. Hook: `poses info` reports `bonds=<ligand>/<pocket>`
+(1IEP + imatinib: 41/261; it was 0/0), checked in `vina_viewer_test`.
