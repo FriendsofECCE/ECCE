@@ -247,10 +247,16 @@ std::vector<std::string> PropertyIndexPanel::rowRects() const
   std::vector<std::string> out;
   wxPoint org = p_tree->GetScreenPosition();
   wxSize sz = p_tree->GetClientSize();
-  int sx = 0, sy = 0;
+  int sx = 0, sy = 0, ux = 0, uy = 0;
+#ifdef __WXMSW__
+  // The native MSW tree is not a wxScrolledWindow: report the control's own
+  // scroll positions, and 0 for the pixel unit it does not have.
+  sx = p_tree->GetScrollPos(wxHORIZONTAL);
+  sy = p_tree->GetScrollPos(wxVERTICAL);
+#else
   p_tree->GetViewStart(&sx, &sy);
-  int ux = 0, uy = 0;
   p_tree->GetScrollPixelsPerUnit(&ux, &uy);
+#endif
   char buf[256];
   snprintf(buf, sizeof(buf), "treewin %d %d %d %d view %d %d unit %d %d",
            org.x, org.y, sz.x, sz.y, sx, sy, ux, uy);

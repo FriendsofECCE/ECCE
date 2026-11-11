@@ -6,7 +6,7 @@ A fake complex: two identical 2-residue protein chains, one 5-atom ligand
 old "smallest molecule" rule picks atom 1, a water oxygen.
 Usage: vina_autoligand_test.py <source dir>
 """
-import os, re, subprocess, sys, tempfile
+import os, re, shutil, subprocess, sys, tempfile
 
 SRC = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else ".")
 PARSERS = os.path.join(SRC, "scripts", "parsers")
@@ -47,16 +47,14 @@ def run_ai(d, with_pdb):
     open(os.path.join(d, "t.frag"), "w").write(frag(with_pdb))
     open(os.path.join(d, "t.param"), "w").write(PARAM)
     env = dict(os.environ, ECCE_HOME=SRC)
+    # ai.vina writes the deck over its -t file, as DeckWriter expects of its
+    # vina.vinain.orig copy; given the source template it overwrote that, and
+    # the GUI tests, whose ECCE_HOME links this tree's scripts, then ran on it.
+    shutil.copy(os.path.join(PARSERS, "vina.tpl"), os.path.join(d, "vina.vinain.orig"))
     p = subprocess.run(["perl", os.path.join(PARSERS, "ai.vina"), "-p", "-f", "-n", "t",
-                        "-t", os.path.join(PARSERS, "vina.tpl")],
+                        "-t", "vina.vinain.orig"],
                        cwd=d, env=env, capture_output=True, text=True)
-    deck = ""
-    for name in ("t.vinain", "tmpfile"):
-        f = os.path.join(d, name)
-        if os.path.exists(f):
-            deck = open(f).read()
-            break
-    return p, deck
+    return p, open(os.path.join(d, "vina.vinain.orig")).read()
 
 def verify(d, deck_text, atoms_n, code="Vina"):
     f = os.path.join(d, "deck.in")
