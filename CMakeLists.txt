@@ -2937,6 +2937,17 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/orca_irc_live_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # ORCA IRC structures while the IRC runs: the trajectories the monitor
+  # follows (#949), and the monitor's Follow=yes read itself.
+  add_test(NAME parsers_orca_irc_trj_live
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/orca_irc_trj_live_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+  add_test(NAME parsers_monitor_follow
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/monitor_follow_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # The same fixtures cut off part-way, through the real eccejobmonitor and
   # parser scripts (#107 part B).
   add_test(NAME parsers_partial

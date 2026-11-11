@@ -215,7 +215,8 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [results.h5 written from the Props at the end of the job store; the views switch in one place](results-h5-written-from-props.md) — where it hooks in, checks, `ResultsFromCalc::stored`, what is not switched
 - [A wrong unit label keeps a trace out of results.h5 (#946)](a-wrong-unit-label-keeps-a-trace-out-of-results-h5-946.md) — views ignore GEOMTRACE/IRCGEOM units, `toBohr` does not; `parsers_g16_units`
 - [G16 traces: one structure per energy point (#947)](g16-irc-and-opt-traces-line-up-with-energies-947.md) — IRC TS frame added, signed-zero repeats, TS-search TEVEC; `parsers_g16_trace_align`
-- [ORCA IRC energies live, structures at the end (#949)](orca-irc-points-arrive-live-949.md) — per-row IRCCOORD/IRCENERGY in path order; summary replaces them
+- [ORCA IRC points and structures live (#949)](orca-irc-points-arrive-live-949.md) — frames from the followed _F/_B trajectories; vectors in run order once frames come
+- [Follow=yes: the monitor reads a File= entry as it grows (#949)](monitor-follows-growing-files-949.md) — #ECCE-FOLLOW header with byte offset; live only
 - [G16 IRC points live in run order (#948)](g16-irc-points-arrive-live-in-run-order-948.md) — PropTS* append, PropVector replace; views/results.h5 sort by coordinate and fit the TS
 - [NWChem eprint MO coefficients have 3 decimals; results.h5 reads nwchem.movecs](nwchem-eprint-coefficients-have-three-decimals.md) — why NWChem orbitals failed tr(PS) (#944) and when the movecs is used
 - [ORCA's built-in cc-pVXZ is segmented, ECCE stores the general contraction](orca-library-basis-is-segmented-not-eccees-general-contraction.md) — why ORCA cc-pVXZ results.h5 fail their check (#942)

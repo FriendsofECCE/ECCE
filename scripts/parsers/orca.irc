@@ -14,8 +14,23 @@ while (<STDIN>) {
 }
 exit(0) unless (defined $ts && @e > 1);
 
-my $n = scalar(@e);
-print "key: IRCCOORD\nsize: \n$n\nvalues: \n", join("\n", map { $_ - $ts } (0 .. $n-1)),
+my @pts = map { [$_ - $ts, $e[$_]] } (0 .. $#e);
+# Structures stored live (orca.irctrj) are in run order: the points the same,
+# in the order orca.ircpoint received them, then any it missed.
+if (-e "$key/orcaIrcFrames") {
+  my %rank;
+  if (open(my $fh, "<", "$key/orcaIrcPoints")) {
+    my $i = 0;
+    while (<$fh>) { my ($x) = split; $rank{$x} = $i++ if (defined $x && !exists $rank{$x}); }
+    close($fh);
+  }
+  my $rk = sub { my $x = $_[0]; exists $rank{$x} ? $rank{$x}
+                  : 1e6 + ($x >= 0 ? $x : 1e5 - $x) };
+  @pts = sort { $rk->($a->[0]) <=> $rk->($b->[0]) } @pts;
+}
+my $n = scalar(@pts);
+print "key: IRCCOORD\nsize: \n$n\nvalues: \n", join("\n", map { $_->[0] } @pts),
       "\nunits:\nPoint\nEND\n";
-print "key: IRCENERGY\nsize: \n$n\nvalues: \n", join("\n", @e), "\nunits:\nHartree\nEND\n";
+print "key: IRCENERGY\nsize: \n$n\nvalues: \n", join("\n", map { $_->[1] } @pts),
+      "\nunits:\nHartree\nEND\n";
 exit(0);
