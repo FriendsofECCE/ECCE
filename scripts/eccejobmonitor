@@ -4305,6 +4305,8 @@ sub PDFileRead
     while (<PDF>)
     {
         $line++;
+        # a descriptor saved on Windows ends its lines in CRLF
+        s/\r(?=\n?\z)//;
 
         # check for end of file
         if ($gConfig{'endOfPDF'})

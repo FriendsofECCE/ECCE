@@ -1,3 +1,4 @@
+!open
 ##$key##
 ##$keysave##
 ##$tag##
@@ -28,6 +29,7 @@ $env{ecce_home}
 $exponent
 $extrabasis\n
 $extraroute
+$fh
 $file\n
 $fragfile
 $fragfile\n
@@ -175,6 +177,7 @@ ai.gauss09\n
 ai.gauss16
 aim
 aluminum
+always
 americium
 an
 analysis

@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <cstdio>
-#include <filesystem>
 #include <fstream>
 
 #include "comm/RCommand.H"
@@ -29,6 +28,7 @@
 #include "tdat/TTheory.H"
 #include "util/Ecce.H"
 #include "util/EcceMap.H"
+#include "util/Filesystem.H"
 #include "util/SDirectory.H"
 #include "util/SFile.H"
 #include "util/STLUtil.H"
@@ -99,7 +99,7 @@ std::vector<string> filesEndingIn(const string& suffix)
 {
   std::vector<string> names;
   std::error_code ec;
-  for (const auto& e : std::filesystem::directory_iterator(".", ec)) {
+  for (const auto& e : ecce::fs::directory_iterator(".", ec)) {
     const string n = e.path().filename().u8string();   // UTF-8 on MSW too
     if (n.size() >= suffix.size() && n[0] != '.' &&
         n.compare(n.size() - suffix.size(), suffix.size(), suffix) == 0 &&

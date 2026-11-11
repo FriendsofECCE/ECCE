@@ -139,7 +139,7 @@ jobs:
             build-essential gfortran cmake ninja-build python3 \
             libwxgtk3.2-dev libxerces-c-dev libgl-dev libglu1-mesa-dev \
             libgtk-3-dev libx11-dev libice-dev libxt-dev libjpeg-dev \
-            libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev
+            libmosquitto-dev mosquitto-dev libaprutil1-dev mosquitto git dpkg-dev file libssh-dev libhdf5-dev
 
       - uses: actions/checkout@v4
 

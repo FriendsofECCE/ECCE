@@ -99,6 +99,10 @@ static std::string s_registerMessage;
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
 #include "dsm/Series.H"
+#include "dsm/SmilesBatch.H"
+#include <wx/choicdlg.h>
+#include "QsarDialog.H"
+#include "BatchSmilesDialog.H"
 #include "dsm/SiteScreen.H"
 #include <wx/spinctrl.h>
 #include <wx/radiobox.h>
@@ -653,6 +657,19 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * newseries <template url> <source>...
  *                 New Series from This (#621) without dialogs; the report,
  *                 lines separated by " | "
+ * qsartable <out.csv> <url>,<url>... [groups]
+ *                 the QSAR Table dialog's rows (#961), as for "checks"; groups
+ *                 is a comma list of counts,topology,models,charges,vsa,qm
+ * qsarpca <outdir> <url>,<url>... [scaling] [components] [png]
+ *                 QSAR Analysis (#961): the PCA of the descriptor table, its
+ *                 result files written to <outdir>
+ * qsarpls <outdir> <url>,<url>... <y> [scaling] [components] [test%] [permutations] [png]
+ *                 the same for PLS of the measured column <y>
+ * batchsmilesdialog <folder url> <table> [png]
+ *                 Tools > Batch Add from SMILES with the table loaded (#961):
+ *                 "ok | name=... smiles=... responses=... rows=N problems=M"
+ * batchsmiles <folder url> <table> [template=URL] [launch] [replace]
+ *                 its Create without dialogs, and Launch Batch with "launch"
  * sitescreen <template url> interstitial|vacancy <element> <min host> <min sep> [max dist]
  *                 Screen Sites with MLP (#728) without dialogs; the report,
  *                 lines separated by " | "
@@ -713,6 +730,10 @@ static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
 static const int ID_COMPARE_ENERGIES = wxNewId();
 static const int ID_SI_EXPORT = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
+static const int ID_BATCH_SMILES = wxNewId();
+static const int ID_QSAR_TABLE = wxNewId();
+static const int ID_QSAR_ANALYSIS = wxNewId();
+static vector<std::pair<string, string> > folderCalculations(Resource *folder);
 
 // Include submenu paths so tests can check the action and its enabled state.
 static string testContextMenuLabels(wxMenu& menu, const string& prefix = "",
@@ -2553,6 +2574,60 @@ void CalcMgr::runTestCommand(const string& line)
         outcome += " | " + referenceResult + " | reference=" + dlg.selectedReference();
         for (const string& name : dlg.referenceChoices()) outcome += " | choice=" + name;
       }
+    } else if (command == "qsartable") {
+      // "qsartable <out.csv> <url>,<url>... [groups]": the QSAR Table dialog's
+      // rows (folders expanded to their calculations) written as CSV (#961).
+      std::istringstream args(calcName);
+      string out, urls, groups = "counts,topology,models,charges,vsa,qm";
+      args >> out >> urls;
+      string g;
+      if (args >> g) groups = g;
+      vector<EcceURL> roots;
+      for (size_t at = 0; at < urls.size(); ) {
+        size_t end = urls.find(',', at);
+        if (end == string::npos) end = urls.size();
+        roots.push_back(EcceURL(urls.substr(at, end - at)));
+        at = end + 1;
+      }
+      ChecksDialog dlg(this, calculationsUnder(roots), false, &groups);
+      string why;
+      if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
+      else outcome = "failed: " + why;
+    } else if (command == "qsarpca" || command == "qsarpls") {
+      // "qsarpca <outdir> <url>,<url>... [scaling] [components] [png]" and
+      // "qsarpls <outdir> <url>,<url>... <y> [scaling] [components] [test%]
+      // [permutations] [png]": the QSAR Analysis dialog's PCA or PLS on the
+      // calculations, its result files saved in <outdir> (#961).
+      std::istringstream args(calcName);
+      string outdir, urls, scaling = "uv", png, y;
+      int comps = 0, testPct = 0, perms = 0;
+      args >> outdir >> urls;
+      if (command == "qsarpls") args >> y;
+      args >> scaling >> comps;
+      if (command == "qsarpls") args >> testPct >> perms;
+      args >> png;
+      vector<EcceURL> roots;
+      for (size_t at = 0; at < urls.size(); ) {
+        size_t end = urls.find(',', at);
+        if (end == string::npos) end = urls.size();
+        roots.push_back(EcceURL(urls.substr(at, end - at)));
+        at = end + 1;
+      }
+      QsarDialog *d = new QsarDialog(this, calculationsUnder(roots));
+      string why;
+      const bool ran = d->ok(why) && (command == "qsarpca"
+          ? d->runPca(scaling, comps, why)
+          : d->runPls(y, scaling, comps, testPct, perms, why));
+      if (!ran) outcome = "failed: " + why;
+      else if (!d->saveResults(outdir, why)) outcome = "failed: " + why;
+      else {
+        d->SetSize(wxSize(1000, 560));
+        d->Show();
+        for (int i = 0; i < 5; ++i) wxYield();
+        if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+        outcome = "ok";
+      }
+      d->Destroy();
     } else if (command == "compareforcesdialog") {
       std::istringstream args(calcName);
       string a, b, png;
@@ -2977,6 +3052,46 @@ void CalcMgr::runTestCommand(const string& line)
       newSeries(EcceURL(t), sources, &outcome);
       for (size_t p; (p = outcome.find('\n')) != string::npos;)
         outcome.replace(p, 1, " | ");
+    } else if (command == "batchsmilesdialog" || command == "batchsmiles") {
+      // "batchsmilesdialog FOLDER TABLE [png]": the dialog with the table
+      // loaded, its guessed columns and preview, and a capture.
+      // "batchsmiles FOLDER TABLE [template=URL] [launch]": its Create (and
+      // the Launch Batch of the result) without dialogs; the report, " | ".
+      std::istringstream args(calcName);
+      string f, file, w, png, templ;
+      bool launch = false, replace = false;
+      args >> f >> file;
+      while (args >> w) {
+        if (w.compare(0, 9, "template=") == 0) templ = w.substr(9);
+        else if (w == "launch") launch = true;
+        else if (w == "replace") replace = true;
+        else png = w;
+      }
+      Resource *folder = EDSIFactory::getResource(EcceURL(f));
+      BatchSmilesDialog *d = new BatchSmilesDialog(this, folder ? folder->getName() : "?",
+                                                   folderCalculations(folder));
+      string why;
+      if (!d->loadFile(file, why)) outcome = "failed: " + why;
+      else if (command == "batchsmilesdialog") {
+        d->SetSize(wxSize(760, 620));
+        d->Show();
+        for (int i = 0; i < 5; ++i) wxYield();
+        if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+        outcome = "ok | " + d->describe();
+      } else {
+        string report;
+        vector<EcceURL> made;
+        batchSmiles(EcceURL(f), templ, d->rows(), replace, false, report, made);
+        outcome = report;
+        if (launch && !made.empty()) {
+          string l;
+          launchSelected(made, false, &l);
+          outcome += "\nlaunch: " + l;
+        }
+        for (size_t p; (p = outcome.find('\n')) != string::npos;)
+          outcome.replace(p, 1, " | ");
+      }
+      d->Destroy();
     } else if (command == "sitescreen") {
       std::istringstream args(calcName);
       string t, mode, el;
@@ -5779,6 +5894,96 @@ void CalcMgr::OnNewSeriesClick( wxCommandEvent& event )
   newSeries(templ, sources, &report);
   wxMessageBox(wxString::FromUTF8(report.c_str()), _("New Series"),
                wxOK | wxICON_INFORMATION, this);
+}
+
+
+// The folder a batch goes into: the selected folder, or the one holding
+// the selected calculation; the folder's calculations are offered as setups.
+static vector<std::pair<string, string> > folderCalculations(Resource *folder)
+{
+  vector<std::pair<string, string> > out;
+  vector<Resource*> *kids = folder ? folder->getChildren() : 0;
+  for (size_t i = 0; kids && i < kids->size(); i++)
+    if (dynamic_cast<ICalculation*>((*kids)[i]))
+      out.push_back(std::make_pair((*kids)[i]->getName(),
+                                   (*kids)[i]->getURL().toString()));
+  return out;
+}
+
+
+void CalcMgr::OnBatchSmiles(wxCommandEvent& event)
+{
+  WxResourceTreeItemData *node = p_treeCtrl->GetSelection().IsOk()
+      ? dynamic_cast<WxResourceTreeItemData*>(p_treeCtrl->GetItemData(p_treeCtrl->GetSelection()))
+      : 0;
+  WxResourceTreeItemData *container = node ? nearestContainer(node, 0) : 0;
+  if (!container) {
+    wxMessageBox(_("Select the project folder for the batch first."),
+                 _("Batch Add from SMILES"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  Resource *folder = container->getResource();
+  BatchSmilesDialog dlg(this, folder->getName(), folderCalculations(folder));
+  if (dlg.ShowModal() != wxID_OK) return;
+  string report;
+  vector<EcceURL> made;
+  batchSmiles(container->getUrl(), dlg.templateUrl(), dlg.rows(), dlg.replace(), true,
+              report, made);
+  if (made.empty()) {
+    wxMessageBox(wxString::FromUTF8(report.c_str()), _("Batch Add from SMILES"),
+                 wxOK | wxICON_WARNING, this);
+    return;
+  }
+  wxMessageDialog res(this, wxString::FromUTF8(report.c_str()), _("Batch Add from SMILES"),
+                      wxYES_NO | wxICON_INFORMATION);
+  res.SetYesNoLabels(_("Launch Batch"), _("Close"));
+  if (res.ShowModal() == wxID_YES && !refuseDuringBatch("Launch Selected"))
+    launchSelected(made, true);
+}
+
+
+void CalcMgr::batchSmiles(const EcceURL& folder, const string& templ,
+                          const vector<SmilesBatch::Row>& rows, bool replace,
+                          bool interactive, string& report, vector<EcceURL>& made)
+{
+  ewxProgressDialog *pd = 0;
+  if (interactive && rows.size() > 3)
+    pd = new ewxProgressDialog("Batch Add from SMILES", "Building the structures",
+                               (int)rows.size(), this,
+                               wxPD_APP_MODAL | wxPD_AUTO_HIDE | wxPD_ELAPSED_TIME);
+  auto progress = [&](int done, int total, const string& name) {
+    if (pd) pd->Update(std::min(done, total), wxString::FromUTF8(
+        (name.empty() ? string("Done") : name + " (" + std::to_string(done + 1) +
+         " of " + std::to_string(total) + ")").c_str()));
+  };
+  string used, why;
+  vector<SmilesBatch::Outcome> out =
+      SmilesBatch::make(folder, templ, rows, used, why, replace, progress);
+  if (pd) pd->Destroy();
+  if (used.empty()) { report = "Nothing made: " + why; return; }
+  WxResourceTreeItemData *container = findNode(folder, true, true);
+  if (templ.empty()) {
+    p_treeCtrl->addToTree(EcceURL(used));
+    notifyCreate(used);
+  }
+  string bad;
+  int nbad = 0;
+  for (const SmilesBatch::Outcome& o : out) {
+    if (o.ok) {
+      made.push_back(EcceURL(o.url));
+      p_treeCtrl->addToTree(EcceURL(o.url));
+      notifyCreate(o.url);
+    } else {
+      nbad++;
+      bad += "\n  " + o.name + " (line " + std::to_string(o.line) + "): " + o.note;
+    }
+  }
+  if (container && !made.empty()) p_treeCtrl->refresh(container);
+  report = std::to_string(made.size()) + " calculations made with the setup of " +
+           EcceURL(used).getFilePathTail() + ".";
+  if (nbad) report += "\n" + std::to_string(nbad) + " rows not made:" + bad;
+  report += "\nLaunch Batch launches them now; later, select them and use "
+            "Run Mgmt > Launch Selected.";
 }
 
 
@@ -10199,6 +10404,24 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
             wxCommandEventHandler(CalcMgr::OnAllocations));
     p_allocationsWired = true;
   }
+  menu.Append(ID_BATCH_SMILES, _("Batch Add from SMILES..."));
+  if (!p_batchSmilesWired) {
+    Connect(ID_BATCH_SMILES, wxEVT_COMMAND_MENU_SELECTED,
+            wxCommandEventHandler(CalcMgr::OnBatchSmiles));
+    p_batchSmilesWired = true;
+  }
+  menu.Append(ID_QSAR_TABLE, _("QSAR Table..."));
+  if (!p_qsarTableWired) {
+    Connect(ID_QSAR_TABLE, wxEVT_COMMAND_MENU_SELECTED,
+            wxCommandEventHandler(CalcMgr::OnQsarTable));
+    p_qsarTableWired = true;
+  }
+  menu.Append(ID_QSAR_ANALYSIS, _("QSAR Analysis..."));
+  if (!p_qsarAnalysisWired) {
+    Connect(ID_QSAR_ANALYSIS, wxEVT_COMMAND_MENU_SELECTED,
+            wxCommandEventHandler(CalcMgr::OnQsarAnalysis));
+    p_qsarAnalysisWired = true;
+  }
   added = true;
 
   if (added) menu.AppendSeparator();
@@ -10253,6 +10476,63 @@ void CalcMgr::OnRank(wxCommandEvent&)
     if (why != "Cancelled.")
       wxMessageBox(wxString::FromUTF8(why.c_str()), _("Compare Energies"),
                    wxOK | wxICON_ERROR, this);
+    return;
+  }
+  dlg.ShowModal();
+}
+
+// Tools > QSAR Table (#961): descriptors and measured values of the calculations
+// of the selected folder, the groups ticked first.
+void CalcMgr::OnQsarTable(wxCommandEvent&)
+{
+  getSelection();
+  const vector<EcceURL> calcs = calculationsUnder(launchSelection());
+  if (calcs.empty()) {
+    wxMessageBox(_("Select the project folder (or calculations) of the batch first."),
+                 _("QSAR Table"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  static const char *const names[] = {"counts", "topology", "models", "charges", "vsa", "qm"};
+  wxArrayString labels;
+  labels.Add(_("Counts: atoms, bonds, rings, donors/acceptors, rotatable bonds"));
+  labels.Add(_("Topological indices: Wiener, Zagreb, chi, Kier, Balaban, information content"));
+  labels.Add(_("Property models: SlogP, SMR, TPSA, surface area"));
+  labels.Add(_("Gasteiger charges: Q_PC+, Q_PC-, extremes"));
+  labels.Add(_("Surface areas by charge, SlogP and SMR (VSA)"));
+  labels.Add(_("From the calculations: HOMO, LUMO, gap, dipole, charges"));
+  wxMultiChoiceDialog pick(this, _("Descriptors to include:"), _("QSAR Table"), labels);
+  wxArrayInt all;
+  for (size_t i = 0; i < labels.size(); ++i) all.Add((int)i);
+  pick.SetSelections(all);
+  if (pick.ShowModal() != wxID_OK) return;
+  string groups;
+  for (int i : pick.GetSelections()) groups += (groups.empty() ? "" : ",") + string(names[i]);
+  if (groups.empty()) return;
+  ChecksDialog dlg(this, calcs, false, &groups);
+  string why;
+  if (!dlg.ok(why)) {
+    if (why != "Cancelled.")
+      wxMessageBox(wxString::FromUTF8(why.c_str()), _("QSAR Table"), wxOK | wxICON_ERROR, this);
+    return;
+  }
+  dlg.ShowModal();
+}
+
+// Tools > QSAR Analysis (#961): PCA of the descriptor table of the selected folder.
+void CalcMgr::OnQsarAnalysis(wxCommandEvent&)
+{
+  getSelection();
+  const vector<EcceURL> calcs = calculationsUnder(launchSelection());
+  if (calcs.empty()) {
+    wxMessageBox(_("Select the project folder (or calculations) of the batch first."),
+                 _("QSAR Analysis"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  QsarDialog dlg(this, calcs);
+  string why;
+  if (!dlg.ok(why)) {
+    if (why != "Cancelled.")
+      wxMessageBox(wxString::FromUTF8(why.c_str()), _("QSAR Analysis"), wxOK | wxICON_ERROR, this);
     return;
   }
   dlg.ShowModal();
