@@ -175,6 +175,10 @@ vector<Series::Outcome> Series::make(const EcceURL& templ, const EcceURL& folder
     bool good = job && calc && ctask;
     if (good) {
       job->resetForRerun(ResourceDescriptor::STATE_CREATED);
+      // The copied job_path is the template's run directory: a launch that
+      // reuses it runs two calculations in one directory, and Clean Run
+      // Directory on the copy would empty the template's.
+      job->jobdata(Jobdata());
       // Remove the copied constraints; one stored without a configuration
       // entry is not found by name, so delete its file if it is still read.
       ctask->setGeomConstraintModel(0);
