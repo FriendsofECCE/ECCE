@@ -70,7 +70,11 @@ $perl = "$EcceRoot\strawberry\perl\bin\perl.exe"
 Time-Starts "Windows cmd.exe (baseline)" 5 { & "$env:SystemRoot\System32\cmd.exe" /c exit }
 Time-Starts "ECCE bash.exe" 5 { & $bash -c true }
 Time-Starts "ECCE perl.exe" 5 { & $perl -e 1 }
+# ECCE's own Perl first on PATH, as ecce.cmd sets it for the job scripts.
+$savedPath = $env:Path
+$env:Path = "$EcceRoot\strawberry\perl\bin;$EcceRoot\usr\bin;$env:Path"
 Time-Starts "ECCE bash.exe running perl" 5 { & $bash -c "perl -e 1" }
+$env:Path = $savedPath
 
 Say ""
 Say "== Name lookups"
