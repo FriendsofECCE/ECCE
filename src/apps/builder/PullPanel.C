@@ -8,7 +8,10 @@
 #include <wx/image.h>
 #include <wx/dcmemory.h>
 #include <wx/listctrl.h>
-#include <wx/notebook.h>
+#include <wx/simplebook.h>
+#include <wx/scrolwin.h>
+#include <wx/tglbtn.h>
+#include <wx/wrapsizer.h>
 #include <wx/textctrl.h>
 #include <wx/utils.h>
 #include <wx/filedlg.h>
@@ -27,6 +30,8 @@
 #include "XYPlotCanvas.H"
 
 #include "PullPanel.H"
+#include "Builder.H"
+#include "GmxAnalysisPanel.H"
 
 namespace {
 const wxWindowID ID_EXPORT = wxNewId();
@@ -34,6 +39,10 @@ const wxWindowID ID_FIND = wxNewId();
 const wxWindowID ID_CREATE = wxNewId();
 const wxWindowID ID_WHAM = wxNewId();
 const wxWindowID ID_UEXPORT = wxNewId();
+const wxWindowID ID_RMSD = wxNewId();
+const wxWindowID ID_GYRATE = wxNewId();
+const wxWindowID ID_TAB0 = wxNewId();
+const wxWindowID ID_TAB1 = wxNewId();
 
 wxString U8(const std::string& s) { return wxString::FromUTF8(s.c_str()); }
 double numOf(const MiniJson& v) { return atof(v.str().c_str()); }
@@ -89,25 +98,40 @@ bool PullPanel::Create(IPropCalculation *calculation,
     p_series.force = *f;
   }
 
-  p_book = new wxNotebook(this, wxID_ANY);
+  //  Two pages behind two toggle buttons.  A wxSimplebook shows and hides its
+  //  pages itself; with GTK's native notebook the Pull run page's Export
+  //  button stayed drawn over the docked Umbrella page.
+  wxBoxSizer *tabs = new wxBoxSizer(wxHORIZONTAL);
+  p_tab[0] = new wxToggleButton(this, ID_TAB0, "Pull run");
+  p_tab[1] = new wxToggleButton(this, ID_TAB1, "Umbrella sampling");
+  tabs->Add(p_tab[0], 0, wxRIGHT, 4);
+  tabs->Add(p_tab[1], 0);
+  GetSizer()->Add(tabs, 0, wxALL, 4);
+  p_book = new wxSimplebook(this, wxID_ANY);
   GetSizer()->Add(p_book, 1, wxEXPAND);
-  wxPanel *page = new wxPanel(p_book);
+  wxScrolledWindow *page = new wxScrolledWindow(p_book, wxID_ANY);
+  page->SetScrollRate(0, 10);
   page->SetSizer(new wxBoxSizer(wxVERTICAL));
   p_book->AddPage(page, "Pull run");
 
-  wxBoxSizer *bar = new wxBoxSizer(wxHORIZONTAL);
   p_text = new wxStaticText(page, wxID_ANY, wxEmptyString);
-  bar->Add(p_text, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
-  bar->Add(new wxButton(page, ID_EXPORT, "Export .csv..."), 0);
-  page->GetSizer()->Add(bar, 0, wxEXPAND | wxALL, 4);
+  page->GetSizer()->Add(p_text, 0, wxEXPAND | wxALL, 4);
+  //  wraps in a narrow dock
+  wxWrapSizer *bar = new wxWrapSizer(wxHORIZONTAL);
+  bar->Add(new wxButton(page, ID_EXPORT, "Export .csv..."), 0, wxRIGHT | wxBOTTOM, 6);
+  //  The structural checks a pull run needs (did the protein unfold, did
+  //  the chain stay compact) are MD Analysis's; these open it on them.
+  bar->Add(new wxButton(page, ID_RMSD, "RMSD..."), 0, wxRIGHT | wxBOTTOM, 6);
+  bar->Add(new wxButton(page, ID_GYRATE, "Radius of gyration..."), 0, wxBOTTOM, 6);
+  page->GetSizer()->Add(bar, 0, wxEXPAND | wxLEFT | wxRIGHT, 4);
 
   p_force = new XYPlotCanvas(page);
-  p_force->SetMinSize(wxSize(300, 150));
+  p_force->SetMinSize(wxSize(260, 160));
   p_force->setXAxisLabel("Time (ps)");
   p_force->setYAxisLabel("Pull force (kJ/mol/nm)");
   page->GetSizer()->Add(p_force, 1, wxEXPAND);
   p_dist = new XYPlotCanvas(page);
-  p_dist->SetMinSize(wxSize(300, 150));
+  p_dist->SetMinSize(wxSize(260, 160));
   p_dist->setXAxisLabel("Time (ps)");
   p_dist->setYAxisLabel("COM distance (nm)");
   page->GetSizer()->Add(p_dist, 1, wxEXPAND);
@@ -125,18 +149,27 @@ bool PullPanel::Create(IPropCalculation *calculation,
   }
 
   Bind(wxEVT_BUTTON, &PullPanel::OnExport, this, ID_EXPORT);
+  Bind(wxEVT_BUTTON, &PullPanel::OnAnalysis, this, ID_RMSD);
+  Bind(wxEVT_BUTTON, &PullPanel::OnAnalysis, this, ID_GYRATE);
+  Bind(wxEVT_TOGGLEBUTTON, &PullPanel::OnTab, this, ID_TAB0);
+  Bind(wxEVT_TOGGLEBUTTON, &PullPanel::OnTab, this, ID_TAB1);
 
   //  Umbrella sampling: windows from this run, then the PMF from their runs.
-  wxPanel *u = new wxPanel(p_book);
+  //  Scrolls rather than squeezing the plots in a short dock.
+  wxScrolledWindow *u = new wxScrolledWindow(p_book, wxID_ANY);
+  u->SetScrollRate(0, 10);
   wxBoxSizer *us = new wxBoxSizer(wxVERTICAL);
   u->SetSizer(us);
   p_book->AddPage(u, "Umbrella sampling");
-  wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+  wxWrapSizer *row = new wxWrapSizer(wxHORIZONTAL);
   auto field = [&](const char *label, const char *value, wxTextCtrl **out) {
-    row->Add(new wxStaticText(u, wxID_ANY, label), 0,
-             wxALIGN_CENTER_VERTICAL | wxLEFT, 6);
-    *out = new wxTextCtrl(u, wxID_ANY, value, wxDefaultPosition, wxSize(70, -1));
-    row->Add(*out, 0, wxLEFT, 3);
+    //  label and field wrap together
+    wxBoxSizer *pair = new wxBoxSizer(wxHORIZONTAL);
+    pair->Add(new wxStaticText(u, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+    *out = new wxTextCtrl(u, wxID_ANY, value);
+    (*out)->SetMinSize(wxSize((*out)->GetTextExtent("0000000").x + 20, -1));
+    pair->Add(*out, 0, wxLEFT, 3);
+    row->Add(pair, 0, wxRIGHT | wxBOTTOM, 10);
   };
   field("Spacing (nm)", "0.2", &p_spacing);
   field("From (nm)", "", &p_from);
@@ -144,33 +177,35 @@ bool PullPanel::Create(IPropCalculation *calculation,
   field("Equilibration steps", "50000", &p_eq);
   field("Production steps", "250000", &p_prod);
   us->Add(row, 0, wxEXPAND | wxALL, 4);
-  wxBoxSizer *b1 = new wxBoxSizer(wxHORIZONTAL);
-  b1->Add(new wxButton(u, ID_FIND, "Find windows"), 0, wxRIGHT, 6);
-  b1->Add(new wxButton(u, ID_CREATE, "Create window calculations"), 0, wxRIGHT, 12);
+  wxWrapSizer *b1 = new wxWrapSizer(wxHORIZONTAL);
+  b1->Add(new wxButton(u, ID_FIND, "Find windows"), 0, wxRIGHT | wxBOTTOM, 6);
+  b1->Add(new wxButton(u, ID_CREATE, "Create window calculations"), 0, wxRIGHT | wxBOTTOM, 6);
+  b1->Add(new wxButton(u, ID_WHAM, "Run WHAM"), 0, wxRIGHT | wxBOTTOM, 6);
+  b1->Add(new wxButton(u, ID_UEXPORT, "Export .csv..."), 0, wxRIGHT | wxBOTTOM, 6);
   p_jacobian = new wxCheckBox(u, wxID_ANY, "Remove the 2RT ln r volume term");
-  b1->Add(p_jacobian, 0, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-  b1->Add(new wxButton(u, ID_WHAM, "Run WHAM"), 0, wxRIGHT, 6);
-  b1->Add(new wxButton(u, ID_UEXPORT, "Export .csv..."), 0);
-  us->Add(b1, 0, wxEXPAND | wxALL, 4);
+  b1->Add(p_jacobian, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM, 6);
+  us->Add(b1, 0, wxEXPAND | wxLEFT | wxRIGHT, 4);
   p_windows = new wxListCtrl(u, wxID_ANY, wxDefaultPosition, wxSize(-1, 110),
                              wxLC_REPORT | wxLC_SINGLE_SEL);
   for (const char *c : { "Window", "Frame", "Time (ps)", "Distance (nm)" })
-    p_windows->AppendColumn(c, wxLIST_FORMAT_LEFT, 100);
+    p_windows->AppendColumn(c, wxLIST_FORMAT_LEFT, wxLIST_AUTOSIZE_USEHEADER);
   us->Add(p_windows, 0, wxEXPAND | wxALL, 4);
   p_pmf = new XYPlotCanvas(u);
-  p_pmf->SetMinSize(wxSize(300, 150));
+  p_pmf->SetMinSize(wxSize(260, 220));
   p_pmf->setXAxisLabel("COM distance (nm)");
   p_pmf->setYAxisLabel("PMF (kJ/mol)");
-  us->Add(p_pmf, 1, wxEXPAND);
+  us->Add(p_pmf, 2, wxEXPAND);
   p_hist = new XYPlotCanvas(u);
-  p_hist->SetMinSize(wxSize(300, 120));
+  p_hist->SetMinSize(wxSize(260, 150));
   p_hist->setXAxisLabel("COM distance (nm)");
   p_hist->setYAxisLabel("Window histograms (counts)");
   p_hist->setShowKey(false);
   us->Add(p_hist, 1, wxEXPAND);
-  //  Messages have a panel of their own, not a line among the controls.
-  p_info = new wxTextCtrl(u, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 70),
+  //  Messages have a panel of their own, not a line among the controls; it
+  //  is tall enough for the minima and maxima and scrolls beyond that.
+  p_info = new wxTextCtrl(u, wxID_ANY, "", wxDefaultPosition, wxDefaultSize,
                           wxTE_MULTILINE | wxTE_READONLY);
+  p_info->SetMinSize(wxSize(-1, 9 * p_info->GetCharHeight() + 12));
   us->Add(p_info, 0, wxEXPAND | wxALL, 4);
   umbrellaSay("Find windows along this pull run, create a calculation for "
               "each, and run WHAM when the production runs are Complete.");
@@ -178,6 +213,7 @@ bool PullPanel::Create(IPropCalculation *calculation,
   Bind(wxEVT_BUTTON, &PullPanel::OnCreate, this, ID_CREATE);
   Bind(wxEVT_BUTTON, &PullPanel::OnWham, this, ID_WHAM);
   Bind(wxEVT_BUTTON, &PullPanel::OnUmbrellaExport, this, ID_UEXPORT);
+  showPage(0);
   return true;
 }
 
@@ -208,7 +244,9 @@ bool PullPanel::umbrellaFind(double spacing, const wxString& from, const wxStrin
   p_dist->clearVLines();
   int n = 0;
   for (const MiniJson& w : j.get("windows").items()) {
-    const long row = p_windows->InsertItem(n++, wxString::Format("%d", n));
+    //  n is read once: InsertItem(n++, Format(n)) left the order to the compiler
+    const long row = p_windows->InsertItem(n, wxString::Format("%d", n + 1));
+    n++;
     p_windows->SetItem(row, 1, U8(w.get("frame").str()));
     p_windows->SetItem(row, 2, U8(w.get("time").str()));
     p_windows->SetItem(row, 3, U8(w.get("distance").str()));
@@ -320,12 +358,24 @@ bool PullPanel::umbrellaShot(const wxString& path, int width, int height)
   static bool handlers = false;
   if (!handlers) { wxInitAllImageHandlers(); handlers = true; }
   //  PMF, window histograms and the text under it, on white, as one picture.
-  wxBitmap bmp(width, height);
+  //  The text gets the height its lines need, below the plots' `height`.
+  wxString text = p_info->GetValue();
+  int lines = 1;
+  for (wxUniChar c : text) if (c == '\n') lines++;
+  int lineH = 0;
+  {
+    wxMemoryDC probe;
+    wxBitmap one(1, 1);
+    probe.SelectObject(one);
+    lineH = probe.GetCharHeight() + 1;
+  }
+  const int textH = lines * lineH + 12;
+  wxBitmap bmp(width, height + textH);
   {
     wxMemoryDC dc(bmp);
     dc.SetBackground(*wxWHITE_BRUSH);
     dc.Clear();
-    const int pmfH = height * 11 / 20, histH = height * 5 / 20;
+    const int pmfH = height * 11 / 16, histH = height * 5 / 16;
     //  paintOnto clears the whole surface, so each plot gets its own clip.
     dc.SetClippingRegion(0, 0, width, pmfH);
     p_pmf->paintOnto(dc, wxSize(width, pmfH));
@@ -337,11 +387,10 @@ bool PullPanel::umbrellaShot(const wxString& path, int width, int height)
     dc.SetDeviceOrigin(0, pmfH + histH);
     dc.SetTextForeground(*wxBLACK);
     int y = 4;
-    wxString text = p_info->GetValue();
-    wxStringTokenizer lines(text, "\n");
-    while (lines.HasMoreTokens() && y < height - pmfH - histH - 12) {
-      dc.DrawText(lines.GetNextToken(), 8, y);
-      y += dc.GetCharHeight() + 1;
+    wxStringTokenizer tok(text, "\n");
+    while (tok.HasMoreTokens()) {
+      dc.DrawText(tok.GetNextToken(), 8, y);
+      y += lineH;
     }
     dc.SetDeviceOrigin(0, 0);
   }
@@ -350,8 +399,43 @@ bool PullPanel::umbrellaShot(const wxString& path, int width, int height)
 
 void PullPanel::showUmbrella()
 {
-  p_book->SetSelection(1);
+  showPage(1);
+}
+
+void PullPanel::showPage(int n)
+{
+  p_book->SetSelection(n);
+  for (int i = 0; i < 2; i++) p_tab[i]->SetValue(i == n);
+  if (wxScrolledWindow *w = dynamic_cast<wxScrolledWindow*>(p_book->GetCurrentPage()))
+    w->FitInside();
   p_book->GetCurrentPage()->Layout();
+}
+
+void PullPanel::OnTab(wxCommandEvent& event)
+{
+  showPage(event.GetId() == ID_TAB1 ? 1 : 0);
+}
+
+bool PullPanel::openAnalysis(const std::string& key)
+{
+  IPropCalculation *calc = getCalculation();
+  Builder *b = dynamic_cast<Builder*>(wxTheApp->GetTopWindow());
+  if (!calc || !b || !b->openPropertyPanel("MD Analysis")) {
+    //  said under the run's summary: a dialog would stop a scripted run
+    const wxString why = "MD Analysis is not offered for this run (it needs the stored trajectory).";
+    if (!p_text->GetLabel().Contains(why)) p_text->SetLabel(p_text->GetLabel() + "\n" + why);
+    p_text->GetParent()->Layout();
+    return false;
+  }
+  for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString()))
+    if (GmxAnalysisPanel *g = dynamic_cast<GmxAnalysisPanel*>(p))
+      return g->setAnalysis(key);
+  return false;
+}
+
+void PullPanel::OnAnalysis(wxCommandEvent& event)
+{
+  openAnalysis(event.GetId() == ID_RMSD ? "rms" : "gyrate");
 }
 
 wxString PullPanel::umbrellaState() const

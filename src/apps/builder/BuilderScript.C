@@ -1354,6 +1354,10 @@ void Builder::runBuilderScript(const std::string& file)
                       ? "ok" : "failed");
         } else if (w[0] == "umbrellapage") {
           pp->showUmbrella();
+        } else if (w[0] == "umbrellaanalysis" && w.size() >= 2) {
+          //  umbrellaanalysis rms|gyrate: the pull page's MD Analysis links
+          fprintf(stderr, "BUILDER: umbrellaanalysis %s\n",
+                  pp->openAnalysis(w[1]) ? "ok" : "failed");
         } else if (w[0] == "umbrellastate") {
           fprintf(stderr, "BUILDER: umbrellastate %s\n", pp->umbrellaState().utf8_str().data());
         } else {

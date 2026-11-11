@@ -7,7 +7,8 @@
 #include "util/MiniJson.H"
 
 class wxStaticText;
-class wxNotebook;
+class wxSimplebook;
+class wxToggleButton;
 class wxTextCtrl;
 class wxCheckBox;
 class wxListCtrl;
@@ -52,6 +53,8 @@ class PullPanel : public PropertyPanel
       bool umbrellaShot(const wxString& path, int width = 900, int height = 600);
       wxString umbrellaState() const;
       void showUmbrella();
+      /** Open MD Analysis on this run with analysis `key` (rms, gyrate). */
+      bool openAnalysis(const std::string& key);
 
    protected:
       void OnExport(wxCommandEvent& event);
@@ -59,13 +62,17 @@ class PullPanel : public PropertyPanel
       void OnCreate(wxCommandEvent& event);
       void OnWham(wxCommandEvent& event);
       void OnUmbrellaExport(wxCommandEvent& event);
+      void OnTab(wxCommandEvent& event);
+      void OnAnalysis(wxCommandEvent& event);
+      void showPage(int n);
 
    private:
       PullSeries p_series;
       XYPlotCanvas *p_force;
       XYPlotCanvas *p_dist;
       wxStaticText *p_text;
-      wxNotebook *p_book;
+      wxSimplebook *p_book;
+      wxToggleButton *p_tab[2];
       wxTextCtrl *p_spacing, *p_from, *p_to, *p_eq, *p_prod, *p_info;
       wxCheckBox *p_jacobian;
       wxListCtrl *p_windows;

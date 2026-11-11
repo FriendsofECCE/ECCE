@@ -6136,34 +6136,8 @@ void Builder::updatePropertyMenus()
   if (!openPanelDone) {
     const char *openPanelName = getenv("ECCE_OPEN_PANEL");
     if (openPanelName != 0) {
-      wxAuiPaneInfo &pane = p_mgr.GetPane(wxString(openPanelName));
-      if (pane.IsOk()) {
+      if (openPropertyPanel(wxString(openPanelName), true)) {
         openPanelDone = true;
-        pane.Show(true);
-        if (p_panelMode == PANELS_DETAIL &&
-            paneGroup(pane) == GROUP_PROPERTIES) {
-          setDetail(pane.window);
-        } else if (p_panelMode == PANELS_ACCORDION &&
-                   paneGroup(pane) == GROUP_PROPERTIES) {
-          accordionNormalize(pane.window);
-        }
-        for (int i = 0; i < p_propertyMenu->GetMenuItemCount(); i++) {
-          wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
-          if (item != 0 && item->GetItemLabelText() == openPanelName) {
-            item->Check(true);
-            break;
-          }
-        }
-        //  Test hook: a floating panel of this size (headless screenshots of a small window).
-        if (const char *size = getenv("ECCE_OPEN_PANEL_SIZE")) {
-          int w = 0, h = 0;
-          if (sscanf(size, "%dx%d", &w, &h) == 2 && w > 0 && h > 0)
-            pane.FloatingSize(w, h).BestSize(w, h);
-        }
-        p_stayCollapsed = getenv("ECCE_PANEL_COLLAPSED") != 0;
-        updatePanes(true);
-        p_stayCollapsed = false;
-        focusShownPanel(pane.window);
       } else if (p_propertyMenu->GetMenuItemCount() > 0) {
         // Panels exist now and still no match -- report once rather
         // than on the very first (panel-less) pass.
@@ -7817,6 +7791,42 @@ void Builder::surfacesChanged()
   updatePropertyIndex();
 }
 
+
+
+//  Show a property panel as a click on its Properties menu entry does: the
+//  pane shown, made the detail or accordion panel, and its menu entry
+//  checked.  testSize: the ECCE_OPEN_PANEL_SIZE hook for a floating pane.
+bool Builder::openPropertyPanel(const wxString& name, bool testSize)
+{
+  wxAuiPaneInfo &pane = p_mgr.GetPane(name);
+  if (!pane.IsOk()) return false;
+  pane.Show(true);
+  if (p_panelMode == PANELS_DETAIL &&
+      paneGroup(pane) == GROUP_PROPERTIES) {
+    setDetail(pane.window);
+  } else if (p_panelMode == PANELS_ACCORDION &&
+             paneGroup(pane) == GROUP_PROPERTIES) {
+    accordionNormalize(pane.window);
+  }
+  for (int i = 0; i < p_propertyMenu->GetMenuItemCount(); i++) {
+    wxMenuItem *item = p_propertyMenu->FindItemByPosition(i);
+    if (item != 0 && item->GetItemLabelText() == name) {
+      item->Check(true);
+      break;
+    }
+  }
+  //  Test hook: a floating panel of this size (headless screenshots of a small window).
+  if (const char *size = testSize ? getenv("ECCE_OPEN_PANEL_SIZE") : 0) {
+    int w = 0, h = 0;
+    if (sscanf(size, "%dx%d", &w, &h) == 2 && w > 0 && h > 0)
+      pane.FloatingSize(w, h).BestSize(w, h);
+  }
+  p_stayCollapsed = testSize && getenv("ECCE_PANEL_COLLAPSED") != 0;
+  updatePanes(true);
+  p_stayCollapsed = false;
+  focusShownPanel(pane.window);
+  return true;
+}
 
 void Builder::createPropertyPanel(const string& name)
 {

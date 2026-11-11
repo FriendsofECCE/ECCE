@@ -520,6 +520,9 @@ class Builder: public BuilderGUI,
       void addToolBar(wxToolBar *toolbar, const string& name);
       void addPropertyPanel(PropertyPanel *panel, const string& name);
       void createPropertyPanel(const string& name);
+   public:
+      bool openPropertyPanel(const wxString& name, bool testSize = false);
+   private:
       void removePropertyPanels(const string& context="");
 
       void toggleTool(int id, bool isChecked);

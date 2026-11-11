@@ -229,7 +229,8 @@ def main():
             s, display, env, wrappers, ["-context", pull],
             ["wait 6000", "umbrellapage", "umbrellafind 0.04 0.24 1.2",
              "umbrellawham" + (" jacobian" if args.jacobian else ""), "umbrellaexport %s" % csv,
-             "umbrellashot %s 900 600" % shot, "umbrellastate", "wait 1500", "shot page", "quit"],
+             "umbrellashot %s 900 600" % shot, "umbrellastate", "wait 1500", "shot page",
+             "umbrellaanalysis gyrate", "wait 1500", "shot analysis", "quit"],
             png, "umbrella", {"ECCE_PANEL_MODE": args.panel_mode, "ECCE_OPEN_PANEL": "Pull Force",
                               "ECCE_OPEN_PANEL_SIZE": "1000x1000"})
         for l in text.splitlines():
@@ -241,6 +242,10 @@ def main():
         check(wh and int(wh.group(1)) == 1 and int(wh.group(2)) >= len(wins) - 1,
               "WHAM drew the PMF and %s histograms" % (wh.group(2) if wh else "no"))
         check("umbrellaexport ok" in text and "umbrellashot ok" in text, "export and shot reported ok")
+        # the pull page's link opens MD Analysis on the radius of gyration when
+        # the run has a trajectory; the fixture's may not, and then it says so
+        an = re.search(r"BUILDER: umbrellaanalysis (\w+)", text)
+        check(an is not None, "the Radius of gyration link answered (%s)" % (an.group(1) if an else "nothing"))
         if os.path.exists(csv):
             lines = [l for l in open(csv).read().splitlines() if l and l[0] != "#"]
             head = lines[0].lower()
