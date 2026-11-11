@@ -16,10 +16,10 @@ conf() {
     case $1 in
       # Both hosts have 6 physical cores (nproc counts 12 threads) and are
       # shared: one job at a time, 4 build jobs, so 2 cores stay free.
-      radium)    echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=4 CTEST_JOBS=2 KEEP=8 BUILDWRAP="srun -c 4 --mem=8G --"' ;;
-      # Other projects share nerdegg's CPUs through Slurm, so builds ask it
-      # for them; test jobs go through Slurm by their own --queue slurm.
-      nerdegg)   echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=4 CTEST_JOBS=1 KEEP=3 BUILDWRAP="srun -c 4 --mem=12G --"' ;;
+      radium)    echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=4 CTEST_JOBS=2 KEEP=8 BUILDWRAP=' ;;
+      # Builds run outside Slurm for now (Andy, 2026-11-11); to go back
+      # through it, BUILDWRAP="srun -c 4 --mem=12G --" (radium: --mem=8G).
+      nerdegg)   echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=4 CTEST_JOBS=1 KEEP=3 BUILDWRAP=' ;;
       *) echo "unknown host $1" >&2; return 1 ;;
     esac
 }
@@ -41,9 +41,9 @@ if [ "$host" != auto ] && ! host_free "$host"; then
     exit 3
 fi
 if [ "$host" = auto ]; then
-    # NerdEgg is the offload host; radium only with --host radium.
+    # NerdEgg first, then radium (outside its owner's hours).
     # A host that does not answer is skipped; a full one queues the job.
-    order="nerdegg"
+    order="nerdegg radium"
     host= queue=
     for h in $order; do
         if ! host_free "$h"; then
