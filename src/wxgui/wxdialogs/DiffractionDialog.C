@@ -1113,7 +1113,7 @@ bool DiffractionDialog::calculatePowder(string& why)
     char which[8] = "";
     const int nf = sscanf(line.c_str(), "%d,%d,%d,%lf,%lf,%lf,%d,%lf,%7s", &h, &k, &l, &d, &tt, &fa, &mult, &rel, which);
     if (nf < 8) continue;
-    Line ln = {tt, d, rel, wxString::Format("%d %d %d", h, k, l) + (nf == 9 ? U(string("  K\xCE\xB1") + (string(which) == "Ka2" ? "2" : "1")) : wxString()),
+    Line ln = {tt, d, rel, wxString::Format("%d %d %d", h, k, l) + (nf == 9 ? U((string("  K\xCE\xB1") + (string(which) == "Ka2" ? "2" : "1")).c_str()) : wxString()),
                h, k, l, nf == 9 && string(which) == "Ka2"};
     p_lines.push_back(ln);
     const long row = p_list->InsertItem(p_list->GetItemCount(), ln.hkl);
