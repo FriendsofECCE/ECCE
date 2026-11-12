@@ -161,7 +161,29 @@ def main():
             return False
         state = s.waitState(url, limit)
         note(label, "%.0f s (%s)" % (time.time() - t0, state))
+        if state not in ("completed", "loaded"):
+            dump_failure(url, out)
         return check(state in ("completed", "loaded"), "%s ran to %s" % (label, state))
+
+    def dump_failure(url, out):
+        # The run folder goes with the session, so the GROMACS error has to
+        # reach the log now.
+        say("  reason: %s" % s.reason_of(url))
+        m = re.search(r"^run directory: (.*)$", out, re.M)
+        rdir = m.group(1).strip() if m else ""
+        if not rdir or not os.path.isdir(rdir):
+            say("  (no local run directory %r)" % rdir)
+            return
+        say("  run directory files: %s" % sorted(os.listdir(rdir)))
+        for f in sorted(os.listdir(rdir)):
+            if f.endswith((".mdp", ".log", ".err", ".out", ".sh")) or "std" in f or "grompp" in f:
+                try:
+                    lines = open(os.path.join(rdir, f), errors="replace").read().splitlines()
+                except OSError:
+                    continue
+                say("  ---- %s (last 60 of %d lines)" % (f, len(lines)))
+                for l in lines[-60:]:
+                    say("  | " + l)
 
     display = org = None
     try:
