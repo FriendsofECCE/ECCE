@@ -325,4 +325,12 @@ sub setupBasisTranslation {
   $NameToBasis{"def2-svp"} = "def2-SVP";
   $NameToBasis{"def2-tzvp"} = "def2-TZVP";
   $NameToBasis{"def2-qzvp"} = "def2-QZVP";
+  #  The diffuse def2 sets (#981).  Without them ORCA.expt drops the basis
+  #  of an imported def2-SVPD job.  ORCA lists the diffuse shells after
+  #  the others; orca.mo's l-sort puts them where ECCE's library has them.
+  $NameToBasis{"def2-svpd"} = "def2-SVPD";                   # nbf 39
+  $NameToBasis{"def2-tzvpd"} = "def2-TZVPD";
+  $NameToBasis{"def2-tzvppd"} = "def2-TZVPPD";
+  $NameToBasis{"def2-qzvpd"} = "def2-QZVPD";
+  $NameToBasis{"def2-qzvppd"} = "def2-QZVPPD";
 }
