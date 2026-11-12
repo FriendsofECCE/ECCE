@@ -12,7 +12,7 @@ args:    '.' 'Energy' 'PW' 'PW' '0'
       size: 1
       values: PWSCF 6.7MaX
 
-[TE]  Script=qe.energy  Freq=all  Skip=0  Lines=1
+[TE][GEOMTRACE][LATTICEVEC][TEVEC]  Script=qe.energy  Freq=all  Skip=0  Lines=1
   Begin=^!\s*total energy
   begins=1 delivered=1 buffered_away=0
   block 1: begin-line=202 fed=1 rc=0 first-fed='!    total energy              =     -22.82339475 Ry'

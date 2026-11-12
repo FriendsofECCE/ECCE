@@ -68,15 +68,19 @@ while (<STDIN>) {
 #  past its end.
 exit(0) if (scalar(@values) != 9);
 
-print "key: LATTICEVEC\n";
-print "size:\n1 3 3\n";
-print "rowlabels:\n0 1 2\n";
-print "columnlabels:\nX Y Z\n";
-print "values:\n";
+my $rec = "key: LATTICEVEC\nsize:\n1 3 3\nrowlabels:\n0 1 2\ncolumnlabels:\nX Y Z\nvalues:\n";
 for (my $i = 0; $i < 9; $i++) {
-  printf("%.15e ", $values[$i]);
-  print "\n" if ($i % 3 == 2);
+  $rec .= sprintf("%.15e ", $values[$i]);
+  $rec .= "\n" if ($i % 3 == 2);
 }
-print "units:\nAngstrom\n";
-print "END\n";
+$rec .= "units:\nAngstrom\nEND\n";
+
+# Like the positions (qe.geomtrace), published by qe.energy with the energy of
+# the SCF that follows; md publishes at once.
+if ($runtype =~ /dynamics/i) {
+  print $rec;
+} elsif (open(my $fh, ">", "$key/qeStash.LATTICEVEC")) {
+  print $fh $rec;
+  close($fh);
+}
 exit(0);

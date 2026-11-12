@@ -3030,6 +3030,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/g16_units_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # QE relax / vc-relax: one TEVEC per GEOMTRACE frame, its own energy (#1003).
+  add_test(NAME parsers_qe_trace_align
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/qe_trace_align_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # Gaussian 16 traces: one structure per energy point (#947).
   add_test(NAME parsers_g16_trace_align
            COMMAND ${PYTHON3_EXECUTABLE}

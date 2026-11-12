@@ -8,7 +8,8 @@
 # Builder viewer.
 #
 # Called once per block by eccejobmonitor (Frequency=all in qe.desc), each
-# invocation contributing one step to the PropTSVecTable.
+# invocation contributing one step to the PropTSVecTable (see the runtype
+# note at the end for when the step is actually published).
 #
 # Input looks like (real pw.x 6.7 output):
 #
@@ -71,14 +72,20 @@ while (<STDIN>) {
 my $size = $#coordlines + 1;
 exit(0) if ($size < 1);
 
-print "key: GEOMTRACE\n";
-print "size:\n1 $size 3\n";
-print "rowlabels:\n$rowLabels\n";
-print "columnlabels:\nX Y Z\n";
-print "values:\n";
+my $rec = "key: GEOMTRACE\nsize:\n1 $size 3\nrowlabels:\n$rowLabels\n"
+        . "columnlabels:\nX Y Z\nvalues:\n";
 foreach my $line (@coordlines) {
-  print " $line\n";
+  $rec .= " $line\n";
 }
-print "units:\nAngstrom\n";
-print "END\n";
+$rec .= "units:\nAngstrom\nEND\n";
+
+# pw.x prints this block BEFORE the SCF that computes its energy, so qe.energy
+# publishes it together with that energy (one TEVEC per frame).  md has its
+# own step vectors (qe.mdstep) and publishes at once.
+if ($runtype =~ /dynamics/i) {
+  print $rec;
+} elsif (open(my $fh, ">", "$key/qeStash.GEOMTRACE")) {
+  print $fh $rec;
+  close($fh);
+}
 exit(0);

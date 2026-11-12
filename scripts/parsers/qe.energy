@@ -17,12 +17,12 @@
 # for the SCF trace.  The two Begin regexes cannot match the same physical
 # line, which is what PDMatchBegin()'s first-match-wins behaviour requires.
 #
-# NO TEVEC.  TEVEC is a PropTSVector<Geometry Step> and phase 1 is
-# calculation='scf' only, so there is exactly one geometry and no
-# GEOMTRACE for it to be indexed against.  Emitting a length-1 TEVEC with
-# a zero-length GEOMTRACE is the out-of-bounds shape CLAUDE.md warns about
-# (PropTSVecTable::value() via GTStepCmd).  TEVEC belongs with 'relax'
-# (roadmap phase 3), where GEOMTRACE exists.
+# TEVEC (relax, vc-relax).  The ATOMIC_POSITIONS block pw.x prints after an
+# SCF is the geometry of the NEXT SCF, so this script publishes the block
+# (and cell) that qe.geomtrace / qe.latvec stashed, together with this
+# energy: one TEVEC per GEOMTRACE frame, each its own.  The starting
+# geometry has no block and is not a frame; the final block repeats the last
+# frame and is never published.  md has its own vectors (qe.mdstep).
 #
 # UNITS: pw.x prints Rydberg.  EnergyConverter (src/util/units/
 # EnergyConverter.C) knows kcal/Mole, kJoule/Mole, Hartree and eV -- there
@@ -45,6 +45,20 @@ if (/^!\s*total energy\s*=\s*(-?\d+\.?\d*([EeDd][-+]?\d+)?)/) {
 exit(0) if (!defined($ry));
 
 my $hartree = $ry * 0.5;
+my $paired = "";
+if ($runtype !~ /dynamics/i && -e "$key/qeStash.GEOMTRACE") {
+  foreach my $name ("GEOMTRACE", "LATTICEVEC") {
+    my $f = "$key/qeStash.$name";
+    if (open(my $fh, "<", $f)) {
+      local $/;
+      $paired .= <$fh>;
+      close($fh);
+    }
+    unlink($f);
+  }
+  $paired .= "key: TEVEC\nsize:\n1\nvalues:\n$hartree\nunits:\nHartree\nEND\n";
+}
+print $paired;
 
 print "key: TE\n";
 print "size:\n1\n";
