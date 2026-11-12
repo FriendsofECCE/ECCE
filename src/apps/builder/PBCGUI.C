@@ -410,18 +410,21 @@ void PBCGUI::CreateControls()
     itemBoxSizer54->Add(itemStaticText55, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxSpinCtrl* itemSpinCtrl56 = new ewxSpinCtrl( p_latticePanel, ID_SPINCTRL_PBC_XREP, _("1"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, 1, 100, 1 );
+    itemSpinCtrl56->SetMinSize(wxSize(itemSpinCtrl56->GetTextExtent("100").x + 44, -1));
     itemBoxSizer54->Add(itemSpinCtrl56, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxStaticText* itemStaticText57 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("b:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer54->Add(itemStaticText57, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxSpinCtrl* itemSpinCtrl58 = new ewxSpinCtrl( p_latticePanel, ID_SPINCTRL_PBC_YREP, _("1"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, 1, 100, 1 );
+    itemSpinCtrl58->SetMinSize(wxSize(itemSpinCtrl58->GetTextExtent("100").x + 44, -1));
     itemBoxSizer54->Add(itemSpinCtrl58, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxStaticText* itemStaticText59 = new ewxStaticText( p_latticePanel, wxID_STATIC, _("c:"), wxDefaultPosition, wxDefaultSize, 0 );
     itemBoxSizer54->Add(itemStaticText59, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxSpinCtrl* itemSpinCtrl60 = new ewxSpinCtrl( p_latticePanel, ID_SPINCTRL_PBC_ZREP, _("1"), wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, 1, 100, 1 );
+    itemSpinCtrl60->SetMinSize(wxSize(itemSpinCtrl60->GetTextExtent("100").x + 44, -1));
     itemBoxSizer54->Add(itemSpinCtrl60, 0, wxALIGN_CENTER_VERTICAL|wxALL, 2);
 
     ewxCheckBox* itemCheckBox61 = new ewxCheckBox( p_latticePanel, ID_CHECKBOX_PBC_UNIFORM, _("Uniform"), wxDefaultPosition, wxDefaultSize, wxCHK_2STATE );

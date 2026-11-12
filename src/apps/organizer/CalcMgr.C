@@ -252,21 +252,21 @@ public:
     p_element->SetToolTip("Element symbol: the atom added, or the one removed in pairs.");
     p_minHost = new wxSpinCtrlDouble(this, wxID_ANY, "1.6", wxDefaultPosition, wxDefaultSize,
                                      wxSP_ARROW_KEYS, 0.5, 6.0, 1.6, 0.1);
-    p_minHost->SetToolTip("Smallest distance from a new atom to any host atom (Angstrom).");
+    p_minHost->SetToolTip(wxString::FromUTF8("Smallest distance from a new atom to any host atom (Å)."));
     p_minSep = new wxSpinCtrlDouble(this, wxID_ANY, "1.0", wxDefaultPosition, wxDefaultSize,
                                     wxSP_ARROW_KEYS, 0.1, 6.0, 1.0, 0.1);
-    p_minSep->SetToolTip("Sites closer than this to each other count as one (Angstrom).");
+    p_minSep->SetToolTip(wxString::FromUTF8("Sites closer than this to each other count as one (Å)."));
     p_maxDist = new wxSpinCtrlDouble(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize,
                                      wxSP_ARROW_KEYS, 0.0, 50.0, 0.0, 0.5);
-    p_maxDist->SetToolTip("Largest distance between the two removed atoms (Angstrom); "
-                          "0 = no limit. Vacancy pairs only.");
+    p_maxDist->SetToolTip(wxString::FromUTF8("Largest distance between the two removed atoms (Å); "
+                          "0 = no limit. Vacancy pairs only."));
     g->Add(new wxStaticText(this, wxID_ANY, "Element"), 0, wxALIGN_CENTER_VERTICAL);
     g->Add(p_element, 1, wxEXPAND);
-    g->Add(new wxStaticText(this, wxID_ANY, "Minimum distance to host atoms (A)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(new wxStaticText(this, wxID_ANY, wxString::FromUTF8("Minimum distance to host atoms (Å)")), 0, wxALIGN_CENTER_VERTICAL);
     g->Add(p_minHost);
-    g->Add(new wxStaticText(this, wxID_ANY, "Minimum distance between sites (A)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(new wxStaticText(this, wxID_ANY, wxString::FromUTF8("Minimum distance between sites (Å)")), 0, wxALIGN_CENTER_VERTICAL);
     g->Add(p_minSep);
-    g->Add(new wxStaticText(this, wxID_ANY, "Maximum pair distance (A, 0 = no limit)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(new wxStaticText(this, wxID_ANY, wxString::FromUTF8("Maximum pair distance (Å, 0 = no limit)")), 0, wxALIGN_CENTER_VERTICAL);
     g->Add(p_maxDist);
     top->Add(g, 0, wxEXPAND | wxALL, 8);
     p_note = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 70),

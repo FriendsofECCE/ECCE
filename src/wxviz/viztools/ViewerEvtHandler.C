@@ -859,7 +859,7 @@ void ViewerEvtHandler::hydrogenBondSettings(wxCommandEvent & event)
             _("Donor-acceptor distance at most (\u00c5):")), 0, wxALIGN_CENTER_VERTICAL);
   grid->Add(dist);
   grid->Add(new wxStaticText(&dlg, wxID_ANY,
-            _("Hydrogen-donor-acceptor angle at most (degrees):")), 0, wxALIGN_CENTER_VERTICAL);
+            _("Hydrogen-donor-acceptor angle at most (\u00b0):")), 0, wxALIGN_CENTER_VERTICAL);
   grid->Add(angle);
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
   top->Add(grid, 0, wxALL, 10);

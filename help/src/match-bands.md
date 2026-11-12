@@ -25,7 +25,7 @@ not found, a message says which molecule was looked for and where.
 
 The window lists, per matched band, the mode number, frequency and IR
 intensity in this calculation (A) and in the other (B), the **Shift** (B minus
-A, in cm-1) and the **Overlap**. Click a row to select and animate that mode in
+A, in cm⁻¹) and the **Overlap**. Click a row to select and animate that mode in
 this calculation. Bands that found no partner are listed under the table. **Split** shows how
 many bands of the other calculation one band is paired with.
 

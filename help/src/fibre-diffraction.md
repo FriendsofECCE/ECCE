@@ -29,7 +29,7 @@ The fields:
   the Ewald sphere, so the meridional reflections of high layer lines are
   displaced from the vertical axis or missing, as in a real photograph with an
   untilted fibre.
-- **B** (20 A^2 by default): an isotropic temperature factor, damping the high angles.
+- **B** (20 Å² by default): an isotropic temperature factor, damping the high angles.
 - **Fibre length**: broadens the layer lines along Z as a fibre of that length
   would (100 A by default). It is added to the broadening of the molecule's own
   length. 0 is off.
