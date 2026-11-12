@@ -563,7 +563,8 @@ static int lingerMain(const string& src)
   t.join();
   double after = nowS() - q;
   check(after >= GRACE - 0.5 && after < GRACE + 4,
-        "the broker ended about the grace time after the last client left");
+        "the broker ended about the grace time after the last client left (" +
+        std::to_string(after) + " s)");
   check(access(file.c_str(), F_OK) != 0, "then the broker file was removed");
   (void)lingered;
   rmTree(tmp);
