@@ -174,7 +174,7 @@ private:
     double tt;
     wxString t;
     if (twoThetaAt(e.GetX(), tt)) {
-      const double perPx = (p_d->p_tt.back() - p_d->p_tt.front()) / std::max(10, GetClientSize().x - POW_L - POW_R);
+      const double perPx = (p_d->p_tt.back() - p_d->p_tt.front()) / std::max(10.0, double(GetClientSize().x - POW_L - POW_R));
       t = p_d->reflectionText(tt, 4 * perPx);
       if (t.empty()) t = wxString::Format("2theta = %.2f", tt);
     }
@@ -381,7 +381,7 @@ void DiffractionDialog::paintImage(wxGraphicsContext *gc, double W, double H) co
     if (p_frame) {
       const wxColour ink = dark ? wxColour(255, 255, 255) : CALC, ring = dark ? wxColour(255, 200, 80) : wxColour(200, 60, 60);
       const double cx = a.x + a.width / 2.0, cy = a.y + a.height / 2.0, mm = p_layerScale * f;
-      gc->SetClipRegion(wxRegion(a));
+      gc->Clip(a.x, a.y, a.width, a.height);
       if (p_frings->IsChecked() && p_geomLambda > 0)
         for (double d : {3.0, 2.0, 1.5, 1.0}) {
           const double sn = p_geomLambda / (2 * d);
