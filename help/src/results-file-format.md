@@ -13,7 +13,7 @@ purposes.
 
 The file is in HDF5 format, so any HDF5 tool reads it. All values are in
 atomic units: lengths in bohr, energies in hartree, charges in electrons.
-Frequencies are in cm-1. The attribute `format_version` at the top of the
+Frequencies are in cm⁻¹. The attribute `format_version` at the top of the
 file is 1.
 
 ## What the file holds
@@ -135,7 +135,7 @@ did not:
 - the orbitals are orthonormal, C-transpose S C = 1, to 1e-6;
 - frequencies computed from the stored Hessian (mass weighted, rotations and
   translations projected out) agree with the frequencies the code printed to
-  within 0.5 cm-1.
+  within 0.5 cm⁻¹.
 
 ## What is covered
 

@@ -169,11 +169,11 @@ window: side A as the reactants and side B as the products.
   tunnelling corrections.
 - A reaction without a transition state gets no chart; its numbers are in the text below.
 - **G treatment** chooses the treatment of the low frequencies for ΔG (the
-  default is Grimme's quasi-RRHO with omega0 = 100 cm-1). **Update** redoes
+  default is Grimme's quasi-RRHO with omega0 = 100 cm⁻¹). **Update** redoes
   the numbers after the text is changed.
 - The text below the profile lists for each reaction ΔE, ΔG and the spread of
   ΔG over the six treatments listed under
-  [G over treatments](#g-over-treatments), the soft modes (below 100 cm-1) of
+  [G over treatments](#g-over-treatments), the soft modes (below 100 cm⁻¹) of
   each species with their share of its entropy and of G, the profile's
   numbers, and k without tunnelling and with the Wigner and the Eckart
   correction, with κ for each. The text can be selected and copied;
@@ -213,10 +213,10 @@ geometry trace. Missing forces, incompatible atoms or unknown gradient units
 are reported instead of producing a comparison.
 
 For each element, and for **all atoms**, the table gives the atom count,
-maximum and RMS of the per-atom vector norm **|F(B) - F(A)|**, in eV/Angstrom.
-Forces are minus the energy gradients; 1 Hartree/Bohr = 51.42208619 eV/Angstrom.
+maximum and RMS of the per-atom vector norm **|F(B) - F(A)|**, in eV/Å.
+Forces are minus the energy gradients; 1 Hartree/Bohr = 51.42208619 eV/Å.
 Use these statistics to assess cutoff, basis and pseudopotential convergence.
-If the final geometries differ by more than 0.01 Angstrom RMS per atom, a
+If the final geometries differ by more than 0.01 Å RMS per atom, a
 warning reminds you that forces of different geometries are not a convergence
 test. Coordinates and vectors are compared in their stored Cartesian frames,
 without alignment or periodic wrapping.

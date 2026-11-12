@@ -126,7 +126,7 @@ stress, at the given geometry.
 - **External pressure** (GPa, 0 by default; with the cell relaxed only): the
   relaxation minimises the enthalpy E + pV, so the cell ends where the stress
   equals this pressure. A negative value stretches the cell.
-- **Force limit** (eV/A, 0.05 by default): the run has converged when the
+- **Force limit** (eV/Å, 0.05 by default): the run has converged when the
   largest force on an atom, and with the cell relaxed the corresponding stress
   term, is below this.
 - **Maximum steps** (200 by default) and **Time limit** in minutes (0 for
@@ -154,7 +154,7 @@ atoms. **Runtype Details** has:
 
 Optimise the structure first (a Geometry run, then a new calculation from its
 last structure): at a geometry that is not a minimum the frequencies have no
-meaning, and the output warns when the largest force is above 0.05 eV/A. The
+meaning, and the output warns when the largest force is above 0.05 eV/Å. The
 translations, and for a molecule the rotations, are removed from the Hessian
 and listed first with a frequency of 0, as for the other codes; an imaginary
 frequency is shown as a negative number. For a periodic structure the
