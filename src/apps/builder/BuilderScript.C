@@ -34,8 +34,8 @@
 //    select N                    select atom (or Nub) number N (from 1), as a click
 //                                does; 0 or less none
 //    select_within R [molecules] [replace]  extend by distance in Angstrom
-//    select_protein              Edit > Select Protein (adds to the selection)
-//    select_ligand               Edit > Select Ligand: the largest ligand
+//    select_protein              Edit > Select Protein (replaces the selection)
+//    select_ligand               Edit > Select Ligand: the largest ligand (replaces the selection)
 //    selectelem A                select the first atom of element A
 //    addelem A                   add the last atom of element A to the selection
 //    bondkind covalent|metal     the kind of bond Bond mode makes
@@ -2116,6 +2116,8 @@ void Builder::runBuilderScript(const std::string& file)
 
 //  Edit > Select Protein / Select Ligand (#967).  Without residue
 //  information, or with nothing of the kind, it warns and selects nothing.
+//  Both replace the selection, so Select Ligand then Select Protein leaves
+//  only the protein selected.
 bool Builder::selectResidueClass(bool ligand)
 {
   SGFragment *frag = getSG()->getFragment();
@@ -2129,8 +2131,8 @@ bool Builder::selectResidueClass(bool ligand)
   }
   SelectCmd *cmd = new SelectCmd(ligand ? "Select Ligand" : "Select Protein",
                                  getSG());
+  cmd->getParameter("clear")->setBoolean(true);
   cmd->getParameter(ligand ? "ligand" : "protein")->setBoolean(true);
-  size_t before = frag->m_atomHighLight.size();
   execute(cmd);
   if (ligand) {
     showMessage(cmd->message().empty()
@@ -2139,7 +2141,7 @@ bool Builder::selectResidueClass(bool ligand)
                 : cmd->message());
     return !cmd->message().empty();
   }
-  if (frag->m_atomHighLight.size() == before) {
+  if (frag->m_atomHighLight.empty()) {
     showMessage("Select Protein: no amino acid or nucleic acid residues found.");
     return false;
   }
