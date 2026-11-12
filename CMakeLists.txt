@@ -4909,6 +4909,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_smiles PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # The Builder opens a CIF file (#358).
+  add_test(NAME apps_builder_cif
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_cif_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_cif PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # No bond orders in building; Clean's derived orders and bond lengths (#439).
   add_test(NAME apps_builder_bond_model
            COMMAND ${PYTHON3_EXECUTABLE}
