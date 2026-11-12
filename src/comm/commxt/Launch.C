@@ -672,8 +672,8 @@ bool Launch::validateCalculation(void)
 
         if (ofs) {
           char buf[256];
-          while (is->getline(buf, 255))
-            ofs << buf << endl;
+          for (std::string line; std::getline(*is, line); )
+            ofs << line << endl;
 
           delete is;
           is = 0;
@@ -688,8 +688,8 @@ bool Launch::validateCalculation(void)
               inputFilePath = p_cache->directory + "/" + basvec[ib].getFilePathTail();
               ofs.open(inputFilePath.c_str());
               if (ofs) {
-                while (is->getline(buf, 255))
-                  ofs << buf << endl;
+                for (std::string line; std::getline(*is, line); )
+                  ofs << line << endl;
 
                 ofs.close();
               } else {
@@ -719,8 +719,8 @@ bool Launch::validateCalculation(void)
                      p_cache->mdSystemName + "_" + p_cache->mdCalcName + ".rst";
                 ofs.open(inputFilePath.c_str());
                 if (ofs) {
-                  while (is->getline(buf, 255)) {
-                    ofs << buf << endl;
+                  for (std::string line; std::getline(*is, line); ) {
+                    ofs << line << endl;
                   }
                   ofs.close();
                 }
@@ -744,8 +744,8 @@ bool Launch::validateCalculation(void)
                                          p_cache->mdSystemName + ".top";
                 ofs.open(inputFilePath.c_str());
                 if (ofs) {
-                  while (is->getline(buf, 255)) {
-                    ofs << buf << endl;
+                  for (std::string line; std::getline(*is, line); ) {
+                    ofs << line << endl;
                   }
                   ofs.close();
                 }
@@ -780,8 +780,8 @@ bool Launch::validateCalculation(void)
               inputFilePath = p_cache->directory + "/" + p_cache->mdSystemName + ".pdb";
               ofs.open(inputFilePath.c_str());
               if (ofs) {
-                while (is->getline(buf, 255)) {
-                  ofs << buf << endl;
+                for (std::string line; std::getline(*is, line); ) {
+                  ofs << line << endl;
                 }
                 ofs.close();
               } else {
@@ -1498,8 +1498,8 @@ bool Launch::moveFiles(void)
 
             if (ofs) {
               char buf[256];
-              while (is->getline(buf, 255))
-                ofs << buf << endl;
+              for (std::string line; std::getline(*is, line); )
+                ofs << line << endl;
 
               delete is;
               ofs.close();
