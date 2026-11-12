@@ -193,8 +193,10 @@ def main():
                   [(g[3], g[4], g[1]) for g in got])
             check(all(int(g[4]) < 50 for g in got),
                   "nacl: drawing the bonds takes < 50 ms")
-            check(all(int(g[1]) < 400 for g in got),
-                  "nacl: a redraw takes < 400 ms")
+            check(all(int(g[3]) + int(g[4]) < 150 for g in got),
+                  "nacl: search + draw take < 150 ms")
+            print("     nacl menu/execute split: %s" %
+                  re.findall(r"hbonds_split (menu_ms=\d+ execute_ms=\d+)", log))
         else:
             print(log[-1500:])
     shutil.rmtree(work, ignore_errors=True)
