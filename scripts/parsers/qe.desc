@@ -37,12 +37,9 @@
 # deliberate departure from the rule, justified by the '!' marker; do not
 # "simplify" it by dropping either anchor.
 #
-# SCOPE: phase 1 is calculation='scf' only (QuantumESPRESSO.edml has one
-# runtype, Energy), so there is deliberately NO GEOMTRACE, TEVEC, EGRAD or
-# LATTICEVEC entry here.  Those are all indexed by Geometry Step, and a
-# Geometry-Step-indexed vector with no GEOMTRACE to index against is the
-# out-of-bounds shape CLAUDE.md records for PropTSVecTable::value().  They
-# arrive with 'relax'/'vc-relax' (docs/QE_ROADMAP.md phases 3 and 4).
+# GEOMTRACE, LATTICEVEC and TEVEC are indexed by Geometry Step and must have
+# one entry per frame (PropTSVecTable::value() is bounds-checked), so for
+# relax / vc-relax they are published together by [TE]; see [GEOMTRACE].
 
 # "     Program PWSCF v.6.7MaX starts on 21Sep2026 at 17:19:27"
 # Frequency=first: pw.x prints this banner once, at the top.
@@ -64,7 +61,7 @@ Lines=1
 #           estimated scf accuracy    <  ...
 # back to back, so an End= that swallowed the second line would starve
 # [DELTAE] of its final data point (the ORCA VIBFREQ/VIB shape).
-[TE]
+[TE][GEOMTRACE][LATTICEVEC][TEVEC]
 Script=qe.energy
 Begin=^!\s*total energy
 Frequency=all
@@ -153,15 +150,15 @@ Lines=1
 # records: no other qe.desc Begin matches a blank line, so closing here
 # starves nothing.
 #
-# NOTE ON ALIGNMENT, for whoever adds TEVEC: pw.x prints one
-# "! total energy" per SCF cycle INCLUDING the starting geometry, but the
-# first ATOMIC_POSITIONS block is the result of the first BFGS step -- the
-# starting geometry appears only in the "site n. atom positions (alat
-# units)" table, in alat units.  So energies and ATOMIC_POSITIONS blocks
-# are offset by one, and pairing them naively gives every frame the
-# neighbouring step's energy.  Verified on a real 6-step H2O relax with
-# pw.x 6.7: 7 energies, 7 ATOMIC_POSITIONS blocks, of which the last is
-# the duplicate inside "Begin final coordinates".
+# ALIGNMENT: pw.x prints one "! total energy" per SCF cycle including the
+# starting geometry, but the first ATOMIC_POSITIONS block is the geometry of
+# the SECOND cycle (the starting one appears only in alat units), and the
+# last block repeats the final geometry.  Pairing them as they arrive gives
+# every frame the neighbouring step's energy, and a parser script sees only
+# its own block, so for relax / vc-relax qe.geomtrace and qe.latvec stash
+# their record in a side file and qe.energy publishes it with the energy
+# that follows.  A run of n energies gives n-1 frames and n-1 TEVEC; md
+# (runtype Dynamics) publishes at once.
 [GEOMTRACE]
 Script=qe.geomtrace
 Begin=^ATOMIC_POSITIONS

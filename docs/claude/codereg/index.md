@@ -118,6 +118,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [XML comments may not contain `--`](xml-comments-may-not-contain.md)
 - [The MO diagram needs the code's MO coefficients and basis, with their AO order verified, not its population analysis](the-mo-diagram-needs-the-codes-mo.md)
 - [Keep `len(TEVEC) <= len(GEOMTRACE)`](keep-lentevec-lengeomtrace.md)
+- [QE relax: positions are the next SCF's geometry; TEVEC published with them](qe-relax-positions-are-the-next-scf-geometry-1003.md)
 - [A `.desc` parse-type's `Begin` value is also its hash key, AND its match priority](a-desc-parse-types-begin-value-is.md)
 - [`End`-line starvation: an `End` that lands on another entry's `Begin` line makes that entry unable to EVER fire](end-line-starvation-an-end-that-lands.md)
 - [An `End` the code prints only sometimes leaves the block open: every later property is lost, progress still works (#491)](an-end-the-code-prints-only-sometimes.md)

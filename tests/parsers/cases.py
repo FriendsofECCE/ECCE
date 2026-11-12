@@ -1609,7 +1609,7 @@ CASES = [
             # is the only thing distinguishing this line from the
             # per-iteration ones, which is why [TE] is anchored ^! and
             # [EWVEC] is anchored ^\s+ -- see qe.desc.
-            'TE': dict(blocks=1, keys={
+            'TE][GEOMTRACE][LATTICEVEC][TEVEC': dict(blocks=1, keys={
                 'TE': {'values': '-11.411697375', 'units': 'Hartree'}}),
             #  tstress was on, so pw.x printed the tensor -- and until
             #  qe.stress existed nothing read it back, making the Runtype
@@ -1657,7 +1657,7 @@ CASES = [
         parse_args=('.', 'Energy', 'PW', 'PW', '0'),
         expect={
             'VERSION': dict(keys={'VERSION': {'values': 'PWSCF 6.7MaX'}}),
-            'TE': dict(blocks=1, keys={
+            'TE][GEOMTRACE][LATTICEVEC][TEVEC': dict(blocks=1, keys={
                 'TE': {'values': '-21.985236255', 'units': 'Hartree'}}),
             # pw.x prints FORCES; EGRADVEC is a GRADIENT, so the whole
             # conversion is a multiply by -0.5 (sign flip for
@@ -1700,7 +1700,7 @@ CASES = [
         parse_args=('.', 'Energy', 'PW', 'PW', '0'),
         expect={
             'VERSION': dict(keys={'VERSION': {'values': 'PWSCF 6.7MaX'}}),
-            'TE': dict(blocks=1, keys={
+            'TE][GEOMTRACE][LATTICEVEC][TEVEC': dict(blocks=1, keys={
                 'TE': {'values': '-19.740479745', 'units': 'Hartree'}}),
             'EWVEC': dict(blocks=2, keys={'EWVEC': {'units': 'Hartree'}}),
             'DELTAE': dict(blocks=3, keys={'DELTAE': {'units': 'Hartree'}}),
@@ -1732,11 +1732,16 @@ CASES = [
         desc='qe.desc',
         fixture='qe/h2o_relax.pwout',
         parse_args=('.', 'GeomOpt', 'PW', 'PW', '0'),
+        silent_ok={
+            'GEOMTRACE': 'Stashed; qe.energy publishes it with the energy.',
+            'LATTICEVEC': 'Stashed; qe.energy publishes it with the energy.'},
         expect={
             'VERSION': dict(keys={'VERSION': {'values': 'PWSCF 6.7MaX'}}),
-            'GEOMTRACE': dict(blocks=4, keys={'GEOMTRACE': {
-                'size': '1 3 3',
-                'units': 'Angstrom'}}),
+            #  4 energies, 4 blocks: 3 frames, each with the next energy
+            #  (the last block repeats the final geometry, no SCF follows).
+            'TE][GEOMTRACE][LATTICEVEC][TEVEC': dict(blocks=4, keys={
+                'GEOMTRACE': {'size': '1 3 3', 'units': 'Angstrom'},
+                'TEVEC': {'values': '-21.98593035', 'units': 'Hartree'}}),
         },
     ),
     dict(
@@ -1920,11 +1925,14 @@ CASES = [
         desc='qe.desc',
         fixture='qe/si_vcrelax.pwout',
         parse_args=('.', 'GeomOpt', 'PW', 'PW', '0'),
+        silent_ok={
+            'GEOMTRACE': 'Stashed; qe.energy publishes it with the energy.',
+            'LATTICEVEC': 'Stashed; qe.energy publishes it with the energy.'},
         expect={
-            'GEOMTRACE': dict(blocks=5, keys={'GEOMTRACE': {
-                'size': '1 2 3', 'units': 'Angstrom'}}),
-            'LATTICEVEC': dict(blocks=5, keys={'LATTICEVEC': {
-                'size': '1 3 3', 'units': 'Angstrom'}}),
+            'TE][GEOMTRACE][LATTICEVEC][TEVEC': dict(blocks=6, keys={
+                'GEOMTRACE': {'size': '1 2 3', 'units': 'Angstrom'},
+                'LATTICEVEC': {'size': '1 3 3', 'units': 'Angstrom'},
+                'TEVEC': {'units': 'Hartree'}}),
             #  Six stress blocks, one per vc-relax step. Both keys come
             #  from every one of them; STRESS and PRESSURE overwrite, so
             #  what survives is the converged cell's.
