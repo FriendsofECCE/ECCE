@@ -76,7 +76,7 @@ def main():
         text, _ = bo.runScript(s, display, env, wrappers, ["-context", url], lines, png,
                                "powder-nacl", {"ECCE_PANEL_MODE": "detail"})
         bo.check("BUILDER: calcdiffraction: done" in text and os.path.exists(csvf),
-                 "the Diffraction entry calculated and saved", text[-1500:])
+                 "the Diffraction entry calculated and saved")
         if os.path.exists(csvf):
             bo.check(open(pngf, "rb").read(8) == b"\x89PNG\r\n\x1a\n", "the PNG is a PNG")
             head = open(xyz).read().splitlines()[1]
@@ -84,7 +84,7 @@ def main():
             ref = os.path.join(out, "cli.csv")
             r = subprocess.run([sys.executable, CLI, "powder", xyz, "--out", ref],
                                capture_output=True, text=True)
-            bo.check(r.returncode == 0, "the CLI ran on the same structure", r.stderr[-300:])
+            bo.check(r.returncode == 0, "the CLI ran on the same structure")
             bo.check(open(csvf).read() == open(ref).read(), "the dialog's CSV equals the CLI's")
             rows = [ln.split(",") for ln in open(csvf).read().splitlines()[1:]]
             peak = max(rows, key=lambda r: float(r[1]))
