@@ -134,6 +134,7 @@ private:
   wxString measureText(const Spot& a, const Spot* b) const;
   const Spot *spotNear(int x, int y) const;
   wxScrolledWindow *p_leftWin;
+  class wxSpinCtrl *p_plabel;
   wxChoice *p_scheme;
   wxSlider *p_exposure;
   wxSizer *p_displayItems;

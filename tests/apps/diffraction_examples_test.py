@@ -148,7 +148,7 @@ def main():
                 bo.check(len(rd) == 3, "three readouts: %d" % len(rd))
                 if len(rd) == 3:
                     # layer: (2 0 0) to (4 0 0) is 1/d(200) = 1/2.82 A, one spot between, cell 5.64 A
-                    bo.check("0.3546 /A" in rd[0] and "1 spots between" in rd[0] and "cell edge 5.640 A" in rd[0],
+                    bo.check("0.3546 Å⁻¹" in rd[0] and "1 spots between" in rd[0] and "cell edge 5.640 Å" in rd[0],
                              "layer measure: %s" % rd[0])
                     fm = re.match(r"\((-?\d+) (-?\d+) (-?\d+)\) to \((-?\d+) (-?\d+) (-?\d+)\): ([\d.]+) mm.*, ([\d.]+) deg", rd[1])
                     if bo.check(fm is not None, "frame measure: %s" % rd[1]):
@@ -163,7 +163,7 @@ def main():
                                  abs(ang - float(fm.group(8))) < 0.11,
                                  "frame distance and angle match the CSV (%.2f mm, %.1f deg)" % (
                                      math.hypot(x2 - x1, y2 - y1), ang))
-                    bo.check("d = 2.8" in rd[2] and "Q = 2.2" in rd[2] and "I = " in rd[2],
+                    bo.check("d = 2.8" in rd[2] and "Q = 2.2" in rd[2] and "2θ = 31.7" in rd[2] and "I = " in rd[2],
                              "powder cursor: %s" % rd[2])
             if kind == "fibre":
                 bo.check("BUILDER: calclayer" not in text, "%s: no single-crystal layer for a molecule" % calc)

@@ -55,7 +55,7 @@ For a Cu, Mo or Co source the Powder pattern draws every reflection twice, at th
 K-alpha1 and K-alpha2 wavelengths, with K-alpha2 at half the intensity of
 K-alpha1 (untick **K-alpha1/K-alpha2 doublet** for a single line). The two
 wavelengths differ by a fixed fraction, so by Bragg's law the lines are further
-apart the larger the angle: the doublet is hardly visible at low 2-theta and is
+apart the larger the angle: the doublet is hardly visible at low 2θ and is
 resolved as two peaks at high angle. The peak list has one row per line, marked
 Ka1 or Ka2. Other sources (synchrotron, a typed wavelength) have no doublet.
 
@@ -86,15 +86,15 @@ saturation. **Save PNG...** uses the current choice.
 
 ## Measuring
 
-- **Detector frame**: click a spot to read hkl, d, 2-theta, I and its position
+- **Detector frame**: click a spot to read hkl, d, 2θ, I and its position
   on the detector in the line under the pointer line. Shift-click a second spot
   for the distance between the two on the detector (mm), the angle between
   them seen from the beam centre, and the d of each.
 - **Precession photograph**: click two spots. The line gives the reciprocal
-  distance (1/A) and the d of that row. When both lie on one lattice row with n
+  distance (Å⁻¹) and the d of that row. When both lie on one lattice row with n
   steps between them, it also gives a* = distance / n and the cell edge 1 / a*
   (valid for orthogonal axes).
-- **Powder**: the pointer line gives 2-theta, d, Q = 2 pi / d and I of the curve
+- **Powder**: **Label peaks above (% of strongest)** sets which peaks carry an hkl label (8 by default, 100 for only the strongest). The pointer line gives 2θ, d, Q = 2π / d and I of the curve
   under the pointer, and the nearest reflection.
 
 ## Detector frame of a rotating crystal
@@ -108,8 +108,8 @@ range and moving phi shows others. Spots are dark on light (choose the Dark sche
 colour). Intensities carry the Lorentz and polarisation factors and counting
 noise (untick **Noise** for a clean frame). **Label spots** writes hkl next to
 the strongest spots and **Resolution rings** draws circles at d = 3.0, 2.0, 1.5
-and 1.0 A with d and 2-theta; both are drawn on the picture only. The pointer
-reports hkl, d and 2-theta of the nearest spot. The round white disc is the
+and 1.0 Å with d and 2θ; both are drawn on the picture only. The pointer
+reports hkl, d and 2θ of the nearest spot. The round white disc is the
 beamstop. The same frame from the command line:
 `ecce-xrd frame structure.cif --source mo --phi 0 --osc 30 --out frame.png`.
 

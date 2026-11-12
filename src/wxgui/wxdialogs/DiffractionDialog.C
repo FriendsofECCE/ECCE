@@ -22,6 +22,7 @@
 #include <wx/process.h>
 #include <wx/progdlg.h>
 #include <wx/slider.h>
+#include <wx/spinctrl.h>
 #include <wx/stopwatch.h>
 #include <wx/sstream.h>
 
@@ -212,6 +213,8 @@ wxSize extent(wxGraphicsContext *gc, const wxString& s, double size = 1.0)
   return wxSize((int)std::ceil(w), (int)std::ceil(h));
 }
 
+wxString U(const char *s) { return wxString::FromUTF8(s); }
+
 wxString hklText(int h, int k, int l)
 {
   if (h >= 0 && k >= 0 && l >= 0 && h < 10 && k < 10 && l < 10)
@@ -287,7 +290,7 @@ void DiffractionDialog::paintPowder(wxGraphicsContext *gc, double W, double H) c
       // hkl at the peaks above a threshold, strongest first, none on top of another
       vector<const Line *> order;
       for (const Line& l : p_lines)
-        if (!l.a2 && l.rel >= 8.0 && l.tt >= x0 && l.tt <= x1) order.push_back(&l);
+        if (!l.a2 && l.rel >= p_plabel->GetValue() && l.rel > 0 && l.tt >= x0 && l.tt <= x1) order.push_back(&l);
       std::sort(order.begin(), order.end(), [](const Line *a, const Line *b) { return a->rel > b->rel; });
       vector<wxRect> placed;
       for (const Line *l : order) {
@@ -326,7 +329,7 @@ void DiffractionDialog::paintImage(wxGraphicsContext *gc, double W, double H) co
             " layer (reciprocal lattice, simulated)";
     caption = "Simulated precession photograph; darkness follows I_rel, 100 = the strongest reflection of the whole crystal";
   } else if (p_frame) {
-    title = wxString::Format("Rotating crystal, phi %d to %g degrees (simulated)", p_fphi->GetValue(),
+    title = wxString::Format(U("Rotating crystal, φ %d to %g° (simulated)"), p_fphi->GetValue(),
                              p_fphi->GetValue() + number(p_fosc));
     caption = wxString::Format("Detector %.0f mm from the crystal, %s radiation",
                                number(p_fdist), p_fsource->GetStringSelection());
@@ -544,9 +547,9 @@ wxString DiffractionDialog::measureText(const Spot& a, const Spot *b) const
   const double ax = (a.px - c) / sc, ay = (c - a.py) / sc;
   if (!b) {
     if (p_frame)
-      return wxString::Format("(%d %d %d)   d = %.3f A   2theta = %.2f deg   I = %.4g   at (%.2f, %.2f) mm",
+      return wxString::Format(U("(%d %d %d)   d = %.3f Å   2θ = %.2f°   I = %.4g   at (%.2f, %.2f) mm"),
                               a.h, a.k, a.l, a.d, a.F, a.I, ax, ay);
-    return wxString::Format("(%d %d %d) picked, d = %.3f A; click a second spot", a.h, a.k, a.l, a.d);
+    return wxString::Format(U("(%d %d %d) picked, d = %.3f Å; click a second spot"), a.h, a.k, a.l, a.d);
   }
   const double bx = (b->px - c) / sc, by = (c - b->py) / sc;
   const double dist = std::hypot(bx - ax, by - ay);
@@ -555,14 +558,14 @@ wxString DiffractionDialog::measureText(const Spot& a, const Spot *b) const
     double ang = 0;
     if (na > 0 && nb > 0)
       ang = std::acos(std::max(-1.0, std::min(1.0, (ax * bx + ay * by) / (na * nb)))) * 180 / M_PI;
-    return wxString::Format("(%d %d %d) to (%d %d %d): %.2f mm on the detector, %.1f deg at the beam centre; d = %.3f and %.3f A",
+    return wxString::Format(U("(%d %d %d) to (%d %d %d): %.2f mm on the detector, %.1f° at the beam centre; d = %.3f and %.3f Å"),
                             a.h, a.k, a.l, b->h, b->k, b->l, dist, ang, a.d, b->d);
   }
-  wxString t = wxString::Format("(%d %d %d) to (%d %d %d): %.4f /A, row d = %.3f A",
+  wxString t = wxString::Format(U("(%d %d %d) to (%d %d %d): %.4f Å⁻¹, row d = %.3f Å"),
                                 a.h, a.k, a.l, b->h, b->k, b->l, dist, dist > 0 ? 1.0 / dist : 0.0);
   const int n = gcd3(b->h - a.h, b->k - a.k, b->l - a.l);
   if (n > 0 && dist > 0)
-    t += wxString::Format("; %d spots between: %.4f /A per step, cell edge %.3f A (orthogonal axes)",
+    t += wxString::Format(U("; %d spots between: %.4f Å⁻¹ per step, cell edge %.3f Å (orthogonal axes)"),
                           n - 1, dist / n, n / dist);
   return t;
 }
@@ -616,10 +619,10 @@ wxString DiffractionDialog::cursorText(double tt, double tol) const
 {
   if (p_tt.size() < 2) return "";
   const double lam = parse(p_pwave->GetValue()), s = std::sin(tt * M_PI / 360);
-  wxString t = wxString::Format("2theta = %.3f", tt);
+  wxString t = wxString::Format(U("2θ = %.3f°"), tt);
   if (s > 0 && lam > 0) {
     const double d = lam / (2 * s);
-    t += wxString::Format("   d = %.4f A   Q = %.4f /A", d, 2 * M_PI / d);
+    t += wxString::Format(U("   d = %.4f Å   Q = %.4f Å⁻¹"), d, 2 * M_PI / d);
   }
   const size_t i = (size_t)std::lround(std::min(std::max((tt - p_tt.front()) / (p_tt.back() - p_tt.front()), 0.0), 1.0) *
                                        (p_tt.size() - 1));
@@ -702,20 +705,20 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_fibreItems = fibreBox;
 
   wxFlexGridSizer *grid = new wxFlexGridSizer(2, 4, 6);
-  auto field = [&](const char *label, const char *value, const char *tip) {
+  auto field = [&](const wxString& label, const char *value, const wxString& tip) {
     grid->Add(new wxStaticText(lp, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
     wxTextCtrl *t = new wxTextCtrl(lp, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
     t->SetToolTip(tip);
     grid->Add(t, 0);
     return t;
   };
-  p_wavelength = field("Wavelength (A)", "1.5418", "Cu K-alpha is 1.5418");
+  p_wavelength = field(U("Wavelength (Å)"), "1.5418", U("Cu Kα is 1.5418"));
   p_distance = field("Film distance (mm)", "30", "Sample to flat film");
   p_film = field("Film size (mm)", "40", "Edge of the square film");
-  p_b = field("B (A^2)", "20", "Isotropic temperature factor");
-  p_length = field("Fibre length (A)", "100", "Gaussian broadening along the layer lines; 0 = none");
-  p_mis = field("Misalignment (deg)", "8", "Spread of the fibre axes: arcs");
-  p_repeat = field("Repeat (A)", "0", "Axial repeat; the pointer then reports the layer line l = Z * repeat");
+  p_b = field(U("B (Å²)"), "20", U("Isotropic displacement (Debye–Waller) parameter"));
+  p_length = field(U("Fibre length (Å)"), "100", "Gaussian broadening along the layer lines; 0 = none");
+  p_mis = field(U("Misalignment (°)"), "8", "Spread of the fibre axes: arcs");
+  p_repeat = field(U("Repeat (Å)"), "0", "Axial repeat; the pointer then reports the layer line l = Z * repeat");
   p_gamma = field("Gamma", "1", "Display exponent");
   grid->Add(new wxStaticText(lp, wxID_ANY, "Axis"), 0, wxALIGN_CENTER_VERTICAL);
   p_axis = new wxChoice(lp, wxID_ANY);
@@ -744,7 +747,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   wxBoxSizer *powderBox = new wxBoxSizer(wxVERTICAL);
   p_powderItems = powderBox;
   wxFlexGridSizer *pg = new wxFlexGridSizer(2, 4, 6);
-  auto pfield = [&](const char *label, const char *value, const char *tip) {
+  auto pfield = [&](const wxString& label, const char *value, const wxString& tip) {
     pg->Add(new wxStaticText(lp, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
     wxTextCtrl *t = new wxTextCtrl(lp, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
     t->SetToolTip(tip);
@@ -753,29 +756,33 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   };
   pg->Add(new wxStaticText(lp, wxID_ANY, "Source"), 0, wxALIGN_CENTER_VERTICAL);
   p_source = new wxChoice(lp, wxID_ANY);
-  for (const char *c : {"Cu Ka (1.5406)", "Mo Ka (0.7093)", "Co Ka (1.7890)", "Other (type the wavelength)"})
-    p_source->Append(c);
+  for (const char *c : {"Cu Kα (1.5406 Å)", "Mo Kα (0.7093 Å)", "Co Kα (1.7890 Å)", "Other (type the wavelength)"})
+    p_source->Append(U(c));
   p_source->SetSelection(0);
   pg->Add(p_source, 0);
   pg->AddSpacer(0);
   p_doublet = new wxCheckBox(lp, wxID_ANY, "K\u03b11/K\u03b12 doublet");
   p_doublet->SetValue(true);
-  p_doublet->SetToolTip("Draw every reflection at the K-alpha1 and K-alpha2 wavelengths (K-alpha2 at half the intensity); Cu, Mo and Co sources only");
+  p_doublet->SetToolTip(U("Draw every reflection at the Kα1 and Kα2 wavelengths (Kα2 at half the intensity); Cu, Mo and Co sources only"));
   pg->Add(p_doublet, 0);
-  p_pwave = pfield("Wavelength (A)", "1.5406", "Used for the pattern; the Source choice fills it");
-  p_ptmin = pfield("2theta from", "5", "Degrees");
-  p_ptmax = pfield("2theta to", "90", "Degrees");
-  p_pfwhm = pfield("Peak width (deg)", "0.1", "FWHM in 2theta; pseudo-Voigt with equal Gauss and Lorentz parts");
-  p_pb = pfield("B (A^2)", "0", "Isotropic temperature factor");
+  p_pwave = pfield(U("Wavelength (Å)"), "1.5406", "Used for the pattern; the Source choice fills it");
+  p_ptmin = pfield(U("2θ from (°)"), "5", U("Degrees"));
+  p_ptmax = pfield(U("2θ to (°)"), "90", U("Degrees"));
+  p_pfwhm = pfield(U("Peak width, FWHM (° 2θ)"), "0.1", U("Pseudo-Voigt with equal Gauss and Lorentz parts"));
+  p_pb = pfield(U("B (Å²)"), "0", U("Isotropic displacement (Debye–Waller) parameter"));
   powderBox->Add(pg, 0, wxALL, 6);
-  wxButton *meas = new wxButton(lp, wxID_ANY, "Load measured pattern...");
+  powderBox->Add(new wxStaticText(lp, wxID_ANY, "Label peaks above (% of strongest)"), 0, wxLEFT | wxTOP, 6);
+  p_plabel = new wxSpinCtrl(lp, wxID_ANY, "8", wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 0, 100, 8);
+  p_plabel->SetToolTip("hkl labels on peaks at or above this percentage of the strongest; 100 = only the strongest");
+  powderBox->Add(p_plabel, 0, wxLEFT | wxRIGHT, 6);
+  wxButton *meas = new wxButton(lp, wxID_ANY, "Experimental...");
   powderBox->Add(meas, 0, wxLEFT | wxRIGHT | wxTOP, 6);
   left->Add(powderBox, 0);
 
   wxBoxSizer *layerBox = new wxBoxSizer(wxVERTICAL);
   p_layerItems = layerBox;
   wxFlexGridSizer *lg = new wxFlexGridSizer(2, 4, 6);
-  auto lfield = [&](const char *label, const char *value, const char *tip) {
+  auto lfield = [&](const wxString& label, const char *value, const wxString& tip) {
     lg->Add(new wxStaticText(lp, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
     wxTextCtrl *t = new wxTextCtrl(lp, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
     t->SetToolTip(tip);
@@ -789,8 +796,8 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_zone->SetSelection(0);
   lg->Add(p_zone, 0);
   p_layerNo = lfield("Layer number", "0", "0 gives hk0, h0l or 0kl; 1, 2 ... the layers above it");
-  p_lres = lfield("Resolution d_min (A)", "1", "Spots with d below this are left out");
-  p_lb = lfield("B (A^2)", "0", "Isotropic temperature factor");
+  p_lres = lfield(U("Resolution d_min (Å)"), "1", "Spots with d below this are left out");
+  p_lb = lfield(U("B (Å²)"), "0", U("Isotropic displacement (Debye–Waller) parameter"));
   layerBox->Add(lg, 0, wxALL, 6);
   p_absent = new wxCheckBox(lp, wxID_ANY, "Show absent reflections");
   p_absent->SetToolTip("Open circles where the structure factor is zero by symmetry");
@@ -805,19 +812,19 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   wxBoxSizer *frameBox = new wxBoxSizer(wxVERTICAL);
   p_frameItems = frameBox;
   wxFlexGridSizer *fg = new wxFlexGridSizer(2, 4, 6);
-  auto ffield = [&](const char *label, const char *value, const char *tip) {
+  auto ffield = [&](const wxString& label, const char *value, const wxString& tip) {
     fg->Add(new wxStaticText(lp, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
     wxTextCtrl *t = new wxTextCtrl(lp, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
     t->SetToolTip(tip);
     fg->Add(t, 0);
     return t;
   };
-  fg->Add(new wxStaticText(lp, wxID_ANY, "Start angle phi (deg)"), 0, wxALIGN_CENTER_VERTICAL);
+  fg->Add(new wxStaticText(lp, wxID_ANY, U("Start angle φ (°)")), 0, wxALIGN_CENTER_VERTICAL);
   p_fphi = new wxSlider(lp, wxID_ANY, 0, 0, 359, wxDefaultPosition, wxSize(160, -1),
                         wxSL_HORIZONTAL | wxSL_LABELS);
   p_fphi->SetToolTip("Where the oscillation starts, about the vertical axis");
   fg->Add(p_fphi, 0);
-  p_fosc = ffield("Oscillation (deg)", "10", "Range turned during the exposure");
+  p_fosc = ffield(U("Oscillation (°)"), "10", "Range turned during the exposure");
   p_fdist = ffield("Distance (mm)", "90", "Crystal to detector");
   p_fsource = new wxChoice(lp, wxID_ANY);
   for (const char *c : {"Mo", "Cu", "Co"}) p_fsource->Append(c);
@@ -830,7 +837,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_flabel = new wxCheckBox(lp, wxID_ANY, "Label spots");
   p_flabel->SetToolTip("hkl next to the 12 strongest spots");
   p_frings = new wxCheckBox(lp, wxID_ANY, "Resolution rings");
-  p_frings->SetToolTip("Circles at d = 3.0, 2.0, 1.5 and 1.0 A, labelled with d and 2 theta");
+  p_frings->SetToolTip(U("Circles at d = 3.0, 2.0, 1.5 and 1.0 Å, labelled with d and 2θ"));
   for (wxCheckBox *c : {p_fnoise, p_flabel, p_frings}) frameBox->Add(c, 0, wxLEFT | wxRIGHT | wxTOP, 6);
   left->Add(frameBox, 0);
 
@@ -870,8 +877,8 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_plot = new PowderPanel(this, this);
   right->Add(p_plot, 2, wxEXPAND | wxALL, 4);
   p_list = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(560, 150), wxLC_REPORT | wxLC_SINGLE_SEL);
-  const char *cols[] = {"h k l", "d (A)", "2theta", "|F|", "Mult.", "I rel"};
-  for (int i = 0; i < 6; i++) p_list->InsertColumn(i, cols[i], wxLIST_FORMAT_LEFT, i ? 78 : 70);
+  const char *cols[] = {"h k l", "d (Å)", "2θ (°)", "|F|", "Mult.", "I rel"};
+  for (int i = 0; i < 6; i++) p_list->InsertColumn(i, U(cols[i]), wxLIST_FORMAT_LEFT, i ? 78 : 70);
   right->Add(p_list, 1, wxEXPAND | wxALL, 4);
   // The pointer and the status each have a panel of their own.
   wxPanel *pp = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_SUNKEN);
@@ -904,6 +911,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_rbFrame = frame;
   auto again = [this](wxCommandEvent&) { string why; if (p_frame && p_calc.IsOk()) calculate(why); };
   p_fnoise->Bind(wxEVT_CHECKBOX, again);
+  p_plabel->Bind(wxEVT_SPINCTRL, [this](wxCommandEvent&) { p_plot->Refresh(); });
   p_exposure->Bind(wxEVT_SLIDER, [this](wxCommandEvent&) { updateImage(); });
   p_scheme->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { updateImage(); });
   for (wxCheckBox *c : {p_absent, p_lhkl, p_laxes})
@@ -1028,7 +1036,7 @@ bool DiffractionDialog::setMeasured(const string& path, string& why)
 
 void DiffractionDialog::onMeasured(wxCommandEvent&)
 {
-  wxFileDialog dlg(this, "Measured pattern (two columns: 2theta, intensity)", "", "",
+  wxFileDialog dlg(this, U("Experimental pattern (two columns: 2θ, intensity)"), "", "",
                    "Text (*.txt;*.csv;*.xy;*.dat)|*.txt;*.csv;*.xy;*.dat|All files|*",
                    wxFD_OPEN | wxFD_FILE_MUST_EXIST);
   string why;
@@ -1044,7 +1052,7 @@ wxString DiffractionDialog::reflectionText(double tt, double tol) const
   for (const Line& l : p_lines)
     if (l.rel >= 0.5 && std::fabs(l.tt - tt) <= tol && (!best || l.rel > best->rel)) best = &l;
   if (!best) return "";
-  return wxString::Format("(%s)   d = %.3f A   2theta = %.2f   I = %.1f", best->hkl, best->d, best->tt, best->rel);
+  return wxString::Format(U("(%s)   d = %.3f Å   2θ = %.2f°   I = %.1f"), best->hkl, best->d, best->tt, best->rel);
 }
 
 bool DiffractionDialog::calculatePowder(string& why)
@@ -1125,7 +1133,7 @@ wxString DiffractionDialog::spotText(int h, int k, int l) const
 {
   for (const Spot& s : p_spots)
     if (s.h == h && s.k == k && s.l == l)
-      return wxString::Format("(%d %d %d)   d = %.3f A   |F| = %.2f   I = %.4g%s", h, k, l, s.d, s.F,
+      return wxString::Format(U("(%d %d %d)   d = %.3f Å   |F| = %.2f   I = %.4g%s"), h, k, l, s.d, s.F,
                               s.I, s.absent ? "   (systematically absent)" : "");
   return "";
 }
@@ -1151,7 +1159,7 @@ wxString DiffractionDialog::framePointerText(int x, int y) const
     const double d2 = (s.px - x) * (s.px - x) + (s.py - y) * (s.py - y);
     if (d2 < bd) { bd = d2; best = &s; }
   }
-  return best ? wxString::Format("(%d %d %d)   d = %.3f A   2theta = %.2f deg   I = %.4g", best->h,
+  return best ? wxString::Format(U("(%d %d %d)   d = %.3f Å   2θ = %.2f°   I = %.4g"), best->h,
                                  best->k, best->l, best->d, best->F, best->I)
               : wxString();
 }
@@ -1385,8 +1393,8 @@ wxString DiffractionDialog::pointerText(int x, int y) const
   const double rep = parse(p_repeat->GetValue());
   wxString t;
   if (rep > 0) t += wxString::Format("l = %.2f   ", z * rep);
-  t += wxString::Format("R = %.4f   Z = %.4f /A", r, z);
-  if (s > 0) t += wxString::Format("   d = %.2f A", 1.0 / s);
+  t += wxString::Format(U("R = %.4f   Z = %.4f Å⁻¹"), r, z);
+  if (s > 0) t += wxString::Format(U("   d = %.2f Å"), 1.0 / s);
   t += wxString::Format("   I = %.3g", p_i[k]);
   return t;
 }
