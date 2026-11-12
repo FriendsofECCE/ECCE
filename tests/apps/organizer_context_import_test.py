@@ -43,8 +43,23 @@ def run(display):
         cmds = os.path.join(work, "commands")
         with open(cmds, "w") as handle:
             handle.write("contextmenu %s\n" % url)
-        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+        answers = os.path.join(work, "answers")
+
+        def wait(_display):
+            # A fixed settle lost the answer on a loaded host: the Organizer
+            # was stopped before its command timer first ran (#980).
+            end = time.time() + 120
+            while time.time() < end:
+                if os.path.exists(answers):
+                    with open(answers) as handle:
+                        if "contextmenu" in handle.read():
+                            return
+                time.sleep(0.5)
+
+        result = apps.run(display, "organizer", windowTimeout=60, settle=2,
+                          inspect=wait,
                           env={"ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_TEST_ORGANIZER_ANSWERS": answers,
                                "ECCE_LOCAL_DATA": data})
         lines = [l for l in (result.log or "").splitlines()
                  if "ECCE_TEST_ORGANIZER: contextmenu" in l]
@@ -66,9 +81,13 @@ def run(display):
             print("ok    right-click New offers the import: " + lines[-1])
             before = lines[-1].split("before=", 1)[-1].split(" selection=")[0]
             labels = [l for l in before.split("|") if l]
-            seen = [next((i for i, o in enumerate(ORDER)
-                          if l.startswith(o)), None) for l in labels]
-            seen = [i for i in seen if i is not None]
+            # Longest matching prefix: "NWChem MD Study..." also starts
+            # with "NWChem ".
+            seen = []
+            for l in labels:
+                hits = [i for i, o in enumerate(ORDER) if l.startswith(o)]
+                if hits:
+                    seen.append(max(hits, key=lambda i: len(ORDER[i])))
             if seen[:2] != [0, 1] or seen != sorted(seen):
                 failures.append("New submenu order")
                 print("FAIL  New order: " + " | ".join(labels))
