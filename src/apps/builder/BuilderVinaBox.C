@@ -2,6 +2,7 @@
 //  atoms, drawn as a wireframe in the viewer, redrawn when the editor's
 //  numbers change.  The box values live in the calculation's run type
 //  details (ES.Runtype.Vina.*), which ai.vina turns into the config.
+#include "tdat/Residue.H"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -257,6 +258,32 @@ string Builder::vinaBoxFromSelection(double margin)
   snprintf(buf, sizeof buf, "%.1f", margin);
   store(g, "ES.Runtype.Vina.BoxMargin", buf, "float", "A");
   store(g, "ES.Runtype.Vina.BoxAuto", "0", "bool", "");
+  // A selection that is exactly one ligand residue (not polymer, water or an
+  // ion) is also the ligand to dock: fill Ligand atoms with it.  A box around
+  // binding-site residues leaves the field as it was.
+  {
+    const Residue *only = 0;
+    bool one = true;
+    for (int a : frag->m_atomHighLight) {
+      const Residue *r = (a >= 0 && a < frag->numAtoms()) ? frag->atomRef(a)->getResidue() : 0;
+      if (!r || (only && r != only)) { one = false; break; }
+      only = r;
+    }
+    if (one && only && SGFragment::residueClass(only->name()) == SGFragment::RES_OTHER) {
+      vector<int> idx(frag->m_atomHighLight.begin(), frag->m_atomHighLight.end());
+      std::sort(idx.begin(), idx.end());
+      string ranges;
+      for (size_t i = 0; i < idx.size(); ) {
+        size_t j = i;
+        while (j + 1 < idx.size() && idx[j + 1] == idx[j] + 1) j++;
+        if (!ranges.empty()) ranges += ",";
+        ranges += std::to_string(idx[i] + 1);
+        if (j > i) ranges += "-" + std::to_string(idx[j] + 1);
+        i = j + 1;
+      }
+      store(g, "ES.Runtype.Docking.LigandAtoms", ranges, "string", "");
+    }
+  }
   const bool ok = ic->guiparams(g);
   delete g;
   if (!ok) return "the box could not be stored with the calculation";

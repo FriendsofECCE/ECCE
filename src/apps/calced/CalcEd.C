@@ -1773,6 +1773,12 @@ bool CalcEd::verifyInput(vector<VerifyFinding>* out)
     warn.level = VerifyFinding::BAD;
     warn.check = "generatorWarning";
     warn.message = p_inputGenWarnings[w].second;
+    // A generator note (DeckWriter keeps it as "Note: ...") is advice: shown
+    // as "?", it never blocks the launch.
+    if (warn.message.compare(0, 6, "Note: ") == 0) {
+      warn.level = VerifyFinding::UNSURE;
+      warn.message = warn.message.substr(6);
+    }
     int lineNo = 1;
     size_t start = 0;
     while (start <= text.size()) {
@@ -2031,7 +2037,8 @@ void CalcEd::detailsMCB(wxCommandEvent& event)
   if (!stored) return;
   bool changed = false;
   for (const auto& kv : *stored) {
-    if (kv.first.compare(0, 19, "ES.Runtype.Vina.Box") != 0) continue;
+    if (kv.first.compare(0, 19, "ES.Runtype.Vina.Box") != 0 &&
+        kv.first != "ES.Runtype.Docking.LigandAtoms") continue;
     GUIValue *mine = p_GUIValues->get(kv.first);
     if (mine && mine->getValueAsString() == kv.second->getValueAsString())
       continue;

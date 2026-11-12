@@ -69,7 +69,7 @@ with tempfile.TemporaryDirectory(prefix="vina_autoligand_") as d:
     m = re.search(r"#\| LIGAND_ATOMS=(\S+)", deck)
     check(m and m.group(1) == "%d-%d" % (lig_first, lig_last),
           "ligand is the LIG molecule %d-%d, not a water (got %s)" % (lig_first, lig_last, m and m.group(1)))
-    check("ai.vina warning [LIGAND_ATOMS]: the ligand was chosen automatically: residue LIG, 5 atoms" in p.stderr,
+    check("ai.vina note [LIGAND_ATOMS]: the ligand was chosen automatically: residue LIG, 5 atoms" in p.stderr,
           "the choice is reported with residue name and atom count")
     check("receptor still holds 4 water molecules" in p.stderr, "waters in the receptor are warned about")
     check("identical chains (A, B)" in p.stderr, "identical chains are warned about")

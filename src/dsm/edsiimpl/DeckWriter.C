@@ -496,15 +496,26 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
               if (eol == string::npos) eol = out.size();
               string line = out.substr(pos, eol - pos);
               pos = eol + 1;
+              // "note [...]" is advice (Verify shows it as "?", never as
+              // wrong); "warning [...]" is a problem that stops the run.
+              // A note's text is kept with a "Note: " prefix, which the
+              // editor turns back into the level.
               size_t open = line.find(" warning [");
+              size_t skip = 10;
+              string prefix;
+              if (open == string::npos) {
+                open = line.find(" note [");
+                skip = 7;
+                prefix = "Note: ";
+              }
               size_t close = line.find("]: ", open == string::npos ? 0 : open);
               if (line.compare(0, 3, "ai.") == 0 && open != string::npos &&
                   close != string::npos) {
-                size_t a = open + 10;
+                size_t a = open + skip;
                 size_t end = line.find_last_not_of(" \t\r");
                 r.warnings.push_back(std::make_pair(
                     line.substr(a, close - a),
-                    line.substr(close + 3, end + 1 - (close + 3))));
+                    prefix + line.substr(close + 3, end + 1 - (close + 3))));
               }
             }
             if (opt.stage) opt.stage("Storing the input file");

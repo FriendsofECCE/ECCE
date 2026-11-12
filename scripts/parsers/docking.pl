@@ -29,11 +29,13 @@ my %dockPolymer = map { $_ => 1 } qw(ALA ARG ASN ASP CYS GLN GLU GLY HIS ILE LEU
   LYS MET PHE PRO SER THR TRP TYR VAL HID HIE HIP HSD HSE HSP CYX CYM ASH GLH LYN
   MSE SEC PYL A C G U T DA DC DG DT DU ADE CYT GUA URA THY);
 
+# Advice about the split (automatic choice, waters, repeated chains): a
+# "note", which the editor shows as worth checking, never as an error.
 sub dockWarn {
   my ($text) = @_;
   my $prog = $0;
   $prog =~ s{.*/}{};
-  print STDERR "$prog warning [LIGAND_ATOMS]: $text\n";
+  print STDERR "$prog note [LIGAND_ATOMS]: $text\n";
 }
 
 sub dockRanges {

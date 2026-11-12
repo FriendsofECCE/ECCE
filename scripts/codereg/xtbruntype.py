@@ -34,7 +34,7 @@ class XtbRunTypePanel(EccePanel):
                                         name="ES.Runtype.Docking.LigandAtoms",
                                         size=(160, -1),
                                         default="",
-                                        label="Ligand atoms (empty: smallest molecule):",
+                                        label="Ligand atoms (empty: chosen automatically):",
                                         tip="Atom numbers, for example 1-5,9",
                                         export=1)
             dockSizer.AddWidget(self.ligand)
