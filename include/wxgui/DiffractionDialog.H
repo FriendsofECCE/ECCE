@@ -40,8 +40,6 @@ public:
 private:
   friend class DiffractionPanel;
   friend class PowderPanel;
-class PowderPanel;
-class wxListCtrl;
   std::string run(const std::vector<std::string>& args, int& status);
   void status(const wxString& text);
   void onCalculate(wxCommandEvent&);
