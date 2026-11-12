@@ -4613,6 +4613,30 @@ void CalcMgr::OnConfigureNwfsArchiveClick( wxCommandEvent& event )
 
 
 /**
+ * The group a type has in the New menus: containers, molecular QM,
+ * semi-empirical/tight-binding, periodic, MD, other. The lists in
+ * ResourceDescriptor.xml are in this order, alphabetical inside a group;
+ * a separator goes between groups so the codes read by kind.
+ * -1 for types outside these groups (MD study steps), which get none.
+ */
+static int newMenuGroup(const string & name)
+{
+  static const char * groups[][5] = {
+    {"project", "workflow", 0},
+    {"ecceqm_es", "gaussian16_es", "nwchem_es", "orca_es", 0},
+    {"crest_es", "mopac_es", "xtb_es", 0},
+    {"cp2k_es", "qe_es", 0},
+    {"gromacs_md_study", "nwchem_md_study", 0},
+    {"mlp_es", "vina_es", 0},
+  };
+  for (size_t g = 0; g < sizeof(groups) / sizeof(groups[0]); g++)
+    for (size_t i = 0; groups[g][i]; i++)
+      if (name == groups[g][i]) return (int)g;
+  return -1;
+}
+
+
+/**
  * The item, or its nearest ancestor, whose type can contain resType (any
  * type when resType is 0); 0 if none. A calculation holds nothing, so New
  * with one selected means "next to it", in its project.
@@ -9807,6 +9831,11 @@ void CalcMgr::getContextMenu(wxMenu & menu)
 
   // for each "contained", add to menu
   for (size_t i = 0; i < resVec.size(); i++) {
+    if (i > 0 && newMenuGroup(resVec[i]->getName()) >= 0 &&
+        newMenuGroup(resVec[i - 1]->getName()) >= 0 &&
+        newMenuGroup(resVec[i]->getName()) !=
+            newMenuGroup(resVec[i - 1]->getName()))
+      newMenu->AppendSeparator();
     // need to remove redundant "New " from each sub menu item
     string name = resVec[i]->getMenuItem();
     if (name.size() > 4) name = name.substr(4);
@@ -10121,6 +10150,11 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
         session && session->numMembers() == 0);
     wxMenu * newMenu = new wxMenu();
     for (size_t i = 0; i < types.size(); i++) {
+      if (i > 0 && newMenuGroup(types[i]->getName()) >= 0 &&
+          newMenuGroup(types[i - 1]->getName()) >= 0 &&
+          newMenuGroup(types[i]->getName()) !=
+              newMenuGroup(types[i - 1]->getName()))
+        newMenu->AppendSeparator();
       string label = types[i]->getMenuItem();
       if (label.size() > 4) label = label.substr(4);
       wxMenuItem * mi = new wxMenuItem(newMenu, types[i]->getId(),
