@@ -34,7 +34,9 @@ def krylov_coef(Xs, ys, a):
     K = [Xs.T @ ys]
     for _ in range(a - 1):
         K.append(Xs.T @ (Xs @ K[-1]))
-    K = np.array(K).T
+    # Orthonormal basis of the same space: the raw powers become nearly
+    # parallel by the fifth, and lstsq on them misses 1e-8.
+    K = np.linalg.qr(np.array(K).T)[0]
     c = np.linalg.lstsq(Xs @ K, ys, rcond=None)[0]
     return K @ c
 

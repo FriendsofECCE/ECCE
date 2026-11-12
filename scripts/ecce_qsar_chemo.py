@@ -129,7 +129,11 @@ def pca_fit(Xs, ncomp):
     a = min(ncomp, len(s))
     P = Vt[:a].T
     T = U[:, :a] * s[:a]
-    return T, P, s[:a] ** 2, float((s ** 2).sum())
+    # A component's sign is arbitrary and LAPACK builds differ (the bundled
+    # numpy flipped scores against the CLI's): make each largest loading positive.
+    flip = np.sign(P[np.abs(P).argmax(axis=0), np.arange(a)])
+    flip[flip == 0] = 1.0
+    return T * flip, P * flip, s[:a] ** 2, float((s ** 2).sum())
 
 
 def _impute_fit(Xs, mask, a, iters=500, tol=1e-9):
