@@ -22,5 +22,5 @@ exactly that. `tests/apps/builder_save_pick_test.py` (ctest
 `apps_builder_save_pick`) clicks atoms through X after Save, a second Save
 and a switch back to the calculation.
 
-Not checked: whether labels the user turns on (View > Atom Labels) also take
-clicks away from atoms.
+Labels the user turns on took clicks away from atoms too, for a different
+reason: see chemselection-raypick-must-set-parts.md (#975).
