@@ -1367,6 +1367,15 @@ class EcceSpinCtrl(wx.BoxSizer):
         #now initialize the base class
         self.spin=wx.SpinCtrl(parent, id, value, pos, size, style,
                               lower, upper, initial, name)
+        # GTK3 draws a spin control's - and + buttons beside the number; at a
+        # fixed 80 px the + was cut off. Wide enough for its longest value.
+        try:
+            need = self.spin.GetSizeFromTextSize(self.spin.GetTextExtent("-88888").x).x
+            if self.spin.GetSize().x < need:
+                self.spin.SetMinSize((need, -1))
+                self.spin.SetSize((need, -1))
+        except Exception:
+            pass
         self.parent = parent
 
         if tip:
