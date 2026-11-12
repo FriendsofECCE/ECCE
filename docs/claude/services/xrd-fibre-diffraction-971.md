@@ -37,3 +37,15 @@ issues: [971]
   row per atom.
 - Neutral-atom IT92 form factors: KCl (111) is weak (I ~ 0.3 % of (200)) rather
   than zero, which would need K+ and Cl-.
+
+## Single crystal (#972)
+
+- `ecce-xrd layer --zone l=0` (hk0), `k=0` (h0l), `h=0` (0kl) or `--normal u v w
+  --offset N` (uh+vk+wl = N). Intensities are |F|^2 with no Lorentz factor
+  (a precession picture); (000) is left out. A spot below 1e-6 of the strongest
+  is "absent".
+- The reciprocal axes are drawn only if they lie in the plane (b* is not in an
+  h0l layer of a hexagonal cell); with none in the plane, their projections.
+- The dialog does not recompute anything: it runs the CLI with `--out png
+  --out csv --geometry FILE` and places the hover spots from the CSV x, y and
+  the PNG's pixel scale in that file. Test hook: `calclayer` (Builder script).
