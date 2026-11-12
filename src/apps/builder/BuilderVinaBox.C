@@ -442,6 +442,9 @@ string Builder::vinaScriptCommand(const vector<string>& w)
     }
     if (w[1] == "png" && w.size() == 3)
       return en->exportPng(w[2]) ? "ok" : "FAIL: render or write failed";
+    if (w[1] == "note") return en->poseNote();
+    if (w[1] == "thumb" && w.size() == 4)
+      return en->exportThumbnail(atoi(w[2].c_str()), w[3]) ? "ok" : "FAIL";
     if (w[1] == "info") {
       string out = "kind=" + en->kind() + " population=" +
                    (en->hasPopulation() ? "1" : "0") + " label=" +

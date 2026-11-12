@@ -11,6 +11,7 @@
 
 #include "GeomTracePropertyPanel.H"
 
+class wxStaticText;
 class wxButton;
 class wxListEvent;
 class wxImageList;
@@ -54,6 +55,8 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     // Selection order, with heavy-atom RMSD in Angstrom and HTML colour.
     std::vector<std::string> superpositionRows() const;
     bool superpositionVisible() const { return p_overlay; }
+    std::string poseNote() const;
+    bool exportThumbnail(int rank, const std::string& path);
     bool exportPng(const std::string& path);
     std::vector<int> thumbnailRanks() const;
     void sortTable(int column, bool ascending);
@@ -113,7 +116,7 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     };
     const Geometry& geometry(int rank);
     SoSeparator *molecule(const Geometry& g, const std::vector<double>& xyz,
-                           const wxColour *colour = NULL);
+                           const wxColour *colour = NULL, bool lit = false);
     bool makeThumbnail(int rank);
     void thumbnailBatch();
 
@@ -125,6 +128,7 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     int p_selRank;
     int p_sortCol;
     bool p_sortUp;
+    wxStaticText *p_poseNote = nullptr;
     wxListCtrl *p_table;
     wxButton *p_export;
     wxButton *p_newCalcs;

@@ -214,6 +214,11 @@ can start. `ecce-workflow` is the command.
 
 **Docking.** Vina calculations (`vina`); `ecce-pdbqt` prepares PDBQT files;
 CREST/xTB docking is a run type of xTB.
+The Builder Poses panel shows cached ligand-only thumbnails for docking.
+For Vina, the line above the table reports the retained count, energy range
+and maximum modes from the stored input deck (settings fallback).
+Builder script `poses note` returns that text; `poses thumb 1 <file.png>`
+saves the cached thumbnail of pose 1 for image checks.
 
 **Diffraction.** Tools > Diffraction (`fibre-diffraction`); `ecce-xrd`.
 
