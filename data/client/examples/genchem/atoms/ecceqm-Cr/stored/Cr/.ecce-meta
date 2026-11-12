@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, ROB3LYP/def2-TZVPD, energy. This calculation shows the 3d5 4s1 configuration of chromium: five unpaired 3d electrons and one 4s electron, all with parallel spins.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:14:07 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:30:33 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:14:06 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:30:31 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309247.651 idle=0 at=1794309247\nscf cycle=11 energy=-1044.3566973225 dE=-2.27e-13/1e-10 grad=4.61e-09/1e-07 converged=yes\nscf~ dE=-2.17e-01,3.34e+00,-3.44e+00,-3.27e-02,-7.29e-03,-8.07e-05,-1.19e-07,-5.68e-09,-1.61e-11,-2.27e-13\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515433.088 idle=0 at=1794515433\nscf cycle=11 energy=-1044.3566973225 dE=-2.27e-13/1e-10 grad=4.61e-09/1e-07 converged=yes\nscf~ dE=-2.17e-01,3.34e+00,-3.44e+00,-3.27e-02,-7.29e-03,-8.07e-05,-1.19e-07,-5.68e-09,-1.61e-11,-2.27e-13\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Septet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:14:06 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:30:32 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309246
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515431
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

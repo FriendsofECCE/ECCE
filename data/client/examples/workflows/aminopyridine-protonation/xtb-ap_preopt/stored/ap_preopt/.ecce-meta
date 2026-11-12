@@ -7,7 +7,7 @@
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:13:02 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:36:08 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -39,7 +39,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309184.175 idle=0 at=1794309184\nscf cycle=3 energy=-19.9161056 converged=yes\nopt step=8 energy=-19.5918707 grad=0.0002824/0.1000000E-02 converged=yes\nopt~ energy=-19.5887317,-19.5911674,-19.5916224,-19.5917591,-19.5918414,-19.5918633,-19.5918699,-19.5918707\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515771.036 idle=0 at=1794515771\nscf cycle=3 energy=-19.9161056 converged=yes\nopt step=8 energy=-19.5918707 grad=0.0002824/0.1000000E-02 converged=yes\nopt~ energy=-19.5887317,-19.5911674,-19.5916224,-19.5917591,-19.5918414,-19.5918633,-19.5918699,-19.5918707\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -53,5 +53,5 @@
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
 .	http://www.emsl.pnl.gov/ecce:startdate		Sun, 08 Nov 2026 19:37:05 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309182
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515769
 .	http://www.emsl.pnl.gov/ecce:theory		SE/GFN2-xTB

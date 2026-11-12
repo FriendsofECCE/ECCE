@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localised. This calculation shows the trigonal planar shape of BF3, with three bonding pairs and no lone pairs around boron.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:14:30 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:31:01 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:14:28 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:30:59 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309269.748 idle=0 at=1794309269\nscf cycle=4 energy=-324.4277882896 dE=-1.14e-13/1e-10 grad=4.89e-08/1e-07 converged=yes\nscf~ dE=-2.47e-11,0.00e+00,-1.14e-13\nopt step=5 energy=-324.4277882896 maxgrad=2.20e-05/3e-04 rmsgrad=1.08e-05/1e-04 maxstep=4.30e-06/4e-03 rmsstep=2.86e-06/2e-03 dE=1.34e-08/5e-06 converged=yes\nopt~ maxgrad=9.11e-03,3.10e-03,7.01e-05,2.20e-05\nopt~ rmsgrad=4.59e-03,1.56e-03,4.02e-05,1.08e-05\nfreq point=24/24 done=yes real=6 imaginary=0 zpe=0.0125359430\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515461.213 idle=0 at=1794515461\nscf cycle=4 energy=-324.4277882896 dE=-1.14e-13/1e-10 grad=4.89e-08/1e-07 converged=yes\nscf~ dE=-2.47e-11,0.00e+00,-1.14e-13\nopt step=5 energy=-324.4277882896 maxgrad=2.20e-05/3e-04 rmsgrad=1.08e-05/1e-04 maxstep=4.30e-06/4e-03 rmsstep=2.86e-06/2e-03 dE=1.34e-08/5e-06 converged=yes\nopt~ maxgrad=9.11e-03,3.10e-03,7.01e-05,2.20e-05\nopt~ rmsgrad=4.59e-03,1.56e-03,4.02e-05,1.08e-05\nfreq point=24/24 done=yes real=6 imaginary=0 zpe=0.0125359430\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:14:28 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:31:00 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309268
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515459
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

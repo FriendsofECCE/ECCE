@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This calculation shows the C=O stretch of an ester with a longer alkoxy group.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:13:39 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:35:21 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:13:37 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:35:18 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309219.234 idle=0 at=1794309219\nscf cycle=12 energy=-307.1309804343576388 dE=-2.03e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-8.74e-02,-3.37e-02,-2.05e-02,-4.49e-02,-2.23e-04,-2.28e-06,-6.43e-07,-4.63e-07,2.35e-08,-6.36e-08,-2.03e-09\nresult disp=D3\nfreq kind=analytic point=45/45 phase=assemble last=Loop real=36 imaginary=0 done=yes zpe=0.11882530\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515720.780 idle=0 at=1794515720\nscf cycle=12 energy=-307.1309804343576388 dE=-2.03e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-8.74e-02,-3.37e-02,-2.05e-02,-4.49e-02,-2.23e-04,-2.28e-06,-6.43e-07,-4.63e-07,2.35e-08,-6.36e-08,-2.03e-09\nresult disp=D3\nfreq kind=analytic point=45/45 last=Loop real=36 imaginary=0 done=yes zpe=0.11882530\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Vibration
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:13:38 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:35:19 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309217
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515719
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT
