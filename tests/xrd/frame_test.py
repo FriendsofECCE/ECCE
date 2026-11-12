@@ -31,7 +31,9 @@ except ImportError:
 
 TOOL = os.path.join(ROOT, "scripts", "ecce_xrd.py")
 CIF = os.path.join(ROOT, "tests", "fixtures", "cif")
-LAM = 0.709317      # Mo Ka1
+sys.path.insert(0, os.path.join(ROOT, "scripts"))
+import ecce_xrd  # noqa: E402
+LAM = ecce_xrd.DOUBLETS["mo"][0]   # Mo Ka1, the frame's default; read, not copied
 A_NACL = 5.6402
 failures = []
 
