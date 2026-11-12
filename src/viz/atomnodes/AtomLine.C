@@ -49,6 +49,7 @@ AtomLine::AtomLine(SGFragment *frag,TAtm * at1,TAtm* at2,SoSeparator *parent)
 
   p_atFirst   = at1;     
   p_atSecond  = at2;   
+  p_shift[0] = p_shift[1] = p_shift[2] = 0.0;
 
   int32_t newValues[1] = { 2 };
   numVertices.setValues(0,1,newValues);
@@ -72,12 +73,18 @@ void  AtomLine::jump()
   p_line->vertex.set1Value(0, xyz);
 
   coord = p_atSecond->coordinates();
-  xyz[0] = (float) coord[0];
-  xyz[1] = (float) coord[1];
-  xyz[2] = (float) coord[2];
+  xyz[0] = (float) (coord[0] + p_shift[0]);
+  xyz[1] = (float) (coord[1] + p_shift[1]);
+  xyz[2] = (float) (coord[2] + p_shift[2]);
   p_line->vertex.set1Value(1, xyz);
 
   touch();
+}
+
+void AtomLine::setShift(double x, double y, double z)
+{
+  p_shift[0] = x; p_shift[1] = y; p_shift[2] = z;
+  jump();
 }
 
 //=============================================================================
@@ -88,6 +95,7 @@ AtomLine::AtomLine()
   p_frag = (SGFragment*)0;
   p_atFirst = 0;
   p_atSecond = 0;
+  p_shift[0] = p_shift[1] = p_shift[2] = 0.0;
 
   SO_NODE_CONSTRUCTOR(AtomLine);
   int32_t newValues[1] = { 2 };

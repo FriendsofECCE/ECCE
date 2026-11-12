@@ -50,6 +50,9 @@ HydrogenBondsCmd::~HydrogenBondsCmd()
 double HydrogenBondsCmd::p_maxDist = 3.5;
 double HydrogenBondsCmd::p_maxAngle = 30.0;
 int HydrogenBondsCmd::p_lastCount = 0;
+bool HydrogenBondsCmd::p_halides = true;
+
+void HydrogenBondsCmd::setHalideAcceptors(bool on) { p_halides = on; }
 
 void HydrogenBondsCmd::setCriteria(double dist, double angle)
 {
@@ -167,7 +170,8 @@ bool HydrogenBondsCmd::execute()
       if (!a->displayStyle().isDisplayed()) continue;
       int z = a->atomicNumber();
       if (acceptorElement(z)) acceptor[i] = 1;
-      else if (halideElement(z) && a->bondList().empty()) acceptor[i] = 1;
+      else if (p_halides && halideElement(z) && a->bondList().empty())
+         acceptor[i] = 1;
    }
 
    // Candidate acceptors near each donor: LinkCellList (cell = cutoff), or,
@@ -267,7 +271,11 @@ bool HydrogenBondsCmd::execute()
 
          p_lastCount++;
          SoSeparator *sep = new SoSeparator;
-         sep->addChild(new AtomLine(frag, h, acc, sep));
+         // Line to the acceptor's nearest image, not across the box.
+         AtomLine *line = new AtomLine(frag, h, acc, sep);
+         line->setShift(pd[0] + da.x() - pa[0], pd[1] + da.y() - pa[1],
+                        pd[2] + da.z() - pa[2]);
+         sep->addChild(line);
          sg->getTopHBonds()->addChild(sep);
       }
    }

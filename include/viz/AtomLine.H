@@ -37,6 +37,8 @@ public:
 
    // For moving lines when atoms are moved
    void jump();
+   // Offset added to the second end: draws to a periodic image.
+   void setShift(double x, double y, double z);
 
    // Accessors
    SoSeparator *getParent();
@@ -50,6 +52,7 @@ protected:
    SGFragment *p_frag;  // Fragment that contains them
    TAtm *p_atFirst;     // First Point
    TAtm *p_atSecond;    //  Second Point
+   double p_shift[3];
 
  private:
   // Destructor
