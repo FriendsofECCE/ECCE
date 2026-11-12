@@ -1123,9 +1123,9 @@ void Builder::updatePropertyIndex()
           "Density, spin density, ESP, ELF, LOL and NCI surfaces"});
     }
   }
-  if (calcIsPeriodic())
+  if (calcHasStructure())
     entries.push_back({"Diffraction", entries.empty() ? string("Results") : entries.back().group,
-                       "Calculated powder and single-crystal diffraction of the final geometry"});
+                       "Calculated diffraction of the final geometry: fibre, and powder and single crystal for a periodic one"});
   p_index->setEntries(entries);
   sizeIndexPane();
   if (p_detail) {

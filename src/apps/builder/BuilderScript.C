@@ -1009,11 +1009,14 @@ void Builder::runBuilderScript(const std::string& file)
         //  calcdiffraction OUT.png OUT.csv [XYZ]: the Diffraction entry of the
         //  open calculation's results, default fields (#587).
         std::string err, why;
-        DiffractionDialog *dd = calcIsPeriodic() ?
+        DiffractionDialog *dd = calcHasStructure() ?
             openResultsDiffraction(w.size() > 3 ? w[3] : w[1] + ".xyz") : 0;
         if (!dd) err = "no Diffraction entry for this calculation";
         else if (!dd->calculate(why)) err = why;
         else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
+        if (dd && err.empty())
+          fprintf(stderr, "BUILDER: calcdiffraction pattern: %s\n",
+                  dd->singleCrystal() ? "single" : dd->powder() ? "powder" : "fibre");
         fprintf(stderr, "BUILDER: calcdiffraction: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
       } else if (w[0] == "calclayer" && w.size() >= 3) {

@@ -5080,6 +5080,13 @@ bool Builder::calcIsPeriodic()
 }
 
 
+bool Builder::calcHasStructure()
+{
+  SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+  return p_calculation && frag && frag->numAtoms() > 0;
+}
+
+
 DiffractionDialog *Builder::openResultsDiffraction(const string& given)
 {
   static int serial = 0;
@@ -6222,9 +6229,9 @@ void Builder::updatePropertyMenus()
 
   //  A periodic structure gets a Diffraction item: it is a view of the
   //  structure, not a parsed property, so it is added here by hand (#587).
-  if (calcIsPeriodic())
+  if (calcHasStructure())
     p_propertyMenu->Append(ID_DIFFRACTION_ENTRY, "Diffraction",
-                           "Calculated powder and single-crystal diffraction of the final geometry");
+                           "Calculated diffraction of the final geometry: fibre, and powder and single crystal for a periodic one");
 
   refreshColumn();
   if (needUpate) {

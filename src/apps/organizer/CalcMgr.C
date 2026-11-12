@@ -8151,6 +8151,42 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "neighbours of the other kind at the corners of a cube; the lattice "
      "is simple cubic, not body-centred, because the two ions differ. "
      "The powder pattern has a 100 line, which a body-centred lattice would extinguish, since the two ions scatter differently."},
+    {"nacl_powder",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the powder pattern of sodium chloride: "
+     "the Na+ and Cl- ions scatter X-rays differently, so the 111 line is "
+     "weak and the 200 line is strong, and the lines fall at the angles of "
+     "a cubic cell with an edge of 5.64 A."},
+    {"kcl",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows that potassium chloride gives a powder "
+     "pattern with almost no 111 line, like a primitive cubic lattice with "
+     "half the cell edge: K+ and Cl- have the same number of electrons, so "
+     "they scatter X-rays alike and look like one kind of atom."},
+    {"nacl_bragg",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows Bragg's law in a crystal of sodium "
+     "chloride: in the h k 0 layer of reciprocal space a spot appears only "
+     "where h and k are both even, and each spot is the reflection from a "
+     "set of lattice planes of spacing d at the angle where 2 d sin(theta) "
+     "equals a whole number of wavelengths."},
+    {"bdna",
+     "xTB, GFN-FF, single point of 20 base pairs of B-DNA. This calculation "
+     "shows a double helix with ten base pairs per turn and a rise of about "
+     "3.4 A per base pair, which gives a fibre pattern of layer lines with "
+     "a strong reflection at 3.4 A on the meridian."},
+    {"helix",
+     "xTB, GFN-FF, single point of a polyalanine alpha-helix. This "
+     "calculation shows a helix with 3.6 residues per turn and a rise of "
+     "1.5 A per residue, which gives a fibre pattern with a strong "
+     "reflection at 1.5 A on the meridian and a layer line at the pitch of "
+     "5.4 A."},
+    {"quartz",
+     "Quantum ESPRESSO, PBE, plane waves, the hexagonal cell of alpha "
+     "quartz built from its CIF file. This calculation shows SiO4 "
+     "tetrahedra joined at their corners into helical chains along c; the "
+     "three-fold screw axis extinguishes the 00l reflections unless l is "
+     "a multiple of 3."},
     {"ar-gas-300K",
      "GROMACS, Lennard-Jones argon, 1000 atoms, 300 K, 20 bar, 2 ns. This "
      "calculation shows the Maxwell-Boltzmann distribution of atomic speeds "

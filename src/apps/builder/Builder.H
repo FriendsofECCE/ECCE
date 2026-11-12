@@ -316,8 +316,10 @@ class Builder: public BuilderGUI,
       // traceStep >= 0 takes the coordinates from that GEOMTRACE step
       string writeStructureXyz(const string& path, vector<int>& selected,
                                int traceStep = -1);
-      // The calculation has a lattice: its results get a Diffraction entry (#587)
+      // The calculation has a lattice (#587): powder and single crystal are
+      // offered; any calculation with atoms gets the Diffraction entry (fibre).
       bool calcIsPeriodic();
+      bool calcHasStructure();
       // Opens Diffraction on the final geometry (last GEOMTRACE step, else the
       // structure); xyz names the file it is written to, "" for a temporary one.
       class DiffractionDialog *openResultsDiffraction(const string& xyz = "");
