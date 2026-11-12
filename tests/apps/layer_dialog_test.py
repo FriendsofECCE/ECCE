@@ -75,7 +75,8 @@ def main():
         os.makedirs(out, exist_ok=True)
         pngf, csvf, xyz = (os.path.join(out, n) for n in ("dialog.png", "dialog.csv", "dialog.xyz"))
         lines = ["wait 4000", "list Diffraction", "wait 1500",
-                 "calclayer %s %s l 0 1 2,0,0" % (pngf, csvf), "quit"]
+                 "calclayer %s %s l 0 1 2,0,0" % (pngf, csvf),
+                 "calcframe %s %s 0 30 1 1" % (pngf + ".frame.png", csvf + ".frame.csv"), "quit"]
         text, _ = bo.runScript(s, display, env, wrappers, ["-context", url], lines, png,
                                "layer-nacl", {"ECCE_PANEL_MODE": "detail"})
         bo.check("BUILDER: calclayer: done" in text and os.path.exists(csvf),
@@ -96,6 +97,16 @@ def main():
                      "only h,k both even are present (%d of %d spots)" % (len(present), len(rows)))
             bo.check("BUILDER: calclayer spot: (2 0 0)" in text and "|F| =" in text,
                      "hovering the (2 0 0) spot reports hkl, d and I")
+        fcsv = csvf + ".frame.csv"
+        bo.check("BUILDER: calcframe: done" in text and os.path.exists(fcsv),
+                 "the Diffraction entry calculated a detector frame (30 degrees, labels, rings)")
+        if os.path.exists(fcsv):
+            fr = subprocess.run([sys.executable, CLI, "frame", xyz, "--source", "mo", "--phi", "0",
+                                 "--osc", "30", "--distance", "90", "--pixels", "560",
+                                 "--out", os.path.join(out, "cli_frame.csv")],
+                                capture_output=True, text=True)
+            bo.check(fr.returncode == 0 and open(fcsv).read() == open(os.path.join(out, "cli_frame.csv")).read(),
+                     "the dialog's frame CSV equals the CLI's")
         if bo.failures:
             say(text[-2000:])
     finally:

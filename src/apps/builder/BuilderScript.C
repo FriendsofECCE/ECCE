@@ -1067,6 +1067,19 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: calclayer spot: %s\n", dd->spotText(h, k, l).ToUTF8().data());
         fprintf(stderr, "BUILDER: calclayer: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
+      } else if (w[0] == "calcframe" && w.size() >= 3) {
+        //  calcframe OUT.png OUT.csv [PHI [OSC [labels [rings]]]]: the
+        //  Diffraction entry set to Detector frame (#985).
+        std::string err, why;
+        DiffractionDialog *dd = calcIsPeriodic() ? openResultsDiffraction(w[1] + ".xyz") : 0;
+        if (!dd) err = "no Diffraction entry for this calculation";
+        else if (!dd->setFrame(w.size() > 3 ? atof(w[3].c_str()) : 0.0,
+                               w.size() > 4 ? atof(w[4].c_str()) : 10.0,
+                               w.size() > 5 && w[5] == "1", w.size() > 6 && w[6] == "1", why)) err = why;
+        else if (!dd->calculate(why)) err = why;
+        else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
+        fprintf(stderr, "BUILDER: calcframe: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
+        if (dd) dd->Destroy();
       } else if (w[0] == "takefrom" && w.size() >= 3) {
         //  takefrom PATH.xyz SET|selected [align]: Take Coordinates From...
         //  with the other structure read from an .xyz file (#620).

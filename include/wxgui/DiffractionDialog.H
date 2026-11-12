@@ -43,6 +43,10 @@ public:
   bool setLayer(const std::string& zone, int layer, double dmin, bool showAbsent,
                 std::string& why);
   bool singleCrystal() const { return p_single; }
+  // Detector frame (#985): a rotating crystal, start angle and oscillation in
+  // degrees, optional hkl labels and resolution rings.  Switches to that view.
+  bool setFrame(double phi, double osc, bool labels, bool rings, std::string& why);
+  bool detectorFrame() const { return p_frame; }
   // The spot (h k l) as hovering reports it; "" if it is not in the layer.
   wxString spotText(int h, int k, int l) const;
   // The reflection under a 2theta (degrees), as hovering shows it; "" if none.
@@ -61,6 +65,8 @@ private:
   void onOpacity(wxCommandEvent&);
   void onPattern(int mode);   // 0 fibre, 1 powder, 2 single crystal
   bool calculateLayer(std::string& why);
+  bool calculateFrame(std::string& why);
+  wxString framePointerText(int x, int y) const;
   wxString layerPointerText(int x, int y) const;
   void onMeasured(wxCommandEvent&);
   bool calculatePowder(std::string& why);
@@ -79,12 +85,17 @@ private:
   std::vector<float> p_r, p_z, p_i;
   int p_pixels;
   std::string p_png, p_csv, p_tab, p_measured;
-  bool p_periodic, p_powder, p_single;
+  bool p_periodic, p_powder, p_single, p_frame;
   wxTextCtrl *p_layerNo, *p_lres, *p_lb;
   wxChoice *p_zone, *p_lscale;
   wxCheckBox *p_absent, *p_doublet;
   wxRadioButton *p_rbFibre, *p_rbPowder, *p_rbSingle;
-  wxSizer *p_layerItems;
+  wxSizer *p_layerItems, *p_frameItems;
+  wxSlider *p_fphi;
+  wxTextCtrl *p_fosc, *p_fdist;
+  wxChoice *p_fsource;
+  wxCheckBox *p_fdark, *p_fnoise, *p_flabel, *p_frings;
+  wxRadioButton *p_rbFrame;
   double p_layerScale;
   int p_layerSize;
   struct Spot { double px, py; int h, k, l; double d, F, I; bool absent; };
