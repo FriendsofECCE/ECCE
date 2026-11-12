@@ -8,8 +8,8 @@
 The structure is an .xyz, .pdb or .mvm file; --select takes atom numbers from
 1 ("1-40,57").  numpy only (no scipy, no wx).  Powder takes a .cif, an .mvm
 with lattice_vectors or an .xyz whose comment line has Lattice="ax ay az bx by
-bz cx cy cz" (extended xyz, as the Builder writes it).  Layer patterns (#972)
-are added to the parser below.
+bz cx cy cz" (extended xyz, as the Builder writes it).      ecce-xrd layer STRUCTURE --zone l=0      reciprocal-lattice layer (hk0, h0l, 0kl)
+of a periodic structure, spots sized by |F|^2 (#972).
 
 Units: reciprocal space is S = 1/d in 1/Angstrom, with R the component
 perpendicular to the fibre axis and Z the component along it.  A flat film
@@ -648,6 +648,74 @@ _DIGITS = {"0": "111101101101111", "1": "010110010010111", "2": "111001111100111
            "6": "111100111101111", "7": "111001001001001", "8": "111101111101111",
            "9": "111101111001111", ".": "000000000000010"}
 
+# 5x7 glyphs (rows of five bits) for the axis titles and labels
+_G57 = {
+    "a": "00000 00000 01110 00001 01111 10001 01111",
+    "b": "10000 10000 11110 10001 10001 10001 11110",
+    "c": "00000 00000 01110 10000 10000 10001 01110",
+    "d": "00001 00001 01111 10001 10001 10001 01111",
+    "e": "00000 00000 01110 10001 11111 10000 01110",
+    "h": "10000 10000 11110 10001 10001 10001 10001",
+    "i": "00100 00000 01100 00100 00100 00100 01110",
+    "k": "10000 10000 10010 10100 11000 10100 10010",
+    "l": "01000 01000 01000 01000 01000 01000 01000",
+    "n": "00000 00000 10110 11001 10001 10001 10001",
+    "s": "00000 00000 01111 10000 01110 00001 11110",
+    "t": "01000 01000 11100 01000 01000 01001 00110",
+    "v": "00000 00000 10001 10001 10001 01010 00100",
+    "y": "00000 00000 10001 10001 01111 00001 01110",
+    "R": "11110 10001 10001 11110 10100 10010 10001",
+    "I": "01110 00100 00100 00100 00100 00100 01110",
+    "F": "11111 10000 10000 11110 10000 10000 10000",
+    "\u03b8": "01110 10001 10001 11111 10001 10001 01110",
+    "\u00b0": "01100 10010 10010 01100 00000 00000 00000",
+    "*": "00000 00100 10101 01110 10101 00100 00000",
+    "(": "00010 00100 01000 01000 01000 00100 00010",
+    ")": "01000 00100 00010 00010 00010 00100 01000",
+    "-": "00000 00000 00000 11111 00000 00000 00000",
+    " ": "00000 00000 00000 00000 00000 00000 00000",
+    "0": "01110 10001 10011 10101 11001 10001 01110",
+    "1": "00100 01100 00100 00100 00100 00100 01110",
+    "2": "01110 10001 00001 00110 01000 10000 11111",
+    "3": "11110 00001 00001 01110 00001 00001 11110",
+    "4": "00010 00110 01010 10010 11111 00010 00010",
+    "5": "11111 10000 11110 00001 00001 10001 01110",
+    "6": "00110 01000 10000 11110 10001 10001 01110",
+    "7": "11111 00001 00010 00100 01000 01000 01000",
+    "8": "01110 10001 10001 01110 10001 10001 01110",
+    "9": "01110 10001 10001 01111 00001 00010 01100",
+    ".": "00000 00000 00000 00000 00000 01100 01100",
+}
+
+
+def draw_text(img, text, x, y, scale=2, color=60, vertical=False):
+    """Draw text with the 5x7 font at pixel (x, y) = top left (vertical: read
+    bottom to top, (x, y) the top left of the rotated block)."""
+    w = len(text) * 6 * scale
+    blk = np.zeros((7 * scale, w), bool)
+    for n, ch in enumerate(text):
+        g = _G57.get(ch)
+        if g is None:
+            continue
+        for r, row in enumerate(g.split()):
+            for c, bit in enumerate(row):
+                if bit == "1":
+                    blk[r * scale:(r + 1) * scale,
+                        (n * 6 + c) * scale:(n * 6 + c + 1) * scale] = True
+    if vertical:
+        blk = np.rot90(blk)
+    hh, ww = blk.shape
+    y0, x0 = max(y, 0), max(x, 0)
+    hh = min(hh, img.shape[0] - y0)
+    ww = min(ww, img.shape[1] - x0)
+    if hh > 0 and ww > 0:
+        sub = img[y0:y0 + hh, x0:x0 + ww]
+        sub[blk[:hh, :ww]] = color
+
+
+def text_width(text, scale=2):
+    return len(text) * 6 * scale
+
 
 def write_png_rgb(path, rgb):
     """8-bit RGB PNG of a uint8 array [h, w, 3]."""
@@ -662,12 +730,21 @@ def write_png_rgb(path, rgb):
                 chunk(b"IDAT", zlib.compress(raw, 6)) + chunk(b"IEND", b""))
 
 
+def draw_line(img, x0, y0, x1, y1, color):
+    """One-pixel line, all pixels along the longer axis (no gaps)."""
+    n = max(abs(x1 - x0), abs(y1 - y0), 1)
+    xs = np.round(np.linspace(x0, x1, n + 1)).astype(int)
+    ys = np.round(np.linspace(y0, y1, n + 1)).astype(int)
+    ok = (xs >= 0) & (xs < img.shape[1]) & (ys >= 0) & (ys < img.shape[0])
+    img[ys[ok], xs[ok]] = color
+
+
 def plot_powder(path, tt, y, measured=None, refl=None, size=(1000, 480)):
     """The pattern as a PNG with 2theta ticks; calculated in blue, measured in
     red.  Drawn with numpy alone, so tick labels use a 3x5 digit font."""
     w, h = size
     img = np.full((h, w, 3), 255, np.uint8)
-    l, r, t, b = 60, w - 20, 20, h - 50
+    l, r, t, b = 80, w - 20, 20, h - 60
     x0, x1 = float(tt[0]), float(tt[-1])
     ymax = 105.0
 
@@ -701,10 +778,18 @@ def plot_powder(path, tt, y, measured=None, refl=None, size=(1000, 480)):
         if curve is None:
             continue
         cols = np.clip(np.round(l + (tt - x0) / (x1 - x0) * (r - l)).astype(int), l, r)
+        xs, ys = [], []
         for c in np.unique(cols):
             v = curve[(cols == c) & np.isfinite(curve)]
             if len(v):
-                img[py(min(v.max(), ymax)):b, c] = color
+                xs.append(c)
+                ys.append(py(min(v.max(), ymax)))
+        for k in range(len(xs) - 1):
+            draw_line(img, xs[k], ys[k], xs[k + 1], ys[k + 1], color)
+    title = "2\u03b8 (\u00b0)"
+    draw_text(img, title, (l + r) // 2 - text_width(title) // 2, h - 22, 2)
+    ytitle = "Relative intensity"
+    draw_text(img, ytitle, 6, (t + b) // 2 - text_width(ytitle) // 2, 2, vertical=True)
     write_png_rgb(path, img)
 
 
@@ -761,6 +846,195 @@ def run_powder(a):
         print("%4s %4s %4s %9s %9s %9s %5s %8s" % rows[0])
         for row in rows[1:]:
             print("%4s %4s %4s %9s %9s %9s %5s %8s" % row)
+    return 0
+
+
+# ----------------------------------------------------------- single crystal
+
+def layer_reflections(lat, sym, frac, occ, zone, offset, dmin=1.0, wavelength=None,
+                      bfactor=0.0):
+    """Reciprocal-lattice layer {hkl: zone . hkl = offset}, zone = [u v w] the
+    direct-lattice direction the layer is perpendicular to (hk0: [0 0 1], offset
+    0).  |G| = 1/d is limited to 1/dmin and, if a wavelength is given, to the
+    Ewald limit 2/lambda.  Returns hkl [n, 3], xy [n, 2] (in-plane position,
+    1/Angstrom, origin at the layer's foot point), d, F (|F|), I (|F|^2), the
+    in-plane (a*, b*, c*) projections and the layer's height above the origin.
+    The origin (000) is left out."""
+    zone = np.array([int(v) for v in zone])
+    if not zone.any():
+        raise ValueError("the zone axis [u v w] must not be 0 0 0")
+    recip = np.linalg.inv(lat).T
+    gmax = 1.0 / dmin
+    if wavelength:
+        gmax = min(gmax, 2.0 / wavelength)
+    t = zone @ lat
+    nrm = t / np.linalg.norm(t)
+    height = offset / np.linalg.norm(t)
+    if height > gmax:
+        raise ValueError("layer %d is beyond the resolution limit" % offset)
+    # in-plane reciprocal axes (those perpendicular to the zone axis) are drawn
+    # as they are; with none, their projections; a* right, then c* or b* up
+    flat = [k for k, v in enumerate(recip) if abs(v @ nrm) < 1e-6 * np.linalg.norm(v)]
+    if flat:
+        e1 = recip[flat[0]] / np.linalg.norm(recip[flat[0]])
+    else:
+        inpl = [v - (v @ nrm) * nrm for v in recip]
+        e1 = inpl[0] / np.linalg.norm(inpl[0])
+    e2 = np.cross(nrm, e1)
+    if len(flat) > 1 and recip[flat[1]] @ e2 < 0:
+        e2 = -e2
+    hm = [int(math.floor(gmax * np.linalg.norm(v))) for v in lat]
+    ax = [np.arange(-m, m + 1) for m in hm]
+    hkl = np.stack(np.meshgrid(*ax, indexing="ij"), -1).reshape(-1, 3)
+    hkl = hkl[hkl @ zone == offset]
+    g = hkl @ recip
+    glen = np.linalg.norm(g, axis=1)
+    keep = (glen > 1e-9) & (glen <= gmax * (1 + 1e-12))
+    hkl, g, glen = hkl[keep], g[keep], glen[keep]
+    xy = np.stack([g @ e1, g @ e2], axis=1)
+    f2 = (structure_factors2(sym, frac, occ, hkl, glen / 2.0, bfactor)
+          if len(hkl) else np.zeros(0))
+    axes = [np.array([v @ e1, v @ e2]) if (k in flat or not flat) and
+            np.linalg.norm([v @ e1, v @ e2]) > 1e-6 else np.zeros(2)
+            for k, v in enumerate(recip)]
+    return {"hkl": hkl, "xy": xy, "d": 1.0 / glen, "F": np.sqrt(f2), "I": f2,
+            "axes": axes, "height": float(height), "gmax": float(gmax)}
+
+
+def layer_spot_radius(i, imax, mode, decades, rmax):
+    """Disc radius for intensities i: the disc area is proportional to I
+    (linear), to sqrt(I) (sqrt) or to the log of I over `decades` (log)."""
+    q = np.clip(np.asarray(i, float) / max(imax, 1e-300), 0, 1)
+    if mode == "linear":
+        a = q
+    elif mode == "sqrt":
+        a = np.sqrt(q)
+    else:
+        with np.errstate(divide="ignore"):
+            a = np.clip(1 + np.log10(np.maximum(q, 1e-300)) / decades, 0, 1)
+    return rmax * np.sqrt(a)
+
+
+def fill_disc(img, cx, cy, rad, color, ring=False):
+    r = int(math.ceil(rad)) + 1
+    y0, y1 = max(int(cy) - r, 0), min(int(cy) + r + 1, img.shape[0])
+    x0, x1 = max(int(cx) - r, 0), min(int(cx) + r + 1, img.shape[1])
+    if y1 <= y0 or x1 <= x0:
+        return
+    yy, xx = np.mgrid[y0:y1, x0:x1]
+    d2 = (yy - cy) ** 2 + (xx - cx) ** 2
+    m = (d2 >= (rad - 1.0) ** 2) & (d2 <= rad ** 2) if ring else d2 <= rad ** 2
+    img[y0:y1, x0:x1][m] = color
+
+
+def layer_scale(lay, size):
+    """Pixels per 1/Angstrom of the layer picture (the origin is its centre)."""
+    ext = max(float(np.sqrt(max(lay["gmax"] ** 2 - lay["height"] ** 2, 0.0))), 1e-6)
+    return (size / 2.0 - 40) / ext
+
+
+def plot_layer(path, lay, label, mode="log", decades=3.0, show_absent=False,
+               size=700, absent_tol=1e-6):
+    """Precession-style picture of the layer: a disc per spot, white background,
+    the in-plane reciprocal axes labelled, absent spots as open circles."""
+    img = np.full((size, size, 3), 255, np.uint8)
+    xy, ii = lay["xy"], lay["I"]
+    cx = cy = size / 2.0
+    scale = layer_scale(lay, size)
+
+    def pos(p):
+        return cx + p[0] * scale, cy - p[1] * scale
+    imax = float(ii.max()) if len(ii) else 1.0
+    spacing = min([np.linalg.norm(a) for a in lay["axes"] if np.linalg.norm(a) > 1e-6] or [1.0])
+    rmax = max(3.0, min(0.45 * spacing * scale, 30.0))
+    absent = ii < absent_tol * imax
+    rad = layer_spot_radius(ii, imax, mode, decades, rmax)
+    for k in np.argsort(-ii):
+        x, y = pos(xy[k])
+        if absent[k]:
+            if show_absent:
+                fill_disc(img, x, y, 3.5, (150, 150, 150), ring=True)
+        else:
+            fill_disc(img, x, y, max(rad[k], 1.2), (15, 15, 15))
+    ox, oy = pos((0, 0))
+    img[int(oy) - 4:int(oy) + 5, int(ox)] = (200, 40, 40)
+    img[int(oy), int(ox) - 4:int(ox) + 5] = (200, 40, 40)
+    for lab, a, col in zip("abc", lay["axes"], ((20, 60, 170),) * 3):
+        n = np.linalg.norm(a)
+        if n < 1e-6:
+            continue
+        ex, ey = pos(a)
+        draw_line(img, int(ox), int(oy), int(ex), int(ey), col)
+        u = a / n
+        for sgn in (1, -1):
+            hx, hy = ex - 9 * u[0] + sgn * 4 * u[1], ey + 9 * u[1] + sgn * 4 * u[0]
+            draw_line(img, int(ex), int(ey), int(hx), int(hy), col)
+        draw_text(img, lab + "*", int(ex + 8 * u[0]) - 6, int(ey - 8 * u[1]) - 7, 2, col)
+    draw_text(img, label, 12, 10, 2, 0)
+    write_png_rgb(path, img)
+
+
+def _zone_from_args(a):
+    if a.zone:
+        m = re.fullmatch(r"\s*([hkl])\s*=\s*(-?\d+)\s*", a.zone)
+        if not m:
+            raise ValueError("--zone is h=N, k=N or l=N (hk0 is l=0)")
+        return [[1, 0, 0], [0, 1, 0], [0, 0, 1]]["hkl".index(m.group(1))], int(m.group(2))
+    if a.normal:
+        return [int(v) for v in a.normal], a.offset
+    return [0, 0, 1], a.offset
+
+
+def run_layer(a):
+    lat, sym, frac, occ = read_periodic(a.structure)
+    zone, offset = _zone_from_args(a)
+    t0 = time.time()
+    lay = layer_reflections(lat, sym, frac, occ, zone, offset, a.resolution,
+                            a.wavelength, a.B)
+    ii = lay["I"]
+    imax = float(ii.max()) if len(ii) else 1.0
+    absent = ii < a.absent_tol * imax
+    order = np.lexsort((lay["hkl"][:, 2], lay["hkl"][:, 1], lay["hkl"][:, 0]))
+    rows = [("h", "k", "l", "x", "y", "d", "F", "I", "I_rel", "absent")]
+    for k in order:
+        rows.append(tuple(["%d" % v for v in lay["hkl"][k]] +
+                          ["%.5f" % lay["xy"][k][0], "%.5f" % lay["xy"][k][1],
+                           "%.5f" % lay["d"][k], "%.5f" % lay["F"][k], "%.5g" % ii[k],
+                           "%.5g" % (100.0 * ii[k] / imax), "1" if absent[k] else "0"]))
+    label = ("zone [%d %d %d] layer %d" % (zone[0], zone[1], zone[2], offset))
+    if zone in ([0, 0, 1], [1, 0, 0], [0, 1, 0]) and offset == 0:
+        label = {"[0, 0, 1]": "hk0", "[1, 0, 0]": "0kl", "[0, 1, 0]": "h0l"}[str(zone)]
+    for out in a.out or []:
+        ext = os.path.splitext(out)[1].lower()
+        if ext == ".png":
+            plot_layer(out, lay, label, a.scale, a.decades, a.show_absent, a.size, a.absent_tol)
+        elif ext == ".csv":
+            with open(out, "w", newline="") as f:
+                csv.writer(f).writerows(rows)
+        else:
+            raise ValueError("--out: unknown extension %r (png, csv)" % ext)
+    if a.geometry:
+        with open(a.geometry, "w") as f:
+            f.write("size %d\nscale %.6f\n" % (a.size, layer_scale(lay, a.size)))
+    info = {"atoms": len(sym), "zone": [int(v) for v in zone], "offset": offset,
+            "resolution": a.resolution, "gmax": lay["gmax"], "height": lay["height"],
+            "reflections": int(len(ii)), "absent": int(absent.sum()),
+            "axes": [[float(v) for v in x] for x in lay["axes"]],
+            "lattice": [[round(float(v), 6) for v in row] for row in lat],
+            "seconds": round(time.time() - t0, 2)}
+    if a.json:
+        info["table"] = [{"hkl": [int(v) for v in lay["hkl"][k]],
+                          "xy": [float(v) for v in lay["xy"][k]], "d": float(lay["d"][k]),
+                          "F": float(lay["F"][k]), "I": float(ii[k]),
+                          "I_rel": float(100.0 * ii[k] / imax), "absent": bool(absent[k])}
+                         for k in order]
+        print(json.dumps(info))
+    else:
+        print("%s: %d reflections, %d systematically absent (d >= %g A)" % (
+            label, info["reflections"], info["absent"], a.resolution))
+        print("%4s %4s %4s %9s %9s %9s %9s %9s %9s %6s" % rows[0])
+        for row in rows[1:]:
+            print("%4s %4s %4s %9s %9s %9s %9s %9s %9s %6s" % row)
     return 0
 
 
@@ -867,6 +1141,28 @@ def build_parser():
     q.add_argument("--out", action="append", help=".png or .csv pattern (repeatable)")
     q.add_argument("--json", action="store_true")
     q.set_defaults(func=run_powder)
+
+    y = sub.add_parser("layer", help="single-crystal reciprocal-lattice layer (precession style)")
+    y.add_argument("structure", help=".cif, or .xyz/.mvm/.pdb with a lattice")
+    g = y.add_mutually_exclusive_group()
+    g.add_argument("--zone", help="h=N, k=N or l=N: hk0 is l=0, h0l is k=0, 0kl is h=0")
+    g.add_argument("--normal", type=int, nargs=3, metavar=("U", "V", "W"),
+                   help="zone axis [uvw]: the layer holds the hkl with uh+vk+wl = --offset")
+    y.add_argument("--offset", type=int, default=0, help="layer number with --normal (default 0)")
+    y.add_argument("--resolution", type=float, default=1.0, help="d_min, Angstrom")
+    y.add_argument("--wavelength", type=float, help="also limit 1/d to the Ewald limit 2/lambda")
+    y.add_argument("--B", type=float, default=0.0, help="isotropic B, Angstrom^2")
+    y.add_argument("--scale", choices=("log", "sqrt", "linear"), default="log",
+                   help="disc area against |F|^2")
+    y.add_argument("--decades", type=float, default=3.0, help="log scale range")
+    y.add_argument("--show-absent", action="store_true", help="open circles for absent spots")
+    y.add_argument("--absent-tol", type=float, default=1e-6,
+                   help="spots below this fraction of the strongest |F|^2 are absent")
+    y.add_argument("--size", type=int, default=700, help="PNG edge, pixels")
+    y.add_argument("--geometry", help="write the PNG's pixel scale (size, scale) to this file")
+    y.add_argument("--out", action="append", help=".png or .csv (repeatable)")
+    y.add_argument("--json", action="store_true")
+    y.set_defaults(func=run_layer)
     return p
 
 

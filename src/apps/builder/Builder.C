@@ -6224,7 +6224,7 @@ void Builder::updatePropertyMenus()
   //  structure, not a parsed property, so it is added here by hand (#587).
   if (calcIsPeriodic())
     p_propertyMenu->Append(ID_DIFFRACTION_ENTRY, "Diffraction",
-                           "Calculated powder diffraction pattern of the final geometry");
+                           "Calculated powder and single-crystal diffraction of the final geometry");
 
   refreshColumn();
   if (needUpate) {

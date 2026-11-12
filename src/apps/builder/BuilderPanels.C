@@ -1125,7 +1125,7 @@ void Builder::updatePropertyIndex()
   }
   if (calcIsPeriodic())
     entries.push_back({"Diffraction", entries.empty() ? string("Results") : entries.back().group,
-                       "Calculated powder diffraction pattern of the final geometry"});
+                       "Calculated powder and single-crystal diffraction of the final geometry"});
   p_index->setEntries(entries);
   sizeIndexPane();
   if (p_detail) {

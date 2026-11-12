@@ -217,7 +217,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   : wxDialog(parent, wxID_ANY, "Diffraction", wxDefaultPosition, wxDefaultSize,
              wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
     p_structure(structure), p_pixels(PIXELS), p_periodic(hasLattice(structure)),
-    p_powder(false)
+    p_powder(false), p_single(false), p_layerScale(1), p_layerSize(560)
 {
   static int serial = 0;
   std::error_code ec;
@@ -248,7 +248,8 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   wxRadioButton *powder = new wxRadioButton(this, wxID_ANY, "Powder (periodic structures only)");
   wxRadioButton *single = new wxRadioButton(this, wxID_ANY, "Single crystal (periodic structures only)");
   powder->Enable(p_periodic);
-  single->Enable(false);
+  single->Enable(p_periodic);
+  p_rbFibre = fibre; p_rbPowder = powder; p_rbSingle = single;
   powder->SetValue(p_periodic);
   fibre->SetValue(!p_periodic);
   type->Add(fibre, 0, wxALL, 3);
@@ -328,6 +329,36 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   powderBox->Add(meas, 0, wxLEFT | wxRIGHT | wxTOP, 6);
   left->Add(powderBox, 0);
 
+  wxBoxSizer *layerBox = new wxBoxSizer(wxVERTICAL);
+  p_layerItems = layerBox;
+  wxFlexGridSizer *lg = new wxFlexGridSizer(2, 4, 6);
+  auto lfield = [&](const char *label, const char *value, const char *tip) {
+    lg->Add(new wxStaticText(this, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+    wxTextCtrl *t = new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
+    t->SetToolTip(tip);
+    lg->Add(t, 0);
+    return t;
+  };
+  lg->Add(new wxStaticText(this, wxID_ANY, "Zone"), 0, wxALIGN_CENTER_VERTICAL);
+  p_zone = new wxChoice(this, wxID_ANY);
+  for (const char *c : {"hk(l): l is the layer", "h(k)l: k is the layer", "(h)kl: h is the layer"})
+    p_zone->Append(c);
+  p_zone->SetSelection(0);
+  lg->Add(p_zone, 0);
+  p_layerNo = lfield("Layer number", "0", "0 gives hk0, h0l or 0kl; 1, 2 ... the layers above it");
+  p_lres = lfield("Resolution d_min (A)", "1", "Spots with d below this are left out");
+  p_lb = lfield("B (A^2)", "0", "Isotropic temperature factor");
+  lg->Add(new wxStaticText(this, wxID_ANY, "Spot area"), 0, wxALIGN_CENTER_VERTICAL);
+  p_lscale = new wxChoice(this, wxID_ANY);
+  for (const char *c : {"log", "sqrt", "linear"}) p_lscale->Append(c);
+  p_lscale->SetSelection(0);
+  lg->Add(p_lscale, 0);
+  layerBox->Add(lg, 0, wxALL, 6);
+  p_absent = new wxCheckBox(this, wxID_ANY, "Show absent reflections");
+  p_absent->SetToolTip("Open circles where the structure factor is zero by symmetry");
+  layerBox->Add(p_absent, 0, wxALL, 6);
+  left->Add(layerBox, 0);
+
   wxButton *calc = new wxButton(this, wxID_ANY, "Calculate");
   left->Add(calc, 0, wxALL, 6);
   wxButton *png = new wxButton(this, wxID_ANY, "Save PNG...");
@@ -364,9 +395,10 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   right->Add(sp, 0, wxEXPAND | wxALL, 4);
   top->Add(right, 1, wxEXPAND);
   SetSizerAndFit(top);
-  onPattern(p_periodic);
-  powder->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(true); });
-  fibre->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(false); });
+  onPattern(p_periodic ? 1 : 0);
+  powder->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(1); });
+  fibre->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(0); });
+  single->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(2); });
   meas->Bind(wxEVT_BUTTON, &DiffractionDialog::onMeasured, this);
   p_source->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) {
     static const char *w[] = {"1.5406", "0.7093", "1.7890"};
@@ -429,11 +461,14 @@ string DiffractionDialog::run(const vector<string>& args, int& status)
   return out;
 }
 
-void DiffractionDialog::onPattern(bool powder)
+void DiffractionDialog::onPattern(int mode)
 {
-  p_powder = powder && p_periodic;
-  p_left->Show(p_fibreItems, !p_powder, true);
+  if (!p_periodic) mode = 0;
+  p_powder = mode == 1;
+  p_single = mode == 2;
+  p_left->Show(p_fibreItems, mode == 0, true);
   p_left->Show(p_powderItems, p_powder, true);
+  p_left->Show(p_layerItems, p_single, true);
   p_panel->Show(!p_powder);
   p_plot->Show(p_powder);
   p_list->Show(p_powder);
@@ -523,8 +558,99 @@ bool DiffractionDialog::calculatePowder(string& why)
   return true;
 }
 
+bool DiffractionDialog::setLayer(const string& zone, int layer, double dmin, bool showAbsent,
+                                 string& why)
+{
+  const int z = zone == "l" ? 0 : zone == "k" ? 1 : zone == "h" ? 2 : -1;
+  if (!p_periodic) { why = "single crystal needs a periodic structure"; return false; }
+  if (z < 0) { why = "zone is h, k or l"; return false; }
+  p_zone->SetSelection(z);
+  p_layerNo->SetValue(wxString::Format("%d", layer));
+  p_lres->SetValue(wxString(num(dmin)));
+  p_absent->SetValue(showAbsent);
+  p_rbSingle->SetValue(true);
+  onPattern(2);
+  why.clear();
+  return true;
+}
+
+wxString DiffractionDialog::spotText(int h, int k, int l) const
+{
+  for (const Spot& s : p_spots)
+    if (s.h == h && s.k == k && s.l == l)
+      return wxString::Format("(%d %d %d)   d = %.3f A   |F| = %.2f   I = %.4g%s", h, k, l, s.d, s.F,
+                              s.I, s.absent ? "   (systematically absent)" : "");
+  return "";
+}
+
+wxString DiffractionDialog::layerPointerText(int x, int y) const
+{
+  const Spot *best = 0;
+  double bd = 10.0 * 10.0;
+  for (const Spot& s : p_spots) {
+    const double d2 = (s.px - x) * (s.px - x) + (s.py - y) * (s.py - y);
+    if (d2 < bd) { bd = d2; best = &s; }
+  }
+  return best ? spotText(best->h, best->k, best->l) : wxString();
+}
+
+bool DiffractionDialog::calculateLayer(string& why)
+{
+  static const char *zones[] = {"l", "k", "h"};
+  const int layerNo = (int)std::lround(number(p_layerNo));
+  vector<string> a = {"layer", p_structure,
+                      "--zone", string(zones[std::max(0, p_zone->GetSelection())]) + "=" + std::to_string(layerNo),
+                      "--resolution", num(number(p_lres)), "--B", num(number(p_lb)),
+                      "--scale", p_lscale->GetStringSelection().ToStdString(),
+                      "--size", std::to_string(p_layerSize),
+                      "--out", p_png, "--out", p_csv, "--geometry", p_dir + "/geometry.txt"};
+  if (p_absent->IsChecked()) a.push_back("--show-absent");
+  status("Calculating...");
+  int st = 0;
+  const string out = run(a, st);
+  if (st != 0) {
+    const size_t e = out.find("error: ");
+    why = st == -2 ? "cancelled" :
+        (e == string::npos ? "ecce-xrd failed: " + out.substr(0, 300)
+                           : out.substr(e + 7, out.find('\n', e) - e - 7));
+    status(wxString::FromUTF8(why.c_str()));
+    return false;
+  }
+  if (!p_calc.LoadFile(wxString::FromUTF8(p_png.c_str()), wxBITMAP_TYPE_PNG)) {
+    why = "cannot read the layer image";
+    return false;
+  }
+  std::ifstream g(p_dir + "/geometry.txt");
+  string key;
+  double val;
+  while (g >> key >> val) {
+    if (key == "scale") p_layerScale = val;
+    if (key == "size") p_layerSize = (int)val;
+  }
+  p_spots.clear();
+  std::ifstream f(p_csv);
+  string line;
+  std::getline(f, line);
+  while (std::getline(f, line)) {
+    Spot s;
+    double x, y, irel;
+    int ab;
+    if (sscanf(line.c_str(), "%d,%d,%d,%lf,%lf,%lf,%lf,%lf,%lf,%d", &s.h, &s.k, &s.l, &x, &y, &s.d,
+               &s.F, &s.I, &irel, &ab) != 10) continue;
+    s.px = p_layerSize / 2.0 + x * p_layerScale;
+    s.py = p_layerSize / 2.0 - y * p_layerScale;
+    s.absent = ab != 0;
+    p_spots.push_back(s);
+  }
+  p_back = wxImage();
+  p_panel->setImage(p_calc);
+  status(wxString::FromUTF8(out.substr(0, out.find('\n')).c_str()));
+  return true;
+}
+
 bool DiffractionDialog::calculate(string& why)
 {
+  if (p_single) return calculateLayer(why);
   if (p_powder) return calculatePowder(why);
   vector<string> a = {"fibre", p_structure,
                       "--wavelength", num(number(p_wavelength)),
@@ -611,6 +737,7 @@ void DiffractionDialog::onBackdrop(wxCommandEvent&)
 
 wxString DiffractionDialog::pointerText(int x, int y) const
 {
+  if (p_single) return layerPointerText(x, y);
   const size_t k = (size_t)y * p_pixels + x;
   if (k >= p_i.size()) return "";
   const double r = p_r[k], z = p_z[k], s = std::hypot(r, z);
@@ -625,7 +752,7 @@ wxString DiffractionDialog::pointerText(int x, int y) const
 
 bool DiffractionDialog::savePng(const string& path, string& why) const
 {
-  if (p_powder) {
+  if (p_powder || p_single) {
     std::error_code ec;
     if (!fs::exists(p_png)) { why = "nothing calculated yet"; return false; }
     fs::copy_file(p_png, path, fs::copy_options::overwrite_existing, ec);

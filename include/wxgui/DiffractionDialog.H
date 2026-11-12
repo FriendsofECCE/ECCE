@@ -15,7 +15,7 @@ class wxListCtrl;
 // selection go in, so it opens the same way from the Builder (the structure
 // being edited) and from a calculation's results (the final geometry).  Fibre
 // and powder (#587, periodic structures: an .xyz whose comment line has
-// Lattice="...") are drawn; single crystal (#972) is shown disabled.
+// Lattice="...") are drawn, and so are single-crystal layers (#972).
 class DiffractionDialog : public wxDialog
 {
 public:
@@ -34,6 +34,14 @@ public:
   // Powder: a measured pattern (two columns) drawn as a second curve.
   bool setMeasured(const std::string& path, std::string& why);
   bool powder() const { return p_powder; }
+  // Single crystal (#972): a reciprocal-lattice layer.  zone is "l" (hk0 for
+  // layer 0), "k" (h0l) or "h" (0kl); false and why if the structure is not
+  // periodic or the zone is unknown.  Switches the dialog to that pattern.
+  bool setLayer(const std::string& zone, int layer, double dmin, bool showAbsent,
+                std::string& why);
+  bool singleCrystal() const { return p_single; }
+  // The spot (h k l) as hovering reports it; "" if it is not in the layer.
+  wxString spotText(int h, int k, int l) const;
   // The reflection under a 2theta (degrees), as hovering shows it; "" if none.
   wxString reflectionText(double twoTheta, double tolerance) const;
 
@@ -47,7 +55,9 @@ private:
   void onSavePng(wxCommandEvent&);
   void onSaveCsv(wxCommandEvent&);
   void onOpacity(wxCommandEvent&);
-  void onPattern(bool powder);
+  void onPattern(int mode);   // 0 fibre, 1 powder, 2 single crystal
+  bool calculateLayer(std::string& why);
+  wxString layerPointerText(int x, int y) const;
   void onMeasured(wxCommandEvent&);
   bool calculatePowder(std::string& why);
   double number(wxTextCtrl *c) const;
@@ -65,7 +75,16 @@ private:
   std::vector<float> p_r, p_z, p_i;
   int p_pixels;
   std::string p_png, p_csv, p_tab, p_measured;
-  bool p_periodic, p_powder;
+  bool p_periodic, p_powder, p_single;
+  wxTextCtrl *p_layerNo, *p_lres, *p_lb;
+  wxChoice *p_zone, *p_lscale;
+  wxCheckBox *p_absent;
+  wxRadioButton *p_rbFibre, *p_rbPowder, *p_rbSingle;
+  wxSizer *p_layerItems;
+  double p_layerScale;
+  int p_layerSize;
+  struct Spot { double px, py; int h, k, l; double d, F, I; bool absent; };
+  std::vector<Spot> p_spots;
   wxTextCtrl *p_pwave, *p_ptmin, *p_ptmax, *p_pfwhm, *p_pb;
   wxChoice *p_source;
   PowderPanel *p_plot;

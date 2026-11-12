@@ -1016,6 +1016,22 @@ void Builder::runBuilderScript(const std::string& file)
         else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
         fprintf(stderr, "BUILDER: calcdiffraction: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
+      } else if (w[0] == "calclayer" && w.size() >= 3) {
+        //  calclayer OUT.png OUT.csv [ZONE [LAYER [DMIN [h,k,l]]]]: the
+        //  Diffraction entry set to Single crystal, with absent spots shown;
+        //  the spot h,k,l is reported as hovering would (#972).
+        std::string err, why;
+        DiffractionDialog *dd = calcIsPeriodic() ? openResultsDiffraction(w[1] + ".xyz") : 0;
+        if (!dd) err = "no Diffraction entry for this calculation";
+        else if (!dd->setLayer(w.size() > 3 ? w[3] : "l", w.size() > 4 ? atoi(w[4].c_str()) : 0,
+                               w.size() > 5 ? atof(w[5].c_str()) : 1.0, true, why)) err = why;
+        else if (!dd->calculate(why)) err = why;
+        else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
+        int h = 0, k = 0, l = 0;
+        if (err.empty() && w.size() > 6 && sscanf(w[6].c_str(), "%d,%d,%d", &h, &k, &l) == 3)
+          fprintf(stderr, "BUILDER: calclayer spot: %s\n", dd->spotText(h, k, l).ToUTF8().data());
+        fprintf(stderr, "BUILDER: calclayer: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
+        if (dd) dd->Destroy();
       } else if (w[0] == "takefrom" && w.size() >= 3) {
         //  takefrom PATH.xyz SET|selected [align]: Take Coordinates From...
         //  with the other structure read from an .xyz file (#620).
