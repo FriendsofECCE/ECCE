@@ -614,6 +614,10 @@ add_executable(ecce-reconnect src/apps/launch/ecce-reconnect.C)
 target_include_directories(ecce-reconnect PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-reconnect PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
 # Copies run-directory files into a calculation's Outputs inside the session.
+add_executable(ecce-reparse src/apps/launch/ecce-reparse.C)
+target_include_directories(ecce-reparse PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-reparse PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
+
 add_executable(ecce-fetch src/apps/launch/ecce-fetch.C)
 target_include_directories(ecce-fetch PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-fetch PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
@@ -1250,7 +1254,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-batch-smiles ecce-site-screen ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-batch-smiles ecce-site-screen ecce-reconnect ecce-reparse ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -4684,6 +4688,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(ecce_reconnect PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
+  # ecce-reparse re-parses stored outputs through the running Organizer;
+  # skipped (77) without Xvfb.
+  add_test(NAME ecce_reparse
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/ecce_reparse_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(ecce_reparse PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
   # ecce-fetch copies run-directory files into the Outputs through the
   # running Organizer; skipped (77) without Xvfb.
   add_test(NAME ecce_fetch
@@ -5405,6 +5418,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-batch-smiles=bin/ecce-batch-smiles
   ecce-site-screen=bin/ecce-site-screen
   ecce-reconnect=bin/ecce-reconnect
+  ecce-reparse=bin/ecce-reparse
   ecce-fetch=bin/ecce-fetch
   ecce-localdata=bin/ecce-localdata
   ecce-thermo=bin/ecce-thermo

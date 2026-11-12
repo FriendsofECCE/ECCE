@@ -6154,7 +6154,7 @@ void CalcMgr::OnReparseOutputsClick( wxCommandEvent& event )
 
 
 void CalcMgr::reparseOutputs(const vector<EcceURL>& urls, bool interactive,
-                             string *outcome)
+                             string *outcome, vector<string> *results)
 {
   //  The progress dialog appears only when the copying of the stored
   //  outputs has taken a moment; a single small calculation never shows it.
@@ -6165,7 +6165,12 @@ void CalcMgr::reparseOutputs(const vector<EcceURL>& urls, bool interactive,
   for (size_t i = 0; i < urls.size(); i++) {
     WxResourceTreeItemData *item = findNode(urls[i], true, true);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
-    if (!task) continue;
+    if (!task) {
+      if (results)
+        results->push_back(urls[i].toString() + "\t" + urls[i].toString() +
+                           "\trefused\tnot a calculation in this session");
+      continue;
+    }
     if (interactive && urls.size() > 1 && !pd &&
         std::chrono::steady_clock::now() - t0 > std::chrono::seconds(1))
       pd = new wxProgressDialog("Re-Parse Outputs", "Starting...",
@@ -6181,6 +6186,9 @@ void CalcMgr::reparseOutputs(const vector<EcceURL>& urls, bool interactive,
     }
     report += task->getName() + (done ? ": started: " : ": skipped: ") +
               message + "|";
+    if (results)
+      results->push_back(task->getName() + "\t" + task->getURL().toString() +
+                         (done ? "\tstarted\t" : "\trefused\t") + message);
   }
   if (pd) { pd->Update((int)urls.size()); delete pd; }
   if (ok)

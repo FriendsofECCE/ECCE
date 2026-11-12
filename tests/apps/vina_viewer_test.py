@@ -213,6 +213,8 @@ def main():
              "poses pocket on",
              "wait 3000",
              "poses info",
+             "poses note",
+             "poses thumb 1 " + os.path.join(png, "pose1.png"),
              "shot pocket",
              "poses pocket off",
              "quit"], png, "vina",
@@ -242,6 +244,23 @@ def main():
             fit = re.search(r"fit=([\d.]+)", infos[-1])
             check(bool(fit) and 0 < float(fit.group(1)) < 60,
                   "pocket view framed: %s A across" % (fit.group(1) if fit else "absent"))
+        notes = re.findall(r"poses note: (.*)", text)
+        count = infos[-1].count(" ; ") if infos else 0
+        energy_range = re.search(r"^energy_range\s*=\s*(\S+)", deck, re.M).group(1)
+        modes = re.search(r"^num_modes\s*=\s*(\S+)", deck, re.M).group(1)
+        expected = "%d %s within %s kcal/mol of the best (Vina keeps at most %s)" % (
+            count, "pose" if count == 1 else "poses", energy_range, modes)
+        check(bool(notes) and notes[-1] == expected, "pose retention note: " + str(notes))
+        thumb = os.path.join(png, "pose1.png")
+        raw = subprocess.check_output(["convert", thumb, "-depth", "8", "rgb:-"])
+        pixels = list(zip(raw[0::3], raw[1::3], raw[2::3]))
+        foreground = [(i % 72, i // 72) for i, c in enumerate(pixels) if min(c) < 220]
+        span = (max(x for x, y in foreground) - min(x for x, y in foreground),
+                max(y for x, y in foreground) - min(y for x, y in foreground)) if foreground else (0, 0)
+        check(len(set(pixels)) > 20 and 18 < span[0] < 70 and 12 < span[1] < 54
+              and len(foreground) < len(pixels) * 0.6,
+              "ligand thumbnail: %d colours, span %s, %d foreground pixels" % (
+                  len(set(pixels)), span, len(foreground)))
         box = re.findall(r"vinaboxinfo: (.*)", text)
         check(bool(box) and box[0].startswith("drawn=1"),
               "the search box is drawn: %s" % (box[0] if box else "absent"))

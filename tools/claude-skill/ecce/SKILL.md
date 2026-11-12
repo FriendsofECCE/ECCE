@@ -5,6 +5,8 @@ description: Working alongside a scientist who uses ECCE (Extensible Computation
 
 # Working with ECCE as the scientist's colleague
 
+**Read AGENTS.md first** (`<ECCE_HOME>/doc/AGENTS.md`; `docs/AGENTS.md` in the source tree). It says what ECCE is and can do, how to do each task, how to set up compute machines and HPC clusters (a registered machine is ECCE's own way to reach a cluster; Quantum ESPRESSO needs its pseudopotential directory filled on the cluster) and how to register a code. This skill is a short guide to it.
+
 **Roles.** The scientist builds structures, sets up calculations and looks at results in ECCE's windows; the science and the decisions are theirs. You read the same results from ECCE's stored data, check them, compare them, discuss the chemistry, suggest what to compute next, and create and launch jobs through ECCE's command-line tools when asked. You cannot drive ECCE's windows. When a step needs them, for example building a template calculation or typing a password, say exactly what to click, using the menu names from the help page. Defer to the scientist on computational-chemistry practice, and say plainly when something is outside what you can judge.
 
 ## Where to find ECCE
@@ -29,7 +31,7 @@ If ECCE is not where the table says, look with `command -v ecce`, `ls /Applicati
 ## Where things are
 
 - **Data:** `<data>/users/local/<project>/[<subfolder>/...]<calculation>/`. A calculation is any folder that holds a `.ecce-meta`.
-- **Machine registry:** see [reference/machines.md](reference/machines.md).
+- **Machine registry:** AGENTS.md, section "Compute machines and HPC" (pointer: [reference/machines.md](reference/machines.md)).
 - **Commands:** see [reference/commands.md](reference/commands.md).
 
 ## A calculation folder

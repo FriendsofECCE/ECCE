@@ -15,7 +15,10 @@ STRUCTURE = os.path.join(HERE, "fixtures", "select-protein-ligand.pdb")
 #  ALA-GLY (9 atoms), ligand LIG (6), smaller LG2 (3), glycerol (additive),
 #  two waters and a sodium ion.
 SCRIPT = [
-    "wait 2000", "expect atoms 27", "atomstyles",
+    #  A known start style: an earlier test in the suite may have saved
+    #  Wireframe as the default, which would make the Wireframe check below
+    #  pass without the ligand selection doing anything.
+    "wait 2000", "expect atoms 27", "menu Render|Ball And Stick", "atomstyles",
     "select_protein", "selection",
     "menu Edit|Clear Selection", "select_ligand", "selection",
     "menu Edit|Clear Selection", "menu Edit|Select Protein", "selection",

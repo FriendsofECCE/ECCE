@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the orbital energies of the magnesium atom in Hartree-Fock theory, where minus the energy of the highest occupied orbital approximates the ionisation energy (Koopmans' theorem).
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:14:20 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:30:45 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:14:19 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:30:43 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309260.567 idle=0 at=1794309260\nscf cycle=2 energy=-199.6133505464 dE=-2.84e-13/1e-10 grad=2.21e-09/1e-07 converged=yes\nscf~ dE=-2.84e-13\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515445.124 idle=0 at=1794515445\nscf cycle=2 energy=-199.6133505464 dE=-2.84e-13/1e-10 grad=2.21e-09/1e-07 converged=yes\nscf~ dE=-2.84e-13\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:14:19 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:30:44 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309259
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515443
 .	http://www.emsl.pnl.gov/ecce:theory		SCF/HF

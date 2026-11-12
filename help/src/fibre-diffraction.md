@@ -1,10 +1,25 @@
-# Diffraction: fibre patterns
+# Diffraction
 
 **Tools > Diffraction...** (Builder) calculates the X-ray diffraction pattern of
 the structure, or of the selected atoms. The window is not tied to the Builder:
-it needs a structure and an optional atom selection, nothing else. **Fibre** is
-the pattern type available now; **Powder** and **Single crystal** are listed
-and greyed out, because they need a periodic structure.
+it needs a structure and an optional atom selection, nothing else. The
+**Pattern** box chooses the view; switching view recalculates at once.
+
+- **Fibre**: the pattern of molecules aligned on one axis, on a film or as an
+  (R, Z) map. It works for any structure.
+- **Powder**: intensity against 2θ with hkl labels and a peak list, with the
+  K-alpha doublet for Cu, Mo and Co sources. It needs a periodic structure.
+- **Single crystal**: a reciprocal-lattice layer (hk0, h0l, 0kl or a higher
+  layer) drawn as a precession photograph. It needs a periodic structure.
+- **Detector frame, rotating crystal**: what a rotation camera records for an
+  oscillation range. It needs a periodic structure.
+
+A structure is periodic when it carries a unit cell: a structure written with
+a lattice (an .xyz whose comment line has `Lattice="..."`, as the Builder
+writes it for a crystal). For any other structure, Powder, Single crystal and
+Detector frame are greyed out and Fibre is selected; for a periodic one Powder
+is selected when the window opens. **Experimental...** belongs to Powder and
+overlays a measured pattern.
 
 A fibre pattern is what a stretched fibre of aligned molecules gives: the
 molecules lie along one axis and are rotated at random about it. The intensity
@@ -23,7 +38,7 @@ the Bessel function J_n(2 pi R r) of order n allowed by the helical symmetry.
 
 The fields:
 
-- **Wavelength** (Cu K-alpha, 1.5418 A, by default) and **Film distance** (30 mm)
+- **Wavelength** (Cu K-alpha, 1.5418 Å, by default) and **Film distance** (30 mm)
   and **Film size** (40 mm): a flat film perpendicular to the beam, the fibre across the
   beam. The picture is the film. Where a reflection falls on it follows from
   the Ewald sphere, so the meridional reflections of high layer lines are
@@ -31,9 +46,9 @@ The fields:
   untilted fibre.
 - **B** (20 Å² by default): an isotropic temperature factor, damping the high angles.
 - **Fibre length**: broadens the layer lines along Z as a fibre of that length
-  would (100 A by default). It is added to the broadening of the molecule's own
+  would (100 Å by default). It is added to the broadening of the molecule's own
   length. 0 is off.
-- **Misalignment** (8 degrees by default): the spread of the fibre axes, which draws the
+- **Misalignment** (8° by default): the spread of the fibre axes, which draws the
   spots out into arcs. The smearing follows circles of constant |S| and ignores
   the change of the orientation weight along the arc, so it is a good picture
   of the arcs and not a quantitative profile.
@@ -58,6 +73,35 @@ wavelengths differ by a fixed fraction, so by Bragg's law the lines are further
 apart the larger the angle: the doublet is hardly visible at low 2θ and is
 resolved as two peaks at high angle. The peak list has one row per line, marked
 Ka1 or Ka2. Other sources (synchrotron, a typed wavelength) have no doublet.
+
+## Experimental pattern
+
+**Experimental...** (Powder view) opens a measured powder pattern and draws it
+as a second curve, labelled "measured", under the calculated one, on the same
+2θ axis. The file formats are:
+
+- **Text columns** (.xy, .xye, .dat, .txt, .csv): 2θ in degrees in the first
+  column and the intensity in the second, separated by blanks, commas,
+  semicolons or tabs. Further columns, such as the error of an .xye file, are
+  ignored. Lines that do not start with two numbers (headers, comments) are
+  skipped. The points are sorted by 2θ.
+- **PANalytical .xrdml**: the first scan that has 2θ positions and intensities
+  (or counts). The positions are taken from the file's position list, or
+  spread evenly between its start and end positions.
+- **Bruker .brml**: the first raw-data record that holds measured points.
+  2θ and the counts are read from each row; points the instrument never
+  measured are left out.
+
+The format is recognised from the content, not from the file name. The
+measured curve is scaled so that its strongest point inside the 2θ range of
+the calculation is 100, like the calculated curve, and is drawn only where the
+file has data. A file with no point inside that range, or one that cannot be
+read, gives a message that says why (for example no two-column data, or no 2θ
+scan in an .xrdml file), and no measured curve is drawn. The
+calculated peaks use the wavelength or K-alpha lines of the **Source**
+setting, so choose the source the measurement was made with for the peaks to
+line up. From the command line: `ecce-xrd powder structure.cif --measured
+scan.xy --out powder.png`.
 
 ## Layers as precession photographs
 
@@ -133,7 +177,7 @@ writes every pixel: its position on the film in mm, R, Z and the intensity.
 `--select 1-40,57` takes atoms, `--axis x,y,z` sets the axis, `--json` prints
 what was done. The sample structures, a 20 base pair B-DNA and a 20 residue
 polyalanine alpha-helix, are in the Structure Library under Teaching > Fibres.
-For B-DNA with a 34 A repeat the layer lines lie at multiples of 1/34 A^-1, the
-reflection of the 3.4 A stacking is on layer line 10, and layer line 4 is weak.
-The alpha-helix has its 5.4 A pitch layer line and the 1.5 A rise reflection on
+For B-DNA with a 34 Å repeat the layer lines lie at multiples of 1/34 Å⁻¹, the
+reflection of the 3.4 Å stacking is on layer line 10, and layer line 4 is weak.
+The alpha-helix has its 5.4 Å pitch layer line and the 1.5 Å rise reflection on
 the meridian.

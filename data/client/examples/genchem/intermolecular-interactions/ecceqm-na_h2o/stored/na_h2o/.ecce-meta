@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP-D3(BJ)/def2-TZVP, optimisation and frequencies. This calculation shows a sodium ion held at the oxygen end of a water molecule: on a Density Profile line from Na to O the density between them falls to a low minimum, far below that of a covalent bond.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 13:55:53 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:31:10 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 13:55:51 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:31:07 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794318952.990 idle=0 at=1794318952\nscf cycle=6 energy=-238.5232629642 dE=-5.68e-14/1e-10 grad=2.78e-08/1e-07 converged=yes\nscf~ dE=-1.56e-08,-2.01e-08,-4.31e-09,-4.38e-12,-5.68e-14\nopt step=5 energy=-238.5232629642 maxgrad=3.41e-05/1e-04 rmsgrad=1.32e-05/3e-05 maxstep=4.76e-05/1e-03 rmsstep=2.09e-05/6e-04 dE=-1.80e-07/1e-06 converged=yes\nopt~ maxgrad=4.67e-03,1.18e-03,4.81e-04,2.71e-04,3.41e-05\nopt~ rmsgrad=2.36e-03,5.57e-04,2.24e-04,1.23e-04,1.32e-05\nfreq kind=numerical point=24/24 done=yes real=6 imaginary=0 zpe=0.0237247680\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515469.340 idle=0 at=1794515469\nscf cycle=6 energy=-238.5232629642 dE=-5.68e-14/1e-10 grad=2.78e-08/1e-07 converged=yes\nscf~ dE=-1.56e-08,-2.01e-08,-4.31e-09,-4.38e-12,-5.68e-14\nopt step=5 energy=-238.5232629642 maxgrad=3.41e-05/1e-04 rmsgrad=1.32e-05/3e-05 maxstep=4.76e-05/1e-03 rmsstep=2.09e-05/6e-04 dE=-1.80e-07/1e-06 converged=yes\nopt~ maxgrad=4.67e-03,1.18e-03,4.81e-04,2.71e-04,3.41e-05\nopt~ rmsgrad=2.36e-03,5.57e-04,2.24e-04,1.23e-04,1.32e-05\nfreq kind=numerical point=24/24 done=yes real=6 imaginary=0 zpe=0.0237247680\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 13:55:51 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:31:08 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794318951
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515468
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

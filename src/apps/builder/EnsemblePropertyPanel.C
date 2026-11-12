@@ -33,6 +33,7 @@
 #include "inv/nodes/SoDrawStyle.H"
 #include "inv/nodes/SoComplexity.H"
 #include "inv/nodes/SoLightModel.H"
+#include "inv/nodes/SoDirectionalLight.H"
 #include "inv/nodes/SoPerspectiveCamera.H"
 #include "inv/nodes/SoSwitch.H"
 #include "inv/nodes/SoCamera.H"
@@ -265,6 +266,38 @@ void EnsemblePropertyPanel::load()
 }
 
 
+string EnsemblePropertyPanel::poseNote() const
+{
+  if (!isVina(getCalculation())) return "";
+  ICalculation *ic = dynamic_cast<ICalculation*>(getCalculation());
+  std::unique_ptr<GUIValues> settings(ic->guiparams());
+  auto value = [&](const string& key, const string& fallback) {
+    GUIValue *v = settings ? settings->get("ES.Runtype.Vina." + key) : 0;
+    return v ? v->getValueAsString() : fallback;
+  };
+  string range = value("EnergyRange", "3"), modes = value("NumPoses", "9");
+  // A finished run's deck records the limits actually used.
+  std::unique_ptr<std::istream> deck(ic->getDataFile(JCode::PRIMARY_INPUT));
+  if (deck) for (string line; std::getline(*deck, line); ) {
+    std::replace(line.begin(), line.end(), '=', ' ');
+    std::istringstream in(line);
+    string key, val;
+    if (in >> key >> val) {
+      if (key == "energy_range") range = val;
+      if (key == "num_modes") modes = val;
+    }
+  }
+  return std::to_string(p_members.size()) +
+      (p_members.size() == 1 ? " pose within " : " poses within ") + range +
+      " kcal/mol of the best (Vina keeps at most " + modes + ")";
+}
+
+bool EnsemblePropertyPanel::exportThumbnail(int rank, const string& path)
+{
+  return rank > 0 && rank <= (int)p_members.size() && makeThumbnail(rank) && p_thumbnails.at(rank).SaveFile(
+      wxString::FromUTF8(path.c_str()), wxBITMAP_TYPE_PNG);
+}
+
 void EnsemblePropertyPanel::initialize()
 {
   Timed timed("initialize");
@@ -274,6 +307,12 @@ void EnsemblePropertyPanel::initialize()
   GetSizer()->Add(new wxStaticText(this, wxID_ANY,
       "Compare structures and choose members for further calculations."),
       0, wxEXPAND | wxALL, 5);
+
+  if (isVina(getCalculation())) {
+    p_poseNote = new wxStaticText(this, wxID_ANY,
+        wxString::FromUTF8(poseNote().c_str()));
+    GetSizer()->Add(p_poseNote, 0, wxEXPAND | wxALL, 5);
+  }
 
   p_table = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 220),
                            wxLC_REPORT);
@@ -429,6 +468,7 @@ void EnsemblePropertyPanel::refresh()
   p_imageIndex.clear();
   p_images->RemoveAll();
   load();
+  if (p_poseNote) p_poseNote->SetLabel(wxString::FromUTF8(poseNote().c_str()));
   p_selection.erase(std::remove_if(p_selection.begin(), p_selection.end(),
       [this](int k) { return k > (int)p_members.size(); }), p_selection.end());
   fillTable();
@@ -773,14 +813,14 @@ const EnsemblePropertyPanel::Geometry& EnsemblePropertyPanel::geometry(int rank)
 }
 
 SoSeparator *EnsemblePropertyPanel::molecule(const Geometry& g,
-    const vector<double>& xyz, const wxColour *colour)
+    const vector<double>& xyz, const wxColour *colour, bool lit)
 {
   SoSeparator *root = new SoSeparator;
   SoComplexity *quality = new SoComplexity;
   quality->value = 0.2f;
   root->addChild(quality);
   SoLightModel *light = new SoLightModel;
-  light->model = SoLightModel::BASE_COLOR;
+  light->model = lit ? SoLightModel::PHONG : SoLightModel::BASE_COLOR;
   root->addChild(light);
   TPerTab pt;
   for (size_t i = 0; i < g.elements.size(); i++) {
@@ -935,12 +975,12 @@ bool EnsemblePropertyPanel::makeThumbnail(int rank)
   }
   cam->orientation = p_thumbOrientation;
   root->addChild(cam);
-  // In the pocket view a pose's thumbnail is its ligand: the whole receptor
+  // A pose's thumbnail is its ligand: the whole receptor
   // fills a 72 px image with the same grey ball for every pose.
   Geometry ligandOnly;
   const Geometry *shown = &g;
   const int n = (int)g.elements.size();
-  const vector<int> lig = (p_pocket && kind() == "Poses") ? ligandAtoms() : vector<int>();
+  const vector<int> lig = (kind() == "Poses") ? ligandAtoms() : vector<int>();
   if (!lig.empty() && (int)lig.size() < n) {
     vector<char> keep(n, 0);
     for (int i : lig) if (i >= 0 && i < n) keep[i] = 1;
@@ -953,7 +993,10 @@ bool EnsemblePropertyPanel::makeThumbnail(int rank)
         ligandOnly.bonds.push_back(b);
     shown = &ligandOnly;
   }
-  root->addChild(molecule(*shown, g.xyz));
+  const bool pose = kind() == "Poses";
+  // Offscreen scenes have no viewer headlight; shading separates overlapping atoms.
+  if (pose) root->addChild(new SoDirectionalLight);
+  root->addChild(molecule(*shown, g.xyz, NULL, pose));
   SbViewportRegion vp;
   vp.setWindowSize(SbVec2s(thumbWidth, thumbHeight));
   cam->viewAll(root, vp, 1.1f);

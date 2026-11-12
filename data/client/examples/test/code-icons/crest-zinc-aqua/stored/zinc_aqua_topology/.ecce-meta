@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		CREST, GFN2-xTB, conformer search. This calculation shows the CREST code icon beside the xTB calculation in the same folder.
 .	http://www.emsl.pnl.gov/ecce:application		CREST
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:13:42 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:35:35 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:13:41 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:35:32 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309222.580 idle=0 at=1794309222\ncrest stage=crude mtd=6/6 est=20 estunit=sec iter=1 nopt=1 emin=0.00000 remain=1 window=2.50\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515735.004 idle=0 at=1794515735\ncrest stage=crude mtd=6/6 est=20 estunit=sec iter=1 nopt=1 emin=0.00000 remain=1 window=2.50\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Conformer Search
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:13:41 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:35:33 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309221
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515733
 .	http://www.emsl.pnl.gov/ecce:theory		SE/GFN2-xTB
