@@ -48,6 +48,7 @@
 #include "inv/nodes/SoScale.H"
 #include "inv/nodes/SoDirectionalLight.H"
 #include "inv/nodes/SoTransform.H"
+#include "inv/nodes/SoLineSet.H"
 #include "inv/nodes/SoVertexProperty.H"
 #include "inv/nodes/SoIndexedTriangleStripSet.H"
 #include "inv/misc/SoChildList.H"
@@ -710,15 +711,15 @@ void PovrayCmd::addFragment(ostream& ostr, SoNode *top)
 
 /**
  * Find and dump all Hydrogen bonds in the scene graph.
- * Hydrogen bonds currently implemented as AtomLine objects.
- * This same object is used for drawing arbitrary lines and
- * this method will get them all.
+ * Hydrogen bonds are one SoLineSet named HBondLines.
  */
 void PovrayCmd::addHBonds(ostream& ostr, SoNode *top)
 {
+  // The bonds are one SoLineSet named HBondLines: vertex pairs, the
+  // second already at the acceptor's nearest image.
   SoSearchAction getvecs;
   getvecs.setInterest(SoSearchAction::ALL);
-  getvecs.setType(AtomLine::getClassTypeId(),FALSE);
+  getvecs.setName("HBondLines");
   getvecs.apply(top);
   SoPathList &paths = getvecs.getPaths();
   double r, radius, dx, dy, dz;
@@ -728,16 +729,18 @@ void PovrayCmd::addHBonds(ostream& ostr, SoNode *top)
   string finishParam = getParameter("finishStyle")->getString();
 
   for (int idx=0; idx <paths.getLength(); idx++) {
-    SoPath *path = paths[idx];
-    AtomLine *hbond = (AtomLine*)path->getTail();
-    TAtm *atm1 = hbond->atom1();
-    TAtm *atm2 = hbond->atom2();
-    const double *coords1 = atm1->coordinates();
-    const double *coords2 = atm2->coordinates();
+   SoLineSet *ls = (SoLineSet*)paths[idx]->getTail();
+   SoVertexProperty *vp = (SoVertexProperty*)ls->vertexProperty.getValue();
+   for (int nb = 0; vp && 2*nb+1 < vp->vertex.getNum(); nb++) {
+    const SbVec3f &v1 = vp->vertex[2*nb];
+    const SbVec3f &v2 = vp->vertex[2*nb+1];
+    double coords1[3] = { v1[0], v1[1], v1[2] };
+    double coords2[3] = { v2[0], v2[1], v2[2] };
     dx = coords2[0] - coords1[0];
     dy = coords2[1] - coords1[1];
     dz = coords2[2] - coords1[2];
     r = sqrt(dx*dx + dy*dy + dz*dz);
+    if (r < 1e-6) continue;
     dx = dx/r;
     dy = dy/r;
     dz = dz/r;
@@ -799,6 +802,7 @@ void PovrayCmd::addHBonds(ostream& ostr, SoNode *top)
       ostr << "  }" <<endl;
       ostr << "}" <<endl;
     }
+   }
   }
 }
 

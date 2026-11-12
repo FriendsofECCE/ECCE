@@ -179,13 +179,22 @@ def main():
             EX, CASES[0][1].rsplit("/", 1)[0] + "/h2o_dimer"))
         writeNaCl(url[len("file://"):].rstrip("/"))
         log = runBuilder(display, url, os.path.join(work, "nacl"), True)
-        got = re.findall(r"BUILDER: hbonds=(\d+) ms=(\d+) atoms=(\d+)", log)
+        got = re.findall(r"BUILDER: hbonds=(\d+) ms=(\d+) atoms=(\d+) "
+                         r"search_ms=(\d+) draw_ms=(\d+)", log)
         print("     nacl frame: hbonds (N/O only, then with Cl-): %s" % got)
         check(len(got) == 3 and got[0][2] == "12079", "nacl: frame loaded, hbonds logged")
         if len(got) == 3:
             check(int(got[0][0]) == GMX, "nacl: N/O count %s equals gmx hbond %d" % (got[0][0], GMX))
             check(int(got[1][0]) == int(got[2][0]) and int(got[1][0]) > GMX,
                   "nacl: with Cl- acceptors %s" % got[1][0])
+            # #982: one line-set node for all bonds; a node per bond took
+            # about a second per redraw here.
+            print("     nacl timings (ms, search/draw/total): %s" %
+                  [(g[3], g[4], g[1]) for g in got])
+            check(all(int(g[4]) < 50 for g in got),
+                  "nacl: drawing the bonds takes < 50 ms")
+            check(all(int(g[1]) < 400 for g in got),
+                  "nacl: a redraw takes < 400 ms")
         else:
             print(log[-1500:])
     shutil.rmtree(work, ignore_errors=True)
