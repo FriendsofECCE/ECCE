@@ -123,6 +123,7 @@ def main():
         cmds = os.path.join(s.state, "organizer-commands")
         open(cmds, "w").close()
         import sessionkey
+        os.makedirs(os.path.join(s.state, ".ECCE", "waiting"), exist_ok=True)
         with open(os.path.join(s.state, ".ECCE", "waiting", "session"), "w") as h:
             h.write(sessionkey.key(genv.get("ECCE_SESSION_ID", ""), genv) + "\n")
         org = subprocess.Popen(
