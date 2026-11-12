@@ -202,8 +202,7 @@ Mgmt > Reconnect Selected..., or `ecce-reconnect <calc>`.
 
 **Re-parse outputs.** After a parser fix, or when fewer properties show
 than the output contains: **Run Mgmt > Re-Parse Outputs** (`reparse-outputs`),
-which needs no login. There is no command for it in this version
-(`src/apps/launch/` has no `ecce-reparse`); ask the user to run it.
+which needs no login, or `ecce-reparse <calc>...` (see below).
 
 **Workflows and recipes.** User: build a workflow from calculations
 (`workflows`), or Apply Recipe (`recipes`). Launch Ready Steps starts what
