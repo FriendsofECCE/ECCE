@@ -19,6 +19,11 @@ not change. Free text is written with `&#10;` for newlines because
 - User lines are merged by `mergeExtraLines` over the file `modifyInputFile`
   wrote to `tmpfile` (not the template name, which `cleanup` renames over
   afterwards): a key replaces ours, `-`/`_`/case equal.
+- `nstcalcenergy` is the gcd of `nstlog` and `nstenergy`, which follow the
+  run length. A user `nstenergy`/`nstlog` line makes `mergeExtraLines` pick
+  it again from the final values: otherwise grompp warns "nstenergy should
+  be a multiple of nstcalcenergy" and the job stops (umbrella windows copy
+  the pull run's lines onto a different step count, #762).
 - The group definitions travel to the launch as `; ecce-group name = RES`
   comments in the `.mdp`. `gromacs.launchpp` runs `gromacs.mkndx` on the
   staged `conf.gro` and writes `ecce_groups.ndx` before anything else is
