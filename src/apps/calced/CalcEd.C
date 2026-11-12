@@ -4213,7 +4213,7 @@ static string unescapeWarningText(const string& in)
 //  from the dialog to the editor).
 void CalcEd::writeVinaAutoNote() const
 {
-  if (p_codeName != "Vina" || !p_runtypeOutFile) return;
+  if (p_codeName != "Vina" || p_runtypeNotePath.empty()) return;
   string line;
   const string key = "the ligand was chosen automatically: ";
   for (const auto& w : p_inputGenWarnings) {
@@ -4228,7 +4228,7 @@ void CalcEd::writeVinaAutoNote() const
     if (dash != string::npos) range.replace(dash, 1, "\xE2\x80\x93");
     line = "Automatic: " + w.second.substr(a, b - a) + " (" + range + ")";
   }
-  const string path = p_runtypeOutFile->path() + ".note";
+  const string& path = p_runtypeNotePath;
   if (line.empty()) {
     remove(path.c_str());
     return;
@@ -5009,6 +5009,7 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
     closeRuntypeApp(true);
 
     p_runtypeOutFile = TempStorage::getTempFile();
+    p_runtypeNotePath = p_runtypeOutFile->path() + ".note";
     ofstream outStream(p_runtypeOutFile->path().c_str());
 
     // Create a file just to guarantee a unique name
@@ -5238,6 +5239,7 @@ void CalcEd::processRuntypeInput(const char* databuf)
   if (strstr(databuf, "#INITIALIZED") != NULL) {
     p_runtypeOutFile->remove();
     delete p_runtypeOutFile;
+    p_runtypeOutFile = NULL;
 
     p_runtypeInitFlag = true;
 
@@ -5292,7 +5294,10 @@ void CalcEd::closeRuntypeApp(const bool& sendTerm)
     (void)kill((p_runtypePid), SIGTERM);
   }
 
-  if (p_runtypeOutFile) remove((p_runtypeOutFile->path() + ".note").c_str());
+  if (!p_runtypeNotePath.empty()) {
+    remove(p_runtypeNotePath.c_str());
+    p_runtypeNotePath.clear();
+  }
 
   if (p_runtypeInPort != 0) {
     p_runtypeInSocket->Notify(false);
