@@ -1225,6 +1225,17 @@ string PBC::scriptCommand(const vector<string>& w)
       GetEventHandler()->ProcessEvent(ev);
       return "";
    }
+   if (what == "replicate" && w.size() == 4) {
+      int n[3];
+      for (int i = 0; i < 3; i++) {
+         n[i] = atoi(w[i + 1].c_str());
+         if (n[i] < 1) return "replicate: factors must be 1 or more";
+      }
+      if (p_baseFrag == 0) refresh();   // as opening the panel does
+      if (p_baseFrag == 0) return "replicate: no structure to replicate";
+      replicate(n[0], n[1], n[2]);
+      return "";
+   }
    if (what == "cell" && w.size() == 7) {
       static const wxWindowID ids[6] = { ID_TEXTCTRL_PBC_A, ID_TEXTCTRL_PBC_B,
          ID_TEXTCTRL_PBC_C, ID_TEXTCTRL_PBC_ALPHA, ID_TEXTCTRL_PBC_BETA,
