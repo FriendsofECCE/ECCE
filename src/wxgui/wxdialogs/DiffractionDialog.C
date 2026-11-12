@@ -745,7 +745,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   // It fades the pattern over a backdrop picture; without one it has nothing to do.
   p_opacity->Enable(false);
   p_opacity->SetToolTip(wxString::FromUTF8("Opacity of the calculated pattern over the backdrop "
-                                           "picture; load one with Backdrop image… first"));
+                                           "picture; load one with Load Backdrop... first"));
   left->Add(fibreBox, 0);
 
   wxBoxSizer *powderBox = new wxBoxSizer(wxVERTICAL);
