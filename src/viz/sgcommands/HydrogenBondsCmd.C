@@ -23,10 +23,13 @@ using namespace ecce;
 #include "tdat/TBond.H"
 #include "tdat/TPerTab.H"
 
+#include "inv/SbLinear.H"
+#include "inv/nodes/SoLineSet.H"
+#include "inv/nodes/SoVertexProperty.H"
+
 #include "viz/HydrogenBondsCmd.H"
 #include "viz/SGFragment.H"
 #include "viz/SGContainer.H"
-#include "viz/AtomLine.H"
 #include "viz/AtomMeasureDist.H"
 
 HydrogenBondsCmd::HydrogenBondsCmd(const string& name, Receiver * receiver)
@@ -215,6 +218,7 @@ bool HydrogenBondsCmd::execute()
    }
 
    vector<int> cells, cand;
+   vector<SbVec3f> pts;
    for (int i = 0; i < nAtoms; i++) {
       TAtm *h = (*atoms)[i];
       if (h->atomicNumber() != 1 || !h->displayStyle().isDisplayed()) continue;
@@ -279,17 +283,30 @@ bool HydrogenBondsCmd::execute()
          if (MinImage::dot(dh, da)/(dhLen*len) < cosMin) continue;
 
          p_lastCount++;
-         const Clock::time_point d0 = Clock::now();
-         SoSeparator *sep = new SoSeparator;
          // Line to the acceptor's nearest image, not across the box.
-         AtomLine *line = new AtomLine(frag, h, acc, sep);
-         line->setShift(pd[0] + da.x() - pa[0], pd[1] + da.y() - pa[1],
-                        pd[2] + da.z() - pa[2]);
-         sep->addChild(line);
-         sg->getTopHBonds()->addChild(sep);
+         const Clock::time_point d0 = Clock::now();
+         pts.push_back(SbVec3f(ph[0], ph[1], ph[2]));
+         pts.push_back(SbVec3f(pd[0] + da.x(), pd[1] + da.y(), pd[2] + da.z()));
          drawSec += std::chrono::duration<double>(Clock::now() - d0).count();
       }
    }
+
+   // One node for all bonds: a node per bond made the redraw take seconds.
+   const Clock::time_point d1 = Clock::now();
+   if (!pts.empty()) {
+      const int nb = pts.size() / 2;
+      SoVertexProperty *vp = new SoVertexProperty;
+      vp->vertex.setValues(0, pts.size(), &pts[0]);
+      SoLineSet *ls = new SoLineSet;
+      ls->setName("HBondLines");
+      ls->vertexProperty.setValue(vp);
+      ls->numVertices.setNum(nb);
+      int32_t *nv = ls->numVertices.startEditing();
+      for (int i = 0; i < nb; i++) nv[i] = 2;
+      ls->numVertices.finishEditing();
+      sg->getTopHBonds()->addChild(ls);
+   }
+   drawSec += std::chrono::duration<double>(Clock::now() - d1).count();
 
    delete cellList;
    delete atoms;
