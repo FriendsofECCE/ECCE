@@ -50,7 +50,15 @@ def run(display):
                  if "ECCE_TEST_ORGANIZER: contextmenu" in l]
         if not lines:
             failures.append("no contextmenu outcome")
-            print("FAIL  no contextmenu outcome\n" + (result.log or "")[-1500:])
+            # An empty log alone said nothing about whether the Organizer
+            # even started; say what the run did, then its output's tail.
+            print("FAIL  no contextmenu outcome (window=%s after %ss, "
+                  "windows=%s, exit=%s, note=%s, crashed=%s)"
+                  % (result.sawWindow, result.secondsToWindow,
+                     result.windows, result.returncode, result.note,
+                     result.crashed))
+            print("----- Organizer output (tail) -----\n"
+                  + ((result.log or "")[-3000:] or "(empty)"))
         elif LABEL not in lines[-1]:
             failures.append("New submenu lacks the import")
             print("FAIL  New submenu: " + lines[-1])
