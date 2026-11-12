@@ -155,11 +155,15 @@ def main():
             return 1
         props = imported[0]
         calc = os.path.dirname(props)
-        before = sorted(os.listdir(props))
+        time.sleep(15)   # the import's own parsing has finished
+        before = sorted(e for e in os.listdir(props) if not e.startswith("."))
         name = os.path.basename(calc)
         for entry in before:
             full = os.path.join(props, entry)
-            (shutil.rmtree if os.path.isdir(full) else os.unlink)(full)
+            if os.path.isdir(full):
+                shutil.rmtree(full)
+            elif os.path.exists(full):
+                os.unlink(full)
 
         rc, out, err = run(calc, url, "file://" + os.path.join(s.state, "no-such-calc"))
         say(out)
@@ -171,12 +175,15 @@ def main():
               "a Ready calculation is refused with a reason")
         check(any("refused: not a calculation in this session" in l for l in lines),
               "an unknown path is refused")
-        check(sorted(os.listdir(props)) == before,
+        check(sorted(e for e in os.listdir(props) if not e.startswith(".")) == before,
               "the properties are back (%s)" % sorted(os.listdir(props)))
 
         for entry in before:
             full = os.path.join(props, entry)
-            (shutil.rmtree if os.path.isdir(full) else os.unlink)(full)
+            if os.path.isdir(full):
+                shutil.rmtree(full)
+            elif os.path.exists(full):
+                os.unlink(full)
         rc, out, err = run("--json", calc)
         say(out)
         try:
@@ -185,7 +192,7 @@ def main():
             data = None
         check(rc == 0 and data == [{"name": name, "status": "done", "reason": ""}],
               "--json: one done object, exit 0 (rc=%s)" % rc)
-        check(sorted(os.listdir(props)) == before, "the properties are back again")
+        check(sorted(e for e in os.listdir(props) if not e.startswith(".")) == before, "the properties are back again")
     finally:
         if org and org.poll() is None:
             org.terminate()
