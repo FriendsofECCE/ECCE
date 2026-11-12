@@ -42,6 +42,22 @@ page does not repeat what they explain there.
 ECCE chooses the pseudopotential of each element for you, from the
 directory in **Theory Details**. You do not type file names.
 
+### Running on a cluster
+
+ECCE reads that directory on this computer when it writes the input, so the
+same set must be here. The cluster needs the same files in a directory of its
+own. In **Register Machines**, open the cluster's **Codes** tab and add to the
+Quantum ESPRESSO environment variables the line
+
+```
+ESPRESSO_PSEUDO /path/on/the/cluster/pseudo
+```
+
+When the job starts, this replaces `pseudo_dir` in the input. If the directory
+lacks a file the input names, `pw.x` stops at once with
+`file ... not found` in `readpp`. Copy the set there before the first job
+(the SSSP files from `/usr/share/espresso/pseudo` will do).
+
 ## A word on units and settings
 
 - Energies are in Hartree in ECCE. Quantum ESPRESSO prints Rydberg:
