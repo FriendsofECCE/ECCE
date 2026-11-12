@@ -38,6 +38,7 @@
 #include "util/SFile.H"   
 
 #include "tdat/FragUtil.H"
+#include "tdat/CifIO.H"
 #include "tdat/LatticeDef.H"
 #include "tdat/TBond.H"
 #include "tdat/TPerTab.H"
@@ -2761,7 +2762,12 @@ void SGFragment::addFragment(const string& type,
    }
 
 
-   if (!loadStatus) throw EcceException("Unable to parse input data", WHERE);
+   if (!loadStatus) {
+      string why = "Unable to parse input data";
+      if (STLUtil::compareString(type, string("CIF")) == 0 &&
+          !CifIO::lastError().empty()) why = CifIO::lastError();
+      throw EcceException(why, WHERE);
+   }
 
    // Not sure if this is needed.  Definitely not needed.
    tmpfrag.touchNumbers();

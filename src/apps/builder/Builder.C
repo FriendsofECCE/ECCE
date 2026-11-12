@@ -98,6 +98,7 @@ using std::vector;
 #include "wxgui/ewxGenericFileDialog.H"
 #include "wxgui/ewxLogTextCtrl.H"
 #include "wxgui/ewxMessageDialog.H"
+#include "tdat/CifIO.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/FeedbackSaveHandler.H"
@@ -1340,6 +1341,8 @@ void Builder::interpretCommand(const string& command)
    try {
       Command *cmd = createCommand(command);
       execute(cmd);
+      vector<string> notes = CifIO::takeWarnings();
+      for (size_t i = 0; i < notes.size(); i++) showMessage(notes[i]);
     } catch (EcceException& ex) {
       reportError(ex.what());
     }
@@ -5526,6 +5529,11 @@ bool Builder::readFragmentFromFile(SFile *file, wxString type, wxString ext)
        cmd->getParameter("z")->setDouble(0.0);
 
        execute(cmd);
+
+       if (ext.IsSameAs("CIF",false)) {
+         vector<string> notes = CifIO::takeWarnings();
+         for (size_t i = 0; i < notes.size(); i++) showMessage(notes[i]);
+       }
 
        if (ext.IsSameAs("PDB",false)) {
           (void)createSolventSoluteStyles(*(getSG()->getFragment()));

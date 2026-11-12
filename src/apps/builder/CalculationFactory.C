@@ -23,6 +23,7 @@
 
 wxFORCE_LINK_MODULE(CarCalculation)
 wxFORCE_LINK_MODULE(GroCalculation)
+wxFORCE_LINK_MODULE(CifCalculation)
 wxFORCE_LINK_MODULE(CubeCalculation)
 wxFORCE_LINK_MODULE(PdbCalculation)
 wxFORCE_LINK_MODULE(MvmCalculation)

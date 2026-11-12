@@ -45,6 +45,7 @@
 #include "tdat/LatticeDef.H"
 #include "tdat/CompactCell.H"
 #include "tdat/Fragment.H"
+#include "tdat/CifIO.H"
 #include "tdat/LinearPointGroup.H"
 #include "tdat/FragUtil.H"
 #include "tdat/TFormula.H"
@@ -5320,6 +5321,16 @@ bool Fragment::restoreGRO(istream& infile, bool genBonds)
     setEnvIndices();
   }
   return true;
+}
+
+bool Fragment::restoreCIF(istream& infile, bool genBonds)
+{
+  return CifIO::read(*this, infile, genBonds);
+}
+
+bool Fragment::dumpCIF(ostream& out)
+{
+  return CifIO::write(*this, out);
 }
 
 // Counterpart of restoreGRO: nm, residues from the fragment, the lattice

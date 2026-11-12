@@ -4291,6 +4291,18 @@ if(PYTHON3_EXECUTABLE)
   # Builder's Add Structure from File does.
   add_executable(fragreaders tests/fragreaders/fragreaders.C)
   target_link_libraries(fragreaders PRIVATE eccetdat ecceutil)
+  # tests/cifio: CIF reader/writer (#358) and its gemmi / Open Babel oracle.
+  add_executable(cifio tests/cifio/cifio.C)
+  target_link_libraries(cifio PRIVATE eccetdat ecceutil)
+  add_test(NAME cifio
+           COMMAND cifio ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/cif)
+  add_test(NAME cifio_oracle
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/cifio/cifio_oracle_test.py
+                   $<TARGET_FILE:cifio>)
+  set_tests_properties(cifio cifio_oracle PROPERTIES SKIP_RETURN_CODE 77
+    ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
   # tests/structlib: every Teaching > Diatomics entry of the Structure Library
   # loads with its stored bond length (and the library agrees with
   # tests/qm/diatomic_order_test.py).
