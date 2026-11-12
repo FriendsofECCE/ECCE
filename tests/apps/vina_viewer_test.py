@@ -205,6 +205,7 @@ def main():
              "background 1 1 1",
              "poses info",
              "poses select 1",
+             "vinaboxinfo",
              "selectatoms " + ligand,
              "vinabox 5",
              "vinaboxinfo",
@@ -244,6 +245,12 @@ def main():
         box = re.findall(r"vinaboxinfo: (.*)", text)
         check(bool(box) and box[0].startswith("drawn=1"),
               "the search box is drawn: %s" % (box[0] if box else "absent"))
+        # The box of a finished run is the deck's, in the shown pose's frame
+        # (#1001): every ligand atom of the pose lies inside it.
+        inside = re.search(r"ligand_inside=(\d+)/(\d+)", box[0]) if box else None
+        check(bool(inside) and inside.group(1) == inside.group(2) != "0",
+              "the drawn box contains the pose's ligand: %s" % (
+                  inside.group(0) if inside else "absent"))
         check("pocket" in shots, "the window was photographed")
         if "pocket" in shots:
             say("  screenshot: %s" % shots["pocket"])
