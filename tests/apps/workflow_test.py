@@ -1389,9 +1389,69 @@ def run_autorun(display, data, work, shots):
     check("after a restart a completion still launches the next step",
           play and "g:0:already run" in play[-1], str(play))
     check("unticking ends the run", run[-1:] == ["ok autorun=off started=0"], str(run))
+    run_reactant_focus(display, data, work, shots)
     run_recipe_ready(display, data, work, shots, rundir)
     run_hand_ready(display, data, work, shots)
     run_no_theory(display, data, work, shots, rundir)
+
+
+def run_reactant_focus(display, data, work, shots):
+    """A Ready reactant without a machine must not reclaim selection (#903)."""
+    project = os.path.join(data, "users", "local", "reactant-focus")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(CALC, os.path.join(project, "water"), symlinks=True)
+    # The source fixture has launch settings; this case must have none to inherit.
+    meta = os.path.join(project, "water", ".ecce-meta")
+    with open(meta) as handle:
+        lines = [line for line in handle if "ecce:launch_" not in line]
+    with open(meta, "w") as handle:
+        handle.writelines(lines)
+    proj = "file://" + project
+    wf = proj + "/Workflow"
+    script = os.path.join(work, "reactant-focus-commands")
+    commands = [
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/water seed" % (wf, proj),
+        "workflowrecipe %s ts-irc g16 -" % wf,
+        "workflowautorunclick %s on" % wf,
+        "workflowstructure %s %s/reactant %s/water" % (wf, wf, proj),
+        # Prepare the reactant's deck and start the run; it has no machine to use.
+        "workflowlaunch %s" % wf,
+        "idle 1000",
+        "workflowstate %s %s/reactant" % (wf, wf),
+        "select %s" % wf,
+    ]
+    # Completion notices exercise background auto-run on each refresh. Selection
+    # must be read before another workflow hook can select the folder itself.
+    for selected in (wf, wf + "/product", wf):
+        commands += [
+            "select %s" % selected,
+            "setstate %s/seed completed" % wf,
+            "idle 3000",
+            "selection",
+        ]
+    commands += ["workflowstate %s %s/reactant" % (wf, wf)]
+    with open(script, "w") as handle:
+        handle.write("\n".join(commands) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=40,
+                      env={"ECCE_TEST_ORGANIZER": script,
+                           "ECCE_TEST_ORGANIZER_NOLAUNCH": "1"})
+    log = result.log or ""
+    with open(os.path.join(shots, "reactant-focus.log"), "w") as handle:
+        handle.write(log)
+    check("reactant-focus Organizer survives", not result.crashed, log)
+    state = re.findall(r"ECCE_TEST_ORGANIZER: workflowstate .*?: (.*)$", log, re.M)
+    check("the reactant stays Ready without launch settings (#903)",
+          len(state) == 2 and all(s.lower().startswith("ok state=ready") and
+                                  "no launch settings" in s for s in state), str(state))
+    launches = re.findall(r"ECCE_TEST_ORGANIZER: startApp Launcher .*? url=(.*)$",
+                          log, re.M)
+    check("refreshes request the reactant's Launcher only once (#903)",
+          launches == [wf + "/reactant"], str(launches))
+    selected = re.findall(r"ECCE_TEST_ORGANIZER: selection: (.*)$", log, re.M)
+    check("auto-run preserves the workflow and another step's selection (#903)",
+          selected == [wf, wf + "/product", wf], str(selected))
 
 
 def run_readonly(display, data, work, shots):
