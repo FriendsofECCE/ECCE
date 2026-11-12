@@ -8132,42 +8132,85 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
      "cell. This calculation shows the simple cubic packing of "
      "alpha polonium: one atom in the cubic cell, six nearest neighbours, "
-     "and 52 % of the space filled by the atoms."},
+     "and 52 % of the space filled by the atoms. "
+     "The powder pattern has a line at every hkl, as nothing is extinguished."},
     {"na_bcc",
      "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
      "cell. This calculation shows the body-centred cubic packing of "
      "sodium: two atoms in the cubic cell, eight nearest neighbours, "
-     "and 68 % of the space filled by the atoms."},
+     "and 68 % of the space filled by the atoms. "
+     "The powder pattern has only the lines with h+k+l even: 110, 200, 211."},
     {"al_fcc",
      "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
      "cell. This calculation shows the face-centred cubic packing of "
      "aluminium, with layers stacked ABC: four atoms in the cubic "
      "cell, twelve nearest neighbours, and 74 % of the space filled by "
-     "the atoms."},
+     "the atoms. "
+     "The powder pattern has only the lines with h, k and l all even or all odd: 111, 200, 220."},
     {"cu_fcc",
      "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
      "cell. This calculation shows the face-centred cubic packing of "
      "copper, with layers stacked ABC: four atoms in the cubic cell, "
      "twelve nearest neighbours, and 74 % of the space filled by the "
-     "atoms."},
+     "atoms. "
+     "The powder pattern has only the lines with h, k and l all even or all odd: 111, 200, 220."},
     {"mg_hcp",
      "Quantum ESPRESSO, PBE, plane waves, the hexagonal "
      "cell. This calculation shows the hexagonal close packing of "
      "magnesium, with layers stacked ABA: two atoms in the hexagonal "
      "cell, twelve nearest neighbours, and 74 % of the space filled by "
-     "the atoms."},
+     "the atoms. "
+     "The powder pattern has the hexagonal lines 100, 002 and 101 at low angle."},
     {"nacl",
      "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
      "cell. This calculation shows the rock-salt structure of sodium "
      "chloride: a face-centred cubic lattice with a two-ion basis, in "
      "which each ion has six nearest neighbours of the other kind, "
-     "arranged octahedrally."},
+     "arranged octahedrally. "
+     "The powder pattern has a strong 200 line and a weak 111 line, since the two ions scatter differently."},
     {"cscl",
      "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
      "cell. This calculation shows the caesium chloride structure: one "
      "ion of each kind in the cubic cell, each with eight nearest "
      "neighbours of the other kind at the corners of a cube; the lattice "
-     "is simple cubic, not body-centred, because the two ions differ."},
+     "is simple cubic, not body-centred, because the two ions differ. "
+     "The powder pattern has a 100 line, which a body-centred lattice would extinguish, since the two ions scatter differently."},
+    {"nacl_powder",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows the powder pattern of sodium chloride: "
+     "the Na+ and Cl- ions scatter X-rays differently, so the 111 line is "
+     "weak and the 200 line is strong, and the lines fall at the angles of "
+     "a cubic cell with an edge of 5.64 A."},
+    {"kcl",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows that potassium chloride gives a powder "
+     "pattern with almost no 111 line, like a primitive cubic lattice with "
+     "half the cell edge: K+ and Cl- have the same number of electrons, so "
+     "they scatter X-rays alike and look like one kind of atom."},
+    {"nacl_bragg",
+     "Quantum ESPRESSO, PBE, plane waves, the conventional cubic "
+     "cell. This calculation shows Bragg's law in a crystal of sodium "
+     "chloride: in the h k 0 layer of reciprocal space a spot appears only "
+     "where h and k are both even, and each spot is the reflection from a "
+     "set of lattice planes of spacing d at the angle where 2 d sin(theta) "
+     "equals a whole number of wavelengths."},
+    {"bdna",
+     "xTB, GFN-FF, single point of 20 base pairs of B-DNA. This calculation "
+     "shows a double helix with ten base pairs per turn and a rise of about "
+     "3.4 A per base pair, which gives a fibre pattern of layer lines with "
+     "a strong reflection at 3.4 A on the meridian."},
+    {"helix",
+     "xTB, GFN-FF, single point of a polyalanine alpha-helix. This "
+     "calculation shows a helix with 3.6 residues per turn and a rise of "
+     "1.5 A per residue, which gives a fibre pattern with a strong "
+     "reflection at 1.5 A on the meridian and a layer line at the pitch of "
+     "5.4 A."},
+    {"quartz",
+     "Quantum ESPRESSO, PBE, plane waves, the hexagonal cell of alpha "
+     "quartz built from its CIF file. This calculation shows SiO4 "
+     "tetrahedra joined at their corners into helical chains along c; the "
+     "three-fold screw axis extinguishes the 00l reflections unless l is "
+     "a multiple of 3."},
     {"ar-gas-300K",
      "GROMACS, Lennard-Jones argon, 1000 atoms, 300 K, 20 bar, 2 ns. This "
      "calculation shows the Maxwell-Boltzmann distribution of atomic speeds "

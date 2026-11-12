@@ -12,6 +12,7 @@
 #include "dsm/Session.H"
 
 #include "tdat/FragUtil.H"
+#include "tdat/CifIO.H"
 
 #include "util/JMSPublisher.H"
 #include "util/ResourceUtils.H"
@@ -126,6 +127,8 @@ bool SaveExperimentAsDialog::Create(wxWindow *parent)
   p_chemFileIndex = p_bitmapCombo->GetCount();
   p_bitmapCombo->Append("CAR (*.car)", ewxBitmap("chem16.xpm"),
                         new wxStringClientData("car"));
+  p_bitmapCombo->Append("CIF, P1 (*.cif)", ewxBitmap("chem16.xpm"),
+                        new wxStringClientData("cif"));
   p_bitmapCombo->Append("ECCE Internal Type (*.mvm)",ewxBitmap("chem16.xpm"),
                         new wxStringClientData("mvm"));
   p_bitmapCombo->Append("NWChem Input (*.nw)", ewxBitmap("chem16.xpm"),
@@ -292,6 +295,11 @@ bool SaveExperimentAsDialog::doSaveAsChemFileType(
     ofstream car(file->path().c_str());
     ret = fragment->dumpCAR(car);
     car.close();
+  } else if (type.IsSameAs("CIF")) {
+    ofstream cif(file->path().c_str());
+    ret = fragment->dumpCIF(cif);
+    cif.close();
+    if (!ret) wxLogError("%s", CifIO::lastError().c_str());
   } else if (type.IsSameAs("PDB")) {
     ofstream pdb(file->path().c_str());
     if (fragment->numResidues() > 0) {

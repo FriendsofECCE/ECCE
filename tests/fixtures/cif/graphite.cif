@@ -1,0 +1,45 @@
+# Trucano & Chen (1975) Nature 258, 136-137: graphite, a = 2.4612, c = 6.7079 A, P6_3/mmc.
+# Hand-written test fixture for ECCE (#358); symmetry operations from gemmi's tables.
+data_graphite
+_cell_length_a 2.4612
+_cell_length_b 2.4612
+_cell_length_c 6.7079
+_cell_angle_alpha 90.0
+_cell_angle_beta 90.0
+_cell_angle_gamma 120.0
+_symmetry_space_group_name_H-M 'P 63/m m c'
+loop_
+_symmetry_equiv_pos_as_xyz
+'x,y,z'
+'x-y,x,z+1/2'
+'-y,x-y,z'
+'-x,-y,z+1/2'
+'-x+y,-x,z'
+'y,-x+y,z+1/2'
+'-y,-x,-z+1/2'
+'-x,-x+y,-z'
+'-x+y,y,-z+1/2'
+'y,x,-z'
+'x,x-y,-z+1/2'
+'x-y,-y,-z'
+'-x,-y,-z'
+'-x+y,-x,-z+1/2'
+'y,-x+y,-z'
+'x,y,-z+1/2'
+'x-y,x,-z'
+'-y,x-y,-z+1/2'
+'y,x,z+1/2'
+'x,x-y,z'
+'x-y,-y,z+1/2'
+'-y,-x,z'
+'-x,-x+y,z+1/2'
+'-x+y,y,z'
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+C1 C 0 0 0.25 1
+C2 C 0.33333 0.66667 0.25 1

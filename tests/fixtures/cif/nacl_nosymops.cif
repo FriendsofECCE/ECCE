@@ -1,0 +1,19 @@
+# Wyckoff, Crystal Structures 1 (1963) 85-87: rock salt, a = 5.6402 A at 298 K.
+# Hand-written test fixture for ECCE (#358); symmetry operations from gemmi's tables.
+data_nacl_nosymops
+_cell_length_a 5.6402
+_cell_length_b 5.6402
+_cell_length_c 5.6402
+_cell_angle_alpha 90.0
+_cell_angle_beta 90.0
+_cell_angle_gamma 90.0
+_symmetry_space_group_name_H-M 'F m -3 m'
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+Na1 Na 0 0 0 1
+Cl1 Cl 0.5 0.5 0.5 1

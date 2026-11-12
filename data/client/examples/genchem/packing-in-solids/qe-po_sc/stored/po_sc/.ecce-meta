@@ -1,5 +1,5 @@
 .	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
-.	http://www.emsl.pnl.gov/ecce:annotation		Quantum ESPRESSO, PBE, plane waves, the conventional cubic cell. This calculation shows the simple cubic packing of alpha polonium: one atom in the cubic cell, six nearest neighbours, and 52 % of the space filled by the atoms.
+.	http://www.emsl.pnl.gov/ecce:annotation		Quantum ESPRESSO, PBE, plane waves, the conventional cubic cell. This calculation shows the simple cubic packing of alpha polonium: one atom in the cubic cell, six nearest neighbours, and 52 % of the space filled by the atoms. The powder pattern has a line at every hkl, as nothing is extinguished.
 .	http://www.emsl.pnl.gov/ecce:application		QuantumESPRESSO
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
 .	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:14:47 GMT

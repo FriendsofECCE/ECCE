@@ -18,6 +18,7 @@ The Builder reads structure files in these formats:
 | XYZ | `.xyz` |
 | PDB | `.pdb`, `.ent` |
 | Biosym/Accelrys CAR | `.car` |
+| Crystallographic Information File (CIF) | `.cif` |
 | ECCE MVM (ECCE's own format) | `.mvm` |
 
 ### Start the Builder without a calculation
@@ -50,6 +51,15 @@ What happens next depends on the format:
   location:** and **Select chain:** (`All` reads every chain). A file with
   a single model and no alternate locations, such as glycine, loads without
   a question.
+- CIF: loaded without a question. ECCE builds the whole unit cell (1 x 1 x 1)
+  from the atoms and symmetry operations in the file, or from the space-group
+  name when the file lists no operations. A site shared by several species
+  keeps the one with the highest occupancy. The Builder's message area warns
+  about partially occupied sites, about a structure without hydrogen atoms,
+  and when the file has more than one data block (only the first is read). A
+  file that cannot be read gives an error message. **File > Save As...** with
+  the type CIF, P1 writes the cell and every atom as P1, which reads back as the
+  same structure.
 - CAR and MVM: loaded without a question. A CAR file such as `benzene.car`
   (12 atoms) loads directly.
 
@@ -147,7 +157,7 @@ format. The original file changes only when you save.
 For a new structure that has no file, **File > Save** is greyed out because
 there is nowhere to save it, and Ctrl+S asks where to save, as **File > Save
 As...** does. It offers the
-structure formats CAR, MVM, NWChem, PDB and XYZ, and calculation types. A
+structure formats CAR, CIF, MVM, NWChem, PDB and XYZ, and calculation types. A
 calculation can be saved into a project on the data server or into any
 folder on your disk. A calculation saved in a folder can be reopened with
 **File > Open...** and launched like any other.

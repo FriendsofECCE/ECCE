@@ -30,6 +30,7 @@
 #include "tdat/TRunType.H"
 #include "tdat/TTheory.H"
 
+#include "wxgui/DiffractionDialog.H"
 #include "wxgui/ewxConfig.H"
 #include "wxgui/ewxWindowUtils.H"
 
@@ -947,6 +948,11 @@ void Builder::syncIndexSelection(wxWindow *win)
 
 void Builder::selectDetail(const string& name)
 {
+  if (name == "Diffraction") {   // a dialog, not a pane
+    if (DiffractionDialog *dlg = openResultsDiffraction()) dlg->Show();
+    if (p_index) p_index->setSelected("");
+    return;
+  }
   string panelName = name;
   MoPanel *mo = dynamic_cast<MoPanel*>(p_mgr.GetPane("MOs").window);
   bool surface = false;
@@ -1117,6 +1123,9 @@ void Builder::updatePropertyIndex()
           "Density, spin density, ESP, ELF, LOL and NCI surfaces"});
     }
   }
+  if (calcHasStructure())
+    entries.push_back({"Diffraction", entries.empty() ? string("Results") : entries.back().group,
+                       "Calculated diffraction of the final geometry: fibre, and powder and single crystal for a periodic one"});
   p_index->setEntries(entries);
   sizeIndexPane();
   if (p_detail) {

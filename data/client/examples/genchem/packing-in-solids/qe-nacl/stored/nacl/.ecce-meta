@@ -1,5 +1,5 @@
 .	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
-.	http://www.emsl.pnl.gov/ecce:annotation		Quantum ESPRESSO, PBE, plane waves, the conventional cubic cell. This calculation shows the rock-salt structure of sodium chloride: a face-centred cubic lattice with a two-ion basis, in which each ion has six nearest neighbours of the other kind, arranged octahedrally.
+.	http://www.emsl.pnl.gov/ecce:annotation		Quantum ESPRESSO, PBE, plane waves, the conventional cubic cell. This calculation shows the rock-salt structure of sodium chloride: a face-centred cubic lattice with a two-ion basis, in which each ion has six nearest neighbours of the other kind, arranged octahedrally. The powder pattern has a strong 200 line and a weak 111 line, since the two ions scatter differently.
 .	http://www.emsl.pnl.gov/ecce:application		QuantumESPRESSO
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
 .	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:14:47 GMT

@@ -1,0 +1,40 @@
+&CONTROL
+  calculation = 'scf'
+  prefix = 'quartz'
+  outdir = './qe.scratch'
+  pseudo_dir = '/usr/share/espresso/pseudo/'
+  tstress = .true.
+/
+&SYSTEM
+  ibrav = 0
+  nat = 9
+  ntyp = 2
+  ecutwfc = 50
+  ecutrho = 400
+  occupations = 'smearing'
+  smearing = 'marzari-vanderbilt'
+  degauss = 0.02
+/
+&ELECTRONS
+  conv_thr = 1e-08
+  mixing_beta = 0.7
+/
+ATOMIC_SPECIES
+  Si  28.0855  Si.pbe-n-rrkjus_psl.1.0.0.UPF
+  O  15.999  O.pbe-n-kjpaw_psl.0.1.UPF
+CELL_PARAMETERS angstrom
+  4.9134000000 0.0000000000 0.0000000000
+  -2.4567000000 4.2551292190 0.0000000000
+  0.0000000000 0.0000000000 5.4052000000
+ATOMIC_POSITIONS angstrom
+  Si 2.3078239800 0.0000000000 1.8017153160
+  Si -1.1539119900 1.9986341941 3.6034486493
+  Si 1.3027880100 2.2564950248 5.4051819827
+  O 1.3759976700 1.1356939885 1.1588748800
+  O 3.2418613200 0.6238019435 2.9606082133
+  O 2.7522410100 2.4956332869 4.7623415467
+  O 0.2955410100 1.7594959320 4.2463251200
+  O -1.0807023300 3.1194352304 2.4445917867
+  O 0.7851613200 3.6313272755 0.6428584533
+K_POINTS automatic
+  4 4 4 0 0 0

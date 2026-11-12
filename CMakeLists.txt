@@ -2835,6 +2835,12 @@ add_test(NAME checks_table
 add_test(NAME xrd_fibre
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/fibre_test.py)
 set_tests_properties(xrd_fibre PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+add_test(NAME xrd_powder
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/powder_test.py)
+set_tests_properties(xrd_powder PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+add_test(NAME xrd_layer
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/layer_test.py)
+set_tests_properties(xrd_layer PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 
 add_test(NAME qsar_descriptors
          COMMAND ${PYTHON3_EXECUTABLE}
@@ -3861,6 +3867,33 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_fibre_dialog PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Results > Diffraction on the NaCl example: the dialog's CSV equals ecce-xrd powder (#587).
+  add_test(NAME apps_powder_dialog
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/powder_dialog_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_powder_dialog PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Same, Single crystal: the dialog's CSV equals ecce-xrd layer (#972).
+  add_test(NAME apps_layer_dialog
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/layer_dialog_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_layer_dialog PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # The Diffraction topic: six examples import and open powder or fibre (#972).
+  add_test(NAME apps_diffraction_examples
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/diffraction_examples_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_diffraction_examples PROPERTIES TIMEOUT 1800
+                       SKIP_RETURN_CODE 77)
+
   # QSAR table: the dialog's rows equal ecce-qsar table (#961).
   add_test(NAME apps_qsar_table
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4291,6 +4324,21 @@ if(PYTHON3_EXECUTABLE)
   # Builder's Add Structure from File does.
   add_executable(fragreaders tests/fragreaders/fragreaders.C)
   target_link_libraries(fragreaders PRIVATE eccetdat ecceutil)
+  # tests/cifio: CIF reader/writer (#358) and its gemmi / Open Babel oracle.
+  add_executable(cifio tests/cifio/cifio.C)
+  target_link_libraries(cifio PRIVATE eccetdat ecceutil)
+  add_test(NAME cifio
+           COMMAND cifio ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/cif)
+  add_test(NAME cifio_oracle
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/cifio/cifio_oracle_test.py
+                   $<TARGET_FILE:cifio>)
+  # A CIF with only a space-group name goes through the genmollat helper,
+  # which is found on PATH when $ECCE_HOME/bin lacks it.
+  set_tests_properties(cifio cifio_oracle PROPERTIES SKIP_RETURN_CODE 77
+    ENVIRONMENT
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home"
+    ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${CMAKE_BINARY_DIR}")
   # tests/structlib: every Teaching > Diatomics entry of the Structure Library
   # loads with its stored bond length (and the library agrees with
   # tests/qm/diatomic_order_test.py).
@@ -4896,6 +4944,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_smiles PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # The Builder opens a CIF file (#358).
+  add_test(NAME apps_builder_cif
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_cif_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_cif PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # No bond orders in building; Clean's derived orders and bond lengths (#439).
   add_test(NAME apps_builder_bond_model

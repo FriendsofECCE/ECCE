@@ -98,6 +98,8 @@ using std::vector;
 #include "wxgui/ewxGenericFileDialog.H"
 #include "wxgui/ewxLogTextCtrl.H"
 #include "wxgui/ewxMessageDialog.H"
+#include "tdat/CifIO.H"
+#include "tdat/LatticeDef.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/FeedbackSaveHandler.H"
@@ -305,6 +307,7 @@ BEGIN_EVENT_TABLE( Builder, BuilderGUI )
     EVT_SPINCTRL(ID_ROT_Y, Builder::OnRotY)
     EVT_SPINCTRL(ID_ROT_Z, Builder::OnRotZ)
     EVT_BUTTON(ID_CHOICE_VIEWER, Builder::OnViewerChoice)
+    EVT_MENU(ID_DIFFRACTION_ENTRY, Builder::OnDiffractionEntry)
     EVT_MENU_RANGE(ID_SURFACE_MENU_BASE, ID_SURFACE_MENU_BASE+99,
                    Builder::OnPropertyMenuClick )
     EVT_MENU_RANGE(ID_PROPERTY_MENU_BASE, ID_PROPERTY_MENU_BASE+99,
@@ -1340,6 +1343,8 @@ void Builder::interpretCommand(const string& command)
    try {
       Command *cmd = createCommand(command);
       execute(cmd);
+      vector<string> notes = CifIO::takeWarnings();
+      for (size_t i = 0; i < notes.size(); i++) showMessage(notes[i]);
     } catch (EcceException& ex) {
       reportError(ex.what());
     }
@@ -5019,18 +5024,40 @@ void Builder::OnAddSmiles(wxCommandEvent& event)
 }
 
 
-string Builder::writeStructureXyz(const string& path, vector<int>& selected)
+string Builder::writeStructureXyz(const string& path, vector<int>& selected,
+                                  int traceStep)
 {
   SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
   if (!frag || frag->numAtoms() == 0) return "No structure is open.";
   std::ofstream out(path);
   if (!out) return "Cannot write " + path;
-  out << frag->numAtoms() << "\nBuilder structure\n";
-  char buf[160];
+  out << frag->numAtoms() << "\n";
+  char buf[240];
+  //  Extended xyz: the cell goes on the comment line, which ecce-xrd powder reads.
+  LatticeDef *lat = frag->getLattice();
+  if (lat) {
+    vector<MPoint> *v = lat->toVectors();
+    snprintf(buf, sizeof buf,
+             "Lattice=\"%.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f %.8f\"",
+             (*v)[0].x(), (*v)[0].y(), (*v)[0].z(), (*v)[1].x(), (*v)[1].y(),
+             (*v)[1].z(), (*v)[2].x(), (*v)[2].y(), (*v)[2].z());
+    delete v;
+    out << buf << "\n";
+  } else {
+    out << "Builder structure\n";
+  }
+  PropTSVecTable *trace = traceStep >= 0 ?
+      dynamic_cast<PropTSVecTable*>(p_calculation ? p_calculation->getProperty("GEOMTRACE") : 0) : 0;
+  const bool useTrace = trace && trace->rows() == (int)frag->numAtoms() &&
+      trace->columns() >= 3 && trace->tables() > 0;
+  const int table = useTrace ? std::min(traceStep, trace->tables() - 1) : 0;
   for (int i = 0; i < (int)frag->numAtoms(); i++) {
     const double *c = frag->atomRef(i)->coordinates();
+    const double xyz[3] = {useTrace ? trace->value(table, i, 0) : c[0],
+                           useTrace ? trace->value(table, i, 1) : c[1],
+                           useTrace ? trace->value(table, i, 2) : c[2]};
     snprintf(buf, sizeof buf, "%s %.6f %.6f %.6f\n",
-             frag->atomRef(i)->atomicSymbol().c_str(), c[0], c[1], c[2]);
+             frag->atomRef(i)->atomicSymbol().c_str(), xyz[0], xyz[1], xyz[2]);
     out << buf;
   }
   selected.clear();
@@ -5051,6 +5078,41 @@ void Builder::OnDiffraction(wxCommandEvent& event)
   if (!err.empty()) { showMessage(err, true); return; }
   DiffractionDialog *dlg = new DiffractionDialog(this, xyz, selected);
   dlg->Show();
+}
+
+
+bool Builder::calcIsPeriodic()
+{
+  SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+  return p_calculation && frag && frag->numAtoms() > 0 && frag->getLattice();
+}
+
+
+bool Builder::calcHasStructure()
+{
+  SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+  return p_calculation && frag && frag->numAtoms() > 0;
+}
+
+
+DiffractionDialog *Builder::openResultsDiffraction(const string& given)
+{
+  static int serial = 0;
+  const string xyz = !given.empty() ? given : (ecce::fs::temp_directory_path() /
+      ("ecce-results-" + std::to_string(wxGetProcessId()) + "-" +
+       std::to_string(serial++) + ".xyz")).string();
+  vector<int> none;
+  PropTSVecTable *trace =
+      dynamic_cast<PropTSVecTable*>(p_calculation ? p_calculation->getProperty("GEOMTRACE") : 0);
+  const string err = writeStructureXyz(xyz, none, trace ? trace->tables() - 1 : -1);
+  if (!err.empty()) { showMessage(err, true); return 0; }
+  return new DiffractionDialog(this, xyz, none);
+}
+
+
+void Builder::OnDiffractionEntry(wxCommandEvent&)
+{
+  if (DiffractionDialog *dlg = openResultsDiffraction()) dlg->Show();
 }
 
 
@@ -5534,6 +5596,11 @@ bool Builder::readFragmentFromFile(SFile *file, wxString type, wxString ext)
        cmd->getParameter("z")->setDouble(0.0);
 
        execute(cmd);
+
+       if (ext.IsSameAs("CIF",false)) {
+         vector<string> notes = CifIO::takeWarnings();
+         for (size_t i = 0; i < notes.size(); i++) showMessage(notes[i]);
+       }
 
        if (ext.IsSameAs("PDB",false)) {
           (void)createSolventSoluteStyles(*(getSG()->getFragment()));
@@ -6167,6 +6234,12 @@ void Builder::updatePropertyMenus()
       needUpate = true;
     }
   }
+
+  //  A periodic structure gets a Diffraction item: it is a view of the
+  //  structure, not a parsed property, so it is added here by hand (#587).
+  if (calcHasStructure())
+    p_propertyMenu->Append(ID_DIFFRACTION_ENTRY, "Diffraction",
+                           "Calculated diffraction of the final geometry: fibre, and powder and single crystal for a periodic one");
 
   refreshColumn();
   if (needUpate) {

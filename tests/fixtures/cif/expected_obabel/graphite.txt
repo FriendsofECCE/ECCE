@@ -1,0 +1,5 @@
+# obabel 3.1.1: obabel -icif graphite.cif -ocif --fillUC strict  (element, fractional x y z wrapped to [0,1))
+C 0.00000 0.00000 0.25000
+C 0.00000 0.00000 0.75000
+C 0.33333 0.66667 0.25000
+C 0.66667 0.33333 0.75000

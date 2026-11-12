@@ -244,6 +244,7 @@ class Fragment
       bool  restoreCAR(istream& infile, double mult=1.0, bool genBonds=true);
       // GROMACS .gro: always nanometres in the file, always Angstroms here.
       bool  restoreGRO(istream& infile, bool genBonds=true);
+      bool  restoreCIF(istream& infile, bool genBonds=true);
       // A triclinic lattice (GROMACS form): molecules made whole and moved
       // into the compact cell, as the Viewer draws it.  Atoms of residues
       // only; false and unchanged for no or a rectangular lattice.
@@ -264,6 +265,7 @@ class Fragment
       bool  dumpPDB(ostream& outfile, bool writeBonds=false);
       bool  dumpCAR(ostream& outfile);
       bool  dumpGRO(ostream& outfile);
+      bool  dumpCIF(ostream& outfile);
 
       bool getConnected(vector<bool>& atoms, const TAtm *theAtom,
             const TAtm* lastAtom,
