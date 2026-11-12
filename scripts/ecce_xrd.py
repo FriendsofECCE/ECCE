@@ -652,19 +652,81 @@ def powder_pattern(refl, tt_min=5.0, tt_max=90.0, fwhm=0.1, eta=0.5, step=0.01):
     return tt, 100.0 * y / max(y.max(), 1e-300)
 
 
+def _read_xrdml(text):
+    """PANalytical .xrdml: the first scan's 2θ positions (start/end or a
+    list) and its intensities or counts."""
+    import xml.etree.ElementTree as ET
+    root = ET.fromstring(text)
+    def tag(e):
+        return e.tag.rsplit("}", 1)[-1]
+    for scan in root.iter():
+        if tag(scan) != "scan":
+            continue
+        pts = next((e for e in scan.iter() if tag(e) == "dataPoints"), None)
+        if pts is None:
+            continue
+        ys, tt = None, None
+        for e in pts.iter():
+            if tag(e) in ("intensities", "counts") and e.text and ys is None:
+                ys = [float(v) for v in e.text.split()]
+        for pos in pts.iter():
+            if tag(pos) == "positions" and pos.get("axis") == "2Theta":
+                kids = {tag(k): k for k in pos}
+                if "listPositions" in kids:
+                    tt = [float(v) for v in kids["listPositions"].text.split()]
+                elif "startPosition" in kids and ys:
+                    a, b = float(kids["startPosition"].text), float(kids["endPosition"].text)
+                    n = len(ys)
+                    tt = [a + (b - a) * i / max(n - 1, 1) for i in range(n)]
+        if ys and tt and len(ys) == len(tt):
+            return tt, ys
+    raise ValueError("no 2θ scan with intensities in this .xrdml file")
+
+
+def _read_brml(path):
+    """Bruker .brml (a zip of XML): the first RawData*.xml's Datum rows,
+    2θ in the third field and counts in the last; -9999 marks a point that
+    was never measured (route as ~/research projects' brml_export does)."""
+    import zipfile
+    import xml.etree.ElementTree as ET
+    with zipfile.ZipFile(path) as z:
+        raws = sorted(n for n in z.namelist() if re.search(r"RawData\d+\.xml$", n))
+        for name in raws:
+            x, y = [], []
+            for d in ET.fromstring(z.read(name)).iter("Datum"):
+                v = d.text.split(",")
+                if float(v[-1]) != -9999:
+                    x.append(float(v[2]))
+                    y.append(float(v[-1]))
+            if len(x) > 1:
+                return x, y
+    raise ValueError("no measured points in this .brml file")
+
+
 def read_measured(path):
-    """Two columns 2theta, intensity (blank, comma, or tab separated)."""
-    x, y = [], []
-    with open(path) as f:
-        for ln in f:
-            w = re.split(r"[,\s;]+", ln.strip())
-            try:
-                x.append(float(w[0]))
-                y.append(float(w[1]))
-            except (ValueError, IndexError):
-                continue
-    if len(x) < 2:
-        raise ValueError("no two-column data in %s" % path)
+    """A measured powder pattern: PANalytical .xrdml, Bruker .brml, or two
+    text columns 2θ, intensity (blank, comma, semicolon or tab separated).
+    The format is told from the content, not the file name."""
+    with open(path, "rb") as f:
+        head = f.read(4096)
+    if head[:2] == b"PK":
+        x, y = _read_brml(path)
+    elif b"xrdMeasurement" in head:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            x, y = _read_xrdml(f.read())
+    else:
+        x, y = [], []
+        with open(path, encoding="utf-8", errors="replace") as f:
+            for ln in f:
+                w = re.split(r"[,\s;]+", ln.strip())
+                try:
+                    x.append(float(w[0]))
+                    y.append(float(w[1]))
+                except (ValueError, IndexError):
+                    continue
+        if len(x) < 2:
+            raise ValueError("no two-column data (2θ, intensity) in %s; readable are "
+                             "text columns, .xrdml and .brml" % os.path.basename(path))
     o = np.argsort(x)
     return np.array(x)[o], np.array(y)[o]
 

@@ -310,7 +310,7 @@ void DiffractionDialog::paintPowder(wxGraphicsContext *gc, double W, double H) c
     }
   }
   const double bot = T + n * ph + (n - 1) * gap;
-  const wxString xt = wxString::FromUTF8("2\xCE\xB8 (degrees)    \xCE\xBB = ") +
+  const wxString xt = wxString::FromUTF8("2\xCE\xB8 (\xC2\xB0)    \xCE\xBB = ") +
                       wxString::Format("%.4f ", parse(p_pwave->GetValue())) + wxString::FromUTF8("\xC3\x85");
   text(gc, xt, L + pw / 2 - extent(gc, xt).x / 2.0, bot + 28, INK);
   const wxString yt = "Relative intensity";
@@ -881,7 +881,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_plot = new PowderPanel(this, this);
   right->Add(p_plot, 2, wxEXPAND | wxALL, 4);
   p_list = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(560, 150), wxLC_REPORT | wxLC_SINGLE_SEL);
-  const char *cols[] = {"h k l", "d (Å)", "2θ (°)", "|F|", "Mult.", "I rel"};
+  const char *cols[] = {"h k l", "d (Å)", "2θ (°)", "|F|", "Multiplicity", "I (rel.)"};
   for (int i = 0; i < 6; i++) p_list->InsertColumn(i, U(cols[i]), wxLIST_FORMAT_LEFT, i ? 78 : 70);
   right->Add(p_list, 1, wxEXPAND | wxALL, 4);
   // The pointer and the status each have a panel of their own.
@@ -1043,14 +1043,22 @@ bool DiffractionDialog::setMeasured(const string& path, string& why)
 
 void DiffractionDialog::onMeasured(wxCommandEvent&)
 {
-  wxFileDialog dlg(this, U("Experimental pattern (two columns: 2θ, intensity)"), "", "",
-                   "Text (*.txt;*.csv;*.xy;*.dat)|*.txt;*.csv;*.xy;*.dat|All files|*",
+  wxFileDialog dlg(this, U("Experimental powder pattern"), "", "",
+                   "Powder patterns (*.xrdml;*.brml;*.xy;*.xye;*.dat;*.txt;*.csv)|"
+                   "*.xrdml;*.brml;*.xy;*.xye;*.dat;*.txt;*.csv|All files|*",
                    wxFD_OPEN | wxFD_FILE_MUST_EXIST);
   string why;
   if (dlg.ShowModal() != wxID_OK) return;
-  if (!setMeasured(dlg.GetPath().ToStdString(wxConvUTF8), why)) { status(wxString::FromUTF8(why.c_str())); return; }
+  // A file that cannot be read says why in a message, not only in the status line.
+  if (!setMeasured(dlg.GetPath().ToStdString(wxConvUTF8), why)) {
+    wxMessageBox(wxString::FromUTF8(why.c_str()), "Experimental pattern", wxOK | wxICON_ERROR, this);
+    return;
+  }
   string w2;
-  if (!p_tt.empty() && !calculatePowder(w2)) status(wxString::FromUTF8(w2.c_str()));
+  if (!calculatePowder(w2)) {
+    p_measured.clear();
+    wxMessageBox(wxString::FromUTF8(w2.c_str()), "Experimental pattern", wxOK | wxICON_ERROR, this);
+  }
 }
 
 wxString DiffractionDialog::reflectionText(double tt, double tol) const
@@ -1105,7 +1113,7 @@ bool DiffractionDialog::calculatePowder(string& why)
     char which[8] = "";
     const int nf = sscanf(line.c_str(), "%d,%d,%d,%lf,%lf,%lf,%d,%lf,%7s", &h, &k, &l, &d, &tt, &fa, &mult, &rel, which);
     if (nf < 8) continue;
-    Line ln = {tt, d, rel, wxString::Format("%d %d %d", h, k, l) + (nf == 9 ? wxString::Format("  %s", which) : wxString()),
+    Line ln = {tt, d, rel, wxString::Format("%d %d %d", h, k, l) + (nf == 9 ? U(string("  K\xCE\xB1") + (string(which) == "Ka2" ? "2" : "1")) : wxString()),
                h, k, l, nf == 9 && string(which) == "Ka2"};
     p_lines.push_back(ln);
     const long row = p_list->InsertItem(p_list->GetItemCount(), ln.hkl);
