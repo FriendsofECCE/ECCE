@@ -130,7 +130,7 @@ to. Other variables: the `ENVIRONMENT.md` file next to this one.
 ## Commands
 
 The `ecce-launch`, `ecce-terminate`, `ecce-reconnect`, `ecce-fetch`,
-`ecce-annotate`, `ecce-rerun`, `ecce-move`, `ecce-copy`, `ecce-mkdir` and `ecce-rename` commands do not start ECCE; they ask the running Organizer to act, so ECCE has
+`ecce-annotate`, `ecce-rerun`, `ecce-move`, `ecce-copy`, `ecce-mkdir`, `ecce-rename` and `ecce-workflow` commands do not start ECCE; they ask the running Organizer to act, so ECCE has
 to be running with the same data mode. Without it they print `ECCE is not
 running: start ECCE first` and do nothing. A calculation is given as a folder
 (local data) or a URL (data server). One line is printed per calculation.
@@ -339,6 +339,102 @@ experimental log K with its source and calc - exp; `--save NAME` stores
     ecce-ensemble minimum 'proj/conformers/*' --treatment qrrho-grimme:100
     ecce-ensemble benchmark proj/logk.txt --save logk-set1
 
+### ecce-batch-smiles
+
+    ecce-batch-smiles [--template CALC] [--name COL] [--smiles COL] [--response COL]... [--no-responses] [--header yes|no] [--replace] [--dry-run] [--launch] [--json] <folder> <table.csv|.tsv|->
+
+Makes one calculation per row of a table of names, SMILES and measured values
+in `<folder>`, as **Tools > Batch Add from SMILES** does: the structure comes
+from the SMILES (formal charges give the charge) and is cleaned, and the setup
+is that of `--template` (default: xTB GFN2-xTB optimisation). `-` reads the
+table from standard input. Columns are given by header or 1-based number;
+without `--name`, `--smiles` and `--response` they are guessed, and `--header`
+says whether the first line is a header. The measured values are stored on each
+calculation (`ecce:qsar.measured`, JSON keyed by the column header). `--replace`
+makes again the calculations of the same name that were never launched;
+`--dry-run` only reads the table and reports the rows; `--launch` runs
+`ecce-launch` on the new calculations and needs a running ECCE. Output per
+row: `name: made <url> (charge N)` or `name: not made: reason`. Exit 0 all
+made, 1 some not, 2 no folder or table, 64 usage error.
+
+    ecce-batch-smiles --dry-run proj/series logk.csv
+    ecce-batch-smiles --template proj/xtb-template proj/series logk.csv
+
+### ecce-qsar
+
+    ecce-qsar table <folder|calc>... [--groups G,...] [--no-qm] [--csv FILE] [--json]
+    ecce-qsar table --from-csv FILE [--smiles-col N] [--name-col N] ...
+    ecce-qsar pca TABLE.csv [--y COL]... [--exclude COL]... [--scale uv|pareto|ctr|none] [--components N] [--cv G] [--outdir DIR] [--json]
+    ecce-qsar pls TABLE.csv --y COL [--exclude COL]... [--scale uv|pareto|ctr|none] [--components N] [--cv G] [--test-names A,B | --test-fraction F --seed S] [--permutations N] [--save-model FILE] [--outdir DIR] [--json]
+    ecce-qsar predict MODEL.json TABLE.csv [--csv FILE]
+    ecce-qsar columns TABLE.csv
+    ecce-qsar groups
+
+Reads stored calculations and table files; talks to no ECCE session and
+changes no calculation. `table` makes one row per calculation of a folder made
+by Batch Add from SMILES: name, state, measured values, descriptors computed
+from the SMILES, and the calculation's own results (HOMO, LUMO, dipole,
+charges); calculations whose optimisation did not converge are flagged in the
+columns `opt_converged` and `problems`. `pca` and `pls` fit a model to such a
+table, `predict` applies a saved model, `columns` lists a table's columns and
+`groups` the descriptor groups. `ecce-qsar --help` has the rest.
+
+### ecce-umbrella
+
+    ecce-umbrella windows <pull calc> [--spacing 0.1] [--from D] [--to D]
+    ecce-umbrella extract <pull calc> --out DIR [same choices]
+    ecce-umbrella wham <window calc>... [--bins 200] [--temp 300] [--zero end|min|none] [--jacobian]
+
+Umbrella sampling from a stored GROMACS pull run; talks to no ECCE session.
+`windows` lists the frames of the pull trajectory at the chosen spacing of the
+pull coordinate (frame, time, distance); `extract` writes `window_NN.gro` (the
+whole system, box included) into `DIR`; `wham` runs `gmx wham` on the windows'
+`topol.tpr` and `pullf.xvg` and prints the PMF (kJ/mol) and the histograms,
+with overlap warnings. Files are looked for in a calculation's `Outputs`
+folder, then in the folder itself. `gmx` is `--gmx`, else `$ECCE_GROMACS`,
+else `gmx` or `gmx_mpi` on PATH. `--json` is available for the Builder panel's
+use.
+
+### ecce-workflow
+
+    ecce-workflow make <calculation> [name]
+    ecce-workflow move <calculation> <workflow>
+    ecce-workflow create <workflow-or-new-name> <calculation>... [--link A:B[=role]]... [--auto-links]
+
+**Make Workflow...** and **Move into Workflow >** of the Organizer: `make`
+moves a calculation into a new workflow of its folder as a step, `move` into an
+existing one, and `create` does this for several calculations of one folder
+with the links given (A and B are calculation names) or, with `--auto-links`,
+the links the dialog would propose. Like `ecce-launch` it asks the running
+Organizer, so ECCE has to be running. Output: `ok: <workflow URL>` or
+`error: reason`. Exit 0 done, 1 refused or no answer, 2 ECCE is not running,
+64 usage error.
+
+### ecce-xrd
+
+    ecce-xrd fibre STRUCTURE [--select LIST] [--axis auto|selection|x,y,z] [--map film|rz] [--out FILE]... [--json] ...
+    ecce-xrd powder STRUCTURE [--source cu|mo|co] [--tt-min D] [--tt-max D] [--fwhm D] [--measured FILE] [--table FILE.csv] [--out FILE]... [--json] ...
+    ecce-xrd layer STRUCTURE (--zone h=N|k=N|l=N | --normal U V W [--offset N]) [--resolution D] [--out FILE]... [--json] ...
+    ecce-xrd frame STRUCTURE [--source cu|mo|co] [--phi D] [--osc D] [--distance MM] [--label N] [--out FILE]... [--json] ...
+
+Calculates X-ray diffraction patterns of a structure file (.xyz, .pdb or
+.mvm; `--select` takes atom numbers from 1, such as `1-40,57`); talks to no
+ECCE session. `fibre` is the pattern of molecules aligned on one axis and
+rotated about it, as a film or an (R, Z) map. `powder`, `layer` and `frame`
+need a periodic structure: a .cif, an .mvm with lattice vectors, or an .xyz
+whose comment line has `Lattice="ax ay az bx by bz cx cy cz"`. `powder` gives
+intensity against 2θ with the K-alpha1/K-alpha2 doublet when `--source` is
+given, and draws a measured pattern (text columns, .xrdml or .brml) as a
+second curve with `--measured`. `layer` is a reciprocal-lattice layer (hk0,
+h0l, 0kl or a higher layer) with spots sized by |F|^2. `frame` is the
+detector frame of a rotating crystal. `--out` takes `.png`, `.csv` or, for
+`fibre` and `frame`, `.npy`, and may be repeated. Wavelengths and cell
+lengths are in Å, angles in degrees. `ecce-xrd <subcommand> --help` lists
+every option; the help page **Diffraction** describes the views.
+
+    ecce-xrd fibre helix.mvm --map rz --rmax 0.7 --zmax 0.7 --out rz.png
+    ecce-xrd powder nacl.cif --source cu --measured scan.xy --out powder.png
+
 ### Other command-line tools
 
 On Linux these commands are on PATH. In the macOS app they are in
@@ -364,8 +460,27 @@ launcher, without command wrappers for these tools.
 | `ecce-qm` | Run the bundled quantum chemistry program, when built |
 | `ecce-results` | Convert and inspect results files, when built with HDF5 |
 | `ecce-fragorb` | Fragment-orbital analysis (`analyse <complex> <fragment>...`) and PDOS/OPDOS (`dos`) from results.h5 files of a complex and its fragment calculations at one geometry; `--json`, `--help` has the syntax |
+| `ecce-morse` | Morse fit of a stored bond-length scan: De, a, re, ω_e, ω_e x_e, D0 (`ecce-morse <calc> [--window KJ_PER_MOL] [--atoms I,J] [--masses M1,M2] [--json]`) |
+| `ecce-gmxanalysis` | GROMACS analysis of a stored GROMACS calculation, as text, CSV or JSON: `<calc> groups`, `rdf`, `energy`, `rms`, `gyrate`, `density`, `hbond`; selections like `"residue:SOL & element:O"`; needs `gmx` |
+| `ecce-mocomp` | Atomic-orbital composition of one molecular orbital (`CALC --mo N\|homo\|lumo [--beta] [--method mulliken\|c2] [--min PCT] [--by ao,shell,type,atom] [--tsv]`), `--list` the orbitals, `--spin` Mulliken spin populations |
+| `ecce-density-field` | ELF, LOL, reduced density gradient, sign(λ2)ρ or density from a calculation's stored orbitals as a cube file (`CALC --field F [--spacing A] [--margin A] [--threads N] -o out.cube`), or all fields at points (`CALC --at X,Y,Z`); local data |
+| `ecce-pdbqt` | Prepare AutoDock PDBQT files for docking: `--frag FILE --atoms LIST --as ligand\|receptor -o OUT`, `--ligand FILE.sdf`, `--receptor FILE.pdb`, `--info FILE` |
+| `ecce-site-screen` | Interstitial or vacancy site screening of a periodic host: `make <template> interstitial\|vacancy --element X`, then `results <folder>` for E - E(host) in eV |
 
 See the matching help page for inputs, options and units.
+
+### Administration
+
+These run on the machine that hosts or connects to a data server, not on a
+calculation.
+
+| Command | Purpose |
+|---|---|
+| `ecce-diagnose [-o directory] [run-directory]` | Collects what is needed to diagnose a problem into one text file, `ecce-diagnostics-<host>-<time>.txt`. Changes nothing and collects no passwords, but the file holds host names, user names and paths: read it before attaching it to an issue. `ecce --bug` runs it too |
+| `ecce-remote-setup <server-host> [data-port]` | Points this client installation at a central server; run once per client installation, as the owner of the installation. Users then start `ecce -remote` |
+| `ecce-dataserver-start`, `ecce-dataserver-status`, `ecce-dataserver-stop` | Start, check and stop this user's data server (`ecce-dataserver-stop --if-unused` refuses while another session or a job still uses it) |
+| `ecce-dataserver-adduser` | Add an account to this user's data server (`-b USER PASS [FIRST] [LAST]` or `--stdin USER [FIRST] [LAST]` without prompts) |
+| `ecce-site-publish [DIR]` | Copy this install's site machine list to where the data server serves it to `-remote` clients |
 
 ## Checking a result
 
