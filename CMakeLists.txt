@@ -2835,6 +2835,9 @@ add_test(NAME checks_table
 add_test(NAME xrd_fibre
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/fibre_test.py)
 set_tests_properties(xrd_fibre PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+add_test(NAME xrd_powder
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/powder_test.py)
+set_tests_properties(xrd_powder PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 
 add_test(NAME qsar_descriptors
          COMMAND ${PYTHON3_EXECUTABLE}
