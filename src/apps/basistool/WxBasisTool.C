@@ -4062,6 +4062,16 @@ void WxBasisTool::showContextChanged(bool chgd)
     p_programSaveMenuItem->Enable(chgd);
   } else {
     p_programSaveMenuItem->Enable(false);
+    //  A run or imported calculation is a record of what was run, so its
+    //  basis is never saved; the tool still lets the user pick one, and
+    //  without this the change looked accepted and was then lost.
+    if (chgd) {
+      p_messagesFeedback->setMessage("This calculation has already run or was "
+          "imported, so its basis set is a record of that run and changes "
+          "to it are not saved. To use another basis set, make a copy with "
+          "Duplicate for Rerun in the Organizer and change the copy.",
+          WxFeedback::WARNING);
+    }
   }
   /*
     if (p_calcChgd != chgd)

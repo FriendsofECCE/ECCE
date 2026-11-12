@@ -2501,6 +2501,11 @@ void MoDiagramPanel::buildOnce()
   if (syms != 0 && syms->rows() == energies->rows()) {
     for (int i = 0; i < syms->rows(); i++) s.push_back(syms->value(i));
   }
+  //  Labels for only some orbitals mean the job DID use symmetry and the
+  //  output listed a part of them (ORCA without Print[P_OrbEn] 2), so
+  //  "run without symmetry" would send the user to the wrong remedy.
+  const bool partialSymmetryLabels =
+      syms != 0 && syms->rows() > 0 && syms->rows() < energies->rows();
 
   //  --- beta orbitals, for a merged open-shell level (#132) -----------
   //
@@ -4151,7 +4156,13 @@ void MoDiagramPanel::buildOnce()
 
       vector<string> noDiagram;
       noDiagram.push_back("No correlation diagram can be drawn for this calculation.");
-      if (!haveSymmetryLabels) {
+      if (!haveSymmetryLabels && partialSymmetryLabels) {
+        noDiagram.push_back("The output gives symmetry labels for only some of "
+                "the orbitals, and every orbital needs one to match the "
+                "fragment orbitals against. ORCA lists them all only with "
+                "Print[P_OrbEn] 2 in its %output block, which the jobs ECCE "
+                "writes include; add it and run the job again.");
+      } else if (!haveSymmetryLabels) {
         //  NOT NAMED BY CODE.  This said "Gaussian jobs are generated
         //  with symmetry switched off", which was shown verbatim on an
         //  ORCA calculation.  The remedy is the same wherever the
@@ -4197,6 +4208,8 @@ void MoDiagramPanel::buildOnce()
       //  switched off, and nothing can be drawn from one that was.
       const string headline = haveSymmetryLabels
           ? "The orbital labels do not match the structure's symmetry"
+          : partialSymmetryLabels
+          ? "Not every orbital has a symmetry label - no diagram can be drawn"
           : "This job was run WITHOUT SYMMETRY - no diagram can be drawn";
 
       progressDlg.progress(97, _("Drawing"));

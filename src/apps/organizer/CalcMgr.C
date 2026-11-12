@@ -14252,6 +14252,13 @@ void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
               delete tc;
             }
           }
+          // Orbitals stored by the import (#981); the property cache owns them.
+          {
+            PropertyTask *pt = dynamic_cast<PropertyTask*>(ipc);
+            fprintf(stderr, "ECCE_TEST_IMPORTREPORT: mo %d orbsym %d\n",
+                    (pt && pt->getProperty("MO")) ? 1 : 0,
+                    (pt && pt->getProperty("ORBSYM")) ? 1 : 0);
+          }
           delete frag;
           delete cfg;
         }

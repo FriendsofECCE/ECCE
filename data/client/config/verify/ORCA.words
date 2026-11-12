@@ -277,12 +277,17 @@ da
 def2-mtzvp
 def2-mtzvpp
 def2-qzvp
+def2-qzvpd
 def2-qzvpp
+def2-qzvppd
 def2-sv
 def2-svp
+def2-svpd
 def2-svp/c
 def2-tzvp
+def2-tzvpd
 def2-tzvpp
+def2-tzvppd
 defaults:
 defgrid
 defgrid3

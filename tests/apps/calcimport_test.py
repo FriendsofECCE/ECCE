@@ -32,6 +32,9 @@ CASES = [
     ("nwchem/h2o_opt_stdout.out", "NWChem"),
     ("gaussian-16/co_freq.log", "Gaussian-16"),
     ("orca/h2o_sym.out", "ORCA"),
+    # def2-SVPD (a diffuse set, absent from the name map before #981),
+    # UseSym, ORCA 6.1.1, orbital energies truncated to 10 virtuals
+    ("orca/h2o_svpd_sym.out", "ORCA"),
     ("mopac/ch4_opt.out", "MOPAC"),
     # run outside ECCE: geometry, orbitals, charges and modes from the files
     # beside the output
@@ -48,7 +51,13 @@ CASES = [
 # the expected ones come from the output text (Auto-detected point group,
 # Multiplicity, def2-SVP, no ECP), not from the importer.
 STORED = {"orca/h2o_sym.out": (r"pointgroup C2v multiplicity 1 basis "
-                               r"'def2-svp' ecp '' spherical yes")}
+                               r"'def2-svp' ecp '' spherical yes"),
+          # 39 functions is ORCA's count; the short ORBSYM is kept as the
+          # sign that the job used symmetry (#981).
+          "orca/h2o_svpd_sym.out": (r"pointgroup C2v multiplicity 1 basis "
+                                    r"'def2-svpd' ecp '' spherical yes"
+                                    r"(.|\n)*functions 39 "
+                                    r"(.|\n)*ECCE_TEST_IMPORTREPORT: mo 1 orbsym 1")}
 
 # The NWChem trace imported with methane.out beside it stores the stdout as
 # its primary output and has a progress record from it.

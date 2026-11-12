@@ -6,8 +6,8 @@
 # ORBSYM (and ORBSYMBETA for UHF/UDFT), so the MO table gets its
 # symmetry column.
 #
-# TWO things have to be true upstream or this script correctly emits
-# nothing, and both are arranged by ai.orca:
+# TWO things have to be true upstream or the MO table gets no symmetry
+# column, and both are arranged by ai.orca:
 #
 #  1. "! UseSym" on the route card.  ORCA prints NO Irrep column at all
 #     without it -- the default block is just NO/OCC/E(Eh)/E(eV).  This
@@ -15,12 +15,14 @@
 #
 #  2. "Print[P_OrbEn] 2" in the %output block.  ORCA truncates this
 #     block to the first ten virtuals by default (verified against ORCA
-#     6.1.1: def2-SVP water listed 16 of its 24 orbitals).  A truncated
-#     ORBSYM would be WORSE than none: MoPanel::fillTable() reverses the
-#     energy and symmetry vectors independently and then indexes both by
-#     the same row, so a short symmetry vector does not merely run out
-#     -- it puts the wrong label on every single row.  Hence the length
-#     check below, which drops the vector rather than emit a short one.
+#     6.1.1: def2-SVP water listed 16 of its 24 orbitals).  Such a block
+#     gives a SHORT ORBSYM (one label per printed orbital).  It is still
+#     written: it records that the job used symmetry, and every reader
+#     (MoPanel::fillTable(), MoDiagramPanel, DensityProfilePanel) ignores
+#     an ORBSYM whose length differs from ORBENG, since they index the
+#     two vectors by the same row.  The check in emit() below drops only
+#     a vector with a gap (a row whose label did not match), not a short
+#     one.
 #
 # Real ORCA 6.1.1 shape (UHF; RHF is the same without the SPIN headers):
 #
