@@ -2947,8 +2947,9 @@ add_test(NAME mqtt-builtin-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} built
 add_test(NAME mqtt-builtin-session COMMAND mqtt_test session ${CMAKE_SOURCE_DIR})
 add_executable(eccebroker tests/mqtt/broker_cli.C)
 target_link_libraries(eccebroker PRIVATE ecceutil ${XercesC_LIBRARIES})
+add_test(NAME mqtt-builtin-linger COMMAND mqtt_test linger ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-builtin-interop COMMAND mqtt_test interop)
-set_tests_properties(mqtt-builtin-auth mqtt-builtin-session mqtt-builtin-interop PROPERTIES TIMEOUT 180)
+set_tests_properties(mqtt-builtin-auth mqtt-builtin-session mqtt-builtin-linger mqtt-builtin-interop PROPERTIES TIMEOUT 180)
 set_tests_properties(mqtt-builtin-interop PROPERTIES SKIP_RETURN_CODE 77)
 if(TARGET ecce_users_auth)
   add_test(NAME mqtt-auth-plugin

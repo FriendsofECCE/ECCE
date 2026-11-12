@@ -29,6 +29,7 @@
 #include <unistd.h>
 
 #include <fstream>
+#include <thread>
 #include <iostream>
 #include <set>
 #include <string>
@@ -246,7 +247,7 @@ public:
   {
     puback = -1;
     mosquitto_publish(m_mosq, 0, topic.c_str(), body.size(), body.c_str(), 1, false);
-    for (int i = 0; i < 100 && puback < 0; i++) usleep(30000);
+    for (int i = 0; i < 3000 && puback < 0; i++) usleep(1000);
     return puback;
   }
   bool got(const string& topicPart)
@@ -478,6 +479,97 @@ static int sessionMain(const string& src)
   return g_fail ? 1 : 0;
 }
 
+
+
+// The "other client" of the lingering test: subscribes ecce_poll, says so in
+// <dir>/ready, writes <dir>/got when the message arrives, and leaves when
+// <dir>/quit exists.
+static int holderMain(const string& dir)
+{
+  Probe p("holder");
+  g_probes.push_back(&p);
+  p.subscribe("ecce_poll", static_cast<jmsCBFunc>(&Probe::on), false);
+  if (!p.startSubscriber()) return 2;
+  usleep(300000);
+  { ofstream f((dir + "/ready").c_str()); f << "1"; }
+  bool got = false;
+  struct stat st;
+  for (int i = 0; i < 1500; i++) {
+    pump(20);
+    if (!got && p.has("late")) { got = true; ofstream f((dir + "/got").c_str()); f << "1"; }
+    if (stat((dir + "/quit").c_str(), &st) == 0) break;
+  }
+  p.unsubscribe();
+  return got ? 0 : 3;
+}
+
+static double nowS()
+{
+  struct timeval tv; gettimeofday(&tv, 0);
+  return tv.tv_sec + tv.tv_usec / 1e6;
+}
+
+// The Organizer ends while another process still uses the session broker.
+static int lingerMain(const string& src)
+{
+  const char* tmpbase = getenv("TMPDIR");
+  string tmpl = string(tmpbase ? tmpbase : "/tmp") + "/mqtt_lingXXXXXX";
+  vector<char> buf(tmpl.begin(), tmpl.end());
+  buf.push_back(0);
+  if (!mkdtemp(&buf[0])) { perror("mkdtemp"); return 1; }
+  string tmp = &buf[0];
+  setenv("ECCE_HOME", src.c_str(), 1);
+  setenv("ECCE_REALUSERHOME", tmp.c_str(), 1);
+  setenv("HOST", "testhost", 1);
+  setenv("DISPLAY", ":7", 1);
+  setenv("ECCE_SESSION_ID", S1, 1);
+  unsetenv("ECCE_HOST");
+  unsetenv("ECCE_NO_MESSAGING");
+  check(MqttBroker::startForSession().empty(), "session broker started");
+  string file = tmp + "/.ECCE/broker_testhost_" + S1;
+
+  // This process is the Organizer: a client of its own broker.
+  Probe org("organizer");
+  g_probes.push_back(&org);
+  org.subscribe("ecce_poll", static_cast<jmsCBFunc>(&Probe::on), false);
+  check(org.startSubscriber(), "the Organizer's own link connected");
+
+  pid_t holder = fork();
+  if (holder == 0) {
+    g_probes.clear();
+    execl(g_self.c_str(), g_self.c_str(), "holder", tmp.c_str(), (char*)0);
+    _exit(127);
+  }
+  struct stat st;
+  for (int i = 0; i < 200 && stat((tmp + "/ready").c_str(), &st) != 0; i++) usleep(50000);
+  check(stat((tmp + "/ready").c_str(), &st) == 0, "a second process is connected");
+
+  const int GRACE = 2;
+  double lingered = -1;
+  std::thread t([&] { double a = nowS(); MqttBroker::lingerForSession(GRACE); lingered = nowS() - a; });
+  usleep(1500000);   // the Organizer is gone; the broker keeps going
+  vector<string> a;
+  a.push_back("ecce_poll:late");
+  check(runChildStatus(tmp, S1, a) == 0, "a third process published after the Organizer ended");
+  for (int i = 0; i < 100 && stat((tmp + "/got").c_str(), &st) != 0; i++) usleep(50000);
+  check(stat((tmp + "/got").c_str(), &st) == 0, "the second process still received it");
+  check(access(file.c_str(), F_OK) == 0, "the broker file is still there while a client is connected");
+
+  { ofstream f((tmp + "/quit").c_str()); f << "1"; }
+  double q = nowS();
+  int status = 0;
+  waitpid(holder, &status, 0);
+  check(WIFEXITED(status) && WEXITSTATUS(status) == 0, "the second process ended normally");
+  t.join();
+  double after = nowS() - q;
+  check(after >= GRACE - 0.5 && after < GRACE + 4,
+        "the broker ended about the grace time after the last client left");
+  check(access(file.c_str(), F_OK) != 0, "then the broker file was removed");
+  (void)lingered;
+  rmTree(tmp);
+  cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
+  return g_fail ? 1 : 0;
+}
 
 // mosquitto_pub / mosquitto_sub (MQTT 5) against the built-in broker.
 static int interopMain()
@@ -734,6 +826,8 @@ int main(int argc, char** argv)
 
   if (argc >= 2 && string(argv[1]) == "child") return childMain(argc, argv);
   if (argc >= 2 && string(argv[1]) == "interop") return interopMain();
+  if (argc >= 3 && string(argv[1]) == "holder") return holderMain(argv[2]);
+  if (argc >= 3 && string(argv[1]) == "linger") return lingerMain(argv[2]);
   if (argc >= 3 && string(argv[1]) == "session")
     return sessionMain(argv[2]);
   if (argc >= 3 && string(argv[1]) == "auth")

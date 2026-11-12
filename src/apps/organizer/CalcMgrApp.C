@@ -138,9 +138,9 @@ string CalcMgrApp::getName() const
  */
 bool CalcMgrApp::OnInit()
 {
-#ifdef __WXMSW__
   // The session's own broker (#990), before anything connects to it.
-  // ECCE_BROKER=mosquitto keeps the old ecce-broker-win (ecce.cmd).
+  // ECCE_BROKER=mosquitto keeps the old ecce-broker-win (ecce.cmd).  Only
+  // ecce.cmd sets ECCE_LOCAL_BROKER; on Linux it is a test-only opt-in.
   {
     wxString which;
     if (wxGetEnv("ECCE_LOCAL_BROKER", NULL) &&
@@ -153,7 +153,6 @@ bool CalcMgrApp::OnInit()
       }
     }
   }
-#endif
   ewxApp::OnInit();
 #ifdef __WXMSW__
   // No gateway here: the Organizer has the session's login window.
@@ -295,7 +294,9 @@ void CalcMgrApp::openUrlWhenReady(const string& url, int tries)
 
 int CalcMgrApp::OnExit()
 {
-  MqttBroker::stopForSession();
+  // Tools and job monitors still connected keep the broker for 10 s after
+  // the last of them.
+  MqttBroker::lingerForSession(10);
   return 0;
 }
 
