@@ -4300,9 +4300,12 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/cifio/cifio_oracle_test.py
                    $<TARGET_FILE:cifio>)
+  # A CIF with only a space-group name goes through the genmollat helper,
+  # which is found on PATH when $ECCE_HOME/bin lacks it.
   set_tests_properties(cifio cifio_oracle PROPERTIES SKIP_RETURN_CODE 77
     ENVIRONMENT
-    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+    "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home"
+    ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${CMAKE_BINARY_DIR}")
   # tests/structlib: every Teaching > Diatomics entry of the Structure Library
   # loads with its stored bond length (and the library agrees with
   # tests/qm/diatomic_order_test.py).
