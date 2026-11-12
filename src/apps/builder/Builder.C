@@ -2813,6 +2813,9 @@ bool Builder::execute(Command *cmd, bool batch)
    //////////////////cout << "EXECUTE: " << *cmd << endl;
    try {
       int startNumAtoms = -1;
+      //  Atoms already outside a zoomed-in view are the user's choice; only
+      //  atoms a command puts outside call for a re-fit (#409, #977).
+      const bool wasOutside = !batch && atomsOutsideView();
       // KLS 12/08 what the ???
       //if (getSG() && getSG()->getFragment())
       //  getSG()->getFragment()->numAtoms();
@@ -2837,10 +2840,13 @@ bool Builder::execute(Command *cmd, bool batch)
          // display (an MO's grid, then its surface): the view zoomed in
          // and out again while an orbital was computed.
          if (!batch) {
-            if ((isAutoCenter() && !dynamic_cast<PropCmd*>(cmd)) ||
+            //  A display style changes no coordinates: nothing to re-fit.
+            const bool display = dynamic_cast<PropCmd*>(cmd) ||
+                                 dynamic_cast<CSStyleCmd*>(cmd);
+            if ((isAutoCenter() && !display) ||
                   (startNumAtoms == 0 && getSG()->getFragment()->numAtoms() > 0)) {
                center();
-            } else if (didit && !dynamic_cast<PropCmd*>(cmd) &&
+            } else if (didit && !display && !wasOutside &&
                        atomsOutsideView()) {
                //  An edit (Add H, a new atom) put atoms outside the view:
                //  show the whole structure again (#409).
