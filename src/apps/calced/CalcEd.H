@@ -456,6 +456,7 @@ class CalcEd: public CalcEdGUI,
      *  calculation, so the lamp describes the deck on the server and
      *  not just this session.  Store never writes to a calculation
      *  that is read-only. */
+    void writeVinaAutoNote() const;
     void storeInputGenWarnings();
     void loadInputGenWarnings();
 

@@ -4206,8 +4206,41 @@ static string unescapeWarningText(const string& in)
 }
 
 
+//  What the generator chose as the Vina ligand, as one line for the run type
+//  dialog's read-only text under Ligand atoms ("Automatic: residue STI, 37
+//  atoms (4463-4499)").  Not a setting: it goes through a side file next to
+//  the dialog's restore file, which the dialog polls (the socket only runs
+//  from the dialog to the editor).
+void CalcEd::writeVinaAutoNote() const
+{
+  if (p_codeName != "Vina" || !p_runtypeOutFile) return;
+  string line;
+  const string key = "the ligand was chosen automatically: ";
+  for (const auto& w : p_inputGenWarnings) {
+    size_t a = w.second.find(key);
+    if (a == string::npos) continue;
+    a += key.size();
+    size_t b = w.second.find(" (atoms ", a);
+    size_t e = b == string::npos ? string::npos : w.second.find(')', b);
+    if (e == string::npos) continue;
+    string range = w.second.substr(b + 8, e - b - 8);
+    size_t dash = range.find('-');
+    if (dash != string::npos) range.replace(dash, 1, "\xE2\x80\x93");
+    line = "Automatic: " + w.second.substr(a, b - a) + " (" + range + ")";
+  }
+  const string path = p_runtypeOutFile->path() + ".note";
+  if (line.empty()) {
+    remove(path.c_str());
+    return;
+  }
+  ofstream out(path.c_str());
+  out << line << endl;
+}
+
+
 void CalcEd::storeInputGenWarnings()
 {
+  writeVinaAutoNote();
   if (!p_iCalc) return;
   if (p_feedback->getRunState() > ResourceDescriptor::STATE_READY) return;
 
@@ -4227,6 +4260,10 @@ void CalcEd::loadInputGenWarnings()
   if (!p_iCalc) return;
 
   string value = p_iCalc->getProp(TaskJob::inputWarningsProp());
+  struct NoteAfter {
+    const CalcEd *c;
+    ~NoteAfter() { c->writeVinaAutoNote(); }
+  } noteAfter = {this};
   size_t pos = 0;
   while (pos < value.size()) {
     size_t eol = value.find('\n', pos);
@@ -5026,6 +5063,7 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
     }
 
     outStream.close();
+    writeVinaAutoNote();
 
     cmd += buildTheoryRuntypeArgs(false);
 
@@ -5253,6 +5291,8 @@ void CalcEd::closeRuntypeApp(const bool& sendTerm)
   if (sendTerm && (p_runtypePid)) {
     (void)kill((p_runtypePid), SIGTERM);
   }
+
+  if (p_runtypeOutFile) remove((p_runtypeOutFile->path() + ".note").c_str());
 
   if (p_runtypeInPort != 0) {
     p_runtypeInSocket->Notify(false);
