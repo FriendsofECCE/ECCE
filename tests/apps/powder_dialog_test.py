@@ -50,6 +50,9 @@ def main():
     os.makedirs(png, exist_ok=True)
     for exe in pc.GUI:
         harness.link(os.path.join(build, exe), os.path.join(s.home, "bin", exe))
+    # The dialog runs $ECCE_HOME/bin/ecce-xrd; take the one of this tree.
+    shutil.copy(CLI, os.path.join(s.home, "bin", "ecce-xrd"))
+    os.chmod(os.path.join(s.home, "bin", "ecce-xrd"), 0o755)
     wrappers = os.path.join(s.state, "wrappers")
     shutil.rmtree(wrappers, ignore_errors=True)
     shutil.copytree(os.path.join(build, "wrappers"), wrappers)
