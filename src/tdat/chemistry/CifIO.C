@@ -520,7 +520,6 @@ bool CifIO::write(Fragment& frag, ostream& out)
   vector<MPoint> *v = lat->toVectors();
   MPoint A = (*v)[0], B = (*v)[1], C = (*v)[2];
   delete v;
-  MPoint o = lat->getLatticeCorner();
   double vol = A.dotProduct(B.crossProduct1(C));
   MPoint ra = B.crossProduct1(C), rb = C.crossProduct1(A), rc = A.crossProduct1(B);
 
@@ -545,7 +544,9 @@ bool CifIO::write(Fragment& frag, ostream& out)
     string sym = at->atomicSymbol();
     if (sym == "Nub" || sym == "X") continue;
     const double *x = at->coordinates();
-    MPoint d(x[0] - o.x(), x[1] - o.y(), x[2] - o.z());
+    // Coordinates are relative to the origin, as the readers and
+    // dumpLatticeFrag (convertToFractionalCoords(true)) take them.
+    MPoint d(x[0], x[1], x[2]);
     double f[3] = {d.dotProduct(ra) / vol, d.dotProduct(rb) / vol,
                    d.dotProduct(rc) / vol};
     snprintf(buf, sizeof buf, "%s%d %s %.8f %.8f %.8f 1.0\n", sym.c_str(),
