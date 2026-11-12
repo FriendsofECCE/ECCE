@@ -1387,6 +1387,12 @@ install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar_chem.py
         DESTINATION scripts
         COMPONENT client)
 
+# ecce-xrd (#971): calculated diffraction patterns; fibre now, powder (#587) and
+# layer (#972) later.  numpy only.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_xrd.py
+        DESTINATION bin RENAME ecce-xrd
+        COMPONENT client)
+
 # ecce-morse (#858): Morse fit of a bond scan; the Relaxed Scan panel runs it.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_morse.py
         DESTINATION bin RENAME ecce-morse
@@ -2823,6 +2829,13 @@ add_test(NAME checks_table
 
 # tests/qsar -- scripts/ecce_qsar*.py (#961): descriptors against RDKit's published
 # values, Open Babel (skips that part without obabel) and the stored water calculation.
+# tests/xrd -- scripts/ecce_xrd.py (#971): the cylindrical average two ways, an
+# ideal helix against its Bessel-function intensities, form factors, B-DNA and
+# alpha-helix patterns.
+add_test(NAME xrd_fibre
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/fibre_test.py)
+set_tests_properties(xrd_fibre PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
 add_test(NAME qsar_descriptors
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/qsar/descriptors_test.py)
@@ -3840,6 +3853,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_checks_table PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Tools > Diffraction...: the dialog's CSV equals ecce-xrd fibre (#971).
+  add_test(NAME apps_fibre_dialog
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/fibre_dialog_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_fibre_dialog PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # QSAR table: the dialog's rows equal ecce-qsar table (#961).
   add_test(NAME apps_qsar_table
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4846,6 +4867,20 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_select_within PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  add_test(NAME apps_builder_select_protein_ligand
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_select_protein_ligand_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_select_protein_ligand PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # A click in the Properties list selects the row clicked, also on a
+  # scrolled list, with real X clicks (#965).
+  add_test(NAME apps_property_list_click
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/property_list_click_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_property_list_click PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # Edit > Take Coordinates From...: atoms from another structure, and undo (#620).
   add_test(NAME apps_builder_takecoords
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -5289,6 +5324,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-rate=bin/ecce-rate
   ecce-morse=bin/ecce-morse
   ecce-qsar=bin/ecce-qsar
+  ecce-xrd=bin/ecce-xrd
   ecce-gmxanalysis=bin/ecce-gmxanalysis
   ecce-spectrum=bin/ecce-spectrum
   ecce-displace=bin/ecce-displace
@@ -5340,6 +5376,10 @@ add_test(NAME pdbqt_redock_1iep COMMAND ${PYTHON3_EXECUTABLE}
   ${CMAKE_SOURCE_DIR}/tests/dock/fixtures/1iep.pdb
   ${CMAKE_BINARY_DIR}/pdbqt_redock)
 set_tests_properties(pdbqt_redock_1iep PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
+# Automatic ligand choice in ai.vina/docking.pl and the atom-list checks of
+# verifyinput (#962, #963); scripts only, needs perl.
+add_test(NAME vina_autoligand COMMAND ${PYTHON3_EXECUTABLE}
+  ${CMAKE_SOURCE_DIR}/tests/dock/vina_autoligand_test.py ${CMAKE_SOURCE_DIR})
 
 add_executable(smiles_test tests/tdat/smiles_test.C)
 target_link_libraries(smiles_test PRIVATE eccetdat ecceutil)
@@ -5391,4 +5431,12 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_vina_viewer PROPERTIES TIMEOUT 3600 SKIP_RETURN_CODE 77)
+
+  # #964: a Save of the 4710-atom 1IEP structure, timed per step.
+  add_test(NAME apps_vina_save_timing
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/vina_save_timing_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_vina_save_timing PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 endif()

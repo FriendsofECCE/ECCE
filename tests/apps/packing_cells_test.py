@@ -124,6 +124,10 @@ def main():
                 for style, tag in (("Ball And Stick", "bs"), ("CPK", "cpk")):
                     lines += ["style " + style, "viewall", "wait 800",
                               "shot " + tag]
+            if name == "cu_fcc":
+                # Replicate 2x2x2: 32 real atoms; the block's faces get
+                # 2^z - 1 images per atom with z coordinates on a lower face.
+                lines += ["pbc replicate 2 2 2", "wait 1500", "info"]
             lines += ["quit"]
             text, shots = bo.runScript(s, display, env, wrappers,
                                        ["-context", url], lines, png,
@@ -134,6 +138,11 @@ def main():
                 bo.check((int(m.group(1)), int(m.group(2))) == (natoms, nimages),
                          "%s: %s atoms and %s images, expected %d and %d"
                          % (name, m.group(1), m.group(2), natoms, nimages))
+            if name == "cu_fcc":
+                r = re.findall(r"BUILDER: atoms=(\d+) .*\n(?:.*\n)*?BUILDER: cell_images=(\d+)", text)
+                got = tuple(int(x) for x in r[1]) if len(r) > 1 else None
+                bo.check(got == (32, 31),
+                         "cu_fcc replicated 2x2x2: atoms and images %s, expected (32, 31)" % (got,))
             # Crystals (no bonds) start with the box at the origin.
             c = re.search(r"lattice_centered=(\d) corner=(\S+) (\S+) (\S+)", text)
             if bo.check(c is not None, "%s: lattice reported" % name):
@@ -147,10 +156,10 @@ def main():
             # left where it was drawn before centring changed floats off the atoms.
             d = re.search(r"lattice_drawn=" + " ".join([r"(\S+)"] * 6), text)
             v = re.findall(r"BUILDER: lattice_vector=(\S+) (\S+) (\S+)", text)
-            if bo.check(d is not None and c is not None and len(v) == 3,
+            if bo.check(d is not None and c is not None and len(v) >= 3,
                         "%s: drawn box and vectors reported" % name):
                 corner = [float(c.group(i)) for i in (2, 3, 4)]
-                vecs = [[float(x) for x in t] for t in v]
+                vecs = [[float(x) for x in t] for t in v[:3]]
                 lo = [corner[k] + sum(min(0.0, u[k]) for u in vecs) for k in range(3)]
                 hi = [corner[k] + sum(max(0.0, u[k]) for u in vecs) for k in range(3)]
                 drawn = [float(d.group(i)) for i in range(1, 7)]

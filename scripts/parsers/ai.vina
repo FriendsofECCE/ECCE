@@ -232,7 +232,7 @@ sub modifyInputFile {
 ################################################################################
 
 sub VinaDeck {
-  my ($rec, $lig) = &dockSplit(\%AbiDict, $chemsys_atoms, \%tags, \%coords);
+  my ($rec, $lig) = &dockSplit(\%AbiDict, $chemsys_atoms, \%tags, \%coords, \%resinfo);
   die "ai.vina error: Vina has no dummy atom\n"
       if (grep { $tags{$_} eq "X" } (@$rec, @$lig));
   my @out;
@@ -385,6 +385,18 @@ sub readChemSys {
       (undef, $chemsys_name) = split;
     } elsif (/^atom_info:/) {
       $symbols = /symbol/;
+    } elsif (/^pdb_list:/) {
+      # Fixed columns as Fragment::dumpMVM writes them: atom name 2-5,
+      # residue name 7-10, number 11-16, chain 25.
+      for (my $index = 0; $index < $chemsys_atoms; $index++) {
+        $_ = <CHEMSYS>;
+        last if (!defined($_));
+        chomp;
+        my $name = substr($_, 7, 4); $name =~ s/^\s+|\s+$//g;
+        my $num = substr($_, 11, 6); $num =~ s/\s//g;
+        my $chain = length($_) > 25 ? substr($_, 25, 1) : " ";
+        $resinfo{$index} = {name => $name, num => $num, chain => $chain};
+      }
     } elsif (/^atom_list:/) {
       for (my $index = 0; $index < $chemsys_atoms; $index++) {
         $_ = <CHEMSYS>;

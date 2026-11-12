@@ -33,6 +33,8 @@
 //    select N                    select atom (or Nub) number N (from 1), as a click
 //                                does; 0 or less none
 //    select_within R [molecules] [replace]  extend by distance in Angstrom
+//    select_protein              Edit > Select Protein (adds to the selection)
+//    select_ligand               Edit > Select Ligand: the largest ligand
 //    selectelem A                select the first atom of element A
 //    addelem A                   add the last atom of element A to the selection
 //    bondkind covalent|metal     the kind of bond Bond mode makes
@@ -139,11 +141,14 @@
 #include "viz/SGContainer.H"
 #include "viz/SGLattice.H"
 #include "viz/SGFragment.H"
+#include "viz/SelectCmd.H"
 #include "viz/AtomMeasureDist.H"
 #include "viz/AtomMeasureAngle.H"
 #include "viz/AtomMeasureTorsion.H"
 
 #include "viz/FindSymmetryCmd.H"
+#include "viz/GenerateDNACmd.H"
+#include "wxgui/DiffractionDialog.H"
 #include "wxgui/ewxGrid.H"
 #include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxProgressDialog.H"
@@ -685,6 +690,10 @@ void Builder::runBuilderScript(const std::string& file)
             radius < 0.1 || radius > 50.0 || !valid || frag->m_atomHighLight.empty())
           outcome = "FAIL: select_within needs a selection and distance 0.1-50";
         else selectWithin(radius, molecules, keep);
+      } else if ((w[0] == "select_protein" || w[0] == "select_ligand") &&
+                 w.size() == 1 && frag) {
+        if (!selectResidueClass(w[0] == "select_ligand"))
+          outcome = "FAIL: nothing selected";
       } else if (w[0] == "selectelem" && w.size() == 2 && frag) {
         //  The first atom of element A, as a click on it selects it.
         outcome = "FAIL: no such atom";
@@ -968,6 +977,34 @@ void Builder::runBuilderScript(const std::string& file)
                   frag->atomRef(i)->atomicSymbol().c_str(), c[0], c[1], c[2]);
         }
         fprintf(stderr, "BUILDER: formula=%s\n", frag->formula().c_str());
+      } else if (w[0] == "dna" && w.size() == 2 && frag) {
+        //  dna SEQUENCE: Dna panel's Generate, for the sample structures (#971).
+        std::string seq = w[1];
+        GenerateDNACmd *cmd = new GenerateDNACmd("Generate DNA", getSG());
+        cmd->getParameter("sequence")->setString(seq);
+        try { execute(cmd); } catch (const std::exception& e) {
+          fprintf(stderr, "BUILDER: dna refused: %s\n", e.what());
+        }
+        fprintf(stderr, "BUILDER: dna: %d atoms\n", (int)frag->numAtoms());
+      } else if (w[0] == "savexyz" && w.size() == 2) {
+        std::vector<int> none;
+        const std::string err = writeStructureXyz(w[1], none);
+        fprintf(stderr, "BUILDER: savexyz: %s\n", err.empty() ? "done" : err.c_str());
+      } else if (w[0] == "diffraction" && w.size() >= 3) {
+        //  diffraction OUT.png OUT.csv [XYZ]: Tools > Diffraction... with the
+        //  default fields; the structure it was given is kept as XYZ (#971).
+        std::vector<int> sel;
+        const std::string xyz = w.size() > 3 ? w[3] : w[1] + ".xyz";
+        std::string err = writeStructureXyz(xyz, sel);
+        std::string why;
+        DiffractionDialog *dd = 0;
+        if (err.empty()) {
+          dd = new DiffractionDialog(this, xyz, sel);
+          if (!dd->calculate(why)) err = why;
+          else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
+        }
+        fprintf(stderr, "BUILDER: diffraction: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
+        if (dd) dd->Destroy();
       } else if (w[0] == "takefrom" && w.size() >= 3) {
         //  takefrom PATH.xyz SET|selected [align]: Take Coordinates From...
         //  with the other structure read from an .xyz file (#620).
@@ -1934,4 +1971,61 @@ void Builder::runBuilderScript(const std::string& file)
     fflush(stderr);
   });
   timer->Start(500);
+}
+
+
+//  Edit > Select Protein / Select Ligand (#967).  Without residue
+//  information, or with nothing of the kind, it warns and selects nothing.
+bool Builder::selectResidueClass(bool ligand)
+{
+  SGFragment *frag = getSG()->getFragment();
+  if (!frag || frag->numResidues() == 0) {
+    showMessage(ligand ? "Select Ligand: this structure has no residue "
+                         "information, so a ligand cannot be told from the "
+                         "rest."
+                       : "Select Protein: this structure has no residue "
+                         "information.");
+    return false;
+  }
+  SelectCmd *cmd = new SelectCmd(ligand ? "Select Ligand" : "Select Protein",
+                                 getSG());
+  cmd->getParameter(ligand ? "ligand" : "protein")->setBoolean(true);
+  size_t before = frag->m_atomHighLight.size();
+  execute(cmd);
+  if (ligand) {
+    showMessage(cmd->message().empty()
+                ? "Select Ligand: no ligand found; every residue is polymer, "
+                  "water, an ion or a common additive."
+                : cmd->message());
+    return !cmd->message().empty();
+  }
+  if (frag->m_atomHighLight.size() == before) {
+    showMessage("Select Protein: no amino acid or nucleic acid residues found.");
+    return false;
+  }
+  return true;
+}
+
+void Builder::OnSelectProteinClick(wxCommandEvent&)
+{
+  selectResidueClass(false);
+}
+
+void Builder::OnSelectLigandClick(wxCommandEvent&)
+{
+  selectResidueClass(true);
+}
+
+//  Greyed, with the reason in the label, while there are no residues; the
+//  handler still explains itself if it is reached anyway.
+void Builder::OnUpdateSelectResidueItem(wxUpdateUIEvent& event)
+{
+  SGContainer *sg = p_sgMgr ? getSG() : NULL;
+  SGFragment *frag = sg ? sg->getFragment() : NULL;
+  const bool has = frag && frag->numResidues() > 0;
+  event.Enable(has);
+  const bool ligand = event.GetId() == ID_SELECT_LIGAND;
+  event.SetText(has ? (ligand ? _("Select Ligand") : _("Select Protein"))
+                    : (ligand ? _("Select Ligand (no residue information)")
+                              : _("Select Protein (no residue information)")));
 }

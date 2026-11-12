@@ -138,6 +138,12 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     int p_pocketBonds[2] = {0, 0};  // bonds drawn in the Ligand/Pocket styles, for the hook
     bool p_pocketFitted = false;   // camera framed since the view was switched on
     float p_pocketFit = 0;         // diagonal of the framed box, for the hook
+    // What the pocket view last drew: stepping a pose moves the ligand but
+    // leaves the same atoms shown, and restyling all of them again cost most
+    // of a second per step on a protein (#966).
+    vector<char> p_pocketRole;
+    vector<char> p_pocketBondRole;
+    const void *p_pocketFragment = 0;
     void fitPocketCamera(const std::vector<const double*>& atoms);
     std::map<int, int> p_imageIndex;
     wxImageList *p_images = NULL;
