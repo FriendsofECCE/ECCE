@@ -174,7 +174,7 @@ def main():
         cfg = broker(s, "start")
         if not s.check(cfg.get("port") and cfg.get("password"), "broker started, login in broker file"):
             return 1
-        base = [which(s, "mosquitto_sub"), "-h", cfg["host"], "-p", cfg["port"], "-t", "ecce/#", "-v"]
+        base = [which(s, "mosquitto_sub"), "-h", cfg["host"], "-p", cfg["port"], "-V", "5", "-t", "ecce/#", "-v"]
         s.sublog = os.path.join(st, "sub.log")
         sub = subprocess.Popen(base + ["-u", cfg["user"], "-P", cfg["password"]],
                                stdout=open(s.sublog, "w"), stderr=subprocess.STDOUT)
