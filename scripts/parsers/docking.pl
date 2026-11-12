@@ -72,6 +72,25 @@ sub dockSplit {
     }
     dockReceptorWarnings(\%lig, $natoms, $res, undef);
   } else {
+    # Bonded neighbours through a grid of cells as large as the longest
+    # possible bond: a protein with its waters (~5000 atoms) took 17 s with
+    # every pair compared, a fraction of a second this way.
+    my (@x, @y, @z, @r);
+    my $rmax = 0;
+    for my $i (0 .. $natoms - 1) {
+      ($x[$i], $y[$i], $z[$i]) = map { $coords->{$i,$_} } (0 .. 2);
+      $r[$i] = $dockRadius{$tags->{$i}};
+      $r[$i] = 1.5 if (!defined($r[$i]));
+      $rmax = $r[$i] if ($r[$i] > $rmax);
+    }
+    my $cs = 1.25 * 2 * $rmax;
+    my %cell;
+    my @key;
+    for my $i (0 .. $natoms - 1) {
+      my @c = map { int(($_ < 0) ? $_ / $cs - 1 : $_ / $cs) } ($x[$i], $y[$i], $z[$i]);
+      $key[$i] = \@c;
+      push(@{$cell{"@c"}}, $i);
+    }
     my @comp = (-1) x $natoms;
     my $n = 0;
     for my $s (0 .. $natoms - 1) {
@@ -80,17 +99,19 @@ sub dockSplit {
       $comp[$s] = $n;
       while (@stack) {
         my $i = pop(@stack);
-        for my $j (0 .. $natoms - 1) {
-          next if ($comp[$j] >= 0);
-          my $d2 = 0;
-          $d2 += ($coords->{$i,$_} - $coords->{$j,$_}) ** 2 foreach (0 .. 2);
-          my $ri = $dockRadius{$tags->{$i}}; $ri = 1.5 if (!defined($ri));
-          my $rj = $dockRadius{$tags->{$j}}; $rj = 1.5 if (!defined($rj));
-          if ($d2 < (1.25 * ($ri + $rj)) ** 2) {
-            $comp[$j] = $n;
-            push(@stack, $j);
+        my ($a, $b, $c) = @{$key[$i]};
+        for my $da (-1 .. 1) { for my $db (-1 .. 1) { for my $dc (-1 .. 1) {
+          my $list = $cell{($a + $da) . " " . ($b + $db) . " " . ($c + $dc)};
+          next if (!$list);
+          for my $j (@$list) {
+            next if ($comp[$j] >= 0);
+            my $d2 = ($x[$i] - $x[$j]) ** 2 + ($y[$i] - $y[$j]) ** 2 + ($z[$i] - $z[$j]) ** 2;
+            if ($d2 < (1.25 * ($r[$i] + $r[$j])) ** 2) {
+              $comp[$j] = $n;
+              push(@stack, $j);
+            }
           }
-        }
+        }}}
       }
       $n++;
     }
