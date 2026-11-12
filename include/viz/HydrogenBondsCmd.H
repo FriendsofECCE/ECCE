@@ -30,6 +30,8 @@ class HydrogenBondsCmd : public Command
       static double maxAngle();
       // Bonds drawn by the last execute(), for scripts and tests.
       static int lastCount();
+      static double lastSearchMs();
+      static double lastDrawMs();
       // Cl-/Br- ions as acceptors (default on); off gives the N/O/F count
       // gmx hbond reports.
       static void setHalideAcceptors(bool on);
@@ -41,6 +43,8 @@ class HydrogenBondsCmd : public Command
       static double p_maxDist;
       static double p_maxAngle;
       static int p_lastCount;
+      static double p_searchMs;
+      static double p_drawMs;
       static bool p_halides;
 };
 

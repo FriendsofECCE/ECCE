@@ -11,6 +11,7 @@
 #include <algorithm>
   using std::find;
 #include <cmath>
+#include <chrono>
 #include "tdat/LatticeDef.H"
 
 #include "util/EventDispatcher.H"
@@ -22,10 +23,13 @@ using namespace ecce;
 #include "tdat/TBond.H"
 #include "tdat/TPerTab.H"
 
+#include "inv/SbLinear.H"
+#include "inv/nodes/SoLineSet.H"
+#include "inv/nodes/SoVertexProperty.H"
+
 #include "viz/HydrogenBondsCmd.H"
 #include "viz/SGFragment.H"
 #include "viz/SGContainer.H"
-#include "viz/AtomLine.H"
 #include "viz/AtomMeasureDist.H"
 
 HydrogenBondsCmd::HydrogenBondsCmd(const string& name, Receiver * receiver)
@@ -62,6 +66,10 @@ void HydrogenBondsCmd::setCriteria(double dist, double angle)
 double HydrogenBondsCmd::maxDistance() { return p_maxDist; }
 double HydrogenBondsCmd::maxAngle() { return p_maxAngle; }
 int HydrogenBondsCmd::lastCount() { return p_lastCount; }
+double HydrogenBondsCmd::lastSearchMs() { return p_searchMs; }
+double HydrogenBondsCmd::lastDrawMs() { return p_drawMs; }
+double HydrogenBondsCmd::p_searchMs = 0.0;
+double HydrogenBondsCmd::p_drawMs = 0.0;
 
 
 void HydrogenBondsCmd::init()
@@ -151,8 +159,12 @@ bool HydrogenBondsCmd::execute()
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
    SGFragment *frag = sg->getFragment();
 
+   typedef std::chrono::steady_clock Clock;
+   const Clock::time_point t0 = Clock::now();
+   double drawSec = 0.0;
    sg->getTopHBonds()->removeAllChildren();
    p_lastCount = 0;
+   p_searchMs = p_drawMs = 0.0;
 
    if (!getParameter("switch")->getBoolean() || !frag || frag->numAtoms() < 2)
       return true;
@@ -206,6 +218,7 @@ bool HydrogenBondsCmd::execute()
    }
 
    vector<int> cells, cand;
+   vector<SbVec3f> pts;
    for (int i = 0; i < nAtoms; i++) {
       TAtm *h = (*atoms)[i];
       if (h->atomicNumber() != 1 || !h->displayStyle().isDisplayed()) continue;
@@ -270,18 +283,35 @@ bool HydrogenBondsCmd::execute()
          if (MinImage::dot(dh, da)/(dhLen*len) < cosMin) continue;
 
          p_lastCount++;
-         SoSeparator *sep = new SoSeparator;
          // Line to the acceptor's nearest image, not across the box.
-         AtomLine *line = new AtomLine(frag, h, acc, sep);
-         line->setShift(pd[0] + da.x() - pa[0], pd[1] + da.y() - pa[1],
-                        pd[2] + da.z() - pa[2]);
-         sep->addChild(line);
-         sg->getTopHBonds()->addChild(sep);
+         const Clock::time_point d0 = Clock::now();
+         pts.push_back(SbVec3f(ph[0], ph[1], ph[2]));
+         pts.push_back(SbVec3f(pd[0] + da.x(), pd[1] + da.y(), pd[2] + da.z()));
+         drawSec += std::chrono::duration<double>(Clock::now() - d0).count();
       }
    }
 
+   // One node for all bonds: a node per bond made the redraw take seconds.
+   const Clock::time_point d1 = Clock::now();
+   if (!pts.empty()) {
+      const int nb = pts.size() / 2;
+      SoVertexProperty *vp = new SoVertexProperty;
+      vp->vertex.setValues(0, pts.size(), &pts[0]);
+      SoLineSet *ls = new SoLineSet;
+      ls->setName("HBondLines");
+      ls->vertexProperty.setValue(vp);
+      ls->numVertices.setNum(nb);
+      int32_t *nv = ls->numVertices.startEditing();
+      for (int i = 0; i < nb; i++) nv[i] = 2;
+      ls->numVertices.finishEditing();
+      sg->getTopHBonds()->addChild(ls);
+   }
+   drawSec += std::chrono::duration<double>(Clock::now() - d1).count();
+
    delete cellList;
    delete atoms;
+   p_drawMs = drawSec * 1000.0;
+   p_searchMs = std::chrono::duration<double, std::milli>(Clock::now() - t0).count() - p_drawMs;
    return true;
 }
 
