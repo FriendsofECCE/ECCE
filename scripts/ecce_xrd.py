@@ -1215,7 +1215,7 @@ def frame_image(refl, size, distance, pixels, wavelength, mosaic=0.0, noise=True
     """Detector counts [pixels, pixels] (row 0 = top, y up): each reflection as a
     point, blurred (1.5 px detector point spread, plus the mosaic spread seen at
     the detector), on a background that rises toward the beam, with Poisson
-    noise and a beamstop with its arm.  Intensities are scaled so the strongest
+    noise and a round beamstop.  Intensities are scaled so the strongest
     spot holds 6e4 counts."""
     mm = size / pixels
     img = np.zeros((pixels, pixels))
@@ -1237,7 +1237,7 @@ def frame_image(refl, size, distance, pixels, wavelength, mosaic=0.0, noise=True
     if noise:
         img = np.random.default_rng(seed).poisson(img).astype(float)
     if beamstop:
-        stop = (rr < 3.0) | ((np.abs(yy - pixels / 2) * mm < 1.2) & (xx < pixels / 2))
+        stop = rr < 3.0
         img[stop] = 5.0
     return img
 

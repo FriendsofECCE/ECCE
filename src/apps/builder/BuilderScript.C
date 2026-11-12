@@ -1028,12 +1028,13 @@ void Builder::runBuilderScript(const std::string& file)
         fprintf(stderr, "BUILDER: diffraction: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
       } else if (w[0] == "calcdiffraction" && w.size() >= 3) {
-        //  calcdiffraction OUT.png OUT.csv [XYZ]: the Diffraction entry of the
+        //  calcdiffraction OUT.png OUT.csv [XYZ [EXPOSURE SCHEME]]: the Diffraction entry of the
         //  open calculation's results, default fields (#587).
         std::string err, why;
         DiffractionDialog *dd = calcHasStructure() ?
             openResultsDiffraction(w.size() > 3 ? w[3] : w[1] + ".xyz") : 0;
         if (!dd) err = "no Diffraction entry for this calculation";
+        else if (w.size() > 5 && (dd->setDisplay(atoi(w[4].c_str()), atoi(w[5].c_str())), false)) {}
         else if (!dd->calculate(why)) err = why;
         else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
         if (dd && err.empty())
@@ -1085,6 +1086,41 @@ void Builder::runBuilderScript(const std::string& file)
         else if (!dd->calculate(why)) err = why;
         else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
         fprintf(stderr, "BUILDER: calcframe: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
+        if (dd) dd->Destroy();
+      } else if (w[0] == "calcmeasure" && w.size() >= 6) {
+        //  calcmeasure KIND OUT.png OUT.csv EXPOSURE SCHEME [h,k,l h,k,l | strongest | 2THETA]:
+        //  the Diffraction entry set to KIND (layerN = hkN, frame = phi 0 to 30,
+        //  powder), drawn at the exposure (tenths of a stop) and scheme (0 Film,
+        //  1 Dark), then the readout of two picked spots or of a powder
+        //  cursor position (#985).
+        std::string err, why;
+        const std::string kind = w[1];
+        DiffractionDialog *dd = calcIsPeriodic() ? openResultsDiffraction(w[2] + ".xyz") : 0;
+        if (!dd) err = "no Diffraction entry for this calculation";
+        else if (kind.compare(0, 5, "layer") == 0 &&
+                 !dd->setLayer("l", atoi(kind.c_str() + 5), 1.0, false, why)) err = why;
+        else if (kind == "frame" && !dd->setFrame(0.0, 30.0, false, false, why)) err = why;
+        else if (kind.compare(0, 5, "layer") != 0 && kind != "frame" && kind != "powder") err = "kind is layer, frame or powder";
+        if (err.empty()) {
+          dd->setDisplay(atoi(w[4].c_str()), atoi(w[5].c_str()));
+          if (!dd->calculate(why)) err = why;
+        }
+        if (err.empty()) {
+          dd->setDisplay(atoi(w[4].c_str()), atoi(w[5].c_str()));
+          if (!dd->savePng(w[2], why) || !dd->saveCsv(w[3], why)) err = why;
+        }
+        int h1 = 0, k1 = 0, l1 = 0, h2 = 0, k2 = 0, l2 = 0;
+        if (err.empty() && kind == "powder" && w.size() > 6)
+          fprintf(stderr, "BUILDER: calcmeasure readout: %s\n",
+                  dd->cursorText(atof(w[6].c_str()), 0.2).ToUTF8().data());
+        else if (err.empty() && w.size() > 6 && w[6] == "strongest")
+          fprintf(stderr, "BUILDER: calcmeasure readout: %s\n",
+                  dd->measureStrongest().ToUTF8().data());
+        else if (err.empty() && w.size() > 7 && sscanf(w[6].c_str(), "%d,%d,%d", &h1, &k1, &l1) == 3 &&
+                 sscanf(w[7].c_str(), "%d,%d,%d", &h2, &k2, &l2) == 3)
+          fprintf(stderr, "BUILDER: calcmeasure readout: %s\n",
+                  dd->measure(h1, k1, l1, h2, k2, l2).ToUTF8().data());
+        fprintf(stderr, "BUILDER: calcmeasure: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
       } else if (w[0] == "takefrom" && w.size() >= 3) {
         //  takefrom PATH.xyz SET|selected [align]: Take Coordinates From...

@@ -51,6 +51,19 @@ public:
   bool detectorFrame() const { return p_frame; }
   // The spot (h k l) as hovering reports it; "" if it is not in the layer.
   wxString spotText(int h, int k, int l) const;
+  // Display of the image views (#985): exposure in tenths of a stop (-20 to 20,
+  // an intensity gain before saturation; the data are unchanged) and the
+  // colour scheme (0 Film: dark on light, 1 Dark: black, blue, orange, white).
+  void setDisplay(int exposure, int scheme);
+  // Measuring (#985), as two clicks do it: the readout after picking the spots
+  // h1 k1 l1 and then h2 k2 l2 of the detector frame (distance, angle) or the
+  // single-crystal layer (reciprocal distance, row d, a*); "" if a spot is missing.
+  wxString measure(int h1, int k1, int l1, int h2, int k2, int l2);
+  // The same for the two strongest spots (frame or layer).
+  wxString measureStrongest();
+  // Powder cursor readout at a 2theta (degrees): 2theta, d, Q and I of the
+  // curve, plus the reflection within tolerance if there is one.
+  wxString cursorText(double twoTheta, double tolerance) const;
   // The reflection under a 2theta (degrees), as hovering shows it; "" if none.
   wxString reflectionText(double twoTheta, double tolerance) const;
 
@@ -80,12 +93,17 @@ private:
   bool calculatePowder(std::string& why);
   double number(wxTextCtrl *c) const;
   wxString pointerText(int x, int y) const;
+  void updateImage();
+  void setLevels(const wxImage& im, bool inverted);
+  void renderFilm();
+  bool darkScheme() const;
+  void onImageClick(int x, int y, bool second);
 
   std::string p_structure, p_dir, p_selectionText;
   wxTextCtrl *p_wavelength, *p_distance, *p_film, *p_b, *p_length, *p_mis,
              *p_repeat, *p_gamma;
   wxChoice *p_axis, *p_scale;
-  wxCheckBox *p_selectedOnly, *p_invert;
+  wxCheckBox *p_selectedOnly;
   wxSlider *p_opacity;
   wxStaticText *p_status, *p_pointer;
   DiffractionPanel *p_panel;
@@ -95,14 +113,14 @@ private:
   std::string p_png, p_csv, p_tab, p_measured;
   bool p_periodic, p_powder, p_single, p_frame;
   wxTextCtrl *p_layerNo, *p_lres, *p_lb;
-  wxChoice *p_zone, *p_lscale;
+  wxChoice *p_zone;
   wxCheckBox *p_absent, *p_doublet;
   wxRadioButton *p_rbFibre, *p_rbPowder, *p_rbSingle;
   wxSizer *p_layerItems, *p_frameItems;
   wxSlider *p_fphi;
   wxTextCtrl *p_fosc, *p_fdist;
   wxChoice *p_fsource;
-  wxCheckBox *p_fdark, *p_fnoise, *p_flabel, *p_frings;
+  wxCheckBox *p_fnoise, *p_flabel, *p_frings;
   wxRadioButton *p_rbFrame;
   double p_layerScale;
   int p_layerSize;
@@ -110,6 +128,16 @@ private:
   bool p_layerReady;
   double p_layerRmax, p_geomDistance, p_geomLambda, p_axes[3][2];
   std::vector<Spot> p_spots;
+  wxString measureText(const Spot& a, const Spot* b) const;
+  const Spot *spotNear(int x, int y) const;
+  wxChoice *p_scheme;
+  wxSlider *p_exposure;
+  wxSizer *p_displayItems;
+  wxCheckBox *p_lhkl, *p_laxes;
+  wxStaticText *p_measure;
+  std::vector<float> p_level;   // fibre, frame: display level 0..1; layer: optical density
+  int p_levelN;
+  const Spot *p_pick;           // first spot of a measurement
   wxTextCtrl *p_pwave, *p_ptmin, *p_ptmax, *p_pfwhm, *p_pb;
   wxChoice *p_source;
   PowderPanel *p_plot;

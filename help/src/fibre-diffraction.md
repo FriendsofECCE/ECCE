@@ -39,8 +39,7 @@ The fields:
   of the arcs and not a quantitative profile.
 - **Axis**: the principal axis of the atoms (the helix axis of a helix), or the
   line from the first to the last selected atom.
-- **Dark spots on white** (on by default, `--no-invert` on the command line)
-  turns the picture to light on dark. **Scaling**: logarithmic, square root or linear, and a gamma exponent. The
+- **Scaling**: logarithmic, square root or linear, and a gamma exponent. The
   intensity range of a pattern is wide; the logarithmic scale shows 2.5 decades
   below the strongest reflection. The centre, where the undiffracted beam
   would be, is left out of the scaling. The defaults give a picture like a
@@ -60,15 +59,43 @@ apart the larger the angle: the doublet is hardly visible at low 2-theta and is
 resolved as two peaks at high angle. The peak list has one row per line, marked
 Ka1 or Ka2. Other sources (synchrotron, a typed wavelength) have no doublet.
 
-## Layers on one intensity scale
+## Layers as precession photographs
 
-The single-crystal view draws a disc per reflection with its area following
-I_rel, where I_rel = 100 is the strongest reflection of the whole crystal within
-the resolution limit, not of the layer shown. Layers of one crystal and of
-different crystals can therefore be compared: in KCl the all-odd reflections of
-the hk1 layer have I_rel near 0.3 and are barely visible, in NaCl 4.5. The CSV
-holds I and this I_rel. On the command line `--scale-to layer` gives the old
-scale to the layer's own strongest spot.
+The single-crystal view is a simulated precession photograph: the undistorted
+reciprocal-lattice layer on film, each reflection a blurred spot whose darkness
+saturates with its intensity and whose size grows gently with it, on a faint
+background that rises toward the centre, with a little film grain and a small
+round beamstop. Darkness follows I_rel, where I_rel = 100 is the strongest
+reflection of the whole crystal within the resolution limit, not of the layer
+shown. Layers of one crystal and of different crystals can therefore be
+compared: in KCl the all-odd reflections of the hk1 layer have I_rel near 0.3
+and the photograph is almost blank, in NaCl 4.5 and they show. The CSV holds I
+and this I_rel. **Label spots (hkl)**, **Show absent reflections** and
+**Reciprocal axes** (a*, b* in the lower left corner) are overlays that you
+can switch; they are not part of the data.
+
+## Exposure and colour scheme
+
+The **Image** box holds for the fibre pattern, the detector frame and the
+precession photograph an **Exposure** slider and a colour scheme. Exposure is a
+gain on the intensity before saturation, in tenths of a stop (-2 to +2 stops),
+like a shorter or longer exposure: weak spots appear and strong ones spread.
+The data and the CSV do not change. **Film** is grey, dark on light (the
+default); **Dark** runs from black through blue and orange to white at
+saturation. **Save PNG...** uses the current choice.
+
+## Measuring
+
+- **Detector frame**: click a spot to read hkl, d, 2-theta, I and its position
+  on the detector in the line under the pointer line. Shift-click a second spot
+  for the distance between the two on the detector (mm), the angle between
+  them seen from the beam centre, and the d of each.
+- **Precession photograph**: click two spots. The line gives the reciprocal
+  distance (1/A) and the d of that row. When both lie on one lattice row with n
+  steps between them, it also gives a* = distance / n and the cell edge 1 / a*
+  (valid for orthogonal axes).
+- **Powder**: the pointer line gives 2-theta, d, Q = 2 pi / d and I of the curve
+  under the pointer, and the nearest reflection.
 
 ## Detector frame of a rotating crystal
 
@@ -77,13 +104,13 @@ in a monochromatic beam and turns about the vertical axis through the
 **Oscillation** range, starting at the **Start angle phi**; a reflection is
 recorded when its reciprocal-lattice point passes through the Ewald sphere
 during the turn, so each frame holds only the reflections that cross in that
-range and moving phi shows others. Spots are dark on light (untick for false
+range and moving phi shows others. Spots are dark on light (choose the Dark scheme for false
 colour). Intensities carry the Lorentz and polarisation factors and counting
 noise (untick **Noise** for a clean frame). **Label spots** writes hkl next to
 the strongest spots and **Resolution rings** draws circles at d = 3.0, 2.0, 1.5
 and 1.0 A with d and 2-theta; both are drawn on the picture only. The pointer
-reports hkl, d and 2-theta of the nearest spot. The white bar and disc are the
-beamstop and its arm. The same frame from the command line:
+reports hkl, d and 2-theta of the nearest spot. The round white disc is the
+beamstop. The same frame from the command line:
 `ecce-xrd frame structure.cif --source mo --phi 0 --osc 30 --out frame.png`.
 
 ## Backdrop

@@ -62,3 +62,10 @@ issues: [971]
   scale), so KCl hk1 (111) is 0.3 % and NaCl's 4.5 %.
 - wxGraphicsContext cannot draw into wxSVGFileDC: there is no SVG export from
   the window.
+- The layer view is rendered by `DiffractionDialog::renderFilm` from the CSV
+  (optical density, 1 - exp(-gain * density)); the CLI's disc PNG of `ecce-xrd
+  layer` is separate and only for the command line. Fibre and frame PNGs from
+  `ecce-xrd` are read back as 0..1 levels (`--no-invert`; the frame's light-on-
+  dark `--dark` is not used by the dialog), so exposure and colour scheme apply
+  in the dialog without recomputing. Script hooks: `calcmeasure`, and
+  `calcdiffraction ... EXPOSURE SCHEME` (tests/apps/diffraction_examples_test.py).

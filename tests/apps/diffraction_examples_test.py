@@ -11,6 +11,7 @@ only h,k both even; the all-odd hk1 spots weak for NaCl, nearly absent for KCl; 
 status 77 (skip) without Xvfb, import or the built binaries.
 """
 import argparse
+import math
 import os
 import re
 import shutil
@@ -35,6 +36,15 @@ CASES = (("qe-nacl_powder", "nacl_powder", ".pwout", "powder"),
          ("qe-quartz", "quartz", ".pwout", "powder"),
          ("xtb-b_dna", "bdna", ".out", "fibre"),
          ("xtb-alpha_helix", "helix", ".out", "fibre"))
+
+
+def same_csv_new_png(out, a, b, what):
+    """Exposure and colour scheme change the picture, never the data."""
+    pa, pb = (os.path.join(out, n) for n in (a + ".png", b + ".png"))
+    ca, cb = (os.path.join(out, n) for n in (a + ".csv", b + ".csv"))
+    ok = all(os.path.exists(f) for f in (pa, pb, ca, cb))
+    bo.check(ok and open(pa, "rb").read() != open(pb, "rb").read(), "%s: the PNG changes" % what)
+    bo.check(ok and open(ca).read() == open(cb).read(), "%s: the CSV does not" % what)
 
 
 def main():
@@ -92,6 +102,21 @@ def main():
                 # hk1 holds only all-odd spots: F = 4(f_cation - f_Cl)
                 lines.append("calclayer %s %s l 1 0.8 2,0,0" % (
                     os.path.join(out, "l1.png"), os.path.join(out, "l1.csv")))
+            if calc in ("kcl", "nacl_powder"):
+                # precession photographs of hk1 at the default and a high exposure
+                for tag, ex in (("p_def", 0), ("p_hi", 20)):
+                    lines.append("calcmeasure layer1 %s %s %d 0" % (
+                        os.path.join(out, tag + ".png"), os.path.join(out, tag + ".csv"), ex))
+            if calc == "nacl_powder":
+                m = lambda n: os.path.join(out, n)
+                lines += ["calcmeasure layer0 %s %s 0 0 2,0,0 4,0,0" % (m("m0.png"), m("m0.csv")),
+                          "calcmeasure frame %s %s 0 0 strongest" % (m("fr_film.png"), m("fr_film.csv")),
+                          "calcmeasure frame %s %s 0 1" % (m("fr_dark.png"), m("fr_dark.csv")),
+                          "calcmeasure powder %s %s 0 0 31.7" % (m("pw.png"), m("pw.csv"))]
+            if calc == "bdna":
+                lines.append("calcdiffraction %s %s %s 0 1" % (os.path.join(out, "dark.png"),
+                                                              os.path.join(out, "dark.csv"),
+                                                              os.path.join(out, "dark.xyz")))
             if calc == "nacl_powder":
                 # the window's own drawings: a frame with labels and rings, and
                 # NaCl compared with KCl as a "measured" pattern (stacked panels)
@@ -112,6 +137,34 @@ def main():
             bo.check("BUILDER: calcdiffraction pattern: %s" % kind in text and
                      "BUILDER: calcdiffraction: done" in text,
                      "%s: the Diffraction entry opens the %s pattern" % (calc, kind))
+            if calc == "bdna":
+                same_csv_new_png(out, "d", "dark", "bdna: Dark scheme")
+            if calc in ("kcl", "nacl_powder"):
+                same_csv_new_png(out, "p_def", "p_hi", "%s hk1: high exposure" % calc)
+            if calc == "nacl_powder":
+                same_csv_new_png(out, "fr_film", "fr_dark", "frame: Dark scheme")
+                bo.check("BUILDER: calcmeasure: done" in text, "the measure hooks ran")
+                rd = re.findall(r"BUILDER: calcmeasure readout: (.*)", text)
+                bo.check(len(rd) == 3, "three readouts: %d" % len(rd))
+                if len(rd) == 3:
+                    # layer: (2 0 0) to (4 0 0) is 1/d(200) = 1/2.82 A, one spot between, cell 5.64 A
+                    bo.check("0.3546 /A" in rd[0] and "1 spots between" in rd[0] and "cell edge 5.640 A" in rd[0],
+                             "layer measure: %s" % rd[0])
+                    fm = re.match(r"\((-?\d+) (-?\d+) (-?\d+)\) to \((-?\d+) (-?\d+) (-?\d+)\): ([\d.]+) mm.*, ([\d.]+) deg", rd[1])
+                    if bo.check(fm is not None, "frame measure: %s" % rd[1]):
+                        g = [int(v) for v in fm.groups()[:6]]
+                        fr = [ln.split(",") for ln in open(os.path.join(out, "fr_film.csv")).read().splitlines()[1:]]
+                        pt = {}
+                        for r in fr:
+                            pt.setdefault(tuple(int(v) for v in r[:3]), (float(r[3]), float(r[4])))
+                        (x1, y1), (x2, y2) = pt[tuple(g[:3])], pt[tuple(g[3:])]
+                        ang = math.degrees(math.acos((x1 * x2 + y1 * y2) / math.hypot(x1, y1) / math.hypot(x2, y2)))
+                        bo.check(abs(math.hypot(x2 - x1, y2 - y1) - float(fm.group(7))) < 0.01 and
+                                 abs(ang - float(fm.group(8))) < 0.11,
+                                 "frame distance and angle match the CSV (%.2f mm, %.1f deg)" % (
+                                     math.hypot(x2 - x1, y2 - y1), ang))
+                    bo.check("d = 2.8" in rd[2] and "Q = 2.2" in rd[2] and "I = " in rd[2],
+                             "powder cursor: %s" % rd[2])
             if kind == "fibre":
                 bo.check("BUILDER: calclayer" not in text, "%s: no single-crystal layer for a molecule" % calc)
                 continue
