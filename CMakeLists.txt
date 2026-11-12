@@ -4763,6 +4763,15 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs_protein_walk PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # The whole umbrella-sampling lab chain on 2BEG (#762), shortened: Prepare,
+  # Optimize, NPT, pull, windows, WHAM, all launched through ECCE; about an hour.
+  add_test(NAME launch_umbrella_2beg
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/umbrella_2beg_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_umbrella_2beg PROPERTIES TIMEOUT 7200
+                       SKIP_RETURN_CODE 77 LABELS long)
   # The GROMACS run importer (#375): a finished run becomes a study whose
   # energies come from the job monitor's parse of the logs.
   add_test(NAME launch_gromacs_import
