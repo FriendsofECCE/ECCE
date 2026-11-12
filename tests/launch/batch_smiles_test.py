@@ -4,7 +4,8 @@
 Local data.  ecce-batch-smiles reads a CSV of five drug-like molecules (two of
 them ions: a protonated amine and a carboxylate) and one unreadable SMILES,
 makes one calculation per good row in a project folder with the default
-setup (a "QSAR template": xTB GFN2-xTB optimisation), and lists the bad row
+setup (xTB GFN2-xTB optimisation; the template it copies is removed
+afterwards), and lists the bad row
 with its reason.  Each calculation must carry the charge of its SMILES in its
 deck and its measured values in ecce:qsar.measured; all are launched on
 localhost through the real Launch and must complete in their own run
@@ -80,10 +81,8 @@ def project(s, name):
 
 def checkMade(folder, urls, withLogP=True):
     """The calculations: charge in the deck, the values, the template."""
-    check(os.path.isdir(os.path.join(folder, "QSAR template")), "the QSAR template was made")
-    tdeck = os.path.join(folder, "QSAR template", ".ecce-meta")
-    check("GFN2-xTB" in open(tdeck, errors="replace").read() if os.path.exists(tdeck) else False,
-          "the template is GFN2-xTB")
+    check(not os.path.exists(os.path.join(folder, "QSAR template")),
+          "no leftover QSAR template in the folder")
     for name, smi, ic50, logp, charge in ROWS:
         calc = os.path.join(folder, name)
         m = meta(calc)

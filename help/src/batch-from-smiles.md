@@ -22,11 +22,11 @@ the same setup, ready to launch together.
      or a concentration unit in parentheses) are ticked at first; a table of
      a few number columns has all of them ticked. Descriptor columns, such
      as those a MOE export carries, are left unticked.
-5. Choose the **Setup**. The first entry makes a calculation called
-   *QSAR template* in the folder: xTB, GFN2-xTB, geometry optimisation, on
-   this computer with 4 threads. To use another code or method, make or
-   open a calculation in the folder with that setup and choose *Same as* that
-   calculation.
+5. Choose the **Setup**. The first entry is xTB, GFN2-xTB, geometry
+   optimisation, on this computer with 4 threads. To use another code or
+   method, make or open a calculation in the folder with that setup and
+   choose *Same as* that calculation: the batch copies its code, theory, run
+   type and launch settings.
 6. The preview lists each row with its charge, its number of atoms and its
    status. Rows that cannot be made are shown in red with the reason (a
    SMILES that cannot be read, a name used twice); they are left out.
@@ -50,12 +50,12 @@ the same setup, ready to launch together.
 
 ## Changing the setup afterwards
 
-Open the template in the Calculation Editor, change it and save it. Then
-run **Batch Add from SMILES** again with the same table, choose *Same as*
-the template and tick **Replace calculations of the same name that have
-not been launched**: every calculation of the batch that has not been
-launched is replaced by one with the new setup. Launched ones are kept as
-they are.
+Open one calculation of the batch in the Calculation Editor, change its
+setup and save it. Then run **Batch Add from SMILES** again with the same
+table, choose *Same as* that calculation and tick **Rebuild the existing
+calculations that have not been run, with this setup**: every calculation
+of the batch that is still Created or Ready is deleted and made again with
+the new setup. Submitted, running and finished ones are kept as they are.
 
 ## Command
 

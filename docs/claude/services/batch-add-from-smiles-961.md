@@ -14,7 +14,9 @@ issues: [961, 621, 867]
 - Each row goes through `Series::make` as a temporary `<name>.xyz` with
   `charge=N` in the comment: the file stem is the calculation name, so names
   are made safe (no `/`, no leading dot) before.
-- The default template "QSAR template" is created in the folder with
+- The default setup is a calculation "QSAR template" created in the folder
+  for the batch and removed after it (an existing one, possibly edited by
+  the user, is kept and used), with
   theory/run type set directly (`TTheory("SE","GFN2-xTB")`, `Geometry`) and
   launch data for `localhost` (rundir from the machine's profile, else
   `~/ecce-runs`, as WxLauncher fills in). Without a rundir LaunchBatch::plan

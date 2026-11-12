@@ -11,6 +11,7 @@
 #include <wx/textctrl.h>
 
 #include "BatchSmilesDialog.H"
+#include <wx/settings.h>
 
 using std::string;
 using std::vector;
@@ -58,7 +59,7 @@ BatchSmilesDialog::BatchSmilesDialog(wxWindow *parent, const string& folderName,
   cols->Add(p_responses, 1, wxEXPAND);
   cols->Add(new wxStaticText(this, wxID_ANY, _("Setup:")), 0, wxALIGN_CENTER_VERTICAL);
   p_template = new wxChoice(this, wxID_ANY);
-  p_template->Append(_("xTB GFN2-xTB optimisation (new \"QSAR template\")"));
+  p_template->Append(_("xTB GFN2-xTB optimisation on this computer"));
   for (const auto& t : p_templates) p_template->Append(U("Same as " + t.first));
   p_template->SetSelection(0);
   for (size_t i = 0; i < p_templates.size(); i++)
@@ -66,9 +67,13 @@ BatchSmilesDialog::BatchSmilesDialog(wxWindow *parent, const string& folderName,
   cols->Add(p_template, 1, wxEXPAND);
   top->Add(cols, 0, wxLEFT | wxRIGHT | wxEXPAND, 8);
   p_replace = new wxCheckBox(this, wxID_ANY, _(
-      "Replace calculations of the same name that have not been launched "
-      "(use after changing the setup)"));
+      "Rebuild the existing calculations that have not been run, with this setup"));
   top->Add(p_replace, 0, wxLEFT | wxRIGHT | wxTOP, 8);
+  wxStaticText *replaceNote = new wxStaticText(this, wxID_ANY, _(
+      "Created and Ready calculations of the same name are deleted and made "
+      "again; submitted, running and finished ones are kept."));
+  replaceNote->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+  top->Add(replaceNote, 0, wxLEFT | wxRIGHT, 30);
 
   p_list = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(640, 200),
                           wxLC_REPORT | wxLC_SINGLE_SEL);

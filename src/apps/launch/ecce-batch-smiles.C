@@ -4,8 +4,9 @@
  * One calculation per row of a table of names, SMILES and measured values,
  * in <folder>, as the Organizer's Tools > Batch Add from SMILES makes them:
  * the structure from the SMILES (formal charges give the charge), cleaned,
- * with the setup of a template calculation (default: a "QSAR template" in
- * the folder, xTB GFN2-xTB optimisation).  The measured values are stored on
+ * with the setup of a template calculation (default: xTB GFN2-xTB
+ * optimisation, through a "QSAR template" made in the folder and removed
+ * after the batch).  The measured values are stored on
  * each calculation (ecce:qsar.measured, JSON keyed by the column header).
  *
  *   --template CALC     the setup to use (a calculation path or URL)

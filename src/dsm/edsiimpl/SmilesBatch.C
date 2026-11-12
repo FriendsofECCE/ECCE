@@ -393,6 +393,11 @@ vector<SmilesBatch::Outcome> SmilesBatch::make(
     std::function<void(int, int, const string&)> progress)
 {
   vector<Outcome> out;
+  // The default setup is a calculation the batch copies; one made just for
+  // this batch is removed afterwards, so the folder holds only the molecules.
+  // An existing "QSAR template" (a user's edited setup) is kept.
+  const bool madeTemplate = templ.empty() &&
+      !dynamic_cast<ICalculation*>(EDSIFactory::getResource(folder.getChild(kTemplateName)));
   templateUrl = templ.empty() ? defaultTemplate(folder, why) : templ;
   if (templateUrl.empty()) return out;
   std::error_code ec;
@@ -456,6 +461,8 @@ vector<SmilesBatch::Outcome> SmilesBatch::make(
   }
   if (progress) progress((int)rows.size(), (int)rows.size(), "");
   ecce::fs::remove_all(tmp, ec);
+  if (madeTemplate)
+    if (Resource *t = EDSIFactory::getResource(EcceURL(templateUrl))) t->remove();
   return out;
 }
 

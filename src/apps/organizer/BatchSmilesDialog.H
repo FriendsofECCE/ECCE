@@ -33,7 +33,7 @@ public:
   /// The rows as Create would make them; empty URL: the default template.
   std::vector<SmilesBatch::Row> rows() const { return p_rows; }
   std::string templateUrl() const;
-  /// Replace calculations of the same name that were never launched.
+  /// Rebuild existing calculations of the same name that have not been run.
   bool replace() const;
   SmilesBatch::Columns columns() const;
   /// "name=... smiles=... responses=a,b rows=N problems=M" for the tests.
