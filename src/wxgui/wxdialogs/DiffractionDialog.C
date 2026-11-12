@@ -742,6 +742,10 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   fibreBox->Add(new wxStaticText(lp, wxID_ANY, "Calculated pattern opacity"), 0, wxLEFT | wxTOP, 6);
   p_opacity = new wxSlider(lp, wxID_ANY, 100, 0, 100, wxDefaultPosition, wxSize(200, -1));
   fibreBox->Add(p_opacity, 0, wxLEFT | wxRIGHT, 6);
+  // It fades the pattern over a backdrop picture; without one it has nothing to do.
+  p_opacity->Enable(false);
+  p_opacity->SetToolTip(wxString::FromUTF8("Opacity of the calculated pattern over the backdrop "
+                                           "picture; load one with Backdrop image… first"));
   left->Add(fibreBox, 0);
 
   wxBoxSizer *powderBox = new wxBoxSizer(wxVERTICAL);
@@ -1372,6 +1376,7 @@ bool DiffractionDialog::setBackdrop(const string& path, string& why)
   wxImage im;
   if (!im.LoadFile(wxString::FromUTF8(path.c_str()))) { why = "cannot read " + path; return false; }
   p_back = im.Scale(p_pixels, p_pixels, wxIMAGE_QUALITY_BILINEAR);
+  p_opacity->Enable(true);
   wxCommandEvent none;
   onOpacity(none);
   return true;
