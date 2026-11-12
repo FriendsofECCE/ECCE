@@ -85,8 +85,9 @@ if defined ECCE_LOCAL_DATA set "ECCE_LOCAL_DATA=%ECCE_LOCAL_DATA:\=/%"
 if not defined ECCE_LOCAL_DATA set "ECCE_LOCAL_DATA=%UH%/ecce-local"
 :localset
 if not exist "%USERPROFILE%\ecce-local" mkdir "%USERPROFILE%\ecce-local"
-rem No data server; the session's own broker (ecce-broker-win, loopback only,
-rem a login made up for the session) carries the messages between the tools.
+rem No data server; the session's own broker (built into the Organizer,
+rem loopback only, a login made up for the session; ECCE_BROKER=mosquitto
+rem runs ecce-broker-win and mosquitto instead) carries the messages.
 set ECCE_NO_DATASERVER=1
 set "ECCE_LOCAL_BROKER=1"
 goto broker
@@ -121,4 +122,5 @@ start "" "%ECCE_ROOT%\bin\organizer.exe" %*
 >>"%ECCE_STARTLOG%" echo %DATE% %TIME% ecce.cmd: organizer.exe started
 set "ECCE_SPLASH="
 rem The local broker ends with the session: when no ECCE window is left.
-if defined ECCE_LOCAL_BROKER start "" /b bash.exe "%ECCE_HOME%/bin/ecce-broker-win" watch
+rem (With ECCE_BROKER=mosquitto only; otherwise the Organizer's own broker ends with it.)
+if defined ECCE_LOCAL_BROKER if /i "%ECCE_BROKER%"=="mosquitto" start "" /b bash.exe "%ECCE_HOME%/bin/ecce-broker-win" watch

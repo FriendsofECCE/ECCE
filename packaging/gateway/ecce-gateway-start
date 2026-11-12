@@ -44,6 +44,9 @@ BROKERFILE="$(ecce_broker_file)"
 case "$(uname -s)" in
   MSYS*|MINGW*|CYGWIN*)
     if [ -z "${ECCE_REMOTE_SERVER:-}" ] && [ ! -e "$ECCE_HOME/siteconfig/SharedBroker" ]; then
+      # The Organizer runs the broker itself (MqttBroker, #990) unless
+      # ECCE_BROKER=mosquitto asks for the old program.
+      [ "${ECCE_BROKER:-}" = mosquitto ] || exit 0
       exec "$(dirname "$(readlink -f "$0")")/ecce-broker-win" start
     fi
     ;;

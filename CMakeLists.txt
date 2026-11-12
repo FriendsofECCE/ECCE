@@ -890,7 +890,8 @@ install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/DataServers
         COMPONENT client)
 
 # ecce-gateway-{start,stop,status,reap}: start and stop the session's
-# mosquitto broker and keep the broker files. Client-side, since a client
+# mosquitto broker and keep the broker files. (ecce-broker-win is only the
+# ECCE_BROKER=mosquitto escape hatch on Windows, #990.) Client-side, since a client
 # on its own machine runs its own broker unless it uses -remote.
 install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-start
@@ -2414,6 +2415,8 @@ add_test(NAME mqtt-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR})
 # edge cases and the Windows session path (broker file with its own login).
 add_test(NAME mqtt-builtin-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} builtin)
 add_test(NAME mqtt-builtin-session COMMAND mqtt_test session ${CMAKE_SOURCE_DIR})
+add_executable(eccebroker tests/mqtt/broker_cli.C)
+target_link_libraries(eccebroker PRIVATE ecceutil ${XercesC_LIBRARIES})
 add_test(NAME mqtt-builtin-interop COMMAND mqtt_test interop)
 set_tests_properties(mqtt-builtin-auth mqtt-builtin-session mqtt-builtin-interop PROPERTIES TIMEOUT 180)
 set_tests_properties(mqtt-builtin-interop PROPERTIES SKIP_RETURN_CODE 77)

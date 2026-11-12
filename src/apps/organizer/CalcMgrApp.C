@@ -11,6 +11,7 @@
 #pragma implementation "CalcMgrApp.H"
 #endif
 
+#include "util/MqttBroker.H"
 #include "wx/wxprec.h"
 
 #ifdef __BORLANDC__
@@ -132,6 +133,22 @@ string CalcMgrApp::getName() const
  */
 bool CalcMgrApp::OnInit()
 {
+#ifdef __WXMSW__
+  // The session's own broker (#990), before anything connects to it.
+  // ECCE_BROKER=mosquitto keeps the old ecce-broker-win (ecce.cmd).
+  {
+    wxString which;
+    if (wxGetEnv("ECCE_LOCAL_BROKER", NULL) &&
+        !(wxGetEnv("ECCE_BROKER", &which) && which == "mosquitto")) {
+      std::string err = MqttBroker::startForSession();
+      if (!err.empty()) {
+        std::cerr << "ECCE: message broker: " << err << std::endl;
+        wxMessageBox("ECCE could not start its message broker: " + err,
+                     "ECCE", wxOK | wxICON_ERROR);
+      }
+    }
+  }
+#endif
   ewxApp::OnInit();
 #ifdef __WXMSW__
   // No gateway here: the Organizer has the session's login window.
@@ -252,6 +269,7 @@ void CalcMgrApp::openUrlWhenReady(const string& url, int tries)
 
 int CalcMgrApp::OnExit()
 {
+  MqttBroker::stopForSession();
   return 0;
 }
 
