@@ -2847,6 +2847,10 @@ add_test(NAME xrd_layer
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/layer_test.py)
 set_tests_properties(xrd_layer PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 
+add_test(NAME xrd_frame
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/frame_test.py)
+set_tests_properties(xrd_frame PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+
 add_test(NAME qsar_descriptors
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/qsar/descriptors_test.py)
