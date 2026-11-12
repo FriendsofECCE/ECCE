@@ -264,6 +264,22 @@ job id N` or `name: not reconnected: reason`.
 
     ecce-reconnect proj/calc-1
 
+### ecce-reparse
+
+    ecce-reparse [--json] <calculation>...
+
+Runs the Organizer's Run Mgmt > Re-Parse Outputs: the current parsers read the
+outputs stored with each finished calculation again, with no login to the
+machine. This is how an existing calculation picks up a parser fix. The
+properties are replaced; state, dates and the run log stay. The command waits
+until the last calculation has been parsed. Output per calculation: `name:
+done`, `name: failed: reason`, or `name: refused: reason` (a Submitted,
+Running or Waiting job, GROMACS and NWChemMD, no stored output, or not a
+calculation). `--json` prints an array of `{"name","status","reason"}`. Exit 0
+only if all are done; 2 without a running ECCE.
+
+    ecce-reparse proj/calc-1 proj/calc-2
+
 ### ecce-fetch
 
     ecce-fetch [--list] <calculation> [pattern ...]

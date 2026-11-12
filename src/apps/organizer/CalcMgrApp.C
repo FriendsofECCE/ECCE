@@ -217,6 +217,8 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_reconnect_request", (wxJmsCBFunc)&CalcMgrApp::reconnectRequestMCB);
   // ecce-fetch
   subscribe("ecce_fetch_request", (wxJmsCBFunc)&CalcMgrApp::fetchRequestMCB);
+  // ecce-reparse
+  subscribe("ecce_reparse_request", (wxJmsCBFunc)&CalcMgrApp::reparseRequestMCB);
   
   // Preference Messages
   // Not filtered: the Organizer's own Preferences dialog publishes it too.
@@ -550,6 +552,73 @@ void CalcMgrApp::fetchRequestMCB(JMSMessage& msg)
 }
 
 
+void CalcMgrApp::answerReparse(const string& id, const vector<string>& lines)
+{
+  JMSMessage* r = newMessage();
+  r->addProperty("reply_id", id);
+  r->addProperty("kind", "done");
+  r->addIntProperty("n", (int)lines.size());
+  for (size_t i = 0; i < lines.size(); i++)
+    r->addProperty("line" + std::to_string(i), lines[i]);
+  publish("ecce_reparse_reply", *r);
+  delete r;
+}
+
+
+// ecce-reparse: refusals are known at once; each started calculation is
+// answered when its job store sends the 'reparse' notice, and the reply
+// goes out when the last one has.
+void CalcMgrApp::reparseRequestMCB(JMSMessage& msg)
+{
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
+  vector<EcceURL> urls;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
+
+  vector<string> results;
+  string outcome;
+  p_calcMgr->reparseOutputs(urls, false, &outcome, &results);
+  PendingReparse req;
+  req.id = msg.getProperty("reply_id");
+  for (size_t i = 0; i < results.size(); i++) {
+    // name \t url \t started|refused \t reason
+    vector<string> f;
+    size_t from = 0, at;
+    while ((at = results[i].find('\t', from)) != string::npos) {
+      f.push_back(results[i].substr(from, at - from));
+      from = at + 1;
+    }
+    f.push_back(results[i].substr(from));
+    if (f.size() < 4) continue;
+    if (f[2] == "started") req.waiting[f[1]] = f[0];
+    else req.lines.push_back(f[0] + "\trefused\t" + f[3]);
+  }
+  if (req.waiting.empty()) answerReparse(req.id, req.lines);
+  else p_pendingReparse.push_back(req);
+}
+
+
+void CalcMgrApp::reparseNotice(const string& url, const string& value)
+{
+  for (size_t i = 0; i < p_pendingReparse.size(); i++) {
+    PendingReparse& req = p_pendingReparse[i];
+    auto it = req.waiting.find(url);
+    if (it == req.waiting.end()) continue;
+    req.lines.push_back(it->second + (value == "done" ? "\tdone\t" :
+        "\tfailed\tthe parser failed; see the calculation's run log"));
+    req.waiting.erase(it);
+    if (req.waiting.empty()) {
+      const string id = req.id;
+      const vector<string> lines = req.lines;
+      p_pendingReparse.erase(p_pendingReparse.begin() + i);
+      answerReparse(id, lines);
+    }
+    return;
+  }
+}
+
+
 void CalcMgrApp::miscPrefChangeMCB(JMSMessage& msg)
 {
   if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
@@ -629,8 +698,10 @@ void CalcMgrApp::msgChangedMCB(JMSMessage& msg)
 {
   if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   EcceURL url(msg.getProperty("url"));
-  if (msg.getProperty("name") == "reparse")
+  if (msg.getProperty("name") == "reparse") {
     p_calcMgr->reparseFinished(url, msg.getProperty("value"));
+    reparseNotice(url.toString(), msg.getProperty("value"));
+  }
   p_calcMgr->queueUpdate(CalcMgr::UPDATE_CHANGED, url);
 }
 
