@@ -12,10 +12,11 @@
 #pragma interface "CalcMgrApp.C"
 #endif
 
+#include <wx/weakref.h>
 #include "wx/wx.h"
 #include "wxgui/ewxApp.H"
 
-class CalcMgr;
+#include "CalcMgr.H"
 class WxJMSMessageDispatch;
 
 class CalcMgrApp : public ewxApp, public WxJMSMessageDispatch
@@ -58,7 +59,9 @@ DECLARE_CLASS(CalcMgrApp)
 
 protected:
   
-  CalcMgr * p_calcMgr;
+  // Weak: null once the Organizer window is deleted, so a message that
+  // arrives during shutdown (e.g. inside a nested event loop) is dropped.
+  wxWeakRef<CalcMgr> p_calcMgr;
 };
 
 DECLARE_APP(CalcMgrApp)
