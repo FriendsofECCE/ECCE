@@ -64,10 +64,46 @@ def count(atoms, donors, dist=3.5, angle=30.0):
     return n
 
 
-def runBuilder(display, url, out):
+NACL = os.path.join(EX, "genchem", "gases-liquids-solids",
+                    "gromacs-nacl-dissolving", "1-dynamics", "confout.gro")
+GMX = 6968      # gmx hbond SOL-SOL on this frame (hbond_gmx_compare.py)
+
+
+def writeNaCl(calc):
+    """The NaCl-dissolving frame as the calculation's structure: waters
+    with their O-H bonds, ions, and the cubic cell."""
+    lines = open(NACL).read().splitlines()
+    n = int(lines[1])
+    box = [float(v) * 10 for v in lines[2 + n].split()]
+    atoms, bonds, lastO = [], [], 0
+    for i, l in enumerate(lines[2:2 + n]):
+        name = l[10:15].strip()
+        el = {"OW": "O", "HW1": "H", "HW2": "H", "NA": "Na", "CL": "Cl"}[name]
+        atoms.append((el, [float(l[20 + 8 * k:28 + 8 * k]) * 10 for k in range(3)]))
+        if name == "OW":
+            lastO = i + 1
+        elif name.startswith("HW"):
+            bonds.append((lastO, i + 1))
+    z = {"O": 6, "H": 1, "Na": 0, "Cl": 0}
+    out = ["title: nacl_frame", "type: molecule", "lattice_vectors: "]
+    out += ["  %.6f 0 0" % box[0], "  0 %.6f 0" % box[1], "  0 0 %.6f" % box[2]]
+    out += ["num_atoms: %d" % n, "atom_info: symbol cart", "atom_list: "]
+    out += ["%s %.5f %.5f %.5f" % (e, *p) for e, p in atoms]
+    out += ["attr_list:"] + [" 0.000000   1   0   0   0"] * n
+    out += ["atom_type_list:"] + ["        %d   1" % z[e] for e, _ in atoms]
+    out += ["num_bonds: %d" % len(bonds), "bond_list: "]
+    out += ["%d %d 1.00000 1" % b for b in bonds]
+    with open(os.path.join(calc, "Parameters", "chemsys.mvm"), "w") as f:
+        f.write("\n".join(out) + "\n")
+
+
+def runBuilder(display, url, out, big=False):
     os.makedirs(out, exist_ok=True)
     lines = ["wait 3000", "coords", "hbonds", "wait 500",
              "hbonds 3.0 20", "wait 500", "hbonds 3.5 30", "quit"]
+    if big:
+        lines = ["wait 15000", "hbonds 3.5 30 noions", "wait 500",
+                 "hbonds 3.5 30", "wait 500", "hbonds 3.5 30", "quit"]
     with open(os.path.join(out, "script"), "w") as handle:
         handle.write("\n".join(lines) + "\n")
     log = os.path.join(out, "builder.log")
@@ -135,6 +171,19 @@ def main():
             check(got[0] == want, "%s: %d hydrogen bond(s)" % (name, want))
             check(got[2] == got[0], "%s: default criteria restored by hbonds 3.5 30" % name)
             check(got[1] <= got[0], "%s: tighter criteria never add bonds" % name)
+        url = base.makeCalc(data, "nacl", source=os.path.join(
+            EX, CASES[0][1].rsplit("/", 1)[0] + "/h2o_dimer"))
+        writeNaCl(url[len("file://"):].rstrip("/"))
+        log = runBuilder(display, url, os.path.join(work, "nacl"), True)
+        got = re.findall(r"BUILDER: hbonds=(\d+) ms=(\d+) atoms=(\d+)", log)
+        print("     nacl frame: hbonds (N/O only, then with Cl-): %s" % got)
+        check(len(got) == 3 and got[0][2] == "12079", "nacl: frame loaded, hbonds logged")
+        if len(got) == 3:
+            check(int(got[0][0]) == GMX, "nacl: N/O count %s equals gmx hbond %d" % (got[0][0], GMX))
+            check(int(got[1][0]) == int(got[2][0]) and int(got[1][0]) > GMX,
+                  "nacl: with Cl- acceptors %s" % got[1][0])
+        else:
+            print(log[-1500:])
     shutil.rmtree(work, ignore_errors=True)
     print("FAILED: " + "; ".join(failures) if failures else "PASSED")
     return 1 if failures else 0

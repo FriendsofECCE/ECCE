@@ -28,6 +28,7 @@
 //    savemenu                    the File > Save menu event, if enabled
 //    savestate                   dirty flag and Save menu/toolbar enabled state
 //    context URL                 switch to (or back to) calculation URL
+//    hbonds [DIST ANGLE [noions]] Show Hydrogen Bonds on, logs count and ms
 //    info                       atoms and lattice, on stderr
 //    libatom I                   select atom (a Nub) I of the library structure
 //    select N                    select atom (or Nub) number N (from 1), as a click
@@ -755,13 +756,18 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0] == "hbonds" && frag) {
         //  "hbonds [DIST ANGLE]": switch Show Hydrogen Bonds on (with those
         //  criteria), redraw, log the number of bonds drawn.
-        if (w.size() == 3)
+        if (w.size() >= 3)
           HydrogenBondsCmd::setCriteria(atof(w[1].c_str()), atof(w[2].c_str()));
+        HydrogenBondsCmd::setHalideAcceptors(!(w.size() == 4 && w[3] == "noions"));
+        const wxLongLong t0 = wxGetLocalTimeMillis();
         GetMenuBar()->Check(ViewerEvtHandler::ID_SHOW_HYDROGEN_BOND, true);
         Command *hb = new HydrogenBondsCmd("Show Hydrogen Bond", &getFW().getSceneGraph());
         hb->getParameter("switch")->setBoolean(true);
         getFW().execute(hb);
-        fprintf(stderr, "BUILDER: hbonds=%d\n", HydrogenBondsCmd::lastCount());
+        fprintf(stderr, "BUILDER: hbonds=%d ms=%lld atoms=%d\n",
+                HydrogenBondsCmd::lastCount(),
+                (long long)(wxGetLocalTimeMillis() - t0).GetValue(),
+                (int)frag->numAtoms());
       } else if (w[0] == "atomstyles" && frag) {
         //  Each run of atoms with one style: "first-last name:style".
         std::string out;

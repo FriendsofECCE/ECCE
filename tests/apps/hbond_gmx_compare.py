@@ -85,10 +85,6 @@ r = subprocess.run([gmx, "grompp", "-f", "prod.mdp", "-c", "confout.gro", "-p",
 if r.returncode:
     print(r.stdout[-800:], r.stderr[-800:])
     sys.exit("grompp failed")
-res = {}
-for label, cmd in (("old", ["-s", "t.tpr", "-f", "confout.gro", "-num", "n.xvg",
-                            "-r", str(dist / 10), "-a", str(angle)]),):
-    pass
 cmd = [gmx, "hbond", "-s", "t.tpr", "-f", "confout.gro", "-num", "n.xvg",
        "-r", str(dist / 10), "-a", str(angle)]
 r = subprocess.run(cmd, cwd=work, input="SOL\nSOL\n", capture_output=True,
