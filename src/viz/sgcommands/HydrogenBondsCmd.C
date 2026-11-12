@@ -11,6 +11,7 @@
 #include <algorithm>
   using std::find;
 #include <cmath>
+#include <chrono>
 #include "tdat/LatticeDef.H"
 
 #include "util/EventDispatcher.H"
@@ -62,6 +63,10 @@ void HydrogenBondsCmd::setCriteria(double dist, double angle)
 double HydrogenBondsCmd::maxDistance() { return p_maxDist; }
 double HydrogenBondsCmd::maxAngle() { return p_maxAngle; }
 int HydrogenBondsCmd::lastCount() { return p_lastCount; }
+double HydrogenBondsCmd::lastSearchMs() { return p_searchMs; }
+double HydrogenBondsCmd::lastDrawMs() { return p_drawMs; }
+double HydrogenBondsCmd::p_searchMs = 0.0;
+double HydrogenBondsCmd::p_drawMs = 0.0;
 
 
 void HydrogenBondsCmd::init()
@@ -151,8 +156,12 @@ bool HydrogenBondsCmd::execute()
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
    SGFragment *frag = sg->getFragment();
 
+   typedef std::chrono::steady_clock Clock;
+   const Clock::time_point t0 = Clock::now();
+   double drawSec = 0.0;
    sg->getTopHBonds()->removeAllChildren();
    p_lastCount = 0;
+   p_searchMs = p_drawMs = 0.0;
 
    if (!getParameter("switch")->getBoolean() || !frag || frag->numAtoms() < 2)
       return true;
@@ -270,6 +279,7 @@ bool HydrogenBondsCmd::execute()
          if (MinImage::dot(dh, da)/(dhLen*len) < cosMin) continue;
 
          p_lastCount++;
+         const Clock::time_point d0 = Clock::now();
          SoSeparator *sep = new SoSeparator;
          // Line to the acceptor's nearest image, not across the box.
          AtomLine *line = new AtomLine(frag, h, acc, sep);
@@ -277,11 +287,14 @@ bool HydrogenBondsCmd::execute()
                         pd[2] + da.z() - pa[2]);
          sep->addChild(line);
          sg->getTopHBonds()->addChild(sep);
+         drawSec += std::chrono::duration<double>(Clock::now() - d0).count();
       }
    }
 
    delete cellList;
    delete atoms;
+   p_drawMs = drawSec * 1000.0;
+   p_searchMs = std::chrono::duration<double, std::milli>(Clock::now() - t0).count() - p_drawMs;
    return true;
 }
 

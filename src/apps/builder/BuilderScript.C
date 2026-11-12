@@ -764,10 +764,11 @@ void Builder::runBuilderScript(const std::string& file)
         Command *hb = new HydrogenBondsCmd("Show Hydrogen Bond", &getFW().getSceneGraph());
         hb->getParameter("switch")->setBoolean(true);
         getFW().execute(hb);
-        fprintf(stderr, "BUILDER: hbonds=%d ms=%lld atoms=%d\n",
+        fprintf(stderr, "BUILDER: hbonds=%d ms=%lld atoms=%d search_ms=%.0f draw_ms=%.0f\n",
                 HydrogenBondsCmd::lastCount(),
                 (long long)(wxGetLocalTimeMillis() - t0).GetValue(),
-                (int)frag->numAtoms());
+                (int)frag->numAtoms(), HydrogenBondsCmd::lastSearchMs(),
+                HydrogenBondsCmd::lastDrawMs());
       } else if (w[0] == "atomstyles" && frag) {
         //  Each run of atoms with one style: "first-last name:style".
         std::string out;
