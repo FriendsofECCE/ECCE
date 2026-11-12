@@ -3295,8 +3295,11 @@ void Builder::updateForAnyEdit()
    getSG()->adjustAtomContainers();
    if (getToolState(ViewerEvtHandler::ID_SHOW_HYDROGEN_BOND)) {
       WxVizToolFW& fw = getFW();
-      Command* cmd=new HydrogenBondsCmd("Show Hydrogen Bond",&fw.getSceneGraph());
-      fw.execute(cmd);
+      // Directly, not through execute(): the lines are display only and not
+      // undoable, and execute()'s selection refresh and render cost ~0.8 s
+      // per trace step on a 12k-atom box (#982); the step redraws anyway.
+      HydrogenBondsCmd cmd("Show Hydrogen Bond", &fw.getSceneGraph());
+      cmd.execute();
    }
 
    if (frag->numResidues() &&
