@@ -718,7 +718,11 @@ void Builder::runBuilderScript(const std::string& file)
         GetMenuBar()->Check(ViewerEvtHandler::ID_SHOW_HYDROGEN_BOND, true);
         Command *hb = new HydrogenBondsCmd("Show Hydrogen Bond", &getFW().getSceneGraph());
         hb->getParameter("switch")->setBoolean(true);
+        const wxLongLong t1 = wxGetLocalTimeMillis();
         getFW().execute(hb);
+        const wxLongLong t2 = wxGetLocalTimeMillis();
+        fprintf(stderr, "BUILDER: hbonds_split menu_ms=%lld execute_ms=%lld\n",
+                (long long)(t1 - t0).GetValue(), (long long)(t2 - t1).GetValue());
         fprintf(stderr, "BUILDER: hbonds=%d ms=%lld atoms=%d search_ms=%.0f draw_ms=%.0f\n",
                 HydrogenBondsCmd::lastCount(),
                 (long long)(wxGetLocalTimeMillis() - t0).GetValue(),
