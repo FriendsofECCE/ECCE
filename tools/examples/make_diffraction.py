@@ -99,7 +99,7 @@ def run(host):
         sh("cd ~/%s && sed -i \"s|pseudo_dir = .*|pseudo_dir = '$HOME/%s/pseudo/'|\" %s && "
            "mpirun -np 4 pw.x -in %s > %s" % (work, work, i, i, o))
         subprocess.run(["scp", "-q", host + ":" + work + "/" + o, os.path.join(TOPIC, d, o)], check=True)
-    for d, x, o in (("xtb-b_dna", "bdna", "bdna_gfnff.out"), ("xtb-alpha_helix", "helix", "helix_gfnff.out")):
+    for d, x, o in (("xtb-b_dna", "bdna", "bdna.out"), ("xtb-alpha_helix", "helix", "helix.out")):
         subprocess.run(["scp", "-q", os.path.join(TOPIC, d, x + ".xyz"), host + ":" + work + "/"], check=True)
         sh("cd ~/%s && xtb %s.xyz --gfnff --chrg 0 > %s 2>&1" % (work, x, o))
         subprocess.run(["scp", "-q", host + ":" + work + "/" + o, os.path.join(TOPIC, d, o)], check=True)

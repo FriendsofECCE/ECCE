@@ -3885,6 +3885,15 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_layer_dialog PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # The Diffraction topic: six examples import and open powder or fibre (#972).
+  add_test(NAME apps_diffraction_examples
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/diffraction_examples_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_diffraction_examples PROPERTIES TIMEOUT 1800
+                       SKIP_RETURN_CODE 77)
+
   # QSAR table: the dialog's rows equal ecce-qsar table (#961).
   add_test(NAME apps_qsar_table
            COMMAND ${PYTHON3_EXECUTABLE}
