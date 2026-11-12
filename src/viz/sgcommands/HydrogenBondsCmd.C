@@ -91,9 +91,10 @@ struct MinImage {
    bool periodic;
    MinImage(LatticeDef *lat) : periodic(false) {
       if (!lat) return;
-      vector<V3> *v = lat->toVectors();
+      vector<MPoint> *v = lat->toVectors();
       if (v->size() == 3) {
-         for (int i = 0; i < 3; i++) a[i] = (*v)[i];
+         for (int i = 0; i < 3; i++)
+            a[i] = V3((*v)[i].x(), (*v)[i].y(), (*v)[i].z());
          double vol = dot(a[0], cross(a[1], a[2]));
          if (fabs(vol) > 1e-8) {
             cr[0] = scale(cross(a[1], a[2]), 1.0/vol);
