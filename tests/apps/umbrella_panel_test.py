@@ -88,7 +88,34 @@ class Organizer:
         bo.stop(self.proc)
 
 
+def spacing_check():
+    """The overlap warning against ideal window histograms at 310 K, k = 1000:
+    each is a Gaussian of width sqrt(RT/k) = 0.051 nm, so even perfect
+    sampling overlaps by 4.9 % at 0.2 nm (warned) and 32 % at 0.1 nm."""
+    import importlib.machinery, importlib.util, math
+    spec = importlib.util.spec_from_loader(
+        "ecce_umbrella", importlib.machinery.SourceFileLoader(
+            "ecce_umbrella", os.path.join(REPO, "scripts", "ecce_umbrella.py")))
+    eu = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(eu)
+    sd = math.sqrt(8.314462618e-3 * 310 / 1000)
+    hx = [0.3 + 0.001 * i for i in range(1500)]
+    bad = 0
+    for spacing, warned in ((0.2, True), (0.1, False)):
+        hists = [[math.exp(-0.5 * ((x - (0.6 + spacing * k)) / sd) ** 2) for x in hx]
+                 for k in range(4)]
+        ov = [o["overlap"] for o in eu.overlaps(hx, hists)]
+        ok = all((o < eu.MIN_OVERLAP) == warned for o in ov)
+        print("%s overlap warning at %.1f nm: %s (overlaps %s)" % (
+            "ok  " if ok else "FAIL", spacing, "fires" if warned else "quiet",
+            ", ".join("%.1f %%" % (100 * o) for o in ov)))
+        bad += not ok
+    return bad
+
+
 def main():
+    if spacing_check():
+        return 1
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
     ap.add_argument("--png")

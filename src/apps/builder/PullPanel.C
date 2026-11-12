@@ -175,7 +175,7 @@ bool PullPanel::Create(IPropCalculation *calculation,
     pair->Add(*out, 0, wxLEFT, 3);
     row->Add(pair, 0, wxRIGHT | wxBOTTOM, 10);
   };
-  field("Spacing (nm)", "0.2", &p_spacing);
+  field("Spacing (nm)", "0.1", &p_spacing);
   field("From (nm)", "", &p_from);
   field("To (nm)", "", &p_to);
   field("Equilibration steps", "50000", &p_eq);
@@ -291,7 +291,7 @@ bool PullPanel::umbrellaCreate(int eqSteps, int prodSteps)
   MdTask *t = pullTask(getCalculation());
   if (!t) { umbrellaSay("This is not a GROMACS Dynamics task."); return false; }
   wxBusyCursor wait;
-  double spacing = 0.2;
+  double spacing = 0.1;
   p_spacing->GetValue().ToDouble(&spacing);
   static int serial = 0;
   const ecce::fs::path dir = ecce::fs::temp_directory_path() /

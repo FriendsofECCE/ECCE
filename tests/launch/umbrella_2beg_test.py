@@ -17,7 +17,7 @@ the Na+ Cl- test checks the science.
 
 Lengths (steps of 2 fs) come from the environment: OPT_STEPS (1000),
 NPT_STEPS (10000), PULL_STEPS (25000), PULL_RATE (0.05 nm/ps), WIN_SPACING
-(0.2), WIN_FROM (0.5), WIN_TO (1.5), WIN_EQ (5000), WIN_PROD (20000), BOX and
+(0.1), WIN_FROM (0.5), WIN_TO (1.5), WIN_EQ (5000), WIN_PROD (20000), BOX and
 CENTRE (nm), PROCS (4) per job.  Wall times per stage go to times.json in the
 state folder.  Exit status 77 (CTest SKIP) without gmx, Xvfb or the binaries.
 """
@@ -74,6 +74,11 @@ def verify(csv, nwin):
           "a PMF of %d supported points (%.1f to %.1f kJ/mol)" % (len(sup), min(pmf or [0]), max(pmf or [0])))
     check(len(hcols) == nwin, "one histogram per window (%d of %d)" % (len(hcols), nwin))
     hist = [[float(r[i]) if i < len(r) and r[i] else 0.0 for r in rows] for i in hcols]
+    for i, h in zip(hcols, hist):
+        t = sum(h) or 1.0
+        m = sum(float(r[0]) * v for r, v in zip(rows, h)) / t
+        sd = (sum((float(r[0]) - m) ** 2 * v for r, v in zip(rows, h)) / t) ** 0.5
+        say("  %s: mean %.3f nm, sd %.3f nm" % (head[i], m, sd))
     low = []
     for k, (a, b) in enumerate(zip(hist, hist[1:])):
         ta, tb = sum(a) or 1.0, sum(b) or 1.0
@@ -299,7 +304,7 @@ def main():
         # ---- windows ----------------------------------------------------
         pull = tasks["dynamics"]
         eq, prod = ENV("WIN_EQ", "5000"), ENV("WIN_PROD", "20000")
-        spacing, lo, hi = ENV("WIN_SPACING", "0.2"), ENV("WIN_FROM", "0.5"), ENV("WIN_TO", "1.5")
+        spacing, lo, hi = ENV("WIN_SPACING", "0.1"), ENV("WIN_FROM", "0.5"), ENV("WIN_TO", "1.5")
         t0 = time.time()
         ans = org.ask("umbrellawindows %s %s %s %s %s %s" % (pull, spacing, lo, hi, eq, prod), 1800)
         say("umbrellawindows: %s" % ans[:300])

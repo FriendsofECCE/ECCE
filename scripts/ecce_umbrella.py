@@ -5,7 +5,7 @@ Wx-free; works on stored GROMACS calculations (or plain run directories) and
 talks to no ECCE session.  The Builder's Umbrella Sampling panel draws what
 this prints with --json.
 
-  ecce-umbrella windows <pull calc> [--spacing 0.2] [--from D] [--to D]
+  ecce-umbrella windows <pull calc> [--spacing 0.1] [--from D] [--to D]
                      frames of the pull trajectory at the chosen spacing of
                      the pull coordinate (frame, time, distance)
   ecce-umbrella extract <pull calc> --out DIR [same choices]
@@ -449,7 +449,7 @@ def main(argv=None):
     for name in ("windows", "extract"):
         s = sub.add_parser(name)
         s.add_argument("calc")
-        s.add_argument("--spacing", type=float, default=0.2, help="nm (0.2)")
+        s.add_argument("--spacing", type=float, default=0.1, help="nm (0.1)")
         s.add_argument("--from", dest="lo", type=float, help="first distance, nm")
         s.add_argument("--to", dest="hi", type=float, help="last distance, nm")
         if name == "extract":

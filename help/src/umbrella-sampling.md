@@ -7,7 +7,7 @@ or between two ions. The procedure has three steps, all done in ECCE:
 1. **Pull run.** A dynamics task pulls group 2 away from group 1 at a steady
    rate. Its trajectory passes through every distance you want to sample.
 2. **Windows.** Frames of the pull trajectory are taken at a chosen spacing of
-   the distance (0.2 nm by default). Each frame starts a window: a short
+   the distance (0.1 nm by default). Each frame starts a window: a short
    equilibration and a production run, with the two groups held at the
    window's distance (0.4, 0.6, ... nm) by a harmonic spring. The spring's
    centre stays there for the whole window, also on a barrier, where the
@@ -63,8 +63,10 @@ was pulled (the run needs a stored trajectory).
 
 On the **Umbrella sampling** page of the Pull Force panel (the **Pull run** page has the plots above):
 
-1. Enter the **Spacing** (nm). 0.2 nm suits two protein chains with a force
-   constant of 1000 kJ/mol/nm²; an ion pair needs about 0.05 nm. Leave
+1. Enter the **Spacing** (nm). 0.1 nm suits a force constant of
+   1000 kJ/mol/nm²: a window then spreads about 0.05 nm either side of its
+   distance at 310 K, so windows 0.2 nm apart barely overlap and WHAM gets
+   gaps. An ion pair needs about 0.05 nm. Leave
    **From** and **To** blank to cover the whole pull, or limit the range.
 2. Click **Find windows**. The list shows one row per window: the frame of
    the trajectory, its time and its distance. A distance the pull passed
@@ -166,7 +168,7 @@ done in ECCE.
 6. When the pull run is Complete, open **Pull Force** in its Properties.
    Check the force and distance plots, and **RMSD...** and **Radius of
    gyration...** for the chains.
-7. On the **Umbrella sampling** page: spacing 0.2 nm, **Find windows**, then
+7. On the **Umbrella sampling** page: spacing 0.1 nm, **Find windows**, then
    **Create window calculations** (equilibration and production steps as
    wanted). Launch the -eq tasks, and each production task when its -eq is
    Complete.
@@ -207,7 +209,7 @@ longer pull run) before extracting windows.
 (`--csv`) or JSON (`--json`):
 
 ```
-ecce-umbrella windows <pull calc> [--spacing 0.2] [--from D] [--to D]
-ecce-umbrella extract <pull calc> --out DIR [--spacing 0.2]
+ecce-umbrella windows <pull calc> [--spacing 0.1] [--from D] [--to D]
+ecce-umbrella extract <pull calc> --out DIR [--spacing 0.1]
 ecce-umbrella wham <window calc>... [--temp 300] [--bins 200] [--jacobian]
 ```
