@@ -764,7 +764,7 @@ int main(int argc, char** argv)
       << "persistence false\n";
   }
 
-  pid_t broker = builtin ? -1 : fork();
+  pid_t broker = fork();
   if (broker == 0) {
     string log = tmp + "/mosquitto.log";
     freopen(log.c_str(), "w", stdout);
@@ -926,8 +926,8 @@ int main(int argc, char** argv)
     rc = g_fail ? 1 : 0;
   }
 
-  if (!builtin) { kill(broker, SIGTERM); waitpid(broker, 0, 0); }
-  else own.stop();
+  kill(broker, SIGTERM);
+  waitpid(broker, 0, 0);
   rmTree(tmp);
   cout << (rc == 0 ? "ALL PASS" : "FAILED") << endl;
   return rc;
