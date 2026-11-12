@@ -66,8 +66,8 @@ BatchSmilesDialog::BatchSmilesDialog(wxWindow *parent, const string& folderName,
   cols->Add(p_template, 1, wxEXPAND);
   top->Add(cols, 0, wxLEFT | wxRIGHT | wxEXPAND, 8);
   p_replace = new wxCheckBox(this, wxID_ANY, _(
-      "Make again the calculations of the same name that were not launched "
-      "(after editing the setup)"));
+      "Replace calculations of the same name that have not been launched "
+      "(use after changing the setup)"));
   top->Add(p_replace, 0, wxLEFT | wxRIGHT | wxTOP, 8);
 
   p_list = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(640, 200),

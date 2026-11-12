@@ -52,10 +52,10 @@ the same setup, ready to launch together.
 
 Open the template in the Calculation Editor, change it and save it. Then
 run **Batch Add from SMILES** again with the same table, choose *Same as*
-the template and tick **Make again the calculations of the same name that
-were not launched**: every calculation of the batch that has not been
-launched is made again with the new setup. Launched ones are kept as they
-are.
+the template and tick **Replace calculations of the same name that have
+not been launched**: every calculation of the batch that has not been
+launched is replaced by one with the new setup. Launched ones are kept as
+they are.
 
 ## Command
 
