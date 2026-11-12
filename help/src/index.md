@@ -197,15 +197,11 @@ describe what you did and what happened.
    and measured values as one calculation per molecule, all with one setup,
    launched together (Tools > Batch Add from SMILES, `ecce-batch-smiles`).
 
-38. [QSAR: descriptor table](qsar-table.md): descriptors, measured values and
-   calculation results as one table per folder, exported as CSV (Tools > QSAR
-   Table, `ecce-qsar table`).
+38. [QSAR](qsar.md): one window per folder with the descriptor table, PCA
+   and PLS tabs: scores, loadings, cross-validated Q2, T2 and DModX (Tools >
+   QSAR, `ecce-qsar`).
 
-39. [QSAR: PCA and PLS](qsar-analysis.md): scores, loadings, cross-validated
-   Q2, T2 and DModX of the descriptor table (Tools > QSAR Analysis,
-   `ecce-qsar pca`).
-
-40. [Diffraction: fibre patterns](fibre-diffraction.md): the calculated X-ray
+39. [Diffraction: fibre patterns](fibre-diffraction.md): the calculated X-ray
    fibre pattern of a structure or a selection, for example B-DNA and an
    alpha-helix, on a film or as a map, with a measured image behind it (Tools >
    Diffraction, `ecce-xrd fibre`).

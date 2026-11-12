@@ -73,7 +73,7 @@ def run(display):
         out = os.path.join(work, "gui")
         cmds = os.path.join(work, "commands")
         with open(cmds, "w") as h:
-            h.write("qsarpls %s file://%s act uv 2\n" % (out, project))
+            h.write("qsarpls %s file://%s act uv 2 0 0 %s\n" % (out, project, os.environ.get("ECCE_QSAR_SHOT", "")))
         result = apps.run(display, "organizer", windowTimeout=60, settle=60,
                           env={"ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_ORGANIZER_OPEN": "file://" + project,

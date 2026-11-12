@@ -101,4 +101,5 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Windows broker: retries need their own folder (#958)](windows-broker-retry-needs-its-own-folder-958.md)
 - [Batch Add from SMILES (#961): SmilesBatch builds each structure without the Builder and hands an xyz to Series::make](batch-add-from-smiles-961.md)
 - [Fibre diffraction (#971): helix sample geometry, Ewald effects](xrd-fibre-diffraction-971.md)
-- [QSAR descriptor table (#961): ecce-qsar from the stored SMILES, ChecksDialog QSAR mode, writeFolder must export what the script reads](qsar-descriptor-table-961.md)
+- [QSAR descriptor table (#961): ecce-qsar from the stored SMILES, ChecksDialog (QSAR mode, no longer shown from Tools; see qsar-window-996.md), writeFolder must export what the script reads](qsar-descriptor-table-961.md)
+- [QSAR window (#996): one frame with Table/PCA/PLS tabs replaces the Table dialog and QsarDialog; CLI report lines are parsed](qsar-window-996.md)
