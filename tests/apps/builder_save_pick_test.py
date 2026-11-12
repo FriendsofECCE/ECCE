@@ -104,7 +104,8 @@ def realClicks(s, env, wrappers, argv, lines):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
+    ap.add_argument("--build", default=os.environ.get(
+        "ECCE_TEST_BUILD", os.path.join(REPO, "build-cmake")))
     ap.add_argument("--keep", action="store_true")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
