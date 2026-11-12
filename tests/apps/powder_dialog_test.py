@@ -85,7 +85,7 @@ def main():
             head = open(xyz).read().splitlines()[1]
             bo.check(head.startswith('Lattice="5.64'), "the structure file carries the lattice: %s" % head)
             ref = os.path.join(out, "cli.csv")
-            r = subprocess.run([sys.executable, CLI, "powder", xyz, "--out", ref],
+            r = subprocess.run([sys.executable, CLI, "powder", xyz, "--source", "cu", "--out", ref],
                                capture_output=True, text=True)
             bo.check(r.returncode == 0, "the CLI ran on the same structure")
             bo.check(open(csvf).read() == open(ref).read(), "the dialog's CSV equals the CLI's")
@@ -93,6 +93,26 @@ def main():
             peak = max(rows, key=lambda r: float(r[1]))
             bo.check(abs(float(peak[0]) - 31.70) < 0.02,
                      "strongest line (200) at 31.70, found %s" % peak[0])
+        # Ka1/Ka2 box: on for Cu, off and still enabled when unticked, disabled
+        # (and no doublet in the pattern) for a custom wavelength.
+        for name, src, dbl, state, doublet in (("cu", 0, -1, "doublet=1 enabled=1", True),
+                                               ("cu-off", 0, 0, "doublet=0 enabled=1", False),
+                                               ("other", 3, -1, "doublet=1 enabled=0", False)):
+            pf, cf = (os.path.join(out, "%s.%s" % (name, e)) for e in ("png", "csv"))
+            t2, _ = bo.runScript(s, display, env, wrappers, ["-context", url],
+                                 ["wait 4000", "list Diffraction", "wait 1500",
+                                  "calcpowder %s %s %s %d %d" % (pf, cf, xyz, src, dbl), "quit"],
+                                 png, "powder-" + name, {"ECCE_PANEL_MODE": "detail"})
+            bo.check("BUILDER: calcpowder state: " + state in t2 and os.path.exists(cf),
+                     "%s: Ka1/Ka2 box is %s" % (name, state))
+            if os.path.exists(cf):
+                ref = os.path.join(out, name + "-cli.csv")
+                cmd = [sys.executable, CLI, "powder", xyz, "--out", ref]
+                if doublet:
+                    cmd += ["--source", "cu"]
+                subprocess.run(cmd, capture_output=True, text=True)
+                bo.check(open(cf).read() == open(ref).read(),
+                         "%s: the dialog's CSV equals the CLI's" % name)
         if bo.failures:
             say(text[-2000:])
     finally:

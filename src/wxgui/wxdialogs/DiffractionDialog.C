@@ -319,6 +319,11 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
     p_source->Append(c);
   p_source->SetSelection(0);
   pg->Add(p_source, 0);
+  pg->AddSpacer(0);
+  p_doublet = new wxCheckBox(this, wxID_ANY, "K\u03b11/K\u03b12 doublet");
+  p_doublet->SetValue(true);
+  p_doublet->SetToolTip("Draw every reflection at the K-alpha1 and K-alpha2 wavelengths (K-alpha2 at half the intensity); Cu, Mo and Co sources only");
+  pg->Add(p_doublet, 0);
   p_pwave = pfield("Wavelength (A)", "1.5406", "Used for the pattern; the Source choice fills it");
   p_ptmin = pfield("2theta from", "5", "Degrees");
   p_ptmax = pfield("2theta to", "90", "Degrees");
@@ -400,10 +405,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   fibre->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(0); });
   single->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(2); });
   meas->Bind(wxEVT_BUTTON, &DiffractionDialog::onMeasured, this);
-  p_source->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) {
-    static const char *w[] = {"1.5406", "0.7093", "1.7890"};
-    if (p_source->GetSelection() < 3) p_pwave->SetValue(w[p_source->GetSelection()]);
-  });
+  p_source->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { onSource(); });
 
   calc->Bind(wxEVT_BUTTON, &DiffractionDialog::onCalculate, this);
   back->Bind(wxEVT_BUTTON, &DiffractionDialog::onBackdrop, this);
@@ -477,6 +479,21 @@ void DiffractionDialog::onPattern(int mode)
   GetSizer()->Fit(this);
 }
 
+void DiffractionDialog::onSource()
+{
+  static const char *w[] = {"1.5406", "0.7093", "1.7890"};
+  if (p_source->GetSelection() < 3) p_pwave->SetValue(w[p_source->GetSelection()]);
+  p_doublet->Enable(p_source->GetSelection() < 3);
+}
+
+wxString DiffractionDialog::setSource(int index, int doublet)
+{
+  p_source->SetSelection(index);
+  onSource();
+  if (doublet >= 0) p_doublet->SetValue(doublet != 0);
+  return wxString::Format("doublet=%d enabled=%d", p_doublet->GetValue() ? 1 : 0, p_doublet->IsEnabled() ? 1 : 0);
+}
+
 bool DiffractionDialog::setMeasured(const string& path, string& why)
 {
   std::ifstream f(path);
@@ -509,12 +526,16 @@ wxString DiffractionDialog::reflectionText(double tt, double tol) const
 
 bool DiffractionDialog::calculatePowder(string& why)
 {
+  static const char *srcs[] = {"cu", "mo", "co"};
+  const int src = p_source->GetSelection();
+  const bool doublet = src >= 0 && src < 3 && p_doublet->GetValue();
   vector<string> a = {"powder", p_structure,
                       "--wavelength", num(number(p_pwave)),
                       "--tt-min", num(number(p_ptmin)), "--tt-max", num(number(p_ptmax)),
                       "--fwhm", num(number(p_pfwhm)), "--B", num(number(p_pb)),
                       "--out", p_png, "--out", p_csv, "--table", p_tab};
   if (!p_measured.empty()) { a.push_back("--measured"); a.push_back(p_measured); }
+  if (doublet) { a.push_back("--source"); a.push_back(srcs[src]); }
   status("Calculating...");
   int st = 0;
   const string out = run(a, st);
@@ -543,8 +564,10 @@ bool DiffractionDialog::calculatePowder(string& why)
   while (std::getline(g, line)) {
     int h, k, l, mult;
     double d, tt, fa, rel;
-    if (sscanf(line.c_str(), "%d,%d,%d,%lf,%lf,%lf,%d,%lf", &h, &k, &l, &d, &tt, &fa, &mult, &rel) != 8) continue;
-    Line ln = {tt, d, rel, wxString::Format("%d %d %d", h, k, l)};
+    char which[8] = "";
+    const int nf = sscanf(line.c_str(), "%d,%d,%d,%lf,%lf,%lf,%d,%lf,%7s", &h, &k, &l, &d, &tt, &fa, &mult, &rel, which);
+    if (nf < 8) continue;
+    Line ln = {tt, d, rel, wxString::Format("%d %d %d", h, k, l) + (nf == 9 ? wxString::Format("  %s", which) : wxString())};
     p_lines.push_back(ln);
     const long row = p_list->InsertItem(p_list->GetItemCount(), ln.hkl);
     p_list->SetItem(row, 1, wxString::Format("%.4f", d));

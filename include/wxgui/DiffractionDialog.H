@@ -33,6 +33,9 @@ public:
   bool setBackdrop(const std::string& path, std::string& why);
   // Powder: a measured pattern (two columns) drawn as a second curve.
   bool setMeasured(const std::string& path, std::string& why);
+  // Powder source choice (0 Cu, 1 Mo, 2 Co, 3 other) and, if doublet >= 0,
+  // the Ka1/Ka2 box; returns its state "doublet=0|1 enabled=0|1" (test hook).
+  wxString setSource(int index, int doublet = -1);
   bool powder() const { return p_powder; }
   // Single crystal (#972): a reciprocal-lattice layer.  zone is "l" (hk0 for
   // layer 0), "k" (h0l) or "h" (0kl); false and why if the structure is not
@@ -48,6 +51,7 @@ public:
 private:
   friend class DiffractionPanel;
   friend class PowderPanel;
+  void onSource();
   std::string run(const std::vector<std::string>& args, int& status);
   void status(const wxString& text);
   void onCalculate(wxCommandEvent&);
@@ -78,7 +82,7 @@ private:
   bool p_periodic, p_powder, p_single;
   wxTextCtrl *p_layerNo, *p_lres, *p_lb;
   wxChoice *p_zone, *p_lscale;
-  wxCheckBox *p_absent;
+  wxCheckBox *p_absent, *p_doublet;
   wxRadioButton *p_rbFibre, *p_rbPowder, *p_rbSingle;
   wxSizer *p_layerItems;
   double p_layerScale;

@@ -252,6 +252,49 @@ def test_examples():
         check(got == want, "%s: the first lines are %s (got %s)" % (name, want, got))
 
 
+def test_doublet(tmp):
+    lat, sym, frac, occ = xrd.read_periodic(cif("nacl"))
+    l1, l2 = xrd.DOUBLETS["cu"]
+    one = xrd.powder_reflections(lat, sym, frac, occ, l1, 5, 90, 1.5)
+    two = xrd.add_kalpha2(one, "cu", 90)
+    seps = []
+    ok = True
+    for k in np.nonzero(one["I_rel"] > 1e-3)[0]:
+        sel = [j for j in range(len(two["d"])) if abs(two["d"][j] - one["d"][k]) < 1e-9
+               and two["I_rel"][j] > 1e-3]
+        if len(sel) != 2:
+            ok = False
+            continue
+        a, b = sorted(sel, key=lambda j: two["tt"][j])
+        sep = two["tt"][b] - two["tt"][a]
+        want = math.degrees(2 * (l2 - l1) / l1 * math.tan(math.radians(two["tt"][a] / 2)))
+        seps.append((two["tt"][a], sep, want))
+        ok = ok and two["line"][a] == "Ka1" and two["line"][b] == "Ka2" and \
+            abs(two["I_rel"][b] / two["I_rel"][a] - 0.5) < 1e-9
+    seps.sort()
+    # Bragg: delta(2theta) = 2 (dlambda/lambda) tan(theta) to first order; the
+    # exact difference is within 1e-3 degrees up to 90 degrees 2theta.
+    exact = all(abs(s - w) < 1e-3 for _, s, w in seps)
+    check(ok and len(seps) >= 6, "doublet: every NaCl reflection gives a Ka1/Ka2 pair, ratio 0.5", len(seps))
+    check(exact, "doublet: separation matches 2 dlambda/lambda tan(theta) to 1e-3 deg",
+          [(round(t, 2), round(s, 4), round(w, 4)) for t, s, w in seps])
+    check(all(seps[i][1] < seps[i + 1][1] for i in range(len(seps) - 1)) and seps[-1][1] > 3 * seps[0][1],
+          "doublet: separation grows with 2theta (%.3f to %.3f deg)" % (seps[0][1], seps[-1][1]))
+    check(max(two["I_rel"]) == 100.0 and set(two["line"]) == {"Ka1", "Ka2"}, "doublet: Ka1 maximum stays 100")
+    # Off: the table is the one from before (no line column) at the same wavelength.
+    tab_on, tab_off = os.path.join(tmp, "on.csv"), os.path.join(tmp, "off.csv")
+    cli(cif("nacl"), "--B", "1.5", "--table", tab_off)
+    rc, out, err = cli(cif("nacl"), "--B", "1.5", "--source", "cu", "--table", tab_on)
+    off = [ln.split(",") for ln in open(tab_off).read().splitlines()]
+    on = [ln.split(",") for ln in open(tab_on).read().splitlines()]
+    check(rc == 0 and off[0] == ["h", "k", "l", "d", "two_theta", "F", "mult", "I_rel"] and
+          on[0][-1] == "line" and len(on) == 2 * len(off) - 1 and
+          abs(float(off[2][4]) - 31.69) < 0.02 and {r[-1] for r in on[1:]} == {"Ka1", "Ka2"},
+          "doublet: CLI table has a line column (Ka1/Ka2 rows); off is unchanged", (rc, err))
+    rc, out, err = cli(cif("nacl"), "--source", "cu", "--no-doublet", "--table", tab_on)
+    check(rc == 0 and open(tab_on).read().splitlines()[0].count(",") == 7, "doublet: --no-doublet gives no line column", err)
+
+
 def main():
     with tempfile.TemporaryDirectory() as tmp:
         test_gemmi()
@@ -259,6 +302,7 @@ def main():
         test_published()
         test_multiplicity(tmp)
         test_cli(tmp)
+        test_doublet(tmp)
         test_examples()
     print("%d failure(s)" % len(failures))
     return 1 if failures else 0

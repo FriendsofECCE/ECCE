@@ -610,6 +610,30 @@ def powder_reflections(lat, sym, frac, occ, wavelength=CU_KA1, tt_min=5.0,
     return r
 
 
+# Kalpha1/Kalpha2 wavelengths in Angstrom: International Tables for
+# Crystallography Vol. C, Table 4.2.2.1 (Cu 1.540593/1.544414, Mo 0.709317/
+# 0.713607, Co 1.788996/1.792850); Ka2 has half the intensity of Ka1.
+DOUBLETS = {"cu": (1.540593, 1.544414), "mo": (0.709317, 0.713607), "co": (1.788996, 1.792850)}
+KA2_RATIO = 0.5
+
+
+def add_kalpha2(refl, source, tt_max, ratio=KA2_RATIO):
+    """refl (computed at the Ka1 wavelength of source) with every line repeated
+    at the Ka2 wavelength: same d, 2theta from Bragg's law, I_rel * ratio, a
+    "line" array of "Ka1"/"Ka2", sorted by 2theta.  Ka2 lines beyond tt_max go."""
+    lam1, lam2 = DOUBLETS[source]
+    sin2 = lam2 / (2 * refl["d"])
+    ok = sin2 < 1.0
+    tt2 = 2 * np.degrees(np.arcsin(np.where(ok, sin2, 0.0)))
+    ok &= tt2 <= tt_max
+    r = {k: np.concatenate([v, v[ok]]) for k, v in refl.items() if k != "tt"}
+    r["tt"] = np.concatenate([refl["tt"], tt2[ok]])
+    r["I_rel"][len(refl["d"]):] *= ratio
+    r["line"] = np.array(["Ka1"] * len(refl["d"]) + ["Ka2"] * int(ok.sum()))
+    o = np.argsort(r["tt"], kind="stable")
+    return {k: v[o] for k, v in r.items()}
+
+
 def powder_pattern(refl, tt_min=5.0, tt_max=90.0, fwhm=0.1, eta=0.5, step=0.01):
     """(two_theta grid, intensity with the largest value 100): a pseudo-Voigt
     of the same FWHM and mixing eta (1 = Lorentzian) on every reflection."""
@@ -796,7 +820,15 @@ def plot_powder(path, tt, y, measured=None, refl=None, size=(1000, 480)):
 def run_powder(a):
     lat, sym, frac, occ = read_periodic(a.structure)
     t0 = time.time()
-    refl = powder_reflections(lat, sym, frac, occ, a.wavelength, a.tt_min, a.tt_max, a.B, a.dtol)
+    doublet = a.doublet
+    if doublet is None:
+        doublet = a.source is not None
+    if doublet and not a.source:
+        raise ValueError("--doublet needs --source cu, mo or co")
+    wl = DOUBLETS[a.source][0] if doublet else a.wavelength
+    refl = powder_reflections(lat, sym, frac, occ, wl, a.tt_min, a.tt_max, a.B, a.dtol)
+    if doublet:
+        refl = add_kalpha2(refl, a.source, a.tt_max)
     tt, y = powder_pattern(refl, a.tt_min, a.tt_max, a.fwhm, a.eta, a.step)
     meas = None
     if a.measured:
@@ -806,11 +838,12 @@ def run_powder(a):
             raise ValueError("%s has no points between %g and %g degrees" % (a.measured, a.tt_min, a.tt_max))
         meas = np.interp(tt, mx, my / my[sel].max() * 100.0, left=np.nan, right=np.nan)
     shown = refl["I_rel"] >= a.min_intensity
-    rows = [("h", "k", "l", "d", "two_theta", "F", "mult", "I_rel")]
+    rows = [("h", "k", "l", "d", "two_theta", "F", "mult", "I_rel") + (("line",) if doublet else ())]
     for k in np.nonzero(shown)[0]:
         rows.append(tuple(["%d" % v for v in refl["hkl"][k]] +
                           ["%.5f" % refl["d"][k], "%.4f" % refl["tt"][k], "%.4f" % refl["F"][k],
-                           "%d" % refl["mult"][k], "%.4f" % refl["I_rel"][k]]))
+                           "%d" % refl["mult"][k], "%.4f" % refl["I_rel"][k]] +
+                          ([str(refl["line"][k])] if doublet else [])))
     if a.table:
         with open(a.table, "w", newline="") as f:
             csv.writer(f).writerows(rows)
@@ -830,22 +863,24 @@ def run_powder(a):
         else:
             raise ValueError("--out: unknown extension %r (png, csv)" % ext)
     n = int(shown.sum())
-    info = {"atoms": len(sym), "wavelength": a.wavelength, "two_theta": [a.tt_min, a.tt_max],
+    info = {"atoms": len(sym), "wavelength": wl, "doublet": bool(doublet), "two_theta": [a.tt_min, a.tt_max],
             "fwhm": a.fwhm, "eta": a.eta, "B": a.B, "reflections": n,
             "lattice": [[round(float(v), 6) for v in row] for row in lat],
             "seconds": round(time.time() - t0, 2)}
     if a.json:
         info["table"] = [{"hkl": [int(v) for v in refl["hkl"][k]], "d": float(refl["d"][k]),
                           "two_theta": float(refl["tt"][k]), "F": float(refl["F"][k]),
-                          "mult": int(refl["mult"][k]), "I_rel": float(refl["I_rel"][k])}
+                          "mult": int(refl["mult"][k]), "I_rel": float(refl["I_rel"][k])} |
+                         ({"line": str(refl["line"][k])} if doublet else {})
                          for k in np.nonzero(shown)[0]]
         print(json.dumps(info))
     else:
         print("%d atoms, %d reflections between %g and %g degrees (%g A)" % (
-            info["atoms"], n, a.tt_min, a.tt_max, a.wavelength))
-        print("%4s %4s %4s %9s %9s %9s %5s %8s" % rows[0])
+            info["atoms"], n, a.tt_min, a.tt_max, wl))
+        fmt = "%4s %4s %4s %9s %9s %9s %5s %8s" + (" %5s" if doublet else "")
+        print(fmt % rows[0])
         for row in rows[1:]:
-            print("%4s %4s %4s %9s %9s %9s %5s %8s" % row)
+            print(fmt % row)
     return 0
 
 
@@ -1127,6 +1162,10 @@ def build_parser():
     q = sub.add_parser("powder", help="powder diffraction pattern of a periodic structure")
     q.add_argument("structure", help=".cif, or .xyz/.mvm/.pdb with a lattice")
     q.add_argument("--wavelength", type=float, default=CU_KA1, help="Angstrom (Cu Ka1)")
+    q.add_argument("--source", choices=sorted(DOUBLETS),
+                   help="Cu, Mo or Co tube: with the doublet, Ka1 and Ka2 lines from the tabulated wavelengths")
+    q.add_argument("--doublet", action=argparse.BooleanOptionalAction, default=None,
+                   help="Ka1/Ka2 doublet, Ka2 at half the intensity (default on with --source)")
     q.add_argument("--tt-min", type=float, default=5.0, help="first 2theta, degrees")
     q.add_argument("--tt-max", type=float, default=90.0, help="last 2theta, degrees")
     q.add_argument("--fwhm", type=float, default=0.1, help="peak width, degrees 2theta")

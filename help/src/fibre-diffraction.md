@@ -50,6 +50,16 @@ The fields:
 Form factors are the Cromer-Mann coefficients of the International Tables
 (Vol. C, Table 6.1.1.4), for H, C, N, O, Na, Mg, P, S, Cl, K, Ca, Fe and Zn.
 
+## Powder patterns: the K-alpha doublet
+
+For a Cu, Mo or Co source the Powder pattern draws every reflection twice, at the
+K-alpha1 and K-alpha2 wavelengths, with K-alpha2 at half the intensity of
+K-alpha1 (untick **K-alpha1/K-alpha2 doublet** for a single line). The two
+wavelengths differ by a fixed fraction, so by Bragg's law the lines are further
+apart the larger the angle: the doublet is hardly visible at low 2-theta and is
+resolved as two peaks at high angle. The peak list has one row per line, marked
+Ka1 or Ka2. Other sources (synchrotron, a typed wavelength) have no doublet.
+
 ## Backdrop
 
 **Load Backdrop...** puts a PNG or JPG (a scan of a measured film, for example)
