@@ -105,6 +105,10 @@ In `.ecce-meta` the state is `state`; the reason for an ended job is
   **recipe** is a workflow template for a kind of study (`recipes`,
   `writing-a-recipe`).
 
+Read-only workflow folders can be opened in the Organizer to view their
+stored steps and links. Opening does not rewrite step indices; use a writable
+copy to change or run the workflow.
+
 ### Where the data is, and deployment modes
 
 - **Local data**: the folder printed by `ecce-localdata`

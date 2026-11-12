@@ -128,6 +128,12 @@ Shift+click selects the boxes from the last one clicked. The table below the
 view selects the same steps, and Tools such as the Energy Calculator act on
 them.
 
+## Viewing a read-only workflow
+
+A workflow in a read-only folder opens with its stored steps and links.
+Viewing it leaves the stored workflow data unchanged. To change or run the
+workflow, use a writable copy.
+
 ## Canvas height and orientation
 
 Drag the divider between the workflow view and the calculation table to change

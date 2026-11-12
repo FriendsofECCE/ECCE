@@ -1394,6 +1394,69 @@ def run_autorun(display, data, work, shots):
     run_no_theory(display, data, work, shots, rundir)
 
 
+def run_readonly(display, data, work, shots):
+    """Reload linked steps without writing their task indices (#952)."""
+    project = os.path.join(data, "users", "local", "readonly")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(CALC, os.path.join(project, "water"), symlinks=True)
+    proj = "file://" + project
+    wf = proj + "/Workflow"
+    folder = os.path.join(project, "Workflow")
+    script = os.path.join(work, "readonly-commands")
+
+    def organizer(commands):
+        with open(script, "w") as handle:
+            handle.write("\n".join(commands) + "\n")
+        return apps.run(display, "organizer", windowTimeout=60, settle=40,
+                        env={"ECCE_TEST_ORGANIZER": script})
+
+    result = organizer([
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/water seed" % (wf, proj),
+        "workflowstep %s xtb_es next %s/seed" % (wf, wf),
+        "workflowinfo %s" % wf,
+    ])
+    setup = re.findall(r"ECCE_TEST_ORGANIZER: workflowinfo .*?: (.*)$",
+                       result.log or "", re.M)
+    if result.crashed or not setup or "seed>next:geometry" not in setup[-1]:
+        return fail("read-only workflow setup", "linked steps missing", result.log)
+
+    def snapshot():
+        return {os.path.relpath(os.path.join(top, name), folder):
+                open(os.path.join(top, name), "rb").read()
+                for top, _, files in os.walk(folder) for name in files}
+
+    before = snapshot()
+    modes = {path: os.stat(path).st_mode & 0o777
+             for top, dirs, files in os.walk(folder)
+             for path in [top] + [os.path.join(top, n) for n in files]}
+    try:
+        for path, mode in modes.items():
+            os.chmod(path, mode & ~0o222)
+        check("workflow really is read-only", not os.access(folder, os.W_OK), folder)
+        # A new process must deserialize the linkbase rather than use cached members.
+        result = organizer([
+            "select %s" % wf,
+            "workflowinfo %s" % wf,
+            "workflowshot %s %s" % (os.path.join(shots, "readonly.png"), wf),
+        ])
+        log = result.log or ""
+        with open(os.path.join(shots, "readonly.log"), "w") as handle:
+            handle.write(log)
+        info = re.findall(r"ECCE_TEST_ORGANIZER: workflowinfo .*?: (.*)$", log, re.M)
+        panel = re.findall(r"ECCE_TEST_ORGANIZER: workflowshot .*?: (.*)$", log, re.M)
+        check("read-only workflow opens with both steps and its link (#952)",
+              not result.crashed and info == setup and
+              bool(panel) and panel[-1].startswith("ok ") and
+              "Source resource does not exist" not in log, log[-3000:])
+        check("viewing leaves every stored workflow file unchanged", snapshot() == before,
+              "workflow files changed")
+    finally:
+        for path, mode in modes.items():
+            os.chmod(path, mode)
+
+
 def run_no_theory(display, data, work, shots, rundir):
     """A workflow with auto-run on whose Created recipe step stores no
     theory, as recipe steps made before #910 do (#950): the Organizer
@@ -1628,6 +1691,8 @@ def main():
                 run_protonation(display, data, work, shots)
             elif "--autorun-only" in sys.argv:
                 run_autorun(display, data, work, shots)
+            elif "--readonly-only" in sys.argv:
+                run_readonly(display, data, work, shots)
             elif "--handready-only" in sys.argv:
                 run_hand_ready(display, data, work, shots)
             elif "--make-only" in sys.argv:
@@ -1644,7 +1709,7 @@ def main():
                 # Protonation and auto-run have their own ctest entries
                 # (apps_workflow_protonation, apps_workflow_autorun).
             if not {"--make-only", "--editor-only", "--protonation-only", "--autorun-only",
-                "--handready-only"} & set(sys.argv):
+                "--handready-only", "--readonly-only"} & set(sys.argv):
                 run_recipes(display, data, work, shots)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
