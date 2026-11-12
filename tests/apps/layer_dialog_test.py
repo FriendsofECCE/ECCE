@@ -82,6 +82,7 @@ def main():
                  "the Diffraction entry calculated the hk0 layer and saved it")
         if os.path.exists(csvf):
             bo.check(open(pngf, "rb").read(8) == b"\x89PNG\r\n\x1a\n", "the PNG is a PNG")
+            xyz = pngf + ".xyz"
             head = open(xyz).read().splitlines()[1]
             bo.check(head.startswith('Lattice="5.64'), "the structure file carries the lattice: %s" % head)
             ref = os.path.join(out, "cli.csv")
