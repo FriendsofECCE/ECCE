@@ -11,6 +11,7 @@
  4. Layer geometry: offset layers, --normal, resolution; CLI CSV, PNG, --json.
 Exit 77 (skip) without numpy.
 """
+import csv
 import json
 import math
 import os
@@ -178,6 +179,26 @@ def test_cli(tmp):
     check(rc == 1 and "not periodic" in err, "a structure without a lattice is refused", err)
 
 
+def test_crystal_scale(tmp):
+    # #984: I_rel is on the crystal's strongest reflection, not the layer's.
+    rel = {}
+    for name in ("nacl", "kcl"):
+        out = os.path.join(tmp, name + "_hk1.csv")
+        rc, o, err = cli(cif(name), "--zone", "l=1", "--out", out)
+        rows = list(csv.reader(open(out)))
+        d = {tuple(int(v) for v in r[:3]): (float(r[7]), float(r[8])) for r in rows[1:]}
+        rel[name] = d
+        ok = rc == 0 and d[(1, 1, 1)][0] > 0 and max(v[1] for v in d.values()) < 100
+        check(ok, "%s hk1: I_rel is crystal-wide, (111) = %.3g (strongest in layer < 100)" % (
+            name, d[(1, 1, 1)][1]), err)
+    nacl = rel["nacl"][(1, 1, 1)][1]
+    kcl = rel["kcl"][(1, 1, 1)][1]
+    check(kcl < 1.0 and nacl > 3.0 and nacl > 5 * kcl,
+          "NaCl (111) %.2f %% vs KCl (111) %.3f %% of the strongest reflection" % (nacl, kcl))
+    lay = layer("kcl", [0, 0, 1], 1, scale_to="layer")
+    check(abs(lay["imax"] - lay["I"].max()) < 1e-9, "--scale-to layer keeps the old per-layer scale")
+
+
 def main():
     with tempfile.TemporaryDirectory() as tmp:
         test_gemmi()
@@ -185,6 +206,7 @@ def main():
         test_symmetry()
         test_geometry()
         test_cli(tmp)
+        test_crystal_scale(tmp)
     print("%d failure(s)" % len(failures))
     return 1 if failures else 0
 

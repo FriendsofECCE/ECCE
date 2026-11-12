@@ -6,7 +6,15 @@
 #include <locale>
 #include <sstream>
 
+#include <algorithm>
+#include <memory>
+
 #include <wx/dcbuffer.h>
+#include <wx/dcgraph.h>
+#include <wx/dcmemory.h>
+#include <wx/graphics.h>
+#include <wx/region.h>
+#include <wx/settings.h>
 #include <wx/listctrl.h>
 #include <wx/filedlg.h>
 #include <wx/process.h>
@@ -24,6 +32,7 @@ namespace fs = ecce::fs;
 
 namespace {
 const int PIXELS = 400;
+const double POW_L = 64, POW_R = 16;
 
 // Powder is for periodic structures: the Builder (and the results entry)
 // write them as an .xyz whose comment line carries Lattice="...".
@@ -84,12 +93,13 @@ string tool()
 }  // namespace
 
 
-// The image, scaled to the window, with the pointer position reported back.
+// The image views (fibre, frame, layer): the dialog draws everything with
+// wxGraphicsContext; the panel only supplies the bitmap and the pointer.
 class DiffractionPanel : public wxPanel
 {
 public:
   DiffractionPanel(wxWindow *parent, DiffractionDialog *d)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(480, 480)), p_d(d)
+    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(480, 520)), p_d(d)
   {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     Bind(wxEVT_PAINT, &DiffractionPanel::onPaint, this);
@@ -97,33 +107,26 @@ public:
     Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent&) { p_d->p_pointer->SetLabel(""); });
   }
   void setImage(const wxImage& im) { p_bmp = im.IsOk() ? wxBitmap(im) : wxBitmap(); Refresh(); }
-  /// Image pixel under a window position, or false.
+  const wxBitmap& bitmap() const { return p_bmp; }
+  /// Image pixel (0..p_pixels or layer size) under a window position, or false.
   bool pixelAt(const wxPoint& p, int& x, int& y) const
   {
-    if (!p_bmp.IsOk()) return false;
-    const wxRect r = area();
+    const wxRect r = p_d->imageArea(GetClientSize());
     if (!r.Contains(p)) return false;
-    x = (p.x - r.x) * p_bmp.GetWidth() / r.width;
-    y = (p.y - r.y) * p_bmp.GetHeight() / r.height;
+    const int n = p_d->imagePixels();
+    x = (p.x - r.x) * n / r.width;
+    y = (p.y - r.y) * n / r.height;
     return true;
   }
 
 private:
-  wxRect area() const
-  {
-    const wxSize s = GetClientSize();
-    const int side = std::min(s.x, s.y);
-    return wxRect((s.x - side) / 2, (s.y - side) / 2, side, side);
-  }
   void onPaint(wxPaintEvent&)
   {
-    wxAutoBufferedPaintDC dc(this);
-    dc.SetBackground(*wxBLACK_BRUSH);
-    dc.Clear();
-    if (!p_bmp.IsOk()) return;
-    const wxRect r = area();
-    wxImage im = p_bmp.ConvertToImage().Scale(r.width, r.height, wxIMAGE_QUALITY_NEAREST);
-    dc.DrawBitmap(wxBitmap(im), r.x, r.y);
+    wxPaintDC dc(this);
+    std::unique_ptr<wxGraphicsContext> gc(wxGraphicsContext::Create(dc));
+    if (!gc) return;
+    const wxSize s = GetClientSize();
+    p_d->paint(gc.get(), s.x, s.y);
   }
   void onMove(wxMouseEvent& e)
   {
@@ -135,12 +138,12 @@ private:
 };
 
 
-// The powder pattern as a line plot; the pointer reports the reflection nearest to it.
+// The powder pattern; the pointer reports the reflection nearest to it.
 class PowderPanel : public wxPanel
 {
 public:
   PowderPanel(wxWindow *parent, DiffractionDialog *d)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(560, 340)), p_d(d)
+    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(560, 400)), p_d(d)
   {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     Bind(wxEVT_PAINT, &PowderPanel::onPaint, this);
@@ -151,58 +154,27 @@ public:
   bool twoThetaAt(int x, double& tt) const
   {
     if (p_d->p_tt.size() < 2) return false;
-    const wxRect r = plot();
-    if (x < r.x || x > r.x + r.width) return false;
-    tt = p_d->p_tt.front() + (x - r.x) * (p_d->p_tt.back() - p_d->p_tt.front()) / r.width;
+    const double l = POW_L, w = std::max(10.0, GetClientSize().x - POW_L - POW_R);
+    if (x < l || x > l + w) return false;
+    tt = p_d->p_tt.front() + (x - l) * (p_d->p_tt.back() - p_d->p_tt.front()) / w;
     return true;
   }
 
 private:
-  wxRect plot() const
-  {
-    const wxSize s = GetClientSize();
-    return wxRect(52, 10, std::max(10, s.x - 66), std::max(10, s.y - 44));
-  }
   void onPaint(wxPaintEvent&)
   {
-    wxAutoBufferedPaintDC dc(this);
-    dc.SetBackground(*wxWHITE_BRUSH);
-    dc.Clear();
-    const vector<double>& tt = p_d->p_tt;
-    if (tt.size() < 2) return;
-    const wxRect r = plot();
-    dc.SetPen(*wxBLACK_PEN);
-    dc.SetBrush(*wxTRANSPARENT_BRUSH);
-    dc.DrawRectangle(r);
-    const double x0 = tt.front(), x1 = tt.back();
-    auto px = [&](double v) { return r.x + (int)((v - x0) / (x1 - x0) * r.width); };
-    auto py = [&](double v) { return r.y + r.height - (int)(std::min(v, 105.0) / 105.0 * r.height); };
-    double step = 1;
-    for (double c : {1., 2., 5., 10., 20., 50.}) { step = c; if ((x1 - x0) / c <= 12) break; }
-    for (double v = std::ceil(x0 / step) * step; v <= x1 + 1e-9; v += step) {
-      dc.DrawLine(px(v), r.y + r.height, px(v), r.y + r.height + 4);
-      dc.DrawText(wxString::Format("%g", v), px(v) - 8, r.y + r.height + 6);
-    }
-    dc.DrawText("2theta (degrees)", r.x + r.width / 2 - 45, r.y + r.height + 22);
-    for (int v = 0; v <= 100; v += 25) {
-      dc.DrawLine(r.x - 4, py(v), r.x, py(v));
-      dc.DrawText(wxString::Format("%d", v), r.x - 30, py(v) - 8);
-    }
-    auto curve = [&](const vector<double>& y, const wxColour& c) {
-      dc.SetPen(wxPen(c, 1));
-      for (size_t i = 1; i < y.size() && i < tt.size(); i++)
-        if (y[i] == y[i] && y[i - 1] == y[i - 1])
-          dc.DrawLine(px(tt[i - 1]), py(y[i - 1]), px(tt[i]), py(y[i]));
-    };
-    curve(p_d->p_meas, wxColour(205, 40, 40));
-    curve(p_d->p_y, wxColour(20, 60, 170));
+    wxPaintDC dc(this);
+    std::unique_ptr<wxGraphicsContext> gc(wxGraphicsContext::Create(dc));
+    if (!gc) return;
+    const wxSize s = GetClientSize();
+    p_d->paint(gc.get(), s.x, s.y);
   }
   void onMove(wxMouseEvent& e)
   {
     double tt;
     wxString t;
     if (twoThetaAt(e.GetX(), tt)) {
-      const double perPx = (p_d->p_tt.back() - p_d->p_tt.front()) / plot().width;
+      const double perPx = (p_d->p_tt.back() - p_d->p_tt.front()) / std::max(10, GetClientSize().x - POW_L - POW_R);
       t = p_d->reflectionText(tt, 4 * perPx);
       if (t.empty()) t = wxString::Format("2theta = %.2f", tt);
     }
@@ -212,14 +184,267 @@ private:
 };
 
 
+namespace {
+const wxColour CALC(20, 60, 170), MEAS(205, 40, 40), INK(40, 40, 40), GRID(225, 225, 225);
+
+void text(wxGraphicsContext *gc, const wxString& s, double x, double y, const wxColour& c,
+          double size = 1.0, bool bold = false, double angle = 0)
+{
+  wxFont f = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+  f.SetPointSize((int)std::lround(f.GetPointSize() * size));
+  if (bold) f.SetWeight(wxFONTWEIGHT_BOLD);
+  gc->SetFont(f, c);
+  if (angle == 0) gc->DrawText(s, x, y); else gc->DrawText(s, x, y, angle);
+}
+
+wxSize extent(wxGraphicsContext *gc, const wxString& s, double size = 1.0)
+{
+  wxFont f = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
+  f.SetPointSize((int)std::lround(f.GetPointSize() * size));
+  gc->SetFont(f, INK);
+  double w, h;
+  gc->GetTextExtent(s, &w, &h);
+  return wxSize((int)std::ceil(w), (int)std::ceil(h));
+}
+
+wxString hklText(int h, int k, int l)
+{
+  if (h >= 0 && k >= 0 && l >= 0 && h < 10 && k < 10 && l < 10)
+    return wxString::Format("%d%d%d", h, k, l);
+  return wxString::Format("%d %d %d", h, k, l);
+}
+}  // namespace
+
+wxRect DiffractionDialog::imageArea(const wxSize& s) const
+{
+  const int top = 30, side = 12, bottom = 26;
+  const int side2 = std::max(10, std::min(s.x - 2 * side, s.y - top - bottom));
+  return wxRect((s.x - side2) / 2, top, side2, side2);
+}
+
+int DiffractionDialog::imagePixels() const { return p_single || p_frame ? p_layerSize : p_pixels; }
+
+void DiffractionDialog::paint(wxGraphicsContext *gc, double W, double H) const
+{
+  gc->SetAntialiasMode(wxANTIALIAS_DEFAULT);
+  gc->SetBrush(*wxWHITE_BRUSH);
+  gc->SetPen(*wxTRANSPARENT_PEN);
+  gc->DrawRectangle(0, 0, W, H);
+  if (p_powder) paintPowder(gc, W, H);
+  else paintImage(gc, W, H);
+}
+
+void DiffractionDialog::paintPowder(wxGraphicsContext *gc, double W, double H) const
+{
+  const vector<double>& tt = p_tt;
+  if (tt.size() < 2) return;
+  const bool two = !p_meas.empty() && p_meas.size() == tt.size();
+  const double L = POW_L, R = POW_R, T = 16, B = 52, gap = 14;
+  const double pw = std::max(10.0, W - L - R);
+  const int n = two ? 2 : 1;
+  const double ph = std::max(10.0, (H - T - B - (n - 1) * gap) / n);
+  const double x0 = tt.front(), x1 = tt.back();
+  auto px = [&](double v) { return L + (v - x0) / (x1 - x0) * pw; };
+  double step = 1;
+  for (double c : {1., 2., 5., 10., 20., 50.}) { step = c; if ((x1 - x0) / c <= 12) break; }
+  for (int k = 0; k < n; k++) {
+    const double top = T + k * (ph + gap), bot = top + ph;
+    auto py = [&](double v) { return bot - std::min(std::max(v, 0.0), 108.0) / 108.0 * ph; };
+    gc->SetPen(wxPen(GRID, 1));
+    for (int v = 0; v <= 100; v += 25) {
+      gc->StrokeLine(L, py(v), L + pw, py(v));
+      const wxString s = wxString::Format("%d", v);
+      text(gc, s, L - 8 - extent(gc, s).x, py(v) - extent(gc, s).y / 2.0, INK);
+    }
+    gc->SetPen(wxPen(INK, 1));
+    gc->StrokeLine(L, top, L, bot);
+    gc->StrokeLine(L, bot, L + pw, bot);
+    for (double v = std::ceil(x0 / step) * step; v <= x1 + 1e-9; v += step) {
+      gc->StrokeLine(px(v), bot, px(v), bot + 4);
+      if (k == n - 1) {
+        const wxString s = wxString::Format("%g", v);
+        text(gc, s, px(v) - extent(gc, s).x / 2.0, bot + 6, INK);
+      }
+    }
+    const vector<double>& y = (k == 0) ? p_y : p_meas;
+    const wxColour col = (k == 0) ? CALC : MEAS;
+    wxGraphicsPath path = gc->CreatePath();
+    bool open = false;
+    for (size_t i = 0; i < y.size() && i < tt.size(); i++) {
+      if (y[i] != y[i]) { open = false; continue; }
+      if (open) path.AddLineToPoint(px(tt[i]), py(y[i]));
+      else { path.MoveToPoint(px(tt[i]), py(y[i])); open = true; }
+    }
+    gc->SetPen(wxPen(col, 1.4));
+    gc->StrokePath(path);
+    text(gc, two ? (k == 0 ? "calculated" : "measured") : "calculated", L + 8, top + 4, col, 1.0, true);
+    if (k == 0) {
+      // hkl at the peaks above a threshold, strongest first, none on top of another
+      vector<const Line *> order;
+      for (const Line& l : p_lines)
+        if (!l.a2 && l.rel >= 8.0 && l.tt >= x0 && l.tt <= x1) order.push_back(&l);
+      std::sort(order.begin(), order.end(), [](const Line *a, const Line *b) { return a->rel > b->rel; });
+      vector<wxRect> placed;
+      for (const Line *l : order) {
+        double top2 = 0;
+        for (size_t i = 0; i < tt.size(); i++)
+          if (std::fabs(tt[i] - l->tt) <= 0.3 && y[i] == y[i]) top2 = std::max(top2, y[i]);
+        const wxString s = hklText(l->h, l->k, l->l);
+        const wxSize e = extent(gc, s, 0.9);
+        const wxRect r((int)(px(l->tt) - e.x / 2.0), (int)(py(top2) - e.y - 3), e.x, e.y);
+        if (r.y < top) continue;
+        bool clash = false;
+        for (wxRect q : placed) { q.Inflate(2, 0); clash = clash || q.Intersects(r); }
+        if (clash) continue;
+        placed.push_back(r);
+        text(gc, s, r.x, r.y, INK, 0.9);
+      }
+    }
+  }
+  const double bot = T + n * ph + (n - 1) * gap;
+  const wxString xt = wxString::FromUTF8("2\xCE\xB8 (degrees)    \xCE\xBB = ") +
+                      wxString::Format("%.4f ", parse(p_pwave->GetValue())) + wxString::FromUTF8("\xC3\x85");
+  text(gc, xt, L + pw / 2 - extent(gc, xt).x / 2.0, bot + 28, INK);
+  const wxString yt = "Relative intensity";
+  text(gc, yt, 8, T + (bot - T) / 2 + extent(gc, yt).x / 2.0, INK, 1.0, false, M_PI / 2);
+}
+
+void DiffractionDialog::paintImage(wxGraphicsContext *gc, double W, double H) const
+{
+  const wxRect a = imageArea(wxSize((int)W, (int)H));
+  const double f = (double)a.width / imagePixels();
+  const bool dark = p_frame && !p_fdark->IsChecked();
+  wxString title, caption;
+  if (p_single) {
+    static const char *fmt[] = {"hk%d", "h%dl", "%dkl"};
+    title = wxString::Format(fmt[std::max(0, p_zone->GetSelection())], (int)std::lround(number(p_layerNo))) +
+            " layer (reciprocal lattice, simulated)";
+    caption = wxString::Format("Disc area follows I_rel (%s scale); I_rel = 100 is the strongest reflection of the whole crystal",
+                               p_lscale->GetStringSelection());
+  } else if (p_frame) {
+    title = wxString::Format("Rotating crystal, phi %d to %g degrees (simulated)", p_fphi->GetValue(),
+                             p_fphi->GetValue() + number(p_fosc));
+    caption = wxString::Format("Detector %.0f mm from the crystal, %s radiation",
+                               number(p_fdist), p_fsource->GetStringSelection());
+  } else {
+    title = "Fibre diffraction pattern (simulated)";
+    caption = wxString::Format("Flat film %g mm square, %g mm from the sample, logarithmic grey scale",
+                               number(p_film), number(p_distance)) + wxString::FromUTF8(", \xCE\xBB = ") +
+              wxString::Format("%g ", number(p_wavelength)) + wxString::FromUTF8("\xC3\x85");
+  }
+  text(gc, title, a.x, 6, INK, 1.1, true);
+  if (p_single) {
+    if (!p_layerReady) return;
+    gc->SetPen(wxPen(wxColour(170, 170, 170), 1));
+    gc->SetBrush(*wxTRANSPARENT_BRUSH);
+    gc->DrawRectangle(a.x, a.y, a.width, a.height);
+    const wxString mode = p_lscale->GetStringSelection();
+    for (int pass = 0; pass < 2; pass++)
+      for (const Spot& s : p_spots) {
+        const double x = a.x + s.px * f, y = a.y + s.py * f;
+        if (x < a.x || y < a.y || x > a.x + a.width || y > a.y + a.height) continue;
+        if (s.absent) {
+          if (pass == 0 && p_absent->IsChecked()) {
+            gc->SetPen(wxPen(wxColour(150, 150, 150), 1));
+            gc->DrawEllipse(x - 3.5 * f, y - 3.5 * f, 7 * f, 7 * f);
+          }
+          continue;
+        }
+        if (pass == 0) continue;
+        const double q = std::min(1.0, std::max(s.rel / 100.0, 1e-300));
+        double ar = mode == "linear" ? q : mode == "sqrt" ? std::sqrt(q)
+                  : std::min(1.0, std::max(0.0, 1 + std::log10(q) / 3.0));
+        const double r = std::max(p_layerRmax * std::sqrt(ar), 1.2) * f;
+        gc->SetPen(*wxTRANSPARENT_PEN);
+        gc->SetBrush(wxBrush(wxColour(25, 25, 25)));
+        gc->DrawEllipse(x - r, y - r, 2 * r, 2 * r);
+      }
+    const double ox = a.x + p_layerSize / 2.0 * f, oy = a.y + p_layerSize / 2.0 * f;
+    gc->SetPen(wxPen(wxColour(200, 40, 40), 1));
+    gc->StrokeLine(ox - 5, oy, ox + 5, oy);
+    gc->StrokeLine(ox, oy - 5, ox, oy + 5);
+    static const char *names[] = {"a*", "b*", "c*"};
+    for (int k = 0; k < 3; k++) {
+      const double vx = p_axes[k][0], vy = p_axes[k][1], n = std::hypot(vx, vy);
+      if (n < 1e-6) continue;
+      const double ex = ox + vx * p_layerScale * f, ey = oy - vy * p_layerScale * f;
+      const double ux = vx / n, uy = -vy / n;
+      gc->SetPen(wxPen(CALC, 1.5));
+      gc->StrokeLine(ox, oy, ex, ey);
+      gc->StrokeLine(ex, ey, ex - 9 * ux + 4 * uy, ey - 9 * uy - 4 * ux);
+      gc->StrokeLine(ex, ey, ex - 9 * ux - 4 * uy, ey - 9 * uy + 4 * ux);
+      text(gc, names[k], ex + 8 * ux - 6, ey + 8 * uy - 8, CALC, 1.0, true);
+    }
+  } else if (p_panel->bitmap().IsOk()) {
+    gc->SetInterpolationQuality(wxINTERPOLATION_BEST);
+    gc->DrawBitmap(p_panel->bitmap(), a.x, a.y, a.width, a.height);
+    if (p_frame) {
+      const wxColour ink = dark ? wxColour(255, 255, 255) : CALC, ring = dark ? wxColour(255, 200, 80) : wxColour(200, 60, 60);
+      const double cx = a.x + a.width / 2.0, cy = a.y + a.height / 2.0, mm = p_layerScale * f;
+      gc->SetClipRegion(wxRegion(a));
+      if (p_frings->IsChecked() && p_geomLambda > 0)
+        for (double d : {3.0, 2.0, 1.5, 1.0}) {
+          const double sn = p_geomLambda / (2 * d);
+          if (sn >= 1) continue;
+          const double t2 = 2 * std::asin(sn);
+          if (t2 >= M_PI / 2) continue;
+          const double rad = p_geomDistance * std::tan(t2) * mm;
+          gc->SetPen(wxPen(ring, 1));
+          gc->SetBrush(*wxTRANSPARENT_BRUSH);
+          gc->DrawEllipse(cx - rad, cy - rad, 2 * rad, 2 * rad);
+          const wxString s = wxString::Format("d = %.2f ", d) + wxString::FromUTF8("\xC3\x85 (2\xCE\xB8 = ") +
+                             wxString::Format("%.1f", t2 * 180 / M_PI) + wxString::FromUTF8("\xC2\xB0)");
+          const wxSize e = extent(gc, s, 0.9);
+          for (double deg : {50., 130., 20., 160., 80.}) {
+            const double x = cx + rad * std::cos(deg * M_PI / 180), y = cy - rad * std::sin(deg * M_PI / 180);
+            if (x > a.x + 4 && x + e.x < a.x + a.width - 4 && y - e.y > a.y + 4 && y < a.y + a.height - 4) {
+              text(gc, s, x + 3, y - e.y - 2, ring, 0.9);
+              break;
+            }
+          }
+        }
+      if (p_flabel->IsChecked()) {
+        vector<const Spot *> order;
+        for (const Spot& s : p_spots) order.push_back(&s);
+        std::sort(order.begin(), order.end(), [](const Spot *x, const Spot *y) { return x->I > y->I; });
+        for (size_t i = 0; i < order.size() && i < 12; i++) {
+          const Spot& s = *order[i];
+          text(gc, wxString::Format("%d %d %d", s.h, s.k, s.l), a.x + s.px * f + 7, a.y + s.py * f - 16, ink, 0.9);
+        }
+      }
+      gc->ResetClip();
+    }
+  }
+  text(gc, caption, a.x, a.y + a.height + 6, wxColour(90, 90, 90), 0.9);
+}
+
+wxBitmap DiffractionDialog::render(int w, int h, int k) const
+{
+  wxBitmap bmp(w * k, h * k, 24);
+  wxMemoryDC dc(bmp);
+  dc.SetBackground(*wxWHITE_BRUSH);
+  dc.Clear();
+  std::unique_ptr<wxGraphicsContext> gc(wxGraphicsContext::Create(dc));
+  if (gc) {
+    gc->Scale(k, k);
+    paint(gc.get(), w, h);
+  }
+  gc.reset();
+  dc.SelectObject(wxNullBitmap);
+  return bmp;
+}
+
+
 DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
                                      const vector<int>& selection)
   : wxDialog(parent, wxID_ANY, "Diffraction", wxDefaultPosition, wxDefaultSize,
              wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
     p_structure(structure), p_pixels(PIXELS), p_periodic(hasLattice(structure)),
-    p_powder(false), p_single(false), p_frame(false), p_layerScale(1), p_layerSize(560)
+    p_powder(false), p_single(false), p_frame(false), p_layerScale(1), p_layerSize(560),
+    p_layerReady(false), p_layerRmax(8), p_geomDistance(0), p_geomLambda(0)
 {
   static int serial = 0;
+  for (auto& v : p_axes) v[0] = v[1] = 0;
   std::error_code ec;
   p_dir = (fs::temp_directory_path() / ("ecce-xrd-" + std::to_string(wxGetProcessId()) + "-" +
                                         std::to_string(serial++))).string();
@@ -445,7 +670,8 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   frame->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(3); });
   p_rbFrame = frame;
   auto again = [this](wxCommandEvent&) { string why; if (p_frame && p_calc.IsOk()) calculate(why); };
-  for (wxCheckBox *c : {p_fdark, p_fnoise, p_flabel, p_frings}) c->Bind(wxEVT_CHECKBOX, again);
+  for (wxCheckBox *c : {p_fdark, p_fnoise}) c->Bind(wxEVT_CHECKBOX, again);
+  for (wxCheckBox *c : {p_flabel, p_frings}) c->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { p_panel->Refresh(); });
   p_fsource->Bind(wxEVT_CHOICE, again);
   p_fphi->Bind(wxEVT_SCROLL_CHANGED, [this](wxScrollEvent&) { string why; if (p_frame) calculate(why); });
   meas->Bind(wxEVT_BUTTON, &DiffractionDialog::onMeasured, this);
@@ -613,7 +839,8 @@ bool DiffractionDialog::calculatePowder(string& why)
     char which[8] = "";
     const int nf = sscanf(line.c_str(), "%d,%d,%d,%lf,%lf,%lf,%d,%lf,%7s", &h, &k, &l, &d, &tt, &fa, &mult, &rel, which);
     if (nf < 8) continue;
-    Line ln = {tt, d, rel, wxString::Format("%d %d %d", h, k, l) + (nf == 9 ? wxString::Format("  %s", which) : wxString())};
+    Line ln = {tt, d, rel, wxString::Format("%d %d %d", h, k, l) + (nf == 9 ? wxString::Format("  %s", which) : wxString()),
+               h, k, l, nf == 9 && string(which) == "Ka2"};
     p_lines.push_back(ln);
     const long row = p_list->InsertItem(p_list->GetItemCount(), ln.hkl);
     p_list->SetItem(row, 1, wxString::Format("%.4f", d));
@@ -688,8 +915,6 @@ bool DiffractionDialog::calculateFrame(string& why)
                       "--out", p_png, "--out", p_csv, "--geometry", p_dir + "/geometry.txt"};
   if (!p_fnoise->IsChecked()) a.push_back("--no-noise");
   if (!p_fdark->IsChecked()) a.push_back("--dark");
-  if (p_flabel->IsChecked()) { a.push_back("--label"); a.push_back("12"); }
-  if (p_frings->IsChecked()) a.push_back("--rings");
   status("Calculating...");
   int st = 0;
   const string out = run(a, st);
@@ -711,6 +936,11 @@ bool DiffractionDialog::calculateFrame(string& why)
   while (g >> key >> val) {
     if (key == "scale") p_layerScale = val;
     if (key == "size") p_layerSize = (int)val;
+    if (key == "rmax") p_layerRmax = val;
+    if (key == "distance") p_geomDistance = val;
+    if (key == "wavelength") p_geomLambda = val;
+    if (key.size() == 4 && key.compare(0, 2, "ax") == 0 && key[2] >= '0' && key[2] <= '2')
+      p_axes[key[2] - '0'][key[3] == 'y'] = val;
   }
   p_spots.clear();
   std::ifstream f(p_csv);
@@ -725,6 +955,7 @@ bool DiffractionDialog::calculateFrame(string& why)
     s.py = p_layerSize / 2.0 - y * p_layerScale;
     s.F = tt;
     s.absent = false;
+    s.rel = 0;
     p_spots.push_back(s);
   }
   p_back = wxImage();
@@ -753,7 +984,7 @@ bool DiffractionDialog::calculateLayer(string& why)
                       "--resolution", num(number(p_lres)), "--B", num(number(p_lb)),
                       "--scale", p_lscale->GetStringSelection().ToStdString(),
                       "--size", std::to_string(p_layerSize),
-                      "--out", p_png, "--out", p_csv, "--geometry", p_dir + "/geometry.txt"};
+                      "--out", p_csv, "--geometry", p_dir + "/geometry.txt"};
   if (p_absent->IsChecked()) a.push_back("--show-absent");
   status("Calculating...");
   int st = 0;
@@ -766,16 +997,17 @@ bool DiffractionDialog::calculateLayer(string& why)
     status(wxString::FromUTF8(why.c_str()));
     return false;
   }
-  if (!p_calc.LoadFile(wxString::FromUTF8(p_png.c_str()), wxBITMAP_TYPE_PNG)) {
-    why = "cannot read the layer image";
-    return false;
-  }
   std::ifstream g(p_dir + "/geometry.txt");
   string key;
   double val;
   while (g >> key >> val) {
     if (key == "scale") p_layerScale = val;
     if (key == "size") p_layerSize = (int)val;
+    if (key == "rmax") p_layerRmax = val;
+    if (key == "distance") p_geomDistance = val;
+    if (key == "wavelength") p_geomLambda = val;
+    if (key.size() == 4 && key.compare(0, 2, "ax") == 0 && key[2] >= '0' && key[2] <= '2')
+      p_axes[key[2] - '0'][key[3] == 'y'] = val;
   }
   p_spots.clear();
   std::ifstream f(p_csv);
@@ -790,10 +1022,12 @@ bool DiffractionDialog::calculateLayer(string& why)
     s.px = p_layerSize / 2.0 + x * p_layerScale;
     s.py = p_layerSize / 2.0 - y * p_layerScale;
     s.absent = ab != 0;
+    s.rel = irel;
     p_spots.push_back(s);
   }
   p_back = wxImage();
-  p_panel->setImage(p_calc);
+  p_layerReady = true;
+  p_panel->Refresh();
   status(wxString::FromUTF8(out.substr(0, out.find('\n')).c_str()));
   return true;
 }
@@ -812,7 +1046,7 @@ bool DiffractionDialog::calculate(string& why)
                       "--length-broadening", num(number(p_length)),
                       "--misalignment", num(number(p_mis)),
                       "--scale", p_scale->GetStringSelection().ToStdString(),
-                      "--decades", "2.5",
+                      "--decades", "3.5",
                       p_invert->IsChecked() ? "--invert" : "--no-invert",
                       "--gamma", num(number(p_gamma)),
                       "--out", p_png, "--out", p_csv};
@@ -904,22 +1138,10 @@ wxString DiffractionDialog::pointerText(int x, int y) const
 
 bool DiffractionDialog::savePng(const string& path, string& why) const
 {
-  if (p_powder || p_single || p_frame) {
-    std::error_code ec;
-    if (!fs::exists(p_png)) { why = "nothing calculated yet"; return false; }
-    fs::copy_file(p_png, path, fs::copy_options::overwrite_existing, ec);
-    if (ec) { why = "cannot write " + path + ": " + ec.message(); return false; }
-    return true;
-  }
-  if (!p_calc.IsOk()) { why = "nothing calculated yet"; return false; }
-  wxImage out = p_calc;
-  if (p_back.IsOk()) {
-    const double a = p_opacity->GetValue() / 100.0;
-    out = wxImage(p_calc.GetWidth(), p_calc.GetHeight());
-    for (int k = 0; k < p_calc.GetWidth() * p_calc.GetHeight() * 3; k++)
-      out.GetData()[k] = (unsigned char)(a * p_calc.GetData()[k] + (1 - a) * p_back.GetData()[k] + 0.5);
-  }
-  if (!out.SaveFile(wxString::FromUTF8(path.c_str()), wxBITMAP_TYPE_PNG)) {
+  const bool ready = p_powder ? !p_tt.empty() : p_single ? p_layerReady : p_calc.IsOk();
+  if (!ready) { why = "nothing calculated yet"; return false; }
+  const wxBitmap bmp = p_powder ? render(900, p_meas.empty() ? 560 : 700, 2) : render(760, 820, 2);
+  if (!bmp.SaveFile(wxString::FromUTF8(path.c_str()), wxBITMAP_TYPE_PNG)) {
     why = "cannot write " + path;
     return false;
   }

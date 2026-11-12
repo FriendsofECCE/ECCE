@@ -9,6 +9,7 @@ class wxProcess;
 class DiffractionPanel;
 class PowderPanel;
 class wxListCtrl;
+class wxGraphicsContext;
 
 // Tools > Diffraction... (#971): the calculated diffraction pattern of a
 // structure file, drawn from `ecce-xrd`.  Only the file and an optional atom
@@ -28,6 +29,7 @@ public:
   // Runs ecce-xrd with the current fields; false and why on failure.
   bool calculate(std::string& why);
   // The pattern as shown (backdrop included) / as ecce-xrd wrote it.
+  // Save PNG writes what the window draws (the system font, anti-aliased).
   bool savePng(const std::string& path, std::string& why) const;
   bool saveCsv(const std::string& path, std::string& why) const;
   bool setBackdrop(const std::string& path, std::string& why);
@@ -56,6 +58,12 @@ private:
   friend class DiffractionPanel;
   friend class PowderPanel;
   void onSource();
+  void paint(wxGraphicsContext *gc, double w, double h) const;
+  void paintPowder(wxGraphicsContext *gc, double w, double h) const;
+  void paintImage(wxGraphicsContext *gc, double w, double h) const;
+  wxBitmap render(int w, int h, int scale) const;
+  wxRect imageArea(const wxSize& s) const;
+  int imagePixels() const;
   std::string run(const std::vector<std::string>& args, int& status);
   void status(const wxString& text);
   void onCalculate(wxCommandEvent&);
@@ -98,7 +106,9 @@ private:
   wxRadioButton *p_rbFrame;
   double p_layerScale;
   int p_layerSize;
-  struct Spot { double px, py; int h, k, l; double d, F, I; bool absent; };
+  struct Spot { double px, py; int h, k, l; double d, F, I; bool absent; double rel; };
+  bool p_layerReady;
+  double p_layerRmax, p_geomDistance, p_geomLambda, p_axes[3][2];
   std::vector<Spot> p_spots;
   wxTextCtrl *p_pwave, *p_ptmin, *p_ptmax, *p_pfwhm, *p_pb;
   wxChoice *p_source;
@@ -106,7 +116,7 @@ private:
   wxListCtrl *p_list;
   wxSizer *p_left, *p_fibreItems, *p_powderItems;
   std::vector<double> p_tt, p_y, p_meas;
-  struct Line { double tt, d, rel; wxString hkl; };
+  struct Line { double tt, d, rel; wxString hkl; int h, k, l; bool a2; };
   std::vector<Line> p_lines;
 };
 
