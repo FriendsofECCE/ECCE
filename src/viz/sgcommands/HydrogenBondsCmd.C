@@ -10,6 +10,8 @@
   using std::set;
 #include <algorithm>
   using std::find;
+#include <cmath>
+#include "tdat/LatticeDef.H"
 
 #include "util/EventDispatcher.H"
 #include "util/Event.H"
@@ -45,228 +47,224 @@ HydrogenBondsCmd::~HydrogenBondsCmd()
 
 
 
-/**
- * This method doesn't define any command parameters.
- * It does define a table of elements and distance (squared) to use
- * for elements that should be considered donors for H bonds.
- * The distance is computed as pow(vanderwalsradius+0.66,2).
- * Bruce and Erich originally arrived at a value of 2.01 for a distance
- * for Hydrogen bonds.  This was based on the assumption that only 
- * N, O, F were relevent.  Since others are interested in more elements, we
- * need to compute the distance.  So we are using
- *    2.01 - the VWR of Oxygen = 0.66
- * to arrive at this hardwired number.  Then add it to the vwr of the
- * atom in question.
- */
+double HydrogenBondsCmd::p_maxDist = 3.5;
+double HydrogenBondsCmd::p_maxAngle = 30.0;
+int HydrogenBondsCmd::p_lastCount = 0;
+
+void HydrogenBondsCmd::setCriteria(double dist, double angle)
+{
+   if (dist > 0.0) p_maxDist = dist;
+   if (angle > 0.0) p_maxAngle = angle;
+}
+double HydrogenBondsCmd::maxDistance() { return p_maxDist; }
+double HydrogenBondsCmd::maxAngle() { return p_maxAngle; }
+int HydrogenBondsCmd::lastCount() { return p_lastCount; }
+
+
 void HydrogenBondsCmd::init()
 {
-
    setHelpMessage("HydrogenBondsCmd");
-
-   TPerTab pertab;
-
-   static const float HDIST = 0.66;
-
-   p_donors["B"] = ((pertab.vwr(pertab.atomicNumber("B")) + HDIST),2);
-//   p_donors["C"] = ((pertab.vwr(pertab.atomicNumber("C")) + HDIST),2);
-   p_donors["N"] = ((pertab.vwr(pertab.atomicNumber("N")) + HDIST),2);
-   p_donors["O"] = ((pertab.vwr(pertab.atomicNumber("O")) + HDIST),2);
-   p_donors["F"] = ((pertab.vwr(pertab.atomicNumber("F")) + HDIST),2);
-
-   p_donors["Al"] = ((pertab.vwr(pertab.atomicNumber("Al")) + HDIST),2);
-   p_donors["Si"] = ((pertab.vwr(pertab.atomicNumber("Si")) + HDIST),2);
-   p_donors["P"] = ((pertab.vwr(pertab.atomicNumber("P")) + HDIST),2);
-   p_donors["S"] = ((pertab.vwr(pertab.atomicNumber("S")) + HDIST),2);
-   p_donors["Cl"] = ((pertab.vwr(pertab.atomicNumber("Cl")) + HDIST),2);
-   
-   p_donors["Ga"] = ((pertab.vwr(pertab.atomicNumber("Ga")) + HDIST),2);
-   p_donors["Ge"] = ((pertab.vwr(pertab.atomicNumber("Ge")) + HDIST),2);
-   p_donors["As"] = ((pertab.vwr(pertab.atomicNumber("As")) + HDIST),2);
-   p_donors["Se"] = ((pertab.vwr(pertab.atomicNumber("Se")) + HDIST),2);
-   p_donors["Br"] = ((pertab.vwr(pertab.atomicNumber("Br")) + HDIST),2);
-
    addParameter(new CommandParameter("switch", true));
 }
 
 
+namespace {
+
+// Donors N, O, F, S; acceptors N, O, F, and Cl/Br ions (no covalent bond).
+bool donorElement(int z) { return z == 7 || z == 8 || z == 9 || z == 16; }
+bool acceptorElement(int z) { return z == 7 || z == 8 || z == 9; }
+bool halideElement(int z) { return z == 17 || z == 35; }
+
+// Minimum-image difference vector for the lattice a[0..2] (triclinic safe).
+struct MinImage {
+   MPoint a[3];
+   MPoint cr[3];      // a_j x a_k / V: fractional coordinate i is d . cr[i]
+   bool periodic;
+   MinImage(LatticeDef *lat) : periodic(false) {
+      if (!lat) return;
+      vector<MPoint> *v = lat->toVectors();
+      if (v->size() == 3) {
+         for (int i = 0; i < 3; i++) a[i] = (*v)[i];
+         double vol = dot(a[0], cross(a[1], a[2]));
+         if (fabs(vol) > 1e-8) {
+            cr[0] = scale(cross(a[1], a[2]), 1.0/vol);
+            cr[1] = scale(cross(a[2], a[0]), 1.0/vol);
+            cr[2] = scale(cross(a[0], a[1]), 1.0/vol);
+            periodic = true;
+         }
+      }
+      delete v;
+   }
+   static double dot(const MPoint& p, const MPoint& q) {
+      return p.x()*q.x() + p.y()*q.y() + p.z()*q.z();
+   }
+   static MPoint cross(const MPoint& p, const MPoint& q) {
+      return MPoint(p.y()*q.z()-p.z()*q.y(), p.z()*q.x()-p.x()*q.z(),
+                    p.x()*q.y()-p.y()*q.x());
+   }
+   static MPoint scale(const MPoint& p, double f) {
+      return MPoint(p.x()*f, p.y()*f, p.z()*f);
+   }
+   // Shortest of the images of d: round to the nearest cell, then check the
+   // 27 neighbours, since a skewed cell's rounding is not always the minimum.
+   MPoint reduce(const MPoint& d) const {
+      if (!periodic) return d;
+      double f[3];
+      for (int i = 0; i < 3; i++) f[i] = floor(dot(d, cr[i]) + 0.5);
+      MPoint base(d.x() - f[0]*a[0].x() - f[1]*a[1].x() - f[2]*a[2].x(),
+                  d.y() - f[0]*a[0].y() - f[1]*a[1].y() - f[2]*a[2].y(),
+                  d.z() - f[0]*a[0].z() - f[1]*a[1].z() - f[2]*a[2].z());
+      MPoint best = base;
+      double bl = dot(base, base);
+      for (int i = -1; i <= 1; i++)
+      for (int j = -1; j <= 1; j++)
+      for (int k = -1; k <= 1; k++) {
+         if (!i && !j && !k) continue;
+         MPoint t(base.x() + i*a[0].x() + j*a[1].x() + k*a[2].x(),
+                  base.y() + i*a[0].y() + j*a[1].y() + k*a[2].y(),
+                  base.z() + i*a[0].z() + j*a[1].z() + k*a[2].z());
+         double l = dot(t, t);
+         if (l < bl) { bl = l; best = t; }
+      }
+      return best;
+   }
+};
+
+}
+
 
 bool HydrogenBondsCmd::execute()
 {
-   bool ret = true;
-
    SGContainer *sg = dynamic_cast<SGContainer*>(getReceiver());
    SGFragment *frag = sg->getFragment();
 
    sg->getTopHBonds()->removeAllChildren();
-   
-   // Must have fragment and at least two atoms to start the processing
-   if (getParameter("switch")->getBoolean() && frag && frag->numAtoms() > 1) {
+   p_lastCount = 0;
 
-      vector<TAtm*> *atoms = frag->atoms();
+   if (!getParameter("switch")->getBoolean() || !frag || frag->numAtoms() < 2)
+      return true;
 
-      int nAtoms = atoms->size();
+   vector<TAtm*> *atoms = frag->atoms();
+   const int nAtoms = atoms->size();
+   const double maxD = p_maxDist;
+   const double cosMin = cos(p_maxAngle * M_PI / 180.0);
+   MinImage mi(frag->getLattice());
 
-      vector<bool> atom1List;
-
-      /*
-      // Using the selected atoms seemed really confusing so comment out for now
-      if (frag->m_atomHighLight.size() > 0) {
-      atom1List.resize(nAtoms, false);
-      vector<int> *atomHighLight = &(frag->m_atomHighLight);
-      for (int i = 0; i < atomHighLight->size(); i++) {
-      atom1List[(*atomHighLight)[i]] = true;
-      }
-      } else {
-      atom1List.resize(nAtoms, true);
-      }
-       */
-      atom1List.resize(nAtoms, true);
-
-      // Current list of selected atom indices.  Will iterate over
-      // these atoms to perform radius selection.
-
-      double maxR = determineCellSize();
-
-      // Get a spatial partition of atoms (LinkCellList) 
-      LinkCellList cellList(atoms, maxR);
-
-      maxR = maxR*maxR;
-      const int *link_list = cellList.getLinkCellList();
-      const int *header = cellList.getHeader();
-
-
-      TPerTab tpt;
-      int nub = tpt.nubAtom();
-      int ghost = 0;
-
-      set<int,less<int> > alreadyBonded;
-
-      vector<int> cells;
-      int cellIdx;
-      int atomIdx;
-      int atNum;
-      string atsym;
-      MPoint p1, p2;
-      int j;
-
-      for (int i = 0; i < atom1List.size(); i++) {
-
-         if ( !atom1List[i]) continue;
-
-         cells.clear();
-         alreadyBonded.clear();
-
-         TAtm *atm1 = (*atoms)[i];
-
-         atNum = atm1->atomicNumber();
-
-         // If atom is not hydrogen, skip to next atom.
-         if (atNum != 1) continue;
-
-         if (atNum == ghost || atNum == nub) continue;
-
-         if (!atm1->displayStyle().isDisplayed()) continue;
-
-         // If hydrogen is not connected to a potential donor,
-         // move on to the next atom
-         const vector<TBond*> blist = atm1->bondList();
-         bool isDonor = false;
-         for (j=0; j<blist.size(); j++) {
-            TAtm *atm2 = blist[j]->atom1();
-            if (atm2 == atm1) {
-               atm2 = blist[j]->atom2();
-            }
-            alreadyBonded.insert(atm2->index());
-            // 0.999 is a way of picking bonds with bond order 1.0 or greater
-            // while handling floating point number round off issues.  
-            // Effectively this means no metal pi bonds.
-            if (blist[j]->order() > 0.99) {
-               atsym = atm2->atomicSymbol();
-               isDonor = isDonorAtom(atsym);
-               if (isDonor) break;
-            }
-         }
-         if (!isDonor) continue;
-
-         // Get list of cells that contain "atm1" and border it
-         cellList.getCells(cells, i);
-
-         p1.xyz(atm1->coordinates());
-
-         // Iterate over all atoms in cell list
-         for (j = 0; j < cells.size(); j++) {
-
-            // Determine cell index
-            cellIdx = cells[j];
-
-            // Use cell index to get first atom from header array 
-            atomIdx = header[cellIdx];
-
-            // End of cell list is indicated by -1
-            while (atomIdx >= 0) {
-
-               // Only perform search if atom hasn't alreadyBonded been selected
-               TAtm *atm2 = (*atoms)[atomIdx];
-               atsym = atm2->atomicSymbol();
-
-               if (isDonorAtom(atsym) && atm2->displayStyle().isDisplayed()) {
-                  if (alreadyBonded.find(atm2->index()) == alreadyBonded.end()) {
-
-                     p2.xyz(atm2->coordinates());
-                     p2.subtract(p1);
-                     if (p2.lengthSqr()<=getDonorDistance(atsym)) {
-
-                        // Rumor has it that it shouldn't be considered an H
-                        // bond if the angle is too wide
-                        // Just take a guess at too wide for now
-                        // But Sotiris says leave this out for now
-
-                        /* bool doit = true; */
-
-                        // Seems to give really bad results for simple system
-                        // like insulin (a lot of hydrogen bonds between
-                        // hydroxyl protons and carbon to which hydroxyl group
-                        // is attached). Use angle criteria with a really wide
-                        // angle (+/- 120 degrees) to keep this from happening.
-                        bool doit = false;
-                        vector<TAtm*> *connected = atm1->connectedAtoms();
-                        if (connected) {
-                           TAtm *parent = (*connected)[0];
-                           double angle = fabs(atm1->angleBetween(parent,atm2));
-                           if (angle >= 60. && angle <= 300.) doit = true;
-                           delete connected;
-                        }
-
-                        if (doit) {
-                           SoSeparator *sep = new SoSeparator;
-                           // Its useful to comment this out to use measure so you can see when bonds
-                           // form and break
-#define uselines
-#ifdef uselines                   
-                           AtomLine *dist = new
-                              AtomLine(frag, atm1, atm2, sep);
-#else
-                           AtomMeasureDist *dist= new
-                              AtomMeasureDist(frag,atm1,atm2,sep);
-#endif
-                           sep->addChild(dist);
-                           sg->getTopHBonds()->addChild(sep);
-                        }
-
-                     }
-                  }
-               }
-
-               // Get next atom in cell
-               atomIdx = link_list[atomIdx]; 
-            }
-         } 
-      }
-
-      delete atoms;
+   // 1 = acceptor, 0 = not; computed once so the inner loop has no strings.
+   vector<char> acceptor(nAtoms, 0);
+   for (int i = 0; i < nAtoms; i++) {
+      TAtm *a = (*atoms)[i];
+      if (!a->displayStyle().isDisplayed()) continue;
+      int z = a->atomicNumber();
+      if (acceptorElement(z)) acceptor[i] = 1;
+      else if (halideElement(z) && a->bondList().empty()) acceptor[i] = 1;
    }
 
-   return ret;
+   // Candidate acceptors near each donor: LinkCellList (cell = cutoff), or,
+   // with a lattice, a grid over wrapped fractional coordinates, because
+   // LinkCellList knows nothing of periodic images.
+   LinkCellList *cellList = 0;
+   vector<vector<int> > grid;
+   int ng[3] = {1, 1, 1};
+   vector<double> frac;
+   if (!mi.periodic) {
+      cellList = new LinkCellList(atoms, maxD);
+   } else {
+      for (int i = 0; i < 3; i++) {
+         double h = 1.0 / sqrt(MinImage::dot(mi.cr[i], mi.cr[i]));
+         ng[i] = std::max(1, (int)floor(h / maxD));
+      }
+      frac.resize(3*nAtoms);
+      grid.resize(ng[0]*ng[1]*ng[2]);
+      for (int n = 0; n < nAtoms; n++) {
+         const double *c = (*atoms)[n]->coordinates();
+         MPoint p(c[0], c[1], c[2]);
+         int idx[3];
+         for (int i = 0; i < 3; i++) {
+            double f = MinImage::dot(p, mi.cr[i]);
+            f -= floor(f);
+            frac[3*n+i] = f;
+            idx[i] = std::min(ng[i]-1, (int)(f*ng[i]));
+         }
+         if (acceptor[n])
+            grid[(idx[0]*ng[1]+idx[1])*ng[2]+idx[2]].push_back(n);
+      }
+   }
+
+   vector<int> cells, cand;
+   for (int i = 0; i < nAtoms; i++) {
+      TAtm *h = (*atoms)[i];
+      if (h->atomicNumber() != 1 || !h->displayStyle().isDisplayed()) continue;
+
+      // The donor: the first single-or-higher bond to N, O, F or S.
+      TAtm *donor = 0;
+      const vector<TBond*> blist = h->bondList();
+      for (size_t j = 0; j < blist.size() && !donor; j++) {
+         TAtm *o = blist[j]->atom1() == h ? blist[j]->atom2() : blist[j]->atom1();
+         if (blist[j]->order() > 0.99 && donorElement(o->atomicNumber()))
+            donor = o;
+      }
+      if (!donor) continue;
+      const int di = donor->index();
+
+      cand.clear();
+      if (cellList) {
+         cellList->getCells(cells, di);
+         const int *header = cellList->getHeader();
+         const int *link = cellList->getLinkCellList();
+         for (size_t c = 0; c < cells.size(); c++)
+            for (int n = header[cells[c]]; n >= 0; n = link[n])
+               if (acceptor[n]) cand.push_back(n);
+      } else {
+         int idx[3];
+         for (int k = 0; k < 3; k++)
+            idx[k] = std::min(ng[k]-1, (int)(frac[3*di+k]*ng[k]));
+         // With fewer than 3 bins on an axis the +-1 neighbours coincide;
+         // the cell set below keeps each bin once.
+         set<int> seen;
+         for (int x = -1; x <= 1; x++)
+         for (int y = -1; y <= 1; y++)
+         for (int z = -1; z <= 1; z++) {
+            int bx = ((idx[0]+x)%ng[0]+ng[0])%ng[0];
+            int by = ((idx[1]+y)%ng[1]+ng[1])%ng[1];
+            int bz = ((idx[2]+z)%ng[2]+ng[2])%ng[2];
+            int b = (bx*ng[1]+by)*ng[2]+bz;
+            if (!seen.insert(b).second) continue;
+            cand.insert(cand.end(), grid[b].begin(), grid[b].end());
+         }
+      }
+
+      const double *pd = donor->coordinates();
+      const double *ph = h->coordinates();
+      MPoint dh(ph[0]-pd[0], ph[1]-pd[1], ph[2]-pd[2]);
+      double dhLen = sqrt(MinImage::dot(dh, dh));
+      if (dhLen < 1e-6) continue;
+
+      for (size_t c = 0; c < cand.size(); c++) {
+         TAtm *acc = (*atoms)[cand[c]];
+         if (acc == donor || acc == h) continue;
+         bool bonded = false;
+         const vector<TBond*> ab = acc->bondList();
+         for (size_t j = 0; j < ab.size() && !bonded; j++)
+            bonded = ab[j]->atom1() == donor || ab[j]->atom2() == donor;
+         if (bonded) continue;
+
+         const double *pa = acc->coordinates();
+         MPoint da = mi.reduce(MPoint(pa[0]-pd[0], pa[1]-pd[1], pa[2]-pd[2]));
+         double len = sqrt(MinImage::dot(da, da));
+         if (len > maxD || len < 1e-6) continue;
+         if (MinImage::dot(dh, da)/(dhLen*len) < cosMin) continue;
+
+         p_lastCount++;
+         SoSeparator *sep = new SoSeparator;
+         sep->addChild(new AtomLine(frag, h, acc, sep));
+         sg->getTopHBonds()->addChild(sep);
+      }
+   }
+
+   delete cellList;
+   delete atoms;
+   return true;
 }
 
 
@@ -280,42 +278,4 @@ bool HydrogenBondsCmd::isUndoable() const
 
 void HydrogenBondsCmd::undo()
 {
-}
-
-
-/**
- * Determine if the atom should be considered a donor for H bonds.
- */
-bool HydrogenBondsCmd::isDonorAtom(const string& symbol) const
-{
-   return p_donors.find(symbol) != p_donors.end();
-}
-
-
-/**
- * Get cutoff H bond distance for specified element type.
- * This method assumes that the symbol represents a legitimate donor.
- * The returned value is the distance squared.
- */
-float HydrogenBondsCmd::getDonorDistance(const string& symbol) const
-{
-   map<string, float, less<string> >::const_iterator it = p_donors.find(symbol);
-   return it->second * it->second;
-
-}
-
-
-/**
- * Picks the largest radius from amongst all possible donors.
- * This method could be improved by only considering elements which 
- * actually exist in the user's system.
- */
-float HydrogenBondsCmd::determineCellSize() const
-{
-   float ret = 2.01;  // Our original idea for a correct value
-   map<string, float, less<string> >::const_iterator it;
-   for (it=p_donors.begin(); it!=p_donors.end(); it++) {
-      if (it->second > ret) ret = it->second;
-   }
-   return ret;
 }

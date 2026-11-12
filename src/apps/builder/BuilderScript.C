@@ -125,6 +125,7 @@
 #include "util/EventDispatcher.H"
 #include "util/Event.H"
 #include "wxviz/ViewerEvtHandler.H"
+#include "viz/HydrogenBondsCmd.H"
 #include "wxviz/SGSelection.H"
 #include "tdat/TPerTab.H"
 #include "MiniPerTab.H"
@@ -706,6 +707,16 @@ void Builder::runBuilderScript(const std::string& file)
           ev.SetEventObject(this);
           GetEventHandler()->ProcessEvent(ev);
         }
+      } else if (w[0] == "hbonds" && frag) {
+        //  "hbonds [DIST ANGLE]": switch Show Hydrogen Bonds on (with those
+        //  criteria), redraw, log the number of bonds drawn.
+        if (w.size() == 3)
+          HydrogenBondsCmd::setCriteria(atof(w[1].c_str()), atof(w[2].c_str()));
+        GetMenuBar()->Check(ViewerEvtHandler::ID_SHOW_HYDROGEN_BOND, true);
+        Command *hb = new HydrogenBondsCmd("Show Hydrogen Bond", &getFW().getSceneGraph());
+        hb->getParameter("switch")->setBoolean(true);
+        getFW().execute(hb);
+        fprintf(stderr, "BUILDER: hbonds=%d\n", HydrogenBondsCmd::lastCount());
       } else if (w[0] == "atomstyles" && frag) {
         //  Each run of atoms with one style: "first-last name:style".
         std::string out;

@@ -63,6 +63,7 @@ public:
 
   static const wxWindowID ID_SHOW_HYDROGEN;
   static const wxWindowID ID_SHOW_HYDROGEN_BOND;
+  static const wxWindowID ID_HYDROGEN_BOND_SETTINGS;
   static const wxWindowID ID_LABEL_NONE;
   static const wxWindowID ID_LABEL_ELEMENT;
   static const wxWindowID ID_LABEL_ATOM_NAME;
@@ -159,6 +160,7 @@ public:
   virtual void delHydrogen(wxCommandEvent & event);
   virtual void showHydrogen(wxCommandEvent & event);
   virtual void showHydrogenBond(wxCommandEvent & event);
+  virtual void hydrogenBondSettings(wxCommandEvent & event);
   virtual void orient(wxCommandEvent & event);
   virtual void clearResidue(wxCommandEvent & event);
   virtual void makeResidue(wxCommandEvent & event);

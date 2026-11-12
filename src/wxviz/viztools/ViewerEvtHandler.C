@@ -16,6 +16,7 @@
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
 #endif
+#include "wx/spinctrl.h"
 
 #include "util/EventDispatcher.H"
 #include "util/Event.H"
@@ -104,6 +105,7 @@ const wxWindowID ViewerEvtHandler::ID_CLEAN_COORD = wxNewId();
 
 const wxWindowID ViewerEvtHandler::ID_SHOW_HYDROGEN = wxNewId();
 const wxWindowID ViewerEvtHandler::ID_SHOW_HYDROGEN_BOND = wxNewId();
+const wxWindowID ViewerEvtHandler::ID_HYDROGEN_BOND_SETTINGS = wxNewId();
 const wxWindowID ViewerEvtHandler::ID_LABEL_NONE = wxNewId();
 const wxWindowID ViewerEvtHandler::ID_LABEL_ELEMENT = wxNewId();
 const wxWindowID ViewerEvtHandler::ID_LABEL_ATOM_NAME = wxNewId();
@@ -267,6 +269,8 @@ BEGIN_EVENT_TABLE(ViewerEvtHandler, wxEvtHandler)
            ViewerEvtHandler::showHydrogen)
   EVT_MENU(ID_SHOW_HYDROGEN_BOND,
            ViewerEvtHandler::showHydrogenBond)
+  EVT_MENU(ID_HYDROGEN_BOND_SETTINGS,
+           ViewerEvtHandler::hydrogenBondSettings)
   EVT_MENU(ID_ORIENT,
            ViewerEvtHandler::orient)
   EVT_MENU(ID_CLEAR_RESIDUE,
@@ -834,6 +838,40 @@ void ViewerEvtHandler::showHydrogenBond(wxCommandEvent & event)
 }
 
 
+void ViewerEvtHandler::hydrogenBondSettings(wxCommandEvent & event)
+{
+  wxDialog dlg(p_parent, wxID_ANY,
+               _("Hydrogen Bond Settings"));
+  wxSpinCtrlDouble *dist = new wxSpinCtrlDouble(&dlg, wxID_ANY, wxEmptyString,
+      wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1.5, 6.0,
+      HydrogenBondsCmd::maxDistance(), 0.1);
+  wxSpinCtrlDouble *angle = new wxSpinCtrlDouble(&dlg, wxID_ANY, wxEmptyString,
+      wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 5.0, 90.0,
+      HydrogenBondsCmd::maxAngle(), 1.0);
+  wxFlexGridSizer *grid = new wxFlexGridSizer(2, 5, 5);
+  grid->Add(new wxStaticText(&dlg, wxID_ANY,
+            _("Donor-acceptor distance at most (\u00c5):")), 0, wxALIGN_CENTER_VERTICAL);
+  grid->Add(dist);
+  grid->Add(new wxStaticText(&dlg, wxID_ANY,
+            _("Hydrogen-donor-acceptor angle at most (degrees):")), 0, wxALIGN_CENTER_VERTICAL);
+  grid->Add(angle);
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  top->Add(grid, 0, wxALL, 10);
+  top->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxALIGN_RIGHT, 10);
+  dlg.SetSizerAndFit(top);
+  if (dlg.ShowModal() != wxID_OK) return;
+  HydrogenBondsCmd::setCriteria(dist->GetValue(), angle->GetValue());
+  // Redraw now if the lines are on.
+  wxFrame *frame = wxDynamicCast(p_parent, wxFrame);
+  wxMenuBar *bar = frame ? frame->GetMenuBar() : NULL;
+  if (bar && bar->IsChecked(ID_SHOW_HYDROGEN_BOND)) {
+    Command* cmd = new HydrogenBondsCmd("Show Hydrogen Bond", &getFW().getSceneGraph());
+    cmd->getParameter("switch")->setBoolean(true);
+    getFW().execute(cmd);
+  }
+}
+
+
 void ViewerEvtHandler::orient(wxCommandEvent & event)
 {
   WxVizToolFW& fw = getFW();
@@ -988,6 +1026,7 @@ void ViewerEvtHandler::createOptionMenu(wxMenu * menu)
   menu->Append(ID_SHOW_HYDROGEN, _("Show Hydrogen Atoms"), _T(""), wxITEM_CHECK);
   menu->Check(ID_SHOW_HYDROGEN, true);
   menu->Append(ID_SHOW_HYDROGEN_BOND, _("Show Hydrogen Bonds"), _T(""), wxITEM_CHECK);
+  menu->Append(ID_HYDROGEN_BOND_SETTINGS, _("Hydrogen Bond Settings..."), _T(""), wxITEM_NORMAL);
   wxMenu* labelMenu = new wxMenu;
   labelMenu->Append(ID_LABEL_NONE, _("None"), _T(""), wxITEM_NORMAL);
   labelMenu->Append(ID_LABEL_ELEMENT, _("Element with Number"), _T(""), wxITEM_NORMAL);
