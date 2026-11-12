@@ -175,6 +175,32 @@ done in ECCE.
    distance, if the PMF has levelled off; if a warning names a gap, add a
    window there and run WHAM again.
 
+## Following a protein-pair umbrella lab step by step
+
+A lab that pulls one chain off a fibril (the 2BEG example above) usually has
+these steps. Each one is done in ECCE as follows.
+
+| Lab step | In ECCE |
+|---|---|
+| Load the structure and count the chains | **Prepare** task, **Source: Protein**, **Structure: PDB file...**; the chains are listed under **Restrain chain** on the run pages |
+| Prepare: force field, box, ions, remove the starting structure | the same Prepare: **Force field**, **Water model**, **Box size (x y z)** and **Solute centre (x y z)**, **Neutralise** and the salt concentration. Launch; the solvated system is its output |
+| Energy minimisation | **GROMACS MD Optimize** task: steepest descent, steps and `emtol` under the extra lines. Launch |
+| NPT equilibration with every chain restrained, 310 K | **GROMACS MD Equilibrate** task: ensemble NPT, temperature 310 K (the starting velocities follow it), **Restrain chain A** to **E**. Launch |
+| Density, pressure and temperature plots | **MD Analysis** on the Equilibrate task: **Energy** (pressure, temperature) and **Density** |
+| Index groups for the two chains | **Groups by residue name** on the run settings page: `Chain_A = mol:Protein_chain_A`, `Chain_B = mol:Protein_chain_B` |
+| Pull run with chain B restrained | **GROMACS MD Dynamics** task: **Restrain chain B**, **Pull group 2 away from group 1** (`Chain_B`, `Chain_A`), rate, force constant, energy and trajectory output intervals. Launch |
+| Run the heavy steps on a cluster | register the cluster under **Machine Registration** with its queue manager (Slurm); the task's Launch dialog then sends the job there and brings the files back. Nothing is copied by hand |
+| Force against time, RMSD and radius of gyration of the pull | **Pull Force** in the pull task's Properties: **Export .csv...** for the force, **RMSD...** and **Radius of gyration...** |
+| Choose the starting conformations (distance range and spacing) | **Umbrella sampling** page: **Spacing**, **From**, **To**, **Find windows** |
+| Equilibrate and run every window | **Create window calculations**, then **Run Mgmt > Launch Selected** (windows run side by side on a cluster) |
+| WHAM, the histogram plot and the PMF | **Run WHAM**: the PMF and the histograms are on the page, **Details...** has each pair's overlap |
+| Gaps in the sampling | the warning names the distance. Run **Find windows** with a smaller spacing over that range and **Create window calculations** again: the new windows are numbered after the ones that exist. Launch them, then **Run WHAM** again |
+| Binding free energy | the deepest minimum of the PMF below its plateau at large distance, in the summary and in **Export .csv...** |
+
+Reading the binding free energy needs the PMF to level off at large distance.
+If it is still rising where the sampling stops, pull further (a longer box and a
+longer pull run) before extracting windows.
+
 ## Command line
 
 `ecce-umbrella` does the same on stored calculations and prints text, CSV

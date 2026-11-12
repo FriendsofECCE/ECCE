@@ -2,7 +2,7 @@
 type: pitfall
 title: "GROMACS umbrella sampling (#762): a window is the pull run with rate 0; WHAM reads tpr + pullf; the r^2 volume term is in gmx wham's PMF"
 area: codereg
-paths: [scripts/ecce_umbrella.py, scripts/parsers/md.gmxtask, include/tdat/InteractionModel.H, src/dsm/xml/NWChemMDModelXMLizer.C, src/dsm/edsiimpl/UmbrellaWindows.C, src/comm/commxt/Launch.C, src/comm/commxt/JobStore.C, tests/gromacs_md/umbrella_test.py, scripts/parsers/ai.gromacs, src/apps/builder/PullPanel.C]
+paths: [scripts/ecce_umbrella.py, scripts/parsers/md.gmxtask, include/tdat/InteractionModel.H, src/dsm/xml/NWChemMDModelXMLizer.C, src/dsm/edsiimpl/UmbrellaWindows.C, src/comm/commxt/Launch.C, src/comm/commxt/JobStore.C, tests/gromacs_md/umbrella_test.py, scripts/parsers/ai.gromacs, src/apps/builder/PullPanel.C, tests/launch/umbrella_2beg_test.py, tests/apps/umbrella_panel_test.py]
 issues: [762, 410]
 ---
 - A window is the pull task's model with `GmxPullRate` 0 and `GmxPullInit`
@@ -68,3 +68,21 @@ issues: [762, 410]
   equilibration holds the pair at 0.28 nm, or it can drift to 0.5 nm and
   the pull leaves no windows at contact and runs past half the box; `--quick`
   for minutes, full run about an hour on 4 threads).
+- Windows added later (a gap filled) are numbered after the existing ones:
+  `UmbrellaWindows::create` starts at the highest `window` property of the
+  pull run's -eq/prod tasks plus one, as `-w01` again would collide with the
+  first batch (`umbrella_panel_test` step 4). WHAM takes every completed
+  window of the pull run and orders them by distance, so numbers are labels.
+- `gen-temp` of an NPT/NVT start is the thermostat temperature when no
+  `ES.Runtype.MD.GenTemp` is stored (the editor has no field for it): it was
+  300 K whatever the reference temperature was.
+- Whole-lab replay: `tests/launch/umbrella_2beg_test.py` (ctest
+  `launch_umbrella_2beg`, label `long`) runs 2BEG (fixture `2beg_model1.pdb`,
+  model 1) through Prepare, Optimize, NPT, a 0.05 nm/ps pull along z, the
+  windows and WHAM, all launched with the real Launch; lengths come from the
+  environment (see the file's docstring). `--host USER@HOST --rundir DIR`
+  sends the jobs through Slurm on another machine. The short windows only
+  prove the chain: overlap at 40 ps per window is marginal, and the PMF is not
+  a result (Na+ Cl- is the science check). The lab itself ran on a cluster
+  with SAMSON's batch scripts; ECCE's Launch replaces them, so the lab's
+  hand edits of `.top` paths and copying `.cpt` do not exist here.

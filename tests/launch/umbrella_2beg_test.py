@@ -263,6 +263,10 @@ def main():
                         if ed.cmd("tab " + tab) == "ok":
                             ed.cmd("snap " + os.path.join(png, "02-pull-%s.png" % tab.replace(" ", "_").lower()))
                 mdp = open(os.path.join(where(tasks[kind]), "Inputs", "gromacs.mdp")).read()
+                if kind == "equilibrate":
+                    m = re.search(r"^gen[-_]temp\s*=\s*(\S+)", mdp, re.M)
+                    check(m and float(m.group(1)) == 310, "NPT draws velocities at 310 K (gen-temp %s)"
+                          % (m.group(1) if m else None))
                 say("  mdp: %s" % mdp.replace("\n", " | ")[:3000])
             finally:
                 ed.close()

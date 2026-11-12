@@ -256,8 +256,11 @@ sub GMXVelocities {
     push(@l, "continuation             = yes");
   } else {
     push(@l, "gen-vel                  = yes");
+    #  The editor has no field of its own for it: velocities are drawn at
+    #  the thermostat's temperature.
     push(@l, "gen-temp                 = " .
-             &numOr("ES.Runtype.MD.GenTemp", "300"));
+             &numOr("ES.Runtype.MD.GenTemp",
+                    &numOr("ES.Runtype.MD.Temperature", "300")));
     push(@l, "gen-seed                 = -1");
   }
   my $r = join("\n", @l);

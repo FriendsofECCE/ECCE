@@ -154,7 +154,7 @@ static MdTask *makeTask(Session *session, ResourceType *type, MdTask *from,
   return task;
 }
 
-bool UmbrellaWindows::create(MdTask *pull, const vector<Window>& windows,
+bool UmbrellaWindows::create(MdTask *pull, const vector<Window>& found,
                              int eqSteps, int prodSteps,
                              vector<string> *names, string *why)
 {
@@ -172,6 +172,14 @@ bool UmbrellaWindows::create(MdTask *pull, const vector<Window>& windows,
     return false;
   }
   const string base = pull->getURL().getFilePathTail();
+  //  Windows added later (to fill a gap in the PMF) continue the numbering,
+  //  so that they do not collide with the names of the first batch.
+  vector<Window> windows = found;
+  int last = 0;
+  for (const string role : { "eq", "prod" })
+    for (Resource *r : tasks(pull, role))
+      last = std::max(last, atoi(r->getProp(propName("window")).c_str()));
+  for (size_t i = 0; i < windows.size(); i++) windows[i].number = last + 1 + (int)i;
   for (size_t i = 0; i < windows.size(); i++) {
     const Window& w = windows[i];
     const string groBytes = readFile(w.groFile);

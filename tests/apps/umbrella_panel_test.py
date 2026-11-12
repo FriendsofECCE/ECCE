@@ -288,6 +288,13 @@ def main():
                     shutil.copy(shots[k], args.png)
             shutil.copy(shot, os.path.splitext(args.png)[0] + "-plot.png")
         say("screenshots: %s" % shots)
+
+        # --- 4: a window added afterwards (a gap filled) is numbered on ------
+        ans = org.ask("umbrellawindows %s 0.04 0.60 0.60 %d %d" % (pull, EQ_STEPS, PROD_STEPS), 600)
+        more = [x.strip() for x in ans.split("|")]
+        check(more[0].startswith("ok 1") and more[1:] == ["%s-w%02d-eq" % (base, n + 1),
+                                                        "%s-w%02d" % (base, n + 1)],
+              "a window added later continues the numbering: %s" % ans[:120])
     finally:
         if org:
             org.stop()
