@@ -1666,7 +1666,12 @@ endif()
 set(ECCE_MESSAGING_APPS ${ECCE_GUI_APPS} eccejobmaster eccejobstore)
 
 foreach(_app ${ECCE_GUI_APPS} ${ECCE_CLI_APPS})
-  set(_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-${_app})
+  # Tools already named ecce-* keep their name (#960: ecce-ecce-launch etc.).
+  if(_app MATCHES "^ecce-")
+    set(_wrapper ${CMAKE_BINARY_DIR}/wrappers/${_app})
+  else()
+    set(_wrapper ${CMAKE_BINARY_DIR}/wrappers/ecce-${_app})
+  endif()
   list(FIND ECCE_MESSAGING_APPS ${_app} _msg_idx)
   if(_msg_idx GREATER -1)
     # Started under -remote too: every app needs this session's relay, and
