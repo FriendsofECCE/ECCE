@@ -2840,9 +2840,11 @@ bool Builder::execute(Command *cmd, bool batch)
          // display (an MO's grid, then its surface): the view zoomed in
          // and out again while an orbital was computed.
          if (!batch) {
-            //  A display style changes no coordinates: nothing to re-fit.
+            //  A display style or the H-bond lines (redrawn on every trace
+            //  step) change no coordinates: nothing to re-fit.
             const bool display = dynamic_cast<PropCmd*>(cmd) ||
-                                 dynamic_cast<CSStyleCmd*>(cmd);
+                                 dynamic_cast<CSStyleCmd*>(cmd) ||
+                                 dynamic_cast<HydrogenBondsCmd*>(cmd);
             if ((isAutoCenter() && !display) ||
                   (startNumAtoms == 0 && getSG()->getFragment()->numAtoms() > 0)) {
                center();
