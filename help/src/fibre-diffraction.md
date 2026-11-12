@@ -60,6 +60,16 @@ apart the larger the angle: the doublet is hardly visible at low 2-theta and is
 resolved as two peaks at high angle. The peak list has one row per line, marked
 Ka1 or Ka2. Other sources (synchrotron, a typed wavelength) have no doublet.
 
+## Layers on one intensity scale
+
+The single-crystal view draws a disc per reflection with its area following
+I_rel, where I_rel = 100 is the strongest reflection of the whole crystal within
+the resolution limit, not of the layer shown. Layers of one crystal and of
+different crystals can therefore be compared: in KCl the all-odd reflections of
+the hk1 layer have I_rel near 0.3 and are barely visible, in NaCl 4.5. The CSV
+holds I and this I_rel. On the command line `--scale-to layer` gives the old
+scale to the layer's own strongest spot.
+
 ## Detector frame of a rotating crystal
 
 Choose **Detector frame** for what a rotation camera records. The crystal sits
