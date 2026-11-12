@@ -9,6 +9,7 @@
   using std::ifstream;
 #include <strstream>
   using std::istrstream;
+#include <map>
 #include <set>
   using std::set;
 #include <algorithm>
@@ -1144,17 +1145,28 @@ SGFragment::ResidueClass SGFragment::residueClass(const string& residueName)
       "DMS", "DMSO", "PEG", "PGE", "PG4", "P6G", "1PE", "PE4", "MPD", "BME",
       "FMT", "NO3", "TRS", "EPE", "MES", "IPA", "EOH", "ACY", "SO3", "CIT",
       "TAR"};
-  TResTab restab;
-  if (restab.verify(key.c_str()) != TResItem::Other ||
-      extraPolymer.count(key) > 0)
-    return RES_POLYMER;
-  if (key.size() == 4 && (key[0] == 'N' || key[0] == 'C') &&
-      restab.verify(key.substr(1).c_str()) == TResItem::AminoAcid)
-    return RES_POLYMER;
-  if (isWaterName(key)) return RES_WATER;
-  if (isIonName(key)) return RES_ION;
-  if (additives.count(key) > 0) return RES_ADDITIVE;
-  return RES_OTHER;
+  // Called per atom: TResTab reads ResidueList from disk when constructed.
+  static std::map<std::string, ResidueClass> known;
+  std::map<std::string, ResidueClass>::const_iterator hit = known.find(key);
+  if (hit != known.end()) return hit->second;
+  static TResTab restab;
+  // TResTab holds names in PDB column form ("ALA "), as TResItem pads them.
+  auto verify = [](const string& name) {
+    // TResItem writes past a 4-character buffer for longer names.
+    if (name.empty() || name.size() > 4) return TResItem::Other;
+    return restab.verify(TResItem(name.c_str(), TResItem::Other).name().c_str());
+  };
+  ResidueClass c = RES_OTHER;
+  if (verify(key) != TResItem::Other || extraPolymer.count(key) > 0)
+    c = RES_POLYMER;
+  else if (key.size() == 4 && (key[0] == 'N' || key[0] == 'C') &&
+           verify(key.substr(1)) == TResItem::AminoAcid)
+    c = RES_POLYMER;
+  else if (isWaterName(key)) c = RES_WATER;
+  else if (isIonName(key)) c = RES_ION;
+  else if (additives.count(key) > 0) c = RES_ADDITIVE;
+  known[key] = c;
+  return c;
 }
 
 void SGFragment::getProtein(vector<bool>& atombits, vector<bool>& bondbits)

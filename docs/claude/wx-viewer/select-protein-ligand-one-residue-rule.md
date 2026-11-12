@@ -22,3 +22,6 @@ function for the docking ligand choice rather than keeping a second list.
   `select_protein`, `select_ligand` (`ECCE_BUILDER_SCRIPT`).
 - A residue missing from `ResidueList` and from the extra sets (modified
   residues such as phosphoserine) counts as "other" and can be chosen as the ligand.
+- `TResTab::verify` compares names in PDB column form (`"ALA "`, padded by
+  `TResItem`); a stripped `"ALA"` never matches, which made Select Protein
+  select nothing. `residueClass` pads before asking and caches per name.
