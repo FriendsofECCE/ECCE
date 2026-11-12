@@ -10,6 +10,8 @@
 #include <memory>
 
 #include <wx/dcbuffer.h>
+#include <wx/display.h>
+#include <wx/scrolwin.h>
 #include <wx/dcgraph.h>
 #include <wx/dcmemory.h>
 #include <wx/graphics.h>
@@ -20,6 +22,7 @@
 #include <wx/process.h>
 #include <wx/progdlg.h>
 #include <wx/slider.h>
+#include <wx/spinctrl.h>
 #include <wx/stopwatch.h>
 #include <wx/sstream.h>
 
@@ -104,6 +107,10 @@ public:
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     Bind(wxEVT_PAINT, &DiffractionPanel::onPaint, this);
     Bind(wxEVT_MOTION, &DiffractionPanel::onMove, this);
+    Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
+      int x, y;
+      if (pixelAt(e.GetPosition(), x, y)) p_d->onImageClick(x, y, e.ShiftDown());
+    });
     Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent&) { p_d->p_pointer->SetLabel(""); });
   }
   void setImage(const wxImage& im) { p_bmp = im.IsOk() ? wxBitmap(im) : wxBitmap(); Refresh(); }
@@ -175,8 +182,7 @@ private:
     wxString t;
     if (twoThetaAt(e.GetX(), tt)) {
       const double perPx = (p_d->p_tt.back() - p_d->p_tt.front()) / std::max(10.0, double(GetClientSize().x - POW_L - POW_R));
-      t = p_d->reflectionText(tt, 4 * perPx);
-      if (t.empty()) t = wxString::Format("2theta = %.2f", tt);
+      t = p_d->cursorText(tt, 4 * perPx);
     }
     p_d->p_pointer->SetLabel(t);
   }
@@ -206,6 +212,8 @@ wxSize extent(wxGraphicsContext *gc, const wxString& s, double size = 1.0)
   gc->GetTextExtent(s, &w, &h);
   return wxSize((int)std::ceil(w), (int)std::ceil(h));
 }
+
+wxString U(const char *s) { return wxString::FromUTF8(s); }
 
 wxString hklText(int h, int k, int l)
 {
@@ -282,7 +290,7 @@ void DiffractionDialog::paintPowder(wxGraphicsContext *gc, double W, double H) c
       // hkl at the peaks above a threshold, strongest first, none on top of another
       vector<const Line *> order;
       for (const Line& l : p_lines)
-        if (!l.a2 && l.rel >= 8.0 && l.tt >= x0 && l.tt <= x1) order.push_back(&l);
+        if (!l.a2 && l.rel >= p_plabel->GetValue() && l.rel > 0 && l.tt >= x0 && l.tt <= x1) order.push_back(&l);
       std::sort(order.begin(), order.end(), [](const Line *a, const Line *b) { return a->rel > b->rel; });
       vector<wxRect> placed;
       for (const Line *l : order) {
@@ -302,7 +310,7 @@ void DiffractionDialog::paintPowder(wxGraphicsContext *gc, double W, double H) c
     }
   }
   const double bot = T + n * ph + (n - 1) * gap;
-  const wxString xt = wxString::FromUTF8("2\xCE\xB8 (degrees)    \xCE\xBB = ") +
+  const wxString xt = wxString::FromUTF8("2\xCE\xB8 (\xC2\xB0)    \xCE\xBB = ") +
                       wxString::Format("%.4f ", parse(p_pwave->GetValue())) + wxString::FromUTF8("\xC3\x85");
   text(gc, xt, L + pw / 2 - extent(gc, xt).x / 2.0, bot + 28, INK);
   const wxString yt = "Relative intensity";
@@ -313,67 +321,74 @@ void DiffractionDialog::paintImage(wxGraphicsContext *gc, double W, double H) co
 {
   const wxRect a = imageArea(wxSize((int)W, (int)H));
   const double f = (double)a.width / imagePixels();
-  const bool dark = p_frame && !p_fdark->IsChecked();
+  const bool dark = darkScheme();
   wxString title, caption;
   if (p_single) {
     static const char *fmt[] = {"hk%d", "h%dl", "%dkl"};
     title = wxString::Format(fmt[std::max(0, p_zone->GetSelection())], (int)std::lround(number(p_layerNo))) +
             " layer (reciprocal lattice, simulated)";
-    caption = wxString::Format("Disc area follows I_rel (%s scale); I_rel = 100 is the strongest reflection of the whole crystal",
-                               p_lscale->GetStringSelection());
+    caption = "Simulated precession photograph; darkness follows I_rel, 100 = the strongest reflection of the whole crystal";
   } else if (p_frame) {
-    title = wxString::Format("Rotating crystal, phi %d to %g degrees (simulated)", p_fphi->GetValue(),
+    title = wxString::Format(U("Rotating crystal, φ %d to %g° (simulated)"), p_fphi->GetValue(),
                              p_fphi->GetValue() + number(p_fosc));
     caption = wxString::Format("Detector %.0f mm from the crystal, %s radiation",
                                number(p_fdist), p_fsource->GetStringSelection());
   } else {
     title = "Fibre diffraction pattern (simulated)";
-    caption = wxString::Format("Flat film %g mm square, %g mm from the sample, logarithmic grey scale",
+    caption = wxString::Format("Flat film %g mm square, %g mm from the sample, logarithmic scale",
                                number(p_film), number(p_distance)) + wxString::FromUTF8(", \xCE\xBB = ") +
               wxString::Format("%g ", number(p_wavelength)) + wxString::FromUTF8("\xC3\x85");
   }
   text(gc, title, a.x, 6, INK, 1.1, true);
   if (p_single) {
     if (!p_layerReady) return;
+    if (p_panel->bitmap().IsOk()) {
+      gc->SetInterpolationQuality(wxINTERPOLATION_BEST);
+      gc->DrawBitmap(p_panel->bitmap(), a.x, a.y, a.width, a.height);
+    }
+    const wxColour ink = dark ? wxColour(255, 255, 255) : INK, axis = dark ? wxColour(130, 185, 255) : CALC;
     gc->SetPen(wxPen(wxColour(170, 170, 170), 1));
     gc->SetBrush(*wxTRANSPARENT_BRUSH);
     gc->DrawRectangle(a.x, a.y, a.width, a.height);
-    const wxString mode = p_lscale->GetStringSelection();
-    for (int pass = 0; pass < 2; pass++)
-      for (const Spot& s : p_spots) {
-        const double x = a.x + s.px * f, y = a.y + s.py * f;
-        if (x < a.x || y < a.y || x > a.x + a.width || y > a.y + a.height) continue;
-        if (s.absent) {
-          if (pass == 0 && p_absent->IsChecked()) {
-            gc->SetPen(wxPen(wxColour(150, 150, 150), 1));
-            gc->DrawEllipse(x - 3.5 * f, y - 3.5 * f, 7 * f, 7 * f);
-          }
-          continue;
-        }
-        if (pass == 0) continue;
-        const double q = std::min(1.0, std::max(s.rel / 100.0, 1e-300));
-        double ar = mode == "linear" ? q : mode == "sqrt" ? std::sqrt(q)
-                  : std::min(1.0, std::max(0.0, 1 + std::log10(q) / 3.0));
-        const double r = std::max(p_layerRmax * std::sqrt(ar), 1.2) * f;
-        gc->SetPen(*wxTRANSPARENT_PEN);
-        gc->SetBrush(wxBrush(wxColour(25, 25, 25)));
-        gc->DrawEllipse(x - r, y - r, 2 * r, 2 * r);
+    if (p_absent->IsChecked()) {
+      gc->SetPen(wxPen(wxColour(150, 150, 150), 1));
+      for (const Spot& s : p_spots)
+        if (s.absent) gc->DrawEllipse(a.x + s.px * f - 3.5 * f, a.y + s.py * f - 3.5 * f, 7 * f, 7 * f);
+    }
+    if (p_lhkl->IsChecked()) {
+      vector<const Spot *> order;
+      for (const Spot& s : p_spots)
+        if (!s.absent && s.rel >= 0.5) order.push_back(&s);
+      std::sort(order.begin(), order.end(), [](const Spot *x, const Spot *y) { return x->rel > y->rel; });
+      vector<wxRect> placed;
+      for (const Spot *s : order) {
+        const wxString t = hklText(s->h, s->k, s->l);
+        const wxSize e = extent(gc, t, 0.8);
+        const wxRect r((int)(a.x + s->px * f + 4), (int)(a.y + s->py * f + 3), e.x, e.y);
+        if (r.x < a.x || r.y < a.y || r.x + r.width > a.x + a.width || r.y + r.height > a.y + a.height) continue;
+        bool clash = false;
+        for (wxRect q : placed) { q.Inflate(2, 0); clash = clash || q.Intersects(r); }
+        if (clash) continue;
+        placed.push_back(r);
+        text(gc, t, r.x, r.y, ink, 0.8);
       }
-    const double ox = a.x + p_layerSize / 2.0 * f, oy = a.y + p_layerSize / 2.0 * f;
-    gc->SetPen(wxPen(wxColour(200, 40, 40), 1));
-    gc->StrokeLine(ox - 5, oy, ox + 5, oy);
-    gc->StrokeLine(ox, oy - 5, ox, oy + 5);
-    static const char *names[] = {"a*", "b*", "c*"};
-    for (int k = 0; k < 3; k++) {
-      const double vx = p_axes[k][0], vy = p_axes[k][1], n = std::hypot(vx, vy);
-      if (n < 1e-6) continue;
-      const double ex = ox + vx * p_layerScale * f, ey = oy - vy * p_layerScale * f;
-      const double ux = vx / n, uy = -vy / n;
-      gc->SetPen(wxPen(CALC, 1.5));
-      gc->StrokeLine(ox, oy, ex, ey);
-      gc->StrokeLine(ex, ey, ex - 9 * ux + 4 * uy, ey - 9 * uy - 4 * ux);
-      gc->StrokeLine(ex, ey, ex - 9 * ux - 4 * uy, ey - 9 * uy + 4 * ux);
-      text(gc, names[k], ex + 8 * ux - 6, ey + 8 * uy - 8, CALC, 1.0, true);
+    }
+    if (p_laxes->IsChecked()) {
+      static const char *names[] = {"a*", "b*", "c*"};
+      double longest = 0;
+      for (const auto& v : p_axes) longest = std::max(longest, std::hypot(v[0], v[1]));
+      const double ox = a.x + 26, oy = a.y + a.height - 26;
+      for (int k = 0; k < 3 && longest > 1e-6; k++) {
+        const double vx = p_axes[k][0], vy = p_axes[k][1], n = std::hypot(vx, vy);
+        if (n < 1e-6) continue;
+        const double L = 44.0 * n / longest, ux = vx / n, uy = -vy / n;
+        const double ex = ox + ux * L, ey = oy + uy * L;
+        gc->SetPen(wxPen(axis, 1.5));
+        gc->StrokeLine(ox, oy, ex, ey);
+        gc->StrokeLine(ex, ey, ex - 7 * ux + 3 * uy, ey - 7 * uy - 3 * ux);
+        gc->StrokeLine(ex, ey, ex - 7 * ux - 3 * uy, ey - 7 * uy + 3 * ux);
+        text(gc, names[k], ex + 6 * ux - 6, ey + 6 * uy - 8, axis, 1.0, true);
+      }
     }
   } else if (p_panel->bitmap().IsOk()) {
     gc->SetInterpolationQuality(wxINTERPOLATION_BEST);
@@ -418,6 +433,204 @@ void DiffractionDialog::paintImage(wxGraphicsContext *gc, double W, double H) co
   text(gc, caption, a.x, a.y + a.height + 6, wxColour(90, 90, 90), 0.9);
 }
 
+bool DiffractionDialog::darkScheme() const { return p_scheme && p_scheme->GetSelection() == 1; }
+
+// The grey level of a fibre or frame PNG (as ecce-xrd wrote it) back to a 0..1
+// display level, so exposure and colour scheme apply to the same data.
+void DiffractionDialog::setLevels(const wxImage& im, bool inverted)
+{
+  p_levelN = im.GetWidth();
+  p_level.assign((size_t)im.GetWidth() * im.GetHeight(), 0.f);
+  const unsigned char *d = im.GetData();
+  for (size_t k = 0; k < p_level.size(); k++) {
+    const float g = d[3 * k] / 255.f;
+    p_level[k] = inverted ? 1.f - g : g;
+  }
+}
+
+// Spots as Gaussian blobs of optical density on a film that is faintly fogged
+// toward the centre, with grain and a small round beamstop.  Strength follows
+// I_rel on the crystal-wide scale, size grows gently with it.
+void DiffractionDialog::renderFilm()
+{
+  const int n = p_layerSize;
+  p_levelN = n;
+  p_level.assign((size_t)n * n, 0.f);
+  const double G = 12.0, sig0 = std::max(1.0, p_layerRmax / 6.0);
+  for (const Spot& s : p_spots) {
+    const double q = s.rel / 100.0;
+    if (s.absent || q < 1e-7) continue;
+    const double sig = sig0 * (0.8 + 0.5 * std::sqrt(std::min(q, 1.0))), amp = G * q;
+    const int rad = (int)std::ceil(3.5 * sig);
+    const int x0 = std::max(0, (int)s.px - rad), x1 = std::min(n - 1, (int)s.px + rad);
+    const int y0 = std::max(0, (int)s.py - rad), y1 = std::min(n - 1, (int)s.py + rad);
+    for (int y = y0; y <= y1; y++)
+      for (int x = x0; x <= x1; x++) {
+        const double dx = x + 0.5 - s.px, dy = y + 0.5 - s.py;
+        p_level[(size_t)y * n + x] += (float)(amp * std::exp(-(dx * dx + dy * dy) / (2 * sig * sig)));
+      }
+  }
+  const double c = n / 2.0, stop = std::max(5.0, 0.018 * n);
+  for (int y = 0; y < n; y++)
+    for (int x = 0; x < n; x++) {
+      const double r = std::hypot(x + 0.5 - c, y + 0.5 - c);
+      unsigned h = (unsigned)x * 73856093u ^ (unsigned)y * 19349663u;
+      h ^= h >> 13; h *= 0x5bd1e995u; h ^= h >> 15;
+      const double grain = (h & 0xffff) / 32768.0 - 1.0;
+      float& d = p_level[(size_t)y * n + x];
+      d += (float)(0.012 + 0.05 * std::exp(-r / (0.18 * n)) + 0.006 * grain);
+      if (r < stop) d = 0.f;
+    }
+}
+
+// levels -> colours with the current exposure and scheme, then the backdrop mix.
+void DiffractionDialog::updateImage()
+{
+  if (p_single && !p_layerReady) return;
+  if (p_level.empty() || p_levelN <= 0) return;
+  const double gain = std::pow(2.0, p_exposure->GetValue() / 10.0);
+  unsigned char lut[256][3];
+  for (int i = 0; i < 256; i++) {
+    const double v = i / 255.0;
+    if (!darkScheme()) {
+      lut[i][0] = lut[i][1] = lut[i][2] = (unsigned char)std::lround(255 * (1 - v));
+      continue;
+    }
+    static const double st[4][4] = {{0, 0, 0, 0}, {0.35, 25, 55, 200}, {0.7, 255, 150, 30}, {1, 255, 255, 255}};
+    int k = 0;
+    while (k < 2 && v > st[k + 1][0]) k++;
+    const double t = std::min(1.0, std::max(0.0, (v - st[k][0]) / (st[k + 1][0] - st[k][0])));
+    for (int c = 0; c < 3; c++) lut[i][c] = (unsigned char)std::lround(st[k][c + 1] * (1 - t) + st[k + 1][c + 1] * t);
+  }
+  wxImage im(p_levelN, p_levelN);
+  unsigned char *o = im.GetData();
+  for (size_t k = 0; k < p_level.size(); k++) {
+    const double v = p_single ? 1.0 - std::exp(-gain * p_level[k]) : std::min(1.0, gain * p_level[k]);
+    const unsigned char *c = lut[(int)std::lround(255 * v)];
+    o[3 * k] = c[0]; o[3 * k + 1] = c[1]; o[3 * k + 2] = c[2];
+  }
+  p_calc = im;
+  wxCommandEvent none;
+  onOpacity(none);
+}
+
+void DiffractionDialog::setDisplay(int exposure, int scheme)
+{
+  p_exposure->SetValue(std::max(-20, std::min(20, exposure)));
+  p_scheme->SetSelection(scheme == 1 ? 1 : 0);
+  updateImage();
+}
+
+const DiffractionDialog::Spot *DiffractionDialog::spotNear(int x, int y) const
+{
+  const Spot *best = 0;
+  double bd = 12.0 * 12.0;
+  for (const Spot& s : p_spots) {
+    if (p_single && s.absent && !p_absent->IsChecked()) continue;
+    const double d2 = (s.px - x) * (s.px - x) + (s.py - y) * (s.py - y);
+    if (d2 < bd) { bd = d2; best = &s; }
+  }
+  return best;
+}
+
+static int gcd3(int a, int b, int c)
+{
+  a = std::abs(a); b = std::abs(b); c = std::abs(c);
+  while (b) { int t = a % b; a = b; b = t; }
+  while (c) { int t = a % c; a = c; c = t; }
+  return a;
+}
+
+wxString DiffractionDialog::measureText(const Spot& a, const Spot *b) const
+{
+  const double sc = p_layerScale, c = p_layerSize / 2.0;
+  const double ax = (a.px - c) / sc, ay = (c - a.py) / sc;
+  if (!b) {
+    if (p_frame)
+      return wxString::Format(U("(%d %d %d)   d = %.3f Å   2θ = %.2f°   I = %.4g   at (%.2f, %.2f) mm"),
+                              a.h, a.k, a.l, a.d, a.F, a.I, ax, ay);
+    return wxString::Format(U("(%d %d %d) picked, d = %.3f Å; click a second spot"), a.h, a.k, a.l, a.d);
+  }
+  const double bx = (b->px - c) / sc, by = (c - b->py) / sc;
+  const double dist = std::hypot(bx - ax, by - ay);
+  if (p_frame) {
+    const double na = std::hypot(ax, ay), nb = std::hypot(bx, by);
+    double ang = 0;
+    if (na > 0 && nb > 0)
+      ang = std::acos(std::max(-1.0, std::min(1.0, (ax * bx + ay * by) / (na * nb)))) * 180 / M_PI;
+    return wxString::Format(U("(%d %d %d) to (%d %d %d): %.2f mm on the detector, %.1f° at the beam centre; d = %.3f and %.3f Å"),
+                            a.h, a.k, a.l, b->h, b->k, b->l, dist, ang, a.d, b->d);
+  }
+  wxString t = wxString::Format(U("(%d %d %d) to (%d %d %d): %.4f Å⁻¹, row d = %.3f Å"),
+                                a.h, a.k, a.l, b->h, b->k, b->l, dist, dist > 0 ? 1.0 / dist : 0.0);
+  const int n = gcd3(b->h - a.h, b->k - a.k, b->l - a.l);
+  if (n > 0 && dist > 0)
+    t += wxString::Format(U("; %d spots between: %.4f Å⁻¹ per step, cell edge %.3f Å (orthogonal axes)"),
+                          n - 1, dist / n, n / dist);
+  return t;
+}
+
+wxString DiffractionDialog::measure(int h1, int k1, int l1, int h2, int k2, int l2)
+{
+  const Spot *a = 0, *b = 0;
+  for (const Spot& s : p_spots) {
+    if (!a && s.h == h1 && s.k == k1 && s.l == l1) a = &s;
+    if (!b && s.h == h2 && s.k == k2 && s.l == l2) b = &s;
+  }
+  if (!a || !b || !(p_single || p_frame)) return "";
+  p_pick = 0;
+  onImageClick((int)std::lround(a->px), (int)std::lround(a->py), false);
+  onImageClick((int)std::lround(b->px), (int)std::lround(b->py), true);
+  return p_measure->GetLabel();
+}
+
+wxString DiffractionDialog::measureStrongest()
+{
+  const Spot *a = 0, *b = 0;
+  for (const Spot& s : p_spots) {
+    if (s.absent) continue;
+    if (!a || s.I > a->I) { b = a; a = &s; }
+    else if (!b || s.I > b->I) b = &s;
+  }
+  return a && b ? measure(a->h, a->k, a->l, b->h, b->k, b->l) : wxString();
+}
+
+// Detector frame: a click picks a spot, a shift-click a second one to measure
+// from the first.  Layer: two plain clicks.
+void DiffractionDialog::onImageClick(int x, int y, bool second)
+{
+  const Spot *s = spotNear(x, y);
+  if (!s || !(p_single || p_frame)) { p_pick = 0; p_measure->SetLabel(""); return; }
+  wxString t;
+  if (p_frame) {
+    if (second && p_pick) t = measureText(*p_pick, s);
+    else { p_pick = s; t = measureText(*s, 0); }
+  } else if (p_pick && p_pick != s) {
+    t = measureText(*p_pick, s);
+    p_pick = 0;
+  } else {
+    p_pick = s;
+    t = measureText(*s, 0);
+  }
+  p_measure->SetLabel(t);
+}
+
+wxString DiffractionDialog::cursorText(double tt, double tol) const
+{
+  if (p_tt.size() < 2) return "";
+  const double lam = parse(p_pwave->GetValue()), s = std::sin(tt * M_PI / 360);
+  wxString t = wxString::Format(U("2θ = %.3f°"), tt);
+  if (s > 0 && lam > 0) {
+    const double d = lam / (2 * s);
+    t += wxString::Format(U("   d = %.4f Å   Q = %.4f Å⁻¹"), d, 2 * M_PI / d);
+  }
+  const size_t i = (size_t)std::lround(std::min(std::max((tt - p_tt.front()) / (p_tt.back() - p_tt.front()), 0.0), 1.0) *
+                                       (p_tt.size() - 1));
+  if (i < p_y.size() && p_y[i] == p_y[i]) t += wxString::Format("   I = %.1f", p_y[i]);
+  const wxString r = reflectionText(tt, tol);
+  return r.empty() ? t : t + "   |   " + r;
+}
+
 wxBitmap DiffractionDialog::render(int w, int h, int k) const
 {
   wxBitmap bmp(w * k, h * k, 24);
@@ -441,7 +654,8 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
              wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
     p_structure(structure), p_pixels(PIXELS), p_periodic(hasLattice(structure)),
     p_powder(false), p_single(false), p_frame(false), p_layerScale(1), p_layerSize(560),
-    p_layerReady(false), p_layerRmax(8), p_geomDistance(0), p_geomLambda(0)
+    p_layerReady(false), p_layerRmax(8), p_geomDistance(0), p_geomLambda(0),
+    p_levelN(0), p_pick(0)
 {
   static int serial = 0;
   for (auto& v : p_axes) v[0] = v[1] = 0;
@@ -465,14 +679,16 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_selectionText = sel.str();
 
   wxBoxSizer *top = new wxBoxSizer(wxHORIZONTAL);
+  wxScrolledWindow *lp = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
+  lp->SetScrollRate(0, 10);
   wxBoxSizer *left = new wxBoxSizer(wxVERTICAL);
 
-  wxStaticBoxSizer *type = new wxStaticBoxSizer(wxVERTICAL, this, "Pattern");
-  wxRadioButton *fibre = new wxRadioButton(this, wxID_ANY, "Fibre", wxDefaultPosition,
+  wxStaticBoxSizer *type = new wxStaticBoxSizer(wxVERTICAL, lp, "Pattern");
+  wxRadioButton *fibre = new wxRadioButton(lp, wxID_ANY, "Fibre", wxDefaultPosition,
                                            wxDefaultSize, wxRB_GROUP);
-  wxRadioButton *powder = new wxRadioButton(this, wxID_ANY, "Powder (periodic structures only)");
-  wxRadioButton *single = new wxRadioButton(this, wxID_ANY, "Single crystal (periodic structures only)");
-  wxRadioButton *frame = new wxRadioButton(this, wxID_ANY, "Detector frame, rotating crystal (periodic structures only)");
+  wxRadioButton *powder = new wxRadioButton(lp, wxID_ANY, "Powder (periodic structures only)");
+  wxRadioButton *single = new wxRadioButton(lp, wxID_ANY, "Single crystal (periodic structures only)");
+  wxRadioButton *frame = new wxRadioButton(lp, wxID_ANY, "Detector frame, rotating crystal (periodic structures only)");
   powder->Enable(p_periodic);
   single->Enable(p_periodic);
   frame->Enable(p_periodic);
@@ -489,155 +705,175 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_fibreItems = fibreBox;
 
   wxFlexGridSizer *grid = new wxFlexGridSizer(2, 4, 6);
-  auto field = [&](const char *label, const char *value, const char *tip) {
-    grid->Add(new wxStaticText(this, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
-    wxTextCtrl *t = new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
+  auto field = [&](const wxString& label, const char *value, const wxString& tip) {
+    grid->Add(new wxStaticText(lp, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+    wxTextCtrl *t = new wxTextCtrl(lp, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
     t->SetToolTip(tip);
     grid->Add(t, 0);
     return t;
   };
-  p_wavelength = field("Wavelength (A)", "1.5418", "Cu K-alpha is 1.5418");
+  p_wavelength = field(U("Wavelength (Å)"), "1.5418", U("Cu Kα is 1.5418"));
   p_distance = field("Film distance (mm)", "30", "Sample to flat film");
   p_film = field("Film size (mm)", "40", "Edge of the square film");
-  p_b = field("B (A^2)", "20", "Isotropic temperature factor");
-  p_length = field("Fibre length (A)", "100", "Gaussian broadening along the layer lines; 0 = none");
-  p_mis = field("Misalignment (deg)", "8", "Spread of the fibre axes: arcs");
-  p_repeat = field("Repeat (A)", "0", "Axial repeat; the pointer then reports the layer line l = Z * repeat");
+  p_b = field(U("B (Å²)"), "20", U("Isotropic displacement (Debye–Waller) parameter"));
+  p_length = field(U("Fibre length (Å)"), "100", "Gaussian broadening along the layer lines; 0 = none");
+  p_mis = field(U("Misalignment (°)"), "8", "Spread of the fibre axes: arcs");
+  p_repeat = field(U("Repeat (Å)"), "0", "Axial repeat; the pointer then reports the layer line l = Z * repeat");
   p_gamma = field("Gamma", "1", "Display exponent");
-  grid->Add(new wxStaticText(this, wxID_ANY, "Axis"), 0, wxALIGN_CENTER_VERTICAL);
-  p_axis = new wxChoice(this, wxID_ANY);
+  grid->Add(new wxStaticText(lp, wxID_ANY, "Axis"), 0, wxALIGN_CENTER_VERTICAL);
+  p_axis = new wxChoice(lp, wxID_ANY);
   p_axis->Append("Auto (principal axis)");
   p_axis->Append("First to last selected atom");
   p_axis->SetSelection(0);
   grid->Add(p_axis, 0);
-  grid->Add(new wxStaticText(this, wxID_ANY, "Scaling"), 0, wxALIGN_CENTER_VERTICAL);
-  p_scale = new wxChoice(this, wxID_ANY);
+  grid->Add(new wxStaticText(lp, wxID_ANY, "Scaling"), 0, wxALIGN_CENTER_VERTICAL);
+  p_scale = new wxChoice(lp, wxID_ANY);
   for (const char *s : {"log", "sqrt", "linear"}) p_scale->Append(s);
   p_scale->SetSelection(0);
   grid->Add(p_scale, 0);
   fibreBox->Add(grid, 0, wxALL, 6);
-  p_invert = new wxCheckBox(this, wxID_ANY, "Dark spots on white");
-  p_invert->SetValue(true);
-  fibreBox->Add(p_invert, 0, wxLEFT | wxRIGHT, 6);
-  p_selectedOnly = new wxCheckBox(this, wxID_ANY, "Selected atoms only");
+  p_selectedOnly = new wxCheckBox(lp, wxID_ANY, "Selected atoms only");
   p_selectedOnly->SetValue(!selection.empty());
   p_selectedOnly->Enable(!selection.empty());
   fibreBox->Add(p_selectedOnly, 0, wxALL, 6);
 
-  wxButton *back = new wxButton(this, wxID_ANY, "Load Backdrop...");
+  wxButton *back = new wxButton(lp, wxID_ANY, "Load Backdrop...");
   fibreBox->Add(back, 0, wxLEFT | wxRIGHT | wxTOP, 6);
-  fibreBox->Add(new wxStaticText(this, wxID_ANY, "Calculated pattern opacity"), 0, wxLEFT | wxTOP, 6);
-  p_opacity = new wxSlider(this, wxID_ANY, 100, 0, 100, wxDefaultPosition, wxSize(200, -1));
+  fibreBox->Add(new wxStaticText(lp, wxID_ANY, "Calculated pattern opacity"), 0, wxLEFT | wxTOP, 6);
+  p_opacity = new wxSlider(lp, wxID_ANY, 100, 0, 100, wxDefaultPosition, wxSize(200, -1));
   fibreBox->Add(p_opacity, 0, wxLEFT | wxRIGHT, 6);
+  // It fades the pattern over a backdrop picture; without one it has nothing to do.
+  p_opacity->Enable(false);
+  p_opacity->SetToolTip(wxString::FromUTF8("Opacity of the calculated pattern over the backdrop "
+                                           "picture; load one with Load Backdrop... first"));
   left->Add(fibreBox, 0);
 
   wxBoxSizer *powderBox = new wxBoxSizer(wxVERTICAL);
   p_powderItems = powderBox;
   wxFlexGridSizer *pg = new wxFlexGridSizer(2, 4, 6);
-  auto pfield = [&](const char *label, const char *value, const char *tip) {
-    pg->Add(new wxStaticText(this, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
-    wxTextCtrl *t = new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
+  auto pfield = [&](const wxString& label, const char *value, const wxString& tip) {
+    pg->Add(new wxStaticText(lp, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+    wxTextCtrl *t = new wxTextCtrl(lp, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
     t->SetToolTip(tip);
     pg->Add(t, 0);
     return t;
   };
-  pg->Add(new wxStaticText(this, wxID_ANY, "Source"), 0, wxALIGN_CENTER_VERTICAL);
-  p_source = new wxChoice(this, wxID_ANY);
-  for (const char *c : {"Cu Ka (1.5406)", "Mo Ka (0.7093)", "Co Ka (1.7890)", "Other (type the wavelength)"})
-    p_source->Append(c);
+  pg->Add(new wxStaticText(lp, wxID_ANY, "Source"), 0, wxALIGN_CENTER_VERTICAL);
+  p_source = new wxChoice(lp, wxID_ANY);
+  for (const char *c : {"Cu Kα (1.5406 Å)", "Mo Kα (0.7093 Å)", "Co Kα (1.7890 Å)", "Other (type the wavelength)"})
+    p_source->Append(U(c));
   p_source->SetSelection(0);
   pg->Add(p_source, 0);
   pg->AddSpacer(0);
-  p_doublet = new wxCheckBox(this, wxID_ANY, "K\u03b11/K\u03b12 doublet");
+  p_doublet = new wxCheckBox(lp, wxID_ANY, "K\u03b11/K\u03b12 doublet");
   p_doublet->SetValue(true);
-  p_doublet->SetToolTip("Draw every reflection at the K-alpha1 and K-alpha2 wavelengths (K-alpha2 at half the intensity); Cu, Mo and Co sources only");
+  p_doublet->SetToolTip(U("Draw every reflection at the Kα1 and Kα2 wavelengths (Kα2 at half the intensity); Cu, Mo and Co sources only"));
   pg->Add(p_doublet, 0);
-  p_pwave = pfield("Wavelength (A)", "1.5406", "Used for the pattern; the Source choice fills it");
-  p_ptmin = pfield("2theta from", "5", "Degrees");
-  p_ptmax = pfield("2theta to", "90", "Degrees");
-  p_pfwhm = pfield("Peak width (deg)", "0.1", "FWHM in 2theta; pseudo-Voigt with equal Gauss and Lorentz parts");
-  p_pb = pfield("B (A^2)", "0", "Isotropic temperature factor");
+  p_pwave = pfield(U("Wavelength (Å)"), "1.5406", "Used for the pattern; the Source choice fills it");
+  p_ptmin = pfield(U("2θ from (°)"), "5", U("Degrees"));
+  p_ptmax = pfield(U("2θ to (°)"), "90", U("Degrees"));
+  p_pfwhm = pfield(U("Peak width, FWHM (° 2θ)"), "0.1", U("Pseudo-Voigt with equal Gauss and Lorentz parts"));
+  p_pb = pfield(U("B (Å²)"), "0", U("Isotropic displacement (Debye–Waller) parameter"));
   powderBox->Add(pg, 0, wxALL, 6);
-  wxButton *meas = new wxButton(this, wxID_ANY, "Load measured pattern...");
+  powderBox->Add(new wxStaticText(lp, wxID_ANY, "Label peaks above (% of strongest)"), 0, wxLEFT | wxTOP, 6);
+  p_plabel = new wxSpinCtrl(lp, wxID_ANY, "8", wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 0, 100, 8);
+  p_plabel->SetToolTip("hkl labels on peaks at or above this percentage of the strongest; 100 = only the strongest");
+  powderBox->Add(p_plabel, 0, wxLEFT | wxRIGHT, 6);
+  wxButton *meas = new wxButton(lp, wxID_ANY, "Experimental...");
   powderBox->Add(meas, 0, wxLEFT | wxRIGHT | wxTOP, 6);
   left->Add(powderBox, 0);
 
   wxBoxSizer *layerBox = new wxBoxSizer(wxVERTICAL);
   p_layerItems = layerBox;
   wxFlexGridSizer *lg = new wxFlexGridSizer(2, 4, 6);
-  auto lfield = [&](const char *label, const char *value, const char *tip) {
-    lg->Add(new wxStaticText(this, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
-    wxTextCtrl *t = new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
+  auto lfield = [&](const wxString& label, const char *value, const wxString& tip) {
+    lg->Add(new wxStaticText(lp, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+    wxTextCtrl *t = new wxTextCtrl(lp, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
     t->SetToolTip(tip);
     lg->Add(t, 0);
     return t;
   };
-  lg->Add(new wxStaticText(this, wxID_ANY, "Zone"), 0, wxALIGN_CENTER_VERTICAL);
-  p_zone = new wxChoice(this, wxID_ANY);
+  lg->Add(new wxStaticText(lp, wxID_ANY, "Zone"), 0, wxALIGN_CENTER_VERTICAL);
+  p_zone = new wxChoice(lp, wxID_ANY);
   for (const char *c : {"hk(l): l is the layer", "h(k)l: k is the layer", "(h)kl: h is the layer"})
     p_zone->Append(c);
   p_zone->SetSelection(0);
   lg->Add(p_zone, 0);
   p_layerNo = lfield("Layer number", "0", "0 gives hk0, h0l or 0kl; 1, 2 ... the layers above it");
-  p_lres = lfield("Resolution d_min (A)", "1", "Spots with d below this are left out");
-  p_lb = lfield("B (A^2)", "0", "Isotropic temperature factor");
-  lg->Add(new wxStaticText(this, wxID_ANY, "Spot area"), 0, wxALIGN_CENTER_VERTICAL);
-  p_lscale = new wxChoice(this, wxID_ANY);
-  for (const char *c : {"log", "sqrt", "linear"}) p_lscale->Append(c);
-  p_lscale->SetSelection(0);
-  lg->Add(p_lscale, 0);
+  p_lres = lfield(U("Resolution d_min (Å)"), "1", "Spots with d below this are left out");
+  p_lb = lfield(U("B (Å²)"), "0", U("Isotropic displacement (Debye–Waller) parameter"));
   layerBox->Add(lg, 0, wxALL, 6);
-  p_absent = new wxCheckBox(this, wxID_ANY, "Show absent reflections");
+  p_absent = new wxCheckBox(lp, wxID_ANY, "Show absent reflections");
   p_absent->SetToolTip("Open circles where the structure factor is zero by symmetry");
-  layerBox->Add(p_absent, 0, wxALL, 6);
+  p_lhkl = new wxCheckBox(lp, wxID_ANY, "Label spots (hkl)");
+  p_lhkl->SetToolTip("hkl next to every spot above 0.5 % of the strongest reflection");
+  p_laxes = new wxCheckBox(lp, wxID_ANY, "Reciprocal axes");
+  p_laxes->SetValue(true);
+  for (wxCheckBox *c : {p_absent, p_lhkl, p_laxes}) layerBox->Add(c, 0, wxLEFT | wxRIGHT | wxTOP, 6);
   left->Add(layerBox, 0);
 
   // Detector frame (#985): a crystal turned through an oscillation range.
   wxBoxSizer *frameBox = new wxBoxSizer(wxVERTICAL);
   p_frameItems = frameBox;
   wxFlexGridSizer *fg = new wxFlexGridSizer(2, 4, 6);
-  auto ffield = [&](const char *label, const char *value, const char *tip) {
-    fg->Add(new wxStaticText(this, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
-    wxTextCtrl *t = new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
+  auto ffield = [&](const wxString& label, const char *value, const wxString& tip) {
+    fg->Add(new wxStaticText(lp, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+    wxTextCtrl *t = new wxTextCtrl(lp, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
     t->SetToolTip(tip);
     fg->Add(t, 0);
     return t;
   };
-  fg->Add(new wxStaticText(this, wxID_ANY, "Start angle phi (deg)"), 0, wxALIGN_CENTER_VERTICAL);
-  p_fphi = new wxSlider(this, wxID_ANY, 0, 0, 359, wxDefaultPosition, wxSize(160, -1),
+  fg->Add(new wxStaticText(lp, wxID_ANY, U("Start angle φ (°)")), 0, wxALIGN_CENTER_VERTICAL);
+  p_fphi = new wxSlider(lp, wxID_ANY, 0, 0, 359, wxDefaultPosition, wxSize(160, -1),
                         wxSL_HORIZONTAL | wxSL_LABELS);
   p_fphi->SetToolTip("Where the oscillation starts, about the vertical axis");
   fg->Add(p_fphi, 0);
-  p_fosc = ffield("Oscillation (deg)", "10", "Range turned during the exposure");
+  p_fosc = ffield(U("Oscillation (°)"), "10", "Range turned during the exposure");
   p_fdist = ffield("Distance (mm)", "90", "Crystal to detector");
-  p_fsource = new wxChoice(this, wxID_ANY);
+  p_fsource = new wxChoice(lp, wxID_ANY);
   for (const char *c : {"Mo", "Cu", "Co"}) p_fsource->Append(c);
   p_fsource->SetSelection(0);
-  fg->Add(new wxStaticText(this, wxID_ANY, "Source"), 0, wxALIGN_CENTER_VERTICAL);
+  fg->Add(new wxStaticText(lp, wxID_ANY, "Source"), 0, wxALIGN_CENTER_VERTICAL);
   fg->Add(p_fsource, 0);
   frameBox->Add(fg, 0, wxALL, 6);
-  p_fdark = new wxCheckBox(this, wxID_ANY, "Dark spots on light");
-  p_fdark->SetValue(true);
-  p_fnoise = new wxCheckBox(this, wxID_ANY, "Noise");
+  p_fnoise = new wxCheckBox(lp, wxID_ANY, "Noise");
   p_fnoise->SetValue(true);
-  p_flabel = new wxCheckBox(this, wxID_ANY, "Label spots");
+  p_flabel = new wxCheckBox(lp, wxID_ANY, "Label spots");
   p_flabel->SetToolTip("hkl next to the 12 strongest spots");
-  p_frings = new wxCheckBox(this, wxID_ANY, "Resolution rings");
-  p_frings->SetToolTip("Circles at d = 3.0, 2.0, 1.5 and 1.0 A, labelled with d and 2 theta");
-  for (wxCheckBox *c : {p_fdark, p_fnoise, p_flabel, p_frings}) frameBox->Add(c, 0, wxLEFT | wxRIGHT | wxTOP, 6);
+  p_frings = new wxCheckBox(lp, wxID_ANY, "Resolution rings");
+  p_frings->SetToolTip(U("Circles at d = 3.0, 2.0, 1.5 and 1.0 Å, labelled with d and 2θ"));
+  for (wxCheckBox *c : {p_fnoise, p_flabel, p_frings}) frameBox->Add(c, 0, wxLEFT | wxRIGHT | wxTOP, 6);
   left->Add(frameBox, 0);
 
-  wxButton *calc = new wxButton(this, wxID_ANY, "Calculate");
+  // Exposure and colour scheme of the image views (#985).
+  wxStaticBoxSizer *disp = new wxStaticBoxSizer(wxVERTICAL, lp, "Image");
+  p_displayItems = disp;
+  disp->Add(new wxStaticText(lp, wxID_ANY, "Exposure"), 0, wxLEFT | wxTOP, 6);
+  p_exposure = new wxSlider(lp, wxID_ANY, 0, -20, 20, wxDefaultPosition, wxSize(200, -1));
+  p_exposure->SetToolTip("Intensity gain before saturation, in tenths of a stop; the data are unchanged");
+  disp->Add(p_exposure, 0, wxLEFT | wxRIGHT, 6);
+  p_scheme = new wxChoice(lp, wxID_ANY);
+  p_scheme->Append("Film (dark on light)");
+  p_scheme->Append("Dark (black, blue, orange, white)");
+  p_scheme->SetSelection(0);
+  disp->Add(p_scheme, 0, wxALL, 6);
+  left->Add(disp, 0, wxEXPAND | wxALL, 4);
+
+  wxButton *calc = new wxButton(lp, wxID_ANY, "Calculate");
   left->Add(calc, 0, wxALL, 6);
-  wxButton *png = new wxButton(this, wxID_ANY, "Save PNG...");
-  wxButton *csv = new wxButton(this, wxID_ANY, "Save CSV...");
+  wxButton *png = new wxButton(lp, wxID_ANY, "Save PNG...");
+  wxButton *csv = new wxButton(lp, wxID_ANY, "Save CSV...");
   wxBoxSizer *save = new wxBoxSizer(wxHORIZONTAL);
   save->Add(png, 0, wxALL, 4);
   save->Add(csv, 0, wxALL, 4);
   left->Add(save, 0, wxALL, 2);
   left->AddStretchSpacer(1);
-  left->Add(new wxButton(this, wxID_CLOSE, "Close"), 0, wxALIGN_RIGHT | wxALL, 6);
-  top->Add(left, 0, wxEXPAND);
+  left->Add(new wxButton(lp, wxID_CLOSE, "Close"), 0, wxALIGN_RIGHT | wxALL, 6);
+  p_leftWin = lp;
+  lp->SetSizer(left);
+  left->Fit(lp);
+  lp->SetMinSize(wxSize(lp->GetBestSize().x + wxSystemSettings::GetMetric(wxSYS_VSCROLL_X), 100));
+  top->Add(lp, 0, wxEXPAND);
 
   wxBoxSizer *right = new wxBoxSizer(wxVERTICAL);
   p_panel = new DiffractionPanel(this, this);
@@ -645,14 +881,16 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_plot = new PowderPanel(this, this);
   right->Add(p_plot, 2, wxEXPAND | wxALL, 4);
   p_list = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(560, 150), wxLC_REPORT | wxLC_SINGLE_SEL);
-  const char *cols[] = {"h k l", "d (A)", "2theta", "|F|", "Mult.", "I rel"};
-  for (int i = 0; i < 6; i++) p_list->InsertColumn(i, cols[i], wxLIST_FORMAT_LEFT, i ? 78 : 70);
+  const char *cols[] = {"h k l", "d (Å)", "2θ (°)", "|F|", "Multiplicity", "I (rel.)"};
+  for (int i = 0; i < 6; i++) p_list->InsertColumn(i, U(cols[i]), wxLIST_FORMAT_LEFT, i ? 78 : 70);
   right->Add(p_list, 1, wxEXPAND | wxALL, 4);
   // The pointer and the status each have a panel of their own.
   wxPanel *pp = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_SUNKEN);
   wxBoxSizer *ps = new wxBoxSizer(wxVERTICAL);
   p_pointer = new wxStaticText(pp, wxID_ANY, "", wxDefaultPosition, wxSize(460, -1));
   ps->Add(p_pointer, 0, wxALL, 3);
+  p_measure = new wxStaticText(pp, wxID_ANY, "", wxDefaultPosition, wxSize(460, -1));
+  ps->Add(p_measure, 0, wxLEFT | wxRIGHT | wxBOTTOM, 3);
   pp->SetSizer(ps);
   right->Add(pp, 0, wxEXPAND | wxALL, 4);
   wxPanel *sp = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_SUNKEN);
@@ -662,15 +900,28 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   sp->SetSizer(ss);
   right->Add(sp, 0, wxEXPAND | wxALL, 4);
   top->Add(right, 1, wxEXPAND);
-  SetSizerAndFit(top);
+  SetSizer(top);
+  for (wxWindow *w : {(wxWindow *)p_panel, (wxWindow *)p_plot, (wxWindow *)p_list}) w->SetMinSize(wxSize(200, 140));
+  SetMinSize(wxSize(640, 480));
+  {
+    const wxRect area = wxDisplay(this).GetClientArea();
+    SetSize(std::min(1060, area.width * 8 / 10), std::min(780, area.height * 8 / 10));
+  }
   onPattern(p_periodic ? 1 : 0);
-  powder->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(1); });
-  fibre->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(0); });
-  single->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(2); });
-  frame->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(3); });
+  // A view shows its own result at once: switching recalculates, so no view
+  // is left showing another's picture or spots.
+  powder->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent& e) { onPattern(1); onCalculate(e); });
+  fibre->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent& e) { onPattern(0); onCalculate(e); });
+  single->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent& e) { onPattern(2); onCalculate(e); });
+  frame->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent& e) { onPattern(3); onCalculate(e); });
   p_rbFrame = frame;
   auto again = [this](wxCommandEvent&) { string why; if (p_frame && p_calc.IsOk()) calculate(why); };
-  for (wxCheckBox *c : {p_fdark, p_fnoise}) c->Bind(wxEVT_CHECKBOX, again);
+  p_fnoise->Bind(wxEVT_CHECKBOX, again);
+  p_plabel->Bind(wxEVT_SPINCTRL, [this](wxCommandEvent&) { p_plot->Refresh(); });
+  p_exposure->Bind(wxEVT_SLIDER, [this](wxCommandEvent&) { updateImage(); });
+  p_scheme->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { updateImage(); });
+  for (wxCheckBox *c : {p_absent, p_lhkl, p_laxes})
+    c->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { if (p_single) p_panel->Refresh(); });
   for (wxCheckBox *c : {p_flabel, p_frings}) c->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { p_panel->Refresh(); });
   p_fsource->Bind(wxEVT_CHOICE, again);
   p_fphi->Bind(wxEVT_SCROLL_CHANGED, [this](wxScrollEvent&) { string why; if (p_frame) calculate(why); });
@@ -743,12 +994,27 @@ void DiffractionDialog::onPattern(int mode)
   p_left->Show(p_powderItems, p_powder, true);
   p_left->Show(p_layerItems, p_single, true);
   p_left->Show(p_frameItems, p_frame, true);
+  p_left->Show(p_displayItems, !p_powder, true);
   p_panel->Show(!p_powder);
   p_plot->Show(p_powder);
   p_list->Show(p_powder);
   p_pointer->SetLabel("");
+  p_measure->SetLabel("");
+  p_pick = 0;
+  p_level.clear();
+  p_levelN = 0;
+  p_calc = wxImage();
+  p_spots.clear();
+  p_layerReady = false;
+  p_panel->setImage(wxImage());
+  p_left->FitInside(p_leftWin);
   Layout();
-  GetSizer()->Fit(this);
+}
+
+wxString DiffractionDialog::sizeText() const
+{
+  const wxRect area = wxDisplay(this).GetClientArea();
+  return wxString::Format("window %dx%d, display client area %dx%d", GetSize().x, GetSize().y, area.width, area.height);
 }
 
 void DiffractionDialog::onSource()
@@ -777,14 +1043,22 @@ bool DiffractionDialog::setMeasured(const string& path, string& why)
 
 void DiffractionDialog::onMeasured(wxCommandEvent&)
 {
-  wxFileDialog dlg(this, "Measured pattern (two columns: 2theta, intensity)", "", "",
-                   "Text (*.txt;*.csv;*.xy;*.dat)|*.txt;*.csv;*.xy;*.dat|All files|*",
+  wxFileDialog dlg(this, U("Experimental powder pattern"), "", "",
+                   "Powder patterns (*.xrdml;*.brml;*.xy;*.xye;*.dat;*.txt;*.csv)|"
+                   "*.xrdml;*.brml;*.xy;*.xye;*.dat;*.txt;*.csv|All files|*",
                    wxFD_OPEN | wxFD_FILE_MUST_EXIST);
   string why;
   if (dlg.ShowModal() != wxID_OK) return;
-  if (!setMeasured(dlg.GetPath().ToStdString(wxConvUTF8), why)) { status(wxString::FromUTF8(why.c_str())); return; }
+  // A file that cannot be read says why in a message, not only in the status line.
+  if (!setMeasured(dlg.GetPath().ToStdString(wxConvUTF8), why)) {
+    wxMessageBox(wxString::FromUTF8(why.c_str()), "Experimental pattern", wxOK | wxICON_ERROR, this);
+    return;
+  }
   string w2;
-  if (!p_tt.empty() && !calculatePowder(w2)) status(wxString::FromUTF8(w2.c_str()));
+  if (!calculatePowder(w2)) {
+    p_measured.clear();
+    wxMessageBox(wxString::FromUTF8(w2.c_str()), "Experimental pattern", wxOK | wxICON_ERROR, this);
+  }
 }
 
 wxString DiffractionDialog::reflectionText(double tt, double tol) const
@@ -793,7 +1067,7 @@ wxString DiffractionDialog::reflectionText(double tt, double tol) const
   for (const Line& l : p_lines)
     if (l.rel >= 0.5 && std::fabs(l.tt - tt) <= tol && (!best || l.rel > best->rel)) best = &l;
   if (!best) return "";
-  return wxString::Format("(%s)   d = %.3f A   2theta = %.2f   I = %.1f", best->hkl, best->d, best->tt, best->rel);
+  return wxString::Format(U("(%s)   d = %.3f Å   2θ = %.2f°   I = %.1f"), best->hkl, best->d, best->tt, best->rel);
 }
 
 bool DiffractionDialog::calculatePowder(string& why)
@@ -839,7 +1113,7 @@ bool DiffractionDialog::calculatePowder(string& why)
     char which[8] = "";
     const int nf = sscanf(line.c_str(), "%d,%d,%d,%lf,%lf,%lf,%d,%lf,%7s", &h, &k, &l, &d, &tt, &fa, &mult, &rel, which);
     if (nf < 8) continue;
-    Line ln = {tt, d, rel, wxString::Format("%d %d %d", h, k, l) + (nf == 9 ? wxString::Format("  %s", which) : wxString()),
+    Line ln = {tt, d, rel, wxString::Format("%d %d %d", h, k, l) + (nf == 9 ? U((string("  K\xCE\xB1") + (string(which) == "Ka2" ? "2" : "1")).c_str()) : wxString()),
                h, k, l, nf == 9 && string(which) == "Ka2"};
     p_lines.push_back(ln);
     const long row = p_list->InsertItem(p_list->GetItemCount(), ln.hkl);
@@ -874,7 +1148,7 @@ wxString DiffractionDialog::spotText(int h, int k, int l) const
 {
   for (const Spot& s : p_spots)
     if (s.h == h && s.k == k && s.l == l)
-      return wxString::Format("(%d %d %d)   d = %.3f A   |F| = %.2f   I = %.4g%s", h, k, l, s.d, s.F,
+      return wxString::Format(U("(%d %d %d)   d = %.3f Å   |F| = %.2f   I = %.4g%s"), h, k, l, s.d, s.F,
                               s.I, s.absent ? "   (systematically absent)" : "");
   return "";
 }
@@ -900,7 +1174,7 @@ wxString DiffractionDialog::framePointerText(int x, int y) const
     const double d2 = (s.px - x) * (s.px - x) + (s.py - y) * (s.py - y);
     if (d2 < bd) { bd = d2; best = &s; }
   }
-  return best ? wxString::Format("(%d %d %d)   d = %.3f A   2theta = %.2f deg   I = %.4g", best->h,
+  return best ? wxString::Format(U("(%d %d %d)   d = %.3f Å   2θ = %.2f°   I = %.4g"), best->h,
                                  best->k, best->l, best->d, best->F, best->I)
               : wxString();
 }
@@ -914,7 +1188,6 @@ bool DiffractionDialog::calculateFrame(string& why)
                       "--pixels", std::to_string(p_layerSize),
                       "--out", p_png, "--out", p_csv, "--geometry", p_dir + "/geometry.txt"};
   if (!p_fnoise->IsChecked()) a.push_back("--no-noise");
-  if (!p_fdark->IsChecked()) a.push_back("--dark");
   status("Calculating...");
   int st = 0;
   const string out = run(a, st);
@@ -930,6 +1203,7 @@ bool DiffractionDialog::calculateFrame(string& why)
     why = "cannot read the frame image";
     return false;
   }
+  setLevels(p_calc, true);
   std::ifstream g(p_dir + "/geometry.txt");
   string key;
   double val;
@@ -959,7 +1233,9 @@ bool DiffractionDialog::calculateFrame(string& why)
     p_spots.push_back(s);
   }
   p_back = wxImage();
-  p_panel->setImage(p_calc);
+  p_pick = 0;
+  p_measure->SetLabel("");
+  updateImage();
   status(wxString::FromUTF8(out.substr(0, out.find('\n')).c_str()));
   return true;
 }
@@ -982,7 +1258,6 @@ bool DiffractionDialog::calculateLayer(string& why)
   vector<string> a = {"layer", p_structure,
                       "--zone", string(zones[std::max(0, p_zone->GetSelection())]) + "=" + std::to_string(layerNo),
                       "--resolution", num(number(p_lres)), "--B", num(number(p_lb)),
-                      "--scale", p_lscale->GetStringSelection().ToStdString(),
                       "--size", std::to_string(p_layerSize),
                       "--out", p_csv, "--geometry", p_dir + "/geometry.txt"};
   if (p_absent->IsChecked()) a.push_back("--show-absent");
@@ -1027,7 +1302,10 @@ bool DiffractionDialog::calculateLayer(string& why)
   }
   p_back = wxImage();
   p_layerReady = true;
-  p_panel->Refresh();
+  p_pick = 0;
+  p_measure->SetLabel("");
+  renderFilm();
+  updateImage();
   status(wxString::FromUTF8(out.substr(0, out.find('\n')).c_str()));
   return true;
 }
@@ -1047,7 +1325,7 @@ bool DiffractionDialog::calculate(string& why)
                       "--misalignment", num(number(p_mis)),
                       "--scale", p_scale->GetStringSelection().ToStdString(),
                       "--decades", "3.5",
-                      p_invert->IsChecked() ? "--invert" : "--no-invert",
+                      "--no-invert",
                       "--gamma", num(number(p_gamma)),
                       "--out", p_png, "--out", p_csv};
   if (p_selectedOnly->IsChecked() && !p_selectionText.empty()) {
@@ -1073,6 +1351,7 @@ bool DiffractionDialog::calculate(string& why)
     why = "cannot read the pattern image";
     return false;
   }
+  setLevels(p_calc, false);
   p_r.clear(); p_z.clear(); p_i.clear();
   std::ifstream f(p_csv);
   string line;
@@ -1082,8 +1361,7 @@ bool DiffractionDialog::calculate(string& why)
     if (sscanf(line.c_str(), "%lf,%lf,%lf,%lf,%lf", &x, &y, &r, &z, &i) != 5) continue;
     p_r.push_back((float)r); p_z.push_back((float)z); p_i.push_back((float)i);
   }
-  wxCommandEvent none;
-  onOpacity(none);
+  updateImage();
   status(wxString::FromUTF8(out.substr(0, out.find('\n')).c_str()));
   return true;
 }
@@ -1106,6 +1384,7 @@ bool DiffractionDialog::setBackdrop(const string& path, string& why)
   wxImage im;
   if (!im.LoadFile(wxString::FromUTF8(path.c_str()))) { why = "cannot read " + path; return false; }
   p_back = im.Scale(p_pixels, p_pixels, wxIMAGE_QUALITY_BILINEAR);
+  p_opacity->Enable(true);
   wxCommandEvent none;
   onOpacity(none);
   return true;
@@ -1130,8 +1409,8 @@ wxString DiffractionDialog::pointerText(int x, int y) const
   const double rep = parse(p_repeat->GetValue());
   wxString t;
   if (rep > 0) t += wxString::Format("l = %.2f   ", z * rep);
-  t += wxString::Format("R = %.4f   Z = %.4f /A", r, z);
-  if (s > 0) t += wxString::Format("   d = %.2f A", 1.0 / s);
+  t += wxString::Format(U("R = %.4f   Z = %.4f Å⁻¹"), r, z);
+  if (s > 0) t += wxString::Format(U("   d = %.2f Å"), 1.0 / s);
   t += wxString::Format("   I = %.3g", p_i[k]);
   return t;
 }
