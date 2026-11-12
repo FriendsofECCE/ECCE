@@ -16,9 +16,11 @@ sockets, in ecceutil, wx-free) runs in the Organizer.
   (`user=`, `password=`, `host=`, `port=`, same format) and the session
   pointer, atomically. `ecce-gateway-start` on Windows returns at once;
   `OnExit` stops the broker and removes the file.
-- **Session end.** The broker ends with the Organizer. Tools left open after
-  the Organizer closed lose messaging (the old `ecce-broker-win watch` kept
-  the broker until the last window closed).
+- **Session end.** At exit the Organizer calls `lingerForSession(10)`: it
+  disconnects its own link, and if Builder, Calculation Editor or job
+  stores are still connected it stays alive without a window, serving the
+  broker, until no client has been connected for 10 s; then it removes the
+  broker file. No client left: it stops at once.
 - **Escape hatch.** `ECCE_BROKER=mosquitto` in the environment of `ecce.cmd`
   runs the old path (`ecce-broker-win` + a mosquitto installed on the machine
   and found by `ecce-find-mosquitto`; mosquitto.exe is no longer bundled).
