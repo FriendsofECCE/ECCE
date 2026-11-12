@@ -336,7 +336,10 @@ def main():
                 if l.startswith("BUILDER: umbrella"):
                     say(l)
             for k, v in shots.items():
-                shutil.copy(v, os.path.join(png, "%s-%s.png" % (name, k)))
+                dest = os.path.join(png, "%s-%s.png" % (name, k))
+                # runScript may already have written the shot there.
+                if os.path.abspath(v) != os.path.abspath(dest):
+                    shutil.copy(v, dest)
         verify(csv, len(wins))
         if os.path.exists(csv):
             shutil.copy(csv, png)
