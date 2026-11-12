@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, PBE0-D3BJ/def2-SVP, frequencies with IR and Raman. This calculation shows the C=O stretch of the simplest carbonyl compound, the start of the carbonyl series.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:12:31 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:33:46 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:12:29 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:33:44 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309151.076 idle=0 at=1794309151\nscf cycle=12 energy=-114.2840101001427371 dE=-2.07e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-3.30e-02,-9.52e-03,-6.58e-03,-1.60e-02,-1.20e-04,-7.66e-06,-5.20e-07,-1.84e-07,-8.87e-08,-3.08e-08,-2.07e-09\nresult disp=D3\nfreq kind=analytic point=15/15 phase=assemble last=Loop real=6 imaginary=0 done=yes zpe=0.02681377\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515625.884 idle=0 at=1794515625\nscf cycle=12 energy=-114.2840101001427371 dE=-2.07e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-3.30e-02,-9.52e-03,-6.58e-03,-1.60e-02,-1.20e-04,-7.66e-06,-5.20e-07,-1.84e-07,-8.87e-08,-3.08e-08,-2.07e-09\nresult disp=D3\nfreq kind=analytic point=15/15 last=Loop real=6 imaginary=0 done=yes zpe=0.02681377\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Vibration
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:12:29 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:33:44 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309149
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515624
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

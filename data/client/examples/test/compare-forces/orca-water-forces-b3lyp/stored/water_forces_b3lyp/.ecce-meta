@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, B3LYP/def2-SVP, energy and gradient. This calculation shows different stored forces at the same water geometry for Compare Forces.
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:13:42 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:35:31 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:13:40 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:35:28 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309222.147 idle=0 at=1794309222\nscf cycle=11 energy=-76.3212898293939190 dE=-1.04e-10/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-4.65e-02,-1.57e-02,-9.82e-03,-2.25e-02,-4.12e-05,6.91e-05,-2.20e-07,-3.41e-08,-2.71e-08,-1.04e-10\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515730.732 idle=0 at=1794515730\nscf cycle=11 energy=-76.3212898293939190 dE=-1.04e-10/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-4.65e-02,-1.57e-02,-9.82e-03,-2.25e-02,-4.12e-05,6.91e-05,-2.20e-07,-3.41e-08,-2.71e-08,-1.04e-10\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Gradient
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:13:41 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:35:29 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309220
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515729
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

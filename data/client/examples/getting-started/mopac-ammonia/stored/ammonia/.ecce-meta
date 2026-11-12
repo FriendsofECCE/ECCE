@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		MOPAC, PM7. This calculation shows a semiempirical optimisation and frequency calculation, including the umbrella inversion mode, for comparison with the DFT examples in cost and accuracy.
 .	http://www.emsl.pnl.gov/ecce:application		MOPAC
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:10:30 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:32:26 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:10:28 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:32:24 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309030.014 idle=0 at=1794309030\nopt step=5 grad=0.48442/1.00000 converged=yes\nopt~ grad=31.997,31.758,6.260,2.783,0.484\nscf converged=yes\nfreq point=12/12 done=yes real=6 imaginary=0\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515545.860 idle=0 at=1794515545\nopt step=5 grad=0.48442/1.00000 converged=yes\nopt~ grad=31.997,31.758,6.260,2.783,0.484\nscf converged=yes\nfreq point=12/12 done=yes real=6 imaginary=0\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:10:28 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:32:24 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309028
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515544
 .	http://www.emsl.pnl.gov/ecce:theory		SE/RPM7

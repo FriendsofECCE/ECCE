@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localised. This calculation shows the linear molecule N2O, which is described by resonance between two Lewis structures.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:14:37 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:31:07 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:14:34 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:31:04 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309276.498 idle=0 at=1794309276\nscf cycle=8 energy=-184.5737416258 dE=-2.22e-12/1e-10 grad=5.60e-08/1e-07 converged=yes\nscf~ dE=-4.00e-07,2.94e-07,-4.10e-07,-4.74e-09,-4.86e-10,-4.63e-11,-2.22e-12\nopt step=4 energy=-184.5737416258 maxgrad=4.52e-05/3e-04 rmsgrad=1.86e-05/1e-04 maxstep=3.24e-05/4e-03 rmsstep=1.45e-05/2e-03 dE=-6.46e-07/5e-06 converged=yes\nopt~ maxgrad=1.16e-02,8.80e-03,1.02e-03,4.52e-05\nopt~ rmsgrad=4.75e-03,3.61e-03,4.82e-04,1.86e-05\nfreq point=18/18 done=yes real=3 imaginary=0 zpe=0.0098488675\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515466.636 idle=0 at=1794515466\nscf cycle=8 energy=-184.5737416258 dE=-2.22e-12/1e-10 grad=5.60e-08/1e-07 converged=yes\nscf~ dE=-4.00e-07,2.94e-07,-4.10e-07,-4.74e-09,-4.86e-10,-4.63e-11,-2.22e-12\nopt step=4 energy=-184.5737416258 maxgrad=4.52e-05/3e-04 rmsgrad=1.86e-05/1e-04 maxstep=3.24e-05/4e-03 rmsstep=1.45e-05/2e-03 dE=-6.46e-07/5e-06 converged=yes\nopt~ maxgrad=1.16e-02,8.80e-03,1.02e-03,4.52e-05\nopt~ rmsgrad=4.75e-03,3.61e-03,4.82e-04,1.86e-05\nfreq point=18/18 done=yes real=3 imaginary=0 zpe=0.0098488675\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:14:35 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:31:05 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309275
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515465
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT
