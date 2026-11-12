@@ -53,6 +53,26 @@ foreach ($odd in @(("$Out\" + [char]0xC5 + "sa " + [char]0xD6 + "berg"), ("$Out\
   & "$r\python\python3.exe" tests/windows/launch_local.py complete --build "$r\bin" --state "$odd" 2>&1 | Tee-Object "$odd.log"
   Check ($LASTEXITCODE -eq 0) "local job complete with the user folder $(Split-Path -Leaf $odd)"
 }
+# ECCE itself under a folder with letters outside A-Z (#958): a per-user
+# install lives under the profile, so a profile path such as C:\Kayttajat-
+# with-umlauts\<user> puts them in ECCE_ROOT, PATH and every job script path.
+$fi = "$env:RUNNER_TEMP\K" + [char]0xE4 + "ytt" + [char]0xE4 + "j" + [char]0xE4 + "t " + [char]0xC5 + [char]0xD6
+New-Item -ItemType Directory -Force $fi | Out-Null
+Copy-Item -Recurse $inst "$fi\ecce"
+$rf = "$fi\ecce"
+$env:WINTEST_HOME = $rf
+$env:WINTEST_BASE_PATH = "$rf\bin;$rf\usr\bin;$rf\python;$rf\strawberry\perl\site\bin;$rf\strawberry\perl\bin;$rf\strawberry\c\bin;$sys"
+& "$rf\python\python3.exe" tests/windows/launch_local.py complete --build "$rf\bin" --state "$fi\state" 2>&1 | Tee-Object "$Out\nonascii-root.log"
+Check ($LASTEXITCODE -eq 0) "local job complete with ECCE under $(Split-Path -Leaf $fi)"
+$saveProfile = $env:USERPROFILE
+$env:USERPROFILE = "$fi\home"
+New-Item -ItemType Directory -Force $env:USERPROFILE | Out-Null
+& tests\windows\organizer-probe.ps1 -Ecce $rf -Out "$Out\probe-nonascii"
+Check ($LASTEXITCODE -eq 0) "organizer probe with ECCE and the profile under $(Split-Path -Leaf $fi)"
+$env:USERPROFILE = $saveProfile
+Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$rf\*" } | Stop-Process -Force -ErrorAction SilentlyContinue
+$env:WINTEST_HOME = $r
+$env:WINTEST_BASE_PATH = "$r\bin;$r\usr\bin;$r\python;$r\strawberry\perl\site\bin;$r\strawberry\perl\bin;$r\strawberry\c\bin;$sys"
 $env:Path = $sys
 tests\windows\ci-run.ps1 -Stage $stage -Out "$Out\apps"
 Get-Content "$Out\apps\summary.txt" | ForEach-Object { Say "apps: $_" }

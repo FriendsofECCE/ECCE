@@ -52,6 +52,7 @@ const vector<WorkflowSteps::Code>& WorkflowSteps::codes()
   static const vector<Code> list = {
     {"xtb",     "xtb_es",        0x7a, 0x4f, 0xa3},
     {"CREST",   "crest_es",      0x5a, 0x3f, 0x8f},
+    {"Vina",    "vina_es",       0x0f, 0x7c, 0x7c},
     {"ORCA",    "orca_es",       0x1f, 0x6f, 0xb2},
     {"ECCE-QM", "ecceqm_es",     0x2b, 0x8a, 0x3e},
     {"G16",     "gaussian16_es", 0xb3, 0x5c, 0x00},
@@ -200,8 +201,8 @@ namespace { void applyDefaultTheory(Resource *step); }
 namespace {
 // Set on a hand-made step whose source had not run when it was made.
 const char *const kCarryPendingProp = ":workflow.carry";
-// Marks the xTB optimisation New step inserts before CREST; only it is
-// written and made Ready without its editor.
+// Marks the hand-made steps written and made Ready without their editor:
+// the xTB optimisation New step inserts before CREST, and that CREST step.
 const char *const kAutoReadyProp = ":workflow.auto";
 }
 
@@ -335,7 +336,12 @@ vector<Resource*> WorkflowSteps::createRanks(Session *wf, ResourceType *rt,
       return made;
     }
     char note[200];
-    if (ScanPoint::ensembleIsPoses(task))
+    if (ScanPoint::ensembleIsSites(task))
+      snprintf(note, sizeof note,
+               "Site %d of %d from %s, E - E(host) %.3f eV (MLP only).",
+               k, size, source->getName().c_str(),
+               ScanPoint::conformerEnergy(task, k));
+    else if (ScanPoint::ensembleIsPoses(task))
       snprintf(note, sizeof note,
                "Pose %d of %d from %s, score %.3f kcal/mol "
                "(within this docking run only).",
@@ -421,7 +427,7 @@ string WorkflowSteps::stepTag(Resource *step)
   if (rt == "Conformer Search" || rt == "Conformer search (simple)")
     return "Conformer search";
   if (rt == "Molecular Dynamics") return "MD";
-  if (rt == "Docking (aISS)") return "Docking";
+  if (rt == "Docking (aISS)" || rt == "Docking (Vina)") return "Docking";
   return rt;
 }
 
@@ -696,6 +702,30 @@ bool WorkflowSteps::autoRun(Session *wf)
 void WorkflowSteps::setAutoRun(Session *wf, bool on)
 {
   if (wf) wf->addProp(VDoc::getEcceNamespace() + ":autorun", on ? "1" : "0");
+  if (!on) setRunStarted(wf, false);
+}
+
+
+bool WorkflowSteps::runStarted(Session *wf)
+{
+  return wf && wf->getProp(VDoc::getEcceNamespace() + ":autorun.started") == "1";
+}
+
+
+void WorkflowSteps::setRunStarted(Session *wf, bool on)
+{
+  // Stored on the workflow, so a run goes on after an Organizer restart.
+  if (wf && runStarted(wf) != on)
+    wf->addProp(VDoc::getEcceNamespace() + ":autorun.started", on ? "1" : "0");
+}
+
+
+bool WorkflowSteps::allComplete(Session *wf)
+{
+  if (!wf) return false;
+  for (Resource *m : wf->getMembers())
+    if (!isComplete(m)) return false;
+  return true;
 }
 
 
@@ -1350,8 +1380,18 @@ string WorkflowSteps::prepareStep(Session *wf, Resource *step)
     Fragment *frag = task ? task->fragment() : 0;
     const bool atoms = frag && frag->numAtoms() > 0;
     delete frag;
+    // Steps made before #910 stored no theory, and the deck needs one (#950).
+    TTheory *th = calc->theory();
+    if (!th) {
+      applyDefaultTheory(step);
+      th = calc->theory();
+    }
+    const bool theory = th != 0;
+    delete th;
     if (!atoms) {
       why = "no structure yet";
+    } else if (!theory) {
+      why = "no theory yet (open it in the Calculation Editor)";
     } else {
       DeckWriter::Result r = DeckWriter::generate(calc);
       if (r.ok) {
@@ -1520,6 +1560,9 @@ string WorkflowSteps::resultLine(Resource *step, const string& progress)
     const string rt = calc->runtype().name();
     string many, one;
     ensembleWords(rt, many, one);
+    // A site screen's results copy the MLP run type, not a CREST one.
+    if (ScanPoint::ensembleIsSites(task))
+      return std::to_string(n) + (n == 1 ? " site" : " sites");
     string line = std::to_string(n) + " " + (n == 1 ? one : many);
     // Protonation and tautomer runs have no window of their own.
     if (rt != "Protonation Sites" && rt != "Tautomers" && rt != "Solvation Shell") {

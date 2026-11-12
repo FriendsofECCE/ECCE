@@ -42,6 +42,8 @@ public:
   void urlStateMCB(JMSMessage& msg);
 
   void propertyChangeMCB(JMSMessage& msg);
+  void detailsMCB(JMSMessage& msg);
+  void vinaBoxMCB(JMSMessage& msg);
 
   void authChangedMCB(JMSMessage& msg);
 

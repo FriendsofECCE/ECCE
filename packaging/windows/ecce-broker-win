@@ -104,8 +104,13 @@ pattern read ecce/+/ecce_machreg_changed
 ACL
 # A cold first start (virus scanning of freshly unpacked files) or a port in
 # a range Windows reserves can keep the broker from coming up; try again on
-# another port, and show the broker's own log before giving up.
+# another port, and show the broker's own log before giving up.  The first
+# start of a new mosquitto.exe can take well over 20 s while it is scanned,
+# so attempt 1 waits longest.  Each attempt has its own folder: a broker of
+# an earlier attempt that is still starting keeps its log and passwd open,
+# and a later attempt in the same folder then cannot open them (#958).
 started=""
+cp "$DIR/acl" "$DIR/acl.src"
 for attempt in 1 2 3; do
   port=""
   for _ in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20; do
@@ -113,7 +118,11 @@ for attempt in 1 2 3; do
     port_open "$c" || { port="$c"; break; }
   done
   [ -n "$port" ] || { echo "ecce-broker-win: no free port found" >&2; exit 1; }
-  cat > "$DIR/mosquitto.conf" <<CONF
+  ADIR="$DIR/a$attempt"
+  mkdir -p "$ADIR"
+  cp "$DIR/passwd" "$ADIR/passwd" && cp "$DIR/acl.src" "$ADIR/acl" || {
+    echo "ecce-broker-win: cannot write $ADIR" >&2; exit 1; }
+  cat > "$ADIR/mosquitto.conf" <<CONF
 per_listener_settings true
 persistence false
 log_dest file mosquitto.log
@@ -124,20 +133,24 @@ acl_file acl
 CONF
 
   # No setsid: on Windows it opens a console window of its own.
-  (cd "$DIR" && exec nohup "$MOSQUITTO" -c mosquitto.conf \
+  (cd "$ADIR" && exec nohup "$MOSQUITTO" -c mosquitto.conf \
     </dev/null >mosquitto.out 2>&1) &
-  echo $! > "$PIDFILE"
+  pid=$!
+  echo $pid > "$PIDFILE"
+  limit=240; [ $attempt -gt 1 ] && limit=100
   i=0
-  while [ $i -lt 80 ] && ! port_open "$port"; do i=$((i + 1)); sleep 0.25; done
-  if port_open "$port"; then started=1; break; fi
+  while [ $i -lt $limit ] && ! port_open "$port" && alive "$pid"; do i=$((i + 1)); sleep 0.25; done
+  if port_open "$port"; then started=1; LASTDIR="$ADIR"; break; fi
   echo "ecce-broker-win: broker did not come up on port $port (attempt $attempt of 3)" >&2
-  pid="$(cat "$PIDFILE" 2>/dev/null)"
-  [ -n "$pid" ] && kill "$pid" 2>/dev/null
+  kill -9 "$pid" 2>/dev/null
+  wp="$(cat "/proc/$pid/winpid" 2>/dev/null)"
+  [ -n "$wp" ] && taskkill //F //PID "$wp" >/dev/null 2>&1
+  LASTDIR="$ADIR"
   sleep 1
 done
 if [ -z "$started" ]; then
   echo "ecce-broker-win: broker did not start; its log:" >&2
-  cat "$DIR/mosquitto.log" "$DIR/mosquitto.out" >&2 2>/dev/null
+  cat "$LASTDIR/mosquitto.log" "$LASTDIR/mosquitto.out" >&2 2>/dev/null
   stop
   exit 1
 fi

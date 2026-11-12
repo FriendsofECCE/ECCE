@@ -1297,7 +1297,7 @@ expect code-listed Gaussian-03 0
 expect code-listed Gaussian-98 0
 expect code-listed GAMESS-UK 0
 expect code-listed Amica 0
-expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,CREST,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,xTB'
+expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,CREST,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,Vina,xTB'
 code Gaussian-16
 expect label code:title Gaussian-16
 expect field code:gaussian-16 /site/g16
@@ -1338,9 +1338,9 @@ expect shown blk:ccmd:hint 0
 expect label tag:cenv '%(yours)s'
 expect shown undo:cenv 1
 set code:gaussian-16 /opt/g16/g16
-expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,CREST,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,xTB'
+expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,CREST,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,Vina,xTB'
 set code:gaussian-16 ''
-expect field code:list 'NWChem  *,CP2K,CREST,Gaussian-16,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,xTB'
+expect field code:list 'NWChem  *,CP2K,CREST,Gaussian-16,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,Vina,xTB'
 set code:gaussian-16 /opt/g16/g16
 set code:files '*.rwf'
 set code:prelim '*.old'
@@ -1674,6 +1674,31 @@ expect field code:gaussian-03 /old/g03
 quit
 """)
     clean(p, "a retired code is listed when the machine has a key for it")
+
+
+def mlp_setup(tmp, display, build):
+    print("codes tab: MLP (MACE) Set up... builds the environment and fills Program")
+    e = Env(tmp, "mlp-setup")
+    tool_machine(e)
+    folder = os.path.join(tmp, "mlp setup")      # a space must survive the quoting
+    # The mock creates the venv and skips the downloads.
+    extra = dict(LOCALUSER, ECCE_TEST_MLP_SETUP_DIR=folder, ECCE_MLP_SETUP_MOCK="1")
+    p = run(display, build, e, """
+select stubm
+tab codes
+expect contains code:list 'MLP (MACE)'
+code MLP
+click code:setup
+expect field code:mlp '%s/venv/bin/python'
+expect dirty 1
+quit
+""" % folder, extra=extra)
+    clean(p, "Set up runs ecce-mlp-setup on the machine and fills in its Python")
+    status = read(os.path.join(folder, "setup.status")).strip()
+    check(status == "done %s/venv/bin/python" % folder, "setup.status says done: %r" % status)
+    log = read(os.path.join(folder, "setup.log"))
+    check(log.count("ECCE-MLP-SETUP step") == 5, "the log has the five steps")
+    check(os.path.exists(os.path.join(folder, "venv", "bin", "python")), "the venv exists")
 
 
 def codes_find(tmp, display, build):
@@ -2879,6 +2904,7 @@ def main():
             codes_retired(tmp, disp, build)
             codes_skeleton(tmp, disp, build)
             codes_find(tmp, disp, build)
+            mlp_setup(tmp, disp, build)
             find_before_save_with_stale_prefs(tmp, disp, build)
             discovery(tmp, disp, build)
             preview(tmp, disp, build)

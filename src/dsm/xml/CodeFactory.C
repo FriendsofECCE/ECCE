@@ -197,6 +197,13 @@ vector<string> CodeFactory::getMachineCodeNames()
   return ret;
 }
 
+string CodeFactory::displayName(const string& codeName)
+{
+  if (codeName == "MLP") return "MLP (MACE)";
+  return codeName;
+}
+
+
 bool CodeFactory::isRegistered(const string& codeName)
 {
   static string text;

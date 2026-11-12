@@ -50,6 +50,7 @@ my $IMAG_THRESHOLD = 1.0;
 my $PD_KEY_BEGIN        = 'begin';	# canonical form of rule key Begin
 my $PD_KEY_END          = 'end';	# canonical form of rule key End
 my $PD_KEY_FILE         = 'file';	# canonical form of rule key File
+my $PD_KEY_FOLLOW       = 'follow';	# canonical form of rule key Follow
 my $PD_KEY_ORDER        = 'order';	# position in the descriptor file
 my $PD_KEY_FREQ         = 'frequency';	# canonical form of rule key Frequency
 my $PD_KEY_LINES        = 'lines';	# canonical form of rule key Lines
@@ -152,6 +153,11 @@ my %gPdCount;
 my @gPdMatchList;
 my %gPdTable;
 my %gPdTableFiles;
+# Follow=yes File= entries (#949): file -> [parse type, bytes sent].  Read
+# as they grow while the job runs, and not sent again at the end.
+my %gPdTableFollow;
+my $gFollowLast = 0;	# when the followed files were last read
+my $gBookmarkLast;	# bookmark of the last block sent, for follow blocks
 my %gPdTableFreq;
 
 # [PROGRESS] entries (#284).  They are matched against every line, inside
@@ -3173,6 +3179,7 @@ sub JobOutputGet
 
                         # a snapshot held back by the throttle goes now
                         &ProgressTail(1) if (@gProgList);
+                        &FollowRead(1) if (%gPdTableFollow);
                         # silent for a minute: say so once a minute (#769)
                         if (@gProgList && time - $gLastOut >= 60
                             && time - $gIdleAt >= 60)
@@ -3237,6 +3244,7 @@ sub JobOutputGet
 
             # Keep track of where we are for restarting
             $currPos += length;
+            &FollowRead(0) if (%gPdTableFollow);
 
             if (@gProgList)
             {
@@ -3402,6 +3410,7 @@ sub JobOutputGet
 
     # the last snapshot, then buffered data blocks
     &ProgressTail(1) if (@gProgList);
+    &FollowRead(1) if (%gPdTableFollow);
     &ProgressFlush(1) if (@gProgList);
     &MsgSendBlockFlush();
 }
@@ -3963,6 +3972,7 @@ sub MsgSendBlockEnd
         {
             $bookmark .= ":$seq";
         }
+        $gBookmarkLast = $bookmark;
         &MsgSend(join $MSG_SEP, $MSG_TYPE_PROP, $bookmark, $gMsgBlockCurrent);
     }
 }
@@ -4263,6 +4273,7 @@ sub PDFileRead
         $PD_KEY_BEGIN,
         $PD_KEY_END,
         $PD_KEY_FILE,
+        $PD_KEY_FOLLOW,
         $PD_KEY_FREQ,
         $PD_KEY_LINES,
         $PD_KEY_PREFIX,
@@ -4294,6 +4305,8 @@ sub PDFileRead
     while (<PDF>)
     {
         $line++;
+        # a descriptor saved on Windows ends its lines in CRLF
+        s/\r(?=\n?\z)//;
 
         # check for end of file
         if ($gConfig{'endOfPDF'})
@@ -4460,7 +4473,17 @@ sub PDFileRead
                     $file =~ s/##SystemName##/$gConfig{'systemName'}/;
                     $file =~ s/##CalcName##/$gConfig{'calcName'}/;
 
-                    if (!(exists $gPdTableFiles{$file}))
+                    if (exists $pdBuf{$PD_KEY_FOLLOW})
+                    {
+                        unless ($pdBuf{$PD_KEY_FOLLOW} =~ /^\s*yes\s*$/i)
+                        {
+                            $errMsg = "line $line of $what '$file': "
+                                . "Follow takes yes in parse type [$parseType]";
+                            last;
+                        }
+                        $gPdTableFollow{$file} = [$parseType, 0];
+                    }
+                    elsif (!(exists $gPdTableFiles{$file}))
                     {
                         # store ($file, $parseType) into gPdTableFiles
                         $gPdTableFiles{$file} = $parseType;
@@ -4738,6 +4761,51 @@ sub ProgressTail
     }
 }
 
+# --------------------------------------------------------------------------- #
+# Follow=yes File= entries (#949): a file the job appends to while it runs
+# (ORCA's IRC trajectories).  Live only: the complete lines added since the
+# last read go to the client as one block of the entry's parse type, at most
+# once per timePauseReadLine unless $force.  The block's first line is
+#   #ECCE-FOLLOW <file> <byte offset of the next line>
+# so the script can join a record split between two reads and skip what it
+# was sent before a monitor restart (which starts the file again at 0).
+# --------------------------------------------------------------------------- #
+
+sub FollowRead
+{
+    my($force) = @_;
+
+    return unless ($gConfig{'monitoringMode'} eq 'live');
+    my $now = time;
+    return unless ($force || $now - $gFollowLast >= $gConfig{'timePauseReadLine'});
+    $gFollowLast = $now;
+
+    foreach my $file (sort { ($gPdTypeOrder{$gPdTableFollow{$a}[0]} // 0)
+                             <=> ($gPdTypeOrder{$gPdTableFollow{$b}[0]} // 0)
+                             || $a cmp $b } keys %gPdTableFollow)
+    {
+        my($parseType, $off) = @{$gPdTableFollow{$file}};
+        my $fh;
+        next unless (open($fh, '<', $file));
+        binmode($fh);
+        my $buf = '';
+        if (seek($fh, $off, 0))
+        {
+            read($fh, $buf, 4194304);
+        }
+        close($fh);
+        my $end = rindex($buf, "\n");
+        next if ($end < 0);
+        $buf = substr($buf, 0, $end + 1);
+        $buf =~ s/\r\n/\n/g;
+        my $count = ++$gPdCount{$parseType};
+        &MsgSend(join $MSG_SEP, $MSG_TYPE_PROP,
+                 (defined $gBookmarkLast ? $gBookmarkLast : $gConfig{'bookmark'}),
+                 $parseType, $count, "#ECCE-FOLLOW $file $off\n$buf");
+        $gPdTableFollow{$file}[1] = $off + $end + 1;
+    }
+}
+
 sub ProgressNow
 {
     $gHiRes ? Time::HiRes::time() : time;
@@ -4899,6 +4967,14 @@ sub ProgressLine
         {
             push @{$$st{'keys'}}, $_ unless (exists $$st{'f'}{$_});
             $$st{'f'}{$_} = $set{$_};
+        }
+
+        #  An analytic Hessian's end line has no new record to clear its
+        #  CPHF pass and assembly phase; a finished stage shows neither.
+        if (defined $set{'done'} && $set{'done'} eq 'yes')
+        {
+            delete @{$$st{'f'}}{qw(pass phase)};
+            $$st{'keys'} = [grep { exists $$st{'f'}{$_} } @{$$st{'keys'}}];
         }
 
         foreach my $hk (split /,/, (defined $$entry[2] ? $$entry[2] : ''))
@@ -5131,6 +5207,12 @@ sub PDTableDeleteType
             if ($gPdTableFiles{$_} eq $parseType);
     }
 
+    foreach (keys %gPdTableFollow)
+    {
+        delete $gPdTableFollow{$_}
+            if ($gPdTableFollow{$_}[0] eq $parseType);
+    }
+
     # reinitialize the match list
     &PDMatchListCreate();
 }
@@ -5240,6 +5322,12 @@ sub PDTypesEnable
         {
             delete $gPdTableFiles{$_}
                 unless (exists $gPdCount{$gPdTableFiles{$_}});
+        }
+
+        foreach (keys %gPdTableFollow)
+        {
+            delete $gPdTableFollow{$_}
+                unless (exists $gPdCount{$gPdTableFollow{$_}[0]});
         }
     }
 

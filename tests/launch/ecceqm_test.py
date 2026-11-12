@@ -443,6 +443,7 @@ def checkProgress(suite, url, proc, path):
     last = msgs[-1][1]
     check(re.search(r"^opt step=\d+ .*converged=yes", last, re.M) is not None,
           "the last snapshot has the converged optimisation")
+    # a finished analytic Hessian keeps its point but not its pass= or phase=
     check(re.search(r"^freq (?:kind=\w+ )?(?:point=(\d+)/\1 )?done=yes real=3 imaginary=0 zpe=", last, re.M)
           is not None, "the last snapshot has all frequency points, 3 real, 0 imaginary")
     check(re.search(r"^scf~ dE=", last, re.M) is not None,

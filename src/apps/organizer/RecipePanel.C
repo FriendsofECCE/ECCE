@@ -293,8 +293,9 @@ RecipePanel::RecipePanel(wxWindow *parent, WorkflowPanel *owner, Session *wf,
   ls->Add(note, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
 
   p_autorun = new wxCheckBox(left, wxID_ANY, "Run the remaining steps automatically");
-  p_autorun->SetToolTip("Launch each step as soon as the step it starts from is "
-                        "Complete. Works while the Organizer is open.");
+  p_autorun->SetToolTip("Arms auto-run: once Launch Ready Steps has been pressed, each "
+                        "further step is launched when the step it starts from is "
+                        "Complete. Ticking launches nothing. Works while the Organizer is open.");
   ls->Add(p_autorun, 0, wxLEFT | wxRIGHT | wxTOP, 10);
 
   p_problem = new wxStaticText(left, wxID_ANY, "");

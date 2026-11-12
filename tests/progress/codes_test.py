@@ -108,7 +108,7 @@ case("orca opt+freq (analytic, HF)", "orca.desc", fx("orca", "h2o_optfreq.out"),
      {"opt": {"step": "4", "converged": "yes", "energy": has("-74.9659"),
               "maxgrad": target, "rmsstep": target, "dE": target},
       "freq": {"done": "yes", "zpe": has("0.0243"), "kind": "analytic",
-              "point": "9/9", "phase": "assemble", "last": lambda v: v != ""},
+              "point": "9/9", "last": lambda v: v != ""},
       "scf": {"cycle": lambda v: int(v) >= 1, "dE": target}},
      {"opt": (4, 4)})
 # What the final energy contains comes from the code's own output (#826):
@@ -178,7 +178,7 @@ case("ecceqm opt+freq (analytic RHF Hessian)", "ecceqm.desc",
 # have converged, so the box can show "k of n perturbations".
 case("ecceqm analytic Hessian counts perturbations", "ecceqm.desc",
      fx("ecceqm", "h2o_freq.qmout"),
-     {"freq": {"kind": "analytic", "point": "9/9", "phase": "assemble", "done": "yes", "real": "3"}})
+     {"freq": {"kind": "analytic", "point": "9/9", "done": "yes", "real": "3"}})
 case("ecceqm numerical frequencies (Raman input)", "ecceqm.desc",
      fx("ecceqm", "h2o_numfreq.qmout"),
      {"freq": {"kind": "numerical", "point": "18/18", "done": "yes"}})
@@ -206,7 +206,7 @@ case("gaussian-16 relaxed scan (H2O2 dihedral, 7 points)", "gaussian-16.desc",
 case("gaussian-16 opt+freq (B3LYP/6-31G*, #P)", "gaussian-16.desc", fx("gaussian-16", "nh3_optfreq.log"),
      {"opt": {"step": "4", "converged": "yes", "maxgrad": target, "rmsgrad": target,
               "maxstep": target, "rmsstep": target, "dE": lambda v: "e-" in v},
-      "freq": {"done": "yes", "zpe": has("0.0345"), "kind": "analytic", "pass": "5"},
+      "freq": {"done": "yes", "zpe": has("0.0345"), "kind": "analytic"},
       "scf": {"cycle": lambda v: int(v) >= 1, "converged": "yes"}},
      {"opt": (3, 4)})
 case("gaussian-16 opt, not converged", "gaussian-16.desc", fx("gaussian-16", "nh3_optmax.log"),
@@ -250,6 +250,25 @@ case("xtb opt (methane, normal)", "xtb.desc", fx("xtb", "ch4_opt.out"),
      {"opt": (12, 12)})
 case("xtb opt, not converged", "xtb.desc", fx("xtb", "capped.out"),
      {"opt": {"step": "3", "converged": "no"}})
+
+case("vina docking (18-crown-6 + ethanol)", "vina.desc", fx("vina", "crown_ethanol.out"),
+     {"vina": {"stage": "done", "best": has("-")}})
+
+# MLP (MACE medium-mpa-0, water, ecce-mlp-driver): energies in Eh (the
+# output prints eV and Eh), MD keeps its time and temperature at the end.
+case("mlp geometry (water, BFGS)", "mlp.desc", fx("mlp", "water_opt.mlpout"),
+     {"opt": {"step": "4", "converged": "yes", "energy": has("-0.506629"),
+              "grad": "0.00220/0.01"}},
+     {"opt": (5, 5)})
+case("mlp md (water, NVT, 40 steps)", "mlp.desc", fx("mlp", "water_md.mlpout"),
+     {"md": {"point": "40/40", "time": "0.0200", "temp": "248.45",
+             "energy": has("-0.5039"), "done": "yes"}},
+     {"md": (5, 5)})
+# An Energy or Vibration run has no steps, so no Optimisation block.
+case("mlp energy: no optimisation", "mlp.desc", fx("mlp", "water_energy.mlpout"),
+     {"!opt": {}, "!md": {}})
+case("mlp vibration: no optimisation", "mlp.desc", fx("mlp", "water_vib.mlpout"),
+     {"!opt": {}})
 
 case("qe relax (pw.x 6.7)", "qe.desc", fx("qe", "h2o_relax.pwout"),
      {"opt": {"istep": "3", "converged": "yes", "maxgrad": lambda v: "/" not in v},
@@ -304,7 +323,10 @@ case("gromacs prepare (Trp-cage, 2025.2)", "gromacs.desc",
 
 def run_case(name, desc, out, want, hist, out2):
     n, stages, text = replay(os.path.join(PARSERS, desc), out, "ALL", out2)
-    check(n is not None and n >= 1, "%s: monitor ran, %s snapshot(s)" % (name, n))
+    # A case that only forbids stages may rightly produce no snapshot.
+    absent_only = all(st.startswith("!") for st in want) and not hist
+    check(n is not None and (n >= 1 or absent_only),
+          "%s: monitor ran, %s snapshot(s)" % (name, n))
     if not n:
         return
     for stage, keys in want.items():

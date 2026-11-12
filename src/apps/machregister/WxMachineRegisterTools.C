@@ -9,6 +9,8 @@
  */
 
 #include <atomic>
+#include <fstream>
+#include <sstream>
 #include <memory>
 #include <functional>
 #include <thread>
@@ -43,6 +45,7 @@
 #include "MemoryUnits.H"
 #include "SchedulerQuery.H"
 #include "RemoteFileChooser.H"
+#include <wx/choicdlg.h>
 #include <wx/filedlg.h>
 #include <wx/filename.h>
 #include "WxMachineRegister.H"
@@ -1220,4 +1223,207 @@ void WxMachineRegister::testSubmission()
 
     dlg->Fit();
     this->showTool(dlg, "test:");
+}
+
+
+//  ---- MLP (MACE) environment ----------------------------------------------
+
+//  A folder as typed, for sh: a leading ~/ or $HOME/ stays expandable on the
+//  machine, the rest is quoted.
+static string shellFolder(string dir)
+{
+    string head;
+    if (dir.compare(0, 2, "~/") == 0) { head = "\"$HOME\"/"; dir = dir.substr(2); }
+    else if (dir.compare(0, 6, "$HOME/") == 0) { head = "\"$HOME\"/"; dir = dir.substr(6); }
+    string q = "'";
+    for (char c : dir)
+        q += c == '\'' ? string("'\\''") : string(1, c);
+    return head + q + "'";
+}
+
+//  Set up...: scripts/ecce-mlp-setup is written to the folder on the machine
+//  and started detached, so a slow PyTorch download survives neither a
+//  blocked window nor a dropped ssh; the window follows its log.
+void WxMachineRegister::setupMlp()
+{
+    if (p_codeNames.empty() || p_codeNames[p_codeSel] != "MLP")
+        return;
+    ewxTextCtrl* field = p_codePaths[p_codeSel];
+    string machine = stripped((string)p_fullName->GetValue());
+    if (machine.empty())
+    {
+        displayMessage("Enter the machine's host name on the Machine tab first.");
+        return;
+    }
+    if (windowsPrograms())
+    {
+        displayMessage("Set up runs on Linux and macOS machines. On Windows, "
+                       "create the environment by hand (see Help) and choose "
+                       "its python.exe with Browse....");
+        return;
+    }
+    const string script = string(Ecce::ecceHome()) + "/scripts/ecce-mlp-setup";
+    std::ifstream in(script.c_str());
+    std::stringstream source;
+    source << in.rdbuf();
+    if (!in || source.str().empty())
+    {
+        displayMessage("Cannot read " + script + ".");
+        return;
+    }
+    //  ECCE's optimiser/dynamics driver as one source file, built there by
+    //  the set-up script (a cluster has no ECCE installation).
+    std::ifstream drv((string(Ecce::ecceHome()) + "/scripts/ecce-mlp-driver.cpp").c_str());
+    std::stringstream driver;
+    driver << drv.rdbuf();
+    string dir = "~/ecce-mlp";
+    string torch = "cpu";
+    if (p_scripted)
+    {
+        const char* d = getenv("ECCE_TEST_MLP_SETUP_DIR");
+        if (d && *d) dir = d;
+        const char* t = getenv("ECCE_TEST_MLP_SETUP_TORCH");
+        if (t && (string(t) == "cuda" || string(t) == "auto")) torch = t;
+        fprintf(stderr, "[MACHREG] mlp setup in %s (%s)\n", dir.c_str(), torch.c_str());
+    }
+    else
+    {
+        wxTextEntryDialog ask(this,
+            "ECCE will create a Python environment in this folder on " +
+            machine + ": PyTorch (CPU or GPU build, asked next), "
+            "mace-torch and ASE, and download the MACE model medium-mpa-0 "
+            "into it, so compute nodes need no internet. This downloads about "
+            "1 GB (more with a GPU) and takes several minutes.\n\nFolder:",
+            "Set up MLP (MACE)", dir);
+        if (ask.ShowModal() != wxID_OK)
+            return;
+        dir = stripped((string)ask.GetValue());
+        if (dir.empty())
+            return;
+        //  The CUDA build of PyTorch is several GB; CPU suits most machines.
+        wxArrayString builds;
+        builds.Add("CPU (about 1.5 GB in all)");
+        builds.Add("NVIDIA GPU, CUDA (several GB more)");
+        wxSingleChoiceDialog which(this,
+            "Which PyTorch build should the environment on " + machine +
+            " have? Choose the GPU build only if the machine that runs the "
+            "calculations (on a cluster: the compute nodes) has an NVIDIA GPU.",
+            "Set up MLP (MACE)", builds);
+        which.SetSelection(0);
+        if (which.ShowModal() != wxID_OK)
+            return;
+        torch = which.GetSelection() == 1 ? "cuda" : "cpu";
+    }
+    const string d = "d=" + shellFolder(dir) + "\n";
+    const string start = d +
+        "mkdir -p \"$d\" || exit 1\n"
+        "cat > \"$d/ecce-mlp-setup\" <<'ECCE_MLP_SETUP_EOF'\n" + source.str() +
+        "ECCE_MLP_SETUP_EOF\n" +
+        (driver.str().empty() ? string() :
+         "cat > \"$d/ecce-mlp-driver.cpp\" <<'ECCE_MLP_DRIVER_EOF'\n" + driver.str() +
+         "ECCE_MLP_DRIVER_EOF\n") +
+        "rm -f \"$d/setup.status\"\n"
+        "if command -v setsid >/dev/null 2>&1; then s=setsid; else s=; fi\n"
+        "nohup $s sh \"$d/ecce-mlp-setup\" \"$d\" medium-mpa-0 " + torch +
+        " > \"$d/setup.log\" 2>&1 < /dev/null &\n"
+        "echo ECCE-MLP-SETUP-STARTED\n";
+    SchedulerQuery::Remote r(this->connection());
+    string output, err;
+    bool ok = false;
+    runBusy(this, "Set up MLP (MACE)", "Starting on " + machine + "...", [&]() {
+        string e;
+        if (!r.open(e)) { err = e; return; }
+        vector<string> argv = { "sh", "-c", start };
+        ok = r.run(argv, output, 60) &&
+             output.find("ECCE-MLP-SETUP-STARTED") != string::npos;
+        if (!ok) err = output;
+    });
+    if (!ok)
+    {
+        displayMessage("Could not start the set-up on " + machine + ":\n" + err);
+        return;
+    }
+    const string poll = d +
+        "grep '^ECCE-MLP-SETUP step' \"$d/setup.log\" 2>/dev/null | tail -n 1\n"
+        //  A download's progress line ends in CR and has no newline yet, so
+        //  without the printf ECCE-ALIVE would be glued to it and missed.
+        "printf '%s\\n' \"$(tail -n 1 \"$d/setup.log\" 2>/dev/null | tr '\\r' '\\n' | "
+        "grep . | tail -n 1)\"\n"
+        "if [ -f \"$d/setup.pid\" ] && kill -0 \"$(cat \"$d/setup.pid\")\" 2>/dev/null; "
+        "then echo ECCE-ALIVE; fi\n"
+        "echo ECCE-STATUS; cat \"$d/setup.status\" 2>/dev/null; exit 0\n";
+    //  A scripted run must not yield: the next test command would run
+    //  before the set-up has finished.
+    wxProgressDialog* dlg = p_scripted ? NULL : new wxProgressDialog(
+        "Set up MLP (MACE)", "Starting on " + machine + "...", 100, this,
+        wxPD_APP_MODAL | wxPD_CAN_ABORT | wxPD_ELAPSED_TIME | wxPD_SMOOTH);
+    string status;
+    int missing = 0;
+    bool cancelled = false;
+    while (status.empty())
+    {
+        for (int i = 0; i < 40 && !cancelled; i++)
+        {
+            wxMilliSleep(50);
+            if (dlg == NULL)
+                continue;
+            cancelled = !dlg->Pulse();
+            wxTheApp->Yield(true);
+        }
+        if (cancelled)
+            break;
+        string out;
+        if (!r.run({ "sh", "-c", poll }, out, 60))
+            continue;
+        std::istringstream lines(out);
+        string line, stepLine, last;
+        bool alive = false, inStatus = false;
+        while (std::getline(lines, line))
+        {
+            //  The remote shell may hand back CR LF line ends.
+            if (!line.empty() && line.back() == '\r')
+                line.pop_back();
+            if (inStatus) { if (!stripped(line).empty()) status = stripped(line); }
+            else if (line == "ECCE-STATUS") inStatus = true;
+            else if (line == "ECCE-ALIVE") alive = true;
+            else if (line.compare(0, 20, "ECCE-MLP-SETUP step ") == 0) stepLine = line;
+            else last = line;
+        }
+        //  A process that died without a status (killed, out of disk).
+        if (status.empty() && !alive && ++missing > 2)
+            status = "failed the set-up stopped without saying why";
+        int step = 0;
+        if (stepLine.size() > 20) step = atoi(stepLine.c_str() + 20);
+        string msg = stepLine.size() > 20 ? "Step " + stepLine.substr(20) : string();
+        if (last.size() > 90) last = last.substr(0, 87) + "...";
+        if (!last.empty() && last != stepLine) msg += "\n" + last;
+        if (!msg.empty() && dlg != NULL)
+            cancelled = !dlg->Update(std::max(0, std::min(99, (step - 1) * 20 + 5)),
+                                     wxString::FromUTF8(msg.c_str()));
+        if (cancelled)
+            break;
+    }
+    delete dlg;
+    if (cancelled)
+    {
+        string out;
+        r.run({ "sh", "-c", d + "p=$(cat \"$d/setup.pid\" 2>/dev/null) && "
+                "{ kill -TERM -- -\"$p\" 2>/dev/null || kill -TERM \"$p\"; }; exit 0\n" },
+              out, 60);
+        displayMessage("The set-up was cancelled. The log is " + dir + "/setup.log.");
+        return;
+    }
+    if (status.compare(0, 5, "done ") != 0)
+    {
+        string out;
+        r.run({ "sh", "-c", d + "tail -n 15 \"$d/setup.log\"; exit 0\n" }, out, 60);
+        displayMessage("The set-up on " + machine + " failed: " +
+                       (status.size() > 7 ? status.substr(7) : status) +
+                       ".\n\nLast lines of " + dir + "/setup.log:\n" + out);
+        return;
+    }
+    const string python = status.substr(5);
+    field->SetValue(wxString::FromUTF8(python.c_str()));
+    showProgramCheck("Set up: " + python + " has PyTorch, mace-torch, ASE and "
+                     "the model medium-mpa-0. Log: " + dir + "/setup.log.");
 }

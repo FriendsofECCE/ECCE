@@ -597,6 +597,18 @@ target_include_directories(ecce-series PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-series PRIVATE
   eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
   eccetdat ecceutil ${XercesC_LIBRARIES})
+# A table of names and SMILES as one calculation per row (#961).
+add_executable(ecce-batch-smiles src/apps/launch/ecce-batch-smiles.C)
+target_include_directories(ecce-batch-smiles PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-batch-smiles PRIVATE
+  eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+  eccetdat ecceutil ${XercesC_LIBRARIES})
+# MLP site screening: host + one calculation per site, and the results (#728).
+add_executable(ecce-site-screen src/apps/launch/ecce-site-screen.C)
+target_include_directories(ecce-site-screen PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-site-screen PRIVATE
+  eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+  eccetdat ecceutil ${XercesC_LIBRARIES})
 # Reconnects calculations inside the running session.
 add_executable(ecce-reconnect src/apps/launch/ecce-reconnect.C)
 target_include_directories(ecce-reconnect PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -637,6 +649,12 @@ target_include_directories(lineprofile PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(lineprofile PRIVATE
   eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
   ${XercesC_LIBRARIES})
+# PDBQT preparation for docking (#455).  wx-free and self-contained so the
+# command, the job script and the editor cannot drift apart.
+ecce_library(eccedock src/dock)
+add_executable(ecce-pdbqt src/apps/pdbqt/ecce-pdbqt.C)
+target_link_libraries(ecce-pdbqt PRIVATE eccedock)
+
 # Recompute H, S, G from a calculation's stored frequencies with a chosen
 # low-frequency treatment (#692); the thermochemistry lives in tdat/thermo.
 add_executable(ecce-thermo
@@ -1232,7 +1250,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-batch-smiles ecce-site-screen ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -1358,6 +1376,23 @@ install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_rates.py
         DESTINATION scripts
         COMPONENT client)
 
+# ecce-qsar (#961): descriptor table, PCA and PLS; ecce_qsar_chem.py and
+# ecce_qsar_crippen.py are its libraries (modules in scripts/, not commands).
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar.py
+        DESTINATION bin RENAME ecce-qsar
+        COMPONENT client)
+install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar_chem.py
+              ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar_crippen.py
+              ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar_chemo.py
+        DESTINATION scripts
+        COMPONENT client)
+
+# ecce-xrd (#971): calculated diffraction patterns; fibre now, powder (#587) and
+# layer (#972) later.  numpy only.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_xrd.py
+        DESTINATION bin RENAME ecce-xrd
+        COMPONENT client)
+
 # ecce-morse (#858): Morse fit of a bond scan; the Relaxed Scan panel runs it.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_morse.py
         DESTINATION bin RENAME ecce-morse
@@ -1397,8 +1432,17 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_si_export.py
         COMPONENT client)
 
 # scripts/ecce-mlp (#728): gensub copies it into the run directory of an ML
-# Potential job, so it only has to exist on the client.
+# Potential job, so it only has to exist on the client.  ecce-mlp-driver
+# (src/mlp) runs its optimisers and dynamics; its one-file source goes to
+# scripts/ for ecce-mlp-setup to compile on a machine without ECCE.
+if(UNIX)
+  add_subdirectory(src/mlp)
+  install(TARGETS ecce-mlp-driver ecce-sites RUNTIME DESTINATION bin COMPONENT client)
+  install(FILES ${CMAKE_BINARY_DIR}/src/mlp/ecce-mlp-driver.cpp
+          DESTINATION scripts COMPONENT client)
+endif()
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp
+                 ${CMAKE_SOURCE_DIR}/scripts/ecce-mlp-setup
         DESTINATION scripts
         COMPONENT client)
 
@@ -1903,7 +1947,7 @@ set(CPACK_DEBIAN_PACKAGE_DEPENDS "apache2, apache2-utils, python3-wxgtk4.0, pyth
 # openssh-client: RCommand drives ssh/scp/sftp for remote machines;
 # a purely local install never uses it.
 # www-browser: the Help menu (BrowserHelp.C).
-set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem, openssh-client")
+set(CPACK_DEBIAN_PACKAGE_RECOMMENDS "nwchem, openssh-client, autodock-vina")
 set(CPACK_DEBIAN_PACKAGE_SUGGESTS "www-browser")
 # RelWithDebInfo keeps -g everywhere (useful while porting - see the
 # CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
@@ -2098,7 +2142,9 @@ if(ECCE_SPLIT_PACKAGES)
   # a client of an already-central server (#167/#138 -- the teaching
   # deployment) has no use for a local data server or broker at all, so
   # this is Recommends, not Depends, matching the design brief.
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, mosquitto, nwchem, openssh-client")
+  # autodock-vina: Debian's Vina 1.2.x, /usr/bin/vina, which the first-start
+  # registration finds on PATH; docking is optional, so not a Depends (#455).
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, mosquitto, nwchem, openssh-client, autodock-vina")
   set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "www-browser")
   # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
   # without this, installing ecce-client while the old ecce package still
@@ -2639,6 +2685,10 @@ if(PYTHON3_FOR_SPECTRUM)
            COMMAND ${PYTHON3_FOR_SPECTRUM}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/progress/codes_test.py)
   set_tests_properties(progress-codes PROPERTIES SKIP_RETURN_CODE 77)
+  # every registered code that runs jobs has [PROGRESS] entries (#970)
+  add_test(NAME progress-registry
+           COMMAND ${PYTHON3_FOR_SPECTRUM}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/progress/registry_test.py)
 endif()
 
 # tests/session -- the session id and key (#233): shell and C++ derivations
@@ -2782,6 +2832,27 @@ add_test(NAME checks_table
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/siexport/checks_test.py)
 
+# tests/qsar -- scripts/ecce_qsar*.py (#961): descriptors against RDKit's published
+# values, Open Babel (skips that part without obabel) and the stored water calculation.
+# tests/xrd -- scripts/ecce_xrd.py (#971): the cylindrical average two ways, an
+# ideal helix against its Bessel-function intensities, form factors, B-DNA and
+# alpha-helix patterns.
+add_test(NAME xrd_fibre
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/fibre_test.py)
+set_tests_properties(xrd_fibre PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
+add_test(NAME qsar_descriptors
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/qsar/descriptors_test.py)
+
+add_test(NAME qsar_pca
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/qsar/pca_test.py)
+
+add_test(NAME qsar_pls
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/qsar/pls_test.py)
+
 # tests/siexport/rank_test.py -- ecce-si-export --rank (#703).
 add_test(NAME rank_table
          COMMAND ${PYTHON3_EXECUTABLE}
@@ -2802,6 +2873,20 @@ add_test(NAME mlp_mace
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/mlp/mace_test.py)
 set_tests_properties(mlp_mace PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+# ecce-mlp-driver against ASE (#728), built-in Lennard-Jones; the real-MACE
+# part needs --mace <python> and is run by hand.
+if(TARGET ecce-mlp-driver)
+  add_test(NAME mlp_driver
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_SOURCE_DIR}/tests/mlp/driver_test.py
+                   --driver $<TARGET_FILE:ecce-mlp-driver>)
+  set_tests_properties(mlp_driver PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # Site screening: interstitial sites and vacancy pairs against crystallography.
+  add_test(NAME mlp_sites
+           COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/mlp/sites_test.py
+                   --sites $<TARGET_FILE:ecce-sites>)
+  set_tests_properties(mlp_sites PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
+endif()
 
 # tests/minff -- MINFF topology builder (scripts/minff_topology.py, #241)
 # against atomipy run directly, then grompp + a short EM.  SKIPs (77)
@@ -2940,6 +3025,17 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME parsers_orca_irc_live
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/orca_irc_live_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
+  # ORCA IRC structures while the IRC runs: the trajectories the monitor
+  # follows (#949), and the monitor's Follow=yes read itself.
+  add_test(NAME parsers_orca_irc_trj_live
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/orca_irc_trj_live_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+  add_test(NAME parsers_monitor_follow
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/monitor_follow_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
   # The same fixtures cut off part-way, through the real eccejobmonitor and
@@ -3310,7 +3406,8 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calced_hand_edit PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
-  # Saving regenerates each code's deck byte for byte as stored (DeckWriter, #621).
+  # Saving regenerates each code's deck byte for byte as stored (DeckWriter,
+  # #621) and starts at most two commands per Save (#940).
   add_test(NAME apps_deck_regen
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/deck_regen_test.py
@@ -3471,6 +3568,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/examples_workflow_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_examples_workflow PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Every step and link of each workflow.txt arrives, fresh and on update (#954).
+  add_test(NAME apps_examples_workflow_steps
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/examples_workflow_steps_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_examples_workflow_steps PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # Modal dialogs are shown without the busy cursor and presented
   # (ewxModalGuard); ECCE_DEBUG_MODAL.
@@ -3752,6 +3856,38 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/checks_table_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_checks_table PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Tools > Diffraction...: the dialog's CSV equals ecce-xrd fibre (#971).
+  add_test(NAME apps_fibre_dialog
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/fibre_dialog_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_fibre_dialog PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # QSAR table: the dialog's rows equal ecce-qsar table (#961).
+  add_test(NAME apps_qsar_table
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/qsar_table_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_qsar_table PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # QSAR Analysis: the dialog's PCA equals ecce-qsar pca (#961).
+  add_test(NAME apps_qsar_pca
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/qsar_pca_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_qsar_pca PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # QSAR Analysis: the dialog's PLS equals ecce-qsar pls (#961).
+  add_test(NAME apps_qsar_pls
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/qsar_pls_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_qsar_pls PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Rank table: the dialog's deltas equal ecce-si-export --rank (#703).
@@ -4394,6 +4530,20 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_mlp PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #728: MLP site screening (ecce-sites, ecce-site-screen) through Launch.
+  add_test(NAME launch_site_screen
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/site_screen_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_site_screen PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # #961: Batch Add from SMILES, five xTB optimisations through Launch.
+  add_test(NAME launch_batch_smiles
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/batch_smiles_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_batch_smiles PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   # #329: a CP2K calculation in the real Calculation Editor (script hook, private
   # Xvfb): settings sent as the dialogs send them, the saved deck checked.
   add_test(NAME launch_cp2k_calced
@@ -4730,6 +4880,20 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_select_within_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_select_within PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  add_test(NAME apps_builder_select_protein_ligand
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_select_protein_ligand_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_select_protein_ligand PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # A click in the Properties list selects the row clicked, also on a
+  # scrolled list, with real X clicks (#965).
+  add_test(NAME apps_property_list_click
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/property_list_click_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_property_list_click PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # Edit > Take Coordinates From...: atoms from another structure, and undo (#620).
   add_test(NAME apps_builder_takecoords
@@ -5158,10 +5322,13 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-mkdir=bin/ecce-mkdir
   ecce-workflow=bin/ecce-workflow
   ecce-series=bin/ecce-series
+  ecce-batch-smiles=bin/ecce-batch-smiles
+  ecce-site-screen=bin/ecce-site-screen
   ecce-reconnect=bin/ecce-reconnect
   ecce-fetch=bin/ecce-fetch
   ecce-localdata=bin/ecce-localdata
   ecce-thermo=bin/ecce-thermo
+  ecce-pdbqt=bin/ecce-pdbqt
   ecce-force-compare=bin/ecce-force-compare
   ecce-check-props=bin/ecce-check-props
   ecce-contacts=bin/ecce-contacts
@@ -5170,6 +5337,8 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-ensemble=bin/ecce-ensemble
   ecce-rate=bin/ecce-rate
   ecce-morse=bin/ecce-morse
+  ecce-qsar=bin/ecce-qsar
+  ecce-xrd=bin/ecce-xrd
   ecce-gmxanalysis=bin/ecce-gmxanalysis
   ecce-umbrella=bin/ecce-umbrella
   ecce-spectrum=bin/ecce-spectrum
@@ -5211,6 +5380,22 @@ target_link_libraries(fraggraft_test PRIVATE eccetdat ecceutil)
 add_test(NAME fraggraft COMMAND fraggraft_test)
 set_tests_properties(fraggraft PROPERTIES SKIP_RETURN_CODE 77)
 # Own SMILES reader and 3-D builder (#867); Open Babel is only an oracle there.
+# PDBQT preparation (#455).  Meeko is a test-only oracle and 1IEP is not in
+# the tree, so both tests skip when what they need is absent.
+add_test(NAME pdbqt_meeko COMMAND ${PYTHON3_EXECUTABLE}
+  ${CMAKE_SOURCE_DIR}/tests/dock/meeko_compare.py $<TARGET_FILE:ecce-pdbqt>
+  ${CMAKE_BINARY_DIR}/pdbqt_meeko)
+set_tests_properties(pdbqt_meeko PROPERTIES SKIP_RETURN_CODE 77)
+add_test(NAME pdbqt_redock_1iep COMMAND ${PYTHON3_EXECUTABLE}
+  ${CMAKE_SOURCE_DIR}/tests/dock/redock_1iep.py $<TARGET_FILE:ecce-pdbqt>
+  ${CMAKE_SOURCE_DIR}/tests/dock/fixtures/1iep.pdb
+  ${CMAKE_BINARY_DIR}/pdbqt_redock)
+set_tests_properties(pdbqt_redock_1iep PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
+# Automatic ligand choice in ai.vina/docking.pl and the atom-list checks of
+# verifyinput (#962, #963); scripts only, needs perl.
+add_test(NAME vina_autoligand COMMAND ${PYTHON3_EXECUTABLE}
+  ${CMAKE_SOURCE_DIR}/tests/dock/vina_autoligand_test.py ${CMAKE_SOURCE_DIR})
+
 add_executable(smiles_test tests/tdat/smiles_test.C)
 target_link_libraries(smiles_test PRIVATE eccetdat ecceutil)
 add_test(NAME smiles COMMAND smiles_test ${CMAKE_SOURCE_DIR}/tests/tdat/smiles_corpus.txt)
@@ -5241,4 +5426,32 @@ if(WIN32)
   set_property(SOURCE ${CMAKE_SOURCE_DIR}/packaging/windows/ecce-utf8.rc APPEND
                PROPERTY COMPILE_OPTIONS "-I${CMAKE_SOURCE_DIR}/packaging/windows")
   ecce_utf8_manifest_dir(${CMAKE_SOURCE_DIR})
+endif()
+
+# #455: AutoDock Vina docking of ethanol in 18-crown-6 through Launch; the deck
+# checks always run, the run is skipped (77) without vina and ecce-pdbqt.
+if(PYTHON3_EXECUTABLE)
+  add_test(NAME launch_vina
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/vina_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_vina PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #455 stage 2: the same code through the Calculation Editor, then the
+  # search box and the Poses panel in the Builder.  Needs the 1IEP entry
+  # (not shipped), vina and Xvfb; skips (77) without them.
+  add_test(NAME apps_vina_viewer
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/vina_viewer_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_vina_viewer PROPERTIES TIMEOUT 3600 SKIP_RETURN_CODE 77)
+
+  # #964: a Save of the 4710-atom 1IEP structure, timed per step.
+  add_test(NAME apps_vina_save_timing
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/vina_save_timing_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_vina_save_timing PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 endif()

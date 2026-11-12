@@ -99,6 +99,13 @@ static std::string s_registerMessage;
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
 #include "dsm/Series.H"
+#include "dsm/SmilesBatch.H"
+#include <wx/choicdlg.h>
+#include "QsarDialog.H"
+#include "BatchSmilesDialog.H"
+#include "dsm/SiteScreen.H"
+#include <wx/spinctrl.h>
+#include <wx/radiobox.h>
 #include "dsm/DeckWriter.H"
 #include "dsm/QstStructures.H"
 #include "dsm/CodeFactory.H"
@@ -200,6 +207,14 @@ static const char *const kFirstStartSet = "getting-started";
 #include "ChecksDialog.H"
 #include "AllocationsDialog.H"
 
+// The table shown: a project's, or the one under a workflow or study (#951).
+static ProjectContextPanel *tableOf(ContextPanelInterface *panel)
+{
+  if (ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(panel)) return t;
+  SessionProjectContextPanel *s = dynamic_cast<SessionProjectContextPanel*>(panel);
+  return s ? s->getTable() : 0;
+}
+
 IMPLEMENT_CLASS( CalcMgr, wxFrame )
 
 
@@ -213,6 +228,90 @@ IMPLEMENT_CLASS( CalcMgr, wxFrame )
  * Constructor.
  * Should never be used.
  */
+namespace {
+
+// What to screen for (#728); the note area carries the messages.
+class SiteScreenDialog : public wxDialog {
+public:
+  SiteScreenDialog(wxWindow *parent, const wxString& calcName, const wxString& basis)
+    : wxDialog(parent, wxID_ANY, "Screen Sites with MLP", wxDefaultPosition, wxDefaultSize,
+               wxDEFAULT_DIALOG_STYLE) {
+    wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+    top->Add(new wxStaticText(this, wxID_ANY, "Host: " + calcName), 0, wxALL, 8);
+    wxArrayString modes;
+    modes.Add("One atom per void");
+    modes.Add("Vacancy pairs");
+    p_mode = new wxRadioBox(this, wxID_ANY, "Search for", wxDefaultPosition, wxDefaultSize,
+                            modes, 1, wxRA_SPECIFY_COLS);
+    p_mode->SetToolTip("One atom per void: symmetry-distinct interstitial sites for one "
+                       "added atom. Vacancy pairs: symmetry-distinct pairs of atoms of "
+                       "the element removed together.");
+    top->Add(p_mode, 0, wxEXPAND | wxLEFT | wxRIGHT, 8);
+    wxFlexGridSizer *g = new wxFlexGridSizer(2, 6, 8);
+    p_element = new wxTextCtrl(this, wxID_ANY, "Li");
+    p_element->SetToolTip("Element symbol: the atom added, or the one removed in pairs.");
+    p_minHost = new wxSpinCtrlDouble(this, wxID_ANY, "1.6", wxDefaultPosition, wxDefaultSize,
+                                     wxSP_ARROW_KEYS, 0.5, 6.0, 1.6, 0.1);
+    p_minHost->SetToolTip("Smallest distance from a new atom to any host atom (Angstrom).");
+    p_minSep = new wxSpinCtrlDouble(this, wxID_ANY, "1.0", wxDefaultPosition, wxDefaultSize,
+                                    wxSP_ARROW_KEYS, 0.1, 6.0, 1.0, 0.1);
+    p_minSep->SetToolTip("Sites closer than this to each other count as one (Angstrom).");
+    p_maxDist = new wxSpinCtrlDouble(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize,
+                                     wxSP_ARROW_KEYS, 0.0, 50.0, 0.0, 0.5);
+    p_maxDist->SetToolTip("Largest distance between the two removed atoms (Angstrom); "
+                          "0 = no limit. Vacancy pairs only.");
+    g->Add(new wxStaticText(this, wxID_ANY, "Element"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(p_element, 1, wxEXPAND);
+    g->Add(new wxStaticText(this, wxID_ANY, "Minimum distance to host atoms (A)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(p_minHost);
+    g->Add(new wxStaticText(this, wxID_ANY, "Minimum distance between sites (A)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(p_minSep);
+    g->Add(new wxStaticText(this, wxID_ANY, "Maximum pair distance (A, 0 = no limit)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(p_maxDist);
+    top->Add(g, 0, wxEXPAND | wxALL, 8);
+    p_note = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 70),
+                            wxTE_MULTILINE | wxTE_READONLY);
+    p_note->SetValue("The run type, model and cell relaxation of " + calcName +
+                     " apply to every site; the host is calculated too, with the same "
+                     "settings. " + basis);
+    top->Add(p_note, 1, wxEXPAND | wxLEFT | wxRIGHT, 8);
+    wxBoxSizer *b = new wxBoxSizer(wxHORIZONTAL);
+    wxButton *help = new wxButton(this, wxID_HELP);
+    help->Bind(wxEVT_BUTTON, [](wxCommandEvent&) { WxHelpViewer::show("mlp.html#site-screening"); });
+    b->Add(help, 0, wxALL, 6);
+    b->AddStretchSpacer();
+    b->Add(new wxButton(this, wxID_CANCEL), 0, wxALL, 6);
+    wxButton *ok = new wxButton(this, wxID_OK);
+    ok->SetDefault();
+    b->Add(ok, 0, wxALL, 6);
+    top->Add(b, 0, wxEXPAND);
+    SetSizerAndFit(top);
+    Bind(wxEVT_BUTTON, &SiteScreenDialog::OnOk, this, wxID_OK);
+  }
+  bool vacancy() const { return p_mode->GetSelection() == 1; }
+  string element() const { return string(p_element->GetValue().Trim().ToUTF8()); }
+  double minHost() const { return p_minHost->GetValue(); }
+  double minSep() const { return p_minSep->GetValue(); }
+  double maxDist() const { return p_maxDist->GetValue(); }
+private:
+  void OnOk(wxCommandEvent& e) {
+    const string el = element();
+    if (el.empty() || el.size() > 2 ||
+        el.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ") != string::npos) {
+      p_note->SetValue("Give the element as a symbol of one or two letters, for example Li.");
+      p_element->SetFocus();
+      return;
+    }
+    e.Skip();
+  }
+  wxRadioBox *p_mode;
+  wxTextCtrl *p_element, *p_note;
+  wxSpinCtrlDouble *p_minHost, *p_minSep, *p_maxDist;
+};
+
+}  // namespace
+
+
 namespace {
 // One-shot timer that runs its function and deletes itself.
 class OnceTimer : public wxTimer
@@ -562,6 +661,26 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * umbrellawindows <pull url> <spacing> <from|-> <to|-> <eq steps> <prod steps>
  *                 the window calculations of a GROMACS pull run (#762):
  *                 "ok N | name | ..." or "failed: <why>"
+ * qsartable <out.csv> <url>,<url>... [groups]
+ *                 the QSAR Table dialog's rows (#961), as for "checks"; groups
+ *                 is a comma list of counts,topology,models,charges,vsa,qm
+ * qsarpca <outdir> <url>,<url>... [scaling] [components] [png]
+ *                 QSAR Analysis (#961): the PCA of the descriptor table, its
+ *                 result files written to <outdir>
+ * qsarpls <outdir> <url>,<url>... <y> [scaling] [components] [test%] [permutations] [png]
+ *                 the same for PLS of the measured column <y>
+ * batchsmilesdialog <folder url> <table> [png]
+ *                 Tools > Batch Add from SMILES with the table loaded (#961):
+ *                 "ok | name=... smiles=... responses=... rows=N problems=M"
+ * batchsmiles <folder url> <table> [template=URL] [launch] [replace]
+ *                 its Create without dialogs, and Launch Batch with "launch"
+ * sitescreen <template url> interstitial|vacancy <element> <min host> <min sep> [max dist]
+ *                 Screen Sites with MLP (#728) without dialogs; the report,
+ *                 lines separated by " | "
+ * sitescreendialog <template url> [png]
+ *                 the Screen Sites dialog: its defaults, and a capture
+ * sitescreenresults <url>
+ *                 Site Screening Results for the folder of <url>, as above
  * duplicate <url> [last]
  *                 right-click <url> > Duplicate for Rerun (or Duplicate
  *                 Setup with Last Geometry); the tree's selection and
@@ -615,6 +734,10 @@ static wxDialog *makeExamplesDialog(wxWindow *parent, int *chosen);
 static const int ID_COMPARE_ENERGIES = wxNewId();
 static const int ID_SI_EXPORT = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
+static const int ID_BATCH_SMILES = wxNewId();
+static const int ID_QSAR_TABLE = wxNewId();
+static const int ID_QSAR_ANALYSIS = wxNewId();
+static vector<std::pair<string, string> > folderCalculations(Resource *folder);
 
 // Include submenu paths so tests can check the action and its enabled state.
 static string testContextMenuLabels(wxMenu& menu, const string& prefix = "",
@@ -1303,14 +1426,14 @@ void CalcMgr::runTestCommand(const string& line)
       //     flags: geomfrom=CALC-URL (its input geometry), charge=N, mult=N
       //   workflowcopy WF CALC-URL NAME   a stored calculation as a first step
       //   workflowready WF      the steps Launch Ready Steps would launch
-      //   workflowautorun WF on|off|query   the auto-run setting (#736)
+      //   workflowautorun WF on|off|query   the auto-run setting and "started=1|0",
+      //     set by Launch Ready Steps (#736, #926)
       //   workflowlaunchstep WF STEP   launch that one step if it is ready
       //   workflowplay WF       play button of each box: "name:1|0:reason|.."
       //   workflowautorunclick WF on|off   tick the view's auto-run box as a
       //     click does: "ok shown=1|0 autorun=on|off" (#902)
-      //   workflowclose WF press|folder   WF shown, then its Back to Table
-      //     button pressed, or its folder selected in the tree: "ok
-      //     view=table|workflow selected=<url>" (#931)
+      //   workflowclose WF folder   WF shown, then its folder selected in
+      //     the tree: "ok view=table|workflow selected=<url>" (#931)
       //   workflowstate WF STEP   the step's state and why it is not ready (#901)
       //   workflowshot PNG WF   the Organizer showing WF; the drawing's checks
       //   workflowdialogshot PNG WF TYPE SOURCE   the New-step dialog
@@ -1507,7 +1630,8 @@ void CalcMgr::runTestCommand(const string& line)
         launchReadySteps(wf, false, &outcome, "");
       } else if (command == "workflowautorun") {
         if (b == "on" || b == "off") WorkflowSteps::setAutoRun(wf, b == "on");
-        outcome = string("ok autorun=") + (WorkflowSteps::autoRun(wf) ? "on" : "off");
+        outcome = string("ok autorun=") + (WorkflowSteps::autoRun(wf) ? "on" : "off") +
+                  " started=" + (WorkflowSteps::runStarted(wf) ? "1" : "0");
       } else if (command == "workflowsetlaunch") {
         // workflowsetlaunch WF STEP MACHINE RUNDIR: the launch settings the
         // Launcher would store on the step.
@@ -1546,8 +1670,7 @@ void CalcMgr::runTestCommand(const string& line)
         if (!wp) {
           outcome = "no workflow panel";
         } else {
-          if (b == "folder") closeWorkflowView(wf->getURL().toString());
-          else wp->clickClose();
+          closeWorkflowView(wf->getURL().toString());
           for (int i = 0; i < 20; i++) { wxYield(); wxMilliSleep(50); }
           spc = dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
           WxResourceTreeItemData *sel = p_treeCtrl->getSelection();
@@ -1822,10 +1945,28 @@ void CalcMgr::runTestCommand(const string& line)
              c = p_treeCtrl->GetNextChild(node->GetId(), ck))
           outcome += " " + string(p_treeCtrl->GetItemText(c).ToUTF8());
       }
+    } else if (command == "toolselection") {
+      // "toolselection": what Tools > Energy Calculator and the other
+      // tools act on, the selection getSelection() reads (#951).
+      getSelection();
+      outcome = "ok";
+      for (const EcceURL &u : p_currentSelection) outcome += " " + u.toString();
+    } else if (command == "boxpoint") {
+      // "boxpoint STEP-URL": "X Y", the screen point of a click on that
+      // step's box in the workflow view shown (#951).
+      SessionProjectContextPanel *spc =
+          dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+      WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+      outcome = !wp ? "no workflow view" : "ok " + wp->boxPoint(EcceURL(calcName));
+    } else if (command == "tablerow") {
+      // "tablerow ROW": "X Y URL", the screen centre of that row of the
+      // project or workflow/study folder table, for a real click (#951).
+      ProjectContextPanel *t = tableOf(p_contextPanel);
+      outcome = !t ? "no table" : "ok " + t->rowAt(atoi(calcName.c_str()));
     } else if (command == "tableclick") {
       // "tableclick ROW [ctrl] [shift]": a left click on that row of the
       // project table, with those keys held; answers the selected rows.
-      ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      ProjectContextPanel *t = tableOf(p_contextPanel);
       if (!t) outcome = "no table";
       else {
         t->clickRow(atoi(calcName.c_str()), calcName.find("ctrl") != string::npos,
@@ -1835,7 +1976,7 @@ void CalcMgr::runTestCommand(const string& line)
       }
     } else if (command == "tableselect" || command == "tableselected") {
       // "tableselect URL": select that row; "tableselected": the selected rows
-      ProjectContextPanel *t = dynamic_cast<ProjectContextPanel*>(p_contextPanel);
+      ProjectContextPanel *t = tableOf(p_contextPanel);
       if (!t) outcome = "no table";
       else {
         if (command == "tableselect") t->selectResources(vector<EcceURL>(1, EcceURL(calcName)));
@@ -2437,6 +2578,60 @@ void CalcMgr::runTestCommand(const string& line)
         outcome += " | " + referenceResult + " | reference=" + dlg.selectedReference();
         for (const string& name : dlg.referenceChoices()) outcome += " | choice=" + name;
       }
+    } else if (command == "qsartable") {
+      // "qsartable <out.csv> <url>,<url>... [groups]": the QSAR Table dialog's
+      // rows (folders expanded to their calculations) written as CSV (#961).
+      std::istringstream args(calcName);
+      string out, urls, groups = "counts,topology,models,charges,vsa,qm";
+      args >> out >> urls;
+      string g;
+      if (args >> g) groups = g;
+      vector<EcceURL> roots;
+      for (size_t at = 0; at < urls.size(); ) {
+        size_t end = urls.find(',', at);
+        if (end == string::npos) end = urls.size();
+        roots.push_back(EcceURL(urls.substr(at, end - at)));
+        at = end + 1;
+      }
+      ChecksDialog dlg(this, calculationsUnder(roots), false, &groups);
+      string why;
+      if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
+      else outcome = "failed: " + why;
+    } else if (command == "qsarpca" || command == "qsarpls") {
+      // "qsarpca <outdir> <url>,<url>... [scaling] [components] [png]" and
+      // "qsarpls <outdir> <url>,<url>... <y> [scaling] [components] [test%]
+      // [permutations] [png]": the QSAR Analysis dialog's PCA or PLS on the
+      // calculations, its result files saved in <outdir> (#961).
+      std::istringstream args(calcName);
+      string outdir, urls, scaling = "uv", png, y;
+      int comps = 0, testPct = 0, perms = 0;
+      args >> outdir >> urls;
+      if (command == "qsarpls") args >> y;
+      args >> scaling >> comps;
+      if (command == "qsarpls") args >> testPct >> perms;
+      args >> png;
+      vector<EcceURL> roots;
+      for (size_t at = 0; at < urls.size(); ) {
+        size_t end = urls.find(',', at);
+        if (end == string::npos) end = urls.size();
+        roots.push_back(EcceURL(urls.substr(at, end - at)));
+        at = end + 1;
+      }
+      QsarDialog *d = new QsarDialog(this, calculationsUnder(roots));
+      string why;
+      const bool ran = d->ok(why) && (command == "qsarpca"
+          ? d->runPca(scaling, comps, why)
+          : d->runPls(y, scaling, comps, testPct, perms, why));
+      if (!ran) outcome = "failed: " + why;
+      else if (!d->saveResults(outdir, why)) outcome = "failed: " + why;
+      else {
+        d->SetSize(wxSize(1000, 560));
+        d->Show();
+        for (int i = 0; i < 5; ++i) wxYield();
+        if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+        outcome = "ok";
+      }
+      d->Destroy();
     } else if (command == "compareforcesdialog") {
       std::istringstream args(calcName);
       string a, b, png;
@@ -2889,6 +3084,75 @@ void CalcMgr::runTestCommand(const string& line)
       std::error_code ec;
       ecce::fs::remove_all(dir, ec);
       if (pull) updateUrl(pull->getURL().getParent());
+    } else if (command == "batchsmilesdialog" || command == "batchsmiles") {
+      // "batchsmilesdialog FOLDER TABLE [png]": the dialog with the table
+      // loaded, its guessed columns and preview, and a capture.
+      // "batchsmiles FOLDER TABLE [template=URL] [launch]": its Create (and
+      // the Launch Batch of the result) without dialogs; the report, " | ".
+      std::istringstream args(calcName);
+      string f, file, w, png, templ;
+      bool launch = false, replace = false;
+      args >> f >> file;
+      while (args >> w) {
+        if (w.compare(0, 9, "template=") == 0) templ = w.substr(9);
+        else if (w == "launch") launch = true;
+        else if (w == "replace") replace = true;
+        else png = w;
+      }
+      Resource *folder = EDSIFactory::getResource(EcceURL(f));
+      BatchSmilesDialog *d = new BatchSmilesDialog(this, folder ? folder->getName() : "?",
+                                                   folderCalculations(folder));
+      string why;
+      if (!d->loadFile(file, why)) outcome = "failed: " + why;
+      else if (command == "batchsmilesdialog") {
+        d->SetSize(wxSize(760, 620));
+        d->Show();
+        for (int i = 0; i < 5; ++i) wxYield();
+        if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+        outcome = "ok | " + d->describe();
+      } else {
+        string report;
+        vector<EcceURL> made;
+        batchSmiles(EcceURL(f), templ, d->rows(), replace, false, report, made);
+        outcome = report;
+        if (launch && !made.empty()) {
+          string l;
+          launchSelected(made, false, &l);
+          outcome += "\nlaunch: " + l;
+        }
+        for (size_t p; (p = outcome.find('\n')) != string::npos;)
+          outcome.replace(p, 1, " | ");
+      }
+      d->Destroy();
+    } else if (command == "sitescreen") {
+      std::istringstream args(calcName);
+      string t, mode, el;
+      double mh = 1.6, ms = 1.0, md = 0;
+      args >> t >> mode >> el >> mh >> ms >> md;
+      screenSites(EcceURL(t), false, mode == "vacancy", el, mh, ms, md, &outcome);
+      for (size_t p; (p = outcome.find('\n')) != string::npos;)
+        outcome.replace(p, 1, " | ");
+    } else if (command == "sitescreendialog") {
+      // "sitescreendialog <url> [png]": the dialog as the menu opens it, its
+      // defaults, and a capture.
+      std::istringstream args(calcName);
+      string t, png;
+      args >> t >> png;
+      WxResourceTreeItemData *n = findNode(EcceURL(t), true, true);
+      SiteScreenDialog *d = new SiteScreenDialog(this, wxString::FromUTF8(
+          n ? n->getResource()->getName().c_str() : "host"), "");
+      d->Show();
+      for (int i = 0; i < 5; ++i) wxYield();
+      if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+      char b[200];
+      snprintf(b, sizeof b, "ok | vacancy=%d element=%s minhost=%g minsep=%g maxdist=%g",
+               d->vacancy(), d->element().c_str(), d->minHost(), d->minSep(), d->maxDist());
+      outcome = b;
+      d->Destroy();
+    } else if (command == "sitescreenresults") {
+      siteResults(EcceURL(calcName), false, &outcome);
+      for (size_t p; (p = outcome.find('\n')) != string::npos;)
+        outcome.replace(p, 1, " | ");
     } else if (command == "reparseoutputs") {
       // "reparseoutputs URL...": Re-Parse Outputs without dialogs.
       std::istringstream args(calcName);
@@ -3113,6 +3377,12 @@ void CalcMgr::runTestCommand(const string& line)
     outcome = string("exception: ") + ex.what();
   }
   cerr << "ECCE_TEST_ORGANIZER: " << line << ": " << outcome << endl;
+  // A test that acts on answers while the Organizer runs (real clicks at a
+  // row's position, #951) reads them from this file; stderr comes at the end.
+  if (const char *out = getenv("ECCE_TEST_ORGANIZER_ANSWERS")) {
+    std::ofstream f(out, std::ios::app);
+    f << line << ": " << outcome << endl;
+  }
 }
 
 
@@ -5659,6 +5929,96 @@ void CalcMgr::OnNewSeriesClick( wxCommandEvent& event )
 }
 
 
+// The folder a batch goes into: the selected folder, or the one holding
+// the selected calculation; the folder's calculations are offered as setups.
+static vector<std::pair<string, string> > folderCalculations(Resource *folder)
+{
+  vector<std::pair<string, string> > out;
+  vector<Resource*> *kids = folder ? folder->getChildren() : 0;
+  for (size_t i = 0; kids && i < kids->size(); i++)
+    if (dynamic_cast<ICalculation*>((*kids)[i]))
+      out.push_back(std::make_pair((*kids)[i]->getName(),
+                                   (*kids)[i]->getURL().toString()));
+  return out;
+}
+
+
+void CalcMgr::OnBatchSmiles(wxCommandEvent& event)
+{
+  WxResourceTreeItemData *node = p_treeCtrl->GetSelection().IsOk()
+      ? dynamic_cast<WxResourceTreeItemData*>(p_treeCtrl->GetItemData(p_treeCtrl->GetSelection()))
+      : 0;
+  WxResourceTreeItemData *container = node ? nearestContainer(node, 0) : 0;
+  if (!container) {
+    wxMessageBox(_("Select the project folder for the batch first."),
+                 _("Batch Add from SMILES"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  Resource *folder = container->getResource();
+  BatchSmilesDialog dlg(this, folder->getName(), folderCalculations(folder));
+  if (dlg.ShowModal() != wxID_OK) return;
+  string report;
+  vector<EcceURL> made;
+  batchSmiles(container->getUrl(), dlg.templateUrl(), dlg.rows(), dlg.replace(), true,
+              report, made);
+  if (made.empty()) {
+    wxMessageBox(wxString::FromUTF8(report.c_str()), _("Batch Add from SMILES"),
+                 wxOK | wxICON_WARNING, this);
+    return;
+  }
+  wxMessageDialog res(this, wxString::FromUTF8(report.c_str()), _("Batch Add from SMILES"),
+                      wxYES_NO | wxICON_INFORMATION);
+  res.SetYesNoLabels(_("Launch Batch"), _("Close"));
+  if (res.ShowModal() == wxID_YES && !refuseDuringBatch("Launch Selected"))
+    launchSelected(made, true);
+}
+
+
+void CalcMgr::batchSmiles(const EcceURL& folder, const string& templ,
+                          const vector<SmilesBatch::Row>& rows, bool replace,
+                          bool interactive, string& report, vector<EcceURL>& made)
+{
+  ewxProgressDialog *pd = 0;
+  if (interactive && rows.size() > 3)
+    pd = new ewxProgressDialog("Batch Add from SMILES", "Building the structures",
+                               (int)rows.size(), this,
+                               wxPD_APP_MODAL | wxPD_AUTO_HIDE | wxPD_ELAPSED_TIME);
+  auto progress = [&](int done, int total, const string& name) {
+    if (pd) pd->Update(std::min(done, total), wxString::FromUTF8(
+        (name.empty() ? string("Done") : name + " (" + std::to_string(done + 1) +
+         " of " + std::to_string(total) + ")").c_str()));
+  };
+  string used, why;
+  vector<SmilesBatch::Outcome> out =
+      SmilesBatch::make(folder, templ, rows, used, why, replace, progress);
+  if (pd) pd->Destroy();
+  if (used.empty()) { report = "Nothing made: " + why; return; }
+  WxResourceTreeItemData *container = findNode(folder, true, true);
+  if (templ.empty()) {
+    p_treeCtrl->addToTree(EcceURL(used));
+    notifyCreate(used);
+  }
+  string bad;
+  int nbad = 0;
+  for (const SmilesBatch::Outcome& o : out) {
+    if (o.ok) {
+      made.push_back(EcceURL(o.url));
+      p_treeCtrl->addToTree(EcceURL(o.url));
+      notifyCreate(o.url);
+    } else {
+      nbad++;
+      bad += "\n  " + o.name + " (line " + std::to_string(o.line) + "): " + o.note;
+    }
+  }
+  if (container && !made.empty()) p_treeCtrl->refresh(container);
+  report = std::to_string(made.size()) + " calculations made with the setup of " +
+           EcceURL(used).getFilePathTail() + ".";
+  if (nbad) report += "\n" + std::to_string(nbad) + " rows not made:" + bad;
+  report += "\nLaunch Batch launches them now; later, select them and use "
+            "Run Mgmt > Launch Selected.";
+}
+
+
 void CalcMgr::newSeries(const EcceURL& templ, const vector<string>& sources,
                         string *outcome)
 {
@@ -5685,6 +6045,81 @@ void CalcMgr::newSeries(const EcceURL& templ, const vector<string>& sources,
   if (made) p_treeCtrl->refresh(container);
   report += "Select the new calculations and use Run Mgmt > Launch Selected.";
   if (outcome) *outcome = report;
+}
+
+
+
+
+void CalcMgr::screenSites(const EcceURL& templ, bool dialog, bool vacancy,
+                          const string& element, double minHost, double minSep,
+                          double maxDist, string *outcome)
+{
+  const string why = SiteScreen::templateProblem(templ);
+  if (!why.empty()) {
+    if (outcome) *outcome = why;
+    if (dialog)
+      wxMessageBox(wxString::FromUTF8(why.c_str()), _("Screen Sites with MLP"),
+                   wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  SiteScreen::Options opt;
+  opt.vacancy = vacancy;
+  opt.element = element;
+  opt.minHost = minHost;
+  opt.minSep = minSep;
+  opt.maxDist = maxDist;
+  if (dialog) {
+    WxResourceTreeItemData *n = findNode(templ, true, true);
+    SiteScreenDialog dlg(this, wxString::FromUTF8(n ? n->getResource()->getName().c_str() : "host"), "");
+    if (dlg.ShowModal() != wxID_OK) return;
+    opt.vacancy = dlg.vacancy();
+    opt.element = dlg.element();
+    opt.minHost = dlg.minHost();
+    opt.minSep = dlg.minSep();
+    opt.maxDist = dlg.maxDist();
+  }
+  wxBusyCursor busy;
+  SiteScreen::MadeSites r = SiteScreen::make(templ, opt);
+  string report;
+  for (size_t i = 0; i < r.outcomes.size(); i++) {
+    if (r.outcomes[i].ok) notifyCreate(r.outcomes[i].url);
+    report += r.outcomes[i].name + (r.outcomes[i].ok ? ": made" : ": not made: " + r.outcomes[i].note) + "\n";
+  }
+  WxResourceTreeItemData *node = findNode(templ, true, true);
+  WxResourceTreeItemData *container = node ? nearestContainer(node, 0) : 0;
+  if (r.ok && container) p_treeCtrl->refresh(container);
+  report += r.message;
+  if (r.ok) report += "\nSelect the folder and use Run > Launch Selected, then Site Screening Results.";
+  if (outcome) *outcome = report;
+  if (dialog)
+    wxMessageBox(wxString::FromUTF8(report.c_str()), _("Screen Sites with MLP"),
+                 wxOK | (r.ok ? wxICON_INFORMATION : wxICON_WARNING), this);
+}
+
+
+void CalcMgr::siteResults(const EcceURL& at, bool interactive, string *outcome)
+{
+  wxBusyCursor busy;
+  SiteScreen::Report r = SiteScreen::results(at, true);
+  string text = r.message + "\n";
+  for (size_t i = 0; i < r.rows.size(); i++) {
+    char b[200];
+    const SiteScreen::Row& w = r.rows[i];
+    if (w.finished) snprintf(b, sizeof b, "%s: %.4f eV%s", w.name.c_str(), w.host ? 0.0 : w.de,
+                             w.converged ? "" : " (not converged)");
+    else snprintf(b, sizeof b, "%s: %s", w.name.c_str(), w.state.c_str());
+    text += string(b) + (w.env.empty() ? "" : "  " + w.env) + "\n";
+  }
+  if (!r.resultsUrl.empty()) {
+    notifyCreate(r.resultsUrl);
+    WxResourceTreeItemData *node = findNode(EcceURL(r.folderUrl), true, true);
+    if (node) p_treeCtrl->refresh(node);
+    text += "Open the results calculation in the Builder: Geometry > Sites.";
+  }
+  if (outcome) *outcome = text;
+  if (interactive)
+    wxMessageBox(wxString::FromUTF8(text.c_str()), _("Site Screening Results"),
+                 wxOK | (r.ok ? wxICON_INFORMATION : wxICON_WARNING), this);
 }
 
 
@@ -7859,6 +8294,26 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     p_treeCtrl->refresh(projNode);
   findNode(project, true, true);
   setContextPanel();
+  // A step whose copy and parse both failed left nothing behind, and a
+  // workflow then lost its links with it (#954): say which are missing.
+  {
+    string lost;
+    Resource *projNow = EDSIFactory::getResource(project);
+    for (const ExampleTopic &topic : set->topics) {
+      Resource *folder = topic.name.empty()
+          ? projNow : childOf(projNow, treeName(topic.name));
+      for (const ExampleOut &ex : topic.outputs)
+        if (!childOf(folder, ex.calc))
+          lost += (lost.empty() ? "" : ", ") +
+                  (topic.name.empty() ? "" : treeName(topic.name) + "/") +
+                  ex.calc;
+    }
+    if (!lost.empty()) {
+      cerr << "Organizer: examples not imported: " << lost << endl;
+      p_batchError = (p_batchError.empty() ? "" : p_batchError + "; ") +
+                     "missing after the import: " + lost;
+    }
+  }
   if (!p_batchError.empty()) {
     message = "An example could not be imported: " + p_batchError;
     p_batchError.clear();
@@ -7895,10 +8350,37 @@ void CalcMgr::importExamplesOnce()
   Preferences prefs("Organizer");
   string done;
   prefs.getString("Organizer.ExampleSet", done);
-  if (done == kExampleSetVersion) return;
-
   EDSIServerCentral central;
   EcceURL home = central.getDefaultUserHome();
+  if (done == kExampleSetVersion) {
+    // A workflow session that lacks one of its shipped steps has lost its
+    // links too and stays broken until the next version (#954): top it up.
+    if (!EDSIFactory::getResource(home)) return;
+    for (const ExampleSet &set : exampleSets()) {
+      Resource *proj = EDSIFactory::getResource(
+          home.getChild(kExamplesTop).getChild(set.project));
+      bool broken = false;
+      for (const ExampleTopic &t : set.topics) {
+        if (!proj || !t.workflow || t.name.empty()) continue;
+        Resource *flow = EDSIFactory::getResource(
+            proj->getURL().getChild(treeName(t.name)));
+        for (const ExampleOut &o : t.outputs)
+          if (flow && !EDSIFactory::getResource(
+                          flow->getURL().getChild(o.calc)))
+            broken = true;
+      }
+      if (!broken) continue;
+      cerr << "Organizer: example workflow incomplete, topping up "
+           << set.id << endl;
+      string message;
+      bool created = false;
+      startDisabler();
+      if (openExampleSet(set.id, message, created).empty())
+        setMessage(message, WxFeedback::WARNING);
+      stopDisabler();
+    }
+    return;
+  }
   if (!EDSIFactory::getResource(home)) return;   // not logged in: next start
   cerr << "Organizer: examples import started" << endl;
   startDisabler();
@@ -7916,11 +8398,19 @@ void CalcMgr::importExamplesOnce()
     //  An upgrade that finds no example set (an earlier start removed the
     //  old ones and stopped) still gets the first-start set.
     if (sets.empty()) sets.insert(kFirstStartSet);
+    // A failure stays on the message line: the closing note would
+    // otherwise replace it at once.
+    string failed;
     for (const string &id : sets)
-      if (openExampleSet(id, message, created).empty())
-        setMessage(message, WxFeedback::WARNING);
-    setMessage("The example calculations are now in Examples, sorted by "
-               "topic.", WxFeedback::INFO);
+      if (openExampleSet(id, message, created).empty()) {
+        cerr << "Organizer: " << message << endl;
+        failed += (failed.empty() ? "" : " ") + message;
+      }
+    if (!failed.empty())
+      setMessage(failed, WxFeedback::WARNING);
+    else
+      setMessage("The example calculations are now in Examples, sorted by "
+                 "topic.", WxFeedback::INFO);
   } else if (!EDSIFactory::getResource(home.getChild("Examples"))) {
     string made = openExampleSet(kFirstStartSet, message, created);
     if (made.empty()) {
@@ -8378,8 +8868,16 @@ void CalcMgr::OnTreectrlItemMenu( wxTreeEvent& event )
 void CalcMgr::OnPanelSelection( wxCommandEvent& event )
 {
   vector<EcceURL> urls = EcceURL::toVector(event.GetString().ToStdString());
-  if (urls.size() == 1 && p_contextPanel != 0) {
+  // A workflow's boxes and its table show one selection (#951).
+  SessionProjectContextPanel *spc =
+      dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+  WorkflowPanel *wp = spc ? spc->getWorkflowPanel() : 0;
+  if (wp && event.GetEventObject() == wp) {
+    spc->getTable()->selectResources(urls);
+  } else if (urls.size() == 1 && p_contextPanel != 0) {
     p_contextPanel->selectResource(urls[0]);
+  } else if (wp) {
+    wp->setPicked(urls);
   }
 
   p_focusOnTree = false;
@@ -9406,6 +9904,20 @@ void CalcMgr::getContextMenu(wxMenu & menu)
         can ? _("A copy with the last geometry that starts from this "
                 "calculation's final orbitals") : wxString(why));
     item->Enable(can);
+    {
+      //  Offered for any periodic calculation, so it can say what is
+      //  missing when the code is not MLP.
+      const EcceURL turl = itemData->getResource()->getURL();
+      if (SiteScreen::isPeriodic(turl)) {
+        int sid = wxWindow::NewControlId();
+        from->Append(sid, _("Screen Sites with MLP..."),
+                     _("Interstitial sites or vacancy pairs of this periodic host, "
+                       "one MLP calculation each"));
+        menu.Bind(wxEVT_MENU, [this, turl](wxCommandEvent&) {
+          CallAfter([this, turl]() { screenSites(turl, true, false, "", 1.6, 1.0, 0, 0); });
+        }, sid);
+      }
+    }
     menu.AppendSubMenu(from, _("New from This"));
     {
       const string refusal =
@@ -9554,6 +10066,20 @@ void CalcMgr::getContextMenu(wxMenu & menu)
                   "selected calculations, or of the calculations in this folder"));
       menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
         CallAfter([this]() { wxCommandEvent e; OnRank(e); });
+      }, id);
+    }
+  }
+  //  The folder of a site screen (#728): its host calculation is there.
+  if (itemData && itemData->getResource()) {
+    const EcceURL here = itemData->getResource()->getURL();
+    const EcceURL folder = isCalculationNode ? here.getParent() : here;
+    if (EDSIFactory::getResource(folder.getChild("host"))) {
+      int id = wxWindow::NewControlId();
+      menu.AppendSeparator();
+      menu.Append(id, _("Site Screening Results"), _("E - E(host) of the finished site "
+                  "calculations of this folder, as an ensemble to show in the Builder"));
+      menu.Bind(wxEVT_MENU, [this, here](wxCommandEvent&) {
+        CallAfter([this, here]() { siteResults(here, true, 0); });
       }, id);
     }
   }
@@ -9910,6 +10436,24 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
             wxCommandEventHandler(CalcMgr::OnAllocations));
     p_allocationsWired = true;
   }
+  menu.Append(ID_BATCH_SMILES, _("Batch Add from SMILES..."));
+  if (!p_batchSmilesWired) {
+    Connect(ID_BATCH_SMILES, wxEVT_COMMAND_MENU_SELECTED,
+            wxCommandEventHandler(CalcMgr::OnBatchSmiles));
+    p_batchSmilesWired = true;
+  }
+  menu.Append(ID_QSAR_TABLE, _("QSAR Table..."));
+  if (!p_qsarTableWired) {
+    Connect(ID_QSAR_TABLE, wxEVT_COMMAND_MENU_SELECTED,
+            wxCommandEventHandler(CalcMgr::OnQsarTable));
+    p_qsarTableWired = true;
+  }
+  menu.Append(ID_QSAR_ANALYSIS, _("QSAR Analysis..."));
+  if (!p_qsarAnalysisWired) {
+    Connect(ID_QSAR_ANALYSIS, wxEVT_COMMAND_MENU_SELECTED,
+            wxCommandEventHandler(CalcMgr::OnQsarAnalysis));
+    p_qsarAnalysisWired = true;
+  }
   added = true;
 
   if (added) menu.AppendSeparator();
@@ -9964,6 +10508,63 @@ void CalcMgr::OnRank(wxCommandEvent&)
     if (why != "Cancelled.")
       wxMessageBox(wxString::FromUTF8(why.c_str()), _("Compare Energies"),
                    wxOK | wxICON_ERROR, this);
+    return;
+  }
+  dlg.ShowModal();
+}
+
+// Tools > QSAR Table (#961): descriptors and measured values of the calculations
+// of the selected folder, the groups ticked first.
+void CalcMgr::OnQsarTable(wxCommandEvent&)
+{
+  getSelection();
+  const vector<EcceURL> calcs = calculationsUnder(launchSelection());
+  if (calcs.empty()) {
+    wxMessageBox(_("Select the project folder (or calculations) of the batch first."),
+                 _("QSAR Table"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  static const char *const names[] = {"counts", "topology", "models", "charges", "vsa", "qm"};
+  wxArrayString labels;
+  labels.Add(_("Counts: atoms, bonds, rings, donors/acceptors, rotatable bonds"));
+  labels.Add(_("Topological indices: Wiener, Zagreb, chi, Kier, Balaban, information content"));
+  labels.Add(_("Property models: SlogP, SMR, TPSA, surface area"));
+  labels.Add(_("Gasteiger charges: Q_PC+, Q_PC-, extremes"));
+  labels.Add(_("Surface areas by charge, SlogP and SMR (VSA)"));
+  labels.Add(_("From the calculations: HOMO, LUMO, gap, dipole, charges"));
+  wxMultiChoiceDialog pick(this, _("Descriptors to include:"), _("QSAR Table"), labels);
+  wxArrayInt all;
+  for (size_t i = 0; i < labels.size(); ++i) all.Add((int)i);
+  pick.SetSelections(all);
+  if (pick.ShowModal() != wxID_OK) return;
+  string groups;
+  for (int i : pick.GetSelections()) groups += (groups.empty() ? "" : ",") + string(names[i]);
+  if (groups.empty()) return;
+  ChecksDialog dlg(this, calcs, false, &groups);
+  string why;
+  if (!dlg.ok(why)) {
+    if (why != "Cancelled.")
+      wxMessageBox(wxString::FromUTF8(why.c_str()), _("QSAR Table"), wxOK | wxICON_ERROR, this);
+    return;
+  }
+  dlg.ShowModal();
+}
+
+// Tools > QSAR Analysis (#961): PCA of the descriptor table of the selected folder.
+void CalcMgr::OnQsarAnalysis(wxCommandEvent&)
+{
+  getSelection();
+  const vector<EcceURL> calcs = calculationsUnder(launchSelection());
+  if (calcs.empty()) {
+    wxMessageBox(_("Select the project folder (or calculations) of the batch first."),
+                 _("QSAR Analysis"), wxOK | wxICON_INFORMATION, this);
+    return;
+  }
+  QsarDialog dlg(this, calcs);
+  string why;
+  if (!dlg.ok(why)) {
+    if (why != "Cancelled.")
+      wxMessageBox(wxString::FromUTF8(why.c_str()), _("QSAR Analysis"), wxOK | wxICON_ERROR, this);
     return;
   }
   dlg.ShowModal();
@@ -12184,8 +12785,8 @@ void CalcMgr::processEditCompletion(const EditEvent& ee)
 
 /**
  * A new step of a Workflow, started from source (null for the first one).
- * The tree and the workflow view follow, and the code's Calculation Editor
- * opens on the new step.  On failure the step is not left behind and
+ * The tree and the workflow view follow; no Calculation Editor opens (#926),
+ * the user opens the step's when there is something to set.  On failure the step is not left behind and
  * *outcome says why.
  */
 Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
@@ -12261,6 +12862,12 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
   } else if (Resource *one = WorkflowSteps::create(wf, rt, name, source, carry, why)) {
     all.push_back(one);
   }
+  // CREST after an xTB optimisation has nothing to edit before it runs, so
+  // it is written and made Ready once that step completes, as auto-run needs.
+  if (code->label == string("CREST") && source && carry.geometry &&
+      (preopt || WorkflowSteps::isXtbOptimisation(source)))
+    for (Resource *s : all)
+      s->addProp(VDoc::getEcceNamespace() + ":workflow.auto", "1");
   if (all.empty()) {
     if (outcome) *outcome = why.empty() ? "not created" : why;
     if (ask) setMessage(why, WxFeedback::INFO);
@@ -12286,10 +12893,6 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
     setContextPanel();
     if (p_contextPanel) p_contextPanel->selectResource(newurl);
   }
-  if (ask && !p_testStepDialogs) {
-    ResourceTool *tool = made->getDefaultTool();
-    if (tool) startApp(tool->getName(), 0, newurl.toString());
-  }
   if (!preoptNote.empty()) setMessage(preoptNote, WxFeedback::INFO);
   if (outcome) *outcome = urls;
   return made;
@@ -12297,8 +12900,8 @@ Resource *CalcMgr::newWorkflowStep(Session *wf, ResourceType *rt,
 
 
 /**
- * A join (WorkflowSteps::createJoin): the tree and the view follow and the
- * Calculation Editor opens on the new step, where TS Search shows the picks.
+ * A join (WorkflowSteps::createJoin): the tree and the view follow; its
+ * Calculation Editor, where TS Search shows the picks, opens on request.
  */
 Resource *CalcMgr::newWorkflowJoin(Session *wf, ResourceType *rt,
                                    const vector<WorkflowSteps::JoinSource>& given,
@@ -12343,10 +12946,6 @@ Resource *CalcMgr::newWorkflowJoin(Session *wf, ResourceType *rt,
     if (p_contextPanel) p_contextPanel->selectResource(newurl);
   }
   notifyCreate(newurl.toString());
-  if (ask) {
-    ResourceTool *tool = made->getDefaultTool();
-    if (tool) startApp(tool->getName(), 0, newurl.toString());
-  }
   if (outcome) *outcome = newurl.toString();
   return made;
 }
@@ -12411,6 +13010,8 @@ vector<Resource*> CalcMgr::newRecipeSteps(Session *wf, const Recipe& recipe,
 void CalcMgr::launchReadySteps(Session *wf, bool interactive, string *outcome,
                                const string& shot)
 {
+  // The run button starts the run auto-run continues, if it is ticked (#926).
+  if (!WorkflowSteps::allComplete(wf)) WorkflowSteps::setRunStarted(wf, true);
   vector<string> waiting;
   vector<string> excluded;
   vector<Resource*> ready = WorkflowSteps::readySteps(wf, &waiting, &excluded);
@@ -12470,7 +13071,15 @@ void CalcMgr::closeWorkflowView(const string& workflowUrl)
 
 void CalcMgr::autoRunWorkflow(Session *wf)
 {
-  if (!wf || !WorkflowSteps::autoRun(wf)) return;
+  if (!wf || !WorkflowSteps::autoRun(wf) || !WorkflowSteps::runStarted(wf)) return;
+  // A workflow in a folder the user cannot write to (a shared project)
+  // must not get decks written or launched from it (#950).
+  if (wf->getURL().isLocal() && access(wf->getURL().getPath().c_str(), W_OK) != 0)
+    return;
+  if (WorkflowSteps::allComplete(wf)) {
+    WorkflowSteps::setRunStarted(wf, false);
+    return;
+  }
   // One launch batch at a time; this workflow is looked at when it ends.
   if (p_batch) { p_autoPending.insert(wf->getURL().toString()); return; }
   // A step seen past Created is launched for good; forget it.

@@ -10,6 +10,10 @@ Save leaves in Inputs/ is compared with tests/apps/fixtures/decks/<label>/.
     DECK_REGEN_OUT=<dir> tests/apps/deck_regen_test.py   write the decks there
                                                          instead of comparing
 
+Each Save may start at most SAVE_COMMANDS shell commands (the generator and
+the input checker; #940: process starts are slow on Windows), counted from
+the ECCE_RCOM_LOGMODE log.
+
 Same installed tree, isolation and services as run_tests.py.  Exit 77 (skip)
 without an install or Xvfb.
 """
@@ -66,6 +70,19 @@ num_bonds: 0
 bond_list:
 """
 PERIODIC = ("qe", "cp2k")
+SAVE_COMMANDS = 2
+
+
+def saveCommands(log):
+    """The RCommand commands logged while the Save button was handled."""
+    lines = log.splitlines()
+    done = [i for i, l in enumerate(lines)
+            if l.startswith("ECCE_CALCED_SCRIPT: button save")]
+    if not done:
+        return None
+    before = [i for i in range(done[0]) if lines[i].startswith("ECCE_CALCED_SCRIPT:")]
+    first = before[-1] if before else 0
+    return [l for l in lines[first:done[0]] if l.startswith("Command (")]
 
 
 def decks(calc):
@@ -89,6 +106,7 @@ def main():
         os.environ["ECCE_LOCAL_DATA"] = folder
         os.environ["ECCE_TEST_DIALOG_CLOSE"] = "2"
         os.environ["ECCE_TEST_DIALOG_ANSWER"] = "yes"
+        os.environ["ECCE_RCOM_LOGMODE"] = "1"
         write = os.environ.get("DECK_REGEN_OUT")
         restorePrefs = fixture.settleUpgradeNotices()
         try:
@@ -111,6 +129,12 @@ def main():
                 log = sym.scripted(display, "calced", "ECCE_CALCED_SCRIPT", steps,
                                    "file://" + calc + "/")
                 got = decks(calc)
+                cmds = saveCommands(log)
+                sym.check(cmds is not None and len(cmds) <= SAVE_COMMANDS,
+                          "%s: Save starts at most %d commands (%s)"
+                          % (label, SAVE_COMMANDS,
+                             "no Save" if cmds is None else len(cmds)),
+                          "\n".join(cmds or []))
                 sym.check(bool(got), "%s: Save wrote a deck" % label,
                           run_tests._tail(log, 30))
                 if write:
@@ -128,7 +152,7 @@ def main():
         finally:
             restorePrefs()
             for var in ("ECCE_LOCAL_DATA", "ECCE_TEST_DIALOG_CLOSE",
-                        "ECCE_TEST_DIALOG_ANSWER"):
+                        "ECCE_TEST_DIALOG_ANSWER", "ECCE_RCOM_LOGMODE"):
                 os.environ.pop(var, None)
         if sym.failures:
             results.fail("deck-regen", "%d wrong: %s"

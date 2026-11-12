@@ -1,0 +1,36 @@
+# Parse descriptor for AutoDock Vina 1.2 output.
+#
+# gensub appends the poses after the run, because Vina writes them to
+# poses.pdbqt, ligand only: one block per pose between ECCE-DOCK-FRAME and
+# ECCE-DOCK-ENDFRAME, "score: <kcal/mol>", then all atoms of the system in the
+# calculation's order.  One GEOMTRACE step and one POSESCORE value per pose,
+# from the same frame so the two stay the same length.
+[GEOMTRACE][POSESCORE]
+Script=dock.poses
+Begin=^ECCE-DOCK-FRAME\s
+Skip=1
+Frequency=all
+End=^ECCE-DOCK-ENDFRAME
+[END]
+
+# Vina's own messages; the bar of stars is one line, printed when the search is over.
+[PROGRESS]
+Begin=^Computing Vina grid
+Progress=vina stage=grid
+[END]
+
+[PROGRESS]
+Begin=^Performing docking
+Progress=vina stage=docking
+[END]
+
+[PROGRESS]
+Begin=^\*{20,}\s*$
+Progress=vina stage=searched
+[END]
+
+# The table's first row: "   1       -1.092          0          0"
+[PROGRESS]
+Begin=^\s+1\s+(-?\d+\.\d+)\s+0\s+0\s*$
+Progress=vina stage=done best=$1
+[END]

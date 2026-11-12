@@ -61,6 +61,8 @@ def output_text():
     lines.append("progress opt step=80 converged=yes")
     for k in range(1, 19):
         lines.append("progress freq point=%d/18" % k)
+    # an analytic Hessian's last lines: assembly, then the end line (same record)
+    lines.append("progress freq point=18/18 pass=0 phase=assemble")
     lines.append("progress freq point=18/18 done=yes real=3 imaginary=0 zpe=0.0213456789")
     lines.append("energy_total -76.0800000000")
     lines.append("end_of_output")
@@ -213,6 +215,8 @@ def main():
         check("maxgrad=1.00e-03/3e-04" in last.get("opt", ""), "opt: criteria with targets")
         check(last.get("freq", "").startswith("point=18/18 done=yes") and "zpe=" in last["freq"],
               "freq: done, with real/imaginary/zpe")
+        check("pass=" not in last.get("freq", "") and "phase=" not in last.get("freq", ""),
+              "freq: done drops the CPHF pass and assembly phase")
         check(last.get("scf", "").startswith("cycle=5 "), "scf: the last cycle")
         hist = last.get("scf~", "")
         check(hist.startswith("dE=") and len(hist[3:].split(",")) == 5,

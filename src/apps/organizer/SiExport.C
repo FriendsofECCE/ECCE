@@ -51,6 +51,18 @@ bool writeFolder(PropertyTask *t, const fs::path& dir)
     std::ofstream(dir / "Props" / name) << "<value name=\"" << name
         << "\" units=\"Hartree\">" << buf << "</value>\n";
   }
+  // Orbital energies, occupations, dipole and charges for the QSAR table (#961).
+  for (const char *name : {"ORBENG", "ORBOCC", "DIPOLE", "MULLIKEN"}) {
+    PropVector *pv = dynamic_cast<PropVector*>(t->getProperty(name));
+    if (!pv) continue;
+    std::ofstream f(dir / "Props" / name);
+    f << "<vector name=\"" << name << "\" rows=\"" << pv->values().size() << "\">";
+    for (double d : pv->values()) { snprintf(buf, sizeof buf, "%.12g ", d); f << buf; }
+    f << "</vector>\n";
+  }
+  for (const char *k : {"qsar.smiles", "qsar.measured"})
+    std::ofstream(dir / ".ecce-meta", std::ios::app)
+        << ".\t" << NS << k << "\t\t" << t->getProp(VDoc::getEcceNamespace() + ":" + k) << "\n";
   if (PropString *sv = dynamic_cast<PropString*>(t->getProperty("SOLVMODEL")))
     std::ofstream(dir / "Props" / "SOLVMODEL") << "<string name=\"SOLVMODEL\">"
         << sv->value() << "</string>\n";
@@ -146,7 +158,8 @@ bool writeFolder(PropertyTask *t, const fs::path& dir)
 // Scratch folders for `calcs`, then the script with `args` appended.
 static bool runScript(const vector<EcceURL>& calcs, const string& tail,
                       string& text, string& why,
-                      const GatherProgress& progress = GatherProgress())
+                      const GatherProgress& progress = GatherProgress(),
+                      const char *tool = "ecce-si-export")
 {
   static int serial = 0;
   const fs::path tmp = fs::temp_directory_path() /
@@ -172,8 +185,8 @@ static bool runScript(const vector<EcceURL>& calcs, const string& tail,
   }
   if (!n) { why = "No calculation with a structure to list."; return false; }
   const char *home = getenv("ECCE_HOME");
-  string script = home && *home ? string(home) + "/bin/ecce-si-export"
-                                : string("ecce-si-export");
+  string script = home && *home ? string(home) + "/bin/" + tool
+                                : string(tool);
 #ifdef _WIN32
   fs::path py = fs::path(Ecce::ecceHome()) / "python" / "python.exe";
   string pyExe = fs::exists(py) ? py.string() : string("python.exe");
@@ -183,7 +196,7 @@ static bool runScript(const vector<EcceURL>& calcs, const string& tail,
 #endif
   int status = Ecce::readCommand(cmd, text);
   fs::remove_all(tmp, ec);
-  if (status != 0) { why = "ecce-si-export failed"; return false; }
+  if (status != 0) { why = string(tool) + " failed"; return false; }
   return true;
 }
 
@@ -191,6 +204,13 @@ bool checksTable(const vector<EcceURL>& calcs, const string& format,
                  string& text, string& why)
 {
   return runScript(calcs, " --checks " + format, text, why);
+}
+
+bool qsarTable(const vector<EcceURL>& calcs, const string& groups, string& text,
+               string& why, const GatherProgress& progress)
+{
+  return runScript(calcs, " table --groups " + quote(groups) + " --csv -", text, why,
+                   progress, "ecce-qsar");
 }
 
 bool rankTable(const vector<EcceURL>& calcs, const string& format,

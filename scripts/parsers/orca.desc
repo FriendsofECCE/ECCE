@@ -76,6 +76,24 @@ File=orca.orcain_IRC_Full_trj.xyz
 Begin=orca.orcain_IRC_Full_trj.xyz
 [END]
 
+# The same structures as ORCA computes them (#949): it appends each point to
+# _IRC_F_trj.xyz / _IRC_B_trj.xyz, which the monitor reads as they grow
+# (Follow=yes, live only).  Frames then come in run order and the end-of-job
+# entry above sends nothing (orca.ircgeom).
+[IRCTRJF][IRCGEOM]
+Script=orca.irctrj
+File=orca.orcain_IRC_F_trj.xyz
+Follow=yes
+Begin=orca.orcain_IRC_F_trj.xyz
+[END]
+
+[IRCTRJB][IRCGEOM]
+Script=orca.irctrj
+File=orca.orcain_IRC_B_trj.xyz
+Follow=yes
+Begin=orca.orcain_IRC_B_trj.xyz
+[END]
+
 [GEOMTRACE]
 Script=orca.geomtrace
 Begin=CARTESIAN COORDINATES \(ANGSTROEM\)

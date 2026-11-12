@@ -110,18 +110,19 @@ sudo cp crest/crest /usr/local/bin/
 CREST runs `xtb` itself, so install xTB as well (`sudo apt install xtb`).
 See [CREST](crest.md).
 
-## ML Potential (MACE)
+## MLP (MACE)
 
-The MLP code needs a Python environment with ASE and MACE, which ECCE does
-not ship:
+The MLP (MACE) code needs a Python environment with PyTorch, ASE and MACE,
+which ECCE does not ship. **Set up...** next to the program on the machine's
+**Codes** tab builds one (CPU-only PyTorch unless an NVIDIA GPU is found) and
+downloads the default model into it; without the window:
 
 ```
-python3 -m venv ~/mlp-venv
-~/mlp-venv/bin/pip install ase mace-torch
+sh $ECCE_HOME/scripts/ecce-mlp-setup ~/ecce-mlp
 ```
 
-Register `~/mlp-venv/bin/python3` (written out in full) as the MLP program.
-See [ML Potential](mlp.md).
+Then register `~/ecce-mlp/venv/bin/python` (written out in full) as the MLP
+program. See [MLP (MACE)](mlp.md).
 
 ## NBO (optional)
 

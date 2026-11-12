@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
       so.conv_energy = std::min(so.conv_energy, 1e-11);
       so.max_iter = std::max(so.max_iter, 200);
       so.on_cycle = [&](const qm::ScfCycle& c) { qm::write_progress_scf(os, c, so); };
-      // Closed-shell RHF: analytic Hessian and dipole derivatives (one tightly
+      // RHF/UHF, RKS/UKS (also in CPCM, with D3): analytic Hessian and dipole derivatives (one tightly
       // converged SCF).  Raman needs polarisability derivatives, and the
       // in-core integrals may not fit; both keep the finite-difference path.
       if (!in.numeric_hessian && !std::getenv("ECCE_QM_NUMERIC_HESSIAN") && !in.raman &&
@@ -352,7 +352,15 @@ int main(int argc, char** argv) {
       // A saddle-point walk needs the curvature at every step; that is cheap
       // when the Hessian is analytic and too dear to be the default otherwise.
       qm::OptOptions ts_opt = in.opt;
-      if (ts_opt.ts_hessian_every < 0) ts_opt.ts_hessian_every = in.scf.solvent_eps <= 0 && in.scf.dispersion.empty() && in.scf.method == "hf" && in.scf.reference == qm::Reference::Restricted && !in.numeric_hessian ? 1 : 0;
+      if (ts_opt.ts_hessian_every < 0) {
+        // no SCF has run yet: judge from the input's reference and electron counts
+        qm::ScfResult planned;
+        planned.reference = in.scf.reference;
+        planned.nalpha = in.mol.nalpha();
+        planned.nbeta = in.mol.nbeta();
+        ts_opt.ts_hessian_every = !in.numeric_hessian && !std::getenv("ECCE_QM_NUMERIC_HESSIAN") &&
+                                  qm::analytic_hessian_available(in.scf, planned) ? 1 : 0;
+      }
       qm::OptResult res = in.runtype == qm::RunType::TS
                               ? qm::optimize_ts(in.mol, ts_opt, evaluate, ts_hessian, on_step)
                               : qm::optimize_geometry(in.mol, in.opt, evaluate, on_step);

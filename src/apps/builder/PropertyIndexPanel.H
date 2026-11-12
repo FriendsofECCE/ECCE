@@ -47,6 +47,10 @@ class PropertyIndexPanel : public wxPanel
     // Test hook: what the list holds, one "group/name" line per panel.
     std::vector<std::string> listing() const;
 
+    // Test hook: every row's rectangle in screen pixels, "name x y w h",
+    // plus a "tree" line for the tree window itself and its scroll start.
+    std::vector<std::string> rowRects() const;
+
   private:
     void OnSelChanged(wxTreeEvent& event);
     bool selectEntry(const std::string& name, bool quiet);

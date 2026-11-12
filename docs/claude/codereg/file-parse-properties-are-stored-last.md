@@ -17,3 +17,5 @@ issues: [544]
   without a Props change and stopped the gateway. It now waits for every
   expected property. The string-vector path itself stores three records of
   ~1250 characters whole (`tests/parsers/propinterp_test.py`).
+- Exception: a `Follow=yes` entry is read while the job runs
+  (`monitor-follows-growing-files-949.md`).

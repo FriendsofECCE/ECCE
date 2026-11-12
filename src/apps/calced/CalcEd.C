@@ -4,6 +4,7 @@
 #endif
 #include <cstdint>
 #include <fstream>
+#include <sstream>
 #include <memory>
   using std::flush;
   using std::ofstream;
@@ -35,6 +36,7 @@
 #include "tdat/GeomConstraint.H"
 #include "tdat/GUIValues.H"
 
+#include "dsm/DeckWriter.H"
 #include "dsm/GBSRules.H"
 #include "dsm/TGBSConfig.H"
 #include "dsm/TGBSGroup.H"
@@ -77,6 +79,7 @@
 #include "dsm/QstStructures.H"
 #include "VerifyReportDialog.H"
 #include "PartialCharge.H"
+#include "wxgui/ewxProgressDialog.H"
 
 //#define DEBUG
 
@@ -295,6 +298,8 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
  *   builder           the Builder button (startApp of the Builder)
  *   launcher          the Launch... button's tool request
  *   runtype <label>   choose a run type as the Runtype menu does
+ *   detail <key> <v>  set one run type/theory detail, as its dialog sends it
+ *   details <prefix>  the details whose key starts with <prefix>
  */
 void CalcEd::runTestCommand(const string& line)
 {
@@ -358,6 +363,35 @@ void CalcEd::runTestCommand(const string& line)
         ResourceDescriptor::getResourceDescriptor().getTool(LAUNCHER);
     if (tool) startApp(tool->getName(), 0, p_context);
     outcome = tool ? "requested" : "no Launcher tool";
+  } else if (line.compare(0, 7, "detail ") == 0) {
+    std::istringstream in(line.substr(7));
+    string key, val;
+    in >> key >> val;
+    GUIValue *v = p_GUIValues ? p_GUIValues->get(key) : 0;
+    if (key.empty() || !p_GUIValues) {
+      outcome = "no key";
+    } else {
+      if (!v) {
+        GUIValue nv;
+        nv.m_key = key;
+        nv.m_type = "unknown";
+        nv.m_sensitive = true;
+        nv.m_write = true;
+        p_GUIValues->set(key, v = new GUIValue(nv));
+      }
+      v->setValue(val);
+      if (key.compare(0, 16, "ES.Runtype.Vina.") == 0 ||
+          key == "ES.Runtype.Docking.LigandAtoms")
+        publishVinaBox();
+      enableSave();
+      outcome = "ok";
+    }
+  } else if (line.compare(0, 8, "details ") == 0) {
+    const string prefix = line.substr(8);
+    if (p_GUIValues)
+      for (const auto& kv : *p_GUIValues)
+        if (kv.first.compare(0, prefix.size(), prefix) == 0)
+          outcome += kv.first + "=" + kv.second->getValueAsString() + " ";
   } else if (line.compare(0, 8, "runtype ") == 0) {
     ewxChoice *choice = (ewxChoice*)FindWindow(ID_CHOICE_CALCED_RUNTYPE);
     if (!choice->SetStringSelection(line.substr(8))) {
@@ -464,7 +498,7 @@ void CalcEd::createCodeButtons()
   static const char *const groupName[4] = { "DFT:", "Semi-empirical:",
                                             "Periodic:", "MD:" };
   static const char *const order[] = { "ECCE-QM", "Gaussian-16", "ORCA",
-                                       "NWChem", "MOPAC", "xTB", "CREST", "QuantumESPRESSO",
+                                       "NWChem", "MOPAC", "xTB", "CREST", "Vina", "QuantumESPRESSO",
                                        "CP2K", "MLP", "GROMACS" };
   std::vector<std::pair<int, wxCustomButton*> > groups[4];
 
@@ -479,11 +513,11 @@ void CalcEd::createCodeButtons()
                                wxCUSTBUT_BUT_DCLICK_TOG);
       codeButton->SetClientData((void*)it);
       codeButton->SetMargins(margins);
-      codeButton->SetToolTip(codes[it]);
+      codeButton->SetToolTip(CodeFactory::displayName(codes[it]));
       const string& c = codes[it];
       const int g = c=="GROMACS" ? 3
                   : (c=="QuantumESPRESSO" || c=="CP2K" || c=="MLP") ? 2
-                  : (c=="MOPAC" || c=="xTB" || c=="CREST") ? 1 : 0;
+                  : (c=="MOPAC" || c=="xTB" || c=="CREST" || c=="Vina") ? 1 : 0;
       int rank = 100;
       for (int r = 0; r < (int)(sizeof order / sizeof order[0]); r++)
         if (c == order[r]) rank = r;
@@ -733,7 +767,7 @@ void CalcEd::doSetContext(const string& codeName)
 
   fixBuilderButtonId();
 
-  SetTitle("ECCE " + p_code->name() + " Editor");
+  SetTitle("ECCE " + CodeFactory::displayName(p_code->name()) + " Editor");
   p_detailsBox->SetLabel(p_code->name() + " Settings");
 
   createCodeButtons();
@@ -1213,6 +1247,7 @@ void CalcEd::OnComboboxCalcedChargeSelected( wxCommandEvent& event )
       p_fullFrag->charge(value);
       updateChemSysFields();
       restrictSpinByCharge();
+      updateNotes();
     }
   }
 
@@ -1232,6 +1267,7 @@ void CalcEd::OnComboboxCalcedSpinMultSelected( wxCommandEvent& event )
   setOpenShells(getSpinMult() - 1);
   restrictTheoriesBySpin();
   enableSave();
+  updateNotes();
 
   event.Skip();
 }
@@ -1245,6 +1281,7 @@ void CalcEd::OnComboboxCalcedSpinMultEnter( wxCommandEvent& event )
     setOpenShells(getSpinMult() - 1);
     restrictTheoriesBySpin();
     enableSave();
+    updateNotes();
   }
 
   event.Skip();
@@ -1563,6 +1600,14 @@ void CalcEd::updateNotes()
   }
   for (const string& w : tsWarnings())
     note += string(note.empty() ? "" : "\n") + w;
+  if (p_codeName == "MLP") {
+    note += string(note.empty() ? "" : "\n") +
+        "MLP energies are for screening, not for reporting.";
+    //  Only a warning: the run goes ahead with a neutral closed-shell model.
+    if ((p_frag != NULL && p_frag->charge() != 0) ||
+        getSpinMult() > SpinMult::singlet)
+      note += "\nMACE-MP has no charge or spin; this result ignores both.";
+  }
   if (!p_notReadyWhy.empty())
     note += string(note.empty() ? "" : "\n") + p_notReadyWhy;
   const wxString text = wxString::FromUTF8(note);
@@ -1977,6 +2022,51 @@ void CalcEd::codeMCB(wxCommandEvent& event)
 
 void CalcEd::detailsMCB(wxCommandEvent& event)
 {
+  //  The Builder's Docking Box Around Selection stores the Vina box with the
+  //  calculation (#455).  Only those keys are taken, so unsaved edits of
+  //  other details survive; the editor's own Save also lands here, with
+  //  nothing different.
+  if (!p_iCalc || !p_GUIValues || p_codeName != "Vina") return;
+  GUIValues *stored = p_iCalc->guiparams();
+  if (!stored) return;
+  bool changed = false;
+  for (const auto& kv : *stored) {
+    if (kv.first.compare(0, 19, "ES.Runtype.Vina.Box") != 0) continue;
+    GUIValue *mine = p_GUIValues->get(kv.first);
+    if (mine && mine->getValueAsString() == kv.second->getValueAsString())
+      continue;
+    p_GUIValues->set(kv.first, new GUIValue(*kv.second));
+    changed = true;
+  }
+  delete stored;
+  if (!changed) return;
+  // The Builder reset the state before this message; the state message may
+  // not have reached us yet, so lift READONLY here or Save stays disabled.
+  if (p_feedback->getEditStatus() == WxFeedback::READONLY) {
+    if (p_iCalc->getState() > ResourceDescriptor::STATE_READY) return;
+    setEditStatus(WxFeedback::EDIT);
+    enableAllFields();
+  }
+  populateSummaryField("RuntypeSummary");
+  p_feedback->setMessage("The docking box was set in the Builder.  Save to "
+                         "write it into the input file.", WxFeedback::WARNING);
+  enableSave();
+}
+
+
+//  The box numbers as the run type dialog sends them, before any Save, so
+//  the Builder redraws the box while they are typed (#455).
+void CalcEd::publishVinaBox() const
+{
+  if (!p_iCalc || !p_GUIValues || p_codeName != "Vina") return;
+  JMSMessage *msg = newMessage();
+  msg->addProperty("url", p_iCalc->getURL().toString());
+  for (const auto& kv : *p_GUIValues)
+    if (kv.first.compare(0, 16, "ES.Runtype.Vina.") == 0 ||
+        kv.first == "ES.Runtype.Docking.LigandAtoms")
+      msg->addProperty(kv.first, kv.second->getValueAsString());
+  publish("ecce_vina_box", *msg);
+  delete msg;
 }
 
 
@@ -2000,7 +2090,8 @@ void CalcEd::stateMCB(wxCommandEvent& event)
 {
   if (p_iCalc->getState() > ResourceDescriptor::STATE_READY) {
     setEditStatus(WxFeedback::READONLY);
-  } else {
+  } else if (p_feedback->getEditStatus() == WxFeedback::READONLY) {
+    // Not from MODIFIED: a state message must not drop unsaved edits.
     setEditStatus(WxFeedback::EDIT);
   }
   enableAllFields();
@@ -4185,7 +4276,10 @@ bool CalcEd::generateInput(const bool& paramFlag)
     //  than in enableLaunch(), which runs on every edit: this is the
     //  one moment the file can have changed, so it is also the only
     //  moment worth spending a WebDAV fetch and a process on.
+    if (p_saveStage) p_saveStage("Checking the input file");
+    DeckWriter::StepTimer verifyTimer("CalcEd");
     verifyInput();
+    verifyTimer.lap("verifyInput (fetch deck + checker)");
   }
 
   return success;
@@ -4264,6 +4358,34 @@ bool CalcEd::inputEditedByHand()
 }
 
 
+namespace {
+//  Save runs the input generator and the checker as processes, which are
+//  slow to start on Windows; the dialog appears only once a Save has taken
+//  half a second, at the next step, so quick Saves never flash it.
+class SaveProgress
+{
+  public:
+    explicit SaveProgress(wxWindow *parent) : p_parent(parent) {}
+    ~SaveProgress() { if (p_dlg) p_dlg->Destroy(); }
+    void stage(const string& what)
+    {
+      const wxString msg = wxString::FromUTF8(what.c_str());
+      if (!p_dlg) {
+        if (p_watch.Time() < 500) return;
+        p_dlg = new ewxProgressDialog("Saving", msg, 100, p_parent,
+                                      wxPD_AUTO_HIDE | wxPD_APP_MODAL);
+        p_dlg->Show();
+      }
+      p_dlg->Pulse(msg);
+    }
+  private:
+    wxWindow *p_parent;
+    ewxProgressDialog *p_dlg = nullptr;
+    wxStopWatch p_watch;
+};
+}
+
+
 void CalcEd::doSave()
 {
   // check that there's really been something changed
@@ -4294,6 +4416,15 @@ void CalcEd::doSave()
       p_keepHandInput = (answer == wxID_YES);
     }
 
+    wxBusyCursor busy;
+    DeckWriter::StepTimer saveTimer("CalcEd::doSave");
+    SaveProgress progress(this);
+    p_saveStage = [&progress](const string& what) { progress.stage(what); };
+    struct ClearStage {
+      std::function<void(const string&)>& f;
+      ~ClearStage() { f = nullptr; }
+    } clearStage{p_saveStage};
+
     // save code
     bool saveCode = false;
     const JCode *currentCode = p_iCalc->application();
@@ -4303,6 +4434,7 @@ void CalcEd::doSave()
     }
     if (currentCode) currentCode = 0;
 
+    if (p_saveStage) p_saveStage("Storing the structure and settings");
     // save frag and spin and open shells
     // name, charge, and use irreducible are part of the frag
     bool saveFrag = false;
@@ -4385,10 +4517,12 @@ void CalcEd::doSave()
       saveRuntype = true;
     }
 
+    if (p_saveStage) p_saveStage("Storing the calculation settings");
     // save GUIValues; the input is generated from what the box shows
     storeUseSymmetry(useSymmetryBox());
     syncTsKeys();
     p_iCalc->guiparams(p_GUIValues);
+    saveTimer.lap("store settings (code..guiparams)");
 
     // determine whether to save intermediate files for debugging
     // save if shift key is held down
@@ -4401,13 +4535,14 @@ void CalcEd::doSave()
       p_keepHandInput = false;
       p_feedback->setMessage("Settings saved; your edited input file was "
                              "kept.", WxFeedback::INFO);
-    } else if (generateInput(save_param)) {
+    } else if ((saveTimer.lap("hand-edit check"), generateInput(save_param))) {
       p_feedback->setMessage("New input file generated.", WxFeedback::INFO);
       if (p_iCalc->getState() != p_feedback->getRunState()) {
         p_iCalc->setState(p_feedback->getRunState());
       }
     }
 
+    saveTimer.lap("generateInput (all)");
     // reset the save status indicator
     enableSave(false);
 
@@ -4427,8 +4562,11 @@ void CalcEd::doSave()
                                ". Input file generated with warnings. "
                                "See Verify.", WxFeedback::WARNING);
     }
+    saveTimer.lap("state, messages, tooltip");
     enableLaunch();
+    saveTimer.lap("enableLaunch");
     refreshTsBox();
+    saveTimer.lap("refreshTsBox");
 
     if (saveCode)    urlChangeNotify("ecce_url_code");
     if (saveFrag)    urlChangeNotify("ecce_url_subject");
@@ -4440,6 +4578,7 @@ void CalcEd::doSave()
     // Details always change because any calced change
     // triggers them to be reset
     urlChangeNotify("ecce_url_details");
+    saveTimer.lap("notify other apps");
   }
 }
 
@@ -5019,6 +5158,9 @@ void CalcEd::processRuntypeInput(const char* databuf)
 
   if (p_GUIValues->append(databuf)) {
     p_runtypeInFlag = true;
+    if (strstr(databuf, "ES.Runtype.Vina.Box") ||
+        strstr(databuf, "ES.Runtype.Docking.LigandAtoms"))
+      publishVinaBox();
     if (!p_runtypeHoldFlag) {
       populateSummaryField("RuntypeSummary");
       updateNotes();

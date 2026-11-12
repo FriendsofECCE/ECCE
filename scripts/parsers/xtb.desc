@@ -167,7 +167,7 @@ Progress=opt converged=no
 # only at long intervals; the trajectory itself arrives with the frames.
 [PROGRESS]
 Begin=^\s+(\d+)\s+(\d+\.\d+)\s+-?\d+\.\d+\s+\d+\.\d+\s+\d+\.\s+\d+\.\s+-?\d+\.\d+\s*$
-Progress=md step=$1 time(ps)=$2
+Progress=md step=$1 time=$2
 [END]
 
 [PROGRESS]

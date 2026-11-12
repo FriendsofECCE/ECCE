@@ -1,0 +1,118 @@
+#!/bin/sh
+# ecce-mlp-setup: build the Python environment for ECCE's MLP (MACE) code.
+#
+#     ecce-mlp-setup <folder> [model] [cpu|cuda|auto]
+#
+# Creates <folder>/venv with PyTorch (CPU-only by default, about 1.5 GB in
+# all; "cuda" is the NVIDIA build, several GB more; "auto" picks cuda when
+# nvidia-smi finds a GPU here), mace-torch and ASE, and downloads the MACE
+# model (default medium-mpa-0) into <folder>/venv/cache/mace, where ecce-mlp
+# looks first, so compute nodes need no internet.  When <folder> holds
+# ecce-mlp-driver.cpp (Register Machines sends it) and the machine has a C++
+# compiler, ECCE's optimiser/dynamics driver is built into venv/bin; without
+# it ecce-mlp falls back to ASE's optimisers and has no MD.  The Python to
+# register for the code is <folder>/venv/bin/python.
+#
+# Register Machines runs this detached on the machine (local or over ssh) and
+# follows <folder>/setup.log; the last line of <folder>/setup.status is
+# "done <python>" or "failed <reason>".  POSIX sh, so it runs on any cluster.
+#
+# ECCE_MLP_SETUP_PYTHON: the Python to build from (default python3).
+# ECCE_MLP_SETUP_MOCK=1: create the environment but install and download
+# nothing (for the tests).
+
+dir=${1:?usage: ecce-mlp-setup <folder> [model] [cpu|cuda|auto]}
+model=${2:-medium-mpa-0}
+torch=${3:-cpu}
+case "$torch" in auto|cpu|cuda) ;; *) echo "ecce-mlp-setup: the third argument is cpu, cuda or auto"; exit 1 ;; esac
+base=${ECCE_MLP_SETUP_PYTHON:-python3}
+mock=${ECCE_MLP_SETUP_MOCK:-}
+
+mkdir -p "$dir" || { echo "ecce-mlp-setup: cannot create $dir"; exit 1; }
+dir=$(cd "$dir" && pwd)
+status="$dir/setup.status"
+rm -f "$status"
+echo $$ > "$dir/setup.pid"
+
+finish() {
+    echo "$1" > "$status"
+    echo "ECCE-MLP-SETUP $1"
+    rm -f "$dir/setup.pid"
+    exit "$2"
+}
+fail() { finish "failed $1" 1; }
+step() { echo "ECCE-MLP-SETUP step $1/5: $2"; }
+trap 'finish "failed cancelled" 1' TERM INT HUP
+
+env="$dir/venv"
+py="$env/bin/python"
+pip_q="--disable-pip-version-check --no-input --progress-bar off"
+
+step 1 "creating the Python environment in $env"
+command -v "$base" >/dev/null 2>&1 ||
+    fail "$base was not found on this machine; install Python 3.9 or newer"
+if [ -n "$mock" ]; then
+    "$base" -m venv --without-pip "$env" || fail "$base -m venv failed"
+else
+    "$base" -m venv "$env" ||
+        fail "$base -m venv failed (on Debian or Ubuntu: apt install python3-venv)"
+fi
+echo "Python: $("$py" --version 2>&1)"
+
+if [ "$torch" = cuda ]; then
+    gpu=yes
+    step 2 "installing PyTorch with CUDA (as asked)"
+elif [ "$torch" = cpu ]; then
+    gpu=no
+    step 2 "installing PyTorch, CPU-only (as asked)"
+elif command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
+    gpu=yes
+    step 2 "installing PyTorch with CUDA (NVIDIA GPU found: $(nvidia-smi -L | head -n 1))"
+else
+    gpu=no
+    step 2 "installing PyTorch, CPU-only (no NVIDIA GPU found)"
+fi
+if [ -z "$mock" ]; then
+    # The default index serves the CUDA build on Linux; the CPU build is a
+    # fraction of its size.
+    if [ "$gpu" = yes ]; then
+        "$py" -m pip install $pip_q torch || fail "pip could not install PyTorch"
+    else
+        "$py" -m pip install $pip_q torch --index-url https://download.pytorch.org/whl/cpu ||
+            fail "pip could not install the CPU-only PyTorch"
+    fi
+fi
+
+step 3 "installing mace-torch and ASE"
+if [ -z "$mock" ]; then
+    "$py" -m pip install $pip_q mace-torch ase || fail "pip could not install mace-torch and ASE"
+fi
+
+step 4 "downloading the MACE model $model into $env/cache/mace"
+if [ -z "$mock" ]; then
+    XDG_CACHE_HOME="$env/cache" "$py" -c "
+import sys
+from mace.calculators.foundations_models import download_mace_mp_checkpoint as get
+print(get(sys.argv[1]))" "$model" || fail "the model $model could not be downloaded"
+fi
+
+step 5 "checking the environment and building ecce-mlp-driver"
+if [ -f "$dir/ecce-mlp-driver.cpp" ]; then
+    cxx=${CXX:-c++}
+    if command -v "$cxx" >/dev/null 2>&1 &&
+        "$cxx" -O2 -std=c++17 -o "$env/bin/ecce-mlp-driver" "$dir/ecce-mlp-driver.cpp"; then
+        echo "ecce-mlp-driver: built with $cxx"
+    else
+        echo "ecce-mlp-driver: NOT built (no working C++17 compiler '$cxx'); ecce-mlp will use ASE's optimisers and offers no MD"
+    fi
+fi
+if [ -z "$mock" ]; then
+    "$py" -c "
+import torch, ase
+from importlib.metadata import version
+print('torch', torch.__version__, 'CUDA available:', torch.cuda.is_available())
+print('mace-torch', version('mace-torch'), ' ase', ase.__version__)" ||
+        fail "the new environment cannot import torch, mace and ase"
+fi
+echo "Size: $(du -sh "$env" 2>/dev/null | cut -f1)"
+finish "done $py" 0

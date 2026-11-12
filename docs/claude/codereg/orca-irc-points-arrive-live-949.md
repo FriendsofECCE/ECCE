@@ -1,8 +1,8 @@
 ---
 type: pitfall
-title: "ORCA IRC energies arrive live, one row at a time; the structures only at the end (#949)"
+title: "ORCA IRC points and structures arrive live; run order once frames come (#949)"
 area: codereg
-paths: [scripts/parsers/orca.ircpoint, scripts/parsers/orca.energy, scripts/parsers/orca.irc, scripts/parsers/orca.desc, tests/parsers/orca_irc_live_test.py, tests/apps/irc_panel_test.py]
+paths: [scripts/parsers/orca.ircpoint, scripts/parsers/orca.irctrj, scripts/parsers/orca.geomtrace, scripts/parsers/orca.ircgeom, scripts/parsers/orca.energy, scripts/parsers/orca.irc, scripts/parsers/orca.desc, tests/parsers/orca_irc_live_test.py, tests/apps/irc_panel_test.py]
 issues: [949, 948, 417]
 ---
 ORCA's output prints, per IRC point, only a row of the FORWARD/BACKWARD IRC
@@ -14,13 +14,16 @@ forward and -(k+1) backward, the same coordinates `orca.irc` gives the
 summary rows. The summary (Frequency=last) replaces both vectors at the end,
 so a finished calculation stores exactly what it did before #949.
 
-Path order rather than run order, because there is no frame to keep in step:
-the readers sort by coordinate only when frames, energies and coordinates
-have one count, so run-order vectors without frames would draw a zigzag.
-
-The structures: ORCA appends each point to `<input>_IRC_F_trj.xyz` /
-`_IRC_B_trj.xyz` while it runs (checked on 6.1.1), but the monitor reads
-`File=` entries only after the job (`file-parse-properties-are-stored-last`),
-so IRCGEOM still comes from `_IRC_Full_trj.xyz` at the end and a running
-ORCA IRC shows points without structures. Live frames need the monitor to
-tail those two files.
+Path orderStructures: ORCA appends each point to `<input>_IRC_F_trj.xyz` /
+`_IRC_B_trj.xyz` (no TS in either; frame k is row k), which the monitor
+follows (`monitor-follows-growing-files-949.md`). `orca.irctrj` sends one
+IRCGEOM frame per new xyz frame, the TS first (the last CARTESIAN
+COORDINATES block, kept in `orcaIrcXyz` by `orca.geomtrace`), and logs each
+in `orcaIrcFrames`. Once that file exists `orca.ircpoint`, `orca.irctrj` and
+the summary (`orca.irc`) send the vectors in run order (the order
+`orcaIrcPoints` received them), so point i is frame i and the readers sort
+the three by coordinate, as for G16; `orca.ircgeom` (the `_IRC_Full_trj.xyz`
+entry at the end) then sends nothing. Without followed frames (an import)
+the vectors stay in path order and IRCGEOM comes from `_IRC_Full_trj.xyz`,
+exactly as before: run-order vectors without frames would draw a zigzag.
+`tests/parsers/orca_irc_trj_live_test.py` replays both.

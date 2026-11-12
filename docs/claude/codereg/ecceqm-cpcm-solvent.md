@@ -11,9 +11,9 @@ Keywords: `solvent <water|methanol|ethanol|acetonitrile|dmso|chloroform|toluene|
 Absent = vacuum, input and output unchanged. Every run type works with a
 solvent (energy, gradient, optimize, frequency, ts, irc, scans) except
 `polarizability` and `raman`, refused at parse time (no solvent response to a
-field). Frequencies and the TS Hessian use the finite-difference Hessian of
-solvated gradients: `analytic_hessian_available` (hessian.cpp) is false with a
-solvent, which also makes `ts_hessian_every` default to 0. The Calculation
+field). Frequencies and the TS Hessian use the analytic Hessian with the
+same cavity terms as the gradient wherever the method has one
+(ecceqm-analytic-cpcm-hessian.md), so `ts_hessian_every` defaults to 1 there too. The Calculation
 Editor's notes line and the Launcher's pre-launch question (Launch anyway is the
 default) warn only for Raman, from `include/tdat/QmSolventWarning.H` (the
 Raman tick is on the run-type panel, so the Theory dialog cannot see it); combo `ES.Theory.ECCEQM.Solvent` (None | names | Custom) and float

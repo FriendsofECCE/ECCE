@@ -1245,15 +1245,17 @@ def run_autorun(display, data, work, shots):
         "workflowstep %s xtb_es b %s/a" % (wf, wf),
         "workflowstep %s xtb_es c %s/a" % (wf, wf),
         "workflowstep %s xtb_es d %s/seed" % (wf, wf),
+        "workflowstep %s xtb_es e %s/b" % (wf, wf),
+        "workflowstep %s xtb_es g %s/c" % (wf, wf),
     ] + ["workflowsetlaunch %s %s/%s localhost %s" % (wf, wf, n, rundir)
-         for n in ("a", "b", "c", "d")]
+         for n in ("a", "b", "c", "d", "e", "g")]
     with open(script, "w") as f:
         f.write("\n".join(setup) + "\n")
     result = apps.run(display, "organizer", windowTimeout=60, settle=40,
                       env={"ECCE_TEST_ORGANIZER": script})
     check("autorun setup Organizer survives", not result.crashed, result.log or "")
     # The input deck the Calculation Editor would have written.
-    for n in ("a", "b", "c", "d"):
+    for n in ("a", "b", "c", "d", "e", "g"):
         with open(os.path.join(project, "Workflow", n, "xtb.xtbin"), "w") as f:
             f.write("##XtbHeader##\n##chemsys##\n")
     script = os.path.join(work, "autorun-commands1")
@@ -1279,10 +1281,12 @@ def run_autorun(display, data, work, shots):
         return re.findall(r"ECCE_TEST_ORGANIZER: %s.*?: (.*)$" % command, log, re.M)
 
     check("auto-run is off by default",
-          answers("workflowautorun")[-1:] == ["ok autorun=off"], str(answers("workflowautorun")))
+          answers("workflowautorun")[-1:] == ["ok autorun=off started=0"],
+          str(answers("workflowautorun")))
     play = answers("workflowplay")
     check("play buttons: only the ready step is enabled", len(play) == 2 and
-          "seed:0:already run|a:1:|b:0:waiting for a|c:0:waiting for a" in play[0],
+          all(x in play[0].split("ok ", 1)[-1].split("|") for x in
+              ("seed:0:already run", "a:1:", "b:0:waiting for a", "c:0:waiting for a")),
           str(play))
     launch = answers("workflowlaunchstep")
     check("a step that is waiting is not launched",
@@ -1296,21 +1300,36 @@ def run_autorun(display, data, work, shots):
           len(play) == 2 and "a:0:already run" in play[1] and
           "b:0:waiting for a" in play[1], str(play))
 
-    # Auto-run on: the first step completes, the next two start by themselves.
+    # Auto-run stored on, as a run from before #926 left it: opening the
+    # workflow, ticking the box and a completion launch nothing until Launch
+    # Ready Steps; after it, a completion launches what it unblocked (#926).
+    script = os.path.join(work, "autorun-commands-arm")
+    with open(script, "w") as f:
+        f.write("workflowautorun %s on\n" % wf)
+    result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    check("autorun arm Organizer survives", not result.crashed, result.log or "")
     script2 = os.path.join(work, "autorun-commands2")
     commands = [
-        # Ticked as a click does while d is ready: d launches and the view
-        # stays (#902: the launch selected d in the tree, replacing the view).
+        "select %s" % wf, "idle 3000",
+        "workflowplay %s" % wf,
+        # Ticked as a click does while d is ready; the view stays (#902).
+        "workflowautorunclick %s off" % wf,
         "workflowautorunclick %s on" % wf,
+        "idle 3000",
+        "workflowplay %s" % wf,
         "setstate %s/a completed" % wf,
-        "workflowplay %s" % wf,
-        "workflowplay %s" % wf,
-        "workflowplay %s" % wf,
+        "idle 3000",
         "workflowplay %s" % wf,
         "workflowautorun %s query" % wf,
-        # #931: Back to Table shows the folder's table; the folder in the tree
-        # does the same after the workflow was opened again.
-        "workflowclose %s press" % wf,
+        "workflowlaunch %s" % wf,
+        "workflowplay %s" % wf,
+        "workflowautorun %s query" % wf,
+        "setstate %s/b completed" % wf,
+        "idle 4000",
+        "workflowplay %s" % wf,
+        "workflowplay %s" % wf,
+        # #931: the folder in the tree leaves the view for the folder's table.
         "workflowclose %s folder" % wf,
         "workflowshot %s %s" % (os.path.join(shots, "workflow-play-buttons.png"), wf),
     ]
@@ -1323,23 +1342,142 @@ def run_autorun(display, data, work, shots):
         f.write(log)
     check("autorun second Organizer survives", not result.crashed, log)
     play = answers("workflowplay")
-    check("with auto-run on, the dependants of a completed step were launched",
-          play and "b:0:already run" in play[-1] and "c:0:already run" in play[-1],
-          str(play))
-    check("auto-run stays on", answers("workflowautorun")[-1:] == ["ok autorun=on"],
-          str(answers("workflowautorun")))
+    run = answers("workflowautorun ")
+    check("opening a workflow with auto-run on launches nothing (#926)",
+          len(play) == 6 and "|d:1:" in play[0] + "|", str(play))
     click = answers("workflowautorunclick")
     check("ticking auto-run keeps the workflow view shown (#902)",
-          click == ["ok shown=1 autorun=on"], str(click))
+          click[-1:] == ["ok shown=1 autorun=on"], str(click))
+    check("ticking auto-run launches nothing (#926)",
+          len(play) == 6 and "|d:1:" in play[1] + "|", str(play))
+    check("before Launch Ready Steps a completion launches nothing (#926)",
+          len(play) == 6 and "|b:1:" in play[2] + "|" and "|c:1:" in play[2] + "|" and
+          run[:1] == ["ok autorun=on started=0"], str(play) + str(run))
+    check("Launch Ready Steps launches the ready steps and starts the run",
+          len(play) == 6 and all("%s:0:already run" % n in play[3] for n in "bcd") and
+          run[1:2] == ["ok autorun=on started=1"], str(play) + str(run))
+    check("after Launch Ready Steps a completion launches the next step",
+          len(play) == 6 and "e:0:already run" in play[-1] and
+          "g:0:waiting for c" in play[-1], str(play))
     closed = answers("workflowclose")
-    check("Back to Table shows the folder's table, selecting the folder does too (#931)",
-          len(closed) == 2 and all(c.startswith("ok view=table selected=") and
+    check("selecting the folder shows the folder's table (#931)",
+          len(closed) == 1 and all(c.startswith("ok view=table selected=") and
                                    not c.endswith("/" + wf) for c in closed),
           str(closed))
-    check("ticking auto-run launched the ready step", play and "d:0:already run" in play[-1],
-          str(play))
+    # A new Organizer: the started run goes on when c completes; unticking ends it.
+    script3 = os.path.join(work, "autorun-commands3")
+    with open(script3, "w") as f:
+        f.write("\n".join([
+            "workflowautorun %s query" % wf,
+            "setstate %s/c completed" % wf,
+            "idle 4000",
+            "workflowplay %s" % wf,
+            "workflowplay %s" % wf,
+            "workflowautorunclick %s off" % wf,
+            "workflowautorun %s query" % wf,
+        ]) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
+                      env={"ECCE_TEST_ORGANIZER": script3})
+    log = result.log or ""
+    with open(os.path.join(shots, "autorun-3.log"), "w") as f:
+        f.write(log)
+    check("autorun third Organizer survives", not result.crashed, log)
+    play = answers("workflowplay")
+    run = answers("workflowautorun ")
+    check("a started run survives an Organizer restart",
+          run[:1] == ["ok autorun=on started=1"], str(run))
+    check("after a restart a completion still launches the next step",
+          play and "g:0:already run" in play[-1], str(play))
+    check("unticking ends the run", run[-1:] == ["ok autorun=off started=0"], str(run))
     run_recipe_ready(display, data, work, shots, rundir)
     run_hand_ready(display, data, work, shots)
+    run_no_theory(display, data, work, shots, rundir)
+
+
+def run_no_theory(display, data, work, shots, rundir):
+    """A workflow with auto-run on whose Created recipe step stores no
+    theory, as recipe steps made before #910 do (#950): the Organizer
+    crashed writing its deck on opening.  The step gets its code's default theory and
+    goes on; a copy in a folder the user cannot write to is left alone."""
+    project = os.path.join(data, "users", "local", "notheory")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(CALC, os.path.join(project, "water"), symlinks=True)
+    proj = "file://" + project
+    wf = proj + "/Workflow"
+    script = os.path.join(work, "notheory-commands")
+    with open(script, "w") as f:
+        f.write("\n".join([
+            "new %s workflow" % proj,
+            "workflowcopy %s %s/water seed" % (wf, proj),
+            "workflowsetlaunch %s %s/seed localhost %s" % (wf, wf, rundir),
+            "workflowrecipe %s xtb-crest orca %s/seed" % (wf, wf),
+        ]) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=40,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    check("no-theory setup Organizer survives", not result.crashed, result.log or "")
+    folder = os.path.join(project, "Workflow")
+    ns = "http://www.emsl.pnl.gov/ecce:"
+
+    def edit(meta, drop, add):
+        lines = [l for l in open(meta).read().splitlines()
+                 if not any(l.startswith(".\t" + ns + k + "\t") for k in drop)]
+        lines += [".\t%s%s\t\t%s" % (ns, k, v) for k, v in add]
+        with open(meta, "w") as h:
+            h.write("\n".join(lines) + "\n")
+    edit(os.path.join(folder, "xtb", ".ecce-meta"), ("theory", "state"),
+         [("state", "Created")])
+    edit(os.path.join(folder, ".ecce-meta"), ("autorun",), [("autorun", "1")])
+    # The same workflow in a folder the user cannot write to.
+    ro = os.path.join(data, "users", "local", "notheory-ro")
+    shutil.copytree(project, ro, symlinks=True)
+    # The linkbase and metadata name the steps by full URL.
+    for top, _, files in os.walk(ro):
+        for name in files:
+            path = os.path.join(top, name)
+            try:
+                text = open(path).read()
+            except (UnicodeDecodeError, OSError):
+                continue
+            if project in text:
+                with open(path, "w") as h:
+                    h.write(text.replace(project + "/", ro + "/"))
+    ro_inputs = sorted(os.listdir(os.path.join(ro, "Workflow", "xtb", "Inputs")))
+    subprocess.run(["chmod", "-R", "a-w", ro])
+    rwf = "file://" + ro + "/Workflow"
+    script = os.path.join(work, "notheory-commands2")
+    with open(script, "w") as f:
+        f.write("\n".join([
+            "select %s" % wf, "idle 3000",
+            # Opening launches nothing since #926: the run button prepares it.
+            "workflowlaunch %s" % wf, "idle 2000",
+            "workflowstate %s %s/xtb" % (wf, wf),
+            "workflowinfo %s" % wf,
+            "select %s" % rwf, "idle 3000",
+            "workflowstate %s %s/xtb" % (rwf, rwf),
+        ]) + "\n")
+    try:
+        result = apps.run(display, "organizer", windowTimeout=60, settle=40,
+                          env={"ECCE_TEST_ORGANIZER": script})
+    finally:
+        subprocess.run(["chmod", "-R", "u+w", ro])
+    log = result.log or ""
+    with open(os.path.join(shots, "notheory.log"), "w") as f:
+        f.write(log)
+    check("opening a workflow whose ready step has no theory does not crash (#950)",
+          not result.crashed and "ended by SIG" not in log, log[-3000:])
+    state = re.findall(r"ECCE_TEST_ORGANIZER: workflowstate .*?: (.*)$", log, re.M)
+    meta = open(os.path.join(ro, "Workflow", "xtb", ".ecce-meta")).read()
+    check("in a read-only folder auto-run writes and launches nothing",
+          ns + "state\t\tCreated" in meta and
+          sorted(os.listdir(os.path.join(ro, "Workflow", "xtb", "Inputs"))) == ro_inputs,
+          str(state))
+    check("the step without a theory gets its code's and goes on",
+          len(state) >= 1 and not state[0].lower().startswith("ok state=created"),
+          str(state))
+    info = re.findall(r"ECCE_TEST_ORGANIZER: workflowinfo .*?: (.*)$", log, re.M)
+    info = steps(info[-1].partition("ok ")[2]).get("xtb", {}) if info else {}
+    check("the step stores a theory again", info.get("theory") == "GFN2-xTB", str(info))
 
 
 def run_recipe_ready(display, data, work, shots, rundir):
@@ -1395,8 +1533,7 @@ def run_recipe_ready(display, data, work, shots, rundir):
 def run_hand_ready(display, data, work, shots):
     """ECCE-QM -> xTB -> CREST made with New step (#926): once ECCE-QM is
     complete the inserted xTB step is Ready and CREST is not, not even after
-    the editor's Save; CREST becomes Ready only through that Save, once xTB
-    has completed."""
+    the editor's Save; CREST becomes Ready once xTB has completed."""
     project = os.path.join(data, "users", "local", "handready")
     os.makedirs(project)
     shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
@@ -1423,11 +1560,15 @@ def run_hand_ready(display, data, work, shots):
         "setstate %s/cr ready" % wf,
         "idle 1000",
         "workflowstate %s %s/cr" % (wf, wf),
+        # The view's code button with its New step window (#926 point 1).
+        "workflownew %s crest_es panel %s/qm" % (wf, wf),
+        "idle 2000",
     ]
     with open(script, "w") as f:
         f.write("\n".join(commands) + "\n")
     result = apps.run(display, "organizer", windowTimeout=60, settle=60,
-                      env={"ECCE_TEST_ORGANIZER": script})
+                      env={"ECCE_TEST_ORGANIZER": script,
+                           "ECCE_TEST_ORGANIZER_NOLAUNCH": "1"})
     log = result.log or ""
     with open(os.path.join(shots, "handready.log"), "w") as f:
         f.write(log)
@@ -1440,10 +1581,16 @@ def run_hand_ready(display, data, work, shots):
           len(state) == 5 and state[1].startswith("ok state=created"), str(state))
     check("the editor's Save does not make CREST Ready while xTB waits",
           len(state) == 5 and state[2].startswith("ok state=created"), str(state))
-    check("CREST is not Ready on its own once xTB completes",
-          len(state) == 5 and state[3].startswith("ok state=created"), str(state))
+    # Nothing to edit in CREST after xTB: auto-run needs it Ready (#926).
+    check("CREST is Ready on its own once xTB completes",
+          len(state) == 5 and state[3].startswith("ok state=ready"), str(state))
     check("CREST is Ready after the editor's Save once xTB completed",
           len(state) == 5 and state[4].startswith("ok state=ready"), str(state))
+    new = re.findall(r"ECCE_TEST_ORGANIZER: workflownew .*?: (.*)$", log, re.M)
+    check("New step made xTB + CREST", new and new[0].startswith("ok"), str(new))
+    check("New step opens no Calculation Editor (#926)",
+          not re.search(r"ECCE_TEST_ORGANIZER: startApp CalculationEditor", log),
+          "\n".join(l for l in log.splitlines() if "startApp" in l))
 
 
 def main():
@@ -1481,6 +1628,8 @@ def main():
                 run_protonation(display, data, work, shots)
             elif "--autorun-only" in sys.argv:
                 run_autorun(display, data, work, shots)
+            elif "--handready-only" in sys.argv:
+                run_hand_ready(display, data, work, shots)
             elif "--make-only" in sys.argv:
                 run_make(display, data, work, shots)
             elif "--recipes-only" not in sys.argv:
@@ -1494,7 +1643,8 @@ def main():
                 run_editor(display, data, work, shots)
                 # Protonation and auto-run have their own ctest entries
                 # (apps_workflow_protonation, apps_workflow_autorun).
-            if not {"--make-only", "--editor-only", "--protonation-only", "--autorun-only"} & set(sys.argv):
+            if not {"--make-only", "--editor-only", "--protonation-only", "--autorun-only",
+                "--handready-only"} & set(sys.argv):
                 run_recipes(display, data, work, shots)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")

@@ -14,7 +14,8 @@ Skip=0
 Lines=3
 [END]
 
-[GEOMTRACE][TEVEC][LATTICEVEC]
+# An MD frame also has its time (TIMEVEC).
+[GEOMTRACE][TEVEC][TIMEVEC][LATTICEVEC]
 Script=mlp.geomtrace
 Begin=^ECCE-MLP-FRAME\s
 Skip=1
@@ -32,6 +33,16 @@ Frequency=last
 End=^ECCE-MLP-ENDFINAL
 [END]
 
+# Vibration: all 3N modes, the rigid ones first at 0 (as for ORCA and xTB).
+# No dipole, so no VIBIR.
+[VIBFREQ][VIB]
+Script=mlp.vib
+Begin=^ECCE-MLP-VIB\s
+Skip=0
+Frequency=last
+End=^ECCE-MLP-ENDVIB
+[END]
+
 # The optimiser's criterion is printed once.
 [PROGRESS]
 Begin=^convergence: fmax\s+(\S+)\s
@@ -43,8 +54,9 @@ Begin=^Step\s+(\d+)\s*$
 Progress=opt step=$1
 [END]
 
+# The box shows energies in Eh; ecce-mlp prints both units.
 [PROGRESS]
-Begin=^\s+Energy\s+(-?\d\S*)\s+eV
+Begin=^\s+Energy\s+\S+\s+eV\s+(-?\d\S*)\s+Eh
 Progress=opt energy=$1
 History=energy
 [END]
@@ -57,6 +69,24 @@ Progress=opt grad=$1/{fconv}
 [PROGRESS]
 Begin=^Optimisation converged
 Progress=opt converged=yes
+[END]
+
+# MD: one row per frame, the trajectory arrives with the frames.  Keys are
+# plain words (the monitor drops "time(ps)"); time is in ps, as GROMACS'.
+[PROGRESS]
+Begin=^Dynamics:.*,\s+(\d+) steps,
+Remember=mdsteps
+[END]
+
+[PROGRESS]
+Begin=^MD step\s+(\d+)\s+time\s+(\d+\.\d+) ps.*\sT\s+(\S+) K.*\sEtot\s+(-?\d\S*) Eh
+Progress=md point=$1/{mdsteps} time=$2 temp=$3 energy=$4
+History=temp
+[END]
+
+[PROGRESS]
+Begin=^MD finished:
+Progress=md done=yes
 [END]
 
 [PROGRESS]

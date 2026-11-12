@@ -61,7 +61,9 @@ describe what you did and what happened.
    [CREST: conformer search and related run types](crest.md): the low-energy
    conformers, protonation sites and tautomers of a molecule, a non-covalent
    complex, and a solvation shell, shown in the Viewer.
-   [ML Potential: a machine-learned potential (MACE)](mlp.md): screening
+   [Vina: docking a ligand into a receptor](vina.md): AutoDock Vina poses
+   and scores for a ligand in a receptor, shown in the Poses panel.
+   [MLP (MACE): a machine-learned potential](mlp.md): screening
    energies and relaxations of periodic cells.
    [Your first GROMACS calculation](gromacs-first-calculation.md): a small
    protein through Prepare, Optimize, Equilibrate and Dynamics.
@@ -190,6 +192,23 @@ describe what you did and what happened.
 
 36. [New Series](new-series.md): one calculation's setup applied to a list of
    structures (xyz files or calculations), with `ecce-series`.
+
+37. [QSAR: batch from SMILES](batch-from-smiles.md): a table of names, SMILES
+   and measured values as one calculation per molecule, all with one setup,
+   launched together (Tools > Batch Add from SMILES, `ecce-batch-smiles`).
+
+38. [QSAR: descriptor table](qsar-table.md): descriptors, measured values and
+   calculation results as one table per folder, exported as CSV (Tools > QSAR
+   Table, `ecce-qsar table`).
+
+39. [QSAR: PCA and PLS](qsar-analysis.md): scores, loadings, cross-validated
+   Q2, T2 and DModX of the descriptor table (Tools > QSAR Analysis,
+   `ecce-qsar pca`).
+
+40. [Diffraction: fibre patterns](fibre-diffraction.md): the calculated X-ray
+   fibre pattern of a structure or a selection, for example B-DNA and an
+   alpha-helix, on a film or as a map, with a measured image behind it (Tools >
+   Diffraction, `ecce-xrd fibre`).
 
 Reference:
 

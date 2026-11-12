@@ -18,6 +18,86 @@ constexpr double kZetaN = 4.84;
 // Points whose exposed fraction is below this carry no charge.
 constexpr double kMinExposure = 1e-8;
 
+// H += w T on the atom blocks of a function of R_a - R_b whose Hessian in the
+// separation is T (row-major 3x3).
+void add_pair(Mat& H, int a, int b, const double* T, double w) {
+  if (a == b) return;
+  for (int c1 = 0; c1 < 3; ++c1)
+    for (int c2 = 0; c2 < 3; ++c2) {
+      const double v = w * T[3 * c1 + c2];
+      H(3 * a + c1, 3 * a + c2) += v;
+      H(3 * b + c1, 3 * b + c2) += v;
+      H(3 * a + c1, 3 * b + c2) -= v;
+      H(3 * b + c1, 3 * a + c2) -= v;
+    }
+}
+
+// One smoothed step of a point's switching function: the step of sphere j at
+// distance r along e, with its first and second radial derivatives.
+struct Step {
+  int j;
+  double s, ds, d2s, r, e[3];
+};
+
+// The steps of point p (on atom ik) whose derivative is not negligible.
+void switch_steps(const std::array<double, 3>& p, int ik, double zeta, const Molecule& mol, const std::vector<double>& R,
+                  std::vector<Step>& out) {
+  out.clear();
+  for (int j = 0; j < static_cast<int>(mol.atoms.size()); ++j) {
+    if (j == ik) continue;
+    Step t;
+    t.j = j;
+    double r2 = 0;
+    for (int c = 0; c < 3; ++c) { t.e[c] = p[c] - mol.atoms[j].x[c]; r2 += t.e[c] * t.e[c]; }
+    t.r = std::sqrt(r2);
+    for (int c = 0; c < 3; ++c) t.e[c] /= t.r;
+    const double x = zeta * (t.r - R[j]);
+    t.s = 0.5 * (1.0 + std::erf(x));
+    t.ds = zeta / std::sqrt(kPi) * std::exp(-x * x);
+    t.d2s = -2.0 * zeta * x * t.ds;
+    if (t.ds > 1e-15 * zeta) out.push_back(t);
+  }
+}
+
+// First and second derivatives of the switching function F (product of the
+// steps) over the atoms {ik, steps...}, local index 0 = ik.
+void switch_derivatives(double F, const std::vector<Step>& st, Vec& g, Mat& h) {
+  const int m = static_cast<int>(st.size()), L = 3 * (m + 1);
+  g = Vec::Zero(L);
+  h = Mat::Zero(L, L);
+  for (int u = 0; u < m; ++u) {
+    const Step& a = st[u];
+    for (int c = 0; c < 3; ++c) {
+      const double v = F / a.s * a.ds * a.e[c];
+      g(c) += v;
+      g(3 * (u + 1) + c) -= v;
+    }
+    for (int w = 0; w < m; ++w) {
+      const Step& b = st[w];
+      for (int c1 = 0; c1 < 3; ++c1)
+        for (int c2 = 0; c2 < 3; ++c2) {
+          double T;
+          if (u == w)
+            T = F / a.s * (a.d2s * a.e[c1] * a.e[c2] + a.ds / a.r * ((c1 == c2 ? 1.0 : 0.0) - a.e[c1] * a.e[c2]));
+          else
+            T = F / (a.s * b.s) * a.ds * b.ds * a.e[c1] * b.e[c2];
+          h(c1, c2) += T;
+          h(c1, 3 * (w + 1) + c2) -= T;
+          h(3 * (u + 1) + c1, c2) -= T;
+          h(3 * (u + 1) + c1, 3 * (w + 1) + c2) += T;
+        }
+    }
+  }
+}
+
+// erf(z r)/r and its first two radial derivatives.
+void coulomb_gauss(double z, double r, double& S, double& S1, double& S2) {
+  const double g = 2.0 * z / std::sqrt(kPi) * std::exp(-z * z * r * r), e = std::erf(z * r);
+  S = e / r;
+  S1 = g / r - e / (r * r);
+  S2 = -2.0 * z * z * g - 2.0 * g / (r * r) + 2.0 * e / (r * r * r);
+}
+
 }  // namespace
 
 bool solvent_epsilon(const std::string& name, double& eps) {
@@ -160,6 +240,159 @@ void Cpcm::add_gradient(const Molecule& mol, const Vec& q, std::vector<double>& 
       }
     }
   }
+}
+
+Mat Cpcm::solve(const Mat& Y) const {
+  // A = M diag(1/F), so A^-1 = diag(F) M^-1
+  Mat Z = lu_.solve(Y);
+  for (int k = 0; k < size(); ++k) Z.row(k) *= F_[k];
+  return Z;
+}
+
+// E_pol = q.V/2 with A q = -f V; at fixed electrons its second derivative is
+// q.V'' + q.A''.q/(2f) - u'.A^-1.u/f with u = f V' + A' q.  The last term
+// needs the electronic V' too, so it is assembled by the caller from
+// first_derivatives().
+void Cpcm::add_hessian(const Molecule& mol, const Vec& q, Mat& H) const {
+  const int n = size(), na = static_cast<int>(mol.atoms.size());
+  const double c0 = std::sqrt(2.0 / kPi);
+#pragma omp parallel
+  {
+    Mat h = Mat::Zero(H.rows(), H.cols());
+    std::vector<Step> st;
+    Vec gf;
+    Mat hf;
+#pragma omp for schedule(dynamic, 16)
+    for (int k = 0; k < n; ++k) {
+      const int ik = atom_[k];
+      for (int a = 0; a < na; ++a) {
+        if (a == ik) continue;
+        double d[3], r2 = 0, T[9];
+        for (int c = 0; c < 3; ++c) { d[c] = pos_[k][c] - mol.atoms[a].x[c]; r2 += d[c] * d[c]; }
+        const double r = std::sqrt(r2), Z = mol.atoms[a].Z;
+        for (int c1 = 0; c1 < 3; ++c1)
+          for (int c2 = 0; c2 < 3; ++c2) T[3 * c1 + c2] = Z * (3 * d[c1] * d[c2] - (c1 == c2 ? r2 : 0.0)) / (r2 * r2 * r);
+        add_pair(h, ik, a, T, q(k));
+      }
+      // diagonal A_kk = zeta_k sqrt(2/pi) / F_k
+      switch_steps(pos_[k], ik, zeta_[k], mol, R_, st);
+      if (!st.empty()) {
+        const double F = F_[k];
+        switch_derivatives(F, st, gf, hf);
+        const Mat d2 = (-hf / (F * F) + 2.0 * gf * gf.transpose() / (F * F * F)) * (q(k) * q(k) / (2.0 * f_) * zeta_[k] * c0);
+        const int L = static_cast<int>(st.size()) + 1;
+        auto atom = [&](int u) { return u == 0 ? ik : st[u - 1].j; };
+        for (int u = 0; u < L; ++u)
+          for (int w = 0; w < L; ++w) h.block<3, 3>(3 * atom(u), 3 * atom(w)) += d2.block<3, 3>(3 * u, 3 * w);
+      }
+      for (int l = 0; l < k; ++l) {
+        const int il = atom_[l];
+        if (il == ik) continue;
+        double d[3], r2 = 0, T[9], S, S1, S2;
+        for (int c = 0; c < 3; ++c) { d[c] = pos_[k][c] - pos_[l][c]; r2 += d[c] * d[c]; }
+        const double r = std::sqrt(r2);
+        coulomb_gauss(zeta_[k] * zeta_[l] / std::sqrt(zeta_[k] * zeta_[k] + zeta_[l] * zeta_[l]), r, S, S1, S2);
+        for (int c1 = 0; c1 < 3; ++c1)
+          for (int c2 = 0; c2 < 3; ++c2) {
+            const double ee = d[c1] * d[c2] / r2;
+            T[3 * c1 + c2] = S2 * ee + S1 / r * ((c1 == c2 ? 1.0 : 0.0) - ee);
+          }
+        add_pair(h, ik, il, T, q(k) * q(l) / f_);
+      }
+    }
+#pragma omp critical
+    H += h;
+  }
+}
+
+Mat Cpcm::first_derivatives(const Molecule& mol, const Vec& q) const {
+  const int n = size(), na = static_cast<int>(mol.atoms.size());
+  const double c0 = std::sqrt(2.0 / kPi);
+  Mat U = Mat::Zero(n, 3 * na);
+#pragma omp parallel
+  {
+    std::vector<Step> st;
+    Vec gf;
+    Mat hf;
+#pragma omp for schedule(dynamic, 16)
+    for (int k = 0; k < n; ++k) {
+      const int ik = atom_[k];
+      for (int a = 0; a < na; ++a) {
+        if (a == ik) continue;
+        double d[3], r2 = 0;
+        for (int c = 0; c < 3; ++c) { d[c] = pos_[k][c] - mol.atoms[a].x[c]; r2 += d[c] * d[c]; }
+        const double s = f_ * mol.atoms[a].Z / (r2 * std::sqrt(r2));
+        for (int c = 0; c < 3; ++c) { U(k, 3 * a + c) += s * d[c]; U(k, 3 * ik + c) -= s * d[c]; }
+      }
+      switch_steps(pos_[k], ik, zeta_[k], mol, R_, st);
+      if (!st.empty()) {
+        switch_derivatives(F_[k], st, gf, hf);
+        const double w = -zeta_[k] * c0 / (F_[k] * F_[k]) * q(k);
+        for (int u = 0; u <= static_cast<int>(st.size()); ++u)
+          for (int c = 0; c < 3; ++c) U(k, 3 * (u == 0 ? ik : st[u - 1].j) + c) += w * gf(3 * u + c);
+      }
+      for (int l = 0; l < n; ++l) {
+        const int il = atom_[l];
+        if (il == ik) continue;
+        double d[3], r2 = 0, S, S1, S2;
+        for (int c = 0; c < 3; ++c) { d[c] = pos_[k][c] - pos_[l][c]; r2 += d[c] * d[c]; }
+        const double r = std::sqrt(r2);
+        coulomb_gauss(zeta_[k] * zeta_[l] / std::sqrt(zeta_[k] * zeta_[k] + zeta_[l] * zeta_[l]), r, S, S1, S2);
+        for (int c = 0; c < 3; ++c) {
+          const double v = S1 * d[c] / r * q(l);
+          U(k, 3 * ik + c) += v;
+          U(k, 3 * il + c) -= v;
+        }
+      }
+    }
+  }
+  return U;
+}
+
+Mat CpcmField::electronic_potential(const std::vector<Mat>& D) {
+  const int np = cav_.size(), m = static_cast<int>(D.size()), n = basis_.nbf();
+  Mat V(np, m);
+  if (cached_) {
+    Mat X(static_cast<Eigen::Index>(n) * n, m);
+    for (int j = 0; j < m; ++j) X.col(j) = Eigen::Map<const Vec>(D[j].data(), D[j].size());
+    V.noalias() = -(P_ * X);
+    return V;
+  }
+#pragma omp parallel
+  {
+    std::vector<double> env = basis_.env(), buf, cache;
+    Mat pm;
+#pragma omp for schedule(dynamic, 8)
+    for (int k = 0; k < np; ++k) {
+      point_matrix(k, env, buf, cache, pm);
+      for (int j = 0; j < m; ++j) V(k, j) = -(D[j].array() * pm.array()).sum();
+    }
+  }
+  return V;
+}
+
+std::vector<Mat> CpcmField::fock_many(const Mat& Q) {
+  const int np = cav_.size(), m = static_cast<int>(Q.cols()), n = basis_.nbf();
+  std::vector<Mat> out(m, Mat::Zero(n, n));
+  if (cached_) {
+    const Mat Fm = P_.transpose() * Q;
+    for (int j = 0; j < m; ++j) out[j] = -Eigen::Map<const Mat>(Fm.col(j).data(), n, n);
+    return out;
+  }
+#pragma omp parallel
+  {
+    std::vector<double> env = basis_.env(), buf, cache;
+    Mat pm;
+    std::vector<Mat> acc(m, Mat::Zero(n, n));
+#pragma omp for schedule(dynamic, 8)
+    for (int k = 0; k < np; ++k) {
+      point_matrix(k, env, buf, cache, pm);
+      for (int j = 0; j < m; ++j) acc[j] += Q(k, j) * pm;
+    }
+#pragma omp critical
+    for (int j = 0; j < m; ++j) out[j] -= acc[j];
+  }
+  return out;
 }
 
 void CpcmField::add_electronic_gradient(const Mat& Dt, const Vec& q, std::vector<double>& g) {

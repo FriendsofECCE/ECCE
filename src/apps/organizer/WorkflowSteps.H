@@ -212,8 +212,8 @@ namespace WorkflowSteps {
   /// A Created step with sources (any recipe step) whose sources are all
   /// Complete, whose source results have been taken and which has a
   /// structure gets its input written (DeckWriter, as the editor's Save) and
-  /// becomes Ready (hand-made: only the xTB step New step inserts before CREST,
-  /// ecce:workflow.auto); a Ready one still waiting goes back to Created;
+  /// becomes Ready (hand-made: only the xTB step New step inserts before CREST
+  /// and that CREST step, ecce:workflow.auto); no theory leaves it Created; a Ready one still waiting goes back to Created;
   /// with no launch settings it takes a source's, else those
   /// of another step of the workflow.  Empty, or why it is not launchable,
   /// which is also stored on the step for its box (kNotReadyProp).
@@ -273,8 +273,15 @@ namespace WorkflowSteps {
   std::map<Resource*, std::string> stepBlockers(Session *wf);
 
   /// The workflow's "run the remaining steps automatically" setting (#736).
+  /// Off also ends a started run.
   bool autoRun(Session *wf);
   void setAutoRun(Session *wf, bool on);
+  /// Set by Launch Ready Steps (#926): auto-run launches only in a run the
+  /// user started, so ticking the box or opening the workflow launches nothing.
+  bool runStarted(Session *wf);
+  void setRunStarted(Session *wf, bool on);
+  /// Every step is Complete.
+  bool allComplete(Session *wf);
 
   /// "name code state source charge mult atoms" per step (a join's source is
   /// "a+b+c"), joined by "|",

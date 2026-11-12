@@ -1,0 +1,108 @@
+#!/usr/bin/env perl
+# IRC (#949): ORCA's structures as it computes them.  ORCA appends each point
+# to <input>_IRC_F_trj.xyz / _IRC_B_trj.xyz (no TS in either); the monitor
+# follows both (Follow=yes in orca.desc) and sends what each grew by, after a
+# "#ECCE-FOLLOW <file> <offset>" line.  One IRCGEOM frame per new xyz frame,
+# in run order: the TS first (the last CARTESIAN COORDINATES block, kept by
+# orca.geomtrace), then the points as they come.  IRCCOORD/IRCENERGY are
+# re-sent in the same order (orca.ircpoint), so frame i is point i; the
+# readers sort the three by coordinate.  A frame split between two reads
+# waits for its end; bytes sent again after a monitor restart are skipped.
+$| = 1;
+($key, $runtype) = @ARGV;
+exit(0) unless ($runtype =~ /IRC/i);
+
+my $hdr = <STDIN>;
+exit(0) unless (defined $hdr && $hdr =~ /^#ECCE-FOLLOW (\S+) (\d+)\s*$/);
+my ($file, $off) = ($1, $2);
+my $text = do { local $/; <STDIN> };
+$text = '' unless (defined $text);
+$text =~ s/\r\n/\n/g;
+
+(my $tag = $file) =~ s/[^\w.-]/_/g;
+my $state = "$key/orcaIrcTrj.$tag";
+my ($done, $pend) = (0, '');
+if (open(my $fh, "<", $state)) {
+  local $/;
+  my $s = <$fh>;
+  close($fh);
+  ($done, $pend) = ($1, $2) if ($s =~ /\A(\d+)\n(.*)\z/s);
+}
+my $have = $done + length($pend);
+if ($off <= $have) {
+  $pend .= substr($text, $have - $off) if ($off + length($text) > $have);
+} else {
+  ($done, $pend) = ($off, $text);   # bytes lost in between: start over here
+}
+
+my $dir = ($file =~ /_IRC_B_trj/) ? 'B' : 'F';
+my @frames;
+while (1) {
+  my @l = split(/(?<=\n)/, $pend, 3);
+  last unless (@l >= 2);
+  my ($n) = ($l[0] =~ /^\s*(\d+)\s*$/);
+  if (!$n || $l[1] !~ /^Coordinates/) {
+    $done += length($l[0]);        # not a frame start: resynchronise
+    $pend = substr($pend, length($l[0]));
+    next;
+  }
+  my @f = split(/(?<=\n)/, $pend, $n + 3);
+  last unless (@f >= $n + 2 && $f[$n + 1] =~ /\n\z/);
+  my $len = 0;
+  $len += length($f[$_]) for (0 .. $n + 1);
+  my ($e) = ($f[1] =~ /\sE\s+(-?\d+\.\d+)/);
+  my @xyz = map { /^\s*\S+\s+(\S+)\s+(\S+)\s+(\S+)/ ? " $1 $2 $3" : undef }
+            @f[2 .. $n + 1];
+  push(@frames, [\@xyz, $e]) unless (grep { !defined } @xyz);
+  $done += $len;
+  $pend = substr($pend, $len);
+}
+
+if (open(my $fh, ">", "$state.new")) {
+  print $fh "$done\n$pend";
+  close($fh);
+  rename("$state.new", $state);
+}
+exit(0) unless (@frames);
+
+my $log = "$key/orcaIrcFrames";
+unless (-e $log) {
+  my @ts;
+  if (open(my $fh, "<", "$key/orcaIrcXyz")) {
+    @ts = map { /^\s*\S+\s+(\S+)\s+(\S+)\s+(\S+)/ ? " $1 $2 $3" : () } <$fh>;
+    close($fh);
+  }
+  printFrame(\@ts) if (@ts);
+  writeLog("TS");
+}
+foreach my $f (@frames) {
+  printFrame($f->[0]);
+  writeLog("$dir " . (defined $f->[1] ? $f->[1] : ''));
+}
+
+# The points so far, in the order orca.ircpoint received them (run order).
+my @pts;
+if (open(my $fh, "<", "$key/orcaIrcPoints")) {
+  @pts = map { [split] } grep { /\S/ } <$fh>;
+  close($fh);
+}
+if (@pts) {
+  my $n = scalar(@pts);
+  print "key: IRCCOORD\nsize: \n$n\nvalues: \n", join("\n", map { $_->[0] } @pts),
+        "\nunits:\nPoint\nEND\n";
+  print "key: IRCENERGY\nsize: \n$n\nvalues: \n", join("\n", map { $_->[1] } @pts),
+        "\nunits:\nHartree\nEND\n";
+}
+exit(0);
+
+sub printFrame {
+  my ($c) = @_;
+  my $n = scalar(@$c);
+  my $labels = join('', map { " $_-X" } (1 .. $n));
+  print "key: IRCGEOM\nsize:\n1 $n 3\nrowlabels:\n$labels\n",
+        "columnlabels:\nX Y Z\nvalues:\n", join("\n", @$c), "\nEND\n";
+}
+
+sub writeLog {
+  if (open(my $fh, ">>", $log)) { print $fh "$_[0]\n"; close($fh); }
+}

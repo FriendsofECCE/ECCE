@@ -59,6 +59,8 @@ def run(work, opts, structure, mock="lj"):
         handle.write("mlp " + opts + "\n" + structure)
     env = dict(os.environ)
     env.pop("ECCE_MLP_MOCK", None)
+    # The ASE path; ecce-mlp-driver has its own test (driver_test.py).
+    env["ECCE_MLP_ENGINE"] = "ase"
     if mock:
         env["ECCE_MLP_MOCK"] = mock
     res = subprocess.run([sys.executable, RUNNER, deck], cwd=work, env=env,
@@ -76,6 +78,81 @@ def parse(script, key, text, begin, end, skip):
     res = subprocess.run(["perl", os.path.join(PARSERS, script), key, "Energy", "SE", "MACE"],
                          input=block, stdout=subprocess.PIPE, universal_newlines=True)
     return res.stdout
+
+
+WATER = """3
+Properties=species:S:1:pos:R:3
+O 0 0 0
+H 0.76 0.59 0
+H -0.76 0.59 0
+"""
+CU3AL = """4
+Lattice="3.6 0 0 0 3.6 0 0 0 3.6" Properties=species:S:1:pos:R:3 pbc="T T T"
+Cu 0 0 0
+Al 1.8 1.8 0
+Cu 1.8 0 1.8
+Cu 0 1.8 1.8
+"""
+
+
+def ase_frequencies(structure, calc, delta, relax):
+    """ase.vibrations as the reference: the same structure, no projection."""
+    import io
+    import numpy as np
+    from ase.io import read, write
+    from ase.optimize import BFGS
+    from ase.vibrations import Vibrations
+    atoms = read(io.StringIO(structure), format="extxyz")
+    atoms.calc = calc
+    if relax:
+        BFGS(atoms, logfile=None).run(fmax=1e-4)
+    here = os.getcwd()
+    tmp = tempfile.mkdtemp(prefix="asevib-")
+    os.chdir(tmp)
+    try:
+        vib = Vibrations(atoms, delta=delta)
+        vib.run()
+        ref = vib.get_frequencies()
+    finally:
+        os.chdir(here)
+        shutil.rmtree(tmp, ignore_errors=True)
+    buf = io.StringIO()
+    write(buf, atoms, format="extxyz", columns=["symbols", "positions"])
+    return [f.real if abs(f.imag) < 1e-9 else -abs(f.imag) for f in ref], buf.getvalue()
+
+
+def compare_modes(out, ref, nrigid, what):
+    """Our 3N modes (rigid ones at 0) against ase's unprojected 3N, to 1 cm-1."""
+    ours = [float(f) for f in re.findall(r"^mode \d+ (\S+)", out, re.M)]
+    check(len(ours) == len(ref) and ours[:nrigid] == [0.0] * nrigid,
+          "%s: %d modes, the first %d rigid at 0" % (what, len(ref), nrigid))
+    real = sorted(ours[nrigid:])
+    want = sorted(sorted(ref, key=abs)[nrigid:])
+    diff = max(abs(a - b) for a, b in zip(real, want)) if real else 99
+    check(len(real) == len(want) and diff < 1.0,
+          "%s: frequencies match ase.vibrations (max diff %.4f cm-1)" % (what, diff))
+    return ours
+
+
+def vibration_checks(work):
+    from ase.calculators.emt import EMT
+    ref, water = ase_frequencies(WATER, EMT(), 0.01, True)
+    rc, out = run(work, "runtype=Vibration delta=0.01", water, mock="emt")
+    check(rc == 0 and "ecce-mlp terminated normally" in out, "Vibration run ends normally")
+    check(out.count("Displacement ") == 9, "9 displacements for 3 atoms")
+    compare_modes(out, ref, 6, "water")
+    vib = parse("mlp.vib", "VIB", out, r"^ECCE-MLP-VIB", r"^ECCE-MLP-ENDVIB", 0)
+    check("key: VIBFREQ\nsize:\n9\n" in vib and "key: VIB\nsize:\n9 3 3\n" in vib,
+          "mlp.vib: VIBFREQ (9) and VIB (9 x 3 x 3)")
+    rows = re.search(r"key: VIB\n.*?values:\n(.*?)\nunits:", vib, re.S).group(1).split("\n")
+    last = [[float(x) for x in r.split()] for r in rows[-3:]]
+    check(abs(sum(x * x for r in last for x in r) - 1) < 1e-6, "a normal mode is normalised to 1")
+    check(all(float(x) == 0 for r in rows[:18] for x in r.split()), "rigid modes are zero vectors")
+    ref, cell = ase_frequencies(CU3AL, EMT(), 0.01, False)
+    rc, out = run(work, "runtype=Vibration", cell, mock="emt")
+    compare_modes(out, ref, 3, "Cu3Al cell (Gamma)")
+    rc, out = run(work, "runtype=Vibration delta=0.5", water, mock="emt")
+    check(rc != 0 and "delta must be" in out, "a step above 0.1 A is refused")
 
 
 def main():
@@ -186,8 +263,18 @@ def main():
               and 'pbc="T T T"' in text.splitlines()[2], "cell goes into the extxyz comment line")
         rc, text = deck(base + "RunType:\tGeometry\nES.Runtype.GeomOpt.RelaxCell:\t1\n", False)
         check(rc != 0, "relaxing the cell of a structure without one is refused")
-        rc, text = deck(base + "RunType:\tVibration\n", False)
+        rc, text = deck(base + "RunType:\tVibration\nES.Runtype.Vibration.Step:\t0.005\n", False)
+        check(rc == 0 and text.splitlines()[0].endswith(" delta=0.005"),
+              "Vibration line: %r" % text.splitlines()[0])
+        rc, text = deck(base + "RunType:\tMolecular Dynamics\nES.Runtype.MD.Ensemble:\tNVE\n", False)
+        check(rc == 0 and " runtype=MD " in text.splitlines()[0] and
+              " ensemble=NVE timestep=1 temperature=300 tau=100 mdsteps=1000 every=10 seed=1"
+              in text.splitlines()[0], "MD line: %r" % text.splitlines()[0])
+        rc, text = deck(base + "RunType:\tGradient\n", False)
         check(rc != 0, "an unsupported run type is refused")
+
+        print("--- Vibration against ase.vibrations (EMT mock)")
+        vibration_checks(work)
     finally:
         shutil.rmtree(work, ignore_errors=True)
 

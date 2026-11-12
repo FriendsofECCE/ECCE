@@ -248,9 +248,10 @@ sub CommentLine {
 sub OptionLine {
   my @kw = ("mlp");
   my $runtype = $AbiDict{"RunType"};
-  die "ai.mlp error: unsupported runtype '$runtype' (Energy and Geometry only)\n"
-    if ($runtype ne "Energy" && $runtype ne "Geometry");
-  push(@kw, "runtype=$runtype");
+  die "ai.mlp error: unsupported runtype '$runtype' (Energy, Geometry, Vibration and Molecular Dynamics only)\n"
+    if ($runtype ne "Energy" && $runtype ne "Geometry" && $runtype ne "Vibration" &&
+        $runtype ne "Molecular Dynamics");
+  push(@kw, "runtype=" . ($runtype eq "Molecular Dynamics" ? "MD" : $runtype));
   push(@kw, "model=" . &Model);
   push(@kw, "dtype=" . &Precision);
   push(@kw, "dispersion=" . (&flag("ES.Theory.MLP.Dispersion") ? "on" : "off"));
@@ -260,10 +261,25 @@ sub OptionLine {
         "relaxed.\n  Untick \"Relax the cell\" or create a lattice in the " .
         "Builder's Periodic Builder.\n" if ($cell && !$useLatticeVectors);
     push(@kw, "relax=" . ($cell ? "cell" : "atoms"));
+    my $p = &Number("ES.Runtype.GeomOpt.Pressure", 0);
+    push(@kw, "pressure=$p") if ($cell && $p != 0);
     push(@kw, "optimizer=" . &Optimizer);
     push(@kw, "fmax=" . &Positive("ES.Runtype.GeomOpt.Fmax", 0.05));
     push(@kw, "steps=" . int(&Positive("ES.Runtype.GeomOpt.MaxSteps", 200)));
     push(@kw, "timelimit=" . &NonNegative("ES.Runtype.GeomOpt.TimeLimit", 0));
+  }
+  push(@kw, "delta=" . &Positive("ES.Runtype.Vibration.Step", 0.01))
+    if ($runtype eq "Vibration");
+  if ($runtype eq "Molecular Dynamics") {
+    my $ens = $AbiDict{"ES.Runtype.MD.Ensemble"};
+    push(@kw, "ensemble=" . (defined($ens) && $ens =~ /^NVE/ ? "NVE" : "NVT"));
+    push(@kw, "timestep=" . &Positive("ES.Runtype.MD.TimeStep", 1.0));
+    push(@kw, "temperature=" . &NonNegative("ES.Runtype.MD.Temperature", 300));
+    push(@kw, "tau=" . &Positive("ES.Runtype.MD.Tau", 100));
+    push(@kw, "mdsteps=" . int(&Positive("ES.Runtype.MD.Steps", 1000)));
+    push(@kw, "every=" . int(&Positive("ES.Runtype.MD.Every", 10)));
+    push(@kw, "seed=" . int(&NonNegative("ES.Runtype.MD.Seed", 1)));
+    push(@kw, "timelimit=" . &NonNegative("ES.Runtype.MD.TimeLimit", 0));
   }
   return join(" ", @kw);
 }
@@ -298,6 +314,14 @@ sub NonNegative {
   my ($key, $default) = @_;
   my $v = $AbiDict{$key};
   return $default if (!defined($v) || $v !~ /^\s*\+?\d*\.?\d+([eE][-+]?\d+)?\s*$/);
+  return $v + 0;
+}
+
+# Any number, sign included (a pressure may be negative).
+sub Number {
+  my ($key, $default) = @_;
+  my $v = $AbiDict{$key};
+  return $default if (!defined($v) || $v !~ /^\s*[-+]?\d*\.?\d+([eE][-+]?\d+)?\s*$/);
   return $v + 0;
 }
 

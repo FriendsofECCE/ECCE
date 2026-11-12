@@ -141,7 +141,9 @@ class Builder: public BuilderGUI,
       ID_GEOM_CONSTRAINTS,
       ID_ADD_DUMMY,
       ID_ADD_SMILES,
+      ID_DIFFRACTION,
       ID_REPLACE_GROUP,
+      ID_VINA_BOX,
       ID_VIEW_TOGGLE_COLUMN,
       ID_VIEW_RESET_LAYOUT,
       ID_VIEW_PANELS_CLASSIC,
@@ -307,6 +309,11 @@ class Builder: public BuilderGUI,
       /// @return why nothing was added, or empty
       string addFromSmiles(const string& smiles, bool extended);
 
+      /// Tools > Diffraction... (#971): the structure as an .xyz file, and the
+      /// selected atoms (numbered from 1).
+      /// @return why nothing was written, or empty
+      string writeStructureXyz(const string& path, vector<int>& selected);
+
       /// Replace Group (#833): the selected terminal group (a bond, or its
       /// first atom) becomes the SMILES fragment, whose [*] is the
       /// attachment point.  @return why nothing changed, or empty
@@ -396,6 +403,10 @@ class Builder: public BuilderGUI,
       virtual void OnSelectMoleculeClick( wxCommandEvent& event );
       virtual void OnSelectSolventClick( wxCommandEvent& event );
       virtual void OnSelectIonsClick( wxCommandEvent& event );
+      virtual void OnSelectProteinClick( wxCommandEvent& event );
+      virtual void OnSelectLigandClick( wxCommandEvent& event );
+      virtual void OnUpdateSelectResidueItem( wxUpdateUIEvent& event );
+      bool selectResidueClass(bool ligand);
       virtual void OnDistortBondsClick( wxCommandEvent& event );
       void applyDistortDialog();
       void refreshDistortDialog();
@@ -422,7 +433,9 @@ class Builder: public BuilderGUI,
       void OnGeomConstraints( wxCommandEvent& event );
       void OnAddDummy( wxCommandEvent& event );
       void OnAddSmiles( wxCommandEvent& event );
+      void OnDiffraction( wxCommandEvent& event );
       void OnReplaceGroup( wxCommandEvent& event );
+      void OnVinaBoxFromSelection(wxCommandEvent& event);
 
       virtual void OnPaneClose(wxAuiManagerEvent& event);
       void OnPaneButton(wxAuiManagerEvent& event);
@@ -635,6 +648,26 @@ class Builder: public BuilderGUI,
                           const string& outdir);
 
       bool isReadOnly() const;
+   public:
+      //  AutoDock Vina search box (#455, BuilderVinaBox.C).
+      struct VinaBox {
+        bool valid = false, automatic = true;
+        double margin = 5, centre[3] = {0, 0, 0}, size[3] = {0, 0, 0};
+      };
+      /// The box from Builder selection; "" or why not.  margin < 0: the
+      /// calculation's ES.Runtype.Vina.BoxMargin.
+      string vinaBoxFromSelection(double margin);
+      /// Redraw for `url`: from the stored details, or from the editor's
+      /// unsaved ones when `live` is given.
+      void vinaDetailsChanged(const string& url,
+                              const std::map<string, string> *live = 0);
+      void updateVinaBox();
+      string vinaScriptCommand(const vector<string>& w);
+   protected:
+      TaskJob *vinaJob() const;
+      VinaBox vinaBoxFromDetails(const std::map<string, string>& d);
+      void drawVinaBox(const VinaBox& box);
+      VinaBox p_vinaBox;
       bool isReadOnly(IPropCalculation *calc) const;
       bool isDirty(IPropCalculation *calc=NULL);
       void setDirty(const bool& val, IPropCalculation *calc=NULL);

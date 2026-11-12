@@ -281,6 +281,9 @@ void BuilderApp::subscribeMessages()
 
   // property changes
   subscribe("ecce_url_property", (wxJmsCBFunc)&BuilderApp::propertyChangeMCB);
+  //  The Vina search box drawn in the viewer follows the editor (#455).
+  subscribe("ecce_url_details", (wxJmsCBFunc)&BuilderApp::detailsMCB);
+  subscribe("ecce_vina_box", (wxJmsCBFunc)&BuilderApp::vinaBoxMCB);
   subscribe("ecce_url_property_data", (wxJmsCBFunc)&BuilderApp::propertyChangeMCB);
 
   subscribe("ecce_auth_changed", (wxJmsCBFunc)&BuilderApp::authChangedMCB);
@@ -698,6 +701,27 @@ void BuilderApp::urlStateMCB(JMSMessage& msg)
 /**
  * Responds to calculation property changes
  */
+void BuilderApp::detailsMCB(JMSMessage& msg)
+{
+  if (p_builder) p_builder->vinaDetailsChanged(msg.getProperty("url"));
+}
+
+
+void BuilderApp::vinaBoxMCB(JMSMessage& msg)
+{
+  if (!p_builder) return;
+  std::map<string, string> live;
+  static const char *const keys[] = {
+    "ES.Runtype.Vina.BoxAuto", "ES.Runtype.Vina.BoxMargin",
+    "ES.Runtype.Vina.BoxCenterX", "ES.Runtype.Vina.BoxCenterY",
+    "ES.Runtype.Vina.BoxCenterZ", "ES.Runtype.Vina.BoxSizeX",
+    "ES.Runtype.Vina.BoxSizeY", "ES.Runtype.Vina.BoxSizeZ",
+    "ES.Runtype.Docking.LigandAtoms" };
+  for (const char *k : keys) live[k] = msg.getProperty(k);
+  p_builder->vinaDetailsChanged(msg.getProperty("url"), &live);
+}
+
+
 void BuilderApp::propertyChangeMCB(JMSMessage& msg)
 {
   p_builder->propertyChangeMCB(msg);

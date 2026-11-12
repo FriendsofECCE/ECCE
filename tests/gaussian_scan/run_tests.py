@@ -65,6 +65,15 @@ def main():
         ok = ("NoSymm" in d) == want
         print("%-4s UseSymmetry %s -> NoSymm %s" % ("ok" if ok else "FAIL", flag, want))
         fails += not ok
+    # Every scan step prints its MOs (Pop=Always) so each point keeps its
+    # orbitals (#549); a plain constraint, or NBO, leaves the default.
+    plain = CON % ("torsion", "2 0 1 3", "141.11993", "")
+    for con, params, want in ((scan, "", True), (plain, "", False),
+                              (scan, "UseNBO: 1\n", False)):
+        d = " ".join(deck(con, params).split())
+        ok = ("Always" in d) == want and "full" in d
+        print("%-4s Pop=Always %s (%s)" % ("ok" if ok else "FAIL", want, params.strip() or "-"))
+        fails += not ok
     return 1 if fails else 0
 
 

@@ -1,4 +1,5 @@
 #include "ao.hpp"
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <vector>
@@ -26,6 +27,14 @@ const Mat& c2s(int l) {
 }
 }  // namespace
 
+int ao_d3_index(int i, int j, int k) {
+  if (i > j) std::swap(i, j);
+  if (j > k) std::swap(j, k);
+  if (i > j) std::swap(i, j);
+  static const int idx[3][3][3] = {{{0, 1, 2}, {0, 3, 4}, {0, 0, 5}}, {{0, 0, 0}, {0, 6, 7}, {0, 0, 8}}, {{0, 0, 0}, {0, 0, 0}, {0, 0, 9}}};
+  return idx[i][j][k];
+}
+
 void eval_ao(const Basis& b, const double* xyz, int n, int deriv, AoValues& out, const std::vector<int>* shells) {
   int nb = b.nbf();
   if (shells) {
@@ -41,6 +50,10 @@ void eval_ao(const Basis& b, const double* xyz, int n, int deriv, AoValues& out,
   if (deriv >= 2) {
     for (Mat* m : {&out.dxx, &out.dxy, &out.dxz, &out.dyy, &out.dyz, &out.dzz}) *m = Mat::Zero(n, nb);
   }
+  if (deriv >= 3)
+    for (Mat& m : out.d3) m = Mat::Zero(n, nb);
+  static const int trip[10][3] = {{0, 0, 0}, {0, 0, 1}, {0, 0, 2}, {0, 1, 1}, {0, 1, 2},
+                                  {0, 2, 2}, {1, 1, 1}, {1, 1, 2}, {1, 2, 2}, {2, 2, 2}};
   const bool sph = b.spherical();
   const int nsel = shells ? static_cast<int>(shells->size()) : b.nshl();
   int col = 0;
@@ -58,20 +71,24 @@ void eval_ao(const Basis& b, const double* xyz, int n, int deriv, AoValues& out,
     const Mat* T = (sph && l >= 2) ? &c2s(l) : nullptr;
     std::vector<double> cv(nc), cgx(nc), cgy(nc), cgz(nc);
     std::vector<std::array<double, 6>> ch(nc);  // xx xy xz yy yz zz
+    std::vector<std::array<double, 10>> c3(nc);
     for (int g = 0; g < n; ++g) {
       const double x = xyz[3 * g] - s.center[0], y = xyz[3 * g + 1] - s.center[1], z = xyz[3 * g + 2] - s.center[2];
       const double r2 = x * x + y * y + z * z;
       if (r2 > s.extent * s.extent) continue;
-      double R = 0, Rp = 0, Rpp = 0;  // R, dR/d(r^2), d2R/d(r^2)^2
+      double R = 0, Rp = 0, Rpp = 0, Rppp = 0;  // R and its derivatives with respect to r^2
       for (int p = 0; p < np; ++p) {
         double e = s.coefs[p] * std::exp(-s.exps[p] * r2);
         R += e;
         Rp -= s.exps[p] * e;
         Rpp += s.exps[p] * s.exps[p] * e;
+        Rppp -= s.exps[p] * s.exps[p] * s.exps[p] * e;
       }
       R *= fac;
       Rp *= fac;
       Rpp *= fac;
+      Rppp *= fac;
+      const double xv[3] = {x, y, z};
       auto ipow = [](double v, int k) { double r = 1; for (int i = 0; i < k; ++i) r *= v; return r; };
       for (int c = 0; c < nc; ++c) {
         const int a = pw[c][0], bb = pw[c][1], cc = pw[c][2];
@@ -100,6 +117,38 @@ void eval_ao(const Basis& b, const double* xyz, int n, int deriv, AoValues& out,
                    myz * R + 2 * (y * mz + z * my) * Rp + mono * 4 * y * z * Rpp,
                    mzz * R + 4 * z * mz * Rp + mono * (2 * Rp + 4 * z * z * Rpp)};
         }
+        if (deriv >= 3) {
+          // Leibniz over the three axes: f_ijk = sum over subsets S of m_S R_(rest).
+          const int pe[3] = {a, bb, cc};
+          auto mder = [&](const int* cnt) {
+            double v = 1;
+            for (int q = 0; q < 3; ++q) {
+              if (cnt[q] > pe[q]) return 0.0;
+              for (int t = 0; t < cnt[q]; ++t) v *= pe[q] - t;
+              v *= ipow(xv[q], pe[q] - cnt[q]);
+            }
+            return v;
+          };
+          auto rder = [&](const int* ax, int k) {
+            if (k == 0) return R;
+            if (k == 1) return 2 * xv[ax[0]] * Rp;
+            if (k == 2) return (ax[0] == ax[1] ? 2 * Rp : 0.0) + 4 * xv[ax[0]] * xv[ax[1]] * Rpp;
+            return 4 * ((ax[0] == ax[1] ? xv[ax[2]] : 0.0) + (ax[0] == ax[2] ? xv[ax[1]] : 0.0) + (ax[1] == ax[2] ? xv[ax[0]] : 0.0)) * Rpp +
+                   8 * xv[ax[0]] * xv[ax[1]] * xv[ax[2]] * Rppp;
+          };
+          for (int q = 0; q < 10; ++q) {
+            double v = 0;
+            for (int S = 0; S < 8; ++S) {
+              int cnt[3] = {0, 0, 0}, rest[3], nr = 0;
+              for (int t = 0; t < 3; ++t) {
+                if (S & (1 << t)) ++cnt[trip[q][t]];
+                else rest[nr++] = trip[q][t];
+              }
+              v += mder(cnt) * rder(rest, nr);
+            }
+            c3[c][q] = v;
+          }
+        }
       }
       if (!T) {
         for (int c = 0; c < nc; ++c) {
@@ -109,13 +158,16 @@ void eval_ao(const Basis& b, const double* xyz, int n, int deriv, AoValues& out,
             Mat* hm[6] = {&out.dxx, &out.dxy, &out.dxz, &out.dyy, &out.dyz, &out.dzz};
             for (int q = 0; q < 6; ++q) (*hm[q])(g, col0 + c) = ch[c][q];
           }
+          if (deriv >= 3)
+            for (int q = 0; q < 10; ++q) out.d3[q](g, col0 + c) = c3[c][q];
         }
       } else {
         const int ns = 2 * l + 1;
         for (int m = 0; m < ns; ++m) {
-          double v = 0, vx = 0, vy = 0, vz = 0, vh[6] = {0, 0, 0, 0, 0, 0};
+          double v = 0, vx = 0, vy = 0, vz = 0, vh[6] = {0, 0, 0, 0, 0, 0}, v3[10] = {0};
           for (int c = 0; c < nc; ++c) {
             double t = (*T)(c, m);
+            if (deriv >= 3) for (int q = 0; q < 10; ++q) v3[q] += t * c3[c][q];
             v += t * cv[c];
             if (deriv >= 1) { vx += t * cgx[c]; vy += t * cgy[c]; vz += t * cgz[c]; }
             if (deriv >= 2) for (int q = 0; q < 6; ++q) vh[q] += t * ch[c][q];
@@ -124,6 +176,8 @@ void eval_ao(const Basis& b, const double* xyz, int n, int deriv, AoValues& out,
             Mat* hm[6] = {&out.dxx, &out.dxy, &out.dxz, &out.dyy, &out.dyz, &out.dzz};
             for (int q = 0; q < 6; ++q) (*hm[q])(g, col0 + m) = vh[q];
           }
+          if (deriv >= 3)
+            for (int q = 0; q < 10; ++q) out.d3[q](g, col0 + m) = v3[q];
           out.phi(g, col0 + m) = v;
           if (deriv >= 1) { out.dx(g, col0 + m) = vx; out.dy(g, col0 + m) = vy; out.dz(g, col0 + m) = vz; }
         }

@@ -86,6 +86,8 @@ using std::vector;
 
 #include "wxgui/ContextHistory.H"
 #include "wxgui/ewxWindowUtils.H"
+#include "wxgui/DiffractionDialog.H"
+#include "util/Filesystem.H"
 #include <wx/dcgraph.h>
 #include <wx/bmpbndl.h>
 #include "wxgui/ewxBitmap.H"
@@ -932,9 +934,16 @@ void Builder::createMenus()
   p_toolMenu->Append(ID_ADD_SMILES, _("Add from SMILES..."),
                      _("Build a molecule from a SMILES string"));
   Bind(wxEVT_MENU, &Builder::OnAddSmiles, this, ID_ADD_SMILES);
+  p_toolMenu->Append(ID_DIFFRACTION, _("Diffraction..."),
+                     _("Calculated diffraction pattern of this structure or the selected atoms"));
+  Bind(wxEVT_MENU, &Builder::OnDiffraction, this, ID_DIFFRACTION);
   p_toolMenu->Append(ID_REPLACE_GROUP, _("Replace Group..."),
                      _("Replace the selected terminal group by a SMILES fragment"));
   Bind(wxEVT_MENU, &Builder::OnReplaceGroup, this, ID_REPLACE_GROUP);
+  p_toolMenu->Append(ID_VINA_BOX, _("Docking Box Around Selection"),
+                     _("Set the AutoDock Vina search box of this calculation "
+                       "around the selected atoms, plus the margin"));
+  Bind(wxEVT_MENU, &Builder::OnVinaBoxFromSelection, this, ID_VINA_BOX);
 
   p_propertyMenu = GetMenuBar()->GetMenu(
                    GetMenuBar()->FindMenu(_("Properties")));
@@ -1002,12 +1011,10 @@ void Builder::createMainPanel()
 
 void Builder::createRotators(wxWindow *parent)
 {
-  //  Where the scaled controls no longer fit the pane's width the row wraps
-  //  instead of drawing the corner buttons over each other.
-  if (ewxBitmap::dpiScale() > 1)
-    p_rotSizer = new wxWrapSizer(wxHORIZONTAL);
-  else
-    p_rotSizer = new wxBoxSizer(wxHORIZONTAL);
+  //  Where the row no longer fits the pane's width it wraps.  A box sizer
+  //  squeezed the Y and Z spin controls to 0 px when the docks on both
+  //  sides left the viewer narrow (classic layout, 1366x768, #839).
+  p_rotSizer = new wxWrapSizer(wxHORIZONTAL);
   p_mainSizer->Add(p_rotSizer, 0, wxEXPAND|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Rotation: X"), 0,
                   wxALIGN_CENTER|wxLEFT, 5);
@@ -1751,6 +1758,7 @@ void Builder::setContext(const string& url, const bool& force)
 
   // Refresh Tool panels
   EventDispatcher::getDispatcher().publish(Event("UpdateUI"));
+  updateVinaBox();
 
   // auto-open single panels
   set<PropertyPanel*> panels =
@@ -5003,6 +5011,41 @@ void Builder::OnAddSmiles(wxCommandEvent& event)
 }
 
 
+string Builder::writeStructureXyz(const string& path, vector<int>& selected)
+{
+  SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+  if (!frag || frag->numAtoms() == 0) return "No structure is open.";
+  std::ofstream out(path);
+  if (!out) return "Cannot write " + path;
+  out << frag->numAtoms() << "\nBuilder structure\n";
+  char buf[160];
+  for (int i = 0; i < (int)frag->numAtoms(); i++) {
+    const double *c = frag->atomRef(i)->coordinates();
+    snprintf(buf, sizeof buf, "%s %.6f %.6f %.6f\n",
+             frag->atomRef(i)->atomicSymbol().c_str(), c[0], c[1], c[2]);
+    out << buf;
+  }
+  selected.clear();
+  for (int a : frag->m_atomHighLight) selected.push_back(a + 1);
+  std::sort(selected.begin(), selected.end());
+  return "";
+}
+
+
+void Builder::OnDiffraction(wxCommandEvent& event)
+{
+  static int serial = 0;
+  const string xyz = (ecce::fs::temp_directory_path() /
+      ("ecce-builder-" + std::to_string(wxGetProcessId()) + "-" +
+       std::to_string(serial++) + ".xyz")).string();
+  vector<int> selected;
+  const string err = writeStructureXyz(xyz, selected);
+  if (!err.empty()) { showMessage(err, true); return; }
+  DiffractionDialog *dlg = new DiffractionDialog(this, xyz, selected);
+  dlg->Show();
+}
+
+
 void Builder::OnReplaceGroup(wxCommandEvent& event)
 {
   SGFragment *frag = getSG()->getFragment();
@@ -6030,6 +6073,7 @@ void Builder::updateMenus()
    // Never greyed: opening it on a structure without residues gives that
    // structure default ones to name (OnToolMenuClick).
    GetMenuBar()->Enable(GetMenuBar()->FindMenuItem("Tools", "Residue Table"), true);
+   p_toolMenu->Enable(ID_VINA_BOX, vinaJob() != 0);
 }
 
 /**
@@ -6785,6 +6829,8 @@ void Builder::updatePropertyMenus()
           out << "shown " << shown << "\n";
           if (p_index) for (const auto& entry : p_index->listing())
             out << "entry " << entry << "\n";
+          if (p_index) for (const auto& line : p_index->rowRects())
+            out << line << "\n";
           return true;
         }
         //  "property <menu item>" / "list <entry>": a Properties menu choice

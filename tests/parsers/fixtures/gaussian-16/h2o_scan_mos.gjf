@@ -1,0 +1,13 @@
+%Mem=1GB
+#P rhf/STO-3G 6D 10F Opt=(ModRedundant ) NoSymm GFInput  Punch=(MO)
+Pop=(full,Always) 
+
+water bond scan
+
+0 1 ! charge and multiplicity
+ O     0.0     0.0     0.1173
+ H     0.0     0.7572     -0.4692
+ H     0.0     -0.7572     -0.4692
+
+B 1 2 S 2 0.05
+

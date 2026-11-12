@@ -87,6 +87,9 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [ECCE-QM extra charge sets: input keyword, output blocks, three ECCE keys](ecceqm-extra-charges-are-a-keyword.md)
 - [ECCE-QM D3(BJ): C++ code, upstream data converted at build time, where it is wired](ecceqm-d3bj-dispersion-453.md)
 - [ECCE-QM analytic RHF Hessian: libcint derivative sign, ordered-pair double counting, scope](ecceqm-analytic-hessian-conventions.md)
+- [ECCE-QM analytic RKS Hessian: fixed grid, what it agrees with, which functionals](ecceqm-analytic-rks-hessian.md)
+- [ECCE-QM analytic UHF/UKS Hessian: spin channels, polarised fxc, why ROHF/ROKS stay numerical (#394)](ecceqm-analytic-uhf-uks-hessian.md)
+- [ECCE-QM analytic Hessian in CPCM (and D3): cavity terms included, assembly, agreement (#394)](ecceqm-analytic-cpcm-hessian.md)
 - [A `.desc` bracket group's names are labels, not the stored key](labels-not-the-stored-key.md)
 - [NWChem's `.desc` `Begin` patterns match the `ecce_print` trace file, not NWChem's stdout](nwchems-desc-begin-patterns-begin-end-task.md)
 - [NWChem MP2 and coupled cluster: which module each theory uses, and why MP/CC decks once aborted (#297)](nwchem-mp2-and-coupled-cluster-297.md)
@@ -179,6 +182,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [Example calculations ship as program outputs; File > Open Example Calculations imports a fresh copy (and MOPAC has an importer)](example-calculations-are-outputs-not-stored-calcs.md)
 - [Example import copies a pre-parsed calculation; the parse is the fallback (#448)](example-import-copies-the-preparsed-calculation.md)
 - [Example notes are keyed by calculation name; a repeated name takes the wrong note (#784)](example-notes-are-keyed-by-calc-name.md)
+- [An example workflow step that failed to import was lost silently and stayed lost (#954)](example-workflow-step-lost-stays-lost-954.md)
 - [A property stored with no values is an empty element; reading one used to end the app (#429)](an-empty-stored-property-element-crashed-its-reader.md)
 - [The dummy atom X has no basis, no electrons, no formula entry - and each code numbers it differently](dummy-atom-x-is-not-an-element-and-each-code-numbers-it-differently.md)
 - [Geometry constraints are edited in the Builder and stored with the calculation; the input uses them only for Geometry/GeoVib](geometry-constraints-are-edited-in-the-builder-and-stored-with-the-calculation.md)
@@ -214,11 +218,15 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [results.h5 written from the Props at the end of the job store; the views switch in one place](results-h5-written-from-props.md) — where it hooks in, checks, `ResultsFromCalc::stored`, what is not switched
 - [A wrong unit label keeps a trace out of results.h5 (#946)](a-wrong-unit-label-keeps-a-trace-out-of-results-h5-946.md) — views ignore GEOMTRACE/IRCGEOM units, `toBohr` does not; `parsers_g16_units`
 - [G16 traces: one structure per energy point (#947)](g16-irc-and-opt-traces-line-up-with-energies-947.md) — IRC TS frame added, signed-zero repeats, TS-search TEVEC; `parsers_g16_trace_align`
-- [ORCA IRC energies live, structures at the end (#949)](orca-irc-points-arrive-live-949.md) — per-row IRCCOORD/IRCENERGY in path order; summary replaces them
+- [ORCA IRC points and structures live (#949)](orca-irc-points-arrive-live-949.md) — frames from the followed _F/_B trajectories; vectors in run order once frames come
+- [Follow=yes: the monitor reads a File= entry as it grows (#949)](monitor-follows-growing-files-949.md) — #ECCE-FOLLOW header with byte offset; live only
 - [G16 IRC points live in run order (#948)](g16-irc-points-arrive-live-in-run-order-948.md) — PropTS* append, PropVector replace; views/results.h5 sort by coordinate and fit the TS
 - [NWChem eprint MO coefficients have 3 decimals; results.h5 reads nwchem.movecs](nwchem-eprint-coefficients-have-three-decimals.md) — why NWChem orbitals failed tr(PS) (#944) and when the movecs is used
 - [ORCA's built-in cc-pVXZ is segmented, ECCE stores the general contraction](orca-library-basis-is-segmented-not-eccees-general-contraction.md) — why ORCA cc-pVXZ results.h5 fail their check (#942)
 - [The ML potential code (MLP): Python as the program, runner inlined by gensub, VERSION in .ecce-meta (#728)](ml-potential-code-registration-stage-1-728.md)
+- [MLP (MACE) stage 2A: Set up builds the environment detached with the model cache inside; Vibration lists projected rigid modes first at 0 (#728)](mlp-stage-2a-setup-and-vibration-728.md)
+- [MLP site screening: ecce-sites (own space-group finder, voids, vacancy pairs), Series reads Lattice= from xyz, results as an ensemble (#728)](mlp-site-screening-728.md)
+- [AutoDock Vina: registered like CREST on the docking layer; the structure is the auxiliary input vina.vinafrag, the atom lists are ranges in the config (#455)](vina-code-registration-stage-1-455.md)
 - [xTB "Conformer search (simple)": ecce-confsearch inlined by gensub, ensemble in CREST frame format (#682)](xtb-simple-conformer-search-682.md)
 - [A code's spherical MOOrdering stops below the basis's highest shell: empty functions, every orbital view refuses (ORCA g, #861)](angular-table-below-the-basis-highest-shell-861.md)
 - [Gaussian re-contracts general contractions that share primitives: fort.7 is in its basis, not the one ECCE wrote (#863)](gaussian-recontracts-shared-primitive-contractions-863.md)
@@ -228,7 +236,15 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [MOPAC and CP2K final orbitals: density staging and restart retention (#407)](mopac-cp2k-final-orbitals-407.md)
 
 - [ORCA scan point orbitals: select converged final evaluations, not optimizer iterations (#549)](orca-scan-point-orbitals-549.md)
+- [Gaussian 16 scan orbitals need Pop=Always](g16-scan-point-orbitals-need-pop-always-549.md) — per-point MOs from the log; scangeom pipes to scanmos (one File= type per file)
 
 - [QE final-density guess: two .save members in a flat archive (#407)](qe-final-density-407.md)
 - [Gaussian 16 final orbitals without the checkpoint (#690)](g16-final-orbitals-from-results-h5-690.md)
 - [GROMACS umbrella sampling: windows are rate-0 copies made with createChild + addMemberAsTarget; WHAM reads tpr + pullf (#762)](gromacs-umbrella-windows-are-rate-zero-copies-and-wham-needs-pullf.md)
+- [A workflow step may store no theory: no deck, no crash (#950)](workflow-step-without-theory-950.md)
+- [Auto-run: the tick arms, Launch Ready Steps starts; no editor opens by itself (#926)](workflow-autorun-armed-by-tick-started-by-launch-926.md)
+- [A Save starts at most two shell commands: file work in process (#940)](save-starts-two-processes-940.md)
+- [The Vina search box in the viewer and the Poses panel for docking](vina-box-and-poses-455.md) - picking and drawing the box, the pose panel without a Boltzmann population, pocket view (#455).
+- [The Poses panel's cost is per pose selection, not per open](poses-panel-cost-on-a-protein-966.md) - measured ms per part on a 4673-atom receptor; the pocket restyle is what costs, and it is skipped when the shown set does not change (#966).
+- [Vina's automatic ligand skips water and ions and is reported (#962)](vina-automatic-ligand-skips-water-and-ions-962.md) - dockSplit rules, pdb_list columns, warning channel.
+- [verifyinput judged a Vina deck by the generic atom count (#963)](verifyinput-counted-zero-atoms-in-a-vina-deck-963.md) - skip for Vina, ligand/receptor list coverage check.

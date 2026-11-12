@@ -258,7 +258,7 @@ class Fragment
       bool  restorePDB(istream& infile, double mult=1.0, bool genBonds=true,
             const int& selectMdl=1, const string& selectAlt=" ",
             const bool& groupFlg=true, bool readBonds=false,
-	    const string& chainID=" ");
+	    const string& chainID=" ", bool useCell=true);
       bool  dumpXYZ(ostream& outfile);
       bool  dumpMVM(ostream& outfile, bool dumpAll=false);
       bool  dumpPDB(ostream& outfile, bool writeBonds=false);

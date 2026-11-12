@@ -5,7 +5,7 @@
 //   launchjob create <parentURL> <name> <resourceType> <deckFile> <deckName>
 //                    <machine> <runDir> <user>            prints the calc URL
 //                    [queue=Q] [nodes=N] [procs=P] [threads=T] [wall="D H:M"] [mem=MB]
-//                    [code=<JCode name>] [xyz=<file>] [gui=<SetupParams>]
+//                    [code=<JCode name>] [xyz=<file>|pdb=<file>] [gui=<SetupParams>]
 //                                 batch settings, as the launcher's queue controls set them;
 //                                 code and structure as the Calculation Editor's save stores
 //                                 them (the Builder's orbital views need both)
@@ -221,6 +221,14 @@ static int doCreate(const vector<string>& a)
         cerr << "could not store the code " << v << endl;
         return 1;
       }
+    } else if (k == "input") {
+      // A further input stored under its own file name (an auxiliary input).
+      ifstream fin(v.c_str(), std::ios::binary);
+      const string base = v.substr(v.find_last_of('/') + 1);
+      if (!fin || !task->putInputFile(base, &fin)) {
+        cerr << "could not store the input " << v << endl;
+        return 1;
+      }
     } else if (k == "gui") {
       ifstream fin(v.c_str());
       GUIValues values;
@@ -229,11 +237,32 @@ static int doCreate(const vector<string>& a)
         cerr << "could not store GUI settings" << endl;
         return 1;
       }
-    } else if (k == "xyz" || k == "mvm") {
+    } else if (k == "xyz" || k == "mvm" || k == "pdb") {
       ifstream fin(v.c_str());
+      LatticeDef *latticeToSet = 0;
       Fragment frag;
       PropertyTask* pt = dynamic_cast<PropertyTask*>(task);
-      if (!fin || !(k == "mvm" ? frag.restoreMVM(fin) : frag.restoreXYZ(fin)) ||
+      if (fin && k == "xyz") {
+        //  An extended xyz with Lattice="9 numbers" makes the structure periodic.
+        ifstream again(v.c_str());
+        string l1, l2;
+        getline(again, l1);
+        getline(again, l2);
+        string::size_type p = l2.find("Lattice=\"");
+        double m[9];
+        if (p != string::npos &&
+            sscanf(l2.c_str() + p + 9, "%lf %lf %lf %lf %lf %lf %lf %lf %lf", m, m + 1, m + 2,
+                   m + 3, m + 4, m + 5, m + 6, m + 7, m + 8) == 9) {
+          LatticeDef *cell = new LatticeDef(1, 1, 1, 90, 90, 90);
+          cell->assign(MPoint(m[0], m[1], m[2]), MPoint(m[3], m[4], m[5]), MPoint(m[6], m[7], m[8]));
+          latticeToSet = cell;
+        }
+      }
+      //  pdb: residues kept, as the Builder's import reads a protein.
+      if (!fin || !(k == "mvm" ? frag.restoreMVM(fin)
+                    : k == "pdb" ? frag.restorePDB(fin, 1.0, true, 1, " ", true, false, " ", false)
+                    : frag.restoreXYZ(fin)) ||
+          (latticeToSet && (frag.setLattice(latticeToSet), false)) ||
           !pt || !pt->fragment(&frag)) {
         cerr << "could not store the structure " << v << endl;
         return 1;
@@ -300,7 +329,7 @@ static int doMdStudy(const vector<string>& a, bool gromacs)
       Fragment frag;
       MdTask* md = dynamic_cast<MdTask*>(task);
       bool pdb = fragFile.size() > 4 && fragFile.compare(fragFile.size() - 4, 4, ".pdb") == 0;
-      bool read = fin && (pdb ? frag.restorePDB(fin, 1.0, true, 1, " ", true, false, " ")
+      bool read = fin && (pdb ? frag.restorePDB(fin, 1.0, true, 1, " ", true, false, " ", false)
                               : frag.restoreMVM(fin));
       if (!read || !md || !md->fragment(&frag)) {
         cerr << "could not store the fragment " << fragFile << endl;
@@ -576,6 +605,12 @@ static int doLaunch(const string& url)
 {
   TaskJob* task = getTask(url);
   if (!task) { cerr << "not a calculation: " << url << endl; return 1; }
+  // As the Organizer's Launch: the run directory follows this calculation's
+  // URL, never a job_path copied from another calculation.
+  if (!LaunchBatch::storeRunDirectory(task)) {
+    cerr << "could not store the run directory" << endl;
+    return 1;
+  }
   EcceMap kv;
   buildArgs(task, kv);
   cout << "files: input=" << kv["##input##"] << " output=" << kv["##output##"]

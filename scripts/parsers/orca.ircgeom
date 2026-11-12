@@ -5,6 +5,9 @@
 $| = 1;
 ($key, $runtype) = @ARGV;
 exit(0) unless ($runtype =~ /IRC/i);
+# The monitor followed the _F/_B files during the run (orca.irctrj): every
+# frame is stored already, and a time series cannot be replaced.
+exit(0) if (-e "$key/orcaIrcFrames");
 
 my @lines = <STDIN>;
 while (@lines) {

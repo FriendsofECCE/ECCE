@@ -163,6 +163,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_codeList = NULL;
     p_codeTitle = NULL;
     p_codeExample = NULL;
+    p_mlpSetup = NULL;
     p_codeCheck = NULL;
     p_defAccount = NULL;
     p_runDir = p_scratchDir = p_userName = NULL;
@@ -935,6 +936,16 @@ void WxMachineRegister::addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
         });
         reg("code:browse", browse);
         row->Add(browse, wxSizerFlags().Border(wxLEFT, 4).Top());
+        p_mlpSetup = new ewxButton(page, wxID_ANY, "Set up...");
+        p_mlpSetup->SetToolTip("Build a Python environment for MLP (MACE) on "
+                               "the machine: PyTorch, mace-torch, ASE and the "
+                               "default model, then fill in its Python");
+        p_mlpSetup->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+            this->setupMlp();
+        });
+        reg("code:setup", p_mlpSetup);
+        row->Add(p_mlpSetup, wxSizerFlags().Border(wxLEFT, 4).Top());
+        p_mlpSetup->Hide();
         col->Add(row, wxSizerFlags().Expand());
         p_codeExample = new wxStaticText(page, wxID_ANY, "");
         p_codeExample->SetFont(p_codeExample->GetFont().Smaller());
@@ -1084,7 +1095,7 @@ void WxMachineRegister::fillCodeList()
             p_codeShown.push_back((int)i);
     sortCodeShown();
     for (size_t r = 0; r < p_codeShown.size(); r++)
-        p_codeList->Append(p_codeNames[p_codeShown[r]]);
+        p_codeList->Append(CodeFactory::displayName(p_codeNames[p_codeShown[r]]));
     if (p_codeShown.empty())
         return;
     if (std::find(p_codeShown.begin(), p_codeShown.end(), p_codeSel) ==
@@ -1220,7 +1231,7 @@ void WxMachineRegister::codeLinesTags()
     {
         p_codeList->Clear();
         for (size_t r = 0; r < p_codeShown.size(); r++)
-            p_codeList->Append(p_codeNames[p_codeShown[r]]);
+            p_codeList->Append(CodeFactory::displayName(p_codeNames[p_codeShown[r]]));
         for (size_t r = 0; r < p_codeShown.size(); r++)
             if (p_codeShown[r] == p_codeSel)
                 p_codeList->SetSelection((int)r);
@@ -1229,7 +1240,7 @@ void WxMachineRegister::codeLinesTags()
     {
         int i = p_codeShown[r];
         bool has = !strip((string)p_codePaths[i]->GetValue()).empty();
-        wxString want = p_codeNames[i] + (has ? "  *" : "");
+        wxString want = CodeFactory::displayName(p_codeNames[i]) + (has ? "  *" : "");
         if (p_codeList->GetString(r) != want)
             p_codeList->SetString(r, want);
     }
@@ -1844,6 +1855,12 @@ void WxMachineRegister::showProgramHelp()
         t += ".  " + h.note;
     p_codeExample->SetLabel(wxString::FromUTF8(t.c_str()));
     p_codeExample->Wrap(380);
+    if (p_mlpSetup != NULL &&
+        p_mlpSetup->IsShown() != (p_codeNames[p_codeSel] == "MLP"))
+    {
+        p_mlpSetup->Show(p_codeNames[p_codeSel] == "MLP");
+        p_mlpSetup->GetParent()->Layout();
+    }
     showProgramCheck(crestNeedsXtb());
 }
 
@@ -4316,8 +4333,12 @@ static string builtinCommand(const string& code)
                "registered for xTB on this machine";
     if (code == "MLP")
         return "$mlp ecce-mlp.py $inFile > $outFile 2>&1\n# $mlp is the "
-               "Python registered for ML Potential; gensub writes ecce-mlp.py "
+               "Python registered for MLP (MACE); gensub writes ecce-mlp.py "
                "into the run directory";
+    if (code == "Vina")
+        return "$vina --config vina.vinain --out poses.pdbqt > $outFile "
+               "2>&1\n# gensub first writes receptor.pdbqt and ligand.pdbqt "
+               "from the structure in $inFile with ecce-pdbqt";
     if (code == "MOPAC")
         return "$mopac $inFile >> $runDir/ecce.submit.log 2>&1\n"
                "# before it, $outFile is linked to the .out file MOPAC "
@@ -4376,6 +4397,8 @@ string WxMachineRegister::blockExample(const BlockRow& b) const
             return "e.g. CUDA_VISIBLE_DEVICES=0 $mlp ecce-mlp.py $inFile > $outFile";
         if (code == "CREST")
             return "e.g. nice $crest crest.xyz --gfnff --xnam $xtb > $outFile";
+        if (code == "Vina")
+            return "e.g. nice $vina --config vina.vinain --cpu 4 --out poses.pdbqt > $outFile";
         if (code == "xTB")
             return "e.g. nice $xtb xtb.xyz --gfn 2 > $outFile";
         if (code == "MOPAC")

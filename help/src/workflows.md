@@ -119,9 +119,14 @@ tree. The right-click menu of a box is that of the calculation.
 The code buttons are at the right of the view. The text under the drawing
 says what to do next.
 
-**Back to Table** closes the workflow view and shows the calculation table of
-the folder the workflow is in. Selecting the workflow in the tree opens the
+Selecting the folder the workflow is in, in the tree, closes the workflow view
+and shows that folder's calculation table. Selecting the workflow opens the
 view again.
+
+Clicking a box selects that step; Ctrl+click adds or removes a box and
+Shift+click selects the boxes from the last one clicked. The table below the
+view selects the same steps, and Tools such as the Energy Calculator act on
+them.
 
 ## Canvas height and orientation
 
@@ -135,8 +140,9 @@ and top-to-bottom flow; this choice is remembered separately from the Study view
 1. Click a code button, for example **xtb**.
 2. Fill in the name and choose **Create**. The step has no earlier step, so
    nothing is carried over.
-3. The Calculation Editor of the code opens on the new step. Set the
-   structure in the Builder as for any calculation.
+3. The new step is selected. Double-click its box (or its row) to open the
+   Calculation Editor of the code, and set the structure in the Builder as
+   for any calculation.
 
 ## Adding a step from another (branches)
 
@@ -164,8 +170,10 @@ and top-to-bottom flow; this choice is remembered separately from the Study view
      for an optimisation in water.
    - **Orbitals as the starting guess** is not available yet.
 4. Choose **Create**. The new calculation is made inside the workflow and
-   linked to the selected step, and the Calculation Editor of its code opens
-   with these values filled in.
+   linked to the selected step, with these values filled in. No Calculation
+   Editor opens by itself: double-click the new step to set it up. A CREST
+   step made after an xTB optimisation needs no editing; it is set up when
+   the xTB step has run.
 
 Doing this several times from one box makes several steps that start from
 the same geometry. A step can be set up before the step it starts from has
@@ -233,7 +241,7 @@ takes them from several steps at once.
    from each source goes to it, labelled with the role and the point, for
    example **TS guess (maximum)**.
 
-The Calculation Editor opens on the join. Its **TS Search** box shows the
+Double-click the join to open its Calculation Editor. Its **TS Search** box shows the
 structures taken from the sources; they are matched atom by atom and renumbered
 as for any other TS Search,
 so sources that list their atoms in different orders are handled there. A
@@ -275,14 +283,18 @@ again when the steps before have completed.
 
 The checkbox **Run the remaining steps automatically** (under **Launch Ready
 Steps**, and in the Apply Recipe panel) is stored with the workflow and is off
-by default. When it is on, each step is launched as soon as the step it starts
-from is Complete, with its stored launch settings and without a window. A step
-that fails stops its branch: the steps after it keep waiting. A step is never
-launched twice, and the Organizer shows a message when it launches steps for
-you.
+by default. Ticking it launches nothing, and neither does opening the
+workflow: the run starts when you choose **Launch Ready Steps**. From then on,
+each further step is launched as soon as the step it starts from is Complete,
+with its stored launch settings and without a window. A step that fails stops
+its branch: the steps after it keep waiting. A step is never launched twice,
+and the Organizer shows a message when it launches steps for you. Clearing the
+checkbox ends the run; so does the last step completing.
 
 The launching is done by the Organizer. With no Organizer open, the chain
-pauses, and it continues when you start the Organizer and open the workflow.
+pauses. A step that completes while the Organizer is open again continues the
+run; for steps that completed while it was closed, choose **Launch Ready
+Steps**.
 
 ### The play button on a box
 

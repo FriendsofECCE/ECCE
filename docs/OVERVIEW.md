@@ -134,7 +134,8 @@ Per code:
 
 * **ECCE-QM**: RHF, UHF, ROHF; SVWN, PBE, B3LYP, PBE0 (restricted,
   unrestricted, restricted open shell); STO-3G, Pople, Dunning and
-  Karlsruhe basis sets; analytic Hessian for closed-shell HF; Opt-TS by
+  Karlsruhe basis sets; analytic Hessian for HF and LDA, GGA and global-hybrid DFT
+  (closed shell and unrestricted); Opt-TS by
   eigenvector following; CPCM solvent (water, methanol, ethanol,
   acetonitrile, DMSO, chloroform, toluene, hexane or a custom dielectric);
   improved virtual orbitals (HF); Pipek–Mezey localised orbitals; Mulliken,

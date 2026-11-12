@@ -618,6 +618,7 @@ sub determineStatus()
     'ecce-qm' => 'end_of_output',
     'xtb' => 'normal termination of xtb',
     'crest' => 'CREST terminated normally',
+    'vina' => 'affinity',
     'mlp' => 'ecce-mlp terminated normally',
   );
   if (defined $normalTermination{$lccode}) {
@@ -2442,6 +2443,157 @@ sub crest()
 }
 
 ###########################################################################
+# AutoDock Vina (#455).  The CONFIG key "vina" is the program.
+#
+# The input file (vina.vinain, from ai.vina) is Vina's configuration plus the
+# structure as "#|" comment lines, because only the input file reaches the run
+# directory.  ecce-pdbqt (the ECCE_PDBQT path, else the one of this ECCE
+# installation) makes receptor.pdbqt and ligand.pdbqt from it; ligand.map
+# says which atom of the structure each written ligand atom is.  Vina writes
+# only the ligand, with nonpolar hydrogens merged, so each pose is put back
+# into the whole system in the calculation's atom order: receptor atoms at
+# their input coordinates, ligand atoms from the pose, and the merged
+# hydrogens placed from the ligand's own geometry around the nearest atoms
+# Vina kept.  The frames follow Vina's output for dock.poses.
+###########################################################################
+sub vina()
+{
+  use strict vars;
+  my ($retval,$vina,$cmd);
+  $retval = "";
+  $vina = $::config{$::lccode};
+  if ($vina eq "") { die "Path for vina not found"; }
+  $cmd = &userCmd("vinacommand");
+
+  $retval .= &pathVar("vina", "$vina", "ECCE_VINA");
+  $retval .= &pathVar("pdbqt", "$::ecceHome/bin/ecce-pdbqt", "ECCE_PDBQT");
+  $retval .= "echo \"Using vina path: \$vina, ecce-pdbqt path: \$pdbqt\" >> $::logfile\n";
+
+  $retval .= "\n$::CC - The structure (auxiliary input vina.vinafrag; a deck made before it\n";
+  $retval .= "$::CC - existed carries it between #| BEGIN-FRAG/END-FRAG) and the atom lists.\n";
+  $retval .= "rm -f vina.frag vina.ecceprep receptor.pdbqt ligand.pdbqt ligand.map poses.pdbqt vina.prep.log\n";
+  $retval .= "if [ -s vina.vinafrag ]; then cp vina.vinafrag vina.frag; else\n";
+  $retval .= "awk '/^#\\| END-FRAG/ {f=0} f {sub(/^#\\| ?/, \"\"); print} /^#\\| BEGIN-FRAG/ {f=1}' $::inFile > vina.frag\n";
+  $retval .= "fi\n";
+  $retval .= "awk '/^#\\| (LIGAND_ATOMS|RECEPTOR_ATOMS|FLEXIBLE_AMIDES)=/ {sub(/^#\\| /, \"\"); print}' $::inFile > vina.ecceprep\n";
+  $retval .= "LIGAND_ATOMS=`sed -n 's/^LIGAND_ATOMS=//p' vina.ecceprep`\n";
+  $retval .= "RECEPTOR_ATOMS=`sed -n 's/^RECEPTOR_ATOMS=//p' vina.ecceprep`\n";
+  $retval .= "FLEXIBLE_AMIDES=`sed -n 's/^FLEXIBLE_AMIDES=//p' vina.ecceprep`\n";
+  $retval .= "flexopt=\n";
+  $retval .= "if [ \"\$FLEXIBLE_AMIDES\" = 1 ]; then flexopt=--flexible-amides; fi\n";
+
+  $retval .= "\n$::CC - PDBQT preparation.\n";
+  $retval .= "vinaStatus=0\n";
+  $retval .= "\"\$pdbqt\" --frag vina.frag --atoms \"\$RECEPTOR_ATOMS\" --as receptor -o receptor.pdbqt > vina.prep.log 2>&1 || vinaStatus=1\n";
+  $retval .= "if [ \$vinaStatus = 0 ]; then\n";
+  $retval .= "  \"\$pdbqt\" --frag vina.frag --atoms \"\$LIGAND_ATOMS\" --as ligand \$flexopt --map ligand.map -o ligand.pdbqt >> vina.prep.log 2>&1 || vinaStatus=1\n";
+  $retval .= "fi\n";
+  $retval .= "cat vina.prep.log > $::outFile\n";
+  $retval .= "if [ \$vinaStatus != 0 ]; then\n";
+  $retval .= "  echo \"ecce-pdbqt failed: the receptor or ligand could not be prepared\" >> $::outFile\n";
+  $retval .= "else\n";
+
+  if ($cmd ne "") {
+    $retval .= "$cmd\n";
+  } else {
+    $retval .= "\"\$vina\" --config $::inFile --cpu $::totalprocs --out poses.pdbqt >> $::outFile 2>&1\n";
+  }
+  $retval .= "vinaStatus=\$?\n";
+  $retval .= "fi\n";
+
+  $retval .= "\n$::CC - Append the poses for the parser.\n";
+  $retval .= "if [ \$vinaStatus = 0 ] && [ -s poses.pdbqt ] && [ -s ligand.map ]; then\n";
+  $retval .= "cat > vina-frames.awk <<'ECCE_VINA_AWK_EOF'\n";
+  $retval .= <<'AWKEOF';
+# vina.ligatoms: the ligand atoms of the calculation, one per line
+BEGIN { while ((getline l < ligfile) > 0) if (l + 0 > 0) islig[l + 0] = 1 }
+FNR == 1 { f++ }
+# 1: vina.frag, the whole system as the calculation has it
+f == 1 {
+  if (inatoms) { if (n < natoms) { n++; sym[n] = $1; x0[n] = $2; y0[n] = $3; z0[n] = $4 } }
+  else if ($1 == "num_atoms:") natoms = $2
+  else if ($1 == "atom_list:") inatoms = 1
+  next
+}
+# 2: ligand.map, line k = atom of the frag that PDBQT atom k is (0: unknown)
+f == 2 { m[++nm] = $1 + 0; mapped[$1 + 0] = 1; next }
+# 3: poses.pdbqt, one MODEL per pose; atoms by their serial (= ligand.map line)
+f == 3 {
+  if ($0 ~ /^MODEL/) { delete px; delete py; delete pz; delete has; score = ""; next }
+  if ($0 ~ /^REMARK VINA RESULT:/) { score = $4; next }
+  if ($0 ~ /^(ATOM|HETATM)/) {
+    k = m[$2 + 0]
+    if (k > 0) { px[k] = $(NF - 6); py[k] = $(NF - 5); pz[k] = $(NF - 4); has[k] = 1 }
+    next
+  }
+  if ($0 ~ /^ENDMDL/) { frame++; emit(); }
+}
+function emit(   i, h, nl, l) {
+  print "ECCE-DOCK-FRAME " frame " " natoms
+  print "score: " score
+  for (i = 1; i <= natoms; i++) {
+    if (islig[i] && has[i]) printf "%s %.6f %.6f %.6f\n", sym[i], px[i], py[i], pz[i]
+    else if (islig[i]) { place(i); printf "%s %.6f %.6f %.6f\n", sym[i], qx, qy, qz }
+    else printf "%s %.6f %.6f %.6f\n", sym[i], x0[i], y0[i], z0[i]
+  }
+  print "ECCE-DOCK-ENDFRAME"
+}
+# A hydrogen Vina merged: keep its position in the frame of its nearest kept
+# atom P and the two kept atoms next to P, in the original structure and in the
+# pose.  Without three non-collinear atoms it moves with P.
+function place(h,   p, a, b, i, d, dp, da, db, ax, ay, az, bx, by, bz, c1, c2, c3, t) {
+  p = 0; dp = 1e30
+  for (i = 1; i <= natoms; i++) if (islig[i] && has[i]) {
+    d = dist(i, h); if (d < dp) { dp = d; p = i }
+  }
+  if (!p) { qx = x0[h]; qy = y0[h]; qz = z0[h]; return }
+  a = 0; da = 1e30
+  for (i = 1; i <= natoms; i++) if (islig[i] && has[i] && i != p) {
+    d = dist(i, p); if (d < da) { da = d; a = i }
+  }
+  if (!a) { qx = px[p] + x0[h] - x0[p]; qy = py[p] + y0[h] - y0[p]; qz = pz[p] + z0[h] - z0[p]; return }
+  # frame from the original coordinates
+  ax = x0[a] - x0[p]; ay = y0[a] - y0[p]; az = z0[a] - z0[p]
+  t = sqrt(ax*ax + ay*ay + az*az); o1x = ax/t; o1y = ay/t; o1z = az/t
+  b = 0; db = 1e30
+  for (i = 1; i <= natoms; i++) if (islig[i] && has[i] && i != p && i != a) {
+    bx = x0[i] - x0[p]; by = y0[i] - y0[p]; bz = z0[i] - z0[p]
+    t = bx*o1x + by*o1y + bz*o1z
+    bx -= t*o1x; by -= t*o1y; bz -= t*o1z
+    d = sqrt(bx*bx + by*by + bz*bz)
+    if (d > 0.3) { d = dist(i, p); if (d < db) { db = d; b = i } }
+  }
+  if (!b) { qx = px[p] + x0[h] - x0[p]; qy = py[p] + y0[h] - y0[p]; qz = pz[p] + z0[h] - z0[p]; return }
+  frameOf(x0, y0, z0, p, a, b); c1 = (x0[h]-x0[p])*o1x + (y0[h]-y0[p])*o1y + (z0[h]-z0[p])*o1z
+  c2 = (x0[h]-x0[p])*o2x + (y0[h]-y0[p])*o2y + (z0[h]-z0[p])*o2z
+  c3 = (x0[h]-x0[p])*o3x + (y0[h]-y0[p])*o3y + (z0[h]-z0[p])*o3z
+  frameOf(px, py, pz, p, a, b)
+  qx = px[p] + c1*o1x + c2*o2x + c3*o3x
+  qy = py[p] + c1*o1y + c2*o2y + c3*o3y
+  qz = pz[p] + c1*o1z + c2*o2z + c3*o3z
+}
+# Orthonormal o1 (towards a), o2 (towards b, made orthogonal), o3 = o1 x o2.
+function frameOf(X, Y, Z, p, a, b,   ax, ay, az, bx, by, bz, t) {
+  ax = X[a] - X[p]; ay = Y[a] - Y[p]; az = Z[a] - Z[p]
+  t = sqrt(ax*ax + ay*ay + az*az); o1x = ax/t; o1y = ay/t; o1z = az/t
+  bx = X[b] - X[p]; by = Y[b] - Y[p]; bz = Z[b] - Z[p]
+  t = bx*o1x + by*o1y + bz*o1z
+  bx -= t*o1x; by -= t*o1y; bz -= t*o1z
+  t = sqrt(bx*bx + by*by + bz*bz); o2x = bx/t; o2y = by/t; o2z = bz/t
+  o3x = o1y*o2z - o1z*o2y; o3y = o1z*o2x - o1x*o2z; o3z = o1x*o2y - o1y*o2x
+}
+function dist(i, j) { return sqrt((x0[i]-x0[j])^2 + (y0[i]-y0[j])^2 + (z0[i]-z0[j])^2) }
+AWKEOF
+  $retval .= "ECCE_VINA_AWK_EOF\n";
+  $retval .= "echo \"\$LIGAND_ATOMS\" | tr ',' '\\n' | awk -F- 'NF == 2 { for (i = \$1; i <= \$2; i++) print i; next } { print }' > vina.ligatoms\n";
+  $retval .= "awk -v ligfile=vina.ligatoms -f vina-frames.awk vina.frag ligand.map poses.pdbqt >> $::outFile\n";
+  $retval .= "fi\n";
+  $retval .= "(exit \$vinaStatus)\n";
+  return $retval;
+  nouse strict vars;
+}
+
+###########################################################################
 # ML potential (#728).  The CONFIG key "mlp" is the Python interpreter of the
 # environment that has ASE and the potential (mace-torch).  The runner,
 # scripts/ecce-mlp, is written into the run directory from here, so a cluster
@@ -2469,6 +2621,9 @@ sub mlp()
   $retval .= "OMP_NUM_THREADS=$::totalprocs; export OMP_NUM_THREADS\n";
   $retval .= "MKL_NUM_THREADS=$::totalprocs; export MKL_NUM_THREADS\n";
   $retval .= "rm -f ecce-mlp.extxyz\n";
+  # ECCE's optimiser/dynamics driver, when this machine has it here; on a
+  # cluster ecce-mlp-setup builds it into the environment instead.
+  $retval .= "ECCE_MLP_DRIVER=$::ecceHome/bin/ecce-mlp-driver; export ECCE_MLP_DRIVER\n";
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } else {

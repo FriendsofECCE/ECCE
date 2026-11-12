@@ -73,6 +73,18 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
                                                std::string& why);
     bool exportCsv(const std::string& path) const;
     std::string kind() const;
+    const std::string& energyLabel() const { return p_deName; }
+    // A Vina calculation (code or run type): its score is empirical, so the
+    // panel shows no Boltzmann population for it.
+    static bool isVina(IPropCalculation *calc);
+    bool hasPopulation() const { return p_population; }
+    // Docking poses: the receptor's residues within this distance of the
+    // pose's ligand are drawn as sticks, the rest of the receptor hidden.
+    static constexpr double pocketRadius = 6.0;
+    void setPocketView(bool on);
+    bool pocketView() const { return p_pocket; }
+    // "ligand=<n> pocket=<n> hidden=<n>" for the pose shown, for tests.
+    std::string pocketInfo() const;
 
   protected:
     virtual void initialize();
@@ -81,6 +93,9 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     virtual void loseFocus();
 
     struct Member { int rank; double de; double pop; std::string pattern; };
+
+    std::vector<int> ligandAtoms();
+    void showPocket();
 
     void load();
     void fillTable();
@@ -105,6 +120,7 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     std::vector<Member> p_members;   // as shown (sorted by the user's column)
     std::string p_deName;            // energy column header
     bool p_hasPatterns;
+    bool p_isSites = false;         // MLP site screen: eV, environment column
     bool p_inSelect;
     int p_selRank;
     int p_sortCol;
@@ -116,12 +132,26 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     std::vector<std::string> p_fits;
     std::map<int, Geometry> p_geometry;
     std::map<int, wxBitmap> p_thumbnails;
+    bool p_population = true;
+    bool p_pocket = true;
+    int p_pocketCounts[3] = {0, 0, 0};
+    int p_pocketBonds[2] = {0, 0};  // bonds drawn in the Ligand/Pocket styles, for the hook
+    bool p_pocketFitted = false;   // camera framed since the view was switched on
+    float p_pocketFit = 0;         // diagonal of the framed box, for the hook
+    // What the pocket view last drew: stepping a pose moves the ligand but
+    // leaves the same atoms shown, and restyling all of them again cost most
+    // of a second per step on a protein (#966).
+    vector<char> p_pocketRole;
+    vector<char> p_pocketBondRole;
+    const void *p_pocketFragment = 0;
+    void fitPocketCamera(const std::vector<const double*>& atoms);
     std::map<int, int> p_imageIndex;
     wxImageList *p_images = NULL;
     wxListCtrl *p_key = NULL;
     wxTimer p_thumbTimer, p_selectTimer;
     SbRotation p_thumbOrientation;
     bool p_haveOrientation = false;
+    float p_thumbBg[3] = {-1.f, -1.f, -1.f};   // viewer background of the thumbnails
     bool p_overlay = false;
     bool p_updatingSelection = false;
     int p_savedCS = 0;

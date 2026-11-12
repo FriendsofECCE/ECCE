@@ -99,7 +99,9 @@ void SessionProjectContextPanel::CreateControls()
   }
   p_project = new ProjectContextPanel(p_calcMgr, p_itemData, p_splitterWindow);
 
-  p_project->p_projectView->enableMultiSelect(false);
+  // A workflow's steps are launched, compared and removed together, as in a
+  // project; an MD study's graph shows one task at a time (#951).
+  p_project->p_projectView->enableMultiSelect(p_workflow != 0);
 
 
   Preferences prefs("Organizer");
@@ -149,7 +151,7 @@ void SessionProjectContextPanel::refresh()
   p_project->refresh();
   if (p_session) p_session->refresh();
   if (p_workflow) p_workflow->refresh();
-  p_project->p_projectView->enableMultiSelect(false);
+  p_project->p_projectView->enableMultiSelect(p_workflow != 0);
 }
 
 
