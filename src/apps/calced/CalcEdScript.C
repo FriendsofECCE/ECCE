@@ -28,6 +28,7 @@
 //    quit
 //  Each command is answered on stderr: "ECCE_CALCED_SCRIPT: <line>: ok".
 
+#include "dsm/CodeFactory.H"
 #include <cstdio>
 #include <fstream>
 #include <sstream>
@@ -189,7 +190,9 @@ void CalcEd::runCalcEdScript(const string& file)
         for (wxSizerItemList::compatibility_iterator n = kids.GetFirst();
              n && !hit; n = n->GetNext()) {
           wxWindow *b = n->GetData()->GetWindow();
-          if (b && b->GetToolTipText() == want) hit = b;
+          // The tooltip is the display name ("MLP (MACE)"); scripts may use either.
+          if (b && (b->GetToolTipText() == want ||
+                    b->GetToolTipText() == CodeFactory::displayName(want))) hit = b;
         }
         if (!hit) {
           outcome = "FAIL: no such code";
