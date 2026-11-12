@@ -515,22 +515,18 @@ void MqttBroker::stopForSession()
 void MqttBroker::lingerForSession(int graceSeconds)
 {
   if (!g_session) return;
-  MqttLink::instance().shutdown();
   using clk = std::chrono::steady_clock;
   auto sleepMs = [](int ms) { std::this_thread::sleep_for(std::chrono::milliseconds(ms)); };
-  // Let our own disconnect reach the broker thread before counting.
-  int last = -1;
-  for (int i = 0; i < 20; i++) {
-    sleepMs(100);
-    int n = g_session->clients();
-    if (n == last && n == 0) break;
-    last = n;
-  }
+  int before = g_session->clients();
+  bool own = MqttLink::instance().connected();
+  MqttLink::instance().shutdown();
+  // Wait until the broker thread has seen our own link leave.
+  for (int i = 0; own && i < 20 && g_session->clients() >= before; i++) sleepMs(100);
+  if (g_session->clients() == 0) { stopForSession(); return; }
   auto idleSince = clk::now();
-  while (g_session->clients() > 0 ||
-         std::chrono::duration<double>(clk::now() - idleSince).count() < graceSeconds) {
+  for (;;) {
     if (g_session->clients() > 0) idleSince = clk::now();
-    else if (last == 0 && g_session->clients() == 0) break;   // nobody was there
+    else if (std::chrono::duration<double>(clk::now() - idleSince).count() >= graceSeconds) break;
     sleepMs(100);
   }
   stopForSession();
