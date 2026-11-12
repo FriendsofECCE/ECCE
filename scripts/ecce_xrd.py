@@ -889,7 +889,7 @@ def run_powder(a):
 # ----------------------------------------------------------- single crystal
 
 def layer_reflections(lat, sym, frac, occ, zone, offset, dmin=1.0, wavelength=None,
-                      bfactor=0.0):
+                      bfactor=0.0, scale_to="crystal"):
     """Reciprocal-lattice layer {hkl: zone . hkl = offset}, zone = [u v w] the
     direct-lattice direction the layer is perpendicular to (hk0: [0 0 1], offset
     0).  |G| = 1/d is limited to 1/dmin and, if a wavelength is given, to the
@@ -934,8 +934,29 @@ def layer_reflections(lat, sym, frac, occ, zone, offset, dmin=1.0, wavelength=No
     axes = [np.array([v @ e1, v @ e2]) if (k in flat or not flat) and
             np.linalg.norm([v @ e1, v @ e2]) > 1e-6 else np.zeros(2)
             for k, v in enumerate(recip)]
+    imax = float(f2.max()) if len(f2) else 1.0
+    if scale_to == "crystal":
+        imax = max(crystal_imax(lat, sym, frac, occ, gmax, bfactor), imax)
     return {"hkl": hkl, "xy": xy, "d": 1.0 / glen, "F": np.sqrt(f2), "I": f2,
-            "axes": axes, "height": float(height), "gmax": float(gmax)}
+            "axes": axes, "height": float(height), "gmax": float(gmax), "imax": imax}
+
+
+def crystal_imax(lat, sym, frac, occ, gmax, bfactor=0.0, chunk=20000):
+    """Strongest |F|^2 of the whole crystal within |G| <= gmax (000 left out):
+    the one scale every layer is drawn on, so layers and crystals compare."""
+    recip = np.linalg.inv(lat).T
+    hm = [int(math.floor(gmax * np.linalg.norm(v))) for v in lat]
+    hkl = np.stack(np.meshgrid(*[np.arange(-m, m + 1) for m in hm], indexing="ij"),
+                   -1).reshape(-1, 3)
+    glen = np.linalg.norm(hkl @ recip, axis=1)
+    keep = (glen > 1e-9) & (glen <= gmax * (1 + 1e-12))
+    hkl, glen = hkl[keep], glen[keep]
+    best = 0.0
+    for i in range(0, len(hkl), chunk):
+        f2 = structure_factors2(sym, frac, occ, hkl[i:i + chunk], glen[i:i + chunk] / 2.0, bfactor)
+        if len(f2):
+            best = max(best, float(f2.max()))
+    return best
 
 
 def layer_spot_radius(i, imax, mode, decades, rmax):
@@ -970,6 +991,12 @@ def layer_scale(lay, size):
     return (size / 2.0 - 40) / ext
 
 
+def layer_rmax(lay, size):
+    """Radius in pixels of the largest disc: under half the closest spot spacing."""
+    spacing = min([np.linalg.norm(a) for a in lay["axes"] if np.linalg.norm(a) > 1e-6] or [1.0])
+    return max(3.0, min(0.45 * spacing * layer_scale(lay, size), 30.0))
+
+
 def plot_layer(path, lay, label, mode="log", decades=3.0, show_absent=False,
                size=700, absent_tol=1e-6):
     """Precession-style picture of the layer: a disc per spot, white background,
@@ -981,9 +1008,8 @@ def plot_layer(path, lay, label, mode="log", decades=3.0, show_absent=False,
 
     def pos(p):
         return cx + p[0] * scale, cy - p[1] * scale
-    imax = float(ii.max()) if len(ii) else 1.0
-    spacing = min([np.linalg.norm(a) for a in lay["axes"] if np.linalg.norm(a) > 1e-6] or [1.0])
-    rmax = max(3.0, min(0.45 * spacing * scale, 30.0))
+    imax = lay["imax"]
+    rmax = layer_rmax(lay, size)
     absent = ii < absent_tol * imax
     rad = layer_spot_radius(ii, imax, mode, decades, rmax)
     for k in np.argsort(-ii):
@@ -1007,7 +1033,7 @@ def plot_layer(path, lay, label, mode="log", decades=3.0, show_absent=False,
             hx, hy = ex - 9 * u[0] + sgn * 4 * u[1], ey + 9 * u[1] + sgn * 4 * u[0]
             draw_line(img, int(ex), int(ey), int(hx), int(hy), col)
         draw_text(img, lab + "*", int(ex + 8 * u[0]) - 6, int(ey - 8 * u[1]) - 7, 2, col)
-    draw_text(img, label, 12, 10, 2, 0)
+    draw_text(img, label.upper(), 12, 10, 2, 0)
     write_png_rgb(path, img)
 
 
@@ -1027,9 +1053,9 @@ def run_layer(a):
     zone, offset = _zone_from_args(a)
     t0 = time.time()
     lay = layer_reflections(lat, sym, frac, occ, zone, offset, a.resolution,
-                            a.wavelength, a.B)
+                            a.wavelength, a.B, a.scale_to)
     ii = lay["I"]
-    imax = float(ii.max()) if len(ii) else 1.0
+    imax = lay["imax"]
     absent = ii < a.absent_tol * imax
     order = np.lexsort((lay["hkl"][:, 2], lay["hkl"][:, 1], lay["hkl"][:, 0]))
     rows = [("h", "k", "l", "x", "y", "d", "F", "I", "I_rel", "absent")]
@@ -1038,7 +1064,7 @@ def run_layer(a):
                           ["%.5f" % lay["xy"][k][0], "%.5f" % lay["xy"][k][1],
                            "%.5f" % lay["d"][k], "%.5f" % lay["F"][k], "%.5g" % ii[k],
                            "%.5g" % (100.0 * ii[k] / imax), "1" if absent[k] else "0"]))
-    label = ("zone [%d %d %d] layer %d" % (zone[0], zone[1], zone[2], offset))
+    label = ("normal %d %d %d layer %d" % (zone[0], zone[1], zone[2], offset))
     if zone in ([0, 0, 1], [1, 0, 0], [0, 1, 0]) and offset == 0:
         label = {"[0, 0, 1]": "hk0", "[1, 0, 0]": "0kl", "[0, 1, 0]": "h0l"}[str(zone)]
     for out in a.out or []:
@@ -1052,7 +1078,10 @@ def run_layer(a):
             raise ValueError("--out: unknown extension %r (png, csv)" % ext)
     if a.geometry:
         with open(a.geometry, "w") as f:
-            f.write("size %d\nscale %.6f\n" % (a.size, layer_scale(lay, a.size)))
+            f.write("size %d\nscale %.6f\nrmax %.4f\n" % (a.size, layer_scale(lay, a.size),
+                                                       layer_rmax(lay, a.size)))
+            for k, v in enumerate(lay["axes"]):
+                f.write("ax%dx %.6f\nax%dy %.6f\n" % (k, v[0], k, v[1]))
     info = {"atoms": len(sym), "zone": [int(v) for v in zone], "offset": offset,
             "resolution": a.resolution, "gmax": lay["gmax"], "height": lay["height"],
             "reflections": int(len(ii)), "absent": int(absent.sum()),
@@ -1298,7 +1327,8 @@ def run_frame(a):
             raise ValueError("--out: unknown extension %r (png, npy, csv)" % ext)
     if a.geometry:
         with open(a.geometry, "w") as f:
-            f.write("size %d\nscale %.6f\n" % (a.pixels, a.pixels / a.size))
+            f.write("size %d\nscale %.6f\ndistance %.4f\nwavelength %.6f\n" % (
+                a.pixels, a.pixels / a.size, a.distance, lam))
     print("frame: %d reflections, phi %g to %g, wavelength %.5f A, %d x %d pixels" % (
         len(refl["I"]), a.phi, a.phi + a.osc, lam, a.pixels, a.pixels))
     return 0
@@ -1425,6 +1455,8 @@ def build_parser():
     y.add_argument("--scale", choices=("log", "sqrt", "linear"), default="log",
                    help="disc area against |F|^2")
     y.add_argument("--decades", type=float, default=3.0, help="log scale range")
+    y.add_argument("--scale-to", choices=("crystal", "layer"), default="crystal",
+                   help="I_rel = 100 for the strongest reflection of the whole crystal (default) or of this layer")
     y.add_argument("--show-absent", action="store_true", help="open circles for absent spots")
     y.add_argument("--absent-tol", type=float, default=1e-6,
                    help="spots below this fraction of the strongest |F|^2 are absent")

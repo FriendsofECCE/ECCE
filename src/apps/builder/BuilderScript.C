@@ -1037,7 +1037,7 @@ void Builder::runBuilderScript(const std::string& file)
         fprintf(stderr, "BUILDER: calcdiffraction: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
       } else if (w[0] == "calcpowder" && w.size() >= 5) {
-        //  calcpowder OUT.png OUT.csv XYZ SOURCE [DOUBLET]: as calcdiffraction
+        //  calcpowder OUT.png OUT.csv XYZ SOURCE [DOUBLET [MEASURED]]: as calcdiffraction
         //  with the powder source (0 Cu, 1 Mo, 2 Co, 3 other) and the Ka1/Ka2
         //  box set; reports the box's state (#587).
         std::string err, why;
@@ -1046,7 +1046,8 @@ void Builder::runBuilderScript(const std::string& file)
         else {
           fprintf(stderr, "BUILDER: calcpowder state: %s\n",
                   dd->setSource(atoi(w[4].c_str()), w.size() > 5 ? atoi(w[5].c_str()) : -1).ToUTF8().data());
-          if (!dd->calculate(why)) err = why;
+          if (w.size() > 6 && !dd->setMeasured(w[6], why)) err = why;
+          else if (!dd->calculate(why)) err = why;
           else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
         }
         fprintf(stderr, "BUILDER: calcpowder: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());

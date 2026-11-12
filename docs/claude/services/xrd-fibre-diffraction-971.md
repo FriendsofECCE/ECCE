@@ -49,3 +49,16 @@ issues: [971]
 - The dialog does not recompute anything: it runs the CLI with `--out png
   --out csv --geometry FILE` and places the hover spots from the CSV x, y and
   the PNG's pixel scale in that file. Test hook: `calclayer` (Builder script).
+
+## Window drawing and layer scale (#985, #984)
+
+- The Diffraction window draws axes, titles, hkl and ring labels, layer spots and
+  the powder curves itself (`DiffractionDialog::paint`, wxGraphicsContext, system
+  font); Save PNG renders the same function at 2x. `ecce-xrd` PNGs with the 5x7
+  font remain only for the CLI. Layers and frame overlays come from the CSV and
+  the `--geometry` file (scale, rmax, axes, distance, wavelength), not from the PNG.
+- `ecce-xrd layer` sets I_rel = 100 for the strongest reflection of the whole
+  crystal within the resolution limit (`--scale-to layer` for the old per-layer
+  scale), so KCl hk1 (111) is 0.3 % and NaCl's 4.5 %.
+- wxGraphicsContext cannot draw into wxSVGFileDC: there is no SVG export from
+  the window.
