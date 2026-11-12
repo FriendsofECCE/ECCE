@@ -94,6 +94,15 @@ if $local; then export ECCE_LOCAL=1; fi
 if [ -n "${LC_ALL:-}" ]; then LANG=$LC_ALL; export LANG; unset LC_ALL; fi
 export LC_NUMERIC=C
 
+# GTK 3 prints an AT-SPI warning when it cannot reach the accessibility
+# registry.  Silence it only when no screen reader is enabled and the user
+# has not chosen a value, so screen-reader users keep the bridge.
+if [ "$(uname -s)" = Linux ] && [ -z "${NO_AT_BRIDGE+x}" ]; then
+  if [ "$(gsettings get org.gnome.desktop.a11y.applications screen-reader-enabled 2>/dev/null)" != true ]; then
+    export NO_AT_BRIDGE=1
+  fi
+fi
+
 # A site admin's maintenance notice and lock, shown for every
 # invocation -- including -admin/-machine -- matching the old script's
 # placement ahead of any option handling.
