@@ -92,8 +92,23 @@ def main():
                 # hk1 holds only all-odd spots: F = 4(f_cation - f_Cl)
                 lines.append("calclayer %s %s l 1 0.8 2,0,0" % (
                     os.path.join(out, "l1.png"), os.path.join(out, "l1.csv")))
+            if calc == "nacl_powder":
+                # the window's own drawings: a frame with labels and rings, and
+                # NaCl compared with KCl as a "measured" pattern (stacked panels)
+                lines.append("calcframe %s %s 0 30 1 1" % (os.path.join(out, "f.png"), os.path.join(out, "f.csv")))
+                kcl = os.path.join(out, "kcl.csv")
+                subprocess.run([sys.executable, CLI, "powder", os.path.join(REPO, "tests", "fixtures", "cif", "kcl.cif"),
+                                "--out", kcl], capture_output=True)
+                xy = os.path.join(out, "kcl.xy")
+                open(xy, "w").write("".join(ln.split(",")[0] + " " + ln.split(",")[1] + "\n"
+                                            for ln in open(kcl).read().splitlines()[1:]))
+                lines.append("calcpowder %s %s %s 0 1 %s" % (os.path.join(out, "cmp.png"), os.path.join(out, "cmp.csv"),
+                                                              os.path.join(out, "cmp.xyz"), xy))
             text, _ = bo.runScript(s, display, env, wrappers, ["-context", url], lines + ["quit"],
                                    png, "diffraction-" + calc, {"ECCE_PANEL_MODE": "detail"})
+            for name in os.listdir(out):
+                if name.endswith(".png"):
+                    shutil.copy(os.path.join(out, name), os.path.join(png, "%s-%s" % (calc, name)))
             bo.check("BUILDER: calcdiffraction pattern: %s" % kind in text and
                      "BUILDER: calcdiffraction: done" in text,
                      "%s: the Diffraction entry opens the %s pattern" % (calc, kind))
