@@ -184,20 +184,20 @@
       <Containment>
         <Contains>
           <ContainsResource name="project"/>
-          <ContainsResource name="nwchem_es"/>
-          <ContainsResource name="mopac_es"/>
-          <ContainsResource name="qe_es"/>
-          <ContainsResource name="cp2k_es"/>
-          <ContainsResource name="xtb_es"/>
-          <ContainsResource name="crest_es"/>
-          <ContainsResource name="vina_es"/>
-          <ContainsResource name="mlp_es"/>
-          <ContainsResource name="gaussian16_es"/>
-          <ContainsResource name="orca_es"/>
-          <ContainsResource name="ecceqm_es"/>
-          <ContainsResource name="nwchem_md_study"/>
-          <ContainsResource name="gromacs_md_study"/>
           <ContainsResource name="workflow"/>
+          <ContainsResource name="ecceqm_es"/>
+          <ContainsResource name="gaussian16_es"/>
+          <ContainsResource name="nwchem_es"/>
+          <ContainsResource name="orca_es"/>
+          <ContainsResource name="crest_es"/>
+          <ContainsResource name="mopac_es"/>
+          <ContainsResource name="xtb_es"/>
+          <ContainsResource name="cp2k_es"/>
+          <ContainsResource name="qe_es"/>
+          <ContainsResource name="gromacs_md_study"/>
+          <ContainsResource name="nwchem_md_study"/>
+          <ContainsResource name="mlp_es"/>
+          <ContainsResource name="vina_es"/>
           <!-- The gas and condensed phase reaction studies are left out of
                New: DirDyVTST and Polyrate were removed (#873) and NWPW
                metadynamics is untested. Stored DirDyVTST/Polyrate steps list
@@ -4636,18 +4636,18 @@
     <Relationships>
       <Containment>
         <Contains>
+          <ContainsResource name="project"/>
           <ContainsResource name="ecceqm_es"/>
-          <ContainsResource name="orca_es"/>
           <ContainsResource name="gaussian16_es"/>
           <ContainsResource name="nwchem_es"/>
+          <ContainsResource name="orca_es"/>
+          <ContainsResource name="crest_es"/>
           <ContainsResource name="mopac_es"/>
           <ContainsResource name="xtb_es"/>
-          <ContainsResource name="crest_es"/>
-          <ContainsResource name="vina_es"/>
-          <ContainsResource name="qe_es"/>
           <ContainsResource name="cp2k_es"/>
+          <ContainsResource name="qe_es"/>
+          <ContainsResource name="vina_es"/>
           <ContainsResource name="import_es"/>
-          <ContainsResource name="project"/>
         </Contains>
         <ContainedBy>
           <ContainedByResource name="project"/>
