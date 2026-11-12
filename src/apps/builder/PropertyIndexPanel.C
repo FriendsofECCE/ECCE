@@ -96,7 +96,11 @@ void PropertyIndexPanel::setEntries(const std::vector<Entry>& entries)
   }
 
   p_quiet = true;
+  // Freeze on MSW only: GTK3 paints a frozen widget's area black until the
+  // thaw (docs/claude/wx-viewer/gtk3-frozen-window-paints-black.md).
+#ifdef __WXMSW__
   p_tree->Freeze();
+#endif
   p_tree->DeleteAllItems();
   wxTreeItemId root = p_tree->AddRoot("");
 
@@ -126,7 +130,9 @@ void PropertyIndexPanel::setEntries(const std::vector<Entry>& entries)
     }
     p_tree->Expand(head);
   }
+#ifdef __WXMSW__
   p_tree->Thaw();
+#endif
   p_quiet = false;
   if (!selected.empty()) {
     setSelected(selected);
