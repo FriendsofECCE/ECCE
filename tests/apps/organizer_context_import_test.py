@@ -24,6 +24,11 @@ import run_tests  # noqa: E402
 import progress_box_test as pb  # noqa: E402
 
 LABEL = "Import Calculation from Output File..."
+# The New order: containers, molecular QM, semi-empirical, periodic, MD,
+# other; alphabetical inside a group.
+ORDER = ["Project", "Workflow", "ECCE-QM", "Gaussian-16", "NWChem ",
+         "ORCA", "CREST", "MOPAC", "xTB", "CP2K", "Quantum ESPRESSO",
+         "GROMACS MD Study", "NWChem MD Study", "MLP", "Vina"]
 failures = []
 
 
@@ -51,6 +56,16 @@ def run(display):
             print("FAIL  New submenu: " + lines[-1])
         else:
             print("ok    right-click New offers the import: " + lines[-1])
+            before = lines[-1].split("before=", 1)[-1].split(" selection=")[0]
+            labels = [l for l in before.split("|") if l]
+            seen = [next((i for i, o in enumerate(ORDER)
+                          if l.startswith(o)), None) for l in labels]
+            seen = [i for i in seen if i is not None]
+            if seen[:2] != [0, 1] or seen != sorted(seen):
+                failures.append("New submenu order")
+                print("FAIL  New order: " + " | ".join(labels))
+            else:
+                print("ok    New order: " + " | ".join(labels))
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)
