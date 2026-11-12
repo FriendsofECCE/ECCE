@@ -93,6 +93,10 @@ def writeNaCl(calc):
     out += ["atom_type_list:"] + ["        %d   1" % z[e] for e, _ in atoms]
     out += ["num_bonds: %d" % len(bonds), "bond_list: "]
     out += ["%d %d 1.00000 1" % b for b in bonds]
+    # The stored results would replace the structure with their own.
+    for rel in ("Props/GEOMTRACE", "Outputs/results.h5", "Props/EGRADVEC"):
+        if os.path.exists(os.path.join(calc, rel)):
+            os.unlink(os.path.join(calc, rel))
     with open(os.path.join(calc, "Parameters", "chemsys.mvm"), "w") as f:
         f.write("\n".join(out) + "\n")
 
