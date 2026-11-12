@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "util/Ecce.H"
+#include "util/MqttLink.H"
 
 #ifdef _WIN32
 #include <winsock2.h>
@@ -139,6 +140,7 @@ struct MqttBroker::Impl {
   sock_t lfd = BAD_SOCK;
   std::thread thread;
   std::atomic<bool> stopping{false};
+  std::atomic<int> nclients{0};
   std::vector<std::unique_ptr<Client>> clients;
   uint64_t anon = 0;
 
@@ -349,6 +351,9 @@ struct MqttBroker::Impl {
         if (c.connected && c.keepalive && idle > c.keepalive * 1.5) c.dead = true;
         if (!c.connected && idle > CONNECT_WAIT_S) c.dead = true;
       }
+      int live = 0;
+      for (auto& cp : clients) if (cp->connected && !cp->dead) live++;
+      nclients = live;
       for (size_t k = 0; k < clients.size();) {
         if (clients[k]->dead) {
           flush(*clients[k]);   // a CONNACK refusal still goes out
@@ -394,6 +399,8 @@ bool MqttBroker::topicMatches(const string& filter, const string& topic)
 
 MqttBroker::MqttBroker() : p_impl(new Impl) {}
 MqttBroker::~MqttBroker() { stop(); }
+
+int MqttBroker::clients() const { return p_impl->nclients; }
 
 void MqttBroker::addUser(const string& user, const string& password)
 {
@@ -503,4 +510,28 @@ void MqttBroker::stopForSession()
   g_session->stop();
   g_session.reset();
   std::remove(g_brokerFile.c_str());
+}
+
+void MqttBroker::lingerForSession(int graceSeconds)
+{
+  if (!g_session) return;
+  MqttLink::instance().shutdown();
+  using clk = std::chrono::steady_clock;
+  auto sleepMs = [](int ms) { std::this_thread::sleep_for(std::chrono::milliseconds(ms)); };
+  // Let our own disconnect reach the broker thread before counting.
+  int last = -1;
+  for (int i = 0; i < 20; i++) {
+    sleepMs(100);
+    int n = g_session->clients();
+    if (n == last && n == 0) break;
+    last = n;
+  }
+  auto idleSince = clk::now();
+  while (g_session->clients() > 0 ||
+         std::chrono::duration<double>(clk::now() - idleSince).count() < graceSeconds) {
+    if (g_session->clients() > 0) idleSince = clk::now();
+    else if (last == 0 && g_session->clients() == 0) break;   // nobody was there
+    sleepMs(100);
+  }
+  stopForSession();
 }

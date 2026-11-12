@@ -246,7 +246,34 @@ class Session(object):
                                 stderr=subprocess.STDOUT, timeout=timeout)
         return result.returncode, result.stdout.decode("utf-8", "replace")
 
+    def builtinBroker(self, start):
+        """ECCE_BROKER=builtin (#990): the session's broker is the built-in one,
+        run by `eccebroker --session` where the Organizer would run it; it
+        lingers 3 s after stdin closes, like the Organizer's at exit."""
+        if not start:
+            proc = getattr(self, "_broker", None)
+            if proc:
+                proc.stdin.close()
+                try:
+                    proc.wait(timeout=60)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+            return True
+        exe = os.path.join(self.build, "eccebroker")
+        if not os.path.exists(exe):
+            say("  no eccebroker in %s" % self.build)
+            return False
+        os.makedirs(os.path.join(self.state, ".ECCE"), exist_ok=True)
+        self._broker = subprocess.Popen(
+            [exe, "--session", "3"], env=self.env({"ECCE_REALUSERHOME": self.state}),
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        line = self._broker.stdout.readline().decode()
+        say("  eccebroker: %s" % line.strip())
+        return "started" in line
+
     def services(self, start):
+        if os.environ.get("ECCE_BROKER") == "builtin" and self.local:
+            return self.builtinBroker(start)
         if start:
             servers = ["ecce-gateway-start"]
             if not self.local:

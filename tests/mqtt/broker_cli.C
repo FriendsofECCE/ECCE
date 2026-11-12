@@ -3,7 +3,8 @@
 //   eccebroker USER:PASSWORD [port]   listen on 127.0.0.1, print the port
 //   eccebroker --session              the session broker (ECCE_SESSION_ID,
 //                                     ECCE_REALUSERHOME): writes the broker file
-// Runs until its standard input is closed.
+// Runs until its standard input is closed; the session broker then lingers as
+// the Organizer's does (--session [grace seconds], default 10).
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -28,6 +29,6 @@ int main(int argc, char** argv)
     std::cout << b.port() << std::endl;
   }
   while (getchar() != EOF) {}
-  if (session) MqttBroker::stopForSession();
+  if (session) MqttBroker::lingerForSession(argc > 2 ? atoi(argv[2]) : 10);
   return 0;
 }

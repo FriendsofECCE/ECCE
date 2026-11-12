@@ -23,6 +23,8 @@ public:
   bool start(int port = 0);
   void stop();
   int port() const { return p_port; }
+  // Clients that have completed CONNECT and are still connected.
+  int clients() const;
 
   // The ACL as functions of a verified account, for tests.
   static bool mayWrite(const std::string& user, const std::string& topic);
@@ -35,6 +37,11 @@ public:
   // Returns an error text, empty on success.
   static std::string startForSession();
   static void stopForSession();   // stops it and removes the broker file
+  // The Organizer's end of the session: disconnects this process's own link,
+  // then keeps serving until no client (Builder, job stores, ...) has been
+  // connected for graceSeconds, and stops as stopForSession().  Returns at
+  // once if nobody else is connected.
+  static void lingerForSession(int graceSeconds);
 
 private:
   struct Impl;
