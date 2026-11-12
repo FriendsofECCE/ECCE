@@ -10,6 +10,8 @@
 #include <memory>
 
 #include <wx/dcbuffer.h>
+#include <wx/display.h>
+#include <wx/scrolwin.h>
 #include <wx/dcgraph.h>
 #include <wx/dcmemory.h>
 #include <wx/graphics.h>
@@ -674,14 +676,16 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_selectionText = sel.str();
 
   wxBoxSizer *top = new wxBoxSizer(wxHORIZONTAL);
+  wxScrolledWindow *lp = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
+  lp->SetScrollRate(0, 10);
   wxBoxSizer *left = new wxBoxSizer(wxVERTICAL);
 
-  wxStaticBoxSizer *type = new wxStaticBoxSizer(wxVERTICAL, this, "Pattern");
-  wxRadioButton *fibre = new wxRadioButton(this, wxID_ANY, "Fibre", wxDefaultPosition,
+  wxStaticBoxSizer *type = new wxStaticBoxSizer(wxVERTICAL, lp, "Pattern");
+  wxRadioButton *fibre = new wxRadioButton(lp, wxID_ANY, "Fibre", wxDefaultPosition,
                                            wxDefaultSize, wxRB_GROUP);
-  wxRadioButton *powder = new wxRadioButton(this, wxID_ANY, "Powder (periodic structures only)");
-  wxRadioButton *single = new wxRadioButton(this, wxID_ANY, "Single crystal (periodic structures only)");
-  wxRadioButton *frame = new wxRadioButton(this, wxID_ANY, "Detector frame, rotating crystal (periodic structures only)");
+  wxRadioButton *powder = new wxRadioButton(lp, wxID_ANY, "Powder (periodic structures only)");
+  wxRadioButton *single = new wxRadioButton(lp, wxID_ANY, "Single crystal (periodic structures only)");
+  wxRadioButton *frame = new wxRadioButton(lp, wxID_ANY, "Detector frame, rotating crystal (periodic structures only)");
   powder->Enable(p_periodic);
   single->Enable(p_periodic);
   frame->Enable(p_periodic);
@@ -699,8 +703,8 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
 
   wxFlexGridSizer *grid = new wxFlexGridSizer(2, 4, 6);
   auto field = [&](const char *label, const char *value, const char *tip) {
-    grid->Add(new wxStaticText(this, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
-    wxTextCtrl *t = new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
+    grid->Add(new wxStaticText(lp, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+    wxTextCtrl *t = new wxTextCtrl(lp, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
     t->SetToolTip(tip);
     grid->Add(t, 0);
     return t;
@@ -713,27 +717,27 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_mis = field("Misalignment (deg)", "8", "Spread of the fibre axes: arcs");
   p_repeat = field("Repeat (A)", "0", "Axial repeat; the pointer then reports the layer line l = Z * repeat");
   p_gamma = field("Gamma", "1", "Display exponent");
-  grid->Add(new wxStaticText(this, wxID_ANY, "Axis"), 0, wxALIGN_CENTER_VERTICAL);
-  p_axis = new wxChoice(this, wxID_ANY);
+  grid->Add(new wxStaticText(lp, wxID_ANY, "Axis"), 0, wxALIGN_CENTER_VERTICAL);
+  p_axis = new wxChoice(lp, wxID_ANY);
   p_axis->Append("Auto (principal axis)");
   p_axis->Append("First to last selected atom");
   p_axis->SetSelection(0);
   grid->Add(p_axis, 0);
-  grid->Add(new wxStaticText(this, wxID_ANY, "Scaling"), 0, wxALIGN_CENTER_VERTICAL);
-  p_scale = new wxChoice(this, wxID_ANY);
+  grid->Add(new wxStaticText(lp, wxID_ANY, "Scaling"), 0, wxALIGN_CENTER_VERTICAL);
+  p_scale = new wxChoice(lp, wxID_ANY);
   for (const char *s : {"log", "sqrt", "linear"}) p_scale->Append(s);
   p_scale->SetSelection(0);
   grid->Add(p_scale, 0);
   fibreBox->Add(grid, 0, wxALL, 6);
-  p_selectedOnly = new wxCheckBox(this, wxID_ANY, "Selected atoms only");
+  p_selectedOnly = new wxCheckBox(lp, wxID_ANY, "Selected atoms only");
   p_selectedOnly->SetValue(!selection.empty());
   p_selectedOnly->Enable(!selection.empty());
   fibreBox->Add(p_selectedOnly, 0, wxALL, 6);
 
-  wxButton *back = new wxButton(this, wxID_ANY, "Load Backdrop...");
+  wxButton *back = new wxButton(lp, wxID_ANY, "Load Backdrop...");
   fibreBox->Add(back, 0, wxLEFT | wxRIGHT | wxTOP, 6);
-  fibreBox->Add(new wxStaticText(this, wxID_ANY, "Calculated pattern opacity"), 0, wxLEFT | wxTOP, 6);
-  p_opacity = new wxSlider(this, wxID_ANY, 100, 0, 100, wxDefaultPosition, wxSize(200, -1));
+  fibreBox->Add(new wxStaticText(lp, wxID_ANY, "Calculated pattern opacity"), 0, wxLEFT | wxTOP, 6);
+  p_opacity = new wxSlider(lp, wxID_ANY, 100, 0, 100, wxDefaultPosition, wxSize(200, -1));
   fibreBox->Add(p_opacity, 0, wxLEFT | wxRIGHT, 6);
   left->Add(fibreBox, 0);
 
@@ -741,20 +745,20 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_powderItems = powderBox;
   wxFlexGridSizer *pg = new wxFlexGridSizer(2, 4, 6);
   auto pfield = [&](const char *label, const char *value, const char *tip) {
-    pg->Add(new wxStaticText(this, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
-    wxTextCtrl *t = new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
+    pg->Add(new wxStaticText(lp, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+    wxTextCtrl *t = new wxTextCtrl(lp, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
     t->SetToolTip(tip);
     pg->Add(t, 0);
     return t;
   };
-  pg->Add(new wxStaticText(this, wxID_ANY, "Source"), 0, wxALIGN_CENTER_VERTICAL);
-  p_source = new wxChoice(this, wxID_ANY);
+  pg->Add(new wxStaticText(lp, wxID_ANY, "Source"), 0, wxALIGN_CENTER_VERTICAL);
+  p_source = new wxChoice(lp, wxID_ANY);
   for (const char *c : {"Cu Ka (1.5406)", "Mo Ka (0.7093)", "Co Ka (1.7890)", "Other (type the wavelength)"})
     p_source->Append(c);
   p_source->SetSelection(0);
   pg->Add(p_source, 0);
   pg->AddSpacer(0);
-  p_doublet = new wxCheckBox(this, wxID_ANY, "K\u03b11/K\u03b12 doublet");
+  p_doublet = new wxCheckBox(lp, wxID_ANY, "K\u03b11/K\u03b12 doublet");
   p_doublet->SetValue(true);
   p_doublet->SetToolTip("Draw every reflection at the K-alpha1 and K-alpha2 wavelengths (K-alpha2 at half the intensity); Cu, Mo and Co sources only");
   pg->Add(p_doublet, 0);
@@ -764,7 +768,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_pfwhm = pfield("Peak width (deg)", "0.1", "FWHM in 2theta; pseudo-Voigt with equal Gauss and Lorentz parts");
   p_pb = pfield("B (A^2)", "0", "Isotropic temperature factor");
   powderBox->Add(pg, 0, wxALL, 6);
-  wxButton *meas = new wxButton(this, wxID_ANY, "Load measured pattern...");
+  wxButton *meas = new wxButton(lp, wxID_ANY, "Load measured pattern...");
   powderBox->Add(meas, 0, wxLEFT | wxRIGHT | wxTOP, 6);
   left->Add(powderBox, 0);
 
@@ -772,14 +776,14 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_layerItems = layerBox;
   wxFlexGridSizer *lg = new wxFlexGridSizer(2, 4, 6);
   auto lfield = [&](const char *label, const char *value, const char *tip) {
-    lg->Add(new wxStaticText(this, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
-    wxTextCtrl *t = new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
+    lg->Add(new wxStaticText(lp, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+    wxTextCtrl *t = new wxTextCtrl(lp, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
     t->SetToolTip(tip);
     lg->Add(t, 0);
     return t;
   };
-  lg->Add(new wxStaticText(this, wxID_ANY, "Zone"), 0, wxALIGN_CENTER_VERTICAL);
-  p_zone = new wxChoice(this, wxID_ANY);
+  lg->Add(new wxStaticText(lp, wxID_ANY, "Zone"), 0, wxALIGN_CENTER_VERTICAL);
+  p_zone = new wxChoice(lp, wxID_ANY);
   for (const char *c : {"hk(l): l is the layer", "h(k)l: k is the layer", "(h)kl: h is the layer"})
     p_zone->Append(c);
   p_zone->SetSelection(0);
@@ -788,11 +792,11 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_lres = lfield("Resolution d_min (A)", "1", "Spots with d below this are left out");
   p_lb = lfield("B (A^2)", "0", "Isotropic temperature factor");
   layerBox->Add(lg, 0, wxALL, 6);
-  p_absent = new wxCheckBox(this, wxID_ANY, "Show absent reflections");
+  p_absent = new wxCheckBox(lp, wxID_ANY, "Show absent reflections");
   p_absent->SetToolTip("Open circles where the structure factor is zero by symmetry");
-  p_lhkl = new wxCheckBox(this, wxID_ANY, "Label spots (hkl)");
+  p_lhkl = new wxCheckBox(lp, wxID_ANY, "Label spots (hkl)");
   p_lhkl->SetToolTip("hkl next to every spot above 0.5 % of the strongest reflection");
-  p_laxes = new wxCheckBox(this, wxID_ANY, "Reciprocal axes");
+  p_laxes = new wxCheckBox(lp, wxID_ANY, "Reciprocal axes");
   p_laxes->SetValue(true);
   for (wxCheckBox *c : {p_absent, p_lhkl, p_laxes}) layerBox->Add(c, 0, wxLEFT | wxRIGHT | wxTOP, 6);
   left->Add(layerBox, 0);
@@ -802,59 +806,63 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_frameItems = frameBox;
   wxFlexGridSizer *fg = new wxFlexGridSizer(2, 4, 6);
   auto ffield = [&](const char *label, const char *value, const char *tip) {
-    fg->Add(new wxStaticText(this, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
-    wxTextCtrl *t = new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
+    fg->Add(new wxStaticText(lp, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+    wxTextCtrl *t = new wxTextCtrl(lp, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
     t->SetToolTip(tip);
     fg->Add(t, 0);
     return t;
   };
-  fg->Add(new wxStaticText(this, wxID_ANY, "Start angle phi (deg)"), 0, wxALIGN_CENTER_VERTICAL);
-  p_fphi = new wxSlider(this, wxID_ANY, 0, 0, 359, wxDefaultPosition, wxSize(160, -1),
+  fg->Add(new wxStaticText(lp, wxID_ANY, "Start angle phi (deg)"), 0, wxALIGN_CENTER_VERTICAL);
+  p_fphi = new wxSlider(lp, wxID_ANY, 0, 0, 359, wxDefaultPosition, wxSize(160, -1),
                         wxSL_HORIZONTAL | wxSL_LABELS);
   p_fphi->SetToolTip("Where the oscillation starts, about the vertical axis");
   fg->Add(p_fphi, 0);
   p_fosc = ffield("Oscillation (deg)", "10", "Range turned during the exposure");
   p_fdist = ffield("Distance (mm)", "90", "Crystal to detector");
-  p_fsource = new wxChoice(this, wxID_ANY);
+  p_fsource = new wxChoice(lp, wxID_ANY);
   for (const char *c : {"Mo", "Cu", "Co"}) p_fsource->Append(c);
   p_fsource->SetSelection(0);
-  fg->Add(new wxStaticText(this, wxID_ANY, "Source"), 0, wxALIGN_CENTER_VERTICAL);
+  fg->Add(new wxStaticText(lp, wxID_ANY, "Source"), 0, wxALIGN_CENTER_VERTICAL);
   fg->Add(p_fsource, 0);
   frameBox->Add(fg, 0, wxALL, 6);
-  p_fnoise = new wxCheckBox(this, wxID_ANY, "Noise");
+  p_fnoise = new wxCheckBox(lp, wxID_ANY, "Noise");
   p_fnoise->SetValue(true);
-  p_flabel = new wxCheckBox(this, wxID_ANY, "Label spots");
+  p_flabel = new wxCheckBox(lp, wxID_ANY, "Label spots");
   p_flabel->SetToolTip("hkl next to the 12 strongest spots");
-  p_frings = new wxCheckBox(this, wxID_ANY, "Resolution rings");
+  p_frings = new wxCheckBox(lp, wxID_ANY, "Resolution rings");
   p_frings->SetToolTip("Circles at d = 3.0, 2.0, 1.5 and 1.0 A, labelled with d and 2 theta");
   for (wxCheckBox *c : {p_fnoise, p_flabel, p_frings}) frameBox->Add(c, 0, wxLEFT | wxRIGHT | wxTOP, 6);
   left->Add(frameBox, 0);
 
   // Exposure and colour scheme of the image views (#985).
-  wxStaticBoxSizer *disp = new wxStaticBoxSizer(wxVERTICAL, this, "Image");
+  wxStaticBoxSizer *disp = new wxStaticBoxSizer(wxVERTICAL, lp, "Image");
   p_displayItems = disp;
-  disp->Add(new wxStaticText(this, wxID_ANY, "Exposure"), 0, wxLEFT | wxTOP, 6);
-  p_exposure = new wxSlider(this, wxID_ANY, 0, -20, 20, wxDefaultPosition, wxSize(200, -1));
+  disp->Add(new wxStaticText(lp, wxID_ANY, "Exposure"), 0, wxLEFT | wxTOP, 6);
+  p_exposure = new wxSlider(lp, wxID_ANY, 0, -20, 20, wxDefaultPosition, wxSize(200, -1));
   p_exposure->SetToolTip("Intensity gain before saturation, in tenths of a stop; the data are unchanged");
   disp->Add(p_exposure, 0, wxLEFT | wxRIGHT, 6);
-  p_scheme = new wxChoice(this, wxID_ANY);
+  p_scheme = new wxChoice(lp, wxID_ANY);
   p_scheme->Append("Film (dark on light)");
   p_scheme->Append("Dark (black, blue, orange, white)");
   p_scheme->SetSelection(0);
   disp->Add(p_scheme, 0, wxALL, 6);
   left->Add(disp, 0, wxEXPAND | wxALL, 4);
 
-  wxButton *calc = new wxButton(this, wxID_ANY, "Calculate");
+  wxButton *calc = new wxButton(lp, wxID_ANY, "Calculate");
   left->Add(calc, 0, wxALL, 6);
-  wxButton *png = new wxButton(this, wxID_ANY, "Save PNG...");
-  wxButton *csv = new wxButton(this, wxID_ANY, "Save CSV...");
+  wxButton *png = new wxButton(lp, wxID_ANY, "Save PNG...");
+  wxButton *csv = new wxButton(lp, wxID_ANY, "Save CSV...");
   wxBoxSizer *save = new wxBoxSizer(wxHORIZONTAL);
   save->Add(png, 0, wxALL, 4);
   save->Add(csv, 0, wxALL, 4);
   left->Add(save, 0, wxALL, 2);
   left->AddStretchSpacer(1);
-  left->Add(new wxButton(this, wxID_CLOSE, "Close"), 0, wxALIGN_RIGHT | wxALL, 6);
-  top->Add(left, 0, wxEXPAND);
+  left->Add(new wxButton(lp, wxID_CLOSE, "Close"), 0, wxALIGN_RIGHT | wxALL, 6);
+  p_leftWin = lp;
+  lp->SetSizer(left);
+  left->Fit(lp);
+  lp->SetMinSize(wxSize(lp->GetBestSize().x + wxSystemSettings::GetMetric(wxSYS_VSCROLL_X), 100));
+  top->Add(lp, 0, wxEXPAND);
 
   wxBoxSizer *right = new wxBoxSizer(wxVERTICAL);
   p_panel = new DiffractionPanel(this, this);
@@ -881,7 +889,13 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   sp->SetSizer(ss);
   right->Add(sp, 0, wxEXPAND | wxALL, 4);
   top->Add(right, 1, wxEXPAND);
-  SetSizerAndFit(top);
+  SetSizer(top);
+  for (wxWindow *w : {(wxWindow *)p_panel, (wxWindow *)p_plot, (wxWindow *)p_list}) w->SetMinSize(wxSize(200, 140));
+  SetMinSize(wxSize(640, 480));
+  {
+    const wxRect area = wxDisplay(this).GetClientArea();
+    SetSize(std::min(1060, area.width * 8 / 10), std::min(780, area.height * 8 / 10));
+  }
   onPattern(p_periodic ? 1 : 0);
   powder->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(1); });
   fibre->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(0); });
@@ -978,8 +992,14 @@ void DiffractionDialog::onPattern(int mode)
   p_calc = wxImage();
   p_layerReady = false;
   p_panel->setImage(wxImage());
+  p_left->FitInside(p_leftWin);
   Layout();
-  GetSizer()->Fit(this);
+}
+
+wxString DiffractionDialog::sizeText() const
+{
+  const wxRect area = wxDisplay(this).GetClientArea();
+  return wxString::Format("window %dx%d, display client area %dx%d", GetSize().x, GetSize().y, area.width, area.height);
 }
 
 void DiffractionDialog::onSource()

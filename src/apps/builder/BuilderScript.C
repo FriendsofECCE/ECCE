@@ -1120,6 +1120,7 @@ void Builder::runBuilderScript(const std::string& file)
                  sscanf(w[7].c_str(), "%d,%d,%d", &h2, &k2, &l2) == 3)
           fprintf(stderr, "BUILDER: calcmeasure readout: %s\n",
                   dd->measure(h1, k1, l1, h2, k2, l2).ToUTF8().data());
+        if (dd) fprintf(stderr, "BUILDER: calcmeasure size: %s\n", dd->sizeText().ToUTF8().data());
         fprintf(stderr, "BUILDER: calcmeasure: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
       } else if (w[0] == "takefrom" && w.size() >= 3) {

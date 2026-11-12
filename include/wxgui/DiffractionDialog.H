@@ -9,6 +9,7 @@ class wxProcess;
 class DiffractionPanel;
 class PowderPanel;
 class wxListCtrl;
+class wxScrolledWindow;
 class wxGraphicsContext;
 
 // Tools > Diffraction... (#971): the calculated diffraction pattern of a
@@ -61,6 +62,8 @@ public:
   wxString measure(int h1, int k1, int l1, int h2, int k2, int l2);
   // The same for the two strongest spots (frame or layer).
   wxString measureStrongest();
+  // Window and display client-area size (test hook).
+  wxString sizeText() const;
   // Powder cursor readout at a 2theta (degrees): 2theta, d, Q and I of the
   // curve, plus the reflection within tolerance if there is one.
   wxString cursorText(double twoTheta, double tolerance) const;
@@ -130,6 +133,7 @@ private:
   std::vector<Spot> p_spots;
   wxString measureText(const Spot& a, const Spot* b) const;
   const Spot *spotNear(int x, int y) const;
+  wxScrolledWindow *p_leftWin;
   wxChoice *p_scheme;
   wxSlider *p_exposure;
   wxSizer *p_displayItems;
