@@ -70,6 +70,15 @@ void HydrogenBondsCmd::init()
 
 namespace {
 
+struct V3 {
+   double v[3];
+   V3() { v[0] = v[1] = v[2] = 0.0; }
+   V3(double x, double y, double z) { v[0] = x; v[1] = y; v[2] = z; }
+   double x() const { return v[0]; }
+   double y() const { return v[1]; }
+   double z() const { return v[2]; }
+};
+
 // Donors N, O, F, S; acceptors N, O, F, and Cl/Br ions (no covalent bond).
 bool donorElement(int z) { return z == 7 || z == 8 || z == 9 || z == 16; }
 bool acceptorElement(int z) { return z == 7 || z == 8 || z == 9; }
@@ -77,12 +86,12 @@ bool halideElement(int z) { return z == 17 || z == 35; }
 
 // Minimum-image difference vector for the lattice a[0..2] (triclinic safe).
 struct MinImage {
-   MPoint a[3];
-   MPoint cr[3];      // a_j x a_k / V: fractional coordinate i is d . cr[i]
+   V3 a[3];
+   V3 cr[3];      // a_j x a_k / V: fractional coordinate i is d . cr[i]
    bool periodic;
    MinImage(LatticeDef *lat) : periodic(false) {
       if (!lat) return;
-      vector<MPoint> *v = lat->toVectors();
+      vector<V3> *v = lat->toVectors();
       if (v->size() == 3) {
          for (int i = 0; i < 3; i++) a[i] = (*v)[i];
          double vol = dot(a[0], cross(a[1], a[2]));
@@ -95,32 +104,32 @@ struct MinImage {
       }
       delete v;
    }
-   static double dot(const MPoint& p, const MPoint& q) {
+   static double dot(const V3& p, const V3& q) {
       return p.x()*q.x() + p.y()*q.y() + p.z()*q.z();
    }
-   static MPoint cross(const MPoint& p, const MPoint& q) {
-      return MPoint(p.y()*q.z()-p.z()*q.y(), p.z()*q.x()-p.x()*q.z(),
+   static V3 cross(const V3& p, const V3& q) {
+      return V3(p.y()*q.z()-p.z()*q.y(), p.z()*q.x()-p.x()*q.z(),
                     p.x()*q.y()-p.y()*q.x());
    }
-   static MPoint scale(const MPoint& p, double f) {
-      return MPoint(p.x()*f, p.y()*f, p.z()*f);
+   static V3 scale(const V3& p, double f) {
+      return V3(p.x()*f, p.y()*f, p.z()*f);
    }
    // Shortest of the images of d: round to the nearest cell, then check the
    // 27 neighbours, since a skewed cell's rounding is not always the minimum.
-   MPoint reduce(const MPoint& d) const {
+   V3 reduce(const V3& d) const {
       if (!periodic) return d;
       double f[3];
       for (int i = 0; i < 3; i++) f[i] = floor(dot(d, cr[i]) + 0.5);
-      MPoint base(d.x() - f[0]*a[0].x() - f[1]*a[1].x() - f[2]*a[2].x(),
+      V3 base(d.x() - f[0]*a[0].x() - f[1]*a[1].x() - f[2]*a[2].x(),
                   d.y() - f[0]*a[0].y() - f[1]*a[1].y() - f[2]*a[2].y(),
                   d.z() - f[0]*a[0].z() - f[1]*a[1].z() - f[2]*a[2].z());
-      MPoint best = base;
+      V3 best = base;
       double bl = dot(base, base);
       for (int i = -1; i <= 1; i++)
       for (int j = -1; j <= 1; j++)
       for (int k = -1; k <= 1; k++) {
          if (!i && !j && !k) continue;
-         MPoint t(base.x() + i*a[0].x() + j*a[1].x() + k*a[2].x(),
+         V3 t(base.x() + i*a[0].x() + j*a[1].x() + k*a[2].x(),
                   base.y() + i*a[0].y() + j*a[1].y() + k*a[2].y(),
                   base.z() + i*a[0].z() + j*a[1].z() + k*a[2].z());
          double l = dot(t, t);
@@ -178,7 +187,7 @@ bool HydrogenBondsCmd::execute()
       grid.resize(ng[0]*ng[1]*ng[2]);
       for (int n = 0; n < nAtoms; n++) {
          const double *c = (*atoms)[n]->coordinates();
-         MPoint p(c[0], c[1], c[2]);
+         V3 p(c[0], c[1], c[2]);
          int idx[3];
          for (int i = 0; i < 3; i++) {
             double f = MinImage::dot(p, mi.cr[i]);
@@ -236,7 +245,7 @@ bool HydrogenBondsCmd::execute()
 
       const double *pd = donor->coordinates();
       const double *ph = h->coordinates();
-      MPoint dh(ph[0]-pd[0], ph[1]-pd[1], ph[2]-pd[2]);
+      V3 dh(ph[0]-pd[0], ph[1]-pd[1], ph[2]-pd[2]);
       double dhLen = sqrt(MinImage::dot(dh, dh));
       if (dhLen < 1e-6) continue;
 
@@ -250,7 +259,7 @@ bool HydrogenBondsCmd::execute()
          if (bonded) continue;
 
          const double *pa = acc->coordinates();
-         MPoint da = mi.reduce(MPoint(pa[0]-pd[0], pa[1]-pd[1], pa[2]-pd[2]));
+         V3 da = mi.reduce(V3(pa[0]-pd[0], pa[1]-pd[1], pa[2]-pd[2]));
          double len = sqrt(MinImage::dot(da, da));
          if (len > maxD || len < 1e-6) continue;
          if (MinImage::dot(dh, da)/(dhLen*len) < cosMin) continue;
