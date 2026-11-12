@@ -170,8 +170,9 @@ public:
                    double maxDist, string *outcome);
   void siteResults(const EcceURL& at, bool interactive, string *outcome);
   void OnTerminateSelectedClick( wxCommandEvent& event );
+  // `results`: one "name TAB url TAB started|refused TAB reason" per URL.
   void reparseOutputs(const vector<EcceURL>& urls, bool interactive,
-                      string *outcome = 0);
+                      string *outcome = 0, vector<string> *results = 0);
   // A job store ended a re-parse ("done" or "failed").
   void reparseFinished(const EcceURL& url, const string& result);
   // Reconnect Selected (#601), same selection; `listOnly`/`shot` for tests.
