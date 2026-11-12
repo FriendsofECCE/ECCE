@@ -1005,6 +1005,17 @@ void Builder::runBuilderScript(const std::string& file)
         }
         fprintf(stderr, "BUILDER: diffraction: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
+      } else if (w[0] == "calcdiffraction" && w.size() >= 3) {
+        //  calcdiffraction OUT.png OUT.csv [XYZ]: the Diffraction entry of the
+        //  open calculation's results, default fields (#587).
+        std::string err, why;
+        DiffractionDialog *dd = calcIsPeriodic() ?
+            openResultsDiffraction(w.size() > 3 ? w[3] : w[1] + ".xyz") : 0;
+        if (!dd) err = "no Diffraction entry for this calculation";
+        else if (!dd->calculate(why)) err = why;
+        else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
+        fprintf(stderr, "BUILDER: calcdiffraction: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
+        if (dd) dd->Destroy();
       } else if (w[0] == "takefrom" && w.size() >= 3) {
         //  takefrom PATH.xyz SET|selected [align]: Take Coordinates From...
         //  with the other structure read from an .xyz file (#620).

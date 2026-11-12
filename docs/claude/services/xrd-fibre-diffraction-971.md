@@ -19,3 +19,21 @@ issues: [971]
 - The dialog's CSV and the CLI's are the same function: the dialog passes only
   the structure file, an atom list and the fields, so a results window can open
   it the same way as the Builder.
+
+## Powder (#587)
+
+- `ecce-xrd powder` merges reflections of equal d (tolerance 1e-4 A) into one
+  line and counts the multiplicity, so no space-group tables are needed. The
+  library returns every line including the systematically absent ones (I ~ 0);
+  the table, CSV and `--json` leave out I_rel < 0.001.
+- gemmi's `calculate_sf_from_small_structure` counts a special position once per
+  symmetry operation (48x too large for Cu); sum `get_all_unit_cell_sites()` with
+  `element.it92.calculate_sf` instead (tests/xrd/powder_test.py).
+- A periodic structure reaches the dialog as an .xyz whose comment line is
+  `Lattice="ax ay az bx by bz cx cy cz"` (`Builder::writeStructureXyz`). The
+  Diffraction entry in a calculation's results is added by hand to the Builder's
+  Properties menu and list for a structure with a lattice (`calcIsPeriodic`); it is
+  not a parsed property. It uses the last GEOMTRACE step when the trace has one
+  row per atom.
+- Neutral-atom IT92 form factors: KCl (111) is weak (I ~ 0.3 % of (200)) rather
+  than zero, which would need K+ and Cl-.

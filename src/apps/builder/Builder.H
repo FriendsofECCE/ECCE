@@ -184,7 +184,8 @@ class Builder: public BuilderGUI,
       ID_ACCEL_SELECTALL,
       // Ctrl+S: Save, or Save As when there is nothing to save into
       ID_ACCEL_SAVE,
-      ID_SURFACE_MENU_BASE = 3500
+      ID_SURFACE_MENU_BASE = 3500,
+      ID_DIFFRACTION_ENTRY = 3600
     };
 
     const static string NAME_TOOL_CONTEXT;
@@ -312,7 +313,15 @@ class Builder: public BuilderGUI,
       /// Tools > Diffraction... (#971): the structure as an .xyz file, and the
       /// selected atoms (numbered from 1).
       /// @return why nothing was written, or empty
-      string writeStructureXyz(const string& path, vector<int>& selected);
+      // traceStep >= 0 takes the coordinates from that GEOMTRACE step
+      string writeStructureXyz(const string& path, vector<int>& selected,
+                               int traceStep = -1);
+      // The calculation has a lattice: its results get a Diffraction entry (#587)
+      bool calcIsPeriodic();
+      // Opens Diffraction on the final geometry (last GEOMTRACE step, else the
+      // structure); xyz names the file it is written to, "" for a temporary one.
+      class DiffractionDialog *openResultsDiffraction(const string& xyz = "");
+      void OnDiffractionEntry(wxCommandEvent& event);
 
       /// Replace Group (#833): the selected terminal group (a bond, or its
       /// first atom) becomes the SMILES fragment, whose [*] is the
