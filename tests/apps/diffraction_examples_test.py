@@ -150,7 +150,7 @@ def main():
                     # layer: (2 0 0) to (4 0 0) is 1/d(200) = 1/2.82 A, one spot between, cell 5.64 A
                     bo.check("0.3546 Å⁻¹" in rd[0] and "1 spots between" in rd[0] and "cell edge 5.640 Å" in rd[0],
                              "layer measure: %s" % rd[0])
-                    fm = re.match(r"\((-?\d+) (-?\d+) (-?\d+)\) to \((-?\d+) (-?\d+) (-?\d+)\): ([\d.]+) mm.*, ([\d.]+) deg", rd[1])
+                    fm = re.match(r"\((-?\d+) (-?\d+) (-?\d+)\) to \((-?\d+) (-?\d+) (-?\d+)\): ([\d.]+) mm.*, ([\d.]+) ?(?:°|deg)", rd[1])
                     if bo.check(fm is not None, "frame measure: %s" % rd[1]):
                         g = [int(v) for v in fm.groups()[:6]]
                         fr = [ln.split(",") for ln in open(os.path.join(out, "fr_film.csv")).read().splitlines()[1:]]
