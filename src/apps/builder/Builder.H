@@ -141,6 +141,7 @@ class Builder: public BuilderGUI,
       ID_GEOM_CONSTRAINTS,
       ID_ADD_DUMMY,
       ID_ADD_SMILES,
+      ID_DIFFRACTION,
       ID_REPLACE_GROUP,
       ID_VINA_BOX,
       ID_VIEW_TOGGLE_COLUMN,
@@ -308,6 +309,11 @@ class Builder: public BuilderGUI,
       /// @return why nothing was added, or empty
       string addFromSmiles(const string& smiles, bool extended);
 
+      /// Tools > Diffraction... (#971): the structure as an .xyz file, and the
+      /// selected atoms (numbered from 1).
+      /// @return why nothing was written, or empty
+      string writeStructureXyz(const string& path, vector<int>& selected);
+
       /// Replace Group (#833): the selected terminal group (a bond, or its
       /// first atom) becomes the SMILES fragment, whose [*] is the
       /// attachment point.  @return why nothing changed, or empty
@@ -427,6 +433,7 @@ class Builder: public BuilderGUI,
       void OnGeomConstraints( wxCommandEvent& event );
       void OnAddDummy( wxCommandEvent& event );
       void OnAddSmiles( wxCommandEvent& event );
+      void OnDiffraction( wxCommandEvent& event );
       void OnReplaceGroup( wxCommandEvent& event );
       void OnVinaBoxFromSelection(wxCommandEvent& event);
 

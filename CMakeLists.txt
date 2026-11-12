@@ -1387,6 +1387,12 @@ install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar_chem.py
         DESTINATION scripts
         COMPONENT client)
 
+# ecce-xrd (#971): calculated diffraction patterns; fibre now, powder (#587) and
+# layer (#972) later.  numpy only.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_xrd.py
+        DESTINATION bin RENAME ecce-xrd
+        COMPONENT client)
+
 # ecce-morse (#858): Morse fit of a bond scan; the Relaxed Scan panel runs it.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_morse.py
         DESTINATION bin RENAME ecce-morse
@@ -2823,6 +2829,13 @@ add_test(NAME checks_table
 
 # tests/qsar -- scripts/ecce_qsar*.py (#961): descriptors against RDKit's published
 # values, Open Babel (skips that part without obabel) and the stored water calculation.
+# tests/xrd -- scripts/ecce_xrd.py (#971): the cylindrical average two ways, an
+# ideal helix against its Bessel-function intensities, form factors, B-DNA and
+# alpha-helix patterns.
+add_test(NAME xrd_fibre
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/fibre_test.py)
+set_tests_properties(xrd_fibre PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
 add_test(NAME qsar_descriptors
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/qsar/descriptors_test.py)
@@ -3838,6 +3851,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/checks_table_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_checks_table PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Tools > Diffraction...: the dialog's CSV equals ecce-xrd fibre (#971).
+  add_test(NAME apps_fibre_dialog
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/fibre_dialog_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_fibre_dialog PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # QSAR table: the dialog's rows equal ecce-qsar table (#961).
@@ -5303,6 +5324,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-rate=bin/ecce-rate
   ecce-morse=bin/ecce-morse
   ecce-qsar=bin/ecce-qsar
+  ecce-xrd=bin/ecce-xrd
   ecce-gmxanalysis=bin/ecce-gmxanalysis
   ecce-spectrum=bin/ecce-spectrum
   ecce-displace=bin/ecce-displace

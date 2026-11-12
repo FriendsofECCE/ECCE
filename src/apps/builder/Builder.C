@@ -86,6 +86,8 @@ using std::vector;
 
 #include "wxgui/ContextHistory.H"
 #include "wxgui/ewxWindowUtils.H"
+#include "wxgui/DiffractionDialog.H"
+#include "util/Filesystem.H"
 #include <wx/dcgraph.h>
 #include <wx/bmpbndl.h>
 #include "wxgui/ewxBitmap.H"
@@ -932,6 +934,9 @@ void Builder::createMenus()
   p_toolMenu->Append(ID_ADD_SMILES, _("Add from SMILES..."),
                      _("Build a molecule from a SMILES string"));
   Bind(wxEVT_MENU, &Builder::OnAddSmiles, this, ID_ADD_SMILES);
+  p_toolMenu->Append(ID_DIFFRACTION, _("Diffraction..."),
+                     _("Calculated diffraction pattern of this structure or the selected atoms"));
+  Bind(wxEVT_MENU, &Builder::OnDiffraction, this, ID_DIFFRACTION);
   p_toolMenu->Append(ID_REPLACE_GROUP, _("Replace Group..."),
                      _("Replace the selected terminal group by a SMILES fragment"));
   Bind(wxEVT_MENU, &Builder::OnReplaceGroup, this, ID_REPLACE_GROUP);
@@ -5003,6 +5008,41 @@ void Builder::OnAddSmiles(wxCommandEvent& event)
   const string err = addFromSmiles(string(text->GetValue().ToUTF8()),
                                    ext->GetValue());
   if (!err.empty()) showMessage(err, true);
+}
+
+
+string Builder::writeStructureXyz(const string& path, vector<int>& selected)
+{
+  SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+  if (!frag || frag->numAtoms() == 0) return "No structure is open.";
+  std::ofstream out(path);
+  if (!out) return "Cannot write " + path;
+  out << frag->numAtoms() << "\nBuilder structure\n";
+  char buf[160];
+  for (int i = 0; i < (int)frag->numAtoms(); i++) {
+    const double *c = frag->atomRef(i)->coordinates();
+    snprintf(buf, sizeof buf, "%s %.6f %.6f %.6f\n",
+             frag->atomRef(i)->atomicSymbol().c_str(), c[0], c[1], c[2]);
+    out << buf;
+  }
+  selected.clear();
+  for (int a : frag->m_atomHighLight) selected.push_back(a + 1);
+  std::sort(selected.begin(), selected.end());
+  return "";
+}
+
+
+void Builder::OnDiffraction(wxCommandEvent& event)
+{
+  static int serial = 0;
+  const string xyz = (ecce::fs::temp_directory_path() /
+      ("ecce-builder-" + std::to_string(wxGetProcessId()) + "-" +
+       std::to_string(serial++) + ".xyz")).string();
+  vector<int> selected;
+  const string err = writeStructureXyz(xyz, selected);
+  if (!err.empty()) { showMessage(err, true); return; }
+  DiffractionDialog *dlg = new DiffractionDialog(this, xyz, selected);
+  dlg->Show();
 }
 
 
