@@ -4046,6 +4046,10 @@ add_executable(box_shape_test tests/boxshape/box_shape_test.C)
 target_link_libraries(box_shape_test PRIVATE eccetdat ecceutil)
 add_test(NAME box_shape COMMAND box_shape_test ${CMAKE_SOURCE_DIR}/tests/boxshape/fixtures)
 
+
+add_test(NAME packaging_units_text
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/packaging/units_text_test.py)
 # ------------------------------------------------------------------------
 # Windows: every program (GUI apps via ecce.rc) gets the UTF-8 ANSI-code-page
 # manifest, so getenv/fopen/CreateProcessA agree with the UTF-8 paths bash,

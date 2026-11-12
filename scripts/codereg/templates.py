@@ -109,7 +109,8 @@ def InRange(range, value):
 def shownUnit(unit):
     # unitString is compared with the unit stored in the calculation, so only
     # the label shows the Angstrom sign.
-    return unit.replace("Angstroms", "\u00c5").replace("Angstrom", "\u00c5")
+    unit = unit.replace("Angstroms", "\u00c5").replace("Angstrom", "\u00c5")
+    return re.sub(r"(?<![A-Za-z])A$|(?<=/)A(?![A-Za-z])", "\u00c5", unit)
 
 
 class EcceFrame(wx.Frame):

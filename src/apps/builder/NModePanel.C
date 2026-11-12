@@ -2362,7 +2362,7 @@ bool NModePanel::showComposition(int chBends, wxString *error)
       //  The last column follows the window; the columns must not size it.
       p_compGrid->SetMinSize(wxSize(200, 100));
       p_compGrid->SetColLabelValue(0, "Mode");
-      p_compGrid->SetColLabelValue(1, "cm-1");
+      p_compGrid->SetColLabelValue(1, wxString::FromUTF8("cm\xE2\x81\xBB\xC2\xB9"));
       p_compGrid->SetColLabelValue(2, "Mode type");
       p_compGrid->SetColLabelValue(3, "Largest contributions");
       p_compGrid->GetGridWindow()->Bind(wxEVT_MOTION, [this](wxMouseEvent& e) {
@@ -2482,7 +2482,7 @@ wxString NModePanel::compositionText(char sep) const
    wxString out;
    for (int c = 0; c < p_compGrid->GetNumberCols(); c++)
       out += (c ? wxString(sep) : wxString()) +
-             cell(c == 1 ? wxString(wxT("cm-1")) : p_compGrid->GetColLabelValue(c));
+             cell(c == 1 ? wxString::FromUTF8("cm\xE2\x81\xBB\xC2\xB9") : p_compGrid->GetColLabelValue(c));
    out += "\n";
    for (int r = 0; r < p_compGrid->GetNumberRows(); r++) {
       for (int c = 0; c < p_compGrid->GetNumberCols(); c++)

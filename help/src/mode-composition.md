@@ -29,7 +29,7 @@ H-C-H) to the set. They overlap the stretches and bends around that carbon,
 so with them the shares of the other coordinates become smaller; the choice
 is remembered.
 
-**Copy table** puts the table on the clipboard, tab-separated (Mode, cm-1,
+**Copy table** puts the table on the clipboard, tab-separated (Mode, cm⁻¹,
 Mode type, contributions), ready to paste into a spreadsheet or a document.
 **Export .csv...** writes the same table to a comma-separated file.
 
