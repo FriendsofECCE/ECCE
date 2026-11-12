@@ -44,7 +44,7 @@ def count(atoms, donors, dist=3.5, angle=30.0):
         if e != "H":
             continue
         near = [(math.dist(p, q), j) for j, (f, q) in enumerate(atoms)
-                if j != i and math.dist(p, q) < 0.5 * (COV["H"] + COV.get(f, 1.5)) + 0.45]
+                if j != i and math.dist(p, q) < COV["H"] + COV.get(f, 1.5) + 0.4]
         if not near:
             continue
         d = min(near)[1]
