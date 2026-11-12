@@ -149,7 +149,7 @@ struct MqttBroker::Impl {
   }
 
   void flush(Client& c) {
-    while (!c.out.empty() && !c.dead) {
+    while (!c.out.empty()) {
       int k = (int)send(c.fd, c.out.data(), (int)std::min<size_t>(c.out.size(), 1 << 16), SEND_FLAGS);
       if (k > 0) c.out.erase(0, k);
       else if (k < 0 && wouldBlock()) return;
