@@ -610,10 +610,12 @@ def powder_reflections(lat, sym, frac, occ, wavelength=CU_KA1, tt_min=5.0,
     return r
 
 
-# Kalpha1/Kalpha2 wavelengths in Angstrom: International Tables for
-# Crystallography Vol. C, Table 4.2.2.1 (Cu 1.540593/1.544414, Mo 0.709317/
-# 0.713607, Co 1.788996/1.792850); Ka2 has half the intensity of Ka1.
-DOUBLETS = {"cu": (1.540593, 1.544414), "mo": (0.709317, 0.713607), "co": (1.788996, 1.792850)}
+# Kalpha1/Kalpha2 wavelengths in Angstrom, as diffractometers record them so a
+# calculated pattern lines up with a measured one: Cu as PANalytical .xrdml
+# files give it (Bruker .brml rounds to 1.5406/1.54439), Mo 0.70930/0.71359.
+# Co not checked against an instrument file. Ka2 has half Ka1's intensity; a
+# measured file's own wavelengths take precedence over this table.
+DOUBLETS = {"cu": (1.540598, 1.544426), "mo": (0.709300, 0.713590), "co": (1.788996, 1.792850)}
 KA2_RATIO = 0.5
 
 
