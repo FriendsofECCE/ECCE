@@ -2405,6 +2405,9 @@ set_tests_properties(minff_prepare PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
 # a TCP broker with two accounts and the shipped access rules.  SKIPs (77)
 # without the mosquitto binary.
+# The built-in broker (#990) as a program; the Windows tests start it too.
+add_executable(eccebroker tests/mqtt/broker_cli.C)
+target_link_libraries(eccebroker PRIVATE ecceutil ${XercesC_LIBRARIES})
 if(NOT WIN32)
 add_executable(mqtt_test tests/mqtt/mqtt_test.C)
 target_include_directories(mqtt_test PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -2415,8 +2418,6 @@ add_test(NAME mqtt-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR})
 # edge cases and the Windows session path (broker file with its own login).
 add_test(NAME mqtt-builtin-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} builtin)
 add_test(NAME mqtt-builtin-session COMMAND mqtt_test session ${CMAKE_SOURCE_DIR})
-add_executable(eccebroker tests/mqtt/broker_cli.C)
-target_link_libraries(eccebroker PRIVATE ecceutil ${XercesC_LIBRARIES})
 add_test(NAME mqtt-builtin-linger COMMAND mqtt_test linger ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-builtin-interop COMMAND mqtt_test interop)
 set_tests_properties(mqtt-builtin-auth mqtt-builtin-session mqtt-builtin-linger mqtt-builtin-interop PROPERTIES TIMEOUT 180)

@@ -204,9 +204,13 @@ def builderDrawsOrbital(url, name):
 
 def main():
     oracle = json.load(open(ORACLE))
-    rc, out = run([BASH, tree + "/bin/ecce-broker-win", "start"])
-    say(out.strip())
-    if not check(rc == 0, "session broker started"):
+    # The built-in broker (#990), as the Organizer runs it.
+    broker = subprocess.Popen([BIN + "/eccebroker.exe", "--session", "2"], env=env,
+                              stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+    line = broker.stdout.readline().decode("utf-8", "replace").strip()
+    say(line)
+    if not check("started" in line, "session broker started"):
         return 1
     try:
         rc, out = drv("machines", "ECCE-QM")
@@ -259,7 +263,11 @@ def main():
             checkOrbitals(calc, sum(Z[a[0]] for a in MOLECULES[mol][2]) - MOLECULES[mol][0])
             builderDrawsOrbital(url, name)
     finally:
-        run([BASH, tree + "/bin/ecce-broker-win", "stop"])
+        broker.stdin.close()
+        try:
+            broker.wait(timeout=60)
+        except subprocess.TimeoutExpired:
+            broker.kill()
     say("")
     say("FAILED: " + "; ".join(failures) if failures else "PASSED")
     return 1 if failures else 0
