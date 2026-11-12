@@ -1288,10 +1288,10 @@ string ReactionOverviewDialog::reactionText(int n) const
   d += "dE_el " + num(r.dE, "%.2f") + "   dG " + num(r.dG, "%.2f") + "   spread " +
        num(r.spread, "%.2f") + " kJ/mol (dG over the treatments " + num(r.lo, "%.2f") + " to " +
        num(r.hi, "%.2f") + ")\n";
-  d += "Soft modes (< 100 cm-1), share of the species' S and of its G correction:\n";
+  d += "Soft modes (< 100 cm\xE2\x81\xBB\xC2\xB9), share of the species' S and of its G correction:\n";
   if (r.modes.empty()) d += "  none\n";
   for (const Mode& m : r.modes)
-    d += "  " + m.species + "  " + num(m.freq, "%.1f") + " cm-1  S " + num(m.S) + " J/mol/K (" +
+    d += "  " + m.species + "  " + num(m.freq, "%.1f") + " cm\xE2\x81\xBB\xC2\xB9  S " + num(m.S) + " J/mol/K (" +
          num(100 * m.Sshare, "%.1f") + "%)  G " + num(m.G) + " kJ/mol (" +
          num(100 * m.Gshare, "%.1f") + "%)\n";
   for (size_t p = 0; p < p_profiles.size(); p++)

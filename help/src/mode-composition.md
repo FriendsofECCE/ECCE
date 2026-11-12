@@ -29,7 +29,7 @@ H-C-H) to the set. They overlap the stretches and bends around that carbon,
 so with them the shares of the other coordinates become smaller; the choice
 is remembered.
 
-**Copy table** puts the table on the clipboard, tab-separated (Mode, cm-1,
+**Copy table** puts the table on the clipboard, tab-separated (Mode, cm⁻¹,
 Mode type, contributions), ready to paste into a spreadsheet or a document.
 **Export .csv...** writes the same table to a comma-separated file.
 
@@ -92,5 +92,5 @@ Choose the amplitude (the distance the atom that moves most is displaced,
 two calculations. The stored mode vectors are scaled to that amplitude; for
 all imaginary modes each is scaled first, then the sum is rescaled. The copy
 has the same code, theory and basis, the run type Geometry optimisation, and
-an annotation such as "displaced +0.10 Å along mode 1 (412i cm-1) of
+an annotation such as "displaced +0.10 Å along mode 1 (412i cm⁻¹) of
 source". Refresh the Organizer to see it.

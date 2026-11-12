@@ -1,0 +1,3 @@
+# <path regex> TAB <line regex>: accepted ASCII unit spellings (#998).
+# Rewritten on another branch; remove when it lands.
+^src/wxgui/wxdialogs/DiffractionDialog\.C$

@@ -9,10 +9,10 @@ are not changed.
 
 - **Treatment** is how the low frequencies are handled: RRHO (every mode as a
   harmonic oscillator); Grimme's quasi-RRHO entropy with omega0 = 50, 100 or
-  200 cm-1 (the entropy of modes below omega0 is blended into a free rotor);
-  Truhlar's treatment (modes below 100 cm-1 are raised to 100 cm-1); or
+  200 cm⁻¹ (the entropy of modes below omega0 is blended into a free rotor);
+  Truhlar's treatment (modes below 100 cm⁻¹ are raised to 100 cm⁻¹); or
   Head-Gordon's quasi-RRHO enthalpy and entropy. ORCA's own G uses Grimme with
-  omega0 = 100 cm-1.
+  omega0 = 100 cm⁻¹.
 - **Temperature (K)** starts at the temperature of the calculation. Press Enter
   or leave the field to recompute.
 - **Standard state** is 1 atm (gas) or 1 M (solution).
@@ -25,7 +25,7 @@ are not changed.
   Non-linear cannot be chosen for a molecule that is exactly linear.
 
 The first line of the notes gives the point group, the symmetry number used and
-where it came from, and the rotor type. If the structure is within 0.05 A of a
+where it came from, and the rotor type. If the structure is within 0.05 Å of a
 point group with a larger symmetry number (or a linear one) than was used, the
 notes say so and give that group's number. A structure a hair off its symmetry
 otherwise gets too small a symmetry number and a G that is too high.

@@ -5448,6 +5448,10 @@ add_test(NAME packaging_command_wrappers
                  --home ${CMAKE_INSTALL_PREFIX}
                  --wrappers ${ECCE_WRAPPER_DESTINATION})
 
+add_test(NAME packaging_units_text
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/packaging/units_text_test.py)
+
 # FragGraft: SMILES building and fragment grafting geometry (#833).
 add_executable(fraggraft_test tests/tdat/fraggraft_test.C)
 target_link_libraries(fraggraft_test PRIVATE eccetdat ecceutil)

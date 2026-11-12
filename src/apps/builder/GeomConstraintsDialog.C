@@ -430,7 +430,7 @@ void GeomConstraintsDialog::editRow(long row, bool scanOn)
   GeomRestraint *r = dynamic_cast<GeomRestraint*>(c);
 
   const bool length = c->getNumAtoms() == 2;
-  const wxString unit = length ? wxString::FromUTF8("Å") : wxString("degrees");
+  const wxString unit = length ? wxString::FromUTF8("Å") : wxString::FromUTF8("\xC2\xB0");
   wxDialog d(this, wxID_ANY, "Edit Value");
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
   wxFlexGridSizer *grid = new wxFlexGridSizer(2, 5, 8);
