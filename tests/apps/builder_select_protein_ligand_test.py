@@ -15,11 +15,16 @@ STRUCTURE = os.path.join(HERE, "fixtures", "select-protein-ligand.pdb")
 #  ALA-GLY (9 atoms), ligand LIG (6), smaller LG2 (3), glycerol (additive),
 #  two waters and a sodium ion.
 SCRIPT = [
-    "wait 2000", "expect atoms 27",
+    "wait 2000", "expect atoms 27", "atomstyles",
     "select_protein", "selection",
     "menu Edit|Clear Selection", "select_ligand", "selection",
     "menu Edit|Clear Selection", "menu Edit|Select Protein", "selection",
     "menu Edit|Clear Selection", "menu Edit|Select Ligand", "selection",
+    #  Replace, not add: ligand then protein is the protein alone.
+    "menu Edit|Clear Selection", "select_ligand", "selection",
+    "select_protein", "selection",
+    "menu Edit|Clear Selection", "select_ligand", "menu Render|Wireframe",
+    "atomstyles",
     "quit",
 ]
 
@@ -55,9 +60,27 @@ def problemsIn(log):
         if "ECCE_BUILDER_SCRIPT" in line and "FAIL" in line:
             problems.append(line.strip())
     counts = [int(m) for m in re.findall(r"BUILDER: selection atoms=(\d+)", log)]
-    expected = [9, 6, 9, 6]
+    expected = [9, 6, 9, 6, 6, 9]
     if counts != expected:
         problems.append("selected atom counts %s, want %s" % (counts, expected))
+    styles = [[(int(a), int(b), s) for a, b, s in
+               re.findall(r"(\d+)-(\d+) (\S+)", m)]
+              for m in re.findall(r"BUILDER: atomstyles(.*)", log)]
+    if len(styles) != 2:
+        problems.append("%d style dumps, want 2" % len(styles))
+    else:
+        def styleOf(runs, i):
+            return next((s for a, b, s in runs if a <= i <= b), None)
+        for i in range(27):
+            want = "Wireframe" if 9 <= i <= 14 else styleOf(styles[0], i)
+            if i in (0, 9) and styleOf(styles[0], i).endswith("Wireframe"):
+                problems.append("fixture already Wireframe: weak test")
+            if not styleOf(styles[1], i) or \
+                    styleOf(styles[1], i).split(":")[-1] != \
+                    want.split(":")[-1]:
+                problems.append("atom %d style %s, want %s"
+                                % (i, styleOf(styles[1], i), want))
+                break
     if "Selected ligand LIG 101 (6 atoms)" not in log or "1 other" not in log:
         problems.append("ligand message does not name LIG and the other residue")
     print("%s  select protein/ligand: atoms and message: %s" %
