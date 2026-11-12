@@ -495,6 +495,9 @@ class CalcEd: public CalcEdGUI,
     int               p_runtypePid;
     string            p_runtypeInFilePath;
     SFile            *p_runtypeOutFile;
+    // The Vina note's file, beside the restore file: kept after that file is
+    // deleted at #INITIALIZED, since the dialog polls it while it is open.
+    string            p_runtypeNotePath;
     wxDatagramSocket *p_runtypeInSocket;
     unsigned short    p_runtypeInPort;
     bool              p_runtypeInFlag;
