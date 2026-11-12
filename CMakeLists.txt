@@ -3573,6 +3573,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_workflow PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Archived workflows still open when their files cannot be written (#952).
+  add_test(NAME apps_workflow_readonly
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/workflow_test.py --readonly-only
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_workflow_readonly PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Protonation Sites recipe: CREST's launch check and the protomer after it (#851).
   add_test(NAME apps_workflow_protonation
            COMMAND ${PYTHON3_EXECUTABLE}

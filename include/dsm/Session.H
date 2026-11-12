@@ -115,7 +115,7 @@ public:
             LinkType linkType, string linkName = "")
 ;
 
-  virtual bool addMember(Resource * res);
+  virtual bool addMember(Resource * res, bool assignIndex = true);
 
   virtual void addMemberAsTarget(Resource * target, Resource * source = 0)
 ;
