@@ -1024,18 +1024,21 @@ void Builder::createRotators(wxWindow *parent)
   p_xrot = new wxSpinCtrl(parent, ID_ROT_X, "0", wxDefaultPosition,
                            wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
+  p_xrot->SetMinSize(wxSize(p_xrot->GetTextExtent("-179").x + 44, -1));
   p_rotSizer->Add(p_xrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Y"), 0,
                   wxALIGN_CENTER|wxLEFT, 5);
   p_yrot = new wxSpinCtrl(parent, ID_ROT_Y, "0", wxDefaultPosition,
                            wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
+  p_yrot->SetMinSize(wxSize(p_yrot->GetTextExtent("-179").x + 44, -1));
   p_rotSizer->Add(p_yrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Z"), 0,
                    wxALIGN_CENTER|wxLEFT, 5);
   p_zrot = new wxSpinCtrl(parent, ID_ROT_Z, "0", wxDefaultPosition,
                            wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
+  p_zrot->SetMinSize(wxSize(p_zrot->GetTextExtent("-179").x + 44, -1));
   p_rotz = 0;
   p_rotSizer->Add(p_zrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->AddStretchSpacer(1);
