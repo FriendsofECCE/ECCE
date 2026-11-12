@@ -64,7 +64,7 @@ def main():
         m = re.search(r"BUILDER: atoms=(\d+) lattice=(\w+)", text)
         ok = check(m and m.group(1) == "9" and m.group(2) == "yes",
                    "quartz.cif opens with 9 atoms and a lattice (%s)"
-                   % (m.groups() if m else None))
+                   % ((m.groups() if m else None),))
         vec = [tuple(float(x) for x in v) for v in re.findall(
             r"BUILDER: lattice_vector=(\S+) (\S+) (\S+)", text)]
         if check(len(vec) == 3, "three lattice vectors"):
