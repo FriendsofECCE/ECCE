@@ -428,8 +428,8 @@ bool CifIO::read(Fragment& frag, istream& in, bool genBonds)
 
   // Cartesian from fractional with the cell vectors as rows.
   struct Cart {
-    static void xyz(const double *f, const MPoint& a, const MPoint& b,
-                    const MPoint& c, double *x) {
+    static void xyz(const double *f, MPoint a, MPoint b,
+                    MPoint c, double *x) {
       x[0] = f[0]*a.x() + f[1]*b.x() + f[2]*c.x();
       x[1] = f[0]*a.y() + f[1]*b.y() + f[2]*c.y();
       x[2] = f[0]*a.z() + f[1]*b.z() + f[2]*c.z();
@@ -442,7 +442,7 @@ bool CifIO::read(Fragment& frag, istream& in, bool genBonds)
       if (!keep[i]) continue;
       double x[3];
       Cart::xyz(sites[i].f, va, vb, vc, x);
-      frag.addAtom(new TAtm(sites[i].sym.c_str(), x));
+      frag.addAtom(new TAtm(sites[i].sym.c_str(), x), 0);
     }
     try {
       frag.pointGroup(sgName);
@@ -486,7 +486,7 @@ bool CifIO::read(Fragment& frag, istream& in, bool genBonds)
       Cart::xyz(out[i].f, va, vb, vc, x);
       TAtm *atom = new TAtm(out[i].sym.c_str(), x);
       atom->atomName(out[i].label.c_str());
-      frag.addAtom(atom);
+      frag.addAtom(atom, 0);
     }
     if (genBonds) {
       frag.addCovalentBonds(true);
