@@ -10465,28 +10465,22 @@ void CalcMgr::getRunMgmtMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
  */
 void CalcMgr::addGlobalTools(wxMenu & menu)
 {
+  // Grouped by purpose with separators (machines, reference, QSAR), not
+  // submenus, so every tool is one click away.
   // MachineRegister is how a machine gets *defined* in the first place;
   // it had Gateway=-1 in ResourceDescriptor.xml, i.e. no launcher icon,
   // so before this it was unreachable from anywhere in the GUI.
-  static const char *globalTools[] = { "MachineRegister", "MachineBrowser",
-                                       "PeriodicTable", 0 };
-
   ResourceDescriptor& descriptor =
       ResourceDescriptor::getResourceDescriptor();
-
-  bool added = false;
-  for (int index = 0; globalTools[index] != 0; index++) {
-    ResourceTool *tool = descriptor.getTool(globalTools[index]);
-    if (tool == (ResourceTool*)0) continue;
-
+  auto addApp = [&](const char *name) {
+    ResourceTool *tool = descriptor.getTool(name);
+    if (tool == (ResourceTool*)0) return;
     string label = tool->getMenuItem();
     if (label.empty()) label = tool->getLabel();
-    if (label.empty()) continue;
-
-    wxMenuItem *item = new wxMenuItem(&menu, tool->getId(),
-                                      wxString::FromAscii(label.c_str()),
-                                      _T(""), wxITEM_NORMAL);
-    menu.Append(item);
+    if (label.empty()) return;
+    menu.Append(new wxMenuItem(&menu, tool->getId(),
+                               wxString::FromAscii(label.c_str()),
+                               _T(""), wxITEM_NORMAL));
     // Connect ONCE per id. getToolsMenu() rebuilds this menu on every
     // selection change, and wxWidgets happily stacks duplicate dynamic
     // handlers for the same id -- which would launch the app once per
@@ -10497,43 +10491,35 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
               wxCommandEventHandler(CalcMgr::OnGlobalTool));
       p_globalToolIds.insert(tool->getId());
     }
-    added = true;
-  }
+  };
+  auto addItem = [&](int id, const wxString& label, bool& wired,
+                     void (CalcMgr::*handler)(wxCommandEvent&)) {
+    menu.Append(id, label);
+    if (!wired) {
+      Bind(wxEVT_MENU, handler, this, id);
+      wired = true;
+    }
+  };
 
-  //  Not "Compare Energies": that is the table of selected calculations.
-  menu.Append(ID_COMPARE_ENERGIES, _("Energy Calculator..."));
-  if (!p_compareEnergiesWired) {
-    Connect(ID_COMPARE_ENERGIES, wxEVT_COMMAND_MENU_SELECTED,
-            wxCommandEventHandler(CalcMgr::OnCompareEnergies));
-    p_compareEnergiesWired = true;
-  }
-  menu.Append(ID_ALLOCATIONS, _("Allocations..."));
-  if (!p_allocationsWired) {
-    Connect(ID_ALLOCATIONS, wxEVT_COMMAND_MENU_SELECTED,
-            wxCommandEventHandler(CalcMgr::OnAllocations));
-    p_allocationsWired = true;
-  }
-  menu.Append(ID_BATCH_SMILES, _("Batch Add from SMILES..."));
-  if (!p_batchSmilesWired) {
-    Connect(ID_BATCH_SMILES, wxEVT_COMMAND_MENU_SELECTED,
-            wxCommandEventHandler(CalcMgr::OnBatchSmiles));
-    p_batchSmilesWired = true;
-  }
-  menu.Append(ID_QSAR_TABLE, _("QSAR Table..."));
-  if (!p_qsarTableWired) {
-    Connect(ID_QSAR_TABLE, wxEVT_COMMAND_MENU_SELECTED,
-            wxCommandEventHandler(CalcMgr::OnQsarTable));
-    p_qsarTableWired = true;
-  }
-  menu.Append(ID_QSAR_ANALYSIS, _("QSAR Analysis..."));
-  if (!p_qsarAnalysisWired) {
-    Connect(ID_QSAR_ANALYSIS, wxEVT_COMMAND_MENU_SELECTED,
-            wxCommandEventHandler(CalcMgr::OnQsarAnalysis));
-    p_qsarAnalysisWired = true;
-  }
-  added = true;
-
-  if (added) menu.AppendSeparator();
+  // Machines
+  addApp("MachineRegister");
+  addApp("MachineBrowser");
+  addItem(ID_ALLOCATIONS, _("Allocations..."), p_allocationsWired,
+          &CalcMgr::OnAllocations);
+  menu.AppendSeparator();
+  // Reference.  Not "Compare Energies": that is the table of selected
+  // calculations.
+  addApp("PeriodicTable");
+  addItem(ID_COMPARE_ENERGIES, _("Energy Calculator..."), p_compareEnergiesWired,
+          &CalcMgr::OnCompareEnergies);
+  menu.AppendSeparator();
+  // QSAR
+  addItem(ID_BATCH_SMILES, _("Batch Add from SMILES..."), p_batchSmilesWired,
+          &CalcMgr::OnBatchSmiles);
+  addItem(ID_QSAR_TABLE, _("QSAR Table..."), p_qsarTableWired, &CalcMgr::OnQsarTable);
+  addItem(ID_QSAR_ANALYSIS, _("QSAR Analysis..."), p_qsarAnalysisWired,
+          &CalcMgr::OnQsarAnalysis);
+  menu.AppendSeparator();
 }
 
 
