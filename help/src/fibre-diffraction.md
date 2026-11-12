@@ -60,6 +60,22 @@ apart the larger the angle: the doublet is hardly visible at low 2-theta and is
 resolved as two peaks at high angle. The peak list has one row per line, marked
 Ka1 or Ka2. Other sources (synchrotron, a typed wavelength) have no doublet.
 
+## Detector frame of a rotating crystal
+
+Choose **Detector frame** for what a rotation camera records. The crystal sits
+in a monochromatic beam and turns about the vertical axis through the
+**Oscillation** range, starting at the **Start angle phi**; a reflection is
+recorded when its reciprocal-lattice point passes through the Ewald sphere
+during the turn, so each frame holds only the reflections that cross in that
+range and moving phi shows others. Spots are dark on light (untick for false
+colour). Intensities carry the Lorentz and polarisation factors and counting
+noise (untick **Noise** for a clean frame). **Label spots** writes hkl next to
+the strongest spots and **Resolution rings** draws circles at d = 3.0, 2.0, 1.5
+and 1.0 A with d and 2-theta; both are drawn on the picture only. The pointer
+reports hkl, d and 2-theta of the nearest spot. The white bar and disc are the
+beamstop and its arm. The same frame from the command line:
+`ecce-xrd frame structure.cif --source mo --phi 0 --osc 30 --out frame.png`.
+
 ## Backdrop
 
 **Load Backdrop...** puts a PNG or JPG (a scan of a measured film, for example)

@@ -217,7 +217,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   : wxDialog(parent, wxID_ANY, "Diffraction", wxDefaultPosition, wxDefaultSize,
              wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
     p_structure(structure), p_pixels(PIXELS), p_periodic(hasLattice(structure)),
-    p_powder(false), p_single(false), p_layerScale(1), p_layerSize(560)
+    p_powder(false), p_single(false), p_frame(false), p_layerScale(1), p_layerSize(560)
 {
   static int serial = 0;
   std::error_code ec;
@@ -247,14 +247,17 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
                                            wxDefaultSize, wxRB_GROUP);
   wxRadioButton *powder = new wxRadioButton(this, wxID_ANY, "Powder (periodic structures only)");
   wxRadioButton *single = new wxRadioButton(this, wxID_ANY, "Single crystal (periodic structures only)");
+  wxRadioButton *frame = new wxRadioButton(this, wxID_ANY, "Detector frame, rotating crystal (periodic structures only)");
   powder->Enable(p_periodic);
   single->Enable(p_periodic);
+  frame->Enable(p_periodic);
   p_rbFibre = fibre; p_rbPowder = powder; p_rbSingle = single;
   powder->SetValue(p_periodic);
   fibre->SetValue(!p_periodic);
   type->Add(fibre, 0, wxALL, 3);
   type->Add(powder, 0, wxALL, 3);
   type->Add(single, 0, wxALL, 3);
+  type->Add(frame, 0, wxALL, 3);
   left->Add(type, 0, wxEXPAND | wxALL, 4);
   p_left = left;
   wxBoxSizer *fibreBox = new wxBoxSizer(wxVERTICAL);
@@ -364,6 +367,41 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   layerBox->Add(p_absent, 0, wxALL, 6);
   left->Add(layerBox, 0);
 
+  // Detector frame (#985): a crystal turned through an oscillation range.
+  wxBoxSizer *frameBox = new wxBoxSizer(wxVERTICAL);
+  p_frameItems = frameBox;
+  wxFlexGridSizer *fg = new wxFlexGridSizer(2, 4, 6);
+  auto ffield = [&](const char *label, const char *value, const char *tip) {
+    fg->Add(new wxStaticText(this, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+    wxTextCtrl *t = new wxTextCtrl(this, wxID_ANY, value, wxDefaultPosition, wxSize(80, -1));
+    t->SetToolTip(tip);
+    fg->Add(t, 0);
+    return t;
+  };
+  fg->Add(new wxStaticText(this, wxID_ANY, "Start angle phi (deg)"), 0, wxALIGN_CENTER_VERTICAL);
+  p_fphi = new wxSlider(this, wxID_ANY, 0, 0, 359, wxDefaultPosition, wxSize(160, -1),
+                        wxSL_HORIZONTAL | wxSL_LABELS);
+  p_fphi->SetToolTip("Where the oscillation starts, about the vertical axis");
+  fg->Add(p_fphi, 0);
+  p_fosc = ffield("Oscillation (deg)", "10", "Range turned during the exposure");
+  p_fdist = ffield("Distance (mm)", "90", "Crystal to detector");
+  p_fsource = new wxChoice(this, wxID_ANY);
+  for (const char *c : {"Mo", "Cu", "Co"}) p_fsource->Append(c);
+  p_fsource->SetSelection(0);
+  fg->Add(new wxStaticText(this, wxID_ANY, "Source"), 0, wxALIGN_CENTER_VERTICAL);
+  fg->Add(p_fsource, 0);
+  frameBox->Add(fg, 0, wxALL, 6);
+  p_fdark = new wxCheckBox(this, wxID_ANY, "Dark spots on light");
+  p_fdark->SetValue(true);
+  p_fnoise = new wxCheckBox(this, wxID_ANY, "Noise");
+  p_fnoise->SetValue(true);
+  p_flabel = new wxCheckBox(this, wxID_ANY, "Label spots");
+  p_flabel->SetToolTip("hkl next to the 12 strongest spots");
+  p_frings = new wxCheckBox(this, wxID_ANY, "Resolution rings");
+  p_frings->SetToolTip("Circles at d = 3.0, 2.0, 1.5 and 1.0 A, labelled with d and 2 theta");
+  for (wxCheckBox *c : {p_fdark, p_fnoise, p_flabel, p_frings}) frameBox->Add(c, 0, wxLEFT | wxRIGHT | wxTOP, 6);
+  left->Add(frameBox, 0);
+
   wxButton *calc = new wxButton(this, wxID_ANY, "Calculate");
   left->Add(calc, 0, wxALL, 6);
   wxButton *png = new wxButton(this, wxID_ANY, "Save PNG...");
@@ -404,6 +442,12 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   powder->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(1); });
   fibre->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(0); });
   single->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(2); });
+  frame->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(3); });
+  p_rbFrame = frame;
+  auto again = [this](wxCommandEvent&) { string why; if (p_frame && p_calc.IsOk()) calculate(why); };
+  for (wxCheckBox *c : {p_fdark, p_fnoise, p_flabel, p_frings}) c->Bind(wxEVT_CHECKBOX, again);
+  p_fsource->Bind(wxEVT_CHOICE, again);
+  p_fphi->Bind(wxEVT_SCROLL_CHANGED, [this](wxScrollEvent&) { string why; if (p_frame) calculate(why); });
   meas->Bind(wxEVT_BUTTON, &DiffractionDialog::onMeasured, this);
   p_source->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { onSource(); });
 
@@ -468,9 +512,11 @@ void DiffractionDialog::onPattern(int mode)
   if (!p_periodic) mode = 0;
   p_powder = mode == 1;
   p_single = mode == 2;
+  p_frame = mode == 3;
   p_left->Show(p_fibreItems, mode == 0, true);
   p_left->Show(p_powderItems, p_powder, true);
   p_left->Show(p_layerItems, p_single, true);
+  p_left->Show(p_frameItems, p_frame, true);
   p_panel->Show(!p_powder);
   p_plot->Show(p_powder);
   p_list->Show(p_powder);
@@ -606,6 +652,87 @@ wxString DiffractionDialog::spotText(int h, int k, int l) const
   return "";
 }
 
+bool DiffractionDialog::setFrame(double phi, double osc, bool labels, bool rings, string& why)
+{
+  if (!p_periodic) { why = "detector frame needs a periodic structure"; return false; }
+  p_fphi->SetValue((int)std::lround(phi));
+  p_fosc->SetValue(wxString(num(osc)));
+  p_flabel->SetValue(labels);
+  p_frings->SetValue(rings);
+  p_rbFrame->SetValue(true);
+  onPattern(3);
+  why.clear();
+  return true;
+}
+
+wxString DiffractionDialog::framePointerText(int x, int y) const
+{
+  const Spot *best = 0;
+  double bd = 10.0 * 10.0;
+  for (const Spot& s : p_spots) {
+    const double d2 = (s.px - x) * (s.px - x) + (s.py - y) * (s.py - y);
+    if (d2 < bd) { bd = d2; best = &s; }
+  }
+  return best ? wxString::Format("(%d %d %d)   d = %.3f A   2theta = %.2f deg   I = %.4g", best->h,
+                                 best->k, best->l, best->d, best->F, best->I)
+              : wxString();
+}
+
+bool DiffractionDialog::calculateFrame(string& why)
+{
+  vector<string> a = {"frame", p_structure,
+                      "--source", p_fsource->GetStringSelection().Lower().ToStdString(),
+                      "--phi", std::to_string(p_fphi->GetValue()),
+                      "--osc", num(number(p_fosc)), "--distance", num(number(p_fdist)),
+                      "--pixels", std::to_string(p_layerSize),
+                      "--out", p_png, "--out", p_csv, "--geometry", p_dir + "/geometry.txt"};
+  if (!p_fnoise->IsChecked()) a.push_back("--no-noise");
+  if (!p_fdark->IsChecked()) a.push_back("--dark");
+  if (p_flabel->IsChecked()) { a.push_back("--label"); a.push_back("12"); }
+  if (p_frings->IsChecked()) a.push_back("--rings");
+  status("Calculating...");
+  int st = 0;
+  const string out = run(a, st);
+  if (st != 0) {
+    const size_t e = out.find("error: ");
+    why = st == -2 ? "cancelled" :
+        (e == string::npos ? "ecce-xrd failed: " + out.substr(0, 300)
+                           : out.substr(e + 7, out.find('\n', e) - e - 7));
+    status(wxString::FromUTF8(why.c_str()));
+    return false;
+  }
+  if (!p_calc.LoadFile(wxString::FromUTF8(p_png.c_str()), wxBITMAP_TYPE_PNG)) {
+    why = "cannot read the frame image";
+    return false;
+  }
+  std::ifstream g(p_dir + "/geometry.txt");
+  string key;
+  double val;
+  while (g >> key >> val) {
+    if (key == "scale") p_layerScale = val;
+    if (key == "size") p_layerSize = (int)val;
+  }
+  p_spots.clear();
+  std::ifstream f(p_csv);
+  string line;
+  std::getline(f, line);
+  while (std::getline(f, line)) {
+    Spot s;
+    double x, y, phi, tt;
+    if (sscanf(line.c_str(), "%d,%d,%d,%lf,%lf,%lf,%lf,%lf,%lf", &s.h, &s.k, &s.l, &x, &y, &phi,
+               &tt, &s.d, &s.I) != 9) continue;
+    s.px = p_layerSize / 2.0 + x * p_layerScale;
+    s.py = p_layerSize / 2.0 - y * p_layerScale;
+    s.F = tt;
+    s.absent = false;
+    p_spots.push_back(s);
+  }
+  p_back = wxImage();
+  p_panel->setImage(p_calc);
+  status(wxString::FromUTF8(out.substr(0, out.find('\n')).c_str()));
+  return true;
+}
+
 wxString DiffractionDialog::layerPointerText(int x, int y) const
 {
   const Spot *best = 0;
@@ -674,6 +801,7 @@ bool DiffractionDialog::calculateLayer(string& why)
 bool DiffractionDialog::calculate(string& why)
 {
   if (p_single) return calculateLayer(why);
+  if (p_frame) return calculateFrame(why);
   if (p_powder) return calculatePowder(why);
   vector<string> a = {"fibre", p_structure,
                       "--wavelength", num(number(p_wavelength)),
@@ -761,6 +889,7 @@ void DiffractionDialog::onBackdrop(wxCommandEvent&)
 wxString DiffractionDialog::pointerText(int x, int y) const
 {
   if (p_single) return layerPointerText(x, y);
+  if (p_frame) return framePointerText(x, y);
   const size_t k = (size_t)y * p_pixels + x;
   if (k >= p_i.size()) return "";
   const double r = p_r[k], z = p_z[k], s = std::hypot(r, z);
@@ -775,7 +904,7 @@ wxString DiffractionDialog::pointerText(int x, int y) const
 
 bool DiffractionDialog::savePng(const string& path, string& why) const
 {
-  if (p_powder || p_single) {
+  if (p_powder || p_single || p_frame) {
     std::error_code ec;
     if (!fs::exists(p_png)) { why = "nothing calculated yet"; return false; }
     fs::copy_file(p_png, path, fs::copy_options::overwrite_existing, ec);

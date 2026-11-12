@@ -1075,6 +1075,235 @@ def run_layer(a):
     return 0
 
 
+# ------------------------------------------------- rotating-crystal frame (#985)
+
+def rotation(axis, deg):
+    """Rodrigues rotation matrix about axis by deg degrees."""
+    ax = np.asarray(axis, float)
+    ax = ax / np.linalg.norm(ax)
+    k = np.array([[0, -ax[2], ax[1]], [ax[2], 0, -ax[0]], [-ax[1], ax[0], 0]])
+    t = math.radians(deg)
+    return np.eye(3) + math.sin(t) * k + (1 - math.cos(t)) * k @ k
+
+
+def orientation_matrix(text):
+    """Crystal orientation U (crystal Cartesian -> lab) from 'e1,e2,e3' Euler
+    angles in degrees (z, x, z) or 'random:SEED' (uniform in rotation)."""
+    if text.startswith("random:"):
+        q = np.random.default_rng(int(text[7:])).normal(size=4)
+        q /= np.linalg.norm(q)
+        w, x, y, z = q
+        return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+                         [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+                         [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
+    e = [float(t) for t in text.split(",")]
+    if len(e) != 3:
+        raise ValueError("--orient is 'a,b,c' (Euler angles, degrees) or 'random:SEED'")
+    return rotation([0, 0, 1], e[0]) @ rotation([1, 0, 0], e[1]) @ rotation([0, 0, 1], e[2])
+
+
+def spindle_axis(text):
+    """Rotation axis in the lab (x right, y up, z along the beam): x, y, z or
+    'a,b,c'; a unit vector."""
+    t = text.strip().lower()
+    v = {"x": [1, 0, 0], "y": [0, 1, 0], "z": [0, 0, 1]}.get(t)
+    if v is None:
+        v = [float(p) for p in t.split(",")]
+    if len(v) != 3 or not any(v):
+        raise ValueError("--axis is x, y, z or 'a,b,c'")
+    v = np.array(v, float)
+    return v / np.linalg.norm(v)
+
+
+def frame_reflections(lat, sym, frac, occ, wavelength, phi, osc, axis, U, distance,
+                      size, bfactor=0.0):
+    """Reflections whose reciprocal-lattice point crosses the Ewald sphere while
+    the crystal turns from phi to phi + osc degrees about axis.  The beam is +z,
+    the detector the plane z = distance with half-width size/2 (mm).  The
+    crossing angle comes from g_z(phi) = -lambda |g|^2 / 2, which is
+    A cos + B sin = const, solved in closed form (two roots per reflection).
+    Returns arrays hkl, x, y (mm), phi, tt (deg), d, I (|F|^2 L P exp(-2 B s^2)
+    with L the rotation Lorentz factor and P the unpolarised factor)."""
+    recip = np.linalg.inv(lat).T
+    half = size / 2.0
+    tt_max = math.atan(half * math.sqrt(2.0) / distance)
+    gmax = 2 * math.sin(tt_max / 2) / wavelength
+    hm = [int(math.floor(gmax * np.linalg.norm(v))) for v in lat]
+    ax = [np.arange(-m, m + 1) for m in hm]
+    hkl = np.stack(np.meshgrid(*ax, indexing="ij"), -1).reshape(-1, 3)
+    g0 = (hkl @ recip) @ U.T
+    gl = np.linalg.norm(g0, axis=1)
+    keep = (gl > 1e-9) & (gl <= gmax * (1 + 1e-12))
+    hkl, g0, gl = hkl[keep], g0[keep], gl[keep]
+    f2 = structure_factors2(sym, frac, occ, hkl, gl / 2.0, bfactor)
+    ok = f2 > 1e-6 * max(f2.max(), 1e-300)
+    hkl, g0, gl, f2 = hkl[ok], g0[ok], gl[ok], f2[ok]
+    n = axis
+    ng = g0 @ n
+    cross = np.cross(n, g0)
+    # g_z(phi) = A cos(phi) + B sin(phi) + C
+    a_, b_, c_ = g0[:, 2] - n[2] * ng, cross[:, 2], n[2] * ng
+    target = -wavelength * gl ** 2 / 2.0 - c_
+    r = np.hypot(a_, b_)
+    inside = np.abs(target) < r * (1 - 1e-12)
+    out = {k: [] for k in ("hkl", "x", "y", "phi", "tt", "d", "I")}
+    for sgn in (1.0, -1.0):
+        w = np.arccos(np.clip(target / np.maximum(r, 1e-300), -1, 1))
+        ph = np.degrees(np.arctan2(b_, a_) + sgn * w)
+        rel = np.mod(ph - phi, 360.0)
+        hit = inside & (rel <= osc)
+        if osc >= 360.0:
+            hit = inside
+        idx = np.nonzero(hit)[0]
+        for i in idx:
+            R = rotation(n, ph[i])
+            kout = R @ g0[i] + np.array([0, 0, 1.0 / wavelength])
+            if kout[2] <= 0:
+                continue
+            x, y = distance * kout[0] / kout[2], distance * kout[1] / kout[2]
+            if abs(x) >= half or abs(y) >= half:
+                continue
+            tt = math.acos(min(1.0, kout[2] * wavelength))
+            lor = 1.0 / max(math.sqrt(max(r[i] ** 2 - target[i] ** 2, 0.0)), 1e-3 * r[i])
+            pol = (1 + math.cos(tt) ** 2) / 2.0
+            out["hkl"].append(hkl[i])
+            out["x"].append(x)
+            out["y"].append(y)
+            out["phi"].append(ph[i] % 360.0)
+            out["tt"].append(math.degrees(tt))
+            out["d"].append(1.0 / gl[i])
+            out["I"].append(f2[i] * lor * pol)
+    res = {k: np.array(v) for k, v in out.items()}
+    if not len(res["I"]):
+        res["hkl"] = np.zeros((0, 3), int)
+        return res
+    o = np.lexsort((res["phi"], res["hkl"][:, 2], res["hkl"][:, 1], res["hkl"][:, 0]))
+    return {k: v[o] for k, v in res.items()}
+
+
+def frame_image(refl, size, distance, pixels, wavelength, mosaic=0.0, noise=True,
+                seed=1, beamstop=True):
+    """Detector counts [pixels, pixels] (row 0 = top, y up): each reflection as a
+    point, blurred (1.5 px detector point spread, plus the mosaic spread seen at
+    the detector), on a background that rises toward the beam, with Poisson
+    noise and a beamstop with its arm.  Intensities are scaled so the strongest
+    spot holds 6e4 counts."""
+    mm = size / pixels
+    img = np.zeros((pixels, pixels))
+    ix = np.floor((refl["x"] + size / 2) / mm).astype(int)
+    iy = np.floor((size / 2 - refl["y"]) / mm).astype(int)
+    m = (ix >= 0) & (ix < pixels) & (iy >= 0) & (iy < pixels)
+    np.add.at(img, (iy[m], ix[m]), refl["I"][m])
+    sig = math.hypot(1.5, 0.5 * distance * math.radians(mosaic) / mm)
+    yy, xx = np.mgrid[-pixels // 2:pixels - pixels // 2, -pixels // 2:pixels - pixels // 2]
+    ker = np.exp(-(xx ** 2 + yy ** 2) / (2 * sig ** 2))
+    ker /= ker.sum()
+    img = np.fft.irfft2(np.fft.rfft2(img) * np.fft.rfft2(np.fft.ifftshift(ker)), s=img.shape)
+    img = np.clip(img, 0, None)
+    if img.max() > 0:
+        img *= 6e4 / img.max()
+    yy, xx = np.mgrid[0:pixels, 0:pixels]
+    rr = np.hypot(xx - pixels / 2, yy - pixels / 2) * mm
+    img = img + 30 + 45 * np.exp(-rr / 10) + 10 * np.exp(-rr / 50)
+    if noise:
+        img = np.random.default_rng(seed).poisson(img).astype(float)
+    if beamstop:
+        stop = (rr < 3.0) | ((np.abs(yy - pixels / 2) * mm < 1.2) & (xx < pixels / 2))
+        img[stop] = 5.0
+    return img
+
+
+def frame_display(counts, gamma, dark):
+    """RGB uint8: counts stretched between the 2nd percentile and a quarter of
+    the 99.97th, so weak spots show; dark spots on light by default."""
+    lo = np.percentile(counts, 2)
+    hi = max(np.percentile(counts, 99.97) * 0.25, lo + 1)
+    v = np.clip((counts - lo) / (hi - lo), 0, 1) ** gamma
+    if not dark:
+        g = np.round(255 * (1 - v)).astype(np.uint8)
+        return np.stack([g, g, g], -1)
+    stops = np.array([[0, 0, 0], [60, 10, 110], [200, 50, 60], [250, 170, 30], [255, 255, 200]], float)
+    pos = v * (len(stops) - 1)
+    k = np.minimum(pos.astype(int), len(stops) - 2)
+    f = (pos - k)[..., None]
+    return np.round(stops[k] * (1 - f) + stops[k + 1] * f).astype(np.uint8)
+
+
+def frame_overlays(rgb, refl, size, distance, wavelength, label=0, rings=None, dark=False):
+    """Teaching overlays drawn on the picture only: hkl next to the `label`
+    strongest spots and circles at the d values in `rings` (Angstrom) with d and
+    2theta."""
+    pixels = rgb.shape[0]
+    sc = pixels / size
+    col_ring = (255, 200, 80) if dark else (200, 60, 60)
+    col_txt = (255, 255, 255) if dark else (20, 60, 170)
+
+    def px(x, y):
+        return pixels / 2 + x * sc, pixels / 2 - y * sc
+    for d in rings or []:
+        s = wavelength / (2 * d)
+        if s >= 1:
+            continue
+        tt = 2 * math.asin(s)
+        if tt >= math.pi / 2:
+            continue
+        rad = distance * math.tan(tt)
+        ang = np.linspace(0, 2 * math.pi, max(int(2 * math.pi * rad * sc), 16))
+        for a0, a1 in zip(ang[:-1], ang[1:]):
+            x0, y0 = px(rad * math.cos(a0), rad * math.sin(a0))
+            x1, y1 = px(rad * math.cos(a1), rad * math.sin(a1))
+            draw_line(rgb, int(round(x0)), int(round(y0)), int(round(x1)), int(round(y1)), col_ring)
+        text = "%.2f (%.1f°)" % (d, math.degrees(tt))
+        for deg in (50, 130, 20, 160, 80):
+            x, y = px(rad * math.cos(math.radians(deg)), rad * math.sin(math.radians(deg)))
+            if 4 < x < pixels - text_width(text, 2) - 4 and 14 < y < pixels - 4:
+                draw_text(rgb, text, int(x) + 3, int(y) - 14, 2, col_ring)
+                break
+    if label > 0 and len(refl["I"]):
+        for i in np.argsort(-refl["I"])[:label]:
+            x, y = px(refl["x"][i], refl["y"][i])
+            h, k, l = (int(v) for v in refl["hkl"][i])
+            draw_text(rgb, "%d %d %d" % (h, k, l), int(x) + 7, int(y) - 14, 2, col_txt)
+
+
+def run_frame(a):
+    lat, sym, frac, occ = read_periodic(a.structure)
+    lam = a.wavelength or DOUBLETS[a.source or "mo"][0]
+    if a.wavelength and a.source:
+        raise ValueError("give --wavelength or --source, not both")
+    axis = spindle_axis(a.axis)
+    U = orientation_matrix(a.orient)
+    refl = frame_reflections(lat, sym, frac, occ, lam, a.phi, a.osc, axis, U, a.distance,
+                             a.size, a.B)
+    counts = frame_image(refl, a.size, a.distance, a.pixels, lam, a.mosaic, a.noise,
+                         a.seed, a.beamstop)
+    rows = [("h", "k", "l", "x", "y", "phi", "tt", "d", "I")]
+    for i in range(len(refl["I"])):
+        rows.append(tuple(["%d" % v for v in refl["hkl"][i]] +
+                          ["%.5f" % refl[k][i] for k in ("x", "y", "phi", "tt", "d")] +
+                          ["%.5g" % refl["I"][i]]))
+    for out in a.out or []:
+        ext = os.path.splitext(out)[1].lower()
+        if ext == ".png":
+            rgb = frame_display(counts, a.gamma, a.dark)
+            rings = [float(t) for t in a.rings.split(",")] if a.rings else None
+            frame_overlays(rgb, refl, a.size, a.distance, lam, a.label, rings, a.dark)
+            write_png_rgb(out, rgb)
+        elif ext == ".npy":
+            np.save(out, counts)
+        elif ext == ".csv":
+            with open(out, "w", newline="") as f:
+                csv.writer(f).writerows(rows)
+        else:
+            raise ValueError("--out: unknown extension %r (png, npy, csv)" % ext)
+    if a.geometry:
+        with open(a.geometry, "w") as f:
+            f.write("size %d\nscale %.6f\n" % (a.pixels, a.pixels / a.size))
+    print("frame: %d reflections, phi %g to %g, wavelength %.5f A, %d x %d pixels" % (
+        len(refl["I"]), a.phi, a.phi + a.osc, lam, a.pixels, a.pixels))
+    return 0
+
+
 # ----------------------------------------------------------------------- CLI
 
 def _axis_arg(text):
@@ -1204,6 +1433,33 @@ def build_parser():
     y.add_argument("--out", action="append", help=".png or .csv (repeatable)")
     y.add_argument("--json", action="store_true")
     y.set_defaults(func=run_layer)
+
+    r = sub.add_parser("frame", help="detector frame of a rotating single crystal")
+    r.add_argument("structure", help=".cif, or .xyz/.mvm/.pdb with a lattice")
+    r.add_argument("--wavelength", type=float, help="Angstrom (default Mo Ka1)")
+    r.add_argument("--source", choices=sorted(DOUBLETS), help="Cu, Mo or Co Ka1 wavelength")
+    r.add_argument("--phi", type=float, default=0.0, help="start angle, degrees")
+    r.add_argument("--osc", type=float, default=10.0, help="oscillation range, degrees (360 = full turn)")
+    r.add_argument("--axis", default="y", help="rotation axis in the lab: x, y (vertical), z or 'a,b,c'")
+    r.add_argument("--orient", default="23,17,11",
+                   help="crystal orientation: Euler angles 'a,b,c' (degrees) or random:SEED")
+    r.add_argument("--distance", type=float, default=90.0, help="crystal to detector, mm")
+    r.add_argument("--size", type=float, default=150.0, help="detector edge, mm")
+    r.add_argument("--pixels", type=int, default=1000, help="image edge, pixels")
+    r.add_argument("--B", type=float, default=1.5, help="isotropic B, Angstrom^2")
+    r.add_argument("--mosaic", type=float, default=0.2, help="mosaic spread, degrees")
+    r.add_argument("--noise", action=argparse.BooleanOptionalAction, default=True,
+                   help="Poisson counting noise")
+    r.add_argument("--seed", type=int, default=1, help="noise seed")
+    r.add_argument("--beamstop", action=argparse.BooleanOptionalAction, default=True)
+    r.add_argument("--gamma", type=float, default=0.8, help="display gamma (below 1 lifts weak spots)")
+    r.add_argument("--dark", action="store_true", help="false colour on dark instead of dark spots on light")
+    r.add_argument("--label", type=int, default=0, metavar="N", help="overlay: hkl at the N strongest spots")
+    r.add_argument("--rings", nargs="?", const="3.0,2.0,1.5,1.0",
+                   help="overlay: resolution rings at these d, Angstrom (default 3.0,2.0,1.5,1.0)")
+    r.add_argument("--geometry", help="write the PNG's pixel scale (size, scale in pixels/mm) to this file")
+    r.add_argument("--out", action="append", help=".png, .npy (counts) or .csv (reflections)")
+    r.set_defaults(func=run_frame)
     return p
 
 
