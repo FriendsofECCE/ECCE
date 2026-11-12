@@ -7,7 +7,7 @@ Each example of the topic is imported through the Organizer and opened in the
 Builder; the "calcdiffraction" script command is the Diffraction entry of its
 results and reports the pattern it opens: powder for the periodic calculations,
 fibre for the xTB molecules.  The periodic ones also give a layer (NaCl hk0
-only h,k both even; KCl has odd,odd spots; quartz 00l only l = 3n).  Exit
+only h,k both even; the all-odd hk1 spots weak for NaCl, nearly absent for KCl; quartz 00l only l = 3n).  Exit
 status 77 (skip) without Xvfb, import or the built binaries.
 """
 import argparse
@@ -88,6 +88,10 @@ def main():
                 lines.append("calclayer %s %s %s 0 0.8 2,0,0" % (
                     os.path.join(out, "l.png"), os.path.join(out, "l.csv"),
                     "k" if calc == "quartz" else "l"))
+            if calc in ("kcl", "nacl_powder"):
+                # hk1 holds only all-odd spots: F = 4(f_cation - f_Cl)
+                lines.append("calclayer %s %s l 1 0.8 2,0,0" % (
+                    os.path.join(out, "l1.png"), os.path.join(out, "l1.csv")))
             text, _ = bo.runScript(s, display, env, wrappers, ["-context", url], lines + ["quit"],
                                    png, "diffraction-" + calc, {"ECCE_PANEL_MODE": "detail"})
             bo.check("BUILDER: calcdiffraction pattern: %s" % kind in text and
@@ -105,8 +109,18 @@ def main():
             elif calc == "quartz":
                 col = [l for h, k, l in present if h == 0 and k == 0]
                 bo.check(col and all(l % 3 == 0 for l in col), "quartz 00l: only l = 3n (%s)" % col)
-            else:
-                bo.check(any(h % 2 and k % 2 for h, k, l in present), "kcl hk0: odd,odd spots present")
+            if calc in ("kcl", "nacl_powder"):
+                # Rock salt's hk0 layer is the same for any two ions (h,k both
+                # even); the ions show in hk1, the all-odd spots, which are
+                # weak for Na+/Cl- and nearly gone for K+/Cl- (18 electrons each).
+                def imax(name):
+                    rs = [ln.split(",") for ln in open(os.path.join(out, name)).read().splitlines()[1:]]
+                    return max((float(r[7]) for r in rs), default=0.0)
+                ratio = imax("l1.csv") / max(imax("l.csv"), 1e-30)
+                if calc == "kcl":
+                    bo.check(ratio < 0.01, "kcl: all-odd hk1 spots nearly absent (%.4f of hk0)" % ratio)
+                else:
+                    bo.check(ratio > 0.01, "nacl: all-odd hk1 spots visible (%.4f of hk0)" % ratio)
         if bo.failures:
             say(text[-2000:])
     finally:
