@@ -904,10 +904,12 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
     SetSize(std::min(1060, area.width * 8 / 10), std::min(780, area.height * 8 / 10));
   }
   onPattern(p_periodic ? 1 : 0);
-  powder->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(1); });
-  fibre->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(0); });
-  single->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(2); });
-  frame->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent&) { onPattern(3); });
+  // A view shows its own result at once: switching recalculates, so no view
+  // is left showing another's picture or spots.
+  powder->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent& e) { onPattern(1); onCalculate(e); });
+  fibre->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent& e) { onPattern(0); onCalculate(e); });
+  single->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent& e) { onPattern(2); onCalculate(e); });
+  frame->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent& e) { onPattern(3); onCalculate(e); });
   p_rbFrame = frame;
   auto again = [this](wxCommandEvent&) { string why; if (p_frame && p_calc.IsOk()) calculate(why); };
   p_fnoise->Bind(wxEVT_CHECKBOX, again);
@@ -998,6 +1000,7 @@ void DiffractionDialog::onPattern(int mode)
   p_level.clear();
   p_levelN = 0;
   p_calc = wxImage();
+  p_spots.clear();
   p_layerReady = false;
   p_panel->setImage(wxImage());
   p_left->FitInside(p_leftWin);
