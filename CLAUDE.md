@@ -72,6 +72,11 @@ subagent flags, directly.
   2026-10-13). Testing against Gaussian is fine; describing ECCE's
   Gaussian support is fine. Full
   rule: `docs/claude/codereg/what-may-be-published-about-gaussian.md`.
+- **Update `docs/AGENTS.md` every time something is added** (Andy,
+  2026-11-12): a new command, option, property, panel or feature goes
+  into AGENTS.md (how a script or AI assistant uses it) in the same
+  commit, as the help page does. Read AGENTS.md before operating ECCE
+  itself (launching, rerunning, machines).
 - **Memory settings should be entered/labeled in GB everywhere, for
   every code** — Andy's explicit UX preference (2026-09-07), not each
   code's native convention. The wire format still has to match what
