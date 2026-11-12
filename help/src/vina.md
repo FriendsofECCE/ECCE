@@ -93,7 +93,7 @@ default, the viewer shows the pose's ligand as balls and sticks and only the
 receptor residues that have an atom within 6 Å of it as sticks; the rest of
 the receptor is hidden, so the pose in its pocket is visible instead of being
 buried in the protein. Untick it to get the whole receptor back. Hydrogen
-bonds between the pose and the pocket are drawn by **Render > Show Hydrogen
+bonds between the pose and the pocket are drawn by **Options > Show Hydrogen
 Bonds**, as for any structure. Select several rows with Ctrl or Shift to
 superpose poses and read their RMSD. Each pose is the whole system: the receptor stays where it
 was and the ligand is moved to the pose. The atom order is the one of the

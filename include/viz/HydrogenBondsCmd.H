@@ -23,16 +23,21 @@ class HydrogenBondsCmd : public Command
       virtual bool isUndoable() const;
       virtual void undo();
 
+      // GROMACS gmx hbond default: D...A <= dist (Angstrom) and
+      // H-D...A <= angle (degrees); shared by every command instance.
+      static void setCriteria(double dist, double angle);
+      static double maxDistance();
+      static double maxAngle();
+      // Bonds drawn by the last execute(), for scripts and tests.
+      static int lastCount();
+
    protected:
       virtual void init();
 
-      bool isDonorAtom(const string& symbol) const;
-      float getDonorDistance(const string& symbol) const;
-      float determineCellSize() const;
-
-      map<string, float, less<string> > p_donors;
-
-
+   private:
+      static double p_maxDist;
+      static double p_maxAngle;
+      static int p_lastCount;
 };
 
 #endif

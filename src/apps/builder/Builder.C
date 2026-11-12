@@ -2410,6 +2410,8 @@ void Builder::saveSettings()
    config->Write("/OrthoCamera",getToolState(ViewerEvtHandler::ID_CAMERA_TYPE));
    config->Write("/ShowHydrogen", GetMenuBar()->
                  IsChecked(ViewerEvtHandler::ID_SHOW_HYDROGEN));
+   config->Write("/HBondDistance", HydrogenBondsCmd::maxDistance());
+   config->Write("/HBondAngle", HydrogenBondsCmd::maxAngle());
    config->Write("/ShowHydrogenBond", GetMenuBar()->
                  IsChecked(ViewerEvtHandler::ID_SHOW_HYDROGEN_BOND));
    config->Write("/ResidueLabels", GetMenuBar()->
@@ -2493,6 +2495,13 @@ void Builder::restoreSettings()
      config->DeleteEntry("/StructLibPerspective");
      config->DeleteGroup("/PaneLayout");
      config->DeleteGroup("/PaneLayoutColumn");
+   }
+
+   {
+      double hbDist = 3.5, hbAngle = 30.0;
+      config->Read("/HBondDistance", &hbDist, 3.5);
+      config->Read("/HBondAngle", &hbAngle, 30.0);
+      HydrogenBondsCmd::setCriteria(hbDist, hbAngle);
    }
 
    wxCommandEvent evt(wxEVT_COMMAND_MENU_SELECTED);

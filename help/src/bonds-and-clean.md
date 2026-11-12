@@ -115,3 +115,17 @@ first**: the other structure is fitted onto this one over the atoms that are
 not taken, by rotation and translation only (a mirror image is never fitted),
 and the RMSD of that fit is shown. At least three atoms must remain outside
 the chosen set. It is one step in **Edit > Undo**.
+
+## Hydrogen bonds
+
+**Options > Show Hydrogen Bonds** draws a dashed line from a hydrogen to the
+atom it is hydrogen-bonded to, and redraws the lines at every step of a
+trajectory or geometry trace. The test is the one `gmx hbond` uses: the donor
+D (the N, O, F or S the hydrogen is bonded to) and the acceptor A (N, O, F, or
+a chloride or bromide ion with no covalent bond) are at most 3.5 Å apart, and
+the angle H-D...A is at most 30°. A C-H...O contact is not drawn, because C is
+not a donor. In a structure with a unit cell the nearest periodic image of the
+acceptor is used; a line to an image is drawn to the acceptor in the cell.
+
+**Options > Hydrogen Bond Settings...** changes the distance and the angle.
+The values are remembered by the Builder.
