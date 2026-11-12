@@ -408,6 +408,23 @@ sub mergeExtraLines {
     push(@keep, $_);
   }
   close(IN);
+  #  nstcalcenergy was chosen to divide our nstlog/nstenergy; a user line
+  #  that changes either (nstenergy = 500 on a 20000-step run, nstcalcenergy
+  #  200) is a grompp warning that stops the job, so it is chosen again.
+  if (!exists($line{"nstcalcenergy"}) &&
+      (exists($line{"nstenergy"}) || exists($line{"nstlog"}))) {
+    my %v;
+    foreach my $k ("nstlog", "nstenergy") {
+      my $src = exists($line{$k}) ? $line{$k}
+                                  : (grep { /^\s*$k\s*=/ } @keep)[0];
+      $v{$k} = ($src =~ /=\s*(\d+)/) ? int($1) : 0;
+    }
+    my ($a, $b) = ($v{"nstlog"}, $v{"nstenergy"});
+    ($a, $b) = ($b, $a % $b) while ($b > 0);
+    if ($a > 0) {
+      s/^(\s*nstcalcenergy\s*=\s*)\d+/$1$a/ foreach (@keep);
+    }
+  }
   open(OUT, ">tmpfile") || die "ai.gromacs error: Couldn't write tmpfile\n";
   print OUT join("\n", @keep, "; Lines written in the task editor",
                  map { $line{$_} } @order), "\n";
