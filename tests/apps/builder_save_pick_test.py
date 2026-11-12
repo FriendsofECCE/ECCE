@@ -10,7 +10,8 @@ to another calculation and back (the scene graph is kept per calculation).
 Save renders the thumbnail with atom labels switched off and back, and once
 left them switched on with empty text, after which clicks on atoms selected
 nothing.  Then the same clicks with labels the user turns on (Options >
-Atom Labels, numbered and by name) in ball-and-stick and wireframe (#975).
+Atom Labels, numbered and by name) in ball-and-stick and ball-and-wireframe
+(#975).
 
 Exit status 77 (skip) without Xvfb, xdotool or the built Builder.
 """
@@ -170,11 +171,12 @@ def main():
             say("\n".join("      | " + l for l in text.splitlines()[-25:]))
 
         # Labels shown by the user must not take clicks from atoms (#975).
+        # Not plain Wireframe: there a click at an atom picks its bond (#660).
         cases = (("2", "numbered labels, ball and stick",
                   ["menu Options|Element with Number", "wait 800"]),
-                 ("3", "numbered labels, wireframe",
-                  ["menu Render|Wireframe", "wait 800"]),
-                 ("2", "atom-name labels, wireframe",
+                 ("3", "numbered labels, ball and wireframe",
+                  ["menu Render|Ball And Wireframe", "wait 800"]),
+                 ("2", "atom-name labels, ball and wireframe",
                   ["menu Options|Atom Name", "wait 800"]),
                  ("1", "numbered labels, ball and stick, atom 1",
                   ["menu Options|Element with Number",
