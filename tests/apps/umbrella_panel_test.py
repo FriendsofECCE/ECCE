@@ -230,6 +230,13 @@ def main():
                 nst = re.search(r"nsteps\s*=\s*(\d+)", text)
                 check(rate is not None and float(rate.group(1)) == 0 and nst and int(nst.group(1)) == steps,
                       "%s: .mdp has pull-coord1-rate 0 and nsteps %d" % (t, steps))
+                # a fixed reference at the window's target: start = yes would add
+                # the frame's own distance to init
+                init = re.search(r"pull-coord1-init\s*=\s*(\S+)", text)
+                check(re.search(r"pull-coord1-start\s*=\s*no", text) and init
+                      and 0.24 - 0.02 <= float(init.group(1)) <= 1.2 + 0.02,
+                      "%s: pull-coord1-start no, init %s (inside the 0.24-1.2 nm asked for)"
+                      % (t, init.group(1) if init else None))
                 check(s.driver("state", "file://" + os.path.join(sdir, t))[1].strip() == "ready",
                       "%s is Ready" % t)
             # each -eq follows the pull task, each prod its -eq

@@ -506,14 +506,16 @@ void PullPanel::OnAnalysis(wxCommandEvent& event)
 
 wxString PullPanel::umbrellaState() const
 {
-  return wxString::Format("windows=%d pmf=%d hist=%d",
+  int gaps = 0;
+  for (size_t at = 0; (at = p_details.find("\nwarning: ", at)) != wxString::npos; at++) gaps++;
+  return wxString::Format("windows=%d pmf=%d hist=%d gaps=%d",
       p_windows ? p_windows->GetItemCount() : 0,
-      p_pmf ? p_pmf->curveCount() : 0, p_hist ? p_hist->curveCount() : 0);
+      p_pmf ? p_pmf->curveCount() : 0, p_hist ? p_hist->curveCount() : 0, gaps);
 }
 
 void PullPanel::OnFind(wxCommandEvent&)
 {
-  double sp = 0.2;
+  double sp = 0.1;
   p_spacing->GetValue().ToDouble(&sp);
   umbrellaFind(sp, p_from->GetValue(), p_to->GetValue());
 }

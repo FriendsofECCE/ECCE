@@ -18,7 +18,8 @@ the Na+ Cl- test checks the science.
 Lengths (steps of 2 fs) come from the environment: OPT_STEPS (1000),
 NPT_STEPS (10000), PULL_STEPS (25000), PULL_RATE (0.05 nm/ps), WIN_SPACING
 (0.1), WIN_FROM (0.5), WIN_TO (1.5), WIN_EQ (5000), WIN_PROD (20000), BOX and
-CENTRE (nm), PROCS (4) per job.  Wall times per stage go to times.json in the
+CENTRE (nm), PROCS (4) per job.  40 ps windows only prove the chain (their
+histograms barely overlap, so the panel must warn); real runs need ns windows.  Wall times per stage go to times.json in the
 state folder.  Exit status 77 (CTest SKIP) without gmx, Xvfb or the binaries.
 """
 
@@ -86,7 +87,9 @@ def verify(csv, nwin):
         say("  windows %d and %d share %.0f %%" % (k + 1, k + 2, 100 * shared))
         if shared < 0.05:
             low.append(k + 1)
-    check(not low, "every pair of neighbouring histograms overlaps by at least 5 %% (not after window %s)" % low)
+    # Report only: 40 ps windows cannot be expected to overlap; the panel's
+    # gap warning is what is checked (see umbrellastate).
+    say("  windows sharing < 5 %% with the next: %s" % (low or "none"))
     mins = [r for r in rows if len(r) > 4 and r[3] == "minimum"]
     check(mins, "the summary names a minimum (%s)" % ", ".join(
         "%.2f nm %.1f kJ/mol" % (float(r[0]), float(r[1])) for r in mins[:3]))
@@ -325,6 +328,24 @@ def main():
                     and run_task("file://%s/%s/" % (sdir, w), w, 3600)):
                 return 1
         note("windows ran", "%.0f s for %d windows" % (time.time() - t0, len(wins)))
+        for w in wins:
+            # The restraint's reference must be the window's own target, not
+            # the start distance plus it (pull-coord1-start = yes).
+            for t in (w + "-eq", w):
+                try:
+                    mdp = open(os.path.join(sdir, t, "Inputs", "gromacs.mdp")).read()
+                except OSError:
+                    mdp = ""
+                pl = dict(re.findall(r"^(pull-coord1-(?:start|init|rate|dim))\s*=\s*(.*?)\s*$", mdp, re.M))
+                px = glob.glob(os.path.join(sdir, t, "Outputs", "*pullx*.xvg"))
+                first = ""
+                if px:
+                    first = next((l.split()[1] for l in open(px[0], errors="replace")
+                                  if l.strip() and l[0] not in "#@"), "")
+                say("  %s: %s; pullx at t0 %s" % (t, pl, first or "-"))
+                check(pl.get("pull-coord1-start") == "no" and "pull-coord1-init" in pl
+                      and float(pl.get("pull-coord1-rate", "1")) == 0,
+                      "%s: fixed reference (start no, init set, rate 0)" % t)
 
         # ---- panel: WHAM, PMF, pull page, RMSD / Rg ----------------------
         csv = os.path.join(s.state, "pmf.csv")
@@ -340,6 +361,10 @@ def main():
             for l in text.splitlines():
                 if l.startswith("BUILDER: umbrella"):
                     say(l)
+                m = re.match(r"BUILDER: umbrellastate .*gaps=(\d+)", l)
+                if m:
+                    check(int(m.group(1)) > 0, "the panel warns of %s gap(s): the short "
+                          "windows' PMF is not to be trusted" % m.group(1))
             for k, v in shots.items():
                 dest = os.path.join(png, "%s-%s.png" % (name, k))
                 # runScript may already have written the shot there.
