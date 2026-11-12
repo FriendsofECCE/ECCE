@@ -202,6 +202,12 @@ bool parse(const string& s, Graph& g, string& err)
             } else while (i < n && s[i] == sg) { q++; i++; }
             a.charge = sg == '+' ? q : -q;
          }
+         // MOE and some other programs write the charge before the
+         // hydrogens ([N+H], [N+H2]); read that order too.
+         if (i < n && s[i] == 'H' && a.hcount == 0 && a.charge != 0) {
+            i++; a.hcount = 1;
+            if (i < n && isdigit((unsigned char)s[i])) a.hcount = s[i++] - '0';
+         }
          if (i < n && s[i] == ':') {
             i++;
             if (i >= n || !isdigit((unsigned char)s[i])) return fail(i, "atom class needs digits");

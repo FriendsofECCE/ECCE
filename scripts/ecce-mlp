@@ -384,10 +384,15 @@ def main():
         fm = float(np.sqrt((forces ** 2).sum(axis=1)).max()) if len(forces) else 0.0
         state["frames"] += 1
         write(trajectory, atoms, format="extxyz", append=True)
-        say("Step %4d" % (state["frames"] - 1))
-        say("  Energy %.8f eV" % energy)
-        say("  Fmax   %.5f eV/A" % fm)
-        say("  Time   %.1f s" % (time.time() - start))
+        # As ecce-mlp-driver: steps only for an optimisation, Eh for the box.
+        if runtype == "Geometry":
+            say("Step %4d" % (state["frames"] - 1))
+            say("  Energy %.8f eV  %.8f Eh" % (energy, energy * EV_TO_HARTREE))
+            say("  Fmax   %.5f eV/A" % fm)
+            say("  Time   %.1f s" % (time.time() - start))
+        else:
+            say("Energy:       %.8f eV" % energy)
+            say("Fmax:         %.5f eV/A" % fm)
         say(frame_block(state["frames"], atoms, energy))
         return fm
 

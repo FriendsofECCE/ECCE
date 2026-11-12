@@ -99,3 +99,5 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [ecce-launch --move: queue check, terminate path, wait for the monitor, reset to Ready, relaunch (#830)](ecce-launch-move-830.md)
 - [Launch stores its line-by-line cache copy of the deck back; a 255-byte getline buffer cut decks at the first long line (#455)](launch-copies-stored-files-line-by-line.md)
 - [Windows broker: retries need their own folder (#958)](windows-broker-retry-needs-its-own-folder-958.md)
+- [Batch Add from SMILES (#961): SmilesBatch builds each structure without the Builder and hands an xyz to Series::make](batch-add-from-smiles-961.md)
+- [QSAR descriptor table (#961): ecce-qsar from the stored SMILES, ChecksDialog QSAR mode, writeFolder must export what the script reads](qsar-descriptor-table-961.md)

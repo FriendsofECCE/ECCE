@@ -597,6 +597,12 @@ target_include_directories(ecce-series PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-series PRIVATE
   eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
   eccetdat ecceutil ${XercesC_LIBRARIES})
+# A table of names and SMILES as one calculation per row (#961).
+add_executable(ecce-batch-smiles src/apps/launch/ecce-batch-smiles.C)
+target_include_directories(ecce-batch-smiles PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-batch-smiles PRIVATE
+  eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml
+  eccetdat ecceutil ${XercesC_LIBRARIES})
 # MLP site screening: host + one calculation per site, and the results (#728).
 add_executable(ecce-site-screen src/apps/launch/ecce-site-screen.C)
 target_include_directories(ecce-site-screen PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -1244,7 +1250,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-site-screen ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-batch-smiles ecce-site-screen ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -1367,6 +1373,17 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_rate.py
         DESTINATION bin RENAME ecce-rate
         COMPONENT client)
 install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_rates.py
+        DESTINATION scripts
+        COMPONENT client)
+
+# ecce-qsar (#961): descriptor table, PCA and PLS; ecce_qsar_chem.py and
+# ecce_qsar_crippen.py are its libraries (modules in scripts/, not commands).
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar.py
+        DESTINATION bin RENAME ecce-qsar
+        COMPONENT client)
+install(FILES ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar_chem.py
+              ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar_crippen.py
+              ${CMAKE_SOURCE_DIR}/scripts/ecce_qsar_chemo.py
         DESTINATION scripts
         COMPONENT client)
 
@@ -2657,6 +2674,10 @@ if(PYTHON3_FOR_SPECTRUM)
            COMMAND ${PYTHON3_FOR_SPECTRUM}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/progress/codes_test.py)
   set_tests_properties(progress-codes PROPERTIES SKIP_RETURN_CODE 77)
+  # every registered code that runs jobs has [PROGRESS] entries (#970)
+  add_test(NAME progress-registry
+           COMMAND ${PYTHON3_FOR_SPECTRUM}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/progress/registry_test.py)
 endif()
 
 # tests/session -- the session id and key (#233): shell and C++ derivations
@@ -2799,6 +2820,20 @@ add_test(NAME siexport
 add_test(NAME checks_table
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/siexport/checks_test.py)
+
+# tests/qsar -- scripts/ecce_qsar*.py (#961): descriptors against RDKit's published
+# values, Open Babel (skips that part without obabel) and the stored water calculation.
+add_test(NAME qsar_descriptors
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/qsar/descriptors_test.py)
+
+add_test(NAME qsar_pca
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/qsar/pca_test.py)
+
+add_test(NAME qsar_pls
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/qsar/pls_test.py)
 
 # tests/siexport/rank_test.py -- ecce-si-export --rank (#703).
 add_test(NAME rank_table
@@ -3805,6 +3840,30 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_checks_table PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # QSAR table: the dialog's rows equal ecce-qsar table (#961).
+  add_test(NAME apps_qsar_table
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/qsar_table_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_qsar_table PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # QSAR Analysis: the dialog's PCA equals ecce-qsar pca (#961).
+  add_test(NAME apps_qsar_pca
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/qsar_pca_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_qsar_pca PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # QSAR Analysis: the dialog's PLS equals ecce-qsar pls (#961).
+  add_test(NAME apps_qsar_pls
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/qsar_pls_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_qsar_pls PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Rank table: the dialog's deltas equal ecce-si-export --rank (#703).
   add_test(NAME apps_rank_table
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4452,6 +4511,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_site_screen PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # #961: Batch Add from SMILES, five xTB optimisations through Launch.
+  add_test(NAME launch_batch_smiles
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/batch_smiles_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_batch_smiles PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   # #329: a CP2K calculation in the real Calculation Editor (script hook, private
   # Xvfb): settings sent as the dialogs send them, the saved deck checked.
   add_test(NAME launch_cp2k_calced
@@ -5207,6 +5273,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-mkdir=bin/ecce-mkdir
   ecce-workflow=bin/ecce-workflow
   ecce-series=bin/ecce-series
+  ecce-batch-smiles=bin/ecce-batch-smiles
   ecce-site-screen=bin/ecce-site-screen
   ecce-reconnect=bin/ecce-reconnect
   ecce-fetch=bin/ecce-fetch
@@ -5221,6 +5288,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-ensemble=bin/ecce-ensemble
   ecce-rate=bin/ecce-rate
   ecce-morse=bin/ecce-morse
+  ecce-qsar=bin/ecce-qsar
   ecce-gmxanalysis=bin/ecce-gmxanalysis
   ecce-spectrum=bin/ecce-spectrum
   ecce-displace=bin/ecce-displace

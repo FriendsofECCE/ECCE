@@ -54,8 +54,9 @@ Begin=^Step\s+(\d+)\s*$
 Progress=opt step=$1
 [END]
 
+# The box shows energies in Eh; ecce-mlp prints both units.
 [PROGRESS]
-Begin=^\s+Energy\s+(-?\d\S*)\s+eV
+Begin=^\s+Energy\s+\S+\s+eV\s+(-?\d\S*)\s+Eh
 Progress=opt energy=$1
 History=energy
 [END]
@@ -70,15 +71,22 @@ Begin=^Optimisation converged
 Progress=opt converged=yes
 [END]
 
-# MD: one row per frame, the trajectory arrives with the frames.
+# MD: one row per frame, the trajectory arrives with the frames.  Keys are
+# plain words (the monitor drops "time(ps)"); time is in ps, as GROMACS'.
 [PROGRESS]
-Begin=^MD step\s+(\d+)\s+time\s+(\d+\.\d+) ps
-Progress=md step=$1 time(ps)=$2
+Begin=^Dynamics:.*,\s+(\d+) steps,
+Remember=mdsteps
+[END]
+
+[PROGRESS]
+Begin=^MD step\s+(\d+)\s+time\s+(\d+\.\d+) ps.*\sT\s+(\S+) K.*\sEtot\s+(-?\d\S*) Eh
+Progress=md point=$1/{mdsteps} time=$2 temp=$3 energy=$4
+History=temp
 [END]
 
 [PROGRESS]
 Begin=^MD finished:
-Progress=md finished=yes
+Progress=md done=yes
 [END]
 
 [PROGRESS]
