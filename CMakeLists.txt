@@ -2410,6 +2410,13 @@ target_include_directories(mqtt_test PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(mqtt_test PRIVATE ecceutil ${XercesC_LIBRARIES})
 add_test(NAME mqtt COMMAND mqtt_test ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR})
+# ECCE's own broker (#990), same checks as against mosquitto, plus protocol
+# edge cases and the Windows session path (broker file with its own login).
+add_test(NAME mqtt-builtin-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} builtin)
+add_test(NAME mqtt-builtin-session COMMAND mqtt_test session ${CMAKE_SOURCE_DIR})
+add_test(NAME mqtt-builtin-interop COMMAND mqtt_test interop)
+set_tests_properties(mqtt-builtin-auth mqtt-builtin-session mqtt-builtin-interop PROPERTIES TIMEOUT 180)
+set_tests_properties(mqtt-builtin-interop PROPERTIES SKIP_RETURN_CODE 77)
 if(TARGET ecce_users_auth)
   add_test(NAME mqtt-auth-plugin
            COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} $<TARGET_FILE:ecce_users_auth>)
