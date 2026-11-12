@@ -44,6 +44,7 @@
 
 #include "BuilderGUI.H"
 
+class ICalculation;
 class ClipPlanePanel;
 class AtomMeasureAngle;
 class AtomMeasureDist;
@@ -678,6 +679,8 @@ class Builder: public BuilderGUI,
       TaskJob *vinaJob() const;
       VinaBox vinaBoxFromDetails(const std::map<string, string>& d);
       void drawVinaBox(const VinaBox& box);
+      bool vinaBoxFromDeck(ICalculation *ic, VinaBox& box,
+                           vector<int> *ligand = 0);
       VinaBox p_vinaBox;
       bool isReadOnly(IPropCalculation *calc) const;
       bool isDirty(IPropCalculation *calc=NULL);

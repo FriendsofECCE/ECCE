@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <functional>
 #include <map>
 #include <memory>
@@ -46,6 +47,8 @@ string value(GUIValues *g, const string& key, const string& dflt)
   return v && !v->getValueAsString().empty() ? v->getValueAsString() : dflt;
 }
 
+// type is the dialog's own (toggle_input, float_input, text_input): the dialog
+// restores a value only for the types it knows, else keeps its default.
 void store(GUIValues *g, const string& key, const string& val,
            const string& type, const string& units)
 {
@@ -194,6 +197,45 @@ void Builder::drawVinaBox(const VinaBox& box)
 }
 
 
+//  The box a launched run used, from its stored deck.  The settings can hold
+//  unused defaults (automatic box, centre 0 0 0) and the automatic rule is
+//  the generator's to apply, so after Launch the deck is the only truth.
+//  ligand gets the deck's LIGAND_ATOMS (0-based).
+bool Builder::vinaBoxFromDeck(ICalculation *ic, VinaBox& box, vector<int> *ligand)
+{
+  std::unique_ptr<std::istream> in(ic->getDataFile(JCode::PRIMARY_INPUT));
+  if (!in) return false;
+  static const char *const keys[6] = {"center_x", "center_y", "center_z",
+                                      "size_x", "size_y", "size_z"};
+  double v[6];
+  int found = 0;
+  for (string line; std::getline(*in, line); ) {
+    for (int k = 0; k < 6; k++) {
+      const size_t n = strlen(keys[k]);
+      if (line.compare(0, n, keys[k]) == 0 && line.find('=') != string::npos) {
+        v[k] = atof(line.c_str() + line.find('=') + 1);
+        found |= 1 << k;
+      }
+    }
+    if (ligand && line.compare(0, 16, "#| LIGAND_ATOMS=") == 0) {
+      string spec = line.substr(16);
+      for (char& c : spec) if (c == ',') c = ' ';
+      std::istringstream ss(spec);
+      for (string part; ss >> part; ) {
+        int x = 0, y = 0;
+        if (sscanf(part.c_str(), "%d-%d", &x, &y) == 2)
+          for (int i = x; i <= y; i++) ligand->push_back(i - 1);
+        else if (sscanf(part.c_str(), "%d", &x) == 1) ligand->push_back(x - 1);
+      }
+    }
+  }
+  if (found != 63) return false;
+  box.valid = true;
+  for (int k = 0; k < 3; k++) { box.centre[k] = v[k]; box.size[k] = v[k + 3]; }
+  return true;
+}
+
+
 void Builder::updateVinaBox()
 {
   TaskJob *job = vinaJob();
@@ -207,7 +249,15 @@ void Builder::updateVinaBox()
     for (const auto& kv : *g) d[kv.first] = kv.second->getValueAsString();
     delete g;
   }
-  drawVinaBox(vinaBoxFromDetails(d));
+  VinaBox box = vinaBoxFromDetails(d);
+  VinaBox used;
+  if (job->getState() > ResourceDescriptor::STATE_READY &&
+      vinaBoxFromDeck(ic, used)) {
+    used.automatic = box.automatic;
+    used.margin = box.margin;
+    box = used;
+  }
+  drawVinaBox(box);
 }
 
 
@@ -251,13 +301,13 @@ string Builder::vinaBoxFromSelection(double margin)
     box.centre[k] = round1((lo[k] + hi[k]) / 2);
     box.size[k] = std::max(1.0, round1(hi[k] - lo[k] + 2 * margin));
     snprintf(buf, sizeof buf, "%.1f", box.centre[k]);
-    store(g, string("ES.Runtype.Vina.BoxCenter") + AXES[k], buf, "float", "A");
+    store(g, string("ES.Runtype.Vina.BoxCenter") + AXES[k], buf, "float_input", "A");
     snprintf(buf, sizeof buf, "%.1f", box.size[k]);
-    store(g, string("ES.Runtype.Vina.BoxSize") + AXES[k], buf, "float", "A");
+    store(g, string("ES.Runtype.Vina.BoxSize") + AXES[k], buf, "float_input", "A");
   }
   snprintf(buf, sizeof buf, "%.1f", margin);
-  store(g, "ES.Runtype.Vina.BoxMargin", buf, "float", "A");
-  store(g, "ES.Runtype.Vina.BoxAuto", "0", "bool", "");
+  store(g, "ES.Runtype.Vina.BoxMargin", buf, "float_input", "A");
+  store(g, "ES.Runtype.Vina.BoxAuto", "0", "toggle_input", "");
   // A selection that is exactly one ligand residue (not polymer, water or an
   // ion) is also the ligand to dock: fill Ligand atoms with it.  A box around
   // binding-site residues leaves the field as it was.
@@ -281,7 +331,7 @@ string Builder::vinaBoxFromSelection(double margin)
         if (j > i) ranges += "-" + std::to_string(idx[j] + 1);
         i = j + 1;
       }
-      store(g, "ES.Runtype.Docking.LigandAtoms", ranges, "string", "");
+      store(g, "ES.Runtype.Docking.LigandAtoms", ranges, "text_input", "");
     }
   }
   const bool ok = ic->guiparams(g);
@@ -356,7 +406,27 @@ string Builder::vinaScriptCommand(const vector<string>& w)
              (int)p_vinaBox.valid, (int)p_vinaBox.automatic, p_vinaBox.centre[0],
              p_vinaBox.centre[1], p_vinaBox.centre[2], p_vinaBox.size[0],
              p_vinaBox.size[1], p_vinaBox.size[2]);
-    return buf;
+    string out = buf;
+    // The ligand atoms (the deck's list) of the structure shown against the
+    // drawn box: all of them inside means the box is in the shown frame.
+    VinaBox deck;
+    vector<int> lig;
+    if (ICalculation *ic = dynamic_cast<ICalculation*>(vinaJob()))
+      if (vinaBoxFromDeck(ic, deck, &lig) && p_vinaBox.valid && !lig.empty()) {
+        int inside = 0, total = 0;
+        for (int i : lig) {
+          if (i < 0 || i >= frag->numAtoms()) continue;
+          const double *p = frag->atomRef(i)->coordinates();
+          bool in = true;
+          for (int k = 0; k < 3; k++)
+            if (fabs(p[k] - p_vinaBox.centre[k]) > 0.5 * p_vinaBox.size[k]) in = false;
+          total++;
+          inside += in;
+        }
+        snprintf(buf, sizeof buf, " ligand_inside=%d/%d", inside, total);
+        out += buf;
+      }
+    return out;
   }
   if (w[0] == "poses" && w.size() >= 2) {
     EnsemblePropertyPanel *en = 0;
