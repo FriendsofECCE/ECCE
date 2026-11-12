@@ -77,6 +77,7 @@
 #include "inv/actions/SoSearchAction.H"
 #include "inv/actions/SoWriteAction.H"
 #include "inv/actions/SoPickAction.H"
+#include "inv/actions/SoRayPickAction.H"
 
 #include "inv/details/SoTextDetail.H"
 
@@ -2559,6 +2560,18 @@ ChemSelection::pick(SoPickAction *action)
     ChemSelectionElement::set(action->getState(),
         (ChemSelectionElement::ChemPart)(parts.getValue()));
     SoGroup::pick(action);
+}
+
+// SoSeparator::rayPick does not go through pick(), so without this the
+// ChemDisplays below saw the default parts (ALL) and picked atom labels and
+// residues; processPickedPoint drops what is not in `parts`, so such a pick
+// in front of an atom selected nothing (#975).
+void
+ChemSelection::rayPick(SoRayPickAction *action)
+{
+    ChemSelectionElement::set(action->getState(),
+        (ChemSelectionElement::ChemPart)(parts.getValue()));
+    SoSeparator::rayPick(action);
 }
 
 ////////////////////////////////////////////////////////////////////////

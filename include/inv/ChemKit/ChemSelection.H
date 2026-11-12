@@ -438,6 +438,7 @@ class CHEMKIT_DLL_API ChemSelection : public SoSeparator {
     virtual void GLRenderInPath(SoGLRenderAction *action);
     virtual void GLRenderOffPath(SoGLRenderAction *action);
     virtual void pick(SoPickAction *action);
+    virtual void rayPick(SoRayPickAction *action);
 
   SoINTERNAL public:
 
