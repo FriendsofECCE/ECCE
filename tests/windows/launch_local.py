@@ -112,22 +112,24 @@ def which(s, prog):
 
 
 def broker(s, what):
-    """ecce-broker-win start|stop for this session; the parsed broker file."""
-    home = s.env["ECCE_HOME"]
-    # An install tree has the script in bin\ and the shell in usr\bin; a checkout
-    # has it under packaging and uses the bash on PATH (never WSL's).
-    script = os.path.join(home, "bin", "ecce-broker-win")
-    if not os.path.exists(script):
-        script = os.path.join(home, "packaging", "windows", "ecce-broker-win")
-    shell = os.path.join(home, "usr", "bin", "bash.exe")
-    if not os.path.exists(shell):
-        shell = "bash"
-    env = dict(s.env, ECCE_NO_MESSAGING="")
-    if os.path.exists(shell):
-        env["PATH"] = os.path.dirname(shell) + os.pathsep + env["PATH"]
-    r = subprocess.run([shell, script, what], env=env,
-                       stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    say(r.stdout.decode("utf-8", "replace").strip())
+    """The built-in broker (#990), as the Organizer runs it: `eccebroker --session`
+    writes the session's broker file; closing its stdin stops it.  Returns the
+    parsed broker file.  WINTEST_BROKER names eccebroker.exe (default: the
+    build tree's)."""
+    global _broker
+    if what == "stop":
+        if _broker:
+            _broker.stdin.close()
+            try:
+                _broker.wait(timeout=60)
+            except subprocess.TimeoutExpired:
+                _broker.kill()
+        return {}
+    exe = os.environ.get("WINTEST_BROKER") or os.path.join(REPO, "build", "eccebroker.exe")
+    env = dict(s.env, ECCE_NO_MESSAGING="", ECCE_REALUSERHOME=s.state)
+    _broker = subprocess.Popen([exe, "--session", "2"], env=env, stdin=subprocess.PIPE,
+                               stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    say(_broker.stdout.readline().decode("utf-8", "replace").strip())
     cfg = {}
     f = os.path.join(s.state, ".ECCE", "broker_%s_%s" % (s.env["HOST"], s.env["ECCE_SESSION_ID"]))
     if os.path.exists(f):
@@ -136,6 +138,9 @@ def broker(s, what):
                 k, v = line.strip().split("=", 1)
                 cfg[k] = v
     return cfg
+
+
+_broker = None
 
 
 def stub(state, delay):

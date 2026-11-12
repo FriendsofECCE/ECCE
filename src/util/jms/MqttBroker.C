@@ -189,7 +189,7 @@ struct MqttBroker::Impl {
     if (hasPw) pw = r.str();
     std::map<string, string>::iterator u = users.find(user);
     if (!hasUser || !validName(user) || u == users.end() || !constEq(u->second, pw)) {
-      connack(c, 0x86); c.dead = true; return;
+      connack(c, hasUser ? 0x86 : 0x87); c.dead = true; return;
     }
     if (c.id.empty()) c.id = "ecce-anon-" + std::to_string(++anon);
     for (auto& o : clients)   // a repeated client id takes over
