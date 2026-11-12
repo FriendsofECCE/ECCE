@@ -19,6 +19,7 @@ void GromacsPrepareModel::reset()
    p_merge = true;
    p_neut = true;
    p_dist = 1.0;
+   p_size.clear();
    p_conc = 0.15;
    p_rmin = 0.6;
    p_mvariant = "gminff";

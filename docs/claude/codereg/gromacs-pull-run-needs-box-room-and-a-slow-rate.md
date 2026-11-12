@@ -2,7 +2,7 @@
 type: pitfall
 title: "GROMACS COM pull: grompp wants a pbc atom for chain-sized groups, the distance cannot pass half the box, and 0.1 nm/ps drags a chain nowhere"
 area: codereg
-paths: [scripts/parsers/ai.gromacs, scripts/parsers/md.gmxtask, scripts/parsers/gromacs.pull, scripts/parsers/gromacs.desc, scripts/gensub, src/wxgui/mdtools/GromacsRunPanel.C, src/apps/builder/PullPanel.C, tests/gromacs_md/pull_test.py]
+paths: [src/wxgui/mdtools/GromacsPreparePanel.C, include/dsm/GromacsPrepareModel.H, scripts/parsers/md.gmxprep, scripts/parsers/ai.gromacs, scripts/parsers/md.gmxtask, scripts/parsers/gromacs.pull, scripts/parsers/gromacs.desc, scripts/gensub, src/wxgui/mdtools/GromacsRunPanel.C, src/apps/builder/PullPanel.C, tests/gromacs_md/pull_test.py]
 issues: [410]
 ---
 - Settings live in `GromacsRun` (`GmxPull*` tags) -> `md.gmxtask`
@@ -11,9 +11,21 @@ issues: [410]
   (`Chain_A = mol:Protein_chain_A`). A reference chain held in place is the
   existing Restrain positions with `POSRES_A`.
 - grompp 2025.2 refuses a group larger than a quarter of the box without a
-  hand-picked `pull-group1-pbcatom`. ECCE writes
-  `pull-pbc-ref-prev-step-com = yes` instead (no atom number to choose;
-  cosine weighting is no use, it allows one pull dimension only).
+  `pull-groupN-pbcatom`, even with `pull-pbc-ref-prev-step-com = yes` (a
+  2BEG strand in a 1.5 nm-margin box). `gromacs.mkndx`, which already has the
+  groups and the staged conf.gro at launch, appends the atom nearest each
+  pull group's centre to the staged .mdp unless the user gave one. A
+  user-attached .ndx skips mkndx, so then the pbc atom is the user's job.
+- `gromacs.mkndx` counts `[ atoms ]` only in the `#ifdef` branch grompp
+  reads (defines from the .mdp `define` line and `#define`): GROMOS
+  `spc.itp` lists SOL twice (HEAVY_H), which made every chain group fail with
+  "the topology's molecules hold N atoms" on gromos53a6 + SPC.
+- Room in the box for a pull along one axis: GROMACS Prepare's Box size
+  (x y z, nm; `BoxSize` -> md.gmxprep `SIZE` -> gensub `editconf -bt
+  triclinic -box`) with the solute centre near one end, as in the usual
+  umbrella-sampling setup. It replaces the distance to edge and the box
+  type; a solute that reaches past it (from the task's structure) is a
+  warning in the editor, never a block.
 - With `geometry = distance` the distance is a minimum-image one: a pull that
   starts at d and runs at rate r for t ps stalls at half the shortest box
   vector, with the force still rising. Leave room in the box.

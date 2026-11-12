@@ -33,6 +33,8 @@
 //   launchjob mdmdp <taskURL> [resume]
 //                                 write the task's default gromacs.mdp (continuation with "resume") and
 //                                 leave it Ready, as the editor's Save does
+//   launchjob mdpull <taskURL> <rate> <k>
+//                                 the task's model with Na and Cl pulled apart (#762), .mdp rewritten
 //   launchjob plan <taskURL>      what Launch Selected makes of the task: "ready" or the reason it is skipped
 //   launchjob apptype <url>       the application and content type of a resource
 //   launchjob nwchemmdstudy <parentURL> <name> [frag=<mvm|pdb>] [all]
@@ -522,6 +524,33 @@ static int doMdMdp(const vector<string>& a)
   return 0;
 }
 
+//  The model of a pull run: Na and Cl pulled apart at <rate> nm/ps with
+//  spring constant <k>, input regenerated (#762).
+static int doMdPull(const vector<string>& a)
+{
+  if (a.size() < 3) { cerr << "mdpull: wrong argument count" << endl; return 2; }
+  TaskJob* task = getTask(a[0]);
+  if (!task) { cerr << "not a calculation: " << a[0] << endl; return 1; }
+  GromacsMDModel mm(task->getContentType());
+  task->getTaskModel(mm);
+  InteractionModel* im = mm.getInteractionModel();
+  if (!im) { cerr << "no interaction model" << endl; return 1; }
+  GromacsRun run = im->getGromacsRun();
+  run.groups = "Na = NA\nCl = CL";
+  run.pull = true;
+  run.pullGroup1 = "Na";
+  run.pullGroup2 = "Cl";
+  run.pullRate = atof(a[1].c_str());
+  run.pullK = atof(a[2].c_str());
+  im->setGromacsRun(run);
+  if (!generateInput(task, mm, "md.gmxtask", "gromacs.mdp")) {
+    cerr << "could not write the .mdp" << endl;
+    return 1;
+  }
+  task->setState(ResourceDescriptor::STATE_READY);
+  return 0;
+}
+
 static int doPlan(const vector<string>& a)
 {
   TaskJob* task = a.empty() ? 0 : getTask(a[0]);
@@ -840,6 +869,7 @@ int main(int argc, char** argv)
   if (mode == "mdsetup") return doMdSetup(a);
   if (mode == "mdfile") return doMdFile(a);
   if (mode == "mdmdp") return doMdMdp(a);
+  if (mode == "mdpull") return doMdPull(a);
   if (mode == "plan") return doPlan(a);
   if (mode == "gromacsstudy") return doMdStudy(a, true);
   if (mode == "gromacsaddprepare") return doGromacsAddPrepare(a);

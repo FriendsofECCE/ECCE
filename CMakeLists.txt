@@ -1404,6 +1404,11 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_gmxanalysis.py
         DESTINATION bin RENAME ecce-gmxanalysis
         COMPONENT client)
 
+# ecce-umbrella (#762): windows from a pull run, WHAM; the Pull Force panel runs it.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_umbrella.py
+        DESTINATION bin RENAME ecce-umbrella
+        COMPONENT client)
+
 # ecce-bandshift (#707): matched bands and their shifts between two calculations.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_bandshift.py
         DESTINATION bin RENAME ecce-bandshift
@@ -4806,6 +4811,15 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs_protein_walk PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
+  # The whole umbrella-sampling lab chain on 2BEG (#762), shortened: Prepare,
+  # Optimize, NPT, pull, windows, WHAM, all launched through ECCE; about an hour.
+  add_test(NAME launch_umbrella_2beg
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/umbrella_2beg_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_umbrella_2beg PROPERTIES TIMEOUT 7200
+                       SKIP_RETURN_CODE 77 LABELS long)
   # The GROMACS run importer (#375): a finished run becomes a study whose
   # energies come from the job monitor's parse of the logs.
   add_test(NAME launch_gromacs_import
@@ -4862,6 +4876,15 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_overlay PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+  # Umbrella sampling (#762): window tasks from a stored pull run, WHAM and
+  # the PMF in the Pull Force panel; skipped (77) without gmx or Xvfb.
+  add_test(NAME apps_umbrella_panel
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/umbrella_panel_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_umbrella_panel PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # Stepping and playing a geometry trace (GROMACS box, ORCA optimisation)
   # keeps a zoomed-in camera; skipped (77) without Xvfb.
@@ -5382,6 +5405,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-qsar=bin/ecce-qsar
   ecce-xrd=bin/ecce-xrd
   ecce-gmxanalysis=bin/ecce-gmxanalysis
+  ecce-umbrella=bin/ecce-umbrella
   ecce-spectrum=bin/ecce-spectrum
   ecce-displace=bin/ecce-displace
   ecce-si-export=bin/ecce-si-export

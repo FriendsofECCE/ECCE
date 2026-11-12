@@ -256,8 +256,11 @@ sub GMXVelocities {
     push(@l, "continuation             = yes");
   } else {
     push(@l, "gen-vel                  = yes");
+    #  The editor has no field of its own for it: velocities are drawn at
+    #  the thermostat's temperature.
     push(@l, "gen-temp                 = " .
-             &numOr("ES.Runtype.MD.GenTemp", "300"));
+             &numOr("ES.Runtype.MD.GenTemp",
+                    &numOr("ES.Runtype.MD.Temperature", "300")));
     push(@l, "gen-seed                 = -1");
   }
   my $r = join("\n", @l);
@@ -341,7 +344,16 @@ sub GMXPull {
     if ($geom eq "direction");
   push(@l, "pull-coord1-dim           = " . &stringOr("ES.Runtype.MD.PullDim", "Y Y Y"));
   push(@l, "pull-coord1-groups        = 1 2");
-  push(@l, "pull-coord1-start         = yes");
+  #  A fixed reference (an umbrella window) or the starting distance: with
+  #  start = yes a window on the barrier would follow wherever equilibration
+  #  let it slide.
+  my $init = $AbiDict{"ES.Runtype.MD.PullInit"};
+  if (defined($init) && $init ne "" && $init >= 0) {
+    push(@l, "pull-coord1-start         = no");
+    push(@l, "pull-coord1-init          = $init");
+  } else {
+    push(@l, "pull-coord1-start         = yes");
+  }
   push(@l, "pull-coord1-rate          = " . &numOr("ES.Runtype.MD.PullRate", 0.01));
   push(@l, "pull-coord1-k             = " . &numOr("ES.Runtype.MD.PullK", 1000));
   push(@l, "pull-nstxout              = 50");
@@ -396,6 +408,23 @@ sub mergeExtraLines {
     push(@keep, $_);
   }
   close(IN);
+  #  nstcalcenergy was chosen to divide our nstlog/nstenergy; a user line
+  #  that changes either (nstenergy = 500 on a 20000-step run, nstcalcenergy
+  #  200) is a grompp warning that stops the job, so it is chosen again.
+  if (!exists($line{"nstcalcenergy"}) &&
+      (exists($line{"nstenergy"}) || exists($line{"nstlog"}))) {
+    my %v;
+    foreach my $k ("nstlog", "nstenergy") {
+      my $src = exists($line{$k}) ? $line{$k}
+                                  : (grep { /^\s*$k\s*=/ } @keep)[0];
+      $v{$k} = ($src =~ /=\s*(\d+)/) ? int($1) : 0;
+    }
+    my ($a, $b) = ($v{"nstlog"}, $v{"nstenergy"});
+    ($a, $b) = ($b, $a % $b) while ($b > 0);
+    if ($a > 0) {
+      s/^(\s*nstcalcenergy\s*=\s*)\d+/$1$a/ foreach (@keep);
+    }
+  }
   open(OUT, ">tmpfile") || die "ai.gromacs error: Couldn't write tmpfile\n";
   print OUT join("\n", @keep, "; Lines written in the task editor",
                  map { $line{$_} } @order), "\n";

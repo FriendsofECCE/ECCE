@@ -371,7 +371,8 @@ string GmxPrepare::verifyText()
          box = water ? string("unit cell kept; c lengthened by a ") + d + " nm water layer"
                      : "unit cell kept, no water layer";
       else
-         box = m->boxType() + ", " + d + " nm from the solute" +
+         box = (m->boxSize().empty() ? m->boxType() + ", " + d + " nm from the solute"
+                                     : "rectangular, " + m->boxSize() + " nm") +
                (m->boxCenter().empty() ? "" : ", solute centred at " + m->boxCenter() + " nm");
       string ions;
       if (!water) {
@@ -412,7 +413,9 @@ string GmxPrepare::verifyText()
       snprintf(num, sizeof num, "%g", m->boxDistance());
       o << "2. gmx editconf -f step1.gro -o step2.gro -c"
         << (m->boxCenter().empty() ? "" : " -center " + m->boxCenter())
-        << " -bt " << m->boxType() << " -d " << num << "\n";
+        << (m->boxSize().empty() ? " -bt " + m->boxType() + " -d " + num
+                                 : " -bt triclinic -box " + m->boxSize())
+        << "\n";
    }
    if (water) {
       o << "3. gmx solvate -cp step2.gro -cs " << wbox

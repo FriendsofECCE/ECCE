@@ -2988,7 +2988,8 @@ void interactError(char* errorData)
 static bool isGromacsResult(const string& name)
 {
   return name == "traj.xtc" || name == "traj.trr" || name == "ener.edr" ||
-         name == "topol.tpr" || name == "ecce_pp.top";
+         name == "topol.tpr" || name == "ecce_pp.top" ||
+         name == "pullx.xvg" || name == "pullf.xvg";
 }
 
 // ------------------------------------------------------------------------- //

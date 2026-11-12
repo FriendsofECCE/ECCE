@@ -152,6 +152,8 @@ void NWChemMDModelXMLizer::deserialize(const string& data,
             if (value.length() > 0) run.pullRate = atof(value.c_str());
             value = getTagValue(iroot, "GmxPullK");
             if (value.length() > 0) run.pullK = atof(value.c_str());
+            value = getTagValue(iroot, "GmxPullInit");
+            if (value.length() > 0) run.pullInit = atof(value.c_str());
             imodel->setGromacsRun(run);
           }
           value = getTagValue(iroot, "EwaldConvergence");
@@ -1018,6 +1020,8 @@ void NWChemMDModelXMLizer::dumpInteraction(InteractionModel *model, ostream &os)
       os << "    <GmxPullRate>" << g.pullRate << "</GmxPullRate>" << endl;
     if (g.pullK != d.pullK)
       os << "    <GmxPullK>" << g.pullK << "</GmxPullK>" << endl;
+    if (g.pullInit != d.pullInit)
+      os << "    <GmxPullInit>" << g.pullInit << "</GmxPullInit>" << endl;
   }
   if (model->getEwaldConvergence() != model->EWALDCONVRG) {
     os << "    <EwaldConvergence>" << model->getEwaldConvergence()

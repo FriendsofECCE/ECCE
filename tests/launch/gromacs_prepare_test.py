@@ -626,6 +626,23 @@ def editor_section(s, build, rundir, png):
                       "window shot: %s" % shot)
                 ed.cmd("save")
                 check("CENTER=2 2 5" in ed.cmd("recipe"), "Save stored CENTER=2 2 5")
+                # an explicit box size replaces the distance; a solute that
+                # reaches past it is a warning, not a refusal
+                check(ed.cmd("set size 6 6 12") == "ok", "box size 6 6 12 set")
+                ver = ed.cmd("verify")
+                check("-c -center 2 2 5 -bt triclinic -box 6 6 12" in ver
+                      and "rectangular, 6 6 12 nm" in ver,
+                      "Verify shows editconf -box: %s" % ver)
+                check("sizewarning=0" in ed.cmd("fields"), "the solute fits in 6 6 12")
+                check(ed.cmd("set size 6 6 3") == "ok", "box size 6 6 3 set")
+                check("sizewarning=1" in ed.cmd("fields"),
+                      "a centre at z 5 in a 3 nm box is warned about")
+                check(ed.cmd("set size 6 0 3").startswith("refused"),
+                      "a zero length is not a box size")
+                ed.cmd("set size 6 6 12")
+                ed.cmd("save")
+                check("SIZE=6 6 12" in ed.cmd("recipe"), "Save stored SIZE=6 6 12")
+                check(ed.cmd("set size -") == "ok", "box size cleared")
                 check(ed.cmd("set center -") == "ok", "centre cleared")
                 shot = os.path.join(png, "gmxprepare.png")
                 check(ed.cmd("snap " + shot) == "saved" and os.path.exists(shot),

@@ -174,6 +174,7 @@ public:
   int    mdStoreTrj;
   bool   mdWriteTraj;
   bool   mdLeaveTraj;
+  bool   mdPull;
   bool   mdBatchOutput;
   bool   mdPMFOutput;
   const  RefQueueManager* mgr;
@@ -788,6 +789,7 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName,
   p_cache->mdStoreTrj = 0;
   p_cache->mdWriteTraj = false;
   p_cache->mdLeaveTraj = false;
+  p_cache->mdPull = false;
   p_cache->mdBatchOutput = false;
   p_cache->mdPMFOutput = false;
 
@@ -823,6 +825,7 @@ void Launch::cacheCalcInfo(const string& importDir, const string& importName,
           InteractionModel *imodel = taskModel.getInteractionModel();
           if (imodel) {
             p_cache->mdLeaveTraj = imodel->getGromacsRun().leaveTraj;
+            p_cache->mdPull = imodel->getGromacsRun().pull;
           }
           ThermodynamicsModel *tmodel = taskModel.getThermodynamicsModel();
           if (tmodel) {
@@ -1717,6 +1720,8 @@ bool Launch::generateJobMonitoringFiles(void)
         gmx = "ener.edr topol.tpr ecce_pp.top";
         if (p_cache->mdWriteTraj || xtc > 0) gmx = "traj.xtc " + gmx;
         if (vel > 0) gmx += " traj.trr";
+        //  The umbrella-sampling step reads these from <calc>/Outputs.
+        if (p_cache->mdPull) gmx += " pullx.xvg pullf.xvg";
       }
       if (!gmx.empty()) {
         monitorConfigFile << "filesToTransfer " << gmx << endl;

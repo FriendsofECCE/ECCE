@@ -118,6 +118,7 @@ static std::string s_registerMessage;
 #include "dsm/HistoryList.H"
 #include "dsm/MdTask.H"
 #include "dsm/ResourceType.H"
+#include "dsm/UmbrellaWindows.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/Session.H"
 #include "dsm/VDoc.H"
@@ -657,6 +658,9 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * newseries <template url> <source>...
  *                 New Series from This (#621) without dialogs; the report,
  *                 lines separated by " | "
+ * umbrellawindows <pull url> <spacing> <from|-> <to|-> <eq steps> <prod steps>
+ *                 the window calculations of a GROMACS pull run (#762):
+ *                 "ok N | name | ..." or "failed: <why>"
  * qsartable <out.csv> <url>,<url>... [groups]
  *                 the QSAR Table dialog's rows (#961), as for "checks"; groups
  *                 is a comma list of counts,topology,models,charges,vsa,qm
@@ -3052,6 +3056,34 @@ void CalcMgr::runTestCommand(const string& line)
       newSeries(EcceURL(t), sources, &outcome);
       for (size_t p; (p = outcome.find('\n')) != string::npos;)
         outcome.replace(p, 1, " | ");
+    } else if (command == "umbrellawindows") {
+      // "umbrellawindows PULL_URL SPACING FROM|- TO|- EQ_STEPS PROD_STEPS":
+      // the window calculations of #762; the names made, " | " between.
+      std::istringstream args(calcName);
+      string u, from, to;
+      double spacing = 0.2;
+      int eq = 0, prod = 0;
+      args >> u >> spacing >> from >> to >> eq >> prod;
+      if (from == "-") from.clear();
+      if (to == "-") to.clear();
+      MdTask *pull = dynamic_cast<MdTask*>(EDSIFactory::getResource(EcceURL(u)));
+      string why;
+      vector<UmbrellaWindows::Window> windows;
+      vector<string> names;
+      const char *tmp = getenv("TMPDIR");
+      const string dir = string(tmp && *tmp ? tmp : "/tmp") + "/ecce-umbrella-" +
+                         std::to_string((long)getpid());
+      if (!pull) outcome = "failed: not a task";
+      else if (!UmbrellaWindows::find(pull, spacing, from, to, dir, &windows, 0, &why) ||
+               !UmbrellaWindows::create(pull, windows, eq, prod, &names, &why))
+        outcome = "failed: " + why;
+      else {
+        outcome = "ok " + std::to_string(windows.size());
+        for (const string& n : names) outcome += " | " + n;
+      }
+      std::error_code ec;
+      ecce::fs::remove_all(dir, ec);
+      if (pull) updateUrl(pull->getURL().getParent());
     } else if (command == "batchsmilesdialog" || command == "batchsmiles") {
       // "batchsmilesdialog FOLDER TABLE [png]": the dialog with the table
       // loaded, its guessed columns and preview, and a capture.
