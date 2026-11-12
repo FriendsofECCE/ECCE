@@ -9,7 +9,9 @@ Select mode (xdotool).  The same after a second Save, and after switching
 to another calculation and back (the scene graph is kept per calculation).
 Save renders the thumbnail with atom labels switched off and back, and once
 left them switched on with empty text, after which clicks on atoms selected
-nothing.
+nothing.  Then the same clicks with labels the user turns on (Options >
+Atom Labels, numbered and by name) in ball-and-stick and ball-and-wireframe
+(#975).
 
 Exit status 77 (skip) without Xvfb, xdotool or the built Builder.
 """
@@ -103,7 +105,8 @@ def realClicks(s, env, wrappers, argv, lines):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("--build", default=os.path.join(REPO, "build-cmake"))
+    ap.add_argument("--build", default=os.environ.get(
+        "ECCE_TEST_BUILD", os.path.join(REPO, "build-cmake")))
     ap.add_argument("--keep", action="store_true")
     args = ap.parse_args()
     build = os.path.abspath(args.build)
@@ -137,7 +140,8 @@ def main():
                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
         first = newCalc(s, env, wrappers, "water")
         other = newCalc(s, env, wrappers, "other")
-        if not (first and other):
+        labels = newCalc(s, env, wrappers, "labels")
+        if not (first and other and labels):
             return 1
         # Each real click on atom N is followed by a shift-click on atom 1
         # through the Builder's own event path, which reports the selection:
@@ -162,6 +166,41 @@ def main():
             got = sel[i] if i < len(sel) else []
             check(sorted(got) == sorted([atom, "1"]),
                   "a real click selects atom %s %s (selection %s)"
+                  % (atom, what, " ".join(got) or "none"))
+        if failures:
+            say("\n".join("      | " + l for l in text.splitlines()[-25:]))
+
+        # Labels shown by the user must not take clicks from atoms (#975).
+        # Not plain Wireframe: there a click at an atom picks its bond (#660).
+        cases = (("2", "numbered labels, ball and stick",
+                  ["menu Options|Element with Number", "wait 800"]),
+                 ("3", "numbered labels, ball and wireframe",
+                  ["menu Render|Ball And Wireframe", "wait 800"]),
+                 ("2", "atom-name labels, ball and wireframe",
+                  ["menu Options|Atom Name", "wait 800"]),
+                 ("1", "numbered labels, ball and stick, atom 1",
+                  ["menu Options|Element with Number",
+                   "menu Render|Ball And Stick", "wait 800"]))
+        lines = ["wait 3000", "add O Bent 0 0 0", "cmd addh", "wait 500",
+                 "mode select"]
+        for i, (atom, what, setup) in enumerate(cases):
+            other_atom = "2" if atom == "1" else "1"
+            lines += ["menu Edit|Clear Selection"] + setup + [
+                "atompos " + atom, "shot real%s%s" % (atom, "lmno"[i]),
+                "atomclick shift " + other_atom]
+        lines.append("quit")
+        text = realClicks(s, env, wrappers, ["-context", labels], lines)
+        for bad in re.findall(r"FAIL: no menu item .*", text):
+            check(False, bad)
+        sel = re.findall(r"BUILDER: selected after shift click on \d+:(.*)",
+                         text)
+        sel = [v.split() for v in sel]
+        say("selections with labels: %s" % sel)
+        for i, (atom, what, setup) in enumerate(cases):
+            other_atom = "2" if atom == "1" else "1"
+            got = sel[i] if i < len(sel) else []
+            check(sorted(got) == sorted([atom, other_atom]),
+                  "a real click selects atom %s with %s (selection %s)"
                   % (atom, what, " ".join(got) or "none"))
         if failures:
             say("\n".join("      | " + l for l in text.splitlines()[-25:]))
