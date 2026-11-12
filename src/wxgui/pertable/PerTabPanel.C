@@ -186,7 +186,7 @@ void PerTabPanel::createControls(bool isMultiSelect,
   p_longViewMenu = new ewxMenu;
   //  p_longViewMenu->Append(ID_ITEM_UNIFORM, "Uniform Color", "", wxITEM_RADIO);
   p_longViewMenu->Append(ID_ITEM_PHYS, "Physical State", "", wxITEM_RADIO);
-  p_longViewMenu->Append(ID_ITEM_METAL, "Metalic State", "", wxITEM_RADIO);
+  p_longViewMenu->Append(ID_ITEM_METAL, "Metallic State", "", wxITEM_RADIO);
   p_longViewMenu->Append(ID_ITEM_DEFAULT, "Default Colors", "", wxITEM_RADIO);
   p_longViewMenu->Append(ID_ITEM_USER, "Custom Colors", "", wxITEM_RADIO);
   p_longViewMenu->Check(p_colorScheme, TRUE);
@@ -201,7 +201,7 @@ void PerTabPanel::createControls(bool isMultiSelect,
   p_shortViewMenu = new ewxMenu;
   //  p_shortViewMenu->Append(ID_ITEM_UNIFORM, "Uniform Color", "", wxITEM_RADIO);
   p_shortViewMenu->Append(ID_ITEM_PHYS, "Physical State", "", wxITEM_RADIO);
-  p_shortViewMenu->Append(ID_ITEM_METAL, "Metalic State", "", wxITEM_RADIO);
+  p_shortViewMenu->Append(ID_ITEM_METAL, "Metallic State", "", wxITEM_RADIO);
   p_shortViewMenu->Append(ID_ITEM_DEFAULT, "Default Colors", "", wxITEM_RADIO);
   p_shortViewMenu->Append(ID_ITEM_USER, "Custom Colors", "", wxITEM_RADIO);
   p_shortViewMenu->Check(p_colorScheme, TRUE);
