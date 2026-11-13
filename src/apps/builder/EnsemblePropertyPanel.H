@@ -56,9 +56,11 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     std::vector<std::string> superpositionRows() const;
     bool superpositionVisible() const { return p_overlay; }
     std::string poseNote() const;
-    bool exportThumbnail(int rank, const std::string& path);
+  void addBlankImage();
+  bool exportThumbnail(int rank, const std::string& path);
     bool exportPng(const std::string& path);
     std::vector<int> thumbnailRanks() const;
+    int tableRowHeight() const;
     void sortTable(int column, bool ascending);
     int selectedRank() const { return p_selRank; }
     // Ranks of the selected rows, ascending.

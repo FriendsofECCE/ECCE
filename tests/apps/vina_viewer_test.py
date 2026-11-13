@@ -231,6 +231,8 @@ def main():
         if len(infos) > 1:
             thumbs = int(re.search(r"thumbs=(\d+)", infos[-1]).group(1))
             check(thumbs > 0, "%d pose thumbnails rendered" % thumbs)
+            rh = int(re.search(r"rowheight=(\d+)", infos[-1]).group(1))
+            check(rh >= 56, "table rows fit the 56 px thumbnail (row height %d px, #1001)" % rh)
             pocket = re.search(r"ligand=(\d+) pocket=(\d+) hidden=(\d+)", infos[-1])
             check(bool(pocket) and int(pocket.group(2)) > 0 and int(pocket.group(3)) > 0,
                   "pocket view: %s" % (pocket.group(0) if pocket else "absent"))
