@@ -2,7 +2,7 @@
 type: pitfall
 title: "The viewer's GL canvas has an alpha channel; a frame left at alpha 0 shows what lies beneath it (#999)"
 area: wx-viewer
-paths: [src/inv/wxinv/SoWxRenderArea.C, src/inv/wxinv/SoWxViewer.C, tests/apps/render_alpha_test.py]
+paths: [src/inv/wxinv/SoWxRenderArea.C, src/inv/wxinv/SoWxViewer.C, src/inv/moiv/ChemDisplay.C, src/inv/moiv/ChemUnitSphere.C, include/inv/ChemKit/ChemUnitSphere.H, tests/apps/render_alpha_test.py]
 issues: [999]
 ---
 On Coin builds `SoWxViewer` asks for `WX_GL_MIN_ALPHA 8` (depth peeling
@@ -12,10 +12,26 @@ corner alpha 0 in every frame). A compositing X server may then show what
 lies beneath the GL window. `SoWxRenderArea::redraw()` clears the alpha
 channel alone to 1 before the swap (`makeFrameOpaque`).
 
-Still open: on Xvfb, the first frame after importing 1iep.pdb has a black
-corner (0,0,0, alpha 0) while the scene manager's background is white; the
-next eight frames are white. A glClear to the background before
-`actualRedraw()` did not change it, so something inside that render writes
-black. `ECCE_TEST_RENDER_CORNER=1` prints each frame's corner before/after
-the fix-up with the area, its background and size; `apps_render_alpha`
-(import with `ECCE_TEST_IMPORT_SETTLE`) fails on that frame.
+A separate first-frame black flash came from
+`ChemUnitSphere::generateBillboard`, called by `ChemDisplay::GLRender` even
+for ordinary atom styles. It rendered its sphere texture in the current
+framebuffer and cleared it to black twice, after the scene manager's white
+clear. Interposed `glClear`/`glClearColor`/`glColorMask` showed white, black,
+black in the first render, with all colour channels writable; subsequent
+renders cleared only to white. Clearing before the scene traversal cannot
+fix a clear inside it.
+
+On Coin builds, billboard generation now uses a temporary colour/depth FBO
+through Coin's portable GL dispatch and restores framebuffer bindings and GL
+state. First-time generation invalidates the enclosing render cache: FBO
+bindings execute immediately during display-list compilation, so retaining
+the scratch draws would replay them against the window. It must never use
+the scene framebuffer as scratch space, including when FBO allocation fails. The vendored-Inventor path retains its old
+billboard generation and is not covered by this fix.
+
+`ECCE_TEST_RENDER_CORNER=1` prints each frame's corner before/after the alpha
+fix-up with the area, background and size. `apps_render_alpha` imports
+1iep.pdb (4710 atoms) with `ECCE_TEST_IMPORT_SETTLE` and checks every frame
+from import start, including the first, for opaque white. This checks the
+framebuffer before swapping; a real compositing desktop still needs a visual
+check for presentation behaviour.

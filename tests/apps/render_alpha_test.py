@@ -1,11 +1,11 @@
 """
 Builder Add Structure from File on a large PDB: every frame is opaque (#999).
 
-The viewer's GL canvas has an alpha channel and Coin clears it to 0, so a
-compositing X server showed whatever lay beneath the window -- black while
-the load kept GTK from painting -- instead of the white Background
-preference. With ECCE_TEST_RENDER_CORNER=1 the render area reports a corner
-pixel of each frame; every one must be the preference colour, fully opaque.
+The first ChemDisplay traversal used the viewer framebuffer to generate a
+billboard sphere texture and cleared the background to black. Separately,
+Coin clears the canvas alpha to 0, which exposes the desktop underneath on
+a compositor. With ECCE_TEST_RENDER_CORNER=1 the render area reports each
+frame before swapping; every one must be the preference colour and opaque.
 
 Uses the ECCE_TEST_IMPORT hook (import_test.py) with the same installed
 tree and isolation as run_tests.py. Exit 77 (skip) without an install or Xvfb.
