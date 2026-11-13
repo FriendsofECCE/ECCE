@@ -7310,6 +7310,11 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         p_treeCtrl->refresh(n);
     }
     Session *flow = topic.workflow ? dynamic_cast<Session*>(parent) : 0;
+    // Calculation names can repeat in other topics and sets; only this
+    // topic's workflow definitions may be used by the import callbacks.
+    p_flowSources.clear();
+    p_flowHessian.clear();
+    p_flowKeys.clear();
     if (flow)
     {
       for (const auto &l : topic.links)
@@ -7394,6 +7399,9 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     // Not the maximum: wxProgressDialog then waits for a click on Close.
     progress.Update(nExamples - 1, _("Reading results..."));
   }
+  p_flowSources.clear();
+  p_flowHessian.clear();
+  p_flowKeys.clear();
   p_batchImport = false;
   cerr << "Organizer: examples " << set->id << " imported in "
        << std::chrono::duration<double>(
