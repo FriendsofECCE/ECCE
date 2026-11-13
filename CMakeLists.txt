@@ -3091,6 +3091,13 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME transport_process COMMAND testWinProcess)
   set_tests_properties(transport_process PROPERTIES TIMEOUT 180)
 
+  # The Tail window's read on a blocking pipe must not wait (Windows hang).
+  add_executable(testStreamRead tests/transport/streamRead.C)
+  find_package(Threads REQUIRED)
+  target_link_libraries(testStreamRead PRIVATE Threads::Threads)
+  add_test(NAME transport_stream_read COMMAND testStreamRead)
+  set_tests_properties(transport_stream_read PROPERTIES TIMEOUT 60)
+
   # RCommand on a local machine against results recorded from the old pty
   # path (#204).
   add_executable(testRCommandDirect tests/transport/testRCommandDirect.C)

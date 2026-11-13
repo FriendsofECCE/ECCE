@@ -55,6 +55,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Test suites get a per-run state directory, ports and X display](test-suites-isolate-per-run.md)
 - [Full builds and long suites go to radium/tellurium via tools/offload](long-suites-go-to-offload-hosts.md)
 - [Windows local jobs: paths in sh scripts, the job id, Strawberry perl, the broker](windows-local-jobs-pitfalls.md)
+- [Windows stream pipes are always blocking: peek before read on the GUI thread](windows-stream-pipes-block.md)
 - [Windows: the session broker, and the Organizer starts the tools](windows-session-and-tool-start.md)
 - [Windows local sessions run ECCE's own broker inside the Organizer (#990)](windows-builtin-broker-990.md)
 - [Windows: some antivirus holds every program it has not seen for 5-16 s at its first start (#522, #444)](windows-antivirus-holds-each-new-program.md)
