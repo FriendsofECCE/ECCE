@@ -3,7 +3,7 @@ type: map
 title: "One GUI process (#983 stage 1): in-process message routing, OnInit split, globals audit, window lifetime"
 area: services
 section: "Pitfalls"
-paths: ["src/util/jms/MqttLink.C", "include/util/MqttLink.H", "src/util/jms/JMSPublisher.C", "src/wxgui/jms/WxJMSSubscriber.C", "src/wxgui/jms/WxJMSMessageDispatch.C", "src/apps/organizer/CalcMgrApp.C", "src/apps/builder/BuilderApp.C", "src/apps/calced/CalcEdApp.C", "src/dsm/edsiimpl/EDSIFactory.C", "tests/mqtt/mqtt_test.C", "src/util/jms/JMSPublisher.C", "CMakeLists.txt"]
+paths: ["src/util/jms/MqttLink.C", "include/util/MqttLink.H", "src/util/jms/JMSPublisher.C", "src/wxgui/jms/WxJMSSubscriber.C", "src/wxgui/jms/WxJMSMessageDispatch.C", "src/apps/organizer/CalcMgrApp.C", "src/apps/builder/BuilderApp.C", "src/apps/calced/CalcEdApp.C", "src/dsm/edsiimpl/EDSIFactory.C", "tests/mqtt/mqtt_test.C", "CMakeLists.txt"]
 issues: [983, 1007, 990, 213]
 ---
 Organizer, Builder and Calculation Editor become windows of one wx process
