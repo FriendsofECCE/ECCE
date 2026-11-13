@@ -9,8 +9,11 @@
 //                                               with the shipped access rules
 //   mqtt_test auth <source dir> builtin         the same against ECCE's own
 //                                               broker (MqttBroker, #990)
-//   mqtt_test session <source dir>              the Windows session path: a
-//                                               broker file with its own login
+//   mqtt_test session <source dir>              the session broker: on Linux
+//                                               a broker file with socket=
+//   mqtt_test socket <source dir>               MqttBroker on a Unix socket:
+//                                               anonymous, no topic rules
+//   mqtt_test serve <source dir> <eccebroker>   eccebroker --serve's life
 //   mqtt_test child <spec>...                   second process (internal)
 //        spec = topic:tag[:targetname]
 
@@ -25,6 +28,7 @@
 #include <string.h>
 #include <sys/select.h>
 #include <sys/stat.h>
+#include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -455,9 +459,17 @@ static int sessionMain(const string& src)
   check(err.empty(), "session broker started" + (err.empty() ? string() : ": " + err));
   string file = tmp + "/.ECCE/broker_testhost_" + S1;
   string text = slurp(file);
-  check(text.find("user=s") == 0 && text.find("password=") != string::npos &&
-        text.find("host=127.0.0.1\nport=") != string::npos,
-        "the broker file keeps its format (user, password, host, port)");
+  string sock = text.find("socket=") != string::npos
+    ? text.substr(text.find("socket=") + 7, text.find('\n', text.find("socket=")) - text.find("socket=") - 7)
+    : "";
+  check(text.find("user=local\n") == 0 && !sock.empty() &&
+        text.find("password=") == string::npos && text.find("port=") == string::npos,
+        "the broker file names a Unix socket and no login (user=local, socket=)");
+  struct stat st;
+  check(stat(sock.c_str(), &st) == 0 && S_ISSOCK(st.st_mode) && (st.st_mode & 0077) == 0,
+        "the socket is private to the account (0600)");
+  check(stat((tmp + "/.ECCE").c_str(), &st) == 0 && (st.st_mode & 0777) == 0700,
+        "the state directory is 0700");
   check(slurp(tmp + "/.ECCE/session_testhost") == string(S1) + "\n",
         "the session pointer names this session");
   // MqttLink in this process uses the file's login; no credential provider.
@@ -474,12 +486,147 @@ static int sessionMain(const string& src)
   pa.unsubscribe();
   MqttBroker::stopForSession();
   check(access(file.c_str(), F_OK) != 0, "stopping the session broker removes the broker file");
+  check(access(sock.c_str(), F_OK) != 0, "and the socket");
   rmTree(tmp);
   cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
   return g_fail ? 1 : 0;
 }
 
 
+
+static int unixConnect(const string& path)
+{
+  int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  struct sockaddr_un a;
+  memset(&a, 0, sizeof a);
+  a.sun_family = AF_UNIX;
+  strncpy(a.sun_path, path.c_str(), sizeof a.sun_path - 1);
+  if (::connect(fd, (struct sockaddr*)&a, sizeof a) != 0) { close(fd); return -1; }
+  struct timeval tv = {5, 0};
+  setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
+  return fd;
+}
+
+static string tmpDir(const char* name)
+{
+  const char* tmpbase = getenv("TMPDIR");
+  string tmpl = string(tmpbase ? tmpbase : "/tmp") + "/" + name + "XXXXXX";
+  vector<char> buf(tmpl.begin(), tmpl.end());
+  buf.push_back(0);
+  return mkdtemp(&buf[0]) ? string(&buf[0]) : string();
+}
+
+// The Unix-socket broker keeps the per-user mosquitto's socket rules: no
+// login and no topic rules, since only the account can reach the socket.
+static int socketMain(const string& src)
+{
+  (void)src;
+  string tmp = tmpDir("mqtt_sock");
+  if (tmp.empty()) { perror("mkdtemp"); return 1; }
+  string path = tmp + "/b.sock";
+  MqttBroker b;
+  b.addUser("alice", "alicepw");
+  check(b.start(path), "listens on a Unix socket");
+  struct stat st;
+  check(stat(path.c_str(), &st) == 0 && S_ISSOCK(st.st_mode) && (st.st_mode & 0077) == 0,
+        "the socket is mode 0600");
+  // Anonymous: clean start only, no user or password.
+  int a = unixConnect(path);
+  string anon = pkt(0x10, lenStr("MQTT") + (char)5 + (char)0x02 + (char)0 + (char)30 +
+                          (char)0 + lenStr("anon"));
+  send(a, anon.data(), anon.size(), 0);
+  string ca = rawRead(a, 4);
+  check(ca.size() >= 4 && (uint8_t)ca[0] == 0x20 && ca[3] == 0, "an anonymous CONNECT is accepted");
+  // A wrong password is not refused either: the socket's rule is "anyone".
+  int w = unixConnect(path);
+  string bad = connectPkt("MQTT", 5, 30, "alice", "wrong");
+  send(w, bad.data(), bad.size(), 0);
+  string cw = rawRead(w, 4);
+  check(cw.size() >= 4 && (uint8_t)cw[0] == 0x20 && cw[3] == 0, "a CONNECT with any login is accepted");
+  // No topic rules: alice's link reads bob's topics, the anonymous one writes them.
+  string sub = pkt(0x82, string("\x00\x01", 2) + (char)0 + lenStr("ecce/bob/#") + (char)0);
+  send(w, sub.data(), sub.size(), 0);
+  string sa = rawRead(w, 6);
+  check(sa.size() >= 6 && (uint8_t)sa[0] == 0x90 && sa[5] == 0, "a subscription outside ecce/<user>/ is granted");
+  string pub = pkt(0x30, lenStr("ecce/bob/x") + (char)0 + "hello");
+  send(a, pub.data(), pub.size(), 0);
+  string got = rawRead(w, 2 + 12 + 1 + 5);
+  check(got.find("hello") != string::npos, "and the message is delivered");
+  close(a); close(w);
+  b.stop();
+  check(access(path.c_str(), F_OK) != 0, "stop removes the socket");
+  rmTree(tmp);
+  cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
+  return g_fail ? 1 : 0;
+}
+
+static string runOut(const string& cmd, int& rc)
+{
+  string out;
+  FILE* f = popen(cmd.c_str(), "r");
+  if (!f) { rc = -1; return out; }
+  char buf[256];
+  while (fgets(buf, sizeof buf, f)) out += buf;
+  int st = pclose(f);
+  rc = WIFEXITED(st) ? WEXITSTATUS(st) : -1;
+  return out;
+}
+
+// eccebroker --serve, as ecce-gateway-start runs it for a local session.
+static int serveMain(const string& src, const string& exe)
+{
+  string tmp = tmpDir("mqtt_serve");
+  if (tmp.empty()) { perror("mkdtemp"); return 1; }
+  setenv("ECCE_HOME", src.c_str(), 1);
+  setenv("ECCE_REALUSERHOME", tmp.c_str(), 1);
+  setenv("HOST", "testhost", 1);
+  setenv("DISPLAY", ":7", 1);
+  setenv("ECCE_SESSION_ID", S1, 1);
+  unsetenv("ECCE_HOST");
+  unsetenv("ECCE_NO_MESSAGING");
+  string file = tmp + "/.ECCE/broker_testhost_" + S1;
+  int rc;
+  string out = runOut(exe + " --serve 2 2>&1", rc);
+  check(rc == 0 && out.find("started") != string::npos, "--serve started the session broker (" + out + ")");
+  string text = slurp(file);
+  check(text.find("socket=") != string::npos, "and wrote the broker file");
+  out = runOut(exe + " --serve 2 2>&1", rc);
+  check(rc == 0 && out.find("already running") != string::npos,
+        "a second start adopts the running one (" + out + ")");
+  check(slurp(file) == text, "and leaves its broker file alone");
+
+  Probe pa("A");
+  g_probes.push_back(&pa);
+  pa.subscribe("ecce_poll", static_cast<jmsCBFunc>(&Probe::on), false);
+  check(pa.startSubscriber(), "MqttLink connects through the socket");
+  usleep(300000);
+  vector<string> a;
+  a.push_back("ecce_poll:from_child");
+  check(runChildStatus(tmp, S1, a) == 0, "a second process published");
+  check(waitFor(pa, "from_child"), "its message arrives through eccebroker");
+  sleep(3);
+  check(access(file.c_str(), F_OK) == 0, "the broker stays while a client is connected");
+  pa.unsubscribe();
+  MqttLink::instance().shutdown();
+  struct stat st;
+  int i = 0;
+  for (; i < 100 && stat(file.c_str(), &st) == 0; i++) usleep(100000);
+  check(i < 100 && i >= 10, "it ends about 2 s after the last client left (" +
+        std::to_string(i / 10.0) + " s)");
+
+  // ecce-gateway-stop removes the broker file: the broker ends too.
+  out = runOut(exe + " --serve 30 2>&1", rc);
+  check(rc == 0 && out.find("started") != string::npos, "started again");
+  string sock = slurp(file);
+  sock = sock.substr(sock.find("socket=") + 7);
+  sock = sock.substr(0, sock.find('\n'));
+  unlink(file.c_str());
+  for (i = 0; i < 50 && access(sock.c_str(), F_OK) == 0; i++) usleep(100000);
+  check(i < 50, "removing the broker file stops it");
+  rmTree(tmp);
+  cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
+  return g_fail ? 1 : 0;
+}
 
 // The "other client" of the lingering test: subscribes ecce_poll, says so in
 // <dir>/ready, writes <dir>/got when the message arrives, and leaves when
@@ -829,6 +976,8 @@ int main(int argc, char** argv)
   if (argc >= 2 && string(argv[1]) == "interop") return interopMain();
   if (argc >= 3 && string(argv[1]) == "holder") return holderMain(argv[2]);
   if (argc >= 3 && string(argv[1]) == "linger") return lingerMain(argv[2]);
+  if (argc >= 3 && string(argv[1]) == "socket") return socketMain(argv[2]);
+  if (argc >= 4 && string(argv[1]) == "serve") return serveMain(argv[2], argv[3]);
   if (argc >= 3 && string(argv[1]) == "session")
     return sessionMain(argv[2]);
   if (argc >= 3 && string(argv[1]) == "auth")

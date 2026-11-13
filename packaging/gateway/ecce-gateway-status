@@ -44,6 +44,13 @@ elif [ -n "$bhost" ]; then
   else
     echo "Broker:  $bhost:$bport (central server), NOT answering"
   fi
+elif case "$bsock" in */mqtt-*.sock) true ;; *) false ;; esac; then
+  # ECCE's own broker (eccebroker, #1007): one per session.
+  if [ -S "$bsock" ]; then
+    echo "Broker:  ECCE's own (socket $bsock; this session's, ends after its last client)"
+  else
+    echo "Broker:  ECCE's own, NOT running (socket $bsock is gone)"
+  fi
 elif [ -n "$pid" ] && [ "$(cat "/proc/$pid/comm" 2>/dev/null)" = mosquitto ]; then
   kind="this user's; stopped with the last session"
   [ -e "$STATEDIR/mosquitto.server" ] && kind="a server's; stopped only by Quit and Stop Server"

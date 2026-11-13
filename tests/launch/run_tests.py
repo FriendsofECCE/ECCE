@@ -95,6 +95,10 @@ def treeInstall(state, build):
             if name.startswith("ecce-") and (name.endswith(".sh") or
                                              os.access(path, os.X_OK)):
                 link(path, os.path.join(home, "bin", name))
+    #  A local session's broker (#1007): ecce-gateway-start runs it from libexec.
+    if os.path.exists(os.path.join(build, "eccebroker")):
+        link(os.path.join(build, "eccebroker"),
+             os.path.join(home, "libexec", "eccebroker"))
     link(os.path.join(REPO, "packaging", "nwchem", "ecce-nwchem-datadir"),
          os.path.join(home, "bin", "ecce-nwchem-datadir"))
     link(os.path.join(REPO, "scripts"), os.path.join(home, "scripts"))
@@ -228,6 +232,9 @@ class Suite(object):
 
     def env(self, extra=None):
         env = dict(os.environ)
+        # No window holds the session's broker (#1007) open between the
+        # jobs here; ecce-gateway-stop ends it.
+        env.setdefault("ECCE_BROKER_LINGER", "900")
         env.update({
             "HOST": env.get("HOST") or os.uname().nodename,
             "ECCE_SESSION_ID": SESSION_ID,

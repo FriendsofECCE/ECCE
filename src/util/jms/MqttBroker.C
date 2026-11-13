@@ -36,6 +36,7 @@ static bool wouldBlock() { int e = WSAGetLastError(); return e == WSAEWOULDBLOCK
 #include <poll.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include <unistd.h>
 typedef int sock_t;
 static const sock_t BAD_SOCK = -1;
@@ -138,6 +139,9 @@ struct Client {
 
 struct MqttBroker::Impl {
   std::map<string, string> users;
+  // A Unix-socket listener takes anyone and applies no topic rules, like the
+  // per-user mosquitto's socket: the account's 0700 directory keeps others out.
+  bool open = false;
   sock_t lfd = BAD_SOCK;
   std::thread thread;
   std::atomic<bool> stopping{false};
@@ -189,7 +193,8 @@ struct MqttBroker::Impl {
     if (hasUser) user = r.str();
     if (hasPw) pw = r.str();
     std::map<string, string>::iterator u = users.find(user);
-    if (!hasUser || !validName(user) || u == users.end() || !constEq(u->second, pw)) {
+    if (!open && (!hasUser || !validName(user) || u == users.end() ||
+                  !constEq(u->second, pw))) {
       connack(c, hasUser ? 0x86 : 0x87); c.dead = true; return;
     }
     if (c.id.empty()) c.id = "ecce-anon-" + std::to_string(++anon);
@@ -200,7 +205,7 @@ struct MqttBroker::Impl {
   }
 
   bool readOk(const Client& s, const string& topic) {
-    return mayRead(s.user, topic);
+    return open || mayRead(s.user, topic);
   }
 
   void onPublish(Client& c, uint8_t first, Reader r) {
@@ -213,7 +218,7 @@ struct MqttBroker::Impl {
     string payload = r.bytes(r.n);
     if (topic.empty() || topic.find_first_of("+#") != string::npos)
       throw ProtocolError("topic");
-    if (!mayWrite(c.user, topic)) {
+    if (!open && !mayWrite(c.user, topic)) {
       if (qos) { string b; putU16(b, pid); b += (char)0x87; queue(c, packet(0x40, b)); }
       return;
     }
@@ -303,12 +308,16 @@ struct MqttBroker::Impl {
   }
 
   void acceptOne() {
-    sockaddr_in a; socklen_t l = sizeof a;
+    sockaddr_storage a; socklen_t l = sizeof a;
     sock_t s = accept(lfd, (sockaddr*)&a, &l);
     if (s == BAD_SOCK) return;
     setNonBlocking(s);
     int one = 1;
-    setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (const char*)&one, sizeof one);
+    if (!open) setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (const char*)&one, sizeof one);
+#ifdef SO_NOSIGPIPE
+    // macOS has no MSG_NOSIGNAL: a client gone mid-send must not kill us.
+    setsockopt(s, SOL_SOCKET, SO_NOSIGPIPE, (const char*)&one, sizeof one);
+#endif
     std::unique_ptr<Client> c(new Client);
     c->fd = s;
     c->last = c->born = std::chrono::steady_clock::now();
@@ -443,6 +452,35 @@ bool MqttBroker::start(int port)
   return true;
 }
 
+bool MqttBroker::start(const string& path)
+{
+#ifdef _WIN32
+  (void)path;
+  return false;
+#else
+  if (p_impl->thread.joinable()) return false;
+  sockaddr_un a;
+  memset(&a, 0, sizeof a);
+  if (path.empty() || path.size() >= sizeof a.sun_path) return false;
+  a.sun_family = AF_UNIX;
+  memcpy(a.sun_path, path.c_str(), path.size());
+  sock_t s = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (s == BAD_SOCK) return false;
+  ::unlink(path.c_str());
+  if (::bind(s, (sockaddr*)&a, sizeof a) != 0) { closeSock(s); return false; }
+  // The directory is what keeps other accounts out; 0600 says the same.
+  chmod(path.c_str(), 0600);
+  if (listen(s, 64) != 0) { closeSock(s); ::unlink(path.c_str()); return false; }
+  setNonBlocking(s);
+  p_path = path;
+  p_impl->open = true;
+  p_impl->lfd = s;
+  p_impl->stopping = false;
+  p_impl->thread = std::thread([this] { p_impl->run(); });
+  return true;
+#endif
+}
+
 void MqttBroker::stop()
 {
   if (!p_impl->thread.joinable()) return;
@@ -450,6 +488,9 @@ void MqttBroker::stop()
   p_impl->thread.join();
   closeSock(p_impl->lfd);
   p_impl->lfd = BAD_SOCK;
+#ifndef _WIN32
+  if (!p_path.empty()) ::unlink(p_path.c_str());
+#endif
 }
 
 // ---------------------------------------------------------- the session
@@ -480,6 +521,51 @@ bool writeAtomic(const string& path, const string& text)
 }
 } // namespace
 
+#ifndef _WIN32
+namespace {
+string g_sockDir;   // a directory made for the socket, removed with it
+std::atomic<bool> g_stopRequested{false};
+
+string fileValue(const string& file, const string& key)
+{
+  std::ifstream f(file.c_str());
+  string line;
+  while (std::getline(f, line))
+    if (line.compare(0, key.size() + 1, key + "=") == 0) return line.substr(key.size() + 1);
+  return "";
+}
+
+bool socketAnswers(const string& path)
+{
+  sockaddr_un a;
+  memset(&a, 0, sizeof a);
+  if (path.empty() || path.size() >= sizeof a.sun_path) return false;
+  a.sun_family = AF_UNIX;
+  memcpy(a.sun_path, path.c_str(), path.size());
+  int s = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (s < 0) return false;
+  bool ok = ::connect(s, (sockaddr*)&a, sizeof a) == 0;
+  ::close(s);
+  return ok;
+}
+
+// In the private state directory, as the per-user mosquitto's was; a deep
+// one does not fit sun_path (104 bytes on macOS) and gets a private
+// directory of its own under the runtime directory instead.
+string sessionSocketPath(const string& dir)
+{
+  string name = "mqtt-" + randomHex(4) + ".sock";
+  if (dir.size() + 1 + name.size() < 100) return dir + "/" + name;
+  const char* rt = getenv("XDG_RUNTIME_DIR");
+  string d = string(rt && *rt ? rt : "/tmp") + "/ecce-" +
+             std::to_string((long)getuid()) + "-" + randomHex(4);
+  if (mkdir(d.c_str(), 0700) != 0) return "";
+  g_sockDir = d;
+  return d + "/" + name;
+}
+} // namespace
+#endif
+
 string MqttBroker::startForSession()
 {
   if (g_session) return "";
@@ -497,12 +583,30 @@ string MqttBroker::startForSession()
   mkdir(dir.c_str(), 0700);
 #endif
 
-  string user = "s" + randomHex(4), pw = randomHex(16);
   std::unique_ptr<MqttBroker> b(new MqttBroker);
+#ifdef _WIN32
+  string user = "s" + randomHex(4), pw = randomHex(16);
   b->addUser(user, pw);
   if (!b->start(0)) return "cannot listen on 127.0.0.1";
   string text = "user=" + user + "\npassword=" + pw +
                 "\nhost=127.0.0.1\nport=" + std::to_string(b->port()) + "\n";
+#else
+  // Linux, macOS: a Unix socket in the 0700 state directory, no login (the
+  // socket is private to the account), as the per-user mosquitto was.
+  chmod(dir.c_str(), 0700);
+  string old = fileValue(file, "socket");
+  if (socketAnswers(old)) return "";   // another program of the session hosts it
+  struct stat st;
+  if (!old.empty() && lstat(old.c_str(), &st) == 0 && S_ISSOCK(st.st_mode))
+    ::unlink(old.c_str());
+  string sock = sessionSocketPath(dir);
+  if (sock.empty() || !b->start(sock)) {
+    if (!g_sockDir.empty()) { rmdir(g_sockDir.c_str()); g_sockDir.clear(); }
+    return "cannot listen on a Unix socket in " + dir;
+  }
+  // "local" as the topic user, as the mosquitto route writes it.
+  string text = "user=local\nsocket=" + sock + "\n";
+#endif
   if (!writeAtomic(file, text)) return "cannot write " + file;
   writeAtomic(pointer, id + "\n");
   g_brokerFile = file;
@@ -510,12 +614,51 @@ string MqttBroker::startForSession()
   return "";
 }
 
+bool MqttBroker::hostsSession() { return g_session != nullptr; }
+
 void MqttBroker::stopForSession()
 {
   if (!g_session) return;
+#ifndef _WIN32
+  // Another program may have taken the session over (ecce-gateway-stop
+  // removed the file, a new start wrote its own): leave its file alone.
+  bool ours = fileValue(g_brokerFile, "socket") == g_session->socketPath();
+#else
+  bool ours = true;
+#endif
   g_session->stop();
   g_session.reset();
-  std::remove(g_brokerFile.c_str());
+  if (ours) std::remove(g_brokerFile.c_str());
+#ifndef _WIN32
+  if (!g_sockDir.empty()) { rmdir(g_sockDir.c_str()); g_sockDir.clear(); }
+#endif
+}
+
+void MqttBroker::requestStop()
+{
+#ifndef _WIN32
+  g_stopRequested = true;
+#endif
+}
+
+void MqttBroker::serveForSession(int graceSeconds, int startSeconds)
+{
+#ifndef _WIN32
+  if (!g_session) return;
+  using clk = std::chrono::steady_clock;
+  auto idleSince = clk::now();
+  bool seen = false;
+  while (!g_stopRequested &&
+         fileValue(g_brokerFile, "socket") == g_session->socketPath()) {
+    if (g_session->clients() > 0) { seen = true; idleSince = clk::now(); }
+    else if (std::chrono::duration<double>(clk::now() - idleSince).count() >=
+             (seen ? graceSeconds : std::max(graceSeconds, startSeconds))) break;
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  }
+  stopForSession();
+#else
+  (void)graceSeconds; (void)startSeconds;
+#endif
 }
 
 void MqttBroker::lingerForSession(int graceSeconds)

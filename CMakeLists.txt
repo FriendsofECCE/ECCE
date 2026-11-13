@@ -1049,8 +1049,9 @@ install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/DataServers
         COMPONENT client)
 
 # ecce-gateway-{start,stop,status,reap}: start and stop the session's
-# mosquitto broker and keep the broker files. (ecce-broker-win is only the
-# ECCE_BROKER=mosquitto escape hatch on Windows, #990.) Client-side, since a client
+# broker and keep the broker files: ECCE's own for a local session (#990,
+# #1007), mosquitto for a server account. (ecce-broker-win is only the
+# ECCE_BROKER=mosquitto escape hatch on Windows.) Client-side, since a client
 # on its own machine runs its own broker unless it uses -remote.
 install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-start
@@ -2140,11 +2141,10 @@ if(ECCE_SPLIT_PACKAGES)
   # here (python3-wxgtk4.0 for scripts/codereg, perl/xterm for the reasons
   # given beside the monolithic set above).
   #
-  # libmosquitto1 is what every messaging process links. The gateway
-  # scripts that start a per-user broker live here too, so a local-mode
-  # client needs the mosquitto package; it is a Recommends because a
-  # -remote client only needs the library, and the package's own system
-  # service is of no use to it.
+  # libmosquitto1 is what every messaging process links. A local session
+  # runs ECCE's own broker (#1007), so the client needs no mosquitto
+  # program; ecce-server, which a central server's account needs, depends
+  # on it.
   set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
       "python3-wxgtk4.0, python3-numpy, python3-tqdm, python3-gemmi, perl, xterm, libmosquitto1, curl, openssl")
   # A client on the SAME machine as a server benefits from it (the
@@ -2154,7 +2154,7 @@ if(ECCE_SPLIT_PACKAGES)
   # this is Recommends, not Depends, matching the design brief.
   # autodock-vina: Debian's Vina 1.2.x, /usr/bin/vina, which the first-start
   # registration finds on PATH; docking is optional, so not a Depends (#455).
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, mosquitto, nwchem, openssh-client, autodock-vina")
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, nwchem, openssh-client, autodock-vina")
   set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "www-browser")
   # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
   # without this, installing ecce-client while the old ecce package still
@@ -2182,7 +2182,9 @@ if(ECCE_SPLIT_PACKAGES)
   if(RPMBUILD_EXECUTABLE)
     set(CPACK_RPM_CLIENT_PACKAGE_NAME "ecce-client")
     set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
-    # mosquitto provides both the library and the broker on RPM distros.
+    # mosquitto provides both the library and the broker on RPM distros;
+    # the client needs only the library (a local session runs ECCE's own
+    # broker, #1007), but there is no package with the library alone.
     set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
         "python3-wxpython4, python3-numpy, python3-tqdm, perl, xterm, mosquitto, curl, openssl${_coin_rpm}")
     set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
@@ -2936,8 +2938,14 @@ set_tests_properties(minff_prepare PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 # a TCP broker with two accounts and the shipped access rules.  SKIPs (77)
 # without the mosquitto binary.
 # The built-in broker (#990) as a program; the Windows tests start it too.
+# On Linux and macOS it is the local session's broker (#1007, `--serve`,
+# started by ecce-gateway-start). libexec, not bin: a program in bin with a
+# session id counts as an open ECCE window (ecce_session_procs, the gateway).
 add_executable(eccebroker tests/mqtt/broker_cli.C)
 target_link_libraries(eccebroker PRIVATE ecceutil ${XercesC_LIBRARIES})
+if(NOT WIN32)
+  install(TARGETS eccebroker RUNTIME DESTINATION libexec COMPONENT client)
+endif()
 if(NOT WIN32)
 add_executable(mqtt_test tests/mqtt/mqtt_test.C)
 target_include_directories(mqtt_test PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -2949,8 +2957,11 @@ add_test(NAME mqtt-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-builtin-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} builtin)
 add_test(NAME mqtt-builtin-session COMMAND mqtt_test session ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-builtin-linger COMMAND mqtt_test linger ${CMAKE_SOURCE_DIR})
+add_test(NAME mqtt-builtin-socket COMMAND mqtt_test socket ${CMAKE_SOURCE_DIR})
+add_test(NAME mqtt-builtin-serve COMMAND mqtt_test serve ${CMAKE_SOURCE_DIR} $<TARGET_FILE:eccebroker>)
 add_test(NAME mqtt-builtin-interop COMMAND mqtt_test interop)
-set_tests_properties(mqtt-builtin-auth mqtt-builtin-session mqtt-builtin-linger mqtt-builtin-interop PROPERTIES TIMEOUT 180)
+set_tests_properties(mqtt-builtin-auth mqtt-builtin-session mqtt-builtin-linger mqtt-builtin-interop
+                     mqtt-builtin-socket mqtt-builtin-serve PROPERTIES TIMEOUT 180)
 set_tests_properties(mqtt-builtin-interop PROPERTIES SKIP_RETURN_CODE 77)
 if(TARGET ecce_users_auth)
   add_test(NAME mqtt-auth-plugin
