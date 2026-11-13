@@ -1201,6 +1201,13 @@ void SoWxRenderArea::redraw()
   if (GetDPIScaleFactor() > textScale) textScale = GetDPIScaleFactor();
 #endif
   GLPath::setContentScaleFactor(textScale);
+  //  The first frame after a large structure loads came out on black although
+  //  the scene manager's background was set (#999): clear to it here as well.
+  if (isRGBMode()) {
+    const SbColor bg = getBackgroundColor();
+    glClearColor(bg[0], bg[1], bg[2], 1);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  }
 #ifdef OIV_COIN
   if (!p_alphaChecked) {
     p_softwareGL = GLPath::software();
