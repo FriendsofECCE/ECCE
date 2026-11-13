@@ -61,6 +61,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Windows local jobs: paths in sh scripts, the job id, Strawberry perl, the broker](windows-local-jobs-pitfalls.md)
 - [Windows stream pipes are always blocking: peek before read on the GUI thread](windows-stream-pipes-block.md)
 - [Windows: the session broker, and the Organizer starts the tools](windows-session-and-tool-start.md)
+- [Windows local sessions run ECCE's own broker inside the Organizer (#990)](windows-builtin-broker-990.md)
 - [Windows: some antivirus holds every program it has not seen for 5-16 s at its first start (#522, #444)](windows-antivirus-holds-each-new-program.md)
 - [A remote view rides ECCE's own login, not an ssh of its own (Tail)](remote-views-use-ecces-own-login.md)
 - [A calculation's molecule and basis properties are stored below it](calculation-properties-live-below-it.md)

@@ -120,7 +120,15 @@ There are three deployment modes (GETTING_STARTED.md, "Deployment modes"),
 decided by the site's configuration in this order: a shared system broker
 (`siteconfig/SharedBroker`), then `ecce -remote`, otherwise local.
 
-1. **Local**: one user, one broker in `~/.ECCE`, no network port.
+1. **Local**: one user, one broker in `~/.ECCE`, no network port. On
+   Windows the broker is built into the Organizer: it listens on
+   127.0.0.1 at a free port and writes its login and port to
+   `~/.ECCE/broker_<key>` (`user=`, `password=`, `host=`, `port=`; the key
+   comes from `ECCE_SESSION_ID`). A command reads that file as on Linux. The
+   broker stays up after the Organizer closes while Builder, Calculation
+   Editor or a job store is still connected, and ends 10 s after the last of
+   them leaves, removing the file. `ECCE_BROKER=mosquitto` set before `ecce`
+   runs a separately installed mosquitto instead.
 2. **Central server**: a data server and broker on one machine; users connect
    as clients with `ecce -remote` (the teaching set-up, also the original
    PNNL set-up).
