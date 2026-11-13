@@ -107,6 +107,8 @@ WxJMSMessageDispatch::WxJMSMessageDispatch(const string& app_name, bool app)
   : WxJMSSubscriber(app_name)
 {
   p_publisher = new JMSPublisher(app_name);
+  // Replies to this dispatcher's requests are targeted at this id.
+  p_publisher->setMyID(WxJMSSubscriber::getMyID());
   p_invokeMCBPtr = 0;
 
   subscribe("ecce_poll",

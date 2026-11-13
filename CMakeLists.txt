@@ -2937,7 +2937,10 @@ set_tests_properties(minff_prepare PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 if(NOT WIN32)
 add_executable(mqtt_test tests/mqtt/mqtt_test.C)
 target_include_directories(mqtt_test PRIVATE ${XercesC_INCLUDE_DIRS})
-target_link_libraries(mqtt_test PRIVATE ecceutil ${XercesC_LIBRARIES})
+# eccedsi for EDSIFactory's notices (#983).
+target_link_libraries(mqtt_test PRIVATE
+  eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
+  ${XercesC_LIBRARIES})
 add_test(NAME mqtt COMMAND mqtt_test ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-local COMMAND mqtt_test local ${CMAKE_SOURCE_DIR})

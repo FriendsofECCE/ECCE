@@ -554,8 +554,11 @@ void EDSIFactory::removeProgressEventListener(ProgressEventListener *l)
  */
 JMSPublisher * EDSIFactory::getPublisher(const string &app_name)
 {
-  if (p_publisher == NULL)
+  if (p_publisher == NULL) {
     p_publisher = new JMSPublisher(app_name);
+    // In one process the notices go out as the tool that made the change.
+    p_publisher->followActingTool(true);
+  }
   return p_publisher;
 }
 

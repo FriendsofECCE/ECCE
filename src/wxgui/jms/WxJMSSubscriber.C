@@ -170,10 +170,11 @@ string WxJMSSubscriber::getMyName() const {
 }
 
 /**
- * Use this to get your process ID (pid), as used for message identification.
+ * The id this subscriber's messages are stamped and targeted with: the pid,
+ * or one per tool instance in a shared process (MqttLink::newInstanceId).
  */
 string WxJMSSubscriber::getMyID() const {
-  return std::to_string(getpid());
+  return p_ep ? p_ep->id() : MqttLink::processId();
 }
 
 void WxJMSSubscriber::messageArrived(const string&, JMSMessage&) {}

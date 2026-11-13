@@ -99,6 +99,9 @@ public:
   explicit MqttEndpoint(const std::string& toolName);
   ~MqttEndpoint();
 
+  // This tool instance's sender id (MqttLink::newInstanceId()).
+  const std::string& id() const { return p_id; }
+
   // Called on the owner's thread for each accepted message.
   std::function<void(const std::string& topic, JMSMessage& msg)> handler;
   // If set, called on libmosquitto's thread for each accepted message before
@@ -138,6 +141,7 @@ public:
   bool receive(const MqttInbound& in);
 private:
   std::string p_name;
+  std::string p_id;
   mutable std::mutex p_lock;
   std::map<std::string, bool> p_topics;   // topic -> filterSelf
   std::map<std::string, std::string> p_aliases;   // topic -> tool name
@@ -177,6 +181,11 @@ public:
   static bool localDelivery();
   // Tests only; before the first subscription.
   static void setLocalDelivery(bool on);
+  // Sender id of a new tool instance: the pid, or "<pid>.<n>" with local
+  // delivery, so that replies and targets reach one tool of the process.
+  // A bare pid as target still reaches every tool of the process.
+  static std::string newInstanceId();
+  static std::string processId();
   // True while a TCP broker is configured but this session has no data
   // server login yet (e.g. the login dialog was cancelled): nothing can be
   // published, and that is not a publish failure.

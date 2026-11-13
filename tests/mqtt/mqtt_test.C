@@ -32,6 +32,7 @@
 #include <string>
 #include <vector>
 
+#include "dsm/EDSIFactory.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
 #include "util/JMSSubscriber.H"
@@ -86,12 +87,16 @@ static int childMain(int argc, char** argv)
 class Probe : public JMSSubscriber {
 public:
   explicit Probe(const string& name) : JMSSubscriber(name) {}
-  void on(JMSMessage& m) { got.push_back(m.getProperty("tag")); }
+  void on(JMSMessage& m) {
+    got.push_back(m.getProperty("tag"));
+    values.push_back(m.getProperty("value"));
+  }
   bool has(const string& tag) const {
     for (size_t i = 0; i < got.size(); i++) if (got[i] == tag) return true;
     return false;
   }
   vector<string> got;
+  vector<string> values;   // EDSIFactory notices carry no tag
 };
 
 static vector<Probe*> g_probes;
@@ -643,6 +648,52 @@ static int localMain(const string& src)
   check(!dup && countOf(bld, "c_poll") == 1 && countOf(bld, "seq0") == 1,
         "no duplicates (no broker echo of in-process messages)");
 
+  // Tool instances: ids <pid>.<n>; a target by id reaches one window, a
+  // bare pid (a sender that predates the ids) all tools of the process.
+  Probe bld2("Builder");
+  g_probes.push_back(&bld2);
+  bld2.subscribe("ecce_url_property", cb);
+  bld2.subscribe("ecce_poll", cb);
+  bld2.startSubscriber();
+  string pid = to_string(getpid());
+  check(org.getMyID().compare(0, pid.size() + 1, pid + ".") == 0 &&
+        org.getMyID() != bld.getMyID() && bld.getMyID() != bld2.getMyID(),
+        "each tool instance has its own id <pid>.<n>");
+  Target toBld2("", bld2.getMyID()), toPid("", pid);
+  JMSPublisher pb1("Builder");
+  pb1.setMyID(bld.getMyID());
+  check(sent(po, "ecce_poll", "id_bld2", &toBld2) &&
+        sent(po, "ecce_poll", "id_pid", &toPid) &&
+        sent(pb1, "ecce_url_property", "inst_prop"), "published to instances");
+  pump(300);
+  check(bld2.has("id_bld2") && !bld.has("id_bld2") && !org.has("id_bld2"),
+        "a target by instance id reaches that instance only");
+  check(org.has("id_pid") && bld.has("id_pid") && bld2.has("id_pid"),
+        "a target by bare pid reaches every tool of the process");
+  check(!bld.has("inst_prop") && bld2.has("inst_prop") && org.has("inst_prop"),
+        "self filter by instance: a second Builder gets the first's notice");
+
+  // EDSIFactory's notices go out as the acting tool.
+  JMSPublisher::setActingTool("Organizer", org.getMyID());
+  EDSIFactory::notifyProperty("http://x/calc/", "state", "org_save");
+  {
+    JMSPublisher::ActingTool as("Builder", bld.getMyID());
+    EDSIFactory::notifyProperty("http://x/calc/", "state", "bld_save");
+  }
+  EDSIFactory::notifyProperty("http://x/calc/", "state", "org_save2");
+  pump(300);
+  auto valueSeen = [](const Probe& p, const string& v) {
+    for (size_t i = 0; i < p.values.size(); i++) if (p.values[i] == v) return true;
+    return false;
+  };
+  check(valueSeen(org, "bld_save") && !valueSeen(bld, "bld_save") &&
+        valueSeen(bld2, "bld_save"),
+        "a Builder's EDSIFactory notice reaches the Organizer, not that Builder");
+  check(!valueSeen(org, "org_save") && !valueSeen(org, "org_save2") &&
+        valueSeen(bld, "org_save") && valueSeen(bld, "org_save2"),
+        "the Organizer's own notice is filtered; the default is restored");
+  bld2.unsubscribe();
+
   kill(broker, SIGTERM);
   waitpid(broker, 0, 0);
   usleep(300000);
@@ -735,6 +786,17 @@ int main(int argc, char** argv)
     p2.subscribe("ecce_url_created", cb1, false);
     check(p1.startSubscriber() && p2.startSubscriber(), "subscribers started");
     usleep(300000);   // let the broker register the subscriptions
+    {
+      // Without ECCE_ONE_PROCESS the ids and the notice sender stay as before.
+      string pid = to_string(getpid());
+      JMSPublisher::ActingTool as("Builder", "1.1");
+      JMSMessage* m = EDSIFactory::getPublisher()->newMessage();
+      check(p1.getMyID() == pid && p2.getMyID() == pid &&
+            m->getSender().getName() == "EDSIFactory" &&
+            m->getSender().getID() == pid,
+            "ids are the pid and notices go out as EDSIFactory (switch off)");
+      delete m;
+    }
 
     // Another process, same account and session.
     vector<string> a;

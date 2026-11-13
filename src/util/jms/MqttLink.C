@@ -132,7 +132,8 @@ bool MqttConfig::parseFile(const string& path, MqttConfig& cfg)
 
 // ---------------------------------------------------------------- endpoint
 
-MqttEndpoint::MqttEndpoint(const string& toolName) : p_name(toolName)
+MqttEndpoint::MqttEndpoint(const string& toolName)
+  : p_name(toolName), p_id(MqttLink::newInstanceId())
 {
   p_pipe[0] = p_pipe[1] = -1;
 }
@@ -229,7 +230,8 @@ bool MqttEndpoint::receive(const MqttInbound& in)
     return it == in.props.end() ? string() : it->second;
   };
   string tid = get("targetid"), tname = get("targetname");
-  if (!tid.empty() && tid != std::to_string(getpid())) return false;
+  const string pid = MqttLink::processId();
+  if (!tid.empty() && tid != p_id && tid != pid) return false;
   if (!tname.empty() && tname != p_name) {
     std::lock_guard<std::mutex> g(p_lock);
     auto a = p_aliases.find(in.topic);
@@ -239,8 +241,11 @@ bool MqttEndpoint::receive(const MqttInbound& in)
   // No Local drops this connection's own messages at the broker, but only
   // when every subscriber of the topic asked for it. With several tools in
   // one process, another tool's message is not "self".
-  if (filterSelf(in.topic) && get("senderid") == std::to_string(getpid()) &&
-      (!MqttLink::localDelivery() || get("sendername") == p_name))
+  // A plain JMSPublisher of the tool stamps the bare pid, hence the name.
+  string sid = get("senderid");
+  if (filterSelf(in.topic) &&
+      (sid == p_id || (sid == pid && (!MqttLink::localDelivery() ||
+                                      get("sendername") == p_name))))
     return false;
 
   if (arrival && wellFormedBody(in.payload)) {
@@ -351,6 +356,18 @@ bool MqttLink::localDelivery()
 void MqttLink::setLocalDelivery(bool on)
 {
   localFlag() = on ? 1 : 0;
+}
+
+string MqttLink::processId()
+{
+  return std::to_string(getpid());
+}
+
+string MqttLink::newInstanceId()
+{
+  if (!localDelivery()) return processId();
+  static std::atomic<int> n{0};
+  return processId() + "." + std::to_string(++n);
 }
 
 bool MqttLink::ensureConnected()
