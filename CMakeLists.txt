@@ -2853,6 +2853,9 @@ set_tests_properties(xrd_fibre PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 add_test(NAME xrd_powder
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/powder_test.py)
 set_tests_properties(xrd_powder PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+add_test(NAME xrd_debye
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/debye_test.py)
+set_tests_properties(xrd_debye PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 add_test(NAME xrd_layer
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/layer_test.py)
 set_tests_properties(xrd_layer PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
@@ -3917,6 +3920,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_powder_dialog PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  add_test(NAME apps_debye_dialog
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/debye_dialog_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_debye_dialog PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Same, Single crystal: the dialog's CSV equals ecce-xrd layer (#972).

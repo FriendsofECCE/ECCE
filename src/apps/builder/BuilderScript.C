@@ -1027,6 +1027,29 @@ void Builder::runBuilderScript(const std::string& file)
         }
         fprintf(stderr, "BUILDER: diffraction: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
+      } else if (w[0] == "debye" && w.size() >= 4) {
+        std::vector<int> sel;
+        std::string err = writeStructureXyz(w[3], sel), why;
+        DiffractionDialog *dd = 0;
+        if (err.empty()) {
+          dd = new DiffractionDialog(this, w[3], sel);
+          // Compute the initial view first so switching must clear old reflections.
+          if (!dd->calculate(why)) err = why;
+          else {
+            dd->setDebye();
+            dd->setSource(w.size() > 4 ? atoi(w[4].c_str()) : 0,
+                          w.size() > 5 ? atoi(w[5].c_str()) : -1);
+            if (!dd->calculate(why)) err = why;
+            else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
+            if (err.empty()) {
+              fprintf(stderr, "BUILDER: debye state: debye=%d powder=%d reflection=%s\n",
+                      dd->debye(), dd->powder(), dd->reflectionText(31.7, 180).ToUTF8().data());
+              fprintf(stderr, "BUILDER: debye cursor: %s\n", dd->cursorText(31.7, 1).ToUTF8().data());
+            }
+          }
+        }
+        fprintf(stderr, "BUILDER: debye: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
+        if (dd) dd->Destroy();
       } else if (w[0] == "calcdiffraction" && w.size() >= 3) {
         //  calcdiffraction OUT.png OUT.csv [XYZ [EXPOSURE SCHEME]]: the Diffraction entry of the
         //  open calculation's results, default fields (#587).

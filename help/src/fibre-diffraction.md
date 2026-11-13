@@ -7,6 +7,9 @@ it needs a structure and an optional atom selection, nothing else. The
 
 - **Fibre**: the pattern of molecules aligned on one axis, on a film or as an
   (R, Z) map. It works for any structure.
+- **Molecule (Debye scattering)**: the orientational average for a molecule,
+  cluster or the contents of a unit cell, plotted against 2θ. It works for any
+  structure.
 - **Powder**: intensity against 2θ with hkl labels and a peak list, with the
   K-alpha doublet for Cu, Mo and Co sources. It needs a periodic structure.
 - **Single crystal**: a reciprocal-lattice layer (hk0, h0l, 0kl or a higher
@@ -63,6 +66,50 @@ The fields:
 
 Form factors are the Cromer-Mann coefficients of the International Tables
 (Vol. C, Table 6.1.1.4), for H, C, N, O, Na, Mg, P, S, Cl, K, Ca, Fe and Zn.
+
+## Molecule (Debye scattering)
+
+Choose **Molecule (Debye scattering)** to average over all orientations of
+the structure. This is suitable for a gas of molecules or a finite disordered
+cluster. It uses the same neutral-atom IT92 form factors and **Source**,
+**Wavelength**, **K-alpha1/K-alpha2 doublet**, angle range and **B** settings
+as Powder. Cu, Mo and Co use their tabulated wavelengths; a custom wavelength
+uses a single line. The doublet combines the two intensities in a 2:1 ratio.
+
+The calculation is
+
+    I(q) = sum_i f_i(q)^2 + 2 sum_{i<j} f_i(q) f_j(q) sin(q r_ij)/(q r_ij)
+    q = 4 pi sin(theta)/lambda,  s = q/(4 pi)
+
+Distances are in Å and q is in Å⁻¹. The self terms are included and
+sin(qr)/(qr) is 1 at qr = 0. Each form factor is multiplied by exp(-B s²),
+as in Powder. No powder Lorentz or polarisation correction or artificial
+peak width is applied. The displayed curve is scaled to a maximum of 100
+over the chosen angle range; it has no hkl labels or reflection table.
+
+Up to 3000 atoms the sum uses exact pair distances. Above 3000 atoms it uses
+an element-pair distance histogram with 0.01 Å bins; the status line states
+the method. Building the histogram still takes O(N²) pair work, but avoids
+evaluating every pair at every angle. The histogram is an approximation.
+
+A periodic structure contributes the atoms in its cell once, without
+periodic images or automatic replication. A single NaCl pair gives broad
+oscillations; a larger ordered NaCl cluster develops peaks near the crystal's
+Bragg positions. A water cluster can similarly be compared with crystalline
+ice to discuss local and long-range order. Intensities and finite-size peak
+widths differ from the infinite-crystal Powder view.
+
+**Save PNG...** saves the displayed curve and **Save CSV...** saves columns
+`two_theta,intensity`, like Powder. The pointer reports 2θ, d, Q and intensity.
+From the command line:
+
+    ecce-xrd debye molecule.xyz --source cu --out debye.csv --out debye.png --json
+    ecce-xrd debye cluster.xyz --wavelength 0.71073 --tt-min 0 --tt-max 90 --step 0.05
+
+The CLI also accepts `.pdb`, `.mvm` and periodic `.cif` structures,
+`--select 1-40,57`, `--B`, `--no-doublet` and `--measured` as for the existing
+views. JSON records the method and distance bin width, the q grid and raw
+and relative intensities. q is in Å⁻¹; the plot and CSV use 2θ in degrees.
 
 ## Powder patterns: the K-alpha doublet
 
