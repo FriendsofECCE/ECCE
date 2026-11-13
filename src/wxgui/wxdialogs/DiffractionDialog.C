@@ -327,7 +327,7 @@ void DiffractionDialog::paintImage(wxGraphicsContext *gc, double W, double H) co
     static const char *fmt[] = {"hk%d", "h%dl", "%dkl"};
     title = wxString::Format(fmt[std::max(0, p_zone->GetSelection())], (int)std::lround(number(p_layerNo))) +
             " layer (reciprocal lattice, simulated)";
-    caption = "Simulated precession photograph; darkness follows I_rel, 100 = the strongest reflection of the whole crystal";
+    caption = "Simulated precession photograph; darkness follows the relative intensity, 100 = the strongest reflection of the whole crystal";
   } else if (p_frame) {
     title = wxString::Format(U("Rotating crystal, φ %d to %g° (simulated)"), p_fphi->GetValue(),
                              p_fphi->GetValue() + number(p_fosc));
@@ -800,7 +800,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_zone->SetSelection(0);
   lg->Add(p_zone, 0);
   p_layerNo = lfield("Layer number", "0", "0 gives hk0, h0l or 0kl; 1, 2 ... the layers above it");
-  p_lres = lfield(U("Resolution d_min (Å)"), "1", "Spots with d below this are left out");
+  p_lres = lfield(U("Smallest d (Å)"), "1", "Resolution limit: spots with a lattice spacing d below this are left out");
   p_lb = lfield(U("B (Å²)"), "0", U("Isotropic displacement (Debye–Waller) parameter"));
   layerBox->Add(lg, 0, wxALL, 6);
   p_absent = new wxCheckBox(lp, wxID_ANY, "Show absent reflections");
@@ -826,7 +826,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   fg->Add(new wxStaticText(lp, wxID_ANY, U("Start angle φ (°)")), 0, wxALIGN_CENTER_VERTICAL);
   p_fphi = new wxSlider(lp, wxID_ANY, 0, 0, 359, wxDefaultPosition, wxSize(160, -1),
                         wxSL_HORIZONTAL | wxSL_LABELS);
-  p_fphi->SetToolTip("Where the oscillation starts, about the vertical axis");
+  p_fphi->SetToolTip(U("Crystal orientation at the start of the exposure: the crystal turns about the vertical axis from φ to φ + Oscillation, and the spots are the reflections whose planes pass through the diffracting position (the Ewald sphere) in that range. Changing φ shows another part of the crystal's reciprocal lattice."));
   fg->Add(p_fphi, 0);
   p_fosc = ffield(U("Oscillation (°)"), "10", "Range turned during the exposure");
   p_fdist = ffield("Distance (mm)", "90", "Crystal to detector");
