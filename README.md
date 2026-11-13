@@ -46,7 +46,8 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 ## Coming in 9.5.3
 
-On main, not in a package yet: nothing since 9.5.2.
+On main, not in a package yet:
+- Windows: local sessions use a small message broker inside ECCE instead of mosquitto.exe, as in 9.4.15; `ECCE_BROKER=mosquitto` keeps the old route (#990).
 
 ## First steps
 
