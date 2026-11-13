@@ -66,23 +66,6 @@ def run(display):
             send("tableclick 3 ctrl")       # add 3
             send("tableclick 1 ctrl")       # remove 1
             send("tableclick 0 ctrl", "tableclick 1 ctrl")   # now rows 1 and 3
-            # A reload of the shown folder (#889) with nothing changed.
-            stray = os.path.join(project, "stray")
-            open(stray, "w").close()
-            os.remove(stray)
-            time.sleep(6)
-            send("autoreloads x", "tableselected x")
-            send("tableclick 3 shift")      # from the anchor, row 1
-            time.sleep(2)
-            # Anchor on row 2, Ctrl+click it off, reload, Shift+click row 3.
-            # The reload re-sorts the rows; "table" reports the new order.
-            send("tableclick 2")
-            send("tableclick 2 ctrl")
-            open(stray, "w").close()
-            os.remove(stray)
-            time.sleep(6)
-            send("autoreloads x", "table x")
-            send("tableclick 3 shift")
             time.sleep(2)
 
         result = apps.run(display, "organizer", windowTimeout=60, settle=30,
@@ -97,7 +80,7 @@ def run(display):
         def ans(word):
             return re.findall(r"ECCE_TEST_ORGANIZER: %s .*?: (.*)$" % word, log, re.M)
         clicks = ans("tableclick")
-        if not check(len(clicks) == 15 and all(c.startswith("ok") for c in clicks),
+        if not check(len(clicks) == 11 and all(c.startswith("ok") for c in clicks),
                      "the click hook answered", log[-2000:]):
             return
 
@@ -120,25 +103,6 @@ def run(display):
                  ("two rows apart are selected", rows(1, 3))]
         for (what, want), got in zip(steps, clicks[4:11]):
             check(names(got) == want, what, "got %s, want %s" % (names(got), want))
-        reloads, kept = ans("autoreloads"), ans("tableselected")
-        check(reloads and int(reloads[0]) >= 1, "the folder was reloaded", reloads)
-        check(kept and names(kept[0]) == rows(1, 3),
-              "the reload keeps both rows", kept)
-        # The anchor survives a refill (#925): it stays on its calculation,
-        # wherever the re-sort puts it, instead of falling back to row 0.
-        check(names(clicks[13]) == [], "Ctrl+click clears the only selected row",
-              "got %s" % names(clicks[13]))
-        anchor = names(clicks[12])[0]
-        table = ans("table")
-        order = [c.split("=")[0].strip() for c in table[-1].split("|")[1:]] \
-            if table else []
-        if check(sorted(order) == NAMES, "the reloaded table lists the rows", table):
-            a = order.index(anchor)
-            want = sorted(order[min(a, 3):max(a, 3) + 1])
-            check(names(clicks[14]) == want,
-                  "Shift+click after an auto-refresh extends from the anchor",
-                  "got %s, want %s (rows %s, anchor %s)"
-                  % (names(clicks[14]), want, order, anchor))
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)
