@@ -271,7 +271,9 @@ of its own; **Tools > Dock Floating Panels** puts them back. See
   below shows that plot. The energy is drawn relative to step 1 in kJ/mol,
   and the title gives the final absolute energy in Hartree. Click a point on
   the plot to see the molecule at that step, or use the playback control to
-  step through them; **Play** continues from the selected step.
+  step through them; **Play** continues from the selected step. (A
+  calculation with a Geometry Trace has no separate **Geometry Step Plots**
+  entry: the trace's right-click menu plots the same per-step quantities.)
   **Delay:** sets the time between steps during playback (milliseconds); tick
   **Loop** to play forward to the last step and back, until stopped. All plots zoom
   with the mouse wheel (Shift+wheel zooms the vertical axis only) or by dragging a

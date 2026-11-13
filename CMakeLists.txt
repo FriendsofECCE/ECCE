@@ -5061,6 +5061,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/modecomp)
   set_tests_properties(apps_mode_composition PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # Geometry Step Plots listed only without a Geometry Trace (#1008).
+  add_test(NAME apps_step_plots_listing
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/step_plots_listing_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_step_plots_listing PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # The Energies panel's groups and their fold state (#283).
   add_test(NAME apps_energies_groups
            COMMAND ${PYTHON3_EXECUTABLE}
