@@ -1029,7 +1029,7 @@ void SoWxRenderArea::setRubberBand(bool on, short x0, short y0, short x1,
 //  background colour, black while a slow load keeps GTK from painting (#999).
 //  ECCE_TEST_RENDER_CORNER=1 reports a corner pixel of each frame, before and
 //  after, for tests/apps/render_alpha_test.py.
-static void makeFrameOpaque()
+static void makeFrameOpaque(const void *area, const SbColor &bg, int w, int h)
 {
   static const bool report = getenv("ECCE_TEST_RENDER_CORNER") != 0;
   GLubyte before[4] = { 0, 0, 0, 0 };
@@ -1051,9 +1051,11 @@ static void makeFrameOpaque()
   if (report) {
     GLubyte after[4] = { 0, 0, 0, 0 };
     glReadPixels(1, 1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, after);
-    fprintf(stderr, "RENDER_CORNER before %d %d %d %d after %d %d %d %d\n",
+    fprintf(stderr, "RENDER_CORNER before %d %d %d %d after %d %d %d %d "
+            "area %p bg %.2f %.2f %.2f size %dx%d\n",
             before[0], before[1], before[2], before[3],
-            after[0], after[1], after[2], after[3]);
+            after[0], after[1], after[2], after[3],
+            area, bg[0], bg[1], bg[2], w, h);
   }
 }
 
@@ -1222,7 +1224,8 @@ void SoWxRenderArea::redraw()
 #endif
   if (p_frameCB) p_frameCB(p_frameCBData);
   if (p_band) drawRubberBand();
-  if (isRGBMode()) makeFrameOpaque();
+  if (isRGBMode())
+    makeFrameOpaque(this, getBackgroundColor(), p_glxSize[0], p_glxSize[1]);
 
   // swap those buffers!
   if (isDoubleBuffer()) {
