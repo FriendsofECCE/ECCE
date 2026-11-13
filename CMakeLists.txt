@@ -5474,6 +5474,7 @@ add_test(NAME packaging_command_wrappers
                  --build ${CMAKE_BINARY_DIR}
                  --home ${CMAKE_INSTALL_PREFIX}
                  --wrappers ${ECCE_WRAPPER_DESTINATION})
+set_tests_properties(packaging_command_wrappers PROPERTIES SKIP_RETURN_CODE 77)
 
 add_test(NAME packaging_units_text
          COMMAND ${PYTHON3_EXECUTABLE}
