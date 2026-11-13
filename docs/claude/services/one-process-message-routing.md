@@ -67,6 +67,16 @@ stopped.
   through the local path). Other tools still go to the gateway
   (Linux/macOS) or `startToolWin` (Windows).
 
+## Build
+
+`organizer`, `builder` and `calced` are separate `ecce_app(...)` targets in
+`CMakeLists.txt`, each globbing its whole directory, and `builder` already
+compiles Organizer sources into itself (`WorkflowSteps.C`, `Recipe.C`,
+`KeyData.C`, `CompareEnergies*.C`). One executable needs each tool as a
+static library without its `*App.C` (which holds `IMPLEMENT_APP`), those
+shared Organizer files compiled once, and the old `builder`/`calced`
+programs kept as thin mains over the same libraries for the tests.
+
 ## OnInit split
 
 Once per process (stays in `CalcMgrApp::OnInit`, `ewxApp::OnInit`):
