@@ -218,9 +218,9 @@ static bool wellFormedBody(string body)
   return true;
 }
 
-void MqttEndpoint::receive(const MqttInbound& in)
+bool MqttEndpoint::receive(const MqttInbound& in)
 {
-  if (!p_alive || p_held) return;
+  if (!p_alive || p_held) return false;
 
   // The receiver applies JMS's "targetid is NULL or me, targetname is NULL
   // or me" selector.
@@ -229,17 +229,19 @@ void MqttEndpoint::receive(const MqttInbound& in)
     return it == in.props.end() ? string() : it->second;
   };
   string tid = get("targetid"), tname = get("targetname");
-  if (!tid.empty() && tid != std::to_string(getpid())) return;
+  if (!tid.empty() && tid != std::to_string(getpid())) return false;
   if (!tname.empty() && tname != p_name) {
     std::lock_guard<std::mutex> g(p_lock);
     auto a = p_aliases.find(in.topic);
-    if (a == p_aliases.end() || a->second != tname) return;
+    if (a == p_aliases.end() || a->second != tname) return false;
   }
 
   // No Local drops this connection's own messages at the broker, but only
-  // when every subscriber of the topic asked for it.
-  if (filterSelf(in.topic) && get("senderid") == std::to_string(getpid()))
-    return;
+  // when every subscriber of the topic asked for it. With several tools in
+  // one process, another tool's message is not "self".
+  if (filterSelf(in.topic) && get("senderid") == std::to_string(getpid()) &&
+      (!MqttLink::localDelivery() || get("sendername") == p_name))
+    return false;
 
   if (arrival && wellFormedBody(in.payload)) {
     JMSMessage msg;
@@ -248,7 +250,7 @@ void MqttEndpoint::receive(const MqttInbound& in)
   }
   if (poster) {
     poster(shared_from_this(), in);
-    return;
+    return true;
   }
   {
     std::lock_guard<std::mutex> g(p_lock);
@@ -259,6 +261,7 @@ void MqttEndpoint::receive(const MqttInbound& in)
     ssize_t n = write(p_pipe[1], &c, 1);
     (void)n;   // a full pipe already has a wake-up pending
   }
+  return true;
 }
 
 void MqttEndpoint::drain()
@@ -326,6 +329,28 @@ static MqttRefusalHandler& refusalHandler()
 void MqttLink::setRefusalHandler(MqttRefusalHandler handler)
 {
   refusalHandler() = handler;
+}
+
+static std::atomic<int>& localFlag()
+{
+  static std::atomic<int> f{-1};
+  return f;
+}
+
+bool MqttLink::localDelivery()
+{
+  int v = localFlag();
+  if (v < 0) {
+    const char* e = getenv("ECCE_ONE_PROCESS");
+    v = (e && *e && strcmp(e, "0") != 0) ? 1 : 0;
+    localFlag() = v;
+  }
+  return v == 1;
+}
+
+void MqttLink::setLocalDelivery(bool on)
+{
+  localFlag() = on ? 1 : 0;
 }
 
 bool MqttLink::ensureConnected()
@@ -542,7 +567,8 @@ void MqttLink::syncSubscriptions()
   for (auto& ep : p_endpoints) {
     for (auto& t : ep->topics()) {
       string f = p_topics.subscribeFilter(t, p_cfg.user, p_cfg.sessionKey);
-      int opt = ep->filterSelf(t) ? MQTT_SUB_OPT_NO_LOCAL : 0;
+      // Local delivery has already given this process its own messages.
+      int opt = (localDelivery() || ep->filterSelf(t)) ? MQTT_SUB_OPT_NO_LOCAL : 0;
       auto it = want.find(f);
       if (it == want.end()) want[f] = opt;
       else it->second &= opt;
@@ -597,10 +623,35 @@ void MqttLink::deactivate(const std::shared_ptr<MqttEndpoint>& ep)
   if (p_mosq) syncSubscriptions();
 }
 
-static void addProp(mosquitto_property** p, const char* k, const string& v)
+// The user properties a message travels with; empty ones are left out.
+static std::vector<std::pair<string, string> > messageProps(const JMSMessage& msg)
 {
-  if (!v.empty())
-    mosquitto_property_add_string_pair(p, MQTT_PROP_USER_PROPERTY, k, v.c_str());
+  Sender s = msg.getSender();
+  Target t = msg.getTarget();
+  std::vector<std::pair<string, string> > r = {
+    {"sendername", s.getName()}, {"senderid", s.getID()},
+    {"targetname", t.getName()}, {"targetid", t.getID()},
+    {"replytopic", msg.getReplyTopic()}};
+  std::vector<std::pair<string, string> > out;
+  for (auto& kv : r) if (!kv.second.empty()) out.push_back(kv);
+  return out;
+}
+
+size_t MqttLink::deliverLocal(const string& topic, const JMSMessage& msg)
+{
+  MqttInbound in;
+  in.topic = topic;
+  in.payload = msg.bodyToString();
+  for (auto& kv : messageProps(msg)) in.props[kv.first] = kv.second;
+  std::vector<std::shared_ptr<MqttEndpoint> > eps;
+  {
+    std::lock_guard<std::mutex> g(p_lock);
+    eps = p_endpoints;
+  }
+  size_t n = 0;
+  for (auto& ep : eps)
+    if (ep->has(topic) && ep->receive(in)) n++;
+  return n;
 }
 
 bool MqttLink::awaitingLogin()
@@ -611,19 +662,19 @@ bool MqttLink::awaitingLogin()
 
 bool MqttLink::publish(const string& topic, const JMSMessage& msg)
 {
+  // In-process subscribers do not need the broker: this works sessionless,
+  // before a login and while the broker is away.
+  bool local = localDelivery() && deliverLocal(topic, msg) > 0;
+
   // Once started, no lock: an endpoint's arrival hook publishes from inside
-  // onMessage, which already holds p_lock.
-  if (!p_ready && !ensureConnected()) return false;
-  if (!p_mosq || !p_connected) return false;
+  // onMessage.
+  if (!p_ready && !ensureConnected()) return local;
+  if (!p_mosq || !p_connected) return local;
 
   mosquitto_property* props = nullptr;
-  Sender s = msg.getSender();
-  Target t = msg.getTarget();
-  addProp(&props, "sendername", s.getName());
-  addProp(&props, "senderid", s.getID());
-  addProp(&props, "targetname", t.getName());
-  addProp(&props, "targetid", t.getID());
-  addProp(&props, "replytopic", msg.getReplyTopic());
+  for (auto& kv : messageProps(msg))
+    mosquitto_property_add_string_pair(&props, MQTT_PROP_USER_PROPERTY,
+                                       kv.first.c_str(), kv.second.c_str());
 
   string body = msg.bodyToString();
   string mq = p_topics.publishTopic(topic, p_cfg.user, p_cfg.sessionKey);
@@ -634,7 +685,7 @@ bool MqttLink::publish(const string& topic, const JMSMessage& msg)
   if (rc != MOSQ_ERR_SUCCESS) {
     p_inflight--;
     std::cerr << "MQTT: publish: " << mosquitto_strerror(rc) << std::endl;
-    return false;
+    return local;
   }
   return true;
 }
@@ -666,8 +717,14 @@ void MqttLink::onMessage(mosquitto*, void* obj, const mosquitto_message* m,
     free(v);
   }
 
-  std::lock_guard<std::mutex> g(self->p_lock);
-  for (auto& ep : self->p_endpoints)
+  // Not under the lock: an arrival hook publishes, and with local delivery
+  // publishing takes the lock.
+  std::vector<std::shared_ptr<MqttEndpoint> > eps;
+  {
+    std::lock_guard<std::mutex> g(self->p_lock);
+    eps = self->p_endpoints;
+  }
+  for (auto& ep : eps)
     if (ep->has(in.topic)) ep->receive(in);
 }
 
