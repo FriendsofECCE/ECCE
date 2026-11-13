@@ -19,6 +19,7 @@ sphere; no iteration is needed.
 """
 import argparse
 import csv
+from fractions import Fraction
 import json
 import math
 import os
@@ -202,6 +203,8 @@ class Model:
         e1 = np.cross(ax, helper)
         e1 /= np.linalg.norm(e1)
         e2 = np.cross(ax, e1)
+        self.explicit_axis = axis is not None
+        self.xyz = xyz
         self.axis = ax
         self.z = c @ ax
         x, y = c @ e1, c @ e2
@@ -260,6 +263,125 @@ def intensity_rz(model, rs, zs, bfactor=0.0):
             g = g + f[:, None] * (ez[:, idx] @ a[idx, :])
         out[ir] = np.sum(np.abs(g) ** 2, axis=1)
     return out
+
+
+def helical_repeat(model):
+    """Fit a screw to consecutive P or peptide N anchors in file order.
+
+    Reject short, bent or irregular chains rather than inventing a repeat.
+    The rational approximation closes the measured screw into an axial cell.
+    """
+    for element, cutoff in (("P", 9.0), ("N", 4.0)):
+        anchors = model.xyz[np.array(model.symbols) == element]
+        if len(anchors) < 6:
+            continue
+        breaks = np.flatnonzero(np.linalg.norm(np.diff(anchors, axis=0), axis=1) > cutoff) + 1
+        chain = max(np.split(anchors, breaks), key=len)
+        if len(chain) < 6:
+            continue
+        a, b = chain[:-1], chain[1:]
+        ac, bc = a.mean(axis=0), b.mean(axis=0)
+        u, _, vt = np.linalg.svd((a - ac).T @ (b - bc))
+        rot = vt.T @ np.diag([1, 1, np.linalg.det(vt.T @ u.T)]) @ u.T
+        shift = bc - rot @ ac
+        error = float(np.sqrt(np.mean(np.sum((a @ rot.T + shift - b) ** 2, axis=1))))
+        if error > 0.15:
+            continue
+        w, v = np.linalg.eig(rot)
+        axis = v[:, np.argmin(abs(w - 1))].real
+        axis /= np.linalg.norm(axis)
+        rise = float(shift @ axis)
+        if rise < 0:
+            axis, rise = -axis, -rise
+        if model.explicit_axis and abs(float(axis @ model.axis)) < 0.999:
+            continue
+        angle = math.atan2(float(axis @ np.array([rot[2, 1] - rot[1, 2],
+                                                 rot[0, 2] - rot[2, 0],
+                                                 rot[1, 0] - rot[0, 1]])) / 2,
+                           (np.trace(rot) - 1) / 2)
+        turns = Fraction(angle / (2 * math.pi)).limit_denominator(20)
+        if (rise < 0.5 or abs(angle) < 0.2 or turns.numerator == 0 or
+                abs(float(turns) * 2 * math.pi - angle) > math.radians(1)):
+            continue
+        origin = np.linalg.lstsq(np.eye(3) - rot + np.outer(axis, axis),
+                                 shift - rise * axis, rcond=None)[0]
+        # Keep complete interior steps, then fold them onto one screw unit.
+        # Averaging equivalent units removes end caps and small model deviations.
+        xyz = model.xyz - origin
+        z = xyz @ axis
+        lo = math.ceil(float(z.min()) / rise) + 1
+        hi = math.floor(float(z.max()) / rise) - 1
+        if hi - lo < 3:
+            continue
+        keep = (z >= lo * rise) & (z < hi * rise)
+        xyz, z = xyz[keep], z[keep]
+        k = np.floor(z / rise)
+        theta = -k * float(turns) * 2 * math.pi
+        radial = xyz - z[:, None] * axis
+        folded = (radial * np.cos(theta)[:, None] +
+                  np.cross(axis, radial) * np.sin(theta)[:, None] +
+                  (z - k * rise)[:, None] * axis)
+        motif = Model(list(np.array(model.symbols)[keep]), folded, axis)
+        # Model centres coordinates for finite objects; a helix must use its screw axis.
+        helper = np.array([1., 0, 0]) if abs(axis[0]) < 0.9 else np.array([0., 1, 0])
+        e1 = np.cross(axis, helper)
+        e1 /= np.linalg.norm(e1)
+        e2 = np.cross(axis, e1)
+        motif.z = folded @ axis
+        motif.r = np.hypot(folded @ e1, folded @ e2)
+        motif.phi = np.arctan2(folded @ e2, folded @ e1)
+        return {"motif": motif, "rise": rise, "units": turns.denominator,
+                "turns": turns.numerator, "repeat": rise * turns.denominator,
+                "weight": turns.denominator / (hi - lo), "fit_rmsd": error,
+                "anchor": element, "axis": axis.tolist()}
+    raise ValueError("no regular helical backbone found; use --transform finite for non-helical fibres")
+
+
+def helical_lines(helix, rs, layers, bfactor=0.0):
+    """Line weights: sum over n with l - n*t divisible by u, Z = l/c."""
+    m = helix["motif"]
+    rs, layers = np.asarray(rs, float), np.asarray(layers, int)
+    zs = layers / helix["repeat"]
+    ez = np.exp(2j * np.pi * zs[:, None] * m.z)
+    out = np.zeros((len(rs), len(layers)))
+    for ir, rr in enumerate(rs):
+        nmax = _orders(2 * np.pi * rr * float(m.r.max()))
+        ns = np.concatenate([np.arange(nmax + 1), np.arange(-nmax, 0)])
+        jn = bessel_table(2 * np.pi * rr * m.r, nmax)
+        a = jn * np.exp(-1j * ns[None, :] * m.phi[:, None])
+        s = 0.5 * np.hypot(rr, zs)
+        amp = np.zeros((len(layers), len(ns)), complex)
+        for el, idx in zip(m.elements, m.groups):
+            f = form_factor(el, s) * np.exp(-bfactor * s * s / 2)
+            amp += f[:, None] * (ez[:, idx] @ a[idx])
+        allowed = (layers[:, None] - helix["turns"] * ns) % helix["units"] == 0
+        out[ir] = np.sum(np.abs(amp) ** 2 * allowed, axis=1) * helix["weight"] ** 2
+    return out
+
+
+def helical_grid(helix, rs, zs, bfactor=0.0, length=100.0):
+    """Broaden delta layer lines with a normalized Gaussian; no shape fringes."""
+    zs = np.asarray(zs, float)
+    step = float(zs[1] - zs[0])
+    sigma = 1 / (2.354820045 * length) if length > 0 else 0.0
+    top = int(math.ceil((zs[-1] + 5 * sigma) * helix["repeat"]))
+    layers = np.arange(top + 1)
+    weights = helical_lines(helix, rs, layers, bfactor)
+    grid = np.zeros((len(rs), len(zs)))
+    for i, zline in enumerate(layers / helix["repeat"]):
+        if sigma == 0:
+            # Deposit a delta with conserved area even between grid points.
+            q = zline / step
+            j = int(math.floor(q))
+            for col, fraction in ((j, 1 - (q - j)), (j + 1, q - j)):
+                if col < len(zs):
+                    grid[:, col] += weights[:, i] * fraction / step
+        else:
+            profile = np.exp(-0.5 * ((zs - zline) / sigma) ** 2)
+            if i:
+                profile += np.exp(-0.5 * ((zs + zline) / sigma) ** 2)
+            grid += weights[:, i, None] * profile / (math.sqrt(2 * math.pi) * sigma)
+    return grid
 
 
 def intensity_rz_bruteforce(model, rs, zs, nangles=720, bfactor=0.0):
@@ -359,7 +481,7 @@ def write_png(path, gray):
 
 def fibre_pattern(model, wavelength=1.5418, distance=30.0, film=40.0, pixels=400,
                   bfactor=20.0, length=100.0, misalignment=8.0, tilt=0.0,
-                  map_kind="film", rmax=None, zmax=None, step=0.005):
+                  map_kind="film", rmax=None, zmax=None, step=0.005, transform="auto"):
     """The pattern as a dict: x, y (axes of the image), R, Z, I, all [ny, nx]."""
     if map_kind == "film":
         x, y, r, z = film_coordinates(pixels, pixels, film, film, distance,
@@ -375,14 +497,29 @@ def fibre_pattern(model, wavelength=1.5418, distance=30.0, film=40.0, pixels=400
         ys = np.linspace(zg, -zg, pixels)
         x, y = np.meshgrid(xs, ys)
         r, z = np.abs(x), y
+    helix = None
+    if transform != "finite":
+        try:
+            helix = helical_repeat(model)
+        except ValueError:
+            if transform == "helical":
+                raise
+    if helix:
+        step = min(step, 1 / (6 * helix["repeat"]))
+        if length > 0:
+            step = min(step, 1 / (6 * length))
     n_r, n_z = int(math.ceil(rg / step)) + 2, int(math.ceil(zg / step)) + 2
-    grid = intensity_rz(model, np.arange(n_r) * step, np.arange(n_z) * step, bfactor)
-    if length > 0:
+    if helix:
+        grid = helical_grid(helix, np.arange(n_r) * step, np.arange(n_z) * step, bfactor, length)
+    else:
+        grid = intensity_rz(model, np.arange(n_r) * step, np.arange(n_z) * step, bfactor)
+    if length > 0 and not helix:
         grid = length_broaden(grid, step, length)
     g = Grid(grid, step)
     if misalignment > 0:
         sig = math.radians(misalignment)
-        d = np.linspace(-3 * sig, 3 * sig, 15)
+        count = max(31, int(math.ceil(12 * sig * float(np.hypot(r, z).max()) / step)) + 1)
+        d = np.linspace(-3 * sig, 3 * sig, count)
         w = np.exp(-0.5 * (d / sig) ** 2)
         s = np.hypot(r, z)
         a = np.arctan2(r, z)
@@ -390,7 +527,7 @@ def fibre_pattern(model, wavelength=1.5418, distance=30.0, film=40.0, pixels=400
                     for dk, wk in zip(d, w)) / w.sum()
     else:
         inten = g.at(r, z)
-    return {"x": x, "y": y, "R": r, "Z": z, "I": inten}
+    return {"x": x, "y": y, "R": r, "Z": z, "I": inten, "helix": helix}
 
 
 # -------------------------------------------------------------------- powder
@@ -1421,7 +1558,7 @@ def run_fibre(a):
     model = Model([sym[i] for i in idx], xyz[idx], axis)
     pat = fibre_pattern(model, a.wavelength, a.distance, a.film_size, a.pixels, a.B,
                         a.length_broadening, a.misalignment, a.tilt, a.map,
-                        a.rmax, a.zmax, a.step)
+                        a.rmax, a.zmax, a.step, a.transform)
     s2 = pat["R"] ** 2 + pat["Z"] ** 2
     shown = scale_display(pat["I"], s2, a.beamstop, a.scale, a.decades, a.gamma)
     if a.invert:
@@ -1444,9 +1581,20 @@ def run_fibre(a):
             "map": a.map, "pixels": a.pixels, "wavelength": a.wavelength,
             "distance_mm": a.distance, "film_mm": a.film_size,
             "max_intensity": float(pat["I"].max()), "seconds": round(time.time() - t0, 2)}
+    helix = pat["helix"]
+    info["transform"] = "helical" if helix else "finite"
+    if helix:
+        info["helix"] = {k: v for k, v in helix.items() if k != "motif"}
+        info["axis"] = helix["axis"]
+    if a.geometry:
+        with open(a.geometry, "w") as f:
+            f.write("repeat %.8g\n" % (helix["repeat"] if helix else 0))
     if a.json:
         print(json.dumps(info))
     else:
+        print("%s transform%s" % (info["transform"],
+              "; repeat %.3f A, %d units / %d turns" %
+              (helix["repeat"], helix["units"], helix["turns"]) if helix else ""))
         print("%d atoms, axis %s, %dx%d %s map in %.1f s" % (
             info["atoms"], info["axis"], a.pixels, a.pixels, a.map, info["seconds"]))
     return 0
@@ -1459,6 +1607,9 @@ def build_parser():
     f.add_argument("structure")
     f.add_argument("--select", default="", help="atom numbers from 1, e.g. 1-40,57")
     f.add_argument("--axis", type=_axis_arg, default=None, help="auto (principal axis), selection (first to last selected atom) or x,y,z")
+    f.add_argument("--transform", choices=("auto", "helical", "finite"), default="auto",
+                   help="auto: fit a helical repeat, otherwise finite-model sum")
+    f.add_argument("--geometry", help="write inferred repeat for the window")
     f.add_argument("--wavelength", type=float, default=1.5418, help="Angstrom (Cu Ka)")
     f.add_argument("--distance", type=float, default=30.0, help="sample-film, mm")
     f.add_argument("--film-size", type=float, default=40.0, help="film edge, mm")

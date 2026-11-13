@@ -834,7 +834,7 @@ Organizer, so ECCE has to be running. Output: `ok: <workflow URL>` or
 
 ### ecce-xrd
 
-    ecce-xrd fibre STRUCTURE [--select LIST] [--axis auto|selection|x,y,z] [--map film|rz] [--out FILE]... [--json] ...
+    ecce-xrd fibre STRUCTURE [--select LIST] [--axis auto|selection|x,y,z] [--transform auto|helical|finite] [--map film|rz] [--out FILE]... [--json] ...
     ecce-xrd powder STRUCTURE [--source cu|mo|co] [--tt-min D] [--tt-max D] [--fwhm D] [--measured FILE] [--table FILE.csv] [--out FILE]... [--json] ...
     ecce-xrd layer STRUCTURE (--zone h=N|k=N|l=N | --normal U V W [--offset N]) [--resolution D] [--out FILE]... [--json] ...
     ecce-xrd frame STRUCTURE [--source cu|mo|co] [--phi D] [--osc D] [--distance MM] [--label N] [--out FILE]... [--json] ...
@@ -853,6 +853,21 @@ detector frame of a rotating crystal. `--out` takes `.png`, `.csv` or, for
 `fibre` and `frame`, `.npy`, and may be repeated. Wavelengths and cell
 lengths are in Å, angles in degrees. `ecce-xrd <subcommand> --help` lists
 every option; the help page **Diffraction** describes the views.
+
+Fibre **Transform** / `--transform auto|helical|finite` defaults to Auto:
+fit a screw from consecutive backbone P or peptide N atoms in file order
+(at least six, rigid-fit RMSD < 0.15 Å), rationalize the twist to t/u turns
+(u <= 20, within 1°), and calculate only orders with l - n t divisible by u
+on Z = l/c, c = u times the measured rise. Interior steps are folded and
+averaged into a screw unit. Auto falls back to the finite-model sum when the
+fit fails; forced Helical errors. Select one regular helix in a mixed model.
+Finite model is available for other fibres. `--json` reports `transform` and
+`helix` parameters; `--geometry FILE` writes `repeat C` (0 for finite).
+The window fills **Repeat** from that result. Length broadening is Gaussian
+FWHM 1/length, followed by angular misalignment and the existing display.
+Teaching B-DNA: 10 units/turn, rise 3.387 Å, c 33.867 Å; polyalanine:
+18 units/5 turns, rise 1.503 Å, c 27.061 Å, pitch 5.412 Å.
+The DNA fourth layer is suppressed by motif interference, not forced to zero.
 
     ecce-xrd fibre helix.mvm --map rz --rmax 0.7 --zmax 0.7 --out rz.png
     ecce-xrd powder nacl.cif --source cu --measured scan.xy --out powder.png

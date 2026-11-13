@@ -157,6 +157,14 @@ def main():
     check(np.array_equal(np.load(a), np.load(b)), "overlays leave the data alone")
     check(os.path.getsize(os.path.join(tmp, "o.png")) > 500, "PNG written")
 
+    empty = {k: np.array([]) for k in ("x", "y", "I")}
+    background = ecce_xrd.frame_image(empty, 100, 90, 200, LAM, noise=False, beamstop=False)
+    stopped = ecce_xrd.frame_image(empty, 100, 90, 200, LAM, noise=False, beamstop=True)
+    yy, xx = np.mgrid[:200, :200]
+    disc = np.hypot(xx - 100, yy - 100) * .5 < 3
+    check(np.all(stopped[disc] == 5) and np.array_equal(stopped[~disc], background[~disc]),
+          "detector beamstop is round, with no arm outside the disc")
+
     print("%d failure(s)" % len(failures))
     return 1 if failures else 0
 
