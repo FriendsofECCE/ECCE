@@ -27,7 +27,7 @@ More pictures and the full feature list: [ECCE overview](docs/OVERVIEW.md).
 Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases).
 
 * **ECCE 9** (latest
-  [9.5.1](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.5.1)),
+  [9.5.2](https://github.com/FriendsofECCE/ECCE/releases/tag/v9.5.2)),
   for Linux, macOS and Windows: the recommended version. The macOS and
   Windows clients are experimental.
 * **ECCE 8.18.x** (latest
@@ -44,27 +44,9 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
-## Coming in 9.5.2
+## Coming in 9.5.3
 
-On main, not in a package yet:
-- DirDyVTST, Polyrate and Amica are no longer supported (#873); existing calculations still open.
-- Example set Workflows: the Na+(H2O)6 workflow gets a water (CPCM) ORCA step after each gas-phase ORCA step, starting from that step's geometry and Hessian; a workflow step can start from the source's ORCA Hessian (**Start from the source's Hessian**).
-- Workflows: an Auto-run checkbox runs the remaining steps once the first one is launched, and a play button on each box runs that step (#736); the Protonation Sites recipe no longer warns that CREST needs an optimised structure, and the step after CREST gets the protomer (#851).
-- General Chemistry examples: Packing in solids, with simple cubic Po, bcc Na, fcc Al and Cu, and hcp Mg shown as unit cells (#859); Quantum ESPRESSO pw.x outputs can be imported (#447).
-- Dipole Moment: an optional **Bond dipoles** display splits the dipole into bond contributions from a chosen set of atomic charges, as purple arrows on the bonds and a table with the point-charge sum, the computed dipole and the remainder (#849).
-- NWChem MD: a task after an optimisation starts from the optimised structure (.qrs), not from the restart the optimisation was given; dynamics with SHAKE no longer aborts (#865).
-- ORCA: RI approximation None, RIJCOSX or RIJONX (#834); orbital views (Density Map, Density Profile, density fields) work for basis sets with g functions (#861).
-- Reaction rates: `ecce-rate` gives conventional transition-state-theory rate constants with Wigner and Eckart tunnelling, reverse rate, equilibrium constant, and Arrhenius and Eyring fits over a temperature range, from reactant, transition-state and product calculations of any code (#872). Workflows with reactant, TS and product steps show the rate in a Rate box (with a temperature range window and CSV export), and the Reaction overview takes `a -> [ts] -> c` and charts the barrier and lists k.
-- Fragment orbitals: `ecce-fragorb analyse` expands each MO of a complex in the orbitals of fragment calculations at the same geometry (Mulliken or SCPA shares, connections above a threshold), and `ecce-fragorb dos` gives PDOS, TDOS and overlap-population DOS (OPDOS) for atom sets (#201, #171).
-- Command line: `ecce-ensemble pick` takes the N lowest distinct members of a CREST ensemble and checks each against the input (protonation, counter-ions, metal contacts), `ecce-ensemble minimum` finds the lowest-G minimum among conformer calculations, and `ecce-ensemble benchmark` makes a log K table against experiment (#836).
-- Energy Calculator: a 1 M standard-state term on G and a log K line (#835). `ecce-rerun --last-geometry` continues a running calculation from its last geometry with new cores and wall time (#837).
-- CREST quantum cluster growth runs show their progress (#862); multiplicity 9 is "Nonet" (#853); the side panel keeps its width between panels (#843); Density Map controls tidied (#852).
-- Every finished calculation with orbitals gets a `results.h5` stored beside it, checked (tr(PS) and orthonormality) on every write; the Density Map, Density Profile and density-field command read the orbitals from it. `ecce-results write` makes one for an older calculation (#690).
-- Builder: **Tools > Add from SMILES...** builds a molecule with its formal charges and stereochemistry from ECCE's own SMILES reader and builder (no Open Babel needed, #867), optionally in a fully extended start, and **Replace Group...** swaps a selected terminal group for a SMILES fragment, with the rotation about the bond chosen to avoid clashes (#833).
-- Terminate: a program that outlives the queue's cancel is ended too, and the message says whether anything is still running in the run directory (#855).
-- Structure Library organised by chemistry: small organic molecules, natural products and drugs, biomolecules, inorganic, teaching (#405).
-
-The order of the remaining work is on the [Work plan](https://github.com/FriendsofECCE/ECCE/wiki/Work-plan). What 9.5.0 brought: [release notes](docs/release-notes-9.5.0.md).
+On main, not in a package yet: nothing since 9.5.2.
 
 ## First steps
 
