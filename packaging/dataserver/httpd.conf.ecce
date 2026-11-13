@@ -290,6 +290,7 @@ AddType  chemical/x-crest-input  .crestin
 AddType  chemical/x-crest-output .crestout
 AddType  chemical/x-vina-input   .vinain
 AddType  chemical/x-vina-output  .vinaout
+AddType  chemical/x-vina-structure .vinafrag
 AddType  chemical/x-mlp-input    .mlpin
 AddType  chemical/x-mlp-output   .mlpout
 
