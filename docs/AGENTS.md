@@ -722,7 +722,7 @@ product: reverse k and K_eq consistent with dG_rxn. Over a `--T` range:
 Arrhenius (A, Ea) and Eyring (dH‡, dS‡) fits. Units are in the output
 (`unit` in `--json`): s^-1, M^-1 s^-1 or cm^3 molecule^-1 s^-1. Half-life is
 ln2/k, pseudo-first order at the standard concentration for two reactants.
-Formulas in `ecce-rate --help`. Exit 0 done, 1 refused or failed.
+Formulas in `ecce-rate --help`. Exit 0 done, 1 refused or failed. In the GUI, Compare Energies > Reaction overview shows the same per reaction; **Copy Details** copies its Details text as plain text.
 
     ecce-rate proj/complex proj/ts proj/product --T 250:400:25 --json
 

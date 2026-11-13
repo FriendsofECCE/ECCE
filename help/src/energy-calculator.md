@@ -180,7 +180,8 @@ window: side A as the reactants and side B as the products.
   right-clicking the profile offers **Copy values** for its numbers.
 - **Export CSV...** writes the numbers (with the barrier and rate columns when
   a reaction has a `[ts]`), and **Export PNG...** the energy profiles, one
-  under the other.
+  under the other. **Copy Details** puts the contents of the Details pane on
+  the clipboard as plain text, for a lab report or a spreadsheet.
 
 A reaction whose calculations differ in code, method, basis set, solvent or
 dispersion correction is refused, and the text says why.

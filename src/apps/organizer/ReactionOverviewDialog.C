@@ -15,7 +15,9 @@
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/choice.h>
+#include <wx/clipbrd.h>
 #include <wx/collpane.h>
+#include <wx/dataobj.h>
 #include <wx/panel.h>
 #include <wx/radiobut.h>
 #include <wx/scrolwin.h>
@@ -796,8 +798,19 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (d.ShowModal() == wxID_OK) savePng(string(d.GetPath().ToUTF8()));
   });
+  // The Details page is formatted for reading; this puts the same numbers
+  // on the clipboard as plain text (#899).
+  wxButton *copy = new wxButton(this, wxID_ANY, _("Copy Details"));
+  copy->SetToolTip(_("Copy the details of every reaction as plain text"));
+  copy->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    if (wxTheClipboard->Open()) {
+      wxTheClipboard->SetData(new wxTextDataObject(wxString::FromUTF8(detailsText().c_str())));
+      wxTheClipboard->Close();
+    }
+  });
   buttons->Add(csv, 0, wxRIGHT, 8);
-  buttons->Add(png, 0);
+  buttons->Add(png, 0, wxRIGHT, 8);
+  buttons->Add(copy, 0);
   p_pngButton = png;
   buttons->AddStretchSpacer();
   buttons->Add(new wxButton(this, wxID_CLOSE, _("Close")));
@@ -1305,6 +1318,13 @@ string ReactionOverviewDialog::reactionText(int n) const
     }
   d += rateLines(n);
   return d;
+}
+
+string ReactionOverviewDialog::detailsText() const
+{
+  string text = p_error.empty() ? string() : "error: " + p_error + "\n";
+  for (size_t i = 0; i < p_rows.size(); i++) text += reactionText((int)i + 1) + "\n";
+  return text;
 }
 
 string ReactionOverviewDialog::clickText(int n)
