@@ -1123,9 +1123,15 @@ void Builder::updatePropertyIndex()
           "Density, spin density, ESP, ELF, LOL and NCI surfaces"});
     }
   }
-  if (calcHasStructure())
-    entries.push_back({"Diffraction", entries.empty() ? string("Results") : entries.back().group,
-                       "Calculated diffraction of the final geometry: fibre, and powder and single crystal for a periodic one"});
+  // Diffraction comes from the structure, so it belongs under Geometry
+  // (after the last Geometry entry, or as that group at the end).
+  if (calcHasStructure()) {
+    auto at = entries.end();
+    for (auto it = entries.begin(); it != entries.end(); ++it)
+      if (it->group == "Geometry") at = it + 1;
+    entries.insert(at, {"Diffraction", "Geometry",
+                        "Calculated diffraction of the final geometry: fibre, and powder and single crystal for a periodic one"});
+  }
   p_index->setEntries(entries);
   sizeIndexPane();
   if (p_detail) {
