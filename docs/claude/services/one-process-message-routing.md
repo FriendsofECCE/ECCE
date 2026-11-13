@@ -3,7 +3,7 @@ type: map
 title: "One GUI process (#983 stage 1): in-process message routing, OnInit split, globals audit, window lifetime"
 area: services
 section: "Pitfalls"
-paths: ["src/util/jms/MqttLink.C", "include/util/MqttLink.H", "src/util/jms/JMSPublisher.C", "src/wxgui/jms/WxJMSSubscriber.C", "src/wxgui/jms/WxJMSMessageDispatch.C", "src/apps/organizer/CalcMgrApp.C", "src/apps/builder/BuilderApp.C", "src/apps/calced/CalcEdApp.C", "src/dsm/edsiimpl/EDSIFactory.C", "tests/mqtt/mqtt_test.C"]
+paths: ["src/util/jms/MqttLink.C", "include/util/MqttLink.H", "src/util/jms/JMSPublisher.C", "src/wxgui/jms/WxJMSSubscriber.C", "src/wxgui/jms/WxJMSMessageDispatch.C", "src/apps/organizer/CalcMgrApp.C", "src/apps/builder/BuilderApp.C", "src/apps/calced/CalcEdApp.C", "src/dsm/edsiimpl/EDSIFactory.C", "tests/mqtt/mqtt_test.C", "src/util/jms/JMSPublisher.C", "CMakeLists.txt"]
 issues: [983, 1007, 990, 213]
 ---
 Organizer, Builder and Calculation Editor become windows of one wx process
@@ -47,35 +47,66 @@ another process (a raw client on the socket), no duplicates (counts after
 a sentinel), wildcard, ordering of 200 messages, delivery with the broker
 stopped.
 
+## Tool instance ids and notice senders (done)
+
+- **Ids.** With the switch on, every `MqttEndpoint` gets
+  `MqttLink::newInstanceId()` = `<pid>.<n>`; `JMSSubscriber`/
+  `WxJMSSubscriber::getMyID()` return it and `WxJMSMessageDispatch` stamps
+  it on its publisher (`JMSPublisher::setMyID`), so the invoke protocol
+  (`getAppMCB`, `pollReplyMCB`, `ecce_invoke_status`, `ecce_poll_reply`)
+  addresses one window. `receive` accepts a target equal to its own id or
+  the bare pid (a sender without instance ids reaches every tool of the
+  process). The self filter matches its own instance id, or the bare pid
+  plus the tool name (a plain `JMSPublisher` of the tool). `sscanf("%d")`
+  of `<pid>.<n>` still gives the pid where the dispatcher watches a child.
+  Off: the id is the pid, everything as before.
+- **`EDSIFactory`'s publisher** was named "EDSIFactory" (nobody passed a
+  name), so in one process no tool's self filter would drop its own
+  `ecce_url_*` notices. It now follows the *acting tool*:
+  `JMSPublisher::setActingTool(name, id)` (process default, the Organizer)
+  and the scoped `JMSPublisher::ActingTool` (a window around its save).
+  Only with the switch on. Not wired into the apps yet: the per-window
+  Builder/CalcEd code sets it when they open in-process.
+- Caveat: code that compares a sender id with `getMyID()` (e.g.
+  `Builder.C` `msg.getSender().getID() == getMyID()`) expects messages
+  sent through its own dispatcher; a plain `JMSPublisher` in the same tool
+  stamps the bare pid. Check each such site when its tool moves in-process.
+
+Test: `ctest -R mqtt-local` adds instance targets, bare-pid targets, the
+instance self filter and EDSIFactory notices as Builder/Organizer; `mqtt`
+checks ids and the notice sender are unchanged with the switch off.
+
 ## Open in one process (next increments)
 
-- **Sender ids.** `getMyID()` is the pid; the invoke protocol
-  (`WxJMSMessageDispatch::getAppMCB`, `pollReplyMCB`, `ecce_invoke_status`
-  targeted `("", pid)`) and `MqttEndpoint::receive`'s `targetid` check
-  identify a *tool instance* by it. In one process every window shares the
-  pid, so a reply targeted by id alone reaches all of them. Plan: ids
-  `<pid>.<n>` per dispatcher; `receive` accepts its own id or the bare pid
-  (old senders).
-- **`EDSIFactory`'s publisher** (`ecce_url_*` notices) is one per process,
-  named after the app that set it. In one process the Builder's saves would
-  be stamped "Organizer" and dropped by the Organizer's self filter. It
-  needs the acting tool's name (set by the window that saves) or a neutral
-  name plus a check that each tool tolerates its own notices.
 - **`ecce_get_app`.** The Organizer intercepts requests for in-process
   tools (`builder`, `calced`) and opens a window instead of starting a
   program; `ecce_poll` reuse works as today (the open window answers it
   through the local path). Other tools still go to the gateway
   (Linux/macOS) or `startToolWin` (Windows).
+- **`ECCE_ONE_PROCESS` is inherited by child processes**; the starter
+  must unset it.
 
-## Build
+## Build (done)
 
-`organizer`, `builder` and `calced` are separate `ecce_app(...)` targets in
-`CMakeLists.txt`, each globbing its whole directory, and `builder` already
-compiles Organizer sources into itself (`WorkflowSteps.C`, `Recipe.C`,
-`KeyData.C`, `CompareEnergies*.C`). One executable needs each tool as a
-static library without its `*App.C` (which holds `IMPLEMENT_APP`), those
-shared Organizer files compiled once, and the old `builder`/`calced`
-programs kept as thin mains over the same libraries for the tests.
+`organizer-objs`, `builder-objs` and `calced-objs` are CMake OBJECT
+libraries (`ecce_tool_objects`): each tool's directory without its `*App.C`
+(`IMPLEMENT_APP`). The five Organizer files the Builder also uses
+(`WorkflowSteps.C`, `Recipe.C`, `KeyData.C`, `CompareEnergies*.C`) are
+`organizer-shared-objs`, compiled once and linked into both programs. The
+programs `organizer`, `builder`, `calced` are `ecce_app(... MAIN <App.C>
+OBJECTS ...)`: same names, same install, same link libraries.
+- OBJECT, not STATIC: a static archive drops objects nothing references,
+  and some are reached only through static registration.
+- The programs take `$<TARGET_OBJECTS:...>`, not `target_link_libraries`
+  on the object library: its link interface would put the ECCE libraries
+  outside the Windows `LINK_GROUP:RESCAN`, which CMake refuses. The object
+  library links them PRIVATE only for include paths and definitions.
+- Object order in the link changed (the `*App.C` comes first); static
+  initialisation order across files is unspecified anyway, but a crash at
+  start after this change would point there.
+- A one-process program links `organizer-objs builder-objs calced-objs
+  organizer-shared-objs` once each; duplicate symbols between the tool
+  directories show up only then.
 
 ## OnInit split
 

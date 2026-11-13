@@ -512,9 +512,18 @@ target_link_libraries(eccewxthings PRIVATE ${wxWidgets_LIBRARIES})
 # link_libs are this app's own ECCE_LIBS list (as CMake target names, i.e.
 # without the old "-l" prefix - note libecceedsi.a is the CMake target
 # "eccedsi" here, not "ecceedsi", see the src/dsm section above).
+# MAIN names the one source of a thin main whose other code is the object
+# libraries in OBJECTS (ecce_tool_objects); without MAIN, every .C file.
 function(ecce_app name dir)
-  cmake_parse_arguments(ECCE_APP "WX;GL" "" "LINK" ${ARGN})
-  file(GLOB _srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/${dir}/*.C)
+  cmake_parse_arguments(ECCE_APP "WX;GL" "MAIN" "LINK;OBJECTS" ${ARGN})
+  if(ECCE_APP_MAIN)
+    set(_srcs ${CMAKE_SOURCE_DIR}/${dir}/${ECCE_APP_MAIN})
+    foreach(_o ${ECCE_APP_OBJECTS})
+      list(APPEND _srcs $<TARGET_OBJECTS:${_o}>)
+    endforeach()
+  else()
+    file(GLOB _srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/${dir}/*.C)
+  endif()
   add_executable(${name} ${_srcs})
   target_include_directories(${name} PRIVATE ${XercesC_INCLUDE_DIRS})
   if(ECCE_APP_WX)
@@ -536,6 +545,29 @@ function(ecce_app name dir)
   else()
     target_link_libraries(${name} PRIVATE ${ECCE_APP_LINK} ${XercesC_LIBRARIES})
   endif()
+endfunction()
+
+# Organizer, Builder and Calculation Editor are object libraries without
+# their *App.C (which holds IMPLEMENT_APP), so that one program can hold
+# several of them (#983); the programs stay thin mains over them. OBJECT,
+# not STATIC, so every object is linked as before, including those reached
+# only through static registration. The program takes the objects alone
+# ($<TARGET_OBJECTS>); LINK here only gives the compile its include paths.
+function(ecce_tool_objects lib dir)
+  cmake_parse_arguments(T "" "" "SOURCES;EXCLUDE;LINK;INCLUDE" ${ARGN})
+  if(T_SOURCES)
+    set(_srcs ${T_SOURCES})
+  else()
+    file(GLOB _srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/${dir}/*.C)
+  endif()
+  foreach(_f ${T_EXCLUDE})
+    list(REMOVE_ITEM _srcs ${CMAKE_SOURCE_DIR}/${dir}/${_f})
+  endforeach()
+  add_library(${lib} OBJECT ${_srcs})
+  target_compile_definitions(${lib} PRIVATE ${wxWidgets_DEFINITIONS})
+  target_include_directories(${lib} PRIVATE ${XercesC_INCLUDE_DIRS}
+    ${wxWidgets_INCLUDE_DIRS} ${T_INCLUDE})
+  target_link_libraries(${lib} PRIVATE ${T_LINK})
 endfunction()
 
 # --- apps with no wx dependency ---
@@ -698,8 +730,11 @@ target_link_libraries(eccejobstore PRIVATE
 # --- wx apps ---
 ecce_app(basistool src/apps/basistool WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(calced src/apps/calced WX
-  LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+set(ECCE_CALCED_LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_tool_objects(calced-objs src/apps/calced EXCLUDE CalcEdApp.C
+  LINK ${ECCE_CALCED_LINK})
+ecce_app(calced src/apps/calced WX MAIN CalcEdApp.C OBJECTS calced-objs
+  LINK ${ECCE_CALCED_LINK})
 ecce_app(gateway src/apps/gateway WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(launcher src/apps/launcher WX
@@ -724,9 +759,22 @@ ecce_app(msgdialog src/apps/messagedialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(metadyn src/apps/metadyn WX
   LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(organizer src/apps/organizer WX
-  LINK eccewxguicomm eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)  # XYPlotCanvas.H (#709)
+set(ECCE_ORGANIZER_LINK eccewxguicomm eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+# Organizer sources the Builder uses too ("New Calculation from Selected"
+# makes workflow steps, #708): compiled once, linked into both.
+set(ECCE_ORGANIZER_SHARED WorkflowSteps.C Recipe.C KeyData.C
+  CompareEnergies.C CompareEnergiesGather.C)
+list(TRANSFORM ECCE_ORGANIZER_SHARED PREPEND ${CMAKE_SOURCE_DIR}/src/apps/organizer/
+  OUTPUT_VARIABLE _org_shared)
+ecce_tool_objects(organizer-shared-objs src/apps/organizer SOURCES ${_org_shared}
+  LINK ${ECCE_ORGANIZER_LINK})
+ecce_tool_objects(organizer-objs src/apps/organizer
+  EXCLUDE CalcMgrApp.C ${ECCE_ORGANIZER_SHARED}
+  LINK ${ECCE_ORGANIZER_LINK}
+  INCLUDE ${CMAKE_SOURCE_DIR}/src/apps/builder)  # XYPlotCanvas.H (#709)
+ecce_app(organizer src/apps/organizer WX MAIN CalcMgrApp.C
+  OBJECTS organizer-objs organizer-shared-objs LINK ${ECCE_ORGANIZER_LINK})
+target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(hostkeydialog src/apps/hostkeydialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(passdialog src/apps/passdialog WX
@@ -760,14 +808,15 @@ target_link_libraries(details_unit_test PRIVATE ecce-details-core)
 install(TARGETS ecce-dialog RUNTIME DESTINATION bin COMPONENT client)
 
 # --- wx + GL apps ---
-ecce_app(builder src/apps/builder WX GL
-  LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd 
+set(ECCE_BUILDER_LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd
        eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
        ${ECCE_X11_LIBS} jpeg freetype)
+ecce_tool_objects(builder-objs src/apps/builder EXCLUDE BuilderApp.C
+  LINK ${ECCE_BUILDER_LINK} OpenGL::GL OpenGL::GLU
+  INCLUDE ${CMAKE_SOURCE_DIR}/src/apps/organizer)
 # "New Calculation from Selected" makes workflow steps (#708).
-target_sources(builder PRIVATE src/apps/organizer/WorkflowSteps.C
-  src/apps/organizer/Recipe.C src/apps/organizer/KeyData.C
-  src/apps/organizer/CompareEnergies.C src/apps/organizer/CompareEnergiesGather.C)
+ecce_app(builder src/apps/builder WX GL MAIN BuilderApp.C
+  OBJECTS builder-objs organizer-shared-objs LINK ${ECCE_BUILDER_LINK})
 target_include_directories(builder PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organizer)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)
