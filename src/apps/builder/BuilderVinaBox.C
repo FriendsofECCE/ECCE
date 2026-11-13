@@ -449,7 +449,8 @@ string Builder::vinaScriptCommand(const vector<string>& w)
       string out = "kind=" + en->kind() + " population=" +
                    (en->hasPopulation() ? "1" : "0") + " label=" +
                    en->energyLabel() + " thumbs=" +
-                   std::to_string(en->thumbnailRanks().size()) + " " +
+                   std::to_string(en->thumbnailRanks().size()) + " rowheight=" +
+                   std::to_string(en->tableRowHeight()) + " " +
                    en->pocketInfo();
       for (const string& r : en->tableRows()) out += " ; " + r;
       return out;

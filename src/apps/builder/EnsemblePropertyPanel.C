@@ -292,6 +292,13 @@ string EnsemblePropertyPanel::poseNote() const
       " kcal/mol of the best (Vina keeps at most " + modes + ")";
 }
 
+void EnsemblePropertyPanel::addBlankImage()
+{
+  wxImage blank(72, 56);
+  blank.SetRGB(wxRect(0, 0, 72, 56), 255, 255, 255);
+  p_images->Add(wxBitmap(blank));
+}
+
 bool EnsemblePropertyPanel::exportThumbnail(int rank, const string& path)
 {
   return rank > 0 && rank <= (int)p_members.size() && makeThumbnail(rank) && p_thumbnails.at(rank).SaveFile(
@@ -317,6 +324,10 @@ void EnsemblePropertyPanel::initialize()
   p_table = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 220),
                            wxLC_REPORT);
   p_images = new wxImageList(72, 56, false);
+  // The GTK list sizes its rows from the image list when it is set; an
+  // empty list gives text-high rows that clip the thumbnails, so it starts
+  // with a blank image the rows never show.
+  addBlankImage();
   p_table->AssignImageList(p_images, wxIMAGE_LIST_SMALL);
   p_table->AppendColumn("Structure", wxLIST_FORMAT_LEFT, 86);
   p_table->AppendColumn("Rank", wxLIST_FORMAT_RIGHT, 60);
@@ -467,6 +478,7 @@ void EnsemblePropertyPanel::refresh()
   p_thumbnails.clear();
   p_imageIndex.clear();
   p_images->RemoveAll();
+  addBlankImage();
   load();
   if (p_poseNote) p_poseNote->SetLabel(wxString::FromUTF8(poseNote().c_str()));
   p_selection.erase(std::remove_if(p_selection.begin(), p_selection.end(),
@@ -1035,6 +1047,7 @@ void EnsemblePropertyPanel::thumbnailBatch()
       p_thumbnails.clear();
       p_imageIndex.clear();
       p_images->RemoveAll();
+      addBlankImage();
       for (long row = 0; row < p_table->GetItemCount(); row++)
         p_table->SetItemImage(row, -1);
     }
@@ -1046,6 +1059,12 @@ void EnsemblePropertyPanel::thumbnailBatch()
     if (++made == 2) { p_thumbTimer.Start(20); return; }
   }
   p_thumbTimer.Start(500);
+}
+
+int EnsemblePropertyPanel::tableRowHeight() const
+{
+  wxRect r;
+  return p_table->GetItemCount() > 0 && p_table->GetItemRect(0, r) ? r.height : 0;
 }
 
 vector<int> EnsemblePropertyPanel::thumbnailRanks() const
