@@ -33,6 +33,21 @@ def near(a, b, tol, msg):
     check(abs(a - b) <= tol, "%s: %s vs %s" % (msg, a, b))
 
 
+# Coverage includes bookkeeping and QM, not just descriptors seen in one molecule.
+expected = {"name", "state", "opt_converged", "problems"} | set(C.QM_NAMES)
+for names in C.GROUPS.values():
+    expected.update(names)
+check(set(C.DESCRIPTIONS) == expected, "every emitted built-in column has a definition")
+for name in expected:
+    info = C.column_definition(name)
+    check(all(info[k] for k in ("name", "description", "unit", "group")), name + " complete definition")
+with open(os.path.join(ROOT, "help", "src", "qsar-table.md")) as f:
+    help_text = f.read()
+start = help_text.index("<!-- BEGIN QSAR DESCRIPTOR KEY -->")
+end = help_text.index("<!-- END QSAR DESCRIPTOR KEY -->") + len("<!-- END QSAR DESCRIPTOR KEY -->")
+check(help_text[start:end] == C.descriptor_help(), "help key matches all library definitions exactly")
+check("-0.2 <= x < 0" in C.DESCRIPTIONS["SlogP_VSA3"]["description"], "VSA bin 3 boundaries")
+
 D = C.all_descriptors
 
 # analytic: Wiener numbers, Kier kappas of alkanes, Randic chi, Zagreb
@@ -172,6 +187,20 @@ try:
         near(float(w["qm_gap"]), (0.068269349111 + 0.286659366793) * C.EV, 1e-6, "gap")
         near(float(w["qm_dipole"]), 2.086240510421, 1e-9, "dipole")
         near(float(w["qm_qmin"]), -0.793631468726, 1e-7, "Mulliken min")
+    described = subprocess.run([sys.executable, cli, "table", folder, "--describe", "--json"],
+                               capture_output=True, text=True, check=True)
+    definitions = json.loads(described.stdout)["columns"]
+    check([d["name"] for d in definitions] == list(rows[0]), "describe follows current column order")
+    check("unknown source" in next(d for d in definitions if d["name"] == "IC50 (nM)")["description"],
+          "legacy measured provenance is explicit")
+    builtins = subprocess.run([sys.executable, cli, "table", "--describe", "--json"],
+                             capture_output=True, text=True, check=True)
+    check({d["name"] for d in json.loads(builtins.stdout)["columns"]} == expected,
+          "describe without input covers built-ins")
+    qm_key = subprocess.run([sys.executable, cli, "table", "--describe", "--json", "--groups", "qm"],
+                            capture_output=True, text=True, check=True)
+    check([d["name"] for d in json.loads(qm_key.stdout)["columns"]] ==
+          ["name", "state", "opt_converged"] + C.QM_NAMES + ["problems"], "QM-only key omits SMILES descriptors")
     # a table of names and SMILES with one unreadable row
     src_csv = os.path.join(tmp, "in.csv")
     with open(src_csv, "w") as f:
@@ -187,6 +216,24 @@ try:
           "bad SMILES listed, not dropped: %r" % rows[1]["problems"])
     check(rows[1]["pIC50"] == "6.0" and "SlogP" in rows[0] and "weinerPath" not in rows[0],
           "groups and measured columns")
+    described = subprocess.run([sys.executable, cli, "table", "--from-csv", src_csv,
+                                "--groups", "counts,models", "--describe", "--json"],
+                               capture_output=True, text=True, check=True)
+    definitions = json.loads(described.stdout)["columns"]
+    measured = next(d for d in definitions if d["name"] == "pIC50")
+    check(measured["group"] == "measured" and "from in.csv" in measured["description"],
+          "CSV user column identifies source")
+    check([d["name"] for d in definitions] == list(rows[0]), "selected group key matches CSV columns")
+    keyfile = os.path.join(tmp, "key.csv")
+    plain = subprocess.run([sys.executable, cli, "table", "--from-csv", src_csv,
+                           "--groups", "counts,models", "--describe", "--key-csv", keyfile],
+                          capture_output=True, text=True, check=True).stdout
+    with open(keyfile) as f:
+        keyrows = list(csv.reader(f))
+    check(plain == "".join(name + ": " + text + "\n" for name, text in keyrows),
+          "plain describe and GUI key CSV use identical text")
+    check(C.column_definition("bp (degC)", ["boiling.csv"])["unit"] == "degC",
+          "measured unit comes from header")
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 

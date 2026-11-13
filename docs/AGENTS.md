@@ -222,6 +222,15 @@ can start. `ecce-workflow` is the command.
 
 **QSAR.** Tools > QSAR Table and QSAR Analysis (`qsar-table`,
 `qsar-analysis`); commands `ecce-qsar table` and `ecce-qsar pca`.
+QSAR Table header tooltips and **Key...** explain each current column;
+**Copy All** copies the key. `ecce-qsar table --describe` prints all built-in
+column definitions, or the current columns when given calculation paths or
+`--from-csv FILE`. Add `--json` for `columns` objects (`name`, `description`,
+`unit`, `group`, `reference`), or `--csv FILE` for a definition table.
+`--key-csv FILE` writes names and formatted key text alongside a normal table.
+Measured/user columns identify their input filename (or pasted text);
+older stored values without provenance say `unknown source (not recorded)`.
+Definitions and the checked help key come from `scripts/ecce_qsar_chem.py`.
 
 **Docking.** Vina calculations (`vina`); `ecce-pdbqt` prepares PDBQT files;
 CREST/xTB docking is a run type of xTB.
