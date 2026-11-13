@@ -87,8 +87,9 @@ running `ecce-builder` and friends directly skips that setup). No
 
 Apache (`apache2`, `apache2-utils`) is a real runtime dependency of
 `ecce-server` (the data server below runs as a real Apache instance), not
-just build-time. `mosquitto` is the message broker and `libaprutil1` is
-used by the central broker's login check (see "Deployment modes").
+just build-time. `mosquitto` is the broker of a central server and
+`libaprutil1` is used by its login check (see "Deployment modes"); a local
+session runs ECCE's own broker and needs no `mosquitto` program.
 Neither Java nor ActiveMQ is used.
 
 **Debian's `mosquitto` package also starts its own system service, on
@@ -123,9 +124,9 @@ instead):
   per-user broker, `siteconfig/`, and `ecce-remote-setup`/`ecce-diagnose`.
   Depends on `python3-wxgtk4.0`, `perl`, `xterm`, `libmosquitto1`, `curl`
   and Coin3D (every ECCE process links `libmosquitto`); Recommends
-  `ecce-server`, `mosquitto`
-  (the broker program, needed for a local session but not for a client
-  of a central server), `nwchem` and `openssh-client`; Suggests
+  `ecce-server`, `nwchem` and `openssh-client` (a local session runs
+  ECCE's own broker, so the `mosquitto` program comes only with
+  `ecce-server`); Suggests
   `www-browser` (not Depends — a client of someone
   else's central server needs neither `ecce-server` nor `nwchem`
   locally).
@@ -388,7 +389,8 @@ pieces as **per-user background services** (not system daemons — no root
 needed, nothing shared between users), apart from the optional shared
 broker of mode 3:
 
-- **Message broker** (Mosquitto, MQTT 5) — `ecce-gateway-start` /
+- **Message broker** (MQTT 5: ECCE's own for a local session, Mosquitto
+  for a server account) — `ecce-gateway-start` /
   `ecce-gateway-stop` / `ecce-gateway-status`
 - **Data server** (Apache + mod_dav, WebDAV) — `ecce-dataserver-start` /
   `ecce-dataserver-stop` / `ecce-dataserver-status`
@@ -405,13 +407,19 @@ isolation).
 
 There are three. Which one a session uses is decided by the site's
 configuration, in this order: `siteconfig/SharedBroker` (mode 3), then
-`ecce -remote` (mode 2), otherwise mode 1. In every mode the broker is
-Mosquitto, never the system's own `mosquitto.service` (Debian runs that
-one on port 1883; ECCE does not use it and it can be disabled).
+`ecce -remote` (mode 2), otherwise mode 1. In mode 1 the broker is ECCE's
+own (`eccebroker`, since 9.5.3; on Windows inside the Organizer); in modes
+2 and 3 it is Mosquitto, never the system's own `mosquitto.service`
+(Debian runs that one on port 1883; ECCE does not use it and it can be
+disabled). `ECCE_BROKER=mosquitto` set before `ecce` makes a local session
+start the per-user Mosquitto as before 9.5.3. Nothing changes for a
+central server or a shared-broker installation: the server account's
+broker (marked by `~/.ECCE/mosquitto.server`) is still Mosquitto, started
+the same way.
 
 | | broker | where it listens | who may connect |
 | --- | --- | --- | --- |
-| 1. local | one per user, started by `ecce-gateway-start` | a Unix socket in `~/.ECCE` (0700), no TCP port | the user's own processes |
+| 1. local | one per session, ECCE's own, started by `ecce-gateway-start`; it ends 10 s after its last client (a job store keeps it) | a Unix socket in `~/.ECCE` (0700), no TCP port | the user's own processes |
 | 2. central server | the server account's broker | TCP, port 8088 (`ECCE_BROKER_PORT`) | accounts of the data server's `users` file |
 | 3. shared broker | one system service, `ecce-broker.service` | TCP, port 8088 unless declared otherwise | accounts in `siteconfig/SharedBroker.passwd` |
 

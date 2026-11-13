@@ -25,8 +25,10 @@ in the dependencies itself. `ecce-client` depends on `perl`, `xterm`,
 `curl`, `libmosquitto1`, wxPython (`python3-wxgtk4.0`) and Coin3D;
 `ecce-server` on Apache (`apache2`, `apache2-utils`), `mosquitto` and
 `libaprutil1`. A machine that only connects to someone else's central
-server needs only `ecce-client`; apt recommends `ecce-server` and
-`mosquitto` with it, and `--no-install-recommends` leaves them out.
+server needs only `ecce-client`, and so does a computer that keeps its
+data in a local folder (a local session runs ECCE's own message broker);
+apt recommends `ecce-server` with it, and `--no-install-recommends` leaves
+it out.
 
 On Ubuntu 26.04 the `mosquitto` package confines the broker with an
 AppArmor profile. Installing `ecce-client` adds ECCE's rules to
