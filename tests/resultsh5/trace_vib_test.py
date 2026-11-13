@@ -210,7 +210,10 @@ def ecceqm_water(cli, qm, tmp, env):
     ok("hessian/0" in q, "ECCE-QM water: the Hessian is stored")
     calc, h5, done = write(cli, os.path.join(d, "stored", "water"), tmp, env, "water")
     p = dump(cli, h5, env)
-    for key, tol, unit in (("vib/0/frequency", 0.05, "cm-1"), ("vib/0/ir_intensity", 0.01, "km/mol"),
+    # The stored example's Hessian is by finite differences (hessian_step in
+    # its output), a fresh run's is analytic (#394): frequencies differ by
+    # a few 0.01 cm-1.
+    for key, tol, unit in (("vib/0/frequency", 0.2, "cm-1"), ("vib/0/ir_intensity", 0.01, "km/mol"),
                            ("mo/0/energy", 1e-5, "Eh"), ("mo/0/occupation", 0, ""),
                            ("trace/optimization/energy", 1e-6, "Eh"), ("geometry/coord", 1e-5, "bohr")):
         a, b = q.get(key, []), p.get(key, [])
