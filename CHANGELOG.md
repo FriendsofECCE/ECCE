@@ -94,6 +94,7 @@ releases, and why each fix was made, are in `docs/HISTORY.md`.
 
 | 9.x | 8.x (bug fixes) |
 |---|---|
+| **v9.4.16** — Windows: no Organizer freeze while Tail follows a job (#1006); Gaussian 16 orbitals for cc-pVXZ (#921); Gaussian 16 IRC with its TS and traces (#946, #947); hydrogen bonds by the gmx hbond criterion, faster (#978, #982); Builder selection with numbered labels, no zoom-out on a style change (#975, #977); table Ctrl/Shift+click (#925); MO panel fixes (#882, #843); Terminate (#855); job folders (#924); units (#998); Nonet (#853) |  |
 | **v9.4.15** — Windows: local sessions use a broker inside ECCE; mosquitto.exe is no longer installed (#990); ORCA import recognises the diffuse def2 basis sets (#981); GROMACS nstcalcenergy with user nstenergy/nstlog lines (#762) |  |
 | **v9.4.14** — Windows: the Smart App Control warning is now shown (the check never ran in 9.4.13) (#973); clipping plane in the Builder/Viewer (#879); Replicate shows the boundary atoms of the whole block (#974) |  |
 | **v9.4.13** — Windows: the message broker waits up to 60 s at start and retries cleanly, so ECCE starts on computers where virus scanning is slow (#958); an input line of 254 or more characters no longer cuts the input file at launch (#957); Windows says in words when Smart App Control blocks ECCE (#933) |  |
