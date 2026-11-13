@@ -6,7 +6,6 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
-#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <random>
@@ -19,6 +18,7 @@
 
 #ifdef _WIN32
 #include <winsock2.h>
+#include <direct.h>
 #include <ws2tcpip.h>
 typedef SOCKET sock_t;
 static const sock_t BAD_SOCK = INVALID_SOCKET;
@@ -34,6 +34,7 @@ static bool wouldBlock() { int e = WSAGetLastError(); return e == WSAEWOULDBLOCK
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <poll.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <unistd.h>
 typedef int sock_t;
@@ -488,8 +489,13 @@ string MqttBroker::startForSession()
   if (id.empty() || pointer.empty() || !home)
     return "no valid ECCE_SESSION_ID or no ECCE_REALUSERHOME";
   string file = string(home) + "/.ECCE/broker_" + Ecce::sessionKeyFor(id);
-  std::error_code ec;
-  std::filesystem::create_directories(string(home) + "/.ECCE", ec);
+  // Plain mkdir: std::filesystem needs macOS 10.15, and the 10.13 build uses this file.
+  string dir = string(home) + "/.ECCE";
+#ifdef _WIN32
+  _mkdir(dir.c_str());
+#else
+  mkdir(dir.c_str(), 0700);
+#endif
 
   string user = "s" + randomHex(4), pw = randomHex(16);
   std::unique_ptr<MqttBroker> b(new MqttBroker);
