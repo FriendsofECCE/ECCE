@@ -938,7 +938,9 @@ literature or another program without having compared.
 
 - Energies: TE (Hartree), TEVEC (per optimisation step), DELTAE, EGIBBS, ETIME.
 - Geometry: GEOMTRACE (per step); SCANENERGY, SCANGEOM, SCANCOORD (relaxed
-  scans); IRCCOORD, IRCENERGY, IRCGEOM (IRC path).
+  scans); IRCCOORD, IRCENERGY, IRCGEOM (IRC path). The Builder lists
+  Geometry Trace when GEOMTRACE is stored, and Geometry Step Plots (per-step
+  vectors such as TEVEC, PRESSVEC) only when it is not (GROMACS tasks).
 - Gradient: EGRAD, EGRADVEC.
 - Vibrations: VIBFREQ (cm-1; leading near-zeros are translations and
   rotations), VIBIR (km/mol), VIBRAM, VIBSYM.

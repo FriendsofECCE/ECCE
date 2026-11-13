@@ -5110,6 +5110,14 @@ bool Builder::calcHasStructure()
 }
 
 
+bool Builder::panelRedundant(const string& name)
+{
+  if (name != "Geometry Step Plots" || !p_calculation) return false;
+  const vector<string> props = p_calculation->propertyNames();
+  return std::find(props.begin(), props.end(), "GEOMTRACE") != props.end();
+}
+
+
 DiffractionDialog *Builder::openResultsDiffraction(const string& given)
 {
   static int serial = 0;
@@ -6218,6 +6226,7 @@ void Builder::updatePropertyMenus()
   panels = PropertyPanel::getPanels(p_calculation->getURL().toString());
   for (panelIt = panels.begin(); panelIt != panels.end(); ++panelIt) {
     PropertyPanel *panel = *panelIt;
+    if (panelRedundant(panel->getName())) continue;
     addPropertyPanel(panel, panel->getName());
     needUpate = true;
   }
@@ -6234,7 +6243,9 @@ void Builder::updatePropertyMenus()
   PropertyPanelFactory &ppf = PropertyPanelFactory::getPropertyPanelFactory();
   names = ppf.getPanelNamesForProperties(p_calculation->propertyNames());
   for (name = names.begin(); name != names.end(); ++name) {
-    if (name->find("Metadynamics Potential")==string::npos) {
+    if (panelRedundant(*name)) {
+      continue;
+    } else if (name->find("Metadynamics Potential")==string::npos) {
       if (!PropertyPanel::panelExists(urlstr, *name)) {
         createPropertyPanel(*name);
         needUpate = true;
