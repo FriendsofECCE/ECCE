@@ -44,12 +44,15 @@ def main():
         setWhiteBackground()
         os.environ["ECCE_TEST_IMPORT"] = PDB
         os.environ["ECCE_TEST_RENDER_CORNER"] = "1"
+        os.environ["ECCE_TEST_IMPORT_SETTLE"] = "3000"
         authPath = fixture.authFile(
             os.path.join(fixture.stateHome(), ".ECCE", "auth.pipe"),
             user=fixture.realUser())
         result = apps.run(display, "builder", args=("-pipe", authPath),
                           windowTimeout=60, settle=60)
         log = result.log or ""
+        #  Only the frames drawn after the import started: the load itself.
+        log = log[max(log.find("ECCE_TEST_IMPORT: start"), 0):]
         frames = [tuple(int(v) for v in m.groups()) for m in re.finditer(
             r"RENDER_CORNER before (\d+) (\d+) (\d+) (\d+) "
             r"after (\d+) (\d+) (\d+) (\d+)", log)]
