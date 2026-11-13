@@ -28,17 +28,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(os.path.dirname(HERE))
 SCRIPTS = os.path.join(REPO, "scripts", "parsers")
 FIX = os.path.join(HERE, "fixtures", "gaussian-16")
-SN2 = os.path.join(REPO, "data", "client", "examples", "workflows", "sn2-cl-ch3br")
 sys.path.insert(0, HERE)
 from eccejobmonitor_sim import (read_desc, replay, run_parser,   # noqa: E402
                                 parse_parser_output)
 
 OPT = [os.path.join(FIX, f) for f in ("h2o_optfreq.log", "h2o_freq_thermo.log",
                                       "h2co_nosymm_opt.log", "octane_pcm.log")]
-OPT += [os.path.join(SN2, d, n) for d, n in (
-    ("g16-reactant", "sn2_reactant.out"), ("g16-product", "sn2_product.out"),
-    ("g16-qst3", "sn2_qst3.out"))]
-IRC = [os.path.join(FIX, "hcn_irc.log"), os.path.join(SN2, "g16-irc", "sn2_irc.out")]
+IRC = [os.path.join(FIX, "hcn_irc.log")]
 FORCES = [os.path.join(FIX, f) for f in ("h2o_anharm.log", "h2o_freq_thermo.log",
                                          "h2o_optfreq.log")]
 

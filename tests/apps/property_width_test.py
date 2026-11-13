@@ -25,8 +25,9 @@ import isolate
 import pbc_ux_test
 import xdisplay
 
+# 9.4 has no Thermochemistry panel or Surfaces mode.
 PANELS = ("MOs", "Density Profile", "Vibrational Frequencies", "Density Map",
-          "Thermochemistry", "MOs", "Surfaces")
+          "MOs")
 # After "columnwidth 360": the new width is kept as well.
 AGAIN = ("Density Profile", "MOs")
 THERMO = os.path.join(HERE, "fixtures", "calc-water-freq-g16", "Props")
