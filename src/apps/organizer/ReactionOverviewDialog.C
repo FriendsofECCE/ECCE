@@ -395,7 +395,7 @@ public:
       for (int side = 0; side < 2; side++) {
         const int col = side == 0 ? 0 : 2;
         wxCheckBox *cb = new wxCheckBox(pane[col], wxID_ANY, name);
-        wxSpinCtrl *sp = new wxSpinCtrl(pane[col], wxID_ANY, "1", wxDefaultPosition, wxSize(64, -1),
+        wxSpinCtrl *sp = new wxSpinCtrl(pane[col], wxID_ANY, "1", wxDefaultPosition, wxDefaultSize,
                                         wxSP_ARROW_KEYS, 1, 99, 1);
         sp->Hide();
         grid[col]->Add(cb, 0, wxALIGN_CENTER_VERTICAL | wxALL, 2);

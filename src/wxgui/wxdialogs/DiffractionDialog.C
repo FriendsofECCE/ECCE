@@ -776,7 +776,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_pb = pfield(U("B (Å²)"), "0", U("Isotropic displacement (Debye–Waller) parameter"));
   powderBox->Add(pg, 0, wxALL, 6);
   powderBox->Add(new wxStaticText(lp, wxID_ANY, "Label peaks above (% of strongest)"), 0, wxLEFT | wxTOP, 6);
-  p_plabel = new wxSpinCtrl(lp, wxID_ANY, "8", wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 0, 100, 8);
+  p_plabel = new wxSpinCtrl(lp, wxID_ANY, "8", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 100, 8);
   p_plabel->SetToolTip("hkl labels on peaks at or above this percentage of the strongest; 100 = only the strongest");
   powderBox->Add(p_plabel, 0, wxLEFT | wxRIGHT, 6);
   wxButton *meas = new wxButton(lp, wxID_ANY, "Experimental...");
