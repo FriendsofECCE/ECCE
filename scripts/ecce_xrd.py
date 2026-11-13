@@ -939,7 +939,7 @@ def run_powder(a):
                          for k in np.nonzero(shown)[0]]
         print(json.dumps(info))
     else:
-        print("%d atoms, %d reflections between %g and %g degrees (%g A)" % (
+        print("%d atoms, %d reflections between %g and %g° 2θ (%g Å)" % (
             info["atoms"], n, a.tt_min, a.tt_max, wl))
         fmt = "%4s %4s %4s %9s %9s %9s %5s %8s" + (" %5s" if doublet else "")
         print(fmt % rows[0])
@@ -1158,7 +1158,7 @@ def run_layer(a):
                          for k in order]
         print(json.dumps(info))
     else:
-        print("%s: %d reflections, %d systematically absent (d >= %g A)" % (
+        print("%s: %d reflections, %d systematically absent (d ≥ %g Å)" % (
             label, info["reflections"], info["absent"], a.resolution))
         print("%4s %4s %4s %9s %9s %9s %9s %9s %9s %6s" % rows[0])
         for row in rows[1:]:
@@ -1391,7 +1391,7 @@ def run_frame(a):
         with open(a.geometry, "w") as f:
             f.write("size %d\nscale %.6f\ndistance %.4f\nwavelength %.6f\n" % (
                 a.pixels, a.pixels / a.size, a.distance, lam))
-    print("frame: %d reflections, phi %g to %g, wavelength %.5f A, %d x %d pixels" % (
+    print("frame: %d reflections, φ %g to %g°, wavelength %.5f Å, %d × %d pixels" % (
         len(refl["I"]), a.phi, a.phi + a.osc, lam, a.pixels, a.pixels))
     return 0
 
@@ -1558,6 +1558,12 @@ def build_parser():
 
 
 def main(argv=None):
+    # The Diffraction window reads this output as UTF-8 (Å, φ, θ); a Windows
+    # pipe would otherwise use the ANSI code page, which has no φ.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
     a = build_parser().parse_args(argv)
     try:
         return a.func(a)
