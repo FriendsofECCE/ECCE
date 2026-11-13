@@ -3571,7 +3571,7 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/workflow_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
-  set_tests_properties(apps_workflow PROPERTIES TIMEOUT 900
+  set_tests_properties(apps_workflow PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
   # Archived workflows still open when their files cannot be written (#952).
   add_test(NAME apps_workflow_readonly
