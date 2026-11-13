@@ -267,6 +267,9 @@ int BuilderApp::OnExit()
 }
 
 
+/**
+ * Checks server to see if it's legit and properly setup.
+ */
 bool BuilderApp::checkServer()
 {
   EDSIServerCentral servers;

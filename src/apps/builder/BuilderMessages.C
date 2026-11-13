@@ -535,7 +535,3 @@ void BuilderMessages::setSelectionMCB(JMSMessage& msg)
     cmd->execute();
   }
 }
-
-
-/**
- * Checks server to see if it's legit and properly setup.
