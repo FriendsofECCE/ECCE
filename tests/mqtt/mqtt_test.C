@@ -659,10 +659,10 @@ static int localMain(const string& src)
         org.getMyID() != bld.getMyID() && bld.getMyID() != bld2.getMyID(),
         "each tool instance has its own id <pid>.<n>");
   Target toBld2("", bld2.getMyID()), toPid("", pid);
-  JMSPublisher pb1("Builder");
+  JMSPublisher pb1("Builder"), pg("Gateway");   // pg: no tool's self
   pb1.setMyID(bld.getMyID());
   check(sent(po, "ecce_poll", "id_bld2", &toBld2) &&
-        sent(po, "ecce_poll", "id_pid", &toPid) &&
+        sent(pg, "ecce_poll", "id_pid", &toPid) &&
         sent(pb1, "ecce_url_property", "inst_prop"), "published to instances");
   pump(300);
   check(bld2.has("id_bld2") && !bld.has("id_bld2") && !org.has("id_bld2"),
