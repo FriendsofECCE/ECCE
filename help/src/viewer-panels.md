@@ -39,6 +39,37 @@ drop-down's tooltip. The drop-down in **MOs** lists orbitals only.
 a plane or a line through chosen atoms; see [Density Map](density-map.md)
 and [Density Profile](density-profile.md); [Density of States (OPDOS)](density-of-states-opdos.md) plots the density of states and the overlap population between two atom groups.
 
+## Stress tensor of a periodic calculation
+
+Open **Properties > Geometry > Stress Tensor** for a Quantum ESPRESSO or
+ML potential result. The table shows the symmetric Cartesian tensor in
+GPa, with **tension positive**. ECCE negates the stored compression-positive
+tensor: QE prints stress with compression positive (its pressure is the
+mean diagonal); MLP stores minus ASE's tension-positive stress, in kbar.
+One GPa is 10 kbar. CP2K stress ingestion is not available.
+
+With a unit cell, three principal axes pass through the cell centre.
+Each is a pair of arrows: **blue outward for tension**, **vermillion inward
+for compression**. Their lengths are proportional to the absolute principal
+values on one common scale; labels beside the axes give GPa and kbar.
+An exactly zero principal stress has no arrow. Degenerate principal values
+have no unique directions within their shared eigenspace.
+
+Below the table are pressure **p = −tr(σ)/3**, von Mises stress
+**√[((σ₁−σ₂)²+(σ₂−σ₃)²+(σ₃−σ₁)²)/2]**, and maximum shear
+**(σmax−σmin)/2**, all in GPa. Pressure also appears in kbar and agrees
+with stored PRESSURE to the code's output rounding. The words about
+shrinking and expanding use the normal stress **v·σ·v / |v|²** along each
+cell vector a, b and c, including oblique cells. Tension indicates a tendency
+to shrink on release, compression to expand; this is a qualitative stress
+reading, not a prediction of strain without elastic constants.
+
+**Show in viewer** hides or restores the arrows; closing the panel or
+showing another result removes them. The tensor and arrows refer to the
+**final geometry only**, including for vc-relax. Selecting a trace step does
+not supply a stress tensor for that step. A directional stress surface is
+not available.
+
 ## A panel in its own window
 
 - **Take a panel out:** drag its title bar (the grey bar with the panel's
