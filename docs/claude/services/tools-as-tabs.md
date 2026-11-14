@@ -51,6 +51,28 @@ a realized canvas.
 - The hidden frame must never be mapped: `ewxRaiseWindow` skips hidden
   windows (tabbed-tool-frame-is-mapped-by-raise.md).
 
+## Calculation Editor (second tool adopted)
+
+`CalcEdWindow.C` adopts the editor before its first Show (no AUI manager,
+no status bar). CalcEd overrides `Show/Raise/SetTitle/Destroy/GetMenuBar`
+as Builder does, plus three things a frame's own code takes for granted
+and that stop working once its windows are in the page:
+
+- `GetSizer()` is null (the sizer moved): `CalcEd::mainSizer()`
+  (`ToolTabs::sizer`). Panel sizers (`p_chemSysInner->GetSizer()`) stay.
+- `FindWindow(id)` on the frame no longer finds its controls: `CalcEd::
+  FindWindow(long)` hides the base one and searches `ToolTabs::client`.
+  Without it `populateSpinMultiplicities` dereferenced null (SIGSEGV on open).
+- `Layout()` of the frame lays out nothing: `CalcEd::Layout` -> `ToolTabs::layout`.
+
+## Known gaps (editor tab)
+
+- First paint of a freshly opened editor tab is blank grey until the tab is
+  left and re-entered (the Freeze/Thaw hold of `UpdateHold` is the suspect).
+- The editor's content is taller than a 1366x768 page: the Code row, the
+  Verify/Save/Launch buttons and the log are clipped (window mode fits the
+  frame to the screen, a tab has no such step). Needs the scroller to shrink.
+
 ## Test hooks
 
 `tabs`, `tab <n>`, `towindow <n>`, `totabs <title>`, `tabinfo` (page size,

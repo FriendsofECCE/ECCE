@@ -77,6 +77,7 @@
 #include "tdat/QmSolventWarning.H"
 #include "CalcEdMessages.H"
 #include "wxgui/InProcessTools.H"
+#include "wxgui/ToolTabs.H"
 #include "CalcEd.H"
 #include "dsm/QstStructures.H"
 #include "VerifyReportDialog.H"
@@ -418,6 +419,7 @@ void CalcEd::runTestCommand(const string& line)
 
 CalcEd::~CalcEd( )
 {
+  ToolTabs::release(this, false);
   delete p_ESPCnstrnt;
   closeTheoryApp(true);
   closeRuntypeApp(true);
@@ -425,6 +427,63 @@ CalcEd::~CalcEd( )
   ewxConfig::flushConfigs();
   ewxConfig::closeConfig("wxcalced.ini");
   delete p_msgs;
+}
+
+
+bool CalcEd::Show(bool show)
+{
+  if (ToolTabs::hosts(this)) {
+    if (show) ToolTabs::select(this);
+    return true;
+  }
+  return CalcEdGUI::Show(show);
+}
+
+
+void CalcEd::Raise()
+{
+  if (ToolTabs::hosts(this)) ToolTabs::select(this);
+  else CalcEdGUI::Raise();
+}
+
+
+void CalcEd::SetTitle(const wxString& title)
+{
+  CalcEdGUI::SetTitle(title);
+  ToolTabs::setTitle(this, title);
+}
+
+
+bool CalcEd::Destroy()
+{
+  ToolTabs::release(this, false);
+  return CalcEdGUI::Destroy();
+}
+
+
+// The frame has no sizer while its windows are in a tab's page.
+bool CalcEd::Layout()
+{
+  return ToolTabs::layout(this) || CalcEdGUI::Layout();
+}
+
+
+wxMenuBar *CalcEd::GetMenuBar() const
+{
+  return ToolTabs::menuBar(this, wxFrame::GetMenuBar());
+}
+
+
+wxWindow *CalcEd::FindWindow(long id) const
+{
+  wxWindow *page = ToolTabs::client(this);
+  return page ? page->FindWindow(id) : wxFrame::FindWindow(id);
+}
+
+
+wxSizer *CalcEd::mainSizer() const
+{
+  return ToolTabs::sizer(this, GetSizer());
 }
 
 
@@ -622,7 +681,7 @@ void CalcEd::setContext(const string& url, const string& codeName)
   // Make sure it is raised/uniconified for popup dialogs.  Not while it is
   // still hidden: Raise() is gtk_window_present() on GTK, which maps the
   // window at its empty size before the fields are filled.
-  if (IsShown()) Raise();
+  if (IsShown() || ToolTabs::hosts(this)) Raise();
 
   // A calculation with unsaved changes?
   if (p_iCalc && url != p_context
@@ -1619,16 +1678,16 @@ void CalcEd::updateNotes()
   if (!p_notReadyWhy.empty())
     note += string(note.empty() ? "" : "\n") + p_notReadyWhy;
   const wxString text = wxString::FromUTF8(note);
-  if (text == p_notesText && GetSizer()->IsShown(p_notesPanel) == !note.empty())
+  if (text == p_notesText && mainSizer()->IsShown(p_notesPanel) == !note.empty())
     return;
   p_notesText = text;
   p_notes->SetLabel(text);
   //  Wrapped at the width the controls already need, never wider.
-  const int width = std::max(GetSizer()->CalcMin().x - FromDIP(24), p_notes->FromDIP(300));
+  const int width = std::max(mainSizer()->CalcMin().x - FromDIP(24), p_notes->FromDIP(300));
   p_notes->Wrap(width);
   p_notes->SetToolTip(text);
-  GetSizer()->Show(p_notesPanel, !note.empty());
-  GetSizer()->Layout();
+  mainSizer()->Show(p_notesPanel, !note.empty());
+  mainSizer()->Layout();
   refit();
 }
 
@@ -2190,9 +2249,9 @@ void CalcEd::CreateControls()
 {
   p_feedback = new WxFeedback(this);
   p_feedback->setSaveHandler(this);
-  GetSizer()->Add(p_notesPanel, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, FromDIP(5));
-  GetSizer()->Show(p_notesPanel, false);
-  GetSizer()->Add(p_feedback, 1, wxEXPAND, 0);  // the log takes extra height
+  mainSizer()->Add(p_notesPanel, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, FromDIP(5));
+  mainSizer()->Show(p_notesPanel, false);
+  mainSizer()->Add(p_feedback, 1, wxEXPAND, 0);  // the log takes extra height
 
   //  Save sits in the button row, a standard button just before Launch.
   wxButton *save = p_feedback->adoptSaveButton(this);
@@ -3008,7 +3067,7 @@ void CalcEd::populateSummaryField(const string& summaryType)
   // The summary arrives from the details dialog after the theory change's
   // hold has ended; without a full layout and repaint, wxMSW keeps the old
   // button row's pixels where the shorter summary used to end (#294).
-  GetSizer()->Layout();
+  mainSizer()->Layout();
   Refresh(true);
 }
 
@@ -3451,7 +3510,7 @@ void CalcEd::refit()
     p_refitPending = true;
     return;
   }
-  GetSizer()->SetSizeHints(this);
+  mainSizer()->SetSizeHints(this);
   fitToScreen();
   //  On a scaled display the content outgrows the window and scrolls; the
   //  Settings box must be in view when a calculation opens, but later
@@ -3469,7 +3528,8 @@ void CalcEd::revealSettingsWhenShown(int tries)
 {
   CallAfter([this, tries]() {
     if (!p_detailsBox) return;
-    if ((!IsShown() || !p_detailsBox->IsShownOnScreen()) && tries > 0) {
+    if ((!(IsShown() || ToolTabs::hosts(this)) ||
+         !p_detailsBox->IsShownOnScreen()) && tries > 0) {
       revealSettingsWhenShown(tries - 1);
       return;
     }
@@ -3484,7 +3544,7 @@ void CalcEd::updateAllFields()
   refreshAllFields();
   enableAllFields();
   showAllFields();
-  GetSizer()->Layout();
+  mainSizer()->Layout();
   refit();
 }
 
@@ -3494,7 +3554,7 @@ void CalcEd::updateChemSysFields()
   refreshChemSysFields();
   enableChemSysFields();
   showChemSysFields();
-  GetSizer()->Layout();
+  mainSizer()->Layout();
   refit();
 }
 
@@ -3504,7 +3564,7 @@ void CalcEd::updateBasisSetFields()
   refreshBasisSetFields();
   enableBasisSetFields();
   showBasisSetFields();
-  GetSizer()->Layout();
+  mainSizer()->Layout();
   refit();
 }
 
@@ -3515,7 +3575,7 @@ void CalcEd::updateDetailsFields()
   refreshOrbitalGuess();
   enableDetailsFields();
   showDetailsFields();
-  GetSizer()->Layout();
+  mainSizer()->Layout();
   refit();
 }
 
@@ -3762,7 +3822,7 @@ void CalcEd::refreshOrbitalGuess()
   bool show = has || lost;
   if (column != 0 && column->IsShown(p_guessRow) != show) {
     column->Show(p_guessRow, show);
-    GetSizer()->Layout();
+    mainSizer()->Layout();
     refit();
   }
 }

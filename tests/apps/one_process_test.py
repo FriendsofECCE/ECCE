@@ -378,9 +378,120 @@ def runTabs(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runTabsEditor(display):
+    """#983 stage 2: the Calculation Editor as a tab, beside a Builder tab.
+    Menus follow the active tab, Open in Window / Move to Tabs, Quit.
+    The editor has no status bar (sbinfo says none).  ECCE_TABS_SHOTS=<dir>
+    saves the editor tab and its window."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    shots = os.environ.get("ECCE_TABS_SHOTS")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-e", "created", None)
+        cmds = os.path.join(work, "commands")
+        script = os.path.join(work, "builder-script")
+        open(cmds, "w").close()
+        with open(script, "w") as handle:
+            handle.write("background 1 1 1\nwait 3000\n"
+                         "add C Tetrahedral 8 0 0\nsavestate\n")
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def shot(name):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+                subprocess.run(["import", "-display", ":%s" % display.number,
+                                "-window", "root", os.path.join(shots, name)],
+                               check=False)
+
+        def inspect(_display):
+            append("start CalculationEditor " + url, 25)
+            append("tabs", 2)                  # 1: the editor, active
+            append("tabinfo", 2)
+            shot("tabs-editor.png")
+            append("start Builder " + url, 25)
+            append("tabs", 2)                  # 2: the Builder, active
+            shot("tabs-editor-and-builder.png")
+            append("tab 1", 3)
+            append("tabs", 2)                  # the editor's menus again
+            shot("tabs-editor-back.png")
+            append("towindow 1", 8)
+            append("sbinfo Editor", 2)
+            shot("tabs-editor-window.png")
+            append("totabs Editor", 8)
+            append("inprocess", 2)
+            append("close", 3)                 # File > Quit
+            append("answer", 3)                # "Quit"
+            append("answer no", 3)             # the editor's question
+            append("answer no", 25)            # the Builder's question
+
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
+                               "ECCE_ONE_PROCESS": "1", "ECCE_LAYOUT": "small",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_BUILDER_SCRIPT": script,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        if GDB:
+            print(log[-6000:])
+        tabs = pb.answers(log, "tabs")
+        print("      tabs: " + "\n            ".join(tabs))
+        check(len(tabs) >= 3 and re.search(r"1:.*Editor.*\* ", tabs[0])
+              is not None and "Save" not in tabs[0].split("menus=")[0]
+              and "File" in tabs[0].split("menus=")[-1]
+              and "Render" not in tabs[0].split("menus=")[-1],
+              "the editor opened as the active tab with its menus",
+              str(tabs) + log[-1500:])
+        if len(tabs) >= 3:
+            check(re.search(r"2:.*Builder.*\* ", tabs[1]) is not None
+                  and "Render" in tabs[1].split("menus=")[-1],
+                  "with both open, the Builder tab has the Builder's menus",
+                  tabs[1])
+            check(re.search(r"1:.*Editor.*\* ", tabs[2]) is not None
+                  and tabs[2].split("menus=")[-1] ==
+                  tabs[0].split("menus=")[-1],
+                  "switching back to the editor swaps its menu bar back",
+                  tabs[2])
+        info = pb.answers(log, "tabinfo")
+        m = re.search(r"page=(\d+)x(\d+) onscreen=1 children=\d+ shown=(\d+) "
+                      r"statusbar=none frame=hidden", info[0] if info else "")
+        check(m is not None and int(m.group(1)) > 300 and
+              int(m.group(2)) > 300 and int(m.group(3)) >= 1,
+              "the editor tab shows its windows, its own frame stays unmapped",
+              str(info))
+        tw = pb.answers(log, "towindow")
+        check(tw and "window:" in tw[0] and "(hidden)" not in tw[0]
+              and "(no menus)" not in tw[0] and "Editor" in tw[0],
+              "Open in Window gives the editor a shown window with its menus",
+              str(tw))
+        check(pb.answers(log, "sbinfo") == ["none"],
+              "the editor has no status bar", str(pb.answers(log, "sbinfo")))
+        tt = pb.answers(log, "totabs")
+        check(tt and re.search(r"1:.*Editor", tt[0]) and "window:" not in tt[0],
+              "Move to Tabs puts the editor back as a tab", str(tt))
+        inproc = pb.answers(log, "inprocess")
+        check(len(inproc) == 1 and "CalculationEditor=1" in inproc[0],
+              "the same editor throughout", str(inproc))
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "the Organizer with editor and Builder tabs ends cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         runTabs(display)
+        runTabsEditor(display)
         if os.environ.get("ECCE_TABS_ONLY") == "1":
             if failures:
                 results.fail("one-process", "; ".join(failures))
