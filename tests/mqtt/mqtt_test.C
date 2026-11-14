@@ -32,7 +32,6 @@
 #include <string>
 #include <vector>
 
-#include "dsm/EDSIFactory.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
 #include "util/JMSSubscriber.H"
@@ -673,14 +672,25 @@ static int localMain(const string& src)
   check(!bld.has("inst_prop") && bld2.has("inst_prop") && org.has("inst_prop"),
         "self filter by instance: a second Builder gets the first's notice");
 
-  // EDSIFactory's notices go out as the acting tool.
+  // EDSIFactory's notices go out as the acting tool. Its publisher, as
+  // EDSIFactory::getPublisher makes it: eccedsi's statics would fix the
+  // ECCE paths before main sets them, so the test does not link it.
+  JMSPublisher notices("EDSIFactory");
+  notices.followActingTool(true);
+  auto notify = [&notices](const string& value) {
+    JMSMessage* m = notices.newMessage();
+    m->addProperty("url", "http://x/calc/");
+    m->addProperty("value", value);
+    notices.publish("ecce_url_property", *m);
+    delete m;
+  };
   JMSPublisher::setActingTool("Organizer", org.getMyID());
-  EDSIFactory::notifyProperty("http://x/calc/", "state", "org_save");
+  notify("org_save");
   {
     JMSPublisher::ActingTool as("Builder", bld.getMyID());
-    EDSIFactory::notifyProperty("http://x/calc/", "state", "bld_save");
+    notify("bld_save");
   }
-  EDSIFactory::notifyProperty("http://x/calc/", "state", "org_save2");
+  notify("org_save2");
   pump(300);
   auto valueSeen = [](const Probe& p, const string& v) {
     for (size_t i = 0; i < p.values.size(); i++) if (p.values[i] == v) return true;
@@ -790,7 +800,9 @@ int main(int argc, char** argv)
       // Without ECCE_ONE_PROCESS the ids and the notice sender stay as before.
       string pid = to_string(getpid());
       JMSPublisher::ActingTool as("Builder", "1.1");
-      JMSMessage* m = EDSIFactory::getPublisher()->newMessage();
+      JMSPublisher notices("EDSIFactory");   // as EDSIFactory::getPublisher
+      notices.followActingTool(true);
+      JMSMessage* m = notices.newMessage();
       check(p1.getMyID() == pid && p2.getMyID() == pid &&
             m->getSender().getName() == "EDSIFactory" &&
             m->getSender().getID() == pid,

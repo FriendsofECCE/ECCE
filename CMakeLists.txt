@@ -2986,22 +2986,16 @@ set_tests_properties(minff_prepare PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 if(NOT WIN32)
 add_executable(mqtt_test tests/mqtt/mqtt_test.C)
 target_include_directories(mqtt_test PRIVATE ${XercesC_INCLUDE_DIRS})
-# eccedsi for EDSIFactory's notices (#983).
-target_link_libraries(mqtt_test PRIVATE
-  eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
-  ${XercesC_LIBRARIES})
+target_link_libraries(mqtt_test PRIVATE ecceutil ${XercesC_LIBRARIES})
 add_test(NAME mqtt COMMAND mqtt_test ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-local COMMAND mqtt_test local ${CMAKE_SOURCE_DIR})
 if(TARGET ecce_users_auth)
   add_test(NAME mqtt-auth-plugin
            COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} $<TARGET_FILE:ecce_users_auth>)
-  set_tests_properties(mqtt-auth-plugin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77
-    ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR}")
+  set_tests_properties(mqtt-auth-plugin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 endif()
-# eccedsi asks for ECCE_HOME while its statics are built, before main.
-set_tests_properties(mqtt mqtt-auth mqtt-local PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77
-  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR}")
+set_tests_properties(mqtt mqtt-auth mqtt-local PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 
 # A compute machine's password learned in one process reaches the others of
 # a local session over the Unix-socket broker (#487).
