@@ -4798,6 +4798,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_orca_notconverged PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 
+  # #957: input lines of 254 characters or more survive Launch, in the stored
+  # deck and in the run directory; a stand-in ORCA, so it runs everywhere.
+  add_test(NAME launch_long_lines
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/long_lines_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_long_lines PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+
   # #407: a Gaussian 16 job's checkpoint as the guess of the next; skipped (77)
   # without Gaussian 16 under /opt/gaussian/g16.
   add_test(NAME launch_g16_guess
