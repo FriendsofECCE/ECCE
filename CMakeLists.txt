@@ -3283,6 +3283,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/import_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_import PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # Every viewer frame is opaque in the background preference while a large
+  # PDB loads (#999), through ECCE_TEST_IMPORT and ECCE_TEST_RENDER_CORNER.
+  add_test(NAME apps_render_alpha
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/render_alpha_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_render_alpha PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # Builder > Tools > Dock Floating Panels returns panels to an emptied dock
   # (#53), through the builder's ECCE_TEST_DOCK hook.
   add_test(NAME apps_dock
