@@ -285,7 +285,7 @@ void DiffractionDialog::paintPowder(wxGraphicsContext *gc, double W, double H) c
     }
     gc->SetPen(wxPen(col, 1.4));
     gc->StrokePath(path);
-    text(gc, two ? (k == 0 ? "calculated" : "measured") : "calculated", L + 8, top + 4, col, 1.0, true);
+    text(gc, k == 0 ? (p_debye ? "Debye scattering (calculated)" : "calculated") : "measured", L + 8, top + 4, col, 1.0, true);
     if (k == 0) {
       // hkl at the peaks above a threshold, strongest first, none on top of another
       vector<const Line *> order;
@@ -653,7 +653,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   : wxDialog(parent, wxID_ANY, "Diffraction", wxDefaultPosition, wxDefaultSize,
              wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
     p_structure(structure), p_pixels(PIXELS), p_periodic(hasLattice(structure)),
-    p_powder(false), p_single(false), p_frame(false), p_layerScale(1), p_layerSize(560),
+    p_powder(false), p_single(false), p_frame(false), p_debye(false), p_layerScale(1), p_layerSize(560),
     p_layerReady(false), p_layerRmax(8), p_geomDistance(0), p_geomLambda(0),
     p_levelN(0), p_pick(0)
 {
@@ -689,6 +689,9 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   wxRadioButton *powder = new wxRadioButton(lp, wxID_ANY, "Powder (periodic structures only)");
   wxRadioButton *single = new wxRadioButton(lp, wxID_ANY, "Single crystal (periodic structures only)");
   wxRadioButton *frame = new wxRadioButton(lp, wxID_ANY, "Detector frame, rotating crystal (periodic structures only)");
+  wxRadioButton *debye = new wxRadioButton(lp, wxID_ANY, "Molecule (Debye scattering)");
+  debye->SetToolTip("Orientational average of all atoms; periodic structures use the cell contents");
+  p_rbDebye = debye;
   powder->Enable(p_periodic);
   single->Enable(p_periodic);
   frame->Enable(p_periodic);
@@ -696,6 +699,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   powder->SetValue(p_periodic);
   fibre->SetValue(!p_periodic);
   type->Add(fibre, 0, wxALL, 3);
+  type->Add(debye, 0, wxALL, 3);
   type->Add(powder, 0, wxALL, 3);
   type->Add(single, 0, wxALL, 3);
   type->Add(frame, 0, wxALL, 3);
@@ -767,15 +771,20 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   pg->AddSpacer(0);
   p_doublet = new wxCheckBox(lp, wxID_ANY, "K\u03b11/K\u03b12 doublet");
   p_doublet->SetValue(true);
-  p_doublet->SetToolTip(U("Draw every reflection at the Kα1 and Kα2 wavelengths (Kα2 at half the intensity); Cu, Mo and Co sources only"));
+  p_doublet->SetToolTip(U("Combine the Kα1 and Kα2 wavelengths (Kα2 at half the intensity); Cu, Mo and Co sources only"));
   pg->Add(p_doublet, 0);
   p_pwave = pfield(U("Wavelength (Å)"), "1.5406", "Used for the pattern; the Source choice fills it");
   p_ptmin = pfield(U("2θ from (°)"), "5", U("Degrees"));
   p_ptmax = pfield(U("2θ to (°)"), "90", U("Degrees"));
-  p_pfwhm = pfield(U("Peak width, FWHM (° 2θ)"), "0.1", U("Pseudo-Voigt with equal Gauss and Lorentz parts"));
+  p_fwhmLabel = new wxStaticText(lp, wxID_ANY, U("Peak width, FWHM (° 2θ)"));
+  pg->Add(p_fwhmLabel, 0, wxALIGN_CENTER_VERTICAL);
+  p_pfwhm = new wxTextCtrl(lp, wxID_ANY, "0.1", wxDefaultPosition, wxSize(80, -1));
+  p_pfwhm->SetToolTip("Pseudo-Voigt with equal Gauss and Lorentz parts");
+  pg->Add(p_pfwhm, 0);
   p_pb = pfield(U("B (Å²)"), "0", U("Isotropic displacement (Debye–Waller) parameter"));
   powderBox->Add(pg, 0, wxALL, 6);
-  powderBox->Add(new wxStaticText(lp, wxID_ANY, "Label peaks above (% of strongest)"), 0, wxLEFT | wxTOP, 6);
+  p_peakLabel = new wxStaticText(lp, wxID_ANY, "Label peaks above (% of strongest)");
+  powderBox->Add(p_peakLabel, 0, wxLEFT | wxTOP, 6);
   p_plabel = new wxSpinCtrl(lp, wxID_ANY, "8", wxDefaultPosition, wxSize(80, -1), wxSP_ARROW_KEYS, 0, 100, 8);
   p_plabel->SetToolTip("hkl labels on peaks at or above this percentage of the strongest; 100 = only the strongest");
   powderBox->Add(p_plabel, 0, wxLEFT | wxRIGHT, 6);
@@ -910,6 +919,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   onPattern(p_periodic ? 1 : 0);
   // A view shows its own result at once: switching recalculates, so no view
   // is left showing another's picture or spots.
+  debye->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent& e) { onPattern(4); onCalculate(e); });
   powder->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent& e) { onPattern(1); onCalculate(e); });
   fibre->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent& e) { onPattern(0); onCalculate(e); });
   single->Bind(wxEVT_RADIOBUTTON, [this](wxCommandEvent& e) { onPattern(2); onCalculate(e); });
@@ -986,8 +996,9 @@ string DiffractionDialog::run(const vector<string>& args, int& status)
 
 void DiffractionDialog::onPattern(int mode)
 {
-  if (!p_periodic) mode = 0;
-  p_powder = mode == 1;
+  if (!p_periodic && mode != 4) mode = 0;
+  p_debye = mode == 4;
+  p_powder = mode == 1 || p_debye;
   p_single = mode == 2;
   p_frame = mode == 3;
   p_left->Show(p_fibreItems, mode == 0, true);
@@ -997,7 +1008,12 @@ void DiffractionDialog::onPattern(int mode)
   p_left->Show(p_displayItems, !p_powder, true);
   p_panel->Show(!p_powder);
   p_plot->Show(p_powder);
-  p_list->Show(p_powder);
+  p_list->Show(p_powder && !p_debye);
+  p_fwhmLabel->Show(p_powder && !p_debye);
+  p_pfwhm->Show(p_powder && !p_debye);
+  p_peakLabel->Show(p_powder && !p_debye);
+  p_plabel->Show(p_powder && !p_debye);
+  p_lines.clear();
   p_pointer->SetLabel("");
   p_measure->SetLabel("");
   p_pick = 0;
@@ -1009,6 +1025,12 @@ void DiffractionDialog::onPattern(int mode)
   p_panel->setImage(wxImage());
   p_left->FitInside(p_leftWin);
   Layout();
+}
+
+void DiffractionDialog::setDebye()
+{
+  p_rbDebye->SetValue(true);
+  onPattern(4);
 }
 
 wxString DiffractionDialog::sizeText() const
@@ -1075,11 +1097,14 @@ bool DiffractionDialog::calculatePowder(string& why)
   static const char *srcs[] = {"cu", "mo", "co"};
   const int src = p_source->GetSelection();
   const bool doublet = src >= 0 && src < 3 && p_doublet->GetValue();
-  vector<string> a = {"powder", p_structure,
+  vector<string> a = {p_debye ? "debye" : "powder", p_structure,
                       "--wavelength", num(number(p_pwave)),
                       "--tt-min", num(number(p_ptmin)), "--tt-max", num(number(p_ptmax)),
-                      "--fwhm", num(number(p_pfwhm)), "--B", num(number(p_pb)),
-                      "--out", p_png, "--out", p_csv, "--table", p_tab};
+                      "--B", num(number(p_pb)),
+                      "--out", p_png, "--out", p_csv};
+  if (!p_debye) {
+    a.insert(a.end(), {"--fwhm", num(number(p_pfwhm)), "--table", p_tab});
+  }
   if (!p_measured.empty()) { a.push_back("--measured"); a.push_back(p_measured); }
   if (doublet) { a.push_back("--source"); a.push_back(srcs[src]); }
   status("Calculating...");
@@ -1105,23 +1130,25 @@ bool DiffractionDialog::calculatePowder(string& why)
   }
   if (p_measured.empty()) p_meas.clear();
   p_list->DeleteAllItems();
-  std::ifstream g(p_tab);
-  std::getline(g, line);
-  while (std::getline(g, line)) {
-    int h, k, l, mult;
-    double d, tt, fa, rel;
-    char which[8] = "";
-    const int nf = sscanf(line.c_str(), "%d,%d,%d,%lf,%lf,%lf,%d,%lf,%7s", &h, &k, &l, &d, &tt, &fa, &mult, &rel, which);
-    if (nf < 8) continue;
-    Line ln = {tt, d, rel, wxString::Format("%d %d %d", h, k, l) + (nf == 9 ? U((string("  K\xCE\xB1") + (string(which) == "Ka2" ? "2" : "1")).c_str()) : wxString()),
-               h, k, l, nf == 9 && string(which) == "Ka2"};
-    p_lines.push_back(ln);
-    const long row = p_list->InsertItem(p_list->GetItemCount(), ln.hkl);
-    p_list->SetItem(row, 1, wxString::Format("%.4f", d));
-    p_list->SetItem(row, 2, wxString::Format("%.3f", tt));
-    p_list->SetItem(row, 3, wxString::Format("%.2f", fa));
-    p_list->SetItem(row, 4, wxString::Format("%d", mult));
-    p_list->SetItem(row, 5, wxString::Format("%.2f", rel));
+  if (!p_debye) {
+    std::ifstream g(p_tab);
+    std::getline(g, line);
+    while (std::getline(g, line)) {
+      int h, k, l, mult;
+      double d, tt, fa, rel;
+      char which[8] = "";
+      const int nf = sscanf(line.c_str(), "%d,%d,%d,%lf,%lf,%lf,%d,%lf,%7s", &h, &k, &l, &d, &tt, &fa, &mult, &rel, which);
+      if (nf < 8) continue;
+      Line ln = {tt, d, rel, wxString::Format("%d %d %d", h, k, l) + (nf == 9 ? U((string("  K\xCE\xB1") + (string(which) == "Ka2" ? "2" : "1")).c_str()) : wxString()),
+                 h, k, l, nf == 9 && string(which) == "Ka2"};
+      p_lines.push_back(ln);
+      const long row = p_list->InsertItem(p_list->GetItemCount(), ln.hkl);
+      p_list->SetItem(row, 1, wxString::Format("%.4f", d));
+      p_list->SetItem(row, 2, wxString::Format("%.3f", tt));
+      p_list->SetItem(row, 3, wxString::Format("%.2f", fa));
+      p_list->SetItem(row, 4, wxString::Format("%d", mult));
+      p_list->SetItem(row, 5, wxString::Format("%.2f", rel));
+    }
   }
   p_plot->Refresh();
   status(wxString::FromUTF8(out.substr(0, out.find('\n')).c_str()));

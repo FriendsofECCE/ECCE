@@ -3,6 +3,7 @@
 
     ecce-xrd fibre STRUCTURE [options]     fibre pattern: molecules aligned on
                                            one axis, randomly rotated about it
+    ecce-xrd debye STRUCTURE [options]     Debye scattering of molecule/cell contents
     ecce-xrd powder STRUCTURE [options]    powder pattern of a periodic structure
 
 The structure is an .xyz, .pdb or .mvm file; --select takes atom numbers from
@@ -948,6 +949,137 @@ def run_powder(a):
     return 0
 
 
+# --------------------------------------------------------------- Debye sum
+
+DEBYE_DIRECT_LIMIT = 3000
+DEBYE_BIN_WIDTH = 0.01
+
+
+def debye_intensity(symbols, xyz, q, occupancy=None, bfactor=0.0, method="auto"):
+    """Orientational average sum_ij f_i f_j sinc(q r_ij), including self terms.
+
+    q is 4*pi*sin(theta)/lambda in inverse Angstrom. Above 3000 atoms,
+    element-pair distances are rounded to 0.01 A bin centres. Occupancies
+    multiply amplitudes, as in structure_factors2; no periodic images or LP.
+    """
+    xyz, q = np.asarray(xyz, float), np.asarray(q, float)
+    n = len(symbols)
+    occ = np.ones(n) if occupancy is None else np.asarray(occupancy, float)
+    if (not n or xyz.shape != (n, 3) or q.ndim != 1 or not len(q) or
+            occ.shape != (n,) or not np.isfinite(xyz).all() or
+            not np.isfinite(q).all() or np.any(q < 0) or
+            not np.isfinite(occ).all() or np.any(occ < 0) or
+            not np.isfinite(bfactor) or bfactor < 0):
+        raise ValueError("Debye needs finite coordinates, nonnegative q, occupancies and B")
+    if method == "auto":
+        method = "direct" if n <= DEBYE_DIRECT_LIMIT else "histogram"
+    if method not in ("direct", "histogram"):
+        raise ValueError("Debye method must be auto, direct or histogram")
+    elements = sorted(set(symbols))
+    groups = [np.array([i for i, s in enumerate(symbols) if s == el]) for el in elements]
+    s = q / (4 * np.pi)
+    factors = [form_factor(el, s) * np.exp(-bfactor * s * s) for el in elements]
+    result = sum(f * f * np.sum(occ[g] ** 2) for f, g in zip(factors, groups))
+
+    def pair_sum(dist, weight):
+        out = np.zeros(len(q))
+        # Bound the working array independently of atom count and angular grid.
+        for lo in range(0, len(dist), 4096):
+            d, w = dist[lo:lo + 4096], weight[lo:lo + 4096]
+            for j in range(0, len(q), 128):
+                out[j:j + 128] += np.sinc(q[j:j + 128, None] * d / np.pi) @ w
+        return out
+
+    for ia, ga in enumerate(groups):
+        for ib in range(ia, len(groups)):
+            gb = groups[ib]
+            pair = np.zeros(len(q))
+            hist = np.zeros(1)
+            for k, i in enumerate(ga):
+                js = gb[k + 1:] if ia == ib else gb
+                if not len(js):
+                    continue
+                distances = np.linalg.norm(xyz[js] - xyz[i], axis=1)
+                weights = occ[i] * occ[js]
+                if method == "histogram":
+                    bins = np.rint(distances / DEBYE_BIN_WIDTH).astype(np.int64)
+                    counts = np.bincount(bins, weights=weights)
+                    if len(counts) > len(hist):
+                        hist = np.pad(hist, (0, len(counts) - len(hist)))
+                    hist[:len(counts)] += counts
+                else:
+                    pair += pair_sum(distances, weights)
+            if method == "histogram":
+                used = np.flatnonzero(hist)
+                pair = pair_sum(used * DEBYE_BIN_WIDTH, hist[used])
+            result += 2 * factors[ia] * factors[ib] * pair
+    return result
+
+
+def run_debye(a):
+    t0 = time.time()
+    if (not all(math.isfinite(v) for v in (a.wavelength, a.tt_min, a.tt_max, a.step, a.B)) or
+            a.wavelength <= 0 or a.step <= 0 or a.B < 0 or
+            not 0 <= a.tt_min < a.tt_max < 180 or a.step > a.tt_max - a.tt_min):
+        raise ValueError("Debye needs wavelength/step > 0, B >= 0 and 0 <= tt-min < tt-max < 180")
+    if os.path.splitext(a.structure)[1].lower() == ".cif":
+        lat, sym, frac, occ = read_periodic(a.structure)
+        xyz = frac @ lat
+    else:
+        sym, xyz = read_structure(a.structure)
+        occ = np.ones(len(sym))
+    idx = parse_selection(a.select, len(sym))
+    sym, xyz, occ = [sym[i] for i in idx], xyz[idx], occ[idx]
+    doublet = a.source is not None if a.doublet is None else a.doublet
+    if doublet and not a.source:
+        raise ValueError("--doublet needs --source cu, mo or co")
+    wl = DOUBLETS[a.source][0] if a.source else a.wavelength
+    tt = np.arange(a.tt_min, a.tt_max + a.step * 0.5, a.step)
+    tt = tt[tt <= a.tt_max + 1e-9]
+    q = 4 * np.pi * np.sin(np.radians(tt / 2)) / wl
+    raw = debye_intensity(sym, xyz, q, occ, a.B)
+    if doublet:
+        q2 = q * wl / DOUBLETS[a.source][1]
+        raw = (raw + KA2_RATIO * debye_intensity(sym, xyz, q2, occ, a.B)) / (1 + KA2_RATIO)
+    y = 100 * raw / max(float(raw.max()), 1e-300)
+    meas = None
+    if a.measured:
+        mx, my = read_measured(a.measured)
+        sel = (mx >= a.tt_min) & (mx <= a.tt_max)
+        if not sel.any() or my[sel].max() <= 0:
+            raise ValueError("measured pattern needs positive intensity in the requested range")
+        meas = np.interp(tt, mx, my / my[sel].max() * 100, left=np.nan, right=np.nan)
+    for out in a.out or []:
+        ext = os.path.splitext(out)[1].lower()
+        if ext == ".png":
+            plot_powder(out, tt, y, meas)
+        elif ext == ".csv":
+            with open(out, "w", newline="") as f:
+                w = csv.writer(f)
+                w.writerow(["two_theta", "intensity"] + (["measured"] if meas is not None else []))
+                for k in range(len(tt)):
+                    row = ["%.8g" % tt[k], "%.8g" % y[k]]
+                    if meas is not None:
+                        row.append("%.8g" % meas[k] if np.isfinite(meas[k]) else "")
+                    w.writerow(row)
+        else:
+            raise ValueError("--out: unknown extension %r (png, csv)" % ext)
+    method = "direct" if len(sym) <= DEBYE_DIRECT_LIMIT else "histogram"
+    info = {"atoms": len(sym), "wavelength": wl, "doublet": bool(doublet),
+            "two_theta": [a.tt_min, a.tt_max], "B": a.B, "method": method,
+            "bin_width": DEBYE_BIN_WIDTH if method == "histogram" else 0,
+            "seconds": round(time.time() - t0, 2)}
+    if a.json:
+        info.update({"angles": tt.tolist(), "q": q.tolist(),
+                     "raw_intensity": raw.tolist(), "intensity": y.tolist()})
+        print(json.dumps(info))
+    else:
+        description = "direct sum" if method == "direct" else "distance histogram (0.01 A bins)"
+        print("%d atoms, Debye %s, %g to %g degrees (%g A)" %
+              (len(sym), description, a.tt_min, a.tt_max, wl))
+    return 0
+
+
 # ----------------------------------------------------------- single crystal
 
 def layer_reflections(lat, sym, frac, occ, zone, offset, dmin=1.0, wavelength=None,
@@ -1503,6 +1635,22 @@ def build_parser():
     q.add_argument("--out", action="append", help=".png or .csv pattern (repeatable)")
     q.add_argument("--json", action="store_true")
     q.set_defaults(func=run_powder)
+
+    d = sub.add_parser("debye", help="molecule or cell contents: orientationally averaged Debye scattering")
+    d.add_argument("structure", help=".xyz, .mvm, .pdb or .cif (cell contents)")
+    d.add_argument("--select", default="", help="atom numbers from 1, e.g. 1-40,57")
+    d.add_argument("--wavelength", type=float, default=CU_KA1, help="Angstrom (Cu Ka1)")
+    d.add_argument("--source", choices=sorted(DOUBLETS), help="Cu, Mo or Co tabulated wavelengths")
+    d.add_argument("--doublet", action=argparse.BooleanOptionalAction, default=None,
+                   help="Ka1/Ka2 mixture, ratio 2:1 (default on with --source)")
+    d.add_argument("--tt-min", type=float, default=5.0, help="first 2theta, degrees")
+    d.add_argument("--tt-max", type=float, default=90.0, help="last 2theta, degrees")
+    d.add_argument("--step", type=float, default=0.01, help="2theta grid, degrees")
+    d.add_argument("--B", type=float, default=0.0, help="isotropic B, Angstrom^2")
+    d.add_argument("--measured", help="measured pattern as a second curve, as for powder")
+    d.add_argument("--out", action="append", help=".png or .csv pattern (repeatable)")
+    d.add_argument("--json", action="store_true", help="method metadata and sampled curves")
+    d.set_defaults(func=run_debye)
 
     y = sub.add_parser("layer", help="single-crystal reciprocal-lattice layer (precession style)")
     y.add_argument("structure", help=".cif, or .xyz/.mvm/.pdb with a lattice")
