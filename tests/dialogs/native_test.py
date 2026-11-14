@@ -363,7 +363,11 @@ def main():
         return 77
 
     number = int(os.environ.get("ECCE_TEST_XDISPLAY_BASE", "90"))
-    while os.path.exists("/tmp/.X11-unix/X%d" % number):
+    if number < 10:
+        print("FAIL: ECCE_TEST_XDISPLAY_BASE must be 10 or higher")
+        return 1
+    while (os.path.exists("/tmp/.X11-unix/X%d" % number)
+           or os.path.exists("/tmp/.X%d-lock" % number)):
         number += 1
     xvfb = subprocess.Popen(["Xvfb", ":%d" % number, "-screen", "0",
                              "1280x1024x24"], stdout=subprocess.DEVNULL,
