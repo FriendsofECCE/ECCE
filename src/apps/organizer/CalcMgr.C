@@ -11235,7 +11235,8 @@ void CalcMgr::resetForRerun()
   if (!skipped.empty()) {
     char buf[64];
     string msg = "Imported results cannot be reset, because that would "
-                 "delete them. Use Run Mgmt > Duplicate for Rerun to run "
+                 "delete them. Use Edit > Duplicate for Rerun (New from "
+                 "This > Rerun in the right-click menu) to run "
                  "the calculation again.";
     if (!selections.empty()) {
       snprintf(buf, sizeof(buf), " %d imported calculation%s skipped.",

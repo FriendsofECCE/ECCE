@@ -71,6 +71,9 @@ through the command-line tools in "Commands". You cannot click in the windows.
 The commands (`ecce-launch`, `ecce-series`, ...) are separate and are the
 way an assistant acts on ECCE. The help pages (**Help > ECCE Help**, `help/src/*.md`)
 describe every window; `help/src/index.md` lists them.
+The Organizer's menus and Preferences, item by item, are on the help pages
+`organizer-menubar` (menu bar, toolbar, Preferences) and `organizer-menus`
+(right-click menus).
 
 ### The life of a calculation
 
