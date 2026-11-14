@@ -75,11 +75,11 @@ FragOrbDetailsDialog::FragOrbDetailsDialog(wxWindow *parent, const string& compl
     pair->Add(w, 0);
     controls->Add(pair, 0, wxRIGHT | wxBOTTOM, 8);
   };
-  p_occupied = new wxSpinCtrl(dpage, wxID_ANY, "4", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 1, 99, 4);
+  p_occupied = new wxSpinCtrl(dpage, wxID_ANY, "4", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 99, 4);
   labelled(_("Occupied levels"), p_occupied);
-  p_virtual = new wxSpinCtrl(dpage, wxID_ANY, "4", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 99, 4);
+  p_virtual = new wxSpinCtrl(dpage, wxID_ANY, "4", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0, 99, 4);
   labelled(_("Empty levels"), p_virtual);
-  p_threshold = new wxSpinCtrl(dpage, wxID_ANY, "10", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 1, 50, 10);
+  p_threshold = new wxSpinCtrl(dpage, wxID_ANY, "10", wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1, 50, 10);
   labelled(wxString::FromUTF8("Line at \xE2\x89\xA5 (%)"), p_threshold);
   p_spin = new wxChoice(dpage, wxID_ANY);
   p_spin->Append(wxString::FromUTF8("\xCE\xB1 orbitals"));
