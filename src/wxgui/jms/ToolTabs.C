@@ -85,7 +85,33 @@ class ToolPage : public wxPanel
 public:
   ToolPage(wxWindow *parent, wxFrame *tool)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-              wxTAB_TRAVERSAL | wxNO_BORDER), p_tool(tool) {}
+              wxTAB_TRAVERSAL | wxNO_BORDER), p_tool(tool)
+  {
+    // The body is the tool's managed window; the status bar sits below it
+    // (AUI would otherwise lay its panes over the bar).
+    p_body = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                         wxTAB_TRAVERSAL | wxNO_BORDER);
+    wxBoxSizer *sz = new wxBoxSizer(wxVERTICAL);
+    sz->Add(p_body, 1, wxEXPAND);
+    SetSizer(sz);
+  }
+  wxWindow *body() const { return p_body; }
+  // The tool's status bar into the page (and back on release).
+  void takeStatusBar(wxFrame *tool)
+  {
+    wxStatusBar *sb = tool->GetStatusBar();
+    if (!sb) return;
+    sb->Reparent(this);
+    GetSizer()->Add(sb, 0, wxEXPAND);
+    sb->Show();
+  }
+  void giveStatusBar(wxFrame *tool)
+  {
+    wxStatusBar *sb = tool->GetStatusBar();
+    if (!sb) return;
+    GetSizer()->Detach(sb);
+    sb->Reparent(tool);
+  }
 protected:
   bool TryAfter(wxEvent& ev) override
   {
@@ -97,6 +123,7 @@ protected:
   }
 private:
   wxFrame *p_tool;
+  wxPanel *p_body;
 };
 
 
@@ -189,6 +216,13 @@ void routeMenus(wxFrame *host)
   host->Bind(wxEVT_MENU, [](wxCommandEvent& ev) {
     if (wxFrame *f = menuTarget(ev.GetId())) f->GetEventHandler()->ProcessEvent(ev);
     else ev.Skip();
+  });
+  // GTK sends the key hook to the top-level window, not up from the focused
+  // window, so the tool's frame never sees it from a tab.
+  host->Bind(wxEVT_CHAR_HOOK, [](wxKeyEvent& ev) {
+    Tab *t = activeTab();
+    if (t && t->tool && t->tool->GetEventHandler()->ProcessEvent(ev)) return;
+    ev.Skip();
   });
   host->Bind(wxEVT_UPDATE_UI, [](wxUpdateUIEvent& ev) {
     if (wxFrame *f = menuTarget(ev.GetId())) f->GetEventHandler()->ProcessEvent(ev);
@@ -398,7 +432,8 @@ bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
   }
   setMoveToTabsItem(tool, t->menubar, false);
   ToolPage *page = new ToolPage(s_book, tool);
-  moveClient(tool, page, mgr);
+  moveClient(tool, page->body(), mgr);
+  page->takeStatusBar(tool);
   t->page = page;
   wxString caption = tool->GetTitle().empty() ? title : tool->GetTitle();
   s_book->AddPage(page, caption, true);
@@ -406,6 +441,14 @@ bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
   // only change.
   placeMenus(activeTab());
   return true;
+}
+
+
+wxMenuBar *ToolTabs::menuBar(const wxTopLevelWindow *tool, wxMenuBar *own)
+{
+  if (own) return own;
+  Tab *t = findTool(tool);
+  return t ? t->menubar : 0;
 }
 
 
@@ -449,7 +492,9 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
   if (s_host->GetMenuBar() == t->menubar)
     s_host->SetMenuBar(tabs().front().menubar);
   t->page = 0;
-  moveClient(page, tool, t->mgr);
+  ToolPage *tp = static_cast<ToolPage*>(page);
+  moveClient(tp->body(), tool, t->mgr);
+  tp->giveStatusBar(tool);
   if (idx != wxNOT_FOUND) s_book->DeletePage(idx);
   placeMenus(activeTab());
   if (t->menubar) {
@@ -517,6 +562,15 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
       release(t->tool);
     }
     outcome = describe();
+  } else if (cmd == "charhook") {
+    // What GTK does for a key press: the hook goes to the main window.
+    long key = 0;
+    arg.ToLong(&key);
+    wxKeyEvent ev(wxEVT_CHAR_HOOK);
+    ev.m_keyCode = key;
+    ev.SetEventObject(s_host);
+    outcome = s_host->GetEventHandler()->ProcessEvent(ev) ? "handled"
+                                                          : "not handled";
   } else if (cmd == "totabs") {
     for (Tab& t : tabs())
       if (t.tool && !t.page && t.tool->GetTitle().Contains(arg)) {
