@@ -413,7 +413,7 @@ def runTabsEditor(display):
         def inspect(_display):
             append("start CalculationEditor " + url, 25)
             append("tabs", 2)                  # 1: the editor, active
-            append("tabinfo Launch...,Save,Verify,dump", 2)
+            append("tabinfo Launch...,Save,Verify,dump,gtk", 2)
             shot("tabs-editor.png")
             append("start Builder " + url, 25)
             append("tabs", 2)                  # 2: the Builder, active

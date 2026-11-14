@@ -79,16 +79,13 @@ and that stop working once its windows are in the page:
   parent: never shown, so the Code row was empty. Use
   `CalcEd::clientParent()`. See tab-children-made-later-need-the-page-as-parent.md.
 
-## Known gap: blank first paint when the content fits
+## Blank first paint when the content fits (fixed)
 
-At 1366x768 (content taller than the page, so it scrolls) the editor tab
-paints on first show. On a taller page (Xvfb 1280x1024, content fits, no
-scrollbar) the tab is still blank grey until left and re-entered, though
-`tabinfo` shows every control laid out and shown. `CalcEd`'s Freeze/Thaw now
-act on the page (`UpdateHold`, `wxWindowUpdateLocker(clientParent())`), and
-layout/`Refresh`/`SendSizeEvent` after the fill did not cure it; the cause is
-not found. `one_process_test.py` (default screen) fails its
-"editor tab is painted" check (distinct colours under the page) for it.
+On a page where the editor's content fits (no scrollbar) the tab was flat
+grey until re-entered: the reparented children kept GTK's unallocated 1x1
+because the body's pizza was never size-allocated again. `allocateChildren`
+(on the scroller's idle, after `layout`/`select`) allocates them. See
+../wx-viewer/gtk-reparented-children-never-allocated.md.
 
 ## Test hooks
 
@@ -97,7 +94,8 @@ shown children, status bar parent, frame mapped or not, scroller view and
 virtual size, `STALE` when the virtual height is below the sizer minimum,
 `<label>=reachable|CLIPPED` for each button label in the comma list,
 `clipped=N` other controls out of reach, `colours=N` distinct colours on
-the screen under the page, so a blank page shows as a handful), `charhook <key>`;
+the screen under the page, so a blank page shows as a handful; `gtk` adds
+frozen/mapped/GTK allocation of the body, its ancestors and first child), `charhook <key>`;
 checked by `tests/apps/one_process_test.py --tabs-only` (`--shots DIR`).
 
 ## Known gaps
