@@ -22,6 +22,10 @@
 #include "wx/statusbr.h"
 #include "wx/toolbar.h"
 
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif
+
 #include "util/MqttLink.H"
 #include "wxgui/ToolTabs.H"
 
@@ -183,7 +187,7 @@ void placeMenus(Tab *t)
   if (ToolTabs::menuPlacement() == ToolTabs::SwapMenuBar) {
     Tab& org = tabs().front();
     wxMenuBar *mb = t->menubar ? t->menubar : org.menubar;
-    if (s_host->GetMenuBar() != mb) s_host->SetMenuBar(mb);
+    if (s_host->wxFrame::GetMenuBar() != mb) s_host->SetMenuBar(mb);
   }
 }
 
@@ -400,7 +404,7 @@ void ToolTabs::setMainWindow(wxFrame *organizer)
   wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
   sizer->Add(s_book, 1, wxEXPAND);
   organizer->SetSizer(sizer);
-  tabs().push_back(Tab{0, 0, organizer->GetMenuBar(), page, _("Organizer"),
+  tabs().push_back(Tab{0, 0, organizer->wxFrame::GetMenuBar(), page, _("Organizer"),
                        dotFor("Organizer")});
   s_book->AddPage(page, _("Organizer"), true);
   routeMenus(organizer);
@@ -426,7 +430,7 @@ bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
     tabs().push_back(Tab{tool, mgr, 0, 0, title, dotFor(title)});
     t = &tabs().back();
   }
-  if (wxMenuBar *mb = tool->GetMenuBar()) {
+  if (wxMenuBar *mb = tool->wxFrame::GetMenuBar()) {
     tool->SetMenuBar(0);
     t->menubar = mb;
   }
@@ -448,7 +452,14 @@ wxMenuBar *ToolTabs::menuBar(const wxTopLevelWindow *tool, wxMenuBar *own)
 {
   if (own) return own;
   Tab *t = findTool(tool);
-  return t ? t->menubar : 0;
+  return t && t->page ? t->menubar : 0;
+}
+
+
+wxMenuBar *ToolTabs::mainMenuBar(const wxTopLevelWindow *host, wxMenuBar *own)
+{
+  if (!s_host || host != s_host || tabs().empty()) return own;
+  return tabs().front().menubar;
 }
 
 
@@ -489,7 +500,7 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
   wxSize size = page->GetSize();
   int idx = s_book->GetPageIndex(page);
   // The tab's menu bar leaves the main window first.
-  if (s_host->GetMenuBar() == t->menubar)
+  if (s_host->wxFrame::GetMenuBar() == t->menubar)
     s_host->SetMenuBar(tabs().front().menubar);
   t->page = 0;
   ToolPage *tp = static_cast<ToolPage*>(page);
@@ -533,9 +544,10 @@ wxString ToolTabs::describe()
   for (Tab& t : tabs())
     if (t.tool && !t.page)
       out += "window:" + t.tool->GetTitle() +
-             (t.tool->IsShown() ? "" : "(hidden)") + " ";
+             (t.tool->IsShown() ? "" : "(hidden)") +
+             (t.tool->wxFrame::GetMenuBar() ? "" : "(no menus)") + " ";
   out += "menus=";
-  if (wxMenuBar *mb = s_host->GetMenuBar())
+  if (wxMenuBar *mb = s_host->wxFrame::GetMenuBar())
     for (size_t i = 0; i < mb->GetMenuCount(); i++)
       out += (i ? "," : "") + wxMenuItem::GetLabelText(mb->GetMenuLabel(i));
   return out;
@@ -562,6 +574,27 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
       release(t->tool);
     }
     outcome = describe();
+  } else if (cmd == "tabinfo") {
+    // The active tool tab's contents: what a screenshot should show.
+    Tab *t = activeTab();
+    ToolPage *tp = t && t->tool ? static_cast<ToolPage*>(t->page) : 0;
+    if (!tp) { outcome = "no tool tab"; return true; }
+    int shown = 0;
+    for (wxWindow *w : tp->body()->GetChildren())
+      if (w->IsShown() && w->GetSize().x > 1 && w->GetSize().y > 1) shown++;
+    wxStatusBar *sb = t->tool->GetStatusBar();
+    bool mapped = t->tool->IsShown();
+#ifdef __WXGTK__
+    // gtk_window_present maps a window without telling wx.
+    if (GtkWidget *gw = (GtkWidget*)t->tool->GetHandle())
+      mapped = gtk_widget_get_mapped(gw);
+#endif
+    outcome = wxString::Format(
+        "page=%dx%d onscreen=%d children=%d shown=%d statusbar=%s frame=%s",
+        tp->GetSize().x, tp->GetSize().y, (int)tp->IsShownOnScreen(),
+        (int)tp->body()->GetChildren().size(), shown,
+        !sb ? "none" : sb->GetParent() == tp ? "page" : "frame",
+        mapped ? "mapped" : "hidden");
   } else if (cmd == "charhook") {
     // What GTK does for a key press: the hook goes to the main window.
     long key = 0;

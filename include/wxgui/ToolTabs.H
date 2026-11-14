@@ -43,8 +43,13 @@ public:
   // window is then first realized inside the page.
   static bool adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title);
   // The tool's menu bar: in a tab it is on the main window, so the frame's
-  // own GetMenuBar() is null; a tool's GetMenuBar() returns this.
+  // own GetMenuBar() is null; a tool's GetMenuBar() returns this.  Only
+  // while hosted: wxFrameBase::SetMenuBar returns early when the bar equals
+  // GetMenuBar(), so release could not put the bar back on the frame.
   static wxMenuBar *menuBar(const wxTopLevelWindow *tool, wxMenuBar *own);
+  // The main window's own menu bar, also while a tool tab's is on its
+  // frame (the Organizer updates its menus by name: Run Mgmt, ...).
+  static wxMenuBar *mainMenuBar(const wxTopLevelWindow *host, wxMenuBar *own);
   static bool hosts(const wxTopLevelWindow *tool);
   // The tool's Show/Raise/SetTitle while hosted: select / retitle its tab.
   static void select(wxTopLevelWindow *tool);
