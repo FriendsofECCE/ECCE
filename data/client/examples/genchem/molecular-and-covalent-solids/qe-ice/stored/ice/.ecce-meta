@@ -1,0 +1,57 @@
+.	http://purl.oclc.org/NET/cmcs/schema/:hasConfigurations		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Parameters/chemsys.mvm" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:annotation		Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 6x4x4 k-points, atoms relaxed in the fixed cell. This calculation shows a molecular crystal in which water molecules are held together by hydrogen bonds, each O-H pointing at the oxygen of a neighbouring molecule. Structure: ice XI (Cmc21, proton-ordered), COD 1566645 (Leadbetter 1985, D2O neutron diffraction, D replaced by H).
+.	http://www.emsl.pnl.gov/ecce:application		QuantumESPRESSO
+.	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
+.	http://www.emsl.pnl.gov/ecce:completiondate		Sat, 14 Nov 2026 06:24:44 GMT
+.	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
+.	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
+.	http://www.emsl.pnl.gov/ecce:createdWith		9.5.3-dev
+.	http://www.emsl.pnl.gov/ecce:creationdate		Sat, 14 Nov 2026 06:24:39 GMT
+.	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.3-dev
+.	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
+.	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
+.	http://www.emsl.pnl.gov/ecce:hasProperties		<rdf:Bag xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:xlink="http://www.w3.org/1999/xlink" > <rdf:li><rdf:href xlink:href="Props" xlink:type="simple"></rdf:href></rdf:li></rdf:Bag>
+.	http://www.emsl.pnl.gov/ecce:inputCollection		Inputs
+.	http://www.emsl.pnl.gov/ecce:job_clienthost		localhost
+.	http://www.emsl.pnl.gov/ecce:job_clientid		
+.	http://www.emsl.pnl.gov/ecce:job_jobid		
+.	http://www.emsl.pnl.gov/ecce:job_path		<rundir>
+.	http://www.emsl.pnl.gov/ecce:killreason		
+.	http://www.emsl.pnl.gov/ecce:killrequested		
+.	http://www.emsl.pnl.gov/ecce:launch_account		
+.	http://www.emsl.pnl.gov/ecce:launch_machine		localhost
+.	http://www.emsl.pnl.gov/ecce:launch_maxmemory		0
+.	http://www.emsl.pnl.gov/ecce:launch_maxwall		
+.	http://www.emsl.pnl.gov/ecce:launch_minscratch		0
+.	http://www.emsl.pnl.gov/ecce:launch_nodes		0
+.	http://www.emsl.pnl.gov/ecce:launch_priority		
+.	http://www.emsl.pnl.gov/ecce:launch_profile		
+.	http://www.emsl.pnl.gov/ecce:launch_queue		
+.	http://www.emsl.pnl.gov/ecce:launch_remoteShell		
+.	http://www.emsl.pnl.gov/ecce:launch_rundir		
+.	http://www.emsl.pnl.gov/ecce:launch_scratchdir		
+.	http://www.emsl.pnl.gov/ecce:launch_threads		0
+.	http://www.emsl.pnl.gov/ecce:launch_totalprocs		0
+.	http://www.emsl.pnl.gov/ecce:launch_user		
+.	http://www.emsl.pnl.gov/ecce:metaPotentialsDocument		MetaPotentialModel.mpot
+.	http://www.emsl.pnl.gov/ecce:moleculeDocument		chemsys.mvm
+.	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
+.	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
+.	http://www.emsl.pnl.gov/ecce:owner		ecce
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794637481.675 idle=0 at=1794637484\nscf cycle=6 scferr=1.6E-09/0.0000000100 converged=yes\nscf~ scferr=0.00004011,0.00000662,0.00000193,0.00000005,0.00000005,1.6E-09\nopt dE=6.7E-05 maxgrad=7.5E-04 istep=9 converged=yes\nopt~ maxgrad=1.1E-01,4.6E-02,1.4E-02,1.1E-02,7.1E-03,2.8E-03,2.7E-03,2.1E-03,1.5E-03,7.5E-04\n
+.	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
+.	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
+.	http://www.emsl.pnl.gov/ecce:rerun		false
+.	http://www.emsl.pnl.gov/ecce:resourcetype		virtual_document
+.	http://www.emsl.pnl.gov/ecce:reviewed		false
+.	http://www.emsl.pnl.gov/ecce:reviewedDate		
+.	http://www.emsl.pnl.gov/ecce:runLogDocument		eccejobstorelog.ecce_run_log
+.	http://www.emsl.pnl.gov/ecce:runStatusReason		
+.	http://www.emsl.pnl.gov/ecce:runtype		Geometry
+.	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
+.	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
+.	http://www.emsl.pnl.gov/ecce:startdate		Sat, 14 Nov 2026 06:24:40 GMT
+.	http://www.emsl.pnl.gov/ecce:state		Loaded
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794637480
+.	http://www.emsl.pnl.gov/ecce:theory		PW/PW
+.	http://www.emsl.pnl.gov/ecce:version		PWSCF 7.3
