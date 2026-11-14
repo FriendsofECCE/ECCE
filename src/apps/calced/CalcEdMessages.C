@@ -5,6 +5,7 @@
  * instead of the wxApp, so that tool windows can share one process (#983).
  */
 #include "wx/timer.h"
+#include "wx/app.h"
 
 #include "util/EcceURL.H"
 
@@ -109,6 +110,8 @@ void CalcEdMessages::showEditor()
 void CalcEdMessages::quitMCB(JMSMessage& msg)
 {
   if (msg.getSender().getName() == GATEWAY) {
+    // In one process the Organizer may have closed this window already.
+    if (wxTheApp->IsScheduledForDestruction(p_calced)) return;
     // Force the window to close; disallows veto
     p_calced->Close(true);
     unsubscribe();

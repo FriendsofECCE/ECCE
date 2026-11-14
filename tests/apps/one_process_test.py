@@ -69,6 +69,8 @@ def run(display):
             append("start CalculationEditor " + url1, 15)
             append("inprocess", 2)
             append("closetools", 5)
+            append("answer no", 3)    # questions the tools ask, if any
+            append("answer no", 3)
             append("inprocess", 3)
 
         extra = {"ECCE_TEST_GDB": "1"} if GDB else {}
@@ -93,10 +95,10 @@ def run(display):
             check(m and m.group(2) == "2" and m.group(3) == "1",
                   "two Builders and one editor open in the Organizer",
                   inproc[0])
-            check(inproc[1].endswith("Builder=0 CalculationEditor=0"),
+            check("Builder=0 CalculationEditor=0" in inproc[1],
                   "closing the tool windows leaves the Organizer running",
                   inproc[1])
-        check(pb.answers(log, "closetools") == ["closed"],
+        check(pb.answers(log, "closetools") == ["queued", "closed"],
               "the tool windows closed", str(pb.answers(log, "closetools")))
 
         trace = re.findall(r"ECCE_TEST_MESSAGES: (\S+) (\S+) pid=(\d+) "
@@ -116,7 +118,69 @@ def run(display):
         for t in trace:
             print("      trace: " + " ".join(t))
         if GDB:
-            print(log[-6000:])
+            print(log[-20000:])
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def runQuit(display):
+    """Quit asks the in-process Builder about its unsaved edit: Cancel there
+    cancels the Quit, No lets the process end."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-q", "created", None)
+        cmds = os.path.join(work, "commands")
+        script = os.path.join(work, "builder-script")
+        open(cmds, "w").close()
+        with open(script, "w") as handle:
+            handle.write("wait 3000\nadd C Tetrahedral 8 0 0\nsavestate\n")
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            append("start Builder " + url, 25)
+            append("inprocess", 2)
+            append("close", 3)          # File > Quit
+            append("answer", 3)         # "Quit"
+            append("answer cancel", 3)  # the Builder's save question
+            append("inprocess", 2)
+            append("close", 3)
+            append("answer", 3)
+            # The process ends after the broker's 10 s linger (OnExit).
+            append("answer no", 25)
+
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_BUILDER_SCRIPT": script,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        inproc = pb.answers(log, "inprocess")
+        check(len(inproc) == 2 and
+              "Builder=1 CalculationEditor=0" in inproc[0],
+              "the Builder opened in the Organizer", str(inproc) + log[-1500:])
+        check("BUILDER: dirty=1" in log, "the Builder has unsaved changes")
+        check(len(inproc) == 2 and
+              "Builder=1 CalculationEditor=0" in inproc[1],
+              "Cancel in the Builder's question cancels the Quit", str(inproc))
+        check(pb.answers(log, "answer cancel") ==
+              ["answered Save Builder Changes?"] and
+              pb.answers(log, "answer no") ==
+              ["answered Save Builder Changes?"],
+              "the Builder asked about its changes at each Quit",
+              str(pb.answers(log, "answer")))
+        check(result.returncode == 0 and "Aborted" not in log,
+              "No in the Builder's question ends the process cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-1500:]))
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)
@@ -125,6 +189,7 @@ def run(display):
 def main():
     def checkApp(display, name, results, verbose=False):
         run(display)
+        runQuit(display)
         if failures:
             results.fail("one-process", "; ".join(failures))
     run_tests.checkApp = checkApp

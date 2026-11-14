@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include "util/MqttBroker.H"
 #include "util/MqttLink.H"
+#include "wxgui/InProcessTools.H"
 #include "util/JMSPublisher.H"
 #include "wx/wxprec.h"
 
@@ -329,6 +330,9 @@ void CalcMgrApp::quitMCB(JMSMessage& msg)
 {
   if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   if (msg.getSender().getName() == GATEWAY) {
+    // Tool windows in this process first (#983): the main loop ends with
+    // the Organizer's frame, and a window left open would outlive it.
+    InProcessTools::closeAll(true);
     GetTopWindow()->Destroy();
   }
 }

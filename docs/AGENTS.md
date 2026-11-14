@@ -71,7 +71,11 @@ through the command-line tools in "Commands". You cannot click in the windows.
 Each window is its own program. Experimental: with `ECCE_ONE_PROCESS=1`
 in the environment of `ecce`, the Builder and the Calculation Editor open
 as windows of the Organizer's process instead; job programs and the other
-tools stay separate. Off by default.
+tools stay separate. Off by default. Quitting the Organizer (or the
+session's `ecce_quit`) then closes those windows first, each asking about
+its own unsaved changes; Cancel in one of them cancels the Quit. Test hooks
+(`ECCE_TEST_ORGANIZER`): `inprocess` (pid and open windows per tool),
+`closetools`, and `answer cancel|no` for a tool's save question.
 
 The commands (`ecce-launch`, `ecce-series`, ...) are separate and are the
 way an assistant acts on ECCE. The help pages (**Help > ECCE Help**, `help/src/*.md`)

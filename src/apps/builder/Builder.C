@@ -1173,13 +1173,12 @@ void Builder::createToolPanels()
 
   ewxTextCtrl * log = new ewxTextCtrl(this, wxID_ANY, "", wxDefaultPosition,
           wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxSUNKEN_BORDER);
-  ewxLogTextCtrl *logWindow = new ewxLogTextCtrl(log, GetStatusBar());
   //  The log target is process-wide: in one process (#983) it stays the
   //  Organizer's, and this panel only shows what is written to it directly.
-  if (MqttLink::localDelivery())
-    delete logWindow;
-  else
-    delete wxLog::SetActiveTarget(logWindow);
+  //  No ewxLogTextCtrl then: it pushes itself onto the text control as its
+  //  event handler and must live as long as the control.
+  if (!MqttLink::localDelivery())
+    delete wxLog::SetActiveTarget(new ewxLogTextCtrl(log, GetStatusBar()));
   addToolPanel(log, NAME_TOOL_LOG, false, false);
   //  In the one-column layouts the log lives collapsed to its caption bar.
   //  It does not open by itself when written to: that resized the viewer

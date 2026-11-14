@@ -135,9 +135,14 @@ Fixed (break a second window or the Organizer):
 - `Builder::quit` `_exit(0)` (in process: `Destroy()`).
 - `~Builder` `wxLog::SetActiveTarget(NULL)` and the constructor's
   `delete wxLog::SetActiveTarget(logWindow)` (deleted the Organizer's log
-  target): in one process the Builder leaves the process log alone; its
-  Log panel then shows only what is written to it directly (stage 2:
-  per-window log routing).
+  target): in one process the Builder leaves the process log alone and
+  makes no `ewxLogTextCtrl`; its Log panel then shows only what is
+  written to it directly (stage 2: per-window log routing). An
+  `ewxLogTextCtrl` pushes itself onto its text control as the event
+  handler, so deleting it while the control lives leaves a dangling
+  handler: SIGSEGV in `wxTextCtrl::GTKProcessEvent` when the window is
+  first shown (realize), heap-dependent, so it can look like a crash
+  elsewhere (it was taken for a crash at exit).
 - `mainWindowCloseCB`'s function-static re-entry guard -> member.
 - 12 timers "living until the process exits" that capture the window
   (test hooks, CalcEd's `ECCE_TEST_CALCED` poller, Builder script):
@@ -217,7 +222,20 @@ that one window, so the `tests/apps` scripts keep a per-tool start.
   save prompt; a refusal cancels Quit), then ends the process, which ends
   the in-Organizer broker (#990/#1007) once no job program or command is
   connected, as today.
-- `ecce_quit` from the gateway closes all windows the same way.
+- `ecce_quit` from the gateway closes all windows the same way, forced
+  (the session is ending): `CalcMgrApp::quitMCB` runs
+  `InProcessTools::closeAll(true)` before destroying its frame, because
+  each tool's own `ecce_quit` handler may run after it; those handlers
+  return if their window is already `IsScheduledForDestruction`.
+- The process ends only when no top-level window is left (wx exits the
+  main loop with the last one), plus `OnExit`'s 10 s broker linger. A
+  hidden parentless window a tool leaves behind keeps it running: the
+  `inprocess` hook lists the remaining ones (`tlw=Class/label`).
+- Test (`one_process_test.py` second run): Quit with a dirty Builder;
+  `answer cancel` to its save question keeps both open, `answer no`
+  must end the process. `answer` reports the dialog's title;
+  `closetools` runs after the hook returns so a tool's question can be
+  answered.
 - A crash now takes every window; autosave and reopen are stage-2+ work
   (#983 "Risks").
 

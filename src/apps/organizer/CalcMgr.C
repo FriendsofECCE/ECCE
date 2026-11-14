@@ -3344,8 +3344,20 @@ void CalcMgr::runTestCommand(const string& line)
                 " Builder=" + std::to_string(InProcessTools::count(BUILDER)) +
                 " CalculationEditor=" +
                 std::to_string(InProcessTools::count(CALCED));
+      // Top-level windows still alive: one left over keeps the main loop
+      // (and the process) running after the Organizer's frame is gone.
+      for (wxWindow *w : wxTopLevelWindows)
+        if (w != this)
+          outcome += string(" tlw=") + wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
+                     (w->IsShown() ? "" : "(hidden)") + "/" + string(w->GetLabel().utf8_str());
     } else if (command == "closetools") {
-      outcome = InProcessTools::closeAll(true) ? "closed" : "refused";
+      // After this command returns, so that a tool's own question can be
+      // answered by a later "answer" line.
+      CallAfter([]() {
+        const char *done = InProcessTools::closeAll(true) ? "closed" : "refused";
+        cerr << "ECCE_TEST_ORGANIZER: closetools: " << done << endl;
+      });
+      outcome = "queued";
     } else if (command == "start") {
       // "start TOOL [URL]": what a tool button does (startApp), e.g.
       // "start CalculationEditor <calc url>".
@@ -3380,9 +3392,13 @@ void CalcMgr::runTestCommand(const string& line)
            it != wxTopLevelWindows.end(); ++it) {
         wxDialog *dlg = wxDynamicCast(*it, wxDialog);
         if (dlg && dlg->IsModal()) {
+          // "cancel" and "no" also answer an in-process tool's save
+          // question (#983).
           dlg->EndModal(calcName == "stop" ? (int)ID_ORGANIZER_QUIT_STOP_SERVER
+                        : calcName == "cancel" ? (int)wxID_CANCEL
+                        : calcName == "no" ? (int)wxID_NO
                                            : (int)wxID_OK);
-          outcome = "answered";
+          outcome = "answered " + string(dlg->GetTitle().utf8_str());
           break;
         }
       }

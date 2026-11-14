@@ -378,6 +378,8 @@ void BuilderMessages::invokeMCB(JMSMessage& msg)
 void BuilderMessages::quitMCB(JMSMessage& msg)
 {
   if (msg.getSender().getName() == GATEWAY) {
+    //  In one process the Organizer may have closed this window already.
+    if (wxTheApp->IsScheduledForDestruction(p_builder)) return;
     //  Force the window to close; disallows veto
     p_builder->quit(false);
     unsubscribe();
