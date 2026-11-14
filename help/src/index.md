@@ -166,6 +166,10 @@ describe what you did and what happened.
 28a. [The Organizer's right-click menus](organizer-menus.md): what a calculation's
    menu offers, Compare Energies, and the project table's columns.
 
+28b. [The Organizer's menu bar](organizer-menubar.md): every item of the
+   File, Edit, Options, Go, Bookmarks, Run Mgmt, Tools and Help menus, the
+   toolbar, and the Preferences window tab by tab.
+
 29. [Re-Parse Outputs](reparse-outputs.md): running the parsers again over the
    outputs stored with a calculation, without logging in to the machine.
 
