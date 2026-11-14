@@ -5060,28 +5060,27 @@ bool Fragment::restorePDB(istream& infile, double mult, bool genBonds,
 bool Fragment::restoreXYZ(istream& infile, double mult, bool genBonds)
 {
   int tmp = 0;
-  static const int BUFSIZE = 240;
   TPerTab tpt;
   p_name = "XYZ import ";
   bool error = false;
-  char lbuf[BUFSIZE];  // line buf - none should be longer
+  string lbuf;
   int numAtoms = 0;
 
   p_name = "";
 
   if (!infile.good() || infile.eof()) return false;
 
-  infile.getline(lbuf,BUFSIZE-1,'\n');
+  if (!std::getline(infile, lbuf)) return false;
   tmp++;
-  sscanf(lbuf,"%d",&numAtoms);
+  sscanf(lbuf.c_str(),"%d",&numAtoms);
 
   if (numAtoms <= 0 || !infile.good() || infile.eof()) return false;
 
-  infile.getline(lbuf,BUFSIZE-1,'\n');
+  if (!std::getline(infile, lbuf)) return false;
   tmp++;
 
   if (!infile.good() || infile.eof()) return false;
-  if (strlen(lbuf) != 0) p_name = lbuf;
+  if (lbuf.size() != 0) p_name = lbuf;
 
 
   int curAtom=0;
@@ -5093,9 +5092,9 @@ bool Fragment::restoreXYZ(istream& infile, double mult, bool genBonds)
   char *shouldbecoord;
 //  p_atoms.resize(p_atoms.size() + numAtoms);
   while (curAtom < numAtoms && !error && infile.good()) {
-    if (infile.getline(lbuf,BUFSIZE-1)) {
+    if (std::getline(infile, lbuf)) {
       tmp++;
-      symp = strtok(lbuf," ");
+      symp = strtok(lbuf.data()," ");
       shouldbecoord = strtok(0," ");
       if (shouldbecoord == NULL) {
         error = true;

@@ -244,12 +244,12 @@ string PropTSVecTable::tableLabel(void) const
 ///////////////////////////////////////////////////////////////////////////////
 void PropTSVecTable::setData(istream& istrm)
 {
-   char line[256];
+   string line;
    string tmpString;
    int colonPos, comma1Pos, comma2Pos, numTables;
    vector<double> tableValues;
 
-   istrm.getline(line,255);        // Read the size line
+   std::getline(istrm, line);        // Read the size line
    tmpString = line;
    comma1Pos = tmpString.find_first_of(",");
    comma2Pos = tmpString.find_last_of(",");
@@ -284,7 +284,7 @@ void PropTSVecTable::setData(istream& istrm)
    // Add values for one table:
       for (int i=0; i<(p_numRows*p_numColumns); i++)
       {
-        if (!istrm.getline(line,255))
+        if (!std::getline(istrm, line))
           EE_RT_ASSERT(false, EE_WARNING,
                 "size specified in file is greater than the number of values");
 
