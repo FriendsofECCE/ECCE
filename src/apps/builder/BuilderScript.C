@@ -190,6 +190,7 @@
 #include "StructLib.H"
 #include "VizPropertyPanel.H"
 #include "MomentsPanel.H"
+#include "StressPanel.H"
 #include "DistortBondsDialog.H"
 #include "wxgui/ewxModalGuard.H"
 
@@ -2037,6 +2038,17 @@ void Builder::runBuilderScript(const std::string& file)
         r.multVec(cam->position.getValue(), np);
         cam->position.setValue(np);
         cam->orientation.setValue(r * cam->orientation.getValue());
+      } else if (w[0] == "stressinfo") {
+        bool found = false;
+        for (PropertyPanel *panel : PropertyPanel::getPanels(
+                 p_calculation->getURL().toString())) {
+          if (auto *stress = dynamic_cast<StressPanel*>(panel)) {
+            fprintf(stderr, "BUILDER: stressinfo\n%s\n",
+                    stress->summaryText().c_str());
+            found = true;
+          }
+        }
+        if (!found) outcome = "FAIL: no Stress Tensor panel";
       } else if (w[0] == "vector" && w.size() == 2) {
         {
           int sliders = 0;

@@ -43,6 +43,30 @@ may not leave the machine.
 5. Say plainly what was checked and what was not. Do not raise optimisation
    cycle limits to make a calculation converge; find the cause.
 
+## Reading final periodic stress
+
+In the Builder, **Properties > Geometry > Stress Tensor** displays the
+final QE or MLP `STRESS` (nine Cartesian components stored in kbar).
+The display negates and symmetrises this tensor and converts to GPa:
+tension positive, compression negative. QE prints compression positive;
+MLP stores minus ASE stress. Pressure is `-trace(display)/3` and must match
+stored `PRESSURE` (1 GPa = 10 kbar), allowing printed rounding.
+The panel gives principal values, pressure, von Mises and maximum shear,
+and normal stresses along unit cell vectors as shrink/expand words.
+Blue arrows point outward for tension; vermillion arrows point inward for
+compression, with one common magnitude scale through the cell centre.
+Use **Show in viewer** to hide them. This uses final stress and geometry;
+per-step vc-relax stress, CP2K ingestion and directional surfaces are not
+implemented. See [Viewer panels](../help/src/viewer-panels.md).
+
+For isolated GUI checks, `ECCE_BUILDER_SCRIPT` accepts `list Stress Tensor`,
+`stressinfo` (panel summary), `vector STRESS` (the six rendered half-arrows),
+and `viewer Stress Tensor` (toggle). `tests/apps/stress_tensor_test.py`
+checks a hand-computed tensor and the tensile QE Al cell example;
+`--unit-only` runs just the wx-free arithmetic, `--png DIR` keeps pictures
+and logs for visual review. Run with a private installed tree and the
+test harness as described below.
+
 ## What ECCE is
 
 ECCE (Extensible Computational Chemistry Environment) is a desktop
