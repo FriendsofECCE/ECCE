@@ -650,7 +650,7 @@ static int cloexecMain(const string& src)
   set<string> mine = ownSockets();
   for (const string& b : before) mine.erase(b);
   check(mine.size() >= 6, "this process holds the brokers' sockets (" +
-        to_string(mine.size()) + "; 2 listeners, 2 accepted, 2 clients)");
+        to_string(mine.size()) + ": listeners, accepted, clients, libmosquitto's wake-up pair)");
   size_t leaked = 0;
   for (const string& i : childSockets()) leaked += mine.count(i);
   check(leaked == 0, "a child started with system() inherits none of them (" +

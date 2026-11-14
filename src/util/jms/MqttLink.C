@@ -20,6 +20,7 @@
 #include <fstream>
 #include <iostream>
 #include <thread>
+#include <vector>
 
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
@@ -204,6 +205,19 @@ bool MqttEndpoint::enablePipe()
 
 // What JMSMessage::loadBody accepts. Another account can publish to
 // ecce_machreg_changed, and loadBody ends the process on a malformed body.
+#ifndef _WIN32
+// Descriptors 0..limit-1 that are open and lack close-on-exec.
+static std::vector<bool> inheritableFds(int limit)
+{
+  std::vector<bool> open(limit, false);
+  for (int fd = 3; fd < limit; fd++) {
+    int f = fcntl(fd, F_GETFD);
+    open[fd] = f >= 0 && !(f & FD_CLOEXEC);
+  }
+  return open;
+}
+#endif
+
 static bool wellFormedBody(string body)
 {
   while (!body.empty()) {
@@ -410,8 +424,19 @@ bool MqttLink::ensureConnected()
   EE_RT_ASSERT(p_topics.load(messages), EE_FATAL, "Could not read " + messages);
 
   mosquitto_lib_init();
+#ifndef _WIN32
+  // mosquitto_new opens a wake-up socketpair without close-on-exec; mark
+  // whatever it opened, so programs this process starts do not hold it.
+  const int fdLimit = 4096;
+  std::vector<bool> before = inheritableFds(fdLimit);
+#endif
   p_mosq = mosquitto_new(nullptr, true, this);
   EE_RT_ASSERT(p_mosq, EE_FATAL, "mosquitto_new failed");
+#ifndef _WIN32
+  std::vector<bool> after = inheritableFds(fdLimit);
+  for (int fd = 3; fd < fdLimit; fd++)
+    if (after[fd] && !before[fd]) fcntl(fd, F_SETFD, FD_CLOEXEC);
+#endif
   mosquitto_int_option(p_mosq, MOSQ_OPT_PROTOCOL_VERSION, MQTT_PROTOCOL_V5);
   if (tcp) mosquitto_username_pw_set(p_mosq, account.c_str(), password.c_str());
   mosquitto_connect_v5_callback_set(p_mosq, onConnect);

@@ -18,7 +18,9 @@ saw EOF and hung instead of reconnecting.
 `MqttBroker` therefore creates its sockets through `newSocket()` and
 `acceptSocket()` (`SOCK_CLOEXEC` and `accept4` on Linux, `FD_CLOEXEC` on
 macOS, `HANDLE_FLAG_INHERIT` cleared on Windows). `MqttLink::onConnect` sets
-the same on libmosquitto's socket, on every reconnect. The wake-up pipe
+the same on libmosquitto's socket, on every reconnect, and `MqttLink::ensureConnected` marks
+the socketpair `mosquitto_new()` opens (libmosquitto 2.0 sets no flag on
+either). The wake-up pipe
 (`MqttEndpoint::enablePipe`) already had it. A new `socket()`, `accept()`,
 `pipe()` or `open()` that stays open in the Organizer or a long-lived app
 needs the flag too. `DirectTransport` children are safe either way: they
