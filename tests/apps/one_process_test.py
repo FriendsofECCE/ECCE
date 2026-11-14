@@ -34,6 +34,15 @@ failures = []
 GDB = "--gdb" in sys.argv
 if GDB:
     sys.argv.remove("--gdb")
+# --shots DIR: screenshots of the tabbed window (runTabs).
+if "--shots" in sys.argv:
+    i = sys.argv.index("--shots")
+    os.environ["ECCE_TABS_SHOTS"] = sys.argv[i + 1]
+    del sys.argv[i:i + 2]
+# --tabs-only: only the tabbed run.
+if "--tabs-only" in sys.argv:
+    sys.argv.remove("--tabs-only")
+    os.environ["ECCE_TABS_ONLY"] = "1"
 
 
 def check(ok, what, detail=""):
@@ -241,8 +250,116 @@ def runQuit(display, gateway=False):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runTabs(display):
+    """ECCE_LAYOUT=small (#983 stage 2): the Builder opens as a tab, the menu
+    bar follows the active tab, Open in Window and Move to Tabs keep the
+    Builder, Quit asks about the dirty Builder tab.  ECCE_TABS_SHOTS=<dir>
+    saves the screen with the Organizer tab and the Builder tab."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    shots = os.environ.get("ECCE_TABS_SHOTS")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-t", "created", None)
+        cmds = os.path.join(work, "commands")
+        script = os.path.join(work, "builder-script")
+        open(cmds, "w").close()
+        with open(script, "w") as handle:
+            handle.write("background 1 1 1\nwait 3000\n"
+                         "add C Tetrahedral 8 0 0\nsavestate\n")
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def shot(name):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+                subprocess.run(["import", "-display", ":%s" % display.number,
+                                "-window", "root", os.path.join(shots, name)],
+                               check=False)
+
+        def inspect(_display):
+            append("tabs", 2)
+            append("start Builder " + url, 25)
+            append("tabs", 2)                  # Builder tab active
+            shot("tabs-builder.png")
+            append("tab 0", 3)
+            append("tabs", 2)                  # Organizer's menus back
+            shot("tabs-organizer.png")
+            append("towindow 1", 8)            # Open in Window
+            append("inprocess", 2)
+            shot("tabs-builder-window.png")
+            append("totabs Builder", 8)        # Window > Move to Tabs
+            append("inprocess", 2)
+            append("close", 3)                 # File > Quit
+            append("answer", 3)                # "Quit"
+            append("answer cancel", 3)         # the Builder's save question
+            append("tabs", 2)
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 25)
+
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1", "ECCE_LAYOUT": "small",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_BUILDER_SCRIPT": script,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        tabs = pb.answers(log, "tabs")
+        print("      tabs: " + "\n            ".join(tabs))
+        orgMenus = tabs[0].split("menus=")[-1] if tabs else ""
+        check(len(tabs) >= 4 and tabs[0].startswith("0:Organizer*"),
+              "the Organizer is the first tab", str(tabs) + log[-1500:])
+        if len(tabs) >= 4:
+            check(re.search(r"1:.*Builder.*\* ", tabs[1]) is not None
+                  and "Render" in tabs[1].split("menus=")[-1]
+                  and "Render" not in orgMenus,
+                  "the Builder opened as the active tab with its menus",
+                  tabs[1])
+            check(tabs[2].startswith("0:Organizer*") and
+                  tabs[2].split("menus=")[-1] == orgMenus,
+                  "selecting the Organizer tab brings its menu bar back",
+                  tabs[2])
+        tw = pb.answers(log, "towindow")
+        check(tw and "window:" in tw[0] and "(hidden)" not in tw[0]
+              and " 1:" not in tw[0],
+              "Open in Window moves the Builder into a shown window", str(tw))
+        tt = pb.answers(log, "totabs")
+        check(tt and " 1:" in tt[0] and "window:" not in tt[0],
+              "Move to Tabs puts it back as a tab", str(tt))
+        inproc = pb.answers(log, "inprocess")
+        check(len(inproc) == 2 and all("Builder=1" in i for i in inproc),
+              "the same Builder throughout", str(inproc))
+        check("BUILDER: dirty=1" in log, "the Builder has unsaved changes")
+        check(pb.answers(log, "answer cancel") ==
+              ["answered Save Builder Changes?"] and
+              pb.answers(log, "answer no") ==
+              ["answered Save Builder Changes?"],
+              "Quit asks about the Builder tab: Cancel keeps it, No quits",
+              str(pb.answers(log, "answer")))
+        check(len(tabs) >= 4 and " 1:" in tabs[-1],
+              "the Builder tab is still there after Cancel", str(tabs))
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "the tabbed Organizer ends cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
+        runTabs(display)
+        if os.environ.get("ECCE_TABS_ONLY") == "1":
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         run(display)
         runQuit(display)
         runQuit(display, gateway=True)
