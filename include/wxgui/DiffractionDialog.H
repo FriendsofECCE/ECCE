@@ -109,7 +109,7 @@ private:
   std::string p_structure, p_dir, p_selectionText;
   wxTextCtrl *p_wavelength, *p_distance, *p_film, *p_b, *p_length, *p_mis,
              *p_repeat, *p_gamma;
-  wxChoice *p_axis, *p_scale;
+  wxChoice *p_axis, *p_scale, *p_transform;
   wxCheckBox *p_selectedOnly;
   wxSlider *p_opacity;
   wxStaticText *p_status, *p_pointer;

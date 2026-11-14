@@ -716,6 +716,12 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
     grid->Add(t, 0);
     return t;
   };
+  grid->Add(new wxStaticText(lp, wxID_ANY, "Transform"), 0, wxALIGN_CENTER_VERTICAL);
+  p_transform = new wxChoice(lp, wxID_ANY);
+  for (const char *s : {"Auto", "Helical", "Finite model"}) p_transform->Append(s);
+  p_transform->SetSelection(0);
+  p_transform->SetToolTip("Auto fits a regular helical backbone; otherwise uses the finite model");
+  grid->Add(p_transform, 0);
   p_wavelength = field(U("Wavelength (Å)"), "1.5418", U("Cu Kα is 1.5418"));
   p_distance = field("Film distance (mm)", "30", "Sample to flat film");
   p_film = field("Film size (mm)", "40", "Edge of the square film");
@@ -726,7 +732,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
   p_gamma = field("Gamma", "1", "Display exponent");
   grid->Add(new wxStaticText(lp, wxID_ANY, "Axis"), 0, wxALIGN_CENTER_VERTICAL);
   p_axis = new wxChoice(lp, wxID_ANY);
-  p_axis->Append("Auto (principal axis)");
+  p_axis->Append("Auto (helix / principal axis)");
   p_axis->Append("First to last selected atom");
   p_axis->SetSelection(0);
   grid->Add(p_axis, 0);
@@ -1343,6 +1349,9 @@ bool DiffractionDialog::calculate(string& why)
   if (p_frame) return calculateFrame(why);
   if (p_powder) return calculatePowder(why);
   vector<string> a = {"fibre", p_structure,
+                      "--transform", p_transform->GetSelection() == 1 ? "helical" :
+                                     p_transform->GetSelection() == 2 ? "finite" : "auto",
+                      "--geometry", p_dir + "/fibre-geometry.txt",
                       "--wavelength", num(number(p_wavelength)),
                       "--distance", num(number(p_distance)),
                       "--film-size", num(number(p_film)),
@@ -1378,6 +1387,11 @@ bool DiffractionDialog::calculate(string& why)
     why = "cannot read the pattern image";
     return false;
   }
+  std::ifstream geometry(p_dir + "/fibre-geometry.txt");
+  string geometryKey;
+  double repeat = 0;
+  if (geometry >> geometryKey >> repeat)
+    p_repeat->SetValue(wxString::Format("%.4f", repeat));
   setLevels(p_calc, false);
   p_r.clear(); p_z.clear(); p_i.clear();
   std::ifstream f(p_csv);
