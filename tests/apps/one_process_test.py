@@ -288,7 +288,9 @@ def runTabs(display):
             append("tabs", 2)
             append("start Builder " + url, 25)
             append("tabs", 2)                  # Builder tab active
+            append("tabinfo", 2)
             shot("tabs-builder.png")
+            append("charhook 27", 2)           # Esc, as GTK delivers it
             append("tab 0", 3)
             append("tabs", 2)                  # Organizer's menus back
             shot("tabs-organizer.png")
@@ -330,10 +332,21 @@ def runTabs(display):
                   tabs[2].split("menus=")[-1] == orgMenus,
                   "selecting the Organizer tab brings its menu bar back",
                   tabs[2])
+        info = pb.answers(log, "tabinfo")
+        print("      tabinfo: " + str(info))
+        m = re.search(r"page=(\d+)x(\d+) onscreen=1 children=\d+ shown=(\d+) "
+                      r"statusbar=page frame=hidden", info[0] if info else "")
+        check(m is not None and int(m.group(1)) > 400 and
+              int(m.group(2)) > 300 and int(m.group(3)) >= 3,
+              "the Builder tab shows its windows and status bar, its own "
+              "frame stays unmapped", str(info))
+        check("BUILDER: charhook key=27" in log,
+              "a key hook on the main window reaches the Builder tab",
+              str(pb.answers(log, "charhook")))
         tw = pb.answers(log, "towindow")
         check(tw and "window:" in tw[0] and "(hidden)" not in tw[0]
-              and " 1:" not in tw[0],
-              "Open in Window moves the Builder into a shown window", str(tw))
+              and "(no menus)" not in tw[0] and " 1:" not in tw[0],
+              "Open in Window moves the Builder into a shown window with its menus", str(tw))
         tt = pb.answers(log, "totabs")
         check(tt and " 1:" in tt[0] and "window:" not in tt[0],
               "Move to Tabs puts it back as a tab", str(tt))
