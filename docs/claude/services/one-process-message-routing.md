@@ -89,7 +89,7 @@ owns its dispatcher (`setMessages`) and deletes it in its destructor;
 
 - **Switch scope.** `MqttLink::takeOneProcessSwitch(forThisProcess)` reads
   `ECCE_ONE_PROCESS` once and unsets it: the Organizer takes it for itself,
-  the gateway (`GatewayApp::OnInit`) only remembers it. The starter
+  the gateway (`GatewayApp::OnInit`) only remembers it. The `builder` and `calced` programs take it as not theirs, so a tool started on its own (tests, `ecce --tool`) never runs the local path alone. The starter
   (`appExec`, `startToolWin`) sets it for an `Organizer` child only, so
   job programs, `wxExecute`s and other tools never see it.
 - **`ecce_get_app`.** `InProcessTools` (eccewxgui) keeps an opener per

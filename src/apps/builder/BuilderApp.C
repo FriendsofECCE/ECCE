@@ -5,6 +5,7 @@
  */
 
 
+#include "util/MqttLink.H"
 #include "wx/wxprec.h"
 
 #ifndef WX_PRECOMP
@@ -72,6 +73,9 @@ string BuilderApp::getName() const
 
 bool BuilderApp::OnInit()
 {
+  // A program of its own never runs in one-process mode: only the
+  // Organizer takes ECCE_ONE_PROCESS (#983).
+  MqttLink::takeOneProcessSwitch(false);
   ewxApp::OnInit();
   
   string context = "";

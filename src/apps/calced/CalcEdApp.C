@@ -1,4 +1,5 @@
 
+#include "util/MqttLink.H"
 #include "wx/timer.h"
 
 #include "util/EcceURL.H"
@@ -34,6 +35,9 @@ CalcEdApp::~CalcEdApp()
 
 bool CalcEdApp::OnInit()
 {
+  // A program of its own never runs in one-process mode: only the
+  // Organizer takes ECCE_ONE_PROCESS (#983).
+  MqttLink::takeOneProcessSwitch(false);
   ewxApp::OnInit();
 
   if (argc>2 && strcmp(argv[1].ToStdString().c_str(),"-pipe")==0) {
