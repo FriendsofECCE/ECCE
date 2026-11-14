@@ -346,7 +346,8 @@ def runTabs(display):
               "the Builder tab shows its windows and status bar, its own "
               "frame stays unmapped", str(info))
         dlg = pb.answers(log, "dialoginfo")
-        check(dlg and "transient=1 mapped=1 inside=1" in dlg[0],
+        check(dlg and "transient=1 mapped=1 inside=1" in dlg[0]
+              and " focus=" in dlg[0],
               "a dialog opened with the Builder's hidden frame as parent is "
               "transient for the Organizer, shown and inside its window",
               str(dlg))
@@ -480,7 +481,8 @@ def runTabsEditor(display):
               "the editor tab shows its windows, its own frame stays unmapped",
               str(info))
         dlg = pb.answers(log, "dialoginfo")
-        check(dlg and "transient=1 mapped=1 inside=1" in dlg[0],
+        check(dlg and "transient=1 mapped=1 inside=1" in dlg[0]
+              and " focus=" in dlg[0],
               "a dialog opened from the editor tab is transient for the "
               "Organizer, shown and inside its window", str(dlg))
         # Every control reachable (seen, or by scrolling), and the page is

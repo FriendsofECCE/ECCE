@@ -125,7 +125,10 @@ Closing must not touch the dialog's parent: a tool's own "save changes?"
 box outlives the tool's frame (SIGSEGV at quit otherwise); the dialogs
 moved are remembered in a set. Hook `dialog` (opens a message box over the
 active tool tab, measures it 1.5 s later) + `dialoginfo` (transient, mapped,
-inside the Organizer's rectangle).
+inside the Organizer's rectangle; `focus=` only once it has closed). On
+GTK `wxMessageDialog` is native and runs `gtk_dialog_run`: `EndModal` only
+asserts and leaves it open, and the nested loop then hangs Quit (killed,
+rc -15). Close it with `gtk_dialog_response`.
 
 ## Known gaps
 

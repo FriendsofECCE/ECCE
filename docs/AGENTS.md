@@ -151,7 +151,12 @@ Organizer is the first tab and cannot be closed). The window's menu bar is
 the active tab's. Right-click on a tab: **Open in Window**; the tool's
 **Window > Move to Tabs** puts it back. Unset or `wide`: separate windows as
 before. Test hooks: `tabs` (tabs, `*` = active, tools in windows, the menu
-bar's menus), `tab N`, `towindow N`, `totabs <title part>`.
+bar's menus), `tab N`, `towindow N`, `totabs <title part>`. A tab's
+dialogs open centred over the Organizer's window: `dialog` opens a test
+message box over the active tool tab and closes it 1.5 s later;
+`dialoginfo` then reports whether it was transient for the Organizer,
+shown and inside its window, its and the window's rectangles, and whether
+the focus came back (`focus=set`).
 
 The commands (`ecce-launch`, `ecce-series`, ...) are separate and are the
 way an assistant acts on ECCE. The help pages (**Help > ECCE Help**, `help/src/*.md`)

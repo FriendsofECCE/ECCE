@@ -948,6 +948,11 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
             (int)transient, (int)mapped, (int)hr.Contains(dr),
             dr.x, dr.y, dr.width, dr.height, hr.x, hr.y, hr.width, hr.height);
         timer.Stop();
+#ifdef __WXGTK__
+        // A native message box runs gtk_dialog_run, which EndModal does
+        // not end: left open, its nested loop keeps Quit from returning.
+        if (d) { gtk_dialog_response(GTK_DIALOG(d), GTK_RESPONSE_OK); return; }
+#endif
         dlg.EndModal(wxID_OK);
       });
       timer.StartOnce(1500);
