@@ -2,8 +2,8 @@
 type: pitfall
 title: "Launch copies the stored deck to its cache line by line and stores that copy back; a 255-byte line buffer cut decks at the first long line"
 area: services
-paths: ["src/comm/commxt/Launch.C"]
-issues: [455]
+paths: ["src/comm/commxt/Launch.C", "tests/launch/long_lines_test.py"]
+issues: [455, 957]
 ---
 `Launch::validateCalculation` copies the primary input (and, for every code
 but GROMACS, the auxiliary inputs and the MD Prepare PDB) from the data
@@ -19,8 +19,15 @@ it, and the write-back made the cut permanent. Nothing reported it. A Vina
 deck for 1IEP (2267 atoms) went from 257 kB to 431 bytes, ending just before
 its 10055-character `#| RECEPTOR_ATOMS=` line; a 51-atom deck, whose lines
 are all short, was unaffected. Any deck with a line of 254 characters or more
-was exposed. The copy now reads into a `std::string`.
+was exposed. The copy now reads into a `std::string`; `launch_long_lines`
+(tests/launch/long_lines_test.py) launches decks with 300- and
+5000-character lines and compares both copies byte for byte.
 
 The line copy still ends the file with a newline and turns CR LF into LF
 when read in text mode; a file that must arrive byte for byte goes `whole`
 (GROMACS does).
+
+The same `char buf[N]; getline(buf, N-1)` shape stops silently wherever it
+is used on a file the user wrote, and in a `while (!eof()) { if
+(!getline(...)) continue; }` loop it spins forever instead, since failbit
+never becomes eof. Read user files into a `std::string`.
