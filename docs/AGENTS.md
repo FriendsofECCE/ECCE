@@ -1123,7 +1123,10 @@ literature or another program without having compared.
 
 The full list with units is `data/client/config/properties` in the ECCE
 source. `ecce-results` converts orbitals and Hessians from Molden, fchk and
-ORCA files into one HDF5 file and checks the conversion (help page "The
+ORCA files, and CP2K's Molden file plus its output (`ecce-results convert
+cp2k-MOS-1_0.molden r.h5`, then `ecce-results convert cp2k.out r.h5`; the
+orbitals are valence only and the file records the GTH core charges), into one
+HDF5 file and checks the conversion (help page "The
 results file format").
 
 ## Documentation shipped with ECCE

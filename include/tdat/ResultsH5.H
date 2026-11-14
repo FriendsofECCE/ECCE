@@ -155,6 +155,7 @@ bool readMolden(const string& path, Model& m, string& err);
 bool writeMolden(const string& path, const Model& m, string& err);
 bool readFchk(const string& path, Model& m, string& err);
 bool readOrcaHess(const string& path, Model& m, string& err);   // merges into m
+bool readCp2kOutput(const string& path, Model& m, string& err); // merges into m
 string sha256File(const string& path);
 
 // Canonical AOs (unit self-overlap) at one geometry frame.

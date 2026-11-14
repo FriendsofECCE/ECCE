@@ -29,11 +29,31 @@ FIXTURES = {
     "orca_water": (["orca_water.molden", "orca_water.hess"], []),
     "orca_hoi": (["orca_hoi.molden"], []),          # I: ECP, d, f
     "orca_hocl": (["orca_hocl.molden"], []),        # def2-TZVP: f on O and Cl
+    "cp2k_ch2fcl": (["cp2k_ch2fcl.molden", "cp2k_ch2fcl.out"], []),   # GTH pseudopotentials, d on C F Cl, no Sym= lines
+    "cp2k_ch2fcl": (["cp2k_ch2fcl.molden", "cp2k_ch2fcl.out"], []),   # GTH pseudopotentials, d on C F Cl, no Sym= lines
     "g16_water_b3lyp_freq": (["g16_water_b3lyp_freq.fchk"], []),
     "g16_water_hf_6d": (["g16_water_hf_6d.fchk"], []),
     "g16_hoi_def2svp": (["g16_hoi_def2svp.fchk"], []),
     "g16_hocl_def2tzvp_trimmed": (["g16_hocl_def2tzvp_trimmed.fchk"], []),
 }
+
+
+# What `ecce-results show` must report after converting a fixture, beyond the
+# invariants: CP2K's output must contribute forces, charges and the GTH core charges.
+EXPECT_SHOW = {"cp2k_ch2fcl": ["gradient 0", "charges: mulliken", "ecp GTH:",
+                               "C(GTH-PBE-q4, 2 core)", "Cl(GTH-PBE-q7, 10 core)", "H(GTH-PBE-q1, 0 core)"]}
+
+
+def check_show(exe, name, ins):
+    with tempfile.TemporaryDirectory() as tmp:
+        h5 = os.path.join(tmp, "r.h5")
+        for f in ins:
+            subprocess.run([exe, "convert", os.path.join(FX, f), h5], check=True, stdout=subprocess.DEVNULL)
+        out = subprocess.run([exe, "show", h5], stdout=subprocess.PIPE, text=True).stdout
+    missing = [x for x in EXPECT_SHOW[name] if x not in out]
+    for x in missing:
+        print("FAIL %s: show lacks '%s'" % (name, x))
+    return 1 if missing else 0
 
 
 def main():
@@ -50,6 +70,8 @@ def main():
         print("== %s (exit %d)\n%s" % (name, r.returncode, r.stdout))
         if r.returncode != 0:
             bad += 1
+        elif name in EXPECT_SHOW:
+            bad += check_show(exe, name, ins)
     print("%d of %d fixtures failed" % (bad, len(names)))
     return 1 if bad else 0
 

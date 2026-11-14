@@ -32,7 +32,8 @@ static bool readAny(const string& in, Model& m, string& err) {
   if (ends(in, ".molden") || ends(in, ".molden.input") || ends(in, ".input")) return readMolden(in, m, err);
   if (ends(in, ".fchk") || ends(in, ".fch")) return readFchk(in, m, err);
   if (ends(in, ".hess")) return readOrcaHess(in, m, err);
-  err = "unknown input type (expected .molden, .fchk, .hess): " + in;
+  if (ends(in, ".out") || ends(in, ".cp2kout")) return readCp2kOutput(in, m, err);
+  err = "unknown input type (expected .molden, .fchk, .hess, CP2K .out): " + in;
   return false;
 }
 
@@ -49,6 +50,12 @@ static int show(const Model& m) {
            m.mos[k].geometry, m.mos[k].symmetry.empty() ? "" : ", with symmetry labels");
   for (size_t k = 0; k < m.hessian.size(); k++) printf("hessian %zu: geometry %d, %s\n", k, m.hessian[k].geometry, m.hessian[k].method.c_str());
   for (size_t k = 0; k < m.gradient.size(); k++) printf("gradient %zu\n", k);
+  if (!m.ecp.kind.empty()) {
+    printf("ecp %s:", m.ecp.kind.c_str());
+    for (size_t k = 0; k < m.ecp.atom.size(); k++)
+      printf(" %s(%s, %d core)", m.label[m.ecp.atom[k]].c_str(), m.ecp.name[k].c_str(), m.ecp.ncore[k]);
+    printf("\n");
+  }
   for (size_t k = 0; k < m.charges.size(); k++) printf("charges: %s\n", m.charges[k].scheme.c_str());
   for (size_t k = 0; k < m.vib.size(); k++) {
     const Vib& v = m.vib[k];
@@ -215,8 +222,8 @@ int main(int argc, char** argv) {
   if (argc >= 4 && !strcmp(argv[1], "convert")) {
     string in = argv[2], out = argv[3];
     Model m;
-    if (ends(in, ".hess") && (fsize(out) < 0 || !readFile(out, m, err))) {
-      fprintf(stderr, ".hess merges into an existing results.h5 (convert the .molden or .fchk first): %s\n", err.c_str());
+    if ((ends(in, ".hess") || ends(in, ".out") || ends(in, ".cp2kout")) && (fsize(out) < 0 || !readFile(out, m, err))) {
+      fprintf(stderr, ".hess and CP2K .out merge into an existing results.h5 (convert the .molden or .fchk first): %s\n", err.c_str());
       return 1;
     }
     if (!readAny(in, m, err) || !writeFile(out, m, err)) { fprintf(stderr, "ecce-results: %s\n", err.c_str()); return 1; }
@@ -237,7 +244,7 @@ int main(int argc, char** argv) {
     printf("%s%s\n", inv.report.c_str(), inv.ok ? "OK" : "FAILED");
     return inv.ok ? 0 : 1;
   }
-  fprintf(stderr, "usage: ecce-results convert <in.molden|in.fchk|in.hess> <results.h5>\n"
+  fprintf(stderr, "usage: ecce-results convert <in.molden|in.fchk|in.hess|cp2k.out> <results.h5>\n"
                   "       ecce-results export molden <results.h5> <out.molden>\n"
                   "       ecce-results show|check|dump <results.h5>\n"
                   "       ecce-results write <calculation folder or URL> [out.h5]\n"

@@ -79,8 +79,9 @@ the gates below fail it.
 |---|---|---|
 | Molden (xtb --molden, orca_2mkl -molden) | yes, 5D/7F/9G flags, Cartesian too | yes |
 | Gaussian .fchk | yes: basis (incl. SP), MOs, force constants, gradient, charges, dipole, Vib-E2/Vib-Modes | no |
+| CP2K Molden (`&MO_MOLDEN`) + main output | yes: Molden has no `Sym=` lines (the reader starts an MO at `Ene=`); the output merges energy, forces, Mulliken, GTH potential names, effective charge (`nucleus/charge`, `ecp` kind GTH, ncore = Z - q) | no |
 | ORCA .hess | yes: merges Hessian, frequencies, modes, IR into an existing file | no |
-Not done: MOPAC (STO), CP2K, QE bands, GROMACS references, NWChem, ECCE-QM
+Not done: MOPAC (STO), CP2K run hook (a job does not write the Molden file yet), QE bands, GROMACS references, NWChem, ECCE-QM
 (writes h5 natively later), Cartesian g in fchk, ECPs from Molden.
 
 ### Gates every converter must pass (tests/resultsh5)
