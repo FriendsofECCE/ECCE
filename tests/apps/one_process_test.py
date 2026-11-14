@@ -39,6 +39,8 @@ if "--shots" in sys.argv:
     i = sys.argv.index("--shots")
     os.environ["ECCE_TABS_SHOTS"] = sys.argv[i + 1]
     del sys.argv[i:i + 2]
+    import xdisplay  # noqa: E402
+    xdisplay.SCREEN = "1366x768x24"
 # --tabs-only: only the tabbed run.
 if "--tabs-only" in sys.argv:
     sys.argv.remove("--tabs-only")
