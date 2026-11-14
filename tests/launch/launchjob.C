@@ -6,6 +6,9 @@
 //                    <machine> <runDir> <user>            prints the calc URL
 //                    [queue=Q] [nodes=N] [procs=P] [threads=T] [wall="D H:M"] [mem=MB]
 //                    [code=<JCode name>] [xyz=<file>|pdb=<file>] [gui=<SetupParams>]
+//                    [theory=<category>:<name>] [runtype=<name>]
+//                                 the Calculation Editor's stored theory and run type
+//                                 (theory=SE:GFN2-xTB runtype=Geometry); gui= holds the details
 //                                 batch settings, as the launcher's queue controls set them;
 //                                 code and structure as the Calculation Editor's save stores
 //                                 them (the Builder's orbital views need both)
@@ -221,6 +224,18 @@ static int doCreate(const vector<string>& a)
         cerr << "could not store the code " << v << endl;
         return 1;
       }
+    } else if (k == "theory" || k == "runtype") {
+      //  The calls CalcEd::OnSave makes; ecce-series refuses a template without a theory.
+      ICalculation *calc = dynamic_cast<ICalculation*>(task);
+      string::size_type colon = v.find(':');
+      if (k == "theory" && calc && colon != string::npos) {
+        TTheory theory(v.substr(0, colon), v.substr(colon + 1));
+        if (!calc->theory(&theory)) calc = 0;
+      } else if (k == "runtype" && calc) {
+        TRunType rt(v, false);
+        if (!calc->runtype(rt)) calc = 0;
+      } else calc = 0;
+      if (!calc) { cerr << "could not store " << a[i] << endl; return 1; }
     } else if (k == "input") {
       // A further input stored under its own file name (an auxiliary input).
       ifstream fin(v.c_str(), std::ios::binary);
