@@ -96,6 +96,14 @@ Run the display-allocation regression with
 `nice python3 tests/apps/xdisplay_test.py`; no ECCE install is
 needed, and the live-server check skips when Xvfb is unavailable.
 
+The `create` driver of `tests/launch` (`launchjob create ...`, `Session.create(..., extra=())`)
+stores the Calculation Editor's setup when given `code=<JCode>`,
+`theory=<category>:<name>` and `runtype=<name>` (for example
+`theory=SE:GFN2-xTB runtype=Geometry`), with detail values from
+`gui=<settings file>`. Without a stored theory `ecce-series` and
+`ecce-ensemble pick --create` refuse the calculation as a template.
+`tests/launch/series_setup_test.py` is the example.
+
 ## What ECCE is
 
 ECCE (Extensible Computational Chemistry Environment) is a desktop

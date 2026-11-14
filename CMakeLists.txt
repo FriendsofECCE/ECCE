@@ -4637,6 +4637,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_xtb PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #1034: a harness-made xTB template (theory, run type) works with ecce-series.
+  add_test(NAME launch_series_setup
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/series_setup_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_series_setup PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # #682: CREST conformer search of n-butane (GFN-FF) through Launch; skipped
   # (77) without crest and xtb.
   add_test(NAME launch_crest
