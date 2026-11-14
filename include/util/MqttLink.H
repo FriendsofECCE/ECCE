@@ -181,6 +181,13 @@ public:
   static bool localDelivery();
   // Tests only; before the first subscription.
   static void setLocalDelivery(bool on);
+  // Reads ECCE_ONE_PROCESS once and removes it from this process's
+  // environment, so no job program or tool started from here inherits it.
+  // Only the Organizer takes it for itself (forThisProcess); the gateway,
+  // as its starter, passes it on to the Organizer alone.
+  static void takeOneProcessSwitch(bool forThisProcess);
+  // Whether ECCE_ONE_PROCESS was asked for, also after it was taken.
+  static bool oneProcessRequested();
   // Sender id of a new tool instance: the pid, or "<pid>.<n>" with local
   // delivery, so that replies and targets reach one tool of the process.
   // A bare pid as target still reaches every tool of the process.

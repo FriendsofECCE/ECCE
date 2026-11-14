@@ -358,6 +358,36 @@ void MqttLink::setLocalDelivery(bool on)
   localFlag() = on ? 1 : 0;
 }
 
+static int& oneProcessAsked()
+{
+  static int asked = -1;
+  return asked;
+}
+
+static bool switchInEnvironment()
+{
+  const char* e = getenv("ECCE_ONE_PROCESS");
+  return e && *e && strcmp(e, "0") != 0;
+}
+
+bool MqttLink::oneProcessRequested()
+{
+  int a = oneProcessAsked();
+  return a < 0 ? switchInEnvironment() : a == 1;
+}
+
+void MqttLink::takeOneProcessSwitch(bool forThisProcess)
+{
+  bool asked = oneProcessRequested();
+  oneProcessAsked() = asked ? 1 : 0;
+  localFlag() = (asked && forThisProcess) ? 1 : 0;
+#ifdef _WIN32
+  _putenv_s("ECCE_ONE_PROCESS", "");
+#else
+  unsetenv("ECCE_ONE_PROCESS");
+#endif
+}
+
 string MqttLink::processId()
 {
   return std::to_string(getpid());

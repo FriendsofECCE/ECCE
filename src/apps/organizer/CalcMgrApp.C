@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include "util/MqttBroker.H"
+#include "util/MqttLink.H"
 #include "wx/wxprec.h"
 
 #ifdef __BORLANDC__
@@ -138,6 +139,8 @@ string CalcMgrApp::getName() const
  */
 bool CalcMgrApp::OnInit()
 {
+  // Only this process runs tools in-process (#983); its children do not.
+  MqttLink::takeOneProcessSwitch(true);
   // The session's own broker (#990), before anything connects to it.
   // ECCE_BROKER=mosquitto keeps the old ecce-broker-win (ecce.cmd).  Only
   // ecce.cmd sets ECCE_LOCAL_BROKER: on Linux and macOS ecce-gateway-start

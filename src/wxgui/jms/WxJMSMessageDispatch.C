@@ -33,6 +33,7 @@
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/JMSMessage.H"
+#include "util/MqttLink.H"
 #include "util/StringConverter.H"
 
 #include "tdat/AuthCache.H"
@@ -696,6 +697,9 @@ long WxJMSMessageDispatch::startToolWin(const string& app, string& error)
       _putenv_s("ECCE_INVOKE_VIEWER", "1");
       _putenv_s("ECCE_INVOKE_FROMECCE", "1");
     }
+    // ECCE_ONE_PROCESS is for the Organizer only (#983).
+    bool oneProcess = app == "Organizer" && MqttLink::oneProcessRequested();
+    if (oneProcess) _putenv_s("ECCE_ONE_PROCESS", "1");
     ok = CreateProcessA(exe.c_str(), &cmd[0], 0, 0, TRUE,
                         EXTENDED_STARTUPINFO_PRESENT, 0, bin.c_str(),
                         &si.StartupInfo, &pi) != 0;
@@ -703,6 +707,7 @@ long WxJMSMessageDispatch::startToolWin(const string& app, string& error)
       _putenv_s("ECCE_INVOKE_VIEWER", "");
       _putenv_s("ECCE_INVOKE_FROMECCE", "");
     }
+    if (oneProcess) _putenv_s("ECCE_ONE_PROCESS", "");
     if (!ok)
       error = "could not start " + exe + " (error " +
               std::to_string(GetLastError()) + ")";
@@ -826,6 +831,12 @@ void WxJMSMessageDispatch::appExec()
                          StringConverter::toString(authFds[0]);
         argv[2] = (char*)apppath.c_str();
         char path[] = "/bin/sh";
+        // ECCE_ONE_PROCESS is for the Organizer only (#983): other tools
+        // stay separate processes on the broker.
+        if (app == "Organizer" && MqttLink::oneProcessRequested())
+          setenv("ECCE_ONE_PROCESS", "1", 1);
+        else
+          unsetenv("ECCE_ONE_PROCESS");
 
         execv(path, argv);
         cerr << "exec failed!" << endl;
