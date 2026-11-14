@@ -24,6 +24,7 @@ live desktop by accident.
 """
 
 import os
+import select
 import shutil
 import signal
 import subprocess
@@ -70,19 +71,22 @@ class Display(object):
         self.pidfile = pidfile
 
     def __enter__(self):
-        if self.number is None:
-            self.number = _freeDisplay()
-        if self.number < 10:
-            raise DisplayUnavailable("test displays must be :10 or higher")
-        argv = [self.binary, ":%d" % self.number,
-                "-screen", "0", self.screen, "-nolisten", "tcp"]
-        #  A file, never a pipe nobody reads: Xvfb logs xkbcomp warnings
-        #  for every keymap a client loads, and once 64 KiB of that has
-        #  filled a pipe its write() blocks and the whole server stops
-        #  answering -- the CI-only display wedge of #127.
-        self.log = tempfile.TemporaryFile()
-        self.proc = subprocess.Popen(
-            argv, stdout=subprocess.DEVNULL, stderr=self.log)
+        #  Only the server's own -displayfd report proves it got the number:
+        #  xdpyinfo alone would also answer from a parallel run's Xvfb that
+        #  won the same number, and this run's apps would then die with it.
+        chosen = self.number
+        for attempt in range(1 if chosen is not None else 20):
+            self.number = chosen if chosen is not None else _freeDisplay()
+            if self.number < 10:
+                raise DisplayUnavailable("test displays must be :10 or higher")
+            if self._launch():
+                break
+            if chosen is not None:
+                raise DisplayUnavailable("Xvfb exited: %s"
+                                         % self._discard().strip())
+            self._discard()
+        else:
+            raise DisplayUnavailable("Xvfb lost every display number it tried")
         if self.pidfile:
             #  Best-effort: a failure to write this only means a killed run
             #  cannot be swept up next time, not that this run cannot work.
@@ -101,6 +105,54 @@ class Display(object):
             time.sleep(0.2)
         self.__exit__(None, None, None)
         raise DisplayUnavailable("Xvfb did not become ready")
+
+    def _launch(self):
+        """Start Xvfb on self.number; False if it exited without serving it
+        (another run holds the number)."""
+        reader, writer = os.pipe()
+        argv = [self.binary, ":%d" % self.number, "-displayfd", str(writer),
+                "-screen", "0", self.screen, "-nolisten", "tcp"]
+        #  A file, never a pipe nobody reads: Xvfb logs xkbcomp warnings
+        #  for every keymap a client loads, and once 64 KiB of that has
+        #  filled a pipe its write() blocks and the whole server stops
+        #  answering -- the CI-only display wedge of #127.
+        self.log = tempfile.TemporaryFile()
+        try:
+            self.proc = subprocess.Popen(
+                argv, stdout=subprocess.DEVNULL, stderr=self.log,
+                pass_fds=(writer,))
+        finally:
+            os.close(writer)
+        try:
+            deadline = time.time() + _scaled(30)
+            data = b""
+            while b"\n" not in data and time.time() < deadline:
+                ready, _, _ = select.select([reader], [], [], 0.5)
+                if ready:
+                    chunk = os.read(reader, 64)
+                    if not chunk:
+                        break
+                    data += chunk
+        finally:
+            os.close(reader)
+        if b"\n" in data:
+            return True
+        try:
+            #  A loser closes the pipe a moment before it has exited.
+            self.proc.wait(timeout=_scaled(5) if not data else 0)
+        except subprocess.TimeoutExpired:
+            self.__exit__(None, None, None)
+            raise DisplayUnavailable("Xvfb did not report its display")
+        return False
+
+    def _discard(self):
+        """Drop a failed launch; returns its server log."""
+        error = self.serverLog()
+        self.proc = None
+        if self.log is not None:
+            self.log.close()
+            self.log = None
+        return error
 
     def __exit__(self, *exc):
         if self.proc is not None:
