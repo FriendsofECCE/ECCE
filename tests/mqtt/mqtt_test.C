@@ -834,23 +834,52 @@ static int interopMain()
   if (!b.start(0)) { cout << "FAIL  start" << endl; return 1; }
   string p = std::to_string(b.port());
   string base = "-V 5 -h 127.0.0.1 -p " + p;
-  FILE* sub = popen(("timeout 10 mosquitto_sub " + base + " -u alice -P alicepw -t 'ecce/alice/#' "
-                     "-t 'ecce/+/ecce_machreg_changed' -v -C 2 2>&1").c_str(), "r");
-  usleep(500000);
-  int r1 = system(("mosquitto_pub " + base + " -u alice -P alicepw -q 1 -t ecce/alice/x/y -m hello1 >/dev/null 2>&1").c_str());
-  int r2 = system(("mosquitto_pub " + base + " -u bob -P bobpw -q 1 -t ecce/bob/ecce_machreg_changed -m hello2 >/dev/null 2>&1").c_str());
-  // Bob's publish into alice's tree is refused (nonzero status), and the
-  // subscriber must not see it.
-  int r3 = system(("mosquitto_pub " + base + " -u bob -P bobpw -q 1 -t ecce/alice/z -m evil >/dev/null 2>&1").c_str());
-  int r4 = system(("mosquitto_pub " + base + " -u alice -P wrong -t ecce/alice/x -m no >/dev/null 2>&1").c_str());
-  string out; char line[256];
-  while (sub && fgets(line, sizeof line, sub)) out += line;
+  // The subscriber logs to a file so the test can wait for its SUBACK
+  // before publishing, and ends at the third message: a permitted sentinel
+  // published after the refused one. Anything delivered ahead of the
+  // sentinel is therefore in the log; no sleep decides the outcome.
+  char tmpl[] = "/tmp/mqtt_interop_XXXXXX";
+  if (!mkdtemp(tmpl)) { cout << "FAIL  mkdtemp" << endl; return 1; }
+  string log = string(tmpl) + "/sub.log";
+  FILE* sub = popen(("timeout 20 stdbuf -oL mosquitto_sub " + base + " -d -u alice -P alicepw "
+                     "-t 'ecce/alice/#' -t 'ecce/+/ecce_machreg_changed' -v -C 3 >" +
+                     log + " 2>&1").c_str(), "r");
+  auto slurp = [&]() {
+    string s; char l[512];
+    if (FILE* f = fopen(log.c_str(), "r")) { while (fgets(l, sizeof l, f)) s += l; fclose(f); }
+    return s;
+  };
+  bool ready = false;
+  for (int i = 0; i < 200 && !ready; ++i) {
+    ready = slurp().find("received SUBACK") != string::npos;
+    if (!ready) usleep(50000);
+  }
+  check(ready, "mosquitto_sub -V 5 is subscribed before the first publish");
+  string pub = "mosquitto_pub " + base;
+  int r1 = system((pub + " -u alice -P alicepw -q 1 -t ecce/alice/x/y -m hello1 >/dev/null 2>&1").c_str());
+  int r2 = system((pub + " -u bob -P bobpw -q 1 -t ecce/bob/ecce_machreg_changed -m hello2 >/dev/null 2>&1").c_str());
+  // Bob's publish into alice's tree must be refused.
+  // mosquitto_pub 2.0 exits 0 on a refused QoS 1 publish, so the refusal is
+  // read from the PUBACK reason code in its debug output.
+  int r3 = system((pub + " -d -u bob -P bobpw -q 1 -t ecce/alice/z -m evil >" + tmpl +
+                   "/pub3.log 2>&1").c_str());
+  string pub3;
+  if (FILE* f = fopen((string(tmpl) + "/pub3.log").c_str(), "r")) {
+    char l[512]; while (fgets(l, sizeof l, f)) pub3 += l; fclose(f);
+  }
+  bool refused = r3 != 0 || pub3.find("Not authorized") != string::npos ||
+                 pub3.find("RC:135") != string::npos;
+  int r4 = system((pub + " -u alice -P wrong -t ecce/alice/x -m no >/dev/null 2>&1").c_str());
+  int r5 = system((pub + " -u alice -P alicepw -q 1 -t ecce/alice/done -m sentinel >/dev/null 2>&1").c_str());
   if (sub) pclose(sub);
-  check(r1 == 0 && r2 == 0, "mosquitto_pub -V 5 -q 1 publishes are accepted");
+  string out = slurp();
+  rmTree(tmpl);
+  check(r1 == 0 && r2 == 0 && r5 == 0, "mosquitto_pub -V 5 -q 1 publishes are accepted");
   check(out.find("ecce/alice/x/y hello1") != string::npos &&
-        out.find("ecce/bob/ecce_machreg_changed hello2") != string::npos,
+        out.find("ecce/bob/ecce_machreg_changed hello2") != string::npos &&
+        out.find("ecce/alice/done sentinel") != string::npos,
         "mosquitto_sub -V 5 receives both through wildcards");
-  check(r3 != 0 && out.find("evil") == string::npos,
+  check(refused && out.find("evil") == string::npos,
         "a publish into another user's tree is refused and not delivered");
   check(r4 != 0, "a wrong password is refused");
   b.stop();
