@@ -100,6 +100,7 @@ bool readMolden(const string& path, Model& m, string& err) {
   vector<string> sym[2];
   vector<double> cur; int curSpin = 0; bool inMo = false;
   string pendSym = "", pendSpin = "Alpha"; double pendEne = 0, pendOcc = 0;
+  bool haveEne = false, noSym = false;
   vector<double> coord;
   int atomForShell = -1;
   auto flush = [&]() {
@@ -151,8 +152,13 @@ bool readMolden(const string& path, Model& m, string& err) {
       size_t eq = t.find('=');
       if (eq != string::npos && !isdigit((unsigned char)t[0])) {
         string k = lower(trim(t.substr(0, eq))), v = trim(t.substr(eq+1));
-        if (k == "sym") { flush(); inMo = true; pendSym = v; pendEne = 0; pendOcc = 0; pendSpin = "Alpha"; }
-        else if (k == "ene") pendEne = dnum(v);
+        if (k == "sym") { flush(); inMo = true; haveEne = false; pendSym = v; pendEne = 0; pendOcc = 0; pendSpin = "Alpha"; }
+        else if (k == "ene") {
+          // CP2K omits Sym=: a second Ene= before any coefficient is not possible, so Ene= after one starts a new MO
+          if (!inMo) noSym = true;
+          if (!inMo || haveEne || !cur.empty()) { flush(); inMo = true; pendSym = ""; pendOcc = 0; pendSpin = "Alpha"; }
+          pendEne = dnum(v); haveEne = true;
+        }
         else if (k == "spin") pendSpin = v;
         else if (k == "occup") pendOcc = dnum(v);
         continue;
@@ -198,7 +204,7 @@ bool readMolden(const string& path, Model& m, string& err) {
     if (anySym) mo.symmetry = sym[sp];
     m.mos.push_back(mo);
   }
-  stamp(m, path, title.find("orca_2mkl") != string::npos ? "ORCA" : "");
+  stamp(m, path, title.find("orca_2mkl") != string::npos ? "ORCA" : (noSym ? "CP2K" : ""));
   if (!title.empty()) m.provenance["molden_title"] = trim(title);
   string note;
   if (!normaliseSource(m, note, err)) return false;
@@ -463,6 +469,103 @@ bool readOrcaHess(const string& path, Model& m, string& err) {
   m.provenance["hessian_source_file"] = baseName(path);
   m.provenance["hessian_source_sha256"] = sha256File(path);
   if (!m.provenance.count("code")) m.provenance["code"] = "ORCA";
+  return true;
+}
+
+// ---- CP2K main output --------------------------------------------------------
+// Merges into the model from CP2K's Molden file: energy, forces, Mulliken
+// charges, and the GTH pseudopotentials.  The Molden file lists every atom
+// at its full Z while only the valence electrons are in the MOs, so the
+// effective charge goes into nucleus/charge and ecp (kind GTH, ncore = Z - q).
+bool readCp2kOutput(const string& path, Model& m, string& err) {
+  std::ifstream in(path.c_str());
+  if (!in) { err = "cannot open " + path; return false; }
+  string line;
+  const size_t N = m.natoms();
+  std::map<string, double> valence;       // kind name -> valence charge
+  std::map<string, string> potential;     // kind name -> GTH-PBE-q4
+  vector<string> kindOfAtom(N);
+  vector<string> kindNames;
+  string kind, version, basisName;
+  bool basisMixed = false, sawCp2k = false;
+  vector<double> force, q;
+  double energy = 0; bool haveEnergy = false;
+  while (std::getline(in, line)) {
+    if (line.find("CP2K| version string:") != string::npos) {
+      sawCp2k = true;
+      size_t k = line.find("version", line.find("string:") + 7);
+      version = trim(line.substr(k == string::npos ? 0 : k + 7));
+    }
+    size_t ak = line.find("Atomic kind:");
+    if (ak != string::npos) { vector<string> w = words(line.substr(ak + 12)); kind = w.empty() ? "" : w[0]; if (std::find(kindNames.begin(), kindNames.end(), kind) == kindNames.end()) kindNames.push_back(kind); continue; }
+    if (line.find("Orbital Basis Set") != string::npos && !kind.empty()) {
+      vector<string> w = words(line);
+      string b = w.empty() ? "" : w.back();
+      if (basisName.empty()) basisName = b; else if (b != basisName) basisMixed = true;
+    } else if (line.find("GTH Potential information for") != string::npos) {
+      vector<string> w = words(line);
+      potential[kind] = w.empty() ? "" : w.back();
+    } else if (line.find("Electronic configuration (s p d") != string::npos && !kind.empty()) {
+      size_t c = line.find(':');
+      double z = 0;
+      vector<string> w = words(line.substr(c + 1));
+      for (size_t i = 0; i < w.size(); i++) z += atof(w[i].c_str());
+      valence[kind] = z;
+    } else if (line.find("ENERGY| Total FORCE_EVAL") != string::npos) {
+      vector<string> w = words(line);
+      energy = dnum(w.back()); haveEnergy = true;
+    } else if (line.find("FORCES| Atomic forces [hartree/bohr]") != string::npos) {
+      force.clear();
+      std::getline(in, line);
+      while (std::getline(in, line) && trim(line).compare(0, 7, "FORCES|") == 0) {
+        vector<string> w = words(trim(line).substr(7));
+        if (w.size() < 5 || !isdigit((unsigned char)w[0][0])) break;
+        for (int c = 1; c < 4; c++) force.push_back(-dnum(w[c]));   // gradient = -force
+      }
+    } else if (line.find("Mulliken Population Analysis") != string::npos) {
+      q.clear();
+      for (int skip = 0; skip < 2; skip++) std::getline(in, line);
+      for (size_t a = 0; a < N && std::getline(in, line); a++) {
+        vector<string> w = words(line);
+        if (w.size() < 5) break;
+        int ki = atoi(w[2].c_str());
+        if (ki >= 1 && size_t(ki) <= kindNames.size()) kindOfAtom[a] = kindNames[ki-1];
+        q.push_back(dnum(w.back()));
+      }
+    }
+  }
+  if (!sawCp2k) { err = "not a CP2K output (no CP2K| version line): " + path; return false; }
+  m.provenance["code"] = "CP2K";
+  if (!version.empty()) m.provenance["code_version"] = version;
+  m.provenance["output_source_file"] = baseName(path);
+  m.provenance["output_source_sha256"] = sha256File(path);
+  if (m.provenance.count("source_file") == 0) m.provenance["source_file"] = baseName(path);
+  if (!basisName.empty()) {
+    m.provenance["basis_name"] = basisMixed ? "mixed" : basisName;
+    if (m.basis.name.empty()) m.basis.name = m.provenance["basis_name"];
+  }
+  if (haveEnergy && m.nframes() == 1) m.geomEnergy.assign(1, energy);
+  if (N && force.size() == 3*N) { Gradient g; g.g = force; m.gradient.push_back(g); }
+  if (N && q.size() == N) { Charges c; c.scheme = "mulliken"; c.q = q; m.charges.push_back(c); }
+  // Kind of each atom: Mulliken table when printed, else a kind named like the atom.
+  bool all = N > 0 && !valence.empty();
+  for (size_t a = 0; a < N && all; a++) {
+    if (kindOfAtom[a].empty() || !valence.count(kindOfAtom[a])) {
+      kindOfAtom[a] = valence.count(m.label[a]) ? m.label[a] : "";
+    }
+    all = !kindOfAtom[a].empty();
+  }
+  if (all) {
+    m.nuclearCharge.assign(N, 0.0);
+    m.ecp = Ecp(); m.ecp.kind = "GTH";
+    for (size_t a = 0; a < N; a++) {
+      double z = valence[kindOfAtom[a]];
+      m.nuclearCharge[a] = z;
+      m.ecp.atom.push_back(int(a));
+      m.ecp.name.push_back(potential[kindOfAtom[a]]);
+      m.ecp.ncore.push_back(m.atomicNumber[a] - int(z + 0.5));
+    }
+  }
   return true;
 }
 
