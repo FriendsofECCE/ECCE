@@ -17,6 +17,9 @@
 #include <unistd.h>
 #include <stdio.h>
 #include "util/MqttBroker.H"
+#include "util/MqttLink.H"
+#include "wxgui/InProcessTools.H"
+#include "util/JMSPublisher.H"
 #include "wx/wxprec.h"
 
 #ifdef __BORLANDC__
@@ -109,6 +112,16 @@ static void restartInLocalMode()
 #endif
 
 
+// In builder-objs and calced-objs (#983).
+void registerBuilderInProcess();
+void registerCalcEdInProcess();
+void registerMDOptimizeInProcess();
+void registerMDEnergyInProcess();
+void registerMDDynamicsInProcess();
+void registerGmxPrepareInProcess();
+void registerBasisToolInProcess();
+void registerMDPrepInProcess();
+
 IMPLEMENT_APP(CalcMgrApp)
 
 IMPLEMENT_CLASS(CalcMgrApp, ewxApp)
@@ -138,6 +151,8 @@ string CalcMgrApp::getName() const
  */
 bool CalcMgrApp::OnInit()
 {
+  // Only this process runs tools in-process (#983); its children do not.
+  MqttLink::takeOneProcessSwitch(true);
   // The session's own broker (#990), before anything connects to it.
   // ECCE_BROKER=mosquitto keeps the old ecce-broker-win (ecce.cmd).  Only
   // ecce.cmd sets ECCE_LOCAL_BROKER: on Linux and macOS ecce-gateway-start
@@ -279,6 +294,25 @@ bool CalcMgrApp::OnInit()
   startSubscriber();
   notifyReady();
 
+  if (MqttLink::localDelivery()) {
+    // Builder and Calculation Editor open as windows of this process
+    // (#983); data notices go out as the tool whose window is active.
+    registerBuilderInProcess();
+    registerCalcEdInProcess();
+    registerMDOptimizeInProcess();
+    registerMDEnergyInProcess();
+    registerMDDynamicsInProcess();
+    registerGmxPrepareInProcess();
+    registerBasisToolInProcess();
+    registerMDPrepInProcess();
+    string name = getMyName(), id = getMyID();
+    JMSPublisher::setActingTool(name, id);
+    p_calcMgr->Bind(wxEVT_ACTIVATE, [name, id](wxActivateEvent& ev) {
+      if (ev.GetActive()) JMSPublisher::setActingTool(name, id);
+      ev.Skip();
+    });
+  }
+
   return true;
 }
 
@@ -308,6 +342,9 @@ void CalcMgrApp::quitMCB(JMSMessage& msg)
 {
   if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   if (msg.getSender().getName() == GATEWAY) {
+    // Tool windows in this process first (#983): the main loop ends with
+    // the Organizer's frame, and a window left open would outlive it.
+    InProcessTools::closeAll(true);
     GetTopWindow()->Destroy();
   }
 }

@@ -92,6 +92,18 @@ through the command-line tools in "Commands". You cannot click in the windows.
 | Machine Browser | Runs a few status queries on a registered machine over ECCE's login. | From the Organizer or Launcher |
 | Basis Set Tool | Looks at and edits basis sets. | From the Organizer or Calculation Editor |
 
+Each window is its own program. Experimental: with `ECCE_ONE_PROCESS=1`
+in the environment of `ecce`, the Builder, the Calculation Editor, the
+Basis Set Tool and the MD editors open
+as windows of the Organizer's process instead; job programs and the other
+tools stay separate. Off by default. Quitting the Organizer (or the
+session's `ecce_quit`) then closes those windows first, each asking about
+its own unsaved changes; Cancel in one of them cancels the Quit. Test hooks
+(`ECCE_TEST_ORGANIZER`): `inprocess` (pid, open Builder/Calculation Editor/MD Energy/Basis Set
+Tool/MD Prepare windows),
+`closetools`, `gatewayquit` (the session's `ecce_quit`), and
+`answer cancel|no` for a tool's save question.
+
 The commands (`ecce-launch`, `ecce-series`, ...) are separate and are the
 way an assistant acts on ECCE. The help pages (**Help > ECCE Help**, `help/src/*.md`)
 describe every window; `help/src/index.md` lists them.

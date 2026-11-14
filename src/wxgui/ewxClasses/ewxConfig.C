@@ -39,6 +39,21 @@ void ewxConfig::closeConfigs()
 }
 
 
+void ewxConfig::closeConfig(const string& name)
+{
+  map<string, ewxConfig*, ltstring>::iterator iter = p_configs.find(name);
+  if (iter == p_configs.end()) return;
+  delete iter->second;
+  p_configs.erase(iter);
+}
+
+
+void ewxConfig::flushConfigs()
+{
+  for (auto& c : p_configs) c.second->Flush();
+}
+
+
 ewxConfig::ewxConfig()
 {
 }

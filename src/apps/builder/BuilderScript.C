@@ -256,7 +256,7 @@ void Builder::runBuilderScript(const std::string& file)
   size_t slash = file.rfind('/');
   st->dir = slash == std::string::npos ? "." : file.substr(0, slash);
 
-  wxTimer *timer = new wxTimer();   // lives until the process exits
+  wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
   timer->Bind(wxEVT_TIMER, [this, st, timer](wxTimerEvent&) {
     if (!st->waitingFor.empty()) {
       if (exists(st->waitingFor) || wxGetLocalTimeMillis() > st->waitUntil)

@@ -7,6 +7,8 @@
 //   mqtt_test <source dir>                      the test (Unix socket)
 //   mqtt_test auth <source dir>                 two accounts on a TCP broker
 //                                               with the shipped access rules
+//   mqtt_test local <source dir>                in-process delivery of
+//                                               ECCE_ONE_PROCESS (#983)
 //   mqtt_test auth <source dir> builtin         the same against ECCE's own
 //                                               broker (MqttBroker, #990)
 //   mqtt_test session <source dir>              the session broker: on Linux
@@ -96,12 +98,16 @@ static int childMain(int argc, char** argv)
 class Probe : public JMSSubscriber {
 public:
   explicit Probe(const string& name) : JMSSubscriber(name) {}
-  void on(JMSMessage& m) { got.push_back(m.getProperty("tag")); }
+  void on(JMSMessage& m) {
+    got.push_back(m.getProperty("tag"));
+    values.push_back(m.getProperty("value"));
+  }
   bool has(const string& tag) const {
     for (size_t i = 0; i < got.size(); i++) if (got[i] == tag) return true;
     return false;
   }
   vector<string> got;
+  vector<string> values;   // EDSIFactory notices carry no tag
 };
 
 static vector<Probe*> g_probes;
@@ -223,7 +229,9 @@ static void rmTree(const string& path)
 // with a libmosquitto of their own can do.
 class RawClient {
 public:
-  RawClient(const string& user, const string& pass, int port)
+  // port 0: connect to the Unix socket sock instead.
+  RawClient(const string& user, const string& pass, int port,
+            const string& sock = "")
     : connack(-1), puback(-1), m_port(port)
   {
     m_mosq = mosquitto_new(0, true, this);
@@ -233,7 +241,8 @@ public:
     mosquitto_publish_v5_callback_set(m_mosq, onPublish);
     mosquitto_message_callback_set(m_mosq, onMessage);
     mosquitto_reconnect_delay_set(m_mosq, 1, 1, false);
-    mosquitto_connect_async(m_mosq, "127.0.0.1", port, 30);
+    if (port) mosquitto_connect_async(m_mosq, "127.0.0.1", port, 30);
+    else mosquitto_connect_async(m_mosq, sock.c_str(), 0, 30);
     mosquitto_loop_start(m_mosq);
     for (int i = 0; i < 100 && connack < 0; i++) usleep(30000);
   }
@@ -1066,6 +1075,216 @@ static int authMain(const string& src, const string& plugin)
   return rc;
 }
 
+// ------------------------------------------------- one process (#983)
+
+static int countOf(const Probe& p, const string& tag)
+{
+  int n = 0;
+  for (size_t i = 0; i < p.got.size(); i++) n += (p.got[i] == tag);
+  return n;
+}
+
+static bool sent(const JMSPublisher& pub, const string& topic,
+                 const string& tag, const Target* target = 0)
+{
+  JMSMessage* m = target ? pub.newMessage(*target) : pub.newMessage();
+  m->addProperty("tag", tag);
+  bool ok = pub.publish(topic, *m);
+  delete m;
+  return ok;
+}
+
+// Organizer and Builder as two tools of one process, the broker for
+// everything else.
+static int localMain(const string& src)
+{
+  if (system("command -v mosquitto >/dev/null 2>&1") != 0) {
+    cout << "SKIP  no mosquitto binary" << endl;
+    return 77;
+  }
+  const char* tmpbase = getenv("TMPDIR");
+  string tmpl = string(tmpbase ? tmpbase : "/tmp") + "/mqtt_localXXXXXX";
+  vector<char> buf(tmpl.begin(), tmpl.end());
+  buf.push_back(0);
+  if (!mkdtemp(&buf[0])) { perror("mkdtemp"); return 1; }
+  string tmp = &buf[0];
+  string sock = tmp + "/mq.sock", alice = tmp + "/alice";
+  writeBrokerFile(alice, sock, "alice");
+  {
+    ofstream c((tmp + "/mosquitto.conf").c_str());
+    c << "listener 0 " << sock << "\nallow_anonymous true\n"
+      << "persistence false\n";
+  }
+  pid_t broker = fork();
+  if (broker == 0) {
+    string log = tmp + "/mosquitto.log";
+    freopen(log.c_str(), "w", stdout);
+    freopen(log.c_str(), "w", stderr);
+    execlp("mosquitto", "mosquitto", "-c", (tmp + "/mosquitto.conf").c_str(),
+           (char*)0);
+    _exit(127);
+  }
+  bool up = false;
+  for (int i = 0; i < 100 && !up; i++) {
+    struct stat st;
+    up = stat(sock.c_str(), &st) == 0 && S_ISSOCK(st.st_mode);
+    if (!up) usleep(50000);
+  }
+  check(up, "mosquitto listening on the Unix socket");
+  if (!up) { kill(broker, SIGTERM); waitpid(broker, 0, 0); rmTree(tmp); return 1; }
+
+  setenv("ECCE_HOME", src.c_str(), 1);
+  setenv("ECCE_REALUSERHOME", alice.c_str(), 1);
+  setenv("HOST", "testhost", 1);
+  setenv("DISPLAY", ":7", 1);
+  setenv("ECCE_SESSION_ID", S1, 1);
+  setenv("ECCE_ONE_PROCESS", "1", 1);
+  unsetenv("ECCE_HOST");
+  unsetenv("ECCE_NO_MESSAGING");
+  check(MqttLink::localDelivery(), "ECCE_ONE_PROCESS=1 turns local delivery on");
+
+  Probe org("Organizer"), bld("Builder");
+  g_probes.push_back(&org);
+  g_probes.push_back(&bld);
+  jmsCBFunc cb = static_cast<jmsCBFunc>(&Probe::on);
+  org.subscribe("ecce_url_property", cb);           // NONE, self filtered
+  org.subscribe("ecce_url_state", cb, false);       // NONE, not filtered
+  org.subscribe("ecce_machreg_changed", cb);        // broker filter ecce/+/...
+  org.subscribe("ecce_poll", cb);                   // session
+  bld.subscribe("ecce_url_property", cb);
+  bld.subscribe("ecce_poll", cb);
+  check(org.startSubscriber() && bld.startSubscriber(), "subscribers started");
+  RawClient other("", "", 0, sock);   // another process on the broker
+  other.subscribe("ecce/#");
+
+  JMSPublisher pb("Builder"), po("Organizer");
+  Target toOrg("Organizer", "");
+  check(sent(pb, "ecce_url_property", "b_prop") &&
+        sent(po, "ecce_url_state", "o_state") &&
+        sent(pb, "ecce_machreg_changed", "b_machreg") &&
+        sent(pb, "ecce_poll", "tgt", &toOrg), "published in-process");
+  pump(300);
+  check(org.has("b_prop") && !bld.has("b_prop"),
+        "another tool's message delivered; the tool's own is filtered");
+  check(org.has("o_state"), "own message delivered with filterSelf off");
+  check(org.has("b_machreg"), "topic with a wildcard broker filter delivered");
+  check(org.has("tgt") && !bld.has("tgt"), "targeted message reached only its target");
+  check(other.got("/ecce_url_property") && other.got("/ecce_url_state") &&
+        other.got("/ecce_machreg_changed"),
+        "in-process messages also reach another process through the broker");
+
+  vector<string> a;
+  a.push_back("ecce_poll:c_poll");
+  a.push_back("ecce_url_property:c_prop");
+  a.push_back("ecce_poll:sentinel1");
+  check(runChild(alice, S1, a), "child published in the same session");
+  check(waitFor(org, "sentinel1") && waitFor(bld, "sentinel1"),
+        "both tools received the child's last message");
+  check(org.has("c_poll") && bld.has("c_poll") && org.has("c_prop") &&
+        bld.has("c_prop"), "broker messages reach the in-process subscribers");
+
+  const int N = 200;
+  for (int i = 0; i < N; i++) sent(po, "ecce_poll", "seq" + to_string(i));
+  waitFor(bld, "seq" + to_string(N - 1));
+  vector<string> seq;
+  for (size_t i = 0; i < bld.got.size(); i++)
+    if (bld.got[i].compare(0, 3, "seq") == 0) seq.push_back(bld.got[i]);
+  bool inOrder = (int)seq.size() == N;
+  for (int i = 0; inOrder && i < N; i++) inOrder = seq[i] == "seq" + to_string(i);
+  check(inOrder, "200 in-process messages delivered once each, in order");
+
+  // A broker echo would come back before a later message from another
+  // process; none may.
+  vector<string> z;
+  z.push_back("ecce_poll:sentinel2");
+  runChild(alice, S1, z);
+  waitFor(org, "sentinel2");
+  waitFor(bld, "sentinel2");
+  pump(300);
+  const char* once[] = {"b_prop", "o_state", "b_machreg", "tgt", "c_poll",
+                        "c_prop", "sentinel1"};
+  bool dup = false;
+  for (const char* t : once) {
+    if (countOf(org, t) != 1) {
+      dup = true;
+      cout << "      " << t << " delivered " << countOf(org, t) << " times" << endl;
+    }
+  }
+  check(!dup && countOf(bld, "c_poll") == 1 && countOf(bld, "seq0") == 1,
+        "no duplicates (no broker echo of in-process messages)");
+
+  // Tool instances: ids <pid>.<n>; a target by id reaches one window, a
+  // bare pid (a sender that predates the ids) all tools of the process.
+  Probe bld2("Builder");
+  g_probes.push_back(&bld2);
+  bld2.subscribe("ecce_url_property", cb);
+  bld2.subscribe("ecce_poll", cb);
+  bld2.startSubscriber();
+  string pid = to_string(getpid());
+  check(org.getMyID().compare(0, pid.size() + 1, pid + ".") == 0 &&
+        org.getMyID() != bld.getMyID() && bld.getMyID() != bld2.getMyID(),
+        "each tool instance has its own id <pid>.<n>");
+  Target toBld2("", bld2.getMyID()), toPid("", pid);
+  JMSPublisher pb1("Builder"), pg("Gateway");   // pg: no tool's self
+  pb1.setMyID(bld.getMyID());
+  check(sent(po, "ecce_poll", "id_bld2", &toBld2) &&
+        sent(pg, "ecce_poll", "id_pid", &toPid) &&
+        sent(pb1, "ecce_url_property", "inst_prop"), "published to instances");
+  pump(300);
+  check(bld2.has("id_bld2") && !bld.has("id_bld2") && !org.has("id_bld2"),
+        "a target by instance id reaches that instance only");
+  check(org.has("id_pid") && bld.has("id_pid") && bld2.has("id_pid"),
+        "a target by bare pid reaches every tool of the process");
+  check(!bld.has("inst_prop") && bld2.has("inst_prop") && org.has("inst_prop"),
+        "self filter by instance: a second Builder gets the first's notice");
+
+  // EDSIFactory's notices go out as the acting tool. Its publisher, as
+  // EDSIFactory::getPublisher makes it: eccedsi's statics would fix the
+  // ECCE paths before main sets them, so the test does not link it.
+  JMSPublisher notices("EDSIFactory");
+  notices.followActingTool(true);
+  auto notify = [&notices](const string& value) {
+    JMSMessage* m = notices.newMessage();
+    m->addProperty("url", "http://x/calc/");
+    m->addProperty("value", value);
+    notices.publish("ecce_url_property", *m);
+    delete m;
+  };
+  JMSPublisher::setActingTool("Organizer", org.getMyID());
+  notify("org_save");
+  {
+    JMSPublisher::ActingTool as("Builder", bld.getMyID());
+    notify("bld_save");
+  }
+  notify("org_save2");
+  pump(300);
+  auto valueSeen = [](const Probe& p, const string& v) {
+    for (size_t i = 0; i < p.values.size(); i++) if (p.values[i] == v) return true;
+    return false;
+  };
+  check(valueSeen(org, "bld_save") && !valueSeen(bld, "bld_save") &&
+        valueSeen(bld2, "bld_save"),
+        "a Builder's EDSIFactory notice reaches the Organizer, not that Builder");
+  check(!valueSeen(org, "org_save") && !valueSeen(org, "org_save2") &&
+        valueSeen(bld, "org_save") && valueSeen(bld, "org_save2"),
+        "the Organizer's own notice is filtered; the default is restored");
+  bld2.unsubscribe();
+
+  kill(broker, SIGTERM);
+  waitpid(broker, 0, 0);
+  usleep(300000);
+  check(sent(pb, "ecce_url_property", "nobroker"),
+        "publish succeeds in-process with the broker gone");
+  pump(200);
+  check(countOf(org, "nobroker") == 1, "delivered in-process with the broker gone");
+
+  org.unsubscribe();
+  bld.unsubscribe();
+  rmTree(tmp);
+  cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
+  return g_fail ? 1 : 0;
+}
+
 int main(int argc, char** argv)
 {
   g_self = "/proc/self/exe";
@@ -1074,6 +1293,10 @@ int main(int argc, char** argv)
   if (n > 0) { exe[n] = 0; g_self = exe; }
 
   if (argc >= 2 && string(argv[1]) == "child") return childMain(argc, argv);
+  if (argc >= 3 && string(argv[1]) == "local") return localMain(argv[2]);
+  // Every other mode checks the switch-off behaviour, also when a suite runs
+  // with ECCE_ONE_PROCESS=1 in its environment (#983).
+  unsetenv("ECCE_ONE_PROCESS");
   if (argc >= 2 && string(argv[1]) == "interop") return interopMain();
   if (argc >= 3 && string(argv[1]) == "holder") return holderMain(argv[2]);
   if (argc >= 3 && string(argv[1]) == "linger") return lingerMain(argv[2]);
@@ -1150,6 +1373,19 @@ int main(int argc, char** argv)
     p2.subscribe("ecce_url_created", cb1, false);
     check(p1.startSubscriber() && p2.startSubscriber(), "subscribers started");
     usleep(300000);   // let the broker register the subscriptions
+    {
+      // Without ECCE_ONE_PROCESS the ids and the notice sender stay as before.
+      string pid = to_string(getpid());
+      JMSPublisher::ActingTool as("Builder", "1.1");
+      JMSPublisher notices("EDSIFactory");   // as EDSIFactory::getPublisher
+      notices.followActingTool(true);
+      JMSMessage* m = notices.newMessage();
+      check(p1.getMyID() == pid && p2.getMyID() == pid &&
+            m->getSender().getName() == "EDSIFactory" &&
+            m->getSender().getID() == pid,
+            "ids are the pid and notices go out as EDSIFactory (switch off)");
+      delete m;
+    }
 
     // Another process, same account and session.
     vector<string> a;

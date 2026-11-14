@@ -41,6 +41,7 @@ using std::vector;
 #include <wx/utils.h>
 
 #include "util/Ecce.H"
+#include "util/MqttLink.H"
 #include "util/BrowserHelp.H"
 #include "wxgui/WxHelpViewer.H"
 #include "util/CancelException.H"
@@ -242,6 +243,7 @@ using std::vector;
 #include <wx/spinctrl.h>
 #include <wx/accel.h>
 #include "Builder.H"
+#include "BuilderMessages.H"
 
 static const char *PERSP_SVG = "svg/view-persp.svg";
 static const char *ORTHO_SVG = "svg/view-ortho.svg";
@@ -725,8 +727,11 @@ Builder::~Builder()
     delete p_contextHistory;
   }
 
-  wxLog::SetActiveTarget(NULL);
-  ewxConfig::closeConfigs();
+  if (!MqttLink::localDelivery()) wxLog::SetActiveTarget(NULL);
+  delete p_msgs;
+  // Other windows of the process (#983) may still use their configs.
+  ewxConfig::flushConfigs();
+  ewxConfig::closeConfig("wxbuilder.ini");
 }
 
 
@@ -1168,8 +1173,12 @@ void Builder::createToolPanels()
 
   ewxTextCtrl * log = new ewxTextCtrl(this, wxID_ANY, "", wxDefaultPosition,
           wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxSUNKEN_BORDER);
-  ewxLogTextCtrl *logWindow = new ewxLogTextCtrl(log, GetStatusBar());
-  delete wxLog::SetActiveTarget(logWindow);
+  //  The log target is process-wide: in one process (#983) it stays the
+  //  Organizer's, and this panel only shows what is written to it directly.
+  //  No ewxLogTextCtrl then: it pushes itself onto the text control as its
+  //  event handler and must live as long as the control.
+  if (!MqttLink::localDelivery())
+    delete wxLog::SetActiveTarget(new ewxLogTextCtrl(log, GetStatusBar()));
   addToolPanel(log, NAME_TOOL_LOG, false, false);
   //  In the one-column layouts the log lives collapsed to its caption bar.
   //  It does not open by itself when written to: that resized the viewer
@@ -3085,15 +3094,23 @@ void Builder::mainWindowCloseCB( wxCloseEvent& event )
    //  arrived as a second close event INSIDE the first quit() and ran the
    //  whole shutdown again -- reported as needing two or three clicks and
    //  then "free(): invalid pointer".  One shutdown at a time.
-   static bool closing = false;
-   if (closing) {
+   if (p_closing) {
+      fprintf(stderr, "Builder: close already in progress\n");
       if (event.CanVeto()) event.Veto();
       return;
    }
-   closing = true;
+   p_closing = true;
    saveSettings();
-   quit();
-   closing = false;   // reached only when the user cancelled the quit
+   //  A forced close (session end, Organizer Quit in one process) offers
+   //  no Cancel: it could not be honoured.
+   quit(event.CanVeto());
+   p_closing = false;   // reached only when the user cancelled the quit
+   //  In one process the Organizer's Quit asks this window first (#983).
+   //  After quit()'s Destroy() a frame is only scheduled for deletion and
+   //  IsBeingDeleted() is still false: a veto then would cancel the Quit.
+   if (p_inProcess && !IsBeingDeleted() &&
+       !wxTheApp->IsScheduledForDestruction(this) && event.CanVeto())
+     event.Veto();
 }
 
 
@@ -6319,7 +6336,7 @@ void Builder::updatePropertyMenus()
       p_propertyMenu->GetMenuItemCount() > 0) {
     panelMetricsStarted = true;
     string path = metricsPath;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this, path](wxTimerEvent&) {
       wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
       FILE *f = fopen(path.c_str(), "w");
@@ -6381,7 +6398,7 @@ void Builder::updatePropertyMenus()
   if (getenv("ECCE_PANEL_TEST") != 0 && !panelTestStarted &&
       p_calculation != 0 && p_propertyMenu->GetMenuItemCount() > 0) {
     panelTestStarted = true;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { runPanelLayoutTest(); });
     timer->StartOnce(5000);
   }
@@ -6393,7 +6410,7 @@ void Builder::updatePropertyMenus()
       !clipAuditStarted && p_calculation != 0 &&
       p_propertyMenu->GetMenuItemCount() > 0) {
     clipAuditStarted = true;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { runClipAudit(); });
     timer->StartOnce(6000);
   }
@@ -6453,7 +6470,7 @@ void Builder::updatePropertyMenus()
   static bool dockStarted = false;
   if (getenv("ECCE_TEST_DOCK") && !dockStarted) {
     dockStarted = true;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
       auto docked = [this](int side) {
         std::vector<wxString> names;
@@ -6504,7 +6521,7 @@ void Builder::updatePropertyMenus()
   static bool helpStarted = false;
   if (getenv("ECCE_TEST_HELP") && !helpStarted) {
     helpStarted = true;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
       wxCommandEvent ev;
       helpBuilderMenuitemClick(ev);
@@ -6648,7 +6665,7 @@ void Builder::updatePropertyMenus()
     string script = sceneScript;
     const char *o = getenv("ECCE_VIEWER_SCENE_OUT");
     string outdir = o ? o : ".";
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     int *ticks = new int(0), *settled = new int(0);
     timer->Bind(wxEVT_TIMER, [this, timer, ticks, settled, script, outdir](wxTimerEvent&) {
       SGContainer *sg = getSG();
@@ -7178,7 +7195,7 @@ void Builder::updatePropertyMenus()
         std::ofstream(outdir + "/FAILED") << msg << "\n";
       }
       if (hold) {
-        wxTimer *closer = new wxTimer();   // lives until the process exits
+        wxTimer *closer = ewxWindowTimer(this);   // deleted with the window (#983)
         closer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { Close(true); });
         closer->StartOnce(1000 * atoi(hold));
         return;
@@ -8235,7 +8252,14 @@ void Builder::propertyChangeMCB(JMSMessage& msg)
 
   // Don't process it if we are the ones that sent it.
   // This happens with the "isReviewed" property.
-  if (msg.getSender().getID() == getMyID()) return;
+  // In one process (#983) the bare pid is every tool's: the sender is this
+  // Builder if it is its own publisher or its window's dispatcher.
+  const string from = msg.getSender().getID();
+  if (MqttLink::localDelivery()) {
+    if ((from == getMyID() && msg.getSender().getName() == JMSPublisher::getMyName()) ||
+        (p_msgs && from == p_msgs->getMyID()))
+      return;
+  } else if (from == getMyID()) return;
   propertyChanged(urlstr, msg.getProperty("name"), msg.getProperty("value"));
 }
 
@@ -8318,6 +8342,15 @@ void Builder::deleteSelection()
 
 void Builder::quit(const bool& allowCancel)
 {
+  //  Its save question runs a modal loop, in which another close request
+  //  (a second ecce_quit handler, #983) could start a second quit: both
+  //  would ask and both Destroy().
+  if (p_quitting) {
+    fprintf(stderr, "Builder: quit already in progress\n");
+    return;
+  }
+  p_quitting = true;
+  struct Reset { bool &f; ~Reset() { f = false; } } reset{p_quitting};
   int ret = wxID_YES;
   long buttonFlags = wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION;
   buttonFlags |= allowCancel ? wxCANCEL : 0;
@@ -8369,6 +8402,11 @@ void Builder::quit(const bool& allowCancel)
     // reached from exit() -> __run_exit_handlers -> _dl_fini). _exit()
     // skips all of that and terminates immediately, which is what "exit
     // ungracefully" actually needs.
+    if (p_inProcess) {
+      // Other windows share the process (#983): close this one only.
+      Destroy();
+      return;
+    }
     _exit(0);
   }
 }
