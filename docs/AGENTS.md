@@ -892,14 +892,18 @@ Formulas in `ecce-rate --help`. Exit 0 done, 1 refused or failed. In the GUI, Co
 
 ### ecce-ensemble
 
-    ecce-ensemble pick <crest calc> [n=N] [--rmsd A] [--skip-failed] [--create TEMPLATE FOLDER] [--json]
+    ecce-ensemble pick <crest calc> [n=N] [window=E] [--rmsd A] [--skip-failed] [--create TEMPLATE FOLDER] [--json]
     ecce-ensemble minimum <calculation|folder|pattern>... [--treatment SPEC] [--json]
     ecce-ensemble benchmark <spec file> [--treatment SPEC] [--T K] [--save NAME] [--dir DIR] [--json]
 
 Reads stored calculations; talks to no ECCE session. `pick` lists the N
 (default 5) lowest distinct members of a CREST ensemble: members with the same
 protonation and a heavy-atom RMSD below `--rmsd` (default 0.50 A, after a
-fit, atoms in stored order) are merged. Each pick is checked against the
+fit, atoms in stored order) are merged. `window=E` (kcal/mol; `window=3kcal`,
+`window=12.5kJ`) keeps only members within E of the lowest member of the
+ensemble (stored energies); `n=` then caps the count, and a window without
+`n=` is not capped. Order: merge, window, n. JSON has `window_kcal_mol`.
+Each pick is checked against the
 input structure: protonation unchanged, every ion that is bound in the input
 still bound, metal-N/O/S contacts listed with distances (cutoffs in `--help`).
 `--create` makes one calculation per pick through `ecce-series` from the
