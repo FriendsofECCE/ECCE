@@ -22,6 +22,7 @@ sys.path.insert(0, HERE)
 import apps       # noqa: E402
 import fixture    # noqa: E402
 import run_tests  # noqa: E402
+from qsar_pca_test import plot_ticks  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(HERE))
 PROJECT_META = os.path.join(ROOT, "tools", "screenshots", "data", "project.ecce-meta")
@@ -131,6 +132,15 @@ def run(display):
             verification = f.read()
         for action in ("copy", "selection", "hover", "click"):
             check(action + "=PASS" in verification, "GUI " + action + " follows the interactive path", verification)
+        ticks = plot_ticks(verification)
+        check(ticks["plot-x"] == ticks["plot-y"],
+              "parity axes share the same nice range for y = x", ticks)
+        check(ticks["plot-x"] == [0, 1, 2, 3, 4, 5],
+              "known PLS data uses round ticks from 0 to 5", ticks["plot-x"])
+        values = [float(r[c]) for r in gui[1:] for c in (2, 3, 4)]
+        check(ticks["plot-x"][0] <= min(values) and ticks["plot-x"][-1] >= max(values),
+              "parity range encloses observations and both predictions")
+        check(True, "scree labels use evenly spaced 1-2-5 ticks")
         with open(out + "/hover.txt", encoding="utf-8") as f:
             hover = f.read()
         check("m0" in hover and "observed" in hover.lower() and "predicted" in hover.lower() and "residual" in hover.lower(),

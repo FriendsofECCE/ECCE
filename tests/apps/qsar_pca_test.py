@@ -9,6 +9,7 @@ whose scores must equal those of the CLI on the stored folders.  Exit 77 (skip) 
 """
 import csv
 import io
+import math
 import os
 import re
 import shutil
@@ -47,6 +48,23 @@ def same(a, b):
         return abs(float(a) - float(b)) < 1e-9
     except ValueError:
         return a == b
+
+
+def plot_ticks(verification):
+    """Read the labels collected by the actual paint paths."""
+    labels = {}
+    for axis in ("plot-x", "plot-y", "scree-y"):
+        match = re.search(r"^" + axis + r"=(.*)$", verification, re.MULTILINE)
+        values = [float(v) for v in match[1].split()] if match else []
+        assert len(values) >= 2, (axis, values)
+        step = values[1] - values[0]
+        assert step > 0, (axis, values)
+        mantissa = step / 10 ** math.floor(math.log10(step))
+        assert any(math.isclose(mantissa, m) for m in (1, 2, 5, 10)), (axis, values)
+        assert all(math.isclose(b - a, step) for a, b in zip(values, values[1:])), (axis, values)
+        assert all(math.isclose(v / step, round(v / step), abs_tol=1e-8) for v in values), (axis, values)
+        labels[axis] = values
+    return labels
 
 
 def run(display):
@@ -130,6 +148,14 @@ def run(display):
             verification = f.read()
         for action in ("copy", "selection", "hover", "click"):
             check(action + "=PASS" in verification, "GUI " + action + " follows the interactive path", verification)
+        ticks = plot_ticks(verification)
+        check(True, "score and scree labels use evenly spaced 1-2-5 ticks")
+        for axis, column in (("plot-x", 1), ("plot-y", 2)):
+            values = [float(r[column]) for r in gui[1:]]
+            check(ticks[axis][0] <= min(values) and ticks[axis][-1] >= max(values),
+                  axis + " range encloses every score", ticks[axis])
+        check(ticks["scree-y"][0] <= 0 and ticks["scree-y"][-1] >= 100,
+              "scree ticks enclose the percentage range", ticks["scree-y"])
         with open(out + "/hover.txt", encoding="utf-8") as f:
             hover = f.read()
         check("m0" in hover and "T²" in hover and "DModX" in hover,

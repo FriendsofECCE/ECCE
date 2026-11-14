@@ -252,7 +252,9 @@ The `qsarpca` and `qsarpls` test hooks accept `[png [width height]]` after the
 usual model arguments, save screenshots of the report, grids and variance
 plot, and verify real clipboard, hover and click paths. Their output directory
 contains `presentation.tsv`, `selection.tsv`, `hover.txt` and
-`presentation-check.txt` for script assertions.
+`presentation-check.txt` for script assertions. The check file also records
+painted axis labels as `plot-x`, `plot-y` and `scree-y`; all use enclosing
+1–2–5 tick ranges, with equal ranges on the observed/predicted axes.
 
 **Docking.** Vina calculations (`vina`); `ecce-pdbqt` prepares PDBQT files;
 CREST/xTB docking is a run type of xTB.

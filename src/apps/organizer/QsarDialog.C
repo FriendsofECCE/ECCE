@@ -29,6 +29,7 @@
 
 #include "ChecksDialog.H"
 #include "SiExport.H"
+#include "tdat/VibSpectrum.H"
 #include "util/Ecce.H"
 #include "util/Filesystem.H"
 
@@ -61,6 +62,20 @@ string readText(const fs::path& path)
 }
 vector<vector<string>> readCsv(const fs::path& path) { return parseCsv(readText(path)); }
 const char *scalings[] = {"uv", "pareto", "ctr", "none"};
+
+SpectrumTicks enclosingTicks(double& lo, double& hi)
+{
+  const double step = niceTicks(lo, hi, 4).step;
+  lo = std::floor(lo / step) * step;
+  hi = std::ceil(hi / step) * step;
+  return niceTicks(lo, hi, int(std::lround((hi - lo) / step)));
+}
+
+wxString tickLabel(double value, const SpectrumTicks& ticks)
+{
+  return wxString::Format("%.*f", ticks.decimals, value);
+}
+
 
 wxString gridText(wxGrid *g, bool whole)
 {
@@ -162,7 +177,7 @@ class QsarPlot : public wxPanel
 public:
   struct Point { string name, tip; double x, y; int row, kind; };
   vector<Point> points;
-  string xTitle, yTitle;
+  string xTitle, yTitle, xLabels, yLabels;
   bool parity = false;
   std::function<void(int)> selected;
   QsarPlot(wxWindow *parent) : wxPanel(parent)
@@ -218,17 +233,24 @@ private:
     if (parity) { p_x0 = p_y0 = std::min(p_x0, p_y0); p_x1 = p_y1 = std::max(p_x1, p_y1); }
     double dx = std::max(1e-6, p_x1 - p_x0), dy = std::max(1e-6, p_y1 - p_y0);
     p_x0 -= .07 * dx; p_x1 += .07 * dx; p_y0 -= .07 * dy; p_y1 += .07 * dy;
+    const SpectrumTicks xt = enclosingTicks(p_x0, p_x1), yt = enclosingTicks(p_y0, p_y1);
     auto X = [&](double v) { return 80 + int((v - p_x0) / (p_x1 - p_x0) * (sz.x - 105)); };
     auto Y = [&](double v) { return 45 + int((p_y1 - v) / (p_y1 - p_y0) * (sz.y - 125)); };
     dc.SetFont(wxFont(wxFontInfo(9)));
     dc.SetPen(*wxLIGHT_GREY_PEN);
     dc.DrawRectangle(80, 45, sz.x - 105, sz.y - 125);
-    for (int i = 0; i <= 4; ++i) {
-      double xv = p_x0 + i * (p_x1 - p_x0) / 4, yv = p_y0 + i * (p_y1 - p_y0) / 4;
-      dc.DrawLine(X(xv), 45, X(xv), sz.y - 80); dc.DrawLine(80, Y(yv), sz.x - 25, Y(yv));
-      wxString tx = wxString::Format("%.3g", xv), ty = wxString::Format("%.3g", yv);
-      dc.DrawText(tx, X(xv) - dc.GetTextExtent(tx).x / 2, sz.y - 74);
-      dc.DrawText(ty, 74 - dc.GetTextExtent(ty).x, Y(yv) - 6);
+    xLabels.clear(); yLabels.clear();
+    for (double v : xt.values) {
+      dc.DrawLine(X(v), 45, X(v), sz.y - 80);
+      const wxString label = tickLabel(v, xt);
+      dc.DrawText(label, X(v) - dc.GetTextExtent(label).x / 2, sz.y - 74);
+      xLabels += label.ToStdString() + " ";
+    }
+    for (double v : yt.values) {
+      dc.DrawLine(80, Y(v), sz.x - 25, Y(v));
+      const wxString label = tickLabel(v, yt);
+      dc.DrawText(label, 74 - dc.GetTextExtent(label).x, Y(v) - 6);
+      yLabels += label.ToStdString() + " ";
     }
     dc.SetTextForeground(*wxBLACK);
     dc.DrawText(utf(xTitle), std::max(80, (sz.x - dc.GetTextExtent(utf(xTitle)).x) / 2), sz.y - 48);
@@ -259,6 +281,7 @@ class QsarScree : public wxPanel
 {
 public:
   vector<vector<double>> bars, lines;
+  string yLabels;
   QsarScree(wxWindow *parent) : wxPanel(parent)
   {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
@@ -278,14 +301,17 @@ private:
       if (std::isfinite(series[i])) lo = std::min(lo, series[i] * 100);
     for (const auto& series : lines) for (int i = 0; i < n && i < int(series.size()); ++i)
       if (std::isfinite(series[i])) lo = std::min(lo, series[i] * 100);
+    const SpectrumTicks yt = enclosingTicks(lo, hi);
     auto Y = [&](double percent) { return top + int((hi - percent) / (hi - lo) * h); };
     auto X = [&](int i) { return left + int((i + .5) * w / n); };
     dc.SetFont(wxFont(wxFontInfo(9)));
     dc.DrawText("Variance / prediction explained (%)", left, 52);
-    for (int j = 0; j <= 4; ++j) {
-      const double v = lo + (hi - lo) * j / 4;
+    yLabels.clear();
+    for (double v : yt.values) {
       dc.SetPen(*wxLIGHT_GREY_PEN); dc.DrawLine(left, Y(v), left + w, Y(v));
-      dc.DrawText(wxString::Format("%.0f", v), 12, Y(v) - 7);
+      const wxString label = tickLabel(v, yt);
+      dc.DrawText(label, 12, Y(v) - 7);
+      yLabels += label.ToStdString() + " ";
     }
     const wxColour colours[] = {wxColour(30, 90, 170), wxColour(200, 110, 20), wxColour(25, 140, 90)};
     const char *labels[] = {"R²X", "R²Y", "Q²"};
@@ -613,10 +639,14 @@ bool QsarDialog::verifyPresentation(const string& dir, string& why)
   const bool hover = hit >= 0 && p_plot->hover(pos) == p_plot->points[hit].tip;
   const int clicked = p_plot->click(pos);
   const bool click = clicked >= 0 && p_molecules->IsInSelection(p_plot->points[clicked].row, 0);
+  selectPresentationPage(4); p_scree->Refresh(); p_scree->Update();
+  selectPresentationPage(0);
   auto verdict = [](bool pass) { return pass ? "PASS" : "FAIL"; };
   std::ofstream(fs::path(dir) / "presentation-check.txt") <<
     "copy=" << verdict(ok) << "\nselection=" << verdict(selection) <<
-    "\nhover=" << verdict(hover) << "\nclick=" << verdict(click) << "\n";
+    "\nhover=" << verdict(hover) << "\nclick=" << verdict(click) <<
+    "\nplot-x=" << p_plot->xLabels << "\nplot-y=" << p_plot->yLabels <<
+    "\nscree-y=" << p_scree->yLabels << "\n";
   ok = ok && selection && hover && click;
   if (!ok) why = "presentation clipboard, hover or click check failed";
   return ok;
