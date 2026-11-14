@@ -66,6 +66,20 @@ class CalcEd: public CalcEdGUI,
             long style = SYMBOL_CALCEDGUI_STYLE );
     ~CalcEd( );
 
+    // As a tab of the Organizer's window (#983): select / retitle the tab,
+    // give the windows back before the frame goes.
+    bool Show(bool show = true) override;
+    void Raise() override;
+    void SetTitle(const wxString& title) override;
+    bool Destroy() override;
+    bool Layout() override;
+    /// The menu bar, also while it is on the Organizer's window (a tab).
+    wxMenuBar *GetMenuBar() const;
+    /// The frame's sizer, also while it is in the tab's page.
+    wxSizer *mainSizer() const;
+    /// Hides wxWindow::FindWindow(long): the controls are in the tab's page.
+    wxWindow *FindWindow(long id) const;
+
     bool Create( wxWindow* parent, wxWindowID id = SYMBOL_CALCEDGUI_IDNAME,
                  const wxString& caption = SYMBOL_CALCEDGUI_TITLE,
                  const wxPoint& pos = SYMBOL_CALCEDGUI_POSITION,

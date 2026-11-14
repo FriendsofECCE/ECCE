@@ -470,6 +470,30 @@ bool ToolTabs::hosts(const wxTopLevelWindow *tool)
 }
 
 
+wxSizer *ToolTabs::sizer(const wxTopLevelWindow *tool, wxSizer *own)
+{
+  if (own) return own;
+  Tab *t = findTool(tool);
+  return t && t->page ? static_cast<ToolPage*>(t->page)->body()->GetSizer() : 0;
+}
+
+
+wxWindow *ToolTabs::client(const wxTopLevelWindow *tool)
+{
+  Tab *t = findTool(tool);
+  return t && t->page ? static_cast<ToolPage*>(t->page)->body() : 0;
+}
+
+
+bool ToolTabs::layout(wxTopLevelWindow *tool)
+{
+  Tab *t = findTool(tool);
+  if (!t || !t->page) return false;
+  static_cast<ToolPage*>(t->page)->body()->Layout();
+  return true;
+}
+
+
 void ToolTabs::select(wxTopLevelWindow *tool)
 {
   Tab *t = findTool(tool);

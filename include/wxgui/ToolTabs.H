@@ -19,7 +19,9 @@
 class wxAuiManager;
 class wxFrame;
 class wxMenuBar;
+class wxSizer;
 class wxTopLevelWindow;
+class wxWindow;
 
 class ToolTabs
 {
@@ -51,6 +53,14 @@ public:
   // frame (the Organizer updates its menus by name: Run Mgmt, ...).
   static wxMenuBar *mainMenuBar(const wxTopLevelWindow *host, wxMenuBar *own);
   static bool hosts(const wxTopLevelWindow *tool);
+  // The tool's own sizer moves to its page: code that does GetSizer()->...
+  // on the frame gets the page's through this (own: the frame's sizer).
+  static wxSizer *sizer(const wxTopLevelWindow *tool, wxSizer *own);
+  // Lays out the tool's page when it is hosted (the frame has no sizer then).
+  static bool layout(wxTopLevelWindow *tool);
+  // The window the tool's controls are children of while hosted (the
+  // frame's FindWindow(id) no longer reaches them), else null.
+  static wxWindow *client(const wxTopLevelWindow *tool);
   // The tool's Show/Raise/SetTitle while hosted: select / retitle its tab.
   static void select(wxTopLevelWindow *tool);
   static void setTitle(wxTopLevelWindow *tool, const wxString& title);
