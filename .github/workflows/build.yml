@@ -733,9 +733,10 @@ jobs:
           $sys = "$env:SystemRoot\System32;$env:SystemRoot"
           $env:Path = $sys
           $env:WINTEST_HOME = $r
+          $env:WINTEST_BROKER = "$PWD\build\eccebroker.exe"
           $env:WINTEST_BASE_PATH = "$r\bin;$r\usr\bin;$r\python;$r\strawberry\perl\site\bin;$r\strawberry\perl\bin;$r\strawberry\c\bin;$sys"
           $env:Path = $env:WINTEST_BASE_PATH
-          & "$r\usr\bin\bash.exe" -c 'echo "$PATH"; command -v mosquitto mosquitto_sub perl python3; ls -l "$ECCE_HOME/bin/mosquitto.exe"' 2>&1 | Tee-Object localjobs\probe.log
+          & "$r\usr\bin\bash.exe" -c 'echo "$PATH"; command -v mosquitto_sub perl python3' 2>&1 | Tee-Object localjobs\probe.log
           $env:Path = $sys
           $rc = 0
           foreach ($c in "complete", "cancel") {
@@ -784,6 +785,7 @@ jobs:
         run: |
           $r = "$env:RUNNER_TEMP\unpacked\ecce"
           Copy-Item build\launchjob.exe "$r\bin\"
+          Copy-Item build\eccebroker.exe "$r\bin\"
           $env:Path = "$env:SystemRoot\System32;$env:SystemRoot"
           & "$r\python\python3.exe" tests\windows\ecceqm_win.py $r "$env:RUNNER_TEMP\ecceqm" 2>&1 | Tee-Object ecceqm.log
           $e = $LASTEXITCODE

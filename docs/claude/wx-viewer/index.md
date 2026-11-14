@@ -78,6 +78,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [macOS (wx 3.3): opening a calculation with MOs crashed the Builder in wxAuiManager::DoFrameLayout](macos-builder-nested-updatepanes-crash.md)
 - [wxMSW: 16-bit menu ids, no right-click selection, no manifest, text-mode 0x1A, a grey frame, no alpha by default, console windows from system()/popen()](wxmsw-silent-differences.md)
 - [An offscreen render has no background of its own; a GLX Coin warns about the EGL offscreen context (#276)](offscreen-thumbnail-needs-the-viewers-background.md)
+- [The viewer's GL canvas has an alpha channel; a frame left at alpha 0 shows what lies beneath it (#999)](viewer-frames-must-be-opaque.md)
 - [AtomLabelsCmd::undo must restore showAtomLabels; turning it on after Save killed atom picking (#423)](atom-labels-undo-must-restore-showatomlabels.md)
 - [ChemSelection::rayPick must set ChemSelectionElement; labels shown by the user took clicks from atoms (#975)](chemselection-raypick-must-set-parts.md)
 - [Atom/bond tessellation follows screen size, quality sliders are a floor; specular in two places; MSAA invisible to `snap` (#210)](sphere-and-bond-tessellation-follows-screen-size.md)

@@ -1102,6 +1102,7 @@ void Builder::updatePropertyIndex()
       PropertyPanel::getPanels(p_calculation->getURL().toString());
   for (set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end();
        ++it) {
+    if (panelRedundant((*it)->getName())) continue;
     PropertyIndexPanel::Entry entry;
     entry.name = (*it)->getName();
     entry.group = factory.groupOf(entry.name);

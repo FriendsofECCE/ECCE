@@ -6,7 +6,11 @@ it needs a structure and an optional atom selection, nothing else. The
 **Pattern** box chooses the view; switching view recalculates at once.
 
 - **Fibre**: the pattern of molecules aligned on one axis, on a film or as an
-  (R, Z) map. It works for any structure.
+  (R, Z) map. Auto uses a helical transform for a regular backbone and the
+  finite-model transform for other structures.
+- **Molecule (Debye scattering)**: the orientational average for a molecule,
+  cluster or the contents of a unit cell, plotted against 2θ. It works for any
+  structure.
 - **Powder**: intensity against 2θ with hkl labels and a peak list, with the
   K-alpha doublet for Cu, Mo and Co sources. It needs a periodic structure.
 - **Single crystal**: a reciprocal-lattice layer (hk0, h0l, 0kl or a higher
@@ -46,13 +50,15 @@ The fields:
   untilted fibre.
 - **B** (20 Å² by default): an isotropic temperature factor, damping the high angles.
 - **Fibre length**: broadens the layer lines along Z as a fibre of that length
-  would (100 Å by default). It is added to the broadening of the molecule's own
-  length. 0 is off.
+  would (100 Å by default), with Gaussian FWHM 1/length in Å⁻¹. In helical mode
+  this is the only length broadening. Finite-model mode also carries the
+  molecule's own length fringes. 0 is off.
 - **Misalignment** (8° by default): the spread of the fibre axes, which draws the
   spots out into arcs. The smearing follows circles of constant |S| and ignores
   the change of the orientation weight along the arc, so it is a good picture
   of the arcs and not a quantitative profile.
-- **Axis**: the principal axis of the atoms (the helix axis of a helix), or the
+- **Axis**: the fitted screw axis in helical mode, the principal axis in
+  finite-model mode, or the
   line from the first to the last selected atom.
 - **Scaling**: logarithmic, square root or linear, and a gamma exponent. The
   intensity range of a pattern is wide; the logarithmic scale shows 2.5 decades
@@ -63,6 +69,91 @@ The fields:
 
 Form factors are the Cromer-Mann coefficients of the International Tables
 (Vol. C, Table 6.1.1.4), for H, C, N, O, Na, Mg, P, S, Cl, K, Ca, Fe and Zn.
+
+## Molecule (Debye scattering)
+
+Choose **Molecule (Debye scattering)** to average over all orientations of
+the structure. This is suitable for a gas of molecules or a finite disordered
+cluster. It uses the same neutral-atom IT92 form factors and **Source**,
+**Wavelength**, **K-alpha1/K-alpha2 doublet**, angle range and **B** settings
+as Powder. Cu, Mo and Co use their tabulated wavelengths; a custom wavelength
+uses a single line. The doublet combines the two intensities in a 2:1 ratio.
+
+The calculation is
+
+    I(q) = sum_i f_i(q)^2 + 2 sum_{i<j} f_i(q) f_j(q) sin(q r_ij)/(q r_ij)
+    q = 4 pi sin(theta)/lambda,  s = q/(4 pi)
+
+Distances are in Å and q is in Å⁻¹. The self terms are included and
+sin(qr)/(qr) is 1 at qr = 0. Each form factor is multiplied by exp(-B s²),
+as in Powder. No powder Lorentz or polarisation correction or artificial
+peak width is applied. The displayed curve is scaled to a maximum of 100
+over the chosen angle range; it has no hkl labels or reflection table.
+
+Up to 3000 atoms the sum uses exact pair distances. Above 3000 atoms it uses
+an element-pair distance histogram with 0.01 Å bins; the status line states
+the method. Building the histogram still takes O(N²) pair work, but avoids
+evaluating every pair at every angle. The histogram is an approximation.
+
+A periodic structure contributes the atoms in its cell once, without
+periodic images or automatic replication. A single NaCl pair gives broad
+oscillations; a larger ordered NaCl cluster develops peaks near the crystal's
+Bragg positions. A water cluster can similarly be compared with crystalline
+ice to discuss local and long-range order. Intensities and finite-size peak
+widths differ from the infinite-crystal Powder view.
+
+**Save PNG...** saves the displayed curve and **Save CSV...** saves columns
+`two_theta,intensity`, like Powder. The pointer reports 2θ, d, Q and intensity.
+From the command line:
+
+    ecce-xrd debye molecule.xyz --source cu --out debye.csv --out debye.png --json
+    ecce-xrd debye cluster.xyz --wavelength 0.71073 --tt-min 0 --tt-max 90 --step 0.05
+
+The CLI also accepts `.pdb`, `.mvm` and periodic `.cif` structures,
+`--select 1-40,57`, `--B`, `--no-doublet` and `--measured` as for the existing
+views. JSON records the method and distance bin width, the q grid and raw
+and relative intensities. q is in Å⁻¹; the plot and CSV use 2θ in degrees.
+
+## Helical transform
+
+**Transform** chooses **Auto** (default), **Helical**, or **Finite model**.
+Helical treats the model as a sample of an infinitely repeated helix. Auto fits
+consecutive phosphorus atoms in a nucleic-acid backbone or consecutive peptide
+nitrogens in file order. It splits chains at large gaps and fits a rigid screw
+to the longest chain, requiring at least six anchors and RMS error below 0.15 Å.
+Use a selected helix for a structure containing other molecules. A reordered,
+bent or irregular backbone may not be recognized: Auto then uses Finite model;
+Helical reports an error. The status line says which transform was used.
+An explicitly selected axis must agree with the fitted screw axis.
+
+The measured twist is approximated by t/u turns per unit (u at most 20,
+within 1°); the rise h is measured, giving the axial repeat c = u h.
+Complete interior steps are folded onto one screw unit and averaged, removing
+end caps and averaging small deviations from ideal symmetry. The transform is
+an idealization of that motif, not a refinement of the model. **Repeat** is
+filled with c after calculation, so the pointer reports the corresponding layer
+number. For the Teaching B-DNA sample h = 3.387 Å, u = 10, t = 1,
+c = 33.867 Å. For polyalanine h = 1.503 Å, u = 18, t = 5,
+c = 27.061 Å (five pitches of 5.412 Å); the pitch line is l = 5 and the
+1.503 Å meridional reflection l = 18.
+
+On each line Z = l/c the amplitude of order n is
+`A_n = u sum_j f_j J_n(2π R r_j) exp(-i n φ_j + 2π i l z_j/c)`,
+where j runs over the averaged screw unit. Only orders with
+`l - n t = u m` for integer m contribute; intensity is `sum_n |A_n|²`.
+This is the helical selection rule described in the
+[helical symmetry convention](https://journals.iucr.org/d/issues/2011/08/00/yt5034/index.html).
+Gaussian length broadening and angular misalignment are applied to these line
+intensities, followed by the same logarithmic film display. There are no
+finite-model side fringes. The double-strand interference makes the B-DNA
+fourth layer weak, not an exact extinction for these atomic coordinates;
+no layer is removed by hand.
+
+**Finite model** retains the cylindrical average of the entire finite
+structure for non-helical fibres and comparisons. From the command line use
+`--transform auto|helical|finite`; `--json` reports the mode and, when fitted,
+the repeat, rise, units, turns, screw axis, anchor element and fit RMS error.
+`--geometry FILE` writes the inferred repeat (zero for a finite model).
 
 ## Powder patterns: the K-alpha doublet
 

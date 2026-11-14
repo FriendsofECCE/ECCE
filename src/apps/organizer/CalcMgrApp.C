@@ -16,6 +16,7 @@
 #include "util/TempStorage.H"
 #include <unistd.h>
 #include <stdio.h>
+#include "util/MqttBroker.H"
 #include "wx/wxprec.h"
 
 #ifdef __BORLANDC__
@@ -137,6 +138,24 @@ string CalcMgrApp::getName() const
  */
 bool CalcMgrApp::OnInit()
 {
+  // The session's own broker (#990), before anything connects to it.
+  // ECCE_BROKER=mosquitto keeps the old ecce-broker-win (ecce.cmd).  Only
+  // ecce.cmd sets ECCE_LOCAL_BROKER: on Linux and macOS ecce-gateway-start
+  // runs the same broker as a program (eccebroker --serve, #1007), since the
+  // gateway connects before this Organizer exists; with the variable set
+  // here anyway, startForSession adopts that broker.
+  {
+    wxString which;
+    if (wxGetEnv("ECCE_LOCAL_BROKER", NULL) &&
+        !(wxGetEnv("ECCE_BROKER", &which) && which == "mosquitto")) {
+      std::string err = MqttBroker::startForSession();
+      if (!err.empty()) {
+        std::cerr << "ECCE: message broker: " << err << std::endl;
+        wxMessageBox("ECCE could not start its message broker: " + err,
+                     "ECCE", wxOK | wxICON_ERROR);
+      }
+    }
+  }
   ewxApp::OnInit();
 #ifdef __WXMSW__
   // No gateway here: the Organizer has the session's login window.
@@ -278,6 +297,9 @@ void CalcMgrApp::openUrlWhenReady(const string& url, int tries)
 
 int CalcMgrApp::OnExit()
 {
+  // Tools and job monitors still connected keep the broker for 10 s after
+  // the last of them.
+  MqttBroker::lingerForSession(10);
   return 0;
 }
 

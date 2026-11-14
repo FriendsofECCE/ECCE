@@ -3,6 +3,7 @@
 
     ecce-xrd fibre STRUCTURE [options]     fibre pattern: molecules aligned on
                                            one axis, randomly rotated about it
+    ecce-xrd debye STRUCTURE [options]     Debye scattering of molecule/cell contents
     ecce-xrd powder STRUCTURE [options]    powder pattern of a periodic structure
 
 The structure is an .xyz, .pdb or .mvm file; --select takes atom numbers from
@@ -19,6 +20,7 @@ sphere; no iteration is needed.
 """
 import argparse
 import csv
+from fractions import Fraction
 import json
 import math
 import os
@@ -202,6 +204,8 @@ class Model:
         e1 = np.cross(ax, helper)
         e1 /= np.linalg.norm(e1)
         e2 = np.cross(ax, e1)
+        self.explicit_axis = axis is not None
+        self.xyz = xyz
         self.axis = ax
         self.z = c @ ax
         x, y = c @ e1, c @ e2
@@ -260,6 +264,125 @@ def intensity_rz(model, rs, zs, bfactor=0.0):
             g = g + f[:, None] * (ez[:, idx] @ a[idx, :])
         out[ir] = np.sum(np.abs(g) ** 2, axis=1)
     return out
+
+
+def helical_repeat(model):
+    """Fit a screw to consecutive P or peptide N anchors in file order.
+
+    Reject short, bent or irregular chains rather than inventing a repeat.
+    The rational approximation closes the measured screw into an axial cell.
+    """
+    for element, cutoff in (("P", 9.0), ("N", 4.0)):
+        anchors = model.xyz[np.array(model.symbols) == element]
+        if len(anchors) < 6:
+            continue
+        breaks = np.flatnonzero(np.linalg.norm(np.diff(anchors, axis=0), axis=1) > cutoff) + 1
+        chain = max(np.split(anchors, breaks), key=len)
+        if len(chain) < 6:
+            continue
+        a, b = chain[:-1], chain[1:]
+        ac, bc = a.mean(axis=0), b.mean(axis=0)
+        u, _, vt = np.linalg.svd((a - ac).T @ (b - bc))
+        rot = vt.T @ np.diag([1, 1, np.linalg.det(vt.T @ u.T)]) @ u.T
+        shift = bc - rot @ ac
+        error = float(np.sqrt(np.mean(np.sum((a @ rot.T + shift - b) ** 2, axis=1))))
+        if error > 0.15:
+            continue
+        w, v = np.linalg.eig(rot)
+        axis = v[:, np.argmin(abs(w - 1))].real
+        axis /= np.linalg.norm(axis)
+        rise = float(shift @ axis)
+        if rise < 0:
+            axis, rise = -axis, -rise
+        if model.explicit_axis and abs(float(axis @ model.axis)) < 0.999:
+            continue
+        angle = math.atan2(float(axis @ np.array([rot[2, 1] - rot[1, 2],
+                                                 rot[0, 2] - rot[2, 0],
+                                                 rot[1, 0] - rot[0, 1]])) / 2,
+                           (np.trace(rot) - 1) / 2)
+        turns = Fraction(angle / (2 * math.pi)).limit_denominator(20)
+        if (rise < 0.5 or abs(angle) < 0.2 or turns.numerator == 0 or
+                abs(float(turns) * 2 * math.pi - angle) > math.radians(1)):
+            continue
+        origin = np.linalg.lstsq(np.eye(3) - rot + np.outer(axis, axis),
+                                 shift - rise * axis, rcond=None)[0]
+        # Keep complete interior steps, then fold them onto one screw unit.
+        # Averaging equivalent units removes end caps and small model deviations.
+        xyz = model.xyz - origin
+        z = xyz @ axis
+        lo = math.ceil(float(z.min()) / rise) + 1
+        hi = math.floor(float(z.max()) / rise) - 1
+        if hi - lo < 3:
+            continue
+        keep = (z >= lo * rise) & (z < hi * rise)
+        xyz, z = xyz[keep], z[keep]
+        k = np.floor(z / rise)
+        theta = -k * float(turns) * 2 * math.pi
+        radial = xyz - z[:, None] * axis
+        folded = (radial * np.cos(theta)[:, None] +
+                  np.cross(axis, radial) * np.sin(theta)[:, None] +
+                  (z - k * rise)[:, None] * axis)
+        motif = Model(list(np.array(model.symbols)[keep]), folded, axis)
+        # Model centres coordinates for finite objects; a helix must use its screw axis.
+        helper = np.array([1., 0, 0]) if abs(axis[0]) < 0.9 else np.array([0., 1, 0])
+        e1 = np.cross(axis, helper)
+        e1 /= np.linalg.norm(e1)
+        e2 = np.cross(axis, e1)
+        motif.z = folded @ axis
+        motif.r = np.hypot(folded @ e1, folded @ e2)
+        motif.phi = np.arctan2(folded @ e2, folded @ e1)
+        return {"motif": motif, "rise": rise, "units": turns.denominator,
+                "turns": turns.numerator, "repeat": rise * turns.denominator,
+                "weight": turns.denominator / (hi - lo), "fit_rmsd": error,
+                "anchor": element, "axis": axis.tolist()}
+    raise ValueError("no regular helical backbone found; use --transform finite for non-helical fibres")
+
+
+def helical_lines(helix, rs, layers, bfactor=0.0):
+    """Line weights: sum over n with l - n*t divisible by u, Z = l/c."""
+    m = helix["motif"]
+    rs, layers = np.asarray(rs, float), np.asarray(layers, int)
+    zs = layers / helix["repeat"]
+    ez = np.exp(2j * np.pi * zs[:, None] * m.z)
+    out = np.zeros((len(rs), len(layers)))
+    for ir, rr in enumerate(rs):
+        nmax = _orders(2 * np.pi * rr * float(m.r.max()))
+        ns = np.concatenate([np.arange(nmax + 1), np.arange(-nmax, 0)])
+        jn = bessel_table(2 * np.pi * rr * m.r, nmax)
+        a = jn * np.exp(-1j * ns[None, :] * m.phi[:, None])
+        s = 0.5 * np.hypot(rr, zs)
+        amp = np.zeros((len(layers), len(ns)), complex)
+        for el, idx in zip(m.elements, m.groups):
+            f = form_factor(el, s) * np.exp(-bfactor * s * s / 2)
+            amp += f[:, None] * (ez[:, idx] @ a[idx])
+        allowed = (layers[:, None] - helix["turns"] * ns) % helix["units"] == 0
+        out[ir] = np.sum(np.abs(amp) ** 2 * allowed, axis=1) * helix["weight"] ** 2
+    return out
+
+
+def helical_grid(helix, rs, zs, bfactor=0.0, length=100.0):
+    """Broaden delta layer lines with a normalized Gaussian; no shape fringes."""
+    zs = np.asarray(zs, float)
+    step = float(zs[1] - zs[0])
+    sigma = 1 / (2.354820045 * length) if length > 0 else 0.0
+    top = int(math.ceil((zs[-1] + 5 * sigma) * helix["repeat"]))
+    layers = np.arange(top + 1)
+    weights = helical_lines(helix, rs, layers, bfactor)
+    grid = np.zeros((len(rs), len(zs)))
+    for i, zline in enumerate(layers / helix["repeat"]):
+        if sigma == 0:
+            # Deposit a delta with conserved area even between grid points.
+            q = zline / step
+            j = int(math.floor(q))
+            for col, fraction in ((j, 1 - (q - j)), (j + 1, q - j)):
+                if col < len(zs):
+                    grid[:, col] += weights[:, i] * fraction / step
+        else:
+            profile = np.exp(-0.5 * ((zs - zline) / sigma) ** 2)
+            if i:
+                profile += np.exp(-0.5 * ((zs + zline) / sigma) ** 2)
+            grid += weights[:, i, None] * profile / (math.sqrt(2 * math.pi) * sigma)
+    return grid
 
 
 def intensity_rz_bruteforce(model, rs, zs, nangles=720, bfactor=0.0):
@@ -359,7 +482,7 @@ def write_png(path, gray):
 
 def fibre_pattern(model, wavelength=1.5418, distance=30.0, film=40.0, pixels=400,
                   bfactor=20.0, length=100.0, misalignment=8.0, tilt=0.0,
-                  map_kind="film", rmax=None, zmax=None, step=0.005):
+                  map_kind="film", rmax=None, zmax=None, step=0.005, transform="auto"):
     """The pattern as a dict: x, y (axes of the image), R, Z, I, all [ny, nx]."""
     if map_kind == "film":
         x, y, r, z = film_coordinates(pixels, pixels, film, film, distance,
@@ -375,14 +498,29 @@ def fibre_pattern(model, wavelength=1.5418, distance=30.0, film=40.0, pixels=400
         ys = np.linspace(zg, -zg, pixels)
         x, y = np.meshgrid(xs, ys)
         r, z = np.abs(x), y
+    helix = None
+    if transform != "finite":
+        try:
+            helix = helical_repeat(model)
+        except ValueError:
+            if transform == "helical":
+                raise
+    if helix:
+        step = min(step, 1 / (6 * helix["repeat"]))
+        if length > 0:
+            step = min(step, 1 / (6 * length))
     n_r, n_z = int(math.ceil(rg / step)) + 2, int(math.ceil(zg / step)) + 2
-    grid = intensity_rz(model, np.arange(n_r) * step, np.arange(n_z) * step, bfactor)
-    if length > 0:
+    if helix:
+        grid = helical_grid(helix, np.arange(n_r) * step, np.arange(n_z) * step, bfactor, length)
+    else:
+        grid = intensity_rz(model, np.arange(n_r) * step, np.arange(n_z) * step, bfactor)
+    if length > 0 and not helix:
         grid = length_broaden(grid, step, length)
     g = Grid(grid, step)
     if misalignment > 0:
         sig = math.radians(misalignment)
-        d = np.linspace(-3 * sig, 3 * sig, 15)
+        count = max(31, int(math.ceil(12 * sig * float(np.hypot(r, z).max()) / step)) + 1)
+        d = np.linspace(-3 * sig, 3 * sig, count)
         w = np.exp(-0.5 * (d / sig) ** 2)
         s = np.hypot(r, z)
         a = np.arctan2(r, z)
@@ -390,7 +528,7 @@ def fibre_pattern(model, wavelength=1.5418, distance=30.0, film=40.0, pixels=400
                     for dk, wk in zip(d, w)) / w.sum()
     else:
         inten = g.at(r, z)
-    return {"x": x, "y": y, "R": r, "Z": z, "I": inten}
+    return {"x": x, "y": y, "R": r, "Z": z, "I": inten, "helix": helix}
 
 
 # -------------------------------------------------------------------- powder
@@ -939,12 +1077,143 @@ def run_powder(a):
                          for k in np.nonzero(shown)[0]]
         print(json.dumps(info))
     else:
-        print("%d atoms, %d reflections between %g and %g degrees (%g A)" % (
+        print("%d atoms, %d reflections between %g and %g° 2θ (%g Å)" % (
             info["atoms"], n, a.tt_min, a.tt_max, wl))
         fmt = "%4s %4s %4s %9s %9s %9s %5s %8s" + (" %5s" if doublet else "")
         print(fmt % rows[0])
         for row in rows[1:]:
             print(fmt % row)
+    return 0
+
+
+# --------------------------------------------------------------- Debye sum
+
+DEBYE_DIRECT_LIMIT = 3000
+DEBYE_BIN_WIDTH = 0.01
+
+
+def debye_intensity(symbols, xyz, q, occupancy=None, bfactor=0.0, method="auto"):
+    """Orientational average sum_ij f_i f_j sinc(q r_ij), including self terms.
+
+    q is 4*pi*sin(theta)/lambda in inverse Angstrom. Above 3000 atoms,
+    element-pair distances are rounded to 0.01 A bin centres. Occupancies
+    multiply amplitudes, as in structure_factors2; no periodic images or LP.
+    """
+    xyz, q = np.asarray(xyz, float), np.asarray(q, float)
+    n = len(symbols)
+    occ = np.ones(n) if occupancy is None else np.asarray(occupancy, float)
+    if (not n or xyz.shape != (n, 3) or q.ndim != 1 or not len(q) or
+            occ.shape != (n,) or not np.isfinite(xyz).all() or
+            not np.isfinite(q).all() or np.any(q < 0) or
+            not np.isfinite(occ).all() or np.any(occ < 0) or
+            not np.isfinite(bfactor) or bfactor < 0):
+        raise ValueError("Debye needs finite coordinates, nonnegative q, occupancies and B")
+    if method == "auto":
+        method = "direct" if n <= DEBYE_DIRECT_LIMIT else "histogram"
+    if method not in ("direct", "histogram"):
+        raise ValueError("Debye method must be auto, direct or histogram")
+    elements = sorted(set(symbols))
+    groups = [np.array([i for i, s in enumerate(symbols) if s == el]) for el in elements]
+    s = q / (4 * np.pi)
+    factors = [form_factor(el, s) * np.exp(-bfactor * s * s) for el in elements]
+    result = sum(f * f * np.sum(occ[g] ** 2) for f, g in zip(factors, groups))
+
+    def pair_sum(dist, weight):
+        out = np.zeros(len(q))
+        # Bound the working array independently of atom count and angular grid.
+        for lo in range(0, len(dist), 4096):
+            d, w = dist[lo:lo + 4096], weight[lo:lo + 4096]
+            for j in range(0, len(q), 128):
+                out[j:j + 128] += np.sinc(q[j:j + 128, None] * d / np.pi) @ w
+        return out
+
+    for ia, ga in enumerate(groups):
+        for ib in range(ia, len(groups)):
+            gb = groups[ib]
+            pair = np.zeros(len(q))
+            hist = np.zeros(1)
+            for k, i in enumerate(ga):
+                js = gb[k + 1:] if ia == ib else gb
+                if not len(js):
+                    continue
+                distances = np.linalg.norm(xyz[js] - xyz[i], axis=1)
+                weights = occ[i] * occ[js]
+                if method == "histogram":
+                    bins = np.rint(distances / DEBYE_BIN_WIDTH).astype(np.int64)
+                    counts = np.bincount(bins, weights=weights)
+                    if len(counts) > len(hist):
+                        hist = np.pad(hist, (0, len(counts) - len(hist)))
+                    hist[:len(counts)] += counts
+                else:
+                    pair += pair_sum(distances, weights)
+            if method == "histogram":
+                used = np.flatnonzero(hist)
+                pair = pair_sum(used * DEBYE_BIN_WIDTH, hist[used])
+            result += 2 * factors[ia] * factors[ib] * pair
+    return result
+
+
+def run_debye(a):
+    t0 = time.time()
+    if (not all(math.isfinite(v) for v in (a.wavelength, a.tt_min, a.tt_max, a.step, a.B)) or
+            a.wavelength <= 0 or a.step <= 0 or a.B < 0 or
+            not 0 <= a.tt_min < a.tt_max < 180 or a.step > a.tt_max - a.tt_min):
+        raise ValueError("Debye needs wavelength/step > 0, B >= 0 and 0 <= tt-min < tt-max < 180")
+    if os.path.splitext(a.structure)[1].lower() == ".cif":
+        lat, sym, frac, occ = read_periodic(a.structure)
+        xyz = frac @ lat
+    else:
+        sym, xyz = read_structure(a.structure)
+        occ = np.ones(len(sym))
+    idx = parse_selection(a.select, len(sym))
+    sym, xyz, occ = [sym[i] for i in idx], xyz[idx], occ[idx]
+    doublet = a.source is not None if a.doublet is None else a.doublet
+    if doublet and not a.source:
+        raise ValueError("--doublet needs --source cu, mo or co")
+    wl = DOUBLETS[a.source][0] if a.source else a.wavelength
+    tt = np.arange(a.tt_min, a.tt_max + a.step * 0.5, a.step)
+    tt = tt[tt <= a.tt_max + 1e-9]
+    q = 4 * np.pi * np.sin(np.radians(tt / 2)) / wl
+    raw = debye_intensity(sym, xyz, q, occ, a.B)
+    if doublet:
+        q2 = q * wl / DOUBLETS[a.source][1]
+        raw = (raw + KA2_RATIO * debye_intensity(sym, xyz, q2, occ, a.B)) / (1 + KA2_RATIO)
+    y = 100 * raw / max(float(raw.max()), 1e-300)
+    meas = None
+    if a.measured:
+        mx, my = read_measured(a.measured)
+        sel = (mx >= a.tt_min) & (mx <= a.tt_max)
+        if not sel.any() or my[sel].max() <= 0:
+            raise ValueError("measured pattern needs positive intensity in the requested range")
+        meas = np.interp(tt, mx, my / my[sel].max() * 100, left=np.nan, right=np.nan)
+    for out in a.out or []:
+        ext = os.path.splitext(out)[1].lower()
+        if ext == ".png":
+            plot_powder(out, tt, y, meas)
+        elif ext == ".csv":
+            with open(out, "w", newline="") as f:
+                w = csv.writer(f)
+                w.writerow(["two_theta", "intensity"] + (["measured"] if meas is not None else []))
+                for k in range(len(tt)):
+                    row = ["%.8g" % tt[k], "%.8g" % y[k]]
+                    if meas is not None:
+                        row.append("%.8g" % meas[k] if np.isfinite(meas[k]) else "")
+                    w.writerow(row)
+        else:
+            raise ValueError("--out: unknown extension %r (png, csv)" % ext)
+    method = "direct" if len(sym) <= DEBYE_DIRECT_LIMIT else "histogram"
+    info = {"atoms": len(sym), "wavelength": wl, "doublet": bool(doublet),
+            "two_theta": [a.tt_min, a.tt_max], "B": a.B, "method": method,
+            "bin_width": DEBYE_BIN_WIDTH if method == "histogram" else 0,
+            "seconds": round(time.time() - t0, 2)}
+    if a.json:
+        info.update({"angles": tt.tolist(), "q": q.tolist(),
+                     "raw_intensity": raw.tolist(), "intensity": y.tolist()})
+        print(json.dumps(info))
+    else:
+        description = "direct sum" if method == "direct" else "distance histogram (0.01 A bins)"
+        print("%d atoms, Debye %s, %g to %g degrees (%g A)" %
+              (len(sym), description, a.tt_min, a.tt_max, wl))
     return 0
 
 
@@ -1158,7 +1427,7 @@ def run_layer(a):
                          for k in order]
         print(json.dumps(info))
     else:
-        print("%s: %d reflections, %d systematically absent (d >= %g A)" % (
+        print("%s: %d reflections, %d systematically absent (d ≥ %g Å)" % (
             label, info["reflections"], info["absent"], a.resolution))
         print("%4s %4s %4s %9s %9s %9s %9s %9s %9s %6s" % rows[0])
         for row in rows[1:]:
@@ -1391,7 +1660,7 @@ def run_frame(a):
         with open(a.geometry, "w") as f:
             f.write("size %d\nscale %.6f\ndistance %.4f\nwavelength %.6f\n" % (
                 a.pixels, a.pixels / a.size, a.distance, lam))
-    print("frame: %d reflections, phi %g to %g, wavelength %.5f A, %d x %d pixels" % (
+    print("frame: %d reflections, φ %g to %g°, wavelength %.5f Å, %d × %d pixels" % (
         len(refl["I"]), a.phi, a.phi + a.osc, lam, a.pixels, a.pixels))
     return 0
 
@@ -1421,7 +1690,7 @@ def run_fibre(a):
     model = Model([sym[i] for i in idx], xyz[idx], axis)
     pat = fibre_pattern(model, a.wavelength, a.distance, a.film_size, a.pixels, a.B,
                         a.length_broadening, a.misalignment, a.tilt, a.map,
-                        a.rmax, a.zmax, a.step)
+                        a.rmax, a.zmax, a.step, a.transform)
     s2 = pat["R"] ** 2 + pat["Z"] ** 2
     shown = scale_display(pat["I"], s2, a.beamstop, a.scale, a.decades, a.gamma)
     if a.invert:
@@ -1444,9 +1713,20 @@ def run_fibre(a):
             "map": a.map, "pixels": a.pixels, "wavelength": a.wavelength,
             "distance_mm": a.distance, "film_mm": a.film_size,
             "max_intensity": float(pat["I"].max()), "seconds": round(time.time() - t0, 2)}
+    helix = pat["helix"]
+    info["transform"] = "helical" if helix else "finite"
+    if helix:
+        info["helix"] = {k: v for k, v in helix.items() if k != "motif"}
+        info["axis"] = helix["axis"]
+    if a.geometry:
+        with open(a.geometry, "w") as f:
+            f.write("repeat %.8g\n" % (helix["repeat"] if helix else 0))
     if a.json:
         print(json.dumps(info))
     else:
+        print("%s transform%s" % (info["transform"],
+              "; repeat %.3f A, %d units / %d turns" %
+              (helix["repeat"], helix["units"], helix["turns"]) if helix else ""))
         print("%d atoms, axis %s, %dx%d %s map in %.1f s" % (
             info["atoms"], info["axis"], a.pixels, a.pixels, a.map, info["seconds"]))
     return 0
@@ -1459,6 +1739,9 @@ def build_parser():
     f.add_argument("structure")
     f.add_argument("--select", default="", help="atom numbers from 1, e.g. 1-40,57")
     f.add_argument("--axis", type=_axis_arg, default=None, help="auto (principal axis), selection (first to last selected atom) or x,y,z")
+    f.add_argument("--transform", choices=("auto", "helical", "finite"), default="auto",
+                   help="auto: fit a helical repeat, otherwise finite-model sum")
+    f.add_argument("--geometry", help="write inferred repeat for the window")
     f.add_argument("--wavelength", type=float, default=1.5418, help="Angstrom (Cu Ka)")
     f.add_argument("--distance", type=float, default=30.0, help="sample-film, mm")
     f.add_argument("--film-size", type=float, default=40.0, help="film edge, mm")
@@ -1503,6 +1786,22 @@ def build_parser():
     q.add_argument("--out", action="append", help=".png or .csv pattern (repeatable)")
     q.add_argument("--json", action="store_true")
     q.set_defaults(func=run_powder)
+
+    d = sub.add_parser("debye", help="molecule or cell contents: orientationally averaged Debye scattering")
+    d.add_argument("structure", help=".xyz, .mvm, .pdb or .cif (cell contents)")
+    d.add_argument("--select", default="", help="atom numbers from 1, e.g. 1-40,57")
+    d.add_argument("--wavelength", type=float, default=CU_KA1, help="Angstrom (Cu Ka1)")
+    d.add_argument("--source", choices=sorted(DOUBLETS), help="Cu, Mo or Co tabulated wavelengths")
+    d.add_argument("--doublet", action=argparse.BooleanOptionalAction, default=None,
+                   help="Ka1/Ka2 mixture, ratio 2:1 (default on with --source)")
+    d.add_argument("--tt-min", type=float, default=5.0, help="first 2theta, degrees")
+    d.add_argument("--tt-max", type=float, default=90.0, help="last 2theta, degrees")
+    d.add_argument("--step", type=float, default=0.01, help="2theta grid, degrees")
+    d.add_argument("--B", type=float, default=0.0, help="isotropic B, Angstrom^2")
+    d.add_argument("--measured", help="measured pattern as a second curve, as for powder")
+    d.add_argument("--out", action="append", help=".png or .csv pattern (repeatable)")
+    d.add_argument("--json", action="store_true", help="method metadata and sampled curves")
+    d.set_defaults(func=run_debye)
 
     y = sub.add_parser("layer", help="single-crystal reciprocal-lattice layer (precession style)")
     y.add_argument("structure", help=".cif, or .xyz/.mvm/.pdb with a lattice")
@@ -1558,6 +1857,12 @@ def build_parser():
 
 
 def main(argv=None):
+    # The Diffraction window reads this output as UTF-8 (Å, φ, θ); a Windows
+    # pipe would otherwise use the ANSI code page, which has no φ.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
     a = build_parser().parse_args(argv)
     try:
         return a.func(a)

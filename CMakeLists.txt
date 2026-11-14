@@ -1098,7 +1098,9 @@ install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/DataServers
         COMPONENT client)
 
 # ecce-gateway-{start,stop,status,reap}: start and stop the session's
-# mosquitto broker and keep the broker files. Client-side, since a client
+# broker and keep the broker files: ECCE's own for a local session (#990,
+# #1007), mosquitto for a server account. (ecce-broker-win is only the
+# ECCE_BROKER=mosquitto escape hatch on Windows.) Client-side, since a client
 # on its own machine runs its own broker unless it uses -remote.
 install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-start
@@ -2188,11 +2190,10 @@ if(ECCE_SPLIT_PACKAGES)
   # here (python3-wxgtk4.0 for scripts/codereg, perl/xterm for the reasons
   # given beside the monolithic set above).
   #
-  # libmosquitto1 is what every messaging process links. The gateway
-  # scripts that start a per-user broker live here too, so a local-mode
-  # client needs the mosquitto package; it is a Recommends because a
-  # -remote client only needs the library, and the package's own system
-  # service is of no use to it.
+  # libmosquitto1 is what every messaging process links. A local session
+  # runs ECCE's own broker (#1007), so the client needs no mosquitto
+  # program; ecce-server, which a central server's account needs, depends
+  # on it.
   set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
       "python3-wxgtk4.0, python3-numpy, python3-tqdm, python3-gemmi, perl, xterm, libmosquitto1, curl, openssl")
   # A client on the SAME machine as a server benefits from it (the
@@ -2202,7 +2203,7 @@ if(ECCE_SPLIT_PACKAGES)
   # this is Recommends, not Depends, matching the design brief.
   # autodock-vina: Debian's Vina 1.2.x, /usr/bin/vina, which the first-start
   # registration finds on PATH; docking is optional, so not a Depends (#455).
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, mosquitto, nwchem, openssh-client, autodock-vina")
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, nwchem, openssh-client, autodock-vina")
   set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "www-browser")
   # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
   # without this, installing ecce-client while the old ecce package still
@@ -2230,7 +2231,9 @@ if(ECCE_SPLIT_PACKAGES)
   if(RPMBUILD_EXECUTABLE)
     set(CPACK_RPM_CLIENT_PACKAGE_NAME "ecce-client")
     set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
-    # mosquitto provides both the library and the broker on RPM distros.
+    # mosquitto provides both the library and the broker on RPM distros;
+    # the client needs only the library (a local session runs ECCE's own
+    # broker, #1007), but there is no package with the library alone.
     set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
         "python3-wxpython4, python3-numpy, python3-tqdm, perl, xterm, mosquitto, curl, openssl${_coin_rpm}")
     set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
@@ -2901,6 +2904,9 @@ set_tests_properties(xrd_fibre PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 add_test(NAME xrd_powder
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/powder_test.py)
 set_tests_properties(xrd_powder PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+add_test(NAME xrd_debye
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/debye_test.py)
+set_tests_properties(xrd_debye PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 add_test(NAME xrd_layer
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/layer_test.py)
 set_tests_properties(xrd_layer PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
@@ -2983,6 +2989,15 @@ set_tests_properties(minff_prepare PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
 # a TCP broker with two accounts and the shipped access rules.  SKIPs (77)
 # without the mosquitto binary.
+# The built-in broker (#990) as a program; the Windows tests start it too.
+# On Linux and macOS it is the local session's broker (#1007, `--serve`,
+# started by ecce-gateway-start). libexec, not bin: a program in bin with a
+# session id counts as an open ECCE window (ecce_session_procs, the gateway).
+add_executable(eccebroker tests/mqtt/broker_cli.C)
+target_link_libraries(eccebroker PRIVATE ecceutil ${XercesC_LIBRARIES})
+if(NOT WIN32)
+  install(TARGETS eccebroker RUNTIME DESTINATION libexec COMPONENT client)
+endif()
 if(NOT WIN32)
 add_executable(mqtt_test tests/mqtt/mqtt_test.C)
 target_include_directories(mqtt_test PRIVATE ${XercesC_INCLUDE_DIRS})
@@ -2990,6 +3005,17 @@ target_link_libraries(mqtt_test PRIVATE ecceutil ${XercesC_LIBRARIES})
 add_test(NAME mqtt COMMAND mqtt_test ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-local COMMAND mqtt_test local ${CMAKE_SOURCE_DIR})
+# ECCE's own broker (#990), same checks as against mosquitto, plus protocol
+# edge cases and the Windows session path (broker file with its own login).
+add_test(NAME mqtt-builtin-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} builtin)
+add_test(NAME mqtt-builtin-session COMMAND mqtt_test session ${CMAKE_SOURCE_DIR})
+add_test(NAME mqtt-builtin-linger COMMAND mqtt_test linger ${CMAKE_SOURCE_DIR})
+add_test(NAME mqtt-builtin-socket COMMAND mqtt_test socket ${CMAKE_SOURCE_DIR})
+add_test(NAME mqtt-builtin-serve COMMAND mqtt_test serve ${CMAKE_SOURCE_DIR} $<TARGET_FILE:eccebroker>)
+add_test(NAME mqtt-builtin-interop COMMAND mqtt_test interop)
+set_tests_properties(mqtt-builtin-auth mqtt-builtin-session mqtt-builtin-linger mqtt-builtin-interop
+                     mqtt-builtin-socket mqtt-builtin-serve PROPERTIES TIMEOUT 180)
+set_tests_properties(mqtt-builtin-interop PROPERTIES SKIP_RETURN_CODE 77)
 if(TARGET ecce_users_auth)
   add_test(NAME mqtt-auth-plugin
            COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} $<TARGET_FILE:ecce_users_auth>)
@@ -3321,6 +3347,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/import_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_import PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # Every viewer frame is opaque in the background preference while a large
+  # PDB loads (#999), through ECCE_TEST_IMPORT and ECCE_TEST_RENDER_CORNER.
+  add_test(NAME apps_render_alpha
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/render_alpha_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_render_alpha PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # Builder > Tools > Dock Floating Panels returns panels to an emptied dock
   # (#53), through the builder's ECCE_TEST_DOCK hook.
   add_test(NAME apps_dock
@@ -3955,6 +3988,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_powder_dialog PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  add_test(NAME apps_debye_dialog
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/debye_dialog_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_debye_dialog PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Same, Single crystal: the dialog's CSV equals ecce-xrd layer (#972).
@@ -5110,6 +5151,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/modecomp)
   set_tests_properties(apps_mode_composition PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Geometry Step Plots listed only without a Geometry Trace (#1008).
+  add_test(NAME apps_step_plots_listing
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/step_plots_listing_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_step_plots_listing PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # The Energies panel's groups and their fold state (#283).
   add_test(NAME apps_energies_groups

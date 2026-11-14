@@ -25,6 +25,7 @@ namespace SmilesBatch {
     std::vector<std::string> header;  // "column 1", ... when the file has none
     std::vector<std::vector<std::string> > rows;
     std::vector<int> lines;           // 1-based line of each row in the text
+    std::string source;              // input filename, or pasted text
     char delimiter = ',';
   };
 
@@ -51,7 +52,7 @@ namespace SmilesBatch {
 
   struct Row {
     int line = 0;
-    std::string name, smiles;
+    std::string name, smiles, source;
     std::vector<std::pair<std::string, std::string> > measured;
     int charge = 0;                   // sum of the formal charges
     int atoms = 0;                    // with hydrogens

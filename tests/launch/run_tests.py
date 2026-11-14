@@ -95,6 +95,10 @@ def treeInstall(state, build):
             if name.startswith("ecce-") and (name.endswith(".sh") or
                                              os.access(path, os.X_OK)):
                 link(path, os.path.join(home, "bin", name))
+    #  A local session's broker (#1007): ecce-gateway-start runs it from libexec.
+    if os.path.exists(os.path.join(build, "eccebroker")):
+        link(os.path.join(build, "eccebroker"),
+             os.path.join(home, "libexec", "eccebroker"))
     link(os.path.join(REPO, "packaging", "nwchem", "ecce-nwchem-datadir"),
          os.path.join(home, "bin", "ecce-nwchem-datadir"))
     link(os.path.join(REPO, "scripts"), os.path.join(home, "scripts"))
@@ -228,6 +232,9 @@ class Suite(object):
 
     def env(self, extra=None):
         env = dict(os.environ)
+        # No window holds the session's broker (#1007) open between the
+        # jobs here; ecce-gateway-stop ends it.
+        env.setdefault("ECCE_BROKER_LINGER", "900")
         env.update({
             "HOST": env.get("HOST") or os.uname().nodename,
             "ECCE_SESSION_ID": SESSION_ID,
@@ -326,7 +333,34 @@ class Suite(object):
     def localData(self):
         return os.path.join(self.state, "localdata")
 
+    def builtinBroker(self, start):
+        """ECCE_BROKER=builtin (#990): the session's broker is the built-in one,
+        run by `eccebroker --session` where the Organizer would run it; it
+        lingers 3 s after stdin closes, like the Organizer's at exit."""
+        if not start:
+            proc = getattr(self, "_broker", None)
+            if proc:
+                proc.stdin.close()
+                try:
+                    proc.wait(timeout=60)
+                except subprocess.TimeoutExpired:
+                    proc.kill()
+            return True
+        exe = os.path.join(self.build, "eccebroker")
+        if not os.path.exists(exe):
+            say("  no eccebroker in %s" % self.build)
+            return False
+        os.makedirs(os.path.join(self.state, ".ECCE"), exist_ok=True)
+        self._broker = subprocess.Popen(
+            [exe, "--session", "3"], env=self.env({"ECCE_REALUSERHOME": self.state}),
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        line = self._broker.stdout.readline().decode()
+        say("  eccebroker: %s" % line.strip())
+        return "started" in line
+
     def services(self, start):
+        if os.environ.get("ECCE_BROKER") == "builtin" and self.args.local:
+            return self.builtinBroker(start)
         servers = ["ecce-dataserver-start", "ecce-gateway-start"]
         if self.args.local:
             servers.remove("ecce-dataserver-start")

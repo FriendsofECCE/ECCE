@@ -321,6 +321,9 @@ class Builder: public BuilderGUI,
       // offered; any calculation with atoms gets the Diffraction entry (fibre).
       bool calcIsPeriodic();
       bool calcHasStructure();
+      // Geometry Step Plots only repeats Geometry Trace's plots when the
+      // calculation stored per-step structures (#1008).
+      bool panelRedundant(const string& name);
       // Opens Diffraction on the final geometry (last GEOMTRACE step, else the
       // structure); xyz names the file it is written to, "" for a temporary one.
       class DiffractionDialog *openResultsDiffraction(const string& xyz = "");
