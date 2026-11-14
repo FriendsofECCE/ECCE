@@ -838,20 +838,36 @@ static int interopMain()
                      "-t 'ecce/+/ecce_machreg_changed' -v -C 2 2>&1").c_str(), "r");
   usleep(500000);
   int r1 = system(("mosquitto_pub " + base + " -u alice -P alicepw -q 1 -t ecce/alice/x/y -m hello1 >/dev/null 2>&1").c_str());
+  // A negative PUBACK can still give mosquitto_pub exit status zero.
+  // Check its MQTT reason code, then keep the subscriber alive until a
+  // later allowed publish proves the forbidden one was not delivered.
+  FILE* pub = popen(("exec mosquitto_pub " + base + " -d -u bob -P bobpw -q 1 -t ecce/alice/z -m evil 2>&1").c_str(), "r");
+  string pubout; char line[256];
+  bool refused = false;
+  while (pub && fgets(line, sizeof line, pub)) {
+    string received = line;
+    pubout += received;
+    if (received.find("received PUBACK (") != string::npos &&
+        received.find(", RC:135)") != string::npos) refused = true;
+  }
+  int r3 = pub ? pclose(pub) : -1;
   int r2 = system(("mosquitto_pub " + base + " -u bob -P bobpw -q 1 -t ecce/bob/ecce_machreg_changed -m hello2 >/dev/null 2>&1").c_str());
-  // Bob's publish into alice's tree is refused (nonzero status), and the
-  // subscriber must not see it.
-  int r3 = system(("mosquitto_pub " + base + " -u bob -P bobpw -q 1 -t ecce/alice/z -m evil >/dev/null 2>&1").c_str());
   int r4 = system(("mosquitto_pub " + base + " -u alice -P wrong -t ecce/alice/x -m no >/dev/null 2>&1").c_str());
-  string out; char line[256];
+  string out;
   while (sub && fgets(line, sizeof line, sub)) out += line;
-  if (sub) pclose(sub);
+  int substatus = sub ? pclose(sub) : -1;
   check(r1 == 0 && r2 == 0, "mosquitto_pub -V 5 -q 1 publishes are accepted");
-  check(out.find("ecce/alice/x/y hello1") != string::npos &&
-        out.find("ecce/bob/ecce_machreg_changed hello2") != string::npos,
-        "mosquitto_sub -V 5 receives both through wildcards");
-  check(r3 != 0 && out.find("evil") == string::npos,
+  bool delivered = substatus == 0 && out.find("ecce/alice/x/y hello1") != string::npos &&
+                   out.find("ecce/bob/ecce_machreg_changed hello2") != string::npos;
+  check(delivered, "mosquitto_sub -V 5 receives both through wildcards");
+  bool denied = r3 != -1 && WIFEXITED(r3) && refused && delivered &&
+                out.find("evil") == string::npos;
+  check(denied,
         "a publish into another user's tree is refused and not delivered");
+  if (!delivered || !denied) {
+    cout << "mosquitto_pub wait status: " << r3 << "\n" << pubout;
+    cout << "mosquitto_sub wait status: " << substatus << "\n" << out;
+  }
   check(r4 != 0, "a wrong password is refused");
   b.stop();
   cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
