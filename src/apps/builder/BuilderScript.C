@@ -1060,6 +1060,10 @@ void Builder::runBuilderScript(const std::string& file)
         else if (w.size() > 5 && (dd->setDisplay(atoi(w[4].c_str()), atoi(w[5].c_str())), false)) {}
         else if (!dd->calculate(why)) err = why;
         else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
+        if (dd && err.empty() && w.size() > 6 && w[6] == "viewtest") {
+          if (!dd->testImageView(w[1], why)) err = why;
+          fprintf(stderr, "BUILDER: image view: %s\n", err.empty() ? "PASS" : err.c_str());
+        }
         if (dd && err.empty())
           fprintf(stderr, "BUILDER: calcdiffraction pattern: %s\n",
                   dd->singleCrystal() ? "single" : dd->powder() ? "powder" : "fibre");
@@ -1122,7 +1126,8 @@ void Builder::runBuilderScript(const std::string& file)
         if (!dd) err = "no Diffraction entry for this calculation";
         else if (kind.compare(0, 5, "layer") == 0 &&
                  !dd->setLayer("l", atoi(kind.c_str() + 5), 1.0, false, why)) err = why;
-        else if (kind == "frame" && !dd->setFrame(0.0, 30.0, false, false, why)) err = why;
+        else if (kind == "frame" && !dd->setFrame(0.0, w.size() > 6 && w[6] == "viewtest" ? 10.0 : 30.0,
+                     w.size() > 6 && w[6] == "viewtest", w.size() > 6 && w[6] == "viewtest", why)) err = why;
         else if (kind.compare(0, 5, "layer") != 0 && kind != "frame" && kind != "powder") err = "kind is layer, frame or powder";
         if (err.empty()) {
           dd->setDisplay(atoi(w[4].c_str()), atoi(w[5].c_str()));
@@ -1131,6 +1136,10 @@ void Builder::runBuilderScript(const std::string& file)
         if (err.empty()) {
           dd->setDisplay(atoi(w[4].c_str()), atoi(w[5].c_str()));
           if (!dd->savePng(w[2], why) || !dd->saveCsv(w[3], why)) err = why;
+        }
+        if (dd && err.empty() && w.size() > 6 && w[6] == "viewtest") {
+          if (!dd->testImageView(w[2], why)) err = why;
+          fprintf(stderr, "BUILDER: image view: %s\n", err.empty() ? "PASS" : err.c_str());
         }
         int h1 = 0, k1 = 0, l1 = 0, h2 = 0, k2 = 0, l2 = 0;
         if (err.empty() && kind == "powder" && w.size() > 6)
