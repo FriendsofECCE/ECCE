@@ -723,7 +723,12 @@ Builder::~Builder()
 {
   ToolTabs::release(this, false);
   unsubscribe();
-  PopEventHandler(true);
+  //  Not PopEventHandler: after a tab's release the AUI manager (a member,
+  //  pushed again by SetManagedWindow) is on top of the stack, not this.
+  if (p_viewerEvtHandler) {
+    RemoveEventHandler(p_viewerEvtHandler);
+    delete p_viewerEvtHandler;
+  }
   
   if (p_copyBuffer)
     delete p_copyBuffer;
