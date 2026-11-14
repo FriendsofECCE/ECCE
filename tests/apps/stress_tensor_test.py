@@ -82,7 +82,7 @@ def builder(display, url, work, png):
     shutil.copy(logpath, png / (work.name+".log"))
     require("FAIL" not in text and "unknown command" not in text, text[-3000:])
     require("vector STRESS arrows=6" in text, "three pairs of arrows")
-    require("Tension positive; the stored values are compression positive." in " ".join(text.split()),
+    require("Tension positive; Quantum ESPRESSO's own output has the opposite sign." in " ".join(text.split()),
             "sign convention in summary")
     states=re.findall(r"\[Stress Tensor shown=(\d) focus=(\d) box=([01-])\]",text)
     require(states==[("1","1","1"),("1","0","0"),("1","1","1"),("0","0","0")],

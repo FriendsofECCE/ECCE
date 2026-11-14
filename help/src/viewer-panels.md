@@ -43,10 +43,10 @@ and [Density Profile](density-profile.md); [Density of States (OPDOS)](density-o
 
 Open **Properties > Geometry > Stress Tensor** for a Quantum ESPRESSO or
 ML potential result. The table shows the symmetric Cartesian tensor in
-GPa, with **tension positive**. ECCE negates the stored compression-positive
-tensor: QE prints stress with compression positive (its pressure is the
-mean diagonal); MLP stores minus ASE's tension-positive stress, in kbar.
-One GPa is 10 kbar. CP2K stress ingestion is not available.
+GPa, with **tension positive**, as ASE reports it. Quantum ESPRESSO's own
+output has the opposite sign (compression positive; its P is the mean of the
+diagonal), so its numbers appear here with the sign changed. One GPa is
+10 kbar. CP2K stress ingestion is not available.
 
 With a unit cell, three principal axes pass through the cell centre.
 Each is a pair of arrows: **blue outward for tension**, **vermillion inward

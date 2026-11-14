@@ -114,8 +114,7 @@ void StressPanel::updateStress(bool draw)
     }
     text += wxString::FromUTF8(StressTensor::cellWords(r,cell)) + "\n";
   } else text += "No unit cell: principal arrows unavailable.\n";
-  text += "Tension positive; the stored values are compression positive.\n"
-          "QE prints compression positive; MLP stores minus ASE stress.\n"
+  text += "Tension positive; Quantum ESPRESSO's own output has the opposite sign.\n"
           "Blue: tension (outward); vermillion: compression (inward).\n"
           "Arrows share a scale proportional to |stress|. Final stress only.";
   p_summary->SetLabel(text);
