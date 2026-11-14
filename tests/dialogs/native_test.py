@@ -38,6 +38,9 @@ CODEREG = os.path.join(os.path.dirname(os.path.dirname(HERE)), "scripts", "coder
 import codes      # noqa: E402
 import harness    # noqa: E402
 
+sys.path.insert(0, os.path.join(HERE, "..", "apps"))
+import xdisplay   # noqa: E402
+
 FN = "ES.Theory.DFT.XCFunctionals"
 UR = "ES.Theory.ECCEQM.Unrestricted"
 LW, CH, MK = ("ES.Theory.ECCEQM." + n for n in ("Loewdin", "CHELPG", "MK"))
@@ -362,21 +365,19 @@ def main():
         print("skip: python3 has no wx")
         return 77
 
-    number = int(os.environ.get("ECCE_TEST_XDISPLAY_BASE", "90"))
-    if number < 10:
-        print("FAIL: ECCE_TEST_XDISPLAY_BASE must be 10 or higher")
-        return 1
-    while (os.path.exists("/tmp/.X11-unix/X%d" % number)
-           or os.path.exists("/tmp/.X%d-lock" % number)):
-        number += 1
-    xvfb = subprocess.Popen(["Xvfb", ":%d" % number, "-screen", "0",
-                             "1280x1024x24"], stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL)
+    #  tests/apps' Display owns the display-number race (-displayfd), so a
+    #  parallel apps test cannot end up on the same X server.
+    try:
+        xserver = xdisplay.Display()
+        xserver.__enter__()
+    except xdisplay.DisplayUnavailable as exc:
+        print("skip: %s" % exc)
+        return 77
     work = tempfile.mkdtemp(prefix="ecce-native-cand-")
     cand = os.path.join(work, "candidates.tsv")
     with open(cand, "w") as f:
         f.write(CANDIDATES)
-    env = dict(os.environ, DISPLAY=":%d" % number, GDK_BACKEND="x11",
+    env = dict(os.environ, DISPLAY=xserver.name, GDK_BACKEND="x11",
                PYTHONPATH=CODEREG, PYTHONDONTWRITEBYTECODE="1",
                ECCE_QST_CANDIDATES=cand,
                ECCE_REALUSERHOME=tempfile.gettempdir() + "/none")
@@ -486,13 +487,8 @@ def main():
         if pilot and not a.no_layout:
             failed += layout(a, env, pyCmd, nativeCmd)
     finally:
-        xvfb.terminate()
-        xvfb.wait()
+        xserver.__exit__(None, None, None)
         shutil.rmtree(work, ignore_errors=True)
-        try:
-            os.unlink("/tmp/.X11-unix/X%d" % number)
-        except OSError:
-            pass
     print("%d checks differ" % failed)
     return 1 if failed else 0
 
