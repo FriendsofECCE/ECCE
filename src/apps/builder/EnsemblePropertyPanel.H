@@ -77,6 +77,15 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
                                                const std::string& typeName,
                                                std::string& why);
     bool exportCsv(const std::string& path) const;
+    // Select Distinct (#1039): select the members `ecce-ensemble pick` keeps
+    // (heavy-atom RMSD threshold in Angstrom; n <= 0 and window < 0 mean no
+    // limit) and say how many in the note under the table.  False with the
+    // reason in `why` when the pick could not be made.
+    bool selectDistinct(double rmsd, int n, double window, std::string& why);
+    std::string distinctNote() const;
+    // Whether the panel offers Select Distinct: not for poses or MLP sites,
+    // which have no CONFREL/chemsys for the pick.
+    bool offersDistinct() const;
     std::string kind() const;
     const std::string& energyLabel() const { return p_deName; }
     // A Vina calculation (code or run type): its score is empirical, so the
@@ -109,6 +118,8 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     void OnColumn(wxListEvent& event);
     void OnExport(wxCommandEvent& event);
     void OnNewCalcs(wxCommandEvent& event);
+    void OnDistinct(wxCommandEvent& event);
+    std::string pickFolder();
     void updateSelection();
     void clearOverlay();
     struct Geometry {
@@ -134,6 +145,9 @@ class EnsemblePropertyPanel : public GeomTracePropertyPanel
     wxListCtrl *p_table;
     wxButton *p_export;
     wxButton *p_newCalcs;
+    wxStaticText *p_distinctText = nullptr;
+    std::string p_pickFolder;    // the calculation's folder, or a scratch copy
+    std::string p_pickScratch;   // removed with the panel
     std::vector<int> p_selection;
     std::vector<std::string> p_fits;
     std::map<int, Geometry> p_geometry;

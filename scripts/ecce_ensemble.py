@@ -197,6 +197,8 @@ def pick(calc, n, thr, skip_failed, window=None):
     heavy = [i for i, e in enumerate(els) if e != "H"]
     sub = lambda f: [f[i] for i in heavy]
     order = sorted(range(len(frames)), key=lambda k: (rel[k], k))
+    # The Builder's ensemble table numbers members in this order (#1039).
+    energy_rank = {k: i + 1 for i, k in enumerate(order)}
     prots = [proton_counts(els, f) for f in frames]
     picks, skipped = [], []
     emin = min(rel)
@@ -221,6 +223,7 @@ def pick(calc, n, thr, skip_failed, window=None):
             skipped.append({"member": k + 1, "rel_kcal_mol": rel[k], "flags": chk["flags"]})
             continue
         rec = {"_k": k, "rank": len(picks) + 1, "member": k + 1,
+               "energy_rank": energy_rank[k],
                "rel_kcal_mol": rel[k], "merged": []}
         rec.update(chk)
         picks.append(rec)
@@ -575,7 +578,8 @@ is credited to its better member rather than counted as a pick of its own;
 the window then cuts the energy-sorted list, so it is measured from the
 ensemble's lowest member even when that one is skipped; n cuts last, so
 the n picks are the lowest ones inside the window. The JSON has
-"window_kcal_mol" (null without a window).
+"window_kcal_mol" (null without a window); each pick's "energy_rank" is its
+row in the Builder's ensemble table (1 = lowest energy).
 --create TEMPLATE FOLDER makes one calculation per pick with ecce-series
 (setup of the template calculation: code, method, basis, solvent, machine,
 cores, wall), named <ensemble>_conf<rank>; nothing is launched.

@@ -244,6 +244,7 @@ def panel(tmp, proton=False):
                     check("CSV written", False, log[-3000:])
                 stored_superposition(tmp, display, state)
                 stored_builder_script(tmp, display, state)
+                stored_distinct(tmp, display, state)
             finally:
                 restore()
                 fx.remove("na-ensemble")
@@ -335,6 +336,53 @@ def stored_superposition(tmp, display, state):
               open(png, "rb").read() == open(png + ".png", "rb").read())
     else:
         check("PNG table was written", False, log[-5000:])
+
+
+def stored_distinct(tmp, display, state):
+    """#1039: Select Distinct selects exactly the rows ecce-ensemble pick
+    --json keeps, for several thresholds, a maximum and a window."""
+    import apps
+    import fixture as fx
+
+    src = os.path.join(tmp, "distinct-butane")
+    shutil.copytree(BASE, src, symlinks=True)
+    cases = [("0.5", 0, None), ("0.2", 0, None), ("0.2", 2, None), ("0.2", 0, "1")]
+    want = []
+    for rmsd, n, window in cases:
+        cmd = [sys.executable, os.path.join(ROOT, "scripts", "ecce_ensemble.py"), "pick",
+               src, "--json", "--rmsd", rmsd, "n=%d" % (n or 1000)]
+        if window:
+            cmd.append("window=" + window)
+        res = json.loads(subprocess.run(cmd, capture_output=True, text=True, check=True).stdout)
+        want.append(([p["energy_rank"] for p in res["picks"]],
+                     sum(len(p["merged"]) for p in res["picks"])))
+    check("ecce-ensemble pick gives different picks at 0.5 and 0.2 Å",
+          want[0][0] != want[1][0], want)
+    scene = os.path.join(tmp, "distinct-scene")
+    with open(scene, "w") as f:
+        for rmsd, n, window in cases:
+            f.write("gtendistinct %s %d%s\n" % (rmsd, n, " " + window if window else ""))
+        f.write("gtenfit\ngtclose\nhold 1\n")
+    args = ("-context", "file://" + src + "/")
+    if os.path.realpath(state) != os.path.realpath(os.path.expanduser("~")):
+        auth = fx.authFile(os.path.join(state, ".ECCE", "auth.pipe"), user=fx.USER)
+        args = ("-pipe", auth) + args
+    result = apps.run(display, "builder", args=args, windowTimeout=120, settle=120,
+                      env={"ECCE_VIEWER_SCENE": scene, "ECCE_VIEWER_SCENE_OUT": tmp,
+                           "ECCE_REALUSER": fx.USER, "ECCE_OPEN_PANEL": "Conformers"})
+    log = result.log or ""
+    check("Select Distinct scene completes without a crash", not result.crashed, log[-3000:])
+    got = re.findall(r"GTSTRESS: endistinct ranks=([\d ]*) note=(.*)", log)
+    check("one endistinct line per case", len(got) == len(cases), log[-3000:])
+    for (rmsd, n, window), (ranks, merged), line in zip(cases, want, got):
+        check("rmsd %s n=%d window=%s selects the ranks of ecce-ensemble pick %s"
+              % (rmsd, n, window, ranks), [int(r) for r in line[0].split()] == ranks, line)
+        check("rmsd %s n=%d window=%s note counts kept and merged" % (rmsd, n, window),
+              line[1].startswith("%d distinct of 6; %d merged within %.2f \u00c5"
+                                 % (len(ranks), merged, float(rmsd))), line[1])
+    check("the distinct pick is an ordinary selection (overlay drawn)",
+          "GTSTRESS: enfit members=%d visible=1" % len(want[-1][0]) in log
+          if len(want[-1][0]) > 1 else True, log[-2000:])
 
 
 def stored_builder_script(tmp, display, state):

@@ -70,9 +70,12 @@ test harness as described below.
 
 `ECCE_BUILDER_SCRIPT` also accepts the Conformers-panel hooks `gtenselect
 <rank>...`, `gtenfit`, `gtenthumbs`, `gtenpng <file>`, `gtencsv <file>`,
-`gtenviewer on|off` and `gtensort <column> up|down` (open the panel with
-`ECCE_OPEN_PANEL=Conformers`), so one script can set `background 1 1 1` and
-select conformers. Output goes to stderr as `GTSTRESS: ...` lines; the same
+`gtenviewer on|off`, `gtensort <column> up|down` and `gtendistinct <rmsd>
+[n|0] [window]` (open the panel with `ECCE_OPEN_PANEL=Conformers`), so one
+script can set `background 1 1 1` and select conformers. `gtendistinct` is
+the panel's **Select Distinct...** button: it runs `ecce-ensemble pick
+--json` on the calculation, selects the picks' `energy_rank` rows and prints
+`GTSTRESS: endistinct ranks=<r>... note=<n distinct of N; m merged within X Å>`. Output goes to stderr as `GTSTRESS: ...` lines; the same
 commands work under `ECCE_VIEWER_SCENE`. Test: `tests/apps/ensemble_patterns_test.py`.
 
 ## Checking the Basis Set Tool window
@@ -930,7 +933,9 @@ protonation and a heavy-atom RMSD below `--rmsd` (default 0.50 A, after a
 fit, atoms in stored order) are merged. `window=E` (kcal/mol; `window=3kcal`,
 `window=12.5kJ`) keeps only members within E of the lowest member of the
 ensemble (stored energies); `n=` then caps the count, and a window without
-`n=` is not capped. Order: merge, window, n. JSON has `window_kcal_mol`.
+`n=` is not capped. Order: merge, window, n. JSON has `window_kcal_mol`, and
+each pick's `energy_rank` is its row in the Builder's ensemble table
+(**Select Distinct...** selects exactly these rows).
 Each pick is checked against the
 input structure: protonation unchanged, every ion that is bound in the input
 still bound, metal-N/O/S contacts listed with distances (cutoffs in `--help`).
