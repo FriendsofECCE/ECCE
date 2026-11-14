@@ -9,9 +9,9 @@ molecules, or for the same job on every conformer.
 To redo several finished calculations in another code, for example the
 results of an xTB run in ORCA:
 
-1. Select the calculations in the tree or the project table.
-2. Right-click and choose **New from This > In Another Code...**, or use
-   **Edit > New from This in Another Code...**.
+1. Select the calculations in the project table (Ctrl or Shift for several).
+2. Choose **Tools > New Calculations in Another Code...**, or right-click in
+   the table and choose **New from This > In Another Code...**.
 3. Choose the code, the end of the new names (`_orca` gives `water_orca`)
    and the folder, which is the one holding the first selected calculation.
    Click **OK**.

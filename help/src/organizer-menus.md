@@ -35,9 +35,10 @@ Right-click an item in the tree, or rows of the project table.
     codes are ORCA, Gaussian 16, NWChem, ECCE-QM, MOPAC, CP2K and Quantum ESPRESSO. See
     [Starting from earlier orbitals](first-calculation.md#starting-from-the-orbitals-of-an-earlier-calculation)
     for basis and atom compatibility.
-  - **In Another Code...**: one new calculation in another code from each
-    selected calculation, with a setup you make once; see
-    [New Series](new-series.md).
+  - **In Another Code...** (in the project table only): one new calculation
+    in another code from each selected calculation, with a setup you make
+    once; see [New Series](new-series.md). Also **Tools > New Calculations
+    in Another Code...**.
   - **Screen Sites with MLP...**, for a periodic calculation: one MLP
     calculation for each interstitial site or vacancy pair of the host; see
     [MLP (MACE)](mlp.md).

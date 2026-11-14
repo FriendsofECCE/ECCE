@@ -243,8 +243,9 @@ is generated when the calculation reaches Ready; check it in `Inputs/`.
 Launcher. You: after the user's yes, `ecce-launch [on=MACHINE] [profile=NAME]
 [queue=QUEUE] [wall=H:MM] <calculation>...`.
 
-**A series or a batch.** User: right-click selected calculations > New
-from This > In Another Code... (also Edit menu; `new-series`): the first new
+**A series or a batch.** User: select calculations in the table, Tools >
+New Calculations in Another Code... (or the table's right-click New from
+This > In Another Code...; `new-series`): the first new
 calculation opens in the Calculation Editor, then "Make the Others" copies
 its setup to the rest, each with its source's final geometry, charge and
 multiplicity (the same code as `ecce-series`; test hooks `anothercode`,
@@ -1055,7 +1056,7 @@ launcher, without command wrappers for these tools.
 | Command | Purpose |
 |---|---|
 | `ecce-localdata` | Print the local data folder |
-| `ecce-series` | Work with a series of calculations (the Organizer does the same with New from This > In Another Code) |
+| `ecce-series` | Work with a series of calculations (the Organizer does the same with Tools > New Calculations in Another Code) |
 | `ecce-check-props` | Check stored property dimensions |
 | `ecce-si-export` | Export structures and a Supporting Information table; `--checks` makes the Checks table (with core-hours), `--rank` the Compare Energies table. Command line only |
 | `ecce-displacement` | Compare geometries and aligned RMSD |

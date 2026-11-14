@@ -155,6 +155,9 @@ menu is grey.
 - **Allocations...**: see [Allocations](allocations.md).
 - **Periodic Table...** (Ctrl+P).
 - **Energy Calculator...**: see [Energy Calculator](energy-calculator.md).
+- **New Calculations in Another Code...**: one new calculation in another
+  code from each selected calculation, with a setup you make once; see
+  [New Series](new-series.md).
 - **Batch Add from SMILES...**: see
   [Batch Add from SMILES](batch-from-smiles.md).
 - **QSAR Table...**: see [QSAR Table](qsar-table.md).

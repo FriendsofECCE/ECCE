@@ -10235,9 +10235,12 @@ void CalcMgr::getContextMenu(wxMenu & menu)
         can ? _("A copy with the last geometry that starts from this "
                 "calculation's final orbitals") : wxString(why));
     item->Enable(can);
-    from->Append(wxID_ANOTHER_CODE, _("In Another Code..."),
-                 _("One new calculation in another code from each selected "
-                   "calculation, all with the setup you make once"));
+    //  A batch action: offered in the table, where several calculations are
+    //  selected, and on Tools; the tree menu stays short.
+    if (!p_popupOnTree)
+      from->Append(wxID_ANOTHER_CODE, _("In Another Code..."),
+                   _("One new calculation in another code from each selected "
+                     "calculation, all with the setup you make once"));
     {
       //  Offered for any periodic calculation, so it can say what is
       //  missing when the code is not MLP.
@@ -10774,6 +10777,10 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
   addApp("PeriodicTable");
   addItem(ID_COMPARE_ENERGIES, _("Energy Calculator..."), p_compareEnergiesWired,
           &CalcMgr::OnCompareEnergies);
+  menu.AppendSeparator();
+  menu.Append(wxID_ANOTHER_CODE, _("New Calculations in Another Code..."),
+              _("One new calculation in another code from each selected "
+                "calculation, all with the setup you make once"));
   menu.AppendSeparator();
   // QSAR
   addItem(ID_BATCH_SMILES, _("Batch Add from SMILES..."), p_batchSmilesWired,
@@ -14795,7 +14802,6 @@ void CalcMgr::updateSelectionMenus()
       enableMenuItem(menuBar, wxID_DUPLICATE, isCalculation ||
                      dynamic_cast<MdTask*>(itemData->getResource()) != 0);
       enableMenuItem(menuBar, wxID_DUPLICATE2, isCalculation);
-      enableMenuItem(menuBar, wxID_ANOTHER_CODE, isCalculation);
       {
         //  Offered where it works; elsewhere the help line says why not.
         string why;
