@@ -1,0 +1,50 @@
+&CONTROL
+  calculation = 'relax'
+  prefix = 'dryice'
+  outdir = './qe.scratch'
+  pseudo_dir = '/usr/share/espresso/pseudo/'
+  tprnfor = .true.
+  tstress = .false.
+  forc_conv_thr = 1.0d-3
+  nstep = 50
+/
+&SYSTEM
+  ibrav = 0
+  nat = 12
+  ntyp = 2
+  ecutwfc = 60.0
+  ecutrho = 480.0
+  occupations = 'fixed'
+  vdw_corr = 'grimme-d3'
+  dftd3_version = 4
+/
+&ELECTRONS
+  conv_thr = 1e-06
+  mixing_beta = 0.7
+  electron_maxstep = 100
+/
+&IONS
+  ion_dynamics = 'bfgs'
+/
+ATOMIC_SPECIES
+  C      12.0107  C.pbe-n-kjpaw_psl.1.0.0.UPF
+  O      15.9994  O.pbe-n-kjpaw_psl.0.1.UPF
+CELL_PARAMETERS angstrom
+      5.6240000000     0.0000000000     0.0000000000
+      0.0000000000     5.6240000000     0.0000000000
+      0.0000000000     0.0000000000     5.6240000000
+ATOMIC_POSITIONS angstrom
+  C       0.0000000000     0.0000000000     0.0000000000
+  C       2.8120000000     0.0000000000     2.8120000000
+  C       0.0000000000     2.8120000000     2.8120000000
+  C       2.8120000000     2.8120000000     0.0000000000
+  O       0.6664440000     0.6664440000     0.6664440000
+  O       3.4784440000     0.6664440000     2.1455560000
+  O       0.6664440000     2.1455560000     3.4784440000
+  O       2.1455560000     3.4784440000     0.6664440000
+  O      -0.6664440000    -0.6664440000    -0.6664440000
+  O       3.4784440000     2.1455560000    -0.6664440000
+  O       2.1455560000    -0.6664440000     3.4784440000
+  O      -0.6664440000     3.4784440000     2.1455560000
+K_POINTS automatic
+  4 4 4 0 0 0

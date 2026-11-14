@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""The Diffraction topic: each example imports and opens its pattern (#972).
+"""The Diffraction topic and two Molecular and covalent solids: each example
+imports and opens its pattern (#972).
 
     tests/apps/diffraction_examples_test.py [--build build-cmake] [--png DIR]
 
@@ -28,14 +29,17 @@ import packing_cells_test as pc  # noqa: E402
 from harness import say  # noqa: E402
 
 CLI = os.path.join(REPO, "scripts", "ecce_xrd.py")
-DX = os.path.join(REPO, "data", "client", "examples", "genchem", "diffraction")
+DX = os.path.join(REPO, "data", "client", "examples", "genchem")
 # folder, calculation, output extension, pattern the entry opens
-CASES = (("qe-nacl_powder", "nacl_powder", ".pwout", "powder"),
-         ("qe-kcl", "kcl", ".pwout", "powder"),
-         ("qe-nacl_bragg", "nacl_bragg", ".pwout", "powder"),
-         ("qe-quartz", "quartz", ".pwout", "powder"),
-         ("xtb-b_dna", "bdna", ".out", "fibre"),
-         ("xtb-alpha_helix", "helix", ".out", "fibre"))
+CASES = (("diffraction/qe-nacl_powder", "nacl_powder", ".pwout", "powder"),
+         ("diffraction/qe-kcl", "kcl", ".pwout", "powder"),
+         ("diffraction/qe-nacl_bragg", "nacl_bragg", ".pwout", "powder"),
+         ("diffraction/qe-quartz", "quartz", ".pwout", "powder"),
+         ("diffraction/xtb-b_dna", "bdna", ".out", "fibre"),
+         ("diffraction/xtb-alpha_helix", "helix", ".out", "fibre"),
+         # Molecular and covalent solids: a layered and a molecular crystal
+         ("molecular-and-covalent-solids/qe-graphite", "graphite", ".pwout", "powder"),
+         ("molecular-and-covalent-solids/qe-urea", "urea", ".pwout", "powder"))
 
 
 def same_csv_new_png(out, a, b, what):

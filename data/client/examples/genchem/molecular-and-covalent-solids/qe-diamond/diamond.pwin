@@ -1,0 +1,45 @@
+&CONTROL
+  calculation = 'relax'
+  prefix = 'diamond'
+  outdir = './qe.scratch'
+  pseudo_dir = '/usr/share/espresso/pseudo/'
+  tprnfor = .true.
+  tstress = .false.
+  forc_conv_thr = 1.0d-3
+  nstep = 50
+/
+&SYSTEM
+  ibrav = 0
+  nat = 8
+  ntyp = 1
+  ecutwfc = 60.0
+  ecutrho = 480.0
+  occupations = 'fixed'
+  vdw_corr = 'grimme-d3'
+  dftd3_version = 4
+/
+&ELECTRONS
+  conv_thr = 1e-06
+  mixing_beta = 0.7
+  electron_maxstep = 100
+/
+&IONS
+  ion_dynamics = 'bfgs'
+/
+ATOMIC_SPECIES
+  C      12.0107  C.pbe-n-kjpaw_psl.1.0.0.UPF
+CELL_PARAMETERS angstrom
+      3.5670000000     0.0000000000     0.0000000000
+      0.0000000000     3.5670000000     0.0000000000
+      0.0000000000     0.0000000000     3.5670000000
+ATOMIC_POSITIONS angstrom
+  C       0.0000000000     0.0000000000     0.0000000000
+  C       0.0000000000     1.7835000000     1.7835000000
+  C       1.7835000000     0.0000000000     1.7835000000
+  C       1.7835000000     1.7835000000     0.0000000000
+  C       0.8917500000     0.8917500000     0.8917500000
+  C       0.8917500000     2.6752500000     2.6752500000
+  C       2.6752500000     0.8917500000     2.6752500000
+  C       2.6752500000     2.6752500000     0.8917500000
+K_POINTS automatic
+  6 6 6 0 0 0

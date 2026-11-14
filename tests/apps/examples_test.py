@@ -121,6 +121,10 @@ for _topic in sorted(os.listdir(_GC)):
 # the Quantum ESPRESSO crystals of Packing in solids: energy only
 GENCHEM.update({c: ["TE"] for c in ("po_sc", "na_bcc", "al_fcc", "cu_fcc",
                                     "mg_hcp", "nacl", "cscl")})
+# Molecular and covalent solids: relaxations, sucrose a single point
+GENCHEM.update({c: ["TE", "GEOMTRACE"] for c in ("ice", "dryice", "urea", "benzene",
+                                                 "diamond", "graphite")})
+GENCHEM["sucrose"] = ["TE"]
 # the Diffraction topic: the folder names give wrong calculation names there
 for _k in ("b_dna", "alpha_helix"):
     GENCHEM.pop(_k, None)

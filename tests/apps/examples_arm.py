@@ -44,7 +44,7 @@ def propsOf(project):
     return found
 
 
-def waitStable(project, count, seconds=300, seen=None):
+def waitStable(project, count, seconds=900, seen=None):
     """The property files of all `count` calculations stopped changing.
     SEEN gets the last calculations found and those annotated, for the
     failure message."""
