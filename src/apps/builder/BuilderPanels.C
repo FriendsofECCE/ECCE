@@ -14,6 +14,7 @@
 #include <tuple>
 #include <utility>
 
+#include <wx/grid.h>
 #include <wx/menu.h>
 #include <wx/menuitem.h>
 #include <wx/timer.h>
@@ -1207,6 +1208,28 @@ int Builder::indexProportion() const
 //  Rows the Properties list keeps visible while a panel is open below it.
 static const int INDEX_ROWS_KEPT = 8;
 
+//  Height `panel` needs to show `rows` rows of its first shown table, or -1
+//  without one or before it is laid out.  A table panel (MOs) at its floor
+//  shows controls and no rows, so the list yields to this first.
+static int tableRowsHeight(wxWindow *panel, int rows)
+{
+  std::vector<wxWindow*> todo(1, panel);
+  while (!todo.empty()) {
+    wxWindow *w = todo.back();
+    todo.pop_back();
+    wxGrid *g = dynamic_cast<wxGrid*>(w);
+    if (g && g->IsShownOnScreen()) {
+      const int rowH = std::max(1, g->GetDefaultRowSize());
+      if (panel->GetSize().y < 4 * rowH) return -1;
+      return panel->GetSize().y - g->GetGridWindow()->GetClientSize().y
+             + rows * rowH;
+    }
+    for (wxWindowList::compatibility_iterator n = w->GetChildren().GetFirst();
+         n; n = n->GetNext()) todo.push_back(n->GetData());
+  }
+  return -1;
+}
+
 void Builder::sizeIndexPane()
 {
   wxAuiPaneInfo &pane = p_mgr.GetPane(static_cast<wxWindow*>(p_index));
@@ -1234,9 +1257,10 @@ void Builder::sizeIndexPane()
     const int room = columnH - (tabs.IsOk() ? tabs.min_size.y + 12 : 46);
     const int caption =
         p_mgr.GetArtProvider()->GetMetric(wxAUI_DOCKART_CAPTION_SIZE);
+    const int need = std::max(std::max(80, open->minimumHeight()),
+                              tableRowsHeight(open, 3));
     const int kept = std::min(p_index->preferredHeight(INDEX_ROWS_KEPT),
-        std::max(p_index->preferredHeight(3),
-                 room - std::max(80, open->minimumHeight()) - 2 * caption));
+        std::max(p_index->preferredHeight(3), room - need - 2 * caption));
     cap = std::max(kept, std::min(cap, room - open->openingHeight()));
   }
   const int height = std::min(p_index->preferredHeight(1000), cap);
@@ -1245,7 +1269,16 @@ void Builder::sizeIndexPane()
   if (pane.min_size.y == height && pane.dock_proportion == share) return;
   pane.dock_proportion = share;
   pane.MinSize(wxSize(pane.min_size.x, height)).BestSize(wxSize(400, height));
-  if (pane.IsShown() && !pane.IsFloating()) updatePanes();
+  if (pane.IsShown() && !pane.IsFloating()) {
+    updatePanes();
+    //  A table panel is measured once it has been laid out.
+    static bool again = false;
+    if (open && !again) {
+      again = true;
+      sizeIndexPane();
+      again = false;
+    }
+  }
 }
 
 
