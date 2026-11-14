@@ -3128,8 +3128,8 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/native_test.py
                    --dialog $<TARGET_FILE:ecce-dialog>)
-  # The oracle picks its Xvfb display by looking for free sockets, so two
-  # runs started together would take the same one.
+  # Serial because the runs are long and CPU-heavy; the Xvfb number itself is
+  # reserved by tests/apps/xdisplay.py.
   set_tests_properties(dialogs_native PROPERTIES SKIP_RETURN_CODE 77
                        TIMEOUT 900 RUN_SERIAL TRUE)
   # The G16 Runtype dialog has 349 contexts; --dedupe replays the restore
