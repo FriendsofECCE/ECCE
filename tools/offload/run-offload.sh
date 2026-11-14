@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run a long ECCE build or test suite on an offload machine.
-#   run-offload.sh [--host radium|nerdegg|auto] <git ref> <build|ctest [-R re]|teaching|apps|apptest <test.py ...>|clip|run ...> [args]
+#   run-offload.sh [--host radium|nerdegg|niobium|auto] <git ref> <build|ctest [-R re]|teaching|apps|apptest <test.py ...>|clip|run ...> [args]
 # The ref must already be pushed to GitHub.  See tools/offload/README.md.
 set -eu
 host=auto
@@ -20,14 +20,21 @@ conf() {
       # Builds run outside Slurm for now (Andy, 2026-11-11); to go back
       # through it, BUILDWRAP="srun -c 4 --mem=12G --" (radium: --mem=8G).
       nerdegg)   echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=4 CTEST_JOBS=1 KEEP=3 BUILDWRAP=' ;;
+      # The user's desktop (8 threads), run locally without ssh; lowest priority.
+      niobium)   echo 'OFF=$HOME/tmp/ecce/offload MODE=native SLOTS=1 JOBS=3 CTEST_JOBS=2 KEEP=3 BUILDWRAP=nice\ -n\ 19' ;;
       *) echo "unknown host $1" >&2; return 1 ;;
     esac
 }
 # Free slots on a host (-1 if unreachable, within 5 s).
+on() {  # run a command line on a host; niobium is this machine
+    if [ "$1" = niobium ]; then shift; bash -c "$*"; else
+        local h=$1; shift; ssh -o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=30 "$h" "$*"; fi
+}
 free() {
-    ssh -o BatchMode=yes -o ConnectTimeout=5 "$1" "$(conf "$1"); n=0; mkdir -p \$OFF/locks;
+    on "$1" "$(conf "$1"); n=0; mkdir -p \$OFF/locks;
       for i in \$(seq 1 \$SLOTS); do ( exec 9>\$OFF/locks/slot\$i; flock -n 9 ) && n=\$((n+1)); done; echo \$n" 2>/dev/null || echo -1
 }
+# niobium is the user's desktop: last in the auto order.
 # radium is in use on evenings 18-21: start nothing from 17:00 to 21:00,
 # unless its owner said it is free (OFFLOAD_IGNORE_HOURS=1).
 radium_free() {
@@ -43,7 +50,7 @@ fi
 if [ "$host" = auto ]; then
     # NerdEgg first, then radium (outside its owner's hours).
     # A host that does not answer is skipped; a full one queues the job.
-    order="nerdegg radium"
+    order="nerdegg radium niobium"
     host= queue=
     for h in $order; do
         if ! host_free "$h"; then
@@ -64,4 +71,7 @@ fi
 envs=$(conf "$host")
 args=$(printf '%q ' "$@")
 # remote-run.sh is sent on stdin, so the host needs no checkout to start from.
+if [ "$host" = niobium ]; then
+    exec nice -n 19 bash -c "env $envs bash -s -- $args" < "$here/remote-run.sh"
+fi
 exec ssh -o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=30 "$host" "env $envs bash -s -- $args" < "$here/remote-run.sh"
