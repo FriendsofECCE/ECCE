@@ -12,6 +12,10 @@
 #include "wx/aui/framemanager.h"
 #include "wx/aui/tabart.h"
 #include "wx/app.h"
+#include "wx/dialog.h"
+#include "wx/msgdlg.h"
+#include "wx/timer.h"
+#include "wx/weakref.h"
 #include "wx/control.h"
 #include "wx/dcclient.h"
 #include "wx/frame.h"
@@ -745,6 +749,73 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
 }
 
 
+namespace {
+wxWindowRef s_focusBefore;
+wxString s_dialogResult = "none";
+// Dialogs moved over the main window.  The tool's frame can be gone by the
+// time the dialog closes (its own "save changes?" question), so closing
+// must not look at the dialog's parent again.
+std::set<wxDialog*> s_moved;
+
+bool hostedParent(wxDialog *dlg)
+{
+  wxWindow *parent = dlg->GetParent();
+  wxWindow *top = parent ? wxGetTopLevelParent(parent) : 0;
+  wxTopLevelWindow *tlw = wxDynamicCast(top, wxTopLevelWindow);
+  return s_host && tlw && ToolTabs::hosts(tlw);
+}
+}
+
+
+void ToolTabs::dialogOpened(wxDialog *dlg)
+{
+  if (!hostedParent(dlg)) return;
+  s_moved.insert(dlg);
+  s_focusBefore = wxWindow::FindFocus();
+#ifdef __WXGTK__
+  // The hidden frame has no screen position: GTK would stack and centre
+  // the dialog against it.
+  GtkWidget *d = (GtkWidget*)dlg->GetHandle();
+  GtkWidget *h = (GtkWidget*)s_host->GetHandle();
+  if (d && h) {
+    gtk_window_set_transient_for(GTK_WINDOW(d), GTK_WINDOW(h));
+    gtk_window_set_position(GTK_WINDOW(d), GTK_WIN_POS_CENTER_ON_PARENT);
+  }
+#endif
+  // Centre now from the best size, and again once shown at its real size.
+  wxRect r = s_host->GetScreenRect();
+  wxSize sz = dlg->GetBestSize();
+  // A native GTK message box has no wx size; GTK centres it on its parent.
+  if (sz.x > 1 && sz.y > 1)
+    dlg->Move(r.x + (r.width - sz.x) / 2, r.y + (r.height - sz.y) / 2);
+  wxWeakRef<wxDialog> ref(dlg);
+  wxWindowRef host(s_host);
+  dlg->CallAfter([ref, host]() {
+    wxDialog *d = ref.get();
+    if (!d || !host) return;
+    wxRect r = s_host->GetScreenRect();
+    wxSize sz = d->GetSize();
+    if (sz.x > 1 && sz.y > 1)
+      d->Move(r.x + (r.width - sz.x) / 2, r.y + (r.height - sz.y) / 2);
+  });
+}
+
+
+void ToolTabs::dialogClosed(wxDialog *dlg)
+{
+  if (!s_moved.erase(dlg)) return;
+  wxWindowRef was = s_focusBefore;
+  s_focusBefore = 0;
+  // The Organizer itself may be the thing closing (a quit question).
+  wxWindowRef host(s_host);
+  wxTheApp->CallAfter([was, host]() {
+    if (!host) return;
+    if (was && was->IsShownOnScreen()) { was->SetFocus(); return; }
+    if (s_book && s_book->GetCurrentPage()) s_book->GetCurrentPage()->SetFocus();
+  });
+}
+
+
 void ToolTabs::moveToTabs(wxFrame *tool)
 {
   Tab *t = findTool(tool);
@@ -843,6 +914,51 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
     ev.SetEventObject(s_host);
     outcome = s_host->GetEventHandler()->ProcessEvent(ev) ? "handled"
                                                           : "not handled";
+  } else if (cmd == "dialog") {
+    // Opens a message dialog over the active tool's hidden frame, as its
+    // own code does, measures it 1.5 s later and closes it; the
+    // measurement is read with "dialoginfo".
+    Tab *t = activeTab();
+    if (!t || !t->tool) { outcome = "no tool tab"; return true; }
+    wxFrame *tool = t->tool;
+    s_dialogResult = "pending";
+    s_host->CallAfter([tool]() {
+      wxMessageDialog dlg(tool, "Test message", "Test dialog", wxOK);
+      wxTimer timer;
+      timer.Bind(wxEVT_TIMER, [&dlg, &timer](wxTimerEvent&) {
+        wxRect hr = s_host->GetScreenRect();
+        wxRect dr = dlg.GetScreenRect();
+        bool transient = false, mapped = false;
+#ifdef __WXGTK__
+        GtkWidget *d = (GtkWidget*)dlg.GetHandle();
+        GtkWindow *tf = d ? gtk_window_get_transient_for(GTK_WINDOW(d)) : 0;
+        transient = tf && (GtkWidget*)tf == (GtkWidget*)s_host->GetHandle();
+        mapped = d && gtk_widget_get_mapped(d);
+        // wx knows no size for a native message box: ask GTK.
+        if (d) {
+          gint x = 0, y = 0;
+          gtk_window_get_position(GTK_WINDOW(d), &x, &y);
+          dr = wxRect(x, y, gtk_widget_get_allocated_width(d),
+                      gtk_widget_get_allocated_height(d));
+        }
+#endif
+        s_dialogResult = wxString::Format(
+            "transient=%d mapped=%d inside=%d dialog=%d,%d,%d,%d "
+            "organizer=%d,%d,%d,%d",
+            (int)transient, (int)mapped, (int)hr.Contains(dr),
+            dr.x, dr.y, dr.width, dr.height, hr.x, hr.y, hr.width, hr.height);
+        timer.Stop();
+        dlg.EndModal(wxID_OK);
+      });
+      timer.StartOnce(1500);
+      dlg.ShowModal();
+      if (s_dialogResult == "pending") s_dialogResult = "closed early";
+      s_dialogResult += wxString::Format(" focus=%s",
+          wxWindow::FindFocus() ? "set" : "none");
+    });
+    outcome = "started";
+  } else if (cmd == "dialoginfo") {
+    outcome = s_dialogResult;
   } else if (cmd == "totabs") {
     for (Tab& t : tabs())
       if (t.tool && !t.page && t.tool->GetTitle().Contains(arg)) {

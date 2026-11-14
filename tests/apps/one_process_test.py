@@ -289,6 +289,10 @@ def runTabs(display):
             append("start Builder " + url, 25)
             append("tabs", 2)                  # Builder tab active
             append("tabinfo", 2)
+            append("dialog", 1)
+            shot("tabs-builder-dialog.png")
+            time.sleep(2)                      # it closes itself after 1.5 s
+            append("dialoginfo", 2)
             shot("tabs-builder.png")
             append("charhook 27", 2)           # Esc, as GTK delivers it
             append("tab 0", 3)
@@ -341,6 +345,11 @@ def runTabs(display):
               int(m.group(2)) > 300 and int(m.group(3)) >= 3,
               "the Builder tab shows its windows and status bar, its own "
               "frame stays unmapped", str(info))
+        dlg = pb.answers(log, "dialoginfo")
+        check(dlg and "transient=1 mapped=1 inside=1" in dlg[0],
+              "a dialog opened with the Builder's hidden frame as parent is "
+              "transient for the Organizer, shown and inside its window",
+              str(dlg))
         check("BUILDER: charhook key=27" in log,
               "a key hook on the main window reaches the Builder tab",
               str(pb.answers(log, "charhook")))
@@ -414,6 +423,10 @@ def runTabsEditor(display):
             append("start CalculationEditor " + url, 25)
             append("tabs", 2)                  # 1: the editor, active
             append("tabinfo Launch...,Save,Verify,dump,gtk", 2)
+            append("dialog", 1)
+            shot("tabs-editor-dialog.png")
+            time.sleep(2)                      # it closes itself after 1.5 s
+            append("dialoginfo", 2)
             shot("tabs-editor.png")
             append("start Builder " + url, 25)
             append("tabs", 2)                  # 2: the Builder, active
@@ -466,6 +479,10 @@ def runTabsEditor(display):
               int(m.group(2)) > 300 and int(m.group(3)) >= 1,
               "the editor tab shows its windows, its own frame stays unmapped",
               str(info))
+        dlg = pb.answers(log, "dialoginfo")
+        check(dlg and "transient=1 mapped=1 inside=1" in dlg[0],
+              "a dialog opened from the editor tab is transient for the "
+              "Organizer, shown and inside its window", str(dlg))
         # Every control reachable (seen, or by scrolling), and the page is
         # not one flat colour as the X server shows it.
         check(info and all(("%s=reachable" % b) in info[0]

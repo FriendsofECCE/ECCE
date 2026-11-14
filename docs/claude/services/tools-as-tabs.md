@@ -2,7 +2,7 @@
 type: map
 title: "Tools as tabs (#983 stage 2): a tool stays a hidden wxFrame, its windows move into a notebook page"
 area: services
-paths: ["src/wxgui/mdtools/MDEdBase.C", "src/apps/mdprepare/MDPrep.C", "src/apps/basistool/WxBasisTool.C", "src/wxgui/jms/ToolTabs.C", "include/wxgui/ToolTabs.H", "src/apps/builder/Builder.H", "src/apps/builder/Builder.C", "src/apps/builder/BuilderWindow.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/InProcessTools.C", "tests/apps/one_process_test.py"]
+paths: ["src/wxgui/mdtools/MDEdBase.C", "src/apps/mdprepare/MDPrep.C", "src/apps/basistool/WxBasisTool.C", "src/wxgui/jms/ToolTabs.C", "src/wxgui/ewxClasses/ewxModalGuard.C", "include/wxgui/ToolTabs.H", "src/apps/builder/Builder.H", "src/apps/builder/Builder.C", "src/apps/builder/BuilderWindow.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/InProcessTools.C", "tests/apps/one_process_test.py"]
 issues: [983]
 ---
 Switch: `ECCE_ONE_PROCESS=1` and `ECCE_LAYOUT=small` (`ToolTabs::enabled`).
@@ -104,7 +104,7 @@ because the body's pizza was never size-allocated again. `allocateChildren`
 
 ## Test hooks
 
-`tabs`, `tab <n>`, `towindow <n>`, `totabs <title>`, `tabinfo [labels]` (page size,
+`tabs`, `tab <n>`, `towindow <n>`, `totabs <title>`, `dialog`/`dialoginfo`, `tabinfo [labels]` (page size,
 shown children, status bar parent, frame mapped or not, scroller view and
 virtual size, `STALE` when the virtual height is below the sizer minimum,
 `<label>=reachable|CLIPPED` for each button label in the comma list,
@@ -113,7 +113,22 @@ the screen under the page, so a blank page shows as a handful; `gtk` adds
 frozen/mapped/GTK allocation of the body, its ancestors and first child), `charhook <key>`;
 checked by `tests/apps/one_process_test.py --tabs-only` (Builder, editor, and MD Energy + MD Prepare + Basis Set Tool in `runTabsTools`) (`--shots DIR`).
 
+## Dialogs of a tab
+
+A tool's dialogs and message boxes have its hidden frame as parent, which
+has no place on screen. `ewxModalGuard` (every modal dialog passes its
+hook, `wxMessageBox` and file dialogs included) calls
+`ToolTabs::dialogOpened`: for a hosted parent the dialog is made GTK-
+transient for the Organizer's frame and centred over it, and the control
+that had the focus gets it back in `dialogClosed`. No call site changes.
+Closing must not touch the dialog's parent: a tool's own "save changes?"
+box outlives the tool's frame (SIGSEGV at quit otherwise); the dialogs
+moved are remembered in a set. Hook `dialog` (opens a message box over the
+active tool tab, measures it 1.5 s later) + `dialoginfo` (transient, mapped,
+inside the Organizer's rectangle).
+
 ## Known gaps
 
-- Dialogs and popups with the hidden frame as parent: placement on GTK.
+- Popup menus and other non-dialog windows with the hidden frame as parent:
+  not checked (modal dialogs are handled, see below).
 - `MenuPlacement::InTab` is not implemented.

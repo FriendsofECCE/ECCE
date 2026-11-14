@@ -17,6 +17,7 @@
 #include "wx/string.h"
 
 class wxAuiManager;
+class wxDialog;
 class wxFrame;
 class wxMenuBar;
 class wxSizer;
@@ -69,6 +70,14 @@ public:
   static void release(wxTopLevelWindow *tool, bool showFrame = true);
   // Move to Tabs, from the frame's Window menu.
   static void moveToTabs(wxFrame *tool);
+
+  // A modal dialog whose parent is a hosted tool's (hidden) frame: made
+  // transient for the main window and centred over it, since the hidden
+  // frame has no place on screen.  dialogClosed gives the focus back to
+  // the control that had it.  Both are called by ewxModalGuard for every
+  // modal dialog, so no call site needs to name another parent.
+  static void dialogOpened(wxDialog *dlg);
+  static void dialogClosed(wxDialog *dlg);
 
   // Tests: "tabs" lists "<n>:<title>[*]" (* = active) and the menu bar's
   // menus; "tab <n>", "towindow <n>", "totabs <title part>" act on them.

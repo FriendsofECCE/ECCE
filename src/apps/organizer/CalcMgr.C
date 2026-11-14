@@ -3398,7 +3398,8 @@ void CalcMgr::runTestCommand(const string& line)
                      (w->IsShown() ? "" : "(hidden)") + "/" + string(w->GetLabel().utf8_str());
     } else if (command == "tabs" || command == "tab" ||
                command == "towindow" || command == "totabs" ||
-               command == "charhook" || command == "tabinfo" || command == "sbinfo") {
+               command == "charhook" || command == "tabinfo" || command == "sbinfo" ||
+               command == "dialog" || command == "dialoginfo") {
       // Tools as tabs (#983, ECCE_LAYOUT=small): list, select, Open in
       // Window, Move to Tabs.
       wxString result;
