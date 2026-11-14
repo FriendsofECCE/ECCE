@@ -4,13 +4,36 @@ A series is one calculation's setup applied to a list of structures, giving
 one calculation each. Use it for the same method and basis on a set of
 molecules, or for the same job on every conformer.
 
-## Making the series
+## From finished calculations, in the Organizer
 
-The command is `ecce-series`; the Organizer has no menu item for it. Make the
-**template** first: a calculation with the code, theory, run type, basis set,
-solvent and launch settings (machine, cores, wall time) you want. Its own
-structure does not matter, and it need not have been run. If some of the
-structures have unpaired electrons, use an unrestricted theory in the
+To redo several finished calculations in another code, for example the
+results of an xTB run in ORCA:
+
+1. Select the calculations in the project table (Ctrl or Shift for several).
+2. Choose **Tools > New Calculations in Another Code...**, or right-click in
+   the table and choose **New from This > In Another Code...**.
+3. Choose the code, the end of the new names (`_orca` gives `water_orca`)
+   and the folder, which is the one holding the first selected calculation.
+   Click **OK**.
+4. The first new calculation opens in the Calculation Editor. Set the theory,
+   run type, basis set and launch settings, and save.
+5. In the small window that stays in the Organizer, click **Make the
+   Others**.
+
+Each new calculation takes its source's final geometry, charge and
+multiplicity and the setup from step 4, and is Ready. The Organizer's
+message area says how many were made and lists any that were not, with the
+reason, for example a multiplicity that does not fit the electrons. Select
+the new calculations and choose **Run Mgmt > Launch Selected**.
+
+Cancel in the small window leaves the first calculation and makes no others.
+
+## From the command line
+
+Make the **template** first: a calculation with the code, theory, run type,
+basis set, solvent and launch settings (machine, cores, wall time) you want.
+Its own structure does not matter, and it need not have been run. If some of
+the structures have unpaired electrons, use an unrestricted theory in the
 template: the series keeps the template's theory as it is.
 
 The new calculations appear next to the template in state Ready with their
@@ -25,7 +48,7 @@ lowest the number of electrons allows. A stored calculation brings its own
 final geometry, charge and multiplicity. A structure whose multiplicity does
 not fit its electrons is not made, and the report says so.
 
-## What is copied from the template
+## What is copied from the setup
 
 The code, theory, run type, the values of the theory and run type details,
 the basis set, the solvent and the launch settings. Results, run state and

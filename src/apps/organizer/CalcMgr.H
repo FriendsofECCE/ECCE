@@ -16,6 +16,7 @@
 #include <utility>
 #include <vector>
 #include "wxgui/WxTailWindow.H"
+#include <wx/dialog.h>
 #include <wx/frame.h>
 #include <wx/toolbar.h>
 #include <wx/splitter.h>
@@ -158,6 +159,14 @@ public:
   void OnNewSeriesClick( wxCommandEvent& event );
   void newSeries(const EcceURL& templ, const vector<string>& sources,
                  string *outcome);
+  /// New from This > In Another Code (#1037): the first calculation, opened
+  /// in the Calculation Editor; finishAnotherCode makes the others from its
+  /// setup.  outcome: the hooks' answers (no editor window, no prompt).
+  void OnAnotherCodeClick( wxCommandEvent& event );
+  void startAnotherCode(const string& typeName, const string& suffix,
+                        const EcceURL& folder, const vector<string>& sources,
+                        bool interactive, string *outcome);
+  void finishAnotherCode(string *outcome);
   /// Batch Add from SMILES (#961): one calculation per row in folder; the
   /// report, and the new calculations in made.
   void batchSmiles(const EcceURL& folder, const string& templ,
@@ -830,6 +839,10 @@ protected:
   //  Set by the workflownew test command: a New-step dialog is not shown
   //  but logged here ("carry;" with a source, "nocarry;" without).
   string *p_testStepDialogs = 0;
+  // In Another Code: the first calculation (the setup), the others waiting.
+  string p_anotherFirst, p_anotherSuffix;
+  vector<string> p_anotherRest;
+  wxDialog *p_anotherDialog = 0;
   //  Set by the "duplicate" test command: the tree's selection and
   //  collapse events, in order.
   std::vector<string> *p_testTreeEvents = 0;

@@ -6,6 +6,8 @@
 #include "dsm/DeckWriter.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/ICalculation.H"
+#include "dsm/ResourceDescriptor.H"
+#include "dsm/ResourceType.H"
 #include "dsm/Series.H"
 #include "dsm/TGBSConfig.H"
 #include "dsm/TaskJob.H"
@@ -99,12 +101,57 @@ Fragment *readXyz(const string& path, int defCharge, int& charge, int& mult,
   return frag;
 }
 
+// A source's structure with its charge and multiplicity, or 0 and why not.
+// The name is the source's (without .xyz) plus suffix.
+Fragment *loadStructure(const string& source, int defaultCharge, int defaultMult,
+                        const string& suffix, string& name, int& charge,
+                        int& mult, string& why)
+{
+  charge = defaultCharge;
+  mult = defaultMult;
+  name = baseName(source) + suffix;
+  Fragment *frag = 0;
+  const bool isXyz = source.size() > 4 &&
+      source.compare(source.size() - 4, 4, ".xyz") == 0;
+  if (isXyz) {
+    frag = readXyz(source, defaultCharge, charge, mult, why);
+  } else {
+    Resource *sres = EDSIFactory::getResource(EcceURL(source));
+    PropertyTask *stask = dynamic_cast<PropertyTask*>(sres);
+    ICalculation *scalc = dynamic_cast<ICalculation*>(sres);
+    if (!stask || !scalc) why = "not a calculation";
+    else if ((frag = stask->fragment()) == 0) why = "the calculation has no structure";
+    else {
+      // The final geometry of a run; a calculation not run keeps its own.
+      stask->getFragmentStep(frag, -1);
+      charge = frag->charge();
+      mult = (int)scalc->spinMultiplicity();
+      name = sres->getName() + suffix;
+    }
+  }
+  if (!frag) return 0;
+  frag->charge(charge);
+  const int electrons = frag->nuclearCharge() - charge;
+  if (mult == 0) mult = (electrons % 2 == 0) ? 1 : 2;
+  if (electrons < 0 || mult < 1 || mult > 9 || (electrons - (mult - 1)) % 2 != 0 ||
+      mult - 1 > electrons) {
+    char buf[160];
+    snprintf(buf, sizeof buf, "multiplicity %d does not fit %d electrons "
+             "(charge %d)", mult, electrons, charge);
+    why = buf;
+    delete frag;
+    return 0;
+  }
+  return frag;
+}
+
 }  // namespace
 
 
 vector<Series::Outcome> Series::make(const EcceURL& templ, const EcceURL& folder,
                                      const vector<string>& sources,
-                                     int defaultCharge, int defaultMult)
+                                     int defaultCharge, int defaultMult,
+                                     const string& nameSuffix)
 {
   vector<Outcome> results;
   Resource *tres = EDSIFactory::getResource(templ);
@@ -131,43 +178,11 @@ vector<Series::Outcome> Series::make(const EcceURL& templ, const EcceURL& folder
 
   for (size_t i = 0; i < sources.size(); i++) {
     Outcome o;
-    o.name = baseName(sources[i]);
     string why;
-    int charge = defaultCharge, mult = defaultMult;
-    Fragment *frag = 0;
-    const bool isXyz = sources[i].size() > 4 &&
-        sources[i].compare(sources[i].size() - 4, 4, ".xyz") == 0;
-    if (isXyz) {
-      frag = readXyz(sources[i], defaultCharge, charge, mult, why);
-    } else {
-      Resource *sres = EDSIFactory::getResource(EcceURL(sources[i]));
-      PropertyTask *stask = dynamic_cast<PropertyTask*>(sres);
-      ICalculation *scalc = dynamic_cast<ICalculation*>(sres);
-      if (!stask || !scalc) why = "not a calculation";
-      else if ((frag = stask->fragment()) == 0) why = "the calculation has no structure";
-      else {
-        // The final geometry of a run; a calculation not run keeps its own.
-        stask->getFragmentStep(frag, -1);
-        charge = frag->charge();
-        mult = (int)scalc->spinMultiplicity();
-        o.name = sres->getName();
-      }
-    }
+    int charge = 0, mult = 0;
+    Fragment *frag = loadStructure(sources[i], defaultCharge, defaultMult,
+                                   nameSuffix, o.name, charge, mult, why);
     if (!frag) { o.note = why; results.push_back(o); continue; }
-    frag->charge(charge);
-
-    const int electrons = frag->nuclearCharge() - charge;
-    if (mult == 0) mult = (electrons % 2 == 0) ? 1 : 2;
-    if (electrons < 0 || mult < 1 || mult > 9 || (electrons - (mult - 1)) % 2 != 0 ||
-        mult - 1 > electrons) {
-      char buf[160];
-      snprintf(buf, sizeof buf, "multiplicity %d does not fit %d electrons "
-               "(charge %d)", mult, electrons, charge);
-      o.note = buf;
-      delete frag;
-      results.push_back(o);
-      continue;
-    }
 
     EcceURL target = folder.getChild(o.name);
     if (EDSIFactory::getResource(target)) {
@@ -244,4 +259,59 @@ vector<Series::Outcome> Series::make(const EcceURL& templ, const EcceURL& folder
     results.push_back(o);
   }
   return results;
+}
+
+
+// The first calculation of "In Another Code": a new calculation of the code
+// holding the source's structure, for the user to set up in the editor.
+Series::Outcome Series::first(const string& typeName, const EcceURL& folder,
+                              const string& source, const string& nameSuffix)
+{
+  Outcome o;
+  ResourceType *rt = 0;
+  vector<ResourceType*> types =
+      ResourceDescriptor::getResourceDescriptor().getResourceTypes();
+  for (size_t i = 0; i < types.size() && !rt; i++)
+    if (types[i]->getName() == typeName) rt = types[i];
+  Resource *parent = EDSIFactory::getResource(folder);
+  string why;
+  int charge = 0, mult = 0;
+  Fragment *frag = loadStructure(source, 0, 0, nameSuffix, o.name, charge, mult, why);
+  if (!frag) { o.note = why; return o; }
+  if (!rt || !parent) { o.note = "no such code or folder"; delete frag; return o; }
+  if (EDSIFactory::getResource(folder.getChild(o.name))) {
+    o.note = "a calculation of that name exists in the folder";
+    delete frag;
+    return o;
+  }
+  Resource *r = parent->createChild(o.name, rt);
+  ChemistryTask *ct = dynamic_cast<ChemistryTask*>(r);
+  ICalculation *calc = dynamic_cast<ICalculation*>(r);
+  if (!ct || !calc || !ct->fragment(frag) ||
+      !calc->spinMultiplicity((SpinMult::SpinMultEnum)mult) ||
+      !calc->openShells(mult - 1)) {
+    o.note = "the calculation could not be created";
+    if (r) r->remove();
+    delete frag;
+    return o;
+  }
+  delete frag;
+  o.ok = true;
+  o.url = r->getURL().toString();
+  return o;
+}
+
+
+// A calculation the editor was closed on without saving a deck: generate it.
+bool Series::makeReady(const EcceURL& calcUrl, string& why)
+{
+  Resource *res = EDSIFactory::getResource(calcUrl);
+  TaskJob *job = dynamic_cast<TaskJob*>(res);
+  ICalculation *calc = dynamic_cast<ICalculation*>(res);
+  if (!job || !calc) { why = "not a calculation"; return false; }
+  if (job->getState() == ResourceDescriptor::STATE_READY) return true;
+  DeckWriter::Result r = DeckWriter::generate(calc);
+  if (!r.ok) { why = r.message; return false; }
+  job->setState(ResourceDescriptor::STATE_READY);
+  return true;
 }

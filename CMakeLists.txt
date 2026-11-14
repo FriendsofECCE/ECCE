@@ -3481,6 +3481,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_new_series PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # New from This > In Another Code (hooks anothercode, #1037).
+  add_test(NAME apps_another_code
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/another_code_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_another_code PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # ecce-series: one setup, several structures (ORCA, G16, ECCE-QM; #621).
   add_test(NAME series_cli
            COMMAND ${PYTHON3_EXECUTABLE}
