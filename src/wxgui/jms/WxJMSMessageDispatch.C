@@ -33,6 +33,7 @@
 #include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/JMSMessage.H"
+#include "util/MqttLink.H"
 #include "util/StringConverter.H"
 
 #include "tdat/AuthCache.H"
@@ -41,6 +42,7 @@
 #include "dsm/ResourceTool.H"
 
 #include "wxgui/ewxWindowUtils.H"
+#include "wxgui/InProcessTools.H"
 #include "wxgui/WxJMSMessageDispatch.H"
 
 // KLS 9/6/06
@@ -107,6 +109,8 @@ WxJMSMessageDispatch::WxJMSMessageDispatch(const string& app_name, bool app)
   : WxJMSSubscriber(app_name)
 {
   p_publisher = new JMSPublisher(app_name);
+  // Replies to this dispatcher's requests are targeted at this id.
+  p_publisher->setMyID(WxJMSSubscriber::getMyID());
   p_invokeMCBPtr = 0;
 
   subscribe("ecce_poll",
@@ -161,6 +165,7 @@ void WxJMSMessageDispatch::ensureTimers()
  */
 WxJMSMessageDispatch::~WxJMSMessageDispatch()
 {
+  InProcessTools::untrack(this);
   disconnect();
 }
 
@@ -459,6 +464,17 @@ void WxJMSMessageDispatch::getAppMCB(JMSMessage& startMsg)
 {
   ensureTimers();
 
+  // A tool that opens in this process (#983, the Windows Organizer as
+  // starter): no program to start, so no startup to track.
+  if (InProcessTools::open(startMsg)) {
+    Target target("", getMyID());
+    JMSMessage* statusMsg = newMessage(target);
+    statusMsg->addProperty("status", "ok");
+    publish("ecce_invoke_status", *statusMsg);
+    delete statusMsg;
+    return;
+  }
+
   // First change the sender in the startMsg to be me instead
   // of the app it originally came from
   // 4/7/06 The above is from the original design.  Not sure if its needed.
@@ -694,6 +710,9 @@ long WxJMSMessageDispatch::startToolWin(const string& app, string& error)
       _putenv_s("ECCE_INVOKE_VIEWER", "1");
       _putenv_s("ECCE_INVOKE_FROMECCE", "1");
     }
+    // ECCE_ONE_PROCESS is for the Organizer only (#983).
+    bool oneProcess = app == "Organizer" && MqttLink::oneProcessRequested();
+    if (oneProcess) _putenv_s("ECCE_ONE_PROCESS", "1");
     ok = CreateProcessA(exe.c_str(), &cmd[0], 0, 0, TRUE,
                         EXTENDED_STARTUPINFO_PRESENT, 0, bin.c_str(),
                         &si.StartupInfo, &pi) != 0;
@@ -701,6 +720,7 @@ long WxJMSMessageDispatch::startToolWin(const string& app, string& error)
       _putenv_s("ECCE_INVOKE_VIEWER", "");
       _putenv_s("ECCE_INVOKE_FROMECCE", "");
     }
+    if (oneProcess) _putenv_s("ECCE_ONE_PROCESS", "");
     if (!ok)
       error = "could not start " + exe + " (error " +
               std::to_string(GetLastError()) + ")";
@@ -824,6 +844,12 @@ void WxJMSMessageDispatch::appExec()
                          StringConverter::toString(authFds[0]);
         argv[2] = (char*)apppath.c_str();
         char path[] = "/bin/sh";
+        // ECCE_ONE_PROCESS is for the Organizer only (#983): other tools
+        // stay separate processes on the broker.
+        if (app == "Organizer" && MqttLink::oneProcessRequested())
+          setenv("ECCE_ONE_PROCESS", "1", 1);
+        else
+          unsetenv("ECCE_ONE_PROCESS");
 
         execv(path, argv);
         cerr << "exec failed!" << endl;

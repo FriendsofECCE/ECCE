@@ -1372,3 +1372,14 @@ void ewxWindowUtils::scheduleClipAudit(wxTopLevelWindow *win)
   });
   timer->StartOnce(5000);
 }
+
+
+wxTimer *ewxWindowTimer(wxWindow *win)
+{
+  wxTimer *timer = new wxTimer();
+  win->Bind(wxEVT_DESTROY, [win, timer](wxWindowDestroyEvent& ev) {
+    if (ev.GetEventObject() == win) delete timer;
+    ev.Skip();
+  });
+  return timer;
+}

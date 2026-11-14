@@ -50,6 +50,8 @@ class MDPrep: public MDPrepGUI,
 {    
 
    public:
+      // The window's dispatcher (#983, opened in the Organizer's process).
+      WxJMSMessageDispatch *getDispatcher() const { return p_msgDispatcher; }
 
       /** States that dictate actions a user can take. */
       enum PrepState {NO_SYSTEM, VALID_SYSTEM, PROVIDED_SYSTEM, VALID_TOPOLOGY};

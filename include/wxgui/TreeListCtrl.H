@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////////////////
 // Name:        treelistctrl.h
-// Purpose:     wxTreeListCtrl class
+// Purpose:     ewxTreeListCtrl class
 // Author:      Robert Roebling
 // Maintainer:  Otto Wyss
 // Created:     01/02/97
@@ -31,14 +31,14 @@
 #endif
 
 #ifdef __WXMSW__
-// wx 3.2 has its own wxTreeListCtrl in the core DLL; a second definition of
+// wx 3.2 has its own ewxTreeListCtrl in the core DLL; a second definition of
 // the name does not link.
-#define wxTreeListCtrl EcceTreeListCtrl
+#define ewxTreeListCtrl EcceTreeListCtrl
 #endif
 
-class ECCE_TLC_EXPORT wxTreeListItem;
-class ECCE_TLC_EXPORT wxTreeListHeaderWindow;
-class ECCE_TLC_EXPORT wxTreeListMainWindow;
+class ECCE_TLC_EXPORT ewxTreeListItem;
+class ECCE_TLC_EXPORT ewxTreeListHeaderWindow;
+class ECCE_TLC_EXPORT ewxTreeListMainWindow;
 
 #define wxTR_VIRTUAL    0x1000    // The application provides items text on demand.
 
@@ -52,17 +52,17 @@ typedef void *wxTreeItemIdValue;
 #endif
 
 //-----------------------------------------------------------------------------
-// wxTreeListColumnAttrs
+// ewxTreeListColumnAttrs
 //-----------------------------------------------------------------------------
 
 enum {
     DEFAULT_COL_WIDTH = 100
 };
 
-class ECCE_TLC_EXPORT wxTreeListColumnInfo: public wxObject {
+class ECCE_TLC_EXPORT ewxTreeListColumnInfo: public wxObject {
 
 public:
-    wxTreeListColumnInfo (const wxString &text = wxEmptyString,
+    ewxTreeListColumnInfo (const wxString &text = wxEmptyString,
                           int width = DEFAULT_COL_WIDTH,
                           int flag = wxALIGN_LEFT,
                           int image = -1,
@@ -77,7 +77,7 @@ public:
         m_edit = edit;
     }
 
-    wxTreeListColumnInfo (const wxTreeListColumnInfo& other) {
+    ewxTreeListColumnInfo (const ewxTreeListColumnInfo& other) {
         m_text = other.m_text;
         m_width = other.m_width;
         m_flag = other.m_flag;
@@ -87,30 +87,30 @@ public:
         m_edit = other.m_edit;
     }
 
-    ~wxTreeListColumnInfo() {}
+    ~ewxTreeListColumnInfo() {}
 
     // get/set
     wxString GetText() const { return m_text; }
-    wxTreeListColumnInfo& SetText (const wxString& text) { m_text = text; return *this; }
+    ewxTreeListColumnInfo& SetText (const wxString& text) { m_text = text; return *this; }
 
     int GetWidth() const { return m_width; }
-    wxTreeListColumnInfo& SetWidth (int width) { m_width = width; return *this; }
+    ewxTreeListColumnInfo& SetWidth (int width) { m_width = width; return *this; }
 
     int GetAlignment() const { return m_flag; }
-    wxTreeListColumnInfo& SetAlignment (int flag) { m_flag = flag; return *this; }
+    ewxTreeListColumnInfo& SetAlignment (int flag) { m_flag = flag; return *this; }
 
     int GetImage() const { return m_image; }
-    wxTreeListColumnInfo& SetImage (int image) { m_image = image; return *this; }
+    ewxTreeListColumnInfo& SetImage (int image) { m_image = image; return *this; }
 
     int GetSelectedImage() const { return m_selected_image; }
-    wxTreeListColumnInfo& SetSelectedImage (int image) { m_selected_image = image; return *this; }
+    ewxTreeListColumnInfo& SetSelectedImage (int image) { m_selected_image = image; return *this; }
 
     bool IsEditable() const { return m_edit; }
-    wxTreeListColumnInfo& SetEditable (bool edit)
+    ewxTreeListColumnInfo& SetEditable (bool edit)
         { m_edit = edit; return *this; }
 
     bool IsShown() const { return m_shown; }
-    wxTreeListColumnInfo& SetShown(bool shown) { m_shown = shown; return *this; }
+    ewxTreeListColumnInfo& SetShown(bool shown) { m_shown = shown; return *this; }
 
 private:
     wxString m_text;
@@ -123,7 +123,7 @@ private:
 };
 
 //----------------------------------------------------------------------------
-// wxTreeListCtrl - the multicolumn tree control
+// ewxTreeListCtrl - the multicolumn tree control
 //----------------------------------------------------------------------------
 
 // modes for navigation
@@ -139,37 +139,37 @@ const int wxTL_MODE_FIND_NOCASE  = 0x0020;
 
 // additional flag for HitTest
 const int wxTREE_HITTEST_ONITEMCOLUMN = 0x2000;
-extern ECCE_TLC_EXPORT const wxChar* wxTreeListCtrlNameStr;
+extern ECCE_TLC_EXPORT const wxChar* ewxTreeListCtrlNameStr;
 
 
-class ECCE_TLC_EXPORT wxTreeListCtrl : public wxControl
+class ECCE_TLC_EXPORT ewxTreeListCtrl : public wxControl
 {
 public:
     // creation
     // --------
-    wxTreeListCtrl()
+    ewxTreeListCtrl()
         : m_header_win(0), m_main_win(0), m_headerHeight(0)
     {}
 
-    wxTreeListCtrl(wxWindow *parent, wxWindowID id = -1,
+    ewxTreeListCtrl(wxWindow *parent, wxWindowID id = -1,
                const wxPoint& pos = wxDefaultPosition,
                const wxSize& size = wxDefaultSize,
                long style = wxTR_DEFAULT_STYLE,
                const wxValidator &validator = wxDefaultValidator,
-               const wxString& name = wxTreeListCtrlNameStr )
+               const wxString& name = ewxTreeListCtrlNameStr )
         : m_header_win(0), m_main_win(0), m_headerHeight(0)
     {
         Create(parent, id, pos, size, style, validator, name);
     }
 
-    virtual ~wxTreeListCtrl() {}
+    virtual ~ewxTreeListCtrl() {}
 
     bool Create(wxWindow *parent, wxWindowID id = -1,
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxTR_DEFAULT_STYLE,
                 const wxValidator &validator = wxDefaultValidator,
-                const wxString& name = wxTreeListCtrlNameStr );
+                const wxString& name = ewxTreeListCtrlNameStr );
 
     void Refresh(bool erase=TRUE, const wxRect* rect=NULL);
     void SetFocus();
@@ -222,9 +222,9 @@ public:
                     int image = -1,
                     bool shown = true,
                     bool edit = false) {
-        AddColumn (wxTreeListColumnInfo (text, width, flag, image, shown, edit));
+        AddColumn (ewxTreeListColumnInfo (text, width, flag, image, shown, edit));
     }
-    void AddColumn (const wxTreeListColumnInfo& colInfo);
+    void AddColumn (const ewxTreeListColumnInfo& colInfo);
 
     // inserts a column before the given one
     void InsertColumn (int before,
@@ -235,9 +235,9 @@ public:
                        bool shown = true,
                        bool edit = false) {
         InsertColumn (before,
-                      wxTreeListColumnInfo (text, width, flag, image, shown, edit));
+                      ewxTreeListColumnInfo (text, width, flag, image, shown, edit));
     }
-    void InsertColumn (int before, const wxTreeListColumnInfo& colInfo);
+    void InsertColumn (int before, const ewxTreeListColumnInfo& colInfo);
 
     // deletes the given column - does not delete the corresponding column
     void RemoveColumn (int column);
@@ -249,9 +249,9 @@ public:
     void SetMainColumn (int column);
     int GetMainColumn() const;
 
-    void SetColumn (int column, const wxTreeListColumnInfo& colInfo);
-    wxTreeListColumnInfo& GetColumn (int column);
-    const wxTreeListColumnInfo& GetColumn (int column) const;
+    void SetColumn (int column, const ewxTreeListColumnInfo& colInfo);
+    ewxTreeListColumnInfo& GetColumn (int column);
+    const ewxTreeListColumnInfo& GetColumn (int column) const;
 
     void SetColumnText (int column, const wxString& text);
     wxString GetColumnText (int column) const;
@@ -531,20 +531,20 @@ public:
     void SetDragItem (const wxTreeItemId& item = (wxTreeItemId*)NULL);
 
 
-    wxTreeListHeaderWindow* GetHeaderWindow() const
+    ewxTreeListHeaderWindow* GetHeaderWindow() const
         { return m_header_win; }
 
-    wxTreeListMainWindow* GetMainWindow() const
+    ewxTreeListMainWindow* GetMainWindow() const
         { return m_main_win; }
 
     virtual wxSize DoGetBestSize() const;
 
 protected:
     // header window, responsible for column visualization and manipulation
-    wxTreeListHeaderWindow* m_header_win;
+    ewxTreeListHeaderWindow* m_header_win;
 
     // main window, the "true" tree ctrl
-    wxTreeListMainWindow* m_main_win;
+    ewxTreeListMainWindow* m_main_win;
 
     void CalculateAndSetHeaderHeight();
     void DoHeaderLayout();
@@ -554,7 +554,7 @@ private:
     int m_headerHeight;
 
     DECLARE_EVENT_TABLE()
-    DECLARE_DYNAMIC_CLASS(wxTreeListCtrl)
+    DECLARE_DYNAMIC_CLASS(ewxTreeListCtrl)
 };
 
 #endif // TREELISTCTRL_H

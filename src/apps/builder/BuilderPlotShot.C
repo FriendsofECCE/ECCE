@@ -396,7 +396,7 @@ bool Builder::atomNumbersCommand(SceneScript& s, const vector<string>& w)
     //  The charge panels list atoms in a tree list (atom number in column
     //  1, element in 2) and the others in a grid (number in column 0).
     std::function<wxWindow*(wxWindow*)> find = [&find](wxWindow *win) -> wxWindow* {
-      if (dynamic_cast<wxTreeListCtrl*>(win) || dynamic_cast<ewxGrid*>(win)) return win;
+      if (dynamic_cast<ewxTreeListCtrl*>(win) || dynamic_cast<ewxGrid*>(win)) return win;
       for (wxWindow *c : win->GetChildren())
         if (wxWindow *f = find(c)) return f;
       return 0;
@@ -404,7 +404,7 @@ bool Builder::atomNumbersCommand(SceneScript& s, const vector<string>& w)
     wxWindow *table = pane.window ? find(pane.window) : 0;
     if (!table) return s.fail("atomnumbers: no table in " + panel);
     const wxString first = wxString::Format("%d", n);
-    if (wxTreeListCtrl *tl = dynamic_cast<wxTreeListCtrl*>(table)) {
+    if (ewxTreeListCtrl *tl = dynamic_cast<ewxTreeListCtrl*>(table)) {
       wxTreeItemIdValue cookie;
       for (wxTreeItemId it = tl->GetFirstChild(tl->GetRootItem(), cookie); it.IsOk();
            it = tl->GetNextChild(tl->GetRootItem(), cookie))

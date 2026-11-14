@@ -44,6 +44,26 @@ public:
   // ACCESSORS
      string getMyName() const;  
      string getMyID() const;
+     // A dispatcher stamps its subscriber's instance id (#983).
+     void setMyID(const string& id) { p_id = id; }
+
+  // ACTING TOOL (#983): with several tools in one process, a publisher
+  // shared by them (EDSIFactory's) stamps the tool whose code is running,
+  // so each tool's self filter drops its own notices and only those.
+  // Only with MqttLink::localDelivery(); otherwise nothing changes.
+     void followActingTool(bool on) { p_followActing = on; }
+     // The process's default (the Organizer in one process).
+     static void setActingTool(const string& name, const string& id);
+     // Overrides the default while in scope (a tool window saving).
+     class ActingTool {
+     public:
+       ActingTool(const string& name, const string& id);
+       ~ActingTool();
+     private:
+       string p_prevName, p_prevId;
+       ActingTool(const ActingTool&) = delete;
+       ActingTool& operator=(const ActingTool&) = delete;
+     };
 
 
   // PUBLISH METHODS
@@ -73,7 +93,10 @@ private:
 
   // Tool info used to stamp messages:
   string p_toolName;
+  string p_id;               // empty: the pid
+  bool p_followActing = false;
   static bool p_messagingEnabled;
+  static string p_actingName, p_actingId;
 
 
 }; // JMSPublisher

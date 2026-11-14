@@ -99,11 +99,15 @@ public:
   explicit MqttEndpoint(const std::string& toolName);
   ~MqttEndpoint();
 
+  // This tool instance's sender id (MqttLink::newInstanceId()).
+  const std::string& id() const { return p_id; }
+
   // Called on the owner's thread for each accepted message.
   std::function<void(const std::string& topic, JMSMessage& msg)> handler;
   // If set, called on libmosquitto's thread for each accepted message before
   // it is posted to the owner's thread (an ack that must not wait for a busy
-  // GUI thread). It runs with the link's lock held: it may publish, nothing more.
+  // GUI thread), or on the publisher's for in-process delivery: it may
+  // publish, nothing more.
   std::function<void(const std::string& topic, JMSMessage& msg)> arrival;
   // If set, replaces the self-pipe; called on libmosquitto's thread.
   std::function<void(std::shared_ptr<MqttEndpoint>, MqttInbound)> poster;
@@ -132,10 +136,12 @@ public:
   // After this, queued or posted messages are dropped.
   void kill() { p_alive = false; }
 
-  // libmosquitto's thread: hold, target and self filters, then hand over.
-  void receive(const MqttInbound& in);
+  // Hold, target and self filters, then hand over; true if accepted.
+  // libmosquitto's thread, or the publisher's for in-process delivery.
+  bool receive(const MqttInbound& in);
 private:
   std::string p_name;
+  std::string p_id;
   mutable std::mutex p_lock;
   std::map<std::string, bool> p_topics;   // topic -> filterSelf
   std::map<std::string, std::string> p_aliases;   // topic -> tool name
@@ -163,7 +169,30 @@ public:
   const MqttConfig& config() const { return p_cfg; }
   const MqttTopicMap& topics() const { return p_topics; }
 
+  // With local delivery, subscribers in this process get the message
+  // directly and the broker carries it to the other processes; true if
+  // either took it.
   bool publish(const std::string& topic, const JMSMessage& msg);
+
+  // One GUI process for several tools (#983, ECCE_ONE_PROCESS=1): messages
+  // between them go in-process, every broker subscription is No Local (no
+  // echo, so no duplicates) and "self" for filterSelf is the tool (sender
+  // name and pid), not the process. Off: everything goes via the broker.
+  static bool localDelivery();
+  // Tests only; before the first subscription.
+  static void setLocalDelivery(bool on);
+  // Reads ECCE_ONE_PROCESS once and removes it from this process's
+  // environment, so no job program or tool started from here inherits it.
+  // Only the Organizer takes it for itself (forThisProcess); the gateway,
+  // as its starter, passes it on to the Organizer alone.
+  static void takeOneProcessSwitch(bool forThisProcess);
+  // Whether ECCE_ONE_PROCESS was asked for, also after it was taken.
+  static bool oneProcessRequested();
+  // Sender id of a new tool instance: the pid, or "<pid>.<n>" with local
+  // delivery, so that replies and targets reach one tool of the process.
+  // A bare pid as target still reaches every tool of the process.
+  static std::string newInstanceId();
+  static std::string processId();
   // True while a TCP broker is configured but this session has no data
   // server login yet (e.g. the login dialog was cancelled): nothing can be
   // published, and that is not a publish failure.
@@ -190,6 +219,7 @@ private:
   static void onPublish(mosquitto*, void*, int mid, int rc,
                         const mqtt5__property*);
   void syncSubscriptions();   // caller holds p_lock
+  size_t deliverLocal(const std::string& topic, const JMSMessage& msg);
 
   mosquitto* p_mosq = nullptr;
   MqttConfig p_cfg;

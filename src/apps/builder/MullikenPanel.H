@@ -13,7 +13,7 @@
 class ewxButton;
 class ewxStaticText;
 class WxColorSchemeButton;
-class wxTreeListCtrl;
+class ewxTreeListCtrl;
 
 /**
  * UI Panel to display Mulliken and Mulliken Shell Charges, and the same
@@ -65,7 +65,7 @@ class MullikenPanel : public VizPropertyPanel,
      virtual void loseFocus();
 
      /* widget to show atoms charges with shell charges as children */
-     wxTreeListCtrl *p_treelist;
+     ewxTreeListCtrl *p_treelist;
 
      /* Simple color spectrum display widget */
      WxColorSchemeButton *p_spectrum;

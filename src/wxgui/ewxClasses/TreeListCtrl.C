@@ -48,16 +48,16 @@
 // array types
 // ---------------------------------------------------------------------------
 
-class  wxTreeListItem;
+class  ewxTreeListItem;
 
 #if !wxCHECK_VERSION(2, 5, 0)
-WX_DEFINE_ARRAY(wxTreeListItem *, wxArrayTreeListItems);
+WX_DEFINE_ARRAY(ewxTreeListItem *, wxArrayTreeListItems);
 #else
-WX_DEFINE_ARRAY_PTR(wxTreeListItem *, wxArrayTreeListItems);
+WX_DEFINE_ARRAY_PTR(ewxTreeListItem *, wxArrayTreeListItems);
 #endif
 
 #include <wx/dynarray.h>
-WX_DECLARE_OBJARRAY(wxTreeListColumnInfo, wxArrayTreeListColumnInfo);
+WX_DECLARE_OBJARRAY(ewxTreeListColumnInfo, wxArrayTreeListColumnInfo);
 #include <wx/arrimpl.cpp>
 WX_DEFINE_OBJARRAY(wxArrayTreeListColumnInfo);
 
@@ -94,22 +94,22 @@ static const int DRAG_TIMER_TICKS = 250; // minimum drag wait time in ms
 static const int FIND_TIMER_TICKS = 500; // minimum find wait time in ms
 static const int RENAME_TIMER_TICKS = 250; // minimum rename wait time in ms
 
-const wxChar* wxTreeListCtrlNameStr = _T("treelistctrl");
+const wxChar* ewxTreeListCtrlNameStr = _T("treelistctrl");
 
-static wxTreeListColumnInfo wxInvalidTreeListColumnInfo;
+static ewxTreeListColumnInfo wxInvalidTreeListColumnInfo;
 
 
 // ---------------------------------------------------------------------------
 // private classes
 // ---------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-//  wxTreeListHeaderWindow (internal)
+//  ewxTreeListHeaderWindow (internal)
 //-----------------------------------------------------------------------------
 
-class  wxTreeListHeaderWindow : public wxWindow
+class  ewxTreeListHeaderWindow : public wxWindow
 {
 protected:
-    wxTreeListMainWindow *m_owner;
+    ewxTreeListMainWindow *m_owner;
     const wxCursor *m_currentCursor;
     const wxCursor *m_resizeCursor;
     bool m_isDragging;
@@ -131,17 +131,17 @@ protected:
 
 
 public:
-    wxTreeListHeaderWindow();
+    ewxTreeListHeaderWindow();
 
-    wxTreeListHeaderWindow( wxWindow *win,
+    ewxTreeListHeaderWindow( wxWindow *win,
                             wxWindowID id,
-                            wxTreeListMainWindow *owner,
+                            ewxTreeListMainWindow *owner,
                             const wxPoint &pos = wxDefaultPosition,
                             const wxSize &size = wxDefaultSize,
                             long style = 0,
                             const wxString &name = _T("wxtreelistctrlcolumntitles") );
 
-    virtual ~wxTreeListHeaderWindow();
+    virtual ~ewxTreeListHeaderWindow();
 
     void DoDrawRect( wxDC *dc, int x, int y, int w, int h );
     void DrawCurrent();
@@ -157,24 +157,24 @@ public:
     // column manipulation
     int GetColumnCount() const { return m_columns.GetCount(); }
 
-    void AddColumn (const wxTreeListColumnInfo& colInfo);
+    void AddColumn (const ewxTreeListColumnInfo& colInfo);
 
-    void InsertColumn (int before, const wxTreeListColumnInfo& colInfo);
+    void InsertColumn (int before, const ewxTreeListColumnInfo& colInfo);
 
     void RemoveColumn (int column);
 
     // column information manipulation
-    const wxTreeListColumnInfo& GetColumn (int column) const{
+    const ewxTreeListColumnInfo& GetColumn (int column) const{
         wxCHECK_MSG ((column >= 0) && (column < GetColumnCount()),
                      wxInvalidTreeListColumnInfo, _T("Invalid column"));
         return m_columns[column];
     }
-    wxTreeListColumnInfo& GetColumn (int column) {
+    ewxTreeListColumnInfo& GetColumn (int column) {
         wxCHECK_MSG ((column >= 0) && (column < GetColumnCount()),
                      wxInvalidTreeListColumnInfo, _T("Invalid column"));
         return m_columns[column];
     }
-    void SetColumn (int column, const wxTreeListColumnInfo& info);
+    void SetColumn (int column, const ewxTreeListColumnInfo& info);
 
     wxString GetColumnText (int column) const {
         wxCHECK_MSG ((column >= 0) && (column < GetColumnCount()),
@@ -226,20 +226,20 @@ private:
 
     void SendListEvent(wxEventType type, wxPoint pos);
 
-    DECLARE_DYNAMIC_CLASS(wxTreeListHeaderWindow)
+    DECLARE_DYNAMIC_CLASS(ewxTreeListHeaderWindow)
     DECLARE_EVENT_TABLE()
 };
 
 
 // this is the "true" control
-class  wxTreeListMainWindow: public wxScrolledWindow
+class  ewxTreeListMainWindow: public wxScrolledWindow
 {
 public:
     // creation
     // --------
-    wxTreeListMainWindow() { Init(); }
+    ewxTreeListMainWindow() { Init(); }
 
-    wxTreeListMainWindow (wxTreeListCtrl *parent, wxWindowID id = -1,
+    ewxTreeListMainWindow (ewxTreeListCtrl *parent, wxWindowID id = -1,
                const wxPoint& pos = wxDefaultPosition,
                const wxSize& size = wxDefaultSize,
                long style = wxTR_DEFAULT_STYLE,
@@ -250,9 +250,9 @@ public:
         Create (parent, id, pos, size, style, validator, name);
     }
 
-    virtual ~wxTreeListMainWindow();
+    virtual ~ewxTreeListMainWindow();
 
-    bool Create(wxTreeListCtrl *parent, wxWindowID id = -1,
+    bool Create(ewxTreeListCtrl *parent, wxWindowID id = -1,
                 const wxPoint& pos = wxDefaultPosition,
                 const wxSize& size = wxDefaultSize,
                 long style = wxTR_DEFAULT_STYLE,
@@ -274,7 +274,7 @@ public:
     unsigned int GetIndent() const { return m_indent; }
     void SetIndent(unsigned int indent);
 
-    // see wxTreeListCtrl for the meaning
+    // see ewxTreeListCtrl for the meaning
     unsigned int GetLineSpacing() const { return m_linespacing; }
     void SetLineSpacing(unsigned int spacing);
 
@@ -568,7 +568,7 @@ public:
     void OnScroll(wxScrollWinEvent& event);
 
     // implementation helpers
-    void SendDeleteEvent(wxTreeListItem *itemBeingDeleted);
+    void SendDeleteEvent(ewxTreeListItem *itemBeingDeleted);
 
     int GetColumnCount() const
     { return m_owner->GetHeaderWindow()->GetColumnCount(); }
@@ -579,28 +579,28 @@ public:
     int GetMainColumn() const { return m_main_column; }
 
     int GetBestColumnWidth (int column, wxTreeItemId parent = wxTreeItemId());
-    int GetItemWidth (int column, wxTreeListItem *item);
-    wxFont GetItemFont (wxTreeListItem *item);
+    int GetItemWidth (int column, ewxTreeListItem *item);
+    wxFont GetItemFont (ewxTreeListItem *item);
 
     void SetFocus();
 
 protected:
-    wxTreeListCtrl* m_owner;
+    ewxTreeListCtrl* m_owner;
 
     int m_main_column;
 
-    friend class wxTreeListItem;
-    friend class wxTreeListRenameTimer;
+    friend class ewxTreeListItem;
+    friend class ewxTreeListRenameTimer;
     friend class wxEditTextCtrl;
 
     wxFont               m_normalFont;
     wxFont               m_boldFont;
 
-    wxTreeListItem       *m_rootItem; // root item
-    wxTreeListItem       *m_curItem; // current item, either selected or marked
-    wxTreeListItem       *m_shiftItem; // item, where the shift key was pressed
-    wxTreeListItem       *m_editItem; // item, which is currently edited
-    wxTreeListItem       *m_selectItem; // current selected item, not with wxTR_MULTIPLE
+    ewxTreeListItem       *m_rootItem; // root item
+    ewxTreeListItem       *m_curItem; // current item, either selected or marked
+    ewxTreeListItem       *m_shiftItem; // item, where the shift key was pressed
+    ewxTreeListItem       *m_editItem; // item, which is currently edited
+    ewxTreeListItem       *m_selectItem; // current selected item, not with wxTR_MULTIPLE
 
     int                  m_curColumn;
 
@@ -632,7 +632,7 @@ protected:
 
     int                  m_dragCount;
     wxTimer             *m_dragTimer;
-    wxTreeListItem      *m_dragItem;
+    ewxTreeListItem      *m_dragItem;
 
     wxTimer             *m_renameTimer;
     wxString             m_renameRes;
@@ -655,49 +655,49 @@ protected:
 
 protected:
     void CalculateLineHeight();
-    int  GetLineHeight(wxTreeListItem *item) const;
-    void PaintLevel( wxTreeListItem *item, wxDC& dc, int level, int &y,
+    int  GetLineHeight(ewxTreeListItem *item) const;
+    void PaintLevel( ewxTreeListItem *item, wxDC& dc, int level, int &y,
                      int x_maincol);
-    void PaintItem( wxTreeListItem *item, wxDC& dc);
+    void PaintItem( ewxTreeListItem *item, wxDC& dc);
 
-    void CalculateLevel( wxTreeListItem *item, wxDC &dc, int level, int &y,
+    void CalculateLevel( ewxTreeListItem *item, wxDC &dc, int level, int &y,
                          int x_maincol);
     void CalculatePositions();
-    void CalculateSize( wxTreeListItem *item, wxDC &dc );
+    void CalculateSize( ewxTreeListItem *item, wxDC &dc );
 
-    void RefreshSubtree (wxTreeListItem *item);
-    void RefreshLine (wxTreeListItem *item);
+    void RefreshSubtree (ewxTreeListItem *item);
+    void RefreshLine (ewxTreeListItem *item);
 
     // redraw all selected items
     void RefreshSelected();
 
     // RefreshSelected() recursive helper
-    void RefreshSelectedUnder (wxTreeListItem *item);
+    void RefreshSelectedUnder (ewxTreeListItem *item);
 
     void OnRenameTimer();
     void OnRenameAccept();
 
-    void FillArray(wxTreeListItem*, wxArrayTreeItemIds&) const;
-    bool TagAllChildrenUntilLast (wxTreeListItem *crt_item, wxTreeListItem *last_item);
-    bool TagNextChildren (wxTreeListItem *crt_item, wxTreeListItem *last_item);
-    void UnselectAllChildren (wxTreeListItem *item );
+    void FillArray(ewxTreeListItem*, wxArrayTreeItemIds&) const;
+    bool TagAllChildrenUntilLast (ewxTreeListItem *crt_item, ewxTreeListItem *last_item);
+    bool TagNextChildren (ewxTreeListItem *crt_item, ewxTreeListItem *last_item);
+    void UnselectAllChildren (ewxTreeListItem *item );
 
 private:
     DECLARE_EVENT_TABLE()
-    DECLARE_DYNAMIC_CLASS(wxTreeListMainWindow)
+    DECLARE_DYNAMIC_CLASS(ewxTreeListMainWindow)
 };
 
 
 // timer used for enabling in-place edit
-class  wxTreeListRenameTimer: public wxTimer
+class  ewxTreeListRenameTimer: public wxTimer
 {
 public:
-    wxTreeListRenameTimer( wxTreeListMainWindow *owner );
+    ewxTreeListRenameTimer( ewxTreeListMainWindow *owner );
 
     void Notify();
 
 private:
-    wxTreeListMainWindow   *m_owner;
+    ewxTreeListMainWindow   *m_owner;
 };
 
 // control used for in-place edit
@@ -708,7 +708,7 @@ public:
                     const wxWindowID id,
                     bool *accept,
                     wxString *res,
-                    wxTreeListMainWindow *owner,
+                    ewxTreeListMainWindow *owner,
                     const wxString &value = wxEmptyString,
                     const wxPoint &pos = wxDefaultPosition,
                     const wxSize &size = wxDefaultSize,
@@ -723,7 +723,7 @@ public:
 private:
     bool               *m_accept;
     wxString           *m_res;
-    wxTreeListMainWindow  *m_owner;
+    ewxTreeListMainWindow  *m_owner;
     wxString            m_startValue;
     bool                m_finished;
 
@@ -731,19 +731,19 @@ private:
 };
 
 // a tree item
-class  wxTreeListItem
+class  ewxTreeListItem
 {
 public:
     // ctors & dtor
-    wxTreeListItem() { m_data = NULL; }
-    wxTreeListItem( wxTreeListMainWindow *owner,
-                    wxTreeListItem *parent,
+    ewxTreeListItem() { m_data = NULL; }
+    ewxTreeListItem( ewxTreeListMainWindow *owner,
+                    ewxTreeListItem *parent,
                     const wxArrayString& text,
                     int image,
                     int selImage,
                     wxTreeItemData *data );
 
-    ~wxTreeListItem();
+    ~ewxTreeListItem();
 
     // trivial accessors
     wxArrayTreeListItems& GetChildren() { return m_children; }
@@ -823,26 +823,26 @@ public:
     int GetTextX() const { return m_text_x; }
     void SetTextX (int text_x) { m_text_x = text_x; }
 
-    wxTreeListItem *GetItemParent() const { return m_parent; }
+    ewxTreeListItem *GetItemParent() const { return m_parent; }
 
     // operations
     // deletes all children notifying the treectrl about it if !NULL
     // pointer given
-    void DeleteChildren(wxTreeListMainWindow *tree = NULL);
+    void DeleteChildren(ewxTreeListMainWindow *tree = NULL);
 
     // get count of all children (and grand children if 'recursively')
     size_t GetChildrenCount(bool recursively = true) const;
 
-    void Insert(wxTreeListItem *child, size_t index)
+    void Insert(ewxTreeListItem *child, size_t index)
     { m_children.Insert(child, index); }
 
-    void GetSize( int &x, int &y, const wxTreeListMainWindow* );
+    void GetSize( int &x, int &y, const ewxTreeListMainWindow* );
 
     // return the item at given position (or NULL if no item), onButton is
     // true if the point belongs to the item's button, otherwise it lies
     // on the button's label
-    wxTreeListItem *HitTest (const wxPoint& point,
-                             const wxTreeListMainWindow *,
+    ewxTreeListItem *HitTest (const wxPoint& point,
+                             const ewxTreeListMainWindow *,
                              int &flags, int& column, int level);
 
     void Expand() { m_isCollapsed = false; }
@@ -886,7 +886,7 @@ public:
     }
 
 private:
-    wxTreeListMainWindow  *m_owner;        // control the item belongs to
+    ewxTreeListMainWindow  *m_owner;        // control the item belongs to
 
     // since there can be very many of these, we save size by chosing
     // the smallest representation for the elements and by ordering
@@ -896,7 +896,7 @@ private:
     wxTreeItemData     *m_data;         // user-provided data
 
     wxArrayTreeListItems m_children; // list of children
-    wxTreeListItem  *m_parent;       // parent of this item
+    ewxTreeListItem  *m_parent;       // parent of this item
 
     wxItemAttr     *m_attr;         // attributes???
 
@@ -926,15 +926,15 @@ private:
 // ===========================================================================
 
 // ---------------------------------------------------------------------------
-// wxTreeListRenameTimer (internal)
+// ewxTreeListRenameTimer (internal)
 // ---------------------------------------------------------------------------
 
-wxTreeListRenameTimer::wxTreeListRenameTimer( wxTreeListMainWindow *owner )
+ewxTreeListRenameTimer::ewxTreeListRenameTimer( ewxTreeListMainWindow *owner )
 {
     m_owner = owner;
 }
 
-void wxTreeListRenameTimer::Notify()
+void ewxTreeListRenameTimer::Notify()
 {
     m_owner->OnRenameTimer();
 }
@@ -953,7 +953,7 @@ wxEditTextCtrl::wxEditTextCtrl (wxWindow *parent,
                                 const wxWindowID id,
                                 bool *accept,
                                 wxString *res,
-                                wxTreeListMainWindow *owner,
+                                ewxTreeListMainWindow *owner,
                                 const wxString &value,
                                 const wxPoint &pos,
                                 const wxSize &size,
@@ -1045,18 +1045,18 @@ void wxEditTextCtrl::OnKillFocus( wxFocusEvent &event )
 }
 
 //-----------------------------------------------------------------------------
-//  wxTreeListHeaderWindow
+//  ewxTreeListHeaderWindow
 //-----------------------------------------------------------------------------
 
-IMPLEMENT_DYNAMIC_CLASS(wxTreeListHeaderWindow,wxWindow);
+IMPLEMENT_DYNAMIC_CLASS(ewxTreeListHeaderWindow,wxWindow);
 
-BEGIN_EVENT_TABLE(wxTreeListHeaderWindow,wxWindow)
-    EVT_PAINT         (wxTreeListHeaderWindow::OnPaint)
-    EVT_MOUSE_EVENTS  (wxTreeListHeaderWindow::OnMouse)
-    EVT_SET_FOCUS     (wxTreeListHeaderWindow::OnSetFocus)
+BEGIN_EVENT_TABLE(ewxTreeListHeaderWindow,wxWindow)
+    EVT_PAINT         (ewxTreeListHeaderWindow::OnPaint)
+    EVT_MOUSE_EVENTS  (ewxTreeListHeaderWindow::OnMouse)
+    EVT_SET_FOCUS     (ewxTreeListHeaderWindow::OnSetFocus)
 END_EVENT_TABLE()
 
-void wxTreeListHeaderWindow::Init()
+void ewxTreeListHeaderWindow::Init()
 {
     m_currentCursor = (wxCursor *) NULL;
     m_isDragging = false;
@@ -1064,17 +1064,17 @@ void wxTreeListHeaderWindow::Init()
     m_total_col_width = 0;
 }
 
-wxTreeListHeaderWindow::wxTreeListHeaderWindow()
+ewxTreeListHeaderWindow::ewxTreeListHeaderWindow()
 {
     Init();
 
-    m_owner = (wxTreeListMainWindow *) NULL;
+    m_owner = (ewxTreeListMainWindow *) NULL;
     m_resizeCursor = (wxCursor *) NULL;
 }
 
-wxTreeListHeaderWindow::wxTreeListHeaderWindow( wxWindow *win,
+ewxTreeListHeaderWindow::ewxTreeListHeaderWindow( wxWindow *win,
                                                 wxWindowID id,
-                                                wxTreeListMainWindow *owner,
+                                                ewxTreeListMainWindow *owner,
                                                 const wxPoint& pos,
                                                 const wxSize& size,
                                                 long style,
@@ -1093,12 +1093,12 @@ wxTreeListHeaderWindow::wxTreeListHeaderWindow( wxWindow *win,
 #endif
 }
 
-wxTreeListHeaderWindow::~wxTreeListHeaderWindow()
+ewxTreeListHeaderWindow::~ewxTreeListHeaderWindow()
 {
     delete m_resizeCursor;
 }
 
-void wxTreeListHeaderWindow::DoDrawRect( wxDC *dc, int x, int y, int w, int h )
+void ewxTreeListHeaderWindow::DoDrawRect( wxDC *dc, int x, int y, int w, int h )
 {
 #if !wxCHECK_VERSION(2, 5, 0)
     wxPen pen (wxSystemSettings::GetSystemColour (wxSYS_COLOUR_BTNSHADOW ), 1, wxSOLID);
@@ -1133,7 +1133,7 @@ void wxTreeListHeaderWindow::DoDrawRect( wxDC *dc, int x, int y, int w, int h )
 
 // shift the DC origin to match the position of the main window horz
 // scrollbar: this allows us to always use logical coords
-void wxTreeListHeaderWindow::AdjustDC(wxDC& dc)
+void ewxTreeListHeaderWindow::AdjustDC(wxDC& dc)
 {
     int xpix;
     m_owner->GetScrollPixelsPerUnit( &xpix, NULL );
@@ -1144,7 +1144,7 @@ void wxTreeListHeaderWindow::AdjustDC(wxDC& dc)
     dc.SetDeviceOrigin( -x * xpix, 0 );
 }
 
-void wxTreeListHeaderWindow::OnPaint( wxPaintEvent &WXUNUSED(event) )
+void ewxTreeListHeaderWindow::OnPaint( wxPaintEvent &WXUNUSED(event) )
 {
 #ifdef __WXGTK__
     wxClientDC dc( this );
@@ -1178,7 +1178,7 @@ void wxTreeListHeaderWindow::OnPaint( wxPaintEvent &WXUNUSED(event) )
     {
         if (!IsColumnShown (i)) continue; // do next colume if not shown
 
-        wxTreeListColumnInfo& column = GetColumn(i);
+        ewxTreeListColumnInfo& column = GetColumn(i);
         int wCol = column.GetWidth();
 
         // the width of the rect to draw: make it smaller to fit entirely
@@ -1240,7 +1240,7 @@ void wxTreeListHeaderWindow::OnPaint( wxPaintEvent &WXUNUSED(event) )
 
 }
 
-void wxTreeListHeaderWindow::DrawCurrent()
+void ewxTreeListHeaderWindow::DrawCurrent()
 {
     int x1 = m_currentX;
     int y1 = 0;
@@ -1266,7 +1266,7 @@ void wxTreeListHeaderWindow::DrawCurrent()
     dc.SetBrush (wxNullBrush);
 }
 
-void wxTreeListHeaderWindow::OnMouse (wxMouseEvent &event) {
+void ewxTreeListHeaderWindow::OnMouse (wxMouseEvent &event) {
 
     // we want to work with logical coords
     int x;
@@ -1361,11 +1361,11 @@ void wxTreeListHeaderWindow::OnMouse (wxMouseEvent &event) {
     }
 }
 
-void wxTreeListHeaderWindow::OnSetFocus (wxFocusEvent &WXUNUSED(event)) {
+void ewxTreeListHeaderWindow::OnSetFocus (wxFocusEvent &WXUNUSED(event)) {
     m_owner->SetFocus();
 }
 
-void wxTreeListHeaderWindow::SendListEvent (wxEventType type, wxPoint pos) {
+void ewxTreeListHeaderWindow::SendListEvent (wxEventType type, wxPoint pos) {
     wxWindow *parent = GetParent();
     wxListEvent le (type, parent->GetId());
     le.SetEventObject (parent);
@@ -1380,14 +1380,14 @@ void wxTreeListHeaderWindow::SendListEvent (wxEventType type, wxPoint pos) {
     parent->GetEventHandler()->ProcessEvent (le);
 }
 
-void wxTreeListHeaderWindow::AddColumn (const wxTreeListColumnInfo& colInfo) {
+void ewxTreeListHeaderWindow::AddColumn (const ewxTreeListColumnInfo& colInfo) {
     m_columns.Add (colInfo);
     m_total_col_width += colInfo.GetWidth();
     m_owner->AdjustMyScrollbars();
     m_owner->m_dirty = true;
 }
 
-void wxTreeListHeaderWindow::SetColumnWidth (int column, int width) {
+void ewxTreeListHeaderWindow::SetColumnWidth (int column, int width) {
     wxCHECK_RET ((column >= 0) && (column < GetColumnCount()), _T("Invalid column"));
     m_total_col_width -= m_columns[column].GetWidth();
     m_columns[column].SetWidth(width);
@@ -1396,7 +1396,7 @@ void wxTreeListHeaderWindow::SetColumnWidth (int column, int width) {
     m_owner->m_dirty = true;
 }
 
-void wxTreeListHeaderWindow::InsertColumn (int before, const wxTreeListColumnInfo& colInfo) {
+void ewxTreeListHeaderWindow::InsertColumn (int before, const ewxTreeListColumnInfo& colInfo) {
     wxCHECK_RET ((before >= 0) && (before < GetColumnCount()), _T("Invalid column"));
     m_columns.Insert (colInfo, before);
     m_total_col_width += colInfo.GetWidth();
@@ -1404,7 +1404,7 @@ void wxTreeListHeaderWindow::InsertColumn (int before, const wxTreeListColumnInf
     m_owner->m_dirty = true;
 }
 
-void wxTreeListHeaderWindow::RemoveColumn (int column) {
+void ewxTreeListHeaderWindow::RemoveColumn (int column) {
     wxCHECK_RET ((column >= 0) && (column < GetColumnCount()), _T("Invalid column"));
     m_total_col_width -= m_columns[column].GetWidth();
     m_columns.RemoveAt (column);
@@ -1412,7 +1412,7 @@ void wxTreeListHeaderWindow::RemoveColumn (int column) {
     m_owner->m_dirty = true;
 }
 
-void wxTreeListHeaderWindow::SetColumn (int column, const wxTreeListColumnInfo& info) {
+void ewxTreeListHeaderWindow::SetColumn (int column, const ewxTreeListColumnInfo& info) {
     wxCHECK_RET ((column >= 0) && (column < GetColumnCount()), _T("Invalid column"));
     int w = m_columns[column].GetWidth();
     m_columns[column] = info;
@@ -1424,11 +1424,11 @@ void wxTreeListHeaderWindow::SetColumn (int column, const wxTreeListColumnInfo& 
 }
 
 // ---------------------------------------------------------------------------
-// wxTreeListItem
+// ewxTreeListItem
 // ---------------------------------------------------------------------------
 
-wxTreeListItem::wxTreeListItem (wxTreeListMainWindow *owner,
-                                wxTreeListItem *parent,
+ewxTreeListItem::ewxTreeListItem (ewxTreeListMainWindow *owner,
+                                ewxTreeListItem *parent,
                                 const wxArrayString& text,
                                 int image, int selImage,
                                 wxTreeItemData *data)
@@ -1460,20 +1460,20 @@ wxTreeListItem::wxTreeListItem (wxTreeListMainWindow *owner,
     m_height = 0;
 }
 
-wxTreeListItem::~wxTreeListItem() {
+ewxTreeListItem::~ewxTreeListItem() {
     delete m_data;
     if (m_ownsAttr) delete m_attr;
 
     wxASSERT_MSG( m_children.IsEmpty(), _T("please call DeleteChildren() before destructor"));
 }
 
-void wxTreeListItem::DeleteChildren (wxTreeListMainWindow *tree) {
+void ewxTreeListItem::DeleteChildren (ewxTreeListMainWindow *tree) {
     size_t count = m_children.Count();
     for (size_t n = 0; n < count; n++) {
-        wxTreeListItem *child = m_children[n];
+        ewxTreeListItem *child = m_children[n];
         if (tree) {
             tree->SendDeleteEvent (child);
-            if (tree->m_selectItem == child) tree->m_selectItem = (wxTreeListItem*)NULL;
+            if (tree->m_selectItem == child) tree->m_selectItem = (ewxTreeListItem*)NULL;
         }
         child->DeleteChildren (tree);
         delete child;
@@ -1481,7 +1481,7 @@ void wxTreeListItem::DeleteChildren (wxTreeListMainWindow *tree) {
     m_children.Empty();
 }
 
-void wxTreeListItem::SetText (const wxString &text) {
+void ewxTreeListItem::SetText (const wxString &text) {
     if (m_text.GetCount() > 0) {
         m_text[0] = text;
     }else{
@@ -1489,7 +1489,7 @@ void wxTreeListItem::SetText (const wxString &text) {
     }
 }
 
-size_t wxTreeListItem::GetChildrenCount (bool recursively) const {
+size_t ewxTreeListItem::GetChildrenCount (bool recursively) const {
     size_t count = m_children.Count();
     if (!recursively) return count;
 
@@ -1500,7 +1500,7 @@ size_t wxTreeListItem::GetChildrenCount (bool recursively) const {
     return total;
 }
 
-void wxTreeListItem::GetSize (int &x, int &y, const wxTreeListMainWindow *theButton) {
+void ewxTreeListItem::GetSize (int &x, int &y, const ewxTreeListMainWindow *theButton) {
     int bottomY = m_y + theButton->GetLineHeight (this);
     if (y < bottomY) y = bottomY;
     int width = m_x +  m_width;
@@ -1514,8 +1514,8 @@ void wxTreeListItem::GetSize (int &x, int &y, const wxTreeListMainWindow *theBut
     }
 }
 
-wxTreeListItem *wxTreeListItem::HitTest (const wxPoint& point,
-                                         const wxTreeListMainWindow *theCtrl,
+ewxTreeListItem *ewxTreeListItem::HitTest (const wxPoint& point,
+                                         const ewxTreeListMainWindow *theCtrl,
                                          int &flags, int& column, int level) {
 
     // for a hidden root node, don't evaluate it, but do evaluate children
@@ -1524,10 +1524,10 @@ wxTreeListItem *wxTreeListItem::HitTest (const wxPoint& point,
         // reset any previous hit infos
         flags = 0;
         column = -1;
-        wxTreeListHeaderWindow* header_win = theCtrl->m_owner->GetHeaderWindow();
+        ewxTreeListHeaderWindow* header_win = theCtrl->m_owner->GetHeaderWindow();
 
         // check for right of all columns (outside)
-        if (point.x > header_win->GetWidth()) return (wxTreeListItem*) NULL;
+        if (point.x > header_win->GetWidth()) return (ewxTreeListItem*) NULL;
 
         // evaluate if y-pos is okay
         int h = theCtrl->GetLineHeight (this);
@@ -1609,11 +1609,11 @@ wxTreeListItem *wxTreeListItem::HitTest (const wxPoint& point,
         }
 
         // if children not expanded, return no item
-        if (!IsExpanded()) return (wxTreeListItem*) NULL;
+        if (!IsExpanded()) return (ewxTreeListItem*) NULL;
     }
 
     // in any case evaluate children
-    wxTreeListItem *child;
+    ewxTreeListItem *child;
     size_t count = m_children.Count();
     for (size_t n = 0; n < count; n++) {
         child = m_children[n]->HitTest (point, theCtrl, flags, column, level+1);
@@ -1621,10 +1621,10 @@ wxTreeListItem *wxTreeListItem::HitTest (const wxPoint& point,
     }
 
     // not found
-    return (wxTreeListItem*) NULL;
+    return (ewxTreeListItem*) NULL;
 }
 
-int wxTreeListItem::GetCurrentImage() const {
+int ewxTreeListItem::GetCurrentImage() const {
     int image = NO_IMAGE;
     if (IsExpanded()) {
         if (IsSelected()) {
@@ -1647,19 +1647,19 @@ int wxTreeListItem::GetCurrentImage() const {
 }
 
 // ---------------------------------------------------------------------------
-// wxTreeListMainWindow implementation
+// ewxTreeListMainWindow implementation
 // ---------------------------------------------------------------------------
 
-IMPLEMENT_DYNAMIC_CLASS(wxTreeListMainWindow, wxScrolledWindow)
+IMPLEMENT_DYNAMIC_CLASS(ewxTreeListMainWindow, wxScrolledWindow)
 
-BEGIN_EVENT_TABLE(wxTreeListMainWindow, wxScrolledWindow)
-    EVT_PAINT          (wxTreeListMainWindow::OnPaint)
-    EVT_MOUSE_EVENTS   (wxTreeListMainWindow::OnMouse)
-    EVT_CHAR           (wxTreeListMainWindow::OnChar)
-    EVT_SET_FOCUS      (wxTreeListMainWindow::OnSetFocus)
-    EVT_KILL_FOCUS     (wxTreeListMainWindow::OnKillFocus)
-    EVT_IDLE           (wxTreeListMainWindow::OnIdle)
-    EVT_SCROLLWIN      (wxTreeListMainWindow::OnScroll)
+BEGIN_EVENT_TABLE(ewxTreeListMainWindow, wxScrolledWindow)
+    EVT_PAINT          (ewxTreeListMainWindow::OnPaint)
+    EVT_MOUSE_EVENTS   (ewxTreeListMainWindow::OnMouse)
+    EVT_CHAR           (ewxTreeListMainWindow::OnChar)
+    EVT_SET_FOCUS      (ewxTreeListMainWindow::OnSetFocus)
+    EVT_KILL_FOCUS     (ewxTreeListMainWindow::OnKillFocus)
+    EVT_IDLE           (ewxTreeListMainWindow::OnIdle)
+    EVT_SCROLLWIN      (ewxTreeListMainWindow::OnScroll)
 END_EVENT_TABLE()
 
 
@@ -1667,13 +1667,13 @@ END_EVENT_TABLE()
 // construction/destruction
 // ---------------------------------------------------------------------------
 
-void wxTreeListMainWindow::Init() {
+void ewxTreeListMainWindow::Init() {
 
-    m_rootItem = (wxTreeListItem*)NULL;
-    m_curItem = (wxTreeListItem*)NULL;
-    m_shiftItem = (wxTreeListItem*)NULL;
-    m_editItem = (wxTreeListItem*)NULL;
-    m_selectItem = (wxTreeListItem*)NULL;
+    m_rootItem = (ewxTreeListItem*)NULL;
+    m_curItem = (ewxTreeListItem*)NULL;
+    m_shiftItem = (ewxTreeListItem*)NULL;
+    m_editItem = (ewxTreeListItem*)NULL;
+    m_selectItem = (ewxTreeListItem*)NULL;
 
     m_curColumn = -1; // no current column
 
@@ -1706,9 +1706,9 @@ void wxTreeListMainWindow::Init() {
     m_dragCount = 0;
     m_isDragging = false;
     m_dragTimer = new wxTimer (this, -1);
-    m_dragItem = (wxTreeListItem*)NULL;
+    m_dragItem = (ewxTreeListItem*)NULL;
 
-    m_renameTimer = new wxTreeListRenameTimer (this);
+    m_renameTimer = new ewxTreeListRenameTimer (this);
     m_lastOnSame = false;
     m_left_down_selection = false;
 
@@ -1728,7 +1728,7 @@ void wxTreeListMainWindow::Init() {
                          m_normalFont.GetEncoding());
 }
 
-bool wxTreeListMainWindow::Create (wxTreeListCtrl *parent,
+bool ewxTreeListMainWindow::Create (ewxTreeListCtrl *parent,
                                    wxWindowID id,
                                    const wxPoint& pos,
                                    const wxSize& size,
@@ -1777,7 +1777,7 @@ bool wxTreeListMainWindow::Create (wxTreeListCtrl *parent,
     return true;
 }
 
-wxTreeListMainWindow::~wxTreeListMainWindow() {
+ewxTreeListMainWindow::~ewxTreeListMainWindow() {
     delete m_hilightBrush;
     delete m_hilightUnfocusedBrush;
 
@@ -1796,28 +1796,28 @@ wxTreeListMainWindow::~wxTreeListMainWindow() {
 // accessors
 //-----------------------------------------------------------------------------
 
-size_t wxTreeListMainWindow::GetCount() const {
+size_t ewxTreeListMainWindow::GetCount() const {
     return m_rootItem == NULL? 0: m_rootItem->GetChildrenCount();
 }
 
-void wxTreeListMainWindow::SetIndent (unsigned int indent) {
+void ewxTreeListMainWindow::SetIndent (unsigned int indent) {
     m_indent = wxMax (MININDENT, indent);
     m_dirty = true;
 }
 
-void wxTreeListMainWindow::SetLineSpacing (unsigned int spacing) {
+void ewxTreeListMainWindow::SetLineSpacing (unsigned int spacing) {
     m_linespacing = spacing;
     m_dirty = true;
     CalculateLineHeight();
 }
 
-size_t wxTreeListMainWindow::GetChildrenCount (const wxTreeItemId& item,
+size_t ewxTreeListMainWindow::GetChildrenCount (const wxTreeItemId& item,
                                                bool recursively) {
     wxCHECK_MSG (item.IsOk(), 0u, _T("invalid tree item"));
-    return ((wxTreeListItem*)item.m_pItem)->GetChildrenCount (recursively);
+    return ((ewxTreeListItem*)item.m_pItem)->GetChildrenCount (recursively);
 }
 
-void wxTreeListMainWindow::SetWindowStyle (const long styles) {
+void ewxTreeListMainWindow::SetWindowStyle (const long styles) {
     // right now, just sets the styles.  Eventually, we may
     // want to update the inherited styles, but right now
     // none of the parents has updatable styles
@@ -1829,98 +1829,98 @@ void wxTreeListMainWindow::SetWindowStyle (const long styles) {
 // functions to work with tree items
 //-----------------------------------------------------------------------------
 
-int wxTreeListMainWindow::GetItemImage (const wxTreeItemId& item, int column,
+int ewxTreeListMainWindow::GetItemImage (const wxTreeItemId& item, int column,
                                         wxTreeItemIcon which) const {
     wxCHECK_MSG (item.IsOk(), -1, _T("invalid tree item"));
-    return ((wxTreeListItem*) item.m_pItem)->GetImage (column, which);
+    return ((ewxTreeListItem*) item.m_pItem)->GetImage (column, which);
 }
 
-wxTreeItemData *wxTreeListMainWindow::GetItemData (const wxTreeItemId& item) const {
+wxTreeItemData *ewxTreeListMainWindow::GetItemData (const wxTreeItemId& item) const {
     wxCHECK_MSG (item.IsOk(), NULL, _T("invalid tree item"));
-    return ((wxTreeListItem*) item.m_pItem)->GetData();
+    return ((ewxTreeListItem*) item.m_pItem)->GetData();
 }
 
-bool wxTreeListMainWindow::GetItemBold (const wxTreeItemId& item) const {
+bool ewxTreeListMainWindow::GetItemBold (const wxTreeItemId& item) const {
     wxCHECK_MSG(item.IsOk(), false, _T("invalid tree item"));
-    return ((wxTreeListItem *)item.m_pItem)->IsBold();
+    return ((ewxTreeListItem *)item.m_pItem)->IsBold();
 }
 
-wxColour wxTreeListMainWindow::GetItemTextColour (const wxTreeItemId& item) const {
+wxColour ewxTreeListMainWindow::GetItemTextColour (const wxTreeItemId& item) const {
     wxCHECK_MSG (item.IsOk(), wxNullColour, _T("invalid tree item"));
-    wxTreeListItem *pItem = (wxTreeListItem*) item.m_pItem;
+    ewxTreeListItem *pItem = (ewxTreeListItem*) item.m_pItem;
     return pItem->Attr().GetTextColour();
 }
 
-wxColour wxTreeListMainWindow::GetItemBackgroundColour (const wxTreeItemId& item) const {
+wxColour ewxTreeListMainWindow::GetItemBackgroundColour (const wxTreeItemId& item) const {
     wxCHECK_MSG (item.IsOk(), wxNullColour, _T("invalid tree item"));
-    wxTreeListItem *pItem = (wxTreeListItem*) item.m_pItem;
+    ewxTreeListItem *pItem = (ewxTreeListItem*) item.m_pItem;
     return pItem->Attr().GetBackgroundColour();
 }
 
-wxFont wxTreeListMainWindow::GetItemFont (const wxTreeItemId& item) const {
+wxFont ewxTreeListMainWindow::GetItemFont (const wxTreeItemId& item) const {
     wxCHECK_MSG (item.IsOk(), wxNullFont, _T("invalid tree item"));
-    wxTreeListItem *pItem = (wxTreeListItem*) item.m_pItem;
+    ewxTreeListItem *pItem = (ewxTreeListItem*) item.m_pItem;
     return pItem->Attr().GetFont();
 }
 
-void wxTreeListMainWindow::SetItemImage (const wxTreeItemId& item, int column,
+void ewxTreeListMainWindow::SetItemImage (const wxTreeItemId& item, int column,
                                          int image, wxTreeItemIcon which) {
     wxCHECK_RET (item.IsOk(), _T("invalid tree item"));
-    wxTreeListItem *pItem = (wxTreeListItem*) item.m_pItem;
+    ewxTreeListItem *pItem = (ewxTreeListItem*) item.m_pItem;
     pItem->SetImage (column, image, which);
     wxClientDC dc (this);
     CalculateSize (pItem, dc);
     RefreshLine (pItem);
 }
 
-void wxTreeListMainWindow::SetItemData (const wxTreeItemId& item,
+void ewxTreeListMainWindow::SetItemData (const wxTreeItemId& item,
                                         wxTreeItemData *data) {
     wxCHECK_RET (item.IsOk(), _T("invalid tree item"));
-    ((wxTreeListItem*) item.m_pItem)->SetData(data);
+    ((ewxTreeListItem*) item.m_pItem)->SetData(data);
 }
 
-void wxTreeListMainWindow::SetItemHasChildren (const wxTreeItemId& item,
+void ewxTreeListMainWindow::SetItemHasChildren (const wxTreeItemId& item,
                                                bool has) {
     wxCHECK_RET (item.IsOk(), _T("invalid tree item"));
-    wxTreeListItem *pItem = (wxTreeListItem*) item.m_pItem;
+    ewxTreeListItem *pItem = (ewxTreeListItem*) item.m_pItem;
     pItem->SetHasPlus (has);
     RefreshLine (pItem);
 }
 
-void wxTreeListMainWindow::SetItemBold (const wxTreeItemId& item, bool bold) {
+void ewxTreeListMainWindow::SetItemBold (const wxTreeItemId& item, bool bold) {
     wxCHECK_RET (item.IsOk(), _T("invalid tree item"));
-    wxTreeListItem *pItem = (wxTreeListItem*) item.m_pItem;
+    ewxTreeListItem *pItem = (ewxTreeListItem*) item.m_pItem;
     if (pItem->IsBold() != bold) { // avoid redrawing if no real change
         pItem->SetBold (bold);
         RefreshLine (pItem);
     }
 }
 
-void wxTreeListMainWindow::SetItemTextColour (const wxTreeItemId& item,
+void ewxTreeListMainWindow::SetItemTextColour (const wxTreeItemId& item,
                                               const wxColour& colour) {
     wxCHECK_RET (item.IsOk(), _T("invalid tree item"));
-    wxTreeListItem *pItem = (wxTreeListItem*) item.m_pItem;
+    ewxTreeListItem *pItem = (ewxTreeListItem*) item.m_pItem;
     pItem->Attr().SetTextColour (colour);
     RefreshLine (pItem);
 }
 
-void wxTreeListMainWindow::SetItemBackgroundColour (const wxTreeItemId& item,
+void ewxTreeListMainWindow::SetItemBackgroundColour (const wxTreeItemId& item,
                                                     const wxColour& colour) {
     wxCHECK_RET (item.IsOk(), _T("invalid tree item"));
-    wxTreeListItem *pItem = (wxTreeListItem*) item.m_pItem;
+    ewxTreeListItem *pItem = (ewxTreeListItem*) item.m_pItem;
     pItem->Attr().SetBackgroundColour (colour);
     RefreshLine (pItem);
 }
 
-void wxTreeListMainWindow::SetItemFont (const wxTreeItemId& item,
+void ewxTreeListMainWindow::SetItemFont (const wxTreeItemId& item,
                                         const wxFont& font) {
     wxCHECK_RET (item.IsOk(), _T("invalid tree item"));
-    wxTreeListItem *pItem = (wxTreeListItem*) item.m_pItem;
+    ewxTreeListItem *pItem = (ewxTreeListItem*) item.m_pItem;
     pItem->Attr().SetFont (font);
     RefreshLine (pItem);
 }
 
-bool wxTreeListMainWindow::SetFont (const wxFont &font) {
+bool ewxTreeListMainWindow::SetFont (const wxFont &font) {
     wxScrolledWindow::SetFont (font);
     m_normalFont = font;
     m_boldFont = wxFont (m_normalFont.GetPointSize(),
@@ -1938,12 +1938,12 @@ bool wxTreeListMainWindow::SetFont (const wxFont &font) {
 // item status inquiries
 // ----------------------------------------------------------------------------
 
-bool wxTreeListMainWindow::IsVisible (const wxTreeItemId& item, bool fullRow) const {
+bool ewxTreeListMainWindow::IsVisible (const wxTreeItemId& item, bool fullRow) const {
     wxCHECK_MSG (item.IsOk(), false, _T("invalid tree item"));
 
     // An item is only visible if it's not a descendant of a collapsed item
-    wxTreeListItem *pItem = (wxTreeListItem*) item.m_pItem;
-    wxTreeListItem* parent = pItem->GetItemParent();
+    ewxTreeListItem *pItem = (ewxTreeListItem*) item.m_pItem;
+    ewxTreeListItem* parent = pItem->GetItemParent();
     while (parent) {
         if (parent == m_rootItem && HasFlag(wxTR_HIDE_ROOT)) break;
         if (!parent->IsExpanded()) return false;
@@ -1960,7 +1960,7 @@ bool wxTreeListMainWindow::IsVisible (const wxTreeItemId& item, bool fullRow) co
     return true;
 }
 
-bool wxTreeListMainWindow::HasChildren (const wxTreeItemId& item) const {
+bool ewxTreeListMainWindow::HasChildren (const wxTreeItemId& item) const {
     wxCHECK_MSG (item.IsOk(), false, _T("invalid tree item"));
 
     // consider that the item does have children if it has the "+" button: it
@@ -1968,95 +1968,95 @@ bool wxTreeListMainWindow::HasChildren (const wxTreeItemId& item) const {
     // could have them as well and it's better to err on this side rather than
     // disabling some operations which are restricted to the items with
     // children for an item which does have them
-    return ((wxTreeListItem*) item.m_pItem)->HasPlus();
+    return ((ewxTreeListItem*) item.m_pItem)->HasPlus();
 }
 
-bool wxTreeListMainWindow::IsExpanded (const wxTreeItemId& item) const {
+bool ewxTreeListMainWindow::IsExpanded (const wxTreeItemId& item) const {
     wxCHECK_MSG (item.IsOk(), false, _T("invalid tree item"));
-    return ((wxTreeListItem*) item.m_pItem)->IsExpanded();
+    return ((ewxTreeListItem*) item.m_pItem)->IsExpanded();
 }
 
-bool wxTreeListMainWindow::IsSelected (const wxTreeItemId& item) const {
+bool ewxTreeListMainWindow::IsSelected (const wxTreeItemId& item) const {
     wxCHECK_MSG (item.IsOk(), false, _T("invalid tree item"));
-    return ((wxTreeListItem*) item.m_pItem)->IsSelected();
+    return ((ewxTreeListItem*) item.m_pItem)->IsSelected();
 }
 
-bool wxTreeListMainWindow::IsBold (const wxTreeItemId& item) const {
+bool ewxTreeListMainWindow::IsBold (const wxTreeItemId& item) const {
     wxCHECK_MSG (item.IsOk(), false, _T("invalid tree item"));
-    return ((wxTreeListItem*) item.m_pItem)->IsBold();
+    return ((ewxTreeListItem*) item.m_pItem)->IsBold();
 }
 
 // ----------------------------------------------------------------------------
 // navigation
 // ----------------------------------------------------------------------------
 
-wxTreeItemId wxTreeListMainWindow::GetItemParent (const wxTreeItemId& item) const {
+wxTreeItemId ewxTreeListMainWindow::GetItemParent (const wxTreeItemId& item) const {
     wxCHECK_MSG (item.IsOk(), wxTreeItemId(), _T("invalid tree item"));
-    return ((wxTreeListItem*) item.m_pItem)->GetItemParent();
+    return ((ewxTreeListItem*) item.m_pItem)->GetItemParent();
 }
 
 #if !wxCHECK_VERSION(2, 5, 0)
-wxTreeItemId wxTreeListMainWindow::GetFirstChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListMainWindow::GetFirstChild (const wxTreeItemId& item,
                                                   long& cookie) const {
 #else
-wxTreeItemId wxTreeListMainWindow::GetFirstChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListMainWindow::GetFirstChild (const wxTreeItemId& item,
                                                   wxTreeItemIdValue& cookie) const {
 #endif
     wxCHECK_MSG (item.IsOk(), wxTreeItemId(), _T("invalid tree item"));
-    wxArrayTreeListItems& children = ((wxTreeListItem*) item.m_pItem)->GetChildren();
+    wxArrayTreeListItems& children = ((ewxTreeListItem*) item.m_pItem)->GetChildren();
     cookie = 0;
     return (!children.IsEmpty())? wxTreeItemId(children.Item(0)): wxTreeItemId();
 }
 
 #if !wxCHECK_VERSION(2, 5, 0)
-wxTreeItemId wxTreeListMainWindow::GetNextChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListMainWindow::GetNextChild (const wxTreeItemId& item,
                                                  long& cookie) const {
 #else
-wxTreeItemId wxTreeListMainWindow::GetNextChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListMainWindow::GetNextChild (const wxTreeItemId& item,
                                                  wxTreeItemIdValue& cookie) const {
 #endif
     wxCHECK_MSG (item.IsOk(), wxTreeItemId(), _T("invalid tree item"));
-    wxArrayTreeListItems& children = ((wxTreeListItem*) item.m_pItem)->GetChildren();
+    wxArrayTreeListItems& children = ((ewxTreeListItem*) item.m_pItem)->GetChildren();
     // it's ok to cast cookie to long, we never have indices which overflow "void*"
     long *pIndex = ((long*)&cookie);
     return ((*pIndex)+1 < (long)children.Count())? wxTreeItemId(children.Item(++(*pIndex))): wxTreeItemId();
 }
 
 #if !wxCHECK_VERSION(2, 5, 0)
-wxTreeItemId wxTreeListMainWindow::GetPrevChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListMainWindow::GetPrevChild (const wxTreeItemId& item,
                                                  long& cookie) const {
 #else
-wxTreeItemId wxTreeListMainWindow::GetPrevChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListMainWindow::GetPrevChild (const wxTreeItemId& item,
                                                  wxTreeItemIdValue& cookie) const {
 #endif
     wxCHECK_MSG (item.IsOk(), wxTreeItemId(), _T("invalid tree item"));
-    wxArrayTreeListItems& children = ((wxTreeListItem*) item.m_pItem)->GetChildren();
+    wxArrayTreeListItems& children = ((ewxTreeListItem*) item.m_pItem)->GetChildren();
     // it's ok to cast cookie to long, we never have indices which overflow "void*"
     long *pIndex = (long*)&cookie;
     return ((*pIndex)-1 >= 0)? wxTreeItemId(children.Item(--(*pIndex))): wxTreeItemId();
 }
 
 #if !wxCHECK_VERSION(2, 5, 0)
-wxTreeItemId wxTreeListMainWindow::GetLastChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListMainWindow::GetLastChild (const wxTreeItemId& item,
                                                  long& cookie) const {
 #else
-wxTreeItemId wxTreeListMainWindow::GetLastChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListMainWindow::GetLastChild (const wxTreeItemId& item,
                                                  wxTreeItemIdValue& cookie) const {
 #endif
     wxCHECK_MSG (item.IsOk(), wxTreeItemId(), _T("invalid tree item"));
-    wxArrayTreeListItems& children = ((wxTreeListItem*) item.m_pItem)->GetChildren();
+    wxArrayTreeListItems& children = ((ewxTreeListItem*) item.m_pItem)->GetChildren();
     // it's ok to cast cookie to long, we never have indices which overflow "void*"
     long *pIndex = ((long*)&cookie);
     (*pIndex) = children.Count();
     return (!children.IsEmpty())? wxTreeItemId(children.Last()): wxTreeItemId();
 }
 
-wxTreeItemId wxTreeListMainWindow::GetNextSibling (const wxTreeItemId& item) const {
+wxTreeItemId ewxTreeListMainWindow::GetNextSibling (const wxTreeItemId& item) const {
     wxCHECK_MSG (item.IsOk(), wxTreeItemId(), _T("invalid tree item"));
 
     // get parent
-    wxTreeListItem *i = (wxTreeListItem*) item.m_pItem;
-    wxTreeListItem *parent = i->GetItemParent();
+    ewxTreeListItem *i = (ewxTreeListItem*) item.m_pItem;
+    ewxTreeListItem *parent = i->GetItemParent();
     if (!parent) return wxTreeItemId(); // root item doesn't have any siblings
 
     // get index
@@ -2066,12 +2066,12 @@ wxTreeItemId wxTreeListMainWindow::GetNextSibling (const wxTreeItemId& item) con
     return (index < siblings.Count()-1)? wxTreeItemId(siblings[index+1]): wxTreeItemId();
 }
 
-wxTreeItemId wxTreeListMainWindow::GetPrevSibling (const wxTreeItemId& item) const {
+wxTreeItemId ewxTreeListMainWindow::GetPrevSibling (const wxTreeItemId& item) const {
     wxCHECK_MSG (item.IsOk(), wxTreeItemId(), _T("invalid tree item"));
 
     // get parent
-    wxTreeListItem *i = (wxTreeListItem*) item.m_pItem;
-    wxTreeListItem *parent = i->GetItemParent();
+    ewxTreeListItem *i = (ewxTreeListItem*) item.m_pItem;
+    ewxTreeListItem *parent = i->GetItemParent();
     if (!parent) return wxTreeItemId(); // root item doesn't have any siblings
 
     // get index
@@ -2082,12 +2082,12 @@ wxTreeItemId wxTreeListMainWindow::GetPrevSibling (const wxTreeItemId& item) con
 }
 
 // Only for internal use right now, but should probably be public
-wxTreeItemId wxTreeListMainWindow::GetNext (const wxTreeItemId& item, bool fulltree) const {
+wxTreeItemId ewxTreeListMainWindow::GetNext (const wxTreeItemId& item, bool fulltree) const {
     wxCHECK_MSG (item.IsOk(), wxTreeItemId(), _T("invalid tree item"));
 
     // if there are any children, return first child
-    if (fulltree || ((wxTreeListItem*)item.m_pItem)->IsExpanded()) {
-        wxArrayTreeListItems& children = ((wxTreeListItem*)item.m_pItem)->GetChildren();
+    if (fulltree || ((ewxTreeListItem*)item.m_pItem)->IsExpanded()) {
+        wxArrayTreeListItems& children = ((ewxTreeListItem*)item.m_pItem)->GetChildren();
         if (children.GetCount() > 0) return children.Item (0);
     }
 
@@ -2102,12 +2102,12 @@ wxTreeItemId wxTreeListMainWindow::GetNext (const wxTreeItemId& item, bool fullt
 }
 
 // Only for internal use right now, but should probably be public
-wxTreeItemId wxTreeListMainWindow::GetPrev (const wxTreeItemId& item, bool fulltree) const {
+wxTreeItemId ewxTreeListMainWindow::GetPrev (const wxTreeItemId& item, bool fulltree) const {
     wxCHECK_MSG (item.IsOk(), wxTreeItemId(), _T("invalid tree item"));
 
     // if there are any children, return last child
-    if (fulltree || ((wxTreeListItem*)item.m_pItem)->IsExpanded()) {
-        wxArrayTreeListItems& children = ((wxTreeListItem*)item.m_pItem)->GetChildren();
+    if (fulltree || ((ewxTreeListItem*)item.m_pItem)->IsExpanded()) {
+        wxArrayTreeListItems& children = ((ewxTreeListItem*)item.m_pItem)->GetChildren();
         if (children.GetCount() > 0) return children.Item (children.GetCount()-1);
     }
 
@@ -2121,25 +2121,25 @@ wxTreeItemId wxTreeListMainWindow::GetPrev (const wxTreeItemId& item, bool fullt
     return next;
 }
 
-wxTreeItemId wxTreeListMainWindow::GetFirstExpandedItem() const {
+wxTreeItemId ewxTreeListMainWindow::GetFirstExpandedItem() const {
     return GetNextExpanded (GetRootItem());
 }
 
-wxTreeItemId wxTreeListMainWindow::GetNextExpanded (const wxTreeItemId& item) const {
+wxTreeItemId ewxTreeListMainWindow::GetNextExpanded (const wxTreeItemId& item) const {
     wxCHECK_MSG (item.IsOk(), wxTreeItemId(), _T("invalid tree item"));
     return GetNext (item, false);
 }
 
-wxTreeItemId wxTreeListMainWindow::GetPrevExpanded (const wxTreeItemId& item) const {
+wxTreeItemId ewxTreeListMainWindow::GetPrevExpanded (const wxTreeItemId& item) const {
     wxCHECK_MSG (item.IsOk(), wxTreeItemId(), _T("invalid tree item"));
     return GetPrev (item, false);
 }
 
-wxTreeItemId wxTreeListMainWindow::GetFirstVisibleItem (bool fullRow) const {
+wxTreeItemId ewxTreeListMainWindow::GetFirstVisibleItem (bool fullRow) const {
     return GetNextVisible (GetRootItem(), fullRow);
 }
 
-wxTreeItemId wxTreeListMainWindow::GetNextVisible (const wxTreeItemId& item, bool fullRow) const {
+wxTreeItemId ewxTreeListMainWindow::GetNextVisible (const wxTreeItemId& item, bool fullRow) const {
     wxCHECK_MSG (item.IsOk(), wxTreeItemId(), _T("invalid tree item"));
     wxTreeItemId id = GetNext (item, false);
     while (id.IsOk()) {
@@ -2149,7 +2149,7 @@ wxTreeItemId wxTreeListMainWindow::GetNextVisible (const wxTreeItemId& item, boo
     return wxTreeItemId();
 }
 
-wxTreeItemId wxTreeListMainWindow::GetPrevVisible (const wxTreeItemId& item, bool fullRow) const {
+wxTreeItemId ewxTreeListMainWindow::GetPrevVisible (const wxTreeItemId& item, bool fullRow) const {
     wxCHECK_MSG (item.IsOk(), wxTreeItemId(), _T("invalid tree item"));
     wxTreeItemId id = GetPrev (item, true);
     while (id.IsOk()) {
@@ -2163,12 +2163,12 @@ wxTreeItemId wxTreeListMainWindow::GetPrevVisible (const wxTreeItemId& item, boo
 // operations
 // ----------------------------------------------------------------------------
 
-wxTreeItemId wxTreeListMainWindow::DoInsertItem (const wxTreeItemId& parentId,
+wxTreeItemId ewxTreeListMainWindow::DoInsertItem (const wxTreeItemId& parentId,
                                                  size_t previous,
                                                  const wxString& text,
                                                  int image, int selImage,
                                                  wxTreeItemData *data) {
-    wxTreeListItem *parent = (wxTreeListItem*)parentId.m_pItem;
+    ewxTreeListItem *parent = (ewxTreeListItem*)parentId.m_pItem;
     wxCHECK_MSG (parent, wxTreeItemId(), _T("item must have a parent, at least root!") );
     m_dirty = true; // do this first so stuff below doesn't cause flicker
 
@@ -2176,7 +2176,7 @@ wxTreeItemId wxTreeListMainWindow::DoInsertItem (const wxTreeItemId& parentId,
     arr.Alloc (GetColumnCount());
     for (int i = 0; i < (int)GetColumnCount(); ++i) arr.Add (wxEmptyString);
     arr[m_main_column] = text;
-    wxTreeListItem *item = new wxTreeListItem (this, parent, arr, image, selImage, data);
+    ewxTreeListItem *item = new ewxTreeListItem (this, parent, arr, image, selImage, data);
     if (data != NULL) {
 #if !wxCHECK_VERSION(2, 5, 0)
         data->SetId ((long)item);
@@ -2189,7 +2189,7 @@ wxTreeItemId wxTreeListMainWindow::DoInsertItem (const wxTreeItemId& parentId,
     return item;
 }
 
-wxTreeItemId wxTreeListMainWindow::AddRoot (const wxString& text,
+wxTreeItemId ewxTreeListMainWindow::AddRoot (const wxString& text,
                                             int image, int selImage,
                                             wxTreeItemData *data) {
     wxCHECK_MSG(!m_rootItem, wxTreeItemId(), _T("tree can have only one root"));
@@ -2200,7 +2200,7 @@ wxTreeItemId wxTreeListMainWindow::AddRoot (const wxString& text,
     arr.Alloc (GetColumnCount());
     for (int i = 0; i < (int)GetColumnCount(); ++i) arr.Add (wxEmptyString);
     arr[m_main_column] = text;
-    m_rootItem = new wxTreeListItem (this, (wxTreeListItem *)NULL, arr, image, selImage, data);
+    m_rootItem = new ewxTreeListItem (this, (ewxTreeListItem *)NULL, arr, image, selImage, data);
     if (data != NULL) {
 #if !wxCHECK_VERSION(2, 5, 0)
         data->SetId((long)m_rootItem);
@@ -2217,55 +2217,55 @@ wxTreeItemId wxTreeListMainWindow::AddRoot (const wxString& text,
 #else
         wxTreeItemIdValue cookie = 0;
 #endif
-        m_curItem = (wxTreeListItem*)GetFirstChild (m_rootItem, cookie).m_pItem;
+        m_curItem = (ewxTreeListItem*)GetFirstChild (m_rootItem, cookie).m_pItem;
     }
     return m_rootItem;
 }
 
-wxTreeItemId wxTreeListMainWindow::PrependItem (const wxTreeItemId& parent,
+wxTreeItemId ewxTreeListMainWindow::PrependItem (const wxTreeItemId& parent,
                                                 const wxString& text,
                                                 int image, int selImage,
                                                 wxTreeItemData *data) {
     return DoInsertItem (parent, 0u, text, image, selImage, data);
 }
 
-wxTreeItemId wxTreeListMainWindow::InsertItem (const wxTreeItemId& parentId,
+wxTreeItemId ewxTreeListMainWindow::InsertItem (const wxTreeItemId& parentId,
                                                const wxTreeItemId& idPrevious,
                                                const wxString& text,
                                                int image, int selImage,
                                                wxTreeItemData *data) {
-    wxTreeListItem *parent = (wxTreeListItem*)parentId.m_pItem;
+    ewxTreeListItem *parent = (ewxTreeListItem*)parentId.m_pItem;
     wxCHECK_MSG (parent, wxTreeItemId(), _T("item must have a parent, at least root!") );
 
-    int index = parent->GetChildren().Index((wxTreeListItem*) idPrevious.m_pItem);
+    int index = parent->GetChildren().Index((ewxTreeListItem*) idPrevious.m_pItem);
     wxASSERT_MSG( index != wxNOT_FOUND,
-                  _T("previous item in wxTreeListMainWindow::InsertItem() is not a sibling") );
+                  _T("previous item in ewxTreeListMainWindow::InsertItem() is not a sibling") );
 
     return DoInsertItem (parentId, ++index, text, image, selImage, data);
 }
 
-wxTreeItemId wxTreeListMainWindow::InsertItem (const wxTreeItemId& parentId,
+wxTreeItemId ewxTreeListMainWindow::InsertItem (const wxTreeItemId& parentId,
                                                size_t before,
                                                const wxString& text,
                                                int image, int selImage,
                                                wxTreeItemData *data) {
-    wxTreeListItem *parent = (wxTreeListItem*)parentId.m_pItem;
+    ewxTreeListItem *parent = (ewxTreeListItem*)parentId.m_pItem;
     wxCHECK_MSG (parent, wxTreeItemId(), _T("item must have a parent, at least root!") );
 
     return DoInsertItem (parentId, before, text, image, selImage, data);
 }
 
-wxTreeItemId wxTreeListMainWindow::AppendItem (const wxTreeItemId& parentId,
+wxTreeItemId ewxTreeListMainWindow::AppendItem (const wxTreeItemId& parentId,
                                                const wxString& text,
                                                int image, int selImage,
                                                wxTreeItemData *data) {
-    wxTreeListItem *parent = (wxTreeListItem*) parentId.m_pItem;
+    ewxTreeListItem *parent = (ewxTreeListItem*) parentId.m_pItem;
     wxCHECK_MSG (parent, wxTreeItemId(), _T("item must have a parent, at least root!") );
 
     return DoInsertItem (parent, parent->GetChildren().Count(), text, image, selImage, data);
 }
 
-void wxTreeListMainWindow::SendDeleteEvent (wxTreeListItem *item) {
+void ewxTreeListMainWindow::SendDeleteEvent (ewxTreeListItem *item) {
     // send event to user code
     wxTreeEvent event (wxEVT_COMMAND_TREE_DELETE_ITEM, m_owner->GetId());
 #if !wxCHECK_VERSION(2, 5, 0)
@@ -2277,14 +2277,14 @@ void wxTreeListMainWindow::SendDeleteEvent (wxTreeListItem *item) {
     m_owner->ProcessWindowEvent (event);
 }
 
-void wxTreeListMainWindow::Delete (const wxTreeItemId& itemId) {
-    wxTreeListItem *item = (wxTreeListItem*) itemId.m_pItem;
+void ewxTreeListMainWindow::Delete (const wxTreeItemId& itemId) {
+    ewxTreeListItem *item = (ewxTreeListItem*) itemId.m_pItem;
     wxCHECK_RET (item != m_rootItem, _T("invalid item, root may not be deleted this way!"));
     m_dirty = true; // do this first so stuff below doesn't cause flicker
 
     // don't stay with invalid m_shiftItem or we will crash in the next call to OnChar()
     bool changeKeyCurrent = false;
-    wxTreeListItem *itemKey = m_shiftItem;
+    ewxTreeListItem *itemKey = m_shiftItem;
     while (itemKey) {
         if (itemKey == item) { // m_shiftItem is a descendant of the item being deleted
             changeKeyCurrent = true;
@@ -2293,40 +2293,40 @@ void wxTreeListMainWindow::Delete (const wxTreeItemId& itemId) {
         itemKey = itemKey->GetItemParent();
     }
 
-    wxTreeListItem *parent = item->GetItemParent();
+    ewxTreeListItem *parent = item->GetItemParent();
     if (parent) {
         parent->GetChildren().Remove (item);  // remove by value
     }
     if (changeKeyCurrent)  m_shiftItem = parent;
 
     SendDeleteEvent (item);
-    if (m_selectItem == item) m_selectItem = (wxTreeListItem*)NULL;
+    if (m_selectItem == item) m_selectItem = (ewxTreeListItem*)NULL;
     item->DeleteChildren (this);
     delete item;
 }
 
-void wxTreeListMainWindow::DeleteChildren (const wxTreeItemId& itemId) {
-    wxTreeListItem *item = (wxTreeListItem*) itemId.m_pItem;
+void ewxTreeListMainWindow::DeleteChildren (const wxTreeItemId& itemId) {
+    ewxTreeListItem *item = (ewxTreeListItem*) itemId.m_pItem;
     m_dirty = true; // do this first so stuff below doesn't cause flicker
 
     item->DeleteChildren (this);
 }
 
-void wxTreeListMainWindow::DeleteRoot() {
+void ewxTreeListMainWindow::DeleteRoot() {
     if (m_rootItem) {
         m_dirty = true;
         SendDeleteEvent (m_rootItem);
-        m_curItem = (wxTreeListItem*)NULL;
-        m_selectItem= (wxTreeListItem*)NULL;
+        m_curItem = (ewxTreeListItem*)NULL;
+        m_selectItem= (ewxTreeListItem*)NULL;
         m_rootItem->DeleteChildren (this);
         delete m_rootItem;
         m_rootItem = NULL;
     }
 }
 
-void wxTreeListMainWindow::Expand (const wxTreeItemId& itemId) {
-    wxTreeListItem *item = (wxTreeListItem*) itemId.m_pItem;
-    wxCHECK_RET (item, _T("invalid item in wxTreeListMainWindow::Expand") );
+void ewxTreeListMainWindow::Expand (const wxTreeItemId& itemId) {
+    ewxTreeListItem *item = (ewxTreeListItem*) itemId.m_pItem;
+    wxCHECK_RET (item, _T("invalid item in ewxTreeListMainWindow::Expand") );
 
     if (!item->HasPlus() || item->IsExpanded()) return;
 
@@ -2348,7 +2348,7 @@ void wxTreeListMainWindow::Expand (const wxTreeItemId& itemId) {
     m_owner->ProcessWindowEvent (event);
 }
 
-void wxTreeListMainWindow::ExpandAll (const wxTreeItemId& itemId) {
+void ewxTreeListMainWindow::ExpandAll (const wxTreeItemId& itemId) {
     Expand (itemId);
     if (!IsExpanded (itemId)) return;
 #if !wxCHECK_VERSION(2, 5, 0)
@@ -2363,9 +2363,9 @@ void wxTreeListMainWindow::ExpandAll (const wxTreeItemId& itemId) {
     }
 }
 
-void wxTreeListMainWindow::Collapse (const wxTreeItemId& itemId) {
-    wxTreeListItem *item = (wxTreeListItem*) itemId.m_pItem;
-    wxCHECK_RET (item, _T("invalid item in wxTreeListMainWindow::Collapse") );
+void ewxTreeListMainWindow::Collapse (const wxTreeItemId& itemId) {
+    ewxTreeListItem *item = (ewxTreeListItem*) itemId.m_pItem;
+    wxCHECK_RET (item, _T("invalid item in ewxTreeListMainWindow::Collapse") );
 
     if (!item->HasPlus() || !item->IsExpanded()) return;
 
@@ -2387,12 +2387,12 @@ void wxTreeListMainWindow::Collapse (const wxTreeItemId& itemId) {
     ProcessEvent (event);
 }
 
-void wxTreeListMainWindow::CollapseAndReset (const wxTreeItemId& item) {
+void ewxTreeListMainWindow::CollapseAndReset (const wxTreeItemId& item) {
     Collapse (item);
     DeleteChildren (item);
 }
 
-void wxTreeListMainWindow::Toggle (const wxTreeItemId& itemId) {
+void ewxTreeListMainWindow::Toggle (const wxTreeItemId& itemId) {
     if (IsExpanded (itemId)) {
         Collapse (itemId);
     }else{
@@ -2400,19 +2400,19 @@ void wxTreeListMainWindow::Toggle (const wxTreeItemId& itemId) {
     }
 }
 
-void wxTreeListMainWindow::Unselect() {
+void ewxTreeListMainWindow::Unselect() {
     if (m_selectItem) {
         m_selectItem->SetHilight (false);
         RefreshLine (m_selectItem);
-        m_selectItem = (wxTreeListItem*)NULL;
+        m_selectItem = (ewxTreeListItem*)NULL;
     }
 }
 
-void wxTreeListMainWindow::UnselectAllChildren (wxTreeListItem *item) {
+void ewxTreeListMainWindow::UnselectAllChildren (ewxTreeListItem *item) {
     if (item->IsSelected()) {
         item->SetHilight (false);
         RefreshLine (item);
-        if (item == m_selectItem) m_selectItem = (wxTreeListItem*)NULL;
+        if (item == m_selectItem) m_selectItem = (ewxTreeListItem*)NULL;
     }
     if (item->HasChildren()) {
         wxArrayTreeListItems& children = item->GetChildren();
@@ -2423,8 +2423,8 @@ void wxTreeListMainWindow::UnselectAllChildren (wxTreeListItem *item) {
     }
 }
 
-void wxTreeListMainWindow::UnselectAll() {
-    UnselectAllChildren ((wxTreeListItem*)GetRootItem().m_pItem);
+void ewxTreeListMainWindow::UnselectAll() {
+    UnselectAllChildren ((ewxTreeListItem*)GetRootItem().m_pItem);
 }
 
 // Recursive function !
@@ -2433,9 +2433,9 @@ void wxTreeListMainWindow::UnselectAll() {
 // Tag all next children, when no more children,
 // Move to parent (not to tag)
 // Keep going... if we found last_item, we stop.
-bool wxTreeListMainWindow::TagNextChildren (wxTreeListItem *crt_item,
-                                            wxTreeListItem *last_item) {
-    wxTreeListItem *parent = crt_item->GetItemParent();
+bool ewxTreeListMainWindow::TagNextChildren (ewxTreeListItem *crt_item,
+                                            ewxTreeListItem *last_item) {
+    ewxTreeListItem *parent = crt_item->GetItemParent();
 
     if (!parent) {// This is root item
         return TagAllChildrenUntilLast (crt_item, last_item);
@@ -2446,7 +2446,7 @@ bool wxTreeListMainWindow::TagNextChildren (wxTreeListItem *crt_item,
     wxASSERT (index != wxNOT_FOUND); // I'm not a child of my parent?
 
     if ((parent->HasChildren() && parent->IsExpanded()) ||
-        ((parent == (wxTreeListItem*)GetRootItem().m_pItem) && HasFlag(wxTR_HIDE_ROOT))) {
+        ((parent == (ewxTreeListItem*)GetRootItem().m_pItem) && HasFlag(wxTR_HIDE_ROOT))) {
         size_t count = children.Count();
         for (size_t n = (index+1); n < count; ++n) {
             if (TagAllChildrenUntilLast (children[n], last_item)) return true;
@@ -2456,8 +2456,8 @@ bool wxTreeListMainWindow::TagNextChildren (wxTreeListItem *crt_item,
     return TagNextChildren (parent, last_item);
 }
 
-bool wxTreeListMainWindow::TagAllChildrenUntilLast (wxTreeListItem *crt_item,
-                                                    wxTreeListItem *last_item) {
+bool ewxTreeListMainWindow::TagAllChildrenUntilLast (ewxTreeListItem *crt_item,
+                                                    ewxTreeListItem *last_item) {
     crt_item->SetHilight (true);
     RefreshLine(crt_item);
 
@@ -2474,13 +2474,13 @@ bool wxTreeListMainWindow::TagAllChildrenUntilLast (wxTreeListItem *crt_item,
     return false;
 }
 
-void wxTreeListMainWindow::SelectItem (const wxTreeItemId& itemId,
+void ewxTreeListMainWindow::SelectItem (const wxTreeItemId& itemId,
                                        const wxTreeItemId& lastId,
                                        bool unselect_others) {
     wxCHECK_RET (itemId.IsOk(), _T("invalid tree item") );
 
     bool is_single = !HasFlag(wxTR_MULTIPLE);
-    wxTreeListItem *item = (wxTreeListItem*) itemId.m_pItem;
+    ewxTreeListItem *item = (ewxTreeListItem*) itemId.m_pItem;
 
     // single selection requires unselect others
     if (is_single) unselect_others = true;
@@ -2512,7 +2512,7 @@ void wxTreeListMainWindow::SelectItem (const wxTreeItemId& itemId,
     if (lastId.IsOk() && (itemId != lastId)) {
 
         if (!unselected) UnselectAll();
-        wxTreeListItem *last = (wxTreeListItem*) lastId.m_pItem;
+        ewxTreeListItem *last = (ewxTreeListItem*) lastId.m_pItem;
 
         // ensure that the position of the item it calculated in any case
         if (m_dirty) CalculatePositions();
@@ -2534,7 +2534,7 @@ void wxTreeListMainWindow::SelectItem (const wxTreeItemId& itemId,
         item->SetHilight (!item->IsSelected());
         RefreshLine (item);
         if (unselect_others) {
-            m_selectItem = (item->IsSelected())? item: (wxTreeListItem*)NULL;
+            m_selectItem = (item->IsSelected())? item: (ewxTreeListItem*)NULL;
         }
 
     }
@@ -2544,7 +2544,7 @@ void wxTreeListMainWindow::SelectItem (const wxTreeItemId& itemId,
     m_owner->GetEventHandler()->ProcessEvent (event);
 }
 
-void wxTreeListMainWindow::SelectAll() {
+void ewxTreeListMainWindow::SelectAll() {
     wxCHECK_RET (HasFlag(wxTR_MULTIPLE), _T("invalid tree style"));
 
     // send event to user code
@@ -2564,8 +2564,8 @@ void wxTreeListMainWindow::SelectAll() {
     wxTreeItemIdValue cookie = 0;
 #endif
     wxTreeItemId root = GetRootItem();
-    wxTreeListItem *first = (wxTreeListItem *)GetFirstChild (root, cookie).m_pItem;
-    wxTreeListItem *last = (wxTreeListItem *)GetLastChild (root, cookie).m_pItem;
+    ewxTreeListItem *first = (ewxTreeListItem *)GetFirstChild (root, cookie).m_pItem;
+    ewxTreeListItem *last = (ewxTreeListItem *)GetLastChild (root, cookie).m_pItem;
     if (!TagAllChildrenUntilLast (first, last)) {
         TagNextChildren (first, last);
     }
@@ -2575,7 +2575,7 @@ void wxTreeListMainWindow::SelectAll() {
     m_owner->GetEventHandler()->ProcessEvent (event);
 }
 
-void wxTreeListMainWindow::FillArray (wxTreeListItem *item,
+void ewxTreeListMainWindow::FillArray (ewxTreeListItem *item,
                                       wxArrayTreeItemIds &array) const {
     if (item->IsSelected()) array.Add (wxTreeItemId(item));
 
@@ -2586,19 +2586,19 @@ void wxTreeListMainWindow::FillArray (wxTreeListItem *item,
     }
 }
 
-size_t wxTreeListMainWindow::GetSelections (wxArrayTreeItemIds &array) const {
+size_t ewxTreeListMainWindow::GetSelections (wxArrayTreeItemIds &array) const {
     array.Empty();
     wxTreeItemId idRoot = GetRootItem();
-    if (idRoot.IsOk()) FillArray ((wxTreeListItem*) idRoot.m_pItem, array);
+    if (idRoot.IsOk()) FillArray ((ewxTreeListItem*) idRoot.m_pItem, array);
     return array.Count();
 }
 
-void wxTreeListMainWindow::EnsureVisible (const wxTreeItemId& item) {
+void ewxTreeListMainWindow::EnsureVisible (const wxTreeItemId& item) {
     if (!item.IsOk()) return; // do nothing if no item
 
     // first expand all parent branches
-    wxTreeListItem *gitem = (wxTreeListItem*) item.m_pItem;
-    wxTreeListItem *parent = gitem->GetItemParent();
+    ewxTreeListItem *gitem = (ewxTreeListItem*) item.m_pItem;
+    ewxTreeListItem *parent = gitem->GetItemParent();
     while (parent) {
         Expand (parent);
         parent = parent->GetItemParent();
@@ -2608,13 +2608,13 @@ void wxTreeListMainWindow::EnsureVisible (const wxTreeItemId& item) {
     RefreshLine (gitem);
 }
 
-void wxTreeListMainWindow::ScrollTo (const wxTreeItemId &item) {
+void ewxTreeListMainWindow::ScrollTo (const wxTreeItemId &item) {
     if (!item.IsOk()) return; // do nothing if no item
 
     // ensure that the position of the item it calculated in any case
     if (m_dirty) CalculatePositions();
 
-    wxTreeListItem *gitem = (wxTreeListItem*) item.m_pItem;
+    ewxTreeListItem *gitem = (ewxTreeListItem*) item.m_pItem;
 
     // now scroll to the item
     int item_y = gitem->GetY();
@@ -2648,29 +2648,29 @@ void wxTreeListMainWindow::ScrollTo (const wxTreeItemId &item) {
 }
 
 // FIXME: tree sorting functions are not reentrant and not MT-safe!
-static wxTreeListMainWindow *s_treeBeingSorted = NULL;
+static ewxTreeListMainWindow *s_treeBeingSorted = NULL;
 
-static int LINKAGEMODE tree_ctrl_compare_func(wxTreeListItem **item1,
-                                  wxTreeListItem **item2)
+static int LINKAGEMODE tree_ctrl_compare_func(ewxTreeListItem **item1,
+                                  ewxTreeListItem **item2)
 {
-    wxCHECK_MSG (s_treeBeingSorted, 0, _T("bug in wxTreeListMainWindow::SortChildren()") );
+    wxCHECK_MSG (s_treeBeingSorted, 0, _T("bug in ewxTreeListMainWindow::SortChildren()") );
 
     return s_treeBeingSorted->OnCompareItems(*item1, *item2);
 }
 
-int wxTreeListMainWindow::OnCompareItems(const wxTreeItemId& item1,
+int ewxTreeListMainWindow::OnCompareItems(const wxTreeItemId& item1,
                                const wxTreeItemId& item2)
 {
     return m_owner->OnCompareItems (item1, item2);
 }
 
-void wxTreeListMainWindow::SortChildren (const wxTreeItemId& itemId) {
+void ewxTreeListMainWindow::SortChildren (const wxTreeItemId& itemId) {
     wxCHECK_RET (itemId.IsOk(), _T("invalid tree item"));
 
-    wxTreeListItem *item = (wxTreeListItem*) itemId.m_pItem;
+    ewxTreeListItem *item = (ewxTreeListItem*) itemId.m_pItem;
 
     wxCHECK_RET (!s_treeBeingSorted,
-                 _T("wxTreeListMainWindow::SortChildren is not reentrant") );
+                 _T("ewxTreeListMainWindow::SortChildren is not reentrant") );
 
     wxArrayTreeListItems& children = item->GetChildren();
     if ( children.Count() > 1 ) {
@@ -2681,7 +2681,7 @@ void wxTreeListMainWindow::SortChildren (const wxTreeItemId& itemId) {
     }
 }
 
-wxTreeItemId wxTreeListMainWindow::FindItem (const wxTreeItemId& item, const wxString& str, int mode) {
+wxTreeItemId ewxTreeListMainWindow::FindItem (const wxTreeItemId& item, const wxString& str, int mode) {
     wxString itemText;
     // determine start item
     wxTreeItemId next = item;
@@ -2703,9 +2703,9 @@ wxTreeItemId wxTreeListMainWindow::FindItem (const wxTreeItemId& item, const wxS
     wxTreeItemIdValue cookie = 0;
 #endif
     if (!next.IsOk()) {
-        next = (wxTreeListItem*)GetRootItem().m_pItem;
+        next = (ewxTreeListItem*)GetRootItem().m_pItem;
         if (HasFlag(wxTR_HIDE_ROOT)) {
-            next = (wxTreeListItem*)GetFirstChild (GetRootItem().m_pItem, cookie).m_pItem;
+            next = (ewxTreeListItem*)GetFirstChild (GetRootItem().m_pItem, cookie).m_pItem;
         }
     }
     if (!next.IsOk()) return (wxTreeItemId*)NULL;
@@ -2732,30 +2732,30 @@ wxTreeItemId wxTreeListMainWindow::FindItem (const wxTreeItemId& item, const wxS
             next = GetNext (next, true);
         }
         if (!next.IsOk() && item.IsOk()) {
-            next = (wxTreeListItem*)GetRootItem().m_pItem;
+            next = (ewxTreeListItem*)GetRootItem().m_pItem;
             if (HasFlag(wxTR_HIDE_ROOT)) {
-                next = (wxTreeListItem*)GetNextChild (GetRootItem().m_pItem, cookie).m_pItem;
+                next = (ewxTreeListItem*)GetNextChild (GetRootItem().m_pItem, cookie).m_pItem;
             }
         }
     }
     return (wxTreeItemId*)NULL;
 }
 
-void wxTreeListMainWindow::SetDragItem (const wxTreeItemId& item) {
-    wxTreeListItem *prevItem = m_dragItem;
-    m_dragItem = (wxTreeListItem*) item.m_pItem;
+void ewxTreeListMainWindow::SetDragItem (const wxTreeItemId& item) {
+    ewxTreeListItem *prevItem = m_dragItem;
+    m_dragItem = (ewxTreeListItem*) item.m_pItem;
     if (prevItem) RefreshLine (prevItem);
     if (m_dragItem) RefreshLine (m_dragItem);
 }
 
-void wxTreeListMainWindow::CalculateLineHeight() {
+void ewxTreeListMainWindow::CalculateLineHeight() {
     wxClientDC dc (this);
     dc.SetFont (m_normalFont);
     m_lineHeight = (int)(dc.GetCharHeight() + m_linespacing);
 
     if (m_imageListNormal) {
         // Calculate a m_lineHeight value from the normal Image sizes.
-        // May be toggle off. Then wxTreeListMainWindow will spread when
+        // May be toggle off. Then ewxTreeListMainWindow will spread when
         // necessary (which might look ugly).
         int n = m_imageListNormal->GetImageCount();
         for (int i = 0; i < n ; i++) {
@@ -2767,7 +2767,7 @@ void wxTreeListMainWindow::CalculateLineHeight() {
 
     if (m_imageListButtons) {
         // Calculate a m_lineHeight value from the Button image sizes.
-        // May be toggle off. Then wxTreeListMainWindow will spread when
+        // May be toggle off. Then ewxTreeListMainWindow will spread when
         // necessary (which might look ugly).
         int n = m_imageListButtons->GetImageCount();
         for (int i = 0; i < n ; i++) {
@@ -2784,7 +2784,7 @@ void wxTreeListMainWindow::CalculateLineHeight() {
     }
 }
 
-void wxTreeListMainWindow::SetImageList (wxImageList *imageList) {
+void ewxTreeListMainWindow::SetImageList (wxImageList *imageList) {
     if (m_ownsImageListNormal) delete m_imageListNormal;
     m_imageListNormal = imageList;
     m_ownsImageListNormal = false;
@@ -2792,13 +2792,13 @@ void wxTreeListMainWindow::SetImageList (wxImageList *imageList) {
     CalculateLineHeight();
 }
 
-void wxTreeListMainWindow::SetStateImageList (wxImageList *imageList) {
+void ewxTreeListMainWindow::SetStateImageList (wxImageList *imageList) {
     if (m_ownsImageListState) delete m_imageListState;
     m_imageListState = imageList;
     m_ownsImageListState = false;
 }
 
-void wxTreeListMainWindow::SetButtonsImageList (wxImageList *imageList) {
+void ewxTreeListMainWindow::SetButtonsImageList (wxImageList *imageList) {
     if (m_ownsImageListButtons) delete m_imageListButtons;
     m_imageListButtons = imageList;
     m_ownsImageListButtons = false;
@@ -2806,17 +2806,17 @@ void wxTreeListMainWindow::SetButtonsImageList (wxImageList *imageList) {
     CalculateLineHeight();
 }
 
-void wxTreeListMainWindow::AssignImageList (wxImageList *imageList) {
+void ewxTreeListMainWindow::AssignImageList (wxImageList *imageList) {
     SetImageList(imageList);
     m_ownsImageListNormal = true;
 }
 
-void wxTreeListMainWindow::AssignStateImageList (wxImageList *imageList) {
+void ewxTreeListMainWindow::AssignStateImageList (wxImageList *imageList) {
     SetStateImageList(imageList);
     m_ownsImageListState = true;
 }
 
-void wxTreeListMainWindow::AssignButtonsImageList (wxImageList *imageList) {
+void ewxTreeListMainWindow::AssignButtonsImageList (wxImageList *imageList) {
     SetButtonsImageList(imageList);
     m_ownsImageListButtons = true;
 }
@@ -2825,7 +2825,7 @@ void wxTreeListMainWindow::AssignButtonsImageList (wxImageList *imageList) {
 // helpers
 // ----------------------------------------------------------------------------
 
-void wxTreeListMainWindow::AdjustMyScrollbars() {
+void ewxTreeListMainWindow::AdjustMyScrollbars() {
     if (m_rootItem) {
         int xUnit, yUnit;
         GetScrollPixelsPerUnit (&xUnit, &yUnit);
@@ -2844,7 +2844,7 @@ void wxTreeListMainWindow::AdjustMyScrollbars() {
     }
 }
 
-int wxTreeListMainWindow::GetLineHeight (wxTreeListItem *item) const {
+int ewxTreeListMainWindow::GetLineHeight (ewxTreeListItem *item) const {
     if (GetWindowStyleFlag() & wxTR_HAS_VARIABLE_ROW_HEIGHT) {
         return item->GetHeight();
     }else{
@@ -2852,7 +2852,7 @@ int wxTreeListMainWindow::GetLineHeight (wxTreeListItem *item) const {
     }
 }
 
-void wxTreeListMainWindow::PaintItem (wxTreeListItem *item, wxDC& dc) {
+void ewxTreeListMainWindow::PaintItem (ewxTreeListItem *item, wxDC& dc) {
 
     wxItemAttr *attr = item->GetAttributes();
 
@@ -3013,7 +3013,7 @@ void wxTreeListMainWindow::PaintItem (wxTreeListItem *item, wxDC& dc) {
 }
 
 // Now y stands for the top of the item, whereas it used to stand for middle !
-void wxTreeListMainWindow::PaintLevel (wxTreeListItem *item, wxDC &dc,
+void ewxTreeListMainWindow::PaintLevel (ewxTreeListItem *item, wxDC &dc,
                                        int level, int &y, int x_maincol) {
 
     // Handle hide root (only level 0)
@@ -3193,7 +3193,7 @@ void wxTreeListMainWindow::PaintLevel (wxTreeListItem *item, wxDC &dc,
 // wxWindows callbacks
 // ----------------------------------------------------------------------------
 
-void wxTreeListMainWindow::OnPaint (wxPaintEvent &WXUNUSED(event)) {
+void ewxTreeListMainWindow::OnPaint (wxPaintEvent &WXUNUSED(event)) {
 
     wxPaintDC dc (this);
     PrepareDC (dc);
@@ -3239,7 +3239,7 @@ void wxTreeListMainWindow::OnPaint (wxPaintEvent &WXUNUSED(event)) {
     PaintLevel (m_rootItem, dc, 0, y, x_maincol);
 }
 
-void wxTreeListMainWindow::OnSetFocus (wxFocusEvent &event) {
+void ewxTreeListMainWindow::OnSetFocus (wxFocusEvent &event) {
 
     m_hasFocus = true;
     RefreshSelected();
@@ -3247,7 +3247,7 @@ void wxTreeListMainWindow::OnSetFocus (wxFocusEvent &event) {
     event.Skip();
 }
 
-void wxTreeListMainWindow::OnKillFocus( wxFocusEvent &event )
+void ewxTreeListMainWindow::OnKillFocus( wxFocusEvent &event )
 {
     m_hasFocus = false;
     RefreshSelected();
@@ -3255,7 +3255,7 @@ void wxTreeListMainWindow::OnKillFocus( wxFocusEvent &event )
     event.Skip();
 }
 
-void wxTreeListMainWindow::OnChar (wxKeyEvent &event) {
+void ewxTreeListMainWindow::OnChar (wxKeyEvent &event) {
     // send event to user code
     wxTreeEvent nevent (wxEVT_COMMAND_TREE_KEY_DOWN, m_owner->GetId());
     nevent.SetKeyEvent (event);
@@ -3265,14 +3265,14 @@ void wxTreeListMainWindow::OnChar (wxKeyEvent &event) {
     // determine first current if none
     bool curItemSet = false;
     if (!m_curItem) {
-        m_curItem = (wxTreeListItem*)GetRootItem().m_pItem;
+        m_curItem = (ewxTreeListItem*)GetRootItem().m_pItem;
         if (HasFlag(wxTR_HIDE_ROOT)) {
 #if !wxCHECK_VERSION(2, 5, 0)
             long cookie = 0;
 #else
             wxTreeItemIdValue cookie = 0;
 #endif
-            m_curItem = (wxTreeListItem*)GetFirstChild (m_curItem, cookie).m_pItem;
+            m_curItem = (ewxTreeListItem*)GetFirstChild (m_curItem, cookie).m_pItem;
         }
         curItemSet = true;
     }
@@ -3282,7 +3282,7 @@ void wxTreeListMainWindow::OnChar (wxKeyEvent &event) {
     if (HasFlag(wxTR_MULTIPLE) && event.ShiftDown()) {
         if (!m_shiftItem) m_shiftItem = m_curItem;
     }else{
-        m_shiftItem = (wxTreeListItem*)NULL;
+        m_shiftItem = (ewxTreeListItem*)NULL;
     }
 
     // process all cases
@@ -3313,7 +3313,7 @@ void wxTreeListMainWindow::OnChar (wxKeyEvent &event) {
 
         // ' ': toggle current item
         case ' ': {
-            SelectItem (m_curItem, (wxTreeListItem*)NULL, false);
+            SelectItem (m_curItem, (ewxTreeListItem*)NULL, false);
         }break;
 
         // <RETURN>: activate current item
@@ -3457,14 +3457,14 @@ void wxTreeListMainWindow::OnChar (wxKeyEvent &event) {
             SelectItem (newItem, m_shiftItem, unselect_others);
         }
         EnsureVisible (newItem);
-        wxTreeListItem *oldItem = m_curItem;
-        m_curItem = (wxTreeListItem*)newItem.m_pItem; // make the new item the current item
+        ewxTreeListItem *oldItem = m_curItem;
+        m_curItem = (ewxTreeListItem*)newItem.m_pItem; // make the new item the current item
         RefreshLine (oldItem);
     }
 
 }
 
-wxTreeItemId wxTreeListMainWindow::HitTest (const wxPoint& point, int& flags, int& column) {
+wxTreeItemId ewxTreeListMainWindow::HitTest (const wxPoint& point, int& flags, int& column) {
 
     int w, h;
     GetSize(&w, &h);
@@ -3482,7 +3482,7 @@ wxTreeItemId wxTreeListMainWindow::HitTest (const wxPoint& point, int& flags, in
         return wxTreeItemId();
     }
 
-    wxTreeListItem *hit = m_rootItem->HitTest (CalcUnscrolledPosition(point),
+    ewxTreeListItem *hit = m_rootItem->HitTest (CalcUnscrolledPosition(point),
                                                this, flags, column, 0);
     if (!hit) {
         flags = wxTREE_HITTEST_NOWHERE;
@@ -3493,11 +3493,11 @@ wxTreeItemId wxTreeListMainWindow::HitTest (const wxPoint& point, int& flags, in
 }
 
 // get the bounding rectangle of the item (or of its label only)
-bool wxTreeListMainWindow::GetBoundingRect (const wxTreeItemId& itemId, wxRect& rect,
+bool ewxTreeListMainWindow::GetBoundingRect (const wxTreeItemId& itemId, wxRect& rect,
                                             bool WXUNUSED(textOnly)) const {
-    wxCHECK_MSG (itemId.IsOk(), false, _T("invalid item in wxTreeListMainWindow::GetBoundingRect") );
+    wxCHECK_MSG (itemId.IsOk(), false, _T("invalid item in ewxTreeListMainWindow::GetBoundingRect") );
 
-    wxTreeListItem *item = (wxTreeListItem*) itemId.m_pItem;
+    ewxTreeListItem *item = (ewxTreeListItem*) itemId.m_pItem;
 
     int xUnit, yUnit;
     GetScrollPixelsPerUnit (&xUnit, &yUnit);
@@ -3514,11 +3514,11 @@ bool wxTreeListMainWindow::GetBoundingRect (const wxTreeItemId& itemId, wxRect& 
 
 /* **** */
 
-void wxTreeListMainWindow::EditLabel (const wxTreeItemId& item, int column) {
+void ewxTreeListMainWindow::EditLabel (const wxTreeItemId& item, int column) {
     if (!item.IsOk()) return;
     if (!((column >= 0) && (column < GetColumnCount()))) return;
 
-    m_editItem = (wxTreeListItem*) item.m_pItem;
+    m_editItem = (ewxTreeListItem*) item.m_pItem;
 
     wxTreeEvent te( wxEVT_COMMAND_TREE_BEGIN_LABEL_EDIT, m_owner->GetId() );
 #if !wxCHECK_VERSION(2, 5, 0)
@@ -3535,7 +3535,7 @@ void wxTreeListMainWindow::EditLabel (const wxTreeItemId& item, int column) {
     // ensure that the position of the item it calculated in any case
     if (m_dirty) CalculatePositions();
 
-    wxTreeListHeaderWindow* header_win = m_owner->GetHeaderWindow();
+    ewxTreeListHeaderWindow* header_win = m_owner->GetHeaderWindow();
     int x = 0;
     int y = m_editItem->GetY() + 1; // wxTextCtrl needs 1 pixels above the text
     int w = 0;
@@ -3565,11 +3565,11 @@ void wxTreeListMainWindow::EditLabel (const wxTreeItemId& item, int column) {
     text->SetFocus();
 }
 
-void wxTreeListMainWindow::OnRenameTimer() {
+void ewxTreeListMainWindow::OnRenameTimer() {
     EditLabel (m_curItem, m_curColumn);
 }
 
-void wxTreeListMainWindow::OnRenameAccept() {
+void ewxTreeListMainWindow::OnRenameAccept() {
 
     // TODO if the validator fails this causes a crash
     wxTreeEvent le( wxEVT_COMMAND_TREE_END_LABEL_EDIT, m_owner->GetId() );
@@ -3587,7 +3587,7 @@ void wxTreeListMainWindow::OnRenameAccept() {
     SetItemText (m_editItem, m_curColumn, m_renameRes);
 }
 
-void wxTreeListMainWindow::OnMouse (wxMouseEvent &event) {
+void ewxTreeListMainWindow::OnMouse (wxMouseEvent &event) {
     if (!m_rootItem) return;
 
     // we process left mouse up event (enables in-place edit), right down
@@ -3611,7 +3611,7 @@ void wxTreeListMainWindow::OnMouse (wxMouseEvent &event) {
     // determine event
     wxPoint p = wxPoint (event.GetX(), event.GetY());
     int flags = 0;
-    wxTreeListItem *item = m_rootItem->HitTest (CalcUnscrolledPosition (p),
+    ewxTreeListItem *item = m_rootItem->HitTest (CalcUnscrolledPosition (p),
                                                 this, flags, m_curColumn, 0);
 
     // we only process dragging here
@@ -3683,7 +3683,7 @@ void wxTreeListMainWindow::OnMouse (wxMouseEvent &event) {
     if (event.ShiftDown())  {
         if (!m_shiftItem) m_shiftItem = m_curItem;
     }else{
-        m_shiftItem = (wxTreeListItem*)NULL;
+        m_shiftItem = (ewxTreeListItem*)NULL;
     }
 
     if (event.RightUp()) {
@@ -3797,7 +3797,7 @@ void wxTreeListMainWindow::OnMouse (wxMouseEvent &event) {
     }
 }
 
-void wxTreeListMainWindow::OnIdle (wxIdleEvent &WXUNUSED(event)) {
+void ewxTreeListMainWindow::OnIdle (wxIdleEvent &WXUNUSED(event)) {
     /* after all changes have been done to the tree control,
      * we actually redraw the tree when everything is over */
 
@@ -3810,7 +3810,7 @@ void wxTreeListMainWindow::OnIdle (wxIdleEvent &WXUNUSED(event)) {
     AdjustMyScrollbars();
 }
 
-void wxTreeListMainWindow::OnScroll (wxScrollWinEvent& event) {
+void ewxTreeListMainWindow::OnScroll (wxScrollWinEvent& event) {
 #if wxCHECK_VERSION(3, 3, 0)
     // HandleOnScroll() is private from wx 3.3. A skipped event is scrolled
     // by the scroll helper after this handler, so the header can only be
@@ -3829,7 +3829,7 @@ void wxTreeListMainWindow::OnScroll (wxScrollWinEvent& event) {
 #endif
 }
 
-void wxTreeListMainWindow::CalculateSize (wxTreeListItem *item, wxDC &dc) {
+void ewxTreeListMainWindow::CalculateSize (ewxTreeListItem *item, wxDC &dc) {
     wxCoord text_w = 0;
     wxCoord text_h = 0;
 
@@ -3853,7 +3853,7 @@ void wxTreeListMainWindow::CalculateSize (wxTreeListItem *item, wxDC &dc) {
 }
 
 // -----------------------------------------------------------------------------
-void wxTreeListMainWindow::CalculateLevel (wxTreeListItem *item, wxDC &dc,
+void ewxTreeListMainWindow::CalculateLevel (ewxTreeListItem *item, wxDC &dc,
                                            int level, int &y, int x_colstart) {
 
     // calculate position of vertical lines
@@ -3892,7 +3892,7 @@ Recurse:
     }
 }
 
-void wxTreeListMainWindow::CalculatePositions() {
+void ewxTreeListMainWindow::CalculatePositions() {
     if ( !m_rootItem ) return;
 
     wxClientDC dc(this);
@@ -3913,7 +3913,7 @@ void wxTreeListMainWindow::CalculatePositions() {
     CalculateLevel( m_rootItem, dc, 0, y, x_colstart ); // start recursion
 }
 
-void wxTreeListMainWindow::RefreshSubtree (wxTreeListItem *item) {
+void ewxTreeListMainWindow::RefreshSubtree (ewxTreeListItem *item) {
     if (m_dirty) return;
 
     wxClientDC dc(this);
@@ -3933,7 +3933,7 @@ void wxTreeListMainWindow::RefreshSubtree (wxTreeListItem *item) {
     AdjustMyScrollbars();
 }
 
-void wxTreeListMainWindow::RefreshLine (wxTreeListItem *item) {
+void ewxTreeListMainWindow::RefreshLine (ewxTreeListItem *item) {
     if (m_dirty) return;
 
     wxClientDC dc(this);
@@ -3952,7 +3952,7 @@ void wxTreeListMainWindow::RefreshLine (wxTreeListItem *item) {
     Refresh (true, &rect);
 }
 
-void wxTreeListMainWindow::RefreshSelected() {
+void ewxTreeListMainWindow::RefreshSelected() {
     // TODO: this is awfully inefficient, we should keep the list of all
     //       selected items internally, should be much faster
     if (m_rootItem) {
@@ -3960,7 +3960,7 @@ void wxTreeListMainWindow::RefreshSelected() {
     }
 }
 
-void wxTreeListMainWindow::RefreshSelectedUnder (wxTreeListItem *item) {
+void ewxTreeListMainWindow::RefreshSelectedUnder (ewxTreeListItem *item) {
     if (item->IsSelected()) {
         RefreshLine (item);
     }
@@ -3976,50 +3976,50 @@ void wxTreeListMainWindow::RefreshSelectedUnder (wxTreeListItem *item) {
 // changing colours: we need to refresh the tree control
 // ----------------------------------------------------------------------------
 
-bool wxTreeListMainWindow::SetBackgroundColour (const wxColour& colour) {
+bool ewxTreeListMainWindow::SetBackgroundColour (const wxColour& colour) {
     if (!wxWindow::SetBackgroundColour(colour)) return false;
 
     Refresh();
     return true;
 }
 
-bool wxTreeListMainWindow::SetForegroundColour (const wxColour& colour) {
+bool ewxTreeListMainWindow::SetForegroundColour (const wxColour& colour) {
     if (!wxWindow::SetForegroundColour(colour)) return false;
 
     Refresh();
     return true;
 }
 
-void wxTreeListMainWindow::SetItemText (const wxTreeItemId& itemId, int column,
+void ewxTreeListMainWindow::SetItemText (const wxTreeItemId& itemId, int column,
                                         const wxString& text) {
     wxCHECK_RET (itemId.IsOk(), _T("invalid tree item"));
 
     wxClientDC dc (this);
-    wxTreeListItem *item = (wxTreeListItem*) itemId.m_pItem;
+    ewxTreeListItem *item = (ewxTreeListItem*) itemId.m_pItem;
     item->SetText (column, text);
     CalculateSize (item, dc);
     RefreshLine (item);
 }
 
-wxString wxTreeListMainWindow::GetItemText (const wxTreeItemId& itemId,
+wxString ewxTreeListMainWindow::GetItemText (const wxTreeItemId& itemId,
                                             int column) const {
     wxCHECK_MSG (itemId.IsOk(), _T(""), _T("invalid tree item") );
 
-    if( IsVirtual() )   return m_owner->OnGetItemText(((wxTreeListItem*) itemId.m_pItem)->GetData(),column);
-    else                return ((wxTreeListItem*) itemId.m_pItem)->GetText (column);
+    if( IsVirtual() )   return m_owner->OnGetItemText(((ewxTreeListItem*) itemId.m_pItem)->GetData(),column);
+    else                return ((ewxTreeListItem*) itemId.m_pItem)->GetText (column);
 }
 
-wxString wxTreeListMainWindow::GetItemText (wxTreeItemData* item,
+wxString ewxTreeListMainWindow::GetItemText (wxTreeItemData* item,
 int column) const {
    wxASSERT_MSG( IsVirtual(), _T("can be used only with virtual control") );
    return m_owner->OnGetItemText(item,column);
 }
 
-void wxTreeListMainWindow::SetFocus() {
+void ewxTreeListMainWindow::SetFocus() {
     wxWindow::SetFocus();
 }
 
-wxFont wxTreeListMainWindow::GetItemFont (wxTreeListItem *item) {
+wxFont ewxTreeListMainWindow::GetItemFont (ewxTreeListItem *item) {
     wxItemAttr *attr = item->GetAttributes();
 
     if (attr && attr->HasFont()) {
@@ -4031,7 +4031,7 @@ wxFont wxTreeListMainWindow::GetItemFont (wxTreeListItem *item) {
    }
 }
 
-int wxTreeListMainWindow::GetItemWidth (int column, wxTreeListItem *item) {
+int ewxTreeListMainWindow::GetItemWidth (int column, ewxTreeListItem *item) {
     if (!item) return 0;
 
     // determine item width
@@ -4050,8 +4050,8 @@ int wxTreeListMainWindow::GetItemWidth (int column, wxTreeListItem *item) {
 
         // count indent level
         int level = 0;
-        wxTreeListItem *parent = item->GetItemParent();
-        wxTreeListItem *root = (wxTreeListItem*)GetRootItem().m_pItem;
+        ewxTreeListItem *parent = item->GetItemParent();
+        ewxTreeListItem *root = (ewxTreeListItem*)GetRootItem().m_pItem;
         while (parent && (!HasFlag(wxTR_HIDE_ROOT) || (parent != root))) {
             level++;
             parent = parent->GetItemParent();
@@ -4062,7 +4062,7 @@ int wxTreeListMainWindow::GetItemWidth (int column, wxTreeListItem *item) {
     return width;
 }
 
-int wxTreeListMainWindow::GetBestColumnWidth (int column, wxTreeItemId parent) {
+int ewxTreeListMainWindow::GetBestColumnWidth (int column, wxTreeItemId parent) {
     int maxWidth, h;
     GetClientSize (&maxWidth, &h);
     int width = 0;
@@ -4072,7 +4072,7 @@ int wxTreeListMainWindow::GetBestColumnWidth (int column, wxTreeItemId parent) {
 
     // add root width
     if (!HasFlag(wxTR_HIDE_ROOT)) {
-        int w = GetItemWidth (column, (wxTreeListItem*)parent.m_pItem);
+        int w = GetItemWidth (column, (ewxTreeListItem*)parent.m_pItem);
         if (width < w) width = w;
         if (width > maxWidth) return maxWidth;
     }
@@ -4080,12 +4080,12 @@ int wxTreeListMainWindow::GetBestColumnWidth (int column, wxTreeItemId parent) {
     wxTreeItemIdValue cookie = 0;
     wxTreeItemId item = GetFirstChild (parent, cookie);
     while (item.IsOk()) {
-        int w = GetItemWidth (column, (wxTreeListItem*)item.m_pItem);
+        int w = GetItemWidth (column, (ewxTreeListItem*)item.m_pItem);
         if (width < w) width = w;
         if (width > maxWidth) return maxWidth;
 
         // check the children of this item
-        if (((wxTreeListItem*)item.m_pItem)->IsExpanded()) {
+        if (((ewxTreeListItem*)item.m_pItem)->IsExpanded()) {
             int w = GetBestColumnWidth (column, item);
             if (width < w) width = w;
             if (width > maxWidth) return maxWidth;
@@ -4100,16 +4100,16 @@ int wxTreeListMainWindow::GetBestColumnWidth (int column, wxTreeItemId parent) {
 
 
 //-----------------------------------------------------------------------------
-//  wxTreeListCtrl
+//  ewxTreeListCtrl
 //-----------------------------------------------------------------------------
 
-IMPLEMENT_DYNAMIC_CLASS(wxTreeListCtrl, wxControl);
+IMPLEMENT_DYNAMIC_CLASS(ewxTreeListCtrl, wxControl);
 
-BEGIN_EVENT_TABLE(wxTreeListCtrl, wxControl)
-    EVT_SIZE(wxTreeListCtrl::OnSize)
+BEGIN_EVENT_TABLE(ewxTreeListCtrl, wxControl)
+    EVT_SIZE(ewxTreeListCtrl::OnSize)
 END_EVENT_TABLE();
 
-bool wxTreeListCtrl::Create(wxWindow *parent, wxWindowID id,
+bool ewxTreeListCtrl::Create(wxWindow *parent, wxWindowID id,
                             const wxPoint& pos,
                             const wxSize& size,
                             long style, const wxValidator &validator,
@@ -4122,16 +4122,16 @@ bool wxTreeListCtrl::Create(wxWindow *parent, wxWindowID id,
     if (!wxControl::Create(parent, id, pos, size, ctrl_style, validator, name)) {
        return false;
     }
-    m_main_win = new wxTreeListMainWindow (this, -1, wxPoint(0, 0), size,
+    m_main_win = new ewxTreeListMainWindow (this, -1, wxPoint(0, 0), size,
                                            main_style, validator);
-    m_header_win = new wxTreeListHeaderWindow (this, -1, m_main_win,
+    m_header_win = new ewxTreeListHeaderWindow (this, -1, m_main_win,
                                                wxPoint(0, 0), wxDefaultSize,
                                                wxTAB_TRAVERSAL);
     CalculateAndSetHeaderHeight();
     return true;
 }
 
-void wxTreeListCtrl::CalculateAndSetHeaderHeight()
+void ewxTreeListCtrl::CalculateAndSetHeaderHeight()
 {
     if (m_header_win) {
 
@@ -4148,7 +4148,7 @@ void wxTreeListCtrl::CalculateAndSetHeaderHeight()
     }
 }
 
-void wxTreeListCtrl::DoHeaderLayout()
+void ewxTreeListCtrl::DoHeaderLayout()
 {
     int w, h;
     GetClientSize(&w, &h);
@@ -4170,109 +4170,109 @@ void wxTreeListCtrl::DoHeaderLayout()
     }
 }
 
-void wxTreeListCtrl::OnSize(wxSizeEvent& WXUNUSED(event))
+void ewxTreeListCtrl::OnSize(wxSizeEvent& WXUNUSED(event))
 {
     DoHeaderLayout();
 }
 
-size_t wxTreeListCtrl::GetCount() const { return m_main_win->GetCount(); }
+size_t ewxTreeListCtrl::GetCount() const { return m_main_win->GetCount(); }
 
-unsigned int wxTreeListCtrl::GetIndent() const
+unsigned int ewxTreeListCtrl::GetIndent() const
 { return m_main_win->GetIndent(); }
 
-void wxTreeListCtrl::SetIndent(unsigned int indent)
+void ewxTreeListCtrl::SetIndent(unsigned int indent)
 { m_main_win->SetIndent(indent); }
 
-unsigned int wxTreeListCtrl::GetLineSpacing() const
+unsigned int ewxTreeListCtrl::GetLineSpacing() const
 { return m_main_win->GetLineSpacing(); }
 
-void wxTreeListCtrl::SetLineSpacing(unsigned int spacing)
+void ewxTreeListCtrl::SetLineSpacing(unsigned int spacing)
 { m_main_win->SetLineSpacing(spacing); }
 
-wxImageList* wxTreeListCtrl::GetImageList() const
+wxImageList* ewxTreeListCtrl::GetImageList() const
 { return m_main_win->GetImageList(); }
 
-wxImageList* wxTreeListCtrl::GetStateImageList() const
+wxImageList* ewxTreeListCtrl::GetStateImageList() const
 { return m_main_win->GetStateImageList(); }
 
-wxImageList* wxTreeListCtrl::GetButtonsImageList() const
+wxImageList* ewxTreeListCtrl::GetButtonsImageList() const
 { return m_main_win->GetButtonsImageList(); }
 
-void wxTreeListCtrl::SetImageList(wxImageList* imageList)
+void ewxTreeListCtrl::SetImageList(wxImageList* imageList)
 { m_main_win->SetImageList(imageList); }
 
-void wxTreeListCtrl::SetStateImageList(wxImageList* imageList)
+void ewxTreeListCtrl::SetStateImageList(wxImageList* imageList)
 { m_main_win->SetStateImageList(imageList); }
 
-void wxTreeListCtrl::SetButtonsImageList(wxImageList* imageList)
+void ewxTreeListCtrl::SetButtonsImageList(wxImageList* imageList)
 { m_main_win->SetButtonsImageList(imageList); }
 
-void wxTreeListCtrl::AssignImageList(wxImageList* imageList)
+void ewxTreeListCtrl::AssignImageList(wxImageList* imageList)
 { m_main_win->AssignImageList(imageList); }
 
-void wxTreeListCtrl::AssignStateImageList(wxImageList* imageList)
+void ewxTreeListCtrl::AssignStateImageList(wxImageList* imageList)
 { m_main_win->AssignStateImageList(imageList); }
 
-void wxTreeListCtrl::AssignButtonsImageList(wxImageList* imageList)
+void ewxTreeListCtrl::AssignButtonsImageList(wxImageList* imageList)
 { m_main_win->AssignButtonsImageList(imageList); }
 
-wxString wxTreeListCtrl::GetItemText(const wxTreeItemId& item, int column) const
+wxString ewxTreeListCtrl::GetItemText(const wxTreeItemId& item, int column) const
 { return m_main_win->GetItemText (item, column); }
 
-int wxTreeListCtrl::GetItemImage(const wxTreeItemId& item, int column,
+int ewxTreeListCtrl::GetItemImage(const wxTreeItemId& item, int column,
                                  wxTreeItemIcon which) const
 { return m_main_win->GetItemImage(item, column, which); }
 
-wxTreeItemData* wxTreeListCtrl::GetItemData(const wxTreeItemId& item) const
+wxTreeItemData* ewxTreeListCtrl::GetItemData(const wxTreeItemId& item) const
 { return m_main_win->GetItemData(item); }
 
-bool wxTreeListCtrl::GetItemBold(const wxTreeItemId& item) const
+bool ewxTreeListCtrl::GetItemBold(const wxTreeItemId& item) const
 { return m_main_win->GetItemBold(item); }
 
-wxColour wxTreeListCtrl::GetItemTextColour(const wxTreeItemId& item) const
+wxColour ewxTreeListCtrl::GetItemTextColour(const wxTreeItemId& item) const
 { return m_main_win->GetItemTextColour(item); }
 
-wxColour wxTreeListCtrl::GetItemBackgroundColour(const wxTreeItemId& item)
+wxColour ewxTreeListCtrl::GetItemBackgroundColour(const wxTreeItemId& item)
     const
 { return m_main_win->GetItemBackgroundColour(item); }
 
-wxFont wxTreeListCtrl::GetItemFont(const wxTreeItemId& item) const
+wxFont ewxTreeListCtrl::GetItemFont(const wxTreeItemId& item) const
 { return m_main_win->GetItemFont(item); }
 
 
-void wxTreeListCtrl::SetItemText(const wxTreeItemId& item, int column,
+void ewxTreeListCtrl::SetItemText(const wxTreeItemId& item, int column,
                                  const wxString& text)
 { m_main_win->SetItemText (item, column, text); }
 
-void wxTreeListCtrl::SetItemImage(const wxTreeItemId& item,
+void ewxTreeListCtrl::SetItemImage(const wxTreeItemId& item,
                                   int column,
                                   int image,
                                   wxTreeItemIcon which)
 { m_main_win->SetItemImage(item, column, image, which); }
 
-void wxTreeListCtrl::SetItemData(const wxTreeItemId& item,
+void ewxTreeListCtrl::SetItemData(const wxTreeItemId& item,
                                  wxTreeItemData* data)
 { m_main_win->SetItemData(item, data); }
 
-void wxTreeListCtrl::SetItemHasChildren(const wxTreeItemId& item, bool has)
+void ewxTreeListCtrl::SetItemHasChildren(const wxTreeItemId& item, bool has)
 { m_main_win->SetItemHasChildren(item, has); }
 
-void wxTreeListCtrl::SetItemBold(const wxTreeItemId& item, bool bold)
+void ewxTreeListCtrl::SetItemBold(const wxTreeItemId& item, bool bold)
 { m_main_win->SetItemBold(item, bold); }
 
-void wxTreeListCtrl::SetItemTextColour(const wxTreeItemId& item,
+void ewxTreeListCtrl::SetItemTextColour(const wxTreeItemId& item,
                                        const wxColour& colour)
 { m_main_win->SetItemTextColour(item, colour); }
 
-void wxTreeListCtrl::SetItemBackgroundColour(const wxTreeItemId& item,
+void ewxTreeListCtrl::SetItemBackgroundColour(const wxTreeItemId& item,
                                              const wxColour& colour)
 { m_main_win->SetItemBackgroundColour(item, colour); }
 
-void wxTreeListCtrl::SetItemFont(const wxTreeItemId& item,
+void ewxTreeListCtrl::SetItemFont(const wxTreeItemId& item,
                                  const wxFont& font)
 { m_main_win->SetItemFont(item, font); }
 
-bool wxTreeListCtrl::SetFont(const wxFont& font)
+bool ewxTreeListCtrl::SetFont(const wxFont& font)
 {
     if (m_header_win) {
         m_header_win->SetFont(font);
@@ -4286,7 +4286,7 @@ bool wxTreeListCtrl::SetFont(const wxFont& font)
     }
 }
 
-void wxTreeListCtrl::SetWindowStyle(const long style)
+void ewxTreeListCtrl::SetWindowStyle(const long style)
 {
     if(m_main_win)
         m_main_win->SetWindowStyle(style);
@@ -4294,7 +4294,7 @@ void wxTreeListCtrl::SetWindowStyle(const long style)
     // TODO: provide something like wxTL_NO_HEADERS to hide m_header_win
 }
 
-long wxTreeListCtrl::GetWindowStyle() const
+long ewxTreeListCtrl::GetWindowStyle() const
 {
     long style = m_windowStyle;
     if(m_main_win)
@@ -4302,114 +4302,114 @@ long wxTreeListCtrl::GetWindowStyle() const
     return style;
 }
 
-bool wxTreeListCtrl::IsVisible(const wxTreeItemId& item, bool fullRow) const
+bool ewxTreeListCtrl::IsVisible(const wxTreeItemId& item, bool fullRow) const
 { return m_main_win->IsVisible(item, fullRow); }
 
-bool wxTreeListCtrl::HasChildren(const wxTreeItemId& item) const
+bool ewxTreeListCtrl::HasChildren(const wxTreeItemId& item) const
 { return m_main_win->HasChildren(item); }
 
-bool wxTreeListCtrl::IsExpanded(const wxTreeItemId& item) const
+bool ewxTreeListCtrl::IsExpanded(const wxTreeItemId& item) const
 { return m_main_win->IsExpanded(item); }
 
-bool wxTreeListCtrl::IsSelected(const wxTreeItemId& item) const
+bool ewxTreeListCtrl::IsSelected(const wxTreeItemId& item) const
 { return m_main_win->IsSelected(item); }
 
-bool wxTreeListCtrl::IsBold(const wxTreeItemId& item) const
+bool ewxTreeListCtrl::IsBold(const wxTreeItemId& item) const
 { return m_main_win->IsBold(item); }
 
-size_t wxTreeListCtrl::GetChildrenCount(const wxTreeItemId& item, bool rec)
+size_t ewxTreeListCtrl::GetChildrenCount(const wxTreeItemId& item, bool rec)
 { return m_main_win->GetChildrenCount(item, rec); }
 
-wxTreeItemId wxTreeListCtrl::GetRootItem() const
+wxTreeItemId ewxTreeListCtrl::GetRootItem() const
 { return m_main_win->GetRootItem(); }
 
-wxTreeItemId wxTreeListCtrl::GetSelection() const
+wxTreeItemId ewxTreeListCtrl::GetSelection() const
 { return m_main_win->GetSelection(); }
 
-size_t wxTreeListCtrl::GetSelections(wxArrayTreeItemIds& arr) const
+size_t ewxTreeListCtrl::GetSelections(wxArrayTreeItemIds& arr) const
 { return m_main_win->GetSelections(arr); }
 
-wxTreeItemId wxTreeListCtrl::GetItemParent(const wxTreeItemId& item) const
+wxTreeItemId ewxTreeListCtrl::GetItemParent(const wxTreeItemId& item) const
 { return m_main_win->GetItemParent(item); }
 
 #if !wxCHECK_VERSION(2, 5, 0)
-wxTreeItemId wxTreeListCtrl::GetFirstChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListCtrl::GetFirstChild (const wxTreeItemId& item,
                                             long& cookie) const
 #else
-wxTreeItemId wxTreeListCtrl::GetFirstChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListCtrl::GetFirstChild (const wxTreeItemId& item,
                                             wxTreeItemIdValue& cookie) const
 #endif
 { return m_main_win->GetFirstChild(item, cookie); }
 
 #if !wxCHECK_VERSION(2, 5, 0)
-wxTreeItemId wxTreeListCtrl::GetNextChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListCtrl::GetNextChild (const wxTreeItemId& item,
                                            long& cookie) const
 #else
-wxTreeItemId wxTreeListCtrl::GetNextChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListCtrl::GetNextChild (const wxTreeItemId& item,
                                            wxTreeItemIdValue& cookie) const
 #endif
 { return m_main_win->GetNextChild(item, cookie); }
 
 #if !wxCHECK_VERSION(2, 5, 0)
-wxTreeItemId wxTreeListCtrl::GetPrevChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListCtrl::GetPrevChild (const wxTreeItemId& item,
                                            long& cookie) const
 #else
-wxTreeItemId wxTreeListCtrl::GetPrevChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListCtrl::GetPrevChild (const wxTreeItemId& item,
                                            wxTreeItemIdValue& cookie) const
 #endif
 { return m_main_win->GetPrevChild(item, cookie); }
 
 #if !wxCHECK_VERSION(2, 5, 0)
-wxTreeItemId wxTreeListCtrl::GetLastChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListCtrl::GetLastChild (const wxTreeItemId& item,
                                            long& cookie) const
 #else
-wxTreeItemId wxTreeListCtrl::GetLastChild (const wxTreeItemId& item,
+wxTreeItemId ewxTreeListCtrl::GetLastChild (const wxTreeItemId& item,
                                            wxTreeItemIdValue& cookie) const
 #endif
 { return m_main_win->GetLastChild(item, cookie); }
 
 
-wxTreeItemId wxTreeListCtrl::GetNextSibling(const wxTreeItemId& item) const
+wxTreeItemId ewxTreeListCtrl::GetNextSibling(const wxTreeItemId& item) const
 { return m_main_win->GetNextSibling(item); }
 
-wxTreeItemId wxTreeListCtrl::GetPrevSibling(const wxTreeItemId& item) const
+wxTreeItemId ewxTreeListCtrl::GetPrevSibling(const wxTreeItemId& item) const
 { return m_main_win->GetPrevSibling(item); }
 
-wxTreeItemId wxTreeListCtrl::GetNext(const wxTreeItemId& item) const
+wxTreeItemId ewxTreeListCtrl::GetNext(const wxTreeItemId& item) const
 { return m_main_win->GetNext(item, true); }
 
-wxTreeItemId wxTreeListCtrl::GetPrev(const wxTreeItemId& item) const
+wxTreeItemId ewxTreeListCtrl::GetPrev(const wxTreeItemId& item) const
 { return m_main_win->GetPrev(item, true); }
 
-wxTreeItemId wxTreeListCtrl::GetFirstExpandedItem() const
+wxTreeItemId ewxTreeListCtrl::GetFirstExpandedItem() const
 { return m_main_win->GetFirstExpandedItem(); }
 
-wxTreeItemId wxTreeListCtrl::GetNextExpanded(const wxTreeItemId& item) const
+wxTreeItemId ewxTreeListCtrl::GetNextExpanded(const wxTreeItemId& item) const
 { return m_main_win->GetNextExpanded(item); }
 
-wxTreeItemId wxTreeListCtrl::GetPrevExpanded(const wxTreeItemId& item) const
+wxTreeItemId ewxTreeListCtrl::GetPrevExpanded(const wxTreeItemId& item) const
 { return m_main_win->GetPrevExpanded(item); }
 
-wxTreeItemId wxTreeListCtrl::GetFirstVisibleItem(bool fullRow) const
+wxTreeItemId ewxTreeListCtrl::GetFirstVisibleItem(bool fullRow) const
 { return m_main_win->GetFirstVisibleItem(fullRow); }
 
-wxTreeItemId wxTreeListCtrl::GetNextVisible(const wxTreeItemId& item, bool fullRow) const
+wxTreeItemId ewxTreeListCtrl::GetNextVisible(const wxTreeItemId& item, bool fullRow) const
 { return m_main_win->GetNextVisible(item, fullRow); }
 
-wxTreeItemId wxTreeListCtrl::GetPrevVisible(const wxTreeItemId& item, bool fullRow) const
+wxTreeItemId ewxTreeListCtrl::GetPrevVisible(const wxTreeItemId& item, bool fullRow) const
 { return m_main_win->GetPrevVisible(item, fullRow); }
 
-wxTreeItemId wxTreeListCtrl::AddRoot (const wxString& text, int image,
+wxTreeItemId ewxTreeListCtrl::AddRoot (const wxString& text, int image,
                                       int selectedImage, wxTreeItemData* data)
 { return m_main_win->AddRoot (text, image, selectedImage, data); }
 
-wxTreeItemId wxTreeListCtrl::PrependItem(const wxTreeItemId& parent,
+wxTreeItemId ewxTreeListCtrl::PrependItem(const wxTreeItemId& parent,
                                          const wxString& text, int image,
                                          int selectedImage,
                                          wxTreeItemData* data)
 { return m_main_win->PrependItem(parent, text, image, selectedImage, data); }
 
-wxTreeItemId wxTreeListCtrl::InsertItem(const wxTreeItemId& parent,
+wxTreeItemId ewxTreeListCtrl::InsertItem(const wxTreeItemId& parent,
                                         const wxTreeItemId& previous,
                                         const wxString& text, int image,
                                         int selectedImage,
@@ -4419,7 +4419,7 @@ wxTreeItemId wxTreeListCtrl::InsertItem(const wxTreeItemId& parent,
                                   selectedImage, data);
 }
 
-wxTreeItemId wxTreeListCtrl::InsertItem(const wxTreeItemId& parent,
+wxTreeItemId ewxTreeListCtrl::InsertItem(const wxTreeItemId& parent,
                                         size_t index,
                                         const wxString& text, int image,
                                         int selectedImage,
@@ -4429,69 +4429,69 @@ wxTreeItemId wxTreeListCtrl::InsertItem(const wxTreeItemId& parent,
                                   selectedImage, data);
 }
 
-wxTreeItemId wxTreeListCtrl::AppendItem(const wxTreeItemId& parent,
+wxTreeItemId ewxTreeListCtrl::AppendItem(const wxTreeItemId& parent,
                                         const wxString& text, int image,
                                         int selectedImage,
                                         wxTreeItemData* data)
 { return m_main_win->AppendItem(parent, text, image, selectedImage, data); }
 
-void wxTreeListCtrl::Delete(const wxTreeItemId& item)
+void ewxTreeListCtrl::Delete(const wxTreeItemId& item)
 { m_main_win->Delete(item); }
 
-void wxTreeListCtrl::DeleteChildren(const wxTreeItemId& item)
+void ewxTreeListCtrl::DeleteChildren(const wxTreeItemId& item)
 { m_main_win->DeleteChildren(item); }
 
-void wxTreeListCtrl::DeleteRoot()
+void ewxTreeListCtrl::DeleteRoot()
 { m_main_win->DeleteRoot(); }
 
-void wxTreeListCtrl::Expand(const wxTreeItemId& item)
+void ewxTreeListCtrl::Expand(const wxTreeItemId& item)
 { m_main_win->Expand(item); }
 
-void wxTreeListCtrl::ExpandAll(const wxTreeItemId& item)
+void ewxTreeListCtrl::ExpandAll(const wxTreeItemId& item)
 { m_main_win->ExpandAll(item); }
 
-void wxTreeListCtrl::Collapse(const wxTreeItemId& item)
+void ewxTreeListCtrl::Collapse(const wxTreeItemId& item)
 { m_main_win->Collapse(item); }
 
-void wxTreeListCtrl::CollapseAndReset(const wxTreeItemId& item)
+void ewxTreeListCtrl::CollapseAndReset(const wxTreeItemId& item)
 { m_main_win->CollapseAndReset(item); }
 
-void wxTreeListCtrl::Toggle(const wxTreeItemId& item)
+void ewxTreeListCtrl::Toggle(const wxTreeItemId& item)
 { m_main_win->Toggle(item); }
 
-void wxTreeListCtrl::Unselect()
+void ewxTreeListCtrl::Unselect()
 { m_main_win->Unselect(); }
 
-void wxTreeListCtrl::UnselectAll()
+void ewxTreeListCtrl::UnselectAll()
 { m_main_win->UnselectAll(); }
 
-void wxTreeListCtrl::SelectItem(const wxTreeItemId& item, const wxTreeItemId& last,
+void ewxTreeListCtrl::SelectItem(const wxTreeItemId& item, const wxTreeItemId& last,
                                 bool unselect_others)
 { m_main_win->SelectItem (item, last, unselect_others); }
 
-void wxTreeListCtrl::SelectAll()
+void ewxTreeListCtrl::SelectAll()
 { m_main_win->SelectAll(); }
 
-void wxTreeListCtrl::EnsureVisible(const wxTreeItemId& item)
+void ewxTreeListCtrl::EnsureVisible(const wxTreeItemId& item)
 { m_main_win->EnsureVisible(item); }
 
-void wxTreeListCtrl::ScrollTo(const wxTreeItemId& item)
+void ewxTreeListCtrl::ScrollTo(const wxTreeItemId& item)
 { m_main_win->ScrollTo(item); }
 
-wxTreeItemId wxTreeListCtrl::HitTest(const wxPoint& pos, int& flags, int& column)
+wxTreeItemId ewxTreeListCtrl::HitTest(const wxPoint& pos, int& flags, int& column)
 {
     wxPoint p = m_main_win->ScreenToClient (ClientToScreen (pos));
     return m_main_win->HitTest (p, flags, column);
 }
 
-bool wxTreeListCtrl::GetBoundingRect(const wxTreeItemId& item, wxRect& rect,
+bool ewxTreeListCtrl::GetBoundingRect(const wxTreeItemId& item, wxRect& rect,
                                      bool textOnly) const
 { return m_main_win->GetBoundingRect(item, rect, textOnly); }
 
-void wxTreeListCtrl::EditLabel (const wxTreeItemId& item, int column)
+void ewxTreeListCtrl::EditLabel (const wxTreeItemId& item, int column)
 { m_main_win->EditLabel (item, column); }
 
-int wxTreeListCtrl::OnCompareItems(const wxTreeItemId& item1,
+int ewxTreeListCtrl::OnCompareItems(const wxTreeItemId& item1,
                                    const wxTreeItemId& item2)
 {
     // do the comparison here, and not delegate to m_main_win, in order
@@ -4500,144 +4500,144 @@ int wxTreeListCtrl::OnCompareItems(const wxTreeItemId& item1,
     return wxStrcmp(GetItemText(item1), GetItemText(item2));
 }
 
-void wxTreeListCtrl::SortChildren(const wxTreeItemId& item)
+void ewxTreeListCtrl::SortChildren(const wxTreeItemId& item)
 { m_main_win->SortChildren(item); }
 
-wxTreeItemId wxTreeListCtrl::FindItem (const wxTreeItemId& item, const wxString& str, int mode)
+wxTreeItemId ewxTreeListCtrl::FindItem (const wxTreeItemId& item, const wxString& str, int mode)
 { return m_main_win->FindItem (item, str, mode); }
 
-void wxTreeListCtrl::SetDragItem (const wxTreeItemId& item)
+void ewxTreeListCtrl::SetDragItem (const wxTreeItemId& item)
 { m_main_win->SetDragItem (item); }
 
-bool wxTreeListCtrl::SetBackgroundColour(const wxColour& colour)
+bool ewxTreeListCtrl::SetBackgroundColour(const wxColour& colour)
 {
     if (!m_main_win) return false;
     return m_main_win->SetBackgroundColour(colour);
 }
 
-bool wxTreeListCtrl::SetForegroundColour(const wxColour& colour)
+bool ewxTreeListCtrl::SetForegroundColour(const wxColour& colour)
 {
     if (!m_main_win) return false;
     return m_main_win->SetForegroundColour(colour);
 }
 
-int wxTreeListCtrl::GetColumnCount() const
+int ewxTreeListCtrl::GetColumnCount() const
 { return m_main_win->GetColumnCount(); }
 
-void wxTreeListCtrl::SetColumnWidth(int column, int width)
+void ewxTreeListCtrl::SetColumnWidth(int column, int width)
 {
     m_header_win->SetColumnWidth (column, width);
     m_header_win->Refresh();
 }
 
-int wxTreeListCtrl::GetColumnWidth(int column) const
+int ewxTreeListCtrl::GetColumnWidth(int column) const
 { return m_header_win->GetColumnWidth(column); }
 
-void wxTreeListCtrl::SetMainColumn(int column)
+void ewxTreeListCtrl::SetMainColumn(int column)
 { m_main_win->SetMainColumn(column); }
 
-int wxTreeListCtrl::GetMainColumn() const
+int ewxTreeListCtrl::GetMainColumn() const
 { return m_main_win->GetMainColumn(); }
 
-void wxTreeListCtrl::SetColumnText(int column, const wxString& text)
+void ewxTreeListCtrl::SetColumnText(int column, const wxString& text)
 {
     m_header_win->SetColumnText (column, text);
     m_header_win->Refresh();
 }
 
-wxString wxTreeListCtrl::GetColumnText(int column) const
+wxString ewxTreeListCtrl::GetColumnText(int column) const
 { return m_header_win->GetColumnText(column); }
 
-void wxTreeListCtrl::AddColumn(const wxTreeListColumnInfo& colInfo)
+void ewxTreeListCtrl::AddColumn(const ewxTreeListColumnInfo& colInfo)
 {
     m_header_win->AddColumn (colInfo);
     DoHeaderLayout();
 }
 
-void wxTreeListCtrl::InsertColumn(int before, const wxTreeListColumnInfo& colInfo)
+void ewxTreeListCtrl::InsertColumn(int before, const ewxTreeListColumnInfo& colInfo)
 {
     m_header_win->InsertColumn (before, colInfo);
     m_header_win->Refresh();
 }
 
-void wxTreeListCtrl::RemoveColumn(int column)
+void ewxTreeListCtrl::RemoveColumn(int column)
 {
     m_header_win->RemoveColumn (column);
     m_header_win->Refresh();
 }
 
-void wxTreeListCtrl::SetColumn(int column, const wxTreeListColumnInfo& colInfo)
+void ewxTreeListCtrl::SetColumn(int column, const ewxTreeListColumnInfo& colInfo)
 {
     m_header_win->SetColumn (column, colInfo);
     m_header_win->Refresh();
 }
 
-const wxTreeListColumnInfo& wxTreeListCtrl::GetColumn(int column) const
+const ewxTreeListColumnInfo& ewxTreeListCtrl::GetColumn(int column) const
 { return m_header_win->GetColumn(column); }
 
-wxTreeListColumnInfo& wxTreeListCtrl::GetColumn(int column)
+ewxTreeListColumnInfo& ewxTreeListCtrl::GetColumn(int column)
 { return m_header_win->GetColumn(column); }
 
-void wxTreeListCtrl::SetColumnImage(int column, int image)
+void ewxTreeListCtrl::SetColumnImage(int column, int image)
 {
     m_header_win->SetColumn (column, GetColumn(column).SetImage(image));
     m_header_win->Refresh();
 }
 
-int wxTreeListCtrl::GetColumnImage(int column) const
+int ewxTreeListCtrl::GetColumnImage(int column) const
 {
     return m_header_win->GetColumn(column).GetImage();
 }
 
-void wxTreeListCtrl::SetColumnEditable(int column, bool shown)
+void ewxTreeListCtrl::SetColumnEditable(int column, bool shown)
 {
     m_header_win->SetColumn (column, GetColumn(column).SetEditable(shown));
 }
 
-void wxTreeListCtrl::SetColumnShown(int column, bool shown)
+void ewxTreeListCtrl::SetColumnShown(int column, bool shown)
 {
     wxASSERT_MSG (column != GetMainColumn(), _T("The main column may not be hidden") );
     m_header_win->SetColumn (column, GetColumn(column).SetShown(GetMainColumn()==column? true: shown));
     m_header_win->Refresh();
 }
 
-bool wxTreeListCtrl::IsColumnEditable(int column) const
+bool ewxTreeListCtrl::IsColumnEditable(int column) const
 {
     return m_header_win->GetColumn(column).IsEditable();
 }
 
-bool wxTreeListCtrl::IsColumnShown(int column) const
+bool ewxTreeListCtrl::IsColumnShown(int column) const
 {
     return m_header_win->GetColumn(column).IsShown();
 }
 
-void wxTreeListCtrl::SetColumnAlignment (int column, int flag)
+void ewxTreeListCtrl::SetColumnAlignment (int column, int flag)
 {
     m_header_win->SetColumn(column, GetColumn(column).SetAlignment(flag));
     m_header_win->Refresh();
 }
 
-int wxTreeListCtrl::GetColumnAlignment(int column) const
+int ewxTreeListCtrl::GetColumnAlignment(int column) const
 {
     return m_header_win->GetColumn(column).GetAlignment();
 }
 
-void wxTreeListCtrl::Refresh(bool erase, const wxRect* rect)
+void ewxTreeListCtrl::Refresh(bool erase, const wxRect* rect)
 {
     m_main_win->Refresh (erase, rect);
     m_header_win->Refresh (erase, rect);
 }
 
-void wxTreeListCtrl::SetFocus()
+void ewxTreeListCtrl::SetFocus()
 { m_main_win->SetFocus(); }
 
-wxSize wxTreeListCtrl::DoGetBestSize() const
+wxSize ewxTreeListCtrl::DoGetBestSize() const
 {
     // something is better than nothing...
     return wxSize (200,200); // but it should be specified values! FIXME
 }
 
-wxString wxTreeListCtrl::OnGetItemText( wxTreeItemData* WXUNUSED(item), long WXUNUSED(column)) const
+wxString ewxTreeListCtrl::OnGetItemText( wxTreeItemData* WXUNUSED(item), long WXUNUSED(column)) const
 {
     return wxEmptyString;
 }

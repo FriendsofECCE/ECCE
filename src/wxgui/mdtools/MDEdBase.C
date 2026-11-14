@@ -62,6 +62,9 @@
 #include "wxgui/GromacsRunPanel.H"
 #include "wxgui/WindowShot.H"
 #include "wxgui/MDEdBase.H"
+#include "wxgui/InProcessTools.H"
+#include "util/MqttLink.H"
+#include "wx/app.h"
 
 /**
  * Constructor.
@@ -75,6 +78,7 @@ MDEdBase::MDEdBase( )
    p_gmxInputs = 0;
    p_gmxRun = 0;
    p_launchWanted = true;
+   p_lastState = ResourceDescriptor::STATE_READY;
 }
 
 
@@ -92,6 +96,7 @@ MDEdBase::MDEdBase( wxWindow* parent, wxWindowID id, const wxString& caption,
    p_gmxInputs = 0;
    p_gmxRun = 0;
    p_launchWanted = true;
+   p_lastState = ResourceDescriptor::STATE_READY;
 }
 
 
@@ -346,8 +351,6 @@ void MDEdBase::createPanels()
  */
 void MDEdBase::updateDisabledState(ResourceDescriptor::RUNSTATE state, bool forceMsg)
 {
-   static ResourceDescriptor::RUNSTATE lastState =
-                                       ResourceDescriptor::STATE_READY;
 
    if (p_gmxInputs != 0) {
       p_gmxInputs->setEditable(state < ResourceDescriptor::STATE_SUBMITTED);
@@ -359,9 +362,9 @@ void MDEdBase::updateDisabledState(ResourceDescriptor::RUNSTATE state, bool forc
    if (state >= ResourceDescriptor::STATE_SUBMITTED) {
       setFrameCustomDisabledStyle(false);
       if (forceMsg ||
-          (state>lastState && state==ResourceDescriptor::STATE_SUBMITTED)) {
+          (state>p_lastState && state==ResourceDescriptor::STATE_SUBMITTED)) {
          p_feedback->setMessage("This calculation is read only and setup cannot be changed without terminating during the run or resetting after completion.", WxFeedback::INFO);
-         lastState = state;
+         p_lastState = state;
       }
    } else {
       setFrameCustomDisabledStyle(true);
@@ -1146,6 +1149,29 @@ string MDEdBase::getTitle() const
 void MDEdBase::OnCloseWindow( wxCloseEvent& event )
 {
    doQuit(false, true);
+   //  Cancel in the save question keeps the window: say so, or the
+   //  Organizer's Quit (#983, one process) takes the close as done.
+   if (!wxTheApp->IsScheduledForDestruction(this) && event.CanVeto())
+      event.Veto();
+}
+
+
+MDEdBase::~MDEdBase()
+{
+   //  In one process the window's dispatcher must go with it, or its
+   //  subscriptions call into a deleted frame (#983); a program of its own
+   //  ends with its window anyway.
+   if (MqttLink::localDelivery()) delete p_msgDispatcher;
+}
+
+
+WxJMSMessageDispatch *MDEdBase::openInProcess(MDEdBase *editor)
+{
+   WxJMSMessageDispatch *d = editor->p_msgDispatcher;
+   if (!d) return 0;
+   editor->Show(true);
+   InProcessTools::track(editor->getAppName(), d, editor);
+   return d;
 }
 
 
