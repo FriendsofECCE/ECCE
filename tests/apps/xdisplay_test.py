@@ -58,6 +58,21 @@ class DisplayChoiceTest(unittest.TestCase):
             self.assertGreaterEqual(second.number, 90)
             self.assertNotEqual(first.number, second.number)
 
+    def test_lost_race_is_not_shared(self):
+        # xdpyinfo answers from the winner's server; only -displayfd tells.
+        try:
+            xdisplay.findXvfb()
+        except xdisplay.DisplayUnavailable as exc:
+            self.skipTest(str(exc))
+        with xdisplay.Display() as first:
+            with self.assertRaises(xdisplay.DisplayUnavailable):
+                xdisplay.Display(number=first.number).__enter__()
+            free = xdisplay._freeDisplay()
+            with mock.patch.object(xdisplay, "_freeDisplay",
+                                   side_effect=[first.number, free]):
+                with xdisplay.Display() as second:
+                    self.assertEqual(second.number, free)
+
 
 if __name__ == "__main__":
     unittest.main()
