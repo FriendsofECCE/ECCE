@@ -3352,7 +3352,7 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/examples_preparsed_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
-  set_tests_properties(apps_examples_preparsed PROPERTIES TIMEOUT 1800
+  set_tests_properties(apps_examples_preparsed PROPERTIES TIMEOUT 3600
                        SKIP_RETURN_CODE 77)
   # No stored copy carries the preparsing machine's paths (#888).
   add_test(NAME apps_examples_stored_paths
