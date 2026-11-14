@@ -242,6 +242,7 @@ using std::vector;
 #include <wx/textentry.h>
 #include <wx/spinctrl.h>
 #include <wx/accel.h>
+#include "wxgui/ToolTabs.H"
 #include "Builder.H"
 #include "BuilderMessages.H"
 
@@ -717,6 +718,7 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
 
 Builder::~Builder()
 {
+  ToolTabs::release(this, false);
   unsubscribe();
   PopEventHandler(true);
   
@@ -737,9 +739,37 @@ Builder::~Builder()
 
 bool Builder::Show(bool show)
 {
+   if (ToolTabs::hosts(this)) {
+     if (show) {
+       ToolTabs::select(this);
+       initShownPanels();
+     }
+     return true;
+   }
    const bool ret = BuilderGUI::Show(show);
    if (show) initShownPanels();
    return ret;
+}
+
+
+void Builder::Raise()
+{
+  if (ToolTabs::hosts(this)) ToolTabs::select(this);
+  else BuilderGUI::Raise();
+}
+
+
+void Builder::SetTitle(const wxString& title)
+{
+  BuilderGUI::SetTitle(title);
+  ToolTabs::setTitle(this, title);
+}
+
+
+bool Builder::Destroy()
+{
+  ToolTabs::release(this, false);
+  return BuilderGUI::Destroy();
 }
 
 

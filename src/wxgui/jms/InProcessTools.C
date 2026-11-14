@@ -14,6 +14,7 @@
 #include "util/MqttLink.H"
 
 #include "wxgui/InProcessTools.H"
+#include "wxgui/ToolTabs.H"
 #include "wxgui/WxJMSMessageDispatch.H"
 
 namespace {
@@ -126,6 +127,8 @@ bool InProcessTools::closeAll(bool force)
     // Closed already, by its own ecce_quit handler: asking again would
     // repeat its save question.
     if (wxTheApp->IsScheduledForDestruction(t.frame)) continue;
+    // A tab's save question: show which tool asks.
+    ToolTabs::select(t.frame);
     if (!t.frame->Close(force)) return false;
   }
   return true;

@@ -83,6 +83,7 @@ static std::string s_registerMessage;
 #include "util/BrowserHelp.H"
 #include "util/VizThumbnail.H"
 #include "wxgui/InProcessTools.H"
+#include "wxgui/ToolTabs.H"
 #include "wxgui/WindowShot.H"
 #include <wx/display.h>
 #include <algorithm>
@@ -3353,6 +3354,14 @@ void CalcMgr::runTestCommand(const string& line)
         if (w != this)
           outcome += string(" tlw=") + wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
                      (w->IsShown() ? "" : "(hidden)") + "/" + string(w->GetLabel().utf8_str());
+    } else if (command == "tabs" || command == "tab" ||
+               command == "towindow" || command == "totabs") {
+      // Tools as tabs (#983, ECCE_LAYOUT=small): list, select, Open in
+      // Window, Move to Tabs.
+      wxString result;
+      ToolTabs::testCommand(command, wxString::FromUTF8(calcName.c_str()),
+                            result);
+      outcome = string(result.utf8_str());
     } else if (command == "gatewayquit") {
       // The session's ecce_quit as the gateway sends it, through the local
       // path to the Organizer and every in-process tool (#983).

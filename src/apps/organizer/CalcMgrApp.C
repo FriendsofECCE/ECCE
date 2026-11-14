@@ -19,6 +19,7 @@
 #include "util/MqttBroker.H"
 #include "util/MqttLink.H"
 #include "wxgui/InProcessTools.H"
+#include "wxgui/ToolTabs.H"
 #include "util/JMSPublisher.H"
 #include "wx/wxprec.h"
 
@@ -311,6 +312,8 @@ bool CalcMgrApp::OnInit()
       if (ev.GetActive()) JMSPublisher::setActingTool(name, id);
       ev.Skip();
     });
+    // Small layout (#983 stage 2): tools open as tabs of this window.
+    if (ToolTabs::enabled()) ToolTabs::setMainWindow(p_calcMgr);
   }
 
   return true;

@@ -108,6 +108,21 @@ public:
     ewxWindowUtils::detachFromParent(f);
     return f;
   }
+
+  // In a tab (#983) the managed window is the tab's page, but panels made
+  // later still have the hidden frame as parent: they move to the page.
+  void Update()
+  {
+    wxWindow *w = GetManagedWindow();
+    wxAuiPaneInfoArray& panes = GetAllPanes();
+    for (size_t i = 0; w && i < panes.GetCount(); i++) {
+      wxWindow *pw = panes[i].window;
+      if (pw && pw->GetParent() != w && !pw->GetParent()->IsKindOf(
+              CLASSINFO(wxAuiFloatingFrame)))
+        pw->Reparent(w);
+    }
+    wxAuiManager::Update();
+  }
 };
 
 class Builder: public BuilderGUI,
@@ -270,6 +285,12 @@ class Builder: public BuilderGUI,
 
       // wxWindow virtuals
       virtual bool Show(bool show=true);
+      // As a tab of the Organizer's window (#983): select / retitle the
+      // tab, give the windows back before the frame goes.
+      void Raise() override;
+      void SetTitle(const wxString& title) override;
+      bool Destroy() override;
+      wxAuiManager *auiManager() { return &p_mgr; }
 
       // ewxTool virtuals
       virtual void setContext(const string& url, const bool& force=false);

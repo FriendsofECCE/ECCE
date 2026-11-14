@@ -80,6 +80,14 @@ Tool/MD Prepare windows),
 `closetools`, `gatewayquit` (the session's `ecce_quit`), and
 `answer cancel|no` for a tool's save question.
 
+Experimental, with `ECCE_ONE_PROCESS=1`: `ECCE_LAYOUT=small` opens the
+Builder as a tab of the Organizer's window instead of a window (the
+Organizer is the first tab and cannot be closed). The window's menu bar is
+the active tab's. Right-click on a tab: **Open in Window**; the tool's
+**Window > Move to Tabs** puts it back. Unset or `wide`: separate windows as
+before. Test hooks: `tabs` (tabs, `*` = active, tools in windows, the menu
+bar's menus), `tab N`, `towindow N`, `totabs <title part>`.
+
 The commands (`ecce-launch`, `ecce-series`, ...) are separate and are the
 way an assistant acts on ECCE. The help pages (**Help > ECCE Help**, `help/src/*.md`)
 describe every window; `help/src/index.md` lists them.
