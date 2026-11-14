@@ -177,6 +177,11 @@ else:
                 or "/usr/bin")
 os.environ["ECCE_TEST_HOME"] = install
 os.environ.pop("ECCE_NO_REAP", None)     # the reaper is under test
+# The mode-1 cases check the per-user mosquitto (pid file, one broker per
+# account); a local session runs ECCE's own broker since #1007, so they run
+# the ECCE_BROKER=mosquitto route unless told otherwise.  Modes 2 and 3 are
+# the same either way.
+os.environ.setdefault("ECCE_BROKER", "mosquitto")
 
 import apps      # noqa: E402  (reads ECCE_TEST_HOME at import)
 import fixture   # noqa: E402

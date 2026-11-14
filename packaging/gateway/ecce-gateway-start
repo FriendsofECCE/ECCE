@@ -6,8 +6,9 @@
 #
 # The processes find the broker through $STATEDIR/broker_<host>_<id>
 # (MqttLink.C), one file per session: "socket=<path>" for this user's own
-# mosquitto, "host=" and "port=" for a central or shared one. Those are TCP
-# and take the data server login as their account (MqttLink, AuthCache).
+# broker (ECCE's, or a server account's mosquitto), "host=" and "port=" for
+# a central or shared one. Those are TCP and take the data server login as
+# their account (MqttLink, AuthCache).
 #
 # Which broker, and whether one is started here, depends on the deployment
 # mode; see "--- 1." below.
@@ -166,7 +167,10 @@ fi
 #      data server with its own local broker.
 #   2. -remote: the central server's broker, on the host of the data
 #      server in siteconfig/RemoteServer/DataServers, at $BROKER_PORT.
-#   1. otherwise this user's own mosquitto on a Unix socket, started here.
+#   1. otherwise this user's own broker on a Unix socket, started here:
+#      ECCE's own (eccebroker, one per session, #1007) for a local session;
+#      mosquitto for a server account (it also serves the clients over TCP)
+#      or when ECCE_BROKER=mosquitto asks for it.
 SHARED=""
 if [ -x "$ECCE_HOME/bin/ecce-broker-setup" ]; then
   SHARED="$("$ECCE_HOME/bin/ecce-broker-setup" --show 2>/dev/null)" || SHARED=""
@@ -245,8 +249,20 @@ elif [ -n "${ECCE_REMOTE_SERVER:-}" ]; then
     echo "ecce-gateway-start: -remote -- using the central broker"
     write_broker_file "host=$RBHOST" "port=$RBPORT"
   fi
+elif [ "${ECCE_BROKER:-}" != mosquitto ] && [ ! -e "$STATEDIR/mosquitto.server" ] &&
+     [ ! -e "$STATEDIR/activemq/server" ] && [ -x "$ECCE_HOME/libexec/eccebroker" ]; then
+  # It writes the broker file and goes into the background; a session whose
+  # broker answers keeps it. It ends ECCE_BROKER_LINGER s (default 10) after
+  # its last client; the gateway is one for the whole session. Not the lock's
+  # descriptor: it outlives us.
+  chmod 700 "$STATEDIR"
+  if ! EB_MSG="$("$ECCE_HOME/libexec/eccebroker" --serve "${ECCE_BROKER_LINGER:-10}" 9>&- </dev/null 2>&1)"; then
+    echo "ecce-gateway-start: ECCE's message broker did not start -- $EB_MSG" >&2
+    exit 1
+  fi
+  [ -n "${ECCE_DEBUG_STARTUP:-}" ] && echo "ecce-gateway-start: $EB_MSG"
 elif ! MOSQUITTO="$("$ECCE_HOME/bin/ecce-find-mosquitto")"; then
-  echo "ecce-gateway-start: no mosquitto broker installed and neither ECCE_REMOTE_SERVER nor siteconfig/SharedBroker is set." >&2
+  echo "ecce-gateway-start: no mosquitto broker installed (needed by a server account or ECCE_BROKER=mosquitto) and neither ECCE_REMOTE_SERVER nor siteconfig/SharedBroker is set." >&2
   echo "ecce-gateway-start: install mosquitto for a local broker, or point this client at a central one (ecce-remote-setup, then 'ecce -remote')." >&2
   exit 1
 else

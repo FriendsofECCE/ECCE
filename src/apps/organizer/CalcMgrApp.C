@@ -140,7 +140,10 @@ bool CalcMgrApp::OnInit()
 {
   // The session's own broker (#990), before anything connects to it.
   // ECCE_BROKER=mosquitto keeps the old ecce-broker-win (ecce.cmd).  Only
-  // ecce.cmd sets ECCE_LOCAL_BROKER; on Linux it is a test-only opt-in.
+  // ecce.cmd sets ECCE_LOCAL_BROKER: on Linux and macOS ecce-gateway-start
+  // runs the same broker as a program (eccebroker --serve, #1007), since the
+  // gateway connects before this Organizer exists; with the variable set
+  // here anyway, startForSession adopts that broker.
   {
     wxString which;
     if (wxGetEnv("ECCE_LOCAL_BROKER", NULL) &&

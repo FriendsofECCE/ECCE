@@ -22,8 +22,10 @@ mkdir -p "$APP/Contents/MacOS" "$RES" "$APP/Contents/Frameworks"
 cp -R "$STAGE/ecce" "$RES/ecce"
 cp -R "$STAGE/bin" "$RES/bin"
 
-# The broker and its password tool go in libexec, which the launcher
-# puts on PATH for ecce-find-mosquitto.
+# A local session runs ECCE's own broker (libexec/eccebroker, #1007).
+# mosquitto and its password tool, when found, go in libexec too (the
+# launcher puts it on PATH for ecce-find-mosquitto): only a server account
+# or ECCE_BROKER=mosquitto uses them.
 mkdir -p "$RES/ecce/libexec"
 for t in mosquitto mosquitto_passwd; do
   if [ -n "${ECCE_DEPS:-}" ]; then
@@ -32,7 +34,7 @@ for t in mosquitto mosquitto_passwd; do
     p=$(command -v "$t" || true)
     [ -n "$p" ] || p=$(ls "$(brew --prefix)/sbin/$t" "$(brew --prefix)/bin/$t" 2>/dev/null | head -1)
   fi
-  [ -n "$p" ] || { echo "make-app: $t not found" >&2; exit 1; }
+  [ -n "$p" ] || { echo "make-app: $t not found; the app is built without it" >&2; continue; }
   cp -L "$p" "$RES/ecce/libexec/$t"
 done
 

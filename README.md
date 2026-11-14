@@ -48,6 +48,7 @@ Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
 On main, not in a package yet:
 - Windows: local sessions use a small message broker inside ECCE instead of mosquitto.exe, as in 9.4.15; `ECCE_BROKER=mosquitto` keeps the old route (#990).
+- Linux and macOS: local sessions use the same broker (a small program, `eccebroker`) instead of a per-user mosquitto, so a client needs no mosquitto. A central server and a shared system broker still use Mosquitto, unchanged; `ECCE_BROKER=mosquitto` keeps the old local route (#1007).
 
 ## First steps
 
