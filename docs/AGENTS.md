@@ -70,13 +70,13 @@ through the command-line tools in "Commands". You cannot click in the windows.
 
 Each window is its own program. Experimental: with `ECCE_ONE_PROCESS=1`
 in the environment of `ecce`, the Builder, the Calculation Editor, the
-Basis Set Tool and the MD editors (Prepare excepted) open
+Basis Set Tool and the MD editors open
 as windows of the Organizer's process instead; job programs and the other
 tools stay separate. Off by default. Quitting the Organizer (or the
 session's `ecce_quit`) then closes those windows first, each asking about
 its own unsaved changes; Cancel in one of them cancels the Quit. Test hooks
-(`ECCE_TEST_ORGANIZER`): `inprocess` (pid, open Builder/Calculation Editor/MD Energy/Basis Set Tool
-windows),
+(`ECCE_TEST_ORGANIZER`): `inprocess` (pid, open Builder/Calculation Editor/MD Energy/Basis Set
+Tool/MD Prepare windows),
 `closetools`, `gatewayquit` (the session's `ecce_quit`), and
 `answer cancel|no` for a tool's save question.
 

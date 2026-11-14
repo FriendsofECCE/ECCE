@@ -136,8 +136,16 @@ the `organizer` program. Changes the one process needs:
   editor's subscriptions would call into a deleted frame).
 - `updateDisabledState`'s function-static last state -> member.
 - `OnCloseWindow` vetoes when the save question is cancelled.
-Audit otherwise clean (constants only). MDPrep (`src/apps/mdprepare`) is
-not an `MDEdBase` and stays a program for now. Test: `one_process_test.py`
+Audit otherwise clean (constants only).
+
+MD Prepare (`src/apps/mdprepare`, not an `MDEdBase`) opens the same way
+(`MDPrepWindow.C`); it already deleted its dispatcher. Its constructor no
+longer replaces the process's single auth listener in one process, and its
+close handler vetoes on Cancel. Not changed: its Local button runs an NWChem
+prepare job through `Launch` on a worker thread, and `DeferMessages` there
+defers `wxTheApp` as a `WxJMSSubscriber` -- a no-op in its own program
+(`PrepareApp` is not one), the Organizer's app dispatcher in one process,
+never MD Prepare's own dispatcher. Test: `one_process_test.py`
 opens MD Energy (no calculation) beside the others, closes it with
 `closetools`, and Quits with it open.
 

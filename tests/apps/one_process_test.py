@@ -73,6 +73,7 @@ def run(display):
             append("start Builder " + url2, 15)
             append("start CalculationEditor " + url1, 15)
             append("start MDEnergy", 15)
+            append("start MDPrepare", 15)
             time.sleep(10)                   # the editor's script, above
             append("inprocess", 2)
             append("closetools", 5)
@@ -101,12 +102,13 @@ def run(display):
                          inproc[0])
             pid = m.group(1) if m else None
             check(m and m.group(2) == "2" and m.group(3) == "1"
-                  and "MDEnergy=1 BasisTool=1" in inproc[0],
-                  "two Builders, one editor, an MD editor and the Basis Set "
-                  "Tool (from the editor's button) open in the Organizer",
+                  and "MDEnergy=1 BasisTool=1 MDPrepare=1" in inproc[0],
+                  "two Builders, one editor, MD Energy, MD Prepare and the "
+                  "Basis Set Tool (from the editor's button) open in the "
+                  "Organizer",
                   inproc[0])
-            check("Builder=0 CalculationEditor=0 MDEnergy=0 BasisTool=0"
-                  in inproc[1],
+            check("Builder=0 CalculationEditor=0 MDEnergy=0 BasisTool=0 "
+                  "MDPrepare=0" in inproc[1],
                   "closing the tool windows leaves the Organizer running",
                   inproc[1])
         check(pb.answers(log, "closetools") == ["queued", "closed"],
@@ -176,7 +178,8 @@ def runQuit(display, gateway=False):
             append("close", 3)
             append("answer", 3)
             append("answer no", 3)         # the Builder
-            # The Basis Set Tool's own question, if it asks; the process
+            # The Basis Set Tool's own save question for the calculation it
+            # was opened on; the process
             # ends after the broker's 10 s linger (OnExit).
             append("answer no", 25)
             if GDB:
@@ -218,11 +221,15 @@ def runQuit(display, gateway=False):
                   "Builder=1 CalculationEditor=0" in inproc[1],
                   "Cancel in the Builder's question cancels the Quit",
                   str(inproc))
+            # Which questions were answered (titles), for the record.
+            print("      answers: " + str(pb.answers(log, "answer")))
             check(pb.answers(log, "answer cancel") ==
                   ["answered Save Builder Changes?"] and
-                  pb.answers(log, "answer no")[:1] ==
-                  ["answered Save Builder Changes?"],
-                  "the Builder asked about its changes at each Quit",
+                  pb.answers(log, "answer no") ==
+                  ["answered Save Builder Changes?",
+                   "answered Save Basis Set Tool Changes?"],
+                  "the Builder asked about its changes at each Quit, then "
+                  "the Basis Set Tool about its own",
                   str(pb.answers(log, "answer")))
             check(result.returncode == 0 and "Aborted" not in log,
                   "No in the Builder's question ends the process cleanly",

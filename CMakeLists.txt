@@ -758,8 +758,11 @@ foreach(_md mddynamics:MDDynamicsApp mdenergy:MDEnergyApp mdoptimize:MDOptimizeA
   ecce_app(${_md_dir} src/apps/${_md_dir} WX MAIN ${_md_main}.C OBJECTS ${_md_dir}-objs
     LINK ${ECCE_MDED_LINK})
 endforeach()
-ecce_app(mdprepare src/apps/mdprepare WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+set(ECCE_MDPREP_LINK eccewxgui eccewxplotctrl eccewxthings eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_tool_objects(mdprepare-objs src/apps/mdprepare EXCLUDE PrepareApp.C
+  LINK ${ECCE_MDPREP_LINK})
+ecce_app(mdprepare src/apps/mdprepare WX MAIN PrepareApp.C OBJECTS mdprepare-objs
+  LINK ${ECCE_MDPREP_LINK})
 ecce_app(msgdialog src/apps/messagedialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(metadyn src/apps/metadyn WX
@@ -824,7 +827,7 @@ target_include_directories(builder PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organize
 # its own process with ECCE_ONE_PROCESS=1 (#983), so it links their objects.
 ecce_app(organizer src/apps/organizer WX GL MAIN CalcMgrApp.C
   OBJECTS organizer-objs organizer-shared-objs builder-objs calced-objs
-    mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs basistool-objs
+    mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs basistool-objs mdprepare-objs
   LINK eccewxguimd ${ECCE_BUILDER_LINK})
 target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
