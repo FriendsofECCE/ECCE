@@ -542,6 +542,9 @@ void ProjectContextPanel::selectResource(const EcceURL &url)
     if (foundRow) {
       p_projectView->setCursor(row, 0);
       p_projectView->getGrid()->MakeCellVisible(row, 0);
+      // The range-select event that refreshes p_selections can still be
+      // queued; a caller reading getSelections() next must see the row.
+      saveSelections();
     }
   }
 }
