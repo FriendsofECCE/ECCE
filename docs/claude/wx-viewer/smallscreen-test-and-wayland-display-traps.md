@@ -23,8 +23,13 @@ issues: [337, 351, 335]
   the content has to scroll, so the user can make room (#351).
 - `wxSplitterWindow` does not pass its panes' minimum widths up to the window:
   the Basis Set Tool's window was narrower than list + 18 periodic-table
-  columns and cut the right-hand elements off. `WxBasisTool` adds the width
-  of the top pane to the window minimum, as it already did for the height.
+  columns and cut the right-hand elements off. The tool now uses a vertical
+  sizer instead (#1029): the library pane grows, while selections keep the
+  height of three to eight rows. Propagate the periodic table's readable
+  minimum through that sizer; do not pin the main panel to a frame size
+  obtained while the layout is incomplete. Restore saved geometry before
+  Show(), where the shared display clamp runs. `apps_basis_tool_size` checks
+  Ar, row growth and geometry restoration at 1366×768.
 - A plot with a large `SetMinSize` keeps its height and clips the rows below
   it in a short pane; `PlotAnyPropertyPanel` uses a small minimum so the plot
   shrinks first. `wxPlotCtrl` shows no title unless `SetShowPlotTitle(true)`.

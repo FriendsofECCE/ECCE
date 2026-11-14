@@ -4131,6 +4131,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_tool_column PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Basis Set Tool starts compact, follows its rows and restores geometry.
+  add_test(NAME apps_basis_tool_size
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/basis_tool_size_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_basis_tool_size PROPERTIES TIMEOUT 300
+                       SKIP_RETURN_CODE 77)
+
   # Every app's main window and every codereg Theory/Runtype dialog fits a
   # small screen (#189): measured on private Xvfb screens, no window may
   # extend past the screen.  Same installed tree and isolation as `apps`.

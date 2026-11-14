@@ -67,6 +67,17 @@ checks a hand-computed tensor and the tensile QE Al cell example;
 and logs for visual review. Run with a private installed tree and the
 test harness as described below.
 
+## Checking the Basis Set Tool window
+
+`tests/apps/basis_tool_size_test.py` (ctest `apps_basis_tool_size`) checks
+content sizing, selection-row growth and saved geometry on a private
+1366×768 display. `--png DIR` saves a screenshot. Use the installed-tree
+`ECCE_TEST_HOME` and `ECCE_TEST_WRAPPERS` variables as for the app suite.
+The isolated `ECCE_TEST_BASISTOOL=<file>` hook reads appended commands:
+`info` reports frame, grid and periodic-table geometry; `resize x y w h`
+sets frame geometry; `rows N` replaces the test grid's rows without changing
+the calculation; `close` closes normally and saves the window settings.
+
 ## What ECCE is
 
 ECCE (Extensible Computational Chemistry Environment) is a desktop
