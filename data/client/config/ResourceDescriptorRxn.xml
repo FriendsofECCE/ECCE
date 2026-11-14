@@ -4646,6 +4646,7 @@
           <ContainsResource name="xtb_es"/>
           <ContainsResource name="cp2k_es"/>
           <ContainsResource name="qe_es"/>
+          <ContainsResource name="mlp_es"/>
           <ContainsResource name="vina_es"/>
           <ContainsResource name="import_es"/>
         </Contains>

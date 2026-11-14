@@ -8,6 +8,7 @@
 
 #include "dsm/DeckWriter.H"
 #include "tdat/Fragment.H"
+#include "tdat/LatticeDef.H"
 #include "tdat/TAtm.H"
 #include "tdat/TFormula.H"
 #include "tdat/TPerTab.H"
@@ -58,6 +59,7 @@ const vector<WorkflowSteps::Code>& WorkflowSteps::codes()
     {"G16",     "gaussian16_es", 0xb3, 0x5c, 0x00},
     {"CP2K",    "cp2k_es",       0x8a, 0x1c, 0x1c},
     {"QE",      "qe_es",         0x5c, 0x6b, 0x73},
+    {"MLP",     "mlp_es",        0x3a, 0x7d, 0x5e},
     {"NWChem",  "nwchem_es",     0x9c, 0x36, 0xb5},
     {"MOPAC",   "mopac_es",      0xa6, 0x6a, 0x00}
   };
@@ -808,6 +810,19 @@ string WorkflowSteps::info(Session *wf)
     TaskJob *job = dynamic_cast<TaskJob*>(step);
     if (job && job->hasHessianInput())
       out << " hess=" << job->getProp(TaskJob::hessianFromSourceProp());
+    // The cell of a periodic step (a/b/c vectors), so a test sees it carried.
+    if (frag)
+      if (LatticeDef *lat = frag->getLattice())
+        if (vector<MPoint> *v = lat->toVectors()) {
+          char buf[128];
+          out << " cell=";
+          for (size_t k = 0; k < 3 && k < v->size(); k++) {
+            snprintf(buf, sizeof buf, "%s%.5f,%.5f,%.5f", k ? "/" : "",
+                     (*v)[k].x(), (*v)[k].y(), (*v)[k].z());
+            out << buf;
+          }
+          delete v;
+        }
     if (frag && frag->numAtoms() > 0) {
       const double *c = frag->atomRef(0)->coordinates();
       out << " xyz0=" << c[0] << "," << c[1] << "," << c[2];

@@ -9,6 +9,10 @@ and, for a periodic cell, the stress in seconds to minutes where a DFT
 calculation takes hours. It is meant for screening: relaxing many candidate
 structures, such as ion positions in a large oxide cell, before the best ones
 go on to CP2K or Quantum ESPRESSO.
+MLP (MACE) is also a code in the workflow view (`workflows`): a geometry
+arrow into an MLP step starts it from the previous step's final structure,
+charge and multiplicity (and cell), and one out of it gives the next step the
+relaxed structure with its cell.
 
 **The energies are for screening, not for reporting.** They rank structures
 that are alike. They are not DFT energies and are not a result to quote.

@@ -177,7 +177,8 @@ In `.ecce-meta` the state is `state`; the reason for an ended job is
   dependencies: GROMACS and NWChem MD studies (Prepare, Optimize, Equilibrate,
   Dynamics); a task starts from the one before it and is launched after that
   one has completed.
-- A **workflow** draws calculations that start from the geometry of an earlier
+- A **workflow** (steps may be MLP (MACE) too; the geometry link carries the
+  cell of a periodic structure) draws calculations that start from the geometry of an earlier
   one as a tree, with **Launch Ready Steps** (help page `workflows`). A
   **recipe** is a workflow template for a kind of study (`recipes`,
   `writing-a-recipe`).
