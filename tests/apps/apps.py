@@ -27,6 +27,8 @@ services.  Running the binary directly is explicitly not supported.
 
 import fcntl
 import os
+import tempfile
+import shutil
 import select
 import signal
 import subprocess
@@ -210,6 +212,17 @@ def run(display, name, args=(), windowTimeout=40, settle=8, env=None,
     command = [os.path.join(WRAPPERS, "ecce-" + name)] + list(args)
     environment = display.env()
     environment.update(env or {})
+    if environment.get("ECCE_TEST_GDB") and shutil.which("gdb"):
+        # A copy of the wrapper that runs the program under gdb and prints
+        # a backtrace when it stops on a signal.
+        text = open(command[0]).read().replace(
+            '"$ECCE_HOME/bin/%s"' % name,
+            'gdb -batch -ex run -ex "bt 40" --args "$ECCE_HOME/bin/%s"' % name)
+        patched = os.path.join(tempfile.mkdtemp(prefix="ecce-gdb-"),
+                               "ecce-" + name)
+        open(patched, "w").write(text)
+        os.chmod(patched, 0o755)
+        command[0] = patched
     logFile = subprocess.PIPE
     proc = subprocess.Popen(command, env=environment, stdout=logFile,
                             stderr=subprocess.STDOUT,

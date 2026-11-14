@@ -29,6 +29,10 @@ import run_tests  # noqa: E402
 import progress_box_test as pb  # noqa: E402
 
 failures = []
+# --gdb: run the Organizer under gdb, for a backtrace on a crash.
+GDB = "--gdb" in sys.argv
+if GDB:
+    sys.argv.remove("--gdb")
 
 
 def check(ok, what, detail=""):
@@ -67,8 +71,9 @@ def run(display):
             append("closetools", 5)
             append("inprocess", 3)
 
+        extra = {"ECCE_TEST_GDB": "1"} if GDB else {}
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
-                          env={"ECCE_ONE_PROCESS": "1",
+                          env={**extra, "ECCE_ONE_PROCESS": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_TEST_MESSAGES": "1",
                                "ECCE_BUILDER_SCRIPT": script,
@@ -110,6 +115,8 @@ def run(display):
               "\n".join(" ".join(t) for t in trace if t[0] == "Organizer"))
         for t in trace:
             print("      trace: " + " ".join(t))
+        if GDB:
+            print(log[-6000:])
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)

@@ -23,16 +23,18 @@ struct Window {
   wxTopLevelWindow *frame;
 };
 
+// Never destroyed: a dispatcher deleted during static destruction still
+// untracks itself.
 std::map<string, InProcessTools::Opener>& openers()
 {
-  static std::map<string, InProcessTools::Opener> m;
-  return m;
+  static auto *m = new std::map<string, InProcessTools::Opener>;
+  return *m;
 }
 
 std::vector<Window>& windows()
 {
-  static std::vector<Window> w;
-  return w;
+  static auto *w = new std::vector<Window>;
+  return *w;
 }
 
 // As getAppMCB writes the poll's contextid: a URL ends in '/'.
