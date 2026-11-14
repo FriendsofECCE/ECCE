@@ -93,43 +93,48 @@ bool ewxImageList::readPixmap(const string& file, string& decLine,
   ifstream ifs(pixmapPath.c_str()); 
 
   if (ifs) {
-    char buf[256];
+    string buf;
     int it;
 
-    ifs.getline(buf, 255);
-    while (!ifs.eof() && strncmp(buf, "static char", 11)!=0)
-      ifs.getline(buf, 255);
+    std::getline(ifs, buf);
+    while (ifs.good() && strncmp(buf.c_str(), "static char", 11)!=0)
+      std::getline(ifs, buf);
 
-    if (!ifs.eof()) {
+    if (ifs.good()) {
       decLine = buf; 
-      ifs.getline(buf, 255);
+      std::getline(ifs, buf);
 
       // possible comment line 
-      if (!ifs.eof() && strncmp(buf, "/*", 2)==0)
-        ifs.getline(buf, 255);
+      if (ifs.good() && strncmp(buf.c_str(), "/*", 2)==0)
+        std::getline(ifs, buf);
 
-      if (!ifs.eof()) {
-        if (sscanf(&buf[1], "%d %d %d", &width, &height, &colors) == 3) {
-          for (it=0; it<colors && !ifs.eof(); it++) {
-            ifs.getline(buf, 255);
+      if (ifs.good()) {
+        if (buf.size() > 1 &&
+            sscanf(&buf[1], "%d %d %d", &width, &height, &colors) == 3 &&
+            width > 0 && height > 0 && colors >= 0) {
+          for (it=0; it<colors && ifs.good(); it++) {
+            std::getline(ifs, buf);
             pixDefLines.push_back(buf);
           }
 
-          ifs.getline(buf, 255);
+          std::getline(ifs, buf);
           // possible comment line 
-          if (!ifs.eof() && strncmp(buf, "/*", 2)==0)
-            ifs.getline(buf, 255);
+          if (ifs.good() && strncmp(buf.c_str(), "/*", 2)==0)
+            std::getline(ifs, buf);
           pixDataLines.push_back(buf);
 
-          for (it=1; it<height && !ifs.eof(); it++) {
-            ifs.getline(buf, 255);
+          for (it=1; it<height && ifs.good(); it++) {
+            std::getline(ifs, buf);
             pixDataLines.push_back(buf);
           }
           
+          if (!ifs.good() || pixDataLines.size() != static_cast<size_t>(height))
+            return false;
+
           if (pixDataLines[height-1].length() == width+2)
             pixDataLines[height-1].append("};");
 
-          ret = !ifs.eof();
+          ret = ifs.good();
         }
       }
     }

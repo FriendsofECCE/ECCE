@@ -2430,9 +2430,9 @@ bool TGBSConfig::alwaysUseExp(const string& name) const
   infile += "/BasisSetUseExp";
   ifstream is(infile.c_str());
 
-  char cbuf[256];
+  string cbuf;
 
-  while (is.getline(cbuf, 255)) {
+  while (std::getline(is, cbuf)) {
     if (cbuf[0]!='#' && cbuf[0]!='\0' && name.find(cbuf)!=string::npos) {
       ret = true;
       break;

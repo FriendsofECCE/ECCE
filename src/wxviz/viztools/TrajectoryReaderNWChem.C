@@ -5,7 +5,6 @@
 #include <vector>
   using std::vector;
 
-#define MAX_LINE 256
 
 #define VELOCITY 1
 #if VELOCITY
@@ -87,7 +86,7 @@ bool TrajectoryReaderNWChem::readStep(const long& step,
 
    SGFragment * frag = p_sg->getFragment();
 
-   char buf[MAX_LINE];
+   string buf;
    char* cptr ;
    int i;
    /**
@@ -99,29 +98,27 @@ bool TrajectoryReaderNWChem::readStep(const long& step,
     *  structure to the MD and geometry tables.
     */
 
-   cptr = buf;
-
    // Skip next four lines (for now).
 
-   p_stream.getline(buf,MAX_LINE);
+   std::getline(p_stream, buf);
    if (!p_stream.good()) {
       frag->clear();
       throw IOException("EOF reading over line 1 for trajectory step", WHERE);
       return 0;
    }
-   p_stream.getline(buf,MAX_LINE);
+   std::getline(p_stream, buf);
    if (!p_stream.good()) {
       frag->clear();
       throw IOException("EOF reading over line 2 for trajectory step", WHERE);
       return 0;
    }
-   p_stream.getline(buf,MAX_LINE);
+   std::getline(p_stream, buf);
    if (!p_stream.good()) {
       frag->clear();
       throw IOException("EOF reading over line 3 for trajectory step", WHERE);
       return 0;
    }
-   p_stream.getline(buf,MAX_LINE);
+   std::getline(p_stream, buf);
    if (!p_stream.good()) {
       frag->clear();
       throw IOException("EOF reading over line 4 for trajectory step", WHERE);
@@ -136,13 +133,13 @@ bool TrajectoryReaderNWChem::readStep(const long& step,
    char r8[9];
    i10[10] = '\0';
    r8[8] = '\0';
-   p_stream.getline(buf,MAX_LINE);
+   std::getline(p_stream, buf);
    if (!p_stream.good()) {
       frag->clear();
       throw IOException("EOF reading count line for trajectory step", WHERE);
       return 0;
    }
-   cptr = buf;
+   cptr = buf.data();
 
    bool solventCoords;
    bool solventVel;
@@ -209,7 +206,7 @@ bool TrajectoryReaderNWChem::readStep(const long& step,
 #endif
    if (solventCoords || solventVel || solventFrc || solventPol) {
       for (i=0; i<solventAtoms; i++) {
-         p_stream.getline(buf,MAX_LINE);
+         std::getline(p_stream, buf);
          if (!p_stream.good()) {
             frag->clear();
             throw IOException("EOF reading solvent for trajectory step", WHERE);
@@ -219,7 +216,7 @@ bool TrajectoryReaderNWChem::readStep(const long& step,
          if (solventCoords) {
             // read in solvent coordinates and multiply by 10 to convert
             // from nanometers to angstroms
-            cptr = buf;
+            cptr = buf.data();
             strncpy(r8,cptr,8);
             coords[0] = 10.0*atof(r8);
             cptr += 8;
@@ -290,7 +287,7 @@ bool TrajectoryReaderNWChem::readStep(const long& step,
 #endif
             }
             if (solventPol) {
-               p_stream.getline(buf,MAX_LINE);
+               std::getline(p_stream, buf);
                if (!p_stream.good()) {
                   frag->clear();
                   throw IOException("EOF reading solvent polarizability for "
@@ -322,14 +319,14 @@ bool TrajectoryReaderNWChem::readStep(const long& step,
    if (soluteCoords || soluteVel || soluteFrc || solutePol) {
       int atomcnt = 0;
       for (i=0; i<p_soluteAtoms; i++) {
-         p_stream.getline(buf,MAX_LINE);
+         std::getline(p_stream, buf);
          if (!p_stream.good()) {
             frag->clear();
             throw IOException("EOF reading solute for trajectory step", WHERE);
             return 0;
          }
          if (soluteCoords) {
-            cptr = buf;
+            cptr = buf.data();
             strncpy(r8,cptr,8);
             coords[0] = 10.0*atof(r8);
             cptr += 8;
@@ -394,7 +391,7 @@ bool TrajectoryReaderNWChem::readStep(const long& step,
 #endif
             }
             if (solutePol) {
-               p_stream.getline(buf,MAX_LINE);
+               std::getline(p_stream, buf);
                if (!p_stream.good()) {
                   frag->clear();
                   throw IOException("EOF reading solute polarizability for "
@@ -462,7 +459,7 @@ void TrajectoryReaderNWChem::readHeader()
 
    SGFragment * frag = p_sg->getFragment();
 
-   char buf[MAX_LINE];
+   string buf;
    char* cptr; 
    char i10[11];
    char i8[9];
@@ -491,15 +488,15 @@ void TrajectoryReaderNWChem::readHeader()
 
    // go to beginning of file, skip "header" line
    p_stream.seekg(0);
-   p_stream.getline(buf,MAX_LINE);
+   std::getline(p_stream, buf);
 
-   p_stream.getline(buf,MAX_LINE);
+   std::getline(p_stream, buf);
    if (!p_stream.good()) {
       frag->clear();
       throw IOException("EOF reading atom/bond count for trajectory header",
                         WHERE);
    }
-   cptr = buf;
+   cptr = buf.data();
    strncpy(i10,cptr,10);
    p_solventAtoms = atoi(i10); 
    cptr += 10;
@@ -538,12 +535,12 @@ void TrajectoryReaderNWChem::readHeader()
    bool hasTwoCharName;
 
    for (i=0; i<p_solventAtoms; i++) {
-      p_stream.getline(buf,MAX_LINE);
+      std::getline(p_stream, buf);
       if (!p_stream.good()) {
          frag->clear();
          throw IOException("EOF reading solvent for trajectory header", WHERE);
       }
-      cptr = buf;
+      cptr = buf.data();
       strncpy(a4,cptr,4);
       solventName = a4;
       cptr += 5;
@@ -583,12 +580,12 @@ void TrajectoryReaderNWChem::readHeader()
    coords[2] = 0.0;
    Residue* res;
    for (i=0; i<p_soluteAtoms; i++) {
-      p_stream.getline(buf,MAX_LINE);
+      std::getline(p_stream, buf);
       if (!p_stream.good()) {
          frag->clear();
          throw IOException("EOF reading solute for trajectory header", WHERE);
       }
-      cptr = buf;
+      cptr = buf.data();
       strncpy(aa4,cptr,4);
       if (aa4[3] == '_') {
         aa4[3] = ' ';
@@ -681,13 +678,13 @@ void TrajectoryReaderNWChem::readHeader()
    // Read in solvent bond indices and store them temporarily.
 
    for (i=0; i<p_solventBonds; i++) {
-      p_stream.getline(buf,MAX_LINE);
+      std::getline(p_stream, buf);
       if (!p_stream.good()) {
          frag->clear();
          throw IOException("EOF reading solvent bonds for trajectory header",
                            WHERE);
       }
-      cptr = buf;
+      cptr = buf.data();
       strncpy(i8,cptr,8);
       solventIbnd.push_back(atoi(i8)-1); 
       cptr += 8;
@@ -699,13 +696,13 @@ void TrajectoryReaderNWChem::readHeader()
    // Then add them to bond list in fragment.
    TBond *thebond;
    for (i=0; i<p_soluteBonds; i++) {
-      p_stream.getline(buf,MAX_LINE);
+      std::getline(p_stream, buf);
       if (!p_stream.good()) {
          frag->clear();
          throw IOException("EOF reading solute bonds for trajectory header",
                            WHERE);
       }
-      cptr = buf;
+      cptr = buf.data();
       strncpy(i8,cptr,8);
       j = atoi(i8) - 1;
       cptr += 8;
@@ -748,7 +745,7 @@ void TrajectoryReaderNWChem::indexFiles()
   p_hasVelocities = false;
   p_hasForces = false;
 
-  char buf[MAX_LINE];
+  string buf;
   ifstream stream;
   size_t i;
   char* cptr;
@@ -767,21 +764,20 @@ void TrajectoryReaderNWChem::indexFiles()
        ++fileName) {
     stream.open(fileName->c_str());
     while (stream.good()) {
-      stream.getline(buf, 256);
-      if (strncmp(buf, "frame", 5) == 0) {
+      if (!std::getline(stream, buf)) break;
+      if (strncmp(buf.c_str(), "frame", 5) == 0) {
         p_stepToFileName.push_back(*fileName);
         p_stepToSeekPosition.push_back(stream.tellg());
         // skip next four lines
         for (i=0; i<4; ++i) {
-          //stream.getline(buf, 256);
-          stream.ignore(256, '\n');
+          std::getline(stream, buf);
         }
 
         // Find out whether or not to read in solvent and/or solute
         // molecules and whether or not to include velocities. Also
         // find out how many solvent molecules are present in this frame.
-        stream.getline(buf,MAX_LINE);
-        cptr = buf;
+        if (!std::getline(stream, buf)) break;
+        cptr = buf.data();
        
         // Check to see if frame is in new format.
         if (toupper(*(cptr+7)) == 'T' || toupper(*(cptr+7) == 'F')) {

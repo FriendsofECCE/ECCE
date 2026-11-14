@@ -316,24 +316,20 @@ EndNumericalBasis
 TGBSConfig* ICalcUtils::importConfig(istream& infile)
 {
   TGBSConfig* config = new TGBSConfig();
-  char line[501];
+  string line;
 
   // Set config's meta data:
   config->type(TGBSConfig::element);
   config->optimize(true); // will generally be the case
 
   // Parse input file
-  while(!infile.eof()) 
-  {
-    line[0] = '\0';
+  while (std::getline(infile, line)) {
 
-    if (!infile.getline(line, 500)) continue; 
-
-    if (strncmp(line,"NameBasis", 9) == 0) { // basis set names follow
+    if (strncmp(line.c_str(),"NameBasis", 9) == 0) { // basis set names follow
       
       importNameBasis(infile, config);
 
-    } else if (strncmp(line, "NumericalBasis", 14) == 0 ) { // exp & coef
+    } else if (strncmp(line.c_str(), "NumericalBasis", 14) == 0 ) { // exp & coef
 
       importNumericalBasis(infile, config);
     } 
@@ -344,35 +340,32 @@ TGBSConfig* ICalcUtils::importConfig(istream& infile)
 
 void ICalcUtils::importNumericalBasis(istream& infile, TGBSConfig* config) {
 
-  char line[501];
+  string line;
   TGaussianBasisSet* gbsTemplate = 0;
 
-  while(!infile.eof()) {
+  while (std::getline(infile, line)) {
 
-    line[0] = '\0';
-    if (!infile.getline(line, 500)) continue;     
-
-    if(strncmp(line, "EndNumericalBasis", 17) == 0) {  // Done with section
+    if(strncmp(line.c_str(), "EndNumericalBasis", 17) == 0) {  // Done with section
       break;
 
-    } else if (strncmp(line, "END", 3) == 0) {
+    } else if (strncmp(line.c_str(), "END", 3) == 0) {
       delete gbsTemplate;
       gbsTemplate = 0;
 
-    } else if(strncmp(line, "basis", 5) == 0) { // a basis set follows
+    } else if(strncmp(line.c_str(), "basis", 5) == 0) { // a basis set follows
 
       gbsTemplate = getGbsTemplate(line, config);
       
       if (gbsTemplate == 0) { // parsing error - skip rest of this basis set
-        while(strncmp(line, "END", 3) != 0) {
-          infile.getline(line, 500);
-        }
+        while (std::getline(infile, line) && line.compare(0, 3, "END") != 0) {}
       } 
         
+      if (gbsTemplate == 0) continue;
+
       // Parse the basis set and add it to group:
       importGBSContractions(infile, gbsTemplate, config);
 
-    } else if(strncmp(line, "ECP", 3) == 0) {
+    } else if(strncmp(line.c_str(), "ECP", 3) == 0) {
       // maybe call getGbsTemplate here as well
       importECPContractions(infile, config);
 
@@ -382,7 +375,7 @@ void ICalcUtils::importNumericalBasis(istream& infile, TGBSConfig* config) {
 
 void ICalcUtils::importNameBasis(istream& infile, TGBSConfig* config) {
 
-  char line[501];
+  string line;
   char element[10];
   char firstWord[25];
   string errMsg;
@@ -394,12 +387,9 @@ void ICalcUtils::importNameBasis(istream& infile, TGBSConfig* config) {
   EDSIGaussianBasisSetLibrary lib(central.getDefaultBasisSetLibrary());
 
   // Parse NameBasis section of imported *.gbs file
-  while(!infile.eof()) {
+  while (std::getline(infile, line)) {
 
-    line[0] = '\0';
-    if (!infile.getline(line, 500)) continue; 
-
-    sscanf(line, "%s", firstWord);
+    if (sscanf(line.c_str(), "%24s", firstWord) != 1) continue;
 
     if(strcmp(firstWord, "EndNameBasis") == 0) { // Done with NameBasis section
       break;
@@ -415,9 +405,7 @@ void ICalcUtils::importNameBasis(istream& infile, TGBSConfig* config) {
 
       if (gbsTemplate == 0) {
         // there was a parsing error - skip the rest of this basis set:
-        while(strncmp(line, "END", 3) != 0) {
-          infile.getline(line, 500);
-        }
+        while (std::getline(infile, line) && line.compare(0, 3, "END") != 0) {}
       } 
     
     } else { // Parse a basis set for a particular element
@@ -427,7 +415,7 @@ void ICalcUtils::importNameBasis(istream& infile, TGBSConfig* config) {
       firstQuote = lineStr.find_first_of("\"");
       lastQuote = lineStr.find_last_of("\"");
       
-      if (sscanf(line, "%s", element) == 0 || 
+      if (sscanf(line.c_str(), "%9s", element) == 0 ||
           firstQuote == string::npos || lastQuote == string::npos) {
         errMsg += "Invalid NameBasis format:\n" + lineStr + "\n";
         continue;
@@ -569,18 +557,14 @@ void ICalcUtils::importGBSContractions(istream& infile,
   TGaussianBasisSet::AngularMomentum shell;
   vector<double> exponents;
   vector<double> coefficients;
-  char line[501];
+  string line;
   char* tok;
   int i;
   double value = 0;
   int numExtraShells;
 
   string tmpline;
-  while(!infile.eof()) 
-  {
-    line[0] = '\0';
-
-    if (!infile.getline(line, 500)) continue;
+  while (std::getline(infile, line)) {
 
     // Just to skip empty lines
     tmpline = line;
@@ -589,7 +573,7 @@ void ICalcUtils::importGBSContractions(istream& infile,
     if (tmpline.size() == 0) continue;
 
     if (isalpha(tmpline[0])) { // line is the start of a new contraction or END
-      tok = strtok(line, " "); // read the element
+      tok = strtok(line.data(), " "); // read the element
       nextElement = tok;
 
       // For some reason, strtok is returning all uppercase letters for
@@ -671,7 +655,7 @@ void ICalcUtils::importGBSContractions(istream& infile,
       }
       
     } else { // parse exp and coef
-      tok = strtok(line, " ");
+      tok = strtok(line.data(), " ");
 
       value = strtod(tok, NULL);
       exponents.push_back(value);
@@ -692,13 +676,9 @@ void ICalcUtils::importECPContractions(istream& infile,
                "ECPs not yet supported for import.  "
                "Omitting this component from the config.");
 
-  char line[501];
-  line[0] = '\0';
-
-  // Skip the rest of this section from the file
-  while(strncmp(line, "END", 3) != 0) {
-    infile.getline(line, 500);
-  }
+  string line;
+  // Skip the rest of this section, including a missing END at EOF.
+  while (std::getline(infile, line) && line.compare(0, 3, "END") != 0) {}
 
 }
 

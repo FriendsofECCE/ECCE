@@ -11,7 +11,6 @@
   using std::cout;
   using std::endl;
 
-#define MAX_LINE 256
 
 #define VELOCITY 1
 #if VELOCITY
@@ -91,7 +90,7 @@ bool TrajectoryReaderXyz::readStep(const long& step,
 
   bool ret = false;
 
-  char buf[MAX_LINE+1];
+  string buf;
 
   double mult;
   if (p_units == "Bohr") {
@@ -109,7 +108,7 @@ bool TrajectoryReaderXyz::readStep(const long& step,
 
   int ipos = p_stream.tellg();
   int natoms;
-  if (!p_stream.getline(buf,MAX_LINE)) { 
+  if (!std::getline(p_stream, buf)) {
     throw IOException("Unable to read line containing numatoms", WHERE);
   }
   // find first line that corresponds to a single integer (start of frame)
@@ -117,13 +116,13 @@ bool TrajectoryReaderXyz::readStep(const long& step,
   // element being specified by a number instead of a symbol GDB 9/30/09
   //while(!StringConverter::toInt(buf,natoms)) {
   char *endp;
-  natoms = (int)strtol(buf, &endp, 10);
-  while (buf==endp || errno==ERANGE || *endp!='\0') { 
+  natoms = (int)strtol(buf.c_str(), &endp, 10);
+  while (buf.c_str()==endp || errno==ERANGE || *endp!='\0') {
     ipos = p_stream.tellg();
-    if (!p_stream.getline(buf,MAX_LINE)) {
+    if (!std::getline(p_stream, buf)) {
       throw IOException("Unable to find first single integer line", WHERE);
     }
-    natoms = (int)strtol(buf, &endp, 10);
+    natoms = (int)strtol(buf.c_str(), &endp, 10);
   }
   //cout << "first line " << buf << endl;
 
@@ -134,7 +133,7 @@ bool TrajectoryReaderXyz::readStep(const long& step,
   if (natoms == frag->numAtoms()) {
   // Skip title line
 
-    p_stream.getline(buf,MAX_LINE);
+    std::getline(p_stream, buf);
 #if VELOCITY
     p_sg->getTopAtomVectors()->removeAllChildren();
     if (p_showVector.size() == 0) {
@@ -149,8 +148,8 @@ bool TrajectoryReaderXyz::readStep(const long& step,
     char* coordinate;
     double coords[3];
     for (int i=0; i<natoms; i++) {
-      p_stream.getline(buf,MAX_LINE);
-      (void)strtok(buf," ");
+      if (!std::getline(p_stream, buf)) return ret;
+      (void)strtok(buf.data()," ");
       coordinate = strtok(0," \t");
       if (coordinate == NULL) return ret;
       coords[0] = mult*atof(coordinate);
@@ -307,7 +306,7 @@ void TrajectoryReaderXyz::indexFiles()
   int natoms;
   int pos;
   char *endp;
-  char buf[256];
+  string buf;
   ifstream stream;
   vector<string>::iterator fileName;
   vector<string> tokens;
@@ -318,17 +317,17 @@ void TrajectoryReaderXyz::indexFiles()
 
     while (stream.good()) {
       pos = stream.tellg();
-      stream.getline(buf, 256);
+      if (!std::getline(stream, buf)) break;
       // find first line that corresponds to a single integer (start of frame)
       // the logic in the next line is flawed because it won't support the
       // element being specified by a number instead of a symbol GDB 9/30/09
       //if (StringConverter::toInt(line.c_str(),natoms)) {
-      natoms = (int)strtol(buf, &endp, 10);
-      if (buf!=endp && errno!=ERANGE && *endp=='\0') { 
+      natoms = (int)strtol(buf.c_str(), &endp, 10);
+      if (buf.c_str()!=endp && errno!=ERANGE && *endp=='\0') {
         p_stepToFileName.push_back(*fileName);
         p_stepToSeekPosition.push_back(pos);
 
-        stream.getline(buf, 256);
+        std::getline(stream, buf);
         if (stream.good()) { 
           tokens = StringTokenizer(buf).tokenize(" \t");
           p_hasVelocities |= tokens.size() == 7;
@@ -336,9 +335,7 @@ void TrajectoryReaderXyz::indexFiles()
 
           // skip passed natoms lines to prepare for next frame
           for (pos=1; pos<natoms && stream.good(); pos++)
-            // ignore seems a bit faster than getline
-            //stream.getline(buf, 256);
-            stream.ignore(256, '\n');
+            std::getline(stream, buf);
         }
       }
     }

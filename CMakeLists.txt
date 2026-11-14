@@ -4478,6 +4478,37 @@ if(PYTHON3_EXECUTABLE)
     target_link_libraries(gbscoordsys PRIVATE
       "$<LINK_GROUP:RESCAN,${_gbs_libs}>" ${XercesC_LIBRARIES})
   endif()
+  # Long records must neither truncate a reader nor leave it spinning on failbit.
+  add_executable(long_lines_basis tests/long_lines/basis.C)
+  target_include_directories(long_lines_basis PRIVATE ${XercesC_INCLUDE_DIRS})
+  if(APPLE)
+    target_link_libraries(long_lines_basis PRIVATE ${_gbs_libs} ${XercesC_LIBRARIES})
+  else()
+    target_link_libraries(long_lines_basis PRIVATE
+      "$<LINK_GROUP:RESCAN,${_gbs_libs}>" ${XercesC_LIBRARIES})
+  endif()
+  add_executable(long_lines_properties tests/long_lines/properties.C)
+  target_link_libraries(long_lines_properties PRIVATE eccetdat ecceutil)
+  add_executable(long_lines_trajectory tests/long_lines/trajectory.C)
+  target_compile_definitions(long_lines_trajectory PRIVATE ${wxWidgets_DEFINITIONS})
+  target_include_directories(long_lines_trajectory PRIVATE
+    ${wxWidgets_INCLUDE_DIRS} ${XercesC_INCLUDE_DIRS})
+  set(_long_lines_viz_libs eccewxviz eccewxinv eccevizsg eccemoiv ecceinv
+    ${_gbs_libs} eccewxgui eccewxplotctrl eccewxthings)
+  if(APPLE)
+    target_link_libraries(long_lines_trajectory PRIVATE ${_long_lines_viz_libs}
+      ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES} ${ECCE_X11_LIBS} jpeg freetype)
+  else()
+    target_link_libraries(long_lines_trajectory PRIVATE
+      "$<LINK_GROUP:RESCAN,${_long_lines_viz_libs}>"
+      ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES} ${ECCE_X11_LIBS} jpeg freetype)
+  endif()
+  foreach(_reader basis properties trajectory)
+    add_test(NAME long_lines_${_reader} COMMAND ${PYTHON3_EXECUTABLE}
+      ${CMAKE_SOURCE_DIR}/tests/long_lines/run_test.py
+      $<TARGET_FILE:long_lines_${_reader}>)
+    set_tests_properties(long_lines_${_reader} PROPERTIES TIMEOUT 40)
+  endforeach()
   # tests/basis/testCodeContraction (#942): ORCA's segmented copy of a
   # general contraction, compared with ORCA's own print of its basis.
   add_executable(gbscodecontraction tests/basis/testCodeContraction.C)

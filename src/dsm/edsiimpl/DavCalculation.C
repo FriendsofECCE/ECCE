@@ -872,7 +872,7 @@ void DavCalculation::parseConfigDataElement( const DOMDocument& doc,
   strcpy(newString, dataString.c_str());
   istrstream dataStream(newString);    
        
-  char line[256]; 
+  string line;
   char typeStr[50];
   char category[50];
   char contType[50];
@@ -881,15 +881,15 @@ void DavCalculation::parseConfigDataElement( const DOMDocument& doc,
 
   string key; // used to identify unique basis sets in the master list
 
-  while (dataStream.getline(line,255)) {
-    if (strlen(line) == 0) // ignore empty lines:
+  while (std::getline(dataStream, line)) {
+    if (strlen(line.c_str()) == 0) // ignore empty lines:
       continue;
 
-    if (strncmp(line,"BasisSet=",9) == 0) {
+    if (strncmp(line.c_str(),"BasisSet=",9) == 0) {
       gbs = new TGaussianBasisSet;
       gbs->p_name = &line[9];
     } else {
-      sscanf(line,"Type=%s Category=%s Spherical=%s ContType=%s", 
+      sscanf(line.c_str(),"Type=%49s Category=%49s Spherical=%49s ContType=%49s",
 	     typeStr, category, coordSys, contType);
 
       gbs->p_type = TGaussianBasisSet::strToType(typeStr);
@@ -948,11 +948,10 @@ void DavCalculation::parseEcpData( TGaussianBasisSet* ecp,
 {
   ContractionSet* potential=0;
   char element_name[10] = "";
-  char line[500];
-  while(!is->eof()) {
-    is->getline(line,500);
+  string line;
+  while (std::getline(*is, line)) {
 
-    if(strncmp(line,"element=",8) == 0) { // new element
+    if(strncmp(line.c_str(),"element=",8) == 0) { // new element
       // add the previous contraction set to the map except for 1st element:
       if (strcmp(element_name, "") != 0) {
 #ifdef DEBUG
@@ -962,9 +961,9 @@ void DavCalculation::parseEcpData( TGaussianBasisSet* ecp,
         ecp->p_contractions[element_name] = potential;
       }
       potential = new ContractionSet; // create new contraction set:
-      sscanf(line,"element=%s ncore=%d lmax=%d",
+      sscanf(line.c_str(),"element=%9s ncore=%d lmax=%d",
                    element_name,&potential->ncore,&potential->lmax);
-    } else if(strcmp(line, "EndBasisSet") == 0) { // end of basis set
+    } else if(strcmp(line.c_str(), "EndBasisSet") == 0) { // end of basis set
       // add last contractions set to the map
 #ifdef DEBUG
       cout << "inserting " << element_name 
@@ -972,7 +971,7 @@ void DavCalculation::parseEcpData( TGaussianBasisSet* ecp,
 #endif
       ecp->p_contractions[element_name] = potential;
       break;
-    } else if (strncmp(line,"ecp_potential%",14) == 0) {  // new contraction
+    } else if (strncmp(line.c_str(),"ecp_potential%",14) == 0) {  // new contraction
                                  // in same set, with additional ecp data
       Contraction_* ecpp = new Contraction_;
 
@@ -1008,9 +1007,12 @@ void DavCalculation::parseEcpData( TGaussianBasisSet* ecp,
 
       for(size_t primitive_counter=0; primitive_counter<ecpp->num_exponents;
           primitive_counter++) {
-        is->getline(line,500);
+        if (!std::getline(*is, line)) {
+          delete ecpp;
+          return;
+        }
 
-        ecpp->powers[primitive_counter] = (int)strtol(line, &tail, 10);
+        ecpp->powers[primitive_counter] = (int)strtol(line.c_str(), &tail, 10);
         ecpp->exponents[primitive_counter] = strtod(tail, &tail);
         ecpp->coefficients[primitive_counter] = strtod(tail, NULL);
       }
@@ -1029,10 +1031,9 @@ void DavCalculation::parseGbsData( TGaussianBasisSet* gbs,
   ContractionSet* contractions = 0;
   string element_name = "";
 
-  char line[500];
-  while(!is->eof()) {
-    is->getline(line,500);
-    if(strncmp(line,"element=",8) == 0) { // new element
+  string line;
+  while (std::getline(*is, line)) {
+    if(strncmp(line.c_str(),"element=",8) == 0) { // new element
 
       // add the previous contraction set to the map:
       if (element_name != "") {
@@ -1043,8 +1044,8 @@ void DavCalculation::parseGbsData( TGaussianBasisSet* gbs,
         gbs->p_contractions[element_name] = contractions;
       } 
       contractions = new ContractionSet(); // make new contraction set
-      element_name = line+8;
-    } else if(strcmp(line, "EndBasisSet") == 0) { // end of basis set
+      element_name = line.c_str()+8;
+    } else if(strcmp(line.c_str(), "EndBasisSet") == 0) { // end of basis set
 
       if (element_name != "") { // this is true if no elements are there
         // add last contraction set to the map
@@ -1055,12 +1056,12 @@ void DavCalculation::parseGbsData( TGaussianBasisSet* gbs,
 #endif
       }
       break;
-    }  else if(strncmp(line,"contraction",11) == 0) { // new contraction in
+    }  else if(strncmp(line.c_str(),"contraction",11) == 0) { // new contraction in
                                                       // same set
       Contraction_ *cont = new Contraction_;
 
       char buf[100];
-      sscanf(line,"contraction shell=%s num_primitives=%zu num_coefficients=%zu",
+      sscanf(line.c_str(),"contraction shell=%99s num_primitives=%zu num_coefficients=%zu",
         buf, &cont->num_exponents, &cont->num_coefficients);
       for (size_t i=0;i<cont->num_coefficients;i++) 
         cont->shells.push_back(TGaussianBasisSet::charToShell(buf[i]));
@@ -1072,10 +1073,13 @@ void DavCalculation::parseGbsData( TGaussianBasisSet* gbs,
       int coefficient_counter=0;
       for(size_t primitive_counter=0; primitive_counter < cont->num_exponents;
           primitive_counter++) {
-        is->getline(line,500);
+        if (!std::getline(*is, line)) {
+          delete cont;
+          return;
+        }
 
         /* get exponent */
-        char* tok = strtok(line," ");
+        char* tok = strtok(line.data()," ");
         cont->exponents[primitive_counter] = strtod(tok, NULL);
 
         /* get coefficients */

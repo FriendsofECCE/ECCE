@@ -53,7 +53,7 @@ void TResTab::initialize()
    string infile = Ecce::ecceDataPrefPath();
    infile += "/ResidueList";
    ifstream is(infile.c_str());
-   char cbuf[256];
+   string cbuf;
    char name[256];
    char biostatus[256];
    char c_charge[256];
@@ -62,8 +62,9 @@ void TResTab::initialize()
    p_resItemList = new vector<TResItem*>;
    TResItem* res;
    TResItem::Classification classification;
-   while (is.getline(cbuf,255)) {
-      sscanf(cbuf,"%s%s%s%s",name,biostatus,c_charge,c_hydrophobicity);
+   while (std::getline(is, cbuf)) {
+      if (sscanf(cbuf.c_str(),"%255s%255s%255s%255s",
+                 name,biostatus,c_charge,c_hydrophobicity) != 4) continue;
       if (strcmp(biostatus,"AminoAcid")==0) {
          classification = TResItem::AminoAcid;
       } else if (strcmp(biostatus,"RNAorDNA")==0) {

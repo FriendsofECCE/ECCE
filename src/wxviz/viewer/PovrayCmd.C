@@ -1041,11 +1041,11 @@ void PovrayCmd::addHeaderComments(ostream& os)
   path.append("/povrayhelp");
   ifstream helpfile(path.c_str());
   if (helpfile) {
-    char buf[256];
-    while (helpfile) {
-      helpfile.getline(buf,255);
+    string buf;
+    while (std::getline(helpfile, buf)) {
       os << buf << endl;
     }
+    os << endl;
     helpfile.close();
   }
 }

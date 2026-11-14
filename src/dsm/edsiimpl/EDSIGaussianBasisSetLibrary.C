@@ -366,13 +366,12 @@ const vector<gbs_alias*>* EDSIGaussianBasisSetLibrary::getAliasList(
     if (input != 0) {
       alias_list = new vector<gbs_alias*>;
       gbs_alias* alias=0;
-      char line[500];
+      string line;
       size_t i;
 
-      while(!input->eof()) {
-	input->getline(line,500);
+      while (std::getline(*input, line)) {
 
-	if(!strncmp(line,"name= ",6)) {
+	if(!strncmp(line.c_str(),"name= ",6)) {
 	  if(alias) {
 	    alias_list->push_back(alias);
 	  }
@@ -386,14 +385,14 @@ const vector<gbs_alias*>* EDSIGaussianBasisSetLibrary::getAliasList(
        alias->name[i] = tolower(alias->name[i]);
      }
 	  
-	} else if(!strncmp(line,"files= ",7)) {
+	} else if(!strncmp(line.c_str(),"files= ",7)) {
 	  
 	  char* tok = strtok(&line[7]," ");
 	  do {
 	    alias->files.push_back(strdup(tok));
 	  } while((tok = strtok((char*)0," ")));
   
-	} else if(!strncmp(line,"atoms= ",7)) {
+	} else if(!strncmp(line.c_str(),"atoms= ",7)) {
 	  vector<char*> tmpVector;
 	  
 	  char* tok = strtok(&line[7]," ");
@@ -1245,11 +1244,11 @@ void EDSIGaussianBasisSetLibrary::getBigProperty
 
   } else {
     
-    char line[501];
+    string line;
     vector<MetaDataResult> tmp;
     MetaDataResult result;
 
-    while(is->getline(line,500)) {
+    while(std::getline(*is, line)) {
  
       result.name = "";
       for (size_t i = 0; i < requests.size(); i++) {
@@ -1262,7 +1261,7 @@ void EDSIGaussianBasisSetLibrary::getBigProperty
       if (result.name != "") { 
         result.value = "";
 
-        while(is->getline(line,500) && line != result.name) {
+        while(std::getline(*is, line) && line != result.name) {
           result.value += string(line) + "\n";
         }
         tmp.push_back(result);
@@ -1292,11 +1291,10 @@ void EDSIGaussianBasisSetLibrary::parseGbsData(
   else
     tags = (TGBSConfigTags*) 0;
 
-  char line[500];
-  while(!is->eof()) {
-    is->getline(line,500);
+  string line;
+  while (std::getline(*is, line)) {
 
-    if(strncmp(line,"atom=",5) == 0) {
+    if(strncmp(line.c_str(),"atom=",5) == 0) {
       if (atom_name != "" && 
 	  (tags == (TGBSConfigTags*) 0 || 
 	   (tags != (TGBSConfigTags*) 0 && tags->findElement(atom_name)) ) )
@@ -1304,14 +1302,14 @@ void EDSIGaussianBasisSetLibrary::parseGbsData(
 	gbs->p_contractions[atom_name] = contractions;
       }
       contractions = new ContractionSet();
-      atom_name = line+5;
+      atom_name = line.c_str()+5;
     }
 
-    else if(strncmp(line,"contraction",11) == 0) {
+    else if(strncmp(line.c_str(),"contraction",11) == 0) {
       Contraction_ *cont = new Contraction_;
 
       char buf[100];
-      sscanf(line,"contraction shell=%s num_primitives=%zu num_coefficients=%zu",
+      sscanf(line.c_str(),"contraction shell=%99s num_primitives=%zu num_coefficients=%zu",
         buf, &cont->num_exponents, &cont->num_coefficients);
 
       for(size_t i=0;i<cont->num_coefficients;i++) {
@@ -1338,10 +1336,13 @@ void EDSIGaussianBasisSetLibrary::parseGbsData(
       for(size_t primitive_counter=0;
           primitive_counter<cont->num_exponents;
           primitive_counter++) {
-        is->getline(line,500);
+        if (!std::getline(*is, line)) {
+          delete cont;
+          return;
+        }
 
         /* get exponent */
-        char* tok = strtok(line," ");
+        char* tok = strtok(line.data()," ");
         cont->exponents[primitive_counter] = strtod(tok, NULL);
 
         /* get coefficients */
@@ -1378,7 +1379,7 @@ void EDSIGaussianBasisSetLibrary::parseEcpData(
 {
   ContractionSet* potential=0;
   char element_name[10] = "";
-  char line[500];
+  string line;
 
   TGBSConfigTags* tags;
 
@@ -1387,10 +1388,9 @@ void EDSIGaussianBasisSetLibrary::parseEcpData(
   else
     tags = 0;
 
-  while(!is->eof()) {
-    is->getline(line,500);
+  while (std::getline(*is, line)) {
 
-    if(strncmp(line,"atom=",5) == 0) { // new element
+    if(strncmp(line.c_str(),"atom=",5) == 0) { // new element
 
       // add the previous contraction set to the map except for 1st element:
       if (strcmp(element_name, "") != 0 && 
@@ -1399,10 +1399,10 @@ void EDSIGaussianBasisSetLibrary::parseEcpData(
 	ecp->p_contractions[element_name] = potential;
 
       potential = new ContractionSet; // create new contraction set:
-      sscanf(line,"atom=%s ncore=%d lmax=%d",
+      sscanf(line.c_str(),"atom=%9s ncore=%d lmax=%d",
                    element_name,&potential->ncore,&potential->lmax);
     }
-    else if(strncmp(line,"ecp_potential%",14) == 0) {  // new contraction
+    else if(strncmp(line.c_str(),"ecp_potential%",14) == 0) {  // new contraction
                                  // in same set, with additional ecp data
       Contraction_* ecpp = new Contraction_;
 
@@ -1442,9 +1442,12 @@ void EDSIGaussianBasisSetLibrary::parseEcpData(
       for(size_t primitive_counter=0;
           primitive_counter<ecpp->num_exponents;
           primitive_counter++) {
-        is->getline(line,500);
+        if (!std::getline(*is, line)) {
+          delete ecpp;
+          return;
+        }
 
-        ecpp->powers[primitive_counter] = (int)strtol(line, &tail, 10);
+        ecpp->powers[primitive_counter] = (int)strtol(line.c_str(), &tail, 10);
         ecpp->exponents[primitive_counter] = strtod(tail, &tail);
         ecpp->coefficients[primitive_counter] = strtod(tail, NULL);
       }
