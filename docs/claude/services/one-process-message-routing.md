@@ -3,7 +3,7 @@ type: map
 title: "One GUI process (#983 stage 1): in-process message routing, OnInit split, globals audit, window lifetime"
 area: services
 section: "Pitfalls"
-paths: ["src/util/jms/MqttLink.C", "src/wxgui/jms/InProcessTools.C", "include/wxgui/InProcessTools.H", "src/apps/builder/BuilderWindow.C", "src/apps/calced/CalcEdWindow.C", "src/apps/calced/CalcEdMessages.C", "tests/apps/one_process_test.py", "include/util/MqttLink.H", "src/util/jms/JMSPublisher.C", "src/wxgui/jms/WxJMSSubscriber.C", "src/wxgui/jms/WxJMSMessageDispatch.C", "src/apps/organizer/CalcMgrApp.C", "src/apps/builder/BuilderApp.C", "src/apps/calced/CalcEdApp.C", "src/dsm/edsiimpl/EDSIFactory.C", "tests/mqtt/mqtt_test.C", "CMakeLists.txt"]
+paths: ["src/util/jms/MqttLink.C", "src/wxgui/mdtools/MDEdBase.C", "src/wxgui/jms/InProcessTools.C", "include/wxgui/InProcessTools.H", "src/apps/builder/BuilderWindow.C", "src/apps/calced/CalcEdWindow.C", "src/apps/calced/CalcEdMessages.C", "tests/apps/one_process_test.py", "include/util/MqttLink.H", "src/util/jms/JMSPublisher.C", "src/wxgui/jms/WxJMSSubscriber.C", "src/wxgui/jms/WxJMSMessageDispatch.C", "src/apps/organizer/CalcMgrApp.C", "src/apps/builder/BuilderApp.C", "src/apps/calced/CalcEdApp.C", "src/dsm/edsiimpl/EDSIFactory.C", "tests/mqtt/mqtt_test.C", "CMakeLists.txt"]
 issues: [983, 1007, 990, 213]
 ---
 Organizer, Builder and Calculation Editor become windows of one wx process
@@ -124,6 +124,22 @@ two Builders and one editor opened by the Organizer's test hook
 (`start TOOL URL`, `inprocess`, `closetools`), invokes traced in the
 Organizer's pid (`ECCE_TEST_MESSAGES=1` prints each delivered message),
 the Builder's save notice reaching the Organizer, Organizer alive after.
+
+## MD editors (Optimize, Energy, Dynamics, GROMACS Prepare)
+
+`MDEdBase` editors already own a non-app dispatcher. Each directory has a
+`*Window.C` opener (`MDEdBase::openInProcess`: show, track) registered by
+`CalcMgrApp::OnInit`; the four directories are OBJECT libraries linked into
+the `organizer` program. Changes the one process needs:
+- `~MDEdBase` deletes the dispatcher with the switch on (it never did: a
+  program of its own ended with its window, while in one process a closed
+  editor's subscriptions would call into a deleted frame).
+- `updateDisabledState`'s function-static last state -> member.
+- `OnCloseWindow` vetoes when the save question is cancelled.
+Audit otherwise clean (constants only). MDPrep (`src/apps/mdprepare`) is
+not an `MDEdBase` and stays a program for now. Test: `one_process_test.py`
+opens MD Energy (no calculation) beside the others, closes it with
+`closetools`, and Quits with it open.
 
 ## Globals audit, Builder and Calculation Editor (stage 1c)
 

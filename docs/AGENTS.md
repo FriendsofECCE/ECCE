@@ -69,12 +69,13 @@ through the command-line tools in "Commands". You cannot click in the windows.
 | Basis Set Tool | Looks at and edits basis sets. | From the Organizer or Calculation Editor |
 
 Each window is its own program. Experimental: with `ECCE_ONE_PROCESS=1`
-in the environment of `ecce`, the Builder and the Calculation Editor open
+in the environment of `ecce`, the Builder, the Calculation Editor and the
+MD editors (Prepare excepted) open
 as windows of the Organizer's process instead; job programs and the other
 tools stay separate. Off by default. Quitting the Organizer (or the
 session's `ecce_quit`) then closes those windows first, each asking about
 its own unsaved changes; Cancel in one of them cancels the Quit. Test hooks
-(`ECCE_TEST_ORGANIZER`): `inprocess` (pid and open windows per tool),
+(`ECCE_TEST_ORGANIZER`): `inprocess` (pid, open Builder/Calculation Editor/MD Energy windows),
 `closetools`, `gatewayquit` (the session's `ecce_quit`), and
 `answer cancel|no` for a tool's save question.
 

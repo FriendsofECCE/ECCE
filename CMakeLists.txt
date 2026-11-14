@@ -745,14 +745,16 @@ ecce_app(machregister src/apps/machregister WX
   # eccercmd for RCommand::localityNote (#144), the same decision the launch makes.
   # eccecomm for CodePrograms, the program names Find and first start share.
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccecomm eccetdat ecceutil)
-ecce_app(mddynamics src/apps/mddynamics WX
-  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(mdenergy src/apps/mdenergy WX
-  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(mdoptimize src/apps/mdoptimize WX
-  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(gmxprepare src/apps/gmxprepare WX
-  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+# The MD editors also open in the Organizer's process (#983).
+set(ECCE_MDED_LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+foreach(_md mddynamics:MDDynamicsApp mdenergy:MDEnergyApp mdoptimize:MDOptimizeApp gmxprepare:GmxPrepareApp)
+  string(REPLACE ":" ";" _md "${_md}")
+  list(GET _md 0 _md_dir)
+  list(GET _md 1 _md_main)
+  ecce_tool_objects(${_md_dir}-objs src/apps/${_md_dir} EXCLUDE ${_md_main}.C LINK ${ECCE_MDED_LINK})
+  ecce_app(${_md_dir} src/apps/${_md_dir} WX MAIN ${_md_main}.C OBJECTS ${_md_dir}-objs
+    LINK ${ECCE_MDED_LINK})
+endforeach()
 ecce_app(mdprepare src/apps/mdprepare WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(msgdialog src/apps/messagedialog WX
@@ -815,11 +817,12 @@ ecce_tool_objects(builder-objs src/apps/builder EXCLUDE BuilderApp.C
 ecce_app(builder src/apps/builder WX GL MAIN BuilderApp.C
   OBJECTS builder-objs organizer-shared-objs LINK ${ECCE_BUILDER_LINK})
 target_include_directories(builder PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organizer)
-# The Organizer opens Builder and Calculation Editor windows in its own
-# process with ECCE_ONE_PROCESS=1 (#983), so it links both tools' objects.
+# The Organizer opens Builder, Calculation Editor and MD editor windows in
+# its own process with ECCE_ONE_PROCESS=1 (#983), so it links their objects.
 ecce_app(organizer src/apps/organizer WX GL MAIN CalcMgrApp.C
   OBJECTS organizer-objs organizer-shared-objs builder-objs calced-objs
-  LINK ${ECCE_BUILDER_LINK})
+    mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs
+  LINK eccewxguimd ${ECCE_BUILDER_LINK})
 target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)

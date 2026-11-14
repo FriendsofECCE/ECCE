@@ -68,6 +68,7 @@ def run(display):
             append("start Builder " + url1, 25)
             append("start Builder " + url2, 15)
             append("start CalculationEditor " + url1, 15)
+            append("start MDEnergy", 15)
             append("inprocess", 2)
             append("closetools", 5)
             append("answer no", 3)    # questions the tools ask, if any
@@ -93,10 +94,11 @@ def run(display):
             m = re.match(r"pid=(\d+) Builder=(\d+) CalculationEditor=(\d+)",
                          inproc[0])
             pid = m.group(1) if m else None
-            check(m and m.group(2) == "2" and m.group(3) == "1",
-                  "two Builders and one editor open in the Organizer",
-                  inproc[0])
-            check("Builder=0 CalculationEditor=0" in inproc[1],
+            check(m and m.group(2) == "2" and m.group(3) == "1"
+                  and "MDEnergy=1" in inproc[0],
+                  "two Builders, one editor and an MD editor open in the "
+                  "Organizer", inproc[0])
+            check("Builder=0 CalculationEditor=0 MDEnergy=0" in inproc[1],
                   "closing the tool windows leaves the Organizer running",
                   inproc[1])
         check(pb.answers(log, "closetools") == ["queued", "closed"],
@@ -148,6 +150,8 @@ def runQuit(display, gateway=False):
 
         def inspect(_display):
             append("start Builder " + url, 25)
+            if not gateway:
+                append("start MDEnergy", 15)   # Quit with it open
             append("inprocess", 2)
             if gateway:
                 # The session's ecce_quit: forced, the Builder still asks
@@ -196,6 +200,8 @@ def runQuit(display, gateway=False):
                   "ecce_quit ends the process cleanly",
                   "returncode %s\n%s" % (result.returncode, log[-1500:]))
         else:
+            check("MDEnergy=1" in inproc[0],
+                  "an MD editor opened in the Organizer", inproc[0])
             check(len(inproc) == 2 and
                   "Builder=1 CalculationEditor=0" in inproc[1],
                   "Cancel in the Builder's question cancels the Quit",

@@ -115,6 +115,10 @@ static void restartInLocalMode()
 // In builder-objs and calced-objs (#983).
 void registerBuilderInProcess();
 void registerCalcEdInProcess();
+void registerMDOptimizeInProcess();
+void registerMDEnergyInProcess();
+void registerMDDynamicsInProcess();
+void registerGmxPrepareInProcess();
 
 IMPLEMENT_APP(CalcMgrApp)
 
@@ -293,6 +297,10 @@ bool CalcMgrApp::OnInit()
     // (#983); data notices go out as the tool whose window is active.
     registerBuilderInProcess();
     registerCalcEdInProcess();
+    registerMDOptimizeInProcess();
+    registerMDEnergyInProcess();
+    registerMDDynamicsInProcess();
+    registerGmxPrepareInProcess();
     string name = getMyName(), id = getMyID();
     JMSPublisher::setActingTool(name, id);
     p_calcMgr->Bind(wxEVT_ACTIVATE, [name, id](wxActivateEvent& ev) {
