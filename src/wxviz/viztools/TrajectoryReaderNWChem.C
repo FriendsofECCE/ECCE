@@ -5,6 +5,15 @@
 #include <vector>
   using std::vector;
 
+// Fields are cut at fixed columns, and a short line can end before the last
+// field's offset: NUL padding keeps those reads inside the string and leaves
+// the missing fields empty.
+static char* fixedColumns(std::string& line)
+{
+  if (line.size() < 256) line.resize(256, '\0');
+  return &line[0];
+}
+
 
 #define VELOCITY 1
 #if VELOCITY
@@ -139,7 +148,7 @@ bool TrajectoryReaderNWChem::readStep(const long& step,
       throw IOException("EOF reading count line for trajectory step", WHERE);
       return 0;
    }
-   cptr = buf.data();
+   cptr = fixedColumns(buf);
 
    bool solventCoords;
    bool solventVel;
@@ -216,7 +225,7 @@ bool TrajectoryReaderNWChem::readStep(const long& step,
          if (solventCoords) {
             // read in solvent coordinates and multiply by 10 to convert
             // from nanometers to angstroms
-            cptr = buf.data();
+            cptr = fixedColumns(buf);
             strncpy(r8,cptr,8);
             coords[0] = 10.0*atof(r8);
             cptr += 8;
@@ -326,7 +335,7 @@ bool TrajectoryReaderNWChem::readStep(const long& step,
             return 0;
          }
          if (soluteCoords) {
-            cptr = buf.data();
+            cptr = fixedColumns(buf);
             strncpy(r8,cptr,8);
             coords[0] = 10.0*atof(r8);
             cptr += 8;
@@ -496,7 +505,7 @@ void TrajectoryReaderNWChem::readHeader()
       throw IOException("EOF reading atom/bond count for trajectory header",
                         WHERE);
    }
-   cptr = buf.data();
+   cptr = fixedColumns(buf);
    strncpy(i10,cptr,10);
    p_solventAtoms = atoi(i10); 
    cptr += 10;
@@ -540,7 +549,7 @@ void TrajectoryReaderNWChem::readHeader()
          frag->clear();
          throw IOException("EOF reading solvent for trajectory header", WHERE);
       }
-      cptr = buf.data();
+      cptr = fixedColumns(buf);
       strncpy(a4,cptr,4);
       solventName = a4;
       cptr += 5;
@@ -585,7 +594,7 @@ void TrajectoryReaderNWChem::readHeader()
          frag->clear();
          throw IOException("EOF reading solute for trajectory header", WHERE);
       }
-      cptr = buf.data();
+      cptr = fixedColumns(buf);
       strncpy(aa4,cptr,4);
       if (aa4[3] == '_') {
         aa4[3] = ' ';
@@ -684,7 +693,7 @@ void TrajectoryReaderNWChem::readHeader()
          throw IOException("EOF reading solvent bonds for trajectory header",
                            WHERE);
       }
-      cptr = buf.data();
+      cptr = fixedColumns(buf);
       strncpy(i8,cptr,8);
       solventIbnd.push_back(atoi(i8)-1); 
       cptr += 8;
@@ -702,7 +711,7 @@ void TrajectoryReaderNWChem::readHeader()
          throw IOException("EOF reading solute bonds for trajectory header",
                            WHERE);
       }
-      cptr = buf.data();
+      cptr = fixedColumns(buf);
       strncpy(i8,cptr,8);
       j = atoi(i8) - 1;
       cptr += 8;
@@ -777,7 +786,7 @@ void TrajectoryReaderNWChem::indexFiles()
         // molecules and whether or not to include velocities. Also
         // find out how many solvent molecules are present in this frame.
         if (!std::getline(stream, buf)) break;
-        cptr = buf.data();
+        cptr = fixedColumns(buf);
        
         // Check to see if frame is in new format.
         if (toupper(*(cptr+7)) == 'T' || toupper(*(cptr+7) == 'F')) {

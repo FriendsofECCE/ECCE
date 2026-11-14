@@ -19,6 +19,15 @@
 
 using std::map;
 
+// Fields are cut at fixed columns, and a short line can end before the last
+// field's offset: NUL padding keeps those reads inside the string and leaves
+// the missing fields empty.
+static char* fixedColumns(std::string& line)
+{
+  if (line.size() < 256) line.resize(256, '\0');
+  return &line[0];
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Description:
 //   Default constructor.
@@ -451,7 +460,7 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
         return 0;
       }
     }
-    char *cptr = segline.data();
+    char *cptr = fixedColumns(segline);
     strncpy(i5,cptr,5);
     int natom = atoi(i5);
     cptr += 5;
@@ -531,7 +540,7 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
           delete infile;
           return 0;
         }
-        char* cptr = segline.data();
+        char* cptr = fixedColumns(segline);
         strncpy(i5,cptr,5);
         atsq.push_back(atoi(i5));
         cptr += 5;
@@ -564,7 +573,7 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
             return 0;
           }
           if (j == default_pset-1) {
-            cptr = segline.data();
+            cptr = fixedColumns(segline);
             cptr += 5;
             strncpy(a5,cptr,5);
             atyp1.push_back(a5);
@@ -600,7 +609,7 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
           return 0;
 
         }
-        char* cptr = segline.data();
+        char* cptr = fixedColumns(segline);
         strncpy(i5,cptr,5);
         atsq.push_back(atoi(i5));
         cptr += 5;
@@ -655,7 +664,7 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
           return 0;
 
         }
-        cptr = segline.data();
+        cptr = fixedColumns(segline);
         strncpy(d12,cptr,12);
         rval = atof(d12);
         chrg1.push_back(rval);
@@ -713,7 +722,7 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
         delete infile;
         return 0;
       }
-      cptr = segline.data();
+      cptr = fixedColumns(segline);
       strncpy(i5,cptr,5);
       bsq.push_back(atoi(i5));
       cptr +=5;
@@ -782,7 +791,7 @@ Segment* SegFactory::readFragment(FileEDSI & url, const string & segname)
       }
       if (segline[0] != '$' && segline[0] != '#') comment = false;
     }
-    char *cptr = segline.data();
+    char *cptr = fixedColumns(segline);
     strncpy(i5,cptr,5);
     int natom = atoi(i5);
     seg->name(segname);
@@ -825,7 +834,7 @@ Segment* SegFactory::readFragment(FileEDSI & url, const string & segname)
         delete infile;
         return 0;
       }
-      char* cptr = segline.data();
+      char* cptr = fixedColumns(segline);
       strncpy(i5,cptr,5);
       atsq.push_back(atoi(i5));
       cptr += 5;
@@ -907,7 +916,7 @@ Segment* SegFactory::readFragment(FileEDSI & url, const string & segname)
 
       if (length < 5) break;
       length = length/5;
-      cptr = segline.data();
+      cptr = fixedColumns(segline);
       strncpy(i5,cptr,5);
       if (strncmp(i5,"     ",5) == 0) break;
       char *tail = (char*)0;

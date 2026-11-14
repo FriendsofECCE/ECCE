@@ -135,12 +135,12 @@ string PropVecString::valueLabel(void) const
 ///////////////////////////////////////////////////////////////////////////////
 void PropVecString::setData(istream& istrm)
 {
-   char line[256];
+   string line;
    string tmpString;
    int colonPos;  
 
-   istrm.getline(line,255);        // Read the size line
-   int numRows = atoi(line+5);     // Remove the "Size:", get size as number
+   std::getline(istrm, line);        // Read the size line
+   int numRows = line.size() > 5 ? atoi(line.c_str()+5) : 0;     // Remove the "Size:", get size as number
 
    p_values->clear();               // remove any pre-existing values
    if (p_rowLabels != 0)
@@ -150,7 +150,7 @@ void PropVecString::setData(istream& istrm)
 // Loop through the values, assigning to vector
    for (int i=0; i<numRows; i++)
    {
-     if (!istrm.getline(line,255))
+     if (!std::getline(istrm, line))
        EE_RT_ASSERT(false, EE_FATAL,
              "size specified in file is greater than the number of values");
 
@@ -221,11 +221,11 @@ void PropVecString::valueLabel(const string& newValueLabel)
 bool PropVecString::update(const string& msg)
 {
    istrstream input(msg.c_str());
-   char temp[100];
+   string temp;
    if (p_values != 0)
      p_values->clear();
 
-   while(input.getline(temp,100))
+   while(std::getline(input, temp))
       p_values->push_back(temp);
    return true;
 }

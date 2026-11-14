@@ -285,14 +285,14 @@ void PropTable::columnLabel(const string& newColumnLabel)
 bool PropTable::update(const string& msg)
 {
    istrstream input(msg.c_str());
-   char temp[100];
+   string temp;
    vector<double> newValues;
    int numRows, numCols;
    double currentValue;
    numRows = 0;
 
-   while(input.getline(temp,100)) {
-     istrstream row(temp);
+   while(std::getline(input, temp)) {
+     istrstream row(temp.c_str());
      numCols = 0;
      while (row >> currentValue) {
        newValues.push_back(currentValue);

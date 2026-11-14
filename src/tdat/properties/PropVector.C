@@ -173,7 +173,7 @@ void PropVector::setData(istream& istrm)
    int colonPos;  
 
    std::getline(istrm, line);        // Read the size line
-   int numRows = atoi(line.c_str()+5);     // Remove the "Size:", get size as number
+   int numRows = line.size() > 5 ? atoi(line.c_str()+5) : 0;     // Remove the "Size:", get size as number
 
    p_values->clear();               // remove any pre-existing values
    if (p_rowLabels != 0)
@@ -253,12 +253,12 @@ void PropVector::valueLabel(const string& newValueLabel)
 bool PropVector::update(const string& msg)
 {
    istrstream input(msg.c_str());
-   char temp[100];
+   string temp;
    if (p_values != 0)
      p_values->clear();
 
-   while(input.getline(temp,100))
-      p_values->push_back(atoi(temp));
+   while(std::getline(input, temp))
+      p_values->push_back(atoi(temp.c_str()));
    return true;
 }
 

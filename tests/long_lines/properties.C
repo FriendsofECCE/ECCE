@@ -37,5 +37,13 @@ int main()
     if (!tables<PropTSTable>(pad) || !tables<PropTSVecTable>(pad) ||
         !tables<PropVecTable>(pad)) return 1;
   }
+  // Live update rows used a 100-byte buffer: ten wide columns overflow it.
+  std::string row, rows;
+  for (int c = 0; c < 10; ++c) row += "  1.234567890123e+00";
+  rows = row + "\n" + row + "\n";
+  std::unique_ptr<PropTable> live(PropFactory::make<PropTable>());
+  live->update(rows);
+  if (live->rows() != 2 || live->columns() != 10 || live->value(1, 9) != 1.234567890123)
+    return 1;
   std::cout << "PASS all five property size readers, short and long lines\n";
 }

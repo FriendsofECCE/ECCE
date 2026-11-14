@@ -1811,19 +1811,18 @@ bool Launch::generateDescriptorFile(const string& source, const string& target)
       ofstream targetDescFile(target.c_str(), ios::out | ios::binary);
 
       if (targetDescFile) {
-        static const int BUFSIZE=512;
-        char buf[BUFSIZE];
-        char bufup[BUFSIZE];
+        string line, lineup;
         string blockText;
         bool blockFlag = false;
         bool discardFlag = false;
-        int i;
 
-        while (sourceDescFile.getline(buf, BUFSIZE-1)) {
+        while (std::getline(sourceDescFile, line)) {
+          const char* buf = line.c_str();
           // make an upper case copy for comparisons
-          strcpy(bufup, buf);
-          for (i=0; i<strlen(bufup); i++)
-            bufup[i] = toupper(bufup[i]);
+          lineup = line;
+          for (char& c : lineup)
+            c = toupper(static_cast<unsigned char>(c));
+          const char* bufup = lineup.c_str();
 
           if (!blockFlag && strstr(bufup,"[")!=NULL &&
                             strstr(bufup,"[END]")==NULL) {
@@ -1841,7 +1840,7 @@ bool Launch::generateDescriptorFile(const string& source, const string& target)
               blockFlag = false;
               discardFlag = false;
             } else if (strstr(bufup, "SCRIPT") != NULL) {
-              char* script = strchr(buf, '=');
+              const char* script = strchr(buf, '=');
               if (script != NULL) {
                 script++;
                 while (*script==' ' || *script=='\t')

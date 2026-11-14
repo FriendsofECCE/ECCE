@@ -490,14 +490,14 @@ void PropTSVecTable::value(double newValue, int table, int row, int col)
 bool PropTSVecTable::update(const string& msg)
 {
    istrstream input(msg.c_str());
-   char temp[100];
+   string temp;
    vector<double> values;
    int numRows, numCols;
    double currentValue;
    numRows = 0;
 
-   while(input.getline(temp,100)) {
-     istrstream row(temp);
+   while(std::getline(input, temp)) {
+     istrstream row(temp.c_str());
      numCols = 0;
      while (row >> currentValue) {
        values.push_back(currentValue);

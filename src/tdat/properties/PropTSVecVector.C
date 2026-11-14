@@ -242,11 +242,11 @@ void PropTSVecVector::vecLabel(const string& newLabel)
 bool PropTSVecVector::update(const string& msg)
 {
    istrstream input(msg.c_str());
-   char temp[100];
+   string temp;
    vector<double> values;
 
-   while(input.getline(temp,100))
-      values.push_back(atoi(temp));
+   while(std::getline(input, temp))
+      values.push_back(atoi(temp.c_str()));
    appendVector(values);  // this function checks to make sure rows
                           // are the correct length
    return true;
