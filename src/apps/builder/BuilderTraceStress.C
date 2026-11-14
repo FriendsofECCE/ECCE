@@ -161,6 +161,16 @@ string Builder::ensembleCommand(const vector<string>& w)
       box->GetEventHandler()->ProcessEvent(event);
     } else if (c == "gtensort" && w.size() == 3) {
       en->sortTable(atoi(w[1].c_str()), w[2] == "up");
+    } else if (c == "gtendistinct" && w.size() >= 2 && w.size() <= 4) {
+      string why;
+      const bool ok = en->selectDistinct(atof(w[1].c_str()),
+          w.size() > 2 ? atoi(w[2].c_str()) : 0,
+          w.size() > 3 ? atof(w[3].c_str()) : -1.0, why);
+      if (!ok) return ("gtendistinct: " + why);
+      string ranks;
+      for (int r : en->selectedRanks()) ranks += " " + std::to_string(r);
+      fprintf(stderr, "GTSTRESS: endistinct ranks=%s note=%s\n", ranks.c_str(),
+              en->distinctNote().c_str());
     } else if (c == "gtenfit") {
       fprintf(stderr, "GTSTRESS: enfit members=%d visible=%d\n",
               (int)en->superpositionRows().size(), (int)en->superpositionVisible());
@@ -427,6 +437,7 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
   //  Ensemble panel: "gtenrows" prints the table and the panel's kind;
   //  "gtencalc <type> <rank>..." makes new calculations (#708);
   //  "gtenselect <rank>" shows that member and prints atom 1; "gtencsv <path>".
+  //  "gtendistinct <rmsd> [n|0] [window]" is Select Distinct (#1039).
   //  "gtenkind <runtype, _ for space> <0|1 scored>": the entry name for a run type.
   if (c == "gtenkind" && w.size() == 3) {
     string rt = w[1];

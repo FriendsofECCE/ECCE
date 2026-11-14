@@ -159,6 +159,18 @@ and the charge and multiplicity of this calculation. If this calculation is a
 step of a workflow, they become steps linked from it; otherwise they are
 calculations beside it, named `<calculation>_conf<rank>`.
 
+**Select Distinct...** (Conformers, Protonation Sites, Tautomers and Clusters)
+selects the distinct members, lowest energy first, with the rules of
+`ecce-ensemble pick`: a member whose heavy-atom RMSD after a best fit to a
+lower selected member is below the threshold is merged into it, and members
+with a moved proton are never merged. It asks for the RMSD threshold (Å,
+default 0.5; the last value is remembered), an optional maximum number and an
+optional energy window (kcal/mol from the lowest member); leave the last two
+empty for no limit. The line under the table then says how many were kept,
+for example "8 distinct of 21; 13 merged within 0.50 Å". The result is an
+ordinary selection: the superposition and **New Calculation from
+Selected...** work on it, and clicking a row replaces it.
+
 ### Superposing selected members
 
 Ctrl-click or Shift-click several rows to compare their structures in the
@@ -188,6 +200,8 @@ outside the visible scroll area.
 The Builder scene-script hooks are `gtenselect <rank>...` (selection order
 sets the reference), `gtenfit` (members, RMSDs, colours and overlay visibility),
 `gtenthumbs` (cached ranks), `gtenpng <file>` and `gtencsv <file>`.
+`gtendistinct <rmsd> [n] [window]` is **Select Distinct...** (n 0 for no
+maximum, window in kcal/mol) and prints the selected ranks and the note.
 `gtenviewer on|off` operates the **Show in viewer** checkbox.
 `gtensort <column> up|down` sorts rank (0), energy (1), population (2) or
 pattern (3). They run through both `ECCE_VIEWER_SCENE` and `ECCE_BUILDER_SCRIPT`, so a
