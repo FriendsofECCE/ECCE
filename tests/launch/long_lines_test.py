@@ -47,7 +47,8 @@ def deck(final_newline):
 
 # Stands in for ORCA: keeps a copy of the input the job script handed it.
 FAKE_ORCA = """#!/bin/sh
-cp "$1" received.inp
+cp "$1" "%s/received.inp"
+pwd > "%s/received.cwd"
 echo "ORCA TERMINATED NORMALLY"
 """
 
@@ -80,7 +81,7 @@ def main():
     s = harness.Session(build, "longlines", {}, local=True, keep=args.keep)
     fake = os.path.join(s.state, "fake-orca")
     with open(fake, "w") as f:
-        f.write(FAKE_ORCA)
+        f.write(FAKE_ORCA % (s.state, s.state))
     os.chmod(fake, 0o755)
     with open(os.path.join(s.state, ".ECCE", "CONFIG.localhost"), "w") as f:
         f.write("ORCA: %s\n" % fake)
@@ -97,6 +98,9 @@ def main():
                 f.write(original)
             rundir = os.path.join(s.state, "run-" + name)
             os.makedirs(rundir, exist_ok=True)
+            for old in ("received.inp", "received.cwd"):
+                if os.path.exists(os.path.join(s.state, old)):
+                    os.unlink(os.path.join(s.state, old))
             url, out = s.create(name, "orca_es", path, "orca.orcain", rundir)
             if not check(url is not None, "calculation created"):
                 harness.say(out)
@@ -113,8 +117,10 @@ def main():
             if got is not None:
                 check(got == expected, "stored deck equals the deck (%d of %d "
                       "bytes)" % (len(got), len(expected)))
-            sent = os.path.join(rundir, "received.inp")
+            sent = os.path.join(s.state, "received.inp")
             if check(os.path.exists(sent), "the code received an input"):
+                with open(os.path.join(s.state, "received.cwd")) as h:
+                    harness.say("  the code ran in %s" % h.read().strip())
                 with open(sent, "rb") as h:
                     data = h.read()
                 check(data == expected, "the code's input equals the deck (%d "
