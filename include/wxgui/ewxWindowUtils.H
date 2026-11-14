@@ -23,6 +23,14 @@ class ewxConfig;
 // the toolkit's own call. ECCE_DEBUG_RAISE=1 logs the path taken to stderr.
 void ewxRaiseWindow(wxWindow *win);
 
+/**
+ * A timer deleted with its window, for a window's own deferred work: with
+ * several windows in one process (#983) a timer that outlived its window
+ * would call into a deleted one.
+ */
+class wxTimer;
+wxTimer *ewxWindowTimer(wxWindow *win);
+
 class wxMenu;
 // Pops up a context menu and runs the chosen item after the menu has
 // closed, not from inside GTK's menu handling: a name prompt opened from

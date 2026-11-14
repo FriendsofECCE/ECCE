@@ -14,6 +14,7 @@
 //                             button (opens the real dialog)
 //    close-details            close the dialogs, as OK does
 //    button save|verify|finaledit|launch
+//    tool NAME                that tool's button for this calculation (#983)
 //    dismiss                  close a modal dialog (OK)
 //    code NAME                a click on that code's button in the Code row
 //    wmcommand ID             (Windows) the message a menu item click sends
@@ -35,6 +36,7 @@
 #include <strings.h>
 #include <sys/stat.h>
 
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxCheckBox.H"
 #include <wx/app.h>
 #include <wx/dialog.h>
@@ -94,7 +96,7 @@ void CalcEd::runCalcEdScript(const string& file)
   size_t slash = file.rfind('/');
   st->dir = slash == std::string::npos ? "." : file.substr(0, slash);
 
-  wxTimer *timer = new wxTimer();   // lives until the process exits
+  wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
   timer->Bind(wxEVT_TIMER, [this, st, timer](wxTimerEvent&) {
     if (!st->waitingFor.empty()) {
       if (exists(st->waitingFor) || wxGetLocalTimeMillis() > st->waitUntil)
@@ -288,6 +290,11 @@ void CalcEd::runCalcEdScript(const string& file)
       } else if (w[0] == "close-details") {
         closeTheoryApp(true);
         closeRuntypeApp(true);
+      } else if (w[0] == "tool" && w.size() == 2) {
+        // "tool NAME" (Basistool, Builder, ...): what that tool's button
+        // does, for this calculation.
+        startApp(w[1], 0, p_context);
+        outcome = "requested";
       } else if (w[0] == "button" && w.size() == 2) {
         bool ok;
         if (w[1] == "save-keep") {

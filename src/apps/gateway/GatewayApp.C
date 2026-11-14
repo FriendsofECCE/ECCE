@@ -139,6 +139,8 @@ wxWindow* GatewayApp::dialogParent()
 
 bool GatewayApp::OnInit()
 {
+  // The gateway only passes ECCE_ONE_PROCESS on to the Organizer (#983).
+  MqttLink::takeOneProcessSwitch(false);
   ewxApp::OnInit();
 #ifndef __WXMSW__
   WxDavAuth::setRestartsOnSwitch(true);   // `ecce` starts again, see main()

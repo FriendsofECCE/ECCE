@@ -485,7 +485,11 @@ void PullPanel::OnTab(wxCommandEvent& event)
 bool PullPanel::openAnalysis(const std::string& key)
 {
   IPropCalculation *calc = getCalculation();
-  Builder *b = dynamic_cast<Builder*>(wxTheApp->GetTopWindow());
+  //  The Builder this panel is in (a floated panel's frame has it as
+  //  parent); the app's top window is the Organizer in one process (#983).
+  Builder *b = 0;
+  for (wxWindow *w = this; w && !b; w = w->GetParent())
+    b = dynamic_cast<Builder*>(w);
   if (!calc || !b || !b->openPropertyPanel("MD Analysis")) {
     //  said under the run's summary: a dialog would stop a scripted run
     const wxString why = "MD Analysis is not offered for this run (it needs the stored trajectory).";
