@@ -2,6 +2,7 @@
 #define MQTTBROKER_HH
 
 #include <atomic>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -30,6 +31,8 @@ public:
   const std::string& socketPath() const { return p_path; }
   // Clients that have completed CONNECT and are still connected.
   int clients() const;
+  // Connections accepted so far, clients or not (a probe that only knocks).
+  uint64_t connections() const;
 
   // The ACL as functions of a verified account, for tests.
   static bool mayWrite(const std::string& user, const std::string& topic);

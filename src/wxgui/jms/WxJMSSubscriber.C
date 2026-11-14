@@ -12,6 +12,7 @@
 #include <memory>
   using namespace std;
 
+#include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
@@ -29,6 +30,23 @@ WxJMSSubscriber::WxJMSSubscriber(const string& toolName) {
   p_started = false;
   p_messagingEnabled = (getenv("ECCE_NO_MESSAGING") == NULL) ? true : false;
   if (p_messagingEnabled) {
+    // Every GUI program with messaging comes through here. A test run
+    // reads stderr instead: a modal box would stall its scripted app.
+    static bool handlerSet = false;
+    if (!handlerSet && Ecce::guiAvailable() && !getenv("ECCE_TEST_HOME")) {
+      handlerSet = true;
+      MqttLink::setNoBrokerHandler([](const string& file) {
+        if (!wxTheApp) return;
+        wxTheApp->CallAfter([file]() {
+          wxMessageBox("This program could not find the message broker of "
+                       "its ECCE session (" + file + "), so it runs without "
+                       "messaging: other ECCE windows will not hear from it, "
+                       "and jobs it launches will not report back to it.\n\n"
+                       "Save your work, then start ECCE again with 'ecce'.",
+                       "ECCE: no message broker", wxOK | wxICON_WARNING);
+        });
+      });
+    }
     p_ep = std::make_shared<MqttEndpoint>(toolName);
     p_ep->handler = [this](const string& t, JMSMessage& m) { deliver(t, m); };
     p_ep->arrival = [this](const string& t, JMSMessage& m) { messageArrived(t, m); };
