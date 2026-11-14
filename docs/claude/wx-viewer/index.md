@@ -124,3 +124,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Select Protein / Select Ligand: one name-based residue rule in SGFragment (#967)](select-protein-ligand-one-residue-rule.md)
 - [CIF import: operations in-process, name-only via genmollat, warnings drained by the Builder (#358)](cif-import-builds-the-cell-and-warns-358.md)
 - [ECCE's tree-list control must not reuse wx 3.x class names: exit crash in libwx_gtk3u_core (#983)](treelistctrl-name-clash.md)
+- [wxGTK3: children reparented into a window whose size then never changes stay unallocated, blank though laid out (#983)](gtk-reparented-children-never-allocated.md)

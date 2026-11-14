@@ -36,6 +36,8 @@
 #include "util/MqttLink.H"
 #include "wxgui/ToolTabs.H"
 
+static void allocateChildren(wxWindow *body);
+
 namespace {
 
 const int ID_OPEN_IN_WINDOW = wxID_HIGHEST + 7301;
@@ -108,6 +110,12 @@ public:
           this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
           wxTAB_TRAVERSAL | wxNO_BORDER);
       sw->SetScrollRate(10, 10);
+      // Children arrive and are shown (wxGTK: at idle) after the body has
+      // its size; see allocateChildren.
+      sw->Bind(wxEVT_IDLE, [sw](wxIdleEvent& ev) {
+        allocateChildren(sw);
+        ev.Skip();
+      });
       p_body = sw;
     } else {
       p_body = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
@@ -452,6 +460,56 @@ wxString reachInfo(wxWindow *body, const wxString& labels)
 }
 
 
+#ifdef __WXGTK__
+// GTK state of a window: frozen (wx), widget/client mapped, visible,
+// allocation; for diagnosing a page that is laid out but not drawn.
+wxString gtkState(wxWindow *w)
+{
+  GtkWidget *wd = w->m_widget, *cl = w->m_wxwindow;
+  GtkAllocation a = {0, 0, 0, 0};
+  if (wd) gtk_widget_get_allocation(wd, &a);
+  GtkAllocation c = {0, 0, 0, 0};
+  if (cl) gtk_widget_get_allocation(cl, &c);
+  GdkWindow *gw = cl ? gtk_widget_get_window(cl) : 0;
+  return wxString::Format("%s[frz=%d map=%d/%d vis=%d/%d alloc=%d,%d+%dx%d cl=%d,%d+%dx%d gdkview=%d wx=%dx%d]",
+      w->GetClassInfo()->GetClassName(), (int)w->IsFrozen(),
+      wd ? (int)gtk_widget_get_mapped(wd) : -1, cl ? (int)gtk_widget_get_mapped(cl) : -1,
+      wd ? (int)gtk_widget_get_visible(wd) : -1, cl ? (int)gtk_widget_get_visible(cl) : -1,
+      a.x, a.y, a.width, a.height, c.x, c.y, c.width, c.height,
+      gw ? (int)gdk_window_is_viewable(gw) : -1, w->GetSize().x, w->GetSize().y);
+}
+
+wxString gtkInfo(wxWindow *body)
+{
+  wxString out = " gtk:";
+  for (wxWindow *w = body; w; w = w->GetParent()) {
+    out += " " + gtkState(w);
+    if (w->IsTopLevel()) break;
+  }
+  int frozen = 0, unmapped = 0, n = 0;
+  wxString firstBad;
+  std::vector<wxWindow*> todo(body->GetChildren().begin(), body->GetChildren().end());
+  while (!todo.empty()) {
+    wxWindow *w = todo.back();
+    todo.pop_back();
+    if (!w->IsShown()) continue;
+    n++;
+    for (wxWindow *c : w->GetChildren()) todo.push_back(c);
+    if (w->IsFrozen()) frozen++;
+    if (w->m_widget && !gtk_widget_get_mapped(w->m_widget)) {
+      unmapped++;
+      if (firstBad.empty()) firstBad = gtkState(w);
+    }
+  }
+  out += wxString::Format(" | desc=%d frozen=%d unmapped=%d %s", n, frozen,
+                          unmapped, firstBad);
+  if (!body->GetChildren().empty())
+    out += " first=" + gtkState(body->GetChildren().front());
+  return out;
+}
+#endif
+
+
 // Distinct colours in the page as the X server shows it: a page that is
 // one flat colour is blank.
 wxString paintInfo(wxWindow *page)
@@ -585,12 +643,43 @@ wxWindow *ToolTabs::client(const wxTopLevelWindow *tool)
 }
 
 
+// GTK keeps its own allocation per widget, made when the parent's pizza is
+// size-allocated.  Children reparented into a scroller body whose size never
+// changes after they arrive (content fits, no scrollbar comes or goes) are
+// never allocated: they stay at GTK's unallocated 1x1 and draw nothing,
+// though wx has them laid out, and a queued resize does not reach them.
+// Allocate those at their wx rectangle, as wxGTK does within a size-allocate.
+static void allocateChildren(wxWindow *body)
+{
+#ifdef __WXGTK__
+  bool any = false;
+  for (wxWindow *w : body->GetChildren()) {
+    GtkWidget *wd = w->m_widget;
+    if (!wd || !w->IsShown() || !gtk_widget_get_visible(wd)) continue;
+    GtkAllocation a;
+    gtk_widget_get_allocation(wd, &a);
+    wxRect r(w->GetPosition(), w->GetSize());
+    if ((a.width > 1 && a.height > 1) || r.width < 2 || r.height < 2) continue;
+    GtkRequisition req;
+    gtk_widget_get_preferred_size(wd, &req, NULL);
+    GtkAllocation na = {r.x, r.y, r.width, r.height};
+    gtk_widget_size_allocate(wd, &na);
+    any = true;
+  }
+  if (any) body->Refresh();
+#else
+  (void)body;
+#endif
+}
+
+
 bool ToolTabs::layout(wxTopLevelWindow *tool)
 {
   Tab *t = findTool(tool);
   if (!t || !t->page) return false;
   wxWindow *body = static_cast<ToolPage*>(t->page)->body();
   body->Layout();
+  allocateChildren(body);
   return true;
 }
 
@@ -607,7 +696,7 @@ void ToolTabs::select(wxTopLevelWindow *tool)
   // A frame's first Show lays its content out; a tab gets no such event.
   wxWindow *body = static_cast<ToolPage*>(t->page)->body();
   body->Layout();
-  body->Refresh();
+  allocateChildren(body);
 }
 
 
@@ -728,6 +817,9 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
         !sb ? "none" : sb->GetParent() == tp ? "page" : "frame",
         mapped ? "mapped" : "hidden");
     outcome += " " + reachInfo(tp->body(), arg) + " " + paintInfo(tp);
+#ifdef __WXGTK__
+    if (arg.Contains("gtk")) outcome += gtkInfo(tp->body());
+#endif
   } else if (cmd == "sbinfo") {
     // Status bar of the tool whose title contains arg, shown in a window;
     // bottom is in frame coordinates (menu bar included), client the frame height.
