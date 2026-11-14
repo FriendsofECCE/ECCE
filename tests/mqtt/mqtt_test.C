@@ -14,6 +14,8 @@
 //   mqtt_test socket <source dir>               MqttBroker on a Unix socket:
 //                                               anonymous, no topic rules
 //   mqtt_test serve <source dir> <eccebroker>   eccebroker --serve's life
+//   mqtt_test cloexec <source dir>              no broker socket reaches a
+//                                               child process (#1025)
 //   mqtt_test child <spec>...                   second process (internal)
 //        spec = topic:tag[:targetname]
 
@@ -572,6 +574,105 @@ static string runOut(const string& cmd, int& rc)
   return out;
 }
 
+// ------------------------------------------ descriptors a child inherits
+
+// Socket inodes ("socket:[N]") in a listing of descriptors.
+static set<string> socketInodes(const string& listing)
+{
+  set<string> out;
+  for (size_t at = listing.find("socket:["); at != string::npos;
+       at = listing.find("socket:[", at + 1))
+    out.insert(listing.substr(at, listing.find(']', at) - at + 1));
+  return out;
+}
+
+static set<string> ownSockets()
+{
+  string out;
+  DIR* d = opendir("/proc/self/fd");
+  if (!d) return set<string>();
+  while (struct dirent* e = readdir(d)) {
+    char buf[256];
+    ssize_t n = readlink(("/proc/self/fd/" + string(e->d_name)).c_str(), buf, sizeof buf - 1);
+    if (n > 0) { buf[n] = 0; out += string(buf) + "\n"; }
+  }
+  closedir(d);
+  return socketInodes(out);
+}
+
+// What a program started with system() holds, as eccejobmaster is started.
+static set<string> childSockets()
+{
+  int rc = 0;
+  return socketInodes(runOut("/bin/sh -c 'ls -l /proc/self/fd/' 2>/dev/null", rc));
+}
+
+// #1025: a program the Organizer starts with system() (eccejobmaster) or
+// execv() (a terminal) must not inherit the broker's sockets.
+static int cloexecMain(const string& src)
+{
+#ifndef SOCK_CLOEXEC
+  (void)src;
+  cout << "SKIP  no /proc to list a child's descriptors" << endl;
+  return 77;
+#else
+  if (access("/proc/self/fd", F_OK) != 0) {
+    cout << "SKIP  no /proc to list a child's descriptors" << endl;
+    return 77;
+  }
+  string tmp = tmpDir("mqtt_cloexec");
+  if (tmp.empty()) { perror("mkdtemp"); return 1; }
+  set<string> before = ownSockets();
+  setenv("ECCE_HOME", src.c_str(), 1);
+  setenv("ECCE_REALUSERHOME", tmp.c_str(), 1);
+  setenv("HOST", "testhost", 1);
+  setenv("ECCE_SESSION_ID", S2, 1);
+  unsetenv("ECCE_HOST");
+  unsetenv("ECCE_NO_MESSAGING");
+  string err = MqttBroker::startForSession();
+  check(err.empty(), "session broker started on a Unix socket" + (err.empty() ? string() : ": " + err));
+  Probe pa("A");
+  g_probes.push_back(&pa);
+  pa.subscribe("ecce_poll", static_cast<jmsCBFunc>(&Probe::on), false);
+  check(pa.startSubscriber(), "a subscriber (libmosquitto) connects to it");
+  MqttBroker tcp;
+  check(tcp.start(0), "a TCP broker listens on 127.0.0.1");
+  int c = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
+  struct sockaddr_in a;
+  memset(&a, 0, sizeof a);
+  a.sin_family = AF_INET;
+  a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  a.sin_port = htons((unsigned short)tcp.port());
+  check(::connect(c, (struct sockaddr*)&a, sizeof a) == 0, "a client connects to the TCP broker");
+  for (int i = 0; i < 100 && tcp.clients() < 1; i++) usleep(20000);
+  usleep(300000);
+
+  set<string> mine = ownSockets();
+  for (const string& b : before) mine.erase(b);
+  check(mine.size() >= 6, "this process holds the brokers' sockets (" +
+        to_string(mine.size()) + "; 2 listeners, 2 accepted, 2 clients)");
+  size_t leaked = 0;
+  for (const string& i : childSockets()) leaked += mine.count(i);
+  check(leaked == 0, "a child started with system() inherits none of them (" +
+        to_string(leaked) + " inherited)");
+  // The check can see a leak: an inheritable socket does reach the child.
+  int plain = socket(AF_UNIX, SOCK_STREAM, 0);
+  set<string> extra = ownSockets();
+  for (const string& i : mine) extra.erase(i);
+  for (const string& b : before) extra.erase(b);
+  bool seen = false;
+  for (const string& i : childSockets()) seen = seen || extra.count(i) > 0;
+  check(!extra.empty() && seen, "an inheritable socket made for comparison does reach the child");
+  close(plain); close(c);
+  pa.unsubscribe();
+  tcp.stop();
+  MqttBroker::stopForSession();
+  rmTree(tmp);
+  cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
+  return g_fail ? 1 : 0;
+#endif
+}
+
 // eccebroker --serve, as ecce-gateway-start runs it for a local session.
 static int serveMain(const string& src, const string& exe)
 {
@@ -977,6 +1078,7 @@ int main(int argc, char** argv)
   if (argc >= 3 && string(argv[1]) == "holder") return holderMain(argv[2]);
   if (argc >= 3 && string(argv[1]) == "linger") return lingerMain(argv[2]);
   if (argc >= 3 && string(argv[1]) == "socket") return socketMain(argv[2]);
+  if (argc >= 3 && string(argv[1]) == "cloexec") return cloexecMain(argv[2]);
   if (argc >= 4 && string(argv[1]) == "serve") return serveMain(argv[2], argv[3]);
   if (argc >= 3 && string(argv[1]) == "session")
     return sessionMain(argv[2]);

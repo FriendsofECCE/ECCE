@@ -467,10 +467,20 @@ bool MqttLink::ensureConnected()
   return true;
 }
 
-void MqttLink::onConnect(mosquitto*, void* obj, int rc, int,
+void MqttLink::onConnect(mosquitto* mosq, void* obj, int rc, int,
                          const mqtt5__property*)
 {
   MqttLink* self = static_cast<MqttLink*>(obj);
+  // libmosquitto opens its socket inheritable; a program started with
+  // system() or execv() would hold the connection open (#1025).
+  int fd = mosquitto_socket(mosq);
+  if (fd >= 0) {
+#ifdef _WIN32
+    SetHandleInformation((HANDLE)(intptr_t)fd, HANDLE_FLAG_INHERIT, 0);
+#else
+    fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC);
+#endif
+  }
   if (rc != 0) {
     // libmosquitto retries; say it once per reason.
     std::string why = mosquitto_reason_string(rc);
