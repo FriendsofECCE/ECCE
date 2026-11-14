@@ -765,6 +765,7 @@ class Builder: public BuilderGUI,
       BuilderMessages *p_msgs = nullptr;
       bool p_inProcess = false;
       bool p_closing = false;
+      bool p_quitting = false;   // inside quit(), see there
 
       set<int> p_readOnlyDisabledIds;
 

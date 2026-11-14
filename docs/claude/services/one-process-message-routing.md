@@ -244,8 +244,14 @@ that one window, so the `tests/apps` scripts keep a per-tool start.
   must end the process. Third run: `gatewayquit` (an `ecce_quit` sent as
   the gateway, by the local path) with a dirty Builder: one question, then
   the process ends. `closeAll` skips a frame already scheduled for
-  destruction (its own `ecce_quit` handler closed it), or the question
-  would come twice.
+  destruction (its own `ecce_quit` handler closed it). Both the Organizer's
+  and the Builder's own `ecce_quit` handler close the Builder; the second
+  request arrives inside the first one's save question (a modal loop).
+  `BuilderMessages::quitMCB` therefore goes through `Close(true)`, so the
+  close handler's `p_closing` guard catches it ("Builder: close already in
+  progress" on stderr), and `Builder::quit` has its own re-entry guard.
+  Calling `quit()` directly asked twice and double-freed (SIGABRT). A
+  forced close offers no Cancel (`quit(event.CanVeto())`).
 - Suites with `ECCE_ONE_PROCESS=1` in the environment: `mqtt_test`
   unsets it except in `local` mode, as its other modes check the
   switch-off behaviour. `answer` reports the dialog's title;

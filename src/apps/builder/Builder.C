@@ -3095,12 +3095,15 @@ void Builder::mainWindowCloseCB( wxCloseEvent& event )
    //  whole shutdown again -- reported as needing two or three clicks and
    //  then "free(): invalid pointer".  One shutdown at a time.
    if (p_closing) {
+      fprintf(stderr, "Builder: close already in progress\n");
       if (event.CanVeto()) event.Veto();
       return;
    }
    p_closing = true;
    saveSettings();
-   quit();
+   //  A forced close (session end, Organizer Quit in one process) offers
+   //  no Cancel: it could not be honoured.
+   quit(event.CanVeto());
    p_closing = false;   // reached only when the user cancelled the quit
    //  In one process the Organizer's Quit asks this window first (#983).
    //  After quit()'s Destroy() a frame is only scheduled for deletion and
@@ -8338,6 +8341,15 @@ void Builder::deleteSelection()
 
 void Builder::quit(const bool& allowCancel)
 {
+  //  Its save question runs a modal loop, in which another close request
+  //  (a second ecce_quit handler, #983) could start a second quit: both
+  //  would ask and both Destroy().
+  if (p_quitting) {
+    fprintf(stderr, "Builder: quit already in progress\n");
+    return;
+  }
+  p_quitting = true;
+  struct Reset { bool &f; ~Reset() { f = false; } } reset{p_quitting};
   int ret = wxID_YES;
   long buttonFlags = wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION;
   buttonFlags |= allowCancel ? wxCANCEL : 0;
