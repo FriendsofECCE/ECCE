@@ -10,12 +10,13 @@
 #include "util/JMSMessage.H"
 
 #include "wxgui/WxDavAuth.H"
-#include "wxgui/WxJMSMessageDispatch.H"
 #include "wxgui/ewxApp.H"
 
 #include "Builder.H"
 
-class BuilderApp : public ewxApp, public WxDavAuth, public WxJMSMessageDispatch
+class BuilderMessages;
+
+class BuilderApp : public ewxApp, public WxDavAuth
 {
 public:
 
@@ -25,32 +26,6 @@ public:
   virtual int OnExit();
   virtual string getName() const;
 
-  void subscribeMessages();
-
-  void invokeMCB(JMSMessage& msg);
-  void quitMCB(JMSMessage& msg);
-  void identifyMCB(JMSMessage& msg);
-  void invokeStatusMCB(JMSMessage& msg);
-
-  void unitsPrefsMCB(JMSMessage& msg);
-  void pertabPrefsMCB(JMSMessage& msg);
-  void miscPrefsMCB(JMSMessage& msg);
-  void ffConfigEditMCB(JMSMessage& msg);
-
-  void urlRenameMCB(JMSMessage& msg);
-  void urlRemoveMCB(JMSMessage& msg);
-  void urlStateMCB(JMSMessage& msg);
-
-  void propertyChangeMCB(JMSMessage& msg);
-  void detailsMCB(JMSMessage& msg);
-  void vinaBoxMCB(JMSMessage& msg);
-
-  void authChangedMCB(JMSMessage& msg);
-
-  void setSelectionMCB(JMSMessage& msg);
-
-  string identify();
-
   bool checkServer();
   bool checkServerSetup();
   bool checkUser();
@@ -59,7 +34,7 @@ public:
 
 private:
   Builder *p_builder;
-  bool p_invokeReceived;
+  BuilderMessages *p_msgs;   // the window's messages
 };
 
 DECLARE_APP(BuilderApp)

@@ -123,3 +123,4 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [The viewer's rotation row wraps: a box sizer squeezed the Y/Z spin controls to 0 px in a narrow viewer (#839)](viewer-rotation-row-wraps-when-the-viewer-is-narrow.md)
 - [Select Protein / Select Ligand: one name-based residue rule in SGFragment (#967)](select-protein-ligand-one-residue-rule.md)
 - [CIF import: operations in-process, name-only via genmollat, warnings drained by the Builder (#358)](cif-import-builds-the-cell-and-warns-358.md)
+- [ECCE's tree-list control must not reuse wx 3.x class names: exit crash in libwx_gtk3u_core (#983)](treelistctrl-name-clash.md)

@@ -25,6 +25,7 @@
 #include "wx/msw/wrapwin.h"
 #endif
 
+#include "util/MqttLink.H"
 #include "util/Filesystem.H"
 #include <fstream>
 #include <functional>
@@ -81,6 +82,7 @@ static std::string s_registerMessage;
 #include "util/SFile.H"
 #include "util/BrowserHelp.H"
 #include "util/VizThumbnail.H"
+#include "wxgui/InProcessTools.H"
 #include "wxgui/WindowShot.H"
 #include <wx/display.h>
 #include <algorithm>
@@ -3346,6 +3348,36 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = "ok";
       }
       }
+    } else if (command == "inprocess") {
+      // Tool windows open in this process (#983, ECCE_ONE_PROCESS=1).
+      outcome = "pid=" + MqttLink::processId() +
+                " Builder=" + std::to_string(InProcessTools::count(BUILDER)) +
+                " CalculationEditor=" +
+                std::to_string(InProcessTools::count(CALCED)) +
+                " MDEnergy=" + std::to_string(InProcessTools::count(MDENERGY)) +
+                " BasisTool=" + std::to_string(InProcessTools::count(BASISTOOL)) +
+                " MDPrepare=" + std::to_string(InProcessTools::count(MDPREPARE));
+      // Top-level windows still alive: one left over keeps the main loop
+      // (and the process) running after the Organizer's frame is gone.
+      for (wxWindow *w : wxTopLevelWindows)
+        if (w != this)
+          outcome += string(" tlw=") + wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
+                     (w->IsShown() ? "" : "(hidden)") + "/" + string(w->GetLabel().utf8_str());
+    } else if (command == "gatewayquit") {
+      // The session's ecce_quit as the gateway sends it, through the local
+      // path to the Organizer and every in-process tool (#983).
+      JMSPublisher pub(GATEWAY);
+      JMSMessage *msg = pub.newMessage();
+      outcome = pub.publish("ecce_quit", *msg) ? "sent" : "not sent";
+      delete msg;
+    } else if (command == "closetools") {
+      // After this command returns, so that a tool's own question can be
+      // answered by a later "answer" line.
+      CallAfter([]() {
+        const char *done = InProcessTools::closeAll(true) ? "closed" : "refused";
+        cerr << "ECCE_TEST_ORGANIZER: closetools: " << done << endl;
+      });
+      outcome = "queued";
     } else if (command == "start") {
       // "start TOOL [URL]": what a tool button does (startApp), e.g.
       // "start CalculationEditor <calc url>".
@@ -3380,9 +3412,13 @@ void CalcMgr::runTestCommand(const string& line)
            it != wxTopLevelWindows.end(); ++it) {
         wxDialog *dlg = wxDynamicCast(*it, wxDialog);
         if (dlg && dlg->IsModal()) {
+          // "cancel" and "no" also answer an in-process tool's save
+          // question (#983).
           dlg->EndModal(calcName == "stop" ? (int)ID_ORGANIZER_QUIT_STOP_SERVER
+                        : calcName == "cancel" ? (int)wxID_CANCEL
+                        : calcName == "no" ? (int)wxID_NO
                                            : (int)wxID_OK);
-          outcome = "answered";
+          outcome = "answered " + string(dlg->GetTitle().utf8_str());
           break;
         }
       }
@@ -4374,9 +4410,28 @@ bool CalcMgr::confirmAndQuit()
 
   if (result == wxID_CANCEL)
     return false;
+  // Tool windows in this process (#983) ask about their own unsaved work;
+  // one that stays open cancels the Quit.
+  if (!InProcessTools::closeAll(false))
+    return false;
 
   p_quitConfirmed = true;
   Destroy();
+  if (getenv("ECCE_TEST_ORGANIZER")) {
+    // Test hook (#983): a top-level window still alive 3 s after Quit keeps
+    // the process running; name them.
+    wxTimer *left = new wxTimer(wxTheApp);
+    wxTheApp->Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+      string names;
+      for (wxWindow *w : wxTopLevelWindows)
+        names += string(" ") +
+                 wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
+                 "/" + string(w->GetLabel().utf8_str()) +
+                 (w->GetParent() ? "(child)" : "");
+      cerr << "ECCE_TEST_ORGANIZER: left after quit:" << names << endl;
+    }, left->GetId());
+    left->StartOnce(3000);
+  }
 
   if (result == ID_ORGANIZER_QUIT_STOP_SERVER) {
     // After Destroy(), which schedules teardown asynchronously rather
@@ -11004,7 +11059,10 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
     msg->addProperty("codename", codename);
     msg->addIntProperty("debug",debug);
   }
-  publish("ecce_get_app",*msg);
+  // ECCE_ONE_PROCESS (#983): Builder and Calculation Editor open as
+  // windows of this process; other tools still go to the gateway.
+  if (!InProcessTools::open(*msg))
+    publish("ecce_get_app",*msg);
   delete msg;
 }
 
