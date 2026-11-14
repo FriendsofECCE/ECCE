@@ -42,6 +42,7 @@
 #include "dsm/ResourceTool.H"
 
 #include "wxgui/ewxWindowUtils.H"
+#include "wxgui/InProcessTools.H"
 #include "wxgui/WxJMSMessageDispatch.H"
 
 // KLS 9/6/06
@@ -164,6 +165,7 @@ void WxJMSMessageDispatch::ensureTimers()
  */
 WxJMSMessageDispatch::~WxJMSMessageDispatch()
 {
+  InProcessTools::untrack(this);
   disconnect();
 }
 
@@ -461,6 +463,17 @@ void WxJMSMessageDispatch::raiseMCB(JMSMessage& msg)
 void WxJMSMessageDispatch::getAppMCB(JMSMessage& startMsg)
 {
   ensureTimers();
+
+  // A tool that opens in this process (#983, the Windows Organizer as
+  // starter): no program to start, so no startup to track.
+  if (InProcessTools::open(startMsg)) {
+    Target target("", getMyID());
+    JMSMessage* statusMsg = newMessage(target);
+    statusMsg->addProperty("status", "ok");
+    publish("ecce_invoke_status", *statusMsg);
+    delete statusMsg;
+    return;
+  }
 
   // First change the sender in the startMsg to be me instead
   // of the app it originally came from

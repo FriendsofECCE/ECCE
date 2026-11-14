@@ -9,10 +9,12 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <memory>
   using namespace std;
 
 #include "util/ErrMsg.H"
 #include "util/JMSMessage.H"
+#include "util/JMSPublisher.H"
 #include "util/MqttLink.H"
 #include "wxgui/WxJMSSubscriber.H"
 
@@ -192,6 +194,11 @@ void WxJMSSubscriber::deliver(const string& topic, JMSMessage& msg) {
 
   wxJMSCallbackStructure *cbStruct = (*it).second;
   WxJMSListener *classPtr = cbStruct->classPtr;
+  // In one process (#983) data notices a handler causes go out as this
+  // subscriber's tool, so that its own self filter drops them.
+  std::unique_ptr<JMSPublisher::ActingTool> acting;
+  if (MqttLink::localDelivery())
+    acting.reset(new JMSPublisher::ActingTool(getMyName(), getMyID()));
   if (classPtr != NULL)
     (classPtr->*(cbStruct->funcPtr.classFunc))(msg);
   else

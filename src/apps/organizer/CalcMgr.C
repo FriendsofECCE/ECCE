@@ -81,6 +81,7 @@ static std::string s_registerMessage;
 #include "util/SFile.H"
 #include "util/BrowserHelp.H"
 #include "util/VizThumbnail.H"
+#include "wxgui/InProcessTools.H"
 #include "wxgui/WindowShot.H"
 #include <wx/display.h>
 #include <algorithm>
@@ -4363,6 +4364,10 @@ bool CalcMgr::confirmAndQuit()
   p_quitAsking = false;
 
   if (result == wxID_CANCEL)
+    return false;
+  // Tool windows in this process (#983) ask about their own unsaved work;
+  // one that stays open cancels the Quit.
+  if (!InProcessTools::closeAll(false))
     return false;
 
   p_quitConfirmed = true;
@@ -10966,7 +10971,10 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
     msg->addProperty("codename", codename);
     msg->addIntProperty("debug",debug);
   }
-  publish("ecce_get_app",*msg);
+  // ECCE_ONE_PROCESS (#983): Builder and Calculation Editor open as
+  // windows of this process; other tools still go to the gateway.
+  if (!InProcessTools::open(*msg))
+    publish("ecce_get_app",*msg);
   delete msg;
 }
 

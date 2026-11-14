@@ -75,6 +75,7 @@
 #include "wxgui/WxFeedback.H"
 
 #include "tdat/QmSolventWarning.H"
+#include "CalcEdMessages.H"
 #include "CalcEd.H"
 #include "dsm/QstStructures.H"
 #include "VerifyReportDialog.H"
@@ -419,7 +420,10 @@ CalcEd::~CalcEd( )
   delete p_ESPCnstrnt;
   closeTheoryApp(true);
   closeRuntypeApp(true);
-  ewxConfig::closeConfigs();
+  // Other windows of the process (#983) may still use their configs.
+  ewxConfig::flushConfigs();
+  ewxConfig::closeConfig("wxcalced.ini");
+  delete p_msgs;
 }
 
 
@@ -1199,7 +1203,7 @@ void CalcEd::OnMenuCalcedSavePrefClick( wxCommandEvent& event )
   config->Write("Theory", getTheoryName());
   config->Write("Category", getTheoryCategory());
   config->Write("Runtype", getRuntypeName());
-  ewxConfig::closeConfigs();
+  ewxConfig::closeConfig("wxcalced.ini");
 
   event.Skip();
 }
@@ -2476,7 +2480,7 @@ bool CalcEd::setTheory(const TTheory* value, const bool& overrideFlag)
       ewxConfig *config = ewxConfig::getConfig("wxcalced.ini");
       config->Read("Theory", &theory, wxEmptyString);
       config->Read("Category", &lastTheoryCategory, wxEmptyString);
-      ewxConfig::closeConfigs();
+      ewxConfig::closeConfig("wxcalced.ini");
     }
 
     if (theory!=wxEmptyString && choice->SetStringSelection(theory)) {
@@ -2567,7 +2571,7 @@ bool CalcEd::setRuntype(const TRunType& value)
       // otherwise, try the user preference first
       ewxConfig *config = ewxConfig::getConfig("wxcalced.ini");
       config->Read("Runtype", &runtype, wxEmptyString);
-      ewxConfig::closeConfigs();
+      ewxConfig::closeConfig("wxcalced.ini");
     }
 
     if (runtype!=wxEmptyString && choice->SetStringSelection(runtype)) {
@@ -4661,14 +4665,14 @@ void CalcEd::doRuntypeChange()
 void CalcEd::saveSettings()
 {
   //ewxConfig *config = ewxConfig::getConfig("wxcalced.ini");
-  ewxConfig::closeConfigs();
+  ewxConfig::closeConfig("wxcalced.ini");
 }
 
 
 void CalcEd::restoreSettings()
 {
   //ewxConfig *config = ewxConfig::getConfig("wxcalced.ini");
-  ewxConfig::closeConfigs();
+  ewxConfig::closeConfig("wxcalced.ini");
 }
 
 

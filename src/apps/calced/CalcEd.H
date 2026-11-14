@@ -43,6 +43,7 @@ class SFile;
 class TGBSConfig;
 class PartialCharge;
 
+class CalcEdMessages;
 class CalcEd: public CalcEdGUI,
               public WxDavAuth,
               public JMSPublisher,
@@ -353,7 +354,13 @@ class CalcEd: public CalcEdGUI,
      */
     bool regenerateIfStructureChanged();
 
+  public:
+    // The window owns its dispatcher (#983) and deletes it with itself.
+    void setMessages(CalcEdMessages *msgs) { p_msgs = msgs; }
+    CalcEdMessages *messages() const { return p_msgs; }
+
   private:
+    CalcEdMessages *p_msgs = nullptr;
     void runTestCommand(const string& line);
 
     //  ECCE_TEST_CALCED: keep the generator's working files, as Shift+Save

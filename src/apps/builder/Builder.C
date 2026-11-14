@@ -41,6 +41,7 @@ using std::vector;
 #include <wx/utils.h>
 
 #include "util/Ecce.H"
+#include "util/MqttLink.H"
 #include "util/BrowserHelp.H"
 #include "wxgui/WxHelpViewer.H"
 #include "util/CancelException.H"
@@ -242,6 +243,7 @@ using std::vector;
 #include <wx/spinctrl.h>
 #include <wx/accel.h>
 #include "Builder.H"
+#include "BuilderMessages.H"
 
 static const char *PERSP_SVG = "svg/view-persp.svg";
 static const char *ORTHO_SVG = "svg/view-ortho.svg";
@@ -725,8 +727,11 @@ Builder::~Builder()
     delete p_contextHistory;
   }
 
-  wxLog::SetActiveTarget(NULL);
-  ewxConfig::closeConfigs();
+  if (!MqttLink::localDelivery()) wxLog::SetActiveTarget(NULL);
+  delete p_msgs;
+  // Other windows of the process (#983) may still use their configs.
+  ewxConfig::flushConfigs();
+  ewxConfig::closeConfig("wxbuilder.ini");
 }
 
 
@@ -1169,7 +1174,12 @@ void Builder::createToolPanels()
   ewxTextCtrl * log = new ewxTextCtrl(this, wxID_ANY, "", wxDefaultPosition,
           wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxSUNKEN_BORDER);
   ewxLogTextCtrl *logWindow = new ewxLogTextCtrl(log, GetStatusBar());
-  delete wxLog::SetActiveTarget(logWindow);
+  //  The log target is process-wide: in one process (#983) it stays the
+  //  Organizer's, and this panel only shows what is written to it directly.
+  if (MqttLink::localDelivery())
+    delete logWindow;
+  else
+    delete wxLog::SetActiveTarget(logWindow);
   addToolPanel(log, NAME_TOOL_LOG, false, false);
   //  In the one-column layouts the log lives collapsed to its caption bar.
   //  It does not open by itself when written to: that resized the viewer
@@ -3085,15 +3095,16 @@ void Builder::mainWindowCloseCB( wxCloseEvent& event )
    //  arrived as a second close event INSIDE the first quit() and ran the
    //  whole shutdown again -- reported as needing two or three clicks and
    //  then "free(): invalid pointer".  One shutdown at a time.
-   static bool closing = false;
-   if (closing) {
+   if (p_closing) {
       if (event.CanVeto()) event.Veto();
       return;
    }
-   closing = true;
+   p_closing = true;
    saveSettings();
    quit();
-   closing = false;   // reached only when the user cancelled the quit
+   p_closing = false;   // reached only when the user cancelled the quit
+   //  In one process the Organizer's Quit asks this window first (#983).
+   if (p_inProcess && !IsBeingDeleted() && event.CanVeto()) event.Veto();
 }
 
 
@@ -8368,6 +8379,11 @@ void Builder::quit(const bool& allowCancel)
     // reached from exit() -> __run_exit_handlers -> _dl_fini). _exit()
     // skips all of that and terminates immediately, which is what "exit
     // ungracefully" actually needs.
+    if (p_inProcess) {
+      // Other windows share the process (#983): close this one only.
+      Destroy();
+      return;
+    }
     _exit(0);
   }
 }

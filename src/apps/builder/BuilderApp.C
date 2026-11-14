@@ -113,6 +113,7 @@ bool BuilderApp::OnInit()
 
   p_builder = new Builder(NULL, standalone);
   p_msgs = new BuilderMessages(appName(), p_builder);
+  p_builder->setMessages(p_msgs);
 
   p_builder->Show(false);
   SetTopWindow(p_builder);
@@ -260,8 +261,7 @@ bool BuilderApp::OnInit()
 
 int BuilderApp::OnExit()
 {
-  //  Unsubscribe from Messaging Service
-  if (p_msgs) p_msgs->unsubscribe();
+  //  The Builder window owns its dispatcher and unsubscribes it.
 
   return 0;
 }

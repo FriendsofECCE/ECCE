@@ -80,6 +80,7 @@ class wxToolBarToolBase;
 //  every child (a thaw only invalidates, and the scrolled tool panes kept
 //  the pixels of their old layout).  GTK draws once per idle anyway, so it is
 //  a no-op there.
+class BuilderMessages;
 class BuilderRedrawHold
 {
   public:
@@ -511,6 +512,11 @@ class Builder: public BuilderGUI,
                            const string& value);
 
       void quit(const bool& allowCancel = true);
+      // The window owns its dispatcher (#983) and deletes it with itself.
+      void setMessages(BuilderMessages *msgs) { p_msgs = msgs; }
+      BuilderMessages *messages() const { return p_msgs; }
+      // Opened inside the Organizer's process: Quit closes this window only.
+      void setInProcess(bool on) { p_inProcess = on; }
 
       static void moveStartCB(void *userData, SoDragger *dragger);
       static void moveEndCB(void *userData, SoDragger *dragger);
@@ -755,6 +761,10 @@ class Builder: public BuilderGUI,
       StructLib * p_structLib;
 
       bool p_standalone;
+
+      BuilderMessages *p_msgs = nullptr;
+      bool p_inProcess = false;
+      bool p_closing = false;
 
       set<int> p_readOnlyDisabledIds;
 

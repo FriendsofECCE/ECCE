@@ -772,9 +772,6 @@ ecce_tool_objects(organizer-objs src/apps/organizer
   EXCLUDE CalcMgrApp.C ${ECCE_ORGANIZER_SHARED}
   LINK ${ECCE_ORGANIZER_LINK}
   INCLUDE ${CMAKE_SOURCE_DIR}/src/apps/builder)  # XYPlotCanvas.H (#709)
-ecce_app(organizer src/apps/organizer WX MAIN CalcMgrApp.C
-  OBJECTS organizer-objs organizer-shared-objs LINK ${ECCE_ORGANIZER_LINK})
-target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(hostkeydialog src/apps/hostkeydialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(passdialog src/apps/passdialog WX
@@ -818,6 +815,12 @@ ecce_tool_objects(builder-objs src/apps/builder EXCLUDE BuilderApp.C
 ecce_app(builder src/apps/builder WX GL MAIN BuilderApp.C
   OBJECTS builder-objs organizer-shared-objs LINK ${ECCE_BUILDER_LINK})
 target_include_directories(builder PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organizer)
+# The Organizer opens Builder and Calculation Editor windows in its own
+# process with ECCE_ONE_PROCESS=1 (#983), so it links both tools' objects.
+ecce_app(organizer src/apps/organizer WX GL MAIN CalcMgrApp.C
+  OBJECTS organizer-objs organizer-shared-objs builder-objs calced-objs
+  LINK ${ECCE_BUILDER_LINK})
+target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)
 
