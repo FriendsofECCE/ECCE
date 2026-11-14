@@ -111,6 +111,11 @@ void ewxPopupMenu(wxWindow *win, wxMenu &menu)
 void ewxRaiseWindow(wxWindow *win)
 {
   if (win == NULL) return;
+  //  A hidden window has nothing to raise, and gtk_window_present (also
+  //  wxGTK's Raise) would map it: a tool frame kept hidden while its windows
+  //  are in a tab (#983) covered the main window as an empty frame.
+  wxTopLevelWindow *tlw = wxDynamicCast(win, wxTopLevelWindow);
+  if (tlw && !tlw->IsShown()) return;
   const char *how = "wxWindow::Raise";
 #if defined(__WXGTK__)
   GtkWidget *gw = (GtkWidget*)win->GetHandle();
