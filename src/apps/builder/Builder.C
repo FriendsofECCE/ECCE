@@ -6329,7 +6329,7 @@ void Builder::updatePropertyMenus()
       p_propertyMenu->GetMenuItemCount() > 0) {
     panelMetricsStarted = true;
     string path = metricsPath;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this, path](wxTimerEvent&) {
       wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
       FILE *f = fopen(path.c_str(), "w");
@@ -6391,7 +6391,7 @@ void Builder::updatePropertyMenus()
   if (getenv("ECCE_PANEL_TEST") != 0 && !panelTestStarted &&
       p_calculation != 0 && p_propertyMenu->GetMenuItemCount() > 0) {
     panelTestStarted = true;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { runPanelLayoutTest(); });
     timer->StartOnce(5000);
   }
@@ -6403,7 +6403,7 @@ void Builder::updatePropertyMenus()
       !clipAuditStarted && p_calculation != 0 &&
       p_propertyMenu->GetMenuItemCount() > 0) {
     clipAuditStarted = true;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { runClipAudit(); });
     timer->StartOnce(6000);
   }
@@ -6463,7 +6463,7 @@ void Builder::updatePropertyMenus()
   static bool dockStarted = false;
   if (getenv("ECCE_TEST_DOCK") && !dockStarted) {
     dockStarted = true;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
       auto docked = [this](int side) {
         std::vector<wxString> names;
@@ -6514,7 +6514,7 @@ void Builder::updatePropertyMenus()
   static bool helpStarted = false;
   if (getenv("ECCE_TEST_HELP") && !helpStarted) {
     helpStarted = true;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
       wxCommandEvent ev;
       helpBuilderMenuitemClick(ev);
@@ -6658,7 +6658,7 @@ void Builder::updatePropertyMenus()
     string script = sceneScript;
     const char *o = getenv("ECCE_VIEWER_SCENE_OUT");
     string outdir = o ? o : ".";
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     int *ticks = new int(0), *settled = new int(0);
     timer->Bind(wxEVT_TIMER, [this, timer, ticks, settled, script, outdir](wxTimerEvent&) {
       SGContainer *sg = getSG();
@@ -7188,7 +7188,7 @@ void Builder::updatePropertyMenus()
         std::ofstream(outdir + "/FAILED") << msg << "\n";
       }
       if (hold) {
-        wxTimer *closer = new wxTimer();   // lives until the process exits
+        wxTimer *closer = ewxWindowTimer(this);   // deleted with the window (#983)
         closer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { Close(true); });
         closer->StartOnce(1000 * atoi(hold));
         return;

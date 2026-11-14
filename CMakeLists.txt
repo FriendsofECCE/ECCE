@@ -3616,6 +3616,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_compare_energies PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Builder and Calculation Editor as windows of the Organizer's process,
+  # ECCE_ONE_PROCESS=1 (#983).
+  add_test(NAME apps_organizer_one_process
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_one_process PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Two close requests before the Quit dialog is answered (#291).
   add_test(NAME apps_organizer_close
            COMMAND ${PYTHON3_EXECUTABLE}

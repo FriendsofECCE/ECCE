@@ -269,7 +269,7 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
   if (const char *cmdPath = getenv("ECCE_TEST_CALCED")) {
     string path = cmdPath;
     auto done = std::make_shared<size_t>(0);
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this, path, done](wxTimerEvent&) {
       std::ifstream in(path.c_str());
       string line;
@@ -2201,7 +2201,7 @@ void CalcEd::CreateControls()
 
   //  tests/apps/clip_test.py: show Save, which appears with unsaved edits.
   if (getenv("ECCE_CLIP_AUDIT") != 0) {
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
       p_feedback->setEditStatus(WxFeedback::MODIFIED);
       Layout();

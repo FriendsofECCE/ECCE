@@ -35,6 +35,7 @@
 #include <strings.h>
 #include <sys/stat.h>
 
+#include "wxgui/ewxWindowUtils.H"
 #include "wxgui/ewxCheckBox.H"
 #include <wx/app.h>
 #include <wx/dialog.h>
@@ -94,7 +95,7 @@ void CalcEd::runCalcEdScript(const string& file)
   size_t slash = file.rfind('/');
   st->dir = slash == std::string::npos ? "." : file.substr(0, slash);
 
-  wxTimer *timer = new wxTimer();   // lives until the process exits
+  wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
   timer->Bind(wxEVT_TIMER, [this, st, timer](wxTimerEvent&) {
     if (!st->waitingFor.empty()) {
       if (exists(st->waitingFor) || wxGetLocalTimeMillis() > st->waitUntil)

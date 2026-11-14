@@ -25,6 +25,7 @@
 #include "wx/msw/wrapwin.h"
 #endif
 
+#include "util/MqttLink.H"
 #include "util/Filesystem.H"
 #include <fstream>
 #include <functional>
@@ -3337,6 +3338,14 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = "ok";
       }
       }
+    } else if (command == "inprocess") {
+      // Tool windows open in this process (#983, ECCE_ONE_PROCESS=1).
+      outcome = "pid=" + MqttLink::processId() +
+                " Builder=" + std::to_string(InProcessTools::count(BUILDER)) +
+                " CalculationEditor=" +
+                std::to_string(InProcessTools::count(CALCED));
+    } else if (command == "closetools") {
+      outcome = InProcessTools::closeAll(true) ? "closed" : "refused";
     } else if (command == "start") {
       // "start TOOL [URL]": what a tool button does (startApp), e.g.
       // "start CalculationEditor <calc url>".

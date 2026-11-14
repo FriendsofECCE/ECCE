@@ -191,6 +191,13 @@ void WxJMSSubscriber::deliver(const string& topic, JMSMessage& msg) {
   }
   wxCbMap::iterator it = cbStructs.find(topic);
   if (it == cbStructs.end()) return;
+  // Test hook: which tool took which message from whom (#983).
+  static const bool trace = getenv("ECCE_TEST_MESSAGES") != 0;
+  if (trace)
+    std::cerr << "ECCE_TEST_MESSAGES: " << getMyName() << " " << getMyID()
+              << " pid=" << MqttLink::processId() << " " << topic << " from "
+              << msg.getSender().getName() << " " << msg.getSender().getID()
+              << std::endl;
 
   wxJMSCallbackStructure *cbStruct = (*it).second;
   WxJMSListener *classPtr = cbStruct->classPtr;

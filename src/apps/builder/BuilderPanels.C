@@ -1960,7 +1960,7 @@ void Builder::runClipAudit()
     FILE *f = fopen(path, "a");
     if (f) { fprintf(f, "DONE\n"); fclose(f); }
   });
-  wxTimer *timer = new wxTimer();   // lives until the process exits
+  wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
   timer->Bind(wxEVT_TIMER, [steps, timer](wxTimerEvent&) {
     if (steps->empty()) { timer->Stop(); return; }
     Step step = steps->front();
