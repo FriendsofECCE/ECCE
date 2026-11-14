@@ -5032,6 +5032,7 @@ if(PYTHON3_EXECUTABLE)
   # The Stress Tensor panel: principal stresses on the cell, pressure (#1015).
   add_executable(testStressTensor tests/stress/stress_tensor_test.C)
   target_include_directories(testStressTensor PRIVATE ${CMAKE_SOURCE_DIR}/include)
+  target_link_libraries(testStressTensor PRIVATE ecceutil)
   add_test(NAME stress_tensor COMMAND testStressTensor)
   add_test(NAME apps_stress_tensor
            COMMAND ${PYTHON3_EXECUTABLE}
