@@ -32,7 +32,17 @@ namespace Series {
   /// template's basis name when the elements differ, and its deck generated.
   std::vector<Outcome> make(const EcceURL& templ, const EcceURL& folder,
                             const std::vector<std::string>& sources,
-                            int defaultCharge = 0, int defaultMult = 0);
+                            int defaultCharge = 0, int defaultMult = 0,
+                            const std::string& nameSuffix = "");
+
+  /// "New from This > In Another Code": the first calculation, of the code
+  /// with resource type typeName, from one source's final structure, charge
+  /// and multiplicity, named source + suffix.  Not Ready: the user sets it up.
+  Outcome first(const std::string& typeName, const EcceURL& folder,
+                const std::string& source, const std::string& nameSuffix);
+
+  /// Generate the deck of a calculation and set it Ready (true when it is).
+  bool makeReady(const EcceURL& calcUrl, std::string& why);
 }
 
 #endif

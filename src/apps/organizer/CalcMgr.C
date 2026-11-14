@@ -100,6 +100,7 @@ static std::string s_registerMessage;
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
 #include "dsm/Series.H"
+#include "AnotherCodeDialog.H"
 #include "dsm/SmilesBatch.H"
 #include <wx/choicdlg.h>
 #include "QsarDialog.H"
@@ -3073,6 +3074,25 @@ void CalcMgr::runTestCommand(const string& line)
       }
       reconnectSelected(urls, false, &outcome, png, command == "reconnectselectedlist",
                         0, readyId);
+    } else if (command == "anothercode" || command == "anothercodefinish") {
+      // "anothercode TYPE SUFFIX FOLDER|- SOURCE...": In Another Code's first
+      // step without the dialog or the editor (the test stands in for the
+      // editor by writing the setup); "anothercodefinish" makes the others.
+      // The answer is the report, newlines as " | ".
+      if (command == "anothercodefinish") {
+        finishAnotherCode(&outcome);
+      } else {
+        std::istringstream args(calcName);
+        string type, suffix, folder, s;
+        args >> type >> suffix >> folder;
+        vector<string> sources;
+        while (args >> s) sources.push_back(s);
+        startAnotherCode(type, suffix == "-" ? "" : suffix,
+                         folder == "-" ? EcceURL() : EcceURL(folder), sources,
+                         false, &outcome);
+      }
+      for (size_t p; (p = outcome.find('\n')) != string::npos;)
+        outcome.replace(p, 1, " | ");
     } else if (command == "newseries") {
       // "newseries TEMPLATE_URL SOURCE...": New Series without dialogs; the
       // answer is the report, newlines as " | ".
@@ -6099,6 +6119,173 @@ void CalcMgr::newSeries(const EcceURL& templ, const vector<string>& sources,
   if (outcome) *outcome = report;
 }
 
+
+
+/*!
+ * New from This > In Another Code (#1037).  The first calculation is made
+ * from the first selected one and opened in the Calculation Editor, where the
+ * user sets the theory, run type, basis set and launch settings once;
+ * finishAnotherCode then copies that setup to the others through
+ * Series::make, as ecce-series does, so the two cannot differ.
+ */
+void CalcMgr::OnAnotherCodeClick( wxCommandEvent& event )
+{
+  if (refuseDuringBatch("New in Another Code")) return;
+  if (p_anotherDialog) {
+    p_anotherDialog->Raise();
+    return;
+  }
+  vector<EcceURL> rows = launchSelection();
+  vector<string> sources;
+  for (size_t i = 0; i < rows.size(); i++) {
+    Resource *r = EDSIFactory::getResource(rows[i]);
+    if (dynamic_cast<ICalculation*>(r) && dynamic_cast<PropertyTask*>(r))
+      sources.push_back(rows[i].toString());
+  }
+  if (sources.empty()) {
+    setMessage("Select one or more calculations first.", WxFeedback::INFO);
+    return;
+  }
+  vector<std::pair<string, string> > codes;
+  vector<ResourceType*> types =
+      ResourceDescriptor::getResourceDescriptor().getResourceTypes();
+  for (const WorkflowSteps::Code& c : WorkflowSteps::codes())
+    for (size_t i = 0; i < types.size(); i++)
+      if (types[i]->getName() == c.typeName) {
+        codes.push_back(std::make_pair(string(c.label), string(c.typeName)));
+        break;
+      }
+  if (codes.empty()) {
+    setMessage("No code is registered.", WxFeedback::INFO);
+    return;
+  }
+  const EcceURL here = EcceURL(sources[0]).getParent();
+  AnotherCodeDialog dlg(this, (int)sources.size(), codes, here,
+      [this, here](EcceURL& chosen) {
+        FolderChooserDialog fc(this, _("Folder"),
+            _("Make the new calculations in this folder:"), p_treeCtrl, here,
+            [](const EcceURL&) { return string(); });
+        if (fc.ShowModal() != wxID_OK) return false;
+        chosen = fc.selectedUrl();
+        return true;
+      });
+  if (dlg.ShowModal() != wxID_OK) return;
+  startAnotherCode(dlg.typeName(), dlg.suffix(), dlg.folder(), sources, true, 0);
+}
+
+
+void CalcMgr::startAnotherCode(const string& typeName, const string& suffix,
+                               const EcceURL& folderIn,
+                               const vector<string>& sources, bool interactive,
+                               string *outcome)
+{
+  string report;
+  if (sources.empty()) {
+    if (outcome) *outcome = "no calculations";
+    return;
+  }
+  const EcceURL folder = folderIn.toString().empty()
+                             ? EcceURL(sources[0]).getParent() : folderIn;
+  Series::Outcome o = Series::first(typeName, folder, sources[0], suffix);
+  if (!o.ok) {
+    report = o.name + ": not made: " + o.note;
+    setMessage(report, WxFeedback::INFO);
+    if (outcome) *outcome = report;
+    return;
+  }
+  WxResourceTreeItemData *container = findNode(folder, true, true);
+  p_treeCtrl->addToTree(EcceURL(o.url));
+  notifyCreate(o.url);
+  if (container) p_treeCtrl->refresh(container);
+  p_anotherFirst = o.url;
+  p_anotherSuffix = suffix;
+  p_anotherRest.assign(sources.begin() + 1, sources.end());
+  startApp("CalculationEditor", 0, o.url);
+  report = o.name + ": made, open in the Calculation Editor";
+  if (!p_anotherRest.empty())
+    report += "; " + std::to_string(p_anotherRest.size()) +
+              " more to make from its setup";
+  if (outcome) *outcome = report + "\nurl=" + o.url;
+  if (p_anotherRest.empty()) {
+    p_anotherFirst.clear();
+    setMessage(report, WxFeedback::INFO);
+    return;
+  }
+  setMessage(report, WxFeedback::INFO);
+  if (!interactive) return;
+  // The editor is a separate program, so the Organizer cannot see it close:
+  // this window stays until the user says the setup is done.
+  wxDialog *d = new wxDialog(this, wxID_ANY, _("New in Another Code"),
+                             wxDefaultPosition, wxDefaultSize,
+                             wxDEFAULT_DIALOG_STYLE);
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  top->Add(new wxStaticText(d, wxID_ANY, wxString::FromUTF8((
+      "Set up " + o.name + " in the Calculation Editor and save it.\n"
+      "Then make the other " + std::to_string(p_anotherRest.size()) +
+      (p_anotherRest.size() == 1 ? " calculation" : " calculations") +
+      " with the same setup.").c_str())), 0, wxALL, 12);
+  wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+  wxButton *go = new wxButton(d, wxID_OK, _("Make the Others"));
+  wxButton *cancel = new wxButton(d, wxID_CANCEL, _("Cancel"));
+  row->Add(go, 0, wxRIGHT, 8);
+  row->Add(cancel, 0);
+  top->Add(row, 0, wxALIGN_RIGHT | wxALL, 12);
+  d->SetSizerAndFit(top);
+  p_anotherDialog = d;
+  go->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    wxDialog *dd = p_anotherDialog;
+    p_anotherDialog = 0;
+    if (dd) dd->Destroy();
+    finishAnotherCode(0);
+  });
+  cancel->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    wxDialog *dd = p_anotherDialog;
+    p_anotherDialog = 0;
+    if (dd) dd->Destroy();
+    setMessage("The other calculations were not made.", WxFeedback::INFO);
+    p_anotherFirst.clear();
+    p_anotherRest.clear();
+  });
+  d->Show();
+}
+
+
+void CalcMgr::finishAnotherCode(string *outcome)
+{
+  if (p_anotherFirst.empty()) {
+    if (outcome) *outcome = "nothing waiting";
+    return;
+  }
+  const EcceURL first(p_anotherFirst);
+  const vector<string> rest = p_anotherRest;
+  const string suffix = p_anotherSuffix;
+  p_anotherFirst.clear();
+  p_anotherRest.clear();
+  string report, why;
+  // The editor writes the deck on Save; a setup left unsaved gets it here.
+  if (!Series::makeReady(first, why))
+    report = first.getFilePathTail() + ": not ready: " + why + "\n";
+  vector<Series::Outcome> r = Series::make(first, first.getParent(), rest, 0, 0, suffix);
+  int made = 0;
+  string notes;
+  for (size_t i = 0; i < r.size(); i++) {
+    if (r[i].ok) {
+      made++;
+      p_treeCtrl->addToTree(EcceURL(r[i].url));
+      notifyCreate(r[i].url);
+      if (!r[i].note.empty()) notes += "\n" + r[i].name + ": " + r[i].note;
+    } else {
+      notes += "\n" + r[i].name + ": not made: " + r[i].note;
+    }
+  }
+  if (WxResourceTreeItemData *container = findNode(first.getParent(), true, true))
+    p_treeCtrl->refresh(container);
+  report += std::to_string(made) + " of " + std::to_string(rest.size()) +
+            " more made from " + first.getFilePathTail() + ", Ready" + notes;
+  if (made) report += "\nSelect them and use Run Mgmt > Launch Selected.";
+  setMessage(report, WxFeedback::INFO);
+  if (outcome) *outcome = report;
+}
 
 
 
@@ -10048,6 +10235,9 @@ void CalcMgr::getContextMenu(wxMenu & menu)
         can ? _("A copy with the last geometry that starts from this "
                 "calculation's final orbitals") : wxString(why));
     item->Enable(can);
+    from->Append(wxID_ANOTHER_CODE, _("In Another Code..."),
+                 _("One new calculation in another code from each selected "
+                   "calculation, all with the setup you make once"));
     {
       //  Offered for any periodic calculation, so it can say what is
       //  missing when the code is not MLP.
@@ -14605,6 +14795,7 @@ void CalcMgr::updateSelectionMenus()
       enableMenuItem(menuBar, wxID_DUPLICATE, isCalculation ||
                      dynamic_cast<MdTask*>(itemData->getResource()) != 0);
       enableMenuItem(menuBar, wxID_DUPLICATE2, isCalculation);
+      enableMenuItem(menuBar, wxID_ANOTHER_CODE, isCalculation);
       {
         //  Offered where it works; elsewhere the help line says why not.
         string why;

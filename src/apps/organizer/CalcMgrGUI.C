@@ -47,6 +47,7 @@ const wxWindowID CalcMgrGUI::wxID_LAUNCH_SELECTED = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_RECONNECT_SELECTED = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_REPARSE_OUTPUTS = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_NEW_SERIES = wxNewId();
+const wxWindowID CalcMgrGUI::wxID_ANOTHER_CODE = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_TERMINATE_SELECTED = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_HOMEASROOT = wxNewId();
 const wxWindowID CalcMgrGUI::ID_FRAME = wxNewId();
@@ -119,6 +120,7 @@ BEGIN_EVENT_TABLE( CalcMgrGUI, ewxFrame )
     EVT_MENU( wxID_RECONNECT_SELECTED, CalcMgrGUI::OnReconnectSelectedClick )
     EVT_MENU( wxID_REPARSE_OUTPUTS, CalcMgrGUI::OnReparseOutputsClick )
     EVT_MENU( wxID_NEW_SERIES, CalcMgrGUI::OnNewSeriesClick )
+    EVT_MENU( wxID_ANOTHER_CODE, CalcMgrGUI::OnAnotherCodeClick )
     EVT_MENU( wxID_TERMINATE_SELECTED, CalcMgrGUI::OnTerminateSelectedClick )
 
     EVT_MENU( wxID_CUT, CalcMgrGUI::OnCutClick )
@@ -277,6 +279,7 @@ void CalcMgrGUI::CreateControls()
     itemMenu8->Append(wxID_DUPLICATE, _("Duplicate for Rerun"), _T(""), wxITEM_NORMAL);
     itemMenu8->Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"), _T(""), wxITEM_NORMAL);
     itemMenu8->Append(wxID_DUPLICATE3, _("Duplicate with Final Orbitals"), _T(""), wxITEM_NORMAL);
+    itemMenu8->Append(wxID_ANOTHER_CODE, _("New from This in Another Code..."), _("One new calculation in another code from each selected calculation, with one setup"), wxITEM_NORMAL);
     itemMenu8->AppendSeparator();
     itemMenu8->Append(wxID_CUT, _("&Cut\tCtrl+X"), _T(""), wxITEM_NORMAL);
     itemMenu8->Append(wxID_COPY, _("C&opy\tCtrl+C"), _T(""), wxITEM_NORMAL);
@@ -515,6 +518,11 @@ void CalcMgrGUI::OnReparseOutputsClick( wxCommandEvent& event )
 }
 
 void CalcMgrGUI::OnNewSeriesClick( wxCommandEvent& event )
+{
+    event.Skip();
+}
+
+void CalcMgrGUI::OnAnotherCodeClick( wxCommandEvent& event )
 {
     event.Skip();
 }

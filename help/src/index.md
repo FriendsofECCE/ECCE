@@ -195,7 +195,8 @@ describe what you did and what happened.
    folders recipes are read from, and a complete example.
 
 36. [New Series](new-series.md): one calculation's setup applied to a list of
-   structures (xyz files or calculations), with `ecce-series`.
+   structures (xyz files or calculations): New from This > In Another Code in
+   the Organizer, or `ecce-series`.
 
 37. [QSAR: batch from SMILES](batch-from-smiles.md): a table of names, SMILES
    and measured values as one calculation per molecule, all with one setup,
