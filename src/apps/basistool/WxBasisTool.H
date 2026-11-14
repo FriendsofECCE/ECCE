@@ -1,6 +1,7 @@
 #ifndef WXBASISTOOL_HH
 #define WXBASISTOOL_HH
 
+#include <wx/timer.h>
 #include <string>
   using std::string;
 #include <vector>
@@ -84,9 +85,6 @@ class WxBasisTool: public WxBasisToolGUI,
         void helpProgramMenuItemClickCB(wxCommandEvent& event);
         void helpSupportMenuItemClickCB(wxCommandEvent& event);
 
-        void windowSplitterSashPosChangingCB( wxSplitterEvent& event );
-        void windowSplitterSashPosChangedCB( wxSplitterEvent& event );
-        void windowSplitterSizeCB(wxSizeEvent& event);
 
         void basisSetsNotebookPageChangingCB(wxNotebookEvent& event);
         void basisSetsNotebookPageChangedCB(wxNotebookEvent& event);
@@ -117,7 +115,6 @@ class WxBasisTool: public WxBasisToolGUI,
        // void contextSaveButtonClickCB(wxCommandEvent& event);
 
         void contextMultipleAllowedCheckboxClickCB(wxCommandEvent& event);
-        void windowSizeCB( wxSizeEvent& event );
         void windowCloseCB(wxCloseEvent& event);
 
         void loadSettings(string fname);
@@ -180,6 +177,11 @@ class WxBasisTool: public WxBasisToolGUI,
         void selectElements(Fragment *frag);
         void selectElements(string elmts);
         void initControls();
+        void updateSelectionsSize();
+        void startSizingTest();
+        wxTimer p_sizingTestTimer;
+        bool p_hasSavedGeometry = false;
+        wxRect p_savedGeometry;
         void updateBasisSets(int index, bool slctFirst = true);
      //   void displayBasisList(wxListBox *list, const vector<const char*>& items);
         void setEditingAllowed(bool enbld);
@@ -244,7 +246,6 @@ class WxBasisTool: public WxBasisToolGUI,
 
         void notifyChange();
 
-        wxSplitterWindow                *p_mainSplitWindow;
 
         ewxNotebook                     *p_basisSetsNotebook;
         ewxPanel                        *p_basisSetCategoryPanel[4];
@@ -334,8 +335,6 @@ class WxBasisTool: public WxBasisToolGUI,
         ewxPanel                        *p_elementsPanel;
         PerTabPanel                     *p_elementsTable;
 
-        int                             p_splitPostnMin;
-        int                             p_splitPostnMax;
 
         Preferences                     *p_prefs;
 

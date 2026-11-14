@@ -12,6 +12,8 @@
 #include "wx/wx.h"
 #endif
 
+#include <iostream>
+#include <sstream>
 #include <istream>
  //   using std::cout;
  //   using std::endl;
@@ -268,20 +270,7 @@ WxBasisTool::WxBasisTool(      wxWindow* parent,
     p_cntxtOprtnsPanel->Layout();
     p_cntxtOprtnsPanel->Fit();
 
-    this->Layout();
-    this->Fit();
-
-    // The splitter's own minimum is tiny; pin the natural size so that a short
-    // screen scrolls the panel rather than squeezing its controls.
-    FindWindow(ID_PANEL_WXBASISTOOL_MAIN)->SetMinSize(GetClientSize());
-
-    p_splitPostnMin = (p_cntxtMoleculePanel->GetBestSize()).GetHeight();
-    p_splitPostnMax = (p_mainSplitWindow->GetSize()).GetHeight()
-                         - ((p_dividerPanel->GetSize()).GetHeight()
-                             + (p_cntxtOprtnsPanel->GetBestSize()).GetHeight());
-
-    p_mainSplitWindow->SetSashPosition(p_splitPostnMin);
-    p_mainSplitWindow->SetSashGravity(0.5);
+    updateSelectionsSize();
 
     p_inCtrlUpdate = false;
 
@@ -334,9 +323,6 @@ void WxBasisTool::initControls()
 {
     long itemID;
 
-    itemID = ID_SPLITTER_WXBASISTOOL_MAIN;
-    p_mainSplitWindow = (wxSplitterWindow *)(FindWindowById(itemID));
-
     itemID = ID_NOTEBOOK_WXBASISTOOL_BASISSETS;
     p_basisSetsNotebook = (ewxNotebook *)(FindWindowById(itemID));
 
@@ -381,14 +367,7 @@ void WxBasisTool::initControls()
 
 //    p_elementsTable = new PerTabPanel(p_moleculePanel, ID_PERTAB_WXBASISTOOL_ELEMENTS, wxDefaultPosition, wxSize(-1, 320), wxNO_BORDER );
     p_elementsTable = new PerTabPanel(p_elementsPanel, true, ID_ITEM_DEFAULT, false, false, false, ID_PERTAB_WXBASISTOOL_ELEMENTS, wxDefaultPosition, wxDefaultSize, wxNO_BORDER );
-    // wxDefaultSize + relying purely on the sizer to grow this to a usable
-    // height doesn't work under wx3.2/GTK3 -- confirmed via screenshot,
-    // renders as an unusably squashed strip. Two earlier, independent
-    // attempts at an explicit min-size hint here were both left commented
-    // out rather than landed; this is that fix, actually applied.
-    // 200 is only a floor; the table's own best height follows the font.
-    // The width is a floor too: without it the window can be narrower than
-    // the table's 18 columns and the right-hand elements are cut off.
+    // The splitter does not propagate the periodic table's readable minimum.
     p_elementsTable->SetMinSize(wxSize(p_elementsTable->GetBestSize().x,
         wxMax(200, p_elementsTable->GetBestSize().y)));
     wxSizer* szrElmts = p_elementsPanel->GetSizer();
@@ -492,34 +471,6 @@ void WxBasisTool::initControls()
     p_contextAllowMultipleCheckbox = (ewxCheckBox *)(FindWindowById(itemID));
     p_contextAllowMultipleCheckbox->Show(p_multSpptd);
     p_contextAllowMultipleCheckbox->SetValue(p_multAllwd);
-
-    this->Layout();
-//    this->Validate();
-    this->Fit();
-
-    // The sizers decide the smallest usable window, so it follows the
-    // theme's font; the fixed values are only a floor.
-    // The splitter reports no useful best height of its own, so add up
-    // what each side needs: the molecule pane above the sash, the
-    // divider and the operations pane below it.
-    wxSize best = this->GetBestSize();
-    int splitNeeded = p_cntxtMoleculePanel->GetBestSize().y
-                    + p_mainSplitWindow->GetSashSize()
-                    + p_dividerPanel->GetBestSize().y
-                    + p_cntxtOprtnsPanel->GetBestSize().y;
-    int around = this->GetSize().y - p_mainSplitWindow->GetSize().y;
-    best.y = wxMax(best.y, around + splitNeeded);
-    // Likewise the width (the basis set list plus the periodic table): the
-    // splitter does not pass the table's minimum width up to the window.
-    int aroundX = this->GetSize().x - p_mainSplitWindow->GetSize().x;
-    best.x = wxMax(best.x,
-        aroundX + p_cntxtMoleculePanel->GetParent()->GetBestSize().x);
-    //  The natural size stays the minimum: Show() (ewxFrame::fitToDisplay)
-    //  puts the content in a scroller and caps only the window to the
-    //  display.  Capping the minimum here squashed the splitter's panes.
-    const wxSize want(wxMax(best.x, WXBASISTOOL_WINDOW_MINWIDTH),
-                      wxMax(best.y, WXBASISTOOL_WINDOW_MINHEIGHT));
-    this->SetMinSize(want);
 }
 
 
@@ -529,8 +480,8 @@ void WxBasisTool::loadSettings(string fname)
 
     int x = WXBASISTOOL_WINDOW_DFLTLEFT;
     int y = WXBASISTOOL_WINDOW_DFLTTOP;
-    int w = WXBASISTOOL_WINDOW_DFLTWIDTH;
-    int h = WXBASISTOOL_WINDOW_DFLTHEIGHT;
+    int w = GetSize().x;
+    int h = GetSize().y;
 
     const string topic = "BASISTOOL";
     string key;
@@ -555,10 +506,61 @@ void WxBasisTool::loadSettings(string fname)
      if (p_prefs->isDefined(key))
         p_prefs->getInt(key, h);
 
-     // A size saved under a smaller font would cut the content off.
-     wxSize least = this->GetMinSize();
-     this->SetSize(x, y, wxMax(w, least.x), wxMax(h, least.y));
+     p_savedGeometry = wxRect(x, y, w, h);
+     p_hasSavedGeometry = p_prefs->isDefined(topic + ".WIDTH")
+                       && p_prefs->isDefined(topic + ".HEIGHT");
+     SetSize(p_savedGeometry);
      ewxWindowUtils::keepOnDisplay(this);
+     startSizingTest();
+}
+
+
+void WxBasisTool::startSizingTest()
+{
+    const char *file = getenv("ECCE_TEST_BASISTOOL");
+    if (!file || p_sizingTestTimer.IsRunning())
+        return;
+    const string path(file);
+    p_sizingTestTimer.SetOwner(this);
+    Bind(wxEVT_TIMER, [this, path, done = size_t(0)](wxTimerEvent&) mutable {
+        std::ifstream input(path);
+        string line;
+        size_t number = 0;
+        while (std::getline(input, line)) {
+            if (number++ < done) continue;
+            done = number;
+            std::istringstream command(line);
+            string verb;
+            command >> verb;
+            if (verb == "info") {
+                ewxGrid *grid = p_contextBasisSetsGrid[p_contextBasisSetsNotebook->GetSelection()];
+                wxRect r = GetRect();
+                wxSize table = p_elementsTable->GetSize();
+                wxSize best = p_elementsTable->GetMinSize();
+                std::cerr << "BASISTOOL: frame=" << r.x << "," << r.y << ","
+                    << r.width << "," << r.height << " grid=" << grid->GetSize().y
+                    << " rows=" << grid->GetNumberRows()
+                    << " table=" << table.x << "," << table.y
+                    << " tablemin=" << best.x << "," << best.y
+                    << " minimum=" << GetMinSize().x << "," << GetMinSize().y << std::endl;
+            } else if (verb == "resize") {
+                int x, y, w, h;
+                if (command >> x >> y >> w >> h) SetSize(x, y, w, h);
+            } else if (verb == "rows") {
+                int rows;
+                if (command >> rows && rows > 0) {
+                    ewxGrid *grid = p_contextBasisSetsGrid[p_contextBasisSetsNotebook->GetSelection()];
+                    grid->DeleteRows(0, grid->GetNumberRows());
+                    grid->AppendRows(rows);
+                    updateSelectionsSize();
+                }
+            } else if (verb == "close") {
+                Close();
+                return;
+            }
+        }
+    }, p_sizingTestTimer.GetId());
+    p_sizingTestTimer.Start(200);
 }
 
 
@@ -599,18 +601,31 @@ WxFeedback * WxBasisTool::getMessagesFeedback()
 }
 
 
-void WxBasisTool::windowSizeCB( wxSizeEvent& event )
+void WxBasisTool::updateSelectionsSize()
 {
-//    cout << "windowSizeCB(wxSizeEvent&)" << endl;
-
-    if (!p_inCtrlUpdate)
-    {
-        p_splitPostnMax = (p_mainSplitWindow->GetSize()).GetHeight()
-                             - ((p_dividerPanel->GetSize()).GetHeight()
-                                 + (p_cntxtOprtnsPanel->GetBestSize()).GetHeight() + 12);
+    ewxGrid *active = p_contextBasisSetsGrid[p_contextBasisSetsNotebook->GetSelection()];
+    for (int i = 0; i < 3; ++i) {
+        ewxGrid *grid = p_contextBasisSetsGrid[i];
+        int height = grid->GetColLabelSize();
+        int rows = active->GetNumberRows();
+        // Keep a few rows visible, then scroll long element/atom lists.
+        for (int row = 0; row < wxMin(8, wxMax(3, rows)); ++row)
+            height += row < rows ? active->GetRowSize(row) : active->GetDefaultRowSize();
+        height += wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y) + 4;
+        grid->SetMinSize(wxSize(430, height));
     }
-
-    event.Skip();
+    p_contextBasisSetsNotebook->InvalidateBestSize();
+    // A normal sizer propagates both panes' minimum sizes to the frame.
+    wxWindow *main = FindWindow(ID_PANEL_WXBASISTOOL_MAIN);
+    main->InvalidateBestSize();
+    SetMinClientSize(GetSizer()->CalcMin());
+    Layout();
+    if (IsShown())
+        fitToScreen();
+    else if (p_hasSavedGeometry)
+        SetSize(p_savedGeometry);
+    else
+        Fit();
 }
 
 
@@ -646,40 +661,6 @@ void WxBasisTool::openLibraryAccess(EcceURL url)
         updateBasisSets(p_typeSlctn);
     }
 }
-
-void WxBasisTool::windowSplitterSashPosChangingCB(wxSplitterEvent& event)
-{
-    if (!p_inCtrlUpdate)
-    {
-        int postn = event.GetSashPosition();
-
-        if (postn < p_splitPostnMin)
-        {
-            p_inCtrlUpdate = true;
-            event.SetSashPosition(p_splitPostnMin);
-            p_inCtrlUpdate = false;
-        }
-
-        if (postn > p_splitPostnMax)
-        {
-            p_inCtrlUpdate = true;
-            event.SetSashPosition(p_splitPostnMax);
-            p_inCtrlUpdate = false;
-        }
-    }
-}
-
-
-void WxBasisTool::windowSplitterSashPosChangedCB(wxSplitterEvent& event)
-{
-}
-
-
-void WxBasisTool::windowSplitterSizeCB(wxSizeEvent& event)
-{
-    event.Skip();
-}
-
 
 void WxBasisTool::contextPolarizationRadioButtonSelectedCB(wxCommandEvent& event)
 {
@@ -2211,6 +2192,7 @@ void WxBasisTool::refreshBasisSetsDisplay()
         }
     }
 
+    updateSelectionsSize();
     p_inCtrlUpdate = prevState;
 }
 
@@ -2803,6 +2785,7 @@ void WxBasisTool::resetBSTable(TGBSConfig* cnfg, Fragment* frag)
 
   //  resizeHack();
     updateNumbers(cnfg, frag);
+    updateSelectionsSize();
 
 }
 
