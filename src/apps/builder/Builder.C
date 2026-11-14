@@ -1613,8 +1613,9 @@ void Builder::setContext(const string& url, const bool& force)
   PanelBuildGuard buildGuard(p_panelBuildDepth);
   bool newContext = false;
 
-  // Make sure it is raised/uniconified for popup dialogs
-  ewxRaiseWindow(this);
+  // Raising a hidden frame can realize its controls before the first
+  // pane layout, squeezing the rotation spin controls below their minima.
+  if (IsShown()) ewxRaiseWindow(this);
 
   if (p_calculation) {
     if (p_calculation->getURL()==url && !force) {

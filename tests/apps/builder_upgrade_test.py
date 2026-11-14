@@ -3,6 +3,8 @@
 The Builder opens on a calculation when wxbuilder.ini was last written by an
 older ECCE version (#605).
 
+Startup must also leave no GTK spin-control size warnings (#995).
+
 A modal notice shown from Builder::restoreSettings(), before the frame
 existed, opened out of sight on macOS and the Viewer never appeared.  Here
 wxbuilder.ini records Version=9.0.0, the Builder opens an ECCE-QM calculation
@@ -76,7 +78,9 @@ def main():
                 stored = [l.split("=", 1)[1] for l in handle.read().splitlines()
                           if l.startswith("Version=")]
             problem = None
-            if result.crashed:
+            if "for_size smaller than min-size" in (result.log or ""):
+                problem = "GTK measured a spin control below its minimum size"
+            elif result.crashed:
                 problem = "CRASHED (%s)" % result.signalName
             elif not result.sawWindow:
                 problem = "no window"

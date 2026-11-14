@@ -121,5 +121,6 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [Generic wx dialogs size to the longest message line: break it with \n (#905)](generic-dialogs-size-to-longest-line.md)
 - [Workflow table and boxes: one selection, multi-select (#951, #931)](workflow-table-and-boxes-one-selection-951.md)
 - [The viewer's rotation row wraps: a box sizer squeezed the Y/Z spin controls to 0 px in a narrow viewer (#839)](viewer-rotation-row-wraps-when-the-viewer-is-narrow.md)
+- [Raising the hidden Builder realizes its X rotation spinner before pane layout (#995)](rotation-spin-startup-995.md)
 - [Select Protein / Select Ligand: one name-based residue rule in SGFragment (#967)](select-protein-ligand-one-residue-rule.md)
 - [CIF import: operations in-process, name-only via genmollat, warnings drained by the Builder (#358)](cif-import-builds-the-cell-and-warns-358.md)
