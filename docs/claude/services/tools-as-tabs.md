@@ -27,8 +27,8 @@ the Organizer's `wxAuiNotebook`:
   moves panes made later (parent: the frame) into the page.
 - The menu bar is detached from the tool and swapped onto the main window
   on tab change (`placeMenus`, A behaviour; `MenuPlacement::InTab` is the
-  hook for drawing it inside the tab later). `MenuRouter`, pushed on the
-  Organizer frame, sends menu commands whose id is on the active tool's
+  hook for drawing it inside the tab later). Binds on the
+  Organizer frame (`routeMenus`) send menu commands whose id is on the active tool's
   menu bar to the tool's frame (else the Organizer would run its own
   handler for the same `wxID_SAVE`, `wxID_EXIT`, ...).
 - A tab change sends the tool's frame a `wxActivateEvent`, so data notices
@@ -44,9 +44,20 @@ The Builder is adopted in its opener before its frame is first shown, so
 the GL canvas is first realized inside the page. Open in Window reparents
 a realized canvas.
 
+- The status bar moves into the page below a `body` panel (the AUI
+  managed window, so panes are not laid over the bar) and back on release.
+- GTK sends `wxEVT_CHAR_HOOK` to the top-level window: a handler on the
+  Organizer's frame passes it to the active tool's frame first.
+- The hidden frame must never be mapped: `ewxRaiseWindow` skips hidden
+  windows (tabbed-tool-frame-is-mapped-by-raise.md).
+
+## Test hooks
+
+`tabs`, `tab <n>`, `towindow <n>`, `totabs <title>`, `tabinfo` (page size,
+shown children, status bar parent, frame mapped or not), `charhook <key>`;
+checked by `tests/apps/one_process_test.py --tabs-only` (`--shots DIR`).
+
 ## Known gaps
 
-- The tool's status bar stays on the hidden frame (not shown in a tab).
 - Dialogs and popups with the hidden frame as parent: placement on GTK.
-- `wxEVT_CHAR_HOOK` bound on the tool frame does not fire in a tab (it goes
-  to the Organizer's frame).
+- `MenuPlacement::InTab` is not implemented.
