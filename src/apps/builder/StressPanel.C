@@ -45,7 +45,7 @@ void nudgeLabel(void *data, SoAction *action)
   const float sx=n->axis.dot(right), sy=n->axis.dot(up);
   if (std::sqrt(sx*sx+sy*sy)>0.5f) return;
   SoModelMatrixElement::translateBy(state,n->node,
-      0.8f*n->span*right-0.15f*n->span*up);
+      1.0f*n->span*right-0.15f*n->span*up);
 }
 }
 
@@ -214,7 +214,8 @@ void StressPanel::updateStress(bool draw)
     p_labelAnchors.push_back({anchor[0],anchor[1],anchor[2]});
     label->addChild(at);
     auto *nudge=new SoCallback;
-    // Lives as long as the scene node; a few bytes per label per redraw.
+    // Lives as long as the scene node (the panel can go first); a few bytes
+    // per label each time the arrows are rebuilt.
     nudge->setCallback(nudgeLabel,new LabelNudge{nudge,
         SbVec3f(r.axis[i][0],r.axis[i][1],r.axis[i][2]),(float)span});
     label->addChild(nudge);
