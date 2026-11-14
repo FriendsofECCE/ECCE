@@ -186,6 +186,13 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>Diffraction</name>
+    <group>Geometry</group>
+    <class>DiffractionPropertyPanel</class>
+    <consumer>false</consumer>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>Conformers</name>
     <group>Geometry</group>
     <class>EnsemblePropertyPanel</class>

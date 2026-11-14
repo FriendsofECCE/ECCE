@@ -3,30 +3,28 @@
 
 #include <string>
 #include <vector>
+#include <functional>
+#include <wx/timer.h>
+#include <wx/stopwatch.h>
 #include "wx/wx.h"
 
 class wxProcess;
+class wxProcessEvent;
 class DiffractionPanel;
 class PowderPanel;
 class wxListCtrl;
 class wxScrolledWindow;
 class wxGraphicsContext;
 
-// Tools > Diffraction... (#971): the calculated diffraction pattern of a
-// structure file, drawn from `ecce-xrd`.  Only the file and an optional atom
-// selection go in, so it opens the same way from the Builder (the structure
-// being edited) and from a calculation's results (the final geometry).  Fibre
-// and powder (#587, periodic structures: an .xyz whose comment line has
-// Lattice="...") are drawn, and so are single-crystal layers (#972).
-// Debye scattering is available for both molecules and cell contents.
-class DiffractionDialog : public wxDialog
+// One calculation and settings owner, movable between the property pane and window.
+class DiffractionView : public wxPanel
 {
 public:
   // structure: an .xyz, .pdb or .mvm file; selection: atom numbers from 1,
   // empty for all atoms.  The file must outlive the dialog.
-  DiffractionDialog(wxWindow *parent, const std::string& structure,
+  DiffractionView(wxWindow *parent, const std::string& structure,
                     const std::vector<int>& selection = std::vector<int>());
-  ~DiffractionDialog();
+  ~DiffractionView();
 
   // Runs ecce-xrd with the current fields; false and why on failure.
   bool calculate(std::string& why);
@@ -76,7 +74,45 @@ public:
   // The reflection under a 2theta (degrees), as hovering shows it; "" if none.
   wxString reflectionText(double twoTheta, double tolerance) const;
 
+  void requestCalculation();
+  bool waitForResult(std::string& why);
+  void showOptions();
+  void setBreakoutHandler(const std::function<void(bool)>& handler);
+  wxString script(const std::vector<std::string>& args);
+
 private:
+  void startCalculation();
+  void cancelCalculation();
+  bool launch(const std::vector<std::string>& args,
+              const std::function<bool(std::string&)>& load, std::string& why);
+  void processEnded(wxProcessEvent& event);
+  void pollRun();
+  bool prepareFibre(std::string& why);
+  void restoreDefaults();
+  wxTimer p_debounce, p_poll;
+  wxStopWatch p_watch;
+  wxProcess *p_process = nullptr;
+  long p_pid = 0;
+  unsigned p_generation = 0, p_completed = 0;
+  bool p_dirty = true, p_manual = false, p_loading = true;
+  std::string p_output, p_error, p_runDir;
+  std::function<bool(std::string&)> p_load;
+  std::function<void(bool)> p_breakout;
+  wxDialog *p_options;
+  std::vector<std::pair<wxSizer*, int>> p_optionRows;
+  std::vector<std::pair<wxTextCtrl*, wxString>> p_defaults;
+  wxChoice *p_view;
+  class wxToggleButton *p_pattern;
+  wxButton *p_update, *p_experimental;
+  wxTextCtrl *p_step;
+  class wxPopupWindow *p_tip = nullptr;
+  wxString p_tipText;
+  bool p_pinned = false;
+  void showTip(wxWindow *canvas, const wxPoint& pos, const wxString& text, bool pin = false);
+  void clearTip();
+  void selectReflection(double tt, double tolerance);
+  double p_inferredRepeat = 0;
+  friend class DiffractionDialog;
   friend class DiffractionPanel;
   friend class PowderPanel;
   void onSource();
@@ -86,7 +122,6 @@ private:
   wxBitmap render(int w, int h, int scale) const;
   wxRect imageArea(const wxSize& s) const;
   int imagePixels() const;
-  std::string run(const std::vector<std::string>& args, int& status);
   void status(const wxString& text);
   void onCalculate(wxCommandEvent&);
   void onBackdrop(wxCommandEvent&);
@@ -124,13 +159,9 @@ private:
   wxTextCtrl *p_layerNo, *p_lres, *p_lb;
   wxChoice *p_zone;
   wxCheckBox *p_absent, *p_doublet;
-  wxRadioButton *p_rbFibre, *p_rbPowder, *p_rbSingle, *p_rbDebye;
-  wxSizer *p_layerItems, *p_frameItems;
   wxSlider *p_fphi;
   wxTextCtrl *p_fosc, *p_fdist;
-  wxChoice *p_fsource;
   wxCheckBox *p_fnoise, *p_flabel, *p_frings;
-  wxRadioButton *p_rbFrame;
   double p_layerScale;
   int p_layerSize;
   struct Spot { double px, py; int h, k, l; double d, F, I; bool absent; double rel; };
@@ -143,7 +174,6 @@ private:
   class wxSpinCtrl *p_plabel;
   wxChoice *p_scheme;
   wxSlider *p_exposure;
-  wxSizer *p_displayItems;
   wxCheckBox *p_lhkl, *p_laxes;
   wxStaticText *p_measure;
   std::vector<float> p_level;   // fibre, frame: display level 0..1; layer: optical density
@@ -151,13 +181,47 @@ private:
   const Spot *p_pick;           // first spot of a measurement
   wxTextCtrl *p_pwave, *p_ptmin, *p_ptmax, *p_pfwhm, *p_pb;
   wxChoice *p_source;
-  wxStaticText *p_fwhmLabel, *p_peakLabel;
   PowderPanel *p_plot;
   wxListCtrl *p_list;
-  wxSizer *p_left, *p_fibreItems, *p_powderItems;
+  wxSizer *p_left;
   std::vector<double> p_tt, p_y, p_meas;
-  struct Line { double tt, d, rel; wxString hkl; int h, k, l; bool a2; };
+  struct Line { double tt, d, rel; wxString hkl; int h, k, l, mult; bool a2; };
   std::vector<Line> p_lines;
+};
+
+class DiffractionDialog : public wxDialog
+{
+public:
+  DiffractionDialog(wxWindow *parent, const std::string& structure,
+                    const std::vector<int>& selection = std::vector<int>());
+  ~DiffractionDialog();
+  void dockTo(wxWindow *host);
+  void breakout(bool open);
+  DiffractionView *view() const { return p_view; }
+  bool calculate(std::string& why) { return p_view->calculate(why); }
+  bool savePng(const std::string& path, std::string& why) const { return p_view->savePng(path, why); }
+  bool saveCsv(const std::string& path, std::string& why) const { return p_view->saveCsv(path, why); }
+  bool setBackdrop(const std::string& path, std::string& why) { return p_view->setBackdrop(path, why); }
+  bool setMeasured(const std::string& path, std::string& why) { return p_view->setMeasured(path, why); }
+  wxString setSource(int index, int doublet = -1) { return p_view->setSource(index, doublet); }
+  bool powder() const { return p_view->powder(); }
+  void setDebye() { p_view->setDebye(); }
+  bool debye() const { return p_view->debye(); }
+  bool setLayer(const std::string& zone, int layer, double dmin, bool showAbsent, std::string& why) { return p_view->setLayer(zone, layer, dmin, showAbsent, why); }
+  bool singleCrystal() const { return p_view->singleCrystal(); }
+  bool setFrame(double phi, double osc, bool labels, bool rings, std::string& why) { return p_view->setFrame(phi, osc, labels, rings, why); }
+  bool detectorFrame() const { return p_view->detectorFrame(); }
+  wxString spotText(int h, int k, int l) const { return p_view->spotText(h, k, l); }
+  void setDisplay(int exposure, int scheme) { p_view->setDisplay(exposure, scheme); }
+  wxString measure(int h1, int k1, int l1, int h2, int k2, int l2) { return p_view->measure(h1, k1, l1, h2, k2, l2); }
+  wxString measureStrongest() { return p_view->measureStrongest(); }
+  bool testImageView(const std::string& prefix, std::string& why) { return p_view->testImageView(prefix, why); }
+  wxString sizeText() const { return p_view->sizeText(); }
+  wxString cursorText(double twoTheta, double tolerance) const { return p_view->cursorText(twoTheta, tolerance); }
+  wxString reflectionText(double twoTheta, double tolerance) const { return p_view->reflectionText(twoTheta, tolerance); }
+private:
+  DiffractionView *p_view;
+  wxWindow *p_dock = nullptr;
 };
 
 #endif

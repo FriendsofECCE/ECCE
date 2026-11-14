@@ -1496,8 +1496,8 @@ def frame_reflections(lat, sym, frac, occ, wavelength, phi, osc, axis, U, distan
     keep = (gl > 1e-9) & (gl <= gmax * (1 + 1e-12))
     hkl, g0, gl = hkl[keep], g0[keep], gl[keep]
     f2 = structure_factors2(sym, frac, occ, hkl, gl / 2.0, bfactor)
-    ok = f2 > 1e-6 * max(f2.max(), 1e-300)
-    hkl, g0, gl, f2 = hkl[ok], g0[ok], gl[ok], f2[ok]
+    # Retain extinct reflections for picking, before the relative cutoff.
+    absent = f2 < 1e-6 * max(float(f2.max()) if len(f2) else 0.0, 1e-300)
     n = axis
     ng = g0 @ n
     cross = np.cross(n, g0)
@@ -1506,7 +1506,7 @@ def frame_reflections(lat, sym, frac, occ, wavelength, phi, osc, axis, U, distan
     target = -wavelength * gl ** 2 / 2.0 - c_
     r = np.hypot(a_, b_)
     inside = np.abs(target) < r * (1 - 1e-12)
-    out = {k: [] for k in ("hkl", "x", "y", "phi", "tt", "d", "I")}
+    out = {k: [] for k in ("hkl", "x", "y", "phi", "tt", "d", "I", "F", "absent")}
     for sgn in (1.0, -1.0):
         w = np.arccos(np.clip(target / np.maximum(r, 1e-300), -1, 1))
         ph = np.degrees(np.arctan2(b_, a_) + sgn * w)
@@ -1533,6 +1533,8 @@ def frame_reflections(lat, sym, frac, occ, wavelength, phi, osc, axis, U, distan
             out["tt"].append(math.degrees(tt))
             out["d"].append(1.0 / gl[i])
             out["I"].append(f2[i] * lor * pol)
+            out["F"].append(math.sqrt(max(f2[i], 0.0)))
+            out["absent"].append(bool(absent[i]))
     res = {k: np.array(v) for k, v in out.items()}
     if not len(res["I"]):
         res["hkl"] = np.zeros((0, 3), int)
@@ -1553,6 +1555,8 @@ def frame_image(refl, size, distance, pixels, wavelength, mosaic=0.0, noise=True
     ix = np.floor((refl["x"] + size / 2) / mm).astype(int)
     iy = np.floor((size / 2 - refl["y"]) / mm).astype(int)
     m = (ix >= 0) & (ix < pixels) & (iy >= 0) & (iy < pixels)
+    if "absent" in refl:
+        m &= ~refl["absent"].astype(bool)
     np.add.at(img, (iy[m], ix[m]), refl["I"][m])
     sig = math.hypot(1.5, 0.5 * distance * math.radians(mosaic) / mm)
     yy, xx = np.mgrid[-pixels // 2:pixels - pixels // 2, -pixels // 2:pixels - pixels // 2]
@@ -1637,11 +1641,12 @@ def run_frame(a):
                              a.size, a.B)
     counts = frame_image(refl, a.size, a.distance, a.pixels, lam, a.mosaic, a.noise,
                          a.seed, a.beamstop)
-    rows = [("h", "k", "l", "x", "y", "phi", "tt", "d", "I")]
+    rows = [("h", "k", "l", "x", "y", "phi", "tt", "d", "I", "F", "absent")]
     for i in range(len(refl["I"])):
         rows.append(tuple(["%d" % v for v in refl["hkl"][i]] +
                           ["%.5f" % refl[k][i] for k in ("x", "y", "phi", "tt", "d")] +
-                          ["%.5g" % refl["I"][i]]))
+                          ["%.5g" % refl["I"][i], "%.8g" % refl["F"][i],
+                           "1" if refl["absent"][i] else "0"]))
     for out in a.out or []:
         ext = os.path.splitext(out)[1].lower()
         if ext == ".png":

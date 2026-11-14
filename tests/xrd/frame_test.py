@@ -56,7 +56,7 @@ def read_csv(path):
     with open(path) as f:
         r = list(csv.DictReader(f))
     return {"hkl": np.array([[int(x["h"]), int(x["k"]), int(x["l"])] for x in r]),
-            **{k: np.array([float(x[k]) for x in r]) for k in ("x", "y", "phi", "tt", "d", "I")}}
+            **{k: np.array([float(x[k]) for x in r]) for k in ("x", "y", "phi", "tt", "d", "I", "F", "absent")}}
 
 
 def rot(axis, deg):
@@ -83,6 +83,18 @@ def main():
     run(tmp, "nacl", "--source", "mo", "--phi", "0", "--osc", "30", "--axis", "y",
         "--orient", "23,17,11", *base, "--out", f1)
     r = read_csv(f1)
+    with open(f1) as f:
+        header = next(csv.reader(f))
+    check(header == ["h", "k", "l", "x", "y", "phi", "tt", "d", "I", "F", "absent"],
+          "original frame CSV columns unchanged; |F| and extinct flag appended")
+    lat, sym, frac, occ = ecce_xrd.read_periodic(os.path.join(CIF, "nacl.cif"))
+    gl = np.linalg.norm(r["hkl"] @ np.linalg.inv(lat).T, axis=1)
+    expected_f2 = ecce_xrd.structure_factors2(sym, frac, occ, r["hkl"], gl / 2, 1.5)
+    check(np.allclose(r["F"] ** 2, expected_f2, rtol=3e-5, atol=1e-12),
+          "frame |F| comes from the structure factor before Lorentz and polarisation")
+    extinct = r["absent"].astype(bool)
+    check(extinct.any() and (~extinct).any() and np.all(r["F"][extinct] < 1e-3 * r["F"].max()),
+          "extinct reflections retained and flagged for hovering")
     n = len(r["I"])
     check(n > 20, "NaCl frame records reflections", n)
     d = A_NACL / np.sqrt((r["hkl"] ** 2).sum(axis=1))
@@ -104,7 +116,7 @@ def main():
     run(tmp, "nacl", "--source", "mo", "--osc", "360", "--axis", "y", "--orient", "0,0,0",
         *base, "--out", f2)
     r = read_csv(f2)
-    got = {tuple(int(v) for v in h) for h in r["hkl"]}
+    got = {tuple(int(v) for v in h) for h, absent in zip(r["hkl"], r["absent"]) if not absent}
     k = 1 / LAM
     hm = 12
     rng = range(-hm, hm + 1)

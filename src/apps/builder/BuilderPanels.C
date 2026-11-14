@@ -45,6 +45,59 @@
 #include "VizPropertyPanel.H"
 
 
+// The structure is captured only when the pane first opens, as for other
+// expensive properties. The breakout moves this one view instead of copying it.
+class DiffractionPropertyPanel : public PropertyPanel
+{
+  DECLARE_DYNAMIC_CLASS(DiffractionPropertyPanel)
+public:
+  DiffractionPropertyPanel() = default;
+  ~DiffractionPropertyPanel() override { delete p_dialog; }
+  int minimumHeight() const override { return 260; }
+  int openingHeight() const override { return 450; }
+  wxString script(const vector<string>& args) {
+    ensureInitialized();
+    if (!p_dialog) return "no diffraction structure";
+    if (args.size() > 1 && args[1] == "breakout") {
+      p_dialog->breakout(args.size() > 2 && args[2] == "1");
+      return "done";
+    }
+    return p_dialog->view()->script(args);
+  }
+protected:
+  void initialize() override {
+    auto *builder = dynamic_cast<Builder*>(GetParent());
+    if (!builder) return;
+    auto *s = new wxBoxSizer(wxVERTICAL);
+    auto *toggle = new wxButton(this, wxID_ANY, "Pattern (return to pane)");
+    toggle->SetToolTip("Close the separate Pattern window and return it to this pane");
+    s->Add(toggle, 0, wxALL, 4);
+    SetSizer(s);
+    p_dialog = builder->openResultsDiffraction();
+    if (p_dialog) {
+      p_dialog->dockTo(this);
+      toggle->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { p_dialog->breakout(false); });
+    }
+    Layout();
+  }
+private:
+  DiffractionDialog *p_dialog = nullptr;
+};
+IMPLEMENT_DYNAMIC_CLASS(DiffractionPropertyPanel, PropertyPanel)
+
+wxString Builder::diffractionScript(const vector<string>& args)
+{
+  if (args.size() > 3 && args[1] == "size") {
+    SetSize(0, 0, std::atoi(args[2].c_str()), std::atoi(args[3].c_str()));
+    return "done";
+  }
+  wxAuiPaneInfo& pane = p_mgr.GetPane("Diffraction");
+  if (pane.IsOk() && !pane.IsShown()) selectDetail("Diffraction");
+  auto *panel = dynamic_cast<DiffractionPropertyPanel*>(pane.window);
+  return panel ? panel->script(args) : wxString("no Diffraction pane");
+}
+
+
 namespace {
 
 //  Panels are built, re-docked and hidden here as a matter of layout, not
@@ -948,11 +1001,6 @@ void Builder::syncIndexSelection(wxWindow *win)
 
 void Builder::selectDetail(const string& name)
 {
-  if (name == "Diffraction") {   // a dialog, not a pane
-    if (DiffractionDialog *dlg = openResultsDiffraction()) dlg->Show();
-    if (p_index) p_index->setSelected("");
-    return;
-  }
   string panelName = name;
   MoPanel *mo = dynamic_cast<MoPanel*>(p_mgr.GetPane("MOs").window);
   bool surface = false;
@@ -1123,15 +1171,6 @@ void Builder::updatePropertyIndex()
         entries.push_back({"Surfaces", entry_group_of_mos,
           "Density, spin density, ESP, ELF, LOL and NCI surfaces"});
     }
-  }
-  // Diffraction comes from the structure, so it belongs under Geometry
-  // (after the last Geometry entry, or as that group at the end).
-  if (calcHasStructure()) {
-    auto at = entries.end();
-    for (auto it = entries.begin(); it != entries.end(); ++it)
-      if (it->group == "Geometry") at = it + 1;
-    entries.insert(at, {"Diffraction", "Geometry",
-                        "Calculated diffraction of the final geometry: fibre, and powder and single crystal for a periodic one"});
   }
   p_index->setEntries(entries);
   sizeIndexPane();

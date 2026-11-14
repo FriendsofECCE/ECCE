@@ -3932,6 +3932,13 @@ if(PYTHON3_EXECUTABLE)
                        SKIP_RETURN_CODE 77)
 
   # Results > Diffraction on the NaCl example: the dialog's CSV equals ecce-xrd powder (#587).
+  add_test(NAME apps_diffraction_panel
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/diffraction_panel_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_diffraction_panel PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   add_test(NAME apps_powder_dialog
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/powder_dialog_test.py
