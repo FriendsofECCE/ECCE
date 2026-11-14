@@ -7836,8 +7836,8 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "the ionisation energy."},
     {"Ne_HF_neutral",
      "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the neon "
-     "atom; with the cation, Tools > Compare "
-     "Energies gives the ionisation energy as the difference of their "
+     "atom; with the cation, Tools > Energy "
+     "Calculator gives the ionisation energy as the difference of their "
      "energies."},
     {"Ne_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the neon "
