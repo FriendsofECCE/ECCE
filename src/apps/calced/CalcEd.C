@@ -481,6 +481,13 @@ wxWindow *CalcEd::FindWindow(long id) const
 }
 
 
+wxWindow *CalcEd::clientParent()
+{
+  wxWindow *client = ToolTabs::client(this);
+  return client ? client : this;
+}
+
+
 wxSizer *CalcEd::mainSizer() const
 {
   return ToolTabs::sizer(this, GetSizer());
@@ -571,7 +578,7 @@ void CalcEd::createCodeButtons()
     if (rt!=(ResourceType*)0 && rt->getFactoryCategory()=="EsCalculation") {
       // add the index into the list of supported codes as a way of
       // retrieving which code button was hit in the callback
-      codeButton = new wxCustomButton(this, ID_BUTTON_CALCED_CODE,
+      codeButton = new wxCustomButton(clientParent(), ID_BUTTON_CALCED_CODE,
                                ewxBitmap(rt->getIcon(), wxBITMAP_TYPE_XPM),
                                wxDefaultPosition, wxDefaultSize,
                                wxCUSTBUT_BUT_DCLICK_TOG);
@@ -596,11 +603,11 @@ void CalcEd::createCodeButtons()
         [](const std::pair<int, wxCustomButton*>& x,
            const std::pair<int, wxCustomButton*>& y) { return x.first < y.first; });
     if (!first)
-      p_codeSizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition,
+      p_codeSizer->Add(new wxStaticLine(clientParent(), wxID_ANY, wxDefaultPosition,
                        wxSize(-1, 24), wxLI_VERTICAL), 0,
                        wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 6);
     first = false;
-    wxStaticText *name = new wxStaticText(this, wxID_ANY, groupName[g]);
+    wxStaticText *name = new wxStaticText(clientParent(), wxID_ANY, groupName[g]);
     name->SetFont(name->GetFont().Smaller());
     name->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
     p_codeSizer->Add(name, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
@@ -639,7 +646,7 @@ void CalcEd::OnButtonCalcedCodeClick(wxCommandEvent &event)
 
   vector<string> codes = CodeFactory::getFullySupportedCodes();
   if (codes[icode] != p_codeName) {
-    wxWindowUpdateLocker freeze(this);
+    wxWindowUpdateLocker freeze(clientParent());
     p_startUp = true;
     doSetContext(codes[icode]);
     p_startUp = false;
@@ -727,7 +734,7 @@ void CalcEd::setContext(const string& url, const string& codeName)
   if (doit) {
     // Filling the fields relays the window out several times; show only
     // the result.
-    wxWindowUpdateLocker freeze(this);
+    wxWindowUpdateLocker freeze(clientParent());
     freeContext();
     bool msgFlag = p_iCalc != (ICalculation*)0;
     p_iCalc = givenCalc;
@@ -806,10 +813,11 @@ void CalcEd::doSetContext(const string& codeName)
         // areas the question uncovers are never repainted (black boxes).
         // Release the hold for the question and take it again afterwards.
         int frozen = 0;
-        for (; IsFrozen(); frozen++) Thaw();
+        wxWindow *held = clientParent();
+        for (; held->IsFrozen(); frozen++) held->Thaw();
         if (frozen) Update();
         wxWindowID answer = dialog.ShowModal();
-        while (frozen-- > 0) Freeze();
+        while (frozen-- > 0) held->Freeze();
         if (answer == wxID_YES) {
           tmpCode = codeName;
         } else {
@@ -3013,7 +3021,7 @@ void CalcEd::populateSummaryField(const string& summaryType)
       //  ("SCF Conv. Density") instead of on a line of its own; the full
       //  text is the tooltip.  A toggle group keeps its heading line.
       if (isNested && toggleSet && count > 0) {
-        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY, topLabel), 0, 0, 0);
+        sizer->Add(new ewxNonBoldLabel(clientParent(), wxID_ANY, topLabel), 0, 0, 0);
         sizer->AddSpacer(1);
       }
       for (size_t i = 0; i < keys.size(); i++) {
@@ -3027,7 +3035,7 @@ void CalcEd::populateSummaryField(const string& summaryType)
           }
           if (toggleSet) {
             if (value == "true") {
-              sizer->Add(new ewxStaticText(this, wxID_ANY, labels[i]),
+              sizer->Add(new ewxStaticText(clientParent(), wxID_ANY, labels[i]),
                          0, isNested ? wxLEFT : 0, isNested ? FromDIP(12) : 0);
               sizer->AddSpacer(0);
             }
@@ -3041,13 +3049,13 @@ void CalcEd::populateSummaryField(const string& summaryType)
               shown = full;
               shown.Replace("Convergence", "Conv.");
             }
-            ewxNonBoldLabel *lab = new ewxNonBoldLabel(this, wxID_ANY, shown);
+            ewxNonBoldLabel *lab = new ewxNonBoldLabel(clientParent(), wxID_ANY, shown);
             if (shown != full) lab->SetToolTip(full);
             sizer->Add(lab, 0, wxRIGHT, 0);
             wxSizer *valSizer = new wxBoxSizer(wxHORIZONTAL);
-            valSizer->Add(new ewxStaticText(this, wxID_ANY, value),
+            valSizer->Add(new ewxStaticText(clientParent(), wxID_ANY, value),
                           0, wxLEFT, 2);
-            valSizer->Add(new ewxNonBoldLabel(this, wxID_ANY, guival->m_units),
+            valSizer->Add(new ewxNonBoldLabel(clientParent(), wxID_ANY, guival->m_units),
                           0, wxLEFT, 2);
             sizer->Add(valSizer, 0, 0, 0);
           }
@@ -3483,17 +3491,24 @@ bool CalcEd::isGbsValid()
 }
 
 
+// Freezes the window that holds the controls: the page when in a tab (the
+// frame holds nothing then, and thawing it repaints nothing).
 struct CalcEd::UpdateHold {
   CalcEd *ed;
-  explicit UpdateHold(CalcEd *e) : ed(e) { ed->Freeze(); ed->p_holdDepth++; }
+  wxWindow *held;
+  explicit UpdateHold(CalcEd *e) : ed(e), held(e->clientParent())
+  {
+    held->Freeze();
+    ed->p_holdDepth++;
+  }
   ~UpdateHold() {
     if (--ed->p_holdDepth == 0 && ed->p_refitPending) {
       ed->p_refitPending = false;
       ed->refit();
     }
-    ed->Thaw();
+    held->Thaw();
 #ifdef __WXMSW__
-    ::RedrawWindow((HWND)ed->GetHWND(), NULL, NULL,
+    ::RedrawWindow((HWND)held->GetHWND(), NULL, NULL,
                    RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
 #endif
   }
@@ -3508,6 +3523,11 @@ void CalcEd::refit()
   if (p_startUp) return;
   if (p_holdDepth > 0) {
     p_refitPending = true;
+    return;
+  }
+  if (ToolTabs::hosts(this)) {
+    // The tab's scroller takes the sizer's minimum as its virtual size.
+    ToolTabs::layout(this);
     return;
   }
   mainSizer()->SetSizeHints(this);

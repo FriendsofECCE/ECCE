@@ -110,3 +110,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Batch Add from SMILES (#961): SmilesBatch builds each structure without the Builder and hands an xyz to Series::make](batch-add-from-smiles-961.md)
 - [Fibre diffraction (#971): helix sample geometry, Ewald effects](xrd-fibre-diffraction-971.md)
 - [QSAR descriptor table (#961): ecce-qsar from the stored SMILES, ChecksDialog QSAR mode, writeFolder must export what the script reads](qsar-descriptor-table-961.md)
+- [In a tab, frame GetSizer/FindWindow/Layout and controls made with `this` as parent miss the page (#983)](tab-children-made-later-need-the-page-as-parent.md)

@@ -413,7 +413,7 @@ def runTabsEditor(display):
         def inspect(_display):
             append("start CalculationEditor " + url, 25)
             append("tabs", 2)                  # 1: the editor, active
-            append("tabinfo", 2)
+            append("tabinfo Launch...,Save,Verify,dump", 2)
             shot("tabs-editor.png")
             append("start Builder " + url, 25)
             append("tabs", 2)                  # 2: the Builder, active
@@ -466,6 +466,16 @@ def runTabsEditor(display):
               int(m.group(2)) > 300 and int(m.group(3)) >= 1,
               "the editor tab shows its windows, its own frame stays unmapped",
               str(info))
+        # Every control reachable (seen, or by scrolling), and the page is
+        # not one flat colour as the X server shows it.
+        check(info and all(("%s=reachable" % b) in info[0]
+                           for b in ("Launch...", "Save", "Verify"))
+              and "clipped=0" in info[0] and "STALE" not in info[0],
+              "the editor's buttons and controls are reachable in the tab",
+              str(info))
+        m = re.search(r"colours=(\d+)", info[0] if info else "")
+        check(m is not None and int(m.group(1)) > 20,
+              "the editor tab is painted, not one flat colour", str(info))
         tw = pb.answers(log, "towindow")
         check(tw and "window:" in tw[0] and "(hidden)" not in tw[0]
               and "(no menus)" not in tw[0] and "Editor" in tw[0],
