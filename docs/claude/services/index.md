@@ -83,6 +83,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Preferences > Advanced: environment switches applied by Ecce::initialize; an explicit variable wins (#307)](preferences-advanced-switches.md)
 - [subscribe() skips the process's own messages by default (MQTT No Local); a topic the same app publishes needs filterSelf=false](subscribe-skips-own-messages.md)
 - [Every socket in a process that starts programs needs close-on-exec; a child holding the broker's end hides EOF from its clients (#1025)](broker-sockets-close-on-exec-1025.md)
+- [One GUI process (#983): in-process routing behind MqttLink (ECCE_ONE_PROCESS), tool-scoped self filter, OnInit split, globals audit, Quit](one-process-message-routing.md)
 - [The app suite tests the INSTALLED ECCE (/opt/ecce), not build-cmake (#385)](app-tests-run-the-installed-tree.md)
 - [The Launcher runs each Launch step on a worker thread; nothing a step calls may touch wx; submit timeout 120 s idle (#424)](launch-steps-run-off-the-gui-thread.md)
 - [Windows MSI: Repair waits ~85 s before its progress page (REINSTALLMODE ecmus); progress-page placeholders; uninstall time (#431)](windows-msi-repair-and-uninstall-time.md)

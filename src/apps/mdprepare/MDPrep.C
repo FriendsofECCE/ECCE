@@ -92,6 +92,8 @@
 #include "wxgui/WxState.H"
 
 #include "comm/RCommand.H"
+#include "util/MqttLink.H"
+#include "wxgui/InProcessTools.H"
 #include "comm/Launch.H"
 #include "comm/EcceShell.H"
 
@@ -113,7 +115,9 @@ MDPrep::MDPrep(wxWindow* parent, wxWindowID id, const wxString& caption,
         MDPrepGUI(parent, id, caption, pos, size, style),
         WxJMSListener(), TaskApp(WHOAMI, 1000), WxDavAuth(0)
 {
-   EDSIFactory::addAuthEventListener(this);
+   //  One listener per process: in the Organizer's process (#983) it stays
+   //  the Organizer's.
+   if (!MqttLink::localDelivery()) EDSIFactory::addAuthEventListener(this);
 
    initializeMessaging();
 
@@ -3491,7 +3495,10 @@ void MDPrep::OnButtonMdprepLnkDeleteClick( wxCommandEvent& event )
 void MDPrep::OnCloseWindow( wxCloseEvent& event )
 {
    doQuit(false, true);
-   
+   //  Cancel in the save question keeps the window: say so, or the
+   //  Organizer's Quit (#983, one process) takes the close as done.
+   if (!wxTheApp->IsScheduledForDestruction(this) && event.CanVeto())
+      event.Veto();
 }
 
 

@@ -512,9 +512,18 @@ target_link_libraries(eccewxthings PRIVATE ${wxWidgets_LIBRARIES})
 # link_libs are this app's own ECCE_LIBS list (as CMake target names, i.e.
 # without the old "-l" prefix - note libecceedsi.a is the CMake target
 # "eccedsi" here, not "ecceedsi", see the src/dsm section above).
+# MAIN names the one source of a thin main whose other code is the object
+# libraries in OBJECTS (ecce_tool_objects); without MAIN, every .C file.
 function(ecce_app name dir)
-  cmake_parse_arguments(ECCE_APP "WX;GL" "" "LINK" ${ARGN})
-  file(GLOB _srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/${dir}/*.C)
+  cmake_parse_arguments(ECCE_APP "WX;GL" "MAIN" "LINK;OBJECTS" ${ARGN})
+  if(ECCE_APP_MAIN)
+    set(_srcs ${CMAKE_SOURCE_DIR}/${dir}/${ECCE_APP_MAIN})
+    foreach(_o ${ECCE_APP_OBJECTS})
+      list(APPEND _srcs $<TARGET_OBJECTS:${_o}>)
+    endforeach()
+  else()
+    file(GLOB _srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/${dir}/*.C)
+  endif()
   add_executable(${name} ${_srcs})
   target_include_directories(${name} PRIVATE ${XercesC_INCLUDE_DIRS})
   if(ECCE_APP_WX)
@@ -536,6 +545,29 @@ function(ecce_app name dir)
   else()
     target_link_libraries(${name} PRIVATE ${ECCE_APP_LINK} ${XercesC_LIBRARIES})
   endif()
+endfunction()
+
+# Organizer, Builder and Calculation Editor are object libraries without
+# their *App.C (which holds IMPLEMENT_APP), so that one program can hold
+# several of them (#983); the programs stay thin mains over them. OBJECT,
+# not STATIC, so every object is linked as before, including those reached
+# only through static registration. The program takes the objects alone
+# ($<TARGET_OBJECTS>); LINK here only gives the compile its include paths.
+function(ecce_tool_objects lib dir)
+  cmake_parse_arguments(T "" "" "SOURCES;EXCLUDE;LINK;INCLUDE" ${ARGN})
+  if(T_SOURCES)
+    set(_srcs ${T_SOURCES})
+  else()
+    file(GLOB _srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/${dir}/*.C)
+  endif()
+  foreach(_f ${T_EXCLUDE})
+    list(REMOVE_ITEM _srcs ${CMAKE_SOURCE_DIR}/${dir}/${_f})
+  endforeach()
+  add_library(${lib} OBJECT ${_srcs})
+  target_compile_definitions(${lib} PRIVATE ${wxWidgets_DEFINITIONS})
+  target_include_directories(${lib} PRIVATE ${XercesC_INCLUDE_DIRS}
+    ${wxWidgets_INCLUDE_DIRS} ${T_INCLUDE})
+  target_link_libraries(${lib} PRIVATE ${T_LINK})
 endfunction()
 
 # --- apps with no wx dependency ---
@@ -696,10 +728,16 @@ target_link_libraries(eccejobstore PRIVATE
   ${XercesC_LIBRARIES})
 
 # --- wx apps ---
-ecce_app(basistool src/apps/basistool WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(calced src/apps/calced WX
-  LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+set(ECCE_BASISTOOL_LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_tool_objects(basistool-objs src/apps/basistool EXCLUDE WxBasisToolApp.C
+  LINK ${ECCE_BASISTOOL_LINK})
+ecce_app(basistool src/apps/basistool WX MAIN WxBasisToolApp.C OBJECTS basistool-objs
+  LINK ${ECCE_BASISTOOL_LINK})
+set(ECCE_CALCED_LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_tool_objects(calced-objs src/apps/calced EXCLUDE CalcEdApp.C
+  LINK ${ECCE_CALCED_LINK})
+ecce_app(calced src/apps/calced WX MAIN CalcEdApp.C OBJECTS calced-objs
+  LINK ${ECCE_CALCED_LINK})
 ecce_app(gateway src/apps/gateway WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(launcher src/apps/launcher WX
@@ -710,23 +748,38 @@ ecce_app(machregister src/apps/machregister WX
   # eccercmd for RCommand::localityNote (#144), the same decision the launch makes.
   # eccecomm for CodePrograms, the program names Find and first start share.
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccecomm eccetdat ecceutil)
-ecce_app(mddynamics src/apps/mddynamics WX
-  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(mdenergy src/apps/mdenergy WX
-  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(mdoptimize src/apps/mdoptimize WX
-  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(gmxprepare src/apps/gmxprepare WX
-  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(mdprepare src/apps/mdprepare WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+# The MD editors also open in the Organizer's process (#983).
+set(ECCE_MDED_LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+foreach(_md mddynamics:MDDynamicsApp mdenergy:MDEnergyApp mdoptimize:MDOptimizeApp gmxprepare:GmxPrepareApp)
+  string(REPLACE ":" ";" _md "${_md}")
+  list(GET _md 0 _md_dir)
+  list(GET _md 1 _md_main)
+  ecce_tool_objects(${_md_dir}-objs src/apps/${_md_dir} EXCLUDE ${_md_main}.C LINK ${ECCE_MDED_LINK})
+  ecce_app(${_md_dir} src/apps/${_md_dir} WX MAIN ${_md_main}.C OBJECTS ${_md_dir}-objs
+    LINK ${ECCE_MDED_LINK})
+endforeach()
+set(ECCE_MDPREP_LINK eccewxgui eccewxplotctrl eccewxthings eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_tool_objects(mdprepare-objs src/apps/mdprepare EXCLUDE PrepareApp.C
+  LINK ${ECCE_MDPREP_LINK})
+ecce_app(mdprepare src/apps/mdprepare WX MAIN PrepareApp.C OBJECTS mdprepare-objs
+  LINK ${ECCE_MDPREP_LINK})
 ecce_app(msgdialog src/apps/messagedialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(metadyn src/apps/metadyn WX
   LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(organizer src/apps/organizer WX
-  LINK eccewxguicomm eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)  # XYPlotCanvas.H (#709)
+set(ECCE_ORGANIZER_LINK eccewxguicomm eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+# Organizer sources the Builder uses too ("New Calculation from Selected"
+# makes workflow steps, #708): compiled once, linked into both.
+set(ECCE_ORGANIZER_SHARED WorkflowSteps.C Recipe.C KeyData.C
+  CompareEnergies.C CompareEnergiesGather.C)
+list(TRANSFORM ECCE_ORGANIZER_SHARED PREPEND ${CMAKE_SOURCE_DIR}/src/apps/organizer/
+  OUTPUT_VARIABLE _org_shared)
+ecce_tool_objects(organizer-shared-objs src/apps/organizer SOURCES ${_org_shared}
+  LINK ${ECCE_ORGANIZER_LINK})
+ecce_tool_objects(organizer-objs src/apps/organizer
+  EXCLUDE CalcMgrApp.C ${ECCE_ORGANIZER_SHARED}
+  LINK ${ECCE_ORGANIZER_LINK}
+  INCLUDE ${CMAKE_SOURCE_DIR}/src/apps/builder)  # XYPlotCanvas.H (#709)
 ecce_app(hostkeydialog src/apps/hostkeydialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(passdialog src/apps/passdialog WX
@@ -760,15 +813,23 @@ target_link_libraries(details_unit_test PRIVATE ecce-details-core)
 install(TARGETS ecce-dialog RUNTIME DESTINATION bin COMPONENT client)
 
 # --- wx + GL apps ---
-ecce_app(builder src/apps/builder WX GL
-  LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd 
+set(ECCE_BUILDER_LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd
        eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
        ${ECCE_X11_LIBS} jpeg freetype)
+ecce_tool_objects(builder-objs src/apps/builder EXCLUDE BuilderApp.C
+  LINK ${ECCE_BUILDER_LINK} OpenGL::GL OpenGL::GLU
+  INCLUDE ${CMAKE_SOURCE_DIR}/src/apps/organizer)
 # "New Calculation from Selected" makes workflow steps (#708).
-target_sources(builder PRIVATE src/apps/organizer/WorkflowSteps.C
-  src/apps/organizer/Recipe.C src/apps/organizer/KeyData.C
-  src/apps/organizer/CompareEnergies.C src/apps/organizer/CompareEnergiesGather.C)
+ecce_app(builder src/apps/builder WX GL MAIN BuilderApp.C
+  OBJECTS builder-objs organizer-shared-objs LINK ${ECCE_BUILDER_LINK})
 target_include_directories(builder PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organizer)
+# The Organizer opens Builder, Calculation Editor and MD editor windows in
+# its own process with ECCE_ONE_PROCESS=1 (#983), so it links their objects.
+ecce_app(organizer src/apps/organizer WX GL MAIN CalcMgrApp.C
+  OBJECTS organizer-objs organizer-shared-objs builder-objs calced-objs
+    mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs basistool-objs mdprepare-objs
+  LINK eccewxguimd ${ECCE_BUILDER_LINK})
+target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)
 
@@ -2955,6 +3016,7 @@ target_include_directories(mqtt_test PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(mqtt_test PRIVATE ecceutil ${XercesC_LIBRARIES})
 add_test(NAME mqtt COMMAND mqtt_test ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR})
+add_test(NAME mqtt-local COMMAND mqtt_test local ${CMAKE_SOURCE_DIR})
 # ECCE's own broker (#990), same checks as against mosquitto, plus protocol
 # edge cases and the Windows session path (broker file with its own login).
 add_test(NAME mqtt-builtin-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} builtin)
@@ -2973,7 +3035,7 @@ if(TARGET ecce_users_auth)
            COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} $<TARGET_FILE:ecce_users_auth>)
   set_tests_properties(mqtt-auth-plugin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 endif()
-set_tests_properties(mqtt mqtt-auth PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+set_tests_properties(mqtt mqtt-auth mqtt-local PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 
 # A compute machine's password learned in one process reaches the others of
 # a local session over the Unix-socket broker (#487).
@@ -3571,6 +3633,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/compare_energies_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_compare_energies PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # Builder and Calculation Editor as windows of the Organizer's process,
+  # ECCE_ONE_PROCESS=1 (#983).
+  add_test(NAME apps_organizer_one_process
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_one_process PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # Two close requests before the Quit dialog is answered (#291).
   add_test(NAME apps_organizer_close

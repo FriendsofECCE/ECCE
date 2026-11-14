@@ -75,6 +75,8 @@
 #include "wxgui/WxFeedback.H"
 
 #include "tdat/QmSolventWarning.H"
+#include "CalcEdMessages.H"
+#include "wxgui/InProcessTools.H"
 #include "CalcEd.H"
 #include "dsm/QstStructures.H"
 #include "VerifyReportDialog.H"
@@ -268,7 +270,7 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
   if (const char *cmdPath = getenv("ECCE_TEST_CALCED")) {
     string path = cmdPath;
     auto done = std::make_shared<size_t>(0);
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this, path, done](wxTimerEvent&) {
       std::ifstream in(path.c_str());
       string line;
@@ -419,7 +421,10 @@ CalcEd::~CalcEd( )
   delete p_ESPCnstrnt;
   closeTheoryApp(true);
   closeRuntypeApp(true);
-  ewxConfig::closeConfigs();
+  // Other windows of the process (#983) may still use their configs.
+  ewxConfig::flushConfigs();
+  ewxConfig::closeConfig("wxcalced.ini");
+  delete p_msgs;
 }
 
 
@@ -1090,7 +1095,10 @@ void CalcEd::OnToolClick(wxCommandEvent &event)
 void CalcEd::OnCloseWindow( wxCloseEvent& event )
 {
   saveSettings();
-  doClose(event.CanVeto());
+  //  Cancel keeps the window: say so, or the Organizer's Quit (#983, one
+  //  process) takes the close as done.
+  if (doClose(event.CanVeto()) == wxID_CANCEL && event.CanVeto())
+    event.Veto();
 }
 
 
@@ -1199,7 +1207,7 @@ void CalcEd::OnMenuCalcedSavePrefClick( wxCommandEvent& event )
   config->Write("Theory", getTheoryName());
   config->Write("Category", getTheoryCategory());
   config->Write("Runtype", getRuntypeName());
-  ewxConfig::closeConfigs();
+  ewxConfig::closeConfig("wxcalced.ini");
 
   event.Skip();
 }
@@ -2197,7 +2205,7 @@ void CalcEd::CreateControls()
 
   //  tests/apps/clip_test.py: show Save, which appears with unsaved edits.
   if (getenv("ECCE_CLIP_AUDIT") != 0) {
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
       p_feedback->setEditStatus(WxFeedback::MODIFIED);
       Layout();
@@ -2476,7 +2484,7 @@ bool CalcEd::setTheory(const TTheory* value, const bool& overrideFlag)
       ewxConfig *config = ewxConfig::getConfig("wxcalced.ini");
       config->Read("Theory", &theory, wxEmptyString);
       config->Read("Category", &lastTheoryCategory, wxEmptyString);
-      ewxConfig::closeConfigs();
+      ewxConfig::closeConfig("wxcalced.ini");
     }
 
     if (theory!=wxEmptyString && choice->SetStringSelection(theory)) {
@@ -2567,7 +2575,7 @@ bool CalcEd::setRuntype(const TRunType& value)
       // otherwise, try the user preference first
       ewxConfig *config = ewxConfig::getConfig("wxcalced.ini");
       config->Read("Runtype", &runtype, wxEmptyString);
-      ewxConfig::closeConfigs();
+      ewxConfig::closeConfig("wxcalced.ini");
     }
 
     if (runtype!=wxEmptyString && choice->SetStringSelection(runtype)) {
@@ -4661,14 +4669,14 @@ void CalcEd::doRuntypeChange()
 void CalcEd::saveSettings()
 {
   //ewxConfig *config = ewxConfig::getConfig("wxcalced.ini");
-  ewxConfig::closeConfigs();
+  ewxConfig::closeConfig("wxcalced.ini");
 }
 
 
 void CalcEd::restoreSettings()
 {
   //ewxConfig *config = ewxConfig::getConfig("wxcalced.ini");
-  ewxConfig::closeConfigs();
+  ewxConfig::closeConfig("wxcalced.ini");
 }
 
 
@@ -4689,6 +4697,18 @@ void CalcEd::startApp(int id, int force, const string& url) const
 
 void CalcEd::startApp(const string& app, int force, const string& url) const
 {
+  // A tool that opens in this process (#983, the editor is a window of the
+  // Organizer): the gateway would start a program instead.
+  if (InProcessTools::handles(app)) {
+    JMSMessage *req = newMessage();
+    req->addProperty("appname", app);
+    req->addIntProperty("forcenew", force);
+    req->addProperty("calcurl", url);
+    InProcessTools::open(*req);
+    delete req;
+    return;
+  }
+
   JMSMessage *msg = newMessage();
   msg->addProperty("action", "start");
   publish("ecce_activity", *msg);
