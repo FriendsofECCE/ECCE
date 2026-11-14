@@ -77,6 +77,9 @@ class CalcEd: public CalcEdGUI,
     wxMenuBar *GetMenuBar() const;
     /// The frame's sizer, also while it is in the tab's page.
     wxSizer *mainSizer() const;
+    // Parent for controls made after the window moved into a tab: a child
+    // of the hidden frame would never show.
+    wxWindow *clientParent();
     /// Hides wxWindow::FindWindow(long): the controls are in the tab's page.
     wxWindow *FindWindow(long id) const;
 

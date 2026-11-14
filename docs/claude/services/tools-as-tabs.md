@@ -65,18 +65,39 @@ and that stop working once its windows are in the page:
   Without it `populateSpinMultiplicities` dereferenced null (SIGSEGV on open).
 - `Layout()` of the frame lays out nothing: `CalcEd::Layout` -> `ToolTabs::layout`.
 
-## Known gaps (editor tab)
+## Editor tab: scrolling and children made later
 
-- First paint of a freshly opened editor tab is blank grey until the tab is
-  left and re-entered (the Freeze/Thaw hold of `UpdateHold` is the suspect).
-- The editor's content is taller than a 1366x768 page: the Code row, the
-  Verify/Save/Launch buttons and the log are clipped (window mode fits the
-  frame to the screen, a tab has no such step). Needs the scroller to shrink.
+- A tool without an AUI manager gets a `wxScrolledWindow` as the page body
+  (`ToolPage`): a frame is fitted to its display by `fitToScreen`, a page
+  is not, and the editor's sizer minimum (about 684 px) is taller than a
+  1366x768 page (548 px). Builder pages stay plain panels. After a content
+  change `CalcEd::refit` lays the page out (`ToolTabs::layout`), which sets
+  the scroller's virtual size to the sizer minimum; `ToolTabs::select` lays
+  it out too (a tab gets no first-Show layout).
+- Controls the editor makes after adoption (code buttons, the summary
+  labels under Settings) were created with `this`, the hidden frame, as
+  parent: never shown, so the Code row was empty. Use
+  `CalcEd::clientParent()`. See tab-children-made-later-need-the-page-as-parent.md.
+
+## Known gap: blank first paint when the content fits
+
+At 1366x768 (content taller than the page, so it scrolls) the editor tab
+paints on first show. On a taller page (Xvfb 1280x1024, content fits, no
+scrollbar) the tab is still blank grey until left and re-entered, though
+`tabinfo` shows every control laid out and shown. `CalcEd`'s Freeze/Thaw now
+act on the page (`UpdateHold`, `wxWindowUpdateLocker(clientParent())`), and
+layout/`Refresh`/`SendSizeEvent` after the fill did not cure it; the cause is
+not found. `one_process_test.py` (default screen) fails its
+"editor tab is painted" check (distinct colours under the page) for it.
 
 ## Test hooks
 
-`tabs`, `tab <n>`, `towindow <n>`, `totabs <title>`, `tabinfo` (page size,
-shown children, status bar parent, frame mapped or not), `charhook <key>`;
+`tabs`, `tab <n>`, `towindow <n>`, `totabs <title>`, `tabinfo [labels]` (page size,
+shown children, status bar parent, frame mapped or not, scroller view and
+virtual size, `STALE` when the virtual height is below the sizer minimum,
+`<label>=reachable|CLIPPED` for each button label in the comma list,
+`clipped=N` other controls out of reach, `colours=N` distinct colours on
+the screen under the page, so a blank page shows as a handful), `charhook <key>`;
 checked by `tests/apps/one_process_test.py --tabs-only` (`--shots DIR`).
 
 ## Known gaps

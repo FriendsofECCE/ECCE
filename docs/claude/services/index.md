@@ -113,3 +113,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Fibre diffraction (#971): helix sample geometry, Ewald effects](xrd-fibre-diffraction-971.md)
 - [QSAR descriptor table (#961): ecce-qsar from the stored SMILES, ChecksDialog QSAR mode, writeFolder must export what the script reads](qsar-descriptor-table-961.md)
 - [An adopted session broker ended before the adopting app connected; missing broker file no longer aborts (#1040)](adopted-broker-ended-before-the-app-1040.md)
+- [In a tab, frame GetSizer/FindWindow/Layout and controls made with `this` as parent miss the page (#983)](tab-children-made-later-need-the-page-as-parent.md)

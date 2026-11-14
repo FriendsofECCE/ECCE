@@ -17,6 +17,13 @@
 #include "wx/frame.h"
 #include "wx/menu.h"
 #include "wx/panel.h"
+#include "wx/scrolwin.h"
+#include "wx/button.h"
+#include "wx/dcmemory.h"
+#include "wx/dcscreen.h"
+#include "wx/image.h"
+#include <set>
+#include "wx/tokenzr.h"
 #include "wx/settings.h"
 #include "wx/sizer.h"
 #include "wx/statusbr.h"
@@ -87,14 +94,25 @@ wxColour dotFor(const wxString& title)
 class ToolPage : public wxPanel
 {
 public:
-  ToolPage(wxWindow *parent, wxFrame *tool)
+  ToolPage(wxWindow *parent, wxFrame *tool, bool scrolls)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
               wxTAB_TRAVERSAL | wxNO_BORDER), p_tool(tool)
   {
     // The body is the tool's managed window; the status bar sits below it
-    // (AUI would otherwise lay its panes over the bar).
-    p_body = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
-                         wxTAB_TRAVERSAL | wxNO_BORDER);
+    // (AUI would otherwise lay its panes over the bar).  A tool without an
+    // AUI manager gets a scroller: a frame is fitted to its display
+    // (ewxFrame::fitToScreen), a page is not, and its sizer minimum can be
+    // taller than the page.
+    if (scrolls) {
+      wxScrolledWindow *sw = new wxScrolledWindow(
+          this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+          wxTAB_TRAVERSAL | wxNO_BORDER);
+      sw->SetScrollRate(10, 10);
+      p_body = sw;
+    } else {
+      p_body = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                           wxTAB_TRAVERSAL | wxNO_BORDER);
+    }
     wxBoxSizer *sz = new wxBoxSizer(wxVERTICAL);
     sz->Add(p_body, 1, wxEXPAND);
     SetSizer(sz);
@@ -337,6 +355,14 @@ private:
 };
 
 
+// Tab captions drop the window title's "ECCE " prefix (the window is
+// already ECCE).
+wxString tabCaption(const wxString& title)
+{
+  return title.StartsWith("ECCE ") ? title.Mid(5) : title;
+}
+
+
 void onPageChanged(wxAuiNotebookEvent& ev)
 {
   Tab *t = activeTab();
@@ -370,6 +396,80 @@ void onTabRightUp(wxAuiNotebookEvent& ev)
   wxFrame *tool = t->tool;
   if (s_book->GetPopupMenuSelectionFromUser(menu) == ID_OPEN_IN_WINDOW)
     ToolTabs::release(tool);
+}
+
+// Whether the shown buttons whose label is in the comma list (plus any shown
+// control at all, as "clipped") can be seen in the page's body or reached by
+// scrolling it: its rectangle must end inside the scroller's virtual area,
+// and either be in view or the area be scrollable.
+wxString reachInfo(wxWindow *body, const wxString& labels)
+{
+  wxScrolledWindow *sw = wxDynamicCast(body, wxScrolledWindow);
+  wxSize view = body->GetClientSize();
+  wxSize virt = sw ? sw->GetVirtualSize() : view;
+  bool canScroll = sw && (virt.y > view.y || virt.x > view.x);
+  int clipped = 0;
+  wxString out = wxString::Format("view=%dx%d virtual=%dx%d", view.x, view.y,
+                                  virt.x, virt.y);
+  // The scroller must be as tall as the content's minimum, or what lies
+  // below its virtual area can never be scrolled to.
+  if (sw && sw->GetSizer() && sw->GetSizer()->CalcMin().y > virt.y)
+    out += " STALE";
+  std::set<wxString> want;
+  wxStringTokenizer tk(labels, ",");
+  while (tk.HasMoreTokens()) want.insert(tk.GetNextToken());
+  std::vector<wxWindow*> todo(body->GetChildren().begin(),
+                              body->GetChildren().end());
+  while (!todo.empty()) {
+    wxWindow *w = todo.back();
+    todo.pop_back();
+    if (!w->IsShown()) continue;
+    for (wxWindow *c : w->GetChildren()) todo.push_back(c);
+    if (w->GetSize().x < 2 || w->GetSize().y < 2) continue;
+    // Position in the body's unscrolled coordinates.
+    wxPoint p = body->ScreenToClient(w->GetScreenPosition());
+    if (sw) p = sw->CalcUnscrolledPosition(p);
+    wxRect r(p, w->GetSize());
+    bool inView = r.GetBottom() < (sw ? sw->GetViewStart().y * 10 + view.y : view.y) &&
+                  r.y >= (sw ? sw->GetViewStart().y * 10 : 0);
+    bool inArea = r.GetBottom() < virt.y + 1;
+    bool reachable = inView || (canScroll && inArea);
+    wxButton *b = wxDynamicCast(w, wxButton);
+    if (b && want.count(wxStripMenuCodes(b->GetLabel())))
+      out += wxString::Format(" %s=%s", wxStripMenuCodes(b->GetLabel()),
+                              reachable ? "reachable" : "CLIPPED");
+    else if (!reachable) clipped++;
+  }
+  if (want.count("dump")) {
+    out += wxString::Format(" min=%dx%d |", body->GetSizer() ? body->GetSizer()->CalcMin().x : -1,
+                            body->GetSizer() ? body->GetSizer()->CalcMin().y : -1);
+    for (wxWindow *c : body->GetChildren())
+      out += wxString::Format(" %s@%d,%d+%dx%d%s", c->GetClassInfo()->GetClassName(),
+                              c->GetPosition().x, c->GetPosition().y, c->GetSize().x,
+                              c->GetSize().y, c->IsShown() ? "" : "(h)");
+  }
+  return out + wxString::Format(" clipped=%d", clipped);
+}
+
+
+// Distinct colours in the page as the X server shows it: a page that is
+// one flat colour is blank.
+wxString paintInfo(wxWindow *page)
+{
+  wxSize sz = page->GetSize();
+  wxPoint org = page->ClientToScreen(wxPoint(0, 0));
+  wxBitmap bmp(sz.x, sz.y);
+  {
+    wxMemoryDC mem(bmp);
+    wxScreenDC screen;
+    mem.Blit(0, 0, sz.x, sz.y, &screen, org.x, org.y);
+  }
+  wxImage img = bmp.ConvertToImage();
+  std::set<unsigned long> colours;
+  const unsigned char *d = img.GetData();
+  for (int i = 0; d && i < sz.x * sz.y; i++)
+    colours.insert((d[3*i] << 16) | (d[3*i+1] << 8) | d[3*i+2]);
+  return wxString::Format("colours=%d", (int)colours.size());
 }
 
 }
@@ -435,12 +535,12 @@ bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
     t->menubar = mb;
   }
   setMoveToTabsItem(tool, t->menubar, false);
-  ToolPage *page = new ToolPage(s_book, tool);
+  ToolPage *page = new ToolPage(s_book, tool, mgr == 0);
   moveClient(tool, page->body(), mgr);
   page->takeStatusBar(tool);
   t->page = page;
   wxString caption = tool->GetTitle().empty() ? title : tool->GetTitle();
-  s_book->AddPage(page, caption, true);
+  s_book->AddPage(page, tabCaption(caption), true);
   // AddPage selected it; make sure the menus follow even if it was the
   // only change.
   placeMenus(activeTab());
@@ -489,7 +589,8 @@ bool ToolTabs::layout(wxTopLevelWindow *tool)
 {
   Tab *t = findTool(tool);
   if (!t || !t->page) return false;
-  static_cast<ToolPage*>(t->page)->body()->Layout();
+  wxWindow *body = static_cast<ToolPage*>(t->page)->body();
+  body->Layout();
   return true;
 }
 
@@ -503,6 +604,10 @@ void ToolTabs::select(wxTopLevelWindow *tool)
     s_book->SetSelection(idx);
   if (s_host->IsIconized()) s_host->Iconize(false);
   s_host->Raise();
+  // A frame's first Show lays its content out; a tab gets no such event.
+  wxWindow *body = static_cast<ToolPage*>(t->page)->body();
+  body->Layout();
+  body->Refresh();
 }
 
 
@@ -511,7 +616,7 @@ void ToolTabs::setTitle(wxTopLevelWindow *tool, const wxString& title)
   Tab *t = findTool(tool);
   if (!t || !t->page) return;
   int idx = s_book->GetPageIndex(t->page);
-  if (idx != wxNOT_FOUND) s_book->SetPageText(idx, title);
+  if (idx != wxNOT_FOUND) s_book->SetPageText(idx, tabCaption(title));
 }
 
 
@@ -622,6 +727,7 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
         (int)tp->body()->GetChildren().size(), shown,
         !sb ? "none" : sb->GetParent() == tp ? "page" : "frame",
         mapped ? "mapped" : "hidden");
+    outcome += " " + reachInfo(tp->body(), arg) + " " + paintInfo(tp);
   } else if (cmd == "sbinfo") {
     // Status bar of the tool whose title contains arg, shown in a window;
     // bottom is in frame coordinates (menu bar included), client the frame height.
