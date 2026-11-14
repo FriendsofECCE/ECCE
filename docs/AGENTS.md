@@ -236,6 +236,23 @@ column definitions, or the current columns when given calculation paths or
 Measured/user columns identify their input filename (or pasted text);
 older stored values without provenance say `unknown source (not recorded)`.
 Definitions and the checked help key come from `scripts/ecce_qsar_chem.py`.
+QSAR Analysis defaults to unit variance (autoscaling); full scaling names and
+transformation tooltips explain the choices. Its report gives variance and
+prediction percentages, measured-unit errors and warnings for weak validation
+or small samples, with omissions grouped by reason. The Components grid holds
+all computed component statistics; Ctrl+C copies selected cells as TSV and
+Copy table copies the whole grid with headers. Molecule points have hover
+numbers and click selection linked to the Molecules grid; the variance plot
+shows component and cumulative explained variance. PLS adds a sorted VIP grid
+with descriptor descriptions (VIP > 1: more important than average).
+Save Results writes the displayed `analysis_components.csv`,
+`analysis_summary.txt` and PLS `analysis_vip.csv` alongside the existing numeric
+files and saved model. CLI text uses the same presentation; JSON is unchanged.
+The `qsarpca` and `qsarpls` test hooks accept `[png [width height]]` after the
+usual model arguments, save screenshots of the report, grids and variance
+plot, and verify real clipboard, hover and click paths. Their output directory
+contains `presentation.tsv`, `selection.tsv`, `hover.txt` and
+`presentation-check.txt` for script assertions.
 
 **Docking.** Vina calculations (`vina`); `ecce-pdbqt` prepares PDBQT files;
 CREST/xTB docking is a run type of xTB.

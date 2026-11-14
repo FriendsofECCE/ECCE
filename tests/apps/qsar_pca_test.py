@@ -71,8 +71,16 @@ def run(display):
                              capture_output=True, text=True, check=True).stdout
         out = os.path.join(work, "gui")
         cmds = os.path.join(work, "commands")
+        shots = os.environ.get("ECCE_QSAR_SHOTS")
+        png = ""
+        if shots:
+            os.makedirs(shots, exist_ok=True)
+            screen = os.environ.get("ECCE_XVFB_SCREEN", "1280x1024x24").split("x")
+            width, height = int(screen[0]), int(screen[1])
+            png = " %s %d %d" % (os.path.join(shots, "pca-%sx%s.png" % (width, height)),
+                                      width, height)
         with open(cmds, "w") as h:
-            h.write("qsarpca %s file://%s uv 2\n" % (out, project))
+            h.write("qsarpca %s file://%s uv 2%s\n" % (out, project, png))
         result = apps.run(display, "organizer", windowTimeout=60, settle=60,
                           env={"ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_ORGANIZER_OPEN": "file://" + project,
@@ -91,6 +99,42 @@ def run(display):
                if g[0] not in refd or abs(float(g[1]) - float(refd[g[0]][1])) > 1e-6 * (1 + abs(float(g[1])))]
         check(not bad, "scores equal the CLI's", bad)
         check("PCA: 6 rows" in cli, "CLI report", cli[:200])
+        with open(out + "/analysis_summary.txt", encoding="utf-8") as f:
+            summary = f.read()
+        check("%" in summary and "components" in summary, "summary explains variance as percentages", summary)
+        check("Left out (no variance in these " in summary and "column " not in summary,
+              "omitted descriptors are grouped by reason", summary)
+        with open(out + "/analysis_components.csv", encoding="utf-8", newline="") as f:
+            table = list(csv.reader(f))
+        check(any("R²X" in h for h in table[0]) and any("Q²" in h for h in table[0])
+              and any("%" in h for h in table[0]), "component headers have symbols and percent units", table[0])
+        check(len(table) > 2, "component table includes computed components")
+        # CV folds depend on row positions; use the exported GUI table to
+        # compare presentation independently of folder traversal order.
+        subprocess.run([sys.executable, CLI, "pca", out + "/table.csv", "--y", "act",
+                        "--components", "2", "--outdir", work + "/display-reference"],
+                       capture_output=True, text=True, check=True)
+        with open(work + "/display-reference/analysis_components.csv", encoding="utf-8", newline="") as f:
+            reference_table = list(csv.reader(f))
+        check(table == reference_table, "displayed components equal the CLI table",
+              (table, reference_table))
+        check("* = component kept" in summary and "model plane" in summary,
+              "legend explains kept components and model distances", summary)
+        with open(out + "/presentation.tsv", encoding="utf-8", newline="") as f:
+            copied = list(csv.reader(f, delimiter="\t"))
+        check(copied == table, "Copy table copies every displayed value and header", copied[:2])
+        with open(out + "/selection.tsv", encoding="utf-8", newline="") as f:
+            selection = list(csv.reader(f, delimiter="\t"))
+        check(selection == [table[1][:2]], "Ctrl+C copies only the selected cells", selection)
+        with open(out + "/presentation-check.txt", encoding="utf-8") as f:
+            verification = f.read()
+        for action in ("copy", "selection", "hover", "click"):
+            check(action + "=PASS" in verification, "GUI " + action + " follows the interactive path", verification)
+        with open(out + "/hover.txt", encoding="utf-8") as f:
+            hover = f.read()
+        check("m0" in hover and "T²" in hover and "DModX" in hover,
+              "plot hover contains molecule names and diagnostics", hover[:500])
+
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)

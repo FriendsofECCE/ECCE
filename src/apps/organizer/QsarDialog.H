@@ -13,6 +13,9 @@ class wxChoice;
 class wxSpinCtrl;
 class wxTextCtrl;
 class QsarPlot;
+class QsarScree;
+class wxGrid;
+class wxNotebook;
 
 class QsarDialog : public wxDialog
 {
@@ -39,13 +42,15 @@ public:
   std::string resultDir() const { return p_dir; }
   /// Copy the result files and the table into `dir`.
   bool saveResults(const std::string& dir, std::string& why) const;
+  bool verifyPresentation(const std::string& dir, std::string& why);
+  void selectPresentationPage(int page);
   std::vector<std::string> measuredColumns() const { return p_measured; }
 
 private:
   void OnRun(wxCommandEvent&);
   void OnRunPls(wxCommandEvent&);
   void OnSave(wxCommandEvent&);
-  void setPcaPlot();
+  void loadPresentation(bool pls, const std::string& measured = "");
   std::string run(const std::string& args, int& status) const;
 
   std::vector<EcceURL> p_calcs;
@@ -58,6 +63,9 @@ private:
   wxSpinCtrl *p_test = nullptr, *p_perm = nullptr;
   wxTextCtrl *p_text = nullptr;
   QsarPlot *p_plot = nullptr;
+  QsarScree *p_scree = nullptr;
+  wxGrid *p_components = nullptr, *p_molecules = nullptr, *p_vip = nullptr;
+  wxNotebook *p_pages = nullptr, *p_plots = nullptr;
 };
 
 #endif
