@@ -665,10 +665,10 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * qsartable <out.csv> <url>,<url>... [groups]
  *                 the QSAR Table dialog's rows (#961), as for "checks"; groups
  *                 is a comma list of counts,topology,models,charges,vsa,qm
- * qsarpca <outdir> <url>,<url>... [scaling] [components] [png]
+ * qsarpca <outdir> <url>,<url>... [scaling] [components] [png [width height]]
  *                 QSAR Analysis (#961): the PCA of the descriptor table, its
  *                 result files written to <outdir>
- * qsarpls <outdir> <url>,<url>... <y> [scaling] [components] [test%] [permutations] [png]
+ * qsarpls <outdir> <url>,<url>... <y> [scaling] [components] [test%] [permutations] [png [width height]]
  *                 the same for PLS of the measured column <y>
  * batchsmilesdialog <folder url> <table> [png]
  *                 Tools > Batch Add from SMILES with the table loaded (#961):
@@ -2628,6 +2628,8 @@ void CalcMgr::runTestCommand(const string& line)
       args >> scaling >> comps;
       if (command == "qsarpls") args >> testPct >> perms;
       args >> png;
+      int width = 1000, height = 650;
+      if (!png.empty()) args >> width >> height;
       vector<EcceURL> roots;
       for (size_t at = 0; at < urls.size(); ) {
         size_t end = urls.find(',', at);
@@ -2643,11 +2645,19 @@ void CalcMgr::runTestCommand(const string& line)
       if (!ran) outcome = "failed: " + why;
       else if (!d->saveResults(outdir, why)) outcome = "failed: " + why;
       else {
-        d->SetSize(wxSize(1000, 560));
+        d->SetSize(wxSize(width, height));
         d->Show();
         for (int i = 0; i < 5; ++i) wxYield();
-        if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
-        outcome = "ok";
+        if (!d->verifyPresentation(outdir, why)) outcome = "failed: " + why;
+        else outcome = "ok";
+        if (!png.empty()) {
+          for (int page = 0; page < 5; ++page) {
+            d->selectPresentationPage(page);
+            for (int i = 0; i < 5; ++i) wxYield();
+            const string shot = page == 0 ? png : png + ".page" + std::to_string(page) + ".png";
+            ecceClientShot(d, wxString::FromUTF8(shot.c_str()));
+          }
+        }
       }
       d->Destroy();
     } else if (command == "compareforcesdialog") {

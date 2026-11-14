@@ -152,6 +152,46 @@ check(len(pp) == n and np.allclose([float(x["predicted_pIC50"]) for x in pp],
                                    X @ mt["coef"] + mt["intercept"], atol=1e-5), "saved model predicts the same")
 check(pp[1]["in_domain"] in ("yes", "no"), "domain column")
 
+# A small, wide table exercises the warning that a good fit can predict poorly.
+wide = np.random.RandomState(83)
+Xt = wide.randn(16, 80)
+yt = 40 + 15 * Xt[:, 0] + 10 * wide.randn(16)
+report_tab = os.path.join(tmp, "report.csv")
+with open(report_tab, "w", newline="", encoding="utf-8") as f:
+    writer = csv.writer(f)
+    writer.writerow(["name", "bp (°C)", "a_nC"] + ["v%d" % j for j in range(1, 80)])
+    writer.writerows([["m%d" % i, yt[i]] + list(Xt[i]) for i in range(16)])
+command = [sys.executable, cli, "pls", report_tab, "--y", "bp (°C)", "--components", "2",
+           "--outdir", tmp]
+num = subprocess.run(command + ["--json"], capture_output=True, text=True)
+check(num.returncode == 0, "report numerical fixture: " + num.stderr)
+numbers = json.loads(num.stdout)
+r = subprocess.run(command, capture_output=True, text=True)
+check(r.returncode == 0, "readable PLS report exit: " + r.stderr)
+check("explain %.0f %% of the variation in bp" % (100 * numbers["r2y_cum"][1]) in r.stdout and
+      "Typical error: %.1f °C" % numbers["rmsee"] in r.stdout and
+      "%.1f °C on molecules left out" % numbers["rmsecv"][1] in r.stdout,
+      "plain-language summary percentages and errors come from model numbers with units")
+ratio = numbers["rmsecv"][1] / numbers["rmsee"]
+check(ratio > 2 and "fits much better than it predicts" in r.stdout and
+      "%.1f×" % ratio in r.stdout and "few molecules for this many descriptors" in r.stdout,
+      "large cross-validation error gets ratio and small-sample warning")
+check("few molecules (16) for 2 components" in r.stdout and
+      "component 2 does not improve" in r.stdout, "fixed weak component and small N are explained")
+with open(os.path.join(tmp, "analysis_components.csv"), encoding="utf-8") as f:
+    display = list(csv.DictReader(f))
+check(len(display) == 2 and "Cumulative R²Y" in display[0] and "RMSECV / °C" in display[0] and
+      abs(float(display[1]["RMSEE / °C"]) - numbers["rmsee"]) <= 0.0051,
+      "PLS display table uses proper symbols and measured error units")
+with open(os.path.join(tmp, "analysis_vip.csv"), encoding="utf-8") as f:
+    vip = list(csv.DictReader(f))
+check(len(vip) == 10 and all(float(vip[j]["VIP"]) >= float(vip[j + 1]["VIP"]) for j in range(9)) and
+      any(row["Descriptor"] == "a_nC" and row["Description"] == "Number of carbon atoms" for row in vip),
+      "short sorted VIP table uses shared descriptor descriptions")
+r = subprocess.run(command + ["--cv", "0"], capture_output=True, text=True)
+check(r.returncode == 0 and "Cross-validation is unavailable" in r.stdout,
+      "PLS without CV explains unavailable Q²")
+
 if fails:
     print("%d FAILED" % len(fails))
     sys.exit(1)

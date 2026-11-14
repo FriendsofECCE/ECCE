@@ -124,10 +124,12 @@ tmp = tempfile.mkdtemp(prefix="qsar-pca-")
 tab = os.path.join(tmp, "t.csv")
 with open(tab, "w", newline="") as f:
     w_ = csv.writer(f)
-    w_.writerow(["name", "opt_converged", "act"] + ["d%d" % j for j in range(k)] + ["const", "problems"])
+    w_.writerow(["name", "opt_converged", "act"] + ["d%d" % j for j in range(k)] +
+                ["const", "const2", "missing1", "missing2", "problems"])
     for i in range(n):
         w_.writerow(["m%d" % i, "no" if i == 3 else "yes", "%.3f" % scores[i, 0]] +
-                    ["%.10f" % v for v in X[i]] + ["1", ""])
+                    ["%.10f" % v for v in X[i]] + ["1", "2", "" if i == 0 else i,
+                                                     "" if i == 1 else i, ""])
 r = subprocess.run([sys.executable, os.path.join(ROOT, "scripts", "ecce_qsar.py"), "pca", tab,
                     "--y", "act", "--components", "3", "--outdir", tmp, "--json"],
                    capture_output=True, text=True)
@@ -142,6 +144,28 @@ sc = list(csv.reader(open(os.path.join(tmp, "pca_scores.csv"))))
 check(len(sc) == n and sc[0][:4] == ["name", "t1", "t2", "t3"], "scores file")
 check(os.path.exists(os.path.join(tmp, "pca_loadings.csv")) and
       os.path.exists(os.path.join(tmp, "pca_components.csv")), "loadings and components files")
+
+command = [sys.executable, os.path.join(ROOT, "scripts", "ecce_qsar.py"), "pca", tab,
+           "--y", "act", "--components", "4", "--outdir", tmp]
+r = subprocess.run(command, capture_output=True, text=True)
+check(r.returncode == 0, "readable PCA report exit: " + r.stderr)
+check("component 4 does not improve the cross-validated prediction" in r.stdout,
+      "fixed component below significance limit is explained")
+check("Left out (no variance in these 59 molecules): const, const2" in r.stdout and
+      "Left out (missing values): missing1, missing2" in r.stdout and
+      "Left out (optimisation not converged): m3" in r.stdout, "left-out notes grouped by reason")
+with open(os.path.join(tmp, "analysis_components.csv"), encoding="utf-8") as f:
+    display = list(csv.DictReader(f))
+check(len(display) == 4 and "Cumulative Q²" in display[0] and
+      abs(float(display[0]["X variance / %"]) - 100 * ref["r2x"][0]) <= 0.051,
+      "display table has symbols and correctly converted percentages")
+with open(os.path.join(tmp, "analysis_summary.txt"), encoding="utf-8") as f:
+    summary = f.read()
+check("* = component kept" in summary and "far from the model" in summary and
+      "Eigenvalue" not in summary, "summary keeps legend and diagnostics apart from table")
+r = subprocess.run(command + ["--cv", "0"], capture_output=True, text=True)
+check(r.returncode == 0 and "Cross-validation is unavailable" in r.stdout,
+      "PCA without CV explains unavailable Q²")
 
 if fails:
     print("%d FAILED" % len(fails))
