@@ -149,6 +149,16 @@ package's script and served it from the *real* data server.
 The two installs no longer share `~/.ECCE` either, because no run uses
 `~/.ECCE` at all — see the isolation section below.
 
+### Calculation fixture helper
+
+The app tests use the CMake target `resourceTest`, installed as
+`$ECCE_TEST_HOME/libexec/tests/resourceTest` (`resourceTest.exe` on Windows),
+to create local calculation fixtures. Build and install the tree before
+running these tests, including `apps_builder_constraints`, symmetry, QST
+and the local-calculation session-end cases. Both CTest and install-tree
+(`ctesti`) runs use this installed helper; no compiler, development packages
+or static ECCE libraries are needed at test time.
+
 ## Every run is isolated from your real ECCE session
 
 All per-user state — preferences, the data server's whole document root,

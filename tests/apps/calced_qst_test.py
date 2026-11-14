@@ -33,12 +33,9 @@ sys.path.insert(0, HERE)
 
 import apps       # noqa: E402
 import fixture    # noqa: E402
+import resource_helper  # noqa: E402
 import run_tests  # noqa: E402
 import symmetry_find_test as sym  # noqa: E402
-
-# eccercmd holds the libssh transport when the build found libssh
-_SSH = (["-lssh"] if __import__("subprocess").run(
-    ["pkg-config", "--exists", "libssh"], capture_output=True).returncode == 0 else [])
 
 LOG = os.path.join(REPO, "tests", "parsers", "fixtures", "gaussian-16", "hcn_irc.log")
 SYM = {6: "C", 7: "N", 1: "H"}
@@ -78,7 +75,6 @@ def writeXyz(path, atoms):
 def makeProject(folder, linear=False):
     """proj-qst with react, prod, guess and an empty ts:
     ({name: url}, None) or (None, error)."""
-    build = os.environ.get("ECCE_TEST_BUILD", os.path.join(REPO, "build-cmake"))
     xyz = os.path.join(fixture.stateDir(), "qst-xyz")
     shutil.rmtree(xyz, ignore_errors=True)
     os.makedirs(xyz)
@@ -94,23 +90,12 @@ def makeProject(folder, linear=False):
         writeXyz(os.path.join(xyz, "prod.xyz"),
                  [("H", [0, 0, 2.180]), ("N", [0, 0, 1.170]), ("C", [0, 0, 0])])
     writeXyz(os.path.join(xyz, "guess.xyz"), points(True)[-1])
-    driver = os.path.join(fixture.stateDir(), "resourceTest")
-    libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
-            "eccecipc", "ecceutil", "eccecomm", "eccercmd"]
-    built = subprocess.run(
-        ["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o", driver,
-         os.path.join(REPO, "tests", "filedsi", "resourceTest.C"), "-L" + build]
-        + ["-l" + l for l in libs] * 3
-        + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH],
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    if built.returncode != 0:
-        return None, built.stdout.decode()[-1500:]
+    driver = resource_helper.path()
     shutil.rmtree(folder, ignore_errors=True)
     user = os.path.join(folder, "users", "local")
     os.makedirs(user)
     env = dict(os.environ, ECCE_HOME=apps.INSTALL, ECCE_LOCAL_DATA=folder,
-               ECCE_REALUSER=getpass.getuser(), ECCE_NO_MESSAGING="1",
-               LD_LIBRARY_PATH=build)
+               ECCE_REALUSER=getpass.getuser(), ECCE_NO_MESSAGING="1")
     done = subprocess.run(
         [driver, "qst", user] + ["%s=%s" % (n, os.path.join(xyz, n + ".xyz"))
                                  for n in ("react", "prod", "guess")] + ["ts="],
