@@ -174,8 +174,10 @@ gets:
   cannot collide; `ECCE_DATASERVER_PORT` / `ECCE_BROKER_PORT` still pin
   them explicitly, and a pinned port that is busy is an error rather
   than a silent move;
-* its own X display, chosen by `Xvfb -displayfd`
-  (`ECCE_TEST_XDISPLAYS=a-b` still restricts it to a range);
+* its own X display, chosen from `:90` through `:999` after checking
+  both the X socket and lock file. `ECCE_TEST_XDISPLAYS=a-b` restricts
+  it to a range; ranges and `--display` must stay above `:9`. Xvfb's
+  lock prevents claiming a display another process takes meanwhile;
 * its own `$ECCE_HOME`: a directory of symlinks to the installed tree
   with one real `siteconfig/` of its own, with `DataServers`
   repointed at the data server's port. This is the piece that was
@@ -427,3 +429,8 @@ same with Add Hydrogens first, after a 2x2x2 supercell, after Fold, with a
 selection, and on water with its hydrogens removed. It checks that no nub
 is left without its parent atom and that every hydrogen ends up next to a
 lattice image of its parent.
+
+The display-allocation regression check needs no ECCE install:
+`srun -c 2 nice python3 tests/apps/xdisplay_test.py`. It checks that
+low-number overrides are rejected and starts two private Xvfb servers to
+verify their numbers stay above the desktop range.

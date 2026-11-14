@@ -22,8 +22,10 @@ already in use".
 - **Ports**: `isolate.freePort()` binds port 0 and reads the number;
   `ECCE_DATASERVER_PORT`/`ECCE_BROKER_PORT` pin one explicitly. Do not
   derive one port from another (`+10`); ask for each.
-- **Display**: `xdisplay.Display()` uses `Xvfb -displayfd`; only
-  `ECCE_TEST_XDISPLAYS=a-b` falls back to scanning that range.
+- **Display**: `xdisplay.Display()` scans `:90` through `:999`, checking
+  both X sockets and lock files. `ECCE_TEST_XDISPLAYS=a-b` restricts that
+  range. Ranges and explicit numbers below `:10` are rejected so an idle
+  desktop display stays free; Xvfb's lock rejects any allocation race.
 - **Liveness (#220)**: `Display.responsive()` scales its timeout with the
   load average, retries, and `probeNote` reports the wait and load, so a
   slow machine is not reported as a dead X server.

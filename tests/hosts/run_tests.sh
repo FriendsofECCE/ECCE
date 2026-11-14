@@ -154,7 +154,7 @@ two_subs() {
 bob_attacks() {
   ATTACK="$({ pub bob bob bobpw ecce/alice/ecce_ejs_kill x_kill
               pub bob bob bobpw ecce/alice/ecce_url_created x_url
-              pub bob bob bobpw ecce/alice/session/alice-host_:9/ecce_quit x_quit; } 2>&1)"
+              pub bob bob bobpw ecce/alice/session/alice-host_:90/ecce_quit x_quit; } 2>&1)"
   [ "$(grep -c 'Not authorized' <<<"$ATTACK")" = 3 ] || { echo "$ATTACK"; return 1; }
 }
 alice_got_own() { in_ alice /tmp/alice.sub a_url && in_ alice /tmp/alice.sub a_kill && in_ alice /tmp/alice.sub a_poll; }
@@ -178,7 +178,7 @@ isolation() {
   # it shows the earlier ones were withheld rather than slow.
   check "[$mode] a process of alice published ecce_url_created, ecce_ejs_kill, a session message, ecce_machreg_changed through the real library" \
     lib_pub alice alice alicepw ecce_url_created:a_url ecce_ejs_kill:a_kill \
-      ecce_poll:a_poll:alice-host_:9 ecce_machreg_changed:a_machreg
+      ecce_poll:a_poll:alice-host_:90 ecce_machreg_changed:a_machreg
   check "[$mode] bob's publish into ecce/alice/ (ecce_ejs_kill, ecce_url_created, a session topic) is refused" bob_attacks
   check "[$mode] bob's publish into his own ecce/bob/ is accepted" \
     pub bob bob bobpw ecce/bob/ecce_machreg_changed b_machreg
@@ -199,7 +199,7 @@ carol_pub_refused() { pub alice carol carolpw ecce/alice/ecce_ejs_kill x 2>&1 | 
 carol_wrong() { ! pub alice carol nope ecce/carol/x x; }
 carol_delivered() {
   sub_start alice carol /tmp/carol.sub "ecce/carol/#" &&
-  lib_pub alice carol carolpw ecce_poll:c1:alice-host_:9 &&
+  lib_pub alice carol carolpw ecce_poll:c1:alice-host_:90 &&
   wait_for in_ alice /tmp/carol.sub c1
 }
 mk_carol_2() {

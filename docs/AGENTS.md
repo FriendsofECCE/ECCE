@@ -78,6 +78,17 @@ The isolated `ECCE_TEST_BASISTOOL=<file>` hook reads appended commands:
 sets frame geometry; `rows N` replaces the test grid's rows without changing
 the calculation; `close` closes normally and saves the window settings.
 
+## Isolated GUI tests
+
+Run GUI checks through `tests/` with an isolated HOME and test data.
+The shared Xvfb harness chooses a free display from `:90` through `:999`,
+checking both sockets and lock files; `ECCE_TEST_XDISPLAYS=a-b` restricts
+that range. Explicit `--display` numbers and ranges must start at `:10`
+or higher. Keep the tests' existing `:0` safety guards.
+Run the display-allocation regression with
+`nice python3 tests/apps/xdisplay_test.py`; no ECCE install is
+needed, and the live-server check skips when Xvfb is unavailable.
+
 ## What ECCE is
 
 ECCE (Extensible Computational Chemistry Environment) is a desktop

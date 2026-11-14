@@ -24,7 +24,6 @@ live desktop by accident.
 """
 
 import os
-import select
 import shutil
 import signal
 import subprocess
@@ -71,34 +70,19 @@ class Display(object):
         self.pidfile = pidfile
 
     def __enter__(self):
-        argv = [self.binary]
-        passFds = ()
-        reader = None
-        if self.number is None and not _displayRange():
-            #  The server picks and locks a free number itself and reports
-            #  it, so two runs cannot race for one.
-            reader, writer = os.pipe()
-            argv += ["-displayfd", str(writer)]
-            passFds = (writer,)
-        elif self.number is None:
+        if self.number is None:
             self.number = _freeDisplay()
-        if self.number is not None:
-            argv.append(":%d" % self.number)
-        argv += ["-screen", "0", self.screen, "-nolisten", "tcp"]
+        if self.number < 10:
+            raise DisplayUnavailable("test displays must be :10 or higher")
+        argv = [self.binary, ":%d" % self.number,
+                "-screen", "0", self.screen, "-nolisten", "tcp"]
         #  A file, never a pipe nobody reads: Xvfb logs xkbcomp warnings
         #  for every keymap a client loads, and once 64 KiB of that has
         #  filled a pipe its write() blocks and the whole server stops
         #  answering -- the CI-only display wedge of #127.
         self.log = tempfile.TemporaryFile()
         self.proc = subprocess.Popen(
-            argv, stdout=subprocess.DEVNULL, stderr=self.log,
-            pass_fds=passFds)
-        if reader is not None:
-            os.close(writer)
-            try:
-                self.number = self._readDisplayNumber(reader)
-            finally:
-                os.close(reader)
+            argv, stdout=subprocess.DEVNULL, stderr=self.log)
         if self.pidfile:
             #  Best-effort: a failure to write this only means a killed run
             #  cannot be swept up next time, not that this run cannot work.
@@ -117,29 +101,6 @@ class Display(object):
             time.sleep(0.2)
         self.__exit__(None, None, None)
         raise DisplayUnavailable("Xvfb did not become ready")
-
-    def _readDisplayNumber(self, fd):
-        deadline = time.time() + _scaled(30)
-        data = b""
-        while b"\n" not in data and time.time() < deadline:
-            ready, _, _ = select.select([fd], [], [], 0.5)
-            if ready:
-                chunk = os.read(fd, 64)
-                if not chunk:
-                    break
-                data += chunk
-            elif self.proc.poll() is not None:
-                break
-        if b"\n" not in data:
-            error = ""
-            if self.proc.poll() is not None:
-                error = self.serverLog()
-            else:
-                self.proc.kill()
-            self.proc = None
-            raise DisplayUnavailable(
-                "Xvfb did not report a display number: %s" % error.strip())
-        return int(data.split()[0])
 
     def __exit__(self, *exc):
         if self.proc is not None:
@@ -389,16 +350,23 @@ def _scaled(seconds):
 
 def _displayRange():
     span = os.environ.get("ECCE_TEST_XDISPLAYS", "")
-    if "-" in span:
-        return tuple(int(n) for n in span.split("-", 1))
-    return None
+    if not span:
+        return None
+    try:
+        first, last = (int(n) for n in span.split("-", 1))
+    except ValueError:
+        raise DisplayUnavailable("ECCE_TEST_XDISPLAYS must be a range a-b")
+    if first < 10 or last < first:
+        raise DisplayUnavailable(
+            "ECCE_TEST_XDISPLAYS must be an ascending range starting at 10 or higher")
+    return first, last
 
 
 def _freeDisplay():
-    #  Only with ECCE_TEST_XDISPLAYS=160-169, to stay off other sessions'
-    #  numbers; otherwise Xvfb -displayfd chooses.
-    first, last = _displayRange() or (70, 99)
+    # Keep desktop numbers free even when no desktop is currently running.
+    first, last = _displayRange() or (90, 999)
     for number in range(first, last + 1):
-        if not os.path.exists("/tmp/.X11-unix/X%d" % number):
+        if (not os.path.exists("/tmp/.X11-unix/X%d" % number)
+                and not os.path.exists("/tmp/.X%d-lock" % number)):
             return number
     raise DisplayUnavailable("no free X display number")
