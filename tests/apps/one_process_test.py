@@ -17,6 +17,7 @@ Same installed tree, isolation and services as run_tests.py.  Exit 77
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -156,9 +157,19 @@ def runQuit(display):
             append("answer", 3)
             # The process ends after the broker's 10 s linger (OnExit).
             append("answer no", 25)
+            if GDB:
+                # Where a process that did not end is: attach, all threads.
+                pids = [p for p in os.listdir("/proc") if p.isdigit() and
+                        open("/proc/%s/comm" % p).read().strip() == "organizer"]
+                for p in pids:
+                    print(subprocess.run(
+                        ["gdb", "-batch", "-p", p, "-ex",
+                         "thread apply all bt 40"],
+                        capture_output=True, text=True).stdout[-15000:])
 
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
-                          env={"ECCE_ONE_PROCESS": "1",
+                          env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
+                               "ECCE_ONE_PROCESS": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_BUILDER_SCRIPT": script,
                                "ECCE_LOCAL_DATA": data},
@@ -181,6 +192,8 @@ def runQuit(display):
         check(result.returncode == 0 and "Aborted" not in log,
               "No in the Builder's question ends the process cleanly",
               "returncode %s\n%s" % (result.returncode, log[-1500:]))
+        if GDB:
+            print(log[-20000:])
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)

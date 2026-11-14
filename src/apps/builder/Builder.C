@@ -3103,7 +3103,11 @@ void Builder::mainWindowCloseCB( wxCloseEvent& event )
    quit();
    p_closing = false;   // reached only when the user cancelled the quit
    //  In one process the Organizer's Quit asks this window first (#983).
-   if (p_inProcess && !IsBeingDeleted() && event.CanVeto()) event.Veto();
+   //  After quit()'s Destroy() a frame is only scheduled for deletion and
+   //  IsBeingDeleted() is still false: a veto then would cancel the Quit.
+   if (p_inProcess && !IsBeingDeleted() &&
+       !wxTheApp->IsScheduledForDestruction(this) && event.CanVeto())
+     event.Veto();
 }
 
 

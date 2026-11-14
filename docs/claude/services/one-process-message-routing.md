@@ -227,6 +227,14 @@ that one window, so the `tests/apps` scripts keep a per-tool start.
   `InProcessTools::closeAll(true)` before destroying its frame, because
   each tool's own `ecce_quit` handler may run after it; those handlers
   return if their window is already `IsScheduledForDestruction`.
+- A frame's close handler that already called `Destroy()` must not veto:
+  `IsBeingDeleted()` stays false while it is only scheduled, so the
+  Builder also checks `IsScheduledForDestruction`. The reverse for CalcEd:
+  Cancel in its save question vetoes, or `Close()` reports success with
+  the window still open.
+- Exit crash in wx core's static destructors once the Organizer links the
+  Builder: a class-name clash, see
+  `docs/claude/wx-viewer/treelistctrl-name-clash.md`.
 - The process ends only when no top-level window is left (wx exits the
   main loop with the last one), plus `OnExit`'s 10 s broker linger. A
   hidden parentless window a tool leaves behind keeps it running: the

@@ -192,7 +192,7 @@ bool MullikenPanel::Create(IPropCalculation *calculation,
   //GetSizer()->Add(treeSizer,0, wxALIGN_CENTER_HORIZONTAL|wxALL, 0);
   GetSizer()->Add(treeSizer,1, wxEXPAND|wxGROW|wxALL, 0);
 
-  p_treelist = new wxTreeListCtrl (this, IDTREELIST, wxDefaultPosition, wxDefaultSize, wxTR_TWIST_BUTTONS|wxTR_NO_LINES|wxTR_HIDE_ROOT|wxTR_FULL_ROW_HIGHLIGHT|wxTR_MULTIPLE);
+  p_treelist = new ewxTreeListCtrl (this, IDTREELIST, wxDefaultPosition, wxDefaultSize, wxTR_TWIST_BUTTONS|wxTR_NO_LINES|wxTR_HIDE_ROOT|wxTR_FULL_ROW_HIGHLIGHT|wxTR_MULTIPLE);
   treeSizer->Add(p_treelist, 1,wxEXPAND|wxGROW|wxALL,1);
 
   // Create the columns

@@ -4397,6 +4397,21 @@ bool CalcMgr::confirmAndQuit()
 
   p_quitConfirmed = true;
   Destroy();
+  if (getenv("ECCE_TEST_ORGANIZER")) {
+    // Test hook (#983): a top-level window still alive 3 s after Quit keeps
+    // the process running; name them.
+    wxTimer *left = new wxTimer(wxTheApp);
+    wxTheApp->Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+      string names;
+      for (wxWindow *w : wxTopLevelWindows)
+        names += string(" ") +
+                 wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
+                 "/" + string(w->GetLabel().utf8_str()) +
+                 (w->GetParent() ? "(child)" : "");
+      cerr << "ECCE_TEST_ORGANIZER: left after quit:" << names << endl;
+    }, left->GetId());
+    left->StartOnce(3000);
+  }
 
   if (result == ID_ORGANIZER_QUIT_STOP_SERVER) {
     // After Destroy(), which schedules teardown asynchronously rather

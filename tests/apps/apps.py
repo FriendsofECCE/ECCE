@@ -217,7 +217,7 @@ def run(display, name, args=(), windowTimeout=40, settle=8, env=None,
         # a backtrace when it stops on a signal.
         text = open(command[0]).read().replace(
             '"$ECCE_HOME/bin/%s"' % name,
-            'gdb -batch -ex run -ex "bt 150" --args "$ECCE_HOME/bin/%s"' % name)
+            'gdb -batch -iex "set debuginfod enabled on" -ex run -ex "bt 150" --args "$ECCE_HOME/bin/%s"' % name)
         patched = os.path.join(tempfile.mkdtemp(prefix="ecce-gdb-"),
                                "ecce-" + name)
         open(patched, "w").write(text)

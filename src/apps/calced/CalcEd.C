@@ -1094,7 +1094,10 @@ void CalcEd::OnToolClick(wxCommandEvent &event)
 void CalcEd::OnCloseWindow( wxCloseEvent& event )
 {
   saveSettings();
-  doClose(event.CanVeto());
+  //  Cancel keeps the window: say so, or the Organizer's Quit (#983, one
+  //  process) takes the close as done.
+  if (doClose(event.CanVeto()) == wxID_CANCEL && event.CanVeto())
+    event.Veto();
 }
 
 
