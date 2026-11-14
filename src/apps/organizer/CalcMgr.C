@@ -6826,7 +6826,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "46";
+const char *const kExampleSetVersion = "47";
 
 string treeName(string s)
 {
@@ -8259,6 +8259,34 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "tetrahedra joined at their corners into helical chains along c; the "
      "three-fold screw axis extinguishes the 00l reflections unless l is "
      "a multiple of 3."},
+    {"ice",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 6x4x4 k-points, atoms relaxed in the fixed cell. "
+     "This calculation shows a molecular crystal in which water molecules are held together by hydrogen bonds, each O-H pointing at the oxygen of a neighbouring molecule. "
+     "Structure: ice XI (Cmc21, proton-ordered), COD 1566645 (Leadbetter 1985, D2O neutron diffraction, D replaced by H)."},
+    {"dryice",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 4x4x4 k-points, atoms relaxed in the fixed cell. "
+     "This calculation shows a molecular crystal of linear CO2 molecules with no hydrogen bonds, held together only by weak dispersion forces, which is why dry ice sublimes so easily. "
+     "Structure: CO2 (Pa-3, 150 K), COD 9007643."},
+    {"urea",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 4x4x5 k-points, atoms relaxed in the fixed cell. "
+     "This calculation shows a molecular crystal held together by hydrogen bonds from the N-H groups of each urea molecule to the C=O oxygens of its neighbours. "
+     "Structure: urea (P-421m, neutron diffraction, 12 K), COD 9017318 (Swaminathan and Craven 1984)."},
+    {"Molecular_and_covalent_solids/benzene",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 4x4x3 k-points, atoms relaxed in the fixed cell. "
+     "This calculation shows a molecular crystal of benzene held together by dispersion forces alone, with the flat rings packed edge to face in a herringbone pattern. "
+     "Structure: benzene I (Pbca, 150 K, X-ray), COD 7238223 (CrystEngComm 2010)."},
+    {"sucrose",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 2x2x2 k-points, single point (scf). "
+     "This calculation shows a molecular crystal of sugar molecules joined by a network of O-H...O hydrogen bonds between their hydroxyl groups. "
+     "Structure: sucrose (P21, 100 K), COD 7244614 (X-ray wavefunction refinement, RSC Adv. 2022)."},
+    {"diamond",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 6x6x6 k-points, atoms relaxed in the fixed cell. "
+     "This calculation shows a covalent network solid: every carbon atom is bonded tetrahedrally to four others, so the whole crystal is one molecule with no weak links. "
+     "Structure: diamond (Fd-3m, conventional cell), standard structure."},
+    {"graphite",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 10x10x4 k-points, atoms relaxed in the fixed cell. "
+     "This calculation shows a solid that is covalent in two dimensions only: each carbon atom is bonded to three others in flat hexagonal sheets, and the sheets are held together by dispersion forces, so they slide over each other easily. "
+     "Structure: graphite (P63/mmc, AB stacking), standard structure."},
     {"ar-gas-300K",
      "GROMACS, Lennard-Jones argon, 1000 atoms, 300 K, 20 bar, 2 ns. This "
      "calculation shows the Maxwell-Boltzmann distribution of atomic speeds "
