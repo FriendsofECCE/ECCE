@@ -134,6 +134,7 @@ int main(int argc, char **argv)
     cols.responses.push_back(k);
   }
   if (cols.smiles < 0) { std::cout << "no SMILES column found: use --smiles" << std::endl; return 2; }
+  table.source = args[1] == "-" ? "standard input" : EcceURL(args[1]).getFilePathTail();
   vector<SmilesBatch::Row> rows = SmilesBatch::preview(table, cols);
 
   if (dry) {

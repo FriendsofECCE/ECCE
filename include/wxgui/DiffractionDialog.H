@@ -18,6 +18,7 @@ class wxGraphicsContext;
 // being edited) and from a calculation's results (the final geometry).  Fibre
 // and powder (#587, periodic structures: an .xyz whose comment line has
 // Lattice="...") are drawn, and so are single-crystal layers (#972).
+// Debye scattering is available for both molecules and cell contents.
 class DiffractionDialog : public wxDialog
 {
 public:
@@ -39,7 +40,10 @@ public:
   // Powder source choice (0 Cu, 1 Mo, 2 Co, 3 other) and, if doublet >= 0,
   // the Ka1/Ka2 box; returns its state "doublet=0|1 enabled=0|1" (test hook).
   wxString setSource(int index, int doublet = -1);
-  bool powder() const { return p_powder; }
+  bool powder() const { return p_powder && !p_debye; }
+  // The orientational average of all atoms (cell contents when periodic).
+  void setDebye();
+  bool debye() const { return p_debye; }
   // Single crystal (#972): a reciprocal-lattice layer.  zone is "l" (hk0 for
   // layer 0), "k" (h0l) or "h" (0kl); false and why if the structure is not
   // periodic or the zone is unknown.  Switches the dialog to that pattern.
@@ -87,7 +91,7 @@ private:
   void onSavePng(wxCommandEvent&);
   void onSaveCsv(wxCommandEvent&);
   void onOpacity(wxCommandEvent&);
-  void onPattern(int mode);   // 0 fibre, 1 powder, 2 single crystal
+  void onPattern(int mode);   // 0 fibre, 1 powder, 2 single crystal, 3 frame, 4 Debye
   bool calculateLayer(std::string& why);
   bool calculateFrame(std::string& why);
   wxString framePointerText(int x, int y) const;
@@ -105,7 +109,7 @@ private:
   std::string p_structure, p_dir, p_selectionText;
   wxTextCtrl *p_wavelength, *p_distance, *p_film, *p_b, *p_length, *p_mis,
              *p_repeat, *p_gamma;
-  wxChoice *p_axis, *p_scale;
+  wxChoice *p_axis, *p_scale, *p_transform;
   wxCheckBox *p_selectedOnly;
   wxSlider *p_opacity;
   wxStaticText *p_status, *p_pointer;
@@ -114,11 +118,11 @@ private:
   std::vector<float> p_r, p_z, p_i;
   int p_pixels;
   std::string p_png, p_csv, p_tab, p_measured;
-  bool p_periodic, p_powder, p_single, p_frame;
+  bool p_periodic, p_powder, p_single, p_frame, p_debye;
   wxTextCtrl *p_layerNo, *p_lres, *p_lb;
   wxChoice *p_zone;
   wxCheckBox *p_absent, *p_doublet;
-  wxRadioButton *p_rbFibre, *p_rbPowder, *p_rbSingle;
+  wxRadioButton *p_rbFibre, *p_rbPowder, *p_rbSingle, *p_rbDebye;
   wxSizer *p_layerItems, *p_frameItems;
   wxSlider *p_fphi;
   wxTextCtrl *p_fosc, *p_fdist;
@@ -145,6 +149,7 @@ private:
   const Spot *p_pick;           // first spot of a measurement
   wxTextCtrl *p_pwave, *p_ptmin, *p_ptmax, *p_pfwhm, *p_pb;
   wxChoice *p_source;
+  wxStaticText *p_fwhmLabel, *p_peakLabel;
   PowderPanel *p_plot;
   wxListCtrl *p_list;
   wxSizer *p_left, *p_fibreItems, *p_powderItems;

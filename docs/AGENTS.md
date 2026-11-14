@@ -227,6 +227,15 @@ can start. `ecce-workflow` is the command.
 
 **QSAR.** Tools > QSAR Table and QSAR Analysis (`qsar-table`,
 `qsar-analysis`); commands `ecce-qsar table` and `ecce-qsar pca`.
+QSAR Table header tooltips and **Key...** explain each current column;
+**Copy All** copies the key. `ecce-qsar table --describe` prints all built-in
+column definitions, or the current columns when given calculation paths or
+`--from-csv FILE`. Add `--json` for `columns` objects (`name`, `description`,
+`unit`, `group`, `reference`), or `--csv FILE` for a definition table.
+`--key-csv FILE` writes names and formatted key text alongside a normal table.
+Measured/user columns identify their input filename (or pasted text);
+older stored values without provenance say `unknown source (not recorded)`.
+Definitions and the checked help key come from `scripts/ecce_qsar_chem.py`.
 
 **Docking.** Vina calculations (`vina`); `ecce-pdbqt` prepares PDBQT files;
 CREST/xTB docking is a run type of xTB.
@@ -237,6 +246,8 @@ Builder script `poses note` returns that text; `poses thumb 1 <file.png>`
 saves the cached thumbnail of pose 1 for image checks.
 
 **Diffraction.** Tools > Diffraction (`fibre-diffraction`); `ecce-xrd`.
+**Molecule (Debye scattering)** is available for every structure, including
+the contents of a periodic cell, with the Powder sources and 2θ curve exports.
 
 **Other analysis from the command line** (thermochemistry, RMSD, bands,
 MD analysis, orbital composition, Morse fits): see "Other command-line tools".
@@ -839,8 +850,9 @@ Organizer, so ECCE has to be running. Output: `ok: <workflow URL>` or
 
 ### ecce-xrd
 
-    ecce-xrd fibre STRUCTURE [--select LIST] [--axis auto|selection|x,y,z] [--map film|rz] [--out FILE]... [--json] ...
+    ecce-xrd fibre STRUCTURE [--select LIST] [--axis auto|selection|x,y,z] [--transform auto|helical|finite] [--map film|rz] [--out FILE]... [--json] ...
     ecce-xrd powder STRUCTURE [--source cu|mo|co] [--tt-min D] [--tt-max D] [--fwhm D] [--measured FILE] [--table FILE.csv] [--out FILE]... [--json] ...
+    ecce-xrd debye STRUCTURE [--select LIST] [--source cu|mo|co] [--wavelength A] [--no-doublet] [--tt-min D] [--tt-max D] [--step D] [--B A2] [--measured FILE] [--out FILE]... [--json]
     ecce-xrd layer STRUCTURE (--zone h=N|k=N|l=N | --normal U V W [--offset N]) [--resolution D] [--out FILE]... [--json] ...
     ecce-xrd frame STRUCTURE [--source cu|mo|co] [--phi D] [--osc D] [--distance MM] [--label N] [--out FILE]... [--json] ...
 
@@ -859,8 +871,41 @@ detector frame of a rotating crystal. `--out` takes `.png`, `.csv` or, for
 lengths are in Å, angles in degrees. `ecce-xrd <subcommand> --help` lists
 every option; the help page **Diffraction** describes the views.
 
+`debye` needs no lattice. It calculates the orientational average
+`I(q) = sum_i f_i(q)^2 + 2 sum_{i<j} f_i(q) f_j(q) sinc(q r_ij)`, with
+`sinc(x) = sin(x)/x`, `sinc(0) = 1` and `q = 4*pi*sin(theta)/lambda` in Å⁻¹.
+The neutral-atom IT92 factors and B damping are shared with Powder; no
+Lorentz/polarisation factor is added. Periodic inputs contribute the cell
+contents once, without images. At most 3000 atoms use exact distances;
+larger inputs use an element-pair histogram of 0.01 Å bins. Pair generation
+is O(N²) for both methods. The CLI summary and JSON state which was used.
+JSON includes q, raw intensity and relative intensity arrays; `.csv` holds
+`two_theta,intensity` (maximum 100 in the requested range), and `.png` plots
+the same curve. With `--source`, the default doublet sums Ka1 and Ka2 in a
+2:1 ratio. There is no Bragg reflection table or peak-width option.
+The Builder script hook `debye OUT.png OUT.csv STRUCTURE.xyz [SOURCE [DOUBLET]]`
+exports its current structure, switches from the initial view to Debye, and
+saves the curve through the dialog. SOURCE is 0 Cu, 1 Mo, 2 Co or 3 custom;
+DOUBLET is 0 off or 1 on. This hook supports isolated GUI tests.
+
+Fibre **Transform** / `--transform auto|helical|finite` defaults to Auto:
+fit a screw from consecutive backbone P or peptide N atoms in file order
+(at least six, rigid-fit RMSD < 0.15 Å), rationalize the twist to t/u turns
+(u <= 20, within 1°), and calculate only orders with l - n t divisible by u
+on Z = l/c, c = u times the measured rise. Interior steps are folded and
+averaged into a screw unit. Auto falls back to the finite-model sum when the
+fit fails; forced Helical errors. Select one regular helix in a mixed model.
+Finite model is available for other fibres. `--json` reports `transform` and
+`helix` parameters; `--geometry FILE` writes `repeat C` (0 for finite).
+The window fills **Repeat** from that result. Length broadening is Gaussian
+FWHM 1/length, followed by angular misalignment and the existing display.
+Teaching B-DNA: 10 units/turn, rise 3.387 Å, c 33.867 Å; polyalanine:
+18 units/5 turns, rise 1.503 Å, c 27.061 Å, pitch 5.412 Å.
+The DNA fourth layer is suppressed by motif interference, not forced to zero.
+
     ecce-xrd fibre helix.mvm --map rz --rmax 0.7 --zmax 0.7 --out rz.png
     ecce-xrd powder nacl.cif --source cu --measured scan.xy --out powder.png
+    ecce-xrd debye molecule.xyz --source cu --out debye.csv --out debye.png --json
 
 ### Other command-line tools
 

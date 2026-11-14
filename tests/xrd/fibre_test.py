@@ -91,6 +91,62 @@ def test_ideal_helix():
           "ideal helix: nothing between the layer lines", off)
 
 
+def test_helical_transform():
+    # A one-atom screw unit has an analytic line weight and independent repeat sum.
+    radius, rise, units, turns = 4., 1.5, 18, 5
+    motif = xrd.Model(["C"], [[radius, 0, 0]], axis=[0, 0, 1])
+    motif.r, motif.phi, motif.z = np.array([radius]), np.array([0.]), np.array([0.])
+    h = {"motif": motif, "rise": rise, "repeat": units * rise,
+         "units": units, "turns": turns, "weight": units}
+    rs, ls = np.array([0., .05, .13, .27]), np.array([1, 5, 10, 18])
+    got = xrd.helical_lines(h, rs, ls)
+    expect = np.zeros_like(got)
+    for ir, rr in enumerate(rs):
+        for il, l in enumerate(ls):
+            f = float(xrd.form_factor("C", .5 * math.hypot(rr, l / h["repeat"])))
+            expect[ir, il] = units ** 2 * f ** 2 * sum(
+                jn_quadrature(n, 2 * math.pi * rr * radius) ** 2
+                for n in range(-35, 36) if (l - turns * n) % units == 0)
+    check(np.allclose(got, expect, rtol=1e-9, atol=1e-8),
+          "helical lines match quadrature Bessel oracle, including selection rule")
+    k = np.arange(units)
+    xyz = np.stack([radius * np.cos(2 * np.pi * turns * k / units),
+                    radius * np.sin(2 * np.pi * turns * k / units), k * rise], axis=1)
+    direct = xrd.intensity_rz_bruteforce(xrd.Model(["C"] * units, xyz, axis=[0, 0, 1]),
+                                       rs, ls / h["repeat"])
+    check(np.allclose(got, direct, rtol=1e-9, atol=1e-8),
+          "allowed-order transform equals direct angular average of one complete repeat")
+    zz = np.arange(0, .12, .0001)
+    grid = xrd.helical_grid(h, [.13], zz, length=300)[0]
+    centre = 1 / h["repeat"]
+    sigma = 1 / (2.354820045 * 300)
+    sel = abs(zz - centre) < 4 * sigma
+    analytic = got[2, 0] * np.exp(-.5 * ((zz[sel] - centre) / sigma) ** 2) / (math.sqrt(2 * math.pi) * sigma)
+    check(np.allclose(grid[sel], analytic, rtol=1e-9),
+          "finite length produces a Gaussian line with no side fringes")
+    check(grid[np.argmin(abs(zz - .5 * centre))] < grid.max() * 1e-10,
+          "no finite-model leakage halfway between helical lines")
+    s, p = xrd.read_structure(os.path.join(LIB, "Alpha-helix_polyAla.mvm"))
+    m = xrd.Model(s, p)
+    fit = xrd.helical_repeat(m)
+    check(fit["units"] == 18 and fit["turns"] == 5 and abs(fit["repeat"] / 5 - 5.4) < .03,
+          "alpha screw fit: 18 residues / 5 turns, 5.4 A pitch")
+    a = .73
+    rot = xrd.rotation([1, 2, 3], math.degrees(a))
+    moved = xrd.helical_repeat(xrd.Model(s, p @ rot.T + [21, -12, 7]))
+    check(abs(fit["repeat"] - moved["repeat"]) < 1e-8 and
+          np.allclose(xrd.helical_lines(fit, rs, ls), xrd.helical_lines(moved, rs, ls), rtol=1e-8),
+          "repeat and intensity invariant under rigid rotation and translation")
+    bad = xrd.Model(["C"] * 10, np.random.RandomState(7).normal(size=(10, 3)))
+    try:
+        xrd.helical_repeat(bad)
+        check(False, "unrecognized model refuses forced helical mode")
+    except ValueError:
+        check(True, "unrecognized model refuses forced helical mode")
+    pat = xrd.fibre_pattern(bad, pixels=20, misalignment=0)
+    check(pat["helix"] is None, "auto retains the finite sum for non-helical fibres")
+
+
 def test_form_factors():
     z = {"H": 1, "C": 6, "N": 7, "O": 8, "Na": 11, "Mg": 12, "P": 15, "S": 16, "Cl": 17,
          "K": 19, "Ca": 20, "Fe": 26, "Zn": 30}
@@ -110,7 +166,8 @@ def test_form_factors():
 
 
 def layer(m, l, pitch, rs):
-    return xrd.intensity_rz(m, rs, [l / pitch])[:, 0]
+    h = xrd.helical_repeat(m)
+    return xrd.helical_lines(h, rs, [l], bfactor=20)[:, 0]
 
 
 def test_bdna():
@@ -120,10 +177,13 @@ def test_bdna():
         return
     sym, xyz = xrd.read_structure(path)
     m = xrd.Model(sym, xyz)
-    pitch = 34.0
+    h = xrd.helical_repeat(m)
+    pitch = h["repeat"]
+    check(h["units"] == 10 and h["turns"] == 1 and abs(h["rise"] - 3.39) < 0.03,
+          "B-DNA screw fit: 10 bp/turn, rise near 3.39 A", h["rise"])
     zs = np.arange(0.0, 0.34, 0.001)
     rs = np.arange(0.0, 0.40, 0.005)
-    g = xrd.intensity_rz(m, rs, zs)
+    g = xrd.helical_grid(xrd.helical_repeat(m), rs, zs, bfactor=20, length=300)
     prof = (g * np.maximum(rs, 0.005)[:, None]).sum(axis=0)
     # layer lines: local maxima of the R-weighted profile (parabolic refinement)
     peaks = []
@@ -145,6 +205,9 @@ def test_bdna():
     tot = {l: float((layer(m, l, pitch, rr) * rr).sum()) for l in (3, 4, 5)}
     check(tot[4] < tot[3] and tot[4] < tot[5],
           "layer line 4 is weak against 3 and 5 (%s)" % {k: "%.3g" % v for k, v in tot.items()}, tot)
+    heights = xrd.helical_lines(h, rr, [3, 4, 5], bfactor=20).max(axis=0)
+    check(heights[1] < 0.1 * heights[0] and heights[1] < 0.3 * heights[2],
+          "fourth-layer spots strongly suppressed against third and fifth", heights)
     rmax = {}
     for l in (1, 2, 3):
         rr = np.arange(0.01, 0.30, 0.005)
@@ -170,7 +233,7 @@ def test_helix():
           "model rise %.2f A, pitch %.2f A" % (rise, pitch), (rise, pitch))
     zs = np.arange(0.0, 0.85, 0.0025)
     rs = np.arange(0.0, 0.5, 0.005)
-    g = xrd.intensity_rz(m, rs, zs)
+    g = xrd.helical_grid(xrd.helical_repeat(m), rs, zs, bfactor=20, length=300)
     prof = (g * np.maximum(rs, 0.005)[:, None]).sum(axis=0)
     peaks = [zs[i] for i in range(1, len(zs) - 1)
              if prof[i] > prof[i - 1] and prof[i] >= prof[i + 1] and zs[i] > 0.1]
@@ -188,6 +251,10 @@ def test_cli():
         cmd = [sys.executable, os.path.join(ROOT, "scripts", "ecce_xrd.py"), "fibre", src,
                "--pixels", "120", "--out", png, "--out", csv, "--json"]
         r = subprocess.run(cmd, capture_output=True, text=True)
+        import json
+        info = json.loads(r.stdout) if r.returncode == 0 else {}
+        check(info.get("transform") == "helical" and info.get("helix", {}).get("units") == 18,
+              "CLI auto reports the fitted helical repeat", r.stderr[-300:])
         check(r.returncode == 0 and open(png, "rb").read(8) == b"\x89PNG\r\n\x1a\n" and
               len(open(csv).read().splitlines()) == 120 * 120 + 1,
               "CLI writes the PNG and the CSV", r.stderr[-300:])
@@ -198,6 +265,7 @@ def test_cli():
 def main():
     test_average()
     test_ideal_helix()
+    test_helical_transform()
     test_form_factors()
     test_bdna()
     test_helix()

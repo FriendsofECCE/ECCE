@@ -110,6 +110,7 @@ def calc_record(calc):
         rec["measured"] = json.loads(S._meta(meta, "qsar.measured") or "{}")
     except ValueError:
         rec["measured"] = {}
+    rec["source"] = S._meta(meta, "qsar.source")
     rec["checks"] = S.read_checks(calc)
     rec["qm"] = qm_values(calc)
     return rec
@@ -127,7 +128,7 @@ def selected_columns(groups):
 def build_table(records, groups=None, qm=True, progress=None):
     """-> (columns, rows).  Each row is a dict; a row whose SMILES cannot be read
     keeps its measured and QM values and carries the reason in `problems`."""
-    groups = list(groups) if groups else list(C.GROUPS)
+    groups = list(groups) if groups is not None else list(C.GROUPS)
     dcols = selected_columns(groups)
     measured_cols = []
     for r in records:
@@ -211,7 +212,7 @@ def records_from_csv(path, name_col, smiles_col):
             except ValueError:
                 pass
         recs.append({"name": line[ni].strip(), "smiles": line[si].strip(),
-                     "measured": meas})
+                     "measured": meas, "source": os.path.basename(path)})
     return recs
 
 
@@ -219,10 +220,10 @@ def cmd_table(a):
     if a.from_csv:
         recs = records_from_csv(a.from_csv, a.name_col, a.smiles_col)
     else:
-        if not a.calcs:
+        if not a.calcs and not a.describe:
             _fail("give calculations, a folder or --from-csv", 64)
         paths = S.expand_calcs(a.calcs)
-        if not paths:
+        if not paths and a.calcs:
             _fail("no calculations found", 2)
         recs = [calc_record(p) for p in paths]
     prog = None
@@ -233,6 +234,24 @@ def cmd_table(a):
     if groups is not None:
         groups = [g for g in groups if g != "qm"]
     cols, rows = build_table(recs, groups, qm=qm and not a.from_csv, progress=prog)
+    info = []
+    for col in cols:
+        sources = sorted({r.get("source") or "unknown source (not recorded)"
+                          for r in recs if col in r.get("measured", {})})
+        info.append(C.column_definition(col, sources))
+    if a.key_csv:
+        with open(a.key_csv, "w", newline="", encoding="utf-8") as f:
+            csv.writer(f).writerows((d["name"], C.definition_text(d)) for d in info)
+    if a.describe:
+        if a.json:
+            json.dump({"columns": info}, sys.stdout, ensure_ascii=False)
+            sys.stdout.write("\n")
+        elif a.csv:
+            write_csv(a.csv, ["name", "description", "unit", "group", "reference"], info)
+        else:
+            for d in info:
+                print(d["name"] + ": " + C.definition_text(d))
+        return 0
     if a.json:
         json.dump({"columns": cols, "rows": [[r.get(c) for c in cols] for r in rows]},
                   sys.stdout)
@@ -563,6 +582,8 @@ def main(argv=None):
     t.add_argument("--no-qm", action="store_true", help="leave out the results of the calculations")
     t.add_argument("--csv", help="write the table here (- for stdout)")
     t.add_argument("--json", action="store_true")
+    t.add_argument("--describe", action="store_true", help="describe current columns, or all built-in columns without input; --json gives structured definitions")
+    t.add_argument("--key-csv", help="also write column names and their key text as UTF-8 CSV")
     t.add_argument("--progress", action="store_true", help="PROGRESS lines on stderr")
     t.add_argument("--from-csv", help="a table of names and SMILES instead of calculations")
     t.add_argument("--name-col")

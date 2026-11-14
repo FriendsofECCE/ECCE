@@ -49,6 +49,7 @@ static std::string s_registerMessage;
 #include <wx/stopwatch.h>
 #include <wx/time.h>
 #include <wx/dataobj.h>
+#include <wx/clipbrd.h>
 #include <wx/filename.h>
 #include <wx/process.h>
 #include <wx/utils.h>
@@ -2595,7 +2596,24 @@ void CalcMgr::runTestCommand(const string& line)
       }
       ChecksDialog dlg(this, calculationsUnder(roots), false, &groups);
       string why;
-      if (dlg.ok(why)) { std::ofstream(out) << dlg.csv(); outcome = "ok"; }
+      if (dlg.ok(why)) {
+        std::ofstream(out) << dlg.csv();
+        std::unique_ptr<wxDialog> key(dlg.createKey());
+        auto *box = dynamic_cast<wxTextCtrl*>(wxWindow::FindWindowByName("qsar-key-text", key.get()));
+        if (box) std::ofstream(out + ".key") << box->GetValue().ToStdString(wxConvUTF8);
+        wxCommandEvent copy(wxEVT_BUTTON, wxID_COPY);
+        key->FindWindow(wxID_COPY)->GetEventHandler()->ProcessEvent(copy);
+        if (wxTheClipboard->Open()) {
+          wxTextDataObject copied;
+          if (wxTheClipboard->GetData(copied))
+            std::ofstream(out + ".copied") << copied.GetText().ToStdString(wxConvUTF8);
+          wxTheClipboard->Close();
+        }
+        std::ofstream tips(out + ".tips");
+        for (const char *name : {"a_nH", "SlogP_VSA3", "qm_HOMO", "IC50 (nM)"})
+          tips << name << ": " << dlg.headerTooltip(name) << "\n";
+        outcome = "ok";
+      }
       else outcome = "failed: " + why;
     } else if (command == "qsarpca" || command == "qsarpls") {
       // "qsarpca <outdir> <url>,<url>... [scaling] [components] [png]" and

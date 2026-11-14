@@ -6424,8 +6424,18 @@ void Builder::updatePropertyMenus()
       // is the Builder's log panel and must survive.
       new wxLogChain(new wxLogStderr());
       okTimer->Start(500);
+      fprintf(stderr, "ECCE_TEST_IMPORT: start\n");
       importChemicalSystem(path, "", wxString(path).AfterLast('.'));
       okTimer->Stop();
+      //  ECCE_TEST_IMPORT_SETTLE=<ms>: let the viewer draw the imported
+      //  structure before exiting (render_alpha_test.py checks those frames).
+      if (const char *settle = getenv("ECCE_TEST_IMPORT_SETTLE")) {
+        const wxLongLong end = wxGetLocalTimeMillis() + atol(settle);
+        while (wxGetLocalTimeMillis() < end) {
+          wxTheApp->Yield(true);
+          wxMilliSleep(10);
+        }
+      }
       fprintf(stderr, "ECCE_TEST_IMPORT: done, %d atoms\n",
               getSG()->getFragment()->numAtoms());
       // Close() would ask to save the imported system.
