@@ -174,42 +174,35 @@ void activateTool(Tab *t)
 
 
 // Menu commands from the main window's menu bar while a tool's menus are
-// on it: they go to the tool's frame, as from its own menu bar.
-class MenuRouter : public wxEvtHandler
+// on it go to the tool's frame, as from its own menu bar.  Bound on the
+// Organizer's frame, so they run before its event table (which handles the
+// same wxID_SAVE, wxID_EXIT, ...).
+wxFrame *menuTarget(int id)
 {
-public:
-  MenuRouter()
-  {
-    Bind(wxEVT_MENU, &MenuRouter::onCommand, this);
-    Bind(wxEVT_UPDATE_UI, &MenuRouter::onUpdate, this);
-    Bind(wxEVT_MENU_OPEN, &MenuRouter::onMenu, this);
-    Bind(wxEVT_MENU_CLOSE, &MenuRouter::onMenu, this);
-    Bind(wxEVT_MENU_HIGHLIGHT, &MenuRouter::onMenu, this);
-  }
-private:
-  static wxFrame *target(int id)
-  {
-    Tab *t = activeTab();
-    if (!t || !t->tool || !t->menubar) return 0;
-    return t->menubar->FindItem(id) ? t->tool : 0;
-  }
-  void onCommand(wxCommandEvent& ev)
-  {
-    if (wxFrame *f = target(ev.GetId())) f->GetEventHandler()->ProcessEvent(ev);
+  Tab *t = activeTab();
+  if (!t || !t->tool || !t->menubar) return 0;
+  return t->menubar->FindItem(id) ? t->tool : 0;
+}
+
+void routeMenus(wxFrame *host)
+{
+  host->Bind(wxEVT_MENU, [](wxCommandEvent& ev) {
+    if (wxFrame *f = menuTarget(ev.GetId())) f->GetEventHandler()->ProcessEvent(ev);
     else ev.Skip();
-  }
-  void onUpdate(wxUpdateUIEvent& ev)
-  {
-    if (wxFrame *f = target(ev.GetId())) f->GetEventHandler()->ProcessEvent(ev);
+  });
+  host->Bind(wxEVT_UPDATE_UI, [](wxUpdateUIEvent& ev) {
+    if (wxFrame *f = menuTarget(ev.GetId())) f->GetEventHandler()->ProcessEvent(ev);
     else ev.Skip();
-  }
-  void onMenu(wxMenuEvent& ev)
-  {
+  });
+  auto menu = [](wxMenuEvent& ev) {
     Tab *t = activeTab();
     if (t && t->tool) t->tool->GetEventHandler()->ProcessEvent(ev);
     else ev.Skip();
-  }
-};
+  };
+  host->Bind(wxEVT_MENU_OPEN, menu);
+  host->Bind(wxEVT_MENU_CLOSE, menu);
+  host->Bind(wxEVT_MENU_HIGHLIGHT, menu);
+}
 
 
 // The agreed Chrome-like strip: rounded active tab in the window colour,
@@ -376,7 +369,7 @@ void ToolTabs::setMainWindow(wxFrame *organizer)
   tabs().push_back(Tab{0, 0, organizer->GetMenuBar(), page, _("Organizer"),
                        dotFor("Organizer")});
   s_book->AddPage(page, _("Organizer"), true);
-  organizer->PushEventHandler(new MenuRouter);
+  routeMenus(organizer);
   s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, onPageChanged);
   s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CLOSE, onPageClose);
   s_book->Bind(wxEVT_AUINOTEBOOK_TAB_RIGHT_UP, onTabRightUp);
