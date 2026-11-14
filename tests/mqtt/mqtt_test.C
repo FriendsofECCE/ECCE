@@ -1193,6 +1193,9 @@ int main(int argc, char** argv)
 
   if (argc >= 2 && string(argv[1]) == "child") return childMain(argc, argv);
   if (argc >= 3 && string(argv[1]) == "local") return localMain(argv[2]);
+  // Every other mode checks the switch-off behaviour, also when a suite runs
+  // with ECCE_ONE_PROCESS=1 in its environment (#983).
+  unsetenv("ECCE_ONE_PROCESS");
   if (argc >= 2 && string(argv[1]) == "interop") return interopMain();
   if (argc >= 3 && string(argv[1]) == "holder") return holderMain(argv[2]);
   if (argc >= 3 && string(argv[1]) == "linger") return lingerMain(argv[2]);

@@ -75,7 +75,8 @@ tools stay separate. Off by default. Quitting the Organizer (or the
 session's `ecce_quit`) then closes those windows first, each asking about
 its own unsaved changes; Cancel in one of them cancels the Quit. Test hooks
 (`ECCE_TEST_ORGANIZER`): `inprocess` (pid and open windows per tool),
-`closetools`, and `answer cancel|no` for a tool's save question.
+`closetools`, `gatewayquit` (the session's `ecce_quit`), and
+`answer cancel|no` for a tool's save question.
 
 The commands (`ecce-launch`, `ecce-series`, ...) are separate and are the
 way an assistant acts on ECCE. The help pages (**Help > ECCE Help**, `help/src/*.md`)

@@ -241,7 +241,14 @@ that one window, so the `tests/apps` scripts keep a per-tool start.
   `inprocess` hook lists the remaining ones (`tlw=Class/label`).
 - Test (`one_process_test.py` second run): Quit with a dirty Builder;
   `answer cancel` to its save question keeps both open, `answer no`
-  must end the process. `answer` reports the dialog's title;
+  must end the process. Third run: `gatewayquit` (an `ecce_quit` sent as
+  the gateway, by the local path) with a dirty Builder: one question, then
+  the process ends. `closeAll` skips a frame already scheduled for
+  destruction (its own `ecce_quit` handler closed it), or the question
+  would come twice.
+- Suites with `ECCE_ONE_PROCESS=1` in the environment: `mqtt_test`
+  unsets it except in `local` mode, as its other modes check the
+  switch-off behaviour. `answer` reports the dialog's title;
   `closetools` runs after the hook returns so a tool's question can be
   answered.
 - A crash now takes every window; autosave and reopen are stage-2+ work

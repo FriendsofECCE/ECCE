@@ -3350,6 +3350,13 @@ void CalcMgr::runTestCommand(const string& line)
         if (w != this)
           outcome += string(" tlw=") + wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
                      (w->IsShown() ? "" : "(hidden)") + "/" + string(w->GetLabel().utf8_str());
+    } else if (command == "gatewayquit") {
+      // The session's ecce_quit as the gateway sends it, through the local
+      // path to the Organizer and every in-process tool (#983).
+      JMSPublisher pub(GATEWAY);
+      JMSMessage *msg = pub.newMessage();
+      outcome = pub.publish("ecce_quit", *msg) ? "sent" : "not sent";
+      delete msg;
     } else if (command == "closetools") {
       // After this command returns, so that a tool's own question can be
       // answered by a later "answer" line.

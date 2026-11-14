@@ -125,7 +125,7 @@ def run(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
-def runQuit(display):
+def runQuit(display, gateway=False):
     """Quit asks the in-process Builder about its unsaved edit: Cancel there
     cancels the Quit, No lets the process end."""
     data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
@@ -149,6 +149,13 @@ def runQuit(display):
         def inspect(_display):
             append("start Builder " + url, 25)
             append("inprocess", 2)
+            if gateway:
+                # The session's ecce_quit: forced, the Builder still asks
+                # about its edit (Yes/No).
+                append("gatewayquit", 3)
+                append("answer no", 3)
+                append("answer no", 25)
+                return
             append("close", 3)          # File > Quit
             append("answer", 3)         # "Quit"
             append("answer cancel", 3)  # the Builder's save question
@@ -176,22 +183,32 @@ def runQuit(display):
                           inspect=inspect)
         log = result.log or ""
         inproc = pb.answers(log, "inprocess")
-        check(len(inproc) == 2 and
-              "Builder=1 CalculationEditor=0" in inproc[0],
+        check(inproc and "Builder=1 CalculationEditor=0" in inproc[0],
               "the Builder opened in the Organizer", str(inproc) + log[-1500:])
         check("BUILDER: dirty=1" in log, "the Builder has unsaved changes")
-        check(len(inproc) == 2 and
-              "Builder=1 CalculationEditor=0" in inproc[1],
-              "Cancel in the Builder's question cancels the Quit", str(inproc))
-        check(pb.answers(log, "answer cancel") ==
-              ["answered Save Builder Changes?"] and
-              pb.answers(log, "answer no") ==
-              ["answered Save Builder Changes?"],
-              "the Builder asked about its changes at each Quit",
-              str(pb.answers(log, "answer")))
-        check(result.returncode == 0 and "Aborted" not in log,
-              "No in the Builder's question ends the process cleanly",
-              "returncode %s\n%s" % (result.returncode, log[-1500:]))
+        if gateway:
+            check(pb.answers(log, "gatewayquit") == ["sent"] and
+                  pb.answers(log, "answer no")[:1] ==
+                  ["answered Save Builder Changes?"],
+                  "ecce_quit: the Builder asked about its changes once",
+                  str(pb.answers(log, "answer no")))
+            check(result.returncode == 0 and "Aborted" not in log,
+                  "ecce_quit ends the process cleanly",
+                  "returncode %s\n%s" % (result.returncode, log[-1500:]))
+        else:
+            check(len(inproc) == 2 and
+                  "Builder=1 CalculationEditor=0" in inproc[1],
+                  "Cancel in the Builder's question cancels the Quit",
+                  str(inproc))
+            check(pb.answers(log, "answer cancel") ==
+                  ["answered Save Builder Changes?"] and
+                  pb.answers(log, "answer no") ==
+                  ["answered Save Builder Changes?"],
+                  "the Builder asked about its changes at each Quit",
+                  str(pb.answers(log, "answer")))
+            check(result.returncode == 0 and "Aborted" not in log,
+                  "No in the Builder's question ends the process cleanly",
+                  "returncode %s\n%s" % (result.returncode, log[-1500:]))
         if GDB:
             print(log[-20000:])
     finally:
@@ -203,6 +220,7 @@ def main():
     def checkApp(display, name, results, verbose=False):
         run(display)
         runQuit(display)
+        runQuit(display, gateway=True)
         if failures:
             results.fail("one-process", "; ".join(failures))
     run_tests.checkApp = checkApp

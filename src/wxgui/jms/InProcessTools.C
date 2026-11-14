@@ -6,6 +6,7 @@
 #include <map>
 #include <vector>
 
+#include "wx/app.h"
 #include "wx/toplevel.h"
 
 #include "util/JMSMessage.H"
@@ -121,7 +122,11 @@ bool InProcessTools::closeAll(bool force)
 {
   // Close() may destroy the window and untrack it: work on a copy.
   std::vector<Window> w = windows();
-  for (const Window& t : w)
+  for (const Window& t : w) {
+    // Closed already, by its own ecce_quit handler: asking again would
+    // repeat its save question.
+    if (wxTheApp->IsScheduledForDestruction(t.frame)) continue;
     if (!t.frame->Close(force)) return false;
+  }
   return true;
 }
