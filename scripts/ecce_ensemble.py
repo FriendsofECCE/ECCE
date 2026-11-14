@@ -3,7 +3,7 @@
 
 Wx-free; reads stored calculation folders and talks to no ECCE session.
 
-  ecce-ensemble pick <crest calc> [n=N] [--rmsd X] [--skip-failed] [--json]
+  ecce-ensemble pick <crest calc> [n=N] [window=E] [--rmsd X] [--skip-failed] [--json]
                      [--create TEMPLATE FOLDER]
   ecce-ensemble minimum <calc|folder|pattern>... [--treatment SPEC] [--json]
   ecce-ensemble benchmark <spec file> [--treatment SPEC] [--T K]
@@ -172,7 +172,7 @@ def check_member(els, ref_xyz, xyz, ref_prot, ref_ions, ref_md):
         "ok": not flags, "flags": flags}
 
 
-def pick(calc, n, thr, skip_failed):
+def pick(calc, n, thr, skip_failed, window=None):
     calc = calc.rstrip("/")
     try:
         els, frames = D.read_geomtrace(calc)
@@ -199,9 +199,12 @@ def pick(calc, n, thr, skip_failed):
     order = sorted(range(len(frames)), key=lambda k: (rel[k], k))
     prots = [proton_counts(els, f) for f in frames]
     picks, skipped = [], []
+    emin = min(rel)
     for k in order:
         if len(picks) >= n:
             break
+        if window is not None and rel[k] - emin > window + 1e-9:
+            break   # sorted by energy: everything after is outside too
         dup = None
         for p in picks:
             if prots[k] != prots[p["_k"]]:   # a proton moved: never the same conformer
@@ -225,7 +228,7 @@ def pick(calc, n, thr, skip_failed):
         r, _ = D.kabsch(sub(frames[picks[0]["_k"]]), sub(frames[p["_k"]]))
         p["heavy_rmsd_to_lowest"] = round(r, 4)
     return {"calculation": calc, "members": len(frames), "rmsd_threshold": thr,
-            "charge": charge, "elements": els,
+            "window_kcal_mol": window, "charge": charge, "elements": els,
             "frames": [frames[p["_k"]] for p in picks],
             "picks": [{k: v for k, v in p.items() if k != "_k"} for p in picks],
             "skipped": skipped}
@@ -262,8 +265,9 @@ def create_calcs(res, template, folder):
 
 
 def cmd_pick(a):
-    n = a.n if a.n else 5
-    res = pick(a.calc, n, a.rmsd, a.skip_failed)
+    # With a window and no n= the window alone limits the number of picks.
+    n = a.n if a.n else (10 ** 9 if a.window is not None else 5)
+    res = pick(a.calc, n, a.rmsd, a.skip_failed, a.window)
     made = create_calcs(res, a.create[0], a.create[1]) if a.create else None
     if a.json:
         out = {k: v for k, v in res.items() if k not in ("frames", "elements")}
@@ -271,8 +275,9 @@ def cmd_pick(a):
             out["create"] = made
         print(json.dumps(out, indent=2))
     else:
-        print("%s: %d members, %d distinct picks (heavy-atom RMSD >= %.2f A)" % (
-            res["calculation"], res["members"], len(res["picks"]), res["rmsd_threshold"]))
+        print("%s: %d members, %d distinct picks (heavy-atom RMSD >= %.2f A%s)" % (
+            res["calculation"], res["members"], len(res["picks"]), res["rmsd_threshold"],
+            "" if a.window is None else ", within %.2f kcal/mol of the lowest" % a.window))
         for p in res["picks"]:
             print("  #%d member %d  %.3f kcal/mol  RMSD to #1 %.3f  %s%s" % (
                 p["rank"], p["member"], p["rel_kcal_mol"], p["heavy_rmsd_to_lowest"],
@@ -561,6 +566,16 @@ sum + 0.5 A; halide: an H within %.1f A or a metal within r_cov sum + 0.5 A)
 must still be; metal-N/O/S contacts (same cutoff as the metal) are listed
 with distances and compared with the input. A failed check is reported in
 "flags"; --skip-failed takes the next distinct member instead.
+window=E keeps only members within E of the lowest member of the whole ensemble
+(its own stored energies, Props/CONFREL): window=3 or window=3kcal is kcal/mol,
+window=12.5kJ is kJ/mol (4.184 kJ per kcal). It combines with n=N, which then
+is an upper limit (without n= a window alone is not capped at 5), and with
+--rmsd. Order: merge first, then window, then n. Merging first means a near-duplicate
+is credited to its better member rather than counted as a pick of its own;
+the window then cuts the energy-sorted list, so it is measured from the
+ensemble's lowest member even when that one is skipped; n cuts last, so
+the n picks are the lowest ones inside the window. The JSON has
+"window_kcal_mol" (null without a window).
 --create TEMPLATE FOLDER makes one calculation per pick with ecce-series
 (setup of the template calculation: code, method, basis, solvent, machine,
 cores, wall), named <ensemble>_conf<rank>; nothing is launched.
@@ -599,8 +614,9 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd")
     p = sub.add_parser("pick", help="N lowest distinct members of an ensemble, checked")
     p.add_argument("calc")
-    p.add_argument("opts", nargs="*", help="n=N")
+    p.add_argument("opts", nargs="*", help="n=N window=E[kcal|kJ]")
     p.add_argument("--n", type=int)
+    p.set_defaults(window=None)
     p.add_argument("--rmsd", type=float, default=DEFAULT_RMSD)
     p.add_argument("--skip-failed", action="store_true")
     p.add_argument("--create", nargs=2, metavar=("TEMPLATE", "FOLDER"))
@@ -623,9 +639,13 @@ def main(argv=None):
     if a.cmd == "pick":
         for o in a.opts:
             mm = re.match(r"^n=(\d+)$", o)
-            if not mm:
-                ap.error("unknown argument %s (n=N)" % o)
-            a.n = int(mm.group(1))
+            mw = re.match(r"^window=([0-9]*\.?[0-9]+)\s*(kcal|kj)?(?:/mol)?$", o, re.I)
+            if mm:
+                a.n = int(mm.group(1))
+            elif mw:
+                a.window = float(mw.group(1)) / (4.184 if (mw.group(2) or "").lower() == "kj" else 1.0)
+            else:
+                ap.error("unknown argument %s (n=N, window=E[kcal|kJ])" % o)
         if a.n is not None and a.n < 1:
             ap.error("n must be at least 1")
         return cmd_pick(a)
