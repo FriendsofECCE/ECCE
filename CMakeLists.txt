@@ -2996,9 +2996,12 @@ add_test(NAME mqtt-local COMMAND mqtt_test local ${CMAKE_SOURCE_DIR})
 if(TARGET ecce_users_auth)
   add_test(NAME mqtt-auth-plugin
            COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} $<TARGET_FILE:ecce_users_auth>)
-  set_tests_properties(mqtt-auth-plugin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+  set_tests_properties(mqtt-auth-plugin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77
+    ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR}")
 endif()
-set_tests_properties(mqtt mqtt-auth mqtt-local PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+# eccedsi asks for ECCE_HOME while its statics are built, before main.
+set_tests_properties(mqtt mqtt-auth mqtt-local PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR}")
 
 # A compute machine's password learned in one process reaches the others of
 # a local session over the Unix-socket broker (#487).
