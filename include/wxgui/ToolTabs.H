@@ -42,6 +42,9 @@ public:
   // has one.  Before the frame is first shown is best: the 3-D viewer's
   // window is then first realized inside the page.
   static bool adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title);
+  // The tool's menu bar: in a tab it is on the main window, so the frame's
+  // own GetMenuBar() is null; a tool's GetMenuBar() returns this.
+  static wxMenuBar *menuBar(const wxTopLevelWindow *tool, wxMenuBar *own);
   static bool hosts(const wxTopLevelWindow *tool);
   // The tool's Show/Raise/SetTitle while hosted: select / retitle its tab.
   static void select(wxTopLevelWindow *tool);

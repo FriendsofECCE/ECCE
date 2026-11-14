@@ -101,6 +101,9 @@ public:
   wxAuiFloatingFrame* CreateFloatingFrame(wxWindow* parent,
                                           const wxAuiPaneInfo& p) override
   {
+    // In a tab the managed window is the page, which is deleted on Open in
+    // Window and would take the floating frame and its panel with it.
+    if (p_floatParent) parent = p_floatParent;
     wxAuiFloatingFrame *f =
         new wxAuiFloatingFrame(parent, this, p, wxID_ANY,
                                wxRESIZE_BORDER | wxSYSTEM_MENU |
@@ -108,6 +111,8 @@ public:
     ewxWindowUtils::detachFromParent(f);
     return f;
   }
+
+  void setFloatParent(wxWindow *w) { p_floatParent = w; }
 
   // In a tab (#983) the managed window is the tab's page, but panels made
   // later still have the hidden frame as parent: they move to the page.
@@ -117,12 +122,16 @@ public:
     wxAuiPaneInfoArray& panes = GetAllPanes();
     for (size_t i = 0; w && i < panes.GetCount(); i++) {
       wxWindow *pw = panes[i].window;
-      if (pw && pw->GetParent() != w && !pw->GetParent()->IsKindOf(
+      wxWindow *parent = pw ? pw->GetParent() : 0;
+      if (parent && parent != w && !parent->IsKindOf(
               CLASSINFO(wxAuiFloatingFrame)))
         pw->Reparent(w);
     }
     wxAuiManager::Update();
   }
+
+private:
+  wxWindow *p_floatParent = 0;
 };
 
 class Builder: public BuilderGUI,
@@ -656,6 +665,8 @@ class Builder: public BuilderGUI,
 
       void reportError(const string& msg);
       void toggleModeButton(int toolId);
+      /// The menu bar, also while it is on the Organizer's window (a tab).
+      wxMenuBar *GetMenuBar() const;
 
       void setUnsavedState(bool changed);
       void doSave();

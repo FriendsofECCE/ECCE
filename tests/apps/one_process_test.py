@@ -306,12 +306,15 @@ def runTabs(display):
             append("answer no", 25)
 
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
-                          env={"ECCE_ONE_PROCESS": "1", "ECCE_LAYOUT": "small",
+                          env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
+                               "ECCE_ONE_PROCESS": "1", "ECCE_LAYOUT": "small",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_BUILDER_SCRIPT": script,
                                "ECCE_LOCAL_DATA": data},
                           inspect=inspect)
         log = result.log or ""
+        if GDB:
+            print(log[-6000:])
         tabs = pb.answers(log, "tabs")
         print("      tabs: " + "\n            ".join(tabs))
         orgMenus = tabs[0].split("menus=")[-1] if tabs else ""
