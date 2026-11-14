@@ -52,7 +52,7 @@ def main():
         if not bo.check(bool(url), "NaCl example imports"):
             return 1
         path = lambda name: os.path.join(png, name)
-        lines = ["wait 3000", "xrd size 1366 768", "list Diffraction", "wait 1500", "panesize Diffraction",
+        lines = ["wait 3000", "background 1 1 1", "xrd size 1366 768", "list Diffraction", "wait 1500", "panesize Diffraction",
                  "xrd wait", "xrd state", "xrd export %s %s" % (path("initial.png"), path("initial.csv")),
                  "xrd screen " + path("1013-pane-powder.png"),
                  "xrd set max 70 75 80",
@@ -92,7 +92,7 @@ def main():
         url = pc.importExample(s, env, wrappers, os.path.join(example, "xtb-b_dna", "bdna.out"))
         if not bo.check(bool(url), "DNA example imports"):
             return 1
-        lines = ["wait 3000", "xrd size 1366 768", "list Diffraction", "wait 3000", "xrd wait",
+        lines = ["wait 3000", "background 1 1 1", "xrd size 1366 768", "list Diffraction", "wait 3000", "xrd wait",
                  "xrd set repeat 42", "xrd set B 30", "xrd update", "xrd wait", "xrd state",
                  "xrd options", "wait 500", "xrd screen " + path("1013-options-fibre-screen.png"),
                  "xrd options-shot " + path("1013-options-fibre.png"), "xrd state",
