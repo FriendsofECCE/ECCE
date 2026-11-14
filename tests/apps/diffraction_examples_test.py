@@ -113,10 +113,17 @@ def main():
                           "calcmeasure frame %s %s 0 0 strongest" % (m("fr_film.png"), m("fr_film.csv")),
                           "calcmeasure frame %s %s 0 1" % (m("fr_dark.png"), m("fr_dark.csv")),
                           "calcmeasure powder %s %s 0 0 31.7" % (m("pw.png"), m("pw.csv"))]
+            if calc == "nacl_powder":
+                for view_kind in ("layer0", "frame"):
+                    lines.append("calcmeasure %s %s %s 0 0 viewtest" % (
+                        view_kind, os.path.join(out, view_kind + "-view.png"), os.path.join(out, view_kind + "-view.csv")))
             if calc == "bdna":
                 lines.append("calcdiffraction %s %s %s 0 1" % (os.path.join(out, "dark.png"),
                                                               os.path.join(out, "dark.csv"),
                                                               os.path.join(out, "dark.xyz")))
+                lines.append("calcdiffraction %s %s %s 0 0 viewtest" % (
+                    os.path.join(out, "fibre-view.png"), os.path.join(out, "fibre-view.csv"),
+                    os.path.join(out, "view.xyz")))
             if calc == "nacl_powder":
                 # the window's own drawings: a frame with labels and rings, and
                 # NaCl compared with KCl as a "measured" pattern (stacked panels)
@@ -137,6 +144,22 @@ def main():
             bo.check("BUILDER: calcdiffraction pattern: %s" % kind in text and
                      "BUILDER: calcdiffraction: done" in text,
                      "%s: the Diffraction entry opens the %s pattern" % (calc, kind))
+            if calc in ("bdna", "nacl_powder"):
+                count = 1 if calc == "bdna" else 2
+                bo.check(text.count("BUILDER: image view: PASS") == count,
+                         "%s: wheel anchor, pan, zoomed measure click, rectangle, Home and double click" % calc)
+                for tag in (("fibre",) if calc == "bdna" else ("layer0", "frame")):
+                    prefix = os.path.join(out, tag + "-view.png")
+                    def data(suffix):
+                        path = prefix + suffix + ".png"
+                        return open(path, "rb").read() if os.path.exists(path) else b""
+                    full, reset, zoom, pan, rectangle = (data(k) for k in (".full", ".reset", ".zoom", ".pan", ".rectangle"))
+                    bo.check(full and full == reset, "%s %s: reset restores full PNG" % (calc, tag))
+                    bo.check(zoom and pan and rectangle and full != zoom and zoom != pan and full != rectangle,
+                             "%s %s: navigation changes exported current view" % (calc, tag))
+                if calc == "nacl_powder":
+                    bo.check(len(re.findall(r"DIFFRACTION: zoomed click \(-?\d+ -?\d+ -?\d+\)", text)) == 2,
+                             "frame and precession measure clicks identify hkl after zoom and pan")
             if calc == "bdna":
                 same_csv_new_png(out, "d", "dark", "bdna: Dark scheme")
             if calc in ("kcl", "nacl_powder"):

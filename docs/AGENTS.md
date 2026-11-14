@@ -236,6 +236,23 @@ column definitions, or the current columns when given calculation paths or
 Measured/user columns identify their input filename (or pasted text);
 older stored values without provenance say `unknown source (not recorded)`.
 Definitions and the checked help key come from `scripts/ecce_qsar_chem.py`.
+QSAR Analysis defaults to unit variance (autoscaling); full scaling names and
+transformation tooltips explain the choices. Its report gives variance and
+prediction percentages, measured-unit errors and warnings for weak validation
+or small samples, with omissions grouped by reason. The Components grid holds
+all computed component statistics; Ctrl+C copies selected cells as TSV and
+Copy table copies the whole grid with headers. Molecule points have hover
+numbers and click selection linked to the Molecules grid; the variance plot
+shows component and cumulative explained variance. PLS adds a sorted VIP grid
+with descriptor descriptions (VIP > 1: more important than average).
+Save Results writes the displayed `analysis_components.csv`,
+`analysis_summary.txt` and PLS `analysis_vip.csv` alongside the existing numeric
+files and saved model. CLI text uses the same presentation; JSON is unchanged.
+The `qsarpca` and `qsarpls` test hooks accept `[png [width height]]` after the
+usual model arguments, save screenshots of the report, grids and variance
+plot, and verify real clipboard, hover and click paths. Their output directory
+contains `presentation.tsv`, `selection.tsv`, `hover.txt` and
+`presentation-check.txt` for script assertions.
 
 **Docking.** Vina calculations (`vina`); `ecce-pdbqt` prepares PDBQT files;
 CREST/xTB docking is a run type of xTB.
@@ -246,6 +263,19 @@ Builder script `poses note` returns that text; `poses thumb 1 <file.png>`
 saves the cached thumbnail of pose 1 for image checks.
 
 **Diffraction.** Tools > Diffraction (`fibre-diffraction`); `ecce-xrd`.
+Image views (detector frame, precession layer and fibre film): wheel zooms
+about the cursor, left drag zooms a rectangle, middle/right or Shift+drag
+pans, Home or double-click empty space fits the whole image. Clicks still
+measure spots in the zoomed view. PNG exports the current view; Home first
+exports the whole image. CSV keeps the full data. The diffraction powder
+panel currently has no zoom controls.
+Builder script checks: append `viewtest` to
+`calcmeasure layer0|frame OUT.png OUT.csv EXPOSURE SCHEME`, or to
+`calcdiffraction OUT.png OUT.csv XYZ EXPOSURE SCHEME` for a fibre pattern.
+These send mouse/key events, check cursor anchoring and zoomed hkl picking,
+and save `OUT.png.full.png`, `.zoom.png`, `.pan.png`, `.reset.png` and
+`.rectangle.png`; `BUILDER: image view: PASS` confirms the checks passed.
+
 **Molecule (Debye scattering)** is available for every structure, including
 the contents of a periodic cell, with the Powder sources and 2θ curve exports.
 

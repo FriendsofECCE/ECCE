@@ -66,6 +66,8 @@ public:
   wxString measure(int h1, int k1, int l1, int h2, int k2, int l2);
   // The same for the two strongest spots (frame or layer).
   wxString measureStrongest();
+  // Exercise image navigation through mouse/key events and save view snapshots (test hook).
+  bool testImageView(const std::string& prefix, std::string& why);
   // Window and display client-area size (test hook).
   wxString sizeText() const;
   // Powder cursor readout at a 2theta (degrees): 2theta, d, Q and I of the
@@ -94,17 +96,17 @@ private:
   void onPattern(int mode);   // 0 fibre, 1 powder, 2 single crystal, 3 frame, 4 Debye
   bool calculateLayer(std::string& why);
   bool calculateFrame(std::string& why);
-  wxString framePointerText(int x, int y) const;
-  wxString layerPointerText(int x, int y) const;
+  wxString framePointerText(double x, double y) const;
+  wxString layerPointerText(double x, double y) const;
   void onMeasured(wxCommandEvent&);
   bool calculatePowder(std::string& why);
   double number(wxTextCtrl *c) const;
-  wxString pointerText(int x, int y) const;
+  wxString pointerText(double x, double y) const;
   void updateImage();
   void setLevels(const wxImage& im, bool inverted);
   void renderFilm();
   bool darkScheme() const;
-  void onImageClick(int x, int y, bool second);
+  void onImageClick(double x, double y, bool second);
 
   std::string p_structure, p_dir, p_selectionText;
   wxTextCtrl *p_wavelength, *p_distance, *p_film, *p_b, *p_length, *p_mis,
@@ -136,7 +138,7 @@ private:
   double p_layerRmax, p_geomDistance, p_geomLambda, p_axes[3][2];
   std::vector<Spot> p_spots;
   wxString measureText(const Spot& a, const Spot* b) const;
-  const Spot *spotNear(int x, int y) const;
+  const Spot *spotNear(double x, double y) const;
   wxScrolledWindow *p_leftWin;
   class wxSpinCtrl *p_plabel;
   wxChoice *p_scheme;

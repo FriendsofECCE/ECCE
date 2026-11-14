@@ -102,46 +102,151 @@ class DiffractionPanel : public wxPanel
 {
 public:
   DiffractionPanel(wxWindow *parent, DiffractionDialog *d)
-    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(480, 520)), p_d(d)
+    : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(480, 520),
+              wxFULL_REPAINT_ON_RESIZE | wxWANTS_CHARS), p_d(d)
   {
     SetBackgroundStyle(wxBG_STYLE_PAINT);
+    SetToolTip("Wheel: zoom at pointer; drag: zoom rectangle; middle/right or Shift+drag: pan; Home or double click empty space: fit");
     Bind(wxEVT_PAINT, &DiffractionPanel::onPaint, this);
     Bind(wxEVT_MOTION, &DiffractionPanel::onMove, this);
-    Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) {
-      int x, y;
-      if (pixelAt(e.GetPosition(), x, y)) p_d->onImageClick(x, y, e.ShiftDown());
+    for (auto type : {wxEVT_LEFT_DOWN, wxEVT_MIDDLE_DOWN, wxEVT_RIGHT_DOWN})
+      Bind(type, &DiffractionPanel::onDown, this);
+    for (auto type : {wxEVT_LEFT_UP, wxEVT_MIDDLE_UP, wxEVT_RIGHT_UP})
+      Bind(type, &DiffractionPanel::onUp, this);
+    Bind(wxEVT_MOUSEWHEEL, [this](wxMouseEvent& e) {
+      if (e.GetWheelAxis() != wxMOUSE_WHEEL_VERTICAL || !area().Contains(e.GetPosition()) || !e.GetWheelDelta()) return;
+      SetFocus();
+      zoom(e.GetPosition(), std::pow(0.8, double(e.GetWheelRotation()) / e.GetWheelDelta()));
+    });
+    Bind(wxEVT_LEFT_DCLICK, [this](wxMouseEvent& e) {
+      double x, y;
+      if (pixelAt(e.GetPosition(), x, y) &&
+          (!(p_d->p_single || p_d->p_frame) || !p_d->spotNear(x, y))) reset();
+    });
+    Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& e) {
+      if (e.GetKeyCode() == WXK_HOME) reset();
+      else if (e.GetKeyCode() == WXK_ESCAPE) cancelDrag();
+      else e.Skip();
+    });
+    Bind(wxEVT_MOUSE_CAPTURE_LOST, [this](wxMouseCaptureLostEvent&) {
+      p_pressed = p_dragging = false; Refresh();
     });
     Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent&) { p_d->p_pointer->SetLabel(""); });
   }
   void setImage(const wxImage& im) { p_bmp = im.IsOk() ? wxBitmap(im) : wxBitmap(); Refresh(); }
   const wxBitmap& bitmap() const { return p_bmp; }
-  /// Image pixel (0..p_pixels or layer size) under a window position, or false.
-  bool pixelAt(const wxPoint& p, int& x, int& y) const
+  wxRect area() const { return p_d->imageArea(GetClientSize()); }
+  wxRect2DDouble imageRect(const wxSize& size) const
   {
-    const wxRect r = p_d->imageArea(GetClientSize());
-    if (!r.Contains(p)) return false;
+    const wxRect v = p_d->imageArea(size);
+    const double w = v.width / p_span;
+    return wxRect2DDouble(v.x - p_x * w, v.y - p_y * w, w, w);
+  }
+  bool pixelAt(const wxPoint& p, double& x, double& y) const
+  {
+    if (!area().Contains(p)) return false;
+    const wxRect2DDouble r = imageRect(GetClientSize());
     const int n = p_d->imagePixels();
-    x = (p.x - r.x) * n / r.width;
-    y = (p.y - r.y) * n / r.height;
-    return true;
+    x = (p.x - r.m_x) * n / r.m_width;
+    y = (p.y - r.m_y) * n / r.m_height;
+    return x >= 0 && y >= 0 && x < n && y < n;
+  }
+  wxPoint position(double x, double y) const
+  {
+    const wxRect2DDouble r = imageRect(GetClientSize());
+    return wxPoint(std::lround(r.m_x + x * r.m_width / p_d->imagePixels()),
+                   std::lround(r.m_y + y * r.m_height / p_d->imagePixels()));
+  }
+  void reset() { cancelDrag(); p_x = p_y = 0; p_span = 1; Refresh(); }
+  void zoom(const wxPoint& p, double factor)
+  {
+    const wxRect v = area();
+    const double span = std::clamp(p_span * factor, 1.0 / 32, 1.0);
+    p_x += (p.x - v.x) / double(v.width) * (p_span - span);
+    p_y += (p.y - v.y) / double(v.height) * (p_span - span);
+    p_span = span;
+    clamp(); Refresh();
   }
 
 private:
+  void clamp()
+  {
+    p_x = std::clamp(p_x, 0.0, 1 - p_span);
+    p_y = std::clamp(p_y, 0.0, 1 - p_span);
+  }
+  void cancelDrag()
+  {
+    p_pressed = p_dragging = false;
+    if (HasCapture()) ReleaseMouse();
+    Refresh();
+  }
+  void onDown(wxMouseEvent& e)
+  {
+    if (!area().Contains(e.GetPosition())) return;
+    SetFocus();
+    p_start = p_last = e.GetPosition();
+    p_pan = !e.LeftDown() || e.ShiftDown();
+    p_second = e.ShiftDown();
+    p_pressed = true; p_dragging = false;
+    if (!HasCapture()) CaptureMouse();
+  }
+  void onUp(wxMouseEvent& e)
+  {
+    if (!p_pressed) return;
+    const bool dragged = p_dragging;
+    cancelDrag();
+    if (dragged && !p_pan) {
+      const wxRect v = area();
+      const wxPoint b(std::clamp(e.GetX(), v.x, v.GetRight()),
+                      std::clamp(e.GetY(), v.y, v.GetBottom()));
+      // Keep the film square so reciprocal distances and ring shapes agree.
+      const int side = std::max(std::abs(b.x - p_start.x), std::abs(b.y - p_start.y));
+      if (std::abs(b.x - p_start.x) < 6 || std::abs(b.y - p_start.y) < 6) return;
+      p_x += (std::min(b.x, p_start.x) - v.x) * p_span / v.width;
+      p_y += (std::min(b.y, p_start.y) - v.y) * p_span / v.height;
+      p_span = std::max(1.0 / 32, p_span * side / v.width);
+      clamp(); Refresh();
+    } else if (!dragged && e.LeftUp()) {
+      double x, y;
+      if (pixelAt(e.GetPosition(), x, y)) p_d->onImageClick(x, y, p_second);
+    }
+  }
   void onPaint(wxPaintEvent&)
   {
-    wxPaintDC dc(this);
+    wxAutoBufferedPaintDC dc(this);
     std::unique_ptr<wxGraphicsContext> gc(wxGraphicsContext::Create(dc));
     if (!gc) return;
     const wxSize s = GetClientSize();
     p_d->paint(gc.get(), s.x, s.y);
+    if (p_pressed && p_dragging && !p_pan) {
+      gc->SetPen(wxPen(wxColour(30, 100, 200), 1, wxPENSTYLE_SHORT_DASH));
+      gc->SetBrush(*wxTRANSPARENT_BRUSH);
+      gc->DrawRectangle(std::min(p_start.x, p_last.x), std::min(p_start.y, p_last.y),
+                        std::abs(p_last.x - p_start.x), std::abs(p_last.y - p_start.y));
+    }
   }
   void onMove(wxMouseEvent& e)
   {
-    int x, y;
+    if (p_pressed) {
+      const wxPoint p = e.GetPosition();
+      if (std::abs(p.x - p_start.x) > 4 || std::abs(p.y - p_start.y) > 4) p_dragging = true;
+      if (p_pan && p_dragging) {
+        p_x -= (p.x - p_last.x) * p_span / area().width;
+        p_y -= (p.y - p_last.y) * p_span / area().height;
+        clamp();
+      }
+      p_last = p;
+      Refresh();
+      return;
+    }
+    double x, y;
     p_d->p_pointer->SetLabel(pixelAt(e.GetPosition(), x, y) ? p_d->pointerText(x, y) : wxString());
   }
   DiffractionDialog *p_d;
   wxBitmap p_bmp;
+  double p_x = 0, p_y = 0, p_span = 1;
+  bool p_pressed = false, p_dragging = false, p_pan = false, p_second = false;
+  wxPoint p_start, p_last;
 };
 
 
@@ -319,7 +424,9 @@ void DiffractionDialog::paintPowder(wxGraphicsContext *gc, double W, double H) c
 
 void DiffractionDialog::paintImage(wxGraphicsContext *gc, double W, double H) const
 {
-  const wxRect a = imageArea(wxSize((int)W, (int)H));
+  const wxRect v = imageArea(wxSize((int)W, (int)H));
+  const wxRect2DDouble r = p_panel->imageRect(wxSize((int)W, (int)H));
+  struct { double x, y, width, height; } a = {r.m_x, r.m_y, r.m_width, r.m_height};
   const double f = (double)a.width / imagePixels();
   const bool dark = darkScheme();
   wxString title, caption;
@@ -339,9 +446,11 @@ void DiffractionDialog::paintImage(wxGraphicsContext *gc, double W, double H) co
                                number(p_film), number(p_distance)) + wxString::FromUTF8(", \xCE\xBB = ") +
               wxString::Format("%g ", number(p_wavelength)) + wxString::FromUTF8("\xC3\x85");
   }
-  text(gc, title, a.x, 6, INK, 1.1, true);
+  text(gc, title, v.x, 6, INK, 1.1, true);
+  gc->PushState();
+  gc->Clip(v.x, v.y, v.width, v.height);
   if (p_single) {
-    if (!p_layerReady) return;
+    if (!p_layerReady) { gc->PopState(); return; }
     if (p_panel->bitmap().IsOk()) {
       gc->SetInterpolationQuality(wxINTERPOLATION_BEST);
       gc->DrawBitmap(p_panel->bitmap(), a.x, a.y, a.width, a.height);
@@ -365,7 +474,7 @@ void DiffractionDialog::paintImage(wxGraphicsContext *gc, double W, double H) co
         const wxString t = hklText(s->h, s->k, s->l);
         const wxSize e = extent(gc, t, 0.8);
         const wxRect r((int)(a.x + s->px * f + 4), (int)(a.y + s->py * f + 3), e.x, e.y);
-        if (r.x < a.x || r.y < a.y || r.x + r.width > a.x + a.width || r.y + r.height > a.y + a.height) continue;
+        if (r.x < v.x || r.y < v.y || r.x + r.width > v.x + v.width || r.y + r.height > v.y + v.height) continue;
         bool clash = false;
         for (wxRect q : placed) { q.Inflate(2, 0); clash = clash || q.Intersects(r); }
         if (clash) continue;
@@ -377,7 +486,7 @@ void DiffractionDialog::paintImage(wxGraphicsContext *gc, double W, double H) co
       static const char *names[] = {"a*", "b*", "c*"};
       double longest = 0;
       for (const auto& v : p_axes) longest = std::max(longest, std::hypot(v[0], v[1]));
-      const double ox = a.x + 26, oy = a.y + a.height - 26;
+      const double ox = v.x + 26, oy = v.y + v.height - 26;
       for (int k = 0; k < 3 && longest > 1e-6; k++) {
         const double vx = p_axes[k][0], vy = p_axes[k][1], n = std::hypot(vx, vy);
         if (n < 1e-6) continue;
@@ -396,7 +505,8 @@ void DiffractionDialog::paintImage(wxGraphicsContext *gc, double W, double H) co
     if (p_frame) {
       const wxColour ink = dark ? wxColour(255, 255, 255) : CALC, ring = dark ? wxColour(255, 200, 80) : wxColour(200, 60, 60);
       const double cx = a.x + a.width / 2.0, cy = a.y + a.height / 2.0, mm = p_layerScale * f;
-      gc->Clip(a.x, a.y, a.width, a.height);
+      struct RingLabel { wxString label; double x, y; wxSize size; };
+      vector<RingLabel> ringLabels;
       if (p_frings->IsChecked() && p_geomLambda > 0)
         for (double d : {3.0, 2.0, 1.5, 1.0}) {
           const double sn = p_geomLambda / (2 * d);
@@ -412,12 +522,18 @@ void DiffractionDialog::paintImage(wxGraphicsContext *gc, double W, double H) co
           const wxSize e = extent(gc, s, 0.9);
           for (double deg : {50., 130., 20., 160., 80.}) {
             const double x = cx + rad * std::cos(deg * M_PI / 180), y = cy - rad * std::sin(deg * M_PI / 180);
-            if (x > a.x + 4 && x + e.x < a.x + a.width - 4 && y - e.y > a.y + 4 && y < a.y + a.height - 4) {
-              text(gc, s, x + 3, y - e.y - 2, ring, 0.9);
+            if (x > v.x + 4 && x + e.x + 6 < v.x + v.width - 4 && y - e.y - 5 > v.y + 4 && y < v.y + v.height - 4) {
+              ringLabels.push_back({s, x + 3, y - e.y - 5, e});
               break;
             }
           }
         }
+      for (const auto& label : ringLabels) {
+        gc->SetPen(*wxTRANSPARENT_PEN);
+        gc->SetBrush(wxBrush(dark ? *wxBLACK : *wxWHITE));
+        gc->DrawRectangle(label.x - 2, label.y - 2, label.size.x + 4, label.size.y + 4);
+        text(gc, label.label, label.x, label.y, ring, 0.9);
+      }
       if (p_flabel->IsChecked()) {
         vector<const Spot *> order;
         for (const Spot& s : p_spots) order.push_back(&s);
@@ -427,10 +543,25 @@ void DiffractionDialog::paintImage(wxGraphicsContext *gc, double W, double H) co
           text(gc, wxString::Format("%d %d %d", s.h, s.k, s.l), a.x + s.px * f + 7, a.y + s.py * f - 16, ink, 0.9);
         }
       }
-      gc->ResetClip();
     }
   }
-  text(gc, caption, a.x, a.y + a.height + 6, wxColour(90, 90, 90), 0.9);
+  // The stop is geometric; repaint its edge at the viewport resolution.
+  if (p_panel->bitmap().IsOk()) {
+    double radius = 0;
+    if (p_single) radius = std::max(5.0, 0.018 * p_layerSize) * f;
+    else if (p_frame) radius = 3.0 * p_layerScale * f;
+    else {
+      const double sn = number(p_wavelength) * 0.012 / 2;
+      // Enclose the raster mask's pixel corners with a smooth film edge.
+      radius = sn < 1 ? number(p_distance) * std::tan(2 * std::asin(sn)) /
+                         number(p_film) * a.width + std::sqrt(0.5) * f : 0;
+    }
+    gc->SetPen(*wxTRANSPARENT_PEN);
+    gc->SetBrush(wxBrush(dark ? *wxBLACK : *wxWHITE));
+    gc->DrawEllipse(a.x + a.width / 2 - radius, a.y + a.height / 2 - radius, 2 * radius, 2 * radius);
+  }
+  gc->PopState();
+  text(gc, caption, v.x, v.y + v.height + 6, wxColour(90, 90, 90), 0.9);
 }
 
 bool DiffractionDialog::darkScheme() const { return p_scheme && p_scheme->GetSelection() == 1; }
@@ -449,7 +580,7 @@ void DiffractionDialog::setLevels(const wxImage& im, bool inverted)
 }
 
 // Spots as Gaussian blobs of optical density on a film that is faintly fogged
-// toward the centre, with grain and a small round beamstop.  Strength follows
+// toward the centre, with grain. The beamstop is drawn as an overlay. Strength follows
 // I_rel on the crystal-wide scale, size grows gently with it.
 void DiffractionDialog::renderFilm()
 {
@@ -470,7 +601,7 @@ void DiffractionDialog::renderFilm()
         p_level[(size_t)y * n + x] += (float)(amp * std::exp(-(dx * dx + dy * dy) / (2 * sig * sig)));
       }
   }
-  const double c = n / 2.0, stop = std::max(5.0, 0.018 * n);
+  const double c = n / 2.0;
   for (int y = 0; y < n; y++)
     for (int x = 0; x < n; x++) {
       const double r = std::hypot(x + 0.5 - c, y + 0.5 - c);
@@ -479,7 +610,6 @@ void DiffractionDialog::renderFilm()
       const double grain = (h & 0xffff) / 32768.0 - 1.0;
       float& d = p_level[(size_t)y * n + x];
       d += (float)(0.012 + 0.05 * std::exp(-r / (0.18 * n)) + 0.006 * grain);
-      if (r < stop) d = 0.f;
     }
 }
 
@@ -521,10 +651,12 @@ void DiffractionDialog::setDisplay(int exposure, int scheme)
   updateImage();
 }
 
-const DiffractionDialog::Spot *DiffractionDialog::spotNear(int x, int y) const
+const DiffractionDialog::Spot *DiffractionDialog::spotNear(double x, double y) const
 {
   const Spot *best = 0;
-  double bd = 12.0 * 12.0;
+  // Keep the hit radius in display pixels at every zoom level.
+  const double f = p_panel->imageRect(p_panel->GetClientSize()).m_width / imagePixels();
+  double bd = std::pow(12.0 / f, 2);
   for (const Spot& s : p_spots) {
     if (p_single && s.absent && !p_absent->IsChecked()) continue;
     const double d2 = (s.px - x) * (s.px - x) + (s.py - y) * (s.py - y);
@@ -579,8 +711,8 @@ wxString DiffractionDialog::measure(int h1, int k1, int l1, int h2, int k2, int 
   }
   if (!a || !b || !(p_single || p_frame)) return "";
   p_pick = 0;
-  onImageClick((int)std::lround(a->px), (int)std::lround(a->py), false);
-  onImageClick((int)std::lround(b->px), (int)std::lround(b->py), true);
+  onImageClick(a->px, a->py, false);
+  onImageClick(b->px, b->py, true);
   return p_measure->GetLabel();
 }
 
@@ -597,7 +729,7 @@ wxString DiffractionDialog::measureStrongest()
 
 // Detector frame: a click picks a spot, a shift-click a second one to measure
 // from the first.  Layer: two plain clicks.
-void DiffractionDialog::onImageClick(int x, int y, bool second)
+void DiffractionDialog::onImageClick(double x, double y, bool second)
 {
   const Spot *s = spotNear(x, y);
   if (!s || !(p_single || p_frame)) { p_pick = 0; p_measure->SetLabel(""); return; }
@@ -876,7 +1008,7 @@ DiffractionDialog::DiffractionDialog(wxWindow *parent, const string& structure,
 
   wxButton *calc = new wxButton(lp, wxID_ANY, "Calculate");
   left->Add(calc, 0, wxALL, 6);
-  wxButton *png = new wxButton(lp, wxID_ANY, "Save PNG...");
+  wxButton *png = new wxButton(lp, wxID_ANY, "Save PNG (view)...");
   wxButton *csv = new wxButton(lp, wxID_ANY, "Save CSV...");
   wxBoxSizer *save = new wxBoxSizer(wxHORIZONTAL);
   save->Add(png, 0, wxALL, 4);
@@ -1028,6 +1160,7 @@ void DiffractionDialog::onPattern(int mode)
   p_calc = wxImage();
   p_spots.clear();
   p_layerReady = false;
+  p_panel->reset();
   p_panel->setImage(wxImage());
   p_left->FitInside(p_leftWin);
   Layout();
@@ -1037,6 +1170,84 @@ void DiffractionDialog::setDebye()
 {
   p_rbDebye->SetValue(true);
   onPattern(4);
+}
+
+bool DiffractionDialog::testImageView(const string& prefix, string& why)
+{
+  if (p_powder) { why = "image view required"; return false; }
+  auto mouse = [this](wxEventType type, wxPoint pos, bool shift = false) {
+    wxMouseEvent e(type);
+    e.SetPosition(pos); e.SetShiftDown(shift);
+    if (type == wxEVT_MOUSEWHEEL) { e.m_wheelRotation = 360; e.m_wheelDelta = 120; }
+    p_panel->GetEventHandler()->ProcessEvent(e);
+  };
+  auto home = [this]() {
+    wxKeyEvent e(wxEVT_CHAR_HOOK); e.m_keyCode = WXK_HOME;
+    p_panel->GetEventHandler()->ProcessEvent(e);
+  };
+  p_panel->reset();
+  if (p_single) p_lhkl->SetValue(true);
+  if (!savePng(prefix + ".full.png", why)) return false;
+  const wxRect2DDouble full = p_panel->imageRect(p_panel->GetClientSize());
+  const Spot *pick = nullptr;
+  double nearest = 1e30;
+  for (const Spot& s : p_spots) {
+    const double r = std::hypot(s.px - imagePixels() / 2.0, s.py - imagePixels() / 2.0);
+    if (!s.absent && r < nearest) { nearest = r; pick = &s; }
+  }
+  const double px = pick ? pick->px : imagePixels() / 2.0;
+  const double py = pick ? pick->py : imagePixels() / 2.0;
+  const wxPoint anchor = p_panel->position(px, py);
+  double beforeX, beforeY, afterX, afterY;
+  if (!p_panel->pixelAt(anchor, beforeX, beforeY)) { why = "anchor outside image"; return false; }
+  mouse(wxEVT_MOUSEWHEEL, anchor);
+  if (!p_panel->pixelAt(anchor, afterX, afterY) || std::abs(beforeX - afterX) > 1 || std::abs(beforeY - afterY) > 1 ||
+      p_panel->imageRect(p_panel->GetClientSize()).m_width < full.m_width * 1.9) {
+    why = "wheel did not zoom about cursor"; return false;
+  }
+  if (!savePng(prefix + ".zoom.png", why)) return false;
+  const wxPoint drag = p_panel->area().GetTopLeft() + wxPoint(80, 80);
+  const wxPoint oldPick = p_panel->position(px, py);
+  mouse(wxEVT_LEFT_DOWN, drag, true);
+  mouse(wxEVT_MOTION, drag + wxPoint(20, 15), true);
+  mouse(wxEVT_LEFT_UP, drag + wxPoint(20, 15), true);
+  const wxPoint newPick = p_panel->position(px, py);
+  if (std::abs(newPick.x - oldPick.x - 20) > 1 || std::abs(newPick.y - oldPick.y - 15) > 1) {
+    why = "Shift drag did not pan"; return false;
+  }
+  if (pick) {
+    p_pick = nullptr;
+    mouse(wxEVT_LEFT_DOWN, newPick);
+    mouse(wxEVT_LEFT_UP, newPick);
+    const wxString expected = wxString::Format("(%d %d %d)", pick->h, pick->k, pick->l);
+    if (!p_measure->GetLabel().Contains(expected)) { why = "zoomed click picked wrong hkl"; return false; }
+    fprintf(stderr, "DIFFRACTION: zoomed click %s\n", p_measure->GetLabel().ToUTF8().data());
+  }
+  if (!savePng(prefix + ".pan.png", why)) return false;
+  home();
+  if (p_panel->imageRect(p_panel->GetClientSize()) != full) { why = "Home did not reset"; return false; }
+  if (!savePng(prefix + ".reset.png", why)) return false;
+  const wxRect v = p_panel->area();
+  const wxPoint a(v.x + v.width / 4, v.y + v.height / 4), b(v.x + 3 * v.width / 4, v.y + 3 * v.height / 4);
+  mouse(wxEVT_LEFT_DOWN, a); mouse(wxEVT_MOTION, b); mouse(wxEVT_LEFT_UP, b);
+  if (p_panel->imageRect(p_panel->GetClientSize()).m_width < full.m_width * 1.9) {
+    why = "rectangle did not zoom"; return false;
+  }
+  if (!savePng(prefix + ".rectangle.png", why)) return false;
+  // Reset only on empty image space, never on a reflection.
+  bool empty = false;
+  for (int y = v.y + 10; y < v.GetBottom() && !empty; y += 17)
+    for (int x = v.x + 10; x < v.GetRight() && !empty; x += 17) {
+      double ix, iy;
+      if (p_panel->pixelAt(wxPoint(x, y), ix, iy) &&
+          (!(p_single || p_frame) || !spotNear(ix, iy))) {
+        mouse(wxEVT_LEFT_DCLICK, wxPoint(x, y)); empty = true;
+      }
+    }
+  if (!empty || p_panel->imageRect(p_panel->GetClientSize()) != full) {
+    why = "empty double click did not reset"; return false;
+  }
+  return true;
 }
 
 wxString DiffractionDialog::sizeText() const
@@ -1199,14 +1410,9 @@ bool DiffractionDialog::setFrame(double phi, double osc, bool labels, bool rings
   return true;
 }
 
-wxString DiffractionDialog::framePointerText(int x, int y) const
+wxString DiffractionDialog::framePointerText(double x, double y) const
 {
-  const Spot *best = 0;
-  double bd = 10.0 * 10.0;
-  for (const Spot& s : p_spots) {
-    const double d2 = (s.px - x) * (s.px - x) + (s.py - y) * (s.py - y);
-    if (d2 < bd) { bd = d2; best = &s; }
-  }
+  const Spot *best = spotNear(x, y);
   return best ? wxString::Format(U("(%d %d %d)   d = %.3f Å   2θ = %.2f°   I = %.4g"), best->h,
                                  best->k, best->l, best->d, best->F, best->I)
               : wxString();
@@ -1218,7 +1424,7 @@ bool DiffractionDialog::calculateFrame(string& why)
                       "--source", p_fsource->GetStringSelection().Lower().ToStdString(),
                       "--phi", std::to_string(p_fphi->GetValue()),
                       "--osc", num(number(p_fosc)), "--distance", num(number(p_fdist)),
-                      "--pixels", std::to_string(p_layerSize),
+                      "--pixels", std::to_string(p_layerSize), "--no-beamstop",
                       "--out", p_png, "--out", p_csv, "--geometry", p_dir + "/geometry.txt"};
   if (!p_fnoise->IsChecked()) a.push_back("--no-noise");
   status("Calculating...");
@@ -1273,14 +1479,9 @@ bool DiffractionDialog::calculateFrame(string& why)
   return true;
 }
 
-wxString DiffractionDialog::layerPointerText(int x, int y) const
+wxString DiffractionDialog::layerPointerText(double x, double y) const
 {
-  const Spot *best = 0;
-  double bd = 10.0 * 10.0;
-  for (const Spot& s : p_spots) {
-    const double d2 = (s.px - x) * (s.px - x) + (s.py - y) * (s.py - y);
-    if (d2 < bd) { bd = d2; best = &s; }
-  }
+  const Spot *best = spotNear(x, y);
   return best ? spotText(best->h, best->k, best->l) : wxString();
 }
 
@@ -1440,11 +1641,11 @@ void DiffractionDialog::onBackdrop(wxCommandEvent&)
     status(wxString::FromUTF8(why.c_str()));
 }
 
-wxString DiffractionDialog::pointerText(int x, int y) const
+wxString DiffractionDialog::pointerText(double x, double y) const
 {
   if (p_single) return layerPointerText(x, y);
   if (p_frame) return framePointerText(x, y);
-  const size_t k = (size_t)y * p_pixels + x;
+  const size_t k = (size_t)y * p_pixels + (size_t)x;
   if (k >= p_i.size()) return "";
   const double r = p_r[k], z = p_z[k], s = std::hypot(r, z);
   const double rep = parse(p_repeat->GetValue());
@@ -1460,7 +1661,8 @@ bool DiffractionDialog::savePng(const string& path, string& why) const
 {
   const bool ready = p_powder ? !p_tt.empty() : p_single ? p_layerReady : p_calc.IsOk();
   if (!ready) { why = "nothing calculated yet"; return false; }
-  const wxBitmap bmp = p_powder ? render(900, p_meas.empty() ? 560 : 700, 2) : render(760, 820, 2);
+  const wxSize size = p_panel->GetClientSize();
+  const wxBitmap bmp = p_powder ? render(900, p_meas.empty() ? 560 : 700, 2) : render(size.x, size.y, 2);
   if (!bmp.SaveFile(wxString::FromUTF8(path.c_str()), wxBITMAP_TYPE_PNG)) {
     why = "cannot write " + path;
     return false;
@@ -1479,7 +1681,7 @@ bool DiffractionDialog::saveCsv(const string& path, string& why) const
 
 void DiffractionDialog::onSavePng(wxCommandEvent&)
 {
-  wxFileDialog dlg(this, "Save the pattern", "", "diffraction.png", "PNG (*.png)|*.png",
+  wxFileDialog dlg(this, "Save current view (Home resets the whole image)", "", "diffraction.png", "PNG (*.png)|*.png",
                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
   string why;
   if (dlg.ShowModal() == wxID_OK && !savePng(dlg.GetPath().ToStdString(wxConvUTF8), why))
