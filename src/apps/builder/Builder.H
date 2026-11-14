@@ -639,6 +639,8 @@ class Builder: public BuilderGUI,
       void doSaveThumb();
       void doClose(const string& context="", const bool& autoOpen=true);
       bool traceStressCommand(SceneScript& s, const vector<string>& w);
+      /// Conformers-panel hooks (gten...); "" when done, else the error.
+      string ensembleCommand(const vector<string>& w);
       /// Show frame `index` through the Geometry Trace panel (plot marker
       /// included); false when that panel is not open.
       bool traceFrame(int index);

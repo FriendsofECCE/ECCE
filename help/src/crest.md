@@ -190,7 +190,8 @@ sets the reference), `gtenfit` (members, RMSDs, colours and overlay visibility),
 `gtenthumbs` (cached ranks), `gtenpng <file>` and `gtencsv <file>`.
 `gtenviewer on|off` operates the **Show in viewer** checkbox.
 `gtensort <column> up|down` sorts rank (0), energy (1), population (2) or
-pattern (3). These run through the existing `ECCE_VIEWER_SCENE` interface.
+pattern (3). They run through both `ECCE_VIEWER_SCENE` and `ECCE_BUILDER_SCRIPT`, so a
+script can combine them with Builder-script commands such as `background 1 1 1`.
 
 The energies and populations compare the structures within the one method of
 this calculation only. They cannot be compared with the energy from another
