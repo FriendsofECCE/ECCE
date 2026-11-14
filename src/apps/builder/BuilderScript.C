@@ -2044,7 +2044,7 @@ void Builder::runBuilderScript(const std::string& file)
                  p_calculation->getURL().toString())) {
           if (auto *stress = dynamic_cast<StressPanel*>(panel)) {
             fprintf(stderr, "BUILDER: stressinfo\n%s\n",
-                    stress->summaryText().c_str());
+                    (stress->summaryText()+"\n"+stress->labelAnchorText()).c_str());
             found = true;
           }
         }

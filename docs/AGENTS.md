@@ -53,14 +53,15 @@ MLP stores minus ASE stress. Pressure is `-trace(display)/3` and must match
 stored `PRESSURE` (1 GPa = 10 kbar), allowing printed rounding.
 The panel gives principal values, pressure, von Mises and maximum shear,
 and normal stresses along unit cell vectors as shrink/expand words.
-Blue arrows point outward for tension; vermillion arrows point inward for
-compression, with one common magnitude scale through the cell centre.
+Blue arrows point away from the cell for tension; vermillion arrows point in
+towards the cell face for compression. They lie outside the cell, starting at
+the face crossed by each principal axis, with one common magnitude scale.
 Use **Show in viewer** to hide them. This uses final stress and geometry;
 per-step vc-relax stress, CP2K ingestion and directional surfaces are not
 implemented. See [Viewer panels](../help/src/viewer-panels.md).
 
 For isolated GUI checks, `ECCE_BUILDER_SCRIPT` accepts `list Stress Tensor`,
-`stressinfo` (panel summary), `vector STRESS` (the six rendered half-arrows),
+`stressinfo` (panel summary plus one `label N anchor=x,y,z` line per principal axis; anchors lie outside the cell), `vector STRESS` (the six rendered half-arrows),
 and `viewer Stress Tensor` (toggle). `tests/apps/stress_tensor_test.py`
 checks a hand-computed tensor and the tensile QE Al cell example;
 `--unit-only` runs just the wx-free arithmetic, `--png DIR` keeps pictures
