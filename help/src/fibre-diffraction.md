@@ -102,7 +102,7 @@ Bragg positions. A water cluster can similarly be compared with crystalline
 ice to discuss local and long-range order. Intensities and finite-size peak
 widths differ from the infinite-crystal Powder view.
 
-**Save PNG...** saves the displayed curve and **Save CSV...** saves columns
+**Save PNG (view)...** saves the displayed curve and **Save CSV...** saves columns
 `two_theta,intensity`, like Powder. The pointer reports 2θ, d, Q and intensity.
 From the command line:
 
@@ -217,7 +217,24 @@ gain on the intensity before saturation, in tenths of a stop (-2 to +2 stops),
 like a shorter or longer exposure: weak spots appear and strong ones spread.
 The data and the CSV do not change. **Film** is grey, dark on light (the
 default); **Dark** runs from black through blue and orange to white at
-saturation. **Save PNG...** uses the current choice.
+saturation. **Save PNG (view)...** uses the current choice.
+
+## Zoom and pan in image views
+
+In the detector frame, precession photograph and fibre film, turn the mouse
+wheel to zoom about the pointer. Drag a rectangle with the left button to
+zoom into it; the image keeps its square proportions. Drag with the middle
+or right button, or hold Shift while dragging, to pan. A click without a
+drag still measures a spot, including Shift-click for a second detector spot.
+Click the image to give it keyboard focus, then press **Home** to fit the
+whole image, or double-click empty image space. **Escape** cancels a drag.
+Zoom is limited to 32 times; panning stays inside the image. Spot and ring
+labels keep their text size, and axes and ring lines are drawn sharply at
+each zoom. The reciprocal-axis key stays in the lower left corner.
+
+**Save PNG (view)...** saves the current zoomed view, including its overlays
+and backdrop, at twice the displayed resolution. Press Home before saving
+to export the whole image. CSV always contains the full calculated data.
 
 ## Measuring
 
@@ -257,8 +274,8 @@ scan to the film first and put the beam centre in the middle.
 
 ## Saving
 
-**Save PNG...** writes the picture as shown, backdrop included. **Save CSV...**
-writes every pixel: its position on the film in mm, R, Z and the intensity.
+**Save PNG (view)...** writes the current view, backdrop included. Home
+restores the whole image for export. **Save CSV...** writes every pixel: its position on the film in mm, R, Z and the intensity.
 
 ## From the command line
 

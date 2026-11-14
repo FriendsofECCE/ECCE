@@ -241,6 +241,19 @@ Builder script `poses note` returns that text; `poses thumb 1 <file.png>`
 saves the cached thumbnail of pose 1 for image checks.
 
 **Diffraction.** Tools > Diffraction (`fibre-diffraction`); `ecce-xrd`.
+Image views (detector frame, precession layer and fibre film): wheel zooms
+about the cursor, left drag zooms a rectangle, middle/right or Shift+drag
+pans, Home or double-click empty space fits the whole image. Clicks still
+measure spots in the zoomed view. PNG exports the current view; Home first
+exports the whole image. CSV keeps the full data. The diffraction powder
+panel currently has no zoom controls.
+Builder script checks: append `viewtest` to
+`calcmeasure layer0|frame OUT.png OUT.csv EXPOSURE SCHEME`, or to
+`calcdiffraction OUT.png OUT.csv XYZ EXPOSURE SCHEME` for a fibre pattern.
+These send mouse/key events, check cursor anchoring and zoomed hkl picking,
+and save `OUT.png.full.png`, `.zoom.png`, `.pan.png`, `.reset.png` and
+`.rectangle.png`; `BUILDER: image view: PASS` confirms the checks passed.
+
 **Molecule (Debye scattering)** is available for every structure, including
 the contents of a periodic cell, with the Powder sources and 2θ curve exports.
 
