@@ -1421,7 +1421,7 @@ void CalcMgr::runTestCommand(const string& line)
       //     reactant|product|tsguess; the step's structure files as
       //     TS Search writes them: workflowqst WF STEP
       //   workflowmake CALC [NAME]   Make Workflow...: CALC is moved into a
-      //     new workflow; "ok WF step=URL selected" (#807)
+      //     new workflow; "ok WF step=URL view=workflow selected" (#807, #1010)
       //   workflowmove CALC WF       Move into Workflow >
       //   workflowinfo WF       steps, states, carried values and links
       //   workflowlaunch WF     Launch Ready Steps without dialogs
@@ -1522,12 +1522,18 @@ void CalcMgr::runTestCommand(const string& line)
           else {
             EcceURL step = wfUrl.getChild(leaf);
             showInWorkflow(wfUrl, step);
+            // Selected only in the workflow's own view, the one the user sees.
+            SessionProjectContextPanel *spc =
+                dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+            const bool inView = spc && spc->getWorkflowPanel() && p_panelNode &&
+                                p_panelNode->getUrl() == wfUrl;
             bool sel = false;
-            if (p_contextPanel)
+            if (inView)
               for (const EcceURL &u : p_contextPanel->getSelections())
                 if (u == step) sel = true;
             outcome = string("ok ") + wfUrl.toString() + " step=" +
-                      step.toString() + (sel ? " selected" : " unselected");
+                      step.toString() + (inView ? " view=workflow" : " view=other") +
+                      (sel ? " selected" : " unselected");
           }
         }
       } else if (!wf) {
@@ -8997,8 +9003,13 @@ void CalcMgr::OnTreectrlBeginRDrag( wxTreeEvent& event )
  */
 void CalcMgr::OnTreectrlDeleteItem( wxTreeEvent& event )
 {
-  //  cerr << "DeleteItem: " << p_treeCtrl->GetItemText(event.GetItem()) << endl;
-  
+  // setContextPanel() tells "same node, refresh" from "new node" by address;
+  // a freed node's address can come back for the next node made.
+  if (p_panelNode &&
+      p_treeCtrl->GetItemData(event.GetItem()) ==
+        static_cast<wxTreeItemData*>(p_panelNode)) {
+    p_panelNode = 0;
+  }
   event.Skip();
 }
 
@@ -9411,6 +9422,11 @@ void CalcMgr::showInWorkflow(const EcceURL& wfUrl, const EcceURL& step)
 {
   findNode(wfUrl, true, true);
   for (int i = 0; i < 5; i++) wxYield();
+  // Selecting a node that is already the tree's selection sends no event, so
+  // the panel shown may still be another node's: build the workflow's.
+  WxResourceTreeItemData *node = findNode(wfUrl, false, false);
+  if (node && node != p_panelNode && p_treeCtrl->getSelection() == node)
+    setContextPanel();
   if (p_contextPanel) p_contextPanel->selectResource(step);
 }
 
