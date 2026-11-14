@@ -700,6 +700,16 @@ An MD study (GROMACS, NWChem MD) is a project-like folder whose tasks
 in the study holds the chain: a task takes its starting structure from the one
 before it, so it can only be launched after that one has completed.
 
+A plain GROMACS run (type `gromacs_md_dynamics` with a project as parent, no
+study) is made from the user's own files: File > New GROMACS Run from
+Files... in the Organizer, or the test hook `gmxrun PARENT-URL MDP|-
+STRUCTURE|- TOPOLOGY|- [TPR]` (`ECCE_TEST_ORGANIZER`, prints `ok <url>`). The
+.mdp is stored verbatim as `gromacs.mdp`, the topology as `<name>.gmxtop`,
+the structure as `<name>.gro`, includes beside the topology and a `.ndx`
+with them; a ready `.tpr` is stored as `run.gmxtpr` and the job skips grompp.
+A `.pdb` structure is refused (convert with `gmx editconf`). The run is
+left Ready; launch it as any calculation (`launchjob mdsetup`, `launch`).
+
 ### The run directory
 
 The run directory on the compute machine (`job_path`) holds everything the

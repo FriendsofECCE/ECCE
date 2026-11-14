@@ -271,6 +271,16 @@ Launch::Launch(TaskJob* task,
   p_taskjob = task;
   Session *session = task->getSession();
 
+  // A GROMACS run made from the user's own files sits in a project, not a
+  // study: its start structure and topology are the ones attached to it.
+  if (session == 0 && task->getApplicationType() == ResourceDescriptor::AT_GROMACS &&
+      task->getContentType() != ResourceDescriptor::CT_MDPREPARE) {
+    p_restartFile = gromacsStartFile(task, JCode::RESTART_OUTPUT, true, "");
+    if (!p_restartFile.empty()) p_restartProvider = task;
+    p_topologyFile = gromacsStartFile(task, JCode::TOPOLOGY_OUTPUT, true, "");
+    if (!p_topologyFile.empty()) p_topologyProvider = task;
+  }
+
   if (session != 0) {
     // Get restart file - May have to search through several tasks
     p_restartProvider = 0;

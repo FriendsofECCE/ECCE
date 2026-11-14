@@ -16,7 +16,11 @@
 #include "comm/CodePrograms.H"
 #include "comm/JobParser.H"
 #include "dsm/EDSIFactory.H"
+#include "dsm/EDSI.H"
+#include "dsm/GromacsIncludes.H"
 #include "dsm/GromacsStructure.H"
+#include "dsm/TaskJob.H"
+#include "tdat/Fragment.H"
 #include "dsm/MdTask.H"
 #include "dsm/Resource.H"
 #include "dsm/ResourceDescriptor.H"
@@ -337,4 +341,136 @@ string importGromacsRun(Resource* parent, const string& studyName,
     }
   }
   return study->getURL().toString();
+}
+
+namespace {
+
+string baseName(const string& path)
+{
+  return path.substr(path.find_last_of('/') + 1);
+}
+
+string dirName(const string& path)
+{
+  string::size_type s = path.find_last_of('/');
+  return s == string::npos ? string(".") : path.substr(0, s);
+}
+
+}  // namespace
+
+string createGromacsRun(Resource* parent, const string& mdp,
+                        const string& structure, const string& top,
+                        const string& tpr, string& message)
+{
+  message.clear();
+  ResourceType* type = typeNamed("gromacs_md_dynamics");
+  if (!parent || !type) {
+    message = "no parent or no GROMACS task type";
+    return "";
+  }
+  if (tpr.empty() && (mdp.empty() || structure.empty() || top.empty())) {
+    message = "A run needs a .mdp, a starting structure and a topology, "
+              "or a ready .tpr.";
+    return "";
+  }
+  if (hasSuffix(structure, ".pdb")) {
+    message = "A .pdb structure cannot be used as it is: convert it to a "
+              ".gro file (gmx editconf -f in.pdb -o out.gro) first.";
+    return "";
+  }
+  string mdpText, groText, topText, tprText;
+  if (!mdp.empty() && !readFile(mdp, mdpText)) {
+    message = "cannot read " + mdp;
+    return "";
+  }
+  if (!tpr.empty() && !readFile(tpr, tprText)) {
+    message = "cannot read " + tpr;
+    return "";
+  }
+  if (tpr.empty()) {
+    string pdb, err;
+    if (!readFile(structure, groText) ||
+        GromacsStructure::groToPdb(groText, pdb, err) < 0) {
+      message = "not a usable .gro file: " + structure +
+                (err.empty() ? string() : " (" + err + ")");
+      return "";
+    }
+    if (!readFile(top, topText)) {
+      message = "cannot read " + top;
+      return "";
+    }
+  }
+
+  string name = stem(baseName(!mdp.empty() ? mdp : tpr));
+  for (size_t i = 0; i < name.size(); i++)
+    if (!isalnum((unsigned char)name[i]) && name[i] != '_' && name[i] != '-')
+      name[i] = '_';
+  if (name.empty()) name = "GROMACS_Run";
+  EDSI* edsi = EDSIFactory::getEDSI(parent->getURL());
+  name = edsi->uniqueName(name, "_%d");
+  delete edsi;
+
+  Resource* task = parent->createChild(name, type);
+  MdTask* md = dynamic_cast<MdTask*>(task);
+  if (!md) {
+    message = "could not create the GROMACS run";
+    return "";
+  }
+  const string url = md->getURL().toString();
+  bool ok = true;
+  string note;
+  if (!tpr.empty()) {
+    ok = putInput(md, "run.gmxtpr", tprText);
+    if (ok)
+      ok = putInput(md, "gromacs.mdp",
+                    !mdpText.empty() ? mdpText
+                    : "; this run comes from run.gmxtpr, not from this file\n");
+  } else {
+    ok = putInput(md, "gromacs.mdp", mdpText) &&
+         putInput(md, stem(baseName(top)) + ".gmxtop", topText) &&
+         putInput(md, stem(baseName(structure)) + ".gro", groText);
+  }
+  if (!ok) {
+    message = "could not store the files: " + md->messages();
+    return url;
+  }
+
+  if (tpr.empty()) {
+    std::istringstream gin(groText);
+    Fragment frag;
+    if (frag.restoreGRO(gin, true)) md->fragment(&frag);
+
+    vector<GromacsIncludes::File> found;
+    vector<string> system, missing;
+    GromacsIncludes::collect(top, found, system, missing);
+    int stored = 0;
+    for (size_t i = 0; i < found.size(); i++) {
+      string text;
+      if (readFile(found[i].path, text) &&
+          putInput(md, GromacsIncludes::encodeName(found[i].name), text))
+        stored++;
+      else
+        missing.push_back(found[i].name);
+    }
+    // An index file beside the topology is the user's own groups.
+    vector<string> beside = listDir(dirName(top), false);
+    for (size_t i = 0; i < beside.size(); i++) {
+      string text;
+      if (hasSuffix(beside[i], ".ndx") &&
+          readFile(dirName(top) + "/" + beside[i], text) &&
+          putInput(md, beside[i], text))
+        stored++;
+    }
+    note = "Attached " + std::to_string(stored) + " include/index file" +
+           (stored == 1 ? "" : "s") + ".";
+    if (!missing.empty()) {
+      note += " Not found:";
+      for (size_t i = 0; i < missing.size(); i++) note += " " + missing[i];
+      note += ".";
+    }
+  }
+  if (TaskJob* job = dynamic_cast<TaskJob*>(md))
+    job->setState(ResourceDescriptor::STATE_READY);
+  message = note;
+  return url;
 }

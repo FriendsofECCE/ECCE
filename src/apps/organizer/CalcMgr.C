@@ -1857,6 +1857,26 @@ void CalcMgr::runTestCommand(const string& line)
       outcome = !parentNode ? "error: no parent node"
               : (made.empty() || !message.empty()) ? "error: " + message
               : "ok " + made;
+    } else if (command == "gmxrun") {
+      // "gmxrun PARENT-URL MDP|- STRUCTURE|- TOPOLOGY|- [TPR]": make a
+      // GROMACS run from files in PARENT (createGromacsRun); "-" is no file.
+      std::istringstream args(calcName);
+      string parentUrl, mdp, gro, top, tpr, message;
+      args >> parentUrl >> mdp >> gro >> top >> tpr;
+      if (mdp == "-") mdp.clear();
+      if (gro == "-") gro.clear();
+      if (top == "-") top.clear();
+      if (tpr == "-") tpr.clear();
+      WxResourceTreeItemData *parentNode = findNode(EcceURL(parentUrl),
+                                                    true, true);
+      string made;
+      if (parentNode)
+        made = createGromacsRun(parentNode->getResource(), mdp, gro, top, tpr,
+                                message);
+      if (parentNode) p_treeCtrl->refresh(parentNode);
+      outcome = !parentNode ? "error: no parent node"
+              : made.empty() ? "error: " + message
+              : "ok " + made + (message.empty() ? "" : " " + message);
     } else if (command == "gmximportsel") {
       // "gmximportsel PROJECT-URL RUN-DIR": File > Import GROMACS Run...
       // with PROJECT selected and RUN-DIR chosen.
@@ -7040,6 +7060,70 @@ string CalcMgr::importGromacsFrom(const string& runDir, string& message)
 }
 
 
+// The run goes into the project enclosing the selection.
+string CalcMgr::newGromacsRunFrom(const string& mdp, const string& structure,
+                                  const string& top, const string& tpr,
+                                  string& message)
+{
+  WxResourceTreeItemData *node = p_treeCtrl->getSelection();
+  while (node && node->getResource() &&
+         (!node->getResource()->getDescriptor() ||
+          node->getResource()->getDescriptor()->getName() != "project")) {
+    WxResourceTreeItemData *up = p_treeCtrl->getParent(node);
+    node = (up == node) ? 0 : up;
+  }
+  if (!node || !node->getResource()) {
+    message = "Select a project to make the GROMACS run in.";
+    return "";
+  }
+  string made = createGromacsRun(node->getResource(), mdp, structure, top,
+                                 tpr, message);
+  p_treeCtrl->refresh(node);
+  if (!made.empty()) {
+    setContextPanel();
+    p_contextPanel->selectResource(EcceURL(made));
+  }
+  return made;
+}
+
+
+// Each file is asked for in the folder of the one before.
+void CalcMgr::OnNewGromacsRunClick( wxCommandEvent& event )
+{
+  wxFileDialog first(this, _("GROMACS run input (.mdp or ready .tpr)"),
+                     wxEmptyString, wxEmptyString,
+                     _("GROMACS run input (*.mdp;*.tpr)|*.mdp;*.tpr"),
+                     wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+  if (first.ShowModal() != wxID_OK) return;
+  const string chosen(first.GetPath().mb_str());
+  string mdp, gro, top, tpr;
+  if (chosen.size() > 4 && chosen.compare(chosen.size() - 4, 4, ".tpr") == 0) {
+    tpr = chosen;
+  } else {
+    mdp = chosen;
+    wxFileDialog s(this, _("Starting structure (.gro)"), first.GetDirectory(),
+                   wxEmptyString, _("Structure (*.gro;*.pdb)|*.gro;*.pdb"),
+                   wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (s.ShowModal() != wxID_OK) return;
+    gro = string(s.GetPath().mb_str());
+    wxFileDialog t(this, _("Topology (.top)"), s.GetDirectory(), wxEmptyString,
+                   _("Topology (*.top)|*.top"),
+                   wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+    if (t.ShowModal() != wxID_OK) return;
+    top = string(t.GetPath().mb_str());
+  }
+  startDisabler();
+  string message;
+  string made = newGromacsRunFrom(mdp, gro, top, tpr, message);
+  if (made.empty())
+    setMessage(message, WxFeedback::ERROR);
+  else
+    setMessage("The GROMACS run is made and Ready to launch. " + message,
+               WxFeedback::INFO);
+  stopDisabler();
+}
+
+
 void CalcMgr::OnImportGromacsClick( wxCommandEvent& event )
 {
   wxDirDialog dlg(this, _("Choose the directory of the GROMACS run"));
@@ -10644,6 +10728,8 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
   menu.Append(wxID_IMPORT, _("&Import Calculation from Output File..."),
               _T(""), wxITEM_NORMAL);
   menu.Append(wxID_IMPORTGROMACS, _("Import &GROMACS Run..."),
+              _T(""), wxITEM_NORMAL);
+  menu.Append(wxID_NEWGROMACSRUN, _("New GROMACS &Run from Files..."),
               _T(""), wxITEM_NORMAL);
   menu.Append(wxID_OPENEXAMPLES, _("Open &Example Calculations"),
               _T(""), wxITEM_NORMAL);

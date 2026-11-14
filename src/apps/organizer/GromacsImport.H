@@ -46,4 +46,20 @@ std::string importGromacsRun(Resource* parent, const std::string& studyName,
                              const std::function<void(const std::string&)>&
                                  beforeTask = nullptr);
 
+/**
+ * Make one GROMACS calculation directly in a project from the user's own
+ * files (File > New GROMACS Run from Files...).  Either a .mdp with a
+ * structure (.gro) and a topology (.top, its includes and a .ndx beside it
+ * are attached), or a ready .tpr (stored as run.gmxtpr; the job skips grompp)
+ * with an optional .mdp.  Pass "" for a file not given.  The calculation is
+ * named after the .mdp (else the .tpr) and left Ready.
+ *
+ * Returns the calculation's URL, or "" with the reason in message.  A
+ * non-empty message with a URL is a note (includes not found).
+ */
+std::string createGromacsRun(Resource* parent, const std::string& mdp,
+                             const std::string& structure,
+                             const std::string& top, const std::string& tpr,
+                             std::string& message);
+
 #endif

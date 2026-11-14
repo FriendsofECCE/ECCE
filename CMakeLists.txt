@@ -5037,6 +5037,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs_import PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # #1038: a plain GROMACS run from the user's own .mdp/.gro/.top or .tpr.
+  add_test(NAME launch_gromacs_run
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_run_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs_run PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   # #877: every GROMACS run gets the Speed Distribution and Displacement data
   # (mdanalysis in the job script), and so does an imported run directory.
   add_test(NAME launch_gromacs_md_analysis

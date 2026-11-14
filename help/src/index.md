@@ -67,6 +67,8 @@ describe what you did and what happened.
    energies and relaxations of periodic cells.
    [Your first GROMACS calculation](gromacs-first-calculation.md): a small
    protein through Prepare, Optimize, Equilibrate and Dynamics.
+   [A GROMACS run from your own files](gromacs-run-from-files.md): a single
+   run made from a .mdp, a structure and a topology, or from a ready .tpr.
 7. [Molecules for teaching](molecules-for-teaching.md): the small molecules
    of a first laboratory, ready in the Structure Library at their measured
    bond lengths.

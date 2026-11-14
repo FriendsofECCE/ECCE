@@ -5774,6 +5774,7 @@
         </Contains>
         <ContainedBy>
           <ContainedByResource name="gromacs_md_study"/>
+          <ContainedByResource name="project"/>
         </ContainedBy>
       </Containment>
     </Relationships>
