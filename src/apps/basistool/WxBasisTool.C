@@ -59,6 +59,7 @@
 #include "wxgui/PerTabPanel.H"
 
 #include "GridSelectionBlock.H"
+#include "wxgui/WxJMSMessageDispatch.H"
 #include "WxBasisTool.H"
 #include "WxBasisSetCoefficients.H"
 #include "WxBasisSetDetail.H"
@@ -297,6 +298,7 @@ WxBasisTool::WxBasisTool(      wxWindow* parent,
 
 WxBasisTool::~WxBasisTool()
 {
+    delete p_msgs;
     if (p_prefs != NULL)
     {
         this->saveSettings();

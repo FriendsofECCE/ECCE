@@ -76,6 +76,7 @@
 
 #include "tdat/QmSolventWarning.H"
 #include "CalcEdMessages.H"
+#include "wxgui/InProcessTools.H"
 #include "CalcEd.H"
 #include "dsm/QstStructures.H"
 #include "VerifyReportDialog.H"
@@ -4696,6 +4697,18 @@ void CalcEd::startApp(int id, int force, const string& url) const
 
 void CalcEd::startApp(const string& app, int force, const string& url) const
 {
+  // A tool that opens in this process (#983, the editor is a window of the
+  // Organizer): the gateway would start a program instead.
+  if (InProcessTools::handles(app)) {
+    JMSMessage *req = newMessage();
+    req->addProperty("appname", app);
+    req->addIntProperty("forcenew", force);
+    req->addProperty("calcurl", url);
+    InProcessTools::open(*req);
+    delete req;
+    return;
+  }
+
   JMSMessage *msg = newMessage();
   msg->addProperty("action", "start");
   publish("ecce_activity", *msg);

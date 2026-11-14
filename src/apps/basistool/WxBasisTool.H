@@ -58,6 +58,8 @@ class WxFeedback;
 #define ID_PERTAB_WXBASISTOOL_ELEMENTS      34101
 
 
+class WxJMSMessageDispatch;
+
 class WxBasisTool: public WxBasisToolGUI,
                    public WxDavAuth,
                    public JMSPublisher,
@@ -75,6 +77,9 @@ class WxBasisTool: public WxBasisToolGUI,
                        const wxSize& size = SYMBOL_WXBASISTOOLGUI_SIZE,
                              long style = SYMBOL_WXBASISTOOLGUI_STYLE);
         virtual ~WxBasisTool();
+
+        // The window's message dispatcher, deleted with it (#983).
+        void setMessages(WxJMSMessageDispatch *msgs) { p_msgs = msgs; }
 
         void programSaveMenuItemClickCB(wxCommandEvent& event);
         void programCoefficientsMenuItemClickCB(wxCommandEvent& event);
@@ -177,6 +182,7 @@ class WxBasisTool: public WxBasisToolGUI,
         bool promptContextSave(const bool& allowCancel = true);
 
     private:
+        WxJMSMessageDispatch *p_msgs = 0;
         void selectElements(Fragment *frag);
         void selectElements(string elmts);
         void initControls();

@@ -55,7 +55,11 @@ def run(display):
         url2 = "file://" + pb.makeCalc(project, "water-b", "created", None)
         cmds = os.path.join(work, "commands")
         script = os.path.join(work, "builder-script")
+        calced = os.path.join(work, "calced-script")
         open(cmds, "w").close()
+        with open(calced, "w") as handle:
+            # The editor's Basis Set Tool button, from the in-process editor.
+            handle.write("wait 5000\ntool Basistool\n")
         with open(script, "w") as handle:
             handle.write("save\n")
 
@@ -69,6 +73,7 @@ def run(display):
             append("start Builder " + url2, 15)
             append("start CalculationEditor " + url1, 15)
             append("start MDEnergy", 15)
+            time.sleep(10)                   # the editor's script, above
             append("inprocess", 2)
             append("closetools", 5)
             append("answer no", 3)    # questions the tools ask, if any
@@ -80,6 +85,7 @@ def run(display):
                           env={**extra, "ECCE_ONE_PROCESS": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_TEST_MESSAGES": "1",
+                               "ECCE_CALCED_SCRIPT": calced,
                                "ECCE_BUILDER_SCRIPT": script,
                                "ECCE_LOCAL_DATA": data},
                           inspect=inspect)
@@ -95,10 +101,12 @@ def run(display):
                          inproc[0])
             pid = m.group(1) if m else None
             check(m and m.group(2) == "2" and m.group(3) == "1"
-                  and "MDEnergy=1" in inproc[0],
-                  "two Builders, one editor and an MD editor open in the "
-                  "Organizer", inproc[0])
-            check("Builder=0 CalculationEditor=0 MDEnergy=0" in inproc[1],
+                  and "MDEnergy=1 BasisTool=1" in inproc[0],
+                  "two Builders, one editor, an MD editor and the Basis Set "
+                  "Tool (from the editor's button) open in the Organizer",
+                  inproc[0])
+            check("Builder=0 CalculationEditor=0 MDEnergy=0 BasisTool=0"
+                  in inproc[1],
                   "closing the tool windows leaves the Organizer running",
                   inproc[1])
         check(pb.answers(log, "closetools") == ["queued", "closed"],
@@ -151,7 +159,8 @@ def runQuit(display, gateway=False):
         def inspect(_display):
             append("start Builder " + url, 25)
             if not gateway:
-                append("start MDEnergy", 15)   # Quit with it open
+                append("start MDEnergy", 15)   # Quit with these open
+                append("start Basistool " + url, 15)
             append("inprocess", 2)
             if gateway:
                 # The session's ecce_quit: forced, the Builder still asks
@@ -166,7 +175,9 @@ def runQuit(display, gateway=False):
             append("inprocess", 2)
             append("close", 3)
             append("answer", 3)
-            # The process ends after the broker's 10 s linger (OnExit).
+            append("answer no", 3)         # the Builder
+            # The Basis Set Tool's own question, if it asks; the process
+            # ends after the broker's 10 s linger (OnExit).
             append("answer no", 25)
             if GDB:
                 # Where a process that did not end is: attach, all threads.
@@ -200,15 +211,16 @@ def runQuit(display, gateway=False):
                   "ecce_quit ends the process cleanly",
                   "returncode %s\n%s" % (result.returncode, log[-1500:]))
         else:
-            check("MDEnergy=1" in inproc[0],
-                  "an MD editor opened in the Organizer", inproc[0])
+            check("MDEnergy=1 BasisTool=1" in inproc[0],
+                  "an MD editor and the Basis Set Tool opened in the Organizer",
+                  inproc[0])
             check(len(inproc) == 2 and
                   "Builder=1 CalculationEditor=0" in inproc[1],
                   "Cancel in the Builder's question cancels the Quit",
                   str(inproc))
             check(pb.answers(log, "answer cancel") ==
                   ["answered Save Builder Changes?"] and
-                  pb.answers(log, "answer no") ==
+                  pb.answers(log, "answer no")[:1] ==
                   ["answered Save Builder Changes?"],
                   "the Builder asked about its changes at each Quit",
                   str(pb.answers(log, "answer")))

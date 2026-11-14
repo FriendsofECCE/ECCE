@@ -14,6 +14,7 @@
 //                             button (opens the real dialog)
 //    close-details            close the dialogs, as OK does
 //    button save|verify|finaledit|launch
+//    tool NAME                that tool's button for this calculation (#983)
 //    dismiss                  close a modal dialog (OK)
 //    code NAME                a click on that code's button in the Code row
 //    wmcommand ID             (Windows) the message a menu item click sends
@@ -289,6 +290,11 @@ void CalcEd::runCalcEdScript(const string& file)
       } else if (w[0] == "close-details") {
         closeTheoryApp(true);
         closeRuntypeApp(true);
+      } else if (w[0] == "tool" && w.size() == 2) {
+        // "tool NAME" (Basistool, Builder, ...): what that tool's button
+        // does, for this calculation.
+        startApp(w[1], 0, p_context);
+        outcome = "requested";
       } else if (w[0] == "button" && w.size() == 2) {
         bool ok;
         if (w[1] == "save-keep") {

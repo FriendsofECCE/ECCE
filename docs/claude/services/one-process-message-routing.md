@@ -3,7 +3,7 @@ type: map
 title: "One GUI process (#983 stage 1): in-process message routing, OnInit split, globals audit, window lifetime"
 area: services
 section: "Pitfalls"
-paths: ["src/util/jms/MqttLink.C", "src/wxgui/mdtools/MDEdBase.C", "src/wxgui/jms/InProcessTools.C", "include/wxgui/InProcessTools.H", "src/apps/builder/BuilderWindow.C", "src/apps/calced/CalcEdWindow.C", "src/apps/calced/CalcEdMessages.C", "tests/apps/one_process_test.py", "include/util/MqttLink.H", "src/util/jms/JMSPublisher.C", "src/wxgui/jms/WxJMSSubscriber.C", "src/wxgui/jms/WxJMSMessageDispatch.C", "src/apps/organizer/CalcMgrApp.C", "src/apps/builder/BuilderApp.C", "src/apps/calced/CalcEdApp.C", "src/dsm/edsiimpl/EDSIFactory.C", "tests/mqtt/mqtt_test.C", "CMakeLists.txt"]
+paths: ["src/util/jms/MqttLink.C", "src/apps/basistool/BasisToolMessages.C", "src/apps/calced/CalcEdScript.C", "src/wxgui/mdtools/MDEdBase.C", "src/wxgui/jms/InProcessTools.C", "include/wxgui/InProcessTools.H", "src/apps/builder/BuilderWindow.C", "src/apps/calced/CalcEdWindow.C", "src/apps/calced/CalcEdMessages.C", "tests/apps/one_process_test.py", "include/util/MqttLink.H", "src/util/jms/JMSPublisher.C", "src/wxgui/jms/WxJMSSubscriber.C", "src/wxgui/jms/WxJMSMessageDispatch.C", "src/apps/organizer/CalcMgrApp.C", "src/apps/builder/BuilderApp.C", "src/apps/calced/CalcEdApp.C", "src/dsm/edsiimpl/EDSIFactory.C", "tests/mqtt/mqtt_test.C", "CMakeLists.txt"]
 issues: [983, 1007, 990, 213]
 ---
 Organizer, Builder and Calculation Editor become windows of one wx process
@@ -140,6 +140,21 @@ Audit otherwise clean (constants only). MDPrep (`src/apps/mdprepare`) is
 not an `MDEdBase` and stays a program for now. Test: `one_process_test.py`
 opens MD Energy (no calculation) beside the others, closes it with
 `closetools`, and Quits with it open.
+
+## Basis Set Tool
+
+`WxBasisToolApp` was its own dispatcher; the handlers moved unchanged to
+`BasisToolMessages`, owned and deleted by `WxBasisTool` (as Builder and
+CalcEd). `BasisToolWindow.C` opens one in process: library access and
+settings as `OnInit`, but not `EDSIFactory::addAuthEventListener`, whose
+single process-wide listener stays the Organizer's. Its close handler
+already vetoed on Cancel; its dialogs are children of the window. Audit
+otherwise clean (no exit, configs, log target, top-window lookups).
+- The tool name is `Basistool` (`BASISTOOL`), not `BasisTool`.
+- `CalcEd::startApp` sent `ecce_get_app` to the gateway, which starts a
+  program: with the switch on it now calls `InProcessTools::open` for a
+  tool that opens in process (Basis Set Tool, and the Builder button too).
+  Test: `ECCE_CALCED_SCRIPT` command `tool NAME` = that tool's button.
 
 ## Globals audit, Builder and Calculation Editor (stage 1c)
 
