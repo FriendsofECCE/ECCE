@@ -243,6 +243,7 @@ def panel(tmp, proton=False):
                 else:
                     check("CSV written", False, log[-3000:])
                 stored_superposition(tmp, display, state)
+                stored_builder_script(tmp, display, state)
             finally:
                 restore()
                 fx.remove("na-ensemble")
@@ -334,6 +335,36 @@ def stored_superposition(tmp, display, state):
               open(png, "rb").read() == open(png + ".png", "rb").read())
     else:
         check("PNG table was written", False, log[-5000:])
+
+
+def stored_builder_script(tmp, display, state):
+    """#1035: the gten hooks also run under ECCE_BUILDER_SCRIPT, next to
+    the Builder-only `background`."""
+    import apps
+    import fixture as fx
+
+    src = os.path.join(tmp, "stored-butane-bs")
+    shutil.copytree(BASE, src, symlinks=True)
+    script = os.path.join(tmp, "bscript")
+    with open(script, "w") as f:
+        f.write("wait 3000\nbackground 1 1 1\ngtenselect 1 3\ngtenfit\n"
+                "gtenbogus\nquit\n")
+    args = ("-context", "file://" + src + "/")
+    if os.path.realpath(state) != os.path.realpath(os.path.expanduser("~")):
+        auth = fx.authFile(os.path.join(state, ".ECCE", "auth.pipe"), user=fx.USER)
+        args = ("-pipe", auth) + args
+    result = apps.run(display, "builder", args=args, windowTimeout=120, settle=120,
+                      env={"ECCE_BUILDER_SCRIPT": script, "ECCE_REALUSER": fx.USER,
+                           "GTK_THEME": "Adwaita", "ECCE_OPEN_PANEL": "Conformers"})
+    log = result.log or ""
+    check("builder script: background and gtenselect both ok",
+          "ECCE_BUILDER_SCRIPT: background 1 1 1: ok" in log and
+          "ECCE_BUILDER_SCRIPT: gtenselect 1 3: ok" in log, log[-3000:])
+    fit = re.findall(r"GTSTRESS: enfit (\d+) \| ([0-9.]+) \| (#[0-9A-Fa-f]{6})", log)
+    check("builder script: gtenfit lists the two selected members",
+          "GTSTRESS: enfit members=2 visible=1" in log and len(fit) == 2, fit)
+    check("builder script: an unknown gten command is refused",
+          "gtenbogus: " in log and "gtenbogus: ok" not in log)
 
 
 def main():

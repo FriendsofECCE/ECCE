@@ -67,6 +67,13 @@ checks a hand-computed tensor and the tensile QE Al cell example;
 and logs for visual review. Run with a private installed tree and the
 test harness as described below.
 
+`ECCE_BUILDER_SCRIPT` also accepts the Conformers-panel hooks `gtenselect
+<rank>...`, `gtenfit`, `gtenthumbs`, `gtenpng <file>`, `gtencsv <file>`,
+`gtenviewer on|off` and `gtensort <column> up|down` (open the panel with
+`ECCE_OPEN_PANEL=Conformers`), so one script can set `background 1 1 1` and
+select conformers. Output goes to stderr as `GTSTRESS: ...` lines; the same
+commands work under `ECCE_VIEWER_SCENE`. Test: `tests/apps/ensemble_patterns_test.py`.
+
 ## Checking the Basis Set Tool window
 
 `tests/apps/basis_tool_size_test.py` (ctest `apps_basis_tool_size`) checks

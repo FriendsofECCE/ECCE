@@ -127,6 +127,86 @@ bool Builder::traceFrame(int index)
 }
 
 
+//  The Conformers panel hooks, shared by ECCE_VIEWER_SCENE and
+//  ECCE_BUILDER_SCRIPT.  Returns an error text, empty when done.
+string Builder::ensembleCommand(const vector<string>& w)
+{
+  const string& c = w[0];
+  GeomTracePropertyPanel *gt = tracePanel(p_calculation);
+  {
+    EnsemblePropertyPanel *en = dynamic_cast<EnsemblePropertyPanel*>(gt);
+    if (!en) return (c + ": no ensemble panel");
+    if (c == "gtenrows") {
+      vector<string> rows = en->tableRows();
+      fprintf(stderr, "GTSTRESS: ensemble kind=%s rows=%d\n", en->kind().c_str(),
+              (int)rows.size());
+      for (size_t i = 0; i < rows.size(); i++)
+        fprintf(stderr, "GTSTRESS: enrow %s\n", rows[i].c_str());
+    } else if (c == "gtencsv" && w.size() == 2) {
+      fprintf(stderr, "GTSTRESS: encsv %s\n", en->exportCsv(w[1]) ? "ok" : "failed");
+    } else if (c == "gtenpng" && w.size() == 2) {
+      if (!en->exportPng(w[1])) return ("gtenpng: render or write failed");
+      fprintf(stderr, "GTSTRESS: enpng ok\n");
+    } else if (c == "gtenthumbs") {
+      for (int rank : en->thumbnailRanks())
+        fprintf(stderr, "GTSTRESS: enthumb %d\n", rank);
+    } else if (c == "gtenviewer" && w.size() == 2) {
+      wxCheckBox *box = en->viewerToggle();
+      if (!box) return ("gtenviewer: no viewer toggle");
+      const bool on = w[1] == "on";
+      box->SetValue(on);
+      wxCommandEvent event(wxEVT_CHECKBOX, box->GetId());
+      event.SetEventObject(box);
+      event.SetInt(on);
+      box->GetEventHandler()->ProcessEvent(event);
+    } else if (c == "gtensort" && w.size() == 3) {
+      en->sortTable(atoi(w[1].c_str()), w[2] == "up");
+    } else if (c == "gtenfit") {
+      fprintf(stderr, "GTSTRESS: enfit members=%d visible=%d\n",
+              (int)en->superpositionRows().size(), (int)en->superpositionVisible());
+      for (const string& row : en->superpositionRows())
+        fprintf(stderr, "GTSTRESS: enfit %s\n", row.c_str());
+    } else if (c == "gtenselect" && w.size() >= 2) {
+      vector<int> ranks;
+      for (size_t i = 1; i < w.size(); i++) ranks.push_back(atoi(w[i].c_str()));
+      const bool ok = en->selectRanks(ranks);
+      spin(50);
+      const double *p = getSG()->getFragment()->atomRef(0)->coordinates();
+      fprintf(stderr, "GTSTRESS: enselect %s ok=%d atom1 %.6f %.6f %.6f plot=%d natoms=%d\n",
+              w[1].c_str(), (int)ok, p[0], p[1], p[2],
+              plotOf(en) ? plotOf(en)->selectedIndex() + 1 : -1,
+              getSG()->getFragment()->numAtoms());
+    } else if (c == "gtencalc" && w.size() >= 2) {
+      vector<int> ranks;
+      for (size_t i = 2; i < w.size(); i++) ranks.push_back(atoi(w[i].c_str()));
+      string why;
+      vector<string> urls = en->newCalcsFromRanks(ranks, w[1], why);
+      for (size_t i = 0; i < urls.size(); i++) {
+        // Read the new calculation back: its name and first/last atom.
+        PropertyTask *nt = dynamic_cast<PropertyTask*>(
+            EDSIFactory::getResource(EcceURL(urls[i])));
+        Fragment *nf = nt ? nt->fragment() : 0;
+        const int na = nf ? nf->numAtoms() : 0;
+        const double *a = na ? nf->atomRef(0)->coordinates() : 0;
+        const double *z = na ? nf->atomRef(na - 1)->coordinates() : 0;
+        ICalculation *ic = dynamic_cast<ICalculation*>(nt);
+        fprintf(stderr, "GTSTRESS: encalc %d type=%s run=%s mult=%d name=%s atoms=%d first %.6f %.6f %.6f "
+                "last %.6f %.6f %.6f\n", ranks[i],
+                nt && nt->getDescriptor() ? nt->getDescriptor()->getName().c_str() : "",
+                ic ? ic->runtype().name().c_str() : "", ic ? (int)ic->spinMultiplicity() : 0,
+                EcceURL(urls[i]).getFilePathTail().c_str(), na,
+                a ? a[0] : 0, a ? a[1] : 0, a ? a[2] : 0,
+                z ? z[0] : 0, z ? z[1] : 0, z ? z[2] : 0);
+      }
+      fprintf(stderr, "GTSTRESS: encalc made=%d why=%s\n", (int)urls.size(), why.c_str());
+    } else {
+      return ("bad ensemble command");
+    }
+    return "";
+  }
+}
+
+
 bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
 {
   const string& c = w[0];
@@ -355,78 +435,9 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
             EnsemblePropertyPanel::kindFor(rt, w[2] == "1").c_str());
     return true;
   }
-  if (c == "gtenrows" || c == "gtencsv" || c == "gtenselect" ||
-      c == "gtencalc" || c == "gtenfit" || c == "gtenpng" ||
-      c == "gtenthumbs" || c == "gtensort" || c == "gtenviewer") {
-    EnsemblePropertyPanel *en = dynamic_cast<EnsemblePropertyPanel*>(gt);
-    if (!en) return s.fail(c + ": no ensemble panel");
-    if (c == "gtenrows") {
-      vector<string> rows = en->tableRows();
-      fprintf(stderr, "GTSTRESS: ensemble kind=%s rows=%d\n", en->kind().c_str(),
-              (int)rows.size());
-      for (size_t i = 0; i < rows.size(); i++)
-        fprintf(stderr, "GTSTRESS: enrow %s\n", rows[i].c_str());
-    } else if (c == "gtencsv" && w.size() == 2) {
-      fprintf(stderr, "GTSTRESS: encsv %s\n", en->exportCsv(w[1]) ? "ok" : "failed");
-    } else if (c == "gtenpng" && w.size() == 2) {
-      if (!en->exportPng(w[1])) return s.fail("gtenpng: render or write failed");
-      fprintf(stderr, "GTSTRESS: enpng ok\n");
-    } else if (c == "gtenthumbs") {
-      for (int rank : en->thumbnailRanks())
-        fprintf(stderr, "GTSTRESS: enthumb %d\n", rank);
-    } else if (c == "gtenviewer" && w.size() == 2) {
-      wxCheckBox *box = en->viewerToggle();
-      if (!box) return s.fail("gtenviewer: no viewer toggle");
-      const bool on = w[1] == "on";
-      box->SetValue(on);
-      wxCommandEvent event(wxEVT_CHECKBOX, box->GetId());
-      event.SetEventObject(box);
-      event.SetInt(on);
-      box->GetEventHandler()->ProcessEvent(event);
-    } else if (c == "gtensort" && w.size() == 3) {
-      en->sortTable(atoi(w[1].c_str()), w[2] == "up");
-    } else if (c == "gtenfit") {
-      fprintf(stderr, "GTSTRESS: enfit members=%d visible=%d\n",
-              (int)en->superpositionRows().size(), (int)en->superpositionVisible());
-      for (const string& row : en->superpositionRows())
-        fprintf(stderr, "GTSTRESS: enfit %s\n", row.c_str());
-    } else if (c == "gtenselect" && w.size() >= 2) {
-      vector<int> ranks;
-      for (size_t i = 1; i < w.size(); i++) ranks.push_back(atoi(w[i].c_str()));
-      const bool ok = en->selectRanks(ranks);
-      spin(50);
-      const double *p = getSG()->getFragment()->atomRef(0)->coordinates();
-      fprintf(stderr, "GTSTRESS: enselect %s ok=%d atom1 %.6f %.6f %.6f plot=%d natoms=%d\n",
-              w[1].c_str(), (int)ok, p[0], p[1], p[2],
-              plotOf(en) ? plotOf(en)->selectedIndex() + 1 : -1,
-              getSG()->getFragment()->numAtoms());
-    } else if (c == "gtencalc" && w.size() >= 2) {
-      vector<int> ranks;
-      for (size_t i = 2; i < w.size(); i++) ranks.push_back(atoi(w[i].c_str()));
-      string why;
-      vector<string> urls = en->newCalcsFromRanks(ranks, w[1], why);
-      for (size_t i = 0; i < urls.size(); i++) {
-        // Read the new calculation back: its name and first/last atom.
-        PropertyTask *nt = dynamic_cast<PropertyTask*>(
-            EDSIFactory::getResource(EcceURL(urls[i])));
-        Fragment *nf = nt ? nt->fragment() : 0;
-        const int na = nf ? nf->numAtoms() : 0;
-        const double *a = na ? nf->atomRef(0)->coordinates() : 0;
-        const double *z = na ? nf->atomRef(na - 1)->coordinates() : 0;
-        ICalculation *ic = dynamic_cast<ICalculation*>(nt);
-        fprintf(stderr, "GTSTRESS: encalc %d type=%s run=%s mult=%d name=%s atoms=%d first %.6f %.6f %.6f "
-                "last %.6f %.6f %.6f\n", ranks[i],
-                nt && nt->getDescriptor() ? nt->getDescriptor()->getName().c_str() : "",
-                ic ? ic->runtype().name().c_str() : "", ic ? (int)ic->spinMultiplicity() : 0,
-                EcceURL(urls[i]).getFilePathTail().c_str(), na,
-                a ? a[0] : 0, a ? a[1] : 0, a ? a[2] : 0,
-                z ? z[0] : 0, z ? z[1] : 0, z ? z[2] : 0);
-      }
-      fprintf(stderr, "GTSTRESS: encalc made=%d why=%s\n", (int)urls.size(), why.c_str());
-    } else {
-      return s.fail("bad ensemble command");
-    }
-    return true;
+  if (c.compare(0, 4, "gten") == 0 && c != "gtenkind") {
+    const string why = ensembleCommand(w);
+    return why.empty() ? true : s.fail(why);
   }
 
   //  "gtpatterns": the coordination-pattern table, one row per line.

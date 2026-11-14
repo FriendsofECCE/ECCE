@@ -2178,6 +2178,9 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0] == "vinabox" || w[0] == "vinaboxinfo" ||
                  w[0] == "selectatoms" || w[0] == "poses") {
         outcome = vinaScriptCommand(w);
+      } else if (w[0].compare(0, 4, "gten") == 0 && w[0] != "gtenkind") {
+        outcome = ensembleCommand(w);
+        if (outcome.empty()) outcome = "ok";
       } else if (w[0] == "quit") {
         fprintf(stderr, "ECCE_BUILDER_SCRIPT: quit\n");
         Close(true);
