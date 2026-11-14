@@ -296,6 +296,7 @@ def runTabs(display):
             shot("tabs-organizer.png")
             append("towindow 1", 8)            # Open in Window
             append("inprocess", 2)
+            append("sbinfo Builder", 2)
             shot("tabs-builder-window.png")
             append("totabs Builder", 8)        # Window > Move to Tabs
             append("inprocess", 2)
@@ -347,6 +348,12 @@ def runTabs(display):
         check(tw and "window:" in tw[0] and "(hidden)" not in tw[0]
               and "(no menus)" not in tw[0] and " 1:" not in tw[0],
               "Open in Window moves the Builder into a shown window with its menus", str(tw))
+        sbi = pb.answers(log, "sbinfo")
+        m = re.search(r"parent=frame bottom=(\d+) client=(\d+)",
+                      sbi[0] if sbi else "")
+        check(m is not None and abs(int(m.group(1)) - int(m.group(2))) <= 4,
+              "after Open in Window the status bar is at the frame's bottom",
+              str(sbi))
         tt = pb.answers(log, "totabs")
         check(tt and " 1:" in tt[0] and "window:" not in tt[0],
               "Move to Tabs puts it back as a tab", str(tt))

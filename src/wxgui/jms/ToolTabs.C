@@ -515,6 +515,9 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
   if (showFrame) {
     tool->SetClientSize(size);
     tool->Show(true);
+    // The frame does not lay out its status bar again after a reparent.
+    tool->SendSizeEvent();
+    tool->SetStatusBar(tool->GetStatusBar());
     tool->Raise();
   } else {
     // The tool is being destroyed.
@@ -595,6 +598,20 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
         (int)tp->body()->GetChildren().size(), shown,
         !sb ? "none" : sb->GetParent() == tp ? "page" : "frame",
         mapped ? "mapped" : "hidden");
+  } else if (cmd == "sbinfo") {
+    // Status bar of the tool whose title contains arg, shown in a window;
+    // bottom is in frame coordinates (menu bar included), client the frame height.
+    for (Tab& t : tabs()) {
+      if (!t.tool || t.page || !t.tool->GetTitle().Contains(arg)) continue;
+      wxStatusBar *sb = t.tool->GetStatusBar();
+      if (!sb) { outcome = "none"; return true; }
+      wxPoint pos = sb->GetPosition();
+      outcome = wxString::Format("parent=%s bottom=%d client=%d",
+          sb->GetParent() == t.tool ? "frame" : "other",
+          pos.y + sb->GetSize().y, t.tool->GetSize().y);
+      return true;
+    }
+    outcome = "no such window";
   } else if (cmd == "charhook") {
     // What GTK does for a key press: the hook goes to the main window.
     long key = 0;
