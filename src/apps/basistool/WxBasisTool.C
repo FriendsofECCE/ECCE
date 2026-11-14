@@ -62,6 +62,7 @@
 
 #include "GridSelectionBlock.H"
 #include "wxgui/WxJMSMessageDispatch.H"
+#include "wxgui/ToolTabs.H"
 #include "WxBasisTool.H"
 #include "WxBasisSetCoefficients.H"
 #include "WxBasisSetDetail.H"
@@ -285,8 +286,52 @@ WxBasisTool::WxBasisTool(      wxWindow* parent,
 }
 
 
+bool WxBasisTool::Show(bool show)
+{
+    if (ToolTabs::hosts(this)) {
+        if (show) ToolTabs::select(this);
+        return true;
+    }
+    return WxBasisToolGUI::Show(show);
+}
+
+
+void WxBasisTool::Raise()
+{
+    if (ToolTabs::hosts(this)) ToolTabs::select(this);
+    else WxBasisToolGUI::Raise();
+}
+
+
+void WxBasisTool::SetTitle(const wxString& title)
+{
+    WxBasisToolGUI::SetTitle(title);
+    ToolTabs::setTitle(this, title);
+}
+
+
+bool WxBasisTool::Destroy()
+{
+    ToolTabs::release(this, false);
+    return WxBasisToolGUI::Destroy();
+}
+
+
+void WxBasisTool::Iconize(bool iconize)
+{
+    if (!ToolTabs::hosts(this)) WxBasisToolGUI::Iconize(iconize);
+}
+
+
+wxMenuBar *WxBasisTool::GetMenuBar() const
+{
+    return ToolTabs::menuBar(this, wxFrame::GetMenuBar());
+}
+
+
 WxBasisTool::~WxBasisTool()
 {
+    ToolTabs::release(this, false);
     delete p_msgs;
     if (p_prefs != NULL)
     {

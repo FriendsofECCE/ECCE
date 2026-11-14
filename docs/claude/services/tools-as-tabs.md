@@ -2,7 +2,7 @@
 type: map
 title: "Tools as tabs (#983 stage 2): a tool stays a hidden wxFrame, its windows move into a notebook page"
 area: services
-paths: ["src/wxgui/jms/ToolTabs.C", "include/wxgui/ToolTabs.H", "src/apps/builder/Builder.H", "src/apps/builder/Builder.C", "src/apps/builder/BuilderWindow.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/InProcessTools.C", "tests/apps/one_process_test.py"]
+paths: ["src/wxgui/mdtools/MDEdBase.C", "src/apps/mdprepare/MDPrep.C", "src/apps/basistool/WxBasisTool.C", "src/wxgui/jms/ToolTabs.C", "include/wxgui/ToolTabs.H", "src/apps/builder/Builder.H", "src/apps/builder/Builder.C", "src/apps/builder/BuilderWindow.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/InProcessTools.C", "tests/apps/one_process_test.py"]
 issues: [983]
 ---
 Switch: `ECCE_ONE_PROCESS=1` and `ECCE_LAYOUT=small` (`ToolTabs::enabled`).
@@ -65,6 +65,21 @@ and that stop working once its windows are in the page:
   Without it `populateSpinMultiplicities` dereferenced null (SIGSEGV on open).
 - `Layout()` of the frame lays out nothing: `CalcEd::Layout` -> `ToolTabs::layout`.
 
+## Basis Set Tool, MD editors, MD Prepare (adopted the same way)
+
+- `BasisToolWindow.C` adopts right after `new WxBasisTool`; `MDEdBase::
+  openInProcess` and `MDPrepWindow.C` adopt just before the first Show.
+  `MDEdBase` is the one base of MD Energy/Optimize/Dynamics and Gmx
+  Prepare, so all four are tabs.
+- Each overrides `Show/Raise/SetTitle/Destroy` and releases in its
+  destructor. `MDEdBase` and `MDPrep` also hide `FindWindow(long)` (their
+  code looks controls up by id long after construction) and `GetMenuBar`;
+  `Fit()` after a content change becomes `ToolTabs::layout`.
+- `WxBasisTool::Iconize` does nothing while hosted: `Iconize(false)` on the
+  hidden frame is a gtk deiconify and would map it.
+- The Basis Set Tool's menu bar has no File menu (first menu "Molecular
+  Basis"); the test checks that name.
+
 ## Editor tab: scrolling and children made later
 
 - A tool without an AUI manager gets a `wxScrolledWindow` as the page body
@@ -96,7 +111,7 @@ virtual size, `STALE` when the virtual height is below the sizer minimum,
 `clipped=N` other controls out of reach, `colours=N` distinct colours on
 the screen under the page, so a blank page shows as a handful; `gtk` adds
 frozen/mapped/GTK allocation of the body, its ancestors and first child), `charhook <key>`;
-checked by `tests/apps/one_process_test.py --tabs-only` (`--shots DIR`).
+checked by `tests/apps/one_process_test.py --tabs-only` (Builder, editor, and MD Energy + MD Prepare + Basis Set Tool in `runTabsTools`) (`--shots DIR`).
 
 ## Known gaps
 

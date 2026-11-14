@@ -10,11 +10,13 @@
 #include "dsm/ResourceDescriptor.H"
 #include "wxgui/InProcessTools.H"
 #include "BasisToolMessages.H"
+#include "wxgui/ToolTabs.H"
 #include "WxBasisTool.H"
 
 static WxJMSMessageDispatch *openBasisTool()
 {
   WxBasisTool *tool = new WxBasisTool(NULL);
+  if (ToolTabs::enabled()) ToolTabs::adopt(tool, 0, _("Basis Set Tool"));
   tool->openLibraryAccess(EDSIServerCentral().getDefaultBasisSetLibrary());
   tool->loadSettings("BasisTool");
   BasisToolMessages *msgs = new BasisToolMessages(tool);

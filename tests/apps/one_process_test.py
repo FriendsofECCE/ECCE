@@ -498,10 +498,122 @@ def runTabsEditor(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runTabsTools(display):
+    """#983 stage 2: MD Energy, MD Prepare and the Basis Set Tool as tabs.
+    Each shows its menus and windows, its frame stays unmapped, the page is
+    painted and the key buttons reachable; Open in Window and Move to Tabs
+    work; Quit ends cleanly.  ECCE_TABS_SHOTS=<dir> saves each tab."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    shots = os.environ.get("ECCE_TABS_SHOTS")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-m", "created", None)
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def shot(name):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+                subprocess.run(["import", "-display", ":%s" % display.number,
+                                "-window", "root", os.path.join(shots, name)],
+                               check=False)
+
+        def inspect(_display):
+            append("start MDEnergy", 15)
+            append("tabs", 2)                  # 1: MD Energy
+            append("tabinfo Launch...,Save", 2)
+            shot("tabs-mdenergy.png")
+            append("start MDPrepare", 15)
+            append("tabs", 2)                  # 2: MD Prepare
+            append("tabinfo Run Local,Save", 2)
+            shot("tabs-mdprepare.png")
+            append("start Basistool " + url, 20)
+            append("tabs", 2)                  # 3: Basis Set Tool
+            append("tabinfo Details...,Add to Table", 2)
+            shot("tabs-basistool.png")
+            append("towindow 3", 8)
+            shot("tabs-basistool-window.png")
+            append("totabs Basis", 8)
+            append("towindow 2", 8)
+            append("totabs Prepare", 8)
+            append("inprocess", 2)
+            append("close", 3)                 # File > Quit
+            append("answer", 3)
+            append("answer no", 3)
+            append("answer no", 3)
+            append("answer no", 20)
+
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
+                               "ECCE_ONE_PROCESS": "1", "ECCE_LAYOUT": "small",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        if GDB:
+            print(log[-6000:])
+        tabs = pb.answers(log, "tabs")
+        print("      tabs: " + "\n            ".join(tabs))
+        info = pb.answers(log, "tabinfo")
+        print("      tabinfo: " + "\n               ".join(info))
+        for i, (name, first, buttons) in enumerate(
+                (("MD Energy", "File", ("Launch...", "Save")),
+                 ("MD Prepare", "File", ("Run Local", "Save")),
+                 ("Basis Set", "Molecular Basis", ("Details...", "Add to Table")))):
+            check(len(tabs) > i and re.search(r"%d:.*%s.*\* " % (i + 1, name),
+                                              tabs[i]) is not None
+                  and first in tabs[i].split("menus=")[-1]
+                  and "Render" not in tabs[i].split("menus=")[-1],
+                  "%s opened as the active tab with its menus" % name,
+                  str(tabs) + log[-1500:])
+            line = info[i] if len(info) > i else ""
+            m = re.search(r"page=(\d+)x(\d+) onscreen=1 children=\d+ "
+                          r"shown=(\d+) .*frame=hidden", line)
+            check(m is not None and int(m.group(1)) > 300 and
+                  int(m.group(2)) > 200 and int(m.group(3)) >= 1,
+                  "%s tab shows its windows, its frame stays unmapped" % name,
+                  line)
+            check(all(("%s=reachable" % b) in line for b in buttons)
+                  and "STALE" not in line,
+                  "%s: %s reachable in the tab" % (name, ", ".join(buttons)),
+                  line)
+            m = re.search(r"colours=(\d+)", line)
+            check(m is not None and int(m.group(1)) > 20,
+                  "%s tab is painted, not one flat colour" % name, line)
+        tw = pb.answers(log, "towindow")
+        check(len(tw) >= 2 and all("window:" in t and "(hidden)" not in t
+                                   and "(no menus)" not in t for t in tw),
+              "Open in Window gives each tool a shown window with its menus",
+              str(tw))
+        tt = pb.answers(log, "totabs")
+        check(len(tt) >= 2 and all("window:" not in t for t in tt),
+              "Move to Tabs puts each tool back as a tab", str(tt))
+        inproc = pb.answers(log, "inprocess")
+        check(len(inproc) == 1 and "MDEnergy=1" in inproc[0]
+              and "BasisTool=1" in inproc[0] and "MDPrepare=1" in inproc[0],
+              "the same three tools throughout", str(inproc))
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "the Organizer with MD and Basis Set Tool tabs ends cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         runTabs(display)
         runTabsEditor(display)
+        runTabsTools(display)
         if os.environ.get("ECCE_TABS_ONLY") == "1":
             if failures:
                 results.fail("one-process", "; ".join(failures))
