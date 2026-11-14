@@ -1080,3 +1080,152 @@ GROUPS = {
             ["SMR_VSA%d" % i for i in range(1, 11)]),
 }
 QM_NAMES = ["qm_E", "qm_HOMO", "qm_LUMO", "qm_gap", "qm_dipole", "qm_qmin", "qm_qmax"]
+
+
+# Keep display text beside the definitions, including bin boundaries: consumers
+# must not infer a scientific meaning from a descriptor's abbreviated name.
+DESCRIPTIONS = {}
+
+
+def _definition(name, description, unit, group, reference=""):
+    DESCRIPTIONS[name] = dict(name=name, description=description, unit=unit,
+                              group=group, reference=reference)
+
+
+for _name, _text in {
+    "name": "Calculation or molecule name",
+    "state": "Stored calculation run state",
+    "opt_converged": "Geometry optimisation convergence from calculation metadata progress (opt stage) and state; '-' when unavailable",
+    "problems": "Reasons a row is incomplete or flagged by the calculation checks or SMILES reader",
+}.items():
+    _definition(_name, _text, "none", "QM" if _name != "name" else "identity")
+
+for _name, _text in {
+    "weight": "Molecular weight including hydrogens (sum of standard atomic weights)",
+    "a_count": "Number of atoms including hydrogens",
+    "a_heavy": "Number of heavy (non-hydrogen) atoms",
+    "a_aro": "Number of aromatic atoms",
+    "b_count": "Number of bonds including bonds to hydrogens",
+    "b_heavy": "Number of bonds between heavy atoms",
+    "b_ar": "Number of aromatic bonds",
+    "b_single": "Number of non-aromatic single bonds between heavy atoms",
+    "b_double": "Number of non-aromatic double bonds between heavy atoms",
+    "b_triple": "Number of triple bonds between heavy atoms",
+    "b_rotN": "Number of rotatable bonds: single, acyclic, between non-terminal heavy atoms, excluding bonds at a triple bond and N-C bonds of N-H amides",
+    "b_rotR": "Rotatable bond count divided by the number of heavy-atom bonds",
+    "rings": "Number of rings in the perceived smallest ring basis",
+    "aro_rings": "Number of perceived rings whose atoms are all aromatic",
+    "chiral": "Number of atoms with four topologically different substituents",
+    "FCharge": "Total formal charge of the molecule",
+    "lip_don": "Hydrogen-bond donor count: N or O atoms bearing hydrogen",
+    "lip_acc": "Hydrogen-bond acceptor proxy: count of N and O atoms",
+    "lip_violation": "Number of Lipinski rule violations: weight > 500, SlogP > 5, donors > 5, acceptors > 10",
+}.items():
+    _definition(_name, _text, "g/mol" if _name == "weight" else
+                "e" if _name == "FCharge" else "dimensionless", "counts")
+for _symbol, _element in zip(
+        ("H", "C", "N", "O", "F", "Cl", "Br", "I", "S", "P", "B", "Si"),
+        ("hydrogen", "carbon", "nitrogen", "oxygen", "fluorine", "chlorine",
+         "bromine", "iodine", "sulfur", "phosphorus", "boron", "silicon")):
+    _definition("a_n" + _symbol, "Number of %s atoms" % _element,
+                "dimensionless", "counts")
+
+for _name, _text in {
+    "weinerPath": "Wiener path index: sum of shortest-path distances over connected pairs of heavy atoms",
+    "weinerPol": "Wiener polarity index: number of heavy-atom pairs separated by three bonds",
+    "diameter": "Graph diameter: largest finite shortest-path distance between heavy atoms",
+    "radius": "Graph radius: smallest heavy-atom eccentricity, using finite distances",
+    "petitjean": "Petitjean shape index: (diameter - radius) / radius, or zero when radius is zero",
+    "zagreb1": "First Zagreb index: sum of squared heavy-atom degrees",
+    "zagreb2": "Second Zagreb index: sum of products of endpoint degrees over heavy-atom bonds",
+    "chi0": "Zero-order connectivity index: sum of inverse square roots of heavy-atom degrees",
+    "chi1": "First-order connectivity index: sum of inverse square roots of endpoint degree products over heavy-atom bonds",
+    "chi0v": "Zero-order valence connectivity index using Hall-Kier valence deltas",
+    "chi1v": "First-order valence connectivity index using Hall-Kier valence deltas",
+    "balabanJ": "Balaban J index: distance-sum connectivity normalised by bond count and cyclomatic number",
+    "KierFlex": "Kier flexibility index: KierA1 times KierA2 divided by heavy-atom count",
+    "ic0": "Topological information content: Shannon entropy of heavy-atom symmetry classes",
+}.items():
+    _definition(_name, _text, "bits" if _name == "ic0" else "dimensionless",
+                "topology", "Hall and Kier" if _name.startswith("chi") else
+                "Balaban, Chem. Phys. Lett. 89 (1982) 399" if _name == "balabanJ" else "")
+for _order in range(1, 4):
+    for _tag, _correction in (("Kier", ""), ("KierA", "; alpha correction from covalent radii, without a hybridisation term")):
+        _definition(_tag + str(_order), "Order-%d Kier kappa shape index of the heavy-atom graph%s" %
+                    (_order, _correction), "dimensionless", "topology", "Hall and Kier")
+
+_CRIPPEN = "Wildman and Crippen, J. Chem. Inf. Comput. Sci. 39 (1999) 868"
+_LABUTE = "Labute, J. Mol. Graph. Model. 18 (2000) 464"
+_GASTEIGER_REF = "Gasteiger and Marsili, Tetrahedron 36 (1980) 3219"
+for _name, _text, _unit, _ref in (
+        ("SlogP", "Wildman-Crippen octanol/water partition coefficient model (log10 P)", "dimensionless", _CRIPPEN),
+        ("SMR", "Wildman-Crippen molar refractivity model", "cm³/mol", _CRIPPEN),
+        ("TPSA", "Topological polar surface area from nitrogen and oxygen fragments only", "Å²", "Ertl et al., J. Med. Chem. 43 (2000) 3714"),
+        ("LabuteASA", "Labute approximate molecular surface area including the hydrogen correction", "Å²", _LABUTE)):
+    _definition(_name, _text, _unit, "models", _ref)
+for _name, _text in {
+    "Q_PC+": "Sum of positive heavy-atom Gasteiger charges (PEOE, 12 iterations)",
+    "Q_PC-": "Sum of negative heavy-atom Gasteiger charges (PEOE, 12 iterations)",
+    "Q_RPC+": "Largest positive heavy-atom Gasteiger charge divided by the positive charge sum (zero if absent)",
+    "Q_RPC-": "Most negative heavy-atom Gasteiger charge divided by the negative charge sum (zero if absent)",
+    "Q_max": "Maximum heavy-atom Gasteiger charge (PEOE, 12 iterations)",
+    "Q_min": "Minimum heavy-atom Gasteiger charge (PEOE, 12 iterations)",
+}.items():
+    _definition(_name, _text, "dimensionless" if _name.startswith("Q_RPC") else "e", "charges", _GASTEIGER_REF)
+
+for _suffix, _condition in (("POS", "charge > 0"), ("NEG", "charge < 0"),
+                            ("PPOS", "charge > 0.2 e"), ("PNEG", "charge < -0.2 e"),
+                            ("HYD", "absolute charge <= 0.2 e"),
+                            ("FPOS", "charge > 0"), ("FNEG", "charge < 0")):
+    _fraction = _suffix.startswith("F")
+    _definition("PEOE_VSA_" + _suffix,
+                "Labute heavy-atom surface area with Gasteiger %s%s" %
+                (_condition, ", divided by LabuteASA (including its hydrogen correction)" if _fraction else ""),
+                "dimensionless" if _fraction else "Å²", "VSA", _LABUTE + "; " + _GASTEIGER_REF)
+for _family, _bins, _quantity, _ref in (
+        ("PEOE_VSA", PEOE_BINS, "Gasteiger charge (e; PEOE, 12 iterations)", _GASTEIGER_REF),
+        ("SlogP_VSA", LOGP_BINS, "Wildman-Crippen logP contribution", _CRIPPEN),
+        ("SMR_VSA", MR_BINS, "Wildman-Crippen molar refractivity contribution (cm³/mol)", _CRIPPEN)):
+    for _i in range(len(_bins) + 1):
+        _range = ("x < %g" % _bins[0] if _i == 0 else
+                  "x >= %g" % _bins[-1] if _i == len(_bins) else
+                  "%g <= x < %g" % (_bins[_i - 1], _bins[_i]))
+        _definition(_family + str(_i + 1),
+                    "Van der Waals surface area (Labute approximation) of heavy atoms whose %s is in bin %d (%s)" %
+                    (_quantity, _i + 1, _range), "Å²", "VSA", _LABUTE + "; " + _ref)
+for _name, _text, _unit in (
+        ("qm_E", "Total electronic energy from calculation property TE (last value)", "Hartree"),
+        ("qm_HOMO", "Highest occupied molecular orbital energy from ORBENG and ORBOCC (occupation > 0.5), converted from Hartree", "eV"),
+        ("qm_LUMO", "Lowest unoccupied molecular orbital energy from ORBENG and ORBOCC (occupation <= 0.5), converted from Hartree", "eV"),
+        ("qm_gap", "HOMO-LUMO energy gap from calculation properties ORBENG and ORBOCC (LUMO minus HOMO)", "eV"),
+        ("qm_dipole", "Magnitude of the three-component calculation property DIPOLE", "Debye"),
+        ("qm_qmin", "Minimum atomic Mulliken charge from calculation property MULLIKEN", "e"),
+        ("qm_qmax", "Maximum atomic Mulliken charge from calculation property MULLIKEN", "e")):
+    _definition(_name, _text, _unit, "QM")
+
+
+def column_definition(name, sources=None):
+    """Unknown names are measured/user columns, never guessed model outputs."""
+    if name in DESCRIPTIONS:
+        return dict(DESCRIPTIONS[name])
+    unit = re.search(r"\(([^()]*)\)\s*$", name)
+    return dict(name=name, description="Measured/user column: measured, from " +
+                (", ".join(sources) if sources else "unknown source (not recorded)"),
+                unit=unit.group(1) if unit else "unspecified", group="measured", reference="")
+
+
+def definition_text(info):
+    text = "%s; unit: %s (%s)" % (info["description"], info["unit"], info["group"])
+    if info["reference"]:
+        text += "; reference: " + info["reference"]
+    return text
+
+
+def descriptor_help():
+    """Generated help block; the descriptor test checks the entire text."""
+    lines = ["<!-- BEGIN QSAR DESCRIPTOR KEY -->",
+             "| Column | Meaning, unit, group and reference |", "|---|---|"]
+    for name in ["name", "state", "opt_converged"] + [n for g in GROUPS.values() for n in g] + QM_NAMES + ["problems"]:
+        lines.append("| `%s` | %s |" % (name, definition_text(column_definition(name))))
+    lines.append("<!-- END QSAR DESCRIPTOR KEY -->")
+    return "\n".join(lines)
