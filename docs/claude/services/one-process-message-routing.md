@@ -73,8 +73,20 @@ stopped.
   stamps the bare pid. Check each such site when its tool moves in-process.
 
 Test: `ctest -R mqtt-local` adds instance targets, bare-pid targets, the
-instance self filter and EDSIFactory notices as Builder/Organizer; `mqtt`
-checks ids and the notice sender are unchanged with the switch off.
+instance self filter and notices as Builder/Organizer; `mqtt` checks ids
+and the notice sender are unchanged with the switch off. The notices go
+through a `JMSPublisher` set up as `EDSIFactory::getPublisher` sets up its
+own: `mqtt_test` must not link eccedsi, whose static initialisation fixes
+`ECCE_HOME` and the preference path before `main` sets them.
+
+## Builder messages (done)
+
+`BuilderMessages` (`src/apps/builder/BuilderMessages.C`) is the Builder's
+dispatcher, holding the handlers moved unchanged from `BuilderApp`, which
+is no longer a `WxJMSMessageDispatch`. `BuilderApp` still creates and owns
+it (with the window, in `OnInit`); handing it to the window comes with the
+in-process open. `quitMCB` unsubscribes the dispatcher instead of calling
+the app's `OnExit`.
 
 ## Open in one process (next increments)
 
