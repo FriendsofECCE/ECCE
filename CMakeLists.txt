@@ -4164,6 +4164,13 @@ if(PYTHON3_EXECUTABLE)
                          SKIP_RETURN_CODE 77)
   endforeach()
 
+  # App fixtures must also work in installs without static ECCE libraries.
+  add_executable(resourceTest tests/filedsi/resourceTest.C)
+  target_link_libraries(resourceTest PRIVATE
+    eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
+    ${XercesC_LIBRARIES})
+  install(TARGETS resourceTest RUNTIME DESTINATION libexec/tests COMPONENT client)
+
   # tests/filedsi -- FileEDSI (file:// storage, no Apache, #216) against a
   # temp directory, linked from the static libraries of build-cmake.
   #

@@ -185,12 +185,9 @@ os.environ.setdefault("ECCE_BROKER", "mosquitto")
 
 import apps      # noqa: E402  (reads ECCE_TEST_HOME at import)
 import fixture   # noqa: E402
+import resource_helper  # noqa: E402
 import sessionkey  # noqa: E402
 import xdisplay  # noqa: E402
-
-# eccercmd holds the libssh transport when the build found libssh
-_SSH = (["-lssh"] if __import__("subprocess").run(
-    ["pkg-config", "--exists", "libssh"], capture_output=True).returncode == 0 else [])
 
 try:
     from Xlib import X, display as xlibdisplay, protocol
@@ -2002,16 +1999,7 @@ def makeLocalCalculation(env, home, data, mode="create", user=None):
     tests/filedsi/resourceTest, into the user's folder of the local data.
     mode "mopac" makes proj-mopac/ch4 instead, a MOPAC calculation holding
     a molecule and nothing else."""
-    build = os.environ.get("ECCE_TEST_BUILD", os.path.join(REPO, "build-cmake"))
-    libs = ["eccedsi", "eccexml", "eccetdat", "eccedav", "eccefaces",
-            "eccecipc", "ecceutil", "eccecomm", "eccercmd"]
-    driver = os.path.join(state, "resourceTest")
-    cmd = (["g++", "-O0", "-w", "-I", os.path.join(REPO, "include"), "-o",
-            driver, os.path.join(HERE, "..", "filedsi", "resourceTest.C"),
-            "-L" + build] + ["-l" + l for l in libs] * 3 + ["-lxerces-c", *__import__("subprocess").run(["pkg-config", "--libs", "hdf5"], capture_output=True, text=True).stdout.split(), "-lmosquitto", "-lssl", "-lcrypto", *_SSH])
-    built = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-    if built.returncode != 0:
-        return built.stdout.decode()[-1500:]
+    driver = resource_helper.path()
     user = user or os.path.join(data, "users", getpass.getuser())
     run_env = dict(env, ECCE_HOME=home, ECCE_LOCAL_DATA=data,
                    ECCE_REALUSER=getpass.getuser(),
