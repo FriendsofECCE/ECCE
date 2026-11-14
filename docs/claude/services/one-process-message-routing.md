@@ -3,7 +3,7 @@ type: map
 title: "One GUI process (#983 stage 1): in-process message routing, OnInit split, globals audit, window lifetime"
 area: services
 section: "Pitfalls"
-paths: ["src/util/jms/MqttLink.C", "include/util/MqttLink.H", "src/util/jms/JMSPublisher.C", "src/wxgui/jms/WxJMSSubscriber.C", "src/wxgui/jms/WxJMSMessageDispatch.C", "src/apps/organizer/CalcMgrApp.C", "src/apps/builder/BuilderApp.C", "src/apps/calced/CalcEdApp.C", "src/dsm/edsiimpl/EDSIFactory.C", "tests/mqtt/mqtt_test.C", "CMakeLists.txt"]
+paths: ["src/util/jms/MqttLink.C", "src/wxgui/jms/InProcessTools.C", "include/wxgui/InProcessTools.H", "src/apps/builder/BuilderWindow.C", "src/apps/calced/CalcEdWindow.C", "src/apps/calced/CalcEdMessages.C", "tests/apps/one_process_test.py", "include/util/MqttLink.H", "src/util/jms/JMSPublisher.C", "src/wxgui/jms/WxJMSSubscriber.C", "src/wxgui/jms/WxJMSMessageDispatch.C", "src/apps/organizer/CalcMgrApp.C", "src/apps/builder/BuilderApp.C", "src/apps/calced/CalcEdApp.C", "src/dsm/edsiimpl/EDSIFactory.C", "tests/mqtt/mqtt_test.C", "CMakeLists.txt"]
 issues: [983, 1007, 990, 213]
 ---
 Organizer, Builder and Calculation Editor become windows of one wx process
@@ -65,10 +65,9 @@ stopped.
   `ecce_url_*` notices. It now follows the *acting tool*:
   `JMSPublisher::setActingTool(name, id)` (process default, the Organizer)
   and the scoped `JMSPublisher::ActingTool` (a window around its save).
-  Only with the switch on. Not wired into the apps yet: the per-window
-  Builder/CalcEd code sets it when they open in-process.
+  Only with the switch on. Wired into the apps in stage 1c (below).
 - Caveat: code that compares a sender id with `getMyID()` (e.g.
-  `Builder.C` `msg.getSender().getID() == getMyID()`) expects messages
+  `Builder.C` `msg.getSender().getID() == getMyID()`, fixed in 1c) expects messages
   sent through its own dispatcher; a plain `JMSPublisher` in the same tool
   stamps the bare pid. Check each such site when its tool moves in-process.
 
@@ -79,24 +78,95 @@ through a `JMSPublisher` set up as `EDSIFactory::getPublisher` sets up its
 own: `mqtt_test` must not link eccedsi, whose static initialisation fixes
 `ECCE_HOME` and the preference path before `main` sets them.
 
-## Builder messages (done)
+## Tool dispatchers (done)
 
-`BuilderMessages` (`src/apps/builder/BuilderMessages.C`) is the Builder's
-dispatcher, holding the handlers moved unchanged from `BuilderApp`, which
-is no longer a `WxJMSMessageDispatch`. `BuilderApp` still creates and owns
-it (with the window, in `OnInit`); handing it to the window comes with the
-in-process open. `quitMCB` unsubscribes the dispatcher instead of calling
-the app's `OnExit`.
+`BuilderMessages` and `CalcEdMessages` hold the handlers moved unchanged
+from `BuilderApp`/`CalcEdApp`, which are no longer dispatchers. The window
+owns its dispatcher (`setMessages`) and deletes it in its destructor;
+`quitMCB` unsubscribes instead of calling the app's `OnExit`.
 
-## Open in one process (next increments)
+## Open in one process (done, stage 1c)
 
-- **`ecce_get_app`.** The Organizer intercepts requests for in-process
-  tools (`builder`, `calced`) and opens a window instead of starting a
-  program; `ecce_poll` reuse works as today (the open window answers it
-  through the local path). Other tools still go to the gateway
-  (Linux/macOS) or `startToolWin` (Windows).
-- **`ECCE_ONE_PROCESS` is inherited by child processes**; the starter
-  must unset it.
+- **Switch scope.** `MqttLink::takeOneProcessSwitch(forThisProcess)` reads
+  `ECCE_ONE_PROCESS` once and unsets it: the Organizer takes it for itself,
+  the gateway (`GatewayApp::OnInit`) only remembers it. The starter
+  (`appExec`, `startToolWin`) sets it for an `Organizer` child only, so
+  job programs, `wxExecute`s and other tools never see it.
+- **`ecce_get_app`.** `InProcessTools` (eccewxgui) keeps an opener per
+  tool (`registerBuilderInProcess`, `registerCalcEdInProcess`, registered
+  by `CalcMgrApp::OnInit` with the switch on) and the open windows.
+  `CalcMgr::startApp`, and `getAppMCB` where the Organizer is the starter
+  (Windows), call `InProcessTools::open`: unless `forcenew`, the window
+  whose dispatcher's poll context is the request's `calcurl` is reused,
+  else the opener makes a window + dispatcher (subscribed, registered top
+  shell for the Builder). The request then goes to that window as its
+  `ecce_invoke` over the local path, so the handler runs as in its own
+  process (raise, `setContext`, `setPollContext`). Requests from other
+  processes to the gateway (Linux/macOS) still start programs; a poll
+  from the gateway is answered by an in-process window as before.
+- **Acting tool.** `WxJMSSubscriber::deliver` wraps every callback in
+  `JMSPublisher::ActingTool(name, id)` of its subscriber; a tracked tool
+  window's `wxEVT_ACTIVATE` sets the default to its tool, the Organizer
+  frame's sets it back. So a save from the Builder goes out as `Builder
+  <pid>.<n>`: the Organizer takes it, the Builder's self filter drops it.
+  `Builder::propertyChangeMCB`'s own-sender check accepts its dispatcher
+  id or the bare pid with its own name.
+- **Closing.** `Builder::quit` with `setInProcess(true)` destroys the
+  window instead of `_exit(0)`; its close handler vetoes on Cancel, so
+  `InProcessTools::closeAll` (Organizer Quit, after its own question)
+  sees a refusal and cancels the Quit. CalcEd already `Destroy()`s.
+- **Build.** The `organizer` program always links `builder-objs` and
+  `calced-objs` (and the Builder's libraries, GL). Opting in at build time
+  would need a second Organizer program; one program keeps one install.
+
+Test: `ctest -R apps_organizer_one_process` (`tests/apps/one_process_test.py`):
+two Builders and one editor opened by the Organizer's test hook
+(`start TOOL URL`, `inprocess`, `closetools`), invokes traced in the
+Organizer's pid (`ECCE_TEST_MESSAGES=1` prints each delivered message),
+the Builder's save notice reaching the Organizer, Organizer alive after.
+
+## Globals audit, Builder and Calculation Editor (stage 1c)
+
+Fixed (break a second window or the Organizer):
+- `ewxConfig::closeConfigs()` in CalcEd (6 sites) and `~Builder`: now
+  `closeConfig(own .ini)` + `flushConfigs()`; no `ewxConfig*` is cached
+  across calls anywhere, so the shared dialogs' `closeConfigs()`
+  (`SaveExperimentAsDialog`, `ewxGenericFileDialog`) stay safe.
+- `Builder::quit` `_exit(0)` (in process: `Destroy()`).
+- `~Builder` `wxLog::SetActiveTarget(NULL)` and the constructor's
+  `delete wxLog::SetActiveTarget(logWindow)` (deleted the Organizer's log
+  target): in one process the Builder leaves the process log alone; its
+  Log panel then shows only what is written to it directly (stage 2:
+  per-window log routing).
+- `mainWindowCloseCB`'s function-static re-entry guard -> member.
+- 12 timers "living until the process exits" that capture the window
+  (test hooks, CalcEd's `ECCE_TEST_CALCED` poller, Builder script):
+  `ewxWindowTimer(this)`, deleted on the window's `wxEVT_DESTROY`.
+- `PullPanel::openAnalysis` found its Builder as `wxTheApp->GetTopWindow()`:
+  now by walking parents.
+- `LaunchSelected`/`ReconnectSelected` `deferMessages` on `wxTheApp`: no
+  change needed; `wxTheApp` is the Organizer's app, which is the
+  Organizer's dispatcher, the only one to defer.
+
+Noted, not fixed (harmless now or test-only):
+- Test hooks: `static bool ...Started` flags in `Builder.C` (13: script,
+  import, dock, help, saveas, open, scene, metrics, ...) and CalcEd's
+  `scriptStarted` run for the first window only; `_exit` in Builder test
+  hooks (`Builder.C` import/dock/help/saveas paths, `BuilderPanels.C`
+  clip audit) and CalcEd's `quit` test command end the whole process;
+  `UvVisPanel`, `MoDiagramPanel`, `NModePanel` shot hooks close
+  `wxTheApp->GetTopWindow()` (the Organizer in one process).
+- `Builder::quit` unfocuses every `VizPropertyPanel::getPanels()` (process
+  set): closing one Builder stops another's animation.
+- `Builder.C` `internalSelect` (file static re-entry guard), serial
+  counters (`Builder.C`, `PullPanel.C`, `CalculationFactory.C`), CalcEd
+  `databuf` pipe buffers, `PropertyPanelFactory` singleton (stateless
+  registry), constants in `PlotMetaXY.C`/`TrajectoryPanel.C`: process-wide
+  by design.
+- Builder static initialisation runs in the Organizer now (objects linked
+  in); nothing seen to depend on being the Builder.
+- Viewer (`CalculationViewer`, the Builder binary with
+  `ECCE_INVOKE_VIEWER`) stays a separate program.
 
 ## Build (done)
 
@@ -137,28 +207,6 @@ non-app dispatcher owned by the frame, as `MDPrep` and `PartialCharge`
 already do (`new WxJMSMessageDispatch(name, true)`). `ecce --tool builder`
 (and the old `builder` program) run the once-per-process part, then open
 that one window, so the `tests/apps` scripts keep a per-tool start.
-
-## Globals audit (before Builder and CalcEd share a process)
-
-`grep -E '^\s*static [^(]*(=|;)'` counts ~160 statics in
-`src/apps/builder`, ~45 in `organizer`, 9 in `calced` (file and function
-statics). Each gets one of: process-wide by design (caches of read-only
-data), per window (move into the frame), or per tool (one per tool type).
-Also:
-- `exit()`: `BuilderApp::OnInit` (`-help`), and Builder's `_exit` paths
-  (the help-capture test hook); none may run with other windows open.
-- `ewxConfig::closeConfigs()` in `CalcEd` closes *every* config of the
-  process, including the Organizer's; it must close its own only.
-- Config names: `INIFILE` per app (`wxbuilder.ini`, `wxcalced.ini`,
-  Organizer's); fine in one process as long as the names stay distinct.
-- "Already running" checks: the gateway's `ecce_poll`; in one process a
-  second Builder for the same calculation must be found by the local poll,
-  not by a process scan.
-- `wxTheApp` as the tool: `dynamic_cast<Builder*>(wxTheApp->GetTopWindow())`
-  (`PullPanel.C`; the top window will be the Organizer), and
-  `dynamic_cast<WxJMSSubscriber*>(wxTheApp)->deferMessages` around a
-  launch (`LaunchSelected.C`, `ReconnectSelected.C`; it must defer the
-  Organizer's dispatcher, not every window's).
 
 ## Window lifetime and Quit
 

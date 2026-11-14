@@ -8245,7 +8245,14 @@ void Builder::propertyChangeMCB(JMSMessage& msg)
 
   // Don't process it if we are the ones that sent it.
   // This happens with the "isReviewed" property.
-  if (msg.getSender().getID() == getMyID()) return;
+  // In one process (#983) the bare pid is every tool's: the sender is this
+  // Builder if it is its own publisher or its window's dispatcher.
+  const string from = msg.getSender().getID();
+  if (MqttLink::localDelivery()) {
+    if ((from == getMyID() && msg.getSender().getName() == JMSPublisher::getMyName()) ||
+        (p_msgs && from == p_msgs->getMyID()))
+      return;
+  } else if (from == getMyID()) return;
   propertyChanged(urlstr, msg.getProperty("name"), msg.getProperty("value"));
 }
 
