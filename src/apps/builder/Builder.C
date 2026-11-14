@@ -5126,7 +5126,8 @@ DiffractionDialog *Builder::openResultsDiffraction(const string& given)
        std::to_string(serial++) + ".xyz")).string();
   vector<int> none;
   PropTSVecTable *trace =
-      dynamic_cast<PropTSVecTable*>(p_calculation ? p_calculation->getProperty("GEOMTRACE") : 0);
+      dynamic_cast<PropTSVecTable*>(p_calculation && !dynamic_cast<AbstractPropCalculation*>(p_calculation) ?
+          p_calculation->getProperty("GEOMTRACE") : 0);
   const string err = writeStructureXyz(xyz, none, trace ? trace->tables() - 1 : -1);
   if (!err.empty()) { showMessage(err, true); return 0; }
   return new DiffractionDialog(this, xyz, none);
@@ -5135,7 +5136,7 @@ DiffractionDialog *Builder::openResultsDiffraction(const string& given)
 
 void Builder::OnDiffractionEntry(wxCommandEvent&)
 {
-  if (DiffractionDialog *dlg = openResultsDiffraction()) dlg->Show();
+  selectDetail("Diffraction");
 }
 
 
@@ -6261,11 +6262,11 @@ void Builder::updatePropertyMenus()
     }
   }
 
-  //  A periodic structure gets a Diffraction item: it is a view of the
-  //  structure, not a parsed property, so it is added here by hand (#587).
-  if (calcHasStructure())
-    p_propertyMenu->Append(ID_DIFFRACTION_ENTRY, "Diffraction",
-                           "Calculated diffraction of the final geometry: fibre, and powder and single crystal for a periodic one");
+  // Diffraction is a property of the structure rather than a parsed key.
+  if (calcHasStructure() && !PropertyPanel::panelExists(urlstr, "Diffraction")) {
+    createPropertyPanel("Diffraction");
+    needUpate = true;
+  }
 
   refreshColumn();
   if (needUpate) {

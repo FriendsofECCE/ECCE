@@ -264,7 +264,59 @@ and maximum modes from the stored input deck (settings fallback).
 Builder script `poses note` returns that text; `poses thumb 1 <file.png>`
 saves the cached thumbnail of pose 1 for image checks.
 
-**Diffraction.** Tools > Diffraction (`fibre-diffraction`); `ecce-xrd`.
+**Diffraction.** Properties > Geometry > Diffraction opens a docked Builder
+pane (`fibre-diffraction`); Tools > Diffraction opens a standalone window.
+View and Source stay above the pattern; Options is a modeless window with
+Geometry, Sample and Display groups. Pattern toggles the same view into a
+separate window and back, sharing all settings and data. The first pattern
+calculates on open; physics edits debounce for about 300 ms and sliders
+calculate on release. A newer change cancels the previous external process.
+The pointer line shows Calculating while running. After a run exceeds about
+two seconds, that structure switches to Update on request. Display settings
+redraw without recalculation. No Calculate button is needed.
+
+Existing `diffraction`, `calcdiffraction`, `calcpowder`, `calclayer`, `calcframe`,
+`calcmeasure` and `debye` hooks still calculate and **wait for completion**
+before exporting. To use the property pane through `ECCE_BUILDER_SCRIPT`:
+
+- `list Diffraction` opens the Properties entry.
+- `xrd wait` waits for the current run (and pending debounce); it reports
+  `Update required` if a slow structure has unapplied edits. `xrd update`
+  explicitly starts those edits; then use `xrd wait`.
+- `xrd state` reports view, generation, completed generation, running, dirty,
+  manual, docked, source, wavelength and pointer-repeat override.
+- `xrd set KEY VALUE` changes a real control (additional values simulate a
+  typing burst through the same text events). Text keys: wavelength, min, max,
+  step, width, B, distance, film, length, misalignment, repeat, gamma, layer,
+  resolution, osc. Choice keys use zero-based indices: view (fibre, powder,
+  single crystal, frame, Debye), source (Cu, Mo, Co, Other), scaling (log, sqrt,
+  linear), scheme (Film, Dark), transform (Auto, Helical, Finite model), axis,
+  zone. `phi` sets the released start-angle slider.
+- `xrd breakout 1|0` opens/closes Pattern without calculating again.
+  `xrd options`, `xrd close-options`, `xrd defaults` operate Options.
+- `xrd hover TWO_THETA` / `xrd click TWO_THETA` send pointer events to the
+  powder or Debye plot. For layer/frame use `xrd hover H K L` or
+  `xrd click H K L`; they move the pointer to that reflection's position.
+  The return text is the tooltip at the pointer. Click pins it and selects
+  the powder reflection's row in the Options peak list; `xrd selection` reports
+  the pinned state and selected hkl.
+- `xrd export OUT.png OUT.csv` exports the current result; use `xrd wait` first.
+  `xrd size W H` sizes the Builder for captures, `xrd screen OUT.png` captures
+  the display and `xrd options-shot OUT.png` captures Options.
+
+The fibre repeat field is labelled **Layer-line repeat for the pointer (Å),
+0 = from the model**. It changes pointer/tooltip layer numbers only. Nonzero
+values are retained; zero uses `fibre-geometry.txt` from ecce-xrd. Detector
+CSV appends `F,absent` after the old columns. F is the structure-factor
+amplitude, before Lorentz/polarisation corrections; extinct reflections are
+retained and flagged before the relative cutoff. Tooltips say "extinct in
+this model (|F| ≈ 0)", without claiming a space-group classification.
+
+`tests/apps/diffraction_panel_test.py --png DIR` checks the pane, automatic
+updates, shared breakout, hover and display-only edits on a 1366×768 Xvfb
+display and saves pane and Options screenshots.
+
+`ecce-xrd` also works directly from the command line.
 Image views (detector frame, precession layer and fibre film): wheel zooms
 about the cursor, left drag zooms a rectangle, middle/right or Shift+drag
 pans, Home or double-click empty space fits the whole image. Clicks still

@@ -1,9 +1,19 @@
 # Diffraction
 
-**Tools > Diffraction...** (Builder) calculates the X-ray diffraction pattern of
-the structure, or of the selected atoms. The window is not tied to the Builder:
-it needs a structure and an optional atom selection, nothing else. The
-**Pattern** box chooses the view; switching view recalculates at once.
+**Properties > Geometry > Diffraction** opens a property pane in the Builder.
+The pattern fills the pane, with **View**, **Source** and a **Pattern** toggle
+above it. **Pattern** moves the whole pattern into a larger separate window;
+toggle it again, close that window, or choose **Pattern (return to pane)** to
+return it. Settings and the calculated data are shared, so moving the pattern
+does not calculate it again. **Tools > Diffraction...** also opens a separate
+window for the current structure and selection.
+
+**Options...** opens a modeless window for the current view. Its **Geometry**,
+**Sample** and **Display** groups keep settings out of the pattern pane.
+Changing view changes the options shown. **Close** keeps the settings;
+**Restore Defaults** restores the current view's defaults. Every setting has
+a tooltip. **Experimental...**, **Save PNG (view)...** and **Save CSV...** stay
+below the pattern.
 
 - **Fibre**: the pattern of molecules aligned on one axis, on a film or as an
   (R, Z) map. Auto uses a helical transform for a regular backbone and the
@@ -21,7 +31,7 @@ it needs a structure and an optional atom selection, nothing else. The
 A structure is periodic when it carries a unit cell: a structure written with
 a lattice (an .xyz whose comment line has `Lattice="..."`, as the Builder
 writes it for a crystal). For any other structure, Powder, Single crystal and
-Detector frame are greyed out and Fibre is selected; for a periodic one Powder
+Detector frame require a unit cell and Fibre is selected; for a periodic one Powder
 is selected when the window opens. **Experimental...** belongs to Powder and
 overlays a measured pattern.
 
@@ -36,9 +46,37 @@ the Bessel function J_n(2 pi R r) of order n allowed by the helical symmetry.
 
 1. Open the structure in the Builder. To use a part of it (one helix of a
    protein, say), select those atoms first.
-2. Choose **Tools > Diffraction...** and press **Calculate**.
+2. Choose **Properties > Geometry > Diffraction**. The first pattern calculates
+   automatically. **Options...** contains the current view's settings.
 3. Move the pointer over the picture. The line below it gives the layer line l
-   (when **Repeat** is set), R, Z, the spacing d = 1/|S| and the intensity.
+   (using the inferred or typed layer-line repeat), R, Z, the spacing d = 1/|S| and the intensity.
+
+Changes to the wavelength, geometry or sample recalculate after a pause of
+about 300 ms, so typing a number starts one run after typing stops. Enter also
+accepts a text field; the start-angle slider calculates when released.
+**Calculating...** appears in the pointer line while the external calculation
+runs. The Builder remains usable. Another change cancels the old run, and
+only the newest result is shown.
+
+## Slow structures and Update
+
+If a run takes more than about two seconds, Diffraction says so and shows
+**Update** for that structure. Subsequent changes wait for Update, including
+view and source changes; the first run finishes normally. A change during a
+run cancels that run. Press Update to calculate the latest settings. Exposure,
+colour scheme, intensity scaling, gamma, labels, overlays and backdrop opacity
+redraw immediately without running the calculation.
+
+## Geometry options and Source
+
+**Source** stays above the pattern. Cu, Mo and Co fill the wavelength in
+Options; typing a wavelength selects **Other**. For fibre Cu uses the mean
+K-alpha wavelength, 1.5418 Å; the crystal and powder views use K-alpha1,
+1.5406 Å. Powder and Debye have **2θ from**, **2θ to** and **2θ step** in degrees.
+Single crystal has the zone, layer number and smallest spacing. Detector frame
+has detector distance, start angle and oscillation.
+
+## Fibre options: Geometry, Sample and Display
 
 The fields:
 
@@ -48,7 +86,7 @@ The fields:
   the Ewald sphere, so the meridional reflections of high layer lines are
   displaced from the vertical axis or missing, as in a real photograph with an
   untilted fibre.
-- **B** (20 Å² by default): an isotropic temperature factor, damping the high angles.
+- **Thermal smearing B (Å²)** (20 Å² by default): an isotropic temperature factor, damping the high angles.
 - **Fibre length**: broadens the layer lines along Z as a fibre of that length
   would (100 Å by default), with Gaussian FWHM 1/length in Å⁻¹. In helical mode
   this is the only length broadening. Finite-model mode also carries the
@@ -60,7 +98,7 @@ The fields:
 - **Axis**: the fitted screw axis in helical mode, the principal axis in
   finite-model mode, or the
   line from the first to the last selected atom.
-- **Scaling**: logarithmic, square root or linear, and a gamma exponent. The
+- **Intensity scaling** and **Display gamma (contrast)**, under Display: logarithmic, square root or linear scaling, and a gamma exponent. The
   intensity range of a pattern is wide; the logarithmic scale shows 2.5 decades
   below the strongest reflection. The centre, where the undiffracted beam
   would be, is left out of the scaling. The defaults give a picture like a
@@ -130,9 +168,10 @@ The measured twist is approximated by t/u turns per unit (u at most 20,
 within 1°); the rise h is measured, giving the axial repeat c = u h.
 Complete interior steps are folded onto one screw unit and averaged, removing
 end caps and averaging small deviations from ideal symmetry. The transform is
-an idealization of that motif, not a refinement of the model. **Repeat** is
-filled with c after calculation, so the pointer reports the corresponding layer
-number. For the Teaching B-DNA sample h = 3.387 Å, u = 10, t = 1,
+an idealization of that motif, not a refinement of the model. **Layer-line repeat for the pointer (Å), 0 = from the model** uses c
+when it is zero. A typed non-zero value survives later calculations and changes
+only the layer numbers in the pointer and tooltip; it is never passed to the
+scattering calculation. For the Teaching B-DNA sample h = 3.387 Å, u = 10, t = 1,
 c = 33.867 Å. For polyalanine h = 1.503 Å, u = 18, t = 5,
 c = 27.061 Å (five pitches of 5.412 Å); the pitch line is l = 5 and the
 1.503 Å meridional reflection l = 18.
@@ -205,13 +244,13 @@ reflection of the whole crystal within the resolution limit, not of the layer
 shown. Layers of one crystal and of different crystals can therefore be
 compared: in KCl the all-odd reflections of the hk1 layer have I_rel near 0.3
 and the photograph is almost blank, in NaCl 4.5 and they show. The CSV holds I
-and this I_rel. **Label spots (hkl)**, **Show absent reflections** and
+and this I_rel. **Label spots (hkl)**, **Show extinct reflections** and
 **Reciprocal axes** (a*, b* in the lower left corner) are overlays that you
 can switch; they are not part of the data.
 
 ## Exposure and colour scheme
 
-The **Image** box holds for the fibre pattern, the detector frame and the
+The **Display** group in Options holds for the detector frame and the
 precession photograph an **Exposure** slider and a colour scheme. Exposure is a
 gain on the intensity before saturation, in tenths of a stop (-2 to +2 stops),
 like a shorter or longer exposure: weak spots appear and strong ones spread.
@@ -239,10 +278,10 @@ to export the whole image. CSV always contains the full calculated data.
 ## Measuring
 
 - **Detector frame**: click a spot to read hkl, d, 2θ, I and its position
-  on the detector in the line under the pointer line. Shift-click a second spot
+  on the detector in the pointer line and pinned tooltip. Shift-click a second spot
   for the distance between the two on the detector (mm), the angle between
   them seen from the beam centre, and the d of each.
-- **Precession photograph**: click two spots. The line gives the reciprocal
+- **Precession photograph**: click two spots. The pinned tooltip gives the reciprocal
   distance (Å⁻¹) and the d of that row. When both lie on one lattice row with n
   steps between them, it also gives a* = distance / n and the cell edge 1 / a*
   (valid for orthogonal axes).
@@ -268,7 +307,7 @@ beamstop. The same frame from the command line:
 ## Backdrop
 
 **Load Backdrop...** puts a PNG or JPG (a scan of a measured film, for example)
-behind the calculated pattern. The slider sets the opacity of the calculated
+behind the calculated pattern. **Pattern opacity over backdrop** sets the opacity of the calculated
 pattern over it. The image is stretched to the square of the film, so crop the
 scan to the film first and put the beam centre in the middle.
 
@@ -289,3 +328,22 @@ For B-DNA with a 34 Å repeat the layer lines lie at multiples of 1/34 Å⁻¹, 
 reflection of the 3.4 Å stacking is on layer line 10, and layer line 4 is weak.
 The alpha-helix has its 5.4 Å pitch layer line and the 1.5 Å rise reflection on
 the meridian.
+
+## Interactive pattern tooltips
+
+Hover over the pattern to see a tooltip at the pointer as well as the pointer
+line. Click to keep that tooltip while moving elsewhere; click another point
+to replace it. A new calculation clears the pinned tooltip. In Powder, a click
+also selects the reflection in the peak list under Options > Display.
+
+- Powder reports hkl, 2θ, d, relative intensity and multiplicity.
+- Single crystal and detector frame report hkl, d, |F| and I. Extinct reflections
+  are retained for picking and say **extinct in this model (|F| ≈ 0)**. This is an
+  intensity cutoff, not a space-group classification. The detector's I includes
+  Lorentz and polarisation factors, so |F| is not the square root of I.
+- Fibre reports layer line l, Z, R and the nearest spacing d = 1/|S|.
+- Debye reports 2θ, q and intensity without a reflection assignment.
+
+The detector CSV appends `F,absent` after its original columns; F is |F| and
+absent is 1 for the extinct reflections. Layer CSV already includes those
+values. Display overlays do not change the exported data.

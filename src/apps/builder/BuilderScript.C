@@ -1012,6 +1012,8 @@ void Builder::runBuilderScript(const std::string& file)
         std::vector<int> none;
         const std::string err = writeStructureXyz(w[1], none);
         fprintf(stderr, "BUILDER: savexyz: %s\n", err.empty() ? "done" : err.c_str());
+      } else if (w[0] == "xrd") {
+        fprintf(stderr, "BUILDER: xrd: %s\n", diffractionScript(w).ToUTF8().data());
       } else if (w[0] == "diffraction" && w.size() >= 3) {
         //  diffraction OUT.png OUT.csv [XYZ]: Tools > Diffraction... with the
         //  default fields; the structure it was given is kept as XYZ (#971).

@@ -328,6 +328,7 @@ class Builder: public BuilderGUI,
       // structure); xyz names the file it is written to, "" for a temporary one.
       class DiffractionDialog *openResultsDiffraction(const string& xyz = "");
       void OnDiffractionEntry(wxCommandEvent& event);
+      wxString diffractionScript(const vector<string>& args);
 
       /// Replace Group (#833): the selected terminal group (a bond, or its
       /// first atom) becomes the SMILES fragment, whose [*] is the
