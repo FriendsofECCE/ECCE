@@ -5029,6 +5029,16 @@ if(PYTHON3_EXECUTABLE)
                        SKIP_RETURN_CODE 77)
   # A click in the Properties list selects the row clicked, also on a
   # scrolled list, with real X clicks (#965).
+  # The Stress Tensor panel: principal stresses on the cell, pressure (#1015).
+  add_executable(testStressTensor tests/stress/stress_tensor_test.C)
+  target_include_directories(testStressTensor PRIVATE ${CMAKE_SOURCE_DIR}/include)
+  add_test(NAME stress_tensor COMMAND testStressTensor)
+  add_test(NAME apps_stress_tensor
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/stress_tensor_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_stress_tensor PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   add_test(NAME apps_property_list_click
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/property_list_click_test.py
