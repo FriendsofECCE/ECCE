@@ -6326,19 +6326,14 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
             p_solventNumAtoms = atoi(line.c_str());
           }
           if (STLUtil::containsString(key,"point_group")) {
-            char tmpgrp[120];
-            int i, j;
-            j=0;
-            for (i=0; i<line.length(); i++) {
-              if (line[i] != ' ') {
-                tmpgrp[j] = line[i];
-                j++;
-              }
-            }
-            tmpgrp[j] ='\0';
+            string tmpgrp;
+            for (size_t i = 0; i < line.length(); i++)
+              if (line[i] != ' ') tmpgrp += line[i];
             pointGroup(tmpgrp);
           }
-          readRecordLine(infile, bufStore, 1023);
+          //  A file cut off before end_fragment_attributes ends the block
+          //  instead of reading empty lines forever.
+          if (!readRecordLine(infile, bufStore, 1023)) break;
           line = bufStore.data();
           key = STLUtil::stripKey(line);
         }
