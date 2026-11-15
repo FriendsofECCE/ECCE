@@ -687,8 +687,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * sitescreenresults <url>
  *                 Site Screening Results for the folder of <url>, as above
  * duplicate <url> [last]
- *                 right-click <url> > Duplicate for Rerun (or Duplicate
- *                 Setup with Last Geometry); the tree's selection and
+ *                 right-click <url> > New from This > Rerun (or Continue
+ *                 from Last Geometry); the tree's selection and
  *                 collapse events during it, then the tree
  * size <w> <h>   resize the Organizer window
  * firstvisible    the label of the tree's top visible row (its scroll)
@@ -6228,7 +6228,7 @@ void CalcMgr::newSeries(const EcceURL& templ, const vector<string>& sources,
 
 
 /*!
- * New from This > In Another Code (#1037).  The first calculation is made
+ * New from This > Continue in Another Code (#1037).  The first calculation is made
  * from the first selected one and opened in the Calculation Editor, where the
  * user sets the theory, run type, basis set and launch settings once;
  * finishAnotherCode then copies that setup to the others through
@@ -6739,7 +6739,7 @@ bool CalcMgr::getAuthorization(AuthEvent& event)
 /*!
  * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_DUPLICATE3
  *
- * Like Duplicate Setup with Last Geometry, and the duplicate also carries
+ * Like Continue from Last Geometry, and the duplicate also carries
  * the source's final orbitals, which belong to that geometry.
  */
 void CalcMgr::OnDuplicate3Click( wxCommandEvent& event )
@@ -10495,7 +10495,7 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     //  A batch action: offered in the table, where several calculations are
     //  selected, and on Tools; the tree menu stays short.
     if (!p_popupOnTree)
-      from->Append(wxID_ANOTHER_CODE, _("In Another Code..."),
+      from->Append(wxID_ANOTHER_CODE, _("Continue in Another Code..."),
                    _("One new calculation in another code from each selected "
                      "calculation, all with the setup you make once"));
     {
@@ -11692,8 +11692,8 @@ void CalcMgr::resetForRerun()
   if (!skipped.empty()) {
     char buf[64];
     string msg = "Imported results cannot be reset, because that would "
-                 "delete them. Use Edit > Duplicate for Rerun (New from "
-                 "This > Rerun in the right-click menu) to run "
+                 "delete them. Use Edit > New from This > Rerun (also in "
+                 "the right-click menu) to run "
                  "the calculation again.";
     if (!selections.empty()) {
       snprintf(buf, sizeof(buf), " %d imported calculation%s skipped.",
@@ -15083,7 +15083,7 @@ void CalcMgr::updateSelectionMenus()
         enableMenuItem(menuBar, wxID_DUPLICATE3, can);
         wxMenuItem *item = menuBar->FindItem(wxID_DUPLICATE3);
         if (item)
-          item->SetHelp(can ? _("Duplicate with the last geometry and start "
+          item->SetHelp(can ? _("A copy with the last geometry that starts "
                                 "from this calculation's final orbitals")
                             : wxString(why));
       }

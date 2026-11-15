@@ -298,7 +298,7 @@ calculation:
    Rerun**. Or create a new calculation as in step 2.
 2. In the Electronic Structure Editor, choose `GeoVib` in **Runtype:**.
    `GeoVib` optimises the geometry and then computes the frequencies.
-   **Duplicate for Rerun** copies the calculation with its structure and
+   **Edit > New from This > Rerun** copies the calculation with its structure and
    settings and resets it, ready to launch.
 3. Save and launch as before.
 4. In the Viewer, choose **Properties > Vibrational Frequencies**.

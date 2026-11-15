@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Organizer "New from This > In Another Code..." (#1037), through its hooks
+"""Organizer "New from This > Continue in Another Code..." (#1037), through its hooks
 `anothercode TYPE SUFFIX FOLDER SOURCE...` and `anothercodefinish`.
 
 Two stored calculations (NWChem and Gaussian 16, water) give two ORCA

@@ -11,7 +11,7 @@ results of an xTB run in ORCA:
 
 1. Select the calculations in the project table (Ctrl or Shift for several).
 2. Choose **Tools > New Calculations in Another Code...**, or right-click in
-   the table and choose **New from This > In Another Code...**.
+   the table and choose **New from This > Continue in Another Code...**.
 3. Choose the code, the end of the new names (`_orca` gives `water_orca`)
    and the folder, which is the one holding the first selected calculation.
    Click **OK**.

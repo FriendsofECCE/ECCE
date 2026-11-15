@@ -128,7 +128,7 @@ public:
   /// The file dialogs of a GROMACS calculation from files; false on cancel.
   bool askGromacsFiles(bool allowTpr, string& mdp, string& gro, string& top,
                        string& tpr);
-  /// In Another Code with GROMACS as the code: one GROMACS calculation from
+  /// Continue in Another Code with GROMACS as the code: one GROMACS calculation from
   /// the user's files per source, its .gro taking the source's structure.
   string gromacsFromSources(const string& mdp, const string& gro,
                             const string& top, const string& suffix,
@@ -160,7 +160,7 @@ public:
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_DUPLICATE2
   void OnDuplicate2Click( wxCommandEvent& event );
 
-  /// "Duplicate with Final Orbitals": the last geometry and the orbitals
+  /// "Continue from Final Orbitals": the last geometry and the orbitals
   void OnDuplicate3Click( wxCommandEvent& event );
   void OnLaunchSelectedClick( wxCommandEvent& event );
   void OnReconnectSelectedClick( wxCommandEvent& event );
@@ -172,7 +172,7 @@ public:
   void OnNewSeriesClick( wxCommandEvent& event );
   void newSeries(const EcceURL& templ, const vector<string>& sources,
                  string *outcome);
-  /// New from This > In Another Code (#1037): the first calculation, opened
+  /// New from This > Continue in Another Code (#1037): the first calculation, opened
   /// in the Calculation Editor; finishAnotherCode makes the others from its
   /// setup.  outcome: the hooks' answers (no editor window, no prompt).
   void OnAnotherCodeClick( wxCommandEvent& event );
@@ -852,7 +852,7 @@ protected:
   //  Set by the workflownew test command: a New-step dialog is not shown
   //  but logged here ("carry;" with a source, "nocarry;" without).
   string *p_testStepDialogs = 0;
-  // In Another Code: the first calculation (the setup), the others waiting.
+  // Continue in Another Code: the first calculation (the setup), the others waiting.
   string p_anotherFirst, p_anotherSuffix;
   vector<string> p_anotherRest;
   wxDialog *p_anotherDialog = 0;

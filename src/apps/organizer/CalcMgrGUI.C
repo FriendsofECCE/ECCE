@@ -278,9 +278,12 @@ void CalcMgrGUI::CreateControls()
     itemMenu3->Append(wxID_EXIT, _("&Quit\tCtrl+Q"), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu3, _("&File"));
     wxMenu* itemMenu8 = new wxMenu;
-    itemMenu8->Append(wxID_DUPLICATE, _("Duplicate for Rerun"), _T(""), wxITEM_NORMAL);
-    itemMenu8->Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"), _T(""), wxITEM_NORMAL);
-    itemMenu8->Append(wxID_DUPLICATE3, _("Duplicate with Final Orbitals"), _T(""), wxITEM_NORMAL);
+    //  Same names as the right-click New from This submenu.
+    wxMenu* itemMenuNew = new wxMenu;
+    itemMenuNew->Append(wxID_DUPLICATE, _("Rerun"), _T(""), wxITEM_NORMAL);
+    itemMenuNew->Append(wxID_DUPLICATE2, _("Continue from Last Geometry"), _T(""), wxITEM_NORMAL);
+    itemMenuNew->Append(wxID_DUPLICATE3, _("Continue from Final Orbitals"), _T(""), wxITEM_NORMAL);
+    itemMenu8->AppendSubMenu(itemMenuNew, _("New from This"));
     itemMenu8->AppendSeparator();
     itemMenu8->Append(wxID_CUT, _("&Cut\tCtrl+X"), _T(""), wxITEM_NORMAL);
     itemMenu8->Append(wxID_COPY, _("C&opy\tCtrl+C"), _T(""), wxITEM_NORMAL);

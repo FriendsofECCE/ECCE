@@ -22,20 +22,18 @@ Right-click an item in the tree, or rows of the project table.
 ## A calculation
 
 - **New from This** makes a new calculation from this one. Its first three
-  items are the three Duplicate items of the **Edit** menu under shorter names:
-  - **Rerun**: the same as **Edit > Duplicate for Rerun**. A copy with the
+  items are the same as **Edit > New from This**:
+  - **Rerun**: a copy with the
     same structure and settings, reset and ready to launch.
-  - **Continue from Last Geometry**: the same as **Edit > Duplicate Setup
-    with Last Geometry**. A copy that starts from the geometry the
+  - **Continue from Last Geometry**: a copy that starts from the geometry the
     calculation ended on.
-  - **Continue from Final Orbitals**: the same as **Edit > Duplicate with
-    Final Orbitals**. As the previous item, and the new calculation also
+  - **Continue from Final Orbitals**: as the previous item, and the new calculation also
     starts from the final orbitals. It is grey when the code or the stored
     results cannot give a starting guess; the tooltip says why. Supported
     codes are ORCA, Gaussian 16, NWChem, ECCE-QM, MOPAC, CP2K and Quantum ESPRESSO. See
     [Starting from earlier orbitals](first-calculation.md#starting-from-the-orbitals-of-an-earlier-calculation)
     for basis and atom compatibility.
-  - **In Another Code...** (in the project table only): one new calculation
+  - **Continue in Another Code...** (in the project table only): one new calculation
     in another code from each selected calculation, with a setup you make
     once; see [New Series](new-series.md). Also **Tools > New Calculations
     in Another Code...**.

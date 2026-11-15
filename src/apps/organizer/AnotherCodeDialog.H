@@ -1,4 +1,4 @@
-// New from This > In Another Code... (#1037): the code, a name ending and the
+// New from This > Continue in Another Code... (#1037): the code, a name ending and the
 // folder for calculations made from the selected ones.
 #ifndef ANOTHERCODEDIALOG_H
 #define ANOTHERCODEDIALOG_H
