@@ -85,6 +85,13 @@ the panel's **Select Distinct...** button: it runs `ecce-ensemble pick
 `GTSTRESS: endistinct ranks=<r>... note=<n distinct of N; m merged within X Å>`. Output goes to stderr as `GTSTRESS: ...` lines; the same
 commands work under `ECCE_VIEWER_SCENE`. Test: `tests/apps/ensemble_patterns_test.py`.
 
+`surfmesh <name>` (Builder scene script, after an MOs-panel surface is drawn)
+writes `<name>.txt`: per isosurface its threshold, vertex and triangle counts,
+boundary edges (used by one triangle; 0 means closed), edges used by more than
+two triangles and edges whose two triangles wind the same way, plus the grid
+dimensions and step (A). Test: `tests/apps/surface_closed_test.py` (`--res N`
+sets the grid points per axis, `--shot DIR` saves PNGs).
+
 `saveimage <path.png> <factor> [white]` (scene script, `ECCE_VIEWER_SCENE`)
 is File > Save Image...: a PNG of the 3-D view at `factor` (1, 2, 4) times
 its size, drawn with blended transparency (not the on-screen screen-door
