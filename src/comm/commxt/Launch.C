@@ -180,6 +180,18 @@ public:
   const  RefQueueManager* mgr;
 };
 
+// A GROMACS run made from a ready .tpr has no structure or topology of its
+// own: grompp is skipped, so their absence is not an error.
+static bool hasGromacsRunTpr(TaskJob *t)
+{
+  if (t == 0 || t->getApplicationType() != ResourceDescriptor::AT_GROMACS)
+    return false;
+  vector<EcceURL> urls = t->getDataFiles(JCode::AUXILIARY_INPUT);
+  for (size_t i = 0; i < urls.size(); i++)
+    if (urls[i].getFilePathTail() == "run.gmxtpr") return true;
+  return false;
+}
+
 // Names a task's inputs get in the run directory.  A GROMACS task is given
 // fixed names because it is handed its topology and coordinates rather than
 // producing them, and grompp is told them by name.
@@ -270,6 +282,16 @@ Launch::Launch(TaskJob* task,
   p_isMetadynamicsTask = false;
   p_taskjob = task;
   Session *session = task->getSession();
+
+  // A GROMACS run made from the user's own files sits in a project, not a
+  // study: its start structure and topology are the ones attached to it.
+  if (session == 0 &&
+      task->getContentType() == ResourceDescriptor::CT_MDRUN) {
+    p_restartFile = gromacsStartFile(task, JCode::RESTART_OUTPUT, true, "");
+    if (!p_restartFile.empty()) p_restartProvider = task;
+    p_topologyFile = gromacsStartFile(task, JCode::TOPOLOGY_OUTPUT, true, "");
+    if (!p_topologyFile.empty()) p_topologyProvider = task;
+  }
 
   if (session != 0) {
     // Get restart file - May have to search through several tasks
@@ -1074,7 +1096,7 @@ bool Launch::validateCalculation(void)
                 is = 0;
               }
             }
-          } else if (p_cache->isMd && !p_isPrepareTask) {
+          } else if (p_cache->isMd && !p_isPrepareTask && !hasGromacsRunTpr(p_taskjob)) {
             p_lastMessage = p_cache->isGromacs ?
               "No starting structure (.gro) is attached to this task or an "
               "earlier one in the study. Attach one on the Inputs tab of the "
@@ -1103,7 +1125,7 @@ bool Launch::validateCalculation(void)
                 is = 0;
               }
             }
-          } else if (p_cache->isMd && !p_isPrepareTask) {
+          } else if (p_cache->isMd && !p_isPrepareTask && !hasGromacsRunTpr(p_taskjob)) {
             p_lastMessage = p_cache->isGromacs ?
               "No topology (.top) is attached to this task or an earlier "
               "one in the study. Attach one on the Inputs tab of the task "
@@ -2098,7 +2120,7 @@ bool Launch::moveFiles(void)
         incount++;
         restartIdx = incount - 1;
       }
-    } else if (p_cache->isMd && !p_isPrepareTask) {
+    } else if (p_cache->isMd && !p_isPrepareTask && !hasGromacsRunTpr(p_taskjob)) {
       p_lastMessage = p_cache->isGromacs ?
         "No starting structure (.gro) is attached to this task or an "
         "earlier one in the study." :
@@ -2116,7 +2138,7 @@ bool Launch::moveFiles(void)
         incount++;
         topologyIdx = incount -1;
       }
-    } else if (p_cache->isMd && !p_isPrepareTask) {
+    } else if (p_cache->isMd && !p_isPrepareTask && !hasGromacsRunTpr(p_taskjob)) {
       p_lastMessage = p_cache->isGromacs ?
         "No topology (.top) is attached to this task or an earlier one in "
         "the study." :

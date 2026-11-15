@@ -5,6 +5,7 @@
 
 #include "dsm/DeckWriter.H"
 #include "dsm/EDSIFactory.H"
+#include "dsm/GromacsCalc.H"
 #include "dsm/ICalculation.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceType.H"
@@ -119,7 +120,16 @@ Fragment *loadStructure(const string& source, int defaultCharge, int defaultMult
     Resource *sres = EDSIFactory::getResource(EcceURL(source));
     PropertyTask *stask = dynamic_cast<PropertyTask*>(sres);
     ICalculation *scalc = dynamic_cast<ICalculation*>(sres);
-    if (!stask || !scalc) why = "not a calculation";
+    if (GromacsCalc::isRun(sres)) {
+      // An MD system: its net charge is the topology's, and mult 0 lets
+      // the electron count choose.
+      frag = GromacsCalc::finalFragment(dynamic_cast<TaskJob*>(sres));
+      if (frag) {
+        charge = 0;
+        mult = 0;
+        name = sres->getName() + suffix;
+      } else why = "the GROMACS calculation has no structure";
+    } else if (!stask || !scalc) why = "not a calculation";
     else if ((frag = stask->fragment()) == 0) why = "the calculation has no structure";
     else {
       // The final geometry of a run; a calculation not run keeps its own.
@@ -299,6 +309,14 @@ Series::Outcome Series::first(const string& typeName, const EcceURL& folder,
   o.ok = true;
   o.url = r->getURL().toString();
   return o;
+}
+
+
+Fragment *Series::structure(const string& source, const string& nameSuffix,
+                            string& name, string& why)
+{
+  int charge = 0, mult = 0;
+  return loadStructure(source, 0, 0, nameSuffix, name, charge, mult, why);
 }
 
 

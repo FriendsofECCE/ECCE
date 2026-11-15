@@ -1060,7 +1060,8 @@ EcceURL* EDSIFactory::createTask(EDSI* interface,
     }
   }
 
-  if (isValidSession) {
+  // A GROMACS calculation from files (#1038) is a task outside any study.
+  if (isValidSession || taskType == ResourceDescriptor::CT_MDRUN) {
     // Create Virtual Document
     ret = interface->makeCollection(name,"%d");
     if (ret) {

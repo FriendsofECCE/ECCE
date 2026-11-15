@@ -119,8 +119,21 @@ public:
   void OnOpenExamplesClick( wxCommandEvent& event );
   /// File > Import GROMACS Run...
   void OnImportGromacsClick( wxCommandEvent& event );
+  void OnNewGromacsRunClick( wxCommandEvent& event );
   /// Imports runDir into the selection's project; "" with message on failure.
   string importGromacsFrom(const string& runDir, string& message);
+  string newGromacsRunFrom(const string& mdp, const string& structure,
+                           const string& top, const string& tpr,
+                           string& message);
+  /// The file dialogs of a GROMACS calculation from files; false on cancel.
+  bool askGromacsFiles(bool allowTpr, string& mdp, string& gro, string& top,
+                       string& tpr);
+  /// In Another Code with GROMACS as the code: one GROMACS calculation from
+  /// the user's files per source, its .gro taking the source's structure.
+  string gromacsFromSources(const string& mdp, const string& gro,
+                            const string& top, const string& suffix,
+                            const EcceURL& folder,
+                            const vector<string>& sources);
 
   /// Imports the example set setId (general, computational) into its own
   /// project, or selects that project if it exists; returns the project's

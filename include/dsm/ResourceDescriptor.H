@@ -127,6 +127,7 @@ class ResourceDescriptor
       CT_MDENERGY,
       CT_MDDYNAMICS,
       CT_MDEQUILIBRATE,
+      CT_MDRUN,
       CT_CHEMICAL_MVM,
       CT_CHEMICAL_PDB,
       CT_UNDEFINED,
