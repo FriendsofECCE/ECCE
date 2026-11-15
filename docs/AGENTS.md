@@ -82,7 +82,10 @@ commands work under `ECCE_VIEWER_SCENE`. Test: `tests/apps/ensemble_patterns_tes
 is File > Save Image...: a PNG of the 3-D view at `factor` (1, 2, 4) times
 its size, drawn with blended transparency (not the on-screen screen-door
 mode), supersampled edges and line widths scaled with the factor; `white`
-replaces the view's background. Use it for documentation figures. Test:
+replaces the view's background; the corner texts are left out and atom
+labels grow with the factor. It works under `ECCE_BUILDER_SCRIPT` too, where
+`saveimagemenu <factor> <white|keep> <path>` runs File > Save Image... with
+its dialogs answered. Use it for documentation figures. Test:
 `tests/apps/saveimage_test.py`.
 
 ## Checking the Basis Set Tool window

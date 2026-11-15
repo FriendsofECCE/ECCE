@@ -5598,24 +5598,34 @@ bool Builder::writeFragmentToImageFile(SFile *file, wxString type, wxString ext)
  */
 void Builder::OnSaveImageClick(wxCommandEvent& event)
 {
-  wxArrayString choices;
-  choices.Add("1x (the size of the view)");
-  choices.Add("2x");
-  choices.Add("4x");
-  wxSingleChoiceDialog res(this, _("Resolution, as a multiple of the size of the 3-D view:"),
-                           _("Save Image"), choices);
-  res.SetSelection(1);
-  if (res.ShowModal() != wxID_OK) return;
-  const int factor = res.GetSelection() == 0 ? 1 : (res.GetSelection() == 1 ? 2 : 4);
-  const bool white = wxMessageBox(_("Use a white background?"), _("Save Image"),
-                                  wxYES_NO | wxICON_QUESTION, this) == wxYES;
-  wxFileDialog fd(this, _("Save Image"), "", "image.png", "PNG files (*.png)|*.png",
-                  wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-  if (fd.ShowModal() != wxID_OK) return;
+  int factor = 2;
+  bool white = false;
+  string path;
+  if (const char *scripted = getenv("ECCE_SAVE_IMAGE_ANSWERS")) {
+    //  Test hook: "<factor> <white|keep> <path>" in place of the three dialogs.
+    std::istringstream in(scripted);
+    string bgWord;
+    in >> factor >> bgWord >> path;
+    white = bgWord == "white";
+  } else {
+    wxArrayString choices;
+    choices.Add("1x (the size of the view)");
+    choices.Add("2x");
+    choices.Add("4x");
+    wxSingleChoiceDialog res(this, _("Resolution, as a multiple of the size of the 3-D view:"),
+                             _("Save Image"), choices);
+    res.SetSelection(1);
+    if (res.ShowModal() != wxID_OK) return;
+    factor = res.GetSelection() == 0 ? 1 : (res.GetSelection() == 1 ? 2 : 4);
+    white = wxMessageBox(_("Use a white background?"), _("Save Image"),
+                         wxYES_NO | wxICON_QUESTION, this) == wxYES;
+    wxFileDialog fd(this, _("Save Image"), "", "image.png", "PNG files (*.png)|*.png",
+                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    if (fd.ShowModal() != wxID_OK) return;
+    path = fd.GetPath().ToStdString();
+  }
   wxSize size = p_viewer->GetSize();
-  SbColor bg = white ? SbColor(1, 1, 1) : p_viewer->getBackgroundColor();
-  if (!VizRender::image(p_viewer->getTopNode(), fd.GetPath().ToStdString(),
-                        size.GetWidth(), size.GetHeight(), bg[0], bg[1], bg[2], factor))
+  if (!VizRender::image(p_viewer, path, size.GetWidth(), size.GetHeight(), white, factor))
     showMessage(VizRender::msg(), true);
 }
 

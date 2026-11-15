@@ -23,6 +23,21 @@ import run_tests  # noqa: E402
 from ecceqm_builder_test import installLocal   # noqa: E402
 
 CALCS = {"water": os.path.join(HERE, "fixtures", "calc-water-opt")}
+LABEL_SCENE = """windowsize 900 700
+background 1 1 1
+viewall
+hold 2
+saveimage {out}/n1.png 1
+saveimage {out}/n2.png 2
+labels element
+hold 1
+saveimage {out}/l1.png 1
+saveimage {out}/l2.png 2
+"""
+MENU_SCRIPT = """saveimagemenu 2 white {out}/m2.png
+saveimage {out}/b1.png 1 white
+quit
+"""
 SCENE = """windowsize 900 700
 background 1 1 1
 viewall
@@ -70,6 +85,50 @@ def check(out, log):
     return p
 
 
+def nonWhite(path, box=None):
+    from PIL import Image, ImageChops
+    im = Image.open(path).convert("RGB")
+    if box:
+        im = im.crop(box)
+    diff = ImageChops.difference(im, Image.new("RGB", im.size, (255, 255, 255)))
+    return sum(1 for v in diff.convert("L").getdata() if v > 40)
+
+
+def checkText(out, log):
+    p = []
+    from PIL import Image
+    try:
+        n1, n2, l1, l2 = (os.path.join(out, n + ".png") for n in ("n1", "n2", "l1", "l2"))
+        corner = nonWhite(n1, (0, 0, 200, 40))
+        if corner:
+            p.append("corner text is in the 1x image (%d pixels)" % corner)
+        label1 = nonWhite(l1) - nonWhite(n1)
+        label2 = nonWhite(l2) - nonWhite(n2)
+        if label1 < 20:
+            p.append("no atom labels in the 1x image (%d pixels)" % label1)
+        elif label2 < 2.5 * label1:
+            p.append("labels do not scale: %d pixels at 1x, %d at 2x" % (label1, label2))
+        print("      label pixels: 1x %d, 2x %d" % (label1, label2))
+    except (OSError, FileNotFoundError) as e:
+        p.append("missing image: %s" % e)
+    return p
+
+
+def checkMenu(out, log):
+    from PIL import Image
+    p = []
+    try:
+        m = Image.open(os.path.join(out, "m2.png")).size
+        b = Image.open(os.path.join(out, "b1.png")).size
+    except OSError as e:
+        return ["missing image: %s" % e]
+    if m != (2 * b[0], 2 * b[1]):
+        p.append("menu 2x image is %s, builder-script 1x is %s" % (m, b))
+    if "FAIL" in log:
+        p.append("a script command failed")
+    return p
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         folder = os.path.join(fixture.stateDir(), "saveimage-localdata")
@@ -101,6 +160,36 @@ def main():
             if problems:
                 print("\n".join(l for l in log.splitlines() if "SCENE" in l or "FAIL" in l)[-2000:])
                 results.fail("saveimage", "; ".join(problems))
+
+            with open(scene, "w") as h:
+                h.write(LABEL_SCENE.format(out=out))
+            result = apps.run(display, "builder", args=("-context", urls["water"]),
+                              windowTimeout=240, settle=300,
+                              env={"ECCE_VIEWER_SCENE": scene,
+                                   "ECCE_VIEWER_SCENE_OUT": out,
+                                   "ECCE_VIEWER_SCENE_HOLD": "5"})
+            problems = checkText(out, result.log or "")
+            print("%s  saveimage text%s" % ("ok  " if not problems else "FAIL",
+                                            "" if not problems else ": " + "; ".join(problems)))
+            if problems:
+                results.fail("saveimage_text", "; ".join(problems))
+
+            script = os.path.join(folder, "bscript")
+            with open(script, "w") as h:
+                h.write(MENU_SCRIPT.format(out=out))
+            result = apps.run(display, "builder", args=("-context", urls["water"]),
+                              windowTimeout=240, settle=300,
+                              env={"ECCE_BUILDER_SCRIPT": script})
+            problems = checkMenu(out, result.log or "")
+            print("%s  saveimage menu and builder script%s" % ("ok  " if not problems else "FAIL",
+                                "" if not problems else ": " + "; ".join(problems)))
+            if problems:
+                print("\n".join(l for l in (result.log or "").splitlines() if "SCRIPT" in l)[-1500:])
+                results.fail("saveimage_menu", "; ".join(problems))
+            if keep:
+                for f in os.listdir(out):
+                    if f.endswith(".png"):
+                        shutil.copy(os.path.join(out, f), keep)
         finally:
             restore()
             os.environ.pop("ECCE_LOCAL_DATA", None)

@@ -9,6 +9,8 @@
 #include "inv/actions/SoGLRenderAction.H"
 #include <wx/image.h>
 #include <vector>
+#include "inv/nodes/SoFont.H"
+#include "inv/ChemKit/ChemDisplayParam.H"
 
 //#include <iostream>
 //using std::cout;
@@ -283,6 +285,22 @@ bool VizRender::image(SoNode *root, const string& pngPath, int width,
     ds->lineWidth.setValue((w0 > 0 ? w0 : 1.0f) * factor * ss);
   }
 
+  // Text is sized in pixels too: atom labels (ChemDisplayParam) and SoFont.
+  std::vector<std::pair<SoSFFloat *, float> > sizes;
+  const SoType fontTypes[2] = {ChemDisplayParam::getClassTypeId(), SoFont::getClassTypeId()};
+  for (int t = 0; t < 2; t++) {
+    SoSearchAction fs;
+    fs.setType(fontTypes[t]);
+    fs.setInterest(SoSearchAction::ALL);
+    fs.apply(root);
+    for (int i = 0; i < fs.getPaths().getLength(); i++) {
+      SoNode *n = fs.getPaths()[i]->getTail();
+      SoSFFloat *f = t == 0 ? &((ChemDisplayParam *)n)->fontSize : &((SoFont *)n)->size;
+      sizes.push_back(std::make_pair(f, f->getValue()));
+      f->setValue(f->getValue() * factor * ss);
+    }
+  }
+
   bool ok = false;
   SbViewportRegion vp;
   vp.setWindowSize(SbVec2s(rw, rh));
@@ -318,6 +336,21 @@ bool VizRender::image(SoNode *root, const string& pngPath, int width,
   }
   for (size_t i = 0; i < widths.size(); i++)
     widths[i].first->lineWidth.setValue(widths[i].second);
+  for (size_t i = 0; i < sizes.size(); i++)
+    sizes[i].first->setValue(sizes[i].second);
+  return ok;
+}
+
+
+bool VizRender::image(SGViewer *viewer, const string& pngPath, int width,
+                      int height, bool white, int factor)
+{
+  SbColor bg = white ? SbColor(1, 1, 1) : viewer->getBackgroundColor();
+  const bool hadText = viewer->textLabelsShown();
+  viewer->showTextLabels(false);
+  bool ok = image(viewer->getTopNode(), pngPath, width, height,
+                  bg[0], bg[1], bg[2], factor);
+  viewer->showTextLabels(hadText);
   return ok;
 }
 

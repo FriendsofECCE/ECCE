@@ -621,14 +621,10 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     //  "saveimage <path.png> <factor> [white]": File > Save Image's render.
     wxWindow *cv = findRenderArea(p_viewer);
     if (!cv) return fail("saveimage: no render area");
-    SbColor bg = p_viewer->getBackgroundColor();
-    if (w.size() == 4) {
-      if (w[3] != "white") return fail("saveimage: unknown option " + w[3]);
-      bg = SbColor(1, 1, 1);
-    }
+    if (w.size() == 4 && w[3] != "white") return fail("saveimage: unknown option " + w[3]);
     wxSize sz = cv->GetClientSize();
-    if (!VizRender::image(p_viewer->getTopNode(), w[1], sz.GetWidth(),
-                          sz.GetHeight(), bg[0], bg[1], bg[2], atoi(w[2].c_str())))
+    if (!VizRender::image(p_viewer, w[1], sz.GetWidth(), sz.GetHeight(),
+                          w.size() == 4, atoi(w[2].c_str())))
       return fail("saveimage: " + VizRender::msg());
   } else if (c == "offscreen" && w.size() == 3) {
     //  "offscreen <name> <size>": this script's own offscreen renderer

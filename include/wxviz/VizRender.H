@@ -35,6 +35,10 @@ class VizRender
     static bool image(SoNode *root, const string& pngPath, int width,
                       int height, double r, double g, double b,
                       int factor = 2);
+    // The viewer's picture of the view: its size and background are used
+    // unless white, and the corner texts are left out.
+    static bool image(SGViewer *viewer, const string& pngPath, int width,
+                      int height, bool white, int factor = 2);
     static string msg();
 
   protected:
