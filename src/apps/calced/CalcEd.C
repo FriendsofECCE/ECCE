@@ -1220,7 +1220,11 @@ static wxString columnOverlaps(wxWindow *root)
             wxString(leaves[i]->GetLabel()).Left(30),
             wxString(leaves[j]->GetLabel()).Left(30));
     }
-  return wxString::Format(" overlaps=%d", n) + first;
+  // The code bar's "+N hidden" button: absent when no code is hidden.
+  wxString more = "none";
+  for (wxWindow *w : leaves)
+    if (w->GetName() == "more_codes") more = w->GetLabel();
+  return wxString::Format(" overlaps=%d", n) + first + " more=\"" + more + "\"";
 }
 
 
@@ -1261,7 +1265,7 @@ wxString CalcEd::setupCommand(const wxString& arg)
   } else if (arg.StartsWith("width ")) {
     long width = 0;
     arg.Mid(6).ToLong(&width);
-    wxWindow *top = wxGetTopLevelParent(this);
+    wxWindow *top = wxGetTopLevelParent(p_setupArea);
     if (width > 200 && top) {
       top->SetMinSize(wxSize(200, 200));
       top->SetSize(wxSize(width, top->GetSize().y));

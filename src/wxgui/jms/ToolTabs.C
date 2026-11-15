@@ -804,9 +804,11 @@ static void allocateChildren(wxWindow *body)
     GtkAllocation a;
     gtk_widget_get_allocation(wd, &a);
     wxRect r(w->GetPosition(), w->GetSize());
-    // Also a widget whose size is stale: a static box that kept its old
-    // height frames too little when its content grew.
-    if ((a.width == r.width && a.height == r.height) || r.width < 2 ||
+    // Also a widget whose place or size is stale: a static box that kept
+    // its old height frames too little when its content grew, and the
+    // rows below stay where they were.
+    if ((a.x == r.x && a.y == r.y && a.width == r.width &&
+         a.height == r.height) || r.width < 2 ||
         r.height < 2) continue;
     GtkRequisition req;
     gtk_widget_get_preferred_size(wd, &req, NULL);

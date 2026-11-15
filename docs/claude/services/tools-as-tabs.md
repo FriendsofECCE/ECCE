@@ -100,6 +100,20 @@ and that stop working once its windows are in the page:
   parent: never shown, so the Code row was empty. Use
   `CalcEd::clientParent()`. See tab-children-made-later-need-the-page-as-parent.md.
 
+## Rows overlapping after a summary line appears (fixed)
+
+A `wxScrolledWindow` lays its sizer out at its *virtual* size, which nothing
+updated when content grew (the "DFT Functional" line under Settings), so
+rows were stacked into the old height. `ToolTabs::fitScrollBody` (in
+`layout`, `select` and the scroller's size event) sets virtual size =
+max(sizer minimum, view). Also wx and GTK could disagree about a widget's
+size (the Settings static box kept its old height and framed too little):
+`allocateChildren` re-allocates every child whose GTK size differs from wx's,
+not only the 1x1 ones. The `setup ...` hooks report `overlaps=N` (shown leaf
+controls of the editor's column whose rects intersect) and `more="+N hidden"`;
+the hook `setup width N` resizes the Organizer's frame, not the editor's
+hidden one.
+
 ## Blank first paint when the content fits (fixed)
 
 On a page where the editor's content fits (no scrollbar) the tab was flat

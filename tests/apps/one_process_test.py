@@ -1147,6 +1147,12 @@ def runSetupLaunch(display):
         check(info and all("overlaps=0" in i for i in info),
               "no two controls of the editor's column overlap (ECCE-QM, "
               "default width and 1024 px)", str(info))
+        # No hidden code: the button is correctly absent (code_choice_calced
+        # _test checks the count); when there is one it must be the "+N" form.
+        check(info and all(re.search(r'more="(none|\+\d+ hidden)"', i)
+                           for i in info),
+              "the code bar has no '+N hidden' button, or one of the right form",
+              str(info))
         check(info and all("clipped=0" in i for i in info[:-1]),
               "no control of the panel is clipped at the default width or at "
               "1024 px", str(info))
