@@ -1200,7 +1200,7 @@ launcher, without command wrappers for these tools.
 | `ecce-displacement` | Compare geometries and aligned RMSD |
 | `ecce-bandshift` | Match vibrational bands and report shifts |
 | `ecce-spectrum` | Process spectral curves |
-| `ecce-displace` | Displace a structure along a normal mode |
+| `ecce-displace` | Displace a structure along a normal mode. The Vibrational Frequencies panel of a GeoVib run with imaginary modes below 100 cm-1 shows a note that the optimisation stopped at a saddle (Builder script hook `vibnote` prints it; #1042) |
 | `ecce-thermo` | Recompute thermochemistry from stored results; `--json` gives per treatment H, S, G and the contributions `U_trans/U_rot/U_vib/U_elec`, `ZPE` (kJ/mol), `S_*`, `Cv_*`, `Cv`, `Cp` (J/mol/K); `--contributions` prints them as text |
 | `ecce-rate` | TST rate constants with Wigner/Eckart tunnelling from reactant, TS and product calculations |
 | `ecce-force-compare` | Compare stored forces (command line only) |

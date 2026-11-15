@@ -3170,6 +3170,14 @@ void MoPanel::onFieldViewFocusLost(wxFocusEvent& event)
 
 
 /** The table or a plot as chosen in the toolbar, or the spin density view. */
+wxWindow *MoPanel::shownGraph() const
+{
+   if (p_plotReg && p_plotReg->IsShown()) return p_plotReg;
+   if (p_plotSym && p_plotSym->IsShown()) return p_plotSym;
+   return 0;
+}
+
+
 void MoPanel::showMainView()
 {
    ewxConfig *config = ewxConfig::getConfig(INIFILE);
@@ -3181,6 +3189,11 @@ void MoPanel::showMainView()
    p_plotSym->Show(orbitals && which == PLOTSYM);
    p_spinView->Show(p_spinShown);
    p_mogrid->GetContainingSizer()->Layout();
+   //  A graph needs more height than the table's three rows; the
+   //  Properties list above gives it up.
+   if (IsShownOnScreen())
+      if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this)))
+         builder->openPanelChanged();
 }
 
 
