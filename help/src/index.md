@@ -147,6 +147,8 @@ describe what you did and what happened.
 24a. [Thermochemistry](thermochemistry.md): H, S and G recomputed from the
    stored frequencies with a chosen low-frequency treatment, temperature and
    standard state.
+24a1. [Natural population analysis (NPA)](natural-population-analysis.md):
+   natural charges, populations and electron configurations computed by ECCE from the stored orbitals, for any code (`ecce-npa`).
 
 24c. [Umbrella sampling with GROMACS](umbrella-sampling.md): a pull run,
    windows cut from its trajectory, and the PMF from `gmx wham`, with the

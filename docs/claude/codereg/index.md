@@ -250,3 +250,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [The Poses panel's cost is per pose selection, not per open](poses-panel-cost-on-a-protein-966.md) - measured ms per part on a 4673-atom receptor; the pocket restyle is what costs, and it is skipped when the shown set does not change (#966).
 - [Vina's automatic ligand skips water and ions and is reported (#962)](vina-automatic-ligand-skips-water-and-ions-962.md) - dockSplit rules, pdb_list columns, warning channel.
 - [verifyinput judged a Vina deck by the generic atom count (#963)](verifyinput-counted-zero-atoms-in-a-vina-deck-963.md) - skip for Vina, ligand/receptor list coverage check.
+- [NPA: core orthogonalised apart from the valence minimal basis](npa-core-orthogonalised-apart.md) — ecce-npa vs NBO 7; ECP cores inferred; route-card basis gives no results.h5 (#1054)
