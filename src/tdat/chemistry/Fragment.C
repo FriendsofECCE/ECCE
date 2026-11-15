@@ -4159,6 +4159,20 @@ void Fragment::clearAtomBehavior()
   }
 }
 
+// One line of a fixed-column record file, NUL-padded to at least minLen
+// bytes. The column readers below step past the end of a short line, so
+// the padding keeps those reads on NULs; a long line is read whole.
+static bool readRecordLine(istream& is, vector<char>& buf, size_t minLen)
+{
+  string s;
+  if (!std::getline(is, s)) return false;
+  size_t n = s.size() + 1;
+  if (n < minLen) n = minLen;
+  buf.assign(n, '\0');
+  memcpy(&buf[0], s.data(), s.size());
+  return true;
+}
+
 /**
  * Prescan atoms in PDB file looking for multiple models and
  * alternative locations.
@@ -4174,7 +4188,7 @@ bool Fragment::prescanPDB(istream& infile, int& numModels,
 {
   bool ret = true;
   char* cptr;
-  char buf[1025];
+  vector<char> bufStore;
   char record[7];
   char altloc[2];
   char chain[2];
@@ -4201,7 +4215,8 @@ bool Fragment::prescanPDB(istream& infile, int& numModels,
   bool addOne;
   altLocVec.clear();
   chainVec.clear();
-  while (infile.getline(buf,1024)) {
+  while (readRecordLine(infile, bufStore, 1024)) {
+    char* buf = &bufStore[0];
     cptr = buf;
     strncpy(record,cptr,6);
     if (strncmp(record,"ATOM  ",6) == 0 ||
@@ -4293,13 +4308,13 @@ bool Fragment::prescanPDB(istream& infile, int& numModels,
 bool Fragment::prescanXYZ(istream &infile, int &TotAtoms)
 {
   static const int BUFSIZE = 240;
-  char lbuf[BUFSIZE];  // line buf - none should be longer
+  string lbuf;
   TotAtoms = 0;
 
   if (!infile.good() || infile.eof()) return false;
 
-  infile.getline(lbuf,BUFSIZE-1,'\n');
-  sscanf(lbuf,"%d",&TotAtoms);
+  std::getline(infile, lbuf);
+  sscanf(lbuf.c_str(),"%d",&TotAtoms);
   return true;
 }
 //////////////////////////////////////////////////////////////////////////
@@ -4308,11 +4323,9 @@ bool Fragment::prescanXYZ(istream &infile, int &TotAtoms)
 //////////////////////////////////////////////////////////////////////////
 bool Fragment::prescanMVM(istream &infile, int &TotAtoms)
 {
-  char buf[1024];
   while (!infile.eof() && infile.good()) {
     string line;
-    infile.getline(buf, 1023);
-    line = buf;
+    if (!std::getline(infile, line)) break;
     // Add validation here for correct format number
     STLUtil::removeCommentAndSpaces(line);
     if (line != "") {
@@ -4569,7 +4582,7 @@ bool Fragment::restorePDB(istream& infile, double mult, bool genBonds,
   TPerTab pertable;
   TResTab restable;
   char* cptr;
-  char buf[1025];
+  vector<char> bufStore;
   char record[7];
   char i5[6];
   char i4[5];
@@ -4615,7 +4628,8 @@ bool Fragment::restorePDB(istream& infile, double mult, bool genBonds,
   }
   p_chains.clearChainID();
   imdl = 0;
-  while (infile.getline(buf,1025)) {
+  while (readRecordLine(infile, bufStore, 1025)) {
+    char* buf = &bufStore[0];
     cptr = buf;
     strncpy(record,cptr,6);
     cptr += 6;

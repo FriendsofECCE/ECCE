@@ -4619,6 +4619,8 @@ if(PYTHON3_EXECUTABLE)
   endif()
   add_executable(long_lines_properties tests/long_lines/properties.C)
   target_link_libraries(long_lines_properties PRIVATE eccetdat ecceutil)
+  add_executable(long_lines_text tests/long_lines/text_readers.C)
+  target_link_libraries(long_lines_text PRIVATE eccetdat ecceutil)
   add_executable(long_lines_trajectory tests/long_lines/trajectory.C)
   target_compile_definitions(long_lines_trajectory PRIVATE ${wxWidgets_DEFINITIONS})
   target_include_directories(long_lines_trajectory PRIVATE
@@ -4633,7 +4635,7 @@ if(PYTHON3_EXECUTABLE)
       "$<LINK_GROUP:RESCAN,${_long_lines_viz_libs}>"
       ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES} ${ECCE_X11_LIBS} jpeg freetype)
   endif()
-  foreach(_reader basis properties trajectory)
+  foreach(_reader basis properties trajectory text)
     add_test(NAME long_lines_${_reader} COMMAND ${PYTHON3_EXECUTABLE}
       ${CMAKE_SOURCE_DIR}/tests/long_lines/run_test.py
       $<TARGET_FILE:long_lines_${_reader}>)
