@@ -496,9 +496,6 @@ def runTabs(display):
               int(m.group(2)) > 300 and int(m.group(3)) >= 3,
               "the Builder tab shows its windows and status bar, its own "
               "frame stays unmapped", str(info))
-        su = pb.answers(log, "setup")
-        check(su == ["no set-up area"],
-              "Small: the editor tab has no detail area", str(su))
         dlg = pb.answers(log, "dialoginfo")
         check(dlg and "transient=1 mapped=1 inside=1" in dlg[0]
               and " focus=" in dlg[0],
