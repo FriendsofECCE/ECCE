@@ -22,7 +22,7 @@ def check(ok, what):
 
 
 dirs = sorted(glob.glob(os.path.join(here, "fixtures", "*", "nbo_reference.json")))
-check(len(dirs) >= 7, "%d fixtures" % len(dirs))
+check(len(dirs) >= 10, "%d fixtures" % len(dirs))
 print("%-12s %4s %-3s %10s %10s %9s" % ("fixture", "atom", "", "ECCE", "NBO 7", "diff"))
 for ref_path in dirs:
     d = os.path.dirname(ref_path)
@@ -45,6 +45,11 @@ for ref_path in dirs:
     if "spin" in ref:
         ws = max(abs(a["spin"] - s) for a, s in zip(atoms, ref["spin"]))
         check(ws <= TOL, "%s: spin populations within %.3f of NBO (worst %.5f)" % (name, TOL, ws))
+    if "I" in ref["elements"]:   # the job store records the ECP (#1055)
+        i = ref["elements"].index("I")
+        check(atoms[i]["ecp_core"] == 28 and "note" not in got,
+              "%s: I ECP core %d read from results.h5%s" % (name, atoms[i]["ecp_core"],
+                                                          " (guessed: %s)" % got["note"] if "note" in got else ""))
     check(abs(sum(a["charge"] for a in atoms) - round(sum(ref["charge"]))) < 1e-4,
           "%s: charges sum to the molecular charge" % name)
 

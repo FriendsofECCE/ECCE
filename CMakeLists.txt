@@ -4201,6 +4201,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_shot_hooks PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Viewer row "Natural (NPA) Charges, computed by ECCE" beside NBO's (#1054).
+  add_test(NAME apps_npa_charges
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/npa_charges_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_npa_charges PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # tools/screenshots/shots.py on a two-shot list.
   add_test(NAME apps_shots_driver
            COMMAND ${PYTHON3_EXECUTABLE}

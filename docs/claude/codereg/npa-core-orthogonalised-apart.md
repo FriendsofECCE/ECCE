@@ -24,9 +24,9 @@ To get NBO's internals for a run: ORCA leaves `FILE.47` in the run directory;
 edit its `$NBO $END` line (e.g. `$NBO DMPNAO $END`) and run
 `gennbo.i8.exe FILE.47` with NBOEXE set (the i4 build refuses ORCA's file).
 
-The job store's results.h5 has no `ecp` group (ResultsFromCalc does not
-write one), so `compute` infers def2 (Stuttgart) core sizes when the
-all-electron count is off by more than 8 and says so in `Result::note`.
+Files written before #1055 have no `ecp` group, so `compute` infers def2
+(Stuttgart) core sizes when the all-electron count is off by more than 8
+and says so in `Result::note`; newer files carry the group.
 The job store also writes no results.h5 at all for a calculation whose basis
 was only a route-card name (`useRouteCard def2-SVP` with no stored basis):
 "the stored basis set does not match". `tests/npa/make_fixtures.py` stores

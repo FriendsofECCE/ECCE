@@ -2,9 +2,20 @@
 
 ECCE computes natural charges itself from a calculation's stored orbitals (`results.h5`), so NPA charges are available without the NBO program. The method is natural population analysis as published by Reed, Weinstock and Weinhold (J. Chem. Phys. 83, 735 (1985)). The same definition is used for every code whose results file has orbitals in a Gaussian basis: ECCE-QM, ORCA, Gaussian 16, NWChem and others.
 
-## Running it
+## In the Viewer
 
-From a terminal, give the calculation's URL or folder, or a `results.h5` file:
+1. Open the calculation in the Viewer.
+2. In the **Properties** list, Charges group, choose **Natural (NPA) Charges, computed by ECCE**.
+
+The first time, ECCE computes the charges (under a second for course-size molecules) and stores them with the calculation, so later selections show them at once. They are shown and coloured on the atoms like the other charge sets; **Assign Charges** puts them on the atoms.
+
+If the code ran NBO itself (ORCA with NBO, Gaussian with `Pop=NBO`), the list also has **Natural (NPA) Charges**: those are NBO's numbers. The two rows use the same definition and normally agree to about 0.001 e.
+
+The row is not offered for calculations without stored orbitals, and not for semiempirical or periodic ones (see below).
+
+## From a terminal
+
+Give the calculation's URL or folder, or a `results.h5` file:
 
     ecce-npa <calculation>
     ecce-npa <calculation> --json
@@ -21,7 +32,7 @@ The table lists, per atom, the natural charge and the natural population split i
 
 ## Accuracy
 
-The charges were checked against NBO 7's NPA on the same ORCA wavefunctions (water, ethene, formaldehyde, acetate, the methyl radical, iodomethane with a def2 ECP, and [Fe(H2O)6]2+): every charge agrees within 0.005 e.
+The charges were checked against NBO 7's NPA on the same ORCA wavefunctions (water, ethene, s-cis butadiene, formaldehyde, acetate, the methyl radical, iodomethane with a def2 ECP, and [Fe(H2O)6]2+), and against the NBO built into Gaussian 16 on Gaussian 16 wavefunctions (water, iodomethane): every charge agrees within 0.005 e.
 
 ## Not available
 
@@ -31,4 +42,4 @@ The charges were checked against NBO 7's NPA on the same ORCA wavefunctions (wat
 
 In these cases `ecce-npa` says why in one line and gives no table.
 
-If a results file does not record which atoms have an effective core potential, ECCE assumes the def2 (Stuttgart) core sizes when the electron count shows that a core is missing, and says so above the table.
+ECCE records which atoms have an effective core potential, and how many core electrons it replaces, in the results file, from the stored basis set or from the code's output. For older results files that lack this, ECCE assumes the def2 (Stuttgart) core sizes when the electron count shows that a core is missing, and says so above the table.
