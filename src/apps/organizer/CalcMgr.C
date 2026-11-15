@@ -3395,7 +3395,8 @@ void CalcMgr::runTestCommand(const string& line)
                 std::to_string(InProcessTools::count(CALCED)) +
                 " MDEnergy=" + std::to_string(InProcessTools::count(MDENERGY)) +
                 " BasisTool=" + std::to_string(InProcessTools::count(BASISTOOL)) +
-                " MDPrepare=" + std::to_string(InProcessTools::count(MDPREPARE));
+                " MDPrepare=" + std::to_string(InProcessTools::count(MDPREPARE)) +
+                " Launcher=" + std::to_string(InProcessTools::count(LAUNCHER));
       // Top-level windows still alive: one left over keeps the main loop
       // (and the process) running after the Organizer's frame is gone.
       for (wxWindow *w : wxTopLevelWindows)
@@ -3407,7 +3408,8 @@ void CalcMgr::runTestCommand(const string& line)
                command == "charhook" || command == "tabinfo" || command == "sbinfo" ||
                command == "dialog" || command == "dialoginfo" ||
                command == "layout" || command == "tabmenu" ||
-               command == "alwayswindow" || command == "setup") {
+               command == "alwayswindow" || command == "setup" ||
+               command == "launcher") {
       // Tools as tabs (#983): list, select, Open in Window, Move to Tabs,
       // the Windows and tabs setting, the tab's right-click menu.
       wxString result;

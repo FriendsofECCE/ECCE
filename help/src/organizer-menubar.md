@@ -307,7 +307,7 @@ window and the tab says so.
   in earlier versions, for large or several monitors. **Custom** is shown
   once the table below has been changed.
 - **Customize...**: one row per tool (Builder / Viewer, Calculation Editor,
-  Basis Set Tool, MD editors, MD Prepare), each **Tab** or **Window**,
+  Basis Set Tool, MD editors, MD Prepare, Launcher), each **Tab** or **Window**,
   filled from the chosen layout. Changing a row and pressing **OK** makes
   the layout Custom.
 - Below the dropdown: which tools are tabs and which are windows.

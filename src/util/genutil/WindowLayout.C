@@ -21,6 +21,7 @@ const std::vector<WindowLayout::Tool>& WindowLayout::tools()
     {"basistool", "Basis Set Tool"},
     {"mdeditors", "MD editors (Energy, Optimize, Dynamics, GROMACS Prepare)"},
     {"mdprepare", "MD Prepare"},
+    {"launcher", "Launcher"},
   };
   return t;
 }

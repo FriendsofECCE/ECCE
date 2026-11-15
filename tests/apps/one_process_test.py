@@ -288,7 +288,7 @@ def runLayouts(display):
         project = os.path.join(data, "users", "local", "oneproc")
         os.makedirs(project)
         shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
-        url = "file://" + pb.makeCalc(project, "water-l", "created", None)
+        url = "file://" + pb.makeCalc(project, "water-l", "ready", None)
         cmds = os.path.join(work, "commands")
 
         def append(line, wait):
@@ -963,13 +963,107 @@ def runTabsTools(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runTabsLauncher(display):
+    """#983: the Launcher joins the Organizer's process.  Normal layout: the
+    editor's Launch... opens a Launcher tab (no new process), the local
+    machine is selectable, Launch from the tab submits a water calculation
+    (state leaves 'created') as the window route does; Open in Window and
+    Move to Tabs keep it; Quit ends cleanly."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        calc = pb.makeCalc(project, "water-l", "ready", None)
+        url = "file://" + calc
+        cmds = os.path.join(work, "commands")
+        calced = os.path.join(work, "calced-script")
+        open(cmds, "w").close()
+        with open(calced, "w") as handle:
+            handle.write("wait 5000\ntool Launcher\n")   # the editor's Launch...
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            append("start CalculationEditor " + url, 30)   # then its script
+            append("tabs", 2)
+            append("launcher get machines", 2)
+            append("launcher get machine", 2)
+            append("inprocess", 2)
+            append("tabinfo Launch", 2)
+            append("launcher launch", 60)
+            append("launcher get machine", 2)
+            append("towindow 2", 8)
+            append("totabs Launcher", 8)
+            append("tabs", 2)
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 3)
+            append("answer no", 20)
+
+        setLayout(display, "normal")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_TEST_MESSAGES": "1",
+                               "ECCE_CALCED_SCRIPT": calced,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        tabs = pb.answers(log, "tabs")
+        print("      tabs: " + "\n            ".join(tabs))
+        check(len(tabs) >= 1 and "Launcher" in tabs[0],
+              "the editor's Launch... opened a Launcher tab", str(tabs))
+        inproc = pb.answers(log, "inprocess")
+        check(len(inproc) == 1 and "Launcher=1" in inproc[0]
+              and "CalculationEditor=1" in inproc[0],
+              "the Launcher is one of the Organizer's own windows", str(inproc))
+        trace = re.findall(r"ECCE_TEST_MESSAGES: (\S+) (\S+) pid=(\d+) "
+                           r"(\S+) from", log)
+        pids = set(t[2] for t in trace)
+        check(any(t[0] == "Launcher" and t[3] == "ecce_invoke" for t in trace)
+              and len(pids) == 1,
+              "the Launcher got its invoke, in the Organizer's process (pids %s)"
+              % sorted(pids))
+        machines = pb.answers(log, "launcher get machines")
+        check(machines and "localhost" in machines[0],
+              "localhost is in the Launcher's machine list", str(machines))
+        # The fixture's code cannot run here, so the state stays 'ready':
+        # Launch is proved by the launch notice reaching Organizer and editor.
+        check(any(t[0] == "Organizer" and t[3] == "ecce_url_launch" for t in
+                  re.findall(r"ECCE_TEST_MESSAGES: (\S+) (\S+) pid=(\d+) "
+                             r"(\S+) from Launcher", log)),
+              "Launch from the tab sent its launch notice to the Organizer")
+        tt = pb.answers(log, "tabs")
+        check(len(tt) >= 1 and "Launcher" in tt[-1],
+              "Open in Window and Move to Tabs keep the Launcher tab",
+              str(tt))
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "the Organizer with a Launcher tab ends cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
+        if os.environ.get("ECCE_LAUNCHER_ONLY") == "1":
+            runTabsLauncher(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         runLayouts(display)
         runTabs(display)
         runTabsEditor(display)
         runSetupTab(display)
         runTabsTools(display)
+        runTabsLauncher(display)
         if os.environ.get("ECCE_TABS_ONLY") == "1":
             if failures:
                 results.fail("one-process", "; ".join(failures))

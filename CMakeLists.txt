@@ -740,8 +740,11 @@ ecce_app(calced src/apps/calced WX MAIN CalcEdApp.C OBJECTS calced-objs
   LINK ${ECCE_CALCED_LINK})
 ecce_app(gateway src/apps/gateway WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(launcher src/apps/launcher WX
-  LINK eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+set(ECCE_LAUNCHER_LINK eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_tool_objects(launcher-objs src/apps/launcher EXCLUDE WxLauncherApp.C
+  LINK ${ECCE_LAUNCHER_LINK})
+ecce_app(launcher src/apps/launcher WX MAIN WxLauncherApp.C OBJECTS launcher-objs
+  LINK ${ECCE_LAUNCHER_LINK})
 ecce_app(machbrowser src/apps/machbrowser WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccetdat ecceutil)
 ecce_app(machregister src/apps/machregister WX
@@ -827,7 +830,7 @@ target_include_directories(builder PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organize
 # its own process with ECCE_ONE_PROCESS=1 (#983), so it links their objects.
 ecce_app(organizer src/apps/organizer WX GL MAIN CalcMgrApp.C
   OBJECTS organizer-objs organizer-shared-objs builder-objs calced-objs
-    mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs basistool-objs mdprepare-objs
+    mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs basistool-objs mdprepare-objs launcher-objs
   LINK eccewxguimd ecce-details-wx ${ECCE_BUILDER_LINK})
 target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL

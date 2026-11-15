@@ -74,6 +74,7 @@
 #include "wxgui/ewxTextCtrl.H"
 
 #include "wxgui/ewxThemeColours.H"
+#include "wxgui/ToolTabs.H"
 #include "WxLauncher.H"
 
 #define MAX_PROCS_LIMIT     32
@@ -141,6 +142,8 @@ WxLauncher::WxLauncher(      wxWindow* parent,
 
 WxLauncher::~WxLauncher()
 {
+    ToolTabs::release(this, false);
+    delete p_msgs;
     if (p_toolPrefs != NULL)
     {
         this->saveSettings();
@@ -368,7 +371,66 @@ void WxLauncher::setFeedbackCaption(string cptn)
  */
 void WxLauncher::refit()
 {
+    if (ToolTabs::layout(this))
+        return;
     GetSizer()->SetSizeHints(this);
+}
+
+
+bool WxLauncher::Show(bool show)
+{
+    if (ToolTabs::hosts(this)) {
+        if (show) ToolTabs::select(this);
+        return true;
+    }
+    return WxLauncherGUI::Show(show);
+}
+
+
+void WxLauncher::Raise()
+{
+    if (ToolTabs::hosts(this)) ToolTabs::select(this);
+    else WxLauncherGUI::Raise();
+}
+
+
+void WxLauncher::SetTitle(const wxString& title)
+{
+    WxLauncherGUI::SetTitle(title);
+    ToolTabs::setTitle(this, title);
+}
+
+
+bool WxLauncher::Destroy()
+{
+    ToolTabs::release(this, false);
+    return WxLauncherGUI::Destroy();
+}
+
+
+// Iconize(false) on the hidden frame would map it.
+void WxLauncher::Iconize(bool iconize)
+{
+    if (!ToolTabs::hosts(this)) WxLauncherGUI::Iconize(iconize);
+}
+
+
+bool WxLauncher::Layout()
+{
+    return ToolTabs::layout(this) ? true : WxLauncherGUI::Layout();
+}
+
+
+wxMenuBar *WxLauncher::GetMenuBar() const
+{
+    return ToolTabs::menuBar(this, wxFrame::GetMenuBar());
+}
+
+
+wxWindow *WxLauncher::FindWindow(long id) const
+{
+    wxWindow *page = ToolTabs::client(this);
+    return page ? page->FindWindow(id) : wxFrame::FindWindow(id);
 }
 
 
@@ -2928,10 +2990,10 @@ void WxLauncher::launchCalc(const bool& fullLaunchFlag)
     //  calculation the steps are using: they wait until the launch ends.
     struct DeferMessages {
         WxJMSSubscriber *s;
-        DeferMessages() : s(dynamic_cast<WxJMSSubscriber*>(wxTheApp))
+        DeferMessages(WxJMSSubscriber *own) : s(own)
             { if (s) s->deferMessages(true); }
         ~DeferMessages() { if (s) s->deferMessages(false); }
-    } defer;
+    } defer(p_msgs);
     //  No input while the steps run; the window still repaints.
     wxWindowDisabler noInput;
 

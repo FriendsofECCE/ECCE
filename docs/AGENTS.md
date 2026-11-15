@@ -171,7 +171,7 @@ plus save would; the panel uses the Basis Set Tool's library and `GBSAssign`),
 theorysum= runtypesum=` (the editor's summary lines); `no set-up area` under Small, `not a set-up tab` when the active tab is
 not an editor). Stored in `~/.ECCE/EcceGlobal` as `WindowsAndTabs.Layout`
 (`normal|small|wide|custom`) and, for Custom, `WindowsAndTabs.<key>`
-(`tab|window`, keys `builder calced basistool mdeditors mdprepare`). A tool
+(`tab|window`, keys `builder calced basistool mdeditors mdprepare launcher`). A tool
 opened after a change follows it; the tab strip itself is made when the
 Organizer starts, so going from Wide to tabs needs a restart (a fresh install is Normal). The window's
 menu bar is the active tab's. Right-click on a tab: **Open in Window** (this
@@ -179,7 +179,7 @@ time) and **Always open in a window** (also sets that tool's row to Window);
 the tool's **Window > Move to Tabs** puts it back. Without
 `ECCE_ONE_PROCESS` every tool opens in a window whatever the setting. Test
 hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus),
-`tab N`, `towindow N`, `totabs <title part>`, `layout show|normal|small|wide|KEY=tab|window`
+`launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `tab N`, `towindow N`, `totabs <title part>`, `layout show|normal|small|wide|KEY=tab|window`
 (prints `preset=... rows=builder:tab,...`), `tabmenu N` (the tab's
 right-click items), `alwayswindow N`, and `prefs windows show|preset NAME|row KEY tab|window [PNG]|snap PNG`
 (the Preferences page and its Customize table, as clicks). A tab's

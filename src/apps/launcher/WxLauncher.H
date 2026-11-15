@@ -26,6 +26,7 @@
 
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/WxFeedback.H"
+#include "wxgui/WxJMSSubscriber.H"
 
 #include "WxLauncherGUI.H"
 
@@ -68,6 +69,20 @@ class WxLauncher : public WxLauncherGUI,
 
 
         void setStandAlone(bool w);
+
+        //  The handlers the window owns and deletes (also in the Organizer's process).
+        void setMessages(WxJMSSubscriber *msgs) { p_msgs = msgs; }
+
+        //  As a tab of the Organizer's window (#983, ToolTabs.H) the frame is
+        //  hidden and its controls are in the tab's page.
+        bool Show(bool show = true) override;
+        void Raise() override;
+        void SetTitle(const wxString& title) override;
+        bool Destroy() override;
+        void Iconize(bool iconize = true) override;
+        bool Layout() override;
+        wxMenuBar *GetMenuBar() const;
+        wxWindow *FindWindow(long id) const;
         void loadSettings(string fname);
 
 
@@ -358,6 +373,7 @@ class WxLauncher : public WxLauncherGUI,
         bool                 p_inCtrlUpdate;
         bool                 p_editAllwd;
         bool                 p_jobStaged;
+        WxJMSSubscriber     *p_msgs = NULL;
         Launch              *p_launchData;
         bool runLaunchStep();
         int                  p_stepPumps = 0;   // event passes in the last step

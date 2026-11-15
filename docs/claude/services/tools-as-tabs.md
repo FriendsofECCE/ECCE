@@ -2,7 +2,7 @@
 type: map
 title: "Tools as tabs (#983 stage 2): a tool stays a hidden wxFrame, its windows move into a notebook page"
 area: services
-paths: ["src/wxgui/mdtools/MDEdBase.C", "src/apps/mdprepare/MDPrep.C", "src/apps/basistool/WxBasisTool.C", "src/wxgui/jms/ToolTabs.C", "src/wxgui/ewxClasses/ewxModalGuard.C", "include/wxgui/ToolTabs.H", "src/apps/builder/Builder.H", "src/apps/builder/Builder.C", "src/apps/builder/BuilderWindow.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/InProcessTools.C", "tests/apps/one_process_test.py", "src/util/genutil/WindowLayout.C", "include/util/WindowLayout.H", "src/wxgui/wxdialogs/GlobalPrefsWindows.C"]
+paths: ["src/wxgui/mdtools/MDEdBase.C", "src/apps/mdprepare/MDPrep.C", "src/apps/basistool/WxBasisTool.C", "src/wxgui/jms/ToolTabs.C", "src/wxgui/ewxClasses/ewxModalGuard.C", "include/wxgui/ToolTabs.H", "src/apps/launcher/LauncherWindow.C", "src/apps/launcher/LauncherMessages.C", "src/apps/builder/Builder.H", "src/apps/builder/Builder.C", "src/apps/builder/BuilderWindow.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/InProcessTools.C", "tests/apps/one_process_test.py", "src/util/genutil/WindowLayout.C", "include/util/WindowLayout.H", "src/wxgui/wxdialogs/GlobalPrefsWindows.C"]
 issues: [983]
 ---
 Switch: `ECCE_ONE_PROCESS=1` and Preferences > Windows and tabs
@@ -173,3 +173,14 @@ wxGTK: the embedded panel stays blank until a size event after it is made
 - Popup menus and other non-dialog windows with the hidden frame as parent:
   not checked (modal dialogs are handled, see below).
 - `MenuPlacement::InTab` is not implemented.
+
+## Launcher (adopted the same way, #983 step 1)
+
+`WxLauncherApp` split like the Basis Set Tool's: the handlers are
+`LauncherMessages` (owned and deleted by `WxLauncher`), the app only makes
+the frame. `LauncherWindow.C` opens one in process (`launcher` row, Tab in
+Normal/Small). The launch steps' `DeferMessages` guard defers the window's
+own `LauncherMessages` (`p_msgs`), not `wxTheApp`, which in one process is
+the Organizer's dispatcher. The frame overrides `Show/Raise/SetTitle/
+Destroy/Iconize/Layout/GetMenuBar/FindWindow(long)`; `refit` becomes
+`ToolTabs::layout`. Standalone `launcher` is unchanged.
