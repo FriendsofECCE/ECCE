@@ -179,6 +179,7 @@ struct MqttBroker::Impl {
   std::thread thread;
   std::atomic<bool> stopping{false};
   std::atomic<int> nclients{0};
+  std::atomic<uint64_t> accepted{0};
   std::vector<std::unique_ptr<Client>> clients;
   uint64_t anon = 0;
 
@@ -344,6 +345,7 @@ struct MqttBroker::Impl {
     sockaddr_storage a; socklen_t l = sizeof a;
     sock_t s = acceptSocket(lfd, (sockaddr*)&a, &l);
     if (s == BAD_SOCK) return;
+    accepted++;
     setNonBlocking(s);
     int one = 1;
     if (!open) setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (const char*)&one, sizeof one);
@@ -444,6 +446,7 @@ MqttBroker::MqttBroker() : p_impl(new Impl) {}
 MqttBroker::~MqttBroker() { stop(); }
 
 int MqttBroker::clients() const { return p_impl->nclients; }
+uint64_t MqttBroker::connections() const { return p_impl->accepted; }
 
 void MqttBroker::addUser(const string& user, const string& password)
 {
@@ -681,11 +684,18 @@ void MqttBroker::serveForSession(int graceSeconds, int startSeconds)
   using clk = std::chrono::steady_clock;
   auto idleSince = clk::now();
   bool seen = false;
+  uint64_t knocks = g_session->connections();
   while (!g_stopRequested &&
          fileValue(g_brokerFile, "socket") == g_session->socketPath()) {
+    // A connection that is not (yet) a client is a starting program's
+    // `eccebroker --serve` adopting this broker: its app has not connected
+    // yet, so wait for it as for a first client, not just the grace.
+    uint64_t k = g_session->connections();
     if (g_session->clients() > 0) { seen = true; idleSince = clk::now(); }
+    else if (k != knocks) { seen = false; idleSince = clk::now(); }
     else if (std::chrono::duration<double>(clk::now() - idleSince).count() >=
              (seen ? graceSeconds : std::max(graceSeconds, startSeconds))) break;
+    knocks = k;
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
   }
   stopForSession();

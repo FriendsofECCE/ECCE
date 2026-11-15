@@ -107,3 +107,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Batch Add from SMILES (#961): SmilesBatch builds each structure without the Builder and hands an xyz to Series::make](batch-add-from-smiles-961.md)
 - [Fibre diffraction (#971): helix sample geometry, Ewald effects](xrd-fibre-diffraction-971.md)
 - [QSAR descriptor table (#961): ecce-qsar from the stored SMILES, ChecksDialog QSAR mode, writeFolder must export what the script reads](qsar-descriptor-table-961.md)
+- [An adopted session broker ended before the adopting app connected; missing broker file no longer aborts (#1040)](adopted-broker-ended-before-the-app-1040.md)

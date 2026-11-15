@@ -350,6 +350,17 @@ void MqttLink::setRefusalHandler(MqttRefusalHandler handler)
   refusalHandler() = handler;
 }
 
+static MqttNoBrokerHandler& noBrokerHandler()
+{
+  static MqttNoBrokerHandler h;
+  return h;
+}
+
+void MqttLink::setNoBrokerHandler(MqttNoBrokerHandler handler)
+{
+  noBrokerHandler() = handler;
+}
+
 static std::atomic<int>& localFlag()
 {
   static std::atomic<int> f{-1};
@@ -457,9 +468,18 @@ bool MqttLink::ensureConnected()
   bool have = false;
   for (int i = 0; i < 50 && !(have = MqttConfig::parseFile(file, p_cfg)); i++)
     usleep(100000);
-  EE_RT_ASSERT(have, EE_FATAL, "Could not open " + file);
-  EE_RT_ASSERT(!p_cfg.socket.empty() || !p_cfg.host.empty(), EE_FATAL,
-               "No socket= or host= in " + file);
+  // As a process outside any session: the broker of a session that has
+  // ended, or a damaged file, is no reason to lose the user's work.
+  if (!have || (p_cfg.socket.empty() && p_cfg.host.empty())) {
+    std::cerr << "MQTT: " << (have ? "no socket= or host= in " : "could not open ")
+              << file << ", so no messaging in this process (is the ECCE "
+              << "session still running?)" << std::endl;
+    p_started = true;
+    p_sessionless = true;
+    g.unlock();
+    if (noBrokerHandler()) noBrokerHandler()(file);
+    return false;
+  }
 
   // A TCP broker authenticates: the account is the data server login of
   // this session, and it is also the topic user the broker's ACL allows.

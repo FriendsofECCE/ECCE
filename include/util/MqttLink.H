@@ -86,6 +86,10 @@ typedef std::function<void(const std::string& account, const std::string& host,
                            int port, const std::string& reason)>
   MqttRefusalHandler;
 
+// Told once when this process's session has no usable broker file, so a GUI
+// process can show it; the process then runs without messaging.
+typedef std::function<void(const std::string& file)> MqttNoBrokerHandler;
+
 struct MqttInbound {
   std::string topic;    // the ECCE topic, e.g. ecce_url_state
   std::string user;     // publisher's account, from the topic
@@ -158,9 +162,10 @@ public:
   // Set once, before the first connection.
   static void setCredentialProvider(MqttCredentialProvider provider);
   static void setRefusalHandler(MqttRefusalHandler handler);
+  static void setNoBrokerHandler(MqttNoBrokerHandler handler);
 
-  // Reads the configuration and connects (once). A missing configuration
-  // is fatal after a short retry; an unreachable broker is retried by
+  // Reads the configuration and connects (once). A missing or unusable
+  // broker file, after a short retry, leaves the process without messaging; an unreachable broker is retried by
   // libmosquitto in the background. A TCP broker needs a credential: with
   // none yet this returns false and the next call tries again.
   bool ensureConnected();
