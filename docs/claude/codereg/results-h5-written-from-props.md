@@ -34,6 +34,17 @@ rows between the 3rd and 4th `=====` line). `convert` writes the `ecp` group
 and `nucleus/charge`. Files from before carry neither (ecce-npa then guesses
 def2 cores and says so).
 
+**Route-card basis (#1055).** An ORCA basis given only as `useRouteCard
+<name>` stores no basis, so `ai.orca` adds `PrintBasis` to the route line and
+`MoAoBasis::flatBasis` (used by gather, codeColumns and the density views),
+when the stored basis is empty or does not match, builds a basis from the
+output's "BASIS SET IN INPUT FORMAT" block (per element `NewGTO X`, shells
+`S 3` with `i exp coef` rows). Shells are stably sorted by l per element,
+the order `orca.mo` writes the MO columns in; the config goes through
+`ICalcUtils::importConfig`, so normalisation is the stored-basis path. A
+calculation run before this has no block and still gets no file.
+`tests/resultsh5/routecard_basis_test.py` (ctest `resultsh5_routecard_basis`).
+
 **NPA row (#1054).** `NPAECCE` ("Natural (NPA) Charges, computed by ECCE")
 is in `keysInFile` whenever `stored()` has orbitals and
 `npa::notApplicable` is empty, and in PropertyTask's file-key set;
