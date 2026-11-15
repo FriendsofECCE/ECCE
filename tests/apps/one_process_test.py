@@ -735,6 +735,18 @@ def runSetupTab(display):
             append("setup info", 2)            # 9: a window, no area
             append("totabs Editor", 8)
             append("setup info", 2)            # 10: the area again
+            append("setup basis filter 6-31G", 3)       # 13
+            append("setup basis pick 6-31G*", 3)          # 14
+            shot("setup-basis.png")
+            append("setup basis filter lanl", 3)          # 15
+            append("setup basis pick LANL08", 3)          # 16: not covering O
+            append("setup basis filter 3-21G", 3)         # 17
+            append("setup basis pick 3-21G", 3)           # 18
+            append("setup basis all", 15)                 # 19: 3-21G, saved
+            append("setup basis filter 6-31G", 3)         # 20
+            append("setup basis pick 6-31G*", 3)          # 21
+            append("setup basis all", 15)                 # 22: 6-31G*, saved
+            append("setup input", 8)                      # 23
             append("close", 3)
             append("answer", 3)
             append("answer no", 25)
@@ -752,7 +764,9 @@ def runSetupTab(display):
         tabs = pb.answers(log, "tabs")
         check(tabs and re.search(r"1:.*Editor.*\*", tabs[0]) is not None,
               "Normal: the editor opens as a tab", str(tabs) + log[-1500:])
-        su += [""] * (13 - len(su))
+        su += [""] * (24 - len(su))
+        basis = su[13:24]
+        su = su[:13]
         # Answers in command order: index 2 is the "set", 3 its info.
         setAns, setInfo = su[2], su[3]
         found = su[6]
@@ -800,6 +814,34 @@ def runSetupTab(display):
               "Open in Window: no detail area (details as dialogs)", su[8])
         check(su[9].startswith("area=input"),
               "Move to Tabs makes the Set-up tab again", su[9])
+        check(basis[0].startswith("area=basis") and "list=" in basis[0],
+              "the basis button/hook shows the basis panel in the area",
+              basis[0])
+        check("picked=6-31G*" in basis[1] and "covered=O,H" in basis[1]
+              and "uncovered= " in basis[1] and "use=on" in basis[1],
+              "6-31G* covers the water system, Use for all atoms is on",
+              basis[1])
+        check("picked=LANL08" in basis[3] and "uncovered=" in basis[3]
+              and "uncovered= " not in basis[3] and "use=off" in basis[3],
+              "a set that lacks an element of the system marks it and "
+              "Use for all atoms is off", basis[3])
+        check("assigned=All_atoms:_3-21G " in basis[6] + " "
+              and "assigned=All_atoms:_6-31G* " in basis[9] + " ",
+              "Use for all atoms assigns the set to the whole system "
+              "(3-21G, then 6-31G*)", basis[6] + " / " + basis[9])
+        stored = set()
+        for root, _dirs, names in os.walk(calc):
+            for n in names:
+                try:
+                    txt = open(os.path.join(root, n), errors="replace").read()
+                except OSError:
+                    continue
+                if "6-31G*" in txt and ("polarization" in txt.lower()
+                                        or "gbs" in n.lower()
+                                        or "basis" in n.lower()):
+                    stored.add(n)
+        check(stored, "the saved calculation stores the 6-31G* basis "
+              "(same config the Basis Set Tool's save writes)", str(stored))
         check(not result.crashed and result.returncode == 0
               and "Aborted" not in log,
               "the Organizer with a Set-up tab ends cleanly",

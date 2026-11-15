@@ -41,6 +41,7 @@
 #include "dsm/TGBSConfig.H"
 #include "dsm/TGBSGroup.H"
 #include "dsm/TGaussianBasisSet.H"
+#include "dsm/GBSAssign.H"
 #include <set>
 #include "dsm/EDSIFactory.H"
 #include "dsm/TaskJob.H"
@@ -1146,7 +1147,7 @@ string fnvOf(const string& text)
 }
 
 
-//  setup [info] | theory | runtype | input | fold | unfold | save | preview
+//  setup [info] | theory | runtype | basis [filter T|pick N|all] | input | fold | unfold | save | preview
 wxString CalcEd::setupCommand(const wxString& arg)
 {
   if (!p_setupArea) return "no set-up area";
@@ -1165,6 +1166,16 @@ wxString CalcEd::setupCommand(const wxString& arg)
   } else if (arg.StartsWith("find ")) {
     return wxString::Format("found=%d", (int)(p_setupArea->previewShown()
         .find(string(arg.Mid(5).utf8_str())) != string::npos));
+  } else if (arg == "basis" || arg.StartsWith("basis ")) {
+    p_setupArea->showBasis();
+    wxString rest = arg.Mid(5).Trim(false);
+    string val(rest.AfterFirst(' ').utf8_str());
+    if (rest.StartsWith("filter")) p_setupArea->basisFilter(val);
+    else if (rest.StartsWith("pick")) {
+      if (!p_setupArea->basisPick(val)) return "no such basis set";
+    } else if (rest == "all") {
+      if (!p_setupArea->basisUseAll()) return "not possible";
+    }
   } else if (arg == "input") {
     p_setupArea->showInput();
   } else if (arg == "fold" || arg == "unfold") {
@@ -1260,8 +1271,105 @@ void CalcEd::processEditCompletion(const EditEvent& ee)
  */
 void CalcEd::OnToolClick(wxCommandEvent &event)
 {
+  // In the Set-up tab the basis button shows the basis panel; the full
+  // tool is that panel's button.
+  ResourceTool *basis =
+      ResourceDescriptor::getResourceDescriptor().getTool(BASISTOOL);
+  if (p_setupArea && basis && event.GetId() == basis->getId()) {
+    p_setupArea->showBasis();
+    return;
+  }
   doSave();
   startApp(event.GetId(), 0, p_context);
+}
+
+
+void CalcEd::openBasisSetTool()
+{
+  ResourceTool *basis =
+      ResourceDescriptor::getResourceDescriptor().getTool(BASISTOOL);
+  if (!basis) return;
+  doSave();
+  startApp(basis->getId(), 0, p_context);
+}
+
+
+vector<string> CalcEd::systemElements() const
+{
+  vector<string> out;
+  if (!p_frag) return out;
+  TGBSConfigTags tags(p_frag->uniqueTagStr().c_str());
+  for (size_t i = 0; i < tags.size(); i++) out.push_back(tags[i]);
+  return out;
+}
+
+
+vector<string> CalcEd::basisAssignmentLines() const
+{
+  // element -> the orbital sets (and ECP) it has
+  vector<pair<string, string> > per;
+  if (p_basis) {
+    for (TGBSConfig::iterator it = p_basis->begin(); it != p_basis->end(); ++it) {
+      const TGBSGroup *group = it->second;
+      if (!group) continue;
+      string what;
+      vector<const TGaussianBasisSet*> *sets = group->getOrbitalGBSList();
+      if (sets) {
+        for (size_t j = 0; j < sets->size(); j++)
+          what += (what.empty() ? "" : " + ") + (*sets)[j]->p_name;
+        delete sets;
+      }
+      if (group->ecp()) what += " + ECP " + group->ecp()->p_name;
+      TGBSConfigTags tags(it->first.c_str());
+      for (size_t i = 0; i < tags.size(); i++) per.push_back(make_pair(tags[i], what));
+    }
+  }
+  vector<string> lines;
+  bool same = true;
+  for (size_t i = 1; i < per.size(); i++) same = same && per[i].second == per[0].second;
+  if (per.empty()) return lines;
+  if (same) {
+    lines.push_back("All atoms: " + per[0].second);
+  } else {
+    for (size_t i = 0; i < per.size(); i++)
+      lines.push_back(per[i].first + ": " + per[i].second);
+  }
+  return lines;
+}
+
+
+bool CalcEd::useBasisForAll(const string& name, TGaussianBasisSet::GBSType type,
+                            string& message)
+{
+  message.clear();
+  if (!p_frag || !p_code || !p_iCalc) {
+    message = "You must have a chemical system defined before you can set up "
+              "a basis set.";
+    return false;
+  }
+  EDSIServerCentral central;
+  EDSIGaussianBasisSetLibrary library(central.getDefaultBasisSetLibrary());
+  string tag = p_frag->uniqueTagStr();
+  TGBSConfig *config = new TGBSConfig;
+  config->insertGBSGroup(tag, new TGBSGroup());
+  GBSAssign::Result res = GBSAssign::assign(library, config, tag, name, type,
+                                            false);
+  if (res.severity == GBSAssign::ERROR || !res.group) {
+    delete config;
+    message = res.message;
+    return false;
+  }
+  delete p_basis;
+  p_basis = config;
+  TTheory theory = getTheory();
+  GBSRules::autoOptimize(p_basis, p_code, &theory);
+  makeRuntypeNoSphericalConsistent();
+  updateBasisSetFields();
+  enableLaunch();
+  enableSave();
+  doSave();
+  if (p_setupArea) p_setupArea->basisChanged();
+  return true;
 }
 
 
@@ -3687,6 +3795,7 @@ void CalcEd::updateChemSysFields()
 
 void CalcEd::updateBasisSetFields()
 {
+  if (p_setupArea) p_setupArea->basisChanged();
   refreshBasisSetFields();
   enableBasisSetFields();
   showBasisSetFields();

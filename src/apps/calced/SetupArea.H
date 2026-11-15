@@ -15,6 +15,7 @@
 
 #include "wx/panel.h"
 
+class BasisPanel;
 class CalcEd;
 class wxButton;
 class wxStaticText;
@@ -24,7 +25,7 @@ class wxTimer;
 class SetupArea : public wxPanel
 {
 public:
-  enum Kind { INPUT, THEORY, RUNTYPE };
+  enum Kind { INPUT, THEORY, RUNTYPE, BASIS };
 
   SetupArea(wxWindow *parent, CalcEd *editor);
   ~SetupArea();
@@ -33,6 +34,12 @@ public:
   // would run) names; false when it has no .dlg (the Python dialog runs).
   bool showDetails(Kind kind, const std::string& cmd);
   void showInput();
+  // The basis panel (BasisPanel) in place of the details; test hooks follow.
+  void showBasis();
+  void basisFilter(const std::string& text);
+  bool basisPick(const std::string& name);
+  bool basisUseAll();
+  void basisChanged();
   // A user edit of an embedded dialog's field (test hook "setup set").
   bool setValue(const std::string& name, const std::string& value);
   // The details have no .dlg and opened as the Python dialog's window.
@@ -59,6 +66,7 @@ private:
   bool p_dry = false;   // the preview shows unsaved settings
   void dryRun();
   std::unique_ptr<Embedded> p_emb;
+  BasisPanel *p_basisPanel = 0;
   Kind p_kind = INPUT;
 
   void drop();

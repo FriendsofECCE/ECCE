@@ -157,11 +157,17 @@ description: ECCE-QM, ORCA, xTB, Gaussian 16; others open the Python
 dialog's window) or, with no detail chosen, the input file (after an
 unsaved change, a dry run of the generator with the editor's settings,
 500 ms after the last change; the calculation is not written). The window
-is widened to 1100 px within the work area. Hook `setup info|theory|runtype|input|fold|unfold|save|preview|set KEY VALUE|find TEXT` on the
+is widened to 1100 px within the work area. Hook `setup info|theory|runtype|basis|input|fold|unfold|save|preview|set KEY VALUE|find TEXT` on the
 active Set-up tab (`area=input|theory|runtype title=... folded=0|1
 controls=N marked=<button>`; `preview` prints `shown=<len:fnv> file=<len:fnv>`;
 `set` edits a field of the embedded dialog as a user would, `find` says
-whether the preview contains TEXT, `info` adds `window= virtual= dry=0|1
+whether the preview contains TEXT, `basis` shows the basis panel
+(`area=basis list=N of M picked=<set> covered=H,O uncovered=<elements>
+use=on|off assigned=All_atoms:_<set>`; `basis filter TEXT` narrows the library
+list, `basis pick NAME` chooses a set, `basis all` is Use for all atoms:
+assigns it to the whole system and saves, as the Basis Set Tool's Add to Table
+plus save would; the panel uses the Basis Set Tool's library and `GBSAssign`),
+`info` adds `window= virtual= dry=0|1
 theorysum= runtypesum=` (the editor's summary lines); `no set-up area` under Small, `not a set-up tab` when the active tab is
 not an editor). Stored in `~/.ECCE/EcceGlobal` as `WindowsAndTabs.Layout`
 (`normal|small|wide|custom`) and, for Custom, `WindowsAndTabs.<key>`

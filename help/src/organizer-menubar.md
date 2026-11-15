@@ -292,7 +292,14 @@ window and the tab says so.
   saved). If the window is narrower than about 1100 pixels, opening the
   Set-up tab widens it, within the screen. The ◀ button at the top of the area hides the
   editor column and ▶ brings it back; the divider between them can be
-  dragged. Codes whose details exist only in the older form (NWChem,
+  dragged. The **Basis Set** button shows the basis panel in the same area:
+  the basis-set library as a list you narrow by typing in the filter box,
+  the chosen set's elements (the ones of your chemical system it does not
+  cover are marked, and **Use for all atoms** is then off), **Use for all
+  atoms** to assign the set to the whole system and save it, and the current
+  assignment, one line per element when the elements differ. **Full Basis Set
+  Tool...** opens the Basis Set Tool for everything else (different sets for
+  different elements, ECPs, fitting sets). Codes whose details exist only in the older form (NWChem,
   MOPAC, Quantum ESPRESSO, CP2K, GROMACS and others) still open those
   details in a window, and the area says so. **Small**: one
   tool per tab, each the full width of the window, for small screens and X

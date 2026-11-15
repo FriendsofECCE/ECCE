@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "dsm/TGaussianBasisSet.H"
 using std::pair;
 using std::vector;
   using std::string;
@@ -385,12 +386,22 @@ class CalcEd: public CalcEdGUI,
     // Test hook "setup ..." on the active Set-up tab.
     wxString setupCommand(const wxString& arg);
 
+    // The basis panel of the Set-up tab (BasisPanel): the elements of the
+    // chemical system, the current assignment (one line per element when
+    // mixed), Use for all atoms (assigns and saves), and the Basis Set Tool.
+    vector<string> systemElements() const;
+    vector<string> basisAssignmentLines() const;
+    bool useBasisForAll(const string& name, TGaussianBasisSet::GBSType type,
+                        string& message);
+    void openBasisSetTool();
+
     // The window owns its dispatcher (#983) and deletes it with itself.
     void setMessages(CalcEdMessages *msgs) { p_msgs = msgs; }
     CalcEdMessages *messages() const { return p_msgs; }
 
   private:
     friend class SetupArea;
+    friend class BasisPanel;
     SetupArea *p_setupArea = nullptr;
     CalcEdMessages *p_msgs = nullptr;
     void runTestCommand(const string& line);

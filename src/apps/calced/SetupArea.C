@@ -20,6 +20,7 @@
 #include "CalcEd.H"
 #include "CalcEdGUI.H"
 #include "SetupArea.H"
+#include "BasisPanel.H"
 
 using std::string;
 using std::vector;
@@ -85,7 +86,8 @@ struct SetupArea::Embedded {
 
 const char *SetupArea::kindName(Kind k)
 {
-  return k == THEORY ? "theory" : k == RUNTYPE ? "runtype" : "input";
+  return k == THEORY ? "theory" : k == RUNTYPE ? "runtype" :
+         k == BASIS ? "basis" : "input";
 }
 
 
@@ -142,6 +144,10 @@ SetupArea::~SetupArea()
 
 void SetupArea::drop()
 {
+  if (p_basisPanel) {
+    p_basisPanel->Destroy();
+    p_basisPanel = 0;
+  }
   if (!p_emb) return;
   // Detach first: the model must not reach the panel being destroyed.
   if (p_emb->model) p_emb->model->attach(0, 0);
@@ -223,6 +229,56 @@ bool SetupArea::showDetails(Kind kind, const string& cmd)
 }
 
 
+void SetupArea::showBasis()
+{
+  if (p_kind == BASIS && p_basisPanel) return;
+  drop();
+  p_input->Hide();
+  p_basisPanel = new BasisPanel(p_body, p_ed);
+  p_body->GetSizer()->Add(p_basisPanel, 1, wxEXPAND);
+  p_kind = BASIS;
+  p_title->SetLabel("Basis set");
+  p_note->SetLabel("");
+  p_note->Hide();
+  mark();
+  Layout();
+  p_body->Layout();
+  CallAfter([this]() {
+    if (!p_basisPanel) return;
+    p_basisPanel->Layout();
+    fitBody();
+    SendSizeEvent();
+    p_body->SendSizeEvent();
+    ToolTabs::allocate(this);
+    Refresh();
+  });
+}
+
+
+void SetupArea::basisFilter(const string& text)
+{
+  if (p_basisPanel) p_basisPanel->setFilter(text);
+}
+
+
+bool SetupArea::basisPick(const string& name)
+{
+  return p_basisPanel && p_basisPanel->pick(name);
+}
+
+
+bool SetupArea::basisUseAll()
+{
+  return p_basisPanel && p_basisPanel->useForAll();
+}
+
+
+void SetupArea::basisChanged()
+{
+  if (p_basisPanel) p_basisPanel->refresh();
+}
+
+
 void SetupArea::external(Kind kind)
 {
   showInput();
@@ -263,7 +319,8 @@ void SetupArea::fitBody()
 {
   wxScrolledWindow *sw = static_cast<wxScrolledWindow*>(p_body);
   // The preview scrolls itself; only a dialog sets a virtual size.
-  wxSize min = p_emb ? p_body->GetSizer()->CalcMin() : wxSize(1, 1);
+  wxSize min = (p_emb || p_basisPanel) ? p_body->GetSizer()->CalcMin()
+                                       : wxSize(1, 1);
   sw->SetVirtualSize(min);
   p_body->Layout();
 }
@@ -352,6 +409,8 @@ wxString SetupArea::describe() const
   if (p_kind == INPUT) {
     out += wxString::Format(" lines=%d dry=%d", p_input->GetNumberOfLines(),
                             (int)p_dry);
+  } else if (p_kind == BASIS && p_basisPanel) {
+    out += " " + wxString::FromUTF8(p_basisPanel->describe().c_str());
   } else if (p_emb) {
     int shown = 0;
     std::vector<wxWindow*> todo(p_emb->host->GetChildren().begin(),
