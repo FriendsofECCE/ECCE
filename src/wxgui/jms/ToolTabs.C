@@ -43,6 +43,7 @@
 #include "wx/splitter.h"
 
 static void allocateChildren(wxWindow *body);
+static void fitScrollBody(wxWindow *body);
 
 namespace {
 
@@ -133,6 +134,10 @@ public:
       // its size; see allocateChildren.
       sw->Bind(wxEVT_IDLE, [sw](wxIdleEvent& ev) {
         allocateChildren(sw);
+        ev.Skip();
+      });
+      sw->Bind(wxEVT_SIZE, [sw](wxSizeEvent& ev) {
+        fitScrollBody(sw);
         ev.Skip();
       });
       p_body = sw;
@@ -787,7 +792,8 @@ wxWindow *ToolTabs::client(const wxTopLevelWindow *tool)
 // changes after they arrive (content fits, no scrollbar comes or goes) are
 // never allocated: they stay at GTK's unallocated 1x1 and draw nothing,
 // though wx has them laid out, and a queued resize does not reach them.
-// Allocate those at their wx rectangle, as wxGTK does within a size-allocate.
+// Allocate those, and widgets whose GTK size differs from wx's, at their wx
+// rectangle, as wxGTK does within a size-allocate.
 static void allocateChildren(wxWindow *body)
 {
 #ifdef __WXGTK__
@@ -798,7 +804,10 @@ static void allocateChildren(wxWindow *body)
     GtkAllocation a;
     gtk_widget_get_allocation(wd, &a);
     wxRect r(w->GetPosition(), w->GetSize());
-    if ((a.width > 1 && a.height > 1) || r.width < 2 || r.height < 2) continue;
+    // Also a widget whose size is stale: a static box that kept its old
+    // height frames too little when its content grew.
+    if ((a.width == r.width && a.height == r.height) || r.width < 2 ||
+        r.height < 2) continue;
     GtkRequisition req;
     gtk_widget_get_preferred_size(wd, &req, NULL);
     GtkAllocation na = {r.x, r.y, r.width, r.height};
@@ -812,11 +821,26 @@ static void allocateChildren(wxWindow *body)
 }
 
 
+// A scroller lays its sizer out at its virtual size, which nobody updates when
+// content grows (a summary line appears): the rows then pile up in the old
+// height and overlap.  Virtual size = the sizer's minimum, at least the view.
+static void fitScrollBody(wxWindow *body)
+{
+  wxScrolledWindow *sw = wxDynamicCast(body, wxScrolledWindow);
+  if (!sw || !sw->GetSizer()) return;
+  wxSize min = sw->GetSizer()->CalcMin();
+  wxSize view = sw->GetClientSize();
+  wxSize want(wxMax(min.x, view.x), wxMax(min.y, view.y));
+  if (sw->GetVirtualSize() != want) sw->SetVirtualSize(want);
+}
+
+
 bool ToolTabs::layout(wxTopLevelWindow *tool)
 {
   Tab *t = findTool(tool);
   if (!t || !t->page) return false;
   wxWindow *body = static_cast<ToolPage*>(t->page)->body();
+  fitScrollBody(body);
   body->Layout();
   allocateChildren(body);
   return true;
@@ -834,6 +858,7 @@ void ToolTabs::select(wxTopLevelWindow *tool)
   s_host->Raise();
   // A frame's first Show lays its content out; a tab gets no such event.
   wxWindow *body = static_cast<ToolPage*>(t->page)->body();
+  fitScrollBody(body);
   body->Layout();
   allocateChildren(body);
 }

@@ -647,7 +647,7 @@ void CalcEd::createCodeButtons()
   // Hidden codes stay visible as a count that opens Preferences > Codes.
   const int hidden = CodeChoice::hiddenCount();
   if (hidden > 0) {
-    wxButton *more = new wxButton(this, wxID_ANY,
+    wxButton *more = new wxButton(clientParent(), wxID_ANY,
         wxString::FromUTF8(CodeChoice::barLabel(hidden).c_str()));
     more->SetName("more_codes");
     more->SetToolTip(wxString::FromUTF8(CodeChoice::moreTip(hidden).c_str()));
@@ -1190,6 +1190,40 @@ string fnvOf(const string& text)
 }
 
 
+//  Leaf controls of the editor's column that are shown and overlap another
+//  ("overlaps=N" plus the first pair's classes and labels).  Static boxes are
+//  siblings of what they frame and so are left out.
+static wxString columnOverlaps(wxWindow *root)
+{
+  std::vector<wxWindow*> leaves, todo{root};
+  while (!todo.empty()) {
+    wxWindow *w = todo.back();
+    todo.pop_back();
+    for (wxWindow *c : w->GetChildren()) {
+      if (!c->IsShown()) continue;
+      if (c->GetChildren().empty() && !wxDynamicCast(c, wxStaticBox) &&
+          !wxDynamicCast(c, wxStaticLine) && !wxDynamicCast(c, wxStatusBar))
+        leaves.push_back(c);
+      else todo.push_back(c);
+    }
+  }
+  int n = 0;
+  wxString first;
+  for (size_t i = 0; i < leaves.size(); i++)
+    for (size_t j = i + 1; j < leaves.size(); j++) {
+      wxRect a(leaves[i]->GetScreenPosition(), leaves[i]->GetSize());
+      wxRect b(leaves[j]->GetScreenPosition(), leaves[j]->GetSize());
+      if (a.width < 2 || a.height < 2 || b.width < 2 || b.height < 2) continue;
+      if (!a.Intersects(b)) continue;
+      if (!n++)
+        first = wxString::Format(" overlap_first=\"%s|%s\"",
+            wxString(leaves[i]->GetLabel()).Left(30),
+            wxString(leaves[j]->GetLabel()).Left(30));
+    }
+  return wxString::Format(" overlaps=%d", n) + first;
+}
+
+
 //  setup [info] | theory | runtype | basis [filter T|pick N|all] | input | fold | unfold | save | preview
 wxString CalcEd::setupCommand(const wxString& arg)
 {
@@ -1247,7 +1281,8 @@ wxString CalcEd::setupCommand(const wxString& arg)
   } else if (!arg.empty() && arg != "info") {
     return "unknown: " + arg;
   }
-  return p_setupArea->describe();
+  wxWindow *col = ToolTabs::client(this);
+  return p_setupArea->describe() + (col ? columnOverlaps(col) : wxString());
 }
 
 

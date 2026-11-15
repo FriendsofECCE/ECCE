@@ -747,6 +747,9 @@ def runSetupTab(display):
             append("setup basis pick 6-31G*", 3)          # 21
             append("setup basis all", 15)                 # 22: 6-31G*, saved
             append("setup input", 8)                      # 23
+            append("setup width 1024", 4)
+            append("setup info", 2)
+            shot("setup-orca-1024.png")
             append("close", 3)
             append("answer", 3)
             append("answer no", 25)
@@ -761,6 +764,15 @@ def runSetupTab(display):
         log = result.log or ""
         su = pb.answers(log, "setup")
         print("      setup: " + "\n             ".join(su))
+        areas = [a for a in su if a.startswith("area=")]
+        check(areas and all("overlaps=0" in a for a in areas),
+              "ORCA Set-up tab: no two controls of the editor's column overlap "
+              "(default width and 1024 px)",
+              "\n".join(a for a in areas if "overlaps=0" not in a))
+        m = re.search(r"window=(\d+)x", areas[-1]) if areas else None
+        check(m and int(m.group(1)) <= 1024,
+              "the Organizer window narrows to 1024 px",
+              areas[-1] if areas else "")
         tabs = pb.answers(log, "tabs")
         check(tabs and re.search(r"1:.*Editor.*\*", tabs[0]) is not None,
               "Normal: the editor opens as a tab", str(tabs) + log[-1500:])
@@ -1132,6 +1144,9 @@ def runSetupLaunch(display):
         info = pb.answers(log, "setup launch info")
         check(info and "launch=enabled" in info[0],
               "the panel's Launch button is enabled", str(info))
+        check(info and all("overlaps=0" in i for i in info),
+              "no two controls of the editor's column overlap (ECCE-QM, "
+              "default width and 1024 px)", str(info))
         check(info and all("clipped=0" in i for i in info[:-1]),
               "no control of the panel is clipped at the default width or at "
               "1024 px", str(info))
@@ -1157,6 +1172,12 @@ def main():
     def checkApp(display, name, results, verbose=False):
         if os.environ.get("ECCE_LAUNCHER_ONLY") == "1":
             runTabsLauncher(display)
+            runSetupLaunch(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
+        if os.environ.get("ECCE_SETUP_ONLY") == "1":
+            runSetupTab(display)
             runSetupLaunch(display)
             if failures:
                 results.fail("one-process", "; ".join(failures))
