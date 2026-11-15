@@ -309,7 +309,8 @@ ecce_library(eccetdat
 if(ECCE_HAVE_RESULTSH5)
   target_sources(eccetdat PRIVATE
     src/tdat/resultsh5/ResultsBasis.C src/tdat/resultsh5/ResultsH5Io.C
-    src/tdat/resultsh5/ResultsConvert.C src/tdat/resultsh5/FragmentAnalysis.C)
+    src/tdat/resultsh5/ResultsConvert.C src/tdat/resultsh5/FragmentAnalysis.C
+    src/tdat/resultsh5/NaturalPopulation.C)
   target_include_directories(eccetdat PRIVATE ${HDF5_INCLUDE_DIRS})
   target_link_libraries(eccetdat PUBLIC ${HDF5_LIBRARIES})
 endif()
@@ -4213,6 +4214,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_shot_hooks PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Viewer row "Natural (NPA) Charges, computed by ECCE" beside NBO's (#1054).
+  add_test(NAME apps_npa_charges
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/npa_charges_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_npa_charges PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # tools/screenshots/shots.py on a two-shot list.
   add_test(NAME apps_shots_driver
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -5629,6 +5637,14 @@ if(ECCE_HAVE_RESULTSH5)
   add_executable(ecce-fragorb src/tdat/resultsh5/ecce_fragorb.C)
   target_link_libraries(ecce-fragorb PRIVATE eccetdat ecceutil Threads::Threads)
   install(TARGETS ecce-fragorb RUNTIME DESTINATION bin COMPONENT client)
+  # Natural population analysis from results.h5 (#1054).
+  add_executable(ecce-npa src/tdat/resultsh5/ecce_npa.C)
+  target_include_directories(ecce-npa PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(ecce-npa PRIVATE
+    eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+    ${XercesC_LIBRARIES} Threads::Threads)
+  install(TARGETS ecce-npa RUNTIME DESTINATION bin COMPONENT client)
+  include(${CMAKE_SOURCE_DIR}/tests/npa/tests.cmake OPTIONAL)
   include(${CMAKE_SOURCE_DIR}/tests/fragorb_h5/tests.cmake OPTIONAL)
   include(${CMAKE_SOURCE_DIR}/tests/resultsh5/tests.cmake OPTIONAL)
 endif()
@@ -5700,6 +5716,9 @@ if(TARGET ecce-results)
 endif()
 if(TARGET ecce-fragorb)
   list(APPEND ECCE_COMMAND_WRAPPERS ecce-fragorb=bin/ecce-fragorb)
+endif()
+if(TARGET ecce-npa)
+  list(APPEND ECCE_COMMAND_WRAPPERS ecce-npa=bin/ecce-npa)
 endif()
 file(READ ${_launch_wrapper} _command_template)
 foreach(_command IN LISTS ECCE_COMMAND_WRAPPERS)
