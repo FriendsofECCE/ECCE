@@ -57,9 +57,9 @@ bool WxLauncherApp::OnInit()
    }
 
     p_launchFrame = new WxLauncher(NULL);
-    p_msgs = new LauncherMessages(p_launchFrame);
+    p_msgs = new LauncherMessages(p_launchFrame->panel(), p_launchFrame);
     p_launchFrame->setMessages(p_msgs);
-    EDSIFactory::addAuthEventListener(p_launchFrame);
+    EDSIFactory::addAuthEventListener(p_launchFrame->panel());
 
     //  "-context URL" may follow "-pipe FILE" (tests/apps/qe_walkthrough_test.py).
   for (int a = 1; a + 1 < this->argc; a++) {
@@ -69,7 +69,7 @@ bool WxLauncherApp::OnInit()
     }
   }
 
-    p_launchFrame->setContext(cntxt);
+    p_launchFrame->panel()->setContext(cntxt);
     p_launchFrame->loadSettings("Launcher");
 
     // Show the main window
@@ -83,7 +83,7 @@ bool WxLauncherApp::OnInit()
     {
         fprintf(stderr, "[LAUNCHER] binary=%s ECCE_HOME=%s\n",
                 (const char*)wxString(this->argv[0]).c_str(), Ecce::ecceHome());
-        LauncherScript* run = new LauncherScript(p_launchFrame, script);
+        LauncherScript* run = new LauncherScript(p_launchFrame->panel(), script);
         run->start();
         return true;
     }

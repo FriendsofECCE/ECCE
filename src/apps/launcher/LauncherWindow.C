@@ -17,7 +17,7 @@ static WxJMSMessageDispatch *openLauncher()
   WxLauncher *frame = new WxLauncher(NULL);
   ToolTabs::open(frame, 0, _("Launcher"), "launcher");
   frame->loadSettings("Launcher");
-  LauncherMessages *msgs = new LauncherMessages(frame);
+  LauncherMessages *msgs = new LauncherMessages(frame->panel(), frame);
   frame->setMessages(msgs);
   // The invoke that follows sets the calculation and shows the window.
   msgs->registerTopShell(frame);
@@ -31,8 +31,9 @@ static WxJMSMessageDispatch *openLauncher()
 // the Launcher script's commands on the active Launcher tab.
 static wxString launcherCommand(const wxString& arg)
 {
-  WxLauncher *l = dynamic_cast<WxLauncher*>(ToolTabs::activeTool());
-  if (!l) return "not a Launcher tab";
+  WxLauncher *w = dynamic_cast<WxLauncher*>(ToolTabs::activeTool());
+  if (!w) return "not a Launcher tab";
+  LaunchPanel *l = w->panel();
   wxString cmd = arg.BeforeFirst(' '), rest = arg.AfterFirst(' ');
   string name = std::string(rest.utf8_str());
   if (cmd == "machine") return l->selectMachine(name) ? "ok" : "not in the list";

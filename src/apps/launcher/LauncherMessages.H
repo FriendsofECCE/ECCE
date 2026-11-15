@@ -10,12 +10,13 @@
 
 #include "wxgui/WxJMSMessageDispatch.H"
 
+class LaunchPanel;
 class WxLauncher;
 
 class LauncherMessages : public WxJMSMessageDispatch
 {
     public:
-        LauncherMessages(WxLauncher *frame);
+        LauncherMessages(LaunchPanel *panel, WxLauncher *host);
 
         void subscribeMessages();
 
@@ -39,7 +40,8 @@ class LauncherMessages : public WxJMSMessageDispatch
         string identify();
 
     private:
-        WxLauncher *p_frame;
+        LaunchPanel *p_panel;
+        WxLauncher *p_host;   // the window or tab around the panel
 };
 
 #endif

@@ -1,80 +1,34 @@
 /**
  * @file
- * @author Ken Swanson
  *
+ * The Launcher window, or its tab in the Organizer (#983): a frame around a
+ * LaunchPanel, which holds the controls and the launch logic.
  */
-
 #ifndef WXLAUNCHER_HH
 #define WXLAUNCHER_HH
 
-#include <string>
-    using std::string;
-
-#include "util/EcceMap.H"
-#include "util/JMSMessage.H"
-#include "util/JMSPublisher.H"
+#include "wxgui/ewxFrame.H"
+#include "wxgui/WxJMSSubscriber.H"
 #include "util/Preferences.H"
 
-#include "tdat/Queue.H"
-#include "tdat/RefMachine.H"
+#include "LaunchPanel.H"
 
-#include "dsm/MachinePreferences.H"
-#include "dsm/TaskJob.H"
-#include "dsm/ResourceDescriptor.H"
-
-#include "comm/Launch.H"
-
-#include "wxgui/WxDavAuth.H"
-#include "wxgui/WxFeedback.H"
-#include "wxgui/WxJMSSubscriber.H"
-
-#include "WxLauncherGUI.H"
-
-class ewxButton;
-class ewxCheckBox;
-class ewxChoice;
-class ewxMenuItem;
-class ewxPanel;
-class ewxStaticText;
-class ewxTextCtrl;
-
-#define WXLAUNCHER_DFLT_LEFT         -1
-#define WXLAUNCHER_DFLT_TOP          -1
-#define WXLAUNCHER_DFLT_WIDTH        -1
-#define WXLAUNCHER_DFLT_HEIGHT       -1
-
-
-class WxLauncher : public WxLauncherGUI,
-                   public WxDavAuth,
-                   public JMSPublisher
+class WxLauncher : public ewxFrame, public LaunchHost
 {
     DECLARE_CLASS(WxLauncher)
-    DECLARE_EVENT_TABLE()
 
     public:
-        // Various states for switching context
-        //      newContext - Start new context, no save required
-        //      saveNew    - Save current job, start new context
-        //      cancel     - Cancel invoke or drop
-        enum          ContextSwitch { newContext, saveNew, cancel };
-
-        //  Constructor, Destructor
-        WxLauncher(      wxWindow* parent,
-                         wxWindowID id = SYMBOL_WXLAUNCHERGUI_IDNAME,
-                   const wxString& caption = SYMBOL_WXLAUNCHERGUI_TITLE,
-                   const wxPoint& pos = SYMBOL_WXLAUNCHERGUI_POSITION,
-                   const wxSize& size = SYMBOL_WXLAUNCHERGUI_SIZE,
-                         long style = SYMBOL_WXLAUNCHERGUI_STYLE);
+        WxLauncher(wxWindow* parent);
         ~WxLauncher();
 
-
-        void setStandAlone(bool w);
+        LaunchPanel *panel() const { return p_panel; }
 
         //  The handlers the window owns and deletes (also in the Organizer's process).
         void setMessages(WxJMSSubscriber *msgs) { p_msgs = msgs; }
+        void loadSettings(const string& fname);
 
         //  As a tab of the Organizer's window (#983, ToolTabs.H) the frame is
-        //  hidden and its controls are in the tab's page.
+        //  hidden and its panel is in the tab's page.
         bool Show(bool show = true) override;
         void Raise() override;
         void SetTitle(const wxString& title) override;
@@ -83,302 +37,19 @@ class WxLauncher : public WxLauncherGUI,
         bool Layout() override;
         wxMenuBar *GetMenuBar() const;
         wxWindow *FindWindow(long id) const;
-        void loadSettings(string fname);
 
-
-        //  Event handler callbacks
-        void mainWindowCloseCB(wxCloseEvent& event);
-
-        void machinesChoiceSelectedCB(wxCommandEvent& event);
-
-        void queueChoiceSelectedCB(wxCommandEvent& event);
-        void allocationAccountTextCtrlUpdateCB( wxCommandEvent& event );
-
-        void wkstnProcsParamValueChangedCB(wxCommandEvent& event);
-        void priorityChoiceSelectedCB(wxCommandEvent& event);
-
-        void batchProcsParamValueChangedCB(wxCommandEvent& event);
-        void batchNodesParamValueChangedCB(wxCommandEvent& event);
-        void maxMemoryParamValueChangedCB(wxCommandEvent& event);
-        void minScratchParamValueChangedCB(wxCommandEvent& event);
-        void wallTimeLimitChangedCB(wxCommandEvent& event);
-
-        void remshellChoiceSelectedCB(wxCommandEvent& event);
-        void usernameTextCtrlUpdateCB( wxCommandEvent& event);
-        void password1TextCtrlUpdateCB( wxCommandEvent& event);
-        void shellOpenButtonClickCB(wxCommandEvent& event);
-
-        void calculationDirectoryTextCtrlUpdateCB( wxCommandEvent& event );
-        void scratchDirectoryTextCtrlUpdateCB( wxCommandEvent& event );
-        void launchButtonClickCB(wxCommandEvent& event);
-
-
-        void focusGainedCB(wxFocusEvent& event);
-        void focusLostCB(wxFocusEvent& event);
-
-        void machRegisterMenuitemClickCB(wxCommandEvent& event);
-
-        void buildProfileRow();
-        void refreshProfileControls();
-        AllocationProfiles::Profile profileFromControls(const string& name);
-        void selectProfile(const string& name);
-        void profileChoiceCB(wxCommandEvent& event);
-
-        //  Test hook (WxLauncherScript.H); inert unless ECCE_LAUNCHER_SCRIPT is set.
-        bool selectMachine(const string& refname);
-        bool selectQueue(const string& name);
-        bool pickMachine(const string& refname);
-        void hookEditAllowed(bool a) { setEditAllowed(a, false); }
-        bool clickMachineSettings();
-        bool clickLaunch();
-        void toggleAdvanced() { setAdvanced(!p_advOpen, true); }
-        void setUsername(const string& u);
-        void setRunDirectory(const string& path);
-        void setAccount(const string& a);
-        bool hookProfile(const string& name);
-        string hookGet(const string& what);
-        bool confirmMpiLauncher(const string& code);
-        bool confirmQmSize();
-        bool confirmLaunchWarning(const string& text);
-        // A launch step runs off the GUI thread; its login window must not.
-        bool getAuthorization(AuthEvent& event);
-        void setProcessors(int n);
-        void setThreads(int n);
-        void setWallTime(long minutes);
-        void stageLaunchMenuItemClickCB(wxCommandEvent& event);
-        void finishLaunchMenuItemClickCB(wxCommandEvent& event);
-        void quitMenuItemClickCB(wxCommandEvent& event);
-
-        void helpLauncherMenuitemClickCB(wxCommandEvent& event);
-        void helpSupportMenuitemClickCB(wxCommandEvent& event);
-
-        void setContext(string cxtxt);
-        void clearContext();
-        EcceURL getContext();
-        bool hasContext();
-        void updateContext(const ResourceDescriptor::RUNSTATE& state);
-        ResourceDescriptor::RUNSTATE getContextState();
-
-        void validateCode();
-
-        void showLaunchData(Launchdata ldat);
-        void launchChangeNotify();
-        void calcStateNotify(const ResourceDescriptor::RUNSTATE& state);
-        void prefsChangeNotify(string refname);
-
-        void setFeedbackCaption(string cptn);
-        void showFeedbackMessage(string mesg, WxFeedback::Severity severity);
-
-        void updateStatePreferences();
-
-        void reloadMachinePreferences();
-        void machRegChanged();   // Register Machines saved: re-read and reload
-
-        static bool connectAllowed(MachinePreferences *prefs);
+        void closeRequest() override { Close(); }
+        void deferMessages(bool on) override;
+        void relayout() override;
+        void launchAllowed(bool launch, bool finish) override;
 
     private:
+        void closeCB(wxCloseEvent& event);
         void saveSettings();
 
-        void populateMachinesList();
-        string refreshShells(RefMachine *machRgstn);
+        LaunchPanel      *p_panel;
+        WxJMSSubscriber  *p_msgs = NULL;
+        Preferences      *p_toolPrefs = NULL;
+};
 
-        const Queue * refreshQueues(RefMachine *machRgstn);
-        const Queue * getQueueSelection();
-
-        void saveJob();
-
-        void updatePreferences();
-        void createControls();
-        void ensureEditsApplied(bool moveToFront = false);
-
-        bool checkConnectAllowed();
-        bool checkConnectAllowed(bool pswd2Rqrd);
-
-        bool checkLaunchAllowed();
-        bool checkLaunchAllowed(bool cnctAllwd);
-        bool checkLaunchAllowed(RefMachine *machRgstn, bool cnctAllwd);
-
-
-        unsigned long parseWallTime(string s);
-        void stageLaunch();
-        void cancelStagedLaunch();
-        void finishStagedLaunch();
-
-        bool validateMachineWithCode(const string& machineName, const string& code);
-/*
-        static void DebugEnterMethod(string name, string args);
-        static void DebugEnterMethod(string name);
-        static void DebugLeaveMethod();
-        static void DebugWriteMessage(string mesg);
-*/
-        void refreshControls();
-        void clearControls();
-        void updateControls(Launchdata ldat);
-
-        void refreshAllocationAccount();
-        void refreshProcessors(RefMachine *machRgstn, const Queue *queue);
-        void refreshNodes(int numProcs, int maxNodes);
-
-        void refreshProcessors(RefMachine *machRgstn);
-        void refreshCoresWarning();
-        void buildThreadsRow();
-        void refreshRanksInfo();
-        string ranksWarning() const;
-
-        void refreshPasswords(const string& shellName,
-                              const string& machName, const string& user);
-
-        int computeNodesValue(int numProcs, int numNodes, int slctProcs);
-        int calcProcsPerNode(int procs, int nodes);
-
-        void refreshWallTime(const Queue *queue);
-        void refreshMemoryLimit(const Queue *slctQueue);
-        void refreshScratchSpace(const Queue *slctQueue);
-
-        void refreshCalcDirectory();
-        void refreshScratchDirectory();
-
-        bool getEditAllowed();
-        void setEditAllowed(bool allwd, bool shellOpenAvbl = true);
-
-        void updatePriority(int pval);
-        void refreshAuthentication(RefMachine *machRgstn, string shellName);
-        void refreshLocality();
-        void refreshRemoteSection();
-        bool namesThisHost() const;
-        bool runsHere() const;
-        void refit();
-        void buildAdvanced();
-        void setAdvanced(bool open, bool save);
-        void placeAdvancedWidgets(bool inFold);
-
-        void refreshLaunchControls();
-        void refreshLaunchControls(bool cnctAllwd);
-
-        void verifyMachineListLocation(bool cnctAllwd);
-        void relocateMachineListItem(int actlPostn, int trgtPostn);
-        void relocateMachineListItem(string refname, int trgtPostn);
-
-        void launchCalc(const bool &fullLaunchFlag);
-        void buildArgs(EcceMap& kvargs);
-        void startShell();
-
-
-        Preferences         *p_toolPrefs;
-
-        ewxChoice           *p_machinesChoice;
-        ewxStaticText       *p_machineNameStaticText;
-
-        ewxPanel            *p_batchSpcfcPanel;
-        ewxPanel            *p_wkstnSpcfcPanel;
-
-        WxParameterEdit     *p_wkstnProcsParamEdit;
-        ewxStaticText       *p_coresWarnStaticText;
-        ewxPanel            *p_threadsPanel;
-        wxSpinCtrl          *p_threadsSpin;
-        ewxStaticText       *p_ranksInfoText;
-        ewxStaticText       *p_memNodeText;
-        ewxStaticText       *p_bookText;
-        bool                 p_localCores;   // the machine is this computer
-        ewxPanel            *p_priorityPanel;
-        ewxChoice           *p_priorityChoice;
-
-        ewxPanel            *p_allocAcctPanel;
-        ewxTextCtrl         *p_allocAcctTextCtrl;
-        ewxPanel            *p_queuePanel;
-        ewxStaticText       *p_queueLabelLeft;
-        ewxStaticText       *p_queueLabelRight;
-        ewxChoice           *p_queueChoice;
-
-        WxParameterEdit     *p_batchProcsParamEdit;
-        ewxPanel            *p_batchNodesPanel;
-        WxParameterEdit     *p_batchNodesParamEdit;
-        ewxStaticText       *p_batchProcsMaxStaticText;
-        ewxPanel            *p_batchProcsMaxPanel;
-
-        ewxPanel            *p_maxMemoryPanel;
-        WxParameterEdit     *p_maxMemoryParamEdit;
-        ewxPanel            *p_minScratchPanel;
-        WxParameterEdit     *p_minScratchParamEdit;
-        ewxPanel            *p_wallTimePanel;
-        WxTimeSpanEdit      *p_wallTimeEdit;
-        ewxPanel            *p_maxWallTimePanel;
-        ewxStaticText       *p_maxWallTimeStaticText;
-
-        ewxStaticText       *p_remShellLabel;
-        ewxChoice           *p_remShellChoice;
-        ewxButton           *p_shellOpenButton;
-
-        ewxStaticText       *p_usernameLabel;
-        ewxTextCtrl         *p_usernameTextCtrl;
-
-        ewxStaticText       *p_password1Label;
-        ewxTextCtrl         *p_password1TextCtrl;
-        ewxPanel            *p_password1Panel;
-
-        ewxPanel            *p_calcDrctyPanel;
-        ewxTextCtrl         *p_calcDrctyTextCtrl;
-        ewxPanel            *p_scratchDrctyPanel;
-        ewxTextCtrl         *p_scratchDrctyTextCtrl;
-
-        ewxButton           *p_launchButton;
-        ewxButton           *p_machSettingsButton;
-
-        //  Allocation profiles (#541): the row is shown only once the machine has
-        //  more than one; they are made in Register Machines.
-        wxPanel             *p_profilePanel = nullptr;
-        wxStaticText        *p_profileLabel = nullptr;
-        wxChoice            *p_profileChoice = nullptr;
-        string               p_profile;          // "Default" = the machine's own
-        string               p_profileMachine;   // the machine p_profile was chosen for
-        Launchdata           p_ctxLaunch;        // the context calculation's, when opened
-        bool                 p_ctxLaunched = false;
-
-        //  The "Advanced" fold of a machine that runs jobs here: Username,
-        //  Scratch Directory and Machine settings move into it.
-        struct FoldSlot {
-            wxWindow *win; wxWindow *parent; wxSizer *sizer;
-            size_t idx; int prop; int flag; int border;
-        };
-        wxButton            *p_advButton = nullptr;
-        wxPanel             *p_advPanel = nullptr;
-        FoldSlot             p_slots[3] = {};
-        bool                 p_inFold = false;
-        bool                 p_advOpen = false;
-
-        ewxMenuItem         *p_jobSaveMenuItem;
-        ewxMenuItem         *p_machRegisterMenuItem;
-        string               p_lastRegisterRequest;   // hook only
-        ewxMenuItem         *p_configAccessMenuItem;
-        ewxMenuItem         *p_savePrefsMenuItem;
-        ewxMenuItem         *p_stageLaunchMenuItem;
-        ewxMenuItem         *p_finishLaunchMenuItem;
-        ewxMenuItem         *p_quitMenuItem;
-        ewxMenuItem         *p_helpLauncherMenuItem;
-        ewxMenuItem         *p_helpSupportMenuItem;
-
-        WxFeedback          *p_messagesFeedback;
-
-        int                  p_maxProcsPerNode;
-
-        MachinePreferences  *p_slctPrefs;
-        TaskJob             *p_taskJob;
-
-        bool                 p_prefsEdited;
-
-        int p_numCfgd;
-        int p_numIncl;
-
-
-        bool                 p_inCtrlUpdate;
-        bool                 p_editAllwd;
-        bool                 p_jobStaged;
-        WxJMSSubscriber     *p_msgs = NULL;
-        Launch              *p_launchData;
-        bool runLaunchStep();
-        int                  p_stepPumps = 0;   // event passes in the last step
-        string               p_launchError;     // last step's failure, for the hook
- };
-
-
-#endif  //  WXLAUNCHER_HH
+#endif

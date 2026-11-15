@@ -24,8 +24,8 @@
 #include "WxLauncher.H"
 
 
-LauncherMessages::LauncherMessages(WxLauncher *frame)
-    : WxJMSMessageDispatch(LAUNCHER, true), p_frame(frame)
+LauncherMessages::LauncherMessages(LaunchPanel *panel, WxLauncher *host)
+    : WxJMSMessageDispatch(LAUNCHER, true), p_panel(panel), p_host(host)
 {
 }
 
@@ -77,14 +77,14 @@ void LauncherMessages::subscribeMessages()
 
     if (status == "failed")
     {
-        p_frame->showFeedbackMessage(errMsg, WxFeedback::SYSTEM);
+        p_panel->showFeedbackMessage(errMsg, WxFeedback::SYSTEM);
     }
 }
 
 
 string LauncherMessages::identify()
 {
-    EcceURL url = p_frame->getContext();
+    EcceURL url = p_panel->getContext();
     string idnty = LAUNCHER;
     string path = EDSIServerCentral().mapURLtoName(url);
 
@@ -110,13 +110,13 @@ void LauncherMessages::invokeMCB(JMSMessage& msg)
     if (msg.containsProperty("calcurl"))
     {
         string url = msg.getProperty("calcurl");
-        p_frame->setContext(url);
+        p_panel->setContext(url);
         this->setPollContext(url);
 
-        p_frame->Iconize(false);
-        p_frame->Show(true);
-        ewxRaiseWindow(p_frame);
-        p_frame->RequestUserAttention();
+        p_host->Iconize(false);
+        p_host->Show(true);
+        ewxRaiseWindow(p_host);
+        p_host->RequestUserAttention();
     }
 }
 
@@ -126,7 +126,7 @@ void LauncherMessages::quitMCB(JMSMessage& msg)
    if (msg.getSender().getName() == GATEWAY)
    {
         //  Force the window to close; disallows veto
-        p_frame->Close(true);
+        p_host->Close(true);
         unsubscribe();
    }
 }
@@ -142,11 +142,11 @@ void LauncherMessages::calcMoveMCB(JMSMessage& msg)
   string oldURL = msg.getProperty("oldurl");
   string newURL = msg.getProperty("newurl");
   
-  if (p_frame->hasContext() &&
-      p_frame->getContext().isChildOrMe(oldURL)) {
+  if (p_panel->hasContext() &&
+      p_panel->getContext().isChildOrMe(oldURL)) {
     EDSIFactory::renamePoolResource(oldURL, newURL);
-    string calcurl = p_frame->getContext().toString();
-    p_frame->setFeedbackCaption(EDSIServerCentral().
+    string calcurl = p_panel->getContext().toString();
+    p_panel->setFeedbackCaption(EDSIServerCentral().
                                       mapURLtoName(calcurl));
     setPollContext(calcurl);
   }
@@ -163,10 +163,10 @@ void LauncherMessages::calcDeleteMCB(JMSMessage& msg)
 {
     string urlstr = msg.getProperty("url");
 
-    if (p_frame->hasContext() &&
-        p_frame->getContext().isChildOrMe(urlstr))
+    if (p_panel->hasContext() &&
+        p_panel->getContext().isChildOrMe(urlstr))
     {
-        p_frame->clearContext();
+        p_panel->clearContext();
         EDSIFactory::removePoolResource(urlstr);
     }
 }
@@ -190,15 +190,15 @@ void LauncherMessages::calcCodeMCB(JMSMessage& msg)
 
     if (msg.getSender().getID() != getMyID())
     {
-        if (p_frame->hasContext())
+        if (p_panel->hasContext())
         {
-            EcceURL calcurl = p_frame->getContext();
+            EcceURL calcurl = p_panel->getContext();
 
             if (calcurl.toString() == urlstr)
             {
                 EDSIFactory::changePoolResource(urlstr);
 
-                p_frame->validateCode();
+                p_panel->validateCode();
             }
         }
     }
@@ -215,14 +215,14 @@ void LauncherMessages::statusChangeMCB(JMSMessage& msg)
     string path = msg.getProperty("url");
     EcceURL url(path);
 
-    if (p_frame->hasContext() && (p_frame->getContext() == url))
+    if (p_panel->hasContext() && (p_panel->getContext() == url))
     {
         EDSIFactory::changePoolResource(path);
 
         string statestr = msg.getProperty("state");
         ResourceDescriptor::RUNSTATE state =
                                      ResourceUtils::stringToState(statestr);
-        p_frame->updateContext(state);
+        p_panel->updateContext(state);
     }
 }
 
@@ -235,17 +235,17 @@ void LauncherMessages::propertyChangeMCB(JMSMessage& msg)
     if (msg.getProperty("name") != "runStatusReason")
         return;
 
-    if (p_frame->hasContext() && (p_frame->getContext() == url))
+    if (p_panel->hasContext() && (p_panel->getContext() == url))
     {
         EDSIFactory::changePoolResource(path);
-        p_frame->updateContext(p_frame->getContextState());
+        p_panel->updateContext(p_panel->getContextState());
     }
 }
 
 
 void LauncherMessages::machregChangedMCB(JMSMessage& msg)
 {
-    p_frame->machRegChanged();
+    p_panel->machRegChanged();
 }
 
 
@@ -261,7 +261,7 @@ void LauncherMessages::msgAuthMCB(JMSMessage& msg)
 */
 void LauncherMessages::updatePrefsMCB(JMSMessage& msg)
 {
-    p_frame->updateStatePreferences();
+    p_panel->updateStatePreferences();
 }
 
 
@@ -273,6 +273,6 @@ void LauncherMessages::machConfChangedMCB(JMSMessage& msg)
 {
     string id = msg.getSender().getID();
 
-    if ((id != getMyID()) && (id != p_frame->getMyID()))
-         p_frame->reloadMachinePreferences();
+    if ((id != getMyID()) && (id != p_panel->getMyID()))
+         p_panel->reloadMachinePreferences();
 }
