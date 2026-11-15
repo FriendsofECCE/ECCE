@@ -384,6 +384,7 @@ class WxMachineRegister: public ewxFrame
         vector<int>          p_codeShown;   // list row -> p_codeNames index
         int                  p_codeSel;
         wxListBox           *p_codeList;
+        wxCheckBox          *p_showHidden;   // #1049
         wxStaticText        *p_codeTitle;
         wxStaticText        *p_codeExample;
         ewxButton           *p_mlpSetup;

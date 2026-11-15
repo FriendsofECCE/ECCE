@@ -1879,6 +1879,7 @@ Serializer* TaskJob::getSerializer(string& resourceName)
       break;
     case ResourceDescriptor::CT_MDDYNAMICS:
     case ResourceDescriptor::CT_MDEQUILIBRATE:
+    case ResourceDescriptor::CT_MDRUN:
       serializer = new NWChemMDModelXMLizer();
       resourceName = getVDoc()->getMdDynamicsName();
       break;

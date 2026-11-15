@@ -20,6 +20,7 @@
       
 
 #include "dsm/ResourceType.H"
+#include "dsm/CodeChoice.H"
 
 #include "util/EcceRegexp.H"
 #include "util/StringConverter.H"
@@ -205,6 +206,10 @@ vector<ResourceType*> ResourceType::getOfferedContains(bool emptySession)
     // A type with no menu item (import_es, which a workflow may hold) is
     // only made by an import, never from New.
     if (p_containsResources[i]->getMenuItem().empty())
+      continue;
+    // A code the user unticked in Preferences > Codes (#1049) is not offered
+    // for a new calculation; existing ones are untouched (getContains()).
+    if (!CodeChoice::typeShown(p_containsResources[i]))
       continue;
     if (emptySession && (name == "nwchem_md_optimize" ||
         name == "nwchem_md_energy" || name == "nwchem_md_dynamics"))

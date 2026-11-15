@@ -91,9 +91,15 @@ bool Builder::shotHookCommand(SceneScript& s, const vector<string>& w,
     settle(300);
     double sum = 0;
     for (size_t i = 0; i < frag->numAtoms(); i++) sum += frag->atomRef(i)->partialCharge();
-    fprintf(stderr, "SHOTHOOK: assigncharges %s atoms=%d first=%.3f sum=%.3f label1=[%s]\n",
+    string all;   // every atom's charge, for tests that compare values (#1054)
+    for (size_t i = 0; i < frag->numAtoms(); i++) {
+      char b[32];
+      snprintf(b, sizeof b, "%s%.5f", i ? " " : "", frag->atomRef(i)->partialCharge());
+      all += b;
+    }
+    fprintf(stderr, "SHOTHOOK: assigncharges %s atoms=%d first=%.3f sum=%.3f label1=[%s] q=[%s]\n",
             name.c_str(), (int)frag->numAtoms(), frag->atomRef(0)->partialCharge(),
-            sum, frag->atomRef(0)->displayLabel().c_str());
+            sum, frag->atomRef(0)->displayLabel().c_str(), all.c_str());
     return true;
   }
 

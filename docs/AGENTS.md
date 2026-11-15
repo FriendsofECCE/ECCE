@@ -197,6 +197,20 @@ The Organizer's menus and Preferences, item by item, are on the help pages
 `organizer-menubar` (menu bar, toolbar, Preferences) and `organizer-menus`
 (right-click menus).
 
+### Which codes are offered (Preferences > Codes, #1049)
+
+Codes unticked in **Edit > Preferences > Codes** are hidden from making new
+calculations (File > New, right-click New, Continue in Another Code, the
+workflow new-step buttons, the Calculation Editor code bar); existing
+calculations of them are unaffected. The setting is `Codes.Shown` in
+`~/.ECCE/EcceGlobal` (a string list starting with the marker `chosen`; absent =
+default: ECCE-QM plus codes registered on a machine, or `Shown:` in
+`$ECCE_HOME/siteconfig/Codes`). Every hiding list ends with
+`N more codes (hidden)...` (editor bar `+N hidden`). Test hooks (Organizer
+`ECCE_TEST_ORGANIZER`): `prefs codes list|all|registered|page [hiddenfirst]|
+tick NAME on|off`; `tests/apps/code_choice_test.py`. One filter:
+`CodeChoice` (`include/dsm/CodeChoice.H`).
+
 ### The life of a calculation
 
 A calculation has a run state (help page `run-states`):
@@ -322,7 +336,7 @@ Launcher. You: after the user's yes, `ecce-launch [on=MACHINE] [profile=NAME]
 
 **A series or a batch.** User: select calculations in the table, Tools >
 New Calculations in Another Code... (or the table's right-click New from
-This > In Another Code...; `new-series`): the first new
+This > Continue in Another Code...; `new-series`): the first new
 calculation opens in the Calculation Editor, then "Make the Others" copies
 its setup to the rest, each with its source's final geometry, charge and
 multiplicity (the same code as `ecce-series`; test hooks `anothercode`,
@@ -745,6 +759,29 @@ An MD study (GROMACS, NWChem MD) is a project-like folder whose tasks
 in the study holds the chain: a task takes its starting structure from the one
 before it, so it can only be launched after that one has completed.
 
+A GROMACS calculation from the user's own files is its own type,
+`gromacs_md_run` (content type `ecceMdRun`, no MD editor; `launchjob apptype
+URL` prints `GROMACS ecceMdRun gromacs_md_run`). Make it with File > New >
+GROMACS Calculation from Files... in the Organizer, or the test hook
+`gmxrun PARENT-URL MDP|- STRUCTURE|- TOPOLOGY|- [TPR]` (`ECCE_TEST_ORGANIZER`,
+prints `ok <url>`). The .mdp is stored verbatim as `gromacs.mdp`, the topology
+as `<name>.gmxtop`, the structure as `<name>.gro`, includes beside the
+topology and a `.ndx` with them; a ready `.tpr` is stored as `run.gmxtpr` and
+the job skips grompp. A `.pdb` structure is refused (convert with `gmx
+editconf`). The calculation is left Ready; launch it as any calculation
+(`launchjob mdsetup`, `launch`).
+
+Hand-offs: New from This > Rerun and Continue from Last Geometry (hook
+`duplicate URL [last]`; with `last` the copy's starting .gro is the run's
+final frame, Ready), Continue in Another Code from it to another code (hook
+`anothercode TYPE SUFFIX FOLDER|- URL`: the final frame, charge 0,
+multiplicity from the electron count), and to GROMACS from any calculation:
+Continue in Another Code > GROMACS (from files), hook `anothercodegmx MDP GRO TOP
+SUFFIX|- FOLDER|- SOURCE...` (one calculation per source, named source +
+suffix, Ready; the source's final structure replaces the .gro's coordinates,
+refused with the differing atom when the atoms or their order differ; box
+kept, velocities dropped). Not a workflow step yet.
+
 ### The run directory
 
 The run directory on the compute machine (`job_path`) holds everything the
@@ -999,6 +1036,24 @@ experimental log K with its source and calc - exp; `--save NAME` stores
     ecce-ensemble minimum 'proj/conformers/*' --treatment qrrho-grimme:100
     ecce-ensemble benchmark proj/logk.txt --save logk-set1
 
+Thermochemistry contributions and reaction H/G at another temperature
+(#1044). `ecce-thermo CALC --json` carries, for each treatment, the
+translational, rotational, vibrational and electronic contributions to U
+(kJ/mol, without ZPE; `ZPE` separately), S and C_V, plus `Cv` and
+`Cp` = Cv + R (J/mol/K); a single atom has no rotation. The sigma ECCE-QM
+prints (`symmetry_number`) is stored as THERMOSIGMA and used, as for ORCA and
+Gaussian. The Thermochemistry panel shows the same numbers in a second table;
+the Builder script command `thermo <treatment> [T] [1atm|1M]` also prints
+`BUILDER: thermocontrib <row>|U|U+ZPE|S|Cv|Cp` for the five rows. In the
+Energy Calculator, the `ECCE_TEST_ORGANIZER` hook
+`compareenergies <A> <B> <treatment|stored> <T>` recomputes the H and G rows at
+T (with `stored`, Grimme qRRHO 100 cm-1), and `comparedialog <A> <B> <png|-> <T>`
+sets the dialog's T / K field; the table then has an `S (T K)` row,
+(dH - dG)/T in J/(K mol).
+
+    ecce-thermo proj/N2 --treatment rrho --T 723 --json
+    ecce-thermo proj/N2 --treatment rrho --contributions
+
 ### ecce-batch-smiles
 
     ecce-batch-smiles [--template CALC] [--name COL] [--smiles COL] [--response COL]... [--no-responses] [--header yes|no] [--replace] [--dry-run] [--launch] [--json] <folder> <table.csv|.tsv|->
@@ -1146,7 +1201,7 @@ launcher, without command wrappers for these tools.
 | `ecce-bandshift` | Match vibrational bands and report shifts |
 | `ecce-spectrum` | Process spectral curves |
 | `ecce-displace` | Displace a structure along a normal mode |
-| `ecce-thermo` | Recompute thermochemistry from stored results |
+| `ecce-thermo` | Recompute thermochemistry from stored results; `--json` gives per treatment H, S, G and the contributions `U_trans/U_rot/U_vib/U_elec`, `ZPE` (kJ/mol), `S_*`, `Cv_*`, `Cv`, `Cp` (J/mol/K); `--contributions` prints them as text |
 | `ecce-rate` | TST rate constants with Wigner/Eckart tunnelling from reactant, TS and product calculations |
 | `ecce-force-compare` | Compare stored forces (command line only) |
 | `ecce-mlp` | Run an ML potential job from its input file |
@@ -1154,6 +1209,7 @@ launcher, without command wrappers for these tools.
 | `ecce-qm` | Run the bundled quantum chemistry program, when built |
 | `ecce-results` | Convert and inspect results files, when built with HDF5 |
 | `ecce-fragorb` | Fragment-orbital analysis (`analyse <complex> <fragment>...`) and PDOS/OPDOS (`dos`) from results.h5 files of a complex and its fragment calculations at one geometry; `--json`, `--help` has the syntax |
+| `ecce-npa` | Natural population analysis (Reed–Weinstock–Weinhold NPA) computed by ECCE from a calculation's results.h5 (`ecce-npa <calc URL\|folder\|results.h5> [--json]`): natural charges, core/valence/Rydberg populations, spin populations (open shell), natural electron configuration; agrees with NBO 7's NPA within 0.005 e; refuses semiempirical, periodic and Cartesian-d/f calculations with a one-line reason; the Viewer's Properties list has the same charges as **Natural (NPA) Charges, computed by ECCE** (property key `NPAECCE`, computed on first selection and stored in results.h5 as `charges/npa_ecce`), beside the code's own NBO row **Natural (NPA) Charges** (key `NPA`). results.h5 now records ECP cores (`ecp` group: atom, name, ncore; `nucleus/charge`) from the stored basis or the ORCA/Gaussian output |
 | `ecce-morse` | Morse fit of a stored bond-length scan: De, a, re, ω_e, ω_e x_e, D0 (`ecce-morse <calc> [--window KJ_PER_MOL] [--atoms I,J] [--masses M1,M2] [--json]`) |
 | `ecce-gmxanalysis` | GROMACS analysis of a stored GROMACS calculation, as text, CSV or JSON: `<calc> groups`, `rdf`, `energy`, `rms`, `gyrate`, `density`, `hbond`; selections like `"residue:SOL & element:O"`; needs `gmx` |
 | `ecce-mocomp` | Atomic-orbital composition of one molecular orbital (`CALC --mo N\|homo\|lumo [--beta] [--method mulliken\|c2] [--min PCT] [--by ao,shell,type,atom] [--tsv]`), `--list` the orbitals, `--spin` Mulliken spin populations |

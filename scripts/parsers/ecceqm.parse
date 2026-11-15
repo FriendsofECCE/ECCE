@@ -152,6 +152,9 @@ if ($first =~ /^(energy_\w+)\s+(\S+)/ && exists($energyKey{$1})) {
   &scalarProp($k{$1}, $2, "Hartree");
 } elsif ($first =~ /^thermo_temperature\s+(\S+)/) {
   &scalarProp('THERMOTEMP', sprintf("%.2f", $1), "Kelvin");
+} elsif ($first =~ /^symmetry_number\s+(\d+)/) {
+  # the sigma ECCE-QM's own S used; ecce-thermo takes it over (#1043)
+  &scalarProp('THERMOSIGMA', $1, "NA");
 } elsif ($first =~ /^thermo_pressure_atm\s+(\S+)/) {
   &scalarProp('THERMOPRES', sprintf("%.5g", $1), "atm");
 } elsif ($first =~ /^begin vibrations\b/) {

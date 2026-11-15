@@ -18,6 +18,7 @@
 #include "dsm/PropertyTask.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/ResourceType.H"
+#include "dsm/CodeChoice.H"
 #include "dsm/Session.H"
 #include "tdat/Fragment.H"
 #include "tdat/TAtm.H"
@@ -481,7 +482,8 @@ set<string> RecipePanel::registeredCodes() const
   vector<ResourceType*> types = ResourceDescriptor::getResourceDescriptor().getResourceTypes();
   for (const WorkflowSteps::Code &c : WorkflowSteps::codes())
     for (size_t i = 0; i < types.size(); i++)
-      if (types[i]->getName() == c.typeName) out.insert(c.label);
+      if (types[i]->getName() == c.typeName && CodeChoice::typeShown(types[i]))
+        out.insert(c.label);
   return out;
 }
 

@@ -163,7 +163,8 @@ bool gatherThermoInput(const std::string& url, ThermoInput& in,
         t[1][0] = t[0][1]; t[2][0] = t[0][2]; t[2][1] = t[1][2];
         double ev[3];
         eigen3(t, ev);
-        in.linear = ev[0] < 1.0e-3;   // one principal moment ~ 0
+        in.atom = atoms->size() == 1;
+        in.linear = !in.atom && ev[0] < 1.0e-3;   // one principal moment ~ 0
         if (in.linear) {
           const double b = 0.5 * (rotConstant(ev[1]) + rotConstant(ev[2]));
           in.rotConstants[0] = b; in.rotConstants[1] = b; in.rotConstants[2] = b;

@@ -17,7 +17,8 @@ are not changed.
   or leave the field to recompute.
 - **Standard state** is 1 atm (gas) or 1 M (solution).
 - **Symmetry number** is the rotational symmetry number used for the rotational
-  entropy. Leave it empty to use the one the code printed (ORCA and Gaussian)
+  entropy. Leave it empty to use the one the code printed (ORCA, Gaussian and
+  ECCE-QM)
   or, where the code's output is not read for it, the one that follows from the
   stored point group. A number here replaces it.
 - **Rotor** is the rotor type: As found (from the geometry), Linear or
@@ -35,8 +36,34 @@ and the code's own stored values. Notes from the calculation, such as a
 symmetry number that had to be assumed, appear above the table. If there are no
 stored frequencies the panel says so and shows no recomputed numbers.
 
+## Contributions and heat capacities
+
+A second table, below the first, splits the recomputed numbers by where they
+come from, for the same treatment, temperature, standard state, symmetry
+number and rotor:
+
+- **U (kJ/mol)** is the thermal energy above the electronic energy, without the
+  zero-point energy: translational 3/2 RT, rotational RT (linear) or 3/2 RT
+  (non-linear), 0 for an atom, and the vibrational part, which grows with T.
+- **U + ZPE (kJ/mol)** adds the zero-point energy to the vibrational row and
+  the total.
+- **S (J K⁻¹ mol⁻¹)** is the entropy by contribution; the electronic part is
+  R ln(2S + 1).
+- **C_V (J K⁻¹ mol⁻¹)** is the heat capacity at constant volume: 3/2 R
+  translational, R or 3/2 R rotational, and the vibrational part, near zero for
+  a stiff vibration at room temperature (N₂) and approaching R per vibration at
+  high temperature (I₂). The electronic part is zero, since only the ground
+  state is counted.
+- **C_P** (total only) is C_V + R, for an ideal gas.
+
+The vibrational row follows the treatment: Truhlar's raises the low modes to
+100 cm⁻¹ for U, S and C_V; Head-Gordon's damps the thermal energy of the low
+modes toward RT/2 and C_V toward R/2; Grimme's changes only S.
+Changing the temperature or any other choice recomputes both tables.
+
 The numbers come from the `ecce-thermo` command, so running it on the same
-calculation gives the same values. For the spread of a reaction G over the
+calculation gives the same values; `ecce-thermo --contributions` prints the
+second table as text, and `--json` always includes it. For the spread of a reaction G over the
 treatments, see [Energy Calculator](energy-calculator.md).
 
 ## Reaction rates

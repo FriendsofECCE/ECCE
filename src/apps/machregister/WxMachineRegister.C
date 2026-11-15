@@ -65,6 +65,7 @@
 #include "SiteAdminClient.H"
 
 #include "dsm/CodeFactory.H"
+#include "dsm/CodeChoice.H"
 #include "dsm/MachinePreferences.H"
 #include "dsm/ResourceDescriptor.H"
 
@@ -161,6 +162,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_wordsWhere = NULL;
     p_codeSel = 0;
     p_codeList = NULL;
+    p_showHidden = NULL;
     p_codeTitle = NULL;
     p_codeExample = NULL;
     p_mlpSetup = NULL;
@@ -788,6 +790,14 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
     star->SetForegroundColour(gray);
     left->Add(star, wxSizerFlags().Border(wxTOP, 4));
     reg("code:list", p_codeList);
+    //  Codes unticked in Preferences > Codes stay out of the list unless
+    //  asked for; registering one turns it on there (save()).
+    p_showHidden = new wxCheckBox(page, wxID_ANY, "Show hidden codes");
+    left->Add(p_showHidden, wxSizerFlags().Border(wxTOP, 4));
+    reg("code:showhidden", p_showHidden);
+    p_showHidden->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
+        this->fillCodeList();
+    });
     p_codeList->Bind(wxEVT_LISTBOX, [this](wxCommandEvent& e) {
         int row = p_codeList->GetSelection();
         if (row != wxNOT_FOUND && row < (int)p_codeShown.size())
@@ -1091,7 +1101,9 @@ void WxMachineRegister::fillCodeList()
         //  for a code always shows it.
         if (codeInUse(p_codeNames[i]) ||
             (!retired.count(p_codeNames[i]) &&
-             CodeFactory::isRegistered(p_codeNames[i])))
+             CodeFactory::isRegistered(p_codeNames[i]) &&
+             (p_showHidden == NULL || p_showHidden->GetValue() ||
+              CodeChoice::shown(p_codeNames[i]))))
             p_codeShown.push_back((int)i);
     sortCodeShown();
     for (size_t r = 0; r < p_codeShown.size(); r++)
@@ -3968,6 +3980,10 @@ bool WxMachineRegister::save()
         return false;
     }
     this->saveDefaultAccount(name);
+    for (size_t i = 0; i < p_codeNames.size(); i++)
+        if (!strip((string)p_codePaths[i]->GetValue()).empty() &&
+            !CodeChoice::shown(p_codeNames[i]))
+            CodeChoice::show(p_codeNames[i]);
 
     // Warn only: the entry may be exactly what the site wants.
     string hdr = SubmitHeaderCheck::warning(

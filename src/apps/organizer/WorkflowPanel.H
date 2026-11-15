@@ -110,6 +110,7 @@ private:
   friend class WorkflowCanvas;
   void createControls();
   void updateTexts();
+  void rebuildCodeBar();
   void rewrapHelp();
   void joinClicked(const WorkflowSteps::Code& code, ResourceType *rt,
                    const std::vector<Resource*>& sources);
@@ -124,6 +125,8 @@ private:
   wxStaticText *p_status;
   wxButton *p_launch;
   wxCheckBox *p_autorun;
+  wxBoxSizer *p_codeBar = 0;
+  std::string p_codeSig;
   wxButton *p_apply;
   wxPanel *p_empty;
   wxBoxSizer *p_left;

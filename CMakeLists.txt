@@ -309,7 +309,8 @@ ecce_library(eccetdat
 if(ECCE_HAVE_RESULTSH5)
   target_sources(eccetdat PRIVATE
     src/tdat/resultsh5/ResultsBasis.C src/tdat/resultsh5/ResultsH5Io.C
-    src/tdat/resultsh5/ResultsConvert.C src/tdat/resultsh5/FragmentAnalysis.C)
+    src/tdat/resultsh5/ResultsConvert.C src/tdat/resultsh5/FragmentAnalysis.C
+    src/tdat/resultsh5/NaturalPopulation.C)
   target_include_directories(eccetdat PRIVATE ${HDF5_INCLUDE_DIRS})
   target_link_libraries(eccetdat PUBLIC ${HDF5_LIBRARIES})
 endif()
@@ -2629,6 +2630,7 @@ add_executable(thermo_test tests/thermo/thermo_test.C
   src/tdat/thermo/ThermoChem.C)
 target_link_libraries(thermo_test PRIVATE ecceutil)
 add_test(NAME thermo COMMAND thermo_test)
+add_test(NAME thermo_ecceqm_sigma COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/thermo/ecceqm_sigma_test.py)
 # gatherThermoInput reads real stored calculations through FileEDSI (#692):
 # the mass, rotational constants, linear flag and symmetry number come from
 # the stored geometry and point group, never from the test.
@@ -3590,6 +3592,19 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_advanced_prefs PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # Preferences > Codes hides unticked codes from new calculations (#1049).
+  add_test(NAME apps_code_choice
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/code_choice_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_code_choice PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  add_test(NAME apps_code_choice_calced
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/code_choice_calced_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_code_choice_calced PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Preferences > Data and the Add Server dialog (#767).
   add_test(NAME apps_prefs_data
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -3896,6 +3911,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_thermo_panel PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Energy Calculator H, G and S at a chosen temperature (#1044).
+  add_test(NAME apps_thermo_temperature
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/thermo_temperature_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_thermo_temperature PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Compare Energies > Reaction overview: chart data equals ecce-thermo (#709).
   add_test(NAME apps_reaction_overview
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4194,6 +4217,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/shot_hooks_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_shot_hooks PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # Viewer row "Natural (NPA) Charges, computed by ECCE" beside NBO's (#1054).
+  add_test(NAME apps_npa_charges
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/npa_charges_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_npa_charges PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # tools/screenshots/shots.py on a two-shot list.
   add_test(NAME apps_shots_driver
@@ -4576,6 +4606,37 @@ if(PYTHON3_EXECUTABLE)
     target_link_libraries(gbscoordsys PRIVATE
       "$<LINK_GROUP:RESCAN,${_gbs_libs}>" ${XercesC_LIBRARIES})
   endif()
+  # Long records must neither truncate a reader nor leave it spinning on failbit.
+  add_executable(long_lines_basis tests/long_lines/basis.C)
+  target_include_directories(long_lines_basis PRIVATE ${XercesC_INCLUDE_DIRS})
+  if(APPLE)
+    target_link_libraries(long_lines_basis PRIVATE ${_gbs_libs} ${XercesC_LIBRARIES})
+  else()
+    target_link_libraries(long_lines_basis PRIVATE
+      "$<LINK_GROUP:RESCAN,${_gbs_libs}>" ${XercesC_LIBRARIES})
+  endif()
+  add_executable(long_lines_properties tests/long_lines/properties.C)
+  target_link_libraries(long_lines_properties PRIVATE eccetdat ecceutil)
+  add_executable(long_lines_trajectory tests/long_lines/trajectory.C)
+  target_compile_definitions(long_lines_trajectory PRIVATE ${wxWidgets_DEFINITIONS})
+  target_include_directories(long_lines_trajectory PRIVATE
+    ${wxWidgets_INCLUDE_DIRS} ${XercesC_INCLUDE_DIRS})
+  set(_long_lines_viz_libs eccewxviz eccewxinv eccevizsg eccemoiv ecceinv
+    ${_gbs_libs} eccewxgui eccewxplotctrl eccewxthings)
+  if(APPLE)
+    target_link_libraries(long_lines_trajectory PRIVATE ${_long_lines_viz_libs}
+      ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES} ${ECCE_X11_LIBS} jpeg freetype)
+  else()
+    target_link_libraries(long_lines_trajectory PRIVATE
+      "$<LINK_GROUP:RESCAN,${_long_lines_viz_libs}>"
+      ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES} ${ECCE_X11_LIBS} jpeg freetype)
+  endif()
+  foreach(_reader basis properties trajectory)
+    add_test(NAME long_lines_${_reader} COMMAND ${PYTHON3_EXECUTABLE}
+      ${CMAKE_SOURCE_DIR}/tests/long_lines/run_test.py
+      $<TARGET_FILE:long_lines_${_reader}>)
+    set_tests_properties(long_lines_${_reader} PROPERTIES TIMEOUT 40)
+  endforeach()
   # tests/basis/testCodeContraction (#942): ORCA's segmented copy of a
   # general contraction, compared with ORCA's own print of its basis.
   add_executable(gbscodecontraction tests/basis/testCodeContraction.C)
@@ -5032,6 +5093,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs_import PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # #1038: a plain GROMACS run from the user's own .mdp/.gro/.top or .tpr.
+  add_test(NAME launch_gromacs_run
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_run_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs_run PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   # #877: every GROMACS run gets the Speed Distribution and Displacement data
   # (mdanalysis in the job script), and so does an imported run directory.
   add_test(NAME launch_gromacs_md_analysis
@@ -5573,6 +5641,14 @@ if(ECCE_HAVE_RESULTSH5)
   add_executable(ecce-fragorb src/tdat/resultsh5/ecce_fragorb.C)
   target_link_libraries(ecce-fragorb PRIVATE eccetdat ecceutil Threads::Threads)
   install(TARGETS ecce-fragorb RUNTIME DESTINATION bin COMPONENT client)
+  # Natural population analysis from results.h5 (#1054).
+  add_executable(ecce-npa src/tdat/resultsh5/ecce_npa.C)
+  target_include_directories(ecce-npa PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(ecce-npa PRIVATE
+    eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+    ${XercesC_LIBRARIES} Threads::Threads)
+  install(TARGETS ecce-npa RUNTIME DESTINATION bin COMPONENT client)
+  include(${CMAKE_SOURCE_DIR}/tests/npa/tests.cmake OPTIONAL)
   include(${CMAKE_SOURCE_DIR}/tests/fragorb_h5/tests.cmake OPTIONAL)
   include(${CMAKE_SOURCE_DIR}/tests/resultsh5/tests.cmake OPTIONAL)
 endif()
@@ -5644,6 +5720,9 @@ if(TARGET ecce-results)
 endif()
 if(TARGET ecce-fragorb)
   list(APPEND ECCE_COMMAND_WRAPPERS ecce-fragorb=bin/ecce-fragorb)
+endif()
+if(TARGET ecce-npa)
+  list(APPEND ECCE_COMMAND_WRAPPERS ecce-npa=bin/ecce-npa)
 endif()
 file(READ ${_launch_wrapper} _command_template)
 foreach(_command IN LISTS ECCE_COMMAND_WRAPPERS)

@@ -1,0 +1,15 @@
+{
+ "source": "NBO 7 NPA, ORCA B3LYP/def2-SVP, same run",
+ "elements": [
+  "C",
+  "O",
+  "H",
+  "H"
+ ],
+ "charge": [
+  0.27093,
+  -0.49817,
+  0.11362,
+  0.11362
+ ]
+}

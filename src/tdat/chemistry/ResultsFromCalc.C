@@ -24,6 +24,7 @@
 #include "tdat/EspField.H"
 #include "tdat/Fragment.H"
 #include "tdat/MoAoBasis.H"
+#include "tdat/NaturalPopulation.H"
 #include "tdat/PropTable.H"
 #include "tdat/PropTSVecTable.H"
 #include "tdat/PropVecTable.H"
@@ -581,9 +582,66 @@ bool convert(const Parsed& in, Model& m, string& why)
   if (!in.codeVersion.empty()) m.provenance["code_version"] = in.codeVersion;
   if (!in.method.empty()) m.provenance["method"] = in.method;
   if (!in.basisName.empty()) m.provenance["basis_name"] = in.basisName;
+  if (in.ecpCore.size() == m.natoms()) {
+    m.ecp = resultsh5::Ecp();
+    m.ecp.kind = "ECP";
+    m.nuclearCharge.assign(m.natoms(), 0.0);
+    for (size_t a = 0; a < m.natoms(); a++) {
+      m.nuclearCharge[a] = m.atomicNumber[a] - in.ecpCore[a];
+      if (in.ecpCore[a] <= 0) continue;
+      m.ecp.atom.push_back(int(a));
+      m.ecp.name.push_back(in.ecpName);
+      m.ecp.ncore.push_back(in.ecpCore[a]);
+    }
+    if (m.ecp.atom.empty()) { m.ecp = resultsh5::Ecp(); m.nuclearCharge.clear(); }
+  }
   //  Every provenance attribute costs about 0.2 kB, which a 3-atom file feels.
   m.provenance["converter_version"] = resultsh5::CONVERTER_VERSION;
   return true;
+}
+
+
+vector<int> ecpCoreFromOutput(std::istream& in, size_t natoms, string& name)
+{
+  vector<int> core(natoms, 0);
+  std::map<int,int> groupCore;
+  bool any = false, pseudo = false;
+  int rules = 0;   // '=====' lines seen in Gaussian's table
+  string line;
+  while (std::getline(in, line)) {
+    int g = 0, k = 0, a = 0, z = 0, v = 0;
+    char buf[64], tail[8];
+    //  ORCA: "Group 1, Type I  ECP Def2-ECP (replacing 28 core electrons, lmax=3)"
+    //        "Atom   1I    ECP group =>   1" (0-based atom)
+    const size_t rep = line.find("(replacing ");
+    if (line.compare(0, 6, "Group ") == 0 && rep != string::npos &&
+        sscanf(line.c_str(), "Group %d", &g) == 1 &&
+        sscanf(line.c_str() + rep, "(replacing %d", &k) == 1) {
+      groupCore[g] = k;
+      const size_t e = line.find(" ECP ");
+      if (e != string::npos && sscanf(line.c_str() + e + 5, "%63s", buf) == 1) name = buf;
+      continue;
+    }
+    const size_t arrow = line.find("ECP group =>");
+    if (line.compare(0, 5, "Atom ") == 0 && arrow != string::npos &&
+        sscanf(line.c_str(), "Atom %d", &a) == 1 &&
+        sscanf(line.c_str() + arrow, "ECP group => %d", &g) == 1) {
+      if (a >= 0 && size_t(a) < natoms && groupCore.count(g)) { core[a] = groupCore[g]; any = true; }
+      continue;
+    }
+    //  Gaussian: "Pseudopotential Parameters" table, a centre line is
+    //  "  centre  Z  valence-electrons" (1-based centre)
+    if (line.find("Pseudopotential Parameters") != string::npos) { pseudo = true; rules = 1; continue; }
+    if (!pseudo) continue;
+    if (line.find("=====") != string::npos) { if (++rules >= 4) pseudo = false; continue; }
+    if (rules == 3 && sscanf(line.c_str(), " %d %d %d %7s", &a, &z, &v, tail) == 3 &&
+        a >= 1 && size_t(a) <= natoms && z > v && v > 0) {
+      core[a - 1] = z - v;
+      any = true;
+    }
+  }
+  if (!any) core.clear();
+  return core;
 }
 
 
@@ -656,7 +714,29 @@ bool gather(IPropCalculation *calc, Parsed& out, string& why)
     TTheory *th = ic->theory();
     if (th != 0) { out.method = th->toConciseString(); delete th; }
     TGBSConfig *gbs = ic->gbsConfig();
-    if (gbs != 0) { out.basisName = gbs->name(); delete gbs; }
+    if (gbs != 0) {
+      out.basisName = gbs->name();
+      if (gbs->hasECPs()) {
+        out.ecpName = gbs->ecpName();
+        for (const string& sym : out.symbols) {
+          TagCountMap one;
+          one[sym] = 1;
+          out.ecpCore.push_back(gbs->num_ecpCoreElectrons(one));
+        }
+      }
+      delete gbs;
+    }
+    //  A basis named only on the route card has no ECP in the stored
+    //  basis; the code's output says which atoms have one.
+    bool any = false;
+    for (int c : out.ecpCore) any = any || c > 0;
+    if (!any) {
+      std::istream *is = ic->getDataFile(JCode::PRIMARY_OUTPUT);
+      if (is != 0) {
+        out.ecpCore = ecpCoreFromOutput(*is, out.symbols.size(), out.ecpName);
+        delete is;
+      }
+    }
   }
   if (out.code == "NWChem") fullPrecisionNwchem(calc, out);
   return true;
@@ -1171,6 +1251,37 @@ string coordUnit(const string& file, double& f)
 // per mode; structure tables "Atom" X Y Z with "i-El" rows; energies in
 // Hartree and structures in Angstrom.  Gaussian's mode symmetry labels
 // ("1-A1") are not in the file, so its modes come back numbered.
+// NPA charges computed by ECCE (#1054): from the file's charges/npa_ecce
+// when an earlier selection stored them, else computed now and stored there.
+static bool npaCharges(IPropCalculation *calc, TProperty *p)
+{
+  PropVector *v = dynamic_cast<PropVector*>(p);
+  std::shared_ptr<const Model> sm = stored(calc);
+  if (v == 0 || !sm) return false;
+  vector<double> q;
+  for (const resultsh5::Charges& c : sm->charges)
+    if (c.scheme == NPA_SCHEME && c.q.size() == sm->natoms()) q = c.q;
+  if (q.empty()) {
+    npa::Result r;
+    string err;
+    if (!npa::compute(*sm, r, err)) return false;
+    for (const npa::AtomResult& a : r.atoms) q.push_back(a.charge);
+    Model m = *sm;
+    resultsh5::Charges c;
+    c.scheme = NPA_SCHEME;
+    c.q = q;
+    m.charges.push_back(c);
+    const string tmp = scratchFile();
+    //  Not stored (read-only data, no store): the charges are still shown.
+    if (resultsh5::writeFile(tmp, m, err) && calc->storeFile(FILE_NAME, tmp)) forget(calc);
+    unlink(tmp.c_str());
+  }
+  v->rowLabel("Atom");
+  v->units("e");
+  v->values(q);
+  return true;
+}
+
 bool fromFile(IPropCalculation *calc, const string& key, TProperty *p)
 {
   if (calc == 0 || p == 0) return false;
@@ -1205,6 +1316,7 @@ bool fromFile(IPropCalculation *calc, const string& key, TProperty *p)
     v->setValues(tablesOf(mode, N), N, 3);
     return true;
   }
+  if (key == NPA_KEY) return npaCharges(calc, p);
   if (t == 0 || N == 0) return false;
   const size_t np = t->npoint(N);
   if (np == 0 || t->coord.size() != np*3*N) return false;
@@ -1263,6 +1375,8 @@ vector<string> keysInFile(IPropCalculation *calc)
   for (const char *k : {"VIBFREQ", "VIBIR", "VIBRAM"})
     if (vibArray(m, k)) keys.push_back(k);
   if (!m.vib.empty() && N > 0 && !m.vib[0].mode.empty()) keys.push_back("VIB");
+  std::shared_ptr<const Model> orb = stored(calc);
+  if (orb && npa::notApplicable(*orb).empty()) keys.push_back(NPA_KEY);
   for (const char *k : {"SCANGEOM", "SCANENERGY", "SCANCOORD", "IRCGEOM",
                         "IRCENERGY", "IRCCOORD", "GEOMTRACE", "TEVEC"}) {
     const resultsh5::Trace *t = traceNamed(m, k);

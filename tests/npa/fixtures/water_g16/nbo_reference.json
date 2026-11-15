@@ -1,0 +1,19 @@
+{
+ "source": "NBO 7 NPA (gennbo) on the same G16 B3LYP/def2-SVP wavefunction, archived with Pop=NBORead; NBO 3.1 (built into G16) differs by up to 0.006 e: nbo31_charge",
+ "elements": [
+  "O",
+  "H",
+  "H"
+ ],
+ "charge": [
+  -0.88899,
+  0.44449,
+  0.44449
+ ],
+ "nbo31_charge": [
+  -0.88541,
+  0.44271,
+  0.44271
+ ],
+ "nbo31_source": "NBO 3.1 (built into Gaussian 16) NPA, G16 B3LYP/def2-SVP, same run"
+}

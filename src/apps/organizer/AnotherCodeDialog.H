@@ -1,4 +1,4 @@
-// New from This > In Another Code... (#1037): the code, a name ending and the
+// New from This > Continue in Another Code... (#1037): the code, a name ending and the
 // folder for calculations made from the selected ones.
 #ifndef ANOTHERCODEDIALOG_H
 #define ANOTHERCODEDIALOG_H
@@ -23,7 +23,13 @@ public:
   AnotherCodeDialog(wxWindow *parent, int count,
                     const std::vector<std::pair<std::string, std::string> >& codes,
                     const EcceURL& folder,
-                    std::function<bool(EcceURL&)> chooser);
+                    std::function<bool(EcceURL&)> chooser,
+                    int hiddenCodes = 0);
+
+  /// The last entry, "N more codes (hidden)...", is the one chosen.
+  bool wantsMoreCodes() const;
+  /// Every entry of the code choice, as shown.
+  std::vector<std::string> labels() const;
 
   std::string typeName() const;
   std::string codeLabel() const;
@@ -37,6 +43,7 @@ private:
   std::vector<std::pair<std::string, std::string> > p_codes;
   EcceURL p_folder;
   std::function<bool(EcceURL&)> p_chooser;
+  int p_hidden;
   wxChoice *p_code;
   wxTextCtrl *p_suffix;
   wxStaticText *p_where;

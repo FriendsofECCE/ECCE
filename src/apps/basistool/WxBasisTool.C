@@ -4026,7 +4026,7 @@ void WxBasisTool::showContextChanged(bool chgd)
       p_messagesFeedback->setMessage("This calculation has already run or was "
           "imported, so its basis set is a record of that run and changes "
           "to it are not saved. To use another basis set, make a copy with "
-          "Duplicate for Rerun in the Organizer and change the copy.",
+          "New from This > Rerun in the Organizer and change the copy.",
           WxFeedback::WARNING);
     }
   }

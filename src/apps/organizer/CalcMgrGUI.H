@@ -92,6 +92,7 @@ public:
     /// File > Open Example Calculations
     virtual    void OnOpenExamplesClick( wxCommandEvent& event );
     virtual    void OnImportGromacsClick( wxCommandEvent& event );
+    virtual    void OnNewGromacsRunClick( wxCommandEvent& event );
 
     /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXPORT
     virtual    void OnExportClick( wxCommandEvent& event );
@@ -113,6 +114,7 @@ public:
     virtual    void OnReparseOutputsClick( wxCommandEvent& event );
     virtual    void OnNewSeriesClick( wxCommandEvent& event );
     virtual    void OnAnotherCodeClick( wxCommandEvent& event );
+    virtual    void OnMoreCodesClick( wxCommandEvent& event );
     virtual    void OnTerminateSelectedClick( wxCommandEvent& event );
 
     /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_CUT
@@ -276,6 +278,7 @@ public:
     static const wxWindowID wxID_REPARSE_OUTPUTS;
     static const wxWindowID wxID_NEW_SERIES;
     static const wxWindowID wxID_ANOTHER_CODE;
+    static const wxWindowID wxID_MORE_CODES;
     static const wxWindowID wxID_TERMINATE_SELECTED;
     static const wxWindowID wxID_HOMEASROOT;
     static const wxWindowID ID_FRAME;
@@ -304,6 +307,7 @@ public:
     static const wxWindowID wxID_IMPORT;
     static const wxWindowID wxID_OPENEXAMPLES;
     static const wxWindowID wxID_IMPORTGROMACS;
+    static const wxWindowID wxID_NEWGROMACSRUN;
     static const wxWindowID wxID_NEWSTRUCTURE;
     static const wxWindowID wxID_RENAME;
     static const wxWindowID wxID_SHOW_TOOLBAR;

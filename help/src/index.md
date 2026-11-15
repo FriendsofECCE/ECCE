@@ -67,6 +67,9 @@ describe what you did and what happened.
    energies and relaxations of periodic cells.
    [Your first GROMACS calculation](gromacs-first-calculation.md): a small
    protein through Prepare, Optimize, Equilibrate and Dynamics.
+   [A GROMACS calculation from your own files](gromacs-calculation-from-files.md):
+   a single calculation made from a .mdp, a structure and a topology, or from
+   a ready .tpr, that hands its final frame to other codes and takes theirs.
 7. [Molecules for teaching](molecules-for-teaching.md): the small molecules
    of a first laboratory, ready in the Structure Library at their measured
    bond lengths.
@@ -144,6 +147,8 @@ describe what you did and what happened.
 24a. [Thermochemistry](thermochemistry.md): H, S and G recomputed from the
    stored frequencies with a chosen low-frequency treatment, temperature and
    standard state.
+24a1. [Natural population analysis (NPA)](natural-population-analysis.md):
+   natural charges, populations and electron configurations computed by ECCE from the stored orbitals, for any code (`ecce-npa`).
 
 24c. [Umbrella sampling with GROMACS](umbrella-sampling.md): a pull run,
    windows cut from its trajectory, and the PMF from `gmx wham`, with the

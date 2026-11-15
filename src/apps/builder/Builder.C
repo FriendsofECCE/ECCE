@@ -6731,8 +6731,18 @@ void Builder::updatePropertyMenus()
       int capW = 480, capH = 480;
       if (const char *sz = getenv("ECCE_VIEWER_SCENE_SIZE"))
         sscanf(sz, "%dx%d", &capW, &capH);
+      //  A "shot" photographs the screen, so its scene must be in the
+      //  Builder's own canvas: the capture frame would be in the photo,
+      //  over the Builder (#1056).
+      bool photographed = false;
+      {
+        std::ifstream in(script.c_str());
+        string line;
+        while (!photographed && std::getline(in, line))
+          photographed = line.compare(0, 5, "shot ") == 0;
+      }
       SGViewer *viewer = p_viewer;
-      if (!hold) {
+      if (!hold && !photographed) {
         wxFrame *frame = new wxFrame(NULL, wxID_ANY, "scene capture");
         viewer = new SGViewer(frame, wxID_ANY);
         viewer->setText("", "", "", "");

@@ -6,7 +6,7 @@ section: "Pitfalls found more than once (check for siblings)"
 paths: ["data/client/cap/ORCA.edml", "scripts/parsers/ai.orca", "scripts/parsers/orca.tpl", "data/client/config/verify/ORCA.words", "src/dsm/edsiimpl/OrbitalGuess.C", "src/dsm/edsiimpl/TaskJob.C", "src/dsm/edsiimpl/DavCalculation.C", "src/comm/commxt/Launch.C", "src/comm/commxt/JobStore.C", "src/apps/organizer/CalcMgr.C", "src/apps/calced/CalcEd.C", "tests/launch/orca_guess_test.py"]
 issues: [75]
 ---
-"Duplicate with Final Orbitals" (Organizer) copies the last geometry and
+"Continue from Final Orbitals" (Organizer, Edit > New from This) copies the last geometry and
 the source's `orca.orcain.gbw` into a duplicate, which then reads it with
 `! MORead` and `%moinp "guess.gbwin"`; the Calculation Editor shows
 "Initial guess: MOs from <calc>" (and "projected from <basis>" when the

@@ -32,3 +32,4 @@ THERMOTEMP	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 VIB	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 VIBFREQ	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 VIBIR	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+THERMOSIGMA	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
