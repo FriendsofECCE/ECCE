@@ -49,11 +49,11 @@ Right-click the calculation and use **New from This**:
   Geometry**): a copy whose starting `.gro` is the final frame of the run,
   velocities included. A calculation made from a `.tpr` has no `.gro`, so its
   copy runs the same `.tpr` again.
-- **In Another Code...** (in the calculation table): a calculation in another
+- **Continue in Another Code...** (in the calculation table): a calculation in another
   code, for example xTB or ORCA, that starts from the final frame.
 
 The other way, from an xTB, ORCA or other calculation to GROMACS: select the
-calculation, choose **New from This > In Another Code...** and pick
+calculation, choose **New from This > Continue in Another Code...** and pick
 **GROMACS (from files)**. ECCE asks for your `.mdp`, `.gro` and `.top` as
 above, and the coordinates in the `.gro` are replaced by the calculation's
 final structure. The atoms must be the same and in the same order as in the

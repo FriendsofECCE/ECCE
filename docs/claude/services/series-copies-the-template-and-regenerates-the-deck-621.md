@@ -27,7 +27,7 @@ of eight codes byte for byte (stored under `tests/apps/fixtures/decks/`).
   cleanServerDirs, `rm -f dir/*`) on an unlaunched copy would empty the
   template's directory, and tests/launch/launchjob.C ran every copy there
   (#728).
-- New from This > In Another Code (#1037) is `Series::first` (the first calculation,
+- New from This > Continue in Another Code (#1037) is `Series::first` (the first calculation,
   the user's setup step in the Calculation Editor) then `Series::make` with the
   first as template; both load a source through one `loadStructure`. The editor
   is a separate process, so the Organizer cannot see it close: a small window

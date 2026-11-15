@@ -277,7 +277,7 @@ Launcher. You: after the user's yes, `ecce-launch [on=MACHINE] [profile=NAME]
 
 **A series or a batch.** User: select calculations in the table, Tools >
 New Calculations in Another Code... (or the table's right-click New from
-This > In Another Code...; `new-series`): the first new
+This > Continue in Another Code...; `new-series`): the first new
 calculation opens in the Calculation Editor, then "Make the Others" copies
 its setup to the rest, each with its source's final geometry, charge and
 multiplicity (the same code as `ecce-series`; test hooks `anothercode`,
@@ -714,10 +714,10 @@ editconf`). The calculation is left Ready; launch it as any calculation
 
 Hand-offs: New from This > Rerun and Continue from Last Geometry (hook
 `duplicate URL [last]`; with `last` the copy's starting .gro is the run's
-final frame, Ready), In Another Code from it to another code (hook
+final frame, Ready), Continue in Another Code from it to another code (hook
 `anothercode TYPE SUFFIX FOLDER|- URL`: the final frame, charge 0,
 multiplicity from the electron count), and to GROMACS from any calculation:
-In Another Code > GROMACS (from files), hook `anothercodegmx MDP GRO TOP
+Continue in Another Code > GROMACS (from files), hook `anothercodegmx MDP GRO TOP
 SUFFIX|- FOLDER|- SOURCE...` (one calculation per source, named source +
 suffix, Ready; the source's final structure replaces the .gro's coordinates,
 refused with the differing atom when the atoms or their order differ; box

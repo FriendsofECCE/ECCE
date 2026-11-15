@@ -34,15 +34,14 @@ on its run state.
 
 ## Edit
 
-- **Duplicate for Rerun**: a copy of the selected calculation with the same
-  structure and settings, ready to launch. The same as **New from This >
-  Rerun** in the right-click menu.
-- **Duplicate Setup with Last Geometry**: a copy that starts from the
-  geometry the calculation ended on. The same as **New from This > Continue
-  from Last Geometry**.
-- **Duplicate with Final Orbitals**: as the previous item, and the copy also
-  starts from the final orbitals. The same as **New from This > Continue from
-  Final Orbitals**.
+- **New from This**: the same three items as **New from This** in the
+  right-click menu.
+  - **Rerun**: a copy of the selected calculation with the same structure and
+    settings, ready to launch.
+  - **Continue from Last Geometry**: a copy that starts from the geometry the
+    calculation ended on.
+  - **Continue from Final Orbitals**: as the previous item, and the copy also
+    starts from the final orbitals.
 - **Cut** (Ctrl+X), **Copy** (Ctrl+C), **Paste** (Ctrl+V): move or copy the
   selection into the selected project or folder.
 - **Rename**: renames the selected item; one item only.
@@ -125,7 +124,7 @@ Selected...** and **Re-Parse Outputs**.
 - **Reset to Rerun** (Alt+R): resets a finished calculation so that it can
   be launched again; the outputs of the previous run are removed. Imported
   calculations are skipped, since the reset would delete the only copy of
-  their results; use **Edit > Duplicate for Rerun** for them.
+  their results; use **Edit > New from This > Rerun** for them.
 - **Reset for Restart**: sets the state back to ready; the outputs stay.
 - **Reset State**: changes the state alone, to completed, incomplete,
   imported or killed.

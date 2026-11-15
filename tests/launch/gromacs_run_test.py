@@ -9,7 +9,7 @@ monitor stores energies, the trajectory and the final structure.
 
 Hand-offs (case 1's run): New from This > Rerun and Continue from Last
 Geometry (`duplicate URL [last]`; the copy's .gro is the final frame, and it
-runs), In Another Code from GROMACS to xTB (`anothercode`), and from that xTB
+runs), Continue in Another Code from GROMACS to xTB (`anothercode`), and from that xTB
 calculation back to GROMACS (`anothercodegmx`: the coordinates go into the
 user's .gro; a .gro whose atoms differ is refused).
 
@@ -166,7 +166,7 @@ def main():
                 run_it("continued", "", ("conf.gro", "gromacs.mdp"), new[0],
                        url=cu)
 
-            say("hand-off: In Another Code, GROMACS -> xTB")
+            say("hand-off: Continue in Another Code, GROMACS -> xTB")
             ans, new = made_by("anothercode xtb_es _xtb - %s" % url)
             xurl = None
             if check(" made" in ans and new == ["gromacs_xtb"],
@@ -177,7 +177,7 @@ def main():
             if not xurl:
                 return
 
-            say("hand-off: In Another Code, xTB -> GROMACS")
+            say("hand-off: Continue in Another Code, xTB -> GROMACS")
             ans, new = made_by("anothercodegmx %s %s %s _gmx - %s"
                                % (mdp, gro, top, xurl))
             if check("made, Ready" in ans and new == ["gromacs_xtb_gmx"],
