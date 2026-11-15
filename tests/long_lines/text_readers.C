@@ -21,15 +21,39 @@ int fail(const char* what)
   return 1;
 }
 
-// PDB: an ATOM line with a long tail, read by restorePDB (1024-byte buffer
-// before).  The tail is spaces; the two atoms must come out the same.
+// Fixed-column records are padded to 80 columns with spaces, as a normal
+// PDB or CAR file is written.  A short line leaves the columns past its
+// end as NUL, which is not what the old reader saw, so the reference is
+// padded too.
+string col80(const string& line)
+{
+  return line.size() < 80 ? line + string(80 - line.size(), ' ') : line;
+}
+
+// PDB: restorePDB reads 1024- or 1025-byte lines.  tail is appended to the
+// first ATOM line only.
 bool pdbDump(const string& tail, string& dump, size_t& natoms)
 {
   const string atom1 = "ATOM      1  C   ALA A   1    1.000   2.000   3.000  1.00  0.00           C";
   const string atom2 = "ATOM      2  O   ALA A   1    4.000   5.000   6.000  1.00  0.00           O";
-  std::istringstream in(atom1 + tail + "\n" + atom2 + "\nEND\n");
+  std::istringstream in(col80(atom1) + tail + "\n" + col80(atom2) + "\nEND\n");
   Fragment frag;
   if (!frag.restorePDB(in, 1.0, false)) return false;
+  natoms = frag.numAtoms();
+  std::ostringstream out;
+  frag.dumpPDB(out, false);
+  dump = out.str();
+  return true;
+}
+
+// CAR: restoreCAR reads 256-byte lines; tail is appended to the first atom.
+bool carDump(const string& tail, string& dump, size_t& natoms)
+{
+  std::istringstream in("!BIOSYM archive 3\nPBC=OFF\ntitle\n!date\n" +
+                        string("C1 1.0 2.0 3.0 C1 MOL 1 C") + tail + "\n" +
+                        "C2 4.0 5.0 6.0 C2 MOL 1 O\nend\nend\n");
+  Fragment frag;
+  if (!frag.restoreCAR(in, 1.0, false)) return false;
   natoms = frag.numAtoms();
   std::ostringstream out;
   frag.dumpPDB(out, false);
@@ -50,6 +74,13 @@ int main()
   if (!pdbDump("", shortDump, shortAtoms) || shortAtoms != 2) return fail("PDB short line");
   if (!pdbDump(pad, longDump, longAtoms) || longAtoms != 2 || longDump != shortDump)
     return fail("PDB long line");
+
+  // CAR reader: the same check with a 2000-character first atom line.
+  string carShort, carLong;
+  size_t carShortAtoms = 0, carLongAtoms = 0;
+  if (!carDump("", carShort, carShortAtoms) || carShortAtoms != 2) return fail("CAR short line");
+  if (!carDump(pad, carLong, carLongAtoms) || carLongAtoms != 2 || carLong != carShort)
+    return fail("CAR long line");
 
   // GUIValues: a value line over MAXLINE, then a line that must still load.
   GUIValues shortGui;
