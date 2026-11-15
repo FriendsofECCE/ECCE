@@ -47,6 +47,9 @@ public:
   string colourSchemeShown() const;
   bool tickAdvanced(const string& key, bool on);   // as a click does
   string dataTest(const string& line);             // "prefs data ..."
+  // Preferences > Codes (#1049): show the page, hidden codes first when asked.
+  void showCodesPage(bool hiddenFirst);
+  string codesTest(const string& line);            // "prefs codes ..."
 
   // One "command" setting: a choice of well-known programs plus a text
   // field that is editable for "Other".  Stored value is the command;
@@ -70,6 +73,9 @@ private:
   void createGatewayPage(wxWindow* page);
   void createDataPage(wxWindow* page);
   void createAdvancedPage(wxWindow* page);
+  void createCodesPage(wxWindow* page);
+  void updateCodesPage();
+  void saveCodes();
   void OnChooseAdvancedFile(wxCommandEvent& event);
   void updateDataPage();
   void OnChangeDataFolder(wxCommandEvent& event);
@@ -104,6 +110,12 @@ private:
   bool isDefaultPrograms();
   void updateResetButton();
 
+
+  struct CodeRow { std::string name; ewxCheckBox* box; wxSizer* row; };
+  vector<CodeRow> p_codeRows;
+  wxBoxSizer* p_codesList;
+  ewxStaticText* p_codesNote;
+  wxWindow* p_codesPage;
 
   JMSPublisher* p_publisher;
   ewxNotebook* p_book;

@@ -176,6 +176,8 @@ public:
   /// in the Calculation Editor; finishAnotherCode makes the others from its
   /// setup.  outcome: the hooks' answers (no editor window, no prompt).
   void OnAnotherCodeClick( wxCommandEvent& event );
+  void OnMoreCodesClick( wxCommandEvent& event );
+  void appendMoreCodes( wxMenu& menu );
   void startAnotherCode(const string& typeName, const string& suffix,
                         const EcceURL& folder, const vector<string>& sources,
                         bool interactive, string *outcome);

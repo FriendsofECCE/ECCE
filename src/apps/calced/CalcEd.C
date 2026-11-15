@@ -55,6 +55,8 @@
 #include "dsm/ResourceType.H"
 #include "dsm/SummaryIterator.H"
 #include "dsm/CodeFactory.H"
+#include "dsm/CodeChoice.H"
+#include "wxgui/GlobalPrefs.H"
 
 #include "wxgui/ewxThemeColours.H"
 #include "wxgui/ThingToggle.H"
@@ -508,6 +510,8 @@ void CalcEd::createCodeButtons()
   std::vector<std::pair<int, wxCustomButton*> > groups[4];
 
   for (size_t it = 0; it < codes.size(); it++) {
+    // A hidden code gets no button, except the one this calculation is in.
+    if (!CodeChoice::shown(codes[it]) && codes[it] != p_codeName) continue;
     rt = rd.getResourceType("virtual_document", "ecceCalculation", codes[it]);
     if (rt!=(ResourceType*)0 && rt->getFactoryCategory()=="EsCalculation") {
       // add the index into the list of supported codes as a way of
@@ -547,6 +551,23 @@ void CalcEd::createCodeButtons()
     p_codeSizer->Add(name, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
     for (size_t k = 0; k < groups[g].size(); k++)
       p_codeSizer->Add(groups[g][k].second, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+  }
+
+  // Hidden codes stay visible as a count that opens Preferences > Codes.
+  const int hidden = CodeChoice::hiddenCount();
+  if (hidden > 0) {
+    wxButton *more = new wxButton(this, wxID_ANY,
+        wxString::FromUTF8(CodeChoice::barLabel(hidden).c_str()));
+    more->SetName("more_codes");
+    more->SetToolTip(wxString::FromUTF8(CodeChoice::moreTip(hidden).c_str()));
+    more->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+      static GlobalPrefs *prefs = 0;
+      if (!prefs) prefs = new GlobalPrefs(this);
+      prefs->showCodesPage(true);
+      prefs->Show(true);
+      prefs->Raise();
+    });
+    p_codeSizer->Add(more, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
   }
 }
 

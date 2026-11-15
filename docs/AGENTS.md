@@ -152,6 +152,20 @@ The Organizer's menus and Preferences, item by item, are on the help pages
 `organizer-menubar` (menu bar, toolbar, Preferences) and `organizer-menus`
 (right-click menus).
 
+### Which codes are offered (Preferences > Codes, #1049)
+
+Codes unticked in **Edit > Preferences > Codes** are hidden from making new
+calculations (File > New, right-click New, Continue in Another Code, the
+workflow new-step buttons, the Calculation Editor code bar); existing
+calculations of them are unaffected. The setting is `Codes.Shown` in
+`~/.ECCE/EcceGlobal` (a string list starting with the marker `chosen`; absent =
+default: ECCE-QM plus codes registered on a machine, or `Shown:` in
+`$ECCE_HOME/siteconfig/Codes`). Every hiding list ends with
+`N more codes (hidden)...` (editor bar `+N hidden`). Test hooks (Organizer
+`ECCE_TEST_ORGANIZER`): `prefs codes list|all|registered|page [hiddenfirst]|
+tick NAME on|off`; `tests/apps/code_choice_test.py`. One filter:
+`CodeChoice` (`include/dsm/CodeChoice.H`).
+
 ### The life of a calculation
 
 A calculation has a run state (help page `run-states`):

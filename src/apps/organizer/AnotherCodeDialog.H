@@ -23,7 +23,11 @@ public:
   AnotherCodeDialog(wxWindow *parent, int count,
                     const std::vector<std::pair<std::string, std::string> >& codes,
                     const EcceURL& folder,
-                    std::function<bool(EcceURL&)> chooser);
+                    std::function<bool(EcceURL&)> chooser,
+                    int hiddenCodes = 0);
+
+  /// The last entry, "N more codes (hidden)...", is the one chosen.
+  bool wantsMoreCodes() const;
 
   std::string typeName() const;
   std::string codeLabel() const;
@@ -37,6 +41,7 @@ private:
   std::vector<std::pair<std::string, std::string> > p_codes;
   EcceURL p_folder;
   std::function<bool(EcceURL&)> p_chooser;
+  int p_hidden;
   wxChoice *p_code;
   wxTextCtrl *p_suffix;
   wxStaticText *p_where;
