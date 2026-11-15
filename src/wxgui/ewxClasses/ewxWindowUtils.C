@@ -39,6 +39,7 @@ extern "C" {
 #include "dsm/ResourceTool.H"
 
 #include "wxgui/ewxWindowUtils.H"
+#include "wxgui/ToolTabs.H"
 #include "wxgui/ewxScrolledWindow.H"
 #include "wx/display.h"
 #include "wx/statline.h"
@@ -115,7 +116,7 @@ void ewxRaiseWindow(wxWindow *win)
   //  wxGTK's Raise) would map it: a tool frame kept hidden while its windows
   //  are in a tab (#983) covered the main window as an empty frame.
   wxTopLevelWindow *tlw = wxDynamicCast(win, wxTopLevelWindow);
-  if (tlw && !tlw->IsShown()) return;
+  if (ToolTabs::enabled() && tlw && !tlw->IsShown()) return;
   const char *how = "wxWindow::Raise";
 #if defined(__WXGTK__)
   GtkWidget *gw = (GtkWidget*)win->GetHandle();
