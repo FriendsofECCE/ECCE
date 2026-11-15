@@ -951,6 +951,13 @@ sub RunType {
   } else {
     die "ai.orca error: unsupported runtype '$runtype' (reduced scope covers Energy/Gradient/Geometry/Vibration/GeoVib/Magnetic/IRC/NEB-TS only)\n";
   }
+  #  With "Freq" on the line ORCA 6.1.1 takes the analytic Hessian path even
+  #  when NumFreq (FreqMethodToken) is there too, and B88-exchange Raman
+  #  aborts at the input check (exit 55).
+  if (&HasFrequencies($runtype) &&
+      $AbiDict{"ES.Runtype.Vibration.Method"} eq "Numerical") {
+    $result =~ s/\s*\bFreq\b//;
+  }
   return $result;
 }
 
