@@ -975,7 +975,13 @@ def runTabsLauncher(display):
         project = os.path.join(data, "users", "local", "oneproc")
         os.makedirs(project)
         shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
-        calc = pb.makeCalc(project, "water-l", "ready", None)
+        # An ECCE-QM water calculation, which runs in the isolated session.
+        calc = os.path.join(project, "water-l")
+        shutil.copytree(os.path.join(HERE, "..", "ecceqm", "fixtures",
+                                     "h2o-geometry"), calc, symlinks=True)
+        meta = open(os.path.join(calc, ".ecce-meta")).read()
+        open(os.path.join(calc, ".ecce-meta"), "w").write(
+            re.sub(r"(ecce:state\t\t)\w+", r"\1ready", meta))
         url = "file://" + calc
         cmds = os.path.join(work, "commands")
         calced = os.path.join(work, "calced-script")
@@ -988,6 +994,15 @@ def runTabsLauncher(display):
                 handle.write(line + "\n")
             time.sleep(wait)
 
+        shots = os.environ.get("ECCE_TABS_SHOTS")
+
+        def shot(name):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+                subprocess.run(["import", "-display", ":%s" % display.number,
+                                "-window", "root", os.path.join(shots, name)],
+                               check=False)
+
         def inspect(_display):
             append("start CalculationEditor " + url, 30)   # then its script
             append("tabs", 2)
@@ -995,12 +1010,13 @@ def runTabsLauncher(display):
             append("launcher get machine", 2)
             append("inprocess", 2)
             append("tabinfo Launch", 2)
-            append("launcher launch", 60)
+            append("launcher launch", 90)
             append("launcher get machine", 2)
             append("towindow 2", 8)
             append("totabs Launcher", 8)
             append("tabs", 2)
             append("close", 3)
+            shot("launcher-quit.png")
             append("answer", 3)
             append("answer no", 3)
             append("answer no", 20)
@@ -1032,12 +1048,12 @@ def runTabsLauncher(display):
         machines = pb.answers(log, "launcher get machines")
         check(machines and "localhost" in machines[0],
               "localhost is in the Launcher's machine list", str(machines))
-        # The fixture's code cannot run here, so the state stays 'ready':
-        # Launch is proved by the launch notice reaching Organizer and editor.
-        check(any(t[0] == "Organizer" and t[3] == "ecce_url_launch" for t in
-                  re.findall(r"ECCE_TEST_MESSAGES: (\S+) (\S+) pid=(\d+) "
-                             r"(\S+) from Launcher", log)),
-              "Launch from the tab sent its launch notice to the Organizer")
+        m = re.search(r"ecce:state\t\t(\w+)",
+                      open(os.path.join(calc, ".ecce-meta")).read())
+        state = m.group(1) if m else "?"
+        check(state.lower() in ("submitted", "running", "complete", "completed"),
+              "Launch from the tab ran the ECCE-QM water calculation "
+              "(state %s)" % state)
         tt = pb.answers(log, "tabs")
         check(len(tt) >= 1 and "Launcher" in tt[-1],
               "Open in Window and Move to Tabs keep the Launcher tab",
