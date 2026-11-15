@@ -114,6 +114,7 @@ public:
     virtual    void OnReparseOutputsClick( wxCommandEvent& event );
     virtual    void OnNewSeriesClick( wxCommandEvent& event );
     virtual    void OnAnotherCodeClick( wxCommandEvent& event );
+    virtual    void OnMoreCodesClick( wxCommandEvent& event );
     virtual    void OnTerminateSelectedClick( wxCommandEvent& event );
 
     /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_CUT
@@ -277,6 +278,7 @@ public:
     static const wxWindowID wxID_REPARSE_OUTPUTS;
     static const wxWindowID wxID_NEW_SERIES;
     static const wxWindowID wxID_ANOTHER_CODE;
+    static const wxWindowID wxID_MORE_CODES;
     static const wxWindowID wxID_TERMINATE_SELECTED;
     static const wxWindowID wxID_HOMEASROOT;
     static const wxWindowID ID_FRAME;

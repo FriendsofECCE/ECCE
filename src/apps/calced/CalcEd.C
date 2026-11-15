@@ -55,6 +55,8 @@
 #include "dsm/ResourceType.H"
 #include "dsm/SummaryIterator.H"
 #include "dsm/CodeFactory.H"
+#include "dsm/CodeChoice.H"
+#include "wxgui/GlobalPrefs.H"
 
 #include "wxgui/ewxThemeColours.H"
 #include "wxgui/ThingToggle.H"
@@ -306,7 +308,29 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
 void CalcEd::runTestCommand(const string& line)
 {
   string outcome;
-  if (line == "state") {
+  if (line.compare(0, 9, "codeshown") == 0) {
+    // "codeshown NAME on|off": tick a code as Preferences > Codes does, then
+    // rebuild the code bar.
+    std::istringstream in(line.substr(9));
+    string name, state;
+    in >> name >> state;
+    CodeChoice::show(name, state == "on");
+    createCodeButtons();
+    outcome = "ok";
+  } else if (line == "codebar") {
+    // The code bar: tooltip of each code button, then the hidden button.
+    outcome = "ok";
+    wxSizerItemList items = p_codeSizer->GetChildren();
+    for (wxSizerItemList::compatibility_iterator n = items.GetFirst(); n;
+         n = n->GetNext()) {
+      wxWindow *w = n->GetData()->GetWindow();
+      if (!w) continue;
+      if (w->GetName() == "more_codes")
+        outcome += " more=" + string(w->GetLabel().ToUTF8());
+      else if (wxDynamicCast(w, wxCustomButton))
+        outcome += " code=" + string(w->GetToolTipText().ToUTF8());
+    }
+  } else if (line == "state") {
     GUIValue *v = p_GUIValues ? p_GUIValues->get("ES.Theory.UseSymmetry") : 0;
     wxWindow *box = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
     outcome = "stored=" + (v ? v->getValueAsString() : string("absent")) +
@@ -508,6 +532,8 @@ void CalcEd::createCodeButtons()
   std::vector<std::pair<int, wxCustomButton*> > groups[4];
 
   for (size_t it = 0; it < codes.size(); it++) {
+    // A hidden code gets no button, except the one this calculation is in.
+    if (!CodeChoice::shown(codes[it]) && codes[it] != p_codeName) continue;
     rt = rd.getResourceType("virtual_document", "ecceCalculation", codes[it]);
     if (rt!=(ResourceType*)0 && rt->getFactoryCategory()=="EsCalculation") {
       // add the index into the list of supported codes as a way of
@@ -547,6 +573,23 @@ void CalcEd::createCodeButtons()
     p_codeSizer->Add(name, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
     for (size_t k = 0; k < groups[g].size(); k++)
       p_codeSizer->Add(groups[g][k].second, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+  }
+
+  // Hidden codes stay visible as a count that opens Preferences > Codes.
+  const int hidden = CodeChoice::hiddenCount();
+  if (hidden > 0) {
+    wxButton *more = new wxButton(this, wxID_ANY,
+        wxString::FromUTF8(CodeChoice::barLabel(hidden).c_str()));
+    more->SetName("more_codes");
+    more->SetToolTip(wxString::FromUTF8(CodeChoice::moreTip(hidden).c_str()));
+    more->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+      static GlobalPrefs *prefs = 0;
+      if (!prefs) prefs = new GlobalPrefs(this);
+      prefs->showCodesPage(true);
+      prefs->Show(true);
+      prefs->Raise();
+    });
+    p_codeSizer->Add(more, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
   }
 }
 

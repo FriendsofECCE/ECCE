@@ -13,6 +13,7 @@
 #include "wx/filedlg.h"
 #include "wx/listctrl.h"
 #include "wx/file.h"
+#include "wx/scrolwin.h"
 
 #include <cstdlib>
 #include <sstream>
@@ -21,6 +22,7 @@
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
 #include "util/Preferences.H"
+#include "dsm/CodeChoice.H"
 #include "util/PreferenceLabels.H"
 #include "util/TDateTime.H"
 #include "util/UnitFactory.H"
@@ -100,7 +102,8 @@ namespace {
 
 
 GlobalPrefs::GlobalPrefs(wxWindow* parent)
-  : p_publisher(NULL), p_book(NULL),
+  : p_codesList(NULL), p_codesNote(NULL), p_codesPage(NULL),
+    p_publisher(NULL), p_book(NULL),
     p_fontSize(NULL), p_dateFormat(NULL),
     p_timeFormat(NULL), p_unit(NULL), p_elementColours(NULL), p_stateIconStyle(NULL), p_systemFont(NULL), p_beepError(NULL), p_beepWarn(NULL),
     p_focus(NULL), p_quickTransp(NULL), p_ecceQmMoDiagram(NULL), p_updateCheck(NULL), p_updatePreviews(NULL), p_updateLocked(false), p_confirmExit(NULL), p_closeShells(NULL),
@@ -141,6 +144,10 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
   wxPanel* data = new wxPanel(p_book);
   createDataPage(data);
   p_book->AddPage(data, _("Data"));
+
+  wxPanel* codes = new wxPanel(p_book);
+  createCodesPage(codes);
+  p_book->AddPage(codes, _("Codes"));
 
   wxPanel* advanced = new wxPanel(p_book);
   createAdvancedPage(advanced);
@@ -534,6 +541,162 @@ string GlobalPrefs::envOverrideNote(const char* var, const char* what)
   if (v == NULL || *v == '\0') return "";
   return string(var) + "=" + v + " is set and overrides " + what +
          " setting.";
+}
+
+
+void GlobalPrefs::createCodesPage(wxWindow* page)
+{
+  p_codesPage = page;
+  wxBoxSizer* outer = new wxBoxSizer(wxVERTICAL);
+  outer->Add(new ewxStaticText(page, wxID_ANY,
+      _("Tick the codes you use. Unticked codes are hidden when you make a\n"
+        "new calculation (File > New, right-click New, Continue in Another\n"
+        "Code, the workflow view, the Calculation Editor). Existing\n"
+        "calculations of a hidden code open, rerun and analyse as before.")),
+      0, wxALL, PAD);
+  p_codesNote = new ewxStaticText(page, wxID_ANY, "");
+  outer->Add(p_codesNote, 0, wxLEFT|wxRIGHT, PAD);
+
+  wxScrolledWindow* scroll = new wxScrolledWindow(page, wxID_ANY,
+      wxDefaultPosition, wxSize(-1, 300), wxVSCROLL);
+  scroll->SetScrollRate(0, 10);
+  p_codesList = new wxBoxSizer(wxVERTICAL);
+  for (const CodeChoice::Info& info : CodeChoice::known()) {
+    CodeRow r;
+    r.name = info.name;
+    wxBoxSizer* row = new wxBoxSizer(wxVERTICAL);
+    wxString label = wxString::FromUTF8(info.display.c_str());
+    if (!info.core) label += _(" (experimental)");
+    r.box = new ewxCheckBox(scroll, wxID_ANY, label, wxDefaultPosition,
+                            wxDefaultSize, wxCHK_2STATE);
+    r.box->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { saveCodes(); });
+    row->Add(r.box, 0, wxTOP, PAD);
+    row->Add(new ewxStaticText(scroll, wxID_ANY,
+        wxString::FromUTF8(info.text.c_str())), 0, wxLEFT, PAD*3);
+    r.row = row;
+    p_codesList->Add(row, 0, wxGROW|wxLEFT|wxRIGHT, PAD);
+    p_codeRows.push_back(r);
+  }
+  scroll->SetSizer(p_codesList);
+  outer->Add(scroll, 1, wxGROW|wxALL, PAD);
+
+  wxBoxSizer* buttons = new wxBoxSizer(wxHORIZONTAL);
+  ewxButton* all = new ewxButton(page, wxID_ANY, _("Show all"));
+  ewxButton* reg = new ewxButton(page, wxID_ANY, _("Only registered"));
+  all->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    for (CodeRow& r : p_codeRows) r.box->SetValue(true);
+    saveCodes();
+  });
+  reg->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    for (CodeRow& r : p_codeRows)
+      r.box->SetValue(r.name == "ECCE-QM" || CodeChoice::registeredCode(r.name));
+    saveCodes();
+  });
+  buttons->Add(all, 0, wxRIGHT, PAD);
+  buttons->Add(reg, 0);
+  outer->Add(buttons, 0, wxLEFT|wxRIGHT|wxBOTTOM, PAD);
+  page->SetSizer(outer);
+  updateCodesPage();
+  Bind(wxEVT_SHOW, [this](wxShowEvent& e) {
+    if (e.IsShown()) updateCodesPage();
+    e.Skip();
+  });
+}
+
+
+void GlobalPrefs::updateCodesPage()
+{
+  vector<string> shown = CodeChoice::shownCodes();
+  for (CodeRow& r : p_codeRows)
+    r.box->SetValue(std::find(shown.begin(), shown.end(), r.name) != shown.end());
+  const int hidden = CodeChoice::hiddenCount();
+  p_codesNote->SetLabel(hidden == 0 ? _("All codes are offered.")
+      : wxString::FromUTF8((std::to_string(hidden) + (hidden == 1 ?
+          " code is hidden when making new calculations." :
+          " codes are hidden when making new calculations.")).c_str()));
+}
+
+
+void GlobalPrefs::saveCodes()
+{
+  vector<string> on;
+  for (CodeRow& r : p_codeRows)
+    if (r.box->GetValue()) on.push_back(r.name);
+  CodeChoice::setShown(on);
+  updateCodesPage();
+}
+
+
+void GlobalPrefs::showCodesPage(bool hiddenFirst)
+{
+  updateCodesPage();
+  // Hidden codes first when asked, then the core codes in their fixed
+  // order, then the experimental ones (the order of CodeChoice::known()).
+  vector<CodeRow> order;
+  if (hiddenFirst)
+    for (CodeRow& r : p_codeRows) if (!r.box->GetValue()) order.push_back(r);
+  for (const CodeChoice::Info& info : CodeChoice::known())
+    for (CodeRow& r : p_codeRows)
+      if (r.name == info.name &&
+          !(hiddenFirst && !r.box->GetValue())) order.push_back(r);
+  for (CodeRow& r : p_codeRows) p_codesList->Detach(r.row);
+  for (CodeRow& r : order)
+    p_codesList->Add(r.row, 0, wxGROW|wxLEFT|wxRIGHT, PAD);
+  p_codeRows = order;
+  // Set the boxes again after the move so what is drawn is the stored state.
+  updateCodesPage();
+  p_codesList->Layout();
+  p_codesPage->Layout();
+  p_codesPage->Refresh();
+  for (size_t i = 0; i < p_book->GetPageCount(); i++)
+    if (p_book->GetPageText(i) == _("Codes")) p_book->SetSelection(i);
+}
+
+
+// "prefs codes list|page|tick NAME on|off|all|registered|snap PATH"
+string GlobalPrefs::codesTest(const string& line)
+{
+  std::istringstream in(line);
+  string op, name, state;
+  in >> op >> name >> state;
+  if (op == "page") {
+    showCodesPage(name == "hiddenfirst");
+    return "ok";
+  }
+  if (op == "tick") {
+    for (CodeRow& r : p_codeRows) {
+      if (r.name != name) continue;
+      r.box->SetValue(state == "on");
+      saveCodes();
+      return "ok";
+    }
+    return "unknown code";
+  }
+  if (op == "all" || op == "registered") {
+    for (CodeRow& r : p_codeRows)
+      r.box->SetValue(op == "all" || r.name == "ECCE-QM" ||
+                      CodeChoice::registeredCode(r.name));
+    saveCodes();
+    return "ok";
+  }
+  if (op == "list") {
+    string out = "hidden=" + std::to_string(CodeChoice::hiddenCount());
+    vector<string> shown = CodeChoice::shownCodes();
+    for (const CodeChoice::Info& i : CodeChoice::known())
+      out += " " + i.name + "=" +
+             (std::find(shown.begin(), shown.end(), i.name) != shown.end()
+              ? "on" : "off");
+    return out;
+  }
+  // What the page itself holds: the rows in order with their boxes, and the
+  // count line, to compare with "list".
+  if (op == "page-state") {
+    string out = "note=" + string(p_codesNote->GetLabel().ToUTF8()) + " rows=";
+    for (CodeRow& r : p_codeRows)
+      out += r.name + "=" + (r.box->GetValue() ? "on" : "off") + ",";
+    return out;
+  }
+  return "unknown";
 }
 
 

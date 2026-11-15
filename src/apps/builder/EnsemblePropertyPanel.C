@@ -60,6 +60,7 @@
 #include "dsm/ICalculation.H"
 #include "dsm/ChemistryTask.H"
 #include "dsm/ResourceDescriptor.H"
+#include "dsm/CodeChoice.H"
 #include "dsm/ResourceType.H"
 #include "dsm/Session.H"
 #include "tdat/Fragment.H"
@@ -691,6 +692,7 @@ vector<string> EnsemblePropertyPanel::codeChoices(int& dflt)
     for (size_t t = 0; t < types.size(); t++)
       if (types[t]->getName() == codes[i].typeName) installed = true;
     if (!installed) continue;
+    if (!CodeChoice::typeNameShown(codes[i].typeName)) continue;
     if (string(codes[i].label) == "ORCA") dflt = (int)out.size();
     out.push_back(string(codes[i].label) + "|" + codes[i].typeName);
   }

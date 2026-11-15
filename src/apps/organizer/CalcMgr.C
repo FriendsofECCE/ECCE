@@ -104,6 +104,8 @@ static std::string s_registerMessage;
 #include "dsm/Series.H"
 #include "dsm/GromacsCalc.H"
 #include "AnotherCodeDialog.H"
+#include "dsm/CodeChoice.H"
+static std::vector<std::pair<std::string, std::string> > anotherCodeList();
 #include "dsm/SmilesBatch.H"
 #include <wx/choicdlg.h>
 #include "QsarDialog.H"
@@ -542,6 +544,12 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
     int fm = mb ? mb->FindMenu(_("File")) : wxNOT_FOUND;
     if (fm != wxNOT_FOUND) getFileMenu(*mb->GetMenu(fm), 0);
   }
+  // Ticking a code in Preferences > Codes shows in File > New at once.
+  CodeChoice::setListener([this]() {
+    wxMenuBar * mb = GetMenuBar();
+    int fm = mb ? mb->FindMenu(_("File")) : wxNOT_FOUND;
+    if (fm != wxNOT_FOUND) getFileMenu(*mb->GetMenu(fm), 0);
+  });
 
   stopDisabler();
 
@@ -3371,6 +3379,12 @@ void CalcMgr::runTestCommand(const string& line)
           outcome = "ok";
         }
       }
+    } else if (command == "anothercodelabels") {
+      // The entries of the Continue in Another Code dialog's code choice.
+      AnotherCodeDialog dlg(this, 1, anotherCodeList(), EcceURL(), 0,
+                            CodeChoice::hiddenCount());
+      outcome = "ok";
+      for (const string& l : dlg.labels()) outcome += " code=" + l + ";";
     } else if (command == "prefs") {
       // "prefs open|colours jmol|colours ecce|advanced KEY on|childenv VAR|state|snap PATH": the
       // Preferences window, its Colours tab as a click chooses.
@@ -3379,7 +3393,23 @@ void CalcMgr::runTestCommand(const string& line)
       args >> what >> arg;
       if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(this);
       p_prefs->Show(true);
-      if (what == "data") {
+      if (what == "codes") {
+        // "prefs codes list|page [hiddenfirst]|tick NAME on|off|all|registered"
+        string rest;
+        std::getline(args, rest);
+        if (arg == "snap") {
+          p_prefs->showCodesPage(true);
+          // GTK animates a tick change; shoot after it has finished.
+          for (int i = 0; i < 20; i++) { wxMilliSleep(50); wxYield(); }
+          string path;
+          std::istringstream r(rest);
+          r >> path;
+          outcome = ecceClientShot(p_prefs, wxString::FromUTF8(path.c_str()))
+              ? "saved" : "not saved";
+        } else {
+          outcome = p_prefs->codesTest(arg + rest);
+        }
+      } else if (what == "data") {
         // "prefs data show|snap P|file|remove NAME|form TYPE P|add TYPE NAME F.. P"
         for (int i = 0; i < 10; i++) wxYield();
         string rest;
@@ -3520,6 +3550,7 @@ void CalcMgr::runTestCommand(const string& line)
  */
 CalcMgr::~CalcMgr( )
 {
+  CodeChoice::setListener(nullptr);
   delete p_releaseNotice;
   saveSettings();
   int low, high;
@@ -4835,6 +4866,31 @@ WxResourceTreeItemData * CalcMgr::nearestContainer(
     node = up;
   }
   return 0;
+}
+
+
+/**
+ * The last entry of every New list that hides codes: the count is in the
+ * label so a hidden code is never mistaken for a missing one (#1049).
+ */
+void CalcMgr::appendMoreCodes( wxMenu& menu )
+{
+  const int hidden = CodeChoice::hiddenCount();
+  if (hidden <= 0) return;
+  menu.AppendSeparator();
+  wxMenuItem *more = menu.Append(wxID_MORE_CODES,
+      wxString::FromUTF8(CodeChoice::moreLabel(hidden).c_str()),
+      wxString::FromUTF8(CodeChoice::moreTip(hidden).c_str()));
+  (void)more;
+}
+
+
+void CalcMgr::OnMoreCodesClick( wxCommandEvent& event )
+{
+  if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(this);
+  p_prefs->showCodesPage(true);
+  p_prefs->Show(true);
+  p_prefs->Raise();
 }
 
 
@@ -6227,6 +6283,31 @@ void CalcMgr::newSeries(const EcceURL& templ, const vector<string>& sources,
 
 
 
+/**
+ * The codes Continue in Another Code offers: those ticked in Preferences >
+ * Codes (#1049), then GROMACS from the user's own files.
+ */
+static vector<std::pair<string, string> > anotherCodeList()
+{
+  vector<std::pair<string, string> > codes;
+  vector<ResourceType*> types =
+      ResourceDescriptor::getResourceDescriptor().getResourceTypes();
+  for (const WorkflowSteps::Code& c : WorkflowSteps::codes())
+    for (size_t i = 0; i < types.size(); i++)
+      if (types[i]->getName() == c.typeName && CodeChoice::typeShown(types[i])) {
+        codes.push_back(std::make_pair(string(c.label), string(c.typeName)));
+        break;
+      }
+  //  Not a workflow step (yet): its setup is the user's files, asked for
+  //  after the dialog.
+  for (size_t i = 0; i < types.size(); i++)
+    if (types[i]->getName() == "gromacs_md_run" && CodeChoice::shown("GROMACS"))
+      codes.push_back(std::make_pair(string("GROMACS (from files)"),
+                                     string("gromacs_md_run")));
+  return codes;
+}
+
+
 /*!
  * New from This > Continue in Another Code (#1037).  The first calculation is made
  * from the first selected one and opened in the Calculation Editor, where the
@@ -6253,22 +6334,8 @@ void CalcMgr::OnAnotherCodeClick( wxCommandEvent& event )
     setMessage("Select one or more calculations first.", WxFeedback::INFO);
     return;
   }
-  vector<std::pair<string, string> > codes;
-  vector<ResourceType*> types =
-      ResourceDescriptor::getResourceDescriptor().getResourceTypes();
-  for (const WorkflowSteps::Code& c : WorkflowSteps::codes())
-    for (size_t i = 0; i < types.size(); i++)
-      if (types[i]->getName() == c.typeName) {
-        codes.push_back(std::make_pair(string(c.label), string(c.typeName)));
-        break;
-      }
-  //  Not a workflow step (yet): its setup is the user's files, asked for
-  //  after the dialog.
-  for (size_t i = 0; i < types.size(); i++)
-    if (types[i]->getName() == "gromacs_md_run")
-      codes.push_back(std::make_pair(string("GROMACS (from files)"),
-                                     string("gromacs_md_run")));
-  if (codes.empty()) {
+  vector<std::pair<string, string> > codes = anotherCodeList();
+  if (codes.empty() && CodeChoice::hiddenCount() == 0) {
     setMessage("No code is registered.", WxFeedback::INFO);
     return;
   }
@@ -6281,8 +6348,13 @@ void CalcMgr::OnAnotherCodeClick( wxCommandEvent& event )
         if (fc.ShowModal() != wxID_OK) return false;
         chosen = fc.selectedUrl();
         return true;
-      });
+      }, CodeChoice::hiddenCount());
   if (dlg.ShowModal() != wxID_OK) return;
+  if (dlg.wantsMoreCodes()) {
+    wxCommandEvent more(wxEVT_MENU, wxID_MORE_CODES);
+    OnMoreCodesClick(more);
+    return;
+  }
   if (dlg.typeName() == "gromacs_md_run") {
     string mdp, gro, top, tpr;
     if (!askGromacsFiles(false, mdp, gro, top, tpr)) return;
@@ -10435,6 +10507,7 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     menuItem->SetBitmap(ewxBitmap(resVec[i]->getIcon()));
     newMenu->Append(menuItem);
   }
+  if (!resVec.empty()) appendMoreCodes(*newMenu);
   //  An imported output is a new calculation too; users look for it here,
   //  not only under File.
   if (!resVec.empty()) {
@@ -10759,6 +10832,7 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
       mi->SetBitmap(ewxBitmap(types[i]->getIcon()));
       newMenu->Append(mi);
     }
+    if (!types.empty()) appendMoreCodes(*newMenu);
     menu.Append(wxID_ANY, _("&New"), newMenu);
     menu.AppendSeparator();
   }

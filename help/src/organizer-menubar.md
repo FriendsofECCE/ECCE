@@ -273,6 +273,40 @@ over these settings, and the tab says so.
   for jobs that finish afterwards, and for Gaussian 16 checkpoint files only;
   see [The results file](results-file-format.md).
 
+### Codes
+
+Codes you have not ticked are hidden when you make a new calculation. Each
+list that hides some ends with an entry such as **9 more codes (hidden)...**
+(the Calculation Editor's code bar ends with **+9 hidden**), which opens this
+tab with the hidden codes at the top; tick a code and it is offered at once,
+with no restart.
+
+The tick decides only what is offered for a **new** calculation: **File >
+New**, the right-click **New** menu, **New from This > Continue in Another
+Code...**, the workflow view's new-step buttons and the Calculation Editor's
+code bar. A calculation of a hidden code still opens, reruns and is analysed
+as before. **Register Machines** also leaves hidden codes out of its list;
+its **Show hidden codes** box lists them all, and saving a machine with a
+program for a hidden code ticks that code here.
+
+A new installation offers ECCE-QM and every code registered on a machine (a
+site may set another default in `siteconfig/Codes`). **Show all** ticks every
+code; **Only registered** ticks ECCE-QM and the codes registered on a
+machine. This tab lists every supported code, hidden or not:
+
+- **ECCE-QM**: the built-in quantum chemistry engine; nothing to install.
+- **ORCA**: DFT, wavefunction methods and spectroscopy.
+- **Gaussian 16**: molecular quantum chemistry (optimisations, scans,
+  transition states, IRC).
+- **xTB**: fast semi-empirical tight-binding energies, geometries and
+  frequencies.
+- **CREST**: conformer and rotamer search with xTB.
+- **GROMACS**: classical molecular dynamics of liquids, solids and
+  biomolecules.
+- **CP2K**: periodic DFT and ab initio molecular dynamics.
+- Experimental: **NWChem**, **MOPAC**, **Quantum ESPRESSO**, **MLP (MACE)**
+  and **AutoDock Vina**.
+
 ### Advanced
 
 Switches for testing and troubleshooting; see

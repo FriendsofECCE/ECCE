@@ -48,6 +48,7 @@ const wxWindowID CalcMgrGUI::wxID_RECONNECT_SELECTED = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_REPARSE_OUTPUTS = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_NEW_SERIES = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_ANOTHER_CODE = wxNewId();
+const wxWindowID CalcMgrGUI::wxID_MORE_CODES = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_TERMINATE_SELECTED = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_HOMEASROOT = wxNewId();
 const wxWindowID CalcMgrGUI::ID_FRAME = wxNewId();
@@ -123,6 +124,7 @@ BEGIN_EVENT_TABLE( CalcMgrGUI, ewxFrame )
     EVT_MENU( wxID_REPARSE_OUTPUTS, CalcMgrGUI::OnReparseOutputsClick )
     EVT_MENU( wxID_NEW_SERIES, CalcMgrGUI::OnNewSeriesClick )
     EVT_MENU( wxID_ANOTHER_CODE, CalcMgrGUI::OnAnotherCodeClick )
+    EVT_MENU( wxID_MORE_CODES, CalcMgrGUI::OnMoreCodesClick )
     EVT_MENU( wxID_TERMINATE_SELECTED, CalcMgrGUI::OnTerminateSelectedClick )
 
     EVT_MENU( wxID_CUT, CalcMgrGUI::OnCutClick )
@@ -532,6 +534,11 @@ void CalcMgrGUI::OnNewSeriesClick( wxCommandEvent& event )
 }
 
 void CalcMgrGUI::OnAnotherCodeClick( wxCommandEvent& event )
+{
+    event.Skip();
+}
+
+void CalcMgrGUI::OnMoreCodesClick( wxCommandEvent& event )
 {
     event.Skip();
 }

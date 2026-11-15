@@ -1,4 +1,5 @@
 #include "AnotherCodeDialog.H"
+#include "dsm/CodeChoice.H"
 
 #include <algorithm>
 #include <cctype>
@@ -22,9 +23,9 @@ string lower(string s)
 
 AnotherCodeDialog::AnotherCodeDialog(wxWindow *parent, int count,
     const std::vector<std::pair<string, string> >& codes, const EcceURL& folder,
-    std::function<bool(EcceURL&)> chooser)
+    std::function<bool(EcceURL&)> chooser, int hiddenCodes)
   : wxDialog(parent, wxID_ANY, _("New from This in Another Code")),
-    p_codes(codes), p_folder(folder), p_chooser(chooser)
+    p_codes(codes), p_folder(folder), p_chooser(chooser), p_hidden(hiddenCodes)
 {
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
   top->Add(new wxStaticText(this, wxID_ANY, U(count == 1
@@ -38,6 +39,7 @@ AnotherCodeDialog::AnotherCodeDialog(wxWindow *parent, int count,
   grid->Add(new wxStaticText(this, wxID_ANY, _("Code")), 0, wxALIGN_CENTER_VERTICAL);
   p_code = new wxChoice(this, wxID_ANY);
   for (const auto& c : p_codes) p_code->Append(U(c.first));
+  if (p_hidden > 0) p_code->Append(U(CodeChoice::moreLabel(p_hidden)));
   int sel = 0;
   for (size_t i = 0; i < p_codes.size(); i++)
     if (p_codes[i].first == "ORCA") sel = (int)i;
@@ -70,13 +72,26 @@ AnotherCodeDialog::AnotherCodeDialog(wxWindow *parent, int count,
 string AnotherCodeDialog::typeName() const
 {
   int i = p_code->GetSelection();
-  return i >= 0 ? p_codes[i].second : string();
+  return i >= 0 && i < (int)p_codes.size() ? p_codes[i].second : string();
 }
 
 string AnotherCodeDialog::codeLabel() const
 {
   int i = p_code->GetSelection();
-  return i >= 0 ? p_codes[i].first : string();
+  return i >= 0 && i < (int)p_codes.size() ? p_codes[i].first : string();
+}
+
+std::vector<string> AnotherCodeDialog::labels() const
+{
+  std::vector<string> out;
+  for (unsigned i = 0; i < p_code->GetCount(); i++)
+    out.push_back(string(p_code->GetString(i).ToUTF8()));
+  return out;
+}
+
+bool AnotherCodeDialog::wantsMoreCodes() const
+{
+  return p_hidden > 0 && p_code->GetSelection() == (int)p_codes.size();
 }
 
 string AnotherCodeDialog::suffix() const
@@ -86,7 +101,7 @@ string AnotherCodeDialog::suffix() const
 
 void AnotherCodeDialog::OnCode(wxCommandEvent&)
 {
-  if (!p_suffixEdited) p_suffix->ChangeValue(U("_" + lower(codeLabel())));
+  if (!p_suffixEdited && !wantsMoreCodes()) p_suffix->ChangeValue(U("_" + lower(codeLabel())));
 }
 
 void AnotherCodeDialog::OnFolder(wxCommandEvent&)
