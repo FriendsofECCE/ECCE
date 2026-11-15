@@ -184,3 +184,26 @@ own `LauncherMessages` (`p_msgs`), not `wxTheApp`, which in one process is
 the Organizer's dispatcher. The frame overrides `Show/Raise/SetTitle/
 Destroy/Iconize/Layout/GetMenuBar/FindWindow(long)`; `refit` becomes
 `ToolTabs::layout`. Standalone `launcher` is unchanged.
+
+## LaunchPanel and the Set-up area's Launch (#983)
+
+The Launcher's controls and launch logic are `LaunchPanel` (a wxPanel);
+`WxLauncher` is only the frame, menus, geometry and ToolTabs plumbing around
+it, and the panel talks to its host through `LaunchHost` (close, defer broker
+messages, relayout, menu enabling, `inlineWarnings`). `LauncherMessages` and
+the test script drive the panel; Show/Iconize/Close go to the frame.
+
+In the Set-up tab Launch... shows a panel in `SetupArea` (kind `LAUNCH`),
+made through `LaunchEmbed::maker()` because the editor is linked without the
+Launcher; with none registered the tool opens as before. That host has
+`inlineWarnings()`: the three pre-launch confirmations (MPI missing, ECCE-QM
+size, the launch check) become a warning line and the button reads "Launch
+anyway"; the next click accepts exactly the warnings shown, then launches.
+The embedded panel has no broker subscription: it publishes its launch
+notices as usual but does not follow later state or machine-list messages.
+
+A launch whose machine asks for an ssh password runs the separate
+`passdialog` program on the worker thread; until it is answered the GUI
+thread waits in `runLaunchStep` and Quit does not return. The old test
+fixture (an NWChem calculation on `localhost` over ssh) hit that, which was
+the -15 at Quit.

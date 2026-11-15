@@ -21,6 +21,7 @@
 #include "CalcEdGUI.H"
 #include "SetupArea.H"
 #include "BasisPanel.H"
+#include "wxgui/LaunchEmbed.H"
 
 using std::string;
 using std::vector;
@@ -87,7 +88,7 @@ struct SetupArea::Embedded {
 const char *SetupArea::kindName(Kind k)
 {
   return k == THEORY ? "theory" : k == RUNTYPE ? "runtype" :
-         k == BASIS ? "basis" : "input";
+         k == BASIS ? "basis" : k == LAUNCH ? "launch" : "input";
 }
 
 
@@ -144,6 +145,7 @@ SetupArea::~SetupArea()
 
 void SetupArea::drop()
 {
+  p_launch.reset();
   if (p_basisPanel) {
     p_basisPanel->Destroy();
     p_basisPanel = 0;
@@ -252,6 +254,49 @@ void SetupArea::showBasis()
     ToolTabs::allocate(this);
     Refresh();
   });
+}
+
+
+bool SetupArea::showLaunch()
+{
+  if (!LaunchEmbed::maker()) return false;
+  if (p_kind == LAUNCH && p_launch) return true;
+  drop();
+  p_input->Hide();
+  p_launch.reset(LaunchEmbed::maker()(p_body, p_ed->getContext(),
+      [this]() { CallAfter([this]() { showInput(); }); },
+      [this]() { if (p_launch) { Layout(); p_body->Layout(); fitBody(); } }));
+  wxWindow *w = p_launch->window();
+  p_body->GetSizer()->Add(w, 1, wxEXPAND);
+  p_kind = LAUNCH;
+  p_title->SetLabel("Launch");
+  p_note->SetLabel("");
+  p_note->Hide();
+  mark();
+  Layout();
+  p_body->Layout();
+  CallAfter([this]() {
+    if (!p_launch) return;
+    p_launch->window()->Layout();
+    fitBody();
+    SendSizeEvent();
+    p_body->SendSizeEvent();
+    ToolTabs::allocate(this);
+    Refresh();
+  });
+  return true;
+}
+
+
+string SetupArea::launchGet(const string& what)
+{
+  return p_launch ? p_launch->get(what) : "";
+}
+
+
+bool SetupArea::launchGo()
+{
+  return p_launch && p_launch->go();
 }
 
 
@@ -409,6 +454,8 @@ wxString SetupArea::describe() const
   if (p_kind == INPUT) {
     out += wxString::Format(" lines=%d dry=%d", p_input->GetNumberOfLines(),
                             (int)p_dry);
+  } else if (p_kind == LAUNCH && p_launch) {
+    out += " " + wxString::FromUTF8(p_launch->get("info").c_str());
   } else if (p_kind == BASIS && p_basisPanel) {
     out += " " + wxString::FromUTF8(p_basisPanel->describe().c_str());
   } else if (p_emb) {

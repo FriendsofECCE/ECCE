@@ -1176,6 +1176,11 @@ wxString CalcEd::setupCommand(const wxString& arg)
     } else if (rest == "all") {
       if (!p_setupArea->basisUseAll()) return "not possible";
     }
+  } else if (arg == "launch" || arg == "launch info" || arg == "launch go") {
+    if (arg == "launch") doSave();
+    if (!p_setupArea->showLaunch()) return "no Launcher panel";
+    if (arg == "launch go" && !p_setupArea->launchGo())
+      return "Launch is off";
   } else if (arg == "input") {
     p_setupArea->showInput();
   } else if (arg == "fold" || arg == "unfold") {
@@ -1278,6 +1283,14 @@ void CalcEd::OnToolClick(wxCommandEvent &event)
   if (p_setupArea && basis && event.GetId() == basis->getId()) {
     p_setupArea->showBasis();
     return;
+  }
+  // ... and the Launch... button shows the Launcher's panel.
+  ResourceTool *launcher =
+      ResourceDescriptor::getResourceDescriptor().getTool(LAUNCHER);
+  if (p_setupArea && launcher && event.GetId() == launcher->getId()) {
+    doSave();
+    if (p_setupArea->showLaunch())
+      return;
   }
   doSave();
   startApp(event.GetId(), 0, p_context);

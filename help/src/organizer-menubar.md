@@ -311,6 +311,13 @@ window and the tab says so.
   filled from the chosen layout. Changing a row and pressing **OK** makes
   the layout Custom.
 - Below the dropdown: which tools are tabs and which are windows.
+  **Launch...** shows the Launcher in the same area, with the machine, the
+  number of processors, the queue or priority the machine needs, and the
+  run directory (**Advanced** is folded). A warning before the launch, such
+  as a large calculation or a missing MPI program, appears in the panel and
+  the button becomes **Launch anyway**; nothing blocks the launch. Close it
+  from the Launcher's own menu or by choosing Theory, Runtype or Basis Set
+  Details again.
 
 A change applies to tools opened afterwards. The tab strip is made when the
 Organizer starts: after changing from Wide to a layout with tabs, start

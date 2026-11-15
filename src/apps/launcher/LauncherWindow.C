@@ -9,6 +9,8 @@
 #include "dsm/ResourceDescriptor.H"
 #include "wxgui/InProcessTools.H"
 #include "wxgui/ToolTabs.H"
+#include "wxgui/LaunchEmbed.H"
+#include "wxgui/ewxButton.H"
 #include "LauncherMessages.H"
 #include "WxLauncher.H"
 
@@ -43,8 +45,49 @@ static wxString launcherCommand(const wxString& arg)
   return "bad command";
 }
 
+// The panel in the Set-up area: warnings are shown in it, not as pop-ups.
+namespace {
+class EmbeddedLaunch : public LaunchEmbed, public LaunchHost
+{
+public:
+  EmbeddedLaunch(wxWindow *parent, const string& url,
+                 std::function<void()> close, std::function<void()> resize)
+    : p_close(close), p_resize(resize)
+  {
+    p_panel = new LaunchPanel(parent, this);
+    p_panel->setContext(url);
+  }
+  ~EmbeddedLaunch() { if (p_panel) p_panel->Destroy(); }
+  wxWindow *window() override { return p_panel; }
+  bool go() override { return p_panel && p_panel->clickLaunch(); }
+  string get(const string& what) override
+  {
+    if (!p_panel) return "";
+    if (what != "info") return p_panel->hookGet(what);
+    wxWindow *b = p_panel->FindWindow(LaunchPanel::ID_BUTTON_WXLAUNCHER_LAUNCH);
+    string out = "machine=" + p_panel->hookGet("machine") + " launch=";
+    out += !b ? "absent" : b->IsEnabled() ? "enabled" : "disabled";
+    if (b) out += " label=" + string(b->GetLabel().utf8_str());
+    return out;
+  }
+  void closeRequest() override { if (p_close) p_close(); }
+  void deferMessages(bool) override {}
+  void relayout() override { if (p_resize) p_resize(); }
+  void launchAllowed(bool, bool) override {}
+  bool inlineWarnings() const override { return true; }
+private:
+  wxWeakRef<LaunchPanel> p_panel;
+  std::function<void()> p_close, p_resize;
+};
+}
+
 void registerLauncherInProcess()
 {
+  LaunchEmbed::maker() = [](wxWindow *parent, const string& url,
+                            std::function<void()> close,
+                            std::function<void()> resize) -> LaunchEmbed* {
+    return new EmbeddedLaunch(parent, url, close, resize);
+  };
   ToolTabs::addCommand("launcher", launcherCommand);
   InProcessTools::add(LAUNCHER, openLauncher);
 }

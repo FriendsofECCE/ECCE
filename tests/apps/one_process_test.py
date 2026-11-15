@@ -1067,10 +1067,90 @@ def runTabsLauncher(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runSetupLaunch(display):
+    """#983: in the Normal layout Launch... shows the Launcher's panel in the
+    Set-up area (no new tab): the local machine is offered, and launching an
+    ECCE-QM water calculation from it runs to Complete."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        calc = os.path.join(project, "water-s")
+        shutil.copytree(os.path.join(HERE, "..", "ecceqm", "fixtures",
+                                     "h2o-geometry"), calc, symlinks=True)
+        meta = open(os.path.join(calc, ".ecce-meta")).read()
+        open(os.path.join(calc, ".ecce-meta"), "w").write(
+            re.sub(r"(ecce:state\t\t)\w+", r"\1ready", meta))
+        url = "file://" + calc
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        shots = os.environ.get("ECCE_TABS_SHOTS")
+
+        def shot(name):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+                subprocess.run(["import", "-display", ":%s" % display.number,
+                                "-window", "root", os.path.join(shots, name)],
+                               check=False)
+
+        def inspect(_display):
+            append("start CalculationEditor " + url, 30)
+            append("setup launch", 6)
+            append("setup launch info", 2)
+            append("tabs", 2)
+            shot("setup-launch.png")
+            append("setup launch go", 90)
+            append("setup launch info", 2)
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 3)
+            append("answer no", 20)
+
+        setLayout(display, "normal")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        first = pb.answers(log, "setup launch")
+        check(first and "area=launch" in first[0] and "machine=localhost" in first[0],
+              "Launch... shows the Launcher panel in the Set-up area, on localhost",
+              str(first))
+        info = pb.answers(log, "setup launch info")
+        check(info and "launch=enabled" in info[0],
+              "the panel's Launch button is enabled", str(info))
+        tt = pb.answers(log, "tabs")
+        check(tt and "Launcher" not in tt[0],
+              "no Launcher tab was opened", str(tt))
+        m = re.search(r"ecce:state\t\t(\w+)",
+                      open(os.path.join(calc, ".ecce-meta")).read())
+        state = m.group(1) if m else "?"
+        check(state.lower() in ("complete", "completed"),
+              "Launch from the Set-up panel ran the water calculation to "
+              "Complete (state %s)" % state)
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "the Organizer with the Set-up launch panel ends cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         if os.environ.get("ECCE_LAUNCHER_ONLY") == "1":
             runTabsLauncher(display)
+            runSetupLaunch(display)
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
@@ -1080,6 +1160,7 @@ def main():
         runSetupTab(display)
         runTabsTools(display)
         runTabsLauncher(display)
+        runSetupLaunch(display)
         if os.environ.get("ECCE_TABS_ONLY") == "1":
             if failures:
                 results.fail("one-process", "; ".join(failures))

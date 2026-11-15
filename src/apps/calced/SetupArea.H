@@ -16,6 +16,7 @@
 #include "wx/panel.h"
 
 class BasisPanel;
+class LaunchEmbed;
 class CalcEd;
 class wxButton;
 class wxStaticText;
@@ -25,7 +26,7 @@ class wxTimer;
 class SetupArea : public wxPanel
 {
 public:
-  enum Kind { INPUT, THEORY, RUNTYPE, BASIS };
+  enum Kind { INPUT, THEORY, RUNTYPE, BASIS, LAUNCH };
 
   SetupArea(wxWindow *parent, CalcEd *editor);
   ~SetupArea();
@@ -36,6 +37,11 @@ public:
   void showInput();
   // The basis panel (BasisPanel) in place of the details; test hooks follow.
   void showBasis();
+  // The Launcher's panel (LaunchEmbed.H); false when the Launcher is not
+  // linked in, and Launch... opens the tool as before.
+  bool showLaunch();
+  std::string launchGet(const std::string& what);
+  bool launchGo();
   void basisFilter(const std::string& text);
   bool basisPick(const std::string& name);
   bool basisUseAll();
@@ -67,6 +73,7 @@ private:
   void dryRun();
   std::unique_ptr<Embedded> p_emb;
   BasisPanel *p_basisPanel = 0;
+  std::unique_ptr<LaunchEmbed> p_launch;
   Kind p_kind = INPUT;
 
   void drop();
