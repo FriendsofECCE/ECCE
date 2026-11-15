@@ -52,12 +52,12 @@ BasisPanel::BasisPanel(wxWindow *parent, CalcEd *editor)
 
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
   p_filter = new wxTextCtrl(this, wxID_ANY);
-  p_filter->SetHint("Filter the basis sets");
+  p_filter->SetHint("Filter");
   top->Add(p_filter, 0, wxEXPAND | wxALL, 4);
   p_list = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(300, 180),
                           wxLC_REPORT | wxLC_SINGLE_SEL);
   p_list->AppendColumn("Basis set", wxLIST_FORMAT_LEFT, 150);
-  p_list->AppendColumn("Type", wxLIST_FORMAT_LEFT, 150);
+  p_list->AppendColumn("Type", wxLIST_FORMAT_LEFT, 110);
   top->Add(p_list, 1, wxEXPAND | wxLEFT | wxRIGHT, 4);
   p_details = new wxStaticText(this, wxID_ANY, "");
   p_cover = new wxStaticText(this, wxID_ANY, "");
@@ -86,6 +86,12 @@ BasisPanel::BasisPanel(wxWindow *parent, CalcEd *editor)
     delete names;
   }
   p_filter->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { fill(); });
+  // Basis set takes the width the Type column leaves.
+  p_list->Bind(wxEVT_SIZE, [this](wxSizeEvent& e) {
+    int rest = p_list->GetClientSize().x - p_list->GetColumnWidth(1);
+    if (rest > 100) p_list->SetColumnWidth(0, rest);
+    e.Skip();
+  });
   p_list->Bind(wxEVT_LIST_ITEM_SELECTED, [this](wxListEvent& e) {
     p_picked = e.GetIndex();
     chosen();
