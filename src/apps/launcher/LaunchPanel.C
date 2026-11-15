@@ -234,6 +234,8 @@ void LaunchPanel::createControls()
     //  A fixed five lines: the fields, not the log, take the window's
     //  height, and a taller window gives the log no more room.
     p_messagesFeedback->SetMinSize(wxSize(-1, 5 * p_messagesFeedback->GetCharHeight() + 8));
+    if (p_host->inlineWarnings())
+        compactLayout();
 }
 
 
@@ -503,7 +505,7 @@ void  LaunchPanel::shellOpenButtonClickCB(wxCommandEvent& event)
 {
     string mesg;
 
-    p_messagesFeedback->clearMessage();
+    sayClear();
 
     RefMachine *rgstn = p_slctPrefs->getRegisteredMachine();
 
@@ -523,7 +525,7 @@ void  LaunchPanel::shellOpenButtonClickCB(wxCommandEvent& event)
         if (!rcmd.isOpen())
         {
             mesg = "Opening remote shell failed:  " + rcmd.commError();
-            p_messagesFeedback->setMessage(mesg, WxFeedback::ERROR, false);
+            say(mesg, WxFeedback::ERROR, false);
             return;
         }
     }
@@ -537,12 +539,12 @@ void  LaunchPanel::shellOpenButtonClickCB(wxCommandEvent& event)
     {
         mesg = "Opening remote shell...\n"
                "Use the command \"df -k\" to show disk usage.";
-        p_messagesFeedback->setMessage(mesg, WxFeedback::INFO, false);
+        say(mesg, WxFeedback::INFO, false);
     }
     else
     {
         mesg = "Opening remote shell failed:  " + result;
-        p_messagesFeedback->setMessage(mesg, WxFeedback::ERROR, false);
+        say(mesg, WxFeedback::ERROR, false);
     }
 }
 
@@ -1041,7 +1043,7 @@ AllocationProfiles::Profile LaunchPanel::profileFromControls(const string& name)
 
 void LaunchPanel::selectProfile(const string& name)
 {
-    p_messagesFeedback->clearMessage();
+    sayClear();
     this->updatePreferences();     // the edits stay with the profile being left
     this->ensureEditsApplied();
     p_profile = p_slctPrefs->chooseProfile(name, true);
@@ -1396,7 +1398,7 @@ void LaunchPanel::machinesChoiceSelectedCB(wxCommandEvent& event)
 
         else
         {
-            p_messagesFeedback->clearMessage();
+            sayClear();
 
             this->ensureEditsApplied();
             p_slctPrefs = (MachinePreferences *)p_machinesChoice->GetClientData(k);
@@ -1441,9 +1443,47 @@ void LaunchPanel::setEditAllowed(bool allwd, bool shellOpenAvbl)
 /**
  *  Display the indicated message in the feedback area.
  */
+// One message area per host: a window shows them in its feedback box, the
+// Set-up area in the editor's own.
+void LaunchPanel::say(const string& text, const WxFeedback::Severity& severity,
+                      const bool& clear, const bool& flush)
+{
+    if (p_host->inlineWarnings())
+        p_host->message(text, (int)severity);
+    else
+        p_messagesFeedback->setMessage(text, severity, clear, flush);
+}
+
+
+void LaunchPanel::sayClear()
+{
+    if (p_host->inlineWarnings())
+        p_host->message("", (int)WxFeedback::INFO);
+    else
+        p_messagesFeedback->clearMessage();
+}
+
+
+// Embedded in the Set-up area: no feedback box or required-value key, the
+// fields shrink with the area and Launch sits under them.
+void LaunchPanel::compactLayout()
+{
+    p_messagesFeedback->Hide();
+    for (long id : {(long)ID_STATICTEXT, (long)ID_STATIC_WXLAUNCHER_REQUIREDFIELDSKEY})
+        if (wxWindow *w = FindWindow(id)) w->Hide();
+    for (wxWindow *c : p_calcDrctyPanel->GetChildren())
+        if (wxStaticText *t = dynamic_cast<wxStaticText*>(c))
+            if (t->GetLabel() == "*") t->SetLabel("");
+    p_calcDrctyTextCtrl->SetMinSize(wxSize(60, -1));
+    p_scratchDrctyTextCtrl->SetMinSize(wxSize(60, -1));
+    SetMinSize(wxDefaultSize);   // set to the width of the first layout
+    Layout();
+}
+
+
 void LaunchPanel::showFeedbackMessage(string mesg, WxFeedback::Severity severity)
 {
-    p_messagesFeedback->setMessage(mesg, severity);
+    say(mesg, severity);
 }
 
 
@@ -1477,7 +1517,7 @@ void LaunchPanel::launchButtonClickCB(wxCommandEvent& event)
 void LaunchPanel::launchCancelled()
 {
     if (p_pendingWarning.empty())
-        p_messagesFeedback->setMessage("Launch cancelled.", WxFeedback::INFO);
+        say("Launch cancelled.", WxFeedback::INFO);
 }
 
 
@@ -1486,7 +1526,7 @@ bool LaunchPanel::inlineConfirm(const string& text)
     if (p_acked.count(text))
         return true;
     p_pendingWarning = text;
-    p_messagesFeedback->setMessage(text, WxFeedback::WARNING);
+    say(text, WxFeedback::WARNING);
     p_launchButton->SetLabel("Launch anyway");
     return false;
 }
@@ -1499,7 +1539,7 @@ void LaunchPanel::runLaunch()
 
     this->refreshLaunchControls();
 
-    p_messagesFeedback->clearMessage();
+    sayClear();
 
     this->ensureEditsApplied(true);
     if (p_taskJob != NULL &&
@@ -1796,7 +1836,7 @@ void LaunchPanel::ensureEditsApplied(bool itemToFront)
         {
             string msg = "Machine setup updated for ";
             msg += refname + ".";
-            p_messagesFeedback->setMessage(msg, WxFeedback::INFO);
+            say(msg, WxFeedback::INFO);
         }
 
         this->prefsChangeNotify(refname);
@@ -2561,7 +2601,7 @@ void LaunchPanel::setContext(string cntxt)
 
         //  A warning only: the user may register a machine and reopen.
         if (p_taskJob != NULL)
-            p_messagesFeedback->setMessage(
+            say(
                 "No machine is registered for " +
                 p_taskJob->application()->getCodeName() +
                 ". Use Tools > Register Machines in the Organizer, or see "
@@ -2586,7 +2626,7 @@ void LaunchPanel::setContext(string cntxt)
         {
             string mesg = "Calculation must be in the Ready state "
                           "in order to launch job.";
-            p_messagesFeedback->setMessage(mesg, WxFeedback::INFO);
+            say(mesg, WxFeedback::INFO);
         }
     }
     else
@@ -2619,7 +2659,7 @@ void LaunchPanel::validateCode()
     this->refreshLaunchControls();
 
     if (!machineHasCode)
-        p_messagesFeedback->setMessage(
+        say(
             "The code required to run this calculation is "
             "not available on " + refname, WxFeedback::ERROR);
 }
@@ -2788,7 +2828,7 @@ void LaunchPanel::updateContext(const ResourceDescriptor::RUNSTATE& state)
         const string key = p_taskJob->getURL().toString();
         if (!reason.empty() && key != lastShown) {
             lastShown = key;
-            p_messagesFeedback->setMessage(reason, WxFeedback::ERROR, false, true);
+            say(reason, WxFeedback::ERROR, false, true);
         }
     } else {
         lastShown.clear();
@@ -2898,7 +2938,7 @@ void LaunchPanel::launchCalc(const bool& fullLaunchFlag)
     //  The wall time field is hidden without TL, so say why none is sent.
     if (!p_slctPrefs->isOptionSupported("TL") && p_taskJob &&
         !LaunchBatch::noWallTime(p_taskJob->launchdata().maxwall))
-        p_messagesFeedback->setMessage("This machine entry does not pass a time limit: "
+        say("This machine entry does not pass a time limit: "
             "the stored wall time is not applied.", WxFeedback::WARNING, false, true);
 
     //  A timed-out earlier submit may have queued the job: warn, never block.
@@ -2906,7 +2946,7 @@ void LaunchPanel::launchCalc(const bool& fullLaunchFlag)
     {
         string maybe = p_taskJob->getProp(VDoc::getEcceNamespace() + ":submituncertain");
         if (!maybe.empty())
-            p_messagesFeedback->setMessage("May already be in the queue: " + maybe,
+            say("May already be in the queue: " + maybe,
                                            WxFeedback::WARNING, false, true);
     }
 
@@ -2924,20 +2964,20 @@ void LaunchPanel::launchCalc(const bool& fullLaunchFlag)
     while (valid && !p_launchData->done())
     {
         string dscpn = p_launchData->description();
-        p_messagesFeedback->setMessage(dscpn, WxFeedback::INFO, false, true);
+        say(dscpn, WxFeedback::INFO, false, true);
 
         if (!(valid = runLaunchStep()))
         {
             p_launchError = p_launchData->message();
             LaunchBatch::recordFailure(p_taskJob, p_launchError);
-            p_messagesFeedback->setMessage(p_launchData->message(), WxFeedback::ERROR, false, true);
+            say(p_launchData->message(), WxFeedback::ERROR, false, true);
         }
 
         else if (p_launchData->message() != "")
-            p_messagesFeedback->setMessage(p_launchData->message(), WxFeedback::WARNING, false, true);
+            say(p_launchData->message(), WxFeedback::WARNING, false, true);
 
         else if (p_launchData->info() != "")
-            p_messagesFeedback->setMessage(p_launchData->info(), WxFeedback::INFO, false, true);
+            say(p_launchData->info(), WxFeedback::INFO, false, true);
 
         if (valid && p_launchData->launchWarning() != "")
         {
@@ -2958,7 +2998,7 @@ void LaunchPanel::launchCalc(const bool& fullLaunchFlag)
 
     if (!p_launchData->done())
     {
-        p_messagesFeedback->setMessage("Launch aborted...", WxFeedback::WARNING);
+        say("Launch aborted...", WxFeedback::WARNING);
         p_launchData->removeStaging();
     }
     else
@@ -2974,13 +3014,13 @@ void LaunchPanel::launchCalc(const bool& fullLaunchFlag)
             {
                 mesg = "Successfully submitted job.";
                 LaunchBatch::clearFailure(p_taskJob);
-                p_messagesFeedback->setMessage(mesg, WxFeedback::INFO);
+                say(mesg, WxFeedback::INFO);
             }
             else
             {
                 mesg = "Job submission failed.";
                 LaunchBatch::recordFailure(p_taskJob, mesg);
-                p_messagesFeedback->setMessage(mesg, WxFeedback::ERROR);
+                say(mesg, WxFeedback::ERROR);
             }
 
             delete p_launchData;
@@ -3001,19 +3041,19 @@ void LaunchPanel::launchCalc(const bool& fullLaunchFlag)
                        "\nECCE will not submit this job. Copy that directory "
                        "to the machine, submit it yourself, then import the "
                        "output file when it finishes.";
-                p_messagesFeedback->setMessage(mesg, WxFeedback::INFO);
+                say(mesg, WxFeedback::INFO);
             }
             else if (p_jobStaged)
             {
                 mesg = "Successfully staged calculation for launch.";
-                p_messagesFeedback->setMessage(mesg, WxFeedback::INFO);
+                say(mesg, WxFeedback::INFO);
 
                 this->startShell();
             }
             else
             {
                 mesg = "Staging calculation failed.";
-                p_messagesFeedback->setMessage(mesg, WxFeedback::ERROR);
+                say(mesg, WxFeedback::ERROR);
             }
 
             this->refreshLaunchControls();
@@ -3115,7 +3155,7 @@ void LaunchPanel::buildArgs(EcceMap& kvargs)
         catch (...)
         {
             string mesg = "Failed to set MD job output file parameters";
-            p_messagesFeedback->setMessage(mesg, WxFeedback::ERROR);
+            say(mesg, WxFeedback::ERROR);
         }
     }
 
@@ -3217,10 +3257,10 @@ void LaunchPanel::startShell()
                                 user, password.c_str(), pathBase, pathTail);
 
         if (mesg != "")
-            p_messagesFeedback->setMessage(mesg, WxFeedback::WARNING);
+            say(mesg, WxFeedback::WARNING);
     }
     else
-        p_messagesFeedback->setMessage(
+        say(
                             "No launch data for calculation available.");
 }
 
@@ -3283,7 +3323,7 @@ void LaunchPanel::stageLaunch()
 
     this->refreshLaunchControls();
 
-    p_messagesFeedback->clearMessage();
+    sayClear();
 
     this->saveJob();
     this->ensureEditsApplied(true);
@@ -3319,21 +3359,21 @@ void LaunchPanel::finishStagedLaunch()
 
         if (currentState <= ResourceDescriptor::STATE_COMPLETED)
         {
-            p_messagesFeedback->setMessage(p_launchData->info(), WxFeedback::INFO);
-            p_messagesFeedback->setMessage("Successfully submitted job.",
+            say(p_launchData->info(), WxFeedback::INFO);
+            say("Successfully submitted job.",
                                            WxFeedback::INFO);
         }
         else
         {
-            p_messagesFeedback->setMessage("Job submission failed.",
+            say("Job submission failed.",
                                            WxFeedback::ERROR);
         }
     }
     else
     {
         LaunchBatch::recordFailure(p_taskJob, p_launchData->message());
-        p_messagesFeedback->setMessage(p_launchData->message(), WxFeedback::ERROR);
-        p_messagesFeedback->setMessage("Job submission failed.",
+        say(p_launchData->message(), WxFeedback::ERROR);
+        say("Job submission failed.",
                                        WxFeedback::ERROR);
         p_launchData->removeStaging();
     }
@@ -3382,7 +3422,7 @@ bool LaunchPanel::validateMachineWithCode(const string& machineName,
     }
     else
     {
-         p_messagesFeedback->setMessage(machineName +
+         say(machineName +
                              " is not listed as a registered machine in ECCE.",
                              WxFeedback::WARNING);
     }
@@ -3479,7 +3519,7 @@ void LaunchPanel::saveJob()
         string msg = "Unable to save launch settings for ";
         msg += p_taskJob->getName();
         msg += ".";
-        p_messagesFeedback->setMessage(msg, WxFeedback::ERROR);
+        say(msg, WxFeedback::ERROR);
     }
 }
 
@@ -3501,7 +3541,7 @@ void LaunchPanel::clearContext()
 
     this->populateMachinesList();
     this->refreshLaunchControls();
-    p_messagesFeedback->clearMessage();
+    sayClear();
     p_messagesFeedback->setContextLabel("");
 }
 

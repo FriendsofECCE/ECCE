@@ -26,10 +26,11 @@ public:
   virtual bool go() = 0;
 
   // parent, the calculation's URL, and what to call when the panel's host
-  // must close it or lay it out again.
+  // must close it or lay it out again, and where its messages go.
   typedef std::function<LaunchEmbed*(wxWindow *, const std::string&,
                                      std::function<void()>,
-                                     std::function<void()>)> Maker;
+                                     std::function<void()>,
+                                     std::function<void(const std::string&, int)>)> Maker;
   static Maker& maker() { static Maker m; return m; }
 };
 

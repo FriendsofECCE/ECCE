@@ -1107,6 +1107,10 @@ def runSetupLaunch(display):
             append("setup launch info", 2)
             append("tabs", 2)
             shot("setup-launch.png")
+            append("setup width 1024", 4)
+            append("setup launch info", 2)
+            append("setup launch info", 2)
+            shot("setup-launch-1024.png")
             append("setup launch go", 90)
             append("setup launch info", 2)
             append("close", 3)
@@ -1128,6 +1132,9 @@ def runSetupLaunch(display):
         info = pb.answers(log, "setup launch info")
         check(info and "launch=enabled" in info[0],
               "the panel's Launch button is enabled", str(info))
+        check(info and all("clipped=0" in i for i in info[:-1]),
+              "no control of the panel is clipped at the default width or at "
+              "1024 px", str(info))
         tt = pb.answers(log, "tabs")
         check(tt and "Launcher" not in tt[0],
               "no Launcher tab was opened", str(tt))

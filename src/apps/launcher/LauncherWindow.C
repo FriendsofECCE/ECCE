@@ -5,6 +5,7 @@
  * WxLauncherApp::OnInit does, without the once-per-process part (the
  * auth listener stays the Organizer's).
  */
+#include <vector>
 #include "wx/wx.h"
 #include "dsm/ResourceDescriptor.H"
 #include "wxgui/InProcessTools.H"
@@ -51,8 +52,9 @@ class EmbeddedLaunch : public LaunchEmbed, public LaunchHost
 {
 public:
   EmbeddedLaunch(wxWindow *parent, const string& url,
-                 std::function<void()> close, std::function<void()> resize)
-    : p_close(close), p_resize(resize)
+                 std::function<void()> close, std::function<void()> resize,
+                 std::function<void(const std::string&, int)> say)
+    : p_close(close), p_resize(resize), p_say(say)
   {
     p_panel = new LaunchPanel(parent, this);
     p_panel->setContext(url);
@@ -68,6 +70,21 @@ public:
     string out = "machine=" + p_panel->hookGet("machine") + " launch=";
     out += !b ? "absent" : b->IsEnabled() ? "enabled" : "disabled";
     if (b) out += " label=" + string(b->GetLabel().utf8_str());
+    // Controls that reach past the right edge of the area (a horizontal scroll).
+    wxRect view = p_panel->GetParent()->GetScreenRect();
+    int clipped = 0;
+    string names;
+    std::vector<wxWindow*> todo(1, p_panel);
+    while (!todo.empty()) {
+      wxWindow *c = todo.back();
+      todo.pop_back();
+      if (!c->IsShown()) continue;
+      if (c->GetChildren().empty() && c->GetScreenRect().GetRight() > view.GetRight())
+        { clipped++; names += " " + string(wxString(c->GetClassInfo()->GetClassName()).utf8_str()) + ":" + string(c->GetLabel().utf8_str()).substr(0,14) + "@" + std::to_string(c->GetScreenRect().GetRight() - view.GetLeft()); }
+      for (wxWindow *k : c->GetChildren()) todo.push_back(k);
+    }
+    out += wxString::Format(" clipped=%d panel=%d view=%d", clipped,
+                            p_panel->GetSize().x, view.width).ToStdString() + names;
     return out;
   }
   void closeRequest() override { if (p_close) p_close(); }
@@ -75,9 +92,11 @@ public:
   void relayout() override { if (p_resize) p_resize(); }
   void launchAllowed(bool, bool) override {}
   bool inlineWarnings() const override { return true; }
+  void message(const string& t, int sev) override { if (p_say) p_say(t, sev); }
 private:
   wxWeakRef<LaunchPanel> p_panel;
   std::function<void()> p_close, p_resize;
+  std::function<void(const std::string&, int)> p_say;
 };
 }
 
@@ -85,8 +104,9 @@ void registerLauncherInProcess()
 {
   LaunchEmbed::maker() = [](wxWindow *parent, const string& url,
                             std::function<void()> close,
-                            std::function<void()> resize) -> LaunchEmbed* {
-    return new EmbeddedLaunch(parent, url, close, resize);
+                            std::function<void()> resize,
+                            std::function<void(const std::string&, int)> say) -> LaunchEmbed* {
+    return new EmbeddedLaunch(parent, url, close, resize, say);
   };
   ToolTabs::addCommand("launcher", launcherCommand);
   InProcessTools::add(LAUNCHER, openLauncher);

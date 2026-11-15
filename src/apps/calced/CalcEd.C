@@ -1181,6 +1181,15 @@ wxString CalcEd::setupCommand(const wxString& arg)
     if (!p_setupArea->showLaunch()) return "no Launcher panel";
     if (arg == "launch go" && !p_setupArea->launchGo())
       return "Launch is off";
+  } else if (arg.StartsWith("width ")) {
+    long width = 0;
+    arg.Mid(6).ToLong(&width);
+    wxWindow *top = wxGetTopLevelParent(this);
+    if (width > 200 && top) {
+      top->SetMinSize(wxSize(200, 200));
+      top->SetSize(wxSize(width, top->GetSize().y));
+      top->Layout();
+    }
   } else if (arg == "input") {
     p_setupArea->showInput();
   } else if (arg == "fold" || arg == "unfold") {

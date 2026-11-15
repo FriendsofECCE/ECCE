@@ -265,7 +265,13 @@ bool SetupArea::showLaunch()
   p_input->Hide();
   p_launch.reset(LaunchEmbed::maker()(p_body, p_ed->getContext(),
       [this]() { CallAfter([this]() { showInput(); }); },
-      [this]() { if (p_launch) { Layout(); p_body->Layout(); fitBody(); } }));
+      [this]() { if (p_launch) { Layout(); p_body->Layout(); fitBody(); } },
+      [this](const string& text, int sev) {
+        WxFeedback *fb = p_ed->getFeedback();
+        if (!fb) return;
+        if (text.empty()) fb->clearMessage();
+        else fb->setMessage(text, (WxFeedback::Severity)sev, false, true);
+      }));
   wxWindow *w = p_launch->window();
   p_body->GetSizer()->Add(w, 1, wxEXPAND);
   p_kind = LAUNCH;

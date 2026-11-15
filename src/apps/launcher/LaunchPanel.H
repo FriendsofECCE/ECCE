@@ -63,6 +63,8 @@ class LaunchHost
         //  A host with no room for pop-ups: warnings are shown in the panel
         //  and the Launch button becomes "Launch anyway".
         virtual bool inlineWarnings() const { return false; }
+        //  With inlineWarnings: where the panel's messages go ("" clears).
+        virtual void message(const string&, int) {}
 };
 
 class LaunchPanel : public WxLauncherGUI,
@@ -270,6 +272,10 @@ class LaunchPanel : public WxLauncherGUI,
         void buildArgs(EcceMap& kvargs);
         void startShell();
         bool inlineConfirm(const string& text);
+        void say(const string& text, const WxFeedback::Severity& severity = WxFeedback::WARNING,
+                 const bool& clear = false, const bool& flush = false);
+        void sayClear();
+        void compactLayout();
         void launchCancelled();
         void runLaunch();
 
