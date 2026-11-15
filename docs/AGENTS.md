@@ -92,6 +92,13 @@ two triangles and edges whose two triangles wind the same way, plus the grid
 dimensions and step (A). Test: `tests/apps/surface_closed_test.py` (`--res N`
 sets the grid points per axis, `--shot DIR` saves PNGs).
 
+`paneorder`, `dropat <panel name> <pos>`, `dockfloating` (Builder scene
+script): `paneorder` writes `paneorder.txt`, the shown docked panes of the
+Properties column top to bottom, and `paneall.txt` (every pane: floating, shown, dock direction, layer, row, position); `dropat` docks a panel into that column at
+dock position `<pos>` as a mouse drop would; `dockfloating` is the Dock
+button. The Properties list stays first in the column whatever the drop.
+Test: `tests/apps/mo_explore_workflow_test.py` (e).
+
 `saveimage <path.png> <factor> [white]` (scene script, `ECCE_VIEWER_SCENE`)
 is File > Save Image...: a PNG of the 3-D view at `factor` (1, 2, 4) times
 its size, drawn with blended transparency (not the on-screen screen-door

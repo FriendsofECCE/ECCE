@@ -685,6 +685,7 @@ void Builder::updatePanes(bool allowSwitch)
     const wxAuiPaneInfo &d = p_mgr.GetPane(p_detail);
     if (d.IsOk() && paneGroup(d) != GROUP_PROPERTIES) p_detail = 0;
   }
+  keepIndexOnTop();
   syncColumn(allowSwitch);
   {
     wxAuiPaneInfo &idx = p_mgr.GetPane(static_cast<wxWindow*>(p_index));

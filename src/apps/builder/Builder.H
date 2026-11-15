@@ -108,6 +108,13 @@ public:
     ewxWindowUtils::detachFromParent(f);
     return f;
   }
+
+  //  A pane docked into the Properties column goes below the list, also
+  //  when dropped on the list's top edge or onto the hidden tab strip.
+  bool ProcessDockResult(wxAuiPaneInfo& target,
+                         const wxAuiPaneInfo& newPos) override;
+
+  static void keepIndexOnTop(wxAuiManager& mgr);
 };
 
 class Builder: public BuilderGUI,
@@ -584,6 +591,7 @@ class Builder: public BuilderGUI,
       void syncColumn(bool allowSwitch);
       void syncMenuChecks();
       void updatePanes(bool allowSwitch=false);
+      void keepIndexOnTop() { BuilderAuiManager::keepIndexOnTop(p_mgr); }
       void initShownPanels();
       void makeRoomFor(const wxString& name);
       bool fitToolColumn();
