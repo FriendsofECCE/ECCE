@@ -585,7 +585,31 @@ void wxPlotCtrl::DrawPlotCtrl( wxDC *dc )
         if (draw_xlabel)
             dc->DrawText(m_xLabel, m_xLabelRect.x, m_xLabelRect.y);
         if (draw_ylabel)
-            dc->DrawRotatedText(m_yLabel, m_yLabelRect.x, m_yLabelRect.y + m_yLabelRect.height, 90);
+        {
+            // A vertical title taller than the plot would start below it and
+            // show only its end; shrink the font, then shorten with an ellipsis.
+            wxString label = m_yLabel;
+            wxFont font = GetAxisLabelFont();
+            const int avail = wxMax(m_areaRect.height, 20);
+            wxCoord w = 0, h = 0;
+            dc->GetTextExtent(label, &w, &h);
+            while (w > avail && font.GetPointSize() > 7)
+            {
+                font.SetPointSize(font.GetPointSize() - 1);
+                dc->SetFont(font);
+                dc->GetTextExtent(label, &w, &h);
+            }
+            wxString base = m_yLabel;
+            while (w > avail && base.length() > 3)
+            {
+                base.RemoveLast();
+                label = base + wxString::FromUTF8("…");
+                dc->GetTextExtent(label, &w, &h);
+            }
+            const int y = m_areaRect.y + m_areaRect.height/2 + w/2;
+            dc->DrawRotatedText(label, m_yLabelRect.x, y, 90);
+            dc->SetFont(GetAxisLabelFont());
+        }
     }
 
 #ifdef DRAW_BORDERS
