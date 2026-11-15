@@ -4739,6 +4739,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_socketcomms PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # #989: the machine's QE pseudopotential directory and its launch check.
+  add_test(NAME launch_qe_pseudodir
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/qe_pseudodir_test.py
+                   --build ${CMAKE_BINARY_DIR})
+  set_tests_properties(launch_qe_pseudodir PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
   # #216: the same job with the data in a local folder, no data server.
   add_test(NAME launch_local
            COMMAND ${PYTHON3_EXECUTABLE}

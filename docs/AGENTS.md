@@ -534,6 +534,14 @@ In the machine's **Codes** tab (stored in `~/.ECCE/CONFIG.<name>`):
   GNOME screen reader, not ORCA.
 - **Modules:** `module load` names for that code only; machine-wide ones go
   on the Job script tab.
+- **Pseudopotential directory** (Quantum ESPRESSO only; a script writes
+  `QuantumESPRESSOPseudoDir: /cluster/pseudo` in `CONFIG.<name>`): at launch,
+  Launcher and `launchjob` alike, the deck's `pseudo_dir` becomes this folder.
+  The UPF file names still come from the local library when the deck is
+  written. Launch then lists the files the deck names that the folder lacks
+  on that machine as a launch warning (`LAUNCHJOB_WARNING=cancel` to stop);
+  an unreachable machine gives "Could not check ..." and no warning. Unset:
+  the deck is not changed.
 - **Environment variables:** `NAME value` per line; names containing `PATH`
   are appended to, others replace. Stored as `<Code>Environment { }`.
 - Gaussian 16: `g16root` and a scratch directory (`GAUSS_SCRDIR`); ECCE sets
@@ -605,7 +613,7 @@ A user setting **replaces** the site setting for that key; it is not added.
 | File | Holds |
 |---|---|
 | `MyMachines` | one tab-separated line per machine: name, host, three `Unspecified` fields, `procs:nodes`, `ssh`, `:Code1:Code2:...`, and capabilities (`MN:RD:SD:UN:PW` plus `AA` allocation account, `Q` queues, `TL` time limit, `MM` memory limit) |
-| `CONFIG.<name>` | `<Code>: /full/path`, `<Code>Modules: mod1 mod2`, `<Code>Environment { NAME value }`, `<Code>Command { ... }`, and the scheduler header block (`Slurm { #SBATCH ... }`) |
+| `CONFIG.<name>` | `<Code>: /full/path`, `<Code>Modules: mod1 mod2`, `QuantumESPRESSOPseudoDir: /dir`, `<Code>Environment { NAME value }`, `<Code>Command { ... }`, and the scheduler header block (`Slurm { #SBATCH ... }`) |
 | `Queues` | `Queues:` list of machines with queues, and per machine `<name>\|queueMgrName: Slurm`, `<name>\|queueMgrVersion: 2.0~`, `<name>\|prefFile: <name>.Q` |
 | `<name>.Q` | `Queues: q1 q2`, and per queue `minProcessors`, `maxProcessors`, `runLimit` (minutes), `memLimit` (MB), `scratchLimit`; 0 means no limit |
 | `MachPrefs`, `MachProfiles` | the user's launch defaults and allocation profiles; written by the window, do not hand-edit |

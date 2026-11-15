@@ -155,6 +155,8 @@ private:
         void cacheCalcInfo(const string& importDir, const string& importName,
                            bool reparse);
         bool postProcessInput(void);
+        string machinePseudoDir(void) const;
+        void checkPseudoFiles(const string& dir);
         bool instanceScript(EcceMap& kv);
         void instanceCommand(string& command,
                              EcceMap& kv);
