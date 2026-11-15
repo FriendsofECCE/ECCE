@@ -51,6 +51,7 @@ const wxWindowID BuilderGUI::ID_SELECT_LIGAND = wxNewId();
 const wxWindowID BuilderGUI::ID_DISTORT_BONDS = wxNewId();
 const wxWindowID BuilderGUI::ID_TAKE_COORDS = wxNewId();
 const wxWindowID BuilderGUI::ID_SAVE_THUMB = wxNewId();
+const wxWindowID BuilderGUI::ID_SAVE_IMAGE = wxNewId();
 const wxWindowID BuilderGUI::ID_SUPPORT = wxNewId();
 const wxWindowID BuilderGUI::ID_MODE_PREV = wxNewId();
 
@@ -191,6 +192,7 @@ void BuilderGUI::CreateControls()
     itemMenu3->AppendSeparator();
     itemMenu3->Append(wxID_SAVE, _("Save\tCtrl+s"), _T(""), wxITEM_NORMAL);
     itemMenu3->Append(wxID_SAVEAS, _("Save As...\tCtrl+e"), _T(""), wxITEM_NORMAL);
+    itemMenu3->Append(ID_SAVE_IMAGE, _("Save Image..."), _T(""), wxITEM_NORMAL);
     itemMenu3->Append(ID_SAVE_THUMB, _("Create Thumbnail"), _T(""), wxITEM_NORMAL);
     itemMenu3->Append(ID_DUMPSG, _("Dump Scene Graph"), _T(""), wxITEM_NORMAL);
     itemMenu3->AppendSeparator();

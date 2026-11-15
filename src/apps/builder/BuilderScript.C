@@ -96,6 +96,7 @@
 #include <functional>
 #include <map>
 #include <sstream>
+#include "wxviz/VizRender.H"
 #include <sys/stat.h>
 
 #include <wx/aui/aui.h>
@@ -857,6 +858,21 @@ void Builder::runBuilderScript(const std::string& file)
         }
         fprintf(stderr, "BUILDER: bonds %s-%s=%d\n", w[1].c_str(),
                 w[2].c_str(), n);
+      } else if (w[0] == "saveimage" && (w.size() == 3 || w.size() == 4)) {
+        //  "saveimage <path.png> <factor> [white]": as in the scene script.
+        wxSize sz = p_viewer->GetSize();
+        if (w.size() == 4 && w[3] != "white")
+          outcome = "FAIL: saveimage: unknown option " + w[3];
+        else if (!VizRender::image(p_viewer, w[1], sz.GetWidth(), sz.GetHeight(),
+                                   w.size() == 4, atoi(w[2].c_str())))
+          outcome = "FAIL: saveimage: " + VizRender::msg();
+      } else if (w[0] == "saveimagemenu" && w.size() == 4) {
+        //  "saveimagemenu <factor> <white|keep> <path>": File > Save Image...
+        //  with its three dialogs answered.
+        setenv("ECCE_SAVE_IMAGE_ANSWERS", (w[1] + " " + w[2] + " " + w[3]).c_str(), 1);
+        wxCommandEvent ev(wxEVT_MENU, ID_SAVE_IMAGE);
+        OnSaveImageClick(ev);
+        unsetenv("ECCE_SAVE_IMAGE_ANSWERS");
       } else if (w[0] == "expect" && w.size() == 3) {
         LatticeDef *lat = frag ? frag->getLattice() : 0;
         if (w[1] == "atoms" && (!frag || (int)frag->numAtoms() != atoi(w[2].c_str())))

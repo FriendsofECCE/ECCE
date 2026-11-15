@@ -403,6 +403,7 @@ class Builder: public BuilderGUI,
       virtual void OnSaveClick( wxCommandEvent& event );
       virtual void OnSaveasClick( wxCommandEvent& event );
       virtual void OnSaveThumbClick( wxCommandEvent& event );
+      void OnSaveImageClick( wxCommandEvent& event );
       virtual void OnDumpsgClick( wxCommandEvent& event );
       virtual void quitMenuItemClickCB( wxCommandEvent& event );
 

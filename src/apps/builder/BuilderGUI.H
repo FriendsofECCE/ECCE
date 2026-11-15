@@ -227,6 +227,7 @@ public:
     static const wxWindowID ID_DISTORT_BONDS;
     static const wxWindowID ID_TAKE_COORDS;
     static const wxWindowID ID_SAVE_THUMB;
+    static const wxWindowID ID_SAVE_IMAGE;
     static const wxWindowID ID_SUPPORT;
     static const wxWindowID ID_MODE_PREV;
 ////@end BuilderGUI member variables

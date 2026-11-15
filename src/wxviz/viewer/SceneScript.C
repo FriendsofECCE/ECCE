@@ -617,6 +617,15 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     } catch (EcceException& e) {
       return fail(string("vizfile: ") + e.what());
     }
+  } else if (c == "saveimage" && (w.size() == 3 || w.size() == 4)) {
+    //  "saveimage <path.png> <factor> [white]": File > Save Image's render.
+    wxWindow *cv = findRenderArea(p_viewer);
+    if (!cv) return fail("saveimage: no render area");
+    if (w.size() == 4 && w[3] != "white") return fail("saveimage: unknown option " + w[3]);
+    wxSize sz = cv->GetClientSize();
+    if (!VizRender::image(p_viewer, w[1], sz.GetWidth(), sz.GetHeight(),
+                          w.size() == 4, atoi(w[2].c_str())))
+      return fail("saveimage: " + VizRender::msg());
   } else if (c == "offscreen" && w.size() == 3) {
     //  "offscreen <name> <size>": this script's own offscreen renderer
     //  (480 is the canvas size, which snapshot() reads from the canvas).
