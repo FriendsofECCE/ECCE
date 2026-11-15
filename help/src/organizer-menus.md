@@ -56,7 +56,7 @@ toolbar and the **Tools** menu.
 
 ## A task of an MD study
 
-- **Duplicate for Rerun** makes a copy of the task that keeps its place in
+- **Rerun** makes a copy of the task that keeps its place in
   the study.
 - **Terminate Calculation...** and **Shell in Calculation Run Directory...**
   appear in the states where they apply.

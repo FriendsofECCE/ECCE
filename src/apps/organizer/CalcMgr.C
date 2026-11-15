@@ -10473,7 +10473,7 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   //  A study task is rerun by a copy that keeps its place in the study.
   if (!isCalculationNode && itemData && dynamic_cast<MdTask*>(
           itemData->getResource()))
-    menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
+    menu.Append(wxID_DUPLICATE, _("Rerun"));
   //  A calculation's menu: the clipboard items, what to make from it, and
   //  what to do with its run. The tools (Builder, Calculation Editor, ...)
   //  are on the toolbar and the Tools menu.
