@@ -59,6 +59,10 @@ std::vector<EnergyTerm> gatherSide(const std::string& spec);
 std::string applyThermoTreatments(SumResult& r,
                                   const std::vector<EnergyTerm>& a,
                                   const std::vector<EnergyTerm>& b,
-                                  const std::string& treatment);
+                                  const std::string& treatment,
+                                  double kelvin = 0);
+// kelvin > 0 and other than the frequency calculations' temperature (#1044):
+// the H and G rows are recomputed by ecce-thermo at kelvin, with the chosen
+// treatment or, for "the code's own", Grimme qRRHO (100 cm-1).
 
 #endif

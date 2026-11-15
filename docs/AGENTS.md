@@ -954,6 +954,24 @@ experimental log K with its source and calc - exp; `--save NAME` stores
     ecce-ensemble minimum 'proj/conformers/*' --treatment qrrho-grimme:100
     ecce-ensemble benchmark proj/logk.txt --save logk-set1
 
+Thermochemistry contributions and reaction H/G at another temperature
+(#1044). `ecce-thermo CALC --json` carries, for each treatment, the
+translational, rotational, vibrational and electronic contributions to U
+(kJ/mol, without ZPE; `ZPE` separately), S and C_V, plus `Cv` and
+`Cp` = Cv + R (J/mol/K); a single atom has no rotation. The sigma ECCE-QM
+prints (`symmetry_number`) is stored as THERMOSIGMA and used, as for ORCA and
+Gaussian. The Thermochemistry panel shows the same numbers in a second table;
+the Builder script command `thermo <treatment> [T] [1atm|1M]` also prints
+`BUILDER: thermocontrib <row>|U|U+ZPE|S|Cv|Cp` for the five rows. In the
+Energy Calculator, the `ECCE_TEST_ORGANIZER` hook
+`compareenergies <A> <B> <treatment|stored> <T>` recomputes the H and G rows at
+T (with `stored`, Grimme qRRHO 100 cm-1), and `comparedialog <A> <B> <png|-> <T>`
+sets the dialog's T / K field; the table then has an `S (T K)` row,
+(dH - dG)/T in J/(K mol).
+
+    ecce-thermo proj/N2 --treatment rrho --T 723 --json
+    ecce-thermo proj/N2 --treatment rrho --contributions
+
 ### ecce-batch-smiles
 
     ecce-batch-smiles [--template CALC] [--name COL] [--smiles COL] [--response COL]... [--no-responses] [--header yes|no] [--replace] [--dry-run] [--launch] [--json] <folder> <table.csv|.tsv|->
@@ -1101,7 +1119,7 @@ launcher, without command wrappers for these tools.
 | `ecce-bandshift` | Match vibrational bands and report shifts |
 | `ecce-spectrum` | Process spectral curves |
 | `ecce-displace` | Displace a structure along a normal mode |
-| `ecce-thermo` | Recompute thermochemistry from stored results |
+| `ecce-thermo` | Recompute thermochemistry from stored results; `--json` gives per treatment H, S, G and the contributions `U_trans/U_rot/U_vib/U_elec`, `ZPE` (kJ/mol), `S_*`, `Cv_*`, `Cv`, `Cp` (J/mol/K); `--contributions` prints them as text |
 | `ecce-rate` | TST rate constants with Wigner/Eckart tunnelling from reactant, TS and product calculations |
 | `ecce-force-compare` | Compare stored forces (command line only) |
 | `ecce-mlp` | Run an ML potential job from its input file |

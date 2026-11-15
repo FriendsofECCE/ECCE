@@ -135,18 +135,19 @@ def main():
             f.write(text)
         check("panel" in shots, "panel screenshot captured")
         widths = re.findall(r"thermolayout (row|col)=(\d+) width=(\d+) text=(\d+)", text)
-        check(len(widths) == 10, "row-label and header widths reported before and after changes")
+        # Two grids (H/S/G 3x2, contributions 5x5), reported twice.
+        check(len(widths) == 2 * (5 + 10), "row-label and header widths reported before and after changes")
         for kind, index, width, extent in widths:
             check(int(width) >= int(extent), "%s %s fits its full label" % (kind, index),
                   "width=%s text=%s" % (width, extent))
         scrolls = re.findall(r"thermolayout viewport=(\d+) content=(\d+) scroll=(\d+) thumb=(\d+)", text)
-        check(len(scrolls) == 2, "horizontal scrolling reported")
+        check(len(scrolls) == 4, "horizontal scrolling reported")
         for viewport, content, scroll, thumb in scrolls:
             check(int(content) <= int(viewport) or int(scroll) > int(thumb),
                   "columns wider than the viewport can scroll horizontally")
         heights = re.findall(r"thermolayout height=(\d+) rows=(\d+)", text)
-        check(len(heights) == 2 and all(int(h) >= int(rows) for h, rows in heights),
-              "all three rows fit above the horizontal scrollbar", str(heights))
+        check(len(heights) == 4 and all(int(h) >= int(rows) for h, rows in heights),
+              "all rows of both tables fit above the horizontal scrollbar", str(heights))
         findings = [line for line in open(audit) if line.startswith("FINDING\t")]
         check(not findings, "Thermochemistry controls pass the clipping audit", "".join(findings))
         check("segmentation" not in text.lower(), "no crash")
@@ -158,6 +159,34 @@ def main():
                   abs(float(g[2]) - w["S"]) < 2e-3 and abs(float(g[3]) - w["G"]) < 2e-6)
             check(ok, "%s at %.2f K%s: H, S, G equal ecce-thermo" % (
                 t, T, ", 1 M" if molar else ""), str(g))
+        # Contributions table (#1044): each case prints five rows after its thermo line.
+        contrib = re.findall(r"BUILDER: thermocontrib (\w+)\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|([^|\n]*)", text)
+        check(len(contrib) == 5 * len(cases), "every thermo command printed the contributions table",
+              str(len(contrib)))
+        R = 8.314462618
+        for k, (t, T, molar) in enumerate(cases):
+            rows = {r[0]: r[1:] for r in contrib[5 * k:5 * k + 5]}
+            w = want[(t, T, molar)]
+            if not check(set(rows) == {"Translational", "Rotational", "Vibrational", "Electronic", "Total"},
+                         "contribution rows %s %.2f" % (t, T), str(rows)):
+                continue
+            exp = {"Translational": (w["U_trans"], w["U_trans"], w["S_trans"], w["Cv_trans"]),
+                   "Rotational": (w["U_rot"], w["U_rot"], w["S_rot"], w["Cv_rot"]),
+                   "Vibrational": (w["U_vib"], w["U_vib"] + w["ZPE"], w["S_vib"], w["Cv_vib"]),
+                   "Electronic": (0.0, 0.0, w["S_elec"], w["Cv_elec"]),
+                   "Total": (w["U_trans"] + w["U_rot"] + w["U_vib"],
+                             w["U_trans"] + w["U_rot"] + w["U_vib"] + w["ZPE"], w["S"], w["Cv"])}
+            bad = [(n, rows[n], e) for n, e in exp.items()
+                   if any(abs(float(rows[n][i]) - e[i]) > 2e-3 for i in range(4))]
+            check(not bad, "%s at %.2f K%s: the contributions equal ecce-thermo" % (
+                t, T, ", 1 M" if molar else ""), str(bad))
+            check(abs(float(rows["Total"][4]) - w["Cp"]) < 2e-3 and abs(w["Cp"] - w["Cv"] - R) < 1e-4,
+                  "%s at %.2f K: C_P = C_V + R" % (t, T), str(rows["Total"]))
+            check(abs(float(rows["Translational"][0]) - 1.5 * R * T / 1000) < 2e-3 and
+                  abs(float(rows["Rotational"][0]) - 1.5 * R * T / 1000) < 2e-3 and
+                  abs(float(rows["Translational"][3]) - 1.5 * R) < 2e-3,
+                  "%s at %.2f K: U_trans = U_rot = 3/2 RT, Cv_trans = 3/2 R (non-linear)" % (t, T),
+                  str(rows))
         # The treatments must differ for these soft modes, or the test proves nothing.
         gs = set(round(want[(t, 298.15, False)]["G"], 6) for t in TREATMENTS)
         check(len(gs) >= 4, "the treatments give different G for soft modes", str(gs))

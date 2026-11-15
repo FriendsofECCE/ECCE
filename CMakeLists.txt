@@ -2626,6 +2626,7 @@ add_executable(thermo_test tests/thermo/thermo_test.C
   src/tdat/thermo/ThermoChem.C)
 target_link_libraries(thermo_test PRIVATE ecceutil)
 add_test(NAME thermo COMMAND thermo_test)
+add_test(NAME thermo_ecceqm_sigma COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/thermo/ecceqm_sigma_test.py)
 # gatherThermoInput reads real stored calculations through FileEDSI (#692):
 # the mass, rotational constants, linear flag and symmetry number come from
 # the stored geometry and point group, never from the test.
@@ -3890,6 +3891,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_thermo_panel PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Energy Calculator H, G and S at a chosen temperature (#1044).
+  add_test(NAME apps_thermo_temperature
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/thermo_temperature_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_thermo_temperature PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Compare Energies > Reaction overview: chart data equals ecce-thermo (#709).

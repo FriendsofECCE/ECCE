@@ -2686,13 +2686,15 @@ void CalcMgr::runTestCommand(const string& line)
       // shows; a side is "[-][N*]url,[-][N*]url".  "comparedialog <sideA>
       // <sideB> [png]": the dialog itself, its text areas, and a capture.
       std::istringstream args(calcName);
-      string ua, ub, png;
-      args >> ua >> ub >> png;
+      string ua, ub, png, kelvin;
+      args >> ua >> ub >> png >> kelvin;
       if (command == "compareenergies") {
-        // The optional third word is an ecce-thermo treatment for the G row.
+        // The optional third word is an ecce-thermo treatment for the G row
+        // ("stored" = the code's own), the fourth the T / K field (#1044).
         const vector<EnergyTerm> ta = gatherSide(ua), tb = gatherSide(ub);
         SumResult c = sumEnergies(ta, tb);
-        const string problem = applyThermoTreatments(c, ta, tb, png == "stored" ? string() : png);
+        const string problem = applyThermoTreatments(c, ta, tb, png == "stored" ? string() : png,
+                                                     kelvin.empty() ? 0 : atof(kelvin.c_str()));
         outcome = "ok";
         if (!problem.empty()) outcome += " | Problem: " + problem;
         std::istringstream lines(sumText(c, false));
@@ -2704,8 +2706,9 @@ void CalcMgr::runTestCommand(const string& line)
             calculationsIn(EcceURL(parseSide(ua)[0].first).getParent().toString()),
             parseSide(ua), parseSide(ub));
         d->Show();
+        if (!kelvin.empty()) d->setTemperature(kelvin);
         for (int i = 0; i < 5; i++) wxYield();
-        if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+        if (!png.empty() && png != "-") ecceClientShot(d, wxString::FromUTF8(png.c_str()));
         outcome = "ok";
         std::istringstream r(d->resultText() + "Notes:\n" + d->notesText() +
                              "Copy:\n" + d->copyText());

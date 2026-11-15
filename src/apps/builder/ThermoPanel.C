@@ -36,7 +36,7 @@ IMPLEMENT_DYNAMIC_CLASS(ThermoPanel, PropertyPanel)
 
 ThermoPanel::ThermoPanel()
   : PropertyPanel(), p_treatment(NULL), p_state(NULL), p_rotor(NULL), p_temp(NULL), p_sigma(NULL),
-    p_text(NULL), p_grid(NULL), p_have(false)
+    p_text(NULL), p_grid(NULL), p_contrib(NULL), p_have(false)
 {
 }
 
@@ -44,7 +44,7 @@ ThermoPanel::ThermoPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
   : PropertyPanel(), p_treatment(NULL), p_state(NULL), p_rotor(NULL), p_temp(NULL), p_sigma(NULL),
-    p_text(NULL), p_grid(NULL), p_have(false)
+    p_text(NULL), p_grid(NULL), p_contrib(NULL), p_have(false)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -109,6 +109,10 @@ bool ThermoPanel::Create(IPropCalculation *calculation,
   p_grid->CreateGrid(3, 2);
   p_grid->EnableEditing(false);
   GetSizer()->Add(p_grid, 0, wxEXPAND | wxALL, 3);
+  p_contrib = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(1, 150));
+  p_contrib->CreateGrid(5, 5);
+  p_contrib->EnableEditing(false);
+  GetSizer()->Add(p_contrib, 0, wxEXPAND | wxALL, 3);
 
   // The panel has no real width while it is built, so the note is wrapped
   // from its own text again whenever the panel is sized.
@@ -199,7 +203,54 @@ void ThermoPanel::fill()
   for (int row = 0; row < p_grid->GetNumberRows(); ++row)
     height += p_grid->GetRowSize(row);
   p_grid->SetMinSize(wxSize(1, height));
+
+  // Contributions (#1044): U without and with ZPE, S, Cv; Cp only as a total.
+  static const char *const rows[5] = {"Translational", "Rotational", "Vibrational",
+                                      "Electronic", "Total"};
+  static const char *const cols[5] = {
+      "U (kJ/mol)", "U + ZPE (kJ/mol)", "S (J K\xE2\x81\xBB\xC2\xB9 mol\xE2\x81\xBB\xC2\xB9)",
+      "C_V (J K\xE2\x81\xBB\xC2\xB9 mol\xE2\x81\xBB\xC2\xB9)",
+      "C_P (J K\xE2\x81\xBB\xC2\xB9 mol\xE2\x81\xBB\xC2\xB9)"};
+  for (int c = 0; c < 5; c++) p_contrib->SetColLabelValue(c, wxString::FromUTF8(cols[c]));
+  const bool hc = p_have && p_value.haveContrib;
+  for (int row = 0; row < 5; row++) {
+    p_contrib->SetRowLabelValue(row, rows[row]);
+    double u = 0, s = 0, cv = 0;
+    if (row < 4) {
+      u = p_value.U[row]; s = p_value.Sc[row]; cv = p_value.Cv[row];
+    } else {
+      for (int i = 0; i < 4; i++) u += p_value.U[i];
+      s = p_value.S; cv = p_value.cv;
+    }
+    const double uz = u + (row == 2 || row == 4 ? p_value.zpe : 0.0);
+    p_contrib->SetCellValue(row, 0, hc ? wxString::Format("%.3f", u) : wxString("-"));
+    p_contrib->SetCellValue(row, 1, hc ? wxString::Format("%.3f", uz) : wxString("-"));
+    p_contrib->SetCellValue(row, 2, hc ? wxString::Format("%.3f", s) : wxString("-"));
+    p_contrib->SetCellValue(row, 3, hc ? wxString::Format("%.3f", cv) : wxString("-"));
+    p_contrib->SetCellValue(row, 4, hc && row == 4 ? wxString::Format("%.3f", p_value.cp)
+                                                   : wxString(""));
+  }
+  p_contrib->SetRowLabelSize(wxGRID_AUTOSIZE);
+  p_contrib->AutoSizeColumns();
+  int ch = p_contrib->GetColLabelSize() +
+      wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y, p_contrib) +
+      p_contrib->GetSize().y - p_contrib->GetClientSize().y;
+  for (int row = 0; row < p_contrib->GetNumberRows(); ++row)
+    ch += p_contrib->GetRowSize(row);
+  p_contrib->SetMinSize(wxSize(1, ch));
   Layout();
+}
+
+std::string ThermoPanel::contribText() const
+{
+  std::string t;
+  for (int row = 0; p_contrib && row < p_contrib->GetNumberRows(); row++) {
+    t += std::string(p_contrib->GetRowLabelValue(row).utf8_str());
+    for (int c = 0; c < p_contrib->GetNumberCols(); c++)
+      t += "|" + std::string(p_contrib->GetCellValue(row, c).utf8_str());
+    t += "\n";
+  }
+  return t;
 }
 
 void ThermoPanel::rewrap()

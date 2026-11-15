@@ -1718,6 +1718,10 @@ void Builder::runBuilderScript(const std::string& file)
           const bool have = set && tp->shown(&v);
           fprintf(stderr, "BUILDER: thermo %s H=%.6f S=%.6f G=%.6f %s\n", w[1].c_str(),
                   v.H, v.S, v.G, have ? "ok" : ("failed: " + tp->errorText()).c_str());
+          // The contributions table (#1044), row by row as shown.
+          std::istringstream rows(tp->contribText());
+          for (std::string l; std::getline(rows, l); )
+            fprintf(stderr, "BUILDER: thermocontrib %s\n", l.c_str());
         }
       } else if (w[0] == "ircpath" && w.size() >= 2) {
         //  ircpath <path> [kcal]: the IRC Path panel's Export .csv (#417)

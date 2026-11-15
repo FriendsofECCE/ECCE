@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 
 #include "util/Ecce.H"
 
@@ -106,6 +107,21 @@ ThermoRunResult runThermo(const string& url, double kelvin, bool oneMolar,
         sscanf(text.c_str() + p + string(t.cli).size() + 5,
                "\"H\": %lf, \"S\": %lf, \"G\": %lf", &v.H, &v.S, &v.G) != 3)
       continue;
+    const size_t end = text.find('}', p + string(t.cli).size() + 5);
+    const string seg = text.substr(p, end == string::npos ? string::npos : end - p);
+    auto field = [&seg](const char *key, double *out) {
+      const size_t q = seg.find(string("\"") + key + "\": ");
+      if (q == string::npos) return false;
+      *out = atof(seg.c_str() + q + strlen(key) + 4);
+      return true;
+    };
+    static const char *const part[4] = {"trans", "rot", "vib", "elec"};
+    bool all = field("ZPE", &v.zpe) && field("Cv", &v.cv) && field("Cp", &v.cp);
+    for (int i = 0; i < 4 && all; i++)
+      all = field(("U_" + string(part[i])).c_str(), &v.U[i]) &&
+            field(("S_" + string(part[i])).c_str(), &v.Sc[i]) &&
+            field(("Cv_" + string(part[i])).c_str(), &v.Cv[i]);
+    v.haveContrib = all;
     r.treatments.push_back(t.cli);
     r.values.push_back(v);
   }
