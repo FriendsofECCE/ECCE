@@ -68,6 +68,13 @@ checks a hand-computed tensor and the tensile QE Al cell example;
 and logs for visual review. Run with a private installed tree and the
 test harness as described below.
 
+`ECCE_BUILDER_SCRIPT` drives Geometry Constraints with `constraints show`,
+`constraints select I J ..` (1-based atoms), `constraints press constrain|restrain|fix yes|no`,
+`constraints scan <steps> <step>` (the selected 2-4 atoms, step in Angstrom for a
+bond and degrees for an angle or torsion, steps 1-500, step not zero; the same code
+as OK in Scan..., a refused line FAILs with the dialog's message),
+`constraints list` and `constraints stored`; `save` writes `Parameters/GeomConstraintModel.gcst`.
+
 `ECCE_BUILDER_SCRIPT` also accepts the Conformers-panel hooks `gtenselect
 <rank>...`, `gtenfit`, `gtenthumbs`, `gtenpng <file>`, `gtencsv <file>`,
 `gtenviewer on|off`, `gtensort <column> up|down` and `gtendistinct <rmsd>
