@@ -33,7 +33,8 @@ DIMER = os.path.join(REPO, "data", "client", "examples", "genchem",
 #  (tag, field, log10 isovalue or None for the field's default)
 CASES = (("rho-0.5", "Density", -0.30103), ("rho-0.05", "Density", -1.30103),
          ("nci-0.5", "NCI", None),
-         ("nci-after-rho", "Density:-0.30103,NCI", None))
+         ("nci-after-rho", "Density:-0.30103,NCI", None),
+         ("panel-elf", "ELF", None), ("panel-lol", "LOL", None))
 
 
 def scene(field, iso, shot):
