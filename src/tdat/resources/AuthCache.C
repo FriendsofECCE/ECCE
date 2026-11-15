@@ -591,6 +591,10 @@ void AuthCache::pipeIn(const string& pipeName)
       if (fd < 0) usleep(20000);                // not created yet
     }
     if (fd >= 0) {
+      // Only a FIFO can return 0 before its writer has opened it; for a
+      // file or device (-pipe /dev/null) 0 is a real end of data.
+      struct stat st;
+      bool fifo = fstat(fd, &st) != 0 || S_ISFIFO(st.st_mode);
       bool got = false;
       for (int s = 0; s < steps; s++) {
         char chunk[4096];
@@ -602,7 +606,7 @@ void AuthCache::pipeIn(const string& pipeName)
         }
         // 0 with data read: the writer closed.  0 before any data: no
         // writer yet.  EAGAIN: a writer, but nothing written yet.
-        if (n == 0 && got) break;
+        if (n == 0 && (got || !fifo)) break;
         if (n < 0 && errno != EAGAIN && errno != EINTR) break;
         usleep(20000);
       }
