@@ -3114,6 +3114,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/xtb_import_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # Numerical frequencies: NumFreq alone on the ORCA route line (#1058).
+  add_test(NAME parsers_orca_numfreq_route
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/orca_numfreq_route_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # The stored geometry and the normal modes are in one frame (#312).
   add_test(NAME parsers_vib_frame
            COMMAND ${PYTHON3_EXECUTABLE}
