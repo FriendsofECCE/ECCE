@@ -662,6 +662,10 @@ void WxBasisTool::updateSelectionsSize()
         grid->SetMinSize(wxSize(430, height));
     }
     p_contextBasisSetsNotebook->InvalidateBestSize();
+    // As a tab the frame's children and sizer belong to the tab page and
+    // the frame is never shown: lay the page out instead of sizing a frame.
+    if (ToolTabs::layout(this))
+        return;
     // A normal sizer propagates both panes' minimum sizes to the frame.
     wxWindow *main = FindWindow(ID_PANEL_WXBASISTOOL_MAIN);
     main->InvalidateBestSize();

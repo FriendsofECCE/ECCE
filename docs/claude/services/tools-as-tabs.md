@@ -130,6 +130,11 @@ GTK `wxMessageDialog` is native and runs `gtk_dialog_run`: `EndModal` only
 asserts and leaves it open, and the nested loop then hangs Quit (killed,
 rc -15). Close it with `gtk_dialog_response`.
 
+A tool's own sizing code (`FindWindow`, `GetSizer`, `Fit`) finds nothing
+on the frame once it is a tab: guard it with `ToolTabs::layout(this)`, as
+MDPrep and `WxBasisTool::updateSelectionsSize` do (SIGSEGV on a message
+that reloads the calculation otherwise).
+
 ## Known gaps
 
 - Popup menus and other non-dialog windows with the hidden frame as parent:
