@@ -251,7 +251,9 @@ sub ORCARoute {
   my $route = "! ";
   $route .= &Theory($AbiDict{"Category"}, $AbiDict{"Theory"}) . " ";
   if ($useExplicitBasis == 0 && !&IsComposite3c()) {
-    $route .= "$NameBasis ";
+    # PrintBasis: the output then lists the basis per element, which is the
+    # only record of it (results.h5 needs it, as no basis is stored).
+    $route .= "$NameBasis PrintBasis ";
   }
   $route .= &RunType($AbiDict{"RunType"}) . " ";
   $route .= &RIToken . " ";
