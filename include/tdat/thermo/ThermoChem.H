@@ -19,6 +19,7 @@ struct ThermoInput
    double mass = 0.0;                    ///< molecular mass, amu
    double rotConstants[3] = {0, 0, 0};   ///< principal rotational constants, cm-1
    bool linear = false;                  ///< linear: rotConstants[0] is the one
+   bool atom = false;                    ///< one atom: no rotation, no vibrations
    int symmetryNumber = 1;               ///< rotational symmetry number sigma
    int multiplicity = 1;                 ///< 2S+1 (singlet = 1)
    // Where sigma came from and what the geometry is close to (#854).
@@ -62,6 +63,12 @@ struct ThermoResult
    double G = 0.0;                   ///< hartree
    std::vector<ThermoMode> modes;    ///< one per frequency, in input order
    double sElec = 0.0, sTrans = 0.0, sRot = 0.0, sVib = 0.0;  ///< J/mol/K
+   // Heat capacity at constant volume by contribution, J/mol/K (#1044).  The
+   // electronic one is zero: only the ground state is populated.  The
+   // vibrational one follows the treatment's thermal energy.
+   double cvTrans = 0.0, cvRot = 0.0, cvVib = 0.0, cvElec = 0.0;
+   double Cv = 0.0;                  ///< J/mol/K
+   double Cp = 0.0;                  ///< J/mol/K, Cv + R (ideal gas)
 };
 
 /** H, S, G for one molecule at temperature T (K). */

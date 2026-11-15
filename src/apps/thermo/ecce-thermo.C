@@ -35,6 +35,42 @@ const double KJ_PER_HARTREE = 4.3597447222071e-18 * 6.02214076e23 / 1000.0;
 const double KCAL_PER_KJ = 1.0 / 4.184;
 int g_rotor = 0;            // --rotor: 0 as found, 1 linear, 2 non-linear
 double g_symTol = 0.05;     // --symmetry-tolerance (A); 0 turns the check off
+bool g_contrib = false;     // --contributions: the U, S and Cv table in the text output
+
+// The contributions to U, S and Cv (#1044), as extra fields of a treatment's
+// JSON object: U and ZPE in kJ/mol, S, Cv and Cp in J/mol/K.
+string contribJson(const ThermoResult& r)
+{
+  const double kj = 4.3597447222071e-18 * 6.02214076e23 / 1000.0;
+  char b[640];
+  snprintf(b, sizeof b,
+           ", \"U_trans\": %.6f, \"U_rot\": %.6f, \"U_vib\": %.6f, \"U_elec\": 0.0, "
+           "\"ZPE\": %.6f, \"S_trans\": %.6f, \"S_rot\": %.6f, \"S_vib\": %.6f, "
+           "\"S_elec\": %.6f, \"Cv_trans\": %.6f, \"Cv_rot\": %.6f, \"Cv_vib\": %.6f, "
+           "\"Cv_elec\": %.6f, \"Cv\": %.6f, \"Cp\": %.6f",
+           r.thermalTrans * kj, r.thermalRot * kj, r.thermalVib * kj, r.zpe * kj,
+           r.sTrans, r.sRot, r.sVib, r.sElec, r.cvTrans, r.cvRot, r.cvVib, r.cvElec,
+           r.Cv, r.Cp);
+  return b;
+}
+
+void printContrib(const ThermoResult& r)
+{
+  const double kj = 4.3597447222071e-18 * 6.02214076e23 / 1000.0;
+  std::printf("    %-14s %12s %14s %14s %14s\n", "contribution", "U (kJ/mol)",
+              "U+ZPE (kJ/mol)", "S (J/mol/K)", "Cv (J/mol/K)");
+  const char* names[4] = {"translational", "rotational", "vibrational", "electronic"};
+  const double u[4] = {r.thermalTrans * kj, r.thermalRot * kj, r.thermalVib * kj, 0.0};
+  const double s[4] = {r.sTrans, r.sRot, r.sVib, r.sElec};
+  const double cv[4] = {r.cvTrans, r.cvRot, r.cvVib, r.cvElec};
+  for (int i = 0; i < 4; i++)
+    std::printf("    %-14s %12.4f %14.4f %14.4f %14.4f\n", names[i], u[i],
+                u[i] + (i == 2 ? r.zpe * kj : 0.0), s[i], cv[i]);
+  const double ut = u[0] + u[1] + u[2];
+  std::printf("    %-14s %12.4f %14.4f %14.4f %14.4f\n", "total", ut, ut + r.zpe * kj,
+              r.S, r.Cv);
+  std::printf("    Cp = Cv + R = %.4f J/mol/K\n", r.Cp);
+}
 
 struct TreatmentSpec {
   ThermoTreatment t;
@@ -237,8 +273,8 @@ int run(const vector<string>& urls, double T, ThermoStandardState ss,
       for (size_t j = 0; j < trs.size(); j++) {
         ThermoResult r;
         if (!computeChecked(c.in, T, ss, trs[j], r)) return 1;
-        std::printf("      %s: {\"H\": %.6f, \"S\": %.6f, \"G\": %.6f}%s\n",
-                    jstr(trs[j].cli).c_str(), r.H, r.S, r.G,
+        std::printf("      %s: {\"H\": %.6f, \"S\": %.6f, \"G\": %.6f%s}%s\n",
+                    jstr(trs[j].cli).c_str(), r.H, r.S, r.G, contribJson(r).c_str(),
                     j + 1 < trs.size() ? "," : "");
       }
       vector<string> notes = c.notes;
@@ -270,6 +306,7 @@ int run(const vector<string>& urls, double T, ThermoStandardState ss,
       if (!computeChecked(c.in, T, ss, tr, r)) return 1;
       std::printf("  %-18s %12.6f %12.3f %s\n", tr.cli.c_str(), r.H, r.S,
                   fmtG(r.G).c_str());
+      if (g_contrib) printContrib(r);
     }
     if (i + 1 < calcs.size()) std::printf("\n");
   }
@@ -539,6 +576,7 @@ int main(int argc, char** argv)
   for (int i = 1; i < argc; i++) {
     const string a = argv[i];
     if (a == "--json") json = true;
+    else if (a == "--contributions") g_contrib = true;
     else if (a == "--T" && i + 1 < argc) T = atof(argv[++i]);
     else if (a == "--standard-state" && i + 1 < argc) {
       const string v = lower(argv[++i]);
@@ -563,6 +601,7 @@ int main(int argc, char** argv)
                   "  [--treatment all|rrho|qrrho-grimme:100|truhlar|head-gordon,...]\n"
                   "  [--symmetry-number N] [--rotor auto|linear|nonlinear]\n"
                   "  [--symmetry-tolerance ANGSTROM] [--reaction \"LHS -> RHS\"] [--json]\n"
+                  "  [--contributions]  U, S and Cv by contribution (always in --json)\n"
                   "ecce-thermo --reactions FILE [<calc> ...] [--chosen qrrho-grimme:100]\n"
                   "  [--format text|json|csv] [--T K] [--standard-state 1atm|1M]\n"
                   "  one reaction per line, 'a, 2*b -> c' (calc names or URLs)\n");

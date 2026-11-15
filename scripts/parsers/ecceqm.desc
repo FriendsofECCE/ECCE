@@ -368,6 +368,14 @@ Skip=0
 Lines=1
 [END]
 
+[THERMOSIGMA]
+Script=ecceqm.parse
+Begin=^symmetry_number\s
+Frequency=last
+Skip=0
+Lines=1
+[END]
+
 [ETHERM]
 Script=ecceqm.parse
 Begin=^thermal_energy\s

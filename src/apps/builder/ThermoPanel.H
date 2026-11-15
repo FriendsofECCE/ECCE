@@ -2,6 +2,7 @@
 #define THERMOPANEL__H
 
 #include <string>
+#include <wx/scrolwin.h>
 #include <wx/string.h>
 #include "PropertyPanel.H"
 #include "util/ThermoRun.H"
@@ -39,7 +40,7 @@ class ThermoPanel : public PropertyPanel
 
       virtual int minimumHeight() const { return 220; }
       // Leave room below the property list for wrapped controls and the grid.
-      virtual int openingHeight() const { return 300; }
+      virtual int openingHeight() const { return 460; }
 
       /** Test hook: set the controls (treatment by ecce-thermo name). */
       bool setChoice(const std::string& treatment, double kelvin, bool oneMolar);
@@ -50,6 +51,10 @@ class ThermoPanel : public PropertyPanel
       /** What the table shows: recomputed H, S, G; false if there are none. */
       bool shown(ThermoValue *v) const;
       std::string errorText() const { return p_error; }
+      /** Test hook: the contributions table as shown, one "label|cell|..." line per row. */
+      std::string contribText() const;
+      /** Test hook: the scrolled body that holds the controls and both grids. */
+      wxScrolledWindow *body() const { return p_body; }
 
    protected:
       void fill();
@@ -63,6 +68,9 @@ class ThermoPanel : public PropertyPanel
       wxString p_note;
       int p_wrapWidth = 0;
       wxGrid *p_grid;
+      wxGrid *p_contrib;   ///< U, S, Cv by contribution (#1044)
+      /** Everything but the frame scrolls vertically, so both grids keep all their rows. */
+      wxScrolledWindow *p_body = nullptr;
       std::string p_error;
       bool p_have;
       ThermoValue p_value;

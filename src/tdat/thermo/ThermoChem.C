@@ -65,6 +65,15 @@ double vibThermalOf(const std::vector<double>& nu, double T)
   return e;
 }
 
+// Harmonic-oscillator heat capacity of one mode, in units of R; written with
+// exp(-x) so that stiff modes at low T give 0 rather than inf/inf.
+double cvHo(double nu, double T)
+{
+  const double x = HC_K * nu / T;
+  const double e = std::exp(-x);
+  return x * x * e / ((1.0 - e) * (1.0 - e));
+}
+
 double sTrans(double massAmu, double T, double pressure)
 {
   const double m = massAmu * AMU;
@@ -115,21 +124,22 @@ ThermoResult computeThermo(const ThermoInput& in, double T,
   if (in.mass <= 0.0) { r.notes.push_back("the molecular mass is unknown."); return r; }
   if (in.symmetryNumber < 1) { r.notes.push_back("the symmetry number must be >= 1."); return r; }
   if (in.multiplicity < 1) { r.notes.push_back("the multiplicity must be >= 1."); return r; }
-  if (in.frequencies.empty()) { r.notes.push_back("there are no frequencies."); return r; }
+  if (in.frequencies.empty() && !in.atom) { r.notes.push_back("there are no frequencies."); return r; }
 
   const double pressure = ss == THERMO_SOLN_1M ? 1000.0 * R_ * T : P_ATM;
 
   r.ok = true;
   r.zpe = zpeOf(in.frequencies);
   r.thermalVib = vibThermalOf(in.frequencies, T);
-  r.thermalRot = (in.linear ? 1.0 : 1.5) * K_B * T / EH;
+  const double rotDof = in.atom ? 0.0 : in.linear ? 1.0 : 1.5;
+  r.thermalRot = rotDof * K_B * T / EH;
   r.thermalTrans = 1.5 * K_B * T / EH;
   r.H = in.electronicEnergy + r.zpe + r.thermalVib + r.thermalRot + r.thermalTrans
       + K_B * T / EH;
 
   r.sElec = R_ * std::log((double)in.multiplicity);
   r.sTrans = sTrans(in.mass, T, pressure);
-  r.sRot = sRot(in.rotConstants, in.linear, in.symmetryNumber, T);
+  r.sRot = in.atom ? 0.0 : sRot(in.rotConstants, in.linear, in.symmetryNumber, T);
   r.sVib = 0.0;
   for (double f : in.frequencies)
     r.sVib += R_ * sHo(f, T);
@@ -172,6 +182,22 @@ ThermoResult computeThermo(const ThermoInput& in, double T,
       break;
     }
   }
+
+  r.cvTrans = 1.5 * R_;
+  r.cvRot = rotDof * R_;
+  r.cvElec = 0.0;
+  r.cvVib = 0.0;
+  for (double f : tr == THERMO_TRUHLAR_RAISE ? raisedTo(in.frequencies, 100.0)
+                                             : in.frequencies) {
+    double c = R_ * cvHo(f, T);
+    if (tr == THERMO_HEADGORDON_QRRHO) {
+      const double w = damping(f, 100.0);
+      c = w * c + (1.0 - w) * 0.5 * R_;   // d/dT of the damped kT/2
+    }
+    r.cvVib += c;
+  }
+  r.Cv = r.cvTrans + r.cvRot + r.cvVib + r.cvElec;
+  r.Cp = r.Cv + R_;
 
   // Per-mode terms, with the same damping as the totals above.
   for (double f : in.frequencies) {
@@ -306,7 +332,7 @@ std::string symmetrySummary(const ThermoInput& in)
   else
     s += " (from the point group; the symmetry number is not read from " +
          (in.code.empty() ? std::string("the code") : in.code) + "'s output)";
-  s += in.linear ? ", linear rotor." : ", non-linear rotor.";
+  s += in.atom ? ", atom (no rotation)." : in.linear ? ", linear rotor." : ", non-linear rotor.";
   return s;
 }
 
@@ -328,6 +354,7 @@ std::string symmetryWarning(const ThermoInput& in)
 
 bool applyRotorChoice(ThermoInput& in, int choice, std::string& err)
 {
+  if (in.atom) return true;   // an atom has no rotor to choose
   if (choice == 1 && !in.linear) {
     const double b = 0.5 * (in.rotConstants[1] + in.rotConstants[2]);
     in.linear = true;

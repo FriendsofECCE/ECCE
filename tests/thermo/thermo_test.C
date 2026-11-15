@@ -299,6 +299,67 @@ int main()
     check(near(dS, 8.314462618 * std::log(2.0), 1e-6), "sigma 2 lowers S by R ln 2");
   }
 
+  // Contributions to U, S and Cv (#1044).  Oracles: equipartition, and the
+  // NIST-JANAF standard entropies of Ar (154.846) and N2 (191.609 J/mol/K),
+  // which are at 1 bar: at 1 atm S is lower by R ln(1.01325).
+  {
+    const double R = 8.314462618, T = 298.15;
+    ThermoInput ar;
+    ar.atom = true;
+    ar.mass = 39.948;
+    ar.electronicEnergy = -527.0;
+    const ThermoResult r = computeThermo(ar, T, THERMO_GAS_1ATM, THERMO_RRHO);
+    check(r.ok, "an atom without frequencies is computed");
+    check(near(r.thermalTrans * KJ, 1.5 * R * T / 1000.0, 1e-6), "Ar: U_trans = 3/2 RT");
+    check(r.thermalRot == 0.0 && r.thermalVib == 0.0 && r.sRot == 0.0, "Ar: no rotation, no vibration");
+    check(near(r.Cv, 1.5 * R, 1e-9) && near(r.Cp, 2.5 * R, 1e-9), "Ar: Cv = 3/2 R, Cp = 5/2 R");
+    const double bar = R * std::log(1.01325);
+    printf("      Ar S(1 atm) = %.4f\n", r.S);
+    check(std::fabs(r.S + bar - 154.846) < 0.05, "Ar: S = 154.85 J/mol/K at 1 bar (Sackur-Tetrode)");
+
+    ThermoInput n2;
+    n2.mass = 28.014;
+    n2.linear = true;
+    n2.rotConstants[0] = n2.rotConstants[1] = n2.rotConstants[2] = 1.99824;
+    n2.frequencies = {2358.57};
+    n2.symmetryNumber = 2;
+    const ThermoResult n = computeThermo(n2, T, THERMO_GAS_1ATM, THERMO_RRHO);
+    check(near(n.thermalRot * KJ, R * T / 1000.0, 1e-6), "N2: U_rot = RT");
+    check(near(n.cvRot, R, 1e-9), "N2: Cv_rot = R");
+    check(n.cvVib > 0.0 && n.cvVib < 0.01 * R, "N2 at 298 K: tiny vibrational Cv");
+    check(std::fabs(n.Cv - 2.5 * R) < 0.01 * R, "N2 at 298 K: Cv = 5/2 R");
+    printf("      N2 S(1 atm) = %.4f\n", n.S);
+    check(std::fabs(n.S + bar - 191.609) < 0.1, "N2: S = 191.61 J/mol/K at 1 bar with sigma 2");
+    const ThermoResult hot = computeThermo(n2, 3000.0, THERMO_GAS_1ATM, THERMO_RRHO);
+    check(hot.cvVib > 0.8 * R, "N2 at 3000 K: the vibration approaches R");
+
+    const ThermoResult w = computeThermo(h2o(), T, THERMO_GAS_1ATM, THERMO_RRHO);
+    check(near(w.thermalRot * KJ, 1.5 * R * T / 1000.0, 1e-6) && near(w.cvRot, 1.5 * R, 1e-9),
+          "H2O: U_rot = 3/2 RT, Cv_rot = 3/2 R");
+    check(near(w.sTrans + w.sRot + w.sVib + w.sElec, w.S, 1e-9), "S contributions add up");
+    check(near(w.Cv, w.cvTrans + w.cvRot + w.cvVib + w.cvElec, 1e-12) && near(w.Cp - w.Cv, R, 1e-9),
+          "Cv contributions add up, Cp = Cv + R");
+
+    // Cv is dU/dT for every treatment.
+    for (ThermoTreatment t : {THERMO_RRHO, THERMO_GRIMME_QRRHO, THERMO_TRUHLAR_RAISE,
+                              THERMO_HEADGORDON_QRRHO}) {
+      const ThermoInput s = nma();
+      const double h = 0.01;
+      const ThermoResult up = computeThermo(s, T + h, THERMO_GAS_1ATM, t);
+      const ThermoResult dn = computeThermo(s, T - h, THERMO_GAS_1ATM, t);
+      const ThermoResult at = computeThermo(s, T, THERMO_GAS_1ATM, t);
+      const double dU = ((up.thermalVib - dn.thermalVib) * KJ * 1000.0) / (2 * h);
+      check(std::fabs(dU - at.cvVib) < 1e-4, (string("Cv_vib = dU_vib/dT, ") + treatmentName(t)).c_str());
+    }
+
+    // ECCE-QM prints sigma 6 for ethane (#1043): S drops by R ln 6.
+    ThermoInput e1 = h2o(), e6 = h2o();
+    e1.symmetryNumber = 1; e6.symmetryNumber = 6;
+    check(near(computeThermo(e1, T, THERMO_GAS_1ATM, THERMO_RRHO).S -
+               computeThermo(e6, T, THERMO_GAS_1ATM, THERMO_RRHO).S, R * std::log(6.0), 1e-6),
+          "sigma 6 lowers S by R ln 6");
+  }
+
   printf("%d failure(s)\n", failures);
   return failures ? 1 : 0;
 }
