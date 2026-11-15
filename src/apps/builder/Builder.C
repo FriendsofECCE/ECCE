@@ -254,6 +254,7 @@ static wxBitmapBundle shapeIcon(ShapeData::Shape shape);
 IMPLEMENT_CLASS( Builder, BuilderGUI )
 
 BEGIN_EVENT_TABLE( Builder, BuilderGUI )
+    EVT_MENU( ID_SAVE_IMAGE, Builder::OnSaveImageClick )
     EVT_MENU( ID_MODE_SELECT, Builder::OnModeClick )
     EVT_MENU( ID_MODE_ROTATE, Builder::OnModeClick )
     EVT_MENU( ID_MODE_TRANSLATE, Builder::OnModeClick )
@@ -5588,6 +5589,34 @@ bool Builder::writeFragmentToImageFile(SFile *file, wxString type, wxString ext)
   }
 
   return ret;
+}
+
+
+/**
+ * File > Save Image...: a PNG of the 3-D view at 1x, 2x or 4x its size,
+ * with blended transparency and smooth edges (VizRender::image).
+ */
+void Builder::OnSaveImageClick(wxCommandEvent& event)
+{
+  wxArrayString choices;
+  choices.Add("1x (the size of the view)");
+  choices.Add("2x");
+  choices.Add("4x");
+  wxSingleChoiceDialog res(this, _("Resolution, as a multiple of the size of the 3-D view:"),
+                           _("Save Image"), choices);
+  res.SetSelection(1);
+  if (res.ShowModal() != wxID_OK) return;
+  const int factor = res.GetSelection() == 0 ? 1 : (res.GetSelection() == 1 ? 2 : 4);
+  const bool white = wxMessageBox(_("Use a white background?"), _("Save Image"),
+                                  wxYES_NO | wxICON_QUESTION, this) == wxYES;
+  wxFileDialog fd(this, _("Save Image"), "", "image.png", "PNG files (*.png)|*.png",
+                  wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+  if (fd.ShowModal() != wxID_OK) return;
+  wxSize size = p_viewer->GetSize();
+  SbColor bg = white ? SbColor(1, 1, 1) : p_viewer->getBackgroundColor();
+  if (!VizRender::image(p_viewer->getTopNode(), fd.GetPath().ToStdString(),
+                        size.GetWidth(), size.GetHeight(), bg[0], bg[1], bg[2], factor))
+    showMessage(VizRender::msg(), true);
 }
 
 

@@ -78,6 +78,13 @@ the panel's **Select Distinct...** button: it runs `ecce-ensemble pick
 `GTSTRESS: endistinct ranks=<r>... note=<n distinct of N; m merged within X Å>`. Output goes to stderr as `GTSTRESS: ...` lines; the same
 commands work under `ECCE_VIEWER_SCENE`. Test: `tests/apps/ensemble_patterns_test.py`.
 
+`saveimage <path.png> <factor> [white]` (scene script, `ECCE_VIEWER_SCENE`)
+is File > Save Image...: a PNG of the 3-D view at `factor` (1, 2, 4) times
+its size, drawn with blended transparency (not the on-screen screen-door
+mode), supersampled edges and line widths scaled with the factor; `white`
+replaces the view's background. Use it for documentation figures. Test:
+`tests/apps/saveimage_test.py`.
+
 ## Checking the Basis Set Tool window
 
 `tests/apps/basis_tool_size_test.py` (ctest `apps_basis_tool_size`) checks
