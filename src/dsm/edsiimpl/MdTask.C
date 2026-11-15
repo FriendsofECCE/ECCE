@@ -1122,6 +1122,9 @@ bool MdTask::move(EcceURL& target)
 bool MdTask::copy(EcceURL & target)
 {
   p_msgStack->clear();
+  // A GROMACS calculation from files (#1038) is in no study: a plain copy.
+  if (getContentType() == ResourceDescriptor::CT_MDRUN)
+    return Resource::copy(target);
   Session *session = getSession();
   if (session == 0 || target.getParent().toString() !=
                       getURL().getParent().toString()) {

@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""A plain GROMACS run made from the user's own files (#1038), launched.
+"""A GROMACS calculation made from the user's own files (#1038), launched.
 
-File > New GROMACS Run from Files... through its Organizer hook
-`gmxrun PARENT MDP|- GRO|- TOP|- [TPR]`: the inputs are stored, Launch ships
-them, the job script runs grompp (not for a .tpr) and mdrun, and the
+File > New > GROMACS Calculation from Files... through its Organizer hook
+`gmxrun PARENT MDP|- GRO|- TOP|- [TPR]`: a gromacs_md_run (its own content
+type, so a fresh process reloads it as itself); the inputs are stored, Launch
+ships them, the job script runs grompp (not for a .tpr) and mdrun, and the
 monitor stores energies, the trajectory and the final structure.
+
+Hand-offs (case 1's run): New from This > Rerun and Continue from Last
+Geometry (`duplicate URL [last]`; the copy's .gro is the final frame, and it
+runs), In Another Code from GROMACS to xTB (`anothercode`), and from that xTB
+calculation back to GROMACS (`anothercodegmx`: the coordinates go into the
+user's .gro; a .gro whose atoms differ is refused).
 
     tests/launch/gromacs_run_test.py [--build DIR] [--keep]
 
@@ -85,7 +92,8 @@ def main():
         urls = [l for l in out.splitlines() if l.startswith("file://")]
         if not check(rc == 0 and urls, "a project to work in"):
             return 1
-        proj = urls[0].rsplit("/", 2)[0] + "/"
+        # gromacsstudy makes its study in this project
+        proj = s.userUrl().rstrip("/") + "/scratch-project/"
 
         cmds = os.path.join(s.state, "organizer-commands")
         open(cmds, "w").close()
@@ -112,13 +120,102 @@ def main():
                 time.sleep(0.5)
             return "no answer"
 
-        def run_it(case, args_, expect_inputs, name):
-            ans = send("gmxrun %s %s" % (proj, args_))
-            if not check(ans.startswith("ok "), "%s: gmxrun: %s" % (case, ans)):
-                return None
-            url = ans.split()[1].rstrip("/") + "/"
+        projdir = where(proj)
+
+        def made_by(line):
+            before = set(os.listdir(projdir))
+            ans = send(line)
+            new = sorted(set(os.listdir(projdir)) - before)
+            return ans, new
+
+        def handoffs(url):
+            task = where(url)
+            final = [o for o in os.listdir(os.path.join(task, "Outputs"))
+                     if o.endswith(".gro")]
+            final = open(os.path.join(task, "Outputs", final[0])).read() \
+                if final else ""
+            start = open(os.path.join(task, "Inputs", "conf.gro")).read()
+
+            say("hand-off: New from This > Rerun")
+            ans, new = made_by("duplicate %s" % url.rstrip("/"))
+            if check(ans.startswith("ok") and len(new) == 1,
+                     "rerun: one copy made: %s %s" % (ans, new)):
+                cu = proj + new[0] + "/"
+                rc, out = s.driver("apptype", cu)
+                check(out.strip().endswith("gromacs_md_run"),
+                      "rerun: the copy is a gromacs_md_run: %s" % out.strip())
+                check(s.state_of(cu) == "ready", "rerun: the copy is Ready")
+                check(open(os.path.join(where(cu), "Inputs", "conf.gro")).read()
+                      == start, "rerun: the copy starts from the same .gro")
+
+            say("hand-off: Continue from Last Geometry")
+            ans, new = made_by("duplicate %s last" % url.rstrip("/"))
+            if check(ans.startswith("ok") and len(new) == 1,
+                     "last geometry: one copy made: %s %s" % (ans, new)):
+                cu = proj + new[0] + "/"
+                check(s.state_of(cu) == "ready", "last geometry: the copy is Ready")
+                got = open(os.path.join(where(cu), "Inputs", "conf.gro")).read()
+                check(final and got == final,
+                      "last geometry: the copy's .gro is the final frame")
+                check(not os.path.isdir(os.path.join(where(cu), "Outputs")) or
+                      not os.listdir(os.path.join(where(cu), "Outputs")),
+                      "last geometry: the copy has no results")
+                run_it("continued", "", ("conf.gro", "gromacs.mdp"), new[0],
+                       url=cu)
+
+            say("hand-off: In Another Code, GROMACS -> xTB")
+            ans, new = made_by("anothercode xtb_es _xtb - %s" % url)
+            xurl = None
+            if check(" made" in ans and new == ["gromacs_xtb"],
+                     "to xTB: made: %s %s" % (ans, new)):
+                xurl = proj + new[0] + "/"
+                rc, out = s.driver("apptype", xurl)
+                check("xtb_es" in out, "to xTB: an xTB calculation: %s" % out.strip())
+            if not xurl:
+                return
+
+            say("hand-off: In Another Code, xTB -> GROMACS")
+            ans, new = made_by("anothercodegmx %s %s %s _gmx - %s"
+                               % (mdp, gro, top, xurl))
+            if check("made, Ready" in ans and new == ["gromacs_xtb_gmx"],
+                     "to GROMACS: made: %s %s" % (ans, new)):
+                gu = proj + new[0] + "/"
+                got = open(os.path.join(where(gu), "Inputs", "conf.gro")).read()
+
+                def xyz(text):
+                    rows = text.splitlines()[2:-1]
+                    return [tuple(float(r[20 + 8 * k:28 + 8 * k]) for k in range(3))
+                            for r in rows]
+                a, b = xyz(got), xyz(final)
+                check(len(a) == len(b) == 648 and
+                      max(abs(p - q) for u, v in zip(a, b) for p, q in zip(u, v))
+                      < 0.0011,
+                      "to GROMACS: the .gro holds the xTB structure's coordinates")
+                check(got.splitlines()[-1] == start.splitlines()[-1],
+                      "to GROMACS: the user's box line is kept")
+                run_it("from-xtb", "", ("conf.gro",), new[0], url=gu)
+
+            say("hand-off: a .gro with other atoms is refused")
+            bad = os.path.join(work, "swapped.gro")
+            rows = start.splitlines()
+            rows[2], rows[3] = rows[3], rows[2]
+            open(bad, "w").write("\n".join(rows) + "\n")
+            ans, new = made_by("anothercodegmx %s %s %s _bad - %s"
+                               % (mdp, bad, top, xurl))
+            check("not made" in ans and "same order" in ans and not new,
+                  "refused, with the reason: %s" % ans)
+
+        def run_it(case, args_, expect_inputs, name, url=None):
+            if url is None:
+                ans = send("gmxrun %s %s" % (proj, args_))
+                if not check(ans.startswith("ok "), "%s: gmxrun: %s" % (case, ans)):
+                    return None
+                url = ans.split()[1].rstrip("/") + "/"
             check(url.rstrip("/").endswith("/" + name),
                   "%s: the calculation is named %s: %s" % (case, name, url))
+            rc, out = s.driver("apptype", url)
+            check(out.strip().endswith("GROMACS ecceMdRun gromacs_md_run"),
+                  "%s: it reloads as a gromacs_md_run: %s" % (case, out.strip()))
             task = where(url)
             have = sorted(os.listdir(os.path.join(task, "Inputs")))
             say("  Inputs/: %s" % have)
@@ -151,8 +248,10 @@ def main():
         say("case 1: .mdp, .gro, .top")
         mdp, gro, top = (os.path.join(FIX, f)
                          for f in ("gromacs.mdp", "conf.gro", "topol.top"))
-        run_it("files", "%s %s %s" % (mdp, gro, top),
-               ("gromacs.mdp", "conf.gro", "topol.gmxtop"), "gromacs")
+        first = run_it("files", "%s %s %s" % (mdp, gro, top),
+                       ("gromacs.mdp", "conf.gro", "topol.gmxtop"), "gromacs")
+        if first:
+            handoffs(first)
 
         # ---- 2: a ready .tpr --------------------------------------------
         say("case 2: a ready .tpr")

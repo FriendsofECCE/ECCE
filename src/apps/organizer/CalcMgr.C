@@ -102,6 +102,7 @@ static std::string s_registerMessage;
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
 #include "dsm/Series.H"
+#include "dsm/GromacsCalc.H"
 #include "AnotherCodeDialog.H"
 #include "dsm/SmilesBatch.H"
 #include <wx/choicdlg.h>
@@ -3105,6 +3106,20 @@ void CalcMgr::runTestCommand(const string& line)
       }
       reconnectSelected(urls, false, &outcome, png, command == "reconnectselectedlist",
                         0, readyId);
+    } else if (command == "anothercodegmx") {
+      // "anothercodegmx MDP GRO TOP SUFFIX|- FOLDER|- SOURCE...": In Another
+      // Code with GROMACS as the code, the files the dialogs would ask for
+      // given.  The answer is the report, newlines as " | ".
+      std::istringstream args(calcName);
+      string mdp, gro, top, suffix, folder, s;
+      args >> mdp >> gro >> top >> suffix >> folder;
+      vector<string> sources;
+      while (args >> s) sources.push_back(s);
+      outcome = gromacsFromSources(mdp, gro, top, suffix == "-" ? "" : suffix,
+                                   folder == "-" ? EcceURL() : EcceURL(folder),
+                                   sources);
+      for (size_t p; (p = outcome.find('\n')) != string::npos;)
+        outcome.replace(p, 1, " | ");
     } else if (command == "anothercode" || command == "anothercodefinish") {
       // "anothercode TYPE SUFFIX FOLDER|- SOURCE...": In Another Code's first
       // step without the dialog or the editor (the test stands in for the
@@ -4790,7 +4805,7 @@ static int newMenuGroup(const string & name)
     {"ecceqm_es", "gaussian16_es", "nwchem_es", "orca_es", 0},
     {"crest_es", "mopac_es", "xtb_es", 0},
     {"cp2k_es", "qe_es", 0},
-    {"gromacs_md_study", "nwchem_md_study", 0},
+    {"gromacs_md_study", "gromacs_md_run", "nwchem_md_study", 0},
     {"mlp_es", "vina_es", 0},
   };
   for (size_t g = 0; g < sizeof(groups) / sizeof(groups[0]); g++)
@@ -4828,10 +4843,15 @@ WxResourceTreeItemData * CalcMgr::nearestContainer(
  */
 void CalcMgr::OnNewResourceClick( wxCommandEvent& event )
 {
-  startDisabler();
-
   ResourceType * resType = ResourceDescriptor::getResourceDescriptor().
     getResourceType(event.GetId());
+  // Made from the user's files, so New asks for them, not for a name.
+  if (resType && resType->getName() == "gromacs_md_run") {
+    OnNewGromacsRunClick(event);
+    return;
+  }
+  startDisabler();
+
   // The nearest ancestor of the selection (or the selection itself) that
   // can contain this type, else the user's home.
   WxResourceTreeItemData * parent = nearestContainer(
@@ -5311,6 +5331,8 @@ WxResourceTreeItemData* CalcMgr::duplicateForRerun(
     if (why) *why = "copy " + copy->getName() + " could not be reset: " + task->messages();
     return 0;
   }
+  // A GROMACS calculation's files are its whole setup.
+  if (GromacsCalc::isRun(task)) task->setState(ResourceDescriptor::STATE_READY);
   return copy;
 }
 
@@ -6223,7 +6245,8 @@ void CalcMgr::OnAnotherCodeClick( wxCommandEvent& event )
   vector<string> sources;
   for (size_t i = 0; i < rows.size(); i++) {
     Resource *r = EDSIFactory::getResource(rows[i]);
-    if (dynamic_cast<ICalculation*>(r) && dynamic_cast<PropertyTask*>(r))
+    if ((dynamic_cast<ICalculation*>(r) && dynamic_cast<PropertyTask*>(r)) ||
+        GromacsCalc::isRun(r))
       sources.push_back(rows[i].toString());
   }
   if (sources.empty()) {
@@ -6239,6 +6262,12 @@ void CalcMgr::OnAnotherCodeClick( wxCommandEvent& event )
         codes.push_back(std::make_pair(string(c.label), string(c.typeName)));
         break;
       }
+  //  Not a workflow step (yet): its setup is the user's files, asked for
+  //  after the dialog.
+  for (size_t i = 0; i < types.size(); i++)
+    if (types[i]->getName() == "gromacs_md_run")
+      codes.push_back(std::make_pair(string("GROMACS (from files)"),
+                                     string("gromacs_md_run")));
   if (codes.empty()) {
     setMessage("No code is registered.", WxFeedback::INFO);
     return;
@@ -6254,7 +6283,65 @@ void CalcMgr::OnAnotherCodeClick( wxCommandEvent& event )
         return true;
       });
   if (dlg.ShowModal() != wxID_OK) return;
+  if (dlg.typeName() == "gromacs_md_run") {
+    string mdp, gro, top, tpr;
+    if (!askGromacsFiles(false, mdp, gro, top, tpr)) return;
+    startDisabler();
+    const string report = gromacsFromSources(mdp, gro, top, dlg.suffix(),
+                                             dlg.folder(), sources);
+    stopDisabler();
+    setMessage(report, WxFeedback::INFO);
+    return;
+  }
   startAnotherCode(dlg.typeName(), dlg.suffix(), dlg.folder(), sources, true, 0);
+}
+
+
+// Each source's final structure replaces the coordinates of the user's .gro
+// (same atoms in the same order); a source that does not fit is reported and
+// its calculation removed.
+string CalcMgr::gromacsFromSources(const string& mdp, const string& gro,
+                                   const string& top, const string& suffix,
+                                   const EcceURL& folderIn,
+                                   const vector<string>& sources)
+{
+  if (sources.empty()) return "no calculations";
+  const EcceURL folder = folderIn.toString().empty()
+                             ? EcceURL(sources[0]).getParent() : folderIn;
+  Resource *parent = EDSIFactory::getResource(folder);
+  if (!parent) return "no such folder";
+  string report;
+  int made = 0;
+  for (size_t i = 0; i < sources.size(); i++) {
+    string name, why, message;
+    Fragment *frag = Series::structure(sources[i], suffix, name, why);
+    if (!frag) {
+      report += name + ": not made: " + why + "\n";
+      continue;
+    }
+    const string url = createGromacsRun(parent, mdp, gro, top, "", message,
+                                        name);
+    Resource *r = url.empty() ? 0 : EDSIFactory::getResource(EcceURL(url));
+    TaskJob *run = dynamic_cast<TaskJob*>(r);
+    if (!run) {
+      report += name + ": not made: " + message + "\n";
+    } else if (!GromacsCalc::setStructure(run, *frag, why)) {
+      r->remove();
+      report += name + ": not made: " + why + "\n";
+    } else {
+      run->setState(ResourceDescriptor::STATE_READY);
+      made++;
+      report += r->getName() + ": made, Ready" +
+                (message.empty() ? string() : " (" + message + ")") +
+                "\nurl=" + url + "\n";
+    }
+    delete frag;
+  }
+  if (made) {
+    if (WxResourceTreeItemData *node = findNode(folder, true, true))
+      p_treeCtrl->refresh(node);
+  }
+  return report;
 }
 
 
@@ -7088,37 +7175,48 @@ string CalcMgr::newGromacsRunFrom(const string& mdp, const string& structure,
 
 
 // Each file is asked for in the folder of the one before.
-void CalcMgr::OnNewGromacsRunClick( wxCommandEvent& event )
+bool CalcMgr::askGromacsFiles(bool allowTpr, string& mdp, string& gro,
+                              string& top, string& tpr)
 {
-  wxFileDialog first(this, _("GROMACS run input (.mdp or ready .tpr)"),
+  mdp.clear(); gro.clear(); top.clear(); tpr.clear();
+  wxFileDialog first(this, allowTpr ? _("GROMACS run input (.mdp or ready .tpr)")
+                                    : _("GROMACS run input (.mdp)"),
                      wxEmptyString, wxEmptyString,
-                     _("GROMACS run input (*.mdp;*.tpr)|*.mdp;*.tpr"),
+                     allowTpr ? _("GROMACS run input (*.mdp;*.tpr)|*.mdp;*.tpr")
+                              : _("GROMACS run input (*.mdp)|*.mdp"),
                      wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-  if (first.ShowModal() != wxID_OK) return;
+  if (first.ShowModal() != wxID_OK) return false;
   const string chosen(first.GetPath().mb_str());
-  string mdp, gro, top, tpr;
   if (chosen.size() > 4 && chosen.compare(chosen.size() - 4, 4, ".tpr") == 0) {
     tpr = chosen;
-  } else {
-    mdp = chosen;
-    wxFileDialog s(this, _("Starting structure (.gro)"), first.GetDirectory(),
-                   wxEmptyString, _("Structure (*.gro;*.pdb)|*.gro;*.pdb"),
-                   wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-    if (s.ShowModal() != wxID_OK) return;
-    gro = string(s.GetPath().mb_str());
-    wxFileDialog t(this, _("Topology (.top)"), s.GetDirectory(), wxEmptyString,
-                   _("Topology (*.top)|*.top"),
-                   wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-    if (t.ShowModal() != wxID_OK) return;
-    top = string(t.GetPath().mb_str());
+    return true;
   }
+  mdp = chosen;
+  wxFileDialog s(this, _("Starting structure (.gro)"), first.GetDirectory(),
+                 wxEmptyString, _("Structure (*.gro)|*.gro"),
+                 wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+  if (s.ShowModal() != wxID_OK) return false;
+  gro = string(s.GetPath().mb_str());
+  wxFileDialog tp(this, _("Topology (.top)"), s.GetDirectory(), wxEmptyString,
+                  _("Topology (*.top)|*.top"),
+                  wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+  if (tp.ShowModal() != wxID_OK) return false;
+  top = string(tp.GetPath().mb_str());
+  return true;
+}
+
+
+void CalcMgr::OnNewGromacsRunClick( wxCommandEvent& event )
+{
+  string mdp, gro, top, tpr;
+  if (!askGromacsFiles(true, mdp, gro, top, tpr)) return;
   startDisabler();
   string message;
   string made = newGromacsRunFrom(mdp, gro, top, tpr, message);
   if (made.empty())
     setMessage(message, WxFeedback::ERROR);
   else
-    setMessage("The GROMACS run is made and Ready to launch. " + message,
+    setMessage("The GROMACS calculation is made and Ready to launch. " + message,
                WxFeedback::INFO);
   stopDisabler();
 }
@@ -10303,8 +10401,9 @@ void CalcMgr::getContextMenu(wxMenu & menu)
 
   // Only a calculation can be duplicated (#47).
   bool isCalculationNode = itemData && itemData->getResource() &&
-      itemData->getResource()->getContentType() ==
-          ResourceDescriptor::CT_CALCULATION;
+      (itemData->getResource()->getContentType() ==
+           ResourceDescriptor::CT_CALCULATION ||
+       GromacsCalc::isRun(itemData->getResource()));
 
   // build the "new" part of the context menu first
   // the variables to iterate through what "can be contained"
@@ -10728,8 +10827,6 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
   menu.Append(wxID_IMPORT, _("&Import Calculation from Output File..."),
               _T(""), wxITEM_NORMAL);
   menu.Append(wxID_IMPORTGROMACS, _("Import &GROMACS Run..."),
-              _T(""), wxITEM_NORMAL);
-  menu.Append(wxID_NEWGROMACSRUN, _("New GROMACS &Run from Files..."),
               _T(""), wxITEM_NORMAL);
   menu.Append(wxID_OPENEXAMPLES, _("Open &Example Calculations"),
               _T(""), wxITEM_NORMAL);
@@ -13124,6 +13221,19 @@ void CalcMgr::resetWithLastGeom(WxResourceTreeItemData *itemData)
   // make sure this is a calculation and not a collection
   // get calculation
   PropertyTask *calc = dynamic_cast<PropertyTask*>(itemData->getResource());
+
+  // A GROMACS calculation's last geometry is the final frame it wrote,
+  // which becomes the copy's starting .gro; its files are complete, so Ready.
+  if (calc && GromacsCalc::isRun(calc)) {
+    string why;
+    const bool moved = GromacsCalc::continueFromFinal(calc, why);
+    calc->resetForRerun(ResourceDescriptor::STATE_READY);
+    calc->setState(ResourceDescriptor::STATE_READY);
+    p_feedback->clearMessage();
+    setMessage(moved ? "The copy starts from the final frame of the run."
+                     : "The copy is the same run: " + why);
+    return;
+  }
 
   // get fragment
   Fragment *frag = (Fragment*)0;

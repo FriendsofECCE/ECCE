@@ -700,15 +700,28 @@ An MD study (GROMACS, NWChem MD) is a project-like folder whose tasks
 in the study holds the chain: a task takes its starting structure from the one
 before it, so it can only be launched after that one has completed.
 
-A plain GROMACS run (type `gromacs_md_dynamics` with a project as parent, no
-study) is made from the user's own files: File > New GROMACS Run from
-Files... in the Organizer, or the test hook `gmxrun PARENT-URL MDP|-
-STRUCTURE|- TOPOLOGY|- [TPR]` (`ECCE_TEST_ORGANIZER`, prints `ok <url>`). The
-.mdp is stored verbatim as `gromacs.mdp`, the topology as `<name>.gmxtop`,
-the structure as `<name>.gro`, includes beside the topology and a `.ndx`
-with them; a ready `.tpr` is stored as `run.gmxtpr` and the job skips grompp.
-A `.pdb` structure is refused (convert with `gmx editconf`). The run is
-left Ready; launch it as any calculation (`launchjob mdsetup`, `launch`).
+A GROMACS calculation from the user's own files is its own type,
+`gromacs_md_run` (content type `ecceMdRun`, no MD editor; `launchjob apptype
+URL` prints `GROMACS ecceMdRun gromacs_md_run`). Make it with File > New >
+GROMACS Calculation from Files... in the Organizer, or the test hook
+`gmxrun PARENT-URL MDP|- STRUCTURE|- TOPOLOGY|- [TPR]` (`ECCE_TEST_ORGANIZER`,
+prints `ok <url>`). The .mdp is stored verbatim as `gromacs.mdp`, the topology
+as `<name>.gmxtop`, the structure as `<name>.gro`, includes beside the
+topology and a `.ndx` with them; a ready `.tpr` is stored as `run.gmxtpr` and
+the job skips grompp. A `.pdb` structure is refused (convert with `gmx
+editconf`). The calculation is left Ready; launch it as any calculation
+(`launchjob mdsetup`, `launch`).
+
+Hand-offs: New from This > Rerun and Continue from Last Geometry (hook
+`duplicate URL [last]`; with `last` the copy's starting .gro is the run's
+final frame, Ready), In Another Code from it to another code (hook
+`anothercode TYPE SUFFIX FOLDER|- URL`: the final frame, charge 0,
+multiplicity from the electron count), and to GROMACS from any calculation:
+In Another Code > GROMACS (from files), hook `anothercodegmx MDP GRO TOP
+SUFFIX|- FOLDER|- SOURCE...` (one calculation per source, named source +
+suffix, Ready; the source's final structure replaces the .gro's coordinates,
+refused with the differing atom when the atoms or their order differ; box
+kept, velocities dropped). Not a workflow step yet.
 
 ### The run directory
 

@@ -360,10 +360,11 @@ string dirName(const string& path)
 
 string createGromacsRun(Resource* parent, const string& mdp,
                         const string& structure, const string& top,
-                        const string& tpr, string& message)
+                        const string& tpr, string& message,
+                        const string& wanted)
 {
   message.clear();
-  ResourceType* type = typeNamed("gromacs_md_dynamics");
+  ResourceType* type = typeNamed("gromacs_md_run");
   if (!parent || !type) {
     message = "no parent or no GROMACS task type";
     return "";
@@ -401,7 +402,7 @@ string createGromacsRun(Resource* parent, const string& mdp,
     }
   }
 
-  string name = stem(baseName(!mdp.empty() ? mdp : tpr));
+  string name = !wanted.empty() ? wanted : stem(baseName(!mdp.empty() ? mdp : tpr));
   for (size_t i = 0; i < name.size(); i++)
     if (!isalnum((unsigned char)name[i]) && name[i] != '_' && name[i] != '-')
       name[i] = '_';
