@@ -1686,7 +1686,12 @@ void Builder::runBuilderScript(const std::string& file)
         if (!tp) {
           outcome = "no Thermochemistry panel";
         } else if (w[0] == "thermolayout") {
-          for (wxWindow *child : tp->GetChildren()) {
+          // The grids sit in the panel's scrolled body (#1044).
+          wxScrolledWindow *body = tp->body();
+          fprintf(stderr, "BUILDER: thermolayout body client=%d virtual=%d scrollrange=%d\n",
+                  body->GetClientSize().y, body->GetVirtualSize().y,
+                  body->GetScrollRange(wxVERTICAL));
+          for (wxWindow *child : body->GetChildren()) {
             wxGrid *grid = wxDynamicCast(child, wxGrid);
             if (!grid) continue;
             wxClientDC dc(grid);

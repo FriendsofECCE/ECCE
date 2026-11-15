@@ -147,7 +147,11 @@ def main():
                   "columns wider than the viewport can scroll horizontally")
         heights = re.findall(r"thermolayout height=(\d+) rows=(\d+)", text)
         check(len(heights) == 4 and all(int(h) >= int(rows) for h, rows in heights),
-              "all rows of both tables fit above the horizontal scrollbar", str(heights))
+              "all rows of both tables are shown, none squeezed", str(heights))
+        # The panel body scrolls instead: content taller than the view needs a scroll range.
+        bodies = re.findall(r"thermolayout body client=(\d+) virtual=(\d+) scrollrange=(\d+)", text)
+        check(len(bodies) == 2 and all(int(v) <= int(c) or int(r) > 0 for c, v, r in bodies),
+              "the panel scrolls when both tables do not fit", str(bodies))
         findings = [line for line in open(audit) if line.startswith("FINDING\t")]
         check(not findings, "Thermochemistry controls pass the clipping audit", "".join(findings))
         check("segmentation" not in text.lower(), "no crash")
