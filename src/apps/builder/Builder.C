@@ -7,6 +7,7 @@ using std::ofstream;
 using std::cout;
 using std::endl;
 #include <map>
+#include <functional>
 using std::map;
 #include <sstream>
 using std::ostringstream;
@@ -33,6 +34,10 @@ using std::vector;
 #include "inv/nodes/SoCone.H"
 #include "inv/nodes/SoRotationXYZ.H"
 #include "inv/actions/SoGLRenderAction.H"
+#include "inv/actions/SoSearchAction.H"
+#include "inv/nodes/SoIndexedTriangleStripSet.H"
+#include "inv/ChemKit/ChemIso.H"
+#include "inv/nodes/SoVertexProperty.H"
 #include "inv/manips/SoTrackballManip.H"
 
 #include <wx/settings.h>
@@ -6931,6 +6936,123 @@ void Builder::updatePropertyMenus()
                 << xyz[3*a+1] << " " << xyz[3*a+2] << "\n";
           }
           delete [] xyz;
+          return true;
+        }
+        //  "surfmesh <name>": each isosurface in the scene as triangles ->
+        //  <name>.txt: threshold, vertices, triangles, boundary edges (used
+        //  by one triangle; 0 for a closed surface), edges used by more than
+        //  two, and edges both of whose triangles run the same way (these
+        //  show as missing faces under back-face culling) (#1076).
+        if (w[0] == "surfmesh" && w.size() == 2) {
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          SoSearchAction sa;
+          sa.setType(ChemIso::getClassTypeId());
+          sa.setInterest(SoSearchAction::ALL);
+          sa.setSearchingAll(true);
+          if (getSG()) sa.apply(getSG());
+          SoPathList &paths = sa.getPaths();
+          out << "surfaces " << paths.getLength() << "\n";
+          for (int pi = 0; pi < paths.getLength(); pi++) {
+            ChemIso *iso = (ChemIso *)paths[pi]->getTail();
+            SoIndexedTriangleStripSet *ts =
+                (SoIndexedTriangleStripSet *)(*iso->getChildren())[0];
+            const int32_t *ci = ts->coordIndex.getValues(0);
+            const int n = ts->coordIndex.getNum();
+            std::map<std::pair<int,int>, std::pair<int,int> > edges;
+            std::set<int> verts;
+            long tris = 0;
+            int a = -1, b = -1, k = 0;
+            for (int i = 0; i < n; i++) {
+              const int c = ci[i];
+              if (c < 0) { a = b = -1; k = 0; continue; }
+              verts.insert(c);
+              if (a >= 0 && b >= 0 && a != b && b != c && a != c) {
+                //  Strips alternate winding: odd triangles run b,a,c.
+                int t[3] = {a, b, c};
+                if (k % 2) std::swap(t[0], t[1]);
+                for (int e = 0; e < 3; e++) {
+                  const int u = t[e], v = t[(e + 1) % 3];
+                  std::pair<int,int> &cnt =
+                      edges[std::make_pair(std::min(u, v), std::max(u, v))];
+                  if (u < v) cnt.first++; else cnt.second++;
+                }
+                tris++;
+              }
+              if (a >= 0 && b >= 0) k++;
+              a = b; b = c;
+            }
+            long boundary = 0, over = 0, sameway = 0;
+            for (std::map<std::pair<int,int>, std::pair<int,int> >::iterator
+                     it = edges.begin(); it != edges.end(); ++it) {
+              const int used = it->second.first + it->second.second;
+              if (used == 1) boundary++;
+              else if (used > 2) over++;
+              else if (it->second.first != 1) sameway++;
+            }
+            out << "surface " << pi << " threshold " << iso->threshold.getValue()
+                << " vertices " << verts.size() << " triangles " << tris
+                << " boundary " << boundary << " overused " << over
+                << " misoriented " << sameway << "\n";
+            //  Connected pieces (by shared edges), each with its boundary
+            //  edges and the colour field (sign(l2)rho for NCI) at the
+            //  grid node nearest its vertices.
+            std::map<int,int> up;
+            std::function<int(int)> root = [&](int v) {
+              while (up.count(v) && up[v] != v) v = up[v] = up[up[v]];
+              return v;
+            };
+            for (std::set<int>::iterator it = verts.begin(); it != verts.end(); ++it)
+              up[*it] = *it;
+            for (std::map<std::pair<int,int>, std::pair<int,int> >::iterator
+                     it = edges.begin(); it != edges.end(); ++it)
+              up[root(it->first.first)] = root(it->first.second);
+            std::map<int, std::vector<int> > parts;
+            for (std::set<int>::iterator it = verts.begin(); it != verts.end(); ++it)
+              parts[root(*it)].push_back(*it);
+            std::map<int,long> partBoundary;
+            for (std::map<std::pair<int,int>, std::pair<int,int> >::iterator
+                     it = edges.begin(); it != edges.end(); ++it)
+              if (it->second.first + it->second.second == 1)
+                partBoundary[root(it->first.first)]++;
+            SingleGrid *g = getSG() ? getSG()->getCurrentGrid() : 0;
+            SoVertexProperty *vp =
+                (SoVertexProperty *)ts->vertexProperty.getValue();
+            const SbVec3f *xyz = vp ? vp->vertex.getValues(0) : 0;
+            const float *cf = g ? g->colorFieldData() : 0;
+            out << "pieces " << parts.size() << "\n";
+            for (std::map<int, std::vector<int> >::iterator it = parts.begin();
+                 it != parts.end(); ++it) {
+              double cmin = 1e30, cmax = -1e30;
+              if (cf && xyz) {
+                const int *dim = g->dimensions();
+                for (size_t q = 0; q < it->second.size(); q++) {
+                  const SbVec3f &p = xyz[it->second[q]];
+                  int ix[3];
+                  for (int k = 0; k < 3; k++) {
+                    const double d = (g->corner()[k] - g->origin()[k]) / (dim[k] - 1);
+                    ix[k] = std::max(0, std::min(dim[k] - 1,
+                        (int)floor((p[k] - g->origin()[k]) / d + 0.5)));
+                  }
+                  const double c = cf[ix[0] + (size_t)dim[0] *
+                                      (ix[1] + (size_t)dim[1] * ix[2])];
+                  cmin = std::min(cmin, c);
+                  cmax = std::max(cmax, c);
+                }
+              }
+              out << "piece vertices " << it->second.size() << " boundary "
+                  << partBoundary[it->first];
+              if (cf) out << " colourmin " << cmin << " colourmax " << cmax;
+              out << "\n";
+            }
+          }
+          SingleGrid *grid = getSG() ? getSG()->getCurrentGrid() : 0;
+          if (grid) {
+            const int *dim = grid->dimensions();
+            out << "grid " << dim[0] << " " << dim[1] << " " << dim[2];
+            for (int k = 0; k < 3; k++)
+              out << " " << (grid->corner()[k] - grid->origin()[k]) / (dim[k] - 1);
+            out << "\n";
+          }
           return true;
         }
         if (w[0] == "display") return displayCommand(s, w, outdir);
