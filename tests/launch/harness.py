@@ -324,7 +324,8 @@ class Session(object):
     def authFile(self):
         """Credentials for the calling user's own account, as AuthCache reads them.
 
-        AuthCache deletes the file once read, so every call gets its own.
+        One file per call, in this run's state directory (AuthCache does not
+        remove a file the caller passed).
         """
         with self._authLock:
             self._authCount += 1

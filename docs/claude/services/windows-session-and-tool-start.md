@@ -30,8 +30,9 @@ Windows runs no gateway process and has no `fork()`.
   writes the cache and closes the write end; `pipeIn` reads the handle. No
   password on a command line, in the environment or in a file.
 - **Still a file:** `pipeOut(name)` on Windows (Launcher -> eccejobmaster ->
-  eccejobstore, which go through `sh`) writes the cache to a temp file that
-  `pipeIn` deletes after reading. Moving those to handles needs the handle to
+  eccejobstore, which go through `sh`) writes the cache to a temp file
+  (`AuthPipe.*` in the temp root) that `pipeIn` deletes after reading; the
+  name is what lets it (#1060). Moving those to handles needs the handle to
   survive the MSYS `sh` in between.
 - The Organizer is the only starter: tools open while it runs. Closing it
   leaves open tools working, but they cannot start others.
