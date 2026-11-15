@@ -148,7 +148,7 @@ Tool/MD Prepare windows),
 Experimental, with `ECCE_ONE_PROCESS=1`: **Edit > Preferences > Windows
 and tabs** chooses which tools open as tabs of the Organizer's window (the
 Organizer is the first tab and cannot be closed). Presets **Normal**,
-**Small**, **Wide** (default: Wide, separate windows); **Customize...** sets
+**Small**, **Wide** (separate windows; default: Normal); **Customize...** sets
 each tool's row (Builder / Viewer, Calculation Editor, Basis Set Tool, MD
 editors, MD Prepare) to Tab or Window, which makes the layout Custom. Under
 Normal the Calculation Editor's tab is the Set-up tab: a detail area right
@@ -167,7 +167,7 @@ not an editor). Stored in `~/.ECCE/EcceGlobal` as `WindowsAndTabs.Layout`
 (`normal|small|wide|custom`) and, for Custom, `WindowsAndTabs.<key>`
 (`tab|window`, keys `builder calced basistool mdeditors mdprepare`). A tool
 opened after a change follows it; the tab strip itself is made when the
-Organizer starts, so going from Wide to tabs needs a restart. The window's
+Organizer starts, so going from Wide to tabs needs a restart (a fresh install is Normal). The window's
 menu bar is the active tab's. Right-click on a tab: **Open in Window** (this
 time) and **Always open in a window** (also sets that tool's row to Window);
 the tool's **Window > Move to Tabs** puts it back. Without

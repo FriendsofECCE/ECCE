@@ -26,11 +26,11 @@ const std::vector<WindowLayout::Tool>& WindowLayout::tools()
 }
 
 
-// The branch default before this setting existed: separate windows.  Which
-// preset a fresh install starts with is still to be decided.
+// Normal: a first-week user gets one window with tabs; Wide stays a choice
+// for large or several monitors.
 WindowLayout::Preset WindowLayout::defaultPreset()
 {
-  return Wide;
+  return Normal;
 }
 
 

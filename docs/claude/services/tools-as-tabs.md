@@ -6,7 +6,7 @@ paths: ["src/wxgui/mdtools/MDEdBase.C", "src/apps/mdprepare/MDPrep.C", "src/apps
 issues: [983]
 ---
 Switch: `ECCE_ONE_PROCESS=1` and Preferences > Windows and tabs
-(`util/WindowLayout`, stored in EcceGlobal; default Wide = windows).
+(`util/WindowLayout`, stored in EcceGlobal; default Normal).
 `ToolTabs::enabled` (tab strip made at the Organizer's start) needs some
 row set to Tab then; each opener calls `ToolTabs::open(tool, mgr, title,
 key)`, which adopts only if that tool's row is Tab now. A tool that opens
