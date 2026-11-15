@@ -38,6 +38,7 @@
 #endif
 
 #include "util/MqttLink.H"
+#include "util/WindowLayout.H"
 #include "wxgui/ToolTabs.H"
 
 static void allocateChildren(wxWindow *body);
@@ -46,6 +47,7 @@ namespace {
 
 const int ID_OPEN_IN_WINDOW = wxID_HIGHEST + 7301;
 const int ID_MOVE_TO_TABS = wxID_HIGHEST + 7302;
+const int ID_ALWAYS_WINDOW = wxID_HIGHEST + 7303;
 
 struct Tab {
   wxFrame *tool;          // 0 for the Organizer's own tab
@@ -54,6 +56,7 @@ struct Tab {
   wxWindow *page;         // 0 while the tool is in its own window
   wxString title;
   wxColour dot;
+  std::string key;        // its WindowLayout row
 };
 
 wxFrame *s_host = 0;
@@ -398,16 +401,36 @@ void onPageClose(wxAuiNotebookEvent& ev)
 }
 
 
+void fillTabMenu(wxMenu& menu)
+{
+  menu.Append(ID_OPEN_IN_WINDOW, _("Open in Window"),
+              _("Move this tool into a window of its own"));
+  menu.Append(ID_ALWAYS_WINDOW, _("Always open in a window"),
+              _("Open this tool in a window from now on (Preferences > "
+                "Windows and tabs becomes Custom)"));
+}
+
+// The tab menu's items: Open in Window now, or also from now on.
+void tabMenuChoice(Tab *t, int id)
+{
+  if (!t || !t->tool) return;
+  wxFrame *tool = t->tool;
+  if (id == ID_ALWAYS_WINDOW && !t->key.empty())
+    WindowLayout::setRow(t->key, false);
+  if (id == ID_OPEN_IN_WINDOW || id == ID_ALWAYS_WINDOW)
+    ToolTabs::release(tool);
+}
+
 void onTabRightUp(wxAuiNotebookEvent& ev)
 {
   Tab *t = s_book ? findPage(s_book->GetPage(ev.GetSelection())) : 0;
   if (!t || !t->tool) return;
   wxMenu menu;
-  menu.Append(ID_OPEN_IN_WINDOW, _("Open in Window"),
-              _("Move this tool into a window of its own"));
+  fillTabMenu(menu);
   wxFrame *tool = t->tool;
-  if (s_book->GetPopupMenuSelectionFromUser(menu) == ID_OPEN_IN_WINDOW)
-    ToolTabs::release(tool);
+  int id = s_book->GetPopupMenuSelectionFromUser(menu);
+  // The tab may have gone while the menu was up.
+  tabMenuChoice(findTool(tool), id);
 }
 
 // Whether the shown buttons whose label is in the comma list (plus any shown
@@ -539,9 +562,13 @@ wxString paintInfo(wxWindow *page)
 
 bool ToolTabs::enabled()
 {
-  if (!MqttLink::localDelivery()) return false;
-  const char *layout = getenv("ECCE_LAYOUT");
-  return layout && wxString(layout).Lower() == "small";
+  return MqttLink::localDelivery() && WindowLayout::anyTab();
+}
+
+
+bool ToolTabs::wantsTab(const char *key)
+{
+  return s_book && WindowLayout::tab(key);
 }
 
 
@@ -567,7 +594,7 @@ void ToolTabs::setMainWindow(wxFrame *organizer)
   sizer->Add(s_book, 1, wxEXPAND);
   organizer->SetSizer(sizer);
   tabs().push_back(Tab{0, 0, organizer->wxFrame::GetMenuBar(), page, _("Organizer"),
-                       dotFor("Organizer")});
+                       dotFor("Organizer"), ""});
   s_book->AddPage(page, _("Organizer"), true);
   routeMenus(organizer);
   s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, onPageChanged);
@@ -583,13 +610,23 @@ void ToolTabs::setMainWindow(wxFrame *organizer)
 }
 
 
+bool ToolTabs::open(wxFrame *tool, wxAuiManager *mgr, const wxString& title,
+                    const char *key)
+{
+  if (!wantsTab(key)) return false;
+  if (!adopt(tool, mgr, title)) return false;
+  findTool(tool)->key = key;
+  return true;
+}
+
+
 bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
 {
   if (!s_book || !tool) return false;
   Tab *t = findTool(tool);
   if (t && t->page) return true;
   if (!t) {
-    tabs().push_back(Tab{tool, mgr, 0, 0, title, dotFor(title)});
+    tabs().push_back(Tab{tool, mgr, 0, 0, title, dotFor(title), ""});
     t = &tabs().back();
   }
   if (wxMenuBar *mb = tool->wxFrame::GetMenuBar()) {
@@ -964,6 +1001,43 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
     outcome = "started";
   } else if (cmd == "dialoginfo") {
     outcome = s_dialogResult;
+  } else if (cmd == "layout") {
+    // "layout show": the stored setting; "layout small|normal|wide" chooses
+    // a preset; "layout KEY=tab|window" edits one row (then Custom).
+    wxString a = arg.Strip(wxString::both);
+    if (a == "show") a.clear();
+    WindowLayout::Preset p;
+    if (a.Contains("=")) {
+      wxString v = a.AfterFirst('=');
+      if (v != "tab" && v != "window") { outcome = "bad row"; return true; }
+      WindowLayout::setRow(a.BeforeFirst('=').ToStdString(), v == "tab");
+    } else if (!a.empty()) {
+      if (!WindowLayout::presetFromName(a.ToStdString(), p) ||
+          p == WindowLayout::Custom) { outcome = "bad preset"; return true; }
+      WindowLayout::setPreset(p);
+    }
+    outcome = wxString::FromUTF8(WindowLayout::describe().c_str());
+  } else if (cmd == "tabmenu" || cmd == "alwayswindow") {
+    // "tabmenu N": the right-click menu's items on tab N;
+    // "alwayswindow N": its Always open in a window, as a click does.
+    long n = -1;
+    if (!s_book || !arg.ToLong(&n) || n < 0 ||
+        n >= (long)s_book->GetPageCount()) {
+      outcome = "no such tab";
+      return true;
+    }
+    Tab *t = findPage(s_book->GetPage(n));
+    if (!t || !t->tool) { outcome = "not a tool tab"; return true; }
+    if (cmd == "tabmenu") {
+      wxMenu menu;
+      fillTabMenu(menu);
+      for (size_t i = 0; i < menu.GetMenuItemCount(); i++)
+        outcome += (i ? "|" : "") + menu.FindItemByPosition(i)->GetItemLabelText();
+    } else {
+      tabMenuChoice(t, ID_ALWAYS_WINDOW);
+      outcome = describe() + " " +
+                wxString::FromUTF8(WindowLayout::describe().c_str());
+    }
   } else if (cmd == "totabs") {
     for (Tab& t : tabs())
       if (t.tool && !t.page && t.tool->GetTitle().Contains(arg)) {

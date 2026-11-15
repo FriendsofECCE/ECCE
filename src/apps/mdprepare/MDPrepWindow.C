@@ -15,8 +15,8 @@ static WxJMSMessageDispatch *openMDPrep()
 {
   MDPrep *prep = new MDPrep((wxFrame*)NULL);
   WxJMSMessageDispatch *d = prep->getDispatcher();
-  if (ToolTabs::enabled())
-    ToolTabs::adopt(prep, 0, wxString::FromUTF8(prep->getTitle().c_str()));
+  ToolTabs::open(prep, 0, wxString::FromUTF8(prep->getTitle().c_str()),
+                 "mdprepare");
   prep->Show(true);
   InProcessTools::track(MDPREPARE, d, prep);
   return d;

@@ -1210,8 +1210,8 @@ WxJMSMessageDispatch *MDEdBase::openInProcess(MDEdBase *editor)
    WxJMSMessageDispatch *d = editor->p_msgDispatcher;
    if (!d) return 0;
    // Before the first Show, so the window is never mapped as a frame.
-   if (ToolTabs::enabled())
-      ToolTabs::adopt(editor, 0, wxString::FromUTF8(editor->getTitle().c_str()));
+   ToolTabs::open(editor, 0, wxString::FromUTF8(editor->getTitle().c_str()),
+                  "mdeditors");
    editor->Show(true);
    InProcessTools::track(editor->getAppName(), d, editor);
    return d;

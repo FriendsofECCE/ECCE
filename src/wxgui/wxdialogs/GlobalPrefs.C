@@ -30,6 +30,7 @@
 #include "util/RemoteServerDir.H"
 #include "util/LocalData.H"
 #include "util/ServerList.H"
+#include "util/WindowLayout.H"
 
 #include "dsm/ResourceDescriptor.H"
 #include "tdat/TPerTab.H"
@@ -141,6 +142,10 @@ GlobalPrefs::GlobalPrefs(wxWindow* parent)
   wxPanel* data = new wxPanel(p_book);
   createDataPage(data);
   p_book->AddPage(data, _("Data"));
+
+  wxPanel* windows = new wxPanel(p_book);
+  createWindowsPage(windows);
+  p_book->AddPage(windows, _("Windows and tabs"));
 
   wxPanel* advanced = new wxPanel(p_book);
   createAdvancedPage(advanced);
@@ -1070,6 +1075,11 @@ void GlobalPrefs::OnResetAll(wxCommandEvent& event)
     OnGatewayChange(event);
   }
 
+  if (WindowLayout::preset() != WindowLayout::defaultPreset()) {
+    WindowLayout::setPreset(WindowLayout::defaultPreset());
+    updateWindowsPage();
+  }
+
   if (!isDefaultPrograms()) {
     setProgramRow(p_editor, "");
     setProgramRow(p_terminal, "");
@@ -1349,7 +1359,8 @@ void GlobalPrefs::restorePasswordPref()
 void GlobalPrefs::updateResetButton()
 {
   p_resetAll->Enable(!isDefaultGlobalPref() || !isDefaultGatewayPref() ||
-                     !isDefaultPrograms());
+                     !isDefaultPrograms() ||
+                     WindowLayout::preset() != WindowLayout::defaultPreset());
 }
 
 

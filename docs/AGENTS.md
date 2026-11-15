@@ -145,13 +145,27 @@ Tool/MD Prepare windows),
 `closetools`, `gatewayquit` (the session's `ecce_quit`), and
 `answer cancel|no` for a tool's save question.
 
-Experimental, with `ECCE_ONE_PROCESS=1`: `ECCE_LAYOUT=small` opens the
-Builder as a tab of the Organizer's window instead of a window (the
-Organizer is the first tab and cannot be closed). The window's menu bar is
-the active tab's. Right-click on a tab: **Open in Window**; the tool's
-**Window > Move to Tabs** puts it back. Unset or `wide`: separate windows as
-before. Test hooks: `tabs` (tabs, `*` = active, tools in windows, the menu
-bar's menus), `tab N`, `towindow N`, `totabs <title part>`. A tab's
+Experimental, with `ECCE_ONE_PROCESS=1`: **Edit > Preferences > Windows
+and tabs** chooses which tools open as tabs of the Organizer's window (the
+Organizer is the first tab and cannot be closed). Presets **Normal**,
+**Small**, **Wide** (default: Wide, separate windows); **Customize...** sets
+each tool's row (Builder / Viewer, Calculation Editor, Basis Set Tool, MD
+editors, MD Prepare) to Tab or Window, which makes the layout Custom. Normal
+is meant to add a combined Set-up tab later; for now it places tools as
+Small does. Stored in `~/.ECCE/EcceGlobal` as `WindowsAndTabs.Layout`
+(`normal|small|wide|custom`) and, for Custom, `WindowsAndTabs.<key>`
+(`tab|window`, keys `builder calced basistool mdeditors mdprepare`). A tool
+opened after a change follows it; the tab strip itself is made when the
+Organizer starts, so going from Wide to tabs needs a restart. The window's
+menu bar is the active tab's. Right-click on a tab: **Open in Window** (this
+time) and **Always open in a window** (also sets that tool's row to Window);
+the tool's **Window > Move to Tabs** puts it back. Without
+`ECCE_ONE_PROCESS` every tool opens in a window whatever the setting. Test
+hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus),
+`tab N`, `towindow N`, `totabs <title part>`, `layout show|normal|small|wide|KEY=tab|window`
+(prints `preset=... rows=builder:tab,...`), `tabmenu N` (the tab's
+right-click items), `alwayswindow N`, and `prefs windows show|preset NAME|row KEY tab|window [PNG]|snap PNG`
+(the Preferences page and its Customize table, as clicks). A tab's
 dialogs open centred over the Organizer's window: `dialog` opens a test
 message box over the active tool tab and closes it 1.5 s later;
 `dialoginfo` then reports whether it was transient for the Organizer,

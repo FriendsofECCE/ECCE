@@ -274,6 +274,33 @@ over these settings, and the tab says so.
   for jobs that finish afterwards, and for Gaussian 16 checkpoint files only;
   see [The results file](results-file-format.md).
 
+### Windows and tabs
+
+Whether the tools open as tabs of the Organizer's window or each in a
+window of its own. This needs the tools to run in one program
+(`ECCE_ONE_PROCESS=1`, experimental); otherwise every tool opens in its own
+window and the tab says so.
+
+- **Layout**: **Normal**, tools as tabs; it is meant to bring the
+  Calculation Editor and its settings together in one Set-up tab, which
+  does not exist yet, so for now Normal is the same as Small. **Small**: one
+  tool per tab, each the full width of the window, for small screens and X
+  forwarding. **Wide** (the default): every tool in a window of its own, as
+  in earlier versions, for large or several monitors. **Custom** is shown
+  once the table below has been changed.
+- **Customize...**: one row per tool (Builder / Viewer, Calculation Editor,
+  Basis Set Tool, MD editors, MD Prepare), each **Tab** or **Window**,
+  filled from the chosen layout. Changing a row and pressing **OK** makes
+  the layout Custom.
+- Below the dropdown: which tools are tabs and which are windows.
+
+A change applies to tools opened afterwards. The tab strip is made when the
+Organizer starts: after changing from Wide to a layout with tabs, start
+ECCE again. Right-click on a tool's tab: **Open in Window** moves it into a
+window this time; **Always open in a window** does that and sets its row
+to Window (the layout becomes Custom). **Window > Move to Tabs** in the
+tool's window puts it back into a tab.
+
 ### Advanced
 
 Switches for testing and troubleshooting; see

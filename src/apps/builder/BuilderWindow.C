@@ -27,8 +27,7 @@ static WxJMSMessageDispatch *openBuilder()
   InProcessTools::track(BUILDER, msgs, builder);
   // Before the frame is first shown, so the viewer is first realized in
   // the tab.
-  if (ToolTabs::enabled())
-    ToolTabs::adopt(builder, builder->auiManager(), _("Builder"));
+  ToolTabs::open(builder, builder->auiManager(), _("Builder"), "builder");
   return msgs;
 }
 

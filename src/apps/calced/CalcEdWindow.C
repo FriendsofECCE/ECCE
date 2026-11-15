@@ -23,7 +23,7 @@ static WxJMSMessageDispatch *openCalcEd()
   msgs->subscribeMessages();
   msgs->startSubscriber();
   InProcessTools::track(CALCED, msgs, calced);
-  if (ToolTabs::enabled()) ToolTabs::adopt(calced, 0, _("Editor"));
+  ToolTabs::open(calced, 0, _("Editor"), "calced");
   return msgs;
 }
 

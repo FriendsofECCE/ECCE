@@ -2,7 +2,8 @@
  * @file
  *
  * Tools as tabs of the Organizer's window (#983 stage 2, with
- * ECCE_ONE_PROCESS=1 and ECCE_LAYOUT=small).
+ * ECCE_ONE_PROCESS=1; which tools: Preferences > Windows and tabs,
+ * util/WindowLayout.H).
  *
  * A tool stays the wxFrame it always was: in Tab mode its frame is kept
  * hidden and its client windows are reparented into a page of the main
@@ -32,9 +33,11 @@ public:
   // each tab draws its own menu bar under the strip.
   enum MenuPlacement { SwapMenuBar, InTab };
 
-  // ECCE_LAYOUT: "small" puts tools in tabs; anything else (default, or
-  // "wide") keeps today's separate windows.  Only with ECCE_ONE_PROCESS.
+  // Whether the main window gets a tab strip: one process, and some tool
+  // set to Tab when the Organizer starts.
   static bool enabled();
+  // Whether the tool with this WindowLayout key opens as a tab now.
+  static bool wantsTab(const char *key);
   static MenuPlacement menuPlacement();
 
   // The Organizer's frame becomes the main window: its client windows go
@@ -45,6 +48,9 @@ public:
   // has one.  Before the frame is first shown is best: the 3-D viewer's
   // window is then first realized inside the page.
   static bool adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title);
+  // A tool's opener: adopt if its Windows and tabs row says Tab.
+  static bool open(wxFrame *tool, wxAuiManager *mgr, const wxString& title,
+                   const char *key);
   // The tool's menu bar: in a tab it is on the main window, so the frame's
   // own GetMenuBar() is null; a tool's GetMenuBar() returns this.  Only
   // while hosted: wxFrameBase::SetMenuBar returns early when the bar equals
@@ -80,7 +86,8 @@ public:
   static void dialogClosed(wxDialog *dlg);
 
   // Tests: "tabs" lists "<n>:<title>[*]" (* = active) and the menu bar's
-  // menus; "tab <n>", "towindow <n>", "totabs <title part>" act on them.
+  // menus; "tab <n>", "towindow <n>", "totabs <title part>" act on them;
+  // "layout show|<preset>|KEY=tab|window", "tabmenu <n>", "alwayswindow <n>".
   static wxString describe();
   static bool testCommand(const wxString& cmd, const wxString& arg,
                           wxString& outcome);

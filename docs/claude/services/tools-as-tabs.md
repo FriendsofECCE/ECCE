@@ -2,11 +2,18 @@
 type: map
 title: "Tools as tabs (#983 stage 2): a tool stays a hidden wxFrame, its windows move into a notebook page"
 area: services
-paths: ["src/wxgui/mdtools/MDEdBase.C", "src/apps/mdprepare/MDPrep.C", "src/apps/basistool/WxBasisTool.C", "src/wxgui/jms/ToolTabs.C", "src/wxgui/ewxClasses/ewxModalGuard.C", "include/wxgui/ToolTabs.H", "src/apps/builder/Builder.H", "src/apps/builder/Builder.C", "src/apps/builder/BuilderWindow.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/InProcessTools.C", "tests/apps/one_process_test.py"]
+paths: ["src/wxgui/mdtools/MDEdBase.C", "src/apps/mdprepare/MDPrep.C", "src/apps/basistool/WxBasisTool.C", "src/wxgui/jms/ToolTabs.C", "src/wxgui/ewxClasses/ewxModalGuard.C", "include/wxgui/ToolTabs.H", "src/apps/builder/Builder.H", "src/apps/builder/Builder.C", "src/apps/builder/BuilderWindow.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/InProcessTools.C", "tests/apps/one_process_test.py", "src/util/genutil/WindowLayout.C", "include/util/WindowLayout.H", "src/wxgui/wxdialogs/GlobalPrefsWindows.C"]
 issues: [983]
 ---
-Switch: `ECCE_ONE_PROCESS=1` and `ECCE_LAYOUT=small` (`ToolTabs::enabled`).
-Without both, nothing changes.
+Switch: `ECCE_ONE_PROCESS=1` and Preferences > Windows and tabs
+(`util/WindowLayout`, stored in EcceGlobal; default Wide = windows).
+`ToolTabs::enabled` (tab strip made at the Organizer's start) needs some
+row set to Tab then; each opener calls `ToolTabs::open(tool, mgr, title,
+key)`, which adopts only if that tool's row is Tab now. A tool that opens
+in a window by preference gets no `Tab` entry, so no Move to Tabs. Normal =
+Small until the combined Set-up tab exists (`WindowLayout::combinedSetupTab`
+is the hook). The tab menu's Always open in a window = `setRow(key,false)`
++ `release`; GlobalPrefs re-reads the setting in `Show`.
 
 ## Approach: reparent the client windows, keep the frame
 
@@ -104,7 +111,8 @@ because the body's pizza was never size-allocated again. `allocateChildren`
 
 ## Test hooks
 
-`tabs`, `tab <n>`, `towindow <n>`, `totabs <title>`, `dialog`/`dialoginfo`, `tabinfo [labels]` (page size,
+`layout show|<preset>|KEY=tab|window`, `tabmenu <n>`, `alwayswindow <n>`,
+`prefs windows show|preset|row|snap` (runLayouts), `tabs`, `tab <n>`, `towindow <n>`, `totabs <title>`, `dialog`/`dialoginfo`, `tabinfo [labels]` (page size,
 shown children, status bar parent, frame mapped or not, scroller view and
 virtual size, `STALE` when the virtual height is below the sizer minimum,
 `<label>=reachable|CLIPPED` for each button label in the comma list,

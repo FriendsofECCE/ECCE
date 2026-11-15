@@ -3354,6 +3354,12 @@ void CalcMgr::runTestCommand(const string& line)
         string rest;
         std::getline(args, rest);
         outcome = p_prefs->dataTest(arg + rest);
+      } else if (what == "windows") {
+        // "prefs windows show|preset NAME|row KEY tab|window [SNAP]|snap P"
+        for (int i = 0; i < 10; i++) wxYield();
+        string rest;
+        std::getline(args, rest);
+        outcome = p_prefs->windowsTest(arg + rest);
       } else {
       p_prefs->showColoursPage();
       for (int i = 0; i < 10; i++) wxYield();
@@ -3399,9 +3405,11 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "tabs" || command == "tab" ||
                command == "towindow" || command == "totabs" ||
                command == "charhook" || command == "tabinfo" || command == "sbinfo" ||
-               command == "dialog" || command == "dialoginfo") {
-      // Tools as tabs (#983, ECCE_LAYOUT=small): list, select, Open in
-      // Window, Move to Tabs.
+               command == "dialog" || command == "dialoginfo" ||
+               command == "layout" || command == "tabmenu" ||
+               command == "alwayswindow") {
+      // Tools as tabs (#983): list, select, Open in Window, Move to Tabs,
+      // the Windows and tabs setting, the tab's right-click menu.
       wxString result;
       ToolTabs::testCommand(command, wxString::FromUTF8(calcName.c_str()),
                             result);

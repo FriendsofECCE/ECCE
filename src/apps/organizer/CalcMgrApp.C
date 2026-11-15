@@ -312,7 +312,8 @@ bool CalcMgrApp::OnInit()
       if (ev.GetActive()) JMSPublisher::setActingTool(name, id);
       ev.Skip();
     });
-    // Small layout (#983 stage 2): tools open as tabs of this window.
+    // Tools set to Tab in Preferences > Windows and tabs (#983 stage 2)
+    // open as tabs of this window.
     if (ToolTabs::enabled()) ToolTabs::setMainWindow(p_calcMgr);
   }
 

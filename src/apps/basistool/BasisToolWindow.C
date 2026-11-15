@@ -16,7 +16,7 @@
 static WxJMSMessageDispatch *openBasisTool()
 {
   WxBasisTool *tool = new WxBasisTool(NULL);
-  if (ToolTabs::enabled()) ToolTabs::adopt(tool, 0, _("Basis Set Tool"));
+  ToolTabs::open(tool, 0, _("Basis Set Tool"), "basistool");
   tool->openLibraryAccess(EDSIServerCentral().getDefaultBasisSetLibrary());
   tool->loadSettings("BasisTool");
   BasisToolMessages *msgs = new BasisToolMessages(tool);

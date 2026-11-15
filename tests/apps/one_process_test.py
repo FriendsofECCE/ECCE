@@ -252,8 +252,158 @@ def runQuit(display, gateway=False):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def setLayout(display, preset, rows=None):
+    """Preferences > Windows and tabs before the Organizer starts: the tab
+    strip is made at its start.  rows: {tool key: "tab"|"window"}."""
+    home = display.env().get("ECCE_REALUSERHOME") or os.environ["ECCE_REALUSERHOME"]
+    prefs = os.path.join(home, ".ECCE", "EcceGlobal")
+    os.makedirs(os.path.dirname(prefs), exist_ok=True)
+    lines = []
+    if os.path.exists(prefs):
+        lines = [ln for ln in open(prefs)
+                 if not ln.startswith("WindowsAndTabs.")]
+    lines.append("WindowsAndTabs.Layout:\t%s\n" % preset)
+    for key, value in (rows or {}).items():
+        lines.append("WindowsAndTabs.%s:\t%s\n" % (key, value))
+    with open(prefs, "w") as out:
+        out.writelines(lines)
+
+
+def toolShown(inproc, cls):
+    """'tab', 'window' or None for the tool frame class in an inprocess line:
+    a tabbed tool's frame stays hidden."""
+    m = re.search(r" tlw=%s(\(hidden\))?/" % cls, inproc)
+    return None if m is None else ("tab" if m.group(1) else "window")
+
+
+def runLayouts(display):
+    """Preferences > Windows and tabs (#983 stage 2): Wide keeps windows and
+    no tab strip; Normal (for now as Small) opens tabs; a Customize row set
+    to Window opens that tool in a window; the tab menu has Open in Window
+    and Always open in a window, which makes the layout Custom."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    shots = os.environ.get("ECCE_TABS_SHOTS")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-l", "created", None)
+        cmds = os.path.join(work, "commands")
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def organizer(preset, inspect):
+            open(cmds, "w").close()
+            setLayout(display, preset)
+            result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                              env={"ECCE_ONE_PROCESS": "1",
+                                   "ECCE_TEST_ORGANIZER": cmds,
+                                   "ECCE_LOCAL_DATA": data},
+                              inspect=inspect)
+            log = result.log or ""
+            choices = [a for a in pb.answers(log, "prefs")
+                       if a.startswith("choice=")]
+            return result, log, choices
+
+        def wide(_display):
+            append("prefs windows show", 3)
+            append("tabs", 2)
+            append("start Builder " + url, 25)
+            append("inprocess", 2)
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 20)
+
+        result, log, pw = organizer("wide", wide)
+        check(len(pw) >= 1 and pw[0].startswith("choice=wide preset=wide")
+              and "builder:window" in pw[0],
+              "Wide: the dropdown shows Wide, every row Window", str(pw))
+        tabs = pb.answers(log, "tabs")
+        check(tabs == ["no tabs"], "Wide: no tab strip", str(tabs))
+        inproc = pb.answers(log, "inprocess")
+        check(len(inproc) == 1 and toolShown(inproc[0], "Builder") == "window",
+              "Wide: the Builder opens in a window", str(inproc))
+        check(not result.crashed and result.returncode == 0,
+              "Wide: the Organizer ends cleanly", log[-1500:])
+
+        def normal(_display):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+            append("prefs windows show", 3)
+            append("prefs windows row calced window" +
+                   (" " + os.path.join(shots, "prefs-windows-table.png")
+                    if shots else ""), 4)
+            if shots:
+                append("prefs windows snap " +
+                       os.path.join(shots, "prefs-windows.png"), 3)
+            append("start Builder " + url, 25)
+            append("start CalculationEditor " + url, 25)
+            append("inprocess", 2)
+            append("tabs", 2)
+            append("tabmenu 1", 2)
+            append("alwayswindow 1", 8)
+            append("inprocess", 2)
+            append("prefs windows show", 3)
+            append("prefs windows preset small", 3)
+            append("layout show", 2)
+            append("layout normal", 2)
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 3)
+            append("answer no", 20)
+
+        result, log, pw = organizer("normal", normal)
+        print("      prefs: " + "\n             ".join(pw))
+        check(len(pw) >= 1 and pw[0].startswith("choice=normal preset=normal")
+              and "builder:tab" in pw[0] and "calced:tab" in pw[0],
+              "Normal: the dropdown shows Normal, the rows are tabs (as Small "
+              "until the Set-up tab exists)", str(pw))
+        check(len(pw) >= 2 and pw[1].startswith("choice=custom preset=custom")
+              and "calced:window" in pw[1] and "builder:tab" in pw[1],
+              "Customize: the Calculation Editor row set to Window makes the "
+              "layout Custom", str(pw))
+        inproc = pb.answers(log, "inprocess")
+        print("      inprocess: " + "\n                 ".join(inproc))
+        check(len(inproc) == 2 and toolShown(inproc[0], "Builder") == "tab"
+              and toolShown(inproc[0], "CalcEd") == "window",
+              "Custom: the Builder opens as a tab, the editor in a window",
+              str(inproc) + log[-1500:])
+        tm = pb.answers(log, "tabmenu")
+        check(tm == ["Open in Window|Always open in a window"],
+              "the tab's right-click menu has Open in Window and Always open "
+              "in a window", str(tm))
+        aw = pb.answers(log, "alwayswindow")
+        check(len(aw) == 1 and "window:" in aw[0] and "builder:window" in aw[0]
+              and "preset=custom" in aw[0],
+              "Always open in a window: the Builder moves to a window and its "
+              "row becomes Window", str(aw))
+        check(len(inproc) == 2 and toolShown(inproc[1], "Builder") == "window",
+              "after Always open in a window the Builder's frame is shown",
+              str(inproc))
+        check(len(pw) >= 3 and pw[2].startswith("choice=custom")
+              and "builder:window" in pw[2],
+              "Preferences shows the row the tab menu changed", str(pw))
+        check(len(pw) >= 4 and pw[3].startswith("choice=small preset=small")
+              and "window" not in pw[3].split("rows=")[-1],
+              "choosing Small fills every row with Tab", str(pw))
+        lay = pb.answers(log, "layout")
+        check(len(lay) == 2 and lay[0].startswith("preset=small")
+              and lay[1].startswith("preset=normal"),
+              "the layout hook reads and sets the preset", str(lay))
+        check(not result.crashed and result.returncode == 0,
+              "Normal/Custom: the Organizer ends cleanly", log[-1500:])
+    finally:
+        setLayout(display, "wide")
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def runTabs(display):
-    """ECCE_LAYOUT=small (#983 stage 2): the Builder opens as a tab, the menu
+    """Small layout (#983 stage 2): the Builder opens as a tab, the menu
     bar follows the active tab, Open in Window and Move to Tabs keep the
     Builder, Quit asks about the dirty Builder tab.  ECCE_TABS_SHOTS=<dir>
     saves the screen with the Organizer tab and the Builder tab."""
@@ -312,9 +462,10 @@ def runTabs(display):
             append("answer", 3)
             append("answer no", 25)
 
+        setLayout(display, "small")
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                           env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
-                               "ECCE_ONE_PROCESS": "1", "ECCE_LAYOUT": "small",
+                               "ECCE_ONE_PROCESS": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_BUILDER_SCRIPT": script,
                                "ECCE_LOCAL_DATA": data},
@@ -445,9 +596,10 @@ def runTabsEditor(display):
             append("answer no", 3)             # the editor's question
             append("answer no", 25)            # the Builder's question
 
+        setLayout(display, "small")
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                           env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
-                               "ECCE_ONE_PROCESS": "1", "ECCE_LAYOUT": "small",
+                               "ECCE_ONE_PROCESS": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_BUILDER_SCRIPT": script,
                                "ECCE_LOCAL_DATA": data},
@@ -570,9 +722,10 @@ def runTabsTools(display):
             append("answer no", 3)
             append("answer no", 20)
 
+        setLayout(display, "small")
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                           env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
-                               "ECCE_ONE_PROCESS": "1", "ECCE_LAYOUT": "small",
+                               "ECCE_ONE_PROCESS": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_LOCAL_DATA": data},
                           inspect=inspect)
@@ -630,6 +783,7 @@ def runTabsTools(display):
 
 def main():
     def checkApp(display, name, results, verbose=False):
+        runLayouts(display)
         runTabs(display)
         runTabsEditor(display)
         runTabsTools(display)
