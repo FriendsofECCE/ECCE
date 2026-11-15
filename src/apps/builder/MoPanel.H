@@ -57,6 +57,8 @@ class MoPanel : public MoGUI,
     void orbitalPointChanged();
     //  The orbital table with a dozen rows, the composition and controls.
     virtual int openingHeight() const { return 460; }
+    /// The energy-level graph on show, or 0 in the table view.
+    wxWindow *shownGraph() const;
     MoPanel();
     MoPanel(IPropCalculation *calculation,
             wxWindow *parent, wxWindowID id=wxID_ANY,

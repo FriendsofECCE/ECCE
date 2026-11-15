@@ -101,6 +101,13 @@ int main()
                   "(not a hang)");
   check(access(pipe.c_str(), F_OK) != 0, "no writer: the FIFO is removed");
 
+  // -pipe /dev/null (the launch tests' local mode): its end of data is
+  // final, so there is nothing to wait for (#1047).
+  r = reader("/dev/null");
+  got = waitFor(r, 15, &took);
+  check(got == 0 && took < 3, "/dev/null: pipeIn returns at once with an "
+                              "empty cache");
+
   // The Gateway's socketpair (#637): "socket:<fd>" inherited by the child.
   for (int order = 0; order < 3; order++) {
     int fds[2];

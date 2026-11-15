@@ -1230,6 +1230,18 @@ static int tableRowsHeight(wxWindow *panel, int rows)
   return -1;
 }
 
+//  Height the MOs panel needs to keep its shown graph at the graph's own
+//  minimum size, or -1 in the table view or before it is laid out.  At the
+//  80 px floor a 1366x768 Builder left the energy-level graph 81 px tall.
+static int graphFloorHeight(wxWindow *panel)
+{
+  MoPanel *mo = dynamic_cast<MoPanel*>(panel);
+  if (!mo) return -1;
+  wxWindow *plot = mo->shownGraph();
+  if (!plot || plot->GetSize().y <= 0) return -1;
+  return panel->GetSize().y - plot->GetSize().y + plot->GetMinSize().y;
+}
+
 void Builder::sizeIndexPane()
 {
   wxAuiPaneInfo &pane = p_mgr.GetPane(static_cast<wxWindow*>(p_index));
@@ -1258,7 +1270,8 @@ void Builder::sizeIndexPane()
     const int caption =
         p_mgr.GetArtProvider()->GetMetric(wxAUI_DOCKART_CAPTION_SIZE);
     const int need = std::max(std::max(80, open->minimumHeight()),
-                              tableRowsHeight(open, 3));
+                              std::max(tableRowsHeight(open, 3),
+                                       graphFloorHeight(open)));
     const int kept = std::min(p_index->preferredHeight(INDEX_ROWS_KEPT),
         std::max(p_index->preferredHeight(3), room - need - 2 * caption));
     cap = std::max(kept, std::min(cap, room - open->openingHeight()));
