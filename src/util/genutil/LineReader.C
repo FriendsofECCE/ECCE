@@ -1,4 +1,6 @@
 #include <string.h>
+#include <vector>
+using std::vector;
 #include <fstream>
 using std::ifstream;
 
@@ -43,11 +45,14 @@ void LineReader::stripTrailingComments(bool flag)
 
 bool LineReader::getLine(string& line)
 {
-  static const int MAXLINE = 256;
   line = "";
-  char buf[MAXLINE];  // hardwired message limit
+  string rawLine;
   bool needMore = true;
-  while (p_is->getline(buf,MAXLINE-1)) {
+  while (std::getline(*p_is, rawLine)) {
+    // char copy: the strtok-free code below works on char*
+    vector<char> bufv(rawLine.begin(), rawLine.end());
+    bufv.push_back('\0');
+    char* buf = &bufv[0];
     int len = strlen(buf);
     // skip empty lines
     if (len == 0) continue;

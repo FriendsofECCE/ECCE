@@ -1,4 +1,6 @@
 #include <string.h>
+#include <vector>
+using std::vector;
 
 #include <fstream>
 using std::ifstream;
@@ -51,11 +53,13 @@ bool TupleReader::gettuple(string& one, string& two, string& three)
 {
   one = two = three = "";
 
-  static const int MAXLINE = 256;
   string line;
-  char buf[MAXLINE];  // hardwired message limit
+  string rawLine;
   bool needMore = true;
-  while (p_is->getline(buf,MAXLINE-1)) {
+  while (std::getline(*p_is, rawLine)) {
+    vector<char> bufv(rawLine.begin(), rawLine.end());
+    bufv.push_back('\0');
+    char* buf = &bufv[0];
     int len = strlen(buf);
     // skip empty lines
     if (len == 0) continue;

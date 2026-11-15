@@ -4159,6 +4159,23 @@ void Fragment::clearAtomBehavior()
   }
 }
 
+// One line of a fixed-column record file, NUL-padded to at least minLen
+// bytes. The column readers below step past the end of a short line, so
+// the padding keeps those reads on NULs; a long line is read whole.
+static bool readRecordLine(istream& is, vector<char>& buf, size_t minLen)
+{
+  string s;
+  if (!std::getline(is, s)) {
+    buf.assign(minLen, '\0');  // an empty line, as a failed getline left it
+    return false;
+  }
+  size_t n = s.size() + 1;
+  if (n < minLen) n = minLen;
+  buf.assign(n, '\0');
+  memcpy(&buf[0], s.data(), s.size());
+  return true;
+}
+
 /**
  * Prescan atoms in PDB file looking for multiple models and
  * alternative locations.
@@ -4174,7 +4191,7 @@ bool Fragment::prescanPDB(istream& infile, int& numModels,
 {
   bool ret = true;
   char* cptr;
-  char buf[1025];
+  vector<char> bufStore;
   char record[7];
   char altloc[2];
   char chain[2];
@@ -4201,7 +4218,8 @@ bool Fragment::prescanPDB(istream& infile, int& numModels,
   bool addOne;
   altLocVec.clear();
   chainVec.clear();
-  while (infile.getline(buf,1024)) {
+  while (readRecordLine(infile, bufStore, 1024)) {
+    char* buf = bufStore.data();
     cptr = buf;
     strncpy(record,cptr,6);
     if (strncmp(record,"ATOM  ",6) == 0 ||
@@ -4293,13 +4311,13 @@ bool Fragment::prescanPDB(istream& infile, int& numModels,
 bool Fragment::prescanXYZ(istream &infile, int &TotAtoms)
 {
   static const int BUFSIZE = 240;
-  char lbuf[BUFSIZE];  // line buf - none should be longer
+  string lbuf;
   TotAtoms = 0;
 
   if (!infile.good() || infile.eof()) return false;
 
-  infile.getline(lbuf,BUFSIZE-1,'\n');
-  sscanf(lbuf,"%d",&TotAtoms);
+  std::getline(infile, lbuf);
+  sscanf(lbuf.c_str(),"%d",&TotAtoms);
   return true;
 }
 //////////////////////////////////////////////////////////////////////////
@@ -4308,11 +4326,9 @@ bool Fragment::prescanXYZ(istream &infile, int &TotAtoms)
 //////////////////////////////////////////////////////////////////////////
 bool Fragment::prescanMVM(istream &infile, int &TotAtoms)
 {
-  char buf[1024];
   while (!infile.eof() && infile.good()) {
     string line;
-    infile.getline(buf, 1023);
-    line = buf;
+    if (!std::getline(infile, line)) break;
     // Add validation here for correct format number
     STLUtil::removeCommentAndSpaces(line);
     if (line != "") {
@@ -4355,25 +4371,24 @@ bool Fragment::restoreCAR(istream& infile, double mult, bool genBonds)
   if (!infile.good() || infile.eof()) return false;
 
   // First line: !BIOSYM archive 3
-  const int MAXLINE = 255;
-  char buf[MAXLINE+1];
-  if (infile.getline(buf,MAXLINE) && strstr(buf,"!BIOSYM") != NULL) {
+  vector<char> bufStore;
+  if (readRecordLine(infile, bufStore, 256) && strstr(bufStore.data(),"!BIOSYM") != NULL) {
      string line;
      vector<string> tlist;
 
      // Second line: PBC=ON or PBC=OFF
      // Be careful here.  These may be dos files with returns to get in the
      // way of your string compares.
-     infile.getline(buf,MAXLINE);
-     string tmp = buf;
+     readRecordLine(infile, bufStore, 256);
+     string tmp = bufStore.data();
      if (tmp.find("pbc=on") == 0 || tmp.find("PBC=ON") == 0) pbc = true;
 
      //Third line: 1-64 Title for the system.
-     infile.getline(buf,MAXLINE);
-     name(buf);
+     readRecordLine(infile, bufStore, 256);
+     name(bufStore.data());
 
      //Fourth line: !date ##/##/## time: ##:##:## (if any; otherwise blank)
-     infile.getline(buf,MAXLINE);
+     readRecordLine(infile, bufStore, 256);
 
      //Fifth line: (see manual)
      //PBC information IF present:
@@ -4386,9 +4401,9 @@ bool Fragment::restoreCAR(istream& infile, double mult, bool genBonds)
      //54-63 gamma in degrees
      //64-80 space group
      // With PBC=OFF there is no PBC line: line 5 is already the first atom.
-     if (pbc && infile.getline(buf,MAXLINE)) {
+     if (pbc && readRecordLine(infile, bufStore, 256)) {
         double a,b,c,alpha,beta,gamma;
-        StringTokenizer tokenizer(buf);
+        StringTokenizer tokenizer(bufStore.data());
         tlist = tokenizer.tokenize(" \t");
         if (tlist.size() < 7) return false;
         sscanf(tlist[1].c_str(),"%lf",&a);
@@ -4440,11 +4455,11 @@ bool Fragment::restoreCAR(istream& infile, double mult, bool genBonds)
      string sym;
      double xyz[3];
      double x,y,z;
-     while (infile.getline(buf,MAXLINE)) {
-        if (strncmp(buf,"end",3) == 0) continue;
-        //cout << "car atom " << buf << "!" << endl;
-        line = buf;
-        StringTokenizer tokenizer(buf);
+     while (readRecordLine(infile, bufStore, 256)) {
+        if (strncmp(bufStore.data(),"end",3) == 0) continue;
+        //cout << "car atom " << bufStore.data() << "!" << endl;
+        line = bufStore.data();
+        StringTokenizer tokenizer(bufStore.data());
         tlist = tokenizer.tokenize(" \t");
         // Blank or truncated lines carry no element (field 8).
         if (tlist.size() < 8) continue;
@@ -4569,7 +4584,7 @@ bool Fragment::restorePDB(istream& infile, double mult, bool genBonds,
   TPerTab pertable;
   TResTab restable;
   char* cptr;
-  char buf[1025];
+  vector<char> bufStore;
   char record[7];
   char i5[6];
   char i4[5];
@@ -4615,7 +4630,8 @@ bool Fragment::restorePDB(istream& infile, double mult, bool genBonds,
   }
   p_chains.clearChainID();
   imdl = 0;
-  while (infile.getline(buf,1025)) {
+  while (readRecordLine(infile, bufStore, 1025)) {
+    char* buf = bufStore.data();
     cptr = buf;
     strncpy(record,cptr,6);
     cptr += 6;
