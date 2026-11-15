@@ -4176,6 +4176,15 @@ static bool readRecordLine(istream& is, vector<char>& buf, size_t minLen)
   return true;
 }
 
+// A fixed-column line that ends early reads as blank past its end, as the
+// same line padded to its width would; NUL would read as a blank column
+// that is not there.
+static void blankPastEnd(vector<char>& buf)
+{
+  size_t n = strlen(buf.data());
+  memset(&buf[n], ' ', buf.size() - 1 - n);
+}
+
 /**
  * Prescan atoms in PDB file looking for multiple models and
  * alternative locations.
@@ -6232,13 +6241,13 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
   int atomNum, atmCnt, ijunk1;
   int numBonds=0;
   int offset = numAtoms();
-  char buf[1024];
+  vector<char> bufStore;
   bool setEnvInd = true;
   LatticeDef *lattice = 0;
   while (!infile.eof() && !error && infile.good()) {
     string line;
-    infile.getline(buf, 1023);
-    line = buf;
+    readRecordLine(infile, bufStore, 1023);
+    line = bufStore.data();
     // Add validation here for correct format number
     STLUtil::removeCommentAndSpaces(line);
     if (line != "") {
@@ -6252,7 +6261,8 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
          double x,y,z;
          MPoint p[3];
          for (int adx=0; adx<3 && !error && infile.good();adx++) {
-            if (infile.getline(buf,120)) {
+            if (readRecordLine(infile, bufStore, 120)) {
+               char* buf = bufStore.data();
                sscanf(buf,"%lf %lf %lf",&x,&y,&z);
                p[adx].xyz(x,y,z);
             }
@@ -6266,7 +6276,8 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
       } else if (STLUtil::compareString(key,"lattice") == 0) {
          lattice = new LatticeDef(1.,1.,1.,90.,90.,90.);
          double a,b,c, alpha,beta,gamma;
-         if (infile.getline(buf,120)) {
+         if (readRecordLine(infile, bufStore, 120)) {
+            char* buf = bufStore.data();
             sscanf(buf,"%lf %lf %lf %lf %lf %lf",&a,&b,&c,&alpha,&beta,&gamma);
          }
          if (infile.good()) {
@@ -6298,9 +6309,8 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
         }
       } else if (STLUtil::compareString(key,"fragment_attributes") == 0) {
       // Get fragment attributes if available
-        char buf[1024];
-        infile.getline(buf, 1023);
-        line = buf;
+        readRecordLine(infile, bufStore, 1023);
+        line = bufStore.data();
         key = STLUtil::stripKey(line);
         while(STLUtil::compareString(key,"end_fragment_attributes") !=0) {
           if (STLUtil::containsString(key,"charge")) {
@@ -6316,20 +6326,15 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
             p_solventNumAtoms = atoi(line.c_str());
           }
           if (STLUtil::containsString(key,"point_group")) {
-            char tmpgrp[120];
-            int i, j;
-            j=0;
-            for (i=0; i<line.length(); i++) {
-              if (line[i] != ' ') {
-                tmpgrp[j] = line[i];
-                j++;
-              }
-            }
-            tmpgrp[j] ='\0';
+            string tmpgrp;
+            for (size_t i = 0; i < line.length(); i++)
+              if (line[i] != ' ') tmpgrp += line[i];
             pointGroup(tmpgrp);
           }
-          infile.getline(buf, 1023);
-          line = buf;
+          //  A file cut off before end_fragment_attributes ends the block
+          //  instead of reading empty lines forever.
+          if (!readRecordLine(infile, bufStore, 1023)) break;
+          line = bufStore.data();
           key = STLUtil::stripKey(line);
         }
       } else if (STLUtil::compareString(key, "atom_list") == 0) {
@@ -6367,7 +6372,6 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
         }
       } else if (STLUtil::compareString(key,"pdb_list") == 0) {
         // Read in PDB information
-        char buf[121];
         char* cptr;
         char resnam[5];
         char segnam[5];
@@ -6391,7 +6395,9 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
         Residue* res = (Residue*)0;
         p_chains.clearChainID();
         for (index=0; index<atmCnt && !error && infile.good();index++) {
-          if (infile.getline(buf,120)) {
+          if (readRecordLine(infile, bufStore, 120)) {
+            blankPastEnd(bufStore);
+            char* buf = bufStore.data();
             cptr = buf;
             atm = p_atoms[index];
             coupling = cptr[0];
@@ -6447,24 +6453,27 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
       } else if (STLUtil::compareString(key,"suffix_list") == 0) {
         // Read in attributes
         TAtm* atm;
-        char buf[121];
         for (index=0; index<atmCnt && !error && infile.good();index++) {
-          if (infile.getline(buf,120)) {
+          if (readRecordLine(infile, bufStore, 120)) {
+            char* buf = bufStore.data();
             atm = p_atoms[index];
-            atm->suffixHack(buf);
+            // Trailing blanks are column padding, not part of the suffix.
+            string suffix = buf;
+            suffix.erase(suffix.find_last_not_of(" \t\r") + 1);
+            atm->suffixHack(suffix);
           }
         }
       } else if (STLUtil::compareString(key,"attr_list") == 0) {
         // Read in attributes
         TAtm* atm;
-        char buf[121];
         char* cptr;
         char a9[10];
         char i4[5];
         a9[9] = '\0';
         i4[4] = '\0';
         for (index=0; index<atmCnt && !error && infile.good();index++) {
-          if (infile.getline(buf,120)) {
+          if (readRecordLine(infile, bufStore, 120)) {
+            char* buf = bufStore.data();
             cptr = buf;
             atm = p_atoms[index];
             if (strlen(cptr) >= 9) {
@@ -6497,7 +6506,6 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
         }
       } else if (STLUtil::compareString(key,"atom_type_list") == 0) {
         // Read in atom types
-        char buf[121];
         char* cptr;
         char a5[6];
         char i3[4];
@@ -6505,7 +6513,8 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
         i3[3] = '\0';
         TAtm* atm;
         for (index=0; index<atmCnt && !error && infile.good();index++) {
-          if (infile.getline(buf,120)) {
+          if (readRecordLine(infile, bufStore, 120)) {
+            char* buf = bufStore.data();
             cptr = buf;
             atm = p_atoms[index];
             strncpy(a5,cptr,5);
@@ -6530,21 +6539,21 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
           }
         }
       } else if (STLUtil::compareString(key,"atom_mass_list") == 0) {
-        char buf[121];
         TChartOfNuclides ichart;
         TAtm* atm;
         for (index=0; index<atmCnt && !error && infile.good();index++) {
-          if (infile.getline(buf,120)) {
+          if (readRecordLine(infile, bufStore, 120)) {
+            char* buf = bufStore.data();
             atm = p_atoms[index];
             atm->setMass(atof(buf));
           }
         }
       } else if (STLUtil::compareString(key,"atom_behavior_list") == 0) {
-        char buf[121];
         TAtm* atm;
         string tbuf;
         for (index=0; index<atmCnt && !error && infile.good();index++) {
-          if (infile.getline(buf,120)) {
+          if (readRecordLine(infile, bufStore, 120)) {
+            char* buf = bufStore.data();
             atm = p_atoms[index];
             tbuf = buf;
             if (STLUtil::compareString(tbuf,"quantum") == 0) {

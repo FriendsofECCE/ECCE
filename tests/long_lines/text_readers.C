@@ -61,6 +61,42 @@ bool carDump(const string& tail, string& dump, size_t& natoms)
   return true;
 }
 
+// MVM: fixed-column records (pdb_list, atom_type_list, attr_list) are written
+// at their normal width, the other lists as whole lines.  A wide record is
+// padded to 80 columns, then tail is appended.
+string mvmText(bool wide, const string& tail)
+{
+  auto rec = [&](const string& line) {
+    return (wide ? col80(line) : line) + tail + "\n";
+  };
+  const string pdbO = string("M") + " " + "C   " + " " + "ALA " + "     1" + "   " + "    " + " " + "A";
+  const string pdbH = string("M") + " " + "H   " + " " + "HOH " + "     2" + "   " + "    " + " " + "A";
+  return "title: water\n"
+         "num_atoms: 2\n"
+         "atom_info: symbol cart\n"
+         "atom_list:\n" + rec("O 0.000000 0.000000 0.117300") +
+         rec("H 0.000000 0.757200 -0.469200") +
+         "pdb_list:\n" + rec(pdbO) + rec(pdbH) +
+         "atom_type_list:\n" + rec("O    " " " "  0" " " "  0") +
+         rec("H    " " " "  0" " " "  0") +
+         "atom_mass_list:\n" + rec("15.999400") + rec("1.007900") +
+         "atom_behavior_list:\n" + rec("quantum") + rec("point") +
+         "suffix_list:\n" + rec("") + rec("") +
+         "attr_list:\n" + rec(" 0.000000   1   0   0   0") +
+         rec("-0.500000   1   0   0   0");
+}
+
+bool mvmDump(const string& text, string& dump)
+{
+  std::istringstream in(text);
+  Fragment frag;
+  if (!frag.restoreMVM(in, 1.0, false)) return false;
+  std::ostringstream out;
+  frag.dumpMVM(out, true);
+  dump = out.str();
+  return frag.numAtoms() == 2;
+}
+
 }  // namespace
 
 int main()
@@ -142,6 +178,13 @@ int main()
   if (!lines("alpha beta" + pad + comment + "\n", lineLong) || lineLong != lineShort)
     return fail("LineReader long line");
 
-  std::cout << "PASS PDB, GUIValues, KeyValueReader, TupleReader and LineReader long lines\n";
+  // MVM reader: records at normal width, with and without 2000 appended characters.
+  string mvmWide, mvmLong, mvmPlain;
+  if (!mvmDump(mvmText(true, ""), mvmWide)) return fail("MVM padded records");
+  if (!mvmDump(mvmText(true, pad), mvmLong) || mvmLong != mvmWide)
+    return fail("MVM long records");
+  if (!mvmDump(mvmText(false, ""), mvmPlain)) return fail("MVM unpadded records");
+
+  std::cout << "PASS PDB, CAR, MVM, GUIValues, KeyValueReader, TupleReader and LineReader long lines\n";
   return 0;
 }
