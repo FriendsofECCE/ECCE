@@ -174,6 +174,8 @@ def main():
                     r"^(.*?) fl=0 .*? P=(\d+)$", text(out, "paneall"), re.M))
                 check(pos.get("Property Index", 99) < pos.get("Density Map", -1),
                       "%s: the list is above the Density Map: %s" % (name, pos))
+                check("Density Map" in text(out, "paneorder").split("\n"),
+                      "%s: the docked Density Map is shown" % name)
         finally:
             subprocess.run([os.path.join(apps.INSTALL, "bin",
                                          "ecce-gateway-stop")],

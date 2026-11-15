@@ -4320,8 +4320,6 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
 }
 
 
-// The caption's pin button folds a property pane to its caption bar.
-// The resize is deferred so it never runs inside AUI's own event handling.
 //  Order of the docked panes in the Properties column: tab strip, list,
 //  then the rest by their own position.  Only the order is changed.
 void BuilderAuiManager::keepIndexOnTop(wxAuiManager& mgr)
@@ -4382,10 +4380,12 @@ void Builder::OnDockFloatingPanels(wxCommandEvent& event)
       changed = true;
     }
   }
-  if (changed) updatePanes();
+  if (changed) updatePanes(true);  // a docked property pane takes the detail slot, or it is hidden
 }
 
 
+// The caption's pin button folds a property pane to its caption bar.
+// The resize is deferred so it never runs inside AUI's own event handling.
 void Builder::OnPaneButton(wxAuiManagerEvent& event)
 {
   wxAuiPaneInfo *pane = event.GetPane();
