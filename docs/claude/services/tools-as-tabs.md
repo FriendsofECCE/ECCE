@@ -10,9 +10,8 @@ Switch: `ECCE_ONE_PROCESS=1` and Preferences > Windows and tabs
 `ToolTabs::enabled` (tab strip made at the Organizer's start) needs some
 row set to Tab then; each opener calls `ToolTabs::open(tool, mgr, title,
 key)`, which adopts only if that tool's row is Tab now. A tool that opens
-in a window by preference gets no `Tab` entry, so no Move to Tabs. Normal =
-Small until the combined Set-up tab exists (`WindowLayout::combinedSetupTab`
-is the hook). The tab menu's Always open in a window = `setRow(key,false)`
+in a window by preference gets no `Tab` entry, so no Move to Tabs. Normal = Small plus
+the Set-up tab (below). The tab menu's Always open in a window = `setRow(key,false)`
 + `release`; GlobalPrefs re-reads the setting in `Show`.
 
 ## Approach: reparent the client windows, keep the frame
@@ -142,6 +141,25 @@ A tool's own sizing code (`FindWindow`, `GetSizer`, `Fit`) finds nothing
 on the frame once it is a tab: guard it with `ToolTabs::layout(this)`, as
 MDPrep and `WxBasisTool::updateSelectionsSize` do (SIGSEGV on a message
 that reloads the calculation otherwise).
+
+## Set-up tab (Normal, `WindowLayout::combinedSetupTab`)
+
+`ToolTabs::open(..., SideFn)` makes the page a `wxSplitterWindow`: the
+editor's scroller left, a side panel right that the SideFn fills on every
+(re)adoption (`CalcEd::makeSetupArea` -> `SetupArea`). Open in Window
+destroys the side panel; `p_setupArea` is cleared by its wxEVT_DESTROY, and
+the details go back to being dialogs. Theory/Runtype Details are embedded
+only for codes with a `.dlg` (native engine `src/wxgui/details`):
+`SetupArea::showDetails` parses the same command line the editor would run,
+builds a `details::Model` + `DetailsPanel` hosted in a panel, and a
+transport that delivers each line to `processTheoryInput`/
+`processRuntypeInput` by `CallAfter` (as UDP would: after the event, in
+order), after a `#STARTED 0` so no pid is ever killed. The NO_GUIValues
+(headless initialise) run still uses the process. The preview is the stored
+deck (`PRIMARY_INPUT`), reloaded on every `setEditStatus`; it does not
+generate input from unsaved settings (DeckWriter writes into the calc).
+wxGTK: the embedded panel stays blank until a size event after it is made
+(`SetupArea` sends one by CallAfter).
 
 ## Known gaps
 

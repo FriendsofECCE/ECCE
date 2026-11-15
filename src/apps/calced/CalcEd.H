@@ -44,6 +44,7 @@ class TGBSConfig;
 class PartialCharge;
 
 class CalcEdMessages;
+class SetupArea;
 class CalcEd: public CalcEdGUI,
               public WxDavAuth,
               public JMSPublisher,
@@ -372,11 +373,22 @@ class CalcEd: public CalcEdGUI,
     bool regenerateIfStructureChanged();
 
   public:
+    // The combined Set-up tab's detail area (Normal layout, #983): made in
+    // the tab's right pane, gone when the editor leaves the tab.
+    void makeSetupArea(wxWindow *area);
+    SetupArea *setupArea() const { return p_setupArea; }
+    // What a details dialog sends, delivered in-process by an embedded one.
+    void detailsInput(bool theory, const char *line);
+    // Test hook "setup ..." on the active Set-up tab.
+    wxString setupCommand(const wxString& arg);
+
     // The window owns its dispatcher (#983) and deletes it with itself.
     void setMessages(CalcEdMessages *msgs) { p_msgs = msgs; }
     CalcEdMessages *messages() const { return p_msgs; }
 
   private:
+    friend class SetupArea;
+    SetupArea *p_setupArea = nullptr;
     CalcEdMessages *p_msgs = nullptr;
     void runTestCommand(const string& line);
 

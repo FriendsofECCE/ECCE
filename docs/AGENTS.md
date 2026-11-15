@@ -150,9 +150,16 @@ and tabs** chooses which tools open as tabs of the Organizer's window (the
 Organizer is the first tab and cannot be closed). Presets **Normal**,
 **Small**, **Wide** (default: Wide, separate windows); **Customize...** sets
 each tool's row (Builder / Viewer, Calculation Editor, Basis Set Tool, MD
-editors, MD Prepare) to Tab or Window, which makes the layout Custom. Normal
-is meant to add a combined Set-up tab later; for now it places tools as
-Small does. Stored in `~/.ECCE/EcceGlobal` as `WindowsAndTabs.Layout`
+editors, MD Prepare) to Tab or Window, which makes the layout Custom. Under
+Normal the Calculation Editor's tab is the Set-up tab: a detail area right
+of the editor shows the Theory or Runtype Details (codes with a `.dlg`
+description: ECCE-QM Theory, ORCA, Gaussian 16; others open the Python
+dialog's window) or, with no detail chosen, the input file as last saved.
+Hook `setup info|theory|runtype|input|fold|unfold|save|preview` on the
+active Set-up tab (`area=input|theory|runtype title=... folded=0|1
+controls=N marked=<button>`; `preview` prints `shown=<len:fnv> file=<len:fnv>`;
+`no set-up area` under Small, `not a set-up tab` when the active tab is
+not an editor). Stored in `~/.ECCE/EcceGlobal` as `WindowsAndTabs.Layout`
 (`normal|small|wide|custom`) and, for Custom, `WindowsAndTabs.<key>`
 (`tab|window`, keys `builder calced basistool mdeditors mdprepare`). A tool
 opened after a change follows it; the tab strip itself is made when the

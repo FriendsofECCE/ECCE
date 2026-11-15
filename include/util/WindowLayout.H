@@ -37,8 +37,8 @@ public:
   // The current choice for a tool.
   static bool tab(const std::string& key);
   static bool anyTab();
-  // Hook for the combined Set-up tab of Normal (later stage): false until
-  // it exists, so Normal places the tools exactly as Small does.
+  // Normal: the Calculation Editor's tab is the combined Set-up tab (a
+  // detail area for Theory/Runtype Details and the input file beside it).
   static bool combinedSetupTab();
 
   // Choosing a preset (not Custom) stores it; the rows follow it.

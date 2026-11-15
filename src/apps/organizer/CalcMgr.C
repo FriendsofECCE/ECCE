@@ -3407,7 +3407,7 @@ void CalcMgr::runTestCommand(const string& line)
                command == "charhook" || command == "tabinfo" || command == "sbinfo" ||
                command == "dialog" || command == "dialoginfo" ||
                command == "layout" || command == "tabmenu" ||
-               command == "alwayswindow") {
+               command == "alwayswindow" || command == "setup") {
       // Tools as tabs (#983): list, select, Open in Window, Move to Tabs,
       // the Windows and tabs setting, the tab's right-click menu.
       wxString result;

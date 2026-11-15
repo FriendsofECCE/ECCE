@@ -16,6 +16,7 @@
 #define TOOLTABS_HH
 
 #include "wx/string.h"
+#include <functional>
 
 class wxAuiManager;
 class wxDialog;
@@ -49,8 +50,22 @@ public:
   // window is then first realized inside the page.
   static bool adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title);
   // A tool's opener: adopt if its Windows and tabs row says Tab.
+  // Fills a Set-up tab's detail area (the panel right of the tool's windows).
+  typedef std::function<void(wxWindow *area)> SideFn;
+  // A test hook command (Organizer's ECCE_TEST_ORGANIZER): arg -> answer.
+  typedef std::function<wxString(const wxString& arg)> CommandFn;
+
+  // side: the page gets a detail area right of the tool's windows; side is
+  // called with it each time the tool is (re)made a tab.
   static bool open(wxFrame *tool, wxAuiManager *mgr, const wxString& title,
-                   const char *key);
+                   const char *key, SideFn side = SideFn());
+  static wxWindow *sidePanel(const wxTopLevelWindow *tool);
+  // how: 1 fold the tool's column away, 0 unfold, -1 ask; returns folded.
+  static bool fold(const wxTopLevelWindow *tool, int how);
+  static wxTopLevelWindow *activeTool();
+  // wxGTK: size-allocates windows made inside a shown page, recursively.
+  static void allocate(wxWindow *w);
+  static void addCommand(const wxString& name, CommandFn fn);
   // The tool's menu bar: in a tab it is on the main window, so the frame's
   // own GetMenuBar() is null; a tool's GetMenuBar() returns this.  Only
   // while hosted: wxFrameBase::SetMenuBar returns early when the bar equals

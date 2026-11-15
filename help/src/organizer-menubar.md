@@ -281,9 +281,16 @@ window of its own. This needs the tools to run in one program
 (`ECCE_ONE_PROCESS=1`, experimental); otherwise every tool opens in its own
 window and the tab says so.
 
-- **Layout**: **Normal**, tools as tabs; it is meant to bring the
-  Calculation Editor and its settings together in one Set-up tab, which
-  does not exist yet, so for now Normal is the same as Small. **Small**: one
+- **Layout**: **Normal**, tools as tabs, and the Calculation Editor's tab
+  is a Set-up tab: the editor on the left, a detail area on the right.
+  **Theory Details...** and **Runtype Details...** fill that area instead of
+  opening a window (the button whose details are shown is in bold); with
+  no detail chosen it shows the input file as Save writes it (after a
+  change, Save updates it). The ◀ button at the top of the area hides the
+  editor column and ▶ brings it back; the divider between them can be
+  dragged. Codes whose details exist only in the older form (xTB, ECCE-QM's
+  Runtype Details and others) still open those details in a window, and
+  the area says so. **Small**: one
   tool per tab, each the full width of the window, for small screens and X
   forwarding. **Wide** (the default): every tool in a window of its own, as
   in earlier versions, for large or several monitors. **Custom** is shown

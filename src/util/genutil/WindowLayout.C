@@ -65,7 +65,7 @@ WindowLayout::Preset WindowLayout::preset()
 
 bool WindowLayout::combinedSetupTab()
 {
-  return false;
+  return preset() == Normal;
 }
 
 
@@ -73,8 +73,8 @@ bool WindowLayout::presetTab(Preset p, const std::string& key)
 {
   switch (p) {
     case Wide: return false;
-    // Normal will merge the editor and its detail tools into one Set-up tab
-    // (combinedSetupTab); the tools themselves are tabs as in Small.
+    // Normal: tabs as in Small, the editor's tab is the Set-up tab
+    // (combinedSetupTab).
     case Normal:
     case Small: return true;
     default: break;

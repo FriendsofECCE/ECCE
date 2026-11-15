@@ -40,6 +40,7 @@
 #include "util/MqttLink.H"
 #include "util/WindowLayout.H"
 #include "wxgui/ToolTabs.H"
+#include "wx/splitter.h"
 
 static void allocateChildren(wxWindow *body);
 
@@ -57,6 +58,7 @@ struct Tab {
   wxString title;
   wxColour dot;
   std::string key;        // its WindowLayout row
+  ToolTabs::SideFn side;  // fills the page's detail area (Set-up tab)
 };
 
 wxFrame *s_host = 0;
@@ -103,10 +105,20 @@ wxColour dotFor(const wxString& title)
 class ToolPage : public wxPanel
 {
 public:
-  ToolPage(wxWindow *parent, wxFrame *tool, bool scrolls)
+  ToolPage(wxWindow *parent, wxFrame *tool, bool scrolls, bool side = false)
     : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
               wxTAB_TRAVERSAL | wxNO_BORDER), p_tool(tool)
   {
+    // A Set-up tab: the tool's windows on the left, a detail area the tool
+    // fills on the right; the left column folds away (Unsplit).
+    wxWindow *bodyParent = this;
+    if (side) {
+      p_split = new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition,
+                                     wxDefaultSize, wxSP_LIVE_UPDATE | wxSP_3DSASH);
+      p_split->SetMinimumPaneSize(200);
+      p_split->SetSashGravity(0.0);
+      bodyParent = p_split;
+    }
     // The body is the tool's managed window; the status bar sits below it
     // (AUI would otherwise lay its panes over the bar).  A tool without an
     // AUI manager gets a scroller: a frame is fitted to its display
@@ -114,7 +126,7 @@ public:
     // taller than the page.
     if (scrolls) {
       wxScrolledWindow *sw = new wxScrolledWindow(
-          this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+          bodyParent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
           wxTAB_TRAVERSAL | wxNO_BORDER);
       sw->SetScrollRate(10, 10);
       // Children arrive and are shown (wxGTK: at idle) after the body has
@@ -125,14 +137,34 @@ public:
       });
       p_body = sw;
     } else {
-      p_body = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+      p_body = new wxPanel(bodyParent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                            wxTAB_TRAVERSAL | wxNO_BORDER);
     }
     wxBoxSizer *sz = new wxBoxSizer(wxVERTICAL);
-    sz->Add(p_body, 1, wxEXPAND);
+    if (p_split) {
+      p_side = new wxPanel(p_split, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+                           wxTAB_TRAVERSAL | wxNO_BORDER);
+      p_side->SetSizer(new wxBoxSizer(wxVERTICAL));
+      p_split->SplitVertically(p_body, p_side, 520);
+      sz->Add(p_split, 1, wxEXPAND);
+    } else {
+      sz->Add(p_body, 1, wxEXPAND);
+    }
     SetSizer(sz);
   }
   wxWindow *body() const { return p_body; }
+  wxWindow *side() const { return p_side; }
+  bool folded() const { return p_split && !p_split->IsSplit(); }
+  void fold(bool on)
+  {
+    if (!p_split || on == folded()) return;
+    if (on) {
+      p_sash = p_split->GetSashPosition();
+      p_split->Unsplit(p_body);
+    } else {
+      p_split->SplitVertically(p_body, p_side, p_sash);
+    }
+  }
   // The tool's status bar into the page (and back on release).
   void takeStatusBar(wxFrame *tool)
   {
@@ -161,6 +193,9 @@ protected:
 private:
   wxFrame *p_tool;
   wxPanel *p_body;
+  wxSplitterWindow *p_split = 0;
+  wxPanel *p_side = 0;
+  int p_sash = 520;
 };
 
 
@@ -611,12 +646,63 @@ void ToolTabs::setMainWindow(wxFrame *organizer)
 
 
 bool ToolTabs::open(wxFrame *tool, wxAuiManager *mgr, const wxString& title,
-                    const char *key)
+                    const char *key, SideFn side)
 {
   if (!wantsTab(key)) return false;
+  if (side && !findTool(tool)) {
+    // adopt makes the page with a detail area when the Tab has a SideFn.
+    tabs().push_back(Tab{tool, mgr, 0, 0, title, dotFor(title), key, side});
+  }
   if (!adopt(tool, mgr, title)) return false;
   findTool(tool)->key = key;
   return true;
+}
+
+
+wxWindow *ToolTabs::sidePanel(const wxTopLevelWindow *tool)
+{
+  Tab *t = findTool(tool);
+  return t && t->page ? static_cast<ToolPage*>(t->page)->side() : 0;
+}
+
+
+bool ToolTabs::fold(const wxTopLevelWindow *tool, int how)
+{
+  Tab *t = findTool(tool);
+  if (!t || !t->page) return false;
+  ToolPage *tp = static_cast<ToolPage*>(t->page);
+  if (how >= 0) tp->fold(how == 1);
+  return tp->folded();
+}
+
+
+void ToolTabs::allocate(wxWindow *w)
+{
+  allocateChildren(w);
+  for (wxWindow *c : w->GetChildren())
+    if (!c->IsTopLevel()) allocate(c);
+}
+
+
+wxTopLevelWindow *ToolTabs::activeTool()
+{
+  Tab *t = activeTab();
+  return t ? t->tool : 0;
+}
+
+
+namespace {
+std::map<wxString, ToolTabs::CommandFn>& commands()
+{
+  static auto *m = new std::map<wxString, ToolTabs::CommandFn>;
+  return *m;
+}
+}
+
+
+void ToolTabs::addCommand(const wxString& name, CommandFn fn)
+{
+  commands()[name] = fn;
 }
 
 
@@ -626,7 +712,7 @@ bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
   Tab *t = findTool(tool);
   if (t && t->page) return true;
   if (!t) {
-    tabs().push_back(Tab{tool, mgr, 0, 0, title, dotFor(title), ""});
+    tabs().push_back(Tab{tool, mgr, 0, 0, title, dotFor(title), "", {}});
     t = &tabs().back();
   }
   if (wxMenuBar *mb = tool->wxFrame::GetMenuBar()) {
@@ -634,10 +720,11 @@ bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
     t->menubar = mb;
   }
   setMoveToTabsItem(tool, t->menubar, false);
-  ToolPage *page = new ToolPage(s_book, tool, mgr == 0);
+  ToolPage *page = new ToolPage(s_book, tool, mgr == 0, (bool)t->side);
   moveClient(tool, page->body(), mgr);
   page->takeStatusBar(tool);
   t->page = page;
+  if (t->side) t->side(page->side());
   wxString caption = tool->GetTitle().empty() ? title : tool->GetTitle();
   s_book->AddPage(page, tabCaption(caption), true);
   // AddPage selected it; make sure the menus follow even if it was the
@@ -886,6 +973,11 @@ wxString ToolTabs::describe()
 bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
                            wxString& outcome)
 {
+  auto c = commands().find(cmd);
+  if (c != commands().end()) {
+    outcome = c->second(arg);
+    return true;
+  }
   if (cmd == "tabs") {
     outcome = describe();
   } else if (cmd == "tab" || cmd == "towindow") {

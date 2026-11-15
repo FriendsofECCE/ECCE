@@ -496,6 +496,9 @@ def runTabs(display):
               int(m.group(2)) > 300 and int(m.group(3)) >= 3,
               "the Builder tab shows its windows and status bar, its own "
               "frame stays unmapped", str(info))
+        su = pb.answers(log, "setup")
+        check(su == ["no set-up area"],
+              "Small: the editor tab has no detail area", str(su))
         dlg = pb.answers(log, "dialoginfo")
         check(dlg and "transient=1 mapped=1 inside=1" in dlg[0]
               and " focus=" in dlg[0],
@@ -575,6 +578,7 @@ def runTabsEditor(display):
             append("start CalculationEditor " + url, 25)
             append("tabs", 2)                  # 1: the editor, active
             append("tabinfo Launch...,Save,Verify,dump,gtk", 2)
+            append("setup info", 2)            # Small: no Set-up tab
             append("dialog", 1)
             shot("tabs-editor-dialog.png")
             time.sleep(2)                      # it closes itself after 1.5 s
@@ -632,6 +636,9 @@ def runTabsEditor(display):
               int(m.group(2)) > 300 and int(m.group(3)) >= 1,
               "the editor tab shows its windows, its own frame stays unmapped",
               str(info))
+        su = pb.answers(log, "setup")
+        check(su == ["no set-up area"],
+              "Small: the editor tab has no detail area", str(su))
         dlg = pb.answers(log, "dialoginfo")
         check(dlg and "transient=1 mapped=1 inside=1" in dlg[0]
               and " focus=" in dlg[0],
@@ -663,6 +670,120 @@ def runTabsEditor(display):
         check(not result.crashed and result.returncode == 0
               and "Aborted" not in log,
               "the Organizer with editor and Builder tabs ends cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def fnv(data):
+    h = 1469598103934665603
+    for c in data:
+        h = ((h ^ c) * 1099511628211) & 0xFFFFFFFFFFFFFFFF
+    return "%d:%016x" % (len(data), h)
+
+
+def runSetupTab(display):
+    """Normal layout (#983 stage 2): the editor's tab is the Set-up tab.
+    Theory and Runtype Details fill its detail area, with no detail the
+    area shows the input file Save writes; the editor column folds.  An
+    ORCA calculation: both its details have a .dlg."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    shots = os.environ.get("ECCE_TABS_SHOTS")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        calc = pb.makeCalc(project, "water-orca", "created", None)
+        meta = os.path.join(calc, ".ecce-meta")
+        text = open(meta).read().replace("ecce:application\t\tNWChem",
+                                         "ecce:application\t\tORCA")
+        open(meta, "w").write(text)
+        url = "file://" + calc
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def shot(name):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+                subprocess.run(["import", "-display", ":%s" % display.number,
+                                "-window", "root", os.path.join(shots, name)],
+                               check=False)
+
+        def inspect(_display):
+            append("start CalculationEditor " + url, 25)
+            append("tabs", 2)
+            append("setup info", 2)            # 1: the input preview
+            append("setup theory", 4)          # 2
+            shot("setup-theory.png")
+            append("setup runtype", 4)         # 3
+            shot("setup-runtype.png")
+            append("setup input", 2)           # 4
+            append("setup save", 15)           # 5
+            append("setup preview", 2)         # 6
+            shot("setup-input.png")
+            append("setup fold", 2)            # 7
+            append("setup unfold", 2)          # 8
+            append("towindow 1", 8)
+            append("setup info", 2)            # 9: a window, no area
+            append("totabs Editor", 8)
+            append("setup info", 2)            # 10: the area again
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 25)
+
+        setLayout(display, "normal")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
+                               "ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        su = pb.answers(log, "setup")
+        print("      setup: " + "\n             ".join(su))
+        tabs = pb.answers(log, "tabs")
+        check(tabs and re.search(r"1:.*Editor.*\*", tabs[0]) is not None,
+              "Normal: the editor opens as a tab", str(tabs) + log[-1500:])
+        su += [""] * (10 - len(su))
+        check(su[0].startswith("area=input"),
+              "the Set-up tab shows the input preview with no detail chosen",
+              su[0])
+        m = re.search(r"controls=(\d+)", su[1])
+        check(su[1].startswith("area=theory") and m and int(m.group(1)) > 3
+              and "marked=Theory" in su[1],
+              "Theory Details fill the detail area, the button stays marked",
+              su[1])
+        m = re.search(r"controls=(\d+)", su[2])
+        check(su[2].startswith("area=runtype") and m and int(m.group(1)) > 3
+              and "marked=Runtype" in su[2] and "marked=Theory" not in su[2],
+              "Runtype Details replace them in the same area", su[2])
+        check(su[3].startswith("area=input"), "Input brings the preview back",
+              su[3])
+        m = re.search(r"shown=(\S+) file=(\S+)", su[5])
+        files = set()
+        for root, _dirs, names in os.walk(calc):
+            for n in names:
+                files.add(fnv(open(os.path.join(root, n), "rb").read()))
+        check(m and m.group(1) == m.group(2) and not m.group(1).startswith("0:")
+              and m.group(1) in files,
+              "after Save the preview is the input file Save wrote",
+              su[5] + " files=" + str(sorted(files)))
+        check("folded=1" in su[6] and "folded=0" in su[7],
+              "the editor column folds and unfolds", su[6] + " / " + su[7])
+        check(su[8] == "not a set-up tab" or su[8] == "no set-up area",
+              "Open in Window: no detail area (details as dialogs)", su[8])
+        check(su[9].startswith("area=input"),
+              "Move to Tabs makes the Set-up tab again", su[9])
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "the Organizer with a Set-up tab ends cleanly",
               "returncode %s\n%s" % (result.returncode, log[-2000:]))
     finally:
         shutil.rmtree(data, ignore_errors=True)
@@ -786,6 +907,7 @@ def main():
         runLayouts(display)
         runTabs(display)
         runTabsEditor(display)
+        runSetupTab(display)
         runTabsTools(display)
         if os.environ.get("ECCE_TABS_ONLY") == "1":
             if failures:

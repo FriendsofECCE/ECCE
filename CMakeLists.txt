@@ -733,7 +733,7 @@ ecce_tool_objects(basistool-objs src/apps/basistool EXCLUDE WxBasisToolApp.C
   LINK ${ECCE_BASISTOOL_LINK})
 ecce_app(basistool src/apps/basistool WX MAIN WxBasisToolApp.C OBJECTS basistool-objs
   LINK ${ECCE_BASISTOOL_LINK})
-set(ECCE_CALCED_LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+set(ECCE_CALCED_LINK ecce-details-wx eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_tool_objects(calced-objs src/apps/calced EXCLUDE CalcEdApp.C
   LINK ${ECCE_CALCED_LINK})
 ecce_app(calced src/apps/calced WX MAIN CalcEdApp.C OBJECTS calced-objs
@@ -828,7 +828,7 @@ target_include_directories(builder PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organize
 ecce_app(organizer src/apps/organizer WX GL MAIN CalcMgrApp.C
   OBJECTS organizer-objs organizer-shared-objs builder-objs calced-objs
     mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs basistool-objs mdprepare-objs
-  LINK eccewxguimd ${ECCE_BUILDER_LINK})
+  LINK eccewxguimd ecce-details-wx ${ECCE_BUILDER_LINK})
 target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)

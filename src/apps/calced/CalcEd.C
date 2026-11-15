@@ -83,6 +83,7 @@
 #include "VerifyReportDialog.H"
 #include "PartialCharge.H"
 #include "wxgui/ewxProgressDialog.H"
+#include "SetupArea.H"
 
 //#define DEBUG
 
@@ -1074,6 +1075,68 @@ string CalcEd::getContext() const
 void CalcEd::setEditStatus(WxFeedback::EditStatus status)
 {
   p_feedback->setEditStatus(status);
+  if (p_setupArea) p_setupArea->statusChanged();
+}
+
+
+void CalcEd::makeSetupArea(wxWindow *area)
+{
+  SetupArea *sa = new SetupArea(area, this);
+  area->GetSizer()->Add(sa, 1, wxEXPAND);
+  area->Layout();
+  p_setupArea = sa;
+  sa->Bind(wxEVT_DESTROY, [this, sa](wxWindowDestroyEvent& ev) {
+    if (ev.GetEventObject() == sa && p_setupArea == sa) p_setupArea = 0;
+    ev.Skip();
+  });
+}
+
+
+void CalcEd::detailsInput(bool theory, const char *line)
+{
+  if (theory) processTheoryInput(line);
+  else processRuntypeInput(line);
+}
+
+
+namespace {
+string fnvOf(const string& text)
+{
+  uint64_t h = 1469598103934665603ULL;
+  for (unsigned char c : text) { h ^= c; h *= 1099511628211ULL; }
+  char buf[48];
+  snprintf(buf, sizeof buf, "%zu:%016llx", text.size(), (unsigned long long)h);
+  return buf;
+}
+}
+
+
+//  setup [info] | theory | runtype | input | fold | unfold | save | preview
+wxString CalcEd::setupCommand(const wxString& arg)
+{
+  if (!p_setupArea) return "no set-up area";
+  if (arg == "theory" || arg == "runtype") {
+    wxWindow *b = FindWindow(arg == "theory" ? ID_BUTTON_CALCED_THEORY
+                                             : ID_BUTTON_CALCED_RUNTYPE);
+    if (!b || !b->IsEnabled()) return "button off";
+    wxCommandEvent ev(wxEVT_BUTTON, b->GetId());
+    ev.SetEventObject(b);
+    b->GetEventHandler()->ProcessEvent(ev);
+  } else if (arg == "input") {
+    p_setupArea->showInput();
+  } else if (arg == "fold" || arg == "unfold") {
+    ToolTabs::fold(this, arg == "fold" ? 1 : 0);
+  } else if (arg == "save") {
+    enableSave();
+    doSave();
+  } else if (arg == "preview") {
+    if (p_setupArea->current() != SetupArea::INPUT) return "not the input";
+    return "shown=" + wxString(fnvOf(p_setupArea->previewShown())) +
+           " file=" + wxString(fnvOf(p_setupArea->previewText()));
+  } else if (!arg.empty() && arg != "info") {
+    return "unknown: " + arg;
+  }
+  return p_setupArea->describe();
 }
 
 
@@ -5082,7 +5145,12 @@ void CalcEd::startTheoryApp(const bool& localInitFlag)
     wxRect r = GetScreenRect();
     wxSetEnv("ECCE_EDITOR_RECT", wxString::Format("%d,%d,%d,%d",
              r.x, r.y, r.width, r.height));
-    if (!launchDetachedApp(cmd)) {
+    // Set-up tab: the details fill its detail area when they have a .dlg.
+    const bool embedded = !localInitFlag && p_setupArea &&
+        p_setupArea->showDetails(SetupArea::THEORY, cmd);
+    if (!embedded && !localInitFlag && p_setupArea)
+      p_setupArea->external(SetupArea::THEORY);
+    if (!embedded && !launchDetachedApp(cmd)) {
       p_feedback->setMessage("Unable to invoke theory details dialog",
                              WxFeedback::ERROR);
     } else {
@@ -5178,7 +5246,12 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
     wxRect r = GetScreenRect();
     wxSetEnv("ECCE_EDITOR_RECT", wxString::Format("%d,%d,%d,%d",
              r.x, r.y, r.width, r.height));
-    if (!launchDetachedApp(cmd)) {
+    // Set-up tab: the details fill its detail area when they have a .dlg.
+    const bool embedded = !localInitFlag && p_setupArea &&
+        p_setupArea->showDetails(SetupArea::RUNTYPE, cmd);
+    if (!embedded && !localInitFlag && p_setupArea)
+      p_setupArea->external(SetupArea::RUNTYPE);
+    if (!embedded && !launchDetachedApp(cmd)) {
       p_feedback->setMessage("Unable to invoke runtype details dialog",
                              WxFeedback::ERROR);
     } else {
@@ -5376,6 +5449,7 @@ void CalcEd::closeTheoryApp(const bool& sendTerm)
   if (sendTerm && (p_theoryPid)) {
     (void)kill((p_theoryPid), SIGTERM);
   }
+  if (sendTerm && p_setupArea) p_setupArea->closeDetails(SetupArea::THEORY);
 
   if (p_theoryInPort != 0) {
     p_theoryInSocket->Notify(false);
@@ -5393,6 +5467,7 @@ void CalcEd::closeRuntypeApp(const bool& sendTerm)
   if (sendTerm && (p_runtypePid)) {
     (void)kill((p_runtypePid), SIGTERM);
   }
+  if (sendTerm && p_setupArea) p_setupArea->closeDetails(SetupArea::RUNTYPE);
 
   if (!p_runtypeNotePath.empty()) {
     remove(p_runtypeNotePath.c_str());
