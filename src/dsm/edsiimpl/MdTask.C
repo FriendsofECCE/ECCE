@@ -24,6 +24,19 @@
 #include "dsm/Session.H"
 #include "dsm/VDoc.H"
 
+namespace {
+
+// The tasks that start from this one's output.  A GROMACS calculation from
+// files (CT_MDRUN, #1038) belongs to no study, so it has none.
+vector<Resource *> followers(const Resource *task)
+{
+  Session *session = task->getSession();
+  return session ? session->getTargets(task, Session::INPUT_PROVIDER)
+                 : vector<Resource *>();
+}
+
+}  // namespace
+
 
 
 /** 
@@ -1157,8 +1170,7 @@ bool MdTask::copy(EcceURL & target)
 
 void MdTask::getDeleteMessage(bool & canDelete, string & message)
 {
-  vector<Resource *> targets = 
-    getSession()->getTargets(this, Session::INPUT_PROVIDER);
+  vector<Resource *> targets = followers(this);
   vector<Resource *>::iterator targetItor = targets.begin();
   bool hasFollower = false;
   for (; targetItor != targets.end(); targetItor++) {
@@ -1193,8 +1205,7 @@ bool MdTask::canChangeState(string & message) const
     return false;
   }
 
-  vector<Resource *> targets = 
-          getSession()->getTargets(this, Session::INPUT_PROVIDER);
+  vector<Resource *> targets = followers(this);
   vector<Resource *>::iterator targetItor = targets.begin();
   for (; targetItor != targets.end(); targetItor++) {
     Job *job = dynamic_cast<Job*>(*targetItor);
@@ -1211,8 +1222,7 @@ bool MdTask::canChangeState(string & message) const
 bool MdTask::resetForRerun(const ResourceDescriptor::RUNSTATE& tostate)
 {
   bool ret = PropertyTask::resetForRerun(tostate);
-  vector<Resource *> targets = 
-          getSession()->getTargets(this, Session::INPUT_PROVIDER);
+  vector<Resource *> targets = followers(this);
   vector<Resource *>::iterator targetItor = targets.begin();
   for (; targetItor != targets.end(); targetItor++) {
     Job *job = dynamic_cast<Job*>(*targetItor);
@@ -1226,8 +1236,7 @@ bool MdTask::resetForRerun(const ResourceDescriptor::RUNSTATE& tostate)
 bool MdTask::resetForRestart()
 {
   bool ret = TaskJob::resetForRestart();
-  vector<Resource *> targets = 
-          getSession()->getTargets(this, Session::INPUT_PROVIDER);
+  vector<Resource *> targets = followers(this);
   vector<Resource *>::iterator targetItor = targets.begin();
   for (; targetItor != targets.end(); targetItor++) {
     Job *job = dynamic_cast<Job*>(*targetItor);
