@@ -7,6 +7,7 @@ using std::ofstream;
 using std::cout;
 using std::endl;
 #include <map>
+#include <functional>
 using std::map;
 #include <sstream>
 using std::ostringstream;
@@ -36,6 +37,7 @@ using std::vector;
 #include "inv/actions/SoSearchAction.H"
 #include "inv/nodes/SoIndexedTriangleStripSet.H"
 #include "inv/ChemKit/ChemIso.H"
+#include "inv/nodes/SoVertexProperty.H"
 #include "inv/manips/SoTrackballManip.H"
 
 #include <wx/settings.h>
@@ -6991,6 +6993,57 @@ void Builder::updatePropertyMenus()
                 << " vertices " << verts.size() << " triangles " << tris
                 << " boundary " << boundary << " overused " << over
                 << " misoriented " << sameway << "\n";
+            //  Connected pieces (by shared edges), each with its boundary
+            //  edges and the colour field (sign(l2)rho for NCI) at the
+            //  grid node nearest its vertices.
+            std::map<int,int> up;
+            std::function<int(int)> root = [&](int v) {
+              while (up.count(v) && up[v] != v) v = up[v] = up[up[v]];
+              return v;
+            };
+            for (std::set<int>::iterator it = verts.begin(); it != verts.end(); ++it)
+              up[*it] = *it;
+            for (std::map<std::pair<int,int>, std::pair<int,int> >::iterator
+                     it = edges.begin(); it != edges.end(); ++it)
+              up[root(it->first.first)] = root(it->first.second);
+            std::map<int, std::vector<int> > parts;
+            for (std::set<int>::iterator it = verts.begin(); it != verts.end(); ++it)
+              parts[root(*it)].push_back(*it);
+            std::map<int,long> partBoundary;
+            for (std::map<std::pair<int,int>, std::pair<int,int> >::iterator
+                     it = edges.begin(); it != edges.end(); ++it)
+              if (it->second.first + it->second.second == 1)
+                partBoundary[root(it->first.first)]++;
+            SingleGrid *g = getSG() ? getSG()->getCurrentGrid() : 0;
+            SoVertexProperty *vp =
+                (SoVertexProperty *)ts->vertexProperty.getValue();
+            const SbVec3f *xyz = vp ? vp->vertex.getValues(0) : 0;
+            const float *cf = g ? g->colorFieldData() : 0;
+            out << "pieces " << parts.size() << "\n";
+            for (std::map<int, std::vector<int> >::iterator it = parts.begin();
+                 it != parts.end(); ++it) {
+              double cmin = 1e30, cmax = -1e30;
+              if (cf && xyz) {
+                const int *dim = g->dimensions();
+                for (size_t q = 0; q < it->second.size(); q++) {
+                  const SbVec3f &p = xyz[it->second[q]];
+                  int ix[3];
+                  for (int k = 0; k < 3; k++) {
+                    const double d = (g->corner()[k] - g->origin()[k]) / (dim[k] - 1);
+                    ix[k] = std::max(0, std::min(dim[k] - 1,
+                        (int)floor((p[k] - g->origin()[k]) / d + 0.5)));
+                  }
+                  const double c = cf[ix[0] + (size_t)dim[0] *
+                                      (ix[1] + (size_t)dim[1] * ix[2])];
+                  cmin = std::min(cmin, c);
+                  cmax = std::max(cmax, c);
+                }
+              }
+              out << "piece vertices " << it->second.size() << " boundary "
+                  << partBoundary[it->first];
+              if (cf) out << " colourmin " << cmin << " colourmax " << cmax;
+              out << "\n";
+            }
           }
           SingleGrid *grid = getSG() ? getSG()->getCurrentGrid() : 0;
           if (grid) {

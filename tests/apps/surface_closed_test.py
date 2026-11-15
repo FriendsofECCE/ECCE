@@ -30,13 +30,24 @@ import xdisplay              # noqa: E402
 DIMER = os.path.join(REPO, "data", "client", "examples", "genchem",
                      "intermolecular-interactions", "ecceqm-h2o_dimer",
                      "stored", "h2o_dimer")
-#  (tag, log10 isovalue)
-CASES = (("rho-0.5", -0.30103), ("rho-0.05", -1.30103))
+#  (tag, field, log10 isovalue or None for the field's default)
+CASES = (("rho-0.5", "Density", -0.30103), ("rho-0.05", "Density", -1.30103),
+         ("nci-0.5", "NCI", None),
+         ("nci-after-rho", "Density:-0.30103,NCI", None))
 
 
-def scene(iso, shot):
-    lines = ["mofield Density", "mopanel run", "moiso %g" % iso,
-             "surfmesh mesh"]
+def scene(field, iso, shot):
+    lines = []
+    #  "A:iso,B": draw A at iso first, then B (the panel's field switched).
+    for before in field.split(",")[:-1]:
+        name, first = before.split(":")
+        lines += ["mofield " + name, "mopanel run", "moiso " + first]
+    lines += ["mofield " + field.split(",")[-1], "mopanel run"]
+    if iso is not None:
+        lines.append("moiso %g" % iso)
+    else:
+        lines.append("hold 3")
+    lines.append("surfmesh mesh")
     if shot:
         lines.append("background 1 1 1")
         lines.append("saveimage %s 2 white" % shot)
@@ -90,7 +101,7 @@ def main():
                                          "ecce-gateway-start")],
                            env=display.env(), timeout=180)
             url = base.makeCalc(data, "h2o_dimer", source=DIMER)
-            for tag, iso in CASES:
+            for tag, field, iso in CASES:
                 shot = None
                 if opts.shot:
                     os.makedirs(opts.shot, exist_ok=True)
@@ -98,7 +109,7 @@ def main():
                                                         tag + ".png"))
                 out = os.path.join(work, tag)
                 start = time.time()
-                res = base.runBuilder(display, url, out, scene(iso, shot))
+                res = base.runBuilder(display, url, out, scene(field, iso, shot))
                 took = time.time() - start
                 got = mesh(out)
                 if res.crashed or not got or not got[0]:
@@ -119,6 +130,9 @@ def main():
                              " ".join(grid or ["?"]), took))
                     if not ok:
                         failures.append(tag)
+                for line in open(os.path.join(out, "mesh.txt")):
+                    if line.startswith("piece"):
+                        print("      " + line.strip())
     finally:
         shutil.rmtree(work, ignore_errors=True)
     print("FAILED: " + "; ".join(failures) if failures else "PASSED")
