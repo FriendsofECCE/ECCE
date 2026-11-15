@@ -295,9 +295,9 @@ code; **Only registered** ticks ECCE-QM and the codes registered on a
 machine. This tab lists every supported code, hidden or not:
 
 - **ECCE-QM**: the built-in quantum chemistry engine; nothing to install.
-- **ORCA**: DFT, wavefunction methods and spectroscopy; free for academic use.
-- **Gaussian 16**: commercial molecular quantum chemistry (optimisations,
-  scans, transition states, IRC).
+- **ORCA**: DFT, wavefunction methods and spectroscopy.
+- **Gaussian 16**: molecular quantum chemistry (optimisations, scans,
+  transition states, IRC).
 - **xTB**: fast semi-empirical tight-binding energies, geometries and
   frequencies.
 - **CREST**: conformer and rotamer search with xTB.

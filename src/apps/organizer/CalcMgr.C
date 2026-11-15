@@ -105,6 +105,7 @@ static std::string s_registerMessage;
 #include "dsm/GromacsCalc.H"
 #include "AnotherCodeDialog.H"
 #include "dsm/CodeChoice.H"
+static std::vector<std::pair<std::string, std::string> > anotherCodeList();
 #include "dsm/SmilesBatch.H"
 #include <wx/choicdlg.h>
 #include "QsarDialog.H"
@@ -3378,6 +3379,12 @@ void CalcMgr::runTestCommand(const string& line)
           outcome = "ok";
         }
       }
+    } else if (command == "anothercodelabels") {
+      // The entries of the Continue in Another Code dialog's code choice.
+      AnotherCodeDialog dlg(this, 1, anotherCodeList(), EcceURL(), 0,
+                            CodeChoice::hiddenCount());
+      outcome = "ok";
+      for (const string& l : dlg.labels()) outcome += " code=" + l + ";";
     } else if (command == "prefs") {
       // "prefs open|colours jmol|colours ecce|advanced KEY on|childenv VAR|state|snap PATH": the
       // Preferences window, its Colours tab as a click chooses.
@@ -3392,7 +3399,8 @@ void CalcMgr::runTestCommand(const string& line)
         std::getline(args, rest);
         if (arg == "snap") {
           p_prefs->showCodesPage(true);
-          for (int i = 0; i < 10; i++) wxYield();
+          // GTK animates a tick change; shoot after it has finished.
+          for (int i = 0; i < 20; i++) { wxMilliSleep(50); wxYield(); }
           string path;
           std::istringstream r(rest);
           r >> path;
@@ -6275,6 +6283,31 @@ void CalcMgr::newSeries(const EcceURL& templ, const vector<string>& sources,
 
 
 
+/**
+ * The codes Continue in Another Code offers: those ticked in Preferences >
+ * Codes (#1049), then GROMACS from the user's own files.
+ */
+static vector<std::pair<string, string> > anotherCodeList()
+{
+  vector<std::pair<string, string> > codes;
+  vector<ResourceType*> types =
+      ResourceDescriptor::getResourceDescriptor().getResourceTypes();
+  for (const WorkflowSteps::Code& c : WorkflowSteps::codes())
+    for (size_t i = 0; i < types.size(); i++)
+      if (types[i]->getName() == c.typeName && CodeChoice::typeShown(types[i])) {
+        codes.push_back(std::make_pair(string(c.label), string(c.typeName)));
+        break;
+      }
+  //  Not a workflow step (yet): its setup is the user's files, asked for
+  //  after the dialog.
+  for (size_t i = 0; i < types.size(); i++)
+    if (types[i]->getName() == "gromacs_md_run" && CodeChoice::shown("GROMACS"))
+      codes.push_back(std::make_pair(string("GROMACS (from files)"),
+                                     string("gromacs_md_run")));
+  return codes;
+}
+
+
 /*!
  * New from This > Continue in Another Code (#1037).  The first calculation is made
  * from the first selected one and opened in the Calculation Editor, where the
@@ -6301,21 +6334,7 @@ void CalcMgr::OnAnotherCodeClick( wxCommandEvent& event )
     setMessage("Select one or more calculations first.", WxFeedback::INFO);
     return;
   }
-  vector<std::pair<string, string> > codes;
-  vector<ResourceType*> types =
-      ResourceDescriptor::getResourceDescriptor().getResourceTypes();
-  for (const WorkflowSteps::Code& c : WorkflowSteps::codes())
-    for (size_t i = 0; i < types.size(); i++)
-      if (types[i]->getName() == c.typeName && CodeChoice::typeShown(types[i])) {
-        codes.push_back(std::make_pair(string(c.label), string(c.typeName)));
-        break;
-      }
-  //  Not a workflow step (yet): its setup is the user's files, asked for
-  //  after the dialog.
-  for (size_t i = 0; i < types.size(); i++)
-    if (types[i]->getName() == "gromacs_md_run" && CodeChoice::shown("GROMACS"))
-      codes.push_back(std::make_pair(string("GROMACS (from files)"),
-                                     string("gromacs_md_run")));
+  vector<std::pair<string, string> > codes = anotherCodeList();
   if (codes.empty() && CodeChoice::hiddenCount() == 0) {
     setMessage("No code is registered.", WxFeedback::INFO);
     return;

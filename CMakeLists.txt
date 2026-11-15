@@ -3594,6 +3594,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_code_choice PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  add_test(NAME apps_code_choice_calced
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/code_choice_calced_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_code_choice_calced PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Preferences > Data and the Add Server dialog (#767).
   add_test(NAME apps_prefs_data
            COMMAND ${PYTHON3_EXECUTABLE}

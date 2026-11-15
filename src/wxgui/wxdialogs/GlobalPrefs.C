@@ -630,16 +630,24 @@ void GlobalPrefs::saveCodes()
 void GlobalPrefs::showCodesPage(bool hiddenFirst)
 {
   updateCodesPage();
-  if (hiddenFirst) {
-    vector<CodeRow> order;
+  // Hidden codes first when asked, then the core codes in their fixed
+  // order, then the experimental ones (the order of CodeChoice::known()).
+  vector<CodeRow> order;
+  if (hiddenFirst)
     for (CodeRow& r : p_codeRows) if (!r.box->GetValue()) order.push_back(r);
-    for (CodeRow& r : p_codeRows) if (r.box->GetValue()) order.push_back(r);
-    for (CodeRow& r : p_codeRows) p_codesList->Detach(r.row);
-    for (CodeRow& r : order)
-      p_codesList->Add(r.row, 0, wxGROW|wxLEFT|wxRIGHT, PAD);
-    p_codeRows = order;
-    p_codesList->Layout();
-  }
+  for (const CodeChoice::Info& info : CodeChoice::known())
+    for (CodeRow& r : p_codeRows)
+      if (r.name == info.name &&
+          !(hiddenFirst && !r.box->GetValue())) order.push_back(r);
+  for (CodeRow& r : p_codeRows) p_codesList->Detach(r.row);
+  for (CodeRow& r : order)
+    p_codesList->Add(r.row, 0, wxGROW|wxLEFT|wxRIGHT, PAD);
+  p_codeRows = order;
+  // Set the boxes again after the move so what is drawn is the stored state.
+  updateCodesPage();
+  p_codesList->Layout();
+  p_codesPage->Layout();
+  p_codesPage->Refresh();
   for (size_t i = 0; i < p_book->GetPageCount(); i++)
     if (p_book->GetPageText(i) == _("Codes")) p_book->SetSelection(i);
 }
@@ -673,8 +681,19 @@ string GlobalPrefs::codesTest(const string& line)
   }
   if (op == "list") {
     string out = "hidden=" + std::to_string(CodeChoice::hiddenCount());
+    vector<string> shown = CodeChoice::shownCodes();
+    for (const CodeChoice::Info& i : CodeChoice::known())
+      out += " " + i.name + "=" +
+             (std::find(shown.begin(), shown.end(), i.name) != shown.end()
+              ? "on" : "off");
+    return out;
+  }
+  // What the page itself holds: the rows in order with their boxes, and the
+  // count line, to compare with "list".
+  if (op == "page-state") {
+    string out = "note=" + string(p_codesNote->GetLabel().ToUTF8()) + " rows=";
     for (CodeRow& r : p_codeRows)
-      out += " " + r.name + "=" + (r.box->GetValue() ? "on" : "off");
+      out += r.name + "=" + (r.box->GetValue() ? "on" : "off") + ",";
     return out;
   }
   return "unknown";

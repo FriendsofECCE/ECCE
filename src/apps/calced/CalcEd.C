@@ -308,7 +308,29 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
 void CalcEd::runTestCommand(const string& line)
 {
   string outcome;
-  if (line == "state") {
+  if (line.compare(0, 9, "codeshown") == 0) {
+    // "codeshown NAME on|off": tick a code as Preferences > Codes does, then
+    // rebuild the code bar.
+    std::istringstream in(line.substr(9));
+    string name, state;
+    in >> name >> state;
+    CodeChoice::show(name, state == "on");
+    createCodeButtons();
+    outcome = "ok";
+  } else if (line == "codebar") {
+    // The code bar: tooltip of each code button, then the hidden button.
+    outcome = "ok";
+    wxSizerItemList items = p_codeSizer->GetChildren();
+    for (wxSizerItemList::compatibility_iterator n = items.GetFirst(); n;
+         n = n->GetNext()) {
+      wxWindow *w = n->GetData()->GetWindow();
+      if (!w) continue;
+      if (w->GetName() == "more_codes")
+        outcome += " more=" + string(w->GetLabel().ToUTF8());
+      else if (wxDynamicCast(w, wxCustomButton))
+        outcome += " code=" + string(w->GetToolTipText().ToUTF8());
+    }
+  } else if (line == "state") {
     GUIValue *v = p_GUIValues ? p_GUIValues->get("ES.Theory.UseSymmetry") : 0;
     wxWindow *box = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
     outcome = "stored=" + (v ? v->getValueAsString() : string("absent")) +

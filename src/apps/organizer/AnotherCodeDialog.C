@@ -81,6 +81,14 @@ string AnotherCodeDialog::codeLabel() const
   return i >= 0 && i < (int)p_codes.size() ? p_codes[i].first : string();
 }
 
+std::vector<string> AnotherCodeDialog::labels() const
+{
+  std::vector<string> out;
+  for (unsigned i = 0; i < p_code->GetCount(); i++)
+    out.push_back(string(p_code->GetString(i).ToUTF8()));
+  return out;
+}
+
 bool AnotherCodeDialog::wantsMoreCodes() const
 {
   return p_hidden > 0 && p_code->GetSelection() == (int)p_codes.size();

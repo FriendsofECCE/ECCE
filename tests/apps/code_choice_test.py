@@ -80,9 +80,16 @@ def main():
         "filemenu",                                  # 10
         "prefs codes page hiddenfirst",
         "contextmenu " + proj,
+        "anothercodelabels",                         # 14 (after the page)
+        "prefs codes page-state",
+        "prefs codes list",
+        "select " + nw,
+        "toolsmenu " + nw,
+        "toolsclick Electronic Structure Editor...",
     ]
     if SHOT:
         steps.insert(12, "prefs codes snap " + SHOT)
+    off = 1 if SHOT else 0
     cmds = os.path.join(work, "commands")
     open(cmds, "w").write("".join(s + "\n" for s in steps))
     with xdisplay.Display() as display:
@@ -120,8 +127,27 @@ def main():
           "ticking ORCA: hidden=2", str(a[10]))
     check(a[11] and "new=ORCA" in a[11] and "new=2 more codes (hidden)..." in a[11],
           "File > New: ORCA back without a restart, label says 2", str(a[11]))
-    check(a[13] if not SHOT else a[14], "right-click New after the Codes page opened",
-          str(a))
+    check(a[14 + off] and "code=2 more codes (hidden)...;" in a[14 + off] and
+          "code=ORCA;" in a[14 + off] and "code=NWChem;" not in a[14 + off],
+          "Continue in Another Code: ORCA offered, last entry says 2 hidden",
+          str(a[14 + off]))
+    # The Codes page shows what is stored: same ticks, same count, hidden
+    # codes first (here MOPAC and NWChem), then the core order.
+    page, lst = a[15 + off] or "", a[16 + off] or ""
+    ticks = dict(t.split("=") for t in page.split("rows=")[-1].split(",") if t)
+    stored = dict(t.split("=") for t in lst.split()[1:])
+    check(ticks == stored, "page ticks equal the stored list", page + " | " + lst)
+    check(page.startswith("note=2 codes are hidden"), "page count line says 2", page)
+    order = [t.split("=")[0] for t in page.split("rows=")[-1].split(",") if t]
+    check(order[:2] == ["NWChem", "MOPAC"] and order[2:9] == [
+        "ECCE-QM", "ORCA", "Gaussian-16", "xTB", "CREST", "GROMACS", "CP2K"],
+        "page order: hidden first, then core, then experimental", str(order))
+    tools = a[18 + off] or ""
+    check(tools.startswith("ok") and "Electronic Structure &Editor" in tools,
+          "the NWChem calculation itself still offers the Calculation Editor",
+          tools)
+    check("startApp CalculationEditor force=0 url=" + nw in log,
+          "the NWChem calculation opens in the Calculation Editor", log[-500:])
     shutil.rmtree(work, ignore_errors=True)
     print("FAILED: " + ", ".join(failures) if failures else "PASSED")
     return 1 if failures else 0

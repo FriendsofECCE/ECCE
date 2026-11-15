@@ -28,6 +28,8 @@ public:
 
   /// The last entry, "N more codes (hidden)...", is the one chosen.
   bool wantsMoreCodes() const;
+  /// Every entry of the code choice, as shown.
+  std::vector<std::string> labels() const;
 
   std::string typeName() const;
   std::string codeLabel() const;
