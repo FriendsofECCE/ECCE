@@ -157,9 +157,12 @@ def main():
                 got = open(os.path.join(where(cu), "Inputs", "conf.gro")).read()
                 check(final and got == final,
                       "last geometry: the copy's .gro is the final frame")
-                check(not os.path.isdir(os.path.join(where(cu), "Outputs")) or
-                      not os.listdir(os.path.join(where(cu), "Outputs")),
-                      "last geometry: the copy has no results")
+                # The local store keeps a .ecce-meta.lock in every folder.
+                outs = os.path.join(where(cu), "Outputs")
+                left = [o for o in os.listdir(outs) if not o.startswith(".")] \
+                    if os.path.isdir(outs) else []
+                check(not left, "last geometry: the copy has no results: %s"
+                      % left)
                 run_it("continued", "", ("conf.gro", "gromacs.mdp"), new[0],
                        url=cu)
 
