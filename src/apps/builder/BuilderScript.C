@@ -6,6 +6,7 @@
 //    add ELEM SHAPE X Y Z        a click in the 3D view in Atom mode
 //    panel NAME                  Tools > NAME (shows the panel)
 //    panesize NAME               the docked pane's rectangle and height floor
+//    vibnote                     print the Vibrations panel's small-imaginary-mode note (#1042)
 //    specfactor TEXT             type TEXT into the spectrum's Freq. factor (#604)
 //    specclick MODE              left click on a mode in the spectrum graph (#445)
 //    cmd TEXT                 a Builder command line (addh, center, ...)
@@ -1466,6 +1467,21 @@ void Builder::runBuilderScript(const std::string& file)
         } else {
           fprintf(stderr, "BUILDER: specclick mode %d: screen mismatch "
                   "%.4f, selected mode %d\n", mode, mismatch, selected + 1);
+        }
+      } else if (w[0] == "vibnote" && w.size() == 1) {
+        //  vibnote: what the Vibrational Frequencies panel's note line shows (#1042).
+        NModePanel *nm = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((nm = dynamic_cast<NModePanel*>(p)) != 0) break;
+        if (!nm) outcome = "no Vibrational Frequencies panel";
+        else {
+          //  Wrap() put line breaks into the label; report it on one line.
+          wxString t = nm->softNoteText();
+          t.Replace("\n", " ");
+          fprintf(stderr, "BUILDER: vibnote shown=%d text=%s\n",
+                  nm->softNoteShown() ? 1 : 0, (const char*)t.utf8_str());
         }
       } else if (w[0] == "specfactor" && w.size() == 2) {
         //  specfactor <text>: type text into the Freq. factor field (#604).

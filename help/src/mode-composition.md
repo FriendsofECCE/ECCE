@@ -87,6 +87,13 @@ the open one, with the structure moved along the selected mode or along all
 imaginary modes. This is the usual way off a saddle point: a structure with
 an imaginary frequency is displaced and optimised again.
 
+When an optimisation with frequencies (run type Optimisation + Frequencies)
+ends with imaginary modes smaller than 100 cm⁻¹ in magnitude, a line at the
+top of the panel says so: the optimisation stopped at a saddle for a soft
+motion, such as a methyl torsion. It is a warning only; **Displace...** along
+that mode starts a new optimisation off it. A frequency run on its own gets no
+such line, since a transition state is expected to have one imaginary mode.
+
 Choose the amplitude (the distance the atom that moves most is displaced,
 0.10 Å by default) and the direction: **+**, **-**, or **Both**, which makes
 two calculations. The stored mode vectors are scaled to that amplitude; for
