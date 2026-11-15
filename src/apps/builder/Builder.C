@@ -4322,6 +4322,52 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
 
 // The caption's pin button folds a property pane to its caption bar.
 // The resize is deferred so it never runs inside AUI's own event handling.
+//  Order of the docked panes in the Properties column: tab strip, list,
+//  then the rest by their own position.  Only the order is changed.
+void BuilderAuiManager::keepIndexOnTop(wxAuiManager& mgr)
+{
+  wxAuiPaneInfo &idx = mgr.GetPane(Builder::NAME_PROPERTY_INDEX);
+  if (!idx.IsOk() || idx.IsFloating()) return;
+  vector<wxAuiPaneInfo*> col;
+  wxAuiPaneInfoArray &all = mgr.GetAllPanes();
+  for (size_t i = 0; i < all.GetCount(); ++i) {
+    wxAuiPaneInfo &pi = all.Item(i);
+    if (pi.IsFloating() || pi.IsToolbar() ||
+        pi.dock_direction != idx.dock_direction ||
+        pi.dock_layer != idx.dock_layer || pi.dock_row != idx.dock_row)
+      continue;
+    col.push_back(&pi);
+  }
+  const wxString tabs(Builder::NAME_COLUMN_TABS);
+  auto rank = [&](wxAuiPaneInfo *p) {
+    return p->name == tabs ? 0 : (p == &idx ? 1 : 2);
+  };
+  std::stable_sort(col.begin(), col.end(),
+      [&](wxAuiPaneInfo *a, wxAuiPaneInfo *b) {
+        if (rank(a) != rank(b)) return rank(a) < rank(b);
+        return a->dock_pos < b->dock_pos;
+      });
+  for (size_t k = 0; k < col.size(); ++k) col[k]->dock_pos = (int)k;
+}
+
+
+bool BuilderAuiManager::ProcessDockResult(wxAuiPaneInfo& target,
+                                          const wxAuiPaneInfo& newPos)
+{
+  if (!wxAuiManager::ProcessDockResult(target, newPos)) return false;
+  wxAuiPaneInfo &idx = GetPane(Builder::NAME_PROPERTY_INDEX);
+  if (idx.IsOk() && !target.IsFloating() && target.name != idx.name &&
+      target.name != Builder::NAME_COLUMN_TABS &&
+      target.dock_direction == idx.dock_direction &&
+      target.dock_layer == idx.dock_layer &&
+      target.dock_row == idx.dock_row && target.dock_pos <= idx.dock_pos) {
+    //  Ties sort after the list in keepIndexOnTop's stable order.
+    target.dock_pos = idx.dock_pos + 1;
+  }
+  return true;
+}
+
+
 /**
  * Dock every floating pane on the side it came from.  wxAUI recreates a
  * dock side that has emptied, so this works with nothing left docked there.
@@ -6866,6 +6912,57 @@ void Builder::updatePropertyMenus()
           else return s.fail("dockpane: where? " + where);
           pi.Show(true);
           updatePanes(true);
+          return true;
+        }
+        //  "paneorder": the docked panes of the Properties column, top to
+        //  bottom, to paneorder.txt.  "dockfloating": the Dock button.  "dropat <panel name> <pos>": a drop
+        //  of the panel into that column at dock position <pos>, as the
+        //  mouse would leave it.
+        if (w[0] == "dockfloating") {
+          wxCommandEvent ev;
+          OnDockFloatingPanels(ev);
+          return true;
+        }
+        if (w[0] == "paneorder" || (w[0] == "dropat" && w.size() >= 3)) {
+          if (w[0] == "dropat") {
+            string name = w[1];
+            for (size_t k = 2; k + 1 < w.size(); k++) name += " " + w[k];
+            wxAuiPaneInfo &pi = p_mgr.GetPane(wxString(name));
+            wxAuiPaneInfo &ix = p_mgr.GetPane(NAME_PROPERTY_INDEX);
+            if (!pi.IsOk()) return s.fail("dropat: no pane " + name);
+            wxAuiPaneInfo drop = pi;
+            drop.Dock().Right().Layer(ix.dock_layer).Row(ix.dock_row)
+                .Position(atoi(w.back().c_str()));
+            wxAuiPaneInfo target = pi;
+            if (!p_mgr.ProcessDockResult(target, drop))
+              return s.fail("dropat: drop refused");
+            pi = target;
+            pi.Show(true);
+            updatePanes(true);
+            return true;
+          }
+          wxAuiPaneInfo &ix = p_mgr.GetPane(NAME_PROPERTY_INDEX);
+          vector<pair<int, string> > order;
+          std::ofstream all_(outdir + "/paneall.txt");
+          wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+          for (size_t k = 0; k < all.GetCount(); k++) {
+            wxAuiPaneInfo &pi = all.Item(k);
+            all_ << pi.name.utf8_str().data() << " fl=" << pi.IsFloating()
+                 << " sh=" << pi.IsShown() << " dir=" << pi.dock_direction
+                 << " L=" << pi.dock_layer << " R=" << pi.dock_row
+                 << " P=" << pi.dock_pos << "\n";
+            if (!pi.window || pi.IsFloating() || pi.IsToolbar() ||
+                !pi.IsShown() || pi.dock_direction != ix.dock_direction ||
+                pi.dock_layer != ix.dock_layer || pi.dock_row != ix.dock_row)
+              continue;
+            order.push_back(make_pair(pi.dock_pos, string(pi.name.utf8_str())));
+          }
+          std::stable_sort(order.begin(), order.end(),
+              [](const pair<int,string>& a, const pair<int,string>& b) {
+                return a.first < b.first; });
+          std::ofstream out(outdir + "/paneorder.txt");
+          for (size_t k = 0; k < order.size(); k++)
+            out << order[k].second << "\n";
           return true;
         }
         if (w[0] == "layout" && w.size() == 2) {
