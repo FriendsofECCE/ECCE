@@ -113,7 +113,7 @@ inline Shaped shape(const std::string& key, const std::string& units,
       r.y[i] = (v[i] - v[0]) * kJPerMolPerHartree;
     r.yName = "Energy relative to step 1";
     r.yUnit = "kJ/mol";
-    r.yLabel = "Energy relative to step 1 (kJ/mol)";
+    r.yLabel = "E - E(step 1) (kJ/mol)";
     r.titleNote = wxString::Format("final %.8f Hartree", v.back());
     r.hover.resize(v.size());
     for (size_t i = 0; i < v.size(); i++)
