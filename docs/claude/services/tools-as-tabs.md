@@ -156,8 +156,15 @@ transport that delivers each line to `processTheoryInput`/
 `processRuntypeInput` by `CallAfter` (as UDP would: after the event, in
 order), after a `#STARTED 0` so no pid is ever killed. The NO_GUIValues
 (headless initialise) run still uses the process. The preview is the stored
-deck (`PRIMARY_INPUT`), reloaded on every `setEditStatus`; it does not
-generate input from unsaved settings (DeckWriter writes into the calc).
+deck (`PRIMARY_INPUT`) while nothing is unsaved; after a change it is
+`DeckWriter::generate` with `Options::dryRun` (500 ms timer restarted by
+each `setEditStatus`): theory, runtype, spin and the editor's GUIValues
+replace the stored ones in the .param file, the deck goes to
+`Result::deck`, nothing is put to or removed from the calculation.
+Structure and basis are still the stored ones (they are read from the
+calc in several helpers). The detail area is a wxScrolledWindow whose
+virtual size is the embedded dialog's sizer minimum; the sash is set to
+the editor's minimum width and the window widened to 1100 px (work area).
 wxGTK: the embedded panel stays blank until a size event after it is made
 (`SetupArea` sends one by CallAfter).
 

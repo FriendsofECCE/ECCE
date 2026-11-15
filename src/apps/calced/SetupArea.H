@@ -19,6 +19,7 @@ class CalcEd;
 class wxButton;
 class wxStaticText;
 class wxTextCtrl;
+class wxTimer;
 
 class SetupArea : public wxPanel
 {
@@ -32,6 +33,8 @@ public:
   // would run) names; false when it has no .dlg (the Python dialog runs).
   bool showDetails(Kind kind, const std::string& cmd);
   void showInput();
+  // A user edit of an embedded dialog's field (test hook "setup set").
+  bool setValue(const std::string& name, const std::string& value);
   // The details have no .dlg and opened as the Python dialog's window.
   void external(Kind kind);
   std::string previewShown() const;
@@ -52,10 +55,14 @@ private:
   wxButton *p_fold;
   wxTextCtrl *p_input;
   wxWindow *p_body;
+  wxTimer *p_timer;
+  bool p_dry = false;   // the preview shows unsaved settings
+  void dryRun();
   std::unique_ptr<Embedded> p_emb;
   Kind p_kind = INPUT;
 
   void drop();
+  void fitBody();
   void mark();
 };
 

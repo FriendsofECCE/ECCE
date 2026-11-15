@@ -379,6 +379,9 @@ class CalcEd: public CalcEdGUI,
     SetupArea *setupArea() const { return p_setupArea; }
     // What a details dialog sends, delivered in-process by an embedded one.
     void detailsInput(bool theory, const char *line);
+    // The deck the current, unsaved settings would give; the calculation
+    // is not written (DeckWriter dryRun).
+    bool previewDeck(string& deck, string& error);
     // Test hook "setup ..." on the active Set-up tab.
     wxString setupCommand(const wxString& arg);
 

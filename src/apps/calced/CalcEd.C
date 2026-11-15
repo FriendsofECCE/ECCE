@@ -84,6 +84,7 @@
 #include "PartialCharge.H"
 #include "wxgui/ewxProgressDialog.H"
 #include "SetupArea.H"
+#include "wx/display.h"
 
 //#define DEBUG
 
@@ -1085,10 +1086,44 @@ void CalcEd::makeSetupArea(wxWindow *area)
   area->GetSizer()->Add(sa, 1, wxEXPAND);
   area->Layout();
   p_setupArea = sa;
+  // Editor beside a usable area needs about 1100 px: widen a narrower
+  // window, within the display's work area.
+  CallAfter([this, area]() {
+    if (!p_setupArea) return;
+    wxTopLevelWindow *top = wxDynamicCast(wxGetTopLevelParent(area),
+                                          wxTopLevelWindow);
+    if (!top || top->IsMaximized()) return;
+    int d = wxDisplay::GetFromWindow(top);
+    wxRect work = wxDisplay(d == wxNOT_FOUND ? 0 : d).GetClientArea();
+    wxRect r = top->GetRect();
+    if (r.width >= 1100) return;
+    r.width = std::min(1100, work.width);
+    r.x = std::max(work.x, std::min(r.x, work.GetRight() + 1 - r.width));
+    top->SetSize(r);
+  });
   sa->Bind(wxEVT_DESTROY, [this, sa](wxWindowDestroyEvent& ev) {
     if (ev.GetEventObject() == sa && p_setupArea == sa) p_setupArea = 0;
     ev.Skip();
   });
+}
+
+
+bool CalcEd::previewDeck(string& deck, string& error)
+{
+  if (!p_iCalc || !isReady()) return false;
+  DeckWriter::Options opt;
+  opt.useExpCoeff = getUseExpCoeff();
+  opt.openShells = getOpenShells();
+  opt.dryRun = true;
+  opt.gui = p_GUIValues;
+  opt.category = getTheoryCategory().ToStdString();
+  opt.theory = getTheoryName().ToStdString();
+  opt.runtype = getRuntypeName().ToStdString();
+  opt.spin = (int)getSpinMult();
+  DeckWriter::Result r = DeckWriter::generate(p_iCalc, opt);
+  deck = r.deck;
+  error = r.ok ? "" : cleanGeneratorMessage(r.message);
+  return r.ok;
 }
 
 
@@ -1122,6 +1157,14 @@ wxString CalcEd::setupCommand(const wxString& arg)
     wxCommandEvent ev(wxEVT_BUTTON, b->GetId());
     ev.SetEventObject(b);
     b->GetEventHandler()->ProcessEvent(ev);
+  } else if (arg.StartsWith("set ")) {
+    wxString rest = arg.Mid(4), value = rest.AfterFirst(' ');
+    if (!p_setupArea->setValue(string(rest.BeforeFirst(' ').utf8_str()),
+                               string(value.utf8_str())))
+      return "no such field";
+  } else if (arg.StartsWith("find ")) {
+    return wxString::Format("found=%d", (int)(p_setupArea->previewShown()
+        .find(string(arg.Mid(5).utf8_str())) != string::npos));
   } else if (arg == "input") {
     p_setupArea->showInput();
   } else if (arg == "fold" || arg == "unfold") {

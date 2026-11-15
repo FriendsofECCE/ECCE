@@ -3196,7 +3196,8 @@ if(PYTHON3_EXECUTABLE)
                        TIMEOUT 900 RUN_SERIAL TRUE)
   # The G16 Runtype dialog has 349 contexts; --dedupe replays the restore
   # cases once per group of contexts with identical Python inventories.
-  foreach(_d orcatheory orcaruntype ged16theory ged16runtype)
+  foreach(_d orcatheory orcaruntype ged16theory ged16runtype ecceqmruntype
+             xtbtheory xtbruntype)
     set(_extra "")
     set(_timeout 3600)   # ORCA runs ~25 min on an idle machine
     if(_d MATCHES "^ged16")

@@ -79,6 +79,7 @@ struct SetupArea::Embedded {
   std::unique_ptr<details::Model> model;
   std::unique_ptr<EditorTransport> transport;
   wxPanel *host = 0;
+  details::DetailsPanel *panel = 0;
 };
 
 
@@ -110,7 +111,11 @@ SetupArea::SetupArea(wxWindow *parent, CalcEd *editor)
   p_note = new wxStaticText(this, wxID_ANY, "");
   top->Add(p_note, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
   top->Add(new wxStaticLine(this), 0, wxEXPAND | wxALL, 4);
-  p_body = new wxPanel(this, wxID_ANY);
+  // Scrolls both ways: an embedded dialog wider or taller than the area
+  // (with its Close/Reset row) stays reachable.
+  wxScrolledWindow *sw = new wxScrolledWindow(this, wxID_ANY);
+  sw->SetScrollRate(10, 10);
+  p_body = sw;
   p_body->SetSizer(new wxBoxSizer(wxVERTICAL));
   top->Add(p_body, 1, wxEXPAND | wxALL, 2);
   p_input = new wxTextCtrl(p_body, wxID_ANY, "", wxDefaultPosition,
@@ -120,12 +125,17 @@ SetupArea::SetupArea(wxWindow *parent, CalcEd *editor)
                           .Family(wxFONTFAMILY_TELETYPE)));
   p_body->GetSizer()->Add(p_input, 1, wxEXPAND);
   SetSizer(top);
+  // The preview follows unsaved changes, 500 ms after the last one.
+  p_timer = new wxTimer(this);
+  Bind(wxEVT_TIMER, [this](wxTimerEvent&) { dryRun(); });
   showInput();
 }
 
 
 SetupArea::~SetupArea()
 {
+  p_timer->Stop();
+  delete p_timer;
   drop();
 }
 
@@ -185,6 +195,7 @@ bool SetupArea::showDetails(Kind kind, const string& cmd)
   details::DetailsPanel *panel = new details::DetailsPanel(e->host,
       *e->model, [this]() { CallAfter([this]() { showInput(); }); });
   e->model->attach(e->transport.get(), panel);
+  e->panel = panel;
   p_body->GetSizer()->Add(e->host, 1, wxEXPAND);
   p_emb = std::move(e);
   p_kind = kind;
@@ -202,6 +213,7 @@ bool SetupArea::showDetails(Kind kind, const string& cmd)
   CallAfter([this]() {
     if (!p_emb) return;
     p_emb->host->Layout();
+    fitBody();
     SendSizeEvent();
     p_body->SendSizeEvent();
     ToolTabs::allocate(this);
@@ -221,9 +233,50 @@ void SetupArea::external(Kind kind)
 }
 
 
+void SetupArea::dryRun()
+{
+  if (p_kind != INPUT) return;
+  string deck, err;
+  wxBusyCursor busy;
+  bool ok = p_ed->previewDeck(deck, err);
+  p_dry = ok;
+  p_note->SetLabel(ok ? wxString("Unsaved changes: Save writes this file.")
+                      : "Unsaved changes; the settings could not be "
+                        "generated: " + wxString::FromUTF8(err.c_str()));
+  p_note->Wrap(std::max(200, p_body->GetSize().x));
+  p_note->Show();
+  if (ok) {
+    wxString shown = wxString::FromUTF8(deck.c_str());
+    if (p_input->GetValue() != shown) p_input->ChangeValue(shown);
+  }
+  Layout();
+}
+
+
 std::string SetupArea::previewShown() const
 {
   return string(p_input->GetValue().utf8_str());
+}
+
+
+void SetupArea::fitBody()
+{
+  wxScrolledWindow *sw = static_cast<wxScrolledWindow*>(p_body);
+  // The preview scrolls itself; only a dialog sets a virtual size.
+  wxSize min = p_emb ? p_body->GetSizer()->CalcMin() : wxSize(1, 1);
+  sw->SetVirtualSize(min);
+  p_body->Layout();
+}
+
+
+bool SetupArea::setValue(const string& name, const string& value)
+{
+  if (!p_emb) return false;
+  int i = p_emb->model->find(name);
+  if (i < 0) return false;
+  p_emb->model->userEdit(i, value);
+  p_emb->panel->itemUpdated(i);
+  return true;
 }
 
 
@@ -252,6 +305,7 @@ void SetupArea::showInput()
   drop();
   p_kind = INPUT;
   p_input->Show();
+  fitBody();
   p_title->SetLabel("Input file as Save writes it");
   statusChanged();
   mark();
@@ -266,9 +320,14 @@ void SetupArea::statusChanged()
   string text = previewText();
   bool modified = p_ed->p_feedback &&
       p_ed->p_feedback->getEditStatus() == WxFeedback::MODIFIED;
+  if (modified) {
+    p_timer->StartOnce(500);
+    return;
+  }
+  p_timer->Stop();
+  p_dry = false;
   wxString note;
   if (text.empty()) note = "No input file yet: Save writes it.";
-  else if (modified) note = "Unsaved changes: Save to update this file.";
   else if (p_ed->p_inputGenFailed)
     note = "The current settings could not be generated; this is the last "
            "file that was.";
@@ -286,8 +345,13 @@ wxString SetupArea::describe() const
       kindName(p_kind), p_title->GetLabel(), (int)ToolTabs::fold(p_ed, -1));
   wxSize sz = p_body->GetSize();
   out += wxString::Format(" size=%dx%d", sz.x, sz.y);
+  wxSize win = wxGetTopLevelParent(const_cast<SetupArea*>(this))->GetSize();
+  wxSize virt = p_body->GetVirtualSize();
+  out += wxString::Format(" window=%dx%d virtual=%dx%d", win.x, win.y,
+                          virt.x, virt.y);
   if (p_kind == INPUT) {
-    out += wxString::Format(" lines=%d", p_input->GetNumberOfLines());
+    out += wxString::Format(" lines=%d dry=%d", p_input->GetNumberOfLines(),
+                            (int)p_dry);
   } else if (p_emb) {
     int shown = 0;
     std::vector<wxWindow*> todo(p_emb->host->GetChildren().begin(),
@@ -299,6 +363,23 @@ wxString SetupArea::describe() const
       for (wxWindow *c : w->GetChildren()) todo.push_back(c);
     }
     out += wxString::Format(" controls=%d", shown);
+  }
+  // What the editor's summary under the Details buttons shows.
+  for (wxSizer *sz : {p_ed->p_theoryDetailsSizer, p_ed->p_runtypeDetailsSizer}) {
+    wxString sum;
+    std::vector<wxSizer*> todo(1, sz);
+    while (!todo.empty()) {
+      wxSizer *cur = todo.front();
+      todo.erase(todo.begin());
+      for (wxSizerItem *it : cur->GetChildren()) {
+        if (it->GetSizer()) todo.push_back(it->GetSizer());
+        else if (wxWindow *t = it->GetWindow())
+          sum += (sum.empty() ? "" : "|") + t->GetLabel();
+      }
+    }
+    sum.Replace(" ", "_");
+    out += (sz == p_ed->p_theoryDetailsSizer ? " theorysum=" : " runtypesum=")
+           + sum;
   }
   for (long id : {(long)CalcEd::ID_BUTTON_CALCED_THEORY,
                   (long)CalcEd::ID_BUTTON_CALCED_RUNTYPE}) {

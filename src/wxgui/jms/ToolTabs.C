@@ -155,6 +155,14 @@ public:
   wxWindow *body() const { return p_body; }
   wxWindow *side() const { return p_side; }
   bool folded() const { return p_split && !p_split->IsSplit(); }
+  // The editor column as wide as its content (plus a scroll bar).
+  void fitSash()
+  {
+    if (!p_split || !p_body->GetSizer()) return;
+    p_sash = p_body->GetSizer()->CalcMin().x +
+             wxSystemSettings::GetMetric(wxSYS_VSCROLL_X) + 4;
+    if (p_split->IsSplit()) p_split->SetSashPosition(p_sash);
+  }
   void fold(bool on)
   {
     if (!p_split || on == folded()) return;
@@ -724,7 +732,10 @@ bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
   moveClient(tool, page->body(), mgr);
   page->takeStatusBar(tool);
   t->page = page;
-  if (t->side) t->side(page->side());
+  if (t->side) {
+    t->side(page->side());
+    page->fitSash();
+  }
   wxString caption = tool->GetTitle().empty() ? title : tool->GetTitle();
   s_book->AddPage(page, tabCaption(caption), true);
   // AddPage selected it; make sure the menus follow even if it was the

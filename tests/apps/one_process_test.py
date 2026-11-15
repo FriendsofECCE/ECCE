@@ -722,9 +722,13 @@ def runSetupTab(display):
             append("setup info", 2)            # 1: the input preview
             append("setup theory", 4)          # 2
             shot("setup-theory.png")
+            append("setup set ES.Theory.SCF.ConvergenceIterations 37", 3)
+            append("setup info", 2)            # 11 (appended last)
             append("setup runtype", 4)         # 3
             shot("setup-runtype.png")
-            append("setup input", 2)           # 4
+            append("setup input", 8)           # 4
+            append("setup find 37", 2)         # unsaved 37 in the preview
+            shot("setup-input-unsaved.png")
             append("setup save", 15)           # 5
             append("setup preview", 2)         # 6
             shot("setup-input.png")
@@ -751,11 +755,29 @@ def runSetupTab(display):
         tabs = pb.answers(log, "tabs")
         check(tabs and re.search(r"1:.*Editor.*\*", tabs[0]) is not None,
               "Normal: the editor opens as a tab", str(tabs) + log[-1500:])
-        su += [""] * (10 - len(su))
+        su += [""] * (13 - len(su))
+        # Answers in command order: index 2 is the "set", 3 its info.
+        setAns, setInfo = su[2], su[3]
+        found = su[6]
+        su = su[:2] + su[4:6] + su[7:]
+        check(found == "found=1" and "dry=1" in su[3],
+              "the preview follows an unsaved change (dry run)",
+              found + " / " + su[3])
+        m = re.search(r"window=(\d+)x", su[0])
+        check(m and int(m.group(1)) >= 1100,
+              "the window is widened to editor + a usable detail area", su[0])
+        check(setAns.startswith("area=theory") and
+              "theorysum=" in setInfo and "|37" in setInfo.split(
+                  "theorysum=")[1].split(" ")[0],
+              "a value changed in the embedded dialog reaches the editor's "
+              "summary", setAns + " / " + setInfo)
         check(su[0].startswith("area=input"),
               "the Set-up tab shows the input preview with no detail chosen",
               su[0])
         m = re.search(r"controls=(\d+)", su[1])
+        v = re.search(r"size=(\d+)x(\d+) window=\S+ virtual=(\d+)x(\d+)", su[1])
+        check(v and int(v.group(4)) > 100,
+              "the detail area has the dialog's virtual size (scrolls)", su[1])
         check(su[1].startswith("area=theory") and m and int(m.group(1)) > 3
               and "marked=Theory" in su[1],
               "Theory Details fill the detail area, the button stays marked",
