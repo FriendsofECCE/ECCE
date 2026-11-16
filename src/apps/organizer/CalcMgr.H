@@ -48,6 +48,7 @@
 
 class BookmarkEditor;
 class ToolStartup;
+class TextFileViewer;
 class Session;
 class WxFind;
 class GlobalPrefs;
@@ -79,6 +80,7 @@ public:
   /// (#983).  Not a GetMenuBar() override: wxFrameBase::SetMenuBar compares
   /// with GetMenuBar() and would refuse to swap the bars.
   wxMenuBar *ownMenuBar() const;
+  TextFileViewer *viewFile(const EcceURL& url);
 
   // A tool's window is up (#1071): ends its start feedback.
   void toolUp(const string& app, const string& url);
@@ -792,6 +794,21 @@ protected:
   TaskJob *getContainer(const string& name);
   void importValidationComplete(TaskJob *ipc, bool status, string message);
 
+  // Import as Calculation (#1092): a file listed in a folder, local or SSH.
+  // The code the importer recognises the file as, or "" (message: why not).
+  string importableCode(const EcceURL& file, string& message);
+  // One file into the project; "" on success, else why not.
+  string importFileAsCalc(const EcceURL& file, const EcceURL& project);
+  // The files a menu or hook acts on, each into the project (empty: asked).
+  string importFilesAsCalcs(const vector<EcceURL>& files, EcceURL project);
+  void onImportAsCalc();
+  EcceURL p_importProject;     // where getContainer puts the calculation
+  TaskJob *p_lastImported = 0;
+  bool p_lastImportOk = false;
+  string p_lastImportMsg;
+  std::map<string, string> p_importCodes;  // file URL -> recognised code
+
+
   void updateAccessCtrlDlg();
   void updateFindDlg();
   void updateBookmarkMenu();
@@ -858,6 +875,7 @@ protected:
 
   // The Tail window the ECCE_TEST_ORGANIZER hook opened.
   wxWeakRef<WxTailWindow> p_testTail;
+  wxWeakRef<TextFileViewer> p_testViewer;
   //  Set by the "new" test command: createResource reports its error
   //  here instead of in a modal dialog.
   string *p_testCreateError = 0;

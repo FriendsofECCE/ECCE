@@ -5,20 +5,17 @@
  *
  */
 
-#include "util/TempStorage.H"
-#include "util/SFile.H"
-#include "util/StringConverter.H"
 
-#include "dsm/EcceDAVClient.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/Resource.H"
 
-#include "wxgui/ewxMessageDialog.H"
 #include "wxgui/ewxPanel.H"
 #include "wxgui/ewxTextCtrl.H"
 #include "wxgui/WxResourceTreeItemData.H"
 
 #include "DocumentContextPanel.H"
+#include "TextFileReader.H"
+#include <memory>
 
 class CalcMgr;
 
@@ -59,42 +56,20 @@ DocumentContextPanel::~DocumentContextPanel()
  */
 void DocumentContextPanel::refresh()
 {
-  p_textDisplay->Show(false);
-  // Get file size in K
-  int size = p_itemData->getResource()->getSize() / 1024;
-  // Get size limit in K
-  int sizeLimit = 10240;
-  char * sizeLimitStr = getenv("ECCE_FILESIZE_WARNING");
-  if (sizeLimitStr)
-    StringConverter::toInt(sizeLimitStr, sizeLimit);
-
-  bool showContent = true;
-  if (size > sizeLimit) {
-    string msg = "The large size of this file (" + 
-      StringConverter::toString(size) + "K)\n"
-      "may result in a long wait before it is loaded.\n\n"
-      "Do you still want to view the file?";
-    ewxMessageDialog dlg(this, msg, "View Large File?",
-                         wxOK|wxCANCEL|wxICON_QUESTION, wxDefaultPosition);
-    if (dlg.ShowModal() == wxID_CANCEL) {
-      showContent = false;
-      p_textDisplay->SetValue("The file is too large to be displayed in the Organizer.\n"
-                              "Please download the file to local disk if you wish to view it.\n");
-    }
+  std::unique_ptr<EDSI> source(EDSIFactory::getEDSI(p_itemData->getUrl()));
+  TextFileReader reader;
+  wxString preview;
+  if (!source || !reader.tail(*source))
+    preview = "Unable to read file. " + wxString::FromUTF8(reader.error);
+  else if (reader.binary)
+    preview = wxString::Format("Binary file: %lu bytes. Double-click or choose View for details.", reader.size);
+  else {
+    preview = "Double-click or choose View for Load more, Find, Follow and Open in editor.\n\n";
+    wxString text = wxString::FromUTF8(reader.text.data(), reader.text.size());
+    if (text.empty() && !reader.text.empty())
+      text = wxString(reader.text.data(), wxConvISO8859_1, reader.text.size());
+    preview += text;
   }
-
-  if (showContent) {
-    SFile *content = TempStorage::getTempFile();
-    content = p_itemData->getResource()->getDocument(content);
-    if (content != 0) {
-      p_textDisplay->LoadFile(content->path());
-      content->remove();
-      delete content;
-    }
-    else {
-      p_textDisplay->SetValue("The file could not be displayed in the Organizer.\n");
-    }
-  }
-
-  p_textDisplay->Show(true);
+  p_textDisplay->ChangeValue(preview);
+  p_textDisplay->ShowPosition(p_textDisplay->GetLastPosition());
 }

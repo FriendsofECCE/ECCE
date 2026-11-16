@@ -1024,6 +1024,7 @@ def runTabs1088(display):
             append("start Basistool " + url, 10)           # item 2: reused
             append("tabs", 2)                  # tabs[2]: Organizer, Builder, Viewer, Basis
             append("tabclose 3", 8)            # item 4: closes only that tool
+            append("answer no", 4)             # the Basis Set Tool always asks
             append("tabs", 2)                  # tabs[3]
             append("inprocess", 2)             # inprocess[2]
             append("close", 3)                 # File > Quit
@@ -1041,7 +1042,8 @@ def runTabs1088(display):
         log = result.log or ""
         if GDB:
             print(log[-6000:])
-        tabs = pb.answers(log, "tabs")
+        # "tabs" alone: answers() matches a prefix, which takes tabsel's too.
+        tabs = re.findall(r"ECCE_TEST_ORGANIZER: tabs: (.*)$", log, re.M)
         print("      tabs: " + "\n            ".join(tabs))
         sel = pb.answers(log, "tabsel")
         print("      tabsel: " + str(sel))

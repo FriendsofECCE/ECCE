@@ -736,13 +736,33 @@ istream* FileEDSI::getDataSubSet(int start_position, int length)
 bool FileEDSI::getDataSubSet(ostream& dest, int start_position, int length)
 {
   m_msgStack.clear();
-  string all;
-  if (!readAll(p_url.getPath(), all)) {
+  std::ifstream in;
+  in.rdbuf()->pubsetbuf(nullptr, 0);
+  in.open(p_url.getPath().c_str(), std::ios::binary);
+  if (!in) {
     m_msgStack.add("RESOURCE_NOT_FOUND",p_url.getPath().c_str());
     return false;
   }
-  if (start_position >= 0 && length > 0 && (size_t)start_position < all.size())
-    dest << all.substr(start_position, length);
+  if (start_position < 0 || length < 0) {
+    m_msgStack.add("UNABLE_TO_READ", p_url.getPath().c_str());
+    return false;
+  }
+  in.seekg(start_position);
+  if (!in) {
+    m_msgStack.add("UNABLE_TO_READ", p_url.getPath().c_str());
+    return false;
+  }
+  char buffer[8192];
+  while (length > 0 && in) {
+    in.read(buffer, std::min(length, static_cast<int>(sizeof(buffer))));
+    const std::streamsize n = in.gcount();
+    dest.write(buffer, n);
+    length -= static_cast<int>(n);
+  }
+  if (in.bad() || !dest) {
+    m_msgStack.add("UNABLE_TO_READ", p_url.getPath().c_str());
+    return false;
+  }
   return true;
 }
 

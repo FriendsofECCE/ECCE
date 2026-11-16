@@ -15,7 +15,11 @@ subdirectory, base64 on one line), the stubs go into a scratch directory,
 a `FileEDSI` runs the operation there, and the difference (changed
 sidecars, new or removed entries) is sent back as one script. Move and copy
 are `mv`/`cp -R` on the server; FileEDSI on the mirror only works out the
-sidecar changes. Listing is one round trip.
+sidecar changes. Listing is one round trip. Range reads bypass the mirror and copy path:
+`SftpRead.H` makes one remote seek/read script, base64 with a trailing success
+marker inside the encoded bytes. Size queries use remote stat directly.
+`tests/filedsi/range_test.py` executes those exact scripts locally and checks
+actual read byte counts with strace, without a container or login.
 
 **Lock.** `<dir>/.ecce-meta.lockdir`, made with atomic `mkdir`, held over the
 whole read-modify-write and released by the destructor. A lock older than

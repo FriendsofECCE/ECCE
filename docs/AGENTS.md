@@ -70,9 +70,10 @@ test harness as described below.
 
 `ECCE_BUILDER_SCRIPT` drives Geometry Constraints with `constraints show`,
 `constraints select I J ..` (1-based atoms), `constraints press constrain|restrain|fix yes|no`,
-`constraints scan <steps> <step>` (the selected 2-4 atoms, step in Angstrom for a
+`constraints scan <steps> <step> [yes]` (the selected 2-4 atoms, step in Angstrom for a
 bond and degrees for an angle or torsion, steps 1-500, step not zero; the same code
-as OK in Scan..., a refused line FAILs with the dialog's message),
+as OK in Scan..., a refused line FAILs with the dialog's message; a trailing `yes` confirms a pair of
+unbonded atoms, e.g. a hydrogen-bond O...O distance),
 `constraints list` and `constraints stored`; `save` writes `Parameters/GeomConstraintModel.gcst`.
 
 `ECCE_BUILDER_SCRIPT` also accepts the Conformers-panel hooks `gtenselect
@@ -108,7 +109,9 @@ labels grow with the factor. It works under `ECCE_BUILDER_SCRIPT` too, where
 `saveimagemenu <factor> <white|keep> <path>` runs File > Save Image... with
 its dialogs answered. At factor 2 or 4 the shown orbital/density is recomputed
 on a grid of 30 x factor points per axis (cap 160) for the render only, then
-redrawn as before (log line `MOPANEL: fine grid N`). Use it for documentation figures. Test:
+redrawn as before (log line `MOPANEL: fine grid N`). Use it for documentation figures. The image is drawn from the viewer the
+scene script itself drives, so `viewall`, `zoom` and `rotate` before it show
+in the PNG with or without `ECCE_VIEWER_SCENE_HOLD` (#1090). Test:
 `tests/apps/saveimage_test.py`.
 
 ## Checking the Basis Set Tool window
@@ -175,8 +178,27 @@ session's `ecce_quit`) then closes those windows first, each asking about
 its own unsaved changes; Cancel in one of them cancels the Quit. Test hooks
 (`ECCE_TEST_ORGANIZER`): `inprocess` (pid, open Builder/Calculation Editor/MD Energy/Basis Set
 Tool/MD Prepare windows),
-`closetools`, `gatewayquit` (the session's `ecce_quit`), and
+`closetools`, `importfile FILE [PROJECT-URL]` (Import as Calculation on a local or `sftp://` file), `gatewayquit` (the session's `ecce_quit`), and
 `answer cancel|no` for a tool's save question.
+
+File text viewer (#1084): double-click a document in the Organizer's folder
+list or tree, or right-click **View**. The EDSI reader probes the first 8 KiB
+for NULs and loads the last 64 KiB; it never downloads the whole file for
+viewing. **Load more** prepends 64 KiB, **Find next** searches loaded text,
+and **Follow** polls the tail every three seconds (also handles truncation).
+Binary files show size and extension. **Open in editor** downloads a separate
+`.txt` copy and calls the system default application; changes are local to
+that copy. Text viewing currently refuses sizes above the signed-int EDSI
+range limit (2 GiB); the editor download is still available.
+
+Isolated `ECCE_TEST_ORGANIZER` hooks: `view <url>` opens a window;
+`view-status`, `view-more`, `view-follow on|off`, `view-find <text>`,
+`view-text <output path>` (displayed text in UTF-8), and `view-close` operate on that
+window. Replies include `size`, `start`, `bytes`, cumulative `read`, `lines`,
+`binary=0|1`, `follow=0|1` and `readonly=1`. Find adds `found` or `not found`.
+Tests: `tests/apps/organizer_file_view_test.py` for the window and Follow;
+`tests/filedsi/range_test.py` for actual local read byte counts and the exact
+SSH-side range/stat scripts (no login needed). Both run through `srun`.
 
 Start feedback (#1071, `ECCE_TEST_ORGANIZER`): `start TOOL [URL]` shows a busy
 cursor, "Opening the <tool> for <calculation>..." in the status line, a "Starting
@@ -407,7 +429,9 @@ For each task: what the user does in the GUI, and what you run.
 
 **Build or import a structure.** User: the Builder, a structure file or the Structure Library (`importing-a-structure`); a calculation
 from a finished output: **File > Import Calculation from Output File...**
-(`importing-a-calculation`). You: write `.xyz` files with charge and
+(`importing-a-calculation`), or right-click a recognised output file in a
+listed folder (local or SSH): **Import as Calculation...** (it records the
+host:path in the annotation). You: write `.xyz` files with charge and
 multiplicity in the comment line as `charge=-1 mult=2`.
 
 **Set up one calculation.** User: select a project, File > New, choose the

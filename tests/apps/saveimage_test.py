@@ -71,6 +71,33 @@ def litMean(path):
     return (sum(px) / len(px) if px else 0.0), len(px)
 
 
+# #1090: without ECCE_VIEWER_SCENE_HOLD the hooks turn a capture viewer; the
+# image must come from that viewer, so a turn must change the picture.
+CAPTURE_SCENE = """viewall
+hold 2
+saveimage {out}/c0.png 1 white
+rotatex 90
+saveimage {out}/c90.png 1 white
+zoom 2
+saveimage {out}/cz.png 1 white
+"""
+def checkCapture(out, log):
+    from PIL import Image, ImageChops
+    p = []
+    try:
+        a, b, c = (Image.open(os.path.join(out, n + ".png")).convert("RGB")
+                   for n in ("c0", "c90", "cz"))
+        if not ImageChops.difference(a, b).getbbox():
+            p.append("rotatex did not change the saved image")
+        if not ImageChops.difference(b, c).getbbox():
+            p.append("zoom did not change the saved image")
+    except OSError as e:
+        p.append("missing image: %s" % e)
+    if "FAIL" in log:
+        p.append("a scene command failed")
+    return p
+
+
 def checkLight(out, log):
     p = []
     try:
@@ -225,12 +252,15 @@ def main():
                 results.fail("saveimage", "; ".join(problems))
 
             for tag, text, checker, extra in (
-                    ("saveimage_light", LIGHT_SCENE, checkLight, {}),):
+                    ("saveimage_light", LIGHT_SCENE, checkLight, {}),
+                    ("saveimage_capture", CAPTURE_SCENE, checkCapture,
+                     {"ECCE_VIEWER_SCENE_HOLD": None}),):
                 with open(scene, "w") as h:
                     h.write(text.format(out=out))
                 env = {"ECCE_VIEWER_SCENE": scene, "ECCE_VIEWER_SCENE_OUT": out,
                        "ECCE_VIEWER_SCENE_HOLD": "5"}
                 env.update(extra)
+                env = {k: v for k, v in env.items() if v is not None}
                 result = apps.run(display, "builder", args=("-context", urls["water"]),
                                   windowTimeout=240, settle=300, env=env)
                 problems = checker(out, result.log or "")

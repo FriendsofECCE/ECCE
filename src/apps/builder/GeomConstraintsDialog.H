@@ -38,7 +38,7 @@ public:
   /// Scan... on the selected atoms with these steps and step size (Å or
   /// degrees), as OK in its dialog would.
   /// @return the status line; starts "Added" on success
-  std::string scanSelection(int steps, double step);
+  std::string scanSelection(int steps, double step, bool confirm = false);
   std::string selectionText() const { return p_pickText; }
   std::string noteText() const;
   /// One line per constraint, as listed.

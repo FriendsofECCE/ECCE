@@ -40,7 +40,9 @@ void nudgeLabel(void *data, SoAction *action)
   auto *n=static_cast<LabelNudge*>(data);
   SoState *state=action->getState();
   const SbViewVolume &vv=SoViewVolumeElement::get(state);
-  SbVec3f up=vv.getViewUp(), right=vv.getProjectionDirection().cross(up);
+  // The near-plane corners exist in Coin and the vendored SGI Inventor;
+  // getViewUp() is Coin-only.
+  SbVec3f up=vv.ulf-vv.llf, right=vv.lrf-vv.llf;
   up.normalize(); right.normalize();
   const float sx=n->axis.dot(right), sy=n->axis.dot(up);
   if (std::sqrt(sx*sx+sy*sy)>0.5f) return;

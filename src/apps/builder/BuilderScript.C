@@ -1249,7 +1249,7 @@ void Builder::runBuilderScript(const std::string& file)
         }
       } else if (w[0] == "constraints" && w.size() >= 2) {
         //  Geometry Constraints (#306): "show", "select I J ..", "press
-        //  constrain|restrain|fix yes|no", "scan N STEP", "list", "stored".
+        //  constrain|restrain|fix yes|no", "scan N STEP [yes]", "list", "stored".
         if (!p_constraintsDialog) showConstraints();
         GeomConstraintsDialog *dlg = p_constraintsDialog;
         if (w[1] == "show") {
@@ -1264,9 +1264,11 @@ void Builder::runBuilderScript(const std::string& file)
         } else if (w[1] == "press" && w.size() == 4) {
           fprintf(stderr, "BUILDER: constraints %s: %s\n", w[2].c_str(),
                   dlg->press(w[2], w[3] == "yes").c_str());
-        } else if (w[1] == "scan" && w.size() == 4) {
-          //  "scan <steps> <step>": Scan... on the selection (Å or degrees).
-          std::string msg = dlg->scanSelection(atoi(w[2].c_str()), atof(w[3].c_str()));
+        } else if (w[1] == "scan" && (w.size() == 4 || (w.size() == 5 && w[4] == "yes"))) {
+          //  "scan <steps> <step> [yes]": Scan... on the selection (Å or
+          //  degrees); "yes" answers the unbonded-atoms question.
+          std::string msg = dlg->scanSelection(atoi(w[2].c_str()), atof(w[3].c_str()),
+                                               w.size() == 5);
           fprintf(stderr, "BUILDER: constraints scan: %s\n", msg.c_str());
           if (msg.compare(0, 5, "Added") != 0) outcome = "FAIL: " + msg;
         } else if (w[1] == "list") {
