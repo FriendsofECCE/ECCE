@@ -701,11 +701,14 @@ def runSetupTab(display):
 
         # #1063: calculations for the per-element, ECP and fitting cases;
         # no stored basis, so each starts from the code's default.
-        def extra(name, code, molecule):
+        def extra(name, code, molecule, theory=None):
             path = pb.makeCalc(project, name, "created", None)
             meta = os.path.join(path, ".ecce-meta")
             text = open(meta).read().replace(
                 "ecce:application\t\tNWChem", "ecce:application\t\t" + code)
+            if theory:
+                text = text.replace("ecce:theory\t\tSCF/RHF",
+                                    "ecce:theory\t\t" + theory)
             open(meta, "w").write(text)
             os.remove(os.path.join(path, "Parameters", "BasisSet.ecce_basisset"))
             if molecule:
@@ -715,7 +718,7 @@ def runSetupTab(display):
             return path
 
         calc2 = extra("water-elements", "ORCA", None)
-        calc3 = extra("water-fit", "NWChem", None)
+        calc3 = extra("water-fit", "NWChem", None, "DFT/RDFT")
         hi = extra("hi-orca", "ORCA",
                    "title: hi\ntype: molecule\nnum_atoms: 2\n"
                    "atom_info: symbol cart\natom_list: \n"

@@ -1592,8 +1592,33 @@ bool CalcEd::assignBasis(const string& name, TGaussianBasisSet::GBSType type,
       message = name + " does not cover " + joinNames(skipped);
       return false;
     }
+    // The editor cannot hold a basis with an element left out (it is
+    // cleared as inconsistent), so elements without an orbital set take
+    // this one for now, if it covers them; the user then changes them.
+    vector<string> took, missing;
+    for (const string& el : system) {
+      TGBSGroup *g = config->findGroup(el);
+      vector<const TGaussianBasisSet*> *sets = g ? g->getOrbitalGBSList() : 0;
+      bool has = sets && !sets->empty();
+      delete sets;
+      if (has) continue;
+      if (orbital && library.isSupported(name, type, el) &&
+          GBSAssign::assign(library, config, el, name, type, false).group)
+        took.push_back(el);
+      else
+        missing.push_back(el);
+    }
+    if (!missing.empty()) {
+      delete config;
+      message = "Also choose a basis set for " + joinNames(missing) +
+                " (the elements need one each).";
+      return false;
+    }
+    if (!took.empty())
+      message = joinNames(took) + " took " + name + " for now.";
     if (!skipped.empty())
-      message = "Not covered by " + name + ": " + joinNames(skipped);
+      message += (message.empty() ? "" : "\n") + ("Not covered by " + name +
+                                                   ": " + joinNames(skipped));
     if (type == TGaussianBasisSet::ecp) {
       ErrMsg errs;
       errs.flush();
@@ -1614,21 +1639,7 @@ bool CalcEd::assignBasis(const string& name, TGaussianBasisSet::GBSType type,
   updateBasisSetFields();
   enableLaunch();
   enableSave();
-  // An element still without an orbital set is not a basis the input
-  // generator can use: keep it in the editor, save once complete.
-  vector<string> missing;
-  for (const string& el : system) {
-    TGBSGroup *g = p_basis->findGroup(el);
-    vector<const TGaussianBasisSet*> *sets = g ? g->getOrbitalGBSList() : 0;
-    if (!sets || sets->empty()) missing.push_back(el);
-    delete sets;
-  }
-  if (p_basis->type() == TGBSConfig::element && !missing.empty()) {
-    message += (message.empty() ? "" : "\n") + string("No basis set yet for ") +
-               joinNames(missing);
-  } else {
-    doSave();
-  }
+  doSave();
   if (p_setupArea) p_setupArea->basisChanged();
   return true;
 }
