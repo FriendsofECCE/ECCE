@@ -247,10 +247,11 @@ def runQuit(display, gateway=False):
             check(result.returncode == 0 and "Aborted" not in log,
                   "No in the Builder's question ends the process cleanly",
                   "returncode %s\n%s" % (result.returncode, log[-1500:]))
+            # The hook only reports while the main loop is still running,
+            # i.e. when a window outlived the Organizer.
             left = re.search(r"left after quit:([^\n]*)", log)
-            check(left is not None and not left.group(1).strip(),
-                  "no top-level window is left after Quit",
-                  left.group(1) if left else "no left-over report")
+            check(left is None, "no top-level window is left after Quit",
+                  left.group(1) if left else "")
         if GDB:
             print(log[-20000:])
     finally:
@@ -306,8 +307,7 @@ def runQuitHost(display):
               "closing the host again asks Quit, then the Builder's question",
               str(pb.answers(log, "answer")))
         left = re.search(r"left after quit:([^\n]*)", log)
-        check(result.returncode == 0 and "Aborted" not in log and
-              left is not None and not left.group(1).strip(),
+        check(result.returncode == 0 and "Aborted" not in log and left is None,
               "closing the host ends the process cleanly, nothing left",
               "returncode %s\n%s" % (result.returncode, log[-1500:]))
     finally:
