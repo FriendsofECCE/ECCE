@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run a long ECCE build or test suite on an offload machine.
-#   run-offload.sh [--host nerdegg|niobium|beryllium|auto] <git ref> <build|ctest [-R re]|teaching|apps|apptest <test.py ...>|clip|run ...> [args]
+#   run-offload.sh [--host nerdegg|niobium|beryllium|radium|auto] <git ref> <build|ctest [-R re]|teaching|apps|apptest <test.py ...>|clip|run ...> [args]
 # The ref must already be pushed to GitHub.  See tools/offload/README.md.
 set -eu
 host=auto
@@ -30,6 +30,9 @@ conf() {
       # whichever the user is not sitting at is an offload host.
       # beryllium is reached through its reverse tunnel (ssh alias).
       niobium)   echo 'OFF=$HOME/tmp/ecce/offload MODE=native SLOTS=1 JOBS=6 CTEST_JOBS=3 KEEP=3 BUILDWRAP=nice\ -n\ 10 DISPLAY=:987' ;;
+      # radium (6 physical cores) only when the user lends it, by name;
+      # auto never picks it.
+      radium)    echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=5 CTEST_JOBS=2 KEEP=4 BUILDWRAP=nice\ -n\ 10 DISPLAY=:987' ;;
       beryllium) echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=2 JOBS=10 CTEST_JOBS=4 KEEP=12 BUILDWRAP=nice\ -n\ 10 DISPLAY=:987 PATH=/opt/orca/orca_6_1_1_linux_x86-64_shared_openmpi418_nodmrg:$HOME/opt/xtb-git/bin:$HOME/opt/crest-git/bin:/usr/local/bin:/usr/bin:/bin' ;;
       *) echo "unknown host $1" >&2; return 1 ;;
     esac
