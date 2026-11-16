@@ -154,6 +154,7 @@ using std::vector;
 #include "viz/DistortBondsCmd.H"
 #include "DistortBondsDialog.H"
 #include "viz/SelectWithinCmd.H"
+#include "viz/ClusterCutCmd.H"
 #include "wxgui/ewxDialog.H"
 #include <wx/checkbox.h>
 #include "TakeCoordsDialog.H"
@@ -946,6 +947,15 @@ void Builder::createMenus()
 
   p_buildMenu = GetMenuBar()->GetMenu(GetMenuBar()->FindMenu(_("Build")));
   ViewerEvtHandler::createBuildMenu(p_buildMenu);
+  p_buildMenu->AppendSeparator();
+  p_buildMenu->Append(ID_CUT_CLUSTER, _("Cut Cluster..."),
+                      _("Turn a periodic structure into a non-periodic cluster around the selected atoms"));
+  Bind(wxEVT_MENU, &Builder::OnCutCluster, this, ID_CUT_CLUSTER);
+  Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& event) {
+    SGContainer *sg = p_sgMgr ? getSG() : NULL;
+    SGFragment *frag = sg ? sg->getFragment() : NULL;
+    event.Enable(frag && frag->getLattice() && !frag->m_atomHighLight.empty());
+  }, ID_CUT_CLUSTER);
 
   p_modeMenu = GetMenuBar()->GetMenu(GetMenuBar()->FindMenu(_("Mode")));
   p_modeMenu->AppendRadioItem(ID_MODE_SELECT,
@@ -1343,6 +1353,7 @@ void Builder::createReadOnlyIds()
   p_readOnlyDisabledIds.insert(ID_ADD_DUMMY);
   p_readOnlyDisabledIds.insert(ID_ADD_SMILES);
   p_readOnlyDisabledIds.insert(ID_REPLACE_GROUP);
+  p_readOnlyDisabledIds.insert(ID_CUT_CLUSTER);
 
   p_readOnlyDisabledIds.insert(ViewerEvtHandler::ID_CLEAN_COORD);
   p_readOnlyDisabledIds.insert(ViewerEvtHandler::ID_ADD_H);
@@ -3605,6 +3616,76 @@ void Builder::OnSelectWithinClick(wxCommandEvent&)
   config->Write("SelectWithin/Distance", distance->GetValue());
   config->Flush();
   selectWithin(distance->GetValue(), molecules->GetValue(), keep->GetValue());
+}
+
+bool Builder::cutCluster(double radius, int whole, int cap, string& message)
+{
+  ClusterCutCmd *cmd = new ClusterCutCmd("Cut Cluster", getSG(), 0);
+  cmd->getParameter("radius")->setDouble(radius);
+  cmd->getParameter("whole")->setInteger(whole);
+  cmd->getParameter("cap")->setInteger(cap);
+  //  Through the Periodic Builder when it exists, so a replicated view is
+  //  restored first and undo brings it back.
+  PBC *pbc = dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
+  if (pbc) pbc->execute(cmd);
+  else execute(cmd);
+  //  Execute reports a failure to the user itself.
+  const bool ok = cmd->clusterAtoms() > 0;
+  message = cmd->getErrorMessage();
+  if (ok) fprintf(stderr, "BUILDER: cluster atoms=%d caps=%d\n",
+                  cmd->clusterAtoms(), cmd->clusterCaps());
+  return ok;
+}
+
+void Builder::OnCutCluster(wxCommandEvent&)
+{
+  SGFragment *frag = getSG()->getFragment();
+  if (!frag || !frag->getLattice() || frag->m_atomHighLight.empty()) return;
+  ewxConfig *config = ewxConfig::getConfig("wxbuilder.ini");
+  double radius = 6.0;
+  long whole = 0, cap = 1;
+  config->Read("CutCluster/Radius", &radius, 6.0);
+  config->Read("CutCluster/Whole", &whole, 0);
+  config->Read("CutCluster/Cap", &cap, 1);
+  radius = std::isfinite(radius) ? std::max(0.5, std::min(50.0, radius)) : 6.0;
+  ewxDialog dlg(this, wxID_ANY, _("Cut Cluster"));
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+  row->Add(new wxStaticText(&dlg, wxID_ANY, _("Radius:")), 0,
+           wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  wxSpinCtrlDouble *rad = new wxSpinCtrlDouble(&dlg, wxID_ANY, "",
+      wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0.5, 50.0, radius, 0.5);
+  rad->SetDigits(1);
+  row->Add(rad, 0, wxRIGHT, 6);
+  row->Add(new wxStaticText(&dlg, wxID_ANY, wxString::FromUTF8("\xC3\x85 around the selected atoms")),
+           0, wxALIGN_CENTER_VERTICAL);
+  top->Add(row, 0, wxALL, 8);
+  wxArrayString wholeChoices, capChoices;
+  wholeChoices.Add(_("Cut through bonds"));
+  wholeChoices.Add(_("Keep whole molecules"));
+  wholeChoices.Add(_("Keep whole formula units"));
+  capChoices.Add(_("No capping"));
+  capChoices.Add(_("Cap cut bonds with hydrogen"));
+  capChoices.Add(_("Cap cut bonds with hydroxyl"));
+  wxRadioBox *wholeBox = new wxRadioBox(&dlg, wxID_ANY, _("Keep whole"),
+      wxDefaultPosition, wxDefaultSize, wholeChoices, 1, wxRA_SPECIFY_COLS);
+  wxRadioBox *capBox = new wxRadioBox(&dlg, wxID_ANY, _("Capping"),
+      wxDefaultPosition, wxDefaultSize, capChoices, 1, wxRA_SPECIFY_COLS);
+  wholeBox->SetSelection(std::max(0L, std::min(2L, whole)));
+  capBox->SetSelection(std::max(0L, std::min(2L, cap)));
+  top->Add(wholeBox, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 8);
+  top->Add(capBox, 0, wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 8);
+  top->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 8);
+  dlg.SetSizerAndFit(top);
+  dlg.CentreOnParent();
+  if (dlg.ShowModal() != wxID_OK) return;
+  config->Write("CutCluster/Radius", rad->GetValue());
+  config->Write("CutCluster/Whole", (long)wholeBox->GetSelection());
+  config->Write("CutCluster/Cap", (long)capBox->GetSelection());
+  config->Flush();
+  string message;
+  cutCluster(rad->GetValue(), wholeBox->GetSelection(),
+             capBox->GetSelection(), message);
 }
 
 void Builder::OnSelectMoleculeClick( wxCommandEvent& event )

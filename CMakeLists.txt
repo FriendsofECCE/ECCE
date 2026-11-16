@@ -5315,6 +5315,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_cif PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # Build > Cut Cluster on quartz and a molecular crystal (#1033).
+  add_test(NAME apps_builder_cut_cluster
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_cut_cluster_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_cut_cluster PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # No bond orders in building; Clean's derived orders and bond lengths (#439).
   add_test(NAME apps_builder_bond_model
            COMMAND ${PYTHON3_EXECUTABLE}

@@ -132,6 +132,26 @@ nothing selected, it applies to every atom. To draw the water as wireframe
 and keep the protein as it is, choose **Select Solvent**, then **Render >
 Style > Wireframe**.
 
+## Cut a cluster out of a periodic structure
+
+**Build > Cut Cluster...** turns a structure with a lattice (a CIF, or a
+CP2K or Quantum ESPRESSO model) into a non-periodic cluster. Select the atom
+or atoms to centre on first; the centre is their mean position. Enter the
+radius in Å (0.5-50) and choose what to keep:
+
+- **Cut through bonds** keeps exactly the atoms within the radius.
+- **Keep whole molecules** keeps every bonded molecule that has an atom within
+  the radius. Bonded networks, such as quartz, extend through the whole
+  crystal and are cut at the radius as before.
+- **Keep whole formula units** also trims the network part, outermost atoms
+  first, to a whole number of formula units.
+
+Atoms across the cell boundary are included: the cell is replicated as far as
+the radius reaches. **Capping** adds a hydrogen (standard element-H distance,
+for example C-H 1.09 Å, Si-H 1.48 Å) or a hydroxyl group on each bond the cut
+severed, along the direction of that bond. The result replaces the structure,
+without a lattice, and **Edit > Undo** brings the periodic structure back.
+
 ## Select within a distance
 
 **Edit > Select Within Distance...** extends a selection to nearby atoms.

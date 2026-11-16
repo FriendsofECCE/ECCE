@@ -60,6 +60,14 @@ Use **Show in viewer** to hide them. This uses final stress and geometry;
 per-step vc-relax stress, CP2K ingestion and directional surfaces are not
 implemented. See [Viewer panels](../help/src/viewer-panels.md).
 
+Build > Cut Cluster (#1033) turns a periodic structure into a non-periodic
+cluster around the selected atoms. Builder script:
+`cutcluster R [center N] [whole none|molecules|units] [cap none|H|OH]` (R in
+Angstrom, N from 1; without `center` the selection is the centre). It prints one
+`BUILDER: clusteratom EL X Y Z` line per atom and `BUILDER: cluster atoms=N
+caps=M`; undo restores the periodic structure. The geometry is in the wx-free
+`tdat/ClusterCut.H`; test `tests/apps/builder_cut_cluster_test.py`.
+
 For isolated GUI checks, `ECCE_BUILDER_SCRIPT` accepts `list Stress Tensor`,
 `stressinfo` (panel summary plus one `label N anchor=x,y,z` line per principal axis; anchors lie outside the cell), `vector STRESS` (the six rendered half-arrows),
 and `viewer Stress Tensor` (toggle). `tests/apps/stress_tensor_test.py`

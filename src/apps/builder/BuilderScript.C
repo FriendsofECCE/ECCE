@@ -36,6 +36,10 @@
 //    select N                    select atom (or Nub) number N (from 1), as a click
 //                                does; 0 or less none
 //    select_within R [molecules] [replace]  extend by distance in Angstrom
+//    cutcluster R [center N] [whole none|molecules|units] [cap none|H|OH]
+//                                Build > Cut Cluster (#1033) around the selected
+//                                atoms, or atom N (from 1); prints each atom
+//                                of the result as `BUILDER: clusteratom EL X Y Z`
 //    select_protein              Edit > Select Protein (replaces the selection)
 //    select_ligand               Edit > Select Ligand: the largest ligand (replaces the selection)
 //    selectelem A                select the first atom of element A
@@ -696,6 +700,42 @@ void Builder::runBuilderScript(const std::string& file)
             radius < 0.1 || radius > 50.0 || !valid || frag->m_atomHighLight.empty())
           outcome = "FAIL: select_within needs a selection and distance 0.1-50";
         else selectWithin(radius, molecules, keep);
+      } else if (w[0] == "cutcluster" && w.size() >= 2 && frag) {
+        double radius = 0.0;
+        int whole = 0, cap = 0, center = 0;
+        bool valid = true;
+        std::istringstream input(w[1]);
+        input >> radius;
+        if (!input || !input.eof() || !std::isfinite(radius) ||
+            radius < 0.5 || radius > 50.0) valid = false;
+        for (size_t i = 2; valid && i < w.size(); i += 2) {
+          if (i + 1 >= w.size()) { valid = false; break; }
+          const std::string &key = w[i], &val = w[i + 1];
+          if (key == "center") center = atoi(val.c_str());
+          else if (key == "whole" && val == "none") whole = 0;
+          else if (key == "whole" && val == "molecules") whole = 1;
+          else if (key == "whole" && val == "units") whole = 2;
+          else if (key == "cap" && val == "none") cap = 0;
+          else if (key == "cap" && val == "H") cap = 1;
+          else if (key == "cap" && val == "OH") cap = 2;
+          else valid = false;
+        }
+        if (!valid)
+          outcome = "FAIL: cutcluster R(0.5-50) [center N] [whole none|molecules|units] [cap none|H|OH]";
+        else {
+          if (center >= 1) frag->m_atomHighLight.assign(1, center - 1);
+          std::string message;
+          if (!cutCluster(radius, whole, cap, message))
+            outcome = "FAIL: cutcluster: " + message;
+          else {
+            SGFragment *now = getSG()->getFragment();
+            for (size_t i = 0; i < now->numAtoms(); ++i) {
+              const double *c = now->atomRef(i)->coordinates();
+              fprintf(stderr, "BUILDER: clusteratom %s %.6f %.6f %.6f\n",
+                      now->atomRef(i)->atomicSymbol().c_str(), c[0], c[1], c[2]);
+            }
+          }
+        }
       } else if ((w[0] == "select_protein" || w[0] == "select_ligand") &&
                  w.size() == 1 && frag) {
         if (!selectResidueClass(w[0] == "select_ligand"))
