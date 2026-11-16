@@ -5856,6 +5856,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_vina_save_timing PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
+  # #1083: a remote job's run folder is a marked copy of the calculation (test
+  # sshd in podman); skips (77) without podman, Xvfb or the organizer.
+  add_test(NAME launch_run_folder_copy
+           COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/run_folder_copy_test.sh
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_run_folder_copy PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 endif()
 
 # Tests that repeat what shorter ones cover, at a cost of 15-50 min each: run
