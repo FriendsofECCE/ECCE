@@ -118,8 +118,11 @@ def run(display):
                   "calculation menu has " + want, m)
         for bad in ("Builder", "Calculation Editor", "Basis Set Tool", "Viewer",
                     "Checks", "Rank", "Exclude", "Include again", "New Series",
-                    "Duplicate", "Supporting"):
+                    "Supporting"):
             check(not any(bad in x for x in m), "calculation menu has no " + bad, m)
+        # Duplicate is the one New from This item and nothing else.
+        check(sum("Duplicate" in x for x in m) == 1,
+              "calculation menu has exactly one Duplicate", m)
         f = menus[1]
         check("Compare Energies..." in f, "a folder offers Compare Energies", f)
         check("Checks" not in f and "Rank" not in f, "a folder has no Checks or Rank", f)
