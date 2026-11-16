@@ -157,6 +157,7 @@ plain density. The **Density Profile** has the same button, under **Options**.
 ## Export
 
 The exports, **Difference...** and the plane controls are under **Options** above the map.
+**Fill** (under **Options**, remembered) colours the plane between the contour lines on a logarithmic scale from the outermost level: blue and orange for the two signs of an orbital, viridis for a density; the lines stay on top and the key gains a colour bar. The exports show it too.
 **Export .png...** saves the picture as drawn. **Export .csv...** saves every
 grid value: the position in the plane, the Cartesian position, and the value,
 with the plane and the offset in the header.

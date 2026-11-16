@@ -308,6 +308,13 @@ button, the orbital list and the plot; quantity, orbital set, spin, axes and
 Options is open; `dpmore 1` opens it (for a screenshot) and `dplayout W` prints
 which controls are visible, with rectangles, at panel width W (`visible mode,from,to,options,list,plot`).
 
+The Density Map has a **Fill** tick under **Options** (default off, remembered
+in `wxbuilder.ini`): it colours the plane between the contour lines on a log
+scale from the outermost level, two signs blue/orange for an orbital, viridis
+for a density, with a colour bar in the key. Scene hook `dmfill on|off` sets it
+(`dmstate` prints `fill 0|1`); `dmpng` and **Export .png...** draw the picture
+as the panel shows it (test: `tests/apps/densitymap_fill_test.py`).
+
 ## How to do things
 
 For each task: what the user does in the GUI, and what you run.

@@ -242,6 +242,7 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
 
 //  Scene commands for the Density Map panel (#215); each GUI action has one:
 //    densitymap <name> <w> <h> <orbital|0|sumN> <alpha|beta> <plane 0-3> [a b c]
+//    dmfill on|off        the Fill tick (colour between the contours)
 //    dmdiff [NAME ...]    density minus the named calculations of this folder (none: plain)
 //    dmpick A B [C]       atoms picked in the 3-D view (1-based)
 //    dmoffset X [drag]    the offset slider, A
@@ -295,6 +296,8 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
     if (!dm->savePng(wxString(outdir + "/" + w[1] + ".png"), atoi(w[2].c_str()),
                      atoi(w[3].c_str())))
       return s.fail("densitymap: cannot write " + w[1] + ".png");
+  } else if (cmd == "dmfill" && w.size() == 2) {
+    dm->setFill(w[1] == "on" || w[1] == "1");
   } else if (cmd == "dmdiff") {
     vector<string> names(w.begin() + 1, w.end()), urls;
     string why;
