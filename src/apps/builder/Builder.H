@@ -178,6 +178,7 @@ class Builder: public BuilderGUI,
       ID_ADD_SMILES,
       ID_DIFFRACTION,
       ID_REPLACE_GROUP,
+      ID_CUT_CLUSTER,
       ID_VINA_BOX,
       ID_VIEW_TOGGLE_COLUMN,
       ID_VIEW_RESET_LAYOUT,
@@ -457,6 +458,8 @@ class Builder: public BuilderGUI,
       virtual void OnSelectallClick( wxCommandEvent& event );
       virtual void OnSelectWithinClick(wxCommandEvent& event);
       bool selectWithin(double radius, bool molecules, bool keep);
+      // Build > Cut Cluster (#1033); whole 0 none/1 molecules/2 units, cap 0/1 H/2 OH
+      bool cutCluster(double radius, int whole, int cap, string& message);
       virtual void OnSelectMoleculeClick( wxCommandEvent& event );
       virtual void OnSelectSolventClick( wxCommandEvent& event );
       virtual void OnSelectIonsClick( wxCommandEvent& event );
@@ -492,6 +495,7 @@ class Builder: public BuilderGUI,
       void OnAddSmiles( wxCommandEvent& event );
       void OnDiffraction( wxCommandEvent& event );
       void OnReplaceGroup( wxCommandEvent& event );
+      void OnCutCluster( wxCommandEvent& event );
       void OnVinaBoxFromSelection(wxCommandEvent& event);
 
       virtual void OnPaneClose(wxAuiManagerEvent& event);
