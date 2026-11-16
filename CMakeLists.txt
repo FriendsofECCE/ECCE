@@ -5866,3 +5866,11 @@ foreach(_t apps_clip_1920x1080 apps_clip_1366x768 apps_clip_1024x600
     set_property(TEST ${_t} APPEND PROPERTY LABELS long)
   endif()
 endforeach()
+
+# Pass alone, fail beside other tests in a parallel run (NerdEgg -j3, 11-16):
+# run them on their own until the clash is found.
+foreach(_t transport_openssh qm_ts_scanpoint)
+  if(TEST ${_t})
+    set_property(TEST ${_t} PROPERTY RUN_SERIAL TRUE)
+  endif()
+endforeach()
