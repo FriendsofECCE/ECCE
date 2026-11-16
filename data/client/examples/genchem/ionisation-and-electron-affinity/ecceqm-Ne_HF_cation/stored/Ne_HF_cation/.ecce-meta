@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the neon cation, the atom after loss of its outermost electron; its energy minus that of the neutral atom is the ionisation energy.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:14:16 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:30:41 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:14:15 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:30:39 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309256.553 idle=0 at=1794309256\nscf cycle=8 energy=-127.8095695819 dE=-2.08e-09/1e-08 grad=4.28e-06/1e-04 converged=yes\nscf~ dE=-7.21e+00,-5.02e-02,-5.53e-03,-4.80e-05,-5.02e-06,-2.46e-07,-2.08e-09\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515441.408 idle=0 at=1794515441\nscf cycle=8 energy=-127.8095695819 dE=-2.08e-09/1e-08 grad=4.28e-06/1e-04 converged=yes\nscf~ dE=-7.21e+00,-5.02e-02,-5.53e-03,-4.80e-05,-5.02e-06,-2.46e-07,-2.08e-09\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Doublet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:14:15 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:30:40 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309255
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515440
 .	http://www.emsl.pnl.gov/ecce:theory		SCF/HF

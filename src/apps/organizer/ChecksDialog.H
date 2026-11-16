@@ -31,6 +31,9 @@ public:
   bool setReference(const std::string& name, std::string& why);
   /// The rows as shown (current sort) in the script's CSV form.
   std::string csv() const;
+  wxDialog *createKey();
+  /// Exercise the header motion handler and return the installed tooltip.
+  std::string headerTooltip(const std::string& name);
   std::vector<std::string> referenceChoices() const;
   std::string selectedReference() const;
 
@@ -43,6 +46,7 @@ private:
 
   std::vector<EcceURL> p_calcs;
   std::vector<std::string> p_head;
+  std::vector<std::string> p_columnText;
   std::vector<std::vector<std::string>> p_rows;
   wxGrid *p_grid = nullptr;
   wxChoice *p_reference = nullptr;

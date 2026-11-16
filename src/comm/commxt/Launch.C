@@ -180,6 +180,18 @@ public:
   const  RefQueueManager* mgr;
 };
 
+// A GROMACS run made from a ready .tpr has no structure or topology of its
+// own: grompp is skipped, so their absence is not an error.
+static bool hasGromacsRunTpr(TaskJob *t)
+{
+  if (t == 0 || t->getApplicationType() != ResourceDescriptor::AT_GROMACS)
+    return false;
+  vector<EcceURL> urls = t->getDataFiles(JCode::AUXILIARY_INPUT);
+  for (size_t i = 0; i < urls.size(); i++)
+    if (urls[i].getFilePathTail() == "run.gmxtpr") return true;
+  return false;
+}
+
 // Names a task's inputs get in the run directory.  A GROMACS task is given
 // fixed names because it is handed its topology and coordinates rather than
 // producing them, and grompp is told them by name.
@@ -270,6 +282,16 @@ Launch::Launch(TaskJob* task,
   p_isMetadynamicsTask = false;
   p_taskjob = task;
   Session *session = task->getSession();
+
+  // A GROMACS run made from the user's own files sits in a project, not a
+  // study: its start structure and topology are the ones attached to it.
+  if (session == 0 &&
+      task->getContentType() == ResourceDescriptor::CT_MDRUN) {
+    p_restartFile = gromacsStartFile(task, JCode::RESTART_OUTPUT, true, "");
+    if (!p_restartFile.empty()) p_restartProvider = task;
+    p_topologyFile = gromacsStartFile(task, JCode::TOPOLOGY_OUTPUT, true, "");
+    if (!p_topologyFile.empty()) p_topologyProvider = task;
+  }
 
   if (session != 0) {
     // Get restart file - May have to search through several tasks
@@ -1074,7 +1096,7 @@ bool Launch::validateCalculation(void)
                 is = 0;
               }
             }
-          } else if (p_cache->isMd && !p_isPrepareTask) {
+          } else if (p_cache->isMd && !p_isPrepareTask && !hasGromacsRunTpr(p_taskjob)) {
             p_lastMessage = p_cache->isGromacs ?
               "No starting structure (.gro) is attached to this task or an "
               "earlier one in the study. Attach one on the Inputs tab of the "
@@ -1103,7 +1125,7 @@ bool Launch::validateCalculation(void)
                 is = 0;
               }
             }
-          } else if (p_cache->isMd && !p_isPrepareTask) {
+          } else if (p_cache->isMd && !p_isPrepareTask && !hasGromacsRunTpr(p_taskjob)) {
             p_lastMessage = p_cache->isGromacs ?
               "No topology (.top) is attached to this task or an earlier "
               "one in the study. Attach one on the Inputs tab of the task "
@@ -1811,19 +1833,18 @@ bool Launch::generateDescriptorFile(const string& source, const string& target)
       ofstream targetDescFile(target.c_str(), ios::out | ios::binary);
 
       if (targetDescFile) {
-        static const int BUFSIZE=512;
-        char buf[BUFSIZE];
-        char bufup[BUFSIZE];
+        string line, lineup;
         string blockText;
         bool blockFlag = false;
         bool discardFlag = false;
-        int i;
 
-        while (sourceDescFile.getline(buf, BUFSIZE-1)) {
+        while (std::getline(sourceDescFile, line)) {
+          const char* buf = line.c_str();
           // make an upper case copy for comparisons
-          strcpy(bufup, buf);
-          for (i=0; i<strlen(bufup); i++)
-            bufup[i] = toupper(bufup[i]);
+          lineup = line;
+          for (char& c : lineup)
+            c = toupper(static_cast<unsigned char>(c));
+          const char* bufup = lineup.c_str();
 
           if (!blockFlag && strstr(bufup,"[")!=NULL &&
                             strstr(bufup,"[END]")==NULL) {
@@ -1841,7 +1862,7 @@ bool Launch::generateDescriptorFile(const string& source, const string& target)
               blockFlag = false;
               discardFlag = false;
             } else if (strstr(bufup, "SCRIPT") != NULL) {
-              char* script = strchr(buf, '=');
+              const char* script = strchr(buf, '=');
               if (script != NULL) {
                 script++;
                 while (*script==' ' || *script=='\t')
@@ -2099,7 +2120,7 @@ bool Launch::moveFiles(void)
         incount++;
         restartIdx = incount - 1;
       }
-    } else if (p_cache->isMd && !p_isPrepareTask) {
+    } else if (p_cache->isMd && !p_isPrepareTask && !hasGromacsRunTpr(p_taskjob)) {
       p_lastMessage = p_cache->isGromacs ?
         "No starting structure (.gro) is attached to this task or an "
         "earlier one in the study." :
@@ -2117,7 +2138,7 @@ bool Launch::moveFiles(void)
         incount++;
         topologyIdx = incount -1;
       }
-    } else if (p_cache->isMd && !p_isPrepareTask) {
+    } else if (p_cache->isMd && !p_isPrepareTask && !hasGromacsRunTpr(p_taskjob)) {
       p_lastMessage = p_cache->isGromacs ?
         "No topology (.top) is attached to this task or an earlier one in "
         "the study." :
@@ -2871,6 +2892,10 @@ bool Launch::postProcessInput(void)
 
     os << "machineName: " << p_cache->fullMachineName << endl;
 
+    const string pseudoDir = machinePseudoDir();
+    if (!pseudoDir.empty())
+      os << "pseudoDir: " << pseudoDir << endl;
+
     os.close();
 
     const JCode* jcode = p_taskjob->application();
@@ -2902,6 +2927,8 @@ bool Launch::postProcessInput(void)
            p_launchWarning.erase(cr, 1);
          p_launchWarning.erase(0, p_launchWarning.find_first_not_of('\n'));
        }
+       if (!pseudoDir.empty() && !p_cache->reparse)
+         checkPseudoFiles(pseudoDir);
        // Write it back out to dav.
        // I had to use the full path or I got corrupted data.  I don't know why.
        ifstream ifs((p_cache->directory + "/" + p_inputFile).c_str());
@@ -2923,6 +2950,97 @@ bool Launch::postProcessInput(void)
   }
 
   return ret;
+}
+
+// The run machine's own pseudopotential directory for this code
+// (<Code>PseudoDir in CONFIG.<machine>, set in Register Machines); empty
+// when the machine has none, and then the deck is left as generated.
+string Launch::machinePseudoDir(void) const
+{
+  string key = p_cache->codeName + "PseudoDir";
+  std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+  map<string,string> cfg = RefMachine::config(p_cache->machineName);
+  map<string,string>::const_iterator it = cfg.find(key);
+  return it == cfg.end() ? string() : it->second;
+}
+
+// The UPF files the deck's ATOMIC_SPECIES card names.
+static vector<string> deckPseudoFiles(const string& deck)
+{
+  vector<string> names;
+  ifstream in(deck.c_str());
+  string line;
+  bool inCard = false;
+  while (std::getline(in, line)) {
+    std::istringstream words(line);
+    vector<string> w((std::istream_iterator<string>(words)),
+                     std::istream_iterator<string>());
+    if (!inCard) {
+      inCard = !w.empty() && strcasecmp(w[0].c_str(), "ATOMIC_SPECIES") == 0;
+      continue;
+    }
+    if (w.size() < 3 || w[0][0] == '&' || w[0][0] == '/')
+      break;
+    names.push_back(w[2]);
+  }
+  return names;
+}
+
+// Lists the deck's UPF files missing from the run machine's directory.
+// It only warns, and it reuses the login Launch already holds, so a machine
+// that cannot be reached is reported as not checked, never as a finding.
+void Launch::checkPseudoFiles(const string& dir)
+{
+  vector<string> names = deckPseudoFiles(p_cache->directory + "/" + p_inputFile);
+  if (names.empty())
+    return;
+  const string notChecked = "Could not check the pseudopotential files on " +
+                            p_cache->machineName + ".";
+  if (p_connection == (RCommand*)0 || !p_connection->isOpen()) {
+    p_infoMessage = notChecked;
+    return;
+  }
+
+  string cmd = "if cd -- " + RCommand::quotePath(dir) +
+               " 2>/dev/null; then for f in";
+  for (size_t i = 0; i < names.size(); i++)
+    cmd += " " + RCommand::quotePath(names[i]);
+  cmd += "; do test -f \"$f\" || echo \"ECCE-MISSING $f\"; done; "
+         "echo ECCE-CHECKED; else echo ECCE-NODIR; fi";
+
+  string output;
+  if (!p_connection->execout(cmd, output, "", 30)) {
+    p_infoMessage = notChecked;
+    return;
+  }
+
+  string missing;
+  bool checked = false, nodir = false;
+  std::istringstream lines(output);
+  string line;
+  while (std::getline(lines, line)) {
+    line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+    if (line.compare(0, 13, "ECCE-MISSING ") == 0)
+      missing += "  " + line.substr(13) + "\n";
+    else if (line == "ECCE-CHECKED")
+      checked = true;
+    else if (line == "ECCE-NODIR")
+      nodir = true;
+  }
+
+  string w;
+  if (nodir)
+    w = "The Quantum ESPRESSO pseudopotential directory " + dir +
+        " set for " + p_cache->machineName + " in Register Machines does "
+        "not exist there. pw.x will stop when it reads the input.";
+  else if (!checked)
+    p_infoMessage = notChecked;
+  else if (!missing.empty())
+    w = "These pseudopotential files named in the input are missing from " +
+        dir + " on " + p_cache->machineName + ":\n\n" + missing +
+        "\npw.x will stop when it reads them.";
+  if (!w.empty())
+    p_launchWarning = p_launchWarning.empty() ? w : p_launchWarning + "\n" + w;
 }
 
 //////////////////////////////////////////////////////////////////////////

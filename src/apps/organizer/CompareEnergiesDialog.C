@@ -64,6 +64,15 @@ CompareEnergiesDialog::CompareEnergiesDialog(wxWindow *parent,
   p_treatment->SetSelection(0);
   p_treatment->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { update(); });
   tbar->Add(p_treatment, 0);
+  // H and G at another temperature (#1044); empty until the first update
+  // fills in the temperature of the frequency calculations.
+  tbar->Add(new wxStaticText(this, wxID_ANY, _("T / K:")), 0,
+            wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT, 6);
+  p_temp = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(80, -1),
+                          wxTE_PROCESS_ENTER);
+  p_temp->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { update(); });
+  p_temp->Bind(wxEVT_KILL_FOCUS, [this](wxFocusEvent& e) { e.Skip(); update(); });
+  tbar->Add(p_temp, 0);
   top->Add(tbar, 0, wxLEFT | wxRIGHT | wxTOP, 10);
 
   p_std = new wxCheckBox(this, wxID_ANY, _("1 M standard state (solution)"));
@@ -118,6 +127,9 @@ CompareEnergiesDialog::CompareEnergiesDialog(wxWindow *parent,
         side += (n > 1 ? std::to_string(n) + "*" : string()) + name;
       }
     ReactionOverviewDialog dlg(this, lhs + " -> " + rhs, base);
+    // The profile starts at the temperature of this window's H and G rows.
+    if (atof(p_temp->GetValue().utf8_str()) > 0)
+      dlg.setTemperature(string(p_temp->GetValue().utf8_str()));
     dlg.ShowModal();
   });
   buttons->Add(overview, 0, wxRIGHT, 8);
@@ -219,9 +231,12 @@ void CompareEnergiesDialog::update()
     return;
   }
   SumResult r = sumEnergies(t[0], t[1]);
+  if (p_temp->GetValue().IsEmpty() && r.gTemperature > 0)
+    p_temp->ChangeValue(wxString::Format("%.2f", r.gTemperature));
+  const double kelvin = atof(p_temp->GetValue().utf8_str());
   const int sel = p_treatment->GetSelection();
   const string problem = applyThermoTreatments(r, t[0], t[1],
-      sel > 0 ? string(thermoTreatments()[sel - 1].cli) : string());
+      sel > 0 ? string(thermoTreatments()[sel - 1].cli) : string(), kelvin > 0 ? kelvin : 0);
   if (!problem.empty()) r.notes.push_back(problem);
   applyStandardState(r, t[0], t[1], p_std->GetValue());
   p_results->SetValue(wxString::FromUTF8(sumTable(r, false).c_str()));
@@ -236,6 +251,12 @@ void CompareEnergiesDialog::setTreatment(const string& treatment)
   for (size_t i = 0; i < t.size(); i++)
     if (treatment == t[i].cli) sel = (int)i + 1;
   p_treatment->SetSelection(sel);
+  update();
+}
+
+void CompareEnergiesDialog::setTemperature(const string& kelvin)
+{
+  p_temp->ChangeValue(wxString::FromUTF8(kelvin.c_str()));
   update();
 }
 

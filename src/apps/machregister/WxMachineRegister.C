@@ -65,6 +65,7 @@
 #include "SiteAdminClient.H"
 
 #include "dsm/CodeFactory.H"
+#include "dsm/CodeChoice.H"
 #include "dsm/MachinePreferences.H"
 #include "dsm/ResourceDescriptor.H"
 
@@ -161,6 +162,7 @@ WxMachineRegister::WxMachineRegister(wxWindow* parent, const bool admin)
     p_wordsWhere = NULL;
     p_codeSel = 0;
     p_codeList = NULL;
+    p_showHidden = NULL;
     p_codeTitle = NULL;
     p_codeExample = NULL;
     p_mlpSetup = NULL;
@@ -788,6 +790,15 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
     star->SetForegroundColour(gray);
     left->Add(star, wxSizerFlags().Border(wxTOP, 4));
     reg("code:list", p_codeList);
+    //  Codes unticked in Preferences > Codes stay out of the list unless
+    //  asked for; registering one turns it on there (save()).
+    p_showHidden = new wxCheckBox(page, wxID_ANY, "Show hidden codes");
+    left->Add(p_showHidden, wxSizerFlags().Border(wxTOP, 4));
+    reg("code:showhidden", p_showHidden);
+    p_showHidden->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
+        this->fillCodeList();
+        this->codeLinesTags();   // the "  *" marks, as after loading a machine
+    });
     p_codeList->Bind(wxEVT_LISTBOX, [this](wxCommandEvent& e) {
         int row = p_codeList->GetSelection();
         if (row != wxNOT_FOUND && row < (int)p_codeShown.size())
@@ -819,6 +830,14 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
                 "The file ECCE's job script runs for this code, with its full "
                 "path; not the folder it is in. A code with no program is not "
                 "offered for this machine.");
+    //  Shown for Quantum ESPRESSO only (showCode); Launch writes it into the
+    //  deck's pseudo_dir and checks that the files the deck names are there.
+    addCodeLine(page, grid, "pseudodir", "Pseudopotential directory",
+                "PseudoDir",
+                "The folder on this machine that holds the pseudopotential "
+                "(UPF) files. At launch it replaces pseudo_dir in the input, "
+                "and ECCE warns about files the input names that are not in "
+                "it. Empty: the input keeps the folder it was written with.");
 
     addBlock(page, sizer, "csetup", "Commands run before the program", page);
 
@@ -966,6 +985,7 @@ void WxMachineRegister::addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
         l.ctrl->SetToolTip(tip);
         l.ctrl->SetHint(id == "modules"
             ? "e.g. GCC/13.2.0 OpenMPI/4.1.6 ORCA/6.0.1 (loaded with module load)"
+            : id == "pseudodir" ? "e.g. /cluster/pseudo"
             : "e.g. *.tmp core");
         grid->Add(l.ctrl, wxSizerFlags(1).Expand().Border().CentreVertical());
         reg("code:" + id, l.ctrl);
@@ -1041,10 +1061,10 @@ static bool keySet(const MCD::KeyState& ks)
 bool WxMachineRegister::codeInUse(const string& name) const
 {
     static const char* const suffix[] = { "", "Command", "Environment",
-        "FilesToRemove", "PrelimFilesToRemove", "Modules" };
+        "FilesToRemove", "PrelimFilesToRemove", "Modules", "PseudoDir" };
     if (p_draft == NULL)
         return false;
-    for (size_t k = 0; k < 6; k++)
+    for (size_t k = 0; k < 7; k++)
     {
         const MCD::KeyState* ks = p_draft->state(name + suffix[k]);
         if (ks != NULL && keySet(*ks))
@@ -1091,7 +1111,9 @@ void WxMachineRegister::fillCodeList()
         //  for a code always shows it.
         if (codeInUse(p_codeNames[i]) ||
             (!retired.count(p_codeNames[i]) &&
-             CodeFactory::isRegistered(p_codeNames[i])))
+             CodeFactory::isRegistered(p_codeNames[i]) &&
+             (p_showHidden == NULL || p_showHidden->GetValue() ||
+              CodeChoice::shown(p_codeNames[i]))))
             p_codeShown.push_back((int)i);
     sortCodeShown();
     for (size_t r = 0; r < p_codeShown.size(); r++)
@@ -1120,6 +1142,14 @@ void WxMachineRegister::showCode()
         if (p_codeShown[r] == p_codeSel)
             p_codeList->SetSelection((int)r);
     codeLinesToControls();
+    if (CodeLine* pd = codeLine("pseudodir"))
+    {
+        bool qe = name == "QuantumESPRESSO";
+        pd->name->Show(qe);
+        pd->ctrl->Show(qe);
+        pd->tag->Show(qe);
+        pd->undoBox->Show(qe);
+    }
 
     //  Open More when it holds something for this code.
     bool used = false;
@@ -1134,7 +1164,8 @@ void WxMachineRegister::showCode()
         for (size_t k = 0; k < p_codeLines.size(); k++)
         {
             if (p_codeLines[k].suffix.empty() ||
-                p_codeLines[k].id == "modules")
+                p_codeLines[k].id == "modules" ||
+                p_codeLines[k].id == "pseudodir")
                 continue;
             const MCD::KeyState* ks = p_draft->state(
                 codeLineKey(p_codeLines[k]));
@@ -2087,6 +2118,7 @@ static vector<string> codeKeys(const string& code)
     k.push_back(code + "FilesToRemove");
     k.push_back(code + "PrelimFilesToRemove");
     k.push_back(code + "Modules");
+    k.push_back(code + "PseudoDir");
     k.push_back(lowerOf(code) + "_setup");
     k.push_back(lowerOf(code) + "_wrapup");
     return k;
@@ -3968,6 +4000,10 @@ bool WxMachineRegister::save()
         return false;
     }
     this->saveDefaultAccount(name);
+    for (size_t i = 0; i < p_codeNames.size(); i++)
+        if (!strip((string)p_codePaths[i]->GetValue()).empty() &&
+            !CodeChoice::shown(p_codeNames[i]))
+            CodeChoice::show(p_codeNames[i]);
 
     // Warn only: the entry may be exactly what the site wants.
     string hdr = SubmitHeaderCheck::warning(

@@ -29,6 +29,16 @@ class VizRender
     static bool file(SoNode *root, SFile *file, string type = "RGB",
                      int width = 64, int height = 64,
                      double r = 0.0, double g = 0.0, double b = 0.0);
+    // Print-quality PNG of the scene: factor x the view's width x height,
+    // blended transparency and supersampled edges, whatever the on-screen
+    // mode is.  Line widths grow with the factor.
+    static bool image(SoNode *root, const string& pngPath, int width,
+                      int height, double r, double g, double b,
+                      int factor = 2);
+    // The viewer's picture of the view: its size and background are used
+    // unless white, and the corner texts are left out.
+    static bool image(SGViewer *viewer, const string& pngPath, int width,
+                      int height, bool white, int factor = 2);
     static string msg();
 
   protected:

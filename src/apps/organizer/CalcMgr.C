@@ -25,6 +25,7 @@
 #include "wx/msw/wrapwin.h"
 #endif
 
+#include "util/MqttLink.H"
 #include "util/Filesystem.H"
 #include <fstream>
 #include <functional>
@@ -49,6 +50,7 @@ static std::string s_registerMessage;
 #include <wx/stopwatch.h>
 #include <wx/time.h>
 #include <wx/dataobj.h>
+#include <wx/clipbrd.h>
 #include <wx/filename.h>
 #include <wx/process.h>
 #include <wx/utils.h>
@@ -80,6 +82,9 @@ static std::string s_registerMessage;
 #include "util/SFile.H"
 #include "util/BrowserHelp.H"
 #include "util/VizThumbnail.H"
+#include "wxgui/InProcessTools.H"
+#include "ToolStartup.H"
+#include "wxgui/ToolTabs.H"
 #include "wxgui/WindowShot.H"
 #include <wx/display.h>
 #include <algorithm>
@@ -99,6 +104,10 @@ static std::string s_registerMessage;
 #include "dsm/NWChemMDModel.H"
 #include "dsm/StoredCalcCopy.H"
 #include "dsm/Series.H"
+#include "dsm/GromacsCalc.H"
+#include "AnotherCodeDialog.H"
+#include "dsm/CodeChoice.H"
+static std::vector<std::pair<std::string, std::string> > anotherCodeList();
 #include "dsm/SmilesBatch.H"
 #include <wx/choicdlg.h>
 #include "QsarWindow.H"
@@ -252,21 +261,21 @@ public:
     p_element->SetToolTip("Element symbol: the atom added, or the one removed in pairs.");
     p_minHost = new wxSpinCtrlDouble(this, wxID_ANY, "1.6", wxDefaultPosition, wxDefaultSize,
                                      wxSP_ARROW_KEYS, 0.5, 6.0, 1.6, 0.1);
-    p_minHost->SetToolTip("Smallest distance from a new atom to any host atom (Angstrom).");
+    p_minHost->SetToolTip(wxString::FromUTF8("Smallest distance from a new atom to any host atom (Å)."));
     p_minSep = new wxSpinCtrlDouble(this, wxID_ANY, "1.0", wxDefaultPosition, wxDefaultSize,
                                     wxSP_ARROW_KEYS, 0.1, 6.0, 1.0, 0.1);
-    p_minSep->SetToolTip("Sites closer than this to each other count as one (Angstrom).");
+    p_minSep->SetToolTip(wxString::FromUTF8("Sites closer than this to each other count as one (Å)."));
     p_maxDist = new wxSpinCtrlDouble(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize,
                                      wxSP_ARROW_KEYS, 0.0, 50.0, 0.0, 0.5);
-    p_maxDist->SetToolTip("Largest distance between the two removed atoms (Angstrom); "
-                          "0 = no limit. Vacancy pairs only.");
+    p_maxDist->SetToolTip(wxString::FromUTF8("Largest distance between the two removed atoms (Å); "
+                          "0 = no limit. Vacancy pairs only."));
     g->Add(new wxStaticText(this, wxID_ANY, "Element"), 0, wxALIGN_CENTER_VERTICAL);
     g->Add(p_element, 1, wxEXPAND);
-    g->Add(new wxStaticText(this, wxID_ANY, "Minimum distance to host atoms (A)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(new wxStaticText(this, wxID_ANY, wxString::FromUTF8("Minimum distance to host atoms (Å)")), 0, wxALIGN_CENTER_VERTICAL);
     g->Add(p_minHost);
-    g->Add(new wxStaticText(this, wxID_ANY, "Minimum distance between sites (A)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(new wxStaticText(this, wxID_ANY, wxString::FromUTF8("Minimum distance between sites (Å)")), 0, wxALIGN_CENTER_VERTICAL);
     g->Add(p_minSep);
-    g->Add(new wxStaticText(this, wxID_ANY, "Maximum pair distance (A, 0 = no limit)"), 0, wxALIGN_CENTER_VERTICAL);
+    g->Add(new wxStaticText(this, wxID_ANY, wxString::FromUTF8("Maximum pair distance (Å, 0 = no limit)")), 0, wxALIGN_CENTER_VERTICAL);
     g->Add(p_maxDist);
     top->Add(g, 0, wxEXPAND | wxALL, 8);
     p_note = new wxTextCtrl(this, wxID_ANY, "", wxDefaultPosition, wxSize(-1, 70),
@@ -418,7 +427,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   Bind(wxEVT_TOOL, [this](wxCommandEvent&) { showServersMenu(); }, serversId);
   {
     // Help > How to Cite ECCE..., before About.
-    wxMenuBar* mb = GetMenuBar();
+    wxMenuBar* mb = ownMenuBar();
     int help = mb->FindMenu(_("&Help"));
     if (help != wxNOT_FOUND) {
       wxMenu* m = mb->GetMenu(help);
@@ -441,14 +450,14 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   p_currentSelection.clear();
   p_clipboard.clear();
   p_toolBar->EnableTool(wxID_PASTE, false);
-  GetMenuBar()->Enable(wxID_PASTE, false);
+  ownMenuBar()->Enable(wxID_PASTE, false);
   //  p_toolBar->EnableTool(wxID_STOP, false);
   p_popupOnTree = false;
   p_focusOnTree = true;
 
 
   if (!getenv("ECCE_DEVELOPER")) {
-    GetMenuBar()->Remove(GetMenuBar()->FindMenu(_("Developer")));
+    ownMenuBar()->Remove(ownMenuBar()->FindMenu(_("Developer")));
     p_toolBar->RemoveTool(wxID_VIEW_PROPERTY);
   }
 
@@ -533,10 +542,16 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 
   // File > New is offered before the first selection too.
   {
-    wxMenuBar * mb = GetMenuBar();
+    wxMenuBar * mb = ownMenuBar();
     int fm = mb ? mb->FindMenu(_("File")) : wxNOT_FOUND;
     if (fm != wxNOT_FOUND) getFileMenu(*mb->GetMenu(fm), 0);
   }
+  // Ticking a code in Preferences > Codes shows in File > New at once.
+  CodeChoice::setListener([this]() {
+    wxMenuBar * mb = GetMenuBar();
+    int fm = mb ? mb->FindMenu(_("File")) : wxNOT_FOUND;
+    if (fm != wxNOT_FOUND) getFileMenu(*mb->GetMenu(fm), 0);
+  });
 
   stopDisabler();
 
@@ -682,8 +697,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * sitescreenresults <url>
  *                 Site Screening Results for the folder of <url>, as above
  * duplicate <url> [last]
- *                 right-click <url> > Duplicate for Rerun (or Duplicate
- *                 Setup with Last Geometry); the tree's selection and
+ *                 right-click <url> > New from This > Rerun (or Continue
+ *                 from Last Geometry); the tree's selection and
  *                 collapse events during it, then the tree
  * size <w> <h>   resize the Organizer window
  * firstvisible    the label of the tree's top visible row (its scroll)
@@ -756,6 +771,12 @@ static string testContextMenuLabels(wxMenu& menu, const string& prefix = "",
 
 static string newWorkflowName(const vector<Resource*>& calcs,
     const vector<WorkflowSteps::ProposedLink>& links);
+
+wxMenuBar *CalcMgr::ownMenuBar() const
+{
+  return ToolTabs::mainMenuBar(this, GetMenuBar());
+}
+
 
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -1418,7 +1439,7 @@ void CalcMgr::runTestCommand(const string& line)
       //     reactant|product|tsguess; the step's structure files as
       //     TS Search writes them: workflowqst WF STEP
       //   workflowmake CALC [NAME]   Make Workflow...: CALC is moved into a
-      //     new workflow; "ok WF step=URL selected" (#807)
+      //     new workflow; "ok WF step=URL view=workflow selected" (#807, #1010)
       //   workflowmove CALC WF       Move into Workflow >
       //   workflowinfo WF       steps, states, carried values and links
       //   workflowlaunch WF     Launch Ready Steps without dialogs
@@ -1519,12 +1540,18 @@ void CalcMgr::runTestCommand(const string& line)
           else {
             EcceURL step = wfUrl.getChild(leaf);
             showInWorkflow(wfUrl, step);
+            // Selected only in the workflow's own view, the one the user sees.
+            SessionProjectContextPanel *spc =
+                dynamic_cast<SessionProjectContextPanel*>(p_contextPanel);
+            const bool inView = spc && spc->getWorkflowPanel() && p_panelNode &&
+                                p_panelNode->getUrl() == wfUrl;
             bool sel = false;
-            if (p_contextPanel)
+            if (inView)
               for (const EcceURL &u : p_contextPanel->getSelections())
                 if (u == step) sel = true;
             outcome = string("ok ") + wfUrl.toString() + " step=" +
-                      step.toString() + (sel ? " selected" : " unselected");
+                      step.toString() + (inView ? " view=workflow" : " view=other") +
+                      (sel ? " selected" : " unselected");
           }
         }
       } else if (!wf) {
@@ -1846,6 +1873,26 @@ void CalcMgr::runTestCommand(const string& line)
       outcome = !parentNode ? "error: no parent node"
               : (made.empty() || !message.empty()) ? "error: " + message
               : "ok " + made;
+    } else if (command == "gmxrun") {
+      // "gmxrun PARENT-URL MDP|- STRUCTURE|- TOPOLOGY|- [TPR]": make a
+      // GROMACS run from files in PARENT (createGromacsRun); "-" is no file.
+      std::istringstream args(calcName);
+      string parentUrl, mdp, gro, top, tpr, message;
+      args >> parentUrl >> mdp >> gro >> top >> tpr;
+      if (mdp == "-") mdp.clear();
+      if (gro == "-") gro.clear();
+      if (top == "-") top.clear();
+      if (tpr == "-") tpr.clear();
+      WxResourceTreeItemData *parentNode = findNode(EcceURL(parentUrl),
+                                                    true, true);
+      string made;
+      if (parentNode)
+        made = createGromacsRun(parentNode->getResource(), mdp, gro, top, tpr,
+                                message);
+      if (parentNode) p_treeCtrl->refresh(parentNode);
+      outcome = !parentNode ? "error: no parent node"
+              : made.empty() ? "error: " + message
+              : "ok " + made + (message.empty() ? "" : " " + message);
     } else if (command == "gmximportsel") {
       // "gmximportsel PROJECT-URL RUN-DIR": File > Import GROMACS Run...
       // with PROJECT selected and RUN-DIR chosen.
@@ -2245,7 +2292,7 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "helpmenu") {
       // "helpmenu": the Help menu's labels, and the page that Help >
       // Running Codes on This Computer opens and whether it is installed.
-      wxMenuBar *mb = GetMenuBar();
+      wxMenuBar *mb = ownMenuBar();
       wxMenu *hm = mb->GetMenu(mb->FindMenu(_("&Help")));
       outcome = "ok";
       for (size_t i = 0; i < hm->GetMenuItemCount(); i++) {
@@ -2282,7 +2329,7 @@ void CalcMgr::runTestCommand(const string& line)
       std::istringstream args(calcName);
       string label, name;
       args >> label >> name;
-      wxMenuBar *mb = GetMenuBar();
+      wxMenuBar *mb = ownMenuBar();
       wxMenu *fm = mb->GetMenu(mb->FindMenu(_("File")));
       outcome = command == "filemenu" ? "ok" : "no such item";
       for (size_t i = 0; i < fm->GetMenuItemCount(); i++) {
@@ -2295,11 +2342,11 @@ void CalcMgr::runTestCommand(const string& line)
           if (command == "filemenu") {
             outcome += " new=" + text;
           } else if (text == label) {
-            bool ask = GetMenuBar()->IsChecked(wxID_ASKFORNAME);
-            GetMenuBar()->Check(wxID_ASKFORNAME, false);
+            bool ask = ownMenuBar()->IsChecked(wxID_ASKFORNAME);
+            ownMenuBar()->Check(wxID_ASKFORNAME, false);
             wxCommandEvent ev(wxEVT_MENU, si->GetId());
             OnNewResourceClick(ev);
-            GetMenuBar()->Check(wxID_ASKFORNAME, ask);
+            ownMenuBar()->Check(wxID_ASKFORNAME, ask);
             outcome = "ok";
           }
         }
@@ -2591,6 +2638,8 @@ void CalcMgr::runTestCommand(const string& line)
       if (command != "qsartable") args >> scaling >> comps;
       if (command == "qsarpls") args >> testPct >> perms;
       args >> png;
+      int width = 1000, height = 650;
+      if (!png.empty()) args >> width >> height;
       vector<EcceURL> roots;
       for (size_t at = 0; at < urls.size(); ) {
         size_t end = urls.find(',', at);
@@ -2604,7 +2653,23 @@ void CalcMgr::runTestCommand(const string& line)
       if (ran && command == "qsarpca") ran = d->runPca(scaling, comps, why);
       if (ran && command == "qsarpls") ran = d->runPls(y, scaling, comps, testPct, perms, why);
       if (!ran) outcome = "failed: " + why;
-      else if (command == "qsartable") { std::ofstream(out) << d->csv(); outcome = "ok"; }
+      else if (command == "qsartable") {
+        std::ofstream(out) << d->csv();
+        std::ofstream(out + ".key") << d->keyText();
+        std::unique_ptr<wxDialog> key(d->createKey());
+        wxCommandEvent copy(wxEVT_BUTTON, wxID_COPY);
+        key->FindWindow(wxID_COPY)->GetEventHandler()->ProcessEvent(copy);
+        if (wxTheClipboard->Open()) {
+          wxTextDataObject copied;
+          if (wxTheClipboard->GetData(copied))
+            std::ofstream(out + ".copied") << copied.GetText().ToStdString(wxConvUTF8);
+          wxTheClipboard->Close();
+        }
+        std::ofstream tips(out + ".tips");
+        for (const char *name : {"a_nH", "SlogP_VSA3", "qm_HOMO", "IC50 (nM)"})
+          tips << name << ": " << d->headerTooltip(name) << "\n";
+        outcome = "ok";
+      }
       else if (!d->saveResults(out, why)) outcome = "failed: " + why;
       else outcome = "ok";
       if (ran && outcome == "ok") {
@@ -2632,13 +2697,15 @@ void CalcMgr::runTestCommand(const string& line)
       // shows; a side is "[-][N*]url,[-][N*]url".  "comparedialog <sideA>
       // <sideB> [png]": the dialog itself, its text areas, and a capture.
       std::istringstream args(calcName);
-      string ua, ub, png;
-      args >> ua >> ub >> png;
+      string ua, ub, png, kelvin;
+      args >> ua >> ub >> png >> kelvin;
       if (command == "compareenergies") {
-        // The optional third word is an ecce-thermo treatment for the G row.
+        // The optional third word is an ecce-thermo treatment for the G row
+        // ("stored" = the code's own), the fourth the T / K field (#1044).
         const vector<EnergyTerm> ta = gatherSide(ua), tb = gatherSide(ub);
         SumResult c = sumEnergies(ta, tb);
-        const string problem = applyThermoTreatments(c, ta, tb, png == "stored" ? string() : png);
+        const string problem = applyThermoTreatments(c, ta, tb, png == "stored" ? string() : png,
+                                                     kelvin.empty() ? 0 : atof(kelvin.c_str()));
         outcome = "ok";
         if (!problem.empty()) outcome += " | Problem: " + problem;
         std::istringstream lines(sumText(c, false));
@@ -2650,8 +2717,9 @@ void CalcMgr::runTestCommand(const string& line)
             calculationsIn(EcceURL(parseSide(ua)[0].first).getParent().toString()),
             parseSide(ua), parseSide(ub));
         d->Show();
+        if (!kelvin.empty()) d->setTemperature(kelvin);
         for (int i = 0; i < 5; i++) wxYield();
-        if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+        if (!png.empty() && png != "-") ecceClientShot(d, wxString::FromUTF8(png.c_str()));
         outcome = "ok";
         std::istringstream r(d->resultText() + "Notes:\n" + d->notesText() +
                              "Copy:\n" + d->copyText());
@@ -2848,7 +2916,7 @@ void CalcMgr::runTestCommand(const string& line)
       args >> p_exportOut >> table;
       p_exportTable = table == "none" ? string() : table;
       for (int i = 0; i < 20; ++i) { wxYield(); wxMilliSleep(25); }
-      wxMenuBar *mb = GetMenuBar();
+      wxMenuBar *mb = ownMenuBar();
       string trace = "no handler ran";
       if (!mb || !mb->FindItem(ID_SI_EXPORT)) {
         outcome = "no menu item";
@@ -2907,12 +2975,12 @@ void CalcMgr::runTestCommand(const string& line)
           }
         });
         answer.StartOnce(1500);
-        bool ask = GetMenuBar()->IsChecked(wxID_ASKFORNAME);
-        GetMenuBar()->Check(wxID_ASKFORNAME, true);
+        bool ask = ownMenuBar()->IsChecked(wxID_ASKFORNAME);
+        ownMenuBar()->Check(wxID_ASKFORNAME, true);
         startDisabler();
         createResource(rt, parentNode, false);
         stopDisabler();
-        GetMenuBar()->Check(wxID_ASKFORNAME, ask);
+        ownMenuBar()->Check(wxID_ASKFORNAME, ask);
         outcome = "ok";
       }
     } else if (command == "busyprompt") {
@@ -3028,6 +3096,39 @@ void CalcMgr::runTestCommand(const string& line)
       }
       reconnectSelected(urls, false, &outcome, png, command == "reconnectselectedlist",
                         0, readyId);
+    } else if (command == "anothercodegmx") {
+      // "anothercodegmx MDP GRO TOP SUFFIX|- FOLDER|- SOURCE...": In Another
+      // Code with GROMACS as the code, the files the dialogs would ask for
+      // given.  The answer is the report, newlines as " | ".
+      std::istringstream args(calcName);
+      string mdp, gro, top, suffix, folder, s;
+      args >> mdp >> gro >> top >> suffix >> folder;
+      vector<string> sources;
+      while (args >> s) sources.push_back(s);
+      outcome = gromacsFromSources(mdp, gro, top, suffix == "-" ? "" : suffix,
+                                   folder == "-" ? EcceURL() : EcceURL(folder),
+                                   sources);
+      for (size_t p; (p = outcome.find('\n')) != string::npos;)
+        outcome.replace(p, 1, " | ");
+    } else if (command == "anothercode" || command == "anothercodefinish") {
+      // "anothercode TYPE SUFFIX FOLDER|- SOURCE...": In Another Code's first
+      // step without the dialog or the editor (the test stands in for the
+      // editor by writing the setup); "anothercodefinish" makes the others.
+      // The answer is the report, newlines as " | ".
+      if (command == "anothercodefinish") {
+        finishAnotherCode(&outcome);
+      } else {
+        std::istringstream args(calcName);
+        string type, suffix, folder, s;
+        args >> type >> suffix >> folder;
+        vector<string> sources;
+        while (args >> s) sources.push_back(s);
+        startAnotherCode(type, suffix == "-" ? "" : suffix,
+                         folder == "-" ? EcceURL() : EcceURL(folder), sources,
+                         false, &outcome);
+      }
+      for (size_t p; (p = outcome.find('\n')) != string::npos;)
+        outcome.replace(p, 1, " | ");
     } else if (command == "newseries") {
       // "newseries TEMPLATE_URL SOURCE...": New Series without dialogs; the
       // answer is the report, newlines as " | ".
@@ -3235,7 +3336,7 @@ void CalcMgr::runTestCommand(const string& line)
       args >> url;
       std::getline(args >> std::ws, label);
       WxResourceTreeItemData *node = findNode(EcceURL(url), true, true);
-      wxMenuBar *bar = GetMenuBar();
+      wxMenuBar *bar = ownMenuBar();
       if (!node) {
         outcome = "not in the tree";
       } else {
@@ -3260,6 +3361,12 @@ void CalcMgr::runTestCommand(const string& line)
           outcome = "ok";
         }
       }
+    } else if (command == "anothercodelabels") {
+      // The entries of the Continue in Another Code dialog's code choice.
+      AnotherCodeDialog dlg(this, 1, anotherCodeList(), EcceURL(), 0,
+                            CodeChoice::hiddenCount());
+      outcome = "ok";
+      for (const string& l : dlg.labels()) outcome += " code=" + l + ";";
     } else if (command == "prefs") {
       // "prefs open|colours jmol|colours ecce|advanced KEY on|childenv VAR|state|snap PATH": the
       // Preferences window, its Colours tab as a click chooses.
@@ -3268,12 +3375,34 @@ void CalcMgr::runTestCommand(const string& line)
       args >> what >> arg;
       if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(this);
       p_prefs->Show(true);
-      if (what == "data") {
+      if (what == "codes") {
+        // "prefs codes list|page [hiddenfirst]|tick NAME on|off|all|registered"
+        string rest;
+        std::getline(args, rest);
+        if (arg == "snap") {
+          p_prefs->showCodesPage(true);
+          // GTK animates a tick change; shoot after it has finished.
+          for (int i = 0; i < 20; i++) { wxMilliSleep(50); wxYield(); }
+          string path;
+          std::istringstream r(rest);
+          r >> path;
+          outcome = ecceClientShot(p_prefs, wxString::FromUTF8(path.c_str()))
+              ? "saved" : "not saved";
+        } else {
+          outcome = p_prefs->codesTest(arg + rest);
+        }
+      } else if (what == "data") {
         // "prefs data show|snap P|file|remove NAME|form TYPE P|add TYPE NAME F.. P"
         for (int i = 0; i < 10; i++) wxYield();
         string rest;
         std::getline(args, rest);
         outcome = p_prefs->dataTest(arg + rest);
+      } else if (what == "windows") {
+        // "prefs windows show|preset NAME|row KEY tab|window [SNAP]|snap P"
+        for (int i = 0; i < 10; i++) wxYield();
+        string rest;
+        std::getline(args, rest);
+        outcome = p_prefs->windowsTest(arg + rest);
       } else {
       p_prefs->showColoursPage();
       for (int i = 0; i < 10; i++) wxYield();
@@ -3301,6 +3430,56 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = "ok";
       }
       }
+    } else if (command == "inprocess") {
+      // Tool windows open in this process (#983, ECCE_ONE_PROCESS=1).
+      outcome = "pid=" + MqttLink::processId() +
+                " Builder=" + std::to_string(InProcessTools::count(BUILDER)) +
+                " CalculationEditor=" +
+                std::to_string(InProcessTools::count(CALCED)) +
+                " MDEnergy=" + std::to_string(InProcessTools::count(MDENERGY)) +
+                " BasisTool=" + std::to_string(InProcessTools::count(BASISTOOL)) +
+                " MDPrepare=" + std::to_string(InProcessTools::count(MDPREPARE)) +
+                " Launcher=" + std::to_string(InProcessTools::count(LAUNCHER));
+      // Top-level windows still alive: one left over keeps the main loop
+      // (and the process) running after the Organizer's frame is gone.
+      for (wxWindow *w : wxTopLevelWindows)
+        if (w != this)
+          outcome += string(" tlw=") + wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
+                     (w->IsShown() ? "" : "(hidden)") + "/" + string(w->GetLabel().utf8_str());
+    } else if (command == "tabs" || command == "tab" ||
+               command == "towindow" || command == "totabs" ||
+               command == "charhook" || command == "tabinfo" || command == "sbinfo" ||
+               command == "dialog" || command == "dialoginfo" ||
+               command == "popup" || command == "popupinfo" ||
+               command == "float" || command == "floatinfo" ||
+               command == "layout" || command == "tabmenu" ||
+               command == "alwayswindow" || command == "setup" ||
+               command == "launcher") {
+      // Tools as tabs (#983): list, select, Open in Window, Move to Tabs,
+      // the Windows and tabs setting, the tab's right-click menu.
+      wxString result;
+      ToolTabs::testCommand(command, wxString::FromUTF8(calcName.c_str()),
+                            result);
+      outcome = string(result.utf8_str());
+    } else if (command == "gatewayquit") {
+      // The session's ecce_quit as the gateway sends it, through the local
+      // path to the Organizer and every in-process tool (#983).
+      JMSPublisher pub(GATEWAY);
+      JMSMessage *msg = pub.newMessage();
+      outcome = pub.publish("ecce_quit", *msg) ? "sent" : "not sent";
+      delete msg;
+    } else if (command == "closetools") {
+      // After this command returns, so that a tool's own question can be
+      // answered by a later "answer" line.
+      CallAfter([]() {
+        const char *done = InProcessTools::closeAll(true) ? "closed" : "refused";
+        cerr << "ECCE_TEST_ORGANIZER: closetools: " << done << endl;
+      });
+      outcome = "queued";
+    } else if (command == "toolshot") {
+      outcome = p_toolStartup->shot(calcName) ? "saved" : "no window";
+    } else if (command == "toolstate") {
+      outcome = p_toolStartup->report();
     } else if (command == "start") {
       // "start TOOL [URL]": what a tool button does (startApp), e.g.
       // "start CalculationEditor <calc url>".
@@ -3335,9 +3514,13 @@ void CalcMgr::runTestCommand(const string& line)
            it != wxTopLevelWindows.end(); ++it) {
         wxDialog *dlg = wxDynamicCast(*it, wxDialog);
         if (dlg && dlg->IsModal()) {
+          // "cancel" and "no" also answer an in-process tool's save
+          // question (#983).
           dlg->EndModal(calcName == "stop" ? (int)ID_ORGANIZER_QUIT_STOP_SERVER
+                        : calcName == "cancel" ? (int)wxID_CANCEL
+                        : calcName == "no" ? (int)wxID_NO
                                            : (int)wxID_OK);
-          outcome = "answered";
+          outcome = "answered " + string(dlg->GetTitle().utf8_str());
           break;
         }
       }
@@ -3375,6 +3558,9 @@ void CalcMgr::runTestCommand(const string& line)
  */
 CalcMgr::~CalcMgr( )
 {
+  delete p_toolStartup;
+  p_toolStartup = 0;
+  CodeChoice::setListener(nullptr);
   delete p_releaseNotice;
   saveSettings();
   int low, high;
@@ -3425,7 +3611,7 @@ void CalcMgr::initializeGUI()
     menu->AppendRadioItem(pv->getId(), pv->getMenuItem());
   }
 
-  wxMenuBar * menuBar = GetMenuBar();
+  wxMenuBar * menuBar = ownMenuBar();
   menuBar->GetMenu(menuBar->FindMenu(_("Options")))->
     Append(wxID_ANY, _("Project View"), menu);
 
@@ -3446,6 +3632,11 @@ void CalcMgr::initializeGUI()
   p_feedback->hideStateIcon();
   p_feedback->hideStateIcon();
   p_topSizer->Add(p_feedback, 0, wxGROW, 0);
+  p_toolStartup = new ToolStartup(this, [this](const string& text) {
+    if (text.empty()) p_feedback->clearMessage();
+    else p_feedback->setMessage(wxString::FromUTF8(text.c_str()).ToStdString(),
+                                WxFeedback::INFO, false, true);
+  });
   p_contextPanel = 0;
   p_splitterWindow->SetMinimumPaneSize(200);
 
@@ -3459,8 +3650,8 @@ void CalcMgr::initializeGUI()
 void CalcMgr::initializeTreeData()
 {
   p_treeCtrl->initialize(p_hlist,
-                         GetMenuBar()->IsChecked(wxID_HOMEASROOT),
-                         GetMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
+                         ownMenuBar()->IsChecked(wxID_HOMEASROOT),
+                         ownMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
@@ -3883,28 +4074,28 @@ void CalcMgr::saveSettings()
   prefs.setInt("Organizer.PropertyView",
                   p_projectViewId);
   prefs.setBool("Organizer.ConfirmDeletes",
-                   GetMenuBar()->IsChecked(wxID_CONFIRM_DELETE));
+                   ownMenuBar()->IsChecked(wxID_CONFIRM_DELETE));
   prefs.setBool("Organizer.ConfirmResets",
-                   GetMenuBar()->IsChecked(wxID_CONFIRM_RESET));
+                   ownMenuBar()->IsChecked(wxID_CONFIRM_RESET));
   prefs.setBool("Organizer.Toolbar",
-                   GetMenuBar()->IsChecked(wxID_SHOW_TOOLBAR));
+                   ownMenuBar()->IsChecked(wxID_SHOW_TOOLBAR));
   prefs.setBool("Organizer.RunStates",
-                   GetMenuBar()->IsChecked(wxID_SHOW_RUNSTATES));
+                   ownMenuBar()->IsChecked(wxID_SHOW_RUNSTATES));
   prefs.setBool("Organizer.Legend",
-                   GetMenuBar()->IsChecked(wxID_SHOW_LEGEND));
+                   ownMenuBar()->IsChecked(wxID_SHOW_LEGEND));
   prefs.setBool("Organizer.DeepTraverse",
-                   GetMenuBar()->IsChecked(wxID_SHOW_INTERNAL));
+                   ownMenuBar()->IsChecked(wxID_SHOW_INTERNAL));
   prefs.setBool("Organizer.HomeAsRoot",
-                   GetMenuBar()->IsChecked(wxID_HOMEASROOT));
+                   ownMenuBar()->IsChecked(wxID_HOMEASROOT));
   prefs.setBool("Organizer.AskForName",
-                   GetMenuBar()->IsChecked(wxID_ASKFORNAME));
+                   ownMenuBar()->IsChecked(wxID_ASKFORNAME));
   prefs.setBool("Organizer.RunDefaultTool",
-                   GetMenuBar()->IsChecked(wxID_RUNDEFAULTTOOL));
+                   ownMenuBar()->IsChecked(wxID_RUNDEFAULTTOOL));
   prefs.setBool("Organizer.ShowLine",
-                   GetMenuBar()->IsChecked(wxID_SHOW_LINE));
+                   ownMenuBar()->IsChecked(wxID_SHOW_LINE));
   /*
     prefs.setBool("Organizer.FreezeColumns",
-    GetMenuBar()->IsChecked(wxID_FIX_COLUMN));
+    ownMenuBar()->IsChecked(wxID_FIX_COLUMN));
   */
   
   prefs.saveFile();
@@ -3927,61 +4118,61 @@ void CalcMgr::restoreSettings()
   p_treeSort = 0;
   if (prefs.getInt("Organizer.TreeSort", prefTmp))
     p_treeSort = prefTmp;
-  GetMenuBar()->Check(wxID_SORT_TYPE + p_treeSort, true);
+  ownMenuBar()->Check(wxID_SORT_TYPE + p_treeSort, true);
 
   if (prefs.getInt("Organizer.PropertyView", prefTmp)) {
     p_projectViewId = prefTmp;
-    GetMenuBar()->Check(p_projectViewId, true);
+    ownMenuBar()->Check(p_projectViewId, true);
   }
 
   bool choice = true;
   if (prefs.getBool("Organizer.ConfirmDeletes", choice)) {
-    GetMenuBar()->Check(wxID_CONFIRM_DELETE, choice);
+    ownMenuBar()->Check(wxID_CONFIRM_DELETE, choice);
   }
 
   if (prefs.getBool("Organizer.ConfirmResets", choice)) {
-    GetMenuBar()->Check(wxID_CONFIRM_RESET, choice);
+    ownMenuBar()->Check(wxID_CONFIRM_RESET, choice);
     // @todo Action here
   }
 
   if (prefs.getBool("Organizer.Toolbar", choice)) {
-    GetMenuBar()->Check(wxID_SHOW_TOOLBAR, choice);
+    ownMenuBar()->Check(wxID_SHOW_TOOLBAR, choice);
     p_toolBar->Show(choice);
   }
 
   if (prefs.getBool("Organizer.RunStates", choice)) {
-    GetMenuBar()->Check(wxID_SHOW_RUNSTATES, choice);
+    ownMenuBar()->Check(wxID_SHOW_RUNSTATES, choice);
   }
 
   if (prefs.getBool("Organizer.Legend", choice)) {
-    GetMenuBar()->Check(wxID_SHOW_LEGEND, choice);
+    ownMenuBar()->Check(wxID_SHOW_LEGEND, choice);
     p_legend->Show(choice);
   }
 
   if (prefs.getBool("Organizer.DeepTraverse", choice)) {
-    GetMenuBar()->Check(wxID_SHOW_INTERNAL, choice);
+    ownMenuBar()->Check(wxID_SHOW_INTERNAL, choice);
     Resource::setHideInternal(!choice);
   }
 
   if (prefs.getBool("Organizer.HomeAsRoot", choice)) {
-    GetMenuBar()->Check(wxID_HOMEASROOT, choice);
+    ownMenuBar()->Check(wxID_HOMEASROOT, choice);
   }
 
   if (prefs.getBool("Organizer.AskForName", choice)) {
-    GetMenuBar()->Check(wxID_ASKFORNAME, choice);
+    ownMenuBar()->Check(wxID_ASKFORNAME, choice);
   }
 
   if (prefs.getBool("Organizer.RunDefaultTool", choice)) {
-    GetMenuBar()->Check(wxID_RUNDEFAULTTOOL, choice);
+    ownMenuBar()->Check(wxID_RUNDEFAULTTOOL, choice);
   }
 
   if (prefs.getBool("Organizer.ShowLine", choice)) {
-    GetMenuBar()->Check(wxID_SHOW_LINE, choice);
+    ownMenuBar()->Check(wxID_SHOW_LINE, choice);
   }
 
   /* @todo Do we still have this?
      if (prefs.getBool("Organizer.FreezeColumns", choice)) {
-     GetMenuBar()->Check(wxID_FIX_COLUMN, choice);
+     ownMenuBar()->Check(wxID_FIX_COLUMN, choice);
      // @todo Action here
      }
   */
@@ -4329,9 +4520,28 @@ bool CalcMgr::confirmAndQuit()
 
   if (result == wxID_CANCEL)
     return false;
+  // Tool windows in this process (#983) ask about their own unsaved work;
+  // one that stays open cancels the Quit.
+  if (!InProcessTools::closeAll(false))
+    return false;
 
   p_quitConfirmed = true;
   Destroy();
+  if (getenv("ECCE_TEST_ORGANIZER")) {
+    // Test hook (#983): a top-level window still alive 3 s after Quit keeps
+    // the process running; name them.
+    wxTimer *left = new wxTimer(wxTheApp);
+    wxTheApp->Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+      string names;
+      for (wxWindow *w : wxTopLevelWindows)
+        names += string(" ") +
+                 wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
+                 "/" + string(w->GetLabel().utf8_str()) +
+                 (w->GetParent() ? "(child)" : "");
+      cerr << "ECCE_TEST_ORGANIZER: left after quit:" << names << endl;
+    }, left->GetId());
+    left->StartOnce(3000);
+  }
 
   if (result == ID_ORGANIZER_QUIT_STOP_SERVER) {
     // After Destroy(), which schedules teardown asynchronously rather
@@ -4410,10 +4620,10 @@ void CalcMgr::OnShowInternalClick( wxCommandEvent& event )
 {
   startDisabler();
 
-  Resource::setHideInternal(!GetMenuBar()->IsChecked(wxID_SHOW_INTERNAL));
+  Resource::setHideInternal(!ownMenuBar()->IsChecked(wxID_SHOW_INTERNAL));
   p_treeCtrl->initialize(p_hlist,
-                         GetMenuBar()->IsChecked(wxID_HOMEASROOT),
-                         GetMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
+                         ownMenuBar()->IsChecked(wxID_HOMEASROOT),
+                         ownMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
@@ -4431,8 +4641,8 @@ void CalcMgr::OnShowRunstatesClick( wxCommandEvent& event )
   startDisabler();
 
   p_treeCtrl->initialize(p_hlist,
-                         GetMenuBar()->IsChecked(wxID_HOMEASROOT),
-                         GetMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
+                         ownMenuBar()->IsChecked(wxID_HOMEASROOT),
+                         ownMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
@@ -4563,8 +4773,8 @@ void CalcMgr::OnAddServerClick( wxCommandEvent& event )
   p_serverListEditor->ShowModal();
 
   p_treeCtrl->initialize(p_hlist,
-                         GetMenuBar()->IsChecked(wxID_HOMEASROOT),
-                         GetMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
+                         ownMenuBar()->IsChecked(wxID_HOMEASROOT),
+                         ownMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
@@ -4582,8 +4792,8 @@ void CalcMgr::OnHomeasrootClick( wxCommandEvent& event )
   startDisabler();
 
   p_treeCtrl->initialize(p_hlist,
-                         GetMenuBar()->IsChecked(wxID_HOMEASROOT),
-                         GetMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
+                         ownMenuBar()->IsChecked(wxID_HOMEASROOT),
+                         ownMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
@@ -4641,7 +4851,7 @@ static int newMenuGroup(const string & name)
     {"ecceqm_es", "gaussian16_es", "nwchem_es", "orca_es", 0},
     {"crest_es", "mopac_es", "xtb_es", 0},
     {"cp2k_es", "qe_es", 0},
-    {"gromacs_md_study", "nwchem_md_study", 0},
+    {"gromacs_md_study", "gromacs_md_run", "nwchem_md_study", 0},
     {"mlp_es", "vina_es", 0},
   };
   for (size_t g = 0; g < sizeof(groups) / sizeof(groups[0]); g++)
@@ -4674,15 +4884,45 @@ WxResourceTreeItemData * CalcMgr::nearestContainer(
 }
 
 
+/**
+ * The last entry of every New list that hides codes: the count is in the
+ * label so a hidden code is never mistaken for a missing one (#1049).
+ */
+void CalcMgr::appendMoreCodes( wxMenu& menu )
+{
+  const int hidden = CodeChoice::hiddenCount();
+  if (hidden <= 0) return;
+  menu.AppendSeparator();
+  wxMenuItem *more = menu.Append(wxID_MORE_CODES,
+      wxString::FromUTF8(CodeChoice::moreLabel(hidden).c_str()),
+      wxString::FromUTF8(CodeChoice::moreTip(hidden).c_str()));
+  (void)more;
+}
+
+
+void CalcMgr::OnMoreCodesClick( wxCommandEvent& event )
+{
+  if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(this);
+  p_prefs->showCodesPage(true);
+  p_prefs->Show(true);
+  p_prefs->Raise();
+}
+
+
 /*!
  * wxEVT_COMMAND_MENU_SELECTED event handler for all ID_RESOURCE
  */
 void CalcMgr::OnNewResourceClick( wxCommandEvent& event )
 {
-  startDisabler();
-
   ResourceType * resType = ResourceDescriptor::getResourceDescriptor().
     getResourceType(event.GetId());
+  // Made from the user's files, so New asks for them, not for a name.
+  if (resType && resType->getName() == "gromacs_md_run") {
+    OnNewGromacsRunClick(event);
+    return;
+  }
+  startDisabler();
+
   // The nearest ancestor of the selection (or the selection itself) that
   // can contain this type, else the user's home.
   WxResourceTreeItemData * parent = nearestContainer(
@@ -4833,7 +5073,7 @@ void CalcMgr::OnProjectViewClick( wxCommandEvent& event )
   startDisabler();
 
   p_projectViewId = event.GetId();
-  GetMenuBar()->Check(p_projectViewId, true);
+  ownMenuBar()->Check(p_projectViewId, true);
   p_contextPanel->refresh();
 
   stopDisabler();
@@ -5162,6 +5402,8 @@ WxResourceTreeItemData* CalcMgr::duplicateForRerun(
     if (why) *why = "copy " + copy->getName() + " could not be reset: " + task->messages();
     return 0;
   }
+  // A GROMACS calculation's files are its whole setup.
+  if (GromacsCalc::isRun(task)) task->setState(ResourceDescriptor::STATE_READY);
   return copy;
 }
 
@@ -6056,6 +6298,254 @@ void CalcMgr::newSeries(const EcceURL& templ, const vector<string>& sources,
 
 
 
+/**
+ * The codes Continue in Another Code offers: those ticked in Preferences >
+ * Codes (#1049), then GROMACS from the user's own files.
+ */
+static vector<std::pair<string, string> > anotherCodeList()
+{
+  vector<std::pair<string, string> > codes;
+  vector<ResourceType*> types =
+      ResourceDescriptor::getResourceDescriptor().getResourceTypes();
+  for (const WorkflowSteps::Code& c : WorkflowSteps::codes())
+    for (size_t i = 0; i < types.size(); i++)
+      if (types[i]->getName() == c.typeName && CodeChoice::typeShown(types[i])) {
+        codes.push_back(std::make_pair(string(c.label), string(c.typeName)));
+        break;
+      }
+  //  Not a workflow step (yet): its setup is the user's files, asked for
+  //  after the dialog.
+  for (size_t i = 0; i < types.size(); i++)
+    if (types[i]->getName() == "gromacs_md_run" && CodeChoice::shown("GROMACS"))
+      codes.push_back(std::make_pair(string("GROMACS (from files)"),
+                                     string("gromacs_md_run")));
+  return codes;
+}
+
+
+/*!
+ * New from This > Continue in Another Code (#1037).  The first calculation is made
+ * from the first selected one and opened in the Calculation Editor, where the
+ * user sets the theory, run type, basis set and launch settings once;
+ * finishAnotherCode then copies that setup to the others through
+ * Series::make, as ecce-series does, so the two cannot differ.
+ */
+void CalcMgr::OnAnotherCodeClick( wxCommandEvent& event )
+{
+  if (refuseDuringBatch("New in Another Code")) return;
+  if (p_anotherDialog) {
+    p_anotherDialog->Raise();
+    return;
+  }
+  vector<EcceURL> rows = launchSelection();
+  vector<string> sources;
+  for (size_t i = 0; i < rows.size(); i++) {
+    Resource *r = EDSIFactory::getResource(rows[i]);
+    if ((dynamic_cast<ICalculation*>(r) && dynamic_cast<PropertyTask*>(r)) ||
+        GromacsCalc::isRun(r))
+      sources.push_back(rows[i].toString());
+  }
+  if (sources.empty()) {
+    setMessage("Select one or more calculations first.", WxFeedback::INFO);
+    return;
+  }
+  vector<std::pair<string, string> > codes = anotherCodeList();
+  if (codes.empty() && CodeChoice::hiddenCount() == 0) {
+    setMessage("No code is registered.", WxFeedback::INFO);
+    return;
+  }
+  const EcceURL here = EcceURL(sources[0]).getParent();
+  AnotherCodeDialog dlg(this, (int)sources.size(), codes, here,
+      [this, here](EcceURL& chosen) {
+        FolderChooserDialog fc(this, _("Folder"),
+            _("Make the new calculations in this folder:"), p_treeCtrl, here,
+            [](const EcceURL&) { return string(); });
+        if (fc.ShowModal() != wxID_OK) return false;
+        chosen = fc.selectedUrl();
+        return true;
+      }, CodeChoice::hiddenCount());
+  if (dlg.ShowModal() != wxID_OK) return;
+  if (dlg.wantsMoreCodes()) {
+    wxCommandEvent more(wxEVT_MENU, wxID_MORE_CODES);
+    OnMoreCodesClick(more);
+    return;
+  }
+  if (dlg.typeName() == "gromacs_md_run") {
+    string mdp, gro, top, tpr;
+    if (!askGromacsFiles(false, mdp, gro, top, tpr)) return;
+    startDisabler();
+    const string report = gromacsFromSources(mdp, gro, top, dlg.suffix(),
+                                             dlg.folder(), sources);
+    stopDisabler();
+    setMessage(report, WxFeedback::INFO);
+    return;
+  }
+  startAnotherCode(dlg.typeName(), dlg.suffix(), dlg.folder(), sources, true, 0);
+}
+
+
+// Each source's final structure replaces the coordinates of the user's .gro
+// (same atoms in the same order); a source that does not fit is reported and
+// its calculation removed.
+string CalcMgr::gromacsFromSources(const string& mdp, const string& gro,
+                                   const string& top, const string& suffix,
+                                   const EcceURL& folderIn,
+                                   const vector<string>& sources)
+{
+  if (sources.empty()) return "no calculations";
+  const EcceURL folder = folderIn.toString().empty()
+                             ? EcceURL(sources[0]).getParent() : folderIn;
+  Resource *parent = EDSIFactory::getResource(folder);
+  if (!parent) return "no such folder";
+  string report;
+  int made = 0;
+  for (size_t i = 0; i < sources.size(); i++) {
+    string name, why, message;
+    Fragment *frag = Series::structure(sources[i], suffix, name, why);
+    if (!frag) {
+      report += name + ": not made: " + why + "\n";
+      continue;
+    }
+    const string url = createGromacsRun(parent, mdp, gro, top, "", message,
+                                        name);
+    Resource *r = url.empty() ? 0 : EDSIFactory::getResource(EcceURL(url));
+    TaskJob *run = dynamic_cast<TaskJob*>(r);
+    if (!run) {
+      report += name + ": not made: " + message + "\n";
+    } else if (!GromacsCalc::setStructure(run, *frag, why)) {
+      r->remove();
+      report += name + ": not made: " + why + "\n";
+    } else {
+      run->setState(ResourceDescriptor::STATE_READY);
+      made++;
+      report += r->getName() + ": made, Ready" +
+                (message.empty() ? string() : " (" + message + ")") +
+                "\nurl=" + url + "\n";
+    }
+    delete frag;
+  }
+  if (made) {
+    if (WxResourceTreeItemData *node = findNode(folder, true, true))
+      p_treeCtrl->refresh(node);
+  }
+  return report;
+}
+
+
+void CalcMgr::startAnotherCode(const string& typeName, const string& suffix,
+                               const EcceURL& folderIn,
+                               const vector<string>& sources, bool interactive,
+                               string *outcome)
+{
+  string report;
+  if (sources.empty()) {
+    if (outcome) *outcome = "no calculations";
+    return;
+  }
+  const EcceURL folder = folderIn.toString().empty()
+                             ? EcceURL(sources[0]).getParent() : folderIn;
+  Series::Outcome o = Series::first(typeName, folder, sources[0], suffix);
+  if (!o.ok) {
+    report = o.name + ": not made: " + o.note;
+    setMessage(report, WxFeedback::INFO);
+    if (outcome) *outcome = report;
+    return;
+  }
+  WxResourceTreeItemData *container = findNode(folder, true, true);
+  p_treeCtrl->addToTree(EcceURL(o.url));
+  notifyCreate(o.url);
+  if (container) p_treeCtrl->refresh(container);
+  p_anotherFirst = o.url;
+  p_anotherSuffix = suffix;
+  p_anotherRest.assign(sources.begin() + 1, sources.end());
+  startApp("CalculationEditor", 0, o.url);
+  report = o.name + ": made, open in the Calculation Editor";
+  if (!p_anotherRest.empty())
+    report += "; " + std::to_string(p_anotherRest.size()) +
+              " more to make from its setup";
+  if (outcome) *outcome = report + "\nurl=" + o.url;
+  if (p_anotherRest.empty()) {
+    p_anotherFirst.clear();
+    setMessage(report, WxFeedback::INFO);
+    return;
+  }
+  setMessage(report, WxFeedback::INFO);
+  if (!interactive) return;
+  // The editor is a separate program, so the Organizer cannot see it close:
+  // this window stays until the user says the setup is done.
+  wxDialog *d = new wxDialog(this, wxID_ANY, _("New in Another Code"),
+                             wxDefaultPosition, wxDefaultSize,
+                             wxDEFAULT_DIALOG_STYLE);
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  top->Add(new wxStaticText(d, wxID_ANY, wxString::FromUTF8((
+      "Set up " + o.name + " in the Calculation Editor and save it.\n"
+      "Then make the other " + std::to_string(p_anotherRest.size()) +
+      (p_anotherRest.size() == 1 ? " calculation" : " calculations") +
+      " with the same setup.").c_str())), 0, wxALL, 12);
+  wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
+  wxButton *go = new wxButton(d, wxID_OK, _("Make the Others"));
+  wxButton *cancel = new wxButton(d, wxID_CANCEL, _("Cancel"));
+  row->Add(go, 0, wxRIGHT, 8);
+  row->Add(cancel, 0);
+  top->Add(row, 0, wxALIGN_RIGHT | wxALL, 12);
+  d->SetSizerAndFit(top);
+  p_anotherDialog = d;
+  go->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    wxDialog *dd = p_anotherDialog;
+    p_anotherDialog = 0;
+    if (dd) dd->Destroy();
+    finishAnotherCode(0);
+  });
+  cancel->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    wxDialog *dd = p_anotherDialog;
+    p_anotherDialog = 0;
+    if (dd) dd->Destroy();
+    setMessage("The other calculations were not made.", WxFeedback::INFO);
+    p_anotherFirst.clear();
+    p_anotherRest.clear();
+  });
+  d->Show();
+}
+
+
+void CalcMgr::finishAnotherCode(string *outcome)
+{
+  if (p_anotherFirst.empty()) {
+    if (outcome) *outcome = "nothing waiting";
+    return;
+  }
+  const EcceURL first(p_anotherFirst);
+  const vector<string> rest = p_anotherRest;
+  const string suffix = p_anotherSuffix;
+  p_anotherFirst.clear();
+  p_anotherRest.clear();
+  string report, why;
+  // The editor writes the deck on Save; a setup left unsaved gets it here.
+  if (!Series::makeReady(first, why))
+    report = first.getFilePathTail() + ": not ready: " + why + "\n";
+  vector<Series::Outcome> r = Series::make(first, first.getParent(), rest, 0, 0, suffix);
+  int made = 0;
+  string notes;
+  for (size_t i = 0; i < r.size(); i++) {
+    if (r[i].ok) {
+      made++;
+      p_treeCtrl->addToTree(EcceURL(r[i].url));
+      notifyCreate(r[i].url);
+      if (!r[i].note.empty()) notes += "\n" + r[i].name + ": " + r[i].note;
+    } else {
+      notes += "\n" + r[i].name + ": not made: " + r[i].note;
+    }
+  }
+  if (WxResourceTreeItemData *container = findNode(first.getParent(), true, true))
+    p_treeCtrl->refresh(container);
+  report += std::to_string(made) + " of " + std::to_string(rest.size()) +
+            " more made from " + first.getFilePathTail() + ", Ready" + notes;
+  if (made) report += "\nSelect them and use Run Mgmt > Launch Selected.";
+  setMessage(report, WxFeedback::INFO);
+  if (outcome) *outcome = report;
+}
+
+
 
 void CalcMgr::screenSites(const EcceURL& templ, bool dialog, bool vacancy,
                           const string& element, double minHost, double minSep,
@@ -6137,7 +6627,7 @@ void CalcMgr::OnReparseOutputsClick( wxCommandEvent& event )
 
 
 void CalcMgr::reparseOutputs(const vector<EcceURL>& urls, bool interactive,
-                             string *outcome)
+                             string *outcome, vector<string> *results)
 {
   //  The progress dialog appears only when the copying of the stored
   //  outputs has taken a moment; a single small calculation never shows it.
@@ -6148,7 +6638,12 @@ void CalcMgr::reparseOutputs(const vector<EcceURL>& urls, bool interactive,
   for (size_t i = 0; i < urls.size(); i++) {
     WxResourceTreeItemData *item = findNode(urls[i], true, true);
     TaskJob *task = item ? dynamic_cast<TaskJob*>(item->getResource()) : 0;
-    if (!task) continue;
+    if (!task) {
+      if (results)
+        results->push_back(urls[i].toString() + "\t" + urls[i].toString() +
+                           "\trefused\tnot a calculation in this session");
+      continue;
+    }
     if (interactive && urls.size() > 1 && !pd &&
         std::chrono::steady_clock::now() - t0 > std::chrono::seconds(1))
       pd = new wxProgressDialog("Re-Parse Outputs", "Starting...",
@@ -6164,6 +6659,9 @@ void CalcMgr::reparseOutputs(const vector<EcceURL>& urls, bool interactive,
     }
     report += task->getName() + (done ? ": started: " : ": skipped: ") +
               message + "|";
+    if (results)
+      results->push_back(task->getName() + "\t" + task->getURL().toString() +
+                         (done ? "\tstarted\t" : "\trefused\t") + message);
   }
   if (pd) { pd->Update((int)urls.size()); delete pd; }
   if (ok)
@@ -6328,7 +6826,7 @@ bool CalcMgr::getAuthorization(AuthEvent& event)
 /*!
  * wxEVT_COMMAND_MENU_SELECTED event handler for wxID_DUPLICATE3
  *
- * Like Duplicate Setup with Last Geometry, and the duplicate also carries
+ * Like Continue from Last Geometry, and the duplicate also carries
  * the source's final orbitals, which belong to that geometry.
  */
 void CalcMgr::OnDuplicate3Click( wxCommandEvent& event )
@@ -6736,6 +7234,81 @@ string CalcMgr::importGromacsFrom(const string& runDir, string& message)
 }
 
 
+// The run goes into the project enclosing the selection.
+string CalcMgr::newGromacsRunFrom(const string& mdp, const string& structure,
+                                  const string& top, const string& tpr,
+                                  string& message)
+{
+  WxResourceTreeItemData *node = p_treeCtrl->getSelection();
+  while (node && node->getResource() &&
+         (!node->getResource()->getDescriptor() ||
+          node->getResource()->getDescriptor()->getName() != "project")) {
+    WxResourceTreeItemData *up = p_treeCtrl->getParent(node);
+    node = (up == node) ? 0 : up;
+  }
+  if (!node || !node->getResource()) {
+    message = "Select a project to make the GROMACS run in.";
+    return "";
+  }
+  string made = createGromacsRun(node->getResource(), mdp, structure, top,
+                                 tpr, message);
+  p_treeCtrl->refresh(node);
+  if (!made.empty()) {
+    setContextPanel();
+    p_contextPanel->selectResource(EcceURL(made));
+  }
+  return made;
+}
+
+
+// Each file is asked for in the folder of the one before.
+bool CalcMgr::askGromacsFiles(bool allowTpr, string& mdp, string& gro,
+                              string& top, string& tpr)
+{
+  mdp.clear(); gro.clear(); top.clear(); tpr.clear();
+  wxFileDialog first(this, allowTpr ? _("GROMACS run input (.mdp or ready .tpr)")
+                                    : _("GROMACS run input (.mdp)"),
+                     wxEmptyString, wxEmptyString,
+                     allowTpr ? _("GROMACS run input (*.mdp;*.tpr)|*.mdp;*.tpr")
+                              : _("GROMACS run input (*.mdp)|*.mdp"),
+                     wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+  if (first.ShowModal() != wxID_OK) return false;
+  const string chosen(first.GetPath().mb_str());
+  if (chosen.size() > 4 && chosen.compare(chosen.size() - 4, 4, ".tpr") == 0) {
+    tpr = chosen;
+    return true;
+  }
+  mdp = chosen;
+  wxFileDialog s(this, _("Starting structure (.gro)"), first.GetDirectory(),
+                 wxEmptyString, _("Structure (*.gro)|*.gro"),
+                 wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+  if (s.ShowModal() != wxID_OK) return false;
+  gro = string(s.GetPath().mb_str());
+  wxFileDialog tp(this, _("Topology (.top)"), s.GetDirectory(), wxEmptyString,
+                  _("Topology (*.top)|*.top"),
+                  wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+  if (tp.ShowModal() != wxID_OK) return false;
+  top = string(tp.GetPath().mb_str());
+  return true;
+}
+
+
+void CalcMgr::OnNewGromacsRunClick( wxCommandEvent& event )
+{
+  string mdp, gro, top, tpr;
+  if (!askGromacsFiles(true, mdp, gro, top, tpr)) return;
+  startDisabler();
+  string message;
+  string made = newGromacsRunFrom(mdp, gro, top, tpr, message);
+  if (made.empty())
+    setMessage(message, WxFeedback::ERROR);
+  else
+    setMessage("The GROMACS calculation is made and Ready to launch. " + message,
+               WxFeedback::INFO);
+  stopDisabler();
+}
+
+
 void CalcMgr::OnImportGromacsClick( wxCommandEvent& event )
 {
   wxDirDialog dlg(this, _("Choose the directory of the GROMACS run"));
@@ -6801,7 +7374,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "46";
+const char *const kExampleSetVersion = "47";
 
 string treeName(string s)
 {
@@ -7285,6 +7858,11 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
         p_treeCtrl->refresh(n);
     }
     Session *flow = topic.workflow ? dynamic_cast<Session*>(parent) : 0;
+    // Calculation names can repeat in other topics and sets; only this
+    // topic's workflow definitions may be used by the import callbacks.
+    p_flowSources.clear();
+    p_flowHessian.clear();
+    p_flowKeys.clear();
     if (flow)
     {
       for (const auto &l : topic.links)
@@ -7369,6 +7947,9 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
     // Not the maximum: wxProgressDialog then waits for a click on Close.
     progress.Update(nExamples - 1, _("Reading results..."));
   }
+  p_flowSources.clear();
+  p_flowHessian.clear();
+  p_flowKeys.clear();
   p_batchImport = false;
   cerr << "Organizer: examples " << set->id << " imported in "
        << std::chrono::duration<double>(
@@ -7775,8 +8356,8 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "the ionisation energy."},
     {"Ne_HF_neutral",
      "ECCE-QM, HF/aug-cc-pVTZ, energy. This calculation shows the neon "
-     "atom; with the cation, Tools > Compare "
-     "Energies gives the ionisation energy as the difference of their "
+     "atom; with the cation, Tools > Energy "
+     "Calculator gives the ionisation energy as the difference of their "
      "energies."},
     {"Ne_HF_cation",
      "ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the neon "
@@ -8226,6 +8807,34 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "tetrahedra joined at their corners into helical chains along c; the "
      "three-fold screw axis extinguishes the 00l reflections unless l is "
      "a multiple of 3."},
+    {"ice",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 6x4x4 k-points, atoms relaxed in the fixed cell. "
+     "This calculation shows a molecular crystal in which water molecules are held together by hydrogen bonds, each O-H pointing at the oxygen of a neighbouring molecule. "
+     "Structure: ice XI (Cmc21, proton-ordered), COD 1566645 (Leadbetter 1985, D2O neutron diffraction, D replaced by H)."},
+    {"dryice",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 4x4x4 k-points, atoms relaxed in the fixed cell. "
+     "This calculation shows a molecular crystal of linear CO2 molecules with no hydrogen bonds, held together only by weak dispersion forces, which is why dry ice sublimes so easily. "
+     "Structure: CO2 (Pa-3, 150 K), COD 9007643."},
+    {"urea",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 4x4x5 k-points, atoms relaxed in the fixed cell. "
+     "This calculation shows a molecular crystal held together by hydrogen bonds from the N-H groups of each urea molecule to the C=O oxygens of its neighbours. "
+     "Structure: urea (P-421m, neutron diffraction, 12 K), COD 9017318 (Swaminathan and Craven 1984)."},
+    {"Molecular_and_covalent_solids/benzene",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 4x4x3 k-points, atoms relaxed in the fixed cell. "
+     "This calculation shows a molecular crystal of benzene held together by dispersion forces alone, with the flat rings packed edge to face in a herringbone pattern. "
+     "Structure: benzene I (Pbca, 150 K, X-ray), COD 7238223 (CrystEngComm 2010)."},
+    {"sucrose",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 2x2x2 k-points, single point (scf). "
+     "This calculation shows a molecular crystal of sugar molecules joined by a network of O-H...O hydrogen bonds between their hydroxyl groups. "
+     "Structure: sucrose (P21, 100 K), COD 7244614 (X-ray wavefunction refinement, RSC Adv. 2022)."},
+    {"diamond",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 6x6x6 k-points, atoms relaxed in the fixed cell. "
+     "This calculation shows a covalent network solid: every carbon atom is bonded tetrahedrally to four others, so the whole crystal is one molecule with no weak links. "
+     "Structure: diamond (Fd-3m, conventional cell), standard structure."},
+    {"graphite",
+     "Quantum ESPRESSO, PBE-D3(BJ), plane waves (60 Ry), 10x10x4 k-points, atoms relaxed in the fixed cell. "
+     "This calculation shows a solid that is covalent in two dimensions only: each carbon atom is bonded to three others in flat hexagonal sheets, and the sheets are held together by dispersion forces, so they slide over each other easily. "
+     "Structure: graphite (P63/mmc, AB stacking), standard structure."},
     {"ar-gas-300K",
      "GROMACS, Lennard-Jones argon, 1000 atoms, 300 K, 20 bar, 2 ns. This "
      "calculation shows the Maxwell-Boltzmann distribution of atomic speeds "
@@ -8721,8 +9330,13 @@ void CalcMgr::OnTreectrlBeginRDrag( wxTreeEvent& event )
  */
 void CalcMgr::OnTreectrlDeleteItem( wxTreeEvent& event )
 {
-  //  cerr << "DeleteItem: " << p_treeCtrl->GetItemText(event.GetItem()) << endl;
-  
+  // setContextPanel() tells "same node, refresh" from "new node" by address;
+  // a freed node's address can come back for the next node made.
+  if (p_panelNode &&
+      p_treeCtrl->GetItemData(event.GetItem()) ==
+        static_cast<wxTreeItemData*>(p_panelNode)) {
+    p_panelNode = 0;
+  }
   event.Skip();
 }
 
@@ -8977,7 +9591,7 @@ void CalcMgr::copySelectionToClipboard(bool deleteAfterPaste)
   getSelection();
   p_clipboard = p_currentSelection;
   p_toolBar->EnableTool(wxID_PASTE, !p_clipboard.empty());
-  GetMenuBar()->Enable(wxID_PASTE, !p_clipboard.empty());
+  ownMenuBar()->Enable(wxID_PASTE, !p_clipboard.empty());
 }
 
 
@@ -9135,6 +9749,11 @@ void CalcMgr::showInWorkflow(const EcceURL& wfUrl, const EcceURL& step)
 {
   findNode(wfUrl, true, true);
   for (int i = 0; i < 5; i++) wxYield();
+  // Selecting a node that is already the tree's selection sends no event, so
+  // the panel shown may still be another node's: build the workflow's.
+  WxResourceTreeItemData *node = findNode(wfUrl, false, false);
+  if (node && node != p_panelNode && p_treeCtrl->getSelection() == node)
+    setContextPanel();
   if (p_contextPanel) p_contextPanel->selectResource(step);
 }
 
@@ -9455,7 +10074,7 @@ void CalcMgr::deleteSelection()
 
     int okToDelete = wxID_NO;
     if (allowedForDelete) {
-      if (GetMenuBar()->IsChecked(wxID_CONFIRM_DELETE) && !yesToAll
+      if (ownMenuBar()->IsChecked(wxID_CONFIRM_DELETE) && !yesToAll
           && msg != "") {
         ewxMessageDialog dlg(this, msg, "Delete?",
                              wxNO_DEFAULT|wxYES_NO|wxICON_QUESTION,
@@ -9554,7 +10173,7 @@ string CalcMgr::transferTo(bool cut, const EcceURL& dest)
     p_clipboard = keep;
     p_deleteAfterPaste = keepCut;
     p_toolBar->EnableTool(wxID_PASTE, true);
-    GetMenuBar()->Enable(wxID_PASTE, true);
+    ownMenuBar()->Enable(wxID_PASTE, true);
   }
   return "";
 }
@@ -9708,7 +10327,7 @@ void CalcMgr::paste()
       }
       p_clipboard.clear();
       p_toolBar->EnableTool(wxID_PASTE, false);
-      GetMenuBar()->Enable(wxID_PASTE, false);
+      ownMenuBar()->Enable(wxID_PASTE, false);
       findNode(destinationUrl, true, true);
     }
   }
@@ -9869,8 +10488,9 @@ void CalcMgr::getContextMenu(wxMenu & menu)
 
   // Only a calculation can be duplicated (#47).
   bool isCalculationNode = itemData && itemData->getResource() &&
-      itemData->getResource()->getContentType() ==
-          ResourceDescriptor::CT_CALCULATION;
+      (itemData->getResource()->getContentType() ==
+           ResourceDescriptor::CT_CALCULATION ||
+       GromacsCalc::isRun(itemData->getResource()));
 
   // build the "new" part of the context menu first
   // the variables to iterate through what "can be contained"
@@ -9902,6 +10522,7 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     menuItem->SetBitmap(ewxBitmap(resVec[i]->getIcon()));
     newMenu->Append(menuItem);
   }
+  if (!resVec.empty()) appendMoreCodes(*newMenu);
   //  An imported output is a new calculation too; users look for it here,
   //  not only under File.
   if (!resVec.empty()) {
@@ -9940,7 +10561,7 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   //  A study task is rerun by a copy that keeps its place in the study.
   if (!isCalculationNode && itemData && dynamic_cast<MdTask*>(
           itemData->getResource()))
-    menu.Append(wxID_DUPLICATE, _("Duplicate for Rerun"));
+    menu.Append(wxID_DUPLICATE, _("Rerun"));
   //  A calculation's menu: the clipboard items, what to make from it, and
   //  what to do with its run. The tools (Builder, Calculation Editor, ...)
   //  are on the toolbar and the Tools menu.
@@ -9959,6 +10580,12 @@ void CalcMgr::getContextMenu(wxMenu & menu)
         can ? _("A copy with the last geometry that starts from this "
                 "calculation's final orbitals") : wxString(why));
     item->Enable(can);
+    //  A batch action: offered in the table, where several calculations are
+    //  selected, and on Tools; the tree menu stays short.
+    if (!p_popupOnTree)
+      from->Append(wxID_ANOTHER_CODE, _("Continue in Another Code..."),
+                   _("One new calculation in another code from each selected "
+                     "calculation, all with the setup you make once"));
     {
       //  Offered for any periodic calculation, so it can say what is
       //  missing when the code is not MLP.
@@ -10220,6 +10847,7 @@ void CalcMgr::getFileMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
       mi->SetBitmap(ewxBitmap(types[i]->getIcon()));
       newMenu->Append(mi);
     }
+    if (!types.empty()) appendMoreCodes(*newMenu);
     menu.Append(wxID_ANY, _("&New"), newMenu);
     menu.AppendSeparator();
   }
@@ -10495,6 +11123,10 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
   addApp("PeriodicTable");
   addItem(ID_COMPARE_ENERGIES, _("Energy Calculator..."), p_compareEnergiesWired,
           &CalcMgr::OnCompareEnergies);
+  menu.AppendSeparator();
+  menu.Append(wxID_ANOTHER_CODE, _("New Calculations in Another Code..."),
+              _("One new calculation in another code from each selected "
+                "calculation, all with the setup you make once"));
   menu.AppendSeparator();
   // QSAR
   addItem(ID_BATCH_SMILES, _("Batch Add from SMILES..."), p_batchSmilesWired,
@@ -10874,6 +11506,14 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
     if (getenv("ECCE_TEST_ORGANIZER_NOLAUNCH")) return;
   }
 
+  // Busy cursor, status line and the slow-start window; a second request
+  // for the same tool and calculation while it starts is not sent.
+  {
+    ResourceTool *t = ResourceDescriptor::getResourceDescriptor().getTool(app);
+    string label = t && !t->getLabel().empty() ? t->getLabel() : app;
+    if (!p_toolStartup->begin(app, label, url, force != 0)) return;
+  }
+
   JMSMessage *msg = newMessage();
   msg->addProperty("action","start");
   publish("ecce_activity",*msg);
@@ -10887,8 +11527,21 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
     msg->addProperty("codename", codename);
     msg->addIntProperty("debug",debug);
   }
-  publish("ecce_get_app",*msg);
+  // ECCE_ONE_PROCESS (#983): Builder and Calculation Editor open as
+  // windows of this process; other tools still go to the gateway.
+  if (!InProcessTools::open(*msg))
+    publish("ecce_get_app",*msg);
   delete msg;
+}
+
+
+/**
+ * The tool's window is up: ends the start feedback.  The one place for it;
+ * the tab code of one-process mode calls this when a tab appears.
+ */
+void CalcMgr::toolUp(const string& app, const string& url)
+{
+  if (p_toolStartup) p_toolStartup->up(app, url);
 }
 
 
@@ -11118,7 +11771,8 @@ void CalcMgr::resetForRerun()
   if (!skipped.empty()) {
     char buf[64];
     string msg = "Imported results cannot be reset, because that would "
-                 "delete them. Use Run Mgmt > Duplicate for Rerun to run "
+                 "delete them. Use Edit > New from This > Rerun (also in "
+                 "the right-click menu) to run "
                  "the calculation again.";
     if (!selections.empty()) {
       snprintf(buf, sizeof(buf), " %d imported calculation%s skipped.",
@@ -11137,7 +11791,7 @@ void CalcMgr::resetForRerun()
   if (selections.empty()) return;
 
   bool doit = true;
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     single = selections.size() == 1;
   
     string msg = "Resetting to rerun ";
@@ -11176,7 +11830,7 @@ void CalcMgr::resetForRestart()
 {
   bool doit = true;
   
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     // get the selected tree or panel item(s), remember how many selected
     bool single = getSelection();
 
@@ -11215,7 +11869,7 @@ void CalcMgr::resetCompleted()
 {
   bool doit = true;
 
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     // get the selected tree or panel item(s), remember how many selected
     bool single = getSelection();
 
@@ -11248,7 +11902,7 @@ void CalcMgr::forceFail()
 {
   bool doit = true;
 
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     // get the selected tree or panel item(s), remember how many selected
     bool single = getSelection();
 
@@ -11280,7 +11934,7 @@ void CalcMgr::resetIncomplete()
 {
   bool doit = true;
 
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     // get the selected tree or panel item(s), remember how many selected
     bool single = getSelection();
 
@@ -11314,7 +11968,7 @@ void CalcMgr::resetImported()
 {
   bool doit = true;
 
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     // get the selected tree or panel item(s), remember how many selected
     bool single = getSelection();
 
@@ -11348,7 +12002,7 @@ void CalcMgr::resetKilled()
 {
   bool doit = true;
 
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     // get the selected tree or panel item(s), remember how many selected
     bool single = getSelection();
 
@@ -12647,6 +13301,19 @@ void CalcMgr::resetWithLastGeom(WxResourceTreeItemData *itemData)
   // get calculation
   PropertyTask *calc = dynamic_cast<PropertyTask*>(itemData->getResource());
 
+  // A GROMACS calculation's last geometry is the final frame it wrote,
+  // which becomes the copy's starting .gro; its files are complete, so Ready.
+  if (calc && GromacsCalc::isRun(calc)) {
+    string why;
+    const bool moved = GromacsCalc::continueFromFinal(calc, why);
+    calc->resetForRerun(ResourceDescriptor::STATE_READY);
+    calc->setState(ResourceDescriptor::STATE_READY);
+    p_feedback->clearMessage();
+    setMessage(moved ? "The copy starts from the final frame of the run."
+                     : "The copy is the same run: " + why);
+    return;
+  }
+
   // get fragment
   Fragment *frag = (Fragment*)0;
   if (calc) {
@@ -13151,7 +13818,7 @@ void CalcMgr::createResource(ResourceType * resType,
   const bool wfStep = parent && parent->getResource() &&
       parent->getResource()->getApplicationType() == ResourceDescriptor::AT_WORKFLOW &&
       resType->getFactoryCategory() == "EsCalculation";
-  if (!bypassNamePrompt && !wfStep && GetMenuBar()->IsChecked(wxID_ASKFORNAME)) {
+  if (!bypassNamePrompt && !wfStep && ownMenuBar()->IsChecked(wxID_ASKFORNAME)) {
     bool showInvalidMsg = false;
     string invalidMsg = "A name may contain only letters, digits, "
       "'.', '_' and '-'.\n\n";
@@ -13225,7 +13892,7 @@ void CalcMgr::createResource(ResourceType * resType,
 
     EcceURL newurl = newRes->getURL();
     ResourceTool * tool = 0;
-    if (GetMenuBar()->IsChecked(wxID_RUNDEFAULTTOOL))
+    if (ownMenuBar()->IsChecked(wxID_RUNDEFAULTTOOL))
       tool = newRes->getDefaultTool();
 
     // logic to handle MD and condensed phase reaction study branching
@@ -13860,7 +14527,7 @@ void CalcMgr::updateBookmarkMenu()
                          wxITEM_NORMAL);
   }
   
-  wxMenuBar * menuBar = GetMenuBar();
+  wxMenuBar * menuBar = ownMenuBar();
   delete menuBar->Replace(menuBar->FindMenu(_("Bookmarks")),
                           bookmarkMenu, _("&Bookmarks"));
 
@@ -14281,7 +14948,7 @@ void CalcMgr::onSelectionChange(bool selectInTree)
   //  Thawing does not repaint it on MSW (it has no window of its own), so
   //  the hold redraws it when a title changed state (Run Mgmt drawn
   //  disabled for a completed calculation otherwise).
-  MenuBarHold holdMenus(GetMenuBar(), p_menuTitlesChanged);
+  MenuBarHold holdMenus(ownMenuBar(), p_menuTitlesChanged);
   //  The summary pane is replaced and the tree and toolbar change in one
   //  go; on MSW each step was painted (an empty pane, then half of it).
   //  Released before the menu bar, so its repaint is not swallowed.  On
@@ -14294,7 +14961,7 @@ void CalcMgr::onSelectionChange(bool selectInTree)
   std::unique_ptr<FrameHold> hold;
   if (selectInTree)
     hold.reset(new FrameHold(this));
-  wxMenuBar * menuBar = GetMenuBar();
+  wxMenuBar * menuBar = ownMenuBar();
   WxResourceTreeItemData *itemData = 0;
 
   if (selectInTree) {
@@ -14356,8 +15023,8 @@ void CalcMgr::onSelectionChange(bool selectInTree)
 
 void CalcMgr::updateSelectionMenus()
 {
-  MenuBarHold holdMenus(GetMenuBar(), p_menuTitlesChanged);
-  wxMenuBar * menuBar = GetMenuBar();
+  MenuBarHold holdMenus(ownMenuBar(), p_menuTitlesChanged);
+  wxMenuBar * menuBar = ownMenuBar();
   WxResourceTreeItemData * itemData = p_treeCtrl->getSelection();
   wxMenu * fileMenu = menuBar->GetMenu(menuBar->FindMenu(_("File")));
   getFileMenu(*fileMenu, itemData);
@@ -14495,7 +15162,7 @@ void CalcMgr::updateSelectionMenus()
         enableMenuItem(menuBar, wxID_DUPLICATE3, can);
         wxMenuItem *item = menuBar->FindItem(wxID_DUPLICATE3);
         if (item)
-          item->SetHelp(can ? _("Duplicate with the last geometry and start "
+          item->SetHelp(can ? _("A copy with the last geometry that starts "
                                 "from this calculation's final orbitals")
                             : wxString(why));
       }
@@ -14567,7 +15234,7 @@ string CalcMgr::getTreeSelectionName()
 void CalcMgr::setTreeStyle()
 {
   int treeStyle = p_treeCtrl->GetWindowStyleFlag();
-  if (GetMenuBar()->IsChecked(wxID_SHOW_LINE))
+  if (ownMenuBar()->IsChecked(wxID_SHOW_LINE))
     treeStyle = treeStyle & (~wxTR_NO_LINES);
   else
     treeStyle = treeStyle | wxTR_NO_LINES;

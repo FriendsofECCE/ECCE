@@ -163,6 +163,9 @@ def key_tests():
     for m in re.finditer(r'"(ES\.[A-Za-z0-9_.]+?)(\$i)?"',
                          open(os.path.join(PARSERS, "ai.cp2k")).read()):
         gen.add(m.group(1) + ("N" if m.group(2) else ""))
+    # Set by the Calculation Editor when a duplicate carries final orbitals
+    # (#407), not by a widget.
+    gen -= {"ES.Theory.SCF.OrbitalGuessFile"}
     check(len(dialog) > 20 and dialog == gen,
           "every dialog widget is read by ai.cp2k and the reverse (%d keys; "
           "dialog only %s, ai.cp2k only %s)" % (len(dialog), sorted(dialog - gen), sorted(gen - dialog)))

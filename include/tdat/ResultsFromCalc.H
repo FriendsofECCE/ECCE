@@ -30,6 +30,11 @@ namespace ResultsFromCalc
 {
   /** Name of the data file stored beside the calculation. */
   const char* const FILE_NAME = "results.h5";
+  /** Property key and results.h5 charges scheme of the NPA charges ECCE
+   *  computes from the stored orbitals (#1054); the code's own NBO NPA
+   *  stays the NPA key. */
+  const char* const NPA_KEY = "NPAECCE";
+  const char* const NPA_SCHEME = "npa_ecce";
 
   /** False when ECCE_RESULTS_H5=0 (both writing and reading are off). */
   bool enabled();
@@ -47,6 +52,8 @@ namespace ResultsFromCalc
     vector<vector<double> > rows[2];          // alpha, beta (beta may be empty)
     vector<double> energy[2], occupation[2];
     string code, codeVersion, method, basisName;
+    vector<int> ecpCore;                      // per atom; empty when no ECP is known
+    string ecpName;
   };
 
   /** Flat basis and rows -> canonical shells and coefficients. */
@@ -54,6 +61,13 @@ namespace ResultsFromCalc
 
   /** The calculation's geometry, MOs and flattened basis. */
   bool gather(IPropCalculation *calc, Parsed& out, string& why);
+
+  /**
+   * ECP core electrons per atom from a code's output (ORCA's "ECP PARAMETER
+   * INFORMATION", Gaussian's "Pseudopotential Parameters"); empty when the
+   * output names none.  natoms bounds the atom indices.
+   */
+  vector<int> ecpCoreFromOutput(std::istream& in, size_t natoms, string& name);
 
   /**
    * The inverse of convert(): the file's orbitals (rows[0] alpha or

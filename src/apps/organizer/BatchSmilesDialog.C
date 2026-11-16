@@ -5,6 +5,7 @@
 #include <wx/checklst.h>
 #include <wx/choice.h>
 #include <wx/filedlg.h>
+#include <wx/filename.h>
 #include <wx/listctrl.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
@@ -108,6 +109,8 @@ bool BatchSmilesDialog::loadFile(const string& path, string& why)
     return false;
   }
   setText(text);
+  p_table.source = S(wxFileName(U(path)).GetFullName());
+  refreshPreview();
   return true;
 }
 
@@ -140,6 +143,7 @@ void BatchSmilesDialog::parse()
 {
   string why;
   p_parsed = SmilesBatch::parseTable(S(p_text->GetValue()), p_table, why);
+  p_table.source = "pasted text";
   fillColumnChoices();
   if (!p_parsed) {
     p_rows.clear();

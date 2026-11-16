@@ -147,7 +147,9 @@ This is the longest task, about 15 seconds.
 - In the **Properties** panel of the Builder, choose **Geometry Step Plots**
   and pick what to plot on the Y-axis, for example **Pressure Vector**. The
   tasks store the total energy, the pressure and, after Equilibrate and
-  Dynamics, the temperature.
+  Dynamics, the temperature. Geometry Step Plots is listed only for a
+  calculation without a Geometry Trace; where there is one, its right-click
+  menu plots the same quantities.
 
 The energies a task stores are the ones `gmx energy` reads from the run.
 

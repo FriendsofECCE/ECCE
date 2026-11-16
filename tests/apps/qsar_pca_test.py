@@ -9,6 +9,7 @@ whose scores must equal those of the CLI on the stored folders.  Exit 77 (skip) 
 """
 import csv
 import io
+import math
 import os
 import re
 import shutil
@@ -49,6 +50,23 @@ def same(a, b):
         return a == b
 
 
+def plot_ticks(verification):
+    """Read the labels collected by the actual paint paths."""
+    labels = {}
+    for axis in ("plot-x", "plot-y", "scree-y"):
+        match = re.search(r"^" + axis + r"=(.*)$", verification, re.MULTILINE)
+        values = [float(v) for v in match[1].split()] if match else []
+        assert len(values) >= 2, (axis, values)
+        step = values[1] - values[0]
+        assert step > 0, (axis, values)
+        mantissa = step / 10 ** math.floor(math.log10(step))
+        assert any(math.isclose(mantissa, m) for m in (1, 2, 5, 10)), (axis, values)
+        assert all(math.isclose(b - a, step) for a, b in zip(values, values[1:])), (axis, values)
+        assert all(math.isclose(v / step, round(v / step), abs_tol=1e-8) for v in values), (axis, values)
+        labels[axis] = values
+    return labels
+
+
 def run(display):
     data = tempfile.mkdtemp(prefix="ecce-chk-data-")
     work = tempfile.mkdtemp(prefix="ecce-chk-")
@@ -71,8 +89,16 @@ def run(display):
                              capture_output=True, text=True, check=True).stdout
         out = os.path.join(work, "gui")
         cmds = os.path.join(work, "commands")
+        shots = os.environ.get("ECCE_QSAR_SHOTS")
+        png = ""
+        if shots:
+            os.makedirs(shots, exist_ok=True)
+            screen = os.environ.get("ECCE_XVFB_SCREEN", "1280x1024x24").split("x")
+            width, height = int(screen[0]), int(screen[1])
+            png = " %s %d %d" % (os.path.join(shots, "pca-%sx%s.png" % (width, height)),
+                                      width, height)
         with open(cmds, "w") as h:
-            h.write("qsarpca %s file://%s uv 2 %s\n" % (out, project, os.environ.get("ECCE_QSAR_SHOT", "")))
+            h.write("qsarpca %s file://%s uv 2%s\n" % (out, project, png))
         result = apps.run(display, "organizer", windowTimeout=60, settle=60,
                           env={"ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_ORGANIZER_OPEN": "file://" + project,
@@ -91,6 +117,30 @@ def run(display):
                if g[0] not in refd or abs(float(g[1]) - float(refd[g[0]][1])) > 1e-6 * (1 + abs(float(g[1])))]
         check(not bad, "scores equal the CLI's", bad)
         check("PCA: 6 rows" in cli, "CLI report", cli[:200])
+        with open(out + "/analysis_summary.txt", encoding="utf-8") as f:
+            summary = f.read()
+        check("%" in summary and "components" in summary, "summary explains variance as percentages", summary)
+        check("Left out (no variance in these " in summary and "column " not in summary,
+              "omitted descriptors are grouped by reason", summary)
+        with open(out + "/analysis_components.csv", encoding="utf-8", newline="") as f:
+            table = list(csv.reader(f))
+        check(any("R²X" in h for h in table[0]) and any("Q²" in h for h in table[0])
+              and any("%" in h for h in table[0]), "component headers have symbols and percent units", table[0])
+        check(len(table) > 2, "component table includes computed components")
+        # CV folds depend on row positions; use the exported GUI table to
+        # compare presentation independently of folder traversal order.
+        subprocess.run([sys.executable, CLI, "pca", out + "/table.csv", "--y", "act",
+                        "--components", "2", "--outdir", work + "/display-reference"],
+                       capture_output=True, text=True, check=True)
+        with open(work + "/display-reference/analysis_components.csv", encoding="utf-8", newline="") as f:
+            reference_table = list(csv.reader(f))
+        check(table == reference_table, "displayed components equal the CLI table",
+              (table, reference_table))
+        check("* = component kept" in summary and "model plane" in summary,
+              "legend explains kept components and model distances", summary)
+        # Copy, hover and click checks of the former dialog's presentation layer are not
+        # ported to the QSAR window (#996).
+
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)

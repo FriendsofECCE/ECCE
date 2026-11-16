@@ -72,6 +72,11 @@
 
 #include "inv/ChemKit/ChemUnitSphere.H"
 
+#ifdef OIV_COIN
+#include <Inventor/C/glue/gl.h>
+#include "inv/elements/SoCacheElement.H"
+#endif
+
 static float tridata[6][3] = {
     {1, 0, 0},
     {-1, 0, 0},
@@ -378,38 +383,70 @@ void ChemUnitSphere::generateSphereTexCoords(int32_t &vertCount)
 // Description:
 //    Generates a texture used for billboarding purposes
 
-void ChemUnitSphere::generateBillboard()
+void ChemUnitSphere::generateBillboard(SoGLRenderAction *action)
 {
 	if (sphereTexture != 0)
 		return;
 
 	const int quad = 256;
 
-   //
-/*  
-  int currentScreen[4];
-  glGetIntegerv(GL_VIEWPORT,(int*)currentScreen);
-  unsigned char* currentPixels = NULL;
-  if (currentScreen[2]*currentScreen[3] > 0)
-  {
-	  currentPixels = new unsigned char[currentScreen[2]*currentScreen[3]*(32/8)];
-    //glCopyPixels(GL_FRONT);
-   // glReadBuffer(GL_BACK);
-	  glReadPixels(0,0,currentScreen[2],currentScreen[3],GL_RGBA,GL_UNSIGNED_BYTE,currentPixels); // pick framebuffer
+#ifdef OIV_COIN
+  // Texture construction must not clear the scene already in the window.
+  const cc_glglue *glue = cc_glglue_instance(action->getCacheContext());
+  if (!cc_glglue_has_framebuffer_objects(glue)) return;
+  // Framebuffer bindings are immediate; scratch drawing must never be replayed.
+  SoCacheElement::invalidate(action->getState());
+  const bool separate = cc_glglue_glversion_matches_at_least(glue, 3, 0, 0);
+  GLint readFbo = 0, drawFbo = 0, renderbuffer = 0;
+  glGetIntegerv(GL_FRAMEBUFFER_BINDING, &drawFbo);
+  if (separate) glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &readFbo);
+  else readFbo = drawFbo;
+  glGetIntegerv(GL_RENDERBUFFER_BINDING, &renderbuffer);
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  GLuint fbo = 0, buffers[2] = {0, 0};
+  cc_glglue_glGenFramebuffers(glue, 1, &fbo);
+  cc_glglue_glGenRenderbuffers(glue, 2, buffers);
+  if (!fbo || !buffers[0] || !buffers[1]) {
+    cc_glglue_glDeleteRenderbuffers(glue, 2, buffers);
+    cc_glglue_glDeleteFramebuffers(glue, 1, &fbo);
+    glPopAttrib();
+    return;
   }
-  //
-  */
-  //glDrawBuffer(GL_FRONT);
+  cc_glglue_glBindFramebuffer(glue, GL_FRAMEBUFFER, fbo);
+  cc_glglue_glBindRenderbuffer(glue, GL_RENDERBUFFER, buffers[0]);
+  cc_glglue_glRenderbufferStorage(glue, GL_RENDERBUFFER, GL_RGBA8, quad, quad);
+  cc_glglue_glFramebufferRenderbuffer(glue, GL_FRAMEBUFFER,
+      GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, buffers[0]);
+  cc_glglue_glBindRenderbuffer(glue, GL_RENDERBUFFER, buffers[1]);
+  cc_glglue_glRenderbufferStorage(glue, GL_RENDERBUFFER,
+      GL_DEPTH_COMPONENT24, quad, quad);
+  cc_glglue_glFramebufferRenderbuffer(glue, GL_FRAMEBUFFER,
+      GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, buffers[1]);
+  glDrawBuffer(GL_COLOR_ATTACHMENT0);
+  glReadBuffer(GL_COLOR_ATTACHMENT0);
+  const auto restore = [&]() {
+    if (separate) {
+      cc_glglue_glBindFramebuffer(glue, GL_READ_FRAMEBUFFER, readFbo);
+      cc_glglue_glBindFramebuffer(glue, GL_DRAW_FRAMEBUFFER, drawFbo);
+    } else {
+      cc_glglue_glBindFramebuffer(glue, GL_FRAMEBUFFER, drawFbo);
+    }
+    cc_glglue_glBindRenderbuffer(glue, GL_RENDERBUFFER, renderbuffer);
+    cc_glglue_glDeleteRenderbuffers(glue, 2, buffers);
+    cc_glglue_glDeleteFramebuffers(glue, 1, &fbo);
+    glPopAttrib();
+  };
+  if (cc_glglue_glCheckFramebufferStatus(glue, GL_FRAMEBUFFER)
+      != GL_FRAMEBUFFER_COMPLETE) {
+    restore();
+    return;
+  }
+  glDisable(GL_SCISSOR_TEST);
+  glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+  glDepthMask(GL_TRUE);
+#endif
 
 	glGenTextures(1,&sphereTexture);
-
-	if (glGetError() != GL_NO_ERROR)
-	{
-#ifdef DEBUG
-		fprintf(stderr,"glGenTextures error: error num %d\n",glGetError());
-		return;
-#endif
-	}
 
 	glClearColor(0,0,0,0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -498,20 +535,9 @@ void ChemUnitSphere::generateBillboard()
 	glPopMatrix();
   glMatrixMode(GL_MODELVIEW);
 
-//glDrawBuffer(GL_BACK);
-  /*
-  if (currentPixels != NULL)
-  {
-    int raster[2];
-    glGetIntegerv(GL_CURRENT_RASTER_POSITION,raster);
-    glRasterPos2i(50,50);
-    glClearColor(1,0,0,0);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glDrawPixels(currentScreen[2],currentScreen[3],GL_RGBA,GL_UNSIGNED_BYTE,currentPixels);
-	  delete[] currentPixels;
-  }
-  */
-  ///
+#ifdef OIV_COIN
+  restore();
+#endif
 }
 //
 // <-- EGB && SGB

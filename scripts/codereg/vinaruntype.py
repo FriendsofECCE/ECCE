@@ -1,4 +1,5 @@
 from templates import *
+import os
 
 
 class VinaRunTypeFrame(EcceFrame):
@@ -22,6 +23,15 @@ class VinaRunTypePanel(EccePanel):
                                     tip="Atom numbers, for example 1-5,9",
                                     export=1)
         dockSizer.AddWidget(self.ligand)
+        # What the generator chose while Ligand atoms is empty.  Not a
+        # setting: the editor writes it to a side file after each Save.
+        self.autoNote = wx.StaticText(self, label="")
+        dockSizer.AddWidget(self.autoNote)
+        self.autoNoteText = ""
+        self.noteTimer = wx.Timer(self, 4711)
+        self.Bind(wx.EVT_TIMER, self.OnNoteTimer, self.noteTimer, 4711)
+        self.noteTimer.Start(1000)
+        self.ShowAutoNote()
         self.lcharge = EcceSpinCtrl(self,
                                     name="ES.Runtype.Docking.LigandCharge",
                                     default=0,
@@ -118,7 +128,25 @@ class VinaRunTypePanel(EccePanel):
 
         self.AddButtons()
 
+    def OnNoteTimer(self, event):
+        try:
+            with open(EcceGlobals.FdIn + ".note", encoding="utf-8") as f:
+                self.autoNoteText = f.readline().strip()
+        except (OSError, UnicodeDecodeError):
+            self.autoNoteText = ""
+        self.ShowAutoNote()
+
+    def ShowAutoNote(self):
+        # Shown only while the field is empty; a typed list is the ligand.
+        text = self.autoNoteText
+        if self.ligand.GetValue().strip():
+            text = ""
+        if self.autoNote.GetLabel() != text:
+            self.autoNote.SetLabel(text)
+            self.Layout()
+
     def CheckDependency(self):
+        self.ShowAutoNote()
         manual = not self.auto.GetValue()
         for c in self.center + self.size:
             c.Enable(manual)

@@ -35,7 +35,7 @@
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/WxTimeSpanEdit.H"
 #include "wxgui/WxFeedback.H"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/ewxPanel.H"
 #include "wxgui/ewxTextCtrl.H"
 ////@end includes
 
@@ -113,17 +113,15 @@ const wxWindowID WxLauncherGUI::ID_STATIC_WXLAUNCHER_BATCHPROCSMAX = wxNewId();
  * WxLauncherGUI type definition
  */
 
-IMPLEMENT_CLASS( WxLauncherGUI, ewxFrame )
+IMPLEMENT_CLASS( WxLauncherGUI, ewxPanel )
 
 /*!
  * WxLauncherGUI event table definition
  */
 
-BEGIN_EVENT_TABLE( WxLauncherGUI, ewxFrame )
+BEGIN_EVENT_TABLE( WxLauncherGUI, ewxPanel )
 
 ////@begin WxLauncherGUI event table entries
-    EVT_CLOSE( WxLauncherGUI::mainWindowCloseCB )
-
     EVT_CHOICE( ID_CHOICE_WXLAUNCHER_MACHINES, WxLauncherGUI::machinesChoiceSelectedCB )
 
     EVT_COMMAND(ID_PARAMEDIT_WXLAUNCHER_WKSTNPROCS, ewxEVT_PARAMETER_VALUE_CHANGED, WxLauncherGUI::wkstnProcsParamValueChangedCB)
@@ -160,18 +158,6 @@ BEGIN_EVENT_TABLE( WxLauncherGUI, ewxFrame )
 
     EVT_BUTTON( ID_BUTTON_WXLAUNCHER_LAUNCH, WxLauncherGUI::launchButtonClickCB )
 
-    EVT_MENU( ID_MENUITEM_WXLAUNCHER_MACHREGISTER, WxLauncherGUI::machRegisterMenuitemClickCB )
-
-    EVT_MENU( ID_MENUITEM_WXLAUNCHER_STAGELAUNCH, WxLauncherGUI::stageLaunchMenuItemClickCB )
-
-    EVT_MENU( ID_MENUITEM_WXLAUNCHER_FINISHLAUNCH, WxLauncherGUI::finishLaunchMenuItemClickCB )
-
-    EVT_MENU( wxID_EXIT, WxLauncherGUI::quitMenuItemClickCB )
-
-    EVT_MENU( wxID_HELP, WxLauncherGUI::helpLauncherMenuitemClickCB )
-
-    EVT_MENU( ID_MENUITEM_WXLAUNCHER_HELPSUPPORT, WxLauncherGUI::helpSupportMenuitemClickCB )
-
 ////@end WxLauncherGUI event table entries
 
 END_EVENT_TABLE()
@@ -200,12 +186,10 @@ bool WxLauncherGUI::Create( wxWindow* parent, wxWindowID id, const wxString& cap
 
 ////@begin WxLauncherGUI creation
     SetExtraStyle(wxWS_EX_VALIDATE_RECURSIVELY);
-    ewxFrame::Create( parent, id, caption, pos, size, style );
+    ewxPanel::Create( parent, id, pos, size, wxTAB_TRAVERSAL );
 
     CreateControls();
-    GetSizer()->Fit(this);
     GetSizer()->SetSizeHints(this);
-    Centre();
 ////@end WxLauncherGUI creation
     return true;
 }
@@ -218,24 +202,6 @@ void WxLauncherGUI::CreateControls()
 {    
 ////@begin WxLauncherGUI content construction
     WxLauncherGUI* itemFrame1 = this;
-
-    ewxMenuBar* menuBar = new ewxMenuBar;
-    wxMenu* itemMenu132 = new wxMenu;
-    itemMenu132->Append(ID_MENUITEM_WXLAUNCHER_MACHREGISTER, _("Register Machines..."), _T(""), wxITEM_NORMAL);
-    itemMenu132->AppendSeparator();
-    itemMenu132->Append(ID_MENUITEM_WXLAUNCHER_STAGELAUNCH, _("Stage Launch"), _T(""), wxITEM_NORMAL);
-    itemMenu132->Enable(ID_MENUITEM_WXLAUNCHER_STAGELAUNCH, false);
-    itemMenu132->Append(ID_MENUITEM_WXLAUNCHER_FINISHLAUNCH, _("Finish Staged Launch"), _T(""), wxITEM_NORMAL);
-    itemMenu132->Enable(ID_MENUITEM_WXLAUNCHER_FINISHLAUNCH, false);
-    itemMenu132->AppendSeparator();
-    itemMenu132->Append(wxID_EXIT, _("&Quit\tCtrl-q"), _T(""), wxITEM_NORMAL);
-    menuBar->Append(itemMenu132, _("Job"));
-    wxMenu* itemMenu139 = new wxMenu;
-    itemMenu139->Append(wxID_HELP, _("on Launcher..."), _T(""), wxITEM_NORMAL);
-    itemMenu139->Append(ewxApp::ID_REPORT_PROBLEM, _("Report a Problem..."), _T(""), wxITEM_NORMAL);
-    itemMenu139->Append(wxID_ABOUT, _("About ECCE..."), _T(""), wxITEM_NORMAL);
-    menuBar->Append(itemMenu139, _("Help"));
-    itemFrame1->SetMenuBar(menuBar);
 
     wxBoxSizer* itemBoxSizer2 = new wxBoxSizer(wxVERTICAL);
     itemFrame1->SetSizer(itemBoxSizer2);
@@ -721,13 +687,6 @@ void WxLauncherGUI::CreateControls()
  * wxEVT_CLOSE_WINDOW event handler for ID_FRAME_WXLAUNCHER
  */
 
-void WxLauncherGUI::mainWindowCloseCB( wxCloseEvent& event )
-{
-////@begin wxEVT_CLOSE_WINDOW event handler for ID_FRAME_WXLAUNCHER in WxLauncherGUI.
-    // Before editing this code, remove the block markers.
-    event.Skip();
-////@end wxEVT_CLOSE_WINDOW event handler for ID_FRAME_WXLAUNCHER in WxLauncherGUI. 
-}
 
 /*!
  * wxEVT_COMMAND_CHOICE_SELECTED event handler for ID_CHOICE_WXLAUNCHER_MACHINES

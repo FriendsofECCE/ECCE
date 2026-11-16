@@ -39,6 +39,7 @@ SCREENS = os.environ.get("ECCE_DOCKED_SCREENS",
 #  One session each: a docked pane left by one shot shows through the next
 #  one's picture.
 SCENES = ["plotshot {t}-mos 0 0 MOs:dockedtable\nhold 1\n",
+          "dmcollapse 0\nhold 1\nplotshot {t}-dm-open 0 0 Density Map:docked\ndmstate\n",
           """plotshot {t}-dm-total 0 0 Density Map:docked
 dmfollow 7
 plotshot {t}-dm-mo7 0 0 Density Map:docked

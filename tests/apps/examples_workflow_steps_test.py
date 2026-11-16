@@ -10,7 +10,8 @@ session lost the step most links start from (opened again, and at a
 plain start of the same version).  After each, every
 calculation a workflow.txt names must be a step of its session and every
 link it lists must be there; a step that fails to import must leave a
-message, never silence.
+message, never silence. Synthetic topics and sets reuse calculation names
+to check that links, Hessians and Rate keys stay in their own workflow.
 
 Same installed tree and isolation as run_tests.py (ECCE_TEST_HOME,
 ECCE_TEST_WRAPPERS).  Exit 77 (skip) without an install or Xvfb.
@@ -156,6 +157,78 @@ def make_older(data):
             handle.write("\t".join(f))
 
 
+def check_name_collisions(display, data, work):
+    """Use a private examples overlay so the installed examples stay intact."""
+    home = os.path.join(work, "collision-home")
+    original = os.environ["ECCE_HOME"]
+    for rel, excluded in (("", "data"), ("data", "client"),
+                          ("data/client", "examples")):
+        dest = os.path.join(home, rel)
+        os.makedirs(dest, exist_ok=True)
+        for name in os.listdir(os.path.join(original, rel)):
+            if name != excluded:
+                os.symlink(os.path.join(original, rel, name),
+                           os.path.join(dest, name))
+    examples = os.path.join(home, "data", "client", "examples")
+    source = os.path.join(original, "data", "client", "examples", "workflows",
+                          "aminopyridine-protonation")
+    cases = (("collision-a", "Collision_A", "First", "geometry", True),
+             ("collision-a", "Collision_A", "Second", "geometry.last", False),
+             ("collision-b", "Collision_B", "Third", "geometry.max", False))
+    for sid, title, topic, link, keyed in cases:
+        folder = os.path.join(examples, sid, topic)
+        os.makedirs(folder)
+        manifest = os.path.join(examples, sid, "set.txt")
+        if not os.path.exists(manifest):
+            with open(manifest, "w") as handle:
+                handle.write(title + "\nRepeated calculation names\n")
+        with open(manifest, "a") as handle:
+            handle.write(topic + "|" + topic + "\n")
+        for calc in ("ap_amino_n", "ap_ring_n"):
+            shutil.copytree(os.path.join(source, "orca-" + calc),
+                            os.path.join(folder, "orca-" + calc))
+        with open(os.path.join(folder, "workflow.txt"), "w") as handle:
+            handle.write("orca-ap_amino_n\norca-ap_ring_n < orca-ap_amino_n" +
+                         ("+hess" if keyed else "@" + link.split(".")[1]) + "\n")
+            if keyed:
+                handle.write("!key orca-ap_ring_n reactant thermo\n")
+        # Attachment is a byte copy; no calculation is launched with this file.
+        with open(os.path.join(folder, "orca-ap_amino_n", "ap_amino_n.hess"),
+                  "w") as handle:
+            handle.write("test Hessian attachment\n")
+    root = os.path.join(data, "users", "local", "Examples")
+    script = os.path.join(work, "collision-commands")
+    with open(script, "w") as handle:
+        handle.write("examples collision-a\nexamples collision-b\n")
+        for _, title, topic, _, _ in cases:
+            handle.write("workflowinfo file://%s/%s/%s\n" % (root, title, topic))
+    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
+                      env={"ECCE_TEST_ORGANIZER": script, "ECCE_HOME": home})
+    log = result.log or ""
+    answers = re.findall(r"ECCE_TEST_ORGANIZER: examples.*?: (.*)$", log, re.M)
+    check("collision sets imported", not result.crashed and len(answers) == 2
+          and all(a.startswith("ok ") for a in answers), repr(answers), log)
+    infos = re.findall(r"ECCE_TEST_ORGANIZER: workflowinfo.*?: (.*)$", log, re.M)
+    for (_, title, topic, link, keyed), info in zip(cases, infos + [""] * 3):
+        links = info.partition(" links:")[2].split()
+        check(topic + ": only its own link", info.startswith("ok ") and
+              links == ["ap_amino_n>ap_ring_n:" + link], repr(info), log)
+        step = os.path.join(root, title, topic, "ap_ring_n")
+        props = {}
+        meta = os.path.join(step, ".ecce-meta")
+        if os.path.isfile(meta):
+            for row in open(meta):
+                fields = row.rstrip("\n").split("\t")
+                if len(fields) >= 4 and fields[0] == ".":
+                    props[fields[1].rsplit(":", 1)[-1]] = fields[3]
+        keys = (props.get("recipe.key"), props.get("recipe.thermo"))
+        check(topic + ": only its own Rate keys",
+              keys == (("reactant", "1") if keyed else (None, None)), repr(keys))
+        hessian = os.path.join(step, "Inputs", "inhess.hess")
+        check(topic + ": only its own Hessian",
+              os.path.isfile(hessian) == keyed, hessian)
+
+
 def main():
     msg = apps.versionMismatch()
     if msg:
@@ -196,6 +269,7 @@ def main():
                 drop_source_step(data)
                 import_and_check(display, data, work, "start, step lost",
                                  opened=False)
+            check_name_collisions(display, data, work)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
             subprocess.run([stop], env=display.env(), timeout=120)

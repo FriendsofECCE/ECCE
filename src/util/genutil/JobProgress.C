@@ -469,6 +469,23 @@ JobProgress::Block JobProgress::stageBlock(const Stage& st, double age,
   Block b;
   b.title = title(st.name);
   if (st.name == "crest") return crestBlock(st, finished);
+  if (st.name == "vina") {
+    // The bar is the search's own: 51 stars when it is over (#1001).
+    const string stage = st.field("stage"), bar = st.field("bar");
+    string first = stage == "grid" ? "computing the grid"
+                 : stage == "done" ? "done" : "searching for poses";
+    if (!bar.empty() || stage == "done") {
+      b.bar = true;
+      b.fraction = stage == "done" ? 1.0 : std::min(1.0, bar.size() / 51.0);
+      if (!bar.empty() && stage != "done")
+        first = fmt("searching for poses, %.0f %%", 100 * b.fraction);
+    }
+    double best;
+    if (number(st.field("best"), best))
+      first += fmt(" \xc2\xb7 best %.2f kcal/mol", best);
+    b.lines.push_back(first);
+    return b;
+  }
   const string rec = !st.field("cycle").empty() ? "cycle"
                    : !st.field("iter").empty() ? "iter"
                    : !st.field("step").empty() ? "step"

@@ -13,7 +13,7 @@ purposes.
 
 The file is in HDF5 format, so any HDF5 tool reads it. All values are in
 atomic units: lengths in bohr, energies in hartree, charges in electrons.
-Frequencies are in cm-1. The attribute `format_version` at the top of the
+Frequencies are in cm⁻¹. The attribute `format_version` at the top of the
 file is 1.
 
 ## What the file holds
@@ -109,6 +109,8 @@ python3 -c "import h5py; f = h5py.File('results.h5'); print(f['mo/0/coefficient'
 ecce-results convert calc.molden results.h5
 ecce-results convert calc.fchk results.h5
 ecce-results convert calc.hess results.h5
+ecce-results convert cp2k-MOS-1_0.molden results.h5
+ecce-results convert cp2k.out results.h5
 ecce-results export molden results.h5 out.molden
 ecce-results show results.h5
 ecce-results check results.h5
@@ -117,8 +119,13 @@ ecce-results write <calculation folder or URL> out.h5
 ```
 
 `convert` chooses the reader from the file name: `.molden` (also
-`.molden.input`), `.fchk` or `.hess`. A `.hess` file is added to an
-existing `results.h5`, so convert the orbitals first. `export molden`
+`.molden.input`), `.fchk`, `.hess` or a CP2K output (`.out`, `.cp2kout`). A
+`.hess` file or a CP2K output is added to an existing `results.h5`, so convert
+the orbitals first. CP2K's Molden file (`&MO_MOLDEN`) holds the basis and
+orbitals; the output adds the energy, forces, Mulliken charges and the GTH
+pseudopotentials. The orbitals hold valence electrons only, so the file records
+the effective nuclear charge and, per atom, the pseudopotential and how many
+core electrons it replaces. `export molden`
 writes the geometry, basis and orbitals as a Molden file that ECCE-QM,
 xtb, ORCA tools and most viewers read. `show` prints what the file holds.
 
@@ -135,7 +142,7 @@ did not:
 - the orbitals are orthonormal, C-transpose S C = 1, to 1e-6;
 - frequencies computed from the stored Hessian (mass weighted, rotations and
   translations projected out) agree with the frequencies the code printed to
-  within 0.5 cm-1.
+  within 0.5 cm⁻¹.
 
 ## What is covered
 
@@ -147,7 +154,7 @@ did not:
 | ECCE-QM | geometry, orbitals, charges, dipole, energy | stored properties, see above | done |
 | MOPAC | geometry, orbitals in an orthonormal Slater basis, charges | output file | planned |
 | NWChem | geometry, orbitals, Hessian | Molden output, `.hess` | planned |
-| CP2K | geometry, cell, pseudopotentials, orbitals | Molden output | planned |
+| CP2K | geometry, basis, orbitals, energy, forces, Mulliken charges, pseudopotential names and core charges | Molden file (`&MO_MOLDEN`) and output file, converted by hand | done; not yet automatic after a job |
 | Quantum ESPRESSO | cell, k-points, band energies, Fermi energy, cutoffs, pseudopotential names; no wavefunctions | XML output | planned |
 | GROMACS | cell, energies, temperature, pressure series; a reference to the trajectory | `.edr`, `.xtc` | planned |
 

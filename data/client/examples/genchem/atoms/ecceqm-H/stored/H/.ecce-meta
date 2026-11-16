@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, ROB3LYP/aug-cc-pVTZ, energy. This calculation shows the single electron of the hydrogen atom in the 1s orbital.
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:14:08 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:30:34 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:14:06 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:30:32 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309248.363 idle=0 at=1794309248\nscf cycle=6 energy=-0.4988727494 dE=-1.18e-12/1e-10 grad=3.69e-09/1e-07 converged=yes\nscf~ dE=-5.60e-02,-1.72e-03,-1.40e-06,-1.44e-08,-1.18e-12\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515433.772 idle=0 at=1794515433\nscf cycle=6 energy=-0.4988727494 dE=-1.18e-12/1e-10 grad=3.69e-09/1e-07 converged=yes\nscf~ dE=-5.60e-02,-1.72e-03,-1.40e-06,-1.44e-08,-1.18e-12\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Doublet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:14:07 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:30:32 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309247
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515432
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/DFT

@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ORCA, B3LYP-D3BJ/def2-SVP, single point. This calculation shows the water dimer, the complex for the density difference of the dimer minus its two water molecules (Density Map, Difference...).
 .	http://www.emsl.pnl.gov/ecce:application		ORCA
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:13:41 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:35:27 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:13:39 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:35:25 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309221.258 idle=0 at=1794309221\nscf cycle=10 energy=-152.6551407329970971 dE=-1.64e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-8.64e-02,-2.97e-02,-1.85e-02,-4.21e-02,-7.56e-05,1.71e-06,1.25e-08,-9.24e-07,-1.64e-09\nresult disp=D3\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515727.112 idle=0 at=1794515727\nscf cycle=10 energy=-152.6551407329970971 dE=-1.64e-09/1.000e-08 converged=yes\nscf~ dE=0.00e+00,-8.64e-02,-2.97e-02,-1.85e-02,-4.21e-02,-7.56e-05,1.71e-06,1.25e-08,-9.24e-07,-1.64e-09\nresult disp=D3\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:13:40 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:35:25 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309219
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515725
 .	http://www.emsl.pnl.gov/ecce:theory		DFT/RDFT

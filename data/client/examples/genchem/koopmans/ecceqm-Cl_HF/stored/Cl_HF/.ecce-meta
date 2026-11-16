@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		ECCE-QM, UHF/aug-cc-pVTZ, energy. This calculation shows the orbital energies of the chlorine atom in Hartree-Fock theory, where minus the energy of the highest occupied orbital approximates the ionisation energy (Koopmans' theorem).
 .	http://www.emsl.pnl.gov/ecce:application		ECCE-QM
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:14:19 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:30:44 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:14:17 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:30:42 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309259.146 idle=0 at=1794309259\nscf cycle=28 energy=-459.4859689958 dE=-1.42e-12/1e-10 grad=1.41e-08/1e-07 converged=yes\nscf~ dE=-1.95e-01,-3.55e-09,-2.86e-08,-2.28e-09,3.60e-09,-1.95e-09,-2.43e-09,4.92e-10,-3.74e-03,1.32e-03,2.33e-04,-3.64e-03,-1.09e-03,-1.03e-03,-2.19e-04,2.78e-04,-5.86e-04,-3.79e-04,-3.41e-05,-1.18e-05,-1.27e-06,-2.86e-07,-7.39e-08,-3.55e-08,-2.15e-09,-1.65e-11,-1.42e-12\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515444.028 idle=0 at=1794515444\nscf cycle=28 energy=-459.4859689958 dE=-1.42e-12/1e-10 grad=1.41e-08/1e-07 converged=yes\nscf~ dE=-1.95e-01,-3.55e-09,-2.86e-08,-2.28e-09,3.60e-09,-1.95e-09,-2.43e-09,4.92e-10,-3.74e-03,1.32e-03,2.33e-04,-3.64e-03,-1.09e-03,-1.03e-03,-2.19e-04,2.78e-04,-5.86e-04,-3.79e-04,-3.41e-05,-1.18e-05,-1.27e-06,-2.86e-07,-7.39e-08,-3.55e-08,-2.15e-09,-1.65e-11,-1.42e-12\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		Energy
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Doublet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:14:18 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:30:43 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309257
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515442
 .	http://www.emsl.pnl.gov/ecce:theory		SCF/HF

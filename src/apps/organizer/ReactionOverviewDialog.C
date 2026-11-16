@@ -15,7 +15,9 @@
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/choice.h>
+#include <wx/clipbrd.h>
 #include <wx/collpane.h>
+#include <wx/dataobj.h>
 #include <wx/panel.h>
 #include <wx/radiobut.h>
 #include <wx/scrolwin.h>
@@ -393,7 +395,7 @@ public:
       for (int side = 0; side < 2; side++) {
         const int col = side == 0 ? 0 : 2;
         wxCheckBox *cb = new wxCheckBox(pane[col], wxID_ANY, name);
-        wxSpinCtrl *sp = new wxSpinCtrl(pane[col], wxID_ANY, "1", wxDefaultPosition, wxSize(64, -1),
+        wxSpinCtrl *sp = new wxSpinCtrl(pane[col], wxID_ANY, "1", wxDefaultPosition, wxDefaultSize,
                                         wxSP_ARROW_KEYS, 1, 99, 1);
         sp->Hide();
         grid[col]->Add(cb, 0, wxALIGN_CENTER_VERTICAL | wxALL, 2);
@@ -796,8 +798,19 @@ ReactionOverviewDialog::ReactionOverviewDialog(wxWindow *parent, const string& l
                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (d.ShowModal() == wxID_OK) savePng(string(d.GetPath().ToUTF8()));
   });
+  // The Details page is formatted for reading; this puts the same numbers
+  // on the clipboard as plain text (#899).
+  wxButton *copy = new wxButton(this, wxID_ANY, _("Copy Details"));
+  copy->SetToolTip(_("Copy the details of every reaction as plain text"));
+  copy->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    if (wxTheClipboard->Open()) {
+      wxTheClipboard->SetData(new wxTextDataObject(wxString::FromUTF8(detailsText().c_str())));
+      wxTheClipboard->Close();
+    }
+  });
   buttons->Add(csv, 0, wxRIGHT, 8);
-  buttons->Add(png, 0);
+  buttons->Add(png, 0, wxRIGHT, 8);
+  buttons->Add(copy, 0);
   p_pngButton = png;
   buttons->AddStretchSpacer();
   buttons->Add(new wxButton(this, wxID_CLOSE, _("Close")));
@@ -1288,10 +1301,10 @@ string ReactionOverviewDialog::reactionText(int n) const
   d += "dE_el " + num(r.dE, "%.2f") + "   dG " + num(r.dG, "%.2f") + "   spread " +
        num(r.spread, "%.2f") + " kJ/mol (dG over the treatments " + num(r.lo, "%.2f") + " to " +
        num(r.hi, "%.2f") + ")\n";
-  d += "Soft modes (< 100 cm-1), share of the species' S and of its G correction:\n";
+  d += "Soft modes (< 100 cm\xE2\x81\xBB\xC2\xB9), share of the species' S and of its G correction:\n";
   if (r.modes.empty()) d += "  none\n";
   for (const Mode& m : r.modes)
-    d += "  " + m.species + "  " + num(m.freq, "%.1f") + " cm-1  S " + num(m.S) + " J/mol/K (" +
+    d += "  " + m.species + "  " + num(m.freq, "%.1f") + " cm\xE2\x81\xBB\xC2\xB9  S " + num(m.S) + " J/mol/K (" +
          num(100 * m.Sshare, "%.1f") + "%)  G " + num(m.G) + " kJ/mol (" +
          num(100 * m.Gshare, "%.1f") + "%)\n";
   for (size_t p = 0; p < p_profiles.size(); p++)
@@ -1305,6 +1318,13 @@ string ReactionOverviewDialog::reactionText(int n) const
     }
   d += rateLines(n);
   return d;
+}
+
+string ReactionOverviewDialog::detailsText() const
+{
+  string text = p_error.empty() ? string() : "error: " + p_error + "\n";
+  for (size_t i = 0; i < p_rows.size(); i++) text += reactionText((int)i + 1) + "\n";
+  return text;
 }
 
 string ReactionOverviewDialog::clickText(int n)

@@ -66,7 +66,10 @@ class ShellDisplay(xdisplay.Display):
         self.runtime = tempfile.mkdtemp(prefix="ecw", dir="/tmp")
         self.home = tempfile.mkdtemp(prefix="ecce-shell-home-")
         env = dict(os.environ)
-        for var in ("DBUS_SESSION_BUS_ADDRESS", "WAYLAND_DISPLAY", "DISPLAY"):
+        # PulseAudio probes X11 for a forwarded audio server in SSH sessions;
+        # here that deadlocks against this compositor's own Xwayland startup.
+        for var in ("DBUS_SESSION_BUS_ADDRESS", "WAYLAND_DISPLAY", "DISPLAY",
+                    "SSH_CONNECTION"):
             env.pop(var, None)
         env.update(HOME=self.home, XDG_RUNTIME_DIR=self.runtime,
                    XDG_CONFIG_HOME=os.path.join(self.home, ".config"),
@@ -114,9 +117,14 @@ class ShellDisplay(xdisplay.Display):
         self.savedAuth = os.environ.get("XAUTHORITY")
         os.environ["XAUTHORITY"] = self.xauth
         deadline = time.time() + 30
-        while time.time() < deadline and not self._ready():
+        while time.time() < deadline:
+            if self._ready():
+                return self
             time.sleep(0.5)
-        return self
+        trace = self.serverLog()
+        self.__exit__(None, None, None)
+        raise xdisplay.DisplayUnavailable("headless Xwayland did not become "
+                                          "ready: " + trace[-2000:])
 
     def __exit__(self, *exc):
         if self.proc is not None:
@@ -157,13 +165,14 @@ def organizerPrompt(display, work):
     with open(script, "w") as handle:
         handle.write("busyprompt\n")
     modal = os.path.join(work, "modal.log")
-    apps.run(display, "organizer", windowTimeout=60, settle=20,
+    result = apps.run(display, "organizer", windowTimeout=60, settle=20,
              env={"ECCE_TEST_ORGANIZER": script, "ECCE_DEBUG_MODAL": modal,
                   "ECCE_LOCAL_DATA": data})
     trace = open(modal).read() if os.path.exists(modal) else ""
     settled = re.search(r"settled 'Busy Prompt' draws=(\d+) .*frame=(-?\d+) "
                         r"frameSync=(\w+)", trace)
-    check("the prompt was shown", settled is not None, trace[-600:])
+    check("the prompt was shown", settled is not None,
+          trace[-600:] or result.log[-600:] or "no modal trace or app output")
     if settled:
         check("frame sync is off for the prompt", settled.group(3) == "off",
               settled.group(0))

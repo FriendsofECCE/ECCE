@@ -14,6 +14,7 @@
 class wxButton;
 class wxCheckBox;
 class wxChoice;
+class wxDialog;
 class wxGrid;
 class wxNotebook;
 class wxSpinCtrl;
@@ -48,6 +49,12 @@ public:
               int testPercent, int permutations, std::string& why,
               const std::vector<std::string>& exclude = std::vector<std::string>());
 
+  /// The descriptor key: one definition per table column (#1011).
+  std::string keyText() const;
+  wxDialog *createKey();
+  /// Test hook: the tooltip the named column header installs.
+  std::string headerTooltip(const std::string& name);
+
   std::string summary() const { return p_summary; }
   std::string status() const;
   std::string resultDir() const { return p_dir; }
@@ -71,7 +78,7 @@ private:
   std::function<std::vector<EcceURL>()> p_choose;
   std::function<void(QsarWindow *)> p_onDestroy;
   std::string p_dir, p_table, p_csvText, p_groups, p_summary, p_why, p_folder, p_name;
-  std::vector<std::string> p_head, p_measured, p_notes;
+  std::vector<std::string> p_head, p_measured, p_notes, p_columnText;
   std::vector<std::vector<std::string>> p_rows;
   bool p_ok = false;
 

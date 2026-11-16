@@ -341,7 +341,8 @@ bool ChemistryTask::isFragmentReadOnly() const
   bool ret = (ctype == ResourceDescriptor::CT_MDOPTIMIZE ||
               ctype == ResourceDescriptor::CT_MDENERGY ||
               ctype == ResourceDescriptor::CT_MDDYNAMICS ||
-              ctype == ResourceDescriptor::CT_MDEQUILIBRATE);
+              ctype == ResourceDescriptor::CT_MDEQUILIBRATE ||
+              ctype == ResourceDescriptor::CT_MDRUN);
 
   return ret;
 }

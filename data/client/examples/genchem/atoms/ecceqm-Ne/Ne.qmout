@@ -7,7 +7,7 @@ progress scf cycle=6 energy=-128.9280200993 dE=-1.99e-11/1e-10 grad=2.56e-08/1e-
 # ecce-qm output, format version 1
 format_version 1
 program ecce-qm 0.1
-title Ne atom, B3LYP/aug-cc-pVTZ (unrestricted), ground state
+title Ne atom, B3LYP/aug-cc-pVTZ (restricted), ground state
 runtype energy
 method b3lyp
 reference rks

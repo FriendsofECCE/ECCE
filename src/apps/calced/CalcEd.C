@@ -41,6 +41,7 @@
 #include "dsm/TGBSConfig.H"
 #include "dsm/TGBSGroup.H"
 #include "dsm/TGaussianBasisSet.H"
+#include "dsm/GBSAssign.H"
 #include <set>
 #include "dsm/EDSIFactory.H"
 #include "dsm/TaskJob.H"
@@ -55,6 +56,8 @@
 #include "dsm/ResourceType.H"
 #include "dsm/SummaryIterator.H"
 #include "dsm/CodeFactory.H"
+#include "dsm/CodeChoice.H"
+#include "wxgui/GlobalPrefs.H"
 
 #include "wxgui/ewxThemeColours.H"
 #include "wxgui/ThingToggle.H"
@@ -75,11 +78,16 @@
 #include "wxgui/WxFeedback.H"
 
 #include "tdat/QmSolventWarning.H"
+#include "CalcEdMessages.H"
+#include "wxgui/InProcessTools.H"
+#include "wxgui/ToolTabs.H"
 #include "CalcEd.H"
 #include "dsm/QstStructures.H"
 #include "VerifyReportDialog.H"
 #include "PartialCharge.H"
 #include "wxgui/ewxProgressDialog.H"
+#include "SetupArea.H"
+#include "wx/display.h"
 
 //#define DEBUG
 
@@ -268,7 +276,7 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
   if (const char *cmdPath = getenv("ECCE_TEST_CALCED")) {
     string path = cmdPath;
     auto done = std::make_shared<size_t>(0);
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this, path, done](wxTimerEvent&) {
       std::ifstream in(path.c_str());
       string line;
@@ -304,7 +312,29 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
 void CalcEd::runTestCommand(const string& line)
 {
   string outcome;
-  if (line == "state") {
+  if (line.compare(0, 9, "codeshown") == 0) {
+    // "codeshown NAME on|off": tick a code as Preferences > Codes does, then
+    // rebuild the code bar.
+    std::istringstream in(line.substr(9));
+    string name, state;
+    in >> name >> state;
+    CodeChoice::show(name, state == "on");
+    createCodeButtons();
+    outcome = "ok";
+  } else if (line == "codebar") {
+    // The code bar: tooltip of each code button, then the hidden button.
+    outcome = "ok";
+    wxSizerItemList items = p_codeSizer->GetChildren();
+    for (wxSizerItemList::compatibility_iterator n = items.GetFirst(); n;
+         n = n->GetNext()) {
+      wxWindow *w = n->GetData()->GetWindow();
+      if (!w) continue;
+      if (w->GetName() == "more_codes")
+        outcome += " more=" + string(w->GetLabel().ToUTF8());
+      else if (wxDynamicCast(w, wxCustomButton))
+        outcome += " code=" + string(w->GetToolTipText().ToUTF8());
+    }
+  } else if (line == "state") {
     GUIValue *v = p_GUIValues ? p_GUIValues->get("ES.Theory.UseSymmetry") : 0;
     wxWindow *box = FindWindow(ID_CHECKBOX_CALCED_USE_SYMMETRY);
     outcome = "stored=" + (v ? v->getValueAsString() : string("absent")) +
@@ -416,10 +446,78 @@ void CalcEd::runTestCommand(const string& line)
 
 CalcEd::~CalcEd( )
 {
+  ToolTabs::release(this, false);
   delete p_ESPCnstrnt;
   closeTheoryApp(true);
   closeRuntypeApp(true);
-  ewxConfig::closeConfigs();
+  // Other windows of the process (#983) may still use their configs.
+  ewxConfig::flushConfigs();
+  ewxConfig::closeConfig("wxcalced.ini");
+  delete p_msgs;
+}
+
+
+bool CalcEd::Show(bool show)
+{
+  if (ToolTabs::hosts(this)) {
+    if (show) ToolTabs::select(this);
+    return true;
+  }
+  return CalcEdGUI::Show(show);
+}
+
+
+void CalcEd::Raise()
+{
+  if (ToolTabs::hosts(this)) ToolTabs::select(this);
+  else CalcEdGUI::Raise();
+}
+
+
+void CalcEd::SetTitle(const wxString& title)
+{
+  CalcEdGUI::SetTitle(title);
+  ToolTabs::setTitle(this, title);
+}
+
+
+bool CalcEd::Destroy()
+{
+  ToolTabs::release(this, false);
+  return CalcEdGUI::Destroy();
+}
+
+
+// The frame has no sizer while its windows are in a tab's page.
+bool CalcEd::Layout()
+{
+  return ToolTabs::layout(this) || CalcEdGUI::Layout();
+}
+
+
+wxMenuBar *CalcEd::GetMenuBar() const
+{
+  return ToolTabs::menuBar(this, wxFrame::GetMenuBar());
+}
+
+
+wxWindow *CalcEd::FindWindow(long id) const
+{
+  wxWindow *page = ToolTabs::client(this);
+  return page ? page->FindWindow(id) : wxFrame::FindWindow(id);
+}
+
+
+wxWindow *CalcEd::clientParent()
+{
+  wxWindow *client = ToolTabs::client(this);
+  return client ? client : this;
+}
+
+
+wxSizer *CalcEd::mainSizer() const
+{
+  return ToolTabs::sizer(this, GetSizer());
 }
 
 
@@ -503,11 +601,13 @@ void CalcEd::createCodeButtons()
   std::vector<std::pair<int, wxCustomButton*> > groups[4];
 
   for (size_t it = 0; it < codes.size(); it++) {
+    // A hidden code gets no button, except the one this calculation is in.
+    if (!CodeChoice::shown(codes[it]) && codes[it] != p_codeName) continue;
     rt = rd.getResourceType("virtual_document", "ecceCalculation", codes[it]);
     if (rt!=(ResourceType*)0 && rt->getFactoryCategory()=="EsCalculation") {
       // add the index into the list of supported codes as a way of
       // retrieving which code button was hit in the callback
-      codeButton = new wxCustomButton(this, ID_BUTTON_CALCED_CODE,
+      codeButton = new wxCustomButton(clientParent(), ID_BUTTON_CALCED_CODE,
                                ewxBitmap(rt->getIcon(), wxBITMAP_TYPE_XPM),
                                wxDefaultPosition, wxDefaultSize,
                                wxCUSTBUT_BUT_DCLICK_TOG);
@@ -532,16 +632,33 @@ void CalcEd::createCodeButtons()
         [](const std::pair<int, wxCustomButton*>& x,
            const std::pair<int, wxCustomButton*>& y) { return x.first < y.first; });
     if (!first)
-      p_codeSizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition,
+      p_codeSizer->Add(new wxStaticLine(clientParent(), wxID_ANY, wxDefaultPosition,
                        wxSize(-1, 24), wxLI_VERTICAL), 0,
                        wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 6);
     first = false;
-    wxStaticText *name = new wxStaticText(this, wxID_ANY, groupName[g]);
+    wxStaticText *name = new wxStaticText(clientParent(), wxID_ANY, groupName[g]);
     name->SetFont(name->GetFont().Smaller());
     name->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
     p_codeSizer->Add(name, 0, wxALIGN_CENTER_VERTICAL|wxLEFT|wxRIGHT, 3);
     for (size_t k = 0; k < groups[g].size(); k++)
       p_codeSizer->Add(groups[g][k].second, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
+  }
+
+  // Hidden codes stay visible as a count that opens Preferences > Codes.
+  const int hidden = CodeChoice::hiddenCount();
+  if (hidden > 0) {
+    wxButton *more = new wxButton(clientParent(), wxID_ANY,
+        wxString::FromUTF8(CodeChoice::barLabel(hidden).c_str()));
+    more->SetName("more_codes");
+    more->SetToolTip(wxString::FromUTF8(CodeChoice::moreTip(hidden).c_str()));
+    more->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+      static GlobalPrefs *prefs = 0;
+      if (!prefs) prefs = new GlobalPrefs(this);
+      prefs->showCodesPage(true);
+      prefs->Show(true);
+      prefs->Raise();
+    });
+    p_codeSizer->Add(more, 0, wxALIGN_CENTER_VERTICAL|wxALL, 3);
   }
 }
 
@@ -575,7 +692,7 @@ void CalcEd::OnButtonCalcedCodeClick(wxCommandEvent &event)
 
   vector<string> codes = CodeFactory::getFullySupportedCodes();
   if (codes[icode] != p_codeName) {
-    wxWindowUpdateLocker freeze(this);
+    wxWindowUpdateLocker freeze(clientParent());
     p_startUp = true;
     doSetContext(codes[icode]);
     p_startUp = false;
@@ -617,7 +734,7 @@ void CalcEd::setContext(const string& url, const string& codeName)
   // Make sure it is raised/uniconified for popup dialogs.  Not while it is
   // still hidden: Raise() is gtk_window_present() on GTK, which maps the
   // window at its empty size before the fields are filled.
-  if (IsShown()) Raise();
+  if (IsShown() || ToolTabs::hosts(this)) Raise();
 
   // A calculation with unsaved changes?
   if (p_iCalc && url != p_context
@@ -663,7 +780,7 @@ void CalcEd::setContext(const string& url, const string& codeName)
   if (doit) {
     // Filling the fields relays the window out several times; show only
     // the result.
-    wxWindowUpdateLocker freeze(this);
+    wxWindowUpdateLocker freeze(clientParent());
     freeContext();
     bool msgFlag = p_iCalc != (ICalculation*)0;
     p_iCalc = givenCalc;
@@ -742,10 +859,11 @@ void CalcEd::doSetContext(const string& codeName)
         // areas the question uncovers are never repainted (black boxes).
         // Release the hold for the question and take it again afterwards.
         int frozen = 0;
-        for (; IsFrozen(); frozen++) Thaw();
+        wxWindow *held = clientParent();
+        for (; held->IsFrozen(); frozen++) held->Thaw();
         if (frozen) Update();
         wxWindowID answer = dialog.ShowModal();
-        while (frozen-- > 0) Freeze();
+        while (frozen-- > 0) held->Freeze();
         if (answer == wxID_YES) {
           tmpCode = codeName;
         } else {
@@ -1002,6 +1120,173 @@ string CalcEd::getContext() const
 void CalcEd::setEditStatus(WxFeedback::EditStatus status)
 {
   p_feedback->setEditStatus(status);
+  if (p_setupArea) p_setupArea->statusChanged();
+}
+
+
+void CalcEd::makeSetupArea(wxWindow *area)
+{
+  SetupArea *sa = new SetupArea(area, this);
+  area->GetSizer()->Add(sa, 1, wxEXPAND);
+  area->Layout();
+  p_setupArea = sa;
+  // Editor beside a usable area needs about 1100 px: widen a narrower
+  // window, within the display's work area.
+  CallAfter([this, area]() {
+    if (!p_setupArea) return;
+    wxTopLevelWindow *top = wxDynamicCast(wxGetTopLevelParent(area),
+                                          wxTopLevelWindow);
+    if (!top || top->IsMaximized()) return;
+    int d = wxDisplay::GetFromWindow(top);
+    wxRect work = wxDisplay(d == wxNOT_FOUND ? 0 : d).GetClientArea();
+    wxRect r = top->GetRect();
+    if (r.width >= 1100) return;
+    r.width = std::min(1100, work.width);
+    r.x = std::max(work.x, std::min(r.x, work.GetRight() + 1 - r.width));
+    top->SetSize(r);
+  });
+  sa->Bind(wxEVT_DESTROY, [this, sa](wxWindowDestroyEvent& ev) {
+    if (ev.GetEventObject() == sa && p_setupArea == sa) p_setupArea = 0;
+    ev.Skip();
+  });
+}
+
+
+bool CalcEd::previewDeck(string& deck, string& error)
+{
+  if (!p_iCalc || !isReady()) return false;
+  DeckWriter::Options opt;
+  opt.useExpCoeff = getUseExpCoeff();
+  opt.openShells = getOpenShells();
+  opt.dryRun = true;
+  opt.gui = p_GUIValues;
+  opt.category = getTheoryCategory().ToStdString();
+  opt.theory = getTheoryName().ToStdString();
+  opt.runtype = getRuntypeName().ToStdString();
+  opt.spin = (int)getSpinMult();
+  DeckWriter::Result r = DeckWriter::generate(p_iCalc, opt);
+  deck = r.deck;
+  error = r.ok ? "" : cleanGeneratorMessage(r.message);
+  return r.ok;
+}
+
+
+void CalcEd::detailsInput(bool theory, const char *line)
+{
+  if (theory) processTheoryInput(line);
+  else processRuntypeInput(line);
+}
+
+
+namespace {
+string fnvOf(const string& text)
+{
+  uint64_t h = 1469598103934665603ULL;
+  for (unsigned char c : text) { h ^= c; h *= 1099511628211ULL; }
+  char buf[48];
+  snprintf(buf, sizeof buf, "%zu:%016llx", text.size(), (unsigned long long)h);
+  return buf;
+}
+}
+
+
+//  Leaf controls of the editor's column that are shown and overlap another
+//  ("overlaps=N" plus the first pair's classes and labels).  Static boxes are
+//  siblings of what they frame and so are left out.
+static wxString columnOverlaps(wxWindow *root)
+{
+  std::vector<wxWindow*> leaves, todo{root};
+  while (!todo.empty()) {
+    wxWindow *w = todo.back();
+    todo.pop_back();
+    for (wxWindow *c : w->GetChildren()) {
+      if (!c->IsShown()) continue;
+      if (c->GetChildren().empty() && !wxDynamicCast(c, wxStaticBox) &&
+          !wxDynamicCast(c, wxStaticLine) && !wxDynamicCast(c, wxStatusBar))
+        leaves.push_back(c);
+      else todo.push_back(c);
+    }
+  }
+  int n = 0;
+  wxString first;
+  for (size_t i = 0; i < leaves.size(); i++)
+    for (size_t j = i + 1; j < leaves.size(); j++) {
+      wxRect a(leaves[i]->GetScreenPosition(), leaves[i]->GetSize());
+      wxRect b(leaves[j]->GetScreenPosition(), leaves[j]->GetSize());
+      if (a.width < 2 || a.height < 2 || b.width < 2 || b.height < 2) continue;
+      if (!a.Intersects(b)) continue;
+      if (!n++)
+        first = wxString::Format(" overlap_first=\"%s|%s\"",
+            wxString(leaves[i]->GetLabel()).Left(30),
+            wxString(leaves[j]->GetLabel()).Left(30));
+    }
+  // The code bar's "+N hidden" button: absent when no code is hidden.
+  wxString more = "none";
+  for (wxWindow *w : leaves)
+    if (w->GetName() == "more_codes") more = w->GetLabel();
+  return wxString::Format(" overlaps=%d", n) + first + " more=\"" + more + "\"";
+}
+
+
+//  setup [info] | theory | runtype | basis [filter T|pick N|all] | input | fold | unfold | save | preview
+wxString CalcEd::setupCommand(const wxString& arg)
+{
+  if (!p_setupArea) return "no set-up area";
+  if (arg == "theory" || arg == "runtype") {
+    wxWindow *b = FindWindow(arg == "theory" ? ID_BUTTON_CALCED_THEORY
+                                             : ID_BUTTON_CALCED_RUNTYPE);
+    if (!b || !b->IsEnabled()) return "button off";
+    wxCommandEvent ev(wxEVT_BUTTON, b->GetId());
+    ev.SetEventObject(b);
+    b->GetEventHandler()->ProcessEvent(ev);
+  } else if (arg.StartsWith("set ")) {
+    wxString rest = arg.Mid(4), value = rest.AfterFirst(' ');
+    if (!p_setupArea->setValue(string(rest.BeforeFirst(' ').utf8_str()),
+                               string(value.utf8_str())))
+      return "no such field";
+  } else if (arg.StartsWith("find ")) {
+    return wxString::Format("found=%d", (int)(p_setupArea->previewShown()
+        .find(string(arg.Mid(5).utf8_str())) != string::npos));
+  } else if (arg == "basis" || arg.StartsWith("basis ")) {
+    p_setupArea->showBasis();
+    wxString rest = arg.Mid(5).Trim(false);
+    string val(rest.AfterFirst(' ').utf8_str());
+    if (rest.StartsWith("filter")) p_setupArea->basisFilter(val);
+    else if (rest.StartsWith("pick")) {
+      if (!p_setupArea->basisPick(val)) return "no such basis set";
+    } else if (rest == "all") {
+      if (!p_setupArea->basisUseAll()) return "not possible";
+    }
+  } else if (arg == "launch" || arg == "launch info" || arg == "launch go") {
+    if (arg == "launch") doSave();
+    if (!p_setupArea->showLaunch()) return "no Launcher panel";
+    if (arg == "launch go" && !p_setupArea->launchGo())
+      return "Launch is off";
+  } else if (arg.StartsWith("width ")) {
+    long width = 0;
+    arg.Mid(6).ToLong(&width);
+    wxWindow *top = wxGetTopLevelParent(p_setupArea);
+    if (width > 200 && top) {
+      top->SetMinSize(wxSize(200, 200));
+      top->SetSize(wxSize(width, top->GetSize().y));
+      top->Layout();
+    }
+  } else if (arg == "input") {
+    p_setupArea->showInput();
+  } else if (arg == "fold" || arg == "unfold") {
+    ToolTabs::fold(this, arg == "fold" ? 1 : 0);
+  } else if (arg == "save") {
+    enableSave();
+    doSave();
+  } else if (arg == "preview") {
+    if (p_setupArea->current() != SetupArea::INPUT) return "not the input";
+    return "shown=" + wxString(fnvOf(p_setupArea->previewShown())) +
+           " file=" + wxString(fnvOf(p_setupArea->previewText()));
+  } else if (!arg.empty() && arg != "info") {
+    return "unknown: " + arg;
+  }
+  wxWindow *col = ToolTabs::client(this);
+  return p_setupArea->describe() + (col ? columnOverlaps(col) : wxString());
 }
 
 
@@ -1082,15 +1367,123 @@ void CalcEd::processEditCompletion(const EditEvent& ee)
  */
 void CalcEd::OnToolClick(wxCommandEvent &event)
 {
+  // In the Set-up tab the basis button shows the basis panel; the full
+  // tool is that panel's button.
+  ResourceTool *basis =
+      ResourceDescriptor::getResourceDescriptor().getTool(BASISTOOL);
+  if (p_setupArea && basis && event.GetId() == basis->getId()) {
+    p_setupArea->showBasis();
+    return;
+  }
+  // ... and the Launch... button shows the Launcher's panel.
+  ResourceTool *launcher =
+      ResourceDescriptor::getResourceDescriptor().getTool(LAUNCHER);
+  if (p_setupArea && launcher && event.GetId() == launcher->getId()) {
+    doSave();
+    if (p_setupArea->showLaunch())
+      return;
+  }
   doSave();
   startApp(event.GetId(), 0, p_context);
+}
+
+
+void CalcEd::openBasisSetTool()
+{
+  ResourceTool *basis =
+      ResourceDescriptor::getResourceDescriptor().getTool(BASISTOOL);
+  if (!basis) return;
+  doSave();
+  startApp(basis->getId(), 0, p_context);
+}
+
+
+vector<string> CalcEd::systemElements() const
+{
+  vector<string> out;
+  if (!p_frag) return out;
+  TGBSConfigTags tags(p_frag->uniqueTagStr().c_str());
+  for (size_t i = 0; i < tags.size(); i++) out.push_back(tags[i]);
+  return out;
+}
+
+
+vector<string> CalcEd::basisAssignmentLines() const
+{
+  // element -> the orbital sets (and ECP) it has
+  vector<pair<string, string> > per;
+  if (p_basis) {
+    for (TGBSConfig::iterator it = p_basis->begin(); it != p_basis->end(); ++it) {
+      const TGBSGroup *group = it->second;
+      if (!group) continue;
+      string what;
+      vector<const TGaussianBasisSet*> *sets = group->getOrbitalGBSList();
+      if (sets) {
+        for (size_t j = 0; j < sets->size(); j++)
+          what += (what.empty() ? "" : " + ") + (*sets)[j]->p_name;
+        delete sets;
+      }
+      if (group->ecp()) what += " + ECP " + group->ecp()->p_name;
+      TGBSConfigTags tags(it->first.c_str());
+      for (size_t i = 0; i < tags.size(); i++) per.push_back(make_pair(tags[i], what));
+    }
+  }
+  vector<string> lines;
+  bool same = true;
+  for (size_t i = 1; i < per.size(); i++) same = same && per[i].second == per[0].second;
+  if (per.empty()) return lines;
+  if (same) {
+    lines.push_back("All atoms: " + per[0].second);
+  } else {
+    for (size_t i = 0; i < per.size(); i++)
+      lines.push_back(per[i].first + ": " + per[i].second);
+  }
+  return lines;
+}
+
+
+bool CalcEd::useBasisForAll(const string& name, TGaussianBasisSet::GBSType type,
+                            string& message)
+{
+  message.clear();
+  if (!p_frag || !p_code || !p_iCalc) {
+    message = "You must have a chemical system defined before you can set up "
+              "a basis set.";
+    return false;
+  }
+  EDSIServerCentral central;
+  EDSIGaussianBasisSetLibrary library(central.getDefaultBasisSetLibrary());
+  string tag = p_frag->uniqueTagStr();
+  TGBSConfig *config = new TGBSConfig;
+  config->insertGBSGroup(tag, new TGBSGroup());
+  GBSAssign::Result res = GBSAssign::assign(library, config, tag, name, type,
+                                            false);
+  if (res.severity == GBSAssign::ERROR || !res.group) {
+    delete config;
+    message = res.message;
+    return false;
+  }
+  delete p_basis;
+  p_basis = config;
+  TTheory theory = getTheory();
+  GBSRules::autoOptimize(p_basis, p_code, &theory);
+  makeRuntypeNoSphericalConsistent();
+  updateBasisSetFields();
+  enableLaunch();
+  enableSave();
+  doSave();
+  if (p_setupArea) p_setupArea->basisChanged();
+  return true;
 }
 
 
 void CalcEd::OnCloseWindow( wxCloseEvent& event )
 {
   saveSettings();
-  doClose(event.CanVeto());
+  //  Cancel keeps the window: say so, or the Organizer's Quit (#983, one
+  //  process) takes the close as done.
+  if (doClose(event.CanVeto()) == wxID_CANCEL && event.CanVeto())
+    event.Veto();
 }
 
 
@@ -1199,7 +1592,7 @@ void CalcEd::OnMenuCalcedSavePrefClick( wxCommandEvent& event )
   config->Write("Theory", getTheoryName());
   config->Write("Category", getTheoryCategory());
   config->Write("Runtype", getRuntypeName());
-  ewxConfig::closeConfigs();
+  ewxConfig::closeConfig("wxcalced.ini");
 
   event.Skip();
 }
@@ -1347,9 +1740,10 @@ void CalcEd::OnButtonCalcedBasisQuickClick( wxCommandEvent& event )
   //  Below the button, in this frame's coordinates: the button sits in
   //  nested panels, so its own GetPosition() is relative to one of them.
   wxWindow *btn = FindWindow(event.GetId());
-  PopupMenu(&menu, btn ? ScreenToClient(btn->ClientToScreen(
-                             wxPoint(0, btn->GetSize().y)))
-                       : wxDefaultPosition);
+  wxWindow *host = ToolTabs::popupParent(this);   // the page in a tab
+  host->PopupMenu(&menu, btn ? host->ScreenToClient(btn->ClientToScreen(
+                                   wxPoint(0, btn->GetSize().y)))
+                             : wxDefaultPosition);
 }
 
 
@@ -1611,16 +2005,16 @@ void CalcEd::updateNotes()
   if (!p_notReadyWhy.empty())
     note += string(note.empty() ? "" : "\n") + p_notReadyWhy;
   const wxString text = wxString::FromUTF8(note);
-  if (text == p_notesText && GetSizer()->IsShown(p_notesPanel) == !note.empty())
+  if (text == p_notesText && mainSizer()->IsShown(p_notesPanel) == !note.empty())
     return;
   p_notesText = text;
   p_notes->SetLabel(text);
   //  Wrapped at the width the controls already need, never wider.
-  const int width = std::max(GetSizer()->CalcMin().x - FromDIP(24), p_notes->FromDIP(300));
+  const int width = std::max(mainSizer()->CalcMin().x - FromDIP(24), p_notes->FromDIP(300));
   p_notes->Wrap(width);
   p_notes->SetToolTip(text);
-  GetSizer()->Show(p_notesPanel, !note.empty());
-  GetSizer()->Layout();
+  mainSizer()->Show(p_notesPanel, !note.empty());
+  mainSizer()->Layout();
   refit();
 }
 
@@ -2182,9 +2576,9 @@ void CalcEd::CreateControls()
 {
   p_feedback = new WxFeedback(this);
   p_feedback->setSaveHandler(this);
-  GetSizer()->Add(p_notesPanel, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, FromDIP(5));
-  GetSizer()->Show(p_notesPanel, false);
-  GetSizer()->Add(p_feedback, 1, wxEXPAND, 0);  // the log takes extra height
+  mainSizer()->Add(p_notesPanel, 0, wxEXPAND|wxLEFT|wxRIGHT|wxBOTTOM, FromDIP(5));
+  mainSizer()->Show(p_notesPanel, false);
+  mainSizer()->Add(p_feedback, 1, wxEXPAND, 0);  // the log takes extra height
 
   //  Save sits in the button row, a standard button just before Launch.
   wxButton *save = p_feedback->adoptSaveButton(this);
@@ -2197,7 +2591,7 @@ void CalcEd::CreateControls()
 
   //  tests/apps/clip_test.py: show Save, which appears with unsaved edits.
   if (getenv("ECCE_CLIP_AUDIT") != 0) {
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
       p_feedback->setEditStatus(WxFeedback::MODIFIED);
       Layout();
@@ -2476,7 +2870,7 @@ bool CalcEd::setTheory(const TTheory* value, const bool& overrideFlag)
       ewxConfig *config = ewxConfig::getConfig("wxcalced.ini");
       config->Read("Theory", &theory, wxEmptyString);
       config->Read("Category", &lastTheoryCategory, wxEmptyString);
-      ewxConfig::closeConfigs();
+      ewxConfig::closeConfig("wxcalced.ini");
     }
 
     if (theory!=wxEmptyString && choice->SetStringSelection(theory)) {
@@ -2567,7 +2961,7 @@ bool CalcEd::setRuntype(const TRunType& value)
       // otherwise, try the user preference first
       ewxConfig *config = ewxConfig::getConfig("wxcalced.ini");
       config->Read("Runtype", &runtype, wxEmptyString);
-      ewxConfig::closeConfigs();
+      ewxConfig::closeConfig("wxcalced.ini");
     }
 
     if (runtype!=wxEmptyString && choice->SetStringSelection(runtype)) {
@@ -2946,7 +3340,7 @@ void CalcEd::populateSummaryField(const string& summaryType)
       //  ("SCF Conv. Density") instead of on a line of its own; the full
       //  text is the tooltip.  A toggle group keeps its heading line.
       if (isNested && toggleSet && count > 0) {
-        sizer->Add(new ewxNonBoldLabel(this, wxID_ANY, topLabel), 0, 0, 0);
+        sizer->Add(new ewxNonBoldLabel(clientParent(), wxID_ANY, topLabel), 0, 0, 0);
         sizer->AddSpacer(1);
       }
       for (size_t i = 0; i < keys.size(); i++) {
@@ -2960,7 +3354,7 @@ void CalcEd::populateSummaryField(const string& summaryType)
           }
           if (toggleSet) {
             if (value == "true") {
-              sizer->Add(new ewxStaticText(this, wxID_ANY, labels[i]),
+              sizer->Add(new ewxStaticText(clientParent(), wxID_ANY, labels[i]),
                          0, isNested ? wxLEFT : 0, isNested ? FromDIP(12) : 0);
               sizer->AddSpacer(0);
             }
@@ -2974,13 +3368,13 @@ void CalcEd::populateSummaryField(const string& summaryType)
               shown = full;
               shown.Replace("Convergence", "Conv.");
             }
-            ewxNonBoldLabel *lab = new ewxNonBoldLabel(this, wxID_ANY, shown);
+            ewxNonBoldLabel *lab = new ewxNonBoldLabel(clientParent(), wxID_ANY, shown);
             if (shown != full) lab->SetToolTip(full);
             sizer->Add(lab, 0, wxRIGHT, 0);
             wxSizer *valSizer = new wxBoxSizer(wxHORIZONTAL);
-            valSizer->Add(new ewxStaticText(this, wxID_ANY, value),
+            valSizer->Add(new ewxStaticText(clientParent(), wxID_ANY, value),
                           0, wxLEFT, 2);
-            valSizer->Add(new ewxNonBoldLabel(this, wxID_ANY, guival->m_units),
+            valSizer->Add(new ewxNonBoldLabel(clientParent(), wxID_ANY, guival->m_units),
                           0, wxLEFT, 2);
             sizer->Add(valSizer, 0, 0, 0);
           }
@@ -3000,7 +3394,7 @@ void CalcEd::populateSummaryField(const string& summaryType)
   // The summary arrives from the details dialog after the theory change's
   // hold has ended; without a full layout and repaint, wxMSW keeps the old
   // button row's pixels where the shorter summary used to end (#294).
-  GetSizer()->Layout();
+  mainSizer()->Layout();
   Refresh(true);
 }
 
@@ -3416,17 +3810,24 @@ bool CalcEd::isGbsValid()
 }
 
 
+// Freezes the window that holds the controls: the page when in a tab (the
+// frame holds nothing then, and thawing it repaints nothing).
 struct CalcEd::UpdateHold {
   CalcEd *ed;
-  explicit UpdateHold(CalcEd *e) : ed(e) { ed->Freeze(); ed->p_holdDepth++; }
+  wxWindow *held;
+  explicit UpdateHold(CalcEd *e) : ed(e), held(e->clientParent())
+  {
+    held->Freeze();
+    ed->p_holdDepth++;
+  }
   ~UpdateHold() {
     if (--ed->p_holdDepth == 0 && ed->p_refitPending) {
       ed->p_refitPending = false;
       ed->refit();
     }
-    ed->Thaw();
+    held->Thaw();
 #ifdef __WXMSW__
-    ::RedrawWindow((HWND)ed->GetHWND(), NULL, NULL,
+    ::RedrawWindow((HWND)held->GetHWND(), NULL, NULL,
                    RDW_INVALIDATE | RDW_UPDATENOW | RDW_ALLCHILDREN);
 #endif
   }
@@ -3443,7 +3844,12 @@ void CalcEd::refit()
     p_refitPending = true;
     return;
   }
-  GetSizer()->SetSizeHints(this);
+  if (ToolTabs::hosts(this)) {
+    // The tab's scroller takes the sizer's minimum as its virtual size.
+    ToolTabs::layout(this);
+    return;
+  }
+  mainSizer()->SetSizeHints(this);
   fitToScreen();
   //  On a scaled display the content outgrows the window and scrolls; the
   //  Settings box must be in view when a calculation opens, but later
@@ -3461,7 +3867,8 @@ void CalcEd::revealSettingsWhenShown(int tries)
 {
   CallAfter([this, tries]() {
     if (!p_detailsBox) return;
-    if ((!IsShown() || !p_detailsBox->IsShownOnScreen()) && tries > 0) {
+    if ((!(IsShown() || ToolTabs::hosts(this)) ||
+         !p_detailsBox->IsShownOnScreen()) && tries > 0) {
       revealSettingsWhenShown(tries - 1);
       return;
     }
@@ -3476,7 +3883,7 @@ void CalcEd::updateAllFields()
   refreshAllFields();
   enableAllFields();
   showAllFields();
-  GetSizer()->Layout();
+  mainSizer()->Layout();
   refit();
 }
 
@@ -3486,17 +3893,18 @@ void CalcEd::updateChemSysFields()
   refreshChemSysFields();
   enableChemSysFields();
   showChemSysFields();
-  GetSizer()->Layout();
+  mainSizer()->Layout();
   refit();
 }
 
 
 void CalcEd::updateBasisSetFields()
 {
+  if (p_setupArea) p_setupArea->basisChanged();
   refreshBasisSetFields();
   enableBasisSetFields();
   showBasisSetFields();
-  GetSizer()->Layout();
+  mainSizer()->Layout();
   refit();
 }
 
@@ -3507,7 +3915,7 @@ void CalcEd::updateDetailsFields()
   refreshOrbitalGuess();
   enableDetailsFields();
   showDetailsFields();
-  GetSizer()->Layout();
+  mainSizer()->Layout();
   refit();
 }
 
@@ -3754,7 +4162,7 @@ void CalcEd::refreshOrbitalGuess()
   bool show = has || lost;
   if (column != 0 && column->IsShown(p_guessRow) != show) {
     column->Show(p_guessRow, show);
-    GetSizer()->Layout();
+    mainSizer()->Layout();
     refit();
   }
 }
@@ -4206,8 +4614,41 @@ static string unescapeWarningText(const string& in)
 }
 
 
+//  What the generator chose as the Vina ligand, as one line for the run type
+//  dialog's read-only text under Ligand atoms ("Automatic: residue STI, 37
+//  atoms (4463-4499)").  Not a setting: it goes through a side file next to
+//  the dialog's restore file, which the dialog polls (the socket only runs
+//  from the dialog to the editor).
+void CalcEd::writeVinaAutoNote() const
+{
+  if (p_codeName != "Vina" || p_runtypeNotePath.empty()) return;
+  string line;
+  const string key = "the ligand was chosen automatically: ";
+  for (const auto& w : p_inputGenWarnings) {
+    size_t a = w.second.find(key);
+    if (a == string::npos) continue;
+    a += key.size();
+    size_t b = w.second.find(" (atoms ", a);
+    size_t e = b == string::npos ? string::npos : w.second.find(')', b);
+    if (e == string::npos) continue;
+    string range = w.second.substr(b + 8, e - b - 8);
+    size_t dash = range.find('-');
+    if (dash != string::npos) range.replace(dash, 1, "\xE2\x80\x93");
+    line = "Automatic: " + w.second.substr(a, b - a) + " (" + range + ")";
+  }
+  const string& path = p_runtypeNotePath;
+  if (line.empty()) {
+    remove(path.c_str());
+    return;
+  }
+  ofstream out(path.c_str());
+  out << line << endl;
+}
+
+
 void CalcEd::storeInputGenWarnings()
 {
+  writeVinaAutoNote();
   if (!p_iCalc) return;
   if (p_feedback->getRunState() > ResourceDescriptor::STATE_READY) return;
 
@@ -4227,6 +4668,10 @@ void CalcEd::loadInputGenWarnings()
   if (!p_iCalc) return;
 
   string value = p_iCalc->getProp(TaskJob::inputWarningsProp());
+  struct NoteAfter {
+    const CalcEd *c;
+    ~NoteAfter() { c->writeVinaAutoNote(); }
+  } noteAfter = {this};
   size_t pos = 0;
   while (pos < value.size()) {
     size_t eol = value.find('\n', pos);
@@ -4624,14 +5069,14 @@ void CalcEd::doRuntypeChange()
 void CalcEd::saveSettings()
 {
   //ewxConfig *config = ewxConfig::getConfig("wxcalced.ini");
-  ewxConfig::closeConfigs();
+  ewxConfig::closeConfig("wxcalced.ini");
 }
 
 
 void CalcEd::restoreSettings()
 {
   //ewxConfig *config = ewxConfig::getConfig("wxcalced.ini");
-  ewxConfig::closeConfigs();
+  ewxConfig::closeConfig("wxcalced.ini");
 }
 
 
@@ -4652,6 +5097,18 @@ void CalcEd::startApp(int id, int force, const string& url) const
 
 void CalcEd::startApp(const string& app, int force, const string& url) const
 {
+  // A tool that opens in this process (#983, the editor is a window of the
+  // Organizer): the gateway would start a program instead.
+  if (InProcessTools::handles(app)) {
+    JMSMessage *req = newMessage();
+    req->addProperty("appname", app);
+    req->addIntProperty("forcenew", force);
+    req->addProperty("calcurl", url);
+    InProcessTools::open(*req);
+    delete req;
+    return;
+  }
+
   JMSMessage *msg = newMessage();
   msg->addProperty("action", "start");
   publish("ecce_activity", *msg);
@@ -4945,7 +5402,12 @@ void CalcEd::startTheoryApp(const bool& localInitFlag)
     wxRect r = GetScreenRect();
     wxSetEnv("ECCE_EDITOR_RECT", wxString::Format("%d,%d,%d,%d",
              r.x, r.y, r.width, r.height));
-    if (!launchDetachedApp(cmd)) {
+    // Set-up tab: the details fill its detail area when they have a .dlg.
+    const bool embedded = !localInitFlag && p_setupArea &&
+        p_setupArea->showDetails(SetupArea::THEORY, cmd);
+    if (!embedded && !localInitFlag && p_setupArea)
+      p_setupArea->external(SetupArea::THEORY);
+    if (!embedded && !launchDetachedApp(cmd)) {
       p_feedback->setMessage("Unable to invoke theory details dialog",
                              WxFeedback::ERROR);
     } else {
@@ -4972,6 +5434,7 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
     closeRuntypeApp(true);
 
     p_runtypeOutFile = TempStorage::getTempFile();
+    p_runtypeNotePath = p_runtypeOutFile->path() + ".note";
     ofstream outStream(p_runtypeOutFile->path().c_str());
 
     // Create a file just to guarantee a unique name
@@ -5026,6 +5489,7 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
     }
 
     outStream.close();
+    writeVinaAutoNote();
 
     cmd += buildTheoryRuntypeArgs(false);
 
@@ -5039,7 +5503,12 @@ void CalcEd::startRuntypeApp(const bool& localInitFlag)
     wxRect r = GetScreenRect();
     wxSetEnv("ECCE_EDITOR_RECT", wxString::Format("%d,%d,%d,%d",
              r.x, r.y, r.width, r.height));
-    if (!launchDetachedApp(cmd)) {
+    // Set-up tab: the details fill its detail area when they have a .dlg.
+    const bool embedded = !localInitFlag && p_setupArea &&
+        p_setupArea->showDetails(SetupArea::RUNTYPE, cmd);
+    if (!embedded && !localInitFlag && p_setupArea)
+      p_setupArea->external(SetupArea::RUNTYPE);
+    if (!embedded && !launchDetachedApp(cmd)) {
       p_feedback->setMessage("Unable to invoke runtype details dialog",
                              WxFeedback::ERROR);
     } else {
@@ -5200,6 +5669,7 @@ void CalcEd::processRuntypeInput(const char* databuf)
   if (strstr(databuf, "#INITIALIZED") != NULL) {
     p_runtypeOutFile->remove();
     delete p_runtypeOutFile;
+    p_runtypeOutFile = NULL;
 
     p_runtypeInitFlag = true;
 
@@ -5236,6 +5706,7 @@ void CalcEd::closeTheoryApp(const bool& sendTerm)
   if (sendTerm && (p_theoryPid)) {
     (void)kill((p_theoryPid), SIGTERM);
   }
+  if (sendTerm && p_setupArea) p_setupArea->closeDetails(SetupArea::THEORY);
 
   if (p_theoryInPort != 0) {
     p_theoryInSocket->Notify(false);
@@ -5252,6 +5723,12 @@ void CalcEd::closeRuntypeApp(const bool& sendTerm)
 
   if (sendTerm && (p_runtypePid)) {
     (void)kill((p_runtypePid), SIGTERM);
+  }
+  if (sendTerm && p_setupArea) p_setupArea->closeDetails(SetupArea::RUNTYPE);
+
+  if (!p_runtypeNotePath.empty()) {
+    remove(p_runtypeNotePath.c_str());
+    p_runtypeNotePath.clear();
   }
 
   if (p_runtypeInPort != 0) {

@@ -1,4 +1,4 @@
-# Build and test environment for tools/offload/run-on-radium.sh.
+# Build and test environment for tools/offload/run-offload.sh (MODE=container).
 # Package list = the CI "Debian (apt, containerized)" job plus what
 # tests/teaching, tests/launch, tests/apps, tests/tls, the GROMACS/MINFF
 # tests (bundled atomipy) and the QE tests need at run time;

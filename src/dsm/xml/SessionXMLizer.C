@@ -109,7 +109,9 @@ void SessionXMLizer::deserialize(const string & data,
                                             session->getURL());
       if (member != 0) {
         memberLabels[memberLabel] = member;
-        session->addMember(member);
+        // Restoring membership must not require write access to archived steps.
+        // Only newly added members need a task index assigned.
+        session->addMember(member, false);
       }
     }
 

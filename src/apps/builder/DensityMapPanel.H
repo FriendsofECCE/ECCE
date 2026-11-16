@@ -17,7 +17,10 @@ class wxRadioBox;
 class wxTextCtrl;
 class wxBoxSizer;
 class wxSlider;
+class wxScrolledWindow;
+class wxSizer;
 class wxSpinCtrl;
+class wxCheckBox;
 class wxStaticText;
 class wxDC;
 class DensityMapCanvas;
@@ -87,6 +90,8 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       /** Show or hide the plane controls (radio box, atoms, view); remembered. */
       void setPlaneControlsOpen(bool open);
       bool planeControlsOpen() const { return p_planeOpen; }
+      /** The Fill tick (under Options): colour between the contours; remembered. */
+      void setFill(bool on);
       /** Zoom the map about plane point (u, v), A; factor > 1 zooms in.  The
        *  window is recomputed at the same contour levels.  Interactive (the
        *  mouse wheel): a coarse grid at once, the full one when the zooming
@@ -102,6 +107,8 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       void refineZoom();
       /** Back to the whole plane. */
       void resetZoom();
+      void resetAll();
+      void updateResetButton();
       bool zoomed() const { return p_zoomed; }
       /** Plane coordinates of atom N (1-based) in the current map. */
       bool atomPoint(int n, double& u, double& v) const;
@@ -175,9 +182,11 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       wxChoice *p_principal;
       std::vector<DensityPlane::Plane> p_principalPlanes;
       wxTextCtrl *p_offsetField;
-      wxButton *p_resetOffset;
+      wxScrolledWindow *p_body;
+      wxSizer *p_moPair, *p_offRow;
       wxStaticText *p_labelA, *p_labelB, *p_labelC, *p_caption;
-      wxBoxSizer *p_atomRow, *p_viewRow, *p_moreRow;
+      wxBoxSizer *p_atomRow, *p_viewRow, *p_moreRow, *p_fillRow;
+      wxCheckBox *p_fillBox;
       wxButton *p_planeToggle;
       bool p_planeOpen, p_planeAuto;
       wxSpinCtrl *p_mo;

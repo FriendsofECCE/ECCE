@@ -63,16 +63,24 @@ string JMSPublisher::getMyName() const {
           identification.
 ********************************************************************/
 string JMSPublisher::getMyID() const {
+  return p_id.empty() ? MqttLink::processId() : p_id;
+}
 
-  // Determine unique process ID for identification and monitoring
-  // purposes using waitpid on that specific ID (platform specific):
-  int pid;
+string JMSPublisher::p_actingName;
+string JMSPublisher::p_actingId;
 
-  pid = getpid();
+void JMSPublisher::setActingTool(const string& name, const string& id) {
+  p_actingName = name;
+  p_actingId = id;
+}
 
-  char buf[100];
-  sprintf(buf, "%d", pid);
-  return buf;
+JMSPublisher::ActingTool::ActingTool(const string& name, const string& id)
+  : p_prevName(p_actingName), p_prevId(p_actingId) {
+  setActingTool(name, id);
+}
+
+JMSPublisher::ActingTool::~ActingTool() {
+  setActingTool(p_prevName, p_prevId);
 }
 
 /*******************************************************************
@@ -82,6 +90,10 @@ string JMSPublisher::getMyID() const {
           every message you send.
 ********************************************************************/
 JMSMessage* JMSPublisher::newMessage() const {
+    if (p_followActing && !p_actingName.empty() && MqttLink::localDelivery()) {
+      Sender acting(p_actingName, p_actingId);
+      return new JMSMessage(acting);
+    }
     Sender sender(p_toolName, getMyID());
     JMSMessage* msg = new JMSMessage(sender);
     return msg;

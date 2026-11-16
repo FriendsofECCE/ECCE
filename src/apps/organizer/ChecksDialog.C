@@ -7,6 +7,9 @@
 
 #include <wx/button.h>
 #include <wx/choice.h>
+#include <wx/clipbrd.h>
+#include <wx/dataobj.h>
+#include <wx/textctrl.h>
 #include <wx/stattext.h>
 #include <wx/filedlg.h>
 #include <wx/grid.h>
@@ -36,6 +39,7 @@ vector<vector<string>> parseCsv(const string& t)
       else if (c == '"') q = false;
       else cur += c;
     } else if (c == '"') q = true;
+    else if (c == '\r' && i + 1 < t.size() && t[i+1] == '\n') continue;
     else if (c == ',') { out.back().push_back(cur); cur.clear(); }
     else if (c == '\n') {
       out.back().push_back(cur); cur.clear();
@@ -88,12 +92,20 @@ bool ChecksDialog::load(wxWindow *parent, bool withProgress)
     };
   }
   if (p_qsar) {
-    if (!qsarTable(p_calcs, p_groups, text, p_why, progress)) return false;
+    string key;
+    if (!qsarTable(p_calcs, p_groups, text, p_why, progress, &key)) return false;
+    p_columnText.clear();
+    for (const auto& row : parseCsv(key))
+      if (row.size() == 2) p_columnText.push_back(row[1]);
   } else if (!(p_rank ? rankTable(p_calcs, "csv", text, p_why, progress, p_ref)
                       : checksTable(p_calcs, "csv", text, p_why))) return false;
   vector<vector<string>> all = parseCsv(text);
   if (all.empty()) { p_why = "The table is empty."; return false; }
   p_head = all[0];
+  if (p_qsar && p_columnText.size() != p_head.size()) {
+    p_why = "Descriptor key does not match the table columns.";
+    return false;
+  }
   p_rows.assign(all.begin() + 1, all.end());
   return true;
 }
@@ -151,6 +163,30 @@ ChecksDialog::ChecksDialog(wxWindow *parent, const vector<EcceURL>& calcs, bool 
   wxButton *c = new wxButton(this, wxID_ANY, "Export CSV...");
   wxButton *l = new wxButton(this, wxID_ANY, "Export LaTeX...");
   row->Add(c, 0, wxALL, 5);
+  if (p_qsar) {
+    wxButton *key = new wxButton(this, wxID_ANY, "Key...");
+    row->Add(key, 0, wxALL, 5);
+    key->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+      std::unique_ptr<wxDialog> dlg(createKey());
+      dlg->ShowModal();
+    });
+    // Labels live in a separate scrolled window; cell tooltips never reach it.
+    wxWindow *labels = p_grid->GetGridColLabelWindow();
+    labels->Bind(wxEVT_MOTION, [this, labels](wxMouseEvent& e) {
+      const int col = p_grid->XToCol(p_grid->CalcUnscrolledPosition(e.GetPosition()).x);
+      const wxString text = col >= 0 && col < (int)p_columnText.size() ?
+          wxString::FromUTF8(p_columnText[col].c_str()) : wxString();
+      if (text != labels->GetToolTipText()) {
+        if (text.empty()) labels->UnsetToolTip();
+        else labels->SetToolTip(text);
+      }
+      e.Skip();
+    });
+    labels->Bind(wxEVT_LEAVE_WINDOW, [labels](wxMouseEvent& e) {
+      labels->UnsetToolTip();
+      e.Skip();
+    });
+  }
   if (p_qsar) l->Hide();
   else row->Add(l, 0, wxALL, 5);
   row->AddStretchSpacer();
@@ -163,6 +199,53 @@ ChecksDialog::ChecksDialog(wxWindow *parent, const vector<EcceURL>& calcs, bool 
       [this](wxCommandEvent&) { EndModal(wxID_CLOSE); });
   p_grid->Bind(wxEVT_GRID_LABEL_LEFT_CLICK, &ChecksDialog::onSort, this);
   fill();
+}
+
+wxDialog *ChecksDialog::createKey()
+{
+  auto *dlg = new wxDialog(this, wxID_ANY, "QSAR descriptor key", wxDefaultPosition,
+                           wxSize(820, 520), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
+  string text;
+  for (size_t i = 0; i < p_head.size() && i < p_columnText.size(); ++i)
+    text += p_head[i] + ": " + p_columnText[i] + "\n\n";
+  auto *box = new wxTextCtrl(dlg, wxID_ANY, wxString::FromUTF8(text.c_str()),
+      wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_READONLY);
+  box->SetName("qsar-key-text");
+  auto *top = new wxBoxSizer(wxVERTICAL);
+  top->Add(box, 1, wxEXPAND | wxALL, 8);
+  auto *buttons = new wxBoxSizer(wxHORIZONTAL);
+  auto *copy = new wxButton(dlg, wxID_COPY, "Copy All");
+  buttons->Add(copy, 0, wxALL, 5);
+  buttons->AddStretchSpacer();
+  auto *close = new wxButton(dlg, wxID_CLOSE, "Close");
+  buttons->Add(close, 0, wxALL, 5);
+  top->Add(buttons, 0, wxEXPAND);
+  dlg->SetSizer(top);
+  copy->Bind(wxEVT_BUTTON, [box](wxCommandEvent&) {
+    if (wxTheClipboard->Open()) {
+      wxTheClipboard->SetData(new wxTextDataObject(box->GetValue()));
+      wxTheClipboard->Close();
+    }
+  });
+  close->Bind(wxEVT_BUTTON, [dlg](wxCommandEvent&) { dlg->EndModal(wxID_CLOSE); });
+  return dlg;
+}
+
+string ChecksDialog::headerTooltip(const string& name)
+{
+  const auto at = std::find(p_head.begin(), p_head.end(), name);
+  if (!p_qsar || !p_grid || at == p_head.end()) return "";
+  const int col = (int)(at - p_head.begin());
+  if (p_grid->GetNumberRows()) p_grid->MakeCellVisible(0, col);
+  int x = 2;
+  for (int i = 0; i < col; ++i) x += p_grid->GetColSize(i);
+  const wxPoint point = p_grid->CalcScrolledPosition(wxPoint(x, 2));
+  wxMouseEvent event(wxEVT_MOTION);
+  event.SetPosition(wxPoint(point.x, 2));
+  wxWindow *labels = p_grid->GetGridColLabelWindow();
+  event.SetEventObject(labels);
+  labels->GetEventHandler()->ProcessEvent(event);
+  return labels->GetToolTipText().ToStdString(wxConvUTF8);
 }
 
 vector<string> ChecksDialog::referenceChoices() const

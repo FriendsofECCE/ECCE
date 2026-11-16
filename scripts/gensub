@@ -2024,6 +2024,11 @@ sub gromacs()
     #  -pp: the topology with every #include and #ifdef resolved, which
     #  mdanalysis reads after the run (it has no GROMACS library search).
     $retval .= "grompp_args=\"-f $::inFile -c conf.gro -r conf.gro -p topol.top \${ndx:+-n \$ndx} -o topol.tpr -pp ecce_pp.top\"\n";
+    #  A run made from a ready .tpr (run.gmxtpr) has nothing to grompp.
+    $retval .= "if [ -f run.gmxtpr ]; then\n";
+    $retval .= "  cp run.gmxtpr topol.tpr\n";
+    $retval .= "  grompp_rc=\$?\n";
+    $retval .= "else\n";
     $retval .= "marked=0\ngrep -q ECCE-NETCHARGE-INTENDED topol.top && marked=1\n";
     $retval .= "\"\$gmx\" grompp \$grompp_args -maxwarn 999 > grompp.out 2>&1\n";
     $retval .= "grompp_rc=\$?\n";
@@ -2035,6 +2040,7 @@ sub gromacs()
     $retval .= "    \"\$gmx\" grompp \$grompp_args -maxwarn `sed -n 's/^harmless //p' grompp.warn` > grompp.out 2>&1\n";
     $retval .= "    grompp_rc=\$?\n";
     $retval .= "  fi\n";
+    $retval .= "fi\n";
     $retval .= "fi\n";
     $retval .= "if [ \$grompp_rc -ne 0 ]; then\n";
     $retval .= "  cat grompp.out >> $::logfile\n";

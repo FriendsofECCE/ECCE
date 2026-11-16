@@ -7,6 +7,7 @@ using std::ofstream;
 using std::cout;
 using std::endl;
 #include <map>
+#include <functional>
 using std::map;
 #include <sstream>
 using std::ostringstream;
@@ -33,6 +34,10 @@ using std::vector;
 #include "inv/nodes/SoCone.H"
 #include "inv/nodes/SoRotationXYZ.H"
 #include "inv/actions/SoGLRenderAction.H"
+#include "inv/actions/SoSearchAction.H"
+#include "inv/nodes/SoIndexedTriangleStripSet.H"
+#include "inv/ChemKit/ChemIso.H"
+#include "inv/nodes/SoVertexProperty.H"
 #include "inv/manips/SoTrackballManip.H"
 
 #include <wx/settings.h>
@@ -41,6 +46,7 @@ using std::vector;
 #include <wx/utils.h>
 
 #include "util/Ecce.H"
+#include "util/MqttLink.H"
 #include "util/BrowserHelp.H"
 #include "wxgui/WxHelpViewer.H"
 #include "util/CancelException.H"
@@ -241,7 +247,9 @@ using std::vector;
 #include <wx/textentry.h>
 #include <wx/spinctrl.h>
 #include <wx/accel.h>
+#include "wxgui/ToolTabs.H"
 #include "Builder.H"
+#include "BuilderMessages.H"
 
 static const char *PERSP_SVG = "svg/view-persp.svg";
 static const char *ORTHO_SVG = "svg/view-ortho.svg";
@@ -252,6 +260,7 @@ static wxBitmapBundle shapeIcon(ShapeData::Shape shape);
 IMPLEMENT_CLASS( Builder, BuilderGUI )
 
 BEGIN_EVENT_TABLE( Builder, BuilderGUI )
+    EVT_MENU( ID_SAVE_IMAGE, Builder::OnSaveImageClick )
     EVT_MENU( ID_MODE_SELECT, Builder::OnModeClick )
     EVT_MENU( ID_MODE_ROTATE, Builder::OnModeClick )
     EVT_MENU( ID_MODE_TRANSLATE, Builder::OnModeClick )
@@ -574,6 +583,7 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   setSaveHandler(this);
 
   p_mgr.SetManagedWindow(this);
+  p_mgr.setFloatParent(this);
   //  wxAUI caps a dock at a share of the window (a fraction well under
   //  half by default); a dragged side column may take most of it, the
   //  viewer keeping its own minimum width.
@@ -602,6 +612,8 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   //  The canvas has the focus, so the frame sees Esc only through the hook.
   Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& ev) {
     const int key = ev.GetKeyCode();
+    if (getenv("ECCE_BUILDER_SCRIPT"))
+      std::cerr << "BUILDER: charhook key=" << key << std::endl;
     //  Space is the viewer's alone: a button or text field keeps it.
     if (key == WXK_SPACE && dynamic_cast<SoWxRenderArea*>(wxWindow::FindFocus())
         && pauseVibrationKey())
@@ -715,8 +727,14 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
 
 Builder::~Builder()
 {
+  ToolTabs::release(this, false);
   unsubscribe();
-  PopEventHandler(true);
+  //  Not PopEventHandler: after a tab's release the AUI manager (a member,
+  //  pushed again by SetManagedWindow) is on top of the stack, not this.
+  if (p_viewerEvtHandler) {
+    RemoveEventHandler(p_viewerEvtHandler);
+    delete p_viewerEvtHandler;
+  }
   
   if (p_copyBuffer)
     delete p_copyBuffer;
@@ -725,16 +743,47 @@ Builder::~Builder()
     delete p_contextHistory;
   }
 
-  wxLog::SetActiveTarget(NULL);
-  ewxConfig::closeConfigs();
+  if (!MqttLink::localDelivery()) wxLog::SetActiveTarget(NULL);
+  delete p_msgs;
+  // Other windows of the process (#983) may still use their configs.
+  ewxConfig::flushConfigs();
+  ewxConfig::closeConfig("wxbuilder.ini");
 }
 
 
 bool Builder::Show(bool show)
 {
+   if (ToolTabs::hosts(this)) {
+     if (show) {
+       ToolTabs::select(this);
+       initShownPanels();
+     }
+     return true;
+   }
    const bool ret = BuilderGUI::Show(show);
    if (show) initShownPanels();
    return ret;
+}
+
+
+void Builder::Raise()
+{
+  if (ToolTabs::hosts(this)) ToolTabs::select(this);
+  else BuilderGUI::Raise();
+}
+
+
+void Builder::SetTitle(const wxString& title)
+{
+  BuilderGUI::SetTitle(title);
+  ToolTabs::setTitle(this, title);
+}
+
+
+bool Builder::Destroy()
+{
+  ToolTabs::release(this, false);
+  return BuilderGUI::Destroy();
 }
 
 
@@ -1024,18 +1073,21 @@ void Builder::createRotators(wxWindow *parent)
   p_xrot = new wxSpinCtrl(parent, ID_ROT_X, "0", wxDefaultPosition,
                            wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
+  p_xrot->SetMinSize(wxSize(p_xrot->GetTextExtent("-179").x + 44, -1));
   p_rotSizer->Add(p_xrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Y"), 0,
                   wxALIGN_CENTER|wxLEFT, 5);
   p_yrot = new wxSpinCtrl(parent, ID_ROT_Y, "0", wxDefaultPosition,
                            wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
+  p_yrot->SetMinSize(wxSize(p_yrot->GetTextExtent("-179").x + 44, -1));
   p_rotSizer->Add(p_yrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Z"), 0,
                    wxALIGN_CENTER|wxLEFT, 5);
   p_zrot = new wxSpinCtrl(parent, ID_ROT_Z, "0", wxDefaultPosition,
                            wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
                            -179, 180, 0);
+  p_zrot->SetMinSize(wxSize(p_zrot->GetTextExtent("-179").x + 44, -1));
   p_rotz = 0;
   p_rotSizer->Add(p_zrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->AddStretchSpacer(1);
@@ -1165,8 +1217,12 @@ void Builder::createToolPanels()
 
   ewxTextCtrl * log = new ewxTextCtrl(this, wxID_ANY, "", wxDefaultPosition,
           wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxSUNKEN_BORDER);
-  ewxLogTextCtrl *logWindow = new ewxLogTextCtrl(log, GetStatusBar());
-  delete wxLog::SetActiveTarget(logWindow);
+  //  The log target is process-wide: in one process (#983) it stays the
+  //  Organizer's, and this panel only shows what is written to it directly.
+  //  No ewxLogTextCtrl then: it pushes itself onto the text control as its
+  //  event handler and must live as long as the control.
+  if (!MqttLink::localDelivery())
+    delete wxLog::SetActiveTarget(new ewxLogTextCtrl(log, GetStatusBar()));
   addToolPanel(log, NAME_TOOL_LOG, false, false);
   //  In the one-column layouts the log lives collapsed to its caption bar.
   //  It does not open by itself when written to: that resized the viewer
@@ -1856,7 +1912,7 @@ bool Builder::mouseEvent(wxMouseEvent *event)
         SGFragment *sf = getSG()->getFragment();
         if (sf && sf->m_atomHighLight.size() == 1)
           menu.Append(ID_DISTORT_BONDS, _("Distort Bonds..."));
-        PopupMenu(&menu);
+        ToolTabs::popupParent(this)->PopupMenu(&menu);
       });
    }
    // For not, process all button events.  May want to revert to just button up
@@ -2951,6 +3007,12 @@ bool Builder::handleCommandsIfLattice(Command *cmd)
 }
 
 
+wxMenuBar *Builder::GetMenuBar() const
+{
+  return ToolTabs::menuBar(this, wxFrame::GetMenuBar());
+}
+
+
 /** 
  * Updates the undo and redo menu items.
  */
@@ -3082,15 +3144,23 @@ void Builder::mainWindowCloseCB( wxCloseEvent& event )
    //  arrived as a second close event INSIDE the first quit() and ran the
    //  whole shutdown again -- reported as needing two or three clicks and
    //  then "free(): invalid pointer".  One shutdown at a time.
-   static bool closing = false;
-   if (closing) {
+   if (p_closing) {
+      fprintf(stderr, "Builder: close already in progress\n");
       if (event.CanVeto()) event.Veto();
       return;
    }
-   closing = true;
+   p_closing = true;
    saveSettings();
-   quit();
-   closing = false;   // reached only when the user cancelled the quit
+   //  A forced close (session end, Organizer Quit in one process) offers
+   //  no Cancel: it could not be honoured.
+   quit(event.CanVeto());
+   p_closing = false;   // reached only when the user cancelled the quit
+   //  In one process the Organizer's Quit asks this window first (#983).
+   //  After quit()'s Destroy() a frame is only scheduled for deletion and
+   //  IsBeingDeleted() is still false: a veto then would cancel the Quit.
+   if (p_inProcess && !IsBeingDeleted() &&
+       !wxTheApp->IsScheduledForDestruction(this) && event.CanVeto())
+     event.Veto();
 }
 
 
@@ -4294,8 +4364,52 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
 }
 
 
-// The caption's pin button folds a property pane to its caption bar.
-// The resize is deferred so it never runs inside AUI's own event handling.
+//  Order of the docked panes in the Properties column: tab strip, list,
+//  then the rest by their own position.  Only the order is changed.
+void BuilderAuiManager::keepIndexOnTop(wxAuiManager& mgr)
+{
+  wxAuiPaneInfo &idx = mgr.GetPane(Builder::NAME_PROPERTY_INDEX);
+  if (!idx.IsOk() || idx.IsFloating()) return;
+  vector<wxAuiPaneInfo*> col;
+  wxAuiPaneInfoArray &all = mgr.GetAllPanes();
+  for (size_t i = 0; i < all.GetCount(); ++i) {
+    wxAuiPaneInfo &pi = all.Item(i);
+    if (pi.IsFloating() || pi.IsToolbar() ||
+        pi.dock_direction != idx.dock_direction ||
+        pi.dock_layer != idx.dock_layer || pi.dock_row != idx.dock_row)
+      continue;
+    col.push_back(&pi);
+  }
+  const wxString tabs(Builder::NAME_COLUMN_TABS);
+  auto rank = [&](wxAuiPaneInfo *p) {
+    return p->name == tabs ? 0 : (p == &idx ? 1 : 2);
+  };
+  std::stable_sort(col.begin(), col.end(),
+      [&](wxAuiPaneInfo *a, wxAuiPaneInfo *b) {
+        if (rank(a) != rank(b)) return rank(a) < rank(b);
+        return a->dock_pos < b->dock_pos;
+      });
+  for (size_t k = 0; k < col.size(); ++k) col[k]->dock_pos = (int)k;
+}
+
+
+bool BuilderAuiManager::ProcessDockResult(wxAuiPaneInfo& target,
+                                          const wxAuiPaneInfo& newPos)
+{
+  if (!wxAuiManager::ProcessDockResult(target, newPos)) return false;
+  wxAuiPaneInfo &idx = GetPane(Builder::NAME_PROPERTY_INDEX);
+  if (idx.IsOk() && !target.IsFloating() && target.name != idx.name &&
+      target.name != Builder::NAME_COLUMN_TABS &&
+      target.dock_direction == idx.dock_direction &&
+      target.dock_layer == idx.dock_layer &&
+      target.dock_row == idx.dock_row && target.dock_pos <= idx.dock_pos) {
+    //  Ties sort after the list in keepIndexOnTop's stable order.
+    target.dock_pos = idx.dock_pos + 1;
+  }
+  return true;
+}
+
+
 /**
  * Dock every floating pane on the side it came from.  wxAUI recreates a
  * dock side that has emptied, so this works with nothing left docked there.
@@ -4310,10 +4424,12 @@ void Builder::OnDockFloatingPanels(wxCommandEvent& event)
       changed = true;
     }
   }
-  if (changed) updatePanes();
+  if (changed) updatePanes(true);  // a docked property pane takes the detail slot, or it is hidden
 }
 
 
+// The caption's pin button folds a property pane to its caption bar.
+// The resize is deferred so it never runs inside AUI's own event handling.
 void Builder::OnPaneButton(wxAuiManagerEvent& event)
 {
   wxAuiPaneInfo *pane = event.GetPane();
@@ -5107,6 +5223,14 @@ bool Builder::calcHasStructure()
 }
 
 
+bool Builder::panelRedundant(const string& name)
+{
+  if (name != "Geometry Step Plots" || !p_calculation) return false;
+  const vector<string> props = p_calculation->propertyNames();
+  return std::find(props.begin(), props.end(), "GEOMTRACE") != props.end();
+}
+
+
 DiffractionDialog *Builder::openResultsDiffraction(const string& given)
 {
   static int serial = 0;
@@ -5115,7 +5239,8 @@ DiffractionDialog *Builder::openResultsDiffraction(const string& given)
        std::to_string(serial++) + ".xyz")).string();
   vector<int> none;
   PropTSVecTable *trace =
-      dynamic_cast<PropTSVecTable*>(p_calculation ? p_calculation->getProperty("GEOMTRACE") : 0);
+      dynamic_cast<PropTSVecTable*>(p_calculation && !dynamic_cast<AbstractPropCalculation*>(p_calculation) ?
+          p_calculation->getProperty("GEOMTRACE") : 0);
   const string err = writeStructureXyz(xyz, none, trace ? trace->tables() - 1 : -1);
   if (!err.empty()) { showMessage(err, true); return 0; }
   return new DiffractionDialog(this, xyz, none);
@@ -5124,7 +5249,7 @@ DiffractionDialog *Builder::openResultsDiffraction(const string& given)
 
 void Builder::OnDiffractionEntry(wxCommandEvent&)
 {
-  if (DiffractionDialog *dlg = openResultsDiffraction()) dlg->Show();
+  selectDetail("Diffraction");
 }
 
 
@@ -5559,6 +5684,76 @@ bool Builder::writeFragmentToImageFile(SFile *file, wxString type, wxString ext)
   }
 
   return ret;
+}
+
+
+/**
+ * VizRender::image, with the drawn orbital or density recomputed on a finer
+ * grid first when the image is larger than the view.
+ */
+bool Builder::imageOnFineSurface(const string& path, int w, int h, bool white, int factor)
+{
+  auto render = [&]() {
+    //  What the image is drawn from, for tests (strip indices, not triangles).
+    SoSearchAction sa;
+    sa.setType(ChemIso::getClassTypeId());
+    sa.setInterest(SoSearchAction::ALL);
+    sa.setSearchingAll(true);
+    if (getSG()) sa.apply(getSG());
+    long idx = 0;
+    for (int i = 0; i < sa.getPaths().getLength(); i++) {
+      ChemIso *iso = (ChemIso *)sa.getPaths()[i]->getTail();
+      idx += ((SoIndexedTriangleStripSet *)(*iso->getChildren())[0])->coordIndex.getNum();
+    }
+    fprintf(stderr, "BUILDER: saveimage x%d surface indices %ld\n", factor, idx);
+    return VizRender::image(p_viewer, path, w, h, white, factor);
+  };
+  if (factor > 1 && p_calculation != 0) {
+    set<PropertyPanel*> panels =
+        PropertyPanel::getPanels(p_calculation->getURL().toString());
+    for (set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end(); ++it)
+      if (MoPanel *mo = dynamic_cast<MoPanel*>(*it))
+        return mo->renderOnFineGrid(factor, render);
+  }
+  return render();
+}
+
+
+/**
+ * File > Save Image...: a PNG of the 3-D view at 1x, 2x or 4x its size,
+ * with blended transparency and smooth edges (VizRender::image).
+ */
+void Builder::OnSaveImageClick(wxCommandEvent& event)
+{
+  int factor = 2;
+  bool white = false;
+  string path;
+  if (const char *scripted = getenv("ECCE_SAVE_IMAGE_ANSWERS")) {
+    //  Test hook: "<factor> <white|keep> <path>" in place of the three dialogs.
+    std::istringstream in(scripted);
+    string bgWord;
+    in >> factor >> bgWord >> path;
+    white = bgWord == "white";
+  } else {
+    wxArrayString choices;
+    choices.Add("1x (the size of the view)");
+    choices.Add("2x");
+    choices.Add("4x");
+    wxSingleChoiceDialog res(this, _("Resolution, as a multiple of the size of the 3-D view:"),
+                             _("Save Image"), choices);
+    res.SetSelection(1);
+    if (res.ShowModal() != wxID_OK) return;
+    factor = res.GetSelection() == 0 ? 1 : (res.GetSelection() == 1 ? 2 : 4);
+    white = wxMessageBox(_("Use a white background?"), _("Save Image"),
+                         wxYES_NO | wxICON_QUESTION, this) == wxYES;
+    wxFileDialog fd(this, _("Save Image"), "", "image.png", "PNG files (*.png)|*.png",
+                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    if (fd.ShowModal() != wxID_OK) return;
+    path = fd.GetPath().ToStdString();
+  }
+  wxSize size = p_viewer->GetSize();
+  if (!imageOnFineSurface(path, size.GetWidth(), size.GetHeight(), white, factor))
+    showMessage(VizRender::msg(), true);
 }
 
 
@@ -6215,6 +6410,7 @@ void Builder::updatePropertyMenus()
   panels = PropertyPanel::getPanels(p_calculation->getURL().toString());
   for (panelIt = panels.begin(); panelIt != panels.end(); ++panelIt) {
     PropertyPanel *panel = *panelIt;
+    if (panelRedundant(panel->getName())) continue;
     addPropertyPanel(panel, panel->getName());
     needUpate = true;
   }
@@ -6231,7 +6427,9 @@ void Builder::updatePropertyMenus()
   PropertyPanelFactory &ppf = PropertyPanelFactory::getPropertyPanelFactory();
   names = ppf.getPanelNamesForProperties(p_calculation->propertyNames());
   for (name = names.begin(); name != names.end(); ++name) {
-    if (name->find("Metadynamics Potential")==string::npos) {
+    if (panelRedundant(*name)) {
+      continue;
+    } else if (name->find("Metadynamics Potential")==string::npos) {
       if (!PropertyPanel::panelExists(urlstr, *name)) {
         createPropertyPanel(*name);
         needUpate = true;
@@ -6247,11 +6445,11 @@ void Builder::updatePropertyMenus()
     }
   }
 
-  //  A periodic structure gets a Diffraction item: it is a view of the
-  //  structure, not a parsed property, so it is added here by hand (#587).
-  if (calcHasStructure())
-    p_propertyMenu->Append(ID_DIFFRACTION_ENTRY, "Diffraction",
-                           "Calculated diffraction of the final geometry: fibre, and powder and single crystal for a periodic one");
+  // Diffraction is a property of the structure rather than a parsed key.
+  if (calcHasStructure() && !PropertyPanel::panelExists(urlstr, "Diffraction")) {
+    createPropertyPanel("Diffraction");
+    needUpate = true;
+  }
 
   refreshColumn();
   if (needUpate) {
@@ -6304,7 +6502,7 @@ void Builder::updatePropertyMenus()
       p_propertyMenu->GetMenuItemCount() > 0) {
     panelMetricsStarted = true;
     string path = metricsPath;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this, path](wxTimerEvent&) {
       wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
       FILE *f = fopen(path.c_str(), "w");
@@ -6366,7 +6564,7 @@ void Builder::updatePropertyMenus()
   if (getenv("ECCE_PANEL_TEST") != 0 && !panelTestStarted &&
       p_calculation != 0 && p_propertyMenu->GetMenuItemCount() > 0) {
     panelTestStarted = true;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { runPanelLayoutTest(); });
     timer->StartOnce(5000);
   }
@@ -6378,7 +6576,7 @@ void Builder::updatePropertyMenus()
       !clipAuditStarted && p_calculation != 0 &&
       p_propertyMenu->GetMenuItemCount() > 0) {
     clipAuditStarted = true;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { runClipAudit(); });
     timer->StartOnce(6000);
   }
@@ -6410,8 +6608,18 @@ void Builder::updatePropertyMenus()
       // is the Builder's log panel and must survive.
       new wxLogChain(new wxLogStderr());
       okTimer->Start(500);
+      fprintf(stderr, "ECCE_TEST_IMPORT: start\n");
       importChemicalSystem(path, "", wxString(path).AfterLast('.'));
       okTimer->Stop();
+      //  ECCE_TEST_IMPORT_SETTLE=<ms>: let the viewer draw the imported
+      //  structure before exiting (render_alpha_test.py checks those frames).
+      if (const char *settle = getenv("ECCE_TEST_IMPORT_SETTLE")) {
+        const wxLongLong end = wxGetLocalTimeMillis() + atol(settle);
+        while (wxGetLocalTimeMillis() < end) {
+          wxTheApp->Yield(true);
+          wxMilliSleep(10);
+        }
+      }
       fprintf(stderr, "ECCE_TEST_IMPORT: done, %d atoms\n",
               getSG()->getFragment()->numAtoms());
       // Close() would ask to save the imported system.
@@ -6428,7 +6636,7 @@ void Builder::updatePropertyMenus()
   static bool dockStarted = false;
   if (getenv("ECCE_TEST_DOCK") && !dockStarted) {
     dockStarted = true;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
       auto docked = [this](int side) {
         std::vector<wxString> names;
@@ -6479,7 +6687,7 @@ void Builder::updatePropertyMenus()
   static bool helpStarted = false;
   if (getenv("ECCE_TEST_HELP") && !helpStarted) {
     helpStarted = true;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
       wxCommandEvent ev;
       helpBuilderMenuitemClick(ev);
@@ -6623,7 +6831,7 @@ void Builder::updatePropertyMenus()
     string script = sceneScript;
     const char *o = getenv("ECCE_VIEWER_SCENE_OUT");
     string outdir = o ? o : ".";
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     int *ticks = new int(0), *settled = new int(0);
     timer->Bind(wxEVT_TIMER, [this, timer, ticks, settled, script, outdir](wxTimerEvent&) {
       SGContainer *sg = getSG();
@@ -6645,8 +6853,18 @@ void Builder::updatePropertyMenus()
       int capW = 480, capH = 480;
       if (const char *sz = getenv("ECCE_VIEWER_SCENE_SIZE"))
         sscanf(sz, "%dx%d", &capW, &capH);
+      //  A "shot" photographs the screen, so its scene must be in the
+      //  Builder's own canvas: the capture frame would be in the photo,
+      //  over the Builder (#1056).
+      bool photographed = false;
+      {
+        std::ifstream in(script.c_str());
+        string line;
+        while (!photographed && std::getline(in, line))
+          photographed = line.compare(0, 5, "shot ") == 0;
+      }
       SGViewer *viewer = p_viewer;
-      if (!hold) {
+      if (!hold && !photographed) {
         wxFrame *frame = new wxFrame(NULL, wxID_ANY, "scene capture");
         viewer = new SGViewer(frame, wxID_ANY);
         viewer->setText("", "", "", "");
@@ -6662,6 +6880,9 @@ void Builder::updatePropertyMenus()
       for (int i = 0; i < 30; i++) { wxTheApp->Yield(true); wxMilliSleep(10); }
       viewer->viewAll();
       SceneScript run(viewer, sg, p_calculation, outdir);
+      run.setImageFunction([this](const string& path, int w, int h, bool white, int f) {
+        return imageOnFineSurface(path, w, h, white, f);
+      });
       run.setTraceStep([this](int index) { return traceFrame(index); });
       //  "mopanel <name>": press the MO panel's Compute, as a user would,
       //  recording every frame the Builder's own canvas paints meanwhile.
@@ -6772,6 +6993,57 @@ void Builder::updatePropertyMenus()
           updatePanes(true);
           return true;
         }
+        //  "paneorder": the docked panes of the Properties column, top to
+        //  bottom, to paneorder.txt.  "dockfloating": the Dock button.  "dropat <panel name> <pos>": a drop
+        //  of the panel into that column at dock position <pos>, as the
+        //  mouse would leave it.
+        if (w[0] == "dockfloating") {
+          wxCommandEvent ev;
+          OnDockFloatingPanels(ev);
+          return true;
+        }
+        if (w[0] == "paneorder" || (w[0] == "dropat" && w.size() >= 3)) {
+          if (w[0] == "dropat") {
+            string name = w[1];
+            for (size_t k = 2; k + 1 < w.size(); k++) name += " " + w[k];
+            wxAuiPaneInfo &pi = p_mgr.GetPane(wxString(name));
+            wxAuiPaneInfo &ix = p_mgr.GetPane(NAME_PROPERTY_INDEX);
+            if (!pi.IsOk()) return s.fail("dropat: no pane " + name);
+            wxAuiPaneInfo drop = pi;
+            drop.Dock().Right().Layer(ix.dock_layer).Row(ix.dock_row)
+                .Position(atoi(w.back().c_str()));
+            wxAuiPaneInfo target = pi;
+            if (!p_mgr.ProcessDockResult(target, drop))
+              return s.fail("dropat: drop refused");
+            pi = target;
+            pi.Show(true);
+            updatePanes(true);
+            return true;
+          }
+          wxAuiPaneInfo &ix = p_mgr.GetPane(NAME_PROPERTY_INDEX);
+          vector<pair<int, string> > order;
+          std::ofstream all_(outdir + "/paneall.txt");
+          wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+          for (size_t k = 0; k < all.GetCount(); k++) {
+            wxAuiPaneInfo &pi = all.Item(k);
+            all_ << pi.name.utf8_str().data() << " fl=" << pi.IsFloating()
+                 << " sh=" << pi.IsShown() << " dir=" << pi.dock_direction
+                 << " L=" << pi.dock_layer << " R=" << pi.dock_row
+                 << " P=" << pi.dock_pos << "\n";
+            if (!pi.window || pi.IsFloating() || pi.IsToolbar() ||
+                !pi.IsShown() || pi.dock_direction != ix.dock_direction ||
+                pi.dock_layer != ix.dock_layer || pi.dock_row != ix.dock_row)
+              continue;
+            order.push_back(make_pair(pi.dock_pos, string(pi.name.utf8_str())));
+          }
+          std::stable_sort(order.begin(), order.end(),
+              [](const pair<int,string>& a, const pair<int,string>& b) {
+                return a.first < b.first; });
+          std::ofstream out(outdir + "/paneorder.txt");
+          for (size_t k = 0; k < order.size(); k++)
+            out << order[k].second << "\n";
+          return true;
+        }
         if (w[0] == "layout" && w.size() == 2) {
           std::ofstream out(outdir + "/" + w[1] + ".txt");
           wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
@@ -6840,6 +7112,123 @@ void Builder::updatePropertyMenus()
                 << xyz[3*a+1] << " " << xyz[3*a+2] << "\n";
           }
           delete [] xyz;
+          return true;
+        }
+        //  "surfmesh <name>": each isosurface in the scene as triangles ->
+        //  <name>.txt: threshold, vertices, triangles, boundary edges (used
+        //  by one triangle; 0 for a closed surface), edges used by more than
+        //  two, and edges both of whose triangles run the same way (these
+        //  show as missing faces under back-face culling) (#1076).
+        if (w[0] == "surfmesh" && w.size() == 2) {
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          SoSearchAction sa;
+          sa.setType(ChemIso::getClassTypeId());
+          sa.setInterest(SoSearchAction::ALL);
+          sa.setSearchingAll(true);
+          if (getSG()) sa.apply(getSG());
+          SoPathList &paths = sa.getPaths();
+          out << "surfaces " << paths.getLength() << "\n";
+          for (int pi = 0; pi < paths.getLength(); pi++) {
+            ChemIso *iso = (ChemIso *)paths[pi]->getTail();
+            SoIndexedTriangleStripSet *ts =
+                (SoIndexedTriangleStripSet *)(*iso->getChildren())[0];
+            const int32_t *ci = ts->coordIndex.getValues(0);
+            const int n = ts->coordIndex.getNum();
+            std::map<std::pair<int,int>, std::pair<int,int> > edges;
+            std::set<int> verts;
+            long tris = 0;
+            int a = -1, b = -1, k = 0;
+            for (int i = 0; i < n; i++) {
+              const int c = ci[i];
+              if (c < 0) { a = b = -1; k = 0; continue; }
+              verts.insert(c);
+              if (a >= 0 && b >= 0 && a != b && b != c && a != c) {
+                //  Strips alternate winding: odd triangles run b,a,c.
+                int t[3] = {a, b, c};
+                if (k % 2) std::swap(t[0], t[1]);
+                for (int e = 0; e < 3; e++) {
+                  const int u = t[e], v = t[(e + 1) % 3];
+                  std::pair<int,int> &cnt =
+                      edges[std::make_pair(std::min(u, v), std::max(u, v))];
+                  if (u < v) cnt.first++; else cnt.second++;
+                }
+                tris++;
+              }
+              if (a >= 0 && b >= 0) k++;
+              a = b; b = c;
+            }
+            long boundary = 0, over = 0, sameway = 0;
+            for (std::map<std::pair<int,int>, std::pair<int,int> >::iterator
+                     it = edges.begin(); it != edges.end(); ++it) {
+              const int used = it->second.first + it->second.second;
+              if (used == 1) boundary++;
+              else if (used > 2) over++;
+              else if (it->second.first != 1) sameway++;
+            }
+            out << "surface " << pi << " threshold " << iso->threshold.getValue()
+                << " vertices " << verts.size() << " triangles " << tris
+                << " boundary " << boundary << " overused " << over
+                << " misoriented " << sameway << "\n";
+            //  Connected pieces (by shared edges), each with its boundary
+            //  edges and the colour field (sign(l2)rho for NCI) at the
+            //  grid node nearest its vertices.
+            std::map<int,int> up;
+            std::function<int(int)> root = [&](int v) {
+              while (up.count(v) && up[v] != v) v = up[v] = up[up[v]];
+              return v;
+            };
+            for (std::set<int>::iterator it = verts.begin(); it != verts.end(); ++it)
+              up[*it] = *it;
+            for (std::map<std::pair<int,int>, std::pair<int,int> >::iterator
+                     it = edges.begin(); it != edges.end(); ++it)
+              up[root(it->first.first)] = root(it->first.second);
+            std::map<int, std::vector<int> > parts;
+            for (std::set<int>::iterator it = verts.begin(); it != verts.end(); ++it)
+              parts[root(*it)].push_back(*it);
+            std::map<int,long> partBoundary;
+            for (std::map<std::pair<int,int>, std::pair<int,int> >::iterator
+                     it = edges.begin(); it != edges.end(); ++it)
+              if (it->second.first + it->second.second == 1)
+                partBoundary[root(it->first.first)]++;
+            SingleGrid *g = getSG() ? getSG()->getCurrentGrid() : 0;
+            SoVertexProperty *vp =
+                (SoVertexProperty *)ts->vertexProperty.getValue();
+            const SbVec3f *xyz = vp ? vp->vertex.getValues(0) : 0;
+            const float *cf = g ? g->colorFieldData() : 0;
+            out << "pieces " << parts.size() << "\n";
+            for (std::map<int, std::vector<int> >::iterator it = parts.begin();
+                 it != parts.end(); ++it) {
+              double cmin = 1e30, cmax = -1e30;
+              if (cf && xyz) {
+                const int *dim = g->dimensions();
+                for (size_t q = 0; q < it->second.size(); q++) {
+                  const SbVec3f &p = xyz[it->second[q]];
+                  int ix[3];
+                  for (int k = 0; k < 3; k++) {
+                    const double d = (g->corner()[k] - g->origin()[k]) / (dim[k] - 1);
+                    ix[k] = std::max(0, std::min(dim[k] - 1,
+                        (int)floor((p[k] - g->origin()[k]) / d + 0.5)));
+                  }
+                  const double c = cf[ix[0] + (size_t)dim[0] *
+                                      (ix[1] + (size_t)dim[1] * ix[2])];
+                  cmin = std::min(cmin, c);
+                  cmax = std::max(cmax, c);
+                }
+              }
+              out << "piece vertices " << it->second.size() << " boundary "
+                  << partBoundary[it->first];
+              if (cf) out << " colourmin " << cmin << " colourmax " << cmax;
+              out << "\n";
+            }
+          }
+          SingleGrid *grid = getSG() ? getSG()->getCurrentGrid() : 0;
+          if (grid) {
+            const int *dim = grid->dimensions();
+            out << "grid " << dim[0] << " " << dim[1] << " " << dim[2];
+            for (int k = 0; k < 3; k++)
+              out << " " << (grid->corner()[k] - grid->origin()[k]) / (dim[k] - 1);
+            out << "\n";
+          }
           return true;
         }
         if (w[0] == "display") return displayCommand(s, w, outdir);
@@ -7153,7 +7542,7 @@ void Builder::updatePropertyMenus()
         std::ofstream(outdir + "/FAILED") << msg << "\n";
       }
       if (hold) {
-        wxTimer *closer = new wxTimer();   // lives until the process exits
+        wxTimer *closer = ewxWindowTimer(this);   // deleted with the window (#983)
         closer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) { Close(true); });
         closer->StartOnce(1000 * atoi(hold));
         return;
@@ -8210,7 +8599,14 @@ void Builder::propertyChangeMCB(JMSMessage& msg)
 
   // Don't process it if we are the ones that sent it.
   // This happens with the "isReviewed" property.
-  if (msg.getSender().getID() == getMyID()) return;
+  // In one process (#983) the bare pid is every tool's: the sender is this
+  // Builder if it is its own publisher or its window's dispatcher.
+  const string from = msg.getSender().getID();
+  if (MqttLink::localDelivery()) {
+    if ((from == getMyID() && msg.getSender().getName() == JMSPublisher::getMyName()) ||
+        (p_msgs && from == p_msgs->getMyID()))
+      return;
+  } else if (from == getMyID()) return;
   propertyChanged(urlstr, msg.getProperty("name"), msg.getProperty("value"));
 }
 
@@ -8293,6 +8689,15 @@ void Builder::deleteSelection()
 
 void Builder::quit(const bool& allowCancel)
 {
+  //  Its save question runs a modal loop, in which another close request
+  //  (a second ecce_quit handler, #983) could start a second quit: both
+  //  would ask and both Destroy().
+  if (p_quitting) {
+    fprintf(stderr, "Builder: quit already in progress\n");
+    return;
+  }
+  p_quitting = true;
+  struct Reset { bool &f; ~Reset() { f = false; } } reset{p_quitting};
   int ret = wxID_YES;
   long buttonFlags = wxYES_NO | wxYES_DEFAULT | wxICON_QUESTION;
   buttonFlags |= allowCancel ? wxCANCEL : 0;
@@ -8344,6 +8749,11 @@ void Builder::quit(const bool& allowCancel)
     // reached from exit() -> __run_exit_handlers -> _dl_fini). _exit()
     // skips all of that and terminates immediately, which is what "exit
     // ungracefully" actually needs.
+    if (p_inProcess) {
+      // Other windows share the process (#983): close this one only.
+      Destroy();
+      return;
+    }
     _exit(0);
   }
 }

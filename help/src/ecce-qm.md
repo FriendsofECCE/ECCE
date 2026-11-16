@@ -233,7 +233,7 @@ were also checked with 6-31G, 6-31+G*, 6-311G*, aug-cc-pVDZ and cc-pVTZ.
   (Hartree-Fock) and 1e-6 (density functionals).
 - Optimised geometries agree with ORCA's to 1.4e-4 Å in bond lengths
   and 0.007 degrees in angles.
-- Frequencies agree with ORCA's analytic frequencies to 0.8 cm-1, IR
+- Frequencies agree with ORCA's analytic frequencies to 0.8 cm⁻¹, IR
   intensities to 0.07 km/mol, and the zero-point energy and Gibbs energy to a
   few microhartree. ORCA cannot compute restricted open shell frequencies, so
   those were checked against the curvature of ECCE-QM's own energies.
@@ -242,7 +242,7 @@ were also checked with 6-31G, 6-31+G*, 6-311G*, aug-cc-pVDZ and cc-pVTZ.
   and with NWChem's to 1e-4 bohr^3, for water, ammonia, carbon monoxide and
   hydrogen fluoride. Raman activities agree with ORCA's to 0.1 % and
   depolarization ratios to 3e-4 for water, ammonia and methane; the
-  frequencies of those calculations agree to 1.5 cm-1.
+  frequencies of those calculations agree to 1.5 cm⁻¹.
 - The D3(BJ) dispersion energy agrees with ORCA's to 2e-9 hartree and its
   gradient to 3e-9 hartree/bohr, for the water dimer, benzene, the argon dimer
   and a sodium chloride ion pair with HF, PBE, B3LYP and PBE0.

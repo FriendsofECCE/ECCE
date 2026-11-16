@@ -67,6 +67,9 @@ describe what you did and what happened.
    energies and relaxations of periodic cells.
    [Your first GROMACS calculation](gromacs-first-calculation.md): a small
    protein through Prepare, Optimize, Equilibrate and Dynamics.
+   [A GROMACS calculation from your own files](gromacs-calculation-from-files.md):
+   a single calculation made from a .mdp, a structure and a topology, or from
+   a ready .tpr, that hands its final frame to other codes and takes theirs.
 7. [Molecules for teaching](molecules-for-teaching.md): the small molecules
    of a first laboratory, ready in the Structure Library at their measured
    bond lengths.
@@ -144,6 +147,8 @@ describe what you did and what happened.
 24a. [Thermochemistry](thermochemistry.md): H, S and G recomputed from the
    stored frequencies with a chosen low-frequency treatment, temperature and
    standard state.
+24a1. [Natural population analysis (NPA)](natural-population-analysis.md):
+   natural charges, populations and electron configurations computed by ECCE from the stored orbitals, for any code (`ecce-npa`).
 
 24c. [Umbrella sampling with GROMACS](umbrella-sampling.md): a pull run,
    windows cut from its trajectory, and the PMF from `gmx wham`, with the
@@ -165,6 +170,10 @@ describe what you did and what happened.
 
 28a. [The Organizer's right-click menus](organizer-menus.md): what a calculation's
    menu offers, Compare Energies, and the project table's columns.
+
+28b. [The Organizer's menu bar](organizer-menubar.md): every item of the
+   File, Edit, Options, Go, Bookmarks, Run Mgmt, Tools and Help menus, the
+   toolbar, and the Preferences window tab by tab.
 
 29. [Re-Parse Outputs](reparse-outputs.md): running the parsers again over the
    outputs stored with a calculation, without logging in to the machine.
@@ -191,7 +200,8 @@ describe what you did and what happened.
    folders recipes are read from, and a complete example.
 
 36. [New Series](new-series.md): one calculation's setup applied to a list of
-   structures (xyz files or calculations), with `ecce-series`.
+   structures (xyz files or calculations): Tools > New Calculations in Another Code in
+   the Organizer, or `ecce-series`.
 
 37. [QSAR: batch from SMILES](batch-from-smiles.md): a table of names, SMILES
    and measured values as one calculation per molecule, all with one setup,
@@ -201,10 +211,10 @@ describe what you did and what happened.
    and PLS tabs: scores, loadings, cross-validated Q2, T2 and DModX (Tools >
    QSAR, `ecce-qsar`).
 
-39. [Diffraction: fibre patterns](fibre-diffraction.md): the calculated X-ray
-   fibre pattern of a structure or a selection, for example B-DNA and an
-   alpha-helix, on a film or as a map, with a measured image behind it (Tools >
-   Diffraction, `ecce-xrd fibre`).
+39. [Diffraction](fibre-diffraction.md): calculated X-ray fibre, powder,
+   single-crystal and detector-frame patterns of a structure or a selection,
+   with a measured pattern or image behind them (Tools > Diffraction,
+   `ecce-xrd`).
 
 Reference:
 

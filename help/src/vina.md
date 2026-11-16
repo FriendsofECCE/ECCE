@@ -88,6 +88,17 @@ of the Builder, one row per pose with a picture of it and its Vina score, best
 first, and in the Geometry Trace. There is no population column: a Boltzmann
 weight of an empirical score would not mean anything.
 
+### Pose pictures and retained poses
+
+Each Structure thumbnail shows only the ligand pose as balls and sticks,
+framed to the ligand, including when Pocket view is off. Pictures are cached
+and rendered in small batches.
+
+The line above the table reads, for example, **1 pose within 3 kcal/mol of the
+best (Vina keeps at most 9)**. The energy range and maximum come from the saved
+input deck, with settings as a fallback. Fewer rows than requested can be
+expected: Vina retains only poses within that score range.
+
 Click a row to show that pose. With **Pocket view** ticked, which it is by
 default, the viewer shows the pose's ligand as balls and sticks and only the
 receptor residues that have an atom within 6 Å of it as sticks; the rest of

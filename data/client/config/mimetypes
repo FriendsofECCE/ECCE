@@ -23,6 +23,7 @@ chemical/x-nwchem-md-pmf                 .pmf
 chemical/x-gromacs-mdp                   .mdp
 chemical/x-gromacs-coordinates           .gro
 chemical/x-gromacs-tpr                   .tpr
+chemical/x-gromacs-run-tpr               .gmxtpr
 chemical/x-gromacs-energy                .edr
 chemical/x-gromacs-trajectory            .xtc .trr
 chemical/x-gromacs-topology              .gmxtop

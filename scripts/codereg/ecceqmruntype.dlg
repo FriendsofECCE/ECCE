@@ -1,0 +1,27 @@
+# ECCE-QM Runtype Details for the native engine (bin/ecce-dialog), the same
+# dialog as ecceqmruntype.py.  Keep the two in step: tests/dialogs/native_test.py
+# compares what they send.  Localised orbitals keeps its ES.Theory name so
+# stored calculations reopen with their setting.
+
+dialog title="ECCE-QM Editor: Runtype Details" message=hide
+
+list VIB = Vibration|GeoVib|Transition State (Opt-TS)
+list TS = Transition State (Opt-TS)
+list IRC = IRC
+
+box label="Frequencies" when="runtype in @VIB"
+check name=ES.Runtype.Vibration.UseRaman label=" Raman activities (about 7 times the cost)" default=0 export=1
+
+box label="Saddle-Point Search" when="runtype in @TS"
+int name=ES.Runtype.TS.Mode label="Start along mode n (0: lowest):" default=0 hard="[0..)" soft="[0..30]" export=1
+text name=ES.Runtype.TS.Follow label="Start along the mode that moves (empty: none):" default="" export=1
+int name=ES.Runtype.TS.HessianEvery label="New Hessian every n steps (0: automatic):" default=0 hard="[0..)" soft="[0..20]" export=1
+
+box label="Reaction Path" when="runtype in @IRC"
+int name=ES.Runtype.IRC.MaximumStepsValue label="Max points per direction:" default=20 hard="[1..)" soft="[1..200]" export=1
+float name=ES.Runtype.IRC.StepSize label="Step (bohr*sqrt(amu)):" default=0.1 hard="(0..)" soft="[0.02..0.5]" export=1
+combo name=ES.Runtype.IRC.Direction label="Direction:" choices="Both|Forward|Backward" default=Both export=1
+int name=ES.Runtype.IRC.HessianEvery label="New Hessian every n points (0: never):" default=0 hard="[0..)" soft="[0..50]" export=1
+
+box label="Orbitals"
+check name=ES.Theory.ECCEQM.Localise label=" Localised orbitals (bonds and lone pairs, same set for each spin)" default=1 export=1

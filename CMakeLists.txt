@@ -309,7 +309,8 @@ ecce_library(eccetdat
 if(ECCE_HAVE_RESULTSH5)
   target_sources(eccetdat PRIVATE
     src/tdat/resultsh5/ResultsBasis.C src/tdat/resultsh5/ResultsH5Io.C
-    src/tdat/resultsh5/ResultsConvert.C src/tdat/resultsh5/FragmentAnalysis.C)
+    src/tdat/resultsh5/ResultsConvert.C src/tdat/resultsh5/FragmentAnalysis.C
+    src/tdat/resultsh5/NaturalPopulation.C)
   target_include_directories(eccetdat PRIVATE ${HDF5_INCLUDE_DIRS})
   target_link_libraries(eccetdat PUBLIC ${HDF5_LIBRARIES})
 endif()
@@ -512,9 +513,18 @@ target_link_libraries(eccewxthings PRIVATE ${wxWidgets_LIBRARIES})
 # link_libs are this app's own ECCE_LIBS list (as CMake target names, i.e.
 # without the old "-l" prefix - note libecceedsi.a is the CMake target
 # "eccedsi" here, not "ecceedsi", see the src/dsm section above).
+# MAIN names the one source of a thin main whose other code is the object
+# libraries in OBJECTS (ecce_tool_objects); without MAIN, every .C file.
 function(ecce_app name dir)
-  cmake_parse_arguments(ECCE_APP "WX;GL" "" "LINK" ${ARGN})
-  file(GLOB _srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/${dir}/*.C)
+  cmake_parse_arguments(ECCE_APP "WX;GL" "MAIN" "LINK;OBJECTS" ${ARGN})
+  if(ECCE_APP_MAIN)
+    set(_srcs ${CMAKE_SOURCE_DIR}/${dir}/${ECCE_APP_MAIN})
+    foreach(_o ${ECCE_APP_OBJECTS})
+      list(APPEND _srcs $<TARGET_OBJECTS:${_o}>)
+    endforeach()
+  else()
+    file(GLOB _srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/${dir}/*.C)
+  endif()
   add_executable(${name} ${_srcs})
   target_include_directories(${name} PRIVATE ${XercesC_INCLUDE_DIRS})
   if(ECCE_APP_WX)
@@ -536,6 +546,29 @@ function(ecce_app name dir)
   else()
     target_link_libraries(${name} PRIVATE ${ECCE_APP_LINK} ${XercesC_LIBRARIES})
   endif()
+endfunction()
+
+# Organizer, Builder and Calculation Editor are object libraries without
+# their *App.C (which holds IMPLEMENT_APP), so that one program can hold
+# several of them (#983); the programs stay thin mains over them. OBJECT,
+# not STATIC, so every object is linked as before, including those reached
+# only through static registration. The program takes the objects alone
+# ($<TARGET_OBJECTS>); LINK here only gives the compile its include paths.
+function(ecce_tool_objects lib dir)
+  cmake_parse_arguments(T "" "" "SOURCES;EXCLUDE;LINK;INCLUDE" ${ARGN})
+  if(T_SOURCES)
+    set(_srcs ${T_SOURCES})
+  else()
+    file(GLOB _srcs CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/${dir}/*.C)
+  endif()
+  foreach(_f ${T_EXCLUDE})
+    list(REMOVE_ITEM _srcs ${CMAKE_SOURCE_DIR}/${dir}/${_f})
+  endforeach()
+  add_library(${lib} OBJECT ${_srcs})
+  target_compile_definitions(${lib} PRIVATE ${wxWidgets_DEFINITIONS})
+  target_include_directories(${lib} PRIVATE ${XercesC_INCLUDE_DIRS}
+    ${wxWidgets_INCLUDE_DIRS} ${T_INCLUDE})
+  target_link_libraries(${lib} PRIVATE ${T_LINK})
 endfunction()
 
 # --- apps with no wx dependency ---
@@ -614,6 +647,10 @@ add_executable(ecce-reconnect src/apps/launch/ecce-reconnect.C)
 target_include_directories(ecce-reconnect PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-reconnect PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
 # Copies run-directory files into a calculation's Outputs inside the session.
+add_executable(ecce-reparse src/apps/launch/ecce-reparse.C)
+target_include_directories(ecce-reparse PRIVATE ${XercesC_INCLUDE_DIRS})
+target_link_libraries(ecce-reparse PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
+
 add_executable(ecce-fetch src/apps/launch/ecce-fetch.C)
 target_include_directories(ecce-fetch PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(ecce-fetch PRIVATE eccetdat ecceutil ${XercesC_LIBRARIES})
@@ -692,37 +729,61 @@ target_link_libraries(eccejobstore PRIVATE
   ${XercesC_LIBRARIES})
 
 # --- wx apps ---
-ecce_app(basistool src/apps/basistool WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(calced src/apps/calced WX
-  LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+set(ECCE_BASISTOOL_LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_tool_objects(basistool-objs src/apps/basistool EXCLUDE WxBasisToolApp.C
+  LINK ${ECCE_BASISTOOL_LINK})
+ecce_app(basistool src/apps/basistool WX MAIN WxBasisToolApp.C OBJECTS basistool-objs
+  LINK ${ECCE_BASISTOOL_LINK})
+set(ECCE_CALCED_LINK ecce-details-wx eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_tool_objects(calced-objs src/apps/calced EXCLUDE CalcEdApp.C
+  LINK ${ECCE_CALCED_LINK})
+ecce_app(calced src/apps/calced WX MAIN CalcEdApp.C OBJECTS calced-objs
+  LINK ${ECCE_CALCED_LINK})
 ecce_app(gateway src/apps/gateway WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(launcher src/apps/launcher WX
-  LINK eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+set(ECCE_LAUNCHER_LINK eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_tool_objects(launcher-objs src/apps/launcher EXCLUDE WxLauncherApp.C
+  LINK ${ECCE_LAUNCHER_LINK})
+ecce_app(launcher src/apps/launcher WX MAIN WxLauncherApp.C OBJECTS launcher-objs
+  LINK ${ECCE_LAUNCHER_LINK})
 ecce_app(machbrowser src/apps/machbrowser WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccetdat ecceutil)
 ecce_app(machregister src/apps/machregister WX
   # eccercmd for RCommand::localityNote (#144), the same decision the launch makes.
   # eccecomm for CodePrograms, the program names Find and first start share.
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccecomm eccetdat ecceutil)
-ecce_app(mddynamics src/apps/mddynamics WX
-  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(mdenergy src/apps/mdenergy WX
-  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(mdoptimize src/apps/mdoptimize WX
-  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(gmxprepare src/apps/gmxprepare WX
-  LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(mdprepare src/apps/mdprepare WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+# The MD editors also open in the Organizer's process (#983).
+set(ECCE_MDED_LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+foreach(_md mddynamics:MDDynamicsApp mdenergy:MDEnergyApp mdoptimize:MDOptimizeApp gmxprepare:GmxPrepareApp)
+  string(REPLACE ":" ";" _md "${_md}")
+  list(GET _md 0 _md_dir)
+  list(GET _md 1 _md_main)
+  ecce_tool_objects(${_md_dir}-objs src/apps/${_md_dir} EXCLUDE ${_md_main}.C LINK ${ECCE_MDED_LINK})
+  ecce_app(${_md_dir} src/apps/${_md_dir} WX MAIN ${_md_main}.C OBJECTS ${_md_dir}-objs
+    LINK ${ECCE_MDED_LINK})
+endforeach()
+set(ECCE_MDPREP_LINK eccewxgui eccewxplotctrl eccewxthings eccecommxt eccecomm eccercmd eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_tool_objects(mdprepare-objs src/apps/mdprepare EXCLUDE PrepareApp.C
+  LINK ${ECCE_MDPREP_LINK})
+ecce_app(mdprepare src/apps/mdprepare WX MAIN PrepareApp.C OBJECTS mdprepare-objs
+  LINK ${ECCE_MDPREP_LINK})
 ecce_app(msgdialog src/apps/messagedialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(metadyn src/apps/metadyn WX
   LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(organizer src/apps/organizer WX
-  LINK eccewxguicomm eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)  # XYPlotCanvas.H (#709)
+set(ECCE_ORGANIZER_LINK eccewxguicomm eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+# Organizer sources the Builder uses too ("New Calculation from Selected"
+# makes workflow steps, #708): compiled once, linked into both.
+set(ECCE_ORGANIZER_SHARED WorkflowSteps.C Recipe.C KeyData.C
+  CompareEnergies.C CompareEnergiesGather.C)
+list(TRANSFORM ECCE_ORGANIZER_SHARED PREPEND ${CMAKE_SOURCE_DIR}/src/apps/organizer/
+  OUTPUT_VARIABLE _org_shared)
+ecce_tool_objects(organizer-shared-objs src/apps/organizer SOURCES ${_org_shared}
+  LINK ${ECCE_ORGANIZER_LINK})
+ecce_tool_objects(organizer-objs src/apps/organizer
+  EXCLUDE CalcMgrApp.C ${ECCE_ORGANIZER_SHARED}
+  LINK ${ECCE_ORGANIZER_LINK}
+  INCLUDE ${CMAKE_SOURCE_DIR}/src/apps/builder)  # XYPlotCanvas.H (#709)
 ecce_app(hostkeydialog src/apps/hostkeydialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(passdialog src/apps/passdialog WX
@@ -756,15 +817,23 @@ target_link_libraries(details_unit_test PRIVATE ecce-details-core)
 install(TARGETS ecce-dialog RUNTIME DESTINATION bin COMPONENT client)
 
 # --- wx + GL apps ---
-ecce_app(builder src/apps/builder WX GL
-  LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd 
+set(ECCE_BUILDER_LINK eccewxguicomm eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccecommxt eccecomm eccercmd
        eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
        ${ECCE_X11_LIBS} jpeg freetype)
+ecce_tool_objects(builder-objs src/apps/builder EXCLUDE BuilderApp.C
+  LINK ${ECCE_BUILDER_LINK} OpenGL::GL OpenGL::GLU
+  INCLUDE ${CMAKE_SOURCE_DIR}/src/apps/organizer)
 # "New Calculation from Selected" makes workflow steps (#708).
-target_sources(builder PRIVATE src/apps/organizer/WorkflowSteps.C
-  src/apps/organizer/Recipe.C src/apps/organizer/KeyData.C
-  src/apps/organizer/CompareEnergies.C src/apps/organizer/CompareEnergiesGather.C)
+ecce_app(builder src/apps/builder WX GL MAIN BuilderApp.C
+  OBJECTS builder-objs organizer-shared-objs LINK ${ECCE_BUILDER_LINK})
 target_include_directories(builder PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organizer)
+# The Organizer opens Builder, Calculation Editor and MD editor windows in
+# its own process with ECCE_ONE_PROCESS=1 (#983), so it links their objects.
+ecce_app(organizer src/apps/organizer WX GL MAIN CalcMgrApp.C
+  OBJECTS organizer-objs organizer-shared-objs builder-objs calced-objs
+    mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs basistool-objs mdprepare-objs launcher-objs
+  LINK eccewxguimd ecce-details-wx ${ECCE_BUILDER_LINK})
+target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)
 
@@ -1045,7 +1114,9 @@ install(FILES ${CMAKE_BINARY_DIR}/siteconfig-local/DataServers
         COMPONENT client)
 
 # ecce-gateway-{start,stop,status,reap}: start and stop the session's
-# mosquitto broker and keep the broker files. Client-side, since a client
+# broker and keep the broker files: ECCE's own for a local session (#990,
+# #1007), mosquitto for a server account. (ecce-broker-win is only the
+# ECCE_BROKER=mosquitto escape hatch on Windows.) Client-side, since a client
 # on its own machine runs its own broker unless it uses -remote.
 install(PROGRAMS
           ${CMAKE_SOURCE_DIR}/packaging/gateway/ecce-gateway-start
@@ -1250,7 +1321,7 @@ set(ECCE_GUI_APPS
   mddynamics mdenergy mdoptimize mdprepare gmxprepare msgdialog metadyn organizer
   passdialog hostkeydialog pertable solvate builder vizthumbnail)
 set(ECCE_CLI_APPS
-  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-batch-smiles ecce-site-screen ecce-reconnect ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
+  load_tgbs ecmd eccejobmaster eccejobstore ecce-localdata ecce-launch ecce-rerun ecce-terminate ecce-annotate ecce-move ecce-rename ecce-copy ecce-mkdir ecce-workflow ecce-series ecce-batch-smiles ecce-site-screen ecce-reconnect ecce-reparse ecce-fetch ecce-site-admin mocomp ecce-thermo ecce-force-compare ecce-density-field ecce-pdbqt
   autosym autosym_cpp getfrag getfrag_cpp genmol genmol_cpp genmollat genmollat_cpp
   cleansym cleansym_cpp symops symops_cpp mdanalysis)
 if(NOT WIN32)
@@ -2135,11 +2206,10 @@ if(ECCE_SPLIT_PACKAGES)
   # here (python3-wxgtk4.0 for scripts/codereg, perl/xterm for the reasons
   # given beside the monolithic set above).
   #
-  # libmosquitto1 is what every messaging process links. The gateway
-  # scripts that start a per-user broker live here too, so a local-mode
-  # client needs the mosquitto package; it is a Recommends because a
-  # -remote client only needs the library, and the package's own system
-  # service is of no use to it.
+  # libmosquitto1 is what every messaging process links. A local session
+  # runs ECCE's own broker (#1007), so the client needs no mosquitto
+  # program; ecce-server, which a central server's account needs, depends
+  # on it.
   set(CPACK_DEBIAN_CLIENT_PACKAGE_DEPENDS
       "python3-wxgtk4.0, python3-numpy, python3-tqdm, python3-gemmi, perl, xterm, libmosquitto1, curl, openssl")
   # A client on the SAME machine as a server benefits from it (the
@@ -2149,7 +2219,7 @@ if(ECCE_SPLIT_PACKAGES)
   # this is Recommends, not Depends, matching the design brief.
   # autodock-vina: Debian's Vina 1.2.x, /usr/bin/vina, which the first-start
   # registration finds on PATH; docking is optional, so not a Depends (#455).
-  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, mosquitto, nwchem, openssh-client, autodock-vina")
+  set(CPACK_DEBIAN_CLIENT_PACKAGE_RECOMMENDS "ecce-server, nwchem, openssh-client, autodock-vina")
   set(CPACK_DEBIAN_CLIENT_PACKAGE_SUGGESTS "www-browser")
   # Lets dpkg upgrade a monolithic 8.x "ecce" straight into ecce-client:
   # without this, installing ecce-client while the old ecce package still
@@ -2177,7 +2247,9 @@ if(ECCE_SPLIT_PACKAGES)
   if(RPMBUILD_EXECUTABLE)
     set(CPACK_RPM_CLIENT_PACKAGE_NAME "ecce-client")
     set(CPACK_RPM_CLIENT_FILE_NAME RPM-DEFAULT)
-    # mosquitto provides both the library and the broker on RPM distros.
+    # mosquitto provides both the library and the broker on RPM distros;
+    # the client needs only the library (a local session runs ECCE's own
+    # broker, #1007), but there is no package with the library alone.
     set(CPACK_RPM_CLIENT_PACKAGE_REQUIRES
         "python3-wxpython4, python3-numpy, python3-tqdm, perl, xterm, mosquitto, curl, openssl${_coin_rpm}")
     set(CPACK_RPM_CLIENT_PACKAGE_SUGGESTS
@@ -2558,6 +2630,7 @@ add_executable(thermo_test tests/thermo/thermo_test.C
   src/tdat/thermo/ThermoChem.C)
 target_link_libraries(thermo_test PRIVATE ecceutil)
 add_test(NAME thermo COMMAND thermo_test)
+add_test(NAME thermo_ecceqm_sigma COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/thermo/ecceqm_sigma_test.py)
 # gatherThermoInput reads real stored calculations through FileEDSI (#692):
 # the mass, rotational constants, linear flag and symmetry number come from
 # the stored geometry and point group, never from the test.
@@ -2848,6 +2921,9 @@ set_tests_properties(xrd_fibre PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 add_test(NAME xrd_powder
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/powder_test.py)
 set_tests_properties(xrd_powder PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+add_test(NAME xrd_debye
+         COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/debye_test.py)
+set_tests_properties(xrd_debye PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 add_test(NAME xrd_layer
          COMMAND ${PYTHON3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/xrd/layer_test.py)
 set_tests_properties(xrd_layer PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
@@ -2930,18 +3006,41 @@ set_tests_properties(minff_prepare PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 # socket; checks delivery, not just acknowledgement.  "auth" is the same on
 # a TCP broker with two accounts and the shipped access rules.  SKIPs (77)
 # without the mosquitto binary.
+# The built-in broker (#990) as a program; the Windows tests start it too.
+# On Linux and macOS it is the local session's broker (#1007, `--serve`,
+# started by ecce-gateway-start). libexec, not bin: a program in bin with a
+# session id counts as an open ECCE window (ecce_session_procs, the gateway).
+add_executable(eccebroker tests/mqtt/broker_cli.C)
+target_link_libraries(eccebroker PRIVATE ecceutil ${XercesC_LIBRARIES})
+if(NOT WIN32)
+  install(TARGETS eccebroker RUNTIME DESTINATION libexec COMPONENT client)
+endif()
 if(NOT WIN32)
 add_executable(mqtt_test tests/mqtt/mqtt_test.C)
 target_include_directories(mqtt_test PRIVATE ${XercesC_INCLUDE_DIRS})
 target_link_libraries(mqtt_test PRIVATE ecceutil ${XercesC_LIBRARIES})
 add_test(NAME mqtt COMMAND mqtt_test ${CMAKE_SOURCE_DIR})
 add_test(NAME mqtt-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR})
+add_test(NAME mqtt-local COMMAND mqtt_test local ${CMAKE_SOURCE_DIR})
+# ECCE's own broker (#990), same checks as against mosquitto, plus protocol
+# edge cases and the Windows session path (broker file with its own login).
+add_test(NAME mqtt-builtin-auth COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} builtin)
+add_test(NAME mqtt-builtin-session COMMAND mqtt_test session ${CMAKE_SOURCE_DIR})
+add_test(NAME mqtt-builtin-linger COMMAND mqtt_test linger ${CMAKE_SOURCE_DIR})
+add_test(NAME mqtt-builtin-socket COMMAND mqtt_test socket ${CMAKE_SOURCE_DIR})
+add_test(NAME mqtt-builtin-cloexec COMMAND mqtt_test cloexec ${CMAKE_SOURCE_DIR})
+add_test(NAME mqtt-builtin-serve COMMAND mqtt_test serve ${CMAKE_SOURCE_DIR} $<TARGET_FILE:eccebroker>)
+add_test(NAME mqtt-builtin-interop COMMAND mqtt_test interop)
+set_tests_properties(mqtt-builtin-auth mqtt-builtin-session mqtt-builtin-linger mqtt-builtin-interop
+                     mqtt-builtin-socket mqtt-builtin-serve mqtt-builtin-cloexec
+                     PROPERTIES TIMEOUT 180)
+set_tests_properties(mqtt-builtin-interop mqtt-builtin-cloexec PROPERTIES SKIP_RETURN_CODE 77)
 if(TARGET ecce_users_auth)
   add_test(NAME mqtt-auth-plugin
            COMMAND mqtt_test auth ${CMAKE_SOURCE_DIR} $<TARGET_FILE:ecce_users_auth>)
   set_tests_properties(mqtt-auth-plugin PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 endif()
-set_tests_properties(mqtt mqtt-auth PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+set_tests_properties(mqtt mqtt-auth mqtt-local PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
 
 # A compute machine's password learned in one process reaches the others of
 # a local session over the Unix-socket broker (#487).
@@ -3018,6 +3117,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/xtb_import_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # Numerical frequencies: NumFreq alone on the ORCA route line (#1058).
+  add_test(NAME parsers_orca_numfreq_route
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/orca_numfreq_route_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # The stored geometry and the normal modes are in one frame (#312).
   add_test(NAME parsers_vib_frame
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -3028,6 +3133,12 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME parsers_g16_units
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/g16_units_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
+  # QE relax / vc-relax: one TEVEC per GEOMTRACE frame, its own energy (#1003).
+  add_test(NAME parsers_qe_trace_align
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/qe_trace_align_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
   # Gaussian 16 traces: one structure per energy point (#947).
@@ -3090,13 +3201,14 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/native_test.py
                    --dialog $<TARGET_FILE:ecce-dialog>)
-  # The oracle picks its Xvfb display by looking for free sockets, so two
-  # runs started together would take the same one.
+  # Serial because the runs are long and CPU-heavy; the Xvfb number itself is
+  # reserved by tests/apps/xdisplay.py.
   set_tests_properties(dialogs_native PROPERTIES SKIP_RETURN_CODE 77
                        TIMEOUT 900 RUN_SERIAL TRUE)
   # The G16 Runtype dialog has 349 contexts; --dedupe replays the restore
   # cases once per group of contexts with identical Python inventories.
-  foreach(_d orcatheory orcaruntype ged16theory ged16runtype)
+  foreach(_d orcatheory orcaruntype ged16theory ged16runtype ecceqmruntype
+             xtbtheory xtbruntype)
     set(_extra "")
     set(_timeout 3600)   # ORCA runs ~25 min on an idle machine
     if(_d MATCHES "^ged16")
@@ -3261,6 +3373,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/import_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_import PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # Every viewer frame is opaque in the background preference while a large
+  # PDB loads (#999), through ECCE_TEST_IMPORT and ECCE_TEST_RENDER_CORNER.
+  add_test(NAME apps_render_alpha
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/render_alpha_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_render_alpha PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # Builder > Tools > Dock Floating Panels returns panels to an emptied dock
   # (#53), through the builder's ECCE_TEST_DOCK hook.
   add_test(NAME apps_dock
@@ -3319,7 +3438,7 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/examples_preparsed_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
-  set_tests_properties(apps_examples_preparsed PROPERTIES TIMEOUT 1800
+  set_tests_properties(apps_examples_preparsed PROPERTIES TIMEOUT 3600
                        SKIP_RETURN_CODE 77)
   # No stored copy carries the preparsing machine's paths (#888).
   add_test(NAME apps_examples_stored_paths
@@ -3436,6 +3555,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_new_series PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # New from This > In Another Code (hooks anothercode, #1037).
+  add_test(NAME apps_another_code
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/another_code_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_another_code PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # ecce-series: one setup, several structures (ORCA, G16, ECCE-QM; #621).
   add_test(NAME series_cli
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -3471,6 +3597,19 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/advanced_prefs_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_advanced_prefs PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Preferences > Codes hides unticked codes from new calculations (#1049).
+  add_test(NAME apps_code_choice
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/code_choice_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_code_choice PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  add_test(NAME apps_code_choice_calced
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/code_choice_calced_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_code_choice_calced PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # Preferences > Data and the Add Server dialog (#767).
   add_test(NAME apps_prefs_data
@@ -3520,6 +3659,21 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_compare_energies PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Builder and Calculation Editor as windows of the Organizer's process,
+  # ECCE_ONE_PROCESS=1 (#983).
+  add_test(NAME apps_organizer_one_process
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_one_process PROPERTIES TIMEOUT 2700
+                       SKIP_RETURN_CODE 77)
+  # Busy cursor, status line and slow-start window while a tool starts (#1071).
+  add_test(NAME apps_organizer_tool_start
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_tool_start_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_tool_start PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Two close requests before the Quit dialog is answered (#291).
   add_test(NAME apps_organizer_close
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -3561,7 +3715,14 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/workflow_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
-  set_tests_properties(apps_workflow PROPERTIES TIMEOUT 900
+  set_tests_properties(apps_workflow PROPERTIES TIMEOUT 1200
+                       SKIP_RETURN_CODE 77)
+  # Archived workflows still open when their files cannot be written (#952).
+  add_test(NAME apps_workflow_readonly
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/workflow_test.py --readonly-only
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_workflow_readonly PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # Protonation Sites recipe: CREST's launch check and the protomer after it (#851).
   add_test(NAME apps_workflow_protonation
@@ -3763,6 +3924,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_thermo_panel PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Energy Calculator H, G and S at a chosen temperature (#1044).
+  add_test(NAME apps_thermo_temperature
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/thermo_temperature_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_thermo_temperature PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Compare Energies > Reaction overview: chart data equals ecce-thermo (#709).
   add_test(NAME apps_reaction_overview
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -3882,12 +4051,27 @@ if(PYTHON3_EXECUTABLE)
                        SKIP_RETURN_CODE 77)
 
   # Results > Diffraction on the NaCl example: the dialog's CSV equals ecce-xrd powder (#587).
+  add_test(NAME apps_diffraction_panel
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/diffraction_panel_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_diffraction_panel PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   add_test(NAME apps_powder_dialog
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/powder_dialog_test.py
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_powder_dialog PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  add_test(NAME apps_debye_dialog
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/debye_dialog_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_debye_dialog PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Same, Single crystal: the dialog's CSV equals ecce-xrd layer (#972).
@@ -4047,6 +4231,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_shot_hooks PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # Viewer row "Natural (NPA) Charges, computed by ECCE" beside NBO's (#1054).
+  add_test(NAME apps_npa_charges
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/npa_charges_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_npa_charges PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # tools/screenshots/shots.py on a two-shot list.
   add_test(NAME apps_shots_driver
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4062,6 +4253,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/tool_column_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_tool_column PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  # Basis Set Tool starts compact, follows its rows and restores geometry.
+  add_test(NAME apps_basis_tool_size
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/basis_tool_size_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_basis_tool_size PROPERTIES TIMEOUT 300
                        SKIP_RETURN_CODE 77)
 
   # Every app's main window and every codereg Theory/Runtype dialog fits a
@@ -4097,6 +4296,13 @@ if(PYTHON3_EXECUTABLE)
                          SKIP_RETURN_CODE 77)
   endforeach()
 
+  # App fixtures must also work in installs without static ECCE libraries.
+  add_executable(resourceTest tests/filedsi/resourceTest.C)
+  target_link_libraries(resourceTest PRIVATE
+    eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil
+    ${XercesC_LIBRARIES})
+  install(TARGETS resourceTest RUNTIME DESTINATION libexec/tests COMPONENT client)
+
   # tests/filedsi -- FileEDSI (file:// storage, no Apache, #216) against a
   # temp directory, linked from the static libraries of build-cmake.
   #
@@ -4120,6 +4326,13 @@ if(PYTHON3_EXECUTABLE)
   target_link_libraries(testWinProcess PRIVATE eccercmd ecceutil)
   add_test(NAME transport_process COMMAND testWinProcess)
   set_tests_properties(transport_process PROPERTIES TIMEOUT 180)
+
+  # The Tail window's read on a blocking pipe must not wait (Windows hang).
+  add_executable(testStreamRead tests/transport/streamRead.C)
+  find_package(Threads REQUIRED)
+  target_link_libraries(testStreamRead PRIVATE Threads::Threads)
+  add_test(NAME transport_stream_read COMMAND testStreamRead)
+  set_tests_properties(transport_stream_read PROPERTIES TIMEOUT 60)
 
   # RCommand on a local machine against results recorded from the old pty
   # path (#204).
@@ -4406,6 +4619,39 @@ if(PYTHON3_EXECUTABLE)
     target_link_libraries(gbscoordsys PRIVATE
       "$<LINK_GROUP:RESCAN,${_gbs_libs}>" ${XercesC_LIBRARIES})
   endif()
+  # Long records must neither truncate a reader nor leave it spinning on failbit.
+  add_executable(long_lines_basis tests/long_lines/basis.C)
+  target_include_directories(long_lines_basis PRIVATE ${XercesC_INCLUDE_DIRS})
+  if(APPLE)
+    target_link_libraries(long_lines_basis PRIVATE ${_gbs_libs} ${XercesC_LIBRARIES})
+  else()
+    target_link_libraries(long_lines_basis PRIVATE
+      "$<LINK_GROUP:RESCAN,${_gbs_libs}>" ${XercesC_LIBRARIES})
+  endif()
+  add_executable(long_lines_properties tests/long_lines/properties.C)
+  target_link_libraries(long_lines_properties PRIVATE eccetdat ecceutil)
+  add_executable(long_lines_text tests/long_lines/text_readers.C)
+  target_link_libraries(long_lines_text PRIVATE eccetdat ecceutil)
+  add_executable(long_lines_trajectory tests/long_lines/trajectory.C)
+  target_compile_definitions(long_lines_trajectory PRIVATE ${wxWidgets_DEFINITIONS})
+  target_include_directories(long_lines_trajectory PRIVATE
+    ${wxWidgets_INCLUDE_DIRS} ${XercesC_INCLUDE_DIRS})
+  set(_long_lines_viz_libs eccewxviz eccewxinv eccevizsg eccemoiv ecceinv
+    ${_gbs_libs} eccewxgui eccewxplotctrl eccewxthings)
+  if(APPLE)
+    target_link_libraries(long_lines_trajectory PRIVATE ${_long_lines_viz_libs}
+      ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES} ${ECCE_X11_LIBS} jpeg freetype)
+  else()
+    target_link_libraries(long_lines_trajectory PRIVATE
+      "$<LINK_GROUP:RESCAN,${_long_lines_viz_libs}>"
+      ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES} ${ECCE_X11_LIBS} jpeg freetype)
+  endif()
+  foreach(_reader basis properties trajectory text)
+    add_test(NAME long_lines_${_reader} COMMAND ${PYTHON3_EXECUTABLE}
+      ${CMAKE_SOURCE_DIR}/tests/long_lines/run_test.py
+      $<TARGET_FILE:long_lines_${_reader}>)
+    set_tests_properties(long_lines_${_reader} PROPERTIES TIMEOUT 40)
+  endforeach()
   # tests/basis/testCodeContraction (#942): ORCA's segmented copy of a
   # general contraction, compared with ORCA's own print of its basis.
   add_executable(gbscodecontraction tests/basis/testCodeContraction.C)
@@ -4504,6 +4750,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_socketcomms PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # #989: the machine's QE pseudopotential directory and its launch check.
+  add_test(NAME launch_qe_pseudodir
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/qe_pseudodir_test.py
+                   --build ${CMAKE_BINARY_DIR})
+  set_tests_properties(launch_qe_pseudodir PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
   # #216: the same job with the data in a local folder, no data server.
   add_test(NAME launch_local
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4555,6 +4807,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_xtb PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # #1034: a harness-made xTB template (theory, run type) works with ecce-series.
+  add_test(NAME launch_series_setup
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/series_setup_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_series_setup PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
   # #682: CREST conformer search of n-butane (GFN-FF) through Launch; skipped
   # (77) without crest and xtb.
   add_test(NAME launch_crest
@@ -4678,6 +4937,15 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(ecce_reconnect PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 
+  # ecce-reparse re-parses stored outputs through the running Organizer;
+  # skipped (77) without Xvfb.
+  add_test(NAME ecce_reparse
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/ecce_reparse_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(ecce_reparse PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+
   # ecce-fetch copies run-directory files into the Outputs through the
   # running Organizer; skipped (77) without Xvfb.
   add_test(NAME ecce_fetch
@@ -4716,6 +4984,15 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_orca_notconverged PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+
+  # #957: input lines of 254 characters or more survive Launch, in the stored
+  # deck and in the run directory; a stand-in ORCA, so it runs everywhere.
+  add_test(NAME launch_long_lines
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/long_lines_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_long_lines PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 
   # #407: a Gaussian 16 job's checkpoint as the guess of the next; skipped (77)
   # without Gaussian 16 under /opt/gaussian/g16.
@@ -4837,6 +5114,13 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_gromacs_import PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+  # #1038: a plain GROMACS run from the user's own .mdp/.gro/.top or .tpr.
+  add_test(NAME launch_gromacs_run
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/gromacs_run_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_gromacs_run PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   # #877: every GROMACS run gets the Speed Distribution and Displacement data
   # (mdanalysis in the job script), and so does an imported run directory.
   add_test(NAME launch_gromacs_md_analysis
@@ -4955,6 +5239,17 @@ if(PYTHON3_EXECUTABLE)
                        SKIP_RETURN_CODE 77)
   # A click in the Properties list selects the row clicked, also on a
   # scrolled list, with real X clicks (#965).
+  # The Stress Tensor panel: principal stresses on the cell, pressure (#1015).
+  add_executable(testStressTensor tests/stress/stress_tensor_test.C)
+  target_include_directories(testStressTensor PRIVATE ${CMAKE_SOURCE_DIR}/include)
+  target_link_libraries(testStressTensor PRIVATE ecceutil)
+  add_test(NAME stress_tensor COMMAND testStressTensor)
+  add_test(NAME apps_stress_tensor
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/stress_tensor_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_stress_tensor PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   add_test(NAME apps_property_list_click
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/property_list_click_test.py
@@ -5028,6 +5323,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/modecomp)
   set_tests_properties(apps_mode_composition PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # Geometry Step Plots listed only without a Geometry Trace (#1008).
+  add_test(NAME apps_step_plots_listing
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/step_plots_listing_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_step_plots_listing PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # The Energies panel's groups and their fold state (#283).
   add_test(NAME apps_energies_groups
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -5035,6 +5338,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_energies_groups PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+  # The Properties list groups spectra and diffraction by technique (#1079).
+  add_test(NAME apps_property_groups
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/property_groups_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_property_groups PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # The vibrational spectrum as CSV (#392).
   add_test(NAME apps_spectrum_csv
@@ -5359,6 +5670,14 @@ if(ECCE_HAVE_RESULTSH5)
   add_executable(ecce-fragorb src/tdat/resultsh5/ecce_fragorb.C)
   target_link_libraries(ecce-fragorb PRIVATE eccetdat ecceutil Threads::Threads)
   install(TARGETS ecce-fragorb RUNTIME DESTINATION bin COMPONENT client)
+  # Natural population analysis from results.h5 (#1054).
+  add_executable(ecce-npa src/tdat/resultsh5/ecce_npa.C)
+  target_include_directories(ecce-npa PRIVATE ${XercesC_INCLUDE_DIRS})
+  target_link_libraries(ecce-npa PRIVATE
+    eccedsi eccedav eccecipc eccefaces eccexml eccetdat eccedsi eccexml ecceutil
+    ${XercesC_LIBRARIES} Threads::Threads)
+  install(TARGETS ecce-npa RUNTIME DESTINATION bin COMPONENT client)
+  include(${CMAKE_SOURCE_DIR}/tests/npa/tests.cmake OPTIONAL)
   include(${CMAKE_SOURCE_DIR}/tests/fragorb_h5/tests.cmake OPTIONAL)
   include(${CMAKE_SOURCE_DIR}/tests/resultsh5/tests.cmake OPTIONAL)
 endif()
@@ -5399,6 +5718,7 @@ set(ECCE_COMMAND_WRAPPERS
   ecce-batch-smiles=bin/ecce-batch-smiles
   ecce-site-screen=bin/ecce-site-screen
   ecce-reconnect=bin/ecce-reconnect
+  ecce-reparse=bin/ecce-reparse
   ecce-fetch=bin/ecce-fetch
   ecce-localdata=bin/ecce-localdata
   ecce-thermo=bin/ecce-thermo
@@ -5430,6 +5750,9 @@ endif()
 if(TARGET ecce-fragorb)
   list(APPEND ECCE_COMMAND_WRAPPERS ecce-fragorb=bin/ecce-fragorb)
 endif()
+if(TARGET ecce-npa)
+  list(APPEND ECCE_COMMAND_WRAPPERS ecce-npa=bin/ecce-npa)
+endif()
 file(READ ${_launch_wrapper} _command_template)
 foreach(_command IN LISTS ECCE_COMMAND_WRAPPERS)
   string(REPLACE "=" ";" _command_parts "${_command}")
@@ -5447,6 +5770,11 @@ add_test(NAME packaging_command_wrappers
                  --build ${CMAKE_BINARY_DIR}
                  --home ${CMAKE_INSTALL_PREFIX}
                  --wrappers ${ECCE_WRAPPER_DESTINATION})
+set_tests_properties(packaging_command_wrappers PROPERTIES SKIP_RETURN_CODE 77)
+
+add_test(NAME packaging_units_text
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/packaging/units_text_test.py)
 
 # FragGraft: SMILES building and fragment grafting geometry (#833).
 add_executable(fraggraft_test tests/tdat/fraggraft_test.C)
@@ -5529,3 +5857,20 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_vina_save_timing PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 endif()
+
+# Tests that repeat what shorter ones cover, at a cost of 15-50 min each: run
+# before a release, left out of the pre-merge run with `ctest -LE long`.
+foreach(_t apps_clip_1920x1080 apps_clip_1366x768 apps_clip_1024x600
+           apps_workflow dialogs_native_ged16runtype)
+  if(TEST ${_t})
+    set_property(TEST ${_t} APPEND PROPERTY LABELS long)
+  endif()
+endforeach()
+
+# Pass alone, fail beside other tests in a parallel run (NerdEgg -j3, 11-16):
+# run them on their own until the clash is found.
+foreach(_t transport_openssh qm_ts_scanpoint)
+  if(TEST ${_t})
+    set_property(TEST ${_t} PROPERTY RUN_SERIAL TRUE)
+  endif()
+endforeach()

@@ -35,6 +35,9 @@ if (/Program\s+(PWSCF)\s+v\.(\S+)/) {
 }
 exit(0) if (!defined($value));
 
+# A new run: drop frames stashed by an earlier parse of this directory.
+unlink("$key/qeStash.GEOMTRACE", "$key/qeStash.LATTICEVEC");
+
 print "key: VERSION\n";
 print "size:\n1\n";
 print "values:\n$value\n";

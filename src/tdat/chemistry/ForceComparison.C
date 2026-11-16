@@ -84,7 +84,7 @@ ForceComparison compareForces(const ForceInput& a, const ForceInput& b)
   r.rows.push_back(all);
   r.geometryRms = std::sqrt(geometrySum / n);
   if (r.geometryRms > 0.01)
-    r.notes.push_back("Warning: final geometries differ by more than 0.01 Angstrom RMS; forces of different geometries are not a convergence test.");
+    r.notes.push_back("Warning: final geometries differ by more than 0.01 Å RMS; forces of different geometries are not a convergence test.");
   if (a.energy.code != b.energy.code || a.energy.state.method != b.energy.state.method ||
       a.energy.xc != b.energy.xc || a.energy.dispersion != b.energy.dispersion) {
     r.notes.push_back("No energy difference: the two calculations use different methods.");

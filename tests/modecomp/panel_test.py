@@ -132,13 +132,13 @@ def main():
     check(os.path.exists(copy), "the Copy text dumped")
     if os.path.exists(copy):
         clines = [l.split("\t") for l in open(copy, encoding="utf-8").read().splitlines()]
-        check(clines[0] == ["Mode", "cm-1", "Mode type", "Largest contributions"],
+        check(clines[0] in (["Mode", u, "Mode type", "Largest contributions"] for u in ("cm-1", "cm⁻¹")),
               "Copy header: %s" % clines[0])
         check(all(len(l) == 4 for l in clines) and len(clines) == len(rows) + 1,
               "Copy: tab-separated, one line per row")
         csv = open(copy + ".csv", encoding="utf-8").read().splitlines()
-        check(csv[0] == 'Mode,cm-1,Mode type,Largest contributions' or
-              csv[0] == '"Mode","cm-1","Mode type","Largest contributions"', "csv header")
+        check(csv[0].replace('"', '').replace("cm⁻¹", "cm-1") ==
+              'Mode,cm-1,Mode type,Largest contributions', "csv header")
     if os.path.exists(high):
         lines = [l.rstrip("\n").split("\t") for l in open(high, encoding="utf-8")]
         check(lines[0] == ["key C2–O3 stretch"], "key names the bond: %s" % lines[0])

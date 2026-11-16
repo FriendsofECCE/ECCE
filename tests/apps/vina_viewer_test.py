@@ -205,6 +205,7 @@ def main():
              "background 1 1 1",
              "poses info",
              "poses select 1",
+             "vinaboxinfo",
              "selectatoms " + ligand,
              "vinabox 5",
              "vinaboxinfo",
@@ -212,6 +213,8 @@ def main():
              "poses pocket on",
              "wait 3000",
              "poses info",
+             "poses note",
+             "poses thumb 1 " + os.path.join(png, "pose1.png"),
              "shot pocket",
              "poses pocket off",
              "quit"], png, "vina",
@@ -228,6 +231,8 @@ def main():
         if len(infos) > 1:
             thumbs = int(re.search(r"thumbs=(\d+)", infos[-1]).group(1))
             check(thumbs > 0, "%d pose thumbnails rendered" % thumbs)
+            rh = int(re.search(r"rowheight=(\d+)", infos[-1]).group(1))
+            check(rh >= 56, "table rows fit the 56 px thumbnail (row height %d px, #1001)" % rh)
             pocket = re.search(r"ligand=(\d+) pocket=(\d+) hidden=(\d+)", infos[-1])
             check(bool(pocket) and int(pocket.group(2)) > 0 and int(pocket.group(3)) > 0,
                   "pocket view: %s" % (pocket.group(0) if pocket else "absent"))
@@ -241,9 +246,32 @@ def main():
             fit = re.search(r"fit=([\d.]+)", infos[-1])
             check(bool(fit) and 0 < float(fit.group(1)) < 60,
                   "pocket view framed: %s A across" % (fit.group(1) if fit else "absent"))
+        notes = re.findall(r"poses note: (.*)", text)
+        count = infos[-1].count(" ; ") if infos else 0
+        energy_range = re.search(r"^energy_range\s*=\s*(\S+)", deck, re.M).group(1)
+        modes = re.search(r"^num_modes\s*=\s*(\S+)", deck, re.M).group(1)
+        expected = "%d %s within %s kcal/mol of the best (Vina keeps at most %s)" % (
+            count, "pose" if count == 1 else "poses", energy_range, modes)
+        check(bool(notes) and notes[-1] == expected, "pose retention note: " + str(notes))
+        thumb = os.path.join(png, "pose1.png")
+        raw = subprocess.check_output(["convert", thumb, "-depth", "8", "rgb:-"])
+        pixels = list(zip(raw[0::3], raw[1::3], raw[2::3]))
+        foreground = [(i % 72, i // 72) for i, c in enumerate(pixels) if min(c) < 220]
+        span = (max(x for x, y in foreground) - min(x for x, y in foreground),
+                max(y for x, y in foreground) - min(y for x, y in foreground)) if foreground else (0, 0)
+        check(len(set(pixels)) > 20 and 18 < span[0] < 70 and 12 < span[1] < 54
+              and len(foreground) < len(pixels) * 0.6,
+              "ligand thumbnail: %d colours, span %s, %d foreground pixels" % (
+                  len(set(pixels)), span, len(foreground)))
         box = re.findall(r"vinaboxinfo: (.*)", text)
         check(bool(box) and box[0].startswith("drawn=1"),
               "the search box is drawn: %s" % (box[0] if box else "absent"))
+        # The box of a finished run is the deck's, in the shown pose's frame
+        # (#1001): every ligand atom of the pose lies inside it.
+        inside = re.search(r"ligand_inside=(\d+)/(\d+)", box[0]) if box else None
+        check(bool(inside) and inside.group(1) == inside.group(2) != "0",
+              "the drawn box contains the pose's ligand: %s" % (
+                  inside.group(0) if inside else "absent"))
         check("pocket" in shots, "the window was photographed")
         if "pocket" in shots:
             say("  screenshot: %s" % shots["pocket"])

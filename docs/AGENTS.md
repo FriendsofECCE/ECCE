@@ -1,8 +1,9 @@
 # ECCE for scripts and AI assistants
 
-Everything ECCE does can be done from the command line, so scripts and AI
-assistants can work with it too. This file says how ECCE stores its data,
-which commands there are, and how to check a result. It is read by people,
+Much of what ECCE does can be driven from the command line, so scripts and AI
+assistants can work with it too. This file says what ECCE is and can do, how
+to do the usual tasks, how to set up compute machines and codes, how ECCE
+stores its data, which commands there are, and how to check a result. It is read by people,
 scripts and coding assistants alike. The scientist stays in control: the
 assistant prepares, checks and explains, and acts on ECCE only when asked to.
 Nothing here says that an assistant gets the chemistry right; the results are
@@ -11,6 +12,20 @@ the scientist's to judge.
 Privacy: what an assistant reads (inputs, outputs, structures, this file) is
 sent to the provider of that assistant. Do not point an assistant at data that
 may not leave the machine.
+
+## Contents
+
+1. Safety rules
+2. What ECCE is
+3. What ECCE can do (codes, run types, help pages)
+4. How to do things (task recipes)
+5. Compute machines and HPC
+6. Registering a new code (a developer task)
+7. Data layout
+8. Commands
+9. Checking a result
+10. Documentation shipped with ECCE
+11. Keeping this file current
 
 ## Safety rules
 
@@ -27,6 +42,730 @@ may not leave the machine.
    settings are not touched (see "Data layout", "A separate state directory").
 5. Say plainly what was checked and what was not. Do not raise optimisation
    cycle limits to make a calculation converge; find the cause.
+
+## Reading final periodic stress
+
+In the Builder, **Properties > Geometry > Stress Tensor** displays the
+final QE or MLP `STRESS` (nine Cartesian components stored in kbar).
+The display negates and symmetrises this tensor and converts to GPa:
+tension positive, compression negative. QE prints compression positive;
+MLP stores minus ASE stress. Pressure is `-trace(display)/3` and must match
+stored `PRESSURE` (1 GPa = 10 kbar), allowing printed rounding.
+The panel gives principal values, pressure, von Mises and maximum shear,
+and normal stresses along unit cell vectors as shrink/expand words.
+Blue arrows point away from the cell for tension; vermillion arrows point in
+towards the cell face for compression. They lie outside the cell, starting at
+the face crossed by each principal axis, with one common magnitude scale.
+Use **Show in viewer** to hide them. This uses final stress and geometry;
+per-step vc-relax stress, CP2K ingestion and directional surfaces are not
+implemented. See [Viewer panels](../help/src/viewer-panels.md).
+
+For isolated GUI checks, `ECCE_BUILDER_SCRIPT` accepts `list Stress Tensor`,
+`stressinfo` (panel summary plus one `label N anchor=x,y,z` line per principal axis; anchors lie outside the cell), `vector STRESS` (the six rendered half-arrows),
+and `viewer Stress Tensor` (toggle). `tests/apps/stress_tensor_test.py`
+checks a hand-computed tensor and the tensile QE Al cell example;
+`--unit-only` runs just the wx-free arithmetic, `--png DIR` keeps pictures
+and logs for visual review. Run with a private installed tree and the
+test harness as described below.
+
+`ECCE_BUILDER_SCRIPT` drives Geometry Constraints with `constraints show`,
+`constraints select I J ..` (1-based atoms), `constraints press constrain|restrain|fix yes|no`,
+`constraints scan <steps> <step>` (the selected 2-4 atoms, step in Angstrom for a
+bond and degrees for an angle or torsion, steps 1-500, step not zero; the same code
+as OK in Scan..., a refused line FAILs with the dialog's message),
+`constraints list` and `constraints stored`; `save` writes `Parameters/GeomConstraintModel.gcst`.
+
+`ECCE_BUILDER_SCRIPT` also accepts the Conformers-panel hooks `gtenselect
+<rank>...`, `gtenfit`, `gtenthumbs`, `gtenpng <file>`, `gtencsv <file>`,
+`gtenviewer on|off`, `gtensort <column> up|down` and `gtendistinct <rmsd>
+[n|0] [window]` (open the panel with `ECCE_OPEN_PANEL=Conformers`), so one
+script can set `background 1 1 1` and select conformers. `gtendistinct` is
+the panel's **Select Distinct...** button: it runs `ecce-ensemble pick
+--json` on the calculation, selects the picks' `energy_rank` rows and prints
+`GTSTRESS: endistinct ranks=<r>... note=<n distinct of N; m merged within X Å>`. Output goes to stderr as `GTSTRESS: ...` lines; the same
+commands work under `ECCE_VIEWER_SCENE`. Test: `tests/apps/ensemble_patterns_test.py`.
+
+`surfmesh <name>` (Builder scene script, after an MOs-panel surface is drawn)
+writes `<name>.txt`: per isosurface its threshold, vertex and triangle counts,
+boundary edges (used by one triangle; 0 means closed), edges used by more than
+two triangles and edges whose two triangles wind the same way, plus the grid
+dimensions and step (A). Test: `tests/apps/surface_closed_test.py` (`--res N`
+sets the grid points per axis, `--shot DIR` saves PNGs).
+
+`paneorder`, `dropat <panel name> <pos>`, `dockfloating` (Builder scene
+script): `paneorder` writes `paneorder.txt`, the shown docked panes of the
+Properties column top to bottom, and `paneall.txt` (every pane: floating, shown, dock direction, layer, row, position); `dropat` docks a panel into that column at
+dock position `<pos>` as a mouse drop would; `dockfloating` is the Dock
+button. The Properties list stays first in the column whatever the drop.
+Test: `tests/apps/mo_explore_workflow_test.py` (e).
+
+`saveimage <path.png> <factor> [white]` (scene script, `ECCE_VIEWER_SCENE`)
+is File > Save Image...: a PNG of the 3-D view at `factor` (1, 2, 4) times
+its size, drawn with blended transparency (not the on-screen screen-door
+mode), supersampled edges and line widths scaled with the factor; `white`
+replaces the view's background; the corner texts are left out and atom
+labels grow with the factor. It works under `ECCE_BUILDER_SCRIPT` too, where
+`saveimagemenu <factor> <white|keep> <path>` runs File > Save Image... with
+its dialogs answered. At factor 2 or 4 the shown orbital/density is recomputed
+on a grid of 30 x factor points per axis (cap 160) for the render only, then
+redrawn as before (log line `MOPANEL: fine grid N`). Use it for documentation figures. Test:
+`tests/apps/saveimage_test.py`.
+
+## Checking the Basis Set Tool window
+
+`tests/apps/basis_tool_size_test.py` (ctest `apps_basis_tool_size`) checks
+content sizing, selection-row growth and saved geometry on a private
+1366×768 display. `--png DIR` saves a screenshot. Use the installed-tree
+`ECCE_TEST_HOME` and `ECCE_TEST_WRAPPERS` variables as for the app suite.
+The isolated `ECCE_TEST_BASISTOOL=<file>` hook reads appended commands:
+`info` reports frame, grid and periodic-table geometry; `resize x y w h`
+sets frame geometry; `rows N` replaces the test grid's rows without changing
+the calculation; `close` closes normally and saves the window settings.
+
+## Isolated GUI tests
+
+Run GUI checks through `tests/` with an isolated HOME and test data.
+The shared Xvfb harness chooses a free display from `:90` through `:999`,
+checking both sockets and lock files; `ECCE_TEST_XDISPLAYS=a-b` restricts
+that range. Explicit `--display` numbers and ranges must start at `:10`
+or higher. Keep the tests' existing `:0` safety guards.
+Run the display-allocation regression with
+`nice python3 tests/apps/xdisplay_test.py`; no ECCE install is
+needed, and the live-server check skips when Xvfb is unavailable.
+
+The `create` driver of `tests/launch` (`launchjob create ...`, `Session.create(..., extra=())`)
+stores the Calculation Editor's setup when given `code=<JCode>`,
+`theory=<category>:<name>` and `runtype=<name>` (for example
+`theory=SE:GFN2-xTB runtype=Geometry`), with detail values from
+`gui=<settings file>`. Without a stored theory `ecce-series` and
+`ecce-ensemble pick --create` refuse the calculation as a template.
+`tests/launch/series_setup_test.py` is the example.
+
+## What ECCE is
+
+ECCE (Extensible Computational Chemistry Environment) is a desktop
+application for setting up, running and analysing computational chemistry
+calculations. It builds the input for a code, submits the job to the
+computer it runs on, follows it, parses the output, and stores everything
+with the calculation. It does not contain most of the codes: ORCA, Gaussian,
+NWChem, Quantum ESPRESSO and the others are installed on the machine where
+they run. ECCE-QM, a small Hartree-Fock and DFT program, is built in.
+
+Your user works in ECCE's windows. You work on the same stored data and
+through the command-line tools in "Commands". You cannot click in the windows.
+
+### The programs
+
+| Program | What it is | How it starts |
+|---|---|---|
+| Organizer | The main window: the tree of projects and calculations, the project table, the Run Mgmt menu (launch, terminate, reconnect, re-parse) and the Tools menu. | `ecce` (it opens the Organizer directly) |
+| Builder | Builds and edits a structure; the Viewer panels show results (orbitals, spectra, trajectories, properties). | From a calculation in the Organizer |
+| Calculation Editor | Sets up the calculation: theory, basis set, run type, details; writes and checks the input. | From a calculation in the Organizer |
+| Launcher | Chooses machine, queue, cores, wall time and allocation profile, and submits. | Opened from the Organizer for a calculation |
+| Register Machines | Registers compute machines: codes, job script, queues. | **Tools > Register Machines...**, or `ecce -machine` |
+| Machine Browser | Runs a few status queries on a registered machine over ECCE's login. | From the Organizer or Launcher |
+| Basis Set Tool | Looks at and edits basis sets. | From the Organizer or Calculation Editor |
+
+Each window is its own program. Experimental: with `ECCE_ONE_PROCESS=1`
+in the environment of `ecce`, the Builder, the Calculation Editor, the
+Basis Set Tool and the MD editors open
+as windows of the Organizer's process instead; job programs and the other
+tools stay separate. Off by default. Quitting the Organizer (or the
+session's `ecce_quit`) then closes those windows first, each asking about
+its own unsaved changes; Cancel in one of them cancels the Quit. Test hooks
+(`ECCE_TEST_ORGANIZER`): `inprocess` (pid, open Builder/Calculation Editor/MD Energy/Basis Set
+Tool/MD Prepare windows),
+`closetools`, `gatewayquit` (the session's `ecce_quit`), and
+`answer cancel|no` for a tool's save question.
+
+Start feedback (#1071, `ECCE_TEST_ORGANIZER`): `start TOOL [URL]` shows a busy
+cursor, "Opening the <tool> for <calculation>..." in the status line, a "Starting
+the <tool>..." window after 1.5 s and a "has not started" note after 30 s; a
+second `start` of the same tool and URL meanwhile is dropped. `toolstate` answers
+`state=starting|up|timed out|none status="..." busy=0|1 window=shown|none
+launches=N`. The tool sends `ecce_tool_up` when its invoke is handled;
+`ECCE_TEST_TOOL_DELAY=<ms>` holds that signal back for a slow-start test.
+
+Experimental, with `ECCE_ONE_PROCESS=1`: **Edit > Preferences > Windows
+and tabs** chooses which tools open as tabs of the Organizer's window (the
+Organizer is the first tab and cannot be closed). Presets **Normal**,
+**Small**, **Wide** (separate windows; default: Normal); **Customize...** sets
+each tool's row (Builder / Viewer, Calculation Editor, Basis Set Tool, MD
+editors, MD Prepare) to Tab or Window, which makes the layout Custom. Under
+Normal the Calculation Editor's tab is the Set-up tab: a detail area right
+of the editor shows the Theory or Runtype Details (codes with a `.dlg`
+description: ECCE-QM, ORCA, xTB, Gaussian 16; others open the Python
+dialog's window) or, with no detail chosen, the input file (after an
+unsaved change, a dry run of the generator with the editor's settings,
+500 ms after the last change; the calculation is not written). The window
+is widened to 1100 px within the work area. Hook `setup info|theory|runtype|basis|launch|launch info|launch go|input|fold|unfold|save|preview|width N|set KEY VALUE|find TEXT` on the
+active Set-up tab (`area=input|theory|runtype title=... folded=0|1
+controls=N marked=<button> overlaps=N more="none|+N hidden"`, where `overlaps` counts shown controls of the editor's column whose rectangles intersect (0 is right) and `more` is the code bar's hidden-codes button; `width N` resizes the Organizer's window to N px; `preview` prints `shown=<len:fnv> file=<len:fnv>`;
+`set` edits a field of the embedded dialog as a user would, `find` says
+whether the preview contains TEXT, `basis` shows the basis panel
+(`area=basis list=N of M picked=<set> covered=H,O uncovered=<elements>
+use=on|off assigned=All_atoms:_<set>`; `basis filter TEXT` narrows the library
+list, `basis pick NAME` chooses a set, `basis all` is Use for all atoms:
+assigns it to the whole system and saves, as the Basis Set Tool's Add to Table
+plus save would; the panel uses the Basis Set Tool's library and `GBSAssign`),
+`launch` (the Launch... button) shows the Launcher's panel (`area=launch machine=<name> launch=enabled|disabled label=Launch|Launch_anyway`; pre-launch warnings appear in the panel and the button becomes Launch anyway: warn, never block), `launch info` reads it, `launch go` clicks Launch (`Launch is off`, `no Launcher panel` otherwise; `launch info` adds `clipped=N`, controls reaching past the area's right edge), `width N` sets the window's width,
+`info` adds `window= virtual= dry=0|1
+theorysum= runtypesum=` (the editor's summary lines); `no set-up area` under Small, `not a set-up tab` when the active tab is
+not an editor). Stored in `~/.ECCE/EcceGlobal` as `WindowsAndTabs.Layout`
+(`normal|small|wide|custom`) and, for Custom, `WindowsAndTabs.<key>`
+(`tab|window`, keys `builder calced basistool mdeditors mdprepare launcher`). A tool
+opened after a change follows it; the tab strip itself is made when the
+Organizer starts, so going from Wide to tabs needs a restart (a fresh install is Normal). The window's
+menu bar is the active tab's. Right-click on a tab: **Open in Window** (this
+time) and **Always open in a window** (also sets that tool's row to Window);
+the tool's **Window > Move to Tabs** puts it back. Without
+`ECCE_ONE_PROCESS` every tool opens in a window whatever the setting. Test
+hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus),
+`launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `tab N`, `towindow N`, `totabs <title part>`, `layout show|normal|small|wide|KEY=tab|window`
+(prints `preset=... rows=builder:tab,...`), `tabmenu N` (the tab's
+right-click items), `alwayswindow N`, and `prefs windows show|preset NAME|row KEY tab|window [PNG]|snap PNG`
+(the Preferences page and its Customize table, as clicks). A tab's
+dialogs open centred over the Organizer's window: `dialog` opens a test
+message box over the active tool tab and closes it 1.5 s later;
+`dialoginfo` then reports whether it was transient for the Organizer,
+shown and inside its window, its and the window's rectangles, and whether
+the focus came back (`focus=set`).
+Popup menus and floating panes of a tab: `popup` pops a menu over the
+active tool tab and closes it after 1 s; `popupinfo` reports `parent=page
+shown mapped inside near`. `float` floats the first docked pane of
+the active Builder tab; `floatinfo` reports whether its frame is shown and
+transient for the Organizer's window.
+
+The commands (`ecce-launch`, `ecce-series`, ...) are separate and are the
+way an assistant acts on ECCE. The help pages (**Help > ECCE Help**, `help/src/*.md`)
+describe every window; `help/src/index.md` lists them.
+The Organizer's menus and Preferences, item by item, are on the help pages
+`organizer-menubar` (menu bar, toolbar, Preferences) and `organizer-menus`
+(right-click menus).
+
+### Which codes are offered (Preferences > Codes, #1049)
+
+Codes unticked in **Edit > Preferences > Codes** are hidden from making new
+calculations (File > New, right-click New, Continue in Another Code, the
+workflow new-step buttons, the Calculation Editor code bar); existing
+calculations of them are unaffected. The setting is `Codes.Shown` in
+`~/.ECCE/EcceGlobal` (a string list starting with the marker `chosen`; absent =
+default: ECCE-QM plus codes registered on a machine, or `Shown:` in
+`$ECCE_HOME/siteconfig/Codes`). Every hiding list ends with
+`N more codes (hidden)...` (editor bar `+N hidden`). Test hooks (Organizer
+`ECCE_TEST_ORGANIZER`): `prefs codes list|all|registered|page [hiddenfirst]|
+tick NAME on|off`; `tests/apps/code_choice_test.py`. One filter:
+`CodeChoice` (`include/dsm/CodeChoice.H`).
+
+### The life of a calculation
+
+A calculation has a run state (help page `run-states`):
+
+1. **Created**: it exists but has no input file.
+2. **Ready**: the input file exists and it can be launched. A failed launch
+   leaves it Ready with the reason in the run log.
+3. **Submitted**: the job is in the queue of the compute machine.
+4. **Running**: the job runs and ECCE follows its output. **Running?** and
+   **Waiting for Login** mean ECCE has lost the connection to the job, which
+   may still be running; Run Mgmt > Reconnect Selected (or `ecce-reconnect`)
+   takes it up again.
+5. **Completed** (the code finished normally, not necessarily with a right
+   result), **Imported** (read from an output made elsewhere), **Incomplete**
+   (ended without a complete result; the reason names the cause),
+   **Killed** (cancelled by a user), **Monitor Error**, **System Error**.
+
+In `.ecce-meta` the state is `state`; the reason for an ended job is
+`runStatusReason`.
+
+### Projects, studies and workflows
+
+- A **project** is a folder. Calculations live in a project, optionally in
+  subfolders. File > New > Project... makes one.
+- A **study** is a project-like folder whose members are tasks with
+  dependencies: GROMACS and NWChem MD studies (Prepare, Optimize, Equilibrate,
+  Dynamics); a task starts from the one before it and is launched after that
+  one has completed.
+- A **workflow** (steps may be MLP (MACE) too; the geometry link carries the
+  cell of a periodic structure) draws calculations that start from the geometry of an earlier
+  one as a tree, with **Launch Ready Steps** (help page `workflows`). A
+  **recipe** is a workflow template for a kind of study (`recipes`,
+  `writing-a-recipe`).
+
+Read-only workflow folders can be opened in the Organizer to view their
+stored steps and links. Opening does not rewrite step indices; use a writable
+copy to change or run the workflow.
+
+### Where the data is, and deployment modes
+
+- **Local data**: the folder printed by `ecce-localdata`
+  (`~/.ECCE-local`). Settings and the machine registry are in `~/.ECCE`.
+- **Data server**: calculations stored on a server that several users reach
+  (`ecce -remote`); see "Data server" below.
+
+There are three deployment modes (GETTING_STARTED.md, "Deployment modes"),
+decided by the site's configuration in this order: a shared system broker
+(`siteconfig/SharedBroker`), then `ecce -remote`, otherwise local.
+
+1. **Local**: one user, ECCE's own broker for each session, no network
+   port. The session's broker file is `~/.ECCE/broker_<key>` (the key comes
+   from `ECCE_SESSION_ID`). On Linux and macOS the broker is the program
+   `$ECCE_HOME/libexec/eccebroker`, started by `ecce-gateway-start`; it
+   listens on a Unix socket in `~/.ECCE` (file: `user=local`,
+   `socket=<path>`; no login, the 0700 directory keeps other users out).
+   On Windows it is built into the Organizer, on 127.0.0.1 at a free port
+   (`user=`, `password=`, `host=`, `port=`). A command reads that file. The
+   broker stays up while any ECCE program (the gateway, Builder, a job
+   store) is connected and ends 10 s after the last one leaves
+   (`ECCE_BROKER_LINGER` on Linux and macOS), removing the file;
+   `ecce-gateway-stop` removing the file also ends it. `ecce-gateway-status`
+   names it. `ECCE_BROKER=mosquitto` set before `ecce` runs the per-user
+   mosquitto instead (installed separately).
+2. **Central server**: a data server and broker on one machine; users connect
+   as clients with `ecce -remote` (the teaching set-up, also the original
+   PNNL set-up).
+3. **Shared broker**: one system service (`ecce-broker.service`) on an
+   application server.
+
+The mode changes who may connect, not how you use the commands.
+
+## What ECCE can do
+
+The codes ECCE knows are the `.edml` files in `data/client/cap/` of the
+source (`data/client/config/ResourceDescriptor.xml` lists which calculation
+types a project may hold). Run types come from `scripts/codereg/<code>runtype.py`; the Calculation
+Editor's Run Type list is the authority for what one version offers. Codes
+marked (experimental) are newer and less tested.
+
+| Code | Run types (as offered) | Typical use | Help page |
+|---|---|---|---|
+| ECCE-QM (built in, `localhost`, no setup) | Energy, Gradient, Geometry, Vibration, GeoVib, Opt-TS, IRC; relaxed scans through Geometry Constraints | HF and DFT (SVWN, PBE, B3LYP, PBE0) on molecules of a few tens of atoms; localised orbitals, MO diagram | `ecce-qm`, `ecce-qm-files` |
+| ORCA | Energy, Geometry (minimum or TS), Vibration, GeoVib, IRC | DFT, composite methods, post-HF | `orca-composite-methods`, `running-codes-on-linux` |
+| Gaussian 16 | Energy, Gradient, Geometry (minimum or TS), Vibration, GeoVib | Molecular QM; licensed, installed by the site | `running-codes-on-linux` |
+| NWChem | Energy, Geometry, GeoVib, Property; plane-wave PSPW and BAND | Molecular QM; MD through NWChemMD studies | `first-calculation` |
+| MOPAC | Energy, Geometry, GeoVib, Vibration | Semi-empirical | `running-codes-on-linux` |
+| xTB | Energy, Geometry, GeoVib, Molecular Dynamics, Conformer Search, Docking | GFN2-xTB, GFN1-xTB, GFN-FF | `xtb` |
+| CREST | Conformer Search, Solvation Shell, Protonation Sites, Tautomers | Conformer ensembles (needs `xtb`) | `crest` |
+| Quantum ESPRESSO (experimental) | Energy, Geometry, vc-relax, Dynamics | Periodic plane-wave DFT | `qe-first-calculation`, `qe-choosing-settings` |
+| CP2K (experimental) | Energy, Geometry | Periodic and large DFT | `cp2k-scf`, `cp2k-basis-potential` |
+| GROMACS (experimental) | Prepare, Minimisation, Equilibrate, Dynamics (a study); MD Analysis, umbrella sampling | Biomolecular and condensed-phase MD | `gromacs-first-calculation`, `gromacs-prepare`, `gromacs-md-settings`, `md-analysis`, `umbrella-sampling` |
+| MLP, MACE (experimental) | Geometry, Vibration, Molecular Dynamics | Screening and relaxation of periodic cells | `mlp` |
+| Vina | Receptor and Ligand docking | AutoDock Vina poses and scores | `vina` |
+
+`data/client/cap/` also holds older codes (Gaussian 98, 03 and 09, GAMESS-UK,
+MOLCAS, NWChemMD, MetaDyn); do not expect new features for them.
+
+Property views (which panel shows what) depend on what is stored in `Props/`;
+see "Properties". Analysis views: the MO diagram (experimental; check it
+against a textbook diagram), Density Map, ELF/LOL/NCI, localised orbitals,
+density of states and OPDOS, dipole moment, Compare Energies, Energy Calculator,
+thermochemistry, spectra and band matching, MD speeds and diffusion, MD
+Analysis. Each has a help page named in `help/src/index.md`.
+
+The Density Profile panel shows only its mode and atoms, the **Options**
+button, the orbital list and the plot; quantity, orbital set, spin, axes and
+**Show all** are under **Options**. Builder scene hooks (`dp*`, as in
+`tests/apps/densityprofile_panel_test.py`) set these controls whether or not
+Options is open; `dpmore 1` opens it (for a screenshot) and `dplayout W` prints
+which controls are visible, with rectangles, at panel width W (`visible mode,from,to,options,list,plot`).
+
+The Density of States (OPDOS) panel shows the A and B rows (**Use selection**
+under each), **Options**, **Open in window...** and the plots; Width, Shape,
+Sticks, Integrated OPDOS, Occupied only, From/To, Reset and the exports are under
+**Options**. An atom given to one group is removed from the other (the group
+just set wins; the status line names the atoms moved, and an empty group is
+reported there, not refused). Builder scene hooks (`opdos*`, test
+`tests/apps/opdos_panel_test.py`): `opdosatoms "A" "B" [A|B]` (the named group
+keeps an atom in both, default A), `opdosmore 0|1` (Options), `opdoslayout W`
+(`visible ...` at panel width W, fails if clipped), `opdoswindow` (opens both
+plots in the resizable window; `opdosstate` then prints `window_open`,
+`window_plots`, `window_curves`, `window_intcurves`, `window_int_shown`),
+`opdoswinshot NAME` (picture of that window) and `opdoswinclose`.
+
+The Density Map has a **Fill** tick under **Options** (default off, remembered
+in `wxbuilder.ini`): it colours the plane between the contour lines on a log
+scale from the outermost level, two signs blue/orange for an orbital, viridis
+for a density, with a colour bar in the key. Scene hook `dmfill on|off` sets it
+(`dmstate` prints `fill 0|1`); `dmpng` and **Export .png...** draw the picture
+as the panel shows it (test: `tests/apps/densitymap_fill_test.py`).
+The panel has one **Reset** button (next to **Options**): whole plane, offset 0,
+greyed out at the defaults; scene hook `dmreset` presses it (`dmzoomreset` resets
+the zoom only, as the double-click does; `dmstate` prints `resetbutton 0|1`).
+The Offset row sits under **Options**; `dmlayout W` also reports `optionsrow`,
+`resetrow` (`mo` when on the MO line) and `offsetrow shown|hidden`.
+
+## How to do things
+
+For each task: what the user does in the GUI, and what you run.
+
+**Build or import a structure.** User: the Builder, a structure file or the Structure Library (`importing-a-structure`); a calculation
+from a finished output: **File > Import Calculation from Output File...**
+(`importing-a-calculation`). You: write `.xyz` files with charge and
+multiplicity in the comment line as `charge=-1 mult=2`.
+
+**Set up one calculation.** User: select a project, File > New, choose the
+code, then Builder (structure) and Calculation Editor (theory, basis, run
+type, Theory Details); the first calculation is `first-calculation`. You
+cannot do this step; ask the user to make a template calculation. The input
+is generated when the calculation reaches Ready; check it in `Inputs/`.
+
+**Launch.** User: Run Mgmt > Launch Selected (`launch-selected`) or the
+Launcher. You: after the user's yes, `ecce-launch [on=MACHINE] [profile=NAME]
+[queue=QUEUE] [wall=H:MM] <calculation>...`.
+
+**A series or a batch.** User: select calculations in the table, Tools >
+New Calculations in Another Code... (or the table's right-click New from
+This > Continue in Another Code...; `new-series`): the first new
+calculation opens in the Calculation Editor, then "Make the Others" copies
+its setup to the rest, each with its source's final geometry, charge and
+multiplicity (the same code as `ecce-series`; test hooks `anothercode`,
+`anothercodefinish`). For a list of
+structures or xyz files: Tools > Batch Add from SMILES (`batch-from-smiles`). You:
+`ecce-series <template> <folder> <file.xyz>...` makes one Ready calculation
+per structure with the template's setup; `ecce-batch-smiles` does the
+SMILES table; then `ecce-launch` the Ready calculations. A different run
+type needs a different template.
+
+**Check a result.** See "Checking a result". Read `.ecce-meta`, the run log,
+the output, `Props/`.
+
+**Fetch files** the run directory holds and ECCE did not copy back (ORCA
+`.hess`, cube files, PDOS): `ecce-fetch`.
+
+**Rerun.** User: a calculation's right-click menu, then Launch.
+You: `ecce-rerun <calc>` (an identical copy) or `ecce-rerun --last-geometry`
+(continue from the last geometry).
+
+**Terminate.** User: Run Mgmt > Terminate Calculation... or Terminate
+Selected.... You: `ecce-terminate <calc>`. A user cancel gives Killed.
+
+**Reconnect** (state Waiting for Login, Running?, or after a restart): Run
+Mgmt > Reconnect Selected..., or `ecce-reconnect <calc>`.
+
+**Re-parse outputs.** After a parser fix, or when fewer properties show
+than the output contains: **Run Mgmt > Re-Parse Outputs** (`reparse-outputs`),
+which needs no login, or `ecce-reparse <calc>...` (see below).
+
+**Workflows and recipes.** User: build a workflow from calculations
+(`workflows`), or Apply Recipe (`recipes`). Launch Ready Steps starts what
+can start. `ecce-workflow` is the command.
+
+**QSAR.** Tools > QSAR... (help `qsar`): one window per folder with Table,
+PCA and PLS tabs; commands `ecce-qsar table`, `pca` and `pls`. PCA and PLS
+headings are words (Component 1, Variance explained (%), Cumulative ..., Importance in the model (VIP)).
+The Table tab's header tooltips and **Key...** explain each current column;
+**Copy All** copies the key. `ecce-qsar table --describe` prints all built-in
+column definitions, or the current columns when given calculation paths or
+`--from-csv FILE`. Add `--json` for `columns` objects (`name`, `description`,
+`unit`, `group`, `reference`), or `--csv FILE` for a definition table.
+`--key-csv FILE` writes names and formatted key text alongside a normal table.
+Measured/user columns identify their input filename (or pasted text);
+older stored values without provenance say `unknown source (not recorded)`.
+Definitions and the checked help key come from `scripts/ecce_qsar_chem.py`.
+QSAR Analysis defaults to unit variance (autoscaling); full scaling names and
+transformation tooltips explain the choices. Its report gives variance and
+prediction percentages, measured-unit errors and warnings for weak validation
+or small samples, with omissions grouped by reason. The Components grid holds
+all computed component statistics; Ctrl+C copies selected cells as TSV and
+Copy table copies the whole grid with headers. Molecule points have hover
+numbers and click selection linked to the Molecules grid; the variance plot
+shows component and cumulative explained variance. PLS adds a sorted VIP grid
+with descriptor descriptions (VIP > 1: more important than average).
+Save Results writes the displayed `analysis_components.csv`,
+`analysis_summary.txt` and PLS `analysis_vip.csv` alongside the existing numeric
+files and saved model. CLI text uses the same presentation; JSON is unchanged.
+The `qsarpca` and `qsarpls` test hooks accept `[png [width height]]` after the
+usual model arguments, save screenshots of the report, grids and variance
+plot, and verify real clipboard, hover and click paths. Their output directory
+contains `presentation.tsv`, `selection.tsv`, `hover.txt` and
+`presentation-check.txt` for script assertions. The check file also records
+painted axis labels as `plot-x`, `plot-y` and `scree-y`; all use enclosing
+1–2–5 tick ranges, with equal ranges on the observed/predicted axes.
+
+**Docking.** Vina calculations (`vina`); `ecce-pdbqt` prepares PDBQT files;
+CREST/xTB docking is a run type of xTB.
+The Builder Poses panel shows cached ligand-only thumbnails for docking.
+For Vina, the line above the table reports the retained count, energy range
+and maximum modes from the stored input deck (settings fallback).
+Builder script `poses note` returns that text; `poses thumb 1 <file.png>`
+saves the cached thumbnail of pose 1 for image checks.
+
+**Diffraction.** Properties > Diffraction and scattering > Diffraction opens a docked Builder
+pane (`fibre-diffraction`); Tools > Diffraction opens a standalone window.
+View and Source stay above the pattern; Options is a modeless window with
+Geometry, Sample and Display groups. Pattern toggles the same view into a
+separate window and back, sharing all settings and data. The first pattern
+calculates on open; physics edits debounce for about 300 ms and sliders
+calculate on release. A newer change cancels the previous external process.
+The pointer line shows Calculating while running. After a run exceeds about
+two seconds, that structure switches to Update on request. Display settings
+redraw without recalculation. No Calculate button is needed.
+
+Existing `diffraction`, `calcdiffraction`, `calcpowder`, `calclayer`, `calcframe`,
+`calcmeasure` and `debye` hooks still calculate and **wait for completion**
+before exporting. To use the property pane through `ECCE_BUILDER_SCRIPT`:
+
+- `list Diffraction` opens the Properties entry.
+- `xrd wait` waits for the current run (and pending debounce); it reports
+  `Update required` if a slow structure has unapplied edits. `xrd update`
+  explicitly starts those edits; then use `xrd wait`.
+- `xrd state` reports view, generation, completed generation, running, dirty,
+  manual, docked, source, wavelength and pointer-repeat override.
+- `xrd set KEY VALUE` changes a real control (additional values simulate a
+  typing burst through the same text events). Text keys: wavelength, min, max,
+  step, width, B, distance, film, length, misalignment, repeat, gamma, layer,
+  resolution, osc. Choice keys use zero-based indices: view (fibre, powder,
+  single crystal, frame, Debye), source (Cu, Mo, Co, Other), scaling (log, sqrt,
+  linear), scheme (Film, Dark), transform (Auto, Helical, Finite model), axis,
+  zone. `phi` sets the released start-angle slider.
+- `xrd breakout 1|0` opens/closes Pattern without calculating again.
+  `xrd options`, `xrd close-options`, `xrd defaults` operate Options.
+- `xrd hover TWO_THETA` / `xrd click TWO_THETA` send pointer events to the
+  powder or Debye plot. For layer/frame use `xrd hover H K L` or
+  `xrd click H K L`; they move the pointer to that reflection's position.
+  The return text is the tooltip at the pointer. Click pins it and selects
+  the powder reflection's row in the Options peak list; `xrd selection` reports
+  the pinned state and selected hkl.
+- `xrd export OUT.png OUT.csv` exports the current result; use `xrd wait` first.
+  `xrd size W H` sizes the Builder for captures, `xrd screen OUT.png` captures
+  the display and `xrd options-shot OUT.png` captures Options.
+
+The fibre repeat field is labelled **Layer-line repeat for the pointer (Å),
+0 = from the model**. It changes pointer/tooltip layer numbers only. Nonzero
+values are retained; zero uses `fibre-geometry.txt` from ecce-xrd. Detector
+CSV appends `F,absent` after the old columns. F is the structure-factor
+amplitude, before Lorentz/polarisation corrections; extinct reflections are
+retained and flagged before the relative cutoff. Tooltips say "extinct in
+this model (|F| ≈ 0)", without claiming a space-group classification.
+
+`tests/apps/diffraction_panel_test.py --png DIR` checks the pane, automatic
+updates, shared breakout, hover and display-only edits on a 1366×768 Xvfb
+display and saves pane and Options screenshots.
+
+`ecce-xrd` also works directly from the command line.
+Image views (detector frame, precession layer and fibre film): wheel zooms
+about the cursor, left drag zooms a rectangle, middle/right or Shift+drag
+pans, Home or double-click empty space fits the whole image. Clicks still
+measure spots in the zoomed view. PNG exports the current view; Home first
+exports the whole image. CSV keeps the full data. The diffraction powder
+panel currently has no zoom controls.
+Builder script checks: append `viewtest` to
+`calcmeasure layer0|frame OUT.png OUT.csv EXPOSURE SCHEME`, or to
+`calcdiffraction OUT.png OUT.csv XYZ EXPOSURE SCHEME` for a fibre pattern.
+These send mouse/key events, check cursor anchoring and zoomed hkl picking,
+and save `OUT.png.full.png`, `.zoom.png`, `.pan.png`, `.reset.png` and
+`.rectangle.png`; `BUILDER: image view: PASS` confirms the checks passed.
+
+**Molecule (Debye scattering)** is available for every structure, including
+the contents of a periodic cell, with the Powder sources and 2θ curve exports.
+
+**Other analysis from the command line** (thermochemistry, RMSD, bands,
+MD analysis, orbital composition, Morse fits): see "Other command-line tools".
+
+## Compute machines and HPC
+
+A calculation runs on a **machine** registered in ECCE. `localhost` is
+registered for the user. A cluster is one more entry. **A machine
+registered in ECCE is the way to reach an HPC cluster: ECCE logs in with its
+own ssh library, creates the run directory, copies the files, submits to
+Slurm (or PBS, LSF, Grid Engine, HTCondor), follows the job and copies the
+output back.** If a user needs a cluster, first check whether it is
+registered (Machine Browser, or `~/.ECCE/MyMachines` and the site machine
+list) before looking for another way in.
+
+### Registering a machine (user, in the window)
+
+Help pages: `machines`, `register-machines`, `allocations`,
+`running-codes-on-macos`. **Tools > Register Machines...** in the Organizer
+(or **Job > Register Machines...** in the Launcher, or `ecce -machine`).
+Tabs:
+
+- **Machine:** host (fully qualified), name, cores and nodes, user name,
+  account, run directory, scratch directory, **Allocation profiles** (one per
+  allocation; each holds account, run directory, scratch directory and
+  default queue; #541).
+- **Connection:** shell, login script, **Allocation command**, directory of
+  `sbatch`/`squeue`, **How jobs reach this machine** (Advanced).
+- **Codes:** for each code, **Modules**, **Program** (full path), **Environment
+  variables**, **Command line**; **Find** and **Check** confirm the path.
+- **Job script:** the scheduler request lines and commands before and after
+  the program; **Preview job script...**, **Advanced: edit file...**.
+- **Queues:** **Queue manager**, **Allocation accounts used**, queues with
+  limits, **Discover queues...** (Slurm: `sinfo`), **Test submission...**
+  (Slurm: `sbatch --test-only`, which submits nothing).
+
+Steps for a cluster: New Machine; host, name, processors, nodes; Codes tab
+program paths; Queues tab; Save. Before the first real job run **Preview job
+script...** and **Test submission...**. Allocation accounts and per-allocation
+run and scratch directories are profiles; once a machine has more than one,
+the Launcher shows a **Profile:** choice, and a calculation records
+`launch_profile` and `launch_account` in `.ecce-meta`. **Tools >
+Allocations...** shows what is left.
+
+### How ECCE logs in
+
+ECCE uses its own ssh library and keeps a master connection. It asks for the
+password, one-time code or unknown host key in dialogs. **You cannot type into
+those dialogs; ask the user to** (and to tick **Remember on this computer**
+if a keyring is available; a remembered password is never offered for jump
+hosts or one-time codes). A machine reached through a port-forward must not be
+registered as `localhost`: give it an alias in `~/.ssh/config` and register
+the alias (#144).
+
+Machines ECCE cannot log in to (two-factor): `noRemoteAccess: true` in
+`CONFIG.<machine>` or the `dummy` machine: ECCE writes the input and job script
+locally and stops; the user copies them over, submits, and imports the output
+with **File > Import Calculation from Output File...**. `userSubmit: true`
+still transfers files over ssh and leaves only the submit command to the user.
+
+### What an agent can do on the cluster
+
+Through ECCE's commands, only: `ecce-launch` (submit), `ecce-terminate`,
+`ecce-reconnect`, `ecce-fetch` (bring files from the run directory, `job_path`
+in `.ecce-meta`, into `Outputs/`), plus `ecce-diagnose` for a problem report.
+**There is currently no documented command to put a file on a machine or to
+run a command there (issue #1002).** The Machine Browser buttons (Machine,
+Disk Usage, Process Status, Allocation) run fixed queries, started by the
+user. So when something has to be installed or placed on the cluster (a data
+directory, a pseudopotential set, a basis library), tell the user exactly
+what and where, and ask them to do it, or to allow you to use their own `ssh`.
+Do not use credentials you were not given and do not look for another way in.
+
+### Setting up a code on a machine
+
+In the machine's **Codes** tab (stored in `~/.ECCE/CONFIG.<name>`):
+
+- **Program:** the full path of the executable on that machine. A job without
+  one stops with "Path for <code> not found". ORCA needs the full path
+  (it finds its helper programs next to itself, and needs the Open MPI named
+  in its archive name to run in parallel); on Debian the package `orca` is the
+  GNOME screen reader, not ORCA.
+- **Modules:** `module load` names for that code only; machine-wide ones go
+  on the Job script tab.
+- **Pseudopotential directory** (Quantum ESPRESSO only; a script writes
+  `QuantumESPRESSOPseudoDir: /cluster/pseudo` in `CONFIG.<name>`): at launch,
+  Launcher and `launchjob` alike, the deck's `pseudo_dir` becomes this folder.
+  The UPF file names still come from the local library when the deck is
+  written. Launch then lists the files the deck names that the folder lacks
+  on that machine as a launch warning (`LAUNCHJOB_WARNING=cancel` to stop);
+  an unreachable machine gives "Could not check ..." and no warning. Unset:
+  the deck is not changed.
+- **Environment variables:** `NAME value` per line; names containing `PATH`
+  are appended to, others replace. Stored as `<Code>Environment { }`.
+- Gaussian 16: `g16root` and a scratch directory (`GAUSS_SCRDIR`); ECCE sets
+  `GAUSS_EXEDIR` and `LD_LIBRARY_PATH` itself.
+- **Quantum ESPRESSO: the pseudopotential files (UPF) must exist on the
+  cluster.** ECCE picks one file per element from the pseudopotential
+  directory, which is a field in the calculation's **Theory Details**
+  (`ES.Theory.PW.PseudoDir`, default `/usr/share/espresso/pseudo`) and is
+  scanned on the computer where ECCE runs, so the same set must be there for
+  the input to be generated. On a cluster that directory is elsewhere: set the
+  variable **`ESPRESSO_PSEUDO`** in the Quantum ESPRESSO **Environment
+  variables** box (`QuantumESPRESSOEnvironment` block) to the cluster's
+  directory. At job time it replaces `pseudo_dir` in the input. If that
+  directory does not hold the files for the elements used, `pw.x` fails.
+  Fill it, or have the user fill it, before the first job (for example with
+  the SSSP set; Debian ships it as `quantum-espresso-data-sssp`).
+- **ORCA:** program path as above; for NBO add `NBOEXE <path>` to its
+  environment.
+- **GROMACS:** `gmx` must be on the path of the shell that runs the job
+  (module or **Program**). A Prepare task also runs `pdb2gmx` and needs its
+  force-field data from the same installation.
+- **CP2K:** the version on the cluster must contain the basis sets and
+  potentials the input names; an older CP2K can lack ones a newer local CP2K
+  has. Check the data files of the version that will run. Locally, the
+  data directory is `CP2K_DATA_DIR`.
+- **MLP:** the Program is a Python from an environment with PyTorch, ASE and
+  MACE; **Set up...** next to Program builds one (`ecce-mlp-setup`).
+- **xTB, CREST, MOPAC, NWChem:** program path; CREST runs `xtb` itself, so
+  both must be installed.
+
+### Checking a machine before launching
+
+In Register Machines: **Find** and **Check** on each code, **Preview job
+script...**, **Test submission...**. In the Machine Browser: the Machine
+button (Slurm `sinfo`), Disk Usage, Process Status (the queue), Allocation.
+From a terminal: `ecce-diagnose [-o directory] [run-directory]` collects ECCE's
+version, logs and configuration into one text file; it changes nothing and
+collects no passwords, but names hosts and users, so the user reads it first.
+
+### Lessons from real use
+
+- **A `Slurm { }` block in `CONFIG.<name>` replaces ECCE's whole header.** A
+  block with one line gave jobs with no account, partition or time, and sbatch
+  refused them ("You must supply an account"). Write the complete header.
+  **Copy site setting** on the Job script tab keeps the site's lines.
+- **No time-limit capability (`TL`)** means `#SBATCH --time` is dropped and the
+  job runs with no limit. **No memory line** means Slurm's default; on a shared
+  workstation that can give a 1-core job the whole node's memory, and on a big
+  node a per-core default can exceed the node so the job sits as
+  `BadConstraints`. `squeue` shows `BadConstraints` for harmless reasons too:
+  check `sacct -j <id> -o ReqMem` first.
+- **`ecce-launch on=<machine>`** on a calculation with no stored queue uses the
+  machine's default queue; make sure that is not a short debug queue.
+- **Kebnekaise (HPC2N):** only the `batch` partition accepts jobs and the node
+  type comes from `--constraint` (`zen4`: 2 x 128 cores; `skylake`: 28 cores).
+  Use one ECCE machine entry per node type (queue **Request lines** can hold
+  `#SBATCH --constraint=zen4`). `--mem-per-cpu=2500M` works on Zen4. Software is
+  listed at https://docs.hpc2n.umu.se/software/apps/ and by `module spider`.
+  Allocations are a rolling 30-day window.
+- **Local Slurm on a Linux workstation** (single node, `select/cons_tres` with
+  `CR_Core_Memory`, a `DefMemPerCPU`, cgroup enforcement) makes ECCE queue and
+  limit jobs properly. Slurm does not support macOS: use `localhost` with no
+  queue manager.
+
+### The settings files, for reference (user layer, `~/.ECCE`)
+
+A user setting **replaces** the site setting for that key; it is not added.
+
+| File | Holds |
+|---|---|
+| `MyMachines` | one tab-separated line per machine: name, host, three `Unspecified` fields, `procs:nodes`, `ssh`, `:Code1:Code2:...`, and capabilities (`MN:RD:SD:UN:PW` plus `AA` allocation account, `Q` queues, `TL` time limit, `MM` memory limit) |
+| `CONFIG.<name>` | `<Code>: /full/path`, `<Code>Modules: mod1 mod2`, `QuantumESPRESSOPseudoDir: /dir`, `<Code>Environment { NAME value }`, `<Code>Command { ... }`, and the scheduler header block (`Slurm { #SBATCH ... }`) |
+| `Queues` | `Queues:` list of machines with queues, and per machine `<name>\|queueMgrName: Slurm`, `<name>\|queueMgrVersion: 2.0~`, `<name>\|prefFile: <name>.Q` |
+| `<name>.Q` | `Queues: q1 q2`, and per queue `minProcessors`, `maxProcessors`, `runLimit` (minutes), `memLimit` (MB), `scratchLimit`; 0 means no limit |
+| `MachPrefs`, `MachProfiles` | the user's launch defaults and allocation profiles; written by the window, do not hand-edit |
+
+The safest order: the user creates the machine in the window (New Machine, host,
+name, cores, user, account, run directory, Save); then you fill in
+`CONFIG.<name>` and the queues, with ECCE closed or the window reopened
+afterwards. **Job script > Advanced: edit file...** opens `CONFIG.<name>` as
+text and its **Check** names keys ECCE does not read. Copy a file to
+`<file>.bak-<date>-<reason>` before editing it. A machine named in `Queues`
+that is not registered stops ECCE from starting.
+
+Placeholders in request lines and commands: `$nodes`, `$totalprocs`, `$ppn`,
+`$wallTime`, `$memory`/`$memoryM`, `$account`, `$queue`, `$scratchDir`. A request
+line whose placeholder is empty is left out. Placeholders do not work in
+environment variables.
+
+## Registering a new code (a developer task)
+
+Adding a code to ECCE is a change to the source tree, not a setting. Treat it
+as development: work in a clone of the repository, read the checklist first,
+and test with an isolated state directory. The pieces:
+
+1. **`data/client/cap/<Code>.edml`**: the code's capabilities (theories, run
+   types, basis, properties, which tools handle it) and its importer.
+2. **`data/client/config/ResourceDescriptor.xml`**: a `<code>_es` resource type
+   and a `ContainsResource` entry under `project`.
+3. **`scripts/codereg/`**: the Calculation Editor's dialogs, for example
+   `<code>theory.py` and `<code>runtype.py`, written in the dialog grammar.
+4. **`scripts/parsers/ai.<code>`**: the input generator, filling the deck
+   (and `<code>.launchpp` for launch-time changes; `scripts/gensub` writes the
+   job script section for the code).
+5. **`scripts/parsers/<Code>.desc`** and the parser scripts it names: what to
+   extract from the output into `Props/`; **`<Code>.expt`** imports an output
+   made elsewhere.
+6. The monitor (`scripts/eccejobmonitor`), property panels
+   (`data/client/config/PropertyPanelDescriptor.xml`, `properties`), the
+   input checker (`scripts/parsers/verifyinput`), help page and this file.
+
+Read `docs/claude/codereg/index.md`, in particular "New-code checklist"
+(found integrating ORCA, #38) and the MOPAC additions (#86), and follow the
+entries that apply to each file you change (`grep -rl '<file>' docs/claude`).
+The wiki page "Where to find things in the code"
+(github.com/FriendsofECCE/ECCE/wiki) is the longer orientation. Memory is
+entered in GB for every code and converted in `ai.<code>` or its template.
 
 ## Data layout
 
@@ -107,6 +846,29 @@ An MD study (GROMACS, NWChem MD) is a project-like folder whose tasks
 in the study holds the chain: a task takes its starting structure from the one
 before it, so it can only be launched after that one has completed.
 
+A GROMACS calculation from the user's own files is its own type,
+`gromacs_md_run` (content type `ecceMdRun`, no MD editor; `launchjob apptype
+URL` prints `GROMACS ecceMdRun gromacs_md_run`). Make it with File > New >
+GROMACS Calculation from Files... in the Organizer, or the test hook
+`gmxrun PARENT-URL MDP|- STRUCTURE|- TOPOLOGY|- [TPR]` (`ECCE_TEST_ORGANIZER`,
+prints `ok <url>`). The .mdp is stored verbatim as `gromacs.mdp`, the topology
+as `<name>.gmxtop`, the structure as `<name>.gro`, includes beside the
+topology and a `.ndx` with them; a ready `.tpr` is stored as `run.gmxtpr` and
+the job skips grompp. A `.pdb` structure is refused (convert with `gmx
+editconf`). The calculation is left Ready; launch it as any calculation
+(`launchjob mdsetup`, `launch`).
+
+Hand-offs: New from This > Rerun and Continue from Last Geometry (hook
+`duplicate URL [last]`; with `last` the copy's starting .gro is the run's
+final frame, Ready), Continue in Another Code from it to another code (hook
+`anothercode TYPE SUFFIX FOLDER|- URL`: the final frame, charge 0,
+multiplicity from the electron count), and to GROMACS from any calculation:
+Continue in Another Code > GROMACS (from files), hook `anothercodegmx MDP GRO TOP
+SUFFIX|- FOLDER|- SOURCE...` (one calculation per source, named source +
+suffix, Ready; the source's final structure replaces the .gro's coordinates,
+refused with the differing atom when the atoms or their order differ; box
+kept, velocities dropped). Not a workflow step yet.
+
 ### The run directory
 
 The run directory on the compute machine (`job_path`) holds everything the
@@ -130,7 +892,7 @@ to. Other variables: the `ENVIRONMENT.md` file next to this one.
 ## Commands
 
 The `ecce-launch`, `ecce-terminate`, `ecce-reconnect`, `ecce-fetch`,
-`ecce-annotate`, `ecce-rerun`, `ecce-move`, `ecce-copy`, `ecce-mkdir` and `ecce-rename` commands do not start ECCE; they ask the running Organizer to act, so ECCE has
+`ecce-annotate`, `ecce-rerun`, `ecce-move`, `ecce-copy`, `ecce-mkdir`, `ecce-rename` and `ecce-workflow` commands do not start ECCE; they ask the running Organizer to act, so ECCE has
 to be running with the same data mode. Without it they print `ECCE is not
 running: start ECCE first` and do nothing. A calculation is given as a folder
 (local data) or a URL (data server). One line is printed per calculation.
@@ -264,6 +1026,22 @@ job id N` or `name: not reconnected: reason`.
 
     ecce-reconnect proj/calc-1
 
+### ecce-reparse
+
+    ecce-reparse [--json] <calculation>...
+
+Runs the Organizer's Run Mgmt > Re-Parse Outputs: the current parsers read the
+outputs stored with each finished calculation again, with no login to the
+machine. This is how an existing calculation picks up a parser fix. The
+properties are replaced; state, dates and the run log stay. The command waits
+until the last calculation has been parsed. Output per calculation: `name:
+done`, `name: failed: reason`, or `name: refused: reason` (a Submitted,
+Running or Waiting job, GROMACS and NWChemMD, no stored output, or not a
+calculation). `--json` prints an array of `{"name","status","reason"}`. Exit 0
+only if all are done; 2 without a running ECCE.
+
+    ecce-reparse proj/calc-1 proj/calc-2
+
 ### ecce-fetch
 
     ecce-fetch [--list] <calculation> [pattern ...]
@@ -308,20 +1086,26 @@ product: reverse k and K_eq consistent with dG_rxn. Over a `--T` range:
 Arrhenius (A, Ea) and Eyring (dH‡, dS‡) fits. Units are in the output
 (`unit` in `--json`): s^-1, M^-1 s^-1 or cm^3 molecule^-1 s^-1. Half-life is
 ln2/k, pseudo-first order at the standard concentration for two reactants.
-Formulas in `ecce-rate --help`. Exit 0 done, 1 refused or failed.
+Formulas in `ecce-rate --help`. Exit 0 done, 1 refused or failed. In the GUI, Compare Energies > Reaction overview shows the same per reaction; **Copy Details** copies its Details text as plain text.
 
     ecce-rate proj/complex proj/ts proj/product --T 250:400:25 --json
 
 ### ecce-ensemble
 
-    ecce-ensemble pick <crest calc> [n=N] [--rmsd A] [--skip-failed] [--create TEMPLATE FOLDER] [--json]
+    ecce-ensemble pick <crest calc> [n=N] [window=E] [--rmsd A] [--skip-failed] [--create TEMPLATE FOLDER] [--json]
     ecce-ensemble minimum <calculation|folder|pattern>... [--treatment SPEC] [--json]
     ecce-ensemble benchmark <spec file> [--treatment SPEC] [--T K] [--save NAME] [--dir DIR] [--json]
 
 Reads stored calculations; talks to no ECCE session. `pick` lists the N
 (default 5) lowest distinct members of a CREST ensemble: members with the same
 protonation and a heavy-atom RMSD below `--rmsd` (default 0.50 A, after a
-fit, atoms in stored order) are merged. Each pick is checked against the
+fit, atoms in stored order) are merged. `window=E` (kcal/mol; `window=3kcal`,
+`window=12.5kJ`) keeps only members within E of the lowest member of the
+ensemble (stored energies); `n=` then caps the count, and a window without
+`n=` is not capped. Order: merge, window, n. JSON has `window_kcal_mol`, and
+each pick's `energy_rank` is its row in the Builder's ensemble table
+(**Select Distinct...** selects exactly these rows).
+Each pick is checked against the
 input structure: protonation unchanged, every ion that is bound in the input
 still bound, metal-N/O/S contacts listed with distances (cutoffs in `--help`).
 `--create` makes one calculation per pick through `ecce-series` from the
@@ -339,6 +1123,154 @@ experimental log K with its source and calc - exp; `--save NAME` stores
     ecce-ensemble minimum 'proj/conformers/*' --treatment qrrho-grimme:100
     ecce-ensemble benchmark proj/logk.txt --save logk-set1
 
+Thermochemistry contributions and reaction H/G at another temperature
+(#1044). `ecce-thermo CALC --json` carries, for each treatment, the
+translational, rotational, vibrational and electronic contributions to U
+(kJ/mol, without ZPE; `ZPE` separately), S and C_V, plus `Cv` and
+`Cp` = Cv + R (J/mol/K); a single atom has no rotation. The sigma ECCE-QM
+prints (`symmetry_number`) is stored as THERMOSIGMA and used, as for ORCA and
+Gaussian. The Thermochemistry panel shows the same numbers in a second table;
+the Builder script command `thermo <treatment> [T] [1atm|1M]` also prints
+`BUILDER: thermocontrib <row>|U|U+ZPE|S|Cv|Cp` for the five rows. In the
+Energy Calculator, the `ECCE_TEST_ORGANIZER` hook
+`compareenergies <A> <B> <treatment|stored> <T>` recomputes the H and G rows at
+T (with `stored`, Grimme qRRHO 100 cm-1), and `comparedialog <A> <B> <png|-> <T>`
+sets the dialog's T / K field; the table then has an `S (T K)` row,
+(dH - dG)/T in J/(K mol).
+
+    ecce-thermo proj/N2 --treatment rrho --T 723 --json
+    ecce-thermo proj/N2 --treatment rrho --contributions
+
+### ecce-batch-smiles
+
+    ecce-batch-smiles [--template CALC] [--name COL] [--smiles COL] [--response COL]... [--no-responses] [--header yes|no] [--replace] [--dry-run] [--launch] [--json] <folder> <table.csv|.tsv|->
+
+Makes one calculation per row of a table of names, SMILES and measured values
+in `<folder>`, as **Tools > Batch Add from SMILES** does: the structure comes
+from the SMILES (formal charges give the charge) and is cleaned, and the setup
+is that of `--template` (default: xTB GFN2-xTB optimisation). `-` reads the
+table from standard input. Columns are given by header or 1-based number;
+without `--name`, `--smiles` and `--response` they are guessed, and `--header`
+says whether the first line is a header. The measured values are stored on each
+calculation (`ecce:qsar.measured`, JSON keyed by the column header). `--replace`
+makes again the calculations of the same name that were never launched;
+`--dry-run` only reads the table and reports the rows; `--launch` runs
+`ecce-launch` on the new calculations and needs a running ECCE. Output per
+row: `name: made <url> (charge N)` or `name: not made: reason`. Exit 0 all
+made, 1 some not, 2 no folder or table, 64 usage error.
+
+    ecce-batch-smiles --dry-run proj/series logk.csv
+    ecce-batch-smiles --template proj/xtb-template proj/series logk.csv
+
+### ecce-qsar
+
+    ecce-qsar table <folder|calc>... [--groups G,...] [--no-qm] [--csv FILE] [--json]
+    ecce-qsar table --from-csv FILE [--smiles-col N] [--name-col N] ...
+    ecce-qsar pca TABLE.csv [--y COL]... [--exclude COL]... [--scale uv|pareto|ctr|none] [--components N] [--cv G] [--outdir DIR] [--json]
+    ecce-qsar pls TABLE.csv --y COL [--exclude COL]... [--scale uv|pareto|ctr|none] [--components N] [--cv G] [--test-names A,B | --test-fraction F --seed S] [--permutations N] [--save-model FILE] [--outdir DIR] [--json]
+    ecce-qsar predict MODEL.json TABLE.csv [--csv FILE]
+    ecce-qsar columns TABLE.csv
+    ecce-qsar groups
+
+Reads stored calculations and table files; talks to no ECCE session and
+changes no calculation. `table` makes one row per calculation of a folder made
+by Batch Add from SMILES: name, state, measured values, descriptors computed
+from the SMILES, and the calculation's own results (HOMO, LUMO, dipole,
+charges); calculations whose optimisation did not converge are flagged in the
+columns `opt_converged` and `problems`. `pca` and `pls` fit a model to such a
+table, `predict` applies a saved model, `columns` lists a table's columns and
+`groups` the descriptor groups. `ecce-qsar --help` has the rest.
+
+### ecce-umbrella
+
+    ecce-umbrella windows <pull calc> [--spacing 0.1] [--from D] [--to D]
+    ecce-umbrella extract <pull calc> --out DIR [same choices]
+    ecce-umbrella wham <window calc>... [--bins 200] [--temp 300] [--zero end|min|none] [--jacobian]
+
+Umbrella sampling from a stored GROMACS pull run; talks to no ECCE session.
+`windows` lists the frames of the pull trajectory at the chosen spacing of the
+pull coordinate (frame, time, distance); `extract` writes `window_NN.gro` (the
+whole system, box included) into `DIR`; `wham` runs `gmx wham` on the windows'
+`topol.tpr` and `pullf.xvg` and prints the PMF (kJ/mol) and the histograms,
+with overlap warnings. Files are looked for in a calculation's `Outputs`
+folder, then in the folder itself. `gmx` is `--gmx`, else `$ECCE_GROMACS`,
+else `gmx` or `gmx_mpi` on PATH. `--json` is available for the Builder panel's
+use.
+
+### ecce-workflow
+
+    ecce-workflow make <calculation> [name]
+    ecce-workflow move <calculation> <workflow>
+    ecce-workflow create <workflow-or-new-name> <calculation>... [--link A:B[=role]]... [--auto-links]
+
+**Make Workflow...** and **Move into Workflow >** of the Organizer: `make`
+moves a calculation into a new workflow of its folder as a step, `move` into an
+existing one, and `create` does this for several calculations of one folder
+with the links given (A and B are calculation names) or, with `--auto-links`,
+the links the dialog would propose. Like `ecce-launch` it asks the running
+Organizer, so ECCE has to be running. Output: `ok: <workflow URL>` or
+`error: reason`. Exit 0 done, 1 refused or no answer, 2 ECCE is not running,
+64 usage error.
+
+### ecce-xrd
+
+    ecce-xrd fibre STRUCTURE [--select LIST] [--axis auto|selection|x,y,z] [--transform auto|helical|finite] [--map film|rz] [--out FILE]... [--json] ...
+    ecce-xrd powder STRUCTURE [--source cu|mo|co] [--tt-min D] [--tt-max D] [--fwhm D] [--measured FILE] [--table FILE.csv] [--out FILE]... [--json] ...
+    ecce-xrd debye STRUCTURE [--select LIST] [--source cu|mo|co] [--wavelength A] [--no-doublet] [--tt-min D] [--tt-max D] [--step D] [--B A2] [--measured FILE] [--out FILE]... [--json]
+    ecce-xrd layer STRUCTURE (--zone h=N|k=N|l=N | --normal U V W [--offset N]) [--resolution D] [--out FILE]... [--json] ...
+    ecce-xrd frame STRUCTURE [--source cu|mo|co] [--phi D] [--osc D] [--distance MM] [--label N] [--out FILE]... [--json] ...
+
+Calculates X-ray diffraction patterns of a structure file (.xyz, .pdb or
+.mvm; `--select` takes atom numbers from 1, such as `1-40,57`); talks to no
+ECCE session. `fibre` is the pattern of molecules aligned on one axis and
+rotated about it, as a film or an (R, Z) map. `powder`, `layer` and `frame`
+need a periodic structure: a .cif, an .mvm with lattice vectors, or an .xyz
+whose comment line has `Lattice="ax ay az bx by bz cx cy cz"`. `powder` gives
+intensity against 2θ with the K-alpha1/K-alpha2 doublet when `--source` is
+given, and draws a measured pattern (text columns, .xrdml or .brml) as a
+second curve with `--measured`. `layer` is a reciprocal-lattice layer (hk0,
+h0l, 0kl or a higher layer) with spots sized by |F|^2. `frame` is the
+detector frame of a rotating crystal. `--out` takes `.png`, `.csv` or, for
+`fibre` and `frame`, `.npy`, and may be repeated. Wavelengths and cell
+lengths are in Å, angles in degrees. `ecce-xrd <subcommand> --help` lists
+every option; the help page **Diffraction** describes the views.
+
+`debye` needs no lattice. It calculates the orientational average
+`I(q) = sum_i f_i(q)^2 + 2 sum_{i<j} f_i(q) f_j(q) sinc(q r_ij)`, with
+`sinc(x) = sin(x)/x`, `sinc(0) = 1` and `q = 4*pi*sin(theta)/lambda` in Å⁻¹.
+The neutral-atom IT92 factors and B damping are shared with Powder; no
+Lorentz/polarisation factor is added. Periodic inputs contribute the cell
+contents once, without images. At most 3000 atoms use exact distances;
+larger inputs use an element-pair histogram of 0.01 Å bins. Pair generation
+is O(N²) for both methods. The CLI summary and JSON state which was used.
+JSON includes q, raw intensity and relative intensity arrays; `.csv` holds
+`two_theta,intensity` (maximum 100 in the requested range), and `.png` plots
+the same curve. With `--source`, the default doublet sums Ka1 and Ka2 in a
+2:1 ratio. There is no Bragg reflection table or peak-width option.
+The Builder script hook `debye OUT.png OUT.csv STRUCTURE.xyz [SOURCE [DOUBLET]]`
+exports its current structure, switches from the initial view to Debye, and
+saves the curve through the dialog. SOURCE is 0 Cu, 1 Mo, 2 Co or 3 custom;
+DOUBLET is 0 off or 1 on. This hook supports isolated GUI tests.
+
+Fibre **Transform** / `--transform auto|helical|finite` defaults to Auto:
+fit a screw from consecutive backbone P or peptide N atoms in file order
+(at least six, rigid-fit RMSD < 0.15 Å), rationalize the twist to t/u turns
+(u <= 20, within 1°), and calculate only orders with l - n t divisible by u
+on Z = l/c, c = u times the measured rise. Interior steps are folded and
+averaged into a screw unit. Auto falls back to the finite-model sum when the
+fit fails; forced Helical errors. Select one regular helix in a mixed model.
+Finite model is available for other fibres. `--json` reports `transform` and
+`helix` parameters; `--geometry FILE` writes `repeat C` (0 for finite).
+The window fills **Repeat** from that result. Length broadening is Gaussian
+FWHM 1/length, followed by angular misalignment and the existing display.
+Teaching B-DNA: 10 units/turn, rise 3.387 Å, c 33.867 Å; polyalanine:
+18 units/5 turns, rise 1.503 Å, c 27.061 Å, pitch 5.412 Å.
+The DNA fourth layer is suppressed by motif interference, not forced to zero.
+
+    ecce-xrd fibre helix.mvm --map rz --rmax 0.7 --zmax 0.7 --out rz.png
+    ecce-xrd powder nacl.cif --source cu --measured scan.xy --out powder.png
+    ecce-xrd debye molecule.xyz --source cu --out debye.csv --out debye.png --json
+
 ### Other command-line tools
 
 On Linux these commands are on PATH. In the macOS app they are in
@@ -349,14 +1281,14 @@ launcher, without command wrappers for these tools.
 | Command | Purpose |
 |---|---|
 | `ecce-localdata` | Print the local data folder |
-| `ecce-series` | Work with a series of calculations (command line only) |
+| `ecce-series` | Work with a series of calculations (the Organizer does the same with Tools > New Calculations in Another Code) |
 | `ecce-check-props` | Check stored property dimensions |
 | `ecce-si-export` | Export structures and a Supporting Information table; `--checks` makes the Checks table (with core-hours), `--rank` the Compare Energies table. Command line only |
 | `ecce-displacement` | Compare geometries and aligned RMSD |
 | `ecce-bandshift` | Match vibrational bands and report shifts |
 | `ecce-spectrum` | Process spectral curves |
-| `ecce-displace` | Displace a structure along a normal mode |
-| `ecce-thermo` | Recompute thermochemistry from stored results |
+| `ecce-displace` | Displace a structure along a normal mode. The Vibrational Frequencies panel of a GeoVib run with imaginary modes below 100 cm-1 shows a note that the optimisation stopped at a saddle (Builder script hook `vibnote` prints it; #1042). The Builder's Properties list groups its rows as Vibrational spectra, Electronic spectra, Magnetic resonance and Diffraction and scattering (#1079); the Builder script command `plist` prints the list as `GROUP/NAME` lines |
+| `ecce-thermo` | Recompute thermochemistry from stored results; `--json` gives per treatment H, S, G and the contributions `U_trans/U_rot/U_vib/U_elec`, `ZPE` (kJ/mol), `S_*`, `Cv_*`, `Cv`, `Cp` (J/mol/K); `--contributions` prints them as text |
 | `ecce-rate` | TST rate constants with Wigner/Eckart tunnelling from reactant, TS and product calculations |
 | `ecce-force-compare` | Compare stored forces (command line only) |
 | `ecce-mlp` | Run an ML potential job from its input file |
@@ -364,8 +1296,28 @@ launcher, without command wrappers for these tools.
 | `ecce-qm` | Run the bundled quantum chemistry program, when built |
 | `ecce-results` | Convert and inspect results files, when built with HDF5 |
 | `ecce-fragorb` | Fragment-orbital analysis (`analyse <complex> <fragment>...`) and PDOS/OPDOS (`dos`) from results.h5 files of a complex and its fragment calculations at one geometry; `--json`, `--help` has the syntax |
+| `ecce-npa` | Natural population analysis (Reed–Weinstock–Weinhold NPA) computed by ECCE from a calculation's results.h5 (`ecce-npa <calc URL\|folder\|results.h5> [--json]`): natural charges, core/valence/Rydberg populations, spin populations (open shell), natural electron configuration; agrees with NBO 7's NPA within 0.005 e; refuses semiempirical, periodic and Cartesian-d/f calculations with a one-line reason; the Viewer's Properties list has the same charges as **Natural (NPA) Charges, computed by ECCE** (property key `NPAECCE`, computed on first selection and stored in results.h5 as `charges/npa_ecce`), beside the code's own NBO row **Natural (NPA) Charges** (key `NPA`). results.h5 now records ECP cores (`ecp` group: atom, name, ncore; `nucleus/charge`) from the stored basis or the ORCA/Gaussian output; an ORCA basis named only on the route card now also gets a results.h5 (the generated deck carries `PrintBasis`, and the basis is read from the printed block; ORCA runs made before this have no block and get no file) |
+| `ecce-morse` | Morse fit of a stored bond-length scan: De, a, re, ω_e, ω_e x_e, D0 (`ecce-morse <calc> [--window KJ_PER_MOL] [--atoms I,J] [--masses M1,M2] [--json]`) |
+| `ecce-gmxanalysis` | GROMACS analysis of a stored GROMACS calculation, as text, CSV or JSON: `<calc> groups`, `rdf`, `energy`, `rms`, `gyrate`, `density`, `hbond`; selections like `"residue:SOL & element:O"`; needs `gmx` |
+| `ecce-mocomp` | Atomic-orbital composition of one molecular orbital (`CALC --mo N\|homo\|lumo [--beta] [--method mulliken\|c2] [--min PCT] [--by ao,shell,type,atom] [--tsv]`), `--list` the orbitals, `--spin` Mulliken spin populations |
+| `ecce-density-field` | ELF, LOL, reduced density gradient, sign(λ2)ρ or density from a calculation's stored orbitals as a cube file (`CALC --field F [--spacing A] [--margin A] [--threads N] -o out.cube`), or all fields at points (`CALC --at X,Y,Z`); local data |
+| `ecce-pdbqt` | Prepare AutoDock PDBQT files for docking: `--frag FILE --atoms LIST --as ligand\|receptor -o OUT`, `--ligand FILE.sdf`, `--receptor FILE.pdb`, `--info FILE` |
+| `ecce-site-screen` | Interstitial or vacancy site screening of a periodic host: `make <template> interstitial\|vacancy --element X`, then `results <folder>` for E - E(host) in eV |
 
 See the matching help page for inputs, options and units.
+
+### Administration
+
+These run on the machine that hosts or connects to a data server, not on a
+calculation.
+
+| Command | Purpose |
+|---|---|
+| `ecce-diagnose [-o directory] [run-directory]` | Collects what is needed to diagnose a problem into one text file, `ecce-diagnostics-<host>-<time>.txt`. Changes nothing and collects no passwords, but the file holds host names, user names and paths: read it before attaching it to an issue. `ecce --bug` runs it too |
+| `ecce-remote-setup <server-host> [data-port]` | Points this client installation at a central server; run once per client installation, as the owner of the installation. Users then start `ecce -remote` |
+| `ecce-dataserver-start`, `ecce-dataserver-status`, `ecce-dataserver-stop` | Start, check and stop this user's data server (`ecce-dataserver-stop --if-unused` refuses while another session or a job still uses it) |
+| `ecce-dataserver-adduser` | Add an account to this user's data server (`-b USER PASS [FIRST] [LAST]` or `--stdin USER [FIRST] [LAST]` without prompts) |
+| `ecce-site-publish [DIR]` | Copy this install's site machine list to where the data server serves it to `-remote` clients |
 
 ## Checking a result
 
@@ -401,7 +1353,9 @@ literature or another program without having compared.
 
 - Energies: TE (Hartree), TEVEC (per optimisation step), DELTAE, EGIBBS, ETIME.
 - Geometry: GEOMTRACE (per step); SCANENERGY, SCANGEOM, SCANCOORD (relaxed
-  scans); IRCCOORD, IRCENERGY, IRCGEOM (IRC path).
+  scans); IRCCOORD, IRCENERGY, IRCGEOM (IRC path). The Builder lists
+  Geometry Trace when GEOMTRACE is stored, and Geometry Step Plots (per-step
+  vectors such as TEVEC, PRESSVEC) only when it is not (GROMACS tasks).
 - Gradient: EGRAD, EGRADVEC.
 - Vibrations: VIBFREQ (cm-1; leading near-zeros are translations and
   rotations), VIBIR (km/mol), VIBRAM, VIBSYM.
@@ -412,7 +1366,10 @@ literature or another program without having compared.
 
 The full list with units is `data/client/config/properties` in the ECCE
 source. `ecce-results` converts orbitals and Hessians from Molden, fchk and
-ORCA files into one HDF5 file and checks the conversion (help page "The
+ORCA files, and CP2K's Molden file plus its output (`ecce-results convert
+cp2k-MOS-1_0.molden r.h5`, then `ecce-results convert cp2k.out r.h5`; the
+orbitals are valence only and the file records the GTH core charges), into one
+HDF5 file and checks the conversion (help page "The
 results file format").
 
 ## Documentation shipped with ECCE

@@ -2,11 +2,11 @@
 .	http://www.emsl.pnl.gov/ecce:annotation		xTB, GFN2-xTB, optimisation and frequencies. This calculation shows the xTB code icon beside the CREST calculation in the same folder.
 .	http://www.emsl.pnl.gov/ecce:application		xTB
 .	http://www.emsl.pnl.gov/ecce:basisSetDocument		BasisSet.ecce_basisset
-.	http://www.emsl.pnl.gov/ecce:completiondate		Tue, 10 Nov 2026 11:13:42 GMT
+.	http://www.emsl.pnl.gov/ecce:completiondate		Thu, 12 Nov 2026 20:35:39 GMT
 .	http://www.emsl.pnl.gov/ecce:configurationCollection		Parameters
 .	http://www.emsl.pnl.gov/ecce:contenttype		ecceCalculation
 .	http://www.emsl.pnl.gov/ecce:createdWith		9.5.2-dev
-.	http://www.emsl.pnl.gov/ecce:creationdate		Tue, 10 Nov 2026 11:13:41 GMT
+.	http://www.emsl.pnl.gov/ecce:creationdate		Thu, 12 Nov 2026 20:35:34 GMT
 .	http://www.emsl.pnl.gov/ecce:currentVersion		9.5.2-dev
 .	http://www.emsl.pnl.gov/ecce:espConstraintsDocument		espConstraints.ecst
 .	http://www.emsl.pnl.gov/ecce:geometryConstraintsDocument		GeomConstraintModel.gcst
@@ -38,7 +38,7 @@
 .	http://www.emsl.pnl.gov/ecce:originalMoleculeDocument		chemsys_orig.pdb
 .	http://www.emsl.pnl.gov/ecce:outputCollection		Outputs
 .	http://www.emsl.pnl.gov/ecce:owner		andy
-.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794309222.826 idle=0 at=1794309222\nscf cycle=3 energy=-5.1049176 converged=yes\nopt step=4 energy=-5.0705444 grad=0.0001854/0.1000000E-02 converged=yes\nopt~ energy=-5.0702223,-5.0704604,-5.0705426,-5.0705444\n
+.	http://www.emsl.pnl.gov/ecce:progress		# seq=2 sent=1794515737.624 idle=0 at=1794515737\nscf cycle=3 energy=-5.1049176 converged=yes\nopt step=4 energy=-5.0705444 grad=0.0001854/0.1000000E-02 converged=yes\nopt~ energy=-5.0702223,-5.0704604,-5.0705426,-5.0705444\n
 .	http://www.emsl.pnl.gov/ecce:propertyCollection		Props
 .	http://www.emsl.pnl.gov/ecce:qmmmTermsDocument		QMMMModel.qmmm
 .	http://www.emsl.pnl.gov/ecce:rerun		false
@@ -50,7 +50,7 @@
 .	http://www.emsl.pnl.gov/ecce:runtype		GeoVib
 .	http://www.emsl.pnl.gov/ecce:setupParametersDocument		SetupParams
 .	http://www.emsl.pnl.gov/ecce:spinmultiplicity		Singlet
-.	http://www.emsl.pnl.gov/ecce:startdate		Tue, 10 Nov 2026 11:13:41 GMT
+.	http://www.emsl.pnl.gov/ecce:startdate		Thu, 12 Nov 2026 20:35:36 GMT
 .	http://www.emsl.pnl.gov/ecce:state		Loaded
-.	http://www.emsl.pnl.gov/ecce:submitdate		1794309221
+.	http://www.emsl.pnl.gov/ecce:submitdate		1794515736
 .	http://www.emsl.pnl.gov/ecce:theory		SE/GFN2-xTB

@@ -850,7 +850,7 @@ ChemDisplay::GLRender(SoGLRenderAction *action)
 // <-- update clipping options
 
 // --> billboard fix
-  ChemUnitSphere::generateBillboard();
+  ChemUnitSphere::generateBillboard(action);
 // <-- billboard fix
 
 //--> octree culling

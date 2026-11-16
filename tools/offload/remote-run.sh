@@ -54,15 +54,17 @@ done
 ) 7>"$OFF/locks/git" || fail "git fetch"
 cd "$OFF/src"
 # The just-fetched origin/<ref> first: a stale local branch of the same
-# name (radium has an old local main) must not win.
+# name (a host with an old local main) must not win.
 sha=$(git rev-parse --verify -q "origin/$ref^{commit}" || git rev-parse --verify -q "$ref^{commit}") \
     || fail "ref $ref not found on GitHub (push it first)"
 # Every ref keeps a build tree of 8-16 GB; without a limit they filled
-# radium's 3 TB disk.  Drop the oldest beyond $KEEP, then insist on room.
+# a large disk.  Drop the oldest beyond $KEEP, then insist on room.
 if [ "$KEEP" -gt 0 ]; then
     (
         flock 7
         ls -1t "$OFF/build" | grep -vx "$safe" | tail -n +"$KEEP" | while read -r old; do
+            # A tree whose ref another running job holds is in use: keep it.
+            ( flock -n 8 ) 8>"$OFF/locks/ref-$old" || { echo "keeping $old (in use)"; continue; }
             echo "pruning old build tree $old"
             rm -rf -- "${OFF:?}/build/$old" "${OFF:?}/home/$old"
             git -C "$OFF/src" worktree remove --force "$OFF/wt/$old" 2>/dev/null || rm -rf -- "${OFF:?}/wt/$old"

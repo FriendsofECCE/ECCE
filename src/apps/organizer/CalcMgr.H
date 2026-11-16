@@ -16,6 +16,7 @@
 #include <utility>
 #include <vector>
 #include "wxgui/WxTailWindow.H"
+#include <wx/dialog.h>
 #include <wx/frame.h>
 #include <wx/toolbar.h>
 #include <wx/splitter.h>
@@ -45,6 +46,7 @@
 #include "WxProperties.H"
 
 class BookmarkEditor;
+class ToolStartup;
 class Session;
 class WxFind;
 class GlobalPrefs;
@@ -73,6 +75,13 @@ class CalcMgr: public CalcMgrGUI
 DECLARE_CLASS( CalcMgr )
   
 public:
+  /// The Organizer's menu bar, also while a tool tab's is on the frame
+  /// (#983).  Not a GetMenuBar() override: wxFrameBase::SetMenuBar compares
+  /// with GetMenuBar() and would refuse to swap the bars.
+  wxMenuBar *ownMenuBar() const;
+
+  // A tool's window is up (#1071): ends its start feedback.
+  void toolUp(const string& app, const string& url);
 
   /*
    * Constructor.
@@ -119,8 +128,21 @@ public:
   void OnOpenExamplesClick( wxCommandEvent& event );
   /// File > Import GROMACS Run...
   void OnImportGromacsClick( wxCommandEvent& event );
+  void OnNewGromacsRunClick( wxCommandEvent& event );
   /// Imports runDir into the selection's project; "" with message on failure.
   string importGromacsFrom(const string& runDir, string& message);
+  string newGromacsRunFrom(const string& mdp, const string& structure,
+                           const string& top, const string& tpr,
+                           string& message);
+  /// The file dialogs of a GROMACS calculation from files; false on cancel.
+  bool askGromacsFiles(bool allowTpr, string& mdp, string& gro, string& top,
+                       string& tpr);
+  /// Continue in Another Code with GROMACS as the code: one GROMACS calculation from
+  /// the user's files per source, its .gro taking the source's structure.
+  string gromacsFromSources(const string& mdp, const string& gro,
+                            const string& top, const string& suffix,
+                            const EcceURL& folder,
+                            const vector<string>& sources);
 
   /// Imports the example set setId (general, computational) into its own
   /// project, or selects that project if it exists; returns the project's
@@ -147,7 +169,7 @@ public:
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_DUPLICATE2
   void OnDuplicate2Click( wxCommandEvent& event );
 
-  /// "Duplicate with Final Orbitals": the last geometry and the orbitals
+  /// "Continue from Final Orbitals": the last geometry and the orbitals
   void OnDuplicate3Click( wxCommandEvent& event );
   void OnLaunchSelectedClick( wxCommandEvent& event );
   void OnReconnectSelectedClick( wxCommandEvent& event );
@@ -159,6 +181,16 @@ public:
   void OnNewSeriesClick( wxCommandEvent& event );
   void newSeries(const EcceURL& templ, const vector<string>& sources,
                  string *outcome);
+  /// New from This > Continue in Another Code (#1037): the first calculation, opened
+  /// in the Calculation Editor; finishAnotherCode makes the others from its
+  /// setup.  outcome: the hooks' answers (no editor window, no prompt).
+  void OnAnotherCodeClick( wxCommandEvent& event );
+  void OnMoreCodesClick( wxCommandEvent& event );
+  void appendMoreCodes( wxMenu& menu );
+  void startAnotherCode(const string& typeName, const string& suffix,
+                        const EcceURL& folder, const vector<string>& sources,
+                        bool interactive, string *outcome);
+  void finishAnotherCode(string *outcome);
   /// Batch Add from SMILES (#961): one calculation per row in folder; the
   /// report, and the new calculations in made.
   void batchSmiles(const EcceURL& folder, const string& templ,
@@ -171,8 +203,9 @@ public:
                    double maxDist, string *outcome);
   void siteResults(const EcceURL& at, bool interactive, string *outcome);
   void OnTerminateSelectedClick( wxCommandEvent& event );
+  // `results`: one "name TAB url TAB started|refused TAB reason" per URL.
   void reparseOutputs(const vector<EcceURL>& urls, bool interactive,
-                      string *outcome = 0);
+                      string *outcome = 0, vector<string> *results = 0);
   // A job store ended a re-parse ("done" or "failed").
   void reparseFinished(const EcceURL& url, const string& result);
   // Reconnect Selected (#601), same selection; `listOnly`/`shot` for tests.
@@ -662,6 +695,7 @@ protected:
 
   void startApp(const string& app, int force, const string& url,
                 const string& codename = "", int amulet = 0);
+  ToolStartup *p_toolStartup = 0;     // feedback while a tool starts (#1071)
   void startPropertyEdit(const string& property);
 
   // Messaging stuff
@@ -827,6 +861,10 @@ protected:
   //  Set by the workflownew test command: a New-step dialog is not shown
   //  but logged here ("carry;" with a source, "nocarry;" without).
   string *p_testStepDialogs = 0;
+  // Continue in Another Code: the first calculation (the setup), the others waiting.
+  string p_anotherFirst, p_anotherSuffix;
+  vector<string> p_anotherRest;
+  wxDialog *p_anotherDialog = 0;
   //  Set by the "duplicate" test command: the tree's selection and
   //  collapse events, in order.
   std::vector<string> *p_testTreeEvents = 0;

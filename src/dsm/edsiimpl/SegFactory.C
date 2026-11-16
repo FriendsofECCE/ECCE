@@ -19,6 +19,15 @@
 
 using std::map;
 
+// Fields are cut at fixed columns, and a short line can end before the last
+// field's offset: NUL padding keeps those reads inside the string and leaves
+// the missing fields empty.
+static char* fixedColumns(std::string& line)
+{
+  if (line.size() < 256) line.resize(256, '\0');
+  return &line[0];
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // Description:
 //   Default constructor.
@@ -412,7 +421,7 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
 #endif
   istream* infile;
   Segment* seg;
-  char segline[256];
+  string segline;
   char i5[6];
   char a5[6];
   char a4[5];
@@ -432,7 +441,11 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
     seg = new Segment();
     bool comment = true;
     while (comment) {
-      infile->getline(segline,255);
+      if (!std::getline(*infile, segline)) {
+        delete seg;
+        delete infile;
+        return 0;
+      }
       if (segline[0] != '$' && segline[0] != '#') comment = false;
     }
     vector<string> values;
@@ -441,9 +454,13 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
       use46 = true;
     }
     if (use46) {
-      infile->getline(segline,255);
+      if (!std::getline(*infile, segline)) {
+        delete seg;
+        delete infile;
+        return 0;
+      }
     }
-    char *cptr = segline;
+    char *cptr = fixedColumns(segline);
     strncpy(i5,cptr,5);
     int natom = atoi(i5);
     cptr += 5;
@@ -484,7 +501,11 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
     int i,j;
     if (use46) {
       for (i=0; i<num_pset; i++) {
-        infile->getline(segline,255);
+        if (!std::getline(*infile, segline)) {
+          delete seg;
+          delete infile;
+          return 0;
+        }
       }
     }
 
@@ -514,8 +535,12 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
     double rval;
     for (i = 0; i<natom; i++) {
       if (use46) {
-        infile->getline(segline,255);
-        char* cptr = segline;
+        if (!std::getline(*infile, segline)) {
+          delete seg;
+          delete infile;
+          return 0;
+        }
+        char* cptr = fixedColumns(segline);
         strncpy(i5,cptr,5);
         atsq.push_back(atoi(i5));
         cptr += 5;
@@ -542,9 +567,13 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
 
         // Get second line
         for (j=0; j<num_pset; j++) {
-          infile->getline(segline,255);
+          if (!std::getline(*infile, segline)) {
+            delete seg;
+            delete infile;
+            return 0;
+          }
           if (j == default_pset-1) {
-            cptr = segline;
+            cptr = fixedColumns(segline);
             cptr += 5;
             strncpy(a5,cptr,5);
             atyp1.push_back(a5);
@@ -571,8 +600,16 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
         }
       } else {
 
-        infile->getline(segline,255);
-        char* cptr = segline;
+        if (!std::getline(*infile, segline)) {
+
+          delete seg;
+
+          delete infile;
+
+          return 0;
+
+        }
+        char* cptr = fixedColumns(segline);
         strncpy(i5,cptr,5);
         atsq.push_back(atoi(i5));
         cptr += 5;
@@ -618,8 +655,16 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
 
 // second line
 
-        infile->getline(segline,255);
-        cptr = segline;
+        if (!std::getline(*infile, segline)) {
+
+          delete seg;
+
+          delete infile;
+
+          return 0;
+
+        }
+        cptr = fixedColumns(segline);
         strncpy(d12,cptr,12);
         rval = atof(d12);
         chrg1.push_back(rval);
@@ -672,8 +717,12 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
     vector<int> jdx;
     vector<int> btyp;
     for (i=0; i<nbonds; i++) {
-      infile->getline(segline,255);
-      cptr = segline;
+      if (!std::getline(*infile, segline)) {
+        delete seg;
+        delete infile;
+        return 0;
+      }
+      cptr = fixedColumns(segline);
       strncpy(i5,cptr,5);
       bsq.push_back(atoi(i5));
       cptr +=5;
@@ -690,7 +739,11 @@ Segment* SegFactory::readSegment(FileEDSI & url, const string & segname)
 // ignore second line (for now)
 
       for (j=0; j<num_pset; j++) {
-        infile->getline(segline,255);
+        if (!std::getline(*infile, segline)) {
+          delete seg;
+          delete infile;
+          return 0;
+        }
       }
     }
     seg->bndSeqNum(bsq);
@@ -711,7 +764,7 @@ Segment* SegFactory::readFragment(FileEDSI & url, const string & segname)
 #endif
   istream* infile;
   Segment* seg;
-  char segline[256];
+  string segline;
   char i5[6];
   char a5[6];
   char a4[5];
@@ -731,10 +784,14 @@ Segment* SegFactory::readFragment(FileEDSI & url, const string & segname)
     seg = new Segment();
     bool comment = true;
     while (comment) {
-      infile->getline(segline,255);
+      if (!std::getline(*infile, segline)) {
+        delete seg;
+        delete infile;
+        return 0;
+      }
       if (segline[0] != '$' && segline[0] != '#') comment = false;
     }
-    char *cptr = segline;
+    char *cptr = fixedColumns(segline);
     strncpy(i5,cptr,5);
     int natom = atoi(i5);
     seg->name(segname);
@@ -748,7 +805,11 @@ Segment* SegFactory::readFragment(FileEDSI & url, const string & segname)
       }
     }
     if (use46) {
-      infile->getline(segline,255);
+      if (!std::getline(*infile, segline)) {
+        delete seg;
+        delete infile;
+        return 0;
+      }
     }
 
 // Get information from deck II
@@ -768,8 +829,12 @@ Segment* SegFactory::readFragment(FileEDSI & url, const string & segname)
     int i;
     double rval;
     for (i = 0; i<natom; i++) {
-      infile->getline(segline,255);
-      char* cptr = segline;
+      if (!std::getline(*infile, segline)) {
+        delete seg;
+        delete infile;
+        return 0;
+      }
+      char* cptr = fixedColumns(segline);
       strncpy(i5,cptr,5);
       atsq.push_back(atoi(i5));
       cptr += 5;
@@ -843,15 +908,15 @@ Segment* SegFactory::readFragment(FileEDSI & url, const string & segname)
     int tbndcnt = 0;
     int length;
     int i1,i2;
-    while (infile->getline(segline,255)) {
-      length = strlen(segline);
+    while (std::getline(*infile, segline)) {
+      length = segline.size();
 
       // Perform a few checks to see if line might be a comment.
       // Look for a carriage return or non-integer.
 
       if (length < 5) break;
       length = length/5;
-      cptr = segline;
+      cptr = fixedColumns(segline);
       strncpy(i5,cptr,5);
       if (strncmp(i5,"     ",5) == 0) break;
       char *tail = (char*)0;

@@ -157,14 +157,14 @@ void load_gbs_meta_data(EDSI* edsi, string& gbs_dir, string& destUrl)
   // the mapping data is stored in the gbsNameConv file, which was created
   // by the gbsDAVConverter perl script
   ifstream metaFile((gbs_dir + "/gbsNameConv").c_str());
-  char line[5000];
+  string line;
 
   while(metaFile) {
 
-    metaFile.getline(line,5000);
+    std::getline(metaFile, line);
 
     // Dav properties are stored based on the gbs type:
-    if(!strncmp(line,"type= ",6)) { // new type
+    if(line.compare(0, 6, "type= ") == 0) { // new type
 
       if(result) { // add the previous type property to the vector, if exists
 	cout << "adding property " << result->name << endl;
@@ -178,7 +178,7 @@ void load_gbs_meta_data(EDSI* edsi, string& gbs_dir, string& destUrl)
       }
       // make a new property
       result = new MetaDataResult;
-      result->name = &line[6];
+      result->name = line.substr(6);
 
     } else { // concat to end of existing property
       result->value += line;
@@ -263,27 +263,27 @@ void load_gbs_data(EDSI* edsi, string& gbs_dir)
       MetaDataResult result;
       vector<MetaDataResult> meta_data;
       ifstream meta_file(string(gbs_dir + "/" + file + ".meta").c_str());
-      char line[500];
-      meta_file.getline(line,500);
+      string line;
+      std::getline(meta_file, line);
       while(!meta_file.eof()) {
 
-        if(0 == strcmp(line,"name")       ||
-           0 == strcmp(line,"type")       ||
-           0 == strcmp(line,"category")       ||
-           0 == strcmp(line,"spherical")       ||
-           0 == strcmp(line,"contraction_type")       ||
-           0 == strcmp(line,"references") ||
-           0 == strcmp(line,"info")       ||
-           0 == strcmp(line,"comments")
+        if(line == "name"       ||
+           line == "type"       ||
+           line == "category"       ||
+           line == "spherical"       ||
+           line == "contraction_type"       ||
+           line == "references" ||
+           line == "info"       ||
+           line == "comments"
           ) {
     
           result.name = ns + line;
           result.value = "";
           bool addReturn = false;
-          char data[500];
+          string data;
           do {
-            meta_file.getline(data,500);
-            if(0 != strcmp(line,data)) {
+            std::getline(meta_file, data);
+            if(line != data) {
               if(addReturn) result.value += "\n";
               addReturn = true;
               result.value += data;
@@ -295,8 +295,8 @@ void load_gbs_data(EDSI* edsi, string& gbs_dir)
           
           // Write these 3 pieces of data to a separate file because
           // they are too big for a DAV property
-          if (strcmp(line,"references") == 0 || strcmp(line, "info") == 0
-              || strcmp(line, "comments") == 0) {
+          if (line == "references" || line == "info"
+              || line == "comments") {
             infoFile << line << endl << result.value.c_str() << endl
                      << line << endl;
 
@@ -308,11 +308,11 @@ void load_gbs_data(EDSI* edsi, string& gbs_dir)
             // add to the metadata vector
             meta_data.push_back(result);
           }
-          meta_file.getline(line,500);
+          std::getline(meta_file, line);
     
         } else {
           cerr << " Unhandled(" << file << ") : " << line << endl;
-          meta_file.getline(line,500);
+          std::getline(meta_file, line);
         }
 
       }

@@ -163,6 +163,10 @@ def test_cli(tmp):
     rows = [ln.split(",") for ln in open(csvf).read().splitlines()]
     check(rows[0][:3] == ["h", "k", "l"] and rows[0][5:8] == ["d", "F", "I"] and len(rows) > 50,
           "CSV has h k l, d, |F|, I")
+    check(rows[0] == ["h", "k", "l", "x", "y", "d", "F", "I", "I_rel", "absent"] and
+          any(r[9] == "1" for r in rows[1:]) and
+          all(abs(float(r[6]) ** 2 - float(r[7])) < 3e-4 * max(float(r[7]), 1) for r in rows[1:]),
+          "layer columns unchanged; |F| squared equals I and extinct reflections retained")
     rc, out, err = cli(cif("nacl"), "--zone", "l=0", "--json")
     j = json.loads(out)
     check(rc == 0 and j["reflections"] == len(rows) - 1 and j["absent"] > 0 and

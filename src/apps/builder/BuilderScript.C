@@ -6,6 +6,8 @@
 //    add ELEM SHAPE X Y Z        a click in the 3D view in Atom mode
 //    panel NAME                  Tools > NAME (shows the panel)
 //    panesize NAME               the docked pane's rectangle and height floor
+//    plist                       print the Properties list as GROUP/NAME lines (#1079)
+//    vibnote                     print the Vibrations panel's small-imaginary-mode note (#1042)
 //    specfactor TEXT             type TEXT into the spectrum's Freq. factor (#604)
 //    specclick MODE              left click on a mode in the spectrum graph (#445)
 //    cmd TEXT                 a Builder command line (addh, center, ...)
@@ -34,8 +36,8 @@
 //    select N                    select atom (or Nub) number N (from 1), as a click
 //                                does; 0 or less none
 //    select_within R [molecules] [replace]  extend by distance in Angstrom
-//    select_protein              Edit > Select Protein (adds to the selection)
-//    select_ligand               Edit > Select Ligand: the largest ligand
+//    select_protein              Edit > Select Protein (replaces the selection)
+//    select_ligand               Edit > Select Ligand: the largest ligand (replaces the selection)
 //    selectelem A                select the first atom of element A
 //    addelem A                   add the last atom of element A to the selection
 //    bondkind covalent|metal     the kind of bond Bond mode makes
@@ -95,6 +97,7 @@
 #include <functional>
 #include <map>
 #include <sstream>
+#include "wxviz/VizRender.H"
 #include <sys/stat.h>
 
 #include <wx/aui/aui.h>
@@ -190,6 +193,7 @@
 #include "StructLib.H"
 #include "VizPropertyPanel.H"
 #include "MomentsPanel.H"
+#include "StressPanel.H"
 #include "DistortBondsDialog.H"
 #include "wxgui/ewxModalGuard.H"
 
@@ -255,7 +259,7 @@ void Builder::runBuilderScript(const std::string& file)
   size_t slash = file.rfind('/');
   st->dir = slash == std::string::npos ? "." : file.substr(0, slash);
 
-  wxTimer *timer = new wxTimer();   // lives until the process exits
+  wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
   timer->Bind(wxEVT_TIMER, [this, st, timer](wxTimerEvent&) {
     if (!st->waitingFor.empty()) {
       if (exists(st->waitingFor) || wxGetLocalTimeMillis() > st->waitUntil)
@@ -855,6 +859,21 @@ void Builder::runBuilderScript(const std::string& file)
         }
         fprintf(stderr, "BUILDER: bonds %s-%s=%d\n", w[1].c_str(),
                 w[2].c_str(), n);
+      } else if (w[0] == "saveimage" && (w.size() == 3 || w.size() == 4)) {
+        //  "saveimage <path.png> <factor> [white]": as in the scene script.
+        wxSize sz = p_viewer->GetSize();
+        if (w.size() == 4 && w[3] != "white")
+          outcome = "FAIL: saveimage: unknown option " + w[3];
+        else if (!imageOnFineSurface(w[1], sz.GetWidth(), sz.GetHeight(),
+                                     w.size() == 4, atoi(w[2].c_str())))
+          outcome = "FAIL: saveimage: " + VizRender::msg();
+      } else if (w[0] == "saveimagemenu" && w.size() == 4) {
+        //  "saveimagemenu <factor> <white|keep> <path>": File > Save Image...
+        //  with its three dialogs answered.
+        setenv("ECCE_SAVE_IMAGE_ANSWERS", (w[1] + " " + w[2] + " " + w[3]).c_str(), 1);
+        wxCommandEvent ev(wxEVT_MENU, ID_SAVE_IMAGE);
+        OnSaveImageClick(ev);
+        unsetenv("ECCE_SAVE_IMAGE_ANSWERS");
       } else if (w[0] == "expect" && w.size() == 3) {
         LatticeDef *lat = frag ? frag->getLattice() : 0;
         if (w[1] == "atoms" && (!frag || (int)frag->numAtoms() != atoi(w[2].c_str())))
@@ -1012,6 +1031,8 @@ void Builder::runBuilderScript(const std::string& file)
         std::vector<int> none;
         const std::string err = writeStructureXyz(w[1], none);
         fprintf(stderr, "BUILDER: savexyz: %s\n", err.empty() ? "done" : err.c_str());
+      } else if (w[0] == "xrd") {
+        fprintf(stderr, "BUILDER: xrd: %s\n", diffractionScript(w).ToUTF8().data());
       } else if (w[0] == "diffraction" && w.size() >= 3) {
         //  diffraction OUT.png OUT.csv [XYZ]: Tools > Diffraction... with the
         //  default fields; the structure it was given is kept as XYZ (#971).
@@ -1027,15 +1048,43 @@ void Builder::runBuilderScript(const std::string& file)
         }
         fprintf(stderr, "BUILDER: diffraction: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
+      } else if (w[0] == "debye" && w.size() >= 4) {
+        std::vector<int> sel;
+        std::string err = writeStructureXyz(w[3], sel), why;
+        DiffractionDialog *dd = 0;
+        if (err.empty()) {
+          dd = new DiffractionDialog(this, w[3], sel);
+          // Compute the initial view first so switching must clear old reflections.
+          if (!dd->calculate(why)) err = why;
+          else {
+            dd->setDebye();
+            dd->setSource(w.size() > 4 ? atoi(w[4].c_str()) : 0,
+                          w.size() > 5 ? atoi(w[5].c_str()) : -1);
+            if (!dd->calculate(why)) err = why;
+            else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
+            if (err.empty()) {
+              fprintf(stderr, "BUILDER: debye state: debye=%d powder=%d reflection=%s\n",
+                      dd->debye(), dd->powder(), dd->reflectionText(31.7, 180).ToUTF8().data());
+              fprintf(stderr, "BUILDER: debye cursor: %s\n", dd->cursorText(31.7, 1).ToUTF8().data());
+            }
+          }
+        }
+        fprintf(stderr, "BUILDER: debye: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
+        if (dd) dd->Destroy();
       } else if (w[0] == "calcdiffraction" && w.size() >= 3) {
-        //  calcdiffraction OUT.png OUT.csv [XYZ]: the Diffraction entry of the
+        //  calcdiffraction OUT.png OUT.csv [XYZ [EXPOSURE SCHEME]]: the Diffraction entry of the
         //  open calculation's results, default fields (#587).
         std::string err, why;
         DiffractionDialog *dd = calcHasStructure() ?
             openResultsDiffraction(w.size() > 3 ? w[3] : w[1] + ".xyz") : 0;
         if (!dd) err = "no Diffraction entry for this calculation";
+        else if (w.size() > 5 && (dd->setDisplay(atoi(w[4].c_str()), atoi(w[5].c_str())), false)) {}
         else if (!dd->calculate(why)) err = why;
         else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
+        if (dd && err.empty() && w.size() > 6 && w[6] == "viewtest") {
+          if (!dd->testImageView(w[1], why)) err = why;
+          fprintf(stderr, "BUILDER: image view: %s\n", err.empty() ? "PASS" : err.c_str());
+        }
         if (dd && err.empty())
           fprintf(stderr, "BUILDER: calcdiffraction pattern: %s\n",
                   dd->singleCrystal() ? "single" : dd->powder() ? "powder" : "fibre");
@@ -1085,6 +1134,47 @@ void Builder::runBuilderScript(const std::string& file)
         else if (!dd->calculate(why)) err = why;
         else if (!dd->savePng(w[1], why) || !dd->saveCsv(w[2], why)) err = why;
         fprintf(stderr, "BUILDER: calcframe: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
+        if (dd) dd->Destroy();
+      } else if (w[0] == "calcmeasure" && w.size() >= 6) {
+        //  calcmeasure KIND OUT.png OUT.csv EXPOSURE SCHEME [h,k,l h,k,l | strongest | 2THETA]:
+        //  the Diffraction entry set to KIND (layerN = hkN, frame = phi 0 to 30,
+        //  powder), drawn at the exposure (tenths of a stop) and scheme (0 Film,
+        //  1 Dark), then the readout of two picked spots or of a powder
+        //  cursor position (#985).
+        std::string err, why;
+        const std::string kind = w[1];
+        DiffractionDialog *dd = calcIsPeriodic() ? openResultsDiffraction(w[2] + ".xyz") : 0;
+        if (!dd) err = "no Diffraction entry for this calculation";
+        else if (kind.compare(0, 5, "layer") == 0 &&
+                 !dd->setLayer("l", atoi(kind.c_str() + 5), 1.0, false, why)) err = why;
+        else if (kind == "frame" && !dd->setFrame(0.0, w.size() > 6 && w[6] == "viewtest" ? 10.0 : 30.0,
+                     w.size() > 6 && w[6] == "viewtest", w.size() > 6 && w[6] == "viewtest", why)) err = why;
+        else if (kind.compare(0, 5, "layer") != 0 && kind != "frame" && kind != "powder") err = "kind is layer, frame or powder";
+        if (err.empty()) {
+          dd->setDisplay(atoi(w[4].c_str()), atoi(w[5].c_str()));
+          if (!dd->calculate(why)) err = why;
+        }
+        if (err.empty()) {
+          dd->setDisplay(atoi(w[4].c_str()), atoi(w[5].c_str()));
+          if (!dd->savePng(w[2], why) || !dd->saveCsv(w[3], why)) err = why;
+        }
+        if (dd && err.empty() && w.size() > 6 && w[6] == "viewtest") {
+          if (!dd->testImageView(w[2], why)) err = why;
+          fprintf(stderr, "BUILDER: image view: %s\n", err.empty() ? "PASS" : err.c_str());
+        }
+        int h1 = 0, k1 = 0, l1 = 0, h2 = 0, k2 = 0, l2 = 0;
+        if (err.empty() && kind == "powder" && w.size() > 6)
+          fprintf(stderr, "BUILDER: calcmeasure readout: %s\n",
+                  dd->cursorText(atof(w[6].c_str()), 0.2).ToUTF8().data());
+        else if (err.empty() && w.size() > 6 && w[6] == "strongest")
+          fprintf(stderr, "BUILDER: calcmeasure readout: %s\n",
+                  dd->measureStrongest().ToUTF8().data());
+        else if (err.empty() && w.size() > 7 && sscanf(w[6].c_str(), "%d,%d,%d", &h1, &k1, &l1) == 3 &&
+                 sscanf(w[7].c_str(), "%d,%d,%d", &h2, &k2, &l2) == 3)
+          fprintf(stderr, "BUILDER: calcmeasure readout: %s\n",
+                  dd->measure(h1, k1, l1, h2, k2, l2).ToUTF8().data());
+        if (dd) fprintf(stderr, "BUILDER: calcmeasure size: %s\n", dd->sizeText().ToUTF8().data());
+        fprintf(stderr, "BUILDER: calcmeasure: %s\n", err.empty() ? "done" : ("refused: " + err).c_str());
         if (dd) dd->Destroy();
       } else if (w[0] == "takefrom" && w.size() >= 3) {
         //  takefrom PATH.xyz SET|selected [align]: Take Coordinates From...
@@ -1159,7 +1249,7 @@ void Builder::runBuilderScript(const std::string& file)
         }
       } else if (w[0] == "constraints" && w.size() >= 2) {
         //  Geometry Constraints (#306): "show", "select I J ..", "press
-        //  constrain|restrain|fix yes|no", "list", "stored".
+        //  constrain|restrain|fix yes|no", "scan N STEP", "list", "stored".
         if (!p_constraintsDialog) showConstraints();
         GeomConstraintsDialog *dlg = p_constraintsDialog;
         if (w[1] == "show") {
@@ -1174,6 +1264,11 @@ void Builder::runBuilderScript(const std::string& file)
         } else if (w[1] == "press" && w.size() == 4) {
           fprintf(stderr, "BUILDER: constraints %s: %s\n", w[2].c_str(),
                   dlg->press(w[2], w[3] == "yes").c_str());
+        } else if (w[1] == "scan" && w.size() == 4) {
+          //  "scan <steps> <step>": Scan... on the selection (Å or degrees).
+          std::string msg = dlg->scanSelection(atoi(w[2].c_str()), atof(w[3].c_str()));
+          fprintf(stderr, "BUILDER: constraints scan: %s\n", msg.c_str());
+          if (msg.compare(0, 5, "Added") != 0) outcome = "FAIL: " + msg;
         } else if (w[1] == "list") {
           std::vector<std::string> rows = dlg->rowTexts();
           for (size_t i = 0; i < rows.size(); i++)
@@ -1395,6 +1490,26 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: specclick mode %d: screen mismatch "
                   "%.4f, selected mode %d\n", mode, mismatch, selected + 1);
         }
+      } else if (w[0] == "plist" && w.size() == 1) {
+        //  One "BUILDER: entry GROUP/NAME" line per row of the Properties list.
+        if (p_index)
+          for (const auto& e : p_index->listing())
+            fprintf(stderr, "BUILDER: entry %s\n", e.c_str());
+      } else if (w[0] == "vibnote" && w.size() == 1) {
+        //  vibnote: what the Vibrational Frequencies panel's note line shows (#1042).
+        NModePanel *nm = 0;
+        if (p_calculation)
+          for (PropertyPanel *p :
+               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((nm = dynamic_cast<NModePanel*>(p)) != 0) break;
+        if (!nm) outcome = "no Vibrational Frequencies panel";
+        else {
+          //  Wrap() put line breaks into the label; report it on one line.
+          wxString t = nm->softNoteText();
+          t.Replace("\n", " ");
+          fprintf(stderr, "BUILDER: vibnote shown=%d text=%s\n",
+                  nm->softNoteShown() ? 1 : 0, (const char*)t.utf8_str());
+        }
       } else if (w[0] == "specfactor" && w.size() == 2) {
         //  specfactor <text>: type text into the Freq. factor field (#604).
         NModePanel *nm = 0;
@@ -1614,7 +1729,12 @@ void Builder::runBuilderScript(const std::string& file)
         if (!tp) {
           outcome = "no Thermochemistry panel";
         } else if (w[0] == "thermolayout") {
-          for (wxWindow *child : tp->GetChildren()) {
+          // The grids sit in the panel's scrolled body (#1044).
+          wxScrolledWindow *body = tp->body();
+          fprintf(stderr, "BUILDER: thermolayout body client=%d virtual=%d scrollrange=%d\n",
+                  body->GetClientSize().y, body->GetVirtualSize().y,
+                  body->GetScrollRange(wxVERTICAL));
+          for (wxWindow *child : body->GetChildren()) {
             wxGrid *grid = wxDynamicCast(child, wxGrid);
             if (!grid) continue;
             wxClientDC dc(grid);
@@ -1646,6 +1766,10 @@ void Builder::runBuilderScript(const std::string& file)
           const bool have = set && tp->shown(&v);
           fprintf(stderr, "BUILDER: thermo %s H=%.6f S=%.6f G=%.6f %s\n", w[1].c_str(),
                   v.H, v.S, v.G, have ? "ok" : ("failed: " + tp->errorText()).c_str());
+          // The contributions table (#1044), row by row as shown.
+          std::istringstream rows(tp->contribText());
+          for (std::string l; std::getline(rows, l); )
+            fprintf(stderr, "BUILDER: thermocontrib %s\n", l.c_str());
         }
       } else if (w[0] == "ircpath" && w.size() >= 2) {
         //  ircpath <path> [kcal]: the IRC Path panel's Export .csv (#417)
@@ -1966,6 +2090,17 @@ void Builder::runBuilderScript(const std::string& file)
         r.multVec(cam->position.getValue(), np);
         cam->position.setValue(np);
         cam->orientation.setValue(r * cam->orientation.getValue());
+      } else if (w[0] == "stressinfo") {
+        bool found = false;
+        for (PropertyPanel *panel : PropertyPanel::getPanels(
+                 p_calculation->getURL().toString())) {
+          if (auto *stress = dynamic_cast<StressPanel*>(panel)) {
+            fprintf(stderr, "BUILDER: stressinfo\n%s\n",
+                    (stress->summaryText()+"\n"+stress->labelAnchorText()).c_str());
+            found = true;
+          }
+        }
+        if (!found) outcome = "FAIL: no Stress Tensor panel";
       } else if (w[0] == "vector" && w.size() == 2) {
         {
           int sliders = 0;
@@ -2095,6 +2230,9 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0] == "vinabox" || w[0] == "vinaboxinfo" ||
                  w[0] == "selectatoms" || w[0] == "poses") {
         outcome = vinaScriptCommand(w);
+      } else if (w[0].compare(0, 4, "gten") == 0 && w[0] != "gtenkind") {
+        outcome = ensembleCommand(w);
+        if (outcome.empty()) outcome = "ok";
       } else if (w[0] == "quit") {
         fprintf(stderr, "ECCE_BUILDER_SCRIPT: quit\n");
         Close(true);
@@ -2116,6 +2254,8 @@ void Builder::runBuilderScript(const std::string& file)
 
 //  Edit > Select Protein / Select Ligand (#967).  Without residue
 //  information, or with nothing of the kind, it warns and selects nothing.
+//  Both replace the selection, so Select Ligand then Select Protein leaves
+//  only the protein selected.
 bool Builder::selectResidueClass(bool ligand)
 {
   SGFragment *frag = getSG()->getFragment();
@@ -2129,8 +2269,8 @@ bool Builder::selectResidueClass(bool ligand)
   }
   SelectCmd *cmd = new SelectCmd(ligand ? "Select Ligand" : "Select Protein",
                                  getSG());
+  cmd->getParameter("clear")->setBoolean(true);
   cmd->getParameter(ligand ? "ligand" : "protein")->setBoolean(true);
-  size_t before = frag->m_atomHighLight.size();
   execute(cmd);
   if (ligand) {
     showMessage(cmd->message().empty()
@@ -2139,7 +2279,7 @@ bool Builder::selectResidueClass(bool ligand)
                 : cmd->message());
     return !cmd->message().empty();
   }
-  if (frag->m_atomHighLight.size() == before) {
+  if (frag->m_atomHighLight.empty()) {
     showMessage("Select Protein: no amino acid or nucleic acid residues found.");
     return false;
   }

@@ -25,6 +25,7 @@
 
 #include "util/BrowserHelp.H"
 #include "wxgui/WxHelpViewer.H"
+#include "wxgui/ToolTabs.H"
 #include "util/Ecce.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
@@ -62,6 +63,9 @@
 #include "wxgui/GromacsRunPanel.H"
 #include "wxgui/WindowShot.H"
 #include "wxgui/MDEdBase.H"
+#include "wxgui/InProcessTools.H"
+#include "util/MqttLink.H"
+#include "wx/app.h"
 
 /**
  * Constructor.
@@ -75,6 +79,7 @@ MDEdBase::MDEdBase( )
    p_gmxInputs = 0;
    p_gmxRun = 0;
    p_launchWanted = true;
+   p_lastState = ResourceDescriptor::STATE_READY;
 }
 
 
@@ -92,6 +97,7 @@ MDEdBase::MDEdBase( wxWindow* parent, wxWindowID id, const wxString& caption,
    p_gmxInputs = 0;
    p_gmxRun = 0;
    p_launchWanted = true;
+   p_lastState = ResourceDescriptor::STATE_READY;
 }
 
 
@@ -346,8 +352,6 @@ void MDEdBase::createPanels()
  */
 void MDEdBase::updateDisabledState(ResourceDescriptor::RUNSTATE state, bool forceMsg)
 {
-   static ResourceDescriptor::RUNSTATE lastState =
-                                       ResourceDescriptor::STATE_READY;
 
    if (p_gmxInputs != 0) {
       p_gmxInputs->setEditable(state < ResourceDescriptor::STATE_SUBMITTED);
@@ -359,9 +363,9 @@ void MDEdBase::updateDisabledState(ResourceDescriptor::RUNSTATE state, bool forc
    if (state >= ResourceDescriptor::STATE_SUBMITTED) {
       setFrameCustomDisabledStyle(false);
       if (forceMsg ||
-          (state>lastState && state==ResourceDescriptor::STATE_SUBMITTED)) {
+          (state>p_lastState && state==ResourceDescriptor::STATE_SUBMITTED)) {
          p_feedback->setMessage("This calculation is read only and setup cannot be changed without terminating during the run or resetting after completion.", WxFeedback::INFO);
-         lastState = state;
+         p_lastState = state;
       }
    } else {
       setFrameCustomDisabledStyle(true);
@@ -889,7 +893,45 @@ void MDEdBase::notifyChange()
 
 bool MDEdBase::Show(bool show)
 {
+   if (ToolTabs::hosts(this)) {
+      if (show) ToolTabs::select(this);
+      return true;
+   }
    return MDEdBaseGUI::Show(show);
+}
+
+
+void MDEdBase::Raise()
+{
+   if (ToolTabs::hosts(this)) ToolTabs::select(this);
+   else MDEdBaseGUI::Raise();
+}
+
+
+void MDEdBase::SetTitle(const wxString& title)
+{
+   MDEdBaseGUI::SetTitle(title);
+   ToolTabs::setTitle(this, title);
+}
+
+
+bool MDEdBase::Destroy()
+{
+   ToolTabs::release(this, false);
+   return MDEdBaseGUI::Destroy();
+}
+
+
+wxMenuBar *MDEdBase::GetMenuBar() const
+{
+   return ToolTabs::menuBar(this, wxFrame::GetMenuBar());
+}
+
+
+wxWindow *MDEdBase::FindWindow(long id) const
+{
+   wxWindow *page = ToolTabs::client(this);
+   return page ? page->FindWindow(id) : wxFrame::FindWindow(id);
 }
 
 
@@ -1132,7 +1174,7 @@ void MDEdBase::taskAppRaise()
 void MDEdBase::setUnitFamily(const string& family)
 {
    ewxWindowUtils::setUnitFamily(this,family);
-   Fit();
+   if (!ToolTabs::layout(this)) Fit();
 }
 
 string MDEdBase::getTitle() const
@@ -1146,6 +1188,33 @@ string MDEdBase::getTitle() const
 void MDEdBase::OnCloseWindow( wxCloseEvent& event )
 {
    doQuit(false, true);
+   //  Cancel in the save question keeps the window: say so, or the
+   //  Organizer's Quit (#983, one process) takes the close as done.
+   if (!wxTheApp->IsScheduledForDestruction(this) && event.CanVeto())
+      event.Veto();
+}
+
+
+MDEdBase::~MDEdBase()
+{
+   ToolTabs::release(this, false);
+   //  In one process the window's dispatcher must go with it, or its
+   //  subscriptions call into a deleted frame (#983); a program of its own
+   //  ends with its window anyway.
+   if (MqttLink::localDelivery()) delete p_msgDispatcher;
+}
+
+
+WxJMSMessageDispatch *MDEdBase::openInProcess(MDEdBase *editor)
+{
+   WxJMSMessageDispatch *d = editor->p_msgDispatcher;
+   if (!d) return 0;
+   // Before the first Show, so the window is never mapped as a frame.
+   ToolTabs::open(editor, 0, wxString::FromUTF8(editor->getTitle().c_str()),
+                  "mdeditors");
+   editor->Show(true);
+   InProcessTools::track(editor->getAppName(), d, editor);
+   return d;
 }
 
 

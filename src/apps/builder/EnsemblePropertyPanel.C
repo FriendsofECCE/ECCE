@@ -19,6 +19,15 @@
 #include <wx/imaglist.h>
 #include <wx/stattext.h>
 #include <wx/checkbox.h>
+#include <wx/dialog.h>
+#include <wx/textctrl.h>
+#include <wx/utils.h>
+#include <unistd.h>
+#include "util/Ecce.H"
+#include "util/Filesystem.H"
+#include "util/MiniJson.H"
+#include "util/SFile.H"
+#include "wxgui/ewxConfig.H"
 #include <set>
 #include <sstream>
 
@@ -33,6 +42,7 @@
 #include "inv/nodes/SoDrawStyle.H"
 #include "inv/nodes/SoComplexity.H"
 #include "inv/nodes/SoLightModel.H"
+#include "inv/nodes/SoDirectionalLight.H"
 #include "inv/nodes/SoPerspectiveCamera.H"
 #include "inv/nodes/SoSwitch.H"
 #include "inv/nodes/SoCamera.H"
@@ -50,6 +60,7 @@
 #include "dsm/ICalculation.H"
 #include "dsm/ChemistryTask.H"
 #include "dsm/ResourceDescriptor.H"
+#include "dsm/CodeChoice.H"
 #include "dsm/ResourceType.H"
 #include "dsm/Session.H"
 #include "tdat/Fragment.H"
@@ -165,6 +176,10 @@ EnsemblePropertyPanel::~EnsemblePropertyPanel()
   p_thumbTimer.Stop();
   p_selectTimer.Stop();
   if (p_overlay) clearOverlay();
+  if (!p_pickScratch.empty()) {
+    std::error_code ec;
+    ecce::fs::remove_all(p_pickScratch, ec);
+  }
 }
 
 
@@ -265,6 +280,45 @@ void EnsemblePropertyPanel::load()
 }
 
 
+string EnsemblePropertyPanel::poseNote() const
+{
+  if (!isVina(getCalculation())) return "";
+  ICalculation *ic = dynamic_cast<ICalculation*>(getCalculation());
+  std::unique_ptr<GUIValues> settings(ic->guiparams());
+  auto value = [&](const string& key, const string& fallback) {
+    GUIValue *v = settings ? settings->get("ES.Runtype.Vina." + key) : 0;
+    return v ? v->getValueAsString() : fallback;
+  };
+  string range = value("EnergyRange", "3"), modes = value("NumPoses", "9");
+  // A finished run's deck records the limits actually used.
+  std::unique_ptr<std::istream> deck(ic->getDataFile(JCode::PRIMARY_INPUT));
+  if (deck) for (string line; std::getline(*deck, line); ) {
+    std::replace(line.begin(), line.end(), '=', ' ');
+    std::istringstream in(line);
+    string key, val;
+    if (in >> key >> val) {
+      if (key == "energy_range") range = val;
+      if (key == "num_modes") modes = val;
+    }
+  }
+  return std::to_string(p_members.size()) +
+      (p_members.size() == 1 ? " pose within " : " poses within ") + range +
+      " kcal/mol of the best (Vina keeps at most " + modes + ")";
+}
+
+void EnsemblePropertyPanel::addBlankImage()
+{
+  wxImage blank(72, 56);
+  blank.SetRGB(wxRect(0, 0, 72, 56), 255, 255, 255);
+  p_images->Add(wxBitmap(blank));
+}
+
+bool EnsemblePropertyPanel::exportThumbnail(int rank, const string& path)
+{
+  return rank > 0 && rank <= (int)p_members.size() && makeThumbnail(rank) && p_thumbnails.at(rank).SaveFile(
+      wxString::FromUTF8(path.c_str()), wxBITMAP_TYPE_PNG);
+}
+
 void EnsemblePropertyPanel::initialize()
 {
   Timed timed("initialize");
@@ -275,9 +329,19 @@ void EnsemblePropertyPanel::initialize()
       "Compare structures and choose members for further calculations."),
       0, wxEXPAND | wxALL, 5);
 
+  if (isVina(getCalculation())) {
+    p_poseNote = new wxStaticText(this, wxID_ANY,
+        wxString::FromUTF8(poseNote().c_str()));
+    GetSizer()->Add(p_poseNote, 0, wxEXPAND | wxALL, 5);
+  }
+
   p_table = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 220),
                            wxLC_REPORT);
   p_images = new wxImageList(72, 56, false);
+  // The GTK list sizes its rows from the image list when it is set; an
+  // empty list gives text-high rows that clip the thumbnails, so it starts
+  // with a blank image the rows never show.
+  addBlankImage();
   p_table->AssignImageList(p_images, wxIMAGE_LIST_SMALL);
   p_table->AppendColumn("Structure", wxLIST_FORMAT_LEFT, 86);
   p_table->AppendColumn("Rank", wxLIST_FORMAT_RIGHT, 60);
@@ -302,6 +366,9 @@ void EnsemblePropertyPanel::initialize()
   p_table->Bind(wxEVT_LIST_ITEM_DESELECTED, &EnsemblePropertyPanel::OnRowSelected, this);
   p_table->Bind(wxEVT_LIST_COL_CLICK, &EnsemblePropertyPanel::OnColumn, this);
   GetSizer()->Add(p_table, 1, wxEXPAND|wxALL, 2);
+  p_distinctText = new wxStaticText(this, wxID_ANY, "");
+  p_distinctText->Hide();
+  GetSizer()->Add(p_distinctText, 0, wxLEFT | wxRIGHT, 6);
 
   p_key = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxSize(-1, 90), wxLC_REPORT);
   p_key->AppendColumn("Member", wxLIST_FORMAT_RIGHT, 75);
@@ -331,6 +398,15 @@ void EnsemblePropertyPanel::initialize()
   wxBoxSizer *buttons = new wxBoxSizer(wxHORIZONTAL);
   buttons->Add(p_export, 0, wxALL, 4);
   buttons->Add(p_newCalcs, 0, wxALL, 4);
+  if (offersDistinct()) {
+    wxButton *distinct = new wxButton(this, wxID_ANY, "Select Distinct...");
+    distinct->SetToolTip(wxString::FromUTF8("Select the distinct members, lowest "
+        "energy first: a member whose heavy-atom RMSD to a lower selected member "
+        "is below the threshold (default 0.5 Å) is merged into it, and members "
+        "with a moved proton are never merged. Same rules as ecce-ensemble pick."));
+    distinct->Bind(wxEVT_BUTTON, &EnsemblePropertyPanel::OnDistinct, this);
+    buttons->Add(distinct, 0, wxALL, 4);
+  }
   wxButton *png = new wxButton(this, wxID_ANY, "Export .png...");
   png->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     wxFileDialog dlg(this, "Export table with thumbnails", "", "ensemble.png",
@@ -428,7 +504,9 @@ void EnsemblePropertyPanel::refresh()
   p_thumbnails.clear();
   p_imageIndex.clear();
   p_images->RemoveAll();
+  addBlankImage();
   load();
+  if (p_poseNote) p_poseNote->SetLabel(wxString::FromUTF8(poseNote().c_str()));
   p_selection.erase(std::remove_if(p_selection.begin(), p_selection.end(),
       [this](int k) { return k > (int)p_members.size(); }), p_selection.end());
   fillTable();
@@ -441,6 +519,11 @@ void EnsemblePropertyPanel::refresh()
 void EnsemblePropertyPanel::OnRowSelected(wxListEvent& event)
 {
   if (p_inSelect) return;
+  // A hand selection replaces the distinct pick the note describes.
+  if (p_distinctText && p_distinctText->IsShown()) {
+    p_distinctText->Hide();
+    Layout();
+  }
   const int rank = (int)event.GetData();
   p_selection.erase(std::remove(p_selection.begin(), p_selection.end(), rank), p_selection.end());
   if (event.GetEventType() == wxEVT_LIST_ITEM_SELECTED) p_selection.push_back(rank);
@@ -609,6 +692,7 @@ vector<string> EnsemblePropertyPanel::codeChoices(int& dflt)
     for (size_t t = 0; t < types.size(); t++)
       if (types[t]->getName() == codes[i].typeName) installed = true;
     if (!installed) continue;
+    if (!CodeChoice::typeNameShown(codes[i].typeName)) continue;
     if (string(codes[i].label) == "ORCA") dflt = (int)out.size();
     out.push_back(string(codes[i].label) + "|" + codes[i].typeName);
   }
@@ -675,6 +759,180 @@ vector<string> EnsemblePropertyPanel::newCalcsFromRanks(const vector<int>& ranks
     urls.push_back(made[i]->getURL().toString());
   }
   return urls;
+}
+
+
+bool EnsemblePropertyPanel::offersDistinct() const
+{
+  const std::string k = kind();
+  return k != "Poses" && k != "Sites";
+}
+
+
+// The folder ecce-ensemble reads: the calculation's own in local mode; from
+// a data server, a scratch copy of the three files the pick uses.
+std::string EnsemblePropertyPanel::pickFolder()
+{
+  if (!p_pickFolder.empty()) return p_pickFolder;
+  IPropCalculation *calc = getCalculation();
+  if (!calc) return "";
+  const std::string url = calc->getURL().toString();
+  if (url.compare(0, 7, "file://") == 0) {
+    p_pickFolder = url.substr(7);
+    while (p_pickFolder.size() > 1 && p_pickFolder.back() == '/') p_pickFolder.pop_back();
+    return p_pickFolder;
+  }
+  TaskJob *job = dynamic_cast<TaskJob*>(calc);
+  if (!job) return "";
+  static int serial = 0;
+  const ecce::fs::path dir = ecce::fs::temp_directory_path() /
+      ("ecce-ensemble-" + std::to_string((long)getpid()) + "-" + std::to_string(serial++));
+  std::error_code ec;
+  ecce::fs::create_directories(dir / "Props", ec);
+  ecce::fs::create_directories(dir / "Parameters", ec);
+  p_pickScratch = dir.string();
+  for (const char *f : { "Props/GEOMTRACE", "Props/CONFREL", "Parameters/chemsys.mvm" }) {
+    const std::string rel(f);
+    const size_t slash = rel.find('/');
+    SFile *dest = new SFile((dir / rel).string());
+    SFile *got = job->getAnyFile(calc->getURL().getChild(rel.substr(0, slash))
+                                     .getChild(rel.substr(slash + 1)), dest);
+    if (got != dest) delete got;
+    delete dest;
+  }
+  p_pickFolder = p_pickScratch;
+  return p_pickFolder;
+}
+
+
+bool EnsemblePropertyPanel::selectDistinct(double rmsd, int n, double window,
+                                           std::string& why)
+{
+  const std::string folder = pickFolder();
+  if (folder.empty()) {
+    why = "this calculation has no stored files to read";
+    return false;
+  }
+  auto quote = [](const std::string& s) {
+#ifdef _WIN32
+    return Ecce::winArg(s);
+#else
+    std::string o = "'";
+    for (char c : s) o += c == '\'' ? std::string("'\\''") : std::string(1, c);
+    return o + "'";
+#endif
+  };
+  const std::string script = std::string(Ecce::ecceHome()) + "/bin/ecce-ensemble";
+  std::string cmd;
+#ifdef _WIN32
+  ecce::fs::path py = ecce::fs::path(Ecce::ecceHome()) / "python" / "python.exe";
+  cmd = quote(ecce::fs::exists(py) ? py.string() : std::string("python.exe")) + " ";
+#endif
+  char num[64];
+  snprintf(num, sizeof num, "%.6g", rmsd);
+  // Without n= the script caps the pick at 5; the table wants every one.
+  cmd += quote(script) + " pick " + quote(folder) + " --json --rmsd " + num +
+         " n=" + std::to_string(n > 0 ? n : 1000000000);
+  if (window >= 0) {
+    snprintf(num, sizeof num, "%.6g", window);
+    cmd += std::string(" window=") + num;
+  }
+#ifndef _WIN32
+  cmd += " 2>&1";
+#endif
+  std::string out;
+  {
+    wxBusyCursor wait;
+    Ecce::readCommand(cmd, out);
+  }
+  // The JSON is the outermost object; Python may warn above it, and a
+  // refusal ("not a conformer ensemble") is plain text with no object.
+  const size_t start = out.find("\n{") != std::string::npos ? out.find("\n{") + 1
+                     : (out.compare(0, 1, "{") == 0 ? 0 : std::string::npos);
+  MiniJson res;
+  std::string err;
+  if (start == std::string::npos || !MiniJson::parse(out.substr(start), res, err) ||
+      res.type() != MiniJson::Object) {
+    why = out.empty() ? "ecce-ensemble gave no output" : out;
+    while (!why.empty() && (why.back() == '\n' || why.back() == '\r')) why.pop_back();
+    return false;
+  }
+  vector<int> ranks;
+  int merged = 0;
+  for (const MiniJson& p : res.get("picks").items()) {
+    ranks.push_back(atoi(p.get("energy_rank").str().c_str()));
+    merged += (int)p.get("merged").items().size();
+  }
+  if (ranks.empty() || !selectRanks(ranks)) {
+    why = "ecce-ensemble picked no member of this table";
+    return false;
+  }
+  char note[200];
+  snprintf(note, sizeof note, "%d distinct of %d; %d merged within %.2f \xc3\x85",
+           (int)ranks.size(), (int)p_members.size(), merged, rmsd);
+  std::string text = note;
+  if (window >= 0) {
+    snprintf(note, sizeof note, "; window %.2f kcal/mol", window);
+    text += note;
+  }
+  if (n > 0) text += "; at most " + std::to_string(n);
+  p_distinctText->SetLabel(wxString::FromUTF8(text.c_str()));
+  p_distinctText->Show();
+  Layout();
+  return true;
+}
+
+
+std::string EnsemblePropertyPanel::distinctNote() const
+{
+  return p_distinctText && p_distinctText->IsShown()
+      ? std::string(p_distinctText->GetLabel().utf8_str()) : std::string();
+}
+
+
+void EnsemblePropertyPanel::OnDistinct(wxCommandEvent&)
+{
+  ewxConfig *config = ewxConfig::getConfig("wxbuilder.ini");
+  double rmsd = 0.5;
+  config->Read("Ensemble/DistinctRmsd", &rmsd, 0.5);
+  wxDialog dlg(this, wxID_ANY, "Select Distinct");
+  wxFlexGridSizer *grid = new wxFlexGridSizer(2, 6, 8);
+  auto field = [&](const wxString& label, const wxString& value, const wxString& tip) {
+    grid->Add(new wxStaticText(&dlg, wxID_ANY, label), 0, wxALIGN_CENTER_VERTICAL);
+    wxTextCtrl *t = new wxTextCtrl(&dlg, wxID_ANY, value);
+    t->SetToolTip(tip);
+    grid->Add(t, 1, wxEXPAND);
+    return t;
+  };
+  wxTextCtrl *thr = field(wxString::FromUTF8("RMSD threshold (Å):"),
+      wxString::Format("%.2f", rmsd),
+      "Members whose heavy-atom RMSD after a best fit to a lower kept member is "
+      "below this are merged into it. Members with a moved proton are never merged.");
+  wxTextCtrl *most = field("Maximum number:", "",
+      "Keep at most this many distinct members, lowest energy first; empty for no limit.");
+  wxTextCtrl *win = field("Energy window (kcal/mol):", "",
+      "Keep only members within this energy of the lowest; empty for no window.");
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  top->Add(grid, 0, wxALL | wxEXPAND, 10);
+  top->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxALL | wxEXPAND, 10);
+  dlg.SetSizerAndFit(top);
+  if (dlg.ShowModal() != wxID_OK) return;
+  long n = 0;
+  double window = -1;
+  if (!thr->GetValue().ToDouble(&rmsd) || rmsd <= 0 ||
+      (!most->GetValue().Trim().IsEmpty() && (!most->GetValue().ToLong(&n) || n < 1)) ||
+      (!win->GetValue().Trim().IsEmpty() && (!win->GetValue().ToDouble(&window) || window < 0))) {
+    wxMessageBox("The threshold must be a positive number, the maximum a whole "
+                 "number of at least 1 and the window a number of at least 0.",
+                 "Select Distinct", wxOK | wxICON_ERROR, this);
+    return;
+  }
+  config->Write("Ensemble/DistinctRmsd", rmsd);
+  config->Flush();
+  std::string why;
+  if (!selectDistinct(rmsd, (int)n, window, why))
+    wxMessageBox(wxString::FromUTF8(("No distinct members selected: " + why).c_str()),
+                 "Select Distinct", wxOK | wxICON_ERROR, this);
 }
 
 
@@ -773,14 +1031,14 @@ const EnsemblePropertyPanel::Geometry& EnsemblePropertyPanel::geometry(int rank)
 }
 
 SoSeparator *EnsemblePropertyPanel::molecule(const Geometry& g,
-    const vector<double>& xyz, const wxColour *colour)
+    const vector<double>& xyz, const wxColour *colour, bool lit)
 {
   SoSeparator *root = new SoSeparator;
   SoComplexity *quality = new SoComplexity;
   quality->value = 0.2f;
   root->addChild(quality);
   SoLightModel *light = new SoLightModel;
-  light->model = SoLightModel::BASE_COLOR;
+  light->model = lit ? SoLightModel::PHONG : SoLightModel::BASE_COLOR;
   root->addChild(light);
   TPerTab pt;
   for (size_t i = 0; i < g.elements.size(); i++) {
@@ -935,12 +1193,12 @@ bool EnsemblePropertyPanel::makeThumbnail(int rank)
   }
   cam->orientation = p_thumbOrientation;
   root->addChild(cam);
-  // In the pocket view a pose's thumbnail is its ligand: the whole receptor
+  // A pose's thumbnail is its ligand: the whole receptor
   // fills a 72 px image with the same grey ball for every pose.
   Geometry ligandOnly;
   const Geometry *shown = &g;
   const int n = (int)g.elements.size();
-  const vector<int> lig = (p_pocket && kind() == "Poses") ? ligandAtoms() : vector<int>();
+  const vector<int> lig = (kind() == "Poses") ? ligandAtoms() : vector<int>();
   if (!lig.empty() && (int)lig.size() < n) {
     vector<char> keep(n, 0);
     for (int i : lig) if (i >= 0 && i < n) keep[i] = 1;
@@ -953,7 +1211,10 @@ bool EnsemblePropertyPanel::makeThumbnail(int rank)
         ligandOnly.bonds.push_back(b);
     shown = &ligandOnly;
   }
-  root->addChild(molecule(*shown, g.xyz));
+  const bool pose = kind() == "Poses";
+  // Offscreen scenes have no viewer headlight; shading separates overlapping atoms.
+  if (pose) root->addChild(new SoDirectionalLight);
+  root->addChild(molecule(*shown, g.xyz, NULL, pose));
   SbViewportRegion vp;
   vp.setWindowSize(SbVec2s(thumbWidth, thumbHeight));
   cam->viewAll(root, vp, 1.1f);
@@ -992,6 +1253,7 @@ void EnsemblePropertyPanel::thumbnailBatch()
       p_thumbnails.clear();
       p_imageIndex.clear();
       p_images->RemoveAll();
+      addBlankImage();
       for (long row = 0; row < p_table->GetItemCount(); row++)
         p_table->SetItemImage(row, -1);
     }
@@ -1003,6 +1265,12 @@ void EnsemblePropertyPanel::thumbnailBatch()
     if (++made == 2) { p_thumbTimer.Start(20); return; }
   }
   p_thumbTimer.Start(500);
+}
+
+int EnsemblePropertyPanel::tableRowHeight() const
+{
+  wxRect r;
+  return p_table->GetItemCount() > 0 && p_table->GetItemRect(0, r) ? r.height : 0;
 }
 
 vector<int> EnsemblePropertyPanel::thumbnailRanks() const

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="EWVEC" rowLabel="Wave Step" rows="1" units="Hartree">
+
+  <step number="1">-234.280979575</step>
+  <step number="2">-234.904495615</step>
+  <step number="3">-234.963077255</step>
+  <step number="4">-234.965011795</step>
+  <step number="5">-234.9651143</step>
+  <step number="6">-234.965122985</step>
+  <step number="7">-234.132196655</step>
+  <step number="8">-234.277519205</step>
+  <step number="9">-234.321612385</step>
+  <step number="10">-234.32290781</step>
+  <step number="11">-234.32309498</step>
+  <step number="12">-234.3231227</step>
+  <step number="13">-234.323122905</step>
+  <step number="14">-234.323123</step>
+  <step number="15">-235.258837685</step>
+  <step number="16">-235.31474494</step>
+  <step number="17">-235.324253745</step>
+  <step number="18">-235.324524935</step>
+  <step number="19">-235.32454133</step>
+  <step number="20">-235.434369815</step>
+  <step number="21">-235.45437934</step>
+  <step number="22">-235.45786887</step>
+  <step number="23">-235.45802071</step>
+  <step number="24">-235.458023785</step>
+  <step number="25">-235.45803072</step>
+  <step number="26">-235.484615575</step>
+  <step number="27">-235.49419422</step>
+  <step number="28">-235.49579534</step>
+  <step number="29">-235.49586359</step>
+  <step number="30">-235.495867895</step>
+  <step number="31">-235.49586995</step>
+  <step number="32">-235.495869865</step>
+  <step number="33">-235.497371785</step>
+  <step number="34">-235.49808632</step>
+  <step number="35">-235.498194575</step>
+  <step number="36">-235.498199415</step>
+  <step number="37">-235.49819956</step>
+  <step number="38">-235.49819983</step>
+  <step number="39">-235.49829918</step>
+  <step number="40">-235.498370975</step>
+  <step number="41">-235.49838194</step>
+  <step number="42">-235.49838222</step>
+  <step number="43">-235.498629145</step>
+  <step number="44">-235.49864992</step>
+  <step number="45">-235.498652365</step>
+  <step number="46">-235.49865246</step>
+  <step number="47">-235.49866496</step>
+  <step number="48">-235.498665465</step>
+  <step number="49">-235.498665555</step>
+  <step number="50">-235.49866556</step>
+
+</tsvector>

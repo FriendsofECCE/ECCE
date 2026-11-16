@@ -36,7 +36,24 @@ Hartree, and **B - A** in kJ/mol, kcal/mol and eV:
   calculations, shown in the row name) need a frequency calculation for every
   calculation on both sides; otherwise the row says "needs frequencies" and a
   note names the calculations that lack it.
+- **S** (at the temperature of the H and G rows) is the entropy change of the
+  reaction, (ΔH − ΔG)/T, in J K⁻¹ mol⁻¹. With the 1 M standard state ticked
+  it includes the correction to G.
 - The solvent model of each side is listed under the table.
+
+### H, G and S at another temperature
+
+**T / K**, next to **G treatment**, starts at the temperature of the frequency
+calculations. Another temperature recomputes the **H** and **G** rows (and so
+**S**, the 1 M correction and log K) from the stored frequencies with the
+`ecce-thermo` command at that temperature, and the row names show it. The G
+treatment chosen is used; with **The code's own Gibbs energy** chosen, H and G
+are recomputed with Grimme's quasi-RRHO (ω0 = 100 cm⁻¹) and a note says so,
+since the code's own values exist only at its own temperature. **E** and
+**E + ZPE** do not depend on the temperature. This gives ΔH at two
+temperatures for Kirchhoff's law (N₂ + 3 H₂ → 2 NH₃ at 298 and 723 K), or the
+temperature at which ΔG changes sign (2 NO₂ ⇌ N₂O₄). **Reaction overview...**
+opens with the same temperature in its own **T / K** field.
 
 Energies in Hartree are shown to 6 decimals, differences to 1 decimal in kJ/mol
 and kcal/mol and to 2 decimals in eV, which is about what the methods carry.
@@ -169,18 +186,19 @@ window: side A as the reactants and side B as the products.
   tunnelling corrections.
 - A reaction without a transition state gets no chart; its numbers are in the text below.
 - **G treatment** chooses the treatment of the low frequencies for ΔG (the
-  default is Grimme's quasi-RRHO with omega0 = 100 cm-1). **Update** redoes
+  default is Grimme's quasi-RRHO with omega0 = 100 cm⁻¹). **Update** redoes
   the numbers after the text is changed.
 - The text below the profile lists for each reaction ΔE, ΔG and the spread of
   ΔG over the six treatments listed under
-  [G over treatments](#g-over-treatments), the soft modes (below 100 cm-1) of
+  [G over treatments](#g-over-treatments), the soft modes (below 100 cm⁻¹) of
   each species with their share of its entropy and of G, the profile's
   numbers, and k without tunnelling and with the Wigner and the Eckart
   correction, with κ for each. The text can be selected and copied;
   right-clicking the profile offers **Copy values** for its numbers.
 - **Export CSV...** writes the numbers (with the barrier and rate columns when
   a reaction has a `[ts]`), and **Export PNG...** the energy profiles, one
-  under the other.
+  under the other. **Copy Details** puts the contents of the Details pane on
+  the clipboard as plain text, for a lab report or a spreadsheet.
 
 A reaction whose calculations differ in code, method, basis set, solvent or
 dispersion correction is refused, and the text says why.
@@ -213,10 +231,10 @@ geometry trace. Missing forces, incompatible atoms or unknown gradient units
 are reported instead of producing a comparison.
 
 For each element, and for **all atoms**, the table gives the atom count,
-maximum and RMS of the per-atom vector norm **|F(B) - F(A)|**, in eV/Angstrom.
-Forces are minus the energy gradients; 1 Hartree/Bohr = 51.42208619 eV/Angstrom.
+maximum and RMS of the per-atom vector norm **|F(B) - F(A)|**, in eV/Å.
+Forces are minus the energy gradients; 1 Hartree/Bohr = 51.42208619 eV/Å.
 Use these statistics to assess cutoff, basis and pseudopotential convergence.
-If the final geometries differ by more than 0.01 Angstrom RMS per atom, a
+If the final geometries differ by more than 0.01 Å RMS per atom, a
 warning reminds you that forces of different geometries are not a convergence
 test. Coordinates and vectors are compared in their stored Cartesian frames,
 without alignment or periodic wrapping.

@@ -145,7 +145,7 @@
 
   <PropertyPanel>
     <name>Spin-Spin Indirect Coupling Tensor</name>
-    <group>Magnetic properties</group>
+    <group>Magnetic resonance</group>
     <class>SpinSpin</class>
     <consumer>true</consumer>
     <property name="SPINSPIN"/>
@@ -154,14 +154,14 @@
   <!-- Tensors -->
   <PropertyPanel>
     <name>Shielding Tensor</name>
-    <group>Magnetic properties</group>
+    <group>Magnetic resonance</group>
     <class>VecAtomTensor</class>
     <consumer>true</consumer>
     <property name="SHIELDTENSOR"/>
   </PropertyPanel>
   <PropertyPanel>
     <name>Spin-dipole Tensor</name>
-    <group>Magnetic properties</group>
+    <group>Magnetic resonance</group>
     <class>VecAtomTensor</class>
     <consumer>true</consumer>
     <property name="DIPOLETENSOR"/>
@@ -183,6 +183,13 @@
     <consumer>false</consumer>
     <property name="GEOMTRACE"/>
     <property type="tsvector" indexedBy="Geometry Step"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>Diffraction</name>
+    <group>Diffraction and scattering</group>
+    <class>DiffractionPropertyPanel</class>
+    <consumer>false</consumer>
   </PropertyPanel>
 
   <PropertyPanel>
@@ -324,6 +331,15 @@
   </PropertyPanel>
 
   <PropertyPanel>
+    <name>Natural (NPA) Charges, computed by ECCE</name>
+    <group>Charges</group>
+    <class>MullikenPanel</class>
+    <consumer>true</consumer>
+    <allowPin>false</allowPin>
+    <property name="NPAECCE"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
     <name>AIM (Bader) Charges</name>
     <group>Charges</group>
     <class>MullikenPanel</class>
@@ -462,7 +478,7 @@
 
   <PropertyPanel>
     <name>Vibrational Frequencies</name>
-    <group>Vibrations</group>
+    <group>Vibrational spectra</group>
     <class>NModePanel</class>
     <consumer>true</consumer>
     <property name="VIB"/>
@@ -470,7 +486,7 @@
 
   <PropertyPanel>
     <name>UV/Vis Spectrum</name>
-    <group>Excited states</group>
+    <group>Electronic spectra</group>
     <class>UvVisPanel</class>
     <consumer>true</consumer>
     <property name="EXCIENERGY"/>
@@ -519,14 +535,10 @@
     <property name="HEXPOLE"/>
   </PropertyPanel>
 
-  <!-- QuadPolePanel lays a PropVector out three values to a row, which is
-       exactly a 3x3 tensor.  Plane-wave stress from Quantum ESPRESSO is
-       its first user; before this the Runtype Details "Stress" checkbox
-       made pw.x compute the tensor and nothing read it back. -->
   <PropertyPanel>
     <name>Stress Tensor</name>
     <group>Geometry</group>
-    <class>QuadPolePanel</class>
+    <class>StressPanel</class>
     <consumer>true</consumer>
     <property name="STRESS"/>
   </PropertyPanel>
@@ -596,7 +608,7 @@
        keys would be extracted and never displayed anywhere. -->
   <PropertyPanel>
     <name>Anharmonic Frequencies</name>
-    <group>Vibrations</group>
+    <group>Vibrational spectra</group>
     <class>DefaultVecPanel</class>
     <consumer>true</consumer>
     <property name="ANHARMFREQ"/>
@@ -604,7 +616,7 @@
 
   <PropertyPanel>
     <name>Anharmonic IR Intensities</name>
-    <group>Vibrations</group>
+    <group>Vibrational spectra</group>
     <class>DefaultVecPanel</class>
     <consumer>true</consumer>
     <property name="ANHARMIR"/>
@@ -623,7 +635,7 @@
   <!-- Spectrum displays -->
   <PropertyPanel>
     <name>Magnetic Shielding Anisotropy</name>
-    <group>Magnetic properties</group>
+    <group>Magnetic resonance</group>
     <class>VecAtomSpectrum</class>
     <consumer>true</consumer>
     <allowPin>false</allowPin>
@@ -632,7 +644,7 @@
 
   <PropertyPanel>
     <name>Isotropic Shielding</name>
-    <group>Magnetic properties</group>
+    <group>Magnetic resonance</group>
     <class>VecAtomSpectrum</class>
     <consumer>true</consumer>
     <allowPin>false</allowPin>
@@ -658,7 +670,7 @@
 
   <PropertyPanel>
     <name>Fermi Contact</name>
-    <group>Magnetic properties</group>
+    <group>Magnetic resonance</group>
     <class>VecAtomSpectrum</class>
     <consumer>true</consumer>
     <property name="FERMI"/>
@@ -684,7 +696,7 @@
 
   <PropertyPanel>
     <name>Shielding Tensor Eigenvalues</name>
-    <group>Magnetic properties</group>
+    <group>Magnetic resonance</group>
     <class>EigenValPanel</class>
     <consumer>true</consumer>
     <property name="SHIELDEIGVAL"/>
@@ -692,7 +704,7 @@
 
   <PropertyPanel>
     <name>Spin-dipole Tensor Eigenvalues</name>
-    <group>Magnetic properties</group>
+    <group>Magnetic resonance</group>
     <class>EigenValPanel</class>
     <consumer>true</consumer>
     <property name="DIPOLEEIGVAL"/>

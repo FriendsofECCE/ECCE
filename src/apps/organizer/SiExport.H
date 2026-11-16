@@ -35,6 +35,7 @@ bool rankTable(const std::vector<EcceURL>& calcs, const std::string& format,
 /// qm), as CSV text.
 bool qsarTable(const std::vector<EcceURL>& calcs, const std::string& groups,
                std::string& text, std::string& why,
-               const GatherProgress& progress = GatherProgress());
+               const GatherProgress& progress = GatherProgress(),
+               std::string *keyCsv = nullptr);
 
 #endif

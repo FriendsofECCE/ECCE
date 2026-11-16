@@ -7,6 +7,17 @@
 //   mqtt_test <source dir>                      the test (Unix socket)
 //   mqtt_test auth <source dir>                 two accounts on a TCP broker
 //                                               with the shipped access rules
+//   mqtt_test local <source dir>                in-process delivery of
+//                                               ECCE_ONE_PROCESS (#983)
+//   mqtt_test auth <source dir> builtin         the same against ECCE's own
+//                                               broker (MqttBroker, #990)
+//   mqtt_test session <source dir>              the session broker: on Linux
+//                                               a broker file with socket=
+//   mqtt_test socket <source dir>               MqttBroker on a Unix socket:
+//                                               anonymous, no topic rules
+//   mqtt_test serve <source dir> <eccebroker>   eccebroker --serve's life
+//   mqtt_test cloexec <source dir>              no broker socket reaches a
+//                                               child process (#1025)
 //   mqtt_test child <spec>...                   second process (internal)
 //        spec = topic:tag[:targetname]
 
@@ -21,10 +32,12 @@
 #include <string.h>
 #include <sys/select.h>
 #include <sys/stat.h>
+#include <sys/un.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include <fstream>
+#include <thread>
 #include <iostream>
 #include <set>
 #include <string>
@@ -33,6 +46,7 @@
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
 #include "util/JMSSubscriber.H"
+#include "util/MqttBroker.H"
 #include "util/MqttLink.H"
 
 using namespace std;
@@ -84,12 +98,16 @@ static int childMain(int argc, char** argv)
 class Probe : public JMSSubscriber {
 public:
   explicit Probe(const string& name) : JMSSubscriber(name) {}
-  void on(JMSMessage& m) { got.push_back(m.getProperty("tag")); }
+  void on(JMSMessage& m) {
+    got.push_back(m.getProperty("tag"));
+    values.push_back(m.getProperty("value"));
+  }
   bool has(const string& tag) const {
     for (size_t i = 0; i < got.size(); i++) if (got[i] == tag) return true;
     return false;
   }
   vector<string> got;
+  vector<string> values;   // EDSIFactory notices carry no tag
 };
 
 static vector<Probe*> g_probes;
@@ -211,7 +229,9 @@ static void rmTree(const string& path)
 // with a libmosquitto of their own can do.
 class RawClient {
 public:
-  RawClient(const string& user, const string& pass, int port)
+  // port 0: connect to the Unix socket sock instead.
+  RawClient(const string& user, const string& pass, int port,
+            const string& sock = "")
     : connack(-1), puback(-1), m_port(port)
   {
     m_mosq = mosquitto_new(0, true, this);
@@ -221,7 +241,8 @@ public:
     mosquitto_publish_v5_callback_set(m_mosq, onPublish);
     mosquitto_message_callback_set(m_mosq, onMessage);
     mosquitto_reconnect_delay_set(m_mosq, 1, 1, false);
-    mosquitto_connect_async(m_mosq, "127.0.0.1", port, 30);
+    if (port) mosquitto_connect_async(m_mosq, "127.0.0.1", port, 30);
+    else mosquitto_connect_async(m_mosq, sock.c_str(), 0, 30);
     mosquitto_loop_start(m_mosq);
     for (int i = 0; i < 100 && connack < 0; i++) usleep(30000);
   }
@@ -241,7 +262,7 @@ public:
   {
     puback = -1;
     mosquitto_publish(m_mosq, 0, topic.c_str(), body.size(), body.c_str(), 1, false);
-    for (int i = 0; i < 100 && puback < 0; i++) usleep(30000);
+    for (int i = 0; i < 3000 && puback < 0; i++) usleep(1000);
     return puback;
   }
   bool got(const string& topicPart)
@@ -301,12 +322,587 @@ static bool htpasswd(const string& file, const string& flags, const string& user
   return pclose(p) == 0;
 }
 
+
+// ------------------------------------------------- built-in broker extras
+
+#include <arpa/inet.h>
+#include <sys/time.h>
+
+static int rawConnect(int port)
+{
+  int fd = socket(AF_INET, SOCK_STREAM, 0);
+  struct sockaddr_in a;
+  memset(&a, 0, sizeof a);
+  a.sin_family = AF_INET;
+  a.sin_port = htons(port);
+  inet_pton(AF_INET, "127.0.0.1", &a.sin_addr);
+  if (::connect(fd, (struct sockaddr*)&a, sizeof a) != 0) { close(fd); return -1; }
+  struct timeval tv = {5, 0};
+  setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
+  return fd;
+}
+
+static string lenStr(const string& s) { return string(1, (char)(s.size() >> 8)) + (char)(s.size() & 255) + s; }
+static string pkt(int first, const string& body)
+{
+  return string(1, (char)first) + (char)body.size() + body;   // < 128 bytes
+}
+
+static string connectPkt(const string& proto, int level, int keepalive,
+                         const string& user, const string& pw)
+{
+  string b = lenStr(proto) + (char)level + (char)0xc2 + (char)(keepalive >> 8) +
+             (char)(keepalive & 255);
+  if (level == 5) b += (char)0;
+  b += lenStr("rawtest") + lenStr(user) + lenStr(pw);
+  return pkt(0x10, b);
+}
+
+// Reads until the peer closes or a packet of the wanted first byte arrives;
+// returns the bytes read, "" on close/timeout.
+static string rawRead(int fd, size_t want = 2)
+{
+  string got; char buf[256];
+  while (got.size() < want) {
+    ssize_t n = recv(fd, buf, sizeof buf, 0);
+    if (n <= 0) break;
+    got.append(buf, n);
+  }
+  return got;
+}
+
+static void builtinExtras(int port)
+{
+  // PINGREQ -> PINGRESP on a hand-made MQTT 5 session.
+  int fd = rawConnect(port);
+  string c30 = connectPkt("MQTT", 5, 30, "alice", "alicepw");
+  send(fd, c30.data(), c30.size(), 0);
+  string ca = rawRead(fd, 2);
+  check(ca.size() >= 2 && (uint8_t)ca[0] == 0x20, "raw CONNECT answered with CONNACK");
+  send(fd, "\xc0\x00", 2, 0);
+  string pr;
+  for (int i = 0; i < 20 && (pr.size() < 2 || pr.compare(pr.size() - 2, 2, string("\xd0\x00", 2)) != 0); i++)
+    pr += rawRead(fd, 1);
+  check(pr.find(string("\xd0\x00", 2)) != string::npos, "PINGREQ answered with PINGRESP");
+  close(fd);
+
+  // Keepalive: a client that goes silent is dropped after 1.5 x keepalive.
+  fd = rawConnect(port);
+  string c1 = connectPkt("MQTT", 5, 1, "alice", "alicepw");
+  send(fd, c1.data(), c1.size(), 0);
+  rawRead(fd, 2);
+  struct timeval t0, t1;
+  gettimeofday(&t0, 0);
+  char b[64];
+  ssize_t n;
+  while ((n = recv(fd, b, sizeof b, 0)) > 0) {}
+  gettimeofday(&t1, 0);
+  double el = (t1.tv_sec - t0.tv_sec) + (t1.tv_usec - t0.tv_usec) / 1e6;
+  check(n == 0 && el < 4.0, "a silent client is closed after its keepalive runs out");
+  close(fd);
+
+  // An MQTT 3.1.1 client is refused, garbage closes the connection.
+  fd = rawConnect(port);
+  string c4 = connectPkt("MQTT", 4, 30, "alice", "alicepw");
+  send(fd, c4.data(), c4.size(), 0);
+  string r4 = rawRead(fd, 4);
+  check(r4.size() >= 4 && (uint8_t)r4[3] == 1, "MQTT 3.1.1 is refused with return code 1");
+  close(fd);
+  fd = rawConnect(port);
+  send(fd, "\xff\xff\xff\xff\xff\xff", 6, 0);
+  check(rawRead(fd, 1).empty(), "a malformed packet closes the connection");
+  close(fd);
+  fd = rawConnect(port);   // PUBLISH before CONNECT
+  send(fd, "\x30\x05\x00\x01xyz", 7, 0);
+  check(rawRead(fd, 1).empty(), "a packet before CONNECT closes the connection");
+  close(fd);
+
+  // QoS 2 is not offered: DISCONNECT 0x9b.
+  fd = rawConnect(port);
+  send(fd, c1.data(), c1.size(), 0);
+  rawRead(fd, 2);
+  string p2 = pkt(0x34, lenStr("ecce/alice/q2") + (char)0 + (char)1 + (char)0 + "x");
+  send(fd, p2.data(), p2.size(), 0);
+  string d2 = rawRead(fd, 2);
+  check(d2.size() >= 3 && (uint8_t)d2[0] == 0xe0 && (uint8_t)d2[2] == 0x9b,
+        "an inbound QoS 2 PUBLISH is answered with DISCONNECT 0x9b");
+  close(fd);
+
+  // Many messages, in order and complete, then a client that vanishes.
+  RawClient sub("alice", "alicepw", port), pub("alice", "alicepw", port);
+  sub.subscribe("ecce/alice/many/#");
+  const int N = 3000;
+  {
+    int ok = 0;
+    for (int i = 0; i < N; i++)
+      if (pub.publish("ecce/alice/many/" + std::to_string(i), string(200, 'z')) == 0) ok++;
+    check(ok == N, "3000 QoS 1 publishes are all acknowledged");
+    for (int w = 0; w < 200 && (int)sub.topics.size() < N; w++) usleep(30000);
+    bool inorder = (int)sub.topics.size() == N;
+    for (int i = 0; inorder && i < N; i++)
+      if (sub.topics[i] != "ecce/alice/many/" + std::to_string(i)) inorder = false;
+    check(inorder, "3000 messages arrive complete and in order");
+  }
+  { RawClient gone("bob", "bobpw", port); gone.subscribe("ecce/bob/#"); }
+  RawClient after("bob", "bobpw", port);
+  check(after.connack == 0 && after.publish("ecce/bob/x", "1") == 0,
+        "the broker serves a new client after another disconnected");
+}
+
+// ----------------------------------------------- the Windows session path
+
+static int sessionMain(const string& src)
+{
+  const char* tmpbase = getenv("TMPDIR");
+  string tmpl = string(tmpbase ? tmpbase : "/tmp") + "/mqtt_sessXXXXXX";
+  vector<char> buf(tmpl.begin(), tmpl.end());
+  buf.push_back(0);
+  if (!mkdtemp(&buf[0])) { perror("mkdtemp"); return 1; }
+  string tmp = &buf[0];
+  setenv("ECCE_HOME", src.c_str(), 1);
+  setenv("ECCE_REALUSERHOME", tmp.c_str(), 1);
+  setenv("HOST", "testhost", 1);
+  setenv("DISPLAY", ":7", 1);
+  setenv("ECCE_SESSION_ID", S1, 1);
+  unsetenv("ECCE_HOST");
+  unsetenv("ECCE_NO_MESSAGING");
+  string err = MqttBroker::startForSession();
+  check(err.empty(), "session broker started" + (err.empty() ? string() : ": " + err));
+  string file = tmp + "/.ECCE/broker_testhost_" + S1;
+  string text = slurp(file);
+  string sock = text.find("socket=") != string::npos
+    ? text.substr(text.find("socket=") + 7, text.find('\n', text.find("socket=")) - text.find("socket=") - 7)
+    : "";
+  check(text.find("user=local\n") == 0 && !sock.empty() &&
+        text.find("password=") == string::npos && text.find("port=") == string::npos,
+        "the broker file names a Unix socket and no login (user=local, socket=)");
+  struct stat st;
+  check(stat(sock.c_str(), &st) == 0 && S_ISSOCK(st.st_mode) && (st.st_mode & 0077) == 0,
+        "the socket is private to the account (0600)");
+  check(stat((tmp + "/.ECCE").c_str(), &st) == 0 && (st.st_mode & 0777) == 0700,
+        "the state directory is 0700");
+  check(slurp(tmp + "/.ECCE/session_testhost") == string(S1) + "\n",
+        "the session pointer names this session");
+  // MqttLink in this process uses the file's login; no credential provider.
+  Probe pa("A");
+  g_probes.push_back(&pa);
+  jmsCBFunc cb = static_cast<jmsCBFunc>(&Probe::on);
+  pa.subscribe("ecce_poll", cb, false);
+  check(pa.startSubscriber(), "a subscriber connects with the file's login");
+  usleep(300000);
+  vector<string> a;
+  a.push_back("ecce_poll:from_child");
+  check(runChildStatus(tmp, S1, a) == 0, "a second process (a job monitor's role) published");
+  check(waitFor(pa, "from_child"), "its message arrives through the built-in broker");
+  pa.unsubscribe();
+  MqttBroker::stopForSession();
+  check(access(file.c_str(), F_OK) != 0, "stopping the session broker removes the broker file");
+  check(access(sock.c_str(), F_OK) != 0, "and the socket");
+  rmTree(tmp);
+  cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
+  return g_fail ? 1 : 0;
+}
+
+
+
+static int unixConnect(const string& path)
+{
+  int fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  struct sockaddr_un a;
+  memset(&a, 0, sizeof a);
+  a.sun_family = AF_UNIX;
+  strncpy(a.sun_path, path.c_str(), sizeof a.sun_path - 1);
+  if (::connect(fd, (struct sockaddr*)&a, sizeof a) != 0) { close(fd); return -1; }
+  struct timeval tv = {5, 0};
+  setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
+  return fd;
+}
+
+static string tmpDir(const char* name)
+{
+  const char* tmpbase = getenv("TMPDIR");
+  string tmpl = string(tmpbase ? tmpbase : "/tmp") + "/" + name + "XXXXXX";
+  vector<char> buf(tmpl.begin(), tmpl.end());
+  buf.push_back(0);
+  return mkdtemp(&buf[0]) ? string(&buf[0]) : string();
+}
+
+// The Unix-socket broker keeps the per-user mosquitto's socket rules: no
+// login and no topic rules, since only the account can reach the socket.
+static int socketMain(const string& src)
+{
+  (void)src;
+  string tmp = tmpDir("mqtt_sock");
+  if (tmp.empty()) { perror("mkdtemp"); return 1; }
+  string path = tmp + "/b.sock";
+  MqttBroker b;
+  b.addUser("alice", "alicepw");
+  check(b.start(path), "listens on a Unix socket");
+  struct stat st;
+  check(stat(path.c_str(), &st) == 0 && S_ISSOCK(st.st_mode) && (st.st_mode & 0077) == 0,
+        "the socket is mode 0600");
+  // Anonymous: clean start only, no user or password.
+  int a = unixConnect(path);
+  string anon = pkt(0x10, lenStr("MQTT") + (char)5 + (char)0x02 + (char)0 + (char)30 +
+                          (char)0 + lenStr("anon"));
+  send(a, anon.data(), anon.size(), 0);
+  string ca = rawRead(a, 4);
+  check(ca.size() >= 4 && (uint8_t)ca[0] == 0x20 && ca[3] == 0, "an anonymous CONNECT is accepted");
+  // A wrong password is not refused either: the socket's rule is "anyone".
+  int w = unixConnect(path);
+  string bad = connectPkt("MQTT", 5, 30, "alice", "wrong");
+  send(w, bad.data(), bad.size(), 0);
+  string cw = rawRead(w, 4);
+  check(cw.size() >= 4 && (uint8_t)cw[0] == 0x20 && cw[3] == 0, "a CONNECT with any login is accepted");
+  // No topic rules: alice's link reads bob's topics, the anonymous one writes them.
+  string sub = pkt(0x82, string("\x00\x01", 2) + (char)0 + lenStr("ecce/bob/#") + (char)0);
+  send(w, sub.data(), sub.size(), 0);
+  string sa = rawRead(w, 6);
+  check(sa.size() >= 6 && (uint8_t)sa[0] == 0x90 && sa[5] == 0, "a subscription outside ecce/<user>/ is granted");
+  string pub = pkt(0x30, lenStr("ecce/bob/x") + (char)0 + "hello");
+  send(a, pub.data(), pub.size(), 0);
+  string got = rawRead(w, 2 + 12 + 1 + 5);
+  check(got.find("hello") != string::npos, "and the message is delivered");
+  close(a); close(w);
+  b.stop();
+  check(access(path.c_str(), F_OK) != 0, "stop removes the socket");
+  rmTree(tmp);
+  cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
+  return g_fail ? 1 : 0;
+}
+
+static string runOut(const string& cmd, int& rc)
+{
+  string out;
+  FILE* f = popen(cmd.c_str(), "r");
+  if (!f) { rc = -1; return out; }
+  char buf[256];
+  while (fgets(buf, sizeof buf, f)) out += buf;
+  int st = pclose(f);
+  rc = WIFEXITED(st) ? WEXITSTATUS(st) : -1;
+  return out;
+}
+
+// ------------------------------------------ descriptors a child inherits
+
+// Socket inodes ("socket:[N]") in a listing of descriptors.
+static set<string> socketInodes(const string& listing)
+{
+  set<string> out;
+  for (size_t at = listing.find("socket:["); at != string::npos;
+       at = listing.find("socket:[", at + 1))
+    out.insert(listing.substr(at, listing.find(']', at) - at + 1));
+  return out;
+}
+
+static set<string> ownSockets()
+{
+  string out;
+  DIR* d = opendir("/proc/self/fd");
+  if (!d) return set<string>();
+  while (struct dirent* e = readdir(d)) {
+    char buf[256];
+    ssize_t n = readlink(("/proc/self/fd/" + string(e->d_name)).c_str(), buf, sizeof buf - 1);
+    if (n > 0) { buf[n] = 0; out += string(buf) + "\n"; }
+  }
+  closedir(d);
+  return socketInodes(out);
+}
+
+// What a program started with system() holds, as eccejobmaster is started.
+static set<string> childSockets()
+{
+  int rc = 0;
+  return socketInodes(runOut("/bin/sh -c 'ls -l /proc/self/fd/' 2>/dev/null", rc));
+}
+
+// #1025: a program the Organizer starts with system() (eccejobmaster) or
+// execv() (a terminal) must not inherit the broker's sockets.
+static int cloexecMain(const string& src)
+{
+#ifndef SOCK_CLOEXEC
+  (void)src;
+  cout << "SKIP  no /proc to list a child's descriptors" << endl;
+  return 77;
+#else
+  if (access("/proc/self/fd", F_OK) != 0) {
+    cout << "SKIP  no /proc to list a child's descriptors" << endl;
+    return 77;
+  }
+  string tmp = tmpDir("mqtt_cloexec");
+  if (tmp.empty()) { perror("mkdtemp"); return 1; }
+  set<string> before = ownSockets();
+  setenv("ECCE_HOME", src.c_str(), 1);
+  setenv("ECCE_REALUSERHOME", tmp.c_str(), 1);
+  setenv("HOST", "testhost", 1);
+  setenv("ECCE_SESSION_ID", S2, 1);
+  unsetenv("ECCE_HOST");
+  unsetenv("ECCE_NO_MESSAGING");
+  string err = MqttBroker::startForSession();
+  check(err.empty(), "session broker started on a Unix socket" + (err.empty() ? string() : ": " + err));
+  Probe pa("A");
+  g_probes.push_back(&pa);
+  pa.subscribe("ecce_poll", static_cast<jmsCBFunc>(&Probe::on), false);
+  check(pa.startSubscriber(), "a subscriber (libmosquitto) connects to it");
+  MqttBroker tcp;
+  check(tcp.start(0), "a TCP broker listens on 127.0.0.1");
+  int c = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
+  struct sockaddr_in a;
+  memset(&a, 0, sizeof a);
+  a.sin_family = AF_INET;
+  a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  a.sin_port = htons((unsigned short)tcp.port());
+  check(::connect(c, (struct sockaddr*)&a, sizeof a) == 0, "a client connects to the TCP broker");
+  for (int i = 0; i < 100 && tcp.clients() < 1; i++) usleep(20000);
+  usleep(300000);
+
+  set<string> mine = ownSockets();
+  for (const string& b : before) mine.erase(b);
+  check(mine.size() >= 6, "this process holds the brokers' sockets (" +
+        to_string(mine.size()) + ": listeners, accepted, clients, libmosquitto's wake-up pair)");
+  size_t leaked = 0;
+  for (const string& i : childSockets()) leaked += mine.count(i);
+  check(leaked == 0, "a child started with system() inherits none of them (" +
+        to_string(leaked) + " inherited)");
+  // The check can see a leak: an inheritable socket does reach the child.
+  int plain = socket(AF_UNIX, SOCK_STREAM, 0);
+  set<string> extra = ownSockets();
+  for (const string& i : mine) extra.erase(i);
+  for (const string& b : before) extra.erase(b);
+  bool seen = false;
+  for (const string& i : childSockets()) seen = seen || extra.count(i) > 0;
+  check(!extra.empty() && seen, "an inheritable socket made for comparison does reach the child");
+  close(plain); close(c);
+  pa.unsubscribe();
+  tcp.stop();
+  MqttBroker::stopForSession();
+  rmTree(tmp);
+  cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
+  return g_fail ? 1 : 0;
+#endif
+}
+
+// eccebroker --serve, as ecce-gateway-start runs it for a local session.
+static int serveMain(const string& src, const string& exe)
+{
+  string tmp = tmpDir("mqtt_serve");
+  if (tmp.empty()) { perror("mkdtemp"); return 1; }
+  setenv("ECCE_HOME", src.c_str(), 1);
+  setenv("ECCE_REALUSERHOME", tmp.c_str(), 1);
+  setenv("HOST", "testhost", 1);
+  setenv("DISPLAY", ":7", 1);
+  setenv("ECCE_SESSION_ID", S1, 1);
+  unsetenv("ECCE_HOST");
+  unsetenv("ECCE_NO_MESSAGING");
+  string file = tmp + "/.ECCE/broker_testhost_" + S1;
+  int rc;
+  string out = runOut(exe + " --serve 2 2>&1", rc);
+  check(rc == 0 && out.find("started") != string::npos, "--serve started the session broker (" + out + ")");
+  string text = slurp(file);
+  check(text.find("socket=") != string::npos, "and wrote the broker file");
+  out = runOut(exe + " --serve 2 2>&1", rc);
+  check(rc == 0 && out.find("already running") != string::npos,
+        "a second start adopts the running one (" + out + ")");
+  check(slurp(file) == text, "and leaves its broker file alone");
+
+  Probe pa("A");
+  g_probes.push_back(&pa);
+  pa.subscribe("ecce_poll", static_cast<jmsCBFunc>(&Probe::on), false);
+  check(pa.startSubscriber(), "MqttLink connects through the socket");
+  usleep(300000);
+  vector<string> a;
+  a.push_back("ecce_poll:from_child");
+  check(runChildStatus(tmp, S1, a) == 0, "a second process published");
+  check(waitFor(pa, "from_child"), "its message arrives through eccebroker");
+  sleep(3);
+  check(access(file.c_str(), F_OK) == 0, "the broker stays while a client is connected");
+  pa.unsubscribe();
+  MqttLink::instance().shutdown();
+  struct stat st;
+  int i = 0;
+  for (; i < 100 && stat(file.c_str(), &st) == 0; i++) usleep(100000);
+  check(i < 100 && i >= 10, "it ends about 2 s after the last client left (" +
+        std::to_string(i / 10.0) + " s)");
+
+  // ecce-gateway-stop removes the broker file: the broker ends too.
+  out = runOut(exe + " --serve 30 2>&1", rc);
+  check(rc == 0 && out.find("started") != string::npos, "started again");
+  string sock = slurp(file);
+  sock = sock.substr(sock.find("socket=") + 7);
+  sock = sock.substr(0, sock.find('\n'));
+  unlink(file.c_str());
+  for (i = 0; i < 50 && access(sock.c_str(), F_OK) == 0; i++) usleep(100000);
+  check(i < 50, "removing the broker file stops it");
+  rmTree(tmp);
+  cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
+  return g_fail ? 1 : 0;
+}
+
+// The "other client" of the lingering test: subscribes ecce_poll, says so in
+// <dir>/ready, writes <dir>/got when the message arrives, and leaves when
+// <dir>/quit exists.
+static int holderMain(const string& dir)
+{
+  Probe p("holder");
+  g_probes.push_back(&p);
+  p.subscribe("ecce_poll", static_cast<jmsCBFunc>(&Probe::on), false);
+  if (!p.startSubscriber()) return 2;
+  usleep(300000);
+  { ofstream f((dir + "/ready").c_str()); f << "1"; }
+  bool got = false;
+  struct stat st;
+  for (int i = 0; i < 1500; i++) {
+    pump(20);
+    if (!got && p.has("late")) { got = true; ofstream f((dir + "/got").c_str()); f << "1"; }
+    if (stat((dir + "/quit").c_str(), &st) == 0) break;
+  }
+  p.unsubscribe();
+  return got ? 0 : 3;
+}
+
+static double nowS()
+{
+  struct timeval tv; gettimeofday(&tv, 0);
+  return tv.tv_sec + tv.tv_usec / 1e6;
+}
+
+// The Organizer ends while another process still uses the session broker.
+static int lingerMain(const string& src)
+{
+  const char* tmpbase = getenv("TMPDIR");
+  string tmpl = string(tmpbase ? tmpbase : "/tmp") + "/mqtt_lingXXXXXX";
+  vector<char> buf(tmpl.begin(), tmpl.end());
+  buf.push_back(0);
+  if (!mkdtemp(&buf[0])) { perror("mkdtemp"); return 1; }
+  string tmp = &buf[0];
+  setenv("ECCE_HOME", src.c_str(), 1);
+  setenv("ECCE_REALUSERHOME", tmp.c_str(), 1);
+  setenv("HOST", "testhost", 1);
+  setenv("DISPLAY", ":7", 1);
+  setenv("ECCE_SESSION_ID", S1, 1);
+  unsetenv("ECCE_HOST");
+  unsetenv("ECCE_NO_MESSAGING");
+  check(MqttBroker::startForSession().empty(), "session broker started");
+  string file = tmp + "/.ECCE/broker_testhost_" + S1;
+
+  // This process is the Organizer: a client of its own broker.
+  Probe org("organizer");
+  g_probes.push_back(&org);
+  org.subscribe("ecce_poll", static_cast<jmsCBFunc>(&Probe::on), false);
+  check(org.startSubscriber(), "the Organizer's own link connected");
+
+  pid_t holder = fork();
+  if (holder == 0) {
+    g_probes.clear();
+    execl(g_self.c_str(), g_self.c_str(), "holder", tmp.c_str(), (char*)0);
+    _exit(127);
+  }
+  struct stat st;
+  for (int i = 0; i < 200 && stat((tmp + "/ready").c_str(), &st) != 0; i++) usleep(50000);
+  check(stat((tmp + "/ready").c_str(), &st) == 0, "a second process is connected");
+
+  const int GRACE = 2;
+  double lingered = -1;
+  std::thread t([&] { double a = nowS(); MqttBroker::lingerForSession(GRACE); lingered = nowS() - a; });
+  usleep(1500000);   // the Organizer is gone; the broker keeps going
+  vector<string> a;
+  a.push_back("ecce_poll:late");
+  check(runChildStatus(tmp, S1, a) == 0, "a third process published after the Organizer ended");
+  for (int i = 0; i < 100 && stat((tmp + "/got").c_str(), &st) != 0; i++) usleep(50000);
+  check(stat((tmp + "/got").c_str(), &st) == 0, "the second process still received it");
+  check(access(file.c_str(), F_OK) == 0, "the broker file is still there while a client is connected");
+
+  { ofstream f((tmp + "/quit").c_str()); f << "1"; }
+  double q = nowS();
+  int status = 0;
+  waitpid(holder, &status, 0);
+  check(WIFEXITED(status) && WEXITSTATUS(status) == 0, "the second process ended normally");
+  t.join();
+  double after = nowS() - q;
+  check(after >= GRACE - 0.5 && after < GRACE + 4,
+        "the broker ended about the grace time after the last client left (" +
+        std::to_string(after) + " s)");
+  check(access(file.c_str(), F_OK) != 0, "then the broker file was removed");
+  (void)lingered;
+  rmTree(tmp);
+  cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
+  return g_fail ? 1 : 0;
+}
+
+// mosquitto_pub / mosquitto_sub (MQTT 5) against the built-in broker.
+static int interopMain()
+{
+  if (system("command -v mosquitto_pub >/dev/null 2>&1 && "
+             "command -v mosquitto_sub >/dev/null 2>&1") != 0) {
+    cout << "SKIP  no mosquitto_pub/mosquitto_sub" << endl;
+    return 77;
+  }
+  MqttBroker b;
+  b.addUser("alice", "alicepw");
+  b.addUser("bob", "bobpw");
+  if (!b.start(0)) { cout << "FAIL  start" << endl; return 1; }
+  string p = std::to_string(b.port());
+  string base = "-V 5 -h 127.0.0.1 -p " + p;
+  // The subscriber logs to a file so the test can wait for its SUBACK
+  // before publishing, and ends at the third message: a permitted sentinel
+  // published after the refused one. Anything delivered ahead of the
+  // sentinel is therefore in the log; no sleep decides the outcome.
+  char tmpl[] = "/tmp/mqtt_interop_XXXXXX";
+  if (!mkdtemp(tmpl)) { cout << "FAIL  mkdtemp" << endl; return 1; }
+  string log = string(tmpl) + "/sub.log";
+  FILE* sub = popen(("timeout 20 stdbuf -oL mosquitto_sub " + base + " -d -u alice -P alicepw "
+                     "-t 'ecce/alice/#' -t 'ecce/+/ecce_machreg_changed' -v -C 3 >" +
+                     log + " 2>&1").c_str(), "r");
+  auto slurp = [&]() {
+    string s; char l[512];
+    if (FILE* f = fopen(log.c_str(), "r")) { while (fgets(l, sizeof l, f)) s += l; fclose(f); }
+    return s;
+  };
+  bool ready = false;
+  for (int i = 0; i < 200 && !ready; ++i) {
+    ready = slurp().find("received SUBACK") != string::npos;
+    if (!ready) usleep(50000);
+  }
+  check(ready, "mosquitto_sub -V 5 is subscribed before the first publish");
+  string pub = "mosquitto_pub " + base;
+  int r1 = system((pub + " -u alice -P alicepw -q 1 -t ecce/alice/x/y -m hello1 >/dev/null 2>&1").c_str());
+  int r2 = system((pub + " -u bob -P bobpw -q 1 -t ecce/bob/ecce_machreg_changed -m hello2 >/dev/null 2>&1").c_str());
+  // Bob's publish into alice's tree must be refused.
+  // mosquitto_pub 2.0 exits 0 on a refused QoS 1 publish, so the refusal is
+  // read from the PUBACK reason code in its debug output.
+  int r3 = system((pub + " -d -u bob -P bobpw -q 1 -t ecce/alice/z -m evil >" + tmpl +
+                   "/pub3.log 2>&1").c_str());
+  string pub3;
+  if (FILE* f = fopen((string(tmpl) + "/pub3.log").c_str(), "r")) {
+    char l[512]; while (fgets(l, sizeof l, f)) pub3 += l; fclose(f);
+  }
+  bool refused = r3 != 0 || pub3.find("Not authorized") != string::npos ||
+                 pub3.find("RC:135") != string::npos;
+  int r4 = system((pub + " -u alice -P wrong -t ecce/alice/x -m no >/dev/null 2>&1").c_str());
+  int r5 = system((pub + " -u alice -P alicepw -q 1 -t ecce/alice/done -m sentinel >/dev/null 2>&1").c_str());
+  if (sub) pclose(sub);
+  string out = slurp();
+  rmTree(tmpl);
+  check(r1 == 0 && r2 == 0 && r5 == 0, "mosquitto_pub -V 5 -q 1 publishes are accepted");
+  check(out.find("ecce/alice/x/y hello1") != string::npos &&
+        out.find("ecce/bob/ecce_machreg_changed hello2") != string::npos &&
+        out.find("ecce/alice/done sentinel") != string::npos,
+        "mosquitto_sub -V 5 receives both through wildcards");
+  check(refused && out.find("evil") == string::npos,
+        "a publish into another user's tree is refused and not delivered");
+  check(r4 != 0, "a wrong password is refused");
+  b.stop();
+  cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
+  return g_fail ? 1 : 0;
+}
+
 // With a plugin path, the broker checks logins against an htpasswd file
 // through ecce_users_auth (a central server's, ecce-gateway-start);
 // without, against a mosquitto password file (the shared broker's).
 static int authMain(const string& src, const string& plugin)
 {
-  if (system("command -v mosquitto >/dev/null 2>&1 && "
+  bool builtin = plugin == "builtin";
+  if (!builtin && system("command -v mosquitto >/dev/null 2>&1 && "
              "command -v mosquitto_passwd >/dev/null 2>&1 && "
              "command -v htpasswd >/dev/null 2>&1") != 0) {
     cout << "SKIP  no mosquitto or htpasswd binary" << endl;
@@ -322,7 +918,13 @@ static int authMain(const string& src, const string& plugin)
 
   // The account list is what ecce-dataserver-adduser writes: hashed by
   // mosquitto_passwd -U from a private file.
-  if (plugin.empty()) {
+  MqttBroker own;
+  if (builtin) {
+    own.addUser("alice", "alicepw");
+    own.addUser("bob", "bobpw");
+    if (!own.start(0)) { cout << "FAIL  built-in broker start" << endl; return 1; }
+    port = own.port();
+  } else if (plugin.empty()) {
     int fd = open((tmp + "/passwd").c_str(), O_WRONLY | O_CREAT, 0600);
     string plain = "alice:alicepw\nbob:bobpw\n";
     if (write(fd, plain.c_str(), plain.size()) < 0) perror("write");
@@ -337,7 +939,7 @@ static int authMain(const string& src, const string& plugin)
     return 1;
   }
   string acl = src + "/packaging/gateway/ecce-mosquitto.acl";
-  {
+  if (!builtin) {
     ofstream c((tmp + "/mosquitto.conf").c_str());
     c << "per_listener_settings true\npersistence false\n"
       << "log_dest file " << tmp << "/mosquitto.log\n"
@@ -346,7 +948,7 @@ static int authMain(const string& src, const string& plugin)
                          : "plugin " + plugin + "\nplugin_opt_users_file " + tmp + "/passwd\n")
       << "acl_file " << acl << "\n";
   }
-  pid_t broker = fork();
+  pid_t broker = builtin ? -1 : fork();
   if (broker == 0) {
     freopen("/dev/null", "w", stdout);
     freopen("/dev/null", "w", stderr);
@@ -359,7 +961,8 @@ static int authMain(const string& src, const string& plugin)
     up = probe.connack == 0;
     if (!up) usleep(50000);
   }
-  check(up, "mosquitto listening on TCP with a password file and the shipped ACL");
+  check(up, builtin ? "built-in broker listening on TCP"
+                    : "mosquitto listening on TCP with a password file and the shipped ACL");
 
   int rc = 1;
   if (up) {
@@ -463,7 +1066,7 @@ static int authMain(const string& src, const string& plugin)
     check(st != 0 && slurp(err2).find("no data server login") != string::npos,
           "with no login yet the library says so and does not connect");
 
-    if (!plugin.empty()) {
+    if (!plugin.empty() && !builtin) {
       // The file changes under a running broker: an account made the 8.x
       // way (default htpasswd hash, nothing else written), then a password
       // change.
@@ -490,14 +1093,225 @@ static int authMain(const string& src, const string& plugin)
       check(nobody.connack == 134 || nobody.connack == 135,
             "an account that is not in the file is refused");
     }
+    if (builtin) builtinExtras(port);
     pa.unsubscribe();
     rc = g_fail ? 1 : 0;
   }
-  kill(broker, SIGTERM);
-  waitpid(broker, 0, 0);
+  if (!builtin) { kill(broker, SIGTERM); waitpid(broker, 0, 0); }
+  else own.stop();
   rmTree(tmp);
   cout << (rc == 0 ? "ALL PASS" : "FAILED") << endl;
   return rc;
+}
+
+// ------------------------------------------------- one process (#983)
+
+static int countOf(const Probe& p, const string& tag)
+{
+  int n = 0;
+  for (size_t i = 0; i < p.got.size(); i++) n += (p.got[i] == tag);
+  return n;
+}
+
+static bool sent(const JMSPublisher& pub, const string& topic,
+                 const string& tag, const Target* target = 0)
+{
+  JMSMessage* m = target ? pub.newMessage(*target) : pub.newMessage();
+  m->addProperty("tag", tag);
+  bool ok = pub.publish(topic, *m);
+  delete m;
+  return ok;
+}
+
+// Organizer and Builder as two tools of one process, the broker for
+// everything else.
+static int localMain(const string& src)
+{
+  if (system("command -v mosquitto >/dev/null 2>&1") != 0) {
+    cout << "SKIP  no mosquitto binary" << endl;
+    return 77;
+  }
+  const char* tmpbase = getenv("TMPDIR");
+  string tmpl = string(tmpbase ? tmpbase : "/tmp") + "/mqtt_localXXXXXX";
+  vector<char> buf(tmpl.begin(), tmpl.end());
+  buf.push_back(0);
+  if (!mkdtemp(&buf[0])) { perror("mkdtemp"); return 1; }
+  string tmp = &buf[0];
+  string sock = tmp + "/mq.sock", alice = tmp + "/alice";
+  writeBrokerFile(alice, sock, "alice");
+  {
+    ofstream c((tmp + "/mosquitto.conf").c_str());
+    c << "listener 0 " << sock << "\nallow_anonymous true\n"
+      << "persistence false\n";
+  }
+  pid_t broker = fork();
+  if (broker == 0) {
+    string log = tmp + "/mosquitto.log";
+    freopen(log.c_str(), "w", stdout);
+    freopen(log.c_str(), "w", stderr);
+    execlp("mosquitto", "mosquitto", "-c", (tmp + "/mosquitto.conf").c_str(),
+           (char*)0);
+    _exit(127);
+  }
+  bool up = false;
+  for (int i = 0; i < 100 && !up; i++) {
+    struct stat st;
+    up = stat(sock.c_str(), &st) == 0 && S_ISSOCK(st.st_mode);
+    if (!up) usleep(50000);
+  }
+  check(up, "mosquitto listening on the Unix socket");
+  if (!up) { kill(broker, SIGTERM); waitpid(broker, 0, 0); rmTree(tmp); return 1; }
+
+  setenv("ECCE_HOME", src.c_str(), 1);
+  setenv("ECCE_REALUSERHOME", alice.c_str(), 1);
+  setenv("HOST", "testhost", 1);
+  setenv("DISPLAY", ":7", 1);
+  setenv("ECCE_SESSION_ID", S1, 1);
+  setenv("ECCE_ONE_PROCESS", "1", 1);
+  unsetenv("ECCE_HOST");
+  unsetenv("ECCE_NO_MESSAGING");
+  check(MqttLink::localDelivery(), "ECCE_ONE_PROCESS=1 turns local delivery on");
+
+  Probe org("Organizer"), bld("Builder");
+  g_probes.push_back(&org);
+  g_probes.push_back(&bld);
+  jmsCBFunc cb = static_cast<jmsCBFunc>(&Probe::on);
+  org.subscribe("ecce_url_property", cb);           // NONE, self filtered
+  org.subscribe("ecce_url_state", cb, false);       // NONE, not filtered
+  org.subscribe("ecce_machreg_changed", cb);        // broker filter ecce/+/...
+  org.subscribe("ecce_poll", cb);                   // session
+  bld.subscribe("ecce_url_property", cb);
+  bld.subscribe("ecce_poll", cb);
+  check(org.startSubscriber() && bld.startSubscriber(), "subscribers started");
+  RawClient other("", "", 0, sock);   // another process on the broker
+  other.subscribe("ecce/#");
+
+  JMSPublisher pb("Builder"), po("Organizer");
+  Target toOrg("Organizer", "");
+  check(sent(pb, "ecce_url_property", "b_prop") &&
+        sent(po, "ecce_url_state", "o_state") &&
+        sent(pb, "ecce_machreg_changed", "b_machreg") &&
+        sent(pb, "ecce_poll", "tgt", &toOrg), "published in-process");
+  pump(300);
+  check(org.has("b_prop") && !bld.has("b_prop"),
+        "another tool's message delivered; the tool's own is filtered");
+  check(org.has("o_state"), "own message delivered with filterSelf off");
+  check(org.has("b_machreg"), "topic with a wildcard broker filter delivered");
+  check(org.has("tgt") && !bld.has("tgt"), "targeted message reached only its target");
+  check(other.got("/ecce_url_property") && other.got("/ecce_url_state") &&
+        other.got("/ecce_machreg_changed"),
+        "in-process messages also reach another process through the broker");
+
+  vector<string> a;
+  a.push_back("ecce_poll:c_poll");
+  a.push_back("ecce_url_property:c_prop");
+  a.push_back("ecce_poll:sentinel1");
+  check(runChild(alice, S1, a), "child published in the same session");
+  check(waitFor(org, "sentinel1") && waitFor(bld, "sentinel1"),
+        "both tools received the child's last message");
+  check(org.has("c_poll") && bld.has("c_poll") && org.has("c_prop") &&
+        bld.has("c_prop"), "broker messages reach the in-process subscribers");
+
+  const int N = 200;
+  for (int i = 0; i < N; i++) sent(po, "ecce_poll", "seq" + to_string(i));
+  waitFor(bld, "seq" + to_string(N - 1));
+  vector<string> seq;
+  for (size_t i = 0; i < bld.got.size(); i++)
+    if (bld.got[i].compare(0, 3, "seq") == 0) seq.push_back(bld.got[i]);
+  bool inOrder = (int)seq.size() == N;
+  for (int i = 0; inOrder && i < N; i++) inOrder = seq[i] == "seq" + to_string(i);
+  check(inOrder, "200 in-process messages delivered once each, in order");
+
+  // A broker echo would come back before a later message from another
+  // process; none may.
+  vector<string> z;
+  z.push_back("ecce_poll:sentinel2");
+  runChild(alice, S1, z);
+  waitFor(org, "sentinel2");
+  waitFor(bld, "sentinel2");
+  pump(300);
+  const char* once[] = {"b_prop", "o_state", "b_machreg", "tgt", "c_poll",
+                        "c_prop", "sentinel1"};
+  bool dup = false;
+  for (const char* t : once) {
+    if (countOf(org, t) != 1) {
+      dup = true;
+      cout << "      " << t << " delivered " << countOf(org, t) << " times" << endl;
+    }
+  }
+  check(!dup && countOf(bld, "c_poll") == 1 && countOf(bld, "seq0") == 1,
+        "no duplicates (no broker echo of in-process messages)");
+
+  // Tool instances: ids <pid>.<n>; a target by id reaches one window, a
+  // bare pid (a sender that predates the ids) all tools of the process.
+  Probe bld2("Builder");
+  g_probes.push_back(&bld2);
+  bld2.subscribe("ecce_url_property", cb);
+  bld2.subscribe("ecce_poll", cb);
+  bld2.startSubscriber();
+  string pid = to_string(getpid());
+  check(org.getMyID().compare(0, pid.size() + 1, pid + ".") == 0 &&
+        org.getMyID() != bld.getMyID() && bld.getMyID() != bld2.getMyID(),
+        "each tool instance has its own id <pid>.<n>");
+  Target toBld2("", bld2.getMyID()), toPid("", pid);
+  JMSPublisher pb1("Builder"), pg("Gateway");   // pg: no tool's self
+  pb1.setMyID(bld.getMyID());
+  check(sent(po, "ecce_poll", "id_bld2", &toBld2) &&
+        sent(pg, "ecce_poll", "id_pid", &toPid) &&
+        sent(pb1, "ecce_url_property", "inst_prop"), "published to instances");
+  pump(300);
+  check(bld2.has("id_bld2") && !bld.has("id_bld2") && !org.has("id_bld2"),
+        "a target by instance id reaches that instance only");
+  check(org.has("id_pid") && bld.has("id_pid") && bld2.has("id_pid"),
+        "a target by bare pid reaches every tool of the process");
+  check(!bld.has("inst_prop") && bld2.has("inst_prop") && org.has("inst_prop"),
+        "self filter by instance: a second Builder gets the first's notice");
+
+  // EDSIFactory's notices go out as the acting tool. Its publisher, as
+  // EDSIFactory::getPublisher makes it: eccedsi's statics would fix the
+  // ECCE paths before main sets them, so the test does not link it.
+  JMSPublisher notices("EDSIFactory");
+  notices.followActingTool(true);
+  auto notify = [&notices](const string& value) {
+    JMSMessage* m = notices.newMessage();
+    m->addProperty("url", "http://x/calc/");
+    m->addProperty("value", value);
+    notices.publish("ecce_url_property", *m);
+    delete m;
+  };
+  JMSPublisher::setActingTool("Organizer", org.getMyID());
+  notify("org_save");
+  {
+    JMSPublisher::ActingTool as("Builder", bld.getMyID());
+    notify("bld_save");
+  }
+  notify("org_save2");
+  pump(300);
+  auto valueSeen = [](const Probe& p, const string& v) {
+    for (size_t i = 0; i < p.values.size(); i++) if (p.values[i] == v) return true;
+    return false;
+  };
+  check(valueSeen(org, "bld_save") && !valueSeen(bld, "bld_save") &&
+        valueSeen(bld2, "bld_save"),
+        "a Builder's EDSIFactory notice reaches the Organizer, not that Builder");
+  check(!valueSeen(org, "org_save") && !valueSeen(org, "org_save2") &&
+        valueSeen(bld, "org_save") && valueSeen(bld, "org_save2"),
+        "the Organizer's own notice is filtered; the default is restored");
+  bld2.unsubscribe();
+
+  kill(broker, SIGTERM);
+  waitpid(broker, 0, 0);
+  usleep(300000);
+  check(sent(pb, "ecce_url_property", "nobroker"),
+        "publish succeeds in-process with the broker gone");
+  pump(200);
+  check(countOf(org, "nobroker") == 1, "delivered in-process with the broker gone");
+
+  org.unsubscribe();
+  bld.unsubscribe();
+  rmTree(tmp);
+  cout << (g_fail ? "FAILED" : "ALL PASS") << endl;
+  return g_fail ? 1 : 0;
 }
 
 int main(int argc, char** argv)
@@ -508,6 +1322,18 @@ int main(int argc, char** argv)
   if (n > 0) { exe[n] = 0; g_self = exe; }
 
   if (argc >= 2 && string(argv[1]) == "child") return childMain(argc, argv);
+  if (argc >= 3 && string(argv[1]) == "local") return localMain(argv[2]);
+  // Every other mode checks the switch-off behaviour, also when a suite runs
+  // with ECCE_ONE_PROCESS=1 in its environment (#983).
+  unsetenv("ECCE_ONE_PROCESS");
+  if (argc >= 2 && string(argv[1]) == "interop") return interopMain();
+  if (argc >= 3 && string(argv[1]) == "holder") return holderMain(argv[2]);
+  if (argc >= 3 && string(argv[1]) == "linger") return lingerMain(argv[2]);
+  if (argc >= 3 && string(argv[1]) == "socket") return socketMain(argv[2]);
+  if (argc >= 3 && string(argv[1]) == "cloexec") return cloexecMain(argv[2]);
+  if (argc >= 4 && string(argv[1]) == "serve") return serveMain(argv[2], argv[3]);
+  if (argc >= 3 && string(argv[1]) == "session")
+    return sessionMain(argv[2]);
   if (argc >= 3 && string(argv[1]) == "auth")
     return authMain(argv[2], argc > 3 ? argv[3] : "");
   if (argc != 2) {
@@ -576,6 +1402,19 @@ int main(int argc, char** argv)
     p2.subscribe("ecce_url_created", cb1, false);
     check(p1.startSubscriber() && p2.startSubscriber(), "subscribers started");
     usleep(300000);   // let the broker register the subscriptions
+    {
+      // Without ECCE_ONE_PROCESS the ids and the notice sender stay as before.
+      string pid = to_string(getpid());
+      JMSPublisher::ActingTool as("Builder", "1.1");
+      JMSPublisher notices("EDSIFactory");   // as EDSIFactory::getPublisher
+      notices.followActingTool(true);
+      JMSMessage* m = notices.newMessage();
+      check(p1.getMyID() == pid && p2.getMyID() == pid &&
+            m->getSender().getName() == "EDSIFactory" &&
+            m->getSender().getID() == pid,
+            "ids are the pid and notices go out as EDSIFactory (switch off)");
+      delete m;
+    }
 
     // Another process, same account and session.
     vector<string> a;

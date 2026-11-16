@@ -61,14 +61,17 @@ $calcedCmds = "$Out\calced-commands.txt"
 Set-Content $calcedCmds -Value $null
 $env:ECCE_TEST_CALCED = $calcedCmds
 Say "HOST=$env:HOST"
-# The session's broker, as ecce.cmd starts it (ecce-gateway-start -> ecce-broker-win).
-$b = & "$Ecce\usr\bin\bash.exe" "$Ecce/bin/ecce-gateway-start" 2>&1
-Say "broker: $b"
-$bf = Get-ChildItem "$Out\home\.ECCE" -Filter "broker_*_$env:ECCE_SESSION_ID" -ErrorAction SilentlyContinue
-Check ($null -ne $bf -and ((Get-Content $bf.FullName) -match "^host=127\.0\.0\.1$")) "the session broker is up, on loopback"
+# The session's broker is the Organizer's own (#990); ecce.cmd marks the session.
+$env:ECCE_LOCAL_BROKER = "1"
 
 $err = "$Out\organizer.err.txt"
 $p = Start-Process $Exe -PassThru -RedirectStandardError $err -RedirectStandardOutput "$Out\organizer.out.txt"
+$bf = $null
+for ($i = 0; $i -lt 60 -and -not $bf; $i++) {
+  Start-Sleep -Milliseconds 500
+  $bf = Get-ChildItem "$Out\home\.ECCE" -Filter "broker_*_$env:ECCE_SESSION_ID" -ErrorAction SilentlyContinue
+}
+Check ($null -ne $bf -and ((Get-Content $bf.FullName) -match "^host=127\.0\.0\.1$")) "the session broker is up, on loopback"
 function Ask($cmd, $wait = 60) {
   Add-Content $cmds $cmd
   for ($i = 0; $i -lt $wait; $i++) {

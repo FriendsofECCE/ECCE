@@ -12,10 +12,12 @@
 #pragma interface "CalcMgrApp.C"
 #endif
 
+#include <map>
+#include <wx/weakref.h>
 #include "wx/wx.h"
 #include "wxgui/ewxApp.H"
 
-class CalcMgr;
+#include "CalcMgr.H"
 class WxJMSMessageDispatch;
 
 class CalcMgrApp : public ewxApp, public WxJMSMessageDispatch
@@ -42,9 +44,11 @@ DECLARE_CLASS(CalcMgrApp)
   void workflowRequestMCB(JMSMessage& msg);
   void reconnectRequestMCB(JMSMessage& msg);
   void fetchRequestMCB(JMSMessage& msg);
+  void reparseRequestMCB(JMSMessage& msg);
   void miscPrefChangeMCB(JMSMessage& msg);
   void invokeMCB(JMSMessage& msg);
   void msgStatusMCB(JMSMessage& msg);
+  void msgToolUpMCB(JMSMessage& msg);
   void msgAuthMCB(JMSMessage& msg);
   void msgRenameMCB(JMSMessage& msg);
   void msgURLCreatedMCB(JMSMessage& msg);
@@ -57,8 +61,20 @@ DECLARE_CLASS(CalcMgrApp)
   void msgDataServerMCB(JMSMessage& msg);
 
 protected:
-  
-  CalcMgr * p_calcMgr;
+  // ecce-reparse: a request waits here for the 'reparse' notice of each
+  // calculation it started; `lines` holds the answers so far.
+  struct PendingReparse {
+    string id;
+    std::map<string, string> waiting;   // url -> calculation name
+    vector<string> lines;
+  };
+  vector<PendingReparse> p_pendingReparse;
+  void answerReparse(const string& id, const vector<string>& lines);
+  void reparseNotice(const string& url, const string& value);
+
+  // Weak: null once the Organizer window is deleted, so a message that
+  // arrives during shutdown (e.g. inside a nested event loop) is dropped.
+  wxWeakRef<CalcMgr> p_calcMgr;
 };
 
 DECLARE_APP(CalcMgrApp)

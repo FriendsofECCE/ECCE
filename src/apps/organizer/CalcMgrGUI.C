@@ -47,6 +47,8 @@ const wxWindowID CalcMgrGUI::wxID_LAUNCH_SELECTED = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_RECONNECT_SELECTED = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_REPARSE_OUTPUTS = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_NEW_SERIES = wxNewId();
+const wxWindowID CalcMgrGUI::wxID_ANOTHER_CODE = wxNewId();
+const wxWindowID CalcMgrGUI::wxID_MORE_CODES = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_TERMINATE_SELECTED = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_HOMEASROOT = wxNewId();
 const wxWindowID CalcMgrGUI::ID_FRAME = wxNewId();
@@ -75,6 +77,7 @@ const wxWindowID CalcMgrGUI::wxID_SORT_DATE = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_IMPORT = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_OPENEXAMPLES = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_IMPORTGROMACS = wxNewId();
+const wxWindowID CalcMgrGUI::wxID_NEWGROMACSRUN = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_NEWSTRUCTURE = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_RENAME = wxNewId();
 const wxWindowID CalcMgrGUI::wxID_SHOW_TOOLBAR = wxNewId();
@@ -104,6 +107,7 @@ BEGIN_EVENT_TABLE( CalcMgrGUI, ewxFrame )
     EVT_MENU( wxID_IMPORT, CalcMgrGUI::OnImportClick )
     EVT_MENU( wxID_OPENEXAMPLES, CalcMgrGUI::OnOpenExamplesClick )
     EVT_MENU( wxID_IMPORTGROMACS, CalcMgrGUI::OnImportGromacsClick )
+    EVT_MENU( wxID_NEWGROMACSRUN, CalcMgrGUI::OnNewGromacsRunClick )
 
     EVT_MENU( wxID_EXPORT, CalcMgrGUI::OnExportClick )
 
@@ -119,6 +123,8 @@ BEGIN_EVENT_TABLE( CalcMgrGUI, ewxFrame )
     EVT_MENU( wxID_RECONNECT_SELECTED, CalcMgrGUI::OnReconnectSelectedClick )
     EVT_MENU( wxID_REPARSE_OUTPUTS, CalcMgrGUI::OnReparseOutputsClick )
     EVT_MENU( wxID_NEW_SERIES, CalcMgrGUI::OnNewSeriesClick )
+    EVT_MENU( wxID_ANOTHER_CODE, CalcMgrGUI::OnAnotherCodeClick )
+    EVT_MENU( wxID_MORE_CODES, CalcMgrGUI::OnMoreCodesClick )
     EVT_MENU( wxID_TERMINATE_SELECTED, CalcMgrGUI::OnTerminateSelectedClick )
 
     EVT_MENU( wxID_CUT, CalcMgrGUI::OnCutClick )
@@ -274,9 +280,12 @@ void CalcMgrGUI::CreateControls()
     itemMenu3->Append(wxID_EXIT, _("&Quit\tCtrl+Q"), _T(""), wxITEM_NORMAL);
     menuBar->Append(itemMenu3, _("&File"));
     wxMenu* itemMenu8 = new wxMenu;
-    itemMenu8->Append(wxID_DUPLICATE, _("Duplicate for Rerun"), _T(""), wxITEM_NORMAL);
-    itemMenu8->Append(wxID_DUPLICATE2, _("Duplicate Setup with Last Geometry"), _T(""), wxITEM_NORMAL);
-    itemMenu8->Append(wxID_DUPLICATE3, _("Duplicate with Final Orbitals"), _T(""), wxITEM_NORMAL);
+    //  Same names as the right-click New from This submenu.
+    wxMenu* itemMenuNew = new wxMenu;
+    itemMenuNew->Append(wxID_DUPLICATE, _("Rerun"), _T(""), wxITEM_NORMAL);
+    itemMenuNew->Append(wxID_DUPLICATE2, _("Continue from Last Geometry"), _T(""), wxITEM_NORMAL);
+    itemMenuNew->Append(wxID_DUPLICATE3, _("Continue from Final Orbitals"), _T(""), wxITEM_NORMAL);
+    itemMenu8->AppendSubMenu(itemMenuNew, _("New from This"));
     itemMenu8->AppendSeparator();
     itemMenu8->Append(wxID_CUT, _("&Cut\tCtrl+X"), _T(""), wxITEM_NORMAL);
     itemMenu8->Append(wxID_COPY, _("C&opy\tCtrl+C"), _T(""), wxITEM_NORMAL);
@@ -438,6 +447,11 @@ void CalcMgrGUI::OnImportGromacsClick( wxCommandEvent& event )
     event.Skip();
 }
 
+void CalcMgrGUI::OnNewGromacsRunClick( wxCommandEvent& event )
+{
+    event.Skip();
+}
+
 void CalcMgrGUI::OnImportClick( wxCommandEvent& event )
 {
 ////@begin wxEVT_COMMAND_MENU_SELECTED event handler for wxID_IMPORT in CalcMgrGUI.
@@ -515,6 +529,16 @@ void CalcMgrGUI::OnReparseOutputsClick( wxCommandEvent& event )
 }
 
 void CalcMgrGUI::OnNewSeriesClick( wxCommandEvent& event )
+{
+    event.Skip();
+}
+
+void CalcMgrGUI::OnAnotherCodeClick( wxCommandEvent& event )
+{
+    event.Skip();
+}
+
+void CalcMgrGUI::OnMoreCodesClick( wxCommandEvent& event )
 {
     event.Skip();
 }

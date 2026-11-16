@@ -5,7 +5,7 @@ area: services
 paths: [include/util/SessionLease.H, src/util/genutil/SessionLease.C, src/apps/launch/ecce-launch.C, src/apps/launch/ecce-move.C, tests/launch/ecce_move_test.py]
 issues: [816, 897]
 ---
-Exit codes of ecce-launch/rerun/terminate/reconnect/fetch/move/annotate: 2 ECCE not
+Exit codes of ecce-launch/rerun/terminate/reconnect/reparse/fetch/move/annotate: 2 ECCE not
 running, 3 busy with a launch batch, 4 no answer in time (may have been carried
 out), 5 the Organizer ended before answering (#816). The tools arm a
 `SessionLease::ProgramWatch("organizer")` before publishing: it records the pid

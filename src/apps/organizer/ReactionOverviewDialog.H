@@ -81,6 +81,7 @@ private:
   void update();
   std::string p_base;
   std::string reactionText(int n) const;
+  std::string detailsText() const;
   void showProfiles();
   void fitContent(bool wantChart);
   wxScrolledWindow *p_body;

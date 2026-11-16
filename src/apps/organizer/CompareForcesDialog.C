@@ -25,8 +25,8 @@ CompareForcesDialog::CompareForcesDialog(wxWindow *parent,
   p_table = table;
   table->InsertColumn(0, _("Element"));
   table->InsertColumn(1, _("n atoms"));
-  table->InsertColumn(2, _("max |Delta F| (eV/Angstrom)"));
-  table->InsertColumn(3, _("rms |Delta F| (eV/Angstrom)"));
+  table->InsertColumn(2, wxString::FromUTF8("max |Delta F| (eV/Å)"));
+  table->InsertColumn(3, wxString::FromUTF8("rms |Delta F| (eV/Å)"));
   for (const ForceRow& row : r.rows) {
     const long i = table->InsertItem(table->GetItemCount(), wxString::FromUTF8(row.element.c_str()));
     table->SetItem(i, 1, wxString::Format("%lu", (unsigned long)row.count));

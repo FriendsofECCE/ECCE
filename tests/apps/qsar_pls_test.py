@@ -22,6 +22,7 @@ sys.path.insert(0, HERE)
 import apps       # noqa: E402
 import fixture    # noqa: E402
 import run_tests  # noqa: E402
+from qsar_pca_test import plot_ticks  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(HERE))
 PROJECT_META = os.path.join(ROOT, "tools", "screenshots", "data", "project.ecce-meta")
@@ -63,17 +64,25 @@ def run(display):
             shutil.copytree(SRC, d, symlinks=True)
             with open(os.path.join(d, ".ecce-meta"), "a") as f:
                 f.write(".\t%sqsar.smiles\t\t%s\n" % (NS, sm))
-                f.write(".\t%sqsar.measured\t\t{\"act\": %s}\n" % (NS, act[i]))
+                f.write(".\t%sqsar.measured\t\t{\"act(°C)\": %s}\n" % (NS, act[i]))
         tab = os.path.join(work, "cli.csv")
         subprocess.run([sys.executable, CLI, "table", "--csv", tab, project],
                        capture_output=True, text=True, check=True)
-        cli = subprocess.run([sys.executable, CLI, "pls", tab, "--y", "act",
+        cli = subprocess.run([sys.executable, CLI, "pls", tab, "--y", "act(°C)",
                               "--components", "2", "--outdir", work + "/cli"],
                              capture_output=True, text=True, check=True).stdout
         out = os.path.join(work, "gui")
         cmds = os.path.join(work, "commands")
+        shots = os.environ.get("ECCE_QSAR_SHOTS")
+        png = ""
+        if shots:
+            os.makedirs(shots, exist_ok=True)
+            screen = os.environ.get("ECCE_XVFB_SCREEN", "1280x1024x24").split("x")
+            width, height = int(screen[0]), int(screen[1])
+            png = " %s %d %d" % (os.path.join(shots, "pls-%sx%s.png" % (width, height)),
+                                      width, height)
         with open(cmds, "w") as h:
-            h.write("qsarpls %s file://%s act uv 2 0 0 %s\n" % (out, project, os.environ.get("ECCE_QSAR_SHOT", "")))
+            h.write("qsarpls %s file://%s act(°C) uv 2 0 0%s\n" % (out, project, png))
         result = apps.run(display, "organizer", windowTimeout=60, settle=60,
                           env={"ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_ORGANIZER_OPEN": "file://" + project,
@@ -91,7 +100,37 @@ def run(display):
         bad = [(g[0], g[3], refd.get(g[0], [0, 0, 0, "missing"])[3]) for g in gui[1:]
                if g[0] not in refd or abs(float(g[3]) - float(refd[g[0]][3])) > 1e-6 * (1 + abs(float(g[3])))]
         check(not bad, "predictions equal the CLI's", bad)
-        check("PLS of act: 10 training rows" in cli, "CLI report", cli[:200])
+        check("PLS of act(°C): 10 training rows" in cli, "CLI report", cli[:200])
+        with open(out + "/analysis_summary.txt", encoding="utf-8") as f:
+            summary = f.read()
+        check("%" in summary and "components" in summary, "summary explains variance as percentages", summary)
+        check("Left out (no variance in these " in summary and "column " not in summary,
+              "omitted descriptors are grouped by reason", summary)
+        with open(out + "/analysis_components.csv", encoding="utf-8", newline="") as f:
+            table = list(csv.reader(f))
+        check(any("R²X" in h for h in table[0]) and any("Q²" in h for h in table[0])
+              and any("%" in h for h in table[0]), "component headers have symbols and percent units", table[0])
+        check(len(table) > 2, "component table includes computed components")
+        # CV folds depend on row positions; use the exported GUI table to
+        # compare presentation independently of folder traversal order.
+        subprocess.run([sys.executable, CLI, "pls", out + "/table.csv", "--y", "act(°C)",
+                        "--components", "2", "--outdir", work + "/display-reference"],
+                       capture_output=True, text=True, check=True)
+        with open(work + "/display-reference/analysis_components.csv", encoding="utf-8", newline="") as f:
+            reference_table = list(csv.reader(f))
+        check(table == reference_table, "displayed components equal the CLI table",
+              (table, reference_table))
+        check("* = component kept" in summary and "model plane" in summary,
+              "legend explains kept components and model distances", summary)
+        # Copy, hover and click checks of the former dialog's presentation layer are not
+        # ported to the QSAR window (#996).
+        check("°C" in summary and any("°C" in h for h in table[0]),
+              "prediction errors retain the measured unit", (summary, table[0]))
+        with open(out + "/analysis_vip.csv", encoding="utf-8", newline="") as f:
+            vip = list(csv.reader(f))
+        check(len(vip) > 1 and any("description" in h.lower() for h in vip[0]),
+              "VIP table includes descriptor descriptions", vip[:2])
+
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)

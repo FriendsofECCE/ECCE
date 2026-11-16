@@ -175,12 +175,12 @@ string PropTable::columnLabel(void) const
 ///////////////////////////////////////////////////////////////////////////////
 void PropTable::values(istream& istrm)
 {
-   char line[256];
+   string line;
    string tmpString;
    int colonPos;  
    int commaPos;
 
-   istrm.getline(line,255);        // Read the size line
+   std::getline(istrm, line);        // Read the size line
    tmpString = line;
    commaPos = tmpString.find(",");
    
@@ -196,7 +196,7 @@ void PropTable::values(istream& istrm)
 // Loop through the values, assigning to vector
    for (int i=0; i<(p_numRows*p_numColumns); i++)
    {
-     if (!istrm.getline(line,255))
+     if (!std::getline(istrm, line))
        EE_RT_ASSERT(false, EE_FATAL,
              "size specified in file is greater than the number of values");
 
@@ -285,14 +285,14 @@ void PropTable::columnLabel(const string& newColumnLabel)
 bool PropTable::update(const string& msg)
 {
    istrstream input(msg.c_str());
-   char temp[100];
+   string temp;
    vector<double> newValues;
    int numRows, numCols;
    double currentValue;
    numRows = 0;
 
-   while(input.getline(temp,100)) {
-     istrstream row(temp);
+   while(std::getline(input, temp)) {
+     istrstream row(temp.c_str());
      numCols = 0;
      while (row >> currentValue) {
        newValues.push_back(currentValue);

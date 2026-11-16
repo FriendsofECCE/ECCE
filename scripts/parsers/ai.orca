@@ -251,7 +251,9 @@ sub ORCARoute {
   my $route = "! ";
   $route .= &Theory($AbiDict{"Category"}, $AbiDict{"Theory"}) . " ";
   if ($useExplicitBasis == 0 && !&IsComposite3c()) {
-    $route .= "$NameBasis ";
+    # PrintBasis: the output then lists the basis per element, which is the
+    # only record of it (results.h5 needs it, as no basis is stored).
+    $route .= "$NameBasis PrintBasis ";
   }
   $route .= &RunType($AbiDict{"RunType"}) . " ";
   $route .= &RIToken . " ";
@@ -1001,6 +1003,13 @@ sub RunType {
   $result .= " NumGrad"
     if ($AbiDict{"Theory"} eq "CCSD" && &Multiplicity() > 1 &&
         $runtype =~ /^(Gradient|Geometry)$/);
+  #  With "Freq" on the line ORCA 6.1.1 takes the analytic Hessian path even
+  #  when NumFreq (FreqMethodToken) is there too, and B88-exchange Raman
+  #  aborts at the input check (exit 55).
+  if (&HasFrequencies($runtype) &&
+      $AbiDict{"ES.Runtype.Vibration.Method"} eq "Numerical") {
+    $result =~ s/\s*\bFreq\b//;
+  }
   return $result;
 }
 

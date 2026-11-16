@@ -1023,6 +1023,43 @@ void SoWxRenderArea::setRubberBand(bool on, short x0, short y0, short x1,
 }
 
 
+//  The canvas asks for an alpha channel (depth peeling) and Coin clears it to
+//  0, which leaves the background of every frame transparent: a compositing
+//  X server then shows what lies beneath the GL window instead of the
+//  background colour, black while a slow load keeps GTK from painting (#999).
+//  ECCE_TEST_RENDER_CORNER=1 reports a corner pixel of each frame, before and
+//  after, for tests/apps/render_alpha_test.py.
+static void makeFrameOpaque(const void *area, const SbColor &bg, int w, int h)
+{
+  static const bool report = getenv("ECCE_TEST_RENDER_CORNER") != 0;
+  GLubyte before[4] = { 0, 0, 0, 0 };
+  if (report) glReadPixels(1, 1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, before);
+
+  GLboolean mask[4];
+  GLfloat clear[4];
+  glGetBooleanv(GL_COLOR_WRITEMASK, mask);
+  glGetFloatv(GL_COLOR_CLEAR_VALUE, clear);
+  const GLboolean scissor = glIsEnabled(GL_SCISSOR_TEST);
+  if (scissor) glDisable(GL_SCISSOR_TEST);
+  glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+  glClearColor(0, 0, 0, 1);
+  glClear(GL_COLOR_BUFFER_BIT);
+  glColorMask(mask[0], mask[1], mask[2], mask[3]);
+  glClearColor(clear[0], clear[1], clear[2], clear[3]);
+  if (scissor) glEnable(GL_SCISSOR_TEST);
+
+  if (report) {
+    GLubyte after[4] = { 0, 0, 0, 0 };
+    glReadPixels(1, 1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, after);
+    fprintf(stderr, "RENDER_CORNER before %d %d %d %d after %d %d %d %d "
+            "area %p bg %.2f %.2f %.2f size %dx%d\n",
+            before[0], before[1], before[2], before[3],
+            after[0], after[1], after[2], after[3],
+            area, bg[0], bg[1], bg[2], w, h);
+  }
+}
+
+
 //  Drawn in the GL frame itself, after the scene, so it works the same on
 //  X11 and XWayland and needs no overlay planes.
 void SoWxRenderArea::drawRubberBand()
@@ -1187,6 +1224,8 @@ void SoWxRenderArea::redraw()
 #endif
   if (p_frameCB) p_frameCB(p_frameCBData);
   if (p_band) drawRubberBand();
+  if (isRGBMode())
+    makeFrameOpaque(this, getBackgroundColor(), p_glxSize[0], p_glxSize[1]);
 
   // swap those buffers!
   if (isDoubleBuffer()) {

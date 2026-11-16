@@ -118,6 +118,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [XML comments may not contain `--`](xml-comments-may-not-contain.md)
 - [The MO diagram needs the code's MO coefficients and basis, with their AO order verified, not its population analysis](the-mo-diagram-needs-the-codes-mo.md)
 - [Keep `len(TEVEC) <= len(GEOMTRACE)`](keep-lentevec-lengeomtrace.md)
+- [QE relax: positions are the next SCF's geometry; TEVEC published with them](qe-relax-positions-are-the-next-scf-geometry-1003.md)
 - [A `.desc` parse-type's `Begin` value is also its hash key, AND its match priority](a-desc-parse-types-begin-value-is.md)
 - [`End`-line starvation: an `End` that lands on another entry's `Begin` line makes that entry unable to EVER fire](end-line-starvation-an-end-that-lands.md)
 - [An `End` the code prints only sometimes leaves the block open: every later property is lost, progress still works (#491)](an-end-the-code-prints-only-sometimes.md)
@@ -244,8 +245,11 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [GROMACS umbrella sampling: windows are rate-0 copies made with createChild + addMemberAsTarget; WHAM reads tpr + pullf (#762)](gromacs-umbrella-windows-are-rate-zero-copies-and-wham-needs-pullf.md)
 - [A workflow step may store no theory: no deck, no crash (#950)](workflow-step-without-theory-950.md)
 - [Auto-run: the tick arms, Launch Ready Steps starts; no editor opens by itself (#926)](workflow-autorun-armed-by-tick-started-by-launch-926.md)
+- [Workflow autorun tests wait for replies: reused X11 window IDs exhausted the test budget (#1081)](workflow-autorun-test-waits-for-replies-1081.md)
 - [A Save starts at most two shell commands: file work in process (#940)](save-starts-two-processes-940.md)
 - [The Vina search box in the viewer and the Poses panel for docking](vina-box-and-poses-455.md) - picking and drawing the box, the pose panel without a Boltzmann population, pocket view (#455).
 - [The Poses panel's cost is per pose selection, not per open](poses-panel-cost-on-a-protein-966.md) - measured ms per part on a 4673-atom receptor; the pocket restyle is what costs, and it is skipped when the shown set does not change (#966).
 - [Vina's automatic ligand skips water and ions and is reported (#962)](vina-automatic-ligand-skips-water-and-ions-962.md) - dockSplit rules, pdb_list columns, warning channel.
 - [verifyinput judged a Vina deck by the generic atom count (#963)](verifyinput-counted-zero-atoms-in-a-vina-deck-963.md) - skip for Vina, ligand/receptor list coverage check.
+- [NPA: core orthogonalised apart from the valence minimal basis](npa-core-orthogonalised-apart.md) — ecce-npa vs NBO 7; ECP cores inferred; route-card basis gives no results.h5 (#1054)
+- [A machine's QE pseudopotential directory goes into pseudo_dir at launch (#989)](qe-machine-pseudo-dir-989.md) - CONFIG key, postParams, launch-time missing-file check over the existing login.

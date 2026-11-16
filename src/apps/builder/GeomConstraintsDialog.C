@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstdio>
 #include <set>
 
@@ -378,6 +379,32 @@ void GeomConstraintsDialog::OnFix(wxCommandEvent&)
   done(fixSelection());
 }
 
+string GeomConstraintsDialog::applyScan(GeomConstraint *c, int steps, double step)
+{
+  if (steps < 1 || steps > 500) return "Scan steps must be from 1 to 500.";
+  if (!(step != 0.0) || !std::isfinite(step)) return "The scan step size must not be zero.";
+  if (c) c->setScan(steps, step);
+  return "";
+}
+
+
+string GeomConstraintsDialog::scanSelection(int steps, double step)
+{
+  string msg = applyScan(nullptr, steps, step);
+  if (!msg.empty()) return msg;
+  const vector<GeomConstraint*> before = p_rows;
+  msg = addFromSelection(false, false, false);
+  done(msg);
+  for (size_t i = 0; i < p_rows.size(); i++)
+    if (std::find(before.begin(), before.end(), p_rows[i]) == before.end()) {
+      applyScan(p_rows[i], steps, step);
+      done(msg);
+      break;
+    }
+  return msg;
+}
+
+
 void GeomConstraintsDialog::OnScan(wxCommandEvent&)
 {
   const vector<GeomConstraint*> before = p_rows;
@@ -430,7 +457,7 @@ void GeomConstraintsDialog::editRow(long row, bool scanOn)
   GeomRestraint *r = dynamic_cast<GeomRestraint*>(c);
 
   const bool length = c->getNumAtoms() == 2;
-  const wxString unit = length ? wxString::FromUTF8("Å") : wxString("degrees");
+  const wxString unit = length ? wxString::FromUTF8("Å") : wxString::FromUTF8("\xC2\xB0");
   wxDialog d(this, wxID_ANY, "Edit Value");
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
   wxFlexGridSizer *grid = new wxFlexGridSizer(2, 5, 8);
@@ -476,9 +503,8 @@ void GeomConstraintsDialog::editRow(long row, bool scanOn)
   c->setConstraintValue(v);
   if (scan) {
     double sv = 0.0;
-    if (scan->GetValue() && step->GetValue().ToDouble(&sv) && sv != 0.0)
-      c->setScan(steps->GetValue(), sv);
-    else
+    if (!(scan->GetValue() && step->GetValue().ToDouble(&sv) &&
+          applyScan(c, steps->GetValue(), sv).empty()))
       c->setScan(0, 0.0);
   }
 

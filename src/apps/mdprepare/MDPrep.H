@@ -50,6 +50,8 @@ class MDPrep: public MDPrepGUI,
 {    
 
    public:
+      // The window's dispatcher (#983, opened in the Organizer's process).
+      WxJMSMessageDispatch *getDispatcher() const { return p_msgDispatcher; }
 
       /** States that dictate actions a user can take. */
       enum PrepState {NO_SYSTEM, VALID_SYSTEM, PROVIDED_SYSTEM, VALID_TOPOLOGY};
@@ -78,6 +80,13 @@ class MDPrep: public MDPrepGUI,
       void showSolvatePanel();
       void enableModifyPanel();
       virtual bool Show(bool show);
+      // As a tab of the Organizer's window (#983).
+      void Raise() override;
+      void SetTitle(const wxString& title) override;
+      bool Destroy() override;
+      wxMenuBar *GetMenuBar() const;
+      /// Hides wxWindow::FindWindow(long): the controls are in the tab's page.
+      wxWindow *FindWindow(long id) const;
 
       // EditListener virtuals
       virtual void processEditCompletion(const EditEvent& ee);

@@ -63,6 +63,23 @@ int main()
   check(opt.plot.size() == 4 && !opt.plotLog, "an energy plot per step");
   const JobProgress::Block& freq = blocks[2];
 
+  //  Vina (#1001): the bar of stars is the search's progress.
+  {
+    JobProgress vina;
+    vina.parse("vina bar=*************************\n");
+    const vector<JobProgress::Block> vb = vina.running(0);
+    check(vb.size() == 1 && vb[0].title == "Vina" && vb[0].bar &&
+          fabs(vb[0].fraction - 25.0 / 51) < 1e-9 && !vb[0].lines.empty() &&
+          vb[0].lines[0].find("49 %") != string::npos,
+          "vina: the bar's length is the fraction");
+    JobProgress done;
+    done.parse("vina stage=done best=-9.50\n");
+    const vector<JobProgress::Block> db = done.running(0);
+    check(db.size() == 1 && db[0].bar && db[0].fraction == 1.0 &&
+          db[0].lines[0].find("best -9.50 kcal/mol") != string::npos,
+          "vina: done shows the best score");
+  }
+
   //  Forces with limits plot as two log curves with their limits.
   JobProgress forces;
   forces.parse("opt step=3 maxgrad=2.0e-03/3e-04 rmsgrad=5.0e-04/1e-04\n"

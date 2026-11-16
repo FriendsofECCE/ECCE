@@ -253,7 +253,8 @@ def install(name="calc-water-vib", source_dir=None):
 
 
 def authFile(path, port=None, user=USER):
-    """Write an -pipe auth file.  AuthCache unlinks it after reading.
+    """Write an -pipe auth file.  AuthCache reads it and leaves it (only its own
+    FIFO or AuthPipe.* temp file is removed), so it lives in the state dir.
 
     `user` must be the account the app logs in as, which is ECCE_REALUSER,
     not necessarily the account holding the calculation: every app first

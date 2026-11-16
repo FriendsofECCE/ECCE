@@ -1,0 +1,56 @@
+&CONTROL
+  calculation = 'relax'
+  prefix = 'urea'
+  outdir = './qe.scratch'
+  pseudo_dir = '/usr/share/espresso/pseudo/'
+  tprnfor = .true.
+  tstress = .false.
+  forc_conv_thr = 1.0d-3
+  nstep = 50
+/
+&SYSTEM
+  ibrav = 0
+  nat = 16
+  ntyp = 4
+  ecutwfc = 60.0
+  ecutrho = 480.0
+  occupations = 'fixed'
+  vdw_corr = 'grimme-d3'
+  dftd3_version = 4
+/
+&ELECTRONS
+  conv_thr = 1e-06
+  mixing_beta = 0.7
+  electron_maxstep = 100
+/
+&IONS
+  ion_dynamics = 'bfgs'
+/
+ATOMIC_SPECIES
+  C      12.0107  C.pbe-n-kjpaw_psl.1.0.0.UPF
+  H       1.0079  H.pbe-rrkjus_psl.1.0.0.UPF
+  N      14.0067  N.pbe-n-radius_5.UPF
+  O      15.9994  O.pbe-n-kjpaw_psl.0.1.UPF
+CELL_PARAMETERS angstrom
+      5.5650000000     0.0000000000     0.0000000000
+      0.0000000000     5.5650000000     0.0000000000
+      0.0000000000     0.0000000000     4.6840000000
+ATOMIC_POSITIONS angstrom
+  C       0.0000000000     2.7825000000     1.5269840000
+  C       2.7825000000     0.0000000000     3.1570160000
+  H       1.4329875000     4.2154875000     1.3241668000
+  H      -1.4329875000     1.3495125000     1.3241668000
+  H       4.2154875000    -1.4329875000     3.3598332000
+  H       1.3495125000     1.4329875000     3.3598332000
+  H       0.8019165000     3.5844165000    -0.1779920000
+  H      -0.8019165000     1.9805835000    -0.1779920000
+  H       3.5844165000    -0.8019165000     4.8619920000
+  H       1.9805835000     0.8019165000     4.8619920000
+  N       0.8119335000     3.5944335000     0.8271944000
+  N      -0.8119335000     1.9705665000     0.8271944000
+  N       3.5944335000    -0.8119335000     3.8568056000
+  N       1.9705665000     0.8119335000     3.8568056000
+  O       0.0000000000     2.7825000000     2.7883852000
+  O       2.7825000000     0.0000000000     1.8956148000
+K_POINTS automatic
+  4 4 5 0 0 0

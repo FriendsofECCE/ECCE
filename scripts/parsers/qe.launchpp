@@ -20,14 +20,10 @@
 #
 # WHAT IS DELIBERATELY *NOT* DONE HERE:
 #
-#   * pseudo_dir is left exactly as ai.qe wrote it.  It is tempting to
-#     "fix up" at launch, but this script runs on the CLIENT, before the
-#     input file is staged to the compute host, and Launch's postParams
-#     dictionary carries no remote pseudopotential path (it has runDir,
-#     scratchDir and machineName only).  Rewriting it here could only ever
-#     guess.  A site whose pseudopotential library is not at the packaged
-#     /usr/share/espresso/pseudo sets it in the Theory Details dialog
-#     instead, which is the one place that value is actually known.
+#   * pseudo_dir is left as ai.qe wrote it unless the run machine names its
+#     own library (pseudoDir, from <Code>PseudoDir in CONFIG.<machine>).
+#     ai.qe still picks the UPF file names from the local library; Launch
+#     then checks that the machine's directory holds them.
 #
 #   * No "-nk" / pool count is injected.  pw.x's -nk (k-point pools) is a
 #     COMMAND-LINE flag, not an input keyword, so it belongs in
@@ -67,7 +63,10 @@ while (<PARAMDICT>) {
 close(PARAMDICT);
 
 my $scratchDir = $ParamDict{'scratchDir'};
-exit(0) if (!defined($scratchDir) || $scratchDir eq "");
+my $pseudoDir = $ParamDict{'pseudoDir'};
+$scratchDir = "" if (!defined($scratchDir));
+$pseudoDir = "" if (!defined($pseudoDir));
+exit(0) if ($scratchDir eq "" && $pseudoDir eq "");
 
 unless (open(INFILE, $ParamDict{'inputFile'})) {
   die "Cannot open Quantum ESPRESSO input file $ParamDict{'inputFile'}";
@@ -80,42 +79,53 @@ if (!-w $ParamDict{'inputFile'}) {
       "$ParamDict{'inputFile'}!";
 }
 
-# pw.x creates outdir itself if it does not exist, but it does NOT create
-# missing parents, so the value written has to be a directory whose parent
-# the submit script already made -- scratchDir itself, with the prefix
-# appended, is exactly that (gensub's own preamble mkdir -p's scratchDir).
-my $prefix = "ecce";
-foreach my $line (@contents) {
-  if ($line =~ /^\s*prefix\s*=\s*['"]([^'"]*)['"]/i) {
-    $prefix = $1;
-    last;
-  }
-}
-$scratchDir =~ s{/+$}{};
-my $outdir = "$scratchDir/$prefix.qe";
-
-my $replaced = 0;
-foreach my $line (@contents) {
-  if ($line =~ /^\s*outdir\s*=/i) {
-    $line = "  outdir = '$outdir'\n";
-    $replaced = 1;
-  }
-}
-
-# ai.qe always writes an outdir, so this branch is only reached for a
-# hand-edited deck that removed it.  Insert immediately after &CONTROL so
-# the variable lands inside the right namelist.
-if (!$replaced) {
-  my @out = ();
-  my $inserted = 0;
+if ($scratchDir ne "") {
+  # pw.x creates outdir itself if it does not exist, but it does NOT create
+  # missing parents, so the value written has to be a directory whose parent
+  # the submit script already made -- scratchDir itself, with the prefix
+  # appended, is exactly that (gensub's own preamble mkdir -p's scratchDir).
+  my $prefix = "ecce";
   foreach my $line (@contents) {
-    push(@out, $line);
-    if (!$inserted && $line =~ /^\s*&CONTROL\b/i) {
-      push(@out, "  outdir = '$outdir'\n");
-      $inserted = 1;
+    if ($line =~ /^\s*prefix\s*=\s*['"]([^'"]*)['"]/i) {
+      $prefix = $1;
+      last;
     }
   }
-  @contents = @out if ($inserted);
+  $scratchDir =~ s{/+$}{};
+  my $outdir = "$scratchDir/$prefix.qe";
+
+  my $replaced = 0;
+  foreach my $line (@contents) {
+    if ($line =~ /^\s*outdir\s*=/i) {
+      $line = "  outdir = '$outdir'\n";
+      $replaced = 1;
+    }
+  }
+
+  # ai.qe always writes an outdir, so this branch is only reached for a
+  # hand-edited deck that removed it.  Insert immediately after &CONTROL so
+  # the variable lands inside the right namelist.
+  if (!$replaced) {
+    my @out = ();
+    my $inserted = 0;
+    foreach my $line (@contents) {
+      push(@out, $line);
+      if (!$inserted && $line =~ /^\s*&CONTROL\b/i) {
+        push(@out, "  outdir = '$outdir'\n");
+        $inserted = 1;
+      }
+    }
+    @contents = @out if ($inserted);
+  }
+
+}
+
+# Written as ai.qe writes it, with one trailing slash.
+if ($pseudoDir ne "") {
+  $pseudoDir =~ s{/+$}{};
+  foreach my $line (@contents) {
+    $line = "  pseudo_dir = '$pseudoDir/'\n" if ($line =~ /^\s*pseudo_dir\s*=/i);
+  }
 }
 
 unless (open(PPFILE, ">$ParamDict{'inputFile'}")) {

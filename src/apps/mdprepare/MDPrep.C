@@ -92,9 +92,12 @@
 #include "wxgui/WxState.H"
 
 #include "comm/RCommand.H"
+#include "util/MqttLink.H"
+#include "wxgui/InProcessTools.H"
 #include "comm/Launch.H"
 #include "comm/EcceShell.H"
 
+#include "wxgui/ToolTabs.H"
 #include "MDPrep.H"
 
 static const wxString ATOMREGEXP = "[0-9]+:_[a-z,A-Z]+";
@@ -113,7 +116,9 @@ MDPrep::MDPrep(wxWindow* parent, wxWindowID id, const wxString& caption,
         MDPrepGUI(parent, id, caption, pos, size, style),
         WxJMSListener(), TaskApp(WHOAMI, 1000), WxDavAuth(0)
 {
-   EDSIFactory::addAuthEventListener(this);
+   //  One listener per process: in the Organizer's process (#983) it stays
+   //  the Organizer's.
+   if (!MqttLink::localDelivery()) EDSIFactory::addAuthEventListener(this);
 
    initializeMessaging();
 
@@ -281,6 +286,7 @@ string MDPrep::runTestCommand(const string& line)
 
 MDPrep::~MDPrep()
 {
+   ToolTabs::release(this, false);
   delete p_msgDispatcher;
   if (p_progressDialog != 0) {
     delete p_progressDialog;
@@ -828,7 +834,7 @@ void MDPrep::showTranslatePanel()
       p_translateVSizer->Show(p_translateAtomID, false, true);
    }
    p_translateVSizer->Layout();
-   Fit();
+   if (!ToolTabs::layout(this)) Fit();
 }
 
 void MDPrep::showOrientPanel()
@@ -851,7 +857,7 @@ void MDPrep::showOrientPanel()
     p_orientVSizer->Show(p_orientAtomID, false, true);
   }
   p_orientVSizer->Layout();
-  Fit();
+  if (!ToolTabs::layout(this)) Fit();
 }
 
 void MDPrep::showSolvatePanel()
@@ -877,7 +883,7 @@ void MDPrep::showSolvatePanel()
     p_solvateVSizer->Show(p_slvBoxPanel, false, true);
   }
   p_solvateVSizer->Layout();
-  Fit();
+  if (!ToolTabs::layout(this)) Fit();
 }
 
 void MDPrep::enableModifyPanel()
@@ -891,6 +897,40 @@ void MDPrep::enableModifyPanel()
     panel->Disable();
   }
 }
+
+void MDPrep::Raise()
+{
+   if (ToolTabs::hosts(this)) ToolTabs::select(this);
+   else MDPrepGUI::Raise();
+}
+
+
+void MDPrep::SetTitle(const wxString& title)
+{
+   MDPrepGUI::SetTitle(title);
+   ToolTabs::setTitle(this, title);
+}
+
+
+bool MDPrep::Destroy()
+{
+   ToolTabs::release(this, false);
+   return MDPrepGUI::Destroy();
+}
+
+
+wxMenuBar *MDPrep::GetMenuBar() const
+{
+   return ToolTabs::menuBar(this, wxFrame::GetMenuBar());
+}
+
+
+wxWindow *MDPrep::FindWindow(long id) const
+{
+   wxWindow *page = ToolTabs::client(this);
+   return page ? page->FindWindow(id) : wxFrame::FindWindow(id);
+}
+
 
 bool MDPrep::Show( bool show)
 {
@@ -913,6 +953,10 @@ bool MDPrep::Show( bool show)
 
    getPrepareModel().setChangedTopology(topology);
 
+   if (ToolTabs::hosts(this)) {
+      if (show) ToolTabs::select(this);
+      return true;
+   }
    return MDPrepGUI::Show(show);
 }
 
@@ -1632,7 +1676,7 @@ void MDPrep::saveModelAndInputFile(MdTask *task)
 void MDPrep::setUnitFamily(const string& family)
 {
    ewxWindowUtils::setUnitFamily(this, family);
-   Fit();
+   if (!ToolTabs::layout(this)) Fit();
 }
 
 
@@ -3491,7 +3535,10 @@ void MDPrep::OnButtonMdprepLnkDeleteClick( wxCommandEvent& event )
 void MDPrep::OnCloseWindow( wxCloseEvent& event )
 {
    doQuit(false, true);
-   
+   //  Cancel in the save question keeps the window: say so, or the
+   //  Organizer's Quit (#983, one process) takes the close as done.
+   if (!wxTheApp->IsScheduledForDestruction(this) && event.CanVeto())
+      event.Veto();
 }
 
 

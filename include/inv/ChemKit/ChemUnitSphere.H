@@ -114,7 +114,7 @@ class ChemUnitSphere {
 // --> EGB && SGB
 	public:
 		void generateSphereTexCoords(int32_t &vertCount);
-		static void generateBillboard();
+		static void generateBillboard(SoGLRenderAction *action);
 // <-- EGB && SGB
 
   private:

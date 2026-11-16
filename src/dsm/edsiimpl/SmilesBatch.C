@@ -295,6 +295,7 @@ vector<SmilesBatch::Row> SmilesBatch::preview(const Table& table, const Columns&
   for (size_t r = 0; r < table.rows.size(); r++) {
     const vector<string>& cells = table.rows[r];
     Row row;
+    row.source = table.source;
     row.line = table.lines[r];
     row.smiles = columns.smiles >= 0 ? trim(cells[columns.smiles]) : string();
     row.name = safeName(columns.name >= 0 ? cells[columns.name] : string(), row.line);
@@ -449,6 +450,7 @@ vector<SmilesBatch::Outcome> SmilesBatch::make(
           if (Resource *c = EDSIFactory::getResource(EcceURL(o.url))) {
             c->addProp(ns(kSmilesProp), row.smiles);
             c->addProp(ns(kMeasuredProp), measuredJson(row.measured));
+            c->addProp(ns("qsar.source"), row.source);
             string note;
             for (const auto& m : row.measured)
               if (!m.second.empty()) note += (note.empty() ? "" : "; ") + m.first + " = " + m.second;

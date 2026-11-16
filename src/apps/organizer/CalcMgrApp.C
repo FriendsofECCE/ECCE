@@ -16,6 +16,11 @@
 #include "util/TempStorage.H"
 #include <unistd.h>
 #include <stdio.h>
+#include "util/MqttBroker.H"
+#include "util/MqttLink.H"
+#include "wxgui/InProcessTools.H"
+#include "wxgui/ToolTabs.H"
+#include "util/JMSPublisher.H"
 #include "wx/wxprec.h"
 
 #ifdef __BORLANDC__
@@ -108,6 +113,17 @@ static void restartInLocalMode()
 #endif
 
 
+// In builder-objs and calced-objs (#983).
+void registerBuilderInProcess();
+void registerCalcEdInProcess();
+void registerMDOptimizeInProcess();
+void registerMDEnergyInProcess();
+void registerMDDynamicsInProcess();
+void registerGmxPrepareInProcess();
+void registerBasisToolInProcess();
+void registerMDPrepInProcess();
+void registerLauncherInProcess();
+
 IMPLEMENT_APP(CalcMgrApp)
 
 IMPLEMENT_CLASS(CalcMgrApp, ewxApp)
@@ -137,6 +153,26 @@ string CalcMgrApp::getName() const
  */
 bool CalcMgrApp::OnInit()
 {
+  // Only this process runs tools in-process (#983); its children do not.
+  MqttLink::takeOneProcessSwitch(true);
+  // The session's own broker (#990), before anything connects to it.
+  // ECCE_BROKER=mosquitto keeps the old ecce-broker-win (ecce.cmd).  Only
+  // ecce.cmd sets ECCE_LOCAL_BROKER: on Linux and macOS ecce-gateway-start
+  // runs the same broker as a program (eccebroker --serve, #1007), since the
+  // gateway connects before this Organizer exists; with the variable set
+  // here anyway, startForSession adopts that broker.
+  {
+    wxString which;
+    if (wxGetEnv("ECCE_LOCAL_BROKER", NULL) &&
+        !(wxGetEnv("ECCE_BROKER", &which) && which == "mosquitto")) {
+      std::string err = MqttBroker::startForSession();
+      if (!err.empty()) {
+        std::cerr << "ECCE: message broker: " << err << std::endl;
+        wxMessageBox("ECCE could not start its message broker: " + err,
+                     "ECCE", wxOK | wxICON_ERROR);
+      }
+    }
+  }
   ewxApp::OnInit();
 #ifdef __WXMSW__
   // No gateway here: the Organizer has the session's login window.
@@ -217,6 +253,8 @@ bool CalcMgrApp::OnInit()
   subscribe("ecce_reconnect_request", (wxJmsCBFunc)&CalcMgrApp::reconnectRequestMCB);
   // ecce-fetch
   subscribe("ecce_fetch_request", (wxJmsCBFunc)&CalcMgrApp::fetchRequestMCB);
+  // ecce-reparse
+  subscribe("ecce_reparse_request", (wxJmsCBFunc)&CalcMgrApp::reparseRequestMCB);
   
   // Preference Messages
   // Not filtered: the Organizer's own Preferences dialog publishes it too.
@@ -226,6 +264,7 @@ bool CalcMgrApp::OnInit()
   //  startup status Messages
   subscribe("ecce_invoke", (wxJmsCBFunc)&CalcMgrApp::invokeMCB);
   subscribe("ecce_invoke_status", (wxJmsCBFunc)&CalcMgrApp::msgStatusMCB,false);
+  subscribe("ecce_tool_up", (wxJmsCBFunc)&CalcMgrApp::msgToolUpMCB, false);
 
   // New ecce 2.0 msgs
   subscribe("ecce_auth_changed", (wxJmsCBFunc)&CalcMgrApp::msgAuthMCB);
@@ -258,6 +297,29 @@ bool CalcMgrApp::OnInit()
   startSubscriber();
   notifyReady();
 
+  if (MqttLink::localDelivery()) {
+    // Builder and Calculation Editor open as windows of this process
+    // (#983); data notices go out as the tool whose window is active.
+    registerBuilderInProcess();
+    registerCalcEdInProcess();
+    registerMDOptimizeInProcess();
+    registerMDEnergyInProcess();
+    registerMDDynamicsInProcess();
+    registerGmxPrepareInProcess();
+    registerBasisToolInProcess();
+    registerMDPrepInProcess();
+    registerLauncherInProcess();
+    string name = getMyName(), id = getMyID();
+    JMSPublisher::setActingTool(name, id);
+    p_calcMgr->Bind(wxEVT_ACTIVATE, [name, id](wxActivateEvent& ev) {
+      if (ev.GetActive()) JMSPublisher::setActingTool(name, id);
+      ev.Skip();
+    });
+    // Tools set to Tab in Preferences > Windows and tabs (#983 stage 2)
+    // open as tabs of this window.
+    if (ToolTabs::enabled()) ToolTabs::setMainWindow(p_calcMgr);
+  }
+
   return true;
 }
 
@@ -276,13 +338,20 @@ void CalcMgrApp::openUrlWhenReady(const string& url, int tries)
 
 int CalcMgrApp::OnExit()
 {
+  // Tools and job monitors still connected keep the broker for 10 s after
+  // the last of them.
+  MqttBroker::lingerForSession(10);
   return 0;
 }
 
 
 void CalcMgrApp::quitMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   if (msg.getSender().getName() == GATEWAY) {
+    // Tool windows in this process first (#983): the main loop ends with
+    // the Organizer's frame, and a window left open would outlive it.
+    InProcessTools::closeAll(true);
     GetTopWindow()->Destroy();
   }
 }
@@ -290,6 +359,7 @@ void CalcMgrApp::quitMCB(JMSMessage& msg)
 
 void CalcMgrApp::identifyMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   JMSMessage* reply = newMessage();
   string currentNode = p_calcMgr->getTreeSelectionName();
   reply->addProperty("info", "Organizer: " + currentNode);
@@ -319,6 +389,7 @@ static void slowDownForTest()
 // answer follows when the batch has submitted.
 void CalcMgrApp::launchRequestMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   const string id = msg.getProperty("reply_id");
   auto reply = [this, &id](const string& kind, const vector<string>& lines) {
     JMSMessage* r = newMessage();
@@ -354,6 +425,7 @@ void CalcMgrApp::launchRequestMCB(JMSMessage& msg)
 // answer follows when the batch has submitted.
 void CalcMgrApp::rerunRequestMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   const string id = msg.getProperty("reply_id");
   auto reply = [this, &id](const string& kind, const vector<string>& lines) {
     JMSMessage* r = newMessage();
@@ -384,6 +456,7 @@ void CalcMgrApp::rerunRequestMCB(JMSMessage& msg)
 // ecce-annotate: as launchRequestMCB, answered on ecce_annotate_reply.
 void CalcMgrApp::annotateRequestMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   slowDownForTest();
   const string id = msg.getProperty("reply_id");
   vector<EcceURL> urls;
@@ -407,6 +480,7 @@ void CalcMgrApp::annotateRequestMCB(JMSMessage& msg)
 // ecce-move / ecce-rename: as annotateRequestMCB, answered on ecce_move_reply.
 void CalcMgrApp::moveRequestMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   slowDownForTest();
   const string id = msg.getProperty("reply_id");
   vector<EcceURL> urls;
@@ -433,6 +507,7 @@ void CalcMgrApp::moveRequestMCB(JMSMessage& msg)
 // ecce-workflow (#807, #874): one answer line, "ok <workflow URL>" or "error: ...".
 void CalcMgrApp::workflowRequestMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   string answer;
   if (msg.getProperty("verb") == "create") {
     // create (#874): calcN calculation URLs, linkN "A:B[=role]".
@@ -461,6 +536,7 @@ void CalcMgrApp::workflowRequestMCB(JMSMessage& msg)
 // ecce-terminate: as launchRequestMCB, answered on ecce_terminate_reply.
 void CalcMgrApp::terminateRequestMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   const string id = msg.getProperty("reply_id");
   auto reply = [this, &id](const string& kind, const vector<string>& lines) {
     JMSMessage* r = newMessage();
@@ -488,6 +564,7 @@ void CalcMgrApp::terminateRequestMCB(JMSMessage& msg)
 // ecce-reconnect: as terminateRequestMCB, answered on ecce_reconnect_reply.
 void CalcMgrApp::reconnectRequestMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   const string id = msg.getProperty("reply_id");
   auto reply = [this, &id](const string& kind, const vector<string>& lines) {
     JMSMessage* r = newMessage();
@@ -515,6 +592,7 @@ void CalcMgrApp::reconnectRequestMCB(JMSMessage& msg)
 // ecce-fetch: as reconnectRequestMCB, answered on ecce_fetch_reply.
 void CalcMgrApp::fetchRequestMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   const string id = msg.getProperty("reply_id");
   auto reply = [this, &id](const string& kind, const vector<string>& lines) {
     JMSMessage* r = newMessage();
@@ -540,8 +618,76 @@ void CalcMgrApp::fetchRequestMCB(JMSMessage& msg)
 }
 
 
+void CalcMgrApp::answerReparse(const string& id, const vector<string>& lines)
+{
+  JMSMessage* r = newMessage();
+  r->addProperty("reply_id", id);
+  r->addProperty("kind", "done");
+  r->addIntProperty("n", (int)lines.size());
+  for (size_t i = 0; i < lines.size(); i++)
+    r->addProperty("line" + std::to_string(i), lines[i]);
+  publish("ecce_reparse_reply", *r);
+  delete r;
+}
+
+
+// ecce-reparse: refusals are known at once; each started calculation is
+// answered when its job store sends the 'reparse' notice, and the reply
+// goes out when the last one has.
+void CalcMgrApp::reparseRequestMCB(JMSMessage& msg)
+{
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
+  vector<EcceURL> urls;
+  int n = msg.getIntProperty("n");
+  for (int i = 0; i < n; i++)
+    urls.push_back(EcceURL(msg.getProperty("url" + std::to_string(i))));
+
+  vector<string> results;
+  string outcome;
+  p_calcMgr->reparseOutputs(urls, false, &outcome, &results);
+  PendingReparse req;
+  req.id = msg.getProperty("reply_id");
+  for (size_t i = 0; i < results.size(); i++) {
+    // name \t url \t started|refused \t reason
+    vector<string> f;
+    size_t from = 0, at;
+    while ((at = results[i].find('\t', from)) != string::npos) {
+      f.push_back(results[i].substr(from, at - from));
+      from = at + 1;
+    }
+    f.push_back(results[i].substr(from));
+    if (f.size() < 4) continue;
+    if (f[2] == "started") req.waiting[f[1]] = f[0];
+    else req.lines.push_back(f[0] + "\trefused\t" + f[3]);
+  }
+  if (req.waiting.empty()) answerReparse(req.id, req.lines);
+  else p_pendingReparse.push_back(req);
+}
+
+
+void CalcMgrApp::reparseNotice(const string& url, const string& value)
+{
+  for (size_t i = 0; i < p_pendingReparse.size(); i++) {
+    PendingReparse& req = p_pendingReparse[i];
+    auto it = req.waiting.find(url);
+    if (it == req.waiting.end()) continue;
+    req.lines.push_back(it->second + (value == "done" ? "\tdone\t" :
+        "\tfailed\tthe parser failed; see the calculation's run log"));
+    req.waiting.erase(it);
+    if (req.waiting.empty()) {
+      const string id = req.id;
+      const vector<string> lines = req.lines;
+      p_pendingReparse.erase(p_pendingReparse.begin() + i);
+      answerReparse(id, lines);
+    }
+    return;
+  }
+}
+
+
 void CalcMgrApp::miscPrefChangeMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   p_calcMgr->getFeedback()->readPreferences();
   p_calcMgr->setContextPanel();
   // Icon style may have changed: rebuild the image lists, repaint the tree.
@@ -552,6 +698,7 @@ void CalcMgrApp::miscPrefChangeMCB(JMSMessage& msg)
 
 void CalcMgrApp::invokeMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   //  Only a request for the Organizer itself brings it forward.  Opening
   //  another tool from it must not raise it again or flag it for attention:
   //  GNOME then announces "ECCE Organizer is ready" over the new tool.
@@ -566,6 +713,7 @@ void CalcMgrApp::invokeMCB(JMSMessage& msg)
 
 void CalcMgrApp::msgStatusMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   static const char *errMsg =
     "Unable to start the application.  "
     "Please report it at https://github.com/FriendsofECCE/ECCE/issues . "
@@ -579,14 +727,23 @@ void CalcMgrApp::msgStatusMCB(JMSMessage& msg)
 }
 
 
+void CalcMgrApp::msgToolUpMCB(JMSMessage& msg)
+{
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
+  p_calcMgr->toolUp(msg.getProperty("appname"), msg.getProperty("calcurl"));
+}
+
+
 void CalcMgrApp::msgAuthMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   AuthCache::getCache().msgIn(msg, getMyID());
 }
 
 
 void CalcMgrApp::msgRenameMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   EcceURL oldurl(msg.getProperty("oldurl"));
   EcceURL newurl(msg.getProperty("newurl"));
   p_calcMgr->updateName(oldurl, newurl);
@@ -595,6 +752,7 @@ void CalcMgrApp::msgRenameMCB(JMSMessage& msg)
 
 void CalcMgrApp::msgURLCreatedMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   EcceURL url(msg.getProperty("url"));
   p_calcMgr->queueUpdate(msg.getProperty("select") == "1"
                          ? CalcMgr::UPDATE_ADDED_SELECT : CalcMgr::UPDATE_ADDED, url);
@@ -603,6 +761,7 @@ void CalcMgrApp::msgURLCreatedMCB(JMSMessage& msg)
 
 void CalcMgrApp::msgURLRemovedMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   EcceURL url(msg.getProperty("url"));
   p_calcMgr->queueUpdate(CalcMgr::UPDATE_REMOVED, url);
 }
@@ -610,15 +769,19 @@ void CalcMgrApp::msgURLRemovedMCB(JMSMessage& msg)
 
 void CalcMgrApp::msgChangedMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   EcceURL url(msg.getProperty("url"));
-  if (msg.getProperty("name") == "reparse")
+  if (msg.getProperty("name") == "reparse") {
     p_calcMgr->reparseFinished(url, msg.getProperty("value"));
+    reparseNotice(url.toString(), msg.getProperty("value"));
+  }
   p_calcMgr->queueUpdate(CalcMgr::UPDATE_CHANGED, url);
 }
 
 
 void CalcMgrApp::msgSubjectMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   p_calcMgr->structureStored(EcceURL(msg.getProperty("url")));
   msgChangedMCB(msg);
 }
@@ -626,6 +789,7 @@ void CalcMgrApp::msgSubjectMCB(JMSMessage& msg)
 
 void CalcMgrApp::msgProgressMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   // A "contact" notice (#284) carries the last snapshot heard, if any; it
   // must not forget the shown one when it carries none.
   const string contact = msg.getProperty("contact");
@@ -640,12 +804,14 @@ void CalcMgrApp::msgProgressMCB(JMSMessage& msg)
 
 void CalcMgrApp::msgMachConfChangedMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   MachineConfig::markUpdateUserPrefs();
 }
 
 
 void CalcMgrApp::msgMachRegChangedMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   RefMachine::markUpdateUserPrefs();
   //  The queue managers too: a Reconnect after a machine's scheduler was
   //  changed wrote the old one into the monitor's configuration (#635).
@@ -660,6 +826,7 @@ void CalcMgrApp::msgMachRegChangedMCB(JMSMessage& msg)
 
 void CalcMgrApp::msgDataServerMCB(JMSMessage& msg)
 {
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
   string name = msg.getProperty("name");
   string urlstr = msg.getProperty("url");
   p_calcMgr->addRoot(name, urlstr);

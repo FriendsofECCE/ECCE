@@ -35,6 +35,7 @@ from ecceqm_builder_test import installLocal   # noqa: E402
 FIX = os.path.join(REPO, "tests", "builder", "radialdist-fixtures")
 CALCS = {n: os.path.join(FIX, n) for n in ("ne", "ar", "h2", "n2", "hcn")}
 CALCS["c2h4"] = os.path.join(REPO, "tests", "tdat", "planeintegral-fixtures", "c2h4")
+CALCS["hcnlayout"] = CALCS["hcn"]   # which rows show, Options closed and open
 CALCS["hcnmore"] = CALCS["hcn"]     # the folded controls, open, in a session of their own
 SCREENS = os.environ.get("ECCE_DP_SCREENS", "1366x768x24,1700x1000x24").split(",")
 
@@ -103,6 +104,20 @@ dpshift 0
 dpfollow 3
 dpstate
 plotshot {t}-hcn 0 0 Density Profile:docked
+hold 1
+""",
+    "hcnlayout": """dpopen
+dpatoms 1 3
+dplayout 420
+dpquantity psi2
+dpshow selected
+dpstate
+dpyaxis sqrt
+dpstate
+dpmore 1
+dplayout 420
+dpmore 0
+plotshot {t}-hcnlayout 0 0 Density Profile:docked
 hold 1
 """,
     "hcnmore": """dpopen
@@ -184,6 +199,38 @@ def blocks(log, command):
                     b["s_" + k] = v
             out.append(b)
     return out
+
+
+def layouts(log):
+    """The `visible` row lists and clipped flags of every dplayout, in order."""
+    out = []
+    for chunk in log.split("DENSITYPROFILE layout\n")[1:]:
+        vis = re.search(r"^visible (.*)$", chunk, re.M)
+        out.append((vis.group(1).split(",") if vis else [], "layout ok" in chunk))
+    return out
+
+
+def checkLayout(log):
+    """Options closed: the mode line, Options, the list and the plot only; the
+    hidden controls still take the hooks; open: the folded ones appear."""
+    lay = layouts(log)
+    sel = blocks(log, "dpstate")
+    if len(lay) < 2 or len(sel) < 2:
+        return ["layout: %d reports, %d states" % (len(lay), len(sel))]
+    p = []
+    closed, opened = lay[0], lay[1]
+    if closed[0] != ["mode", "from", "to", "options", "list", "plot"]:
+        p.append("closed layout shows %s" % closed[0])
+    for name in ("quantity", "show", "yaxis", "showall"):
+        if name in closed[0] or name not in opened[0]:
+            p.append("%s: closed %s, open %s" % (name, name in closed[0], name in opened[0]))
+    if not (closed[1] and opened[1]):
+        p.append("clipped controls at width 420")
+    if sel[0].get("s_quantity") != "1" or sel[0].get("s_ticked") is None:
+        p.append("dpquantity psi2 with Options closed: quantity %s" % sel[0].get("s_quantity"))
+    if sel[1].get("s_yaxis") != "sqrt":
+        p.append("dpyaxis with Options closed: %s" % sel[1].get("s_yaxis"))
+    return p
 
 
 def view(b):
@@ -303,6 +350,8 @@ def check(case, log, t, out):
             problems.append("virtual orbital names %s" % sel[-1]["curves"])
     if case == "hcn":
         problems += checkHcn(first, sel)
+    if case == "hcnlayout":
+        problems += checkLayout(log)
     if case == "hcnmore" and sel[0].get("s_more") != "1":
         problems.append("Options does not open")
     if case == "h2" and len(sel) > 1:
@@ -315,7 +364,7 @@ def check(case, log, t, out):
             problems.append("N2 psi view has %d curves" % len(sel[1]["curves"]))
     if case == "c2h4":
         problems += checkPlane(sel)
-    if case not in ("ar", "hcn", "hcnmore"):
+    if case not in ("ar", "hcn", "hcnmore", "hcnlayout"):
         for ext in ("csv",):
             f = os.path.join(out, "%s-%s.%s" % (t, case, ext))
             if not os.path.exists(f):

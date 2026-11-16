@@ -773,6 +773,9 @@ setIt = selRows.begin();
 void GridEvtHandler::OnMouseMotion(wxMouseEvent &event)
 {
   if (event.Dragging() && (p_potentialDrag) ) {
+    // One drag at a time: motion inside DoDragDrop's own event loop would
+    // otherwise start a second, nested drag.
+    p_potentialDrag = false;
 
     wxString urls = "";
     set<int> selRows = p_gridView->getSelectedRows();

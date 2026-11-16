@@ -102,10 +102,10 @@ def run(display):
                   abs(float(v[2]) - float(r["dG_min_kJ_mol"])) < 1e-3 and
                   abs(float(v[3]) - float(r["dG_max_kJ_mol"])) < 1e-3,
                   "reaction %d: dG and its range equal the CLI" % n, str(v))
-        click = [l for l in lines if "cm-1" in l and "soft-" in l]
+        click = [l for l in lines if ("cm-1" in l or "cm⁻¹" in l) and "soft-" in l]
         check(len(click) == 4, "a click lists the four soft modes (a: 25, 60; b: 40, 90)",
               " | ".join(lines))
-        check(any(l.startswith("Soft modes (< 100 cm-1)") for l in lines), "the click names the 100 cm-1 limit")
+        check(any(l.startswith(("Soft modes (< 100 cm-1)", "Soft modes (< 100 cm⁻¹)")) for l in lines), "the click names the 100 cm-1 limit")
         exp = open(csvOut).read() if os.path.exists(csvOut) else ""
         check(exp.split("\n\n")[0].strip() == cli.split("\n\n")[0].strip(), "the CSV export is the CLI's table")
         check("png failed" in lines and not os.path.exists(png),

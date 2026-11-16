@@ -1297,7 +1297,11 @@ expect code-listed Gaussian-03 0
 expect code-listed Gaussian-98 0
 expect code-listed GAMESS-UK 0
 expect code-listed Amica 0
-expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,CREST,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,Vina,xTB'
+#  Codes nothing uses are hidden until Show hidden codes is ticked.
+expect code-listed GROMACS 0
+click code:showhidden
+expect code-listed GROMACS 1
+expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,CREST,GROMACS,MLP (MACE),MOPAC,ORCA,QuantumESPRESSO,Vina,xTB'
 code Gaussian-16
 expect label code:title Gaussian-16
 expect field code:gaussian-16 /site/g16
@@ -1338,9 +1342,9 @@ expect shown blk:ccmd:hint 0
 expect label tag:cenv '%(yours)s'
 expect shown undo:cenv 1
 set code:gaussian-16 /opt/g16/g16
-expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,CREST,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,Vina,xTB'
+expect field code:list 'Gaussian-16  *,NWChem  *,CP2K,CREST,GROMACS,MLP (MACE),MOPAC,ORCA,QuantumESPRESSO,Vina,xTB'
 set code:gaussian-16 ''
-expect field code:list 'NWChem  *,CP2K,CREST,Gaussian-16,GROMACS,MLP,MOPAC,ORCA,QuantumESPRESSO,Vina,xTB'
+expect field code:list 'NWChem  *,CP2K,CREST,Gaussian-16,GROMACS,MLP (MACE),MOPAC,ORCA,QuantumESPRESSO,Vina,xTB'
 set code:gaussian-16 /opt/g16/g16
 set code:files '*.rwf'
 set code:prelim '*.old'
@@ -1705,10 +1709,13 @@ def codes_find(tmp, display, build):
     print("codes tab: unavailable codes hidden, Program examples, Find")
     e = Env(tmp, "codes-find")
     tool_machine(e)
-    #  GROMACS is registered (a GROMACS MD study), so it is listed.
+    #  GROMACS is registered but no machine uses it, so it stays hidden until
+    #  Show hidden codes is ticked; the examples below need the full list.
     p = run(display, build, e, """
 select stubm
 tab codes
+expect code-listed GROMACS 0
+click code:showhidden
 expect code-listed GROMACS 1
 expect code-listed NWChem 1
 check-program-hints

@@ -7,7 +7,10 @@ the best structures can be set up, launched and followed in one place.
 Calculations outside a workflow are not affected.
 
 A workflow can hold calculations of ECCE-QM, ORCA, Gaussian-16, NWChem,
-MOPAC, xTB, Quantum ESPRESSO and CP2K, in any mixture.
+MOPAC, xTB, Quantum ESPRESSO, CP2K and MLP (MACE), in any mixture.
+A periodic structure keeps its cell through a geometry arrow, so a MACE
+step can relax candidates and a Quantum ESPRESSO or CP2K step refine the
+result. A step that has not run yet gives its input structure.
 
 ## Making a workflow
 
@@ -105,7 +108,7 @@ from one box are branches.
 
 Under the name, a small grey line gives the result of the step. A finished
 optimisation or frequency step shows its total energy in hartree and, when it
-has frequencies, how many are imaginary (below -1 cm-1); a finished CREST step
+has frequencies, how many are imaginary (below -1 cm⁻¹); a finished CREST step
 shows how many conformers, protonation sites, tautomers or clusters it found,
 and the energy window of a conformer search. While a step runs the line is the
 first line of its Progress box, for example **MTD 9 of 14**; a step that
@@ -127,6 +130,12 @@ Clicking a box selects that step; Ctrl+click adds or removes a box and
 Shift+click selects the boxes from the last one clicked. The table below the
 view selects the same steps, and Tools such as the Energy Calculator act on
 them.
+
+## Viewing a read-only workflow
+
+A workflow in a read-only folder opens with its stored steps and links.
+Viewing it leaves the stored workflow data unchanged. To change or run the
+workflow, use a writable copy.
 
 ## Canvas height and orientation
 

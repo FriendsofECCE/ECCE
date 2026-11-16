@@ -548,6 +548,44 @@ void AuthCache::pipeOutHandle(void *writeHandle)
 #endif
 
 
+/**
+ * Remove a -pipe path once read, but only when it is what ECCE itself hands
+ * over: a FIFO, or the AuthPipe.* file pipeOutData() writes on Windows into
+ * this user's temp root.  A caller may pass any path (-pipe /dev/null, a file
+ * of its own), and run as root an unconditional unlink would take a device
+ * or someone's file with it.  lstat: a symlink is never followed.
+ */
+static void removeHandoffPath(const string& path)
+{
+  struct stat st;
+  if (path.empty() || lstat(path.c_str(), &st) != 0) return;
+#ifdef S_ISFIFO
+  if (S_ISFIFO(st.st_mode)) {
+    unlink(path.c_str());
+    return;
+  }
+#endif
+  if (!S_ISREG(st.st_mode)) return;
+  string::size_type slash = path.find_last_of("/\\");
+  string base = slash == string::npos ? path : path.substr(slash + 1);
+  if (base.compare(0, 9, "AuthPipe.") != 0) return;
+#ifndef _WIN32
+  // Also this user's own, private, single-linked, and in the temp root
+  // pipeName() uses (compared by inode, so spelling of the path is moot).
+  // Windows has no inode numbers or owners to check; the name has to do.
+  if (st.st_uid != geteuid() || (st.st_mode & 077) != 0 || st.st_nlink != 1)
+    return;
+  string dir = slash == string::npos ? "." : path.substr(0, slash);
+  struct stat dst, rst;
+  if (stat(dir.c_str(), &dst) != 0 ||
+      stat(TempStorage::getTempRootPath().c_str(), &rst) != 0 ||
+      dst.st_dev != rst.st_dev || dst.st_ino != rst.st_ino)
+    return;
+#endif
+  unlink(path.c_str());
+}
+
+
 void AuthCache::pipeIn(const string& pipeName)
 {
   FILE *fp = NULL;
@@ -591,6 +629,10 @@ void AuthCache::pipeIn(const string& pipeName)
       if (fd < 0) usleep(20000);                // not created yet
     }
     if (fd >= 0) {
+      // Only a FIFO can return 0 before its writer has opened it; for a
+      // file or device (-pipe /dev/null) 0 is a real end of data.
+      struct stat st;
+      bool fifo = fstat(fd, &st) != 0 || S_ISFIFO(st.st_mode);
       bool got = false;
       for (int s = 0; s < steps; s++) {
         char chunk[4096];
@@ -602,7 +644,7 @@ void AuthCache::pipeIn(const string& pipeName)
         }
         // 0 with data read: the writer closed.  0 before any data: no
         // writer yet.  EAGAIN: a writer, but nothing written yet.
-        if (n == 0 && got) break;
+        if (n == 0 && (got || !fifo)) break;
         if (n < 0 && errno != EAGAIN && errno != EINTR) break;
         usleep(20000);
       }
@@ -654,7 +696,7 @@ void AuthCache::pipeIn(const string& pipeName)
   }
   if (pipeName.compare(0, 7, "handle:") != 0 &&
       pipeName.compare(0, 7, "socket:") != 0)
-    unlink(pipeName.c_str());
+    removeHandoffPath(pipeName);
 }
 
 
@@ -708,7 +750,7 @@ void AuthCache::pipeClean(const string& pipeName)
       }
       fclose(fp);
     }
-    unlink(pipeName.c_str());
+    removeHandoffPath(pipeName);
   }
 }
 

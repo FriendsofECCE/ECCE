@@ -63,6 +63,7 @@ def run(display):
         with open(os.path.join(project, "water", ".ecce-meta"), "a") as f:
             f.write(".\t%sqsar.smiles\t\tO\n" % NS)
             f.write(".\t%sqsar.measured\t\t{\"IC50 (nM)\": 3.5}\n" % NS)
+            f.write(".\t%sqsar.source\t\tassay.csv\n" % NS)
         cli = subprocess.run([sys.executable, CLI, "table", "--csv", "-",
                               project + "/water", project + "/nosmiles"],
                              capture_output=True, text=True, check=True).stdout
@@ -80,6 +81,26 @@ def run(display):
         if not check(os.path.exists(out), "the hook wrote the grid rows",
                      (result.log or "")[-1500:]):
             return
+        definitions = subprocess.run([sys.executable, CLI, "table", "--describe", "--json",
+                                      project + "/water", project + "/nosmiles"],
+                                     capture_output=True, text=True, check=True).stdout
+        import json
+        sys.path.insert(0, os.path.join(ROOT, "scripts"))
+        import ecce_qsar_chem as C
+        info = json.loads(definitions)["columns"]
+        with open(out + ".key", encoding="utf-8") as f:
+            key = f.read()
+        check(key == "".join(d["name"] + ": " + C.definition_text(d) + "\n\n" for d in info),
+              "Key dialog contains every current column with the CLI's definitions")
+        with open(out + ".copied", encoding="utf-8") as f:
+            check(f.read() == key, "Copy All copies the complete Key dialog text")
+        with open(out + ".tips", encoding="utf-8") as f:
+            tips = dict(line.rstrip("\n").split(": ", 1) for line in f)
+        for name in ("a_nH", "SlogP_VSA3", "qm_HOMO", "IC50 (nM)"):
+            definition = next(d for d in info if d["name"] == name)
+            check(tips.get(name) == C.definition_text(definition),
+                  name + ": header motion installs the library tooltip", tips.get(name))
+        check("from assay.csv" in tips["IC50 (nM)"], "measured provenance reaches header")
         gui, ref = rows(open(out).read()), rows(cli)
         check(set(gui) == set(ref) and len(ref) == 2, "same rows", (list(gui), list(ref)))
         for name, r in ref.items():

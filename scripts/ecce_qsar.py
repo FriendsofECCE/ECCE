@@ -27,6 +27,7 @@ import importlib.util
 import json
 import math
 import os
+import re
 import sys
 import xml.etree.ElementTree as ET
 
@@ -110,6 +111,7 @@ def calc_record(calc):
         rec["measured"] = json.loads(S._meta(meta, "qsar.measured") or "{}")
     except ValueError:
         rec["measured"] = {}
+    rec["source"] = S._meta(meta, "qsar.source")
     rec["checks"] = S.read_checks(calc)
     rec["qm"] = qm_values(calc)
     return rec
@@ -127,7 +129,7 @@ def selected_columns(groups):
 def build_table(records, groups=None, qm=True, progress=None):
     """-> (columns, rows).  Each row is a dict; a row whose SMILES cannot be read
     keeps its measured and QM values and carries the reason in `problems`."""
-    groups = list(groups) if groups else list(C.GROUPS)
+    groups = list(groups) if groups is not None else list(C.GROUPS)
     dcols = selected_columns(groups)
     measured_cols = []
     for r in records:
@@ -211,7 +213,7 @@ def records_from_csv(path, name_col, smiles_col):
             except ValueError:
                 pass
         recs.append({"name": line[ni].strip(), "smiles": line[si].strip(),
-                     "measured": meas})
+                     "measured": meas, "source": os.path.basename(path)})
     return recs
 
 
@@ -219,10 +221,10 @@ def cmd_table(a):
     if a.from_csv:
         recs = records_from_csv(a.from_csv, a.name_col, a.smiles_col)
     else:
-        if not a.calcs:
+        if not a.calcs and not a.describe:
             _fail("give calculations, a folder or --from-csv", 64)
         paths = S.expand_calcs(a.calcs)
-        if not paths:
+        if not paths and a.calcs:
             _fail("no calculations found", 2)
         recs = [calc_record(p) for p in paths]
     prog = None
@@ -233,6 +235,24 @@ def cmd_table(a):
     if groups is not None:
         groups = [g for g in groups if g != "qm"]
     cols, rows = build_table(recs, groups, qm=qm and not a.from_csv, progress=prog)
+    info = []
+    for col in cols:
+        sources = sorted({r.get("source") or "unknown source (not recorded)"
+                          for r in recs if col in r.get("measured", {})})
+        info.append(C.column_definition(col, sources))
+    if a.key_csv:
+        with open(a.key_csv, "w", newline="", encoding="utf-8") as f:
+            csv.writer(f).writerows((d["name"], C.definition_text(d)) for d in info)
+    if a.describe:
+        if a.json:
+            json.dump({"columns": info}, sys.stdout, ensure_ascii=False)
+            sys.stdout.write("\n")
+        elif a.csv:
+            write_csv(a.csv, ["name", "description", "unit", "group", "reference"], info)
+        else:
+            for d in info:
+                print(d["name"] + ": " + C.definition_text(d))
+        return 0
     if a.json:
         json.dump({"columns": cols, "rows": [[r.get(c) for c in cols] for r in rows]},
                   sys.stdout)
@@ -330,6 +350,79 @@ def _write_rows(path, head, rows):
             w.writerow([_fmt(v) for v in r])
 
 
+def _display_number(v, places=3):
+    return "—" if v is None or not math.isfinite(float(v)) else ("%.*f" % (places, v))
+
+
+def _at(m, key, i):
+    values = m.get(key)
+    return None if values is None else values[i]
+
+
+def _collapsed_notes(notes, n):
+    groups, other = {}, []
+    for note in notes:
+        if note.startswith("column ") and " left out: " in note:
+            name, reason = note[7:].split(" left out: ", 1)
+            if reason == "constant":
+                reason = "no variance in these %d molecules" % n
+        elif " left out: " in note:
+            name, reason = note.split(" left out: ", 1)
+        else:
+            other.append(note)
+            continue
+        groups.setdefault(reason, []).append(name)
+    return ["Left out (%s): %s" % (reason, ", ".join(names))
+            for reason, names in groups.items()] + other
+
+
+def _diagnostic_text(m, names):
+    lines = ["95 %% limits: T² %s (far from the centre within the model plane); "
+             "DModX %s (outside the model plane / far from the model)."
+             % (_display_number(m["t2_limit"]), _display_number(m["dmodx_limit"]))]
+    for key, label in (("t2", "T²"), ("dmodx", "DModX")):
+        outside = [name for name, value in zip(names, m[key]) if value > m[key + "_limit"]]
+        if outside:
+            lines.append("Outside %s limit: %s" % (label, ", ".join(outside)))
+    return lines
+
+
+def _component_warnings(m, fixed, limit):
+    lines = []
+    if m["n"] < 10 * m["ncomp"]:
+        lines.append("Warning: few molecules (%d) for %d components; cross-validated estimates may be unstable."
+                     % (m["n"], m["ncomp"]))
+    if fixed and m["q2"] is not None:
+        for i in range(m["ncomp"]):
+            if m["q2"][i] < limit or (limit == 0.05 and m["q2"][i] == limit):
+                lines.append("Warning: component %d does not improve the cross-validated prediction "
+                             "enough to meet the significance limit (Q² %s; limit %s)."
+                             % (i + 1, _display_number(m["q2"][i], 2), limit))
+    return lines
+
+
+def _plain_table(head, rows):
+    text = [[str(x) for x in head]] + [[str(x) for x in row] for row in rows]
+    widths = [max(len(row[j]) for row in text) for j in range(len(head))]
+    return "\n".join("  ".join(value.ljust(widths[j]) for j, value in enumerate(row))
+                     for row in text)
+
+
+def _present(a, summary, head, rows, vip=None):
+    summary = "\n\n".join(summary) + "\n"
+    if a.outdir:
+        with open(os.path.join(a.outdir, "analysis_summary.txt"), "w", encoding="utf-8") as f:
+            f.write(summary)
+        for filename, header, data in (("analysis_components.csv", head, rows),
+                                       ("analysis_vip.csv", ["Descriptor", "VIP", "Description"], vip or [])):
+            with open(os.path.join(a.outdir, filename), "w", newline="", encoding="utf-8") as f:
+                csv.writer(f).writerows([header] + data)
+    print(summary.rstrip())
+    print("\n" + _plain_table(head, rows))
+    if vip:
+        print("\n" + _plain_table(["Descriptor", "VIP", "Description"], vip))
+
+
 def cmd_pca(a):
     _chemo()
     head, rows = load_table(a.table)
@@ -367,24 +460,26 @@ def cmd_pca(a):
         json.dump(_jsonable(out), sys.stdout)
         sys.stdout.write("\n")
     else:
-        print("PCA: %d rows, %d descriptors, %s scaling, %d components"
-              % (m["n"], m["k"], a.scale, A))
-        print("comp  eigenvalue   R2X   cumR2X     Q2    cumQ2")
-        for i in range(len(m["eigenvalues"])):
-            q = m["q2"][i] if m["q2"] else float("nan")
-            qc = m["q2_cum"][i] if m["q2_cum"] else float("nan")
-            print("%4d  %10.4f  %5.3f  %6.3f  %6.3f  %6.3f%s" % (
-                i + 1, m["eigenvalues"][i], m["r2x"][i], m["r2x_cum"][i], q, qc,
-                "  *" if i < A else ""))
-        print("T2 limit (95%%) %.3f, DModX limit (95%%) %.3f" % (m["t2_limit"], m["dmodx_limit"]))
-        out_t = [names[i] for i in range(len(names)) if m["t2"][i] > m["t2_limit"]]
-        out_d = [names[i] for i in range(len(names)) if m["dmodx"][i] > m["dmodx_limit"]]
-        if out_t:
-            print("outside T2 limit: " + ", ".join(out_t))
-        if out_d:
-            print("outside DModX limit: " + ", ".join(out_d))
-        for n in notes:
-            print("note: " + n)
+        summary = ["%d components explain %.0f %% of the descriptor variation (R²X)."
+                   % (A, 100 * m["r2x_cum"][A - 1]),
+                   "PCA: %d rows, %d descriptors, %s scaling, %d components"
+                   % (m["n"], m["k"], a.scale, A)]
+        summary += _component_warnings(m, a.components, 0.05)
+        if m["q2"] is None:
+            summary.append("Cross-validation is unavailable; Q² is not computed.")
+        summary += ["* = component kept in the model; it does not mean significant by cross-validation. "
+                    "R²X is the fraction of X variance explained; Q² measures cross-validated prediction. "
+                    "Cumulative values use all components through that row."]
+        summary += _diagnostic_text(m, names)
+        summary += _collapsed_notes(notes, len(keep))
+        headers = ["Component", "Kept (*)", "Eigenvalue", "R²X", "Cumulative R²X",
+                   "X variance / %", "Cumulative X / %", "Q²", "Cumulative Q²"]
+        display = [[i + 1, "*" if i < A else "", _display_number(m["eigenvalues"][i], 4),
+                    _display_number(m["r2x"][i]), _display_number(m["r2x_cum"][i]),
+                    _display_number(100 * m["r2x"][i], 1), _display_number(100 * m["r2x_cum"][i], 1),
+                    _display_number(_at(m, "q2", i)), _display_number(_at(m, "q2_cum", i))]
+                   for i in range(len(m["eigenvalues"]))]
+        _present(a, summary, headers, display)
     return 0
 
 
@@ -476,29 +571,60 @@ def cmd_pls(a):
         json.dump(_jsonable(out), sys.stdout)
         sys.stdout.write("\n")
         return 0
-    print("PLS of %s: %d training rows%s, %d descriptors, %s scaling, %d components"
-          % (yn[0], m["n"], " (+%d test)" % m["n_test"] if m["n_test"] else "", m["k"],
-             a.scale, A))
-    print("comp   R2X cum  R2Y cum   Q2     Q2 cum  RMSECV")
-    for i in range(len(m["r2y"])):
-        q = m["q2"][i] if m["q2"] is not None else float("nan")
-        qc = m["q2_cum"][i] if m["q2_cum"] is not None else float("nan")
-        rc = m["rmsecv"][i] if m["rmsecv"] is not None else float("nan")
-        print("%4d  %7.3f  %7.3f  %6.3f  %6.3f  %7.3f%s" % (
-            i + 1, m["r2x_cum"][i], m["r2y_cum"][i], q, qc, rc, "  *" if i < A else ""))
-    print("R2Y %.3f  Q2 %.3f  RMSEE %.4g  RMSECV %.4g" % (
-        m["r2y_final"], m["q2_final"] if m["q2_final"] is not None else float("nan"),
-        m["rmsee"], m["rmsecv"][A - 1] if m["rmsecv"] is not None else float("nan")))
+    measured = re.match(r"^(.*?)\s*[\[(]([^\[\]()]+)[\])]\s*$", yn[0])
+    unit = measured.group(2) if measured else C.column_definition(yn[0])["unit"]
+    error_unit = " " + unit if unit != "unspecified" else " (measured value's unit; unspecified)"
+    response = measured.group(1).strip() if measured else yn[0]
+    summary = ["%d components explain %.0f %% of the variation in %s (R²Y)"
+               % (A, 100 * m["r2y_final"], response)]
+    if m["q2_final"] is not None:
+        if m["q2_final"] >= 0:
+            summary[0] += " and predict %.0f %% of it for molecules left out (Q²)." % (100 * m["q2_final"])
+        else:
+            summary[0] += "; cross-validation gives no useful prediction (Q² %.3f)." % m["q2_final"]
+            summary.append("Warning: negative Q² means predictions for molecules left out are worse than using the training mean.")
+    else:
+        summary[0] += ". Cross-validation is unavailable."
+    summary[0] += " Typical error: %.1f%s on the molecules fitted (RMSEE)" % (m["rmsee"], error_unit)
+    if m["rmsecv"] is not None:
+        summary[0] += ", %.1f%s on molecules left out (RMSECV)." % (m["rmsecv"][A - 1], error_unit)
+        ratio = m["rmsecv"][A - 1] / max(m["rmsee"], 1e-15)
+        if ratio >= 2:
+            summary.append("Warning: the model fits much better than it predicts (RMSECV / RMSEE %.1f×)%s."
+                           % (ratio, ": few molecules for this many descriptors" if m["k"] >= m["n"] else ""))
+    else:
+        summary[0] += "."
+    summary += ["PLS of %s: %d training rows%s, %d descriptors, %s scaling, %d components"
+                % (yn[0], m["n"], " (+%d test)" % m["n_test"] if m["n_test"] else "",
+                   m["k"], a.scale, A)]
+    summary += _component_warnings(m, a.components, 0.0975)
+    summary += ["* = component kept in the model; it does not mean significant by cross-validation. "
+                "R²X and R²Y are the fractions of descriptor and measured variation explained; "
+                "Q² measures cross-validated prediction. Cumulative values use all components through that row. "
+                "RMSEE is the fitted error (N − A − 1 degrees of freedom); RMSECV is the error for molecules left out. "
+                "Both errors use the measured value's unit.",
+                "VIP > 1 = more important than average. The ten largest VIP values are listed, in descending order."]
     if m["n_test"]:
-        print("test set: %d rows  RMSEP %.4g  Q2(ext) %.3f" % (m["n_test"], m["rmsep"], m["q2_ext"]))
+        summary.append("Test set: %d molecules; RMSEP %.3g%s; external Q² %.3f."
+                       % (m["n_test"], m["rmsep"], error_unit, m["q2_ext"]))
     if "permutation" in m:
-        print("permutation (%d): R2Y intercept %.3f, Q2Y intercept %.3f"
-              % (a.permutations, m["permutation"]["r2_intercept"], m["permutation"]["q2_intercept"]))
-    top = np.argsort(-m["vip"])[:10]
-    print("largest VIP: " + ", ".join("%s %.2f" % (xn[j], m["vip"][j]) for j in top))
-    print("T2 limit %.3f, DModX limit %.3f" % (m["t2_limit"], m["dmodx_limit"]))
-    for n in notes:
-        print("note: " + n)
+        summary.append("Permutation (%d): R²Y intercept %.3f, Q² intercept %.3f."
+                       % (a.permutations, m["permutation"]["r2_intercept"], m["permutation"]["q2_intercept"]))
+    summary += _diagnostic_text(m, [names[j] for j in tri])
+    summary += _collapsed_notes(notes, len(keep))
+    headers = ["Component", "Kept (*)", "R²X", "Cumulative R²X", "X variance / %", "Cumulative X / %",
+               "R²Y", "Cumulative R²Y", "Q²", "Cumulative Q²", "RMSEE / " + unit, "RMSECV / " + unit]
+    ssy = float(((y[tri] - m["y_mean"]) ** 2).sum())
+    display = [[i + 1, "*" if i < A else "", _display_number(m["r2x"][i]),
+                _display_number(m["r2x_cum"][i]), _display_number(100 * m["r2x"][i], 1),
+                _display_number(100 * m["r2x_cum"][i], 1), _display_number(m["r2y"][i]),
+                _display_number(m["r2y_cum"][i]), _display_number(_at(m, "q2", i)),
+                _display_number(_at(m, "q2_cum", i)),
+                _display_number(math.sqrt(max(0, ssy * (1 - m["r2y_cum"][i])) / max(m["n"] - i - 2, 1)), 2),
+                _display_number(_at(m, "rmsecv", i), 2)] for i in range(len(m["r2y"]))]
+    vip = [[xn[j], _display_number(m["vip"][j], 2), C.column_definition(xn[j])["description"]]
+           for j in np.argsort(-m["vip"])[:10]]
+    _present(a, summary, headers, display, vip)
     return 0
 
 
@@ -563,6 +689,8 @@ def main(argv=None):
     t.add_argument("--no-qm", action="store_true", help="leave out the results of the calculations")
     t.add_argument("--csv", help="write the table here (- for stdout)")
     t.add_argument("--json", action="store_true")
+    t.add_argument("--describe", action="store_true", help="describe current columns, or all built-in columns without input; --json gives structured definitions")
+    t.add_argument("--key-csv", help="also write column names and their key text as UTF-8 CSV")
     t.add_argument("--progress", action="store_true", help="PROGRESS lines on stderr")
     t.add_argument("--from-csv", help="a table of names and SMILES instead of calculations")
     t.add_argument("--name-col")

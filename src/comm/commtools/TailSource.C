@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include "comm/RCommand.H"
+#include "comm/StreamRead.H"
 #include "tdat/RefMachine.H"
 
 using std::string;
@@ -99,15 +100,9 @@ bool TailSource::read(string& out)
 {
   const int f = fd();
   if (f < 0) return false;
-  char buf[16384];
-  for (;;) {
-    ssize_t n = ::read(f, buf, sizeof buf);
-    if (n > 0) { out.append(buf, n); continue; }
-    if (n < 0 && errno == EINTR) continue;
-    if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return true;
-    p_ended = true;
-    return false;
-  }
+  if (readAvailable(f, out)) return true;
+  p_ended = true;
+  return false;
 }
 
 void TailSource::close()

@@ -37,11 +37,11 @@ ClipPlanePanel::ClipPlanePanel(wxWindow *parent,
   top->Add(row, 0, wxEXPAND);
 
   wxBoxSizer *hkl = new wxBoxSizer(wxHORIZONTAL);
-  p_hs = new wxSpinCtrl(this, wxID_ANY, "1", wxDefaultPosition, wxSize(60, -1),
+  p_hs = new wxSpinCtrl(this, wxID_ANY, "1", wxDefaultPosition, wxDefaultSize,
                         wxSP_ARROW_KEYS, -10, 10, 1);
-  p_ks = new wxSpinCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(60, -1),
+  p_ks = new wxSpinCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize,
                         wxSP_ARROW_KEYS, -10, 10, 0);
-  p_ls = new wxSpinCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(60, -1),
+  p_ls = new wxSpinCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxDefaultSize,
                         wxSP_ARROW_KEYS, -10, 10, 0);
   hkl->Add(new wxStaticText(this, wxID_ANY, "h"), 0, wxALIGN_CENTER_VERTICAL | wxALL, 3);
   hkl->Add(p_hs, 0, wxALL, 3);

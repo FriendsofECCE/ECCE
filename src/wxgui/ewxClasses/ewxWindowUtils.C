@@ -39,6 +39,7 @@ extern "C" {
 #include "dsm/ResourceTool.H"
 
 #include "wxgui/ewxWindowUtils.H"
+#include "wxgui/ToolTabs.H"
 #include "wxgui/ewxScrolledWindow.H"
 #include "wx/display.h"
 #include "wx/statline.h"
@@ -111,6 +112,11 @@ void ewxPopupMenu(wxWindow *win, wxMenu &menu)
 void ewxRaiseWindow(wxWindow *win)
 {
   if (win == NULL) return;
+  //  A hidden window has nothing to raise, and gtk_window_present (also
+  //  wxGTK's Raise) would map it: a tool frame kept hidden while its windows
+  //  are in a tab (#983) covered the main window as an empty frame.
+  wxTopLevelWindow *tlw = wxDynamicCast(win, wxTopLevelWindow);
+  if (ToolTabs::enabled() && tlw && !tlw->IsShown()) return;
   const char *how = "wxWindow::Raise";
 #if defined(__WXGTK__)
   GtkWidget *gw = (GtkWidget*)win->GetHandle();
@@ -1371,4 +1377,15 @@ void ewxWindowUtils::scheduleClipAudit(wxTopLevelWindow *win)
         ref.get(), (wxTheApp->GetAppName() + ":" + title).ToStdString());
   });
   timer->StartOnce(5000);
+}
+
+
+wxTimer *ewxWindowTimer(wxWindow *win)
+{
+  wxTimer *timer = new wxTimer();
+  win->Bind(wxEVT_DESTROY, [win, timer](wxWindowDestroyEvent& ev) {
+    if (ev.GetEventObject() == win) delete timer;
+    ev.Skip();
+  });
+  return timer;
 }

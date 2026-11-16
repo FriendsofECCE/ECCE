@@ -40,3 +40,16 @@ properties than its output contains.
 - A calculation without a stored output file is skipped. Only the output files
   stored with the calculation are read. Files that were never brought back from
   the compute machine cannot be parsed.
+
+## Command
+
+```
+ecce-reparse [--json] <calculation path or URL>...
+```
+
+The command does what the menu item does, in the running ECCE session, and
+waits until the last calculation has been parsed. It prints `name: done`,
+`name: failed: reason` or `name: refused: reason` for each calculation (the
+refusals are those above). `--json` prints an array of objects with `name`,
+`status` and `reason`. The exit status is 0 only if every calculation was
+re-parsed.

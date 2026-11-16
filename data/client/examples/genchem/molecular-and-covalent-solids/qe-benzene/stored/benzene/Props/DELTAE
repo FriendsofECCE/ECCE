@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<tsvector name="DELTAE" rowLabel="Wave Step" rows="1" units="Hartree">
+
+  <step number="1">3.51210926</step>
+  <step number="2">0.30849811</step>
+  <step number="3">0.014520955</step>
+  <step number="4">0.000208945</step>
+  <step number="5">2.998e-05</step>
+  <step number="6">3.335e-06</step>
+  <step number="7">2.3e-07</step>
+  <step number="8">0.788072725</step>
+  <step number="9">0.18039536</step>
+  <step number="10">0.009960225</step>
+  <step number="11">0.00046428</step>
+  <step number="12">0.00011632</step>
+  <step number="13">1.87e-06</step>
+  <step number="14">4.49e-06</step>
+  <step number="15">5.7e-07</step>
+  <step number="16">3.5e-08</step>
+  <step number="17">0.27872666</step>
+  <step number="18">0.040949155</step>
+  <step number="19">0.001992265</step>
+  <step number="20">6.9575e-05</step>
+  <step number="21">6.09e-06</step>
+  <step number="22">1.25e-07</step>
+  <step number="23">0.062620205</step>
+  <step number="24">0.02189777</step>
+  <step number="25">0.00029081</step>
+  <step number="26">0.00014866</step>
+  <step number="27">1.7435e-05</step>
+  <step number="28">9.95e-07</step>
+  <step number="29">3.45e-07</step>
+  <step number="30">0.031084415</step>
+  <step number="31">0.01001964</step>
+  <step number="32">0.000133175</step>
+  <step number="33">6.0755e-05</step>
+  <step number="34">4.02e-06</step>
+  <step number="35">6e-07</step>
+  <step number="36">2.05e-07</step>
+  <step number="37">4.7e-09</step>
+  <step number="38">0.002547555</step>
+  <step number="39">0.000657395</step>
+  <step number="40">1.147e-05</step>
+  <step number="41">5.08e-06</step>
+  <step number="42">6.85e-07</step>
+  <step number="43">1.25e-07</step>
+  <step number="44">2.35e-09</step>
+  <step number="45">0.000359535</step>
+  <step number="46">5.474e-05</step>
+  <step number="47">1.26e-06</step>
+  <step number="48">7.35e-07</step>
+  <step number="49">4.5e-08</step>
+  <step number="50">9.414e-05</step>
+  <step number="51">1.18e-05</step>
+  <step number="52">3.35e-07</step>
+  <step number="53">7e-08</step>
+  <step number="54">1e-08</step>
+  <step number="55">2.07e-06</step>
+  <step number="56">5.15e-07</step>
+  <step number="57">1.5e-08</step>
+  <step number="58">1e-08</step>
+  <step number="59">2.6e-09</step>
+
+</tsvector>

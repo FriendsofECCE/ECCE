@@ -13,7 +13,9 @@ Frequency=all
 End=^ECCE-DOCK-ENDFRAME
 [END]
 
-# Vina's own messages; the bar of stars is one line, printed when the search is over.
+# Vina's own messages.  The search prints a bar of 51 stars ("0% ... 100%"
+# scale) without a newline while it runs, so the monitor sees a partial line
+# when it can and the whole line at the end; the box takes the length.
 [PROGRESS]
 Begin=^Computing Vina grid
 Progress=vina stage=grid
@@ -25,8 +27,8 @@ Progress=vina stage=docking
 [END]
 
 [PROGRESS]
-Begin=^\*{20,}\s*$
-Progress=vina stage=searched
+Begin=^(\*{1,60})\s*$
+Progress=vina bar=$1
 [END]
 
 # The table's first row: "   1       -1.092          0          0"

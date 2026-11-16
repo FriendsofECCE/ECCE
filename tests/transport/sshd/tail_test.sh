@@ -24,11 +24,18 @@ podman run -d --name $pname -p 127.0.0.1:$pport:22 localhost/ecce-test-sshd \
   /usr/sbin/sshd -D -e -o KbdInteractiveAuthentication=no >/dev/null
 for i in $(seq 20); do (exec 3<>/dev/tcp/127.0.0.1/$pport) 2>/dev/null && break; sleep 0.5; done
 
-exec 9< <(Xvfb -displayfd 1 -nolisten tcp -screen 0 1024x768x24 2>/dev/null)
+disp=90
+while [ "$disp" -le 999 ] &&
+      { [ -e /tmp/.X11-unix/X$disp ] || [ -e /tmp/.X$disp-lock ]; }; do
+  disp=$((disp + 1))
+done
+[ "$disp" -le 999 ] || { echo "FAIL: no free X display number"; exit 1; }
+# An explicit number keeps -displayfd from claiming a desktop's display.
+exec 9< <(Xvfb :$disp -displayfd 1 -nolisten tcp -screen 0 1024x768x24 2>/dev/null)
 xpid=$!
-read -r -u 9 disp
 cleanup() { kill $xpid 2>/dev/null || true; podman rm -f $kname $pname >/dev/null 2>&1 || true; }
 trap cleanup EXIT
+read -r -u 9 disp
 
 if ! podman image exists localhost/ecce-sshbuild; then
   podman build -q -t localhost/ecce-sshbuild -f "$here/Containerfile.build" "$here" >/dev/null

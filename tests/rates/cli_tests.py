@@ -45,6 +45,9 @@ ENV = dict(os.environ, HOME=HOME, XDG_CACHE_HOME=os.path.join(HOME, ".cache"),
            ECCE_REALUSERHOME=HOME, ECCE_HOME=os.environ["ECCE_TEST_HOME"])
 ENV["PATH"] = os.environ.get("ECCE_TEST_WRAPPERS", "") + os.pathsep + ENV["PATH"]
 KJ = 4.3597447222071e-18 * 6.02214076e23 / 1000.0
+# ecce-thermo --json prints G and the reaction dG to 1e-6 Eh; ecce-rate
+# subtracts two such G values, so the two dG agree only to ~1.5 of that step.
+DG_TOL = 1.6e-6 * KJ
 
 
 def rate(*args):
@@ -70,9 +73,9 @@ try:
     j = json.loads(r.stdout)
     row = j["temperatures"][0]
     dg = thermo_dG("sn2_reactant -> sn2_qst3", "1M", T)
-    check("dG‡ = ecce-thermo reaction dG (%.3f kJ/mol)" % dg, abs(row["dG_act"] - dg) < 2e-4,
+    check("dG‡ = ecce-thermo reaction dG (%.3f kJ/mol)" % dg, abs(row["dG_act"] - dg) < DG_TOL,
           row["dG_act"])
-    k0 = pref * math.exp(-dg / RT)
+    k0 = pref * math.exp(-row["dG_act"] / RT)
     check("k(298 K) TST = kB T/h exp(-dG‡/RT) = %.4e s⁻¹" % k0, abs(row["k"]["none"] / k0 - 1) < 1e-5,
           row["k"]["none"])
     freqs = [float(x) for x in ET.parse(os.path.join(TS, "Props", "VIBFREQ")).getroot().text.split()]
@@ -84,7 +87,7 @@ try:
           row["kappa"])
     check("half-life = ln2/k", abs(row["half_life"]["none"] * row["k"]["none"] - math.log(2)) < 1e-9)
     dgr = thermo_dG("sn2_reactant -> sn2_product", "1M", T)
-    check("dG_rxn = ecce-thermo (%.3f kJ/mol)" % dgr, abs(row["dG_rxn"] - dgr) < 2e-4, row["dG_rxn"])
+    check("dG_rxn = ecce-thermo (%.3f kJ/mol)" % dgr, abs(row["dG_rxn"] - dgr) < DG_TOL, row["dG_rxn"])
     check("K_eq = exp(-dG_rxn/RT)", abs(row["K_eq"] / math.exp(-dgr / RT) - 1) < 1e-4)
     check("k/k_rev = K_eq (same molecularity)",
           abs(row["k"]["none"] / row["k_reverse"]["none"] / row["K_eq"] - 1) < 1e-4)

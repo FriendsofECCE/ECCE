@@ -60,7 +60,7 @@ bool writeFolder(PropertyTask *t, const fs::path& dir)
     for (double d : pv->values()) { snprintf(buf, sizeof buf, "%.12g ", d); f << buf; }
     f << "</vector>\n";
   }
-  for (const char *k : {"qsar.smiles", "qsar.measured"})
+  for (const char *k : {"qsar.smiles", "qsar.measured", "qsar.source"})
     std::ofstream(dir / ".ecce-meta", std::ios::app)
         << ".\t" << NS << k << "\t\t" << t->getProp(VDoc::getEcceNamespace() + ":" + k) << "\n";
   if (PropString *sv = dynamic_cast<PropString*>(t->getProperty("SOLVMODEL")))
@@ -159,7 +159,7 @@ bool writeFolder(PropertyTask *t, const fs::path& dir)
 static bool runScript(const vector<EcceURL>& calcs, const string& tail,
                       string& text, string& why,
                       const GatherProgress& progress = GatherProgress(),
-                      const char *tool = "ecce-si-export")
+                      const char *tool = "ecce-si-export", string *keyCsv = nullptr)
 {
   static int serial = 0;
   const fs::path tmp = fs::temp_directory_path() /
@@ -194,7 +194,13 @@ static bool runScript(const vector<EcceURL>& calcs, const string& tail,
 #else
   string cmd = "'" + script + "'" + tail + args + " 2>/dev/null";
 #endif
+  if (keyCsv) cmd += " --key-csv " + quote((tmp / "key.csv").string());
   int status = Ecce::readCommand(cmd, text);
+  if (keyCsv && status == 0) {
+    std::ifstream in(tmp / "key.csv", std::ios::binary);
+    if (!in) { fs::remove_all(tmp, ec); why = "Cannot read the descriptor key."; return false; }
+    keyCsv->assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+  }
   fs::remove_all(tmp, ec);
   if (status != 0) { why = string(tool) + " failed"; return false; }
   return true;
@@ -207,10 +213,10 @@ bool checksTable(const vector<EcceURL>& calcs, const string& format,
 }
 
 bool qsarTable(const vector<EcceURL>& calcs, const string& groups, string& text,
-               string& why, const GatherProgress& progress)
+               string& why, const GatherProgress& progress, string *keyCsv)
 {
   return runScript(calcs, " table --groups " + quote(groups) + " --csv -", text, why,
-                   progress, "ecce-qsar");
+                   progress, "ecce-qsar", keyCsv);
 }
 
 bool rankTable(const vector<EcceURL>& calcs, const string& format,

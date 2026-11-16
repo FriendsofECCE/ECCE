@@ -179,6 +179,7 @@ AddType  chemical/x-gromacs-source-pdb   .gmxpdb
 AddType  chemical/x-gromacs-source-mineral .gmxmin
 AddType  chemical/x-gromacs-forcefield   .gmxff
 AddType  chemical/x-gromacs-tpr          .tpr
+AddType  chemical/x-gromacs-run-tpr      .gmxtpr
 AddType  chemical/x-gromacs-energy       .edr
 AddType  chemical/x-gromacs-trajectory   .xtc .trr
 
@@ -290,6 +291,7 @@ AddType  chemical/x-crest-input  .crestin
 AddType  chemical/x-crest-output .crestout
 AddType  chemical/x-vina-input   .vinain
 AddType  chemical/x-vina-output  .vinaout
+AddType  chemical/x-vina-structure .vinafrag
 AddType  chemical/x-mlp-input    .mlpin
 AddType  chemical/x-mlp-output   .mlpout
 

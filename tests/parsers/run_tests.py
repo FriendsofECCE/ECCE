@@ -242,9 +242,10 @@ def run_case(case, res, verbose=False):
     report = []
     emitted = {}          # parse type -> list of (block, records)
     # The Gaussian 16 trace scripts hand state to each other through side
-    # files, so they see the blocks in file order, as in the monitor.  The
+    # files (qe.energy publishes what qe.geomtrace stashed), so they see the
+    # blocks in file order, as in the monitor.  The
     # others (nwchem.molab) were written for entry order.
-    by_file = desc_name == 'gaussian-16.desc'
+    by_file = desc_name in ('gaussian-16.desc', 'qe.desc')
     ran = {}
     ordered = sorted(((b.begin_line, i, e, b)
                       for i, e in enumerate(desc.live_entries())

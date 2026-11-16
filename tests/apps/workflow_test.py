@@ -31,6 +31,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -53,14 +54,63 @@ failures = []
 def fail(what, why, log=""):
     tail = "\n".join("      | " + l for l in (log or "").splitlines()[-15:])
     failures.append(what)
-    print("FAIL  %s: %s\n%s" % (what, why, tail))
+    print("FAIL  %s: %s\n%s" % (what, why, tail), flush=True)
 
 
 def check(what, cond, why):
     if cond:
-        print("ok    " + what)
+        print("ok    " + what, flush=True)
     else:
         fail(what, why)
+
+
+class ScriptTimeout(Exception):
+    pass
+
+
+def run_script(display, script, env=None, timeout=60):
+    """Wait for command replies rather than spending a fixed time per window."""
+    with open(script) as handle:
+        pending = handle.read().splitlines()
+    answers = script + ".answers"
+    with open(answers, "w"):
+        pass
+    environment = dict(env or {})
+    environment.update(ECCE_TEST_ORGANIZER=script,
+                       ECCE_TEST_ORGANIZER_ANSWERS=answers)
+    print("running Organizer script %s (%d commands)" %
+          (os.path.basename(script), len(pending)), flush=True)
+
+    def wait_for_replies(_display):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            with open(answers) as handle:
+                replies = handle.read().split("\n")[:-1]
+            missing = list(pending)
+            for reply in replies:
+                for i, command in enumerate(missing):
+                    if reply.startswith(command + ": "):
+                        missing.pop(i)
+                        break
+            if not missing:
+                return []
+            time.sleep(0.1)
+        return missing
+
+    # The answer file acknowledges execution, including explicit idle commands.
+    # Window discovery and a fixed settle time add up across Organizer restarts.
+    result = apps.run(display, "organizer", windowTimeout=0, settle=0,
+                      env=environment, inspect=wait_for_replies)
+    if result.inspected:
+        fail("Organizer script " + os.path.basename(script),
+             "timed out after %s s; unanswered command: %s" %
+             (timeout, result.inspected[0]), result.log)
+        raise ScriptTimeout()
+    if result.inspected is None:
+        fail("Organizer script " + os.path.basename(script),
+             "exited before answering commands", result.log)
+        raise ScriptTimeout()
+    return result
 
 
 def steps(info):
@@ -960,6 +1010,63 @@ def run_recipes(display, data, work, shots):
     shutil.rmtree(recdir, ignore_errors=True)
 
 
+PERIODIC = os.path.join(ROOT, "data", "client", "examples", "genchem",
+                        "packing-in-solids", "qe-al_fcc", "stored", "al_fcc")
+
+
+def run_mlp(display, data, work, shots):
+    """MLP (MACE) is a workflow code, and a periodic structure keeps its
+    cell through QE -> MLP -> QE geometry links (#1019)."""
+    root = os.path.join(data, "users", "local")
+    project = os.path.join(root, "mlp")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(PERIODIC, os.path.join(project, "al"), symlinks=True)
+    proj = "file://" + root + "/mlp"
+    wf = proj + "/Workflow"
+    commands = [
+        "summary %s/al" % proj,
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/al al" % (wf, proj),
+        "workflowstep %s mlp_es mlp-1 %s/al charge=0 mult=1" % (wf, wf),
+        "workflowstep %s qe_es qe-1 %s/mlp-1" % (wf, wf),
+        "workflowinfo %s" % wf,
+    ]
+    script = os.path.join(work, "commands-mlp")
+    with open(script, "w") as handle:
+        handle.write("\n".join(commands) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    log = result.log or ""
+    what = "MLP step"
+    if result.crashed:
+        return fail(what, "CRASHED (%s)" % result.signalName, log)
+    got = re.findall(r"ECCE_TEST_ORGANIZER: workflowinfo.*?: (.*)$", log, re.M)
+    if not got or not got[0].startswith("ok "):
+        return fail(what, "no workflowinfo answer", log)
+    for line in re.findall(r"ECCE_TEST_ORGANIZER: workflow(?:copy|step).*?: (.*)$",
+                           log, re.M):
+        print("      %s" % line[:100])
+    table = steps(got[0][3:])
+    links = got[0].split(" links:")[1].split()
+    check("MLP and QE steps are made",
+          {"mlp-1", "qe-1"} <= set(table), "steps %s" % sorted(table))
+    if not {"mlp-1", "qe-1"} <= set(table):
+        return
+    check("the MLP step has the code label MLP", table["mlp-1"]["code"] == "MLP",
+          str(table["mlp-1"]))
+    check("geometry links run al > mlp-1 > qe-1",
+          {"al>mlp-1:geometry", "mlp-1>qe-1:geometry"} <= set(links),
+          "links %s" % links)
+    cell = table["al"].get("cell")
+    check("the source is periodic", bool(cell), str(table["al"]))
+    for name in ("mlp-1", "qe-1"):
+        rec = table[name]
+        check("%s has the source's cell and %s atoms" % (name, table["al"]["atoms"]),
+              rec.get("cell") == cell and rec["atoms"] == table["al"]["atoms"] and
+              rec.get("xyz0") == table["al"].get("xyz0"), "%s vs %s" % (rec, table["al"]))
+
+
 def tree_of(path):
     out = set()
     for d, _, files in os.walk(path):
@@ -1251,8 +1358,7 @@ def run_autorun(display, data, work, shots):
          for n in ("a", "b", "c", "d", "e", "g")]
     with open(script, "w") as f:
         f.write("\n".join(setup) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=40,
-                      env={"ECCE_TEST_ORGANIZER": script})
+    result = run_script(display, script)
     check("autorun setup Organizer survives", not result.crashed, result.log or "")
     # The input deck the Calculation Editor would have written.
     for n in ("a", "b", "c", "d", "e", "g"):
@@ -1270,8 +1376,7 @@ def run_autorun(display, data, work, shots):
     ]
     with open(script, "w") as f:
         f.write("\n".join(commands) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
-                      env={"ECCE_TEST_ORGANIZER": script})
+    result = run_script(display, script)
     log = result.log or ""
     with open(os.path.join(shots, "autorun-1.log"), "w") as f:
         f.write(log)
@@ -1306,8 +1411,7 @@ def run_autorun(display, data, work, shots):
     script = os.path.join(work, "autorun-commands-arm")
     with open(script, "w") as f:
         f.write("workflowautorun %s on\n" % wf)
-    result = apps.run(display, "organizer", windowTimeout=60, settle=20,
-                      env={"ECCE_TEST_ORGANIZER": script})
+    result = run_script(display, script)
     check("autorun arm Organizer survives", not result.crashed, result.log or "")
     script2 = os.path.join(work, "autorun-commands2")
     commands = [
@@ -1335,8 +1439,7 @@ def run_autorun(display, data, work, shots):
     ]
     with open(script2, "w") as f:
         f.write("\n".join(commands) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
-                      env={"ECCE_TEST_ORGANIZER": script2})
+    result = run_script(display, script2)
     log = result.log or ""
     with open(os.path.join(shots, "autorun-2.log"), "w") as f:
         f.write(log)
@@ -1376,8 +1479,7 @@ def run_autorun(display, data, work, shots):
             "workflowautorunclick %s off" % wf,
             "workflowautorun %s query" % wf,
         ]) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
-                      env={"ECCE_TEST_ORGANIZER": script3})
+    result = run_script(display, script3)
     log = result.log or ""
     with open(os.path.join(shots, "autorun-3.log"), "w") as f:
         f.write(log)
@@ -1389,9 +1491,131 @@ def run_autorun(display, data, work, shots):
     check("after a restart a completion still launches the next step",
           play and "g:0:already run" in play[-1], str(play))
     check("unticking ends the run", run[-1:] == ["ok autorun=off started=0"], str(run))
+    run_reactant_focus(display, data, work, shots)
     run_recipe_ready(display, data, work, shots, rundir)
     run_hand_ready(display, data, work, shots)
     run_no_theory(display, data, work, shots, rundir)
+
+
+def run_reactant_focus(display, data, work, shots):
+    """A Ready reactant without a machine must not reclaim selection (#903)."""
+    project = os.path.join(data, "users", "local", "reactant-focus")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(CALC, os.path.join(project, "water"), symlinks=True)
+    # The source fixture has launch settings; this case must have none to inherit.
+    meta = os.path.join(project, "water", ".ecce-meta")
+    with open(meta) as handle:
+        lines = [line for line in handle if "ecce:launch_" not in line]
+    with open(meta, "w") as handle:
+        handle.writelines(lines)
+    proj = "file://" + project
+    wf = proj + "/Workflow"
+    script = os.path.join(work, "reactant-focus-commands")
+    commands = [
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/water seed" % (wf, proj),
+        "workflowrecipe %s ts-irc g16 -" % wf,
+        "workflowautorunclick %s on" % wf,
+        "workflowstructure %s %s/reactant %s/water" % (wf, wf, proj),
+        # Prepare the reactant's deck and start the run; it has no machine to use.
+        "workflowlaunch %s" % wf,
+        "idle 1000",
+        "workflowstate %s %s/reactant" % (wf, wf),
+        "select %s" % wf,
+    ]
+    # Completion notices exercise background auto-run on each refresh. Selection
+    # must be read before another workflow hook can select the folder itself.
+    for selected in (wf, wf + "/product", wf):
+        commands += [
+            "select %s" % selected,
+            "setstate %s/seed completed" % wf,
+            "idle 3000",
+            "selection",
+        ]
+    commands += ["workflowstate %s %s/reactant" % (wf, wf)]
+    with open(script, "w") as handle:
+        handle.write("\n".join(commands) + "\n")
+    result = run_script(display, script,
+                        env={"ECCE_TEST_ORGANIZER_NOLAUNCH": "1"})
+    log = result.log or ""
+    with open(os.path.join(shots, "reactant-focus.log"), "w") as handle:
+        handle.write(log)
+    check("reactant-focus Organizer survives", not result.crashed, log)
+    state = re.findall(r"ECCE_TEST_ORGANIZER: workflowstate .*?: (.*)$", log, re.M)
+    check("the reactant stays Ready without launch settings (#903)",
+          len(state) == 2 and all(s.lower().startswith("ok state=ready") and
+                                  "no launch settings" in s for s in state), str(state))
+    launches = re.findall(r"ECCE_TEST_ORGANIZER: startApp Launcher .*? url=(.*)$",
+                          log, re.M)
+    check("refreshes request the reactant's Launcher only once (#903)",
+          launches == [wf + "/reactant"], str(launches))
+    selected = re.findall(r"ECCE_TEST_ORGANIZER: selection: (.*)$", log, re.M)
+    check("auto-run preserves the workflow and another step's selection (#903)",
+          selected == [wf, wf + "/product", wf], str(selected))
+
+
+def run_readonly(display, data, work, shots):
+    """Reload linked steps without writing their task indices (#952)."""
+    project = os.path.join(data, "users", "local", "readonly")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(CALC, os.path.join(project, "water"), symlinks=True)
+    proj = "file://" + project
+    wf = proj + "/Workflow"
+    folder = os.path.join(project, "Workflow")
+    script = os.path.join(work, "readonly-commands")
+
+    def organizer(commands):
+        with open(script, "w") as handle:
+            handle.write("\n".join(commands) + "\n")
+        return apps.run(display, "organizer", windowTimeout=60, settle=40,
+                        env={"ECCE_TEST_ORGANIZER": script})
+
+    result = organizer([
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/water seed" % (wf, proj),
+        "workflowstep %s xtb_es next %s/seed" % (wf, wf),
+        "workflowinfo %s" % wf,
+    ])
+    setup = re.findall(r"ECCE_TEST_ORGANIZER: workflowinfo .*?: (.*)$",
+                       result.log or "", re.M)
+    if result.crashed or not setup or "seed>next:geometry" not in setup[-1]:
+        return fail("read-only workflow setup", "linked steps missing", result.log)
+
+    def snapshot():
+        return {os.path.relpath(os.path.join(top, name), folder):
+                open(os.path.join(top, name), "rb").read()
+                for top, _, files in os.walk(folder) for name in files}
+
+    before = snapshot()
+    modes = {path: os.stat(path).st_mode & 0o777
+             for top, dirs, files in os.walk(folder)
+             for path in [top] + [os.path.join(top, n) for n in files]}
+    try:
+        for path, mode in modes.items():
+            os.chmod(path, mode & ~0o222)
+        check("workflow really is read-only", not os.access(folder, os.W_OK), folder)
+        # A new process must deserialize the linkbase rather than use cached members.
+        result = organizer([
+            "select %s" % wf,
+            "workflowinfo %s" % wf,
+            "workflowshot %s %s" % (os.path.join(shots, "readonly.png"), wf),
+        ])
+        log = result.log or ""
+        with open(os.path.join(shots, "readonly.log"), "w") as handle:
+            handle.write(log)
+        info = re.findall(r"ECCE_TEST_ORGANIZER: workflowinfo .*?: (.*)$", log, re.M)
+        panel = re.findall(r"ECCE_TEST_ORGANIZER: workflowshot .*?: (.*)$", log, re.M)
+        check("read-only workflow opens with both steps and its link (#952)",
+              not result.crashed and info == setup and
+              bool(panel) and panel[-1].startswith("ok ") and
+              "Source resource does not exist" not in log, log[-3000:])
+        check("viewing leaves every stored workflow file unchanged", snapshot() == before,
+              "workflow files changed")
+    finally:
+        for path, mode in modes.items():
+            os.chmod(path, mode)
 
 
 def run_no_theory(display, data, work, shots, rundir):
@@ -1413,8 +1637,7 @@ def run_no_theory(display, data, work, shots, rundir):
             "workflowsetlaunch %s %s/seed localhost %s" % (wf, wf, rundir),
             "workflowrecipe %s xtb-crest orca %s/seed" % (wf, wf),
         ]) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=40,
-                      env={"ECCE_TEST_ORGANIZER": script})
+    result = run_script(display, script)
     check("no-theory setup Organizer survives", not result.crashed, result.log or "")
     folder = os.path.join(project, "Workflow")
     ns = "http://www.emsl.pnl.gov/ecce:"
@@ -1457,8 +1680,7 @@ def run_no_theory(display, data, work, shots, rundir):
             "workflowstate %s %s/xtb" % (rwf, rwf),
         ]) + "\n")
     try:
-        result = apps.run(display, "organizer", windowTimeout=60, settle=40,
-                          env={"ECCE_TEST_ORGANIZER": script})
+        result = run_script(display, script)
     finally:
         subprocess.run(["chmod", "-R", "u+w", ro])
     log = result.log or ""
@@ -1504,8 +1726,7 @@ def run_recipe_ready(display, data, work, shots, rundir):
     ]
     with open(script, "w") as f:
         f.write("\n".join(commands) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
-                      env={"ECCE_TEST_ORGANIZER": script})
+    result = run_script(display, script)
     log = result.log or ""
     with open(os.path.join(shots, "recready.log"), "w") as f:
         f.write(log)
@@ -1566,9 +1787,8 @@ def run_hand_ready(display, data, work, shots):
     ]
     with open(script, "w") as f:
         f.write("\n".join(commands) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
-                      env={"ECCE_TEST_ORGANIZER": script,
-                           "ECCE_TEST_ORGANIZER_NOLAUNCH": "1"})
+    result = run_script(display, script,
+                        env={"ECCE_TEST_ORGANIZER_NOLAUNCH": "1"})
     log = result.log or ""
     with open(os.path.join(shots, "handready.log"), "w") as f:
         f.write(log)
@@ -1628,14 +1848,19 @@ def main():
                 run_protonation(display, data, work, shots)
             elif "--autorun-only" in sys.argv:
                 run_autorun(display, data, work, shots)
+            elif "--readonly-only" in sys.argv:
+                run_readonly(display, data, work, shots)
             elif "--handready-only" in sys.argv:
                 run_hand_ready(display, data, work, shots)
             elif "--make-only" in sys.argv:
                 run_make(display, data, work, shots)
+            elif "--mlp-only" in sys.argv:
+                run_mlp(display, data, work, shots)
             elif "--recipes-only" not in sys.argv:
                 run(display, data, work, shots)
                 run_joins(display, data, work, shots)
                 run_make(display, data, work, shots)
+                run_mlp(display, data, work, shots)
                 run_best(display, data, work, shots)
                 run_best_poses(display, data, work, shots)
                 run_patterns(display, data, work, shots)
@@ -1644,8 +1869,10 @@ def main():
                 # Protonation and auto-run have their own ctest entries
                 # (apps_workflow_protonation, apps_workflow_autorun).
             if not {"--make-only", "--editor-only", "--protonation-only", "--autorun-only",
-                "--handready-only"} & set(sys.argv):
+                "--handready-only", "--readonly-only", "--mlp-only"} & set(sys.argv):
                 run_recipes(display, data, work, shots)
+        except ScriptTimeout:
+            pass
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
             subprocess.run([stop], env=display.env(), timeout=120)

@@ -18,7 +18,7 @@ that submits and follows jobs. Normally it works with an **ECCE server**
 and results. The client can instead run **on its own**, keeping its data
 in a folder on your disk (Edit → Preferences → Data folder; off by default
 on Linux, the default on macOS and Windows); it still starts a private
-broker, which needs the `mosquitto` package, but no ECCE server. Neither
+message broker, ECCE's own, but no ECCE server. Neither
 server nor client runs calculations, except ECCE-QM on the client's own
 computer: they run on a **compute machine**, a workstation or an HPC
 cluster, where the client submits each job over ssh.

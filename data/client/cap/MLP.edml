@@ -48,7 +48,7 @@
     <item key="ES.Runtype.GeomOpt.RelaxCell" label="Relax the Cell"></item>
   </RuntypeSummary>
   <RuntypeSummary>
-    <item key="ES.Runtype.GeomOpt.Fmax" label="Force Limit (eV/A)"></item>
+    <item key="ES.Runtype.GeomOpt.Fmax" label="Force Limit (eV/Å)"></item>
   </RuntypeSummary>
   <RuntypeSummary>
     <item key="ES.Runtype.GeomOpt.Pressure" label="Pressure (GPa)"></item>
@@ -60,7 +60,7 @@
     <item key="ES.Runtype.MD.Steps" label="MD Steps"></item>
   </RuntypeSummary>
   <RuntypeSummary>
-    <item key="ES.Runtype.Vibration.Step" label="Displacement (A)"></item>
+    <item key="ES.Runtype.Vibration.Step" label="Displacement (Å)"></item>
   </RuntypeSummary>
 </Editor>
 

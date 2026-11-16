@@ -62,6 +62,10 @@ foreach my $dir (split(/:/, $ENV{"PATH"} || "")) {
 
 checkPrepare() if ($mdp =~ /\.gmxprep$/);
 
+# A run made from a ready .tpr has nothing to check: grompp is skipped in the
+# job script too.
+exit 0 if (-s "run.gmxtpr");
+
 my @missing;
 push(@missing, "the run-control file $mdp") if (! -s $mdp);
 push(@missing, "the topology (topol.top)")  if (! -s "topol.top");

@@ -109,6 +109,33 @@ int multiLineHeight(wxStaticText *t)
 
 
 //  Red that stays readable on light and dark table backgrounds.
+//  A GeoVib run optimises to a minimum, so imaginary modes below 100 cm-1
+//  mean it stopped at a saddle for a soft motion.  A Vibration run at a
+//  transition state expects an imaginary mode, so it gets no note.
+static wxString softImaginaryNote(IPropCalculation *calc)
+{
+   ICalculation *ic = dynamic_cast<ICalculation*>(calc);
+   PropVector *vec = calc ? (PropVector*) ResultsFromCalc::property(calc, "VIBFREQ") : 0;
+   if (!ic || !vec || ic->runtype().name() != "GeoVib") return wxString();
+   int n = 0;
+   double lowest = 0;
+   for (int m = 0; m < vec->rows(); m++) {
+      const double f = vec->value(m);
+      if (VibFrequency::isImaginary(f) && f > -100.0) {
+         n++;
+         if (f < lowest) lowest = f;
+      }
+   }
+   if (n == 0) return wxString();
+   const wxString tail = wxString::FromUTF8(
+         ": the optimisation stopped at a saddle for a soft motion. "
+         "Displace... below starts a new calculation off it.");
+   const wxString val = wxString::Format(wxString::FromUTF8("\xe2\x88\x92%.0f cm\xe2\x81\xbb\xc2\xb9"),
+                                         -lowest);
+   if (n == 1) return wxString::Format("1 small imaginary mode (%s)", val) + tail;
+   return wxString::Format("%d small imaginary modes (down to %s)", n, val) + tail;
+}
+
 static wxColour imaginaryColour()
 {
    return wxColour(214, 39, 40);
@@ -163,7 +190,8 @@ NModePanel::NModePanel()
     p_isValid(false),
     p_lastRadioSel(-1),
     p_structureOk(true),
-    p_staleNote(NULL)
+    p_staleNote(NULL),
+    p_softNote(NULL)
 {
    p_vecAmplitude = 1.0;
    p_aniAmplitude = 1.0;
@@ -187,7 +215,8 @@ NModePanel::NModePanel(IPropCalculation *calculation,
     p_isValid(false),
     p_lastRadioSel(-1),
     p_structureOk(true),
-    p_staleNote(NULL)
+    p_staleNote(NULL),
+    p_softNote(NULL)
 {
    Create(calculation, parent, id, pos, size, style, name);
    p_vecAmplitude = 1.0;
@@ -374,6 +403,13 @@ bool NModePanel::Create(IPropCalculation *calculation,
    p_staleNote->Hide();
    GetSizer()->Insert(0, p_staleNote, 0, wxEXPAND|wxALL, 5);
 
+   //  Same place as the stale note; only one of them shows at a time.
+   const wxString soft = softImaginaryNote(calculation);
+   p_softNote = new wxStaticText(this, wxID_ANY, soft);
+   p_softNote->Wrap(300);
+   p_softNote->Show(!soft.empty());
+   GetSizer()->Insert(0, p_softNote, 0, wxEXPAND|wxALL, 5);
+
    p_isValid = true;
 
    initialize();
@@ -542,8 +578,9 @@ bool NModePanel::checkStructure()
    if (ok == p_structureOk) return ok;
    p_structureOk = ok;
    for (wxWindow *child : GetChildren())
-      if (child != p_staleNote) child->Enable(ok);
+      if (child != p_staleNote && child != p_softNote) child->Enable(ok);
    p_staleNote->Show(!ok);
+   p_softNote->Show(ok && !p_softNote->GetLabel().empty());
    if (!ok) {
       stop();
       SGContainer& sg = getFW().getSceneGraph();
@@ -840,8 +877,8 @@ void NModePanel::createWindowControls(wxWindow *pane, wxBoxSizer *col)
                              wxSize(60, -1), wxTE_PROCESS_ENTER);
    wxTextCtrl *hi = new wxTextCtrl(w1, wxID_ANY, "", wxDefaultPosition,
                              wxSize(60, -1), wxTE_PROCESS_ENTER);
-   lo->SetToolTip("Lowest wavenumber shown, cm-1; Enter applies the range.");
-   hi->SetToolTip("Highest wavenumber shown, cm-1; Enter applies the range.");
+   lo->SetToolTip(wxString::FromUTF8("Lowest wavenumber shown, cm\xE2\x81\xBB\xC2\xB9; Enter applies the range."));
+   hi->SetToolTip(wxString::FromUTF8("Highest wavenumber shown, cm\xE2\x81\xBB\xC2\xB9; Enter applies the range."));
    add(g1, lo);
    add(g1, new wxStaticText(w1, wxID_ANY, "to"));
    add(g1, hi);
@@ -1408,9 +1445,9 @@ bool NModePanel::matchBands(const string& otherName, const string& atoms,
       p_bandGrid->EnableEditing(false);
       p_bandGrid->SetRowLabelSize(0);
       p_bandGrid->SetSelectionMode(wxGrid::wxGridSelectRows);
-      const char *cols[] = {"Mode A", "cm-1 A", "IR A", "Mode B", "cm-1 B",
+      const char *cols[] = {"Mode A", "cm\xE2\x81\xBB\xC2\xB9 A", "IR A", "Mode B", "cm\xE2\x81\xBB\xC2\xB9 B",
                             "IR B", "Shift", "Overlap", "Split"};
-      for (int c = 0; c < 9; c++) p_bandGrid->SetColLabelValue(c, cols[c]);
+      for (int c = 0; c < 9; c++) p_bandGrid->SetColLabelValue(c, wxString::FromUTF8(cols[c]));
       p_bandGrid->Bind(wxEVT_GRID_SELECT_CELL, [this](wxGridEvent& e) {
          long m = 0;
          if (e.GetRow() >= 0 && p_bandGrid->GetCellValue(e.GetRow(), 0).ToLong(&m) &&
@@ -1469,7 +1506,7 @@ bool NModePanel::matchBands(const string& otherName, const string& atoms,
          for (int c = 0; c < 9; c++)
             p_bandGrid->SetCellAlignment(r, c, wxALIGN_RIGHT, wxALIGN_CENTRE);
       } else if (f.size() == 6 && f[0] == "unmatched") {
-         unmatched += wxString::Format("%s%s mode %s (%.1f cm-1)", unmatched.empty() ? "" : "; ",
+         unmatched += wxString::Format(wxString::FromUTF8("%s%s mode %s (%.1f cm\xE2\x81\xBB\xC2\xB9)"), unmatched.empty() ? "" : "; ",
                                        f[1], f[2], atof(f[3].c_str()));
       }
    }
@@ -3302,7 +3339,7 @@ bool NModePanel::showComposition(int chBends, wxString *error)
       //  The last column follows the window; the columns must not size it.
       p_compGrid->SetMinSize(wxSize(200, 100));
       p_compGrid->SetColLabelValue(0, "Mode");
-      p_compGrid->SetColLabelValue(1, "cm-1");
+      p_compGrid->SetColLabelValue(1, wxString::FromUTF8("cm\xE2\x81\xBB\xC2\xB9"));
       p_compGrid->SetColLabelValue(2, "Mode type");
       p_compGrid->SetColLabelValue(3, "Largest contributions");
       p_compGrid->GetGridWindow()->Bind(wxEVT_MOTION, [this](wxMouseEvent& e) {
@@ -3422,7 +3459,7 @@ wxString NModePanel::compositionText(char sep) const
    wxString out;
    for (int c = 0; c < p_compGrid->GetNumberCols(); c++)
       out += (c ? wxString(sep) : wxString()) +
-             cell(c == 1 ? wxString(wxT("cm-1")) : p_compGrid->GetColLabelValue(c));
+             cell(c == 1 ? wxString::FromUTF8("cm\xE2\x81\xBB\xC2\xB9") : p_compGrid->GetColLabelValue(c));
    out += "\n";
    for (int r = 0; r < p_compGrid->GetNumberRows(); r++) {
       for (int c = 0; c < p_compGrid->GetNumberCols(); c++)

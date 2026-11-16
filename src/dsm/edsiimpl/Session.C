@@ -895,12 +895,12 @@ void Session::clearMembers()
  * Adds a new member to the Session.  Returns true if the
  * member was successfully added to the Session.
  */
-bool Session::addMember(Resource * res)
+bool Session::addMember(Resource * res, bool assignIndex)
 {
   bool ret = false;
 
   if (res != 0) {
-    if (res->addProp(VDoc::getDcQualifierNamespace() + ":taskIndex",
+    if (!assignIndex || res->addProp(VDoc::getDcQualifierNamespace() + ":taskIndex",
                      StringConverter::toString(numMembers()))) {
       p_members.push_back(res);
       ret = true;

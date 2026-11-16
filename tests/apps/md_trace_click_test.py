@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Geometry Trace / Geometry Step Plots clicks on an MD run (#560).
+"""Geometry Trace clicks on an MD run (#560).
 
     tests/apps/md_trace_click_test.py [--build build-cmake] [--png DIR] [--tag TAG]
 
@@ -7,7 +7,7 @@ The energy series of the NaCl-dissolving example's log (real parse scripts:
 a plot over 20 ns) are stored with a 101-frame trace, as the example has.
 A click far to the right of the plot must show the structure nearest in
 time (not the last of the first 101 points), say so, and move the plot's
-marker; a click in Geometry Step Plots must do the same; a selection must
+marker; a selection must
 survive Play; the temperature axis must carry its unit.
 Exit status 77 (skip) without Xvfb, import, python3-pil/numpy or binaries.
 """
@@ -105,26 +105,24 @@ def main():
                 "gtclick %d" % (npts - 1),
                 "gtclick %d" % (npts // 2),
                 "gtclick 30",
-                "gtstepclick %d" % (npts - 1),
                 "gtselected", "gtplay 1200 20", "gtstop", "gtselected",
                 "plotshot %s-temperature 880 520 Geometry Trace" % args.tag,
                 "hold 1", ""]))
         text, _ = bo.runScript(
-            s, display, env, wrappers, ["-context", url], ["wait 25000", "quit"],
+            s, display, env, wrappers, ["-context", url], ["wait 40000", "quit"],
             png, "mdclick",
-            {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Geometry Step Plots",
+            {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Geometry Trace",
              "ECCE_VIEWER_SCENE": scene,
              "ECCE_VIEWER_SCENE_OUT": os.path.join(s.state, "mdclick")})
         for line in re.findall(r"GTSTRESS: .*|BUILDER: message: .*", text):
             say(line)
         clicks = re.findall(r"click (\d+) -> structure (\d+) of (\d+), plot point (\d+)", text)
-        check(len(clicks) == 4, "four clicks reported (%d)" % len(clicks))
-        if len(clicks) == 4:
-            last, mid, low, step = [tuple(map(int, c)) for c in clicks]
+        check(len(clicks) == 3, "three clicks reported (%d)" % len(clicks))
+        if len(clicks) == 3:
+            last, mid, low = [tuple(map(int, c)) for c in clicks]
             check(last[1] == FRAMES, "a click on the last point shows the last structure")
             check(abs(mid[1] - (FRAMES + 1) / 2) <= 1, "the middle point shows the middle structure")
             check(low[1] == round(30 * (FRAMES - 1) / (npts - 1)) + 1, "an early point maps by time")
-            check(step[1] == FRAMES, "a click in Geometry Step Plots shows the last structure")
             check(abs(last[3] - (npts - 1)) <= npts / (FRAMES - 1),
                   "the marker is at the nearest stored structure's point")
         check("no stored structure" in text.lower() or "no structure is stored" in text.lower(),

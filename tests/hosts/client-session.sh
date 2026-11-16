@@ -1,14 +1,14 @@
 #!/bin/bash
 # Runs inside a client container as the account under test (#223).
-#   client-session.sh start   Xvfb :9 and `ecce -remote`; wait for the login
+#   client-session.sh start   Xvfb :90 and `ecce -remote`; wait for the login
 #                             dialog (exit 0 once it is up)
 #   client-session.sh close   close that dialog like a window manager's close
 #                             button; exit 0 once `ecce` has returned
-export DISPLAY=:9 HOST="$(hostname)"
+export DISPLAY=:90 HOST="$(hostname)"
 LOG="$HOME/ecce.log"
 case "${1:-}" in
   start)
-    setsid nohup Xvfb :9 -screen 0 1280x1024x24 >/dev/null 2>&1 </dev/null &
+    setsid nohup Xvfb :90 -screen 0 1280x1024x24 >/dev/null 2>&1 </dev/null &
     sleep 2
     : >"$LOG"
     setsid bash -c "ecce -remote >>'$LOG' 2>&1; echo exit=\$? >>'$LOG'" \
@@ -24,9 +24,9 @@ case "${1:-}" in
     # arrives in between is swallowed (seen under CPU load: up to 5 in a
     # row). Ask again every 2 s until `ecce` returns.
     for attempt in $(seq 30); do
-      python3 /usr/local/bin/closewin.py :9 "ECCE Authentication" ||
+      python3 /usr/local/bin/closewin.py :90 "ECCE Authentication" ||
         { grep -q '^exit=' "$LOG" && exit 0
-          echo "no login dialog on :9"; xwininfo -root -tree | grep '"'; tail -3 "$LOG"; exit 2; }
+          echo "no login dialog on :90"; xwininfo -root -tree | grep '"'; tail -3 "$LOG"; exit 2; }
       for _ in 1 2; do
         sleep 1
         grep -q '^exit=' "$LOG" && exit 0

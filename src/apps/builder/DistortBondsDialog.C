@@ -38,7 +38,7 @@ DistortBondsDialog::DistortBondsDialog(wxWindow *parent, const Fragment& frag,
   for (size_t i = 0; i < p_nb.size(); i++) p_nbSyms.push_back(frag.atomRef(p_nb[i])->atomicSymbol());
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
   top->Add(new wxStaticText(this, wxID_ANY,
-      wxString::Format(_("Change in each bond to %s%d, in Angstrom "
+      wxString::Format(wxString::FromUTF8("Change in each bond to %s%d, in \xC3\x85 "
                          "(positive stretches, negative shrinks):"),
                        frag.atomRef(centre)->atomicSymbol(), centre + 1)),
       0, wxALL, 8);

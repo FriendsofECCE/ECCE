@@ -9,10 +9,13 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <memory>
   using namespace std;
 
+#include "util/Ecce.H"
 #include "util/ErrMsg.H"
 #include "util/JMSMessage.H"
+#include "util/JMSPublisher.H"
 #include "util/MqttLink.H"
 #include "wxgui/WxJMSSubscriber.H"
 
@@ -27,6 +30,23 @@ WxJMSSubscriber::WxJMSSubscriber(const string& toolName) {
   p_started = false;
   p_messagingEnabled = (getenv("ECCE_NO_MESSAGING") == NULL) ? true : false;
   if (p_messagingEnabled) {
+    // Every GUI program with messaging comes through here. A test run
+    // reads stderr instead: a modal box would stall its scripted app.
+    static bool handlerSet = false;
+    if (!handlerSet && Ecce::guiAvailable() && !getenv("ECCE_TEST_HOME")) {
+      handlerSet = true;
+      MqttLink::setNoBrokerHandler([](const string& file) {
+        if (!wxTheApp) return;
+        wxTheApp->CallAfter([file]() {
+          wxMessageBox("This program could not find the message broker of "
+                       "its ECCE session (" + file + "), so it runs without "
+                       "messaging: other ECCE windows will not hear from it, "
+                       "and jobs it launches will not report back to it.\n\n"
+                       "Save your work, then start ECCE again with 'ecce'.",
+                       "ECCE: no message broker", wxOK | wxICON_WARNING);
+        });
+      });
+    }
     p_ep = std::make_shared<MqttEndpoint>(toolName);
     p_ep->handler = [this](const string& t, JMSMessage& m) { deliver(t, m); };
     p_ep->arrival = [this](const string& t, JMSMessage& m) { messageArrived(t, m); };
@@ -170,10 +190,11 @@ string WxJMSSubscriber::getMyName() const {
 }
 
 /**
- * Use this to get your process ID (pid), as used for message identification.
+ * The id this subscriber's messages are stamped and targeted with: the pid,
+ * or one per tool instance in a shared process (MqttLink::newInstanceId).
  */
 string WxJMSSubscriber::getMyID() const {
-  return std::to_string(getpid());
+  return p_ep ? p_ep->id() : MqttLink::processId();
 }
 
 void WxJMSSubscriber::messageArrived(const string&, JMSMessage&) {}
@@ -188,9 +209,21 @@ void WxJMSSubscriber::deliver(const string& topic, JMSMessage& msg) {
   }
   wxCbMap::iterator it = cbStructs.find(topic);
   if (it == cbStructs.end()) return;
+  // Test hook: which tool took which message from whom (#983).
+  static const bool trace = getenv("ECCE_TEST_MESSAGES") != 0;
+  if (trace)
+    std::cerr << "ECCE_TEST_MESSAGES: " << getMyName() << " " << getMyID()
+              << " pid=" << MqttLink::processId() << " " << topic << " from "
+              << msg.getSender().getName() << " " << msg.getSender().getID()
+              << std::endl;
 
   wxJMSCallbackStructure *cbStruct = (*it).second;
   WxJMSListener *classPtr = cbStruct->classPtr;
+  // In one process (#983) data notices a handler causes go out as this
+  // subscriber's tool, so that its own self filter drops them.
+  std::unique_ptr<JMSPublisher::ActingTool> acting;
+  if (MqttLink::localDelivery())
+    acting.reset(new JMSPublisher::ActingTool(getMyName(), getMyID()));
   if (classPtr != NULL)
     (classPtr->*(cbStruct->funcPtr.classFunc))(msg);
   else

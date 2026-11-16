@@ -242,12 +242,13 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
 
 //  Scene commands for the Density Map panel (#215); each GUI action has one:
 //    densitymap <name> <w> <h> <orbital|0|sumN> <alpha|beta> <plane 0-3> [a b c]
+//    dmfill on|off        the Fill tick (colour between the contours)
 //    dmdiff [NAME ...]    density minus the named calculations of this folder (none: plain)
 //    dmpick A B [C]       atoms picked in the 3-D view (1-based)
 //    dmoffset X [drag]    the offset slider, A
 //    dmview rx ry rz ux uy uz | dmviewcurrent     "Use this view"
 //    dmfollow N           select MO N in the MOs panel
-//    dmcsv <name> | dmpng <name> <w> <h> | dmzoom F U V|@N | dmzoomreset | dmstate | dmhide | dmclose | dmopen | dmlayout W | dmplane N
+//    dmcsv <name> | dmpng <name> <w> <h> | dmzoom F U V|@N | dmzoomreset | dmreset | dmstate | dmhide | dmclose | dmopen | dmlayout W | dmplane N
 bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
                                 const string& outdir)
 {
@@ -295,6 +296,8 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
     if (!dm->savePng(wxString(outdir + "/" + w[1] + ".png"), atoi(w[2].c_str()),
                      atoi(w[3].c_str())))
       return s.fail("densitymap: cannot write " + w[1] + ".png");
+  } else if (cmd == "dmfill" && w.size() == 2) {
+    dm->setFill(w[1] == "on" || w[1] == "1");
   } else if (cmd == "dmdiff") {
     vector<string> names(w.begin() + 1, w.end()), urls;
     string why;
@@ -352,6 +355,9 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
     ok = dm->panBy(atof(w[1].c_str()), atof(w[2].c_str()), cmd == "dmdrag");
   } else if (cmd == "dmrefine") {
     dm->refineZoom();
+  } else if (cmd == "dmreset" || cmd == "dmresetoffset") {
+    //  The one Reset button: whole plane, offset 0.
+    dm->resetAll();
   } else if (cmd == "dmzoomreset") {
     dm->resetZoom();
   } else if (cmd == "dmclose") {
@@ -396,7 +402,7 @@ bool Builder::atomNumbersCommand(SceneScript& s, const vector<string>& w)
     //  The charge panels list atoms in a tree list (atom number in column
     //  1, element in 2) and the others in a grid (number in column 0).
     std::function<wxWindow*(wxWindow*)> find = [&find](wxWindow *win) -> wxWindow* {
-      if (dynamic_cast<wxTreeListCtrl*>(win) || dynamic_cast<ewxGrid*>(win)) return win;
+      if (dynamic_cast<ewxTreeListCtrl*>(win) || dynamic_cast<ewxGrid*>(win)) return win;
       for (wxWindow *c : win->GetChildren())
         if (wxWindow *f = find(c)) return f;
       return 0;
@@ -404,7 +410,7 @@ bool Builder::atomNumbersCommand(SceneScript& s, const vector<string>& w)
     wxWindow *table = pane.window ? find(pane.window) : 0;
     if (!table) return s.fail("atomnumbers: no table in " + panel);
     const wxString first = wxString::Format("%d", n);
-    if (wxTreeListCtrl *tl = dynamic_cast<wxTreeListCtrl*>(table)) {
+    if (ewxTreeListCtrl *tl = dynamic_cast<ewxTreeListCtrl*>(table)) {
       wxTreeItemIdValue cookie;
       for (wxTreeItemId it = tl->GetFirstChild(tl->GetRootItem(), cookie); it.IsOk();
            it = tl->GetNextChild(tl->GetRootItem(), cookie))
@@ -434,6 +440,7 @@ bool Builder::atomNumbersCommand(SceneScript& s, const vector<string>& w)
 //    dpspin alpha|beta|both | dpunit A|bohr | dpcombine 0|1 | dpclip 0|1
 //    dpxaxis linear|sqrt|log (atom) | dpyaxis linear|log|sqrt
 //    dpshift ANGSTROM [in|out] (line) | dpzoom whole|fit|in|out | dpmore 0|1
+//    dplayout W    visible controls and rectangles at panel width W (fails if clipped)
 //    dpfollow N [beta]    what a click on an MO Diagram level does
 //    dpcancelafter MS    press Cancel in the next command's progress dialog
 //    dpdiff [NAME ...]    density minus the named calculations of this folder (none: plain)
@@ -526,6 +533,11 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
     ok = dp->setShift(atof(w[1].c_str()), w.size() < 3 || w[2] != "in");
   } else if (cmd == "dpzoom" && w.size() == 2) {
     ok = dp->zoom(w[1]);
+  } else if (cmd == "dplayout" && w.size() == 2) {
+    //  The visible controls at that panel width (Options folded or open).
+    const std::string report = dp->layoutReport(atoi(w[1].c_str()));
+    fprintf(stderr, "DENSITYPROFILE layout\n%s", report.c_str());
+    ok = report.find("layout ok") != std::string::npos;
   } else if (cmd == "dpmore" && w.size() == 2) {
     ok = dp->setMoreOpen(w[1] != "0");
   } else if (cmd == "dpfollow" && w.size() >= 2) {
@@ -564,6 +576,10 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
 //    opdoswidth EV | opdossticks 0|1 | opdosoccupied 0|1 | opdosint 0|1
 //    opdosshape gaussian|lorentzian | opdosshow ROW (double-click on MO list row, 0-based)
 //    opdosclick EV | opdoscsv <name> | opdospng <name> <w> <h> | opdosstate
+//    opdosatoms "A" "B" [A|B]: with an atom in both, the named group keeps it (default A)
+//    opdosmore 0|1 (Options) | opdoslayout W (visible controls at panel width W)
+//    opdoswindow (open both plots in a window; opdosstate then prints window_*) |
+//    opdoswinshot <name> (picture of that window) | opdoswinclose
 bool Builder::opdosCommand(SceneScript& s, const vector<string>& w, const string& outdir)
 {
   const string name = "Density of States (OPDOS)";
@@ -587,6 +603,20 @@ bool Builder::opdosCommand(SceneScript& s, const vector<string>& w, const string
   bool ok = true;
   if (cmd == "opdosatoms" && w.size() == 3) {
     ok = op->setAtoms(w[1], w[2]);
+  } else if (cmd == "opdosatoms" && w.size() == 4) {
+    ok = op->setAtoms(w[1], w[2], w[3] == "B" ? 1 : 0);
+  } else if (cmd == "opdosmore" && w.size() == 2) {
+    ok = op->setMoreOpen(w[1] != "0");
+  } else if (cmd == "opdoslayout" && w.size() == 2) {
+    const std::string report = op->layoutReport(atoi(w[1].c_str()));
+    fprintf(stderr, "OPDOS layout\n%s", report.c_str());
+    ok = report.find("layout ok") != std::string::npos;
+  } else if (cmd == "opdoswindow" && w.size() == 1) {
+    ok = op->openWindow();
+  } else if (cmd == "opdoswinshot" && w.size() == 2) {
+    ok = op->saveWindowShot(wxString(outdir + "/" + w[1] + ".png"));
+  } else if (cmd == "opdoswinclose" && w.size() == 1) {
+    op->closeWindow();
   } else if (cmd == "opdosselect" && w.size() >= 3) {
     SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
     if (!frag) return s.fail("opdosselect: no structure");

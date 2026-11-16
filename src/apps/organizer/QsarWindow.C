@@ -11,6 +11,10 @@
 #include <wx/button.h>
 #include <wx/checkbox.h>
 #include <wx/choice.h>
+#include <wx/clipbrd.h>
+#include <wx/dataobj.h>
+#include <wx/dialog.h>
+#include <wx/textctrl.h>
 #include <wx/dcbuffer.h>
 #include <wx/filedlg.h>
 #include <wx/graphics.h>
@@ -160,6 +164,13 @@ private:
     if (y1 - y0 < 1e-12) { y0 -= 1; y1 += 1; }
     const double px = 0.06 * (x1 - x0), py = 0.06 * (y1 - y0);
     f.x0 = x0 - px; f.x1 = x1 + px; f.y0 = y0 - py; f.y1 = y1 + py;
+    // Ends on tick values, so the axis labels bracket the data and y = x spans the range.
+    auto enclose = [](double& lo, double& hi) {
+      const double step = niceStep(hi - lo, 6);
+      lo = std::floor(lo / step) * step; hi = std::ceil(hi / step) * step;
+    };
+    enclose(f.x0, f.x1); enclose(f.y0, f.y1);
+    if (p_parity) { f.x0 = f.y0 = std::min(f.x0, f.y0); f.x1 = f.y1 = std::max(f.x1, f.y1); }
     const wxSize s = GetClientSize();
     f.l = 58; f.t = 34; f.w = std::max(20, s.x - f.l - 16); f.h = std::max(20, s.y - f.t - 70);
     (void)gc;
@@ -260,7 +271,7 @@ private:
     for (int fl : p_flag) { any1 |= fl == 1; any2 |= fl == 2; }
     key(0, p_parity ? "fitted molecules" : "molecules");
     if (any2) key(2, "test set (not in the fit)");
-    if (any1) key(1, "outside the model limits (T2 or DModX)");
+    if (any1) key(1, "outside the model limits (95 %, T\xC2\xB2 or DModX)");
     // Hover readout.
     if (p_hover >= 0 && (size_t)p_hover < p_x.size()) {
       char b[160];
@@ -377,9 +388,17 @@ bool QsarWindow::load(const vector<EcceURL>& calcs, const string& groups, string
     };
   }
   string text;
-  if (!qsarTable(calcs, groups, text, why, progress)) return false;
+  string key;
+  if (!qsarTable(calcs, groups, text, why, progress, &key)) return false;
   vector<vector<string>> all = parseCsv(text);
   if (all.empty()) { why = "The table is empty."; return false; }
+  p_columnText.clear();
+  for (const auto& row : parseCsv(key))
+    if (row.size() == 2) p_columnText.push_back(row[1]);
+  if (p_columnText.size() != all[0].size()) {
+    why = "Descriptor key does not match the table columns.";
+    return false;
+  }
   p_calcs = calcs;
   p_groups = groups;
   p_csvText = text;
@@ -452,6 +471,58 @@ void QsarWindow::fillTable()
     for (size_t j = 0; j < p_head.size() && j < p_rows[i].size(); j++)
       p_tableGrid->SetCellValue((int)i, (int)j, U(p_rows[i][j]));
   p_tableGrid->AutoSizeColumns();
+}
+
+string QsarWindow::keyText() const
+{
+  string text;
+  for (size_t i = 0; i < p_head.size() && i < p_columnText.size(); ++i)
+    text += p_head[i] + ": " + p_columnText[i] + "\n\n";
+  return text;
+}
+
+wxDialog *QsarWindow::createKey()
+{
+  auto *dlg = new wxDialog(this, wxID_ANY, "QSAR descriptor key", wxDefaultPosition,
+                           wxSize(820, 520), wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER);
+  auto *box = new wxTextCtrl(dlg, wxID_ANY, U(keyText()), wxDefaultPosition, wxDefaultSize,
+                             wxTE_MULTILINE | wxTE_READONLY);
+  auto *top = new wxBoxSizer(wxVERTICAL);
+  top->Add(box, 1, wxEXPAND | wxALL, 8);
+  auto *buttons = new wxBoxSizer(wxHORIZONTAL);
+  auto *copy = new wxButton(dlg, wxID_COPY, "Copy All");
+  buttons->Add(copy, 0, wxALL, 5);
+  buttons->AddStretchSpacer();
+  auto *close = new wxButton(dlg, wxID_CLOSE, "Close");
+  buttons->Add(close, 0, wxALL, 5);
+  top->Add(buttons, 0, wxEXPAND);
+  dlg->SetSizer(top);
+  copy->Bind(wxEVT_BUTTON, [box](wxCommandEvent&) {
+    if (wxTheClipboard->Open()) {
+      wxTheClipboard->SetData(new wxTextDataObject(box->GetValue()));
+      wxTheClipboard->Close();
+    }
+  });
+  close->Bind(wxEVT_BUTTON, [dlg](wxCommandEvent&) { dlg->EndModal(wxID_CLOSE); });
+  return dlg;
+}
+
+// Test hook: drives the header motion handler of the column and returns its tooltip.
+string QsarWindow::headerTooltip(const string& name)
+{
+  const auto at = std::find(p_head.begin(), p_head.end(), name);
+  if (!p_tableGrid || at == p_head.end()) return "";
+  const int col = (int)(at - p_head.begin());
+  if (p_tableGrid->GetNumberRows()) p_tableGrid->MakeCellVisible(0, col);
+  int x = 2;
+  for (int i = 0; i < col; ++i) x += p_tableGrid->GetColSize(i);
+  const wxPoint point = p_tableGrid->CalcScrolledPosition(wxPoint(x, 2));
+  wxMouseEvent event(wxEVT_MOTION);
+  event.SetPosition(wxPoint(point.x, 2));
+  wxWindow *labels = p_tableGrid->GetGridColLabelWindow();
+  event.SetEventObject(labels);
+  labels->GetEventHandler()->ProcessEvent(event);
+  return labels->GetToolTipText().ToStdString(wxConvUTF8);
 }
 
 void QsarWindow::setStatus(const string& s) { if (p_status) p_status->SetLabel(U(s)); }
@@ -544,7 +615,26 @@ void QsarWindow::build()
   p_tableGrid = makeGrid(tp, wxSize(600, 300));
   ts->Add(p_tableGrid, 1, wxEXPAND | wxALL, 4);
   wxButton *exp = new wxButton(tp, wxID_ANY, "Export CSV...");
-  ts->Add(exp, 0, wxALL, 4);
+  wxButton *keyButton = new wxButton(tp, wxID_ANY, "Key...");
+  wxBoxSizer *tb = new wxBoxSizer(wxHORIZONTAL);
+  tb->Add(exp, 0, wxALL, 4);
+  tb->Add(keyButton, 0, wxALL, 4);
+  ts->Add(tb, 0);
+  keyButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    std::unique_ptr<wxDialog> dlg(createKey());
+    dlg->ShowModal();
+  });
+  // Column labels sit in their own window; cell tooltips never reach it.
+  wxWindow *labels = p_tableGrid->GetGridColLabelWindow();
+  labels->Bind(wxEVT_MOTION, [this, labels](wxMouseEvent& e) {
+    const int col = p_tableGrid->XToCol(p_tableGrid->CalcUnscrolledPosition(e.GetPosition()).x);
+    const wxString text = col >= 0 && col < (int)p_columnText.size() ? U(p_columnText[col]) : wxString();
+    if (text != labels->GetToolTipText()) {
+      if (text.empty()) labels->UnsetToolTip(); else labels->SetToolTip(text);
+    }
+    e.Skip();
+  });
+  labels->Bind(wxEVT_LEAVE_WINDOW, [labels](wxMouseEvent& e) { labels->UnsetToolTip(); e.Skip(); });
   tp->SetSizer(ts);
   p_book->AddPage(tp, "Table");
 
@@ -582,12 +672,12 @@ void QsarWindow::build()
   pc->Add(p_pcaShow, 0, wxALL, 2);
   pl->Add(pc, 0, wxEXPAND);
   pl->Add(wrapped(pp,
-      "How to read this: each molecule is a point; t1 and t2 are the two directions along "
-      "which the molecules differ most, and the percentages on the axes say how much of the "
-      "differences each direction holds. Molecules close together have similar descriptors. "
-      "Read the column 'Variation explained, total' to see how much the first components "
-      "capture together; Q\xC2\xB2 says how much of it holds up when parts of the data are left out. "
-      "Squares outside the limits are unlike the rest.", 560), 0, wxEXPAND | wxALL, 4);
+      "How to read this: each molecule is a point; Component 1 and Component 2 are the two "
+      "directions along which the molecules differ most, and the percentages on the axes say "
+      "how much of the differences each direction holds. Molecules close together have similar descriptors. "
+      "Read the column 'Cumulative variance explained' to see how much the first components "
+      "capture together; the cross-validated prediction (Q\xC2\xB2) says how much of it holds up when parts of the "
+      "data are left out. Squares outside the limits are unlike the rest.", 560), 0, wxEXPAND | wxALL, 4);
   pm->Add(pl, 1, wxEXPAND);
   p_pcaPlot = new QsarPlot(pp);
   pm->Add(p_pcaPlot, 1, wxEXPAND | wxALL, 4);
@@ -640,7 +730,7 @@ void QsarWindow::build()
   ll->Add(p_plsSentence, 0, wxEXPAND | wxALL, 4);
   p_plsGrid = makeGrid(lp, wxSize(560, 140));
   ll->Add(p_plsGrid, 0, wxEXPAND | wxALL, 4);
-  ll->Add(new wxStaticText(lp, wxID_ANY, "Descriptors by importance (VIP)"), 0, wxLEFT, 6);
+  ll->Add(new wxStaticText(lp, wxID_ANY, "Descriptors by importance (VIP, variable importance in projection)"), 0, wxLEFT, 6);
   p_vipGrid = makeGrid(lp, wxSize(560, 130));
   ll->Add(p_vipGrid, 0, wxEXPAND | wxALL, 4);
   wxBoxSizer *lc = new wxBoxSizer(wxHORIZONTAL);
@@ -652,10 +742,11 @@ void QsarWindow::build()
   ll->Add(lc, 0, wxEXPAND);
   ll->Add(wrapped(lp,
       "How to read this: the plot compares what was measured with what the model gives. "
-      "R\xC2\xB2Y is how well the model reproduces the molecules it was built on; Q\xC2\xB2 is how well it "
-      "predicts molecules left out, and is the number to judge the model by (close to 1 is "
-      "good, near 0 or below is no better than the average). VIP says how much a descriptor "
-      "matters: above 1 is more than average.", 560), 0, wxEXPAND | wxALL, 4);
+      "The variance of the property explained (R\xC2\xB2Y) is how well the model reproduces the molecules "
+      "it was built on; the cross-validated prediction (Q\xC2\xB2) is how well it predicts molecules left "
+      "out, and is the number to judge the model by (close to 1 is good, near 0 or below is no "
+      "better than the average). Importance (VIP) says how much a descriptor matters: above 1 is "
+      "more than average.", 560), 0, wxEXPAND | wxALL, 4);
   lm->Add(ll, 1, wxEXPAND);
   p_plsPlot = new QsarPlot(lp);
   lm->Add(p_plsPlot, 1, wxEXPAND | wxALL, 4);
@@ -774,13 +865,14 @@ bool QsarWindow::runPca(const string& scaling, int components, string& why)
   double cum = 0, qcum = 0;
   for (size_t i = 1; i < comp.size(); i++) {
     if (comp[i].size() < 6) continue;
-    rows.push_back({comp[i][0], num3(comp[i][1]), num3(comp[i][2]), num3(comp[i][3]),
-                    num3(comp[i][4]), num3(comp[i][5])});
+    rows.push_back({comp[i][0], num3(comp[i][1]), percent(atof(comp[i][2].c_str())),
+                    percent(atof(comp[i][3].c_str())), num3(comp[i][4]), num3(comp[i][5])});
     if (i == A) { cum = atof(comp[i][3].c_str()); qcum = atof(comp[i][5].c_str()); }
   }
-  fillGrid(p_pcaGrid, {"Component", "Eigenvalue", "Variation explained, this component (R\xC2\xB2X)",
-                       "Variation explained, total (cum. R\xC2\xB2X)",
-                       "Predicted, this component (Q\xC2\xB2)", "Predicted, total (cum. Q\xC2\xB2)"},
+  fillGrid(p_pcaGrid, {"Component", "Eigenvalue", "Variance explained by this component (%)",
+                       "Cumulative variance explained (%)",
+                       "Cross-validated prediction, this component (Q\xC2\xB2)",
+                       "Cumulative cross-validated prediction (Q\xC2\xB2)"},
            rows, A, 3);
   char b[160];
   snprintf(b, sizeof b, "The first %zu component%s explain%s %s %% of the variation between the molecules.",
@@ -788,8 +880,9 @@ bool QsarWindow::runPca(const string& scaling, int components, string& why)
   p_pcaSentence->SetLabel(U(b));
   p_pcaSentence->Wrap(560);
   auto share = [&](size_t k) { return k < comp.size() && comp[k].size() > 2 ? atof(comp[k][2].c_str()) : 0.0; };
-  p_pcaPlot->set("PCA scores: molecules by their first two components",
-                 "t1 (" + percent(share(1)) + " %)", "t2 (" + percent(share(2)) + " %)", names, x, y, flag,
+  p_pcaPlot->set("Molecules by their first two components",
+                 "Component 1 (" + percent(share(1)) + " % of the variance)",
+                 "Component 2 (" + percent(share(2)) + " % of the variance)", names, x, y, flag,
                  false);
   int constant = 0;
   takeNotes(p_summary, p_notes, constant);
@@ -837,13 +930,17 @@ bool QsarWindow::runPls(const string& y, const string& scaling, int components, 
   vector<vector<string>> rows;
   for (size_t i = 1; i < comp.size(); i++) {
     if (comp[i].size() < 8) continue;
-    rows.push_back({comp[i][0], num3(comp[i][1]), num3(comp[i][2]), num3(comp[i][3]),
-                    num3(comp[i][4]), num3(comp[i][5]), num3(comp[i][6]), num3(comp[i][7])});
+    rows.push_back({comp[i][0], percent(atof(comp[i][1].c_str())), percent(atof(comp[i][2].c_str())),
+                    percent(atof(comp[i][3].c_str())), percent(atof(comp[i][4].c_str())),
+                    num3(comp[i][5]), num3(comp[i][6]), num3(comp[i][7])});
   }
-  fillGrid(p_plsGrid, {"Component", "X variation, this (R\xC2\xB2X)", "X variation, total (cum. R\xC2\xB2X)",
-                       "Y explained, this (R\xC2\xB2Y)", "Y explained, total (cum. R\xC2\xB2Y)",
-                       "Y predicted, this (Q\xC2\xB2)", "Y predicted, total (cum. Q\xC2\xB2)",
-                       "Prediction error (RMSECV)"}, rows, A, 6);
+  fillGrid(p_plsGrid, {"Component", "Descriptor variance explained by this component (%)",
+                       "Cumulative descriptor variance explained (%)",
+                       "Property variance explained by this component (%)",
+                       "Cumulative property variance explained (%)",
+                       "Cross-validated prediction, this component (Q\xC2\xB2)",
+                       "Cumulative cross-validated prediction (Q\xC2\xB2)",
+                       "Prediction error on left-out molecules (RMSECV)"}, rows, A, 6);
   // VIP, largest first.
   vector<vector<string>> vip = parseCsv(slurp(fs::path(p_dir) / "pls_vip.csv"));
   vector<vector<string>> vrows;
@@ -851,7 +948,7 @@ bool QsarWindow::runPls(const string& y, const string& scaling, int components, 
   std::stable_sort(vrows.begin(), vrows.end(), [](const vector<string>& a, const vector<string>& b) {
     return atof(a[1].c_str()) > atof(b[1].c_str()); });
   for (auto& r : vrows) r[1] = num3(r[1]);
-  fillGrid(p_vipGrid, {"Descriptor", "VIP (importance)"}, vrows, 0, 1);
+  fillGrid(p_vipGrid, {"Descriptor", "Importance in the model (VIP)"}, vrows, 0, 1);
   double r2y = 0, q2 = 0, rmsee = 0, rmsecv = 0;
   const size_t a = p_summary.find("R2Y ");
   if (a != string::npos)
@@ -867,7 +964,7 @@ bool QsarWindow::runPls(const string& y, const string& scaling, int components, 
   p_plsConst->SetLabel(constant ? wxString::Format("%d descriptors are constant across these molecules "
                                                    "and were left out", constant) : wxString());
   p_plsShow->Show(!p_notes.empty());
-  snprintf(b, sizeof b, "PLS of %s done: R\xC2\xB2Y %.2f, Q\xC2\xB2 %.2f, RMSECV %.2f", label.c_str(), r2y, q2, rmsecv);
+  snprintf(b, sizeof b, "PLS of %s done: property variance explained (R\xC2\xB2Y) %.2f, cross-validated prediction (Q\xC2\xB2) %.2f, prediction error (RMSECV) %.2f", label.c_str(), r2y, q2, rmsecv);
   p_plsStatus = b;
   setStatus(p_plsStatus);
   p_book->Layout();
@@ -880,7 +977,8 @@ bool QsarWindow::saveResults(const string& dir, string& why) const
   fs::create_directories(dir, ec);
   for (const char *f : {"table.csv", "pca_scores.csv", "pca_loadings.csv", "pca_components.csv",
                         "pls_components.csv", "pls_scores.csv", "pls_vip.csv",
-                        "pls_predictions.csv", "pls_permutation.csv", "pls_model.json"}) {
+                        "pls_predictions.csv", "pls_permutation.csv", "pls_model.json",
+                        "analysis_components.csv", "analysis_vip.csv", "analysis_summary.txt"}) {
     const fs::path src = fs::path(p_dir) / f;
     if (!fs::exists(src)) continue;
     fs::copy_file(src, fs::path(dir) / f, fs::copy_options::overwrite_existing, ec);

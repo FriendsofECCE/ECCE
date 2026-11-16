@@ -1,0 +1,37 @@
+ CP2K| version string:                                       CP2K version 2025.1
+  1. Atomic kind: C                                     Number of atoms:       1
+     Orbital Basis Set                                        DZVP-MOLOPT-SR-GTH
+     GTH Potential information for                                    GTH-PBE-q4
+       Electronic configuration (s p d ...):                               2   2
+  2. Atomic kind: H                                     Number of atoms:       2
+     Orbital Basis Set                                        DZVP-MOLOPT-SR-GTH
+     GTH Potential information for                                    GTH-PBE-q1
+       Electronic configuration (s p d ...):                                   1
+  3. Atomic kind: F                                     Number of atoms:       1
+     Orbital Basis Set                                        DZVP-MOLOPT-SR-GTH
+     GTH Potential information for                                    GTH-PBE-q7
+       Electronic configuration (s p d ...):                               2   5
+  4. Atomic kind: Cl                                    Number of atoms:       1
+     Orbital Basis Set                                        DZVP-MOLOPT-SR-GTH
+     GTH Potential information for                                    GTH-PBE-q7
+       Electronic configuration (s p d ...):                               2   5
+ ENERGY| Total FORCE_EVAL ( QS ) energy [hartree]            -46.053706612545867
+ FORCES| Atomic forces [hartree/bohr]
+ FORCES|   Atom     x               y               z               |f|
+ FORCES|      1  3.42090786E-02 -2.01409519E-02 -4.02642055E-02   5.65431273E-02
+ FORCES|      2  2.94722146E-02  2.69325897E-02  4.87497618E-02   6.30120235E-02
+ FORCES|      3  2.19071847E-02 -6.30443381E-03 -1.60396217E-02   2.78736451E-02
+ FORCES|      4 -6.21089651E-02  3.46378065E-02  6.11072557E-02   9.37624545E-02
+ FORCES|      5 -2.57965700E-02 -3.16081644E-02 -5.42325078E-02   6.78653371E-02
+ FORCES| Sum    -2.31705715E-03  3.51684619E-03 -6.79317535E-04
+ FORCES| Total atomic force                                       4.26596217E-03
+                     Mulliken Population Analysis
+
+ #  Atom  Element  Kind  Atomic population                           Net charge
+       1     C        1          4.052249                             -0.052249
+       2     H        2          0.924487                              0.075513
+       3     H        2          0.909509                              0.090491
+       4     F        3          7.093391                             -0.093391
+       5     Cl       4          7.020364                             -0.020364
+ # Total charge                             20.000000                  0.000000
+
