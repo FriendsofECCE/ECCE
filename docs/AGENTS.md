@@ -301,6 +301,13 @@ density of states and OPDOS, dipole moment, Compare Energies, Energy Calculator,
 thermochemistry, spectra and band matching, MD speeds and diffusion, MD
 Analysis. Each has a help page named in `help/src/index.md`.
 
+The Density Profile panel shows only its mode and atoms, the **Options**
+button, the orbital list and the plot; quantity, orbital set, spin, axes and
+**Show all** are under **Options**. Builder scene hooks (`dp*`, as in
+`tests/apps/densityprofile_panel_test.py`) set these controls whether or not
+Options is open; `dpmore 1` opens it (for a screenshot) and `dplayout W` prints
+which controls are visible, with rectangles, at panel width W (`visible mode,from,to,options,list,plot`).
+
 ## How to do things
 
 For each task: what the user does in the GUI, and what you run.

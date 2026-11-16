@@ -19,12 +19,15 @@ only the final orbitals, the views retain the last computed point and say so.
 Import the output again if it contains orbitals for every point; otherwise
 rerun the scan with ECCE's generated input.
 
-The controls are two short rows. The first row has the mode, the atoms, the
-quantity and what to show; the second the axes, **Show all** and **Options**,
-which unfolds the controls used less often (margin, sideways shift, unit,
-combine degenerate, clip peaks and the export buttons). Whether **Options** is open
-is remembered. The orbital list, the plot and the notes beneath it are separated
-by handles that can be dragged to give any of them more room.
+Above the orbital list is one line: the mode and its atoms (**From** and
+**to**, or **Centre**), then **Options**. Everything else is under **Options**:
+the quantity, the orbitals to show (**Total + all occupied** and the other
+choices), the spin (for an unrestricted calculation), the axes (**r axis**
+around an atom, **y axis**), **Show all**, and the controls used less often
+(margin, sideways shift, unit, combine degenerate, clip peaks, **Difference...**
+and the export buttons). Whether **Options** is open is remembered. The orbital
+list, the plot and the notes beneath it are separated by handles that can be
+dragged to give any of them more room.
 
 The first choice is the mode. Atoms selected in the 3-D view set it: select two
 atoms (Shift-click adds to the selection) and the plot is **Along a line**

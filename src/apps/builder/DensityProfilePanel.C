@@ -223,10 +223,12 @@ void DensityProfilePanel::build()
                           wxSize(-1, 44), wxTE_MULTILINE | wxTE_READONLY);
   const int natoms = (int)p_eval->symbols.size();
 
-  //  Two short rows that wrap instead of widening the panel, then the
-  //  rarely needed controls folded under "Options".
+  //  Only the mode and its atoms stay above the list; everything else is
+  //  folded under "Options" so the plot gets the height.
   wxWrapSizer *row1 = new wxWrapSizer(wxHORIZONTAL);
-  wxWrapSizer *row2 = new wxWrapSizer(wxHORIZONTAL);
+  p_more = new wxPanel(this);
+  wxWrapSizer *rowMore = new wxWrapSizer(wxHORIZONTAL);
+  p_more->SetSizer(rowMore);
   p_mode = new wxChoice(this, ID_MODE);
   p_mode->Append("Along a line");
   p_mode->Append("Around an atom");
@@ -247,61 +249,56 @@ void DensityProfilePanel::build()
   atomChoice(p_atomB, p_labelB, "to");
   atomChoice(p_centre, p_labelCentre, "Centre");
 
-  p_quantity = new wxChoice(this, ID_QUANTITY);
-  row1->Add(p_quantity, 0, RIGHT, 12);
+  p_quantity = new wxChoice(p_more, ID_QUANTITY);
+  rowMore->Add(p_quantity, 0, RIGHT, 12);
   //  Only for the plane integral: how much charge lies near the line.
-  p_cylinder = new wxSpinCtrlDouble(this, ID_CYLINDER, "0.0", wxDefaultPosition,
+  p_cylinder = new wxSpinCtrlDouble(p_more, ID_CYLINDER, "0.0", wxDefaultPosition,
                                     wxSize(130, -1), wxSP_ARROW_KEYS, 0.0, 10.0, 0.0, 0.25);
   p_cylinder->SetMinSize(wxSize(130, -1));
   p_cylinder->SetToolTip(U("Integrate only within this distance of the line, in \xC3\x85 "
                            "(a cylinder about the bond); 0 integrates over the whole plane"));
-  p_labelCylinder = new wxStaticText(this, wxID_ANY, "within radius (0 = all)");
+  p_labelCylinder = new wxStaticText(p_more, wxID_ANY, "within radius (0 = all)");
   wxBoxSizer *cylPair = new wxBoxSizer(wxHORIZONTAL);
   cylPair->Add(p_labelCylinder, 0, RIGHT, 4);
   cylPair->Add(p_cylinder, 0, wxALIGN_CENTER_VERTICAL);
-  row1->Add(cylPair, 0, RIGHT, 12);
-  p_show = new wxChoice(this, ID_SHOW);
-  row1->Add(p_show, 0, RIGHT, 12);
-  p_spin = new wxChoice(this, ID_SPIN);
+  rowMore->Add(cylPair, 0, RIGHT, 12);
+  p_show = new wxChoice(p_more, ID_SHOW);
+  rowMore->Add(p_show, 0, RIGHT, 12);
+  p_spin = new wxChoice(p_more, ID_SPIN);
   p_spin->Append("alpha");
   p_spin->Append("beta");
   p_spin->Append(U("alpha + beta"));
   p_spin->SetSelection(2);
   p_spin->Show(p_eval->unrestricted);
-  row1->Add(p_spin, 0, RIGHT, 12);
+  rowMore->Add(p_spin, 0, RIGHT, 12);
 
-  p_xaxis = new wxChoice(this, ID_XAXIS);
+  p_xaxis = new wxChoice(p_more, ID_XAXIS);
   p_xaxis->Append("Linear");
   p_xaxis->Append(U("\xE2\x88\x9A" "r"));
   p_xaxis->Append("log r");
   p_xaxis->SetSelection(0);
   p_xaxis->SetToolTip(U("The r axis: linear, square root (spreads the region near the nucleus) or logarithmic"));
-  p_labelXAxis = new wxStaticText(this, wxID_ANY, "r axis");
+  p_labelXAxis = new wxStaticText(p_more, wxID_ANY, "r axis");
   wxBoxSizer *xPair = new wxBoxSizer(wxHORIZONTAL);
   xPair->Add(p_labelXAxis, 0, RIGHT, 4);
   xPair->Add(p_xaxis, 0, wxALIGN_CENTER_VERTICAL);
-  row2->Add(xPair, 0, RIGHT, 12);
-  p_yaxis = new wxChoice(this, ID_YAXIS);
+  rowMore->Add(xPair, 0, RIGHT, 12);
+  p_yaxis = new wxChoice(p_more, ID_YAXIS);
   p_yaxis->Append("Linear");
   p_yaxis->Append("Log");
   p_yaxis->Append(U("√y"));
   p_yaxis->SetSelection(0);
   p_yaxis->SetToolTip(U("Log shows the weak tails (not for a signed ψ); √y spreads the small values and mirrors negative ones about zero"));
-  p_labelYAxis = new wxStaticText(this, wxID_ANY, "y axis");
+  p_labelYAxis = new wxStaticText(p_more, wxID_ANY, "y axis");
   wxBoxSizer *yPair = new wxBoxSizer(wxHORIZONTAL);
   yPair->Add(p_labelYAxis, 0, RIGHT, 4);
   yPair->Add(p_yaxis, 0, wxALIGN_CENTER_VERTICAL);
-  row2->Add(yPair, 0, RIGHT, 12);
-  wxButton *whole = new wxButton(this, ID_WHOLE, "Show all");
-  whole->SetToolTip("Reset the zoom to show the whole curves, including peaks that clip peaks cut off at the nuclei (mouse wheel zooms, Shift+wheel zooms the y axis only, drag pans)");
-  row2->Add(whole, 0, RIGHT, 12);
+  rowMore->Add(yPair, 0, RIGHT, 12);
+  p_whole = new wxButton(p_more, ID_WHOLE, "Show all");
+  p_whole->SetToolTip("Reset the zoom to show the whole curves, including peaks that clip peaks cut off at the nuclei (mouse wheel zooms, Shift+wheel zooms the y axis only, drag pans)");
+  rowMore->Add(p_whole, 0, RIGHT, 12);
   p_moreButton = new wxButton(this, ID_MORE, U("Options \xE2\x96\xB8"));
-  row2->Add(p_moreButton, 0, RIGHT, 12);
-
-  //  The folded controls.
-  p_more = new wxPanel(this);
-  wxWrapSizer *rowMore = new wxWrapSizer(wxHORIZONTAL);
-  p_more->SetSizer(rowMore);
+  row1->Add(p_moreButton, 0, RIGHT, 12);
   //  Wide enough for both arrows (GTK hides the "+" of a narrow one).
   p_margin = new wxSpinCtrlDouble(p_more, ID_MARGIN, "2.0", wxDefaultPosition,
                                   wxSize(130, -1), wxSP_ARROW_KEYS, 0.0, 8.0, 2.0, 0.5);
@@ -362,7 +359,6 @@ void DensityProfilePanel::build()
   p_outer->SetSashGravity(0.0);
 
   top->Add(row1, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
-  top->Add(row2, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
   top->Add(p_more, 0, wxEXPAND | wxLEFT | wxRIGHT | wxTOP, 6);
   top->Add(p_outer, 1, wxEXPAND | wxALL, 4);
   {
@@ -1288,6 +1284,41 @@ bool DensityProfilePanel::zoom(const std::string& what)
   else return false;
   p_plot->Refresh();
   return true;
+}
+
+//  The visible controls and their rectangles at a panel width, for the layout test.
+std::string DensityProfilePanel::layoutReport(int width)
+{
+  if (!p_ok) return "layout none\n";
+  ensureInitialized();
+  GetSizer()->SetDimension(0, 0, width, 760);
+  const std::pair<const char*, wxWindow*> items[] = {
+    {"mode", p_mode}, {"from", p_atomA}, {"to", p_atomB}, {"centre", p_centre},
+    {"options", p_moreButton}, {"quantity", p_quantity}, {"cylinder", p_cylinder},
+    {"show", p_show}, {"spin", p_spin}, {"xaxis", p_xaxis}, {"yaxis", p_yaxis},
+    {"showall", p_whole}, {"margin", p_margin}, {"shift", p_shift},
+    {"list", p_list}, {"plot", p_plot}};
+  std::string out = "layout width " + std::to_string(width) + "\n", rows;
+  bool clipped = false;
+  for (const auto& it : items) {
+    wxWindow *w = it.second;
+    //  A control inside the folded panel is visible only while the panel is.
+    const bool inMore = w->GetParent() == p_more;
+    if (!w->IsShown() || (inMore && !p_more->IsShown())) continue;
+    wxRect r = w->GetRect();
+    if (inMore) r.Offset(p_more->GetPosition());
+    const bool bad = r.x < 0 || r.GetRight() >= width;
+    clipped = clipped || bad;
+    char buf[160];
+    snprintf(buf, sizeof buf, "ctl %s x=%d y=%d w=%d h=%d %s\n", it.first, r.x, r.y,
+             r.width, r.height, bad ? "clipped" : "ok");
+    out += buf;
+    rows += std::string(rows.empty() ? "" : ",") + it.first;
+  }
+  out += "visible " + rows + "\n";
+  out += clipped ? "layout clipped\n" : "layout ok\n";
+  Layout();
+  return out;
 }
 
 bool DensityProfilePanel::setMoreOpen(bool open)
