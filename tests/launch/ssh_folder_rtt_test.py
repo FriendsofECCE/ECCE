@@ -98,6 +98,7 @@ def scenario(s, build, wrappers, control, display, label, extra_env):
         send("server roots")
         r["connect"] = send("server connect Folder")
         r["roots"] = send("server roots")
+        say("  %s: connect=%s roots=%s" % (label, r["connect"], r["roots"]))
         base = send("server rtt")
         r["login"] = int(base) if base.isdigit() else -1
         for step, url in (("folder", BASE + "/"), ("project", BASE + "/proj16")):
