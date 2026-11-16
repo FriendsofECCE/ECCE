@@ -423,7 +423,7 @@ and maximum modes from the stored input deck (settings fallback).
 Builder script `poses note` returns that text; `poses thumb 1 <file.png>`
 saves the cached thumbnail of pose 1 for image checks.
 
-**Diffraction.** Properties > Geometry > Diffraction opens a docked Builder
+**Diffraction.** Properties > Diffraction and scattering > Diffraction opens a docked Builder
 pane (`fibre-diffraction`); Tools > Diffraction opens a standalone window.
 View and Source stay above the pattern; Options is a modeless window with
 Geometry, Sample and Display groups. Pattern toggles the same view into a
@@ -1221,7 +1221,7 @@ launcher, without command wrappers for these tools.
 | `ecce-displacement` | Compare geometries and aligned RMSD |
 | `ecce-bandshift` | Match vibrational bands and report shifts |
 | `ecce-spectrum` | Process spectral curves |
-| `ecce-displace` | Displace a structure along a normal mode. The Vibrational Frequencies panel of a GeoVib run with imaginary modes below 100 cm-1 shows a note that the optimisation stopped at a saddle (Builder script hook `vibnote` prints it; #1042) |
+| `ecce-displace` | Displace a structure along a normal mode. The Vibrational Frequencies panel of a GeoVib run with imaginary modes below 100 cm-1 shows a note that the optimisation stopped at a saddle (Builder script hook `vibnote` prints it; #1042). The Builder's Properties list groups its rows as Vibrational spectra, Electronic spectra, Magnetic resonance and Diffraction and scattering (#1079); the Builder script command `plist` prints the list as `GROUP/NAME` lines |
 | `ecce-thermo` | Recompute thermochemistry from stored results; `--json` gives per treatment H, S, G and the contributions `U_trans/U_rot/U_vib/U_elec`, `ZPE` (kJ/mol), `S_*`, `Cv_*`, `Cv`, `Cp` (J/mol/K); `--contributions` prints them as text |
 | `ecce-rate` | TST rate constants with Wigner/Eckart tunnelling from reactant, TS and product calculations |
 | `ecce-force-compare` | Compare stored forces (command line only) |

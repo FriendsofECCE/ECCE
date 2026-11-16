@@ -6,6 +6,7 @@
 //    add ELEM SHAPE X Y Z        a click in the 3D view in Atom mode
 //    panel NAME                  Tools > NAME (shows the panel)
 //    panesize NAME               the docked pane's rectangle and height floor
+//    plist                       print the Properties list as GROUP/NAME lines (#1079)
 //    vibnote                     print the Vibrations panel's small-imaginary-mode note (#1042)
 //    specfactor TEXT             type TEXT into the spectrum's Freq. factor (#604)
 //    specclick MODE              left click on a mode in the spectrum graph (#445)
@@ -1489,6 +1490,11 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: specclick mode %d: screen mismatch "
                   "%.4f, selected mode %d\n", mode, mismatch, selected + 1);
         }
+      } else if (w[0] == "plist" && w.size() == 1) {
+        //  One "BUILDER: entry GROUP/NAME" line per row of the Properties list.
+        if (p_index)
+          for (const auto& e : p_index->listing())
+            fprintf(stderr, "BUILDER: entry %s\n", e.c_str());
       } else if (w[0] == "vibnote" && w.size() == 1) {
         //  vibnote: what the Vibrational Frequencies panel's note line shows (#1042).
         NModePanel *nm = 0;
