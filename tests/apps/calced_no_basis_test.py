@@ -61,6 +61,20 @@ def runCase(display, folder, label):
               run_tests._tail(log, 15))
 
 
+def readyWithSavedTheory(display, folder):
+    """A calculation that already holds theory values starts no theory
+    dialog; the script's "ready" must still pass instead of waiting forever."""
+    calcdir = os.path.join(folder, "users", "local", CALC)
+    params = os.path.join(calcdir, "Parameters")
+    os.makedirs(params, exist_ok=True)
+    with open(os.path.join(params, "SetupParams"), "a") as handle:
+        handle.write("ES.Theory.SCF.Direct|1||1|1|toggle_input\n")
+    log = sym.scripted(display, "calced", "ECCE_CALCED_SCRIPT",
+                       ["wait 3000", "ready", "info", "quit"], "file://" + calcdir + "/")
+    sym.check("ECCE_CALCED_SCRIPT: ready: ok" in log and "CALCED: formula=" in log,
+              "saved theory values: ready passes", run_tests._tail(log, 15))
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         folder = os.path.join(fixture.stateDir(), "nobasis-localdata")
@@ -75,6 +89,7 @@ def main():
             removed = dropBasisProperty(os.path.join(folder, "users", "local", CALC))
             sym.check(removed, "the fixture had a basisSetDocument property to remove")
             runCase(display, folder, "property missing")
+            readyWithSavedTheory(display, folder)
         finally:
             restorePrefs()
             os.environ.pop("ECCE_LOCAL_DATA", None)
