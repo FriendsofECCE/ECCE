@@ -278,6 +278,91 @@ void setMoveToTabsItem(wxFrame *tool, wxMenuBar *mb, bool present)
 }
 
 
+// The Window menu: every bar on the host lists the open tabs (#1069).  A
+// bar that has a "Window" menu already gets the entries appended; else one
+// is inserted before Help.  Looked up by title, never by position, since
+// the tools find their menus by name.
+const int WINDOW_TABS_MAX = 32;
+int s_windowBase = 0;
+std::map<wxMenuBar*, std::pair<wxMenu*, bool> >& windowMenus()
+{
+  static auto *m = new std::map<wxMenuBar*, std::pair<wxMenu*, bool> >;
+  return *m;
+}
+
+void fillWindowMenu(wxMenuBar *mb)
+{
+  auto it = windowMenus().find(mb);
+  if (it == windowMenus().end() || !s_book) return;
+  wxMenu *menu = it->second.first;
+  for (int i = 0; i < WINDOW_TABS_MAX; i++)
+    if (menu->FindItem(s_windowBase + i)) menu->Delete(s_windowBase + i);
+  for (size_t i = 0; i < s_book->GetPageCount() && i < (size_t)WINDOW_TABS_MAX; i++) {
+    wxString label = s_book->GetPageText(i);
+    label.Replace("&", "&&");
+    menu->AppendCheckItem(s_windowBase + (int)i, label);
+    menu->Check(s_windowBase + (int)i, (int)i == s_book->GetSelection());
+  }
+}
+
+void attachWindowMenu(wxMenuBar *mb)
+{
+  if (!mb || windowMenus().count(mb)) return;
+  if (!s_windowBase) s_windowBase = wxWindow::NewControlId(WINDOW_TABS_MAX);
+  int idx = mb->FindMenu(_("Window"));
+  bool created = idx == wxNOT_FOUND;
+  wxMenu *menu = created ? new wxMenu : mb->GetMenu(idx);
+  if (created) {
+    int help = mb->FindMenu(_("Help"));
+    if (help == wxNOT_FOUND) mb->Append(menu, _("&Window"));
+    else mb->Insert(help, menu, _("&Window"));
+  }
+  windowMenus()[mb] = std::make_pair(menu, created);
+  fillWindowMenu(mb);
+}
+
+void detachWindowMenu(wxMenuBar *mb)
+{
+  auto it = windowMenus().find(mb);
+  if (it == windowMenus().end()) return;
+  wxMenu *menu = it->second.first;
+  if (it->second.second) {
+    int idx = mb->FindMenu(_("Window"));
+    if (idx != wxNOT_FOUND && mb->GetMenu(idx) == menu) delete mb->Remove(idx);
+  } else {
+    for (int i = 0; i < WINDOW_TABS_MAX; i++)
+      if (menu->FindItem(s_windowBase + i)) menu->Delete(s_windowBase + i);
+  }
+  windowMenus().erase(it);
+}
+
+wxString s_hostBaseTitle;
+
+// "ECCE Organizer <ver> - <tab>": the window names the tab on show.  The
+// Organizer's own title stays first, since tests and scripts find the
+// window by it.
+void updateHostTitle()
+{
+  if (!s_hostFrame || !s_book || s_book->GetSelection() < 0) return;
+  Tab *t = findPage(s_book->GetPage(s_book->GetSelection()));
+  wxString title = s_hostBaseTitle;
+  if (t && !t->pinned && !title.empty())
+    title += wxString::FromUTF8(" \xe2\x80\x93 ") + s_book->GetPageText(s_book->GetSelection());
+  if (!title.empty() && s_hostFrame->GetTitle() != title) s_hostFrame->SetTitle(title);
+}
+
+// Puts a bar on the host (or none), moving the Window menu with it.
+void putBar(wxMenuBar *mb)
+{
+  wxMenuBar *old = s_hostFrame->wxFrame::GetMenuBar();
+  if (old != mb) {
+    detachWindowMenu(old);
+    s_hostFrame->SetMenuBar(mb);
+  }
+  attachWindowMenu(mb);
+  fillWindowMenu(mb);
+}
+
 // Placement of the active tab's menus.  SwapMenuBar: the main window's
 // menu bar becomes the tab's.
 void placeMenus(Tab *t)
@@ -286,8 +371,9 @@ void placeMenus(Tab *t)
   if (ToolTabs::menuPlacement() == ToolTabs::SwapMenuBar) {
     Tab *org = mainTab();
     wxMenuBar *mb = t->menubar ? t->menubar : (org ? org->menubar : 0);
-    if (s_hostFrame->wxFrame::GetMenuBar() != mb) s_hostFrame->SetMenuBar(mb);
+    putBar(mb);
   }
+  updateHostTitle();
 }
 
 
@@ -307,6 +393,12 @@ void activateTool(Tab *t)
 // menus are on it (the Organizer's included), as from its own menu bar.
 wxFrame *menuTarget(int id)
 {
+  // Quit, Preferences and About belong to the application: the Organizer
+  // answers them whatever tab is active (#1069).
+  if (id == wxID_EXIT || id == wxID_PREFERENCES || id == wxID_ABOUT) {
+    Tab *m = mainTab();
+    return m ? m->tool : 0;
+  }
   Tab *t = activeTab();
   if (!t || !t->tool) return 0;
   // The host has no handlers of its own: the Organizer also gets commands
@@ -319,6 +411,11 @@ wxFrame *menuTarget(int id)
 void routeMenus(wxFrame *host)
 {
   host->Bind(wxEVT_MENU, [](wxCommandEvent& ev) {
+    int n = ev.GetId() - s_windowBase;
+    if (s_windowBase && n >= 0 && n < WINDOW_TABS_MAX && s_book) {
+      if (n < (int)s_book->GetPageCount()) s_book->SetSelection(n);
+      return;
+    }
     if (wxFrame *f = menuTarget(ev.GetId())) f->GetEventHandler()->ProcessEvent(ev);
     else ev.Skip();
   });
@@ -334,6 +431,7 @@ void routeMenus(wxFrame *host)
     else ev.Skip();
   });
   auto menu = [](wxMenuEvent& ev) {
+    if (s_hostFrame) fillWindowMenu(s_hostFrame->wxFrame::GetMenuBar());
     Tab *t = activeTab();
     if (t && t->tool) t->tool->GetEventHandler()->ProcessEvent(ev);
     else ev.Skip();
@@ -901,9 +999,10 @@ void ToolTabs::setTitle(wxTopLevelWindow *tool, const wxString& title)
   Tab *t = findTool(tool);
   if (!t || !t->page) return;
   // The Organizer's tab keeps its short caption; the window shows the title.
-  if (t->pinned) { s_hostFrame->SetTitle(title); return; }
+  if (t->pinned) { s_hostBaseTitle = title; updateHostTitle(); return; }
   int idx = s_book->GetPageIndex(t->page);
   if (idx != wxNOT_FOUND) s_book->SetPageText(idx, tabCaption(title));
+  updateHostTitle();
 }
 
 
@@ -917,7 +1016,9 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
   int idx = s_book->GetPageIndex(page);
   // The tab's menu bar leaves the main window first.
   if (s_hostFrame->wxFrame::GetMenuBar() == t->menubar)
-    s_hostFrame->SetMenuBar(!t->pinned && mainTab() ? mainTab()->menubar : 0);
+    putBar(!t->pinned && mainTab() ? mainTab()->menubar : 0);
+  else
+    detachWindowMenu(t->menubar);
   t->page = 0;
   ToolPage *tp = static_cast<ToolPage*>(page);
   moveClient(tp->body(), tool, t->mgr);
@@ -1120,6 +1221,26 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
         s_hostFrame->GetClassInfo()->GetClassName(),
         m->tool->IsShown() ? "shown" : "hidden", (int)mapped,
         (int)s_book->GetPageCount(), s_hostFrame->GetTitle(), topName);
+  } else if (cmd == "windowmenu") {
+    // The active bar's Window menu as "<n>:<tab>[*]"; with a number, as if
+    // that entry were chosen (the tab changes).
+    if (!s_hostFrame || !s_book) { outcome = "no host"; return true; }
+    wxMenuBar *mb = s_hostFrame->wxFrame::GetMenuBar();
+    fillWindowMenu(mb);
+    long n = -1;
+    if (arg.ToLong(&n)) {
+      wxCommandEvent ev(wxEVT_MENU, s_windowBase + (int)n);
+      ev.SetEventObject(s_hostFrame);
+      s_hostFrame->GetEventHandler()->ProcessEvent(ev);
+      mb = s_hostFrame->wxFrame::GetMenuBar();
+      fillWindowMenu(mb);
+    }
+    auto it = windowMenus().find(mb);
+    if (it == windowMenus().end()) { outcome = "no window menu"; return true; }
+    for (int i = 0; i < WINDOW_TABS_MAX; i++)
+      if (wxMenuItem *item = it->second.first->FindItem(s_windowBase + i))
+        outcome += wxString::Format("%d:%s%s ", i, item->GetItemLabelText(),
+                                    item->IsChecked() ? "*" : "");
   } else if (cmd == "menu" || cmd == "hostclose") {
     // A menu command (a number, or exit|about|preferences) or the window
     // manager's close, on the host, as the user does it; queued, since a

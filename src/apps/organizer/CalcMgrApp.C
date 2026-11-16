@@ -214,6 +214,13 @@ bool CalcMgrApp::OnInit()
   if (MqttLink::localDelivery() && ToolTabs::enabled()) {
     host = new MainFrame;
     ToolTabs::setHost(host);
+#ifdef __WXMAC__
+    // The application menu's Quit, Preferences and About; the host routes
+    // these ids to the Organizer whatever tab is active.
+    wxApp::s_macExitMenuItemId = wxID_EXIT;
+    wxApp::s_macPreferencesMenuItemId = wxID_PREFERENCES;
+    wxApp::s_macAboutMenuItemId = wxID_ABOUT;
+#endif
   }
   p_calcMgr = new CalcMgr(NULL);
   if (host) {

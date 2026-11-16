@@ -558,6 +558,8 @@ def runTabs(display):
             shot("tabs-builder-dialog.png")
             time.sleep(2)                      # it closes itself after 1.5 s
             append("dialoginfo", 2)
+            append("menu exit", 3)             # app-level: Organizer answers
+            append("answer cancel", 3)         # "Quit ECCE", Builder active
             shot("tabs-builder.png")
             append("charhook 27", 2)           # Esc, as GTK delivers it
             append("tab 0", 3)
@@ -567,6 +569,11 @@ def runTabs(display):
             for what in ("prefs", "find", "props " + url):
                 append("orgwindow " + what, 3)
                 append("orgwindowinfo", 1)
+            append("windowmenu", 2)
+            append("windowmenu 1", 3)          # Builder through the menu
+            append("mainwindow", 2)
+            append("windowmenu 0", 3)
+            append("mainwindow", 2)
             append("menu exit", 3)             # File > Quit reaches CalcMgr
             append("answer cancel", 3)         # the "Quit ECCE" question
             append("tabs", 2)                  # still running
@@ -599,11 +606,21 @@ def runTabs(display):
         tabs = pb.answers(log, "tabs")
         print("      tabs: " + "\n            ".join(tabs))
         mw = pb.answers(log, "mainwindow")
-        check(len(mw) == 1 and mw[0].startswith(
+        check(len(mw) == 3 and mw[0].startswith(
                   "host=MainFrame organizer=hidden mapped=0 tabs=1 title=") and
               "Organizer" in mw[0] and mw[0].endswith("topwindow=MainFrame"),
               "the main window is a MainFrame; the Organizer's own frame is "
               "hidden and unmapped", str(mw))
+        wm = pb.answers(log, "windowmenu")
+        check(len(wm) == 3 and wm[0].startswith("0:Organizer* 1:") and
+              re.match(r"0:Organizer 1:\S.*\* $", wm[1]) is not None and
+              wm[2].startswith("0:Organizer* 1:"),
+              "every bar has a Window menu listing the tabs; choosing an "
+              "entry switches the tab", str(wm))
+        check(len(mw) == 3 and "Organizer" in mw[1] and " \u2013 " in mw[1]
+              and " \u2013 " not in mw[0] and " \u2013 " not in mw[2],
+              "the window title names the active tab and keeps "
+              "'Organizer'", str(mw))
         orgMenus = tabs[0].split("menus=")[-1] if tabs else ""
         check(len(tabs) >= 4 and tabs[0].startswith("0:Organizer*"),
               "the Organizer is the first tab", str(tabs) + log[-1500:])
@@ -643,7 +660,7 @@ def runTabs(display):
         tw = pb.answers(log, "towindow")
         check(len(tw) == 2 and tw[1] == "not a tool tab",
               "the Organizer tab cannot be moved to a window", str(tw))
-        check(pb.answers(log, "menu") == ["queued"] and
+        check(pb.answers(log, "menu") == ["queued", "queued"] and
               len(pb.answers(log, "charhook")) == 2,
               "File > Quit and a key hook on the Organizer tab are answered",
               str(pb.answers(log, "menu")))
@@ -664,7 +681,8 @@ def runTabs(display):
               "the same Builder throughout", str(inproc))
         check("BUILDER: dirty=1" in log, "the Builder has unsaved changes")
         check(pb.answers(log, "answer cancel") ==
-              ["answered Quit ECCE", "answered Save Builder Changes?"] and
+              ["answered Quit ECCE", "answered Quit ECCE",
+               "answered Save Builder Changes?"] and
               pb.answers(log, "answer no") ==
               ["answered Save Builder Changes?"],
               "the Organizer's File > Quit asks Quit ECCE (Cancel keeps "

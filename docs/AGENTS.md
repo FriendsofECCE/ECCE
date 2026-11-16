@@ -246,7 +246,7 @@ the tool's **Window > Move to Tabs** puts it back. Without
 hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus),
 `launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `tab N`, `towindow N`, `totabs <title part>`, `mainwindow` (the main window: `host=MainFrame organizer=hidden ...`, or `host=none`
 when the Organizer is its own window), `menu exit|about|preferences|<id>` and `hostclose` (a menu command, or the window
-manager's close, on the main window; queued, answer the questions with `answer`), `layout show|normal|small|wide|KEY=tab|window`
+manager's close, on the main window; queued, answer the questions with `answer`; Quit, Preferences and About always reach the Organizer, also from a tool tab), `windowmenu [N]` (the **Window** menu every bar has while hosted, `0:Organizer* 1:Viewer`; N chooses that entry and switches the tab; the main window's title then reads "ECCE Organizer <ver> - <tab>"), `orgwindow prefs|find|props URL` then `orgwindowinfo` (the Organizer's modeless windows sit on the main window: `transient=host inside=1 mapped=1`), `layout show|normal|small|wide|KEY=tab|window`
 (prints `preset=... rows=builder:tab,...`), `tabmenu N` (the tab's
 right-click items), `alwayswindow N`, and `prefs windows show|preset NAME|row KEY tab|window [PNG]|snap PNG`
 (the Preferences page and its Customize table, as clicks). A tab's

@@ -46,7 +46,7 @@ bool MainFrame::adoptMain(wxFrame *org)
   // constructor; it is never shown, so it is the window's.
   SetSize(org->GetSize());
   Move(org->GetPosition());
-  SetTitle(org->GetTitle());
+  ToolTabs::setTitle(org, org->GetTitle());
   return true;
 }
 

@@ -52,8 +52,31 @@ Window) there is no MainFrame and CalcMgr is the plain top window as before.
   then the host. Destroying the host first frees the tree under CalcMgr.
   `quitMCB` (gateway `ecce_quit`) does the same after `closeAll(true)`.
 - Modeless windows of the Organizer (preferences, find, properties, text
-  viewer, ...) still have the hidden CalcMgr as parent: they work but are not
-  kept above the host (step 3 of #1065, not done yet).
+  viewer, Allocations, Compare/Reaction/FragOrb/BatchSmiles/SiteScreen/Qsar)
+  take `CalcMgr::winParent()` (= `screenWindow(this)`) as parent and go
+  through `onHost()`, which makes them GTK-transient for the host
+  (`secondaryOpened` accepts the host itself as parent) and remembers them:
+  they are children of the host now, so `~CalcMgr` deletes the open ones
+  (else they outlive it, and a Properties panel holds the CalcMgr).
+  `WxFind` and `WxProperties` used to `dynamic_cast<CalcMgr*>(GetParent())`,
+  which is the host now: `setOwner(calcMgr)` gives them the pointer. Hooks
+  `orgwindow prefs|find|props URL` + `orgwindowinfo` (`transient=host
+  inside=1 mapped=1`, inside = centre within the host).
+- App-level ids (#1069): `wxID_EXIT`, `wxID_PREFERENCES` and `wxID_ABOUT` on
+  the host always go to the Organizer, whatever tab is active (a Builder tab's
+  Quit asks "Quit ECCE"); on macOS `wxApp::s_mac*MenuItemId` name the same
+  ids.
+- Window menu (#1069): `placeMenus`/`putBar` give every bar on the host a
+  Window menu (inserted before Help, or entries appended to a bar's own
+  "Window" menu) listing the tabs in strip order, checked = active; it is
+  refilled on each menu open and removed when the bar leaves the host. Ids
+  are `s_windowBase + n` (`NewControlId(32)`); the host's menu handler
+  selects page n. Menus are found by title everywhere, so the extra menu moves
+  no positions. Hook `windowmenu [N]` (`0:Organizer* 1:Viewer`; with N it
+  chooses that entry).
+- The host's title is "<Organizer title> - <tab caption>" while a tool tab is
+  active (`updateHostTitle`), the Organizer's title alone on its own tab;
+  "Organizer" stays first for the tests and `guest.py`.
 - Hooks: `mainwindow` (`host=MainFrame organizer=hidden mapped=0 tabs=N
   title=... topwindow=MainFrame`, or `host=none topwindow=CalcMgr`), `menu
   <id|exit|about|preferences>` (a menu command on the host, queued),
