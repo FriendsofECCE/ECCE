@@ -774,7 +774,7 @@ void QsarWindow::build()
     {"vsa", "Surface areas (VSA)", "surface area by charge, SlogP and SMR"},
     {"qm", "From the calculations", "HOMO, LUMO, gap, dipole, charges"}};
   for (const auto& g : groupDefs) {
-    wxCheckBox *c = new wxCheckBox(gb->GetStaticBox(), wxID_ANY, g.label);
+    wxCheckBox *c = new wxCheckBox(gb->GetStaticBox(), wxID_ANY, wxString(g.label));
     c->SetToolTip(g.tip);
     c->SetClientData((void *)g.name);
     c->SetValue(("," + p_groups + ",").find(string(",") + g.name + ",") != string::npos);
@@ -834,8 +834,8 @@ void QsarWindow::build()
   for (int i = 1; i <= 10; i++) p_pcaComps->Append(wxString::Format("%d", i));
   p_pcaComps->SetSelection(0);
   pr->Add(p_pcaComps, 0, wxALL, 4);
-  wxButton *runPca = new wxButton(pp, wxID_ANY, "Run PCA");
-  pr->Add(runPca, 0, wxALL, 4);
+  wxButton *runPcaButton = new wxButton(pp, wxID_ANY, "Run PCA");
+  pr->Add(runPcaButton, 0, wxALL, 4);
   wxButton *savePca = new wxButton(pp, wxID_ANY, "Save Results...");
   pr->Add(savePca, 0, wxALL, 4);
   ps->Add(pr, 0, wxEXPAND);
@@ -985,9 +985,9 @@ void QsarWindow::build()
                      wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (dlg.ShowModal() == wxID_OK) std::ofstream(dlg.GetPath().ToStdString(wxConvUTF8)) << p_csvText;
   });
-  runPca->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+  runPcaButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     string why;
-    if (!runPca(scalingToken(p_pcaScale->GetSelection()), p_pcaComps->GetSelection(), why))
+    if (!this->runPca(scalingToken(p_pcaScale->GetSelection()), p_pcaComps->GetSelection(), why))
       wxMessageBox(U(why), "QSAR", wxOK | wxICON_ERROR, this);
   });
   p_plsRun->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
