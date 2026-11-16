@@ -5,6 +5,7 @@
  */
 #include <cstdlib>
 
+#include "wx/app.h"
 #include "wx/button.h"
 #include "wx/cursor.h"
 #include "wx/frame.h"
@@ -246,6 +247,5 @@ string ToolStartup::report() const
 bool ToolStartup::shot(const string& file)
 {
   if (!p_frame || !p_frame->IsShown()) return false;
-  p_frame->Update();
-  return ecceClientShot(p_frame, wxString::FromUTF8(file.c_str()));
+  return ecceWindowShot(p_frame, wxString::FromUTF8(file.c_str()));
 }
