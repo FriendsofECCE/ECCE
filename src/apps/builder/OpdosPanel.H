@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <wx/weakref.h>
 #include "tdat/FragmentAnalysis.H"
 #include "util/Listener.H"
 #include "VizPropertyPanel.H"
@@ -11,6 +12,8 @@
 class wxButton;
 class wxCheckBox;
 class wxChoice;
+class wxFrame;
+class wxPanel;
 class wxListCtrl;
 class wxSizer;
 class wxSpinCtrlDouble;
@@ -49,7 +52,8 @@ class OpdosPanel : public VizPropertyPanel, public ecce::Listener
       virtual int openingHeight() const { return 600; }
 
       //  What the controls do, for a script or a test; false if refused.
-      bool setAtoms(const std::string& a, const std::string& b);   // "1,2" "3-8", 1-based
+      //  An atom in both groups goes to `winner` (0 = A, 1 = B) and leaves the other.
+      bool setAtoms(const std::string& a, const std::string& b, int winner = 0);   // "1,2" "3-8", 1-based
       bool useSelection(int which);                                 // 0 = A, 1 = B
       bool setWidth(double ev);
       bool setSticks(bool on);
@@ -60,6 +64,11 @@ class OpdosPanel : public VizPropertyPanel, public ecce::Listener
       bool resetWindow();
       bool clickEnergy(double ev);                                  // as a click on a peak
       bool showListedMo(int row);     // as a double-click on row (0-based) of the MO list
+      bool setMoreOpen(bool open);          // the Options row
+      bool openWindow();                    // both plots in a window of their own
+      void closeWindow();
+      bool saveWindowShot(const wxString& path);
+      std::string layoutReport(int width);  // visible controls and rectangles at a panel width
       bool savePng(const wxString& path, int width, int height);
       bool exportCsv(const wxString& path);
       /** "key value" lines for headless checks. */
@@ -75,6 +84,13 @@ class OpdosPanel : public VizPropertyPanel, public ecce::Listener
       void applyWindow(bool remember);
       void showExplanation(double occOp);
       void redraw();                 // broadening and plot (fast)
+      void drawCurves(XYPlotCanvas *plot, XYPlotCanvas *intPlot);
+      void plotMessage(const wxString& msg);   // clears the curves of every plot
+      void syncMore();
+      void remember() const;
+      bool savePngOf(XYPlotCanvas *plot, XYPlotCanvas *intPlot, const wxString& path, int width, int height);
+      void exportPngDialog(XYPlotCanvas *plot, XYPlotCanvas *intPlot);
+      void exportCsvDialog();
       void listMos(double ev);
       void setText(const wxString& head);
       static std::string atomText(const std::vector<int>& atoms);
@@ -87,9 +103,9 @@ class OpdosPanel : public VizPropertyPanel, public ecce::Listener
       std::vector<ListedMo> p_listed;   // rows of p_moList
       wxString p_drawn, p_normNote;
       std::vector<int> p_a, p_b;     // 0-based
-      wxString p_head, p_clicked, p_headPlain;
+      wxString p_head, p_clicked, p_headPlain, p_moveNote;
       std::vector<double> p_S;       // overlap matrix, the same for every A/B choice
-      bool p_haveS = false, p_busy = false, p_winOn = false;
+      bool p_haveS = false, p_busy = false, p_winOn = false, p_moreOpen = false;
 
       wxTextCtrl *p_atomsA = nullptr, *p_atomsB = nullptr, *p_text = nullptr;
       wxButton *p_useA = nullptr, *p_useB = nullptr;
@@ -100,7 +116,11 @@ class OpdosPanel : public VizPropertyPanel, public ecce::Listener
       wxChoice *p_shape = nullptr;
       wxListCtrl *p_moList = nullptr;
       wxSizer *p_listRow = nullptr;
+      wxPanel *p_more = nullptr;     // the controls under Options
+      wxButton *p_moreButton = nullptr, *p_windowButton = nullptr;
+      wxWeakRef<wxFrame> p_winFrame;
       XYPlotCanvas *p_plot = nullptr, *p_intPlot = nullptr;
+      XYPlotCanvas *p_winPlot = nullptr, *p_winInt = nullptr;   // owned by p_winFrame
 };
 
 #endif

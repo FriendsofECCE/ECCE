@@ -308,6 +308,19 @@ button, the orbital list and the plot; quantity, orbital set, spin, axes and
 Options is open; `dpmore 1` opens it (for a screenshot) and `dplayout W` prints
 which controls are visible, with rectangles, at panel width W (`visible mode,from,to,options,list,plot`).
 
+The Density of States (OPDOS) panel shows the A and B rows (**Use selection**
+under each), **Options**, **Open in window...** and the plots; Width, Shape,
+Sticks, Integrated OPDOS, Occupied only, From/To, Reset and the exports are under
+**Options**. An atom given to one group is removed from the other (the group
+just set wins; the status line names the atoms moved, and an empty group is
+reported there, not refused). Builder scene hooks (`opdos*`, test
+`tests/apps/opdos_panel_test.py`): `opdosatoms "A" "B" [A|B]` (the named group
+keeps an atom in both, default A), `opdosmore 0|1` (Options), `opdoslayout W`
+(`visible ...` at panel width W, fails if clipped), `opdoswindow` (opens both
+plots in the resizable window; `opdosstate` then prints `window_open`,
+`window_plots`, `window_curves`, `window_intcurves`, `window_int_shown`),
+`opdoswinshot NAME` (picture of that window) and `opdoswinclose`.
+
 The Density Map has a **Fill** tick under **Options** (default off, remembered
 in `wxbuilder.ini`): it colours the plane between the contour lines on a log
 scale from the outermost level, two signs blue/orange for an orbital, viridis
