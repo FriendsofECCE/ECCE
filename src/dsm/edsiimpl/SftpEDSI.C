@@ -428,6 +428,12 @@ class SftpOp {
     bool run(const string& script, string& out, int timeout = 60, bool mutates = true)
     {
       if (mutates) { gGen++; p_noCache = true; }
+      if (getenv("ECCE_TEST_ORGANIZER")) {
+        size_t at = script.rfind("\nP=");
+        string head = script.substr(at == string::npos ? 0 : at + 1, 110);
+        std::replace(head.begin(), head.end(), '\n', ' ');
+        fprintf(stderr, "SftpEDSI-script: batch=%d mutates=%d nocache=%d %s\n", gBatchDepth, (int)mutates, (int)p_noCache, head.c_str());
+      }
       string err;
       if (runRemote(p_user, p_host, script, out, err, timeout)) return true;
       fail(err);

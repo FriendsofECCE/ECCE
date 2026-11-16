@@ -105,6 +105,8 @@ def scenario(s, build, wrappers, control, display, label, extra_env):
             n0 = int(send("server rtt"))
             r[step + "-select"] = send("select " + url)
             r[step + "-rtt"] = int(send("server rtt")) - n0
+        say("  scripts of " + label + ":\n" + "\n".join(l[:230] for l in open(olog, errors="replace").read().splitlines()
+                                                        if "SftpEDSI-script" in l or l.startswith("ECCE_TEST_ORGANIZER: select")))
         r["children"] = send("treechildren " + BASE + "/")
         if r["children"] == "not in the tree":
             # What the tree holds, for the log of a failed run.
