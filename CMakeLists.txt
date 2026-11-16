@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
+# Packages keep the symbol table on Linux (only debug sections are stripped),
+# so users' crash backtraces name functions.  Set before any install() rule.
+if(UNIX AND NOT APPLE)
+  set(CMAKE_STRIP "${CMAKE_CURRENT_SOURCE_DIR}/packaging/strip-keep-symbols.sh")
+endif()
 project(ECCE CXX C Fortran)
 
 # ------------------------------------------------------------------------
@@ -2028,11 +2033,7 @@ set(CPACK_DEBIAN_PACKAGE_SUGGESTS "www-browser")
 # RelWithDebInfo keeps -g everywhere (useful while porting - see the
 # CMAKE_BUILD_TYPE default above), which makes for a needlessly huge .deb;
 # strip debug symbols out of the packaged copies only, not the build tree.
-# On Linux the symbol table stays, so users' crash backtraces name functions.
 set(CPACK_STRIP_FILES ON)
-if(UNIX AND NOT APPLE)
-  set(CMAKE_STRIP "${CMAKE_CURRENT_SOURCE_DIR}/packaging/strip-keep-symbols.sh")
-endif()
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
 
 # ---------------------------------------------------------------------------
