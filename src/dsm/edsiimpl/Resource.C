@@ -4,6 +4,7 @@
  *
  */
 #include <chrono>
+#include "dsm/SftpEDSI.H"
 
 #include <iostream>
   using std::cout;
@@ -429,6 +430,7 @@ bool Resource::move(EcceURL& target)
 vector<Resource*> * Resource::getChildren(bool refresh) 
 {
   using Clock = std::chrono::steady_clock;
+  SftpEDSI::Batch batch;
   const auto started = Clock::now();
   double listing = 0, metadata = 0;
   EcceURL originalUrl = getEDSI()->getURL();

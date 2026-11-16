@@ -4,6 +4,7 @@
  *
  */
 #include <chrono>
+#include "dsm/SftpEDSI.H"
 #include <fstream>
 #include <algorithm>
 #include <iostream>
@@ -324,6 +325,7 @@ void ProjectContextPanel::updateProgress(const EcceURL &url)
 void ProjectContextPanel::initialize()
 {
   using Clock = std::chrono::steady_clock;
+  SftpEDSI::Batch sftpBatch;
   const auto started = Clock::now();
   double energySeconds = 0;
   p_propertyView = ResourceDescriptor::getResourceDescriptor().

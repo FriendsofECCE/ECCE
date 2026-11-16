@@ -88,6 +88,13 @@ class SftpEDSI : public EDSI
     enum Probe { PROBE_OK, PROBE_NO_LOGIN, PROBE_MISSING, PROBE_NOT_WRITABLE };
     static Probe probe(const string& user, const string& host, const string& folder,
                        bool create, string& message);
+    // While one is alive on this thread, the first depth-1 listing of a
+    // folder also reads every calculation in it, and later reads of those
+    // are served from memory.  Dropped on any change and when the outermost
+    // Batch ends.  Nests.
+    class Batch { public: Batch(); ~Batch(); private: Batch(const Batch&); Batch& operator=(const Batch&); bool p_off = false; };
+    // Remote scripts run so far in this process (tests count round trips).
+    static unsigned scriptCount();
     // Prompts are off except while probe() runs.
     static void setInteractive(bool on);
     static bool parseURL(const string& url, string& user, string& host,

@@ -7,6 +7,7 @@
 #include <sys/time.h>
 #include <utime.h>
 #include <algorithm>
+#include <atomic>
 #include "util/Filesystem.H"
 #include <functional>
 #include <memory>
@@ -53,6 +54,9 @@ namespace {
 std::mutex gMutex;
 std::map<string, RCommand*> gLogins;
 unsigned gCounter = 0;
+std::atomic<unsigned> gGen(0);       // bumped by every operation that may change the server
+std::atomic<unsigned> gScripts(0);
+thread_local int gBatchDepth = 0;
 // Prompts are only for the Organizer's connect step.  Every other process
 // (job store, monitor, editors) rides the session's master or fails, so a
 // launch never stops on a hidden password prompt.
@@ -173,6 +177,7 @@ bool runRemote(const string& user, const string& host, const string& script,
         return false;
       }
     }
+    gScripts++;
     if (rc->execout(script, out, "", timeout)) {
       out.erase(std::remove(out.begin(), out.end(), '\r'), out.end());
       return true;
@@ -214,7 +219,7 @@ bool copyRemote(const string& user, const string& host, bool put,
 const char *MIRROR_FUNCS =
   "st() { stat -c '%s %Y' -- \"$1\" 2>/dev/null || stat -f '%z %m' -- \"$1\" 2>/dev/null || echo '0 0'; }\n"
   "sidecar() { if [ -f \"$1/.ecce-meta\" ]; then printf 'M\\t%s\\t%s\\n' \"$1\" \"$(base64 < \"$1/.ecce-meta\" | tr -d '\\n')\"; fi; }\n"
-  "walk() { d=$1; dep=$2; sidecar \"$d\"\n"
+  "walk() { d=$1; dep=$2; sidecar \"$d\"; printf 'W\\t%s\\n' \"$d\"\n"
   "  for e in \"$d\"/* \"$d\"/.[!.]* \"$d\"/..?*; do\n"
   "    [ -e \"$e\" ] || [ -L \"$e\" ] || continue\n"
   "    case ${e##*/} in .ecce-meta*) continue;; esac\n"
@@ -222,6 +227,130 @@ const char *MIRROR_FUNCS =
   "      if [ \"$dep\" -gt 1 ]; then walk \"$e\" $((dep-1)); else sidecar \"$e\"; fi\n"
   "    else printf 'E\\tf\\t%s\\t%s\\n' \"$(st \"$e\")\" \"$e\"; fi\n"
   "  done; }\n";
+
+
+// ---- batch cache (#1082) ----
+// Inside a SftpEDSI::Batch the first depth-1 listing also walks every
+// calculation below it, so the many small reads that follow are answered
+// from memory.  Raw script output only, never on disk; any mutation or the
+// end of the outermost Batch drops it.
+
+struct CEntry {
+  char kind = 'f';
+  string st;                         // "size mtime" as the script printed it
+  bool listed = false;               // children were enumerated
+  bool metaKnown = false;            // sidecar (or its absence) was seen
+  bool hasMeta = false;
+  string meta;                       // base64 sidecar
+  vector<string> kids;
+  std::set<string> kidSet;
+};
+
+struct BatchCache {
+  unsigned gen = 0;
+  std::map<string, CEntry> e;
+  std::map<string, string> data;     // path -> base64 of a small file
+};
+thread_local std::map<string, BatchCache> gCache;
+
+const char *FILL_FUNCS =
+  "iscalc() { [ -f \"$1/.ecce-meta\" ] && awk -F'\\t' -v n=%NS% '$1==\".\" && $2==n {print tolower($3)}' \"$1/.ecce-meta\" | grep -q '^virtual_document'; }\n"
+  "full() { walk \"$1\" 1000\n"
+  "  for f in \"$1\"/Props/*; do if [ -f \"$f\" ] && [ \"$(wc -c < \"$f\")\" -le 65536 ]; then printf 'D\\t%s\\t%s\\n' \"$f\" \"$(base64 < \"$f\" | tr -d '\\n')\"; fi; done; }\n"
+  "fillwalk() { d=$1\n"
+  "  if iscalc \"$d\"; then full \"$d\"; return; fi\n"
+  "  walk \"$d\" 1\n"
+  "  for e in \"$d\"/* \"$d\"/.[!.]* \"$d\"/..?*; do\n"
+  "    [ -d \"$e\" ] || continue\n"
+  "    case ${e##*/} in .ecce-meta*) continue;; esac\n"
+  "    if iscalc \"$e\"; then full \"$e\"; else walk \"$e\" 1; fi\n"
+  "  done; }\n";
+
+void ingest(BatchCache& c, const string& out)
+{
+  std::istringstream in(out);
+  string line;
+  while (std::getline(in, line)) {
+    vector<string> f;
+    size_t a = 0;
+    for (int i = 0; i < 3; i++) {
+      size_t b = line.find('\t', a);
+      if (b == string::npos) break;
+      f.push_back(line.substr(a, b - a));
+      a = b + 1;
+    }
+    f.push_back(line.substr(a));
+    if (f[0] == "E" && f.size() == 4) {
+      CEntry& ce = c.e[f[3]];
+      ce.kind = f[1][0];
+      ce.st = f[2];
+      const string par = parentOf(f[3]);
+      if (par != f[3]) {
+        auto pi = c.e.find(par);
+        if (pi != c.e.end() && pi->second.listed) {
+          if (ce.kind == 'd') ce.metaKnown = true;
+          if (pi->second.kidSet.insert(f[3]).second) pi->second.kids.push_back(f[3]);
+        }
+      }
+    } else if (f[0] == "W" && f.size() == 2) {
+      CEntry& ce = c.e[f[1]];
+      ce.kind = 'd';
+      ce.listed = true;
+      ce.metaKnown = true;
+      ce.kids.clear();
+      ce.kidSet.clear();
+    } else if (f[0] == "M" && f.size() >= 3) {
+      CEntry& ce = c.e[f[1]];
+      ce.hasMeta = true;
+      ce.meta = f[2];
+    } else if (f[0] == "D" && f.size() >= 3) {
+      c.data[f[1]] = f[2];
+    }
+  }
+}
+
+// What the plain mirror script would have printed for walk(d, dep), or
+// false when something it needs was not walked.
+bool emitDir(const BatchCache& c, const string& d, int dep, string& out)
+{
+  auto di = c.e.find(d);
+  if (di == c.e.end() || !di->second.listed) return false;
+  if (di->second.hasMeta) out += "M\t" + d + "\t" + di->second.meta + "\n";
+  for (const string& kid : di->second.kids) {
+    auto ki = c.e.find(kid);
+    if (ki == c.e.end()) return false;
+    const CEntry& k = ki->second;
+    out += string("E\t") + k.kind + "\t" + k.st + "\t" + kid + "\n";
+    if (k.kind != 'd') continue;
+    if (dep > 1) { if (!emitDir(c, kid, dep - 1, out)) return false; }
+    else {
+      if (!k.metaKnown) return false;
+      if (k.hasMeta) out += "M\t" + kid + "\t" + k.meta + "\n";
+    }
+  }
+  return true;
+}
+
+// d, f, x (known absent) or 0 (not known).
+char lookupKind(const BatchCache& c, const string& path)
+{
+  auto it = c.e.find(path);
+  if (it != c.e.end()) return it->second.kind;
+  const string par = parentOf(path);
+  if (par == path) return 0;
+  auto pi = c.e.find(par);
+  if (pi != c.e.end()) return pi->second.kind == 'd' && pi->second.listed ? 'x' : 0;
+  return lookupKind(c, par) == 'x' ? 'x' : 0;
+}
+
+BatchCache *liveCache(const string& key)
+{
+  if (!gBatchDepth) return 0;
+  auto it = gCache.find(key);
+  if (it == gCache.end()) return 0;
+  if (it->second.gen != gGen) { gCache.erase(it); return 0; }
+  return &it->second;
+}
 
 } // namespace
 
@@ -294,8 +423,9 @@ class SftpOp {
       p_e.m_msgStack.add("UNABLE_TO_COMPLETE_REQUEST", what.c_str());
       return false;
     }
-    bool run(const string& script, string& out, int timeout = 60)
+    bool run(const string& script, string& out, int timeout = 60, bool mutates = true)
     {
+      if (mutates) { gGen++; p_noCache = true; }
       string err;
       if (runRemote(p_user, p_host, script, out, err, timeout)) return true;
       fail(err);
@@ -310,6 +440,7 @@ class SftpOp {
     // minutes is taken as left by a dead client.
     bool lock(const vector<string>& dirs, bool autoMode)
     {
+      p_noCache = true;
       if (getenv("ECCE_SFTP_NOLOCK")) return true;   // test only: shows the lock is what keeps updates
       std::set<string> sorted(dirs.begin(), dirs.end());
       string script = "lockone() { d=$1; n=0\n"
@@ -348,6 +479,7 @@ class SftpOp {
       for (const string& d : p_locks) script += "rmdir " + q(d + "/.ecce-meta.lockdir") + " 2>/dev/null\n";
       script += "true\n";
       string err;
+      gGen++;
       runRemote(p_user, p_host, script, out, err, 30);   // stale after 2 min if this fails
       p_locks.clear();
     }
@@ -357,16 +489,66 @@ class SftpOp {
     // same names, sizes and times, no content.  kind is d, f or x (absent).
     bool mirror(const string& path, int depth, char *kind = 0)
     {
-      string script = string(MIRROR_FUNCS) + "P=" + q(path) + "\n"
-        "if [ -d \"$P\" ]; then printf 'R\\td\\n'; printf 'E\\td\\t%s\\t%s\\n' \"$(st \"$P\")\" \"$P\"; [ " + std::to_string(depth) + " -ge 1 ] && walk \"$P\" " + std::to_string(depth) + "\n"
+      const string key = p_user + "@" + p_host;
+      string out;
+      if (!p_noCache && fromCache(key, path, depth, out)) return parseMirror(out, path, kind);
+      const bool fill = !p_noCache && gBatchDepth && depth == 1;
+      const string d = std::to_string(depth);
+      string script = string(MIRROR_FUNCS);
+      if (fill) {
+        string fn = FILL_FUNCS;
+        fn.replace(fn.find("%NS%"), 4, q(VDoc::getEcceNamespace() + ":resourcetype"));
+        script += fn;
+      }
+      const string walkTop = fill ? "fillwalk" : "walk";
+      script += "P=" + q(path) + "\n"
+        "if [ -d \"$P\" ]; then printf 'R\\td\\n'; printf 'E\\td\\t%s\\t%s\\n' \"$(st \"$P\")\" \"$P\"; [ " + d + " -ge 1 ] && " + walkTop + " \"$P\" " + (fill ? "" : d) + "\n"
         "else\n"
         "  if [ -e \"$P\" ] || [ -L \"$P\" ]; then printf 'R\\tf\\n'; else printf 'R\\tx\\n'; fi\n"
         "  if [ -e \"$P\" ] || [ -L \"$P\" ]; then printf 'E\\tf\\t%s\\t%s\\n' \"$(st \"$P\")\" \"$P\"; fi\n"
         "  par=${P%/*}; [ -z \"$par\" ] && par=/\n"
-        "  if [ -d \"$par\" ]; then printf 'E\\td\\t%s\\t%s\\n' \"$(st \"$par\")\" \"$par\"; [ " + std::to_string(depth) + " -ge 1 ] && walk \"$par\" 1; fi\n"
+        "  if [ -d \"$par\" ]; then printf 'E\\td\\t%s\\t%s\\n' \"$(st \"$par\")\" \"$par\"; [ " + d + " -ge 1 ] && " + walkTop + " \"$par\" " + (fill ? "" : "1") + "\n"
         "fi\ntrue\n";
-      string out;
-      if (!run(script, out)) return false;
+      const unsigned gen = gGen;
+      if (!run(script, out, 60, false)) return false;
+      if (fill && gen == gGen) {
+        BatchCache& c = gCache[key];
+        if (c.gen != gen) { c.e.clear(); c.data.clear(); c.gen = gen; }
+        ingest(c, out);
+        string again;
+        if (fromCache(key, path, depth, again)) out = again;
+      }
+      return parseMirror(out, path, kind);
+    }
+
+    // The plain mirror's answer from the batch cache, when it can give it.
+    bool fromCache(const string& key, const string& path, int depth, string& out)
+    {
+      BatchCache *c = liveCache(key);
+      if (!c) return false;
+      char k = lookupKind(*c, path);
+      if (!k) return false;
+      string o;
+      if (k == 'd') {
+        o = "R\td\nE\td\t" + c->e[path].st + "\t" + path + "\n";
+        if (depth >= 1 && !emitDir(*c, path, depth, o)) return false;
+      } else {
+        o = string("R\t") + k + "\n";
+        if (k == 'f') o += "E\tf\t" + c->e[path].st + "\t" + path + "\n";
+        string par = path.substr(0, path.rfind('/'));
+        if (par.empty()) par = "/";
+        auto pi = c->e.find(par);
+        if (pi != c->e.end() && pi->second.kind == 'd') {
+          o += "E\td\t" + pi->second.st + "\t" + par + "\n";
+          if (depth >= 1 && !emitDir(*c, par, 1, o)) return false;
+        } else if (k == 'f') return false;
+      }
+      out = o;
+      return true;
+    }
+
+    bool parseMirror(const string& out, const string& path, char *kind)
+    {
       std::istringstream in(out);
       string line;
       vector<std::pair<string, long>> dirTimes;
@@ -420,11 +602,17 @@ class SftpOp {
     {
       string err;
       fs::create_directories(fs::path(local(path)).parent_path());
+      if (!p_noCache) {
+        BatchCache *c = liveCache(p_user + "@" + p_host);
+        auto di = c ? c->data.find(path) : std::map<string, string>::iterator();
+        if (c && di != c->data.end()) return writeFile(local(path), unb64(di->second)) || fail("cannot write " + local(path));
+      }
       if (!copyRemote(p_user, p_host, false, local(path), path, err)) return fail(err);
       return true;
     }
     bool upload(const string& localFile, const string& remote)
     {
+      gGen++; p_noCache = true;
       string err;
       if (!copyRemote(p_user, p_host, true, localFile, remote, err)) return fail(err);
       return true;
@@ -497,6 +685,7 @@ class SftpOp {
 
     SftpEDSI& p_e;
     bool p_ok;
+    bool p_noCache = false;                 // set once this operation may change the server
     string p_user, p_host, p_path, p_base, p_scratch;
     vector<string> p_locks;
     std::map<string, string> p_before;      // sidecar content by directory
@@ -544,6 +733,11 @@ bool SftpEDSI::parseURL(const string& url, string& user, string& host, string& p
   host = ServerList::hostPort(bare, port);
   return !host.empty();
 }
+
+// ECCE_SFTP_NOBATCH=1 turns the cache off (tests compare against it).
+SftpEDSI::Batch::Batch() { if (!getenv("ECCE_SFTP_NOBATCH")) gBatchDepth++; else p_off = true; }
+SftpEDSI::Batch::~Batch() { if (!p_off && --gBatchDepth == 0) gCache.clear(); }
+unsigned SftpEDSI::scriptCount() { return gScripts; }
 
 void SftpEDSI::setInteractive(bool on) { std::lock_guard<std::mutex> g(gMutex); gInteractive = on; }
 
