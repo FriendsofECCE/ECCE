@@ -1,19 +1,25 @@
-# QSAR: descriptor table
+# QSAR
 
-**Tools > QSAR Table...** makes one row per calculation of a folder made by
-[Batch Add from SMILES](batch-from-smiles.md): the measured values, descriptors
-of the molecule and the results of the calculation. The table is shown in
-ECCE and exported as CSV, for ECCE's own PCA and PLS or for other programs.
+**Tools > QSAR...** opens one window for the selected folder (the calculations
+made by [Batch Add from SMILES](batch-from-smiles.md)). Its title and the line
+at the top say which folder and how many calculations are used;
+**Change folder...** takes the folder now selected in the Organizer. The window
+has three tabs, **Table**, **PCA** and **PLS**. PCA and PLS use the table of the
+first tab, so ticking other descriptor groups there updates what they analyse.
+A line under the tabs says what the last run found, for example "PCA done: 2
+components explain 66 % of the variation (cross-validated Q2 0.30)". Everything
+the window does is also done by `ecce-qsar`, so an analysis can be repeated from
+a script.
 
-## Making the table
+## Table
 
 1. Select the project folder (or some of its calculations) in the Organizer.
-2. Choose **Tools > QSAR Table...** and tick the descriptor groups.
-3. The table opens. Click a column header to sort. Rows with a problem are
-   shown in red and the `problems` column says what: a SMILES that cannot be
-   read, a calculation without a stored SMILES, an optimisation that did not
-   converge, an abnormal termination.
-4. **Export CSV...** writes the table.
+2. Choose **Tools > QSAR...** and tick the descriptor groups.
+3. Click a column header to sort. A row with a problem says what in the
+   `problems` column: a SMILES that cannot be read, a calculation without a
+   stored SMILES, an optimisation that did not converge, an abnormal termination.
+4. **Export CSV...** writes the table, for ECCE's own PCA and PLS or for other
+   programs. **Key...** lists what every column means.
 
 ## Columns
 
@@ -163,28 +169,105 @@ where the definition above says so.
 
 ```
 ecce-qsar table <folder|calc>... [--groups counts,topology,models,charges,vsa,qm]
-                [--csv FILE|-] [--json] [--no-qm] [--describe] [--key-csv FILE]
+                [--csv FILE|-] [--json] [--no-qm]
 ecce-qsar table --from-csv FILE [--name-col N] [--smiles-col N] ...
 ecce-qsar groups
 ```
 
 `--from-csv` reads a table of names and SMILES (other numeric columns become
 measured values) and computes the descriptors without any calculation.
-### Describing columns
 
-`ecce-qsar table --describe` prints the built-in descriptor key without needing
-an input. Add calculation paths or `--from-csv FILE` to describe just the
-columns of that table, including measured values and their provenance.
-`--groups` and `--no-qm` select columns as for a normal table.
-`--describe --json` returns a `columns` array of objects with `name`,
-`description`, `unit`, `group` and `reference` fields; an empty reference means
-none is specified. `--describe --csv FILE` writes these fields as CSV.
+## PCA
 
-### Exporting the key with a table
+On the **PCA** tab choose the scaling and the number of components and click **Run PCA**. The
+descriptors are the table's numeric columns; the measured values are not part of
+the model. Columns with missing values or no variance are left out, and
+calculations whose optimisation did not converge are left out; the report lists
+both.
 
-`--key-csv FILE` also writes a UTF-8 CSV of each current column name and the
-formatted key text. This is the same text used by the Organizer's header
-tooltips and Key dialog.
+- **Scaling**: **Unit variance (autoscaling)** (each column centred and divided by its
+  standard deviation; every descriptor weighs the same, the usual choice when the
+  descriptors have different units), **Pareto** (divided by the square root of it),
+  **Centred only**, **None**. The command tokens are `uv`, `pareto`, `ctr`, `none`.
+- **Components**: Automatic lets cross-validation decide: components are added while
+  the cross-validated Q2 of the next component exceeds 0.05. The
+  cross-validation is the element-wise scheme of Wold in 7 groups.
+- **Components table**: for each component the eigenvalue, the variance
+  explained by it and cumulatively (in %), and the cross-validated prediction
+  (Q2) of it and cumulatively. The first row of the kept components is shaded.
+- **Report**: the limits of Hotelling's T2 and of DModX (95 %), and the molecules
+  outside them. T2 measures the distance within the model plane, DModX the
+  distance from it.
+- **Plot**: Component 1 against Component 2, each axis titled with the percentage
+  of the variance it holds; hover over a point for the molecule and its values.
+- **Save Results...** writes `table.csv`, `pca_scores.csv` (scores, T2, DModX),
+  `pca_loadings.csv` and `pca_components.csv`.
 
-Test hook of the Organizer: `qsartable <out.csv> <url>,<url>... [groups]`
-(also writes `<out.csv>.key` and `<out.csv>.tips` for GUI checks).
+## PLS
+
+On the **PLS** tab choose the property to model (a column of the table that is not a descriptor), the
+scaling and the number of components (Automatic: by cross-validation), and click **Run
+PLS**. One measured value is modelled at a time. X and y are scaled alike.
+
+- **Test set %**: a random share of the molecules is kept out of the fit and
+  predicted afterwards (RMSEP, external Q2). Name molecules instead with
+  `--test-names` on the command.
+- **Cross-validation**: every 7th molecule is left out in turn, and the scaling
+  is redone on the rest, so Q2 does not use the left-out molecules' means. A
+  component is kept while PRESS falls by at least 10 % (Q2 of the component at
+  least 0.0975, as in SIMCA).
+- **Components table**: per component, the descriptor variance explained
+  (R2X) and the property variance explained (R2Y), each by the component and
+  cumulatively (in %), the cross-validated prediction (Q2) and the prediction
+  error on left-out molecules (RMSECV). **Importance in the model (VIP)** lists
+  the descriptors, largest first; above 1 is more than average.
+- **Report**: RMSEE (training error, N-A-1 degrees of freedom); the limits of T2
+  and DModX. The files hold VIP and the coefficients (scaled and in the original
+  units), the scores with T2 and DModX, and observed against predicted
+  (`train`, `test`, and the cross-validated prediction).
+- **Permutations**: the measured values are shuffled and the model refitted;
+  the lines of R2Y and Q2 against the correlation of the shuffled with the true
+  values are extended to zero correlation. An R2Y intercept below 0.3-0.4 and
+  a Q2 intercept below 0.05 mean the model is not a chance result.
+- **Plot**: observed against predicted, red for molecules not in the fit.
+
+A saved model (`pls_model.json`, written by **Save Results...**) predicts new
+molecules: `ecce-qsar predict pls_model.json new_table.csv`. Each row gets the
+prediction, T2 and DModX, and `in_domain` says whether both are within the 95 %
+limits; a prediction for a molecule outside them is an extrapolation.
+
+## Command
+
+```
+ecce-qsar pca TABLE.csv [--y COL]... [--exclude COL]... [--scale uv|pareto|ctr|none]
+              [--components N] [--cv G] [--keep-unconverged] [--outdir DIR] [--json]
+```
+
+```
+ecce-qsar pls TABLE.csv --y COL [--exclude COL]... [--scale uv|pareto|ctr|none]
+              [--components N] [--cv G] [--test-names A,B | --test-fraction F --seed S]
+              [--permutations N] [--save-model FILE] [--outdir DIR] [--json]
+ecce-qsar predict MODEL.json TABLE.csv [--csv FILE]
+```
+
+`--y` names the measured columns (not descriptors); `ecce-qsar columns
+TABLE.csv` lists them. The test hooks of the Organizer are `qsartable <out.csv> <url>,<url>...
+[groups] [png [width height]]`, `qsarpca <outdir> <url>,<url>... [scaling]
+[components] [png [width height]]` and `qsarpls <outdir> <url>,<url>... <y>
+[scaling] [components] [test%] [permutations] [png [width height]]`.
+
+Reading the results: the table headings are words, with the symbol after where
+the literature uses one, and the column to read is in bold. **R2X** is the share of the variation between the molecules
+that a component holds, **R2Y** the share of the variation in the property that
+the model reproduces, **Q2** the same for molecules left out of the fit (the
+number to judge a model by), **VIP** how much a descriptor matters (above 1 is
+more than average), **T2** and **DModX** how far a molecule lies from the others
+within and away from the model plane. A descriptor that is itself a model
+estimate of the property (SlogP when modelling logP) is flagged in the PLS tab,
+with a tick box to leave it out. Plots show the property in the title, the
+explained share on the PCA axes, and the units of the column header; hover over
+a point for its name and values. Click a point to select that molecule in the **Table** tab. Each result
+plot has a second page, **Variance**, with the variance explained per component and
+cumulatively. **Copy table** beside each results table copies it with its headings;
+**Ctrl+C** copies the selected cells.
+

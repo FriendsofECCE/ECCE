@@ -159,8 +159,7 @@ menu is grey.
   [New Series](new-series.md).
 - **Batch Add from SMILES...**: see
   [Batch Add from SMILES](batch-from-smiles.md).
-- **QSAR Table...**: see [QSAR Table](qsar-table.md).
-- **QSAR Analysis...**: see [QSAR Analysis](qsar-analysis.md).
+- **QSAR...**: see [QSAR](qsar.md).
 - **Builder**: shown when the selection has no tools of its own; opens an
   empty Builder.
 - **Electronic Structure Editor...** (Ctrl+E): the Calculation Editor of the
