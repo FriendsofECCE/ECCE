@@ -13,8 +13,9 @@ inline std::string quote(const std::string& s)
 inline std::string rangeScript(const std::string& path, int start, int length)
 {
   return "if [ -f " + quote(path) + " ] && [ -r " + quote(path) + " ]; then\n"
-    "  { dd if=" + quote(path) + " bs=1 skip=" + std::to_string(start) +
-    " count=" + std::to_string(length) + " 2>/dev/null && printf '\\nECCE_RANGE_OK'; } | base64\n"
+    // tail|head reads in blocks; dd bs=1 would make one system call per byte.
+    "  { tail -c +" + std::to_string((long long)start + 1) + " " + quote(path) +
+    " | head -c " + std::to_string(length) + " && printf '\\nECCE_RANGE_OK'; } | base64\n"
     "fi\ntrue\n";
 }
 inline std::string sizeScript(const std::string& path)
