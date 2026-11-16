@@ -121,7 +121,7 @@ Selected...** and **Re-Parse Outputs**.
   reconnected.
 - **Force State to Failed**: sets the state of a submitted, running or
   waiting job to failed, without touching the job itself.
-- **Reset to Rerun** (Alt+R): resets a finished calculation so that it can
+- **Reset for Rerun** (Alt+R): resets a finished calculation so that it can
   be launched again; the outputs of the previous run are removed. Imported
   calculations are skipped, since the reset would delete the only copy of
   their results; use **Edit > New from This > Duplicate** for them.

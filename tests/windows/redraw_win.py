@@ -9,7 +9,7 @@ shows is logged by framelog.ps1 and saved as a PNG under <png dir>:
     several property panels;
   - duplicate/: right-click > Duplicate and Continue from
     Last Geometry on a calculation, with another project expanded;
-  - prompts: Run Mgmt > Reset to Rerun (after the viewer phase's run) and
+  - prompts: Run Mgmt > Reset for Rerun (after the viewer phase's run) and
     New Calculation with the name prompt, and whether the Organizer stays
     the foreground window.
 Needs the desktop (a scheduled task with /it, see desktask.ps1).
@@ -199,7 +199,7 @@ try:
 
     if "prompts" in PHASES:
         # Rerun needs a finished calculation: the viewer phase's run.
-        for cmd in ("rmtask %s/w Reset to Rerun" % proj, "newprompt %s NWChem" % proj):
+        for cmd in ("rmtask %s/w Reset for Rerun" % proj, "newprompt %s NWChem" % proj):
             fl = framelog(8, "prompt-" + cmd.split()[0], pid=org.pid)
             time.sleep(1)
             say("%s: %s" % (cmd.split()[0], ask(cmd)))
