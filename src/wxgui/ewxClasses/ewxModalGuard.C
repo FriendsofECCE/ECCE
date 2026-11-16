@@ -22,6 +22,7 @@ extern "C" {
 
 #include "wxgui/ewxModalGuard.H"
 #include "wxgui/ewxWindowUtils.H"
+#include "wxgui/ToolTabs.H"
 
 namespace {
 
@@ -227,6 +228,7 @@ class ModalGuard : public wxModalDialogHook
     {
       Shown &s = g_shown[dlg];
       if (s.depth++ > 0) return wxID_NONE;
+      ToolTabs::dialogOpened(dlg);
 
       // Counted off and back on rather than wxBusyCursorSuspender, which
       // does nothing on GTK when no global cursor was set before.
@@ -309,6 +311,7 @@ class ModalGuard : public wxModalDialogHook
       if (it == g_shown.end()) return;
       Shown &s = it->second;
       if (--s.depth > 0) return;
+      ToolTabs::dialogClosed(dlg);
       for (int i = 0; i < s.busy; i++) wxBeginBusyCursor();
 #ifdef __WXGTK3__
       if (s.drawHandler && dlg->GetHandle())

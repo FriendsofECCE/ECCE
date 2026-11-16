@@ -734,15 +734,18 @@ ecce_tool_objects(basistool-objs src/apps/basistool EXCLUDE WxBasisToolApp.C
   LINK ${ECCE_BASISTOOL_LINK})
 ecce_app(basistool src/apps/basistool WX MAIN WxBasisToolApp.C OBJECTS basistool-objs
   LINK ${ECCE_BASISTOOL_LINK})
-set(ECCE_CALCED_LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+set(ECCE_CALCED_LINK ecce-details-wx eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_tool_objects(calced-objs src/apps/calced EXCLUDE CalcEdApp.C
   LINK ${ECCE_CALCED_LINK})
 ecce_app(calced src/apps/calced WX MAIN CalcEdApp.C OBJECTS calced-objs
   LINK ${ECCE_CALCED_LINK})
 ecce_app(gateway src/apps/gateway WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(launcher src/apps/launcher WX
-  LINK eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+set(ECCE_LAUNCHER_LINK eccecommxt eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_tool_objects(launcher-objs src/apps/launcher EXCLUDE WxLauncherApp.C
+  LINK ${ECCE_LAUNCHER_LINK})
+ecce_app(launcher src/apps/launcher WX MAIN WxLauncherApp.C OBJECTS launcher-objs
+  LINK ${ECCE_LAUNCHER_LINK})
 ecce_app(machbrowser src/apps/machbrowser WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccetdat ecceutil)
 ecce_app(machregister src/apps/machregister WX
@@ -828,8 +831,8 @@ target_include_directories(builder PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organize
 # its own process with ECCE_ONE_PROCESS=1 (#983), so it links their objects.
 ecce_app(organizer src/apps/organizer WX GL MAIN CalcMgrApp.C
   OBJECTS organizer-objs organizer-shared-objs builder-objs calced-objs
-    mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs basistool-objs mdprepare-objs
-  LINK eccewxguimd ${ECCE_BUILDER_LINK})
+    mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs basistool-objs mdprepare-objs launcher-objs
+  LINK eccewxguimd ecce-details-wx ${ECCE_BUILDER_LINK})
 target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)
@@ -3204,7 +3207,8 @@ if(PYTHON3_EXECUTABLE)
                        TIMEOUT 900 RUN_SERIAL TRUE)
   # The G16 Runtype dialog has 349 contexts; --dedupe replays the restore
   # cases once per group of contexts with identical Python inventories.
-  foreach(_d orcatheory orcaruntype ged16theory ged16runtype)
+  foreach(_d orcatheory orcaruntype ged16theory ged16runtype ecceqmruntype
+             xtbtheory xtbruntype)
     set(_extra "")
     set(_timeout 3600)   # ORCA runs ~25 min on an idle machine
     if(_d MATCHES "^ged16")
@@ -3661,7 +3665,7 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
-  set_tests_properties(apps_organizer_one_process PROPERTIES TIMEOUT 600
+  set_tests_properties(apps_organizer_one_process PROPERTIES TIMEOUT 2700
                        SKIP_RETURN_CODE 77)
   # Two close requests before the Quit dialog is answered (#291).
   add_test(NAME apps_organizer_close

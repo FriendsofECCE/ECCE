@@ -26,6 +26,7 @@
 
 
 #include "util/Ecce.H"
+#include "dsm/GBSAssign.H"
 #include "util/EcceURL.H"
 #include "util/ErrMsg.H"
 #include "util/StringConverter.H"
@@ -62,6 +63,7 @@
 
 #include "GridSelectionBlock.H"
 #include "wxgui/WxJMSMessageDispatch.H"
+#include "wxgui/ToolTabs.H"
 #include "WxBasisTool.H"
 #include "WxBasisSetCoefficients.H"
 #include "WxBasisSetDetail.H"
@@ -285,8 +287,52 @@ WxBasisTool::WxBasisTool(      wxWindow* parent,
 }
 
 
+bool WxBasisTool::Show(bool show)
+{
+    if (ToolTabs::hosts(this)) {
+        if (show) ToolTabs::select(this);
+        return true;
+    }
+    return WxBasisToolGUI::Show(show);
+}
+
+
+void WxBasisTool::Raise()
+{
+    if (ToolTabs::hosts(this)) ToolTabs::select(this);
+    else WxBasisToolGUI::Raise();
+}
+
+
+void WxBasisTool::SetTitle(const wxString& title)
+{
+    WxBasisToolGUI::SetTitle(title);
+    ToolTabs::setTitle(this, title);
+}
+
+
+bool WxBasisTool::Destroy()
+{
+    ToolTabs::release(this, false);
+    return WxBasisToolGUI::Destroy();
+}
+
+
+void WxBasisTool::Iconize(bool iconize)
+{
+    if (!ToolTabs::hosts(this)) WxBasisToolGUI::Iconize(iconize);
+}
+
+
+wxMenuBar *WxBasisTool::GetMenuBar() const
+{
+    return ToolTabs::menuBar(this, wxFrame::GetMenuBar());
+}
+
+
 WxBasisTool::~WxBasisTool()
 {
+    ToolTabs::release(this, false);
     delete p_msgs;
     if (p_prefs != NULL)
     {
@@ -617,6 +663,10 @@ void WxBasisTool::updateSelectionsSize()
         grid->SetMinSize(wxSize(430, height));
     }
     p_contextBasisSetsNotebook->InvalidateBestSize();
+    // As a tab the frame's children and sizer belong to the tab page and
+    // the frame is never shown: lay the page out instead of sizing a frame.
+    if (ToolTabs::layout(this))
+        return;
     // A normal sizer propagates both panes' minimum sizes to the frame.
     wxWindow *main = FindWindow(ID_PANEL_WXBASISTOOL_MAIN);
     main->InvalidateBestSize();
@@ -1612,91 +1662,13 @@ TGBSGroup* WxBasisTool::updateGroup(TGBSConfig* config, string& tag,
 {
 //    cout << "updateGroup(TGBSConfig*, string&, string&)" << endl;
 
-    TGBSGroup* group = 0; // return value
-
-    // Check if the basis set supports the tag:
-    string errMsg =  "Basis set ";
-    errMsg += bsName;
-    errMsg += " does not cover ";
-
-    vector<TGaussianBasisSet*> gbsList = p_gbsFactory->lookup(bsName.c_str(), bstype, tag.c_str());
-
-    // If multiple orbital basis sets are not supported, we want to replace
-    // the group.  Otherwise, we want to append to existing group.
-    bool replaceGroup = false;
-
-    // Find the group in which to insert the basis set:
-    TGBSConfig::iterator group_it = config->find(tag);
-
-    EE_ASSERT( (group_it != config->end()), EE_FATAL,
-                ("Trying to insert basis set into nonexistent or improperly "
-                "labeled group: "
-                + tag).c_str());
-
-    group = (*(group_it)).second;
-
-    // this is ugly - need to make an accessor to get this info
-    if (((group == NULL) || (group->getOrbitalGBSMappings()->size() == 0)) && gbsList[0]->p_category == TGaussianBasisSet::AUXILIARY)
-    {
-        // trying to insert an auxiliary gbs before orbital
-        string mesg = "You first must supply an orbital basis set for group ";
-        mesg += tag;
-        p_messagesFeedback->setMessage(mesg, WxFeedback::ERROR);
-    }
-    else
-    {
-        // ok to insert
-
-        // If inserting an orbital gbs:
-        if (gbsList[0]->p_category == TGaussianBasisSet::ORBITAL)
-        {
-            // first check if that orbital gbs supports all elements in the tag:
-            if (!p_gbsFactory->isSupported(bsName, bstype, tag))
-            {
-                p_messagesFeedback->setMessage((errMsg + tag).c_str(), WxFeedback::ERROR);
-            }
-            else
-            {
-                if (!p_multAllwd || (group == NULL))
-                {
-                    //clear out old group and start fresh
-                    config->removeGBSGroup(tag);
-                    group = new TGBSGroup();
-                    replaceGroup = true;
-                }
-
-                // Pass in a recompute=true flag so that any appended tight or
-                // diffuse functions will be recalculated based on the new exponents
-                // included in this basis set
-                group->insertOrbitalGBS(bsName, gbsList, true);
-
-                if (replaceGroup)
-                {
-                    config->insertGBSGroup(tag, group);
-                }
-            }
-        }
-        else
-        {
-            // Inserting an auxilliary basis set to an existing group
-            // Still add basis set, but print warning if not supported:
-
-            if (!p_gbsFactory->isSupported(bsName, bstype, tag))
-            {
-                p_messagesFeedback->setMessage((errMsg + tag).c_str(), WxFeedback::WARNING);
-            }
-
-            group = (*group_it).second;
-
-            // only one auxilliary BS will be added at a time
-            // Pass in a recompute=true flag so that any appended tight or
-            // diffuse functions will be recalculated based on the new exponents
-            // included in this basis set
-            group->insertGBS(new TGaussianBasisSet (*(gbsList[0])), true);
-        }
-    }
-
-    return group;
+    GBSAssign::Result res = GBSAssign::assign(*p_gbsFactory, config, tag,
+                                              bsName, bstype, p_multAllwd);
+    if (res.severity != GBSAssign::NONE)
+        p_messagesFeedback->setMessage(res.message,
+            res.severity == GBSAssign::ERROR ? WxFeedback::ERROR
+                                             : WxFeedback::WARNING);
+    return res.group;
 }
 
 

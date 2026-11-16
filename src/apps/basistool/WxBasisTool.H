@@ -79,6 +79,15 @@ class WxBasisTool: public WxBasisToolGUI,
                              long style = SYMBOL_WXBASISTOOLGUI_STYLE);
         virtual ~WxBasisTool();
 
+        // As a tab of the Organizer's window (#983): select / retitle the
+        // tab; Iconize must not map the hidden frame.
+        bool Show(bool show = true) override;
+        void Raise() override;
+        void SetTitle(const wxString& title) override;
+        bool Destroy() override;
+        void Iconize(bool iconize = true) override;
+        wxMenuBar *GetMenuBar() const;
+
         // The window's message dispatcher, deleted with it (#983).
         void setMessages(WxJMSMessageDispatch *msgs) { p_msgs = msgs; }
 

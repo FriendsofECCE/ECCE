@@ -247,6 +247,7 @@ using std::vector;
 #include <wx/textentry.h>
 #include <wx/spinctrl.h>
 #include <wx/accel.h>
+#include "wxgui/ToolTabs.H"
 #include "Builder.H"
 #include "BuilderMessages.H"
 
@@ -582,6 +583,7 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   setSaveHandler(this);
 
   p_mgr.SetManagedWindow(this);
+  p_mgr.setFloatParent(this);
   //  wxAUI caps a dock at a share of the window (a fraction well under
   //  half by default); a dragged side column may take most of it, the
   //  viewer keeping its own minimum width.
@@ -610,6 +612,8 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
   //  The canvas has the focus, so the frame sees Esc only through the hook.
   Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& ev) {
     const int key = ev.GetKeyCode();
+    if (getenv("ECCE_BUILDER_SCRIPT"))
+      std::cerr << "BUILDER: charhook key=" << key << std::endl;
     //  Space is the viewer's alone: a button or text field keeps it.
     if (key == WXK_SPACE && dynamic_cast<SoWxRenderArea*>(wxWindow::FindFocus())
         && pauseVibrationKey())
@@ -723,8 +727,14 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
 
 Builder::~Builder()
 {
+  ToolTabs::release(this, false);
   unsubscribe();
-  PopEventHandler(true);
+  //  Not PopEventHandler: after a tab's release the AUI manager (a member,
+  //  pushed again by SetManagedWindow) is on top of the stack, not this.
+  if (p_viewerEvtHandler) {
+    RemoveEventHandler(p_viewerEvtHandler);
+    delete p_viewerEvtHandler;
+  }
   
   if (p_copyBuffer)
     delete p_copyBuffer;
@@ -743,9 +753,37 @@ Builder::~Builder()
 
 bool Builder::Show(bool show)
 {
+   if (ToolTabs::hosts(this)) {
+     if (show) {
+       ToolTabs::select(this);
+       initShownPanels();
+     }
+     return true;
+   }
    const bool ret = BuilderGUI::Show(show);
    if (show) initShownPanels();
    return ret;
+}
+
+
+void Builder::Raise()
+{
+  if (ToolTabs::hosts(this)) ToolTabs::select(this);
+  else BuilderGUI::Raise();
+}
+
+
+void Builder::SetTitle(const wxString& title)
+{
+  BuilderGUI::SetTitle(title);
+  ToolTabs::setTitle(this, title);
+}
+
+
+bool Builder::Destroy()
+{
+  ToolTabs::release(this, false);
+  return BuilderGUI::Destroy();
 }
 
 
@@ -2966,6 +3004,12 @@ bool Builder::handleCommandsIfLattice(Command *cmd)
       }
    }
    return ret;
+}
+
+
+wxMenuBar *Builder::GetMenuBar() const
+{
+  return ToolTabs::menuBar(this, wxFrame::GetMenuBar());
 }
 
 

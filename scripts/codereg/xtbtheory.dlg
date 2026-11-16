@@ -1,0 +1,13 @@
+# xTB Theory Details for the native engine (bin/ecce-dialog), the same
+# dialog as xtbtheory.py.  Keep the two in step: tests/dialogs/native_test.py
+# compares what they send.
+
+dialog title="ECCE xTB Editor: Theory Details"
+
+box label="Implicit Solvent"
+combo name=ES.Theory.Solvent.Model label="Model:" choices="None|ALPB|GBSA" default=None export=1
+combo name=ES.Theory.Solvent.Name label="Solvent:" choices="water|acetone|acetonitrile|aniline|benzaldehyde|benzene|ch2cl2|chcl3|cs2|dioxane|dmf|dmso|ether|ethylacetate|furane|hexadecane|hexane|methanol|nitromethane|octanol|woctanol|phenol|toluene|thf" default=water export=1 enable_if="ES.Theory.Solvent.Model!=None"
+
+box label="SCF"
+float name=ES.Theory.SCF.ElectronicTemperature label="Electronic temperature:" unit=K default=300.0 hard="(0..)" soft="[100..5000]" export=1
+float name=ES.Theory.SCF.Accuracy label="Accuracy (lower is tighter):" default=1.0 hard="(0..)" soft="[0.0001..1000]" export=1

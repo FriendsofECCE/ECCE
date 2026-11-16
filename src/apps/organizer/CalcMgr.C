@@ -83,6 +83,7 @@ static std::string s_registerMessage;
 #include "util/BrowserHelp.H"
 #include "util/VizThumbnail.H"
 #include "wxgui/InProcessTools.H"
+#include "wxgui/ToolTabs.H"
 #include "wxgui/WindowShot.H"
 #include <wx/display.h>
 #include <algorithm>
@@ -425,7 +426,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   Bind(wxEVT_TOOL, [this](wxCommandEvent&) { showServersMenu(); }, serversId);
   {
     // Help > How to Cite ECCE..., before About.
-    wxMenuBar* mb = GetMenuBar();
+    wxMenuBar* mb = ownMenuBar();
     int help = mb->FindMenu(_("&Help"));
     if (help != wxNOT_FOUND) {
       wxMenu* m = mb->GetMenu(help);
@@ -448,14 +449,14 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   p_currentSelection.clear();
   p_clipboard.clear();
   p_toolBar->EnableTool(wxID_PASTE, false);
-  GetMenuBar()->Enable(wxID_PASTE, false);
+  ownMenuBar()->Enable(wxID_PASTE, false);
   //  p_toolBar->EnableTool(wxID_STOP, false);
   p_popupOnTree = false;
   p_focusOnTree = true;
 
 
   if (!getenv("ECCE_DEVELOPER")) {
-    GetMenuBar()->Remove(GetMenuBar()->FindMenu(_("Developer")));
+    ownMenuBar()->Remove(ownMenuBar()->FindMenu(_("Developer")));
     p_toolBar->RemoveTool(wxID_VIEW_PROPERTY);
   }
 
@@ -540,7 +541,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
 
   // File > New is offered before the first selection too.
   {
-    wxMenuBar * mb = GetMenuBar();
+    wxMenuBar * mb = ownMenuBar();
     int fm = mb ? mb->FindMenu(_("File")) : wxNOT_FOUND;
     if (fm != wxNOT_FOUND) getFileMenu(*mb->GetMenu(fm), 0);
   }
@@ -770,6 +771,12 @@ static string testContextMenuLabels(wxMenu& menu, const string& prefix = "",
 
 static string newWorkflowName(const vector<Resource*>& calcs,
     const vector<WorkflowSteps::ProposedLink>& links);
+
+wxMenuBar *CalcMgr::ownMenuBar() const
+{
+  return ToolTabs::mainMenuBar(this, GetMenuBar());
+}
+
 
 void CalcMgr::runTestCommand(const string& line)
 {
@@ -2285,7 +2292,7 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "helpmenu") {
       // "helpmenu": the Help menu's labels, and the page that Help >
       // Running Codes on This Computer opens and whether it is installed.
-      wxMenuBar *mb = GetMenuBar();
+      wxMenuBar *mb = ownMenuBar();
       wxMenu *hm = mb->GetMenu(mb->FindMenu(_("&Help")));
       outcome = "ok";
       for (size_t i = 0; i < hm->GetMenuItemCount(); i++) {
@@ -2322,7 +2329,7 @@ void CalcMgr::runTestCommand(const string& line)
       std::istringstream args(calcName);
       string label, name;
       args >> label >> name;
-      wxMenuBar *mb = GetMenuBar();
+      wxMenuBar *mb = ownMenuBar();
       wxMenu *fm = mb->GetMenu(mb->FindMenu(_("File")));
       outcome = command == "filemenu" ? "ok" : "no such item";
       for (size_t i = 0; i < fm->GetMenuItemCount(); i++) {
@@ -2335,11 +2342,11 @@ void CalcMgr::runTestCommand(const string& line)
           if (command == "filemenu") {
             outcome += " new=" + text;
           } else if (text == label) {
-            bool ask = GetMenuBar()->IsChecked(wxID_ASKFORNAME);
-            GetMenuBar()->Check(wxID_ASKFORNAME, false);
+            bool ask = ownMenuBar()->IsChecked(wxID_ASKFORNAME);
+            ownMenuBar()->Check(wxID_ASKFORNAME, false);
             wxCommandEvent ev(wxEVT_MENU, si->GetId());
             OnNewResourceClick(ev);
-            GetMenuBar()->Check(wxID_ASKFORNAME, ask);
+            ownMenuBar()->Check(wxID_ASKFORNAME, ask);
             outcome = "ok";
           }
         }
@@ -2934,7 +2941,7 @@ void CalcMgr::runTestCommand(const string& line)
       args >> p_exportOut >> table;
       p_exportTable = table == "none" ? string() : table;
       for (int i = 0; i < 20; ++i) { wxYield(); wxMilliSleep(25); }
-      wxMenuBar *mb = GetMenuBar();
+      wxMenuBar *mb = ownMenuBar();
       string trace = "no handler ran";
       if (!mb || !mb->FindItem(ID_SI_EXPORT)) {
         outcome = "no menu item";
@@ -2993,12 +3000,12 @@ void CalcMgr::runTestCommand(const string& line)
           }
         });
         answer.StartOnce(1500);
-        bool ask = GetMenuBar()->IsChecked(wxID_ASKFORNAME);
-        GetMenuBar()->Check(wxID_ASKFORNAME, true);
+        bool ask = ownMenuBar()->IsChecked(wxID_ASKFORNAME);
+        ownMenuBar()->Check(wxID_ASKFORNAME, true);
         startDisabler();
         createResource(rt, parentNode, false);
         stopDisabler();
-        GetMenuBar()->Check(wxID_ASKFORNAME, ask);
+        ownMenuBar()->Check(wxID_ASKFORNAME, ask);
         outcome = "ok";
       }
     } else if (command == "busyprompt") {
@@ -3354,7 +3361,7 @@ void CalcMgr::runTestCommand(const string& line)
       args >> url;
       std::getline(args >> std::ws, label);
       WxResourceTreeItemData *node = findNode(EcceURL(url), true, true);
-      wxMenuBar *bar = GetMenuBar();
+      wxMenuBar *bar = ownMenuBar();
       if (!node) {
         outcome = "not in the tree";
       } else {
@@ -3415,6 +3422,12 @@ void CalcMgr::runTestCommand(const string& line)
         string rest;
         std::getline(args, rest);
         outcome = p_prefs->dataTest(arg + rest);
+      } else if (what == "windows") {
+        // "prefs windows show|preset NAME|row KEY tab|window [SNAP]|snap P"
+        for (int i = 0; i < 10; i++) wxYield();
+        string rest;
+        std::getline(args, rest);
+        outcome = p_prefs->windowsTest(arg + rest);
       } else {
       p_prefs->showColoursPage();
       for (int i = 0; i < 10; i++) wxYield();
@@ -3450,13 +3463,27 @@ void CalcMgr::runTestCommand(const string& line)
                 std::to_string(InProcessTools::count(CALCED)) +
                 " MDEnergy=" + std::to_string(InProcessTools::count(MDENERGY)) +
                 " BasisTool=" + std::to_string(InProcessTools::count(BASISTOOL)) +
-                " MDPrepare=" + std::to_string(InProcessTools::count(MDPREPARE));
+                " MDPrepare=" + std::to_string(InProcessTools::count(MDPREPARE)) +
+                " Launcher=" + std::to_string(InProcessTools::count(LAUNCHER));
       // Top-level windows still alive: one left over keeps the main loop
       // (and the process) running after the Organizer's frame is gone.
       for (wxWindow *w : wxTopLevelWindows)
         if (w != this)
           outcome += string(" tlw=") + wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
                      (w->IsShown() ? "" : "(hidden)") + "/" + string(w->GetLabel().utf8_str());
+    } else if (command == "tabs" || command == "tab" ||
+               command == "towindow" || command == "totabs" ||
+               command == "charhook" || command == "tabinfo" || command == "sbinfo" ||
+               command == "dialog" || command == "dialoginfo" ||
+               command == "layout" || command == "tabmenu" ||
+               command == "alwayswindow" || command == "setup" ||
+               command == "launcher") {
+      // Tools as tabs (#983): list, select, Open in Window, Move to Tabs,
+      // the Windows and tabs setting, the tab's right-click menu.
+      wxString result;
+      ToolTabs::testCommand(command, wxString::FromUTF8(calcName.c_str()),
+                            result);
+      outcome = string(result.utf8_str());
     } else if (command == "gatewayquit") {
       // The session's ecce_quit as the gateway sends it, through the local
       // path to the Organizer and every in-process tool (#983).
@@ -3601,7 +3628,7 @@ void CalcMgr::initializeGUI()
     menu->AppendRadioItem(pv->getId(), pv->getMenuItem());
   }
 
-  wxMenuBar * menuBar = GetMenuBar();
+  wxMenuBar * menuBar = ownMenuBar();
   menuBar->GetMenu(menuBar->FindMenu(_("Options")))->
     Append(wxID_ANY, _("Project View"), menu);
 
@@ -3635,8 +3662,8 @@ void CalcMgr::initializeGUI()
 void CalcMgr::initializeTreeData()
 {
   p_treeCtrl->initialize(p_hlist,
-                         GetMenuBar()->IsChecked(wxID_HOMEASROOT),
-                         GetMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
+                         ownMenuBar()->IsChecked(wxID_HOMEASROOT),
+                         ownMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
@@ -4059,28 +4086,28 @@ void CalcMgr::saveSettings()
   prefs.setInt("Organizer.PropertyView",
                   p_projectViewId);
   prefs.setBool("Organizer.ConfirmDeletes",
-                   GetMenuBar()->IsChecked(wxID_CONFIRM_DELETE));
+                   ownMenuBar()->IsChecked(wxID_CONFIRM_DELETE));
   prefs.setBool("Organizer.ConfirmResets",
-                   GetMenuBar()->IsChecked(wxID_CONFIRM_RESET));
+                   ownMenuBar()->IsChecked(wxID_CONFIRM_RESET));
   prefs.setBool("Organizer.Toolbar",
-                   GetMenuBar()->IsChecked(wxID_SHOW_TOOLBAR));
+                   ownMenuBar()->IsChecked(wxID_SHOW_TOOLBAR));
   prefs.setBool("Organizer.RunStates",
-                   GetMenuBar()->IsChecked(wxID_SHOW_RUNSTATES));
+                   ownMenuBar()->IsChecked(wxID_SHOW_RUNSTATES));
   prefs.setBool("Organizer.Legend",
-                   GetMenuBar()->IsChecked(wxID_SHOW_LEGEND));
+                   ownMenuBar()->IsChecked(wxID_SHOW_LEGEND));
   prefs.setBool("Organizer.DeepTraverse",
-                   GetMenuBar()->IsChecked(wxID_SHOW_INTERNAL));
+                   ownMenuBar()->IsChecked(wxID_SHOW_INTERNAL));
   prefs.setBool("Organizer.HomeAsRoot",
-                   GetMenuBar()->IsChecked(wxID_HOMEASROOT));
+                   ownMenuBar()->IsChecked(wxID_HOMEASROOT));
   prefs.setBool("Organizer.AskForName",
-                   GetMenuBar()->IsChecked(wxID_ASKFORNAME));
+                   ownMenuBar()->IsChecked(wxID_ASKFORNAME));
   prefs.setBool("Organizer.RunDefaultTool",
-                   GetMenuBar()->IsChecked(wxID_RUNDEFAULTTOOL));
+                   ownMenuBar()->IsChecked(wxID_RUNDEFAULTTOOL));
   prefs.setBool("Organizer.ShowLine",
-                   GetMenuBar()->IsChecked(wxID_SHOW_LINE));
+                   ownMenuBar()->IsChecked(wxID_SHOW_LINE));
   /*
     prefs.setBool("Organizer.FreezeColumns",
-    GetMenuBar()->IsChecked(wxID_FIX_COLUMN));
+    ownMenuBar()->IsChecked(wxID_FIX_COLUMN));
   */
   
   prefs.saveFile();
@@ -4103,61 +4130,61 @@ void CalcMgr::restoreSettings()
   p_treeSort = 0;
   if (prefs.getInt("Organizer.TreeSort", prefTmp))
     p_treeSort = prefTmp;
-  GetMenuBar()->Check(wxID_SORT_TYPE + p_treeSort, true);
+  ownMenuBar()->Check(wxID_SORT_TYPE + p_treeSort, true);
 
   if (prefs.getInt("Organizer.PropertyView", prefTmp)) {
     p_projectViewId = prefTmp;
-    GetMenuBar()->Check(p_projectViewId, true);
+    ownMenuBar()->Check(p_projectViewId, true);
   }
 
   bool choice = true;
   if (prefs.getBool("Organizer.ConfirmDeletes", choice)) {
-    GetMenuBar()->Check(wxID_CONFIRM_DELETE, choice);
+    ownMenuBar()->Check(wxID_CONFIRM_DELETE, choice);
   }
 
   if (prefs.getBool("Organizer.ConfirmResets", choice)) {
-    GetMenuBar()->Check(wxID_CONFIRM_RESET, choice);
+    ownMenuBar()->Check(wxID_CONFIRM_RESET, choice);
     // @todo Action here
   }
 
   if (prefs.getBool("Organizer.Toolbar", choice)) {
-    GetMenuBar()->Check(wxID_SHOW_TOOLBAR, choice);
+    ownMenuBar()->Check(wxID_SHOW_TOOLBAR, choice);
     p_toolBar->Show(choice);
   }
 
   if (prefs.getBool("Organizer.RunStates", choice)) {
-    GetMenuBar()->Check(wxID_SHOW_RUNSTATES, choice);
+    ownMenuBar()->Check(wxID_SHOW_RUNSTATES, choice);
   }
 
   if (prefs.getBool("Organizer.Legend", choice)) {
-    GetMenuBar()->Check(wxID_SHOW_LEGEND, choice);
+    ownMenuBar()->Check(wxID_SHOW_LEGEND, choice);
     p_legend->Show(choice);
   }
 
   if (prefs.getBool("Organizer.DeepTraverse", choice)) {
-    GetMenuBar()->Check(wxID_SHOW_INTERNAL, choice);
+    ownMenuBar()->Check(wxID_SHOW_INTERNAL, choice);
     Resource::setHideInternal(!choice);
   }
 
   if (prefs.getBool("Organizer.HomeAsRoot", choice)) {
-    GetMenuBar()->Check(wxID_HOMEASROOT, choice);
+    ownMenuBar()->Check(wxID_HOMEASROOT, choice);
   }
 
   if (prefs.getBool("Organizer.AskForName", choice)) {
-    GetMenuBar()->Check(wxID_ASKFORNAME, choice);
+    ownMenuBar()->Check(wxID_ASKFORNAME, choice);
   }
 
   if (prefs.getBool("Organizer.RunDefaultTool", choice)) {
-    GetMenuBar()->Check(wxID_RUNDEFAULTTOOL, choice);
+    ownMenuBar()->Check(wxID_RUNDEFAULTTOOL, choice);
   }
 
   if (prefs.getBool("Organizer.ShowLine", choice)) {
-    GetMenuBar()->Check(wxID_SHOW_LINE, choice);
+    ownMenuBar()->Check(wxID_SHOW_LINE, choice);
   }
 
   /* @todo Do we still have this?
      if (prefs.getBool("Organizer.FreezeColumns", choice)) {
-     GetMenuBar()->Check(wxID_FIX_COLUMN, choice);
+     ownMenuBar()->Check(wxID_FIX_COLUMN, choice);
      // @todo Action here
      }
   */
@@ -4605,10 +4632,10 @@ void CalcMgr::OnShowInternalClick( wxCommandEvent& event )
 {
   startDisabler();
 
-  Resource::setHideInternal(!GetMenuBar()->IsChecked(wxID_SHOW_INTERNAL));
+  Resource::setHideInternal(!ownMenuBar()->IsChecked(wxID_SHOW_INTERNAL));
   p_treeCtrl->initialize(p_hlist,
-                         GetMenuBar()->IsChecked(wxID_HOMEASROOT),
-                         GetMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
+                         ownMenuBar()->IsChecked(wxID_HOMEASROOT),
+                         ownMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
@@ -4626,8 +4653,8 @@ void CalcMgr::OnShowRunstatesClick( wxCommandEvent& event )
   startDisabler();
 
   p_treeCtrl->initialize(p_hlist,
-                         GetMenuBar()->IsChecked(wxID_HOMEASROOT),
-                         GetMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
+                         ownMenuBar()->IsChecked(wxID_HOMEASROOT),
+                         ownMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
@@ -4758,8 +4785,8 @@ void CalcMgr::OnAddServerClick( wxCommandEvent& event )
   p_serverListEditor->ShowModal();
 
   p_treeCtrl->initialize(p_hlist,
-                         GetMenuBar()->IsChecked(wxID_HOMEASROOT),
-                         GetMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
+                         ownMenuBar()->IsChecked(wxID_HOMEASROOT),
+                         ownMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
@@ -4777,8 +4804,8 @@ void CalcMgr::OnHomeasrootClick( wxCommandEvent& event )
   startDisabler();
 
   p_treeCtrl->initialize(p_hlist,
-                         GetMenuBar()->IsChecked(wxID_HOMEASROOT),
-                         GetMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
+                         ownMenuBar()->IsChecked(wxID_HOMEASROOT),
+                         ownMenuBar()->IsChecked(wxID_SHOW_RUNSTATES),
                          p_treeSort);
   p_treeCtrl->mountEDSIProviders();
   p_treeCtrl->mountServerList(p_serverListEditor);
@@ -5058,7 +5085,7 @@ void CalcMgr::OnProjectViewClick( wxCommandEvent& event )
   startDisabler();
 
   p_projectViewId = event.GetId();
-  GetMenuBar()->Check(p_projectViewId, true);
+  ownMenuBar()->Check(p_projectViewId, true);
   p_contextPanel->refresh();
 
   stopDisabler();
@@ -9576,7 +9603,7 @@ void CalcMgr::copySelectionToClipboard(bool deleteAfterPaste)
   getSelection();
   p_clipboard = p_currentSelection;
   p_toolBar->EnableTool(wxID_PASTE, !p_clipboard.empty());
-  GetMenuBar()->Enable(wxID_PASTE, !p_clipboard.empty());
+  ownMenuBar()->Enable(wxID_PASTE, !p_clipboard.empty());
 }
 
 
@@ -10059,7 +10086,7 @@ void CalcMgr::deleteSelection()
 
     int okToDelete = wxID_NO;
     if (allowedForDelete) {
-      if (GetMenuBar()->IsChecked(wxID_CONFIRM_DELETE) && !yesToAll
+      if (ownMenuBar()->IsChecked(wxID_CONFIRM_DELETE) && !yesToAll
           && msg != "") {
         ewxMessageDialog dlg(this, msg, "Delete?",
                              wxNO_DEFAULT|wxYES_NO|wxICON_QUESTION,
@@ -10158,7 +10185,7 @@ string CalcMgr::transferTo(bool cut, const EcceURL& dest)
     p_clipboard = keep;
     p_deleteAfterPaste = keepCut;
     p_toolBar->EnableTool(wxID_PASTE, true);
-    GetMenuBar()->Enable(wxID_PASTE, true);
+    ownMenuBar()->Enable(wxID_PASTE, true);
   }
   return "";
 }
@@ -10312,7 +10339,7 @@ void CalcMgr::paste()
       }
       p_clipboard.clear();
       p_toolBar->EnableTool(wxID_PASTE, false);
-      GetMenuBar()->Enable(wxID_PASTE, false);
+      ownMenuBar()->Enable(wxID_PASTE, false);
       findNode(destinationUrl, true, true);
     }
   }
@@ -11786,7 +11813,7 @@ void CalcMgr::resetForRerun()
   if (selections.empty()) return;
 
   bool doit = true;
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     single = selections.size() == 1;
   
     string msg = "Resetting to rerun ";
@@ -11825,7 +11852,7 @@ void CalcMgr::resetForRestart()
 {
   bool doit = true;
   
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     // get the selected tree or panel item(s), remember how many selected
     bool single = getSelection();
 
@@ -11864,7 +11891,7 @@ void CalcMgr::resetCompleted()
 {
   bool doit = true;
 
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     // get the selected tree or panel item(s), remember how many selected
     bool single = getSelection();
 
@@ -11897,7 +11924,7 @@ void CalcMgr::forceFail()
 {
   bool doit = true;
 
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     // get the selected tree or panel item(s), remember how many selected
     bool single = getSelection();
 
@@ -11929,7 +11956,7 @@ void CalcMgr::resetIncomplete()
 {
   bool doit = true;
 
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     // get the selected tree or panel item(s), remember how many selected
     bool single = getSelection();
 
@@ -11963,7 +11990,7 @@ void CalcMgr::resetImported()
 {
   bool doit = true;
 
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     // get the selected tree or panel item(s), remember how many selected
     bool single = getSelection();
 
@@ -11997,7 +12024,7 @@ void CalcMgr::resetKilled()
 {
   bool doit = true;
 
-  if (GetMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
+  if (ownMenuBar()->IsChecked(wxID_CONFIRM_RESET)) {
     // get the selected tree or panel item(s), remember how many selected
     bool single = getSelection();
 
@@ -13813,7 +13840,7 @@ void CalcMgr::createResource(ResourceType * resType,
   const bool wfStep = parent && parent->getResource() &&
       parent->getResource()->getApplicationType() == ResourceDescriptor::AT_WORKFLOW &&
       resType->getFactoryCategory() == "EsCalculation";
-  if (!bypassNamePrompt && !wfStep && GetMenuBar()->IsChecked(wxID_ASKFORNAME)) {
+  if (!bypassNamePrompt && !wfStep && ownMenuBar()->IsChecked(wxID_ASKFORNAME)) {
     bool showInvalidMsg = false;
     string invalidMsg = "A name may contain only letters, digits, "
       "'.', '_' and '-'.\n\n";
@@ -13887,7 +13914,7 @@ void CalcMgr::createResource(ResourceType * resType,
 
     EcceURL newurl = newRes->getURL();
     ResourceTool * tool = 0;
-    if (GetMenuBar()->IsChecked(wxID_RUNDEFAULTTOOL))
+    if (ownMenuBar()->IsChecked(wxID_RUNDEFAULTTOOL))
       tool = newRes->getDefaultTool();
 
     // logic to handle MD and condensed phase reaction study branching
@@ -14522,7 +14549,7 @@ void CalcMgr::updateBookmarkMenu()
                          wxITEM_NORMAL);
   }
   
-  wxMenuBar * menuBar = GetMenuBar();
+  wxMenuBar * menuBar = ownMenuBar();
   delete menuBar->Replace(menuBar->FindMenu(_("Bookmarks")),
                           bookmarkMenu, _("&Bookmarks"));
 
@@ -14943,7 +14970,7 @@ void CalcMgr::onSelectionChange(bool selectInTree)
   //  Thawing does not repaint it on MSW (it has no window of its own), so
   //  the hold redraws it when a title changed state (Run Mgmt drawn
   //  disabled for a completed calculation otherwise).
-  MenuBarHold holdMenus(GetMenuBar(), p_menuTitlesChanged);
+  MenuBarHold holdMenus(ownMenuBar(), p_menuTitlesChanged);
   //  The summary pane is replaced and the tree and toolbar change in one
   //  go; on MSW each step was painted (an empty pane, then half of it).
   //  Released before the menu bar, so its repaint is not swallowed.  On
@@ -14956,7 +14983,7 @@ void CalcMgr::onSelectionChange(bool selectInTree)
   std::unique_ptr<FrameHold> hold;
   if (selectInTree)
     hold.reset(new FrameHold(this));
-  wxMenuBar * menuBar = GetMenuBar();
+  wxMenuBar * menuBar = ownMenuBar();
   WxResourceTreeItemData *itemData = 0;
 
   if (selectInTree) {
@@ -15018,8 +15045,8 @@ void CalcMgr::onSelectionChange(bool selectInTree)
 
 void CalcMgr::updateSelectionMenus()
 {
-  MenuBarHold holdMenus(GetMenuBar(), p_menuTitlesChanged);
-  wxMenuBar * menuBar = GetMenuBar();
+  MenuBarHold holdMenus(ownMenuBar(), p_menuTitlesChanged);
+  wxMenuBar * menuBar = ownMenuBar();
   WxResourceTreeItemData * itemData = p_treeCtrl->getSelection();
   wxMenu * fileMenu = menuBar->GetMenu(menuBar->FindMenu(_("File")));
   getFileMenu(*fileMenu, itemData);
@@ -15229,7 +15256,7 @@ string CalcMgr::getTreeSelectionName()
 void CalcMgr::setTreeStyle()
 {
   int treeStyle = p_treeCtrl->GetWindowStyleFlag();
-  if (GetMenuBar()->IsChecked(wxID_SHOW_LINE))
+  if (ownMenuBar()->IsChecked(wxID_SHOW_LINE))
     treeStyle = treeStyle & (~wxTR_NO_LINES);
   else
     treeStyle = treeStyle | wxTR_NO_LINES;

@@ -22,27 +22,6 @@ using std::vector;
 
 namespace {
 
-// argv: <restore> <port> <flag> <rw> <debug> <category> <theory> <runtype>
-//       <calc> <rxn> <sym> <nelec> <mult> <nfrozen> <nocc> <nvirt> <nmodes>
-bool makeParams(const vector<string>& a, Params& p, long& port)
-{
-  if (a.size() < 17) return false;
-  static const char *names[] = {"restore", "port", "restoreflag", "rw",
-    "debug", "category", "theory", "runtype", "calc", "rxn", "symmetry",
-    "nelec", "mult", "nfrozen", "nocc", "nvirt", "nmodes"};
-  for (int i = 0; i < 17; i++) p.vars[names[i]] = a[i];
-  p.vars["pointgroup"] = a[10];
-  p.vars["calcname"] = a[8];
-  p.restoreFile = a[0];
-  port = atol(a[1].c_str());
-  p.restoreFlag = a[2];
-  p.readOnly = a[3];
-  p.debug = a[4] == "DebugOn";
-  const char *c = getenv("ECCE_QST_CANDIDATES");
-  p.candidatesFile = c ? c : "";
-  return true;
-}
-
 int inventory(const vector<string>& a)
 {
   Params p;
