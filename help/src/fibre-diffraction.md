@@ -1,6 +1,6 @@
 # Diffraction
 
-**Properties > Geometry > Diffraction** opens a property pane in the Builder.
+**Properties > Diffraction and scattering > Diffraction** opens a property pane in the Builder.
 The pattern fills the pane, with **View**, **Source** and a **Pattern** toggle
 above it. **Pattern** moves the whole pattern into a larger separate window;
 toggle it again, close that window, or choose **Pattern (return to pane)** to
@@ -46,7 +46,7 @@ the Bessel function J_n(2 pi R r) of order n allowed by the helical symmetry.
 
 1. Open the structure in the Builder. To use a part of it (one helix of a
    protein, say), select those atoms first.
-2. Choose **Properties > Geometry > Diffraction**. The first pattern calculates
+2. Choose **Properties > Diffraction and scattering > Diffraction**. The first pattern calculates
    automatically. **Options...** contains the current view's settings.
 3. Move the pointer over the picture. The line below it gives the layer line l
    (using the inferred or typed layer-line repeat), R, Z, the spacing d = 1/|S| and the intensity.

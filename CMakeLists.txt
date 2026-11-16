@@ -5328,6 +5328,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_energies_groups PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # The Properties list groups spectra and diffraction by technique (#1079).
+  add_test(NAME apps_property_groups
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/property_groups_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_property_groups PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # The vibrational spectrum as CSV (#392).
   add_test(NAME apps_spectrum_csv
            COMMAND ${PYTHON3_EXECUTABLE}
