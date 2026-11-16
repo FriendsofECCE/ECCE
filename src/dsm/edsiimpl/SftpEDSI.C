@@ -509,7 +509,7 @@ class SftpOp {
         "  if [ -e \"$P\" ] || [ -L \"$P\" ]; then printf 'R\\tf\\n'; else printf 'R\\tx\\n'; fi\n"
         "  if [ -e \"$P\" ] || [ -L \"$P\" ]; then printf 'E\\tf\\t%s\\t%s\\n' \"$(st \"$P\")\" \"$P\"; fi\n"
         "  par=${P%/*}; [ -z \"$par\" ] && par=/\n"
-        "  if [ -d \"$par\" ]; then printf 'E\\td\\t%s\\t%s\\n' \"$(st \"$par\")\" \"$par\"; [ " + d + " -ge 1 ] && " + walkTop + " \"$par\" " + (fill ? "" : "1") + "\n"
+        "  if [ -d \"$par\" ]; then printf 'E\\td\\t%s\\t%s\\n' \"$(st \"$par\")\" \"$par\"; [ " + d + " -ge 1 ] && " + walkTop + " \"$par\" " + (fill ? "" : "1") + "; fi\n"
         "fi\ntrue\n";
       const unsigned gen = gGen;
       if (!run(script, out, 60, false)) return false;
