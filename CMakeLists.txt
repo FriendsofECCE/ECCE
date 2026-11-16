@@ -3667,6 +3667,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_one_process PROPERTIES TIMEOUT 2700
                        SKIP_RETURN_CODE 77)
+  # Busy cursor, status line and slow-start window while a tool starts (#1071).
+  add_test(NAME apps_organizer_tool_start
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_tool_start_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_tool_start PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
   # Two close requests before the Quit dialog is answered (#291).
   add_test(NAME apps_organizer_close
            COMMAND ${PYTHON3_EXECUTABLE}

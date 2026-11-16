@@ -1091,6 +1091,14 @@ void WxJMSMessageDispatch::internalInvokeMCB(JMSMessage& msg)
    publish("ecce_internal_invoke_status", *internalStatusMsg);
 
    delete internalStatusMsg;
+
+   // The Organizer's start feedback ends on this (#1071), whichever process
+   // or window the tool opened in.
+   JMSMessage* upMsg = newMessage();
+   upMsg->addProperty("appname", msg.getProperty("appname"));
+   upMsg->addProperty("calcurl", msg.getProperty("calcurl"));
+   publish("ecce_tool_up", *upMsg);
+   delete upMsg;
 }
 
 

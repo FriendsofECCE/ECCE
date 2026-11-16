@@ -176,6 +176,14 @@ Tool/MD Prepare windows),
 `closetools`, `gatewayquit` (the session's `ecce_quit`), and
 `answer cancel|no` for a tool's save question.
 
+Start feedback (#1071, `ECCE_TEST_ORGANIZER`): `start TOOL [URL]` shows a busy
+cursor, "Opening the <tool> for <calculation>..." in the status line, a "Starting
+the <tool>..." window after 1.5 s and a "has not started" note after 30 s; a
+second `start` of the same tool and URL meanwhile is dropped. `toolstate` answers
+`state=starting|up|timed out|none status="..." busy=0|1 window=shown|none
+launches=N`. The tool sends `ecce_tool_up` when its invoke is handled;
+`ECCE_TEST_TOOL_DELAY=<ms>` holds that signal back for a slow-start test.
+
 Experimental, with `ECCE_ONE_PROCESS=1`: **Edit > Preferences > Windows
 and tabs** chooses which tools open as tabs of the Organizer's window (the
 Organizer is the first tab and cannot be closed). Presets **Normal**,

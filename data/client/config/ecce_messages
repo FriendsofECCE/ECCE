@@ -25,6 +25,7 @@ ecce_poll_reply
 ecce_set_iconified
 ecce_raise
 ecce_app_ready
+ecce_tool_up
 ecce_internal_invoke_status
 ecce_check_child
 

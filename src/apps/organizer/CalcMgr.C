@@ -83,6 +83,7 @@ static std::string s_registerMessage;
 #include "util/BrowserHelp.H"
 #include "util/VizThumbnail.H"
 #include "wxgui/InProcessTools.H"
+#include "ToolStartup.H"
 #include "wxgui/ToolTabs.H"
 #include "wxgui/WindowShot.H"
 #include <wx/display.h>
@@ -3499,6 +3500,10 @@ void CalcMgr::runTestCommand(const string& line)
         cerr << "ECCE_TEST_ORGANIZER: closetools: " << done << endl;
       });
       outcome = "queued";
+    } else if (command == "toolshot") {
+      outcome = p_toolStartup->shot(calcName) ? "saved" : "no window";
+    } else if (command == "toolstate") {
+      outcome = p_toolStartup->report();
     } else if (command == "start") {
       // "start TOOL [URL]": what a tool button does (startApp), e.g.
       // "start CalculationEditor <calc url>".
@@ -3577,6 +3582,8 @@ void CalcMgr::runTestCommand(const string& line)
  */
 CalcMgr::~CalcMgr( )
 {
+  delete p_toolStartup;
+  p_toolStartup = 0;
   CodeChoice::setListener(nullptr);
   delete p_releaseNotice;
   saveSettings();
@@ -3649,6 +3656,11 @@ void CalcMgr::initializeGUI()
   p_feedback->hideStateIcon();
   p_feedback->hideStateIcon();
   p_topSizer->Add(p_feedback, 0, wxGROW, 0);
+  p_toolStartup = new ToolStartup(this, [this](const string& text) {
+    if (text.empty()) p_feedback->clearMessage();
+    else p_feedback->setMessage(wxString::FromUTF8(text.c_str()).ToStdString(),
+                                WxFeedback::INFO, false, true);
+  });
   p_contextPanel = 0;
   p_splitterWindow->SetMinimumPaneSize(200);
 
@@ -11546,6 +11558,14 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
     if (getenv("ECCE_TEST_ORGANIZER_NOLAUNCH")) return;
   }
 
+  // Busy cursor, status line and the slow-start window; a second request
+  // for the same tool and calculation while it starts is not sent.
+  {
+    ResourceTool *t = ResourceDescriptor::getResourceDescriptor().getTool(app);
+    string label = t && !t->getLabel().empty() ? t->getLabel() : app;
+    if (!p_toolStartup->begin(app, label, url, force != 0)) return;
+  }
+
   JMSMessage *msg = newMessage();
   msg->addProperty("action","start");
   publish("ecce_activity",*msg);
@@ -11564,6 +11584,16 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
   if (!InProcessTools::open(*msg))
     publish("ecce_get_app",*msg);
   delete msg;
+}
+
+
+/**
+ * The tool's window is up: ends the start feedback.  The one place for it;
+ * the tab code of one-process mode calls this when a tab appears.
+ */
+void CalcMgr::toolUp(const string& app, const string& url)
+{
+  if (p_toolStartup) p_toolStartup->up(app, url);
 }
 
 

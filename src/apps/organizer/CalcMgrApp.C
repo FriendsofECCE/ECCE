@@ -264,6 +264,7 @@ bool CalcMgrApp::OnInit()
   //  startup status Messages
   subscribe("ecce_invoke", (wxJmsCBFunc)&CalcMgrApp::invokeMCB);
   subscribe("ecce_invoke_status", (wxJmsCBFunc)&CalcMgrApp::msgStatusMCB,false);
+  subscribe("ecce_tool_up", (wxJmsCBFunc)&CalcMgrApp::msgToolUpMCB, false);
 
   // New ecce 2.0 msgs
   subscribe("ecce_auth_changed", (wxJmsCBFunc)&CalcMgrApp::msgAuthMCB);
@@ -723,6 +724,13 @@ void CalcMgrApp::msgStatusMCB(JMSMessage& msg)
   if (status == "failed") {
     p_calcMgr->getFeedback()->setMessage(errMsg, WxFeedback::SYSTEM);
   }
+}
+
+
+void CalcMgrApp::msgToolUpMCB(JMSMessage& msg)
+{
+  if (!p_calcMgr || p_calcMgr->IsBeingDeleted()) return;
+  p_calcMgr->toolUp(msg.getProperty("appname"), msg.getProperty("calcurl"));
 }
 
 

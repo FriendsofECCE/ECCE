@@ -52,7 +52,10 @@ Right-click an item in the tree, or rows of the project table.
 
 The Builder, the Electronic Structure Editor (**Tools > Electronic Structure
 Editor...**, Ctrl+E), the Basis Set Tool and the Viewer are opened from the
-toolbar and the **Tools** menu.
+toolbar and the **Tools** menu; while a tool starts the Organizer shows a busy
+cursor and "Opening the Viewer for ..." in its status line, a small
+"Starting ..." window if that takes more than a moment, and a second click on the
+same tool for the same calculation does not start a second copy.
 
 ## A task of an MD study
 
