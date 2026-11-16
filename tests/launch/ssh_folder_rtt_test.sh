@@ -24,4 +24,4 @@ hostblock() {
 # No Port line: the port comes from the folder's address only.
 hostblock sshport good_key ""
 unshare --user --mount --map-user=$(id -u) --map-group=$(id -g) --keep-caps sh -c \
-  "mount --bind '$tmp/ssh' \"\$HOME/.ssh\" && mount --bind '$tmp/empty' /etc/ssh/ssh_config.d && exec python3 '$here/ssh_folder_rtt_test.py' \"\$@\"" sh "$@"
+  "mkdir -p \"\$HOME/.ssh\" && mount --bind '$tmp/ssh' \"\$HOME/.ssh\" && mount --bind '$tmp/empty' /etc/ssh/ssh_config.d && exec python3 '$here/ssh_folder_rtt_test.py' \"\$@\"" sh "$@"
