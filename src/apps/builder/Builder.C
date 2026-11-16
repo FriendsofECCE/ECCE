@@ -6884,7 +6884,7 @@ void Builder::updatePropertyMenus()
       for (int i = 0; i < 30; i++) { wxTheApp->Yield(true); wxMilliSleep(10); }
       viewer->viewAll();
       SceneScript run(viewer, sg, p_calculation, outdir);
-      run.setImageFunction([this](const string& path, int w, int h, bool white, int f) {
+      run.setImageFunction([this, viewer](const string& path, int w, int h, bool white, int f) {
         return imageOnFineSurface(path, w, h, white, f, viewer);
       });
       run.setTraceStep([this](int index) { return traceFrame(index); });
