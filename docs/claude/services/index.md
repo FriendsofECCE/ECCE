@@ -102,6 +102,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Copy and move between trees](cross-tree-copy-890.md): TreeCopy through the EDSIs, verify then remove, ecce-copy (#890).
 - [A root without a resource (server not connected) taken for the hidden root: findNode recursed to a stack overflow (#767)](unconnected-root-taken-for-hidden-root.md)
 - [AuthCache: an ssh password only for its own host[:port] and user, also under the job store's LAST_URL (#791)](authcache-ssh-own-host-only.md)
+- [AuthCache::pipeIn removes only its own FIFO or AuthPipe.* temp file, never a path the caller passed (#1060)](authcache-pipe-removes-only-its-own.md)
 - [A copy-back from a host that cannot be asked "succeeded" with nothing copied and stored a 0-byte output; sizes now checked, Complete needs the normal-end line (#732)](copy-back-unreachable-host-732.md)
 - [A cancelled job's program outlived scancel (linuxproc, job shell died on TERM); TERM trapped, run directory swept after the cancel (#855)](terminate-leaves-program-running-855.md)
 - [Offload hosts: 6 physical cores, memory not enforced by Slurm; overlapping builds swapped NerdEgg to a standstill (2026-11-07)](offload-hosts-memory-overload-2026-11-07.md)

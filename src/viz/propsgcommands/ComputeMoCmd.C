@@ -457,8 +457,11 @@ bool ComputeMoCmd::execute()
     grid = new SingleGrid();
     grid->name(key);
   } else {
-    //  An NCI grid is refined past the requested size (computeFieldView).
-    const bool refined = fieldType == NCI_FIELD_TYPE &&
+    //  ELF, LOL and NCI grids are refined past the requested size
+    //  (computeFieldView).
+    const bool refined = (fieldType == NCI_FIELD_TYPE ||
+                          fieldType == ELF_FIELD_TYPE ||
+                          fieldType == LOL_FIELD_TYPE) &&
                          grid->gridSize() > getRequestedGridSize();
     if (grid->gridSize() != getRequestedGridSize() && !refined) {
       doComputation = true;
@@ -1321,8 +1324,10 @@ bool ComputeMoCmd::computeFieldView(SingleGrid *grid, const string& fieldType,
 
   //  An NCI region is thin: s falls below 0.5 only within about 0.1 A of the
   //  critical point of a hydrogen bond, so the grid the Density views use
-  //  (0.2 A) misses it.  Refine to 0.1 A, but not past a few million points.
-  if (fieldType == NCI_FIELD_TYPE) {
+  //  (0.2 A) misses it.  ELF and LOL change between shells, which that grid
+  //  cannot follow either (torn surfaces).  Refine to 0.1 A, but not past a
+  //  few million points.
+  {
     double want = 0.1;
     if (const char *env = getenv("ECCE_NCI_SPACING")) want = atof(env);
     double len[3], points = 1.0;

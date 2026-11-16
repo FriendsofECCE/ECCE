@@ -2892,6 +2892,10 @@ bool Launch::postProcessInput(void)
 
     os << "machineName: " << p_cache->fullMachineName << endl;
 
+    const string pseudoDir = machinePseudoDir();
+    if (!pseudoDir.empty())
+      os << "pseudoDir: " << pseudoDir << endl;
+
     os.close();
 
     const JCode* jcode = p_taskjob->application();
@@ -2923,6 +2927,8 @@ bool Launch::postProcessInput(void)
            p_launchWarning.erase(cr, 1);
          p_launchWarning.erase(0, p_launchWarning.find_first_not_of('\n'));
        }
+       if (!pseudoDir.empty() && !p_cache->reparse)
+         checkPseudoFiles(pseudoDir);
        // Write it back out to dav.
        // I had to use the full path or I got corrupted data.  I don't know why.
        ifstream ifs((p_cache->directory + "/" + p_inputFile).c_str());
@@ -2944,6 +2950,97 @@ bool Launch::postProcessInput(void)
   }
 
   return ret;
+}
+
+// The run machine's own pseudopotential directory for this code
+// (<Code>PseudoDir in CONFIG.<machine>, set in Register Machines); empty
+// when the machine has none, and then the deck is left as generated.
+string Launch::machinePseudoDir(void) const
+{
+  string key = p_cache->codeName + "PseudoDir";
+  std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+  map<string,string> cfg = RefMachine::config(p_cache->machineName);
+  map<string,string>::const_iterator it = cfg.find(key);
+  return it == cfg.end() ? string() : it->second;
+}
+
+// The UPF files the deck's ATOMIC_SPECIES card names.
+static vector<string> deckPseudoFiles(const string& deck)
+{
+  vector<string> names;
+  ifstream in(deck.c_str());
+  string line;
+  bool inCard = false;
+  while (std::getline(in, line)) {
+    std::istringstream words(line);
+    vector<string> w((std::istream_iterator<string>(words)),
+                     std::istream_iterator<string>());
+    if (!inCard) {
+      inCard = !w.empty() && strcasecmp(w[0].c_str(), "ATOMIC_SPECIES") == 0;
+      continue;
+    }
+    if (w.size() < 3 || w[0][0] == '&' || w[0][0] == '/')
+      break;
+    names.push_back(w[2]);
+  }
+  return names;
+}
+
+// Lists the deck's UPF files missing from the run machine's directory.
+// It only warns, and it reuses the login Launch already holds, so a machine
+// that cannot be reached is reported as not checked, never as a finding.
+void Launch::checkPseudoFiles(const string& dir)
+{
+  vector<string> names = deckPseudoFiles(p_cache->directory + "/" + p_inputFile);
+  if (names.empty())
+    return;
+  const string notChecked = "Could not check the pseudopotential files on " +
+                            p_cache->machineName + ".";
+  if (p_connection == (RCommand*)0 || !p_connection->isOpen()) {
+    p_infoMessage = notChecked;
+    return;
+  }
+
+  string cmd = "if cd -- " + RCommand::quotePath(dir) +
+               " 2>/dev/null; then for f in";
+  for (size_t i = 0; i < names.size(); i++)
+    cmd += " " + RCommand::quotePath(names[i]);
+  cmd += "; do test -f \"$f\" || echo \"ECCE-MISSING $f\"; done; "
+         "echo ECCE-CHECKED; else echo ECCE-NODIR; fi";
+
+  string output;
+  if (!p_connection->execout(cmd, output, "", 30)) {
+    p_infoMessage = notChecked;
+    return;
+  }
+
+  string missing;
+  bool checked = false, nodir = false;
+  std::istringstream lines(output);
+  string line;
+  while (std::getline(lines, line)) {
+    line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+    if (line.compare(0, 13, "ECCE-MISSING ") == 0)
+      missing += "  " + line.substr(13) + "\n";
+    else if (line == "ECCE-CHECKED")
+      checked = true;
+    else if (line == "ECCE-NODIR")
+      nodir = true;
+  }
+
+  string w;
+  if (nodir)
+    w = "The Quantum ESPRESSO pseudopotential directory " + dir +
+        " set for " + p_cache->machineName + " in Register Machines does "
+        "not exist there. pw.x will stop when it reads the input.";
+  else if (!checked)
+    p_infoMessage = notChecked;
+  else if (!missing.empty())
+    w = "These pseudopotential files named in the input are missing from " +
+        dir + " on " + p_cache->machineName + ":\n\n" + missing +
+        "\npw.x will stop when it reads them.";
+  if (!w.empty())
+    p_launchWarning = p_launchWarning.empty() ? w : p_launchWarning + "\n" + w;
 }
 
 //////////////////////////////////////////////////////////////////////////

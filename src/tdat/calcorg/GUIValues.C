@@ -8,6 +8,8 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <vector>
+using std::vector;
 
 #include "util/ErrMsg.H"
 #include "tdat/GUIValues.H"
@@ -289,14 +291,18 @@ static bool convertLegacyMemoryUnit(GUIValue& obj)
 //////////////////////////////////////////////////////////////////////////////
 int GUIValues::load(istream& inputsrc)
 {
-  static const int MAXLINE = 4096;  // calculation URLs (QST picks) exceed 120
   int ret = 0;
-  char buf[MAXLINE];
-  char bufdup[MAXLINE];
   bool comment = false;
   char *cptr = NULL;
   GUIValue obj;
-  while (inputsrc.getline(buf,MAXLINE-1)) {
+  // calculation URLs (QST picks) run well past 120 characters
+  string rawLine;
+  while (std::getline(inputsrc, rawLine)) {
+    vector<char> bufv(rawLine.begin(), rawLine.end());
+    bufv.push_back('\0');
+    char* buf = &bufv[0];
+    vector<char> bufdupv(bufv.size());
+    char* bufdup = &bufdupv[0];
     if (strlen(buf) == 0) continue; 
 
     // skip comment lines - can't use strtok

@@ -3117,6 +3117,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/xtb_import_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  # Numerical frequencies: NumFreq alone on the ORCA route line (#1058).
+  add_test(NAME parsers_orca_numfreq_route
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/orca_numfreq_route_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
   # The stored geometry and the normal modes are in one frame (#312).
   add_test(NAME parsers_vib_frame
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4617,6 +4623,8 @@ if(PYTHON3_EXECUTABLE)
   endif()
   add_executable(long_lines_properties tests/long_lines/properties.C)
   target_link_libraries(long_lines_properties PRIVATE eccetdat ecceutil)
+  add_executable(long_lines_text tests/long_lines/text_readers.C)
+  target_link_libraries(long_lines_text PRIVATE eccetdat ecceutil)
   add_executable(long_lines_trajectory tests/long_lines/trajectory.C)
   target_compile_definitions(long_lines_trajectory PRIVATE ${wxWidgets_DEFINITIONS})
   target_include_directories(long_lines_trajectory PRIVATE
@@ -4631,7 +4639,7 @@ if(PYTHON3_EXECUTABLE)
       "$<LINK_GROUP:RESCAN,${_long_lines_viz_libs}>"
       ${wxWidgets_LIBRARIES} ${XercesC_LIBRARIES} ${ECCE_X11_LIBS} jpeg freetype)
   endif()
-  foreach(_reader basis properties trajectory)
+  foreach(_reader basis properties trajectory text)
     add_test(NAME long_lines_${_reader} COMMAND ${PYTHON3_EXECUTABLE}
       ${CMAKE_SOURCE_DIR}/tests/long_lines/run_test.py
       $<TARGET_FILE:long_lines_${_reader}>)
@@ -4735,6 +4743,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_socketcomms PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # #989: the machine's QE pseudopotential directory and its launch check.
+  add_test(NAME launch_qe_pseudodir
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/qe_pseudodir_test.py
+                   --build ${CMAKE_BINARY_DIR})
+  set_tests_properties(launch_qe_pseudodir PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
   # #216: the same job with the data in a local folder, no data server.
   add_test(NAME launch_local
            COMMAND ${PYTHON3_EXECUTABLE}

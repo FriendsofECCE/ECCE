@@ -68,6 +68,13 @@ checks a hand-computed tensor and the tensile QE Al cell example;
 and logs for visual review. Run with a private installed tree and the
 test harness as described below.
 
+`ECCE_BUILDER_SCRIPT` drives Geometry Constraints with `constraints show`,
+`constraints select I J ..` (1-based atoms), `constraints press constrain|restrain|fix yes|no`,
+`constraints scan <steps> <step>` (the selected 2-4 atoms, step in Angstrom for a
+bond and degrees for an angle or torsion, steps 1-500, step not zero; the same code
+as OK in Scan..., a refused line FAILs with the dialog's message),
+`constraints list` and `constraints stored`; `save` writes `Parameters/GeomConstraintModel.gcst`.
+
 `ECCE_BUILDER_SCRIPT` also accepts the Conformers-panel hooks `gtenselect
 <rank>...`, `gtenfit`, `gtenthumbs`, `gtenpng <file>`, `gtencsv <file>`,
 `gtenviewer on|off`, `gtensort <column> up|down` and `gtendistinct <rmsd>
@@ -77,6 +84,30 @@ the panel's **Select Distinct...** button: it runs `ecce-ensemble pick
 --json` on the calculation, selects the picks' `energy_rank` rows and prints
 `GTSTRESS: endistinct ranks=<r>... note=<n distinct of N; m merged within X Å>`. Output goes to stderr as `GTSTRESS: ...` lines; the same
 commands work under `ECCE_VIEWER_SCENE`. Test: `tests/apps/ensemble_patterns_test.py`.
+
+`surfmesh <name>` (Builder scene script, after an MOs-panel surface is drawn)
+writes `<name>.txt`: per isosurface its threshold, vertex and triangle counts,
+boundary edges (used by one triangle; 0 means closed), edges used by more than
+two triangles and edges whose two triangles wind the same way, plus the grid
+dimensions and step (A). Test: `tests/apps/surface_closed_test.py` (`--res N`
+sets the grid points per axis, `--shot DIR` saves PNGs).
+
+`paneorder`, `dropat <panel name> <pos>`, `dockfloating` (Builder scene
+script): `paneorder` writes `paneorder.txt`, the shown docked panes of the
+Properties column top to bottom, and `paneall.txt` (every pane: floating, shown, dock direction, layer, row, position); `dropat` docks a panel into that column at
+dock position `<pos>` as a mouse drop would; `dockfloating` is the Dock
+button. The Properties list stays first in the column whatever the drop.
+Test: `tests/apps/mo_explore_workflow_test.py` (e).
+
+`saveimage <path.png> <factor> [white]` (scene script, `ECCE_VIEWER_SCENE`)
+is File > Save Image...: a PNG of the 3-D view at `factor` (1, 2, 4) times
+its size, drawn with blended transparency (not the on-screen screen-door
+mode), supersampled edges and line widths scaled with the factor; `white`
+replaces the view's background; the corner texts are left out and atom
+labels grow with the factor. It works under `ECCE_BUILDER_SCRIPT` too, where
+`saveimagemenu <factor> <white|keep> <path>` runs File > Save Image... with
+its dialogs answered. Use it for documentation figures. Test:
+`tests/apps/saveimage_test.py`.
 
 ## Checking the Basis Set Tool window
 
@@ -562,6 +593,14 @@ In the machine's **Codes** tab (stored in `~/.ECCE/CONFIG.<name>`):
   GNOME screen reader, not ORCA.
 - **Modules:** `module load` names for that code only; machine-wide ones go
   on the Job script tab.
+- **Pseudopotential directory** (Quantum ESPRESSO only; a script writes
+  `QuantumESPRESSOPseudoDir: /cluster/pseudo` in `CONFIG.<name>`): at launch,
+  Launcher and `launchjob` alike, the deck's `pseudo_dir` becomes this folder.
+  The UPF file names still come from the local library when the deck is
+  written. Launch then lists the files the deck names that the folder lacks
+  on that machine as a launch warning (`LAUNCHJOB_WARNING=cancel` to stop);
+  an unreachable machine gives "Could not check ..." and no warning. Unset:
+  the deck is not changed.
 - **Environment variables:** `NAME value` per line; names containing `PATH`
   are appended to, others replace. Stored as `<Code>Environment { }`.
 - Gaussian 16: `g16root` and a scratch directory (`GAUSS_SCRDIR`); ECCE sets
@@ -633,7 +672,7 @@ A user setting **replaces** the site setting for that key; it is not added.
 | File | Holds |
 |---|---|
 | `MyMachines` | one tab-separated line per machine: name, host, three `Unspecified` fields, `procs:nodes`, `ssh`, `:Code1:Code2:...`, and capabilities (`MN:RD:SD:UN:PW` plus `AA` allocation account, `Q` queues, `TL` time limit, `MM` memory limit) |
-| `CONFIG.<name>` | `<Code>: /full/path`, `<Code>Modules: mod1 mod2`, `<Code>Environment { NAME value }`, `<Code>Command { ... }`, and the scheduler header block (`Slurm { #SBATCH ... }`) |
+| `CONFIG.<name>` | `<Code>: /full/path`, `<Code>Modules: mod1 mod2`, `QuantumESPRESSOPseudoDir: /dir`, `<Code>Environment { NAME value }`, `<Code>Command { ... }`, and the scheduler header block (`Slurm { #SBATCH ... }`) |
 | `Queues` | `Queues:` list of machines with queues, and per machine `<name>\|queueMgrName: Slurm`, `<name>\|queueMgrVersion: 2.0~`, `<name>\|prefFile: <name>.Q` |
 | `<name>.Q` | `Queues: q1 q2`, and per queue `minProcessors`, `maxProcessors`, `runLimit` (minutes), `memLimit` (MB), `scratchLimit`; 0 means no limit |
 | `MachPrefs`, `MachProfiles` | the user's launch defaults and allocation profiles; written by the window, do not hand-edit |
@@ -1209,7 +1248,7 @@ launcher, without command wrappers for these tools.
 | `ecce-qm` | Run the bundled quantum chemistry program, when built |
 | `ecce-results` | Convert and inspect results files, when built with HDF5 |
 | `ecce-fragorb` | Fragment-orbital analysis (`analyse <complex> <fragment>...`) and PDOS/OPDOS (`dos`) from results.h5 files of a complex and its fragment calculations at one geometry; `--json`, `--help` has the syntax |
-| `ecce-npa` | Natural population analysis (Reed–Weinstock–Weinhold NPA) computed by ECCE from a calculation's results.h5 (`ecce-npa <calc URL\|folder\|results.h5> [--json]`): natural charges, core/valence/Rydberg populations, spin populations (open shell), natural electron configuration; agrees with NBO 7's NPA within 0.005 e; refuses semiempirical, periodic and Cartesian-d/f calculations with a one-line reason; the Viewer's Properties list has the same charges as **Natural (NPA) Charges, computed by ECCE** (property key `NPAECCE`, computed on first selection and stored in results.h5 as `charges/npa_ecce`), beside the code's own NBO row **Natural (NPA) Charges** (key `NPA`). results.h5 now records ECP cores (`ecp` group: atom, name, ncore; `nucleus/charge`) from the stored basis or the ORCA/Gaussian output |
+| `ecce-npa` | Natural population analysis (Reed–Weinstock–Weinhold NPA) computed by ECCE from a calculation's results.h5 (`ecce-npa <calc URL\|folder\|results.h5> [--json]`): natural charges, core/valence/Rydberg populations, spin populations (open shell), natural electron configuration; agrees with NBO 7's NPA within 0.005 e; refuses semiempirical, periodic and Cartesian-d/f calculations with a one-line reason; the Viewer's Properties list has the same charges as **Natural (NPA) Charges, computed by ECCE** (property key `NPAECCE`, computed on first selection and stored in results.h5 as `charges/npa_ecce`), beside the code's own NBO row **Natural (NPA) Charges** (key `NPA`). results.h5 now records ECP cores (`ecp` group: atom, name, ncore; `nucleus/charge`) from the stored basis or the ORCA/Gaussian output; an ORCA basis named only on the route card now also gets a results.h5 (the generated deck carries `PrintBasis`, and the basis is read from the printed block; ORCA runs made before this have no block and get no file) |
 | `ecce-morse` | Morse fit of a stored bond-length scan: De, a, re, ω_e, ω_e x_e, D0 (`ecce-morse <calc> [--window KJ_PER_MOL] [--atoms I,J] [--masses M1,M2] [--json]`) |
 | `ecce-gmxanalysis` | GROMACS analysis of a stored GROMACS calculation, as text, CSV or JSON: `<calc> groups`, `rdf`, `energy`, `rms`, `gyrate`, `density`, `hbond`; selections like `"residue:SOL & element:O"`; needs `gmx` |
 | `ecce-mocomp` | Atomic-orbital composition of one molecular orbital (`CALC --mo N\|homo\|lumo [--beta] [--method mulliken\|c2] [--min PCT] [--by ao,shell,type,atom] [--tsv]`), `--list` the orbitals, `--spin` Mulliken spin populations |

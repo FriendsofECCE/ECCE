@@ -7,6 +7,7 @@ using std::ofstream;
 using std::cout;
 using std::endl;
 #include <map>
+#include <functional>
 using std::map;
 #include <sstream>
 using std::ostringstream;
@@ -33,6 +34,10 @@ using std::vector;
 #include "inv/nodes/SoCone.H"
 #include "inv/nodes/SoRotationXYZ.H"
 #include "inv/actions/SoGLRenderAction.H"
+#include "inv/actions/SoSearchAction.H"
+#include "inv/nodes/SoIndexedTriangleStripSet.H"
+#include "inv/ChemKit/ChemIso.H"
+#include "inv/nodes/SoVertexProperty.H"
 #include "inv/manips/SoTrackballManip.H"
 
 #include <wx/settings.h>
@@ -255,6 +260,7 @@ static wxBitmapBundle shapeIcon(ShapeData::Shape shape);
 IMPLEMENT_CLASS( Builder, BuilderGUI )
 
 BEGIN_EVENT_TABLE( Builder, BuilderGUI )
+    EVT_MENU( ID_SAVE_IMAGE, Builder::OnSaveImageClick )
     EVT_MENU( ID_MODE_SELECT, Builder::OnModeClick )
     EVT_MENU( ID_MODE_ROTATE, Builder::OnModeClick )
     EVT_MENU( ID_MODE_TRANSLATE, Builder::OnModeClick )
@@ -4358,8 +4364,52 @@ void Builder::OnToolMenuClick( wxCommandEvent& event )
 }
 
 
-// The caption's pin button folds a property pane to its caption bar.
-// The resize is deferred so it never runs inside AUI's own event handling.
+//  Order of the docked panes in the Properties column: tab strip, list,
+//  then the rest by their own position.  Only the order is changed.
+void BuilderAuiManager::keepIndexOnTop(wxAuiManager& mgr)
+{
+  wxAuiPaneInfo &idx = mgr.GetPane(Builder::NAME_PROPERTY_INDEX);
+  if (!idx.IsOk() || idx.IsFloating()) return;
+  vector<wxAuiPaneInfo*> col;
+  wxAuiPaneInfoArray &all = mgr.GetAllPanes();
+  for (size_t i = 0; i < all.GetCount(); ++i) {
+    wxAuiPaneInfo &pi = all.Item(i);
+    if (pi.IsFloating() || pi.IsToolbar() ||
+        pi.dock_direction != idx.dock_direction ||
+        pi.dock_layer != idx.dock_layer || pi.dock_row != idx.dock_row)
+      continue;
+    col.push_back(&pi);
+  }
+  const wxString tabs(Builder::NAME_COLUMN_TABS);
+  auto rank = [&](wxAuiPaneInfo *p) {
+    return p->name == tabs ? 0 : (p == &idx ? 1 : 2);
+  };
+  std::stable_sort(col.begin(), col.end(),
+      [&](wxAuiPaneInfo *a, wxAuiPaneInfo *b) {
+        if (rank(a) != rank(b)) return rank(a) < rank(b);
+        return a->dock_pos < b->dock_pos;
+      });
+  for (size_t k = 0; k < col.size(); ++k) col[k]->dock_pos = (int)k;
+}
+
+
+bool BuilderAuiManager::ProcessDockResult(wxAuiPaneInfo& target,
+                                          const wxAuiPaneInfo& newPos)
+{
+  if (!wxAuiManager::ProcessDockResult(target, newPos)) return false;
+  wxAuiPaneInfo &idx = GetPane(Builder::NAME_PROPERTY_INDEX);
+  if (idx.IsOk() && !target.IsFloating() && target.name != idx.name &&
+      target.name != Builder::NAME_COLUMN_TABS &&
+      target.dock_direction == idx.dock_direction &&
+      target.dock_layer == idx.dock_layer &&
+      target.dock_row == idx.dock_row && target.dock_pos <= idx.dock_pos) {
+    //  Ties sort after the list in keepIndexOnTop's stable order.
+    target.dock_pos = idx.dock_pos + 1;
+  }
+  return true;
+}
+
+
 /**
  * Dock every floating pane on the side it came from.  wxAUI recreates a
  * dock side that has emptied, so this works with nothing left docked there.
@@ -4374,10 +4424,12 @@ void Builder::OnDockFloatingPanels(wxCommandEvent& event)
       changed = true;
     }
   }
-  if (changed) updatePanes();
+  if (changed) updatePanes(true);  // a docked property pane takes the detail slot, or it is hidden
 }
 
 
+// The caption's pin button folds a property pane to its caption bar.
+// The resize is deferred so it never runs inside AUI's own event handling.
 void Builder::OnPaneButton(wxAuiManagerEvent& event)
 {
   wxAuiPaneInfo *pane = event.GetPane();
@@ -5636,6 +5688,44 @@ bool Builder::writeFragmentToImageFile(SFile *file, wxString type, wxString ext)
 
 
 /**
+ * File > Save Image...: a PNG of the 3-D view at 1x, 2x or 4x its size,
+ * with blended transparency and smooth edges (VizRender::image).
+ */
+void Builder::OnSaveImageClick(wxCommandEvent& event)
+{
+  int factor = 2;
+  bool white = false;
+  string path;
+  if (const char *scripted = getenv("ECCE_SAVE_IMAGE_ANSWERS")) {
+    //  Test hook: "<factor> <white|keep> <path>" in place of the three dialogs.
+    std::istringstream in(scripted);
+    string bgWord;
+    in >> factor >> bgWord >> path;
+    white = bgWord == "white";
+  } else {
+    wxArrayString choices;
+    choices.Add("1x (the size of the view)");
+    choices.Add("2x");
+    choices.Add("4x");
+    wxSingleChoiceDialog res(this, _("Resolution, as a multiple of the size of the 3-D view:"),
+                             _("Save Image"), choices);
+    res.SetSelection(1);
+    if (res.ShowModal() != wxID_OK) return;
+    factor = res.GetSelection() == 0 ? 1 : (res.GetSelection() == 1 ? 2 : 4);
+    white = wxMessageBox(_("Use a white background?"), _("Save Image"),
+                         wxYES_NO | wxICON_QUESTION, this) == wxYES;
+    wxFileDialog fd(this, _("Save Image"), "", "image.png", "PNG files (*.png)|*.png",
+                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+    if (fd.ShowModal() != wxID_OK) return;
+    path = fd.GetPath().ToStdString();
+  }
+  wxSize size = p_viewer->GetSize();
+  if (!VizRender::image(p_viewer, path, size.GetWidth(), size.GetHeight(), white, factor))
+    showMessage(VizRender::msg(), true);
+}
+
+
+/**
  * Method invoked by FragmentImportDialog.
  */
 bool Builder::readFragmentFromFile(SFile *file, wxString type, wxString ext)
@@ -6868,6 +6958,57 @@ void Builder::updatePropertyMenus()
           updatePanes(true);
           return true;
         }
+        //  "paneorder": the docked panes of the Properties column, top to
+        //  bottom, to paneorder.txt.  "dockfloating": the Dock button.  "dropat <panel name> <pos>": a drop
+        //  of the panel into that column at dock position <pos>, as the
+        //  mouse would leave it.
+        if (w[0] == "dockfloating") {
+          wxCommandEvent ev;
+          OnDockFloatingPanels(ev);
+          return true;
+        }
+        if (w[0] == "paneorder" || (w[0] == "dropat" && w.size() >= 3)) {
+          if (w[0] == "dropat") {
+            string name = w[1];
+            for (size_t k = 2; k + 1 < w.size(); k++) name += " " + w[k];
+            wxAuiPaneInfo &pi = p_mgr.GetPane(wxString(name));
+            wxAuiPaneInfo &ix = p_mgr.GetPane(NAME_PROPERTY_INDEX);
+            if (!pi.IsOk()) return s.fail("dropat: no pane " + name);
+            wxAuiPaneInfo drop = pi;
+            drop.Dock().Right().Layer(ix.dock_layer).Row(ix.dock_row)
+                .Position(atoi(w.back().c_str()));
+            wxAuiPaneInfo target = pi;
+            if (!p_mgr.ProcessDockResult(target, drop))
+              return s.fail("dropat: drop refused");
+            pi = target;
+            pi.Show(true);
+            updatePanes(true);
+            return true;
+          }
+          wxAuiPaneInfo &ix = p_mgr.GetPane(NAME_PROPERTY_INDEX);
+          vector<pair<int, string> > order;
+          std::ofstream all_(outdir + "/paneall.txt");
+          wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
+          for (size_t k = 0; k < all.GetCount(); k++) {
+            wxAuiPaneInfo &pi = all.Item(k);
+            all_ << pi.name.utf8_str().data() << " fl=" << pi.IsFloating()
+                 << " sh=" << pi.IsShown() << " dir=" << pi.dock_direction
+                 << " L=" << pi.dock_layer << " R=" << pi.dock_row
+                 << " P=" << pi.dock_pos << "\n";
+            if (!pi.window || pi.IsFloating() || pi.IsToolbar() ||
+                !pi.IsShown() || pi.dock_direction != ix.dock_direction ||
+                pi.dock_layer != ix.dock_layer || pi.dock_row != ix.dock_row)
+              continue;
+            order.push_back(make_pair(pi.dock_pos, string(pi.name.utf8_str())));
+          }
+          std::stable_sort(order.begin(), order.end(),
+              [](const pair<int,string>& a, const pair<int,string>& b) {
+                return a.first < b.first; });
+          std::ofstream out(outdir + "/paneorder.txt");
+          for (size_t k = 0; k < order.size(); k++)
+            out << order[k].second << "\n";
+          return true;
+        }
         if (w[0] == "layout" && w.size() == 2) {
           std::ofstream out(outdir + "/" + w[1] + ".txt");
           wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
@@ -6936,6 +7077,123 @@ void Builder::updatePropertyMenus()
                 << xyz[3*a+1] << " " << xyz[3*a+2] << "\n";
           }
           delete [] xyz;
+          return true;
+        }
+        //  "surfmesh <name>": each isosurface in the scene as triangles ->
+        //  <name>.txt: threshold, vertices, triangles, boundary edges (used
+        //  by one triangle; 0 for a closed surface), edges used by more than
+        //  two, and edges both of whose triangles run the same way (these
+        //  show as missing faces under back-face culling) (#1076).
+        if (w[0] == "surfmesh" && w.size() == 2) {
+          std::ofstream out(outdir + "/" + w[1] + ".txt");
+          SoSearchAction sa;
+          sa.setType(ChemIso::getClassTypeId());
+          sa.setInterest(SoSearchAction::ALL);
+          sa.setSearchingAll(true);
+          if (getSG()) sa.apply(getSG());
+          SoPathList &paths = sa.getPaths();
+          out << "surfaces " << paths.getLength() << "\n";
+          for (int pi = 0; pi < paths.getLength(); pi++) {
+            ChemIso *iso = (ChemIso *)paths[pi]->getTail();
+            SoIndexedTriangleStripSet *ts =
+                (SoIndexedTriangleStripSet *)(*iso->getChildren())[0];
+            const int32_t *ci = ts->coordIndex.getValues(0);
+            const int n = ts->coordIndex.getNum();
+            std::map<std::pair<int,int>, std::pair<int,int> > edges;
+            std::set<int> verts;
+            long tris = 0;
+            int a = -1, b = -1, k = 0;
+            for (int i = 0; i < n; i++) {
+              const int c = ci[i];
+              if (c < 0) { a = b = -1; k = 0; continue; }
+              verts.insert(c);
+              if (a >= 0 && b >= 0 && a != b && b != c && a != c) {
+                //  Strips alternate winding: odd triangles run b,a,c.
+                int t[3] = {a, b, c};
+                if (k % 2) std::swap(t[0], t[1]);
+                for (int e = 0; e < 3; e++) {
+                  const int u = t[e], v = t[(e + 1) % 3];
+                  std::pair<int,int> &cnt =
+                      edges[std::make_pair(std::min(u, v), std::max(u, v))];
+                  if (u < v) cnt.first++; else cnt.second++;
+                }
+                tris++;
+              }
+              if (a >= 0 && b >= 0) k++;
+              a = b; b = c;
+            }
+            long boundary = 0, over = 0, sameway = 0;
+            for (std::map<std::pair<int,int>, std::pair<int,int> >::iterator
+                     it = edges.begin(); it != edges.end(); ++it) {
+              const int used = it->second.first + it->second.second;
+              if (used == 1) boundary++;
+              else if (used > 2) over++;
+              else if (it->second.first != 1) sameway++;
+            }
+            out << "surface " << pi << " threshold " << iso->threshold.getValue()
+                << " vertices " << verts.size() << " triangles " << tris
+                << " boundary " << boundary << " overused " << over
+                << " misoriented " << sameway << "\n";
+            //  Connected pieces (by shared edges), each with its boundary
+            //  edges and the colour field (sign(l2)rho for NCI) at the
+            //  grid node nearest its vertices.
+            std::map<int,int> up;
+            std::function<int(int)> root = [&](int v) {
+              while (up.count(v) && up[v] != v) v = up[v] = up[up[v]];
+              return v;
+            };
+            for (std::set<int>::iterator it = verts.begin(); it != verts.end(); ++it)
+              up[*it] = *it;
+            for (std::map<std::pair<int,int>, std::pair<int,int> >::iterator
+                     it = edges.begin(); it != edges.end(); ++it)
+              up[root(it->first.first)] = root(it->first.second);
+            std::map<int, std::vector<int> > parts;
+            for (std::set<int>::iterator it = verts.begin(); it != verts.end(); ++it)
+              parts[root(*it)].push_back(*it);
+            std::map<int,long> partBoundary;
+            for (std::map<std::pair<int,int>, std::pair<int,int> >::iterator
+                     it = edges.begin(); it != edges.end(); ++it)
+              if (it->second.first + it->second.second == 1)
+                partBoundary[root(it->first.first)]++;
+            SingleGrid *g = getSG() ? getSG()->getCurrentGrid() : 0;
+            SoVertexProperty *vp =
+                (SoVertexProperty *)ts->vertexProperty.getValue();
+            const SbVec3f *xyz = vp ? vp->vertex.getValues(0) : 0;
+            const float *cf = g ? g->colorFieldData() : 0;
+            out << "pieces " << parts.size() << "\n";
+            for (std::map<int, std::vector<int> >::iterator it = parts.begin();
+                 it != parts.end(); ++it) {
+              double cmin = 1e30, cmax = -1e30;
+              if (cf && xyz) {
+                const int *dim = g->dimensions();
+                for (size_t q = 0; q < it->second.size(); q++) {
+                  const SbVec3f &p = xyz[it->second[q]];
+                  int ix[3];
+                  for (int k = 0; k < 3; k++) {
+                    const double d = (g->corner()[k] - g->origin()[k]) / (dim[k] - 1);
+                    ix[k] = std::max(0, std::min(dim[k] - 1,
+                        (int)floor((p[k] - g->origin()[k]) / d + 0.5)));
+                  }
+                  const double c = cf[ix[0] + (size_t)dim[0] *
+                                      (ix[1] + (size_t)dim[1] * ix[2])];
+                  cmin = std::min(cmin, c);
+                  cmax = std::max(cmax, c);
+                }
+              }
+              out << "piece vertices " << it->second.size() << " boundary "
+                  << partBoundary[it->first];
+              if (cf) out << " colourmin " << cmin << " colourmax " << cmax;
+              out << "\n";
+            }
+          }
+          SingleGrid *grid = getSG() ? getSG()->getCurrentGrid() : 0;
+          if (grid) {
+            const int *dim = grid->dimensions();
+            out << "grid " << dim[0] << " " << dim[1] << " " << dim[2];
+            for (int k = 0; k < 3; k++)
+              out << " " << (grid->corner()[k] - grid->origin()[k]) / (dim[k] - 1);
+            out << "\n";
+          }
           return true;
         }
         if (w[0] == "display") return displayCommand(s, w, outdir);

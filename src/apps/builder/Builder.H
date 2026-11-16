@@ -112,6 +112,13 @@ public:
     return f;
   }
 
+  //  A pane docked into the Properties column goes below the list, also
+  //  when dropped on the list's top edge or onto the hidden tab strip.
+  bool ProcessDockResult(wxAuiPaneInfo& target,
+                         const wxAuiPaneInfo& newPos) override;
+
+  static void keepIndexOnTop(wxAuiManager& mgr);
+
   void setFloatParent(wxWindow *w) { p_floatParent = w; }
 
   // In a tab (#983) the managed window is the tab's page, but panels made
@@ -433,6 +440,7 @@ class Builder: public BuilderGUI,
       virtual void OnSaveClick( wxCommandEvent& event );
       virtual void OnSaveasClick( wxCommandEvent& event );
       virtual void OnSaveThumbClick( wxCommandEvent& event );
+      void OnSaveImageClick( wxCommandEvent& event );
       virtual void OnDumpsgClick( wxCommandEvent& event );
       virtual void quitMenuItemClickCB( wxCommandEvent& event );
 
@@ -613,6 +621,7 @@ class Builder: public BuilderGUI,
       void syncColumn(bool allowSwitch);
       void syncMenuChecks();
       void updatePanes(bool allowSwitch=false);
+      void keepIndexOnTop() { BuilderAuiManager::keepIndexOnTop(p_mgr); }
       void initShownPanels();
       void makeRoomFor(const wxString& name);
       bool fitToolColumn();

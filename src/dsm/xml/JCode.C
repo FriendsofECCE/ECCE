@@ -377,12 +377,8 @@ string JCode::parseScript(const string& pKey) const
     if (is) {
       string line, key, value;
       int startText, endText;
-      char buf[1001];
-
       while (is.good()) {
-        buf[0] = '\0';
-        is.getline(buf, 1000);
-        line = buf;
+        std::getline(is, line);
         if (line.find("[") == 0 && line.find("[END]") == string::npos) {
           // new section
           key = line.substr(1,line.find(']')-1);
@@ -391,9 +387,7 @@ string JCode::parseScript(const string& pKey) const
           }
 	  
           while (is.good()) {
-            buf[0] = '\0';
-            is.getline(buf, 1000);
-            line = buf;
+            std::getline(is, line);
             if(line.find("[END]") != string::npos) {
               break;
             }
