@@ -778,32 +778,30 @@ def runSetupTab(display):
             append("setup width 1024", 4)
             append("setup info", 2)
             shot("setup-orca-1024.png")
-            append("close", 3)
-            append("answer", 3)
-            append("answer no", 25)
-            # #1063 stage 2 (answers found by "area=basis" after the above).
+            # #1063 stage 2: more editors as tabs (File > Quit ends the process,
+            # so these come before it; answers found by "area=basis" after the above).
             append("start CalculationEditor " + url2, 25)
             append("setup basis assign def2-tzvp @ O", 15)       # m0
             append("setup basis assign def2-svp @ H", 15)        # m1
             append("setup basis assign Nonesuch @ O", 3)
             append("setup basis assign 6-31G* @ C", 5)           # m2
             shot("setup-basis-elements.png")
-            append("close", 3)
-            append("answer no", 10)
             append("start CalculationEditor " + hiUrl, 25)
             append("setup basis assign def2-svp @ H", 15)        # m3
             append("setup basis assign def2-tzvp @ I", 15)       # m4
             append("setup basis ecp", 15)                        # m5
             shot("setup-basis-ecp.png")
             append("setup basis ecp", 3)                         # none left
-            append("close", 3)
-            append("answer no", 10)
             append("start CalculationEditor " + url3, 25)
             append("setup basis assign DZVP (DFT Orbital)", 15)  # m6
             append("setup basis fit Ahlrichs Coulomb Fitting", 15)   # m7
             shot("setup-basis-fit.png")
             append("close", 3)
-            append("answer no", 10)
+            append("answer", 3)
+            append("answer no", 6)
+            append("answer no", 6)
+            append("answer no", 6)
+            append("answer no", 15)
 
         setLayout(display, "normal")
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
