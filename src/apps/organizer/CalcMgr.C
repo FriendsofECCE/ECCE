@@ -98,6 +98,7 @@ static std::string s_registerMessage;
 #include "tdat/RefMachine.H"
 #include "tdat/QueueMgr.H"
 #include "util/StringTokenizer.H"
+#include "dsm/RunFolderCopy.H"
 #include "dsm/ActivityLog.H"
 
 #include "dsm/DavCalculation.H"
@@ -10665,6 +10666,37 @@ void CalcMgr::getContextMenu(wxMenu & menu)
                                        "workflow of this folder"))
                           : wxString(refusal));
       sub->Enable(refusal.empty() && !flows.empty());
+    }
+    {
+      // A run-folder copy (#1083) leads back to the stored calculation.
+      Resource *r = itemData->getResource();
+      const string ns = VDoc::getEcceNamespace() + ":";
+      const string orig = r->getProp(ns + RunFolderCopy::COPY_OF);
+      if (!orig.empty()) {
+        const string host = r->getProp(ns + RunFolderCopy::COPY_ORIGIN);
+        const string here = wxGetHostName().ToStdString();
+        const EcceURL ou(orig);
+        string why;
+        // A file:// URL names a path on the launching machine only.
+        if (ou.getProtocol() == "file" && !host.empty() &&
+            host.substr(0, host.find('.')) != here.substr(0, here.find('.')))
+          why = "The original is in the Local data of " + host;
+        int oid = wxWindow::NewControlId();
+        menu.Append(oid, _("Open the Original"),
+                    wxString::FromUTF8((why.empty() ? orig : why).c_str()))
+            ->Enable(why.empty());
+        menu.Bind(wxEVT_MENU, [this, ou](wxCommandEvent&) {
+          CallAfter([this, ou]() {
+            WxResourceTreeItemData *n = findNode(ou, true, true);
+            if (n) p_treeCtrl->SelectItem(n->GetId());
+            else
+              wxMessageBox(wxString::FromUTF8(("The original, " + ou.toString() +
+                  ", is not in a tree of this Organizer. Add its server or "
+                  "folder (Organizer > Add Server) to open it.").c_str()),
+                  "Open the Original", wxOK | wxICON_INFORMATION, this);
+          });
+        }, oid);
+      }
     }
     runMenu = new wxMenu();
     runMenu->Append(wxID_LAUNCH_SELECTED, _("Launch..."));

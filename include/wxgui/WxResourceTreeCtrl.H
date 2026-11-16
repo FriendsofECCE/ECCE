@@ -56,6 +56,10 @@ public:
               const wxValidator& validator = wxDefaultValidator,
               const wxString& name = "treeCtrl");
   virtual ~WxResourceTreeCtrl();
+
+  // The tree's label for a resource: its name, plus a note on a run-folder
+  // copy of a calculation.
+  static wxString itemLabel(Resource *resource);
   
   virtual void initialize(HistoryList * historyList = 0,
                           bool homeAsRoot = false,

@@ -66,6 +66,7 @@
 #include "dsm/EDSIFactory.H"
 #include "dsm/ResourceType.H"
 #include "dsm/ResourceDescriptor.H"
+#include "dsm/RunFolderCopy.H"
 
 
 #include "comm/RCommand.H"
@@ -2249,6 +2250,7 @@ bool Launch::moveFiles(void)
       } else {
         (void)p_connection->exec(
               "chmod u+w eccejobmonitor eccejobmonitor.conf *.desc submit__*");
+        writeRunFolderCopy();
       } 
     } else {
       if (!p_cache->frontendFlag) 
@@ -2265,6 +2267,46 @@ bool Launch::moveFiles(void)
   }
 
   return ret;
+}
+
+
+// The run folder becomes a marked copy of the calculation (#1083) so any
+// ECCE browsing the host can open it.  Only over a remote login: a local
+// run folder can lie inside the calculation itself.  A failure only warns.
+void Launch::writeRunFolderCopy(void)
+{
+  if (p_cache->remoteShell.find("shellcp") != string::npos ||
+      p_cache->frontendFlag || !RunFolderCopy::applies(p_cache->calcURL))
+    return;
+  vector<string> keep;
+  keep.push_back("Parameters");
+  keep.push_back("Inputs");
+  string err;
+  const string root = RunFolderCopy::stage(p_cache->calcURL,
+      p_cache->directory + "/.ecce-runcopy", keep, RCommand::whereami(),
+      ResourceUtils::stateToString(ResourceDescriptor::STATE_SUBMITTED), err);
+  bool ok = !root.empty();
+  const string password = (*p_options)["##password1##"];
+  vector<RunFolderCopy::Batch> bs;
+  if (ok) bs = RunFolderCopy::batches(root);
+  for (size_t i = 0; ok && i < bs.size(); i++) {
+    if (bs[i].files.empty() && bs[i].dir.empty()) continue;
+    const string to = p_cache->remoteDir +
+                      (bs[i].dir.empty() ? string("") : "/" + bs[i].dir);
+    if (!bs[i].dir.empty())   // the connection is in the run folder
+      (void)p_connection->exec("mkdir -p " + RCommand::quotePath(bs[i].dir));
+    if (bs[i].files.empty()) continue;
+    ok = putOnLogin(p_connection, bs[i].files, to) ||
+         RCommand::put(err, p_cache->fullMachineName, p_cache->remoteShell,
+                       p_cache->userName, password, bs[i].files, to);
+  }
+  std::error_code ec;
+  ecce::fs::remove_all(p_cache->directory + "/.ecce-runcopy", ec);
+  if (!ok) {
+    if (!p_launchWarning.empty()) p_launchWarning += "\n\n";
+    p_launchWarning += "The run folder on " + p_cache->machineName +
+                       " was not made a copy of the calculation: " + err;
+  }
 }
 
 

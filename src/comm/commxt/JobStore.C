@@ -75,6 +75,8 @@
                        // the full definition here to fill one in below.
 
 #include "comm/RCommand.H"
+#include "util/Filesystem.H"
+#include "dsm/RunFolderCopy.H"
 #include "comm/JobParser.H"
 #include "comm/JobFailureReason.H"
 #include "comm/JobLogDates.H"
@@ -852,6 +854,46 @@ static void resultsFileStore()
 }
 
 
+// After the store, the run folder's copy of the calculation (#1083) gets the
+// final state, the parsed properties and the outputs kept.  Over the
+// monitor's login when it allows, else a new one, as the output copy does.
+static void updateRunFolderCopy(void)
+{
+  if (!calculation || gReparse || !cpImportDir.empty() ||
+      endState < ResourceDescriptor::STATE_COMPLETED ||
+      cpRemoteShell.find("shellcp") != string::npos ||
+      !RunFolderCopy::applies(EcceURL(cpCalcURL)))
+    return;
+  vector<string> keep;
+  keep.push_back("Parameters");
+  keep.push_back("Inputs");
+  keep.push_back("Props");
+  keep.push_back("Outputs");
+  string err;
+  const string parent = tmpStorage + "/.ecce-runcopy";
+  const string root = RunFolderCopy::stage(EcceURL(cpCalcURL), parent, keep,
+                                           RCommand::whereami(), "", err);
+  bool ok = !root.empty();
+  vector<RunFolderCopy::Batch> bs;
+  if (ok) bs = RunFolderCopy::batches(root);
+  for (size_t i = 0; ok && i < bs.size(); i++) {
+    if (bs[i].files.empty()) continue;
+    const string to = cpRemoteDir +
+                      (bs[i].dir.empty() ? string("") : "/" + bs[i].dir);
+    if (!bs[i].dir.empty())   // the connection is in the run folder
+      (void)remoteconn->exec("mkdir -p " + RCommand::quotePath(bs[i].dir));
+    ok = (remoteconn->sshBackend() != "" &&
+          remoteconn->copyOnLogin(true, bs[i].files, to, err)) ||
+         RCommand::put(err, cpServerName, cpRemoteShell, cpUserName, "",
+                       bs[i].files, to);
+  }
+  std::error_code ec;
+  ecce::fs::remove_all(parent, ec);
+  if (ok) logMessage("File System", "Run folder copy updated");
+  else logMessage("File System", "Run folder copy not updated: " + err);
+}
+
+
 void cleanup(int exitStatus)
 {
   // Before the final state: the Organizer reads the snapshot when the
@@ -1047,6 +1089,7 @@ void cleanup(int exitStatus)
     } else if (remoteconn != (RCommand*)0 && remoteconn->isOpen()) {
       // The monitor stream may still hold the login (a kill message).
       remoteconn->stopStream();
+      updateRunFolderCopy();
       (void)remoteconn->exec("/bin/rm -f eccejobmonitor eccejobmonitor.conf "
                              "eccejobmonitor.propbuf *.desc");
       delete remoteconn;

@@ -71,6 +71,7 @@ using std::endl;
 #include "wxgui/WxResourceImageList.H"
 #include "wxgui/WxResourceStateImageList.H"
 #include "wxgui/WxResourceTreeItemData.H"
+#include "dsm/RunFolderCopy.H"
 #include "wxgui/WxResourceTreeCtrl.H"
 #include "wxgui/WxStateImageList.H"
 #include "wxgui/WxState.H"
@@ -79,6 +80,23 @@ using std::endl;
 /**
  * Constructor.
  */
+// A run folder that is a marked copy of a calculation (#1083) says so in
+// its label; the name itself (rename, paths) stays the resource's.
+wxString WxResourceTreeCtrl::itemLabel(Resource *resource)
+{
+  if (!resource) return "";
+  string label = resource->getName();
+  if (resource->getContentType() == ResourceDescriptor::CT_CALCULATION) {
+    const string ns = VDoc::getEcceNamespace() + ":";
+    string note = RunFolderCopy::copyNote(
+        resource->getProp(ns + RunFolderCopy::COPY_OF),
+        resource->getProp(ns + RunFolderCopy::COPY_ORIGIN));
+    if (!note.empty()) label += "  (" + note + ")";
+  }
+  return wxString::FromUTF8(label.c_str());
+}
+
+
 WxResourceTreeCtrl::WxResourceTreeCtrl()
   : ewxTreeCtrl(), p_loadingChildren(false)
 {
@@ -430,7 +448,7 @@ bool WxResourceTreeCtrl::loadChildren(WxResourceTreeItemData * node, bool refres
     vector<Resource *>::iterator resItor = children->begin();
     for (; resItor!= children->end(); resItor++) {
       WxResourceTreeItemData * childNode = new WxResourceTreeItemData(*resItor);
-      wxTreeItemId itemId = AppendItem(node->GetId(), (*resItor)->getName(),
+      wxTreeItemId itemId = AppendItem(node->GetId(), itemLabel(*resItor),
                                        -1, -1, childNode);
       setItemImages(itemId, *resItor);
       tintLike(itemId, node->GetId());
@@ -517,7 +535,7 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addToTree(const EcceURL & url)
 
     Resource * resource = EDSIFactory::getResource(url);
     ret = new WxResourceTreeItemData(resource);
-    wxTreeItemId itemId = AppendItem(parent->GetId(), resource->getName(),
+    wxTreeItemId itemId = AppendItem(parent->GetId(), itemLabel(resource),
                                      -1, -1, ret);
     setItemImages(itemId, resource);
     tintLike(itemId, parent->GetId());
@@ -927,7 +945,7 @@ void WxResourceTreeCtrl::refresh(WxResourceTreeItemData * node)
   wxTreeItemId nodeId = node->GetId();
   // Do not refresh root node's label.
   if (GetItemParent(nodeId) != GetRootItem())
-    SetItemText(node->GetId(), node->getResource()->getName());
+    SetItemText(node->GetId(), itemLabel(node->getResource()));
 }
 
 

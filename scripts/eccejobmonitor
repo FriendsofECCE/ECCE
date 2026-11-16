@@ -4205,7 +4205,53 @@ sub MsgSendStatus
 {
     my($status) = @_;
 
+    &CopyMetaState($status);
     &MsgSend(join $MSG_SEP, $MSG_TYPE_STATUS, $status);
+}
+
+# --------------------------------------------------------------------------- #
+# A run folder that is a marked copy of the calculation (#1083) shows the
+# job's state without the job store; the store's upload at the end replaces
+# it with the stored state.  Same record format and lock as the SSH folder.
+# --------------------------------------------------------------------------- #
+
+sub CopyMetaState
+{
+    my($status) = @_;
+    my ($code) = ($status =~ /^\s*(\d+)/);
+    return unless defined $code;
+    my $state = ($code == $MSG_VAL_STAT_RUNNING) ? 'Running'
+              : ($code == 0) ? 'Complete'
+              : ($code == $MSG_VAL_STAT_CANCELLED) ? 'Killed'
+              : ($code == $MSG_VAL_STAT_UNAVAIL ||
+                 $code == $MSG_VAL_STAT_IMPORTED) ? ''
+              : 'Failed';
+    return if $state eq '';
+    my $meta = '.ecce-meta';
+    return unless -f $meta;
+    my $lock = "$meta.lockdir";
+    return unless mkdir $lock;
+    if (open(my $in, '<', $meta)) {
+        my @lines = <$in>;
+        close $in;
+        my $key = "http://www.emsl.pnl.gov/ecce:state";
+        if (grep { /^\.\t[^\t]*:copyOf\t/ } @lines) {
+            my $done = 0;
+            for (@lines) {
+                if (/^\.\t\Q$key\E\t([^\t]*)\t/) {
+                    $_ = ".\t$key\t$1\t$state\n";
+                    $done = 1;
+                }
+            }
+            push @lines, ".\t$key\t\t$state\n" unless $done;
+            if (open(my $out, '>', "$meta.new")) {
+                print $out @lines;
+                close $out;
+                rename "$meta.new", $meta;
+            }
+        }
+    }
+    rmdir $lock;
 }
 
 # --------------------------------------------------------------------------- #

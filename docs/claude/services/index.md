@@ -116,3 +116,4 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [An adopted session broker ended before the adopting app connected; missing broker file no longer aborts (#1040)](adopted-broker-ended-before-the-app-1040.md)
 - [In a tab, frame GetSizer/FindWindow/Layout and controls made with `this` as parent miss the page (#983)](tab-children-made-later-need-the-page-as-parent.md)
 - [Dialogs of a tab: ewxModalGuard moves dialogs of a hidden tool frame over the Organizer (#983)](tools-as-tabs.md)
+- [A remote run folder is a marked copy of the calculation: staged with TreeCopy, sent with the launch's own put (#1083)](run-folder-copy-1083.md)

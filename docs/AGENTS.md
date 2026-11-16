@@ -991,6 +991,24 @@ ECCE nothing is done (exit 2).
     ecce-move proj/calc-1 proj/calc-2 archive
     ecce-rename proj/calc-1 calc-1-b3lyp
 
+### Run folders are copies of the calculation
+
+A job launched to a remote machine turns its run folder into a marked copy
+of the calculation: at launch the folder gets the calculation's `.ecce-meta`
+(state Submitted), `Parameters/` and `Inputs/`; the job monitor sets the state
+there (Running, then Complete, Killed or Failed); after the job store has
+stored the job, the stored state, `Props/` and `Outputs/` are sent there too
+(an output file over 50 MB stays out: the code's own copy is in the folder).
+The copy's root carries `ecce:copyOf` (the original's URL), `ecce:copyOrigin`
+(the launching host), `ecce:copyOriginRoot` (its Local data folder or server)
+and `ecce:copyMadeAt`. The original stays authoritative; later edits do not
+reach the copy. Browse the cluster folder as an SSH folder to open copies;
+the tree labels them `name  (copy of <original> on <host>)` and the context
+menu has **Open the Original**. Not done for a calculation stored on an SSH
+folder, for a run on this computer, or with `ECCE_RUN_FOLDER_COPY=0`.
+Run folders from before this change have no copy (Import as calculation is
+not implemented yet).
+
 ### ecce-mkdir
 
     ecce-mkdir [-p] [--json] <project or folder>...

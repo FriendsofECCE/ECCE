@@ -108,6 +108,7 @@ public:
         void adoptConnection(RCommand* connection) { p_connection = connection; }
         bool generateJobMonitoringFiles(void);
         bool moveJobMonitoringFiles(void);
+        void writeRunFolderCopy(void);
         bool startJobStore(const string& importDir);
   // startJobStore's remote part, for a caller that runs it off the GUI
   // thread first; startJobStore then does not repeat it.

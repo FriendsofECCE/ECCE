@@ -94,6 +94,18 @@ heat of formation.
 Some functions are only on the command line; see
 [Scripting and AI assistants](scripting-and-ai.md).
 
+## Run folders as copies
+
+A job launched to another machine makes its run folder there a copy of the
+calculation, with its settings, input, and, once the job is stored, its
+results. Add the cluster folder as an SSH folder to open these copies from
+any ECCE. The tree shows a copy as **name (copy of original on host)**.
+Right-click it for **Open the Original**, which selects the stored
+calculation when its Local data or server is a tree in this Organizer.
+
+The original stays the reference. A later annotation, rerun or correction
+does not reach the copy, and deleting the run folder loses nothing stored.
+
 ## Servers on the toolbar
 
 The **Servers** button lists your remembered SSH folders and ECCE servers.
