@@ -19,6 +19,7 @@
 #include "util/MqttBroker.H"
 #include "util/MqttLink.H"
 #include "wxgui/InProcessTools.H"
+#include "wxgui/MainFrame.H"
 #include "wxgui/ToolTabs.H"
 #include "util/JMSPublisher.H"
 #include "wx/wxprec.h"
@@ -206,9 +207,24 @@ bool CalcMgrApp::OnInit()
     AuthCache::getCache().pipeIn(argv[2].ToStdString());
   }
 
+  // With some tool set to Tab (#983) the Organizer is the first tab of a
+  // MainFrame; its own frame is adopted before it is first shown, so it is
+  // never mapped.  Otherwise it is the main window, as before.
+  MainFrame *host = 0;
+  if (MqttLink::localDelivery() && ToolTabs::enabled()) {
+    host = new MainFrame;
+    ToolTabs::setHost(host);
+  }
   p_calcMgr = new CalcMgr(NULL);
-  p_calcMgr->Show(true);
-  SetTopWindow(p_calcMgr);
+  if (host) {
+    host->adoptMain(p_calcMgr);
+    host->setCloseHandler([this]() { return p_calcMgr->confirmAndQuit(); });
+    host->Show(true);
+    SetTopWindow(host);
+  } else {
+    p_calcMgr->Show(true);
+    SetTopWindow(p_calcMgr);
+  }
   registerTopShell(p_calcMgr);
 
   // Test hook, inert unless set: open the tree down to this URL, so tests
@@ -319,9 +335,6 @@ bool CalcMgrApp::OnInit()
       if (ev.GetActive()) JMSPublisher::setActingTool(name, id);
       ev.Skip();
     });
-    // Tools set to Tab in Preferences > Windows and tabs (#983 stage 2)
-    // open as tabs of this window.
-    if (ToolTabs::enabled()) ToolTabs::setMainWindow(p_calcMgr);
   }
 
   return true;
@@ -356,7 +369,8 @@ void CalcMgrApp::quitMCB(JMSMessage& msg)
     // Tool windows in this process first (#983): the main loop ends with
     // the Organizer's frame, and a window left open would outlive it.
     InProcessTools::closeAll(true);
-    GetTopWindow()->Destroy();
+    if (MainFrame *host = MainFrame::instance()) host->shutdown();
+    else GetTopWindow()->Destroy();
   }
 }
 
@@ -708,10 +722,12 @@ void CalcMgrApp::invokeMCB(JMSMessage& msg)
   //  GNOME then announces "ECCE Organizer is ready" over the new tool.
   const string app = msg.getProperty("appname");
   if (!app.empty() && app != "Organizer") return;
-  p_calcMgr->Iconize(false);
+  // The window on screen: the host while the Organizer is a tab.
+  wxTopLevelWindow *screen = ToolTabs::screenWindow(p_calcMgr);
+  screen->Iconize(false);
   p_calcMgr->Show(true);
-  ewxRaiseWindow(p_calcMgr);
-  p_calcMgr->RequestUserAttention();
+  ewxRaiseWindow(screen);
+  screen->RequestUserAttention();
 }
 
 

@@ -79,6 +79,15 @@ public:
   /// (#983).  Not a GetMenuBar() override: wxFrameBase::SetMenuBar compares
   /// with GetMenuBar() and would refuse to swap the bars.
   wxMenuBar *ownMenuBar() const;
+
+  /// While the Organizer is the main tab of the MainFrame (#1065) its own
+  /// frame is hidden for good: these go to the tab or the host window.
+  bool Show(bool show = true) override;
+  void Raise() override;
+  void Iconize(bool iconize = true) override;
+  void SetTitle(const wxString& title) override;
+  bool Destroy() override;
+  bool Layout() override;
   TextFileViewer *viewFile(const EcceURL& url);
 
   // A tool's window is up (#1071): ends its start feedback.
@@ -696,6 +705,7 @@ protected:
   void makeWorkflowFromRows(Session *into);
   bool p_quitAsking = false;        // the Quit dialog is open (#291)
   bool p_quitConfirmed = false;     // the user said yes; teardown pending
+  bool p_wasHosted = false;         // the host saved the window geometry
 
   void startApp(const string& app, int force, const string& url,
                 const string& codename = "", int amulet = 0);

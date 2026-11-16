@@ -84,6 +84,7 @@ static std::string s_registerMessage;
 #include "util/VizThumbnail.H"
 #include "wxgui/InProcessTools.H"
 #include "ToolStartup.H"
+#include "wxgui/MainFrame.H"
 #include "wxgui/ToolTabs.H"
 #include "wxgui/WindowShot.H"
 #include <wx/display.h>
@@ -552,7 +553,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   }
   // Ticking a code in Preferences > Codes shows in File > New at once.
   CodeChoice::setListener([this]() {
-    wxMenuBar * mb = GetMenuBar();
+    wxMenuBar * mb = ownMenuBar();
     int fm = mb ? mb->FindMenu(_("File")) : wxNOT_FOUND;
     if (fm != wxNOT_FOUND) getFileMenu(*mb->GetMenu(fm), 0);
   });
@@ -786,7 +787,55 @@ TextFileViewer *CalcMgr::viewFile(const EcceURL& url)
 
 wxMenuBar *CalcMgr::ownMenuBar() const
 {
-  return ToolTabs::mainMenuBar(this, GetMenuBar());
+  return ToolTabs::menuBar(this, wxFrame::GetMenuBar());
+}
+
+
+bool CalcMgr::Show(bool show)
+{
+  if (ToolTabs::hosts(this)) {
+    if (show) ToolTabs::select(this);
+    return true;
+  }
+  return CalcMgrGUI::Show(show);
+}
+
+
+void CalcMgr::Raise()
+{
+  if (ToolTabs::hosts(this)) ToolTabs::select(this);
+  else CalcMgrGUI::Raise();
+}
+
+
+// The window on screen is the host: Iconize(false) on the hidden frame
+// would map it.
+void CalcMgr::Iconize(bool iconize)
+{
+  if (ToolTabs::hosts(this)) ToolTabs::screenWindow(this)->Iconize(iconize);
+  else CalcMgrGUI::Iconize(iconize);
+}
+
+
+void CalcMgr::SetTitle(const wxString& title)
+{
+  CalcMgrGUI::SetTitle(title);
+  ToolTabs::setTitle(this, title);
+}
+
+
+bool CalcMgr::Destroy()
+{
+  // The host owns the geometry from here on (saveSettings).
+  if (ToolTabs::hosts(this)) p_wasHosted = true;
+  ToolTabs::release(this, false);
+  return CalcMgrGUI::Destroy();
+}
+
+
+bool CalcMgr::Layout()
+{
+  return ToolTabs::layout(this) ? true : CalcMgrGUI::Layout();
 }
 
 
@@ -927,9 +976,9 @@ void CalcMgr::runTestCommand(const string& line)
           wxTimer timer;
           timer.Bind(wxEVT_TIMER, [&](wxTimerEvent&) {
             wxScreenDC screen;
-            wxBitmap bitmap(GetSize().x, GetSize().y, 24);
+            wxBitmap bitmap(ToolTabs::screenWindow(this)->GetSize().x, ToolTabs::screenWindow(this)->GetSize().y, 24);
             wxMemoryDC memory(bitmap);
-            wxPoint pos = GetScreenPosition();
+            wxPoint pos = ToolTabs::screenWindow(this)->GetScreenPosition();
             memory.Blit(0, 0, bitmap.GetWidth(), bitmap.GetHeight(), &screen, pos.x, pos.y);
             memory.SelectObject(wxNullBitmap);
             outcome = bitmap.SaveFile(wxString::FromUTF8(a.c_str()), wxBITMAP_TYPE_PNG)
@@ -1228,12 +1277,12 @@ void CalcMgr::runTestCommand(const string& line)
             vector<RecipeFragment> parts;
             if (parseFragments(fragSpec, parts)) panel->setFragments(parts);
             panel->setAutoRun(autorun);
-            SetSize(1500, 900);
+            ToolTabs::screenWindow(this)->SetSize(1500, 900);
             Raise();
             for (int i = 0; i < 8; i++) wxYield();
             panel->scrollToFragments();
             for (int i = 0; i < 4; i++) wxYield();
-            outcome = (png == "-" || ecceWindowShot(this, png) ? "ok " : "not saved ") +
+            outcome = (png == "-" || ecceWindowShot(ToolTabs::screenWindow(this), png) ? "ok " : "not saved ") +
                       panel->report();
           }
         } else if (command == "workflowrecipehere") {
@@ -1254,27 +1303,27 @@ void CalcMgr::runTestCommand(const string& line)
         } else if (command == "workflowresults") {
           outcome = "ok " + wp->resultLines();
         } else if (command == "workflowrate") {
-          SetSize(1500, 900);
+          ToolTabs::screenWindow(this)->SetSize(1500, 900);
           Raise();
           for (int i = 0; i < 4; i++) wxYield();
           string t = wp->rateText(rateT);
           for (int i = 0; i < 4; i++) wxYield();
           for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
           outcome = "ok " + t;
-          if (!ratePng.empty()) outcome += ecceWindowShot(this, ratePng) ? " png saved" : " png failed";
+          if (!ratePng.empty()) outcome += ecceWindowShot(ToolTabs::screenWindow(this), ratePng) ? " png saved" : " png failed";
           if (!rateCsv.empty()) {
             const string why = wp->rateDetailsCsv(rateCsv, rateRange);
             outcome += why.empty() ? " csv saved" : " csv failed: " + why;
           }
         } else if (command == "workflowfragorb") {
-          SetSize(1500, 900);
+          ToolTabs::screenWindow(this)->SetSize(1500, 900);
           Raise();
           for (int i = 0; i < 4; i++) wxYield();
           string t = wp->fragOrbText();
           for (int i = 0; i < 4; i++) wxYield();
           for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
           outcome = "ok " + t;
-          if (!ratePng.empty()) outcome += ecceWindowShot(this, ratePng) ? " png saved" : " png failed";
+          if (!ratePng.empty()) outcome += ecceWindowShot(ToolTabs::screenWindow(this), ratePng) ? " png saved" : " png failed";
           if (!detailsPng.empty() || !rateCsv.empty()) {
             FragOrbDetailsDialog *d = wp->fragOrbDetails();
             if (!d) outcome += " details: none";
@@ -1831,11 +1880,11 @@ void CalcMgr::runTestCommand(const string& line)
             p_contextPanel->selectResource(EcceURL(c));
             wxYield();
           }
-          SetSize(1300, 900);     // the whole drawing and the code bar
+          ToolTabs::screenWindow(this)->SetSize(1300, 900);     // the whole drawing and the code bar
           Raise();
           for (int i = 0; i < 5; i++) wxYield();
           wp->layoutReport();
-          outcome = (ecceWindowShot(this, d) ? "ok " : "not saved ") +
+          outcome = (ecceWindowShot(ToolTabs::screenWindow(this), d) ? "ok " : "not saved ") +
                     wp->layoutReport();
         }
       } else if (command == "workflownew") {
@@ -3519,7 +3568,8 @@ void CalcMgr::runTestCommand(const string& line)
         if (w != this)
           outcome += string(" tlw=") + wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
                      (w->IsShown() ? "" : "(hidden)") + "/" + string(w->GetLabel().utf8_str());
-    } else if (command == "tabs" || command == "tab" ||
+    } else if (command == "mainwindow" || command == "menu" ||
+               command == "hostclose" || command == "tabs" || command == "tab" ||
                command == "towindow" || command == "totabs" ||
                command == "charhook" || command == "tabinfo" || command == "sbinfo" ||
                command == "dialog" || command == "dialoginfo" ||
@@ -3636,6 +3686,8 @@ CalcMgr::~CalcMgr( )
   p_toolStartup = 0;
   CodeChoice::setListener(nullptr);
   delete p_releaseNotice;
+  if (ToolTabs::hosts(this)) p_wasHosted = true;
+  ToolTabs::release(this, false);
   saveSettings();
   int low, high;
   ResourceDescriptor rs = ResourceDescriptor::getResourceDescriptor();
@@ -4137,8 +4189,8 @@ void CalcMgr::saveSettings()
 
   Preferences prefs("Organizer");
 
-  saveWindowSettings("Organizer", prefs, true);
-  
+  // Hosted: the MainFrame saves the window's rectangle under the same prefix.
+  if (!p_wasHosted) saveWindowSettings("Organizer", prefs, true);
 
   prefs.setInt("Organizer.TreeWidth",
                (int)(p_splitterWindow->GetSashPosition() /
@@ -4600,7 +4652,9 @@ bool CalcMgr::confirmAndQuit()
     return false;
 
   p_quitConfirmed = true;
-  Destroy();
+  // Hosted: the Organizer's frame goes before the window that holds it.
+  if (MainFrame *host = MainFrame::instance()) host->shutdown();
+  else Destroy();
   if (getenv("ECCE_TEST_ORGANIZER")) {
     // Test hook (#983): a top-level window still alive 3 s after Quit keeps
     // the process running; name them.
