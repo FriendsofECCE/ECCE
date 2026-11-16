@@ -390,6 +390,52 @@ static int xcells,ycells,zcells;    /* sheet size in cells */
 static short *c0;
 static int t0,t1;
 
+// Every crossing lies on two cell faces.  On a face with two crossings
+// they pair up trivially; on a face with four (an ambiguous face) the
+// pairing is decided from that face's own four corner values, so the two
+// cells sharing the face always join the crossings the same way.
+static float gT;
+static float *gSh0,*gSh1;           /* lower and upper sheet of this layer */
+static short *gOrig;                /* cell crossing flags before tracing */
+static const int faceEdges[6][4] = {
+	{0,3,1,2}, {8,11,9,10}, {0,5,8,4}, {1,7,9,6}, {2,6,10,4}, {3,7,11,5}
+};
+static const int faceCorners[6][4] = {
+	{0,1,3,2}, {4,5,7,6}, {0,1,5,4}, {2,3,7,6}, {0,2,6,4}, {1,3,7,5}
+};
+
+static int
+otherFace(int v, int f)
+{
+	return ilog2[v2f[v] & ~(1 << f)];
+}
+
+// Crossing joined to v by a contour segment lying on face f of the
+// current cell (ii,jj).
+static int
+partner(int v, int f)
+{
+	short bits = gOrig[ii*xcells + jj] & f2v[f];
+	if ( bitc12(bits) != 4 )
+		return ilog2b(bits & ~(1 << v));
+
+	double u[4];
+	for ( int k = 0; k < 4; k++ ) {
+		int c = faceCorners[f][k];
+		float *sh = (c & 4) ? gSh1 : gSh0;
+		u[k] = (double)sh[(ii + ((c >> 1) & 1))*xverts + jj + (c & 1)]
+			- (double)gT;
+	}
+	// Saddle value of the bilinear interpolant: corners 0,2 join through
+	// the face when the saddle is on their side of the isovalue.
+	double sad = (u[0]*u[2] - u[1]*u[3]) / (u[0] + u[2] - u[1] - u[3]);
+	bool join02 = (sad < 0) == (u[0] < 0);
+	int m = 0;
+	while ( faceEdges[f][m] != v )
+		m++;
+	return faceEdges[f][join02 ? (m ^ 1) : (3 - m)];
+}
+
 ////////////////////////////////////////////////////////////////////////
 //
 // Description:
@@ -410,6 +456,7 @@ isoLibIso(float t)
 
 	Edge	*edge0,*edge1;		/* edge buffers */
 
+	gT = t;
 	// Get sizes
 	xverts = gDataDims[0];
 	yverts = gDataDims[1];
@@ -428,6 +475,7 @@ isoLibIso(float t)
 
 	// Create the cell edge flag array
 	cell = (short *)malloc(xcells*ycells*sizeof(short));
+	gOrig = (short *)malloc(xcells*ycells*sizeof(short));
 
 	// Zero out the edge buffer
 	/*
@@ -634,6 +682,9 @@ isoLibIso(float t)
 			}
 		}
 
+		memcpy(gOrig, cell, xcells*ycells*sizeof(short));
+		gSh0 = sheet0;
+		gSh1 = sheet1;
 		/* now scan through the cells */
 		for ( i = 0; i < ycells; i++ ) {
 			s0 = sheet0 + i*xverts;
@@ -648,18 +699,18 @@ isoLibIso(float t)
 					int	v0,v1;
 
 /*					printf("initiating %d %d 0x%x\n",jj,ii,*c0); */
+					ii = i;
+					jj = j;
 					e0 = edge0 + i*xverts + j;
 					e1 = edge1 + i*xverts + j;
 
 					if ( 0 )
 						;
 #define IF(F) \
-	else if ( (flag = *c0 & f2v[F]) && bitc12(flag) == 2 ) {\
+	else if ( (flag = *c0 & f2v[F]) ) {\
 		t0 = ilog2b(flag); \
-		flag &= ~(1 << t0); \
-		t1 = ilog2b(flag); \
+		t1 = partner(t0, F); \
 	}
-
 					IF(2)
 					IF(4)
 					IF(3)
@@ -758,6 +809,8 @@ printf("destination 0x%x\n",*c0); */
 	free(edge0);
 	free(edge1);
 	free(cell);
+	free(gOrig);
+	gOrig = NULL;
 
         // Finish editing the vertex array and set the number of points.
         gVertPtr[0] = gVertPtr[1];
@@ -903,85 +956,35 @@ link(int face)
 int
 cube(short *edge, int v0, int v1)
 {
-	int   v2;		/* next intersection */
-	short v2b;		/* bit representations for intersection */
-	short mask;		/* mask for visited faces */
-	short flag;
-
 	/* test if this sheet has already been done */
 	if ( !(*edge & (1 << v0)) )
 		return 0;
 	if ( !(*edge & (1 << v1)) )
 		return 0;
 
-/* printf("0x%x: ",*edge);
-printf("%d %d ",v0,v1); */
-
-	/* turn off these bits in the current voxel */
 	*edge &= ~(1 << v0);
 	*edge &= ~(1 << v1);
 
-	/* mask off anything else on the shared face */
-	mask = ~f2v[ilog2[v2f[v0] & v2f[v1]]];
-
-	while ( 1 ) {
-		/* get all the candidate vertices */
-		flag = *edge & v2v[v0] & mask;
-
-		/* test for one option */
-#if 000
-		if ( bitc12(v2b = flag) == 1 )
-#else
-		v2b = flag;
-		if ( bitc12(v2b) == 1 )
-#endif
-			;
-		/* test for in a face */
-		else if ( (v2b = (flag &= v2n[v0]) & v2v[v1]) )
-			;
-		/* otherwise ambiguous */
-		else if ( flag )
-		{
-			short tmp = v2n[v1] & *edge;
-
-			if ( bitc12(tmp) == 1 )
-			{
-/*				printf("problem case "); */
-				v2b = flag & v2v[ilog2b(tmp)];
-			}
-			else
-			{
-/*				printf("ambiguity "); */
-				v2b = 1 << ilog2b(flag);
-			}
-		}
-		else
-		{
-/*			printf("error\n"); */
-			*edge = 0;
+	// Walk the cell's loop outwards from the entry segment, alternating
+	// ends so the vertices come out as a triangle strip.  fa and fb are
+	// the faces each end has already used.
+	int a = v0, b = v1;
+	int fa = ilog2[v2f[v0] & v2f[v1]], fb = fa;
+	for ( int n = 0; n < 12; n++ ) {
+		int fn = otherFace(a, fa);
+		int v2 = partner(a, fn);
+		if ( !(*edge & (1 << v2)) )
 			return 0;
-		}
-
-		/* add this vertex */
-		v2 = ilog2b(v2b);
 		add(v2);
-/* printf("%d ",v2); */
-		/* remove this intersection */
-		*edge &= ~v2b;
+		*edge &= ~(1 << v2);
 
-		/* test for termination */
-		if ( v2b & v2v[v1] )
-			break;
-
-		/* mask out this face */
-		mask &= ~f2v[ilog2[v2f[v0] & v2f[v2]]];
-
-		/* move along */
-		v0 = v1;	v1 = v2;
+		int fc = otherFace(b, fb);
+		if ( partner(b, fc) == v2 )
+			return fc;
+		a = b;	fa = fb;
+		b = v2;	fb = fn;
 	}
-/* printf("\n"); */
-
-	return ilog2[v2f[v1] & v2f[v2]];
+	return 0;
 }
 
 void

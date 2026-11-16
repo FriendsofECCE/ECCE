@@ -241,6 +241,15 @@ args:    '.' 'Vibration' 'SCF' 'HF' '0'
       values: 1
       units: atm
 
+[THERMOSIGMA]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
+  Begin=^symmetry_number\s
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=371 fed=1 rc=0 first-fed='symmetry_number 2'
+    key: THERMOSIGMA
+      size: 1
+      values: 2
+      units: NA
+
 [ETHERM]  Script=ecceqm.parse  Freq=last  Skip=0  Lines=1
   Begin=^thermal_energy\s
   begins=1 delivered=1 buffered_away=0

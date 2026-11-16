@@ -161,6 +161,21 @@ def main():
                               text(out, "closed"))
             check(index is not None and int(index.group(1)) > 150,
                   "the list takes the room, detail closed")
+
+            #  (e) the Properties list stays first in its column (#1073).
+            for name, steps in (
+                    ("e1", "dropat Density Map 0\ndockpane Density Map float\ndockfloating\n"),
+                    ("e2", "dockpane Density Map float\ndropat Density Map 0\n"),
+                    ("e3", "dockpane Density Map float\ndropat Density Map 1\n")):
+                out, _ = run(display, url, name,
+                             "hold 2\nlist Density Map\nhold 2\n" + steps +
+                             "hold 2\npaneorder\n")
+                pos = dict((m.group(1), int(m.group(2))) for m in re.finditer(
+                    r"^(.*?) fl=0 .*? P=(\d+)$", text(out, "paneall"), re.M))
+                check(pos.get("Property Index", 99) < pos.get("Density Map", -1),
+                      "%s: the list is above the Density Map: %s" % (name, pos))
+                check("Density Map" in text(out, "paneorder").split("\n"),
+                      "%s: the docked Density Map is shown" % name)
         finally:
             subprocess.run([os.path.join(apps.INSTALL, "bin",
                                          "ecce-gateway-stop")],

@@ -85,6 +85,20 @@ the panel's **Select Distinct...** button: it runs `ecce-ensemble pick
 `GTSTRESS: endistinct ranks=<r>... note=<n distinct of N; m merged within X Å>`. Output goes to stderr as `GTSTRESS: ...` lines; the same
 commands work under `ECCE_VIEWER_SCENE`. Test: `tests/apps/ensemble_patterns_test.py`.
 
+`surfmesh <name>` (Builder scene script, after an MOs-panel surface is drawn)
+writes `<name>.txt`: per isosurface its threshold, vertex and triangle counts,
+boundary edges (used by one triangle; 0 means closed), edges used by more than
+two triangles and edges whose two triangles wind the same way, plus the grid
+dimensions and step (A). Test: `tests/apps/surface_closed_test.py` (`--res N`
+sets the grid points per axis, `--shot DIR` saves PNGs).
+
+`paneorder`, `dropat <panel name> <pos>`, `dockfloating` (Builder scene
+script): `paneorder` writes `paneorder.txt`, the shown docked panes of the
+Properties column top to bottom, and `paneall.txt` (every pane: floating, shown, dock direction, layer, row, position); `dropat` docks a panel into that column at
+dock position `<pos>` as a mouse drop would; `dockfloating` is the Dock
+button. The Properties list stays first in the column whatever the drop.
+Test: `tests/apps/mo_explore_workflow_test.py` (e).
+
 `saveimage <path.png> <factor> [white]` (scene script, `ECCE_VIEWER_SCENE`)
 is File > Save Image...: a PNG of the 3-D view at `factor` (1, 2, 4) times
 its size, drawn with blended transparency (not the on-screen screen-door
@@ -534,6 +548,14 @@ In the machine's **Codes** tab (stored in `~/.ECCE/CONFIG.<name>`):
   GNOME screen reader, not ORCA.
 - **Modules:** `module load` names for that code only; machine-wide ones go
   on the Job script tab.
+- **Pseudopotential directory** (Quantum ESPRESSO only; a script writes
+  `QuantumESPRESSOPseudoDir: /cluster/pseudo` in `CONFIG.<name>`): at launch,
+  Launcher and `launchjob` alike, the deck's `pseudo_dir` becomes this folder.
+  The UPF file names still come from the local library when the deck is
+  written. Launch then lists the files the deck names that the folder lacks
+  on that machine as a launch warning (`LAUNCHJOB_WARNING=cancel` to stop);
+  an unreachable machine gives "Could not check ..." and no warning. Unset:
+  the deck is not changed.
 - **Environment variables:** `NAME value` per line; names containing `PATH`
   are appended to, others replace. Stored as `<Code>Environment { }`.
 - Gaussian 16: `g16root` and a scratch directory (`GAUSS_SCRDIR`); ECCE sets
@@ -605,7 +627,7 @@ A user setting **replaces** the site setting for that key; it is not added.
 | File | Holds |
 |---|---|
 | `MyMachines` | one tab-separated line per machine: name, host, three `Unspecified` fields, `procs:nodes`, `ssh`, `:Code1:Code2:...`, and capabilities (`MN:RD:SD:UN:PW` plus `AA` allocation account, `Q` queues, `TL` time limit, `MM` memory limit) |
-| `CONFIG.<name>` | `<Code>: /full/path`, `<Code>Modules: mod1 mod2`, `<Code>Environment { NAME value }`, `<Code>Command { ... }`, and the scheduler header block (`Slurm { #SBATCH ... }`) |
+| `CONFIG.<name>` | `<Code>: /full/path`, `<Code>Modules: mod1 mod2`, `QuantumESPRESSOPseudoDir: /dir`, `<Code>Environment { NAME value }`, `<Code>Command { ... }`, and the scheduler header block (`Slurm { #SBATCH ... }`) |
 | `Queues` | `Queues:` list of machines with queues, and per machine `<name>\|queueMgrName: Slurm`, `<name>\|queueMgrVersion: 2.0~`, `<name>\|prefFile: <name>.Q` |
 | `<name>.Q` | `Queues: q1 q2`, and per queue `minProcessors`, `maxProcessors`, `runLimit` (minutes), `memLimit` (MB), `scratchLimit`; 0 means no limit |
 | `MachPrefs`, `MachProfiles` | the user's launch defaults and allocation profiles; written by the window, do not hand-edit |
