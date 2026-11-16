@@ -74,6 +74,8 @@ public:
   // The main window's own menu bar, also while a tool tab's is on its
   // frame (the Organizer updates its menus by name: Run Mgmt, ...).
   static wxMenuBar *mainMenuBar(const wxTopLevelWindow *host, wxMenuBar *own);
+  // A tool's tab is being closed: the Organizer must not ask to quit.
+  static bool closingTool();
   static bool hosts(const wxTopLevelWindow *tool);
   // The tool's own sizer moves to its page: code that does GetSizer()->...
   // on the frame gets the page's through this (own: the frame's sizer).

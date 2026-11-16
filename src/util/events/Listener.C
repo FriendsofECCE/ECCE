@@ -20,8 +20,11 @@ Listener::Listener(const string& id)
 {
 }
 
+// The dispatcher is one per process; with tools as tabs (#983) a closed
+// tool's listeners would otherwise stay on it as dangling pointers.
 Listener::~Listener()
 {
+   unsubscribe();
 }
 
 string Listener::getId() const

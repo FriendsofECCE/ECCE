@@ -83,6 +83,7 @@ static std::string s_registerMessage;
 #include "util/BrowserHelp.H"
 #include "util/VizThumbnail.H"
 #include "wxgui/InProcessTools.H"
+#include "wxgui/InputBlock.H"
 #include "ToolStartup.H"
 #include "wxgui/ToolTabs.H"
 #include "wxgui/WindowShot.H"
@@ -3497,7 +3498,8 @@ void CalcMgr::runTestCommand(const string& line)
                 " MDPrepare=" + std::to_string(InProcessTools::count(MDPREPARE)) +
                 " Launcher=" + std::to_string(InProcessTools::count(LAUNCHER)) +
                 " PeriodicTable=" + std::to_string(InProcessTools::count(PERTAB)) +
-                " MachineBrowser=" + std::to_string(InProcessTools::count(MACHBROWSER));
+                " MachineBrowser=" + std::to_string(InProcessTools::count(MACHBROWSER)) +
+                " Viewer=" + std::to_string(InProcessTools::count(CALCVIEWER));
       // Top-level windows still alive: one left over keeps the main loop
       // (and the process) running after the Organizer's frame is gone.
       for (wxWindow *w : wxTopLevelWindows)
@@ -3505,6 +3507,8 @@ void CalcMgr::runTestCommand(const string& line)
           outcome += string(" tlw=") + wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
                      (w->IsShown() ? "" : "(hidden)") + "/" + string(w->GetLabel().utf8_str());
     } else if (command == "tabs" || command == "tab" ||
+               command == "tabsel" || command == "tabsave" ||
+               command == "tabclose" || command == "tabfocus" ||
                command == "towindow" || command == "totabs" ||
                command == "charhook" || command == "tabinfo" || command == "sbinfo" ||
                command == "dialog" || command == "dialoginfo" ||
@@ -4544,6 +4548,7 @@ bool CalcMgr::confirmAndQuit()
   // after the answer has nothing left to ask.
   if (p_quitAsking) return false;
   if (p_quitConfirmed) return true;
+  if (ToolTabs::closingTool()) return false;
   if (p_batch) {
     //  Quitting would leave calculations half submitted.
     ewxMessageDialog busy(this, "Launch Selected is still submitting "
@@ -13929,7 +13934,7 @@ void CalcMgr::createResource(ResourceType * resType,
       }
       const int answer = dialog.ShowModal();
       if (held) {
-        p_disabler = new wxWindowDisabler(this);
+        p_disabler = new InputBlock(this);
         p_cursor = new wxBusyCursor();
       }
       if (answer == wxID_OK) {
@@ -15760,7 +15765,7 @@ int CalcMgr::startDisabler()
 {
   if (p_disablerCount == 0 && p_disabler == 0 && p_cursor == 0) {
     p_focusOnTreeBeforeDisabler = p_focusOnTree;
-    p_disabler = new wxWindowDisabler(this);
+    p_disabler = new InputBlock(this);
     p_cursor = new wxBusyCursor();
   }
 
@@ -15780,7 +15785,8 @@ int CalcMgr::stopDisabler()
     p_disabler = 0;
     delete p_cursor;
     p_cursor = 0;
-    if (p_focusOnTreeBeforeDisabler)
+    // Not while a tool's tab is in front (#1088): the tree is hidden then.
+    if (p_focusOnTreeBeforeDisabler && !ToolTabs::activeTool())
       p_treeCtrl->SetFocus();
   }
 

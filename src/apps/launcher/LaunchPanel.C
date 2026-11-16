@@ -5,6 +5,7 @@
  */
 
 
+#include "wxgui/InputBlock.H"
 #include <fstream>
     using std::ifstream;
     using std::ofstream;
@@ -2959,7 +2960,7 @@ void LaunchPanel::launchCalc(const bool& fullLaunchFlag)
         ~DeferMessages() { if (s) s->deferMessages(false); }
     } defer(p_host);
     //  No input while the steps run; the window still repaints.
-    wxWindowDisabler noInput;
+    InputBlock noInput;
 
     while (valid && !p_launchData->done())
     {

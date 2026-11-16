@@ -443,6 +443,8 @@ void onPageChanged(wxAuiNotebookEvent& ev)
 }
 
 
+bool s_closingTool = false;
+
 void onPageClose(wxAuiNotebookEvent& ev)
 {
   // The notebook would delete the page under a live tool: the tool closes
@@ -452,7 +454,13 @@ void onPageClose(wxAuiNotebookEvent& ev)
   Tab *t = s_book ? findPage(s_book->GetPage(ev.GetSelection())) : 0;
   if (t && t->tool) {
     wxFrame *tool = t->tool;
-    s_hostFrame->CallAfter([tool]() { tool->Close(); });
+    // Closing a tool must never become the Organizer's Quit: the flag
+    // stays up until the events the close queued have run.
+    s_closingTool = true;
+    s_hostFrame->CallAfter([tool]() {
+      tool->Close();
+      s_hostFrame->CallAfter([]() { s_closingTool = false; });
+    });
   }
 }
 
@@ -656,6 +664,15 @@ void ToolTabs::setMainWindow(wxFrame *organizer)
   s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, onPageChanged);
   s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CLOSE, onPageClose);
   s_book->Bind(wxEVT_AUINOTEBOOK_TAB_RIGHT_UP, onTabRightUp);
+  // wxAuiNotebook selects the page of any window that takes the focus.  A
+  // hidden page's window gets it only from code (the Organizer refocusing
+  // its tree after an update a tool's Save or Launch caused), never from the
+  // user: keep the visible tab.  Bound handlers run before the notebook's.
+  s_book->Bind(wxEVT_CHILD_FOCUS, [](wxChildFocusEvent& ev) {
+    int idx = s_book->GetPageIndex(ev.GetWindow());
+    if (idx != wxNOT_FOUND && idx != s_book->GetSelection()) return;
+    ev.Skip();
+  });
   // After the Organizer's own activate handler, which acts as Organizer.
   organizer->Bind(wxEVT_ACTIVATE, [organizer](wxActivateEvent& ev) {
     if (ev.GetActive())
@@ -772,6 +789,8 @@ wxMenuBar *ToolTabs::mainMenuBar(const wxTopLevelWindow *host, wxMenuBar *own)
   return tabs().front().menubar;
 }
 
+
+bool ToolTabs::closingTool() { return s_closingTool; }
 
 bool ToolTabs::hosts(const wxTopLevelWindow *tool)
 {
@@ -1053,6 +1072,42 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
   }
   if (cmd == "tabs") {
     outcome = describe();
+  } else if (cmd == "tabsel") {
+    outcome = wxString::Format("selected=%d", s_book ? s_book->GetSelection() : -1);
+  } else if (cmd == "tabsave") {
+    // File > Save of the tab in front, through the main window's menu bar.
+    wxCommandEvent ev(wxEVT_MENU, wxID_SAVE);
+    ev.SetEventObject(s_hostFrame);
+    outcome = s_hostFrame && s_hostFrame->GetEventHandler()->ProcessEvent(ev)
+              ? "handled" : "not handled";
+  } else if (cmd == "tabclose" || cmd == "tabfocus") {
+    // tabclose: the tab's close button; tabfocus: code focusing a window
+    // in that page (the notebook must not switch to a hidden page).
+    long n = -1;
+    if (!s_book || !arg.ToLong(&n) || n < 0 ||
+        n >= (long)s_book->GetPageCount()) {
+      outcome = "no such tab";
+      return true;
+    }
+    if (cmd == "tabclose") {
+      wxAuiNotebookEvent ev(wxEVT_AUINOTEBOOK_PAGE_CLOSE, s_book->GetId());
+      ev.SetSelection(n);
+      ev.SetEventObject(s_book);
+      s_book->GetEventHandler()->ProcessEvent(ev);
+      outcome = "sent";
+    } else {
+      wxWindow *target = 0;
+      std::vector<wxWindow*> todo(1, s_book->GetPage(n));
+      while (!todo.empty() && !target) {
+        wxWindow *w = todo.back();
+        todo.pop_back();
+        if (w != s_book->GetPage(n) && w->CanAcceptFocus()) target = w;
+        for (wxWindow *c : w->GetChildren())
+          if (!c->IsTopLevel()) todo.push_back(c);
+      }
+      if (target) target->SetFocus();
+      outcome = target ? "focused" : "nothing to focus";
+    }
   } else if (cmd == "tab" || cmd == "towindow") {
     long n = -1;
     if (!s_book || !arg.ToLong(&n) || n < 0 ||
