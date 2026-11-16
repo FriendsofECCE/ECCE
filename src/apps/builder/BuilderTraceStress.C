@@ -10,6 +10,7 @@
 
 #include <wx/aui/aui.h>
 #include <wx/app.h>
+#include <wx/evtloop.h>
 #include <wx/radiobox.h>
 #include <wx/utils.h>
 
@@ -86,12 +87,18 @@ PlaybackControl *playback(wxWindow *w)
 }
 
 
+// Yield() returns only when nothing is pending, and a playing trace re-arms
+// its timer before the frame has finished drawing, so it never returns while
+// Play runs.  Dispatch one event at a time and watch the clock instead.
 void spin(int ms)
 {
-  wxLongLong end = wxGetLocalTimeMillis() + ms;
+  const wxLongLong end = wxGetLocalTimeMillis() + ms;
   do {
-    wxTheApp->Yield(true);
-    wxMilliSleep(2);
+    wxEventLoopBase *loop = wxEventLoopBase::GetActive();
+    if (loop && loop->Pending())
+      loop->Dispatch();
+    else
+      wxMilliSleep(2);
   } while (wxGetLocalTimeMillis() < end);
 }
 
