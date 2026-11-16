@@ -5838,3 +5838,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_vina_save_timing PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
 endif()
+
+# Tests that repeat what shorter ones cover, at a cost of 15-50 min each: run
+# before a release, left out of the pre-merge run with `ctest -LE long`.
+foreach(_t apps_clip_1920x1080 apps_clip_1366x768 apps_clip_1024x600
+           apps_workflow dialogs_native_ged16runtype)
+  if(TEST ${_t})
+    set_property(TEST ${_t} APPEND PROPERTY LABELS long)
+  endif()
+endforeach()

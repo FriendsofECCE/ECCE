@@ -15,11 +15,12 @@ here=$(cd "$(dirname "$0")" && pwd)
 conf() {
     case $1 in
       # Both hosts have 6 physical cores (nproc counts 12 threads) and are
-      # shared: one job at a time, 4 build jobs, so 2 cores stay free.
+      # shared: one job at a time, 4 build jobs, so 2 cores stay free.  Pre-merge
+      # suites: ctesti -LE long (the release run keeps the long tests).
       radium)    echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=4 CTEST_JOBS=2 KEEP=8 BUILDWRAP=' ;;
       # Builds run outside Slurm for now (Andy, 2026-11-11); to go back
       # through it, BUILDWRAP="srun -c 4 --mem=12G --" (radium: --mem=8G).
-      nerdegg)   echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=4 CTEST_JOBS=1 KEEP=3 BUILDWRAP=' ;;
+      nerdegg)   echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=4 CTEST_JOBS=3 KEEP=3 BUILDWRAP=' ;;
       # The user's desktop (8 threads), run locally without ssh; lowest priority.
       niobium)   echo 'OFF=$HOME/tmp/ecce/offload MODE=native SLOTS=1 JOBS=3 CTEST_JOBS=2 KEEP=3 BUILDWRAP=nice\ -n\ 19' ;;
       *) echo "unknown host $1" >&2; return 1 ;;
