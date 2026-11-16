@@ -422,6 +422,7 @@ class SftpOp {
     bool fail(const string& what)
     {
       p_e.m_msgStack.add("UNABLE_TO_COMPLETE_REQUEST", what.c_str());
+      if (getenv("ECCE_TEST_ORGANIZER")) fprintf(stderr, "SftpEDSI: %s\n", what.c_str());
       return false;
     }
     bool run(const string& script, string& out, int timeout = 60, bool mutates = true)
@@ -1046,9 +1047,13 @@ bool SftpEDSI::getMetaData(const vector<MetaDataRequest>& requests,
 {
   m_msgStack.clear();
   SftpOp op(*this);
-  if (!op.ok() || !mirrorForMeta(op, getVDoc)) return false;
+  if (!op.ok() || !mirrorForMeta(op, getVDoc)) {
+    if (getenv("ECCE_TEST_ORGANIZER")) fprintf(stderr, "SftpEDSI: getMetaData(%s): no mirror\n", p_url.toString().c_str());
+    return false;
+  }
   InnerPtr in(op.inner(op.path()));
   bool ret = in->getMetaData(requests, results, getVDoc);
+  if (!ret && getenv("ECCE_TEST_ORGANIZER")) fprintf(stderr, "SftpEDSI: getMetaData(%s): FileEDSI refused\n", p_url.toString().c_str());
   op.takeMessages(*in);
   results.url = EcceURL(op.toRemoteURL(results.url.toString(false)));
   return ret;

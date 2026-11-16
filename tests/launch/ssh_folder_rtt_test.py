@@ -109,7 +109,8 @@ def scenario(s, build, wrappers, control, display, label, extra_env):
             # What the tree holds, for the log of a failed run.
             r["bare-children"] = send("treechildren " + BASE)
             r["walk"] = send("walk")
-            say("  organizer log tail:\n" + "\n".join(open(olog, errors="replace").read().splitlines()[-25:]))
+            say("  organizer log tail:\n" + "\n".join(l for l in open(olog, errors="replace").read().splitlines()
+                                                 if "SftpEDSI" in l or "rror" in l)[-3000:])
         r["states"] = send("tablestates")
         r["energies"] = send("tableenergies")
     finally:
