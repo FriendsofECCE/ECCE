@@ -17,6 +17,8 @@ class wxRadioBox;
 class wxTextCtrl;
 class wxBoxSizer;
 class wxSlider;
+class wxScrolledWindow;
+class wxSizer;
 class wxSpinCtrl;
 class wxCheckBox;
 class wxStaticText;
@@ -105,6 +107,8 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       void refineZoom();
       /** Back to the whole plane. */
       void resetZoom();
+      void resetAll();
+      void updateResetButton();
       bool zoomed() const { return p_zoomed; }
       /** Plane coordinates of atom N (1-based) in the current map. */
       bool atomPoint(int n, double& u, double& v) const;
@@ -178,7 +182,8 @@ class DensityMapPanel : public VizPropertyPanel, public ecce::Listener
       wxChoice *p_principal;
       std::vector<DensityPlane::Plane> p_principalPlanes;
       wxTextCtrl *p_offsetField;
-      wxButton *p_resetOffset;
+      wxScrolledWindow *p_body;
+      wxSizer *p_moPair, *p_offRow;
       wxStaticText *p_labelA, *p_labelB, *p_labelC, *p_caption;
       wxBoxSizer *p_atomRow, *p_viewRow, *p_moreRow, *p_fillRow;
       wxCheckBox *p_fillBox;

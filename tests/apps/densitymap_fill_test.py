@@ -40,6 +40,16 @@ densitymap {t}-tot-on 800 600 0 alpha 0
 dmfill off
 dmpng {t}-tot-off 800 600
 dmstate
+dmstate
+dmcollapse 0
+dmlayout 400
+dmcollapse 1
+dmlayout 400
+dmcollapse 0
+dmoffset 0.5
+dmstate
+dmreset
+dmstate
 hold 1
 """
 
@@ -77,6 +87,33 @@ def check(out, t, log):
         p.append("total density viridis pixels: fill %d, no fill %d" % (tot_on[2], tot_off[2]))
     if tot_on[3] != (255, 255, 255):
         p.append("total density far corner is %s, not white" % (tot_on[3],))
+    p += checkLayout(log)
+    return p
+
+
+def checkLayout(log):
+    """#1081: Options and the one Reset on the MO row at 400 px, no Offset row
+    with Options closed; Reset greyed at the defaults, live after an offset."""
+    p = []
+    chunks = log.split("DENSITYMAP layout\n")[1:]
+    if len(chunks) != 2:
+        return ["%d dmlayout reports, wanted 2" % len(chunks)]
+    for name, c in (("open", chunks[0]), ("closed", chunks[1])):
+        if "layout ok" not in c:
+            p.append("layout %s: clipped" % name)
+        if "optionsrow mo" not in c or "resetrow mo" not in c:
+            p.append("layout %s: Options/Reset not on the MO row" % name)
+    if "offsetrow shown" not in chunks[0]:
+        p.append("Options open: no Offset row")
+    if "offsetrow hidden" not in chunks[1]:
+        p.append("Options closed: Offset row shown")
+    import re
+    resets = re.findall(r"^resetbutton (\d)", log, re.M)
+    offs = re.findall(r"^offset (-?[\d.]+)", log, re.M)
+    if resets[:1] != ["0"] or "1" not in resets or resets[-1] != "0":
+        p.append("Reset button states %s, wanted 0 .. 1 .. 0" % resets)
+    if offs[-1:] != ["0.000"]:
+        p.append("offset after Reset is %s" % offs[-1:])
     return p
 
 

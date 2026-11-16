@@ -382,6 +382,11 @@ scale from the outermost level, two signs blue/orange for an orbital, viridis
 for a density, with a colour bar in the key. Scene hook `dmfill on|off` sets it
 (`dmstate` prints `fill 0|1`); `dmpng` and **Export .png...** draw the picture
 as the panel shows it (test: `tests/apps/densitymap_fill_test.py`).
+The panel has one **Reset** button (next to **Options**): whole plane, offset 0,
+greyed out at the defaults; scene hook `dmreset` presses it (`dmzoomreset` resets
+the zoom only, as the double-click does; `dmstate` prints `resetbutton 0|1`).
+The Offset row sits under **Options**; `dmlayout W` also reports `optionsrow`,
+`resetrow` (`mo` when on the MO line) and `offsetrow shown|hidden`.
 
 ## How to do things
 
