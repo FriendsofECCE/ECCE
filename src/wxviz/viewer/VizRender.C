@@ -429,7 +429,7 @@ void VizRender::loadDisplayStyle(SGViewer *viewer, SGContainer *sg)
   wxString buffer;
 
   // Set a background color and compute a default fg color
-  config->Read("Background", &buffer, "#000000");
+  config->Read("Background", &buffer, "#FFFFFF");
   ewxColor bcol(buffer);
   float r = bcol.Red()/255.0;
   float g = bcol.Green()/255.0;

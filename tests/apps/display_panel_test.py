@@ -68,7 +68,7 @@ def main():
         if not ok:
             failures.append(what)
 
-    scene = ("hold 2\nmopanel compute\nhold 2\ndisplay open\nhold 1\n"
+    scene = ("display background 0 0 0\nhold 1\nmopanel compute\nhold 2\ndisplay open\nhold 1\n"
              "display info i0\nsnap s_default\n"
              "display lobes 0 0.2 1 1 1 0\nhold 2\nsnap s_custom\n"
              "display opacity 100\nhold 1\ndisplay info i1\n"
