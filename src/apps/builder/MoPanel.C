@@ -2922,7 +2922,7 @@ void MoPanel::refreshEspBar()
    p_espBar->setColors(colors);
    if (nciDrawn) {
       p_espBarInfo->SetLabel(wxString::Format(
-         "blue: attractive (hydrogen bond)   green: weak (van der Waals)   "
+         "blue: strong attraction (hydrogen bond, ionic or dative contact)   green: weak (van der Waals)   "
          "red: repulsive (steric)\n"
          "sign(lambda2) rho in a.u.; surface s = %.2f where rho < %.3f",
          fieldViewIsovalue(NCI_FIELD_TYPE), fieldViewCutoff()));

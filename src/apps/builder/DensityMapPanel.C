@@ -384,11 +384,13 @@ void DensityMapPanel::build()
     p_planeAuto = !(cfg && cfg->Exists("/DensityMap/PlaneControlsOpen"));
   }
   buttons->Add(p_planeToggle, 0, 0);
-  //  Shown only while zoomed, so the row stays one line otherwise.
-  p_zoomReset = new wxButton(this, ID_ZOOMRESET, "Whole plane");
-  p_zoomReset->SetToolTip("Mouse wheel zooms around the pointer; double-click also resets");
-  p_zoomReset->Hide();
-  top->Add(p_zoomReset, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  //  Always there and greyed out until the map is zoomed, so the layout
+  //  does not jump when zooming starts.
+  p_zoomReset = new wxButton(this, ID_ZOOMRESET, "Reset zoom");
+  p_zoomReset->SetToolTip("Show the whole map again. The mouse wheel zooms around the "
+                          "pointer, dragging pans; a double-click also resets");
+  p_zoomReset->Disable();
+  buttons->Add(p_zoomReset, 0, wxLEFT, 6);
   p_canvas->onZoom = [this](double u, double v, double f) { zoomAt(u, v, f, true); };
   p_canvas->onPan = [this](double du, double dv) { panBy(du, dv, true); };
   p_zoomRest.SetOwner(this);
@@ -800,7 +802,7 @@ void DensityMapPanel::compute(bool coarse, bool progressInPanel)
   if (p_zoomed)
     zstep = std::max(0.01, step * (p_zoomWin[1] - p_zoomWin[0]) /
                      (p_fullWin[1] - p_fullWin[0]));
-  p_zoomReset->Show(p_zoomed);
+  p_zoomReset->Enable(p_zoomed);
 
   //  Shown only if the map takes long enough to be noticed.
   wxStopWatch clock;
