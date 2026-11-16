@@ -156,7 +156,7 @@ def main():
                 time.sleep(0.5)
             return "no answer"
 
-        ans = send("prefs data add ssh Runs sshport:%d bashuser %s" % (PORT, JOBS))
+        ans = send("prefs data add ssh Runs sshport:%d bashuser %s %s" % (PORT, JOBS, os.path.join(s.state, "add.png")))
         check(ans == "saved", "SSH folder of the run folders added: %s" % ans)
         send("server sync")
         ans = send("server connect Runs")
