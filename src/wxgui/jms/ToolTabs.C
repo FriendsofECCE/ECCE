@@ -435,6 +435,8 @@ void onPageChanged(wxAuiNotebookEvent& ev)
 }
 
 
+bool s_closingTool = false;
+
 void onPageClose(wxAuiNotebookEvent& ev)
 {
   // The notebook would delete the page under a live tool: the tool closes
@@ -444,7 +446,13 @@ void onPageClose(wxAuiNotebookEvent& ev)
   Tab *t = s_book ? findPage(s_book->GetPage(ev.GetSelection())) : 0;
   if (t && t->tool) {
     wxFrame *tool = t->tool;
-    s_host->CallAfter([tool]() { tool->Close(); });
+    // Closing a tool must never become the Organizer's Quit: the flag
+    // stays up until the events the close queued have run.
+    s_closingTool = true;
+    s_host->CallAfter([tool]() {
+      tool->Close();
+      s_host->CallAfter([]() { s_closingTool = false; });
+    });
   }
 }
 
@@ -773,6 +781,8 @@ wxMenuBar *ToolTabs::mainMenuBar(const wxTopLevelWindow *host, wxMenuBar *own)
   return tabs().front().menubar;
 }
 
+
+bool ToolTabs::closingTool() { return s_closingTool; }
 
 bool ToolTabs::hosts(const wxTopLevelWindow *tool)
 {

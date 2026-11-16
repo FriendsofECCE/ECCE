@@ -1015,7 +1015,17 @@ def runTabs1088(display):
             append("tabsel", 2)
             append("tabclose 1", 8)            # the editor's close button
             append("tabs", 2)
-            append("inprocess", 2)
+            append("inprocess", 2)             # inprocess[0]
+            append("start Builder " + url, 10) # again: the tab is reused
+            append("start CalculationViewer " + url, 25)   # item 1: a tab
+            append("start CalculationViewer " + url, 10)   # item 2: reused
+            append("inprocess", 2)             # inprocess[1]
+            append("start Basistool " + url, 20)
+            append("start Basistool " + url, 10)           # item 2: reused
+            append("tabs", 2)                  # tabs[2]: Organizer, Builder, Viewer, Basis
+            append("tabclose 3", 8)            # item 4: closes only that tool
+            append("tabs", 2)                  # tabs[3]
+            append("inprocess", 2)             # inprocess[2]
             append("close", 3)                 # File > Quit
             append("answer", 3)
             append("answer no", 3)
@@ -1049,6 +1059,18 @@ def runTabs1088(display):
         check(len(tabs) >= 2 and "Editor" not in tabs[1],
               "the editor tab's close button closes it with one click",
               str(tabs))
+        inp = pb.answers(log, "inprocess")
+        check(len(inp) >= 3 and " Builder=1 " in inp[1] and " Viewer=1 " in inp[1],
+              "the Viewer opens in this process, and a second click on Builder "
+              "or Viewer for the same calculation opens no second one", str(inp))
+        check(len(tabs) >= 3 and re.search(r"3:.*Basis", tabs[2])
+              and "4:" not in tabs[2],
+              "a second click on Basis Set Tool for the same calculation opens "
+              "no second tab", str(tabs))
+        check(len(tabs) >= 4 and "Basis" not in tabs[3] and "Viewer" in tabs[3]
+              and len(inp) >= 3 and " BasisTool=0 " in inp[2],
+              "closing the Basis Set Tool's tab closes only that tool",
+              str(tabs) + str(inp))
         check(not result.crashed and result.returncode == 0
               and "Aborted" not in log and "SIGSEGV" not in log,
               "the Organizer ends cleanly", "returncode %s\n%s"

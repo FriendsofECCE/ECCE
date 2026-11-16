@@ -314,6 +314,12 @@ window of its own. This needs the tools to run in one program
 (`ECCE_ONE_PROCESS=1`, experimental); otherwise every tool opens in its own
 window and the tab says so.
 
+Clicking Builder, Viewer or Basis Set Tool again for a calculation that
+already has that tool open switches to its tab. Closing a tool's tab
+closes only that tool. While a tool starts or a job is submitted, clicks
+and keys are ignored and the cursor shows the wait; the controls are not
+greyed out.
+
 - **Layout**: **Normal** (the default), tools as tabs, and the Calculation Editor's tab
   is a Set-up tab: the editor on the left, a detail area on the right.
   **Theory Details...** and **Runtype Details...** fill that area instead of

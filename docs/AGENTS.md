@@ -186,6 +186,14 @@ second `start` of the same tool and URL meanwhile is dropped. `toolstate` answer
 launches=N`. The tool sends `ecce_tool_up` when its invoke is handled;
 `ECCE_TEST_TOOL_DELAY=<ms>` holds that signal back for a slow-start test.
 
+With `ECCE_ONE_PROCESS=1` the Viewer (`CalculationViewer`) is an in-process
+Builder tab as well; `start TOOL URL` twice for one calculation reuses the
+tool's tab (`inprocess` reports `Viewer=N`); closing a tool's tab never
+asks to quit the Organizer (`ToolTabs::closingTool`). Input is blocked
+during tool start and job submit by `InputBlock` (swallows mouse and key
+events, nothing disabled; the separate-window path keeps `wxWindowDisabler`).
+Checked by `ECCE_1088_ONLY=1 tests/apps/one_process_test.py`.
+
 Experimental, with `ECCE_ONE_PROCESS=1`: **Edit > Preferences > Windows
 and tabs** chooses which tools open as tabs of the Organizer's window (the
 Organizer is the first tab and cannot be closed). Presets **Normal**,

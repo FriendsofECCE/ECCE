@@ -24,6 +24,7 @@
 #include <wx/dnd.h>
 
 #include "util/ProgressEvent.H"
+#include "wxgui/InputBlock.H"
 #include "util/TDateTime.H"
 #include "util/JMSPublisher.H"
 #include "util/EditListener.H"
@@ -846,7 +847,7 @@ protected:
   TDateTime::DateFormat   p_dateFormat;
   TDateTime::TimeFormat   p_timeFormat;
 
-  wxWindowDisabler * p_disabler;
+  InputBlock * p_disabler;
   int p_disablerCount;
   wxBusyCursor * p_cursor;
   wxTreeItemId p_highlightId;

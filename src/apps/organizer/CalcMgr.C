@@ -83,6 +83,7 @@ static std::string s_registerMessage;
 #include "util/BrowserHelp.H"
 #include "util/VizThumbnail.H"
 #include "wxgui/InProcessTools.H"
+#include "wxgui/InputBlock.H"
 #include "ToolStartup.H"
 #include "wxgui/ToolTabs.H"
 #include "wxgui/WindowShot.H"
@@ -3460,6 +3461,7 @@ void CalcMgr::runTestCommand(const string& line)
       // Tool windows open in this process (#983, ECCE_ONE_PROCESS=1).
       outcome = "pid=" + MqttLink::processId() +
                 " Builder=" + std::to_string(InProcessTools::count(BUILDER)) +
+                " Viewer=" + std::to_string(InProcessTools::count(CALCVIEWER)) +
                 " CalculationEditor=" +
                 std::to_string(InProcessTools::count(CALCED)) +
                 " MDEnergy=" + std::to_string(InProcessTools::count(MDENERGY)) +
@@ -4514,6 +4516,7 @@ bool CalcMgr::confirmAndQuit()
   // after the answer has nothing left to ask.
   if (p_quitAsking) return false;
   if (p_quitConfirmed) return true;
+  if (ToolTabs::closingTool()) return false;
   if (p_batch) {
     //  Quitting would leave calculations half submitted.
     ewxMessageDialog busy(this, "Launch Selected is still submitting "
@@ -13896,7 +13899,7 @@ void CalcMgr::createResource(ResourceType * resType,
       }
       const int answer = dialog.ShowModal();
       if (held) {
-        p_disabler = new wxWindowDisabler(this);
+        p_disabler = new InputBlock(this);
         p_cursor = new wxBusyCursor();
       }
       if (answer == wxID_OK) {
@@ -15516,7 +15519,7 @@ int CalcMgr::startDisabler()
 {
   if (p_disablerCount == 0 && p_disabler == 0 && p_cursor == 0) {
     p_focusOnTreeBeforeDisabler = p_focusOnTree;
-    p_disabler = new wxWindowDisabler(this);
+    p_disabler = new InputBlock(this);
     p_cursor = new wxBusyCursor();
   }
 

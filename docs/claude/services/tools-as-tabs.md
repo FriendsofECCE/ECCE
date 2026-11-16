@@ -194,7 +194,13 @@ wxGTK: the embedded panel stays blank until a size event after it is made
   focus on a hidden page (`tab-switches-when-a-hidden-page-takes-focus.md`).
 - Launch from the editor tab is not covered by `runTabs1088` (Save and the
   close button are); the screen greying while a tool starts or a job is
-  submitted (#1088 items 5, 6) is `startDisabler`'s `wxWindowDisabler`.
+  submitted (#1088 items 5, 6) was `startDisabler`'s `wxWindowDisabler`; now
+  `InputBlock` (an event filter, nothing disabled) in one-process mode.
+- `InProcessTools::open` reuses a window by the context it was opened for
+  as well as its poll context (set only after its first invoke).
+- Open: #1088 item 9 (Viewer in an empty box after Terminate) not
+  reproduced or fixed; item 4's Quit-ECCE cause was not found, only guarded
+  (`closingTool` in `confirmAndQuit`).
 
 ## Popups and secondary windows of a tab (#1068)
 
