@@ -3476,6 +3476,8 @@ void CalcMgr::runTestCommand(const string& line)
                command == "towindow" || command == "totabs" ||
                command == "charhook" || command == "tabinfo" || command == "sbinfo" ||
                command == "dialog" || command == "dialoginfo" ||
+               command == "popup" || command == "popupinfo" ||
+               command == "float" || command == "floatinfo" ||
                command == "layout" || command == "tabmenu" ||
                command == "alwayswindow" || command == "setup" ||
                command == "launcher") {

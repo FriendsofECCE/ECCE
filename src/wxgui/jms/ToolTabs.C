@@ -914,6 +914,8 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
 namespace {
 wxWindowRef s_focusBefore;
 wxString s_dialogResult = "none";
+wxString s_popupResult = "none";
+wxString s_floatName;
 // Dialogs moved over the main window.  The tool's frame can be gone by the
 // time the dialog closes (its own "save changes?" question), so closing
 // must not look at the dialog's parent again.
@@ -960,6 +962,31 @@ void ToolTabs::dialogOpened(wxDialog *dlg)
     if (sz.x > 1 && sz.y > 1)
       d->Move(r.x + (r.width - sz.x) / 2, r.y + (r.height - sz.y) / 2);
   });
+}
+
+
+wxWindow *ToolTabs::popupParent(wxWindow *w)
+{
+  wxWindow *top = w ? wxGetTopLevelParent(w) : 0;
+  wxTopLevelWindow *tlw = wxDynamicCast(top, wxTopLevelWindow);
+  wxWindow *page = (s_host && tlw && hosts(tlw)) ? client(tlw) : 0;
+  return page ? page : w;
+}
+
+
+void ToolTabs::secondaryOpened(wxWindow *win, wxWindow *parent)
+{
+#ifdef __WXGTK__
+  wxWindow *top = parent ? wxGetTopLevelParent(parent) : 0;
+  wxTopLevelWindow *tlw = wxDynamicCast(top, wxTopLevelWindow);
+  if (!s_host || !win || !tlw || !hosts(tlw)) return;
+  GtkWidget *w = (GtkWidget*)win->GetHandle();
+  GtkWidget *h = (GtkWidget*)s_host->GetHandle();
+  if (w && h && GTK_IS_WINDOW(w))
+    gtk_window_set_transient_for(GTK_WINDOW(w), GTK_WINDOW(h));
+#else
+  (void)win; (void)parent;
+#endif
 }
 
 
@@ -1129,6 +1156,87 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
           wxWindow::FindFocus() ? "set" : "none");
     });
     outcome = "started";
+  } else if (cmd == "popup") {
+    // Pops a menu up through popupParent over the active tool, as its own
+    // code does, at a point inside the main window; "popupinfo" reads the
+    // measurement taken 1 s later (popup window a page, menu mapped,
+    // inside the main window, near the point), then the menu is closed.
+    Tab *t = activeTab();
+    if (!t || !t->tool) { outcome = "no tool tab"; return true; }
+    wxFrame *tool = t->tool;
+    s_popupResult = "pending";
+    s_host->CallAfter([tool]() {
+      wxMenu menu;
+      menu.Append(wxID_ANY, "One");
+      menu.Append(wxID_ANY, "Two");
+      wxWindow *w = ToolTabs::popupParent(tool);
+      wxPoint want = s_host->GetScreenRect().GetTopLeft() + wxPoint(300, 200);
+      wxTimer timer;
+      timer.Bind(wxEVT_TIMER, [&menu, &timer, w, want](wxTimerEvent&) {
+        bool mapped = false, inside = false, near = false;
+#ifdef __WXGTK__
+        GtkWidget *m = (GtkWidget*)menu.m_menu;
+        mapped = m && gtk_widget_get_mapped(m);
+        GdkWindow *gw = m ? gtk_widget_get_window(m) : 0;
+        if (gw && mapped) {
+          gint x = 0, y = 0;
+          gdk_window_get_origin(gw, &x, &y);
+          wxRect mr(x, y, gtk_widget_get_allocated_width(m),
+                    gtk_widget_get_allocated_height(m));
+          inside = s_host->GetScreenRect().Contains(mr);
+          near = abs(x - want.x) < 30 && abs(y - want.y) < 30;
+        }
+        if (m) gtk_menu_popdown(GTK_MENU(m));
+#endif
+        s_popupResult = wxString::Format(
+            "parent=%s shown=%d mapped=%d inside=%d near=%d",
+            w->IsKindOf(CLASSINFO(wxTopLevelWindow)) ? "frame" : "page",
+            (int)w->IsShownOnScreen(), (int)mapped,
+            (int)inside, (int)near);
+        timer.Stop();
+      });
+      timer.StartOnce(1000);
+      w->PopupMenu(&menu, w->ScreenToClient(want));
+      if (s_popupResult == "pending") s_popupResult = "closed early";
+    });
+    outcome = "started";
+  } else if (cmd == "popupinfo") {
+    outcome = s_popupResult;
+  } else if (cmd == "float") {
+    // Floats the first docked pane of the active tool's AUI manager;
+    // "floatinfo" says whether its frame is shown and transient for the
+    // main window.
+    Tab *t = activeTab();
+    if (!t || !t->tool || !t->mgr) { outcome = "no aui tool tab"; return true; }
+    wxAuiPaneInfoArray& panes = t->mgr->GetAllPanes();
+    s_floatName.clear();
+    for (size_t i = 0; i < panes.GetCount(); i++) {
+      wxAuiPaneInfo& p = panes[i];
+      if (p.window && p.IsShown() && !p.IsToolbar() && !p.IsFloating() &&
+          p.dock_direction != wxAUI_DOCK_CENTER && !p.name.empty()) {
+        s_floatName = p.name;
+        p.Float();
+        break;
+      }
+    }
+    if (s_floatName.empty()) { outcome = "no pane"; return true; }
+    t->mgr->Update();
+    outcome = "floated " + s_floatName;
+  } else if (cmd == "floatinfo") {
+    Tab *t = activeTab();
+    if (!t || !t->mgr || s_floatName.empty()) { outcome = "none"; return true; }
+    wxAuiPaneInfo& p = t->mgr->GetPane(s_floatName);
+    wxWindow *f = p.IsOk() ? p.frame : 0;
+    bool transient = false, mapped = false;
+#ifdef __WXGTK__
+    GtkWidget *g = f ? (GtkWidget*)f->GetHandle() : 0;
+    GtkWindow *tf = g ? gtk_window_get_transient_for(GTK_WINDOW(g)) : 0;
+    transient = tf && (GtkWidget*)tf == (GtkWidget*)s_host->GetHandle();
+    mapped = g && gtk_widget_get_mapped(g);
+#endif
+    outcome = wxString::Format("float=%s frame=%d shown=%d transient=%d mapped=%d",
+        s_floatName, (int)(f != 0), (int)(f && f->IsShownOnScreen()),
+        (int)transient, (int)mapped);
   } else if (cmd == "dialoginfo") {
     outcome = s_dialogResult;
   } else if (cmd == "layout") {

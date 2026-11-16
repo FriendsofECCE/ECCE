@@ -230,6 +230,11 @@ message box over the active tool tab and closes it 1.5 s later;
 `dialoginfo` then reports whether it was transient for the Organizer,
 shown and inside its window, its and the window's rectangles, and whether
 the focus came back (`focus=set`).
+Popup menus and floating panes of a tab: `popup` pops a menu over the
+active tool tab and closes it after 1 s; `popupinfo` reports `parent=page
+shown mapped inside near`. `float` floats the first docked pane of
+the active Builder tab; `floatinfo` reports whether its frame is shown and
+transient for the Organizer's window.
 
 The commands (`ecce-launch`, `ecce-series`, ...) are separate and are the
 way an assistant acts on ECCE. The help pages (**Help > ECCE Help**, `help/src/*.md`)

@@ -1912,7 +1912,7 @@ bool Builder::mouseEvent(wxMouseEvent *event)
         SGFragment *sf = getSG()->getFragment();
         if (sf && sf->m_atomHighLight.size() == 1)
           menu.Append(ID_DISTORT_BONDS, _("Distort Bonds..."));
-        PopupMenu(&menu);
+        ToolTabs::popupParent(this)->PopupMenu(&menu);
       });
    }
    // For not, process all button events.  May want to revert to just button up

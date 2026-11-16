@@ -125,7 +125,7 @@ because the body's pizza was never size-allocated again. `allocateChildren`
 ## Test hooks
 
 `layout show|<preset>|KEY=tab|window`, `tabmenu <n>`, `alwayswindow <n>`,
-`prefs windows show|preset|row|snap` (runLayouts), `tabs`, `tab <n>`, `towindow <n>`, `totabs <title>`, `dialog`/`dialoginfo`, `tabinfo [labels]` (page size,
+`prefs windows show|preset|row|snap` (runLayouts), `tabs`, `tab <n>`, `towindow <n>`, `totabs <title>`, `dialog`/`dialoginfo`, `popup`/`popupinfo`, `float`/`floatinfo`, `tabinfo [labels]` (page size,
 shown children, status bar parent, frame mapped or not, scroller view and
 virtual size, `STALE` when the virtual height is below the sizer minimum,
 `<label>=reachable|CLIPPED` for each button label in the comma list,
@@ -184,9 +184,27 @@ wxGTK: the embedded panel stays blank until a size event after it is made
 
 ## Known gaps
 
-- Popup menus and other non-dialog windows with the hidden frame as parent:
-  not checked (modal dialogs are handled, see below).
-- `MenuPlacement::InTab` is not implemented.
+- `MenuPlacement::InTab` is not implemented (the design above is one
+  sentence: each tab draws its own menu bar; no layout is specified).
+- A floated AUI pane stays on screen when another tab is selected.
+
+## Popups and secondary windows of a tab (#1068)
+
+`PopupMenu` on the hidden frame has no screen place to attach to: call
+`ToolTabs::popupParent(this)->PopupMenu(menu, pt)` (pt in that window's
+coordinates; the page in a tab, else `this`). Done in `Builder::mouseEvent`
+(constraints menu) and `CalcEd::OnButtonCalcedBasisQuickClick`. Popups on
+child controls (ElementButton, PerTabPanel, ewxGrid, WxFeedback,
+ThingMenubtn, `ewxPopupMenu(this...)`) already use a window in the page.
+AUI floating frames, `TearFrame` and `TearableContent` (a
+wxPopupTransientWindow whose parent is the Builder frame) call
+`ToolTabs::secondaryOpened(win, parent)`: GTK-transient for the Organizer's
+window. The AUI float frame had its transient link cut on purpose
+(`detachFromParent`); it is set to the main window after that. Frames made
+with `wxGetTopLevelParent(this)` of a page child (OPDOS, normal modes plots,
+`ewxPlotCtrl`) already have the Organizer as parent. Hooks `popup` /
+`popupinfo`, `float` / `floatinfo`; test `runTabsPopups`
+(`ECCE_POPUPS_ONLY=1`).
 
 ## Launcher (adopted the same way, #983 step 1)
 
