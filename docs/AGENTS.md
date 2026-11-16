@@ -234,7 +234,7 @@ plus save would; the panel uses the Basis Set Tool's library and `GBSAssign`;
 the describe line also has `assign=on|off checked=<elements> ecpoffer=<ecp>:<elements>|-
 msg=<last message>`; `basis assign NAME [@ O,H]` assigns an orbital set to the
 listed elements (default all; the library name is lower case, e.g. `def2-tzvp`),
-replacing what they had, and saves once every element has a set; `basis ecp NAME
+replacing what they had, and saves (an element with no set yet takes the assigned one, `msg=<El>_took_<set>_for_now.`; if the set covers none, the call is refused with `msg=Also_choose_a_basis_set_for_...`); `basis ecp NAME
 [@ I]` adds an ECP from the library's ECP list, `basis ecp` alone adds the
 matching ECP the panel offered after an ECP orbital set (`no ECP offered`
 otherwise), `basis fit NAME [@ O]` adds a charge or exchange fitting set

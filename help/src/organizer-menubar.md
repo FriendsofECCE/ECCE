@@ -340,8 +340,8 @@ window and the tab says so.
   set needs an orbital set on the element first). When you assign an orbital
   set that was built around an ECP, the panel offers the matching ECP and
   the elements that need it, with an **Add** button; it is never added
-  unasked. A system with an element that has no set yet is kept in the
-  editor but not saved until every element has one. **Full Basis Set
+  unasked. Every element needs a set, so one that has none yet takes the
+  set you assign, if it covers it; check it and assign another to change it. **Full Basis Set
   Tool...** opens the Basis Set Tool for the contraction editor and the
   coefficients. Codes whose details exist only in the older form (NWChem,
   MOPAC, Quantum ESPRESSO, CP2K, GROMACS and others) still open those
