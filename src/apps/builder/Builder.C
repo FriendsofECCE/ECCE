@@ -5688,6 +5688,38 @@ bool Builder::writeFragmentToImageFile(SFile *file, wxString type, wxString ext)
 
 
 /**
+ * VizRender::image, with the drawn orbital or density recomputed on a finer
+ * grid first when the image is larger than the view.
+ */
+bool Builder::imageOnFineSurface(const string& path, int w, int h, bool white, int factor)
+{
+  auto render = [&]() {
+    //  What the image is drawn from, for tests (strip indices, not triangles).
+    SoSearchAction sa;
+    sa.setType(ChemIso::getClassTypeId());
+    sa.setInterest(SoSearchAction::ALL);
+    sa.setSearchingAll(true);
+    if (getSG()) sa.apply(getSG());
+    long idx = 0;
+    for (int i = 0; i < sa.getPaths().getLength(); i++) {
+      ChemIso *iso = (ChemIso *)sa.getPaths()[i]->getTail();
+      idx += ((SoIndexedTriangleStripSet *)(*iso->getChildren())[0])->coordIndex.getNum();
+    }
+    fprintf(stderr, "BUILDER: saveimage x%d surface indices %ld\n", factor, idx);
+    return VizRender::image(p_viewer, path, w, h, white, factor);
+  };
+  if (factor > 1 && p_calculation != 0) {
+    set<PropertyPanel*> panels =
+        PropertyPanel::getPanels(p_calculation->getURL().toString());
+    for (set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end(); ++it)
+      if (MoPanel *mo = dynamic_cast<MoPanel*>(*it))
+        return mo->renderOnFineGrid(factor, render);
+  }
+  return render();
+}
+
+
+/**
  * File > Save Image...: a PNG of the 3-D view at 1x, 2x or 4x its size,
  * with blended transparency and smooth edges (VizRender::image).
  */
@@ -5720,7 +5752,7 @@ void Builder::OnSaveImageClick(wxCommandEvent& event)
     path = fd.GetPath().ToStdString();
   }
   wxSize size = p_viewer->GetSize();
-  if (!VizRender::image(p_viewer, path, size.GetWidth(), size.GetHeight(), white, factor))
+  if (!imageOnFineSurface(path, size.GetWidth(), size.GetHeight(), white, factor))
     showMessage(VizRender::msg(), true);
 }
 
@@ -6848,6 +6880,9 @@ void Builder::updatePropertyMenus()
       for (int i = 0; i < 30; i++) { wxTheApp->Yield(true); wxMilliSleep(10); }
       viewer->viewAll();
       SceneScript run(viewer, sg, p_calculation, outdir);
+      run.setImageFunction([this](const string& path, int w, int h, bool white, int f) {
+        return imageOnFineSurface(path, w, h, white, f);
+      });
       run.setTraceStep([this](int index) { return traceFrame(index); });
       //  "mopanel <name>": press the MO panel's Compute, as a user would,
       //  recording every frame the Builder's own canvas paints meanwhile.

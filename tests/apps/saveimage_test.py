@@ -46,8 +46,10 @@ viewall
 moselect 5
 mopanel compute
 hold 2
+surfmesh m30a
 saveimage {out}/x1.png 1 white
 saveimage {out}/x2.png 2 white
+surfmesh m30b
 """
 
 # #1075: a hook rotation followed at once by saveimage (no paint between)
@@ -119,6 +121,30 @@ def check(out, log):
         p.append("%d isolated lobe pixels: a screen-door pattern" % isolated)
     if "FAIL" in log:
         p.append("a scene command failed")
+    p += checkFine(out, log)
+    return p
+
+
+def checkFine(out, log):
+    """#1075: 2x recomputes the surface on a 60 grid for the render only."""
+    import re
+    p = []
+    if not re.search(r"MOPANEL: fine grid 60 ", log):
+        p.append("2x did not compute a 60-point grid")
+    n = {int(k): int(v) for k, v in re.findall(
+        r"saveimage x(\d+) surface indices (\d+)", log)}
+    if 2 not in n or n[2] <= 0:
+        p.append("no surface indices reported for 2x")
+    try:
+        a = open(os.path.join(out, "m30a.txt")).read()
+        b = open(os.path.join(out, "m30b.txt")).read()
+        print("      surface at 2x: %s indices; on screen before: %s"
+              % (n.get(2), a.splitlines()[1] if len(a.splitlines()) > 1 else a))
+        if a != b:
+            p.append("the on-screen surface changed over the save: %r -> %r"
+                     % (a.splitlines()[1:2], b.splitlines()[1:2]))
+    except OSError as e:
+        p.append("missing surfmesh: %s" % e)
     return p
 
 
