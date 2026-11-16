@@ -87,7 +87,7 @@ void WxFind::OnFindButtonGoClick( wxCommandEvent& event )
   EcceURL url(selection.c_str());
 
   // parent is always CalcMgr
-  CalcMgr *calcmgr = dynamic_cast<CalcMgr*>(GetParent());
+  CalcMgr *calcmgr = p_owner ? p_owner : dynamic_cast<CalcMgr*>(GetParent());
   NULLPOINTEREXCEPTION(calcmgr, "could not cast from wxWindow to CalcMgr");
 
   calcmgr->findNode(url);

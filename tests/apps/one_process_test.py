@@ -564,6 +564,9 @@ def runTabs(display):
             append("tabs", 2)                  # Organizer's menus back
             shot("tabs-organizer.png")
             append("charhook 27", 2)           # the Organizer tab is active
+            for what in ("prefs", "find", "props " + url):
+                append("orgwindow " + what, 3)
+                append("orgwindowinfo", 1)
             append("menu exit", 3)             # File > Quit reaches CalcMgr
             append("answer cancel", 3)         # the "Quit ECCE" question
             append("tabs", 2)                  # still running
@@ -614,6 +617,12 @@ def runTabs(display):
                   tabs[2].split("menus=")[-1] == orgMenus,
                   "selecting the Organizer tab brings its menu bar back",
                   tabs[2])
+        ow = pb.answers(log, "orgwindowinfo")
+        check(len(ow) == 3 and all(
+                  o == "transient=host inside=1 mapped=1" for o in ow),
+              "the Organizer's preferences, find and properties windows are "
+              "transient for the main window, inside it and mapped",
+              str(ow) + str(pb.answers(log, "orgwindow")))
         info = pb.answers(log, "tabinfo")
         print("      tabinfo: " + str(info))
         m = re.search(r"page=(\d+)x(\d+) onscreen=1 children=\d+ shown=(\d+) "

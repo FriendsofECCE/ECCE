@@ -16,6 +16,8 @@ using std::string;
 
 #include "WxFindGUI.H"
 
+class CalcMgr;
+
 /**
  * The implementation of WxFindGUI.
  * User is prompted for a string which is matched to any filename which contains
@@ -35,8 +37,13 @@ class WxFind : public WxFindGUI
     virtual ~WxFind( );
 
     void setFrom(const string& value);
+    // The Organizer, given explicitly: the parent is the main window when
+    // the Organizer is a tab (#1065).
+    void setOwner(CalcMgr *owner) { p_owner = owner; }
 
   protected:
+
+    CalcMgr *p_owner = 0;
 
     virtual void OnFindButtonGoClick( wxCommandEvent& event );
     virtual void OnFindButtonFindClick( wxCommandEvent& event );

@@ -115,6 +115,9 @@ public:
   // hidden frame (or a child of it) as parent: made transient for the main
   // window, since the hidden frame is never on screen.
   static void secondaryOpened(wxWindow *win, wxWindow *parent);
+  // Tests: "transient=host|other|none inside=0|1 mapped=0|1" for a window
+  // (inside: its centre is within the main window).
+  static wxString describeSecondary(wxWindow *win);
 
   // Tests: "tabs" lists "<n>:<title>[*]" (* = active) and the menu bar's
   // menus; "tab <n>", "towindow <n>", "totabs <title part>" act on them;

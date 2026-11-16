@@ -1011,7 +1011,7 @@ void ToolTabs::secondaryOpened(wxWindow *win, wxWindow *parent)
 #ifdef __WXGTK__
   wxWindow *top = parent ? wxGetTopLevelParent(parent) : 0;
   wxTopLevelWindow *tlw = wxDynamicCast(top, wxTopLevelWindow);
-  if (!s_hostFrame || !win || !tlw || !hosts(tlw)) return;
+  if (!s_hostFrame || !win || !tlw || (tlw != s_hostFrame && !hosts(tlw))) return;
   GtkWidget *w = (GtkWidget*)win->GetHandle();
   GtkWidget *h = (GtkWidget*)s_hostFrame->GetHandle();
   if (w && h && GTK_IS_WINDOW(w))
@@ -1019,6 +1019,27 @@ void ToolTabs::secondaryOpened(wxWindow *win, wxWindow *parent)
 #else
   (void)win; (void)parent;
 #endif
+}
+
+
+wxString ToolTabs::describeSecondary(wxWindow *win)
+{
+  if (!s_hostFrame || !win) return "no window";
+  bool mapped = false;
+  const char *transient = "none";
+#ifdef __WXGTK__
+  GtkWidget *g = (GtkWidget*)win->GetHandle();
+  if (g && GTK_IS_WINDOW(g)) {
+    GtkWindow *tf = gtk_window_get_transient_for(GTK_WINDOW(g));
+    if (tf) transient = (GtkWidget*)tf == (GtkWidget*)s_hostFrame->GetHandle()
+                        ? "host" : "other";
+    mapped = gtk_widget_get_mapped(g);
+  }
+#endif
+  wxRect r = win->GetScreenRect();
+  wxPoint c(r.x + r.width / 2, r.y + r.height / 2);
+  return wxString::Format("transient=%s inside=%d mapped=%d", transient,
+      (int)s_hostFrame->GetScreenRect().Contains(c), (int)mapped);
 }
 
 

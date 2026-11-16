@@ -12,6 +12,8 @@
 #include "WxPropertiesGUI.H"
 #include "PropertyContextPanel.H"
 
+class CalcMgr;
+
 /**
  * Implementation of WxPropertiesGUI.
  * This class displays the properties for a given Resource in a dialog.
@@ -30,6 +32,9 @@ class WxProperties : public WxPropertiesGUI
     ~WxProperties();
 
     void setContext(WxResourceTreeItemData *itemData);
+    // The Organizer, given explicitly: the parent is the main window when
+    // the Organizer is a tab (#1065).
+    void setOwner(CalcMgr *owner) { p_owner = owner; }
 
   protected:
 
@@ -39,6 +44,7 @@ class WxProperties : public WxPropertiesGUI
 
   private:
 
+    CalcMgr *p_owner = 0;
     WxResourceTreeItemData *p_itemData;
 
     PropertyContextPanel *p_propPanel;

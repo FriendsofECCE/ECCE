@@ -780,9 +780,22 @@ static string newWorkflowName(const vector<Resource*>& calcs,
 
 TextFileViewer *CalcMgr::viewFile(const EcceURL& url)
 {
-  auto *viewer = new TextFileViewer(this, url);
+  auto *viewer = new TextFileViewer(winParent(), url); onHost(viewer);
   viewer->Show();
   return viewer;
+}
+
+wxWindow *CalcMgr::winParent() const
+{
+  return ToolTabs::screenWindow(this);
+}
+
+void CalcMgr::trackSecondary(wxWindow *w)
+{
+  if (!w || !ToolTabs::hosts(this)) return;
+  ToolTabs::secondaryOpened(w, w->GetParent());
+  for (const wxWeakRef<wxWindow>& r : p_secondary) if (r.get() == w) return;
+  p_secondary.push_back(w);
 }
 
 wxMenuBar *CalcMgr::ownMenuBar() const
@@ -828,6 +841,9 @@ bool CalcMgr::Destroy()
 {
   // The host owns the geometry from here on (saveSettings).
   if (ToolTabs::hosts(this)) p_wasHosted = true;
+  // Children of the host now, so they would outlive this window.
+  for (wxWeakRef<wxWindow>& r : p_secondary) if (r) delete r.get();
+  p_secondary.clear();
   ToolTabs::release(this, false);
   return CalcMgrGUI::Destroy();
 }
@@ -2659,7 +2675,7 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "allocations") {
       // "allocations": opens Tools > Allocations, waits up to 10 s for the
       // answers and prints each row as "ALLOC: machine|account|used|checked".
-      AllocationsDialog *d = new AllocationsDialog(this);
+      AllocationsDialog *d = new AllocationsDialog(winParent()); onHost(d);
       d->Show();
       for (int i = 0; i < 100 && (i == 0 || d->checking()); i++) {
         wxMilliSleep(100);
@@ -2777,7 +2793,7 @@ void CalcMgr::runTestCommand(const string& line)
         roots.push_back(EcceURL(urls.substr(at, end - at)));
         at = end + 1;
       }
-      QsarDialog *d = new QsarDialog(this, calculationsUnder(roots));
+      QsarDialog *d = new QsarDialog(winParent(), calculationsUnder(roots)); onHost(d);
       string why;
       const bool ran = d->ok(why) && (command == "qsarpca"
           ? d->runPca(scaling, comps, why)
@@ -2804,7 +2820,7 @@ void CalcMgr::runTestCommand(const string& line)
       std::istringstream args(calcName);
       string a, b, png;
       args >> a >> b >> png;
-      CompareForcesDialog *d = new CompareForcesDialog(this, a, b);
+      CompareForcesDialog *d = new CompareForcesDialog(winParent(), a, b); onHost(d);
       d->Show();
       for (int i = 0; i < 5; ++i) wxYield();
       if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
@@ -2833,9 +2849,9 @@ void CalcMgr::runTestCommand(const string& line)
       } else {
         // Sides as in compareenergies; the lists are those of the project
         // of the first calculation.
-        CompareEnergiesDialog *d = new CompareEnergiesDialog(this,
+        CompareEnergiesDialog *d = new CompareEnergiesDialog(winParent(),
             calculationsIn(EcceURL(parseSide(ua)[0].first).getParent().toString()),
-            parseSide(ua), parseSide(ub));
+            parseSide(ua), parseSide(ub)); onHost(d);
         d->Show();
         if (!kelvin.empty()) d->setTemperature(kelvin);
         for (int i = 0; i < 5; i++) wxYield();
@@ -2864,7 +2880,7 @@ void CalcMgr::runTestCommand(const string& line)
         base = body.substr(7, nl == string::npos ? string::npos : nl - 7);
         while (!base.empty() && isspace((unsigned char)base.back())) base.pop_back();
       }
-      ReactionOverviewDialog *d = new ReactionOverviewDialog(this, body, base);
+      ReactionOverviewDialog *d = new ReactionOverviewDialog(winParent(), body, base); onHost(d);
       d->Show();
       d->setTreatment(treatment);
       if (!kelvin.empty()) d->setTemperature(kelvin);
@@ -2890,7 +2906,7 @@ void CalcMgr::runTestCommand(const string& line)
       std::istringstream args(calcName);
       string folder, treatment, png, flag;
       args >> folder >> treatment >> png;
-      ReactionOverviewDialog *d = new ReactionOverviewDialog(this, "", folder);
+      ReactionOverviewDialog *d = new ReactionOverviewDialog(winParent(), "", folder); onHost(d);
       d->Show();
       d->setTreatment(treatment);
       for (int i = 0; i < 5; i++) wxYield();
@@ -2945,7 +2961,7 @@ void CalcMgr::runTestCommand(const string& line)
       while (names.size() < frags.size()) names.push_back("fragment-" + std::to_string(names.size() + 1));
       string heading;
       for (size_t k = 0; k < names.size(); k++) heading += (k ? " | " : "") + names[k];
-      FragOrbDetailsDialog *d = new FragOrbDetailsDialog(this, complex, frags, names, heading);
+      FragOrbDetailsDialog *d = new FragOrbDetailsDialog(winParent(), complex, frags, names, heading); onHost(d);
       d->SetSize(sizeW, sizeH);
       d->Show();
       for (int i = 0; i < 10; i++) wxYield();
@@ -3304,8 +3320,8 @@ void CalcMgr::runTestCommand(const string& line)
         else png = w;
       }
       Resource *folder = EDSIFactory::getResource(EcceURL(f));
-      BatchSmilesDialog *d = new BatchSmilesDialog(this, folder ? folder->getName() : "?",
-                                                   folderCalculations(folder));
+      BatchSmilesDialog *d = new BatchSmilesDialog(winParent(), folder ? folder->getName() : "?",
+                                                   folderCalculations(folder)); onHost(d);
       string why;
       if (!d->loadFile(file, why)) outcome = "failed: " + why;
       else if (command == "batchsmilesdialog") {
@@ -3343,8 +3359,8 @@ void CalcMgr::runTestCommand(const string& line)
       string t, png;
       args >> t >> png;
       WxResourceTreeItemData *n = findNode(EcceURL(t), true, true);
-      SiteScreenDialog *d = new SiteScreenDialog(this, wxString::FromUTF8(
-          n ? n->getResource()->getName().c_str() : "host"), "");
+      SiteScreenDialog *d = new SiteScreenDialog(winParent(), wxString::FromUTF8(
+          n ? n->getResource()->getName().c_str() : "host"), ""); onHost(d);
       d->Show();
       for (int i = 0; i < 5; ++i) wxYield();
       if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
@@ -3487,13 +3503,54 @@ void CalcMgr::runTestCommand(const string& line)
                             CodeChoice::hiddenCount());
       outcome = "ok";
       for (const string& l : dlg.labels()) outcome += " code=" + l + ";";
+    } else if (command == "orgwindow" || command == "orgwindowinfo") {
+      // "orgwindow prefs|find|props URL" opens one of the Organizer's
+      // modeless windows; "orgwindowinfo" reports, 1.5 s on, whether it is
+      // transient for the main window, inside it and mapped (#1065).
+      if (command == "orgwindowinfo") {
+        outcome = p_orgWindowInfo.empty() ? "none" : p_orgWindowInfo;
+      } else {
+        std::istringstream args(calcName);
+        string what, u;
+        args >> what >> u;
+        wxWindow *w = 0;
+        if (what == "prefs") {
+          if (p_prefs == (GlobalPrefs*)0) { p_prefs = new GlobalPrefs(winParent()); onHost(p_prefs); }
+          p_prefs->Show(true);
+          w = p_prefs;
+        } else if (what == "find") {
+          wxCommandEvent none;
+          OnFindClick(none);
+          w = p_find;
+        } else if (what == "props") {
+          WxResourceTreeItemData *n = findNode(EcceURL(u), true, true);
+          if (n) { viewProperties(n); w = p_secondary.empty() ? 0 : p_secondary.back().get(); }
+        }
+        if (!w) {
+          outcome = "no window";
+        } else {
+          p_orgWindowInfo = "pending";
+          wxWeakRef<wxWindow> ref(w);
+          CallAfter([this, ref]() {
+            auto *t = new wxTimer;
+            t->Bind(wxEVT_TIMER, [this, ref, t](wxTimerEvent&) {
+              p_orgWindowInfo = ref ? string(ToolTabs::describeSecondary(ref.get()).utf8_str())
+                                    : "gone";
+              t->Stop();
+              CallAfter([t]() { delete t; });
+            });
+            t->StartOnce(1500);
+          });
+          outcome = "opened " + what;
+        }
+      }
     } else if (command == "prefs") {
       // "prefs open|colours jmol|colours ecce|advanced KEY on|childenv VAR|state|snap PATH": the
       // Preferences window, its Colours tab as a click chooses.
       std::istringstream args(calcName);
       string what, arg;
       args >> what >> arg;
-      if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(this);
+      if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(winParent()); onHost(p_prefs);
       p_prefs->Show(true);
       if (what == "codes") {
         // "prefs codes list|page [hiddenfirst]|tick NAME on|off|all|registered"
@@ -5030,7 +5087,7 @@ void CalcMgr::appendMoreCodes( wxMenu& menu )
 
 void CalcMgr::OnMoreCodesClick( wxCommandEvent& event )
 {
-  if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(this);
+  if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(winParent()); onHost(p_prefs);
   p_prefs->showCodesPage(true);
   p_prefs->Show(true);
   p_prefs->Raise();
@@ -7195,7 +7252,7 @@ void CalcMgr::OnRenameClick( wxCommandEvent& event )
 void CalcMgr::OnFindClick( wxCommandEvent& event )
 {
   if(p_find == (WxFind*)0) {
-    p_find = new WxFind(this);
+    p_find = new WxFind(winParent()); onHost(p_find); p_find->setOwner(this);
   }
   p_find->Show(true);
   updateFindDlg();
@@ -7210,7 +7267,7 @@ void CalcMgr::OnFindClick( wxCommandEvent& event )
 void CalcMgr::OnPreferencesClick( wxCommandEvent& event )
 {
   if (p_prefs == (GlobalPrefs*)0) {
-    p_prefs = new GlobalPrefs(this);
+    p_prefs = new GlobalPrefs(winParent()); onHost(p_prefs);
   }
   p_prefs->Show(true);
   p_prefs->Raise();
@@ -11317,7 +11374,7 @@ CompareEnergiesDialog *CalcMgr::newCompareEnergiesDialog(
     project = (isCalc ? sel[0].getParent() : sel[0]).toString();
     if (isCalc && sel.size() == 1) a.push_back(std::make_pair(sel[0].toString(), 1));
   }
-  return new CompareEnergiesDialog(this, calculationsIn(project), a, b);
+  return new CompareEnergiesDialog(winParent(), calculationsIn(project), a, b);
 }
 
 void CalcMgr::OnCompareEnergies(wxCommandEvent&)
@@ -11410,7 +11467,9 @@ void CalcMgr::OnQsarAnalysis(wxCommandEvent&)
 void CalcMgr::OnAllocations(wxCommandEvent&)
 {
   //  Not modal: the answers arrive in the background.
-  (new AllocationsDialog(this))->Show();
+  AllocationsDialog *alloc = new AllocationsDialog(winParent());
+  onHost(alloc);
+  alloc->Show();
 }
 
 void CalcMgr::OnGlobalTool(wxCommandEvent& event)
@@ -13467,7 +13526,8 @@ void CalcMgr::viewProperties(WxResourceTreeItemData *itemData)
 {
   EDSIServerCentral servers;
   string title = servers.mapURLtoName(itemData->getUrl());
-  WxProperties *propsView = new WxProperties(this, wxID_ANY, title);
+  WxProperties *propsView = new WxProperties(winParent(), wxID_ANY, title); onHost(propsView);
+  propsView->setOwner(this);
 
   propsView->setContext(itemData);
   propsView->Show(true);
