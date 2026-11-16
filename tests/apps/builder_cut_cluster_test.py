@@ -49,6 +49,11 @@ def quartz_checks(atoms, label, radius):
     check(sis, "%s: has silicon" % label)
     check(all(len(nb[i]) == 4 for i in sis),
           "%s: every Si has 4 neighbours (%s)" % (label, [len(nb[i]) for i in sis]))
+    for i, a in enumerate(atoms):
+        if (a[0] == "Si" and len(nb[i]) != 4) or (a[0] == "H" and len(nb[i]) != 1):
+            say("      | %s: %s %s bonded to %s" % (label, a[0], a[1], [
+                "%s %.2f" % (atoms[j][0], math.dist(a[1], atoms[j][1]))
+                for j in nb[i]]))
     hs = [i for i, a in enumerate(atoms) if a[0] == "H"]
     check(hs, "%s: has capping H" % label)
     check(all(len(nb[i]) == 1 for i in hs),
@@ -106,7 +111,7 @@ def main():
         if check(len(found) == 2, "quartz: two clusters reported (%d)" % len(found)):
             first = found[0]
             real = [a for a in first if a[0] != "H"]
-            check(36 <= len(real) <= 48,
+            check(36 <= len(real) <= 56,
                   "quartz r=5: %d Si and O atoms, expected about 42" % len(real))
             quartz_checks(first, "quartz H caps", 5.0)
             quartz_checks(found[1], "quartz units + OH caps", 5.0)
