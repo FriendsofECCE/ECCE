@@ -507,6 +507,7 @@ preopt_ends
 previous
 print[p_mos]
 print[p_orben]
+printbasis
 product
 puts
 pvdz
