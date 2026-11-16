@@ -2674,9 +2674,20 @@ void CalcMgr::runTestCommand(const string& line)
       else outcome = "ok";
       if (ran && outcome == "ok") {
         d->showTab(command == "qsartable" ? 0 : command == "qsarpca" ? 1 : 2);
+        if (!png.empty()) d->SetSize(wxSize(width, height));
         d->Show();
         for (int i = 0; i < 5; ++i) wxYield();
-        if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+        if (command != "qsartable" && !d->verifyPresentation(out, why)) outcome = "failed: " + why;
+        if (!png.empty() && command == "qsartable") {
+          ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+        } else if (!png.empty()) {
+          for (int page = 0; page < 3; ++page) {
+            d->selectPresentationPage(page);
+            for (int i = 0; i < 5; ++i) wxYield();
+            ecceClientShot(d, wxString::FromUTF8((page == 0 ? png : png + ".page" +
+                                                  std::to_string(page) + ".png").c_str()));
+          }
+        }
         outcome += " | " + d->status();
       }
       d->Destroy();

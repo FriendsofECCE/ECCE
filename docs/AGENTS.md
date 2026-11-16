@@ -467,15 +467,17 @@ prediction percentages, measured-unit errors and warnings for weak validation
 or small samples, with omissions grouped by reason. The Components grid holds
 all computed component statistics; Ctrl+C copies selected cells as TSV and
 Copy table copies the whole grid with headers. Molecule points have hover
-numbers and click selection linked to the Molecules grid; the variance plot
-shows component and cumulative explained variance. PLS adds a sorted VIP grid
+numbers; clicking one selects its molecule in the QSAR window's Table tab. The
+Variance plot (second page beside each result plot) shows component and
+cumulative explained variance. PLS adds a sorted VIP grid
 with descriptor descriptions (VIP > 1: more important than average).
 Save Results writes the displayed `analysis_components.csv`,
 `analysis_summary.txt` and PLS `analysis_vip.csv` alongside the existing numeric
 files and saved model. CLI text uses the same presentation; JSON is unchanged.
+In the QSAR window every results grid has a Copy table button and Ctrl+C.
 The `qsarpca` and `qsarpls` test hooks accept `[png [width height]]` after the
 usual model arguments, save screenshots of the report, grids and variance
-plot, and verify real clipboard, hover and click paths. Their output directory
+plot, and verify real clipboard, hover and click paths (`QsarWindow::verifyPresentation`). Their output directory
 contains `presentation.tsv`, `selection.tsv`, `hover.txt` and
 `presentation-check.txt` for script assertions. The check file also records
 painted axis labels as `plot-x`, `plot-y` and `scree-y`; all use enclosing

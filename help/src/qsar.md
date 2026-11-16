@@ -266,5 +266,8 @@ within and away from the model plane. A descriptor that is itself a model
 estimate of the property (SlogP when modelling logP) is flagged in the PLS tab,
 with a tick box to leave it out. Plots show the property in the title, the
 explained share on the PCA axes, and the units of the column header; hover over
-a point for its name and values.
+a point for its name and values. Click a point to select that molecule in the **Table** tab. Each result
+plot has a second page, **Variance**, with the variance explained per component and
+cumulatively. **Copy table** beside each results table copies it with its headings;
+**Ctrl+C** copies the selected cells.
 

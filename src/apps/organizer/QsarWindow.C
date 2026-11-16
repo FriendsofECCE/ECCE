@@ -138,17 +138,61 @@ public:
     SetBackgroundStyle(wxBG_STYLE_PAINT);
     Bind(wxEVT_PAINT, &QsarPlot::OnPaint, this);
     Bind(wxEVT_MOTION, &QsarPlot::OnMove, this);
-    Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent&) { p_hover = -1; Refresh(); });
+    Bind(wxEVT_LEAVE_WINDOW, [this](wxMouseEvent&) { p_hover = -1; UnsetToolTip(); Refresh(); });
+    Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent& e) { click(e.GetPosition()); });
   }
+
+  /// Called with the molecule name when a point is clicked.
+  std::function<void(const string&)> onPick;
+  /// Tick labels of the last paint, for the test hook.
+  string xLabels, yLabels;
 
   /// flags: 0 normal, 1 outside the model limits, 2 kept out of the fit (test set).
   void set(const string& title, const string& xl, const string& yl, const vector<string>& names,
            const vector<double>& x, const vector<double>& y, const vector<int>& flag,
-           bool parity)
+           bool parity, const vector<string>& tips)
   {
     p_title = title; p_xl = xl; p_yl = yl; p_names = names; p_x = x; p_y = y; p_flag = flag;
-    p_parity = parity; p_hover = -1;
+    p_parity = parity; p_hover = p_sel = -1; p_tips = tips;
+    UnsetToolTip();
     Refresh();
+  }
+
+  size_t count() const { return p_x.size(); }
+  const string& tip(size_t i) const { return p_tips[i]; }
+  wxPoint position(size_t i) const
+  {
+    const Frame f = frame(nullptr);
+    return wxPoint((int)std::lround(X(f, p_x[i])), (int)std::lround(Y(f, p_y[i])));
+  }
+  /// The point within 10 px of `pos`, or -1.
+  int hit(wxPoint pos) const
+  {
+    int best = -1;
+    if (p_x.empty() || p_x.size() != p_y.size() || p_tips.size() != p_x.size()) return best;
+    const Frame f = frame(nullptr);
+    double bd = 100;
+    for (size_t i = 0; i < p_x.size(); i++) {
+      const double dx = X(f, p_x[i]) - pos.x, dy = Y(f, p_y[i]) - pos.y;
+      if (dx * dx + dy * dy < bd) { bd = dx * dx + dy * dy; best = (int)i; }
+    }
+    return best;
+  }
+  /// Show the details of the point under `pos` as its tooltip; returns them.
+  string hover(wxPoint pos)
+  {
+    const int i = hit(pos);
+    if (i != p_hover) { p_hover = i; Refresh(); }
+    if (i < 0) { UnsetToolTip(); return ""; }
+    SetToolTip(U(p_tips[i]));
+    return p_tips[i];
+  }
+  int click(wxPoint pos)
+  {
+    p_sel = hit(pos);
+    if (p_sel >= 0 && onPick) onPick(p_names[p_sel]);
+    Refresh();
+    return p_sel;
   }
 
 private:
@@ -205,16 +249,19 @@ private:
     if (p_x.empty() || p_x.size() != p_y.size()) return;
     const Frame f = frame(gc.get());
     // Grid and ticks.
+    xLabels.clear(); yLabels.clear();
     gc->SetPen(wxPen(GRIDC));
     const double sx = niceStep(f.x1 - f.x0, 6), sy = niceStep(f.y1 - f.y0, 6);
     for (double v = std::ceil(f.x0 / sx) * sx; v <= f.x1; v += sx) {
       gc->StrokeLine(X(f, v), f.t, X(f, v), f.t + f.h);
       const string t = tickText(v, sx);
+      xLabels += t + " ";
       text(gc.get(), t, X(f, v) - extent(gc.get(), t).x / 2.0, f.t + f.h + 4, INK, 0.9);
     }
     for (double v = std::ceil(f.y0 / sy) * sy; v <= f.y1; v += sy) {
       gc->StrokeLine(f.l, Y(f, v), f.l + f.w, Y(f, v));
       const string t = tickText(v, sy);
+      yLabels += t + " ";
       text(gc.get(), t, f.l - 6 - extent(gc.get(), t, 0.9).x, Y(f, v) - 8, INK, 0.9);
     }
     gc->SetPen(wxPen(wxColour(120, 120, 120)));
@@ -241,6 +288,11 @@ private:
       if (fl == 1) gc->DrawRectangle(px - 4, py - 4, 8, 8);
       else gc->DrawEllipse(px - 3.5, py - 3.5, 7, 7);
       placed.push_back(wxRect((int)px - 4, (int)py - 4, 8, 8));
+      if ((int)i == p_sel) {
+        gc->SetPen(wxPen(*wxBLACK, 2));
+        gc->SetBrush(*wxTRANSPARENT_BRUSH);
+        gc->DrawEllipse(px - 8, py - 8, 16, 16);
+      }
     }
     for (size_t i = 0; i < p_x.size(); i++) {
       const wxSize e = extent(gc.get(), p_names[i], 0.85);
@@ -288,16 +340,7 @@ private:
 
   void OnMove(wxMouseEvent& e)
   {
-    int best = -1;
-    if (!p_x.empty() && p_x.size() == p_y.size()) {
-      const Frame f = frame(nullptr);
-      double bd = 100;  // 10 px, squared
-      for (size_t i = 0; i < p_x.size(); i++) {
-        const double dx = X(f, p_x[i]) - e.GetX(), dy = Y(f, p_y[i]) - e.GetY();
-        if (dx * dx + dy * dy < bd) { bd = dx * dx + dy * dy; best = (int)i; }
-      }
-    }
-    if (best != p_hover) { p_hover = best; Refresh(); }
+    hover(e.GetPosition());
   }
 
   string p_title, p_xl, p_yl;
@@ -305,11 +348,143 @@ private:
   vector<double> p_x, p_y;
   vector<int> p_flag;
   bool p_parity = false;
-  int p_hover = -1;
+  vector<string> p_tips;
+  int p_hover = -1, p_sel = -1;
+};
+
+// Variance bars per component with the cumulative line (PCA: R2X; PLS: R2X, R2Y, Q2).
+class QsarScree : public wxPanel
+{
+public:
+  string yLabels;
+  QsarScree(wxWindow *parent) : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxSize(440, 420))
+  {
+    SetBackgroundStyle(wxBG_STYLE_PAINT);
+    Bind(wxEVT_PAINT, &QsarScree::OnPaint, this);
+    Bind(wxEVT_SIZE, [this](wxSizeEvent& e) { Refresh(); e.Skip(); });
+  }
+  void set(const vector<vector<double>>& bars, const vector<vector<double>>& lines)
+  {
+    p_bars = bars; p_lines = lines;
+    Refresh();
+  }
+
+private:
+  void OnPaint(wxPaintEvent&)
+  {
+    wxAutoBufferedPaintDC dc(this);
+    dc.SetBackground(*wxWHITE_BRUSH);
+    dc.Clear();
+    const wxSize sz = GetClientSize();
+    if (p_bars.empty() || p_bars[0].empty() || sz.x < 180 || sz.y < 180) return;
+    const int n = (int)std::min<size_t>(10, p_bars[0].size()), left = 55, top = 70;
+    const double w = sz.x - left - 20, h = sz.y - top - 50;
+    double lo = 0, hi = 100;
+    for (const auto *group : {&p_bars, &p_lines})
+      for (const auto& s : *group)
+        for (int i = 0; i < n && i < (int)s.size(); i++)
+          if (std::isfinite(s[i])) lo = std::min(lo, s[i] * 100);
+    const double step = niceStep(hi - lo, 4);
+    lo = std::floor(lo / step) * step;
+    auto Y = [&](double pc) { return top + (int)((hi - pc) / (hi - lo) * h); };
+    auto X = [&](int i) { return left + (int)((i + .5) * w / n); };
+    dc.SetFont(plotFont());
+    dc.SetTextForeground(INK);
+    dc.DrawText("Variance explained (%)", left, 44);
+    yLabels.clear();
+    for (double v = lo; v <= hi + step * 1e-6; v += step) {
+      dc.SetPen(wxPen(GRIDC));
+      dc.DrawLine(left, Y(v), left + (int)w, Y(v));
+      const wxString t = U(tickText(v, step));
+      dc.DrawText(t, left - 6 - dc.GetTextExtent(t).x, Y(v) - 7);
+      yLabels += t.ToStdString() + " ";
+    }
+    const wxColour col[] = {BLUE, ORANGE, wxColour(25, 140, 90)};
+    const char *lab[] = {"R\xC2\xB2X", "R\xC2\xB2Y", "Q\xC2\xB2"};
+    const int count = (int)std::min<size_t>(3, p_bars.size());
+    for (int s = 0; s < count; s++) {
+      const double bw = std::min(22.0, .7 * w / n / count);
+      dc.SetPen(wxPen(col[s])); dc.SetBrush(wxBrush(col[s]));
+      for (int i = 0; i < n && i < (int)p_bars[s].size(); i++) {
+        if (!std::isfinite(p_bars[s][i])) continue;
+        const int y = Y(p_bars[s][i] * 100), zero = Y(0);
+        dc.DrawRectangle(X(i) + (int)((s - count / 2.0) * bw), std::min(y, zero),
+                         std::max(1, (int)bw - 1), std::max(1, std::abs(zero - y)));
+      }
+      dc.SetPen(wxPen(col[s], 2));
+      for (int i = 1; i < n && i < (int)p_lines[s].size(); i++)
+        if (std::isfinite(p_lines[s][i]) && std::isfinite(p_lines[s][i - 1]))
+          dc.DrawLine(X(i - 1), Y(p_lines[s][i - 1] * 100), X(i), Y(p_lines[s][i] * 100));
+      for (int i = 0; i < n && i < (int)p_lines[s].size(); i++)
+        if (std::isfinite(p_lines[s][i])) dc.DrawCircle(X(i), Y(p_lines[s][i] * 100), 3);
+      const int lx = left + s * (int)(w / count);
+      dc.DrawRectangle(lx, 10, 9, 9);
+      dc.DrawText(U(string(lab[s]) + " per component"), lx + 14, 6);
+      dc.DrawLine(lx, 33, lx + 10, 33);
+      dc.DrawText(U(string("Cumulative ") + lab[s]), lx + 14, 26);
+    }
+    dc.SetTextForeground(INK);
+    for (int i = 0; i < n; i++) dc.DrawText(wxString::Format("%d", i + 1), X(i) - 4, top + (int)h + 5);
+    dc.DrawText("Component", left + (int)w / 2 - 30, sz.y - 24);
+  }
+  vector<vector<double>> p_bars, p_lines;
 };
 
 
 namespace {
+// Tab-separated text of the grid: all of it with headings, or the selected cells.
+wxString gridText(wxGrid *g, bool whole)
+{
+  wxString text;
+  int r0 = 0, r1 = g->GetNumberRows() - 1, c0 = 0, c1 = g->GetNumberCols() - 1;
+  if (!whole) {
+    r0 = r1 + 1; c0 = c1 + 1; r1 = c1 = -1;
+    for (int r = 0; r < g->GetNumberRows(); ++r)
+      for (int c = 0; c < g->GetNumberCols(); ++c)
+        if (g->IsInSelection(r, c)) {
+          r0 = std::min(r0, r); r1 = std::max(r1, r);
+          c0 = std::min(c0, c); c1 = std::max(c1, c);
+        }
+    if (r1 < 0) { r0 = r1 = g->GetGridCursorRow(); c0 = c1 = g->GetGridCursorCol(); }
+  }
+  if (r0 < 0 || c0 < 0 || c1 < c0) return text;
+  if (whole) {
+    for (int c = c0; c <= c1; ++c) { if (c != c0) text += "\t"; text += g->GetColLabelValue(c); }
+    text += "\n";
+  }
+  for (int r = r0; r <= r1; ++r) {
+    for (int c = c0; c <= c1; ++c) {
+      if (c != c0) text += "\t";
+      if (whole || !g->IsSelection() || g->IsInSelection(r, c)) text += g->GetCellValue(r, c);
+    }
+    text += "\n";
+  }
+  return text;
+}
+
+bool copyGrid(wxGrid *g, bool whole)
+{
+  if (!wxTheClipboard->Open()) return false;
+  const bool ok = wxTheClipboard->SetData(new wxTextDataObject(gridText(g, whole)));
+  wxTheClipboard->Close();
+  return ok;
+}
+
+wxString clipboardText()
+{
+  wxTextDataObject text;
+  if (wxTheClipboard->Open()) { wxTheClipboard->GetData(text); wxTheClipboard->Close(); }
+  return text.GetText();
+}
+
+wxButton *copyButton(wxWindow *parent, wxGrid *g)
+{
+  wxButton *b = new wxButton(parent, wxID_ANY, "Copy table");
+  b->SetToolTip("Copy the whole table with its headings (Ctrl+C copies the selected cells).");
+  b->Bind(wxEVT_BUTTON, [g](wxCommandEvent&) { copyGrid(g, true); });
+  return b;
+}
+
 // A results grid: worded headers, 3 decimals, rows up to `used` highlighted and
 // the column `emph` in bold on a tint.
 void fillGrid(wxGrid *g, const vector<string>& heads, const vector<vector<string>>& rows,
@@ -345,6 +520,11 @@ wxGrid *makeGrid(wxWindow *parent, const wxSize& size)
   g->EnableEditing(false);
   g->HideRowLabels();
   g->SetColLabelSize(wxGRID_AUTOSIZE);
+  g->Bind(wxEVT_CHAR_HOOK, [g](wxKeyEvent& e) {
+    if (e.GetModifiers() == wxMOD_CONTROL && (e.GetKeyCode() == 'C' || e.GetKeyCode() == 'c'))
+      copyGrid(g, false);
+    else e.Skip();
+  });
   return g;
 }
 
@@ -619,6 +799,7 @@ void QsarWindow::build()
   wxBoxSizer *tb = new wxBoxSizer(wxHORIZONTAL);
   tb->Add(exp, 0, wxALL, 4);
   tb->Add(keyButton, 0, wxALL, 4);
+  tb->Add(copyButton(tp, p_tableGrid), 0, wxALL, 4);
   ts->Add(tb, 0);
   keyButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     std::unique_ptr<wxDialog> dlg(createKey());
@@ -670,6 +851,7 @@ void QsarWindow::build()
   p_pcaShow->Hide();
   pc->Add(p_pcaConst, 0, wxALIGN_CENTER_VERTICAL | wxALL, 4);
   pc->Add(p_pcaShow, 0, wxALL, 2);
+  pc->Add(copyButton(pp, p_pcaGrid), 0, wxALL, 2);
   pl->Add(pc, 0, wxEXPAND);
   pl->Add(wrapped(pp,
       "How to read this: each molecule is a point; Component 1 and Component 2 are the two "
@@ -679,8 +861,12 @@ void QsarWindow::build()
       "capture together; the cross-validated prediction (Q\xC2\xB2) says how much of it holds up when parts of the "
       "data are left out. Squares outside the limits are unlike the rest.", 560), 0, wxEXPAND | wxALL, 4);
   pm->Add(pl, 1, wxEXPAND);
-  p_pcaPlot = new QsarPlot(pp);
-  pm->Add(p_pcaPlot, 1, wxEXPAND | wxALL, 4);
+  p_pcaPlots = new wxNotebook(pp, wxID_ANY);
+  p_pcaPlot = new QsarPlot(p_pcaPlots);
+  p_pcaScree = new QsarScree(p_pcaPlots);
+  p_pcaPlots->AddPage(p_pcaPlot, "Scores");
+  p_pcaPlots->AddPage(p_pcaScree, "Variance");
+  pm->Add(p_pcaPlots, 1, wxEXPAND | wxALL, 4);
   ps->Add(pm, 1, wxEXPAND);
   pp->SetSizer(ps);
   p_book->AddPage(pp, "PCA");
@@ -730,8 +916,12 @@ void QsarWindow::build()
   ll->Add(p_plsSentence, 0, wxEXPAND | wxALL, 4);
   p_plsGrid = makeGrid(lp, wxSize(560, 140));
   ll->Add(p_plsGrid, 0, wxEXPAND | wxALL, 4);
-  ll->Add(new wxStaticText(lp, wxID_ANY, "Descriptors by importance (VIP, variable importance in projection)"), 0, wxLEFT, 6);
+  wxBoxSizer *vl = new wxBoxSizer(wxHORIZONTAL);
+  vl->Add(new wxStaticText(lp, wxID_ANY, "Descriptors by importance (VIP, variable importance in projection)"),
+          0, wxALIGN_CENTER_VERTICAL | wxLEFT, 6);
+  ll->Add(vl, 0);
   p_vipGrid = makeGrid(lp, wxSize(560, 130));
+  vl->Add(copyButton(lp, p_vipGrid), 0, wxLEFT, 8);
   ll->Add(p_vipGrid, 0, wxEXPAND | wxALL, 4);
   wxBoxSizer *lc = new wxBoxSizer(wxHORIZONTAL);
   p_plsConst = new wxStaticText(lp, wxID_ANY, "");
@@ -739,6 +929,7 @@ void QsarWindow::build()
   p_plsShow->Hide();
   lc->Add(p_plsConst, 0, wxALIGN_CENTER_VERTICAL | wxALL, 4);
   lc->Add(p_plsShow, 0, wxALL, 2);
+  lc->Add(copyButton(lp, p_plsGrid), 0, wxALL, 2);
   ll->Add(lc, 0, wxEXPAND);
   ll->Add(wrapped(lp,
       "How to read this: the plot compares what was measured with what the model gives. "
@@ -748,8 +939,12 @@ void QsarWindow::build()
       "better than the average). Importance (VIP) says how much a descriptor matters: above 1 is "
       "more than average.", 560), 0, wxEXPAND | wxALL, 4);
   lm->Add(ll, 1, wxEXPAND);
-  p_plsPlot = new QsarPlot(lp);
-  lm->Add(p_plsPlot, 1, wxEXPAND | wxALL, 4);
+  p_plsPlots = new wxNotebook(lp, wxID_ANY);
+  p_plsPlot = new QsarPlot(p_plsPlots);
+  p_plsScree = new QsarScree(p_plsPlots);
+  p_plsPlots->AddPage(p_plsPlot, "Predicted vs observed");
+  p_plsPlots->AddPage(p_plsScree, "Variance");
+  lm->Add(p_plsPlots, 1, wxEXPAND | wxALL, 4);
   ls->Add(lm, 1, wxEXPAND);
   lp->SetSizer(ls);
   p_book->AddPage(lp, "PLS");
@@ -765,6 +960,8 @@ void QsarWindow::build()
   p_plsScale->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) {
     p_plsScale->SetToolTip(SCALING_TIPS[std::max(0, p_plsScale->GetSelection())]); });
   p_plsY->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { updateCircular(); });
+  for (QsarPlot *plot : {p_pcaPlot, p_plsPlot})
+    plot->onPick = [this](const string& name) { pickRow(name); };
 
   change->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     vector<EcceURL> c = p_choose ? p_choose() : vector<EcceURL>();
@@ -851,12 +1048,14 @@ bool QsarWindow::runPca(const string& scaling, int components, string& why)
   double t2lim = 1e300, dmlim = 1e300;
   { const size_t a = p_summary.find("T2 limit (95%) ");
     if (a != string::npos) sscanf(p_summary.c_str() + a, "T2 limit (95%%) %lf, DModX limit (95%%) %lf", &t2lim, &dmlim); }
-  vector<string> names;
+  vector<string> names, tips;
   vector<double> x, y;
   vector<int> flag;
   for (size_t i = 1; i < sc.size(); i++) {
     if (sc[i].size() < 5 || A < 2) continue;
     names.push_back(sc[i][0]);
+    tips.push_back(sc[i][0] + "\nComponent 1: " + sc[i][1] + "\nComponent 2: " + sc[i][2] +
+                   "\nT\xC2\xB2: " + sc[i][A + 1] + "\nDModX: " + sc[i][A + 2]);
     x.push_back(atof(sc[i][1].c_str()));
     y.push_back(atof(sc[i][2].c_str()));
     flag.push_back(atof(sc[i][A + 1].c_str()) > t2lim || atof(sc[i][A + 2].c_str()) > dmlim ? 1 : 0);
@@ -883,7 +1082,8 @@ bool QsarWindow::runPca(const string& scaling, int components, string& why)
   p_pcaPlot->set("Molecules by their first two components",
                  "Component 1 (" + percent(share(1)) + " % of the variance)",
                  "Component 2 (" + percent(share(2)) + " % of the variance)", names, x, y, flag,
-                 false);
+                 false, tips);
+  fillScree(p_pcaScree, comp, false);
   int constant = 0;
   takeNotes(p_summary, p_notes, constant);
   p_pcaConst->SetLabel(constant ? wxString::Format("%d descriptors are constant across these molecules "
@@ -912,19 +1112,25 @@ bool QsarWindow::runPls(const string& y, const string& scaling, int components, 
   if (st != 0) { why = failure("ecce-qsar pls failed"); return false; }
   const string label = niceHeader(y);
   vector<vector<string>> pr = parseCsv(slurp(fs::path(p_dir) / "pls_predictions.csv"));
-  vector<string> names;
+  vector<string> names, tips;
   vector<double> obs, pred;
   vector<int> flag;
   for (size_t i = 1; i < pr.size(); i++) {
     if (pr[i].size() < 4) continue;
     names.push_back(pr[i][0]);
+    char res[40];
+    snprintf(res, sizeof res, "%.6g", atof(pr[i][2].c_str()) - atof(pr[i][3].c_str()));
+    tips.push_back(pr[i][0] + "\nObserved " + y + ": " + pr[i][2] + "\nPredicted " + y + ": " +
+                   pr[i][3] + "\nResidual (observed - predicted): " + res +
+                   (pr[i][1] == "test" ? "\nTest set" : "\nFitted"));
     flag.push_back(pr[i][1] == "test" ? 2 : 0);
     obs.push_back(atof(pr[i][2].c_str()));
     pred.push_back(atof(pr[i][3].c_str()));
   }
   p_plsPlot->set("PLS of " + label + ": predicted vs observed", "observed " + label,
-                 "predicted " + label, names, obs, pred, flag, true);
+                 "predicted " + label, names, obs, pred, flag, true, tips);
   vector<vector<string>> comp = parseCsv(slurp(fs::path(p_dir) / "pls_components.csv"));
+  fillScree(p_plsScree, comp, true);
   const vector<vector<string>> sc = parseCsv(slurp(fs::path(p_dir) / "pls_scores.csv"));
   const size_t A = sc.empty() ? 0 : sc[0].size() - 3;
   vector<vector<string>> rows;
@@ -983,6 +1189,99 @@ bool QsarWindow::saveResults(const string& dir, string& why) const
     if (!fs::exists(src)) continue;
     fs::copy_file(src, fs::path(dir) / f, fs::copy_options::overwrite_existing, ec);
     if (ec) { why = string("cannot write ") + f + ": " + ec.message(); return false; }
+  }
+  return true;
+}
+
+// Component statistics of ecce-qsar's pca/pls_components.csv as the Variance plot's series.
+void QsarWindow::fillScree(QsarScree *plot, const vector<vector<string>>& comp, bool pls)
+{
+  const int series = pls ? 3 : 1;
+  vector<vector<double>> bars(series), lines(series);
+  for (size_t i = 1; i < comp.size() && i <= 10; i++)
+    for (int j = 0; j < series; j++) {
+      const size_t col = pls ? 1 + 2 * j : 2;
+      if (col + 1 >= comp[i].size()) continue;
+      bars[j].push_back(comp[i][col].empty() ? NAN : atof(comp[i][col].c_str()));
+      lines[j].push_back(comp[i][col + 1].empty() ? NAN : atof(comp[i][col + 1].c_str()));
+    }
+  plot->set(bars, lines);
+}
+
+// A clicked plot point selects its molecule's row in the Table tab.
+void QsarWindow::pickRow(const string& name)
+{
+  for (size_t r = 0; r < p_rows.size(); r++)
+    if (!p_rows[r].empty() && p_rows[r][0] == name) {
+      p_tableGrid->ClearSelection();
+      p_tableGrid->SetGridCursor((int)r, 0);
+      p_tableGrid->SelectRow((int)r);
+      p_tableGrid->MakeCellVisible((int)r, 0);
+      setStatus(name + " is selected in the Table tab.");
+      return;
+    }
+}
+
+// 0: the result plot of the tab last run, 1: its Variance plot, 2: the Table tab.
+void QsarWindow::selectPresentationPage(int page)
+{
+  const bool pls = !p_plsStatus.empty();
+  showTab(page == 2 ? 0 : pls ? 2 : 1);
+  (pls ? p_plsPlots : p_pcaPlots)->SetSelection(page == 1 ? 1 : 0);
+  Layout();
+  p_book->Layout();
+}
+
+// Test hook: drives the real copy, Ctrl+C, hover and click paths of the last run's tab and
+// records the outcome and plot axis labels in `dir`.
+bool QsarWindow::verifyPresentation(const string& dir, string& why)
+{
+  const bool pls = !p_plsStatus.empty();
+  wxGrid *grid = pls ? p_plsGrid : p_pcaGrid;
+  QsarPlot *plot = pls ? p_plsPlot : p_pcaPlot;
+  QsarScree *scree = pls ? p_plsScree : p_pcaScree;
+  if (!grid->GetNumberRows() || !plot->count()) { why = "no presentation data"; return false; }
+  selectPresentationPage(0);
+  const bool copied = copyGrid(grid, true);
+  const wxString whole = clipboardText();
+  const bool wholeOk = copied && whole == gridText(grid, true);
+  std::ofstream(fs::path(dir) / "presentation.tsv") << whole.ToStdString(wxConvUTF8);
+  grid->ClearSelection();
+  grid->SelectBlock(0, 0, 0, std::min(1, grid->GetNumberCols() - 1));
+  wxKeyEvent key(wxEVT_CHAR_HOOK);
+  key.m_keyCode = 'C';
+  key.SetControlDown(true);
+  grid->GetEventHandler()->ProcessEvent(key);
+  const wxString block = clipboardText();
+  const bool selection = !block.empty() && block == gridText(grid, false);
+  std::ofstream(fs::path(dir) / "selection.tsv") << block.ToStdString(wxConvUTF8);
+  grid->ClearSelection();
+  plot->Refresh(); plot->Update();
+  std::ofstream hoverFile(fs::path(dir) / "hover.txt");
+  for (size_t i = 0; i < plot->count(); i++) hoverFile << plot->tip(i) << "\n\n";
+  hoverFile.close();
+  const wxPoint pos = plot->position(0);
+  const int at = plot->hit(pos);
+  const bool hoverOk = at >= 0 && plot->hover(pos) == plot->tip(at);
+  p_tableGrid->ClearSelection();
+  const int clicked = plot->click(pos);
+  bool clickOk = false;
+  for (size_t r = 0; clicked >= 0 && r < p_rows.size(); r++)
+    if (p_tableGrid->IsInSelection((int)r, 0) && !p_rows[r].empty() &&
+        plot->tip(clicked).compare(0, p_rows[r][0].size(), p_rows[r][0]) == 0)
+      clickOk = true;
+  selectPresentationPage(1);
+  scree->Refresh(); scree->Update();
+  selectPresentationPage(0);
+  auto verdict = [](bool pass) { return pass ? "PASS" : "FAIL"; };
+  std::ofstream(fs::path(dir) / "presentation-check.txt") <<
+    "copy=" << verdict(wholeOk) << "\nselection=" << verdict(selection) <<
+    "\nhover=" << verdict(hoverOk) << "\nclick=" << verdict(clickOk) <<
+    "\nplot-x=" << plot->xLabels << "\nplot-y=" << plot->yLabels <<
+    "\nscree-y=" << scree->yLabels << "\n";
+  if (!(wholeOk && selection && hoverOk && clickOk)) {
+    why = "presentation clipboard, hover or click check failed";
+    return false;
   }
   return true;
 }

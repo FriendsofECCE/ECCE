@@ -122,8 +122,45 @@ def run(display):
               (table, reference_table))
         check("* = component kept" in summary and "model plane" in summary,
               "legend explains kept components and model distances", summary)
-        # Copy, hover and click checks of the former dialog's presentation layer are not
-        # ported to the QSAR window (#996).
+        with open(out + "/presentation.tsv", encoding="utf-8", newline="") as f:
+            copied = list(csv.reader(f, delimiter="\t"))
+        check(len(copied) > 2 and copied[0][0] == "Component"
+              and any("Variance explained" in h or "variance explained" in h for h in copied[0]),
+              "Copy table copies every row with the window's worded headings", copied[:2])
+        with open(out + "/selection.tsv", encoding="utf-8", newline="") as f:
+            selection = list(csv.reader(f, delimiter="\t"))
+        check(selection == [copied[1][:2]], "Ctrl+C copies only the selected cells", selection)
+        with open(out + "/presentation-check.txt", encoding="utf-8") as f:
+            verification = f.read()
+        for action in ("copy", "selection", "hover", "click"):
+            check(action + "=PASS" in verification, "GUI " + action + " follows the interactive path", verification)
+        check("scree-y=" in verification and "plot-x=" in verification,
+              "the Variance and result plots painted tick labels", verification)
+        with open(out + "/hover.txt", encoding="utf-8") as f:
+            hover = f.read()
+        check("m0" in hover and "observed" in hover.lower() and "predicted" in hover.lower() and "residual" in hover.lower(),
+              "plot hover contains molecule names and diagnostics", hover[:500])
+        prediction_rows = {r[0]: r for r in gui[1:]}
+        bad_hover = []
+        for block in hover.strip().split("\n\n"):
+            name = block.splitlines()[0]
+            observed = re.search(r"^Observed .*: ([^\n]+)", block, re.MULTILINE)
+            predicted = re.search(r"^Predicted .*: ([^\n]+)", block, re.MULTILINE)
+            residual = re.search(r"^Residual .*: ([^\n]+)", block, re.MULTILINE)
+            source = prediction_rows.get(name)
+            if not source or not all((observed, predicted, residual)):
+                bad_hover.append(block)
+                continue
+            expected_observed = float(source[2])
+            expected_predicted = float(source[3])
+            expected_residual = expected_observed - expected_predicted
+            if (float(observed[1]) != expected_observed or
+                    float(predicted[1]) != expected_predicted or
+                    abs(float(residual[1]) - expected_residual) >
+                    5e-6 * max(1.0, abs(expected_residual))):
+                bad_hover.append(block)
+        check(not bad_hover, "every hover prediction and residual equals its molecule's numeric results",
+              bad_hover[:2])
         check("°C" in summary and any("°C" in h for h in table[0]),
               "prediction errors retain the measured unit", (summary, table[0]))
         with open(out + "/analysis_vip.csv", encoding="utf-8", newline="") as f:

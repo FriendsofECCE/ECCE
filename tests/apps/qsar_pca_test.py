@@ -138,6 +138,24 @@ def run(display):
               (table, reference_table))
         check("* = component kept" in summary and "model plane" in summary,
               "legend explains kept components and model distances", summary)
+        with open(out + "/presentation.tsv", encoding="utf-8", newline="") as f:
+            copied = list(csv.reader(f, delimiter="\t"))
+        check(len(copied) > 2 and copied[0][0] == "Component"
+              and any("Variance explained" in h or "variance explained" in h for h in copied[0]),
+              "Copy table copies every row with the window's worded headings", copied[:2])
+        with open(out + "/selection.tsv", encoding="utf-8", newline="") as f:
+            selection = list(csv.reader(f, delimiter="\t"))
+        check(selection == [copied[1][:2]], "Ctrl+C copies only the selected cells", selection)
+        with open(out + "/presentation-check.txt", encoding="utf-8") as f:
+            verification = f.read()
+        for action in ("copy", "selection", "hover", "click"):
+            check(action + "=PASS" in verification, "GUI " + action + " follows the interactive path", verification)
+        check("scree-y=" in verification and "plot-x=" in verification,
+              "the Variance and result plots painted tick labels", verification)
+        with open(out + "/hover.txt", encoding="utf-8") as f:
+            hover = f.read()
+        check("m0" in hover and "T²" in hover and "DModX" in hover,
+              "plot hover contains molecule names and diagnostics", hover[:500])
         # Copy, hover and click checks of the former dialog's presentation layer are not
         # ported to the QSAR window (#996).
 

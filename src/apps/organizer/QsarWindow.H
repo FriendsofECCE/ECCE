@@ -21,6 +21,7 @@ class wxSpinCtrl;
 class wxStaticText;
 class wxTextCtrl;
 class QsarPlot;
+class QsarScree;
 
 class QsarWindow : public wxFrame
 {
@@ -62,6 +63,11 @@ public:
   std::vector<std::string> measuredColumns() const { return p_measured; }
   /// 0 Table, 1 PCA, 2 PLS.
   void showTab(int n);
+  /// Test hook (#1012): select what to show/photograph; 0 result plot, 1 Variance plot, 2 Table.
+  void selectPresentationPage(int page);
+  /// Test hook: real copy, Ctrl+C, hover and click paths on the last run; writes the evidence
+  /// to `dir`.
+  bool verifyPresentation(const std::string& dir, std::string& why);
 
 private:
   bool load(const std::vector<EcceURL>& calcs, const std::string& groups, std::string& why);
@@ -73,6 +79,8 @@ private:
   std::string run(const std::string& args, int& status) const;
   std::string failure(const std::string& what) const;
   void showNotes();
+  void fillScree(QsarScree *plot, const std::vector<std::vector<std::string>>& comp, bool pls);
+  void pickRow(const std::string& name);
 
   std::vector<EcceURL> p_calcs;
   std::function<std::vector<EcceURL>()> p_choose;
@@ -92,6 +100,8 @@ private:
   wxButton *p_pcaShow = nullptr;
   wxGrid *p_pcaGrid = nullptr;
   QsarPlot *p_pcaPlot = nullptr;
+  QsarScree *p_pcaScree = nullptr;
+  wxNotebook *p_pcaPlots = nullptr, *p_plsPlots = nullptr;
 
   wxChoice *p_plsY = nullptr, *p_plsScale = nullptr, *p_plsComps = nullptr;
   wxSpinCtrl *p_plsTest = nullptr, *p_plsPerm = nullptr;
@@ -100,6 +110,7 @@ private:
   wxButton *p_plsShow = nullptr, *p_plsRun = nullptr;
   wxGrid *p_plsGrid = nullptr, *p_vipGrid = nullptr;
   QsarPlot *p_plsPlot = nullptr;
+  QsarScree *p_plsScree = nullptr;
 
   std::string p_circular;  ///< descriptor that estimates the chosen property, or ""
   std::string p_pcaStatus, p_plsStatus;
