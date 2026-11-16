@@ -59,19 +59,23 @@ def main():
                 "constraints select 1", "constraints scan 5 0.1",         # one atom
                 "constraints select 1 2", "constraints scan 0 0.1",       # no steps
                 "constraints select 1 2", "constraints scan 5 0",         # no step size
+                "constraints select 1 3", "constraints scan 5 0.2",       # unbonded: refused
+                "constraints scan 5 0.2 yes",                             # unbonded, confirmed
                 "constraints list", "save", "wait 2500", "constraints stored",
                 "wait 500", "quit"], "file://" + calc + "/")
             tail = run_tests._tail(log, 30)
             res = re.findall(r"BUILDER: constraints scan: (.*)", log)
-            check(len(res) == 5 and res[0].startswith("Added Torsion") and
+            check(len(res) == 7 and res[0].startswith("Added Torsion") and
                   res[1].startswith("Added Bond"), "torsion and bond scans added: %s" % res, tail)
             check(all("Select 2, 3 or 4" in r or "Scan steps" in r or "step size" in r
-                      for r in res[2:]) and len(res) == 5,
+                      for r in res[2:5]) and len(res) == 7,
                   "1 atom, 0 steps and 0 step size are refused with the dialog's text", tail)
-            check(len(re.findall(r"ECCE_BUILDER_SCRIPT.*constraints scan.*FAIL", log)) == 3 or
-                  log.count("FAIL: ") >= 3, "the refused script lines FAIL", tail)
+            check(len(res) == 7 and "not bonded" in res[5] and res[6].startswith("Added Bond"),
+                  "an unbonded pair is refused, and added with a trailing yes: %s" % res[5:], tail)
+            check(len(re.findall(r"ECCE_BUILDER_SCRIPT.*constraints scan.*FAIL", log)) == 4 or
+                  log.count("FAIL: ") >= 4, "the refused script lines FAIL", tail)
             rows = re.findall(r"BUILDER: constraint row: (.*)", log)
-            check(len(rows) == 2 and any("scan 36 × 10°" in r for r in rows) and
+            check(len(rows) == 3 and any("scan 36 × 10°" in r for r in rows) and
                   any("scan 5 × 0.1 Å" in r for r in rows), "list reports both scans: %s" % rows, tail)
             text = open(gcst).read() if os.path.exists(gcst) else ""
             # Same writer as the dialog's Save; the scan lines are what matters.
@@ -81,7 +85,7 @@ def main():
                                 r'\s*<Scan steps="5" step="0.1"/>', text) is not None,
                   "the stored .gcst has both scans in the dialog's format", text)
             m = re.search(r"constraints stored=(-?\d+)", log)
-            check(m is not None and m.group(1) == "2", "the calculation stored 2 constraints", tail)
+            check(m is not None and m.group(1) == "3", "the calculation stored 3 constraints", tail)
         finally:
             restorePrefs()
             os.environ.pop("ECCE_LOCAL_DATA", None)

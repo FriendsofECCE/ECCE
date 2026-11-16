@@ -19,6 +19,21 @@ Right-click an item in the tree, or rows of the project table.
   folder that cannot take it, with the reason below the list. The list shows
   every tree the Organizer shows, so it can also move work to a server.
 
+## Viewing a file
+
+Double-click a file in the folder table or tree, or right-click it and choose
+**View**, to open a read-only text window. This works in Local data, SSH
+folders and ECCE servers. Large files open at the end (the last 64 KiB);
+**Load more** adds the preceding 64 KiB and stops Follow. **Find next** searches
+the loaded text and wraps to its start; load more to search earlier output.
+**Follow** refreshes the last 64 KiB every three seconds, including after a
+file is truncated or replaced. **Open in editor** downloads a separate text
+copy and opens the system application for text files; edits to that copy do
+not update the original. Files with a NUL byte in the first 8 KiB show their
+size and filename extension instead of contents. The current text range
+interface supports files smaller than 2 GiB; larger files can still be opened
+as a downloaded editor copy.
+
 ## A calculation
 
 - **New from This** makes a new calculation from this one. Its first three

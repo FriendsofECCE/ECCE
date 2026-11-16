@@ -166,6 +166,9 @@ static std::vector<std::pair<std::string, std::string> > anotherCodeList();
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextEntryDialog.H"
 #include "wxgui/WxCalcImport.H"
+#include "comm/JobParser.H"
+#include "util/TempStorage.H"
+#include "util/SDirectory.H"
 #include "wxgui/WxCalcImportClient.H"
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/WxEditSessionMgr.H"
@@ -204,6 +207,7 @@ static string progressKey(const EcceURL & url);
 static const char *const kFirstStartSet = "getting-started";
 #include <wx/dirdlg.h>
 #include "CalcMgr.H"
+#include "TextFileViewer.H"
 #include <wx/filename.h>
 #include <wx/fswatcher.h>
 #include <wx/evtloop.h>
@@ -773,6 +777,13 @@ static string testContextMenuLabels(wxMenu& menu, const string& prefix = "",
 static string newWorkflowName(const vector<Resource*>& calcs,
     const vector<WorkflowSteps::ProposedLink>& links);
 
+TextFileViewer *CalcMgr::viewFile(const EcceURL& url)
+{
+  auto *viewer = new TextFileViewer(this, url);
+  viewer->Show();
+  return viewer;
+}
+
 wxMenuBar *CalcMgr::ownMenuBar() const
 {
   return ToolTabs::mainMenuBar(this, GetMenuBar());
@@ -789,7 +800,22 @@ void CalcMgr::runTestCommand(const string& line)
     EDSIServerCentral central;
     EcceURL home = central.getDefaultUserHome();
     EcceURL project = home.getChild("session-test");
-    if (command == "import") {
+    if (command == "view") {
+      p_testViewer = viewFile(EcceURL(calcName));
+      outcome = p_testViewer->report();
+    } else if (command.compare(0, 5, "view-") == 0) {
+      if (!p_testViewer) outcome = "error: no viewer";
+      else {
+        if (command == "view-more") p_testViewer->loadMore();
+        else if (command == "view-follow") p_testViewer->follow(calcName == "on");
+        else if (command == "view-find") outcome = p_testViewer->find(wxString::FromUTF8(calcName)) ? "found " : "not found ";
+        else if (command == "view-text") p_testViewer->snapshotText(calcName);
+        else if (command == "view-close") { p_testViewer->Close(); p_testViewer = nullptr; }
+        else if (command != "view-status") outcome = "unknown viewer command ";
+        if (p_testViewer) outcome += p_testViewer->report();
+        else outcome = "closed";
+      }
+    } else if (command == "import") {
       // A calculation with results, as File > Import Calculation makes it.
       Resource *homeRes = EDSIFactory::getResource(home);
       if (homeRes && !EDSIFactory::getResource(project))
@@ -801,6 +827,25 @@ void CalcMgr::runTestCommand(const string& line)
       dlg.registerListener(this);
       dlg.importFile(calcName);
       outcome = "done";
+    } else if (command == "importfile") {
+      // "importfile <file-url-or-path> [project-url]": Import as Calculation
+      // on a listed file (local or sftp://), into session-test by default.
+      std::istringstream args(calcName);
+      string f, proj;
+      args >> f >> proj;
+      if (f.find("://") == string::npos) f = "file://" + f;
+      Resource *homeRes = EDSIFactory::getResource(home);
+      if (proj.empty()) {
+        proj = project.toString();
+        if (homeRes && !EDSIFactory::getResource(project))
+          homeRes->createChild("session-test",
+              ResourceDescriptor::getResourceDescriptor().getResourceType(
+                  "collection", "ecceProject", ""));
+      }
+      findNode(EcceURL(proj), true, true);
+      outcome = importFilesAsCalcs(vector<EcceURL>(1, EcceURL(f)),
+                                   EcceURL(proj));
+      if (outcome.empty()) outcome = "done";
     } else if (command == "server") {
       // "server roots|sync|connect NAME|copycheck SRC DST|launchcheck URL"
       std::istringstream args(calcName);
@@ -9372,7 +9417,10 @@ void CalcMgr::OnTreectrlDeleteItem( wxTreeEvent& event )
  */
 void CalcMgr::OnTreectrlItemActivated( wxTreeEvent& event )
 {
-  event.Skip();
+  auto *item = dynamic_cast<WxResourceTreeItemData*>(p_treeCtrl->GetItemData(event.GetItem()));
+  if (item && item->getResource()->getResourceType() == ResourceDescriptor::RT_DOCUMENT)
+    viewFile(item->getUrl());
+  else event.Skip();
 }
 
 
@@ -10584,6 +10632,23 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   menu.Enable(wxID_RENAME, true);
   menu.Append(wxID_DELETE, wxT("&Delete"));
   menu.Enable(wxID_DELETE, true);
+  //  A file the importer recognises as a code's output (#1092).
+  {
+    getSelection();
+    bool all = !p_currentSelection.empty();
+    for (size_t i = 0; all && i < p_currentSelection.size(); i++) {
+      string why;
+      all = !importableCode(p_currentSelection[i], why).empty();
+    }
+    if (all) {
+      int id = wxWindow::NewControlId();
+      menu.Append(id, _("Import as Calculation..."),
+                  _("A calculation in a project from this output file"));
+      menu.Bind(wxEVT_MENU, [this](wxCommandEvent&) {
+        CallAfter([this]() { onImportAsCalc(); });
+      }, id);
+    }
+  }
   //  A study task is rerun by a copy that keeps its place in the study.
   if (!isCalculationNode && itemData && dynamic_cast<MdTask*>(
           itemData->getResource()))
@@ -10800,6 +10865,12 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   if (getSelection()) {
     itemData = findNode(p_currentSelection[0], false, true);
     getTypeAndState(itemData, resType, state);
+    if (itemData && itemData->getResource()->getResourceType() == ResourceDescriptor::RT_DOCUMENT) {
+      const EcceURL url = itemData->getUrl();
+      const int id = wxWindow::NewControlId();
+      menu.Append(id, "View");
+      menu.Bind(wxEVT_MENU, [this, url](wxCommandEvent&) { viewFile(url); }, id);
+    }
     // An MD study task is a TaskJob with its own content type, so it is
     // not a "calculation node" but runs and is cancelled the same way (#731).
     if (!isCalculationNode && itemData && dynamic_cast<MdTask*>(
@@ -14643,6 +14714,210 @@ WxResourceTreeItemData * CalcMgr::findNodeFresh(const EcceURL &targetUrl,
 }
 
 
+
+// ---- Import as Calculation (#1092) ----------------------------------------
+
+namespace {
+
+// Chunk size of a staged SSH read; small files go in one piece.
+const unsigned long STAGE_CHUNK = 8UL * 1024 * 1024;
+// What the recogniser reads of a remote file: its banner is at the top.
+const unsigned long RECOGNISE_BYTES = 1024UL * 1024;
+
+bool isPlainFile(const EcceURL& url)
+{
+  Resource *res = EDSIFactory::getResource(url);
+  return res && res->getDescriptor() && res->getDescriptor()->getName() == "document";
+}
+
+// Writes bytes [0, limit) of url (all when limit is 0) to path.
+bool stageTo(const EcceURL& url, const string& path, unsigned long limit,
+             const std::function<bool(unsigned long, unsigned long)>& progress)
+{
+  EDSI *edsi = EDSIFactory::getEDSI(url);
+  if (!edsi) return false;
+  std::ofstream out(path.c_str(), std::ios::binary);
+  bool ok = out.good();
+  const unsigned long size = ok ? edsi->getDataSetSize() : 0;
+  const unsigned long want = (limit && size > limit) ? limit : size;
+  if (ok && want <= STAGE_CHUNK && want == size) {
+    ok = edsi->getDataSet(out);
+  } else if (ok) {
+    for (unsigned long at = 0; ok && at < want; at += STAGE_CHUNK) {
+      ok = edsi->getDataSubSet(out, (int)at,
+                               (int)std::min(STAGE_CHUNK, want - at));
+      if (ok && progress && !progress(at + STAGE_CHUNK, want)) ok = false;
+    }
+  }
+  out.close();
+  delete edsi;
+  return ok && out.good();
+}
+
+// "user@host:/path" for an sftp URL, the plain path for a file URL.
+string originOf(const EcceURL& url)
+{
+  string user, host, path;
+  if (SftpEDSI::parseURL(url.toString(), user, host, path))
+    return (user.empty() ? "" : user + "@") + host + ":" + path;
+  return url.getPath();
+}
+
+}
+
+
+string CalcMgr::importableCode(const EcceURL& file, string& message)
+{
+  if (!isPlainFile(file)) { message = "not a file"; return ""; }
+  const string key = file.toString();
+  auto seen = p_importCodes.find(key);
+  if (seen != p_importCodes.end()) return seen->second;
+  string code;
+  if (file.getProtocol() == "file") {
+    code = JobParser::importCode(file.getPath(), message);
+  } else {
+    SDirectory *dir = TempStorage::getTempDirectory("ecce-recognise");
+    TempStorage::JobDirGuard guard(dir->path());
+    const string tmp = dir->path() + "/head";
+    if (stageTo(file, tmp, RECOGNISE_BYTES, 0))
+      code = JobParser::importCode(tmp, message);
+    else
+      message = "The file cannot be read.";
+    delete dir;
+  }
+  p_importCodes[key] = code;
+  return code;
+}
+
+
+string CalcMgr::importFileAsCalc(const EcceURL& file, const EcceURL& project)
+{
+  string why;
+  const string code = importableCode(file, why);
+  if (code.empty()) return why.empty() ? "not a recognised output" : why;
+
+  string path = file.getPath();
+  SDirectory *stage = 0;
+  std::unique_ptr<TempStorage::JobDirGuard> stageGuard;
+  if (file.getProtocol() != "file") {
+    // The importer's job store reads the staged files after this returns,
+    // so the folder is a job folder: eccejobmaster and the stale-folder
+    // sweep remove it, not this function.
+    stage = TempStorage::getTempJobDirectory("import-file");
+    stageGuard.reset(new TempStorage::JobDirGuard(stage->path()));
+    const string name = file.getFilePathTail();
+    const bool gui = !getenv("ECCE_TEST_ORGANIZER");
+    wxStopWatch clock;
+    ewxProgressDialog *pd = 0;
+    bool cancelled = false;
+    auto progress = [&](unsigned long done, unsigned long total) {
+      if (!gui) return true;
+      const string text = "Copying " + name + ": " +
+          std::to_string(std::min(done, total) / 1024) + " of " +
+          std::to_string(total / 1024) + " kB";
+      if (!pd && clock.Time() > 500)
+        pd = new ewxProgressDialog("Import as Calculation", text, 100, this,
+                                   wxPD_APP_MODAL | wxPD_CAN_ABORT | wxPD_ELAPSED_TIME);
+      if (!pd) return true;
+      wxYieldIfNeeded();
+      const bool go = pd->Update(total ? (int)(100.0 * std::min(done, total) / total) : 0,
+                                 text);
+      if (!go) cancelled = true;
+      return go;
+    };
+    path = stage->path() + "/" + name;
+    bool ok = stageTo(file, path, 0, progress);
+    // Companions: files beside it named <stem>.*, as a .hess or .fchk is.
+    if (ok) {
+      const string stem = name.substr(0, name.rfind('.'));
+      Resource *folder = EDSIFactory::getResource(file.getParent());
+      vector<Resource*> *kids = folder ? folder->getChildren() : 0;
+      for (size_t i = 0; kids && ok && i < kids->size(); i++) {
+        const string kid = (*kids)[i]->getName();
+        if (kid == name || kid.compare(0, stem.size() + 1, stem + ".") != 0 ||
+            !isPlainFile((*kids)[i]->getURL()))
+          continue;
+        ok = stageTo((*kids)[i]->getURL(), stage->path() + "/" + kid, 0,
+                     progress);
+      }
+    }
+    delete pd;
+    if (!ok) {
+      delete stage;
+      return cancelled ? "Cancelled." : "The file could not be copied from " +
+                                         originOf(file) + ".";
+    }
+  }
+
+  if (stageGuard) stageGuard->keep();
+  p_importProject = project;
+  p_lastImported = 0;
+  p_lastImportOk = false;
+  p_lastImportMsg.clear();
+  {
+    WxCalcImport dlg(this);
+    dlg.registerListener(this);
+    dlg.importFile(path);
+  }
+  p_importProject = EcceURL();
+  delete stage;
+  if (!p_lastImportOk) {
+    return p_lastImportMsg.empty() ? string("The import failed.") : p_lastImportMsg;
+  }
+  if (p_lastImported)
+    p_lastImported->addProp(VDoc::getEcceNamespace() + ":annotation",
+                            "Imported from " + originOf(file));
+  return "";
+}
+
+
+string CalcMgr::importFilesAsCalcs(const vector<EcceURL>& files, EcceURL project)
+{
+  string skipped;
+  size_t done = 0;
+  for (size_t i = 0; i < files.size(); i++) {
+    string why = importFileAsCalc(files[i], project);
+    if (why.empty()) { done++; continue; }
+    skipped += "\n  " + files[i].getFilePathTail() + ": " + why;
+  }
+  if (!skipped.empty() && files.size() > 1)
+    return std::to_string(done) + " imported; skipped:" + skipped;
+  if (!skipped.empty()) return skipped.substr(skipped.find(": ") + 2);
+  return "";
+}
+
+
+// The menu item: pick the project (last used, else the selected one), then
+// import every selected file; refusals come in one message.
+void CalcMgr::onImportAsCalc()
+{
+  getSelection();
+  const vector<EcceURL> files = p_currentSelection;
+  if (files.empty()) return;
+  Preferences prefs("Organizer");
+  string last;
+  prefs.getString("ImportFile.Project", last);
+  EcceURL start = files[0].getParent();
+  if (!last.empty() && EDSIFactory::getResource(EcceURL(last))) start = EcceURL(last);
+  FolderChooserDialog dlg(this, _("Import as Calculation"),
+      _("Import into this project:"), p_treeCtrl, start,
+      [](const EcceURL& dest) {
+        Resource *r = EDSIFactory::getResource(dest);
+        return (r && r->getDescriptor() &&
+                r->getDescriptor()->getName() == "project")
+                   ? string("") : string("Choose a project.");
+      });
+  if (dlg.ShowModal() != wxID_OK) return;
+  const EcceURL project = dlg.selectedUrl();
+  prefs.setString("ImportFile.Project", project.toString());
+  prefs.saveFile();
+  startDisabler();
+  const string why = importFilesAsCalcs(files, project);
+  stopDisabler();
+  if (!why.empty()) tellRefusal(why);
+}
+
+
 ///////////////////// WxCalcImportClient virtuals ///////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////
@@ -14655,6 +14930,10 @@ TaskJob *CalcMgr::getContainer(const string& name)
 
   // get tree item data
   WxResourceTreeItemData *itemData = p_treeCtrl->getSelection();
+  // Import as Calculation names its project; the selection is a file.
+  if (!p_importProject.toString().empty())
+    if (WxResourceTreeItemData *n = findNode(p_importProject, false, true))
+      itemData = n;
 
   // getSelection() returns 0 when nothing is selected, and this used to
   // dereference it immediately. It was unreachable while the Import menu
@@ -14802,6 +15081,9 @@ void CalcMgr::joinExampleWorkflow(Resource *step)
 void CalcMgr::importValidationComplete(TaskJob *ipc, bool status,
                                        string message)
 {
+  p_lastImported = ipc;
+  p_lastImportOk = status;
+  p_lastImportMsg = message;
   if (getenv("ECCE_TEST_CALCIMPORT")) {
     fprintf(stderr, "ECCE_TEST_CALCIMPORT: %s, code %s: %s\n",
             status ? "imported" : "refused",

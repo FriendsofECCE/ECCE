@@ -179,7 +179,9 @@ def runApp(display, shots, wrapper, args, env, script, size, names,
                                   if want in w[1] and w[0] != sized]
                         wid = others[0][0] if others else None
                         if wid is None:
-                            fail("no window %r for shot %s" % (want, name))
+                            fail("no window %r for shot %s (windows: %s)" % (
+                                want, name,
+                                [(w[1], w[2], w[3]) for w in shots.windowsOf(known)]))
                     if wid:
                         shots.take(wid, os.path.join(shots.outdir, target))
                 if name.endswith(".ppm"):
@@ -487,7 +489,7 @@ def walk(display, tmp, outdir, org, authArgs, name):
          "builder-generated": "%s-3-cell.png" % prefix})
     _, clog = app("ecce-calced", "ECCE_CALCED_SCRIPT", case["calced"], (1100, 900),
         {"calced-start": "%s-4-calced.png" % prefix,
-         "calced-theory": ("Theory", "%s-5-theory.png" % prefix),
+         "calced-theory": ("Editor", "%s-5-theory.png" % prefix),
          "calced-final": "%s-6-calced-ready.png" % prefix})
     #  The first "info" is before any Save: a ready calculation can be
     #  launched, the click writing the input first.

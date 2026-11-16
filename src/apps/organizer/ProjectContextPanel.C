@@ -608,7 +608,10 @@ void ProjectContextPanel::gridCellLeftDClick(wxGridEvent& event)
       dynamic_cast<GridPropElement*>(p_projectView->getElement(row, col));
     
     if (element != 0) {
-      p_calcMgr->findNode(element->getResource()->getURL(), true);
+      Resource *resource = element->getResource();
+      if (resource->getResourceType() == ResourceDescriptor::RT_DOCUMENT)
+        p_calcMgr->viewFile(resource->getURL());
+      else p_calcMgr->findNode(resource->getURL(), true);
     }
   }
   // Don't call Skip() - the findNode() call destroys the panel
@@ -711,7 +714,10 @@ void ProjectContextPanel::gridOnKeyDown(wxKeyEvent& event)
               dynamic_cast<GridPropElement*>(p_projectView->getElement(row, col));
 
             if (element != 0) {
-              p_calcMgr->findNode(element->getResource()->getURL(), true);
+              Resource *resource = element->getResource();
+              if (resource->getResourceType() == ResourceDescriptor::RT_DOCUMENT)
+                p_calcMgr->viewFile(resource->getURL());
+              else p_calcMgr->findNode(resource->getURL(), true);
             }
           }
           skipEvent = false;
