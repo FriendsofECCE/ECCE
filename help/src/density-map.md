@@ -85,9 +85,9 @@ picks and can also be used from the keyboard.
 
 ## Offset
 
-The slider moves the plane along its own normal, away from the atoms, by up to
+The Offset row is under **Options**. The slider moves the plane along its own normal, away from the atoms, by up to
 5 Å either way. Type a distance in the box beside the slider for a value to
-0.01 Å, press Enter, or press **Reset** to return to zero. The caption names
+0.01 Å, press Enter, or press **Reset** (on the MO line) to return to zero. The caption names
 the distance, for example "0.8 Å above plane through C1, C2, C3". The sign
 follows the plane's normal; the other side is "below". Choosing a different
 plane sets the offset back to zero.
@@ -100,8 +100,10 @@ The mouse wheel zooms the map about the pointer, with the same contour
 levels as the whole plane. While you zoom the map is drawn on a coarse grid;
 when the wheel rests for a moment the full grid follows, with its progress in
 the line under the map. Dragging with the right mouse button moves a zoomed
-map within the plane. **Reset zoom** (next to **Options**, greyed out until you zoom), or a double-click on the map, zooms
-out again.
+map within the plane. **Reset** (next to **Options**, greyed out until the zoom or the offset
+differs from its default) shows the whole plane at offset 0 again; a double-click on
+the map resets the zoom only. When the panel is too short for all its rows, it scrolls
+and the map keeps a minimum height.
 
 An example: for benzene, the **Molecular plane** with an offset of 0.8 Å shows
 the density of the π electrons above the ring.

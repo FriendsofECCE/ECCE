@@ -248,7 +248,7 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
 //    dmoffset X [drag]    the offset slider, A
 //    dmview rx ry rz ux uy uz | dmviewcurrent     "Use this view"
 //    dmfollow N           select MO N in the MOs panel
-//    dmcsv <name> | dmpng <name> <w> <h> | dmzoom F U V|@N | dmzoomreset | dmstate | dmhide | dmclose | dmopen | dmlayout W | dmplane N
+//    dmcsv <name> | dmpng <name> <w> <h> | dmzoom F U V|@N | dmzoomreset | dmreset | dmstate | dmhide | dmclose | dmopen | dmlayout W | dmplane N
 bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
                                 const string& outdir)
 {
@@ -355,6 +355,9 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
     ok = dm->panBy(atof(w[1].c_str()), atof(w[2].c_str()), cmd == "dmdrag");
   } else if (cmd == "dmrefine") {
     dm->refineZoom();
+  } else if (cmd == "dmreset" || cmd == "dmresetoffset") {
+    //  The one Reset button: whole plane, offset 0.
+    dm->resetAll();
   } else if (cmd == "dmzoomreset") {
     dm->resetZoom();
   } else if (cmd == "dmclose") {
