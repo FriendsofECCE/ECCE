@@ -77,17 +77,20 @@ def run(display, oneProcess):
             append("closetools", 3)
             append("answer no", 3)
 
-        env = {"ECCE_TEST_ORGANIZER": cmds,
+        env = {"ECCE_TEST_ORGANIZER": cmds, "ECCE_TEST_MESSAGES": "1",
                "ECCE_TEST_TOOL_DELAY": str(delay),
                "ECCE_LOCAL_DATA": data}
         if oneProcess:
             env["ECCE_ONE_PROCESS"] = "1"
-        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+        # Without ECCE_ONE_PROCESS a tool is a program the gateway starts.
+        result = apps.run(display, "organizer" if oneProcess else "gateway", windowTimeout=60, settle=20,
                           env=env, inspect=inspect)
         log = result.log or ""
         check(not result.crashed and "Aborted" not in log,
               mode + ": the Organizer ran to the end without a crash",
               result.signalName or log[-1500:])
+        if os.environ.get("ECCE_TOOLSTART_LOG"):
+            print(log[-8000:])
         states = pb.answers(log, "toolstate")
         if not check(len(states) >= 5, mode + ": toolstate answered",
                      log[-1500:]):
@@ -116,7 +119,8 @@ def run(display, oneProcess):
 
 def main():
     def checkApp(display, name, results, verbose=False):
-        run(display, True)
+        if not os.environ.get("ECCE_TOOLSTART_ONLY"):
+            run(display, True)
         run(display, False)
         if failures:
             results.fail("tool-start", "; ".join(failures))
