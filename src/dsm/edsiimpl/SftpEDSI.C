@@ -21,6 +21,7 @@
 #include "util/SessionLease.H"
 #include "dsm/FileEDSI.H"
 #include "dsm/SftpEDSI.H"
+#include "SftpRead.H"
 #include "util/ServerList.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/VDoc.H"
@@ -653,24 +654,31 @@ bool SftpEDSI::getDataSubSet(ostream& dest, int start, int length)
 {
   m_msgStack.clear();
   SftpOp op(*this);
-  char k = 0;
-  if (!op.ok() || !op.mirror(op.path(), 1, &k)) return false;
-  if (k == 'f' && !op.download(op.path())) return false;
-  InnerPtr in(op.inner(op.path()));
-  bool ret = in->getDataSubSet(dest, start, length);
-  op.takeMessages(*in);
-  return ret;
+  if (!op.ok()) return false;
+  if (start < 0 || length < 0) return op.fail("Invalid file range");
+  string out;
+  if (!op.run(SftpRead::rangeScript(op.path(), start, length), out)) return false;
+  string data = unb64(out);
+  const string marker = "\nECCE_RANGE_OK";
+  if (data.size() < marker.size() ||
+      data.compare(data.size() - marker.size(), marker.size(), marker) != 0)
+    return op.fail("Unable to read file range: " + op.path());
+  data.resize(data.size() - marker.size());
+  if (data.size() > static_cast<size_t>(length)) return op.fail("Invalid file range response");
+  dest.write(data.data(), data.size());
+  return !!dest;
 }
 
 unsigned long SftpEDSI::getDataSetSize()
 {
   m_msgStack.clear();
   SftpOp op(*this);
-  if (!op.ok() || !op.mirror(op.path(), 0)) return 0;
-  InnerPtr in(op.inner(op.path()));
-  unsigned long n = in->getDataSetSize();
-  op.takeMessages(*in);
-  return n;
+  string out;
+  if (!op.ok() || !op.run(SftpRead::sizeScript(op.path()), out)) return 0;
+  std::istringstream in(out);
+  unsigned long size = 0;
+  if (!(in >> size)) op.fail("Unable to stat file: " + op.path());
+  return size;
 }
 
 bool SftpEDSI::getDataSet(ostream& dest)

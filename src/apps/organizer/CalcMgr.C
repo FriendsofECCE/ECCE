@@ -204,6 +204,7 @@ static string progressKey(const EcceURL & url);
 static const char *const kFirstStartSet = "getting-started";
 #include <wx/dirdlg.h>
 #include "CalcMgr.H"
+#include "TextFileViewer.H"
 #include <wx/filename.h>
 #include <wx/fswatcher.h>
 #include <wx/evtloop.h>
@@ -773,6 +774,13 @@ static string testContextMenuLabels(wxMenu& menu, const string& prefix = "",
 static string newWorkflowName(const vector<Resource*>& calcs,
     const vector<WorkflowSteps::ProposedLink>& links);
 
+TextFileViewer *CalcMgr::viewFile(const EcceURL& url)
+{
+  auto *viewer = new TextFileViewer(this, url);
+  viewer->Show();
+  return viewer;
+}
+
 wxMenuBar *CalcMgr::ownMenuBar() const
 {
   return ToolTabs::mainMenuBar(this, GetMenuBar());
@@ -789,7 +797,22 @@ void CalcMgr::runTestCommand(const string& line)
     EDSIServerCentral central;
     EcceURL home = central.getDefaultUserHome();
     EcceURL project = home.getChild("session-test");
-    if (command == "import") {
+    if (command == "view") {
+      p_testViewer = viewFile(EcceURL(calcName));
+      outcome = p_testViewer->report();
+    } else if (command.compare(0, 5, "view-") == 0) {
+      if (!p_testViewer) outcome = "error: no viewer";
+      else {
+        if (command == "view-more") p_testViewer->loadMore();
+        else if (command == "view-follow") p_testViewer->follow(calcName == "on");
+        else if (command == "view-find") outcome = p_testViewer->find(wxString::FromUTF8(calcName)) ? "found " : "not found ";
+        else if (command == "view-text") p_testViewer->snapshotText(calcName);
+        else if (command == "view-close") { p_testViewer->Close(); p_testViewer = nullptr; }
+        else if (command != "view-status") outcome = "unknown viewer command ";
+        if (p_testViewer) outcome += p_testViewer->report();
+        else outcome = "closed";
+      }
+    } else if (command == "import") {
       // A calculation with results, as File > Import Calculation makes it.
       Resource *homeRes = EDSIFactory::getResource(home);
       if (homeRes && !EDSIFactory::getResource(project))
@@ -9372,7 +9395,10 @@ void CalcMgr::OnTreectrlDeleteItem( wxTreeEvent& event )
  */
 void CalcMgr::OnTreectrlItemActivated( wxTreeEvent& event )
 {
-  event.Skip();
+  auto *item = dynamic_cast<WxResourceTreeItemData*>(p_treeCtrl->GetItemData(event.GetItem()));
+  if (item && item->getResource()->getResourceType() == ResourceDescriptor::RT_DOCUMENT)
+    viewFile(item->getUrl());
+  else event.Skip();
 }
 
 
@@ -10795,6 +10821,12 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   if (getSelection()) {
     itemData = findNode(p_currentSelection[0], false, true);
     getTypeAndState(itemData, resType, state);
+    if (itemData && itemData->getResource()->getResourceType() == ResourceDescriptor::RT_DOCUMENT) {
+      const EcceURL url = itemData->getUrl();
+      const int id = wxWindow::NewControlId();
+      menu.Append(id, "View");
+      menu.Bind(wxEVT_MENU, [this, url](wxCommandEvent&) { viewFile(url); }, id);
+    }
     // An MD study task is a TaskJob with its own content type, so it is
     // not a "calculation node" but runs and is cancelled the same way (#731).
     if (!isCalculationNode && itemData && dynamic_cast<MdTask*>(

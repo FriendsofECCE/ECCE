@@ -9,6 +9,8 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 ## Entries
 
+- [A UTF-8 buffer can borrow its wxString storage (#1084)](utf8-buffer-lifetime.md)
+
 - [The Display panel (#881): style via VizStyleChooser, global surface settings in SurfaceStyle](display-panel-881.md)
 - [Automatic atom-count quality preserves explicit slider values; cell images need their own complexity (#880)](sphere-quality-defaults.md)
 - [Atom opacity: ChemDisplay sorts the spheres itself, back to front, constant-alpha blend, depth writes on (#879)](atom-opacity-sorts-spheres-inside-chemdisplay-879.md)
