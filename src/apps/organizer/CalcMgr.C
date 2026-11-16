@@ -3473,6 +3473,8 @@ void CalcMgr::runTestCommand(const string& line)
           outcome += string(" tlw=") + wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
                      (w->IsShown() ? "" : "(hidden)") + "/" + string(w->GetLabel().utf8_str());
     } else if (command == "tabs" || command == "tab" ||
+               command == "tabsel" || command == "tabsave" ||
+               command == "tabclose" || command == "tabfocus" ||
                command == "towindow" || command == "totabs" ||
                command == "charhook" || command == "tabinfo" || command == "sbinfo" ||
                command == "dialog" || command == "dialoginfo" ||
@@ -15534,7 +15536,8 @@ int CalcMgr::stopDisabler()
     p_disabler = 0;
     delete p_cursor;
     p_cursor = 0;
-    if (p_focusOnTreeBeforeDisabler)
+    // Not while a tool's tab is in front (#1088): the tree is hidden then.
+    if (p_focusOnTreeBeforeDisabler && !ToolTabs::activeTool())
       p_treeCtrl->SetFocus();
   }
 

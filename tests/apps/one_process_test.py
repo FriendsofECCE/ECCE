@@ -975,6 +975,89 @@ def runTabsTools(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runTabs1088(display):
+    """#1088: (A) Builder and Basis Set Tool tabs opened and closed twice,
+    then a Builder beside an editor tab: no crash (closed tools left
+    listeners on the process-wide event dispatcher).  (B) Save in the
+    Builder tab and in the editor tab, and code focusing a window of the
+    hidden Organizer page, keep the tool's tab in front; the editor tab's
+    close button closes it at once.  ECCE_1088_ONLY=1 runs only this."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-1088", "created", None)
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            for _ in range(2):
+                append("start Builder " + url, 25)
+                append("closetools", 8)
+                append("start Basistool " + url, 20)
+                append("closetools", 8)
+            append("start CalculationEditor " + url, 25)
+            append("start Builder " + url, 25)
+            append("tabs", 2)                  # 1: editor, 2: Builder
+            append("tabsave", 8)               # the Builder's Save
+            append("tabsel", 2)
+            append("tab 1", 3)
+            append("tabsave", 8)               # the editor's Save
+            append("tabsel", 2)
+            append("tabfocus 0", 3)            # a hidden Organizer window
+            append("tabsel", 2)
+            append("tabclose 1", 8)            # the editor's close button
+            append("tabs", 2)
+            append("inprocess", 2)
+            append("close", 3)                 # File > Quit
+            append("answer", 3)
+            append("answer no", 3)
+            append("answer no", 20)
+
+        setLayout(display, "small")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
+                               "ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        if GDB:
+            print(log[-6000:])
+        tabs = pb.answers(log, "tabs")
+        print("      tabs: " + "\n            ".join(tabs))
+        sel = pb.answers(log, "tabsel")
+        print("      tabsel: " + str(sel))
+        check(len(tabs) >= 1 and re.search(r"1:.*Editor", tabs[0])
+              and re.search(r"2:.*Builder.*\* ", tabs[0]),
+              "after Builder and Basis Set Tool tabs came and went, a Builder "
+              "opens beside the editor", str(tabs) + log[-3000:])
+        check(sel[:1] == ["selected=2"],
+              "Save in the Builder tab keeps the Builder tab in front", str(sel))
+        check(sel[1:2] == ["selected=1"],
+              "Save in the editor tab keeps the editor tab in front", str(sel))
+        check(sel[2:3] == ["selected=1"],
+              "focusing a window of the hidden Organizer page does not "
+              "switch to it", str(sel))
+        check(len(tabs) >= 2 and "Editor" not in tabs[1],
+              "the editor tab's close button closes it with one click",
+              str(tabs))
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log and "SIGSEGV" not in log,
+              "the Organizer ends cleanly", "returncode %s\n%s"
+              % (result.returncode, log[-3000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def runTabsLauncher(display):
     """#983: the Launcher joins the Organizer's process.  Normal layout: the
     editor's Launch... opens a Launcher tab (no new process), the local
@@ -1247,6 +1330,11 @@ def main():
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
+        if os.environ.get("ECCE_1088_ONLY") == "1":
+            runTabs1088(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         if os.environ.get("ECCE_POPUPS_ONLY") == "1":
             runTabsPopups(display)
             if failures:
@@ -1260,6 +1348,7 @@ def main():
         runTabsLauncher(display)
         runSetupLaunch(display)
         runTabsPopups(display)
+        runTabs1088(display)
         if os.environ.get("ECCE_TABS_ONLY") == "1":
             if failures:
                 results.fail("one-process", "; ".join(failures))
