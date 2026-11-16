@@ -175,7 +175,7 @@ session's `ecce_quit`) then closes those windows first, each asking about
 its own unsaved changes; Cancel in one of them cancels the Quit. Test hooks
 (`ECCE_TEST_ORGANIZER`): `inprocess` (pid, open Builder/Calculation Editor/MD Energy/Basis Set
 Tool/MD Prepare windows),
-`closetools`, `gatewayquit` (the session's `ecce_quit`), and
+`closetools`, `importfile FILE [PROJECT-URL]` (Import as Calculation on a local or `sftp://` file), `gatewayquit` (the session's `ecce_quit`), and
 `answer cancel|no` for a tool's save question.
 
 Start feedback (#1071, `ECCE_TEST_ORGANIZER`): `start TOOL [URL]` shows a busy
@@ -399,7 +399,9 @@ For each task: what the user does in the GUI, and what you run.
 
 **Build or import a structure.** User: the Builder, a structure file or the Structure Library (`importing-a-structure`); a calculation
 from a finished output: **File > Import Calculation from Output File...**
-(`importing-a-calculation`). You: write `.xyz` files with charge and
+(`importing-a-calculation`), or right-click a recognised output file in a
+listed folder (local or SSH): **Import as Calculation...** (it records the
+host:path in the annotation). You: write `.xyz` files with charge and
 multiplicity in the comment line as `charge=-1 mult=2`.
 
 **Set up one calculation.** User: select a project, File > New, choose the

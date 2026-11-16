@@ -791,6 +791,21 @@ protected:
   TaskJob *getContainer(const string& name);
   void importValidationComplete(TaskJob *ipc, bool status, string message);
 
+  // Import as Calculation (#1092): a file listed in a folder, local or SSH.
+  // The code the importer recognises the file as, or "" (message: why not).
+  string importableCode(const EcceURL& file, string& message);
+  // One file into the project; "" on success, else why not.
+  string importFileAsCalc(const EcceURL& file, const EcceURL& project);
+  // The files a menu or hook acts on, each into the project (empty: asked).
+  string importFilesAsCalcs(const vector<EcceURL>& files, EcceURL project);
+  void onImportAsCalc();
+  EcceURL p_importProject;     // where getContainer puts the calculation
+  TaskJob *p_lastImported = 0;
+  bool p_lastImportOk = false;
+  string p_lastImportMsg;
+  std::map<string, string> p_importCodes;  // file URL -> recognised code
+
+
   void updateAccessCtrlDlg();
   void updateFindDlg();
   void updateBookmarkMenu();
