@@ -72,7 +72,7 @@ def resetCheck(log):
     ECCE_TEST_RESETIMPORTED) must be refused with the explanation, and
     leave the calculation Loaded.  Returns a problem string or None."""
     if not re.search(r"ECCE_TEST_RESETIMPORTED: refused 1: Imported results "
-                     r"cannot be reset.*New from This > Rerun", log):
+                     r"cannot be reset.*New from This > Duplicate", log):
         return "Reset for Rerun on an imported calculation gave no message"
     if "ECCE_TEST_RESETIMPORTED: state after Loaded" not in log:
         return "imported calculation was reset"

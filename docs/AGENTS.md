@@ -431,7 +431,7 @@ the output, `Props/`.
 **Fetch files** the run directory holds and ECCE did not copy back (ORCA
 `.hess`, cube files, PDOS): `ecce-fetch`.
 
-**Rerun.** User: a calculation's right-click menu, then Launch.
+**Rerun.** User: a calculation's right-click menu, **New from This > Duplicate** (a copy), or **Run > Reset for Rerun** (the calculation itself), then Launch.
 You: `ecce-rerun <calc>` (an identical copy) or `ecce-rerun --last-geometry`
 (continue from the last geometry).
 
@@ -857,7 +857,7 @@ the job skips grompp. A `.pdb` structure is refused (convert with `gmx
 editconf`). The calculation is left Ready; launch it as any calculation
 (`launchjob mdsetup`, `launch`).
 
-Hand-offs: New from This > Rerun and Continue from Last Geometry (hook
+Hand-offs: New from This > Duplicate and Continue from Last Geometry (hook
 `duplicate URL [last]`; with `last` the copy's starting .gro is the run's
 final frame, Ready), Continue in Another Code from it to another code (hook
 `anothercode TYPE SUFFIX FOLDER|- URL`: the final frame, charge 0,
@@ -919,7 +919,7 @@ filled in or dropped (for example no stored queue).
 
     ecce-rerun [--last-geometry] [cores=N] [wall="D H:M"] [on=MACHINE] [launch] <calculation>...
 
-Uses the Organizer's **New from This > Rerun**: copies the full setup
+Uses the Organizer's **New from This > Duplicate**: copies the full setup
 (structure, code, theory, basis, run type and launch settings) into the same
 folder, removes the copy's results and makes a finished, killed or failed
 calculation Ready. The original stays untouched. Names are `<name>_r2`,

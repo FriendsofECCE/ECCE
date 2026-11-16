@@ -294,11 +294,11 @@ levels off in the last steps, and the gradient falls towards zero.
 To also compute vibrational frequencies, repeat the tutorial with a second
 calculation:
 
-1. In the project, select `water-opt` and choose **Edit > Duplicate for
-   Rerun**. Or create a new calculation as in step 2.
+1. In the project, select `water-opt` and choose **Edit > New from
+   This > Duplicate**. Or create a new calculation as in step 2.
 2. In the Electronic Structure Editor, choose `GeoVib` in **Runtype:**.
    `GeoVib` optimises the geometry and then computes the frequencies.
-   **Edit > New from This > Rerun** copies the calculation with its structure and
+   **Edit > New from This > Duplicate** copies the calculation with its structure and
    settings and resets it, ready to launch.
 3. Save and launch as before.
 4. In the Viewer, choose **Properties > Vibrational Frequencies**.

@@ -697,7 +697,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * sitescreenresults <url>
  *                 Site Screening Results for the folder of <url>, as above
  * duplicate <url> [last]
- *                 right-click <url> > New from This > Rerun (or Continue
+ *                 right-click <url> > New from This > Duplicate (or Continue
  *                 from Last Geometry); the tree's selection and
  *                 collapse events during it, then the tree
  * size <w> <h>   resize the Organizer window
@@ -10587,15 +10587,15 @@ void CalcMgr::getContextMenu(wxMenu & menu)
   //  A study task is rerun by a copy that keeps its place in the study.
   if (!isCalculationNode && itemData && dynamic_cast<MdTask*>(
           itemData->getResource()))
-    menu.Append(wxID_DUPLICATE, _("Rerun"));
+    menu.Append(wxID_DUPLICATE, _("Duplicate"));
   //  A calculation's menu: the clipboard items, what to make from it, and
   //  what to do with its run. The tools (Builder, Calculation Editor, ...)
   //  are on the toolbar and the Tools menu.
   wxMenu *runMenu = 0;
   if (isCalculationNode) {
     wxMenu *from = new wxMenu();
-    from->Append(wxID_DUPLICATE, _("Rerun"),
-                 _("A copy of this calculation, ready to run again"));
+    from->Append(wxID_DUPLICATE, _("Duplicate"),
+                 _("A copy of this calculation, ready to run"));
     from->Append(wxID_DUPLICATE2, _("Continue from Last Geometry"),
                  _("A copy with the geometry this calculation ended on"));
     string why;
@@ -10677,12 +10677,17 @@ void CalcMgr::getContextMenu(wxMenu & menu)
     //  Terminate and the run-directory shell are the state-based Run
     //  Management tasks; they are listed always and enabled by the state.
     vector<ResourceRmTask *> rmVec = resType->getRmTasks(state);
-    int terminateId = wxID_ANY, shellId = wxID_ANY;
+    int terminateId = wxID_ANY, shellId = wxID_ANY, resetId = wxID_ANY;
     for (size_t i = 0; i < rmVec.size(); i++) {
       if (rmVec[i]->getName() == "terminateCalc") terminateId = rmVec[i]->getId();
       if (rmVec[i]->getName() == "shellInRunDir") shellId = rmVec[i]->getId();
+      if (rmVec[i]->getName() == RESETFORRERUN) resetId = rmVec[i]->getId();
     }
     runMenu->Append(terminateId, _("Terminate"))->Enable(terminateId != wxID_ANY);
+    //  The Run Mgmt task itself (same handler, same states).
+    runMenu->Append(resetId, _("Reset for Rerun"), _("Return this ended "
+                "calculation to Ready and remove the outputs of its run"))
+        ->Enable(resetId != wxID_ANY);
     runMenu->Append(wxID_REPARSE_OUTPUTS, _("Re-Parse Outputs"), _("Run the "
                 "parsers again over the outputs stored with the calculation"))
         ->Enable(state >= ResourceDescriptor::STATE_COMPLETED);
@@ -11825,7 +11830,7 @@ void CalcMgr::resetForRerun()
   if (!skipped.empty()) {
     char buf[64];
     string msg = "Imported results cannot be reset, because that would "
-                 "delete them. Use Edit > New from This > Rerun (also in "
+                 "delete them. Use Edit > New from This > Duplicate (also in "
                  "the right-click menu) to run "
                  "the calculation again.";
     if (!selections.empty()) {

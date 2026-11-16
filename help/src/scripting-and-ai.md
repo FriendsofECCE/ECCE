@@ -82,7 +82,7 @@ keeping its name and run log. A job that has started is refused. See
 ## Rerunning a calculation
 
 `ecce-rerun [on=MACHINE] [launch] <calculation>...` asks the running
-Organizer for **New from This > Rerun**. It makes a copy in the same folder,
+Organizer for **New from This > Duplicate**. It makes a copy in the same folder,
 named `<name>_r2`, then `_r3` and so on, using the first free name. The copy
 keeps the structure, code, theory, basis, run type and launch settings;
 finished, killed and failed calculations become Ready, with results removed.

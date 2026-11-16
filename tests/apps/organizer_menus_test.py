@@ -109,9 +109,9 @@ def run(display):
             return
         m = [x.strip() for x in menus[0].split(" | ")]
         for want in ("Cut", "Copy", "Paste", "Rename", "Delete", "New from This",
-                     "New from This/Rerun", "New from This/Continue from Last Geometry",
+                     "New from This/Duplicate", "New from This/Continue from Last Geometry",
                      "New from This/Continue from Final Orbitals", "Run",
-                     "Run/Launch...", "Run/Reconnect...", "Run/Terminate",
+                     "Run/Launch...", "Run/Reconnect...", "Run/Terminate", "Run/Reset for Rerun",
                      "Run/Re-Parse Outputs", "Run/Shell in Run Directory"):
             check(any(x == want or x.startswith(want + " (disabled)") or
                       x.replace("&", "") == want for x in m),

@@ -7,7 +7,7 @@ shows is logged by framelog.ps1 and saved as a PNG under <png dir>:
   - viewer-open/: the Viewer opened from the Organizer on an ECCE-QM water
     run, then switched by its Properties list (Builder script "list") to
     several property panels;
-  - duplicate/: right-click > Rerun and Continue from
+  - duplicate/: right-click > Duplicate and Continue from
     Last Geometry on a calculation, with another project expanded;
   - prompts: Run Mgmt > Reset to Rerun (after the viewer phase's run) and
     New Calculation with the name prompt, and whether the Organizer stays
