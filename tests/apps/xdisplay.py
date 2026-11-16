@@ -193,6 +193,11 @@ class Display(object):
     def env(self, base=None):
         environment = dict(base if base is not None else os.environ)
         environment["DISPLAY"] = self.name
+        #  On a Wayland desktop GTK prefers WAYLAND_DISPLAY over DISPLAY, so
+        #  anything started without the wrappers' GDK_BACKEND=x11 (the
+        #  Python details dialogs) would open on the user's real screen.
+        environment.pop("WAYLAND_DISPLAY", None)
+        environment["GDK_BACKEND"] = "x11"
         #  One ECCE session per test display (#233), unless a caller
         #  replaces it: what an app launched by the gateway would inherit.
         if not hasattr(self, "sessionId"):
