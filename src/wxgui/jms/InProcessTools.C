@@ -3,6 +3,8 @@
  *
  * Tool windows inside the Organizer's process (#983).
  */
+#include <cstdio>
+#include <cstdlib>
 #include <map>
 #include <vector>
 
@@ -129,6 +131,9 @@ bool InProcessTools::closeAll(bool force)
     if (wxTheApp->IsScheduledForDestruction(t.frame)) continue;
     // A tab's save question: show which tool asks.
     ToolTabs::select(t.frame);
+    if (getenv("ECCE_TEST_ORGANIZER"))
+      fprintf(stderr, "closeAll: closing %s '%s'\n", t.app.c_str(),
+              (const char*)t.frame->GetTitle().utf8_str());
     if (!t.frame->Close(force)) return false;
   }
   return true;
