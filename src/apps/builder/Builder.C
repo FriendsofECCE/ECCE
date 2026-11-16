@@ -1061,6 +1061,37 @@ void Builder::createMainPanel()
 
 
 
+namespace {
+//  Before the first pane layout the hidden Builder's viewer panel can be
+//  1 px wide, and the wrap sizer then sizes the X spinner to 1 px; GTK3
+//  warns when a spin button is allocated below its minimum (#995).  The
+//  control keeps at least that width and the panel clips it instead.
+class RotationSpinCtrl : public wxSpinCtrl
+{
+public:
+  RotationSpinCtrl(wxWindow *parent, wxWindowID id)
+    : wxSpinCtrl(parent, id, "0", wxDefaultPosition,
+                 wxSize(ewxBitmap::scaled(50), -1),
+                 wxSP_WRAP|wxSP_ARROW_KEYS, -179, 180, 0)
+  {
+    SetMinSize(wxSize(GetTextExtent("-179").x + 44, -1));
+    p_nativeMin = ewxNativeMinWidth(this);
+  }
+
+protected:
+  void DoSetSize(int x, int y, int width, int height,
+                 int sizeFlags = wxSIZE_AUTO) override
+  {
+    if (width >= 0) width = std::max(width, p_nativeMin);
+    wxSpinCtrl::DoSetSize(x, y, width, height, sizeFlags);
+  }
+
+private:
+  int p_nativeMin = 0;
+};
+}
+
+
 void Builder::createRotators(wxWindow *parent)
 {
   //  Where the row no longer fits the pane's width it wraps.  A box sizer
@@ -1070,24 +1101,15 @@ void Builder::createRotators(wxWindow *parent)
   p_mainSizer->Add(p_rotSizer, 0, wxEXPAND|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Rotation: X"), 0,
                   wxALIGN_CENTER|wxLEFT, 5);
-  p_xrot = new wxSpinCtrl(parent, ID_ROT_X, "0", wxDefaultPosition,
-                           wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
-                           -179, 180, 0);
-  p_xrot->SetMinSize(wxSize(p_xrot->GetTextExtent("-179").x + 44, -1));
+  p_xrot = new RotationSpinCtrl(parent, ID_ROT_X);
   p_rotSizer->Add(p_xrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Y"), 0,
                   wxALIGN_CENTER|wxLEFT, 5);
-  p_yrot = new wxSpinCtrl(parent, ID_ROT_Y, "0", wxDefaultPosition,
-                           wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
-                           -179, 180, 0);
-  p_yrot->SetMinSize(wxSize(p_yrot->GetTextExtent("-179").x + 44, -1));
+  p_yrot = new RotationSpinCtrl(parent, ID_ROT_Y);
   p_rotSizer->Add(p_yrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->Add(new wxStaticText(parent, -1, "Z"), 0,
                    wxALIGN_CENTER|wxLEFT, 5);
-  p_zrot = new wxSpinCtrl(parent, ID_ROT_Z, "0", wxDefaultPosition,
-                           wxSize(ewxBitmap::scaled(50), -1), wxSP_WRAP|wxSP_ARROW_KEYS,
-                           -179, 180, 0);
-  p_zrot->SetMinSize(wxSize(p_zrot->GetTextExtent("-179").x + 44, -1));
+  p_zrot = new RotationSpinCtrl(parent, ID_ROT_Z);
   p_rotz = 0;
   p_rotSizer->Add(p_zrot, 0, wxALIGN_CENTER|wxALL, 0);
   p_rotSizer->AddStretchSpacer(1);

@@ -23,6 +23,11 @@ class ewxConfig;
 // the toolkit's own call. ECCE_DEBUG_RAISE=1 logs the path taken to stderr.
 void ewxRaiseWindow(wxWindow *win);
 
+// The narrowest width the toolkit can draw win at (GTK's minimum preferred
+// width; elsewhere win's min size).  Allocating less makes GTK3 warn
+// "for_size smaller than min-size" (#995).
+int ewxNativeMinWidth(wxWindow *win);
+
 /**
  * A timer deleted with its window, for a window's own deferred work: with
  * several windows in one process (#983) a timer that outlived its window

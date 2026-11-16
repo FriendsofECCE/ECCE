@@ -109,6 +109,27 @@ void ewxPopupMenu(wxWindow *win, wxMenu &menu)
 }
 
 
+int ewxNativeMinWidth(wxWindow *win)
+{
+  if (win == NULL) return 0;
+#if defined(__WXGTK__)
+  GtkWidget *gw = (GtkWidget*)win->GetHandle();
+  if (gw != NULL) {
+    //  wx sets a size request on every resize, and GTK reports that as the
+    //  minimum: measure without it.
+    gint reqW = -1, reqH = -1;
+    gtk_widget_get_size_request(gw, &reqW, &reqH);
+    gtk_widget_set_size_request(gw, -1, -1);
+    gint minimum = 0, natural = 0;
+    gtk_widget_get_preferred_width(gw, &minimum, &natural);
+    gtk_widget_set_size_request(gw, reqW, reqH);
+    return minimum;
+  }
+#endif
+  return win->GetMinSize().x;
+}
+
+
 void ewxRaiseWindow(wxWindow *win)
 {
   if (win == NULL) return;
