@@ -864,8 +864,8 @@ void Builder::runBuilderScript(const std::string& file)
         wxSize sz = p_viewer->GetSize();
         if (w.size() == 4 && w[3] != "white")
           outcome = "FAIL: saveimage: unknown option " + w[3];
-        else if (!VizRender::image(p_viewer, w[1], sz.GetWidth(), sz.GetHeight(),
-                                   w.size() == 4, atoi(w[2].c_str())))
+        else if (!imageOnFineSurface(w[1], sz.GetWidth(), sz.GetHeight(),
+                                     w.size() == 4, atoi(w[2].c_str())))
           outcome = "FAIL: saveimage: " + VizRender::msg();
       } else if (w[0] == "saveimagemenu" && w.size() == 4) {
         //  "saveimagemenu <factor> <white|keep> <path>": File > Save Image...

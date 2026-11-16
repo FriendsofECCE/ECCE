@@ -106,7 +106,9 @@ mode), supersampled edges and line widths scaled with the factor; `white`
 replaces the view's background; the corner texts are left out and atom
 labels grow with the factor. It works under `ECCE_BUILDER_SCRIPT` too, where
 `saveimagemenu <factor> <white|keep> <path>` runs File > Save Image... with
-its dialogs answered. Use it for documentation figures. Test:
+its dialogs answered. At factor 2 or 4 the shown orbital/density is recomputed
+on a grid of 30 x factor points per axis (cap 160) for the render only, then
+redrawn as before (log line `MOPANEL: fine grid N`). Use it for documentation figures. Test:
 `tests/apps/saveimage_test.py`.
 
 ## Checking the Basis Set Tool window

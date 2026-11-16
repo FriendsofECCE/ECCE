@@ -1827,6 +1827,7 @@ void MoPanel::OnButtonMoComputeClick( wxCommandEvent& event )
    // Could not do this at create time becaus fragment is not yet set
    updateGridDlg();
    p_griddlg->getResolution(resx,resy,resz,uniform);
+   if (p_gridPoints > 0) resx = resy = resz = p_gridPoints;
    p_griddlg->getExtent(fromx,tox,fromy,toy,fromz,toz);
    cmd->getParameter("resX")->setInteger(resx);
    cmd->getParameter("resY")->setInteger(resy);
@@ -2415,6 +2416,44 @@ void MoPanel::recheckGridFaces(double isoLog)
 }
 
 
+/**
+ * A larger Save Image needs a finer surface than the on-screen 30 points per
+ * axis, or the lobes show facets.  The finer grid is for the render only: the
+ * on-screen surface is computed again afterwards at the same isovalue and box.
+ */
+bool MoPanel::renderOnFineGrid(int factor, const std::function<bool()>& render)
+{
+   int base = 0, y, z;
+   bool uniform;
+   if (factor <= 1 || p_drawnType.empty() || p_surfaceMode || !p_isValid ||
+       p_griddlg == 0)
+      return render();
+   p_griddlg->getResolution(base, y, z, uniform);
+   //  The cap keeps memory and time sane (160^3 points) at 4x of a larger grid.
+   const int fine = std::min(160, std::max(base, base * factor));
+   if (fine <= base) return render();
+
+   const double isoLog = p_shownIsoLog;
+   const int savedRound = p_gridRound;
+   const bool savedKeep = p_keepIso;
+   const double savedKeepLog = p_keepIsoLog;
+   wxCommandEvent ev(wxEVT_BUTTON, MoGUI::ID_BUTTON_MO_COMPUTE);
+   p_keepIso = true;
+   p_keepIsoLog = isoLog;
+   p_gridRound = 1;          // keep the box the face check grew
+   p_gridPoints = fine;
+   OnButtonMoComputeClick(ev);
+   fprintf(stderr, "MOPANEL: fine grid %d for the saved image\n", fine);
+   p_gridPoints = 0;
+   const bool ok = render();
+   OnButtonMoComputeClick(ev);
+   p_gridRound = savedRound;
+   p_keepIso = savedKeep;
+   p_keepIsoLog = savedKeepLog;
+   return ok;
+}
+
+
 /** Move the isovalue slider as a drag does (scene command "moiso"). */
 void MoPanel::setIsoLog(double isoLog)
 {
@@ -2440,6 +2479,7 @@ void MoPanel::updateIsoValue()
  */
 void MoPanel::updateIsoValue(double isovalue)
 {
+   p_shownIsoLog = isovalue;   // the slider rounds it
    WxVizToolFW& fw = getFW();
    SGContainer& sg = fw.getSceneGraph();
    IPropCalculation *expt = getCalculation();
