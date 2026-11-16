@@ -1069,8 +1069,9 @@ def runTabs1088(display):
               and "4:" not in tabs[2],
               "a second click on Basis Set Tool for the same calculation opens "
               "no second tab", str(tabs))
-        check(len(tabs) >= 4 and "Basis" not in tabs[3] and "Viewer" in tabs[3]
-              and len(inp) >= 3 and " BasisTool=0 " in inp[2],
+        check(len(tabs) >= 4 and "Basis" not in tabs[3] and "2:" in tabs[3]
+              and len(inp) >= 3 and " BasisTool=0 " in inp[2]
+              and " Viewer=1 " in inp[2],
               "closing the Basis Set Tool's tab closes only that tool",
               str(tabs) + str(inp))
         check(not result.crashed and result.returncode == 0
