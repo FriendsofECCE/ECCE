@@ -97,6 +97,7 @@ def scenario(s, build, wrappers, control, display, label, extra_env):
     try:
         send("server roots")
         r["connect"] = send("server connect Folder")
+        r["roots"] = send("server roots")
         base = send("server rtt")
         r["login"] = int(base) if base.isdigit() else -1
         for step, url in (("folder", BASE + "/"), ("project", BASE + "/proj16")):
@@ -104,6 +105,11 @@ def scenario(s, build, wrappers, control, display, label, extra_env):
             r[step + "-select"] = send("select " + url)
             r[step + "-rtt"] = int(send("server rtt")) - n0
         r["children"] = send("treechildren " + BASE + "/")
+        if r["children"] == "not in the tree":
+            # What the tree holds, for the log of a failed run.
+            r["bare-children"] = send("treechildren " + BASE)
+            r["walk"] = send("walk")
+            say("  organizer log tail:\n" + "\n".join(open(olog, errors="replace").read().splitlines()[-25:]))
         r["states"] = send("tablestates")
         r["energies"] = send("tableenergies")
     finally:
@@ -138,6 +144,7 @@ def main():
         if not s.services(True):
             check(False, "services came up")
             return 1
+        os.environ.setdefault("ECCE_REALUSER", s.user())
         populate()
         with open(os.path.join(s.state, ".ECCE", "AddedServers"), "w") as h:
             h.write("ssh\tFolder\t%s\t0\n" % BASE)
