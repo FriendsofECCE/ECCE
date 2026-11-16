@@ -573,6 +573,10 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
 //    opdoswidth EV | opdossticks 0|1 | opdosoccupied 0|1 | opdosint 0|1
 //    opdosshape gaussian|lorentzian | opdosshow ROW (double-click on MO list row, 0-based)
 //    opdosclick EV | opdoscsv <name> | opdospng <name> <w> <h> | opdosstate
+//    opdosatoms "A" "B" [A|B]: with an atom in both, the named group keeps it (default A)
+//    opdosmore 0|1 (Options) | opdoslayout W (visible controls at panel width W)
+//    opdoswindow (open both plots in a window; opdosstate then prints window_*) |
+//    opdoswinshot <name> (picture of that window) | opdoswinclose
 bool Builder::opdosCommand(SceneScript& s, const vector<string>& w, const string& outdir)
 {
   const string name = "Density of States (OPDOS)";
@@ -596,6 +600,20 @@ bool Builder::opdosCommand(SceneScript& s, const vector<string>& w, const string
   bool ok = true;
   if (cmd == "opdosatoms" && w.size() == 3) {
     ok = op->setAtoms(w[1], w[2]);
+  } else if (cmd == "opdosatoms" && w.size() == 4) {
+    ok = op->setAtoms(w[1], w[2], w[3] == "B" ? 1 : 0);
+  } else if (cmd == "opdosmore" && w.size() == 2) {
+    ok = op->setMoreOpen(w[1] != "0");
+  } else if (cmd == "opdoslayout" && w.size() == 2) {
+    const std::string report = op->layoutReport(atoi(w[1].c_str()));
+    fprintf(stderr, "OPDOS layout\n%s", report.c_str());
+    ok = report.find("layout ok") != std::string::npos;
+  } else if (cmd == "opdoswindow" && w.size() == 1) {
+    ok = op->openWindow();
+  } else if (cmd == "opdoswinshot" && w.size() == 2) {
+    ok = op->saveWindowShot(wxString(outdir + "/" + w[1] + ".png"));
+  } else if (cmd == "opdoswinclose" && w.size() == 1) {
+    op->closeWindow();
   } else if (cmd == "opdosselect" && w.size() >= 3) {
     SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
     if (!frag) return s.fail("opdosselect: no structure");

@@ -8,8 +8,10 @@ The panel says which population scheme it uses: **Mulliken**, for both OPDOS and
 
 ## Controls
 
-- **A** and **B**: the atom numbers of the two groups as shown in the structure, for example `1,2,5-8`. Press Enter to apply. A starts as the first transition-metal atom (or the first atom) and B as all other atoms. No atom may be in both groups.
-- **Use selection** (under each group's box): take the atoms selected in the 3-D view for that group. The other group is taken as it stands in its box, typed or not. An atom can belong to only one group: if it is in both, nothing is changed and the message names the atom.
+- **A** and **B**: the atom numbers of the two groups as shown in the structure, for example `1,2,5-8`. Press Enter to apply. A starts as the first transition-metal atom (or the first atom) and B as all other atoms. An atom belongs to one group: if you give an atom that is already in the other group, the group you just set takes it and the other group loses it, and the message field under the plots says which atoms moved.
+- **Use selection** (under each group's box): take the atoms selected in the 3-D view for that group. The other group is taken as it stands in its box, typed or not. Selected atoms that are in the other group move to this one. If that leaves a group empty (or you clear its box), nothing is refused: the message field says which group is empty and the plots wait until it has atoms again.
+- **Options ▸** opens the rows below (Width to Export PNG) and closes them again; the state is remembered. Until then the panel shows only the two groups, the plots and the window button.
+- **Open in window...** opens the OPDOS and the integrated OPDOS in a window of their own that you can resize. It shows the panel's settings (width, shape, sticks, occupied only, energy range, integrated plot on or off) and follows them as you change them. Its **Export CSV** and **Export PNG** buttons save the same files as the panel's; **Close** closes it. A click on a curve in the window lists the orbitals in the panel.
 - **Width (eV)**: the full width at half maximum of the peak drawn for each orbital, 0.30 eV to begin with. A narrow width resolves single orbitals, a wide one shows bands.
 - **Shape**: Gaussian (the default) or Lorentzian peaks, both of area 1. Lorentzian peaks have long tails, so neighbouring orbitals overlap more and a little of each peak lies outside the energy range shown.
 - **Sticks**: one thin line per orbital at its energy, as high as its OPDOS contribution.
