@@ -829,6 +829,14 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
                 "The file ECCE's job script runs for this code, with its full "
                 "path; not the folder it is in. A code with no program is not "
                 "offered for this machine.");
+    //  Shown for Quantum ESPRESSO only (showCode); Launch writes it into the
+    //  deck's pseudo_dir and checks that the files the deck names are there.
+    addCodeLine(page, grid, "pseudodir", "Pseudopotential directory",
+                "PseudoDir",
+                "The folder on this machine that holds the pseudopotential "
+                "(UPF) files. At launch it replaces pseudo_dir in the input, "
+                "and ECCE warns about files the input names that are not in "
+                "it. Empty: the input keeps the folder it was written with.");
 
     addBlock(page, sizer, "csetup", "Commands run before the program", page);
 
@@ -976,6 +984,7 @@ void WxMachineRegister::addCodeLine(wxWindow* page, wxFlexGridSizer* grid,
         l.ctrl->SetToolTip(tip);
         l.ctrl->SetHint(id == "modules"
             ? "e.g. GCC/13.2.0 OpenMPI/4.1.6 ORCA/6.0.1 (loaded with module load)"
+            : id == "pseudodir" ? "e.g. /cluster/pseudo"
             : "e.g. *.tmp core");
         grid->Add(l.ctrl, wxSizerFlags(1).Expand().Border().CentreVertical());
         reg("code:" + id, l.ctrl);
@@ -1051,10 +1060,10 @@ static bool keySet(const MCD::KeyState& ks)
 bool WxMachineRegister::codeInUse(const string& name) const
 {
     static const char* const suffix[] = { "", "Command", "Environment",
-        "FilesToRemove", "PrelimFilesToRemove", "Modules" };
+        "FilesToRemove", "PrelimFilesToRemove", "Modules", "PseudoDir" };
     if (p_draft == NULL)
         return false;
-    for (size_t k = 0; k < 6; k++)
+    for (size_t k = 0; k < 7; k++)
     {
         const MCD::KeyState* ks = p_draft->state(name + suffix[k]);
         if (ks != NULL && keySet(*ks))
@@ -1132,6 +1141,14 @@ void WxMachineRegister::showCode()
         if (p_codeShown[r] == p_codeSel)
             p_codeList->SetSelection((int)r);
     codeLinesToControls();
+    if (CodeLine* pd = codeLine("pseudodir"))
+    {
+        bool qe = name == "QuantumESPRESSO";
+        pd->name->Show(qe);
+        pd->ctrl->Show(qe);
+        pd->tag->Show(qe);
+        pd->undoBox->Show(qe);
+    }
 
     //  Open More when it holds something for this code.
     bool used = false;
@@ -1146,7 +1163,8 @@ void WxMachineRegister::showCode()
         for (size_t k = 0; k < p_codeLines.size(); k++)
         {
             if (p_codeLines[k].suffix.empty() ||
-                p_codeLines[k].id == "modules")
+                p_codeLines[k].id == "modules" ||
+                p_codeLines[k].id == "pseudodir")
                 continue;
             const MCD::KeyState* ks = p_draft->state(
                 codeLineKey(p_codeLines[k]));
@@ -2099,6 +2117,7 @@ static vector<string> codeKeys(const string& code)
     k.push_back(code + "FilesToRemove");
     k.push_back(code + "PrelimFilesToRemove");
     k.push_back(code + "Modules");
+    k.push_back(code + "PseudoDir");
     k.push_back(lowerOf(code) + "_setup");
     k.push_back(lowerOf(code) + "_wrapup");
     return k;

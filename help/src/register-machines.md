@@ -373,6 +373,13 @@ To load environment modules for one code only, enter their names, separated
 by spaces, in **Modules** on the **Codes** tab. The job script runs `module
 load` with them before that code's commands.
 
+For Quantum ESPRESSO, **Pseudopotential directory** on the **Codes** tab names
+the folder on this machine that holds the pseudopotential (UPF) files. At
+launch it replaces `pseudo_dir` in the input, while the file names are still
+the ones chosen from your own library when the input was written. Before the
+job is submitted, ECCE warns if any of those files is missing from the folder
+on the machine; you can still launch. Left empty, the input is not changed.
+
 Commands such as `module load` work in job scripts. Job scripts run under
 `sh`, where the module system is not set up on its own, so ECCE sets it up
 (Lmod or Environment Modules) before the first `module` or `ml` command.
