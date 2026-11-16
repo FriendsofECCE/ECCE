@@ -184,6 +184,51 @@ second `start` of the same tool and URL meanwhile is dropped. `toolstate` answer
 launches=N`. The tool sends `ecce_tool_up` when its invoke is handled;
 `ECCE_TEST_TOOL_DELAY=<ms>` holds that signal back for a slow-start test.
 
+Experimental, with `ECCE_ONE_PROCESS=1`: **Edit > Preferences > Windows
+and tabs** chooses which tools open as tabs of the Organizer's window (the
+Organizer is the first tab and cannot be closed). Presets **Normal**,
+**Small**, **Wide** (separate windows; default: Normal); **Customize...** sets
+each tool's row (Builder / Viewer, Calculation Editor, Basis Set Tool, MD
+editors, MD Prepare) to Tab or Window, which makes the layout Custom. Under
+Normal the Calculation Editor's tab is the Set-up tab: a detail area right
+of the editor shows the Theory or Runtype Details (codes with a `.dlg`
+description: ECCE-QM, ORCA, xTB, Gaussian 16; others open the Python
+dialog's window) or, with no detail chosen, the input file (after an
+unsaved change, a dry run of the generator with the editor's settings,
+500 ms after the last change; the calculation is not written). The window
+is widened to 1100 px within the work area. Hook `setup info|theory|runtype|basis|launch|launch info|launch go|input|fold|unfold|save|preview|width N|set KEY VALUE|find TEXT` on the
+active Set-up tab (`area=input|theory|runtype title=... folded=0|1
+controls=N marked=<button> overlaps=N more="none|+N hidden"`, where `overlaps` counts shown controls of the editor's column whose rectangles intersect (0 is right) and `more` is the code bar's hidden-codes button; `width N` resizes the Organizer's window to N px; `preview` prints `shown=<len:fnv> file=<len:fnv>`;
+`set` edits a field of the embedded dialog as a user would, `find` says
+whether the preview contains TEXT, `basis` shows the basis panel
+(`area=basis list=N of M picked=<set> covered=H,O uncovered=<elements>
+use=on|off assigned=All_atoms:_<set>`; `basis filter TEXT` narrows the library
+list, `basis pick NAME` chooses a set, `basis all` is Use for all atoms:
+assigns it to the whole system and saves, as the Basis Set Tool's Add to Table
+plus save would; the panel uses the Basis Set Tool's library and `GBSAssign`),
+`launch` (the Launch... button) shows the Launcher's panel (`area=launch machine=<name> launch=enabled|disabled label=Launch|Launch_anyway`; pre-launch warnings appear in the panel and the button becomes Launch anyway: warn, never block), `launch info` reads it, `launch go` clicks Launch (`Launch is off`, `no Launcher panel` otherwise; `launch info` adds `clipped=N`, controls reaching past the area's right edge), `width N` sets the window's width,
+`info` adds `window= virtual= dry=0|1
+theorysum= runtypesum=` (the editor's summary lines); `no set-up area` under Small, `not a set-up tab` when the active tab is
+not an editor). Stored in `~/.ECCE/EcceGlobal` as `WindowsAndTabs.Layout`
+(`normal|small|wide|custom`) and, for Custom, `WindowsAndTabs.<key>`
+(`tab|window`, keys `builder calced basistool mdeditors mdprepare launcher`). A tool
+opened after a change follows it; the tab strip itself is made when the
+Organizer starts, so going from Wide to tabs needs a restart (a fresh install is Normal). The window's
+menu bar is the active tab's. Right-click on a tab: **Open in Window** (this
+time) and **Always open in a window** (also sets that tool's row to Window);
+the tool's **Window > Move to Tabs** puts it back. Without
+`ECCE_ONE_PROCESS` every tool opens in a window whatever the setting. Test
+hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus),
+`launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `tab N`, `towindow N`, `totabs <title part>`, `layout show|normal|small|wide|KEY=tab|window`
+(prints `preset=... rows=builder:tab,...`), `tabmenu N` (the tab's
+right-click items), `alwayswindow N`, and `prefs windows show|preset NAME|row KEY tab|window [PNG]|snap PNG`
+(the Preferences page and its Customize table, as clicks). A tab's
+dialogs open centred over the Organizer's window: `dialog` opens a test
+message box over the active tool tab and closes it 1.5 s later;
+`dialoginfo` then reports whether it was transient for the Organizer,
+shown and inside its window, its and the window's rectangles, and whether
+the focus came back (`focus=set`).
+
 The commands (`ecce-launch`, `ecce-series`, ...) are separate and are the
 way an assistant acts on ECCE. The help pages (**Help > ECCE Help**, `help/src/*.md`)
 describe every window; `help/src/index.md` lists them.

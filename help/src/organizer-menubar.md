@@ -307,6 +307,58 @@ machine. This tab lists every supported code, hidden or not:
 - Experimental: **NWChem**, **MOPAC**, **Quantum ESPRESSO**, **MLP (MACE)**
   and **AutoDock Vina**.
 
+### Windows and tabs
+
+Whether the tools open as tabs of the Organizer's window or each in a
+window of its own. This needs the tools to run in one program
+(`ECCE_ONE_PROCESS=1`, experimental); otherwise every tool opens in its own
+window and the tab says so.
+
+- **Layout**: **Normal** (the default), tools as tabs, and the Calculation Editor's tab
+  is a Set-up tab: the editor on the left, a detail area on the right.
+  **Theory Details...** and **Runtype Details...** fill that area instead of
+  opening a window (the button whose details are shown is in bold); the
+  area scrolls when they do not fit. With no detail chosen it shows the
+  input file: after an unsaved change it shows the file the current
+  settings would give, half a second after the last change, with a note
+  that Save writes it (a change of structure or basis set shows once
+  saved). If the window is narrower than about 1100 pixels, opening the
+  Set-up tab widens it, within the screen. The ◀ button at the top of the area hides the
+  editor column and ▶ brings it back; the divider between them can be
+  dragged. The **Basis Set** button shows the basis panel in the same area:
+  the basis-set library as a list you narrow by typing in the filter box,
+  the chosen set's elements (the ones of your chemical system it does not
+  cover are marked, and **Use for all atoms** is then off), **Use for all
+  atoms** to assign the set to the whole system and save it, and the current
+  assignment, one line per element when the elements differ. **Full Basis Set
+  Tool...** opens the Basis Set Tool for everything else (different sets for
+  different elements, ECPs, fitting sets). Codes whose details exist only in the older form (NWChem,
+  MOPAC, Quantum ESPRESSO, CP2K, GROMACS and others) still open those
+  details in a window, and the area says so. **Small**: one
+  tool per tab, each the full width of the window, for small screens and X
+  forwarding. **Wide**: every tool in a window of its own, as
+  in earlier versions, for large or several monitors. **Custom** is shown
+  once the table below has been changed.
+- **Customize...**: one row per tool (Builder / Viewer, Calculation Editor,
+  Basis Set Tool, MD editors, MD Prepare, Launcher), each **Tab** or **Window**,
+  filled from the chosen layout. Changing a row and pressing **OK** makes
+  the layout Custom.
+- Below the dropdown: which tools are tabs and which are windows.
+  **Launch...** shows the Launcher in the same area, with the machine, the
+  number of processors, the queue or priority the machine needs, and the
+  run directory (**Advanced** is folded). A warning before the launch, such
+  as a large calculation or a missing MPI program, appears in the panel and
+  the button becomes **Launch anyway**; nothing blocks the launch. Close it
+  from the Launcher's own menu or by choosing Theory, Runtype or Basis Set
+  Details again.
+
+A change applies to tools opened afterwards. The tab strip is made when the
+Organizer starts: after changing from Wide to a layout with tabs, start
+ECCE again. Right-click on a tool's tab: **Open in Window** moves it into a
+window this time; **Always open in a window** does that and sets its row
+to Window (the layout becomes Custom). **Window > Move to Tabs** in the
+tool's window puts it back into a tab.
+
 ### Advanced
 
 Switches for testing and troubleshooting; see

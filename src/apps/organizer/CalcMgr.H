@@ -74,6 +74,10 @@ class CalcMgr: public CalcMgrGUI
 DECLARE_CLASS( CalcMgr )
   
 public:
+  /// The Organizer's menu bar, also while a tool tab's is on the frame
+  /// (#983).  Not a GetMenuBar() override: wxFrameBase::SetMenuBar compares
+  /// with GetMenuBar() and would refuse to swap the bars.
+  wxMenuBar *ownMenuBar() const;
 
   // A tool's window is up (#1071): ends its start feedback.
   void toolUp(const string& app, const string& url);

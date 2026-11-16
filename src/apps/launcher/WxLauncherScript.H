@@ -52,12 +52,12 @@
 #include "wx/timer.h"
 #include "wx/weakref.h"
 
-class WxLauncher;
+class LaunchPanel;
 
 class LauncherScript : public wxEvtHandler
 {
     public:
-        LauncherScript(WxLauncher* frame, const std::string& file);
+        LauncherScript(LaunchPanel* frame, const std::string& file);
         void start();
 
     private:
@@ -68,7 +68,7 @@ class LauncherScript : public wxEvtHandler
         void finish();
 
         wxWeakRef<wxWindow>      p_frameRef;
-        WxLauncher              *p_frame;
+        LaunchPanel              *p_frame;
         wxTimer                  p_timer;
         std::deque<std::string>  p_cmds;
         int                      p_failures;

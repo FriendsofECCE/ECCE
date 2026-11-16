@@ -34,6 +34,17 @@ failures = []
 GDB = "--gdb" in sys.argv
 if GDB:
     sys.argv.remove("--gdb")
+# --shots DIR: screenshots of the tabbed window (runTabs).
+if "--shots" in sys.argv:
+    i = sys.argv.index("--shots")
+    os.environ["ECCE_TABS_SHOTS"] = sys.argv[i + 1]
+    del sys.argv[i:i + 2]
+    import xdisplay  # noqa: E402
+    xdisplay.SCREEN = "1366x768x24"
+# --tabs-only: only the tabbed run.
+if "--tabs-only" in sys.argv:
+    sys.argv.remove("--tabs-only")
+    os.environ["ECCE_TABS_ONLY"] = "1"
 
 
 def check(ok, what, detail=""):
@@ -241,8 +252,953 @@ def runQuit(display, gateway=False):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def setLayout(display, preset, rows=None):
+    """Preferences > Windows and tabs before the Organizer starts: the tab
+    strip is made at its start.  rows: {tool key: "tab"|"window"}."""
+    home = display.env().get("ECCE_REALUSERHOME") or os.environ["ECCE_REALUSERHOME"]
+    prefs = os.path.join(home, ".ECCE", "EcceGlobal")
+    os.makedirs(os.path.dirname(prefs), exist_ok=True)
+    lines = []
+    if os.path.exists(prefs):
+        lines = [ln for ln in open(prefs)
+                 if not ln.startswith("WindowsAndTabs.")]
+    lines.append("WindowsAndTabs.Layout:\t%s\n" % preset)
+    for key, value in (rows or {}).items():
+        lines.append("WindowsAndTabs.%s:\t%s\n" % (key, value))
+    with open(prefs, "w") as out:
+        out.writelines(lines)
+
+
+def toolShown(inproc, cls):
+    """'tab', 'window' or None for the tool frame class in an inprocess line:
+    a tabbed tool's frame stays hidden."""
+    m = re.search(r" tlw=%s(\(hidden\))?/" % cls, inproc)
+    return None if m is None else ("tab" if m.group(1) else "window")
+
+
+def runLayouts(display):
+    """Preferences > Windows and tabs (#983 stage 2): Wide keeps windows and
+    no tab strip; Normal (for now as Small) opens tabs; a Customize row set
+    to Window opens that tool in a window; the tab menu has Open in Window
+    and Always open in a window, which makes the layout Custom."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    shots = os.environ.get("ECCE_TABS_SHOTS")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-l", "ready", None)
+        cmds = os.path.join(work, "commands")
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def organizer(preset, inspect):
+            open(cmds, "w").close()
+            setLayout(display, preset)
+            result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                              env={"ECCE_ONE_PROCESS": "1",
+                                   "ECCE_TEST_ORGANIZER": cmds,
+                                   "ECCE_LOCAL_DATA": data},
+                              inspect=inspect)
+            log = result.log or ""
+            choices = [a for a in pb.answers(log, "prefs")
+                       if a.startswith("choice=")]
+            return result, log, choices
+
+        def wide(_display):
+            append("prefs windows show", 3)
+            append("tabs", 2)
+            append("start Builder " + url, 25)
+            append("inprocess", 2)
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 20)
+
+        result, log, pw = organizer("wide", wide)
+        check(len(pw) >= 1 and pw[0].startswith("choice=wide preset=wide")
+              and "builder:window" in pw[0],
+              "Wide: the dropdown shows Wide, every row Window", str(pw))
+        tabs = pb.answers(log, "tabs")
+        check(tabs == ["no tabs"], "Wide: no tab strip", str(tabs))
+        inproc = pb.answers(log, "inprocess")
+        check(len(inproc) == 1 and toolShown(inproc[0], "Builder") == "window",
+              "Wide: the Builder opens in a window", str(inproc))
+        check(not result.crashed and result.returncode == 0,
+              "Wide: the Organizer ends cleanly", log[-1500:])
+
+        def normal(_display):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+            append("prefs windows show", 3)
+            append("prefs windows row calced window" +
+                   (" " + os.path.join(shots, "prefs-windows-table.png")
+                    if shots else ""), 4)
+            if shots:
+                append("prefs windows snap " +
+                       os.path.join(shots, "prefs-windows.png"), 3)
+            append("start Builder " + url, 25)
+            append("start CalculationEditor " + url, 25)
+            append("inprocess", 2)
+            append("tabs", 2)
+            append("tabmenu 1", 2)
+            append("alwayswindow 1", 8)
+            append("inprocess", 2)
+            append("prefs windows show", 3)
+            append("prefs windows preset small", 3)
+            append("layout show", 2)
+            append("layout normal", 2)
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 3)
+            append("answer no", 20)
+
+        result, log, pw = organizer("normal", normal)
+        print("      prefs: " + "\n             ".join(pw))
+        check(len(pw) >= 1 and pw[0].startswith("choice=normal preset=normal")
+              and "builder:tab" in pw[0] and "calced:tab" in pw[0],
+              "Normal: the dropdown shows Normal, the rows are tabs (as Small "
+              "until the Set-up tab exists)", str(pw))
+        check(len(pw) >= 2 and pw[1].startswith("choice=custom preset=custom")
+              and "calced:window" in pw[1] and "builder:tab" in pw[1],
+              "Customize: the Calculation Editor row set to Window makes the "
+              "layout Custom", str(pw))
+        inproc = pb.answers(log, "inprocess")
+        print("      inprocess: " + "\n                 ".join(inproc))
+        check(len(inproc) == 2 and toolShown(inproc[0], "Builder") == "tab"
+              and toolShown(inproc[0], "CalcEd") == "window",
+              "Custom: the Builder opens as a tab, the editor in a window",
+              str(inproc) + log[-1500:])
+        tm = pb.answers(log, "tabmenu")
+        check(tm == ["Open in Window|Always open in a window"],
+              "the tab's right-click menu has Open in Window and Always open "
+              "in a window", str(tm))
+        aw = pb.answers(log, "alwayswindow")
+        check(len(aw) == 1 and "window:" in aw[0] and "builder:window" in aw[0]
+              and "preset=custom" in aw[0],
+              "Always open in a window: the Builder moves to a window and its "
+              "row becomes Window", str(aw))
+        check(len(inproc) == 2 and toolShown(inproc[1], "Builder") == "window",
+              "after Always open in a window the Builder's frame is shown",
+              str(inproc))
+        check(len(pw) >= 3 and pw[2].startswith("choice=custom")
+              and "builder:window" in pw[2],
+              "Preferences shows the row the tab menu changed", str(pw))
+        check(len(pw) >= 4 and pw[3].startswith("choice=small preset=small")
+              and "window" not in pw[3].split("rows=")[-1],
+              "choosing Small fills every row with Tab", str(pw))
+        lay = pb.answers(log, "layout")
+        check(len(lay) == 2 and lay[0].startswith("preset=small")
+              and lay[1].startswith("preset=normal"),
+              "the layout hook reads and sets the preset", str(lay))
+        check(not result.crashed and result.returncode == 0,
+              "Normal/Custom: the Organizer ends cleanly", log[-1500:])
+    finally:
+        setLayout(display, "wide")
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def runTabs(display):
+    """Small layout (#983 stage 2): the Builder opens as a tab, the menu
+    bar follows the active tab, Open in Window and Move to Tabs keep the
+    Builder, Quit asks about the dirty Builder tab.  ECCE_TABS_SHOTS=<dir>
+    saves the screen with the Organizer tab and the Builder tab."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    shots = os.environ.get("ECCE_TABS_SHOTS")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-t", "created", None)
+        cmds = os.path.join(work, "commands")
+        script = os.path.join(work, "builder-script")
+        open(cmds, "w").close()
+        with open(script, "w") as handle:
+            handle.write("background 1 1 1\nwait 3000\n"
+                         "add C Tetrahedral 8 0 0\nsavestate\n")
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def shot(name):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+                subprocess.run(["import", "-display", ":%s" % display.number,
+                                "-window", "root", os.path.join(shots, name)],
+                               check=False)
+
+        def inspect(_display):
+            append("tabs", 2)
+            append("start Builder " + url, 25)
+            append("tabs", 2)                  # Builder tab active
+            append("tabinfo", 2)
+            append("dialog", 1)
+            shot("tabs-builder-dialog.png")
+            time.sleep(2)                      # it closes itself after 1.5 s
+            append("dialoginfo", 2)
+            shot("tabs-builder.png")
+            append("charhook 27", 2)           # Esc, as GTK delivers it
+            append("tab 0", 3)
+            append("tabs", 2)                  # Organizer's menus back
+            shot("tabs-organizer.png")
+            append("towindow 1", 8)            # Open in Window
+            append("inprocess", 2)
+            append("sbinfo Builder", 2)
+            shot("tabs-builder-window.png")
+            append("totabs Builder", 8)        # Window > Move to Tabs
+            append("inprocess", 2)
+            append("close", 3)                 # File > Quit
+            append("answer", 3)                # "Quit"
+            append("answer cancel", 3)         # the Builder's save question
+            append("tabs", 2)
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 25)
+
+        setLayout(display, "small")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
+                               "ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_BUILDER_SCRIPT": script,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        if GDB:
+            print(log[-6000:])
+        tabs = pb.answers(log, "tabs")
+        print("      tabs: " + "\n            ".join(tabs))
+        orgMenus = tabs[0].split("menus=")[-1] if tabs else ""
+        check(len(tabs) >= 4 and tabs[0].startswith("0:Organizer*"),
+              "the Organizer is the first tab", str(tabs) + log[-1500:])
+        if len(tabs) >= 4:
+            check(re.search(r"1:.*Builder.*\* ", tabs[1]) is not None
+                  and "Render" in tabs[1].split("menus=")[-1]
+                  and "Render" not in orgMenus,
+                  "the Builder opened as the active tab with its menus",
+                  tabs[1])
+            check(tabs[2].startswith("0:Organizer*") and
+                  tabs[2].split("menus=")[-1] == orgMenus,
+                  "selecting the Organizer tab brings its menu bar back",
+                  tabs[2])
+        info = pb.answers(log, "tabinfo")
+        print("      tabinfo: " + str(info))
+        m = re.search(r"page=(\d+)x(\d+) onscreen=1 children=\d+ shown=(\d+) "
+                      r"statusbar=page frame=hidden", info[0] if info else "")
+        check(m is not None and int(m.group(1)) > 400 and
+              int(m.group(2)) > 300 and int(m.group(3)) >= 3,
+              "the Builder tab shows its windows and status bar, its own "
+              "frame stays unmapped", str(info))
+        dlg = pb.answers(log, "dialoginfo")
+        check(dlg and "transient=1 mapped=1 inside=1" in dlg[0]
+              and " focus=" in dlg[0],
+              "a dialog opened with the Builder's hidden frame as parent is "
+              "transient for the Organizer, shown and inside its window",
+              str(dlg))
+        check("BUILDER: charhook key=27" in log,
+              "a key hook on the main window reaches the Builder tab",
+              str(pb.answers(log, "charhook")))
+        tw = pb.answers(log, "towindow")
+        check(tw and "window:" in tw[0] and "(hidden)" not in tw[0]
+              and "(no menus)" not in tw[0] and " 1:" not in tw[0],
+              "Open in Window moves the Builder into a shown window with its menus", str(tw))
+        sbi = pb.answers(log, "sbinfo")
+        m = re.search(r"parent=frame bottom=(\d+) client=(\d+)",
+                      sbi[0] if sbi else "")
+        check(m is not None and abs(int(m.group(1)) - int(m.group(2))) <= 4,
+              "after Open in Window the status bar is at the frame's bottom",
+              str(sbi))
+        tt = pb.answers(log, "totabs")
+        check(tt and " 1:" in tt[0] and "window:" not in tt[0],
+              "Move to Tabs puts it back as a tab", str(tt))
+        inproc = pb.answers(log, "inprocess")
+        check(len(inproc) == 2 and all("Builder=1" in i for i in inproc),
+              "the same Builder throughout", str(inproc))
+        check("BUILDER: dirty=1" in log, "the Builder has unsaved changes")
+        check(pb.answers(log, "answer cancel") ==
+              ["answered Save Builder Changes?"] and
+              pb.answers(log, "answer no") ==
+              ["answered Save Builder Changes?"],
+              "Quit asks about the Builder tab: Cancel keeps it, No quits",
+              str(pb.answers(log, "answer")))
+        check(len(tabs) >= 4 and " 1:" in tabs[-1],
+              "the Builder tab is still there after Cancel", str(tabs))
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "the tabbed Organizer ends cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def runTabsEditor(display):
+    """#983 stage 2: the Calculation Editor as a tab, beside a Builder tab.
+    Menus follow the active tab, Open in Window / Move to Tabs, Quit.
+    The editor has no status bar (sbinfo says none).  ECCE_TABS_SHOTS=<dir>
+    saves the editor tab and its window."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    shots = os.environ.get("ECCE_TABS_SHOTS")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-e", "created", None)
+        cmds = os.path.join(work, "commands")
+        script = os.path.join(work, "builder-script")
+        open(cmds, "w").close()
+        with open(script, "w") as handle:
+            handle.write("background 1 1 1\nwait 3000\n"
+                         "add C Tetrahedral 8 0 0\nsavestate\n")
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def shot(name):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+                subprocess.run(["import", "-display", ":%s" % display.number,
+                                "-window", "root", os.path.join(shots, name)],
+                               check=False)
+
+        def inspect(_display):
+            append("start CalculationEditor " + url, 25)
+            append("tabs", 2)                  # 1: the editor, active
+            append("tabinfo Launch...,Save,Verify,dump,gtk", 2)
+            append("setup info", 2)            # Small: no Set-up tab
+            append("dialog", 1)
+            shot("tabs-editor-dialog.png")
+            time.sleep(2)                      # it closes itself after 1.5 s
+            append("dialoginfo", 2)
+            shot("tabs-editor.png")
+            append("start Builder " + url, 25)
+            append("tabs", 2)                  # 2: the Builder, active
+            shot("tabs-editor-and-builder.png")
+            append("tab 1", 3)
+            append("tabs", 2)                  # the editor's menus again
+            shot("tabs-editor-back.png")
+            append("towindow 1", 8)
+            append("sbinfo Editor", 2)
+            shot("tabs-editor-window.png")
+            append("totabs Editor", 8)
+            append("inprocess", 2)
+            append("close", 3)                 # File > Quit
+            append("answer", 3)                # "Quit"
+            append("answer no", 3)             # the editor's question
+            append("answer no", 25)            # the Builder's question
+
+        setLayout(display, "small")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
+                               "ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_BUILDER_SCRIPT": script,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        if GDB:
+            print(log[-6000:])
+        tabs = pb.answers(log, "tabs")
+        print("      tabs: " + "\n            ".join(tabs))
+        check(len(tabs) >= 3 and re.search(r"1:.*Editor.*\* ", tabs[0])
+              is not None and "Save" not in tabs[0].split("menus=")[0]
+              and "File" in tabs[0].split("menus=")[-1]
+              and "Render" not in tabs[0].split("menus=")[-1],
+              "the editor opened as the active tab with its menus",
+              str(tabs) + log[-1500:])
+        if len(tabs) >= 3:
+            check(re.search(r"2:.*Builder.*\* ", tabs[1]) is not None
+                  and "Render" in tabs[1].split("menus=")[-1],
+                  "with both open, the Builder tab has the Builder's menus",
+                  tabs[1])
+            check(re.search(r"1:.*Editor.*\* ", tabs[2]) is not None
+                  and tabs[2].split("menus=")[-1] ==
+                  tabs[0].split("menus=")[-1],
+                  "switching back to the editor swaps its menu bar back",
+                  tabs[2])
+        info = pb.answers(log, "tabinfo")
+        m = re.search(r"page=(\d+)x(\d+) onscreen=1 children=\d+ shown=(\d+) "
+                      r"statusbar=none frame=hidden", info[0] if info else "")
+        check(m is not None and int(m.group(1)) > 300 and
+              int(m.group(2)) > 300 and int(m.group(3)) >= 1,
+              "the editor tab shows its windows, its own frame stays unmapped",
+              str(info))
+        su = pb.answers(log, "setup")
+        check(su == ["no set-up area"],
+              "Small: the editor tab has no detail area", str(su))
+        dlg = pb.answers(log, "dialoginfo")
+        check(dlg and "transient=1 mapped=1 inside=1" in dlg[0]
+              and " focus=" in dlg[0],
+              "a dialog opened from the editor tab is transient for the "
+              "Organizer, shown and inside its window", str(dlg))
+        # Every control reachable (seen, or by scrolling), and the page is
+        # not one flat colour as the X server shows it.
+        check(info and all(("%s=reachable" % b) in info[0]
+                           for b in ("Launch...", "Save", "Verify"))
+              and "clipped=0" in info[0] and "STALE" not in info[0],
+              "the editor's buttons and controls are reachable in the tab",
+              str(info))
+        m = re.search(r"colours=(\d+)", info[0] if info else "")
+        check(m is not None and int(m.group(1)) > 20,
+              "the editor tab is painted, not one flat colour", str(info))
+        tw = pb.answers(log, "towindow")
+        check(tw and "window:" in tw[0] and "(hidden)" not in tw[0]
+              and "(no menus)" not in tw[0] and "Editor" in tw[0],
+              "Open in Window gives the editor a shown window with its menus",
+              str(tw))
+        check(pb.answers(log, "sbinfo") == ["none"],
+              "the editor has no status bar", str(pb.answers(log, "sbinfo")))
+        tt = pb.answers(log, "totabs")
+        check(tt and re.search(r"1:.*Editor", tt[0]) and "window:" not in tt[0],
+              "Move to Tabs puts the editor back as a tab", str(tt))
+        inproc = pb.answers(log, "inprocess")
+        check(len(inproc) == 1 and "CalculationEditor=1" in inproc[0],
+              "the same editor throughout", str(inproc))
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "the Organizer with editor and Builder tabs ends cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def fnv(data):
+    h = 1469598103934665603
+    for c in data:
+        h = ((h ^ c) * 1099511628211) & 0xFFFFFFFFFFFFFFFF
+    return "%d:%016x" % (len(data), h)
+
+
+def runSetupTab(display):
+    """Normal layout (#983 stage 2): the editor's tab is the Set-up tab.
+    Theory and Runtype Details fill its detail area, with no detail the
+    area shows the input file Save writes; the editor column folds.  An
+    ORCA calculation: both its details have a .dlg."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    shots = os.environ.get("ECCE_TABS_SHOTS")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        calc = pb.makeCalc(project, "water-orca", "created", None)
+        meta = os.path.join(calc, ".ecce-meta")
+        text = open(meta).read().replace("ecce:application\t\tNWChem",
+                                         "ecce:application\t\tORCA")
+        open(meta, "w").write(text)
+        url = "file://" + calc
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def shot(name):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+                subprocess.run(["import", "-display", ":%s" % display.number,
+                                "-window", "root", os.path.join(shots, name)],
+                               check=False)
+
+        def inspect(_display):
+            append("start CalculationEditor " + url, 25)
+            append("tabs", 2)
+            append("setup info", 2)            # 1: the input preview
+            append("setup theory", 4)          # 2
+            shot("setup-theory.png")
+            append("setup set ES.Theory.SCF.ConvergenceIterations 37", 3)
+            append("setup info", 2)            # 11 (appended last)
+            append("setup runtype", 4)         # 3
+            shot("setup-runtype.png")
+            append("setup input", 8)           # 4
+            append("setup find 37", 2)         # unsaved 37 in the preview
+            shot("setup-input-unsaved.png")
+            append("setup save", 15)           # 5
+            append("setup preview", 2)         # 6
+            shot("setup-input.png")
+            append("setup fold", 2)            # 7
+            append("setup unfold", 2)          # 8
+            append("towindow 1", 8)
+            append("setup info", 2)            # 9: a window, no area
+            append("totabs Editor", 8)
+            append("setup info", 2)            # 10: the area again
+            append("setup basis filter 6-31G", 3)       # 13
+            append("setup basis pick 6-31G*", 3)          # 14
+            shot("setup-basis.png")
+            append("setup basis filter lanl", 3)          # 15
+            append("setup basis pick LANL08", 3)          # 16: not covering O
+            append("setup basis filter 3-21G", 3)         # 17
+            append("setup basis pick 3-21G", 3)           # 18
+            append("setup basis all", 15)                 # 19: 3-21G, saved
+            append("setup basis filter 6-31G", 3)         # 20
+            append("setup basis pick 6-31G*", 3)          # 21
+            append("setup basis all", 15)                 # 22: 6-31G*, saved
+            append("setup input", 8)                      # 23
+            append("setup width 1024", 4)
+            append("setup info", 2)
+            shot("setup-orca-1024.png")
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 25)
+
+        setLayout(display, "normal")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
+                               "ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        su = pb.answers(log, "setup")
+        print("      setup: " + "\n             ".join(su))
+        areas = [a for a in su if a.startswith("area=")]
+        check(areas and all("overlaps=0" in a for a in areas),
+              "ORCA Set-up tab: no two controls of the editor's column overlap "
+              "(default width and 1024 px)",
+              "\n".join(a for a in areas if "overlaps=0" not in a))
+        m = re.search(r"window=(\d+)x", areas[-1]) if areas else None
+        check(m and int(m.group(1)) <= 1024,
+              "the Organizer window narrows to 1024 px",
+              areas[-1] if areas else "")
+        tabs = pb.answers(log, "tabs")
+        check(tabs and re.search(r"1:.*Editor.*\*", tabs[0]) is not None,
+              "Normal: the editor opens as a tab", str(tabs) + log[-1500:])
+        su += [""] * (24 - len(su))
+        basis = su[13:24]
+        su = su[:13]
+        # Answers in command order: index 2 is the "set", 3 its info.
+        setAns, setInfo = su[2], su[3]
+        found = su[6]
+        su = su[:2] + su[4:6] + su[7:]
+        check(found == "found=1" and "dry=1" in su[3],
+              "the preview follows an unsaved change (dry run)",
+              found + " / " + su[3])
+        m = re.search(r"window=(\d+)x", su[0])
+        check(m and int(m.group(1)) >= 1100,
+              "the window is widened to editor + a usable detail area", su[0])
+        check(setAns.startswith("area=theory") and
+              "theorysum=" in setInfo and "|37" in setInfo.split(
+                  "theorysum=")[1].split(" ")[0],
+              "a value changed in the embedded dialog reaches the editor's "
+              "summary", setAns + " / " + setInfo)
+        check(su[0].startswith("area=input"),
+              "the Set-up tab shows the input preview with no detail chosen",
+              su[0])
+        m = re.search(r"controls=(\d+)", su[1])
+        v = re.search(r"size=(\d+)x(\d+) window=\S+ virtual=(\d+)x(\d+)", su[1])
+        check(v and int(v.group(4)) > 100,
+              "the detail area has the dialog's virtual size (scrolls)", su[1])
+        check(su[1].startswith("area=theory") and m and int(m.group(1)) > 3
+              and "marked=Theory" in su[1],
+              "Theory Details fill the detail area, the button stays marked",
+              su[1])
+        m = re.search(r"controls=(\d+)", su[2])
+        check(su[2].startswith("area=runtype") and m and int(m.group(1)) > 3
+              and "marked=Runtype" in su[2] and "marked=Theory" not in su[2],
+              "Runtype Details replace them in the same area", su[2])
+        check(su[3].startswith("area=input"), "Input brings the preview back",
+              su[3])
+        m = re.search(r"shown=(\S+) file=(\S+)", su[5])
+        files = set()
+        for root, _dirs, names in os.walk(calc):
+            for n in names:
+                files.add(fnv(open(os.path.join(root, n), "rb").read()))
+        check(m and m.group(1) == m.group(2) and not m.group(1).startswith("0:")
+              and m.group(1) in files,
+              "after Save the preview is the input file Save wrote",
+              su[5] + " files=" + str(sorted(files)))
+        check("folded=1" in su[6] and "folded=0" in su[7],
+              "the editor column folds and unfolds", su[6] + " / " + su[7])
+        check(su[8] == "not a set-up tab" or su[8] == "no set-up area",
+              "Open in Window: no detail area (details as dialogs)", su[8])
+        check(su[9].startswith("area=input"),
+              "Move to Tabs makes the Set-up tab again", su[9])
+        check(basis[0].startswith("area=basis") and "list=" in basis[0],
+              "the basis button/hook shows the basis panel in the area",
+              basis[0])
+        check("picked=6-31G*" in basis[1] and "covered=O,H" in basis[1]
+              and "uncovered= " in basis[1] and "use=on" in basis[1],
+              "6-31G* covers the water system, Use for all atoms is on",
+              basis[1])
+        check("picked=LANL08" in basis[3] and "uncovered=" in basis[3]
+              and "uncovered= " not in basis[3] and "use=off" in basis[3],
+              "a set that lacks an element of the system marks it and "
+              "Use for all atoms is off", basis[3])
+        check("assigned=All_atoms:_3-21G " in basis[6] + " "
+              and "assigned=All_atoms:_6-31G* " in basis[9] + " ",
+              "Use for all atoms assigns the set to the whole system "
+              "(3-21G, then 6-31G*)", basis[6] + " / " + basis[9])
+        stored = set()
+        for root, _dirs, names in os.walk(calc):
+            for n in names:
+                try:
+                    txt = open(os.path.join(root, n), errors="replace").read()
+                except OSError:
+                    continue
+                if "6-31G*" in txt and ("polarization" in txt.lower()
+                                        or "gbs" in n.lower()
+                                        or "basis" in n.lower()):
+                    stored.add(n)
+        check(stored, "the saved calculation stores the 6-31G* basis "
+              "(same config the Basis Set Tool's save writes)", str(stored))
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "the Organizer with a Set-up tab ends cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def runTabsTools(display):
+    """#983 stage 2: MD Energy, MD Prepare and the Basis Set Tool as tabs.
+    Each shows its menus and windows, its frame stays unmapped, the page is
+    painted and the key buttons reachable; Open in Window and Move to Tabs
+    work; Quit ends cleanly.  ECCE_TABS_SHOTS=<dir> saves each tab."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    shots = os.environ.get("ECCE_TABS_SHOTS")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-m", "created", None)
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def shot(name):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+                subprocess.run(["import", "-display", ":%s" % display.number,
+                                "-window", "root", os.path.join(shots, name)],
+                               check=False)
+
+        def inspect(_display):
+            append("start MDEnergy", 15)
+            append("tabs", 2)                  # 1: MD Energy
+            append("tabinfo Launch...,Save", 2)
+            shot("tabs-mdenergy.png")
+            append("start MDPrepare", 15)
+            append("tabs", 2)                  # 2: MD Prepare
+            append("tabinfo Run Local,Save", 2)
+            shot("tabs-mdprepare.png")
+            append("start Basistool " + url, 20)
+            append("tabs", 2)                  # 3: Basis Set Tool
+            append("tabinfo Details...,Add to Table", 2)
+            shot("tabs-basistool.png")
+            append("towindow 3", 8)
+            shot("tabs-basistool-window.png")
+            append("totabs Basis", 8)
+            append("towindow 2", 8)
+            append("totabs Prepare", 8)
+            append("inprocess", 2)
+            append("close", 3)                 # File > Quit
+            append("answer", 3)
+            append("answer no", 3)
+            append("answer no", 3)
+            append("answer no", 20)
+
+        setLayout(display, "small")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
+                               "ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        if GDB:
+            print(log[-6000:])
+        tabs = pb.answers(log, "tabs")
+        print("      tabs: " + "\n            ".join(tabs))
+        info = pb.answers(log, "tabinfo")
+        print("      tabinfo: " + "\n               ".join(info))
+        for i, (name, first, buttons) in enumerate(
+                (("MD Energy", "File", ("Launch...", "Save")),
+                 ("MD Prepare", "File", ("Run Local", "Save")),
+                 ("Basis Set", "Molecular Basis", ("Details...", "Add to Table")))):
+            check(len(tabs) > i and re.search(r"%d:.*%s.*\* " % (i + 1, name),
+                                              tabs[i]) is not None
+                  and first in tabs[i].split("menus=")[-1]
+                  and "Render" not in tabs[i].split("menus=")[-1],
+                  "%s opened as the active tab with its menus" % name,
+                  str(tabs) + log[-1500:])
+            line = info[i] if len(info) > i else ""
+            m = re.search(r"page=(\d+)x(\d+) onscreen=1 children=\d+ "
+                          r"shown=(\d+) .*frame=hidden", line)
+            check(m is not None and int(m.group(1)) > 300 and
+                  int(m.group(2)) > 200 and int(m.group(3)) >= 1,
+                  "%s tab shows its windows, its frame stays unmapped" % name,
+                  line)
+            check(all(("%s=reachable" % b) in line for b in buttons)
+                  and "STALE" not in line,
+                  "%s: %s reachable in the tab" % (name, ", ".join(buttons)),
+                  line)
+            m = re.search(r"colours=(\d+)", line)
+            check(m is not None and int(m.group(1)) > 20,
+                  "%s tab is painted, not one flat colour" % name, line)
+        tw = pb.answers(log, "towindow")
+        check(len(tw) >= 2 and all("window:" in t and "(hidden)" not in t
+                                   and "(no menus)" not in t for t in tw),
+              "Open in Window gives each tool a shown window with its menus",
+              str(tw))
+        tt = pb.answers(log, "totabs")
+        check(len(tt) >= 2 and all("window:" not in t for t in tt),
+              "Move to Tabs puts each tool back as a tab", str(tt))
+        inproc = pb.answers(log, "inprocess")
+        check(len(inproc) == 1 and "MDEnergy=1" in inproc[0]
+              and "BasisTool=1" in inproc[0] and "MDPrepare=1" in inproc[0],
+              "the same three tools throughout", str(inproc))
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "the Organizer with MD and Basis Set Tool tabs ends cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def runTabsLauncher(display):
+    """#983: the Launcher joins the Organizer's process.  Normal layout: the
+    editor's Launch... opens a Launcher tab (no new process), the local
+    machine is selectable, Launch from the tab submits a water calculation
+    (state leaves 'created') as the window route does; Open in Window and
+    Move to Tabs keep it; Quit ends cleanly."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        # An ECCE-QM water calculation, which runs in the isolated session.
+        calc = os.path.join(project, "water-l")
+        shutil.copytree(os.path.join(HERE, "..", "ecceqm", "fixtures",
+                                     "h2o-geometry"), calc, symlinks=True)
+        meta = open(os.path.join(calc, ".ecce-meta")).read()
+        open(os.path.join(calc, ".ecce-meta"), "w").write(
+            re.sub(r"(ecce:state\t\t)\w+", r"\1ready", meta))
+        url = "file://" + calc
+        cmds = os.path.join(work, "commands")
+        calced = os.path.join(work, "calced-script")
+        open(cmds, "w").close()
+        with open(calced, "w") as handle:
+            handle.write("wait 5000\ntool Launcher\n")   # the editor's Launch...
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        shots = os.environ.get("ECCE_TABS_SHOTS")
+
+        def shot(name):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+                subprocess.run(["import", "-display", ":%s" % display.number,
+                                "-window", "root", os.path.join(shots, name)],
+                               check=False)
+
+        def inspect(_display):
+            append("start CalculationEditor " + url, 30)   # then its script
+            append("tabs", 2)
+            append("launcher get machines", 2)
+            append("launcher get machine", 2)
+            append("inprocess", 2)
+            append("tabinfo Launch", 2)
+            append("launcher launch", 90)
+            append("launcher get machine", 2)
+            append("towindow 2", 8)
+            append("totabs Launcher", 8)
+            append("tabs", 2)
+            append("close", 3)
+            shot("launcher-quit.png")
+            append("answer", 3)
+            append("answer no", 3)
+            append("answer no", 20)
+
+        setLayout(display, "normal")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_TEST_MESSAGES": "1",
+                               "ECCE_CALCED_SCRIPT": calced,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        tabs = pb.answers(log, "tabs")
+        print("      tabs: " + "\n            ".join(tabs))
+        check(len(tabs) >= 1 and "Launcher" in tabs[0],
+              "the editor's Launch... opened a Launcher tab", str(tabs))
+        inproc = pb.answers(log, "inprocess")
+        check(len(inproc) == 1 and "Launcher=1" in inproc[0]
+              and "CalculationEditor=1" in inproc[0],
+              "the Launcher is one of the Organizer's own windows", str(inproc))
+        trace = re.findall(r"ECCE_TEST_MESSAGES: (\S+) (\S+) pid=(\d+) "
+                           r"(\S+) from", log)
+        pids = set(t[2] for t in trace)
+        check(any(t[0] == "Launcher" and t[3] == "ecce_invoke" for t in trace)
+              and len(pids) == 1,
+              "the Launcher got its invoke, in the Organizer's process (pids %s)"
+              % sorted(pids))
+        machines = pb.answers(log, "launcher get machines")
+        check(machines and "localhost" in machines[0],
+              "localhost is in the Launcher's machine list", str(machines))
+        m = re.search(r"ecce:state\t\t(\w+)",
+                      open(os.path.join(calc, ".ecce-meta")).read())
+        state = m.group(1) if m else "?"
+        check(state.lower() in ("submitted", "running", "complete", "completed"),
+              "Launch from the tab ran the ECCE-QM water calculation "
+              "(state %s)" % state)
+        tt = pb.answers(log, "tabs")
+        check(len(tt) >= 1 and "Launcher" in tt[-1],
+              "Open in Window and Move to Tabs keep the Launcher tab",
+              str(tt))
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "the Organizer with a Launcher tab ends cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def runSetupLaunch(display):
+    """#983: in the Normal layout Launch... shows the Launcher's panel in the
+    Set-up area (no new tab): the local machine is offered, and launching an
+    ECCE-QM water calculation from it runs to Complete."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        calc = os.path.join(project, "water-s")
+        shutil.copytree(os.path.join(HERE, "..", "ecceqm", "fixtures",
+                                     "h2o-geometry"), calc, symlinks=True)
+        meta = open(os.path.join(calc, ".ecce-meta")).read()
+        open(os.path.join(calc, ".ecce-meta"), "w").write(
+            re.sub(r"(ecce:state\t\t)\w+", r"\1ready", meta))
+        url = "file://" + calc
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        shots = os.environ.get("ECCE_TABS_SHOTS")
+
+        def shot(name):
+            if shots:
+                os.makedirs(shots, exist_ok=True)
+                subprocess.run(["import", "-display", ":%s" % display.number,
+                                "-window", "root", os.path.join(shots, name)],
+                               check=False)
+
+        def inspect(_display):
+            append("start CalculationEditor " + url, 30)
+            append("setup launch", 6)
+            append("setup launch info", 2)
+            append("tabs", 2)
+            shot("setup-launch.png")
+            append("setup width 1024", 4)
+            append("setup launch info", 2)
+            append("setup launch info", 2)
+            shot("setup-launch-1024.png")
+            append("setup launch go", 90)
+            append("setup launch info", 2)
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 3)
+            append("answer no", 20)
+
+        setLayout(display, "normal")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        first = pb.answers(log, "setup launch")
+        check(first and "area=launch" in first[0] and "machine=localhost" in first[0],
+              "Launch... shows the Launcher panel in the Set-up area, on localhost",
+              str(first))
+        info = pb.answers(log, "setup launch info")
+        check(info and "launch=enabled" in info[0],
+              "the panel's Launch button is enabled", str(info))
+        check(info and all("overlaps=0" in i for i in info),
+              "no two controls of the editor's column overlap (ECCE-QM, "
+              "default width and 1024 px)", str(info))
+        # No hidden code: the button is correctly absent (code_choice_calced
+        # _test checks the count); when there is one it must be the "+N" form.
+        check(info and all(re.search(r'more="(none|\+\d+ hidden)"', i)
+                           for i in info),
+              "the code bar has no '+N hidden' button, or one of the right form",
+              str(info))
+        check(info and all("clipped=0" in i for i in info[:-1]),
+              "no control of the panel is clipped at the default width or at "
+              "1024 px", str(info))
+        tt = pb.answers(log, "tabs")
+        check(tt and "Launcher" not in tt[0],
+              "no Launcher tab was opened", str(tt))
+        m = re.search(r"ecce:state\t\t(\w+)",
+                      open(os.path.join(calc, ".ecce-meta")).read())
+        state = m.group(1) if m else "?"
+        check(state.lower() in ("complete", "completed"),
+              "Launch from the Set-up panel ran the water calculation to "
+              "Complete (state %s)" % state)
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "the Organizer with the Set-up launch panel ends cleanly",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
+        if os.environ.get("ECCE_LAUNCHER_ONLY") == "1":
+            runTabsLauncher(display)
+            runSetupLaunch(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
+        if os.environ.get("ECCE_SETUP_ONLY") == "1":
+            runSetupTab(display)
+            runSetupLaunch(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
+        runLayouts(display)
+        runTabs(display)
+        runTabsEditor(display)
+        runSetupTab(display)
+        runTabsTools(display)
+        runTabsLauncher(display)
+        runSetupLaunch(display)
+        if os.environ.get("ECCE_TABS_ONLY") == "1":
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         run(display)
         runQuit(display)
         runQuit(display, gateway=True)

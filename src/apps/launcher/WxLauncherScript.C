@@ -17,7 +17,7 @@
 
 #include "wx/dcmemory.h"
 
-#include "WxLauncher.H"
+#include "LaunchPanel.H"
 #include "WxLauncherScript.H"
 #include "wxgui/WindowShot.H"
 
@@ -51,7 +51,7 @@ static vector<string> words(const string& line)
 }
 
 
-LauncherScript::LauncherScript(WxLauncher* frame, const string& file)
+LauncherScript::LauncherScript(LaunchPanel* frame, const string& file)
     : p_frameRef(frame), p_frame(frame), p_timer(this), p_failures(0),
       p_loaded(false)
 {

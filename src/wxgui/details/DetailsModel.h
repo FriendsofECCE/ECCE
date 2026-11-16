@@ -62,6 +62,11 @@ struct Entry {
   int index;
 };
 
+// The 17 argv fields of a Details dialog (restore port flag rw debug
+// category theory runtype calc rxn sym nelec mult nfrozen nocc nvirt nmodes),
+// as the Calculation Editor passes them to a dialog process or embeds one.
+bool makeParams(const std::vector<std::string>& argv, Params& p, long& port);
+
 class Model {
 public:
   Model(const Description& d, const Params& p) : desc_(d), par_(p) {}

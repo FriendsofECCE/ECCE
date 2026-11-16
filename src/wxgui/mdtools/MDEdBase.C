@@ -25,6 +25,7 @@
 
 #include "util/BrowserHelp.H"
 #include "wxgui/WxHelpViewer.H"
+#include "wxgui/ToolTabs.H"
 #include "util/Ecce.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
@@ -892,7 +893,45 @@ void MDEdBase::notifyChange()
 
 bool MDEdBase::Show(bool show)
 {
+   if (ToolTabs::hosts(this)) {
+      if (show) ToolTabs::select(this);
+      return true;
+   }
    return MDEdBaseGUI::Show(show);
+}
+
+
+void MDEdBase::Raise()
+{
+   if (ToolTabs::hosts(this)) ToolTabs::select(this);
+   else MDEdBaseGUI::Raise();
+}
+
+
+void MDEdBase::SetTitle(const wxString& title)
+{
+   MDEdBaseGUI::SetTitle(title);
+   ToolTabs::setTitle(this, title);
+}
+
+
+bool MDEdBase::Destroy()
+{
+   ToolTabs::release(this, false);
+   return MDEdBaseGUI::Destroy();
+}
+
+
+wxMenuBar *MDEdBase::GetMenuBar() const
+{
+   return ToolTabs::menuBar(this, wxFrame::GetMenuBar());
+}
+
+
+wxWindow *MDEdBase::FindWindow(long id) const
+{
+   wxWindow *page = ToolTabs::client(this);
+   return page ? page->FindWindow(id) : wxFrame::FindWindow(id);
 }
 
 
@@ -1135,7 +1174,7 @@ void MDEdBase::taskAppRaise()
 void MDEdBase::setUnitFamily(const string& family)
 {
    ewxWindowUtils::setUnitFamily(this,family);
-   Fit();
+   if (!ToolTabs::layout(this)) Fit();
 }
 
 string MDEdBase::getTitle() const
@@ -1158,6 +1197,7 @@ void MDEdBase::OnCloseWindow( wxCloseEvent& event )
 
 MDEdBase::~MDEdBase()
 {
+   ToolTabs::release(this, false);
    //  In one process the window's dispatcher must go with it, or its
    //  subscriptions call into a deleted frame (#983); a program of its own
    //  ends with its window anyway.
@@ -1169,6 +1209,9 @@ WxJMSMessageDispatch *MDEdBase::openInProcess(MDEdBase *editor)
 {
    WxJMSMessageDispatch *d = editor->p_msgDispatcher;
    if (!d) return 0;
+   // Before the first Show, so the window is never mapped as a frame.
+   ToolTabs::open(editor, 0, wxString::FromUTF8(editor->getTitle().c_str()),
+                  "mdeditors");
    editor->Show(true);
    InProcessTools::track(editor->getAppName(), d, editor);
    return d;

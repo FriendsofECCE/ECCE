@@ -19,6 +19,7 @@
 #include "util/MqttBroker.H"
 #include "util/MqttLink.H"
 #include "wxgui/InProcessTools.H"
+#include "wxgui/ToolTabs.H"
 #include "util/JMSPublisher.H"
 #include "wx/wxprec.h"
 
@@ -121,6 +122,7 @@ void registerMDDynamicsInProcess();
 void registerGmxPrepareInProcess();
 void registerBasisToolInProcess();
 void registerMDPrepInProcess();
+void registerLauncherInProcess();
 
 IMPLEMENT_APP(CalcMgrApp)
 
@@ -306,12 +308,16 @@ bool CalcMgrApp::OnInit()
     registerGmxPrepareInProcess();
     registerBasisToolInProcess();
     registerMDPrepInProcess();
+    registerLauncherInProcess();
     string name = getMyName(), id = getMyID();
     JMSPublisher::setActingTool(name, id);
     p_calcMgr->Bind(wxEVT_ACTIVATE, [name, id](wxActivateEvent& ev) {
       if (ev.GetActive()) JMSPublisher::setActingTool(name, id);
       ev.Skip();
     });
+    // Tools set to Tab in Preferences > Windows and tabs (#983 stage 2)
+    // open as tabs of this window.
+    if (ToolTabs::enabled()) ToolTabs::setMainWindow(p_calcMgr);
   }
 
   return true;

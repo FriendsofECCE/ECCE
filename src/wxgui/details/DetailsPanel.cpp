@@ -58,16 +58,18 @@ wxFont themeFont()
   return f;
 }
 
-DetailsPanel::DetailsPanel(wxFrame *frame, Model& model)
+DetailsPanel::DetailsPanel(wxWindow *frame, Model& model,
+                           std::function<void()> onClose)
     : wxPanel(frame, wxID_ANY, wxDefaultPosition, wxDefaultSize,
               wxTAB_TRAVERSAL),
-      model_(model), frame_(frame)
+      model_(model), frame_(frame), onClose_(onClose)
 {
   SetFont(themeFont());
   helpURL_ = model.helpURL;
   build();
   buildFooter();
-  frame->SetTitle(model.title);
+  if (wxTopLevelWindow *tlw = wxDynamicCast(frame, wxTopLevelWindow))
+    tlw->SetTitle(model.title);
 }
 
 void DetailsPanel::build()
@@ -328,11 +330,13 @@ void DetailsPanel::resetEnabled(bool on)
 void DetailsPanel::layoutChanged()
 {
   Layout();
+  if (onClose_) frame_->Layout();
 }
 
 void DetailsPanel::closeRequested()
 {
-  frame_->Destroy();
+  if (onClose_) onClose_();
+  else frame_->Destroy();
 }
 
 void DetailsPanel::onReset()

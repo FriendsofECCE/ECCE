@@ -14,6 +14,7 @@
 #include "dsm/ESPConstraintModelXMLizer.H"
 #include "dsm/GBSRules.H"
 #include "dsm/GeomConstraintModelXMLizer.H"
+#include <sstream>
 #include "dsm/ICalculation.H"
 #include "dsm/JCode.H"
 #include "dsm/QstStructures.H"
@@ -259,11 +260,15 @@ bool writeParams(ICalculation *calc, const string& file,
     os << "parseFile: " << f.name() << endl;
   }
   TTheory *theory = calc->theory();
-  if (theory) {
+  if (!opt.theory.empty()) {
+    os << "Category: " << opt.category << endl;
+    os << "Theory: " << opt.theory << endl;
+  } else if (theory) {
     os << "Category: " << theory->category() << endl;
     os << "Theory: " << theory->name() << endl;
   }
-  os << "RunType: " << calc->runtype().name() << endl;
+  os << "RunType: " << (opt.runtype.empty() ? calc->runtype().name()
+                                             : opt.runtype) << endl;
 
   Fragment *frag = calc->fragment();
   if (frag) {
@@ -280,7 +285,7 @@ bool writeParams(ICalculation *calc, const string& file,
 
     // Orbital counts, as the editor's getOrbitalParams: the full molecule's
     // electrons, the basis from the stored configuration.
-    const int spin = (int)calc->spinMultiplicity();
+    const int spin = (opt.spin > 0 ? opt.spin : (int)calc->spinMultiplicity());
     const int electrons = full->nuclearCharge() - full->charge();
     long core = 0;
     for (size_t i = 0; i < frag->numAtoms(); i++)
@@ -307,7 +312,7 @@ bool writeParams(ICalculation *calc, const string& file,
     delete frag;
   }
 
-  os << "ChemSys.Multiplicity: " << (int)calc->spinMultiplicity() << endl;
+  os << "ChemSys.Multiplicity: " << (opt.spin > 0 ? opt.spin : (int)calc->spinMultiplicity()) << endl;
 
   if (codecap && theory && codecap->theoryNeedsBasis(*theory)) {
     TGBSConfig *const cfg = calc->gbsConfig();
@@ -318,7 +323,7 @@ bool writeParams(ICalculation *calc, const string& file,
     }
   }
 
-  GUIValues *gv = calc->guiparams();
+  const GUIValues *gv = opt.gui ? opt.gui : calc->guiparams();
   if (gv) gv->dumpKeyVals(os);
 
   TaskJob *job = dynamic_cast<TaskJob*>(calc);
@@ -523,6 +528,13 @@ DeckWriter::Result DeckWriter::generate(ICalculation *calc, const Options& opt)
             if (!prettyCopy(origInput, inputFile))
               message = "Input files could not be generated--could not "
                         "write " + inputFile;
+            else if (opt.dryRun) {
+              std::ifstream in(inputFile.c_str());
+              std::stringstream ss;
+              ss << in.rdbuf();
+              r.deck = ss.str();
+              r.ok = true;
+            }
             // Only now that there is a new deck: a failed generation leaves
             // the last good one for Final Edit.
             else if (!calc->removeInputFiles())

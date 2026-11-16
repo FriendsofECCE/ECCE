@@ -1,0 +1,34 @@
+# xTB Runtype Details for the native engine (bin/ecce-dialog), the same
+# dialog as xtbruntype.py.  Keep the two in step: tests/dialogs/native_test.py
+# compares what they send.
+
+dialog title="ECCE xTB Editor: Runtype Details"
+
+list OPT = Geometry|GeoVib
+list DOCK = Docking (aISS)
+list MD = Molecular Dynamics
+list CONF = Conformer search (simple)
+
+box label="Geometry Optimization" when="runtype in @OPT"
+combo name=ES.Runtype.GeomOpt.Level label="Level:" choices="crude|sloppy|loose|normal|tight|verytight|extreme" default=normal export=1
+
+# An empty ligand means the smallest molecule in the system (docking.pl).
+box label="Docking" when="runtype in @DOCK"
+text name=ES.Runtype.Docking.LigandAtoms label="Ligand atoms (empty: chosen automatically):" default="" export=1
+int name=ES.Runtype.Docking.LigandCharge label="Ligand charge:" default=0 hard="[-10..10]" export=1
+int name=ES.Runtype.Docking.NumPoses label="Poses to optimise:" default=4 hard="[1..100]" export=1
+check name=ES.Runtype.Docking.Fast label=" Fast search (small molecules)" default=1 export=1
+
+# xtb's GFN-FF crashes with SHAKE; ai.xtb refuses that pair.
+box label="Molecular Dynamics" when="runtype in @MD"
+float name=ES.Runtype.MD.Temperature label="Temperature:" unit=K default=300.0 hard="(0..)" soft="[10..2000]" export=1
+float name=ES.Runtype.MD.Time label="Time:" unit=ps default=1.0 hard="(0..)" soft="[0.1..1000]" export=1
+float name=ES.Runtype.MD.Step label="Time step:" unit=fs default=1.0 hard="(0..)" soft="[0.1..5]" export=1
+float name=ES.Runtype.MD.Dump label="Dump interval:" unit=fs default=20.0 hard="(0..)" soft="[1..1000]" export=1
+combo name=ES.Runtype.MD.Shake label="SHAKE:" choices="off|X-H bonds|all bonds" default=off export=1 enable_if="theory!=GFN-FF"
+
+box label="Conformer Search" when="runtype in @CONF"
+int name=ES.Runtype.Conformers.Samples label="Random samples:" default=30 hard="[1..]" export=1
+float name=ES.Runtype.Conformers.EnergyWindow label="Energy window:" unit=kcal/mol default=6.0 hard="(0..)" soft="[1..30]" export=1
+float name=ES.Runtype.Conformers.RMSD label="Heavy-atom RMSD threshold:" unit=A default=0.25 hard="(0..)" soft="[0.05..1]" export=1
+int name=ES.Runtype.Conformers.Seed label="Random seed:" default=682 hard="[0..]" export=1

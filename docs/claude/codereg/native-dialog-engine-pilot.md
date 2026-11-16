@@ -2,7 +2,7 @@
 type: map
 title: "Native ecce-dialog engine (pilot): a .dlg file per Details dialog, same wire protocol as the Python dialog"
 area: codereg
-paths: ["src/apps/codereg-dialog/ecce-dialog.cpp", "src/wxgui/details", "scripts/codereg/ecceqmtheory.dlg", "scripts/codereg/ecceqmtheory.py", "src/dsm/xml/JCode.C", "tests/dialogs/native_test.py"]
+paths: ["src/apps/codereg-dialog/ecce-dialog.cpp", "src/wxgui/details", "scripts/codereg/ecceqmtheory.dlg", "scripts/codereg/ecceqmtheory.py", "src/dsm/xml/JCode.C", "tests/dialogs/native_test.py", "scripts/codereg/xtbtheory.dlg", "scripts/codereg/xtbruntype.dlg", "scripts/codereg/ecceqmruntype.dlg"]
 issues: [294]
 ---
 `bin/ecce-dialog <file.dlg> <the usual 17 argv fields>` is a wx-only C++ program (the engine is `src/wxgui/details`, the line format is in `dlg-grammar.md`)
@@ -13,8 +13,8 @@ returns it instead of `python3 <x>.py` only when `ECCE_NATIVE_DIALOGS` is set (n
 0), `<x>.dlg` sits next to `<x>.py` and `bin/ecce-dialog` exists; otherwise the
 Python dialog runs, so every dialog without a .dlg is unaffected.
 
-ECCE-QM Theory, ORCA Theory and Runtype and Gaussian 16 Theory and Runtype have a .dlg (`orcatheory.dlg`,
-`orcaruntype.dlg`, `ged16theory.dlg`, `ged16runtype.dlg`: ctests `dialogs_native_orcatheory`/`_orcaruntype`; the NEB
+ECCE-QM Theory and Runtype, xTB Theory and Runtype, ORCA Theory and Runtype and Gaussian 16 Theory and Runtype have a .dlg (also embedded in the Set-up tab, #983) (`orcatheory.dlg`,
+`orcaruntype.dlg`, `ged16theory.dlg`, `ged16runtype.dlg`, `ecceqmruntype.dlg`, `xtbtheory.dlg`, `xtbruntype.dlg`: ctests `dialogs_native_orcatheory`/`_orcaruntype`; the NEB
 pickers are `calcpick`, the product/guess warnings `status`). Keep each in step
 with its .py: the
 functional list and the dependency (`enable_if="mult>1"`) are written twice, and
