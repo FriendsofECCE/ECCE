@@ -330,9 +330,20 @@ window and the tab says so.
   the chosen set's elements (the ones of your chemical system it does not
   cover are marked, and **Use for all atoms** is then off), **Use for all
   atoms** to assign the set to the whole system and save it, and the current
-  assignment, one line per element when the elements differ. **Full Basis Set
-  Tool...** opens the Basis Set Tool for everything else (different sets for
-  different elements, ECPs, fitting sets). Codes whose details exist only in the older form (NWChem,
+  assignment, one line per element when the elements differ. To give
+  different elements different sets, check the elements in the Elements
+  list (all are checked at first) and use **Assign to checked elements**;
+  a set that lacks one of them cannot be assigned. The library list also
+  holds the ECPs and the charge and exchange fitting sets: pick one and the
+  button becomes **Add ECP to checked elements** or **Add fitting set to
+  checked elements**, which adds it to the elements it covers (a fitting
+  set needs an orbital set on the element first). When you assign an orbital
+  set that was built around an ECP, the panel offers the matching ECP and
+  the elements that need it, with an **Add** button; it is never added
+  unasked. A system with an element that has no set yet is kept in the
+  editor but not saved until every element has one. **Full Basis Set
+  Tool...** opens the Basis Set Tool for the contraction editor and the
+  coefficients. Codes whose details exist only in the older form (NWChem,
   MOPAC, Quantum ESPRESSO, CP2K, GROMACS and others) still open those
   details in a window, and the area says so. **Small**: one
   tool per tab, each the full width of the window, for small screens and X

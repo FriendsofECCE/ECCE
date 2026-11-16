@@ -45,6 +45,10 @@ public:
   void basisFilter(const std::string& text);
   bool basisPick(const std::string& name);
   bool basisUseAll();
+  // kind: 0 orbital set, 1 ECP, 2 fitting set; empty name with kind 1
+  // accepts the offered matching ECP.  -1: no such set.
+  int basisAssign(const std::string& name, int kind,
+                  const std::vector<std::string>& elements);
   void basisChanged();
   // A user edit of an embedded dialog's field (test hook "setup set").
   bool setValue(const std::string& name, const std::string& value);

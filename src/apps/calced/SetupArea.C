@@ -324,6 +324,17 @@ bool SetupArea::basisUseAll()
 }
 
 
+int SetupArea::basisAssign(const string& name, int kind,
+                           const vector<string>& elements)
+{
+  if (!p_basisPanel) return -1;
+  if (name.empty() && kind == BasisPanel::ECP)
+    return p_basisPanel->acceptEcp() ? 1 : 0;
+  return p_basisPanel->assignNamed(name, (BasisPanel::Kind)kind, elements)
+             ? 1 : -1;
+}
+
+
 void SetupArea::basisChanged()
 {
   if (p_basisPanel) p_basisPanel->refresh();
