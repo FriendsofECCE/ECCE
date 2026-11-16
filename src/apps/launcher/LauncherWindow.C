@@ -58,8 +58,23 @@ public:
   {
     p_panel = new LaunchPanel(parent, this);
     p_panel->setContext(url);
+    // Follow state, machine and preference notices like the Launcher tab.
+    // The dispatcher holds the panel, so it goes first, whichever of the
+    // panel and this object is destroyed first.
+    p_msgs = new LauncherMessages(p_panel, NULL);
+    p_msgs->subscribeFollow();
+    p_msgs->startSubscriber();
+    p_panel->Bind(wxEVT_DESTROY, [this](wxWindowDestroyEvent& e) {
+      if (e.GetEventObject() == p_panel.get()) { delete p_msgs; p_msgs = NULL; }
+      e.Skip();
+    });
   }
-  ~EmbeddedLaunch() { if (p_panel) p_panel->Destroy(); }
+  ~EmbeddedLaunch()
+  {
+    delete p_msgs;
+    p_msgs = NULL;
+    if (p_panel) p_panel->Destroy();
+  }
   wxWindow *window() override { return p_panel; }
   bool go() override { return p_panel && p_panel->clickLaunch(); }
   string get(const string& what) override
@@ -95,6 +110,7 @@ public:
   void message(const string& t, int sev) override { if (p_say) p_say(t, sev); }
 private:
   wxWeakRef<LaunchPanel> p_panel;
+  LauncherMessages *p_msgs = NULL;
   std::function<void()> p_close, p_resize;
   std::function<void(const std::string&, int)> p_say;
 };

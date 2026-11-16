@@ -239,3 +239,10 @@ A launch whose machine asks for an ssh password runs the separate
 thread waits in `runLaunchStep` and Quit does not return. The old test
 fixture (an NWChem calculation on `localhost` over ssh) hit that, which was
 the -15 at Quit.
+
+## The Set-up area's Launcher panel follows the broker (#1064)
+
+`EmbeddedLaunch` (`LauncherWindow.C`) owns a `LauncherMessages` with host
+NULL and `subscribeFollow()` (state, property, machine, preference notices;
+not invoke/quit/identify). It is deleted before the panel, also from the
+panel's destroy event, since its handlers hold the panel raw.
