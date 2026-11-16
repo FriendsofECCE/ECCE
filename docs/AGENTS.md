@@ -1389,6 +1389,15 @@ literature or another program without having compared.
 - Orbitals: MO, ORBENG, ORBOCC, MOAOORDER; LOCMO, LOCMOENG, LOCMOOCC,
   LOCMOLABEL (localised orbitals, ECCE-QM).
 - Charges: MULLIKEN, LOEWDIN, HIRSHFELD, CHELPG, MK, APT where computed.
+- ORCA EPR: EPRG (one row: g1, g2, g3, g_iso, dimensionless), EPRA
+  (per requested nucleus: A1, A2, A3, A_iso in MHz), EPRQ (per nucleus
+  with a quadrupole result: Cq, Q1, Q2, Q3 in MHz). In the Builder's
+  Magnetic resonance group these are **EPR g-tensor**, **EPR Hyperfine
+  Couplings**, and **EPR Quadrupole Couplings**. Nuclear row labels retain
+  ORCA's zero-based output indices and element symbols; only computed nuclei
+  appear. Q1..Q3 use ORCA's printed spin-Hamiltonian prefactor and eta.
+  Import or reparse an ORCA output containing EPR sections to populate them.
+  See the help page `orca-epr` for conventions and the required input.
 - Other: DIPOLE, S2; for MD TIMEVEC, TEMPVEC, PRESSVEC, MDPEVEC, MDKEVEC.
 
 The full list with units is `data/client/config/properties` in the ECCE

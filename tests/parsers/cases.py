@@ -32,6 +32,28 @@ fired-but-silent parse type fails the suite (that is #85's shape).
 """
 
 CASES = [
+    dict(
+        name='orca-nh2-epr',
+        desc='orca.desc',
+        fixture='orca/nh2_epr.out',
+        parse_args=('.', 'Energy', 'SCF', 'UHF', '1'),
+        silent_ok={'ORBSYM][ORBSYMBETA': 'the fixture does not request UseSym'},
+        expect={
+            'EPRG': dict(blocks=1, keys={'EPRG': {
+                'size': '1 4', 'units': 'NA',
+                'values': '2.0021656 2.0033156 2.0069052 2.0041288'}}),
+            'EPRA][EPRQ': dict(blocks=1, keys={
+                'EPRA': {'size': '3 4', 'units': 'MHz',
+                         'rowlabels': '0-N 1-H 2-H',
+                         'values': '80.6615 82.7827 203.4865 122.3102 '
+                                   '-28.7800 -114.0087 -164.1407 -102.3098 '
+                                   '-28.7800 -114.0087 -164.1407 -102.3098'},
+                'EPRQ': {'size': '1 4', 'units': 'MHz', 'rowlabels': '0-N',
+                         'values': '-4.099864 0.618834497126 '
+                                   '1.431097502874 -2.049932'},
+            }),
+        },
+    ),
     # -----------------------------------------------------------------
     # Gaussian 16
     # -----------------------------------------------------------------

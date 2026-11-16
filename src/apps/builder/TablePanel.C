@@ -97,27 +97,32 @@ void TablePanel::fillTable()
      TProperty *prop = (TProperty*) expt->getProperty(*it);
      PropTable *tab = dynamic_cast<PropTable*>(prop);
      if (tab != (PropTable*)0) {
-       p_grid->InsertCols(0, tab->columns());
+       // EPR can contain selected nuclei only. Put their identities in a
+       // column so they remain visible and accompany copied table values.
+       const int labelCols = (*it == "EPRA" || *it == "EPRQ") ? 1 : 0;
+       p_grid->InsertCols(0, tab->columns() + labelCols);
        p_grid->InsertRows(0, tab->rows());
 
        int cols = tab->columns();
        int rows = tab->rows();
        vector<string>* colLabs = tab->colLabels();
        int ic, ir;
+       if (labelCols) p_grid->SetColLabelValue(0, "Nucleus");
        for (ic=0; ic<cols; ic++) {
-         p_grid->SetColLabelValue(ic, (*colLabs)[ic].c_str());
+         p_grid->SetColLabelValue(ic + labelCols, (*colLabs)[ic].c_str());
        }
 
        vector<string>* rowLabs = tab->rowLabels();
        for (ir=0; ir<rows; ir++) {
          p_grid->SetRowLabelValue(ir, (*rowLabs)[ir].c_str());
+         if (labelCols) p_grid->SetCellValue(ir, 0, (*rowLabs)[ir].c_str());
        }
 
        wxString strval;
        for (ic=0; ic<cols; ic++) {
          for (ir=0; ir<rows; ir++) {
            strval = wxString::Format (PrefLabels::DOUBLEFORMAT, tab->value(ir,ic));
-           p_grid->SetCellValue(ir, ic, strval);
+           p_grid->SetCellValue(ir, ic + labelCols, strval);
          }
        }
 

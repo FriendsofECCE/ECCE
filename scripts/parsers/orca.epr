@@ -1,0 +1,58 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+# Keep nuclear labels: EPR output may contain only a subset of the atoms.
+my $number = qr/[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[EeDd][+-]?\d+)?/;
+my (@g, @a, @q);
+my ($nucleus, $cq, $scale, $eta, $in_q, $g_done, $a_done);
+while (<STDIN>) {
+  next unless /\n\z/;
+  if (/^\s*g\(tot\)\s+($number)\s+($number)\s+($number)\s+iso=\s*($number)\s*$/i) {
+    @g = ($1, $2, $3, $4);
+  } elsif (/^\s*Nucleus\s+(\d+)\s*([A-Z][a-z]?)\s*:/) {
+    $nucleus = "$1-$2";
+    ($cq, $scale, $eta, $in_q) = (undef, undef, undef, 0);
+  } elsif (defined($nucleus) && /^\s*A\(Tot\)\s+($number)\s+($number)\s+($number)\s+A\(iso\)=\s*($number)\s*$/i) {
+    push @a, [$nucleus, $1, $2, $3, $4];
+  } elsif (/^\s*Quadrupole tensor eigenvalues \(in MHz;/) {
+    $in_q = 1;
+  } elsif ($in_q && /^\s*e\*\*2qQ\s*=\s*($number)\s+MHz\s*$/) {
+    $cq = $1;
+  } elsif ($in_q && /^\s*e\*\*2qQ\/\(4I\*\(2I-1\)\)\s*=\s*($number)\s+MHz\s*$/) {
+    $scale = $1;
+  } elsif ($in_q && /^\s*eta\s*=\s*($number)\s*$/) {
+    $eta = $1;
+    if (defined($nucleus) && defined($cq) && defined($scale)) {
+      # ORCA prints Cq and its spin-Hamiltonian prefactor, not Q's three
+      # eigenvalues. Use the convention printed immediately below them.
+      my ($k, $e) = map { my $v = $_; $v =~ tr/dD/eE/; 0 + $v } ($scale, $eta);
+      push @q, [$nucleus, $cq, -$k*(1-$e), -$k*(1+$e), 2*$k];
+    }
+    $in_q = 0;
+  }
+  $g_done = 1 if /^\s*EPR g-tensor done in/;
+  $a_done = 1 if /^\s*Hyperfine and quadrupole coupling calculation done in/;
+}
+
+sub table {
+  my ($key, $units, $columns, $rows) = @_;
+  return unless @$rows;
+  print "key: $key\nsize:\n", scalar(@$rows), " ", scalar(@$columns), "\n";
+  print "rowlabels:\n", join(' ', map { $_->[0] } @$rows), "\n";
+  print "columnlabels:\n", join(' ', @$columns), "\nvalues:\n";
+  for my $row (@$rows) {
+    my @values = @$row[1..$#$row];
+    tr/dD/eE/ for @values;
+    print join(' ', @values), "\n";
+  }
+  print "units:\n$units\nEND\n";
+}
+
+# A post-mode replay may end halfway through a nucleus. Do not publish a
+# partial table as though it represented the requested set of nuclei.
+table('EPRG', 'NA', [qw(g1 g2 g3 g_iso)], [['g', @g]]) if $g_done && @g == 4;
+if ($a_done) {
+  table('EPRA', 'MHz', [qw(A1_MHz A2_MHz A3_MHz A_iso_MHz)], \@a);
+  table('EPRQ', 'MHz', [qw(Cq_MHz Q1_MHz Q2_MHz Q3_MHz)], \@q);
+}
