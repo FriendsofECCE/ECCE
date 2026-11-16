@@ -75,6 +75,10 @@ public:
   // frame (the Organizer updates its menus by name: Run Mgmt, ...).
   static wxMenuBar *mainMenuBar(const wxTopLevelWindow *host, wxMenuBar *own);
   static bool hosts(const wxTopLevelWindow *tool);
+  // The window that is on screen for a tool: the main window while the tool
+  // is a tab (its own frame is hidden), else the tool's frame.  For sizes,
+  // iconized checks, wxWindowDisabler and closing.
+  static wxTopLevelWindow *screenWindow(const wxTopLevelWindow *tlw);
   // The tool's own sizer moves to its page: code that does GetSizer()->...
   // on the frame gets the page's through this (own: the frame's sizer).
   static wxSizer *sizer(const wxTopLevelWindow *tool, wxSizer *own);

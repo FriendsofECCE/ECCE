@@ -2534,10 +2534,10 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "size") {
       int w = 0, h = 0;
       std::istringstream(calcName) >> w >> h;
-      if (w > 0 && h > 0) SetSize(w, h);
+      if (w > 0 && h > 0) ToolTabs::screenWindow(this)->SetSize(w, h);
       for (int i = 0; i < 5; i++) wxYield();
-      outcome = "ok " + std::to_string(GetSize().x) + "x" +
-                std::to_string(GetSize().y);
+      outcome = "ok " + std::to_string(ToolTabs::screenWindow(this)->GetSize().x) + "x" +
+                std::to_string(ToolTabs::screenWindow(this)->GetSize().y);
     } else if (command == "firstvisible") {
       for (int i = 0; i < 5; i++) wxYield();
       wxTreeItemId first = p_treeCtrl->GetFirstVisibleItem();
@@ -3579,7 +3579,8 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "close") {
       int n = atoi(calcName.c_str());
       if (n < 1) n = 1;
-      for (int i = 0; i < n; i++) CallAfter([this]() { Close(); });
+      for (int i = 0; i < n; i++)
+        CallAfter([this]() { ToolTabs::screenWindow(this)->Close(); });
       outcome = "queued";
     } else if (command == "answer") {
       outcome = "no dialog";
@@ -13972,7 +13973,7 @@ void CalcMgr::createResource(ResourceType * resType,
       }
       const int answer = dialog.ShowModal();
       if (held) {
-        p_disabler = new wxWindowDisabler(this);
+        p_disabler = new wxWindowDisabler(ToolTabs::screenWindow(this));
         p_cursor = new wxBusyCursor();
       }
       if (answer == wxID_OK) {
@@ -15711,7 +15712,7 @@ void CalcMgr::autoRefreshMark()
 // the window is minimised or inactive.
 void CalcMgr::autoRefreshCheck()
 {
-  if (p_autoLocal || p_autoUrl.empty() || IsIconized() || !autoRefreshIdle())
+  if (p_autoLocal || p_autoUrl.empty() || ToolTabs::screenWindow(this)->IsIconized() || !autoRefreshIdle())
     return;
   string now = autoRefreshStamp(EcceURL(p_autoUrl));
   if (!now.empty() && now != p_autoStamp) {
@@ -15739,7 +15740,7 @@ bool CalcMgr::autoRefreshIdle() const
   }
   wxWindow *f = wxWindow::FindFocus();
   if (f && dynamic_cast<wxTextCtrl*>(f) && !p_autoUrl.empty() &&
-      wxGetTopLevelParent(f) == this) return false;
+      wxGetTopLevelParent(f) == ToolTabs::screenWindow(this)) return false;
   return true;
 }
 
@@ -15803,7 +15804,7 @@ int CalcMgr::startDisabler()
 {
   if (p_disablerCount == 0 && p_disabler == 0 && p_cursor == 0) {
     p_focusOnTreeBeforeDisabler = p_focusOnTree;
-    p_disabler = new wxWindowDisabler(this);
+    p_disabler = new wxWindowDisabler(ToolTabs::screenWindow(this));
     p_cursor = new wxBusyCursor();
   }
 

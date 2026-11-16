@@ -52,7 +52,7 @@ const int ID_MOVE_TO_TABS = wxID_HIGHEST + 7302;
 const int ID_ALWAYS_WINDOW = wxID_HIGHEST + 7303;
 
 struct Tab {
-  wxFrame *tool;          // 0 for the Organizer's own tab
+  wxFrame *tool;          // 0 for the Organizer's tab until it is adopted
   wxAuiManager *mgr;
   wxMenuBar *menubar;
   wxWindow *page;         // 0 while the tool is in its own window
@@ -60,6 +60,7 @@ struct Tab {
   wxColour dot;
   std::string key;        // its WindowLayout row
   ToolTabs::SideFn side;  // fills the page's detail area (Set-up tab)
+  bool pinned = false;    // the main tab: no close cross, never released
 };
 
 // wx 3.3 measures tabs on a wxReadOnlyDC.
@@ -89,6 +90,15 @@ Tab *findPage(const wxWindow *page)
 {
   for (Tab& t : tabs())
     if (page && t.page == page) return &t;
+  return 0;
+}
+
+// The main (Organizer) tab.  Found by its flag: the notebook lets a tab be
+// dragged, so it is not necessarily the first.
+Tab *mainTab()
+{
+  for (Tab& t : tabs())
+    if (t.pinned) return &t;
   return 0;
 }
 
@@ -274,8 +284,8 @@ void placeMenus(Tab *t)
 {
   if (!t || !s_hostFrame) return;
   if (ToolTabs::menuPlacement() == ToolTabs::SwapMenuBar) {
-    Tab& org = tabs().front();
-    wxMenuBar *mb = t->menubar ? t->menubar : org.menubar;
+    Tab *org = mainTab();
+    wxMenuBar *mb = t->menubar ? t->menubar : (org ? org->menubar : 0);
     if (s_hostFrame->wxFrame::GetMenuBar() != mb) s_hostFrame->SetMenuBar(mb);
   }
 }
@@ -368,7 +378,7 @@ public:
                wxRect *outButton, int *xExtent) override
   {
     Tab *t = findPage(page.window);
-    bool closable = t && t->tool;
+    bool closable = t && t->tool && !t->pinned;
     if (!closable) closeState = wxAUI_BUTTON_STATE_HIDDEN;
     wxSize sz = GetTabSize(dc, wnd, page.caption, page.bitmap, page.active,
                            closeState, xExtent);
@@ -450,7 +460,7 @@ void onPageClose(wxAuiNotebookEvent& ev)
   // tab away.
   ev.Veto();
   Tab *t = s_book ? findPage(s_book->GetPage(ev.GetSelection())) : 0;
-  if (t && t->tool) {
+  if (t && t->tool && !t->pinned) {
     wxFrame *tool = t->tool;
     s_hostFrame->CallAfter([tool]() { tool->Close(); });
   }
@@ -469,7 +479,7 @@ void fillTabMenu(wxMenu& menu)
 // The tab menu's items: Open in Window now, or also from now on.
 void tabMenuChoice(Tab *t, int id)
 {
-  if (!t || !t->tool) return;
+  if (!t || !t->tool || t->pinned) return;
   wxFrame *tool = t->tool;
   if (id == ID_ALWAYS_WINDOW && !t->key.empty())
     WindowLayout::setRow(t->key, false);
@@ -480,7 +490,7 @@ void tabMenuChoice(Tab *t, int id)
 void onTabRightUp(wxAuiNotebookEvent& ev)
 {
   Tab *t = s_book ? findPage(s_book->GetPage(ev.GetSelection())) : 0;
-  if (!t || !t->tool) return;
+  if (!t || !t->tool || t->pinned) return;
   wxMenu menu;
   fillTabMenu(menu);
   wxFrame *tool = t->tool;
@@ -650,7 +660,7 @@ void ToolTabs::setMainWindow(wxFrame *organizer)
   sizer->Add(s_book, 1, wxEXPAND);
   organizer->SetSizer(sizer);
   tabs().push_back(Tab{0, 0, organizer->wxFrame::GetMenuBar(), page, _("Organizer"),
-                       dotFor("Organizer"), ""});
+                       dotFor("Organizer"), "", {}, true});
   s_book->AddPage(page, _("Organizer"), true);
   routeMenus(organizer);
   s_book->Bind(wxEVT_AUINOTEBOOK_PAGE_CHANGED, onPageChanged);
@@ -672,7 +682,7 @@ bool ToolTabs::open(wxFrame *tool, wxAuiManager *mgr, const wxString& title,
   if (!wantsTab(key)) return false;
   if (side && !findTool(tool)) {
     // adopt makes the page with a detail area when the Tab has a SideFn.
-    tabs().push_back(Tab{tool, mgr, 0, 0, title, dotFor(title), key, side});
+    tabs().push_back(Tab{tool, mgr, 0, 0, title, dotFor(title), key, side, false});
   }
   if (!adopt(tool, mgr, title)) return false;
   findTool(tool)->key = key;
@@ -733,7 +743,7 @@ bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
   Tab *t = findTool(tool);
   if (t && t->page) return true;
   if (!t) {
-    tabs().push_back(Tab{tool, mgr, 0, 0, title, dotFor(title), "", {}});
+    tabs().push_back(Tab{tool, mgr, 0, 0, title, dotFor(title), "", {}, false});
     t = &tabs().back();
   }
   if (wxMenuBar *mb = tool->wxFrame::GetMenuBar()) {
@@ -768,8 +778,9 @@ wxMenuBar *ToolTabs::menuBar(const wxTopLevelWindow *tool, wxMenuBar *own)
 
 wxMenuBar *ToolTabs::mainMenuBar(const wxTopLevelWindow *host, wxMenuBar *own)
 {
-  if (!s_hostFrame || host != s_hostFrame || tabs().empty()) return own;
-  return tabs().front().menubar;
+  Tab *org = mainTab();
+  if (!s_hostFrame || host != s_hostFrame || !org) return own;
+  return org->menubar;
 }
 
 
@@ -777,6 +788,13 @@ bool ToolTabs::hosts(const wxTopLevelWindow *tool)
 {
   Tab *t = findTool(tool);
   return t && t->page;
+}
+
+
+wxTopLevelWindow *ToolTabs::screenWindow(const wxTopLevelWindow *tlw)
+{
+  return s_hostFrame && hosts(tlw) ? s_hostFrame
+                                   : const_cast<wxTopLevelWindow*>(tlw);
 }
 
 
@@ -893,7 +911,7 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
   int idx = s_book->GetPageIndex(page);
   // The tab's menu bar leaves the main window first.
   if (s_hostFrame->wxFrame::GetMenuBar() == t->menubar)
-    s_hostFrame->SetMenuBar(tabs().front().menubar);
+    s_hostFrame->SetMenuBar(mainTab() ? mainTab()->menubar : 0);
   t->page = 0;
   ToolPage *tp = static_cast<ToolPage*>(page);
   moveClient(tp->body(), tool, t->mgr);
@@ -1064,7 +1082,7 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
       s_book->SetSelection(n);
     } else {
       Tab *t = findPage(s_book->GetPage(n));
-      if (!t || !t->tool) { outcome = "not a tool tab"; return true; }
+      if (!t || !t->tool || t->pinned) { outcome = "not a tool tab"; return true; }
       release(t->tool);
     }
     outcome = describe();
@@ -1273,7 +1291,7 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
       return true;
     }
     Tab *t = findPage(s_book->GetPage(n));
-    if (!t || !t->tool) { outcome = "not a tool tab"; return true; }
+    if (!t || !t->tool || t->pinned) { outcome = "not a tool tab"; return true; }
     if (cmd == "tabmenu") {
       wxMenu menu;
       fillTabMenu(menu);
