@@ -88,8 +88,14 @@ def main():
         check(len(made) == 2, "two calculations made: %s" % made)
         for d in made:
             inp = os.path.join(series, d, "Inputs")
-            decks = os.listdir(inp) if os.path.isdir(inp) else []
-            body = open(os.path.join(inp, decks[0])).read() if decks else ""
+            # FileEDSI also stores metadata locks here; directory order varies
+            # by filesystem and cannot identify the generated input deck.
+            path = os.path.join(inp, "xtb.xtbin")
+            if check(os.path.isfile(path), "%s: xTB input deck exists" % d):
+                with open(path) as h:
+                    body = h.read()
+            else:
+                body = ""
             check(body.startswith("xtb --gfn 2") and "--opt" in body.splitlines()[0],
                   "%s: xTB GFN2 geometry deck: %r" % (d, body.splitlines()[:1]))
             rc, st = s.driver("state", "file://" + os.path.join(series, d))
