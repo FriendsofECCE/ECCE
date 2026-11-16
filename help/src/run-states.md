@@ -74,7 +74,7 @@ the bottom of the Organizer.
 
 **Run Mgmt > Reset State** sets an ended calculation to completed,
 incomplete, imported or killed, for example after checking an output by
-eye. **Run Mgmt > Reset to Rerun** returns an ended calculation to
+eye. **Run Mgmt > Reset for Rerun** returns an ended calculation to
 **Ready** with the same input; **Run Mgmt > Reset for Restart** returns it to
 **Ready** so that the input can be edited for a restart.
 

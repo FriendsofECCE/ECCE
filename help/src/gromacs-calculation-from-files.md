@@ -44,7 +44,7 @@ run by making a new calculation from the changed file.
 
 Right-click the calculation and use **New from This**:
 
-- **Rerun**: a copy with the same files, Ready to launch.
+- **Duplicate**: a copy with the same files, Ready to launch.
 - **Continue from Last Geometry** (also **Edit > Duplicate Setup with Last
   Geometry**): a copy whose starting `.gro` is the final frame of the run,
   velocities included. A calculation made from a `.tpr` has no `.gro`, so its

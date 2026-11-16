@@ -282,7 +282,7 @@ void CalcMgrGUI::CreateControls()
     wxMenu* itemMenu8 = new wxMenu;
     //  Same names as the right-click New from This submenu.
     wxMenu* itemMenuNew = new wxMenu;
-    itemMenuNew->Append(wxID_DUPLICATE, _("Rerun"), _T(""), wxITEM_NORMAL);
+    itemMenuNew->Append(wxID_DUPLICATE, _("Duplicate"), _T(""), wxITEM_NORMAL);
     itemMenuNew->Append(wxID_DUPLICATE2, _("Continue from Last Geometry"), _T(""), wxITEM_NORMAL);
     itemMenuNew->Append(wxID_DUPLICATE3, _("Continue from Final Orbitals"), _T(""), wxITEM_NORMAL);
     itemMenu8->AppendSubMenu(itemMenuNew, _("New from This"));

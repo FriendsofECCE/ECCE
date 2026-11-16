@@ -19,11 +19,26 @@ Right-click an item in the tree, or rows of the project table.
   folder that cannot take it, with the reason below the list. The list shows
   every tree the Organizer shows, so it can also move work to a server.
 
+## Viewing a file
+
+Double-click a file in the folder table or tree, or right-click it and choose
+**View**, to open a read-only text window. This works in Local data, SSH
+folders and ECCE servers. Large files open at the end (the last 64 KiB);
+**Load more** adds the preceding 64 KiB and stops Follow. **Find next** searches
+the loaded text and wraps to its start; load more to search earlier output.
+**Follow** refreshes the last 64 KiB every three seconds, including after a
+file is truncated or replaced. **Open in editor** downloads a separate text
+copy and opens the system application for text files; edits to that copy do
+not update the original. Files with a NUL byte in the first 8 KiB show their
+size and filename extension instead of contents. The current text range
+interface supports files smaller than 2 GiB; larger files can still be opened
+as a downloaded editor copy.
+
 ## A calculation
 
 - **New from This** makes a new calculation from this one. Its first three
   items are the same as **Edit > New from This**:
-  - **Rerun**: a copy with the
+  - **Duplicate**: a copy with the
     same structure and settings, reset and ready to launch.
   - **Continue from Last Geometry**: a copy that starts from the geometry the
     calculation ended on.
@@ -45,7 +60,7 @@ Right-click an item in the tree, or rows of the project table.
 - **Move into Workflow** lists the workflows in the same folder and moves the
   calculation into the one you choose. See [Workflows](workflows.md).
 - **Run** collects what is done with the job: **Launch...**, **Reconnect...**,
-  **Terminate**, **Re-Parse Outputs** and **Shell in Run Directory**. Items
+  **Terminate**, **Reset for Rerun**, **Re-Parse Outputs** and **Shell in Run Directory**. Items
   that do not fit the state of the calculation are grey. Reconnect is
   available when the job was started from this installation and has a job id
   and a run directory.
@@ -59,7 +74,7 @@ same tool for the same calculation does not start a second copy.
 
 ## A task of an MD study
 
-- **Rerun** makes a copy of the task that keeps its place in
+- **Duplicate** makes a copy of the task that keeps its place in
   the study.
 - **Terminate Calculation...** and **Shell in Calculation Run Directory...**
   appear in the states where they apply.

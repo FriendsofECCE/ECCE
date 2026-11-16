@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
+# Packages keep the symbol table on Linux (only debug sections are stripped),
+# so users' crash backtraces name functions.  Set before any install() rule.
+if(UNIX AND NOT APPLE)
+  set(CMAKE_STRIP "${CMAKE_CURRENT_SOURCE_DIR}/packaging/strip-keep-symbols.sh")
+endif()
 project(ECCE CXX C Fortran)
 
 # ------------------------------------------------------------------------
@@ -746,8 +751,11 @@ ecce_tool_objects(launcher-objs src/apps/launcher EXCLUDE WxLauncherApp.C
   LINK ${ECCE_LAUNCHER_LINK})
 ecce_app(launcher src/apps/launcher WX MAIN WxLauncherApp.C OBJECTS launcher-objs
   LINK ${ECCE_LAUNCHER_LINK})
-ecce_app(machbrowser src/apps/machbrowser WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccetdat ecceutil)
+set(ECCE_MACHBROWSER_LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccetdat ecceutil)
+ecce_tool_objects(machbrowser-objs src/apps/machbrowser EXCLUDE MachineBrowserApp.C
+  LINK ${ECCE_MACHBROWSER_LINK})
+ecce_app(machbrowser src/apps/machbrowser WX MAIN MachineBrowserApp.C OBJECTS machbrowser-objs
+  LINK ${ECCE_MACHBROWSER_LINK})
 ecce_app(machregister src/apps/machregister WX
   # eccercmd for RCommand::localityNote (#144), the same decision the launch makes.
   # eccecomm for CodePrograms, the program names Find and first start share.
@@ -788,8 +796,11 @@ ecce_app(hostkeydialog src/apps/hostkeydialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(passdialog src/apps/passdialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(pertable src/apps/pertable WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+set(ECCE_PERTABLE_LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_tool_objects(pertable-objs src/apps/pertable EXCLUDE PerTabApp.C
+  LINK ${ECCE_PERTABLE_LINK})
+ecce_app(pertable src/apps/pertable WX MAIN PerTabApp.C OBJECTS pertable-objs
+  LINK ${ECCE_PERTABLE_LINK})
 ecce_app(solvate src/apps/solvate WX
   LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 
@@ -832,6 +843,7 @@ target_include_directories(builder PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organize
 ecce_app(organizer src/apps/organizer WX GL MAIN CalcMgrApp.C
   OBJECTS organizer-objs organizer-shared-objs builder-objs calced-objs
     mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs basistool-objs mdprepare-objs launcher-objs
+    pertable-objs machbrowser-objs
   LINK eccewxguimd ecce-details-wx ${ECCE_BUILDER_LINK})
 target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
@@ -3401,6 +3413,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_calcimport PROPERTIES TIMEOUT 1200
                        SKIP_RETURN_CODE 77)
+  # Import as Calculation on a listed local file, importfile hook (#1092).
+  add_test(NAME apps_import_file
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/import_file_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_import_file PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # MOPAC normal modes of an imported output sit on the stored atoms and the
   # Builder draws a symmetric ammonia umbrella (#369).
   add_test(NAME apps_mopac_import_modes
@@ -4010,6 +4029,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_organizer_menus PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Organizer file view: bounded reads, Follow, binary files (#1084).
+  add_test(NAME apps_organizer_file_view
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_file_view_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_file_view PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Organizer Move to... / Copy to... (#929).
   add_test(NAME apps_organizer_moveto
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4307,6 +4334,14 @@ if(PYTHON3_EXECUTABLE)
   # temp directory, linked from the static libraries of build-cmake.
   #
   #     cd build-cmake && ctest -R filedsi --output-on-failure
+  # Bounded local and SSH-side range reads, checked with strace (#1084).
+  add_test(NAME filedsi_range
+           COMMAND ${CMAKE_COMMAND} -E env ECCE_TEST_BUILD=${CMAKE_BINARY_DIR}
+                   ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/filedsi/range_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/filedsi)
+  set_tests_properties(filedsi_range PROPERTIES SKIP_RETURN_CODE 77)
+
   add_test(NAME filedsi
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/filedsi/run_tests.py
@@ -5864,5 +5899,13 @@ foreach(_t apps_clip_1920x1080 apps_clip_1366x768 apps_clip_1024x600
            apps_workflow dialogs_native_ged16runtype)
   if(TEST ${_t})
     set_property(TEST ${_t} APPEND PROPERTY LABELS long)
+  endif()
+endforeach()
+
+# Pass alone, fail beside other tests in a parallel run (NerdEgg -j3, 11-16):
+# run them on their own until the clash is found.
+foreach(_t transport_openssh qm_ts_scanpoint)
+  if(TEST ${_t})
+    set_property(TEST ${_t} PROPERTY RUN_SERIAL TRUE)
   endif()
 endforeach()

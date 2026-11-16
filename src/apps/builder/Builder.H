@@ -41,6 +41,7 @@
 #include "wxviz/WxVizTool.H"
 #include "wxviz/WxVizToolFW.H"
 #include "wxgui/ewxWindowUtils.H"
+#include "wxgui/ToolTabs.H"
 
 #include "BuilderGUI.H"
 
@@ -109,6 +110,7 @@ public:
                                wxRESIZE_BORDER | wxSYSTEM_MENU |
                                wxCAPTION | wxCLIP_CHILDREN);
     ewxWindowUtils::detachFromParent(f);
+    ToolTabs::secondaryOpened(f, parent);
     return f;
   }
 
@@ -639,7 +641,8 @@ class Builder: public BuilderGUI,
       void foldPane(wxWindow *win, bool fold);
       void updatePropertyIndex();
       void rebuildSurfacesMenu(MoPanel *mo);
-      bool imageOnFineSurface(const std::string& path, int w, int h, bool white, int factor);
+      bool imageOnFineSurface(const std::string& path, int w, int h, bool white, int factor,
+                               SGViewer *viewer = 0);
       void collapseLog();
       bool paneWanted(const wxAuiPaneInfo& pane) const;
       string layoutPrefix() const;

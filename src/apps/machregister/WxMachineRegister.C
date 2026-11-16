@@ -797,6 +797,7 @@ wxWindow* WxMachineRegister::createCodesPage(wxWindow* parent)
     reg("code:showhidden", p_showHidden);
     p_showHidden->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
         this->fillCodeList();
+        this->codeLinesTags();   // the "  *" marks, as after loading a machine
     });
     p_codeList->Bind(wxEVT_LISTBOX, [this](wxCommandEvent& e) {
         int row = p_codeList->GetSelection();

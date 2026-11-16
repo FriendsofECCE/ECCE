@@ -43,6 +43,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 
 ### Pitfalls
 
+- [Series setup must read the named deck, not the first Inputs entry (#1081)](series-setup-reads-the-named-deck.md)
 - [TCP broker accounts are the data server logins](broker-accounts-are-the-data-server-logins.md)
 - [`ecce_auth_changed` carries no password](auth-changed-carries-no-password.md)
 - [The data-server client speaks TLS only for https URLs, never falls back](https-data-server-client.md)

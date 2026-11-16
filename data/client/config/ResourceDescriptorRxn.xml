@@ -6403,7 +6403,7 @@
       <MenuItem>Force State to &amp;Failed</MenuItem>
     </RunManagementTask>
     <RunManagementTask name="resetForRerun">
-      <MenuItem>Reset to &amp;Rerun&#x9;Alt+R</MenuItem>
+      <MenuItem>Reset for &amp;Rerun&#x9;Alt+R</MenuItem>
       <State name="Loaded"/>
       </RunManagementTask>
     <RunManagementTask name="resetForRestart">

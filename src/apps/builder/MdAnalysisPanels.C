@@ -361,12 +361,15 @@ void SpeedPanel::redraw()
           wxString::Format(" Maxwell-Boltzmann, %.0f K", c.refT), series, XYPlotCanvas::LINE);
       p_plot->setCurveColour(b, p_plot->seriesColour(series));
       p_plot->setCurveStyle(b, false, 2);
-      p_plot->addVLine(mbMostProbable(c.mass, c.refT), "v_p " + utf8(c.label));
+      p_plot->addVLine(mbMostProbable(c.mass, c.refT),
+                       wxString::FromUTF8("v\u209a ") + utf8(c.label));
       p_plot->addVLine(mbMean(c.mass, c.refT), "mean " + utf8(c.label));
       p_plot->addVLine(mbRms(c.mass, c.refT), "rms " + utf8(c.label));
       series++;
       p_curveTotal += 2;
-      text += wxString::Format("%s (%s): mean %.0f m/s (MB %.0f), rms %.0f (%.0f), v_p %.0f\n",
+      text += wxString::Format(wxString::FromUTF8(
+          "%s (%s): mean speed %.0f m/s (Maxwell\u2013Boltzmann %.0f), "
+          "rms %.0f m/s (%.0f), most probable v\u209a %.0f m/s\n"),
                                utf8(c.label), utf8(run), c.mean, mbMean(c.mass, c.refT),
                                c.rms, mbRms(c.mass, c.refT), mbMostProbable(c.mass, c.refT));
     }

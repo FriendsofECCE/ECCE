@@ -1,3 +1,4 @@
+#include "util/FrameTiming.H"
 #include <wx/checkbox.h>
 #include <wx/collpane.h>
 #include <wx/button.h>
@@ -626,6 +627,7 @@ void GeomTracePropertyPanel::processStep(int step)
   if (steps == 0) return;
   if (step < 0) step = 0;
   if (step >= steps) step = steps - 1;
+  frametiming::begin(step);
 
   WxVizToolFW& fw = getFW();
   IPropCalculation *expt = getCalculation();
@@ -653,6 +655,7 @@ void GeomTracePropertyPanel::processStep(int step)
   delete cmd;
 
   if (p_recompute) {
+     frametiming::Scope t("bonds");
      frag->deleteAllBonds();
      frag->addCovalentBonds();
      frag->touchNumbers();
@@ -698,8 +701,11 @@ void GeomTracePropertyPanel::processStep(int step)
 
   // The plotted series (TEVEC, ...) may have fewer points than the trace.
   const int plotPoint = plotPointOfFrame(step, p_plotCtrl->pointCount(0));
-  if (plotPoint < p_plotCtrl->pointCount(0))
-    p_plotCtrl->setSelectedPoint(0, plotPoint);
+  {
+    frametiming::Scope t("plot");
+    if (plotPoint < p_plotCtrl->pointCount(0))
+      p_plotCtrl->setSelectedPoint(0, plotPoint);
+  }
 
   // Issue #99: drive the repaint directly instead of relying on Open
   // Inventor's change notification, which stops firing after the first
@@ -735,9 +741,16 @@ void GeomTracePropertyPanel::processStep(int step)
   // bond scan (#832).  Only zoom out, so playback does not pump, and only
   // while the whole structure was in view.
   if (wholeInView && fw.atomsOutsideView()) fw.center();
-  fw.getViewer().refreshRenderArea();
+  {
+    frametiming::Scope t("render");
+    fw.getViewer().refreshRenderArea();
+  }
 
-  ::wxYieldIfNeeded();
+  {
+    frametiming::Scope t("yield");
+    ::wxYieldIfNeeded();
+  }
+  frametiming::end();
 }
 
 

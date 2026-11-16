@@ -187,7 +187,7 @@ Per code:
   calculation is not ready.
 * Verify: the generated input checked before submission.
 * Warnings before launch with Launch anyway as the default.
-* Duplicate, Duplicate with Final Orbitals, Reset to Rerun.
+* Duplicate, Duplicate with Final Orbitals, Reset for Rerun.
 * Symmetry switched off for transition-state searches, IRC, constraints and
   scans, with a note.
 

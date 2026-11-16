@@ -9,6 +9,8 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 ## Entries
 
+- [A UTF-8 buffer can borrow its wxString storage (#1084)](utf8-buffer-lifetime.md)
+
 - [The Display panel (#881): style via VizStyleChooser, global surface settings in SurfaceStyle](display-panel-881.md)
 - [Automatic atom-count quality preserves explicit slider values; cell images need their own complexity (#880)](sphere-quality-defaults.md)
 - [Atom opacity: ChemDisplay sorts the spheres itself, back to front, constant-alpha blend, depth writes on (#879)](atom-opacity-sorts-spheres-inside-chemdisplay-879.md)
@@ -96,6 +98,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [A wxAUI toolbar pane with a MinSize is stretched across the row; Position in a toolbar row is a pixel offset](aui-toolbar-pane-min-size-stretches-the-row.md)
 - [On GNOME/Wayland a modal dialog can show typed text or scrolling only after it is reopened; not the busy cursor or disabler; every modal goes through ewxModalGuard, ECCE_DEBUG_MODAL logs what it got](xwayland-modal-dialog-takes-no-input.md)
 - [XWayland: GTK 3 stops repainting a window (dialog, Builder view) until Mutter sends _NET_WM_FRAME_DRAWN, which it sometimes never does; frame sync is off for every top-level window](xwayland-gtk3-frame-clock-waits-for-frame-drawn.md)
+- [Headless GNOME Shell can deadlock in PulseAudio's X11 lookup before ECCE starts (#1081)](xwayland-headless-pulse-startup.md)
 - [wxMSW: controls made after the scroll move sit under the tool panel scroll window and get no clicks (Build pane element buttons)](msw-controls-made-after-the-scroll-move-sit-under-it.md)
 - [A second close inside the Quit dialog's loop deletes the frame and frees the stack dialog: free(): invalid pointer (#291)](second-close-destroys-stack-dialog.md)
 - [The MO table vanished and scrolled to the top when the ESP colour bar appeared: propertyPaneRoom (#285)](mo-panel-esp-bar-needs-pane-room.md)

@@ -71,6 +71,31 @@ The Builder has the same entry under **File > Import Calculation from
 Output File...**. It puts the calculation in your home folder instead of a
 project, and opens it in the Builder.
 
+## Import a file from a folder in the tree
+
+An output file listed in a folder of the Organizer tree, on this computer or
+in an SSH folder on a cluster, can be imported without copying it first.
+Right-click the file and choose **Import as Calculation...**. The item is
+there only for files ECCE recognises as the output of one of the codes in the
+table above; it uses the same recognition as the menu entry above, never the
+file name alone.
+
+1. Choose the project in the window that opens. It starts at the project
+   you used last.
+2. Click **OK**.
+
+From an SSH folder ECCE copies the file, and the files beside it that have
+the same name up to the extension (for example an ORCA `.hess` or a Gaussian
+`.fchk`), to a temporary folder on this computer and imports from there. A
+progress bar shows for a large output. The temporary folder is removed
+together with ECCE's other job folders.
+
+The calculation's annotation says where it came from, for example
+"Imported from me@cluster:/scratch/me/water.out".
+
+If you select several files, each recognised output becomes its own
+calculation and one message lists the files that were skipped and why.
+
 ## Import a GROMACS run
 
 A finished GROMACS run in a folder can be imported as a GROMACS MD study.

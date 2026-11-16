@@ -63,6 +63,8 @@ if [ "$KEEP" -gt 0 ]; then
     (
         flock 7
         ls -1t "$OFF/build" | grep -vx "$safe" | tail -n +"$KEEP" | while read -r old; do
+            # A tree whose ref another running job holds is in use: keep it.
+            ( flock -n 8 ) 8>"$OFF/locks/ref-$old" || { echo "keeping $old (in use)"; continue; }
             echo "pruning old build tree $old"
             rm -rf -- "${OFF:?}/build/$old" "${OFF:?}/home/$old"
             git -C "$OFF/src" worktree remove --force "$OFF/wt/$old" 2>/dev/null || rm -rf -- "${OFF:?}/wt/$old"
@@ -91,7 +93,7 @@ case $cmd in
   ctest)    inner='configure; ${BUILDWRAP:-} ninja -C $BLD/b -j'$JOBS' -k 0 && cd $BLD/b && ctest -j${CTEST_JOBS:-2} --output-on-failure "$@"' ;;
   # GUI tests (apps_*) use /opt/ecce without an install (the examples tests
   # skip when its Version differs); ctesti gives them this ref's.
-  ctesti)   inner='install_tree; configure; ${BUILDWRAP:-} ninja -C $BLD/b -j'$JOBS' -k 0 && cd $BLD/b && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin ctest -j${CTEST_JOBS:-2} --output-on-failure "$@"' ;;
+  ctesti)   inner='install_tree && cd $BLD/bi && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin ctest -j${CTEST_JOBS:-2} --output-on-failure "$@"' ;;
   teaching) inner='configure; ${BUILDWRAP:-} ninja -C $BLD/b -j'$JOBS' -k 0 && cd $SRC && tests/teaching/run_tests.py --build $BLD/b --jobs 4 "$@"' ;;
   apps)     inner='install_tree; cd $SRC && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin tests/apps/run_tests.py "$@"' ;;
   clip)     inner='install_tree; cd $SRC && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin tests/apps/clip_test.py "$@"' ;;
@@ -100,13 +102,21 @@ case $cmd in
   *) fail "unknown command '$cmd' (build|ctest|ctesti|teaching|apps|apptest|clip|run)" ;;
 esac
 prelude='
+# ccache (paths made relative, so every ref'"'"'s tree shares one cache) and mold
+# when the host has them: a new branch then rebuilds only what it changed.
+FAST=
+if command -v ccache >/dev/null; then
+  export CCACHE_BASEDIR=$OFF CCACHE_NOHASHDIR=1
+  FAST="-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+fi
+command -v mold >/dev/null && FAST="$FAST -DCMAKE_LINKER_TYPE=MOLD"
 configure() {
-  [ -f $BLD/b/build.ninja ] || cmake -G Ninja -S $SRC -B $BLD/b -DECCE_REQUIRE_LIBSSH=ON || return 1
+  [ -f $BLD/b/build.ninja ] || cmake -G Ninja -S $SRC -B $BLD/b -DECCE_REQUIRE_LIBSSH=ON $FAST || return 1
 }
 install_tree() {
   [ -f $BLD/bi/build.ninja ] || cmake -G Ninja -S $SRC -B $BLD/bi \
     -DCMAKE_INSTALL_PREFIX=$BLD/install -DECCE_HOME_DIR=$BLD/install \
-    -DECCE_WRAPPER_DESTINATION=$BLD/install-bin || return 1
+    -DECCE_WRAPPER_DESTINATION=$BLD/install-bin -DECCE_REQUIRE_LIBSSH=ON $FAST || return 1
   ${BUILDWRAP:-} ninja -C $BLD/bi -j'$JOBS' -k 0 && ninja -C $BLD/bi install
 }
 # Each *.py argument is a test script; the arguments after it are its own.

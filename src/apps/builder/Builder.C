@@ -1912,7 +1912,7 @@ bool Builder::mouseEvent(wxMouseEvent *event)
         SGFragment *sf = getSG()->getFragment();
         if (sf && sf->m_atomHighLight.size() == 1)
           menu.Append(ID_DISTORT_BONDS, _("Distort Bonds..."));
-        PopupMenu(&menu);
+        ToolTabs::popupParent(this)->PopupMenu(&menu);
       });
    }
    // For not, process all button events.  May want to revert to just button up
@@ -5691,8 +5691,12 @@ bool Builder::writeFragmentToImageFile(SFile *file, wxString type, wxString ext)
  * VizRender::image, with the drawn orbital or density recomputed on a finer
  * grid first when the image is larger than the view.
  */
-bool Builder::imageOnFineSurface(const string& path, int w, int h, bool white, int factor)
+bool Builder::imageOnFineSurface(const string& path, int w, int h, bool white, int factor,
+                                 SGViewer *viewer)
 {
+  //  The scene script turns the camera of the viewer it draws in (a capture
+  //  viewer unless ECCE_VIEWER_SCENE_HOLD is set), so render that one (#1090).
+  if (!viewer) viewer = p_viewer;
   auto render = [&]() {
     //  What the image is drawn from, for tests (strip indices, not triangles).
     SoSearchAction sa;
@@ -5706,7 +5710,7 @@ bool Builder::imageOnFineSurface(const string& path, int w, int h, bool white, i
       idx += ((SoIndexedTriangleStripSet *)(*iso->getChildren())[0])->coordIndex.getNum();
     }
     fprintf(stderr, "BUILDER: saveimage x%d surface indices %ld\n", factor, idx);
-    return VizRender::image(p_viewer, path, w, h, white, factor);
+    return VizRender::image(viewer, path, w, h, white, factor);
   };
   if (factor > 1 && p_calculation != 0) {
     set<PropertyPanel*> panels =
@@ -6880,8 +6884,8 @@ void Builder::updatePropertyMenus()
       for (int i = 0; i < 30; i++) { wxTheApp->Yield(true); wxMilliSleep(10); }
       viewer->viewAll();
       SceneScript run(viewer, sg, p_calculation, outdir);
-      run.setImageFunction([this](const string& path, int w, int h, bool white, int f) {
-        return imageOnFineSurface(path, w, h, white, f);
+      run.setImageFunction([this, viewer](const string& path, int w, int h, bool white, int f) {
+        return imageOnFineSurface(path, w, h, white, f, viewer);
       });
       run.setTraceStep([this](int index) { return traceFrame(index); });
       //  "mopanel <name>": press the MO panel's Compute, as a user would,

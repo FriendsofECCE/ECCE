@@ -179,7 +179,9 @@ def runApp(display, shots, wrapper, args, env, script, size, names,
                                   if want in w[1] and w[0] != sized]
                         wid = others[0][0] if others else None
                         if wid is None:
-                            fail("no window %r for shot %s" % (want, name))
+                            fail("no window %r for shot %s (windows: %s)" % (
+                                want, name,
+                                [(w[1], w[2], w[3]) for w in shots.windowsOf(known)]))
                     if wid:
                         shots.take(wid, os.path.join(shots.outdir, target))
                 if name.endswith(".ppm"):
@@ -487,7 +489,7 @@ def walk(display, tmp, outdir, org, authArgs, name):
          "builder-generated": "%s-3-cell.png" % prefix})
     _, clog = app("ecce-calced", "ECCE_CALCED_SCRIPT", case["calced"], (1100, 900),
         {"calced-start": "%s-4-calced.png" % prefix,
-         "calced-theory": ("Theory", "%s-5-theory.png" % prefix),
+         "calced-theory": ("Editor", "%s-5-theory.png" % prefix),
          "calced-final": "%s-6-calced-ready.png" % prefix})
     #  The first "info" is before any Save: a ready calculation can be
     #  launched, the click writing the input first.
@@ -610,7 +612,7 @@ def check(name, project, deckText, summary, tmp):
         ownOut = os.path.join(calcRoot(project, name), "Outputs", "qe.pwout")
         own = open(ownOut, errors="replace").read() \
             if os.path.exists(ownOut) else text
-        bfgs = re.search(r"bfgs converged in\s+\d+ scf cycles and\s+(\d+) "
+        bfgs = re.search(r"bfgs converged in\s+(\d+) scf cycles and\s+(\d+) "
                          r"bfgs steps", own)
         if not steps or not bfgs:
             fail("h2o-relax: no geometry trace or no converged optimisation")
@@ -619,11 +621,15 @@ def check(name, project, deckText, summary, tmp):
             eo, h1, h2 = last[0:3], last[3:6], last[6:9]
             say("h2o-relax  ECCE trace: %d frames (pw.x: %s bfgs steps), "
                 "O-H %.4f %.4f A, H-O-H %.2f deg"
-                % (len(steps), bfgs.group(1), dist(eo, h1), dist(eo, h2),
+                % (len(steps), bfgs.group(2), dist(eo, h1), dist(eo, h2),
                    angle(eo, h1, h2)))
-            if len(steps) != int(bfgs.group(1)) + 1:
-                fail("h2o-relax: %d trace frames for %s bfgs steps"
-                     % (len(steps), bfgs.group(1)))
+            # The starting SCF has no ATOMIC_POSITIONS block; subsequent
+            # SCFs each publish a frame. BFGS can also evaluate rejected
+            # moves, so its step count need not equal the frame count.
+            if len(steps) != int(bfgs.group(1)) - 1:
+                fail("h2o-relax: %d trace frames for %s scf cycles and "
+                     "%s bfgs steps"
+                     % (len(steps), bfgs.group(1), bfgs.group(2)))
             if abs(dist(eo, h1) - dist(o, h[0])) > 2e-3 or \
                     abs(angle(eo, h1, h2) - angle(o, h[0], h[1])) > 0.2:
                 fail("h2o-relax: the stored final geometry differs from "

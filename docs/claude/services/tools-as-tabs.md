@@ -125,7 +125,7 @@ because the body's pizza was never size-allocated again. `allocateChildren`
 ## Test hooks
 
 `layout show|<preset>|KEY=tab|window`, `tabmenu <n>`, `alwayswindow <n>`,
-`prefs windows show|preset|row|snap` (runLayouts), `tabs`, `tab <n>`, `towindow <n>`, `totabs <title>`, `dialog`/`dialoginfo`, `tabinfo [labels]` (page size,
+`prefs windows show|preset|row|snap` (runLayouts), `tabs`, `tab <n>`, `towindow <n>`, `totabs <title>`, `dialog`/`dialoginfo`, `popup`/`popupinfo`, `float`/`floatinfo`, `tabinfo [labels]` (page size,
 shown children, status bar parent, frame mapped or not, scroller view and
 virtual size, `STALE` when the virtual height is below the sizer minimum,
 `<label>=reachable|CLIPPED` for each button label in the comma list,
@@ -184,9 +184,27 @@ wxGTK: the embedded panel stays blank until a size event after it is made
 
 ## Known gaps
 
-- Popup menus and other non-dialog windows with the hidden frame as parent:
-  not checked (modal dialogs are handled, see below).
-- `MenuPlacement::InTab` is not implemented.
+- `MenuPlacement::InTab` is not implemented (the design above is one
+  sentence: each tab draws its own menu bar; no layout is specified).
+- A floated AUI pane stays on screen when another tab is selected.
+
+## Popups and secondary windows of a tab (#1068)
+
+`PopupMenu` on the hidden frame has no screen place to attach to: call
+`ToolTabs::popupParent(this)->PopupMenu(menu, pt)` (pt in that window's
+coordinates; the page in a tab, else `this`). Done in `Builder::mouseEvent`
+(constraints menu) and `CalcEd::OnButtonCalcedBasisQuickClick`. Popups on
+child controls (ElementButton, PerTabPanel, ewxGrid, WxFeedback,
+ThingMenubtn, `ewxPopupMenu(this...)`) already use a window in the page.
+AUI floating frames, `TearFrame` and `TearableContent` (a
+wxPopupTransientWindow whose parent is the Builder frame) call
+`ToolTabs::secondaryOpened(win, parent)`: GTK-transient for the Organizer's
+window. The AUI float frame had its transient link cut on purpose
+(`detachFromParent`); it is set to the main window after that. Frames made
+with `wxGetTopLevelParent(this)` of a page child (OPDOS, normal modes plots,
+`ewxPlotCtrl`) already have the Organizer as parent. Hooks `popup` /
+`popupinfo`, `float` / `floatinfo`; test `runTabsPopups`
+(`ECCE_POPUPS_ONLY=1`).
 
 ## Launcher (adopted the same way, #983 step 1)
 
@@ -221,3 +239,48 @@ A launch whose machine asks for an ssh password runs the separate
 thread waits in `runLaunchStep` and Quit does not return. The old test
 fixture (an NWChem calculation on `localhost` over ssh) hit that, which was
 the -15 at Quit.
+
+## Remaining tools: what each is and where it should run (#1066)
+
+"In" = opens in the Organizer's process with `ECCE_ONE_PROCESS=1`
+(`InProcessTools::add`). Most of the tools the issue lists are not GUI
+programs at all: they are command-line helpers (the gateway never starts
+them as windows; scripts, parsers and the Builder's own code call them),
+so there is nothing to bring in.
+
+| Tool (binary) | GUI | Started by | Size | Globals / exit() | Recommendation |
+|---|---|---|---|---|---|
+| Periodic Table (`pertable`) | wx frame | gateway `ecce_invoke`/`PeriodicTable` | 155 + frame in `wxgui/pertable` | none; app only does `-pipe` login and auth cache | **In, as a window** (done) |
+| Machine Browser (`machbrowser`) | wx frame | gateway, from Organizer/Launcher | 3100 | `_exit(0)` only in the `ECCE_MACHBROWSER_SHOT` test hook (not linked to a message path) | **In, as a window** (done); frame is its own `JMSPublisher`, kept |
+| Register Machines (`machregister`) | wx frame | gateway, Organizer, Launcher | 10000 | `exit()` in `JobPreview.C` and `WxMachineRegisterScript.C` (script mode); modal dialogs, test hooks, own `-pipe` login | Window, later: needs the exit() paths audited and a per-process split of `WxMachineRegisterApp::OnInit`; not a tab |
+| Solvate (`solvate`) | wx frame | gateway (AT_SOLVATE calculation) | 2000 | app main does EDSI setup per window | Tab candidate after the Builder-style adoption; own step (large, editor-like) |
+| MD Analysis (`mdanalysis`) | no | `ecce-parse`/job scripts | 80 | exit via main | Stays a process |
+| Thermochemistry (`ecce-thermo`) | no, CLI + JSON | scripts, Builder panel calls the library | 870 | `g_*` option globals in the CLI | Stays a process (the GUI is the Builder's panel) |
+| MO composition (`ecce-mocomp`) | no, CLI | scripts, tests | 300 | main only | Stays a process |
+| Force comparison (`ecce-force-compare`) | no, CLI | scripts | 30 | main only | Stays a process |
+| Line profile (`lineprofile`) | no, CLI | scripts, tests | 200 | main only | Stays a process |
+| Density field / plane (`ecce-density-field`, `densityplane`) | no, CLI | scripts, tests | 200 each | main only | Stay processes |
+| Symmetry (`src/apps/symmetry`) | no: autosym/gensym/... filters, some Fortran | the symmetry code | n/a | each is a `main()` | Stay processes |
+| Job store (`eccejobstore`, `eccejobmaster`) | no | the job machinery | 450 | `exit()` | Stays a process |
+| Dialog helpers (`passdialog`, `hostkeydialog`, `msgdialog`, `ecce-dialog`) | small wx | a process that must ask without a window of its own (ssh, worker threads) | small | exit codes are the answer | Stay processes: the caller waits for the exit status, and the Quit hang in tool-tabs.md comes from running these in the GUI thread |
+
+## Periodic Table and Machine Browser as in-process windows
+
+`PerTabWindow.C` and `MachineBrowserWindow.C` follow the Basis Set Tool's
+split: the frame is unchanged, a small `WxJMSMessageDispatch` subclass (the
+App's handlers: invoke, quit, identify, preferences / machine changes)
+replaces the `WxAppJMSMessageDispatch`, and the app's per-process part stays
+the Organizer's. The apps' objects are built once (`pertable-objs`,
+`machbrowser-objs`) and linked into the Organizer and the standalone
+program, whose `OnInit` is unchanged.
+
+- Plain windows, no `ToolTabs::open`: both are small utility windows with
+  their own menu bar and no Move to Tabs.
+- Both frames `Destroy()` themselves on close. The opener binds
+  `wxEVT_DESTROY` on the frame: it untracks the dispatcher at once (so
+  `closeAll` and the reuse lookup never see a dead frame), clears the
+  dispatcher's frame pointer, and deletes it by `CallAfter`.
+- One window each: a second request finds the tracked dispatcher
+  (`InProcessTools::open`, poll context empty) and raises it.
+- Checked by `ECCE_UTILS_ONLY=1 one_process_test.py` (`runUtilityWindows`):
+  open, reuse, `closetools`, open again.

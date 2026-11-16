@@ -388,12 +388,12 @@ string GeomConstraintsDialog::applyScan(GeomConstraint *c, int steps, double ste
 }
 
 
-string GeomConstraintsDialog::scanSelection(int steps, double step)
+string GeomConstraintsDialog::scanSelection(int steps, double step, bool confirm)
 {
   string msg = applyScan(nullptr, steps, step);
   if (!msg.empty()) return msg;
   const vector<GeomConstraint*> before = p_rows;
-  msg = addFromSelection(false, false, false);
+  msg = addFromSelection(false, false, confirm);
   done(msg);
   for (size_t i = 0; i < p_rows.size(); i++)
     if (std::find(before.begin(), before.end(), p_rows[i]) == before.end()) {

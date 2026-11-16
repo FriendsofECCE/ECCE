@@ -6,6 +6,7 @@
 #include "wxgui/ewxImage.H"
 #include "wxgui/PerTabPanel.H"
 #include "wxgui/TearableContent.H"
+#include "wxgui/ToolTabs.H"
 
 
 IMPLEMENT_DYNAMIC_CLASS(TearButton, ewxPanel)
@@ -197,6 +198,7 @@ TearableContent::~TearableContent()
 void TearableContent::Popup(wxWindow * focus) 
 {
   p_content->TransferDataToWindow();
+  ToolTabs::secondaryOpened(this, GetParent());
   wxPopupTransientWindow::Popup(focus);
 #ifdef __WXMSW__
   //  A popup is shown before its children have painted: an empty grey box
@@ -280,6 +282,7 @@ void TearableContent::OnTearClick(wxCommandEvent& event)
 
   TearFrame * frame = new TearFrame(GetParent(), name);
   frame->SetName(GetFrameName());
+  ToolTabs::secondaryOpened(frame, GetParent());
 
   if (p_content) {
     p_content->Reparent(frame);
