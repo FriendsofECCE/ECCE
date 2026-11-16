@@ -181,6 +181,25 @@ std::vector<ClusterAtom> cutCluster(const std::vector<std::string>& symbols,
     }
   }
 
+  // An outside atom bonded to two or more cluster atoms would get their caps
+  // about 1 A apart on one site: take it in, so every cap points at its own
+  // missing atom.  Capped at 50 rounds against a runaway on a network.
+  if (opt.cap != ClusterOptions::CapNone) {
+    for (int round = 0; round < 50; ++round) {
+      std::map<Key,int> outside;
+      for (const Key& k : chosen)
+        for (const Edge& e : adj[k.first]) {
+          Key nk(e.to, I3{{k.second[0]+e.shift[0], k.second[1]+e.shift[1],
+                           k.second[2]+e.shift[2]}});
+          if (!chosen.count(nk)) outside[nk]++;
+        }
+      bool grew = false;
+      for (auto& kv : outside)
+        if (kv.second >= 2) { chosen.insert(kv.first); grew = true; }
+      if (!grew) break;
+    }
+  }
+
   std::vector<ClusterAtom> out;
   for (const Key& k : chosen) {
     ClusterAtom a;

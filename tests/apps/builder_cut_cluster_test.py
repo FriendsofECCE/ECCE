@@ -58,12 +58,12 @@ def quartz_checks(atoms, label, radius):
     check(hs, "%s: has capping H" % label)
     check(all(len(nb[i]) == 1 for i in hs),
           "%s: every H has one neighbour (%s)" % (label, sorted(set(len(nb[i]) for i in hs))))
-    # Some Si is the centre: every real atom within radius of it, caps one bond further.
+    # Some Si is the centre: every real atom within radius of it, caps and the atoms the capping rule adds (two bonds) further.
     fit = [c for c in sis
-           if all(math.dist(atoms[c][1], p) <= radius + 0.01 for s, p in atoms
+           if all(math.dist(atoms[c][1], p) <= radius + 1.7 + 0.01 for s, p in atoms
                   if s != "H")
-           and all(math.dist(atoms[c][1], p) <= radius + 2.0 for s, p in atoms)]
-    check(fit, "%s: atoms lie within %g A (+ one bond) of one Si" % (label, radius))
+           and all(math.dist(atoms[c][1], p) <= radius + 2 * 1.7 for s, p in atoms)]
+    check(fit, "%s: atoms lie within %g A (+ two bonds) of one Si" % (label, radius))
 
 
 def main():

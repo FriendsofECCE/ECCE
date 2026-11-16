@@ -149,7 +149,10 @@ radius in Å (0.5-50) and choose what to keep:
 Atoms across the cell boundary are included: the cell is replicated as far as
 the radius reaches. **Capping** adds a hydrogen (standard element-H distance,
 for example C-H 1.09 Å, Si-H 1.48 Å) or a hydroxyl group on each bond the cut
-severed, along the direction of that bond. The result replaces the structure,
+severed, along the direction of that bond. An atom outside the radius that is bonded
+to two or more cluster atoms is taken into the cluster first, so each cap
+replaces a different atom; the cluster can therefore reach about two bonds
+past the radius. The result replaces the structure,
 without a lattice, and **Edit > Undo** brings the periodic structure back.
 
 ## Select within a distance
