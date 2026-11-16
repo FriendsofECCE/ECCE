@@ -434,6 +434,7 @@ bool Builder::atomNumbersCommand(SceneScript& s, const vector<string>& w)
 //    dpspin alpha|beta|both | dpunit A|bohr | dpcombine 0|1 | dpclip 0|1
 //    dpxaxis linear|sqrt|log (atom) | dpyaxis linear|log|sqrt
 //    dpshift ANGSTROM [in|out] (line) | dpzoom whole|fit|in|out | dpmore 0|1
+//    dplayout W    visible controls and rectangles at panel width W (fails if clipped)
 //    dpfollow N [beta]    what a click on an MO Diagram level does
 //    dpcancelafter MS    press Cancel in the next command's progress dialog
 //    dpdiff [NAME ...]    density minus the named calculations of this folder (none: plain)
@@ -526,6 +527,11 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
     ok = dp->setShift(atof(w[1].c_str()), w.size() < 3 || w[2] != "in");
   } else if (cmd == "dpzoom" && w.size() == 2) {
     ok = dp->zoom(w[1]);
+  } else if (cmd == "dplayout" && w.size() == 2) {
+    //  The visible controls at that panel width (Options folded or open).
+    const std::string report = dp->layoutReport(atoi(w[1].c_str()));
+    fprintf(stderr, "DENSITYPROFILE layout\n%s", report.c_str());
+    ok = report.find("layout ok") != std::string::npos;
   } else if (cmd == "dpmore" && w.size() == 2) {
     ok = dp->setMoreOpen(w[1] != "0");
   } else if (cmd == "dpfollow" && w.size() >= 2) {
