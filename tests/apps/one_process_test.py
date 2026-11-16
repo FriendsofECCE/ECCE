@@ -1174,8 +1174,69 @@ def runSetupLaunch(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runUtilityWindows(display):
+    """#1066: the periodic table and the machine browser open as windows of
+    the Organizer's process, a second request reuses the open one, closing
+    them leaves the Organizer running, and a new request opens a fresh one."""
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    try:
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            append("start PeriodicTable", 8)
+            append("start MachineBrowser", 8)
+            append("inprocess", 2)
+            append("start PeriodicTable", 4)   # the open one again
+            append("inprocess", 2)
+            append("closetools", 5)
+            append("inprocess", 2)
+            append("start PeriodicTable", 8)   # a fresh one after closing
+            append("inprocess", 2)
+            append("closetools", 5)
+
+        result = apps.run(display, "organizer", windowTimeout=60, settle=15,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_TEST_MESSAGES": "1",
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        check(not result.crashed and "Aborted" not in log,
+              "the Organizer ran to the end without a crash",
+              result.signalName or log[-1500:])
+        inproc = pb.answers(log, "inprocess")
+        if check(len(inproc) == 4, "four window counts answered", str(inproc)):
+            check("PeriodicTable=1 MachineBrowser=1" in inproc[0]
+                  and "PeriodicTable(hidden)" not in inproc[0],
+                  "both open in the Organizer, shown, with their menus",
+                  inproc[0])
+            check("PeriodicTable=1" in inproc[1],
+                  "a second request reuses the open periodic table", inproc[1])
+            check("PeriodicTable=0 MachineBrowser=0" in inproc[2],
+                  "closing leaves the Organizer running", inproc[2])
+            check("PeriodicTable=1 MachineBrowser=0" in inproc[3],
+                  "a request after closing opens a fresh one", inproc[3])
+        check(pb.answers(log, "closetools").count("closed") == 2,
+              "the windows closed", str(pb.answers(log, "closetools")))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
+        if os.environ.get("ECCE_UTILS_ONLY") == "1":
+            runUtilityWindows(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         if os.environ.get("ECCE_LAUNCHER_ONLY") == "1":
             runTabsLauncher(display)
             runSetupLaunch(display)
@@ -1195,6 +1256,7 @@ def main():
         runTabsTools(display)
         runTabsLauncher(display)
         runSetupLaunch(display)
+        runUtilityWindows(display)
         if os.environ.get("ECCE_TABS_ONLY") == "1":
             if failures:
                 results.fail("one-process", "; ".join(failures))

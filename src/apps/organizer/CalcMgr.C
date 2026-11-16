@@ -3465,7 +3465,9 @@ void CalcMgr::runTestCommand(const string& line)
                 " MDEnergy=" + std::to_string(InProcessTools::count(MDENERGY)) +
                 " BasisTool=" + std::to_string(InProcessTools::count(BASISTOOL)) +
                 " MDPrepare=" + std::to_string(InProcessTools::count(MDPREPARE)) +
-                " Launcher=" + std::to_string(InProcessTools::count(LAUNCHER));
+                " Launcher=" + std::to_string(InProcessTools::count(LAUNCHER)) +
+                " PeriodicTable=" + std::to_string(InProcessTools::count(PERTAB)) +
+                " MachineBrowser=" + std::to_string(InProcessTools::count(MACHBROWSER));
       // Top-level windows still alive: one left over keeps the main loop
       // (and the process) running after the Organizer's frame is gone.
       for (wxWindow *w : wxTopLevelWindows)

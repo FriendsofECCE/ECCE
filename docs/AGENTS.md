@@ -168,8 +168,9 @@ through the command-line tools in "Commands". You cannot click in the windows.
 
 Each window is its own program. Experimental: with `ECCE_ONE_PROCESS=1`
 in the environment of `ecce`, the Builder, the Calculation Editor, the
-Basis Set Tool and the MD editors open
-as windows of the Organizer's process instead; job programs and the other
+Basis Set Tool, the MD editors, the Periodic Table and the Machine Browser
+open as windows of the Organizer's process instead (the last two as plain
+windows, not tabs); job programs and the other
 tools stay separate. Off by default. Quitting the Organizer (or the
 session's `ecce_quit`) then closes those windows first, each asking about
 its own unsaved changes; Cancel in one of them cancels the Quit. Test hooks
