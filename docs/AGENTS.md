@@ -179,6 +179,25 @@ Tool/MD Prepare windows),
 `closetools`, `gatewayquit` (the session's `ecce_quit`), and
 `answer cancel|no` for a tool's save question.
 
+File text viewer (#1084): double-click a document in the Organizer's folder
+list or tree, or right-click **View**. The EDSI reader probes the first 8 KiB
+for NULs and loads the last 64 KiB; it never downloads the whole file for
+viewing. **Load more** prepends 64 KiB, **Find next** searches loaded text,
+and **Follow** polls the tail every three seconds (also handles truncation).
+Binary files show size and extension. **Open in editor** downloads a separate
+`.txt` copy and calls the system default application; changes are local to
+that copy. Text viewing currently refuses sizes above the signed-int EDSI
+range limit (2 GiB); the editor download is still available.
+
+Isolated `ECCE_TEST_ORGANIZER` hooks: `view <url>` opens a window;
+`view-status`, `view-more`, `view-follow on|off`, `view-find <text>`,
+`view-text <output path>` (displayed text in UTF-8), and `view-close` operate on that
+window. Replies include `size`, `start`, `bytes`, cumulative `read`, `lines`,
+`binary=0|1`, `follow=0|1` and `readonly=1`. Find adds `found` or `not found`.
+Tests: `tests/apps/organizer_file_view_test.py` for the window and Follow;
+`tests/filedsi/range_test.py` for actual local read byte counts and the exact
+SSH-side range/stat scripts (no login needed). Both run through `srun`.
+
 Start feedback (#1071, `ECCE_TEST_ORGANIZER`): `start TOOL [URL]` shows a busy
 cursor, "Opening the <tool> for <calculation>..." in the status line, a "Starting
 the <tool>..." window after 1.5 s and a "has not started" note after 30 s; a

@@ -47,6 +47,7 @@
 
 class BookmarkEditor;
 class ToolStartup;
+class TextFileViewer;
 class Session;
 class WxFind;
 class GlobalPrefs;
@@ -78,6 +79,7 @@ public:
   /// (#983).  Not a GetMenuBar() override: wxFrameBase::SetMenuBar compares
   /// with GetMenuBar() and would refuse to swap the bars.
   wxMenuBar *ownMenuBar() const;
+  TextFileViewer *viewFile(const EcceURL& url);
 
   // A tool's window is up (#1071): ends its start feedback.
   void toolUp(const string& app, const string& url);
@@ -857,6 +859,7 @@ protected:
 
   // The Tail window the ECCE_TEST_ORGANIZER hook opened.
   wxWeakRef<WxTailWindow> p_testTail;
+  wxWeakRef<TextFileViewer> p_testViewer;
   //  Set by the "new" test command: createResource reports its error
   //  here instead of in a modal dialog.
   string *p_testCreateError = 0;
