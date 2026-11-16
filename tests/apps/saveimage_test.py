@@ -4,6 +4,8 @@ Print-quality image export (#1059): the water HOMO saved with the scene hook
 "saveimage <png> <factor> white" in the Builder.  The 2x image must be twice
 the view's size, show the lobe in a colour blended with the white background
 (not the pure lobe colour), and have no screen-door grid inside the lobe.
+A "rotatex"/"rotate" turn followed at once by saveimage must keep the atoms
+as bright as before the turn: the headlight follows the camera (#1075).
 
 Same installed tree and isolation as shot_hooks_test.py
 (ECCE_TEST_HOME, ECCE_TEST_WRAPPERS).  Exit 77 (skip) without them.
@@ -47,6 +49,41 @@ hold 2
 saveimage {out}/x1.png 1 white
 saveimage {out}/x2.png 2 white
 """
+
+# #1075: a hook rotation followed at once by saveimage (no paint between)
+# must be lit by the headlight at the new camera, as a mouse turn is.
+LIGHT_SCENE = """windowsize 900 700
+background 0 0 0
+viewall
+hold 2
+saveimage {out}/r0.png 1
+rotatex 90
+saveimage {out}/r90.png 1
+rotate 90
+saveimage {out}/ry.png 1
+"""
+def litMean(path):
+    """Mean luminance of the drawn (non-background) pixels on black."""
+    from PIL import Image
+    px = [v for v in Image.open(path).convert("L").getdata() if v > 8]
+    return (sum(px) / len(px) if px else 0.0), len(px)
+
+
+def checkLight(out, log):
+    p = []
+    try:
+        ref, n0 = litMean(os.path.join(out, "r0.png"))
+        for n in ("r90", "ry"):
+            m, k = litMean(os.path.join(out, n + ".png"))
+            print("      %s: mean %.1f over %d px (before the turn %.1f over %d)"
+                  % (n, m, k, ref, n0))
+            if k < 200 or abs(m - ref) > 0.15 * ref:
+                p.append("%s mean brightness %.1f, %.1f before the turn" % (n, m, ref))
+    except OSError as e:
+        p.append("missing image: %s" % e)
+    if "FAIL" in log:
+        p.append("a scene command failed")
+    return p
 
 
 def check(out, log):
@@ -160,6 +197,23 @@ def main():
             if problems:
                 print("\n".join(l for l in log.splitlines() if "SCENE" in l or "FAIL" in l)[-2000:])
                 results.fail("saveimage", "; ".join(problems))
+
+            for tag, text, checker, extra in (
+                    ("saveimage_light", LIGHT_SCENE, checkLight, {}),):
+                with open(scene, "w") as h:
+                    h.write(text.format(out=out))
+                env = {"ECCE_VIEWER_SCENE": scene, "ECCE_VIEWER_SCENE_OUT": out,
+                       "ECCE_VIEWER_SCENE_HOLD": "5"}
+                env.update(extra)
+                result = apps.run(display, "builder", args=("-context", urls["water"]),
+                                  windowTimeout=240, settle=300, env=env)
+                problems = checker(out, result.log or "")
+                print("%s  %s%s" % ("ok  " if not problems else "FAIL", tag,
+                                    "" if not problems else ": " + "; ".join(problems)))
+                if problems:
+                    print("\n".join(l for l in (result.log or "").splitlines()
+                                    if "SCENE" in l or "FAIL" in l)[-1500:])
+                    results.fail(tag, "; ".join(problems))
 
             with open(scene, "w") as h:
                 h.write(LABEL_SCENE.format(out=out))

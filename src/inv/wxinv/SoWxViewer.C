@@ -148,6 +148,7 @@ SoWxViewer::~SoWxViewer( )
   // delete everything
   delete p_inputFocus;
   delete p_seekAnimationSensor;
+  delete p_headlightSensor;
   ////////////////////////////
   //  delete p_clipboard;
   delete p_autoClipBboxAction;
@@ -289,6 +290,8 @@ SbBool SoWxViewer::Create( wxWindow* parent,
   p_headlightGroup->addChild(new SoResetTransform);
   p_headlightNode->direction.setValue(SbVec3f(.2, -.2, -.9797958971));
   p_headlightFlag = true;
+  p_headlightSensor = new SoFieldSensor(SoWxViewer::headlightSensorCB, this);
+  p_headlightSensor->setPriority(0);
 
   return true;
 }
@@ -544,6 +547,7 @@ void SoWxViewer::setCamera(SoCamera *newCamera)
       p_createdCamera = false;
     }
     
+    p_headlightSensor->detach();
     p_camera->unref();
   }
   
@@ -552,6 +556,8 @@ void SoWxViewer::setCamera(SoCamera *newCamera)
   // attach everything that depends on the new camera
   if ( p_camera != NULL) {
     p_camera->ref();
+    p_headlightSensor->attach(&p_camera->orientation);
+    p_headlightRot->rotation.setValue(p_camera->orientation.getValue());
     
     if (p_headlightFlag) {
       p_headlightFlag = false;  // enables the routine to be called
@@ -2179,6 +2185,14 @@ void SoWxViewer::pasteDoneCB(void *userData, SoPathList *pathList)
  * of time since we started the seek and call the subclasses routine
  * to do the correct interpolation.
  */
+void SoWxViewer::headlightSensorCB(void *p, SoSensor *)
+{
+  SoWxViewer *v = (SoWxViewer *)p;
+  if (v->p_camera)
+    v->p_headlightRot->rotation.setValue(v->p_camera->orientation.getValue());
+}
+
+
 void SoWxViewer::seekAnimationSensorCB(void *p, SoSensor *)
 {
   SoWxViewer *v = (SoWxViewer *)p;

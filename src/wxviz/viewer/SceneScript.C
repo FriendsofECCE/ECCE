@@ -763,7 +763,7 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     SbVec3f pos = cam->position.getValue(), np;
     r.multVec(pos, np);
     cam->position.setValue(np);
-    cam->orientation.setValue(r * cam->orientation.getValue());
+    cam->orientation.setValue(cam->orientation.getValue() * r);   // orient, then orbit
   } else if (c == "exportiso" && w.size() == 2) {
     //  "exportiso <name>": the isosurface triangles in world space (position,
     //  normal, packed colour per ChemIso) plus the camera, to <name>-iso.txt,
