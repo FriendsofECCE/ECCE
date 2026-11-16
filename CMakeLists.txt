@@ -1,4 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
+# Packages keep the symbol table on Linux (only debug sections are stripped),
+# so users' crash backtraces name functions.  Set before any install() rule.
+if(UNIX AND NOT APPLE)
+  set(CMAKE_STRIP "${CMAKE_CURRENT_SOURCE_DIR}/packaging/strip-keep-symbols.sh")
+endif()
 project(ECCE CXX C Fortran)
 
 # ------------------------------------------------------------------------
