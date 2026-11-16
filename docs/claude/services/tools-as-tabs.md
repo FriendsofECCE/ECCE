@@ -187,6 +187,14 @@ wxGTK: the embedded panel stays blank until a size event after it is made
 - `MenuPlacement::InTab` is not implemented (the design above is one
   sentence: each tab draws its own menu bar; no layout is specified).
 - A floated AUI pane stays on screen when another tab is selected.
+- Process-wide singletons (the event dispatcher, #1088) see every tool:
+  anything holding pointers to a tool's objects must drop them when the
+  tool closes (`one-process-event-dispatcher-listeners.md`).
+- Never select a tab by focusing a window in it; the notebook ignores
+  focus on a hidden page (`tab-switches-when-a-hidden-page-takes-focus.md`).
+- Launch from the editor tab is not covered by `runTabs1088` (Save and the
+  close button are); the screen greying while a tool starts or a job is
+  submitted (#1088 items 5, 6) is `startDisabler`'s `wxWindowDisabler`.
 
 ## Popups and secondary windows of a tab (#1068)
 

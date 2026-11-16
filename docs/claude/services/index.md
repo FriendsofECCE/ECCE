@@ -86,6 +86,8 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [One GUI process (#983): in-process routing behind MqttLink (ECCE_ONE_PROCESS), tool-scoped self filter, OnInit split, globals audit, Quit](one-process-message-routing.md)
 - [Tools as tabs (#983 stage 2, ECCE_LAYOUT=small): the tool stays a hidden frame, its windows move into a notebook page, unhandled events go on to the frame, menus swapped](tools-as-tabs.md)
 - [Tabs: ewxRaiseWindow mapped the hidden tool frame over the main window (empty grey Builder tab, #983)](tabbed-tool-frame-is-mapped-by-raise.md)
+- [Tabs: focusing a window of a hidden page selects that page (Organizer tab came to the front after Save/Launch, #1088)](tab-switches-when-a-hidden-page-takes-focus.md)
+- [One process: event dispatcher is process-wide; closed tools left listeners (Builder crash, #1088)](one-process-event-dispatcher-listeners.md)
 - [Tabs: the AUI manager is on the frame's handler stack; PopEventHandler(true) freed it at Quit (#983)](aui-manager-is-on-the-handler-stack.md)
 - [Tabs: menu bars: tool GetMenuBar() null in a tab, Organizer GetMenuBar() is the tool's (Run Mgmt crash), SetMenuBar compares with GetMenuBar() (#983)](tab-hides-the-frames-menu-bar.md)
 - [Tabs: floating AUI frames not children of the page; wxAuiManager::Update non-virtual (#983)](aui-floating-frames-and-update-in-a-tab.md)
