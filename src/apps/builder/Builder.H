@@ -41,6 +41,7 @@
 #include "wxviz/WxVizTool.H"
 #include "wxviz/WxVizToolFW.H"
 #include "wxgui/ewxWindowUtils.H"
+#include "wxgui/ToolTabs.H"
 
 #include "BuilderGUI.H"
 
@@ -109,6 +110,7 @@ public:
                                wxRESIZE_BORDER | wxSYSTEM_MENU |
                                wxCAPTION | wxCLIP_CHILDREN);
     ewxWindowUtils::detachFromParent(f);
+    ToolTabs::secondaryOpened(f, parent);
     return f;
   }
 

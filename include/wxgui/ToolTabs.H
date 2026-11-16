@@ -100,6 +100,17 @@ public:
   static void dialogOpened(wxDialog *dlg);
   static void dialogClosed(wxDialog *dlg);
 
+  // Popup menus: PopupMenu on a hosted tool's hidden frame has no place on
+  // screen to attach to.  popupParent gives the tool's page for such a
+  // window (else w itself): call popupParent(this)->PopupMenu(menu, pt),
+  // with pt in that window's coordinates.  Menu commands still reach the
+  // tool through the page.
+  static wxWindow *popupParent(wxWindow *w);
+  // A floating pane, tear-off or popup window made with a hosted tool's
+  // hidden frame (or a child of it) as parent: made transient for the main
+  // window, since the hidden frame is never on screen.
+  static void secondaryOpened(wxWindow *win, wxWindow *parent);
+
   // Tests: "tabs" lists "<n>:<title>[*]" (* = active) and the menu bar's
   // menus; "tab <n>", "towindow <n>", "totabs <title part>" act on them;
   // "layout show|<preset>|KEY=tab|window", "tabmenu <n>", "alwayswindow <n>".

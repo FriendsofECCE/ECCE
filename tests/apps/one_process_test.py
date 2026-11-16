@@ -1174,6 +1174,65 @@ def runSetupLaunch(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runTabsPopups(display):
+    """Popup menus and secondary windows of a tab (#1068): a menu popped up
+    over the Builder tab and the editor tab attaches to the visible page and
+    is on screen at the requested point; a floated Builder pane is shown and
+    transient for the Organizer's window."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-p", "created", None)
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            append("start Builder " + url, 25)
+            append("popup", 3)
+            append("popupinfo", 2)
+            append("float", 3)
+            append("floatinfo", 2)
+            append("start CalculationEditor " + url, 25)
+            append("popup", 3)
+            append("popupinfo", 2)
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 3)
+            append("close", 3)
+            append("answer", 3)
+            append("answer no", 25)
+
+        setLayout(display, "small")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        pops = pb.answers(log, "popupinfo")
+        good = "parent=page shown=1 mapped=1 inside=1 near=1"
+        for i, what in enumerate(("Builder", "editor")):
+            check(len(pops) > i and good in pops[i],
+                  "a popup menu over the %s tab pops up from its page, is "
+                  "mapped, inside the Organizer's window and at the point"
+                  % what, str(pops) + log[-1500:])
+        fl = pb.answers(log, "floatinfo")
+        check(fl and "frame=1 shown=1 transient=1 mapped=1" in fl[0],
+              "a floated Builder pane is shown and transient for the "
+              "Organizer's window", str(fl))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         if os.environ.get("ECCE_LAUNCHER_ONLY") == "1":
@@ -1188,6 +1247,11 @@ def main():
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
+        if os.environ.get("ECCE_POPUPS_ONLY") == "1":
+            runTabsPopups(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         runLayouts(display)
         runTabs(display)
         runTabsEditor(display)
@@ -1195,6 +1259,7 @@ def main():
         runTabsTools(display)
         runTabsLauncher(display)
         runSetupLaunch(display)
+        runTabsPopups(display)
         if os.environ.get("ECCE_TABS_ONLY") == "1":
             if failures:
                 results.fail("one-process", "; ".join(failures))

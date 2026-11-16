@@ -1740,9 +1740,10 @@ void CalcEd::OnButtonCalcedBasisQuickClick( wxCommandEvent& event )
   //  Below the button, in this frame's coordinates: the button sits in
   //  nested panels, so its own GetPosition() is relative to one of them.
   wxWindow *btn = FindWindow(event.GetId());
-  PopupMenu(&menu, btn ? ScreenToClient(btn->ClientToScreen(
-                             wxPoint(0, btn->GetSize().y)))
-                       : wxDefaultPosition);
+  wxWindow *host = ToolTabs::popupParent(this);   // the page in a tab
+  host->PopupMenu(&menu, btn ? host->ScreenToClient(btn->ClientToScreen(
+                                   wxPoint(0, btn->GetSize().y)))
+                             : wxDefaultPosition);
 }
 
 
