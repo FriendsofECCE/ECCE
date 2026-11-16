@@ -261,9 +261,15 @@ that one window, so the `tests/apps` scripts keep a per-tool start.
   save prompt; a refusal cancels Quit), then ends the process, which ends
   the in-Organizer broker (#990/#1007) once no job program or command is
   connected, as today.
+- With a `MainFrame` (#1065) Quit is `confirmAndQuit` -> `MainFrame::
+  shutdown()`: CalcMgr is destroyed BEFORE the host (its destructor still
+  uses the windows the page held; `Destroy()` releases them back first).
+  A hidden CalcMgr that is not destroyed keeps the process alive; the
+  `left after quit:` line (`ECCE_TEST_ORGANIZER`) names any window left.
 - `ecce_quit` from the gateway closes all windows the same way, forced
   (the session is ending): `CalcMgrApp::quitMCB` runs
-  `InProcessTools::closeAll(true)` before destroying its frame, because
+  `InProcessTools::closeAll(true)` before `shutdown()` (or destroying its
+  frame when there is no MainFrame), because
   each tool's own `ecce_quit` handler may run after it; those handlers
   return if their window is already `IsScheduledForDestruction`.
 - A frame's close handler that already called `Destroy()` must not veto:

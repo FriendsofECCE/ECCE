@@ -150,7 +150,9 @@ def run(display):
 
 def runQuit(display, gateway=False):
     """Quit asks the in-process Builder about its unsaved edit: Cancel there
-    cancels the Quit, No lets the process end."""
+    cancels the Quit, No lets the process end.  Under the MainFrame (small
+    layout): the Organizer's frame goes before it, and no window is left."""
+    setLayout(display, "small")
     data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
     work = tempfile.mkdtemp(prefix="ecce-oneproc-")
     try:
@@ -245,8 +247,115 @@ def runQuit(display, gateway=False):
             check(result.returncode == 0 and "Aborted" not in log,
                   "No in the Builder's question ends the process cleanly",
                   "returncode %s\n%s" % (result.returncode, log[-1500:]))
+            left = re.search(r"left after quit:([^\n]*)", log)
+            check(left is not None and not left.group(1).strip(),
+                  "no top-level window is left after Quit",
+                  left.group(1) if left else "no left-over report")
         if GDB:
             print(log[-20000:])
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def runQuitHost(display):
+    """The window manager's close of the MainFrame (hook hostclose) is a
+    Quit: the Quit question, then the dirty Builder tab's, then a clean exit."""
+    setLayout(display, "small")
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-h", "created", None)
+        cmds = os.path.join(work, "commands")
+        script = os.path.join(work, "builder-script")
+        open(cmds, "w").close()
+        with open(script, "w") as handle:
+            handle.write("wait 3000\nadd C Tetrahedral 8 0 0\nsavestate\n")
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            append("start Builder " + url, 25)
+            append("hostclose", 3)
+            append("answer cancel", 3)     # Quit ECCE: Cancel, still running
+            append("inprocess", 2)
+            append("hostclose", 3)
+            append("answer", 3)            # Quit
+            append("answer no", 25)        # the Builder's question
+
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_BUILDER_SCRIPT": script,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        check(pb.answers(log, "answer cancel") == ["answered Quit ECCE"] and
+              len(pb.answers(log, "inprocess")) == 1 and
+              "Builder=1" in pb.answers(log, "inprocess")[0],
+              "closing the host asks Quit ECCE; Cancel keeps everything",
+              str(pb.answers(log, "answer cancel")) + log[-1500:])
+        check(pb.answers(log, "answer") == ["answered Quit ECCE"] * 2 +
+              ["answered Save Builder Changes?"],
+              "closing the host again asks Quit, then the Builder's question",
+              str(pb.answers(log, "answer")))
+        left = re.search(r"left after quit:([^\n]*)", log)
+        check(result.returncode == 0 and "Aborted" not in log and
+              left is not None and not left.group(1).strip(),
+              "closing the host ends the process cleanly, nothing left",
+              "returncode %s\n%s" % (result.returncode, log[-1500:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def runGeometry(display):
+    """The host saves its rectangle under the Organizer's prefix: a size set
+    in one run is the window's size in the next."""
+    setLayout(display, "small")
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        cmds = os.path.join(work, "commands")
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def start(inspect):
+            open(cmds, "w").close()
+            result = apps.run(display, "organizer", windowTimeout=60,
+                              settle=20,
+                              env={"ECCE_ONE_PROCESS": "1",
+                                   "ECCE_TEST_ORGANIZER": cmds,
+                                   "ECCE_LOCAL_DATA": data},
+                              inspect=inspect)
+            return result, result.log or ""
+
+        def first(_display):
+            append("size 1150 850", 3)
+            append("close", 3)
+            append("answer", 20)
+
+        def second(_display):
+            append("size", 3)
+            append("close", 3)
+            append("answer", 20)
+
+        result, log = start(first)
+        sized = pb.answers(log, "size")
+        check(sized == ["ok 1150x850"], "the host takes a size", str(sized))
+        result, log = start(second)
+        sized = pb.answers(log, "size")
+        check(sized == ["ok 1150x850"] and result.returncode == 0,
+              "the next start restores the host's size", str(sized) + log[-800:])
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)
@@ -311,6 +420,7 @@ def runLayouts(display):
 
         def wide(_display):
             append("prefs windows show", 3)
+            append("mainwindow", 2)
             append("tabs", 2)
             append("start Builder " + url, 25)
             append("inprocess", 2)
@@ -324,6 +434,10 @@ def runLayouts(display):
               "Wide: the dropdown shows Wide, every row Window", str(pw))
         tabs = pb.answers(log, "tabs")
         check(tabs == ["no tabs"], "Wide: no tab strip", str(tabs))
+        mw = pb.answers(log, "mainwindow")
+        check(mw == ["host=none topwindow=CalcMgr"],
+              "Wide: no MainFrame, the Organizer's own frame is the main "
+              "window", str(mw))
         inproc = pb.answers(log, "inprocess")
         check(len(inproc) == 1 and toolShown(inproc[0], "Builder") == "window",
               "Wide: the Builder opens in a window", str(inproc))
@@ -435,6 +549,7 @@ def runTabs(display):
                                check=False)
 
         def inspect(_display):
+            append("mainwindow", 2)
             append("tabs", 2)
             append("start Builder " + url, 25)
             append("tabs", 2)                  # Builder tab active
@@ -448,9 +563,14 @@ def runTabs(display):
             append("tab 0", 3)
             append("tabs", 2)                  # Organizer's menus back
             shot("tabs-organizer.png")
+            append("charhook 27", 2)           # the Organizer tab is active
+            append("menu exit", 3)             # File > Quit reaches CalcMgr
+            append("answer cancel", 3)         # the "Quit ECCE" question
+            append("tabs", 2)                  # still running
             append("towindow 1", 8)            # Open in Window
             append("inprocess", 2)
             append("sbinfo Builder", 2)
+            append("towindow 0", 2)            # the Organizer is not a tool
             shot("tabs-builder-window.png")
             append("totabs Builder", 8)        # Window > Move to Tabs
             append("inprocess", 2)
@@ -475,6 +595,12 @@ def runTabs(display):
             print(log[-6000:])
         tabs = pb.answers(log, "tabs")
         print("      tabs: " + "\n            ".join(tabs))
+        mw = pb.answers(log, "mainwindow")
+        check(len(mw) == 1 and mw[0].startswith(
+                  "host=MainFrame organizer=hidden mapped=0 tabs=1 title=") and
+              "Organizer" in mw[0] and mw[0].endswith("topwindow=MainFrame"),
+              "the main window is a MainFrame; the Organizer's own frame is "
+              "hidden and unmapped", str(mw))
         orgMenus = tabs[0].split("menus=")[-1] if tabs else ""
         check(len(tabs) >= 4 and tabs[0].startswith("0:Organizer*"),
               "the Organizer is the first tab", str(tabs) + log[-1500:])
@@ -506,6 +632,12 @@ def runTabs(display):
               "a key hook on the main window reaches the Builder tab",
               str(pb.answers(log, "charhook")))
         tw = pb.answers(log, "towindow")
+        check(len(tw) == 2 and tw[1] == "not a tool tab",
+              "the Organizer tab cannot be moved to a window", str(tw))
+        check(pb.answers(log, "menu") == ["queued"] and
+              len(pb.answers(log, "charhook")) == 2,
+              "File > Quit and a key hook on the Organizer tab are answered",
+              str(pb.answers(log, "menu")))
         check(tw and "window:" in tw[0] and "(hidden)" not in tw[0]
               and "(no menus)" not in tw[0] and " 1:" not in tw[0],
               "Open in Window moves the Builder into a shown window with its menus", str(tw))
@@ -523,10 +655,12 @@ def runTabs(display):
               "the same Builder throughout", str(inproc))
         check("BUILDER: dirty=1" in log, "the Builder has unsaved changes")
         check(pb.answers(log, "answer cancel") ==
-              ["answered Save Builder Changes?"] and
+              ["answered Quit ECCE", "answered Save Builder Changes?"] and
               pb.answers(log, "answer no") ==
               ["answered Save Builder Changes?"],
-              "Quit asks about the Builder tab: Cancel keeps it, No quits",
+              "the Organizer's File > Quit asks Quit ECCE (Cancel keeps "
+              "running); Quit asks about the Builder tab: Cancel keeps it, "
+              "No quits",
               str(pb.answers(log, "answer")))
         check(len(tabs) >= 4 and " 1:" in tabs[-1],
               "the Builder tab is still there after Cancel", str(tabs))
@@ -1315,6 +1449,8 @@ def main():
             return
         runLayouts(display)
         runTabs(display)
+        runQuitHost(display)
+        runGeometry(display)
         runTabsEditor(display)
         runSetupTab(display)
         runTabsTools(display)

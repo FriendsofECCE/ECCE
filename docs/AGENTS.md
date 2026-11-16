@@ -244,7 +244,9 @@ time) and **Always open in a window** (also sets that tool's row to Window);
 the tool's **Window > Move to Tabs** puts it back. Without
 `ECCE_ONE_PROCESS` every tool opens in a window whatever the setting. Test
 hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus),
-`launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `tab N`, `towindow N`, `totabs <title part>`, `layout show|normal|small|wide|KEY=tab|window`
+`launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `tab N`, `towindow N`, `totabs <title part>`, `mainwindow` (the main window: `host=MainFrame organizer=hidden ...`, or `host=none`
+when the Organizer is its own window), `menu exit|about|preferences|<id>` and `hostclose` (a menu command, or the window
+manager's close, on the main window; queued, answer the questions with `answer`), `layout show|normal|small|wide|KEY=tab|window`
 (prints `preset=... rows=builder:tab,...`), `tabmenu N` (the tab's
 right-click items), `alwayswindow N`, and `prefs windows show|preset NAME|row KEY tab|window [PNG]|snap PNG`
 (the Preferences page and its Customize table, as clicks). A tab's

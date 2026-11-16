@@ -2,8 +2,8 @@
 type: map
 title: "Tools as tabs (#983 stage 2): a tool stays a hidden wxFrame, its windows move into a notebook page"
 area: services
-paths: ["src/wxgui/mdtools/MDEdBase.C", "src/apps/mdprepare/MDPrep.C", "src/apps/basistool/WxBasisTool.C", "src/wxgui/jms/ToolTabs.C", "src/wxgui/ewxClasses/ewxModalGuard.C", "include/wxgui/ToolTabs.H", "src/apps/launcher/LauncherWindow.C", "src/apps/launcher/LauncherMessages.C", "src/apps/builder/Builder.H", "src/apps/builder/Builder.C", "src/apps/builder/BuilderWindow.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/InProcessTools.C", "tests/apps/one_process_test.py", "src/util/genutil/WindowLayout.C", "include/util/WindowLayout.H", "src/wxgui/wxdialogs/GlobalPrefsWindows.C"]
-issues: [983]
+paths: ["include/wxgui/MainFrame.H", "src/wxgui/jms/MainFrame.C", "src/apps/organizer/CalcMgr.C", "src/wxgui/mdtools/MDEdBase.C", "src/apps/mdprepare/MDPrep.C", "src/apps/basistool/WxBasisTool.C", "src/wxgui/jms/ToolTabs.C", "src/wxgui/ewxClasses/ewxModalGuard.C", "include/wxgui/ToolTabs.H", "src/apps/launcher/LauncherWindow.C", "src/apps/launcher/LauncherMessages.C", "src/apps/builder/Builder.H", "src/apps/builder/Builder.C", "src/apps/builder/BuilderWindow.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/InProcessTools.C", "tests/apps/one_process_test.py", "src/util/genutil/WindowLayout.C", "include/util/WindowLayout.H", "src/wxgui/wxdialogs/GlobalPrefsWindows.C"]
+issues: [983, 1065]
 ---
 Switch: `ECCE_ONE_PROCESS=1` and Preferences > Windows and tabs
 (`util/WindowLayout`, stored in EcceGlobal; default Normal).
@@ -13,6 +13,52 @@ key)`, which adopts only if that tool's row is Tab now. A tool that opens
 in a window by preference gets no `Tab` entry, so no Move to Tabs. Normal = Small plus
 the Set-up tab (below). The tab menu's Always open in a window = `setRow(key,false)`
 + `release`; GlobalPrefs re-reads the setting in `Show`.
+
+## The main window is a MainFrame, the Organizer its pinned first tab (#1065)
+
+With `ToolTabs::enabled()` at start (one process, some row Tab),
+`CalcMgrApp::OnInit` makes a `MainFrame` (`wxgui/MainFrame.H`, an
+`ewxFrame` that knows no chemistry), `ToolTabs::setHost(host)`, then the
+`CalcMgr` and `MainFrame::adoptMain(calcMgr)` *before CalcMgr's first Show*,
+so its frame is never mapped. Otherwise (`ECCE_ONE_PROCESS=0`, or every row
+Window) there is no MainFrame and CalcMgr is the plain top window as before.
+
+- The Organizer is adopted like every tool: hidden frame, client windows in
+  a `ToolPage` (not a scroller: the summary splitter sizes itself), menu bar
+  swapped onto the host. Its `Tab` is `pinned` (no close cross, no tab
+  menu, never released while running). Find it with `mainTab()`, never
+  "page 0": `wxAUI_NB_TAB_MOVE` lets the tab be dragged.
+- `routeMenus` sends every menu and update-UI event on the host to the active
+  tab's frame; for the pinned tab all ids (a button posting a menu id, as
+  the workflow code bar's More codes does, would otherwise reach nobody).
+- CalcMgr overrides `Show/Raise/Iconize/SetTitle/Destroy/Layout` like the
+  other tools; `ownMenuBar()` is `ToolTabs::menuBar(this, own)`. Sites that
+  mean the window on screen use `ToolTabs::screenWindow(this)` (the host
+  while hosted, else the frame): size, close, `wxWindowDisabler` (the
+  disabler on the hidden frame would grey the host), auto-refresh checks
+  (`IsIconized`, the focus guard's top-level parent), screenshots.
+- Geometry: CalcMgr's constructor still restores "Organizer"; `adoptMain`
+  gives that rectangle to the host, and `MainFrame::shutdown` saves the
+  host's under the same prefix (`CalcMgr::saveSettings` skips its own while
+  hosted, `p_wasHosted`), so the size carries over when the switch flips.
+- Window title: the host mirrors the Organizer's ("ECCE Organizer <ver>");
+  the tab keeps the caption "Organizer". Tests and `guest.py` find the
+  window by "Organizer", so a neutral title waits for #1069.
+- Quit: title-bar X, WM close, File > Quit and Cmd-Q all end in
+  `CalcMgr::confirmAndQuit` (the host's `EVT_CLOSE` calls the close handler
+  and vetoes on false), which then calls `MainFrame::shutdown()`: save the
+  geometry, `Destroy()` CalcMgr FIRST (its override releases the page back
+  so `~CalcMgr`, which pops the tree's handler, still finds its windows),
+  then the host. Destroying the host first frees the tree under CalcMgr.
+  `quitMCB` (gateway `ecce_quit`) does the same after `closeAll(true)`.
+- Modeless windows of the Organizer (preferences, find, properties, text
+  viewer, ...) still have the hidden CalcMgr as parent: they work but are not
+  kept above the host (step 3 of #1065, not done yet).
+- Hooks: `mainwindow` (`host=MainFrame organizer=hidden mapped=0 tabs=N
+  title=... topwindow=MainFrame`, or `host=none topwindow=CalcMgr`), `menu
+  <id|exit|about|preferences>` (a menu command on the host, queued),
+  `hostclose` (the window manager's close, queued). #1069 stubs on MainFrame:
+  `bringToFront`, `openFiles`.
 
 ## Approach: reparent the client windows, keep the frame
 
