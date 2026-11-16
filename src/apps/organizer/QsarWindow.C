@@ -25,6 +25,7 @@
 #include <wx/progdlg.h>
 #include <wx/sizer.h>
 #include <wx/spinctrl.h>
+#include <wx/statbox.h>
 #include <wx/statline.h>
 #include <wx/stattext.h>
 #include <wx/settings.h>
