@@ -151,7 +151,8 @@ Radius, Sphere Quality and Cylinder Quality. The two quality sliders have an
 number of atoms drawn; moving the slider unticks it and keeps your value.
 **More... (Custom Style)** opens the full Custom Style dialog.
 
-**Colors** has the background and foreground colors, and the colors of
+**Colors** has the background and foreground colors (the background is white
+unless you have chosen another, and the foreground follows it), and the colors of
 orbital and density surfaces: a positive and a negative lobe color, the four
 presets (R/G, R/B, B/Y, L/D), Solid, Mesh or Contour, and an opacity slider.
 These surface settings are shared by orbitals, densities and cube files, and

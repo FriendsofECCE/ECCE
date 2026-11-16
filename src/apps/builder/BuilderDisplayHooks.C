@@ -77,7 +77,7 @@ void Builder::createDisplayPanel()
   h.resetAll = [this]() {
     ewxConfig::getConfig("vizstyles.ini")->DeleteEntry("Ball And Stick");
     p_viewerEvtHandler->doStyleChange("Ball And Stick");
-    p_viewerEvtHandler->setBackground(0, 0, 0);
+    p_viewerEvtHandler->setBackground(1, 1, 1);
   };
   p_displayPanel = new DisplayPanel(this, h);
   wxAuiPaneInfo info;

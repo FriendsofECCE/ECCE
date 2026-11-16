@@ -162,6 +162,9 @@ def runScript(s, display, env, wrappers, argv, lines, png, prefix, extra=None):
     shutil.rmtree(work, ignore_errors=True)
     os.makedirs(work)
     script = os.path.join(work, "script")
+    #  viewerBox and the thumbnail check look for black; the default is white.
+    if not any(l.startswith("background") for l in lines):
+        lines = lines[:1] + ["background 0 0 0"] + lines[1:]
     with open(script, "w") as handle:
         handle.write("\n".join(lines) + "\n")
     log = os.path.join(work, "builder.log")
