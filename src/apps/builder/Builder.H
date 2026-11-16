@@ -641,7 +641,8 @@ class Builder: public BuilderGUI,
       void foldPane(wxWindow *win, bool fold);
       void updatePropertyIndex();
       void rebuildSurfacesMenu(MoPanel *mo);
-      bool imageOnFineSurface(const std::string& path, int w, int h, bool white, int factor);
+      bool imageOnFineSurface(const std::string& path, int w, int h, bool white, int factor,
+                               SGViewer *viewer = 0);
       void collapseLog();
       bool paneWanted(const wxAuiPaneInfo& pane) const;
       string layoutPrefix() const;

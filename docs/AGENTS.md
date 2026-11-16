@@ -109,7 +109,9 @@ labels grow with the factor. It works under `ECCE_BUILDER_SCRIPT` too, where
 `saveimagemenu <factor> <white|keep> <path>` runs File > Save Image... with
 its dialogs answered. At factor 2 or 4 the shown orbital/density is recomputed
 on a grid of 30 x factor points per axis (cap 160) for the render only, then
-redrawn as before (log line `MOPANEL: fine grid N`). Use it for documentation figures. Test:
+redrawn as before (log line `MOPANEL: fine grid N`). Use it for documentation figures. The image is drawn from the viewer the
+scene script itself drives, so `viewall`, `zoom` and `rotate` before it show
+in the PNG with or without `ECCE_VIEWER_SCENE_HOLD` (#1090). Test:
 `tests/apps/saveimage_test.py`.
 
 ## Checking the Basis Set Tool window
