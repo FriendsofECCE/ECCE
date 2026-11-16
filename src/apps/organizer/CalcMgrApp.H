@@ -48,6 +48,7 @@ DECLARE_CLASS(CalcMgrApp)
   void miscPrefChangeMCB(JMSMessage& msg);
   void invokeMCB(JMSMessage& msg);
   void msgStatusMCB(JMSMessage& msg);
+  void msgToolUpMCB(JMSMessage& msg);
   void msgAuthMCB(JMSMessage& msg);
   void msgRenameMCB(JMSMessage& msg);
   void msgURLCreatedMCB(JMSMessage& msg);

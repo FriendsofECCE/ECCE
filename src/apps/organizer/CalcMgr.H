@@ -46,6 +46,7 @@
 #include "WxProperties.H"
 
 class BookmarkEditor;
+class ToolStartup;
 class Session;
 class WxFind;
 class GlobalPrefs;
@@ -73,6 +74,9 @@ class CalcMgr: public CalcMgrGUI
 DECLARE_CLASS( CalcMgr )
   
 public:
+
+  // A tool's window is up (#1071): ends its start feedback.
+  void toolUp(const string& app, const string& url);
 
   /*
    * Constructor.
@@ -689,6 +693,7 @@ protected:
 
   void startApp(const string& app, int force, const string& url,
                 const string& codename = "", int amulet = 0);
+  ToolStartup *p_toolStartup = 0;     // feedback while a tool starts (#1071)
   void startPropertyEdit(const string& property);
 
   // Messaging stuff
