@@ -14,9 +14,11 @@ inline std::string rangeScript(const std::string& path, int start, int length)
 {
   return "if [ -f " + quote(path) + " ] && [ -r " + quote(path) + " ]; then\n"
     // tail|head reads in blocks; dd bs=1 would make one system call per byte.
+    // An empty range must not open the file: tail would still read a block.
+    + (length <= 0 ? std::string("  { printf '\\nECCE_RANGE_OK'; } | base64\n") :
     "  { tail -c +" + std::to_string((long long)start + 1) + " " + quote(path) +
-    " | head -c " + std::to_string(length) + " && printf '\\nECCE_RANGE_OK'; } | base64\n"
-    "fi\ntrue\n";
+    " | head -c " + std::to_string(length) + " && printf '\\nECCE_RANGE_OK'; } | base64\n")
+    + "fi\ntrue\n";
 }
 inline std::string sizeScript(const std::string& path)
 {

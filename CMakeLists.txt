@@ -4010,6 +4010,14 @@ if(PYTHON3_EXECUTABLE)
   set_tests_properties(apps_organizer_menus PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
+  # Organizer file view: bounded reads, Follow, binary files (#1084).
+  add_test(NAME apps_organizer_file_view
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_file_view_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_file_view PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
   # Organizer Move to... / Copy to... (#929).
   add_test(NAME apps_organizer_moveto
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -4307,6 +4315,14 @@ if(PYTHON3_EXECUTABLE)
   # temp directory, linked from the static libraries of build-cmake.
   #
   #     cd build-cmake && ctest -R filedsi --output-on-failure
+  # Bounded local and SSH-side range reads, checked with strace (#1084).
+  add_test(NAME filedsi_range
+           COMMAND ${CMAKE_COMMAND} -E env ECCE_TEST_BUILD=${CMAKE_BINARY_DIR}
+                   ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/filedsi/range_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/filedsi)
+  set_tests_properties(filedsi_range PROPERTIES SKIP_RETURN_CODE 77)
+
   add_test(NAME filedsi
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/filedsi/run_tests.py
