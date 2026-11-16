@@ -31,6 +31,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -53,14 +54,63 @@ failures = []
 def fail(what, why, log=""):
     tail = "\n".join("      | " + l for l in (log or "").splitlines()[-15:])
     failures.append(what)
-    print("FAIL  %s: %s\n%s" % (what, why, tail))
+    print("FAIL  %s: %s\n%s" % (what, why, tail), flush=True)
 
 
 def check(what, cond, why):
     if cond:
-        print("ok    " + what)
+        print("ok    " + what, flush=True)
     else:
         fail(what, why)
+
+
+class ScriptTimeout(Exception):
+    pass
+
+
+def run_script(display, script, env=None, timeout=60):
+    """Wait for command replies rather than spending a fixed time per window."""
+    with open(script) as handle:
+        pending = handle.read().splitlines()
+    answers = script + ".answers"
+    with open(answers, "w"):
+        pass
+    environment = dict(env or {})
+    environment.update(ECCE_TEST_ORGANIZER=script,
+                       ECCE_TEST_ORGANIZER_ANSWERS=answers)
+    print("running Organizer script %s (%d commands)" %
+          (os.path.basename(script), len(pending)), flush=True)
+
+    def wait_for_replies(_display):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            with open(answers) as handle:
+                replies = handle.read().split("\n")[:-1]
+            missing = list(pending)
+            for reply in replies:
+                for i, command in enumerate(missing):
+                    if reply.startswith(command + ": "):
+                        missing.pop(i)
+                        break
+            if not missing:
+                return []
+            time.sleep(0.1)
+        return missing
+
+    # The answer file acknowledges execution, including explicit idle commands.
+    # Window discovery and a fixed settle time add up across Organizer restarts.
+    result = apps.run(display, "organizer", windowTimeout=0, settle=0,
+                      env=environment, inspect=wait_for_replies)
+    if result.inspected:
+        fail("Organizer script " + os.path.basename(script),
+             "timed out after %s s; unanswered command: %s" %
+             (timeout, result.inspected[0]), result.log)
+        raise ScriptTimeout()
+    if result.inspected is None:
+        fail("Organizer script " + os.path.basename(script),
+             "exited before answering commands", result.log)
+        raise ScriptTimeout()
+    return result
 
 
 def steps(info):
@@ -1308,8 +1358,7 @@ def run_autorun(display, data, work, shots):
          for n in ("a", "b", "c", "d", "e", "g")]
     with open(script, "w") as f:
         f.write("\n".join(setup) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=40,
-                      env={"ECCE_TEST_ORGANIZER": script})
+    result = run_script(display, script)
     check("autorun setup Organizer survives", not result.crashed, result.log or "")
     # The input deck the Calculation Editor would have written.
     for n in ("a", "b", "c", "d", "e", "g"):
@@ -1327,8 +1376,7 @@ def run_autorun(display, data, work, shots):
     ]
     with open(script, "w") as f:
         f.write("\n".join(commands) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
-                      env={"ECCE_TEST_ORGANIZER": script})
+    result = run_script(display, script)
     log = result.log or ""
     with open(os.path.join(shots, "autorun-1.log"), "w") as f:
         f.write(log)
@@ -1363,8 +1411,7 @@ def run_autorun(display, data, work, shots):
     script = os.path.join(work, "autorun-commands-arm")
     with open(script, "w") as f:
         f.write("workflowautorun %s on\n" % wf)
-    result = apps.run(display, "organizer", windowTimeout=60, settle=20,
-                      env={"ECCE_TEST_ORGANIZER": script})
+    result = run_script(display, script)
     check("autorun arm Organizer survives", not result.crashed, result.log or "")
     script2 = os.path.join(work, "autorun-commands2")
     commands = [
@@ -1392,8 +1439,7 @@ def run_autorun(display, data, work, shots):
     ]
     with open(script2, "w") as f:
         f.write("\n".join(commands) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
-                      env={"ECCE_TEST_ORGANIZER": script2})
+    result = run_script(display, script2)
     log = result.log or ""
     with open(os.path.join(shots, "autorun-2.log"), "w") as f:
         f.write(log)
@@ -1433,8 +1479,7 @@ def run_autorun(display, data, work, shots):
             "workflowautorunclick %s off" % wf,
             "workflowautorun %s query" % wf,
         ]) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
-                      env={"ECCE_TEST_ORGANIZER": script3})
+    result = run_script(display, script3)
     log = result.log or ""
     with open(os.path.join(shots, "autorun-3.log"), "w") as f:
         f.write(log)
@@ -1491,9 +1536,8 @@ def run_reactant_focus(display, data, work, shots):
     commands += ["workflowstate %s %s/reactant" % (wf, wf)]
     with open(script, "w") as handle:
         handle.write("\n".join(commands) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=40,
-                      env={"ECCE_TEST_ORGANIZER": script,
-                           "ECCE_TEST_ORGANIZER_NOLAUNCH": "1"})
+    result = run_script(display, script,
+                        env={"ECCE_TEST_ORGANIZER_NOLAUNCH": "1"})
     log = result.log or ""
     with open(os.path.join(shots, "reactant-focus.log"), "w") as handle:
         handle.write(log)
@@ -1593,8 +1637,7 @@ def run_no_theory(display, data, work, shots, rundir):
             "workflowsetlaunch %s %s/seed localhost %s" % (wf, wf, rundir),
             "workflowrecipe %s xtb-crest orca %s/seed" % (wf, wf),
         ]) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=40,
-                      env={"ECCE_TEST_ORGANIZER": script})
+    result = run_script(display, script)
     check("no-theory setup Organizer survives", not result.crashed, result.log or "")
     folder = os.path.join(project, "Workflow")
     ns = "http://www.emsl.pnl.gov/ecce:"
@@ -1637,8 +1680,7 @@ def run_no_theory(display, data, work, shots, rundir):
             "workflowstate %s %s/xtb" % (rwf, rwf),
         ]) + "\n")
     try:
-        result = apps.run(display, "organizer", windowTimeout=60, settle=40,
-                          env={"ECCE_TEST_ORGANIZER": script})
+        result = run_script(display, script)
     finally:
         subprocess.run(["chmod", "-R", "u+w", ro])
     log = result.log or ""
@@ -1684,8 +1726,7 @@ def run_recipe_ready(display, data, work, shots, rundir):
     ]
     with open(script, "w") as f:
         f.write("\n".join(commands) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
-                      env={"ECCE_TEST_ORGANIZER": script})
+    result = run_script(display, script)
     log = result.log or ""
     with open(os.path.join(shots, "recready.log"), "w") as f:
         f.write(log)
@@ -1746,9 +1787,8 @@ def run_hand_ready(display, data, work, shots):
     ]
     with open(script, "w") as f:
         f.write("\n".join(commands) + "\n")
-    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
-                      env={"ECCE_TEST_ORGANIZER": script,
-                           "ECCE_TEST_ORGANIZER_NOLAUNCH": "1"})
+    result = run_script(display, script,
+                        env={"ECCE_TEST_ORGANIZER_NOLAUNCH": "1"})
     log = result.log or ""
     with open(os.path.join(shots, "handready.log"), "w") as f:
         f.write(log)
@@ -1831,6 +1871,8 @@ def main():
             if not {"--make-only", "--editor-only", "--protonation-only", "--autorun-only",
                 "--handready-only", "--readonly-only", "--mlp-only"} & set(sys.argv):
                 run_recipes(display, data, work, shots)
+        except ScriptTimeout:
+            pass
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")
             subprocess.run([stop], env=display.env(), timeout=120)

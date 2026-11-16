@@ -245,6 +245,7 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [GROMACS umbrella sampling: windows are rate-0 copies made with createChild + addMemberAsTarget; WHAM reads tpr + pullf (#762)](gromacs-umbrella-windows-are-rate-zero-copies-and-wham-needs-pullf.md)
 - [A workflow step may store no theory: no deck, no crash (#950)](workflow-step-without-theory-950.md)
 - [Auto-run: the tick arms, Launch Ready Steps starts; no editor opens by itself (#926)](workflow-autorun-armed-by-tick-started-by-launch-926.md)
+- [Workflow autorun tests wait for replies: reused X11 window IDs exhausted the test budget (#1081)](workflow-autorun-test-waits-for-replies-1081.md)
 - [A Save starts at most two shell commands: file work in process (#940)](save-starts-two-processes-940.md)
 - [The Vina search box in the viewer and the Poses panel for docking](vina-box-and-poses-455.md) - picking and drawing the box, the pose panel without a Boltzmann population, pocket view (#455).
 - [The Poses panel's cost is per pose selection, not per open](poses-panel-cost-on-a-protein-966.md) - measured ms per part on a 4673-atom receptor; the pocket restyle is what costs, and it is skipped when the shown set does not change (#966).
