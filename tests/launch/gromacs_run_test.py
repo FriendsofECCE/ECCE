@@ -7,7 +7,7 @@ type, so a fresh process reloads it as itself); the inputs are stored, Launch
 ships them, the job script runs grompp (not for a .tpr) and mdrun, and the
 monitor stores energies, the trajectory and the final structure.
 
-Hand-offs (case 1's run): New from This > Rerun and Continue from Last
+Hand-offs (case 1's run): New from This > Duplicate and Continue from Last
 Geometry (`duplicate URL [last]`; the copy's .gro is the final frame, and it
 runs), Continue in Another Code from GROMACS to xTB (`anothercode`), and from that xTB
 calculation back to GROMACS (`anothercodegmx`: the coordinates go into the
@@ -136,7 +136,7 @@ def main():
                 if final else ""
             start = open(os.path.join(task, "Inputs", "conf.gro")).read()
 
-            say("hand-off: New from This > Rerun")
+            say("hand-off: New from This > Duplicate")
             ans, new = made_by("duplicate %s" % url.rstrip("/"))
             if check(ans.startswith("ok") and len(new) == 1,
                      "rerun: one copy made: %s %s" % (ans, new)):

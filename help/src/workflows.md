@@ -80,7 +80,7 @@ A link is proposed into a calculation from:
   started.
 
 Each calculation gets at most one proposed link, always of the kind
-`geometry`, and none that would close a loop. **Rerun** and **Continue from
+`geometry`, and none that would close a loop. **Duplicate** and **Continue from
 Last Geometry** record nothing about their source; the second is still found
 by its structure. Moving into an existing workflow also proposes links from
 the workflow's own steps.

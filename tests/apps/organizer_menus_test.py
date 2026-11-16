@@ -109,17 +109,20 @@ def run(display):
             return
         m = [x.strip() for x in menus[0].split(" | ")]
         for want in ("Cut", "Copy", "Paste", "Rename", "Delete", "New from This",
-                     "New from This/Rerun", "New from This/Continue from Last Geometry",
+                     "New from This/Duplicate", "New from This/Continue from Last Geometry",
                      "New from This/Continue from Final Orbitals", "Run",
-                     "Run/Launch...", "Run/Reconnect...", "Run/Terminate",
+                     "Run/Launch...", "Run/Reconnect...", "Run/Terminate", "Run/Reset for Rerun",
                      "Run/Re-Parse Outputs", "Run/Shell in Run Directory"):
             check(any(x == want or x.startswith(want + " (disabled)") or
                       x.replace("&", "") == want for x in m),
                   "calculation menu has " + want, m)
         for bad in ("Builder", "Calculation Editor", "Basis Set Tool", "Viewer",
                     "Checks", "Rank", "Exclude", "Include again", "New Series",
-                    "Duplicate", "Supporting"):
+                    "Supporting"):
             check(not any(bad in x for x in m), "calculation menu has no " + bad, m)
+        # Duplicate is the one New from This item and nothing else.
+        check(sum("Duplicate" in x for x in m) == 1,
+              "calculation menu has exactly one Duplicate", m)
         f = menus[1]
         check("Compare Energies..." in f, "a folder offers Compare Energies", f)
         check("Checks" not in f and "Rank" not in f, "a folder has no Checks or Rank", f)

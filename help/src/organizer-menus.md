@@ -38,7 +38,7 @@ as a downloaded editor copy.
 
 - **New from This** makes a new calculation from this one. Its first three
   items are the same as **Edit > New from This**:
-  - **Rerun**: a copy with the
+  - **Duplicate**: a copy with the
     same structure and settings, reset and ready to launch.
   - **Continue from Last Geometry**: a copy that starts from the geometry the
     calculation ended on.
@@ -60,7 +60,7 @@ as a downloaded editor copy.
 - **Move into Workflow** lists the workflows in the same folder and moves the
   calculation into the one you choose. See [Workflows](workflows.md).
 - **Run** collects what is done with the job: **Launch...**, **Reconnect...**,
-  **Terminate**, **Re-Parse Outputs** and **Shell in Run Directory**. Items
+  **Terminate**, **Reset for Rerun**, **Re-Parse Outputs** and **Shell in Run Directory**. Items
   that do not fit the state of the calculation are grey. Reconnect is
   available when the job was started from this installation and has a job id
   and a run directory.
@@ -74,7 +74,7 @@ same tool for the same calculation does not start a second copy.
 
 ## A task of an MD study
 
-- **Rerun** makes a copy of the task that keeps its place in
+- **Duplicate** makes a copy of the task that keeps its place in
   the study.
 - **Terminate Calculation...** and **Shell in Calculation Run Directory...**
   appear in the states where they apply.

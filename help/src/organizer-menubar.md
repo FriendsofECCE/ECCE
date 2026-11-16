@@ -36,7 +36,7 @@ on its run state.
 
 - **New from This**: the same three items as **New from This** in the
   right-click menu.
-  - **Rerun**: a copy of the selected calculation with the same structure and
+  - **Duplicate**: a copy of the selected calculation with the same structure and
     settings, ready to launch.
   - **Continue from Last Geometry**: a copy that starts from the geometry the
     calculation ended on.
@@ -121,10 +121,10 @@ Selected...** and **Re-Parse Outputs**.
   reconnected.
 - **Force State to Failed**: sets the state of a submitted, running or
   waiting job to failed, without touching the job itself.
-- **Reset to Rerun** (Alt+R): resets a finished calculation so that it can
+- **Reset for Rerun** (Alt+R): resets a finished calculation so that it can
   be launched again; the outputs of the previous run are removed. Imported
   calculations are skipped, since the reset would delete the only copy of
-  their results; use **Edit > New from This > Rerun** for them.
+  their results; use **Edit > New from This > Duplicate** for them.
 - **Reset for Restart**: sets the state back to ready; the outputs stay.
 - **Reset State**: changes the state alone, to completed, incomplete,
   imported or killed.

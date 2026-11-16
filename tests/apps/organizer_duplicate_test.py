@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rerun and Continue from Last Geometry add the copy
+"""Duplicate and Continue from Last Geometry add the copy
 under its project and select it; nothing else in the tree moves.
 
     tests/apps/organizer_duplicate_test.py
