@@ -29,7 +29,7 @@ conf() {
       # whichever the user is not sitting at is an offload host.
       # beryllium is reached through its reverse tunnel (ssh alias).
       niobium)   echo 'OFF=$HOME/tmp/ecce/offload MODE=native SLOTS=1 JOBS=6 CTEST_JOBS=3 KEEP=3 BUILDWRAP=nice\ -n\ 10 DISPLAY=:987' ;;
-      beryllium) echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=1 JOBS=16 CTEST_JOBS=5 KEEP=3 BUILDWRAP=nice\ -n\ 10 DISPLAY=:987 PATH=/opt/orca/orca_6_1_1_linux_x86-64_shared_openmpi418_nodmrg:$HOME/opt/xtb-git/bin:$HOME/opt/crest-git/bin:/usr/local/bin:/usr/bin:/bin' ;;
+      beryllium) echo 'OFF=$HOME/ecce-offload MODE=native SLOTS=3 JOBS=8 CTEST_JOBS=4 KEEP=3 BUILDWRAP=nice\ -n\ 10 DISPLAY=:987 PATH=/opt/orca/orca_6_1_1_linux_x86-64_shared_openmpi418_nodmrg:$HOME/opt/xtb-git/bin:$HOME/opt/crest-git/bin:/usr/local/bin:/usr/bin:/bin' ;;
       *) echo "unknown host $1" >&2; return 1 ;;
     esac
 }
