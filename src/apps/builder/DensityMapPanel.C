@@ -5,6 +5,7 @@
 
 #include <wx/bitmap.h>
 #include <wx/button.h>
+#include <wx/checkbox.h>
 #include <wx/choice.h>
 #include <wx/dcbuffer.h>
 #include <wx/dcmemory.h>
@@ -46,7 +47,7 @@ namespace {
 
 const wxWindowID ID_SHOW = wxNewId(), ID_SPIN = wxNewId(), ID_MO = wxNewId(),
                  ID_PLANE = wxNewId(), ID_ATOM = wxNewId(),
-                 ID_PNG = wxNewId(), ID_CSV = wxNewId(),
+                 ID_PNG = wxNewId(), ID_CSV = wxNewId(), ID_FILL = wxNewId(),
                  ID_OFFSET = wxNewId(), ID_VIEW = wxNewId(),
                  ID_FIELD = wxNewId(), ID_RESET = wxNewId(), ID_PLANETOGGLE = wxNewId(), ID_ZOOMRESET = wxNewId(), ID_DIFF = wxNewId();
 
@@ -66,7 +67,7 @@ class DensityMapCanvas : public wxPanel
     DensityMapCanvas(wxWindow *parent)
       : wxPanel(parent, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                 wxFULL_REPAINT_ON_RESIZE),
-        p_have(false), p_wheelTimer(this)
+        p_have(false), p_fill(false), p_wheelTimer(this)
     {
       SetBackgroundStyle(wxBG_STYLE_PAINT);
       SetMinSize(wxSize(200, 200));
@@ -126,9 +127,12 @@ class DensityMapCanvas : public wxPanel
     std::function<void()> onPaintHook;
     void say(const wxString& msg) { p_have = false; p_message = msg; Refresh(); }
 
+    void setFill(bool on) { p_fill = on; Refresh(); }
+    bool fill() const { return p_fill; }
+
     void draw(wxDC& dc, const wxSize& size) const
     {
-      paintDensityMap(dc, size, p_have, p_map, p_message);
+      paintDensityMap(dc, size, p_have, p_map, p_message, p_fill);
     }
 
   private:
@@ -146,7 +150,7 @@ class DensityMapCanvas : public wxPanel
     }
 
     Map p_map;
-    bool p_have;
+    bool p_have, p_fill;
     wxString p_message;
     bool p_panning = false;
     wxPoint p_drag;
@@ -164,7 +168,7 @@ DensityMapPanel::DensityMapPanel()
     p_inViewer(false), p_dragging(false), p_mapCoarse(false), p_show(0), p_spin(0), p_atomA(0),
     p_atomB(0), p_atomC(0), p_plane(0), p_principal(0), p_offsetField(0), p_resetOffset(0),
     p_labelA(0), p_labelB(0), p_labelC(0), p_caption(0), p_atomRow(0),
-    p_viewRow(0), p_moreRow(0), p_planeToggle(0), p_planeOpen(true), p_planeAuto(false), p_diff(0), p_zoomed(false), p_levelTop(0), p_zoomReset(0), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
+    p_viewRow(0), p_moreRow(0), p_fillRow(0), p_fillBox(0), p_planeToggle(0), p_planeOpen(true), p_planeAuto(false), p_diff(0), p_zoomed(false), p_levelTop(0), p_zoomReset(0), p_mo(0), p_offset(0), p_status(0), p_useView(0), p_canvas(0)
 {
 }
 
@@ -400,6 +404,20 @@ void DensityMapPanel::build()
   Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { chooseFragments(); }, ID_DIFF);
   addOrbitalPointNote(this, top, getCalculation());
   top->Add(p_moreRow, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  p_fillRow = new wxBoxSizer(wxHORIZONTAL);
+  p_fillBox = new wxCheckBox(this, ID_FILL, "Fill");
+  p_fillBox->SetToolTip("Colour the plane between the contour lines on a logarithmic scale; "
+                        "the lines stay on top");
+  {
+    bool on = false;
+    ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+    if (cfg) cfg->Read("/DensityMap/Fill", &on, false);
+    p_fillBox->SetValue(on);
+    p_canvas->setFill(on);
+  }
+  p_fillRow->Add(p_fillBox, 0, 0);
+  top->Add(p_fillRow, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+  Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { setFill(p_fillBox->GetValue()); }, ID_FILL);
   top->Add(p_plane, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_principal, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
   top->Add(p_atomRow, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 6);
@@ -724,11 +742,24 @@ void DensityMapPanel::syncControls()
   p_labelC->Show(three);         p_atomC->Show(three);
   p_planeToggle->SetLabel(wxString::FromUTF8(p_planeOpen ? "Options \xE2\x96\xBE" : "Options \xE2\x96\xB8"));
   GetSizer()->Show(p_moreRow, p_planeOpen, true);
+  GetSizer()->Show(p_fillRow, p_planeOpen, true);
   GetSizer()->Show(p_plane, p_planeOpen, true);
   GetSizer()->Show(p_principal, p_planeOpen && plane == 0 && !p_principalPlanes.empty());
   GetSizer()->Show(p_atomRow, p_planeOpen && (two || three), true);
   GetSizer()->Show(p_viewRow, p_planeOpen && plane == 3, true);
   Layout();
+}
+
+void DensityMapPanel::setFill(bool on)
+{
+  if (!p_canvas || !p_fillBox) return;
+  p_fillBox->SetValue(on);
+  p_canvas->setFill(on);
+  ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+  if (cfg) {
+    cfg->Write("/DensityMap/Fill", on);
+    cfg->Flush();
+  }
 }
 
 void DensityMapPanel::setPlaneControlsOpen(bool open)
@@ -1077,6 +1108,7 @@ string DensityMapPanel::state() const
   string s;
   s += "have " + string(p_haveMap ? "1" : "0") + "\n";
   s += "shown " + string(IsShown() ? "1" : "0") + "\n";
+  s += "fill " + string(p_canvas && p_canvas->fill() ? "1" : "0") + "\n";
   s += "planeinviewer " + string(p_inViewer ? "1" : "0") + "\n";
   snprintf(buf, sizeof buf, "panel %d %d\ncanvas %d %d\n", GetSize().x, GetSize().y,
            p_canvas ? p_canvas->GetSize().x : 0, p_canvas ? p_canvas->GetSize().y : 0);

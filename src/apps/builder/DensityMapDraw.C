@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <functional>
 
 #include <wx/brush.h>
 #include <wx/control.h>
@@ -105,8 +106,26 @@ std::vector<std::string> densityMapLabelled(const DensityPlane::Map& m)
   return out;
 }
 
+//  Orbital: sign picks blue or orange, white at the node, full colour at
+//  half the log range and darker towards the innermost level (the book's
+//  signed map).  Total and other densities: viridis over the same log range.
+wxColour densityMapFillColour(const Map& m, const vector<double>& lv, double z)
+{
+  const double lo = lv.empty() ? 0 : lv.front(), hi = lv.empty() ? 0 : lv.back();
+  const double a = fabs(z);
+  if (!(lo > 0) || !(a >= lo)) return *wxWHITE;
+  const double t = hi > lo ? std::min(1.0, log(a/lo)/log(hi/lo)) : 1.0;
+  if (m.quantity != ORBITAL) return viridis(t);
+  const wxColour& c = z >= 0 ? POSITIVE : NEGATIVE;
+  auto mix = [&](unsigned char v) {
+    const double f = t < 0.5 ? 2*t : 1.0 - 0.45*(2*t - 1);     // 0..1 white to full, then darker
+    return (unsigned char)(t < 0.5 ? 255 - f*(255 - v) : f*v);
+  };
+  return wxColour(mix(c.Red()), mix(c.Green()), mix(c.Blue()));
+}
+
 void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
-                     const Map& map, const wxString& message)
+                     const Map& map, const wxString& message, bool fill)
 {
   dc.SetBackground(*wxWHITE_BRUSH);
   dc.Clear();
@@ -160,12 +179,11 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
   vector<Line> legend;
   bool scaled = false;
   const vector<double> lv = m.difference ? vector<double>() : mapLevels(m, scaled);
-  if (m.difference) {
-    //  Bilinear sample of the grid at every screen pixel of the frame.
+  //  Bilinear sample of the grid at every screen pixel of the frame.
+  auto paintField = [&](const std::function<wxColour(double)>& colourOf) {
     const int w = std::max(1, wxRound(pw)), h = std::max(1, wxRound(ph));
     wxImage img(w, h, false);
     unsigned char *d = img.GetData();
-    const double lim = m.colourLimit > 0 ? m.colourLimit : 1.0;
     for (int py = 0; py < h; py++)
       for (int px = 0; px < w; px++) {
         const double gi = std::max(0.0, std::min(m.nu - 1.0, (px + 0.5)/scale/m.step));
@@ -174,23 +192,31 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
         const double fi = gi - i, fj = gj - j;
         auto Z = [&](int a, int b) { return m.z[(size_t)b*m.nu + a]; };
         const double z = (1-fj)*((1-fi)*Z(i,j) + fi*Z(i+1,j)) + fj*((1-fi)*Z(i,j+1) + fi*Z(i+1,j+1));
-        const wxColour c = diverging(z/lim);
+        const wxColour c = colourOf(z);
         unsigned char *q = d + 3*((size_t)py*w + px);
         q[0] = c.Red(); q[1] = c.Green(); q[2] = c.Blue();
       }
     dc.DrawBitmap(wxBitmap(img), wxRound(ox), wxRound(oy));
+  };
+  //  With a fill the lines are neutral grey: a line in the fill's own colour vanishes.
+  const bool filled = fill && !m.difference && !lv.empty();
+  if (filled) paintField([&](double z) { return densityMapFillColour(m, lv, z); });
+  const wxColour ink(70, 70, 70);
+  if (m.difference) {
+    const double lim = m.colourLimit > 0 ? m.colourLimit : 1.0;
+    paintField([&](double z) { return diverging(z/lim); });
   } else if (m.quantity != ORBITAL) {
     for (size_t k = 0; k < lv.size(); k++) {
-      Line l = { lv[k], viridis(lv.size() > 1 ? double(k)/(lv.size()-1) : 0.0), wxPENSTYLE_SOLID };
+      Line l = { lv[k], filled ? ink : viridis(lv.size() > 1 ? double(k)/(lv.size()-1) : 0.0), wxPENSTYLE_SOLID };
       legend.push_back(l);
     }
   } else {
     for (size_t k = lv.size(); k-- > 0;) {
-      Line l = { lv[k], shade(POSITIVE, k, lv.size()), wxPENSTYLE_SOLID };
+      Line l = { lv[k], filled ? ink : shade(POSITIVE, k, lv.size()), wxPENSTYLE_SOLID };
       legend.push_back(l);
     }
     for (size_t k = 0; k < lv.size(); k++) {
-      Line l = { -lv[k], shade(NEGATIVE, k, lv.size()), wxPENSTYLE_SHORT_DASH };
+      Line l = { -lv[k], filled ? ink : shade(NEGATIVE, k, lv.size()), wxPENSTYLE_SHORT_DASH };
       legend.push_back(l);
     }
   }
@@ -282,6 +308,32 @@ void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
     ly += bh + 4;
     dc.SetTextForeground(wxColour(80, 80, 80));
     dc.DrawText("gain: blue, loss: red", lx, ly);
+    ly += 17;
+  }
+  if (filled) {
+    //  Log colour bar: signed maps +innermost .. 0 .. -innermost, the
+    //  outermost level (below it nothing is coloured) marked beside the middle.
+    const bool signedMap = m.quantity == ORBITAL;
+    const int bh = std::max(60, std::min(wxRound(ph) - 40, 140));
+    const double lo = lv.front(), hi = lv.back();
+    for (int y = 0; y < bh; y++) {
+      const double s = 1.0 - 2.0*y/(bh - 1);      // +1 top .. -1 bottom
+      const double a = signedMap ? fabs(s) : (1.0 + s)/2;
+      double z = lo*pow(hi/lo, a);
+      if (signedMap && fabs(s) < 0.02) z = 0;
+      else if (signedMap && s < 0) z = -z;
+      dc.SetPen(wxPen(densityMapFillColour(m, lv, z), 1));
+      dc.DrawLine(lx, ly + y, lx + 20, ly + y);
+    }
+    dc.SetPen(wxPen(wxColour(120, 120, 120), 1));
+    dc.DrawRectangle(lx, ly, 21, bh);
+    dc.SetTextForeground(*wxBLACK);
+    dc.DrawText((signedMap ? "+" : "") + levelText(hi), lx + 26, ly - 2);
+    dc.DrawText(signedMap ? "0" : levelText(lo), lx + 26, signedMap ? ly + bh/2 - 7 : ly + bh - 14);
+    if (signedMap) dc.DrawText("-" + levelText(hi), lx + 26, ly + bh - 14);
+    ly += bh + 4;
+    dc.SetTextForeground(wxColour(80, 80, 80));
+    dc.DrawText(wxString::Format("log scale, from %s", levelText(lo)), lx, ly);
     ly += 17;
   }
   for (size_t k = 0; k < legend.size(); k++, ly += 17) {
