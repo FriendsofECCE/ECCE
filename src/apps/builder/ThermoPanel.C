@@ -36,7 +36,7 @@ IMPLEMENT_DYNAMIC_CLASS(ThermoPanel, PropertyPanel)
 
 ThermoPanel::ThermoPanel()
   : PropertyPanel(), p_treatment(NULL), p_state(NULL), p_rotor(NULL), p_temp(NULL), p_sigma(NULL),
-    p_text(NULL), p_grid(NULL), p_have(false)
+    p_text(NULL), p_grid(NULL), p_contrib(NULL), p_have(false)
 {
 }
 
@@ -44,7 +44,7 @@ ThermoPanel::ThermoPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
   : PropertyPanel(), p_treatment(NULL), p_state(NULL), p_rotor(NULL), p_temp(NULL), p_sigma(NULL),
-    p_text(NULL), p_grid(NULL), p_have(false)
+    p_text(NULL), p_grid(NULL), p_contrib(NULL), p_have(false)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }
@@ -62,53 +62,61 @@ bool ThermoPanel::Create(IPropCalculation *calculation,
     return false;
   }
   SetSizer(new wxBoxSizer(wxVERTICAL));
+  p_body = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
+  p_body->SetScrollRate(0, 10);
+  p_body->SetSizer(new wxBoxSizer(wxVERTICAL));
+  GetSizer()->Add(p_body, 1, wxEXPAND);
   wxWrapSizer *bar = new wxWrapSizer(wxHORIZONTAL);
-  bar->Add(new wxStaticText(this, wxID_ANY, "Treatment:"), 0,
+  bar->Add(new wxStaticText(p_body, wxID_ANY, "Treatment:"), 0,
            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-  p_treatment = new wxChoice(this, ID_TREATMENT);
+  p_treatment = new wxChoice(p_body, ID_TREATMENT);
   for (const ThermoTreatmentInfo& t : thermoTreatments())
     p_treatment->Append(wxString::FromUTF8(t.label));
   p_treatment->SetSelection(2);   // Grimme, 100 cm-1: what ORCA stores
   bar->Add(p_treatment, 0, wxRIGHT | wxBOTTOM, 12);
-  bar->Add(new wxStaticText(this, wxID_ANY, "Temperature (K):"), 0,
+  bar->Add(new wxStaticText(p_body, wxID_ANY, "Temperature (K):"), 0,
            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
   double t0 = 298.15;
   stored(calculation, "THERMOTEMP", &t0);
-  p_temp = new wxTextCtrl(this, ID_TEMP, wxString::Format("%.2f", t0),
+  p_temp = new wxTextCtrl(p_body, ID_TEMP, wxString::Format("%.2f", t0),
                           wxDefaultPosition, wxSize(80, -1),
                           wxTE_PROCESS_ENTER);
   bar->Add(p_temp, 0, wxRIGHT | wxBOTTOM, 12);
-  bar->Add(new wxStaticText(this, wxID_ANY, "Standard state:"), 0,
+  bar->Add(new wxStaticText(p_body, wxID_ANY, "Standard state:"), 0,
            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-  p_state = new wxChoice(this, ID_STATE);
+  p_state = new wxChoice(p_body, ID_STATE);
   p_state->Append("1 atm");
   p_state->Append("1 M");
   p_state->SetSelection(0);
   bar->Add(p_state, 0, wxRIGHT | wxBOTTOM, 12);
-  bar->Add(new wxStaticText(this, wxID_ANY, "Symmetry number:"), 0,
+  bar->Add(new wxStaticText(p_body, wxID_ANY, "Symmetry number:"), 0,
            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-  p_sigma = new wxTextCtrl(this, ID_SIGMA, wxEmptyString, wxDefaultPosition,
+  p_sigma = new wxTextCtrl(p_body, ID_SIGMA, wxEmptyString, wxDefaultPosition,
                            wxSize(50, -1), wxTE_PROCESS_ENTER);
   p_sigma->SetHint("as used");
   bar->Add(p_sigma, 0, wxRIGHT | wxBOTTOM, 12);
-  bar->Add(new wxStaticText(this, wxID_ANY, "Rotor:"), 0,
+  bar->Add(new wxStaticText(p_body, wxID_ANY, "Rotor:"), 0,
            wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
-  p_rotor = new wxChoice(this, ID_ROTOR);
+  p_rotor = new wxChoice(p_body, ID_ROTOR);
   p_rotor->Append("As found");
   p_rotor->Append("Linear");
   p_rotor->Append("Non-linear");
   p_rotor->SetSelection(0);
   bar->Add(p_rotor, 0, wxBOTTOM, 0);
-  GetSizer()->Add(bar, 0, wxEXPAND | wxALL, 4);
+  p_body->GetSizer()->Add(bar, 0, wxEXPAND | wxALL, 4);
 
-  p_text = new wxStaticText(this, wxID_ANY, wxEmptyString);
+  p_text = new wxStaticText(p_body, wxID_ANY, wxEmptyString);
   // No width of its own: the note takes the panel's width and wraps to it.
   p_text->SetMinSize(wxSize(1, -1));
-  GetSizer()->Add(p_text, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
-  p_grid = new wxGrid(this, wxID_ANY, wxDefaultPosition, wxSize(1, 110));
+  p_body->GetSizer()->Add(p_text, 0, wxEXPAND | wxLEFT | wxRIGHT, 6);
+  p_grid = new wxGrid(p_body, wxID_ANY, wxDefaultPosition, wxSize(1, 110));
   p_grid->CreateGrid(3, 2);
   p_grid->EnableEditing(false);
-  GetSizer()->Add(p_grid, 0, wxEXPAND | wxALL, 3);
+  p_body->GetSizer()->Add(p_grid, 0, wxEXPAND | wxALL, 3);
+  p_contrib = new wxGrid(p_body, wxID_ANY, wxDefaultPosition, wxSize(1, 150));
+  p_contrib->CreateGrid(5, 5);
+  p_contrib->EnableEditing(false);
+  p_body->GetSizer()->Add(p_contrib, 0, wxEXPAND | wxALL, 3);
 
   // The panel has no real width while it is built, so the note is wrapped
   // from its own text again whenever the panel is sized.
@@ -199,17 +207,66 @@ void ThermoPanel::fill()
   for (int row = 0; row < p_grid->GetNumberRows(); ++row)
     height += p_grid->GetRowSize(row);
   p_grid->SetMinSize(wxSize(1, height));
+
+  // Contributions (#1044): U without and with ZPE, S, Cv; Cp only as a total.
+  static const char *const rows[5] = {"Translational", "Rotational", "Vibrational",
+                                      "Electronic", "Total"};
+  static const char *const cols[5] = {
+      "U (kJ/mol)", "U + ZPE (kJ/mol)", "S (J K\xE2\x81\xBB\xC2\xB9 mol\xE2\x81\xBB\xC2\xB9)",
+      "C_V (J K\xE2\x81\xBB\xC2\xB9 mol\xE2\x81\xBB\xC2\xB9)",
+      "C_P (J K\xE2\x81\xBB\xC2\xB9 mol\xE2\x81\xBB\xC2\xB9)"};
+  for (int c = 0; c < 5; c++) p_contrib->SetColLabelValue(c, wxString::FromUTF8(cols[c]));
+  const bool hc = p_have && p_value.haveContrib;
+  for (int row = 0; row < 5; row++) {
+    p_contrib->SetRowLabelValue(row, rows[row]);
+    double u = 0, s = 0, cv = 0;
+    if (row < 4) {
+      u = p_value.U[row]; s = p_value.Sc[row]; cv = p_value.Cv[row];
+    } else {
+      for (int i = 0; i < 4; i++) u += p_value.U[i];
+      s = p_value.S; cv = p_value.cv;
+    }
+    const double uz = u + (row == 2 || row == 4 ? p_value.zpe : 0.0);
+    p_contrib->SetCellValue(row, 0, hc ? wxString::Format("%.3f", u) : wxString("-"));
+    p_contrib->SetCellValue(row, 1, hc ? wxString::Format("%.3f", uz) : wxString("-"));
+    p_contrib->SetCellValue(row, 2, hc ? wxString::Format("%.3f", s) : wxString("-"));
+    p_contrib->SetCellValue(row, 3, hc ? wxString::Format("%.3f", cv) : wxString("-"));
+    p_contrib->SetCellValue(row, 4, hc && row == 4 ? wxString::Format("%.3f", p_value.cp)
+                                                   : wxString(""));
+  }
+  p_contrib->SetRowLabelSize(wxGRID_AUTOSIZE);
+  p_contrib->AutoSizeColumns();
+  int ch = p_contrib->GetColLabelSize() +
+      wxSystemSettings::GetMetric(wxSYS_HSCROLL_Y, p_contrib) +
+      p_contrib->GetSize().y - p_contrib->GetClientSize().y;
+  for (int row = 0; row < p_contrib->GetNumberRows(); ++row)
+    ch += p_contrib->GetRowSize(row);
+  p_contrib->SetMinSize(wxSize(1, ch));
+  p_body->FitInside();
   Layout();
+}
+
+std::string ThermoPanel::contribText() const
+{
+  std::string t;
+  for (int row = 0; p_contrib && row < p_contrib->GetNumberRows(); row++) {
+    t += std::string(p_contrib->GetRowLabelValue(row).utf8_str());
+    for (int c = 0; c < p_contrib->GetNumberCols(); c++)
+      t += "|" + std::string(p_contrib->GetCellValue(row, c).utf8_str());
+    t += "\n";
+  }
+  return t;
 }
 
 void ThermoPanel::rewrap()
 {
-  const int width = GetClientSize().x;
+  const int width = p_body->GetClientSize().x;
   if (width < 40) return;   // not laid out yet
   p_wrapWidth = GetSize().x;
   p_text->SetLabel(p_note);   // drops the line breaks of the previous wrap
   p_text->Wrap(width - 12);
   p_text->InvalidateBestSize();
+  p_body->FitInside();
   Layout();
 }
 

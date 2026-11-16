@@ -1,9 +1,10 @@
 # Offloading long builds and test suites
 
 Full builds and `tests/teaching` take long enough to overload the developer
-machine. `run-offload.sh` runs them on NerdEgg (through its Slurm queue) instead; radium only with `--host radium`.
+machine. `run-offload.sh` runs them on NerdEgg, or on whichever of the user's two
+desktops (niobium, beryllium) is not in use.
 
-    tools/offload/run-offload.sh [--host nerdegg|radium|auto] <git ref> <command> [args]
+    tools/offload/run-offload.sh [--host nerdegg|niobium|beryllium|auto] <git ref> <command> [args]
 
 `<git ref>` is a branch, `origin/<branch>` or a commit that is **already
 pushed to GitHub**: the host fetches from GitHub, not from this machine.
@@ -24,16 +25,22 @@ exit status is the command's (77 is SKIP). Examples:
 
     tools/offload/run-offload.sh origin/main build
     tools/offload/run-offload.sh wip/foo ctest -R 'parsers|tls_'
-    tools/offload/run-offload.sh --host radium origin/main teaching --group B
-
-`run-on-radium.sh` is `run-offload.sh --host radium`.
+    tools/offload/run-offload.sh --host beryllium origin/main ctesti -L long
 
 ## Hosts
 
-radium: Debian 13, 6c/12t, 15 GB. Build and tests run natively under
-`~/ecce-offload`, 2 jobs at a time with `ninja -j6`; nothing is started from
-17:00 to 21:00. The `Containerfile` image (`MODE=container`) remains for a
-host whose system is older than the CI's Debian.
+- NerdEgg: Debian 13, 6 physical cores, shared; one job at a time, `ninja -j4`,
+  3 tests at a time. `auto` tries it first.
+- niobium and beryllium (20 cores, 30 GB) are the user's desktops; he uses one
+  at a time. `~/.config/ecce-offload/desktop` on the machine running the
+  script names the one in use (default niobium); `auto` skips it.
+  beryllium is reached through a reverse SSH tunnel it keeps open to niobium
+  (alias `beryllium` = 127.0.0.1:2244).
+- Every host runs with `DISPLAY=:987` (no server): over ssh DISPLAY is unset
+  and the wrappers would fall back to `:0`, the user's screen.
+
+The `Containerfile` image (`MODE=container`) remains for a host whose system
+is older than the CI's Debian.
 
 Each host keeps the 8 most recent build trees (8-16 GB each) and removes older
 ones before a job; a job refuses to start with less than 30 GB free. The CPU
@@ -55,10 +62,10 @@ persistent build tree (`b` normal, `bi` + `install` for `apps`), so a second
 run of a ref is incremental; `home/<ref>` is `$HOME` for the job (native
 hosts also set `XDG_CACHE_HOME`, `TMPDIR` under the root); `logs/`.
 
-## Rebuilding radium's image
+## Rebuilding the container image
 
 Only when the CI package list changes: copy `Containerfile` to
-`~/ecce-offload/image` on radium and `podman build -t ecce-trixie-build .`
+`~/ecce-offload/image` on the host and `podman build -t ecce-trixie-build .`
 there (about 10 min, ~700 MB of downloads, so not casually).
 Inside the container `$USER` is set explicitly; without it the data server
 creates no account and every teaching case fails with "no such parent".

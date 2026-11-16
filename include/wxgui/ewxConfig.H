@@ -19,6 +19,11 @@ public:
   static ewxConfig * getConfig(const string & name);
 
   static void closeConfigs();
+  // Saves and closes one config: a tool window that shares the process
+  // with others (#983) must not close theirs.
+  static void closeConfig(const string & name);
+  // Saves every open config and keeps it open.
+  static void flushConfigs();
 
   using wxFileConfig::Write;
   bool Write(const wxString& key, const vector<string>& value);

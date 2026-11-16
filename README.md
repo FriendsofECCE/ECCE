@@ -44,12 +44,16 @@ Download from the [releases page](https://github.com/FriendsofECCE/ECCE/releases
 Then start `ecce` (on macOS and Windows: ECCE in Applications or the
 Start menu). Details for each system: [Installing ECCE](docs/INSTALLING.md).
 
-## Coming in 9.5.3
+## Coming in 9.6.0
 
 On main, not in a package yet:
 - Windows: local sessions use a small message broker inside ECCE instead of mosquitto.exe, as in 9.4.15; `ECCE_BROKER=mosquitto` keeps the old route (#990).
 - Linux and macOS: local sessions use the same broker (a small program, `eccebroker`) instead of a per-user mosquitto, so a client needs no mosquitto. A central server and a shared system broker still use Mosquitto, unchanged; `ECCE_BROKER=mosquitto` keeps the old local route (#1007).
 - General Chemistry examples: a new topic, Molecular and covalent solids, with seven Quantum ESPRESSO crystals (ice, dry ice, urea, benzene, sucrose, diamond, graphite), each with its powder pattern.
+- Edit > Preferences > Codes chooses which codes are offered for new calculations; hidden codes stay listed as "N more codes (hidden)..." (#1049).
+- New from This > Rerun, Continue from Last Geometry, Continue from Final Orbitals and Continue in Another Code..., the same names in the Edit and right-click menus.
+- Diffraction as a docked Properties pane; thermochemistry split into translation, rotation, vibration and electronic contributions, with C_V and C_P; a GROMACS calculation from your own .mdp/.gro/.top or .tpr files (#1038); MACE as a workflow step (#1019).
+- One program with tabs on Windows, macOS and Linux (#983), in progress.
 
 ## First steps
 

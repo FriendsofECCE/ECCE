@@ -180,7 +180,8 @@ string PropertyTaskFactoryHelper::inputMasks()
               || ct == ResourceDescriptor::CT_MDOPTIMIZE
               || ct == ResourceDescriptor::CT_MDENERGY
               || ct == ResourceDescriptor::CT_MDDYNAMICS
-              || ct == ResourceDescriptor::CT_MDEQUILIBRATE) {
+              || ct == ResourceDescriptor::CT_MDEQUILIBRATE
+              || ct == ResourceDescriptor::CT_MDRUN) {
         wildcard.append(type->getName() + ";");
       }
     }

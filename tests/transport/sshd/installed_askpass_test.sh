@@ -39,9 +39,19 @@ podman run -d --name $name -p 127.0.0.1:$port:22 localhost/ecce-test-sshd \
   /usr/sbin/sshd -D -e -o PubkeyAuthentication=no >/dev/null
 for i in $(seq 40); do (exec 3<>/dev/tcp/127.0.0.1/$port) 2>/dev/null && break; sleep 0.5; done
 
-for d in $(seq 90 120); do [ -e /tmp/.X11-unix/X$d ] || break; done
-Xvfb :$d -screen 0 800x600x24 >/dev/null 2>&1 & xpid=$!
-sleep 1
+# Only Xvfb's own -displayfd report shows it got the number; a parallel run
+# may have taken the one a socket scan found free.
+d=90
+while [ "$d" -le 999 ]; do
+  [ -e /tmp/.X11-unix/X$d ] || [ -e /tmp/.X$d-lock ] || {
+    exec 9< <(Xvfb :$d -displayfd 1 -nolisten tcp -screen 0 800x600x24 2>/dev/null)
+    xpid=$!
+    if read -r -t 20 -u 9 got && [ "$got" = "$d" ]; then break; fi
+    kill $xpid 2>/dev/null || true; xpid=
+  }
+  d=$((d + 1))
+done
+[ -n "$xpid" ] || { echo "FAIL: no free X display number"; exit 1; }
 
 install -d -m 700 "$work/home" "$work/home/.ssh" "$work/cd" "$work/st"
 ssh-keyscan -p $port 127.0.0.1 2>/dev/null > "$work/home/.ssh/known_hosts"

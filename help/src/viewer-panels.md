@@ -49,9 +49,12 @@ diagonal), so its numbers appear here with the sign changed. One GPa is
 10 kbar. CP2K stress ingestion is not available.
 
 With a unit cell, three principal axes pass through the cell centre.
-Each is a pair of arrows: **blue outward for tension**, **vermillion inward
-for compression**. Their lengths are proportional to the absolute principal
-values on one common scale; labels beside the axes give GPa and kbar.
+Each is a pair of arrows drawn outside the cell, starting at the cell face
+the axis crosses so that atoms never hide them: **blue pointing away from the
+cell for tension**, **vermillion pointing in towards the face for
+compression**. Their lengths are proportional to the absolute principal
+values on one common scale. The label at the outer end of each axis gives GPa
+and kbar; for an axis pointing at you it stands beside the tip, not on it.
 An exactly zero principal stress has no arrow. Degenerate principal values
 have no unique directions within their shared eigenspace.
 

@@ -21,20 +21,22 @@ Right-click an item in the tree, or rows of the project table.
 
 ## A calculation
 
-- **New from This** makes a new calculation from this one. Its three items
-  are the three Duplicate items of the **Edit** menu under shorter names:
-  - **Rerun**: the same as **Edit > Duplicate for Rerun**. A copy with the
+- **New from This** makes a new calculation from this one. Its first three
+  items are the same as **Edit > New from This**:
+  - **Rerun**: a copy with the
     same structure and settings, reset and ready to launch.
-  - **Continue from Last Geometry**: the same as **Edit > Duplicate Setup
-    with Last Geometry**. A copy that starts from the geometry the
+  - **Continue from Last Geometry**: a copy that starts from the geometry the
     calculation ended on.
-  - **Continue from Final Orbitals**: the same as **Edit > Duplicate with
-    Final Orbitals**. As the previous item, and the new calculation also
+  - **Continue from Final Orbitals**: as the previous item, and the new calculation also
     starts from the final orbitals. It is grey when the code or the stored
     results cannot give a starting guess; the tooltip says why. Supported
     codes are ORCA, Gaussian 16, NWChem, ECCE-QM, MOPAC, CP2K and Quantum ESPRESSO. See
     [Starting from earlier orbitals](first-calculation.md#starting-from-the-orbitals-of-an-earlier-calculation)
     for basis and atom compatibility.
+  - **Continue in Another Code...** (in the project table only): one new calculation
+    in another code from each selected calculation, with a setup you make
+    once; see [New Series](new-series.md). Also **Tools > New Calculations
+    in Another Code...**.
   - **Screen Sites with MLP...**, for a periodic calculation: one MLP
     calculation for each interstitial site or vacancy pair of the host; see
     [MLP (MACE)](mlp.md).
@@ -50,11 +52,14 @@ Right-click an item in the tree, or rows of the project table.
 
 The Builder, the Electronic Structure Editor (**Tools > Electronic Structure
 Editor...**, Ctrl+E), the Basis Set Tool and the Viewer are opened from the
-toolbar and the **Tools** menu.
+toolbar and the **Tools** menu; while a tool starts the Organizer shows a busy
+cursor and "Opening the Viewer for ..." in its status line, a small
+"Starting ..." window if that takes more than a moment, and a second click on the
+same tool for the same calculation does not start a second copy.
 
 ## A task of an MD study
 
-- **Duplicate for Rerun** makes a copy of the task that keeps its place in
+- **Rerun** makes a copy of the task that keeps its place in
   the study.
 - **Terminate Calculation...** and **Shell in Calculation Run Directory...**
   appear in the states where they apply.

@@ -58,6 +58,10 @@ class SceneScript
     // Unknown commands go here; return false (and set fail()) on error.
     typedef std::function<bool(SceneScript&, const vector<string>&)> Extension;
     void setExtension(Extension e) { p_ext = e; }
+    /// Draws the saveimage PNG (path, width, height, white, factor), for an
+    /// application that must prepare its scene first (finer isosurface).
+    typedef std::function<bool(const string&, int, int, bool, int)> ImageFunction;
+    void setImageFunction(ImageFunction f) { p_image = f; }
     /// Steps a Geometry Trace panel, so its plot marker follows gtstep;
     /// returns false when there is no such panel (the scene is stepped alone).
     typedef std::function<bool(int)> TraceStep;
@@ -88,6 +92,7 @@ class SceneScript
     string p_msg;
     Extension p_ext;
     TraceStep p_traceStep;
+    ImageFunction p_image;
 };
 
 #endif

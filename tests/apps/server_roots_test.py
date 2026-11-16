@@ -89,10 +89,10 @@ def main():
             ("server newcalc %s %s c1" % (NAME, proj), lambda a: a.startswith("ok http")),
             ("server copycheck file:///tmp/x http://localhost:%d/Ecce/users/%s/%s"
              % (fixture.dataserverPort(), user, proj),
-             lambda a: a == "refused: Copying between Local data and a server is not supported yet."),
+             lambda a: a == "allowed"),   # copies between trees since #890
             ("server copycheck http://localhost:%d/Ecce/users/%s/%s file:///tmp"
              % (fixture.dataserverPort(), user, proj),
-             lambda a: a.startswith("refused: Copying between Local data")),
+             lambda a: a == "allowed"),
             ("server launchcheck http://localhost:%d/Ecce/users/%s/%s/c1"
              % (fixture.dataserverPort(), user, proj), lambda a: a == "allowed"),
         ]

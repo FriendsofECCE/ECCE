@@ -135,18 +135,35 @@ def gui(work, png):
             lengths = [float(row[3]) for row in rows]
             require(abs(lengths[0]/lengths[2]-3)<0.002 and
                     abs(lengths[4]/lengths[2]-2)<0.002, "length ratios 3:1:2")
+            # Cubic 4.05 A cell centred at 2.025: each arrow's inner end lies
+            # on the cell face along its principal axis (tension starts
+            # there, compression ends there) and the rest is outside.
             center = [2.025]*3
+            half = 2.025
             for index, start, direction, length in rows:
                 start = [float(x) for x in start.split(",")]
                 direction = [float(x) for x in direction.split(",")]
                 tip = [s+float(length)*d for s,d in zip(start,direction)]
-                end = start if int(index)<4 else tip
-                require(math.dist(center,end)<0.003,
-                        "tension starts and compression ends at cell centre")
+                inner = start if int(index)<4 else tip
+                outer = tip if int(index)<4 else start
+                offset = [a-c for a,c in zip(inner,center)]
+                require(abs(max(abs(x) for x in offset)-half)<0.003,
+                        "inner end on a cell face")
+                along = sum(o*d for o,d in zip(offset,direction))
+                require(abs(abs(along)/math.dist(inner,center)-1)<0.001,
+                        "inner end on the principal axis through the centre")
+                require(max(abs(a-c) for a,c in zip(outer,center))>half+0.05,
+                        "outer end outside the cell")
                 axis = int(index)//2
                 expected = [(2**-0.5,2**-0.5,0), (2**-0.5,-2**-0.5,0), (0,0,1)][axis]
                 require(abs(sum(a*b for a,b in zip(direction,expected)))>0.999,
                         "principal direction matches hand calculation")
+            anchors = [[float(x) for x in m.split(",")] for m in
+                       re.findall(r"label \d+ anchor=(\S+)", text)]
+            require(len(anchors)==3, "three label anchors")
+            for a in anchors:
+                require(max(abs(x-2.025) for x in a)>2.025,
+                        "label anchor outside the cell: "+repr(a))
             for name in ("qe", "mixed"):
                 a=Image.open(png / (name+"-arrows.png")).convert("RGB")
                 b=Image.open(png / (name+"-hidden.png")).convert("RGB")

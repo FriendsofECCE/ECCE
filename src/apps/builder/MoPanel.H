@@ -4,6 +4,7 @@
 #include "wxgui/TearableContentProvider.H"
 //  Self-contained, so this header can be included from anywhere.
 #include <map>
+#include <functional>
 #include <utility>
 #include "wxgui/SliderCombo.H"
 #include "tdat/SpinTables.H"
@@ -57,6 +58,8 @@ class MoPanel : public MoGUI,
     void orbitalPointChanged();
     //  The orbital table with a dozen rows, the composition and controls.
     virtual int openingHeight() const { return 460; }
+    /// The energy-level graph on show, or 0 in the table view.
+    wxWindow *shownGraph() const;
     MoPanel();
     MoPanel(IPropCalculation *calculation,
             wxWindow *parent, wxWindowID id=wxID_ANY,
@@ -135,6 +138,9 @@ class MoPanel : public MoGUI,
      double facesCheckedIso() const { return p_facesCheckedIso; }
      /** Set the slider to log10(isovalue) and re-check the grid faces. */
      void setIsoLog(double isoLog);
+     /** Run `render` with the drawn orbital/density recomputed on a grid
+         `factor` times finer, then redraw the on-screen one (Save Image). */
+     bool renderOnFineGrid(int factor, const std::function<bool()>& render);
      /** Choose a field type as a click in the type drop-down does. */
      bool selectFieldType(const string& name);
      struct SurfaceEntry { string label; string description; };
@@ -357,6 +363,8 @@ class MoPanel : public MoGUI,
       double p_facesCheckedIso = 0;
       bool p_keepIso = false;     // a recompute keeps the slider's value
       double p_keepIsoLog = 0;
+      double p_shownIsoLog = 0;   // log10 of the isovalue last drawn, unrounded
+      int p_gridPoints = 0;       // per-axis points forcing the compute's grid; 0 = the dialog's
 
       /* The first plot; all symmetries are on same x value. */
       XYPlotCanvas *p_plotReg;

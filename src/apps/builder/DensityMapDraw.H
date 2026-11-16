@@ -10,9 +10,17 @@
 
 #include "tdat/DensityPlane.H"
 
-/** Paints `map` (or `message` when there is no map) into dc. */
+/** Paints `map` (or `message` when there is no map) into dc.  `fill`
+ *  colours the plane between the contour lines (#1077). */
 void paintDensityMap(wxDC& dc, const wxSize& size, bool have,
-                     const DensityPlane::Map& map, const wxString& message);
+                     const DensityPlane::Map& map, const wxString& message,
+                     bool fill = false);
+
+/** The fill colour at value z for contour levels lv (ascending, lv[0]
+ *  outermost): signed maps two-sign blue/orange, others viridis; white
+ *  below lv[0]. */
+wxColour densityMapFillColour(const DensityPlane::Map& map,
+                              const std::vector<double>& lv, double z);
 
 /** The atoms named in the picture: every one within 1.5 A of the plane. */
 std::vector<std::string> densityMapLabelled(const DensityPlane::Map& map);

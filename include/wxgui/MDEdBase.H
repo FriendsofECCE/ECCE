@@ -56,6 +56,11 @@ class MDEdBase: public MDEdBaseGUI,
       /// Constructors
       MDEdBase( );
       MDEdBase( wxWindow* parent, wxWindowID id = SYMBOL_MDEDBASEGUI_IDNAME, const wxString& caption = SYMBOL_MDEDBASEGUI_TITLE, const wxPoint& pos = SYMBOL_MDEDBASEGUI_POSITION, const wxSize& size = SYMBOL_MDEDBASEGUI_SIZE, long style = SYMBOL_MDEDBASEGUI_STYLE );
+      virtual ~MDEdBase();
+
+      // An editor just made in the Organizer's process (#983): shows it and
+      // tracks its dispatcher; returns the dispatcher (InProcessTools opener).
+      static WxJMSMessageDispatch *openInProcess(MDEdBase *editor);
 
 
       // TaskApp virtuals
@@ -80,6 +85,14 @@ class MDEdBase: public MDEdBaseGUI,
             bool forceMsg=false);
 
       virtual bool Show(bool show);
+      // As a tab of the Organizer's window (#983).
+      void Raise() override;
+      void SetTitle(const wxString& title) override;
+      bool Destroy() override;
+      /// The menu bar, also while it is on the Organizer's window (a tab).
+      wxMenuBar *GetMenuBar() const;
+      /// Hides wxWindow::FindWindow(long): the controls are in the tab's page.
+      wxWindow *FindWindow(long id) const;
 
       virtual void clearContext();
 
@@ -135,7 +148,10 @@ class MDEdBase: public MDEdBaseGUI,
       virtual void _authMCB(JMSMessage& msg, const string& callerID);
 
       /** Message dispatcher */
-      WxJMSMessageDispatch *p_msgDispatcher;
+      WxJMSMessageDispatch *p_msgDispatcher = 0;
+
+      /** Last state updateDisabledState saw (per window, not per process). */
+      int p_lastState;
 
       /** Returns the app name that is the name in the resource registry. */
       virtual string getAppName() const = 0;

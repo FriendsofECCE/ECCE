@@ -109,6 +109,33 @@ int multiLineHeight(wxStaticText *t)
 
 
 //  Red that stays readable on light and dark table backgrounds.
+//  A GeoVib run optimises to a minimum, so imaginary modes below 100 cm-1
+//  mean it stopped at a saddle for a soft motion.  A Vibration run at a
+//  transition state expects an imaginary mode, so it gets no note.
+static wxString softImaginaryNote(IPropCalculation *calc)
+{
+   ICalculation *ic = dynamic_cast<ICalculation*>(calc);
+   PropVector *vec = calc ? (PropVector*) ResultsFromCalc::property(calc, "VIBFREQ") : 0;
+   if (!ic || !vec || ic->runtype().name() != "GeoVib") return wxString();
+   int n = 0;
+   double lowest = 0;
+   for (int m = 0; m < vec->rows(); m++) {
+      const double f = vec->value(m);
+      if (VibFrequency::isImaginary(f) && f > -100.0) {
+         n++;
+         if (f < lowest) lowest = f;
+      }
+   }
+   if (n == 0) return wxString();
+   const wxString tail = wxString::FromUTF8(
+         ": the optimisation stopped at a saddle for a soft motion. "
+         "Displace... below starts a new calculation off it.");
+   const wxString val = wxString::Format(wxString::FromUTF8("\xe2\x88\x92%.0f cm\xe2\x81\xbb\xc2\xb9"),
+                                         -lowest);
+   if (n == 1) return wxString::Format("1 small imaginary mode (%s)", val) + tail;
+   return wxString::Format("%d small imaginary modes (down to %s)", n, val) + tail;
+}
+
 static wxColour imaginaryColour()
 {
    return wxColour(214, 39, 40);
@@ -163,7 +190,8 @@ NModePanel::NModePanel()
     p_isValid(false),
     p_lastRadioSel(-1),
     p_structureOk(true),
-    p_staleNote(NULL)
+    p_staleNote(NULL),
+    p_softNote(NULL)
 {
    p_vecAmplitude = 1.0;
    p_aniAmplitude = 1.0;
@@ -187,7 +215,8 @@ NModePanel::NModePanel(IPropCalculation *calculation,
     p_isValid(false),
     p_lastRadioSel(-1),
     p_structureOk(true),
-    p_staleNote(NULL)
+    p_staleNote(NULL),
+    p_softNote(NULL)
 {
    Create(calculation, parent, id, pos, size, style, name);
    p_vecAmplitude = 1.0;
@@ -374,6 +403,13 @@ bool NModePanel::Create(IPropCalculation *calculation,
    p_staleNote->Hide();
    GetSizer()->Insert(0, p_staleNote, 0, wxEXPAND|wxALL, 5);
 
+   //  Same place as the stale note; only one of them shows at a time.
+   const wxString soft = softImaginaryNote(calculation);
+   p_softNote = new wxStaticText(this, wxID_ANY, soft);
+   p_softNote->Wrap(300);
+   p_softNote->Show(!soft.empty());
+   GetSizer()->Insert(0, p_softNote, 0, wxEXPAND|wxALL, 5);
+
    p_isValid = true;
 
    initialize();
@@ -542,8 +578,9 @@ bool NModePanel::checkStructure()
    if (ok == p_structureOk) return ok;
    p_structureOk = ok;
    for (wxWindow *child : GetChildren())
-      if (child != p_staleNote) child->Enable(ok);
+      if (child != p_staleNote && child != p_softNote) child->Enable(ok);
    p_staleNote->Show(!ok);
+   p_softNote->Show(ok && !p_softNote->GetLabel().empty());
    if (!ok) {
       stop();
       SGContainer& sg = getFW().getSceneGraph();

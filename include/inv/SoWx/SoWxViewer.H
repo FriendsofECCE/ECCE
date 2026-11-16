@@ -471,6 +471,11 @@ protected:
   SoGroup * p_headlightGroup;
   SoRotation * p_headlightRot;
   SbBool p_headlightFlag; // true when headlight in turned on
+  // Keeps the headlight on the camera as soon as the camera moves, not at
+  // the next paint: a scene hook or an offscreen render (VizRender::image)
+  // can follow a camera change with no on-screen redraw in between.
+  SoFieldSensor * p_headlightSensor;
+  static void headlightSensorCB(void *p, SoSensor *);
 
   // interactive viewing callbacks
   int p_interactiveCount;

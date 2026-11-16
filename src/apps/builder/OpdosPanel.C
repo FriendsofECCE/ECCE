@@ -12,6 +12,8 @@
 #include <wx/checkbox.h>
 #include <wx/choice.h>
 #include <wx/dcmemory.h>
+#include <wx/frame.h>
+#include <wx/panel.h>
 #include <wx/filedlg.h>
 #include <wx/html/htmlwin.h>
 #include <wx/image.h>
@@ -35,6 +37,7 @@
 #include "viz/SGFragment.H"
 #include "wxgui/ewxConfig.H"
 #include "wxgui/ewxProgressDialog.H"
+#include "wxgui/WindowShot.H"
 #include "wxviz/SGViewer.H"
 #include "MoPanel.H"
 #include "OpdosPanel.H"
@@ -88,7 +91,14 @@ OpdosPanel::OpdosPanel(IPropCalculation *calculation, wxWindow *parent, wxWindow
   Create(calculation, parent, id, pos, size, style, name);
 }
 
-OpdosPanel::~OpdosPanel() { unsubscribe(); }
+OpdosPanel::~OpdosPanel()
+{
+  unsubscribe();
+  if (p_winFrame) {
+    p_winFrame->DestroyChildren();
+    p_winFrame->Destroy();
+  }
+}
 
 bool OpdosPanel::Create(IPropCalculation *calculation, wxWindow *parent, wxWindowID id,
       const wxPoint& pos, const wxSize& size, long style, const wxString& name)
@@ -144,7 +154,10 @@ void OpdosPanel::build()
   fragorb::defaultSplit(*p_model, p_a, p_b);
 
   const int RIGHT = wxALIGN_CENTER_VERTICAL | wxRIGHT;
-  wxWrapSizer *row1 = new wxWrapSizer(wxHORIZONTAL), *row2 = new wxWrapSizer(wxHORIZONTAL);
+  wxWrapSizer *row1 = new wxWrapSizer(wxHORIZONTAL), *rowMore = new wxWrapSizer(wxHORIZONTAL);
+  //  Only the groups, Options, the window button and the plots stay in view.
+  p_more = new wxPanel(this);
+  p_more->SetSizer(rowMore);
   //  Each fragment is one column: label and text box, its Use selection button below.
   auto atomsBox = [&](wxTextCtrl *&box, wxButton *&use, const char *label, int which) {
     wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
@@ -160,33 +173,33 @@ void OpdosPanel::build()
     col->Add(use, 0, wxALIGN_RIGHT, 0);
     row1->Add(col, 0, wxRIGHT, 16);
     use->Bind(wxEVT_BUTTON, [this, which](wxCommandEvent&) { useSelection(which); });
-    box->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) {
-      setAtoms(p_atomsA->GetValue().ToStdString(), p_atomsB->GetValue().ToStdString());
+    box->Bind(wxEVT_TEXT_ENTER, [this, which](wxCommandEvent&) {
+      setAtoms(p_atomsA->GetValue().ToStdString(), p_atomsB->GetValue().ToStdString(), which);
     });
   };
   atomsBox(p_atomsA, p_useA, "A", 0);
   atomsBox(p_atomsB, p_useB, "B", 1);
 
-  row2->Add(new wxStaticText(this, wxID_ANY, "Width (eV)"), 0, RIGHT, 4);
-  p_width = new wxSpinCtrlDouble(this, wxID_ANY, "0.30", wxDefaultPosition, wxSize(130, -1),
+  rowMore->Add(new wxStaticText(p_more, wxID_ANY, "Width (eV)"), 0, RIGHT, 4);
+  p_width = new wxSpinCtrlDouble(p_more, wxID_ANY, "0.30", wxDefaultPosition, wxSize(130, -1),
                                  wxSP_ARROW_KEYS, 0.02, 3.0, 0.3, 0.05);
   p_width->SetMinSize(wxSize(130, -1));
   p_width->SetToolTip("Full width at half maximum of the line drawn for each orbital");
-  row2->Add(p_width, 0, RIGHT, 12);
-  row2->Add(new wxStaticText(this, wxID_ANY, "Shape"), 0, RIGHT, 4);
+  rowMore->Add(p_width, 0, RIGHT, 12);
+  rowMore->Add(new wxStaticText(p_more, wxID_ANY, "Shape"), 0, RIGHT, 4);
   const wxString shapes[] = {"Gaussian", "Lorentzian"};
-  p_shape = new wxChoice(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 2, shapes);
+  p_shape = new wxChoice(p_more, wxID_ANY, wxDefaultPosition, wxDefaultSize, 2, shapes);
   p_shape->SetSelection(0);
   p_shape->SetToolTip("Line shape of each orbital's peak; Lorentzian tails are long, so neighbouring peaks overlap more");
-  row2->Add(p_shape, 0, RIGHT, 12);
+  rowMore->Add(p_shape, 0, RIGHT, 12);
   p_shape->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { redraw(); });
   p_width->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { redraw(); });
   p_width->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { redraw(); });
   auto check = [&](wxCheckBox *&c, const char *label, const char *tip, bool on) {
-    c = new wxCheckBox(this, wxID_ANY, label);
+    c = new wxCheckBox(p_more, wxID_ANY, label);
     c->SetValue(on);
     c->SetToolTip(tip);
-    row2->Add(c, 0, RIGHT, 12);
+    rowMore->Add(c, 0, RIGHT, 12);
     return c;
   };
   check(p_sticks, "Sticks", "One line per orbital at its energy, height OPDOS contribution", false);
@@ -195,39 +208,51 @@ void OpdosPanel::build()
   p_sticks->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { redraw(); });
   p_int->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { redraw(); });
   p_occ->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) { redraw(); });
-  row2->Add(new wxStaticText(this, wxID_ANY, "From (eV)"), 0, RIGHT, 4);
-  p_from = new wxSpinCtrlDouble(this, wxID_ANY, "0", wxDefaultPosition, wxSize(110, -1),
+  rowMore->Add(new wxStaticText(p_more, wxID_ANY, "From (eV)"), 0, RIGHT, 4);
+  p_from = new wxSpinCtrlDouble(p_more, wxID_ANY, "0", wxDefaultPosition, wxSize(110, -1),
                                 wxSP_ARROW_KEYS, -2000, 2000, 0, 0.5);
-  row2->Add(p_from, 0, RIGHT, 8);
-  row2->Add(new wxStaticText(this, wxID_ANY, "To"), 0, RIGHT, 4);
-  p_to = new wxSpinCtrlDouble(this, wxID_ANY, "0", wxDefaultPosition, wxSize(110, -1),
+  rowMore->Add(p_from, 0, RIGHT, 8);
+  rowMore->Add(new wxStaticText(p_more, wxID_ANY, "To"), 0, RIGHT, 4);
+  p_to = new wxSpinCtrlDouble(p_more, wxID_ANY, "0", wxDefaultPosition, wxSize(110, -1),
                               wxSP_ARROW_KEYS, -2000, 2000, 0, 0.5);
   p_from->SetToolTip("Lowest energy shown in both plots");
   p_to->SetToolTip("Highest energy shown in both plots");
-  row2->Add(p_to, 0, RIGHT, 6);
-  wxButton *reset = new wxButton(this, wxID_ANY, "Reset");
+  rowMore->Add(p_to, 0, RIGHT, 6);
+  wxButton *reset = new wxButton(p_more, wxID_ANY, "Reset");
   reset->SetToolTip("Show the whole energy range again");
-  row2->Add(reset, 0, RIGHT, 12);
+  rowMore->Add(reset, 0, RIGHT, 12);
   for (wxSpinCtrlDouble *w : {p_from, p_to}) {
     w->Bind(wxEVT_SPINCTRLDOUBLE, [this](wxSpinDoubleEvent&) { applyWindow(true); });
     w->Bind(wxEVT_TEXT_ENTER, [this](wxCommandEvent&) { applyWindow(true); });
   }
   reset->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { resetWindow(); });
-  wxButton *csv = new wxButton(this, wxID_ANY, "Export CSV");
-  wxButton *png = new wxButton(this, wxID_ANY, "Export PNG");
-  row2->Add(csv, 0, RIGHT, 6);
-  row2->Add(png, 0, RIGHT, 6);
+  wxButton *csv = new wxButton(p_more, wxID_ANY, "Export CSV");
+  wxButton *png = new wxButton(p_more, wxID_ANY, "Export PNG");
+  rowMore->Add(csv, 0, RIGHT, 6);
+  rowMore->Add(png, 0, RIGHT, 6);
   csv->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-    wxFileDialog d(this, "Export curves", "", "opdos.csv", "CSV (*.csv)|*.csv", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-    if (d.ShowModal() == wxID_OK) exportCsv(d.GetPath());
+    exportCsvDialog();
   });
   png->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
-    wxFileDialog d(this, "Export plot", "", "opdos.png", "PNG (*.png)|*.png", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
-    if (d.ShowModal() == wxID_OK) savePng(d.GetPath(), 1200, 800);
+    exportPngDialog(p_plot, p_intPlot);
   });
 
+  {
+    wxBoxSizer *col = new wxBoxSizer(wxVERTICAL);
+    p_moreButton = new wxButton(this, wxID_ANY, U("Options \xE2\x96\xB8"));
+    p_moreButton->SetToolTip("Width, shape, sticks, integrated OPDOS, occupied only, energy range and export");
+    p_windowButton = new wxButton(this, wxID_ANY, "Open in window...");
+    p_windowButton->SetToolTip("Both plots in a window of their own that follows these settings");
+    col->Add(p_moreButton, 0, wxBOTTOM, 3);
+    col->Add(p_windowButton, 0, 0, 0);
+    row1->Add(col, 0, wxRIGHT, 0);
+    p_moreButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { setMoreOpen(!p_moreOpen); });
+    p_windowButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { openWindow(); });
+    ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+    if (cfg) cfg->Read("/Opdos/MoreOpen", &p_moreOpen, false);
+  }
   top->Add(row1, 0, wxEXPAND | wxALL, 4);
-  top->Add(row2, 0, wxEXPAND | wxALL, 4);
+  top->Add(p_more, 0, wxEXPAND | wxALL, 4);
   p_plot = new XYPlotCanvas(this);
   p_plot->SetMinSize(wxSize(240, 170));
   //  The axis titles need 140 px of plot height.
@@ -285,8 +310,42 @@ void OpdosPanel::build()
       p_to->SetValue(to);
     }
   }
+  syncMore();
   recomputeOrbitals(&progress);
   Layout();
+}
+
+void OpdosPanel::syncMore()
+{
+  p_moreButton->SetLabel(p_moreOpen ? U("Options \xE2\x96\xBE") : U("Options \xE2\x96\xB8"));
+  p_more->Show(p_moreOpen);
+  Layout();
+}
+
+void OpdosPanel::remember() const
+{
+  ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
+  if (!cfg) return;
+  cfg->Write("/Opdos/MoreOpen", p_moreOpen);
+  cfg->Flush();
+}
+
+bool OpdosPanel::setMoreOpen(bool open)
+{
+  if (!p_ok) return false;
+  p_moreOpen = open;
+  syncMore();
+  remember();
+  return true;
+}
+
+void OpdosPanel::plotMessage(const wxString& msg)
+{
+  for (XYPlotCanvas *p : {p_plot, p_intPlot, p_winPlot, p_winInt}) {
+    if (!p) continue;
+    p->clearCurves();
+    p->setMessage(p == p_plot || p == p_winPlot ? msg : wxString());
+  }
 }
 
 void OpdosPanel::setText(const wxString& head)
@@ -312,9 +371,7 @@ void OpdosPanel::recomputeOrbitals(OpdosProgress *progress)
     progress->stage("Building the orbitals: overlap matrix of the basis", 0.0);
     if (!fragorb::dosOverlap(*p_model, p_S, err)) {
       p_error = err;
-      p_plot->clearCurves();
-      p_intPlot->clearCurves();
-      p_plot->setMessage(U(err.c_str()));
+      plotMessage(U(err.c_str()));
       setText(U(err.c_str()));
       return;
     }
@@ -331,9 +388,7 @@ void OpdosPanel::recomputeOrbitals(OpdosProgress *progress)
   opt.progress = [progress](double f) { progress->stage("Computing the overlap populations of the orbitals", f); };
   if (!fragorb::dosOrbitals(*p_model, opt, p_all, err)) {
     p_error = err;
-    p_plot->clearCurves();
-    p_intPlot->clearCurves();
-    p_plot->setMessage(U(err.c_str()));
+    plotMessage(U(err.c_str()));
     setText(U(err.c_str()));
     return;
   }
@@ -345,9 +400,7 @@ void OpdosPanel::recomputeOrbitals(OpdosProgress *progress)
     snprintf(buf, sizeof buf, "The orbital coefficients do not match this basis (max |cTSc - 1| = %.3g, at MO %d%s), "
              "so no overlap populations are drawn.", p_all.normError, p_all.normWorstMo, worstSpin);
     p_error = buf;
-    p_plot->clearCurves();
-    p_intPlot->clearCurves();
-    p_plot->setMessage(U(buf));
+    plotMessage(U(buf));
     setText(U(buf));
     return;
   }
@@ -359,7 +412,7 @@ void OpdosPanel::recomputeOrbitals(OpdosProgress *progress)
     p_normNote = wxString::Format("Warning: the orbitals are not quite normalised in this basis "
                                   "(max |cTSc - 1| = %.2g, at MO %d%s); populations are approximate.",
                                   p_all.normError, p_all.normWorstMo, worstSpin);
-  setText(p_normNote);
+  setText(p_moveNote.empty() ? p_normNote : p_moveNote + (p_normNote.empty() ? wxString() : "\n" + p_normNote));
   redraw();
 }
 
@@ -381,31 +434,47 @@ void OpdosPanel::redraw()
       p_plot->setMessage(U(err.c_str()));
       return;
     }
-  p_plot->setMessage(wxString());
-  p_plot->clearCurves();
-  p_intPlot->clearCurves();
-  p_plot->clearVLines();
-  p_intPlot->clearVLines();
+  drawCurves(p_plot, p_intPlot);
+  if (p_winFrame) {
+    drawCurves(p_winPlot, p_winInt);
+    p_winFrame->Layout();
+  }
+  applyWindow(false);
+  Layout();
+
+  double occOp = 0;
+  for (int s = 0; s < nch; s++) occOp += p_part[s].occupiedOverlap[0];
+  showExplanation(occOp);
+}
+
+void OpdosPanel::drawCurves(XYPlotCanvas *plot, XYPlotCanvas *ip)
+{
+  const int nch = p_unres ? 2 : 1;
+  plot->setMessage(wxString());
+  plot->clearCurves();
+  ip->clearCurves();
+  plot->clearVLines();
+  ip->clearVLines();
   const double homo = p_unres ? std::max(p_part[0].homoEv, p_part[1].homoEv) : p_part[0].homoEv;
   const double e0 = p_part[0].energy.front(), e1 = p_part[0].energy.back();
   //  Occupied region shaded, HOMO marked.
-  if (!p_winOn) {
+  if (plot == plot && !p_winOn) {
     p_from->SetValue(std::floor(e0 * 10) / 10);
     p_to->SetValue(std::ceil(e1 * 10) / 10);
   }
-  p_plot->setShadeX(e0, homo);
-  p_intPlot->setShadeX(e0, homo);
-  p_plot->addVLine(homo, "HOMO");
-  p_intPlot->addVLine(homo, "HOMO");
-  p_plot->setXAxisLabel("Energy (eV)");
-  p_intPlot->setXAxisLabel("Energy (eV)");
-  p_plot->setYAxisLabel(p_unres ? U("states / eV (alpha up, beta down)") : U("states / eV"));
-  p_intPlot->setYAxisLabel("Integrated OPDOS (electrons)");
-  p_intPlot->setTitle(wxString());
-  p_plot->setTitle("Density of states, Mulliken");
-  p_intPlot->SetMinSize(wxSize(240, p_int->GetValue() ? 150 : 1));
-  p_intPlot->Show(p_int->GetValue());
-  p_plot->setReadout("Energy", "E", "eV");
+  plot->setShadeX(e0, homo);
+  ip->setShadeX(e0, homo);
+  plot->addVLine(homo, "HOMO");
+  ip->addVLine(homo, "HOMO");
+  plot->setXAxisLabel("Energy (eV)");
+  ip->setXAxisLabel("Energy (eV)");
+  plot->setYAxisLabel(p_unres ? U("states / eV (alpha up, beta down)") : U("states / eV"));
+  ip->setYAxisLabel("Integrated OPDOS (electrons)");
+  ip->setTitle(wxString());
+  plot->setTitle("Density of states, Mulliken");
+  if (plot == plot) ip->SetMinSize(wxSize(240, p_int->GetValue() ? 150 : 1));
+  ip->Show(p_int->GetValue());
+  plot->setReadout("Energy", "E", "eV");
 
   const size_t np = 1, ns = 2;
   int series = 0;
@@ -420,9 +489,9 @@ void OpdosPanel::redraw()
         y[g] = sign * (k == 0 ? r.tdos[g] : k < 3 ? r.pdos[g * ns + (k - 1)] : r.opdos[g * np]);
       wxString nm = names[k];
       if (p_unres) nm += s ? " beta" : " alpha";
-      const int c = p_plot->addCurve(r.energy, y, nm, k + (s ? 0 : 0), XYPlotCanvas::LINE);
-      if (s) p_plot->setCurveStyle(c, true, 1);
-      if (k == 0) p_plot->setCurveColour(c, wxColour(0, 0, 0));
+      const int c = plot->addCurve(r.energy, y, nm, k + (s ? 0 : 0), XYPlotCanvas::LINE);
+      if (s) plot->setCurveStyle(c, true, 1);
+      if (k == 0) plot->setCurveColour(c, wxColour(0, 0, 0));
       series++;
     }
     if (p_sticks->GetValue()) {
@@ -433,24 +502,19 @@ void OpdosPanel::redraw()
         sx.push_back(r.moEnergy[i]); sy.push_back(v);
         sx.push_back(r.moEnergy[i]); sy.push_back(0);
       }
-      const int c = p_plot->addCurve(sx, sy, wxString(), 3, XYPlotCanvas::LINE);
-      p_plot->setCurveThin(c, true);
-      if (s) p_plot->setCurveStyle(c, false, 1);
+      const int c = plot->addCurve(sx, sy, wxString(), 3, XYPlotCanvas::LINE);
+      plot->setCurveThin(c, true);
+      if (s) plot->setCurveStyle(c, false, 1);
     }
     if (p_int->GetValue()) {
       std::vector<double> yi(n);
       for (size_t g = 0; g < n; g++) yi[g] = sign * r.intOpdos[g * np];
-      const int c = p_intPlot->addCurve(r.energy, yi, wxString(p_unres ? (s ? "beta" : "alpha") : "integrated OPDOS(A,B)"), 3, XYPlotCanvas::LINE);
-      if (s) p_intPlot->setCurveStyle(c, true, 1);
+      const int c = ip->addCurve(r.energy, yi, wxString(p_unres ? (s ? "beta" : "alpha") : "integrated OPDOS(A,B)"), 3, XYPlotCanvas::LINE);
+      if (s) ip->setCurveStyle(c, true, 1);
     }
   }
-  p_plot->setShowKey(true);
-  applyWindow(false);
-  Layout();
+  plot->setShowKey(true);
 
-  double occOp = 0;
-  for (int s = 0; s < nch; s++) occOp += p_part[s].occupiedOverlap[0];
-  showExplanation(occOp);
 }
 
 void OpdosPanel::applyWindow(bool remember)
@@ -461,13 +525,9 @@ void OpdosPanel::applyWindow(bool remember)
     if (!(hi > lo)) { setText("To must be above From."); return; }
     p_winOn = true;
   }
-  if (p_winOn && hi > lo) {
-    p_plot->setXWindow(lo, hi);
-    p_intPlot->setXWindow(lo, hi);
-  } else {
-    p_plot->setXWindow(0, 0);
-    p_intPlot->setXWindow(0, 0);
-  }
+  const bool on = p_winOn && hi > lo;
+  for (XYPlotCanvas *p : {p_plot, p_intPlot, p_winPlot, p_winInt})
+    if (p) p->setXWindow(on ? lo : 0, on ? hi : 0);
   if (remember) {
     ewxConfig *cfg = ewxConfig::getConfig("wxbuilder.ini");
     if (cfg) {
@@ -605,25 +665,41 @@ bool OpdosPanel::clickEnergy(double ev)
   return true;
 }
 
-bool OpdosPanel::setAtoms(const std::string& a, const std::string& b)
+bool OpdosPanel::setAtoms(const std::string& a, const std::string& b, int winner)
 {
   if (!p_ok || p_busy) return false;
-  std::vector<int> va, vb;
+  std::vector<int> v[2];
+  const std::string text[2] = {a, b};
   const int n = int(p_model->natoms());
-  if (!fragorb::parseAtomList(a, n, va) || !fragorb::parseAtomList(b, n, vb)) {
-    setText("Atom lists are numbers and ranges such as 1,2,5-8, each between 1 and the number of atoms.");
-    return false;
-  }
-  for (size_t i = 0; i < va.size(); i++)
-    if (std::binary_search(vb.begin(), vb.end(), va[i])) {
-      setText(wxString::Format("Atom %d is in both A (%s) and B (%s); an atom belongs to one group.",
-                               va[i] + 1, atomText(va), atomText(vb)));
+  for (int g = 0; g < 2; g++) {
+    //  An emptied box is an empty group, reported below; only junk is refused.
+    if (text[g].find_first_not_of(" ,") == std::string::npos) continue;
+    if (!fragorb::parseAtomList(text[g], n, v[g])) {
+      setText("Atom lists are numbers and ranges such as 1,2,5-8, each between 1 and the number of atoms.");
       return false;
     }
-  p_a = va;
-  p_b = vb;
+  }
+  //  The group that was just set keeps an atom both name; the other loses it.
+  const int win = winner ? 1 : 0, lose = 1 - win;
+  std::vector<int> moved, kept;
+  for (int x : v[lose]) (std::binary_search(v[win].begin(), v[win].end(), x) ? moved : kept).push_back(x);
+  v[lose] = kept;
+  p_a = v[0];
+  p_b = v[1];
   p_atomsA->SetValue(atomText(p_a));
   p_atomsB->SetValue(atomText(p_b));
+  p_moveNote.clear();
+  if (!moved.empty())
+    p_moveNote = wxString::Format("Atoms %s moved from %s to %s.", atomText(moved), lose ? "B" : "A", win ? "B" : "A");
+  if (p_a.empty() || p_b.empty()) {
+    const wxString which = p_a.empty() && p_b.empty() ? "Groups A and B are" : p_a.empty() ? "Group A is" : "Group B is";
+    p_haveAll = false;
+    p_clicked.clear();
+    p_error = "empty group";
+    plotMessage(which + " empty; put atoms in it to draw the density of states.");
+    setText((p_moveNote.empty() ? wxString() : p_moveNote + "\n") + which + " empty.");
+    return true;
+  }
   recomputeOrbitals();
   return p_haveAll;
 }
@@ -647,7 +723,7 @@ bool OpdosPanel::useSelection(int which)
   //  without Enter, then Use selection for B, collided with A's old atoms.
   const std::string ta = p_atomsA->GetValue().ToStdString();
   const std::string tb = p_atomsB->GetValue().ToStdString();
-  return setAtoms(which ? ta : atomText(picked), which ? atomText(picked) : tb);
+  return setAtoms(which ? ta : atomText(picked), which ? atomText(picked) : tb, which);
 }
 
 bool OpdosPanel::setWidth(double ev)
@@ -664,6 +740,11 @@ bool OpdosPanel::setLineShape(bool lorentzian) { if (!p_ok) return false; p_shap
 
 bool OpdosPanel::savePng(const wxString& path, int width, int height)
 {
+  return savePngOf(p_plot, p_intPlot, path, width, height);
+}
+
+bool OpdosPanel::savePngOf(XYPlotCanvas *plot, XYPlotCanvas *intPlot, const wxString& path, int width, int height)
+{
   if (!p_ok || !p_haveAll) return false;
   static bool handlers = false;
   if (!handlers) { wxInitAllImageHandlers(); handlers = true; }
@@ -674,14 +755,14 @@ bool OpdosPanel::savePng(const wxString& path, int width, int height)
     wxMemoryDC dc(bmp);
     dc.SetBackground(*wxWHITE_BRUSH);
     dc.Clear();
-    p_plot->paintOnto(dc, wxSize(width, h1));
+    plot->paintOnto(dc, wxSize(width, h1));
     if (both) {
       wxBitmap lower(width, height - h1);
       {
         wxMemoryDC d2(lower);
         d2.SetBackground(*wxWHITE_BRUSH);
         d2.Clear();
-        p_intPlot->paintOnto(d2, wxSize(width, height - h1));
+        intPlot->paintOnto(d2, wxSize(width, height - h1));
       }
       dc.DrawBitmap(lower, 0, h1);
     }
@@ -717,6 +798,127 @@ bool OpdosPanel::exportCsv(const wxString& path)
   return true;
 }
 
+void OpdosPanel::exportCsvDialog()
+{
+  wxFileDialog d(this, "Export curves", "", "opdos.csv", "CSV (*.csv)|*.csv", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+  if (d.ShowModal() == wxID_OK) exportCsv(d.GetPath());
+}
+
+void OpdosPanel::exportPngDialog(XYPlotCanvas *plot, XYPlotCanvas *intPlot)
+{
+  wxFileDialog d(this, "Export plot", "", "opdos.png", "PNG (*.png)|*.png", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+  if (d.ShowModal() == wxID_OK) savePngOf(plot, intPlot, d.GetPath(), 1200, 800);
+}
+
+//  Second canvases drawn by the same code as the panel's, so the window
+//  always shows the panel's settings; a child of the Builder's frame.
+bool OpdosPanel::openWindow()
+{
+  if (!p_ok) return false;
+  if (p_winFrame) {
+    p_winFrame->Raise();
+    return true;
+  }
+  wxFrame *frame = new wxFrame(wxGetTopLevelParent(this), wxID_ANY, "Density of States (OPDOS)",
+                               wxDefaultPosition, wxSize(1000, 700));
+  wxPanel *panel = new wxPanel(frame);
+  p_winPlot = new XYPlotCanvas(panel);
+  p_winPlot->SetMinSize(wxSize(240, 170));
+  p_winInt = new XYPlotCanvas(panel);
+  p_winInt->SetMinSize(wxSize(240, 150));
+  for (XYPlotCanvas *p : {p_winPlot, p_winInt}) p->setZeroLine(true);
+  p_winPlot->setPointHandler([this](int c, int i) { listMos(p_winPlot->xAt(c, i)); });
+  p_winInt->setPointHandler([this](int c, int i) { listMos(p_winInt->xAt(c, i)); });
+  wxButton *csv = new wxButton(panel, wxID_ANY, "Export CSV");
+  wxButton *png = new wxButton(panel, wxID_ANY, "Export PNG");
+  wxButton *close = new wxButton(panel, wxID_ANY, "Close");
+  csv->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { exportCsvDialog(); });
+  png->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { exportPngDialog(p_winPlot, p_winInt); });
+  close->Bind(wxEVT_BUTTON, [frame](wxCommandEvent&) { frame->Close(); });
+  wxBoxSizer *foot = new wxBoxSizer(wxHORIZONTAL);
+  foot->AddStretchSpacer(1);
+  foot->Add(csv, 0, wxALL, 4);
+  foot->Add(png, 0, wxALL, 4);
+  foot->Add(close, 0, wxALL, 4);
+  wxBoxSizer *sizer = new wxBoxSizer(wxVERTICAL);
+  sizer->Add(p_winPlot, 3, wxEXPAND | wxALL, 4);
+  sizer->Add(p_winInt, 2, wxEXPAND | wxALL, 4);
+  sizer->Add(foot, 0, wxEXPAND);
+  panel->SetSizer(sizer);
+  wxBoxSizer *outer = new wxBoxSizer(wxVERTICAL);
+  outer->Add(panel, 1, wxEXPAND);
+  frame->SetSizer(outer);
+  //  The canvases go with the frame; the pointers must not outlive it.
+  frame->Bind(wxEVT_CLOSE_WINDOW, [this, frame](wxCloseEvent&) {
+    p_winPlot = p_winInt = nullptr;
+    frame->Destroy();
+  });
+  p_winFrame = frame;
+  frame->Show(true);
+  if (p_haveAll) {
+    drawCurves(p_winPlot, p_winInt);
+    applyWindow(false);
+  } else {
+    p_winPlot->setMessage(p_plot->message());
+  }
+  frame->Layout();
+  return true;
+}
+
+void OpdosPanel::closeWindow()
+{
+  if (!p_winFrame) return;
+  p_winFrame->Close();
+}
+
+bool OpdosPanel::saveWindowShot(const wxString& path)
+{
+  if (!p_winFrame) return false;
+  //  With no window manager a new frame is not yet mapped on top: let the
+  //  events through before the grab.
+  p_winFrame->Raise();
+  p_winFrame->Layout();
+  for (int i = 0; i < 5; i++) {
+    wxMilliSleep(100);
+    wxYield();
+  }
+  p_winFrame->Refresh();
+  p_winFrame->Update();
+  return ecceClientShot(p_winFrame, path);
+}
+
+//  The visible controls and their rectangles at a panel width, for the layout test.
+std::string OpdosPanel::layoutReport(int width)
+{
+  if (!p_ok) return "layout none\n";
+  ensureInitialized();
+  GetSizer()->SetDimension(0, 0, width, 760);
+  const std::pair<const char*, wxWindow*> items[] = {
+    {"atomsA", p_atomsA}, {"useA", p_useA}, {"atomsB", p_atomsB}, {"useB", p_useB},
+    {"options", p_moreButton}, {"window", p_windowButton}, {"width", p_width}, {"shape", p_shape},
+    {"sticks", p_sticks}, {"integrated", p_int}, {"occupied", p_occ}, {"from", p_from}, {"to", p_to},
+    {"plot", p_plot}, {"intplot", p_intPlot}};
+  std::string out = "layout width " + std::to_string(width) + "\n", rows;
+  bool clipped = false;
+  for (const auto& it : items) {
+    wxWindow *w = it.second;
+    const bool inMore = w->GetParent() == p_more;
+    if (!w->IsShown() || (inMore && !p_more->IsShown())) continue;
+    wxRect r = w->GetRect();
+    if (inMore) r.Offset(p_more->GetPosition());
+    const bool bad = r.x < 0 || r.GetRight() >= width;
+    clipped = clipped || bad;
+    char buf[160];
+    snprintf(buf, sizeof buf, "ctl %s x=%d y=%d w=%d h=%d %s\n", it.first, r.x, r.y, r.width, r.height, bad ? "clipped" : "ok");
+    out += buf;
+    rows += std::string(rows.empty() ? "" : ",") + it.first;
+  }
+  out += "visible " + rows + "\n";
+  out += clipped ? "layout clipped\n" : "layout ok\n";
+  Layout();
+  return out;
+}
+
 std::string OpdosPanel::state() const
 {
   if (!p_ok) return "ok 0\n";
@@ -726,6 +928,14 @@ std::string OpdosPanel::state() const
            p_haveAll ? 1 : 0, p_error.empty() ? "-" : p_error.c_str(), p_model->natoms(),
            atomText(p_a).c_str(), atomText(p_b).c_str(), p_unres ? 1 : 0);
   s += buf;
+  snprintf(buf, sizeof buf, "options_open %d\nwindow_open %d\n", p_moreOpen ? 1 : 0, p_winFrame ? 1 : 0);
+  s += buf;
+  if (p_winFrame && p_winPlot) {
+    snprintf(buf, sizeof buf, "window_plots 2\nwindow_size %d %d\nwindow_curves %d\nwindow_intcurves %d\nwindow_int_shown %d\n",
+             p_winFrame->GetSize().x, p_winFrame->GetSize().y, p_winPlot->curveCount(), p_winInt->curveCount(),
+             p_winInt->IsShown() ? 1 : 0);
+    s += buf;
+  }
   if (!p_haveAll) return s + "text " + std::string(p_text ? p_text->GetValue().ToUTF8().data() : "") + "\n";
   {
     //  Positions inside the panel, for layout checks.

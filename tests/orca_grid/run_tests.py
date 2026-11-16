@@ -54,17 +54,17 @@ def main():
                                 ("PBE0 DEFGRID3 D3BJ", "PBE0", ["DEFGRID3", "D3BJ"]),
                                 ("B3LYP-D3 DEFGRID2", "B3LYP", ["DEFGRID2", "D3ZERO"])):
             r = route(work, "", func=name)
-            check(sorted(r) == sorted(["!", "RKS", base, "def2-SVP"] + kws),
+            check(sorted(r) == sorted(["!", "RKS", base, "def2-SVP", "PrintBasis"] + kws),
                   "legacy %r -> %s + %s: %s" % (name, base, kws, " ".join(r)))
         r = route(work, g("DefGrid1"), func="PBE0 DEFGRID3")
         check(r.count("DEFGRID1") == 1 and "DEFGRID3" not in r, "the setting wins over a legacy name")
         # Three words: an unsplit name would echo the same keywords, so the
         # stored setting must replace the name's grid.
         r = route(work, g("DefGrid1"), func="PBE0 DEFGRID3 D3BJ")
-        check(sorted(r) == sorted(["!", "RKS", "PBE0", "def2-SVP", "DEFGRID1", "D3BJ"]),
+        check(sorted(r) == sorted(["!", "RKS", "PBE0", "def2-SVP", "PrintBasis", "DEFGRID1", "D3BJ"]),
               "the setting wins over a three-word legacy name: " + " ".join(r))
         r = route(work, "", func="B97-D3 DEFGRID2")
-        check(sorted(r) == sorted(["!", "RKS", "B97-D3", "def2-SVP", "DEFGRID2"]),
+        check(sorted(r) == sorted(["!", "RKS", "B97-D3", "def2-SVP", "PrintBasis", "DEFGRID2"]),
               "B97-D3 keeps its D3 behind a grid: " + " ".join(r))
         r = route(work, "", func="B97-D3")
         check("B97-D3" in r and not any("DEFGRID" in x for x in r), "B97-D3 is still a functional")

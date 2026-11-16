@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""The Builder's Geometry Trace and Geometry Step Plots for a GROMACS run (#480).
+"""The Builder's Geometry Trace for a GROMACS run (#480); Geometry Step Plots is
+not listed for a run with a trace (#1008).
 
     tests/apps/md_plots_test.py [--build build-cmake] [--png DIR] [--tag TAG]
 
@@ -118,8 +119,8 @@ def main():
         if args.qm:
             tag = "qm-" + tag
         out = ""
-        for suffix, panel in (("trace", "Geometry Trace"),
-                              ("steps", "Geometry Step Plots")):
+        # Geometry Step Plots is not listed for a run with a trace (#1008).
+        for suffix, panel in (("trace", "Geometry Trace"),):
             scene = os.path.join(work, "scene-" + suffix)
             with open(scene, "w") as handle:
                 handle.write("plotshot %s-%s 880 520 %s\nhold 1\n"
@@ -136,7 +137,7 @@ def main():
         check("crash" not in out.lower(), "no crash in the Builder log")
         if tag != "after":
             return 0
-        for name in ("after-trace", "after-steps"):
+        for name in ("after-trace",):
             plot, curves = plotLines(out, name)
             if not check(plot is not None and len(curves) == 2,
                          "%s: a plot with two curves" % name):

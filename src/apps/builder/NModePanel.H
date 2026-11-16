@@ -38,6 +38,9 @@ class NModePanel : public NModesGUI,
    static const wxWindowID ID_SLIDER;
 
    public:
+      //  Test hook: the small-imaginary-mode note (#1042).
+      bool softNoteShown() const { return p_softNote && p_softNote->IsShown(); }
+      wxString softNoteText() const { return p_softNote ? p_softNote->GetLabel() : wxString(); }
       NModePanel();
       NModePanel(IPropCalculation *calculation,
             wxWindow *parent, wxWindowID id=wxID_ANY,
@@ -304,6 +307,7 @@ class NModePanel : public NModesGUI,
       vector<int> p_calcElements;
       bool        p_structureOk;
       wxStaticText *p_staleNote;
+      wxStaticText *p_softNote;
 
 };
 

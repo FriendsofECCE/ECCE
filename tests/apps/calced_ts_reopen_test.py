@@ -24,6 +24,7 @@ sys.path.insert(0, HERE)
 import apps                     # noqa: E402
 import calced_qst_test as qst   # noqa: E402
 import fixture                  # noqa: E402
+import resource_helper          # noqa: E402
 import run_tests                # noqa: E402
 import symmetry_find_test as sym  # noqa: E402
 
@@ -33,10 +34,8 @@ REOPEN = ["wait 15000", "ts-state", "enabled", "ts-mapping"]
 def duplicate(folder, url):
     """The copy's URL, made the way the Organizer's Duplicate makes it."""
     env = dict(os.environ, ECCE_HOME=apps.INSTALL, ECCE_LOCAL_DATA=folder,
-               ECCE_NO_MESSAGING="1",
-               LD_LIBRARY_PATH=os.environ.get(
-                   "ECCE_TEST_BUILD", os.path.join(qst.REPO, "build-cmake")))
-    done = subprocess.run([os.path.join(fixture.stateDir(), "resourceTest"),
+               ECCE_NO_MESSAGING="1")
+    done = subprocess.run([resource_helper.path(),
                            "copy", url.rstrip("/")], env=env,
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     out = done.stdout.decode()

@@ -195,6 +195,7 @@
           <ContainsResource name="cp2k_es"/>
           <ContainsResource name="qe_es"/>
           <ContainsResource name="gromacs_md_study"/>
+          <ContainsResource name="gromacs_md_run"/>
           <ContainsResource name="nwchem_md_study"/>
           <ContainsResource name="mlp_es"/>
           <ContainsResource name="vina_es"/>
@@ -4646,6 +4647,7 @@
           <ContainsResource name="xtb_es"/>
           <ContainsResource name="cp2k_es"/>
           <ContainsResource name="qe_es"/>
+          <ContainsResource name="mlp_es"/>
           <ContainsResource name="vina_es"/>
           <ContainsResource name="import_es"/>
         </Contains>
@@ -6006,6 +6008,251 @@
       </RunManagementTask>
     </EnabledRunManagementTasks>
   </ResourceType>
+  <!-- A single GROMACS calculation made from the user's own files (#1038):
+       its own content type, so it reloads as itself and the MD editor that
+       would rewrite its .mdp is never offered. -->
+  <ResourceType name="gromacs_md_run" resourceType="virtual_document"
+    contentType="ecceMdRun" applicationType="GROMACS">
+    <SortPriority>30</SortPriority>
+    <NameRule>[A-Za-z0-9\.\_\-]+</NameRule>
+    <Icons>
+      <Normal>svg/task-gmx-dynamics.svg</Normal>
+      <Selected>svg/task-gmx-dynamics.svg</Selected>
+      <Expanded>svg/task-gmx-dynamics.svg</Expanded>
+      <SelectedExpanded>svg/task-gmx-dynamics.svg</SelectedExpanded>
+    </Icons>
+    <Label>GROMACS</Label>
+    <StateBased>true</StateBased>
+    <MenuItem>New GROMACS Calculation from Files...</MenuItem>
+    <DescriptorFile>GROMACS.edml</DescriptorFile>
+    <FactoryCategory>MdTask</FactoryCategory>
+    <IsExpandable>true</IsExpandable>
+    <ContextPanel>CalculationContextPanel</ContextPanel>
+    <IsSessionBased>false</IsSessionBased>
+    <Relationships>
+      <Containment>
+        <Contains>
+          <ContainsResource name="project"/>
+        </Contains>
+        <ContainedBy>
+          <ContainedByResource name="project"/>
+        </ContainedBy>
+      </Containment>
+    </Relationships>
+    <EnabledTools>
+      <Tool name="Builder">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Created"/>
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </Tool>
+    </EnabledTools>
+    <DefaultTools>
+      <Tool name="Launcher">
+        <State name="Ready"/>
+      </Tool>
+      <Tool name="CalculationViewer">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+      </Tool>
+    </DefaultTools>
+    <EnabledRunManagementTasks>
+      <RunManagementTask name="tailOutputFile">
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="shellInRunDir">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="terminateCalc">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="checkJobOnMachine">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="reconnectJob">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="forceFail">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetForRerun">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+        <State name="Loaded"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetCompleted">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetIncomplete">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetImported">
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="resetKilled">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markReviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="markUnreviewed">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="separator">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="cleanRunDir">
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewRunLog">
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewInputFile">
+        <State name="Ready"/>
+        <State name="Submitted"/>
+        <State name="Running"/>
+        <State name="Waiting"/>
+        <State name="Complete"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+      <RunManagementTask name="viewOutputFile">
+        <State name="Complete"/>
+        <State name="Loaded"/>
+        <State name="Killed"/>
+        <State name="Unsuccessful"/>
+        <State name="Failed"/>
+        <State name="System"/>
+      </RunManagementTask>
+    </EnabledRunManagementTasks>
+  </ResourceType>
 
   <!-- Listing of units available for Molecular Dynamics -->
   <MDUnits>
@@ -7057,6 +7304,28 @@
         <Type>cdata</Type>
       </Property>
     </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdRun" tool="Builder">
+      <MenuItem>Chemical System</MenuItem>
+      <Order>6</Order>
+      <Property>
+        <Label>Atoms:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numAtoms</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Residues:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>numResidues</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>false</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+    </ToolPropertyView>
     <ToolPropertyView contentType="ecceMdEquilibrate" tool="Builder">
       <MenuItem>Chemical System</MenuItem>
       <Order>6</Order>
@@ -7523,6 +7792,46 @@
         <Type>datetime</Type>
       </Property>
     </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdRun" tool="Launcher">
+      <MenuItem>Launcher</MenuItem>
+      <Order>8</Order>
+      <Property>
+        <Label>Machine:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_machine</Name>
+        <Order>1</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Processors:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>launch_totalprocs</Name>
+        <Order>2</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>cdata</Type>
+      </Property>
+      <Property>
+        <Label>Start Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>startdate</Name>
+        <Order>3</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+      <Property>
+        <Label>Comp. Date:</Label>
+        <Namespace>http://www.emsl.pnl.gov/ecce</Namespace>
+        <Name>completiondate</Name>
+        <Order>4</Order>
+        <Display>true</Display>
+        <IsReadOnly>true</IsReadOnly>
+        <Type>datetime</Type>
+      </Property>
+    </ToolPropertyView>
     <ToolPropertyView contentType="ecceMdEquilibrate" tool="Launcher">
       <MenuItem>Launcher</MenuItem>
       <Order>8</Order>
@@ -7580,6 +7889,10 @@
       <Order>9</Order>
     </ToolPropertyView>
     <ToolPropertyView contentType="ecceMdDynamics" tool="CalculationViewer">
+      <MenuItem>Viewer</MenuItem>
+      <Order>9</Order>
+    </ToolPropertyView>
+    <ToolPropertyView contentType="ecceMdRun" tool="CalculationViewer">
       <MenuItem>Viewer</MenuItem>
       <Order>9</Order>
     </ToolPropertyView>

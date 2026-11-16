@@ -103,6 +103,43 @@ def vibrationCase(s, display, env, wrappers, png, urls, name, click):
     check("vib-" + name in shots, "the window was photographed")
 
 
+def softNoteCase(s, display, env, wrappers, png, urls):
+    """#1042: a GeoVib run with a small imaginary mode says it stopped at a
+    saddle; a clean minimum and a Vibration run with the same mode do not."""
+    for name, shown in (("soft-geovib", True), ("soft-geovib-clean", False),
+                        ("soft-vibration", False)):
+        say("note on a small imaginary mode, %s" % name)
+        text, _ = bo.runScript(
+            s, display, env, wrappers, ["-context", urls[name]],
+            ["wait 4000", "vibnote", "quit"], png, name,
+            {"ECCE_PANEL_MODE": "detail", "ECCE_OPEN_PANEL": "Vibrational Frequencies"})
+        m = re.search(r"BUILDER: vibnote shown=(\d) text=(.*)", text)
+        if not check(m is not None, "%s: the panel answered vibnote" % name):
+            say(text[-1500:])
+            continue
+        check(m.group(1) == ("1" if shown else "0"), "%s: note shown=%s" % (name, m.group(1)))
+        if shown:
+            check(m.group(2).startswith("1 small imaginary mode (\u221265 cm\u207b\u00b9): the optimisation "
+                                        "stopped at a saddle") and "Displace..." in m.group(2), m.group(2))
+
+
+def makeSoftVariants(urls, s):
+    """Copies of h2o-geovib/h2o-vibration whose first vibration is -65.3."""
+    project = os.path.join(s.localData(), "users", "local", "qm")
+    for new, src, soft in (("soft-geovib", "h2o-geovib", True),
+                           ("soft-geovib-clean", "h2o-geovib", False),
+                           ("soft-vibration", "h2o-vibration", True)):
+        calc = os.path.join(project, new)
+        shutil.rmtree(calc, ignore_errors=True)
+        shutil.copytree(os.path.join(FIXTURES, src), calc, symlinks=True)
+        if soft:
+            vf = os.path.join(calc, "Props", "VIBFREQ")
+            text = open(vf).read()
+            text = re.sub(r">\s*0\.0000(\s)", r">-65.3000\1", text, count=1)
+            open(vf, "w").write(text)
+        urls[new] = "file://" + calc + "/"
+
+
 def factorCase(s, display, env, wrappers, png, urls, name):
     """#604: the Freq. factor is not remembered, accepts a decimal comma and
     the line under the plot quotes both wavenumbers."""
@@ -206,6 +243,8 @@ def main():
         vibrationCase(s, display, env, wrappers, png, urls, "h2o-vibration", 8)
         vibrationCase(s, display, env, wrappers, png, urls, "h2o-geovib", 8)
         factorCase(s, display, env, wrappers, png, urls, "h2o-vibration")
+        makeSoftVariants(urls, s)
+        softNoteCase(s, display, env, wrappers, png, urls)
         traceCase(s, display, env, wrappers, png, urls, "h2o-geometry")
         traceCase(s, display, env, wrappers, png, urls, "h2o-geovib")
     finally:

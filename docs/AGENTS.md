@@ -53,19 +53,93 @@ MLP stores minus ASE stress. Pressure is `-trace(display)/3` and must match
 stored `PRESSURE` (1 GPa = 10 kbar), allowing printed rounding.
 The panel gives principal values, pressure, von Mises and maximum shear,
 and normal stresses along unit cell vectors as shrink/expand words.
-Blue arrows point outward for tension; vermillion arrows point inward for
-compression, with one common magnitude scale through the cell centre.
+Blue arrows point away from the cell for tension; vermillion arrows point in
+towards the cell face for compression. They lie outside the cell, starting at
+the face crossed by each principal axis, with one common magnitude scale.
 Use **Show in viewer** to hide them. This uses final stress and geometry;
 per-step vc-relax stress, CP2K ingestion and directional surfaces are not
 implemented. See [Viewer panels](../help/src/viewer-panels.md).
 
 For isolated GUI checks, `ECCE_BUILDER_SCRIPT` accepts `list Stress Tensor`,
-`stressinfo` (panel summary), `vector STRESS` (the six rendered half-arrows),
+`stressinfo` (panel summary plus one `label N anchor=x,y,z` line per principal axis; anchors lie outside the cell), `vector STRESS` (the six rendered half-arrows),
 and `viewer Stress Tensor` (toggle). `tests/apps/stress_tensor_test.py`
 checks a hand-computed tensor and the tensile QE Al cell example;
 `--unit-only` runs just the wx-free arithmetic, `--png DIR` keeps pictures
 and logs for visual review. Run with a private installed tree and the
 test harness as described below.
+
+`ECCE_BUILDER_SCRIPT` drives Geometry Constraints with `constraints show`,
+`constraints select I J ..` (1-based atoms), `constraints press constrain|restrain|fix yes|no`,
+`constraints scan <steps> <step>` (the selected 2-4 atoms, step in Angstrom for a
+bond and degrees for an angle or torsion, steps 1-500, step not zero; the same code
+as OK in Scan..., a refused line FAILs with the dialog's message),
+`constraints list` and `constraints stored`; `save` writes `Parameters/GeomConstraintModel.gcst`.
+
+`ECCE_BUILDER_SCRIPT` also accepts the Conformers-panel hooks `gtenselect
+<rank>...`, `gtenfit`, `gtenthumbs`, `gtenpng <file>`, `gtencsv <file>`,
+`gtenviewer on|off`, `gtensort <column> up|down` and `gtendistinct <rmsd>
+[n|0] [window]` (open the panel with `ECCE_OPEN_PANEL=Conformers`), so one
+script can set `background 1 1 1` and select conformers. `gtendistinct` is
+the panel's **Select Distinct...** button: it runs `ecce-ensemble pick
+--json` on the calculation, selects the picks' `energy_rank` rows and prints
+`GTSTRESS: endistinct ranks=<r>... note=<n distinct of N; m merged within X Å>`. Output goes to stderr as `GTSTRESS: ...` lines; the same
+commands work under `ECCE_VIEWER_SCENE`. Test: `tests/apps/ensemble_patterns_test.py`.
+
+`surfmesh <name>` (Builder scene script, after an MOs-panel surface is drawn)
+writes `<name>.txt`: per isosurface its threshold, vertex and triangle counts,
+boundary edges (used by one triangle; 0 means closed), edges used by more than
+two triangles and edges whose two triangles wind the same way, plus the grid
+dimensions and step (A). Test: `tests/apps/surface_closed_test.py` (`--res N`
+sets the grid points per axis, `--shot DIR` saves PNGs).
+
+`paneorder`, `dropat <panel name> <pos>`, `dockfloating` (Builder scene
+script): `paneorder` writes `paneorder.txt`, the shown docked panes of the
+Properties column top to bottom, and `paneall.txt` (every pane: floating, shown, dock direction, layer, row, position); `dropat` docks a panel into that column at
+dock position `<pos>` as a mouse drop would; `dockfloating` is the Dock
+button. The Properties list stays first in the column whatever the drop.
+Test: `tests/apps/mo_explore_workflow_test.py` (e).
+
+`saveimage <path.png> <factor> [white]` (scene script, `ECCE_VIEWER_SCENE`)
+is File > Save Image...: a PNG of the 3-D view at `factor` (1, 2, 4) times
+its size, drawn with blended transparency (not the on-screen screen-door
+mode), supersampled edges and line widths scaled with the factor; `white`
+replaces the view's background; the corner texts are left out and atom
+labels grow with the factor. It works under `ECCE_BUILDER_SCRIPT` too, where
+`saveimagemenu <factor> <white|keep> <path>` runs File > Save Image... with
+its dialogs answered. At factor 2 or 4 the shown orbital/density is recomputed
+on a grid of 30 x factor points per axis (cap 160) for the render only, then
+redrawn as before (log line `MOPANEL: fine grid N`). Use it for documentation figures. Test:
+`tests/apps/saveimage_test.py`.
+
+## Checking the Basis Set Tool window
+
+`tests/apps/basis_tool_size_test.py` (ctest `apps_basis_tool_size`) checks
+content sizing, selection-row growth and saved geometry on a private
+1366×768 display. `--png DIR` saves a screenshot. Use the installed-tree
+`ECCE_TEST_HOME` and `ECCE_TEST_WRAPPERS` variables as for the app suite.
+The isolated `ECCE_TEST_BASISTOOL=<file>` hook reads appended commands:
+`info` reports frame, grid and periodic-table geometry; `resize x y w h`
+sets frame geometry; `rows N` replaces the test grid's rows without changing
+the calculation; `close` closes normally and saves the window settings.
+
+## Isolated GUI tests
+
+Run GUI checks through `tests/` with an isolated HOME and test data.
+The shared Xvfb harness chooses a free display from `:90` through `:999`,
+checking both sockets and lock files; `ECCE_TEST_XDISPLAYS=a-b` restricts
+that range. Explicit `--display` numbers and ranges must start at `:10`
+or higher. Keep the tests' existing `:0` safety guards.
+Run the display-allocation regression with
+`nice python3 tests/apps/xdisplay_test.py`; no ECCE install is
+needed, and the live-server check skips when Xvfb is unavailable.
+
+The `create` driver of `tests/launch` (`launchjob create ...`, `Session.create(..., extra=())`)
+stores the Calculation Editor's setup when given `code=<JCode>`,
+`theory=<category>:<name>` and `runtype=<name>` (for example
+`theory=SE:GFN2-xTB runtype=Geometry`), with detail values from
+`gui=<settings file>`. Without a stored theory `ecce-series` and
+`ecce-ensemble pick --create` refuse the calculation as a template.
+`tests/launch/series_setup_test.py` is the example.
 
 ## What ECCE is
 
@@ -92,12 +166,96 @@ through the command-line tools in "Commands". You cannot click in the windows.
 | Machine Browser | Runs a few status queries on a registered machine over ECCE's login. | From the Organizer or Launcher |
 | Basis Set Tool | Looks at and edits basis sets. | From the Organizer or Calculation Editor |
 
+Each window is its own program. Experimental: with `ECCE_ONE_PROCESS=1`
+in the environment of `ecce`, the Builder, the Calculation Editor, the
+Basis Set Tool and the MD editors open
+as windows of the Organizer's process instead; job programs and the other
+tools stay separate. Off by default. Quitting the Organizer (or the
+session's `ecce_quit`) then closes those windows first, each asking about
+its own unsaved changes; Cancel in one of them cancels the Quit. Test hooks
+(`ECCE_TEST_ORGANIZER`): `inprocess` (pid, open Builder/Calculation Editor/MD Energy/Basis Set
+Tool/MD Prepare windows),
+`closetools`, `gatewayquit` (the session's `ecce_quit`), and
+`answer cancel|no` for a tool's save question.
+
+Start feedback (#1071, `ECCE_TEST_ORGANIZER`): `start TOOL [URL]` shows a busy
+cursor, "Opening the <tool> for <calculation>..." in the status line, a "Starting
+the <tool>..." window after 1.5 s and a "has not started" note after 30 s; a
+second `start` of the same tool and URL meanwhile is dropped. `toolstate` answers
+`state=starting|up|timed out|none status="..." busy=0|1 window=shown|none
+launches=N`. The tool sends `ecce_tool_up` when its invoke is handled;
+`ECCE_TEST_TOOL_DELAY=<ms>` holds that signal back for a slow-start test.
+
+Experimental, with `ECCE_ONE_PROCESS=1`: **Edit > Preferences > Windows
+and tabs** chooses which tools open as tabs of the Organizer's window (the
+Organizer is the first tab and cannot be closed). Presets **Normal**,
+**Small**, **Wide** (separate windows; default: Normal); **Customize...** sets
+each tool's row (Builder / Viewer, Calculation Editor, Basis Set Tool, MD
+editors, MD Prepare) to Tab or Window, which makes the layout Custom. Under
+Normal the Calculation Editor's tab is the Set-up tab: a detail area right
+of the editor shows the Theory or Runtype Details (codes with a `.dlg`
+description: ECCE-QM, ORCA, xTB, Gaussian 16; others open the Python
+dialog's window) or, with no detail chosen, the input file (after an
+unsaved change, a dry run of the generator with the editor's settings,
+500 ms after the last change; the calculation is not written). The window
+is widened to 1100 px within the work area. Hook `setup info|theory|runtype|basis|launch|launch info|launch go|input|fold|unfold|save|preview|width N|set KEY VALUE|find TEXT` on the
+active Set-up tab (`area=input|theory|runtype title=... folded=0|1
+controls=N marked=<button> overlaps=N more="none|+N hidden"`, where `overlaps` counts shown controls of the editor's column whose rectangles intersect (0 is right) and `more` is the code bar's hidden-codes button; `width N` resizes the Organizer's window to N px; `preview` prints `shown=<len:fnv> file=<len:fnv>`;
+`set` edits a field of the embedded dialog as a user would, `find` says
+whether the preview contains TEXT, `basis` shows the basis panel
+(`area=basis list=N of M picked=<set> covered=H,O uncovered=<elements>
+use=on|off assigned=All_atoms:_<set>`; `basis filter TEXT` narrows the library
+list, `basis pick NAME` chooses a set, `basis all` is Use for all atoms:
+assigns it to the whole system and saves, as the Basis Set Tool's Add to Table
+plus save would; the panel uses the Basis Set Tool's library and `GBSAssign`),
+`launch` (the Launch... button) shows the Launcher's panel (`area=launch machine=<name> launch=enabled|disabled label=Launch|Launch_anyway`; pre-launch warnings appear in the panel and the button becomes Launch anyway: warn, never block), `launch info` reads it, `launch go` clicks Launch (`Launch is off`, `no Launcher panel` otherwise; `launch info` adds `clipped=N`, controls reaching past the area's right edge), `width N` sets the window's width,
+`info` adds `window= virtual= dry=0|1
+theorysum= runtypesum=` (the editor's summary lines); `no set-up area` under Small, `not a set-up tab` when the active tab is
+not an editor). Stored in `~/.ECCE/EcceGlobal` as `WindowsAndTabs.Layout`
+(`normal|small|wide|custom`) and, for Custom, `WindowsAndTabs.<key>`
+(`tab|window`, keys `builder calced basistool mdeditors mdprepare launcher`). A tool
+opened after a change follows it; the tab strip itself is made when the
+Organizer starts, so going from Wide to tabs needs a restart (a fresh install is Normal). The window's
+menu bar is the active tab's. Right-click on a tab: **Open in Window** (this
+time) and **Always open in a window** (also sets that tool's row to Window);
+the tool's **Window > Move to Tabs** puts it back. Without
+`ECCE_ONE_PROCESS` every tool opens in a window whatever the setting. Test
+hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus),
+`launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `tab N`, `towindow N`, `totabs <title part>`, `layout show|normal|small|wide|KEY=tab|window`
+(prints `preset=... rows=builder:tab,...`), `tabmenu N` (the tab's
+right-click items), `alwayswindow N`, and `prefs windows show|preset NAME|row KEY tab|window [PNG]|snap PNG`
+(the Preferences page and its Customize table, as clicks). A tab's
+dialogs open centred over the Organizer's window: `dialog` opens a test
+message box over the active tool tab and closes it 1.5 s later;
+`dialoginfo` then reports whether it was transient for the Organizer,
+shown and inside its window, its and the window's rectangles, and whether
+the focus came back (`focus=set`).
+Popup menus and floating panes of a tab: `popup` pops a menu over the
+active tool tab and closes it after 1 s; `popupinfo` reports `parent=page
+shown mapped inside near`. `float` floats the first docked pane of
+the active Builder tab; `floatinfo` reports whether its frame is shown and
+transient for the Organizer's window.
+
 The commands (`ecce-launch`, `ecce-series`, ...) are separate and are the
 way an assistant acts on ECCE. The help pages (**Help > ECCE Help**, `help/src/*.md`)
 describe every window; `help/src/index.md` lists them.
 The Organizer's menus and Preferences, item by item, are on the help pages
 `organizer-menubar` (menu bar, toolbar, Preferences) and `organizer-menus`
 (right-click menus).
+
+### Which codes are offered (Preferences > Codes, #1049)
+
+Codes unticked in **Edit > Preferences > Codes** are hidden from making new
+calculations (File > New, right-click New, Continue in Another Code, the
+workflow new-step buttons, the Calculation Editor code bar); existing
+calculations of them are unaffected. The setting is `Codes.Shown` in
+`~/.ECCE/EcceGlobal` (a string list starting with the marker `chosen`; absent =
+default: ECCE-QM plus codes registered on a machine, or `Shown:` in
+`$ECCE_HOME/siteconfig/Codes`). Every hiding list ends with
+`N more codes (hidden)...` (editor bar `+N hidden`). Test hooks (Organizer
+`ECCE_TEST_ORGANIZER`): `prefs codes list|all|registered|page [hiddenfirst]|
+tick NAME on|off`; `tests/apps/code_choice_test.py`. One filter:
+`CodeChoice` (`include/dsm/CodeChoice.H`).
 
 ### The life of a calculation
 
@@ -127,7 +285,8 @@ In `.ecce-meta` the state is `state`; the reason for an ended job is
   dependencies: GROMACS and NWChem MD studies (Prepare, Optimize, Equilibrate,
   Dynamics); a task starts from the one before it and is launched after that
   one has completed.
-- A **workflow** draws calculations that start from the geometry of an earlier
+- A **workflow** (steps may be MLP (MACE) too; the geometry link carries the
+  cell of a periodic structure) draws calculations that start from the geometry of an earlier
   one as a tree, with **Launch Ready Steps** (help page `workflows`). A
   **recipe** is a workflow template for a kind of study (`recipes`,
   `writing-a-recipe`).
@@ -202,6 +361,38 @@ density of states and OPDOS, dipole moment, Compare Energies, Energy Calculator,
 thermochemistry, spectra and band matching, MD speeds and diffusion, MD
 Analysis. Each has a help page named in `help/src/index.md`.
 
+The Density Profile panel shows only its mode and atoms, the **Options**
+button, the orbital list and the plot; quantity, orbital set, spin, axes and
+**Show all** are under **Options**. Builder scene hooks (`dp*`, as in
+`tests/apps/densityprofile_panel_test.py`) set these controls whether or not
+Options is open; `dpmore 1` opens it (for a screenshot) and `dplayout W` prints
+which controls are visible, with rectangles, at panel width W (`visible mode,from,to,options,list,plot`).
+
+The Density of States (OPDOS) panel shows the A and B rows (**Use selection**
+under each), **Options**, **Open in window...** and the plots; Width, Shape,
+Sticks, Integrated OPDOS, Occupied only, From/To, Reset and the exports are under
+**Options**. An atom given to one group is removed from the other (the group
+just set wins; the status line names the atoms moved, and an empty group is
+reported there, not refused). Builder scene hooks (`opdos*`, test
+`tests/apps/opdos_panel_test.py`): `opdosatoms "A" "B" [A|B]` (the named group
+keeps an atom in both, default A), `opdosmore 0|1` (Options), `opdoslayout W`
+(`visible ...` at panel width W, fails if clipped), `opdoswindow` (opens both
+plots in the resizable window; `opdosstate` then prints `window_open`,
+`window_plots`, `window_curves`, `window_intcurves`, `window_int_shown`),
+`opdoswinshot NAME` (picture of that window) and `opdoswinclose`.
+
+The Density Map has a **Fill** tick under **Options** (default off, remembered
+in `wxbuilder.ini`): it colours the plane between the contour lines on a log
+scale from the outermost level, two signs blue/orange for an orbital, viridis
+for a density, with a colour bar in the key. Scene hook `dmfill on|off` sets it
+(`dmstate` prints `fill 0|1`); `dmpng` and **Export .png...** draw the picture
+as the panel shows it (test: `tests/apps/densitymap_fill_test.py`).
+The panel has one **Reset** button (next to **Options**): whole plane, offset 0,
+greyed out at the defaults; scene hook `dmreset` presses it (`dmzoomreset` resets
+the zoom only, as the double-click does; `dmstate` prints `resetbutton 0|1`).
+The Offset row sits under **Options**; `dmlayout W` also reports `optionsrow`,
+`resetrow` (`mo` when on the MO line) and `offsetrow shown|hidden`.
+
 ## How to do things
 
 For each task: what the user does in the GUI, and what you run.
@@ -221,8 +412,14 @@ is generated when the calculation reaches Ready; check it in `Inputs/`.
 Launcher. You: after the user's yes, `ecce-launch [on=MACHINE] [profile=NAME]
 [queue=QUEUE] [wall=H:MM] <calculation>...`.
 
-**A series or a batch.** User: New Series (`new-series`) for a list of
-structures; Tools > Batch Add from SMILES (`batch-from-smiles`). You:
+**A series or a batch.** User: select calculations in the table, Tools >
+New Calculations in Another Code... (or the table's right-click New from
+This > Continue in Another Code...; `new-series`): the first new
+calculation opens in the Calculation Editor, then "Make the Others" copies
+its setup to the rest, each with its source's final geometry, charge and
+multiplicity (the same code as `ecce-series`; test hooks `anothercode`,
+`anothercodefinish`). For a list of
+structures or xyz files: Tools > Batch Add from SMILES (`batch-from-smiles`). You:
 `ecce-series <template> <folder> <file.xyz>...` makes one Ready calculation
 per structure with the template's setup; `ecce-batch-smiles` does the
 SMILES table; then `ecce-launch` the Ready calculations. A different run
@@ -291,7 +488,7 @@ and maximum modes from the stored input deck (settings fallback).
 Builder script `poses note` returns that text; `poses thumb 1 <file.png>`
 saves the cached thumbnail of pose 1 for image checks.
 
-**Diffraction.** Properties > Geometry > Diffraction opens a docked Builder
+**Diffraction.** Properties > Diffraction and scattering > Diffraction opens a docked Builder
 pane (`fibre-diffraction`); Tools > Diffraction opens a standalone window.
 View and Source stay above the pattern; Options is a modeless window with
 Geometry, Sample and Display groups. Pattern toggles the same view into a
@@ -443,6 +640,14 @@ In the machine's **Codes** tab (stored in `~/.ECCE/CONFIG.<name>`):
   GNOME screen reader, not ORCA.
 - **Modules:** `module load` names for that code only; machine-wide ones go
   on the Job script tab.
+- **Pseudopotential directory** (Quantum ESPRESSO only; a script writes
+  `QuantumESPRESSOPseudoDir: /cluster/pseudo` in `CONFIG.<name>`): at launch,
+  Launcher and `launchjob` alike, the deck's `pseudo_dir` becomes this folder.
+  The UPF file names still come from the local library when the deck is
+  written. Launch then lists the files the deck names that the folder lacks
+  on that machine as a launch warning (`LAUNCHJOB_WARNING=cancel` to stop);
+  an unreachable machine gives "Could not check ..." and no warning. Unset:
+  the deck is not changed.
 - **Environment variables:** `NAME value` per line; names containing `PATH`
   are appended to, others replace. Stored as `<Code>Environment { }`.
 - Gaussian 16: `g16root` and a scratch directory (`GAUSS_SCRDIR`); ECCE sets
@@ -514,7 +719,7 @@ A user setting **replaces** the site setting for that key; it is not added.
 | File | Holds |
 |---|---|
 | `MyMachines` | one tab-separated line per machine: name, host, three `Unspecified` fields, `procs:nodes`, `ssh`, `:Code1:Code2:...`, and capabilities (`MN:RD:SD:UN:PW` plus `AA` allocation account, `Q` queues, `TL` time limit, `MM` memory limit) |
-| `CONFIG.<name>` | `<Code>: /full/path`, `<Code>Modules: mod1 mod2`, `<Code>Environment { NAME value }`, `<Code>Command { ... }`, and the scheduler header block (`Slurm { #SBATCH ... }`) |
+| `CONFIG.<name>` | `<Code>: /full/path`, `<Code>Modules: mod1 mod2`, `QuantumESPRESSOPseudoDir: /dir`, `<Code>Environment { NAME value }`, `<Code>Command { ... }`, and the scheduler header block (`Slurm { #SBATCH ... }`) |
 | `Queues` | `Queues:` list of machines with queues, and per machine `<name>\|queueMgrName: Slurm`, `<name>\|queueMgrVersion: 2.0~`, `<name>\|prefFile: <name>.Q` |
 | `<name>.Q` | `Queues: q1 q2`, and per queue `minProcessors`, `maxProcessors`, `runLimit` (minutes), `memLimit` (MB), `scratchLimit`; 0 means no limit |
 | `MachPrefs`, `MachProfiles` | the user's launch defaults and allocation profiles; written by the window, do not hand-edit |
@@ -639,6 +844,29 @@ An MD study (GROMACS, NWChem MD) is a project-like folder whose tasks
 (Prepare, Optimize, Equilibrate, Dynamics, ...) are calculations. `linkbase.xml`
 in the study holds the chain: a task takes its starting structure from the one
 before it, so it can only be launched after that one has completed.
+
+A GROMACS calculation from the user's own files is its own type,
+`gromacs_md_run` (content type `ecceMdRun`, no MD editor; `launchjob apptype
+URL` prints `GROMACS ecceMdRun gromacs_md_run`). Make it with File > New >
+GROMACS Calculation from Files... in the Organizer, or the test hook
+`gmxrun PARENT-URL MDP|- STRUCTURE|- TOPOLOGY|- [TPR]` (`ECCE_TEST_ORGANIZER`,
+prints `ok <url>`). The .mdp is stored verbatim as `gromacs.mdp`, the topology
+as `<name>.gmxtop`, the structure as `<name>.gro`, includes beside the
+topology and a `.ndx` with them; a ready `.tpr` is stored as `run.gmxtpr` and
+the job skips grompp. A `.pdb` structure is refused (convert with `gmx
+editconf`). The calculation is left Ready; launch it as any calculation
+(`launchjob mdsetup`, `launch`).
+
+Hand-offs: New from This > Rerun and Continue from Last Geometry (hook
+`duplicate URL [last]`; with `last` the copy's starting .gro is the run's
+final frame, Ready), Continue in Another Code from it to another code (hook
+`anothercode TYPE SUFFIX FOLDER|- URL`: the final frame, charge 0,
+multiplicity from the electron count), and to GROMACS from any calculation:
+Continue in Another Code > GROMACS (from files), hook `anothercodegmx MDP GRO TOP
+SUFFIX|- FOLDER|- SOURCE...` (one calculation per source, named source +
+suffix, Ready; the source's final structure replaces the .gro's coordinates,
+refused with the differing atom when the atoms or their order differ; box
+kept, velocities dropped). Not a workflow step yet.
 
 ### The run directory
 
@@ -863,14 +1091,20 @@ Formulas in `ecce-rate --help`. Exit 0 done, 1 refused or failed. In the GUI, Co
 
 ### ecce-ensemble
 
-    ecce-ensemble pick <crest calc> [n=N] [--rmsd A] [--skip-failed] [--create TEMPLATE FOLDER] [--json]
+    ecce-ensemble pick <crest calc> [n=N] [window=E] [--rmsd A] [--skip-failed] [--create TEMPLATE FOLDER] [--json]
     ecce-ensemble minimum <calculation|folder|pattern>... [--treatment SPEC] [--json]
     ecce-ensemble benchmark <spec file> [--treatment SPEC] [--T K] [--save NAME] [--dir DIR] [--json]
 
 Reads stored calculations; talks to no ECCE session. `pick` lists the N
 (default 5) lowest distinct members of a CREST ensemble: members with the same
 protonation and a heavy-atom RMSD below `--rmsd` (default 0.50 A, after a
-fit, atoms in stored order) are merged. Each pick is checked against the
+fit, atoms in stored order) are merged. `window=E` (kcal/mol; `window=3kcal`,
+`window=12.5kJ`) keeps only members within E of the lowest member of the
+ensemble (stored energies); `n=` then caps the count, and a window without
+`n=` is not capped. Order: merge, window, n. JSON has `window_kcal_mol`, and
+each pick's `energy_rank` is its row in the Builder's ensemble table
+(**Select Distinct...** selects exactly these rows).
+Each pick is checked against the
 input structure: protonation unchanged, every ion that is bound in the input
 still bound, metal-N/O/S contacts listed with distances (cutoffs in `--help`).
 `--create` makes one calculation per pick through `ecce-series` from the
@@ -887,6 +1121,24 @@ experimental log K with its source and calc - exp; `--save NAME` stores
     ecce-ensemble pick proj/crest-run n=5 --json
     ecce-ensemble minimum 'proj/conformers/*' --treatment qrrho-grimme:100
     ecce-ensemble benchmark proj/logk.txt --save logk-set1
+
+Thermochemistry contributions and reaction H/G at another temperature
+(#1044). `ecce-thermo CALC --json` carries, for each treatment, the
+translational, rotational, vibrational and electronic contributions to U
+(kJ/mol, without ZPE; `ZPE` separately), S and C_V, plus `Cv` and
+`Cp` = Cv + R (J/mol/K); a single atom has no rotation. The sigma ECCE-QM
+prints (`symmetry_number`) is stored as THERMOSIGMA and used, as for ORCA and
+Gaussian. The Thermochemistry panel shows the same numbers in a second table;
+the Builder script command `thermo <treatment> [T] [1atm|1M]` also prints
+`BUILDER: thermocontrib <row>|U|U+ZPE|S|Cv|Cp` for the five rows. In the
+Energy Calculator, the `ECCE_TEST_ORGANIZER` hook
+`compareenergies <A> <B> <treatment|stored> <T>` recomputes the H and G rows at
+T (with `stored`, Grimme qRRHO 100 cm-1), and `comparedialog <A> <B> <png|-> <T>`
+sets the dialog's T / K field; the table then has an `S (T K)` row,
+(dH - dG)/T in J/(K mol).
+
+    ecce-thermo proj/N2 --treatment rrho --T 723 --json
+    ecce-thermo proj/N2 --treatment rrho --contributions
 
 ### ecce-batch-smiles
 
@@ -1028,14 +1280,14 @@ launcher, without command wrappers for these tools.
 | Command | Purpose |
 |---|---|
 | `ecce-localdata` | Print the local data folder |
-| `ecce-series` | Work with a series of calculations (command line only) |
+| `ecce-series` | Work with a series of calculations (the Organizer does the same with Tools > New Calculations in Another Code) |
 | `ecce-check-props` | Check stored property dimensions |
 | `ecce-si-export` | Export structures and a Supporting Information table; `--checks` makes the Checks table (with core-hours), `--rank` the Compare Energies table. Command line only |
 | `ecce-displacement` | Compare geometries and aligned RMSD |
 | `ecce-bandshift` | Match vibrational bands and report shifts |
 | `ecce-spectrum` | Process spectral curves |
-| `ecce-displace` | Displace a structure along a normal mode |
-| `ecce-thermo` | Recompute thermochemistry from stored results |
+| `ecce-displace` | Displace a structure along a normal mode. The Vibrational Frequencies panel of a GeoVib run with imaginary modes below 100 cm-1 shows a note that the optimisation stopped at a saddle (Builder script hook `vibnote` prints it; #1042). The Builder's Properties list groups its rows as Vibrational spectra, Electronic spectra, Magnetic resonance and Diffraction and scattering (#1079); the Builder script command `plist` prints the list as `GROUP/NAME` lines |
+| `ecce-thermo` | Recompute thermochemistry from stored results; `--json` gives per treatment H, S, G and the contributions `U_trans/U_rot/U_vib/U_elec`, `ZPE` (kJ/mol), `S_*`, `Cv_*`, `Cv`, `Cp` (J/mol/K); `--contributions` prints them as text |
 | `ecce-rate` | TST rate constants with Wigner/Eckart tunnelling from reactant, TS and product calculations |
 | `ecce-force-compare` | Compare stored forces (command line only) |
 | `ecce-mlp` | Run an ML potential job from its input file |
@@ -1043,6 +1295,7 @@ launcher, without command wrappers for these tools.
 | `ecce-qm` | Run the bundled quantum chemistry program, when built |
 | `ecce-results` | Convert and inspect results files, when built with HDF5 |
 | `ecce-fragorb` | Fragment-orbital analysis (`analyse <complex> <fragment>...`) and PDOS/OPDOS (`dos`) from results.h5 files of a complex and its fragment calculations at one geometry; `--json`, `--help` has the syntax |
+| `ecce-npa` | Natural population analysis (Reed–Weinstock–Weinhold NPA) computed by ECCE from a calculation's results.h5 (`ecce-npa <calc URL\|folder\|results.h5> [--json]`): natural charges, core/valence/Rydberg populations, spin populations (open shell), natural electron configuration; agrees with NBO 7's NPA within 0.005 e; refuses semiempirical, periodic and Cartesian-d/f calculations with a one-line reason; the Viewer's Properties list has the same charges as **Natural (NPA) Charges, computed by ECCE** (property key `NPAECCE`, computed on first selection and stored in results.h5 as `charges/npa_ecce`), beside the code's own NBO row **Natural (NPA) Charges** (key `NPA`). results.h5 now records ECP cores (`ecp` group: atom, name, ncore; `nucleus/charge`) from the stored basis or the ORCA/Gaussian output; an ORCA basis named only on the route card now also gets a results.h5 (the generated deck carries `PrintBasis`, and the basis is read from the printed block; ORCA runs made before this have no block and get no file) |
 | `ecce-morse` | Morse fit of a stored bond-length scan: De, a, re, ω_e, ω_e x_e, D0 (`ecce-morse <calc> [--window KJ_PER_MOL] [--atoms I,J] [--masses M1,M2] [--json]`) |
 | `ecce-gmxanalysis` | GROMACS analysis of a stored GROMACS calculation, as text, CSV or JSON: `<calc> groups`, `rdf`, `energy`, `rms`, `gyrate`, `density`, `hbond`; selections like `"residue:SOL & element:O"`; needs `gmx` |
 | `ecce-mocomp` | Atomic-orbital composition of one molecular orbital (`CALC --mo N\|homo\|lumo [--beta] [--method mulliken\|c2] [--min PCT] [--by ao,shell,type,atom] [--tsv]`), `--list` the orbitals, `--spin` Mulliken spin populations |
@@ -1112,7 +1365,10 @@ literature or another program without having compared.
 
 The full list with units is `data/client/config/properties` in the ECCE
 source. `ecce-results` converts orbitals and Hessians from Molden, fchk and
-ORCA files into one HDF5 file and checks the conversion (help page "The
+ORCA files, and CP2K's Molden file plus its output (`ecce-results convert
+cp2k-MOS-1_0.molden r.h5`, then `ecce-results convert cp2k.out r.h5`; the
+orbitals are valence only and the file records the GTH core charges), into one
+HDF5 file and checks the conversion (help page "The
 results file format").
 
 ## Documentation shipped with ECCE

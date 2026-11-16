@@ -279,6 +279,19 @@ string sumTable(const SumResult& r, bool full)
                          : fmtDifference(w.spread, EU_KJ)), 12);
     t += "\n";
   }
+  // Delta S = (Delta H - Delta G) / T (#1044), from the rows as shown (the
+  // 1 M correction, when applied, is in G and so in S).
+  const SumRow *hr = 0, *gr = 0;
+  for (const SumRow& w : r.rows) {
+    if (w.label.compare(0, 1, "H") == 0) hr = &w;
+    if (w.label.compare(0, 1, "G") == 0) gr = &w;
+  }
+  if (hr && gr && hr->available && gr->available && r.gTemperature > 0) {
+    const double dS = (hartreeTo(hr->delta(), EU_KJ) - hartreeTo(gr->delta(), EU_KJ)) *
+                      1000.0 / r.gTemperature;
+    t += padRight("S" + gr->label.substr(1), LW) + padLeft("", 2 * AW) +
+         padLeft(full ? num(dS, 10) : num(dS, 1), DW) + "  J/(K mol)\n";
+  }
   t += "Solvent: " + r.solventA + " / " + r.solventB + "\n";
   if (!r.deltaLabel.empty()) t += "B - A is " + r.deltaLabel + ".\n";
   const StdState& s = r.stdState;

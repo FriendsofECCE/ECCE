@@ -118,7 +118,7 @@ string JMSSubscriber::getMyName() const {
 }
 
 string JMSSubscriber::getMyID() const {
-  return std::to_string(getpid());
+  return p_ep ? p_ep->id() : MqttLink::processId();
 }
 
 void JMSSubscriber::processMessage() {

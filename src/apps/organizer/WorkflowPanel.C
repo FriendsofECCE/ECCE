@@ -22,6 +22,7 @@
 #include "wxgui/ewxBitmap.H"
 #include "wx/toolbar.h"
 
+#include "dsm/CodeChoice.H"
 #include "dsm/PropertyTask.H"
 #include "dsm/ResourceType.H"
 #include "dsm/ScanPoint.H"
@@ -990,15 +991,9 @@ void WorkflowPanel::createControls()
   left->Add(notes, 0, wxEXPAND | wxTOP, 4);
   top->Add(left, 1, wxEXPAND);
 
-  wxBoxSizer *bar = new wxBoxSizer(wxVERTICAL);
-  const vector<WorkflowSteps::Code> &codes = WorkflowSteps::codes();
-  for (size_t i = 0; i < codes.size(); i++) {
-    bar->Add(new CodeButton(this, codes[i], [this, i]() { codeClicked(i); }),
-             0, wxALL, 2);
-  }
-  bar->Add(new wxStaticText(this, wxID_ANY, "new step"), 0,
-           wxALIGN_CENTER_HORIZONTAL | wxTOP, 4);
-  top->Add(bar, 0, wxEXPAND | wxALL, 4);
+  p_codeBar = new wxBoxSizer(wxVERTICAL);
+  rebuildCodeBar();
+  top->Add(p_codeBar, 0, wxEXPAND | wxALL, 4);
 
   p_canvas->SetMinSize(wxSize(1, 120));
   p_canvas->relayout();
@@ -1023,8 +1018,45 @@ void WorkflowPanel::setVertical(bool vertical)
 }
 
 
+// The code buttons for the codes ticked in Preferences > Codes, then a
+// "+N hidden" button when some are not (#1049).  Rebuilt when the choice
+// changes, so ticking a code needs no restart.
+void WorkflowPanel::rebuildCodeBar()
+{
+  const vector<WorkflowSteps::Code> &codes = WorkflowSteps::codes();
+  const int hidden = CodeChoice::hiddenCount();
+  string sig = std::to_string(hidden);
+  for (const string &s : CodeChoice::shownCodes()) sig += "," + s;
+  if (sig == p_codeSig) return;
+  p_codeSig = sig;
+  p_codeBar->Clear(true);
+  for (size_t i = 0; i < codes.size(); i++) {
+    if (!CodeChoice::typeNameShown(codes[i].typeName)) continue;
+    p_codeBar->Add(new CodeButton(this, codes[i], [this, i]() { codeClicked(i); }),
+                   0, wxALL, 2);
+  }
+  if (hidden > 0) {
+    wxButton *more = new wxButton(this, wxID_ANY,
+        wxString::FromUTF8(CodeChoice::barLabel(hidden).c_str()),
+        wxDefaultPosition, wxSize(70, 28));
+    more->SetName("more_codes");
+    more->SetToolTip(wxString::FromUTF8(CodeChoice::moreTip(hidden).c_str()));
+    more->Bind(wxEVT_BUTTON, [this](wxCommandEvent &) {
+      wxCommandEvent ev(wxEVT_MENU, CalcMgrGUI::wxID_MORE_CODES);
+      wxWindow *frame = wxGetTopLevelParent(this);
+      if (frame) frame->GetEventHandler()->ProcessEvent(ev);
+    });
+    p_codeBar->Add(more, 0, wxALL, 2);
+  }
+  p_codeBar->Add(new wxStaticText(this, wxID_ANY, "new step"), 0,
+                 wxALIGN_CENTER_HORIZONTAL | wxTOP, 4);
+  Layout();
+}
+
+
 void WorkflowPanel::updateTexts()
 {
+  if (p_codeBar) rebuildCodeBar();
   if (p_autorun) p_autorun->SetValue(WorkflowSteps::autoRun(p_session));
   if (p_left && !p_recipe) {
     const bool empty = p_session->numMembers() == 0;

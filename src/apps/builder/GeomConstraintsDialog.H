@@ -35,6 +35,10 @@ public:
   /// @param confirm the answer to a "not bonded" question
   /// @return what the user would read in the status line
   std::string press(const std::string& what, bool confirm);
+  /// Scan... on the selected atoms with these steps and step size (Å or
+  /// degrees), as OK in its dialog would.
+  /// @return the status line; starts "Added" on success
+  std::string scanSelection(int steps, double step);
   std::string selectionText() const { return p_pickText; }
   std::string noteText() const;
   /// One line per constraint, as listed.
@@ -56,6 +60,9 @@ private:
 
   std::string addFromSelection(bool restraint, bool ask, bool confirm);
   std::string fixSelection();
+  /// Checks the limits the Scan dialog enforces; sets the scan on c unless null.
+  /// @return the reason it was refused, or empty
+  static std::string applyScan(GeomConstraint *c, int steps, double step);
   void done(const std::string& message);
   void updateButtons();
   void fillList();

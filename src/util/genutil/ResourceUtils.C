@@ -104,6 +104,9 @@ ResourceDescriptor::CONTENTTYPE ResourceUtils::stringToContentType(const string&
     else if (lstr == "eccemdequilibrate") {
       ct = ResourceDescriptor::CT_MDEQUILIBRATE;
     }
+    else if (lstr == "eccemdrun") {
+      ct = ResourceDescriptor::CT_MDRUN;
+    }
     else if (lstr == "chemical/x-ecce-mvm") {
       ct = ResourceDescriptor::CT_CHEMICAL_MVM;
     }
@@ -151,6 +154,9 @@ string ResourceUtils::contentTypeToString(ResourceDescriptor::CONTENTTYPE conten
     break;
   case ResourceDescriptor::CT_MDEQUILIBRATE:
     ctStr = "ecceMdEquilibrate";
+    break;
+  case ResourceDescriptor::CT_MDRUN:
+    ctStr = "ecceMdRun";
     break;
   case ResourceDescriptor::CT_CHEMICAL_MVM:
     ctStr = "chemical/x-ecce-mvm";

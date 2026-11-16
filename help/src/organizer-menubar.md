@@ -34,15 +34,14 @@ on its run state.
 
 ## Edit
 
-- **Duplicate for Rerun**: a copy of the selected calculation with the same
-  structure and settings, ready to launch. The same as **New from This >
-  Rerun** in the right-click menu.
-- **Duplicate Setup with Last Geometry**: a copy that starts from the
-  geometry the calculation ended on. The same as **New from This > Continue
-  from Last Geometry**.
-- **Duplicate with Final Orbitals**: as the previous item, and the copy also
-  starts from the final orbitals. The same as **New from This > Continue from
-  Final Orbitals**.
+- **New from This**: the same three items as **New from This** in the
+  right-click menu.
+  - **Rerun**: a copy of the selected calculation with the same structure and
+    settings, ready to launch.
+  - **Continue from Last Geometry**: a copy that starts from the geometry the
+    calculation ended on.
+  - **Continue from Final Orbitals**: as the previous item, and the copy also
+    starts from the final orbitals.
 - **Cut** (Ctrl+X), **Copy** (Ctrl+C), **Paste** (Ctrl+V): move or copy the
   selection into the selected project or folder.
 - **Rename**: renames the selected item; one item only.
@@ -125,7 +124,7 @@ Selected...** and **Re-Parse Outputs**.
 - **Reset to Rerun** (Alt+R): resets a finished calculation so that it can
   be launched again; the outputs of the previous run are removed. Imported
   calculations are skipped, since the reset would delete the only copy of
-  their results; use **Edit > Duplicate for Rerun** for them.
+  their results; use **Edit > New from This > Rerun** for them.
 - **Reset for Restart**: sets the state back to ready; the outputs stay.
 - **Reset State**: changes the state alone, to completed, incomplete,
   imported or killed.
@@ -155,6 +154,9 @@ menu is grey.
 - **Allocations...**: see [Allocations](allocations.md).
 - **Periodic Table...** (Ctrl+P).
 - **Energy Calculator...**: see [Energy Calculator](energy-calculator.md).
+- **New Calculations in Another Code...**: one new calculation in another
+  code from each selected calculation, with a setup you make once; see
+  [New Series](new-series.md).
 - **Batch Add from SMILES...**: see
   [Batch Add from SMILES](batch-from-smiles.md).
 - **QSAR Table...**: see [QSAR Table](qsar-table.md).
@@ -270,6 +272,92 @@ over these settings, and the tab says so.
 - **Discard the programs' own binary files once results.h5 is written**:
   for jobs that finish afterwards, and for Gaussian 16 checkpoint files only;
   see [The results file](results-file-format.md).
+
+### Codes
+
+Codes you have not ticked are hidden when you make a new calculation. Each
+list that hides some ends with an entry such as **9 more codes (hidden)...**
+(the Calculation Editor's code bar ends with **+9 hidden**), which opens this
+tab with the hidden codes at the top; tick a code and it is offered at once,
+with no restart.
+
+The tick decides only what is offered for a **new** calculation: **File >
+New**, the right-click **New** menu, **New from This > Continue in Another
+Code...**, the workflow view's new-step buttons and the Calculation Editor's
+code bar. A calculation of a hidden code still opens, reruns and is analysed
+as before. **Register Machines** also leaves hidden codes out of its list;
+its **Show hidden codes** box lists them all, and saving a machine with a
+program for a hidden code ticks that code here.
+
+A new installation offers ECCE-QM and every code registered on a machine (a
+site may set another default in `siteconfig/Codes`). **Show all** ticks every
+code; **Only registered** ticks ECCE-QM and the codes registered on a
+machine. This tab lists every supported code, hidden or not:
+
+- **ECCE-QM**: the built-in quantum chemistry engine; nothing to install.
+- **ORCA**: DFT, wavefunction methods and spectroscopy.
+- **Gaussian 16**: molecular quantum chemistry (optimisations, scans,
+  transition states, IRC).
+- **xTB**: fast semi-empirical tight-binding energies, geometries and
+  frequencies.
+- **CREST**: conformer and rotamer search with xTB.
+- **GROMACS**: classical molecular dynamics of liquids, solids and
+  biomolecules.
+- **CP2K**: periodic DFT and ab initio molecular dynamics.
+- Experimental: **NWChem**, **MOPAC**, **Quantum ESPRESSO**, **MLP (MACE)**
+  and **AutoDock Vina**.
+
+### Windows and tabs
+
+Whether the tools open as tabs of the Organizer's window or each in a
+window of its own. This needs the tools to run in one program
+(`ECCE_ONE_PROCESS=1`, experimental); otherwise every tool opens in its own
+window and the tab says so.
+
+- **Layout**: **Normal** (the default), tools as tabs, and the Calculation Editor's tab
+  is a Set-up tab: the editor on the left, a detail area on the right.
+  **Theory Details...** and **Runtype Details...** fill that area instead of
+  opening a window (the button whose details are shown is in bold); the
+  area scrolls when they do not fit. With no detail chosen it shows the
+  input file: after an unsaved change it shows the file the current
+  settings would give, half a second after the last change, with a note
+  that Save writes it (a change of structure or basis set shows once
+  saved). If the window is narrower than about 1100 pixels, opening the
+  Set-up tab widens it, within the screen. The ◀ button at the top of the area hides the
+  editor column and ▶ brings it back; the divider between them can be
+  dragged. The **Basis Set** button shows the basis panel in the same area:
+  the basis-set library as a list you narrow by typing in the filter box,
+  the chosen set's elements (the ones of your chemical system it does not
+  cover are marked, and **Use for all atoms** is then off), **Use for all
+  atoms** to assign the set to the whole system and save it, and the current
+  assignment, one line per element when the elements differ. **Full Basis Set
+  Tool...** opens the Basis Set Tool for everything else (different sets for
+  different elements, ECPs, fitting sets). Codes whose details exist only in the older form (NWChem,
+  MOPAC, Quantum ESPRESSO, CP2K, GROMACS and others) still open those
+  details in a window, and the area says so. **Small**: one
+  tool per tab, each the full width of the window, for small screens and X
+  forwarding. **Wide**: every tool in a window of its own, as
+  in earlier versions, for large or several monitors. **Custom** is shown
+  once the table below has been changed.
+- **Customize...**: one row per tool (Builder / Viewer, Calculation Editor,
+  Basis Set Tool, MD editors, MD Prepare, Launcher), each **Tab** or **Window**,
+  filled from the chosen layout. Changing a row and pressing **OK** makes
+  the layout Custom.
+- Below the dropdown: which tools are tabs and which are windows.
+  **Launch...** shows the Launcher in the same area, with the machine, the
+  number of processors, the queue or priority the machine needs, and the
+  run directory (**Advanced** is folded). A warning before the launch, such
+  as a large calculation or a missing MPI program, appears in the panel and
+  the button becomes **Launch anyway**; nothing blocks the launch. Close it
+  from the Launcher's own menu or by choosing Theory, Runtype or Basis Set
+  Details again.
+
+A change applies to tools opened afterwards. The tab strip is made when the
+Organizer starts: after changing from Wide to a layout with tabs, start
+ECCE again. Right-click on a tool's tab: **Open in Window** moves it into a
+window this time; **Always open in a window** does that and sets its row
+to Window (the layout becomes Custom). **Window > Move to Tabs** in the
+tool's window puts it back into a tab.
 
 ### Advanced
 

@@ -63,7 +63,7 @@ density is being pulled together or pushed apart across the region, and the
 density says how strong the interaction is. The colour scale is fixed, from
 -0.035 to +0.02 atomic units, and is drawn as a bar under the panel:
 
-- **blue**: strongly attractive, such as a hydrogen bond;
+- **blue**: strongly attractive, such as a hydrogen bond, or the contact between the ions of an ion pair (NaCl) or a metal and its ligand;
 - **green**: weak and close to zero, such as van der Waals contact;
 - **red**: repulsive, such as steric crowding inside a ring or a cage.
 

@@ -139,6 +139,8 @@ wxWindow* GatewayApp::dialogParent()
 
 bool GatewayApp::OnInit()
 {
+  // The gateway only passes ECCE_ONE_PROCESS on to the Organizer (#983).
+  MqttLink::takeOneProcessSwitch(false);
   ewxApp::OnInit();
 #ifndef __WXMSW__
   WxDavAuth::setRestartsOnSwitch(true);   // `ecce` starts again, see main()
@@ -372,17 +374,15 @@ bool GatewayApp::OnInit()
     p_sessionWatch->Start(1000);
   }
 
-  static const int BUFSIZE=512;
-  char buf[BUFSIZE];
-
   // if they are a new user, show the new user message, if any
   if (newUserFlag) {
     string userFileName = Ecce::siteConfigFile("NewUserMessage");
     ifstream newUserFile(userFileName.c_str());
     if (newUserFile) {
       string userMsg = ""; 
-      while (newUserFile.getline(buf, BUFSIZE-1)) {
-        userMsg += buf;
+      string msgLine;
+      while (std::getline(newUserFile, msgLine)) {
+        userMsg += msgLine;
         userMsg += "\n";
       }
 
@@ -401,8 +401,9 @@ bool GatewayApp::OnInit()
   ifstream startFile(startFileName.c_str());
   if (startFile) {
     string startMsg = ""; 
-    while (startFile.getline(buf, BUFSIZE-1)) {
-      startMsg += buf;
+    string msgLine;
+    while (std::getline(startFile, msgLine)) {
+      startMsg += msgLine;
       startMsg += "\n";
     }
 

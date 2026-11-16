@@ -7,6 +7,7 @@
 #include "DetailsModel.h"
 
 #include <wx/wx.h>
+#include <functional>
 
 class wxDatagramSocket;
 class wxIPV4address;
@@ -26,7 +27,10 @@ private:
 
 class DetailsPanel : public wxPanel, public View {
 public:
-  DetailsPanel(wxFrame *frame, Model& model);
+  // host: the dialog's frame, or a panel the dialog is embedded in (the
+  // Calculation Editor's Set-up tab); onClose then replaces destroying it.
+  DetailsPanel(wxWindow *host, Model& model,
+               std::function<void()> onClose = std::function<void()>());
   void itemUpdated(int index) override;
   void status(const std::string& text, Severity s) override;
   void resetEnabled(bool on) override;
@@ -39,7 +43,8 @@ private:
     wxStaticText *lab = 0, *unitLab = 0;
   };
   Model& model_;
-  wxFrame *frame_;
+  wxWindow *frame_;
+  std::function<void()> onClose_;
   std::vector<W> w_;
   wxPanel *footer_ = 0;
   wxTextCtrl *msg_ = 0;

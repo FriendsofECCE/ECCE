@@ -152,6 +152,65 @@ bool MoAoBasis::functionCounts(IPropCalculation *expt,
 }
 
 
+static bool flatFromConfig(ICalculation *escalc, TGBSConfig *config,
+                           const vector<string>& storedElements,
+                           const vector<double>& storedCoords, int width,
+                           vector<EspBasisFunction>& basisOut);
+
+//  ORCA "BASIS SET IN INPUT FORMAT" (PrintBasis): per element "NewGTO X",
+//  shells "S 3" with "i exponent coefficient" rows, "end;". The MO columns
+//  are per atom stably sorted by l (MoAoOrder), so the shells go in that
+//  order. Null when the output has no such block.
+static TGBSConfig *printedBasisConfig(ICalculation *escalc,
+                                      const vector<string>& symbols)
+{
+  std::unique_ptr<std::istream> in(escalc->getDataFile(JCode::PRIMARY_OUTPUT));
+  if (!in) return 0;
+  struct Shell { int l; vector<std::pair<string, string> > prim; };
+  std::map<string, vector<Shell> > byElement;
+  const string kinds = "SPDFGHI";
+  string line, element;
+  bool inBlock = false;
+  while (std::getline(*in, line)) {
+    if (!inBlock) {
+      inBlock = line.find("BASIS SET IN INPUT FORMAT") != string::npos;
+      continue;
+    }
+    std::istringstream row(line);
+    string a, b, c;
+    row >> a >> b >> c;
+    if (a.compare(0, 4, "----") == 0 && !byElement.empty()) break;
+    if (a == "NewGTO") { element = b; byElement[element]; continue; }
+    if (a == "end;") { element.clear(); continue; }
+    if (element.empty()) continue;
+    if (a.size() == 1 && kinds.find(a[0]) != string::npos && !b.empty() &&
+        c.empty()) {
+      Shell sh;
+      sh.l = (int)kinds.find(a[0]);
+      byElement[element].push_back(sh);
+    } else if (!c.empty() && !byElement[element].empty()) {
+      byElement[element].back().prim.push_back(std::make_pair(b, c));
+    }
+  }
+  if (byElement.empty()) return 0;
+  std::ostringstream os;
+  os << "NumericalBasis\nbasis \"ao basis\" spherical print\n";
+  for (auto& e : byElement) {
+    std::stable_sort(e.second.begin(), e.second.end(),
+                     [](const Shell& x, const Shell& y) { return x.l < y.l; });
+    for (const Shell& sh : e.second) {
+      os << e.first << " " << kinds[sh.l] << "\n";
+      for (const auto& p : sh.prim) os << "  " << p.first << " " << p.second << "\n";
+    }
+  }
+  os << "END\nEndNumericalBasis\n";
+  for (const string& sym : symbols)
+    if (byElement.count(sym) == 0) return 0;
+  std::istringstream text(os.str());
+  return ICalcUtils::importConfig(text);
+}
+
+
 bool MoAoBasis::flatBasis(IPropCalculation *expt,
                           const vector<string>& storedElements,
                           const vector<double>& storedCoords, int width,
@@ -167,9 +226,31 @@ bool MoAoBasis::flatBasis(IPropCalculation *expt,
     TGBSConfig *slater = ICalcUtils::slaterBasisConfig(expt);
     if (slater != 0) { delete config; config = slater; }
   }
-  if (config == 0 || config->empty()) { delete config; return false; }
-  ICalcUtils::applyCodeContraction(expt, config);
+  if (config != 0 && !config->empty()) {
+    ICalcUtils::applyCodeContraction(expt, config);
+    if (flatFromConfig(escalc, config, storedElements, storedCoords, width,
+                       basisOut))
+      return true;
+  } else {
+    delete config;
+  }
 
+  //  A basis named only on the route card is stored nowhere; the output
+  //  of a run with PrintBasis lists it per element (#1055).
+  TGBSConfig *printed = printedBasisConfig(escalc, storedElements);
+  if (printed == 0) return false;
+  return flatFromConfig(escalc, printed, storedElements, storedCoords, width,
+                        basisOut);
+}
+
+
+//  Takes ownership of config.
+static bool flatFromConfig(ICalculation *escalc, TGBSConfig *config,
+                           const vector<string>& storedElements,
+                           const vector<double>& storedCoords, int width,
+                           vector<EspBasisFunction>& basisOut)
+{
+  basisOut.clear();
   const JCode *code = escalc->application();
   if (code == 0) { delete config; return false; }
 

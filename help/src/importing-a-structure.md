@@ -164,6 +164,17 @@ folder on your disk. A calculation saved in a folder can be reopened with
 
 Structures you save into a project are kept with your other data: the data server, or the local folder if you use local data mode (see [Installation](installation.md)).
 
+## Saving a picture of the 3-D view
+
+**File > Save Image...** writes a PNG of the 3-D view for a paper or a slide.
+Choose the resolution as 1x, 2x (the default) or 4x the size of the view, say
+whether the background should be white, and pick the file. Transparent
+surfaces such as orbital lobes are drawn blended with what is behind them
+instead of as a dotted pattern, edges are smoothed, and lines are thicker in
+a larger image so it does not look like a shrunken screenshot. At 2x or 4x
+the orbital or density on show is recomputed on a finer grid for the image
+(the view on screen is left as it was).
+
 ## Next steps
 
 To run a calculation yourself, continue with [Machines](machines.md) and

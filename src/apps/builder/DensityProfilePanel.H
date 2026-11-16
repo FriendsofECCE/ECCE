@@ -94,6 +94,8 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
       bool setCylinder(double angstrom);              // plane integral radius, 0 = whole plane
       bool zoom(const std::string& what);             // whole fit in out
       bool setMoreOpen(bool open);                    // the folded controls
+      /** Which controls are visible, with rectangles, at a panel width (hook/test). */
+      std::string layoutReport(int width);
 
       /** The orbital chosen in the MO list or MO Diagram: shown alone. */
       void followMo(int mo, bool beta);
@@ -172,7 +174,7 @@ class DensityProfilePanel : public VizPropertyPanel, public ecce::Listener
       wxSpinCtrlDouble *p_margin, *p_shift, *p_cylinder = nullptr;
       wxStaticText *p_labelCylinder = nullptr;
       wxPanel *p_more;
-      wxButton *p_moreButton;
+      wxButton *p_moreButton, *p_whole = nullptr;
       wxSplitterWindow *p_outer, *p_inner;
       wxStaticText *p_labelXAxis, *p_labelYAxis;
       wxStaticText *p_labelA, *p_labelB, *p_labelCentre, *p_labelMargin;

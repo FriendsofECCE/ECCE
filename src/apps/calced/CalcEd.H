@@ -5,6 +5,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include "dsm/TGaussianBasisSet.H"
 using std::pair;
 using std::vector;
   using std::string;
@@ -43,6 +44,8 @@ class SFile;
 class TGBSConfig;
 class PartialCharge;
 
+class CalcEdMessages;
+class SetupArea;
 class CalcEd: public CalcEdGUI,
               public WxDavAuth,
               public JMSPublisher,
@@ -64,6 +67,23 @@ class CalcEd: public CalcEdGUI,
             const wxSize& size = SYMBOL_CALCEDGUI_SIZE,
             long style = SYMBOL_CALCEDGUI_STYLE );
     ~CalcEd( );
+
+    // As a tab of the Organizer's window (#983): select / retitle the tab,
+    // give the windows back before the frame goes.
+    bool Show(bool show = true) override;
+    void Raise() override;
+    void SetTitle(const wxString& title) override;
+    bool Destroy() override;
+    bool Layout() override;
+    /// The menu bar, also while it is on the Organizer's window (a tab).
+    wxMenuBar *GetMenuBar() const;
+    /// The frame's sizer, also while it is in the tab's page.
+    wxSizer *mainSizer() const;
+    // Parent for controls made after the window moved into a tab: a child
+    // of the hidden frame would never show.
+    wxWindow *clientParent();
+    /// Hides wxWindow::FindWindow(long): the controls are in the tab's page.
+    wxWindow *FindWindow(long id) const;
 
     bool Create( wxWindow* parent, wxWindowID id = SYMBOL_CALCEDGUI_IDNAME,
                  const wxString& caption = SYMBOL_CALCEDGUI_TITLE,
@@ -353,7 +373,37 @@ class CalcEd: public CalcEdGUI,
      */
     bool regenerateIfStructureChanged();
 
+  public:
+    // The combined Set-up tab's detail area (Normal layout, #983): made in
+    // the tab's right pane, gone when the editor leaves the tab.
+    void makeSetupArea(wxWindow *area);
+    SetupArea *setupArea() const { return p_setupArea; }
+    // What a details dialog sends, delivered in-process by an embedded one.
+    void detailsInput(bool theory, const char *line);
+    // The deck the current, unsaved settings would give; the calculation
+    // is not written (DeckWriter dryRun).
+    bool previewDeck(string& deck, string& error);
+    // Test hook "setup ..." on the active Set-up tab.
+    wxString setupCommand(const wxString& arg);
+
+    // The basis panel of the Set-up tab (BasisPanel): the elements of the
+    // chemical system, the current assignment (one line per element when
+    // mixed), Use for all atoms (assigns and saves), and the Basis Set Tool.
+    vector<string> systemElements() const;
+    vector<string> basisAssignmentLines() const;
+    bool useBasisForAll(const string& name, TGaussianBasisSet::GBSType type,
+                        string& message);
+    void openBasisSetTool();
+
+    // The window owns its dispatcher (#983) and deletes it with itself.
+    void setMessages(CalcEdMessages *msgs) { p_msgs = msgs; }
+    CalcEdMessages *messages() const { return p_msgs; }
+
   private:
+    friend class SetupArea;
+    friend class BasisPanel;
+    SetupArea *p_setupArea = nullptr;
+    CalcEdMessages *p_msgs = nullptr;
     void runTestCommand(const string& line);
 
     //  ECCE_TEST_CALCED: keep the generator's working files, as Shift+Save

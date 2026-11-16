@@ -244,12 +244,12 @@ string PropTSVecTable::tableLabel(void) const
 ///////////////////////////////////////////////////////////////////////////////
 void PropTSVecTable::setData(istream& istrm)
 {
-   char line[256];
+   string line;
    string tmpString;
    int colonPos, comma1Pos, comma2Pos, numTables;
    vector<double> tableValues;
 
-   istrm.getline(line,255);        // Read the size line
+   std::getline(istrm, line);        // Read the size line
    tmpString = line;
    comma1Pos = tmpString.find_first_of(",");
    comma2Pos = tmpString.find_last_of(",");
@@ -284,7 +284,7 @@ void PropTSVecTable::setData(istream& istrm)
    // Add values for one table:
       for (int i=0; i<(p_numRows*p_numColumns); i++)
       {
-        if (!istrm.getline(line,255))
+        if (!std::getline(istrm, line))
           EE_RT_ASSERT(false, EE_WARNING,
                 "size specified in file is greater than the number of values");
 
@@ -490,14 +490,14 @@ void PropTSVecTable::value(double newValue, int table, int row, int col)
 bool PropTSVecTable::update(const string& msg)
 {
    istrstream input(msg.c_str());
-   char temp[100];
+   string temp;
    vector<double> values;
    int numRows, numCols;
    double currentValue;
    numRows = 0;
 
-   while(input.getline(temp,100)) {
-     istrstream row(temp);
+   while(std::getline(input, temp)) {
+     istrstream row(temp.c_str());
      numCols = 0;
      while (row >> currentValue) {
        values.push_back(currentValue);

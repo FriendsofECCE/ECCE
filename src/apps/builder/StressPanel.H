@@ -1,6 +1,8 @@
 #ifndef ECCE_STRESS_PANEL_H
 #define ECCE_STRESS_PANEL_H
 
+#include <array>
+#include <vector>
 #include "VizPropertyPanel.H"
 class wxGrid;
 class wxStaticText;
@@ -15,6 +17,7 @@ public:
               const wxString& name="StressPanel") override;
   void refresh() override;
   string summaryText() const;
+  string labelAnchorText() const;
   int openingHeight() const override { return 440; }
 protected:
   void initialize() override { refresh(); }
@@ -24,5 +27,6 @@ private:
   void updateStress(bool draw);
   wxGrid *p_grid = nullptr;
   wxStaticText *p_summary = nullptr;
+  std::vector<std::array<double,3>> p_labelAnchors;
 };
 #endif

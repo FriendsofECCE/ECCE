@@ -29,3 +29,10 @@ add_test(NAME resultsh5_orca_segmented
           $<TARGET_FILE:ecce-results>)
 set_tests_properties(resultsh5_orca_segmented PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=resultsh5;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/resultsh5-home")
+
+# An ORCA basis named only on the route card: results.h5 from the printed basis (#1055).
+add_test(NAME resultsh5_routecard_basis
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/resultsh5/routecard_basis_test.py
+          $<TARGET_FILE:ecce-results>)
+set_tests_properties(resultsh5_routecard_basis PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=resultsh5;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/resultsh5-home")

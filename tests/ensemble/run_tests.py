@@ -124,6 +124,25 @@ js = json.loads(run("pick", calc, "n=3", "--skip-failed", "--json").stdout)
 check("pick: --skip-failed skips the proton transfer and the ion loss",
       [p["member"] for p in js["picks"]] == [1, 3] and
       [s["member"] for s in js["skipped"]] == [4, 5], js)
+def wpick(*args):
+    jj = json.loads(run("pick", calc, *args, "--json").stdout)
+    return [p["member"] for p in jj["picks"]], jj
+
+
+m, jw = wpick("window=1.5")
+check("window: alone, no cap at 5, merge before window", m == [1, 3], m)
+check("window: JSON records the window used", jw["window_kcal_mol"] == 1.5, jw["window_kcal_mol"])
+check("window: 3kcal keeps everything up to 3.0", wpick("window=3kcal")[0] == [1, 3, 4, 5])
+check("window: plain number is kcal/mol", wpick("window=1.5")[0] == wpick("window=1.5kcal")[0])
+check("window: with n as an upper limit", wpick("window=3", "n=2")[0] == [1, 3])
+check("window: n larger than the window keeps the window", wpick("window=1.5", "n=4")[0] == [1, 3])
+check("window: kJ (12.5 kJ = 2.99 kcal) keeps 1,3,4", wpick("window=12.5kJ")[0] == [1, 3, 4])
+check("window: 4.184 kJ is exactly 1 kcal", wpick("window=4.184kJ")[0] == [1, 3])
+check("window: a window that keeps only the lowest", wpick("window=0.5")[0] == [1])
+check("window: absent -> null and default n=5", wpick()[1]["window_kcal_mol"] is None)
+check("window: bad value refused", run("pick", calc, "window=abc").returncode == 2)
+check("--help documents window and the order", all(s in run("--help").stdout
+      for s in ("window=E", "merge first, then window, then n")))
 r = run("pick", os.path.join(FIX, "calc-water-opt"), "--json")
 check("pick: a non-ensemble calculation is refused", r.returncode != 0 and "CONFREL" in r.stderr, r.stderr)
 check("pick: text output runs", run("pick", calc).returncode == 0)

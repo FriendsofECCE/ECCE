@@ -37,6 +37,10 @@
        topology includes. -->
   <Input  type="auxiliary" mimetype="chemical/x-gromacs-include"></Input>
   <Input  type="auxiliary" mimetype="chemical/x-gromacs-source-pdb"></Input>
+  <!-- A GROMACS run made from a ready .tpr (run.gmxtpr): the job script
+       copies it to topol.tpr and skips grompp.  ".tpr" itself is the
+       task's output type. -->
+  <Input  type="auxiliary" mimetype="chemical/x-gromacs-run-tpr"></Input>
   <!-- A MINFF Prepare's mineral: conf.gmxmin (structure and cell) and
        topol.gmxmin (topology), built on the client by minff_topology.py; its
        includes (min.itp, min.ff/...) are ordinary .itp inputs. -->

@@ -33,6 +33,10 @@ folded to its caption line and unfolded by `ewxLogTextCtrl::setMessageHandler`.
 - The list's groups come from `<group>` in `PropertyPanelDescriptor.xml`
   (missing = "Other"); an installed descriptor without it lists everything
   under Other.
+  Spectra and diffraction are grouped by technique (#1079): Vibrational spectra,
+  Electronic spectra, Magnetic resonance, Diffraction and scattering; electric data
+  stay in Electric properties. `tests/apps/property_groups_test.py` (script command
+  `plist`) checks the list.
 - Hooks: `ECCE_PANEL_MODE`, `ECCE_PANEL_TEST=<file>`, `ECCE_PANEL_METRICS=<file>`,
   `ECCE_PANEL_FULLSCREEN`; driver `tests/panels/capture.py`.
 - Collapse (`/ColumnHidden`, View > Hide Side Panels, F9, the arrow): the arrow is

@@ -27,6 +27,15 @@ static void setNonBlocking(sock_t s) { u_long on = 1; ioctlsocket(s, FIONBIO, &o
 static bool wouldBlock() { int e = WSAGetLastError(); return e == WSAEWOULDBLOCK || e == WSAEINTR; }
 #define SEND_FLAGS 0
 #define POLL WSAPoll
+// Not inheritable: a program started with inherited handles would keep
+// the broker's sockets open after the Organizer exits.
+static sock_t keepPrivate(sock_t s)
+{
+  if (s != BAD_SOCK) SetHandleInformation((HANDLE)s, HANDLE_FLAG_INHERIT, 0);
+  return s;
+}
+static sock_t newSocket(int domain) { return keepPrivate(socket(domain, SOCK_STREAM, 0)); }
+static sock_t acceptSocket(sock_t l, sockaddr* a, socklen_t* n) { return keepPrivate(accept(l, a, n)); }
 #else
 #include <arpa/inet.h>
 #include <errno.h>
@@ -49,6 +58,30 @@ static bool wouldBlock() { return errno == EAGAIN || errno == EWOULDBLOCK || err
 #define SEND_FLAGS 0
 #endif
 #define POLL ::poll
+// Close-on-exec: system() and execv() pass every other descriptor on, and
+// eccejobmaster or a terminal holding the broker's end keeps its clients
+// from seeing EOF when the Organizer exits (#1025).
+static sock_t keepPrivate(sock_t s)
+{
+  if (s != BAD_SOCK) fcntl(s, F_SETFD, fcntl(s, F_GETFD) | FD_CLOEXEC);
+  return s;
+}
+static sock_t newSocket(int domain)
+{
+#ifdef SOCK_CLOEXEC
+  return socket(domain, SOCK_STREAM | SOCK_CLOEXEC, 0);
+#else
+  return keepPrivate(socket(domain, SOCK_STREAM, 0));   // macOS
+#endif
+}
+static sock_t acceptSocket(sock_t l, sockaddr* a, socklen_t* n)
+{
+#if defined(__linux__) && defined(SOCK_CLOEXEC)
+  return accept4(l, a, n, SOCK_CLOEXEC);
+#else
+  return keepPrivate(accept(l, a, n));
+#endif
+}
 #endif
 
 using std::string;
@@ -146,6 +179,7 @@ struct MqttBroker::Impl {
   std::thread thread;
   std::atomic<bool> stopping{false};
   std::atomic<int> nclients{0};
+  std::atomic<uint64_t> accepted{0};
   std::vector<std::unique_ptr<Client>> clients;
   uint64_t anon = 0;
 
@@ -309,8 +343,9 @@ struct MqttBroker::Impl {
 
   void acceptOne() {
     sockaddr_storage a; socklen_t l = sizeof a;
-    sock_t s = accept(lfd, (sockaddr*)&a, &l);
+    sock_t s = acceptSocket(lfd, (sockaddr*)&a, &l);
     if (s == BAD_SOCK) return;
+    accepted++;
     setNonBlocking(s);
     int one = 1;
     if (!open) setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (const char*)&one, sizeof one);
@@ -411,6 +446,7 @@ MqttBroker::MqttBroker() : p_impl(new Impl) {}
 MqttBroker::~MqttBroker() { stop(); }
 
 int MqttBroker::clients() const { return p_impl->nclients; }
+uint64_t MqttBroker::connections() const { return p_impl->accepted; }
 
 void MqttBroker::addUser(const string& user, const string& password)
 {
@@ -424,7 +460,7 @@ bool MqttBroker::start(int port)
   WSADATA wsa;
   if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) return false;
 #endif
-  sock_t s = socket(AF_INET, SOCK_STREAM, 0);
+  sock_t s = newSocket(AF_INET);
   if (s == BAD_SOCK) return false;
   sockaddr_in a;
   memset(&a, 0, sizeof a);
@@ -464,7 +500,7 @@ bool MqttBroker::start(const string& path)
   if (path.empty() || path.size() >= sizeof a.sun_path) return false;
   a.sun_family = AF_UNIX;
   memcpy(a.sun_path, path.c_str(), path.size());
-  sock_t s = socket(AF_UNIX, SOCK_STREAM, 0);
+  sock_t s = newSocket(AF_UNIX);
   if (s == BAD_SOCK) return false;
   ::unlink(path.c_str());
   if (::bind(s, (sockaddr*)&a, sizeof a) != 0) { closeSock(s); return false; }
@@ -542,7 +578,7 @@ bool socketAnswers(const string& path)
   if (path.empty() || path.size() >= sizeof a.sun_path) return false;
   a.sun_family = AF_UNIX;
   memcpy(a.sun_path, path.c_str(), path.size());
-  int s = socket(AF_UNIX, SOCK_STREAM, 0);
+  int s = newSocket(AF_UNIX);
   if (s < 0) return false;
   bool ok = ::connect(s, (sockaddr*)&a, sizeof a) == 0;
   ::close(s);
@@ -648,11 +684,18 @@ void MqttBroker::serveForSession(int graceSeconds, int startSeconds)
   using clk = std::chrono::steady_clock;
   auto idleSince = clk::now();
   bool seen = false;
+  uint64_t knocks = g_session->connections();
   while (!g_stopRequested &&
          fileValue(g_brokerFile, "socket") == g_session->socketPath()) {
+    // A connection that is not (yet) a client is a starting program's
+    // `eccebroker --serve` adopting this broker: its app has not connected
+    // yet, so wait for it as for a first client, not just the grace.
+    uint64_t k = g_session->connections();
     if (g_session->clients() > 0) { seen = true; idleSince = clk::now(); }
+    else if (k != knocks) { seen = false; idleSince = clk::now(); }
     else if (std::chrono::duration<double>(clk::now() - idleSince).count() >=
              (seen ? graceSeconds : std::max(graceSeconds, startSeconds))) break;
+    knocks = k;
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
   }
   stopForSession();

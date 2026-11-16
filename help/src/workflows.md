@@ -7,7 +7,10 @@ the best structures can be set up, launched and followed in one place.
 Calculations outside a workflow are not affected.
 
 A workflow can hold calculations of ECCE-QM, ORCA, Gaussian-16, NWChem,
-MOPAC, xTB, Quantum ESPRESSO and CP2K, in any mixture.
+MOPAC, xTB, Quantum ESPRESSO, CP2K and MLP (MACE), in any mixture.
+A periodic structure keeps its cell through a geometry arrow, so a MACE
+step can relax candidates and a Quantum ESPRESSO or CP2K step refine the
+result. A step that has not run yet gives its input structure.
 
 ## Making a workflow
 

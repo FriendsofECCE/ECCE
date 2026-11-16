@@ -4,6 +4,13 @@
  */
 #include "inv/SoOffscreenRenderer.H"
 #include "inv/nodes/SoGroup.H"
+#include "inv/nodes/SoDrawStyle.H"
+#include "inv/actions/SoSearchAction.H"
+#include "inv/actions/SoGLRenderAction.H"
+#include <wx/image.h>
+#include <vector>
+#include "inv/nodes/SoFont.H"
+#include "inv/ChemKit/ChemDisplayParam.H"
 
 //#include <iostream>
 //using std::cout;
@@ -245,6 +252,106 @@ bool VizRender::file(SoNode *root, SFile *file, string type,
     fclose(myFile);
 
   return ret;
+}
+
+
+bool VizRender::image(SoNode *root, const string& pngPath, int width,
+                      int height, double r, double g, double b, int factor)
+{
+  p_msg = "";
+  if (getenv("ECCE_NO_VIZIMAGES")) return true;
+  if (factor < 1) factor = 1;
+  if (width < 1 || height < 1) {
+    p_msg = "VizRender::image: the view has no size";
+    return false;
+  }
+  // Render at 2x the wanted pixels and average 2x2 blocks: the offscreen
+  // GL context has no multisample or accumulation buffer to rely on.
+  int ss = (width * factor * 2 > 8192 || height * factor * 2 > 8192) ? 1 : 2;
+  const int rw = width * factor * ss, rh = height * factor * ss;
+  const int ow = width * factor, oh = height * factor;
+
+  // Line widths are in pixels, so they must grow with the image.
+  std::vector<std::pair<SoDrawStyle *, float> > widths;
+  SoSearchAction search;
+  search.setType(SoDrawStyle::getClassTypeId());
+  search.setInterest(SoSearchAction::ALL);
+  search.apply(root);
+  const SoPathList &paths = search.getPaths();
+  for (int i = 0; i < paths.getLength(); i++) {
+    SoDrawStyle *ds = (SoDrawStyle *)paths[i]->getTail();
+    float w0 = ds->lineWidth.getValue();
+    widths.push_back(std::make_pair(ds, w0));
+    ds->lineWidth.setValue((w0 > 0 ? w0 : 1.0f) * factor * ss);
+  }
+
+  // Text is sized in pixels too: atom labels (ChemDisplayParam) and SoFont.
+  std::vector<std::pair<SoSFFloat *, float> > sizes;
+  const SoType fontTypes[2] = {ChemDisplayParam::getClassTypeId(), SoFont::getClassTypeId()};
+  for (int t = 0; t < 2; t++) {
+    SoSearchAction fs;
+    fs.setType(fontTypes[t]);
+    fs.setInterest(SoSearchAction::ALL);
+    fs.apply(root);
+    for (int i = 0; i < fs.getPaths().getLength(); i++) {
+      SoNode *n = fs.getPaths()[i]->getTail();
+      SoSFFloat *f = t == 0 ? &((ChemDisplayParam *)n)->fontSize : &((SoFont *)n)->size;
+      sizes.push_back(std::make_pair(f, f->getValue()));
+      f->setValue(f->getValue() * factor * ss);
+    }
+  }
+
+  bool ok = false;
+  SbViewportRegion vp;
+  vp.setWindowSize(SbVec2s(rw, rh));
+  // Kept alive for the process: the offscreen renderer crashes in Mesa
+  // when destroyed.
+  static SoOffscreenRenderer *rend = 0;
+  if (!rend) rend = new SoOffscreenRenderer(vp);
+  rend->setViewportRegion(vp);
+  rend->setComponents(SoOffscreenRenderer::RGB);
+  rend->setBackgroundColor(SbColor(r, g, b));
+  rend->getGLRenderAction()->setTransparencyType(SoGLRenderAction::SORTED_OBJECT_BLEND);
+  if (rend->render(root) && rend->getBuffer()) {
+    const unsigned char *src = rend->getBuffer();
+    unsigned char *px = (unsigned char *)malloc((size_t)ow * oh * 3);
+    for (int y = 0; y < oh; y++) {
+      for (int x = 0; x < ow; x++) {
+        int sum[3] = {0, 0, 0};
+        for (int dy = 0; dy < ss; dy++)
+          for (int dx = 0; dx < ss; dx++) {
+            // GL rows run bottom to top
+            const unsigned char *s = src +
+              3 * (size_t)((rh - 1 - (y * ss + dy)) * rw + x * ss + dx);
+            sum[0] += s[0]; sum[1] += s[1]; sum[2] += s[2];
+          }
+        for (int k = 0; k < 3; k++) px[3 * ((size_t)y * ow + x) + k] = sum[k] / (ss * ss);
+      }
+    }
+    wxImage img(ow, oh, px);   // takes ownership
+    ok = img.SaveFile(wxString::FromUTF8(pngPath.c_str()), wxBITMAP_TYPE_PNG);
+    if (!ok) p_msg = "Unable to write " + pngPath;
+  } else {
+    p_msg = "Unable to render scene graph";
+  }
+  for (size_t i = 0; i < widths.size(); i++)
+    widths[i].first->lineWidth.setValue(widths[i].second);
+  for (size_t i = 0; i < sizes.size(); i++)
+    sizes[i].first->setValue(sizes[i].second);
+  return ok;
+}
+
+
+bool VizRender::image(SGViewer *viewer, const string& pngPath, int width,
+                      int height, bool white, int factor)
+{
+  SbColor bg = white ? SbColor(1, 1, 1) : viewer->getBackgroundColor();
+  const bool hadText = viewer->textLabelsShown();
+  viewer->showTextLabels(false);
+  bool ok = image(viewer->getTopNode(), pngPath, width, height,
+                  bg[0], bg[1], bg[2], factor);
+  viewer->showTextLabels(hadText);
+  return ok;
 }
 
 

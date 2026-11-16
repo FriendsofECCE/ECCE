@@ -36,7 +36,24 @@ Hartree, and **B - A** in kJ/mol, kcal/mol and eV:
   calculations, shown in the row name) need a frequency calculation for every
   calculation on both sides; otherwise the row says "needs frequencies" and a
   note names the calculations that lack it.
+- **S** (at the temperature of the H and G rows) is the entropy change of the
+  reaction, (ΔH − ΔG)/T, in J K⁻¹ mol⁻¹. With the 1 M standard state ticked
+  it includes the correction to G.
 - The solvent model of each side is listed under the table.
+
+### H, G and S at another temperature
+
+**T / K**, next to **G treatment**, starts at the temperature of the frequency
+calculations. Another temperature recomputes the **H** and **G** rows (and so
+**S**, the 1 M correction and log K) from the stored frequencies with the
+`ecce-thermo` command at that temperature, and the row names show it. The G
+treatment chosen is used; with **The code's own Gibbs energy** chosen, H and G
+are recomputed with Grimme's quasi-RRHO (ω0 = 100 cm⁻¹) and a note says so,
+since the code's own values exist only at its own temperature. **E** and
+**E + ZPE** do not depend on the temperature. This gives ΔH at two
+temperatures for Kirchhoff's law (N₂ + 3 H₂ → 2 NH₃ at 298 and 723 K), or the
+temperature at which ΔG changes sign (2 NO₂ ⇌ N₂O₄). **Reaction overview...**
+opens with the same temperature in its own **T / K** field.
 
 Energies in Hartree are shown to 6 decimals, differences to 1 decimal in kJ/mol
 and kcal/mol and to 2 decimals in eV, which is about what the methods carry.

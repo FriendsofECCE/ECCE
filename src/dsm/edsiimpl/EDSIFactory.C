@@ -554,8 +554,11 @@ void EDSIFactory::removeProgressEventListener(ProgressEventListener *l)
  */
 JMSPublisher * EDSIFactory::getPublisher(const string &app_name)
 {
-  if (p_publisher == NULL)
+  if (p_publisher == NULL) {
     p_publisher = new JMSPublisher(app_name);
+    // In one process the notices go out as the tool that made the change.
+    p_publisher->followActingTool(true);
+  }
   return p_publisher;
 }
 
@@ -1057,7 +1060,8 @@ EcceURL* EDSIFactory::createTask(EDSI* interface,
     }
   }
 
-  if (isValidSession) {
+  // A GROMACS calculation from files (#1038) is a task outside any study.
+  if (isValidSession || taskType == ResourceDescriptor::CT_MDRUN) {
     // Create Virtual Document
     ret = interface->makeCollection(name,"%d");
     if (ret) {

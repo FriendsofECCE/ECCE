@@ -170,17 +170,24 @@ static const char *const kSpreadNote =
     "(Help: G over treatments).";
 
 string applyThermoTreatments(SumResult& r, const vector<EnergyTerm>& a,
-                             const vector<EnergyTerm>& b, const string& treatment)
+                             const vector<EnergyTerm>& b, const string& treatment,
+                             double kelvin)
 {
-  SumRow *g = 0;
-  for (SumRow& w : r.rows)
+  SumRow *g = 0, *h = 0;
+  for (SumRow& w : r.rows) {
     if (w.label.compare(0, 1, "G") == 0) g = &w;
+    if (w.label.compare(0, 1, "H") == 0) h = &w;
+  }
   if (!g || !g->available) return "";
+  const bool retemp = kelvin > 0 && std::fabs(kelvin - r.gTemperature) > 0.005;
+  const string used = retemp && treatment.empty() ? string("qrrho-grimme:100") : treatment;
+  double ha = 0, hb = 0;
   std::map<string, ThermoRunResult> runs;
   for (const vector<EnergyTerm> *side : {&a, &b})
     for (const EnergyTerm& t : *side) {
       if (runs.count(t.url)) continue;
-      const double T = t.state.temperature > 0 ? t.state.temperature : 298.15;
+      const double T = retemp ? kelvin
+                     : t.state.temperature > 0 ? t.state.temperature : 298.15;
       runs[t.url] = runThermo(t.url, T, false);
       if (!runs[t.url].ok)
         return "G over treatments needs the stored frequencies: " +
@@ -201,17 +208,34 @@ string applyThermoTreatments(SumResult& r, const vector<EnergyTerm>& a,
     if (first || d < lo) lo = d;
     if (first || d > hi) hi = d;
     first = false;
-    if (treatment == info.cli) { ga = sa; gb = sb; }
+    if (used == info.cli) {
+      ga = sa; gb = sb;
+      for (int s = 0; s < 2; s++)
+        for (const EnergyTerm& t : s ? b : a)
+          (s ? hb : ha) += t.coeff * runs[t.url].find(info.cli)->H;
+    }
   }
-  if (!treatment.empty()) {
+  if (!used.empty()) {
     g->a = ga;
     g->b = gb;
     for (const ThermoTreatmentInfo& info : tr)
-      if (treatment == info.cli)
-        r.notes.push_back(string("G is recomputed by ecce-thermo: ") + info.label +
-                          ", 1 atm. " + kSpreadNote);
+      if (used == info.cli)
+        r.notes.push_back(string(retemp ? "H and G are" : "G is") +
+                          " recomputed by ecce-thermo: " + info.label + ", 1 atm. " +
+                          kSpreadNote);
   }
-  if (treatment.empty())
+  if (retemp) {
+    char tag[32];
+    snprintf(tag, sizeof tag, " (%.0f K)", kelvin);
+    g->label = string("G") + tag;
+    if (h && h->available) {
+      h->a = ha;
+      h->b = hb;
+      h->label = string("H") + tag;
+    }
+    r.gTemperature = kelvin;
+  }
+  if (!retemp && treatment.empty())
     r.notes.push_back(string("G is the code's own. ") + kSpreadNote);
   g->hasSpread = true;
   g->spread = hi - lo;

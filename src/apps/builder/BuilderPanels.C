@@ -14,6 +14,7 @@
 #include <tuple>
 #include <utility>
 
+#include <wx/grid.h>
 #include <wx/menu.h>
 #include <wx/menuitem.h>
 #include <wx/timer.h>
@@ -684,6 +685,7 @@ void Builder::updatePanes(bool allowSwitch)
     const wxAuiPaneInfo &d = p_mgr.GetPane(p_detail);
     if (d.IsOk() && paneGroup(d) != GROUP_PROPERTIES) p_detail = 0;
   }
+  keepIndexOnTop();
   syncColumn(allowSwitch);
   {
     wxAuiPaneInfo &idx = p_mgr.GetPane(static_cast<wxWindow*>(p_index));
@@ -1204,6 +1206,43 @@ int Builder::indexProportion() const
 }
 
 
+//  Rows the Properties list keeps visible while a panel is open below it.
+static const int INDEX_ROWS_KEPT = 8;
+
+//  Height `panel` needs to show `rows` rows of its first shown table, or -1
+//  without one or before it is laid out.  A table panel (MOs) at its floor
+//  shows controls and no rows, so the list yields to this first.
+static int tableRowsHeight(wxWindow *panel, int rows)
+{
+  std::vector<wxWindow*> todo(1, panel);
+  while (!todo.empty()) {
+    wxWindow *w = todo.back();
+    todo.pop_back();
+    wxGrid *g = dynamic_cast<wxGrid*>(w);
+    if (g && g->IsShownOnScreen()) {
+      const int rowH = std::max(1, g->GetDefaultRowSize());
+      if (panel->GetSize().y < 4 * rowH) return -1;
+      return panel->GetSize().y - g->GetGridWindow()->GetClientSize().y
+             + rows * rowH;
+    }
+    for (wxWindowList::compatibility_iterator n = w->GetChildren().GetFirst();
+         n; n = n->GetNext()) todo.push_back(n->GetData());
+  }
+  return -1;
+}
+
+//  Height the MOs panel needs to keep its shown graph at the graph's own
+//  minimum size, or -1 in the table view or before it is laid out.  At the
+//  80 px floor a 1366x768 Builder left the energy-level graph 81 px tall.
+static int graphFloorHeight(wxWindow *panel)
+{
+  MoPanel *mo = dynamic_cast<MoPanel*>(panel);
+  if (!mo) return -1;
+  wxWindow *plot = mo->shownGraph();
+  if (!plot || plot->GetSize().y <= 0) return -1;
+  return panel->GetSize().y - plot->GetSize().y + plot->GetMinSize().y;
+}
+
 void Builder::sizeIndexPane()
 {
   wxAuiPaneInfo &pane = p_mgr.GetPane(static_cast<wxWindow*>(p_index));
@@ -1213,8 +1252,10 @@ void Builder::sizeIndexPane()
   //  All its rows when they fit; a long list stops at 40 % of the window
   //  and scrolls, so a panel with a table or plot keeps its room.
   int cap = std::max(150, GetClientSize().y * 2 / 5);
-  //  List + detail: the open panel's opening height comes first; the list
-  //  gives way down to a few rows, then scrolls.
+  //  List + detail: the open panel's opening height comes first, but the
+  //  list keeps about eight rows; a tall panel (Diffraction, MOs) takes the
+  //  rest and shrinks its plot below its opening height, down to its floor.
+  //  At three rows the other entries could not be reached by a click.
   PropertyPanel *open = p_panelMode == PANELS_DETAIL
       ? dynamic_cast<PropertyPanel*>(p_detail) : 0;
   wxAuiPaneInfo &detail = open ? p_mgr.GetPane(p_detail) : wxAuiNullPaneInfo;
@@ -1227,8 +1268,14 @@ void Builder::sizeIndexPane()
     const int columnH = column.IsOk() && column.rect.height > 0
         ? column.rect.height : GetClientSize().y - 70;
     const int room = columnH - (tabs.IsOk() ? tabs.min_size.y + 12 : 46);
-    cap = std::min(cap, std::max(p_index->preferredHeight(3),
-                                 room - open->openingHeight()));
+    const int caption =
+        p_mgr.GetArtProvider()->GetMetric(wxAUI_DOCKART_CAPTION_SIZE);
+    const int need = std::max(std::max(80, open->minimumHeight()),
+                              std::max(tableRowsHeight(open, 3),
+                                       graphFloorHeight(open)));
+    const int kept = std::min(p_index->preferredHeight(INDEX_ROWS_KEPT),
+        std::max(p_index->preferredHeight(3), room - need - 2 * caption));
+    cap = std::max(kept, std::min(cap, room - open->openingHeight()));
   }
   const int height = std::min(p_index->preferredHeight(1000), cap);
   p_indexSized = true;
@@ -1236,7 +1283,16 @@ void Builder::sizeIndexPane()
   if (pane.min_size.y == height && pane.dock_proportion == share) return;
   pane.dock_proportion = share;
   pane.MinSize(wxSize(pane.min_size.x, height)).BestSize(wxSize(400, height));
-  if (pane.IsShown() && !pane.IsFloating()) updatePanes();
+  if (pane.IsShown() && !pane.IsFloating()) {
+    updatePanes();
+    //  A table panel is measured once it has been laid out.
+    static bool again = false;
+    if (open && !again) {
+      again = true;
+      sizeIndexPane();
+      again = false;
+    }
+  }
 }
 
 
@@ -1999,7 +2055,7 @@ void Builder::runClipAudit()
     FILE *f = fopen(path, "a");
     if (f) { fprintf(f, "DONE\n"); fclose(f); }
   });
-  wxTimer *timer = new wxTimer();   // lives until the process exits
+  wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
   timer->Bind(wxEVT_TIMER, [steps, timer](wxTimerEvent&) {
     if (steps->empty()) { timer->Stop(); return; }
     Step step = steps->front();

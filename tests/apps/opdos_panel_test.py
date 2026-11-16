@@ -71,6 +71,23 @@ opdosstate
 opdosreset
 opdosstate
 opdospng {t} 1200 800
+opdosatoms 1 2-6
+opdosselect A 4 5 6
+opdosselect B 3 4
+opdosatoms 1-3 3-5 B
+opdosatoms 1-3 3-5
+opdosselect B 1 2 3 4 5 6 7 8 9 10 11 12 13
+opdosatoms 1 2-13
+opdoslayout 420
+opdosmore 1
+opdoslayout 420
+opdosmore 0
+opdossticks 0
+plotshot {t}-panel 0 0 Density of States (OPDOS):docked
+opdoswindow
+opdoswinshot {t}-window
+opdosint 0
+opdoswinclose
 hold 1
 """
 
@@ -125,6 +142,54 @@ def corrupt(h5, out, exe, mo=4, factor=1.05):
             lines[i] = "%s %.14e" % (n, float(c) * factor)
     open(md, "w").write("\n".join(lines))
     subprocess.run([exe, "convert", md, out], check=True, capture_output=True)
+
+
+def checkOverlap(bl, log):
+    """#1078: an atom in both groups goes to the group just set; an empty group is reported; Options; window."""
+    bad = []
+    by = [b for b in bl if b["cmd"].startswith("opdos")]
+    # the commands after opdospng, in order
+    i = max(k for k, b in enumerate(by) if b["cmd"] == "opdospng")
+    seq = by[i + 1:]
+    if len(seq) < 15:
+        return ["only %d states after the overlap commands" % len(seq)]
+    atoms = [(b.get("A"), b.get("B")) for b in seq[:7]]
+    want = [("1", "2-6"), ("4-6", "2-3"), ("5-6", "3-4"), ("1-2", "3-5"), ("1-3", "4-5"), None, ("1", "2-13")]
+    for k, (got, w) in enumerate(zip(atoms, want)):
+        if w and got != w:
+            bad.append("step %d: A|B %s, wanted %s" % (k, got, w))
+    if "moved from B to A" not in seq[1].get("text", ""):
+        bad.append("no note that atoms 4-6 left B: %r" % seq[1].get("text", "")[:120])
+    if seq[1].get("ready") != "1":
+        bad.append("A=4-6 B=2-3 not drawn (ready %s): %s" % (seq[1].get("ready"), seq[1].get("text", "")[:100]))
+    if "in both" in seq[1].get("text", ""):
+        bad.append("overlap still refused")
+    e = seq[5]
+    if e.get("A") != "-" and e.get("A", "x") != "":
+        bad.append("A not empty after B took every atom: %r" % e.get("A"))
+    if e.get("ready") != "0" or "Group A is empty" not in e.get("text", ""):
+        bad.append("empty group not reported in the status line: ready %s text %r" % (e.get("ready"), e.get("text", "")[:100]))
+    lay = log.split("OPDOS layout\n")[1:]
+    if len(lay) != 2:
+        bad.append("%d layout reports" % len(lay))
+    else:
+        vis = [re.search(r"visible (\S*)", c).group(1).split(",") for c in lay]
+        closed = ["atomsA", "useA", "atomsB", "useB", "options", "window", "plot", "intplot"]
+        if vis[0] != closed:
+            bad.append("Options closed shows %s" % vis[0])
+        for n in ("width", "shape", "sticks", "integrated", "occupied", "from", "to"):
+            if n not in vis[1]:
+                bad.append("Options open lacks %s" % n)
+        if any("layout clipped" in c for c in lay):
+            bad.append("controls clipped at 420 px")
+    win = [b for b in by if b["cmd"] == "opdoswindow"]
+    if not win or win[0].get("window_open") != "1" or win[0].get("window_plots") != "2" \
+            or win[0].get("window_curves") != win[0].get("curves") or win[0].get("window_intcurves") != "1":
+        bad.append("window state: %s" % ({k: v for k, v in (win[0] if win else {}).items() if k.startswith("window")},))
+    off = [b for b in by if b["cmd"] == "opdosint"][-1]
+    if off.get("window_int_shown") != "0":
+        bad.append("window did not follow Integrated OPDOS off: %s" % off.get("window_int_shown"))
+    return bad
 
 
 def stage2(display, results, exe):
@@ -329,6 +394,7 @@ def main():
                     bad.append("Reset left a window: %s | %s" % (rst.get("plot_window"), rst.get("intplot_window")))
             else:
                 bad.append("window/layout states missing (%d)" % len(bl))
+            bad += checkOverlap(bl_all, log)
             for ext in ("csv", "png"):
                 f = os.path.join(out, "opdos." + ext)
                 if not os.path.exists(f) or os.path.getsize(f) < 1000:
@@ -336,6 +402,12 @@ def main():
                 elif pngdir:
                     os.makedirs(pngdir, exist_ok=True)
                     shutil.copy(f, pngdir)
+            for f in ("opdos-panel", "opdos-window"):
+                p = os.path.join(out, f + ".png")
+                if not os.path.exists(p):
+                    bad.append("no " + p)
+                elif pngdir:
+                    shutil.copy(p, pngdir)
             print("%s  opdos panel%s" % ("ok  " if not bad else "FAIL", "" if not bad else ": " + "; ".join(bad)))
         finally:
             restore()

@@ -41,6 +41,7 @@
 #include "wxviz/WxVizTool.H"
 #include "wxviz/WxVizToolFW.H"
 #include "wxgui/ewxWindowUtils.H"
+#include "wxgui/ToolTabs.H"
 
 #include "BuilderGUI.H"
 
@@ -80,6 +81,7 @@ class wxToolBarToolBase;
 //  every child (a thaw only invalidates, and the scrolled tool panes kept
 //  the pixels of their old layout).  GTK draws once per idle anyway, so it is
 //  a no-op there.
+class BuilderMessages;
 class BuilderRedrawHold
 {
   public:
@@ -100,13 +102,45 @@ public:
   wxAuiFloatingFrame* CreateFloatingFrame(wxWindow* parent,
                                           const wxAuiPaneInfo& p) override
   {
+    // In a tab the managed window is the page, which is deleted on Open in
+    // Window and would take the floating frame and its panel with it.
+    if (p_floatParent) parent = p_floatParent;
     wxAuiFloatingFrame *f =
         new wxAuiFloatingFrame(parent, this, p, wxID_ANY,
                                wxRESIZE_BORDER | wxSYSTEM_MENU |
                                wxCAPTION | wxCLIP_CHILDREN);
     ewxWindowUtils::detachFromParent(f);
+    ToolTabs::secondaryOpened(f, parent);
     return f;
   }
+
+  //  A pane docked into the Properties column goes below the list, also
+  //  when dropped on the list's top edge or onto the hidden tab strip.
+  bool ProcessDockResult(wxAuiPaneInfo& target,
+                         const wxAuiPaneInfo& newPos) override;
+
+  static void keepIndexOnTop(wxAuiManager& mgr);
+
+  void setFloatParent(wxWindow *w) { p_floatParent = w; }
+
+  // In a tab (#983) the managed window is the tab's page, but panels made
+  // later still have the hidden frame as parent: they move to the page.
+  void Update()
+  {
+    wxWindow *w = GetManagedWindow();
+    wxAuiPaneInfoArray& panes = GetAllPanes();
+    for (size_t i = 0; w && i < panes.GetCount(); i++) {
+      wxWindow *pw = panes[i].window;
+      wxWindow *parent = pw ? pw->GetParent() : 0;
+      if (parent && parent != w && !parent->IsKindOf(
+              CLASSINFO(wxAuiFloatingFrame)))
+        pw->Reparent(w);
+    }
+    wxAuiManager::Update();
+  }
+
+private:
+  wxWindow *p_floatParent = 0;
 };
 
 class Builder: public BuilderGUI,
@@ -269,6 +303,12 @@ class Builder: public BuilderGUI,
 
       // wxWindow virtuals
       virtual bool Show(bool show=true);
+      // As a tab of the Organizer's window (#983): select / retitle the
+      // tab, give the windows back before the frame goes.
+      void Raise() override;
+      void SetTitle(const wxString& title) override;
+      bool Destroy() override;
+      wxAuiManager *auiManager() { return &p_mgr; }
 
       // ewxTool virtuals
       virtual void setContext(const string& url, const bool& force=false);
@@ -402,6 +442,7 @@ class Builder: public BuilderGUI,
       virtual void OnSaveClick( wxCommandEvent& event );
       virtual void OnSaveasClick( wxCommandEvent& event );
       virtual void OnSaveThumbClick( wxCommandEvent& event );
+      void OnSaveImageClick( wxCommandEvent& event );
       virtual void OnDumpsgClick( wxCommandEvent& event );
       virtual void quitMenuItemClickCB( wxCommandEvent& event );
 
@@ -512,6 +553,11 @@ class Builder: public BuilderGUI,
                            const string& value);
 
       void quit(const bool& allowCancel = true);
+      // The window owns its dispatcher (#983) and deletes it with itself.
+      void setMessages(BuilderMessages *msgs) { p_msgs = msgs; }
+      BuilderMessages *messages() const { return p_msgs; }
+      // Opened inside the Organizer's process: Quit closes this window only.
+      void setInProcess(bool on) { p_inProcess = on; }
 
       static void moveStartCB(void *userData, SoDragger *dragger);
       static void moveEndCB(void *userData, SoDragger *dragger);
@@ -577,6 +623,7 @@ class Builder: public BuilderGUI,
       void syncColumn(bool allowSwitch);
       void syncMenuChecks();
       void updatePanes(bool allowSwitch=false);
+      void keepIndexOnTop() { BuilderAuiManager::keepIndexOnTop(p_mgr); }
       void initShownPanels();
       void makeRoomFor(const wxString& name);
       bool fitToolColumn();
@@ -594,6 +641,7 @@ class Builder: public BuilderGUI,
       void foldPane(wxWindow *win, bool fold);
       void updatePropertyIndex();
       void rebuildSurfacesMenu(MoPanel *mo);
+      bool imageOnFineSurface(const std::string& path, int w, int h, bool white, int factor);
       void collapseLog();
       bool paneWanted(const wxAuiPaneInfo& pane) const;
       string layoutPrefix() const;
@@ -630,6 +678,8 @@ class Builder: public BuilderGUI,
 
       void reportError(const string& msg);
       void toggleModeButton(int toolId);
+      /// The menu bar, also while it is on the Organizer's window (a tab).
+      wxMenuBar *GetMenuBar() const;
 
       void setUnsavedState(bool changed);
       void doSave();
@@ -639,6 +689,8 @@ class Builder: public BuilderGUI,
       void doSaveThumb();
       void doClose(const string& context="", const bool& autoOpen=true);
       bool traceStressCommand(SceneScript& s, const vector<string>& w);
+      /// Conformers-panel hooks (gten...); "" when done, else the error.
+      string ensembleCommand(const vector<string>& w);
       /// Show frame `index` through the Geometry Trace panel (plot marker
       /// included); false when that panel is not open.
       bool traceFrame(int index);
@@ -757,6 +809,11 @@ class Builder: public BuilderGUI,
 
       bool p_standalone;
 
+      BuilderMessages *p_msgs = nullptr;
+      bool p_inProcess = false;
+      bool p_closing = false;
+      bool p_quitting = false;   // inside quit(), see there
+
       set<int> p_readOnlyDisabledIds;
 
       map<string, IPropCalculation*> p_calculations;
@@ -839,6 +896,8 @@ class Builder: public BuilderGUI,
     public:
       void toolPaneResized(const string& name);
       void propertyPaneRoom(wxWindow *win, int need);
+      //  The open panel's view changed what it needs below the list.
+      void openPanelChanged() { sizeIndexPane(); }
       //  Test hooks (ECCE_PANEL_TEST): what the layout currently holds.
       PanelMode panelMode() const { return p_panelMode; }
       void runPanelLayoutTest();

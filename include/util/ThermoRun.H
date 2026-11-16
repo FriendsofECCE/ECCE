@@ -18,6 +18,12 @@ struct ThermoTreatmentInfo
 struct ThermoValue
 {
    double H = 0, S = 0, G = 0;   ///< Hartree, J/mol/K, Hartree
+   // Contributions (#1044), index 0 translational, 1 rotational,
+   // 2 vibrational, 3 electronic.  U without ZPE in kJ/mol, S and Cv in J/mol/K.
+   bool haveContrib = false;
+   double U[4] = {0, 0, 0, 0}, Sc[4] = {0, 0, 0, 0}, Cv[4] = {0, 0, 0, 0};
+   double zpe = 0;               ///< kJ/mol
+   double cv = 0, cp = 0;        ///< J/mol/K
 };
 
 struct ThermoRunResult

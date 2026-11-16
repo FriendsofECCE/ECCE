@@ -10,6 +10,7 @@
 #include <vector>
 
 class ICalculation;
+class GUIValues;
 
 /**
  * Makes a calculation's input deck from what it stores: the .frag/.basis/
@@ -28,6 +29,14 @@ namespace DeckWriter {
     int openShells;
     /// Told the name of each slow step as it starts (a progress display).
     std::function<void(const std::string&)> stage;
+    /// Preview (#983 Set-up tab): the deck goes to Result::deck and the
+    /// calculation is never written.  The fields below, when set, replace
+    /// the stored settings in the generator's parameter file (an editor's
+    /// unsaved choices); structure and basis stay the stored ones.
+    bool dryRun = false;
+    const GUIValues *gui = 0;
+    std::string category, theory, runtype;
+    int spin = -1;
     Options() : useExpCoeff(false), keepFiles(false), openShells(-1) {}
   };
 
@@ -41,6 +50,8 @@ namespace DeckWriter {
     std::string fullMoleculeWarning;
     std::string qstStatus, qstDetail, qstTable;
     std::string keptDir;
+    /// The deck a dryRun generated.
+    std::string deck;
     Result() : ok(false) {}
   };
 

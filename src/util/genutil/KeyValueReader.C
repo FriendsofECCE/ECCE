@@ -1,4 +1,6 @@
 #include <string.h>
+#include <vector>
+using std::vector;
 #include <fstream>
 using std::ifstream;
 
@@ -51,13 +53,15 @@ void KeyValueReader::stripTrailingComments(bool flag)
 
 bool KeyValueReader::getpair(string& key, string& text)
 {
-  static const int MAXLINE = 2056;
   string line;
   string tmp;
   size_t startText;
-  char buf[MAXLINE];  // hardwired message limit
+  string rawLine;
   bool needMore = true;
-  while (p_is->getline(buf,MAXLINE-1)) {
+  while (std::getline(*p_is, rawLine)) {
+    vector<char> bufv(rawLine.begin(), rawLine.end());
+    bufv.push_back('\0');
+    char* buf = &bufv[0];
     int len = strlen(buf);
     // skip empty lines
     if (len == 0) continue;

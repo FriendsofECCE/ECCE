@@ -617,6 +617,18 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     } catch (EcceException& e) {
       return fail(string("vizfile: ") + e.what());
     }
+  } else if (c == "saveimage" && (w.size() == 3 || w.size() == 4)) {
+    //  "saveimage <path.png> <factor> [white]": File > Save Image's render.
+    wxWindow *cv = findRenderArea(p_viewer);
+    if (!cv) return fail("saveimage: no render area");
+    if (w.size() == 4 && w[3] != "white") return fail("saveimage: unknown option " + w[3]);
+    wxSize sz = cv->GetClientSize();
+    const bool white = w.size() == 4;
+    const int factor = atoi(w[2].c_str());
+    if (!(p_image ? p_image(w[1], sz.GetWidth(), sz.GetHeight(), white, factor)
+                  : VizRender::image(p_viewer, w[1], sz.GetWidth(), sz.GetHeight(),
+                                     white, factor)))
+      return fail("saveimage: " + VizRender::msg());
   } else if (c == "offscreen" && w.size() == 3) {
     //  "offscreen <name> <size>": this script's own offscreen renderer
     //  (480 is the canvas size, which snapshot() reads from the canvas).
@@ -754,7 +766,7 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     SbVec3f pos = cam->position.getValue(), np;
     r.multVec(pos, np);
     cam->position.setValue(np);
-    cam->orientation.setValue(r * cam->orientation.getValue());
+    cam->orientation.setValue(cam->orientation.getValue() * r);   // orient, then orbit
   } else if (c == "exportiso" && w.size() == 2) {
     //  "exportiso <name>": the isosurface triangles in world space (position,
     //  normal, packed colour per ChemIso) plus the camera, to <name>-iso.txt,

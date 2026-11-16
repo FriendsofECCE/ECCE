@@ -960,6 +960,63 @@ def run_recipes(display, data, work, shots):
     shutil.rmtree(recdir, ignore_errors=True)
 
 
+PERIODIC = os.path.join(ROOT, "data", "client", "examples", "genchem",
+                        "packing-in-solids", "qe-al_fcc", "stored", "al_fcc")
+
+
+def run_mlp(display, data, work, shots):
+    """MLP (MACE) is a workflow code, and a periodic structure keeps its
+    cell through QE -> MLP -> QE geometry links (#1019)."""
+    root = os.path.join(data, "users", "local")
+    project = os.path.join(root, "mlp")
+    os.makedirs(project)
+    shutil.copy(PROJECT_META, os.path.join(project, ".ecce-meta"))
+    shutil.copytree(PERIODIC, os.path.join(project, "al"), symlinks=True)
+    proj = "file://" + root + "/mlp"
+    wf = proj + "/Workflow"
+    commands = [
+        "summary %s/al" % proj,
+        "new %s workflow" % proj,
+        "workflowcopy %s %s/al al" % (wf, proj),
+        "workflowstep %s mlp_es mlp-1 %s/al charge=0 mult=1" % (wf, wf),
+        "workflowstep %s qe_es qe-1 %s/mlp-1" % (wf, wf),
+        "workflowinfo %s" % wf,
+    ]
+    script = os.path.join(work, "commands-mlp")
+    with open(script, "w") as handle:
+        handle.write("\n".join(commands) + "\n")
+    result = apps.run(display, "organizer", windowTimeout=60, settle=60,
+                      env={"ECCE_TEST_ORGANIZER": script})
+    log = result.log or ""
+    what = "MLP step"
+    if result.crashed:
+        return fail(what, "CRASHED (%s)" % result.signalName, log)
+    got = re.findall(r"ECCE_TEST_ORGANIZER: workflowinfo.*?: (.*)$", log, re.M)
+    if not got or not got[0].startswith("ok "):
+        return fail(what, "no workflowinfo answer", log)
+    for line in re.findall(r"ECCE_TEST_ORGANIZER: workflow(?:copy|step).*?: (.*)$",
+                           log, re.M):
+        print("      %s" % line[:100])
+    table = steps(got[0][3:])
+    links = got[0].split(" links:")[1].split()
+    check("MLP and QE steps are made",
+          {"mlp-1", "qe-1"} <= set(table), "steps %s" % sorted(table))
+    if not {"mlp-1", "qe-1"} <= set(table):
+        return
+    check("the MLP step has the code label MLP", table["mlp-1"]["code"] == "MLP",
+          str(table["mlp-1"]))
+    check("geometry links run al > mlp-1 > qe-1",
+          {"al>mlp-1:geometry", "mlp-1>qe-1:geometry"} <= set(links),
+          "links %s" % links)
+    cell = table["al"].get("cell")
+    check("the source is periodic", bool(cell), str(table["al"]))
+    for name in ("mlp-1", "qe-1"):
+        rec = table[name]
+        check("%s has the source's cell and %s atoms" % (name, table["al"]["atoms"]),
+              rec.get("cell") == cell and rec["atoms"] == table["al"]["atoms"] and
+              rec.get("xyz0") == table["al"].get("xyz0"), "%s vs %s" % (rec, table["al"]))
+
+
 def tree_of(path):
     out = set()
     for d, _, files in os.walk(path):
@@ -1757,10 +1814,13 @@ def main():
                 run_hand_ready(display, data, work, shots)
             elif "--make-only" in sys.argv:
                 run_make(display, data, work, shots)
+            elif "--mlp-only" in sys.argv:
+                run_mlp(display, data, work, shots)
             elif "--recipes-only" not in sys.argv:
                 run(display, data, work, shots)
                 run_joins(display, data, work, shots)
                 run_make(display, data, work, shots)
+                run_mlp(display, data, work, shots)
                 run_best(display, data, work, shots)
                 run_best_poses(display, data, work, shots)
                 run_patterns(display, data, work, shots)
@@ -1769,7 +1829,7 @@ def main():
                 # Protonation and auto-run have their own ctest entries
                 # (apps_workflow_protonation, apps_workflow_autorun).
             if not {"--make-only", "--editor-only", "--protonation-only", "--autorun-only",
-                "--handready-only", "--readonly-only"} & set(sys.argv):
+                "--handready-only", "--readonly-only", "--mlp-only"} & set(sys.argv):
                 run_recipes(display, data, work, shots)
         finally:
             stop = os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")

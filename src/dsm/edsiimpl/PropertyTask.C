@@ -664,7 +664,7 @@ TProperty* PropertyTask::getStoredProperty(const string& name)
     //  bulky parsed properties (#883).
     static const std::set<string> fileKeys = {"VIBFREQ", "VIBIR", "VIBRAM",
         "VIB", "SCANGEOM", "SCANENERGY", "SCANCOORD", "IRCGEOM", "IRCENERGY",
-        "IRCCOORD", "GEOMTRACE", "TEVEC"};
+        "IRCCOORD", "GEOMTRACE", "TEVEC", ResultsFromCalc::NPA_KEY};
     if (property && fileKeys.count(name) &&
         ResultsFromCalc::fromFile(this, name, property)) {
       putTProperty(name, property);

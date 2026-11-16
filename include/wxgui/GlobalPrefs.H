@@ -47,6 +47,14 @@ public:
   string colourSchemeShown() const;
   bool tickAdvanced(const string& key, bool on);   // as a click does
   string dataTest(const string& line);             // "prefs data ..."
+  string windowsTest(const string& line);          // "prefs windows ..."
+
+  // Refreshes the Windows and tabs page on showing: a tab's right-click
+  // "Always open in a window" changes the setting meanwhile.
+  bool Show(bool show = true) override;
+  // Preferences > Codes (#1049): show the page, hidden codes first when asked.
+  void showCodesPage(bool hiddenFirst);
+  string codesTest(const string& line);            // "prefs codes ..."
 
   // One "command" setting: a choice of well-known programs plus a text
   // field that is editable for "Other".  Stored value is the command;
@@ -70,6 +78,13 @@ private:
   void createGatewayPage(wxWindow* page);
   void createDataPage(wxWindow* page);
   void createAdvancedPage(wxWindow* page);
+  void createWindowsPage(wxWindow* page);
+  void updateWindowsPage();
+  void OnLayoutChoice(wxCommandEvent& event);
+  void OnLayoutCustomize(wxCommandEvent& event);
+  void createCodesPage(wxWindow* page);
+  void updateCodesPage();
+  void saveCodes();
   void OnChooseAdvancedFile(wxCommandEvent& event);
   void updateDataPage();
   void OnChangeDataFolder(wxCommandEvent& event);
@@ -104,6 +119,12 @@ private:
   bool isDefaultPrograms();
   void updateResetButton();
 
+
+  struct CodeRow { std::string name; ewxCheckBox* box; wxSizer* row; };
+  vector<CodeRow> p_codeRows;
+  wxBoxSizer* p_codesList;
+  ewxStaticText* p_codesNote;
+  wxWindow* p_codesPage;
 
   JMSPublisher* p_publisher;
   ewxNotebook* p_book;
@@ -160,6 +181,8 @@ private:
     ewxButton* choose;
   };
   vector<AdvancedRow> p_advanced;
+  ewxChoice* p_layout = nullptr;          // Windows and tabs preset
+  ewxStaticText* p_layoutRows = nullptr;  // which tools are tabs / windows
   ewxChoice* p_glPath;     // Automatic / Software-safe / Hardware (#566)
 
   ProgramRow p_editor;

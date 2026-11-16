@@ -19,12 +19,12 @@
  */
 
 ////@begin includes
-#include "wx/frame.h"
+#include "wx/panel.h"
 #include "wxgui/WxParameterEdit.H"
 #include "wxgui/WxTimeSpanEdit.H"
 #include "wx/statline.h"
 #include "wxgui/WxFeedback.H"
-#include "wxgui/ewxFrame.H"
+#include "wxgui/ewxPanel.H"
 ////@end includes
 
 /*!
@@ -33,7 +33,6 @@
 
 ////@begin forward declarations
 class ewxEVT_TIMESPAN_VALUE_CHANGED;
-class ewxFrame;
 class ewxEVT_PARAMETER_VALUE_CHANGED;
 ////@end forward declarations
 
@@ -61,7 +60,7 @@ class ewxEVT_PARAMETER_VALUE_CHANGED;
  * WxLauncherGUI class declaration
  */
 
-class WxLauncherGUI: public ewxFrame
+class WxLauncherGUI: public ewxPanel
 {    
     DECLARE_CLASS( WxLauncherGUI )
     DECLARE_EVENT_TABLE()
@@ -77,9 +76,6 @@ public:
     void CreateControls();
 
 ////@begin WxLauncherGUI event handler declarations
-    /// wxEVT_CLOSE_WINDOW event handler for ID_FRAME_WXLAUNCHER
-    virtual    void mainWindowCloseCB( wxCloseEvent& event );
-
     /// wxEVT_COMMAND_CHOICE_SELECTED event handler for ID_CHOICE_WXLAUNCHER_MACHINES
     virtual    void machinesChoiceSelectedCB( wxCommandEvent& event );
 
