@@ -746,8 +746,11 @@ ecce_tool_objects(launcher-objs src/apps/launcher EXCLUDE WxLauncherApp.C
   LINK ${ECCE_LAUNCHER_LINK})
 ecce_app(launcher src/apps/launcher WX MAIN WxLauncherApp.C OBJECTS launcher-objs
   LINK ${ECCE_LAUNCHER_LINK})
-ecce_app(machbrowser src/apps/machbrowser WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccetdat ecceutil)
+set(ECCE_MACHBROWSER_LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccetdat ecceutil)
+ecce_tool_objects(machbrowser-objs src/apps/machbrowser EXCLUDE MachineBrowserApp.C
+  LINK ${ECCE_MACHBROWSER_LINK})
+ecce_app(machbrowser src/apps/machbrowser WX MAIN MachineBrowserApp.C OBJECTS machbrowser-objs
+  LINK ${ECCE_MACHBROWSER_LINK})
 ecce_app(machregister src/apps/machregister WX
   # eccercmd for RCommand::localityNote (#144), the same decision the launch makes.
   # eccecomm for CodePrograms, the program names Find and first start share.
@@ -788,8 +791,11 @@ ecce_app(hostkeydialog src/apps/hostkeydialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_app(passdialog src/apps/passdialog WX
   LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
-ecce_app(pertable src/apps/pertable WX
-  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+set(ECCE_PERTABLE_LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+ecce_tool_objects(pertable-objs src/apps/pertable EXCLUDE PerTabApp.C
+  LINK ${ECCE_PERTABLE_LINK})
+ecce_app(pertable src/apps/pertable WX MAIN PerTabApp.C OBJECTS pertable-objs
+  LINK ${ECCE_PERTABLE_LINK})
 ecce_app(solvate src/apps/solvate WX
   LINK eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 
@@ -832,6 +838,7 @@ target_include_directories(builder PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organize
 ecce_app(organizer src/apps/organizer WX GL MAIN CalcMgrApp.C
   OBJECTS organizer-objs organizer-shared-objs builder-objs calced-objs
     mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs basistool-objs mdprepare-objs launcher-objs
+    pertable-objs machbrowser-objs
   LINK eccewxguimd ecce-details-wx ${ECCE_BUILDER_LINK})
 target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
