@@ -67,6 +67,7 @@
 #include "dsm/ResourceType.H"
 #include "dsm/ResourceDescriptor.H"
 #include "dsm/RunFolderCopy.H"
+#include "util/Filesystem.H"
 
 
 #include "comm/RCommand.H"
