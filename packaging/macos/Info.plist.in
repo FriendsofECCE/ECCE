@@ -16,16 +16,6 @@
   <key>NSDownloadsFolderUsageDescription</key><string>ECCE reads the structure and input files you pick in your Downloads folder.</string>
   <key>NSDesktopFolderUsageDescription</key><string>ECCE reads the structure and input files you pick on your Desktop.</string>
   <key>NSDocumentsFolderUsageDescription</key><string>ECCE reads the structure and input files you pick in your Documents folder.</string>
-  <key>CFBundleDocumentTypes</key>
-  <array>
-    <dict>
-      <key>CFBundleTypeName</key><string>ECCE structure</string>
-      <key>CFBundleTypeRole</key><string>Viewer</string>
-      <key>LSHandlerRank</key><string>Alternate</string>
-      <key>CFBundleTypeExtensions</key>
-      <array><string>mvm</string><string>xyz</string><string>pdb</string><string>cif</string></array>
-    </dict>
-  </array>
   <key>LSApplicationCategoryType</key><string>public.app-category.education</string>
 </dict>
 </plist>

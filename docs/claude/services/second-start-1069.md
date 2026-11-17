@@ -36,7 +36,7 @@ issues: [1069, 983]
   because the gateway sits between the launcher and the Organizer;
   `ecce.vbs` forwards its arguments to ecce.cmd, which passes `%*` to
   organizer.exe. `CalcMgr::openStructureFiles` starts a Builder with a
-  `file://` URL. macOS: `CalcMgrApp::MacOpenFiles`.
+  `file://` URL. macOS: `CalcMgrApp::MacOpenFiles` is in place, but `packaging/macos/launcher.c` is the bundle's executable and swallows the `odoc` Apple event, so Info.plist declares no document types and Finder's "Open with" does not offer ECCE; `ecce FILE` from a shell works. Handling `odoc` needs an Apple-event handler in the launcher that forwards the paths (ECCE_OPEN_FILES at launch, the socket otherwise); not done, untestable without a Mac.
 - ecce-splash (Windows) ignores organizer.exe processes that were running
   before it, so a second start no longer says "window shown after 0 s", and
   treats an exit status 0 of the new one as the hand-over, not an error.
