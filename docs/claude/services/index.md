@@ -89,7 +89,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Second start of ecce raises the running window; where the check sits and how it reaches it (#1069)](second-start-1069.md)
 - [Tabs: ewxRaiseWindow mapped the hidden tool frame over the main window (empty grey Builder tab, #983)](tabbed-tool-frame-is-mapped-by-raise.md)
 - [Tabs: the AUI manager is on the frame's handler stack; PopEventHandler(true) freed it at Quit (#983)](aui-manager-is-on-the-handler-stack.md)
-- [Tabs: menu bars: tool GetMenuBar() null in a tab, Organizer GetMenuBar() is the tool's (Run Mgmt crash), SetMenuBar compares with GetMenuBar() (#983)](tab-hides-the-frames-menu-bar.md)
+- [Tabs: menu bars: GetMenuBar() is null in a tab for the Builder and, since the MainFrame host (#1065), the Organizer (use ownMenuBar()); SetMenuBar compares with GetMenuBar() (#983)](tab-hides-the-frames-menu-bar.md)
 - [Tabs: floating AUI frames not children of the page; wxAuiManager::Update non-virtual (#983)](aui-floating-frames-and-update-in-a-tab.md)
 - [The app suite tests the INSTALLED ECCE (/opt/ecce), not build-cmake (#385)](app-tests-run-the-installed-tree.md)
 - [The Launcher runs each Launch step on a worker thread; nothing a step calls may touch wx; submit timeout 120 s idle (#424)](launch-steps-run-off-the-gui-thread.md)

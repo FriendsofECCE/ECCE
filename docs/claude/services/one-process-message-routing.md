@@ -262,8 +262,12 @@ that one window, so the `tests/apps` scripts keep a per-tool start.
   the in-Organizer broker (#990/#1007) once no job program or command is
   connected, as today.
 - With a `MainFrame` (#1065) Quit is `confirmAndQuit` -> `MainFrame::
-  shutdown()`: CalcMgr is destroyed BEFORE the host (its destructor still
-  uses the windows the page held; `Destroy()` releases them back first).
+  shutdown()`, in this order: (1) the host's size is saved while it is
+  still on screen (a hidden window has no geometry; same "Organizer" prefs
+  prefix as before); (2) CalcMgr is destroyed BEFORE the host (its
+  destructor still uses the windows the page held; `Destroy()` releases
+  them back first); (3) the host. A second call is a no-op (`p_shutdown`).
+  The tool windows were already closed by `InProcessTools::closeAll`.
   A hidden CalcMgr that is not destroyed keeps the process alive; the
   `left after quit:` line (`ECCE_TEST_ORGANIZER`) names any window left.
 - `ecce_quit` from the gateway closes all windows the same way, forced
