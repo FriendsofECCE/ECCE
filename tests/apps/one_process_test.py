@@ -430,7 +430,7 @@ def organizerOutput(display, env, seconds=30):
     environment.update(env)
     proc = subprocess.Popen([os.path.join(apps.WRAPPERS, "ecce-organizer")],
                             env=environment, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, text=True,
+                            stderr=subprocess.STDOUT,
                             start_new_session=True)
     time.sleep(seconds)
     alive = proc.poll() is None
