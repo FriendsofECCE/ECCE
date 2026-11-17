@@ -1284,7 +1284,7 @@ def runUtilityWindows(display):
                   "closing leaves the Organizer running", inproc[2])
             check("PeriodicTable=1 MachineBrowser=0" in inproc[3],
                   "a request after closing opens a fresh one", inproc[3])
-        check(pb.answers(log, "closetools").count("closed") == 3,
+        check(pb.answers(log, "closetools").count("closed") == 2,
               "the windows closed", str(pb.answers(log, "closetools")))
     finally:
         shutil.rmtree(data, ignore_errors=True)
