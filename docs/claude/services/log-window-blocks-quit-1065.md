@@ -15,11 +15,6 @@ issues: [1065, 1069, 983, 233]
   never came. The central-server container test found it ("alice quits"
   failed, with an 'ECCE Error' window). A file that may be missing gets
   `unlink()` or a `wxLogNull` scope, never a bare `wxRemoveFile`.
-- On GTK the log window is a native message box. It is not in
-  `wxTopLevelWindows` and it runs a nested `gtk_dialog_run`. If something
-  destroys the last frame while it is open, `ExitMainLoop` does nothing:
-  the main loop is not the active one. The process then stays alive with
-  "no window left".
 - The first-start example import shows an application-modal progress
   window, and it ignores a close until it ends (2-4 minutes on a loaded
   host). `guest.py close` waits for "Example calculations" to go before it
