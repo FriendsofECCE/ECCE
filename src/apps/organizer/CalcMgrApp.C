@@ -286,7 +286,7 @@ bool CalcMgrApp::OnInit()
     addEnvFiles(words, true);
     std::vector<wxString> files = OneInstance::filesIn(words);
     if (!files.empty())
-      CallAfter([host, files]() { host->openFiles(files); });
+      host->CallAfter([host, files]() { host->openFiles(files); });
   } else {
     p_calcMgr->Show(true);
     SetTopWindow(p_calcMgr);
