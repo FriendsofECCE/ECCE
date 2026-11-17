@@ -720,7 +720,7 @@ long WxJMSMessageDispatch::startToolWin(const string& app, string& error)
       _putenv_s("ECCE_INVOKE_VIEWER", "");
       _putenv_s("ECCE_INVOKE_FROMECCE", "");
     }
-    if (oneProcess) _putenv_s("ECCE_ONE_PROCESS", "");
+    if (oneProcess) _putenv_s("ECCE_ONE_PROCESS", "0");
     if (!ok)
       error = "could not start " + exe + " (error " +
               std::to_string(GetLastError()) + ")";
@@ -849,7 +849,7 @@ void WxJMSMessageDispatch::appExec()
         if (app == "Organizer" && MqttLink::oneProcessRequested())
           setenv("ECCE_ONE_PROCESS", "1", 1);
         else
-          unsetenv("ECCE_ONE_PROCESS");
+          setenv("ECCE_ONE_PROCESS", "0", 1);
 
         execv(path, argv);
         cerr << "exec failed!" << endl;

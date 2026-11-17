@@ -115,7 +115,7 @@ void GlobalPrefs::createWindowsPage(wxWindow* page)
       0, wxLEFT|wxRIGHT|wxBOTTOM, PAD);
   if (!MqttLink::localDelivery())
     box->Add(new ewxStaticText(sb, wxID_ANY,
-        _("Tabs need the tools in one program (ECCE_ONE_PROCESS=1); until "
+        _("Tabs need the tools in one program (ECCE_ONE_PROCESS=0 is set); until "
           "then every tool opens in its own window.")),
         0, wxLEFT|wxRIGHT|wxBOTTOM, PAD);
   outer->Add(box, 0, wxGROW|wxALL, PAD);

@@ -66,6 +66,10 @@ This produces the 19 GUI apps (`gateway`, `organizer`, `builder`,
 `pertable`, ...) plus the CLI apps, all statically linked against the
 in-tree libraries.
 
+At run time `ecce` opens one program: the Organizer and the tools (Builder,
+Calculation Editor, ...) are tabs of one window. `ECCE_ONE_PROCESS=0 ecce`
+opens every tool as a program of its own, as before.
+
 ## 3. Package and install
 
 ```

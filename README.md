@@ -53,7 +53,7 @@ On main, not in a package yet:
 - Edit > Preferences > Codes chooses which codes are offered for new calculations; hidden codes stay listed as "N more codes (hidden)..." (#1049).
 - New from This > Rerun, Continue from Last Geometry, Continue from Final Orbitals and Continue in Another Code..., the same names in the Edit and right-click menus.
 - Diffraction as a docked Properties pane; thermochemistry split into translation, rotation, vibration and electronic contributions, with C_V and C_P; a GROMACS calculation from your own .mdp/.gro/.top or .tpr files (#1038); MACE as a workflow step (#1019).
-- One program with tabs on Windows, macOS and Linux (#983), in progress.
+- One program with tabs on Windows, macOS and Linux (#983) is the default (#1067): Organizer, Builder, Calculation Editor and the other tools are tabs of one window. `ECCE_ONE_PROCESS=0 ecce` brings back one window per tool.
 
 ## First steps
 

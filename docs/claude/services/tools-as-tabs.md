@@ -5,7 +5,7 @@ area: services
 paths: ["include/wxgui/MainFrame.H", "src/wxgui/jms/MainFrame.C", "src/apps/organizer/CalcMgr.C", "src/wxgui/mdtools/MDEdBase.C", "src/apps/mdprepare/MDPrep.C", "src/apps/basistool/WxBasisTool.C", "src/wxgui/jms/ToolTabs.C", "src/wxgui/ewxClasses/ewxModalGuard.C", "include/wxgui/ToolTabs.H", "src/apps/launcher/LauncherWindow.C", "src/apps/launcher/LauncherMessages.C", "src/apps/builder/Builder.H", "src/apps/builder/Builder.C", "src/apps/builder/BuilderWindow.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/InProcessTools.C", "tests/apps/one_process_test.py", "src/util/genutil/WindowLayout.C", "include/util/WindowLayout.H", "src/wxgui/wxdialogs/GlobalPrefsWindows.C"]
 issues: [983, 1065]
 ---
-Switch: `ECCE_ONE_PROCESS=1` and Preferences > Windows and tabs
+Switch: one process is the default since #1067 (`ECCE_ONE_PROCESS=0` turns it off; `MqttLink::oneProcessRequested` treats unset as on, and the Organizer sets the variable to 0 for its children so a tool started from it stays separate); and Preferences > Windows and tabs
 (`util/WindowLayout`, stored in EcceGlobal; default Normal).
 `ToolTabs::enabled` (tab strip made at the Organizer's start) needs some
 row set to Tab then; each opener calls `ToolTabs::open(tool, mgr, title,

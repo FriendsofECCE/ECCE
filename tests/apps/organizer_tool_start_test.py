@@ -80,9 +80,8 @@ def run(display, oneProcess):
         env = {"ECCE_TEST_ORGANIZER": cmds, "ECCE_TEST_MESSAGES": "1",
                "ECCE_TEST_TOOL_DELAY": str(delay),
                "ECCE_LOCAL_DATA": data}
-        if oneProcess:
-            env["ECCE_ONE_PROCESS"] = "1"
-        # Without ECCE_ONE_PROCESS a tool is a program the gateway starts.
+        env["ECCE_ONE_PROCESS"] = "1" if oneProcess else "0"
+        # With ECCE_ONE_PROCESS=0 a tool is a program the gateway starts.
         result = apps.run(display, "organizer" if oneProcess else "gateway", windowTimeout=60, settle=20,
                           env=env, inspect=inspect)
         log = result.log or ""

@@ -177,8 +177,8 @@ through the command-line tools in "Commands". You cannot click in the windows.
 | Machine Browser | Runs a few status queries on a registered machine over ECCE's login. | From the Organizer or Launcher |
 | Basis Set Tool | Looks at and edits basis sets. | From the Organizer or Calculation Editor |
 
-Each window is its own program. Experimental: with `ECCE_ONE_PROCESS=1`
-in the environment of `ecce`, the Builder, the Calculation Editor, the
+One program is the default (#1067): unless `ECCE_ONE_PROCESS=0` is in the
+environment of `ecce` (the old route, every window its own program), the Builder, the Calculation Editor, the
 Basis Set Tool, the MD editors, the Periodic Table, the Machine Browser and
 Register Machines open as windows of the Organizer's process instead (the
 last three as plain windows, not tabs); job programs and the other
@@ -226,7 +226,7 @@ opens the file in a Builder tab of the running copy, or of the one being
 started. `ECCE_MULTIPLE_INSTANCES=1` switches the check off. Test hook
 `raised` (Organizer command file): how many second starts reached the window.
 
-With `ECCE_ONE_PROCESS=1` the Viewer (`CalculationViewer`) is an in-process
+In one-program mode (the default) the Viewer (`CalculationViewer`) is an in-process
 Builder tab as well; `start TOOL URL` twice for one calculation reuses the
 tool's tab (`inprocess` reports `Viewer=N`); closing a tool's tab never
 asks to quit the Organizer (`ToolTabs::closingTool`). Input is blocked
@@ -234,7 +234,7 @@ during tool start and job submit by `InputBlock` (swallows mouse and key
 events, nothing disabled; the separate-window path keeps `wxWindowDisabler`).
 Checked by `ECCE_1088_ONLY=1 tests/apps/one_process_test.py`.
 
-Experimental, with `ECCE_ONE_PROCESS=1`: **Edit > Preferences > Windows
+In one-program mode (the default): **Edit > Preferences > Windows
 and tabs** chooses which tools open as tabs of the Organizer's window (the
 Organizer is the first tab and cannot be closed). Presets **Normal**,
 **Small**, **Wide** (separate windows; default: Normal); **Customize...** sets
@@ -267,8 +267,8 @@ opened after a change follows it; the tab strip itself is made when the
 Organizer starts, so going from Wide to tabs needs a restart (a fresh install is Normal). The window's
 menu bar is the active tab's. Right-click on a tab: **Open in Window** (this
 time) and **Always open in a window** (also sets that tool's row to Window);
-the tool's **Window > Move to Tabs** puts it back. Without
-`ECCE_ONE_PROCESS` every tool opens in a window whatever the setting. Test
+the tool's **Window > Move to Tabs** puts it back. With
+`ECCE_ONE_PROCESS=0` every tool opens in a window whatever the setting. Test
 hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus),
 `launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `tab N`, `towindow N`, `totabs <title part>`, `mainwindow` (the main window: `host=MainFrame organizer=hidden ...`, or `host=none`
 when the Organizer is its own window), `menu exit|about|preferences|<id>` and `hostclose` (a menu command, or the window

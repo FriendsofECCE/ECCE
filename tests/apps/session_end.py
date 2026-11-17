@@ -151,7 +151,11 @@ def parse():
                         "wrappers (default: <tree>/wrappers, else "
                         "ECCE_TEST_WRAPPERS or /usr/bin)")
     parser.add_argument("--one-process", action="store_true",
-                        help="run every session with ECCE_ONE_PROCESS=1 (#983)")
+                        help="run every session with ECCE_ONE_PROCESS=1 (the default "
+                        "since #1067)")
+    parser.add_argument("--separate-processes", action="store_true",
+                        help="run every session with ECCE_ONE_PROCESS=0, "
+                        "one program per tool")
     return parser.parse_args()
 
 
@@ -178,7 +182,9 @@ else:
     wrappers = (args.wrappers or os.environ.get("ECCE_TEST_WRAPPERS")
                 or "/usr/bin")
 os.environ["ECCE_TEST_HOME"] = install
-if args.one_process:
+if args.separate_processes:
+    os.environ["ECCE_ONE_PROCESS"] = "0"
+elif args.one_process:
     os.environ["ECCE_ONE_PROCESS"] = "1"
 os.environ.pop("ECCE_NO_REAP", None)     # the reaper is under test
 # The mode-1 cases check the per-user mosquitto (pid file, one broker per
@@ -1345,7 +1351,7 @@ def twoSessions(checks, display, logdir, tag, brokerUp, stopSays):
     # One program (#1069) would answer the second start by raising the first
     # window; this test is about two sessions sharing the services, so both
     # opt out.  $DISPLAY is not part of that key: it only draws windows.
-    if os.environ.get("ECCE_ONE_PROCESS"):
+    if os.environ.get("ECCE_ONE_PROCESS") != "0":
         for p in (p1, p2):
             p.extra["ECCE_MULTIPLE_INSTANCES"] = "1"
     first = second = None
