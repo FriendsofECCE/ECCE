@@ -158,6 +158,8 @@ void CalcMgrApp::MacOpenFiles(const wxArrayString& names)
   if (MainFrame *host = MainFrame::instance()) {
     host->bringToFront();
     host->openFiles(OneInstance::filesIn(paths));
+  } else if (p_calcMgr) {
+    p_calcMgr->openStructureFiles(OneInstance::filesIn(paths));
   }
 }
 #endif
@@ -291,6 +293,16 @@ bool CalcMgrApp::OnInit()
   } else {
     p_calcMgr->Show(true);
     SetTopWindow(p_calcMgr);
+    // Files from the desktop's "Open with" also reach the separate-window
+    // Organizer: each opens in a Builder of its own.
+    std::vector<wxString> words;
+    for (int i = 1; i < argc; i++) words.push_back(argv[i]);
+    addEnvFiles(words, true);
+    std::vector<wxString> files = OneInstance::filesIn(words);
+    if (!files.empty())
+      p_calcMgr->CallAfter([this, files]() {
+        if (p_calcMgr) p_calcMgr->openStructureFiles(files);
+      });
   }
   registerTopShell(p_calcMgr);
 
