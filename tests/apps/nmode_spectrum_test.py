@@ -58,7 +58,7 @@ def writeJcamp(path):
         ys.append(int(round(100 * 10 ** -a * 1000)))
     with open(path, "w") as f:
         f.write("##TITLE=Synthetic water\n##JCAMP-DX=4.24\n##DATA TYPE=INFRARED SPECTRUM\n"
-                "##ORIGIN=Test suite\n##STATE=GAS\n##XUNITS=1/CM\n##YUNITS=%TRANSMITTANCE\n"
+                "##ORIGIN=Test suite\n##STATE=GAS\n##XUNITS=1/CM\n##YUNITS=%%TRANSMITTANCE\n"
                 "##XFACTOR=1\n##YFACTOR=0.001\n##FIRSTX=500\n##LASTX=%d\n##NPOINTS=%d\n"
                 "##XYDATA=(X++(Y..Y))\n" % (xs[-1], len(xs)))
         for i in range(0, len(xs), 6):
