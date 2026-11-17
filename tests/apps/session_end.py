@@ -1221,7 +1221,24 @@ def handsOver(checks, display, frame1, log):
         return
     extra = Session(display, log)
     try:
-        checks.check(extra.ended(60), "a plain second `ecce` returns: the "
+        # Its gateway signs in to the data server before the Organizer
+        # starts; answer that as organizer() does.
+        deadline = time.time() + 90
+        while time.time() < deadline and not extra.ended(1):
+            auth = next((w for w in display.windows()
+                         if w[1] == "ECCE Authentication"), None)
+            if auth:
+                env = display.env()
+                subprocess.run(["xdotool", "windowfocus",
+                                str(int(auth[0], 16))], env=env, timeout=10,
+                               stderr=subprocess.DEVNULL)
+                time.sleep(0.3)
+                subprocess.run(["xdotool", "type", "--delay", "50", "ecce"],
+                               env=env, timeout=10)
+                subprocess.run(["xdotool", "key", "Return"], env=env,
+                               timeout=10)
+                time.sleep(3)
+        checks.check(extra.ended(1), "a plain second `ecce` returns: the "
                      "running Organizer took the start")
         titles = [t for _, t in display.windows()]
         checks.check("System Error" not in titles,
