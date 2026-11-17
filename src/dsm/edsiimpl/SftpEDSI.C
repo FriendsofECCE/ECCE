@@ -255,7 +255,7 @@ struct BatchCache {
 thread_local std::map<string, BatchCache> gCache;
 
 const char *FILL_FUNCS =
-  "iscalc() { [ -f \"$1/.ecce-meta\" ] && awk -F'\\t' -v n=%NS% '$1==\".\" && $2==n {print tolower($3)}' \"$1/.ecce-meta\" | grep -q '^virtual_document'; }\n"
+  "iscalc() { [ -f \"$1/.ecce-meta\" ] && awk -F'\\t' -v n=%NS% '$1==\".\" && $2==n {print tolower($4)}' \"$1/.ecce-meta\" | grep -q '^virtual_document'; }\n"
   "full() { walk \"$1\" 1000\n"
   "  for f in \"$1\"/Props/*; do if [ -f \"$f\" ] && [ \"$(wc -c < \"$f\")\" -le 65536 ]; then printf 'D\\t%s\\t%s\\n' \"$f\" \"$(base64 < \"$f\" | tr -d '\\n')\"; fi; done; }\n"
   "fillwalk() { d=$1\n"
@@ -824,7 +824,7 @@ string SftpEDSI::folderStamp()
     if (it == gLogins.end() || !it->second || !it->second->isOpen()) return "";
   }
   string p = q(op.path());
-  if (!op.run("stat -c '%Y' -- " + p + " 2>/dev/null || stat -f '%m' -- " + p + " 2>/dev/null\n", out, 20))
+  if (!op.run("stat -c '%Y' -- " + p + " 2>/dev/null || stat -f '%m' -- " + p + " 2>/dev/null\n", out, 20, false))
     return "";
   while (!out.empty() && isspace((unsigned char)out.back())) out.pop_back();
   return out;
@@ -838,7 +838,7 @@ bool SftpEDSI::isWritable()
   string out;
   string p = q(op.path());
   return op.run("if [ -e " + p + " ]; then [ -w " + p + " ]; else [ -w " + q(parentOf(op.path())) +
-                " ]; fi && echo WRITABLE\ntrue\n", out) &&
+                " ]; fi && echo WRITABLE\ntrue\n", out, 60, false) &&
          out.find("WRITABLE") != string::npos;
 }
 
@@ -858,7 +858,7 @@ bool SftpEDSI::getDataSubSet(ostream& dest, int start, int length)
   if (!op.ok()) return false;
   if (start < 0 || length < 0) return op.fail("Invalid file range");
   string out;
-  if (!op.run(SftpRead::rangeScript(op.path(), start, length), out)) return false;
+  if (!op.run(SftpRead::rangeScript(op.path(), start, length), out, 60, false)) return false;
   string data = unb64(out);
   const string marker = "\nECCE_RANGE_OK";
   if (data.size() < marker.size() ||
@@ -875,7 +875,7 @@ unsigned long SftpEDSI::getDataSetSize()
   m_msgStack.clear();
   SftpOp op(*this);
   string out;
-  if (!op.ok() || !op.run(SftpRead::sizeScript(op.path()), out)) return 0;
+  if (!op.ok() || !op.run(SftpRead::sizeScript(op.path()), out, 60, false)) return 0;
   std::istringstream in(out);
   unsigned long size = 0;
   if (!(in >> size)) op.fail("Unable to stat file: " + op.path());
