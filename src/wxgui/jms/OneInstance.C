@@ -77,8 +77,8 @@ wxString runDir()
 #endif
 }
 
-// Anything on the socket without the token is dropped: the Windows port is
-// not private to the user.
+// Anything without the token is dropped: the Windows DDE service is not
+// private to the user.
 class Connection : public wxConnection
 {
 public:
@@ -118,8 +118,9 @@ public:
 wxString serviceFor(const wxString& dir, const wxString& key)
 {
 #ifdef __WXMSW__
-  // A port per context; the lock tells whose it is.
-  return wxString::Format("%lu", 49152UL + fnv(key) % 16000UL);
+  // wxServer is DDE here (wxUSE_DDE_FOR_IPC): a service name, not a port.
+  // The whole key, so two contexts of one user never share a name.
+  return "ecce-" + key;
 #else
   return dir + "/" + key + ".sock";
 #endif
