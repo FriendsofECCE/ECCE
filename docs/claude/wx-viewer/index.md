@@ -9,6 +9,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 
 ## Entries
 
+- [Unlit butane thumbnails have exactly three colours on white (#1103)](ensemble-thumbnail-colours.md)
 - [A UTF-8 buffer can borrow its wxString storage (#1084)](utf8-buffer-lifetime.md)
 
 - [The Display panel (#881): style via VizStyleChooser, global surface settings in SurfaceStyle](display-panel-881.md)
