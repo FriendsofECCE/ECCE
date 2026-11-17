@@ -358,7 +358,8 @@ def runSingleInstance(display):
         open(cmds, "w").close()
         script = os.path.join(work, "builder-script")
         with open(script, "w") as handle:
-            handle.write("wait 5000\nexpect atoms 3\n")
+            # An .xyz asks for its units (modal) before it loads.
+            handle.write("wait 5000\nmodal ok\nwait 2000\nexpect atoms 3\n")
         env = {"ECCE_ONE_PROCESS": "1", "ECCE_LOCAL_DATA": data}
         seen = {}
 

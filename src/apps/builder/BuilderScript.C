@@ -54,6 +54,8 @@
 //    bonds A B                   count the bonds from the last atom of element A
 //                                to atoms of element B
 //    expect atoms N | expect lattice yes|no
+//    modal ok                    press OK in the open modal dialog (the XYZ
+//                                units prompt of a file opened as context)
 //    shot NAME                   writes NAME.ready next to the script and
 //                                waits for NAME.go: the test photographs the
 //                                window meanwhile
@@ -109,6 +111,7 @@
 #include <wx/checkbox.h>
 #include <wx/dcmemory.h>
 #include <wx/dcscreen.h>
+#include <wx/dialog.h>
 #include <wx/grid.h>
 #include <wx/weakref.h>
 #include <wx/image.h>
@@ -914,6 +917,19 @@ void Builder::runBuilderScript(const std::string& file)
         wxCommandEvent ev(wxEVT_MENU, ID_SAVE_IMAGE);
         OnSaveImageClick(ev);
         unsetenv("ECCE_SAVE_IMAGE_ANSWERS");
+      } else if (w[0] == "modal" && w.size() == 2 && w[1] == "ok") {
+        //  Runs from inside the dialog's own modal loop (timers still fire).
+        wxDialog *open = 0;
+        for (wxWindow *t : wxTopLevelWindows) {
+          wxDialog *dlg = dynamic_cast<wxDialog*>(t);
+          if (dlg && dlg->IsModal()) open = dlg;
+        }
+        if (!open) {
+          outcome = "FAIL: no modal dialog";
+        } else {
+          outcome = "ok \"" + std::string(open->GetTitle().ToUTF8()) + "\"";
+          open->EndModal(wxID_OK);
+        }
       } else if (w[0] == "expect" && w.size() == 3) {
         LatticeDef *lat = frag ? frag->getLattice() : 0;
         if (w[1] == "atoms" && (!frag || (int)frag->numAtoms() != atoi(w[2].c_str())))
