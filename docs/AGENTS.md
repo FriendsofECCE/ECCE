@@ -133,6 +133,28 @@ The isolated `ECCE_TEST_BASISTOOL=<file>` hook reads appended commands:
 sets frame geometry; `rows N` replaces the test grid's rows without changing
 the calculation; `close` closes normally and saves the window settings.
 
+## Fragment definitions and ORCA counterpoise export
+
+Builder script (`ECCE_BUILDER_SCRIPT`) commands:
+
+| Hook | Meaning |
+|---|---|
+| `fragments` | Print per-fragment atoms, charge and multiplicity; initialise connected-molecule defaults when unassigned |
+| `fragments auto` | Reset to connected molecules, numbered from 1 by first atom; neutral defaults, multiplicity from electron parity |
+| `fragment N atoms LIST` | Move listed 1-based atoms into fragment N; spaces, commas and ranges such as `1-3` accepted |
+| `fragment N charge Q mult M` | Set fragment state; reject if fragment charges do not sum to total structure charge |
+| `counterpoise orca FOLDER [MULT [ROUTE...]]` | Write `complex.inp` and `fragment-N.inp`, partner atoms as ORCA `Symbol:` ghosts; default route `HF def2-SVP` |
+
+MULT is the complex multiplicity (default calculation multiplicity, else
+electron parity). The monomer inputs use each fragment's state. Use an empty
+destination. The exporter validates charge sums and electron/multiplicity
+consistency. Automatic neutral states on a charged structure are pending:
+for total-charge +1 Na⁺···H₂O, explicitly set the Na fragment to `charge 1
+mult 1`. A rejected command leaves the existing state intact.
+`save` persists fragment assignments/states in the MVM structure; XYZ loses
+them. These hooks export inputs only: no launch/collect, energy properties,
+checkbox or scan action. See [Scripting help](../help/src/scripting-and-ai.md#fragments-and-orca-counterpoise-inputs).
+
 ## Isolated GUI tests
 
 Run GUI checks through `tests/` with an isolated HOME and test data.

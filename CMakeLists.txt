@@ -2559,6 +2559,15 @@ target_link_libraries(dummy_fragment_test PRIVATE eccetdat ecceutil)
 add_test(NAME dummy_fragment COMMAND dummy_fragment_test)
 set_tests_properties(dummy_fragment PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+add_executable(counterpoise_test tests/tdat/counterpoise_test.C)
+target_link_libraries(counterpoise_test PRIVATE eccetdat ecceutil)
+add_test(NAME counterpoise COMMAND counterpoise_test)
+add_test(NAME counterpoise_orca
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/tdat/counterpoise_orca_test.py
+          $<TARGET_FILE:counterpoise_test>)
+set_tests_properties(counterpoise counterpoise_orca PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=counterpoise;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/counterpoise-home")
+set_tests_properties(counterpoise_orca PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 2000)
 add_test(NAME dummy_atoms_decks
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/dummy_atoms/run_tests.py)
 
@@ -3489,6 +3498,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_constraints_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_constraints PROPERTIES TIMEOUT 1500
+                       SKIP_RETURN_CODE 77)
+  add_test(NAME apps_builder_counterpoise
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_counterpoise_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_counterpoise PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # The column's sashes move Build's edges and release the mouse.
   add_test(NAME apps_builder_sash

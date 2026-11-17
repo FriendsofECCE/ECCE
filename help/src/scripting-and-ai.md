@@ -22,6 +22,51 @@ scripts and AI assistants:
 | `ecce-contacts` | metal-donor contacts of a structure |
 | `ecce-annotate --exclude` | the [excluded mark](excluded.md); it is not shown in the Organizer |
 
+## Fragments and ORCA counterpoise inputs
+
+The Builder's `ECCE_BUILDER_SCRIPT` hooks can define fragments and export
+counterpoise single-point inputs. Atom and fragment numbers start at 1:
+
+```text
+fragments auto
+fragments
+fragment 1 atoms 1-3
+fragment 2 atoms 4,5,6
+fragment 1 charge 0 mult 1
+fragment 2 charge 0 mult 1
+counterpoise orca cp-water 1 HF def2-SVP
+save
+```
+
+`fragments auto` uses connected molecules, numbered by their first atom;
+`fragments` prints the assignments and fragment charge/multiplicity. An atom
+override moves the listed atoms into that fragment. Automatic states are
+neutral, with multiplicity from electron parity. They do not infer ionic
+charges: for Na⁺···H₂O with total charge +1, set the sodium fragment to
+`charge 1 mult 1`. A state change whose fragment charge sum differs from the
+structure's total charge is rejected. Automatic defaults on a charged
+structure remain pending until that sum is corrected. Save stores the
+assignments and states in the MVM structure; XYZ does not preserve them.
+Atom overrides retain existing states; correct any incompatible state after
+moving atoms. Each state command edits one fragment, so setting +1 and −1
+on a neutral ionic pair in two sequential commands is not supported yet.
+
+`counterpoise orca FOLDER [MULT [ROUTE...]]` writes `complex.inp` and one
+`fragment-N.inp` per fragment at the same geometry, using `Symbol:` ghost
+centres for every partner atom. Each monomer uses its fragment charge and
+multiplicity. The optional MULT is the complex multiplicity; the default
+comes from the calculation, or electron parity for a structure file. The
+default route is `HF def2-SVP`. Use an empty destination folder. The export
+checks charges and electron/multiplicity consistency before writing.
+
+These are inputs only: launch, collection, corrected energy properties and
+the calculation checkbox are not provided yet. Once energies are available,
+the Boys–Bernardi interaction energy is
+ΔE_CP = E_AB(AB) − E_A(AB) − E_B(AB), where the parentheses denote the
+full complex basis and every energy uses the complex geometry. Relative to
+ΔE_raw = E_AB(AB) − E_A(A) − E_B(B), the positive BSSE correction is
+ΔE_CP − ΔE_raw. There is no corrected optimisation in this workflow.
+
 ## Setting an annotation
 
 `ecce-annotate <calculation>... "text"` sets the Annotation field of

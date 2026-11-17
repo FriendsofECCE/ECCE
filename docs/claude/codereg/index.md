@@ -57,6 +57,8 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 
 ## Entries
 
+- [Counterpoise fragments: wx-free structure storage and ORCA ghost-input export (#1091)](counterpoise-fragments.md)
+
 ### Getting a calculation set up (the "code registration" system)
 
 - [A GROMACS MD study has the application type of its tasks; NWChem's study has its own](gromacs-study-shares-its-tasks-application-type.md)
