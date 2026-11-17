@@ -1909,7 +1909,8 @@ void Builder::runBuilderScript(const std::string& file)
           if (c.second == p_calculation) url = c.first;
         propertyChanged(url, w[1], "");
         fprintf(stderr, "BUILDER: propchange %s\n", w[1].c_str());
-      } else if (w[0] == "scanmorse" || w[0] == "scancompare" || w[0] == "scanpng") {
+      } else if (w[0] == "scanmorse" || w[0] == "scancompare" || w[0] == "scanpng" ||
+                 w[0] == "scanzero" || w[0] == "scanjoin" || w[0] == "scanlayout") {
         //  scanmorse on|off [window]: the Fit Morse check and window (the
         //  panel's unit); logs the fit and the text box (#858).
         //  scancompare [none|NAME...]: lists the scans beside this one, or
@@ -1928,6 +1929,15 @@ void Builder::runBuilderScript(const std::string& file)
           text.Replace("\n", " | ");
           fprintf(stderr, "BUILDER: scanmorse %s\nBUILDER: scanmorsetext [%s]\n",
                   state.c_str(), text.utf8_str().data());
+        } else if (w[0] == "scanzero") {
+          if (w.size() != 2 || !sp->setZero(w[1])) outcome = "use scanzero lowest|largest|first";
+        } else if (w[0] == "scanjoin") {
+          if (w.size() != 2 || (w[1] != "on" && w[1] != "off")) outcome = "use scanjoin on|off";
+          else sp->setJoin(w[1] == "on");
+        } else if (w[0] == "scanlayout") {
+          if (w.size() != 2 || (w[1] != "overlay" && w[1] != "multiples"))
+            outcome = "use scanlayout overlay|multiples";
+          else sp->setSmallMultiples(w[1] == "multiples");
         } else if (w[0] == "scancompare") {
           std::string why, list;
           if (w.size() >= 2) {

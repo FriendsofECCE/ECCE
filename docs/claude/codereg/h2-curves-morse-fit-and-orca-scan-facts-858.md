@@ -27,12 +27,20 @@ from the stored constraint, the ORCA `Scan B i j` echo, or a diatomic.
 `bin/ecce-morse` (test harness homes) still finds Isotopes.txt and
 ecce_si_export.
 
-Compare... draws other scans of the same folder, each relative to its own
-lowest point (no cross-method energy scale). Only curve 0 (the panel's own
-calculation) answers clicks: the others have no structures in this panel.
+Compare... reuses the Builder's OpenCalculationDialog to add scans from any
+calculation folder (#1095). Zero selects lowest (default), largest coordinate,
+or stored first point per curve. Join requires matching first SCANGEOM pair
+distances, element order, coordinate and energy, then sorts the merged curve;
+the common start is retained once. Only points from the active calculation
+answer structure clicks, including after sorting. Small multiples uses a
+common fixed x range with separate y scales. CSV exports labelled blocks for
+all resulting curves; PNG paints the same layout on white. Table/playback
+remain in the active scan's stored order.
 
 Hooks: `scanmorse on|off [window]` (logs `ok re=... De_eV=...` and the text
-box), `scancompare [none|NAME...]`, `scanpng PATH [W H]` (light palette).
+box), `scancompare [none|NAME...]`, `scanpng PATH [W H]` (light palette), `scanzero lowest|largest|first`,
+`scanjoin on|off`, `scanlayout overlay|multiples`; scancompare also accepts
+URLs and paths. Details: docs/AGENTS.md and tests/apps/scan_compare_test.py.
 
 Example size: `make_h2_scans.py` adds `MiniPrint` and `Print[P_MOs] 0` to
 the ai.orca deck. ORCA prints MOs, populations and SCF settings at every scan
