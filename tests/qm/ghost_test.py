@@ -15,8 +15,8 @@ EH_KJ = 2625.4996
 A = [("O", 0.0, 0.0, 0.0), ("H", 0.965, 0.0, 0.0), ("H", -0.24, 0.93, 0.0)]
 B = [("O", 2.91, 0.0, 0.0), ("H", 3.229, 0.491, 0.757), ("H", 3.229, 0.491, -0.757)]
 # Dimer energies (hartree, def2-SVP) of this input from a run without ghosts.
-BASELINE = {"hf": None, "b3lyp": None}
-TOL = 1e-9
+BASELINE = {"hf": -151.9289883942, "b3lyp": -152.6532969969}
+TOL = 1e-8
 
 
 def run(exe, bdir, d, tag, method, atoms, runtype="energy"):
