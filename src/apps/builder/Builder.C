@@ -8814,16 +8814,19 @@ void Builder::quit(const bool& allowCancel)
     }
   }
 
-  // unset focus of all viz prop panels
-  // this fixes seg fault if we're animating a trj, geom trace, vib, etc
-  set<VizPropertyPanel*> panels = VizPropertyPanel::getPanels();
-  set<VizPropertyPanel*>::iterator panel;
-  for (panel = panels.begin(); panel != panels.end(); ++panel) {
-    (*panel)->setFocus(false);
-  }
-  ::wxYieldIfNeeded();
-
+  //  Cancel keeps the window as it was: no panel wind-down and no yield,
+  //  which would run a close queued meanwhile while p_closing is still set
+  //  ("close already in progress", the second Quit lost).
   if (ret != wxID_CANCEL) {
+    // unset focus of all viz prop panels
+    // this fixes seg fault if we're animating a trj, geom trace, vib, etc
+    set<VizPropertyPanel*> panels = VizPropertyPanel::getPanels();
+    set<VizPropertyPanel*>::iterator panel;
+    for (panel = panels.begin(); panel != panels.end(); ++panel) {
+      (*panel)->setFocus(false);
+    }
+    ::wxYieldIfNeeded();
+
     // GDB 1/22/09 Tired of seg faults so lets see if we can exit ungracefully
     // to avoid that annoyance
     // Destroy();
