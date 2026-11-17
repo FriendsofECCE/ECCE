@@ -199,12 +199,13 @@ def stopServices(display=None):
 
 
 def run(display, name, args=(), windowTimeout=40, settle=8, env=None,
-        inspect=None):
+        inspect=None, ready=None):
     """Start ecce-<name>, wait for a window, watch it, then shut it down.
 
     `env` adds variables to the display's environment for this one app.
     `inspect(display)` runs once the settle period is over, while the app
     is still up; its return value is left in result.inspected.
+    With `ready`, settle is a timeout: stop watching once ready() is true.
     """
     result = Result(name)
     before = set(wid for wid, _ in display.windows())
@@ -265,6 +266,8 @@ def run(display, name, args=(), windowTimeout=40, settle=8, env=None,
                            % (result.signalName or
                               "with status %d" % proc.returncode))
             return result
+        if ready is not None and ready():
+            break
         time.sleep(0.5)
 
     result.windows = [(wid, title) for wid, title in display.windows()
