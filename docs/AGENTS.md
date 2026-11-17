@@ -183,8 +183,8 @@ consistency. Automatic neutral states on a charged structure are pending:
 for total-charge +1 Na⁺···H₂O, explicitly set the Na fragment to `charge 1
 mult 1`. A rejected command leaves the existing state intact.
 `save` persists fragment assignments/states in the MVM structure; XYZ loses
-them. These hooks export inputs only: no launch/collect, energy properties,
-checkbox or scan action. See [Scripting help](../help/src/scripting-and-ai.md#fragments-and-orca-counterpoise-inputs).
+them. These fragment/export hooks only write inputs. The Counterpoise Energy
+option and Relaxed Scan action below run calculations and collect energies. See [Scripting help](../help/src/scripting-and-ai.md#fragments-and-orca-counterpoise-inputs).
 
 ## Isolated GUI tests
 
@@ -476,7 +476,22 @@ to the output. Properties (Hartree, Energies panel group Counterpoise):
 `EINTCP` = E_AB(AB) - sum E_X(AB), `EINTRAW` = E_AB(AB) - sum E_X(X),
 `EBSSE` = EINTCP - EINTRAW (positive), and the string `CPTABLE` with kJ/mol and
 kcal/mol. The raw energy and BSSE exist only with the own-basis runs.
-Gaussian and the scan action are not done yet. See
+The Relaxed Scan panel supports ECCE-QM and ORCA stored scans:
+`scan cpsingle [launch]` creates one sibling Energy calculation for all stored
+geometries; `launch` requests submission through the Organizer with the copied
+scan machine settings. The GUI action includes the launch request. A second
+call refuses and names the existing calculation. `scan cpcolumn` refreshes and
+prints `point coordinate raw_hartree cp_hartree`, or `pending` until complete.
+The snapshot is stored in `ES.Runtype.CPScanGeometry` (semicolon-separated
+frames of Cartesian Angstrom triples). `SCANCP`, `SCANRAW`, `SCANBSSE` are
+Hartree vectors, one per stored geometry; SCANCP equals per-point EINTCP.
+`ecce:scanCounterpoise` links the source to the sibling; `ecce:scanSource`
+links back. The original scan properties are retained. Table columns ΔE (raw)
+and ΔE (CP), the two active plot curves and CSV/PNG exports use interaction
+energies referenced to the fragments at each geometry, without a further
+lowest/first/largest shift; ordinary comparison scans keep their own zeros.
+Test: `tests/launch/counterpoise_scan_test.py` (real ECCE-QM launch).
+Gaussian scan CP and CP-corrected optimisation are not implemented. See
 `docs/claude/codereg/counterpoise-job-and-properties-1091.md`.
 
 Property views (which panel shows what) depend on what is stored in `Props/`;

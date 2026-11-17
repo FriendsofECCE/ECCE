@@ -4886,6 +4886,18 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_counterpoise PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
 
+  add_test(NAME counterpoise_scan_input
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/counterpoise_scan_test.py --offline
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(counterpoise_scan_input PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+  add_test(NAME launch_counterpoise_scan
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/counterpoise_scan_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_counterpoise_scan PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+
   # #329: CP2K, silicon and a NiO+U optimisation, created and run through
   # Launch in a local data folder; skipped (77) without cp2k.psmp and mpirun.
   add_test(NAME launch_cp2k

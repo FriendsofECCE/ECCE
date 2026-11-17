@@ -56,4 +56,62 @@ sub cpPlan {
   }
   return @runs;
 }
+# Expand a stored geometry snapshot through the same complex/monomer template.
+# Names carry the point index so the job and parser cannot reorder the scan.
+sub cpWriteDecks {
+  my ($abi, $runs, $code) = @_;
+  open(my $in, "<", "tmpfile") or die "Cannot read counterpoise template\n";
+  my @base = <$in>;
+  close($in);
+  my $snapshot = $abi->{"ES.Runtype.CPScanGeometry"} || "";
+  my @points = $snapshot ne "" ? split(/;/, $snapshot) : ("");
+  open(my $out, ">", "tmpfile") or die "Cannot write counterpoise decks\n";
+  print $out "# ecce-cp-points " . scalar(@points) . "\n" if ($snapshot ne "");
+  for (my $point = 0; $point < @points; $point++) {
+    my @xyz = split(' ', $points[$point]);
+    my $prefix = $snapshot ne "" ? sprintf("point-%06d-", $point + 1) : "";
+    foreach my $run (["complex", undef, undef, undef], @$runs) {
+      my ($name, $q, $m, $mode) = @$run;
+      print $out "# ecce-run $prefix$name\n" unless ($point == 0 && $name eq "complex");
+      my ($geom, $atom) = (0, 0);
+      foreach my $line (@base) {
+        my $l = $line;
+        next if ($code eq "ecceqm" && ($mode || $snapshot ne "") &&
+                 $l =~ /^(write_orbitals|read_orbitals|charges)\b/);
+        if ($geom) {
+          if (($code eq "ecceqm" && $l =~ /^end\s*$/) ||
+              ($code eq "orca" && $l =~ /^\*\s*$/)) {
+            $geom = 0;
+            die "Counterpoise scan geometry atom count differs\n"
+              if ($snapshot ne "" && @xyz != 3 * $atom);
+          } else {
+            my $mo = $mode ? $mode->[$atom] : 0;
+            if ($snapshot ne "") {
+              my ($symbol) = split(' ', $l);
+              my @v = @xyz[3*$atom .. 3*$atom+2];
+              die "Invalid counterpoise scan geometry\n"
+                if (grep { !defined($_) || !/^[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?$/ } @v);
+              $l = " $symbol " . join(" ", @v) . "\n";
+            }
+            $atom++;
+            next if ($mo == 2);
+            if ($mo == 1) {
+              if ($code eq "orca") { $l =~ s/^(\s*)(\S+)/$1$2:/; }
+              else { chomp($l); $l .= " ghost\n"; }
+            }
+          }
+        } elsif ($code eq "ecceqm") {
+          $l =~ s/^charge .*/charge $q/ if ($mode);
+          $l =~ s/^multiplicity .*/multiplicity $m/ if ($mode);
+          $geom = 1 if ($l =~ /^geometry\s*$/);
+        } elsif ($l =~ /^\*\s*xyz\s/i) {
+          $l = "* xyz $q $m\n" if ($mode);
+          $geom = 1;
+        }
+        print $out $l;
+      }
+    }
+  }
+  close($out);
+}
 1;

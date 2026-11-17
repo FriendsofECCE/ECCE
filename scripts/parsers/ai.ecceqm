@@ -442,33 +442,7 @@ sub counterpoiseDecks {
                      ($AbiDict{"Charge"} eq "" ? 0 : $AbiDict{"Charge"}),
                      sub { $z{$tags{$_[0]}} || 0 });
   return unless (@runs);
-  open(my $in, "<", "tmpfile") || die "ai.ecceqm error: cannot reread the deck\n";
-  my @deck = <$in>;
-  close($in);
-  open(my $out, ">>", "tmpfile") || die "ai.ecceqm error: cannot extend the deck\n";
-  foreach my $run (@runs) {
-    my ($name, $q, $m, $mode) = @$run;
-    print $out "# ecce-run $name\n";
-    my ($inGeom, $atom) = (0, 0);
-    foreach my $line (@deck) {
-      my $l = $line;
-      # Orbitals and population analyses belong to the complex only.
-      next if ($l =~ /^(write_orbitals|read_orbitals|charges)\b/);
-      $l =~ s/^charge .*/charge $q/;
-      $l =~ s/^multiplicity .*/multiplicity $m/;
-      if ($inGeom) {
-        if ($l =~ /^end\s*$/) { $inGeom = 0; }
-        else {
-          my $mo = $mode->[$atom++];
-          next if ($mo == 2);
-          chomp($l);
-          $l .= ($mo == 1 ? " ghost" : "") . "\n";
-        }
-      } elsif ($l =~ /^geometry\s*$/) { $inGeom = 1; }
-      print $out $l;
-    }
-  }
-  close($out);
+  &cpWriteDecks(\%AbiDict, \@runs, "ecceqm");
 }
 
 sub cleanup {

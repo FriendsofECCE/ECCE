@@ -442,7 +442,7 @@ Progress=scan $1
 [END]
 
 # Counterpoise job (#1091): the block gensub appends after the monomer runs.
-[EINTCP][EINTRAW][EBSSE][CPTABLE]
+[EINTCP][EINTRAW][EBSSE][CPTABLE][SCANCP][SCANRAW][SCANBSSE]
 Script=counterpoise.parse
 Begin=^begin counterpoise\b
 Frequency=last

@@ -1626,6 +1626,7 @@ sub cpRuns
   $r .= "    $cmd > ecce-cp-\$cpname.out 2>&1 || cpstatus=1\n";
   $r .= "  done\n";
   $r .= "  { echo 'begin counterpoise'\n";
+  $r .= "    grep '^# ecce-cp-points ' $in | awk '{print \"points \" \$3}'\n";
   (my $eOut = $energy) =~ s/FILE/$out/;
   (my $eFrag = $energy) =~ s/FILE/\$cpout/;
   $r .= "    echo \"complex \$($eOut)\"\n";

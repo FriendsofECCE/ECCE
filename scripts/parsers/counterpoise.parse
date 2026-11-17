@@ -18,6 +18,49 @@ $| = 1;
 my ($first, @lines) = map { chomp; $_ } <STDIN>;
 exit(0) unless (defined($first) && $first =~ /^begin counterpoise/);
 
+# Publish a scan only as a complete set. A failed or missing deck must not
+# silently shift subsequent energies onto the wrong stored geometry.
+my ($count) = map { /^points (\d+)$/ ? $1 : () } @lines;
+if (defined($count)) {
+  my %point;
+  foreach my $l (@lines) {
+    my ($name, $value) = split(' ', $l);
+    next unless defined($value) && $value =~ /^[-+]?\d+(\.\d*)?([eEdD][-+]?\d+)?$/;
+    $value =~ tr/dD/ee/;
+    if ($name eq "complex") { $point{1}{complex} = $value; }
+    elsif ($name =~ /^point-(\d+)-(complex|fragment-\d+(?:-own)?)$/) {
+      my ($i, $part) = (0+$1, $2);
+      exit(0) if exists($point{$i}{$part});
+      $point{$i}{$part} = $value;
+    }
+  }
+  my (@cp, @raw, @bsse, $signature);
+  exit(0) unless $count >= 1 && scalar(keys %point) == $count;
+  foreach my $i (1 .. $count) {
+    my $p = $point{$i};
+    exit(0) unless $p && exists($p->{complex});
+    my @ghost = sort grep { /^fragment-\d+$/ } keys %$p;
+    my $sig = join(" ", sort keys %$p);
+    $signature = $sig unless defined($signature);
+    exit(0) unless @ghost >= 2 && $signature eq $sig &&
+                   scalar(keys %$p) == 1 + 2 * scalar(@ghost);
+    my ($g, $o) = (0, 0);
+    foreach my $f (@ghost) {
+      exit(0) unless exists($p->{"$f-own"});
+      $g += $p->{$f}; $o += $p->{"$f-own"};
+    }
+    push(@cp, $p->{complex} - $g);
+    push(@raw, $p->{complex} - $o);
+    push(@bsse, $o - $g);
+  }
+  foreach my $entry (["SCANCP", \@cp], ["SCANRAW", \@raw], ["SCANBSSE", \@bsse]) {
+    my ($key, $v) = @$entry;
+    print "key: $key\nsize:\n$count\nvalues:\n",
+          join(" ", map { sprintf("%.10f", $_) } @$v), "\nunits:\nHartree\nEND\n";
+  }
+  exit(0);
+}
+
 my ($complex, $ghostSum, $ownSum, $nGhost, $nOwn) = (undef, 0, 0, 0, 0);
 foreach my $l (@lines) {
   last if ($l =~ /^end counterpoise/);
