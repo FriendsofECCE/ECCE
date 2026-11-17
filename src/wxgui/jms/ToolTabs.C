@@ -765,6 +765,11 @@ void ToolTabs::setHost(wxFrame *host)
   sizer->Add(s_book, 1, wxEXPAND);
   host->SetSizer(sizer);
   routeMenus(host);
+  // The notebook goes with the host; nothing may reach it afterwards.
+  host->Bind(wxEVT_DESTROY, [host](wxWindowDestroyEvent& ev) {
+    if (ev.GetEventObject() == host) { s_hostFrame = 0; s_book = 0; }
+    ev.Skip();
+  });
   // After the Organizer's own activate handler, which acts as Organizer.
   host->Bind(wxEVT_ACTIVATE, [host](wxActivateEvent& ev) {
     if (ev.GetActive())

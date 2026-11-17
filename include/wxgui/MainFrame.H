@@ -54,6 +54,7 @@ private:
 
   wxFrame *p_main = 0;
   bool p_shutdown = false;
+  bool p_vetoable = true;   // the last close event could be vetoed
   std::function<bool()> p_close;
   std::function<void(const std::vector<wxString>&)> p_open;
 };

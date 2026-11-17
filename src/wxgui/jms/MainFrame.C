@@ -14,6 +14,7 @@
 #include "util/Preferences.H"
 #include "wxgui/MainFrame.H"
 #include "wxgui/OneInstance.H"
+#include "wxgui/InProcessTools.H"
 #include "wxgui/ToolTabs.H"
 #include "wxgui/ewxWindowUtils.H"
 
@@ -93,6 +94,7 @@ bool MainFrame::adoptMain(wxFrame *org)
 
 void MainFrame::onClose(wxCloseEvent& ev)
 {
+  p_vetoable = ev.CanVeto();
   if (!p_shutdown && ev.CanVeto() && p_close && !p_close()) {
     ev.Veto();
     return;
@@ -106,6 +108,9 @@ void MainFrame::shutdown()
   if (p_shutdown) return;
   p_shutdown = true;
   OneInstance::release();
+  // A close that cannot be vetoed (session end, SIGTERM) must not leave
+  // tool windows whose parent is going away.
+  if (!p_vetoable) InProcessTools::closeAll(true);
   // While it is still on screen: a hidden window has no geometry.  Same
   // prefix the Organizer's own frame used, so the size carries over when
   // the tab setting is switched.
