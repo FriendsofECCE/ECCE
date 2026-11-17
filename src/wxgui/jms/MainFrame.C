@@ -15,6 +15,7 @@ IMPLEMENT_CLASS(MainFrame, ewxFrame)
 
 namespace {
 MainFrame *s_instance = 0;
+int s_raised = 0;
 }
 
 
@@ -80,8 +81,15 @@ void MainFrame::shutdown()
 }
 
 
+int MainFrame::raiseCount()
+{
+  return s_raised;
+}
+
+
 void MainFrame::bringToFront()
 {
+  s_raised++;
   if (IsIconized()) Iconize(false);
   Show(true);
   ewxRaiseWindow(this);

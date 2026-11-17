@@ -86,6 +86,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Every socket in a process that starts programs needs close-on-exec; a child holding the broker's end hides EOF from its clients (#1025)](broker-sockets-close-on-exec-1025.md)
 - [One GUI process (#983): in-process routing behind MqttLink (ECCE_ONE_PROCESS), tool-scoped self filter, OnInit split, globals audit, Quit](one-process-message-routing.md)
 - [Tools as tabs (#983 stage 2, ECCE_LAYOUT=small): the tool stays a hidden frame, its windows move into a notebook page, unhandled events go on to the frame, menus swapped; the main window is a MainFrame and the Organizer its pinned first tab (#1065)](tools-as-tabs.md)
+- [Second start of ecce raises the running window; where the check sits and how it reaches it (#1069)](second-start-1069.md)
 - [Tabs: ewxRaiseWindow mapped the hidden tool frame over the main window (empty grey Builder tab, #983)](tabbed-tool-frame-is-mapped-by-raise.md)
 - [Tabs: the AUI manager is on the frame's handler stack; PopEventHandler(true) freed it at Quit (#983)](aui-manager-is-on-the-handler-stack.md)
 - [Tabs: menu bars: tool GetMenuBar() null in a tab, Organizer GetMenuBar() is the tool's (Run Mgmt crash), SetMenuBar compares with GetMenuBar() (#983)](tab-hides-the-frames-menu-bar.md)

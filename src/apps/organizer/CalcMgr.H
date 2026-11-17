@@ -99,6 +99,9 @@ public:
 
   // A tool's window is up (#1071): ends its start feedback.
   void toolUp(const string& app, const string& url);
+  // Structure files handed to ECCE from outside (second start with file
+  // names, macOS open, Windows "Open with"): each opens in a Builder.
+  void openStructureFiles(const std::vector<wxString>& paths);
 
   /*
    * Constructor.

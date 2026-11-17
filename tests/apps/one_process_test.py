@@ -315,6 +315,79 @@ def runQuitHost(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runSingleInstance(display):
+    """A second start of the same user and data folder brings the running
+    window to the front instead of opening another Organizer (#1069); file
+    names in it open in a Builder tab of the first."""
+    setLayout(display, "small")
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        os.makedirs(os.path.join(data, "users", "local"))
+        xyz = os.path.join(work, "water.xyz")
+        with open(xyz, "w") as handle:
+            handle.write("3\nwater\nO 0 0 0.117\nH 0 0.757 -0.469\n"
+                         "H 0 -0.757 -0.469\n")
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+        env = {"ECCE_ONE_PROCESS": "1", "ECCE_LOCAL_DATA": data}
+        seen = {}
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def organizers():
+            out = subprocess.run(["pgrep", "-fc", "bin/organizer"],
+                                 stdout=subprocess.PIPE, text=True).stdout
+            return int(out.strip() or 0)
+
+        def second(args):
+            environment = display.env()
+            environment.update(env)
+            started = time.time()
+            done = subprocess.run(
+                [os.path.join(apps.WRAPPERS, "ecce-organizer")] + args,
+                env=environment, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, text=True, timeout=90)
+            return done.returncode, time.time() - started, done.stdout
+
+        def inspect(_display):
+            append("raised", 2)
+            seen["before"] = organizers()
+            seen["plain"] = second([])
+            seen["file"] = second([xyz])
+            time.sleep(20)                  # the Builder tab opens
+            append("raised", 2)
+            append("inprocess", 3)
+            seen["after"] = organizers()
+
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={**env, "ECCE_TEST_ORGANIZER": cmds},
+                          inspect=inspect)
+        log = result.log or ""
+        for what in ("plain", "file"):
+            rc, secs, text = seen.get(what, (None, 0, ""))
+            check(rc == 0 and secs < 30 and "already running" in text,
+                  "a second start (%s) exits at once with a message" % what,
+                  "rc=%s %.0f s\n%s" % (rc, secs, text[-800:]))
+        check(pb.answers(log, "raised") == ["0", "2"],
+              "the running window was asked to come to the front twice",
+              str(pb.answers(log, "raised")) + log[-1500:])
+        check(seen.get("before") is not None and
+              seen.get("before") == seen.get("after"),
+              "still the same number of organizer processes",
+              "%s -> %s" % (seen.get("before"), seen.get("after")))
+        inproc = pb.answers(log, "inprocess")
+        check(len(inproc) == 1 and "Builder=1" in inproc[0],
+              "the .xyz named by the second start opened in a Builder of the first",
+              str(inproc) + log[-1500:])
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def runGeometry(display):
     """The host saves its rectangle under the Organizer's prefix: a size set
     in one run is the window's size in the next."""
@@ -1452,6 +1525,11 @@ def runUtilityWindows(display):
 
 def main():
     def checkApp(display, name, results, verbose=False):
+        if os.environ.get("ECCE_SINGLE_ONLY") == "1":
+            runSingleInstance(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         if os.environ.get("ECCE_UTILS_ONLY") == "1":
             runUtilityWindows(display)
             if failures:
@@ -1477,6 +1555,7 @@ def main():
         runLayouts(display)
         runTabs(display)
         runQuitHost(display)
+        runSingleInstance(display)
         runGeometry(display)
         runTabsEditor(display)
         runSetupTab(display)

@@ -209,6 +209,15 @@ second `start` of the same tool and URL meanwhile is dropped. `toolstate` answer
 launches=N`. The tool sends `ecce_tool_up` when its invoke is handled;
 `ECCE_TEST_TOOL_DELAY=<ms>` holds that signal back for a slow-start test.
 
+**Second start and file types (#1069)**, one-program mode only: a second `ecce`
+for the same user, data folder and server (`ECCE_REALUSERHOME`,
+`ECCE_LOCAL_DATA`, `ECCE_SERVER_SESSION`/`ECCE_REMOTE_SERVER`) raises the
+running window and exits with "ECCE is already running for this user".
+`ecce FILE.xyz` (also .pdb .cif .mvm .car .gro; Windows: Open with ECCE)
+opens the file in a Builder tab of the running copy, or of the one being
+started. `ECCE_MULTIPLE_INSTANCES=1` switches the check off. Test hook
+`raised` (Organizer command file): how many second starts reached the window.
+
 Experimental, with `ECCE_ONE_PROCESS=1`: **Edit > Preferences > Windows
 and tabs** chooses which tools open as tabs of the Organizer's window (the
 Organizer is the first tab and cannot be closed). Presets **Normal**,

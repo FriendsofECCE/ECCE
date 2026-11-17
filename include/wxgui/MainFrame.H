@@ -45,6 +45,8 @@ public:
   void setOpenFilesHandler(std::function<void(const std::vector<wxString>&)> fn)
   { p_open = fn; }
   void openFiles(const std::vector<wxString>& paths);
+  // Test hook "raised": how many second starts or open requests asked.
+  static int raiseCount();
 
 private:
   void onClose(wxCloseEvent& ev);

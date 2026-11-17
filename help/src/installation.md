@@ -113,6 +113,12 @@ for your own user and needs no administrator rights; start ECCE from the
 Start menu. Windows shows a SmartScreen warning because the program is not
 signed: choose **More info**, then **Run anyway**.
 
+**Opening structure files.** The installer adds "ECCE structure" to the
+Open with list of .xyz, .pdb and .cif files, and makes ECCE the program for
+.mvm files. It does not take over .xyz, .pdb or .cif, which other programs
+use too. When ECCE is already running, the file opens in the running window
+(a Builder tab) and no second ECCE starts.
+
 **Smart App Control.** Some Windows 11 computers (mostly newly set up ones)
 have Smart App Control switched on. It blocks programs that are not
 code-signed, and ECCE then stops at once with a message such as

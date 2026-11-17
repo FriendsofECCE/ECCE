@@ -138,7 +138,7 @@ def find_organizer():
     if not kernel32.K32EnumProcesses(pids, ctypes.sizeof(pids), ctypes.byref(got)):
         return None, 0
     for pid in pids[:got.value // ctypes.sizeof(wintypes.DWORD)]:
-        if pid and ours(pid):
+        if pid and pid not in EARLIER and ours(pid):
             # SYNCHRONIZE | QUERY_LIMITED_INFORMATION
             h = kernel32.OpenProcess(0x00100000 | 0x1000, False, pid)
             if h:
@@ -155,6 +155,21 @@ def exit_code(h):
     return code.value
 
 
+def running_organizers():
+    """Process ids of this install's organizer.exe now running."""
+    pids = (wintypes.DWORD * 4096)()
+    got = wintypes.DWORD()
+    if not kernel32.K32EnumProcesses(pids, ctypes.sizeof(pids), ctypes.byref(got)):
+        return set()
+    return set(p for p in pids[:got.value // ctypes.sizeof(wintypes.DWORD)]
+               if p and ours(p))
+
+
+# Organizers that ran before this card: a window of one of them is not the
+# start this card waits for (a second start hands over to it, #1069).
+EARLIER = set()
+
+
 def organizer_window():
     found = []
 
@@ -164,7 +179,8 @@ def organizer_window():
         if user32.IsWindowVisible(hwnd) and user32.GetWindowTextLengthW(hwnd) > 0:
             pid = wintypes.DWORD()
             user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
-            if pid.value != os.getpid() and ours(pid.value):
+            if (pid.value != os.getpid() and pid.value not in EARLIER and
+                    ours(pid.value)):
                 found.append(hwnd)
                 return False
         return True
@@ -222,6 +238,7 @@ def main():
         dc.SelectObject(wx.NullBitmap)
         return bmp
 
+    EARLIER.update(running_organizers())
     first = "Starting ECCE %s…" % version() if version() else "Starting…"
     splash = wx.adv.SplashScreen(
         drawn([first]), wx.adv.SPLASH_CENTRE_ON_SCREEN | wx.adv.SPLASH_NO_TIMEOUT,
@@ -255,6 +272,8 @@ def main():
                 log("organizer.exe running, pid %d" % pid)
         if h is not None:
             code = exit_code(h)
+            if code == 0:
+                return done("organizer.exe ended with status 0: the running ECCE was brought to the front")
             if code is not None:
                 return done("organizer.exe exited with status %d, no window" % code,
                             "The ECCE Organizer stopped before its window opened "

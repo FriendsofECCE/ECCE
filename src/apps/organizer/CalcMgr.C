@@ -3607,6 +3607,9 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = "ok";
       }
       }
+    } else if (command == "raised") {
+      // Second starts that reached this window (#1069).
+      outcome = std::to_string(MainFrame::raiseCount());
     } else if (command == "inprocess") {
       // Tool windows open in this process (#983, ECCE_ONE_PROCESS=1).
       outcome = "pid=" + MqttLink::processId() +
@@ -11778,6 +11781,16 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
   if (!InProcessTools::open(*msg))
     publish("ecce_get_app",*msg);
   delete msg;
+}
+
+
+void CalcMgr::openStructureFiles(const std::vector<wxString>& paths)
+{
+  for (const wxString& p : paths) {
+    wxString path = p;
+    path.Replace("\\", "/");
+    startApp("Builder", 1, "file://" + string(path.utf8_str().data()));
+  }
 }
 
 

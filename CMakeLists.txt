@@ -1914,6 +1914,10 @@ configure_file(${CMAKE_SOURCE_DIR}/packaging/desktop/ecce.desktop.in
                ${CMAKE_BINARY_DIR}/wrappers/ecce.desktop @ONLY)
 install(FILES ${CMAKE_BINARY_DIR}/wrappers/ecce.desktop
         DESTINATION ${_ecce_share}/applications COMPONENT client)
+# .mvm is ECCE's own structure format; the other types (xyz, pdb, cif) belong
+# to other programs too and are only offered in "Open with" (#1069).
+install(FILES ${CMAKE_SOURCE_DIR}/packaging/desktop/ecce-mvm.xml
+        DESTINATION ${_ecce_share}/mime/packages COMPONENT client)
 # packaging/desktop/make-icon.py generates the icon files.
 foreach(_size 48 64 128 256)
   install(FILES ${CMAKE_SOURCE_DIR}/packaging/desktop/ecce-${_size}.png
@@ -3685,6 +3689,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_one_process PROPERTIES TIMEOUT 2700
+                       SKIP_RETURN_CODE 77)
+  # A second start brings the running window to the front (#1069).
+  add_test(NAME apps_organizer_single_instance
+           COMMAND ${CMAKE_COMMAND} -E env ECCE_SINGLE_ONLY=1
+                   ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_single_instance PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # Busy cursor, status line and slow-start window while a tool starts (#1071).
   add_test(NAME apps_organizer_tool_start
@@ -5806,6 +5818,10 @@ add_test(NAME packaging_command_wrappers
                  --home ${CMAKE_INSTALL_PREFIX}
                  --wrappers ${ECCE_WRAPPER_DESTINATION})
 set_tests_properties(packaging_command_wrappers PROPERTIES SKIP_RETURN_CODE 77)
+
+add_test(NAME packaging_file_types
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/packaging/file_types_test.py)
 
 add_test(NAME packaging_units_text
          COMMAND ${PYTHON3_EXECUTABLE}

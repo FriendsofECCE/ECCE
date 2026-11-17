@@ -20,6 +20,7 @@
 #include "util/MqttLink.H"
 #include "wxgui/InProcessTools.H"
 #include "wxgui/MainFrame.H"
+#include "wxgui/OneInstance.H"
 #include "wxgui/ToolTabs.H"
 #include "util/JMSPublisher.H"
 #include "wx/wxprec.h"
@@ -148,6 +149,31 @@ string CalcMgrApp::getName() const
 }
 
 
+#ifdef __WXMAC__
+// Files opened from Finder or dropped on the Dock icon.
+void CalcMgrApp::MacOpenFiles(const wxArrayString& names)
+{
+  std::vector<wxString> paths(names.begin(), names.end());
+  if (MainFrame *host = MainFrame::instance()) {
+    host->bringToFront();
+    host->openFiles(OneInstance::filesIn(paths));
+  }
+}
+#endif
+
+
+// The `ecce` launcher on Linux and macOS hands file names on in
+// ECCE_OPEN_FILES (one per line): the gateway sits between it and the Organizer.
+static void addEnvFiles(std::vector<wxString>& words, bool clear)
+{
+  wxString env;
+  if (!wxGetEnv("ECCE_OPEN_FILES", &env)) return;
+  if (clear) wxUnsetEnv("ECCE_OPEN_FILES");
+  for (const wxString& f : wxSplit(env, '\n'))
+    if (!f.empty()) words.push_back(f);
+}
+
+
 /**
  * Initialize CalcMgr application
  *
@@ -158,6 +184,28 @@ bool CalcMgrApp::OnInit()
 {
   // Only this process runs tools in-process (#983); its children do not.
   MqttLink::takeOneProcessSwitch(true);
+  // One program per user and session context (#1069), before the broker or
+  // anything else is started: a second start only raises the first.  Not
+  // the session id (new at every start) but where the user's data is: a
+  // central-server client, a local session and a second server are separate.
+  if (ToolTabs::enabled() && !wxGetEnv("ECCE_MULTIPLE_INSTANCES", NULL)) {
+    wxString context = wxGetUserId();
+    for (const char *name : {"ECCE_REALUSERHOME", "ECCE_LOCAL_DATA",
+                             "ECCE_SERVER_SESSION", "ECCE_REMOTE_SERVER",
+                             "ECCE_REMOTE_DIR"}) {
+      wxString value;
+      wxGetEnv(name, &value);
+      context += "|" + value;
+    }
+    std::vector<wxString> words;
+    for (int i = 1; i < argc; i++) words.push_back(argv[i]);
+    addEnvFiles(words, false);
+    if (!OneInstance::claim(context, OneInstance::filesIn(words))) {
+      std::cerr << "ECCE is already running for this user; "
+                   "the running window was brought to the front." << std::endl;
+      _exit(0);
+    }
+  }
   // The session's own broker (#990), before anything connects to it.
   // ECCE_BROKER=mosquitto keeps the old ecce-broker-win (ecce.cmd).  Only
   // ecce.cmd sets ECCE_LOCAL_BROKER: on Linux and macOS ecce-gateway-start
@@ -226,8 +274,18 @@ bool CalcMgrApp::OnInit()
   if (host) {
     host->adoptMain(p_calcMgr);
     host->setCloseHandler([this]() { return p_calcMgr->confirmAndQuit(); });
+    host->setOpenFilesHandler([this](const std::vector<wxString>& paths) {
+      if (p_calcMgr) p_calcMgr->openStructureFiles(paths);
+    });
     host->Show(true);
     SetTopWindow(host);
+    // Files named on this start's command line, such as "Open with ECCE".
+    std::vector<wxString> words;
+    for (int i = 1; i < argc; i++) words.push_back(argv[i]);
+    addEnvFiles(words, true);
+    std::vector<wxString> files = OneInstance::filesIn(words);
+    if (!files.empty())
+      CallAfter([host, files]() { host->openFiles(files); });
   } else {
     p_calcMgr->Show(true);
     SetTopWindow(p_calcMgr);
