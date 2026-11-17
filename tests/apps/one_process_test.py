@@ -17,6 +17,7 @@ Same installed tree, isolation and services as run_tests.py.  Exit 77
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -295,18 +296,25 @@ def runQuitHost(display):
             environment = display.env()
             environment.update({"ECCE_ONE_PROCESS": "1",
                                 "ECCE_LOCAL_DATA": data})
-            proc = subprocess.Popen(
-                [os.path.join(apps.WRAPPERS, "ecce-organizer")],
-                env=environment, stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT, text=True)
+            # Own process group, output to a file: the wrapper's children
+            # inherit a pipe and would keep communicate() waiting forever.
+            outPath = os.path.join(work, "after.out")
+            with open(outPath, "w") as out:
+                proc = subprocess.Popen(
+                    [os.path.join(apps.WRAPPERS, "ecce-organizer")],
+                    env=environment, stdout=out, stderr=subprocess.STDOUT,
+                    start_new_session=True)
             time.sleep(25)
             seen["after"] = proc.poll() is None
-            proc.terminate()
-            try:
-                seen["after_out"] = proc.communicate(timeout=20)[0]
-            except subprocess.TimeoutExpired:
-                proc.kill()
-                seen["after_out"] = proc.communicate()[0]
+            for sig, wait in ((signal.SIGTERM, 20), (signal.SIGKILL, 10)):
+                try:
+                    os.killpg(proc.pid, sig)
+                    proc.wait(timeout=wait)
+                    break
+                except (ProcessLookupError, subprocess.TimeoutExpired):
+                    pass
+            with open(outPath, errors="replace") as out:
+                seen["after_out"] = out.read()
 
         seen = {}
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
