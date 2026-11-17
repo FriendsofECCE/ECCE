@@ -157,6 +157,8 @@ def runSplit(work, parts, code, exe):
 def offline(opts):
     parserCheck()
     for code, exe in (("ecceqm", opts.qm), ("orca", opts.orca)):
+        if exe and not os.access(exe, os.X_OK):
+            exe = ""
         say("--- %s input generation" % code)
         work = tempfile.mkdtemp(prefix="cp_%s_" % code)
         writeFiles(work, "dimer", code)
