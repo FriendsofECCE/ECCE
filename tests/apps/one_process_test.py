@@ -1695,6 +1695,11 @@ def main():
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
+        if os.environ.get("ECCE_LAYOUTS_ONLY") == "1":
+            runLayouts(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         if os.environ.get("ECCE_POPUPS_ONLY") == "1":
             runTabsPopups(display)
             if failures:

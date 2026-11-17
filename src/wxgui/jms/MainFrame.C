@@ -6,6 +6,12 @@
  */
 #include <cstdio>
 #include <cstdlib>
+#ifdef __GLIBC__
+#include <execinfo.h>
+#endif
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif
 #include "wx/app.h"
 #include "wx/evtloop.h"
 #include "wx/frame.h"
@@ -38,21 +44,36 @@ void reportLoop(const char *when)
 {
   wxEventLoopBase *active = wxEventLoopBase::GetActive();
   wxEventLoopBase *main = wxTheApp ? wxTheApp->GetMainLoop() : 0;
+  int gtkLevel = -1;
+#ifdef __WXGTK__
+  gtkLevel = (int)gtk_main_level();
+#endif
   fprintf(stderr, "ECCE_TEST_ORGANIZER: %s: active loop %s, main running %d, "
-          "exit on frame delete %d, pending %d, windows:", when,
+          "exit on frame delete %d, pending %d, gtk level %d, windows:", when,
           !active ? "none" : active == main ? "main" : "NESTED",
           main ? (int)main->IsRunning() : -1,
           wxTheApp ? (int)wxTheApp->GetExitOnFrameDelete() : -1,
-          (int)wxPendingDelete.GetCount());
-  for (wxWindow *w : wxTopLevelWindows)
-    fprintf(stderr, " %s/'%s'%s%s%s",
+          (int)wxPendingDelete.GetCount(), gtkLevel);
+  for (wxWindow *w : wxTopLevelWindows) {
+    wxWindow *p = w->GetParent();
+    fprintf(stderr, " %s/'%s'[parent %s%s]%s%s%s",
             (const char *)wxString(w->GetClassInfo()->GetClassName()).utf8_str(),
             (const char *)w->GetLabel().utf8_str(),
-            w->GetParent() ? "(child)" : "",
+            p ? (const char *)wxString(p->GetClassInfo()->GetClassName()).utf8_str()
+              : "none",
+            p && p->IsBeingDeleted() ? " being deleted" : "",
+            w->IsBeingDeleted() ? "(being deleted)" : "",
             static_cast<wxTopLevelWindow *>(w)->ShouldPreventAppExit()
                 ? "(prevents exit)" : "",
             w->IsShown() ? "(shown)" : "");
+  }
   fprintf(stderr, "\n");
+#ifdef __GLIBC__
+  // Which loop (wx, GTK or a dialog's) is running this code.
+  void *frames[64];
+  int n = backtrace(frames, 64);
+  backtrace_symbols_fd(frames, n, 2);
+#endif
 }
 }
 
