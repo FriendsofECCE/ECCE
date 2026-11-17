@@ -167,6 +167,9 @@ class XYPlotCanvas : public wxPanel
 
     void setXAxisLabel(const wxString& s) { p_xLabel = s; Refresh(); }
     void setYAxisLabel(const wxString& s) { p_yLabel = s; Refresh(); }
+    // Aligned axes for a column of plots with different y scales.
+    void setLockX(bool lock) { p_lockX = lock; fitAll(); }
+    void setLeftMargin(int pixels) { p_leftMargin = pixels; Refresh(); }
     void setTitle(const wxString& s) { p_title = s; Refresh(); }
     wxString title() const { return p_title; }
     wxString xAxisLabel() const { return p_xLabel; }
@@ -407,7 +410,7 @@ class XYPlotCanvas : public wxPanel
       int labelW = 0;
       for (size_t i = 0; i < ys.size(); i++)
         labelW = std::max(labelW, dc.GetTextExtent(ys[i]).x);
-      const int left = (yTitle ? th + 8 : 4) + 10 + labelW;
+      const int left = p_leftMargin > 0 ? p_leftMargin : (yTitle ? th + 8 : 4) + 10 + labelW;
       const int right = 14;
       int top = 8;
       if (haveTitle) top += th + 4;
@@ -812,7 +815,8 @@ class XYPlotCanvas : public wxPanel
     {
       double lo, hi, ylo, yhi;
       if (!dataRange(&lo, &hi, &ylo, &yhi, false)) return;
-      clampAxis(&p_vx0, &p_vx1, lo, hi);
+      if (p_lockX) { p_vx0 = lo; p_vx1 = hi; }
+      else clampAxis(&p_vx0, &p_vx1, lo, hi);
       clampAxis(&p_vy0, &p_vy1, ylo, yhi);
     }
 
@@ -1218,6 +1222,8 @@ class XYPlotCanvas : public wxPanel
     wxString p_roPoint, p_roX, p_roXUnit, p_roY, p_roYUnit;
     bool p_showKey, p_showXAxis;
     int p_keyMaxRows = 0, p_keyDrawn = 0;
+    int p_leftMargin = 0;
+    bool p_lockX = false;
     PointHandler p_handler;
     int p_selCurve, p_selIndex, p_hoverCurve, p_hoverIndex;
     wxPoint p_hoverAt;

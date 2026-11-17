@@ -122,6 +122,37 @@ scene script itself drives, so `viewall`, `zoom` and `rotate` before it show
 in the PNG with or without `ECCE_VIEWER_SCENE_HOLD` (#1090). Test:
 `tests/apps/saveimage_test.py`.
 
+## Compare relaxed scans in the Builder
+
+Open **Relaxed Scan** (`ECCE_OPEN_PANEL=Relaxed Scan`) and use
+`ECCE_BUILDER_SCRIPT` commands:
+
+- `scancompare URL_OR_PATH...` replaces the comparison selection with stored
+  calculations anywhere in the project hierarchy, including data-server URLs.
+  Sibling short names remain accepted. `scancompare none` clears it;
+  bare `scancompare` lists sibling names as a convenience. The GUI's
+  **Compare...** calculation browser adds one calculation at a time.
+- `scanzero lowest|largest|first` chooses each curve's reference energy.
+  Default `lowest`; `largest` is the energy at the largest sampled coordinate,
+  not an extrapolation. `first` means stored first point, even after joining.
+- `scanjoin on|off` merges matching first-point geometries (same atom order
+  and elements, pair distances within 1e-4 Å), first coordinates (1e-5) and
+  first energies (1e-6 hartree). Missing structures or unmatched starts stay
+  separate. One common start is kept; other overlaps are retained. Verify the
+  method, state, basis and scanned atoms before joining.
+- `scanlayout overlay|multiples` chooses overlaid curves or a vertical panel
+  per resulting curve with separate y scales and a common x range.
+- `scancsv PATH [kcal]` exports every resulting curve as a labelled CSV block
+  (source URLs, absolute hartree and relative kJ/mol, or kcal/mol).
+- `scanpng PATH [WIDTH HEIGHT]` exports the combined layout on white. Minimum
+  width 200 and height 160 per resulting panel; for multiples use e.g.
+  `scanpng curves.png 1000 1200`. Morse-fit samples appear in PNG only.
+
+`scanmorse on|off [window]` still fits only the active scan. Structure clicks,
+table and playback refer to the active calculation. Test:
+`tests/apps/scan_compare_test.py`, with isolated stored fixtures copied from
+an existing scan example. Put `background 1 1 1` before screenshots.
+
 ## Checking the Basis Set Tool window
 
 `tests/apps/basis_tool_size_test.py` (ctest `apps_basis_tool_size`) checks

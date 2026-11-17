@@ -95,14 +95,58 @@ final orbitals keep the last computed point and identify it in the note.
 
 ### Compare scans
 
-**Compare...** in the Relaxed Scan panel lists the other scans in the same
-folder (of a bond, or of an angle or torsion, as this one). Tick the ones to
-draw beside this one. Each curve is drawn relative to its own lowest point,
-so the shapes can be compared; the absolute energies of different methods
-are never put on one scale. The key names each curve after its calculation.
-Choose **OK** to draw the ticked scans and **Cancel** to leave the plot as it
-was; ticking none returns to the one curve. A scan whose energies are
-missing is not listed.
+**Compare...** opens the same calculation browser as **File > Open**. Browse
+projects on a configured data server or the local filesystem and choose a
+calculation to add. Repeat to add more curves, including scans in other
+folders. Only scans with energies and the same coordinate unit (distance
+or degrees) are accepted. **Clear comparisons** returns to the active scan.
+The key names each curve; identical names use their full calculation URLs.
+Only points belonging to the active calculation select structures in the viewer.
+The table and playback continue to show that calculation's original point order.
+
+### Choose the energy zero
+
+**Zero** applies to every drawn curve independently:
+
+- **Lowest point** (default): subtract the lowest sampled energy.
+- **Largest coordinate**: subtract the energy at the largest sampled coordinate,
+  for an interaction curve referenced to its dissociation side. This is a finite
+  sampled separation, not an extrapolation to infinity. For torsions it simply
+  means the largest numerical angle.
+- **First point**: subtract the first point in the scan's stored order.
+
+Energies are shown in the selected kJ/mol or kcal/mol unit. No zero choice
+changes the stored absolute energies.
+
+### Join inward and outward scans
+
+Tick **Join** to merge scans with matching first-point structures and energies,
+then sort by coordinate. The atom order and elements must match; interatomic
+distances must agree within 0.0001 Å, the first coordinate within 0.00001
+(in its coordinate unit), and the first energy within 0.000001 hartree.
+Translated or rotated copies match. Scans without first-point structures,
+or with different starts, remain separate; the status line reports how many
+were merged. Check that the calculations describe the same electronic state,
+method, basis and scanned atom selection before joining.
+
+The shared first point is kept once; other overlaps are kept, so hysteresis
+is not averaged away. **First point** still references the common start even
+if sorting puts it in the middle. Untick **Join** to restore separate curves.
+
+### Small multiples and combined exports
+
+Tick **Small multiples** to stack one panel per resulting curve, each with its
+own energy scale and a common coordinate range and bottom x axis. Joined
+scans occupy one panel. Scroll the plots, or enlarge or float the panel, when
+comparing many systems. The common x range stays fixed while zoom and pan
+change each panel's y scale.
+
+**Export...** offers CSV and PNG. Both include all compared curves with the
+chosen zero and Join setting; PNG uses the current overlay or small-multiples
+layout on white. CSV contains one labelled block per curve, with its source
+calculation URLs, coordinate, absolute energy in hartree and relative energy
+in the selected unit. Morse-fit samples are drawn in PNG only. The table
+continues to describe the active scan.
 
 ### Fit a Morse potential to a bond scan
 
