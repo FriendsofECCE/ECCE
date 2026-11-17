@@ -5338,6 +5338,11 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
     if (outcome) *outcome = "refused";
     return;
   }
+  // A calculation made by another process (ecce-* tools, scripts) is not in
+  // a folder the tree has already listed. Re-read first, in a pass of its
+  // own: a refresh frees the Resources below it, so no TaskJob is held yet.
+  for (size_t i = 0; i < urls.size(); i++)
+    if (!findNode(urls[i], false, true)) findNodeFresh(urls[i], false);
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
     // Not openWhenFound: that selects the node, which replaces the
@@ -5449,6 +5454,11 @@ bool CalcMgr::launchSelectedAsync(const vector<EcceURL>& urls, string *outcome,
                                   bool askForSettings)
 {
   if (p_batch) { if (outcome) *outcome = "busy"; return false; }
+  // A calculation made by another process (ecce-* tools, scripts) is not in
+  // a folder the tree has already listed. Re-read first, in a pass of its
+  // own: a refresh frees the Resources below it, so no TaskJob is held yet.
+  for (size_t i = 0; i < urls.size(); i++)
+    if (!findNode(urls[i], false, true)) findNodeFresh(urls[i], false);
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
     // Not openWhenFound: that selects the node, which replaces the

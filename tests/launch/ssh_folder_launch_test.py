@@ -267,6 +267,10 @@ def main():
               "the owner stamped is the ssh user")
         stray = [r for r, d, f in os.walk(s.localData()) if name in os.path.basename(r)]
         check(not stray, "nothing of it in Local data: %s" % stray)
+        # Copies need the folder connected (crossTreeRefusal); it was
+        # disconnected above to check that the monitor runs on.
+        ans = send("server connect Folder")
+        check(ans == "connected", "the folder reconnects for the copies: %s" % ans)
 
         # Copy and move between trees (#890).
         def srvFiles(path, port=None):
@@ -288,7 +292,7 @@ def main():
 
         srcFiles = srvFiles(calc)
         srcFormula = formula(url)
-        check(srcFiles and srcFormula not in ("", "<none>"), "the source calculation has files and a formula: %s" % srcFormula)
+        check(srcFiles and srcFormula not in ("", "<none>", "not in the tree"), "the source calculation has files and a formula: %s" % srcFormula)
         ans = send("newproject lproj")
         lproj = ans.split(" ", 1)[1] if ans.startswith("ok ") else ""
         check(bool(lproj), "a local project: %s" % ans)
