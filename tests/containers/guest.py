@@ -175,6 +175,8 @@ def close():
             d.close()
             lastclose = time.time()
         time.sleep(1)
+    else:
+        shot("/tmp/close.png")   # what is still up when Quit did not end it
     time.sleep(2)
     print(json.dumps(state()))
 

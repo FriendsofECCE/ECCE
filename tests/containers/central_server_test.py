@@ -68,8 +68,11 @@ class Podman:
         """Run a shell script in a container as a Unix account."""
         home = "/root" if user == "root" else "/home/" + user
         args = ["exec", "-u", user, "-w", home, "-e", "HOME=" + home]
-        if os.environ.get("ECCE_ONE_PROCESS"):
-            args += ["-e", "ECCE_ONE_PROCESS=" + os.environ["ECCE_ONE_PROCESS"]]
+        # ECCE_TEST_DIALOG_CLOSE=<large> logs every message dialog to the
+        # session log without changing what happens.
+        for v in ("ECCE_ONE_PROCESS", "ECCE_TEST_DIALOG_CLOSE"):
+            if os.environ.get(v):
+                args += ["-e", "%s=%s" % (v, os.environ[v])]
         if detach:
             args.append("-d")
         if inp is not None:
@@ -334,6 +337,10 @@ def session_end(pm, state):
     check(s and not s["procs"].get("gateway") and
           not [t for t in s["titles"] if "Organizer" in t],
           "alice quits: her Organizer, gateway and apps are gone", o)
+    b64, _ = pm.out("alice", "base64 -w0 /tmp/close.png 2>/dev/null", "alice")
+    if b64.strip():
+        with open(os.path.join(LOGDIR, "alice-close.png"), "wb") as f:
+            f.write(base64.b64decode(b64))
     o, _ = pm.out("alice", "pgrep -u alice -a 'ecce|gateway|organizer' || true")
     check(not o.strip(), "no ECCE process of alice's is left", o)
     o, _ = pm.out("bob", "python3 /harness/guest.py state", "bob")
