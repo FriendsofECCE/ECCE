@@ -343,4 +343,15 @@ string vibSpectrumCsv(const VibSpectrum& spectrum, VibKind kind,
                       const SpectrumCsvInfo& info,
                       double lo, double hi, double step);
 
+/**
+ * The spectrum of `kind` as JCAMP-DX 4.24 (#986): a LINK file with the
+ * broadened curve as XYDATA=(X++(Y..Y)) (AFFN; width, shape and scaling
+ * factor in ##$ lines) and the sticks as a PEAK TABLE=(XY..XY) block, one
+ * peak per line with its mode number as a $$ comment.  With width 0 there is
+ * only the peak block.  Reads back through scripts/jcampdx.py.
+ */
+string vibSpectrumJcamp(const VibSpectrum& spectrum, VibKind kind,
+                        const SpectrumCsvInfo& info,
+                        double lo, double hi, double step);
+
 #endif

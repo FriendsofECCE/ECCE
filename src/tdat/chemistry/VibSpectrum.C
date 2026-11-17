@@ -576,6 +576,67 @@ string vibSpectrumCsv(const VibSpectrum& s, VibKind kind,
 }
 
 
+string vibSpectrumJcamp(const VibSpectrum& s, VibKind kind,
+                        const SpectrumCsvInfo& info,
+                        double lo, double hi, double step)
+{
+  std::ostringstream out;
+  out.imbue(std::locale::classic());
+  out.precision(8);
+  if (!s.has(kind)) kind = s.has(VIB_IR) ? VIB_IR : VIB_RAMAN;
+  const bool curve = s.fwhm() > 0 && step > 0 && hi > lo;
+  const char *type = kind == VIB_IR ? "INFRARED" : "RAMAN";
+  const vector<VibStick> sticks = s.sticks(kind);
+  const string title = info.calculation.empty() ? string("ECCE calculation")
+                                                : info.calculation;
+  const string origin = "ECCE" + (info.code.empty() ? string() : ", " + info.code);
+  const long n = curve ? (long)std::floor((hi - lo) / step + 1e-9) + 1 : 0;
+
+  auto common = [&](const char *datatype) {
+    out << "##JCAMP-DX=4.24\n##DATA TYPE=" << datatype << "\n##ORIGIN=" << origin
+        << "\n##OWNER=calculated\n";
+  };
+  const bool link = curve;
+  if (link) {
+    out << "##TITLE=" << title << " (calculated " << type << ")\n";
+    out << "##JCAMP-DX=4.24\n##DATA TYPE=LINK\n##BLOCKS=2\n##ORIGIN=" << origin
+        << "\n##OWNER=calculated\n";
+    out << "##TITLE=" << title << ", broadened curve\n";
+    common((string(type) + " SPECTRUM").c_str());
+    out << "##STATE=calculated\n##XUNITS=1/CM\n##YUNITS=ARBITRARY UNITS\n";
+    out << "##$INTENSITY UNIT=" << s.unitLabel(kind) << ", per cm-1\n";
+    out << "##$BROADENING=" << (s.lineShape() == LINE_LORENTZIAN ? "Lorentzian" : "Gaussian")
+        << ", FWHM " << s.fwhm() << " cm-1\n";
+    out << "##$FREQUENCY SCALING FACTOR=" << s.scale() << "\n";
+    out << "##XFACTOR=1\n##YFACTOR=1\n";
+    out << "##FIRSTX=" << lo << "\n##LASTX=" << lo + (n - 1) * step
+        << "\n##DELTAX=" << step << "\n##NPOINTS=" << n << "\n";
+    out << "##FIRSTY=" << s.envelope(kind, lo) << "\n";
+    out << "##XYDATA=(X++(Y..Y))\n";
+    for (long i = 0; i < n; i += 5) {
+      out << lo + i * step;
+      for (long j = i; j < n && j < i + 5; j++)
+        out << " " << s.envelope(kind, lo + j * step);
+      out << "\n";
+    }
+    out << "##END=\n";
+  }
+  out << "##TITLE=" << title << ", sticks\n";
+  common((string(type) + " PEAK TABLE").c_str());
+  out << "##XUNITS=1/CM\n##YUNITS=ARBITRARY UNITS\n";
+  out << "##$INTENSITY UNIT=" << s.unitLabel(kind) << "\n";
+  out << "##$FREQUENCY SCALING FACTOR=" << s.scale() << "\n";
+  out << "##XFACTOR=1\n##YFACTOR=1\n##NPOINTS=" << sticks.size() << "\n";
+  out << "##PEAK TABLE=(XY..XY)\n";
+  for (size_t i = 0; i < sticks.size(); i++)
+    out << sticks[i].wavenumber << ", " << sticks[i].intensity << " $$ mode "
+        << sticks[i].mode + 1 << "\n";
+  out << "##END=\n";
+  if (link) out << "##END=\n";
+  return out.str();
+}
+
+
 // ---- units and wording for the electronic spectrum (#383) ------------------
 
 double VibSpectrum::toEv(double x) const

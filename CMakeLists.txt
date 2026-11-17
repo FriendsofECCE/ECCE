@@ -1508,6 +1508,10 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_bandshift.py
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_spectrum.py
         DESTINATION bin RENAME ecce-spectrum
         COMPONENT client)
+# Its JCAMP-DX reader (#986), imported from the same folder.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/jcampdx.py
+        DESTINATION bin
+        COMPONENT client)
 
 # ecce-displace (#618): the structure displaced along a normal mode.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_displace.py
@@ -2613,6 +2617,9 @@ set_tests_properties(cp2k_features PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
 add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)
 target_link_libraries(vibspectrum_test PRIVATE eccetdat ecceutil)
 add_test(NAME vibspectrum COMMAND vibspectrum_test)
+# Writes the JCAMP-DX export of a model spectrum for tests/spectrum/jcamp_tests.py (#986).
+add_executable(jcamp_export_test tests/spectrum/jcamp_export_test.C)
+target_link_libraries(jcamp_export_test PRIVATE eccetdat ecceutil)
 # The same model as an excited-state (UV-vis) spectrum (#383).
 add_executable(uvvis_test tests/spectrum/uvvis_test.C)
 target_link_libraries(uvvis_test PRIVATE eccetdat ecceutil)
@@ -2936,6 +2943,12 @@ add_test(NAME bandshift
 add_test(NAME spectrum_cli
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/spectrum/cli_tests.py)
+
+# tests/spectrum/jcamp_tests.py -- scripts/jcampdx.py and the JCAMP-DX export (#986).
+add_test(NAME spectrum_jcamp
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/spectrum/jcamp_tests.py
+                 $<TARGET_FILE:jcamp_export_test>)
 
 # tests/siexport -- scripts/ecce_si_export.py on stored ORCA, G16, ECCE-QM (#625).
 add_test(NAME siexport

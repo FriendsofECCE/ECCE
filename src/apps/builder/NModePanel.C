@@ -917,7 +917,7 @@ void NModePanel::createWindowControls(wxWindow *pane, wxBoxSizer *col)
    });
    add(g2, difference, gap * 2);
    wxButton *expBtn = new wxButton(w2, wxID_ANY, "Experimental...");
-   expBtn->SetToolTip("Draw a measured spectrum from a CSV file (wavenumber "
+   expBtn->SetToolTip("Draw a measured spectrum from a CSV or JCAMP-DX file (wavenumber "
                       "and absorbance or transmittance), scaled to this "
                       "calculation's tallest peak in view.");
    expBtn->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { importExperimentalDialog(); });
@@ -1063,9 +1063,15 @@ bool NModePanel::exportSpectrumCsv(const wxString& path, VibKind kind)
    info.code = code ? code->name() : string();
    info.compareCode = p_compareCode;
 
-   const string text = vibSpectrumCsv(spec, kind, info,
-                                      p_spectrum->axis().fullLo(),
-                                      p_spectrum->axis().fullHi(), 1.0);
+   //  The file's extension picks the format; .jdx/.dx/.jcamp is JCAMP-DX (#986).
+   const wxString lower = path.Lower();
+   const bool jcamp = lower.EndsWith(".jdx") || lower.EndsWith(".dx") ||
+                      lower.EndsWith(".jcamp");
+   const string text = jcamp
+      ? vibSpectrumJcamp(spec, kind, info, p_spectrum->axis().fullLo(),
+                         p_spectrum->axis().fullHi(), 1.0)
+      : vibSpectrumCsv(spec, kind, info, p_spectrum->axis().fullLo(),
+                       p_spectrum->axis().fullHi(), 1.0);
    FILE *out = fopen(path.utf8_str(), "wb");
    if (out == 0) return false;
    const bool ok = fwrite(text.data(), 1, text.size(), out) == text.size();
@@ -1080,7 +1086,7 @@ void NModePanel::exportSpectrumDialog(const wxString& requestedPath)
    if (path.empty()) {
       wxFileDialog dlg(this, "Export spectrum",  wxEmptyString,
                     wxString::FromUTF8(calc->getURL().getFilePathTail().c_str()) +
-                    "-spectrum.csv", "CSV files (*.csv)|*.csv",
+                    "-spectrum.csv", "CSV files (*.csv)|*.csv|JCAMP-DX files (*.jdx)|*.jdx",
                     wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
       if (dlg.ShowModal() != wxID_OK) return;
       path = dlg.GetPath();
@@ -1591,10 +1597,11 @@ bool NModePanel::importExperimental(const string& path, const string& kind,
       return false;
    }
    vector<double> x, y;
-   string detected, line;
+   string detected, label, line;
    std::istringstream in(text);
    while (std::getline(in, line)) {
       if (line.compare(0, 5, "kind\t") == 0) { detected = line.substr(5); continue; }
+      if (line.compare(0, 6, "label\t") == 0) { label = line.substr(6); continue; }
       double a, b;
       if (sscanf(line.c_str(), "%lf %lf", &a, &b) == 2) { x.push_back(a); y.push_back(b); }
    }
@@ -1607,7 +1614,9 @@ bool NModePanel::importExperimental(const string& path, const string& kind,
    string name = path;
    const size_t at = name.find_last_of("/\\");
    if (at != string::npos) name = name.substr(at + 1);
-   p_expLabel = name + " (" + detected + ")";
+   //  A JCAMP-DX file names itself (title, state, origin) and gives its units.
+   p_expLabel = label.empty() ? name + " (" + detected + ")"
+                              : name + ": " + label + " (" + detected + ")";
    fillGraph();
    return true;
 }
@@ -1625,7 +1634,8 @@ void NModePanel::importExperimentalDialog()
    }
    wxFileDialog dlg(this, "Experimental spectrum (wavenumber, absorbance or "
                     "transmittance)", wxEmptyString, wxEmptyString,
-                    "Spectrum files (*.csv;*.txt;*.dat)|*.csv;*.txt;*.dat|All files|*",
+                    "Spectrum files (*.csv;*.txt;*.dat;*.jdx;*.dx;*.jcamp)|"
+                    "*.csv;*.txt;*.dat;*.jdx;*.dx;*.jcamp|All files|*",
                     wxFD_OPEN | wxFD_FILE_MUST_EXIST);
    if (dlg.ShowModal() != wxID_OK) return;
    wxString err;
