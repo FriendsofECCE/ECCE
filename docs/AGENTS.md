@@ -1523,3 +1523,33 @@ names.
 A new command or option is added to this file in the same change that adds it,
 as for the help pages. `tests/ai/agents_md_test.py` fails when a command
 named under "Commands" is not in the build.
+
+### NMR chemical shifts (#384)
+
+Builder **Properties > Magnetic resonance > NMR spectrum** uses `ISOSHIELD`
+(ppm; isotropic shielding from the parsed tensors). Choose H (1H), C (13C)
+or another element and supply its reference shielding. Defaults are empty;
+there is no implicit TMS value. `delta_ppm = sigma_reference - sigma_atom`.
+Reference calculation chooses a sibling calculation in the project folder
+and averages its shieldings of the selected element. Use the same method,
+basis and solvent; ECCE does not verify this. References are separate per
+element and live only as long as the panel. The reversed ppm plot groups
+atoms whose shifts span at most 0.01 ppm, at their mean shift, with atom
+count as stick height. Clicking selects the group's atoms (1-based numbers
+in the table and exports). J-couplings are outside this view.
+
+With `ECCE_BUILDER_SCRIPT`, after `property NMR spectrum`:
+
+- `nmr element H|C|SYMBOL` selects an element present in the structure.
+- `nmr reference VALUE|empty` enters a shielding in ppm or clears it.
+- `nmr calculation NAME` takes that element's mean shielding from a sibling
+  calculation with the given name.
+- `nmr width PPM` sets Lorentzian FWHM (0: sticks only).
+- `nmr click N` clicks group N, numbered from 1, and logs selected atoms.
+- `nmr csv PATH` exports reference provenance, grouped and per-atom data,
+  plus an area-normalised envelope in nuclei per ppm when width is positive.
+- `nmr png PATH` exports the current plot at 1200 by 760 pixels.
+- `nmr status` prints element, reference, width, axis direction and groups.
+
+The script logs `NMR: ok=0|1`; export is refused without a reference. Put
+`background 1 1 1` before screenshots. Help: [NMR spectrum](../help/src/importing-a-calculation.md#nmr-spectrum).

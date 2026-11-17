@@ -72,9 +72,9 @@ class SpectrumAxis
 /**
  * What the x axis of a VibSpectrum measures.  Wavenumbers are the IR and
  * Raman case; the electronic (UV-vis) spectrum stores energies in eV and can
- * be drawn against energy or wavelength (#383).
+ * be drawn against energy or wavelength (#383). NMR positions are signed ppm.
  */
-enum SpectrumXUnit { X_WAVENUMBER = 0, X_EV = 1, X_NM = 2 };
+enum SpectrumXUnit { X_WAVENUMBER = 0, X_EV = 1, X_NM = 2, X_PPM = 3 };
 
 /** Tick positions for an axis: round numbers, 1, 2 or 5 times 10^n. */
 struct SpectrumTicks
@@ -121,12 +121,13 @@ class VibSpectrum
      * eV or nm (hc/E), the intensities are oscillator strengths ("f") and
      * the width is in eV.  The envelope is evaluated in eV whatever the axis,
      * so a wavelength axis shows the same curve, not a Jacobian-stretched one.
-     * Anything but X_WAVENUMBER also drops the vibrational conventions: no
+     * Electronic and NMR spectra drop the vibrational conventions: no
      * near-zero or imaginary modes, no frequency scale.
      */
     void setXUnit(SpectrumXUnit unit) { p_x = unit; }
     SpectrumXUnit xUnit() const { return p_x; }
-    bool electronic() const { return p_x != X_WAVENUMBER; }
+    bool electronic() const { return p_x == X_EV || p_x == X_NM; }
+    bool nmr() const { return p_x == X_PPM; }
 
     /** Energy in eV of a position on the current axis, and the reverse. */
     double toEv(double x) const;

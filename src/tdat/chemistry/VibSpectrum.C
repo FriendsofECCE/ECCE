@@ -210,12 +210,13 @@ void VibSpectrum::setIntensities(VibKind kind, const vector<double>& values,
   for (size_t i = 0; i < values.size(); i++)
     if (values[i] != 0.0) p_has[kind] = true;
   p_units[kind] = units;
-  p_relative[kind] = electronic() ? upper(units) != "F"
+  p_relative[kind] = nmr() ? false : electronic() ? upper(units) != "F"
                                   : !knownIntensityUnits(kind, units);
 }
 
 string VibSpectrum::unitLabel(VibKind kind) const
 {
+  if (nmr()) return "nuclei";
   if (p_relative[kind]) return "relative";
   if (electronic()) return "f";
   return kind == VIB_IR ? "km/mol" : "\xC3\x85\xE2\x81\xB4/amu";
@@ -223,6 +224,7 @@ string VibSpectrum::unitLabel(VibKind kind) const
 
 string VibSpectrum::axisLabel(VibKind kind) const
 {
+  if (nmr()) return "Nucleus count";
   if (electronic())
     return p_relative[kind] ? "Absorption (relative)" : "Oscillator strength f";
   const string name = kind == VIB_IR ? "IR" : "Raman";
@@ -233,13 +235,14 @@ string VibSpectrum::axisLabel(VibKind kind) const
 
 bool VibSpectrum::isVibration(int i) const
 {
+  if (nmr()) return std::isfinite(p_freq[i]);
   if (electronic()) return p_freq[i] > 0;
   return VibFrequency::isReal(p_freq[i]) || VibFrequency::isImaginary(p_freq[i]);
 }
 
 bool VibSpectrum::isImaginary(int i) const
 {
-  return !electronic() && VibFrequency::isImaginary(p_freq[i]);
+  return p_x == X_WAVENUMBER && VibFrequency::isImaginary(p_freq[i]);
 }
 
 //  What is drawn for mode i: the code's number, or, when its unit is
@@ -452,6 +455,12 @@ void VibSpectrum::defaultRange(double *lo, double *hi) const
       if (p_cmp->isImaginary(i)) minImag = min(minImag, w);
       else { minReal = min(minReal, w); maxReal = max(maxReal, w); }
     }
+  if (nmr()) {
+    const double pad = max(0.5, 4.0 * p_fwhm);
+    *lo = any ? minReal - pad : 0;
+    *hi = any ? maxReal + pad : 10;
+    return;
+  }
   if (electronic()) { electronicRange(minReal, maxReal, any, lo, hi); return; }
   if (!any || maxReal < 0) { *lo = 0; *hi = 4000; return; }
   //  The margin grows with the range: 100 cm-1 is a few pixels in the
@@ -583,6 +592,7 @@ double VibSpectrum::fromEv(double ev) const
 
 string VibSpectrum::positionUnit() const
 {
+  if (nmr()) return "ppm";
   if (p_x == X_EV) return "eV";
   if (p_x == X_NM) return "nm";
   return "cm\xE2\x81\xBB\xC2\xB9";
@@ -590,6 +600,7 @@ string VibSpectrum::positionUnit() const
 
 string VibSpectrum::xTitle() const
 {
+  if (nmr()) return "Chemical shift (ppm)";
   if (p_x == X_EV) return "Excitation energy (eV)";
   if (p_x == X_NM) return "Wavelength (nm)";
   string t = "Wavenumber (" + positionUnit();
@@ -603,6 +614,7 @@ string VibSpectrum::xTitle() const
 
 string VibSpectrum::envelopeTitle(VibKind kind) const
 {
+  if (nmr()) return "Envelope (nuclei per ppm)";
   if (electronic())
     return string("Absorption envelope (") +
            (p_relative[kind] ? "relative" : "f") + " per eV)";
@@ -612,12 +624,14 @@ string VibSpectrum::envelopeTitle(VibKind kind) const
          " per cm\xE2\x81\xBB\xC2\xB9)";
 }
 
-string VibSpectrum::itemWord() const { return electronic() ? "State" : "Mode"; }
+string VibSpectrum::itemWord() const { return nmr() ? "Group" : electronic() ? "State" : "Mode"; }
 
 string VibSpectrum::positionText(const VibStick& stick) const
 {
   char b[96];
-  if (electronic()) {
+  if (nmr()) {
+    snprintf(b, sizeof b, "%.4f ppm", stick.wavenumber);
+  } else if (electronic()) {
     const double ev = toEv(stick.wavenumber);
     snprintf(b, sizeof b, "%.3f eV (%.1f nm)", ev, evNm() / ev);
   } else {
@@ -628,12 +642,14 @@ string VibSpectrum::positionText(const VibStick& stick) const
 
 string VibSpectrum::intensityName(VibKind kind) const
 {
+  if (nmr()) return "Count  ";
   if (electronic()) return "f  ";
   return kind == VIB_IR ? "IR  " : "Raman  ";
 }
 
 string VibSpectrum::emptyMessage() const
 {
+  if (nmr()) return "Enter a reference shielding to show chemical shifts.";
   return electronic() ? "No excited state has a nonzero oscillator strength."
                       : "This calculation has no infrared or Raman intensities.";
 }
