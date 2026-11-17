@@ -64,6 +64,7 @@
 #include "GridSelectionBlock.H"
 #include "wxgui/WxJMSMessageDispatch.H"
 #include "wxgui/ToolTabs.H"
+#include <execinfo.h>
 #include "WxBasisTool.H"
 #include "WxBasisSetCoefficients.H"
 #include "WxBasisSetDetail.H"
@@ -591,6 +592,9 @@ void WxBasisTool::startSizingTest()
                     << " table=" << table.x << "," << table.y
                     << " tablemin=" << best.x << "," << best.y
                     << " minimum=" << GetMinSize().x << "," << GetMinSize().y << std::endl;
+            } else if (verb == "changed") {
+                std::cerr << "BASISTOOL: changed=" << (p_calcChgd ? 1 : 0)
+                    << std::endl;
             } else if (verb == "resize") {
                 int x, y, w, h;
                 if (command >> x >> y >> w >> h) SetSize(x, y, w, h);
@@ -4012,6 +4016,11 @@ bool WxBasisTool::reportGBSRuleViolations()
 
 void WxBasisTool::showContextChanged(bool chgd)
 {
+  if (chgd && getenv("ECCE_TEST_BASISTOOL_TRACE")) {
+    void *bt[12]; int n = backtrace(bt, 12);
+    fprintf(stderr, "BASISTOOL-TRACE showContextChanged(true)\n");
+    backtrace_symbols_fd(bt, n, 2);
+  }
   p_calcChgd = chgd;
   if (p_messagesFeedback->getEditStatus() != WxFeedback::READONLY) {
     p_messagesFeedback->setEditStatus(chgd ? WxFeedback::MODIFIED :

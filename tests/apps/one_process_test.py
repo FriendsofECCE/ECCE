@@ -1119,7 +1119,7 @@ def runTabs1088(display):
             append("start Basistool " + url, 10)           # item 2: reused
             append("tabs", 2)                  # tabs[2]: Organizer, Builder, Viewer, Basis
             append("tabclose 3", 8)            # item 4: closes only that tool
-            append("answer no", 4)             # the Basis Set Tool always asks
+            append("answer no", 4)             # nothing was changed: no question
             append("tabs", 2)                  # tabs[3]
             append("inprocess", 2)             # inprocess[2]
             append("close", 3)                 # File > Quit
@@ -1169,6 +1169,12 @@ def runTabs1088(display):
               and " Viewer=1 " in inp[2],
               "closing the Basis Set Tool's tab closes only that tool",
               str(tabs) + str(inp))
+        asked = pb.answers(log, "answer no")
+        check(asked[:1] == ["no dialog"],
+              "closing a Basis Set Tool tab nobody changed asks no save "
+              "question", str(asked) + log[-3000:])
+        check(len(tabs) >= 3 and re.search(r"\d:Viewer", tabs[2]),
+              "the Viewer's tab is titled Viewer", str(tabs))
         check(not result.crashed and result.returncode == 0
               and "Aborted" not in log and "SIGSEGV" not in log,
               "the Organizer ends cleanly", "returncode %s\n%s"
