@@ -1470,7 +1470,7 @@ calculation.
 
 | Command | Purpose |
 |---|---|
-| `ecce-diagnose [-o directory] [run-directory]` | Collects what is needed to diagnose a problem into one text file, `ecce-diagnostics-<host>-<time>.txt`. Changes nothing and collects no passwords, but the file holds host names, user names and paths: read it before attaching it to an issue. `ecce --bug` runs it too |
+| `ecce-diagnose [-o directory] [run-directory]` | Collects what is needed to diagnose a problem into one text file, `ecce-diagnostics-<host>-<time>.txt`; on macOS it also copies the newest five crash reports of ECCE's programs from the last 7 days (`~/Library/Logs/DiagnosticReports`, `/Library/Logs/DiagnosticReports`) into `crash-reports/` beside it. Help > Report a Problem... logs each step on stderr as `Report a Problem: ...` (Organizer hook `reportproblem`). Changes nothing and collects no passwords, but the file holds host names, user names and paths: read it before attaching it to an issue. `ecce --bug` runs it too |
 | `ecce-remote-setup <server-host> [data-port]` | Points this client installation at a central server; run once per client installation, as the owner of the installation. Users then start `ecce -remote` |
 | `ecce-dataserver-start`, `ecce-dataserver-status`, `ecce-dataserver-stop` | Start, check and stop this user's data server (`ecce-dataserver-stop --if-unused` refuses while another session or a job still uses it) |
 | `ecce-dataserver-adduser` | Add an account to this user's data server (`-b USER PASS [FIRST] [LAST]` or `--stdin USER [FIRST] [LAST]` without prompts) |
