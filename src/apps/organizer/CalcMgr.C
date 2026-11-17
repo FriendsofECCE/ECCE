@@ -3631,7 +3631,8 @@ void CalcMgr::runTestCommand(const string& line)
                command == "float" || command == "floatinfo" ||
                command == "layout" || command == "tabmenu" ||
                command == "alwayswindow" || command == "setup" ||
-               command == "launcher") {
+               command == "launcher" || command == "windowmenu" ||
+               command == "quitlabel") {
       // Tools as tabs (#983): list, select, Open in Window, Move to Tabs,
       // the Windows and tabs setting, the tab's right-click menu.
       wxString result;
