@@ -4815,6 +4815,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR} --local --odd-names
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_oddnames PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # Scan Compare (#1095): scans of several calculations in one plot, Zero
+  # modes, Join, CSV/PNG export, through the Builder's script hooks.
+  add_test(NAME apps_scan_compare
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/scan_compare_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_scan_compare PROPERTIES TIMEOUT 900)
   # ECCE-QM, the bundled engine: water and triplet O2 created, run through
   # Launch in a local data folder, energies against ORCA, MOs normalised.
   if(ECCE_BUILD_QM)
