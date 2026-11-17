@@ -131,7 +131,8 @@ content sizing, selection-row growth and saved geometry on a private
 The isolated `ECCE_TEST_BASISTOOL=<file>` hook reads appended commands:
 `info` reports frame, grid and periodic-table geometry; `resize x y w h`
 sets frame geometry; `rows N` replaces the test grid's rows without changing
-the calculation; `close` closes normally and saves the window settings.
+the calculation; `changed` prints `BASISTOOL: changed=0|1`, whether the
+tool holds an unsaved change; `close` closes normally and saves the window settings.
 
 ## Isolated GUI tests
 

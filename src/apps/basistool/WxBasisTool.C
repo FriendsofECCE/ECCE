@@ -69,12 +69,6 @@
 #include "WxBasisSetCoefficients.H"
 #include "WxBasisSetDetail.H"
 #include "WxContractionEditor.H"
-static void traceCtx(int line)
-{
-  if (getenv("ECCE_TEST_BASISTOOL_TRACE"))
-    fprintf(stderr, "BASISTOOL-TRACE line %d\n", line);
-}
-#define showContextChanged(c) (traceCtx(__LINE__), showContextChanged(c))
 
 
 
@@ -2649,9 +2643,10 @@ void WxBasisTool::resetCodeObjects(bool autoOptimize)
         {
             if (p_optimizeCheckBox->GetValue())
             {
+                // Optimize does nothing without general contractions, so
+                // opening a calculation saved with it on is not a change.
                 config->optimize(false);
                 p_optimizeCheckBox->SetValue(false);
-                showContextChanged(true);
             }
         }
         else if (autoOptimize && preferOpt && config->optimize() == false)
@@ -4020,7 +4015,6 @@ bool WxBasisTool::reportGBSRuleViolations()
 */
 
 
-#undef showContextChanged
 void WxBasisTool::showContextChanged(bool chgd)
 {
   p_calcChgd = chgd;

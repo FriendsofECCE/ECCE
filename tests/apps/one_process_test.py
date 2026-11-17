@@ -1131,14 +1131,12 @@ def runTabs1088(display):
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                           env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
                                "ECCE_ONE_PROCESS": "1",
-                               "ECCE_TEST_BASISTOOL_TRACE": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_LOCAL_DATA": data},
                           inspect=inspect)
         log = result.log or ""
         if GDB:
             print(log[-6000:])
-        print("TRACE: " + "\n".join(re.findall(r"BASISTOOL-TRACE.*", log)))
         # "tabs" alone: answers() matches a prefix, which takes tabsel's too.
         tabs = re.findall(r"ECCE_TEST_ORGANIZER: tabs: (.*)$", log, re.M)
         print("      tabs: " + "\n            ".join(tabs))
