@@ -286,6 +286,9 @@ endif()
 # results.h5: ECCE's internal results format and converters (wx-free).  The
 # library is part of eccetdat: the job store writes the file and the orbital
 # views read it, and both sit on top of tdat.
+# Declared here, before the test blocks that ask for it; a fresh configure
+# would otherwise see it undefined there and skip those tests.
+option(ECCE_BUILD_QM "Build ecce-qm, the built-in HF/DFT engine" ON)
 option(ECCE_WITH_HDF5 "Build ecce-results and the results.h5 library (needs libhdf5-dev, C API)" ON)
 set(ECCE_HAVE_RESULTSH5 OFF)
 if(ECCE_WITH_HDF5)
@@ -5681,7 +5684,6 @@ endif()
 # It fetches libcint (always), and libxc and Eigen unless the system has them
 # (Debian: libxc-dev libeigen3-dev as build dependencies), at configure time.
 # See docs/qm/README.md.
-option(ECCE_BUILD_QM "Build ecce-qm, the built-in HF/DFT engine" ON)
 if(ECCE_BUILD_QM)
   add_subdirectory(src/qm)
   install(TARGETS ecce-qm RUNTIME DESTINATION bin COMPONENT client)
