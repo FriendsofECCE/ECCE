@@ -7721,11 +7721,14 @@ void Builder::updateReadOnly(const bool& loadPaneFlag)
                          p_mgr.GetPane(label).IsShown());
   }
 
-  // update our window name and help menu item
-  wxString title = "ECCE Builder";
+  // The title (and a tab's caption) names the tool that was started: a
+  // Builder on a run calculation stays "Builder", the Viewer on an editable
+  // one stays "Viewer", so two tabs never carry the same name (#1106, #1088).
+  const bool viewerApp = getenv("ECCE_INVOKE_VIEWER")
+      || (p_msgs && p_msgs->getMyName() == CALCVIEWER);
+  wxString title = viewerApp ? "ECCE Viewer" : "ECCE Builder";
   wxString menu_help = "on Builder\tCtrl+h";
-  if (isReadOnly) {
-    title = "ECCE Viewer";
+  if (isReadOnly || viewerApp) {
     menu_help = "on Viewer\tCtrl+h";
   }
   wxMenuItem * help_menu_item = GetMenuBar()->FindItem(wxID_HELP);

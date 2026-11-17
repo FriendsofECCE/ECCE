@@ -1332,6 +1332,8 @@ def runTabs1088(display):
         os.makedirs(project)
         shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
         url = "file://" + pb.makeCalc(project, "water-1088", "created", None)
+        # A run calculation: the Builder on it is read-only (#1106).
+        runUrl = "file://" + pb.makeCalc(project, "water-run", "complete", None)
         cmds = os.path.join(work, "commands")
         open(cmds, "w").close()
 
@@ -1370,6 +1372,8 @@ def runTabs1088(display):
             append("answer no", 4)             # the Basis Set Tool always asks
             append("tabs", 2)                  # tabs[3]
             append("inprocess", 2)             # inprocess[2]
+            append("start Builder " + runUrl, 25)
+            append("tabs", 2)                  # tabs[4]: + read-only Builder
             append("close", 3)                 # File > Quit
             append("answer", 3)
             append("answer no", 3)
@@ -1417,6 +1421,14 @@ def runTabs1088(display):
               and " Viewer=1 " in inp[2],
               "closing the Basis Set Tool's tab closes only that tool",
               str(tabs) + str(inp))
+        check(len(tabs) >= 3 and re.search(r"1:Builder ", tabs[2])
+              and re.search(r"2:Viewer ", tabs[2]),
+              "the Viewer's tab reads Viewer, the Builder's Builder, on an "
+              "editable calculation", str(tabs))
+        check(len(tabs) >= 5 and len(re.findall(r"\d+:Builder\*? ", tabs[4])) == 2
+              and len(re.findall(r"\d+:Viewer\*? ", tabs[4])) == 1,
+              "a Builder on a run (read-only) calculation reads Builder, "
+              "not Viewer", str(tabs))
         check(not result.crashed and result.returncode == 0
               and "Aborted" not in log and "SIGSEGV" not in log,
               "the Organizer ends cleanly", "returncode %s\n%s"
