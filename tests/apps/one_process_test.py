@@ -1810,6 +1810,16 @@ def main():
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
+        # The core part (organizer start, Quit with and without the gateway)
+        # runs as its own ctest: together with the tabs part it outgrew the
+        # per-test budget.
+        if os.environ.get("ECCE_CORE_ONLY") == "1":
+            run(display)
+            runQuit(display)
+            runQuit(display, gateway=True)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         runLayouts(display)
         runTabs(display)
         runQuitHost(display)

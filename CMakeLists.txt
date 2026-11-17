@@ -3687,11 +3687,20 @@ if(PYTHON3_EXECUTABLE)
                        SKIP_RETURN_CODE 77)
   # Builder and Calculation Editor as windows of the Organizer's process,
   # ECCE_ONE_PROCESS=1 (#983).
+  # Two ctests so each part stays inside the per-test budget: the tabbed
+  # window (layouts, tabs, tools) and the core start/Quit checks.
   add_test(NAME apps_organizer_one_process
-           COMMAND ${PYTHON3_EXECUTABLE}
+           COMMAND ${CMAKE_COMMAND} -E env ECCE_TABS_ONLY=1
+                   ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
-  set_tests_properties(apps_organizer_one_process PROPERTIES TIMEOUT 2700
+  add_test(NAME apps_organizer_one_process_core
+           COMMAND ${CMAKE_COMMAND} -E env ECCE_CORE_ONLY=1
+                   ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_one_process
+                       apps_organizer_one_process_core PROPERTIES TIMEOUT 2700
                        SKIP_RETURN_CODE 77)
   # A second start brings the running window to the front (#1069).
   add_test(NAME apps_organizer_single_instance
