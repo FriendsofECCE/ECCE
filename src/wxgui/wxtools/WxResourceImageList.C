@@ -120,7 +120,8 @@ void WxResourceImageList::addAllImages()
     if (p_inkedIndex[v] == 0) p_inkedIndex[v] = new int[resourceTypes.size()];
     for (size_t t = 0; t < resourceTypes.size(); t++) {
       p_inkedIndex[v][t] = -1;
-      if (!resourceTypes[t]->getIsExpandable()) continue;
+      // Only collections (projects, folders) draw the folder icon.
+      if (resourceTypes[t]->getResourceType() != "collection") continue;
       p_inkedIndex[v][t] = GetImageCount();
       for (int k = 0; k < 4; k++)
         Add(inked(ewxBitmap(resourceTypes[t]->getIcon(

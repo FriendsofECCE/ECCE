@@ -93,7 +93,7 @@ def main():
              lambda a: a == "bg=0 ink=server"),
             #  Picture of the expanded server tree, for looking at the icon colour.
             ("treeimage http://localhost:%d/Ecce/users/%s/%s/c1"
-             % (fixture.dataserverPort(), user, proj), lambda a: a.startswith("bg=0")),
+             % (fixture.dataserverPort(), user, proj), lambda a: a == "bg=0 ink=none"),   # a calculation keeps its icon
             ("snap /tmp/ecce-server-tree-icons.png", lambda a: a == "saved"),
             ("server copycheck file:///tmp/x http://localhost:%d/Ecce/users/%s/%s"
              % (fixture.dataserverPort(), user, proj),
