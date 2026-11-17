@@ -36,6 +36,7 @@ using std::vector;
 #define wxID_RUNTYPE_CHANGE 10999
 
 class EcceTool;
+class ewxCheckBox;
 class Fragment;
 class GUIValues;
 class ICalculation;
@@ -258,6 +259,8 @@ class CalcEd: public CalcEdGUI,
     std::string p_notReadyWhy;
     wxString p_notesText;
     void refreshOrbitalGuess();
+    void refreshCounterpoise();
+    ewxCheckBox *p_counterpoise = nullptr, *p_counterpoiseOwn = nullptr;
     bool deckNamesOrbitalGuess();
     void showPartialEditor();
 

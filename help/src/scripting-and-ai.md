@@ -201,8 +201,8 @@ BSSE   = ΔE_CP − ΔE_raw = Σ E_X(X) − Σ E_X(AB)   (positive)
 ```
 
 Define the fragments in the Builder first (`fragments auto`, above). In the
-Calculation Editor choose an Energy run, open Runtype Details and tick
-*Counterpoise correction*; the box exists for ECCE-QM and ORCA Energy runs only.
+Calculation Editor choose an Energy run and tick
+*Counterpoise correction*; the box is greyed out and unticked, with a tooltip explaining why, unless the code is ECCE-QM or ORCA, the run type is Energy, and the structure has at least two fragments (stored assignments, or connected molecules by default).
 The second tick, *Monomers in their own basis too*, adds one run per fragment
 and gives the raw energy and the BSSE. One job runs the complex, then each
 monomer in sequence, in the same run folder. The fragment charges must add up

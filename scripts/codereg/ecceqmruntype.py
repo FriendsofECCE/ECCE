@@ -102,22 +102,6 @@ class EcceqmRunTypePanel(EccePanel):
             ircSizer.AddWidget(self.ircHessEvery)
             self.panelSizer.Add(ircSizer)
 
-        if EcceGlobals.RunType == "Energy":
-            cpSizer = EcceBoxSizer(self, label="Counterpoise Correction", cols=1)
-            self.useCp = EcceCheckBox(self,
-                                      label=" Counterpoise correction (structure with 2 or more fragments)",
-                                      name="ES.Runtype.Counterpoise",
-                                      default=False,
-                                      export=1)
-            cpSizer.AddWidget(self.useCp)
-            self.cpOwn = EcceCheckBox(self,
-                                      label=" Monomers in their own basis too (raw energy and BSSE)",
-                                      name="ES.Runtype.CounterpoiseOwn",
-                                      default=False,
-                                      export=1)
-            cpSizer.AddWidget(self.cpOwn)
-            self.panelSizer.Add(cpSizer)
-
         locSizer = EcceBoxSizer(self, label="Orbitals", cols=1)
         locSizer.AddWidget(EcceCheckBox(
             self, label=" Localised orbitals (bonds and lone pairs, same set for each spin)",
@@ -128,8 +112,7 @@ class EcceqmRunTypePanel(EccePanel):
         self.msg.Hide()
 
     def CheckDependency(self):
-        if EcceGlobals.RunType == "Energy":
-            self.cpOwn.Enable(self.useCp.GetValue())
+        pass
 
 
 frame = EcceqmRunTypeFrame(None,

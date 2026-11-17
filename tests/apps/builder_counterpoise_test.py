@@ -11,6 +11,7 @@ sys.path.insert(0, str(HERE))
 import apps
 import fixture
 import run_tests
+import symmetry_find_test as sym
 
 failures = []
 
@@ -49,7 +50,9 @@ def make_calculation(folder, atoms, bonds, charge):
         ".\thttp://purl.oclc.org/NET/cmcs/schema/:hasConfigurations\t\t" + configurations + "\n")
     text = "title: counterpoise fixture\ntype: molecule\nfragment_attributes:\n  charge: %d\nend_fragment_attributes:\n" % charge
     text += "num_atoms: %d\natom_info: symbol cart\natom_list:\n" % len(atoms)
-    text += "\n".join(atoms) + "\nnum_bonds: %d\nbond_list:\n" % len(bonds)
+    text += "\n".join(atoms) + "\nnum_bonds: %d\n" % len(bonds)
+    if bonds:
+        text += "bond_list:\n"
     text += "".join("%d %d 1.0 2\n" % bond for bond in bonds)
     (folder / "Parameters" / "chemsys.mvm").write_text(text)
 
@@ -89,6 +92,55 @@ def main():
         os.environ["ECCE_LOCAL_DATA"] = str(base)
         restore = fixture.settleUpgradeNotices()
         try:
+            # Query the actual editor checkboxes, including stale stored ticks.
+            for label, atoms, bonds, code, runtype, enabled in [
+                ("single", ["O 0 0 0", "H 0.9584 0 0", "H -0.2392 0.9278 0"],
+                 [(1, 2), (1, 3)], "ECCE-QM", "Energy", 0),
+                ("two", ["He 0 0 0", "He 4 0 0"], [], "ECCE-QM", "Energy", 1),
+                ("assigned-one", ["He 0 0 0", "He 4 0 0"], [], "ECCE-QM", "Energy", 0),
+                ("assigned-two", ["He 0 0 0", "He 1 0 0"], [(1, 2)], "ECCE-QM", "Energy", 1),
+                ("geometry", ["He 0 0 0", "He 4 0 0"], [], "ECCE-QM", "Geometry", 0),
+                ("orca", ["He 0 0 0", "He 4 0 0"], [], "ORCA", "Energy", 1),
+                ("mopac", ["He 0 0 0", "He 4 0 0"], [], "MOPAC", "Energy", 0),
+                ("xtb", ["He 0 0 0", "He 4 0 0"], [], "xTB", "Energy", 0),
+            ]:
+                calc = project / ("editor-" + label)
+                make_calculation(calc, atoms, bonds, 0)
+                if label.startswith("assigned-"):
+                    structure = calc / "Parameters" / "chemsys.mvm"
+                    definition = "fragment_states: %d\n1 0 1\n" % (2 if enabled else 1)
+                    if enabled:
+                        definition += "2 0 1\n"
+                    definition += "atom_fragment_list:\n1\n%d\n" % (2 if enabled else 1)
+                    structure.write_text(structure.read_text().replace(
+                        "num_bonds:", definition + "num_bonds:"))
+                meta = (calc / ".ecce-meta").read_text().replace(
+                    "application\t\tORCA", "application\t\t" + code).replace(
+                    "runtype\t\tEnergy", "runtype\t\t" + runtype)
+                (calc / ".ecce-meta").write_text(meta)
+                (calc / "Parameters" / "SetupParams").write_text(
+                    "ES.Runtype.Counterpoise|1||1|1|toggle_input\n"
+                    "ES.Runtype.CounterpoiseOwn|1||1|1|toggle_input\n")
+                commands = [
+                    "ready", "guistate ES.Runtype.Counterpoise",
+                    "guistate ES.Runtype.CounterpoiseOwn"]
+                if code in ("ECCE-QM", "ORCA"):
+                    commands += ["basis 6-31G", "wait 1500"]
+                commands += ["button save", "wait 1000", "quit"]
+                log = sym.scripted(display, "calced", "ECCE_CALCED_SCRIPT",
+                                   commands, calc.as_uri() + "/")
+                if label == "single":
+                    decks = list((calc / "Inputs").glob("*.qmin"))
+                    check(bool(decks) and all("# ecce-run" not in deck.read_text() for deck in decks),
+                          "single: saving stale counterpoise ticks generates no monomer runs", log)
+                for key in ("Counterpoise", "CounterpoiseOwn"):
+                    check("guistate ES.Runtype.%s enabled=%d checked=%d" %
+                          (key, enabled, enabled) in log,
+                          label + ": " + key + " enabled and checked state", log)
+                if not enabled:
+                    check(re.search(r"tooltip=.+", log) is not None,
+                          label + ": disabled reason is present", log)
+
             out = base / "dimer-inputs"
             log = scripted(display, dimer, [
                 "fragments", "fragments auto", "fragment 1 atoms 1-3", "fragment 2 atoms 4,5,6",

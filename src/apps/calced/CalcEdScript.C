@@ -167,6 +167,14 @@ void CalcEd::runCalcEdScript(const string& file)
           else
             processTheoryInput(msg.c_str());
         }
+      } else if (w[0] == "guistate" && w.size() == 2) {
+        refreshCounterpoise();
+        ewxCheckBox *box = w[1] == "ES.Runtype.Counterpoise" ? p_counterpoise :
+            w[1] == "ES.Runtype.CounterpoiseOwn" ? p_counterpoiseOwn : nullptr;
+        if (!box) outcome = "FAIL: no such option";
+        else fprintf(stderr, "CALCED: guistate %s enabled=%d checked=%d tooltip=%s\n",
+            w[1].c_str(), box->IsEnabled(), box->IsChecked(),
+            box->GetToolTipText().ToStdString().c_str());
       } else if (w[0] == "guivalue" && w.size() == 2) {
         GUIValue *v = p_GUIValues ? p_GUIValues->get(w[1]) : 0;
         fprintf(stderr, "CALCED: guivalue %s=%s\n", w[1].c_str(),

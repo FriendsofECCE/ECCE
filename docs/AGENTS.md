@@ -467,9 +467,15 @@ ends such rows with `ghost`.
 
 Counterpoise calculation (ECCE-QM and ORCA, Energy runs, structure with 2 or
 more fragments): SetupParams keys `ES.Runtype.Counterpoise` (1 = on) and
-`ES.Runtype.CounterpoiseOwn` (1 = also each monomer in its own basis). Fragments
-come from the Builder hooks (`fragments auto`, `fragment N atoms|charge|mult`)
-and are stored in the `.frag` file (`fragment_states`, `atom_fragment_list`).
+`ES.Runtype.CounterpoiseOwn` (1 = also each monomer in its own basis). Both options
+are disabled and shown unticked unless the code is ECCE-QM or ORCA, the run type
+is Energy, and the structure has at least two fragments. The tooltip explains why.
+`ECCE_CALCED_SCRIPT` command `guistate ES.Runtype.Counterpoise` (or
+`ES.Runtype.CounterpoiseOwn`) prints `enabled=0|1 checked=0|1 tooltip=...` for
+the actual checkbox on the editor page. Fragments come from stored Builder
+assignments (`fragments auto`, `fragment N atoms|charge|mult`), or default
+to connected molecules when none are stored. Definitions are stored in the
+`.frag` file (`fragment_states`, `atom_fragment_list`).
 `ai.ecceqm`/`ai.orca` append the monomer decks to the one input file after
 `# ecce-run fragment-N[-own]` lines; `gensub` splits them off, runs them after
 the complex in the same folder and appends a `begin counterpoise` energy block

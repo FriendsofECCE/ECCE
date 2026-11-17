@@ -1,3 +1,5 @@
+#include "tdat/Counterpoise.H"
+#include <set>
 #ifdef _WIN32
 #include <algorithm>
 #include <windows.h>
@@ -2171,12 +2173,65 @@ GeomConstraintModel::Use CalcEd::constraintUse() const
 }
 
 
+void CalcEd::refreshCounterpoise()
+{
+  if (!p_GUIValues || !p_counterpoise) return;
+  string why;
+  if (p_codeName == "MOPAC" || p_codeName == "xTB")
+    why = "This code has no basis functions to share.";
+  else if (p_codeName != "ECCE-QM" && p_codeName != "ORCA")
+    why = "Counterpoise correction is supported for ECCE-QM and ORCA.";
+  else if (getRuntypeName() != "Energy")
+    why = "Counterpoise correction requires an Energy run.";
+  else {
+    std::set<int> ids;
+    if (p_fullFrag) {
+      Fragment fragments(*p_fullFrag);
+      if (fragments.fragmentStates().empty()) {
+        string error;
+        Counterpoise::autoAssign(fragments, error);
+      }
+      for (int i = 0; i < fragments.numAtoms(); ++i)
+        if (fragments.atomRef(i)->fragmentId() > 0)
+          ids.insert(fragments.atomRef(i)->fragmentId());
+    }
+    if (ids.size() < 2) why = "Counterpoise correction requires at least two fragments.";
+  }
+  const bool editable = p_feedback->getEditStatus() != WxFeedback::READONLY;
+  for (ewxCheckBox *box : {p_counterpoise, p_counterpoiseOwn}) {
+    const char *key = box == p_counterpoise ? "ES.Runtype.Counterpoise"
+                                           : "ES.Runtype.CounterpoiseOwn";
+    GUIValue *value = p_GUIValues->get(key);
+    if (!value) {
+      value = new GUIValue();
+      value->m_key = key;
+      value->m_type = "toggle_input";
+      value->m_write = true;
+      value->setValue(0);
+      p_GUIValues->set(key, value);
+    }
+    // Clear stale ticks before either saving settings or generating a deck.
+    if (!why.empty()) {
+      if (value->getValueAsString() == "1" && editable) enableSave();
+      value->setValue(0);
+    }
+    const bool parentOn = box == p_counterpoise || p_counterpoise->IsChecked();
+    value->m_sensitive = why.empty() && parentOn;
+    box->SetValue(value->getValueAsString() == "1");
+    box->Enable(value->m_sensitive && editable);
+    box->SetToolTip(wxString::FromUTF8(!why.empty() ? why : !parentOn
+        ? "Select Counterpoise correction first." : !editable
+        ? "This calculation is read-only." : "Evaluate fragment energies at the complex geometry."));
+  }
+}
+
 /// The Notes row: the current state, replaced on every change.  The
 /// constraints belong to the structure, so the line says whether this run
 /// type and code use, ignore or refuse them; then "Symmetry off" and why the
 /// calculation is not ready.
 void CalcEd::updateNotes()
 {
+  refreshCounterpoise();
   bool supportsConstraints = false;
   if (p_code) p_code->get_bool("SupportsConstraints", supportsConstraints);
   // The constraints line is for run types that apply the constraints and
@@ -2789,6 +2844,24 @@ void CalcEd::CreateControls()
   mainSizer()->Show(p_notesPanel, false);
   mainSizer()->Add(p_feedback, 1, wxEXPAND, 0);  // the log takes extra height
 
+  p_counterpoise = new ewxCheckBox(clientParent(), wxID_ANY, "Counterpoise correction");
+  p_counterpoiseOwn = new ewxCheckBox(clientParent(), wxID_ANY,
+      "Monomers in their own basis too (raw energy and BSSE)");
+  mainSizer()->Insert(mainSizer()->GetItemCount() - 2, p_counterpoise, 0,
+                      wxLEFT|wxRIGHT|wxBOTTOM, FromDIP(5));
+  mainSizer()->Insert(mainSizer()->GetItemCount() - 2, p_counterpoiseOwn, 0,
+                      wxLEFT|wxRIGHT|wxBOTTOM, FromDIP(5));
+  for (ewxCheckBox *box : {p_counterpoise, p_counterpoiseOwn}) {
+    box->Enable(false);
+    box->Bind(wxEVT_CHECKBOX, [this, box](wxCommandEvent&) {
+      const char *key = box == p_counterpoise ? "ES.Runtype.Counterpoise"
+                                             : "ES.Runtype.CounterpoiseOwn";
+      p_GUIValues->get(key)->setValue(box->IsChecked() ? 1 : 0);
+      refreshCounterpoise();
+      enableSave();
+    });
+  }
+
   //  Save sits in the button row, a standard button just before Launch.
   wxButton *save = p_feedback->adoptSaveButton(this);
   p_buttonRow->Insert(p_buttonRow->GetItemCount() - 1, save, 0,
@@ -3293,6 +3366,8 @@ bool CalcEd::hasDetailsValues(const string& prefix) const
   for (GUIValues::const_iterator it = p_GUIValues->begin();
        it != p_GUIValues->end(); ++it) {
     if (it->first != "ES.Theory.UseSymmetry" &&
+        it->first != "ES.Runtype.Counterpoise" &&
+        it->first != "ES.Runtype.CounterpoiseOwn" &&
         it->first.compare(0, prefix.size(), prefix) == 0)
       return true;
   }
@@ -4900,6 +4975,7 @@ bool CalcEd::generateInput(const bool& paramFlag)
 {
   bool success = false;
 
+  refreshCounterpoise();
   if (isReady()) {
     string message;
     success = input_controller(paramFlag, getUseExpCoeff(), message);
@@ -5118,6 +5194,13 @@ void CalcEd::doSave()
         p_iCalc->fragment(currentFragment);
         saveFrag = true;
       }
+      if (currentFragment && p_counterpoise->IsChecked() &&
+          currentFragment->fragmentStates().empty()) {
+        string error;
+        Counterpoise::autoAssign(*currentFragment, error);
+        p_iCalc->fragment(currentFragment);
+        saveFrag = true;
+      }
       if (currentFragment) delete currentFragment;
 
       // save spin multiplicity and open shells
@@ -5180,6 +5263,7 @@ void CalcEd::doSave()
 
     if (p_saveStage) p_saveStage("Storing the calculation settings");
     // save GUIValues; the input is generated from what the box shows
+    refreshCounterpoise();
     storeUseSymmetry(useSymmetryBox());
     syncTsKeys();
     p_iCalc->guiparams(p_GUIValues);

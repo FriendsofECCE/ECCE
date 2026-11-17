@@ -23,9 +23,6 @@ float name=ES.Runtype.IRC.StepSize label="Step (bohr*sqrt(amu)):" default=0.1 ha
 combo name=ES.Runtype.IRC.Direction label="Direction:" choices="Both|Forward|Backward" default=Both export=1
 int name=ES.Runtype.IRC.HessianEvery label="New Hessian every n points (0: never):" default=0 hard="[0..)" soft="[0..50]" export=1
 
-box label="Counterpoise Correction" when="runtype==Energy"
-check name=ES.Runtype.Counterpoise label=" Counterpoise correction (structure with 2 or more fragments)" default=0 export=1
-check name=ES.Runtype.CounterpoiseOwn label=" Monomers in their own basis too (raw energy and BSSE)" default=0 enable_if="ES.Runtype.Counterpoise==1" export=1
 
 box label="Orbitals"
 check name=ES.Theory.ECCEQM.Localise label=" Localised orbitals (bonds and lone pairs, same set for each spin)" default=1 export=1

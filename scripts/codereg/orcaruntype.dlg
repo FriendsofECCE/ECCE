@@ -36,9 +36,6 @@ int name=ES.Runtype.IRC.MaximumStepsValue label="Max Steps per direction:" defau
 combo name=ES.Runtype.IRC.Direction label="Direction:" choices="Both|Forward|Backward" default=Both export=1
 combo name=ES.Runtype.IRC.InitHess label="Initial Hessian:" choices="Analytic|Numerical" default=Analytic export=1
 
-box label="Counterpoise Correction" cols=1 when="runtype==Energy"
-check name=ES.Runtype.Counterpoise label=" Counterpoise correction (structure with 2 or more fragments)" default=0 export=1
-check name=ES.Runtype.CounterpoiseOwn label=" Monomers in their own basis too (raw energy and BSSE)" default=0 enable_if="ES.Runtype.Counterpoise==1" export=1
 
 box label="Partial Charges" cols=2
 check name=ES.Runtype.ORCA.UseCHELPG label=" CHELPG charges (ESP fit)" default=0 export=1
