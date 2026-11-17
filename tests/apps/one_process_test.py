@@ -729,7 +729,12 @@ def runSetupTab(display):
                    "bond_list: \n1 2 1.00000 2\n")
         # #1063 stage 3: one step for a mixed set, Def2-ECP only where it
         # has a core, fitting hidden without RI, per-atom and augmenting sets
-        calc4 = extra("water-mixed", "ORCA", None)
+        # atom names reach the editor only through pdb_list (O1, H1, H2)
+        water = open(os.path.join(calc2, "Parameters", "chemsys.mvm")).read()
+        names = "".join("M %-4s HOH      1        A\n" % n
+                        for n in ("O1", "H1", "H2"))
+        calc4 = extra("water-mixed", "ORCA", water.replace(
+            "num_bonds:", "pdb_list: \n" + names + "num_bonds:", 1))
         hi2 = extra("hi-def2ecp", "ORCA",
                     open(os.path.join(hi, "Parameters", "chemsys.mvm")).read())
         url2, url3, hiUrl = ("file://" + calc2, "file://" + calc3,
@@ -813,7 +818,7 @@ def runSetupTab(display):
             append("setup basis assign def2-tzvp @ H1", 15)        # n3
             append("start CalculationEditor " + hi2Url, 25)
             append("setup basis assign def2-tzvp", 15)             # n4
-            append("setup basis ecp Def2-ECP", 15)                 # n5
+            append("setup basis ecp def2-tzvp-ecp", 15)            # n5
             shot("setup-basis-atoms.png")
             append("close", 3)
             append("answer", 3)
@@ -926,8 +931,9 @@ def runSetupTab(display):
               "water: def2-SVP on H and def2-TZVP on O (per element)",
               more[1])
         check("H:_def2-svp" in more[2] and "O:_def2-tzvp" in more[2]
-              and "msg=Check_at_least_one_element" in more[2],
-              "no element checked: nothing assigned, the panel says so",
+              and "msg=C_is_not_in_this_chemical_system" in more[2],
+              "an element not in the system: nothing assigned, the panel "
+              "says so",
               more[2])
         check("no such basis set" in allSu, "an unknown set name is refused",
               str(allSu[-12:]))
@@ -961,11 +967,14 @@ def runSetupTab(display):
               and "O:_def2-tzvp" in more[11],
               "an atom (H1) takes its own set; the element's group stays "
               "for the other hydrogens", more[11])
-        check("I:_def2-tzvp_+_ECP_Def2-ECP" in more[13]
+        check("All_atoms:_def2-tzvp_+_ECP_Def2-ECP" in more[12],
+              "def2-TZVP for all atoms keeps the set's own Def2-ECP (for I)",
+              more[12])
+        check("I:_def2-tzvp_+_ECP_def2-tzvp" in more[13]
               and "H:_def2-tzvp_+_ECP" not in more[13]
               and "H:_def2-tzvp" in more[13],
-              "ORCA's Def2-ECP goes on I (it has a core there) and not on H",
-              more[13])
+              "an ECP for all atoms goes on I (it has a core there) and not "
+              "on H", more[13])
         perElement = ""
         for root, _dirs, names in os.walk(calc2):
             for n in names:

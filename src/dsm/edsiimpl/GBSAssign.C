@@ -31,11 +31,13 @@ GBSAssign::Result GBSAssign::assign(EDSIGaussianBasisSetLibrary& library,
 
   // An aggregate (ORCA's def2 sets) returns its ECP part for every element,
   // empty where the element has no core; kept, it would show Def2-ECP on H.
+  // A group may hold several elements ("H I"): keep it if any has a core.
+  TGBSConfigTags els(tag.c_str());
   for (size_t i = 0; i < gbsList.size();) {
-    TGBSConfigTags el(tag.c_str());
-    if (gbsList[i]->p_type == TGaussianBasisSet::ecp && el.size() &&
-        gbsList[i]->p_contractions.find(el[0]) ==
-            gbsList[i]->p_contractions.end()) {
+    bool core = false;
+    for (const string& el : els)
+      core = core || gbsList[i]->p_contractions.count(el);
+    if (gbsList[i]->p_type == TGaussianBasisSet::ecp && els.size() && !core) {
       delete gbsList[i];
       gbsList.erase(gbsList.begin() + i);
     } else {

@@ -23,6 +23,7 @@
 #include "util/BrowserHelp.H"
 #include "wxgui/WxHelpViewer.H"
 #include "util/ErrMsg.H"
+#include "util/STLUtil.H"
 #include "util/InvalidException.H"
 #include "util/ResourceUtils.H"
 #include "util/StringConverter.H"
@@ -1601,7 +1602,11 @@ vector<string> CalcEd::atomNames() const
   if (!p_frag) return out;
   for (size_t i = 0; i < p_frag->numAtoms(); i++) {
     TAtm *atom = p_frag->atomRef(i);
-    if (atom && atom->atomicSymbol() != "X") out.push_back(atom->atomName());
+    if (!atom || atom->atomicSymbol() == "X") continue;
+    // TAtm pads names to 4 characters; a target is typed without the blanks.
+    string name = atom->atomName();
+    STLUtil::stripLeadingAndTrailingWhiteSpace(name);
+    if (!name.empty()) out.push_back(name);
   }
   return out;
 }
