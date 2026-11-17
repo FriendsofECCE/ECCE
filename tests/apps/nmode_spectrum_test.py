@@ -49,10 +49,28 @@ def writeExp(path):
             f.write("%d,%.5f\n" % (x, 100 * 10 ** -a))
 
 
-def run(display, args, work, exp, csv):
+def writeJcamp(path):
+    """The same measured curve as writeExp, as a JCAMP-DX %T file (#986)."""
+    xs = list(range(500, 3951, 3))
+    ys = []
+    for x in xs:
+        a = 0.8 * math.exp(-((x - 1612) / 25.0) ** 2) + 0.2 * math.exp(-((x - 3790) / 30.0) ** 2) + 0.02
+        ys.append(int(round(100 * 10 ** -a * 1000)))
+    with open(path, "w") as f:
+        f.write("##TITLE=Synthetic water\n##JCAMP-DX=4.24\n##DATA TYPE=INFRARED SPECTRUM\n"
+                "##ORIGIN=Test suite\n##STATE=GAS\n##XUNITS=1/CM\n##YUNITS=%%TRANSMITTANCE\n"
+                "##XFACTOR=1\n##YFACTOR=0.001\n##FIRSTX=500\n##LASTX=%d\n##NPOINTS=%d\n"
+                "##XYDATA=(X++(Y..Y))\n" % (xs[-1], len(xs)))
+        for i in range(0, len(xs), 6):
+            f.write("%d %s\n" % (xs[i], " ".join(str(v) for v in ys[i:i + 6])))
+        f.write("##END=\n")
+
+
+def run(display, args, work, exp, csv, more=()):
     script = os.path.join(work, "scene")
     with open(script, "w") as h:
-        h.write("\n".join(["vibfocus", "vibspectrum %s %s 1 %s 1000,2000" % (csv, OTHER, exp), ""]))
+        h.write("\n".join(["vibfocus", "vibspectrum %s %s 1 %s 1000,2000" % (csv, OTHER, exp)]
+                          + list(more) + [""]))
     result = apps.run(display, "builder", args=args, windowTimeout=120, settle=120,
                       env={"ECCE_VIEWER_SCENE": script, "ECCE_VIEWER_SCENE_OUT": work,
                            "ECCE_REALUSER": fixture.USER})
@@ -93,6 +111,29 @@ def verify(log, a, b, exp, csv):
                 err = max(err, abs(float(r[c]) - float(w[c])))
         check(name + " column equals ecce-spectrum", err < 1e-5 * max(top, 1), err)
     check("experimental column has data", any(r[4] for r in rows))
+
+
+def column(path, col):
+    text = open(path, encoding="utf-8").read().splitlines()
+    at = [i for i, l in enumerate(text) if l.startswith("wavenumber_cm-1")][0]
+    return [l.split(",")[col] for l in text[at + 1:] if l], "\n".join(text)
+
+
+def verifyJcamp(log, csv, csv2, jout):
+    check("JCAMP experimental import and export succeeded", log.count("VIBSPECTRUM: ok=1") == 2, log[-600:])
+    a, _ = column(csv, 4)
+    b, head = column(csv2, 4)
+    top = max(float(v) for v in a if v)
+    err = max((abs(float(p) - float(q)) for p, q in zip(a, b) if p and q), default=9)
+    check("JCAMP experimental column equals the text file's",
+          len(a) == len(b) and [bool(v) for v in a] == [bool(v) for v in b] and err < 2e-3 * top, err)
+    check("JCAMP title, state and origin shown with the curve",
+          "# experimental: exp.jdx: Synthetic water, GAS, Test suite (transmittance)" in head, head[:900])
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    import jcampdx
+    blocks = jcampdx.parse(open(jout, encoding="utf-8").read())
+    check("JCAMP export: curve and sticks", [x["form"] for x in blocks] == ["XYDATA", "PEAKTABLE"]
+          and len(blocks[0]["x"]) > 100, [x["form"] for x in blocks])
 
 
 def main():
@@ -144,6 +185,16 @@ def main():
                         out = run(display, args, work, exp, csv)
                         if out is not None:
                             verify(out, src, scl, exp, csv)
+                        # The same curve as JCAMP-DX: its experimental column must
+                        # match the text file's, and the JCAMP export reads back.
+                        jexp = os.path.join(work, "exp.jdx")
+                        csv2 = os.path.join(work, "spectrum2.csv")
+                        jout = os.path.join(work, "spectrum.jdx")
+                        writeJcamp(jexp)
+                        out = run(display, args, work, jexp, csv2,
+                                  ["vibspectrum %s - 1 - -" % jout])
+                        if out is not None:
+                            verifyJcamp(out, csv, csv2, jout)
                     finally:
                         fixture.remove(NAME)
                         fixture.remove(OTHER)

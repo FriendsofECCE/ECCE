@@ -29,6 +29,7 @@ import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import jcampdx  # noqa: E402
 try:
     import ecce_bandshift as B
 except ImportError:
@@ -72,10 +73,43 @@ class Curve:
 
 
 def read_experimental(path, kind="auto"):
-    """-> (x, absorbance, detected kind) from a two-column text file."""
+    """-> (x, absorbance, detected kind) from a two-column text file or JCAMP-DX."""
+    x, y, k, _ = read_experimental_info(path, kind)
+    return x, y, k
+
+
+def _guess_kind(ys):
+    lo, hi = min(ys), max(ys)
+    med = sorted(ys)[len(ys) // 2]
+    return "transmittance" if med > 0.5 * (lo + hi) else "absorbance"
+
+
+def _to_absorbance(ys, percent):
+    div = 100.0 if percent else 1.0
+    return [-math.log10(max(y / div, 1e-6)) for y in ys]
+
+
+def read_experimental_info(path, kind="auto"):
+    """-> (x, absorbance, kind, label); label is "" for a text file."""
+    if jcampdx.is_jcamp(path):
+        try:
+            sp, n = jcampdx.read(path)
+        except jcampdx.JcampError as e:
+            raise ValueError(str(e))
+        ys = sp["y"]
+        if sp["kind"] != "auto":
+            kind = sp["kind"]       # the units come from the file
+        elif kind == "auto":
+            kind = _guess_kind(ys)
+        if kind == "transmittance":
+            ys = _to_absorbance(ys, sp["percent"] or max(ys) > 1.5)
+        label = sp["label"] + (" [peak table]" if sp["form"] == "PEAKTABLE" else "")
+        if n > 1:
+            label += " [first of %d spectra in the file]" % n
+        return sp["x"], ys, kind, label
     pts = []
     for ln in open(path, errors="replace"):
-        f = [t for t in re.split(r"[,;\s]+", ln.strip().replace("﻿", "")) if t]
+        f = [t for t in re.split(r"[,;\s]+", ln.strip().replace("\ufeff", "")) if t]
         if len(f) < 2:
             continue
         try:
@@ -87,13 +121,10 @@ def read_experimental(path, kind="auto"):
     pts.sort()
     ys = [p[1] for p in pts]
     if kind == "auto":
-        lo, hi = min(ys), max(ys)
-        med = sorted(ys)[len(ys) // 2]
-        kind = "transmittance" if med > 0.5 * (lo + hi) else "absorbance"
+        kind = _guess_kind(ys)
     if kind == "transmittance":
-        div = 100.0 if max(ys) > 1.5 else 1.0
-        ys = [-math.log10(max(y / div, 1e-6)) for y in ys]
-    return [p[0] for p in pts], ys, kind
+        ys = _to_absorbance(ys, max(ys) > 1.5)
+    return [p[0] for p in pts], ys, kind, ""
 
 
 def interp(xs, ys, x):
@@ -166,8 +197,10 @@ def main(argv=None):
     o = ap.parse_args(argv)
     try:
         if o.parse_exp:
-            x, y, k = read_experimental(o.parse_exp, o.exp_kind)
+            x, y, k, label = read_experimental_info(o.parse_exp, o.exp_kind)
             print("kind\t" + k)
+            if label:
+                print("label\t" + label.replace("\n", " ").replace("\t", " "))
             for p, q in zip(x, y):
                 print("%.8g\t%.8g" % (p, q))
             return 0
