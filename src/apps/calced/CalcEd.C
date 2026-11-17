@@ -1261,6 +1261,23 @@ wxString CalcEd::setupCommand(const wxString& arg)
     } else if (rest == "all") {
       if (!p_setupArea->basisUseAll()) return "not possible";
     }
+  } else if (arg.StartsWith("launch get ")) {
+    return wxString::FromUTF8(
+        p_setupArea->launchGet(string(arg.Mid(11).utf8_str())).c_str());
+  } else if (arg == "launch notify machreg" ||
+             arg.StartsWith("launch notify state ")) {
+    // Broker notices the embedded Launcher panel must follow, sent as if
+    // another tool had published them.
+    JMSMessage *msg = newMessage();
+    if (arg.EndsWith("machreg")) {
+      publish("ecce_machreg_changed", *msg);
+    } else {
+      msg->addProperty("url", p_iCalc->getURL().toString());
+      msg->addProperty("state", string(arg.Mid(20).utf8_str()));
+      publish("ecce_url_state", *msg);
+    }
+    delete msg;
+    return "sent";
   } else if (arg == "launch" || arg == "launch info" || arg == "launch go") {
     if (arg == "launch") doSave();
     if (!p_setupArea->showLaunch()) return "no Launcher panel";

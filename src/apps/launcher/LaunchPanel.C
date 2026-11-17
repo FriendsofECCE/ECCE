@@ -3812,6 +3812,8 @@ string LaunchPanel::hookGet(const string& what)
         return p_lastRegisterRequest;
     if (what == "machine")
         return (string)p_machinesChoice->GetStringSelection();
+    if (what == "state")
+        return hasContext() ? ResourceUtils::stateToString(getContextState()) : "";
     if (what == "machines" || what == "queues")
     {
         ewxChoice* c = (what == "machines") ? p_machinesChoice : p_queueChoice;

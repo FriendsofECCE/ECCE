@@ -1221,6 +1221,11 @@ def runSetupLaunch(display):
                                 "-window", "root", os.path.join(shots, name)],
                                check=False)
 
+        def setState(name):
+            text = open(os.path.join(calc, ".ecce-meta")).read()
+            open(os.path.join(calc, ".ecce-meta"), "w").write(
+                re.sub(r"(ecce:state\t\t)\w+", r"\g<1>" + name, text))
+
         def inspect(_display):
             append("start CalculationEditor " + url, 30)
             append("setup launch", 6)
@@ -1231,6 +1236,24 @@ def runSetupLaunch(display):
             append("setup launch info", 2)
             append("setup launch info", 2)
             shot("setup-launch-1024.png")
+            # Follows the broker (#1064): a machine registered and a state
+            # change while the panel is open, without reopening it.
+            append("setup launch get machines", 2)
+            prefs = os.path.join(_display.env().get(
+                "ECCE_REALUSERHOME", os.environ.get("ECCE_REALUSERHOME", "")),
+                ".ECCE")
+            os.makedirs(prefs, exist_ok=True)
+            with open(os.path.join(prefs, "MyMachines"), "w") as h:
+                h.write("followbox\tlocalhost\tGeneric\tregistered while open\t"
+                        "Unspecified\t64:1\tssh\t:ECCE-QM\tWS\n")
+            append("setup launch notify machreg", 5)
+            append("setup launch get machines", 2)
+            setState("running")
+            append("setup launch notify state running", 5)
+            append("setup launch get state", 2)
+            setState("ready")
+            append("setup launch notify state ready", 5)
+            append("setup launch get state", 2)
             append("setup launch go", 90)
             append("setup launch info", 2)
             append("close", 3)
@@ -1264,6 +1287,16 @@ def runSetupLaunch(display):
         check(info and all("clipped=0" in i for i in info[:-1]),
               "no control of the panel is clipped at the default width or at "
               "1024 px", str(info))
+        machines = pb.answers(log, "setup launch get machines")
+        check(len(machines) == 2 and "followbox" not in machines[0]
+              and "followbox" in machines[1],
+              "a machine registered while the Set-up panel is open appears in "
+              "its list", str(machines))
+        states = pb.answers(log, "setup launch get state")
+        check(len(states) == 2 and states[0].lower() == "running"
+              and states[1].lower() == "ready",
+              "a state notice reaches the open Set-up panel (running, then "
+              "ready again)", str(states))
         tt = pb.answers(log, "tabs")
         check(tt and "Launcher" not in tt[0],
               "no Launcher tab was opened", str(tt))

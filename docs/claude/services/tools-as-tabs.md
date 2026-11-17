@@ -299,3 +299,10 @@ program, whose `OnInit` is unchanged.
   (`InProcessTools::open`, poll context empty) and raises it.
 - Checked by `ECCE_UTILS_ONLY=1 one_process_test.py` (`runUtilityWindows`):
   open, reuse, `closetools`, open again.
+
+## The Set-up area's Launcher panel follows the broker (#1064)
+
+`EmbeddedLaunch` (`LauncherWindow.C`) owns a `LauncherMessages` with host
+NULL and `subscribeFollow()` (state, property, machine, preference notices;
+not invoke/quit/identify). It is deleted before the panel, also from the
+panel's destroy event, since its handlers hold the panel raw.

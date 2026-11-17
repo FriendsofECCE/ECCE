@@ -25,8 +25,24 @@
 
 
 LauncherMessages::LauncherMessages(LaunchPanel *panel, WxLauncher *host)
-    : WxJMSMessageDispatch(LAUNCHER, true), p_panel(panel), p_host(host)
+    : WxJMSMessageDispatch(LAUNCHER, host != NULL), p_panel(panel), p_host(host)
 {
+}
+
+
+// The handlers that keep a panel current; the window-level ones (invoke,
+// quit, identify) belong to a Launcher window or tab and are left out.
+void LauncherMessages::subscribeFollow()
+{
+    subscribe("ecce_preferences_states", (wxJmsCBFunc)&LauncherMessages::updatePrefsMCB);
+    subscribe("ecce_preferences_misc", (wxJmsCBFunc)&LauncherMessages::updatePrefsMCB);
+    subscribe("ecce_url_renamed", (wxJmsCBFunc)&LauncherMessages::calcMoveMCB);
+    subscribe("ecce_url_removed", (wxJmsCBFunc)&LauncherMessages::calcDeleteMCB);
+    subscribe("ecce_url_code", (wxJmsCBFunc)&LauncherMessages::calcCodeMCB);
+    subscribe("ecce_url_state", (wxJmsCBFunc)&LauncherMessages::statusChangeMCB, false);
+    subscribe("ecce_url_property", (wxJmsCBFunc)&LauncherMessages::propertyChangeMCB, false);
+    subscribe("ecce_machconf_changed", (wxJmsCBFunc)&LauncherMessages::machConfChangedMCB);
+    subscribe("ecce_machreg_changed", (wxJmsCBFunc)&LauncherMessages::machregChangedMCB);
 }
 
 
