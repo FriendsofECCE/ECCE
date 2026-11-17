@@ -150,6 +150,8 @@ def parse():
     parser.add_argument("--wrappers", help="directory holding the ecce "
                         "wrappers (default: <tree>/wrappers, else "
                         "ECCE_TEST_WRAPPERS or /usr/bin)")
+    parser.add_argument("--one-process", action="store_true",
+                        help="run every session with ECCE_ONE_PROCESS=1 (#983)")
     return parser.parse_args()
 
 
@@ -176,6 +178,8 @@ else:
     wrappers = (args.wrappers or os.environ.get("ECCE_TEST_WRAPPERS")
                 or "/usr/bin")
 os.environ["ECCE_TEST_HOME"] = install
+if args.one_process:
+    os.environ["ECCE_ONE_PROCESS"] = "1"
 os.environ.pop("ECCE_NO_REAP", None)     # the reaper is under test
 # The mode-1 cases check the per-user mosquitto (pid file, one broker per
 # account); a local session runs ECCE's own broker since #1007, so they run
