@@ -64,7 +64,12 @@
 #include "GridSelectionBlock.H"
 #include "wxgui/WxJMSMessageDispatch.H"
 #include "wxgui/ToolTabs.H"
-#include <execinfo.h>
+static void traceCtx(int line)
+{
+  if (getenv("ECCE_TEST_BASISTOOL_TRACE"))
+    fprintf(stderr, "BASISTOOL-TRACE line %d\n", line);
+}
+#define showContextChanged(c) (traceCtx(__LINE__), showContextChanged(c))
 #include "WxBasisTool.H"
 #include "WxBasisSetCoefficients.H"
 #include "WxBasisSetDetail.H"
@@ -4014,13 +4019,9 @@ bool WxBasisTool::reportGBSRuleViolations()
 */
 
 
+#undef showContextChanged
 void WxBasisTool::showContextChanged(bool chgd)
 {
-  if (chgd && getenv("ECCE_TEST_BASISTOOL_TRACE")) {
-    void *bt[12]; int n = backtrace(bt, 12);
-    fprintf(stderr, "BASISTOOL-TRACE showContextChanged(true)\n");
-    backtrace_symbols_fd(bt, n, 2);
-  }
   p_calcChgd = chgd;
   if (p_messagesFeedback->getEditStatus() != WxFeedback::READONLY) {
     p_messagesFeedback->setEditStatus(chgd ? WxFeedback::MODIFIED :

@@ -1138,7 +1138,7 @@ def runTabs1088(display):
         log = result.log or ""
         if GDB:
             print(log[-6000:])
-        print("TRACE: " + "\n".join(re.findall(r"BASISTOOL-TRACE.*\n(?:.*\n){12}", log)))
+        print("TRACE: " + "\n".join(re.findall(r"BASISTOOL-TRACE.*", log)))
         # "tabs" alone: answers() matches a prefix, which takes tabsel's too.
         tabs = re.findall(r"ECCE_TEST_ORGANIZER: tabs: (.*)$", log, re.M)
         print("      tabs: " + "\n            ".join(tabs))
