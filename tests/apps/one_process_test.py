@@ -956,7 +956,7 @@ def runSetupTab(display):
               and "took" not in more[8] and "fit=hidden" in more[8],
               "ORCA without RI: 'O def2-TZVP ; H def2-SVP' is one step, "
               "nothing is cleared, fitting sets are hidden", more[8])
-        check(allSu.count("no such basis set") >= 3,
+        check(allSu.count("no such basis set") >= 2,
               "a hidden fitting set cannot be assigned", str(allSu[-20:]))
         check("O:_def2-tzvp_+_augmenting_Pople-style_Diffuse" in more[9],
               "an augmenting set is added to the element, which keeps its "

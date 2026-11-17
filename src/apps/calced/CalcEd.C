@@ -1542,6 +1542,21 @@ namespace {
 
 // A simple (one group) or empty configuration as one group per element,
 // each keeping the sets it had, as the Basis Set Tool's Element mode does.
+// An aggregate's ECP part comes back for every element, empty where the
+// element has no core (as in GBSAssign::assign); drop it there.
+void dropEmptyEcp(vector<TGaussianBasisSet*>& list, const string& element)
+{
+  for (size_t i = 0; i < list.size();) {
+    if (list[i]->p_type == TGaussianBasisSet::ecp &&
+        !list[i]->p_contractions.count(element)) {
+      delete list[i];
+      list.erase(list.begin() + i);
+    } else {
+      i++;
+    }
+  }
+}
+
 void splitToElements(TGBSConfig *config, EDSIGaussianBasisSetLibrary& library,
                      const vector<string>& elements, bool hadSets)
 {
@@ -1562,13 +1577,16 @@ void splitToElements(TGBSConfig *config, EDSIGaussianBasisSetLibrary& library,
     for (const string& o : orbitals) {
       vector<TGaussianBasisSet*> list = library.lookup(
           o.c_str(), TGaussianBasisSet::UnknownGBSType, el.c_str());
+      dropEmptyEcp(list, el);
       if (!list.empty()) group->insertOrbitalGBS(o, list, true);
     }
     for (const GBSKey& a : aux) {
       if (a.name.find("appendedFunction") != string::npos) continue;
       vector<TGaussianBasisSet*> list =
           library.lookup(a.name.c_str(), a.type, el.c_str());
+      dropEmptyEcp(list, el);
       if (!list.empty()) group->insertGBS(new TGaussianBasisSet(*list[0]), true);
+      for (TGaussianBasisSet *g : list) delete g;
     }
     config->insertGBSGroup(el, group);
   }
