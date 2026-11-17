@@ -79,7 +79,8 @@
 //   basis_data ... end           explicit basis, replaces the library file:
 //                                "shell <El> <S|P|D|F|G|H|I>" then one
 //                                "exponent coefficient" row per primitive
-//   geometry ... end             one atom per line: symbol x y z; the symbol X
+//   geometry ... end             one atom per line: symbol x y z [ghost]; "ghost" keeps the
+//                                basis but no nucleus or electrons (energy runs only); the symbol X
 //                                is a dummy atom (no nucleus, electrons or basis)
 //   constraints ... end          optimize: "bond a b [r]", "angle a b c [deg]",
 //                                "torsion a b c d [deg]", "fix a"; atoms count

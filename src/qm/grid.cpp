@@ -76,7 +76,7 @@ Grid make_grid(const Molecule& mol, int nrad, int nang, bool prune) {
              dz = mol.atoms[i].x[2] - mol.atoms[j].x[2];
       rij[i * na + j] = std::sqrt(dx * dx + dy * dy + dz * dz);
       if (i != j) {
-        double chi = bragg(mol.atoms[i].Z) / bragg(mol.atoms[j].Z);
+        double chi = bragg(mol.atoms[i].basis_Z()) / bragg(mol.atoms[j].basis_Z());
         double u = (chi - 1) / (chi + 1), a = u / (u * u - 1);
         aij[i * na + j] = std::max(-0.5, std::min(0.5, a));
       }
@@ -85,8 +85,8 @@ Grid make_grid(const Molecule& mol, int nrad, int nang, bool prune) {
   Grid g;
   std::vector<double> P(na);
   for (int A = 0; A < na; ++A) {
-    const double xi = ta_xi(mol.atoms[A].Z);
-    const double rbragg = bragg(mol.atoms[A].Z) / 0.529177210903;
+    const double xi = ta_xi(mol.atoms[A].basis_Z());
+    const double rbragg = bragg(mol.atoms[A].basis_Z()) / 0.529177210903;
     for (int ir = 1; ir <= nrad; ++ir) {
       const double th = ir * kPi / (nrad + 1), xr = std::cos(th);
       const double r = xi / std::log(2.0) * std::pow(1 + xr, 0.6) * std::log(2.0 / (1 - xr));
