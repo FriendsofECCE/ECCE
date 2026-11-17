@@ -1625,7 +1625,9 @@ def main():
         if failures:
             results.fail("one-process", "; ".join(failures))
     run_tests.checkApp = checkApp
-    sys.argv = [sys.argv[0], "--app", "organizer"] + sys.argv[1:]
+    # every scenario in one run outlasts the 2400 s default
+    sys.argv = ([sys.argv[0], "--app", "organizer", "--budget", "3000"] +
+                sys.argv[1:])
     return run_tests.main()
 
 
