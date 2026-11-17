@@ -28,6 +28,9 @@ namespace {
 wxSingleInstanceChecker *s_lock = 0;
 wxServer *s_server = 0;
 wxString s_token;
+wxString s_tokenFile, s_service;
+std::vector<wxString> s_pending;   // arrived before the window existed
+bool s_released = false;
 
 const char *TOPIC = "ecce";
 
@@ -83,13 +86,20 @@ public:
                  wxIPCFormat fmt) override
   {
     wxArrayString lines = wxSplit(GetTextFromData(data, size, fmt), '\n');
-    if (lines.empty() || lines[0] != s_token) return false;
+    if (s_released || lines.empty() || lines[0] != s_token) return false;
     std::vector<wxString> files(lines.begin() + 1, lines.end());
+    MainFrame *host = MainFrame::instance();
+    if (host && host->isShuttingDown()) return false;
+    // Still starting: keep the files for the window to open.
+    if (!host) {
+      s_pending.insert(s_pending.end(), files.begin(), files.end());
+      return true;
+    }
     if (wxTheApp)
       wxTheApp->CallAfter([files]() {
-        if (MainFrame *host = MainFrame::instance()) {
-          host->bringToFront();
-          if (!files.empty()) host->openFiles(files);
+        if (MainFrame *h = MainFrame::instance()) {
+          h->bringToFront();
+          if (!files.empty()) h->openFiles(files);
         }
       });
     return true;
@@ -177,6 +187,8 @@ bool OneInstance::claim(const wxString& context,
 
   std::random_device rd;
   s_token = wxString::Format("%08x%08x", (unsigned)rd(), (unsigned)rd());
+  s_tokenFile = tokenFile;
+  s_service = service;
   writeToken(tokenFile);
 #ifndef __WXMSW__
   // unlink, not wxRemoveFile: that one logs a missing file as an error,
@@ -208,4 +220,29 @@ std::vector<wxString> OneInstance::filesIn(const std::vector<wxString>& words)
     if (known && fn.FileExists()) out.push_back(fn.GetFullPath());
   }
   return out;
+}
+
+
+std::vector<wxString> OneInstance::takePending()
+{
+  std::vector<wxString> out;
+  out.swap(s_pending);
+  return out;
+}
+
+
+// The listener must not outlive the window: a start during a slow exit
+// would be told "already running" and then see nothing.
+void OneInstance::release()
+{
+  s_released = true;
+  wxLogNull quiet;
+  delete s_server;
+  s_server = 0;
+  delete s_lock;       // removes the lock file
+  s_lock = 0;
+#ifndef __WXMSW__
+  if (!s_service.empty()) unlink(s_service.fn_str());
+  if (!s_tokenFile.empty()) unlink(s_tokenFile.fn_str());
+#endif
 }

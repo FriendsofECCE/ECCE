@@ -41,6 +41,7 @@ public:
 
   // For #1069: a second start raises the running window; files opened from
   // the system (macOS) go to the handler.
+  bool isShuttingDown() const { return p_shutdown; }
   void bringToFront();
   void setOpenFilesHandler(std::function<void(const std::vector<wxString>&)> fn)
   { p_open = fn; }

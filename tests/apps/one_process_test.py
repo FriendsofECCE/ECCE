@@ -289,7 +289,25 @@ def runQuitHost(display):
             append("hostclose", 3)
             append("answer", 3)            # Quit
             append("answer no", 25)        # the Builder's question
+            # The listener went with the window: a start now is a new
+            # Organizer, not "already running".
+            environment = display.env()
+            environment.update({"ECCE_ONE_PROCESS": "1",
+                                "ECCE_LOCAL_DATA": data})
+            proc = subprocess.Popen(
+                [os.path.join(apps.WRAPPERS, "ecce-organizer")],
+                env=environment, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, text=True)
+            time.sleep(25)
+            seen["after"] = proc.poll() is None
+            proc.terminate()
+            try:
+                seen["after_out"] = proc.communicate(timeout=20)[0]
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                seen["after_out"] = proc.communicate()[0]
 
+        seen = {}
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                           env={"ECCE_ONE_PROCESS": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
@@ -306,6 +324,10 @@ def runQuitHost(display):
               ["answered Save Builder Changes?"],
               "closing the host again asks Quit, then the Builder's question",
               str(pb.answers(log, "answer")))
+        check(seen.get("after") is True and
+              "already running" not in seen.get("after_out", ""),
+              "a start after Quit opens a window, not 'already running'",
+              str(seen))
         left = re.search(r"left after quit:([^\n]*)", log)
         check(result.returncode == 0 and "Aborted" not in log and left is None,
               "closing the host ends the process cleanly, nothing left",

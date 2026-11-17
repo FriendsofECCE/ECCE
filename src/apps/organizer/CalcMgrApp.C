@@ -285,6 +285,7 @@ bool CalcMgrApp::OnInit()
     for (int i = 1; i < argc; i++) words.push_back(argv[i]);
     addEnvFiles(words, true);
     std::vector<wxString> files = OneInstance::filesIn(words);
+    for (const wxString& f : OneInstance::takePending()) files.push_back(f);
     if (!files.empty())
       host->CallAfter([host, files]() { host->openFiles(files); });
   } else {
