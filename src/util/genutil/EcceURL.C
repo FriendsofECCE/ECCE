@@ -491,6 +491,23 @@ void EcceURL::parse(const char *xurl)
 
       }
       
+      // A local file name may hold '?', '#' or '%'; callers escape those
+      // three (and only those) so that '?' does not start the parameters.
+      if (p_protocol == "file") {
+        static const struct { const char *code; char ch; } esc[] =
+          {{"%3F", '?'}, {"%23", '#'}, {"%25", '%'}};
+        string out;
+        for (size_t i = 0; i < p_file.size(); i++) {
+          bool hit = false;
+          for (const auto& e : esc)
+            if (p_file.compare(i, 3, e.code) == 0) {
+              out += e.ch; i += 2; hit = true; break;
+            }
+          if (!hit) out += p_file[i];
+        }
+        p_file = out;
+      }
+
       int size = p_file.size();
       if (size > 2 && p_file[size-1] == '/') {
         p_file = p_file.substr(0, size-1);

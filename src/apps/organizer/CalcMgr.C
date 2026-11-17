@@ -11756,6 +11756,12 @@ void CalcMgr::openStructureFiles(const std::vector<wxString>& paths)
   for (const wxString& p : paths) {
     wxString path = p;
     path.Replace("\\", "/");
+    // file:///C:/dir as on Windows elsewhere; '%', '#' and '?' escaped
+    // (EcceURL undoes exactly those).
+    path.Replace("%", "%25");
+    path.Replace("#", "%23");
+    path.Replace("?", "%3F");
+    if (path.empty() || path[0] != '/') path = "/" + path;
     startApp("Builder", 1, "file://" + string(path.utf8_str().data()));
   }
 }

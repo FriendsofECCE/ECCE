@@ -346,12 +346,15 @@ def runSingleInstance(display):
     work = tempfile.mkdtemp(prefix="ecce-oneproc-")
     try:
         os.makedirs(os.path.join(data, "users", "local"))
-        xyz = os.path.join(work, "water.xyz")
+        xyz = os.path.join(work, "wa ter#1%.xyz")
         with open(xyz, "w") as handle:
             handle.write("3\nwater\nO 0 0 0.117\nH 0 0.757 -0.469\n"
                          "H 0 -0.757 -0.469\n")
         cmds = os.path.join(work, "commands")
         open(cmds, "w").close()
+        script = os.path.join(work, "builder-script")
+        with open(script, "w") as handle:
+            handle.write("wait 3000\nexpect atoms 3\n")
         env = {"ECCE_ONE_PROCESS": "1", "ECCE_LOCAL_DATA": data}
         seen = {}
 
@@ -386,7 +389,8 @@ def runSingleInstance(display):
             seen["after"] = organizers()
 
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
-                          env={**env, "ECCE_TEST_ORGANIZER": cmds},
+                          env={**env, "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_BUILDER_SCRIPT": script},
                           inspect=inspect)
         log = result.log or ""
         for what in ("plain", "file"):
@@ -405,6 +409,10 @@ def runSingleInstance(display):
         check(len(inproc) == 1 and "Builder=1" in inproc[0],
               "the .xyz named by the second start opened in a Builder of the first",
               str(inproc) + log[-1500:])
+        check("FAIL" not in "\n".join(l for l in log.splitlines()
+                                      if "ECCE_BUILDER_SCRIPT" in l),
+              "the Builder holds the 3 atoms of the file (name with a space, "
+              "'#' and '%')")
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)
