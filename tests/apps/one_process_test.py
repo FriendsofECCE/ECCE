@@ -350,7 +350,7 @@ def runSingleInstance(display):
     work = tempfile.mkdtemp(prefix="ecce-oneproc-")
     try:
         os.makedirs(os.path.join(data, "users", "local"))
-        xyz = os.path.join(work, "water.xyz")
+        xyz = os.path.join(work, "wa ter#1%.xyz")
         with open(xyz, "w") as handle:
             handle.write("3\nwater\nO 0 0 0.117\nH 0 0.757 -0.469\n"
                          "H 0 -0.757 -0.469\n")
@@ -358,7 +358,7 @@ def runSingleInstance(display):
         open(cmds, "w").close()
         script = os.path.join(work, "builder-script")
         with open(script, "w") as handle:
-            handle.write("wait 8000\nexpect atoms 3\n")
+            handle.write("wait 5000\nexpect atoms 3\n")
         env = {"ECCE_ONE_PROCESS": "1", "ECCE_LOCAL_DATA": data}
         seen = {}
 
