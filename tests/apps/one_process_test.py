@@ -28,6 +28,8 @@ sys.path.insert(0, HERE)
 import apps       # noqa: E402
 import run_tests  # noqa: E402
 import progress_box_test as pb  # noqa: E402
+# A hang on Quit: print the stacks of a process still running at the end.
+os.environ.setdefault("ECCE_TEST_STACKS", "1")
 
 failures = []
 # --gdb: run the Organizer under gdb, for a backtrace on a crash.

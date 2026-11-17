@@ -32,6 +32,7 @@ import shutil
 import select
 import signal
 import subprocess
+import sys
 import time
 
 # Where the installed ECCE being tested lives.  Overridable so a developer
@@ -277,7 +278,31 @@ def run(display, name, args=(), windowTimeout=40, settle=8, env=None,
     return result
 
 
+def _dumpStacks(proc):
+    """ECCE_TEST_STACKS=1: before killing an app that is still running,
+    print every thread's stack of each process in its group, so a hang on
+    exit shows where it waits."""
+    if not os.environ.get("ECCE_TEST_STACKS") or not shutil.which("gdb"):
+        return
+    try:
+        pgid = os.getpgid(proc.pid)
+    except (ProcessLookupError, PermissionError):
+        return
+    pids = subprocess.run(["pgrep", "-g", str(pgid)], capture_output=True,
+                          text=True).stdout.split()
+    for pid in pids:
+        cmd = open("/proc/%s/cmdline" % pid, "rb").read().split(b"\0")[0] \
+            if os.path.exists("/proc/%s/cmdline" % pid) else b"?"
+        out = subprocess.run(["gdb", "-p", pid, "-batch", "-nx",
+                              "-ex", "thread apply all bt 40"],
+                             capture_output=True, text=True, timeout=120)
+        sys.stderr.write("=== stacks of %s (%s) ===\n%s\n"
+                         % (pid, cmd.decode(errors="replace"), out.stdout))
+
+
 def _terminate(proc):
+    if proc.poll() is None:
+        _dumpStacks(proc)
     try:
         os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
     except (ProcessLookupError, PermissionError):
