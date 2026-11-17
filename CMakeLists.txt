@@ -4191,6 +4191,7 @@ if(PYTHON3_EXECUTABLE)
   add_test(NAME apps_nmr_spectrum
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/nmr_spectrum_test.py
+                   --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_nmr_spectrum PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)

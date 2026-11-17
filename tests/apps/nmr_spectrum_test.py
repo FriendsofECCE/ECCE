@@ -27,6 +27,8 @@ def table(text, header):
 
 def main():
     build = os.path.join(ROOT, "build-cmake")
+    if "--build" in sys.argv:
+        build = os.path.abspath(sys.argv[sys.argv.index("--build") + 1])
     harness.prerequisites(build, ())
     s = harness.Session(build, "nmr-spectrum", {}, local=True)
     display = None
