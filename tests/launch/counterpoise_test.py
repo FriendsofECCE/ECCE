@@ -307,9 +307,10 @@ def main():
     opts = ap.parse_args()
     opts.orca = opts.orca or os.environ.get("ECCE_ORCA", "")
     if not opts.orca:
-        import glob
-        for pat in ("~/orca_*/orca", "~/opt/orca/*/orca", "/opt/orca/*/orca"):
-            found = sorted(glob.glob(os.path.expanduser(pat)))
+        import glob, pwd
+        home = pwd.getpwuid(os.getuid()).pw_dir   # tests may run with an isolated HOME
+        for pat in (home + "/orca_*/orca", home + "/opt/orca/*/orca", "/opt/orca/*/orca"):
+            found = sorted(glob.glob(pat))
             if found:
                 opts.orca = found[-1]
                 break
