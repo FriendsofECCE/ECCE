@@ -2562,6 +2562,15 @@ target_link_libraries(dummy_fragment_test PRIVATE eccetdat ecceutil)
 add_test(NAME dummy_fragment COMMAND dummy_fragment_test)
 set_tests_properties(dummy_fragment PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+add_executable(counterpoise_test tests/tdat/counterpoise_test.C)
+target_link_libraries(counterpoise_test PRIVATE eccetdat ecceutil)
+add_test(NAME counterpoise COMMAND counterpoise_test)
+add_test(NAME counterpoise_orca
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/tdat/counterpoise_orca_test.py
+          $<TARGET_FILE:counterpoise_test>)
+set_tests_properties(counterpoise counterpoise_orca PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=counterpoise;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/counterpoise-home")
+set_tests_properties(counterpoise_orca PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 2000)
 add_test(NAME dummy_atoms_decks
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/dummy_atoms/run_tests.py)
 
@@ -3492,6 +3501,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_constraints_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_constraints PROPERTIES TIMEOUT 1500
+                       SKIP_RETURN_CODE 77)
+  add_test(NAME apps_builder_counterpoise
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_counterpoise_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_counterpoise PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # The column's sashes move Build's edges and release the mouse.
   add_test(NAME apps_builder_sash
@@ -4843,6 +4858,20 @@ if(PYTHON3_EXECUTABLE)
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
     set_tests_properties(launch_contact PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   endif()
+  # #1091: counterpoise inputs, parser, and the water dimer run by ECCE-QM
+  # (and ORCA when ECCE_ORCA names it); then through Launch.
+  add_test(NAME counterpoise_input
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/counterpoise_test.py
+                   --offline --qm ${CMAKE_BINARY_DIR}/src/qm/ecce-qm
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(counterpoise_input PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+  add_test(NAME launch_counterpoise
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/counterpoise_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_counterpoise PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
 
   # #329: CP2K, silicon and a NiO+U optimisation, created and run through
   # Launch in a local data folder; skipped (77) without cp2k.psmp and mpirun.

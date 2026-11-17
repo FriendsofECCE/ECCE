@@ -398,12 +398,12 @@ void write_text_output(std::ostream& os, const Input& in, const Basis& b, const 
      << r.dipole_origin[0] * kBohrToAngstrom << " " << r.dipole_origin[1] * kBohrToAngstrom << " "
      << r.dipole_origin[2] * kBohrToAngstrom << "  # angstrom\n";
   os << "wall_seconds " << std::setprecision(2) << seconds << std::setprecision(12) << "\n";
-  os << "begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge\n";
+  os << "begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge [ghost]\n";
   const std::vector<double> mull = spread(r.mulliken);
   for (size_t a = 0; a < allat.atoms.size(); ++a)
-    os << a << " " << element_symbol(allat.atoms[a].Z) << " " << allat.atoms[a].Z << " "
+    os << a << " " << element_symbol(allat.atoms[a].basis_Z()) << " " << allat.atoms[a].Z << " "
        << allat.atoms[a].x[0] * kBohrToAngstrom << " " << allat.atoms[a].x[1] * kBohrToAngstrom << " "
-       << allat.atoms[a].x[2] * kBohrToAngstrom << " " << mull[a] << "\n";
+       << allat.atoms[a].x[2] * kBohrToAngstrom << " " << mull[a] << (allat.atoms[a].ghost() ? " ghost" : "") << "\n";
   os << "end atoms\n";
   if (charges) {
     auto block = [&](const char* name, const std::vector<double>& qreal, int npts) {

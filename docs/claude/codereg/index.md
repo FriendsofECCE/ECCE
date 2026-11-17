@@ -57,6 +57,8 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 
 ## Entries
 
+- [Counterpoise fragments: wx-free structure storage and ORCA ghost-input export (#1091)](counterpoise-fragments.md)
+
 ### Getting a calculation set up (the "code registration" system)
 
 - [A GROMACS MD study has the application type of its tasks; NWChem's study has its own](gromacs-study-shares-its-tasks-application-type.md)
@@ -253,3 +255,5 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [verifyinput judged a Vina deck by the generic atom count (#963)](verifyinput-counted-zero-atoms-in-a-vina-deck-963.md) - skip for Vina, ligand/receptor list coverage check.
 - [NPA: core orthogonalised apart from the valence minimal basis](npa-core-orthogonalised-apart.md) — ecce-npa vs NBO 7; ECP cores inferred; route-card basis gives no results.h5 (#1054)
 - [A machine's QE pseudopotential directory goes into pseudo_dir at launch (#989)](qe-machine-pseudo-dir-989.md) - CONFIG key, postParams, launch-time missing-file check over the existing login.
+- [ECCE-QM ghost centres (#1091)](ecceqm-ghost-centres-1091.md) - `ghost` geometry column, Z = 0 + basis_Z(), grid includes ghosts, energy only.
+- [Counterpoise job and properties](counterpoise-job-and-properties-1091.md): one input, split by gensub, block parsed by counterpoise.parse (#1091)

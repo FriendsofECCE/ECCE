@@ -114,6 +114,8 @@
     <property class="Energy" type="value"/>
     <!-- a string, so not matched by type="value": heads the Solvation group -->
     <property name="SOLVMODEL"/>
+    <!-- a string too: the counterpoise summary in both units (#1091) -->
+    <property name="CPTABLE"/>
   </PropertyPanel>
 
   <PropertyPanel>

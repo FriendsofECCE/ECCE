@@ -164,6 +164,28 @@ The isolated `ECCE_TEST_BASISTOOL=<file>` hook reads appended commands:
 sets frame geometry; `rows N` replaces the test grid's rows without changing
 the calculation; `close` closes normally and saves the window settings.
 
+## Fragment definitions and ORCA counterpoise export
+
+Builder script (`ECCE_BUILDER_SCRIPT`) commands:
+
+| Hook | Meaning |
+|---|---|
+| `fragments` | Print per-fragment atoms, charge and multiplicity; initialise connected-molecule defaults when unassigned |
+| `fragments auto` | Reset to connected molecules, numbered from 1 by first atom; neutral defaults, multiplicity from electron parity |
+| `fragment N atoms LIST` | Move listed 1-based atoms into fragment N; spaces, commas and ranges such as `1-3` accepted |
+| `fragment N charge Q mult M` | Set fragment state; reject if fragment charges do not sum to total structure charge |
+| `counterpoise orca FOLDER [MULT [ROUTE...]]` | Write `complex.inp` and `fragment-N.inp`, partner atoms as ORCA `Symbol:` ghosts; default route `HF def2-SVP` |
+
+MULT is the complex multiplicity (default calculation multiplicity, else
+electron parity). The monomer inputs use each fragment's state. Use an empty
+destination. The exporter validates charge sums and electron/multiplicity
+consistency. Automatic neutral states on a charged structure are pending:
+for total-charge +1 Na⁺···H₂O, explicitly set the Na fragment to `charge 1
+mult 1`. A rejected command leaves the existing state intact.
+`save` persists fragment assignments/states in the MVM structure; XYZ loses
+them. These hooks export inputs only: no launch/collect, energy properties,
+checkbox or scan action. See [Scripting help](../help/src/scripting-and-ai.md#fragments-and-orca-counterpoise-inputs).
+
 ## Isolated GUI tests
 
 Run GUI checks through `tests/` with an isolated HOME and test data.
@@ -434,6 +456,28 @@ marked (experimental) are newer and less tested.
 
 `data/client/cap/` also holds older codes (Gaussian 98, 03 and 09, GAMESS-UK,
 MOLCAS, NWChemMD, MetaDyn); do not expect new features for them.
+
+ECCE-QM ghost centres (counterpoise): in a `.qmin` geometry block a fifth
+column `ghost` after the coordinates (` O 2.91 0.0 0.0 ghost`) makes that atom
+a ghost: the element's basis functions, no nucleus, no electrons. Single-point
+`runtype energy` only; gradients, optimisation, frequencies, solvent, `charges`
+and polarizability are refused with a message. The output's `begin atoms` block
+ends such rows with `ghost`.
+
+Counterpoise calculation (ECCE-QM and ORCA, Energy runs, structure with 2 or
+more fragments): SetupParams keys `ES.Runtype.Counterpoise` (1 = on) and
+`ES.Runtype.CounterpoiseOwn` (1 = also each monomer in its own basis). Fragments
+come from the Builder hooks (`fragments auto`, `fragment N atoms|charge|mult`)
+and are stored in the `.frag` file (`fragment_states`, `atom_fragment_list`).
+`ai.ecceqm`/`ai.orca` append the monomer decks to the one input file after
+`# ecce-run fragment-N[-own]` lines; `gensub` splits them off, runs them after
+the complex in the same folder and appends a `begin counterpoise` energy block
+to the output. Properties (Hartree, Energies panel group Counterpoise):
+`EINTCP` = E_AB(AB) - sum E_X(AB), `EINTRAW` = E_AB(AB) - sum E_X(X),
+`EBSSE` = EINTCP - EINTRAW (positive), and the string `CPTABLE` with kJ/mol and
+kcal/mol. The raw energy and BSSE exist only with the own-basis runs.
+Gaussian and the scan action are not done yet. See
+`docs/claude/codereg/counterpoise-job-and-properties-1091.md`.
 
 Property views (which panel shows what) depend on what is stored in `Props/`;
 see "Properties". Analysis views: the MO diagram (experimental; check it

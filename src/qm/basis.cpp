@@ -30,7 +30,7 @@ Basis::Basis(const Molecule& mol, BasisLibrary& lib, const std::string& name, in
   }
   int ao = 0;
   for (int a = 0; a < natm_; ++a) {
-    std::vector<ShellDef> defs = lib.shells(name, mol.atoms[a].Z);
+    std::vector<ShellDef> defs = lib.shells(name, mol.atoms[a].basis_Z());
     std::stable_sort(defs.begin(), defs.end(), [](const ShellDef& x, const ShellDef& y) { return x.l < y.l; });
     for (const auto& d : defs) {
       Shell s;
@@ -110,7 +110,7 @@ std::string Basis::ao_label(int ao) const {
             }
         if (sph_) t = std::string(1, "spdfghik"[s.l]) + "_m" + std::to_string(k - s.l);
       }
-      return std::to_string(s.atom) + element_symbol(mol_.atoms[s.atom].Z) + " " + std::to_string(s.l) + t;
+      return std::to_string(s.atom) + element_symbol(mol_.atoms[s.atom].basis_Z()) + " " + std::to_string(s.l) + t;
     }
   }
   return "?";

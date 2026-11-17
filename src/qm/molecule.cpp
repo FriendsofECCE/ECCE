@@ -56,6 +56,12 @@ void Molecule::check() const {
                 std::to_string(n) + " electrons");
 }
 
+bool Molecule::has_ghost() const {
+  for (const auto& a : atoms)
+    if (a.ghost()) return true;
+  return false;
+}
+
 bool Molecule::has_dummy() const {
   for (const auto& a : atoms)
     if (a.Z == 0) return true;
@@ -66,14 +72,14 @@ Molecule Molecule::without_dummies() const {
   Molecule m = *this;
   m.atoms.clear();
   for (const auto& a : atoms)
-    if (a.Z != 0) m.atoms.push_back(a);
+    if (a.basis_Z() != 0) m.atoms.push_back(a);
   return m;
 }
 
 std::vector<int> Molecule::real_atoms() const {
   std::vector<int> r;
   for (size_t i = 0; i < atoms.size(); ++i)
-    if (atoms[i].Z != 0) r.push_back(static_cast<int>(i));
+    if (atoms[i].basis_Z() != 0) r.push_back(static_cast<int>(i));
   return r;
 }
 

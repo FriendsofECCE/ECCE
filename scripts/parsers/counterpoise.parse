@@ -1,0 +1,51 @@
+#!/usr/bin/env perl
+################################################################################
+# Counterpoise correction (#1091), for every code whose job script appends the
+# "begin counterpoise" block gensub writes after a counterpoise job:
+#
+#   begin counterpoise
+#   complex <E_AB(AB)>
+#   fragment-1 <E_1(AB)>      monomer in the complex basis, partner as ghosts
+#   fragment-1-own <E_1(1)>   monomer in its own basis (optional runs)
+#   end counterpoise
+#
+# Energies are Hartree.  dE_CP = E_AB(AB) - sum E_X(AB) needs only the first
+# two kinds; the raw interaction energy and the BSSE also need the own-basis
+# runs.  BSSE = dE_CP - dE_raw = sum E_X(X) - sum E_X(AB), so it is positive.
+################################################################################
+
+$| = 1;
+my ($first, @lines) = map { chomp; $_ } <STDIN>;
+exit(0) unless (defined($first) && $first =~ /^begin counterpoise/);
+
+my ($complex, $ghostSum, $ownSum, $nGhost, $nOwn) = (undef, 0, 0, 0, 0);
+foreach my $l (@lines) {
+  last if ($l =~ /^end counterpoise/);
+  my ($name, $e) = split(' ', $l);
+  next unless (defined($e) && $e =~ /^[-+]?\d+(\.\d*)?([eEdD][-+]?\d+)?$/);
+  $e =~ tr/dD/ee/;
+  if ($name eq "complex") { $complex = $e; }
+  elsif ($name =~ /^fragment-\d+-own$/) { $ownSum += $e; $nOwn++; }
+  elsif ($name =~ /^fragment-\d+$/) { $ghostSum += $e; $nGhost++; }
+}
+exit(0) unless (defined($complex) && $nGhost >= 2);
+
+sub scalarProp {
+  my ($key, $value) = @_;
+  print "key: $key\nsize:\n1\nvalues:\n", sprintf("%.10f", $value), "\nunits:\nHartree\nEND\n";
+}
+
+my $kj = 2625.499638;
+my $kcal = 627.5094740631;
+my $cp = $complex - $ghostSum;
+&scalarProp("EINTCP", $cp);
+my @cells = (sprintf("dE_CP %.2f kJ/mol (%.2f kcal/mol)", $cp * $kj, $cp * $kcal));
+if ($nOwn == $nGhost) {
+  my $raw = $complex - $ownSum;
+  my $bsse = $cp - $raw;
+  &scalarProp("EINTRAW", $raw);
+  &scalarProp("EBSSE", $bsse);
+  unshift(@cells, sprintf("dE_raw %.2f kJ/mol (%.2f kcal/mol)", $raw * $kj, $raw * $kcal));
+  splice(@cells, 1, 0, sprintf("BSSE %.2f kJ/mol (%.2f kcal/mol)", $bsse * $kj, $bsse * $kcal));
+}
+print "key: CPTABLE\nsize:\n1\nvalues:\n", join("; ", @cells), "\nunits:\nNA\nEND\n";

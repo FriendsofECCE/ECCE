@@ -59,6 +59,10 @@
 //                                window meanwhile
 //    symmetry                    Symmetry > Find, then the point group
 //    coordsraw                   every atom's coordinates at %.17g
+//    fragments [auto]            report fragment assignments, or reset to molecules
+//    fragment N atoms LIST       assign 1-based atoms (spaces, commas or ranges)
+//    fragment N charge Q mult M  set fragment charge and spin multiplicity
+//    counterpoise orca DIR [MULT [ROUTE...]]  export complex and ghost monomers
 //    atomtable                   the shown text of each Atom Table row
 //    progress N                  the MO Compute progress dialog, N seconds
 //    property NAME               a click on Properties > NAME (toggles it)
@@ -135,6 +139,8 @@
 #include "wxviz/MoleculeDataTable.H"
 #include "tdat/PropVector.H"
 #include "tdat/TBond.H"
+#include "tdat/Counterpoise.H"
+#include "dsm/ICalculation.H"
 #include "util/EventDispatcher.H"
 #include "util/Event.H"
 #include "wxviz/ViewerEvtHandler.H"
@@ -247,6 +253,35 @@ bool exists(const std::string& path)
   return stat(path.c_str(), &st) == 0;
 }
 
+bool fragmentInteger(const std::string& text, int& value)
+{
+  std::istringstream in(text);
+  char extra;
+  return (in >> value) && !(in >> extra);
+}
+
+bool fragmentAtomList(const std::vector<std::string>& words, int atomCount,
+                      std::vector<int>& atoms)
+{
+  for (size_t i = 3; i < words.size(); ++i) {
+    std::string token = words[i];
+    for (char& c : token) if (c == ',') c = ' ';
+    std::istringstream parts(token);
+    for (std::string part; parts >> part;) {
+      size_t dash = part.find('-');
+      int first, last;
+      if (dash == std::string::npos) {
+        if (!fragmentInteger(part, first)) return false;
+        last = first;
+      } else if (!fragmentInteger(part.substr(0, dash), first) ||
+                 !fragmentInteger(part.substr(dash + 1), last)) return false;
+      if (first < 1 || last < first || last > atomCount) return false;
+      for (int a = first; a <= last; ++a) atoms.push_back(a - 1);
+    }
+  }
+  return !atoms.empty();
+}
+
 }
 
 void Builder::runBuilderScript(const std::string& file)
@@ -288,6 +323,70 @@ void Builder::runBuilderScript(const std::string& file)
       PBC *pbc = dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
       if (w[0] == "wait" && w.size() == 2) {
         st->notBefore = wxGetLocalTimeMillis() + atoi(w[1].c_str());
+      } else if (w[0] == "fragments" || w[0] == "fragment" ||
+                 w[0] == "counterpoise") {
+        std::string error;
+        bool changed = false;
+        bool validSyntax = false;
+        if (!frag || frag->numAtoms() == 0) {
+          error = "No structure atoms";
+        } else {
+          bool unassigned = true;
+          for (int i = 0; i < frag->numAtoms(); ++i)
+            if (frag->atomRef(i)->fragmentId() != 0) unassigned = false;
+          if (w[0] == "fragments" &&
+              (w.size() == 1 || (w.size() == 2 && w[1] == "auto"))) {
+            validSyntax = true;
+            if (unassigned || w.size() == 2)
+              changed = Counterpoise::autoAssign(*frag, error);
+          } else if (w[0] == "fragment") {
+            int id = 0, charge = 0, mult = 0;
+            std::vector<int> atoms;
+            const bool atomCommand = w.size() >= 4 && w[2] == "atoms" &&
+                fragmentAtomList(w, frag->numAtoms(), atoms);
+            const bool stateCommand = w.size() == 6 && w[2] == "charge" &&
+                w[4] == "mult" && fragmentInteger(w[3], charge) &&
+                fragmentInteger(w[5], mult);
+            if (w.size() >= 3 && fragmentInteger(w[1], id) && id > 0 &&
+                (atomCommand || stateCommand)) {
+              validSyntax = true;
+              if (unassigned) changed = Counterpoise::autoAssign(*frag, error);
+              if (error.empty()) {
+                bool ok = atomCommand
+                    ? Counterpoise::assignAtoms(*frag, id, atoms, error)
+                    : Counterpoise::setState(*frag, id, charge, mult, error);
+                changed = changed || ok;
+              }
+            }
+          } else if (w[0] == "counterpoise" && w.size() >= 3 && w[1] == "orca") {
+            int mult = (frag->numElectrons() % 2) ? 2 : 1;
+            if (ICalculation *calc = dynamic_cast<ICalculation*>(p_calculation)) {
+              int stored = static_cast<int>(calc->spinMultiplicity());
+              if (stored > 0) mult = stored;
+            }
+            validSyntax = w.size() == 3 || (fragmentInteger(w[3], mult) && mult > 0);
+            if (validSyntax) {
+              std::string route = "HF def2-SVP";
+              if (w.size() > 4) {
+                route.clear();
+                for (size_t i = 4; i < w.size(); ++i)
+                  route += (i == 4 ? "" : " ") + w[i];
+              }
+              if (unassigned) changed = Counterpoise::autoAssign(*frag, error);
+              if (error.empty()) Counterpoise::writeOrcaInputs(*frag, w[2], route, mult, error);
+              if (error.empty()) fprintf(stderr, "BUILDER: counterpoise orca: %s\n", w[2].c_str());
+            }
+          }
+          if (!validSyntax && error.empty())
+            error = "Usage: fragments [auto]; fragment N atoms LIST; fragment N charge Q mult M; counterpoise orca DIR [MULT [ROUTE...]]";
+        }
+        if (changed) { setDirty(true); updateSave(); }
+        if (!error.empty()) {
+          outcome = "FAIL: " + error;
+          fprintf(stderr, "BUILDER: %s: refused: %s\n", w[0].c_str(), error.c_str());
+        } else if (w[0] != "counterpoise") {
+          fprintf(stderr, "BUILDER: fragments:\n%s", Counterpoise::query(*frag).c_str());
+        }
       } else if (w[0] == "add" && w.size() == 6) {
         interpretCommand("add elem " + w[1] + " geom " + w[2] + " x " + w[3] +
                          " y " + w[4] + " z " + w[5]);
