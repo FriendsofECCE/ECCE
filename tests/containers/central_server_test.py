@@ -326,10 +326,11 @@ def isolation(pm, state):
 
 def session_end(pm, state):
     pm.sh("bob", "mosquitto_sub -h srv -p 8088 -u bob -P %s -t 'ecce/bob/#' "
-          "-F '%%t %%p' -W 60 >/tmp/cap_end 2>&1" % PW["bob"], detach=True)
+          "-F '%%t %%p' -W 900 >/tmp/cap_end 2>&1" % PW["bob"], detach=True)
     time.sleep(2)
+    # guest.py close first waits out the example import (up to 600 s).
     o, rc = pm.out("alice", "python3 /harness/guest.py close", "alice",
-                   timeout=120)
+                   timeout=720)
     try:
         s = json.loads(o.strip().splitlines()[-1])
     except Exception:
@@ -363,7 +364,7 @@ def session_end(pm, state):
     o, rc = pm.out("srv", "ecce-dataserver-status; ecce-gateway-status", "ecce")
     check("not running" not in o.lower(),
           "the server's data server and broker are still running", o)
-    o, rc = pm.out("bob", "python3 /harness/guest.py close", "bob", timeout=120)
+    o, rc = pm.out("bob", "python3 /harness/guest.py close", "bob", timeout=720)
     o, rc = pm.out("srv", "timeout 5 bash -c 'echo > /dev/tcp/localhost/8088' "
                    "&& timeout 5 bash -c 'echo > /dev/tcp/localhost/8096'",
                    "ecce")
@@ -615,7 +616,7 @@ def tls(pm, image):
                   for l in log.splitlines()),
           "tls: nothing of eve's was answered by the server")
     for c, u in (("talice", "alice"), ("tbob", "bob")):
-        pm.out(c, "python3 /harness/guest.py close", u, timeout=120)
+        pm.out(c, "python3 /harness/guest.py close", u, timeout=720)
     b = captured(pm, "tbob", "tpb")
     seen = [l for l in b.splitlines() if l.startswith("ecce/alice/")
             and "ecce_machreg_changed" not in l and "A-" not in l

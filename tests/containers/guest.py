@@ -151,6 +151,13 @@ def start(user, password, server, expect_login=True):
 def close():
     """WM_DELETE_WINDOW to the Organizer, Return on the Quit dialog."""
     from Xlib import X, display, protocol
+    # The first-start example import (an application-modal progress window)
+    # takes minutes on a loaded host and ignores the close until it ends; a
+    # user would wait for it too.
+    busy = time.time() + 600
+    while time.time() < busy and any(t == "Example calculations"
+                                     for _, t in windows()):
+        time.sleep(2)
     deadline = time.time() + 60
     lastclose = 0
     while time.time() < deadline:

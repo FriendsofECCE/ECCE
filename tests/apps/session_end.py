@@ -1342,6 +1342,12 @@ def twoSessions(checks, display, logdir, tag, brokerUp, stopSays):
     brokerUp() says whether the broker the sessions use is up; stopSays is
     what the second session's stop must print about the broker."""
     p1, p2 = Probe(tag + "-1"), Probe(tag + "-2")
+    # One program (#1069) would answer the second start by raising the first
+    # window; this test is about two sessions sharing the services, so both
+    # opt out.  $DISPLAY is not part of that key: it only draws windows.
+    if os.environ.get("ECCE_ONE_PROCESS"):
+        for p in (p1, p2):
+            p.extra["ECCE_MULTIPLE_INSTANCES"] = "1"
     first = second = None
     try:
         first = Session(display, os.path.join(logdir, tag + "-1.log"),

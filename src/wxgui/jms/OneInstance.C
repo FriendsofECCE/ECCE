@@ -142,9 +142,12 @@ bool OneInstance::claim(const wxString& context,
     tf.Close();
   }
 #ifndef __WXMSW__
-  wxRemoveFile(service);    // left by a copy that did not end cleanly
+  // unlink, not wxRemoveFile: that one logs a missing file as an error,
+  // and the log window is modal over the Organizer (it blocked the Quit).
+  unlink(service.fn_str());   // left by a copy that did not end cleanly
 #endif
   s_server = new Server;
+  wxLogNull quiet;    // no server only means a second start cannot raise us
   if (!s_server->Create(service)) {
     delete s_server;
     s_server = 0;
