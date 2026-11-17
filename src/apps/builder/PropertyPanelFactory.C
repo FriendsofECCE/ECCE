@@ -35,6 +35,7 @@ wxFORCE_LINK_MODULE(MullikenPanel)
 wxFORCE_LINK_MODULE(PlotAnyPropertyPanel)
 wxFORCE_LINK_MODULE(TrajectoryPanel)
 wxFORCE_LINK_MODULE(UvVisPanel)
+wxFORCE_LINK_MODULE(NmrPanel)
 wxFORCE_LINK_MODULE(VectorPlotPropertyPanel)
 
 

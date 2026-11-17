@@ -288,3 +288,40 @@ Calculations you import are stored in your projects, in the place ECCE keeps you
 
 To run a calculation yourself, continue with [Machines](machines.md) and
 [Your first calculation](first-calculation.md).
+
+### NMR spectrum
+
+For a calculation with parsed isotropic shieldings (including Gaussian 16
+and ORCA NMR results), open **Properties > Magnetic resonance > NMR spectrum**
+in the Builder. The shielding tensor table remains available separately.
+
+Choose an element in **Nucleus**: H represents 1H and C represents 13C.
+Other elements can also be displayed when you supply their reference.
+**Reference shielding (ppm)** starts empty for every element. Enter a
+shielding for a suitable reference, or choose **Reference calculation...**
+from the other calculations in the same project folder. That action uses
+the average isotropic shielding of the selected element in the reference
+calculation; the source is shown above the plot. For example, choose a TMS
+calculation made with the same method, basis and solvent as the sample.
+ECCE does not check that the calculation settings match. References are
+kept separately for each element while the panel is open, and are not saved
+with the calculation. Clear the field to remove an element's reference.
+
+The chemical shift is **δ = σ_ref − σ**, in ppm. The axis runs from high
+shift on the left to low shift on the right. Atoms whose shifts span at most
+0.01 ppm are grouped into one stick at their mean shift; the height and
+**Count** give the number of atoms. This numerical grouping does not prove
+chemical equivalence. Click a stick or table row to select its atoms in the
+3-D viewer. Atom numbers in the table start at 1.
+
+**Lorentzian FWHM (ppm)** adds broadening with that full width at half
+maximum. Zero shows sticks only. The broadened curve is area-normalised:
+its integral is the atom count, and its separate axis is nuclei per ppm.
+Drag the plot to zoom, use the wheel to zoom about the pointer, right-drag
+to pan, and double-click or use **Reset zoom** to fit the spectrum.
+
+**Export CSV...** writes the reference value and source, grouped shifts and
+counts, per-atom shieldings and shifts, and the broadened curve when enabled.
+**Export PNG...** saves the current plot, including its zoom, as an image.
+J-couplings, multiplet splitting, isotope abundances and experimental
+intensities are not modelled.

@@ -198,6 +198,7 @@
 #include "VizPropertyPanel.H"
 #include "MomentsPanel.H"
 #include "StressPanel.H"
+#include "NmrPanel.H"
 #include "DistortBondsDialog.H"
 #include "wxgui/ewxModalGuard.H"
 
@@ -2275,6 +2276,34 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0].compare(0, 4, "gten") == 0 && w[0] != "gtenkind") {
         outcome = ensembleCommand(w);
         if (outcome.empty()) outcome = "ok";
+      } else if (w[0] == "nmr" && w.size() >= 2) {
+        NmrPanel *nmr = nullptr;
+        if (p_calculation)
+          for (PropertyPanel *p : PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if (auto *panel = dynamic_cast<NmrPanel*>(p)) nmr = panel;
+        bool ok = nmr != nullptr;
+        if (nmr) {
+          nmr->ensureInitialized();
+          const std::string arg = w.size() > 2 ? w[2] : "";
+          if (w[1] == "element") ok = nmr->chooseElement(arg);
+          else if (w[1] == "reference") ok = nmr->setReference(arg == "empty" ? "" : arg);
+          else if (w[1] == "calculation") ok = nmr->referenceCalculation(arg);
+          else if (w[1] == "width") {
+            double v;
+            ok = wxString::FromUTF8(arg.c_str()).ToDouble(&v) && nmr->setWidth(v);
+          } else if (w[1] == "csv") ok = nmr->exportCsv(wxString::FromUTF8(arg.c_str()));
+          else if (w[1] == "png") ok = nmr->exportPng(wxString::FromUTF8(arg.c_str()));
+          else if (w[1] == "click") ok = nmr->clickGroup(atoi(arg.c_str()) - 1);
+          else if (w[1] != "status") ok = false;
+          fprintf(stderr, "NMR: ok=%d %s\n", ok, nmr->summary().c_str());
+          if (w[1] == "click") {
+            fprintf(stderr, "NMR selected:");
+            SGFragment *frag = getSceneGraph().getFragment();
+            if (frag) for (int a : frag->m_atomHighLight) fprintf(stderr, " %d", a + 1);
+            fprintf(stderr, "\n");
+          }
+        }
+        outcome = ok ? "ok" : "FAIL: NMR command";
       } else if (w[0] == "quit") {
         fprintf(stderr, "ECCE_BUILDER_SCRIPT: quit\n");
         Close(true);

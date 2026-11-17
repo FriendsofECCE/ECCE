@@ -242,7 +242,7 @@ class SpectrumCanvas : public wxPanel
         for (size_t i = 0; i < ks.size(); i++)
           if (ks[i].mode == mode)
             lines.push_back(utf8(p_s->spec.intensityName((VibKind)k).c_str()) +
-                            (p_s->spec.electronic()
+                            ((p_s->spec.electronic() || p_s->spec.nmr())
                                ? wxString::Format("%.4f", ks[i].intensity)
                                : wxString::Format("%.2f ", ks[i].intensity) +
                                  utf8(p_s->spec.unitLabel((VibKind)k).c_str())));
@@ -513,7 +513,7 @@ class SpectrumCanvas : public wxPanel
       p_s->spec.defaultRange(&lo, &hi);
       p_s->axis.setMinSpan(p_s->spec.xUnit() == X_EV ? 0.5
                            : p_s->spec.xUnit() == X_NM ? 10.0
-                           : SpectrumAxis::minSpan());
+                           : p_s->spec.nmr() ? 0.001 : SpectrumAxis::minSpan());
       p_s->axis.setFull(lo, hi);
       p_cacheValid = false;
       p_band = false;

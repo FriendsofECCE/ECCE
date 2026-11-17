@@ -2606,6 +2606,11 @@ add_executable(uvvis_test tests/spectrum/uvvis_test.C)
 target_link_libraries(uvvis_test PRIVATE eccetdat ecceutil)
 add_test(NAME uvvis COMMAND uvvis_test)
 
+add_executable(nmr_spectrum_test tests/spectrum/nmr_spectrum_test.C)
+target_link_libraries(nmr_spectrum_test PRIVATE eccetdat ecceutil)
+add_test(NAME nmr_spectrum COMMAND nmr_spectrum_test)
+
+
 # tests/atommap -- atom mapping and alignment of reactant/product/guess (#419)
 add_executable(atommap_cli tests/atommap/atommap_cli.C)
 target_link_libraries(atommap_cli PRIVATE eccetdat ecceutil)
@@ -4181,6 +4186,13 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/nmode_bandshift_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_nmode_bandshift PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  add_test(NAME apps_nmr_spectrum
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/nmr_spectrum_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_nmr_spectrum PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Vibrations panel spectrum: difference, experimental curve, zoom; the
