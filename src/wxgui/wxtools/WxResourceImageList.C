@@ -21,6 +21,8 @@
 
 WxResourceImageList* WxResourceImageList::p_singleton = 0;
 
+static wxBitmap inked(const wxBitmap& bmp, const wxColour& ink);
+
 
 WxResourceImageList::WxResourceImageList()
   : ewxImageList(),
