@@ -185,3 +185,29 @@ to `~/.claude/skills/` to use it.
   may not leave your computer.
 - For an experiment, use a separate state directory so that your own data is
   not touched; AGENTS.md says how.
+
+## Counterpoise correction (ECCE-QM and ORCA)
+
+The interaction energy of a complex AB, E(AB) − E(A) − E(B), is too negative in
+a finite basis because each monomer borrows its partner's basis functions in
+the complex (basis-set superposition error, BSSE). The counterpoise correction
+of Boys and Bernardi evaluates the monomers in the full complex basis, with the
+partner's atoms as ghost atoms (basis functions, no nuclei, no electrons):
+
+```text
+ΔE_CP  = E_AB(AB) − Σ E_X(AB)        X = each fragment, at the complex geometry
+ΔE_raw = E_AB(AB) − Σ E_X(X)         monomers in their own basis
+BSSE   = ΔE_CP − ΔE_raw = Σ E_X(X) − Σ E_X(AB)   (positive)
+```
+
+Define the fragments in the Builder first (`fragments auto`, above). In the
+Calculation Editor choose an Energy run, open Runtype Details and tick
+*Counterpoise correction*; the box exists for ECCE-QM and ORCA Energy runs only.
+The second tick, *Monomers in their own basis too*, adds one run per fragment
+and gives the raw energy and the BSSE. One job runs the complex, then each
+monomer in sequence, in the same run folder. The fragment charges must add up
+to the calculation's charge.
+
+The Energies panel shows *Counterpoise-corrected Interaction Energy*, and with
+the second tick the *Raw Interaction Energy* and the *BSSE*, in the energy unit
+you chose, plus a *Counterpoise Summary* line in kJ/mol and kcal/mol.

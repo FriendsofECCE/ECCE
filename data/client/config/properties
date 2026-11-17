@@ -143,6 +143,13 @@ Energy		Rotational Symmetry Number (code's)	THERMOSIGMA	NA		PropValue	Thermochem
 # prints both totals (NWChem COSMO).  Gaussian and ORCA SMD print just the
 # cavity-dispersion term, kept apart as ESOLVCDS since it is not the full
 # solvation free energy.
+# Counterpoise (#1091): dE_CP = E_AB(AB) - sum E_X(AB); the raw energy and the
+# BSSE need the monomers in their own basis as well.
+Energy		Counterpoise-corrected Interaction Energy	EINTCP		Energy		PropValue	Counterpoise
+Energy		Raw Interaction Energy			EINTRAW		Energy		PropValue	Counterpoise
+Energy		Basis-Set Superposition Error (BSSE)	EBSSE		Energy		PropValue	Counterpoise
+Energy		Counterpoise Summary (kJ/mol, kcal/mol)	CPTABLE		NA		PropString	Counterpoise
+#
 Energy		Solvation Energy (E_sol - E_gas)	ESOLV		Energy		PropValue	Solvation
 Energy		CPCM Reaction-Field Energy (q.V/2)	EPCM		Energy		PropValue	Solvation
 Energy		SMD Cavity-Dispersion Term (CDS)	ESOLVCDS	Energy		PropValue	Solvation

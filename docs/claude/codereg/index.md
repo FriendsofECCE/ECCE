@@ -256,3 +256,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [NPA: core orthogonalised apart from the valence minimal basis](npa-core-orthogonalised-apart.md) — ecce-npa vs NBO 7; ECP cores inferred; route-card basis gives no results.h5 (#1054)
 - [A machine's QE pseudopotential directory goes into pseudo_dir at launch (#989)](qe-machine-pseudo-dir-989.md) - CONFIG key, postParams, launch-time missing-file check over the existing login.
 - [ECCE-QM ghost centres (#1091)](ecceqm-ghost-centres-1091.md) - `ghost` geometry column, Z = 0 + basis_Z(), grid includes ghosts, energy only.
+- [Counterpoise job and properties](counterpoise-job-and-properties-1091.md): one input, split by gensub, block parsed by counterpoise.parse (#1091)

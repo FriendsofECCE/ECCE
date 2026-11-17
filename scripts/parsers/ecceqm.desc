@@ -440,3 +440,12 @@ Progress=irc $1
 Begin=^progress scan (.*)$
 Progress=scan $1
 [END]
+
+# Counterpoise job (#1091): the block gensub appends after the monomer runs.
+[EINTCP][EINTRAW][EBSSE][CPTABLE]
+Script=counterpoise.parse
+Begin=^begin counterpoise\b
+Frequency=last
+Skip=0
+End=^end counterpoise
+[END]

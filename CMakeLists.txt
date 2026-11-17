@@ -4836,6 +4836,20 @@ if(PYTHON3_EXECUTABLE)
                      --build ${CMAKE_BINARY_DIR}
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
     set_tests_properties(launch_ecceqm PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+    # #1091: counterpoise inputs, parser, and the water dimer run by ECCE-QM
+    # (and ORCA when ECCE_ORCA names it); then through Launch.
+    add_test(NAME counterpoise_input
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/counterpoise_test.py
+                     --offline --qm $<TARGET_FILE:ecce-qm>
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+    set_tests_properties(counterpoise_input PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+    add_test(NAME launch_counterpoise
+             COMMAND ${PYTHON3_EXECUTABLE}
+                     ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/counterpoise_test.py
+                     --build ${CMAKE_BINARY_DIR}
+             WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+    set_tests_properties(launch_counterpoise PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
     # #284: a stopped job monitor makes the job "out of contact", never
     # failed; a killed engine is reported gone by the machine check and is
     # final only from its output; silence past the reconnect time reconnects

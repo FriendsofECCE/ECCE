@@ -32,6 +32,7 @@ use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t
 
 push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
 require "pertab.pl";
+require "cpfrag.pl";
 &loadPT;
 
 $| = 1;
@@ -1072,7 +1073,44 @@ sub verifyGBSFile {
   close(GBS);
 }
 
+# Counterpoise (#1091): the complex deck stays first and stands alone; each
+# monomer deck follows a "# ecce-run <name>" line, split off by gensub.
+# A ghost atom is "Symbol:" in the * xyz block.
+sub counterpoiseDecks {
+  my %z = reverse %number_to_symbol;
+  my @runs = &cpPlan($FragFILE, \%AbiDict,
+                     ($AbiDict{"Charge"} eq "" ? 0 : $AbiDict{"Charge"}),
+                     sub { $z{$tags{$_[0]}} || 0 });
+  return unless (@runs);
+  open(my $in, "<", "tmpfile") || die "ai.orca error: cannot reread the deck\n";
+  my @deck = <$in>;
+  close($in);
+  open(my $out, ">>", "tmpfile") || die "ai.orca error: cannot extend the deck\n";
+  foreach my $run (@runs) {
+    my ($name, $q, $m, $mode) = @$run;
+    print $out "# ecce-run $name\n";
+    my ($inGeom, $atom) = (0, 0);
+    foreach my $line (@deck) {
+      my $l = $line;
+      if ($inGeom) {
+        if ($l =~ /^\*\s*$/) { $inGeom = 0; }
+        else {
+          my $mo = $mode->[$atom++];
+          next if ($mo == 2);
+          $l =~ s/^(\s*)(\S+)/$1$2:/ if ($mo == 1);
+        }
+      } elsif ($l =~ /^\*\s*xyz\s/i) {
+        $l = "* xyz $q $m\n";
+        $inGeom = 1;
+      }
+      print $out $l;
+    }
+  }
+  close($out);
+}
+
 sub cleanup {
+  &counterpoiseDecks;
   # Close the source before replacing it; the copy overwrites existing targets
   # reliably across platforms, and failures must not leave the template in place.
   close(TEMPLATE);

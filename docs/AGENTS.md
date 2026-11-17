@@ -433,6 +433,21 @@ a ghost: the element's basis functions, no nucleus, no electrons. Single-point
 and polarizability are refused with a message. The output's `begin atoms` block
 ends such rows with `ghost`.
 
+Counterpoise calculation (ECCE-QM and ORCA, Energy runs, structure with 2 or
+more fragments): SetupParams keys `ES.Runtype.Counterpoise` (1 = on) and
+`ES.Runtype.CounterpoiseOwn` (1 = also each monomer in its own basis). Fragments
+come from the Builder hooks (`fragments auto`, `fragment N atoms|charge|mult`)
+and are stored in the `.frag` file (`fragment_states`, `atom_fragment_list`).
+`ai.ecceqm`/`ai.orca` append the monomer decks to the one input file after
+`# ecce-run fragment-N[-own]` lines; `gensub` splits them off, runs them after
+the complex in the same folder and appends a `begin counterpoise` energy block
+to the output. Properties (Hartree, Energies panel group Counterpoise):
+`EINTCP` = E_AB(AB) - sum E_X(AB), `EINTRAW` = E_AB(AB) - sum E_X(X),
+`EBSSE` = EINTCP - EINTRAW (positive), and the string `CPTABLE` with kJ/mol and
+kcal/mol. The raw energy and BSSE exist only with the own-basis runs.
+Gaussian and the scan action are not done yet. See
+`docs/claude/codereg/counterpoise-job-and-properties-1091.md`.
+
 Property views (which panel shows what) depend on what is stored in `Props/`;
 see "Properties". Analysis views: the MO diagram (experimental; check it
 against a textbook diagram), Density Map, ELF/LOL/NCI, localised orbitals,
