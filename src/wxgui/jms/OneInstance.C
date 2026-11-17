@@ -3,6 +3,7 @@
  *
  * See include/wxgui/OneInstance.H and docs/claude/services/second-start-1069.md.
  */
+#include <iostream>
 #include <random>
 
 #include "wx/app.h"
@@ -14,6 +15,7 @@
 #include "wx/stdpaths.h"
 #include "wx/utils.h"
 #ifndef __WXMSW__
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #endif
@@ -38,19 +40,38 @@ unsigned long fnv(const wxString& s)
   return h;
 }
 
-// Per user: a private folder in the system's temp area (short, because a
-// Unix socket path is limited to about 100 characters).
+// Per user: a private folder, short because a Unix socket path is limited
+// to about 100 characters.  Empty when no folder can be trusted: /tmp is
+// shared, and a folder someone else made there (or a symlink) must not be
+// used for the token or the socket.
 wxString runDir()
 {
 #ifdef __WXMSW__
   wxString dir = wxStandardPaths::Get().GetTempDir() + "\\ecce-one";
   wxFileName::Mkdir(dir, 0700, wxPATH_MKDIR_FULL);
-#else
-  wxString dir = wxString::Format("/tmp/ecce-one-%d", (int)getuid());
-  mkdir(dir.fn_str(), 0700);
-  chmod(dir.fn_str(), 0700);
-#endif
   return dir;
+#else
+  wxString dir;
+#ifdef __WXMAC__
+  const char *base = getenv("TMPDIR");    // per user on macOS
+#else
+  const char *base = getenv("XDG_RUNTIME_DIR");
+#endif
+  if (base && *base && base[0] == '/')
+    dir = wxString::FromUTF8(base) + "/ecce-one";
+  else
+    dir = wxString::Format("/tmp/ecce-one-%d", (int)getuid());
+  mkdir(dir.fn_str(), 0700);
+  struct stat st;
+  if (lstat(dir.fn_str(), &st) != 0 || !S_ISDIR(st.st_mode) ||
+      st.st_uid != getuid() || (st.st_mode & 077) != 0) {
+    std::cerr << "ECCE: " << dir.utf8_str()
+              << " is not a private folder of yours; single-instance "
+                 "checking is off." << std::endl;
+    return wxString();
+  }
+  return dir;
+#endif
 }
 
 // Anything on the socket without the token is dropped: the Windows port is
@@ -94,6 +115,25 @@ wxString serviceFor(const wxString& dir, const wxString& key)
 #endif
 }
 
+// Never through an existing file or link: remove, then create exclusively.
+void writeToken(const wxString& path)
+{
+#ifdef __WXMSW__
+  wxFile tf;
+  if (tf.Create(path, true, wxS_IRUSR | wxS_IWUSR)) {
+    tf.Write(s_token);
+    tf.Close();
+  }
+#else
+  unlink(path.fn_str());
+  int fd = open(path.fn_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+  if (fd < 0) return;
+  const wxScopedCharBuffer b = s_token.utf8_str();
+  if (write(fd, b.data(), b.length()) < 0) { /* no token: second start starts anyway */ }
+  close(fd);
+#endif
+}
+
 bool tellRunningCopy(const wxString& service, const wxString& tokenFile,
                      const std::vector<wxString>& files)
 {
@@ -119,6 +159,7 @@ bool OneInstance::claim(const wxString& context,
 {
   const wxString key = wxString::Format("%08lx", fnv(context));
   const wxString dir = runDir();
+  if (dir.empty()) return true;
   const wxString service = serviceFor(dir, key);
   const wxString tokenFile = dir + "/" + key + ".tok";
 
@@ -136,11 +177,7 @@ bool OneInstance::claim(const wxString& context,
 
   std::random_device rd;
   s_token = wxString::Format("%08x%08x", (unsigned)rd(), (unsigned)rd());
-  wxFile tf;
-  if (tf.Create(tokenFile, true, wxS_IRUSR | wxS_IWUSR)) {
-    tf.Write(s_token);
-    tf.Close();
-  }
+  writeToken(tokenFile);
 #ifndef __WXMSW__
   // unlink, not wxRemoveFile: that one logs a missing file as an error,
   // and the log window is modal over the Organizer (it blocked the Quit).

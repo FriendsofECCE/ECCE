@@ -388,6 +388,58 @@ def runSingleInstance(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runUntrustedDir(display):
+    """A run folder that is not private to the user (mode 0777, a symlink
+    in it) is not used: single-instance checking is off, the file the link
+    points to is untouched, and the Organizer still starts (#1065 review)."""
+    setLayout(display, "small")
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        os.makedirs(os.path.join(data, "users", "local"))
+        run = os.path.join(work, "run")
+        folder = os.path.join(run, "ecce-one")
+        os.makedirs(folder)
+        os.chmod(run, 0o700)
+        os.chmod(folder, 0o777)
+        victim = os.path.join(work, "victim")
+        with open(victim, "w") as handle:
+            handle.write("keep")
+        # The token name is not predictable; the folder check comes first.
+        link = os.path.join(folder, "x.tok")
+        os.symlink(victim, link)
+        env = {"ECCE_ONE_PROCESS": "1", "ECCE_LOCAL_DATA": data,
+               "XDG_RUNTIME_DIR": run}
+        result = apps.run(display, "organizer", windowTimeout=60, settle=10,
+                          env=env)
+        log = result.log or ""
+        check("not a private folder" in log,
+              "an untrusted run folder is reported and single-instance is off",
+              log[-1500:])
+        check(open(victim).read() == "keep",
+              "the file a symlink in the folder points to is untouched")
+        check(sorted(os.listdir(folder)) == ["x.tok"],
+              "nothing is created in the untrusted folder",
+              str(os.listdir(folder)))
+        check(not result.crashed, "the Organizer started anyway")
+        # A private one is used, with a token only the user can read.
+        run2 = os.path.join(work, "run2")
+        os.makedirs(run2)
+        os.chmod(run2, 0o700)
+        env["XDG_RUNTIME_DIR"] = run2
+        apps.run(display, "organizer", windowTimeout=60, settle=10, env=env)
+        toks = [f for f in os.listdir(os.path.join(run2, "ecce-one"))
+                if f.endswith(".tok")] if os.path.isdir(
+                    os.path.join(run2, "ecce-one")) else []
+        check(len(toks) == 1 and oct(os.stat(os.path.join(
+            run2, "ecce-one", toks[0])).st_mode & 0o777) == "0o600",
+            "a private run folder holds a token readable only by the user",
+            str(toks))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def runGeometry(display):
     """The host saves its rectangle under the Organizer's prefix: a size set
     in one run is the window's size in the next."""
@@ -1670,6 +1722,7 @@ def main():
     def checkApp(display, name, results, verbose=False):
         if os.environ.get("ECCE_SINGLE_ONLY") == "1":
             runSingleInstance(display)
+            runUntrustedDir(display)
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
@@ -1704,6 +1757,7 @@ def main():
         runTabs(display)
         runQuitHost(display)
         runSingleInstance(display)
+        runUntrustedDir(display)
         runGeometry(display)
         runTabsEditor(display)
         runSetupTab(display)
