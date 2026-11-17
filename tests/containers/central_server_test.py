@@ -68,6 +68,8 @@ class Podman:
         """Run a shell script in a container as a Unix account."""
         home = "/root" if user == "root" else "/home/" + user
         args = ["exec", "-u", user, "-w", home, "-e", "HOME=" + home]
+        if os.environ.get("ECCE_ONE_PROCESS"):
+            args += ["-e", "ECCE_ONE_PROCESS=" + os.environ["ECCE_ONE_PROCESS"]]
         if detach:
             args.append("-d")
         if inp is not None:
