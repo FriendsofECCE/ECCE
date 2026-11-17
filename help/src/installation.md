@@ -344,6 +344,9 @@ to find out what went wrong into a folder `ecce-bug-<date>` in your home
 folder, and packs it as `ecce-bug-<date>.zip` next to it. On Linux and macOS
 this takes about half a minute; it holds the ECCE version, your system, the
 logs of the services and the checks that ECCE's diagnostic tool makes. On
+macOS it also holds the crash reports macOS wrote for ECCE's programs in the
+last seven days (the newest five, from `~/Library/Logs/DiagnosticReports`);
+crash reports of other programs are left out. On
 Windows it holds the ECCE version, the Windows version, the ECCE logs and the
 last ECCE crash records of the Windows event log.
 

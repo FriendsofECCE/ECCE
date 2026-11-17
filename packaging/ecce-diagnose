@@ -463,6 +463,37 @@ shell_run "ls -la core core.* 2>/dev/null | head || echo 'no core files in the c
 if have journalctl; then
   shell_run "journalctl --user --since '1 day ago' --no-pager 2>/dev/null | grep -iE 'ecce|builder|organizer|calced|mosquitto|segfault|core dump' | tail -30 || echo 'nothing in the user journal'"
 fi
+# macOS writes one report per crash (every thread's stack) instead of a
+# core file.  Copy only ECCE's programs' reports, so other applications'
+# crashes never leave the machine; the newest 5 from the last 7 days.
+if [ "$(uname -s)" = Darwin ]; then
+  ECCE_PROGS="ecce ecce-qm wish python python3 Python basistool builder calced
+    gateway gmxprepare launcher machbrowser machregister mddynamics mdenergy
+    mdoptimize mdprepare metadyn organizer pertable solvate vizthumbnail
+    ecce-dialog ecce-tool hostkeydialog msgdialog passdialog"
+  CRASHDIR="$OUTDIR/crash-reports"
+  found=""
+  for d in "$HOME/Library/Logs/DiagnosticReports" /Library/Logs/DiagnosticReports; do
+    [ -d "$d" ] || continue
+    for p in $ECCE_PROGS; do
+      found="$found
+$(find "$d" -maxdepth 1 -type f \( -name "$p-*.ips" -o -name "${p}_*.crash" -o -name "$p-*.crash" \) -mtime -7 2>/dev/null)"
+    done
+  done
+  # ls -t sorts newest first; names have no newlines (program-date.ext)
+  found=$(printf '%s\n' "$found" | grep -v '^$')
+  newest=""
+  [ -n "$found" ] && newest=$(printf '%s\n' "$found" | tr '\n' '\0' | xargs -0 ls -t 2>/dev/null | head -5)
+  if [ -n "$newest" ]; then
+    mkdir -p "$CRASHDIR"
+    note "macOS crash reports of ECCE programs, last 7 days (copied to crash-reports/):"
+    printf '%s\n' "$newest" | while IFS= read -r f; do
+      cp -p "$f" "$CRASHDIR/" 2>/dev/null && note "  $f"
+    done
+  else
+    note "no macOS crash reports of ECCE programs in the last 7 days"
+  fi
+fi
 
 # ---------------------------------------------------------- resources
 say "Memory and load"
