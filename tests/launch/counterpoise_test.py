@@ -304,6 +304,13 @@ def main():
     ap.add_argument("--keep", action="store_true")
     opts = ap.parse_args()
     opts.orca = opts.orca or os.environ.get("ECCE_ORCA", "")
+    if not opts.orca:
+        import glob
+        for pat in ("~/orca_*/orca", "~/opt/orca/*/orca", "/opt/orca/*/orca"):
+            found = sorted(glob.glob(os.path.expanduser(pat)))
+            if found:
+                opts.orca = found[-1]
+                break
     if opts.offline:
         offline(opts)
     else:
