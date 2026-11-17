@@ -1262,26 +1262,54 @@ wxString CalcEd::setupCommand(const wxString& arg)
       if (!p_setupArea->basisPick(val)) return "no such basis set";
     } else if (rest == "all") {
       if (!p_setupArea->basisUseAll()) return "not possible";
+    } else if (rest.StartsWith("atoms")) {
+      // basis atoms H1,H2: the next assignment goes to these atoms
+      p_setupArea->basisAtoms(val);
+    } else if (rest.StartsWith("tight") || rest.StartsWith("diffuse")) {
+      // basis tight|diffuse EL SHELL COUNT
+      wxStringTokenizer tok(rest.AfterFirst(' '), " ");
+      string el = tok.HasMoreTokens() ? string(tok.GetNextToken().utf8_str()) : "";
+      long shell = -1, count = -1;
+      if (tok.HasMoreTokens()) tok.GetNextToken().ToLong(&shell);
+      if (tok.HasMoreTokens()) tok.GetNextToken().ToLong(&count);
+      if (el.empty() || shell < 0 || count < 0)
+        return "usage: basis tight|diffuse EL SHELL COUNT";
+      if (!p_setupArea->basisAppend(rest.StartsWith("tight"), el, shell, count))
+        return "not possible";
     } else if (rest.StartsWith("assign") || rest.StartsWith("ecp") ||
-               rest.StartsWith("fit")) {
-      // basis assign|ecp|fit NAME [@ EL,EL]; "ecp" alone adds the offer.
-      int kind = rest.StartsWith("assign") ? 0 : rest.StartsWith("ecp") ? 1 : 2;
-      wxString names = rest.AfterFirst(' ').Trim().Trim(false);
-      wxString els;
-      int at = names.Find(" @ ");
-      if (at != wxNOT_FOUND) {
-        els = names.Mid(at + 3);
-        names = names.Left(at);
-      } else if (names.StartsWith("@ ")) {
-        els = names.Mid(2);
-        names.clear();
+               rest.StartsWith("fit") || rest.StartsWith("aug")) {
+      // basis assign|ecp|fit|aug NAME [@ T,T] [; NAME [@ T,T]]...; T is an
+      // element or an atom name; "ecp" alone adds the offer.  All the
+      // steps are applied together.
+      int kind = rest.StartsWith("assign") ? 0 : rest.StartsWith("ecp") ? 1
+               : rest.StartsWith("fit") ? 2 : 3;
+      wxString all = rest.AfterFirst(' ').Trim().Trim(false);
+      vector<std::pair<string, vector<string> > > steps;
+      wxStringTokenizer parts(all, ";", wxTOKEN_RET_EMPTY_ALL);
+      while (parts.HasMoreTokens()) {
+        wxString names = parts.GetNextToken().Trim().Trim(false);
+        wxString els;
+        int at = names.Find(" @ ");
+        if (at != wxNOT_FOUND) {
+          els = names.Mid(at + 3);
+          names = names.Left(at);
+        } else if (names.StartsWith("@ ")) {
+          els = names.Mid(2);
+          names.clear();
+        }
+        vector<string> list;
+        wxStringTokenizer tok(els, ", ");
+        while (tok.HasMoreTokens())
+          list.push_back(string(tok.GetNextToken().utf8_str()));
+        steps.push_back(make_pair(string(names.Trim().utf8_str()), list));
       }
-      vector<string> list;
-      wxStringTokenizer tok(els, ", ");
-      while (tok.HasMoreTokens()) list.push_back(string(tok.GetNextToken().utf8_str()));
-      int got = p_setupArea->basisAssign(string(names.Trim().utf8_str()), kind, list);
-      if (got < 0) return "no such basis set";
-      if (!got) return "no ECP offered";
+      if (steps.size() > 1) {
+        if (!p_setupArea->basisAssignMany(kind, steps)) return "no such basis set";
+      } else {
+        int got = p_setupArea->basisAssign(steps[0].first, kind, steps[0].second);
+        if (got < 0) return "no such basis set";
+        if (!got) return "no ECP offered";
+      }
     }
   } else if (arg.StartsWith("launch get ")) {
     return wxString::FromUTF8(
@@ -1473,11 +1501,16 @@ vector<string> CalcEd::basisAssignmentLines() const
             what += " + charge fit " + k.name;
           else if (k.type == TGaussianBasisSet::exchange)
             what += " + exchange fit " + k.name;
+          else if (k.type == TGaussianBasisSet::polarization ||
+                   k.type == TGaussianBasisSet::diffuse ||
+                   k.type == TGaussianBasisSet::rydberg)
+            what += " + augmenting " + k.name;
         }
         delete aux;
       }
-      TGBSConfigTags tags(it->first.c_str());
-      for (size_t i = 0; i < tags.size(); i++) per.push_back(make_pair(tags[i], what));
+      std::istringstream names(it->first);
+      string name;
+      while (names >> name) per.push_back(make_pair(name, what));
     }
   }
   vector<string> lines;
