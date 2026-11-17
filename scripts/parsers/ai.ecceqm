@@ -462,7 +462,7 @@ sub counterpoiseDecks {
           my $mo = $mode->[$atom++];
           next if ($mo == 2);
           chomp($l);
-          $l .= " ghost\n" if ($mo == 1);
+          $l .= ($mo == 1 ? " ghost" : "") . "\n";
         }
       } elsif ($l =~ /^geometry\s*$/) { $inGeom = 1; }
       print $out $l;
