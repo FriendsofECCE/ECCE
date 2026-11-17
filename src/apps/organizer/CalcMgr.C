@@ -875,6 +875,9 @@ void CalcMgr::runTestCommand(const string& line)
       } else if (sub == "sync") {
         syncServerRoots();
         outcome = "ok";
+      } else if (sub == "rtt") {
+        // Remote scripts run on SSH folders so far (round trips).
+        outcome = std::to_string(SftpEDSI::scriptCount());
       } else if (sub == "roots") {
         vector<string> labels = p_treeCtrl->rootLabels();
         for (size_t i = 0; i < labels.size(); i++)
