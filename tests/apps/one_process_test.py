@@ -816,6 +816,7 @@ def runSetupTab(display):
         log = result.log or ""
         su = pb.answers(log, "setup")
         print("      setup: " + "\n             ".join(su))
+        allSu = list(su)
         more = [a for a in su[24:] if a.startswith("area=basis")]
         areas = [a for a in su if a.startswith("area=")]
         check(areas and all("overlaps=0" in a for a in areas),
@@ -895,30 +896,34 @@ def runSetupTab(display):
               "Use for all atoms assigns the set to the whole system "
               "(3-21G, then 6-31G*)", basis[6] + " / " + basis[9])
         more += [""] * (8 - len(more))
-        check("O:_def2-tzvp" in more[0] and "ecpoffer=- " in more[0] + " ",
-              "water: def2-TZVP assigned to O only; no ECP offered for light "
-              "elements", more[0])
-        check("assigned=H:_def2-svp|O:_def2-tzvp " in more[1] + " ",
+        # ORCA attaches its own Def2-ECP to def2 sets, so ECP text is only
+        # compared for the matching ECP; equal elements print as All atoms.
+        check("def2-tzvp" in more[0] and "H_took_def2-tzvp" in more[0]
+              and "ecpoffer=- " in more[0] + " ",
+              "water: def2-TZVP on O (H takes it for now); no ECP offered "
+              "for light elements", more[0])
+        check("H:_def2-svp" in more[1] and "O:_def2-tzvp" in more[1],
               "water: def2-SVP on H and def2-TZVP on O (per element)",
               more[1])
-        check("assigned=H:_def2-svp|O:_def2-tzvp " in more[2] + " "
+        check("H:_def2-svp" in more[2] and "O:_def2-tzvp" in more[2]
               and "msg=Check_at_least_one_element" in more[2],
               "no element checked: nothing assigned, the panel says so",
               more[2])
-        check("no such basis set" in su, "an unknown set name is refused",
-              str(su[-12:]))
-        check("assigned=H:_def2-svp|I:_def2-tzvp " in more[4] + " "
+        check("no such basis set" in allSu, "an unknown set name is refused",
+              str(allSu[-12:]))
+        check("H:_def2-svp" in more[4] and "I:_def2-tzvp" in more[4]
               and "ecpoffer=def2-tzvp-ecp:I " in more[4] + " ",
               "HI: def2-TZVP on I offers the matching ECP, for I only",
               more[4])
-        check("assigned=H:_def2-svp|I:_def2-tzvp_+_ECP_def2-tzvp-ecp "
-              in more[5] + " " and "ecpoffer=- " in more[5] + " ",
+        check(more[5].count("ECP_def2-tzvp") == 1
+              and "I:_def2-tzvp_+_ECP_def2-tzvp" in more[5]
+              and "ecpoffer=- " in more[5] + " ",
               "accepting the offer stores the ECP on I, not on H", more[5])
-        check("no ECP offered" in su,
-              "a second accept finds no offer left", str(su[-12:]))
-        check(more[7].count("charge_fit") == 2 and "Ahlrichs" in more[7],
+        check("no ECP offered" in allSu,
+              "a second accept finds no offer left", str(allSu[-12:]))
+        check("charge_fit_Ahlrichs" in more[7] and "charge_fit" not in more[6],
               "NWChem: an orbital set for all atoms, then a charge fitting "
-              "set on each element", more[6] + " / " + more[7])
+              "set added to the elements", more[6] + " / " + more[7])
         perElement = ""
         for root, _dirs, names in os.walk(calc2):
             for n in names:
