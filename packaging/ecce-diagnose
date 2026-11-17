@@ -482,6 +482,13 @@ $(find "$d" -maxdepth 1 -type f \( -name "$p-*.ips" -o -name "${p}_*.crash" -o -
   done
   # ls -t sorts newest first; names have no newlines (program-date.ext)
   found=$(printf '%s\n' "$found" | grep -v '^$')
+  # A python/wish crash may be another program's: keep it only if it names ECCE.
+  found=$(printf '%s\n' "$found" | while IFS= read -r f; do
+    case "$(basename "$f")" in
+      python*|Python*|wish*) grep -qi 'ecce' "$f" 2>/dev/null && printf '%s\n' "$f" ;;
+      *) printf '%s\n' "$f" ;;
+    esac
+  done)
   newest=""
   [ -n "$found" ] && newest=$(printf '%s\n' "$found" | tr '\n' '\0' | xargs -0 ls -t 2>/dev/null | head -5)
   if [ -n "$newest" ]; then
