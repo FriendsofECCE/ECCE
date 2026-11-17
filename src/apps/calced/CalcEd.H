@@ -393,6 +393,15 @@ class CalcEd: public CalcEdGUI,
     vector<string> basisAssignmentLines() const;
     bool useBasisForAll(const string& name, TGaussianBasisSet::GBSType type,
                         string& message);
+    // Per-element assignment on the Basis Set Tool's GBSAssign: an orbital
+    // set replaces the elements' sets, an ECP or fitting set is added to
+    // them.  Empty elements = the whole system.  Saves when complete.
+    bool assignBasis(const string& name, TGaussianBasisSet::GBSType type,
+                     const vector<string>& elements, string& message);
+    // The ECP that goes with an orbital set (#122) and which of the elements
+    // it covers; "" when there is none or it covers none of them.
+    string matchingEcp(const string& basis, const vector<string>& elements,
+                       vector<string>& covered);
     void openBasisSetTool();
 
     // The window owns its dispatcher (#983) and deletes it with itself.

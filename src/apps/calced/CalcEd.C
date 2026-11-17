@@ -15,6 +15,7 @@
 #include <sys/wait.h>
 
 #include <wx/combo.h>
+#include <wx/tokenzr.h>
 #include <wx/statline.h>
 
 #include <wx/wupdlock.h>
@@ -1232,7 +1233,7 @@ static wxString columnOverlaps(wxWindow *root)
 }
 
 
-//  setup [info] | theory | runtype | basis [filter T|pick N|all] | input | fold | unfold | save | preview
+//  setup [info] | theory | runtype | basis [filter T|pick N|all|assign N [@ E,E]|ecp [N] [@ E,E]|fit N [@ E,E]] | input | fold | unfold | save | preview
 wxString CalcEd::setupCommand(const wxString& arg)
 {
   if (!p_setupArea) return "no set-up area";
@@ -1260,6 +1261,26 @@ wxString CalcEd::setupCommand(const wxString& arg)
       if (!p_setupArea->basisPick(val)) return "no such basis set";
     } else if (rest == "all") {
       if (!p_setupArea->basisUseAll()) return "not possible";
+    } else if (rest.StartsWith("assign") || rest.StartsWith("ecp") ||
+               rest.StartsWith("fit")) {
+      // basis assign|ecp|fit NAME [@ EL,EL]; "ecp" alone adds the offer.
+      int kind = rest.StartsWith("assign") ? 0 : rest.StartsWith("ecp") ? 1 : 2;
+      wxString names = rest.AfterFirst(' ').Trim().Trim(false);
+      wxString els;
+      int at = names.Find(" @ ");
+      if (at != wxNOT_FOUND) {
+        els = names.Mid(at + 3);
+        names = names.Left(at);
+      } else if (names.StartsWith("@ ")) {
+        els = names.Mid(2);
+        names.clear();
+      }
+      vector<string> list;
+      wxStringTokenizer tok(els, ", ");
+      while (tok.HasMoreTokens()) list.push_back(string(tok.GetNextToken().utf8_str()));
+      int got = p_setupArea->basisAssign(string(names.Trim().utf8_str()), kind, list);
+      if (got < 0) return "no such basis set";
+      if (!got) return "no ECP offered";
     }
   } else if (arg.StartsWith("launch get ")) {
     return wxString::FromUTF8(
@@ -1445,6 +1466,15 @@ vector<string> CalcEd::basisAssignmentLines() const
         delete sets;
       }
       if (group->ecp()) what += " + ECP " + group->ecp()->p_name;
+      if (vector<GBSKey> *aux = group->getAuxGBSIdentifiers()) {
+        for (const GBSKey& k : *aux) {
+          if (k.type == TGaussianBasisSet::charge)
+            what += " + charge fit " + k.name;
+          else if (k.type == TGaussianBasisSet::exchange)
+            what += " + exchange fit " + k.name;
+        }
+        delete aux;
+      }
       TGBSConfigTags tags(it->first.c_str());
       for (size_t i = 0; i < tags.size(); i++) per.push_back(make_pair(tags[i], what));
     }
@@ -1466,24 +1496,162 @@ vector<string> CalcEd::basisAssignmentLines() const
 bool CalcEd::useBasisForAll(const string& name, TGaussianBasisSet::GBSType type,
                             string& message)
 {
+  return assignBasis(name, type, vector<string>(), message);
+}
+
+
+namespace {
+
+// A simple (one group) or empty configuration as one group per element,
+// each keeping the sets it had, as the Basis Set Tool's Element mode does.
+void splitToElements(TGBSConfig *config, EDSIGaussianBasisSetLibrary& library,
+                     const vector<string>& elements, bool hadSets)
+{
+  vector<string> orbitals;
+  vector<GBSKey> aux;
+  if (hadSets) {
+    string gname = config->groupTagOfHeaviestElement();
+    vector<string> *o = config->getOrbitalGBSIdentifiers(gname);
+    vector<GBSKey> *a = config->getAuxGBSIdentifiers(gname);
+    if (o) orbitals = *o;
+    if (a) aux = *a;
+    delete o;
+    delete a;
+  }
+  config->removeAllGroups();
+  for (const string& el : elements) {
+    TGBSGroup *group = new TGBSGroup();
+    for (const string& o : orbitals) {
+      vector<TGaussianBasisSet*> list = library.lookup(
+          o.c_str(), TGaussianBasisSet::UnknownGBSType, el.c_str());
+      if (!list.empty()) group->insertOrbitalGBS(o, list, true);
+    }
+    for (const GBSKey& a : aux) {
+      if (a.name.find("appendedFunction") != string::npos) continue;
+      vector<TGaussianBasisSet*> list =
+          library.lookup(a.name.c_str(), a.type, el.c_str());
+      if (!list.empty()) group->insertGBS(new TGaussianBasisSet(*list[0]), true);
+    }
+    config->insertGBSGroup(el, group);
+  }
+  config->type(TGBSConfig::element);
+}
+
+string joinNames(const vector<string>& v)
+{
+  string s;
+  for (size_t i = 0; i < v.size(); i++) s += (i ? ", " : "") + v[i];
+  return s;
+}
+
+}  // namespace
+
+
+bool CalcEd::assignBasis(const string& name, TGaussianBasisSet::GBSType type,
+                         const vector<string>& elements, string& message)
+{
   message.clear();
   if (!p_frag || !p_code || !p_iCalc) {
     message = "You must have a chemical system defined before you can set up "
               "a basis set.";
     return false;
   }
+  vector<string> system = systemElements();
+  vector<string> els = elements.empty() ? system : elements;
+  for (const string& el : els) {
+    if (std::find(system.begin(), system.end(), el) == system.end()) {
+      message = el + " is not in this chemical system";
+      return false;
+    }
+  }
   EDSIServerCentral central;
   EDSIGaussianBasisSetLibrary library(central.getDefaultBasisSetLibrary());
+  bool orbital = type <= TGaussianBasisSet::DFTOrbital;
   string tag = p_frag->uniqueTagStr();
-  TGBSConfig *config = new TGBSConfig;
-  config->insertGBSGroup(tag, new TGBSGroup());
-  GBSAssign::Result res = GBSAssign::assign(library, config, tag, name, type,
-                                            false);
-  if (res.severity == GBSAssign::ERROR || !res.group) {
-    delete config;
-    message = res.message;
-    return false;
+  TGBSConfig *config;
+
+  if (orbital && els.size() == system.size()) {
+    config = new TGBSConfig;
+    config->insertGBSGroup(tag, new TGBSGroup());
+    GBSAssign::Result res = GBSAssign::assign(library, config, tag, name, type,
+                                              false);
+    if (res.severity == GBSAssign::ERROR || !res.group) {
+      delete config;
+      message = res.message;
+      return false;
+    }
+  } else {
+    bool hadSets = p_basis && !p_basis->isEmpty();
+    config = p_basis ? new TGBSConfig(*p_basis) : new TGBSConfig;
+    if (config->type() != TGBSConfig::element ||
+        config->size() < system.size()) {
+      splitToElements(config, library, system, hadSets);
+    }
+    vector<string> skipped;
+    int done = 0;
+    for (const string& el : els) {
+      if (!library.isSupported(name, type, el)) {
+        if (orbital) {
+          delete config;
+          message = "Basis set " + name + " does not cover " + el;
+          return false;
+        }
+        skipped.push_back(el);
+        continue;
+      }
+      GBSAssign::Result res = GBSAssign::assign(library, config, el, name,
+                                                type, false);
+      if (res.severity == GBSAssign::ERROR || !res.group) {
+        delete config;
+        message = res.message;
+        return false;
+      }
+      done++;
+    }
+    if (!done) {
+      delete config;
+      message = name + " does not cover " + joinNames(skipped);
+      return false;
+    }
+    // The editor cannot hold a basis with an element left out (it is
+    // cleared as inconsistent), so elements without an orbital set take
+    // this one for now, if it covers them; the user then changes them.
+    vector<string> took, missing;
+    for (const string& el : system) {
+      TGBSGroup *g = config->findGroup(el);
+      vector<const TGaussianBasisSet*> *sets = g ? g->getOrbitalGBSList() : 0;
+      bool has = sets && !sets->empty();
+      delete sets;
+      if (has) continue;
+      if (orbital && library.isSupported(name, type, el) &&
+          GBSAssign::assign(library, config, el, name, type, false).group)
+        took.push_back(el);
+      else
+        missing.push_back(el);
+    }
+    if (!missing.empty()) {
+      delete config;
+      message = "Also choose a basis set for " + joinNames(missing) +
+                " (the elements need one each).";
+      return false;
+    }
+    if (!took.empty())
+      message = joinNames(took) + " took " + name + " for now.";
+    if (!skipped.empty())
+      message += (message.empty() ? "" : "\n") + ("Not covered by " + name +
+                                                   ": " + joinNames(skipped));
+    if (type == TGaussianBasisSet::ecp) {
+      ErrMsg errs;
+      errs.flush();
+      GBSRules::checkECPCoverage(config);
+      if (errs.check("EE_ECP_COVERAGE")) {
+        message += (message.empty() ? "" : "\n") +
+                   errs.messageText("EE_ECP_COVERAGE");
+        errs.flush("EE_ECP_COVERAGE");
+      }
+    }
   }
+
   delete p_basis;
   p_basis = config;
   TTheory theory = getTheory();
@@ -1495,6 +1663,22 @@ bool CalcEd::useBasisForAll(const string& name, TGaussianBasisSet::GBSType type,
   doSave();
   if (p_setupArea) p_setupArea->basisChanged();
   return true;
+}
+
+
+string CalcEd::matchingEcp(const string& basis, const vector<string>& elements,
+                           vector<string>& covered)
+{
+  covered.clear();
+  EDSIServerCentral central;
+  EDSIGaussianBasisSetLibrary library(central.getDefaultBasisSetLibrary());
+  string ecp = library.matchingECP(basis);
+  if (ecp.empty()) return "";
+  vector<string> want = elements.empty() ? systemElements() : elements;
+  for (const string& el : want)
+    if (library.isSupported(ecp, TGaussianBasisSet::ecp, el))
+      covered.push_back(el);
+  return covered.empty() ? "" : ecp;
 }
 
 

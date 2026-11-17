@@ -698,6 +698,37 @@ def runSetupTab(display):
                                          "ecce:application\t\tORCA")
         open(meta, "w").write(text)
         url = "file://" + calc
+
+        # #1063: calculations for the per-element, ECP and fitting cases;
+        # no stored basis, so each starts from the code's default.
+        def extra(name, code, molecule, theory=None):
+            path = pb.makeCalc(project, name, "created", None)
+            meta = os.path.join(path, ".ecce-meta")
+            text = open(meta).read().replace(
+                "ecce:application\t\tNWChem", "ecce:application\t\t" + code)
+            if theory:
+                text = text.replace("ecce:theory\t\tSCF/RHF",
+                                    "ecce:theory\t\t" + theory)
+            open(meta, "w").write(text)
+            os.remove(os.path.join(path, "Parameters", "BasisSet.ecce_basisset"))
+            if molecule:
+                with open(os.path.join(path, "Parameters", "chemsys.mvm"),
+                          "w") as h:
+                    h.write(molecule)
+            return path
+
+        calc2 = extra("water-elements", "ORCA", None)
+        calc3 = extra("water-fit", "NWChem", None, "DFT/RDFT")
+        hi = extra("hi-orca", "ORCA",
+                   "title: hi\ntype: molecule\nnum_atoms: 2\n"
+                   "atom_info: symbol cart\natom_list: \n"
+                   "H 0.00000 0.00000 0.00000\nI 0.00000 0.00000 1.60900\n"
+                   "attr_list:\n 0.000000   1   0   0   0\n"
+                   " 0.000000   1   0   0   0\natom_type_list:\n"
+                   "        1   2\n       53   2\nnum_bonds: 1\n"
+                   "bond_list: \n1 2 1.00000 2\n")
+        url2, url3, hiUrl = ("file://" + calc2, "file://" + calc3,
+                             "file://" + hi)
         cmds = os.path.join(work, "commands")
         open(cmds, "w").close()
 
@@ -750,9 +781,30 @@ def runSetupTab(display):
             append("setup width 1024", 4)
             append("setup info", 2)
             shot("setup-orca-1024.png")
+            # #1063 stage 2: more editors as tabs (File > Quit ends the process,
+            # so these come before it; answers found by "area=basis" after the above).
+            append("start CalculationEditor " + url2, 25)
+            append("setup basis assign def2-tzvp @ O", 15)       # m0
+            append("setup basis assign def2-svp @ H", 15)        # m1
+            append("setup basis assign Nonesuch @ O", 3)
+            append("setup basis assign 6-31G* @ C", 5)           # m2
+            shot("setup-basis-elements.png")
+            append("start CalculationEditor " + hiUrl, 25)
+            append("setup basis assign def2-svp @ H", 15)        # m3
+            append("setup basis assign def2-tzvp @ I", 15)       # m4
+            append("setup basis ecp", 15)                        # m5
+            shot("setup-basis-ecp.png")
+            append("setup basis ecp", 3)                         # none left
+            append("start CalculationEditor " + url3, 25)
+            append("setup basis assign DZVP (DFT Orbital)", 15)  # m6
+            append("setup basis fit Ahlrichs Coulomb Fitting", 15)   # m7
+            shot("setup-basis-fit.png")
             append("close", 3)
             append("answer", 3)
-            append("answer no", 25)
+            append("answer no", 6)
+            append("answer no", 6)
+            append("answer no", 6)
+            append("answer no", 15)
 
         setLayout(display, "normal")
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
@@ -764,15 +816,19 @@ def runSetupTab(display):
         log = result.log or ""
         su = pb.answers(log, "setup")
         print("      setup: " + "\n             ".join(su))
+        allSu = list(su)
+        more = [a for a in su[24:] if a.startswith("area=basis")]
         areas = [a for a in su if a.startswith("area=")]
         check(areas and all("overlaps=0" in a for a in areas),
               "ORCA Set-up tab: no two controls of the editor's column overlap "
               "(default width and 1024 px)",
               "\n".join(a for a in areas if "overlaps=0" not in a))
-        m = re.search(r"window=(\d+)x", areas[-1]) if areas else None
+        # The last area of the width test, before the #1063 editors.
+        own = areas[:len(areas) - len(more)] or areas
+        m = re.search(r"window=(\d+)x", own[-1]) if own else None
         check(m and int(m.group(1)) <= 1024,
               "the Organizer window narrows to 1024 px",
-              areas[-1] if areas else "")
+              own[-1] if own else "")
         tabs = pb.answers(log, "tabs")
         check(tabs and re.search(r"1:.*Editor.*\*", tabs[0]) is not None,
               "Normal: the editor opens as a tab", str(tabs) + log[-1500:])
@@ -841,6 +897,45 @@ def runSetupTab(display):
               and "assigned=All_atoms:_6-31G* " in basis[9] + " ",
               "Use for all atoms assigns the set to the whole system "
               "(3-21G, then 6-31G*)", basis[6] + " / " + basis[9])
+        more += [""] * (8 - len(more))
+        # ORCA attaches its own Def2-ECP to def2 sets, so ECP text is only
+        # compared for the matching ECP; equal elements print as All atoms.
+        check("def2-tzvp" in more[0] and "H_took_def2-tzvp" in more[0]
+              and "ecpoffer=- " in more[0] + " ",
+              "water: def2-TZVP on O (H takes it for now); no ECP offered "
+              "for light elements", more[0])
+        check("H:_def2-svp" in more[1] and "O:_def2-tzvp" in more[1],
+              "water: def2-SVP on H and def2-TZVP on O (per element)",
+              more[1])
+        check("H:_def2-svp" in more[2] and "O:_def2-tzvp" in more[2]
+              and "msg=Check_at_least_one_element" in more[2],
+              "no element checked: nothing assigned, the panel says so",
+              more[2])
+        check("no such basis set" in allSu, "an unknown set name is refused",
+              str(allSu[-12:]))
+        check("H:_def2-svp" in more[4] and "I:_def2-tzvp" in more[4]
+              and "ecpoffer=def2-tzvp-ecp:I " in more[4] + " ",
+              "HI: def2-TZVP on I offers the matching ECP, for I only",
+              more[4])
+        check(more[5].count("ECP_def2-tzvp") == 1
+              and "I:_def2-tzvp_+_ECP_def2-tzvp" in more[5]
+              and "ecpoffer=- " in more[5] + " ",
+              "accepting the offer stores the ECP on I, not on H", more[5])
+        check("no ECP offered" in allSu,
+              "a second accept finds no offer left", str(allSu[-12:]))
+        check("charge_fit_Ahlrichs" in more[7] and "charge_fit" not in more[6],
+              "NWChem: an orbital set for all atoms, then a charge fitting "
+              "set added to the elements", more[6] + " / " + more[7])
+        perElement = ""
+        for root, _dirs, names in os.walk(calc2):
+            for n in names:
+                if n == "BasisSet.ecce_basisset":
+                    perElement = open(os.path.join(root, n),
+                                      errors="replace").read()
+        check("def2-tzvp" in perElement and "def2-svp" in perElement
+              and 'Tag="O"' in perElement and 'Tag="H"' in perElement,
+              "the saved basis file has one group per element "
+              "(what the input generator reads)", perElement[:600])
         stored = set()
         for root, _dirs, names in os.walk(calc):
             for n in names:

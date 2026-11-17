@@ -247,7 +247,17 @@ whether the preview contains TEXT, `basis` shows the basis panel
 use=on|off assigned=All_atoms:_<set>`; `basis filter TEXT` narrows the library
 list, `basis pick NAME` chooses a set, `basis all` is Use for all atoms:
 assigns it to the whole system and saves, as the Basis Set Tool's Add to Table
-plus save would; the panel uses the Basis Set Tool's library and `GBSAssign`),
+plus save would; the panel uses the Basis Set Tool's library and `GBSAssign`;
+the describe line also has `assign=on|off checked=<elements> ecpoffer=<ecp>:<elements>|-
+msg=<last message>`; `basis assign NAME [@ O,H]` assigns an orbital set to the
+listed elements (default all; the library name is lower case, e.g. `def2-tzvp`),
+replacing what they had, and saves (an element with no set yet takes the assigned one, `msg=<El>_took_<set>_for_now.`; if the set covers none, the call is refused with `msg=Also_choose_a_basis_set_for_...`); `basis ecp NAME
+[@ I]` adds an ECP from the library's ECP list, `basis ecp` alone adds the
+matching ECP the panel offered after an ECP orbital set (`no ECP offered`
+otherwise), `basis fit NAME [@ O]` adds a charge or exchange fitting set
+(names with spaces, e.g. `Ahlrichs Coulomb Fitting`; it needs an orbital set on
+the element first); the stored assignment reads `O: def2-tzvp + ECP
+<name> + charge fit <name>` per element in `assigned=`),
 `launch` (the Launch... button) shows the Launcher's panel (`area=launch machine=<name> launch=enabled|disabled label=Launch|Launch_anyway`; pre-launch warnings appear in the panel and the button becomes Launch anyway: warn, never block), `launch info` reads it, `launch go` clicks Launch (`Launch is off`, `no Launcher panel` otherwise; `launch info` adds `clipped=N`, controls reaching past the area's right edge), `width N` sets the window's width,
 `info` adds `window= virtual= dry=0|1
 theorysum= runtypesum=` (the editor's summary lines); `no set-up area` under Small, `not a set-up tab` when the active tab is
