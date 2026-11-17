@@ -31,6 +31,7 @@
 #include "util/EditEvent.H"
 
 #include "tdat/Fragment.H"
+#include "tdat/TAtm.H"
 #include "tdat/GeomConstraintModel.H"
 #include "tdat/GeomConstraintRules.H"
 #include "tdat/GeomConstraintPick.H"
@@ -1550,84 +1551,171 @@ string joinNames(const vector<string>& v)
 bool CalcEd::assignBasis(const string& name, TGaussianBasisSet::GBSType type,
                          const vector<string>& elements, string& message)
 {
+  vector<BasisStep> one(1);
+  one[0].name = name;
+  one[0].type = type;
+  one[0].targets = elements;
+  return assignBasisSteps(one, message);
+}
+
+
+vector<string> CalcEd::atomNames() const
+{
+  vector<string> out;
+  if (!p_frag) return out;
+  for (size_t i = 0; i < p_frag->numAtoms(); i++) {
+    TAtm *atom = p_frag->atomRef(i);
+    if (atom && atom->atomicSymbol() != "X") out.push_back(atom->atomName());
+  }
+  return out;
+}
+
+
+namespace {
+
+// An ECP set lists only the elements that have a core in it (Def2-ECP starts
+// at Rb), so the library's own element list is too wide for it.
+bool ecpHasCore(EDSIGaussianBasisSetLibrary& library, const string& name,
+                const string& element)
+{
+  return library.isSupported(name, TGaussianBasisSet::ecp, element) &&
+         !library.lookup(name.c_str(), TGaussianBasisSet::ecp,
+                         element.c_str()).empty();
+}
+
+}  // namespace
+
+
+bool CalcEd::assignBasisSteps(const vector<BasisStep>& steps, string& message)
+{
   message.clear();
-  if (!p_frag || !p_code || !p_iCalc) {
+  if (!p_frag || !p_code || !p_iCalc || steps.empty()) {
     message = "You must have a chemical system defined before you can set up "
               "a basis set.";
     return false;
   }
   vector<string> system = systemElements();
-  vector<string> els = elements.empty() ? system : elements;
-  for (const string& el : els) {
-    if (std::find(system.begin(), system.end(), el) == system.end()) {
-      message = el + " is not in this chemical system";
-      return false;
+  vector<string> atoms = atomNames();
+  // each target as (tag, element)
+  vector<vector<pair<string, string> > > targets(steps.size());
+  bool perAtom = false;
+  for (size_t s = 0; s < steps.size(); s++) {
+    vector<string> want = steps[s].targets.empty() ? system : steps[s].targets;
+    for (const string& t : want) {
+      if (std::find(system.begin(), system.end(), t) != system.end()) {
+        targets[s].push_back(make_pair(t, t));
+      } else if (std::find(atoms.begin(), atoms.end(), t) != atoms.end()) {
+        TGBSConfigTags sym(t.c_str());
+        targets[s].push_back(make_pair(t, sym.size() ? sym[0] : t));
+        perAtom = true;
+      } else {
+        message = t + " is not in this chemical system";
+        return false;
+      }
     }
   }
   EDSIServerCentral central;
   EDSIGaussianBasisSetLibrary library(central.getDefaultBasisSetLibrary());
-  bool orbital = type <= TGaussianBasisSet::DFTOrbital;
+  const BasisStep& first = steps[0];
+  bool orbital = first.type <= TGaussianBasisSet::DFTOrbital;
   string tag = p_frag->uniqueTagStr();
   TGBSConfig *config;
 
-  if (orbital && els.size() == system.size()) {
+  if (steps.size() == 1 && orbital && !perAtom &&
+      targets[0].size() == system.size()) {
     config = new TGBSConfig;
     config->insertGBSGroup(tag, new TGBSGroup());
-    GBSAssign::Result res = GBSAssign::assign(library, config, tag, name, type,
-                                              false);
+    GBSAssign::Result res = GBSAssign::assign(library, config, tag, first.name,
+                                              first.type, false);
     if (res.severity == GBSAssign::ERROR || !res.group) {
       delete config;
       message = res.message;
       return false;
     }
+    if (first.targets.empty()) {
+      p_allSetName = first.name;
+      p_allSetType = first.type;
+    }
   } else {
     bool hadSets = p_basis && !p_basis->isEmpty();
     config = p_basis ? new TGBSConfig(*p_basis) : new TGBSConfig;
-    if (config->type() != TGBSConfig::element ||
-        config->size() < system.size()) {
+    if ((config->type() != TGBSConfig::element &&
+         config->type() != TGBSConfig::atom) || config->size() < system.size())
       splitToElements(config, library, system, hadSets);
-    }
+    if (perAtom) config->type(TGBSConfig::atom);
     vector<string> skipped;
+    vector<const BasisStep*> orbitalSteps;
+    bool anyEcp = false;
     int done = 0;
-    for (const string& el : els) {
-      if (!library.isSupported(name, type, el)) {
-        if (orbital) {
+    for (size_t s = 0; s < steps.size(); s++) {
+      const BasisStep& st = steps[s];
+      bool orb = st.type <= TGaussianBasisSet::DFTOrbital;
+      anyEcp = anyEcp || st.type == TGaussianBasisSet::ecp;
+      if (orb) orbitalSteps.push_back(&st);
+      for (const auto& te : targets[s]) {
+        const string& t = te.first;
+        const string& el = te.second;
+        bool covered = library.isSupported(st.name, st.type, el) &&
+            (st.type != TGaussianBasisSet::ecp ||
+             ecpHasCore(library, st.name, el));
+        if (!covered) {
+          if (orb) {
+            delete config;
+            message = "Basis set " + st.name + " does not cover " + t;
+            return false;
+          }
+          skipped.push_back(t);
+          continue;
+        }
+        if (t != el && config->find(t) == config->end()) {
+          TGBSGroup *base = config->findGroup(el);
+          config->insertGBSGroup(t, base ? new TGBSGroup(*base)
+                                         : new TGBSGroup());
+        }
+        GBSAssign::Result res = GBSAssign::assign(library, config, t, st.name,
+                                                  st.type, false);
+        if (res.severity == GBSAssign::ERROR || !res.group) {
           delete config;
-          message = "Basis set " + name + " does not cover " + el;
+          message = res.message;
           return false;
         }
-        skipped.push_back(el);
-        continue;
+        done++;
       }
-      GBSAssign::Result res = GBSAssign::assign(library, config, el, name,
-                                                type, false);
-      if (res.severity == GBSAssign::ERROR || !res.group) {
-        delete config;
-        message = res.message;
-        return false;
-      }
-      done++;
     }
     if (!done) {
       delete config;
-      message = name + " does not cover " + joinNames(skipped);
+      message = first.name + " does not cover " + joinNames(skipped);
       return false;
     }
-    // The editor cannot hold a basis with an element left out (it is
-    // cleared as inconsistent), so elements without an orbital set take
-    // this one for now, if it covers them; the user then changes them.
+    // The editor clears a basis with an element left out as inconsistent,
+    // so an element without its own set takes the "all atoms" set, else the
+    // set just assigned, if that covers it.
+    vector<pair<string, TGaussianBasisSet::GBSType> > candidates;
+    if (!p_allSetName.empty())
+      candidates.push_back(make_pair(p_allSetName, p_allSetType));
+    for (size_t i = orbitalSteps.size(); i-- > 0;)
+      candidates.push_back(make_pair(orbitalSteps[i]->name,
+                                     orbitalSteps[i]->type));
     vector<string> took, missing;
+    string tookName;
     for (const string& el : system) {
       TGBSGroup *g = config->findGroup(el);
       vector<const TGaussianBasisSet*> *sets = g ? g->getOrbitalGBSList() : 0;
       bool has = sets && !sets->empty();
       delete sets;
       if (has) continue;
-      if (orbital && library.isSupported(name, type, el) &&
-          GBSAssign::assign(library, config, el, name, type, false).group)
-        took.push_back(el);
-      else
-        missing.push_back(el);
+      bool filled = false;
+      for (const auto& c : candidates) {
+        if (library.isSupported(c.first, c.second, el) &&
+            GBSAssign::assign(library, config, el, c.first, c.second,
+                              false).group) {
+          took.push_back(el);
+          tookName = c.first;
+          filled = true;
+          break;
+        }
+      }
+      if (!filled) missing.push_back(el);
     }
     if (!missing.empty()) {
       delete config;
@@ -1636,11 +1724,12 @@ bool CalcEd::assignBasis(const string& name, TGaussianBasisSet::GBSType type,
       return false;
     }
     if (!took.empty())
-      message = joinNames(took) + " took " + name + " for now.";
+      message = joinNames(took) + " took " + tookName + " for now.";
     if (!skipped.empty())
-      message += (message.empty() ? "" : "\n") + ("Not covered by " + name +
-                                                   ": " + joinNames(skipped));
-    if (type == TGaussianBasisSet::ecp) {
+      message += (message.empty() ? "" : "\n") + ("Not covered by " +
+                                                   first.name + ": " +
+                                                   joinNames(skipped));
+    if (anyEcp) {
       ErrMsg errs;
       errs.flush();
       GBSRules::checkECPCoverage(config);
@@ -1651,7 +1740,12 @@ bool CalcEd::assignBasis(const string& name, TGaussianBasisSet::GBSType type,
       }
     }
   }
+  return commitBasis(config);
+}
 
+
+bool CalcEd::commitBasis(TGBSConfig *config)
+{
   delete p_basis;
   p_basis = config;
   TTheory theory = getTheory();
@@ -1666,6 +1760,61 @@ bool CalcEd::assignBasis(const string& name, TGaussianBasisSet::GBSType type,
 }
 
 
+bool CalcEd::appendFunctions(bool tight, const string& element, int shell,
+                             int count, string& message)
+{
+  message.clear();
+  vector<string> system = systemElements();
+  if (!p_basis || p_basis->isEmpty() ||
+      std::find(system.begin(), system.end(), element) == system.end()) {
+    message = "Choose an orbital basis set for " + element + " first.";
+    return false;
+  }
+  TGBSConfig *config = new TGBSConfig(*p_basis);
+  TGBSGroup *group = config->findGroup(element);
+  bool ok = group && shell >= 0 && count >= 0 &&
+      (tight ? group->addTight(element, shell, count)
+             : group->addDiffuse(element, shell, count));
+  if (!ok) {
+    delete config;
+    message = string("Cannot add ") + (tight ? "tight" : "diffuse") +
+              " functions to shell " + StringConverter::toString(shell) +
+              " of " + element + ".";
+    return false;
+  }
+  return commitBasis(config);
+}
+
+
+bool CalcEd::fittingUsed(string& reason)
+{
+  reason.clear();
+  if (!p_code) {
+    reason = "No code is chosen.";
+    return false;
+  }
+  bool fit = false;
+  p_code->get_bool("DFTFitting", fit);
+  TTheory theory = getTheory();
+  if (fit) {
+    if (theory.category() == "DFT") return true;
+    reason = "Fitting sets are used by DFT only.";
+    return false;
+  }
+  if (p_code->name() == "ORCA") {
+    GUIValue *v = p_GUIValues ? p_GUIValues->get("ES.Theory.SCF.RIMode") : 0;
+    string mode = v ? v->getValueAsString() : "";
+    if (!mode.empty() && mode != "None") return true;
+    reason = "ORCA uses a fitting set only with an RI approximation "
+             "(Theory details, RI approximation).";
+    return false;
+  }
+  reason = CodeFactory::displayName(p_code->name()) +
+           " does not use charge or exchange fitting sets.";
+  return false;
+}
+
+
 string CalcEd::matchingEcp(const string& basis, const vector<string>& elements,
                            vector<string>& covered)
 {
@@ -1676,8 +1825,7 @@ string CalcEd::matchingEcp(const string& basis, const vector<string>& elements,
   if (ecp.empty()) return "";
   vector<string> want = elements.empty() ? systemElements() : elements;
   for (const string& el : want)
-    if (library.isSupported(ecp, TGaussianBasisSet::ecp, el))
-      covered.push_back(el);
+    if (ecpHasCore(library, ecp, el)) covered.push_back(el);
   return covered.empty() ? "" : ecp;
 }
 

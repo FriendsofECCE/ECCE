@@ -398,6 +398,25 @@ class CalcEd: public CalcEdGUI,
     // them.  Empty elements = the whole system.  Saves when complete.
     bool assignBasis(const string& name, TGaussianBasisSet::GBSType type,
                      const vector<string>& elements, string& message);
+    // Several assignments applied to one configuration and checked for
+    // completeness once, so "O def2-TZVP, H def2-SVP" is a single step.
+    // A target is an element symbol or an atom name (H2); an atom name
+    // makes the configuration per-atom, the element's group stays as the
+    // default for the other atoms of that element.
+    struct BasisStep {
+      string name;
+      TGaussianBasisSet::GBSType type;
+      vector<string> targets;
+    };
+    bool assignBasisSteps(const vector<BasisStep>& steps, string& message);
+    // The names of the atoms (H1, O1, ...) a per-atom assignment can use.
+    vector<string> atomNames() const;
+    // Tight or diffuse functions appended to one shell of an element's
+    // orbital set (the Basis Set Tool's Tight/Diffuse columns).
+    bool appendFunctions(bool tight, const string& element, int shell,
+                         int count, string& message);
+    // Whether the code and theory use fitting sets; if not, why not.
+    bool fittingUsed(string& reason);
     // The ECP that goes with an orbital set (#122) and which of the elements
     // it covers; "" when there is none or it covers none of them.
     string matchingEcp(const string& basis, const vector<string>& elements,
@@ -433,6 +452,11 @@ class CalcEd: public CalcEdGUI,
 
     ICalculation *p_iCalc;
     Fragment     *p_frag;
+    // The set last chosen for all atoms: elements without a set of their own
+    // fall back to it.
+    string                 p_allSetName;
+    TGaussianBasisSet::GBSType p_allSetType = TGaussianBasisSet::UnknownGBSType;
+    bool commitBasis(TGBSConfig *config);
     Fragment     *p_fullFrag;
 
     TGBSConfig *p_basis;
