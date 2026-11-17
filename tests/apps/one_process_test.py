@@ -283,6 +283,7 @@ def runQuitHost(display):
 
         def inspect(_display):
             append("start Builder " + url, 25)
+            append("quitlabel", 2)         # the Builder tab's menu bar
             append("hostclose", 3)
             append("answer cancel", 3)     # Quit ECCE: Cancel, still running
             append("inprocess", 2)
@@ -315,6 +316,9 @@ def runQuitHost(display):
                                "ECCE_LOCAL_DATA": data},
                           inspect=inspect)
         log = result.log or ""
+        check(pb.answers(log, "quitlabel") == ["Quit ECCE"],
+              "a tool tab's File > Quit reads Quit ECCE",
+              str(pb.answers(log, "quitlabel")))
         check(pb.answers(log, "answer cancel") == ["answered Quit ECCE"] and
               len(pb.answers(log, "inprocess")) == 1 and
               "Builder=1" in pb.answers(log, "inprocess")[0],

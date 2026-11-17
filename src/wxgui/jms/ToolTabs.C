@@ -368,6 +368,15 @@ void putBar(wxMenuBar *mb)
 void placeMenus(Tab *t)
 {
   if (!t || !s_hostFrame) return;
+  // Quit is the application's here (menuTarget); the tool's own quit is
+  // the tab's close, so the item must not read as the tool's.
+  if (!t->pinned && t->menubar)
+    if (wxMenuItem *q = t->menubar->FindItem(wxID_EXIT)) {
+      wxString label = q->GetItemLabel();
+      const wxString accel = label.Contains("\t") ? "\t" + label.AfterFirst('\t') : "";
+      if (label.BeforeFirst('\t') != _("&Quit ECCE"))
+        q->SetItemLabel(_("&Quit ECCE") + accel);
+    }
   if (ToolTabs::menuPlacement() == ToolTabs::SwapMenuBar) {
     Tab *org = mainTab();
     wxMenuBar *mb = t->menubar ? t->menubar : (org ? org->menubar : 0);
@@ -1245,6 +1254,11 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
         s_hostFrame->GetClassInfo()->GetClassName(),
         m->tool->IsShown() ? "shown" : "hidden", (int)mapped,
         (int)s_book->GetPageCount(), s_hostFrame->GetTitle(), topName);
+  } else if (cmd == "quitlabel") {
+    // The Quit item of the menu bar on the host now.
+    wxMenuBar *mb = s_hostFrame ? s_hostFrame->wxFrame::GetMenuBar() : 0;
+    wxMenuItem *q = mb ? mb->FindItem(wxID_EXIT) : 0;
+    outcome = q ? q->GetItemLabelText().BeforeFirst('\t') : wxString("none");
   } else if (cmd == "windowmenu") {
     // The active bar's Window menu as "<n>:<tab>[*]"; with a number, as if
     // that entry were chosen (the tab changes).
