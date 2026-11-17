@@ -4,7 +4,12 @@
  * The one-process main window; see MainFrame.H and
  * docs/claude/services/tools-as-tabs.md.
  */
+#include <cstdio>
+#include <cstdlib>
+#include "wx/app.h"
+#include "wx/evtloop.h"
 #include "wx/frame.h"
+#include "wx/timer.h"
 
 #include "util/Preferences.H"
 #include "wxgui/MainFrame.H"
@@ -27,9 +32,42 @@ MainFrame::MainFrame()
 }
 
 
+namespace {
+// Test hook (#1065): what keeps the process running after the host goes.
+void reportLoop(const char *when)
+{
+  wxEventLoopBase *active = wxEventLoopBase::GetActive();
+  wxEventLoopBase *main = wxTheApp ? wxTheApp->GetMainLoop() : 0;
+  fprintf(stderr, "ECCE_TEST_ORGANIZER: %s: active loop %s, main running %d, "
+          "exit on frame delete %d, pending %d, windows:", when,
+          !active ? "none" : active == main ? "main" : "NESTED",
+          main ? (int)main->IsRunning() : -1,
+          wxTheApp ? (int)wxTheApp->GetExitOnFrameDelete() : -1,
+          (int)wxPendingDelete.GetCount());
+  for (wxWindow *w : wxTopLevelWindows)
+    fprintf(stderr, " %s/'%s'%s%s%s",
+            (const char *)wxString(w->GetClassInfo()->GetClassName()).utf8_str(),
+            (const char *)w->GetLabel().utf8_str(),
+            w->GetParent() ? "(child)" : "",
+            static_cast<wxTopLevelWindow *>(w)->ShouldPreventAppExit()
+                ? "(prevents exit)" : "",
+            w->IsShown() ? "(shown)" : "");
+  fprintf(stderr, "\n");
+}
+}
+
+
 MainFrame::~MainFrame()
 {
   if (s_instance == this) s_instance = 0;
+  if (getenv("ECCE_TEST_ORGANIZER")) {
+    reportLoop("host destroyed");
+    wxTimer *t = new wxTimer(wxTheApp);
+    wxTheApp->Bind(wxEVT_TIMER, [](wxTimerEvent&) {
+      reportLoop("3 s after the host");
+    }, t->GetId());
+    t->StartOnce(3000);
+  }
 }
 
 
