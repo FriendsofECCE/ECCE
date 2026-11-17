@@ -64,16 +64,17 @@
 #include "GridSelectionBlock.H"
 #include "wxgui/WxJMSMessageDispatch.H"
 #include "wxgui/ToolTabs.H"
+
+#include "WxBasisTool.H"
+#include "WxBasisSetCoefficients.H"
+#include "WxBasisSetDetail.H"
+#include "WxContractionEditor.H"
 static void traceCtx(int line)
 {
   if (getenv("ECCE_TEST_BASISTOOL_TRACE"))
     fprintf(stderr, "BASISTOOL-TRACE line %d\n", line);
 }
 #define showContextChanged(c) (traceCtx(__LINE__), showContextChanged(c))
-#include "WxBasisTool.H"
-#include "WxBasisSetCoefficients.H"
-#include "WxBasisSetDetail.H"
-#include "WxContractionEditor.H"
 
 
 
