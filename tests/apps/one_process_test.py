@@ -823,10 +823,12 @@ def runSetupTab(display):
               "ORCA Set-up tab: no two controls of the editor's column overlap "
               "(default width and 1024 px)",
               "\n".join(a for a in areas if "overlaps=0" not in a))
-        m = re.search(r"window=(\d+)x", areas[-1]) if areas else None
+        # The last area of the width test, before the #1063 editors.
+        own = areas[:len(areas) - len(more)] or areas
+        m = re.search(r"window=(\d+)x", own[-1]) if own else None
         check(m and int(m.group(1)) <= 1024,
               "the Organizer window narrows to 1024 px",
-              areas[-1] if areas else "")
+              own[-1] if own else "")
         tabs = pb.answers(log, "tabs")
         check(tabs and re.search(r"1:.*Editor.*\*", tabs[0]) is not None,
               "Normal: the editor opens as a tab", str(tabs) + log[-1500:])
