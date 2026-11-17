@@ -416,10 +416,26 @@ def runSingleInstance(display):
         check("FAIL" not in "\n".join(l for l in log.splitlines()
                                       if "ECCE_BUILDER_SCRIPT" in l),
               "the Builder holds the 3 atoms of the file (name with a space, "
-              "'#' and '%')")
+              "'#' and '%')",
+              "\n".join(l for l in log.splitlines()
+                        if "ECCE_BUILDER_SCRIPT" in l or "atoms" in l)[-800:])
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)
+
+
+def organizerOutput(display, env, seconds=30):
+    """Start the Organizer by itself, let it run, return what it printed."""
+    environment = display.env()
+    environment.update(env)
+    proc = subprocess.Popen([os.path.join(apps.WRAPPERS, "ecce-organizer")],
+                            env=environment, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True,
+                            start_new_session=True)
+    time.sleep(seconds)
+    alive = proc.poll() is None
+    apps._terminate(proc)
+    return alive, apps._drain(proc)
 
 
 def runUntrustedDir(display):
@@ -444,9 +460,7 @@ def runUntrustedDir(display):
         os.symlink(victim, link)
         env = {"ECCE_ONE_PROCESS": "1", "ECCE_LOCAL_DATA": data,
                "XDG_RUNTIME_DIR": run}
-        result = apps.run(display, "organizer", windowTimeout=60, settle=10,
-                          env=env)
-        log = result.log or ""
+        alive, log = organizerOutput(display, env)
         check("not a private folder" in log,
               "an untrusted run folder is reported and single-instance is off",
               log[-1500:])
@@ -455,13 +469,13 @@ def runUntrustedDir(display):
         check(sorted(os.listdir(folder)) == ["x.tok"],
               "nothing is created in the untrusted folder",
               str(os.listdir(folder)))
-        check(not result.crashed, "the Organizer started anyway")
+        check(alive, "the Organizer started anyway", log[-800:])
         # A private one is used, with a token only the user can read.
         run2 = os.path.join(work, "run2")
         os.makedirs(run2)
         os.chmod(run2, 0o700)
         env["XDG_RUNTIME_DIR"] = run2
-        apps.run(display, "organizer", windowTimeout=60, settle=10, env=env)
+        organizerOutput(display, env)
         toks = [f for f in os.listdir(os.path.join(run2, "ecce-one"))
                 if f.endswith(".tok")] if os.path.isdir(
                     os.path.join(run2, "ecce-one")) else []
