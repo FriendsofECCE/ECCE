@@ -45,6 +45,11 @@
 #include "util/RateRun.H"
 #include "dsm/EDSIFactory.H"
 #include "dsm/Resource.H"
+#include "dsm/ICalculation.H"
+#include "dsm/DeckWriter.H"
+#include "tdat/Counterpoise.H"
+#include "util/JMSPublisher.H"
+#include "util/JMSMessage.H"
 
 #include "PlaybackExtras.H"
 #include "wxgui/ewxConfig.H"
@@ -68,6 +73,7 @@ const wxWindowID ID_ZERO = wxNewId();
 const wxWindowID ID_JOIN = wxNewId();
 const wxWindowID ID_SMALL = wxNewId();
 const wxWindowID ID_CLEAR = wxNewId();
+const wxWindowID ID_CP = wxNewId();
 const double KCAL_KJ = 4.184;
 static const char *INIFILE = "wxbuilder.ini";
 
@@ -122,6 +128,7 @@ ScanPanel::ScanPanel(IPropCalculation *calculation,
 
 ScanPanel::~ScanPanel()
 {
+  p_cpTimer.Stop();
   delete p_extras;
 }
 
@@ -149,6 +156,7 @@ bool ScanPanel::Create(IPropCalculation *calculation,
   bar->Add(p_view, 0, wxRIGHT, 12);
   bar->Add(new wxButton(this, ID_NEWCALC, "New calculation from this point"), 0,
            wxRIGHT, 6);
+  bar->Add(new wxButton(this, ID_CP, "Counterpoise single points"), 0, wxRIGHT, 6);
   bar->Add(new wxButton(this, ID_EXPORT, "Export..."), 0, wxRIGHT, 12);
   bar->Add(new wxButton(this, ID_COMPARE, "Compare..."), 0, wxRIGHT, 12);
   bar->Add(new wxButton(this, ID_CLEAR, "Clear comparisons"), 0, wxRIGHT, 6);
@@ -239,11 +247,25 @@ bool ScanPanel::Create(IPropCalculation *calculation,
     setCompared({}, why);
   }, ID_CLEAR);
 
+  Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    std::string why;
+    const std::string url = counterpoiseSinglePoints(true, why);
+    const std::string message = url.empty() ? why : "Created " + url + "\n" +
+        (why.empty() ? "Launch requested with the scan machine settings. Check progress in the Organizer." : why);
+    wxMessageBox(wxString::FromUTF8(message.c_str()),
+        "Counterpoise single points", wxOK | (url.empty() ? wxICON_WARNING : wxICON_INFORMATION), this);
+  }, ID_CP);
+  p_cpTimer.SetOwner(this);
+  Bind(wxEVT_TIMER, [this](wxTimerEvent&) { if (IsShownOnScreen()) refresh(); }, p_cpTimer.GetId());
+
   bool table = false;
   ewxConfig::getConfig(INIFILE)->Read("ScanPanel/Table", &table, false);
   showView(table);
 
   fill();
+  auto *resource = dynamic_cast<Resource*>(calculation);
+  if (p_cp.empty() && resource && !resource->getProp("ecce:scanCounterpoise").empty())
+    p_cpTimer.Start(3000);
   return true;
 }
 
@@ -280,19 +302,33 @@ void ScanPanel::fill()
   p_windowUnit->Show(bond);
   if (!bond) p_morse->SetValue(false);
 
+  readCounterpoise();
   rebuildCurves();
   drawCurves();
-  const double zero = p_curves.empty() ? lo : referenceEnergy(p_curves[0]);
+  const double zero = p_cp.empty()
+      ? (p_curves.empty() ? lo : referenceEnergy(p_curves[0]))
+      : referenceEnergy(readScan(getCalculation()));
 
   if (p_grid->GetNumberRows()) p_grid->DeleteRows(0, p_grid->GetNumberRows());
   p_grid->AppendRows((int)n);
+  const int columns = p_cp.empty() ? 3 : 5;
+  if (p_grid->GetNumberCols() < columns) p_grid->AppendCols(columns - p_grid->GetNumberCols());
+  if (p_grid->GetNumberCols() > columns) p_grid->DeleteCols(columns, p_grid->GetNumberCols() - columns);
   p_grid->SetColLabelValue(2, unit);
+  if (!p_cp.empty()) {
+    p_grid->SetColLabelValue(3, wxString::FromUTF8("ΔE (raw) (") + unit + ")");
+    p_grid->SetColLabelValue(4, wxString::FromUTF8("ΔE (CP) (") + unit + ")");
+  }
   for (size_t i = 0; i < n; i++) {
     p_grid->SetRowLabelValue((int)i, wxString::Format("%d", (int)i + 1));
     p_grid->SetCellValue((int)i, 0, wxString::Format("%.4f", p_coord[i]));
     p_grid->SetCellValue((int)i, 1, wxString::Format("%.6f", p_hartree[i]));
     p_grid->SetCellValue((int)i, 2,
         wxString::Format("%.3f", (p_hartree[i] - zero) * factor(kcal)));
+    if (!p_cp.empty()) {
+      p_grid->SetCellValue(i, 3, wxString::Format("%.3f", p_cpRaw[i] * factor(kcal)));
+      p_grid->SetCellValue(i, 4, wxString::Format("%.3f", p_cp[i] * factor(kcal)));
+    }
   }
   p_grid->AutoSizeColumns();
 }
@@ -748,13 +784,22 @@ bool ScanPanel::exportCsv(const wxString& path, bool kcal)
     out.precision(12);
     out << "# ECCE relaxed scan\n# calculation: " << c.name
         << "\n# sources: " << c.url << "\n# coordinate unit: " << p_coordUnit << "\n# zero: "
-        << p_zero->GetStringSelection().ToStdString() << "\n"
-        << "point,coordinate_" << p_coordUnit << ",energy_hartree,relative_energy_"
-        << (kcal ? "kcal/mol" : "kJ/mol") << "\n";
+        << (c.interaction ? "separated fragments at each geometry" : p_zero->GetStringSelection().ToStdString()) << "\n"
+        << "point,coordinate_" << p_coordUnit << ",energy_hartree,"
+        << (c.interaction ? "interaction_energy_" : "relative_energy_")
+        << (kcal ? "kcal/mol" : "kJ/mol");
+    if (c.interaction) out << ",scan_energy_hartree,cp_energy_hartree";
+    out << "\n";
     const double zero = referenceEnergy(c);
-    for (size_t i = 0; i < c.coord.size(); ++i)
+    for (size_t i = 0; i < c.coord.size(); ++i) {
       out << i + 1 << ',' << c.coord[i] << ',' << c.hartree[i] << ','
-          << (c.hartree[i] - zero) * factor(kcal) << "\n";
+          << (c.hartree[i] - zero) * factor(kcal);
+      if (c.interaction) {
+        const int point = c.ownPoint[i];
+        out << ',' << p_hartree[point] << ',' << p_cp[point];
+      }
+      out << "\n";
+    }
     text += out.str() + "\n";
   }
   FILE *out = fopen(path.utf8_str(), "wb");
@@ -816,7 +861,7 @@ ScanPanel::Compared ScanPanel::readScan(IPropCalculation *calc) const
 
 double ScanPanel::referenceEnergy(const Compared& c) const
 {
-  if (c.hartree.empty()) return 0;
+  if (c.hartree.empty() || c.interaction) return 0;
   if (p_zero->GetSelection() == 1)
     return c.hartree[std::max_element(c.coord.begin(), c.coord.end()) - c.coord.begin()];
   if (p_zero->GetSelection() == 2) return c.firstEnergy;
@@ -827,13 +872,18 @@ void ScanPanel::rebuildCurves()
 {
   p_curves.clear();
   Compared own = readScan(getCalculation());
+  if (!p_cp.empty()) {
+    own.hartree = p_cpRaw;
+    own.interaction = true;
+    own.name += " ΔE (raw)";
+  }
   if (!own.coord.empty()) p_curves.push_back(own);
   int merged = 0;
   for (const Compared& c : p_compared) {
     auto match = p_curves.end();
     if (p_join->GetValue() && !c.start.empty())
       match = std::find_if(p_curves.begin(), p_curves.end(), [&](const Compared& a) {
-        if (a.elements != c.elements || a.start.size() != c.start.size() ||
+        if (a.interaction != c.interaction || a.elements != c.elements || a.start.size() != c.start.size() ||
             std::fabs(a.coord.front() - c.coord.front()) > 1e-5 ||
             std::fabs(a.firstEnergy - c.firstEnergy) > 1e-6) return false;
         for (size_t i = 0; i < a.start.size(); ++i)
@@ -869,6 +919,13 @@ void ScanPanel::rebuildCurves()
     setStatus(wxString::Format("Join: %d scan(s) merged; %d curve(s). Unmatched starts stay separate.",
                                merged, (int)p_curves.size()));
   } else setStatus("");
+  if (!p_cp.empty()) {
+    Compared corrected = readScan(getCalculation());
+    corrected.name += " ΔE (CP)";
+    corrected.hartree = p_cp;
+    corrected.interaction = true;
+    p_curves.push_back(corrected);
+  }
 }
 
 void ScanPanel::drawCurves()
@@ -913,9 +970,9 @@ void ScanPanel::drawCurves()
     plot->setShowXAxis(i + 1 == count);
     plot->setXAxisLabel(p_coordUnit == "degree" ? "Scanned coordinate (degrees)"
         : wxString::FromUTF8("Scanned coordinate (Å)"));
-    plot->setYAxisLabel("Relative energy (" + unit + ")");
+    plot->setYAxisLabel((p_cp.empty() ? "Relative energy (" : "Energy difference (") + unit + ")");
     plot->setReadout("Point", "Coordinate", p_coordUnit == "degree" ? "degree" : "angstrom",
-                     "Relative energy", unit);
+                     p_cp.empty() ? "Relative energy" : "Energy difference", unit);
     plot->setShowKey(true);
   }
   for (size_t i = 0; i < p_curves.size(); ++i) {
@@ -929,7 +986,7 @@ void ScanPanel::drawCurves()
     p_plots[small ? i : 0]->addCurve(c.coord, y,
         wxString::FromUTF8((duplicate ? c.url : c.name).c_str()), (int)i);
   }
-  if (p_morse->GetValue() && !p_fitR.empty() && !p_curves.empty()) {
+  if (p_cp.empty() && p_morse->GetValue() && !p_fitR.empty() && !p_curves.empty()) {
     std::vector<double> y(p_fitE.size());
     const double zero = referenceEnergy(p_curves[0]);
     for (size_t i = 0; i < y.size(); ++i) y[i] = (p_fitE[i] - zero) * factor(kcal);
@@ -963,3 +1020,131 @@ bool ScanPanel::setZero(const std::string& mode)
 void ScanPanel::setJoin(bool on) { p_join->SetValue(on); fill(); }
 void ScanPanel::setSmallMultiples(bool on) { p_small->SetValue(on); fill(); }
 void ScanPanel::OnComparisonOptions(wxCommandEvent&) { fill(); }
+
+
+std::string ScanPanel::scanSnapshot() const
+{
+  auto *calc = getCalculation();
+  auto *geom = calc ? dynamic_cast<PropTSVecTable*>(ResultsFromCalc::property(calc, "SCANGEOM")) : nullptr;
+  if (!geom || p_coord.empty() || geom->tables() != p_coord.size() || geom->columns() != 3) return "";
+  std::ostringstream out;
+  out.imbue(std::locale::classic());
+  out.precision(17);
+  for (size_t point = 0; point < p_coord.size(); ++point) {
+    if (point) out << ';';
+    for (double v : geom->values(point)) {
+      if (!std::isfinite(v)) return "";
+      out << v << ' ';
+    }
+  }
+  return out.str();
+}
+
+std::string ScanPanel::counterpoiseSinglePoints(bool launch, std::string& why)
+{
+  auto *source = dynamic_cast<ICalculation*>(getCalculation());
+  if (!source || !source->application() ||
+      (source->application()->getCodeName() != "ECCE-QM" && source->application()->getCodeName() != "ORCA")) {
+    why = "Counterpoise scan single points require ECCE-QM or ORCA."; return "";
+  }
+  std::unique_ptr<Fragment> frag(source->fragment());
+  if (!frag || frag->fragmentStates().size() < 2) {
+    why = "Counterpoise needs at least two fragments in the stored scan. Define fragments in the Builder and save first."; return "";
+  }
+  if (!Counterpoise::validate(*frag, why)) return "";
+  const std::string snapshot = scanSnapshot();
+  if (snapshot.empty()) { why = "The scan needs a stored geometry for every point."; return ""; }
+  if (source->getState() != ResourceDescriptor::STATE_COMPLETED) {
+    why = "Wait until the relaxed scan is completed."; return "";
+  }
+  const std::string previous = source->getProp("ecce:scanCounterpoise");
+  if (!previous.empty()) {
+    why = "This scan already has a counterpoise calculation: " + previous; return "";
+  }
+  EcceURL target = source->getURL().getParent().getChild(source->getURL().getFilePathTail() + "_cp");
+  if (!source->copy(target)) { why = source->messages(); return ""; }
+  auto *copy = dynamic_cast<ICalculation*>(EDSIFactory::getResource(target));
+  bool ok = copy && copy->resetForRerun(ResourceDescriptor::STATE_CREATED);
+  if (ok) {
+    copy->jobdata(Jobdata());
+    copy->setGeomConstraintModel(nullptr);
+    // Old stored constraints may not have a configuration entry.
+    if (auto *file = EDSIFactory::getResource(target.getChild("Parameters").getChild("GeomConstraintModel.gcst")))
+      file->remove();
+    std::unique_ptr<GUIValues> gui(copy->guiparams());
+    gui->deletePrefix("ES.Runtype.");
+    for (const auto& item : std::vector<std::pair<std::string, std::string>>{
+        {"ES.Runtype.Counterpoise", "1"}, {"ES.Runtype.CounterpoiseOwn", "1"},
+        {"ES.Runtype.CPScanGeometry", snapshot}}) {
+      auto *value = new GUIValue;
+      value->m_key = item.first; value->m_type = "text_input";
+      value->m_sensitive = value->m_write = true;
+      value->setValue(item.second); gui->set(item.first, value);
+    }
+    ok = copy->runtype(TRunType("Energy", false)) && copy->guiparams(gui.get());
+    if (ok) {
+      const auto result = DeckWriter::generate(copy);
+      ok = result.ok;
+      if (!ok) why = result.message;
+    }
+    if (ok) ok = copy->setState(ResourceDescriptor::STATE_READY) &&
+        copy->addProp("ecce:scanSource", source->getURL().toString()) &&
+        source->addProp("ecce:scanCounterpoise", target.toString());
+  }
+  if (!ok) {
+    if (why.empty()) why = "Could not prepare the counterpoise calculation.";
+    if (copy) copy->remove();
+    return "";
+  }
+  EDSIFactory::notifyCreate(target.toString(), true);
+  if (launch) {
+    JMSPublisher publisher("Builder");
+    std::unique_ptr<JMSMessage> msg(publisher.newMessage());
+    msg->addProperty("reply_id", "scan-cp-" + target.toString());
+    msg->addIntProperty("n", 1); msg->addProperty("url0", target.toString());
+    if (!publisher.publish("ecce_launch_request", *msg))
+      why = "Created the calculation, but the launch request could not be sent. Launch it from the Organizer.";
+  }
+  p_cpTimer.Start(3000);
+  setStatus("Counterpoise calculation: " + wxString::FromUTF8(target.toString().c_str()));
+  return target.toString();
+}
+
+void ScanPanel::readCounterpoise()
+{
+  p_cp.clear(); p_cpRaw.clear();
+  auto *source = dynamic_cast<ICalculation*>(getCalculation());
+  if (!source) return;
+  const std::string url = source->getProp("ecce:scanCounterpoise");
+  if (url.empty()) return;
+  auto *copy = dynamic_cast<ICalculation*>(EDSIFactory::getResource(EcceURL(url)));
+  if (!copy) return;
+  EDSIFactory::changePoolResource(copy->getURL());
+  if (copy->getState() != ResourceDescriptor::STATE_COMPLETED) return;
+  p_cpTimer.Stop();
+  std::unique_ptr<GUIValues> gui(copy->guiparams());
+  auto *snapshot = gui->get("ES.Runtype.CPScanGeometry");
+  if (!snapshot || snapshot->getValueAsString() != scanSnapshot()) return;
+  auto *cp = dynamic_cast<PropVector*>(copy->getProperty("SCANCP"));
+  auto *raw = dynamic_cast<PropVector*>(copy->getProperty("SCANRAW"));
+  if (!cp || !raw || cp->values().size() != p_coord.size() || raw->values().size() != p_coord.size()) return;
+  for (double v : cp->values()) if (!std::isfinite(v)) return;
+  for (double v : raw->values()) if (!std::isfinite(v)) return;
+  p_cp = cp->values(); p_cpRaw = raw->values();
+  p_cpTimer.Stop();
+}
+
+std::string ScanPanel::counterpoiseColumn()
+{
+  refresh();
+  std::ostringstream out;
+  out.imbue(std::locale::classic()); out.precision(12);
+  out << "point coordinate raw_hartree cp_hartree\n";
+  for (size_t i = 0; i < p_coord.size(); ++i) {
+    out << i + 1 << ' ' << p_coord[i] << ' ';
+    if (p_cp.empty()) out << "pending pending";
+    else out << p_cpRaw[i] << ' ' << p_cp[i];
+    out << '\n';
+  }
+  return out.str();
+}

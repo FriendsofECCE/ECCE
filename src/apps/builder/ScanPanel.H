@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <wx/timer.h>
 #include "VizPropertyPanel.H"
 
 class wxCheckBox;
@@ -89,6 +90,9 @@ class ScanPanel : public VizPropertyPanel
       /** New calculation from point <index> (default: the clicked one); URL or "". */
       std::string newCalcFromPoint(int index = -1);
 
+      std::string counterpoiseSinglePoints(bool launch, std::string& why);
+      std::string counterpoiseColumn();
+
       /** The scan as CSV; false if the file cannot be written. */
       bool exportCsv(const wxString& path, bool kcal);
 
@@ -143,6 +147,10 @@ class ScanPanel : public VizPropertyPanel
       DECLARE_EVENT_TABLE()
 
    private:
+      std::string scanSnapshot() const;
+      void readCounterpoise();
+      std::vector<double> p_cp, p_cpRaw;
+      wxTimer p_cpTimer;
       std::vector<double> p_coord;
       std::vector<double> p_hartree;
       std::string p_coordUnit;
@@ -172,6 +180,7 @@ class ScanPanel : public VizPropertyPanel
         std::vector<double> coord, hartree, start;
         std::vector<int> ownPoint;
         double firstEnergy = 0;
+        bool interaction = false;
       };
       Compared readScan(IPropCalculation *calc) const;
       double referenceEnergy(const Compared& c) const;

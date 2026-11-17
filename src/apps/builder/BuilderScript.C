@@ -2009,6 +2009,20 @@ void Builder::runBuilderScript(const std::string& file)
           if (c.second == p_calculation) url = c.first;
         propertyChanged(url, w[1], "");
         fprintf(stderr, "BUILDER: propchange %s\n", w[1].c_str());
+      } else if (w[0] == "scan" && w.size() >= 2) {
+        ScanPanel *sp = nullptr;
+        if (p_calculation)
+          for (auto *panel : PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((sp = dynamic_cast<ScanPanel*>(panel))) break;
+        if (!sp) outcome = "no Relaxed Scan panel";
+        else if (w[1] == "cpsingle" && (w.size() == 2 || (w.size() == 3 && w[2] == "launch"))) {
+          std::string why;
+          const auto url = sp->counterpoiseSinglePoints(w.size() == 3, why);
+          if (url.empty()) outcome = why;
+          fprintf(stderr, "BUILDER: scan cpsingle url=%s %s\n", url.c_str(), why.c_str());
+        } else if (w[1] == "cpcolumn") {
+          fprintf(stderr, "BUILDER: scan cpcolumn\n%s", sp->counterpoiseColumn().c_str());
+        } else outcome = "use scan cpsingle [launch] or scan cpcolumn";
       } else if (w[0] == "scanmorse" || w[0] == "scancompare" || w[0] == "scanpng" ||
                  w[0] == "scanzero" || w[0] == "scanjoin" || w[0] == "scanlayout") {
         //  scanmorse on|off [window]: the Fit Morse check and window (the

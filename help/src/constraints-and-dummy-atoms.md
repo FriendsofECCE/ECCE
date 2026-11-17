@@ -148,6 +148,36 @@ calculation URLs, coordinate, absolute energy in hartree and relative energy
 in the selected unit. Morse-fit samples are drawn in PNG only. The table
 continues to describe the active scan.
 
+### Counterpoise correction
+
+For a completed ECCE-QM or ORCA relaxed scan, define at least two fragments
+in the stored structure and save them. **Counterpoise single points** creates
+one new Energy calculation beside the scan and requests its launch with the
+scan's machine settings. Check submission and progress in the Organizer.
+The calculation runs the complex and each fragment, both in the complex basis
+and its own basis, at every stored geometry, sequentially in one job and one
+run folder. The scan's theory, basis, charge and fragment states are retained;
+there is no further optimisation.
+
+When all points complete, the scan table gains **ΔE (raw)** and **ΔE (CP)**
+in kJ/mol or kcal/mol. ΔE (CP) is E(complex) minus the sum of fragment energies
+in the complex basis (EINTCP); raw uses fragment energies in their own bases.
+Both are interaction energies at each stored geometry. The original total
+energy and relative-energy columns remain in the table. The plot shows raw
+and CP interaction energies, and CSV and PNG exports include both curves.
+CSV also retains the original scan total energy and an explicit CP energy
+column in hartree.
+The separated fragments at each geometry define zero for these curves;
+**Zero**, **Join** and **Fit Morse** do not alter them. Other compared scans
+retain their own relative-energy references. Compare methods, fragment states
+and references before interpreting an overlay.
+
+The source scan is linked to its new calculation, so reopening the scan shows
+the completed correction. Incomplete or failed jobs and mismatched geometry
+counts do not produce a partial CP column. A repeated action names the existing
+calculation rather than submitting it again. Gaussian 16 scans and CP-corrected
+optimisation are not supported by this action.
+
 ### Fit a Morse potential to a bond scan
 
 Tick **Fit Morse** in the Relaxed Scan panel of a bond-length scan to fit

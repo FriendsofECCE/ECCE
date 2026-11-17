@@ -202,6 +202,9 @@ ESP		Electro Static Potential		ESPVEC		Energy		PropVector<Grid>
 Geometry	GeometryTrace				GEOMTRACE	Length		PropTSVecTable<Geometry Step,Atom,Coordinate>
 Geometry	Scan Coordinate				SCANCOORD	NA		PropVector<Scan Point>
 Geometry	Scan Energy				SCANENERGY	Energy		PropVector<Scan Point>
+Geometry	Scan CP Interaction Energy		SCANCP		Energy		PropVector<Scan Point>
+Geometry	Scan Raw Interaction Energy		SCANRAW		Energy		PropVector<Scan Point>
+Geometry	Scan BSSE				SCANBSSE	Energy		PropVector<Scan Point>
 Geometry	Scan Structures				SCANGEOM	Length		PropTSVecTable<Scan Step,Atom,Coordinate>
 Pull	Pull Time				PULLTIME	NA		PropVector<Pull Frame>
 Pull	Pull Coordinate				PULLDIST	NA		PropVector<Pull Frame>
