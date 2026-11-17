@@ -228,9 +228,9 @@ partial copy. A name that already exists in the target gets a number added
 
 The trees are told apart by their icon and colour. **Local data** keeps its
 home icon. An ECCE server has a server icon in maroon, and an SSH folder has
-a folder icon with a terminal mark in green. The rows below a server or SSH
-tree have a light tint of the same colour, so you can see where a project is
-kept even when the top of the tree has scrolled out of view. A tree marked
+a folder icon with a terminal mark in green. The project and folder icons
+below a server or SSH tree are drawn in the same colour, so you can see where a
+project is kept even when the top of the tree has scrolled out of view. A tree marked
 **(not connected)** is shown in grey.
 
 A server that your administrator set up for the installation is listed as

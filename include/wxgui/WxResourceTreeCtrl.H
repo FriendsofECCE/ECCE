@@ -154,7 +154,7 @@ protected:
   void setItemImages(const wxTreeItemId& itemId, Resource * resource);
   void styleServerRoot(const wxTreeItemId& id, WxResourceTreeItemData * node,
                        bool ssh);
-  void tintLike(const wxTreeItemId& child, const wxTreeItemId& parent);
+  void inkFolders(const wxTreeItemId& child, const wxTreeItemId& parent);
 
 private:
   

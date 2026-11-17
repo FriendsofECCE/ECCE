@@ -2490,6 +2490,21 @@ void CalcMgr::runTestCommand(const string& line)
             (p_treeCtrl->GetItemFont(node->GetId()).GetStrikethrough() ? "1" : "0") +
             " grey=" + (c == wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT) ? "1" : "0");
       }
+    } else if (command == "treeimage") {
+      // "treeimage <url>": whether the row has a background colour (none
+      // should), and which ink its icon is drawn in: none, ssh or server.
+      WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName),
+                                                          true, true);
+      if (!node || !node->getResource()) outcome = "no node";
+      else {
+        int img = p_treeCtrl->GetItemImage(node->GetId());
+        const char *ink = "none";
+        if (img == WxResourceImageList::getInkedImageIndex(node->getResource(), 1)) ink = "ssh";
+        else if (img == WxResourceImageList::getInkedImageIndex(node->getResource(), 2)) ink = "server";
+        outcome = string("bg=") +
+            (p_treeCtrl->GetItemBackgroundColour(node->GetId()).IsOk() ? "1" : "0") +
+            " ink=" + ink;
+      }
     } else if (command == "treestate") {
       // "treestate <url>": the tree icon shown, against those of running
       // and of out of contact.

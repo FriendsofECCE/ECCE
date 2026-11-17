@@ -199,8 +199,16 @@ def main():
               "only the good root is connected: %s" % ans)
         ans = send("server newproject Folder p767")
         check(ans.startswith("ok sftp://"), "project created: %s" % ans)
+        projUrl = ans.split()[1] if ans.startswith("ok ") else ""
         ans = send("server newcalc Folder p767 c1")
         check(ans.startswith("ok sftp://"), "calculation created: %s" % ans)
+        calcUrl = ans.split()[1] if ans.startswith("ok ") else ""
+        # No row background; the folder is drawn in the SSH ink, a calculation keeps its icon.
+        ans = send("treeimage " + calcUrl)
+        check(ans == "bg=0 ink=none", "calculation icon untouched: %s" % ans)
+        ans = send("treeimage " + projUrl)
+        check(ans == "bg=0 ink=ssh", "folder icon in the SSH ink: %s" % ans)
+        send("snap /tmp/ecce-ssh-tree-icons.png")
         listing = onServer("ls -a ecce-data ecce-data/p767 ecce-data/p767/c1")
         check(".ecce-meta" in listing and "c1" in listing, "they are in the server's folder")
         ans = send("server connect Other")

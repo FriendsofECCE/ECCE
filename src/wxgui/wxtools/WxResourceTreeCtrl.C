@@ -297,8 +297,8 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addSshRoot(const string& name,
 }
 
 
-// Own icon and a light tint per kind of root; the rows below inherit the
-// tint (see tintLike) so a project's location shows when the root has
+// Own icon and ink per kind of root; the folder icons below it take the
+// same ink (see inkFolders) so a project's location shows when the root has
 // scrolled away.  A root without a resource is not connected: grey.
 void WxResourceTreeCtrl::styleServerRoot(const wxTreeItemId& id,
     WxResourceTreeItemData * node, bool ssh)
@@ -310,7 +310,6 @@ void WxResourceTreeCtrl::styleServerRoot(const wxTreeItemId& id,
   SetItemImage(id, img + 2, wxTreeItemIcon_Expanded);
   SetItemImage(id, img + 3, wxTreeItemIcon_SelectedExpanded);
   if (connected) {
-    SetItemBackgroundColour(id, WxResourceImageList::getServerTint(ssh));
     SetItemState(id, getStateIndex(node->getResource()));
   } else {
     SetItemTextColour(id, wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
@@ -318,11 +317,27 @@ void WxResourceTreeCtrl::styleServerRoot(const wxTreeItemId& id,
 }
 
 
-void WxResourceTreeCtrl::tintLike(const wxTreeItemId& child,
-                                  const wxTreeItemId& parent)
+void WxResourceTreeCtrl::inkFolders(const wxTreeItemId& child,
+                                    const wxTreeItemId& parent)
 {
-  wxColour bg = GetItemBackgroundColour(parent);
-  if (bg.IsOk()) SetItemBackgroundColour(child, bg);
+  WxResourceTreeItemData * d = dynamic_cast<WxResourceTreeItemData *>(
+      GetItemData(child));
+  if (!d || !d->getResource()) return;
+  // The server root is the ancestor just below the hidden tree root.
+  wxTreeItemId top = parent;
+  while (top.IsOk() && GetItemParent(top) != GetRootItem())
+    top = GetItemParent(top);
+  if (!top.IsOk() || top == GetRootItem()) return;
+  WxResourceTreeItemData * r = dynamic_cast<WxResourceTreeItemData *>(
+      GetItemData(top));
+  if (!r || r->serverRef().empty()) return;
+  int kind = r->serverRef().compare(0, 7, "sftp://") == 0 ? 1 : 2;
+  int img = WxResourceImageList::getInkedImageIndex(d->getResource(), kind);
+  if (img < 0) return;
+  SetItemImage(child, img, wxTreeItemIcon_Normal);
+  SetItemImage(child, img + 1, wxTreeItemIcon_Selected);
+  SetItemImage(child, img + 2, wxTreeItemIcon_Expanded);
+  SetItemImage(child, img + 3, wxTreeItemIcon_SelectedExpanded);
 }
 
 
@@ -433,7 +448,7 @@ bool WxResourceTreeCtrl::loadChildren(WxResourceTreeItemData * node, bool refres
       wxTreeItemId itemId = AppendItem(node->GetId(), (*resItor)->getName(),
                                        -1, -1, childNode);
       setItemImages(itemId, *resItor);
-      tintLike(itemId, node->GetId());
+      inkFolders(itemId, node->GetId());
       
       setExpandable(childNode);
     }
@@ -520,7 +535,7 @@ WxResourceTreeItemData * WxResourceTreeCtrl::addToTree(const EcceURL & url)
     wxTreeItemId itemId = AppendItem(parent->GetId(), resource->getName(),
                                      -1, -1, ret);
     setItemImages(itemId, resource);
-    tintLike(itemId, parent->GetId());
+    inkFolders(itemId, parent->GetId());
     
     setExpandable(ret);
     SortChildren(parent->GetId());
