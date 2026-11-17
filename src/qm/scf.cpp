@@ -254,6 +254,7 @@ ScfResult run_scf(Basis& basis, const Molecule& mol, const ScfOptions& opt, cons
       for (const Shell& s : basis.shells()) (void)s;
       for (size_t a = 0; a < mol.atoms.size(); ++a) {
         int Z = mol.atoms[a].Z;
+        if (mol.atoms[a].ghost()) continue;   // no electrons: no guess density
         if (!atomd.count(Z)) atomd[Z] = atomic_density(Z, basis.library(), basis.name(), basis.spherical());
         // place the atomic block on this atom's AOs (same shell order per element)
         std::vector<int> idx;

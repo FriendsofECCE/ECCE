@@ -157,6 +157,9 @@ if(QM_PYTHON3)
   add_test(NAME qm_roks_atoms COMMAND ${QM_PYTHON3} ${_qm_tests}/roks_atoms_test.py
            $<TARGET_FILE:ecce-qm> ${_ecce_root}/data/admin/basissets)
   set_tests_properties(qm_roks_atoms PROPERTIES TIMEOUT 1800)
+  add_test(NAME qm_ghost COMMAND ${QM_PYTHON3} ${_qm_tests}/ghost_test.py
+           $<TARGET_FILE:ecce-qm> ${_ecce_root}/data/admin/basissets)
+  set_tests_properties(qm_ghost PROPERTIES TIMEOUT 600)
   add_test(NAME qm_charges COMMAND ${QM_PYTHON3} ${_qm_tests}/charges_test.py $<TARGET_FILE:ecce-qm>)
   add_test(NAME qm_charges_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/charges_deck_test.py)
   set_tests_properties(qm_charges PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)

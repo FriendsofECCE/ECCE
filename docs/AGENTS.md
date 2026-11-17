@@ -404,6 +404,13 @@ marked (experimental) are newer and less tested.
 `data/client/cap/` also holds older codes (Gaussian 98, 03 and 09, GAMESS-UK,
 MOLCAS, NWChemMD, MetaDyn); do not expect new features for them.
 
+ECCE-QM ghost centres (counterpoise): in a `.qmin` geometry block a fifth
+column `ghost` after the coordinates (` O 2.91 0.0 0.0 ghost`) makes that atom
+a ghost: the element's basis functions, no nucleus, no electrons. Single-point
+`runtype energy` only; gradients, optimisation, frequencies, solvent, `charges`
+and polarizability are refused with a message. The output's `begin atoms` block
+ends such rows with `ghost`.
+
 Property views (which panel shows what) depend on what is stored in `Props/`;
 see "Properties". Analysis views: the MO diagram (experimental; check it
 against a textbook diagram), Density Map, ELF/LOL/NCI, localised orbitals,
