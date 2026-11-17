@@ -7724,7 +7724,7 @@ void Builder::updateReadOnly(const bool& loadPaneFlag)
   // update our window name and help menu item
   wxString title = "ECCE Builder";
   wxString menu_help = "on Builder\tCtrl+h";
-  if (isReadOnly) {
+  if (isReadOnly || p_viewerApp) {
     title = "ECCE Viewer";
     menu_help = "on Viewer\tCtrl+h";
   }
