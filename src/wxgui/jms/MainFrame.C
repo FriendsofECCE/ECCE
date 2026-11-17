@@ -6,6 +6,12 @@
  */
 #include <cstdio>
 #include <cstdlib>
+#ifdef __GLIBC__
+#include <execinfo.h>
+#endif
+#ifdef __WXGTK__
+#include <gtk/gtk.h>
+#endif
 #include "wx/app.h"
 #include "wx/evtloop.h"
 #include "wx/frame.h"
@@ -34,25 +40,64 @@ MainFrame::MainFrame()
 
 namespace {
 // Test hook (#1065): what keeps the process running after the host goes.
-void reportLoop(const char *when)
+void reportLoop(const char *when, bool trace = false)
 {
   wxEventLoopBase *active = wxEventLoopBase::GetActive();
   wxEventLoopBase *main = wxTheApp ? wxTheApp->GetMainLoop() : 0;
+  int gtkLevel = -1;
+#ifdef __WXGTK__
+  gtkLevel = (int)gtk_main_level();
+#endif
   fprintf(stderr, "ECCE_TEST_ORGANIZER: %s: active loop %s, main running %d, "
-          "exit on frame delete %d, pending %d, windows:", when,
+          "exit on frame delete %d, pending %d, gtk level %d, windows:", when,
           !active ? "none" : active == main ? "main" : "NESTED",
           main ? (int)main->IsRunning() : -1,
           wxTheApp ? (int)wxTheApp->GetExitOnFrameDelete() : -1,
-          (int)wxPendingDelete.GetCount());
-  for (wxWindow *w : wxTopLevelWindows)
-    fprintf(stderr, " %s/'%s'%s%s%s",
+          (int)wxPendingDelete.GetCount(), gtkLevel);
+  for (wxWindow *w : wxTopLevelWindows) {
+    wxWindow *p = w->GetParent();
+    fprintf(stderr, " %s/'%s'[parent %s%s]%s%s%s",
             (const char *)wxString(w->GetClassInfo()->GetClassName()).utf8_str(),
             (const char *)w->GetLabel().utf8_str(),
-            w->GetParent() ? "(child)" : "",
+            p ? (const char *)wxString(p->GetClassInfo()->GetClassName()).utf8_str()
+              : "none",
+            p && p->IsBeingDeleted() ? " being deleted" : "",
+            w->IsBeingDeleted() ? "(being deleted)" : "",
             static_cast<wxTopLevelWindow *>(w)->ShouldPreventAppExit()
                 ? "(prevents exit)" : "",
             w->IsShown() ? "(shown)" : "");
+  }
   fprintf(stderr, "\n");
+#ifdef __GLIBC__
+  if (!trace) return;
+  // Which loop (wx, GTK or a dialog's) is running this code.
+  void *frames[64];
+  int n = backtrace(frames, 64);
+  backtrace_symbols_fd(frames, n, 2);
+#endif
+}
+
+
+// wx ends the main loop in ~wxTopLevelWindowBase when the last window goes,
+// but after a tabbed Quit the loop was seen still running with no window
+// left (#1065, only on a loaded host).  Ask again once the host is gone;
+// windows that should keep the process alive still do.
+void exitWhenNoWindowLeft()
+{
+  wxTimer *t = new wxTimer(wxTheApp);
+  wxTheApp->Bind(wxEVT_TIMER, [t](wxTimerEvent&) {
+    for (wxWindow *w : wxTopLevelWindows)
+      if (!w->IsBeingDeleted() &&
+          static_cast<wxTopLevelWindow *>(w)->ShouldPreventAppExit())
+        return;
+    wxEventLoopBase *main = wxTheApp->GetMainLoop();
+    if (!main || !main->IsRunning()) return;  // a nested loop: next tick
+    t->Stop();
+    if (getenv("ECCE_TEST_ORGANIZER"))
+      fprintf(stderr, "ECCE_TEST_ORGANIZER: no window left, ending the main loop\n");
+    wxTheApp->ExitMainLoop();
+  }, t->GetId());
+  t->Start(500);
 }
 }
 
@@ -60,11 +105,12 @@ void reportLoop(const char *when)
 MainFrame::~MainFrame()
 {
   if (s_instance == this) s_instance = 0;
+  if (p_shutdown) exitWhenNoWindowLeft();
   if (getenv("ECCE_TEST_ORGANIZER")) {
     reportLoop("host destroyed");
     wxTimer *t = new wxTimer(wxTheApp);
     wxTheApp->Bind(wxEVT_TIMER, [](wxTimerEvent&) {
-      reportLoop("3 s after the host");
+      reportLoop("3 s after the host", true);
     }, t->GetId());
     t->StartOnce(3000);
   }
