@@ -26,6 +26,7 @@ WxResourceImageList::WxResourceImageList()
   : ewxImageList(),
     p_resourceIndex(NULL)
 {
+  p_inkedIndex[0] = p_inkedIndex[1] = NULL;
   Create();
 }
 
@@ -111,6 +112,19 @@ void WxResourceImageList::addAllImages()
     Add(ewxBitmap(resourceTypes[resourceIndex]->
                    getIcon(ResourceDescriptor::IT_SELECTED_EXPANDED)));
   }
+
+  // Folder-like types again in the SSH and ECCE-server inks.
+  for (int v = 0; v < 2; v++) {
+    if (p_inkedIndex[v] == 0) p_inkedIndex[v] = new int[resourceTypes.size()];
+    for (size_t t = 0; t < resourceTypes.size(); t++) {
+      p_inkedIndex[v][t] = -1;
+      if (!resourceTypes[t]->getIsExpandable()) continue;
+      p_inkedIndex[v][t] = GetImageCount();
+      for (int k = 0; k < 4; k++)
+        Add(inked(ewxBitmap(resourceTypes[t]->getIcon(
+                  (ResourceDescriptor::IconType)k)), getServerInk(v == 0)));
+    }
+  }
 }
 
 
@@ -161,15 +175,38 @@ wxColour WxResourceImageList::getServerInk(bool ssh)
 }
 
 
-// 12 % of the ink over the list background keeps text readable on a light
-// or a dark theme.
-wxColour WxResourceImageList::getServerTint(bool ssh)
+// Keeps the shading and mask of the bitmap, replacing its hue by the ink:
+// dark pixels go to black, mid-tones are the ink, highlights lighten it.
+static wxBitmap inked(const wxBitmap& bmp, const wxColour& ink)
 {
-  wxColour ink = getServerInk(ssh);
-  wxColour bg = wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOX);
-  return wxColour((ink.Red() * 12 + bg.Red() * 88) / 100,
-                  (ink.Green() * 12 + bg.Green() * 88) / 100,
-                  (ink.Blue() * 12 + bg.Blue() * 88) / 100);
+  wxImage img = bmp.ConvertToImage();
+  if (!img.IsOk()) return bmp;
+  unsigned char * d = img.GetData();
+  const size_t n = (size_t)img.GetWidth() * img.GetHeight();
+  for (size_t i = 0; i < n; i++, d += 3) {
+    double l = (0.299 * d[0] + 0.587 * d[1] + 0.114 * d[2]) / 255.0;
+    double f = l < 0.55 ? 0.35 + 0.65 * l / 0.55
+                        : 1.0 + 0.5 * (l - 0.55) / 0.45;
+    unsigned char c[3] = {ink.Red(), ink.Green(), ink.Blue()};
+    for (int k = 0; k < 3; k++) {
+      double v = f <= 1.0 ? c[k] * f : c[k] + (255 - c[k]) * (f - 1.0);
+      d[k] = (unsigned char)(v < 0 ? 0 : v > 255 ? 255 : v + 0.5);
+    }
+  }
+  return wxBitmap(img);
+}
+
+
+int WxResourceImageList::getInkedImageIndex(Resource * resource, int kind)
+{
+  WxResourceImageList * list = getImageList();
+  ResourceType * t = resource->getDescriptor();
+  if (!t || kind < 1 || kind > 2 || !list->p_inkedIndex[kind - 1]) return -1;
+  EcceURL u = resource->getURL();
+  if (u.isEcceRoot() || u.isEcceUsers() || u.isEcceUserHome()) return -1;
+  int low, high;
+  ResourceDescriptor::getResourceDescriptor().getResourceIdRange(low, high);
+  return list->p_inkedIndex[kind - 1][t->getId() - low];
 }
 
 

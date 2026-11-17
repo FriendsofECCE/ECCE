@@ -263,6 +263,11 @@ Tests: `tests/apps/organizer_file_view_test.py` for the window and Follow;
 `tests/filedsi/range_test.py` for actual local read byte counts and the exact
 SSH-side range/stat scripts (no login needed). Both run through `srun`.
 
+`treeimage <url>` (`ECCE_TEST_ORGANIZER`) answers `bg=0|1 ink=none|ssh|server`:
+rows below an SSH-folder or ECCE-server root have no background colour, and
+their folder icons are drawn in the root's ink (green or maroon);
+`tests/apps/server_roots_test.py` checks the server case.
+
 Start feedback (#1071, `ECCE_TEST_ORGANIZER`): `start TOOL [URL]` shows a busy
 cursor, "Opening the <tool> for <calculation>..." in the status line, a "Starting
 the <tool>..." window after 1.5 s and a "has not started" note after 30 s; a
