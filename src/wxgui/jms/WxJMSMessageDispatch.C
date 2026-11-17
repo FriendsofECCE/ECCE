@@ -925,8 +925,15 @@ void WxJMSMessageDispatch::appInvoke()
         if((child=childEnded(p_startups[i].pidToWatch, &status)) > 0)  { 
 
           // Send a failed message to ecce_invoke_status, so caller can handle
-          // the failure
-          sendFailedStatusMessage(p_startups[i].pidToWatch);
+          // the failure.  Exit status 0 before identifying is not a failure:
+          // a second start of the one-program Organizer hands its request
+          // to the running copy and exits (#1069).
+          bool clean = false;
+#ifndef _WIN32
+          clean = WIFEXITED(status) && WEXITSTATUS(status) == 0;
+#endif
+          sendFailedStatusMessage(p_startups[i].pidToWatch,
+                                  clean ? "ended" : "failed");
           
         } else {
           // Recursively call the timeout until the newly exec'd app either:
@@ -959,12 +966,12 @@ void WxJMSMessageDispatch::appInvoke()
   }
 }
 
-void WxJMSMessageDispatch::sendFailedStatusMessage(int pid)
+void WxJMSMessageDispatch::sendFailedStatusMessage(int pid, const char *status)
 {
    Target myself("", getMyID());
 
    JMSMessage* errMsg = newMessage(myself);
-   errMsg->addProperty("status", "failed");
+   errMsg->addProperty("status", status);
    errMsg->addIntProperty("pid", pid);
    publish("ecce_internal_invoke_status", *errMsg);
    delete errMsg;

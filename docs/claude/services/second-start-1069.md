@@ -32,6 +32,13 @@ issues: [1069, 983]
   (`takePending`). Message: token, then absolute file names; the first copy
   does `MainFrame::bringToFront()` and `openFiles`. A copy that holds the lock
   but does not answer within 5 s is ignored and the new copy starts anyway.
+- Gateway (Linux): the second start's Organizer exits 0 before it
+  identifies. `WxJMSMessageDispatch::appInvoke` reports such an exit as
+  status "ended", not "failed", and the gateway takes "ended" as its
+  session being over, with no dialog. Before this, every second `ecce`
+  showed "System Error" and its gateway stayed up. `session_end.py`
+  checks it (same-display); the cases that need two sessions of one user
+  (displays, same-display, two-sessions) set `ECCE_MULTIPLE_INSTANCES=1`.
 - Files: `ecce FILE` (packaging/ecce.in) puts them in `ECCE_OPEN_FILES`,
   because the gateway sits between the launcher and the Organizer;
   `ecce.vbs` forwards its arguments to ecce.cmd, which passes `%*` to

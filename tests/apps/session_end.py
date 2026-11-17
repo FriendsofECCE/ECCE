@@ -1206,6 +1206,32 @@ def caseRemoteDown(checks, display, logdir):
         session.kill()
 
 
+def secondSessionEnv():
+    """A second `ecce` of the user that must open its own session: in one
+    program (#1069) a plain second start only raises the first window."""
+    if os.environ.get("ECCE_ONE_PROCESS") != "0":
+        return {"ECCE_MULTIPLE_INSTANCES": "1"}
+    return None
+
+
+def handsOver(checks, display, frame1, log):
+    """One program: a plain second `ecce` hands over to the running
+    Organizer, and its own gateway ends quietly (no 'System Error')."""
+    if os.environ.get("ECCE_ONE_PROCESS") == "0":
+        return
+    extra = Session(display, log)
+    try:
+        checks.check(extra.ended(60), "a plain second `ecce` returns: the "
+                     "running Organizer took the start")
+        titles = [t for _, t in display.windows()]
+        checks.check("System Error" not in titles,
+                     "and no 'System Error' window %s" % titles)
+        checks.check(any(w[0] == frame1[0] for w in display.windows()),
+                     "the first Organizer is still open")
+    finally:
+        extra.kill()
+
+
 def caseDisplays(checks, display, logdir):
     """Mode 1, one user on two displays: the per-user broker is the
     user's, so it outlives the first session and goes with the last."""
@@ -1218,7 +1244,8 @@ def caseDisplays(checks, display, logdir):
                             % display.name):
             return
         gw1 = gatewayIsTheTree(checks, first)
-        second = Session(other, os.path.join(logdir, "displays-2.log"))
+        second = Session(other, os.path.join(logdir, "displays-2.log"),
+                         extra=secondSessionEnv())
         frame2 = second.organizer()
         if not checks.check(frame2, "a second Organizer opened on %s"
                             % other.name):
@@ -1255,7 +1282,10 @@ def caseSameDisplay(checks, display, logdir):
         if not checks.check(frame1, "the first Organizer opened"):
             return
         gw1 = gatewayIsTheTree(checks, first)
-        second = Session(display, os.path.join(logdir, "same-display-2.log"))
+        handsOver(checks, display, frame1,
+                  os.path.join(logdir, "same-display-handover.log"))
+        second = Session(display, os.path.join(logdir, "same-display-2.log"),
+                         extra=secondSessionEnv())
         frame2 = second.organizer()
         if not checks.check(frame2 and frame2[0] != frame1[0],
                             "a second Organizer opened on the same display"):

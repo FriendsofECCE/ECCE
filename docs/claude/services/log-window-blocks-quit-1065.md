@@ -20,7 +20,7 @@ issues: [1065, 1069, 983, 233]
   host). `guest.py close` waits for "Example calculations" to go before it
   closes. Without that, Quit fails whenever the import is still running,
   with or without `ECCE_ONE_PROCESS`.
-- `session_end.py` two-sessions (#233) starts two `ecce` of one user on
+- `session_end.py` two-sessions, displays and same-display (#233) start two `ecce` of one user on
   one display, on purpose. In one-program mode (#1069) the second start
   only brings the first window forward, so those sessions set
   `ECCE_MULTIPLE_INSTANCES=1`. `$DISPLAY` stays out of the single-instance
