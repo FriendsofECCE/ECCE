@@ -3499,6 +3499,7 @@ void CalcMgr::runTestCommand(const string& line)
                 " Launcher=" + std::to_string(InProcessTools::count(LAUNCHER)) +
                 " PeriodicTable=" + std::to_string(InProcessTools::count(PERTAB)) +
                 " MachineBrowser=" + std::to_string(InProcessTools::count(MACHBROWSER)) +
+                " MachineRegister=" + std::to_string(InProcessTools::count(MACHREGISTER)) +
                 " Viewer=" + std::to_string(InProcessTools::count(CALCVIEWER));
       // Top-level windows still alive: one left over keeps the main loop
       // (and the process) running after the Organizer's frame is gone.

@@ -266,7 +266,7 @@ so there is nothing to bring in.
 |---|---|---|---|---|---|
 | Periodic Table (`pertable`) | wx frame | gateway `ecce_invoke`/`PeriodicTable` | 155 + frame in `wxgui/pertable` | none; app only does `-pipe` login and auth cache | **In, as a window** (done) |
 | Machine Browser (`machbrowser`) | wx frame | gateway, from Organizer/Launcher | 3100 | `_exit(0)` only in the `ECCE_MACHBROWSER_SHOT` test hook (not linked to a message path) | **In, as a window** (done); frame is its own `JMSPublisher`, kept |
-| Register Machines (`machregister`) | wx frame | gateway, Organizer, Launcher | 10000 | `exit()` in `JobPreview.C` and `WxMachineRegisterScript.C` (script mode); modal dialogs, test hooks, own `-pipe` login | Window, later: needs the exit() paths audited and a per-process split of `WxMachineRegisterApp::OnInit`; not a tab |
+| Register Machines (`machregister`) | wx frame | gateway, Organizer, Launcher | 10000 | `exit()` in `JobPreview.C` and `WxMachineRegisterScript.C` (script mode); modal dialogs, test hooks, own `-pipe` login | **In, as a window** (done): the `_exit`s are a forked child after `execvp` (`JobPreview.C`) and the `ECCE_MACHREG_SCRIPT` hook, neither on the window path; not a tab |
 | Solvate (`solvate`) | wx frame | gateway (AT_SOLVATE calculation) | 2000 | app main does EDSI setup per window | Tab candidate after the Builder-style adoption; own step (large, editor-like) |
 | MD Analysis (`mdanalysis`) | no | `ecce-parse`/job scripts | 80 | exit via main | Stays a process |
 | Thermochemistry (`ecce-thermo`) | no, CLI + JSON | scripts, Builder panel calls the library | 870 | `g_*` option globals in the CLI | Stays a process (the GUI is the Builder's panel) |
@@ -278,7 +278,7 @@ so there is nothing to bring in.
 | Job store (`eccejobstore`, `eccejobmaster`) | no | the job machinery | 450 | `exit()` | Stays a process |
 | Dialog helpers (`passdialog`, `hostkeydialog`, `msgdialog`, `ecce-dialog`) | small wx | a process that must ask without a window of its own (ssh, worker threads) | small | exit codes are the answer | Stay processes: the caller waits for the exit status, and the Quit hang in tool-tabs.md comes from running these in the GUI thread |
 
-## Periodic Table and Machine Browser as in-process windows
+## Periodic Table, Machine Browser and Register Machines as in-process windows
 
 `PerTabWindow.C` and `MachineBrowserWindow.C` follow the Basis Set Tool's
 split: the frame is unchanged, a small `WxJMSMessageDispatch` subclass (the
@@ -294,6 +294,7 @@ program, whose `OnInit` is unchanged.
   `wxEVT_DESTROY` on the frame: it untracks the dispatcher at once (so
   `closeAll` and the reuse lookup never see a dead frame), clears the
   dispatcher's frame pointer, and deletes it by `CallAfter`.
+- Register Machines (`MachineRegisterWindow.C`, `machregister-objs`) is the same: invoke selects `initmachine`/`initpage`, quit closes it; the app's `-admin` mode stays standalone only. Closing asks about unsaved changes as before.
 - One window each: a second request finds the tracked dispatcher
   (`InProcessTools::open`, poll context empty) and raises it.
 - Checked by `ECCE_UTILS_ONLY=1 one_process_test.py` (`runUtilityWindows`):
