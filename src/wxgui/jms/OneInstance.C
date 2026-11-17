@@ -3,6 +3,7 @@
  *
  * See include/wxgui/OneInstance.H and docs/claude/services/second-start-1069.md.
  */
+#include <iostream>
 #include <random>
 
 #include "wx/app.h"
@@ -14,6 +15,7 @@
 #include "wx/stdpaths.h"
 #include "wx/utils.h"
 #ifndef __WXMSW__
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #endif
@@ -26,6 +28,9 @@ namespace {
 wxSingleInstanceChecker *s_lock = 0;
 wxServer *s_server = 0;
 wxString s_token;
+wxString s_tokenFile, s_service;
+std::vector<wxString> s_pending;   // arrived before the window existed
+bool s_released = false;
 
 const char *TOPIC = "ecce";
 
@@ -38,23 +43,42 @@ unsigned long fnv(const wxString& s)
   return h;
 }
 
-// Per user: a private folder in the system's temp area (short, because a
-// Unix socket path is limited to about 100 characters).
+// Per user: a private folder, short because a Unix socket path is limited
+// to about 100 characters.  Empty when no folder can be trusted: /tmp is
+// shared, and a folder someone else made there (or a symlink) must not be
+// used for the token or the socket.
 wxString runDir()
 {
 #ifdef __WXMSW__
   wxString dir = wxStandardPaths::Get().GetTempDir() + "\\ecce-one";
   wxFileName::Mkdir(dir, 0700, wxPATH_MKDIR_FULL);
-#else
-  wxString dir = wxString::Format("/tmp/ecce-one-%d", (int)getuid());
-  mkdir(dir.fn_str(), 0700);
-  chmod(dir.fn_str(), 0700);
-#endif
   return dir;
+#else
+  wxString dir;
+#ifdef __WXMAC__
+  const char *base = getenv("TMPDIR");    // per user on macOS
+#else
+  const char *base = getenv("XDG_RUNTIME_DIR");
+#endif
+  if (base && *base && base[0] == '/')
+    dir = wxString::FromUTF8(base) + "/ecce-one";
+  else
+    dir = wxString::Format("/tmp/ecce-one-%d", (int)getuid());
+  mkdir(dir.fn_str(), 0700);
+  struct stat st;
+  if (lstat(dir.fn_str(), &st) != 0 || !S_ISDIR(st.st_mode) ||
+      st.st_uid != getuid() || (st.st_mode & 077) != 0) {
+    std::cerr << "ECCE: " << dir.utf8_str()
+              << " is not a private folder of yours; single-instance "
+                 "checking is off." << std::endl;
+    return wxString();
+  }
+  return dir;
+#endif
 }
 
-// Anything on the socket without the token is dropped: the Windows port is
-// not private to the user.
+// Anything without the token is dropped: the Windows DDE service is not
+// private to the user.
 class Connection : public wxConnection
 {
 public:
@@ -62,13 +86,20 @@ public:
                  wxIPCFormat fmt) override
   {
     wxArrayString lines = wxSplit(GetTextFromData(data, size, fmt), '\n');
-    if (lines.empty() || lines[0] != s_token) return false;
+    if (s_released || lines.empty() || lines[0] != s_token) return false;
     std::vector<wxString> files(lines.begin() + 1, lines.end());
+    MainFrame *host = MainFrame::instance();
+    if (host && host->isShuttingDown()) return false;
+    // Still starting: keep the files for the window to open.
+    if (!host) {
+      s_pending.insert(s_pending.end(), files.begin(), files.end());
+      return true;
+    }
     if (wxTheApp)
       wxTheApp->CallAfter([files]() {
-        if (MainFrame *host = MainFrame::instance()) {
-          host->bringToFront();
-          if (!files.empty()) host->openFiles(files);
+        if (MainFrame *h = MainFrame::instance()) {
+          h->bringToFront();
+          if (!files.empty()) h->openFiles(files);
         }
       });
     return true;
@@ -87,10 +118,30 @@ public:
 wxString serviceFor(const wxString& dir, const wxString& key)
 {
 #ifdef __WXMSW__
-  // A port per context; the lock tells whose it is.
-  return wxString::Format("%lu", 49152UL + fnv(key) % 16000UL);
+  // wxServer is DDE here (wxUSE_DDE_FOR_IPC): a service name, not a port.
+  // The whole key, so two contexts of one user never share a name.
+  return "ecce-" + key;
 #else
   return dir + "/" + key + ".sock";
+#endif
+}
+
+// Never through an existing file or link: remove, then create exclusively.
+void writeToken(const wxString& path)
+{
+#ifdef __WXMSW__
+  wxFile tf;
+  if (tf.Create(path, true, wxS_IRUSR | wxS_IWUSR)) {
+    tf.Write(s_token);
+    tf.Close();
+  }
+#else
+  unlink(path.fn_str());
+  int fd = open(path.fn_str(), O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0600);
+  if (fd < 0) return;
+  const wxScopedCharBuffer b = s_token.utf8_str();
+  if (write(fd, b.data(), b.length()) < 0) { /* no token: second start starts anyway */ }
+  close(fd);
 #endif
 }
 
@@ -119,6 +170,7 @@ bool OneInstance::claim(const wxString& context,
 {
   const wxString key = wxString::Format("%08lx", fnv(context));
   const wxString dir = runDir();
+  if (dir.empty()) return true;
   const wxString service = serviceFor(dir, key);
   const wxString tokenFile = dir + "/" + key + ".tok";
 
@@ -136,11 +188,9 @@ bool OneInstance::claim(const wxString& context,
 
   std::random_device rd;
   s_token = wxString::Format("%08x%08x", (unsigned)rd(), (unsigned)rd());
-  wxFile tf;
-  if (tf.Create(tokenFile, true, wxS_IRUSR | wxS_IWUSR)) {
-    tf.Write(s_token);
-    tf.Close();
-  }
+  s_tokenFile = tokenFile;
+  s_service = service;
+  writeToken(tokenFile);
 #ifndef __WXMSW__
   // unlink, not wxRemoveFile: that one logs a missing file as an error,
   // and the log window is modal over the Organizer (it blocked the Quit).
@@ -171,4 +221,29 @@ std::vector<wxString> OneInstance::filesIn(const std::vector<wxString>& words)
     if (known && fn.FileExists()) out.push_back(fn.GetFullPath());
   }
   return out;
+}
+
+
+std::vector<wxString> OneInstance::takePending()
+{
+  std::vector<wxString> out;
+  out.swap(s_pending);
+  return out;
+}
+
+
+// The listener must not outlive the window: a start during a slow exit
+// would be told "already running" and then see nothing.
+void OneInstance::release()
+{
+  s_released = true;
+  wxLogNull quiet;
+  delete s_server;
+  s_server = 0;
+  delete s_lock;       // removes the lock file
+  s_lock = 0;
+#ifndef __WXMSW__
+  if (!s_service.empty()) unlink(s_service.fn_str());
+  if (!s_tokenFile.empty()) unlink(s_tokenFile.fn_str());
+#endif
 }

@@ -842,8 +842,12 @@ bool CalcMgr::Destroy()
   // The host owns the geometry from here on (saveSettings).
   if (ToolTabs::hosts(this)) p_wasHosted = true;
   // Children of the host now, so they would outlive this window.
-  for (wxWeakRef<wxWindow>& r : p_secondary) if (r) delete r.get();
+  // Destroy(), not delete: one of them may be running an event handler.
+  for (wxWeakRef<wxWindow>& r : p_secondary) if (r) r->Destroy();
   p_secondary.clear();
+  p_find = 0;
+  p_prefs = 0;
+  p_accessControlDialog = 0;
   ToolTabs::release(this, false);
   return CalcMgrGUI::Destroy();
 }
@@ -3627,7 +3631,8 @@ void CalcMgr::runTestCommand(const string& line)
                command == "float" || command == "floatinfo" ||
                command == "layout" || command == "tabmenu" ||
                command == "alwayswindow" || command == "setup" ||
-               command == "launcher") {
+               command == "launcher" || command == "windowmenu" ||
+               command == "quitlabel") {
       // Tools as tabs (#983): list, select, Open in Window, Move to Tabs,
       // the Windows and tabs setting, the tab's right-click menu.
       wxString result;
@@ -3938,7 +3943,7 @@ void CalcMgr::serversMenu(wxMenu& menu)
     CallAfter([this]() {
       wxCommandEvent event;
       OnPreferencesClick(event);
-      p_prefs->showDataPage();
+      if (p_prefs) p_prefs->showDataPage();
     });
   }, manage);
 }
@@ -11752,6 +11757,12 @@ void CalcMgr::openStructureFiles(const std::vector<wxString>& paths)
   for (const wxString& p : paths) {
     wxString path = p;
     path.Replace("\\", "/");
+    // file:///C:/dir as on Windows elsewhere; '%', '#' and '?' escaped
+    // (EcceURL undoes exactly those).
+    path.Replace("%", "%25");
+    path.Replace("#", "%23");
+    path.Replace("?", "%3F");
+    if (path.empty() || path[0] != '/') path = "/" + path;
     startApp("Builder", 1, "file://" + string(path.utf8_str().data()));
   }
 }
@@ -14235,13 +14246,9 @@ void CalcMgr::updateAccessCtrlDlg()
  */
 void CalcMgr::updateFindDlg()
 {
+  if (!p_find || !p_treeCtrl) return;
   WxResourceTreeItemData *itemData = p_treeCtrl->getSelection();
-
-  EcceURL url = itemData->getUrl();
-
-  if (p_find) {
-    p_find->setFrom(url.toString());
-  }
+  if (itemData) p_find->setFrom(itemData->getUrl().toString());
 }
 
 

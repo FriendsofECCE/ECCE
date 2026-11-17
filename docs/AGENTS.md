@@ -221,9 +221,9 @@ launches=N`. The tool sends `ecce_tool_up` when its invoke is handled;
 for the same user, data folder and server (`ECCE_REALUSERHOME`,
 `ECCE_LOCAL_DATA`, `ECCE_SERVER_SESSION`/`ECCE_REMOTE_SERVER`) raises the
 running window and exits with "ECCE is already running for this user".
-`ecce FILE.xyz` (also .pdb .cif .mvm .car .gro; Windows: Open with ECCE)
+`ecce FILE.xyz` (also .pdb .cif .mvm .car .gro; Windows and Linux file managers: Open with ECCE; not offered by Finder on macOS yet, use `ecce FILE` there)
 opens the file in a Builder tab of the running copy, or of the one being
-started. `ECCE_MULTIPLE_INSTANCES=1` switches the check off. Test hook
+started. Files are also opened (one Builder each) when the tabbed mode is off. A Quit during the exit does not leave a listener behind: a start then opens a new window. In a tool's tab, File > Quit reads Quit ECCE and quits the whole program. The check needs a private run folder (`$XDG_RUNTIME_DIR/ecce-one`, `$TMPDIR/ecce-one` on macOS, else `/tmp/ecce-one-UID`); if it is not yours with mode 0700 the check is off. `ECCE_MULTIPLE_INSTANCES=1` switches the check off. Test hook
 `raised` (Organizer command file): how many second starts reached the window.
 
 In one-program mode (the default) the Viewer (`CalculationViewer`) is an in-process

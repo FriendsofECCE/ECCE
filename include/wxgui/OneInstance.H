@@ -22,6 +22,13 @@ public:
   static bool claim(const wxString& context,
                     const std::vector<wxString>& files);
 
+  // Files a second start sent before the window existed; the window opens
+  // them once it is there.
+  static std::vector<wxString> takePending();
+
+  // Stop listening and drop the lock, called when the window shuts down.
+  static void release();
+
   // Existing structure files among the command-line words, as absolute paths.
   static std::vector<wxString> filesIn(const std::vector<wxString>& words);
 };

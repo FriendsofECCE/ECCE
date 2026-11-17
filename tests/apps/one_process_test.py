@@ -17,6 +17,7 @@ Same installed tree, isolation and services as run_tests.py.  Exit 77
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -283,13 +284,39 @@ def runQuitHost(display):
 
         def inspect(_display):
             append("start Builder " + url, 25)
+            append("quitlabel", 2)         # the Builder tab's menu bar
             append("hostclose", 3)
             append("answer cancel", 3)     # Quit ECCE: Cancel, still running
             append("inprocess", 2)
             append("hostclose", 3)
             append("answer", 3)            # Quit
             append("answer no", 25)        # the Builder's question
+            # The listener went with the window: a start now is a new
+            # Organizer, not "already running".
+            environment = display.env()
+            environment.update({"ECCE_ONE_PROCESS": "1",
+                                "ECCE_LOCAL_DATA": data})
+            # Own process group, output to a file: the wrapper's children
+            # inherit a pipe and would keep communicate() waiting forever.
+            outPath = os.path.join(work, "after.out")
+            with open(outPath, "w") as out:
+                proc = subprocess.Popen(
+                    [os.path.join(apps.WRAPPERS, "ecce-organizer")],
+                    env=environment, stdout=out, stderr=subprocess.STDOUT,
+                    start_new_session=True)
+            time.sleep(25)
+            seen["after"] = proc.poll() is None
+            for sig, wait in ((signal.SIGTERM, 20), (signal.SIGKILL, 10)):
+                try:
+                    os.killpg(proc.pid, sig)
+                    proc.wait(timeout=wait)
+                    break
+                except (ProcessLookupError, subprocess.TimeoutExpired):
+                    pass
+            with open(outPath, errors="replace") as out:
+                seen["after_out"] = out.read()
 
+        seen = {}
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                           env={"ECCE_ONE_PROCESS": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
@@ -297,6 +324,9 @@ def runQuitHost(display):
                                "ECCE_LOCAL_DATA": data},
                           inspect=inspect)
         log = result.log or ""
+        check(pb.answers(log, "quitlabel") == ["Quit ECCE"],
+              "a tool tab's File > Quit reads Quit ECCE",
+              str(pb.answers(log, "quitlabel")))
         check(pb.answers(log, "answer cancel") == ["answered Quit ECCE"] and
               len(pb.answers(log, "inprocess")) == 1 and
               "Builder=1" in pb.answers(log, "inprocess")[0],
@@ -306,6 +336,10 @@ def runQuitHost(display):
               ["answered Save Builder Changes?"],
               "closing the host again asks Quit, then the Builder's question",
               str(pb.answers(log, "answer")))
+        check(seen.get("after") is True and
+              "already running" not in seen.get("after_out", ""),
+              "a start after Quit opens a window, not 'already running'",
+              str(seen))
         left = re.search(r"left after quit:([^\n]*)", log)
         check(result.returncode == 0 and "Aborted" not in log and left is None,
               "closing the host ends the process cleanly, nothing left",
@@ -324,12 +358,16 @@ def runSingleInstance(display):
     work = tempfile.mkdtemp(prefix="ecce-oneproc-")
     try:
         os.makedirs(os.path.join(data, "users", "local"))
-        xyz = os.path.join(work, "water.xyz")
+        xyz = os.path.join(work, "wa ter#1%.xyz")
         with open(xyz, "w") as handle:
             handle.write("3\nwater\nO 0 0 0.117\nH 0 0.757 -0.469\n"
                          "H 0 -0.757 -0.469\n")
         cmds = os.path.join(work, "commands")
         open(cmds, "w").close()
+        script = os.path.join(work, "builder-script")
+        with open(script, "w") as handle:
+            # An .xyz asks for its units (modal) before it loads.
+            handle.write("wait 5000\nmodal ok\nwait 2000\nexpect atoms 3\n")
         env = {"ECCE_ONE_PROCESS": "1", "ECCE_LOCAL_DATA": data}
         seen = {}
 
@@ -364,7 +402,8 @@ def runSingleInstance(display):
             seen["after"] = organizers()
 
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
-                          env={**env, "ECCE_TEST_ORGANIZER": cmds},
+                          env={**env, "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_BUILDER_SCRIPT": script},
                           inspect=inspect)
         log = result.log or ""
         for what in ("plain", "file"):
@@ -383,6 +422,76 @@ def runSingleInstance(display):
         check(len(inproc) == 1 and "Builder=1" in inproc[0],
               "the .xyz named by the second start opened in a Builder of the first",
               str(inproc) + log[-1500:])
+        check("FAIL" not in "\n".join(l for l in log.splitlines()
+                                      if "ECCE_BUILDER_SCRIPT" in l),
+              "the Builder holds the 3 atoms of the file (name with a space, "
+              "'#' and '%')",
+              "\n".join(l for l in log.splitlines()
+                        if "ECCE_BUILDER_SCRIPT" in l or "atoms" in l)[-800:])
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def organizerOutput(display, env, seconds=30):
+    """Start the Organizer by itself, let it run, return what it printed."""
+    environment = display.env()
+    environment.update(env)
+    proc = subprocess.Popen([os.path.join(apps.WRAPPERS, "ecce-organizer")],
+                            env=environment, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            start_new_session=True)
+    time.sleep(seconds)
+    alive = proc.poll() is None
+    apps._terminate(proc)
+    return alive, apps._drain(proc)
+
+
+def runUntrustedDir(display):
+    """A run folder that is not private to the user (mode 0777, a symlink
+    in it) is not used: single-instance checking is off, the file the link
+    points to is untouched, and the Organizer still starts (#1065 review)."""
+    setLayout(display, "small")
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        os.makedirs(os.path.join(data, "users", "local"))
+        run = os.path.join(work, "run")
+        folder = os.path.join(run, "ecce-one")
+        os.makedirs(folder)
+        os.chmod(run, 0o700)
+        os.chmod(folder, 0o777)
+        victim = os.path.join(work, "victim")
+        with open(victim, "w") as handle:
+            handle.write("keep")
+        # The token name is not predictable; the folder check comes first.
+        link = os.path.join(folder, "x.tok")
+        os.symlink(victim, link)
+        env = {"ECCE_ONE_PROCESS": "1", "ECCE_LOCAL_DATA": data,
+               "XDG_RUNTIME_DIR": run}
+        alive, log = organizerOutput(display, env)
+        check("not a private folder" in log,
+              "an untrusted run folder is reported and single-instance is off",
+              log[-1500:])
+        check(open(victim).read() == "keep",
+              "the file a symlink in the folder points to is untouched")
+        check(sorted(os.listdir(folder)) == ["x.tok"],
+              "nothing is created in the untrusted folder",
+              str(os.listdir(folder)))
+        check(alive, "the Organizer started anyway", log[-800:])
+        # A private one is used, with a token only the user can read.
+        run2 = os.path.join(work, "run2")
+        os.makedirs(run2)
+        os.chmod(run2, 0o700)
+        env["XDG_RUNTIME_DIR"] = run2
+        organizerOutput(display, env)
+        toks = [f for f in os.listdir(os.path.join(run2, "ecce-one"))
+                if f.endswith(".tok")] if os.path.isdir(
+                    os.path.join(run2, "ecce-one")) else []
+        check(len(toks) == 1 and oct(os.stat(os.path.join(
+            run2, "ecce-one", toks[0])).st_mode & 0o777) == "0o600",
+            "a private run folder holds a token readable only by the user",
+            str(toks))
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)
@@ -1670,6 +1779,7 @@ def main():
     def checkApp(display, name, results, verbose=False):
         if os.environ.get("ECCE_SINGLE_ONLY") == "1":
             runSingleInstance(display)
+            runUntrustedDir(display)
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
@@ -1705,10 +1815,21 @@ def main():
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
+        # The core part (organizer start, Quit with and without the gateway)
+        # runs as its own ctest: together with the tabs part it outgrew the
+        # per-test budget.
+        if os.environ.get("ECCE_CORE_ONLY") == "1":
+            run(display)
+            runQuit(display)
+            runQuit(display, gateway=True)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         runLayouts(display)
         runTabs(display)
         runQuitHost(display)
         runSingleInstance(display)
+        runUntrustedDir(display)
         runGeometry(display)
         runTabsEditor(display)
         runSetupTab(display)

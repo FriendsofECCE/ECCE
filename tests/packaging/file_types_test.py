@@ -24,10 +24,10 @@ def read(*p):
 
 plist = plistlib.loads(read("macos", "Info.plist.in")
                        .replace("@VERSION@", "1").replace("@MINOS@", "11").encode())
-exts = set(plist["CFBundleDocumentTypes"][0]["CFBundleTypeExtensions"])
-check(exts == {"mvm", "xyz", "pdb", "cif"}, "Info.plist document types")
-check(plist["CFBundleDocumentTypes"][0]["LSHandlerRank"] == "Alternate",
-      "macOS: not the default handler")
+# launcher.c is the bundle's executable and gets kAEOpenDocuments, which it
+# does not handle: advertising types would make Finder offer ECCE and drop
+# the files.
+check("CFBundleDocumentTypes" not in plist, "macOS: no document types yet")
 
 xml.dom.minidom.parseString(read("desktop", "ecce-mvm.xml"))
 check("*.mvm" in read("desktop", "ecce-mvm.xml"), "mime XML names .mvm")

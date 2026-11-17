@@ -41,6 +41,7 @@ public:
 
   // For #1069: a second start raises the running window; files opened from
   // the system (macOS) go to the handler.
+  bool isShuttingDown() const { return p_shutdown; }
   void bringToFront();
   void setOpenFilesHandler(std::function<void(const std::vector<wxString>&)> fn)
   { p_open = fn; }
@@ -53,6 +54,7 @@ private:
 
   wxFrame *p_main = 0;
   bool p_shutdown = false;
+  bool p_vetoable = true;   // the last close event could be vetoed
   std::function<bool()> p_close;
   std::function<void(const std::vector<wxString>&)> p_open;
 };
