@@ -24,6 +24,7 @@ $chemsys_atoms\n
 $chemsys_name\n
 $cnstrntfile
 $coords{$index
+$cpatomtags[$index]
 $en
 $env{ecce_home}
 $exponent
@@ -330,7 +331,9 @@ correlation
 correlationfunctionals
 couldn't
 count
+counterpoise
 cp
+cpfrag.pl
 createcheckpoint
 criticalpoints
 cs
@@ -417,6 +420,7 @@ eq
 erbium
 error
 error:
+es.runtype.counterpoiseown
 es.runtype.geomopt.convergencegradient
 es.runtype.geomopt.maximumstepsvalue
 es.runtype.geomopt.recalcfc
@@ -605,6 +609,7 @@ magnetic.method
 main
 manganese
 manual
+map
 massage
 maxcycle
 maxdisk

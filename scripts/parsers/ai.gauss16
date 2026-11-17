@@ -23,6 +23,7 @@
 push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
 require "pertab.pl";
 &loadPT;
+our (@cpFragments, @cpAtomTags);
 my $useExplicitBasis;
 my $NameBasis;
 my $useSpherical;
@@ -62,6 +63,16 @@ my $useSpherical;
     &verifyGBSFile;
   }
   &readChemSys;
+  require "cpfrag.pl";
+  # Native Counterpoise always includes the fragment own-basis energies.
+  my %cpOptions = (%AbiDict, "ES.Runtype.CounterpoiseOwn" => 0);
+  @cpFragments = cpPlan($FragFILE, \%cpOptions, $AbiDict{"Charge"} || 0,
+                        sub { $symbol_to_number{$tags{$_[0]}} });
+  for (my $f = 0; $f < @cpFragments; $f++) {
+    for (my $a = 0; $a < $chemsys_atoms; $a++) {
+      $cpAtomTags[$a] = $f + 1 if ($cpFragments[$f][3][$a] == 0);
+    }
+  }
   &readCnstrntFile;
   &modifyInputFile;
 # This should be turned off for releases
@@ -339,6 +350,7 @@ sub G09Route {
   if ($usesBQAtoms == 1) {
     $route .= "Massage ";
   }
+  $route .= "Counterpoise=" . scalar(@cpFragments) . " " if @cpFragments;
   $route .= &RunType($AbiDict{"RunType"});
   $route .= &SCFOptions;
   $route .= &SCRFOptions;
@@ -1773,6 +1785,7 @@ sub chemsys {
   my $qst = &qstStructures();
   for ($index = 0; $index < $chemsys_atoms; $index++) {
     $symbol = $tags{$index};
+    $symbol .= "(Fragment=$cpAtomTags[$index])" if @cpFragments;
     if ($qst) {
       print(NEWFILE " $symbol     $qstBlocks[0]->{xyz}[$index]\n");
       next;
@@ -2063,6 +2076,7 @@ sub ChargeAndMultiplicity {
     $charge = $AbiDict{"Charge"};
   }
   $value = $charge." ".&Multiplicity;
+  $value .= join("", map { " $_->[1] $_->[2]" } @cpFragments);
   return $value;
 }
 

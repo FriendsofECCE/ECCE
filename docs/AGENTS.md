@@ -445,7 +445,13 @@ to the output. Properties (Hartree, Energies panel group Counterpoise):
 `EINTCP` = E_AB(AB) - sum E_X(AB), `EINTRAW` = E_AB(AB) - sum E_X(X),
 `EBSSE` = EINTCP - EINTRAW (positive), and the string `CPTABLE` with kJ/mol and
 kcal/mol. The raw energy and BSSE exist only with the own-basis runs.
-Gaussian and the scan action are not done yet. See
+Gaussian 16 Energy runs use `ES.Runtype.Counterpoise=1`: `ai.gauss16` writes
+native `Counterpoise=N`, consecutive `(Fragment=n)` atom tags and the complex
+then fragment charge/multiplicity pairs. Stored fragment IDs are mapped in
+first-atom order. `ES.Runtype.CounterpoiseOwn` is unused for Gaussian 16;
+`EINTCP`, `EINTRAW`, `EBSSE` and `CPTABLE` are always read from its native
+counterpoise summary in the one job. `EINTCP` is the corrected interaction
+energy, not the corrected total energy. The scan action is not done yet. See
 `docs/claude/codereg/counterpoise-job-and-properties-1091.md`.
 
 Property views (which panel shows what) depend on what is stored in `Props/`;

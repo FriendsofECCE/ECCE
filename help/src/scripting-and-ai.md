@@ -186,7 +186,7 @@ to `~/.claude/skills/` to use it.
 - For an experiment, use a separate state directory so that your own data is
   not touched; AGENTS.md says how.
 
-## Counterpoise correction (ECCE-QM and ORCA)
+## Counterpoise correction
 
 The interaction energy of a complex AB, E(AB) − E(A) − E(B), is too negative in
 a finite basis because each monomer borrows its partner's basis functions in
@@ -202,12 +202,22 @@ BSSE   = ΔE_CP − ΔE_raw = Σ E_X(X) − Σ E_X(AB)   (positive)
 
 Define the fragments in the Builder first (`fragments auto`, above). In the
 Calculation Editor choose an Energy run, open Runtype Details and tick
-*Counterpoise correction*; the box exists for ECCE-QM and ORCA Energy runs only.
-The second tick, *Monomers in their own basis too*, adds one run per fragment
-and gives the raw energy and the BSSE. One job runs the complex, then each
+*Counterpoise correction*. The box is available for Energy runs.
+For ECCE-QM and ORCA, the second tick, *Monomers in their own basis too*, adds
+one run per fragment and gives the raw energy and the BSSE. One job runs the complex, then each
 monomer in sequence, in the same run folder. The fragment charges must add up
 to the calculation's charge.
 
 The Energies panel shows *Counterpoise-corrected Interaction Energy*, and with
 the second tick the *Raw Interaction Energy* and the *BSSE*, in the energy unit
 you chose, plus a *Counterpoise Summary* line in kJ/mol and kcal/mol.
+
+Gaussian 16 uses its native `Counterpoise=N` keyword with `(Fragment=n)` atom
+tags and each fragment's charge and multiplicity on the charge line. Tick
+*Counterpoise correction* in its Runtype Details for an Energy run after defining
+the fragments. The fragment charges must add up to the calculation's charge.
+Gaussian 16 returns the corrected interaction energy, raw interaction energy
+and BSSE in one job; all three appear in the Energies panel, together with the
+summary. There is no separate own-basis checkbox for Gaussian 16. The corrected
+total energy printed in its log is distinct from the corrected interaction
+energy displayed by ECCE.

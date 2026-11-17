@@ -3157,6 +3157,12 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/vib_frame_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
 
+  add_test(NAME counterpoise_g16
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/g16_counterpoise_test.py
+                   --offline)
+  set_tests_properties(counterpoise_g16 PROPERTIES TIMEOUT 120)
+
   # Gaussian 16 properties declare the unit their values are in (#946).
   add_test(NAME parsers_g16_units
            COMMAND ${PYTHON3_EXECUTABLE}
