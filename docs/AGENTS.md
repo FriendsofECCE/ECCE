@@ -1431,7 +1431,7 @@ launcher, without command wrappers for these tools.
 | `ecce-si-export` | Export structures and a Supporting Information table; `--checks` makes the Checks table (with core-hours), `--rank` the Compare Energies table. Command line only |
 | `ecce-displacement` | Compare geometries and aligned RMSD |
 | `ecce-bandshift` | Match vibrational bands and report shifts |
-| `ecce-spectrum` | Process spectral curves |
+| `ecce-spectrum` | Process spectral curves. `--exp FILE` and `--parse-exp FILE` read the experimental spectrum as text columns or JCAMP-DX (`.jdx`, `.dx`, `.jcamp`; units from the file, so `--exp-kind` is ignored for JCAMP; NMR/MS files give a one-line error); `--parse-exp` prints `kind`, a `label` line (title, state, origin) and the points. The reader alone: `python3 scripts/jcampdx.py FILE` (#986) |
 | `ecce-displace` | Displace a structure along a normal mode. The Vibrational Frequencies panel of a GeoVib run with imaginary modes below 100 cm-1 shows a note that the optimisation stopped at a saddle (Builder script hook `vibnote` prints it; #1042). The Builder's Properties list groups its rows as Vibrational spectra, Electronic spectra, Magnetic resonance and Diffraction and scattering (#1079); the Builder script command `plist` prints the list as `GROUP/NAME` lines |
 | `ecce-thermo` | Recompute thermochemistry from stored results; `--json` gives per treatment H, S, G and the contributions `U_trans/U_rot/U_vib/U_elec`, `ZPE` (kJ/mol), `S_*`, `Cv_*`, `Cv`, `Cp` (J/mol/K); `--contributions` prints them as text |
 | `ecce-rate` | TST rate constants with Wigner/Eckart tunnelling from reactant, TS and product calculations |
@@ -1502,6 +1502,15 @@ literature or another program without having compared.
   Geometry Trace when GEOMTRACE is stored, and Geometry Step Plots (per-step
   vectors such as TEVEC, PRESSVEC) only when it is not (GROMACS tasks).
 - Gradient: EGRAD, EGRADVEC.
+- Vibrational spectrum files (#986): the Spectrum panel's Experimental...
+  (script `vibspectrum <csv> <calc|-> <diff> <file|-> <zoom|->`,
+  `ECCE_SPECTRUM_EXPERIMENTAL=<file>`) accepts JCAMP-DX besides text columns.
+  Export .csv... writes JCAMP-DX when the file name ends in `.jdx`, `.dx` or
+  `.jcamp` (`spectrumcsv`, `ECCE_SPECTRUM_CSV=<path>.jdx`, or the first
+  argument of `vibspectrum`): one LINK file, block 1 the broadened curve
+  (XYDATA, width and scaling factor in `##$` lines), block 2 the sticks
+  (PEAK TABLE, mode number as a `$$` comment); width 0 gives the peak block
+  only. Reading it back takes the first block, the curve.
 - Vibrations: VIBFREQ (cm-1; leading near-zeros are translations and
   rotations), VIBIR (km/mol), VIBRAM, VIBSYM.
 - Orbitals: MO, ORBENG, ORBOCC, MOAOORDER; LOCMO, LOCMOENG, LOCMOOCC,
