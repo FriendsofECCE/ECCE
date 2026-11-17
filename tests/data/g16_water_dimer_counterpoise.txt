@@ -1,0 +1,21 @@
+%Mem=1GB
+#P rB3LYP/def2SVP 6D 10F Counterpoise=2  NoSymm GFInput  Punch=(MO)
+Pop=(full)
+
+Water dimer counterpoise
+
+0 1 0 1 0 1 ! charge and multiplicity
+ O(Fragment=1)     0.0000000000     0.0000000000     0.0000000000
+ H(Fragment=1)     0.9650000000     0.0000000000     0.0000000000
+ H(Fragment=1)     -0.2400000000     0.9300000000     0.0000000000
+ O(Fragment=2)     2.9100000000     0.0000000000     0.0000000000
+ H(Fragment=2)     3.2290000000     0.4910000000     0.7570000000
+ H(Fragment=2)     3.2290000000     0.4910000000     -0.7570000000
+
+
+
+ Counterpoise corrected energy =    -152.725227550534
+                   BSSE energy =       0.005373000746
+              sum of fragments =    -152.719420923897
+           complexation energy =      -7.02 kcal/mole (raw)
+           complexation energy =      -3.64 kcal/mole (corrected)

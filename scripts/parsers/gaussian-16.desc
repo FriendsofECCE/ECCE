@@ -689,3 +689,10 @@ Begin=(?:^ Frequencies --+|(?!^)\G)\s+(-?\d+\.\d+)
 Count=fq
 Progress=freq real={fq_real} imaginary={fq_imag}
 [END]
+
+[EINTCP][EINTRAW][EBSSE][CPTABLE]
+Script=gaussian-16.counterpoise
+Begin=Counterpoise corrected energy
+Frequency=last
+End=complexation energy.*\(corrected\)
+[END]

@@ -492,7 +492,14 @@ and ΔE (CP), the two active plot curves and CSV/PNG exports use interaction
 energies referenced to the fragments at each geometry, without a further
 lowest/first/largest shift; ordinary comparison scans keep their own zeros.
 Test: `tests/launch/counterpoise_scan_test.py` (real ECCE-QM launch).
-Gaussian scan CP and CP-corrected optimisation are not implemented. See
+Gaussian 16 scan CP and CP-corrected optimisation are not implemented.
+Gaussian 16 Energy runs use `ES.Runtype.Counterpoise=1`: `ai.gauss16` writes
+native `Counterpoise=N`, consecutive `(Fragment=n)` atom tags and the complex
+then fragment charge/multiplicity pairs. Stored fragment IDs are mapped in
+first-atom order. `ES.Runtype.CounterpoiseOwn` is unused for Gaussian 16;
+`EINTCP`, `EINTRAW`, `EBSSE` and `CPTABLE` are always read from its native
+counterpoise summary in the one job. `EINTCP` is the corrected interaction
+energy, not the corrected total energy. See
 `docs/claude/codereg/counterpoise-job-and-properties-1091.md`.
 
 Property views (which panel shows what) depend on what is stored in `Props/`;
