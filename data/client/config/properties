@@ -255,6 +255,9 @@ Magnetic	Shielding Tensor			SHIELDTENSOR	PPM		PropVector<Unknown>
 Magnetic	Isotropic Shielding			ISOSHIELD	PPM		PropVector<Atom>
 Magnetic	Shielding Anisotropy			ANISOSHIELD	PPM		PropVector<Atom>
 Magnetic	Shielding Tensor Eigenvalues		SHIELDEIGVAL	PPM		PropVector<Component>
+Magnetic	EPR g-tensor	EPRG	NA	PropTable<Unknown>
+Magnetic	EPR Hyperfine Couplings	EPRA	MHertz	PropTable<Unknown>
+Magnetic	EPR Quadrupole Couplings	EPRQ	MHertz	PropTable<Unknown>
 Magnetic	Spin-dipole Tensor			DIPOLETENSOR	AU		PropVector<Unknown>
 Magnetic	Spin-dipole Tensor Eigenvalues		DIPOLEEIGVAL	AU		PropVector<Component>
 Magnetic	Spin-Spin Indirect Coupling Tensor	SPINSPIN	Hertz		PropTable<Unknown>

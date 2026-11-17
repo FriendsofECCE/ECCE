@@ -13,6 +13,19 @@ in seconds.
 
 ## Codes and versions
 
+### ORCA EPR: `orca/nh2_epr.inp` and `orca/nh2_epr.out`
+
+ORCA 6.1.1, captured 2026-11-17. NH2 radical, UHF/def2-SVP TightSCF,
+single point, neutral doublet. The input requests g-tensor, Aiso/Adip for N
+and H, and FGrad for N. Run `orca nh2_epr.inp > nh2_epr.out` with a serial
+ORCA 6.1.1 installation. The working-directory banner is redacted to `.`;
+all numerical output is unchanged. The run terminates normally.
+
+Exercises EPRG (g1/2/3/iso = 2.0021656/2.0033156/2.0069052/2.0041288),
+EPRA (N Aiso = 122.3102 MHz, both H Aiso = -102.3098 MHz), and EPRQ
+(N Cq = -4.099864 MHz, prefactor = -1.024966 MHz, eta = 0.396239).
+Quadrupole eigenvalues follow the printed I*Q*I convention, not V(Tot).
+
 | code      | version                                  | invocation |
 |-----------|------------------------------------------|------------|
 | Gaussian  | `ES64L-G16RevC.01  3-Jul-2019` (`/opt/gaussian/g16/g16`) | `g16 <deck>.gjf` |

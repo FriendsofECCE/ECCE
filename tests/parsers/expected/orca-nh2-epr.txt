@@ -1,0 +1,228 @@
+# ECCE parser regression golden file -- regenerate with run_tests.py --update
+case:    orca-nh2-epr
+desc:    orca.desc
+fixture: orca/nh2_epr.out (1282 lines)
+args:    '.' 'Energy' 'SCF' 'UHF' '1'
+
+[GEOMTRACE]  Script=orca.geomtrace  Freq=all  Skip=2  Lines=-
+  Begin=CARTESIAN COORDINATES \(ANGSTROEM\)
+  End=CARTESIAN COORDINATES \(A\.U\.\)
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=219 fed=6 rc=0 first-fed='  N      0.000000    0.000000    0.000000'
+    key: GEOMTRACE
+      size: 1 3 3
+      rowlabels: 1-N 2-H 3-H
+      columnlabels: X Y Z
+      values: 0.000000 0.000000 0.000000 0.800000 0.000000 0.600000 -0.800000 0.000000 0.600000
+      units: Angstrom
+
+[TE][TEVEC]  Script=orca.energy  Freq=all  Skip=0  Lines=1
+  Begin=FINAL SINGLE POINT ENERGY
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=817 fed=1 rc=0 first-fed='FINAL SINGLE POINT ENERGY       -55.516997632263'
+    key: TE
+      size: 1
+      values: -55.516997632263
+      units: Hartree
+    key: TEVEC
+      size: 1
+      values: -55.516997632263
+      units: Hartree
+
+[NNREPUL][ONEELEC][TWOELEC]  Script=orca.energydecomp  Freq=all  Skip=0  Lines=4
+  Begin=Nuclear Repulsion\s*:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=512 fed=4 rc=0 first-fed='Nuclear Repulsion  :          7.73921667138750 Eh             210.59479 eV'
+    key: NNREPUL
+      size: 1
+      values: 7.73921667138750
+      units: Hartree
+    key: ONEELEC
+      size: 1
+      values: -90.45287207881294
+      units: Hartree
+    key: TWOELEC
+      size: 1
+      values: 27.19665777516199
+      units: Hartree
+
+[PE][KE]  Script=orca.energydecomp  Freq=all  Skip=0  Lines=2
+  Begin=Potential Energy\s*:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=518 fed=2 rc=0 first-fed='Potential Energy   :       -110.92113933420057 Eh           -3018.31765 eV'
+    key: PE
+      size: 1
+      values: -110.92113933420057
+      units: Hartree
+    key: KE
+      size: 1
+      values: 55.40414170193712
+      units: Hartree
+
+[ORBSYM][ORBSYMBETA]  Script=orca.orbsym  Freq=last  Skip=2  Lines=-
+  Begin=ORBITAL ENERGIES
+  End=^-{4,}\s*$
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=543 fed=43 rc=0 first-fed='                 SPIN UP ORBITALS'
+    (script emitted no property)
+
+[DIPOLEORIGIN]  Script=orca.dipoleorigin  Freq=last  Skip=-  Lines=1
+  Begin=Choice of electric origin
+  begins=3 delivered=1 buffered_away=2
+  block 1: begin-line=906 fed=1 rc=0 first-fed='Choice of electric origin               ... Center of mass'
+    key: DIPOLEORIGIN
+      size: 1
+      values: centre_of_mass
+      units: NA
+
+[DIPOLE]  Script=orca.dipole  Freq=last  Skip=-  Lines=-
+  Begin=Total Dipole Moment
+  End=Rotational spectrum
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=952 fed=9 rc=0 first-fed='Total Dipole Moment    :      0.000000000      -0.000000000       0.795601348'
+    key: DIPOLE
+      size: 3
+      rowlabels: X Y Z
+      values: 0 0 2.0222579151437
+      units: Debye
+
+[MULLIKEN]  Script=orca.mulliken  Freq=last  Skip=2  Lines=-
+  Begin=MULLIKEN ATOMIC CHARGES
+  End=Sum of atomic charges
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=588 fed=4 rc=0 first-fed='   0 N :   -0.214374    1.122800'
+    key: MULLIKEN
+      size: 3
+      values: -0.214374 0.107187 0.107187
+      units: e
+
+[LOEWDIN]  Script=orca.loewdin  Freq=last  Skip=2  Lines=-
+  Begin=LOEWDIN ATOMIC CHARGES
+  End=LOEWDIN REDUCED ORBITAL CHARGES
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=649 fed=6 rc=0 first-fed='   0 N :   -0.068903    1.014599'
+    key: LOEWDIN
+      size: 3
+      values: -0.068903 0.034451 0.034451
+      units: e
+
+[BASISPATTERN]  Script=orca.basispattern  Freq=first  Skip=1  Lines=-
+  Begin=^BASIS SET INFORMATION
+  End=^Atom\s+\d
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=248 fed=7 rc=0 first-fed='---------------------'
+    key: BASISPATTERN
+      size: 1
+      values: N 511/31/1|H 31/1
+      units: NA
+
+[DELTAE]  Script=orca.deltae  Freq=all  Skip=0  Lines=1
+  Begin=^\s*\d+\s+-?\d+\.\d+\s+-?\d+\.\d+[eE][+-]\d+
+  begins=12 delivered=12 buffered_away=0
+  block 1: begin-line=478 fed=1 rc=0 first-fed='    1    -55.4647267598762355     0.00e+00  3.32e-03  2.87e-02  1.07e-01  0.700   0.2'
+    key: DELTAE
+      size: 1
+      values: 0.00e+00
+      units: Hartree
+  block 2: begin-line=479 fed=1 rc=0 first-fed='    2    -55.4827989818016292    -1.81e-02  2.47e-03  2.00e-02  7.20e-02  0.700   0.0'
+    key: DELTAE
+      size: 1
+      values: -1.81e-02
+      units: Hartree
+  block 3: begin-line=481 fed=1 rc=0 first-fed='    3    -55.4938256267395431    -1.10e-02  1.18e-03  1.11e-02  4.57e-02  0.700   0.0'
+    key: DELTAE
+      size: 1
+      values: -1.10e-02
+      units: Hartree
+  block 4: begin-line=482 fed=1 rc=0 first-fed='    4    -55.5008594664500521    -7.03e-03  2.67e-03  2.67e-02  3.28e-02  0.000   0.0'
+    key: DELTAE
+      size: 1
+      values: -7.03e-03
+      units: Hartree
+  block 5: begin-line=483 fed=1 rc=0 first-fed='    5    -55.5167668602840010    -1.59e-02  4.62e-04  4.56e-03  4.52e-03  0.000   0.0'
+    key: DELTAE
+      size: 1
+      values: -1.59e-02
+      units: Hartree
+  block 6: begin-line=488 fed=1 rc=0 first-fed='    6    -55.5169158864617387    -1.49e-04  3.71e-04  3.33e-03  2.54e-03     0.0'
+    key: DELTAE
+      size: 1
+      values: -1.49e-04
+      units: Hartree
+  block 7: begin-line=490 fed=1 rc=0 first-fed='    7    -55.5169764516521056    -6.06e-05  1.48e-04  1.30e-03  1.15e-03     0.0'
+    key: DELTAE
+      size: 1
+      values: -6.06e-05
+      units: Hartree
+  block 8: begin-line=491 fed=1 rc=0 first-fed='    8    -55.5169882380005433    -1.18e-05  2.70e-04  2.06e-03  6.46e-04     0.0'
+    key: DELTAE
+      size: 1
+      values: -1.18e-05
+      units: Hartree
+  block 9: begin-line=492 fed=1 rc=0 first-fed='    9    -55.5169974223202090    -9.18e-06  2.25e-05  1.70e-04  2.30e-04     0.0'
+    key: DELTAE
+      size: 1
+      values: -9.18e-06
+      units: Hartree
+  block 10: begin-line=493 fed=1 rc=0 first-fed='   10    -55.5169975814535803    -1.59e-07  2.04e-05  1.49e-04  9.14e-05     0.0'
+    key: DELTAE
+      size: 1
+      values: -1.59e-07
+      units: Hartree
+  block 11: begin-line=494 fed=1 rc=0 first-fed='   11    -55.5169976305249193    -4.91e-08  2.45e-06  2.69e-05  1.68e-05     0.0'
+    key: DELTAE
+      size: 1
+      values: -4.91e-08
+      units: Hartree
+  block 12: begin-line=495 fed=1 rc=0 first-fed='   12    -55.5169976320225800    -1.50e-09  1.26e-06  8.48e-06  6.40e-06     0.0'
+    key: DELTAE
+      size: 1
+      values: -1.50e-09
+      units: Hartree
+
+[ETIME]  Script=orca.etime  Freq=last  Skip=0  Lines=1
+  Begin=TOTAL RUN TIME:
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1282 fed=1 rc=0 first-fed='TOTAL RUN TIME: 0 days 0 hours 0 minutes 4 seconds 66 msec'
+    key: ETIME
+      size: 1
+      values: 4
+
+[S2]  Script=orca.s2  Freq=last  Skip=0  Lines=1
+  Begin=Expectation value of <S\*\*2>
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=538 fed=1 rc=0 first-fed='Expectation value of <S**2>     :     0.757212'
+    key: S2
+      size: 1
+      values: 0.757212
+
+[EPRG]  Script=orca.epr  Freq=last  Skip=-  Lines=-
+  Begin=^ELECTRONIC G-MATRIX\s*$
+  End=EPR g-tensor done in
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=975 fed=36 rc=0 first-fed='ELECTRONIC G-MATRIX'
+    key: EPRG
+      size: 1 4
+      rowlabels: g
+      columnlabels: g1 g2 g3 g_iso
+      values: 2.0021656 2.0033156 2.0069052 2.0041288
+      units: NA
+
+[EPRA][EPRQ]  Script=orca.epr  Freq=last  Skip=-  Lines=-
+  Begin=^ELECTRIC AND MAGNETIC HYPERFINE STRUCTURE
+  End=Hyperfine and quadrupole coupling calculation done in
+  begins=1 delivered=1 buffered_away=0
+  block 1: begin-line=1013 fed=118 rc=0 first-fed='ELECTRIC AND MAGNETIC HYPERFINE STRUCTURE (3 nuclei)'
+    key: EPRA
+      size: 3 4
+      rowlabels: 0-N 1-H 2-H
+      columnlabels: A1_MHz A2_MHz A3_MHz A_iso_MHz
+      values: 80.6615 82.7827 203.4865 122.3102 -28.7800 -114.0087 -164.1407 -102.3098 -28.7800 -114.0087 -164.1407 -102.3098
+      units: MHz
+    key: EPRQ
+      size: 1 4
+      rowlabels: 0-N
+      columnlabels: Cq_MHz Q1_MHz Q2_MHz Q3_MHz
+      values: -4.099864 0.618834497126 1.431097502874 -2.049932
+      units: MHz
+
