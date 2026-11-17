@@ -108,6 +108,8 @@ class TAtm
       short            dihedralIndex(void) const;
       double           getMass() const;
       BehaviorType     getBehaviorType() const;
+      int              fragmentId() const { return p_fragmentId; }
+      void             fragmentId(int value) { p_fragmentId = value; }
 
       // Bond Information
       const vector<TBond*>&      bondList(void) const;
@@ -221,6 +223,7 @@ class TAtm
 
       /** See BehaviorType description. */
       BehaviorType p_behavior;
+      int p_fragmentId = 0;
 
       /** The bonds for this atom. */
       vector<TBond*> p_bonds;

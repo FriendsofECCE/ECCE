@@ -850,6 +850,7 @@ void TAtm::shallowCopy(const TAtm* atm)
    displayStyle(atm->displayStyle());
    setMass(atm->getMass());
    setBehaviorType(atm->getBehaviorType());
+   fragmentId(atm->fragmentId());
 }
 
 

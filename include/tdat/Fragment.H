@@ -24,6 +24,7 @@
 #include "util/EcceException.H"
 
 #include "tdat/TAtm.H"
+#include "tdat/Counterpoise.H"
 #include "tdat/Residue.H"
 #include "tdat/TResChain.H"
 #include "tdat/IBondList.H"
@@ -85,6 +86,8 @@ class Fragment
       void name(const string& value);
       void charge(const double& value);
       void charge(const int& value);
+      const Counterpoise::States& fragmentStates() const { return p_fragmentStates; }
+      void fragmentStates(const Counterpoise::States& states) { p_fragmentStates = states; }
       void editResidueMode(int on_off, int index = -1);
       void pointGroup(const string& group);
       void useSymmetry(const bool& flag);
@@ -341,6 +344,7 @@ class Fragment
    protected:
       string                         p_name;
       int                            p_charge;
+      Counterpoise::States            p_fragmentStates;
       string                         p_pointGroup;
       bool                           p_useSymmetry;
       vector<TAtm*>                  p_atoms;
