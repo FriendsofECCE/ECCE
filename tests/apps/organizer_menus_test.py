@@ -64,11 +64,19 @@ def run(display):
                 ET.ElementTree(ET.fromstring(
                     '<value name="TE" units="Hartree">%s</value>' % energy
                 )).write(os.path.join(d, "Props", "TE"))
+        # An unlaunched fixture must offer Reset for Rerun greyed out.
+        ready = os.path.join(project, "empty_b")
+        meta = os.path.join(ready, ".ecce-meta")
+        with open(meta) as h:
+            content = h.read()
+        with open(meta, "w") as h:
+            h.write(content.replace("\tComplete\n", "\tReady\n"))
         u = "file://" + calc
         cmds = os.path.join(work, "commands")
         shots = os.environ.get("ECCE_SHOTS805", "")
         with open(cmds, "w") as h:
             h.write("menulabels %s\n" % u)
+            h.write("menulabels file://%s\n" % ready)
             h.write("menulabels file://%s\n" % project)
             h.write("tablecolumns x\n")
             h.write("tableenergies x\n")
@@ -105,7 +113,7 @@ def run(display):
         def ans(word):
             return re.findall(r"ECCE_TEST_ORGANIZER: %s .*?: (.*)$" % word, log, re.M)
         menus = ans("menulabels")
-        if not check(len(menus) == 2, "the hooks answered", log[-1500:]):
+        if not check(len(menus) == 3, "the hooks answered", log[-1500:]):
             return
         m = [x.strip() for x in menus[0].split(" | ")]
         for want in ("Cut", "Copy", "Paste", "Rename", "Delete", "New from This",
@@ -123,7 +131,14 @@ def run(display):
         # Duplicate is the one New from This item and nothing else.
         check(sum("Duplicate" in x for x in m) == 1,
               "calculation menu has exactly one Duplicate", m)
-        f = menus[1]
+        for menu in menus[:2]:
+            check("New from This/Rerun" not in menu,
+                  "New from This has no Rerun action", menu)
+        check("Run/Reset for Rerun" in m,
+              "completed calculation enables Reset for Rerun", m)
+        check("Run/Reset for Rerun (disabled)" in menus[1].split(" | "),
+              "ready calculation disables Reset for Rerun", menus[1])
+        f = menus[2]
         check("Compare Energies..." in f, "a folder offers Compare Energies", f)
         check("Checks" not in f and "Rank" not in f, "a folder has no Checks or Rank", f)
 

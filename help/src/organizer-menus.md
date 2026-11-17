@@ -65,6 +65,14 @@ as a downloaded editor copy.
   available when the job was started from this installation and has a job id
   and a run directory.
 
+### Reset for Rerun
+
+Choose **Run > Reset for Rerun** in the calculation's right-click menu to
+reuse the calculation itself. It removes the previous run's outputs and
+returns the calculation to Ready. It has the same availability and
+confirmation as **Run Mgmt > Reset for Rerun** (Alt+R). Imported results
+cannot be reset; use **New from This > Duplicate** to keep the original.
+
 The Builder, the Electronic Structure Editor (**Tools > Electronic Structure
 Editor...**, Ctrl+E), the Basis Set Tool and the Viewer are opened from the
 toolbar and the **Tools** menu; while a tool starts the Organizer shows a busy

@@ -18,7 +18,7 @@ leaves stale tree nodes, so no session means exit 2. A target in another tree go
 `ecce-rerun` uses the same request/reply pattern on `ecce_rerun_request` /
 `ecce_rerun_reply`. `CalcMgr::rerunForCommand` takes the first free `_r2`,
 `_r3`, ... name and calls `duplicateForRerun`, shared with New from This >
-Rerun (`duplicate` then `TaskJob::resetForRerun`). Optional submission uses
+Duplicate (`duplicate` then `TaskJob::resetForRerun`). Optional submission uses
 `launchForCommand` on the copy; a failed launch identifies the retained copy.
 Active jobs are refused before copying. No offline path; exit codes match move.
 

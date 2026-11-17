@@ -20,7 +20,7 @@ the element sequence and every interatomic distance (0.01 A).
 
 Provenance that ECCE does record: `ecce:orbitalguesssource` and
 `ecce:hessianfromsource` (the source's *name*, set by
-`OrbitalGuess::attach`/`attachHessianFile`). Rerun, Duplicate and Continue
+`OrbitalGuess::attach`/`attachHessianFile`). Duplicate and Continue
 from Last Geometry record nothing; the last one is found by structure.
 Several matching sources: one that changed the structure (opt, scan) wins
 over a single point that ended where it started, so an SP and a frequency

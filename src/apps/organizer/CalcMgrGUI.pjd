@@ -466,7 +466,7 @@
               <bool name="proxy-Enabled">1</bool>
               <string name="proxy-Platform">"&lt;Any platform&gt;"</string>
               <document>
-                <string name="title">"Duplicate for Rerun: wxID_DUPLICATE"</string>
+                <string name="title">"Duplicate: wxID_DUPLICATE"</string>
                 <string name="type">"dialog-control-document"</string>
                 <string name="filename">""</string>
                 <string name="icon-name">"menuitem"</string>
@@ -480,7 +480,7 @@
                 <string name="event-handler-0">"wxEVT_COMMAND_MENU_SELECTED|OnDuplicateClick"</string>
                 <string name="proxy-Id name">"wxID_DUPLICATE"</string>
                 <long name="proxy-Id value">5035</long>
-                <string name="proxy-Label">"Duplicate for Rerun"</string>
+                <string name="proxy-Label">"Duplicate"</string>
                 <string name="proxy-Kind">"Normal"</string>
                 <bool name="proxy-Checked">0</bool>
                 <bool name="proxy-Enabled">1</bool>

@@ -7,7 +7,7 @@ issues: [805, 703, 573]
 ---
 - **Calculation menu**: Cut/Copy/Paste/Rename/Delete, New from This (the
   three `wxID_DUPLICATE*` items), Run (Launch, Reconnect via `reconnectProblem`,
-  Terminate and Shell in Run Directory = the state-based Run Mgmt tasks, listed
+  Terminate, Reset for Rerun and Shell in Run Directory = the state-based Run Mgmt tasks, listed
   always and grey when the state does not offer them). The tool list is gone.
   Hook `menulabels URL` prints the labels.
 - **Command line only** (no GUI entry): Checks table, SI export, core-hours,

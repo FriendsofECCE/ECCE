@@ -19,7 +19,7 @@ be added wherever the MD types are listed (`TaskJob` serializer,
 - `EDSIFactory::createTask` makes an MD task only inside a session;
   `CT_MDRUN` is let through without one.
 - `MdTask::copy` refuses a task outside a study; `CT_MDRUN` copies as a
-  plain resource (Rerun, Continue from Last Geometry, Copy).
+  plain resource (Duplicate, Continue from Last Geometry, Copy).
 - `MdTask`'s follower walks (`resetForRerun`, `resetForRestart`,
   `canChangeState`, `getDeleteMessage`) go through `followers()`, empty
   with no session; `getSession()->` on a `CT_MDRUN` task is a SIGSEGV.

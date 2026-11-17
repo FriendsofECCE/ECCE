@@ -559,6 +559,8 @@ the output, `Props/`.
 `.hess`, cube files, PDOS): `ecce-fetch`.
 
 **Rerun.** User: a calculation's right-click menu, **New from This > Duplicate** (a copy), or **Run > Reset for Rerun** (the calculation itself), then Launch.
+The context menu's **Reset for Rerun** uses the same handler and state rules
+as **Run Mgmt > Reset for Rerun** (Alt+R); it is grey before the run ends.
 You: `ecce-rerun <calc>` (an identical copy) or `ecce-rerun --last-geometry`
 (continue from the last geometry).
 

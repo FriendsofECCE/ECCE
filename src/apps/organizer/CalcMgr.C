@@ -3389,7 +3389,7 @@ void CalcMgr::runTestCommand(const string& line)
       outcome = "ok" + testContextMenuLabels(menu);
     } else if (command == "rmtask") {
       // "rmtask URL LABEL": selects URL and runs its Run Mgmt menu item
-      // LABEL (e.g. Rerun) as the menu does; a prompt it shows is answered
+      // LABEL (e.g. Reset for Rerun) as the menu does; a prompt it shows is answered
       // Cancel after 1.5 s.
       std::istringstream args(calcName);
       string url, label;

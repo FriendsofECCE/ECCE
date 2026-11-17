@@ -3,7 +3,7 @@
 **Platforms.** Linux (Debian 13; Ubuntu 24.04, RHEL/Rocky 9 and Fedora 44 packages are built on those systems but not tested). Windows 10 and 11. macOS, Apple silicon and Intel: experimental.
 
 ## Upgrading from 9.4
-- **Organizer menus (#805):** a calculation's right-click menu is Cut, Copy, Paste, Rename, Delete, **New from This** (Rerun, Continue from Last Geometry, Continue from Final Orbitals) and **Run** (Launch, Reconnect, Terminate, Re-Parse Outputs, Shell in Run Directory). The project table has no Viewed or Size column, shows Type and Application in one column and has a Total energy column.
+- **Organizer menus (#805):** a calculation's right-click menu is Cut, Copy, Paste, Rename, Delete, **New from This** (Duplicate, Continue from Last Geometry, Continue from Final Orbitals) and **Run** (Launch, Reconnect, Terminate, Reset for Rerun, Re-Parse Outputs, Shell in Run Directory). The project table has no Viewed or Size column, shows Type and Application in one column and has a Total energy column.
 - **Local by default.** A new installation keeps calculations in a folder on this computer and asks nothing at first start. Installations already set up with a data server start as before (#767).
 - **Edit > Preferences > Data** shows the local folder and a list of servers. **Add Server** adds an ECCE server or an SSH folder; each appears in the Organizer as its own tree, with its own login, and calculations in it are launched and stored there (#767, #789).
 
