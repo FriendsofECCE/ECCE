@@ -1303,6 +1303,9 @@ wxString CalcEd::setupCommand(const wxString& arg)
           list.push_back(string(tok.GetNextToken().utf8_str()));
         steps.push_back(make_pair(string(names.Trim().utf8_str()), list));
       }
+      // The tokenizer gives no token at all for an empty string ("ecp"
+      // alone), so steps[0] below would read past the end.
+      if (steps.empty()) steps.push_back(make_pair(string(), vector<string>()));
       if (steps.size() > 1) {
         if (!p_setupArea->basisAssignMany(kind, steps)) return "no such basis set";
       } else {
