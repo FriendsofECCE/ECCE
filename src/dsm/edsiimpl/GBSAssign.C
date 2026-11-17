@@ -29,6 +29,25 @@ GBSAssign::Result GBSAssign::assign(EDSIGaussianBasisSetLibrary& library,
     return res;
   }
 
+  // An aggregate (ORCA's def2 sets) returns its ECP part for every element,
+  // empty where the element has no core; kept, it would show Def2-ECP on H.
+  for (size_t i = 0; i < gbsList.size();) {
+    TGBSConfigTags el(tag.c_str());
+    if (gbsList[i]->p_type == TGaussianBasisSet::ecp && el.size() &&
+        gbsList[i]->p_contractions.find(el[0]) ==
+            gbsList[i]->p_contractions.end()) {
+      delete gbsList[i];
+      gbsList.erase(gbsList.begin() + i);
+    } else {
+      i++;
+    }
+  }
+  if (gbsList.empty()) {
+    res.severity = ERROR;
+    res.message = notCovered;
+    return res;
+  }
+
   TGBSConfig::iterator groupIt = config->find(tag);
   EE_ASSERT((groupIt != config->end()), EE_FATAL,
             ("Trying to insert basis set into nonexistent or improperly "

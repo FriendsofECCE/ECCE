@@ -1611,9 +1611,16 @@ namespace {
 bool ecpHasCore(EDSIGaussianBasisSetLibrary& library, const string& name,
                 const string& element)
 {
-  return library.isSupported(name, TGaussianBasisSet::ecp, element) &&
-         !library.lookup(name.c_str(), TGaussianBasisSet::ecp,
-                         element.c_str()).empty();
+  if (!library.isSupported(name, TGaussianBasisSet::ecp, element))
+    return false;
+  vector<TGaussianBasisSet*> sets = library.lookup(
+      name.c_str(), TGaussianBasisSet::ecp, element.c_str());
+  bool core = false;
+  for (TGaussianBasisSet *g : sets) {
+    core = core || g->p_contractions.find(element) != g->p_contractions.end();
+    delete g;
+  }
+  return core;
 }
 
 }  // namespace
