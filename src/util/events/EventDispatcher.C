@@ -3,6 +3,7 @@
  *
  *
  */
+#include <algorithm>
 #include <iostream>
  using namespace std;
 #include "util/Event.H"
@@ -70,15 +71,14 @@ void EventDispatcher::unsubscribe(const Listener *l)
 
 void EventDispatcher::publish(const Event& event)
 {
-  size_t count = p_listeners.size();
-  vector<Listener*>::const_iterator it = p_listeners.begin();
-  while (it != p_listeners.end()) {
-    (*it)->eventMCB(event);
-    // A special hack to make sure when an event caused unsubscribe, the loop
-    // will quit to avoid possible iterator out of bound error.
-    if (p_listeners.size()<count)
-      break;
-    it++;
+  // A listener may subscribe others (the vector reallocates) or unsubscribe
+  // and destroy some while handling the event: walk a copy and skip any
+  // that left in the meantime.
+  const vector<Listener*> snapshot(p_listeners);
+  for (Listener *l : snapshot) {
+    if (std::find(p_listeners.begin(), p_listeners.end(), l) !=
+        p_listeners.end())
+      l->eventMCB(event);
   }
 }
 

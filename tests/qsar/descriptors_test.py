@@ -41,7 +41,7 @@ check(set(C.DESCRIPTIONS) == expected, "every emitted built-in column has a defi
 for name in expected:
     info = C.column_definition(name)
     check(all(info[k] for k in ("name", "description", "unit", "group")), name + " complete definition")
-with open(os.path.join(ROOT, "help", "src", "qsar-table.md")) as f:
+with open(os.path.join(ROOT, "help", "src", "qsar.md")) as f:
     help_text = f.read()
 start = help_text.index("<!-- BEGIN QSAR DESCRIPTOR KEY -->")
 end = help_text.index("<!-- END QSAR DESCRIPTOR KEY -->") + len("<!-- END QSAR DESCRIPTOR KEY -->")

@@ -75,6 +75,8 @@ public:
   // while hosted: wxFrameBase::SetMenuBar returns early when the bar equals
   // GetMenuBar(), so release could not put the bar back on the frame.
   static wxMenuBar *menuBar(const wxTopLevelWindow *tool, wxMenuBar *own);
+  // A tool's tab is being closed: the Organizer must not ask to quit.
+  static bool closingTool();
   static bool hosts(const wxTopLevelWindow *tool);
   // The window that is on screen for a tool: the main window while the tool
   // is a tab (its own frame is hidden), else the tool's frame.  For sizes,

@@ -756,10 +756,13 @@ ecce_tool_objects(machbrowser-objs src/apps/machbrowser EXCLUDE MachineBrowserAp
   LINK ${ECCE_MACHBROWSER_LINK})
 ecce_app(machbrowser src/apps/machbrowser WX MAIN MachineBrowserApp.C OBJECTS machbrowser-objs
   LINK ${ECCE_MACHBROWSER_LINK})
-ecce_app(machregister src/apps/machregister WX
-  # eccercmd for RCommand::localityNote (#144), the same decision the launch makes.
-  # eccecomm for CodePrograms, the program names Find and first start share.
-  LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccecomm eccetdat ecceutil)
+# eccercmd for RCommand::localityNote (#144), the same decision the launch makes.
+# eccecomm for CodePrograms, the program names Find and first start share.
+set(ECCE_MACHREGISTER_LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccercmd eccecomm eccetdat ecceutil)
+ecce_tool_objects(machregister-objs src/apps/machregister EXCLUDE WxMachineRegisterApp.C
+  LINK ${ECCE_MACHREGISTER_LINK})
+ecce_app(machregister src/apps/machregister WX MAIN WxMachineRegisterApp.C OBJECTS machregister-objs
+  LINK ${ECCE_MACHREGISTER_LINK})
 # The MD editors also open in the Organizer's process (#983).
 set(ECCE_MDED_LINK eccewxguimd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 foreach(_md mddynamics:MDDynamicsApp mdenergy:MDEnergyApp mdoptimize:MDOptimizeApp gmxprepare:GmxPrepareApp)
@@ -843,7 +846,7 @@ target_include_directories(builder PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/organize
 ecce_app(organizer src/apps/organizer WX GL MAIN CalcMgrApp.C
   OBJECTS organizer-objs organizer-shared-objs builder-objs calced-objs
     mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs basistool-objs mdprepare-objs launcher-objs
-    pertable-objs machbrowser-objs
+    pertable-objs machbrowser-objs machregister-objs
   LINK eccewxguimd ecce-details-wx ${ECCE_BUILDER_LINK})
 target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
@@ -5326,6 +5329,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_cif PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Build > Cut Cluster on quartz and a molecular crystal (#1033).
+  add_test(NAME apps_builder_cut_cluster
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_cut_cluster_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_cut_cluster PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # No bond orders in building; Clean's derived orders and bond lengths (#439).
   add_test(NAME apps_builder_bond_model

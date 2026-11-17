@@ -125,6 +125,7 @@ void registerGmxPrepareInProcess();
 void registerBasisToolInProcess();
 void registerPerTabInProcess();
 void registerMachBrowserInProcess();
+void registerMachRegisterInProcess();
 void registerMDPrepInProcess();
 void registerLauncherInProcess();
 
@@ -394,6 +395,7 @@ bool CalcMgrApp::OnInit()
     registerLauncherInProcess();
     registerPerTabInProcess();
     registerMachBrowserInProcess();
+    registerMachRegisterInProcess();
     string name = getMyName(), id = getMyID();
     JMSPublisher::setActingTool(name, id);
     p_calcMgr->Bind(wxEVT_ACTIVATE, [name, id](wxActivateEvent& ev) {

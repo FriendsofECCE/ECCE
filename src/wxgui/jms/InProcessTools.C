@@ -3,6 +3,8 @@
  *
  * Tool windows inside the Organizer's process (#983).
  */
+#include <cstdio>
+#include <cstdlib>
 #include <map>
 #include <vector>
 
@@ -23,6 +25,7 @@ struct Window {
   string app;
   WxJMSMessageDispatch *d;
   wxTopLevelWindow *frame;
+  string ctx;   // the calculation it was opened for
 };
 
 // Never destroyed: a dispatcher deleted during static destruction still
@@ -71,11 +74,23 @@ bool InProcessTools::open(JMSMessage& startMsg)
   WxJMSMessageDispatch *d = 0;
   if (!startMsg.getIntProperty("forcenew")) {
     string ctx = pollContext(startMsg.getProperty("calcurl"));
+    // The window's own context is set only once its invoke has run, so a
+    // second click before that (or a tool that keeps none) would open
+    // another tab: compare the context it was opened for too.
     for (const Window& w : windows())
-      if (w.app == app && w.d->getPollContext() == ctx) { d = w.d; break; }
+        if (w.app == app && (w.d->getPollContext() == ctx ||
+                             (!ctx.empty() && w.ctx == ctx))) {
+          d = w.d;
+          break;
+        }
   }
-  if (!d) d = openers()[app]();
+  string ctxNow = pollContext(startMsg.getProperty("calcurl"));
+  bool made = false;
+  if (!d) { d = openers()[app](); made = true; }
   if (!d) return false;
+  if (made)
+    for (Window& w : windows())
+      if (w.d == d) w.ctx = ctxNow;
 
   // The window gets the request as the gateway would send it, by the
   // local path, so its invoke handler raises and fills it as in its own
@@ -129,6 +144,9 @@ bool InProcessTools::closeAll(bool force)
     if (wxTheApp->IsScheduledForDestruction(t.frame)) continue;
     // A tab's save question: show which tool asks.
     ToolTabs::select(t.frame);
+    if (getenv("ECCE_TEST_ORGANIZER"))
+      fprintf(stderr, "closeAll: closing %s '%s'\n", t.app.c_str(),
+              (const char*)t.frame->GetTitle().utf8_str());
     if (!t.frame->Close(force)) return false;
   }
   return true;

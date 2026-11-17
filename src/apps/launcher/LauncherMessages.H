@@ -16,7 +16,11 @@ class WxLauncher;
 class LauncherMessages : public WxJMSMessageDispatch
 {
     public:
+        // host NULL: the panel embedded in the editor's Set-up area (no window to
+        // invoke, raise or close), which only follows data and machine changes.
         LauncherMessages(LaunchPanel *panel, WxLauncher *host);
+
+        void subscribeFollow();
 
         void subscribeMessages();
 

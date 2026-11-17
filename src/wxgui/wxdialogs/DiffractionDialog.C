@@ -369,7 +369,8 @@ void DiffractionView::paintPowder(wxGraphicsContext *gc, double W, double H) con
   const vector<double>& tt = p_tt;
   if (tt.size() < 2) return;
   const bool two = !p_meas.empty() && p_meas.size() == tt.size();
-  const double L = POW_L, R = POW_R, T = 16, B = 52, gap = 14;
+  // The pattern name sits above each panel, so it never meets a peak label.
+  const double L = POW_L, R = POW_R, T = 26, B = 52, gap = 26;
   const double pw = std::max(10.0, W - L - R);
   const int n = two ? 2 : 1;
   const double ph = std::max(10.0, (H - T - B - (n - 1) * gap) / n);
@@ -407,7 +408,8 @@ void DiffractionView::paintPowder(wxGraphicsContext *gc, double W, double H) con
     }
     gc->SetPen(wxPen(col, 1.4));
     gc->StrokePath(path);
-    text(gc, k == 0 ? (p_debye ? "Debye scattering (calculated)" : "calculated") : "measured", L + 8, top + 4, col, 1.0, true);
+    const wxString name = k == 0 ? (p_debye ? "Debye scattering (calculated)" : "calculated") : "measured";
+    text(gc, name, L, top - extent(gc, name).y - 6, col, 1.0, true);
     if (k == 0) {
       // hkl at the peaks above a threshold, strongest first, none on top of another
       vector<const Line *> order;

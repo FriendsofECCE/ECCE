@@ -24,6 +24,7 @@
 #include <wx/dnd.h>
 
 #include "util/ProgressEvent.H"
+#include "wxgui/InputBlock.H"
 #include "util/TDateTime.H"
 #include "util/JMSPublisher.H"
 #include "util/EditListener.H"
@@ -53,6 +54,7 @@ class WxFind;
 class GlobalPrefs;
 class ewxPanel;
 class ReleaseNotice;
+class QsarWindow;
 
 class WxConfigureNwfsArchive;
 
@@ -647,12 +649,9 @@ protected:
   // Tools > Batch Add from SMILES (#961).
   void OnBatchSmiles(wxCommandEvent& event);
   bool p_batchSmilesWired = false;
-  // Tools > QSAR Table (#961).
-  void OnQsarTable(wxCommandEvent& event);
-  bool p_qsarTableWired = false;
-  // Tools > QSAR Analysis (#961).
-  void OnQsarAnalysis(wxCommandEvent& event);
-  bool p_qsarAnalysisWired = false;
+  // Tools > QSAR (#996): one window per folder.
+  void OnQsar(wxCommandEvent& event);
+  bool p_qsarWired = false;
   // Ids already wired to OnGlobalTool, so rebuilding the menu does not
   // stack duplicate handlers.
   std::set<int> p_globalToolIds;
@@ -886,7 +885,7 @@ protected:
   TDateTime::DateFormat   p_dateFormat;
   TDateTime::TimeFormat   p_timeFormat;
 
-  wxWindowDisabler * p_disabler;
+  InputBlock * p_disabler;
   int p_disablerCount;
   wxBusyCursor * p_cursor;
   wxTreeItemId p_highlightId;

@@ -1008,9 +1008,13 @@ void CalcEd::doSetContext(const string& codeName)
   // Initialize each dialog separately: a saved calc may hold theory values
   // but no run type values (or vice versa), so one dialog's defaults can
   // still be missing while the other has data.
+  //  A dialog not started because its values are already saved counts as
+  //  initialized; otherwise the script's "ready" waits for it forever.
   if (isDetailsReady()) {
     if (!hasDetailsValues("ES.Theory")) startTheoryApp(true);
+    else p_theoryInitFlag = true;
     if (!hasDetailsValues("ES.Runtype")) startRuntypeApp(true);
+    else p_runtypeInitFlag = true;
   }
 
   // GDB 2/19/13  Fix for dialog states getting cleared between app invocations
@@ -1257,6 +1261,23 @@ wxString CalcEd::setupCommand(const wxString& arg)
     } else if (rest == "all") {
       if (!p_setupArea->basisUseAll()) return "not possible";
     }
+  } else if (arg.StartsWith("launch get ")) {
+    return wxString::FromUTF8(
+        p_setupArea->launchGet(string(arg.Mid(11).utf8_str())).c_str());
+  } else if (arg == "launch notify machreg" ||
+             arg.StartsWith("launch notify state ")) {
+    // Broker notices the embedded Launcher panel must follow, sent as if
+    // another tool had published them.
+    JMSMessage *msg = newMessage();
+    if (arg.EndsWith("machreg")) {
+      publish("ecce_machreg_changed", *msg);
+    } else {
+      msg->addProperty("url", p_iCalc->getURL().toString());
+      msg->addProperty("state", string(arg.Mid(20).utf8_str()));
+      publish("ecce_url_state", *msg);
+    }
+    delete msg;
+    return "sent";
   } else if (arg == "launch" || arg == "launch info" || arg == "launch go") {
     if (arg == "launch") doSave();
     if (!p_setupArea->showLaunch()) return "no Launcher panel";
@@ -2543,9 +2564,13 @@ void CalcEd::subjectMCB(wxCommandEvent& event)
   // Initialize each dialog separately: a saved calc may hold theory values
   // but no run type values (or vice versa), so one dialog's defaults can
   // still be missing while the other has data.
+  //  A dialog not started because its values are already saved counts as
+  //  initialized; otherwise the script's "ready" waits for it forever.
   if (isDetailsReady()) {
     if (!hasDetailsValues("ES.Theory")) startTheoryApp(true);
+    else p_theoryInitFlag = true;
     if (!hasDetailsValues("ES.Runtype")) startRuntypeApp(true);
+    else p_runtypeInitFlag = true;
   }
 
   // auto-save

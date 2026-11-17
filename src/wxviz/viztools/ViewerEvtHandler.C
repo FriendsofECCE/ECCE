@@ -1118,7 +1118,7 @@ void ViewerEvtHandler::restoreSettings(wxConfigBase * config)
   wxString buffer;
 
   // Set a background color and compute a default fg color
-  config->Read("Background", &buffer, "#000000");
+  config->Read("Background", &buffer, "#FFFFFF");
   ewxColor bcol(buffer);
   setBackground(bcol.Red()/255.0, bcol.Green()/255.0, bcol.Blue()/255.0);
 
@@ -1126,7 +1126,7 @@ void ViewerEvtHandler::restoreSettings(wxConfigBase * config)
   doStyleChange(style);
 
   // Now override foreground only if set
-  if (config->Read("Foreground", &buffer, "#FFFFFF")) {
+  if (config->Read("Foreground", &buffer, "#000000")) {
      ewxColor fcol(buffer);
      Command *cmd = new ForegroundCmd("Foreground", &sg);
      cmd->getParameter("red")->setDouble(fcol.Red()/255.0);

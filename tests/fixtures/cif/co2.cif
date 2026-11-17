@@ -1,0 +1,29 @@
+# Dry-ice-like molecular crystal: CO2 on the fcc sites of a 5.624 A cube, four orientations along
+# the body diagonals; hand-made P1 fixture for Cut Cluster (#1033), not a refined structure.
+data_co2
+_cell_length_a 5.624
+_cell_length_b 5.624
+_cell_length_c 5.624
+_cell_angle_alpha 90.0
+_cell_angle_beta 90.0
+_cell_angle_gamma 90.0
+_symmetry_space_group_name_H-M 'P 1'
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+C1 C 0 0 0 1
+O1a O 0.1186 0.1186 0.1186 1
+O1b O -0.1186 -0.1186 -0.1186 1
+C2 C 0 0.5 0.5 1
+O2a O 0.1186 0.3814 0.3814 1
+O2b O -0.1186 0.6186 0.6186 1
+C3 C 0.5 0 0.5 1
+O3a O 0.3814 0.1186 0.3814 1
+O3b O 0.6186 -0.1186 0.6186 1
+C4 C 0.5 0.5 0 1
+O4a O 0.3814 0.3814 0.1186 1
+O4b O 0.6186 0.6186 -0.1186 1

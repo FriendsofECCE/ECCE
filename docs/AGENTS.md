@@ -60,6 +60,14 @@ Use **Show in viewer** to hide them. This uses final stress and geometry;
 per-step vc-relax stress, CP2K ingestion and directional surfaces are not
 implemented. See [Viewer panels](../help/src/viewer-panels.md).
 
+Build > Cut Cluster (#1033) turns a periodic structure into a non-periodic
+cluster around the selected atoms. Builder script:
+`cutcluster R [center N] [whole none|molecules|units] [cap none|H|OH]` (R in
+Angstrom, N from 1; without `center` the selection is the centre). It prints one
+`BUILDER: clusteratom EL X Y Z` line per atom and `BUILDER: cluster atoms=N
+caps=M`; undo restores the periodic structure. The geometry is in the wx-free
+`tdat/ClusterCut.H`; test `tests/apps/builder_cut_cluster_test.py`.
+
 For isolated GUI checks, `ECCE_BUILDER_SCRIPT` accepts `list Stress Tensor`,
 `stressinfo` (panel summary plus one `label N anchor=x,y,z` line per principal axis; anchors lie outside the cell), `vector STRESS` (the six rendered half-arrows),
 and `viewer Stress Tensor` (toggle). `tests/apps/stress_tensor_test.py`
@@ -171,9 +179,9 @@ through the command-line tools in "Commands". You cannot click in the windows.
 
 Each window is its own program. Experimental: with `ECCE_ONE_PROCESS=1`
 in the environment of `ecce`, the Builder, the Calculation Editor, the
-Basis Set Tool, the MD editors, the Periodic Table and the Machine Browser
-open as windows of the Organizer's process instead (the last two as plain
-windows, not tabs); job programs and the other
+Basis Set Tool, the MD editors, the Periodic Table, the Machine Browser and
+Register Machines open as windows of the Organizer's process instead (the
+last three as plain windows, not tabs); job programs and the other
 tools stay separate. Off by default. Quitting the Organizer (or the
 session's `ecce_quit`) then closes those windows first, each asking about
 its own unsaved changes; Cancel in one of them cancels the Quit. Test hooks
@@ -218,6 +226,14 @@ opens the file in a Builder tab of the running copy, or of the one being
 started. `ECCE_MULTIPLE_INSTANCES=1` switches the check off. Test hook
 `raised` (Organizer command file): how many second starts reached the window.
 
+With `ECCE_ONE_PROCESS=1` the Viewer (`CalculationViewer`) is an in-process
+Builder tab as well; `start TOOL URL` twice for one calculation reuses the
+tool's tab (`inprocess` reports `Viewer=N`); closing a tool's tab never
+asks to quit the Organizer (`ToolTabs::closingTool`). Input is blocked
+during tool start and job submit by `InputBlock` (swallows mouse and key
+events, nothing disabled; the separate-window path keeps `wxWindowDisabler`).
+Checked by `ECCE_1088_ONLY=1 tests/apps/one_process_test.py`.
+
 Experimental, with `ECCE_ONE_PROCESS=1`: **Edit > Preferences > Windows
 and tabs** chooses which tools open as tabs of the Organizer's window (the
 Organizer is the first tab and cannot be closed). Presets **Normal**,
@@ -230,9 +246,10 @@ description: ECCE-QM, ORCA, xTB, Gaussian 16; others open the Python
 dialog's window) or, with no detail chosen, the input file (after an
 unsaved change, a dry run of the generator with the editor's settings,
 500 ms after the last change; the calculation is not written). The window
-is widened to 1100 px within the work area. Hook `setup info|theory|runtype|basis|launch|launch info|launch go|input|fold|unfold|save|preview|width N|set KEY VALUE|find TEXT` on the
+is widened to 1100 px within the work area. Hook `setup info|theory|runtype|basis|launch|launch info|launch go|launch get WHAT|launch notify machreg|launch notify state STATE|input|fold|unfold|save|preview|width N|set KEY VALUE|find TEXT` on the
 active Set-up tab (`area=input|theory|runtype title=... folded=0|1
 controls=N marked=<button> overlaps=N more="none|+N hidden"`, where `overlaps` counts shown controls of the editor's column whose rectangles intersect (0 is right) and `more` is the code bar's hidden-codes button; `width N` resizes the Organizer's window to N px; `preview` prints `shown=<len:fnv> file=<len:fnv>`;
+`launch get WHAT` reads the embedded Launcher panel (`machines`, `machine`, `state`, ...); `launch notify machreg|state STATE` publishes the broker notice the panel follows (machine registration changed; the calculation's state, read from its stored metadata);
 `set` edits a field of the embedded dialog as a user would, `find` says
 whether the preview contains TEXT, `basis` shows the basis panel
 (`area=basis list=N of M picked=<set> covered=H,O uncovered=<elements>
@@ -485,9 +502,10 @@ which needs no login, or `ecce-reparse <calc>...` (see below).
 (`workflows`), or Apply Recipe (`recipes`). Launch Ready Steps starts what
 can start. `ecce-workflow` is the command.
 
-**QSAR.** Tools > QSAR Table and QSAR Analysis (`qsar-table`,
-`qsar-analysis`); commands `ecce-qsar table` and `ecce-qsar pca`.
-QSAR Table header tooltips and **Key...** explain each current column;
+**QSAR.** Tools > QSAR... (help `qsar`): one window per folder with Table,
+PCA and PLS tabs; commands `ecce-qsar table`, `pca` and `pls`. PCA and PLS
+headings are words (Component 1, Variance explained (%), Cumulative ..., Importance in the model (VIP)).
+The Table tab's header tooltips and **Key...** explain each current column;
 **Copy All** copies the key. `ecce-qsar table --describe` prints all built-in
 column definitions, or the current columns when given calculation paths or
 `--from-csv FILE`. Add `--json` for `columns` objects (`name`, `description`,
@@ -502,15 +520,17 @@ prediction percentages, measured-unit errors and warnings for weak validation
 or small samples, with omissions grouped by reason. The Components grid holds
 all computed component statistics; Ctrl+C copies selected cells as TSV and
 Copy table copies the whole grid with headers. Molecule points have hover
-numbers and click selection linked to the Molecules grid; the variance plot
-shows component and cumulative explained variance. PLS adds a sorted VIP grid
+numbers; clicking one selects its molecule in the QSAR window's Table tab. The
+Variance plot (second page beside each result plot) shows component and
+cumulative explained variance. PLS adds a sorted VIP grid
 with descriptor descriptions (VIP > 1: more important than average).
 Save Results writes the displayed `analysis_components.csv`,
 `analysis_summary.txt` and PLS `analysis_vip.csv` alongside the existing numeric
 files and saved model. CLI text uses the same presentation; JSON is unchanged.
+In the QSAR window every results grid has a Copy table button and Ctrl+C.
 The `qsarpca` and `qsarpls` test hooks accept `[png [width height]]` after the
 usual model arguments, save screenshots of the report, grids and variance
-plot, and verify real clipboard, hover and click paths. Their output directory
+plot, and verify real clipboard, hover and click paths (`QsarWindow::verifyPresentation`). Their output directory
 contains `presentation.tsv`, `selection.tsv`, `hover.txt` and
 `presentation-check.txt` for script assertions. The check file also records
 painted axis labels as `plot-x`, `plot-y` and `scree-y`; all use enclosing

@@ -5,6 +5,7 @@
  */
 
 
+#include "wxgui/InputBlock.H"
 #include <fstream>
     using std::ifstream;
     using std::ofstream;
@@ -2959,7 +2960,7 @@ void LaunchPanel::launchCalc(const bool& fullLaunchFlag)
         ~DeferMessages() { if (s) s->deferMessages(false); }
     } defer(p_host);
     //  No input while the steps run; the window still repaints.
-    wxWindowDisabler noInput;
+    InputBlock noInput;
 
     while (valid && !p_launchData->done())
     {
@@ -3811,6 +3812,8 @@ string LaunchPanel::hookGet(const string& what)
         return p_lastRegisterRequest;
     if (what == "machine")
         return (string)p_machinesChoice->GetStringSelection();
+    if (what == "state")
+        return hasContext() ? ResourceUtils::stateToString(getContextState()) : "";
     if (what == "machines" || what == "queues")
     {
         ewxChoice* c = (what == "machines") ? p_machinesChoice : p_queueChoice;

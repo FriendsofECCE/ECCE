@@ -256,6 +256,20 @@ wxGTK: the embedded panel stays blank until a size event after it is made
 - `MenuPlacement::InTab` is not implemented (the design above is one
   sentence: each tab draws its own menu bar; no layout is specified).
 - A floated AUI pane stays on screen when another tab is selected.
+- Process-wide singletons (the event dispatcher, #1088) see every tool:
+  anything holding pointers to a tool's objects must drop them when the
+  tool closes (`one-process-event-dispatcher-listeners.md`).
+- Never select a tab by focusing a window in it; the notebook ignores
+  focus on a hidden page (`tab-switches-when-a-hidden-page-takes-focus.md`).
+- Launch from the editor tab is not covered by `runTabs1088` (Save and the
+  close button are); the screen greying while a tool starts or a job is
+  submitted (#1088 items 5, 6) was `startDisabler`'s `wxWindowDisabler`; now
+  `InputBlock` (an event filter, nothing disabled) in one-process mode.
+- `InProcessTools::open` reuses a window by the context it was opened for
+  as well as its poll context (set only after its first invoke).
+- Open: #1088 item 9 (Viewer in an empty box after Terminate) not
+  reproduced or fixed; item 4's Quit-ECCE cause was not found, only guarded
+  (`closingTool` in `confirmAndQuit`).
 
 ## Popups and secondary windows of a tab (#1068)
 
@@ -321,7 +335,7 @@ so there is nothing to bring in.
 |---|---|---|---|---|---|
 | Periodic Table (`pertable`) | wx frame | gateway `ecce_invoke`/`PeriodicTable` | 155 + frame in `wxgui/pertable` | none; app only does `-pipe` login and auth cache | **In, as a window** (done) |
 | Machine Browser (`machbrowser`) | wx frame | gateway, from Organizer/Launcher | 3100 | `_exit(0)` only in the `ECCE_MACHBROWSER_SHOT` test hook (not linked to a message path) | **In, as a window** (done); frame is its own `JMSPublisher`, kept |
-| Register Machines (`machregister`) | wx frame | gateway, Organizer, Launcher | 10000 | `exit()` in `JobPreview.C` and `WxMachineRegisterScript.C` (script mode); modal dialogs, test hooks, own `-pipe` login | Window, later: needs the exit() paths audited and a per-process split of `WxMachineRegisterApp::OnInit`; not a tab |
+| Register Machines (`machregister`) | wx frame | gateway, Organizer, Launcher | 10000 | `exit()` in `JobPreview.C` and `WxMachineRegisterScript.C` (script mode); modal dialogs, test hooks, own `-pipe` login | **In, as a window** (done): the `_exit`s are a forked child after `execvp` (`JobPreview.C`) and the `ECCE_MACHREG_SCRIPT` hook, neither on the window path; not a tab |
 | Solvate (`solvate`) | wx frame | gateway (AT_SOLVATE calculation) | 2000 | app main does EDSI setup per window | Tab candidate after the Builder-style adoption; own step (large, editor-like) |
 | MD Analysis (`mdanalysis`) | no | `ecce-parse`/job scripts | 80 | exit via main | Stays a process |
 | Thermochemistry (`ecce-thermo`) | no, CLI + JSON | scripts, Builder panel calls the library | 870 | `g_*` option globals in the CLI | Stays a process (the GUI is the Builder's panel) |
@@ -333,7 +347,7 @@ so there is nothing to bring in.
 | Job store (`eccejobstore`, `eccejobmaster`) | no | the job machinery | 450 | `exit()` | Stays a process |
 | Dialog helpers (`passdialog`, `hostkeydialog`, `msgdialog`, `ecce-dialog`) | small wx | a process that must ask without a window of its own (ssh, worker threads) | small | exit codes are the answer | Stay processes: the caller waits for the exit status, and the Quit hang in tool-tabs.md comes from running these in the GUI thread |
 
-## Periodic Table and Machine Browser as in-process windows
+## Periodic Table, Machine Browser and Register Machines as in-process windows
 
 `PerTabWindow.C` and `MachineBrowserWindow.C` follow the Basis Set Tool's
 split: the frame is unchanged, a small `WxJMSMessageDispatch` subclass (the
@@ -349,7 +363,15 @@ program, whose `OnInit` is unchanged.
   `wxEVT_DESTROY` on the frame: it untracks the dispatcher at once (so
   `closeAll` and the reuse lookup never see a dead frame), clears the
   dispatcher's frame pointer, and deletes it by `CallAfter`.
+- Register Machines (`MachineRegisterWindow.C`, `machregister-objs`) is the same: invoke selects `initmachine`/`initpage`, quit closes it; the app's `-admin` mode stays standalone only. Closing asks about unsaved changes as before.
 - One window each: a second request finds the tracked dispatcher
   (`InProcessTools::open`, poll context empty) and raises it.
 - Checked by `ECCE_UTILS_ONLY=1 one_process_test.py` (`runUtilityWindows`):
   open, reuse, `closetools`, open again.
+
+## The Set-up area's Launcher panel follows the broker (#1064)
+
+`EmbeddedLaunch` (`LauncherWindow.C`) owns a `LauncherMessages` with host
+NULL and `subscribeFollow()` (state, property, machine, preference notices;
+not invoke/quit/identify). It is deleted before the panel, also from the
+panel's destroy event, since its handlers hold the panel raw.

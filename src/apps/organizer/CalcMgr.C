@@ -83,6 +83,7 @@ static std::string s_registerMessage;
 #include "util/BrowserHelp.H"
 #include "util/VizThumbnail.H"
 #include "wxgui/InProcessTools.H"
+#include "wxgui/InputBlock.H"
 #include "ToolStartup.H"
 #include "wxgui/MainFrame.H"
 #include "wxgui/ToolTabs.H"
@@ -111,7 +112,7 @@ static std::string s_registerMessage;
 static std::vector<std::pair<std::string, std::string> > anotherCodeList();
 #include "dsm/SmilesBatch.H"
 #include <wx/choicdlg.h>
-#include "QsarDialog.H"
+#include "QsarWindow.H"
 #include "BatchSmilesDialog.H"
 #include "dsm/SiteScreen.H"
 #include <wx/spinctrl.h>
@@ -681,13 +682,13 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
  * umbrellawindows <pull url> <spacing> <from|-> <to|-> <eq steps> <prod steps>
  *                 the window calculations of a GROMACS pull run (#762):
  *                 "ok N | name | ..." or "failed: <why>"
- * qsartable <out.csv> <url>,<url>... [groups]
- *                 the QSAR Table dialog's rows (#961), as for "checks"; groups
- *                 is a comma list of counts,topology,models,charges,vsa,qm
- * qsarpca <outdir> <url>,<url>... [scaling] [components] [png [width height]]
- *                 QSAR Analysis (#961): the PCA of the descriptor table, its
- *                 result files written to <outdir>
- * qsarpls <outdir> <url>,<url>... <y> [scaling] [components] [test%] [permutations] [png [width height]]
+ * qsartable <out.csv> <url>,<url>... [groups] [png]
+ *                 the QSAR window's Table tab (#996): the rows written as CSV;
+ *                 groups is a comma list of counts,topology,models,charges,vsa,qm
+ * qsarpca <outdir> <url>,<url>... [scaling] [components] [png]
+ *                 the window's PCA tab: result files written to <outdir>;
+ *                 "ok | <status line>"
+ * qsarpls <outdir> <url>,<url>... <y> [scaling] [components] [test%] [permutations] [png]
  *                 the same for PLS of the measured column <y>
  * batchsmilesdialog <folder url> <table> [png]
  *                 Tools > Batch Add from SMILES with the table loaded (#961):
@@ -755,8 +756,7 @@ static const int ID_COMPARE_ENERGIES = wxNewId();
 static const int ID_SI_EXPORT = wxNewId();
 static const int ID_ALLOCATIONS = wxNewId();
 static const int ID_BATCH_SMILES = wxNewId();
-static const int ID_QSAR_TABLE = wxNewId();
-static const int ID_QSAR_ANALYSIS = wxNewId();
+static const int ID_QSAR = wxNewId();
 static vector<std::pair<string, string> > folderCalculations(Resource *folder);
 
 // Include submenu paths so tests can check the action and its enabled state.
@@ -2735,53 +2735,18 @@ void CalcMgr::runTestCommand(const string& line)
         outcome += " | " + referenceResult + " | reference=" + dlg.selectedReference();
         for (const string& name : dlg.referenceChoices()) outcome += " | choice=" + name;
       }
-    } else if (command == "qsartable") {
-      // "qsartable <out.csv> <url>,<url>... [groups]": the QSAR Table dialog's
-      // rows (folders expanded to their calculations) written as CSV (#961).
+    } else if (command == "qsartable" || command == "qsarpca" || command == "qsarpls") {
+      // "qsartable <out.csv> <url>,<url>... [groups] [png]", "qsarpca <outdir>
+      // <url>,... [scaling] [components] [png]", "qsarpls <outdir> <url>,... <y>
+      // [scaling] [components] [test%] [permutations] [png]": the QSAR window's
+      // table, PCA or PLS on the calculations; files go to <out> (#996).
       std::istringstream args(calcName);
-      string out, urls, groups = "counts,topology,models,charges,vsa,qm";
-      args >> out >> urls;
-      string g;
-      if (args >> g) groups = g;
-      vector<EcceURL> roots;
-      for (size_t at = 0; at < urls.size(); ) {
-        size_t end = urls.find(',', at);
-        if (end == string::npos) end = urls.size();
-        roots.push_back(EcceURL(urls.substr(at, end - at)));
-        at = end + 1;
-      }
-      ChecksDialog dlg(this, calculationsUnder(roots), false, &groups);
-      string why;
-      if (dlg.ok(why)) {
-        std::ofstream(out) << dlg.csv();
-        std::unique_ptr<wxDialog> key(dlg.createKey());
-        auto *box = dynamic_cast<wxTextCtrl*>(wxWindow::FindWindowByName("qsar-key-text", key.get()));
-        if (box) std::ofstream(out + ".key") << box->GetValue().ToStdString(wxConvUTF8);
-        wxCommandEvent copy(wxEVT_BUTTON, wxID_COPY);
-        key->FindWindow(wxID_COPY)->GetEventHandler()->ProcessEvent(copy);
-        if (wxTheClipboard->Open()) {
-          wxTextDataObject copied;
-          if (wxTheClipboard->GetData(copied))
-            std::ofstream(out + ".copied") << copied.GetText().ToStdString(wxConvUTF8);
-          wxTheClipboard->Close();
-        }
-        std::ofstream tips(out + ".tips");
-        for (const char *name : {"a_nH", "SlogP_VSA3", "qm_HOMO", "IC50 (nM)"})
-          tips << name << ": " << dlg.headerTooltip(name) << "\n";
-        outcome = "ok";
-      }
-      else outcome = "failed: " + why;
-    } else if (command == "qsarpca" || command == "qsarpls") {
-      // "qsarpca <outdir> <url>,<url>... [scaling] [components] [png]" and
-      // "qsarpls <outdir> <url>,<url>... <y> [scaling] [components] [test%]
-      // [permutations] [png]": the QSAR Analysis dialog's PCA or PLS on the
-      // calculations, its result files saved in <outdir> (#961).
-      std::istringstream args(calcName);
-      string outdir, urls, scaling = "uv", png, y;
+      string out, urls, groups = "counts,topology,models,charges,vsa,qm", scaling = "uv", png, y;
       int comps = 0, testPct = 0, perms = 0;
-      args >> outdir >> urls;
+      args >> out >> urls;
+      if (command == "qsartable") { string g; if (args >> g && g != "-") groups = g; }
       if (command == "qsarpls") args >> y;
-      args >> scaling >> comps;
+      if (command != "qsartable") args >> scaling >> comps;
       if (command == "qsarpls") args >> testPct >> perms;
       args >> png;
       int width = 1000, height = 650;
@@ -2793,27 +2758,48 @@ void CalcMgr::runTestCommand(const string& line)
         roots.push_back(EcceURL(urls.substr(at, end - at)));
         at = end + 1;
       }
-      QsarDialog *d = new QsarDialog(winParent(), calculationsUnder(roots)); onHost(d);
+      QsarWindow *d = new QsarWindow(this, calculationsUnder(roots), groups, nullptr, nullptr);
       string why;
-      const bool ran = d->ok(why) && (command == "qsarpca"
-          ? d->runPca(scaling, comps, why)
-          : d->runPls(y, scaling, comps, testPct, perms, why));
+      bool ran = d->ok(why);
+      if (ran && command == "qsarpca") ran = d->runPca(scaling, comps, why);
+      if (ran && command == "qsarpls") ran = d->runPls(y, scaling, comps, testPct, perms, why);
       if (!ran) outcome = "failed: " + why;
-      else if (!d->saveResults(outdir, why)) outcome = "failed: " + why;
-      else {
-        d->SetSize(wxSize(width, height));
+      else if (command == "qsartable") {
+        std::ofstream(out) << d->csv();
+        std::ofstream(out + ".key") << d->keyText();
+        std::unique_ptr<wxDialog> key(d->createKey());
+        wxCommandEvent copy(wxEVT_BUTTON, wxID_COPY);
+        key->FindWindow(wxID_COPY)->GetEventHandler()->ProcessEvent(copy);
+        if (wxTheClipboard->Open()) {
+          wxTextDataObject copied;
+          if (wxTheClipboard->GetData(copied))
+            std::ofstream(out + ".copied") << copied.GetText().ToStdString(wxConvUTF8);
+          wxTheClipboard->Close();
+        }
+        std::ofstream tips(out + ".tips");
+        for (const char *name : {"a_nH", "SlogP_VSA3", "qm_HOMO", "IC50 (nM)"})
+          tips << name << ": " << d->headerTooltip(name) << "\n";
+        outcome = "ok";
+      }
+      else if (!d->saveResults(out, why)) outcome = "failed: " + why;
+      else outcome = "ok";
+      if (ran && outcome == "ok") {
+        d->showTab(command == "qsartable" ? 0 : command == "qsarpca" ? 1 : 2);
+        if (!png.empty()) d->SetSize(wxSize(width, height));
         d->Show();
         for (int i = 0; i < 5; ++i) wxYield();
-        if (!d->verifyPresentation(outdir, why)) outcome = "failed: " + why;
-        else outcome = "ok";
-        if (!png.empty()) {
-          for (int page = 0; page < 5; ++page) {
+        if (command != "qsartable" && !d->verifyPresentation(out, why)) outcome = "failed: " + why;
+        if (!png.empty() && command == "qsartable") {
+          ecceClientShot(d, wxString::FromUTF8(png.c_str()));
+        } else if (!png.empty()) {
+          for (int page = 0; page < 3; ++page) {
             d->selectPresentationPage(page);
             for (int i = 0; i < 5; ++i) wxYield();
-            const string shot = page == 0 ? png : png + ".page" + std::to_string(page) + ".png";
-            ecceClientShot(d, wxString::FromUTF8(shot.c_str()));
+            ecceClientShot(d, wxString::FromUTF8((page == 0 ? png : png + ".page" +
+                                                  std::to_string(page) + ".png").c_str()));
           }
         }
+        outcome += " | " + d->status();
       }
       d->Destroy();
     } else if (command == "compareforcesdialog") {
@@ -3621,7 +3607,9 @@ void CalcMgr::runTestCommand(const string& line)
                 " MDPrepare=" + std::to_string(InProcessTools::count(MDPREPARE)) +
                 " Launcher=" + std::to_string(InProcessTools::count(LAUNCHER)) +
                 " PeriodicTable=" + std::to_string(InProcessTools::count(PERTAB)) +
-                " MachineBrowser=" + std::to_string(InProcessTools::count(MACHBROWSER));
+                " MachineBrowser=" + std::to_string(InProcessTools::count(MACHBROWSER)) +
+                " MachineRegister=" + std::to_string(InProcessTools::count(MACHREGISTER)) +
+                " Viewer=" + std::to_string(InProcessTools::count(CALCVIEWER));
       // Top-level windows still alive: one left over keeps the main loop
       // (and the process) running after the Organizer's frame is gone.
       for (wxWindow *w : wxTopLevelWindows)
@@ -3630,6 +3618,8 @@ void CalcMgr::runTestCommand(const string& line)
                      (w->IsShown() ? "" : "(hidden)") + "/" + string(w->GetLabel().utf8_str());
     } else if (command == "mainwindow" || command == "menu" ||
                command == "hostclose" || command == "tabs" || command == "tab" ||
+               command == "tabsel" || command == "tabsave" ||
+               command == "tabclose" || command == "tabfocus" ||
                command == "towindow" || command == "totabs" ||
                command == "charhook" || command == "tabinfo" || command == "sbinfo" ||
                command == "dialog" || command == "dialoginfo" ||
@@ -4672,6 +4662,7 @@ bool CalcMgr::confirmAndQuit()
   // after the answer has nothing left to ask.
   if (p_quitAsking) return false;
   if (p_quitConfirmed) return true;
+  if (ToolTabs::closingTool()) return false;
   if (p_batch) {
     //  Quitting would leave calculations half submitted.
     ewxMessageDialog busy(this, "Launch Selected is still submitting "
@@ -11350,9 +11341,7 @@ void CalcMgr::addGlobalTools(wxMenu & menu)
   // QSAR
   addItem(ID_BATCH_SMILES, _("Batch Add from SMILES..."), p_batchSmilesWired,
           &CalcMgr::OnBatchSmiles);
-  addItem(ID_QSAR_TABLE, _("QSAR Table..."), p_qsarTableWired, &CalcMgr::OnQsarTable);
-  addItem(ID_QSAR_ANALYSIS, _("QSAR Analysis..."), p_qsarAnalysisWired,
-          &CalcMgr::OnQsarAnalysis);
+  addItem(ID_QSAR, _("QSAR..."), p_qsarWired, &CalcMgr::OnQsar);
   menu.AppendSeparator();
 }
 
@@ -11410,61 +11399,35 @@ void CalcMgr::OnRank(wxCommandEvent&)
   dlg.ShowModal();
 }
 
-// Tools > QSAR Table (#961): descriptors and measured values of the calculations
-// of the selected folder, the groups ticked first.
-void CalcMgr::OnQsarTable(wxCommandEvent&)
+// Tools > QSAR (#996): one window per folder with the Table, PCA and PLS tabs.
+void CalcMgr::OnQsar(wxCommandEvent&)
 {
   getSelection();
   const vector<EcceURL> calcs = calculationsUnder(launchSelection());
   if (calcs.empty()) {
     wxMessageBox(_("Select the project folder (or calculations) of the batch first."),
-                 _("QSAR Table"), wxOK | wxICON_INFORMATION, this);
+                 _("QSAR"), wxOK | wxICON_INFORMATION, this);
     return;
   }
-  static const char *const names[] = {"counts", "topology", "models", "charges", "vsa", "qm"};
-  wxArrayString labels;
-  labels.Add(_("Counts: atoms, bonds, rings, donors/acceptors, rotatable bonds"));
-  labels.Add(_("Topological indices: Wiener, Zagreb, chi, Kier, Balaban, information content"));
-  labels.Add(_("Property models: SlogP, SMR, TPSA, surface area"));
-  labels.Add(_("Gasteiger charges: Q_PC+, Q_PC-, extremes"));
-  labels.Add(_("Surface areas by charge, SlogP and SMR (VSA)"));
-  labels.Add(_("From the calculations: HOMO, LUMO, gap, dipole, charges"));
-  wxMultiChoiceDialog pick(this, _("Descriptors to include:"), _("QSAR Table"), labels);
-  wxArrayInt all;
-  for (size_t i = 0; i < labels.size(); ++i) all.Add((int)i);
-  pick.SetSelections(all);
-  if (pick.ShowModal() != wxID_OK) return;
-  string groups;
-  for (int i : pick.GetSelections()) groups += (groups.empty() ? "" : ",") + string(names[i]);
-  if (groups.empty()) return;
-  ChecksDialog dlg(this, calcs, false, &groups);
+  QsarWindow *w = new QsarWindow(this, calcs, "counts,topology,models,charges,vsa,qm",
+      [this]() { getSelection(); return calculationsUnder(launchSelection()); }, nullptr);
   string why;
-  if (!dlg.ok(why)) {
+  if (!w->ok(why)) {
     if (why != "Cancelled.")
-      wxMessageBox(wxString::FromUTF8(why.c_str()), _("QSAR Table"), wxOK | wxICON_ERROR, this);
+      wxMessageBox(wxString::FromUTF8(why.c_str()), _("QSAR"), wxOK | wxICON_ERROR, this);
+    w->Destroy();
     return;
   }
-  dlg.ShowModal();
-}
-
-// Tools > QSAR Analysis (#961): PCA of the descriptor table of the selected folder.
-void CalcMgr::OnQsarAnalysis(wxCommandEvent&)
-{
-  getSelection();
-  const vector<EcceURL> calcs = calculationsUnder(launchSelection());
-  if (calcs.empty()) {
-    wxMessageBox(_("Select the project folder (or calculations) of the batch first."),
-                 _("QSAR Analysis"), wxOK | wxICON_INFORMATION, this);
-    return;
+  // One window per folder: raise the one already open.
+  for (wxWindow *c : GetChildren()) {
+    QsarWindow *o = dynamic_cast<QsarWindow *>(c);
+    if (o && o != w && o->folderKey() == w->folderKey()) {
+      w->Destroy();
+      o->Raise();
+      return;
+    }
   }
-  QsarDialog dlg(this, calcs);
-  string why;
-  if (!dlg.ok(why)) {
-    if (why != "Cancelled.")
-      wxMessageBox(wxString::FromUTF8(why.c_str()), _("QSAR Analysis"), wxOK | wxICON_ERROR, this);
-    return;
-  }
-  dlg.ShowModal();
+  w->Show();
 }
 
 void CalcMgr::OnAllocations(wxCommandEvent&)
@@ -14100,7 +14063,7 @@ void CalcMgr::createResource(ResourceType * resType,
       }
       const int answer = dialog.ShowModal();
       if (held) {
-        p_disabler = new wxWindowDisabler(ToolTabs::screenWindow(this));
+        p_disabler = new InputBlock(this);
         p_cursor = new wxBusyCursor();
       }
       if (answer == wxID_OK) {
@@ -15931,7 +15894,7 @@ int CalcMgr::startDisabler()
 {
   if (p_disablerCount == 0 && p_disabler == 0 && p_cursor == 0) {
     p_focusOnTreeBeforeDisabler = p_focusOnTree;
-    p_disabler = new wxWindowDisabler(ToolTabs::screenWindow(this));
+    p_disabler = new InputBlock(this);
     p_cursor = new wxBusyCursor();
   }
 
@@ -15951,7 +15914,8 @@ int CalcMgr::stopDisabler()
     p_disabler = 0;
     delete p_cursor;
     p_cursor = 0;
-    if (p_focusOnTreeBeforeDisabler)
+    // Not while a tool's tab is in front (#1088): the tree is hidden then.
+    if (p_focusOnTreeBeforeDisabler && !ToolTabs::activeTool())
       p_treeCtrl->SetFocus();
   }
 

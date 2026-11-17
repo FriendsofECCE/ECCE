@@ -159,8 +159,7 @@ menu is grey.
   [New Series](new-series.md).
 - **Batch Add from SMILES...**: see
   [Batch Add from SMILES](batch-from-smiles.md).
-- **QSAR Table...**: see [QSAR Table](qsar-table.md).
-- **QSAR Analysis...**: see [QSAR Analysis](qsar-analysis.md).
+- **QSAR...**: see [QSAR](qsar.md).
 - **Builder**: shown when the selection has no tools of its own; opens an
   empty Builder.
 - **Electronic Structure Editor...** (Ctrl+E): the Calculation Editor of the
@@ -313,6 +312,12 @@ Whether the tools open as tabs of the Organizer's window or each in a
 window of its own. This needs the tools to run in one program
 (`ECCE_ONE_PROCESS=1`, experimental); otherwise every tool opens in its own
 window and the tab says so.
+
+Clicking Builder, Viewer or Basis Set Tool again for a calculation that
+already has that tool open switches to its tab. Closing a tool's tab
+closes only that tool. While a tool starts or a job is submitted, clicks
+and keys are ignored and the cursor shows the wait; the controls are not
+greyed out.
 
 - **Layout**: **Normal** (the default), tools as tabs, and the Calculation Editor's tab
   is a Set-up tab: the editor on the left, a detail area on the right.

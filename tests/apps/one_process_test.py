@@ -1209,6 +1209,114 @@ def runTabsTools(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runTabs1088(display):
+    """#1088: (A) Builder and Basis Set Tool tabs opened and closed twice,
+    then a Builder beside an editor tab: no crash (closed tools left
+    listeners on the process-wide event dispatcher).  (B) Save in the
+    Builder tab and in the editor tab, and code focusing a window of the
+    hidden Organizer page, keep the tool's tab in front; the editor tab's
+    close button closes it at once.  ECCE_1088_ONLY=1 runs only this."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-1088", "created", None)
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            for _ in range(2):
+                append("start Builder " + url, 25)
+                append("closetools", 8)
+                append("start Basistool " + url, 20)
+                append("closetools", 8)
+            append("start CalculationEditor " + url, 25)
+            append("start Builder " + url, 25)
+            append("tabs", 2)                  # 1: editor, 2: Builder
+            append("tabsave", 8)               # the Builder's Save
+            append("tabsel", 2)
+            append("tab 1", 3)
+            append("tabsave", 8)               # the editor's Save
+            append("tabsel", 2)
+            append("tabfocus 0", 3)            # a hidden Organizer window
+            append("tabsel", 2)
+            append("tabclose 1", 8)            # the editor's close button
+            append("tabs", 2)
+            append("inprocess", 2)             # inprocess[0]
+            append("start Builder " + url, 10) # again: the tab is reused
+            append("start CalculationViewer " + url, 25)   # item 1: a tab
+            append("start CalculationViewer " + url, 10)   # item 2: reused
+            append("inprocess", 2)             # inprocess[1]
+            append("start Basistool " + url, 20)
+            append("start Basistool " + url, 10)           # item 2: reused
+            append("tabs", 2)                  # tabs[2]: Organizer, Builder, Viewer, Basis
+            append("tabclose 3", 8)            # item 4: closes only that tool
+            append("answer no", 4)             # the Basis Set Tool always asks
+            append("tabs", 2)                  # tabs[3]
+            append("inprocess", 2)             # inprocess[2]
+            append("close", 3)                 # File > Quit
+            append("answer", 3)
+            append("answer no", 3)
+            append("answer no", 20)
+
+        setLayout(display, "small")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
+                               "ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        if GDB:
+            print(log[-6000:])
+        # "tabs" alone: answers() matches a prefix, which takes tabsel's too.
+        tabs = re.findall(r"ECCE_TEST_ORGANIZER: tabs: (.*)$", log, re.M)
+        print("      tabs: " + "\n            ".join(tabs))
+        sel = pb.answers(log, "tabsel")
+        print("      tabsel: " + str(sel))
+        check(len(tabs) >= 1 and re.search(r"1:.*Editor", tabs[0])
+              and re.search(r"2:.*Builder.*\* ", tabs[0]),
+              "after Builder and Basis Set Tool tabs came and went, a Builder "
+              "opens beside the editor", str(tabs) + log[-3000:])
+        check(sel[:1] == ["selected=2"],
+              "Save in the Builder tab keeps the Builder tab in front", str(sel))
+        check(sel[1:2] == ["selected=1"],
+              "Save in the editor tab keeps the editor tab in front", str(sel))
+        check(sel[2:3] == ["selected=1"],
+              "focusing a window of the hidden Organizer page does not "
+              "switch to it", str(sel))
+        check(len(tabs) >= 2 and "Editor" not in tabs[1],
+              "the editor tab's close button closes it with one click",
+              str(tabs))
+        inp = pb.answers(log, "inprocess")
+        check(len(inp) >= 3 and " Builder=1 " in inp[1] and " Viewer=1 " in inp[1],
+              "the Viewer opens in this process, and a second click on Builder "
+              "or Viewer for the same calculation opens no second one", str(inp))
+        check(len(tabs) >= 3 and re.search(r"3:.*Basis", tabs[2])
+              and "4:" not in tabs[2],
+              "a second click on Basis Set Tool for the same calculation opens "
+              "no second tab", str(tabs))
+        check(len(tabs) >= 4 and "Basis" not in tabs[3] and "2:" in tabs[3]
+              and len(inp) >= 3 and " BasisTool=0 " in inp[2]
+              and " Viewer=1 " in inp[2],
+              "closing the Basis Set Tool's tab closes only that tool",
+              str(tabs) + str(inp))
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log and "SIGSEGV" not in log,
+              "the Organizer ends cleanly", "returncode %s\n%s"
+              % (result.returncode, log[-3000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def runTabsLauncher(display):
     """#983: the Launcher joins the Organizer's process.  Normal layout: the
     editor's Launch... opens a Launcher tab (no new process), the local
@@ -1347,6 +1455,11 @@ def runSetupLaunch(display):
                                 "-window", "root", os.path.join(shots, name)],
                                check=False)
 
+        def setState(name):
+            text = open(os.path.join(calc, ".ecce-meta")).read()
+            open(os.path.join(calc, ".ecce-meta"), "w").write(
+                re.sub(r"(ecce:state\t\t)\w+", r"\g<1>" + name, text))
+
         def inspect(_display):
             append("start CalculationEditor " + url, 30)
             append("setup launch", 6)
@@ -1357,6 +1470,24 @@ def runSetupLaunch(display):
             append("setup launch info", 2)
             append("setup launch info", 2)
             shot("setup-launch-1024.png")
+            # Follows the broker (#1064): a machine registered and a state
+            # change while the panel is open, without reopening it.
+            append("setup launch get machines", 2)
+            prefs = os.path.join(_display.env().get(
+                "ECCE_REALUSERHOME", os.environ.get("ECCE_REALUSERHOME", "")),
+                ".ECCE")
+            os.makedirs(prefs, exist_ok=True)
+            with open(os.path.join(prefs, "MyMachines"), "w") as h:
+                h.write("followbox\tlocalhost\tGeneric\tregistered while open\t"
+                        "Unspecified\t64:1\tssh\t:ECCE-QM\tWS\n")
+            append("setup launch notify machreg", 5)
+            append("setup launch get machines", 2)
+            setState("running")
+            append("setup launch notify state running", 5)
+            append("setup launch get state", 2)
+            setState("ready")
+            append("setup launch notify state ready", 5)
+            append("setup launch get state", 2)
             append("setup launch go", 90)
             append("setup launch info", 2)
             append("close", 3)
@@ -1390,6 +1521,16 @@ def runSetupLaunch(display):
         check(info and all("clipped=0" in i for i in info[:-1]),
               "no control of the panel is clipped at the default width or at "
               "1024 px", str(info))
+        machines = pb.answers(log, "setup launch get machines")
+        check(len(machines) == 2 and "followbox" not in machines[0]
+              and "followbox" in machines[1],
+              "a machine registered while the Set-up panel is open appears in "
+              "its list", str(machines))
+        states = pb.answers(log, "setup launch get state")
+        check(len(states) == 2 and states[0].lower() == "running"
+              and states[1].lower() == "ready",
+              "a state notice reaches the open Set-up panel (running, then "
+              "ready again)", str(states))
         tt = pb.answers(log, "tabs")
         check(tt and "Launcher" not in tt[0],
               "no Launcher tab was opened", str(tt))
@@ -1485,8 +1626,10 @@ def runUtilityWindows(display):
         def inspect(_display):
             append("start PeriodicTable", 8)
             append("start MachineBrowser", 8)
+            append("start MachineRegister", 10)
             append("inprocess", 2)
             append("start PeriodicTable", 4)   # the open one again
+            append("start MachineRegister", 4)
             append("inprocess", 2)
             append("closetools", 5)
             append("inprocess", 2)
@@ -1506,13 +1649,13 @@ def runUtilityWindows(display):
               result.signalName or log[-1500:])
         inproc = pb.answers(log, "inprocess")
         if check(len(inproc) == 4, "four window counts answered", str(inproc)):
-            check("PeriodicTable=1 MachineBrowser=1" in inproc[0]
+            check("PeriodicTable=1 MachineBrowser=1 MachineRegister=1" in inproc[0]
                   and "PeriodicTable(hidden)" not in inproc[0],
                   "both open in the Organizer, shown, with their menus",
                   inproc[0])
-            check("PeriodicTable=1" in inproc[1],
-                  "a second request reuses the open periodic table", inproc[1])
-            check("PeriodicTable=0 MachineBrowser=0" in inproc[2],
+            check("PeriodicTable=1" in inproc[1] and "MachineRegister=1" in inproc[1],
+                  "a second request reuses the open windows", inproc[1])
+            check("PeriodicTable=0 MachineBrowser=0 MachineRegister=0" in inproc[2],
                   "closing leaves the Organizer running", inproc[2])
             check("PeriodicTable=1 MachineBrowser=0" in inproc[3],
                   "a request after closing opens a fresh one", inproc[3])
@@ -1547,6 +1690,11 @@ def main():
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
+        if os.environ.get("ECCE_1088_ONLY") == "1":
+            runTabs1088(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         if os.environ.get("ECCE_POPUPS_ONLY") == "1":
             runTabsPopups(display)
             if failures:
@@ -1564,6 +1712,7 @@ def main():
         runSetupLaunch(display)
         runTabsPopups(display)
         runUtilityWindows(display)
+        runTabs1088(display)
         if os.environ.get("ECCE_TABS_ONLY") == "1":
             if failures:
                 results.fail("one-process", "; ".join(failures))

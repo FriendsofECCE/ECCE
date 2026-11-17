@@ -87,7 +87,8 @@ void BuilderMessages::subscribeMessages()
 string BuilderMessages::identify()
 {
   EcceURL url = p_builder->getContext();
-  string idnty = getenv("ECCE_INVOKE_VIEWER")? "Viewer": "Builder";
+  string idnty = (getenv("ECCE_INVOKE_VIEWER") || getMyName() == CALCVIEWER)
+      ? "Viewer": "Builder";
   string path = EDSIServerCentral().mapURLtoName(url);
 
   if (!path.empty())
