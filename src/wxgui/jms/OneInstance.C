@@ -22,6 +22,7 @@
 
 #include "wxgui/MainFrame.H"
 #include "wxgui/OneInstance.H"
+#include "wxgui/OneInstanceChannel.H"
 
 namespace {
 
@@ -31,51 +32,6 @@ wxString s_token;
 wxString s_tokenFile, s_service;
 std::vector<wxString> s_pending;   // arrived before the window existed
 bool s_released = false;
-
-const char *TOPIC = "ecce";
-
-unsigned long fnv(const wxString& s)
-{
-  unsigned long h = 2166136261UL;
-  const wxScopedCharBuffer b = s.utf8_str();
-  for (size_t i = 0; i < b.length(); i++)
-    h = ((h ^ (unsigned char)b[i]) * 16777619UL) & 0xffffffffUL;
-  return h;
-}
-
-// Per user: a private folder, short because a Unix socket path is limited
-// to about 100 characters.  Empty when no folder can be trusted: /tmp is
-// shared, and a folder someone else made there (or a symlink) must not be
-// used for the token or the socket.
-wxString runDir()
-{
-#ifdef __WXMSW__
-  wxString dir = wxStandardPaths::Get().GetTempDir() + "\\ecce-one";
-  wxFileName::Mkdir(dir, 0700, wxPATH_MKDIR_FULL);
-  return dir;
-#else
-  wxString dir;
-#ifdef __WXMAC__
-  const char *base = getenv("TMPDIR");    // per user on macOS
-#else
-  const char *base = getenv("XDG_RUNTIME_DIR");
-#endif
-  if (base && *base && base[0] == '/')
-    dir = wxString::FromUTF8(base) + "/ecce-one";
-  else
-    dir = wxString::Format("/tmp/ecce-one-%d", (int)getuid());
-  mkdir(dir.fn_str(), 0700);
-  struct stat st;
-  if (lstat(dir.fn_str(), &st) != 0 || !S_ISDIR(st.st_mode) ||
-      st.st_uid != getuid() || (st.st_mode & 077) != 0) {
-    std::cerr << "ECCE: " << dir.utf8_str()
-              << " is not a private folder of yours; single-instance "
-                 "checking is off." << std::endl;
-    return wxString();
-  }
-  return dir;
-#endif
-}
 
 // Anything without the token is dropped: the Windows DDE service is not
 // private to the user.
@@ -111,20 +67,9 @@ class Server : public wxServer
 public:
   wxConnectionBase *OnAcceptConnection(const wxString& topic) override
   {
-    return topic == TOPIC ? new Connection : 0;
+    return topic == OneInstanceChannel::TOPIC ? new Connection : 0;
   }
 };
-
-wxString serviceFor(const wxString& dir, const wxString& key)
-{
-#ifdef __WXMSW__
-  // wxServer is DDE here (wxUSE_DDE_FOR_IPC): a service name, not a port.
-  // The whole key, so two contexts of one user never share a name.
-  return "ecce-" + key;
-#else
-  return dir + "/" + key + ".sock";
-#endif
-}
 
 // Never through an existing file or link: remove, then create exclusively.
 void writeToken(const wxString& path)
@@ -145,42 +90,26 @@ void writeToken(const wxString& path)
 #endif
 }
 
-bool tellRunningCopy(const wxString& service, const wxString& tokenFile,
-                     const std::vector<wxString>& files)
-{
-  wxFile f(tokenFile);
-  wxString token;
-  if (!f.IsOpened() || !f.ReadAll(&token)) return false;
-  wxLogNull quiet;
-  wxClient client;
-  wxConnectionBase *conn = client.MakeConnection("localhost", service, TOPIC);
-  if (!conn) return false;
-  wxString msg = token;
-  for (const wxString& p : files) msg += "\n" + p;
-  bool ok = conn->Execute(msg);
-  delete conn;
-  return ok;
-}
-
 }  // namespace
 
 
 bool OneInstance::claim(const wxString& context,
                         const std::vector<wxString>& files)
 {
-  const wxString key = wxString::Format("%08lx", fnv(context));
-  const wxString dir = runDir();
-  if (dir.empty()) return true;
-  const wxString service = serviceFor(dir, key);
-  const wxString tokenFile = dir + "/" + key + ".tok";
+  const OneInstanceChannel::Place where = OneInstanceChannel::place(context);
+  if (where.dir.empty()) return true;
+  const wxString& key = where.key;
+  const wxString& service = where.service;
+  const wxString& tokenFile = where.tokenFile;
 
   s_lock = new wxSingleInstanceChecker;
-  if (!s_lock->Create("ecce-" + key + ".lock", dir + wxFILE_SEP_PATH)) return true;
+  if (!s_lock->Create("ecce-" + key + ".lock", where.dir + wxFILE_SEP_PATH))
+    return true;
   if (s_lock->IsAnotherRunning()) {
     // The copy that has the lock may still be starting: give it a few
     // seconds to open its socket.
     for (int i = 0; i < 20; i++) {
-      if (tellRunningCopy(service, tokenFile, files)) return false;
+      if (OneInstanceChannel::tell(where, files)) return false;
       wxMilliSleep(250);
     }
     return true;
@@ -208,19 +137,7 @@ bool OneInstance::claim(const wxString& context,
 
 std::vector<wxString> OneInstance::filesIn(const std::vector<wxString>& words)
 {
-  static const char *kinds[] = {"xyz", "pdb", "cif", "mvm", "car", "gro"};
-  std::vector<wxString> out;
-  for (size_t i = 0; i < words.size(); i++) {
-    if (words[i] == "-pipe") { i++; continue; }
-    if (words[i].StartsWith("-")) continue;
-    wxFileName fn(words[i]);
-    fn.MakeAbsolute();
-    const wxString ext = fn.GetExt().Lower();
-    bool known = false;
-    for (const char *k : kinds) known = known || ext == k;
-    if (known && fn.FileExists()) out.push_back(fn.GetFullPath());
-  }
-  return out;
+  return OneInstanceChannel::filesIn(words);
 }
 
 

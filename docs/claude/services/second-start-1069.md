@@ -2,7 +2,7 @@
 type: map
 title: "Second `ecce` start (#1069): the check is in organizer startup, a lock plus a local socket, keyed by user and data folder, not by session id"
 area: services
-paths: ["src/wxgui/jms/OneInstance.C", "include/wxgui/OneInstance.H", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/MainFrame.C", "packaging/ecce.in", "packaging/windows/ecce-splash", "packaging/windows/ecce.vbs", "packaging/windows/make-msi.ps1", "tests/apps/one_process_test.py"]
+paths: ["src/wxgui/jms/OneInstance.C", "include/wxgui/OneInstance.H", "src/wxgui/jms/OneInstanceChannel.C", "include/wxgui/OneInstanceChannel.H", "src/apps/oneinstance/ecce-one-instance.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/MainFrame.C", "packaging/ecce.in", "packaging/windows/ecce-splash", "packaging/windows/ecce.vbs", "packaging/windows/make-msi.ps1", "tests/apps/one_process_test.py"]
 issues: [1069, 983]
 ---
 - Where: `CalcMgrApp::OnInit`, right after `takeOneProcessSwitch` and only
@@ -10,8 +10,16 @@ issues: [1069, 983]
   started. On Linux and macOS the gateway starts the Organizer, on Windows
   ecce.cmd does; only the Organizer exists on all three, so the check sits
   there. A second launcher therefore still runs the wrapper and (Linux) the
-  gateway before the Organizer quits; a later cheap pre-check in the wrapper
-  would need a small client program.
+  gateway before the Organizer quits. Under `-remote` that gateway signed in
+  to the central server first (an "ECCE Authentication" prompt) for a start
+  that was then handed over, so `ecce` (packaging/ecce.in) runs
+  `libexec/ecce-one-instance` before the gateway: same context and channel
+  (OneInstanceChannel, GUI-free), exit 0 = handed over. Only under -remote:
+  locally the gateway's wrapper may still set ECCE_LOCAL_DATA from the
+  preference, so the launcher's context would not be the Organizer's (a local
+  data-server start still signs in before the hand-over). It never takes the
+  lock while a copy holds it; a token left by a crash (no lock held) means
+  "not running".
 - Key: user name, `ECCE_REALUSERHOME`, `ECCE_LOCAL_DATA`,
   `ECCE_SERVER_SESSION`, `ECCE_REMOTE_SERVER`, `ECCE_REMOTE_DIR`. Never
   `ECCE_SESSION_ID`, which is new at every start. A central-server client

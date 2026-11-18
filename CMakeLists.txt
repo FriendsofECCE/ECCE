@@ -726,6 +726,15 @@ target_link_libraries(ecce-force-compare PRIVATE
 # flock(1) for the session scripts where util-linux is absent (macOS).
 if(NOT WIN32)   # the Windows client has no session scripts (#133)
   add_executable(ecce-flock src/apps/flock/ecce-flock.c)
+  # `ecce` asks it whether this user's ECCE already runs before starting a
+  # gateway that would sign in (#1069). libexec, as eccebroker: a program in
+  # bin with a session id counts as an open ECCE window.
+  add_executable(ecce-one-instance src/apps/oneinstance/ecce-one-instance.C
+                 src/wxgui/jms/OneInstanceChannel.C)
+  target_compile_definitions(ecce-one-instance PRIVATE ${wxWidgets_DEFINITIONS})
+  target_include_directories(ecce-one-instance PRIVATE ${wxWidgets_INCLUDE_DIRS})
+  target_link_libraries(ecce-one-instance PRIVATE ${wxWidgets_LIBRARIES})
+  install(TARGETS ecce-one-instance RUNTIME DESTINATION libexec COMPONENT client)
 endif()
 # The server half of "ecce -admin" on a -remote client (SiteRequest).
 add_executable(ecce-site-admin src/apps/siteadmin/ecce-site-admin.C)

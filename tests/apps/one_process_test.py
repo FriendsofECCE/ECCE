@@ -416,11 +416,25 @@ def runSingleInstance(display):
                 stderr=subprocess.STDOUT, text=True, timeout=90)
             return done.returncode, time.time() - started, done.stdout
 
+        def client():
+            # What `ecce -remote` runs before it starts a gateway (#1069),
+            # with the environment the Organizer's wrapper gave it.
+            environment = display.env()
+            environment.update(env)
+            environment.setdefault("ECCE_REALUSERHOME",
+                                   os.environ.get("HOME", ""))
+            done = subprocess.run(
+                [os.path.join(apps.INSTALL, "libexec", "ecce-one-instance")],
+                env=environment, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, text=True, timeout=30)
+            return done.returncode, 0, done.stdout
+
         def inspect(_display):
             append("raised", 2)
             seen["before"] = organizers()
             seen["plain"] = second([])
             seen["file"] = second([xyz])
+            seen["client"] = client()
             time.sleep(20)                  # the Builder tab opens
             append("raised", 2)
             append("inprocess", 3)
@@ -431,13 +445,13 @@ def runSingleInstance(display):
                                "ECCE_BUILDER_SCRIPT": script},
                           inspect=inspect)
         log = result.log or ""
-        for what in ("plain", "file"):
+        for what in ("plain", "file", "client"):
             rc, secs, text = seen.get(what, (None, 0, ""))
             check(rc == 0 and secs < 30 and "already running" in text,
                   "a second start (%s) exits at once with a message" % what,
                   "rc=%s %.0f s\n%s" % (rc, secs, text[-800:]))
-        check(pb.answers(log, "raised") == ["0", "2"],
-              "the running window was asked to come to the front twice",
+        check(pb.answers(log, "raised") == ["0", "3"],
+              "the running window was asked to come to the front three times",
               str(pb.answers(log, "raised")) + log[-1500:])
         check(seen.get("before") == 1 and seen.get("after") == 1,
               "still the same number of organizer processes",
@@ -503,6 +517,16 @@ def runUntrustedDir(display):
               "nothing is created in the untrusted folder",
               str(os.listdir(folder)))
         check(alive, "the Organizer started anyway", log[-800:])
+        environment = display.env()
+        environment.update(env)
+        done = subprocess.run(
+            [os.path.join(apps.INSTALL, "libexec", "ecce-one-instance")],
+            env=environment, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            text=True, timeout=30)
+        check(done.returncode == 1 and open(victim).read() == "keep"
+              and sorted(os.listdir(folder)) == ["x.tok"],
+              "ecce-one-instance does not use the untrusted folder either "
+              "(the start goes on)", "rc=%s %s" % (done.returncode, done.stdout))
         # A private one is used, with a token only the user can read.
         run2 = os.path.join(work, "run2")
         os.makedirs(run2)
