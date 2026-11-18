@@ -52,7 +52,7 @@ def decks(calc):
     found = []
     for root, _dirs, names in os.walk(calc):
         for n in names:
-            if n.endswith(".inp"):
+            if n.endswith(".orcain"):
                 found.append(open(os.path.join(root, n), errors="replace").read())
     return "\n".join(found)
 
@@ -95,8 +95,8 @@ def solvation(display, project):
         "button save", "wait 8000"])
     tail = run_tests._tail(log, 40)
     sym.check("not generated" not in log, "solvation off: the save works", tail)
-    sym.check(re.search(r"CPCM|SMD", decks(off)) is None,
-              "solvation off: the model is not in the input", decks(off)[:600])
+    sym.check(decks(off) != "" and re.search(r"CPCM|SMD", decks(off)) is None,
+              "solvation off: there is a deck without the model", decks(off)[:600])
     model = stored(off, P + "SolvationModel")
     sym.check(model is not None and model[3] == "0",
               "solvation off: the model stays insensitive (%s)" % (model,), tail)
