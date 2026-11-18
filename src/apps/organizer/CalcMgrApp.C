@@ -21,6 +21,7 @@
 #include "wxgui/InProcessTools.H"
 #include "wxgui/MainFrame.H"
 #include "wxgui/OneInstance.H"
+#include "wxgui/OneInstanceChannel.H"
 #include "wxgui/ToolTabs.H"
 #include "util/JMSPublisher.H"
 #include "wx/wxprec.h"
@@ -192,14 +193,9 @@ bool CalcMgrApp::OnInit()
   // the session id (new at every start) but where the user's data is: a
   // central-server client, a local session and a second server are separate.
   if (ToolTabs::enabled() && !wxGetEnv("ECCE_MULTIPLE_INSTANCES", NULL)) {
-    wxString context = wxGetUserId();
-    for (const char *name : {"ECCE_REALUSERHOME", "ECCE_LOCAL_DATA",
-                             "ECCE_SERVER_SESSION", "ECCE_REMOTE_SERVER",
-                             "ECCE_REMOTE_DIR"}) {
-      wxString value;
-      wxGetEnv(name, &value);
-      context += "|" + value;
-    }
+    // ecce-one-instance (the `ecce` launcher, before its gateway signs in)
+    // computes the same context.
+    const wxString context = OneInstanceChannel::context();
     std::vector<wxString> words;
     for (int i = 1; i < argc; i++) words.push_back(argv[i]);
     addEnvFiles(words, false);

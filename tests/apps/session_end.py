@@ -1160,6 +1160,8 @@ def _remoteClient(checks, display, logdir, serverEnv, amq, dport, bport,
                      "the client's gateway is connected to the server's "
                      "broker with its data server login (connected: %s)"
                      % sorted(connectedTo(bport)))
+        remoteHandsOver(checks, cdisplay, frame,
+                        os.path.join(logdir, "remote-handover.log"), extra)
         # The teacher's session ends: its reaper runs, exactly as the
         # gateway wrapper's EXIT trap does it, and leaves the marked broker.
         reap = subprocess.run(
@@ -1366,6 +1368,47 @@ def handsOver(checks, display, frame1, log):
                      "the first Organizer is still open")
     finally:
         extra.kill()
+
+
+def remoteHandsOver(checks, display, frame1, log, extra):
+    """One program under -remote (#1069): a plain second `ecce -remote` is
+    handed to the running Organizer by `ecce` itself, before a gateway
+    starts, so it never asks for the central server's password."""
+    if os.environ.get("ECCE_ONE_PROCESS") == "0":
+        return
+    def count(name):
+        return sum(1 for exe in procs(display.name).values()
+                   if os.path.basename(exe).split(" ")[0] == name)
+    organizers = count("organizer")
+    t0 = time.time()
+    second = Session(display, log, ["-remote"], extra)
+    asked = gateway = False
+    try:
+        while time.time() - t0 < 60 and not second.ended(0.2):
+            asked = asked or any(w[1] == "ECCE Authentication"
+                                 for w in display.windows())
+            gateway = gateway or second.gateway() is not None
+        secs = time.time() - t0
+        ended = second.ended(1)
+        second.log.flush()
+        with open(log, errors="replace") as f:
+            said = f.read()
+        checks.check(ended and second.proc.returncode == 0
+                     and "already running" in said,
+                     "a second `ecce -remote` returned at once (%.1f s, "
+                     "status %s): %s" % (secs, second.proc.returncode,
+                                         said.strip()[-300:]))
+        checks.check(not gateway and not asked,
+                     "it started no gateway and asked for no password "
+                     "(gateway seen: %s, ECCE Authentication seen: %s)"
+                     % (gateway, asked))
+        checks.check(count("organizer") == organizers == 1,
+                     "still one Organizer (%d before, %d after)"
+                     % (organizers, count("organizer")))
+        checks.check(any(w[0] == frame1[0] for w in display.windows()),
+                     "the first Organizer is still open")
+    finally:
+        second.kill()
 
 
 def caseDisplays(checks, display, logdir):

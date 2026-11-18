@@ -252,6 +252,18 @@ switch_to_local() {
   passthrough=()
 }
 
+# One program (#1069): a -remote gateway asks for the server's password
+# before its Organizer could hand over to the running one, so ask the
+# running one first.  Only -remote: there the environment the Organizer
+# keys on is already final; locally the gateway's wrapper may still set
+# ECCE_LOCAL_DATA from the preference.
+if ! $bug && [ -n "${ECCE_REMOTE_SERVER:-}" ] \
+   && [ "${ECCE_ONE_PROCESS:-}" != 0 ] && [ -z "${ECCE_MULTIPLE_INSTANCES+x}" ] \
+   && [ -x "$ECCE_HOME/libexec/ecce-one-instance" ] \
+   && "$ECCE_HOME/libexec/ecce-one-instance"; then
+  exit 0
+fi
+
 if ! $bug; then
   ecce-gateway "${passthrough[@]}"
   status=$?
