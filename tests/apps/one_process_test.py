@@ -1223,7 +1223,7 @@ def runSetupTab(display):
             for mixCalc in mixes.values():
                 append("start CalculationEditor file://" + mixCalc, 25)
                 append("setup basis assign def2-tzvp @ O ; def2-svp @ H", 15)
-                append("setup basis pick Def2-ECP", 3)
+                append("setup basis pick def2-tzvp-ecp", 3)
             # The retired Basis Set Tool: its start opens the editor's panel.
             append("start Basistool " + url, 15)
             append("setup info", 2)
@@ -1413,10 +1413,10 @@ def runSetupTab(display):
                                     deck),
                   code + ": the input carries O def2-TZVP and H def2-SVP",
                   str(used) + "\n" + deck[:1500])
-        ecpPick = [a for a in allSu if "picked=Def2-ECP" in a]
+        ecpPick = [a for a in allSu if "picked=def2-tzvp-ecp" in a]
         check(ecpPick and all(" covered= " in a and "assign=off" in a
                               for a in ecpPick),
-              "Def2-ECP covers no element of water (no core): nothing to add",
+              "def2-tzvp-ecp covers no element of water (no core): nothing to add",
               str(ecpPick))
         retired = [a for a in allSu if a.startswith("area=")][-1:]
         inproc = pb.answers(log, "inprocess")
