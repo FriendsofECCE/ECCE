@@ -3733,7 +3733,7 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
-  set_tests_properties(apps_organizer_one_process PROPERTIES TIMEOUT 2700
+  set_tests_properties(apps_organizer_one_process PROPERTIES TIMEOUT 3300
                        SKIP_RETURN_CODE 77)
   # Busy cursor, status line and slow-start window while a tool starts (#1071).
   add_test(NAME apps_organizer_tool_start

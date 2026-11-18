@@ -727,8 +727,19 @@ def runSetupTab(display):
                    " 0.000000   1   0   0   0\natom_type_list:\n"
                    "        1   2\n       53   2\nnum_bonds: 1\n"
                    "bond_list: \n1 2 1.00000 2\n")
+        # #1063 stage 3: one step for a mixed set, Def2-ECP only where it
+        # has a core, fitting hidden without RI, per-atom and augmenting sets
+        # atom names reach the editor only through pdb_list (O1, H1, H2)
+        water = open(os.path.join(calc2, "Parameters", "chemsys.mvm")).read()
+        names = "".join("M %-4s HOH      1        A\n" % n
+                        for n in ("O1", "H1", "H2"))
+        calc4 = extra("water-mixed", "ORCA", water.replace(
+            "num_bonds:", "pdb_list: \n" + names + "num_bonds:", 1))
+        hi2 = extra("hi-def2ecp", "ORCA",
+                    open(os.path.join(hi, "Parameters", "chemsys.mvm")).read())
         url2, url3, hiUrl = ("file://" + calc2, "file://" + calc3,
                              "file://" + hi)
+        url4, hi2Url = "file://" + calc4, "file://" + hi2
         cmds = os.path.join(work, "commands")
         open(cmds, "w").close()
 
@@ -799,8 +810,20 @@ def runSetupTab(display):
             append("setup basis assign DZVP (DFT Orbital)", 15)  # m6
             append("setup basis fit Ahlrichs Coulomb Fitting", 15)   # m7
             shot("setup-basis-fit.png")
+            append("start CalculationEditor " + url4, 25)
+            append("setup basis assign def2-tzvp @ O ; def2-svp @ H", 15)  # n0
+            append("setup basis fit Ahlrichs Coulomb Fitting", 3)  # hidden
+            append("setup basis aug Pople-style Diffuse @ O", 15)  # n1
+            append("setup basis tight O 0 1", 15)                  # n2
+            append("setup basis assign def2-tzvp @ H1", 15)        # n3
+            append("start CalculationEditor " + hi2Url, 25)
+            append("setup basis assign def2-tzvp", 15)             # n4
+            append("setup basis ecp def2-tzvp-ecp", 15)            # n5
+            shot("setup-basis-atoms.png")
             append("close", 3)
             append("answer", 3)
+            append("answer no", 6)
+            append("answer no", 6)
             append("answer no", 6)
             append("answer no", 6)
             append("answer no", 6)
@@ -897,7 +920,7 @@ def runSetupTab(display):
               and "assigned=All_atoms:_6-31G* " in basis[9] + " ",
               "Use for all atoms assigns the set to the whole system "
               "(3-21G, then 6-31G*)", basis[6] + " / " + basis[9])
-        more += [""] * (8 - len(more))
+        more += [""] * (14 - len(more))
         # ORCA attaches its own Def2-ECP to def2 sets, so ECP text is only
         # compared for the matching ECP; equal elements print as All atoms.
         check("def2-tzvp" in more[0] and "H_took_def2-tzvp" in more[0]
@@ -908,8 +931,9 @@ def runSetupTab(display):
               "water: def2-SVP on H and def2-TZVP on O (per element)",
               more[1])
         check("H:_def2-svp" in more[2] and "O:_def2-tzvp" in more[2]
-              and "msg=Check_at_least_one_element" in more[2],
-              "no element checked: nothing assigned, the panel says so",
+              and "msg=C_is_not_in_this_chemical_system" in more[2],
+              "an element not in the system: nothing assigned, the panel "
+              "says so",
               more[2])
         check("no such basis set" in allSu, "an unknown set name is refused",
               str(allSu[-12:]))
@@ -926,6 +950,31 @@ def runSetupTab(display):
         check("charge_fit_Ahlrichs" in more[7] and "charge_fit" not in more[6],
               "NWChem: an orbital set for all atoms, then a charge fitting "
               "set added to the elements", more[6] + " / " + more[7])
+        check("fit=shown" in more[7],
+              "NWChem DFT: fitting sets are listed", more[7])
+        check("O:_def2-tzvp" in more[8] and "H:_def2-svp" in more[8]
+              and "took" not in more[8] and "fit=hidden" in more[8],
+              "ORCA without RI: 'O def2-TZVP ; H def2-SVP' is one step, "
+              "nothing is cleared, fitting sets are hidden", more[8])
+        check(allSu.count("no such basis set") >= 2,
+              "a hidden fitting set cannot be assigned", str(allSu[-20:]))
+        check("O:_def2-tzvp_+_augmenting_Pople-style_Diffuse" in more[9],
+              "an augmenting set is added to the element, which keeps its "
+              "orbital set", more[9])
+        check("not possible" not in allSu and "O:_def2-tzvp" in more[10],
+              "tight functions are added to a shell of O's set", more[10])
+        check("H1:_def2-tzvp" in more[11] and "H:_def2-svp" in more[11]
+              and "O:_def2-tzvp" in more[11],
+              "an atom (H1) takes its own set; the element's group stays "
+              "for the other hydrogens", more[11])
+        check("All_atoms:_def2-tzvp_+_ECP_Def2-ECP" in more[12],
+              "def2-TZVP for all atoms keeps the set's own Def2-ECP (for I)",
+              more[12])
+        check("I:_def2-tzvp_+_ECP_def2-tzvp" in more[13]
+              and "H:_def2-tzvp_+_ECP" not in more[13]
+              and "H:_def2-tzvp" in more[13],
+              "an ECP for all atoms goes on I (it has a core there) and not "
+              "on H", more[13])
         perElement = ""
         for root, _dirs, names in os.walk(calc2):
             for n in names:
@@ -1586,7 +1635,9 @@ def main():
         if failures:
             results.fail("one-process", "; ".join(failures))
     run_tests.checkApp = checkApp
-    sys.argv = [sys.argv[0], "--app", "organizer"] + sys.argv[1:]
+    # every scenario in one run outlasts the 2400 s default
+    sys.argv = ([sys.argv[0], "--app", "organizer", "--budget", "3000"] +
+                sys.argv[1:])
     return run_tests.main()
 
 
