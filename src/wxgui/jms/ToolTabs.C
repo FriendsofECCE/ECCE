@@ -328,6 +328,13 @@ void attachWindowMenu(wxMenuBar *mb)
     if (help == wxNOT_FOUND) mb->Append(menu, _("&Window"));
     else mb->Insert(help, menu, _("&Window"));
   }
+#ifdef __WXOSX__
+  // Cocoa's own Window menu is off (setHost), and with it its Minimize.
+  if (!menu->FindItem(wxID_ICONIZE_FRAME)) {
+    menu->Insert(0, wxID_ICONIZE_FRAME, _("Minimize\tCtrl+M"));
+    menu->InsertSeparator(1);
+  }
+#endif
   windowMenus()[mb] = std::make_pair(menu, created);
   fillWindowMenu(mb);
 }
@@ -344,6 +351,11 @@ void detachWindowMenu(wxMenuBar *mb)
   } else {
     for (int i = 0; i < WINDOW_TABS_MAX; i++)
       if (menu->FindItem(s_windowBase + i)) menu->Delete(s_windowBase + i);
+    if (menu->FindItem(wxID_ICONIZE_FRAME)) {
+      menu->Delete(wxID_ICONIZE_FRAME);
+      if (menu->GetMenuItemCount() && menu->FindItemByPosition(0)->IsSeparator())
+        menu->Delete(menu->FindItemByPosition(0));
+    }
   }
   windowMenus().erase(it);
 }
@@ -437,6 +449,10 @@ void routeMenus(wxFrame *host)
     int n = ev.GetId() - s_windowBase;
     if (s_windowBase && n >= 0 && n < WINDOW_TABS_MAX && s_book) {
       if (n < (int)s_book->GetPageCount()) s_book->SetSelection(n);
+      return;
+    }
+    if (ev.GetId() == wxID_ICONIZE_FRAME && s_hostFrame) {
+      s_hostFrame->Iconize(true);
       return;
     }
     if (wxFrame *f = menuTarget(ev.GetId())) f->GetEventHandler()->ProcessEvent(ev);
@@ -1317,6 +1333,7 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
       if (arg == "exit") id = wxID_EXIT;
       else if (arg == "about") id = wxID_ABOUT;
       else if (arg == "preferences") id = wxID_PREFERENCES;
+      else if (arg == "minimize") id = wxID_ICONIZE_FRAME;
       else if (!arg.ToLong(&id)) { outcome = "bad id"; return true; }
     }
     wxFrame *host = s_hostFrame;

@@ -46,6 +46,7 @@
 #include "BuilderGUI.H"
 
 class ICalculation;
+class ewxLogTextCtrl;
 class ClipPlanePanel;
 class AtomMeasureAngle;
 class AtomMeasureDist;
@@ -818,6 +819,8 @@ class Builder: public BuilderGUI,
       bool p_standalone;
 
       BuilderMessages *p_msgs = nullptr;
+      // Its log panel as the one-program process's ToolLog sink.
+      ewxLogTextCtrl *p_toolLog = nullptr;
       bool p_inProcess = false;
       bool p_viewerApp = false;
       bool p_closing = false;

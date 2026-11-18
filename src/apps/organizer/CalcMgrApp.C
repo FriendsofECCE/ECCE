@@ -49,6 +49,7 @@
 #include "wxgui/WxJMSMessageDispatch.H"
 #include "wxgui/WxJMSSubscriber.H"
 #include "wxgui/WxState.H"
+#include "wxgui/ToolLog.H"
 
 #include "wxgui/WxDavAuth.H"
 #include "wxgui/LocalDataMove.H"
@@ -224,6 +225,11 @@ bool CalcMgrApp::OnInit()
     }
   }
   ewxApp::OnInit();
+  // Tools run in this process share its log target: no modal log box, which
+  // on macOS stops queued events (#1123).
+  if (MqttLink::localDelivery()) ToolLog::install();
+  // Tests read log messages on stderr; the panel or box still gets them.
+  if (getenv("ECCE_TEST_ORGANIZER")) new wxLogChain(new wxLogStderr());
 #ifdef __WXMSW__
   // No gateway here: the Organizer has the session's login window.
   WxDavAuth::setRestartsOnSwitch(true);

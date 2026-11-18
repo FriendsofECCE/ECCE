@@ -19,6 +19,11 @@ public:
   virtual void OnClearText(wxCommandEvent& event);
   virtual void OnShowGateway(wxCommandEvent& event);
 
+  // The tool is closing while the process lives on (#983): no more flashes
+  // on its controls.  The handler stays pushed on the text control, which
+  // may already be gone.
+  void detach();
+
   // Called for every message that reaches the text (not status-only ones).
   void setMessageHandler(std::function<void(wxLogLevel)> f) { p_onMessage = f; }
 

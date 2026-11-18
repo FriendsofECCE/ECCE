@@ -52,8 +52,17 @@ ewxLogTextCtrl::ewxLogTextCtrl(wxTextCtrl * textCtrl, wxStatusBar * statusBar)
 }
 
 
+void ewxLogTextCtrl::detach()
+{
+  p_timer->Stop();
+  p_textCtrl = 0;
+  p_statusBar = 0;
+}
+
+
 void ewxLogTextCtrl::FlashOn(const wxColour& bkg)
 {
+  if (!p_textCtrl) return;
   wxString saved = p_textCtrl->GetValue();
   p_textCtrl->Clear();
   p_textCtrl->SetBackgroundColour(bkg);
@@ -73,6 +82,7 @@ void ewxLogTextCtrl::FlashOn(const wxColour& bkg)
  */
 void ewxLogTextCtrl::FlashOff(wxTimerEvent& WXUNUSED(event))
 {
+  if (!p_textCtrl) return;
 
   wxString saved = p_textCtrl->GetValue();
   p_textCtrl->Clear();
