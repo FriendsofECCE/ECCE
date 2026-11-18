@@ -51,8 +51,9 @@ public:
   // The Organizer's end of the session: disconnects this process's own link,
   // then keeps serving until no client (Builder, job stores, ...) has been
   // connected for graceSeconds, and stops as stopForSession().  Returns at
-  // once if nobody else is connected.
-  static void lingerForSession(int graceSeconds);
+  // once if nobody else is connected.  maxSeconds > 0 ends it after that long
+  // even with clients left (a tool that ignores ecce_quit, #1106).
+  static void lingerForSession(int graceSeconds, int maxSeconds = 0);
   // A broker program's life (eccebroker --serve, Linux and macOS): serves
   // until no client has been connected for graceSeconds (startSeconds before
   // the first one), the broker file stops naming its socket (ecce-gateway-

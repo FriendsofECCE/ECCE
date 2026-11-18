@@ -436,8 +436,9 @@ void CalcMgrApp::openUrlWhenReady(const string& url, int tries)
 int CalcMgrApp::OnExit()
 {
   // Tools and job monitors still connected keep the broker for 10 s after
-  // the last of them.
-  MqttBroker::lingerForSession(10);
+  // the last of them, for 15 s at most: a separate tool that ignores
+  // ecce_quit must not keep this process alive (#1106).
+  MqttBroker::lingerForSession(10, 15);
   return 0;
 }
 

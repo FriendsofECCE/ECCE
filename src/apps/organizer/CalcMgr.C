@@ -74,6 +74,7 @@ static std::string s_registerMessage;
 #include "util/InvalidException.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
+#include "util/MqttBroker.H"
 #include "util/Preferences.H"
 #include "util/PreferenceLabels.H"
 #include "util/ResourceUtils.H"
@@ -3642,10 +3643,7 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "gatewayquit") {
       // The session's ecce_quit as the gateway sends it, through the local
       // path to the Organizer and every in-process tool (#983).
-      JMSPublisher pub(GATEWAY);
-      JMSMessage *msg = pub.newMessage();
-      outcome = pub.publish("ecce_quit", *msg) ? "sent" : "not sent";
-      delete msg;
+      outcome = publishGatewayQuit() ? "sent" : "not sent";
     } else if (command == "closetools") {
       // After this command returns, so that a tool's own question can be
       // answered by a later "answer" line.
@@ -4659,6 +4657,17 @@ static bool offerStopServer(bool& inUse)
 }
 
 
+// Tools obey ecce_quit only from the gateway's name.
+bool CalcMgr::publishGatewayQuit()
+{
+  JMSPublisher pub(GATEWAY);
+  JMSMessage *msg = pub.newMessage();
+  bool sent = pub.publish("ecce_quit", *msg);
+  delete msg;
+  return sent;
+}
+
+
 bool CalcMgr::confirmAndQuit()
 {
   // A second close while the dialog is open runs the dialog's own event
@@ -4711,6 +4720,10 @@ bool CalcMgr::confirmAndQuit()
   // Hosted: the Organizer's frame goes before the window that holds it.
   if (MainFrame *host = MainFrame::instance()) host->shutdown();
   else Destroy();
+  // Only the Organizer that hosts the session's broker (Windows, local)
+  // has no gateway to end the separate tools; without this the broker
+  // lingers while they stay connected (#1106).
+  if (MqttBroker::hostsSession()) publishGatewayQuit();
   if (getenv("ECCE_TEST_ORGANIZER")) {
     // Test hook (#983): a top-level window still alive 3 s after Quit keeps
     // the process running; name them.
