@@ -102,6 +102,13 @@ class EcceqmRunTypePanel(EccePanel):
             ircSizer.AddWidget(self.ircHessEvery)
             self.panelSizer.Add(ircSizer)
 
+        if EcceGlobals.RunType in ("Geometry", "IRC"):
+            ptSizer = EcceBoxSizer(self, label="Scan and Reaction Path Points", cols=1)
+            ptSizer.AddWidget(EcceCheckBox(
+                self, label=" Store orbitals at every point (off: smaller output, no orbitals per point)",
+                name="ES.Runtype.PointOrbitals", default=True, export=1))
+            self.panelSizer.Add(ptSizer)
+
         if EcceGlobals.RunType == "Energy":
             cpSizer = EcceBoxSizer(self, label="Counterpoise Correction", cols=1)
             self.useCp = EcceCheckBox(self,

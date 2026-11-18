@@ -10,7 +10,7 @@ CASES = [(rt, v, want) for rt in ("Energy", "Geometry", "Vibration", "GeoVib")
          for v, want in (("0", "localise false"), ("1", None), (None, None))]
 
 
-def deck(runtype, localise):
+def deck(runtype, localise, extra=()):
     work = tempfile.mkdtemp(prefix="ecce-qmdeck-")
     try:
         shutil.copy(os.path.join(PARSERS, "ecceqm.tpl"), os.path.join(work, "t.tpl"))
@@ -22,6 +22,7 @@ def deck(runtype, localise):
                   "ChemSys.Multiplicity: 1"]
         if localise is not None:
             params.append("ES.Theory.ECCEQM.Localise: " + localise)
+        params.extend(extra)
         open(os.path.join(work, "w.param"), "w").write("\n".join(params) + "\n")
         p = subprocess.run(["perl", os.path.join(PARSERS, "ai.ecceqm"), "-p", "-f", "-b",
                             "-n", "w", "-t", "t.tpl"], cwd=work, capture_output=True,
@@ -39,6 +40,15 @@ def main():
         got = [l for l in deck(runtype, localise).splitlines() if l.startswith("localise")]
         ok = got == ([want] if want else [])
         print("%-4s %s Localise=%s -> %s" % ("ok" if ok else "FAIL", runtype, localise, got))
+        fails += not ok
+    # Store orbitals at every point (#1114): only an unticked box is written, and only
+    # for the run types that scan or follow a path.
+    for runtype, v, want in (("IRC", "0", "point_orbitals no"), ("Geometry", "0", "point_orbitals no"),
+                             ("IRC", "1", None), ("Geometry", None, None), ("Energy", "0", None)):
+        got = [l for l in deck(runtype, None, ["ES.Runtype.PointOrbitals: " + v] if v else []).splitlines()
+               if l.startswith("point_orbitals")]
+        ok = got == ([want] if want else [])
+        print("%-4s %s PointOrbitals=%s -> %s" % ("ok" if ok else "FAIL", runtype, v, got))
         fails += not ok
     return 1 if fails else 0
 

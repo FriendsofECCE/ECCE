@@ -109,6 +109,13 @@ point, so it is followed by its character, not by its number; an open
 playback with the box unticked, only change the geometry. If the surface of a
 point takes longer to draw than the delay between points, the points in
 between are skipped and the newest surface is drawn.
+**Runtype Details** has **Store orbitals at every point** for Geometry
+(relaxed scan) and IRC runs. It is ticked by default. Unticked, the output
+keeps the energies and structures of the points and the orbitals of the final
+structure, but not the orbitals of each point, which makes the stored
+calculation much smaller (about 17 MB less for an IRC of 20 atoms); the orbital
+panels then show the last point only. In an input file the keyword is
+`point_orbitals no`.
 A transition-state guess can also come from two calculations, a reactant and a
 product (**TS Search** in the Calculation Editor).
 

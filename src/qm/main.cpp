@@ -238,7 +238,7 @@ int main(int argc, char** argv) {
       ts.energy = e0.energy;
       // Taken before the Hessian's displaced SCFs replace r.
       std::vector<qm::PointOrbitals> back_orb, fwd_orb;
-      const qm::PointOrbitals ts_orb = qm::point_orbitals(r);
+      const qm::PointOrbitals ts_orb = in.point_orbitals ? qm::point_orbitals(r) : qm::PointOrbitals();
       auto table = [&]() {
         std::vector<qm::IrcPoint> all(back.rbegin(), back.rend());
         all.push_back(ts);
@@ -254,7 +254,7 @@ int main(int argc, char** argv) {
         qm::irc_path(in.mol, H0, sign, in.irc, evaluate, hess, [&](const qm::IrcPoint& p) {
           into.push_back(p);
           if (!same(at_full, p.mol)) evaluate(p.mol);
-          orb.push_back(qm::point_orbitals(r));
+          if (in.point_orbitals) orb.push_back(qm::point_orbitals(r));
           qm::write_irc_table(os, table());
           qm::write_progress_irc(os, ++done, total);
           if (verbose) std::cerr << "irc point s = " << p.s << "  E = " << p.energy << "\n";
@@ -268,7 +268,7 @@ int main(int argc, char** argv) {
       const std::vector<qm::IrcPoint> all = table();
       qm::write_irc_table(os, all);
       qm::write_irc_geometries(os, all);
-      {
+      if (in.point_orbitals) {
         std::vector<const qm::PointOrbitals*> orbs;
         for (auto it = back_orb.rbegin(); it != back_orb.rend(); ++it) orbs.push_back(&*it);
         orbs.push_back(&ts_orb);
@@ -316,7 +316,7 @@ int main(int argc, char** argv) {
         traces.scan.push_back(tp);
         traces.scan_unit = bond ? "bohr" : "radian";
         qm::write_scan_geometry(os, k + 1, p.value, res.mol);
-        qm::write_point_orbitals(os, k + 1, qm::point_orbitals(r));
+        if (in.point_orbitals) qm::write_point_orbitals(os, k + 1, qm::point_orbitals(r));
         qm::write_scan_table(os, pts, bond);
         qm::write_progress_scan(os, k + 1, in.scan.points);
         if (verbose) std::cerr << "scan point " << k + 1 << "/" << in.scan.points << "  E = " << p.energy << "\n";
