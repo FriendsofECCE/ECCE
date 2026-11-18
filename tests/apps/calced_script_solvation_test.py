@@ -7,8 +7,8 @@ script's gui/guiw skip the dialog, so the model used to stay stored as
 insensitive and ai.orca refused the empty model.  Checked: with solvation on
 the save works, the input has CPCM(water) and SetupParams stores the model
 as sensitive; with it switched off again the model is stored insensitive and
-is not in the input.  Also #1112: the Organizer's "setup basis pick
-ma-def2-SVP" gives an ORCA calculation with C, H and O that basis.
+is not in the input.  Also #1112: the Organizer's "setup basis assign
+ma-def2-svp" gives an ORCA calculation with C, H and O that basis.
 
 Same installed tree, isolation and services as run_tests.py.  Exit 77
 (skip) without an install or Xvfb.
@@ -43,6 +43,8 @@ def makeCalc(project, name, source):
     text = open(meta, errors="surrogateescape").read().replace(
         "ecce:state\t\tComplete", "ecce:state\t\tReady")
     open(meta, "w", errors="surrogateescape").write(text)
+    # The fixture has no Inputs folder; without it the save cannot store the deck.
+    os.makedirs(os.path.join(path, "Inputs"), exist_ok=True)
     return path
 
 
@@ -115,9 +117,9 @@ def basisPick(display, project):
     def inspect(_display):
         append("start CalculationEditor file://" + calc, 25)
         append("tabs", 2)
-        append("setup basis pick ma-def2-SVP", 4)
+        # library names are lower case; assign also saves
+        append("setup basis assign ma-def2-svp", 15)
         append("setup basis", 3)
-        append("setup save", 15)
         append("close", 3)
         append("answer no", 10)
 
@@ -131,9 +133,8 @@ def basisPick(display, project):
         log = result.log or ""
         areas = re.findall(r"ECCE_TEST_ORGANIZER: setup[^:]*: (area=basis.*)", log)
         tail = run_tests._tail(log, 40)
-        sym.check(bool(areas) and all(e in areas[-1].lower() for e in
-                  ("c:_ma-def2-svp", "h:_ma-def2-svp", "o:_ma-def2-svp")),
-                  "#1112: C, H and O are assigned ma-def2-SVP (%s)"
+        sym.check(bool(areas) and "all_atoms:_ma-def2-svp" in areas[-1].lower(),
+                  "#1112: ma-def2-svp is assigned to all atoms (C, H, O) (%s)"
                   % (areas[-1] if areas else "no basis line"), tail)
         sym.check("ma-def2-svp" in decks(calc).lower(),
                   "#1112: the generated input uses ma-def2-SVP", decks(calc)[:600])
