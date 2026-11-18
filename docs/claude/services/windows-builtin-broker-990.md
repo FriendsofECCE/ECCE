@@ -57,8 +57,15 @@ sockets, in ecceutil, wx-free) runs in the Organizer.
   in `$XDG_RUNTIME_DIR/ecce-<uid>-*/`). The reap sweep (every
   `ecce-gateway-start`) removes one that `eccebroker --alive SOCK` cannot
   connect to; never by age, since a live session's broker may be days old.
-  Test: `ctest -R session-stale-broker-socket`. A probe is one connection,
-  which restarts a client-less broker's 60 s first-client wait.
+  Test: `ctest -R session-stale-broker-socket`. **A probe is a connection,
+  and a connection to a client-less broker restarts its 60 s first-client
+  wait** (`serveForSession`; it is how an adopting `eccebroker --serve` is
+  told an app is starting, #1040). The first version probed every socket,
+  and the sweep in each wrapper's EXIT trap then kept every session's broker
+  up about a minute after its last client instead of 10 s. A socket a broker
+  file still names is never probed (its broker is live, or the file's own
+  sweep comes first). When a broker "does not end", count who connects to
+  it before looking at clients: `holders()` in `tests/apps/session_end.py`.
 - **Escape hatch.** `ECCE_BROKER=mosquitto` in the environment of `ecce.cmd`
   runs the old path (`ecce-broker-win` + a mosquitto installed on the machine
   and found by `ecce-find-mosquitto`; mosquitto.exe is no longer bundled).
