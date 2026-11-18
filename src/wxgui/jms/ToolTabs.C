@@ -4,6 +4,7 @@
  * Tools as tabs of the Organizer's window (#983 stage 2).  See ToolTabs.H
  * and docs/claude/services/tools-as-tabs.md.
  */
+#include <cstdio>
 #include <cstdlib>
 #include <map>
 #include <vector>
@@ -290,11 +291,20 @@ std::map<wxMenuBar*, std::pair<wxMenu*, bool> >& windowMenus()
   return *m;
 }
 
+// ECCE_DEBUG_MENUS=1: each bar operation on stderr, for platforms where a
+// menu fault ends the program with no trace of the step (#1119).
+void menuLog(const char *what, wxMenuBar *mb)
+{
+  static const bool on = getenv("ECCE_DEBUG_MENUS") != 0;
+  if (on) fprintf(stderr, "ECCE menus: %s %p\n", what, (void*)mb);
+}
+
 void fillWindowMenu(wxMenuBar *mb)
 {
   auto it = windowMenus().find(mb);
   if (it == windowMenus().end() || !s_book) return;
   wxMenu *menu = it->second.first;
+  menuLog("fill", mb);
   for (int i = 0; i < WINDOW_TABS_MAX; i++)
     if (menu->FindItem(s_windowBase + i)) menu->Delete(s_windowBase + i);
   for (size_t i = 0; i < s_book->GetPageCount() && i < (size_t)WINDOW_TABS_MAX; i++) {
@@ -307,6 +317,7 @@ void fillWindowMenu(wxMenuBar *mb)
 
 void attachWindowMenu(wxMenuBar *mb)
 {
+  menuLog("attach", mb);
   if (!mb || windowMenus().count(mb)) return;
   if (!s_windowBase) s_windowBase = wxWindow::NewControlId(WINDOW_TABS_MAX);
   int idx = mb->FindMenu(_("Window"));
@@ -323,6 +334,7 @@ void attachWindowMenu(wxMenuBar *mb)
 
 void detachWindowMenu(wxMenuBar *mb)
 {
+  menuLog("detach", mb);
   auto it = windowMenus().find(mb);
   if (it == windowMenus().end()) return;
   wxMenu *menu = it->second.first;
@@ -357,7 +369,9 @@ void putBar(wxMenuBar *mb)
   wxMenuBar *old = s_hostFrame->wxFrame::GetMenuBar();
   if (old != mb) {
     detachWindowMenu(old);
+    menuLog("set", mb);
     s_hostFrame->SetMenuBar(mb);
+    menuLog("set done", mb);
   }
   attachWindowMenu(mb);
   fillWindowMenu(mb);
@@ -764,6 +778,12 @@ ToolTabs::MenuPlacement ToolTabs::menuPlacement()
 void ToolTabs::setHost(wxFrame *host)
 {
   if (s_hostFrame || !host) return;
+#ifdef __WXOSX__
+  // wx's automatic Window menu empties any menu titled "Window" natively each
+  // time a bar is installed, behind wx's back; deleting our tab items from it
+  // then raises an NSMenu exception (#1119).  The tabs' Window menu is ours.
+  wxMenuBar::SetAutoWindowMenu(false);
+#endif
   s_hostFrame = host;
   s_book = new wxAuiNotebook(host, wxID_ANY, wxDefaultPosition, wxDefaultSize,
                              wxAUI_NB_TOP | wxAUI_NB_TAB_MOVE |
@@ -1043,6 +1063,14 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
 {
   Tab *t = findTool(tlw);
   if (!t || !t->page) return;
+  // The host went first (an exception ended the main loop, #1119): the
+  // page and the bar on the host went with it.
+  if (!s_book || !s_hostFrame) {
+    if (!showFrame)
+      for (size_t i = 0; i < tabs().size(); i++)
+        if (tabs()[i].tool == t->tool) { tabs().erase(tabs().begin() + i); break; }
+    return;
+  }
   wxFrame *tool = t->tool;
   wxWindow *page = t->page;
   wxSize size = page->GetSize();
