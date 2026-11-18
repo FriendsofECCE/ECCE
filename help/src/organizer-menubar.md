@@ -310,8 +310,8 @@ machine. This tab lists every supported code, hidden or not:
 
 Whether the tools open as tabs of the Organizer's window or each in a
 window of its own. This needs the tools to run in one program
-(`ECCE_ONE_PROCESS=1`, experimental); otherwise every tool opens in its own
-window and the tab says so.
+(the default); with `ECCE_ONE_PROCESS=0` in the environment every tool opens
+in its own window and the tab says so.
 
 Clicking Builder, Viewer or Basis Set Tool again for a calculation that
 already has that tool open switches to its tab. Closing a tool's tab
@@ -366,6 +366,11 @@ greyed out.
   forwarding. **Wide**: every tool in a window of its own, as
   in earlier versions, for large or several monitors. **Custom** is shown
   once the table below has been changed.
+- **Window menu**: with tools as tabs, every tab's menu bar has a **Window**
+  menu (before **Help**) listing the open tabs; choosing one switches to it.
+  The window's title names the tab you are on. **Quit**, **Preferences** and
+  **About** are the Organizer's whichever tab is active, so Quit from a
+  Builder tab asks "Quit ECCE" for the whole session.
 - **Customize...**: one row per tool (Builder / Viewer, Calculation Editor,
   Basis Set Tool, MD editors, MD Prepare, Launcher), each **Tab** or **Window**,
   filled from the chosen layout. Changing a row and pressing **OK** makes

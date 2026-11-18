@@ -18,6 +18,9 @@ INTERNAL = {
     "ecce-broker-win", "ecce-prewarm", "ecce-splash",
     "ecce-session-lib.sh", "ecce-apparmor-mosquitto", "ecce-broker-run",
     "ecce-flock", "ecce-nwchem-datadir",
+    # Helpers other commands run or import: ecce-mlp runs ecce-mlp-driver,
+    # the site screen runs ecce-sites, ecce-spectrum imports jcampdx.py.
+    "ecce-mlp-driver", "ecce-sites", "jcampdx.py",
 }
 # These public job drivers live in scripts/ because gensub also stages them.
 SCRIPT_COMMANDS = {"ecce-mlp", "ecce-confsearch", "ecce-csh2sh"}

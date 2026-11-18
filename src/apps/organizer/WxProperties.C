@@ -79,7 +79,7 @@ void WxProperties::setContext(WxResourceTreeItemData *itemData)
     p_propPanel->Destroy();
   }
 
-  CalcMgr* calcmgr = dynamic_cast<CalcMgr*>(GetParent());
+  CalcMgr* calcmgr = p_owner ? p_owner : dynamic_cast<CalcMgr*>(GetParent());
   NULLPOINTEREXCEPTION(calcmgr, "Could not cast from wxWindow to CalcMgr.");
 
   p_propPanel = new PropertyContextPanel(calcmgr, itemData, this);

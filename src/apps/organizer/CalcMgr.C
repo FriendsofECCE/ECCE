@@ -74,6 +74,7 @@ static std::string s_registerMessage;
 #include "util/InvalidException.H"
 #include "util/JMSMessage.H"
 #include "util/JMSPublisher.H"
+#include "util/MqttBroker.H"
 #include "util/Preferences.H"
 #include "util/PreferenceLabels.H"
 #include "util/ResourceUtils.H"
@@ -85,6 +86,7 @@ static std::string s_registerMessage;
 #include "wxgui/InProcessTools.H"
 #include "wxgui/InputBlock.H"
 #include "ToolStartup.H"
+#include "wxgui/MainFrame.H"
 #include "wxgui/ToolTabs.H"
 #include "wxgui/WindowShot.H"
 #include <wx/display.h>
@@ -553,7 +555,7 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   }
   // Ticking a code in Preferences > Codes shows in File > New at once.
   CodeChoice::setListener([this]() {
-    wxMenuBar * mb = GetMenuBar();
+    wxMenuBar * mb = ownMenuBar();
     int fm = mb ? mb->FindMenu(_("File")) : wxNOT_FOUND;
     if (fm != wxNOT_FOUND) getFileMenu(*mb->GetMenu(fm), 0);
   });
@@ -779,14 +781,82 @@ static string newWorkflowName(const vector<Resource*>& calcs,
 
 TextFileViewer *CalcMgr::viewFile(const EcceURL& url)
 {
-  auto *viewer = new TextFileViewer(this, url);
+  auto *viewer = new TextFileViewer(winParent(), url); onHost(viewer);
   viewer->Show();
   return viewer;
 }
 
+wxWindow *CalcMgr::winParent() const
+{
+  return ToolTabs::screenWindow(this);
+}
+
+void CalcMgr::trackSecondary(wxWindow *w)
+{
+  if (!w || !ToolTabs::hosts(this)) return;
+  ToolTabs::secondaryOpened(w, w->GetParent());
+  for (const wxWeakRef<wxWindow>& r : p_secondary) if (r.get() == w) return;
+  p_secondary.push_back(w);
+}
+
 wxMenuBar *CalcMgr::ownMenuBar() const
 {
-  return ToolTabs::mainMenuBar(this, GetMenuBar());
+  return ToolTabs::menuBar(this, wxFrame::GetMenuBar());
+}
+
+
+bool CalcMgr::Show(bool show)
+{
+  if (ToolTabs::hosts(this)) {
+    if (show) ToolTabs::select(this);
+    return true;
+  }
+  return CalcMgrGUI::Show(show);
+}
+
+
+void CalcMgr::Raise()
+{
+  if (ToolTabs::hosts(this)) ToolTabs::select(this);
+  else CalcMgrGUI::Raise();
+}
+
+
+// The window on screen is the host: Iconize(false) on the hidden frame
+// would map it.
+void CalcMgr::Iconize(bool iconize)
+{
+  if (ToolTabs::hosts(this)) ToolTabs::screenWindow(this)->Iconize(iconize);
+  else CalcMgrGUI::Iconize(iconize);
+}
+
+
+void CalcMgr::SetTitle(const wxString& title)
+{
+  CalcMgrGUI::SetTitle(title);
+  ToolTabs::setTitle(this, title);
+}
+
+
+bool CalcMgr::Destroy()
+{
+  // The host owns the geometry from here on (saveSettings).
+  if (ToolTabs::hosts(this)) p_wasHosted = true;
+  // Children of the host now, so they would outlive this window.
+  // Destroy(), not delete: one of them may be running an event handler.
+  for (wxWeakRef<wxWindow>& r : p_secondary) if (r) r->Destroy();
+  p_secondary.clear();
+  p_find = 0;
+  p_prefs = 0;
+  p_accessControlDialog = 0;
+  ToolTabs::release(this, false);
+  return CalcMgrGUI::Destroy();
+}
+
+
+bool CalcMgr::Layout()
+{
+  return ToolTabs::layout(this) ? true : CalcMgrGUI::Layout();
 }
 
 
@@ -930,9 +1000,9 @@ void CalcMgr::runTestCommand(const string& line)
           wxTimer timer;
           timer.Bind(wxEVT_TIMER, [&](wxTimerEvent&) {
             wxScreenDC screen;
-            wxBitmap bitmap(GetSize().x, GetSize().y, 24);
+            wxBitmap bitmap(ToolTabs::screenWindow(this)->GetSize().x, ToolTabs::screenWindow(this)->GetSize().y, 24);
             wxMemoryDC memory(bitmap);
-            wxPoint pos = GetScreenPosition();
+            wxPoint pos = ToolTabs::screenWindow(this)->GetScreenPosition();
             memory.Blit(0, 0, bitmap.GetWidth(), bitmap.GetHeight(), &screen, pos.x, pos.y);
             memory.SelectObject(wxNullBitmap);
             outcome = bitmap.SaveFile(wxString::FromUTF8(a.c_str()), wxBITMAP_TYPE_PNG)
@@ -1231,12 +1301,12 @@ void CalcMgr::runTestCommand(const string& line)
             vector<RecipeFragment> parts;
             if (parseFragments(fragSpec, parts)) panel->setFragments(parts);
             panel->setAutoRun(autorun);
-            SetSize(1500, 900);
+            ToolTabs::screenWindow(this)->SetSize(1500, 900);
             Raise();
             for (int i = 0; i < 8; i++) wxYield();
             panel->scrollToFragments();
             for (int i = 0; i < 4; i++) wxYield();
-            outcome = (png == "-" || ecceWindowShot(this, png) ? "ok " : "not saved ") +
+            outcome = (png == "-" || ecceWindowShot(ToolTabs::screenWindow(this), png) ? "ok " : "not saved ") +
                       panel->report();
           }
         } else if (command == "workflowrecipehere") {
@@ -1257,27 +1327,27 @@ void CalcMgr::runTestCommand(const string& line)
         } else if (command == "workflowresults") {
           outcome = "ok " + wp->resultLines();
         } else if (command == "workflowrate") {
-          SetSize(1500, 900);
+          ToolTabs::screenWindow(this)->SetSize(1500, 900);
           Raise();
           for (int i = 0; i < 4; i++) wxYield();
           string t = wp->rateText(rateT);
           for (int i = 0; i < 4; i++) wxYield();
           for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
           outcome = "ok " + t;
-          if (!ratePng.empty()) outcome += ecceWindowShot(this, ratePng) ? " png saved" : " png failed";
+          if (!ratePng.empty()) outcome += ecceWindowShot(ToolTabs::screenWindow(this), ratePng) ? " png saved" : " png failed";
           if (!rateCsv.empty()) {
             const string why = wp->rateDetailsCsv(rateCsv, rateRange);
             outcome += why.empty() ? " csv saved" : " csv failed: " + why;
           }
         } else if (command == "workflowfragorb") {
-          SetSize(1500, 900);
+          ToolTabs::screenWindow(this)->SetSize(1500, 900);
           Raise();
           for (int i = 0; i < 4; i++) wxYield();
           string t = wp->fragOrbText();
           for (int i = 0; i < 4; i++) wxYield();
           for (size_t i = 0; i < t.size(); i++) if (t[i] == '\n') t[i] = '|';
           outcome = "ok " + t;
-          if (!ratePng.empty()) outcome += ecceWindowShot(this, ratePng) ? " png saved" : " png failed";
+          if (!ratePng.empty()) outcome += ecceWindowShot(ToolTabs::screenWindow(this), ratePng) ? " png saved" : " png failed";
           if (!detailsPng.empty() || !rateCsv.empty()) {
             FragOrbDetailsDialog *d = wp->fragOrbDetails();
             if (!d) outcome += " details: none";
@@ -1834,11 +1904,11 @@ void CalcMgr::runTestCommand(const string& line)
             p_contextPanel->selectResource(EcceURL(c));
             wxYield();
           }
-          SetSize(1300, 900);     // the whole drawing and the code bar
+          ToolTabs::screenWindow(this)->SetSize(1300, 900);     // the whole drawing and the code bar
           Raise();
           for (int i = 0; i < 5; i++) wxYield();
           wp->layoutReport();
-          outcome = (ecceWindowShot(this, d) ? "ok " : "not saved ") +
+          outcome = (ecceWindowShot(ToolTabs::screenWindow(this), d) ? "ok " : "not saved ") +
                     wp->layoutReport();
         }
       } else if (command == "workflownew") {
@@ -2552,10 +2622,10 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "size") {
       int w = 0, h = 0;
       std::istringstream(calcName) >> w >> h;
-      if (w > 0 && h > 0) SetSize(w, h);
+      if (w > 0 && h > 0) ToolTabs::screenWindow(this)->SetSize(w, h);
       for (int i = 0; i < 5; i++) wxYield();
-      outcome = "ok " + std::to_string(GetSize().x) + "x" +
-                std::to_string(GetSize().y);
+      outcome = "ok " + std::to_string(ToolTabs::screenWindow(this)->GetSize().x) + "x" +
+                std::to_string(ToolTabs::screenWindow(this)->GetSize().y);
     } else if (command == "firstvisible") {
       for (int i = 0; i < 5; i++) wxYield();
       wxTreeItemId first = p_treeCtrl->GetFirstVisibleItem();
@@ -2628,7 +2698,7 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "allocations") {
       // "allocations": opens Tools > Allocations, waits up to 10 s for the
       // answers and prints each row as "ALLOC: machine|account|used|checked".
-      AllocationsDialog *d = new AllocationsDialog(this);
+      AllocationsDialog *d = new AllocationsDialog(winParent()); onHost(d);
       d->Show();
       for (int i = 0; i < 100 && (i == 0 || d->checking()); i++) {
         wxMilliSleep(100);
@@ -2759,7 +2829,7 @@ void CalcMgr::runTestCommand(const string& line)
       std::istringstream args(calcName);
       string a, b, png;
       args >> a >> b >> png;
-      CompareForcesDialog *d = new CompareForcesDialog(this, a, b);
+      CompareForcesDialog *d = new CompareForcesDialog(winParent(), a, b); onHost(d);
       d->Show();
       for (int i = 0; i < 5; ++i) wxYield();
       if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
@@ -2788,9 +2858,9 @@ void CalcMgr::runTestCommand(const string& line)
       } else {
         // Sides as in compareenergies; the lists are those of the project
         // of the first calculation.
-        CompareEnergiesDialog *d = new CompareEnergiesDialog(this,
+        CompareEnergiesDialog *d = new CompareEnergiesDialog(winParent(),
             calculationsIn(EcceURL(parseSide(ua)[0].first).getParent().toString()),
-            parseSide(ua), parseSide(ub));
+            parseSide(ua), parseSide(ub)); onHost(d);
         d->Show();
         if (!kelvin.empty()) d->setTemperature(kelvin);
         for (int i = 0; i < 5; i++) wxYield();
@@ -2819,7 +2889,7 @@ void CalcMgr::runTestCommand(const string& line)
         base = body.substr(7, nl == string::npos ? string::npos : nl - 7);
         while (!base.empty() && isspace((unsigned char)base.back())) base.pop_back();
       }
-      ReactionOverviewDialog *d = new ReactionOverviewDialog(this, body, base);
+      ReactionOverviewDialog *d = new ReactionOverviewDialog(winParent(), body, base); onHost(d);
       d->Show();
       d->setTreatment(treatment);
       if (!kelvin.empty()) d->setTemperature(kelvin);
@@ -2845,7 +2915,7 @@ void CalcMgr::runTestCommand(const string& line)
       std::istringstream args(calcName);
       string folder, treatment, png, flag;
       args >> folder >> treatment >> png;
-      ReactionOverviewDialog *d = new ReactionOverviewDialog(this, "", folder);
+      ReactionOverviewDialog *d = new ReactionOverviewDialog(winParent(), "", folder); onHost(d);
       d->Show();
       d->setTreatment(treatment);
       for (int i = 0; i < 5; i++) wxYield();
@@ -2900,7 +2970,7 @@ void CalcMgr::runTestCommand(const string& line)
       while (names.size() < frags.size()) names.push_back("fragment-" + std::to_string(names.size() + 1));
       string heading;
       for (size_t k = 0; k < names.size(); k++) heading += (k ? " | " : "") + names[k];
-      FragOrbDetailsDialog *d = new FragOrbDetailsDialog(this, complex, frags, names, heading);
+      FragOrbDetailsDialog *d = new FragOrbDetailsDialog(winParent(), complex, frags, names, heading); onHost(d);
       d->SetSize(sizeW, sizeH);
       d->Show();
       for (int i = 0; i < 10; i++) wxYield();
@@ -3259,8 +3329,8 @@ void CalcMgr::runTestCommand(const string& line)
         else png = w;
       }
       Resource *folder = EDSIFactory::getResource(EcceURL(f));
-      BatchSmilesDialog *d = new BatchSmilesDialog(this, folder ? folder->getName() : "?",
-                                                   folderCalculations(folder));
+      BatchSmilesDialog *d = new BatchSmilesDialog(winParent(), folder ? folder->getName() : "?",
+                                                   folderCalculations(folder)); onHost(d);
       string why;
       if (!d->loadFile(file, why)) outcome = "failed: " + why;
       else if (command == "batchsmilesdialog") {
@@ -3298,8 +3368,8 @@ void CalcMgr::runTestCommand(const string& line)
       string t, png;
       args >> t >> png;
       WxResourceTreeItemData *n = findNode(EcceURL(t), true, true);
-      SiteScreenDialog *d = new SiteScreenDialog(this, wxString::FromUTF8(
-          n ? n->getResource()->getName().c_str() : "host"), "");
+      SiteScreenDialog *d = new SiteScreenDialog(winParent(), wxString::FromUTF8(
+          n ? n->getResource()->getName().c_str() : "host"), ""); onHost(d);
       d->Show();
       for (int i = 0; i < 5; ++i) wxYield();
       if (!png.empty()) ecceClientShot(d, wxString::FromUTF8(png.c_str()));
@@ -3442,13 +3512,54 @@ void CalcMgr::runTestCommand(const string& line)
                             CodeChoice::hiddenCount());
       outcome = "ok";
       for (const string& l : dlg.labels()) outcome += " code=" + l + ";";
+    } else if (command == "orgwindow" || command == "orgwindowinfo") {
+      // "orgwindow prefs|find|props URL" opens one of the Organizer's
+      // modeless windows; "orgwindowinfo" reports, 1.5 s on, whether it is
+      // transient for the main window, inside it and mapped (#1065).
+      if (command == "orgwindowinfo") {
+        outcome = p_orgWindowInfo.empty() ? "none" : p_orgWindowInfo;
+      } else {
+        std::istringstream args(calcName);
+        string what, u;
+        args >> what >> u;
+        wxWindow *w = 0;
+        if (what == "prefs") {
+          if (p_prefs == (GlobalPrefs*)0) { p_prefs = new GlobalPrefs(winParent()); onHost(p_prefs); }
+          p_prefs->Show(true);
+          w = p_prefs;
+        } else if (what == "find") {
+          wxCommandEvent none;
+          OnFindClick(none);
+          w = p_find;
+        } else if (what == "props") {
+          WxResourceTreeItemData *n = findNode(EcceURL(u), true, true);
+          if (n) { viewProperties(n); w = p_secondary.empty() ? 0 : p_secondary.back().get(); }
+        }
+        if (!w) {
+          outcome = "no window";
+        } else {
+          p_orgWindowInfo = "pending";
+          wxWeakRef<wxWindow> ref(w);
+          CallAfter([this, ref]() {
+            auto *t = new wxTimer;
+            t->Bind(wxEVT_TIMER, [this, ref, t](wxTimerEvent&) {
+              p_orgWindowInfo = ref ? string(ToolTabs::describeSecondary(ref.get()).utf8_str())
+                                    : "gone";
+              t->Stop();
+              CallAfter([t]() { delete t; });
+            });
+            t->StartOnce(1500);
+          });
+          outcome = "opened " + what;
+        }
+      }
     } else if (command == "prefs") {
       // "prefs open|colours jmol|colours ecce|advanced KEY on|childenv VAR|state|snap PATH": the
       // Preferences window, its Colours tab as a click chooses.
       std::istringstream args(calcName);
       string what, arg;
       args >> what >> arg;
-      if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(this);
+      if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(winParent()); onHost(p_prefs);
       p_prefs->Show(true);
       if (what == "codes") {
         // "prefs codes list|page [hiddenfirst]|tick NAME on|off|all|registered"
@@ -3505,6 +3616,9 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = "ok";
       }
       }
+    } else if (command == "raised") {
+      // Second starts that reached this window (#1069).
+      outcome = std::to_string(MainFrame::raiseCount());
     } else if (command == "inprocess") {
       // Tool windows open in this process (#983, ECCE_ONE_PROCESS=1).
       outcome = "pid=" + MqttLink::processId() +
@@ -3525,7 +3639,8 @@ void CalcMgr::runTestCommand(const string& line)
         if (w != this)
           outcome += string(" tlw=") + wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
                      (w->IsShown() ? "" : "(hidden)") + "/" + string(w->GetLabel().utf8_str());
-    } else if (command == "tabs" || command == "tab" ||
+    } else if (command == "mainwindow" || command == "menu" ||
+               command == "hostclose" || command == "tabs" || command == "tab" ||
                command == "tabsel" || command == "tabsave" ||
                command == "tabclose" || command == "tabfocus" ||
                command == "towindow" || command == "totabs" ||
@@ -3535,7 +3650,8 @@ void CalcMgr::runTestCommand(const string& line)
                command == "float" || command == "floatinfo" ||
                command == "layout" || command == "tabmenu" ||
                command == "alwayswindow" || command == "setup" ||
-               command == "launcher") {
+               command == "launcher" || command == "windowmenu" ||
+               command == "quitlabel") {
       // Tools as tabs (#983): list, select, Open in Window, Move to Tabs,
       // the Windows and tabs setting, the tab's right-click menu.
       wxString result;
@@ -3545,10 +3661,7 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "gatewayquit") {
       // The session's ecce_quit as the gateway sends it, through the local
       // path to the Organizer and every in-process tool (#983).
-      JMSPublisher pub(GATEWAY);
-      JMSMessage *msg = pub.newMessage();
-      outcome = pub.publish("ecce_quit", *msg) ? "sent" : "not sent";
-      delete msg;
+      outcome = publishGatewayQuit() ? "sent" : "not sent";
     } else if (command == "closetools") {
       // After this command returns, so that a tool's own question can be
       // answered by a later "answer" line.
@@ -3587,7 +3700,8 @@ void CalcMgr::runTestCommand(const string& line)
     } else if (command == "close") {
       int n = atoi(calcName.c_str());
       if (n < 1) n = 1;
-      for (int i = 0; i < n; i++) CallAfter([this]() { Close(); });
+      for (int i = 0; i < n; i++)
+        CallAfter([this]() { ToolTabs::screenWindow(this)->Close(); });
       outcome = "queued";
     } else if (command == "answer") {
       outcome = "no dialog";
@@ -3643,6 +3757,8 @@ CalcMgr::~CalcMgr( )
   p_toolStartup = 0;
   CodeChoice::setListener(nullptr);
   delete p_releaseNotice;
+  if (ToolTabs::hosts(this)) p_wasHosted = true;
+  ToolTabs::release(this, false);
   saveSettings();
   int low, high;
   ResourceDescriptor rs = ResourceDescriptor::getResourceDescriptor();
@@ -3843,7 +3959,7 @@ void CalcMgr::serversMenu(wxMenu& menu)
     CallAfter([this]() {
       wxCommandEvent event;
       OnPreferencesClick(event);
-      p_prefs->showDataPage();
+      if (p_prefs) p_prefs->showDataPage();
     });
   }, manage);
 }
@@ -4144,8 +4260,8 @@ void CalcMgr::saveSettings()
 
   Preferences prefs("Organizer");
 
-  saveWindowSettings("Organizer", prefs, true);
-  
+  // Hosted: the MainFrame saves the window's rectangle under the same prefix.
+  if (!p_wasHosted) saveWindowSettings("Organizer", prefs, true);
 
   prefs.setInt("Organizer.TreeWidth",
                (int)(p_splitterWindow->GetSashPosition() /
@@ -4559,6 +4675,17 @@ static bool offerStopServer(bool& inUse)
 }
 
 
+// Tools obey ecce_quit only from the gateway's name.
+bool CalcMgr::publishGatewayQuit()
+{
+  JMSPublisher pub(GATEWAY);
+  JMSMessage *msg = pub.newMessage();
+  bool sent = pub.publish("ecce_quit", *msg);
+  delete msg;
+  return sent;
+}
+
+
 bool CalcMgr::confirmAndQuit()
 {
   // A second close while the dialog is open runs the dialog's own event
@@ -4608,7 +4735,13 @@ bool CalcMgr::confirmAndQuit()
     return false;
 
   p_quitConfirmed = true;
-  Destroy();
+  // Hosted: the Organizer's frame goes before the window that holds it.
+  if (MainFrame *host = MainFrame::instance()) host->shutdown();
+  else Destroy();
+  // Only the Organizer that hosts the session's broker (Windows, local)
+  // has no gateway to end the separate tools; without this the broker
+  // lingers while they stay connected (#1106).
+  if (MqttBroker::hostsSession()) publishGatewayQuit();
   if (getenv("ECCE_TEST_ORGANIZER")) {
     // Test hook (#983): a top-level window still alive 3 s after Quit keeps
     // the process running; name them.
@@ -4984,7 +5117,7 @@ void CalcMgr::appendMoreCodes( wxMenu& menu )
 
 void CalcMgr::OnMoreCodesClick( wxCommandEvent& event )
 {
-  if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(this);
+  if (p_prefs == (GlobalPrefs*)0) p_prefs = new GlobalPrefs(winParent()); onHost(p_prefs);
   p_prefs->showCodesPage(true);
   p_prefs->Show(true);
   p_prefs->Raise();
@@ -7159,7 +7292,7 @@ void CalcMgr::OnRenameClick( wxCommandEvent& event )
 void CalcMgr::OnFindClick( wxCommandEvent& event )
 {
   if(p_find == (WxFind*)0) {
-    p_find = new WxFind(this);
+    p_find = new WxFind(winParent()); onHost(p_find); p_find->setOwner(this);
   }
   p_find->Show(true);
   updateFindDlg();
@@ -7174,7 +7307,7 @@ void CalcMgr::OnFindClick( wxCommandEvent& event )
 void CalcMgr::OnPreferencesClick( wxCommandEvent& event )
 {
   if (p_prefs == (GlobalPrefs*)0) {
-    p_prefs = new GlobalPrefs(this);
+    p_prefs = new GlobalPrefs(winParent()); onHost(p_prefs);
   }
   p_prefs->Show(true);
   p_prefs->Raise();
@@ -11279,7 +11412,7 @@ CompareEnergiesDialog *CalcMgr::newCompareEnergiesDialog(
     project = (isCalc ? sel[0].getParent() : sel[0]).toString();
     if (isCalc && sel.size() == 1) a.push_back(std::make_pair(sel[0].toString(), 1));
   }
-  return new CompareEnergiesDialog(this, calculationsIn(project), a, b);
+  return new CompareEnergiesDialog(winParent(), calculationsIn(project), a, b);
 }
 
 void CalcMgr::OnCompareEnergies(wxCommandEvent&)
@@ -11346,7 +11479,9 @@ void CalcMgr::OnQsar(wxCommandEvent&)
 void CalcMgr::OnAllocations(wxCommandEvent&)
 {
   //  Not modal: the answers arrive in the background.
-  (new AllocationsDialog(this))->Show();
+  AllocationsDialog *alloc = new AllocationsDialog(winParent());
+  onHost(alloc);
+  alloc->Show();
 }
 
 void CalcMgr::OnGlobalTool(wxCommandEvent& event)
@@ -11655,6 +11790,22 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
   if (!InProcessTools::open(*msg))
     publish("ecce_get_app",*msg);
   delete msg;
+}
+
+
+void CalcMgr::openStructureFiles(const std::vector<wxString>& paths)
+{
+  for (const wxString& p : paths) {
+    wxString path = p;
+    path.Replace("\\", "/");
+    // file:///C:/dir as on Windows elsewhere; '%', '#' and '?' escaped
+    // (EcceURL undoes exactly those).
+    path.Replace("%", "%25");
+    path.Replace("#", "%23");
+    path.Replace("?", "%3F");
+    if (path.empty() || path[0] != '/') path = "/" + path;
+    startApp("Builder", 1, "file://" + string(path.utf8_str().data()));
+  }
 }
 
 
@@ -13403,7 +13554,8 @@ void CalcMgr::viewProperties(WxResourceTreeItemData *itemData)
 {
   EDSIServerCentral servers;
   string title = servers.mapURLtoName(itemData->getUrl());
-  WxProperties *propsView = new WxProperties(this, wxID_ANY, title);
+  WxProperties *propsView = new WxProperties(winParent(), wxID_ANY, title); onHost(propsView);
+  propsView->setOwner(this);
 
   propsView->setContext(itemData);
   propsView->Show(true);
@@ -14135,13 +14287,9 @@ void CalcMgr::updateAccessCtrlDlg()
  */
 void CalcMgr::updateFindDlg()
 {
+  if (!p_find || !p_treeCtrl) return;
   WxResourceTreeItemData *itemData = p_treeCtrl->getSelection();
-
-  EcceURL url = itemData->getUrl();
-
-  if (p_find) {
-    p_find->setFrom(url.toString());
-  }
+  if (itemData) p_find->setFrom(itemData->getUrl().toString());
 }
 
 
@@ -15702,7 +15850,7 @@ void CalcMgr::autoRefreshMark()
 // the window is minimised or inactive.
 void CalcMgr::autoRefreshCheck()
 {
-  if (p_autoLocal || p_autoUrl.empty() || IsIconized() || !autoRefreshIdle())
+  if (p_autoLocal || p_autoUrl.empty() || ToolTabs::screenWindow(this)->IsIconized() || !autoRefreshIdle())
     return;
   string now = autoRefreshStamp(EcceURL(p_autoUrl));
   if (!now.empty() && now != p_autoStamp) {
@@ -15730,7 +15878,7 @@ bool CalcMgr::autoRefreshIdle() const
   }
   wxWindow *f = wxWindow::FindFocus();
   if (f && dynamic_cast<wxTextCtrl*>(f) && !p_autoUrl.empty() &&
-      wxGetTopLevelParent(f) == this) return false;
+      wxGetTopLevelParent(f) == ToolTabs::screenWindow(this)) return false;
   return true;
 }
 

@@ -7,7 +7,10 @@ ECCE_VERSION_STRING=@ECCE_VERSION_RAW@
 
 usage() {
   cat <<'USAGE'
-Usage: ecce [options]
+Usage: ecce [options] [structure file ...]
+
+A structure file (.xyz, .pdb, .cif, .mvm, .car, .gro) is opened in a Builder in the
+running ECCE, or in the one being started.
 
 Reporting a problem:
   --bug                Run this session with diagnostic logging on and
@@ -57,6 +60,7 @@ remote=false
 local=false
 bug=false
 login=""
+open_files=""
 case "${ECCE_BUG:-}" in ""|0) ;; *) bug=true ;; esac
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -74,11 +78,19 @@ while [ $# -gt 0 ]; do
       fi
       login="$2"; shift ;;
     *)
-      echo "ecce: unknown option $1 (try --help)" >&2
-      exit 2 ;;
+      # A file to open in the running (or the starting) ECCE (#1069).
+      if [ -f "$1" ]; then
+        case "$1" in /*) open_one="$1" ;; *) open_one="$PWD/$1" ;; esac
+        open_files="${open_files:+$open_files
+}$open_one"
+      else
+        echo "ecce: unknown option $1 (try --help)" >&2
+        exit 2
+      fi ;;
   esac
   shift
 done
+if [ -n "${open_files:-}" ]; then export ECCE_OPEN_FILES="$open_files"; fi
 if $remote && $local; then
   echo "ecce: -remote and --local exclude each other (try --help)" >&2
   exit 2

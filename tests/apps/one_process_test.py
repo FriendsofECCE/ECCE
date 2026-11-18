@@ -17,6 +17,7 @@ Same installed tree, isolation and services as run_tests.py.  Exit 77
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -45,6 +46,10 @@ if "--shots" in sys.argv:
 if "--tabs-only" in sys.argv:
     sys.argv.remove("--tabs-only")
     os.environ["ECCE_TABS_ONLY"] = "1"
+# --1088-only: only runTabs1088 (as ECCE_1088_ONLY=1).
+if "--1088-only" in sys.argv:
+    sys.argv.remove("--1088-only")
+    os.environ["ECCE_1088_ONLY"] = "1"
 
 
 def check(ok, what, detail=""):
@@ -150,7 +155,9 @@ def run(display):
 
 def runQuit(display, gateway=False):
     """Quit asks the in-process Builder about its unsaved edit: Cancel there
-    cancels the Quit, No lets the process end."""
+    cancels the Quit, No lets the process end.  Under the MainFrame (small
+    layout): the Organizer's frame goes before it, and no window is left."""
+    setLayout(display, "small")
     data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
     work = tempfile.mkdtemp(prefix="ecce-oneproc-")
     try:
@@ -160,7 +167,9 @@ def runQuit(display, gateway=False):
         url = "file://" + pb.makeCalc(project, "water-q", "created", None)
         cmds = os.path.join(work, "commands")
         script = os.path.join(work, "builder-script")
+        basis = os.path.join(work, "basistool-commands")
         open(cmds, "w").close()
+        open(basis, "w").close()
         with open(script, "w") as handle:
             handle.write("wait 3000\nadd C Tetrahedral 8 0 0\nsavestate\n")
 
@@ -174,6 +183,9 @@ def runQuit(display, gateway=False):
             if not gateway:
                 append("start MDEnergy", 15)   # Quit with these open
                 append("start Basistool " + url, 15)
+                with open(basis, "a") as handle:
+                    handle.write("changed\n")
+                time.sleep(2)
             append("inprocess", 2)
             if gateway:
                 # The session's ecce_quit: forced, the Builder still asks
@@ -189,9 +201,8 @@ def runQuit(display, gateway=False):
             append("close", 3)
             append("answer", 3)
             append("answer no", 3)         # the Builder
-            # The Basis Set Tool's own save question for the calculation it
-            # was opened on; the process
-            # ends after the broker's 10 s linger (OnExit).
+            # No question from the unchanged Basis Set Tool; this waits out
+            # the broker's 10 s linger (OnExit).
             append("answer no", 25)
             if GDB:
                 # Where a process that did not end is: attach, all threads.
@@ -208,6 +219,7 @@ def runQuit(display, gateway=False):
                                "ECCE_ONE_PROCESS": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_BUILDER_SCRIPT": script,
+                               "ECCE_TEST_BASISTOOL": basis,
                                "ECCE_LOCAL_DATA": data},
                           inspect=inspect)
         log = result.log or ""
@@ -234,19 +246,322 @@ def runQuit(display, gateway=False):
                   str(inproc))
             # Which questions were answered (titles), for the record.
             print("      answers: " + str(pb.answers(log, "answer")))
+            # The Basis Set Tool only opened the calculation, so it has
+            # nothing to save and must not ask (#1088).
+            check("BASISTOOL: changed=0" in log,
+                  "the Basis Set Tool has no changes",
+                  "\n".join(l for l in log.splitlines() if "BASISTOOL" in l))
+            asked = pb.answers(log, "answer no")
             check(pb.answers(log, "answer cancel") ==
                   ["answered Save Builder Changes?"] and
-                  pb.answers(log, "answer no") ==
-                  ["answered Save Builder Changes?",
-                   "answered Save Basis Set Tool Changes?"],
-                  "the Builder asked about its changes at each Quit, then "
-                  "the Basis Set Tool about its own",
+                  asked[:1] == ["answered Save Builder Changes?"] and
+                  "answered Save Basis Set Tool Changes?" not in asked,
+                  "the Builder asked about its changes at each Quit, the "
+                  "unchanged Basis Set Tool did not ask",
                   str(pb.answers(log, "answer")))
             check(result.returncode == 0 and "Aborted" not in log,
                   "No in the Builder's question ends the process cleanly",
                   "returncode %s\n%s" % (result.returncode, log[-1500:]))
+            # The hook only reports while the main loop is still running,
+            # i.e. when a window outlived the Organizer.
+            left = re.search(r"left after quit:([^\n]*)", log)
+            check(left is None, "no top-level window is left after Quit",
+                  left.group(1) if left else "")
         if GDB:
             print(log[-20000:])
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def runQuitHost(display):
+    """The window manager's close of the MainFrame (hook hostclose) is a
+    Quit: the Quit question, then the dirty Builder tab's, then a clean exit."""
+    setLayout(display, "small")
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        url = "file://" + pb.makeCalc(project, "water-h", "created", None)
+        cmds = os.path.join(work, "commands")
+        script = os.path.join(work, "builder-script")
+        open(cmds, "w").close()
+        with open(script, "w") as handle:
+            handle.write("wait 3000\nadd C Tetrahedral 8 0 0\nsavestate\n")
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            append("start Builder " + url, 25)
+            append("quitlabel", 2)         # the Builder tab's menu bar
+            append("hostclose", 3)
+            append("answer cancel", 3)     # Quit ECCE: Cancel, still running
+            append("inprocess", 2)
+            append("hostclose", 3)
+            append("answer", 3)            # Quit
+            append("answer no", 25)        # the Builder's question
+            # The listener went with the window: a start now is a new
+            # Organizer, not "already running".
+            environment = display.env()
+            environment.update({"ECCE_ONE_PROCESS": "1",
+                                "ECCE_LOCAL_DATA": data})
+            # Own process group, output to a file: the wrapper's children
+            # inherit a pipe and would keep communicate() waiting forever.
+            outPath = os.path.join(work, "after.out")
+            with open(outPath, "w") as out:
+                proc = subprocess.Popen(
+                    [os.path.join(apps.WRAPPERS, "ecce-organizer")],
+                    env=environment, stdout=out, stderr=subprocess.STDOUT,
+                    start_new_session=True)
+            time.sleep(25)
+            seen["after"] = proc.poll() is None
+            for sig, wait in ((signal.SIGTERM, 20), (signal.SIGKILL, 10)):
+                try:
+                    os.killpg(proc.pid, sig)
+                    proc.wait(timeout=wait)
+                    break
+                except (ProcessLookupError, subprocess.TimeoutExpired):
+                    pass
+            with open(outPath, errors="replace") as out:
+                seen["after_out"] = out.read()
+
+        seen = {}
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_BUILDER_SCRIPT": script,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        check(pb.answers(log, "quitlabel") == ["Quit ECCE"],
+              "a tool tab's File > Quit reads Quit ECCE",
+              str(pb.answers(log, "quitlabel")))
+        check(pb.answers(log, "answer cancel") == ["answered Quit ECCE"] and
+              len(pb.answers(log, "inprocess")) == 1 and
+              "Builder=1" in pb.answers(log, "inprocess")[0],
+              "closing the host asks Quit ECCE; Cancel keeps everything",
+              str(pb.answers(log, "answer cancel")) + log[-1500:])
+        check(pb.answers(log, "answer") == ["answered Quit ECCE"] * 2 +
+              ["answered Save Builder Changes?"],
+              "closing the host again asks Quit, then the Builder's question",
+              str(pb.answers(log, "answer")))
+        check(seen.get("after") is True and
+              "already running" not in seen.get("after_out", ""),
+              "a start after Quit opens a window, not 'already running'",
+              str(seen))
+        left = re.search(r"left after quit:([^\n]*)", log)
+        check(result.returncode == 0 and "Aborted" not in log and left is None,
+              "closing the host ends the process cleanly, nothing left",
+              "returncode %s\n%s" % (result.returncode, log[-1500:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def runSingleInstance(display):
+    """A second start of the same user and data folder brings the running
+    window to the front instead of opening another Organizer (#1069); file
+    names in it open in a Builder tab of the first."""
+    setLayout(display, "small")
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        os.makedirs(os.path.join(data, "users", "local"))
+        xyz = os.path.join(work, "wa ter#1%.xyz")
+        with open(xyz, "w") as handle:
+            handle.write("3\nwater\nO 0 0 0.117\nH 0 0.757 -0.469\n"
+                         "H 0 -0.757 -0.469\n")
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+        script = os.path.join(work, "builder-script")
+        with open(script, "w") as handle:
+            # An .xyz asks for its units (modal) before it loads.
+            handle.write("wait 5000\nmodal ok\nwait 2000\nexpect atoms 3\n")
+        env = {"ECCE_ONE_PROCESS": "1", "ECCE_LOCAL_DATA": data}
+        seen = {}
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def organizers():
+            # Only this test's organizers: ctest -j runs other suites that
+            # start and quit their own, which a system-wide count picks up.
+            mark = ("ECCE_LOCAL_DATA=%s" % data).encode()
+            count = 0
+            for pid in os.listdir("/proc"):
+                try:
+                    if (pid.isdigit() and open("/proc/%s/comm" % pid).read()
+                            .strip() == "organizer" and mark in open(
+                                "/proc/%s/environ" % pid, "rb").read()
+                            .split(b"\0")):
+                        count += 1
+                except OSError:
+                    pass
+            return count
+
+        def second(args):
+            environment = display.env()
+            environment.update(env)
+            started = time.time()
+            done = subprocess.run(
+                [os.path.join(apps.WRAPPERS, "ecce-organizer")] + args,
+                env=environment, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, text=True, timeout=90)
+            return done.returncode, time.time() - started, done.stdout
+
+        def inspect(_display):
+            append("raised", 2)
+            seen["before"] = organizers()
+            seen["plain"] = second([])
+            seen["file"] = second([xyz])
+            time.sleep(20)                  # the Builder tab opens
+            append("raised", 2)
+            append("inprocess", 3)
+            seen["after"] = organizers()
+
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={**env, "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_BUILDER_SCRIPT": script},
+                          inspect=inspect)
+        log = result.log or ""
+        for what in ("plain", "file"):
+            rc, secs, text = seen.get(what, (None, 0, ""))
+            check(rc == 0 and secs < 30 and "already running" in text,
+                  "a second start (%s) exits at once with a message" % what,
+                  "rc=%s %.0f s\n%s" % (rc, secs, text[-800:]))
+        check(pb.answers(log, "raised") == ["0", "2"],
+              "the running window was asked to come to the front twice",
+              str(pb.answers(log, "raised")) + log[-1500:])
+        check(seen.get("before") == 1 and seen.get("after") == 1,
+              "still the same number of organizer processes",
+              "%s -> %s" % (seen.get("before"), seen.get("after")))
+        inproc = pb.answers(log, "inprocess")
+        check(len(inproc) == 1 and "Builder=1" in inproc[0],
+              "the .xyz named by the second start opened in a Builder of the first",
+              str(inproc) + log[-1500:])
+        check("FAIL" not in "\n".join(l for l in log.splitlines()
+                                      if "ECCE_BUILDER_SCRIPT" in l),
+              "the Builder holds the 3 atoms of the file (name with a space, "
+              "'#' and '%')",
+              "\n".join(l for l in log.splitlines()
+                        if "ECCE_BUILDER_SCRIPT" in l or "atoms" in l)[-800:])
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def organizerOutput(display, env, seconds=30):
+    """Start the Organizer by itself, let it run, return what it printed."""
+    environment = display.env()
+    environment.update(env)
+    proc = subprocess.Popen([os.path.join(apps.WRAPPERS, "ecce-organizer")],
+                            env=environment, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT,
+                            start_new_session=True)
+    time.sleep(seconds)
+    alive = proc.poll() is None
+    apps._terminate(proc)
+    return alive, apps._drain(proc)
+
+
+def runUntrustedDir(display):
+    """A run folder that is not private to the user (mode 0777, a symlink
+    in it) is not used: single-instance checking is off, the file the link
+    points to is untouched, and the Organizer still starts (#1065 review)."""
+    setLayout(display, "small")
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        os.makedirs(os.path.join(data, "users", "local"))
+        run = os.path.join(work, "run")
+        folder = os.path.join(run, "ecce-one")
+        os.makedirs(folder)
+        os.chmod(run, 0o700)
+        os.chmod(folder, 0o777)
+        victim = os.path.join(work, "victim")
+        with open(victim, "w") as handle:
+            handle.write("keep")
+        # The token name is not predictable; the folder check comes first.
+        link = os.path.join(folder, "x.tok")
+        os.symlink(victim, link)
+        env = {"ECCE_ONE_PROCESS": "1", "ECCE_LOCAL_DATA": data,
+               "XDG_RUNTIME_DIR": run}
+        alive, log = organizerOutput(display, env)
+        check("not a private folder" in log,
+              "an untrusted run folder is reported and single-instance is off",
+              log[-1500:])
+        check(open(victim).read() == "keep",
+              "the file a symlink in the folder points to is untouched")
+        check(sorted(os.listdir(folder)) == ["x.tok"],
+              "nothing is created in the untrusted folder",
+              str(os.listdir(folder)))
+        check(alive, "the Organizer started anyway", log[-800:])
+        # A private one is used, with a token only the user can read.
+        run2 = os.path.join(work, "run2")
+        os.makedirs(run2)
+        os.chmod(run2, 0o700)
+        env["XDG_RUNTIME_DIR"] = run2
+        organizerOutput(display, env)
+        toks = [f for f in os.listdir(os.path.join(run2, "ecce-one"))
+                if f.endswith(".tok")] if os.path.isdir(
+                    os.path.join(run2, "ecce-one")) else []
+        check(len(toks) == 1 and oct(os.stat(os.path.join(
+            run2, "ecce-one", toks[0])).st_mode & 0o777) == "0o600",
+            "a private run folder holds a token readable only by the user",
+            str(toks))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
+def runGeometry(display):
+    """The host saves its rectangle under the Organizer's prefix: a size set
+    in one run is the window's size in the next."""
+    setLayout(display, "small")
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        cmds = os.path.join(work, "commands")
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def start(inspect):
+            open(cmds, "w").close()
+            result = apps.run(display, "organizer", windowTimeout=60,
+                              settle=20,
+                              env={"ECCE_ONE_PROCESS": "1",
+                                   "ECCE_TEST_ORGANIZER": cmds,
+                                   "ECCE_LOCAL_DATA": data},
+                              inspect=inspect)
+            return result, result.log or ""
+
+        def first(_display):
+            append("size 1150 850", 3)
+            append("close", 3)
+            append("answer", 20)
+
+        def second(_display):
+            append("size", 3)
+            append("close", 3)
+            append("answer", 20)
+
+        result, log = start(first)
+        sized = pb.answers(log, "size")
+        check(sized == ["ok 1150x850"], "the host takes a size", str(sized))
+        result, log = start(second)
+        sized = pb.answers(log, "size")
+        check(sized == ["ok 1150x850"] and result.returncode == 0,
+              "the next start restores the host's size", str(sized) + log[-800:])
     finally:
         shutil.rmtree(data, ignore_errors=True)
         shutil.rmtree(work, ignore_errors=True)
@@ -311,6 +626,7 @@ def runLayouts(display):
 
         def wide(_display):
             append("prefs windows show", 3)
+            append("mainwindow", 2)
             append("tabs", 2)
             append("start Builder " + url, 25)
             append("inprocess", 2)
@@ -324,6 +640,10 @@ def runLayouts(display):
               "Wide: the dropdown shows Wide, every row Window", str(pw))
         tabs = pb.answers(log, "tabs")
         check(tabs == ["no tabs"], "Wide: no tab strip", str(tabs))
+        mw = pb.answers(log, "mainwindow")
+        check(mw == ["host=none topwindow=CalcMgr"],
+              "Wide: no MainFrame, the Organizer's own frame is the main "
+              "window", str(mw))
         inproc = pb.answers(log, "inprocess")
         check(len(inproc) == 1 and toolShown(inproc[0], "Builder") == "window",
               "Wide: the Builder opens in a window", str(inproc))
@@ -435,6 +755,7 @@ def runTabs(display):
                                check=False)
 
         def inspect(_display):
+            append("mainwindow", 2)
             append("tabs", 2)
             append("start Builder " + url, 25)
             append("tabs", 2)                  # Builder tab active
@@ -443,14 +764,29 @@ def runTabs(display):
             shot("tabs-builder-dialog.png")
             time.sleep(2)                      # it closes itself after 1.5 s
             append("dialoginfo", 2)
+            append("menu exit", 3)             # app-level: Organizer answers
+            append("answer cancel", 3)         # "Quit ECCE", Builder active
             shot("tabs-builder.png")
             append("charhook 27", 2)           # Esc, as GTK delivers it
             append("tab 0", 3)
             append("tabs", 2)                  # Organizer's menus back
             shot("tabs-organizer.png")
+            append("charhook 27", 2)           # the Organizer tab is active
+            for what in ("prefs", "find", "props " + url):
+                append("orgwindow " + what, 3)
+                append("orgwindowinfo", 1)
+            append("windowmenu", 2)
+            append("windowmenu 1", 3)          # Builder through the menu
+            append("mainwindow", 2)
+            append("windowmenu 0", 3)
+            append("mainwindow", 2)
+            append("menu exit", 3)             # File > Quit reaches CalcMgr
+            append("answer cancel", 3)         # the "Quit ECCE" question
+            append("tabs", 2)                  # still running
             append("towindow 1", 8)            # Open in Window
             append("inprocess", 2)
             append("sbinfo Builder", 2)
+            append("towindow 0", 2)            # the Organizer is not a tool
             shot("tabs-builder-window.png")
             append("totabs Builder", 8)        # Window > Move to Tabs
             append("inprocess", 2)
@@ -475,6 +811,22 @@ def runTabs(display):
             print(log[-6000:])
         tabs = pb.answers(log, "tabs")
         print("      tabs: " + "\n            ".join(tabs))
+        mw = pb.answers(log, "mainwindow")
+        check(len(mw) == 3 and mw[0].startswith(
+                  "host=MainFrame organizer=hidden mapped=0 tabs=1 title=") and
+              "Organizer" in mw[0] and mw[0].endswith("topwindow=MainFrame"),
+              "the main window is a MainFrame; the Organizer's own frame is "
+              "hidden and unmapped", str(mw))
+        wm = pb.answers(log, "windowmenu")
+        check(len(wm) == 3 and wm[0].startswith("0:Organizer* 1:") and
+              re.match(r"0:Organizer 1:\S.*\* $", wm[1]) is not None and
+              wm[2].startswith("0:Organizer* 1:"),
+              "every bar has a Window menu listing the tabs; choosing an "
+              "entry switches the tab", str(wm))
+        check(len(mw) == 3 and "Organizer" in mw[1] and " \u2013 " in mw[1]
+              and " \u2013 " not in mw[0] and " \u2013 " not in mw[2],
+              "the window title names the active tab and keeps "
+              "'Organizer'", str(mw))
         orgMenus = tabs[0].split("menus=")[-1] if tabs else ""
         check(len(tabs) >= 4 and tabs[0].startswith("0:Organizer*"),
               "the Organizer is the first tab", str(tabs) + log[-1500:])
@@ -488,6 +840,12 @@ def runTabs(display):
                   tabs[2].split("menus=")[-1] == orgMenus,
                   "selecting the Organizer tab brings its menu bar back",
                   tabs[2])
+        ow = pb.answers(log, "orgwindowinfo")
+        check(len(ow) == 3 and all(
+                  o == "transient=host inside=1 mapped=1" for o in ow),
+              "the Organizer's preferences, find and properties windows are "
+              "transient for the main window, inside it and mapped",
+              str(ow) + str(pb.answers(log, "orgwindow")))
         info = pb.answers(log, "tabinfo")
         print("      tabinfo: " + str(info))
         m = re.search(r"page=(\d+)x(\d+) onscreen=1 children=\d+ shown=(\d+) "
@@ -506,6 +864,12 @@ def runTabs(display):
               "a key hook on the main window reaches the Builder tab",
               str(pb.answers(log, "charhook")))
         tw = pb.answers(log, "towindow")
+        check(len(tw) == 2 and tw[1] == "not a tool tab",
+              "the Organizer tab cannot be moved to a window", str(tw))
+        check(pb.answers(log, "menu") == ["queued", "queued"] and
+              len(pb.answers(log, "charhook")) == 2,
+              "File > Quit and a key hook on the Organizer tab are answered",
+              str(pb.answers(log, "menu")))
         check(tw and "window:" in tw[0] and "(hidden)" not in tw[0]
               and "(no menus)" not in tw[0] and " 1:" not in tw[0],
               "Open in Window moves the Builder into a shown window with its menus", str(tw))
@@ -523,10 +887,13 @@ def runTabs(display):
               "the same Builder throughout", str(inproc))
         check("BUILDER: dirty=1" in log, "the Builder has unsaved changes")
         check(pb.answers(log, "answer cancel") ==
-              ["answered Save Builder Changes?"] and
+              ["answered Quit ECCE", "answered Quit ECCE",
+               "answered Save Builder Changes?"] and
               pb.answers(log, "answer no") ==
               ["answered Save Builder Changes?"],
-              "Quit asks about the Builder tab: Cancel keeps it, No quits",
+              "the Organizer's File > Quit asks Quit ECCE (Cancel keeps "
+              "running); Quit asks about the Builder tab: Cancel keeps it, "
+              "No quits",
               str(pb.answers(log, "answer")))
         check(len(tabs) >= 4 and " 1:" in tabs[-1],
               "the Builder tab is still there after Cancel", str(tabs))
@@ -1133,6 +1500,8 @@ def runTabs1088(display):
         os.makedirs(project)
         shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
         url = "file://" + pb.makeCalc(project, "water-1088", "created", None)
+        # A run calculation: the Builder on it is read-only (#1106).
+        runUrl = "file://" + pb.makeCalc(project, "water-run", "complete", None)
         cmds = os.path.join(work, "commands")
         open(cmds, "w").close()
 
@@ -1171,6 +1540,8 @@ def runTabs1088(display):
             append("answer no", 4)             # nothing was changed: no question
             append("tabs", 2)                  # tabs[3]
             append("inprocess", 2)             # inprocess[2]
+            append("start Builder " + runUrl, 25)
+            append("tabs", 2)                  # tabs[4]: + read-only Builder
             append("close", 3)                 # File > Quit
             append("answer", 3)
             append("answer no", 3)
@@ -1222,8 +1593,14 @@ def runTabs1088(display):
         check(asked[:1] == ["no dialog"],
               "closing a Basis Set Tool tab nobody changed asks no save "
               "question", str(asked) + log[-3000:])
-        check(len(tabs) >= 3 and re.search(r"\d:Viewer", tabs[2]),
-              "the Viewer's tab is titled Viewer", str(tabs))
+        check(len(tabs) >= 3 and re.search(r"1:Builder ", tabs[2])
+              and re.search(r"2:Viewer ", tabs[2]),
+              "the Viewer's tab reads Viewer, the Builder's Builder, on an "
+              "editable calculation", str(tabs))
+        check(len(tabs) >= 5 and len(re.findall(r"\d+:Builder\*? ", tabs[4])) == 2
+              and len(re.findall(r"\d+:Viewer\*? ", tabs[4])) == 1,
+              "a Builder on a run (read-only) calculation reads Builder, "
+              "not Viewer", str(tabs))
         check(not result.crashed and result.returncode == 0
               and "Aborted" not in log and "SIGSEGV" not in log,
               "the Organizer ends cleanly", "returncode %s\n%s"
@@ -1588,6 +1965,12 @@ def main():
         os.environ["ECCE_1088_ONLY"] = "1"
 
     def checkApp(display, name, results, verbose=False):
+        if os.environ.get("ECCE_SINGLE_ONLY") == "1":
+            runSingleInstance(display)
+            runUntrustedDir(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         if os.environ.get("ECCE_UTILS_ONLY") == "1":
             runUtilityWindows(display)
             if failures:
@@ -1610,13 +1993,32 @@ def main():
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
+        if os.environ.get("ECCE_LAYOUTS_ONLY") == "1":
+            runLayouts(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         if os.environ.get("ECCE_POPUPS_ONLY") == "1":
             runTabsPopups(display)
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
+        # The core part (organizer start, Quit with and without the gateway)
+        # runs as its own ctest: together with the tabs part it outgrew the
+        # per-test budget.
+        if os.environ.get("ECCE_CORE_ONLY") == "1":
+            run(display)
+            runQuit(display)
+            runQuit(display, gateway=True)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         runLayouts(display)
         runTabs(display)
+        runQuitHost(display)
+        runSingleInstance(display)
+        runUntrustedDir(display)
+        runGeometry(display)
         runTabsEditor(display)
         runSetupTab(display)
         runTabsTools(display)

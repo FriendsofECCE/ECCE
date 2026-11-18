@@ -704,7 +704,7 @@ void MqttBroker::serveForSession(int graceSeconds, int startSeconds)
 #endif
 }
 
-void MqttBroker::lingerForSession(int graceSeconds)
+void MqttBroker::lingerForSession(int graceSeconds, int maxSeconds)
 {
   if (!g_session) return;
   using clk = std::chrono::steady_clock;
@@ -715,10 +715,12 @@ void MqttBroker::lingerForSession(int graceSeconds)
   // Wait until the broker thread has seen our own link leave.
   for (int i = 0; own && i < 20 && g_session->clients() >= before; i++) sleepMs(100);
   if (g_session->clients() == 0) { stopForSession(); return; }
+  auto began = clk::now();
   auto idleSince = clk::now();
   for (;;) {
     if (g_session->clients() > 0) idleSince = clk::now();
     else if (std::chrono::duration<double>(clk::now() - idleSince).count() >= graceSeconds) break;
+    if (maxSeconds > 0 && std::chrono::duration<double>(clk::now() - began).count() >= maxSeconds) break;
     sleepMs(100);
   }
   stopForSession();

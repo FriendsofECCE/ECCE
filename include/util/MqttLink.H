@@ -179,15 +179,16 @@ public:
   // either took it.
   bool publish(const std::string& topic, const JMSMessage& msg);
 
-  // One GUI process for several tools (#983, ECCE_ONE_PROCESS=1): messages
+  // One GUI process for several tools (#983, #1067: the default, ECCE_ONE_PROCESS=0 turns it off): messages
   // between them go in-process, every broker subscription is No Local (no
   // echo, so no duplicates) and "self" for filterSelf is the tool (sender
   // name and pid), not the process. Off: everything goes via the broker.
   static bool localDelivery();
   // Tests only; before the first subscription.
   static void setLocalDelivery(bool on);
-  // Reads ECCE_ONE_PROCESS once and removes it from this process's
-  // environment, so no job program or tool started from here inherits it.
+  // Reads ECCE_ONE_PROCESS once (default on) and sets it to 0 in this
+  // process's environment, so no job program or tool started from here
+  // becomes a one-process program.
   // Only the Organizer takes it for itself (forThisProcess); the gateway,
   // as its starter, passes it on to the Organizer alone.
   static void takeOneProcessSwitch(bool forThisProcess);

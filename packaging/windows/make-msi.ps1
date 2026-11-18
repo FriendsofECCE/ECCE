@@ -133,8 +133,23 @@ $($sb.ToString())
         </Component>
       </Directory>
     </StandardDirectory>
+    <!-- "Open with ECCE" for structure files (#1069).  A ProgId of ECCE's own; .mvm
+         is ECCE's format and defaults to it, while .xyz/.pdb/.cif belong to other
+         programs too and only get ECCE in their Open with list. -->
+    <Component Id="FileTypes" Directory="MenuDir" Guid="*">
+      <RegistryValue Root="HKCU" Key="Software\Classes\ECCE.Structure" Type="string" Value="ECCE structure" KeyPath="yes" />
+      <RegistryValue Root="HKCU" Key="Software\Classes\ECCE.Structure\shell\open" Type="string" Value="Open with ECCE" />
+      <RegistryValue Root="HKCU" Key="Software\Classes\ECCE.Structure\shell\open\command" Type="string"
+        Value="&quot;[SystemFolder]wscript.exe&quot; //B //Nologo &quot;[INSTALLFOLDER]ecce.vbs&quot; &quot;%1&quot;" />
+      <RegistryValue Root="HKCU" Key="Software\Classes\.mvm" Type="string" Value="ECCE.Structure" />
+      <RegistryValue Root="HKCU" Key="Software\Classes\.mvm\OpenWithProgids" Name="ECCE.Structure" Type="string" Value="" />
+      <RegistryValue Root="HKCU" Key="Software\Classes\.xyz\OpenWithProgids" Name="ECCE.Structure" Type="string" Value="" />
+      <RegistryValue Root="HKCU" Key="Software\Classes\.pdb\OpenWithProgids" Name="ECCE.Structure" Type="string" Value="" />
+      <RegistryValue Root="HKCU" Key="Software\Classes\.cif\OpenWithProgids" Name="ECCE.Structure" Type="string" Value="" />
+    </Component>
     <Feature Id="Main" Title="ECCE" Level="1">
       <ComponentRef Id="MenuShortcut" />
+      <ComponentRef Id="FileTypes" />
 $($refs.ToString())    </Feature>
   </Package>
 </Wix>

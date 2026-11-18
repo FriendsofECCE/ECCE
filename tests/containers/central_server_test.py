@@ -68,6 +68,11 @@ class Podman:
         """Run a shell script in a container as a Unix account."""
         home = "/root" if user == "root" else "/home/" + user
         args = ["exec", "-u", user, "-w", home, "-e", "HOME=" + home]
+        # ECCE_TEST_DIALOG_CLOSE=<large> logs every message dialog to the
+        # session log without changing what happens.
+        for v in ("ECCE_ONE_PROCESS", "ECCE_TEST_DIALOG_CLOSE"):
+            if os.environ.get(v):
+                args += ["-e", "%s=%s" % (v, os.environ[v])]
         if detach:
             args.append("-d")
         if inp is not None:
@@ -321,10 +326,11 @@ def isolation(pm, state):
 
 def session_end(pm, state):
     pm.sh("bob", "mosquitto_sub -h srv -p 8088 -u bob -P %s -t 'ecce/bob/#' "
-          "-F '%%t %%p' -W 60 >/tmp/cap_end 2>&1" % PW["bob"], detach=True)
+          "-F '%%t %%p' -W 900 >/tmp/cap_end 2>&1" % PW["bob"], detach=True)
     time.sleep(2)
+    # guest.py close first waits out the example import (up to 600 s).
     o, rc = pm.out("alice", "python3 /harness/guest.py close", "alice",
-                   timeout=120)
+                   timeout=720)
     try:
         s = json.loads(o.strip().splitlines()[-1])
     except Exception:
@@ -332,6 +338,10 @@ def session_end(pm, state):
     check(s and not s["procs"].get("gateway") and
           not [t for t in s["titles"] if "Organizer" in t],
           "alice quits: her Organizer, gateway and apps are gone", o)
+    b64, _ = pm.out("alice", "base64 -w0 /tmp/close.png 2>/dev/null", "alice")
+    if b64.strip():
+        with open(os.path.join(LOGDIR, "alice-close.png"), "wb") as f:
+            f.write(base64.b64decode(b64))
     o, _ = pm.out("alice", "pgrep -u alice -a 'ecce|gateway|organizer' || true")
     check(not o.strip(), "no ECCE process of alice's is left", o)
     o, _ = pm.out("bob", "python3 /harness/guest.py state", "bob")
@@ -354,7 +364,7 @@ def session_end(pm, state):
     o, rc = pm.out("srv", "ecce-dataserver-status; ecce-gateway-status", "ecce")
     check("not running" not in o.lower(),
           "the server's data server and broker are still running", o)
-    o, rc = pm.out("bob", "python3 /harness/guest.py close", "bob", timeout=120)
+    o, rc = pm.out("bob", "python3 /harness/guest.py close", "bob", timeout=720)
     o, rc = pm.out("srv", "timeout 5 bash -c 'echo > /dev/tcp/localhost/8088' "
                    "&& timeout 5 bash -c 'echo > /dev/tcp/localhost/8096'",
                    "ecce")
@@ -606,7 +616,7 @@ def tls(pm, image):
                   for l in log.splitlines()),
           "tls: nothing of eve's was answered by the server")
     for c, u in (("talice", "alice"), ("tbob", "bob")):
-        pm.out(c, "python3 /harness/guest.py close", u, timeout=120)
+        pm.out(c, "python3 /harness/guest.py close", u, timeout=720)
     b = captured(pm, "tbob", "tpb")
     seen = [l for l in b.splitlines() if l.startswith("ecce/alice/")
             and "ecce_machreg_changed" not in l and "A-" not in l

@@ -7721,11 +7721,14 @@ void Builder::updateReadOnly(const bool& loadPaneFlag)
                          p_mgr.GetPane(label).IsShown());
   }
 
-  // update our window name and help menu item
-  wxString title = "ECCE Builder";
+  // The title (and a tab's caption) names the tool that was started: a
+  // Builder on a run calculation stays "Builder", the Viewer on an editable
+  // one stays "Viewer", so two tabs never carry the same name (#1106, #1088).
+  const bool viewerApp = getenv("ECCE_INVOKE_VIEWER")
+      || (p_msgs && p_msgs->getMyName() == CALCVIEWER);
+  wxString title = viewerApp ? "ECCE Viewer" : "ECCE Builder";
   wxString menu_help = "on Builder\tCtrl+h";
-  if (isReadOnly || p_viewerApp) {
-    title = "ECCE Viewer";
+  if (isReadOnly || viewerApp) {
     menu_help = "on Viewer\tCtrl+h";
   }
   wxMenuItem * help_menu_item = GetMenuBar()->FindItem(wxID_HELP);
@@ -8814,16 +8817,19 @@ void Builder::quit(const bool& allowCancel)
     }
   }
 
-  // unset focus of all viz prop panels
-  // this fixes seg fault if we're animating a trj, geom trace, vib, etc
-  set<VizPropertyPanel*> panels = VizPropertyPanel::getPanels();
-  set<VizPropertyPanel*>::iterator panel;
-  for (panel = panels.begin(); panel != panels.end(); ++panel) {
-    (*panel)->setFocus(false);
-  }
-  ::wxYieldIfNeeded();
-
+  //  Cancel keeps the window as it was: no panel wind-down and no yield,
+  //  which would run a close queued meanwhile while p_closing is still set
+  //  ("close already in progress", the second Quit lost).
   if (ret != wxID_CANCEL) {
+    // unset focus of all viz prop panels
+    // this fixes seg fault if we're animating a trj, geom trace, vib, etc
+    set<VizPropertyPanel*> panels = VizPropertyPanel::getPanels();
+    set<VizPropertyPanel*>::iterator panel;
+    for (panel = panels.begin(); panel != panels.end(); ++panel) {
+      (*panel)->setFocus(false);
+    }
+    ::wxYieldIfNeeded();
+
     // GDB 1/22/09 Tired of seg faults so lets see if we can exit ungracefully
     // to avoid that annoyance
     // Destroy();

@@ -371,6 +371,8 @@ bool MqttLink::localDelivery()
 {
   int v = localFlag();
   if (v < 0) {
+    // Unset means off here: only the Organizer turns it on, through
+    // takeOneProcessSwitch(true), whose default is on.
     const char* e = getenv("ECCE_ONE_PROCESS");
     v = (e && *e && strcmp(e, "0") != 0) ? 1 : 0;
     localFlag() = v;
@@ -391,8 +393,10 @@ static int& oneProcessAsked()
 
 static bool switchInEnvironment()
 {
+  // One process is the default; only ECCE_ONE_PROCESS=0 selects the old
+  // route of one program per tool.
   const char* e = getenv("ECCE_ONE_PROCESS");
-  return e && *e && strcmp(e, "0") != 0;
+  return !(e && strcmp(e, "0") == 0);
 }
 
 bool MqttLink::oneProcessRequested()
@@ -406,10 +410,11 @@ void MqttLink::takeOneProcessSwitch(bool forThisProcess)
   bool asked = oneProcessRequested();
   oneProcessAsked() = asked ? 1 : 0;
   localFlag() = (asked && forThisProcess) ? 1 : 0;
+  // "0", not removed: unset would mean "on" to a tool started from here.
 #ifdef _WIN32
-  _putenv_s("ECCE_ONE_PROCESS", "");
+  _putenv_s("ECCE_ONE_PROCESS", "0");
 #else
-  unsetenv("ECCE_ONE_PROCESS");
+  setenv("ECCE_ONE_PROCESS", "0", 1);
 #endif
 }
 

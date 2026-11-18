@@ -544,6 +544,7 @@ void WxJMSMessageDispatch::getAppMCB(JMSMessage& startMsg)
     statusMsg->addProperty("status", "ok");
     publish("ecce_invoke_status", *statusMsg);
     delete statusMsg;
+    restartExecTimerIfWaiting();
   }
 }
 
@@ -610,6 +611,7 @@ void WxJMSMessageDispatch::completeStartupProcess(int pid, const string& status)
          break;
       }
    }
+   restartExecTimerIfWaiting();
 }
 
 
@@ -720,7 +722,7 @@ long WxJMSMessageDispatch::startToolWin(const string& app, string& error)
       _putenv_s("ECCE_INVOKE_VIEWER", "");
       _putenv_s("ECCE_INVOKE_FROMECCE", "");
     }
-    if (oneProcess) _putenv_s("ECCE_ONE_PROCESS", "");
+    if (oneProcess) _putenv_s("ECCE_ONE_PROCESS", "0");
     if (!ok)
       error = "could not start " + exe + " (error " +
               std::to_string(GetLastError()) + ")";
@@ -739,6 +741,20 @@ long WxJMSMessageDispatch::startToolWin(const string& app, string& error)
   return (long)pi.dwProcessId;
 }
 #endif
+
+
+// appExec starts one packet per shot; without a new shot a request that
+// arrived meanwhile stays queued forever (#1106).
+void WxJMSMessageDispatch::restartExecTimerIfWaiting()
+{
+  if (!p_toAppExec || p_toAppExec->IsRunning()) return;
+  for (size_t i = 0; i < p_startups.size(); i++) {
+    if (!p_startups[i].execStarted) {
+      p_toAppExec->Start(100, true);
+      return;
+    }
+  }
+}
 
 
 void WxJMSMessageDispatch::appExec()
@@ -849,7 +865,7 @@ void WxJMSMessageDispatch::appExec()
         if (app == "Organizer" && MqttLink::oneProcessRequested())
           setenv("ECCE_ONE_PROCESS", "1", 1);
         else
-          unsetenv("ECCE_ONE_PROCESS");
+          setenv("ECCE_ONE_PROCESS", "0", 1);
 
         execv(path, argv);
         cerr << "exec failed!" << endl;
@@ -882,6 +898,7 @@ void WxJMSMessageDispatch::appExec()
     // only one app exec'd per call
     break;
   }
+  restartExecTimerIfWaiting();
 }
 
 
@@ -925,8 +942,15 @@ void WxJMSMessageDispatch::appInvoke()
         if((child=childEnded(p_startups[i].pidToWatch, &status)) > 0)  { 
 
           // Send a failed message to ecce_invoke_status, so caller can handle
-          // the failure
-          sendFailedStatusMessage(p_startups[i].pidToWatch);
+          // the failure.  Exit status 0 before identifying is not a failure:
+          // a second start of the one-program Organizer hands its request
+          // to the running copy and exits (#1069).
+          bool clean = false;
+#ifndef _WIN32
+          clean = WIFEXITED(status) && WEXITSTATUS(status) == 0;
+#endif
+          sendFailedStatusMessage(p_startups[i].pidToWatch,
+                                  clean ? "ended" : "failed");
           
         } else {
           // Recursively call the timeout until the newly exec'd app either:
@@ -959,12 +983,12 @@ void WxJMSMessageDispatch::appInvoke()
   }
 }
 
-void WxJMSMessageDispatch::sendFailedStatusMessage(int pid)
+void WxJMSMessageDispatch::sendFailedStatusMessage(int pid, const char *status)
 {
    Target myself("", getMyID());
 
    JMSMessage* errMsg = newMessage(myself);
-   errMsg->addProperty("status", "failed");
+   errMsg->addProperty("status", status);
    errMsg->addIntProperty("pid", pid);
    publish("ecce_internal_invoke_status", *errMsg);
    delete errMsg;

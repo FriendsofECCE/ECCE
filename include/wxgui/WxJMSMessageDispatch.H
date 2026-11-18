@@ -101,6 +101,7 @@ public:
                  bool filterSelf = true);
   void notifyReady();
   void appExec();
+  void restartExecTimerIfWaiting();
   void appInvoke();
   void invokeStatusCheck();
   void disconnect();
@@ -130,7 +131,7 @@ private:
   void pollMCB(JMSMessage& msg);
   void internalInvokeMCB(JMSMessage& msg);
   void completeStartupProcess(int pid, const string& status);
-  void sendFailedStatusMessage(int pid);
+  void sendFailedStatusMessage(int pid, const char *status = "failed");
 
 
   JMSPublisher* p_publisher;

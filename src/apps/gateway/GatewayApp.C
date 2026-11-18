@@ -540,7 +540,11 @@ void GatewayApp::toolStartStatusMCB(JMSMessage& msg)
 {
   string status = msg.getProperty("status");
   p_gateway->endActivity();
-  
+
+  //  The Organizer handed this start to the user's running one (#1069):
+  //  nothing of this session is left, so it ends without a dialog.
+  if (status == "ended") p_sessionSeen = true;
+
   if (status == "failed") {
     //  A launch that failed still counts as the session having started,
     //  or an Organizer that never came up would leave this hidden process

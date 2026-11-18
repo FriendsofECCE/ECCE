@@ -29,6 +29,9 @@ DECLARE_CLASS(CalcMgrApp)
   CalcMgrApp();
 
   virtual bool OnInit();
+#ifdef __WXMAC__
+  virtual void MacOpenFiles(const wxArrayString& names);
+#endif
   virtual string getName() const;
 
   virtual int OnExit();

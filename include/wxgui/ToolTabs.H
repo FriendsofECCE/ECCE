@@ -41,9 +41,13 @@ public:
   static bool wantsTab(const char *key);
   static MenuPlacement menuPlacement();
 
-  // The Organizer's frame becomes the main window: its client windows go
-  // into the first tab (no close button), a tab strip above them.
-  static void setMainWindow(wxFrame *organizer);
+  // The main window (MainFrame) gets a tab strip and the menu routing.  It
+  // has no menu bar of its own: the active tab's is on it.
+  static void setHost(wxFrame *host);
+  // The Organizer's frame (hidden from here on) becomes the main tab: its
+  // client windows go into a page that has no close button and no scroller,
+  // its menu bar is the host's while the tab is active.  Before its first Show.
+  static bool adoptMain(wxFrame *org);
 
   // Moves a tool into a new tab.  mgr is the tool's wxAuiManager, if it
   // has one.  Before the frame is first shown is best: the 3-D viewer's
@@ -71,12 +75,13 @@ public:
   // while hosted: wxFrameBase::SetMenuBar returns early when the bar equals
   // GetMenuBar(), so release could not put the bar back on the frame.
   static wxMenuBar *menuBar(const wxTopLevelWindow *tool, wxMenuBar *own);
-  // The main window's own menu bar, also while a tool tab's is on its
-  // frame (the Organizer updates its menus by name: Run Mgmt, ...).
-  static wxMenuBar *mainMenuBar(const wxTopLevelWindow *host, wxMenuBar *own);
   // A tool's tab is being closed: the Organizer must not ask to quit.
   static bool closingTool();
   static bool hosts(const wxTopLevelWindow *tool);
+  // The window that is on screen for a tool: the main window while the tool
+  // is a tab (its own frame is hidden), else the tool's frame.  For sizes,
+  // iconized checks, wxWindowDisabler and closing.
+  static wxTopLevelWindow *screenWindow(const wxTopLevelWindow *tlw);
   // The tool's own sizer moves to its page: code that does GetSizer()->...
   // on the frame gets the page's through this (own: the frame's sizer).
   static wxSizer *sizer(const wxTopLevelWindow *tool, wxSizer *own);
@@ -112,6 +117,9 @@ public:
   // hidden frame (or a child of it) as parent: made transient for the main
   // window, since the hidden frame is never on screen.
   static void secondaryOpened(wxWindow *win, wxWindow *parent);
+  // Tests: "transient=host|other|none inside=0|1 mapped=0|1" for a window
+  // (inside: its centre is within the main window).
+  static wxString describeSecondary(wxWindow *win);
 
   // Tests: "tabs" lists "<n>:<title>[*]" (* = active) and the menu bar's
   // menus; "tab <n>", "towindow <n>", "totabs <title part>" act on them;

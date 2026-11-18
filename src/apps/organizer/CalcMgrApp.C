@@ -19,6 +19,8 @@
 #include "util/MqttBroker.H"
 #include "util/MqttLink.H"
 #include "wxgui/InProcessTools.H"
+#include "wxgui/MainFrame.H"
+#include "wxgui/OneInstance.H"
 #include "wxgui/ToolTabs.H"
 #include "util/JMSPublisher.H"
 #include "wx/wxprec.h"
@@ -148,6 +150,33 @@ string CalcMgrApp::getName() const
 }
 
 
+#ifdef __WXMAC__
+// Files opened from Finder or dropped on the Dock icon.
+void CalcMgrApp::MacOpenFiles(const wxArrayString& names)
+{
+  std::vector<wxString> paths(names.begin(), names.end());
+  if (MainFrame *host = MainFrame::instance()) {
+    host->bringToFront();
+    host->openFiles(OneInstance::filesIn(paths));
+  } else if (p_calcMgr) {
+    p_calcMgr->openStructureFiles(OneInstance::filesIn(paths));
+  }
+}
+#endif
+
+
+// The `ecce` launcher on Linux and macOS hands file names on in
+// ECCE_OPEN_FILES (one per line): the gateway sits between it and the Organizer.
+static void addEnvFiles(std::vector<wxString>& words, bool clear)
+{
+  wxString env;
+  if (!wxGetEnv("ECCE_OPEN_FILES", &env)) return;
+  if (clear) wxUnsetEnv("ECCE_OPEN_FILES");
+  for (const wxString& f : wxSplit(env, '\n'))
+    if (!f.empty()) words.push_back(f);
+}
+
+
 /**
  * Initialize CalcMgr application
  *
@@ -158,6 +187,28 @@ bool CalcMgrApp::OnInit()
 {
   // Only this process runs tools in-process (#983); its children do not.
   MqttLink::takeOneProcessSwitch(true);
+  // One program per user and session context (#1069), before the broker or
+  // anything else is started: a second start only raises the first.  Not
+  // the session id (new at every start) but where the user's data is: a
+  // central-server client, a local session and a second server are separate.
+  if (ToolTabs::enabled() && !wxGetEnv("ECCE_MULTIPLE_INSTANCES", NULL)) {
+    wxString context = wxGetUserId();
+    for (const char *name : {"ECCE_REALUSERHOME", "ECCE_LOCAL_DATA",
+                             "ECCE_SERVER_SESSION", "ECCE_REMOTE_SERVER",
+                             "ECCE_REMOTE_DIR"}) {
+      wxString value;
+      wxGetEnv(name, &value);
+      context += "|" + value;
+    }
+    std::vector<wxString> words;
+    for (int i = 1; i < argc; i++) words.push_back(argv[i]);
+    addEnvFiles(words, false);
+    if (!OneInstance::claim(context, OneInstance::filesIn(words))) {
+      std::cerr << "ECCE is already running for this user; "
+                   "the running window was brought to the front." << std::endl;
+      _exit(0);
+    }
+  }
   // The session's own broker (#990), before anything connects to it.
   // ECCE_BROKER=mosquitto keeps the old ecce-broker-win (ecce.cmd).  Only
   // ecce.cmd sets ECCE_LOCAL_BROKER: on Linux and macOS ecce-gateway-start
@@ -207,9 +258,52 @@ bool CalcMgrApp::OnInit()
     AuthCache::getCache().pipeIn(argv[2].ToStdString());
   }
 
+  // With some tool set to Tab (#983) the Organizer is the first tab of a
+  // MainFrame; its own frame is adopted before it is first shown, so it is
+  // never mapped.  Otherwise it is the main window, as before.
+  MainFrame *host = 0;
+  if (MqttLink::localDelivery() && ToolTabs::enabled()) {
+    host = new MainFrame;
+    ToolTabs::setHost(host);
+#ifdef __WXMAC__
+    // The application menu's Quit, Preferences and About; the host routes
+    // these ids to the Organizer whatever tab is active.
+    wxApp::s_macExitMenuItemId = wxID_EXIT;
+    wxApp::s_macPreferencesMenuItemId = wxID_PREFERENCES;
+    wxApp::s_macAboutMenuItemId = wxID_ABOUT;
+#endif
+  }
   p_calcMgr = new CalcMgr(NULL);
-  p_calcMgr->Show(true);
-  SetTopWindow(p_calcMgr);
+  if (host) {
+    host->adoptMain(p_calcMgr);
+    host->setCloseHandler([this]() { return p_calcMgr->confirmAndQuit(); });
+    host->setOpenFilesHandler([this](const std::vector<wxString>& paths) {
+      if (p_calcMgr) p_calcMgr->openStructureFiles(paths);
+    });
+    host->Show(true);
+    SetTopWindow(host);
+    // Files named on this start's command line, such as "Open with ECCE".
+    std::vector<wxString> words;
+    for (int i = 1; i < argc; i++) words.push_back(argv[i]);
+    addEnvFiles(words, true);
+    std::vector<wxString> files = OneInstance::filesIn(words);
+    for (const wxString& f : OneInstance::takePending()) files.push_back(f);
+    if (!files.empty())
+      host->CallAfter([host, files]() { host->openFiles(files); });
+  } else {
+    p_calcMgr->Show(true);
+    SetTopWindow(p_calcMgr);
+    // Files from the desktop's "Open with" also reach the separate-window
+    // Organizer: each opens in a Builder of its own.
+    std::vector<wxString> words;
+    for (int i = 1; i < argc; i++) words.push_back(argv[i]);
+    addEnvFiles(words, true);
+    std::vector<wxString> files = OneInstance::filesIn(words);
+    if (!files.empty())
+      p_calcMgr->CallAfter([this, files]() {
+        if (p_calcMgr) p_calcMgr->openStructureFiles(files);
+      });
+  }
   registerTopShell(p_calcMgr);
 
   // Test hook, inert unless set: open the tree down to this URL, so tests
@@ -321,9 +415,6 @@ bool CalcMgrApp::OnInit()
       if (ev.GetActive()) JMSPublisher::setActingTool(name, id);
       ev.Skip();
     });
-    // Tools set to Tab in Preferences > Windows and tabs (#983 stage 2)
-    // open as tabs of this window.
-    if (ToolTabs::enabled()) ToolTabs::setMainWindow(p_calcMgr);
   }
 
   return true;
@@ -345,8 +436,9 @@ void CalcMgrApp::openUrlWhenReady(const string& url, int tries)
 int CalcMgrApp::OnExit()
 {
   // Tools and job monitors still connected keep the broker for 10 s after
-  // the last of them.
-  MqttBroker::lingerForSession(10);
+  // the last of them, for 15 s at most: a separate tool that ignores
+  // ecce_quit must not keep this process alive (#1106).
+  MqttBroker::lingerForSession(10, 15);
   return 0;
 }
 
@@ -358,7 +450,8 @@ void CalcMgrApp::quitMCB(JMSMessage& msg)
     // Tool windows in this process first (#983): the main loop ends with
     // the Organizer's frame, and a window left open would outlive it.
     InProcessTools::closeAll(true);
-    GetTopWindow()->Destroy();
+    if (MainFrame *host = MainFrame::instance()) host->shutdown();
+    else GetTopWindow()->Destroy();
   }
 }
 
@@ -710,10 +803,12 @@ void CalcMgrApp::invokeMCB(JMSMessage& msg)
   //  GNOME then announces "ECCE Organizer is ready" over the new tool.
   const string app = msg.getProperty("appname");
   if (!app.empty() && app != "Organizer") return;
-  p_calcMgr->Iconize(false);
+  // The window on screen: the host while the Organizer is a tab.
+  wxTopLevelWindow *screen = ToolTabs::screenWindow(p_calcMgr);
+  screen->Iconize(false);
   p_calcMgr->Show(true);
-  ewxRaiseWindow(p_calcMgr);
-  p_calcMgr->RequestUserAttention();
+  ewxRaiseWindow(screen);
+  screen->RequestUserAttention();
 }
 
 

@@ -81,10 +81,29 @@ public:
   /// (#983).  Not a GetMenuBar() override: wxFrameBase::SetMenuBar compares
   /// with GetMenuBar() and would refuse to swap the bars.
   wxMenuBar *ownMenuBar() const;
+
+  /// Parent for the Organizer's modeless windows: the main window while
+  /// hosted (the hidden frame has no place on screen), else this frame.
+  wxWindow *winParent() const;
+  /// Keeps a modeless window above the main window; ~CalcMgr deletes the
+  /// ones still open, since they would outlive it as children of the host.
+  template <class T> T *onHost(T *w) { trackSecondary(w); return w; }
+
+  /// While the Organizer is the main tab of the MainFrame (#1065) its own
+  /// frame is hidden for good: these go to the tab or the host window.
+  bool Show(bool show = true) override;
+  void Raise() override;
+  void Iconize(bool iconize = true) override;
+  void SetTitle(const wxString& title) override;
+  bool Destroy() override;
+  bool Layout() override;
   TextFileViewer *viewFile(const EcceURL& url);
 
   // A tool's window is up (#1071): ends its start feedback.
   void toolUp(const string& app, const string& url);
+  // Structure files handed to ECCE from outside (second start with file
+  // names, macOS open, Windows "Open with"): each opens in a Builder.
+  void openStructureFiles(const std::vector<wxString>& paths);
 
   /*
    * Constructor.
@@ -160,6 +179,7 @@ public:
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXIT
   bool confirmAndQuit();
+  static bool publishGatewayQuit();
 
   /// One command of the ECCE_TEST_ORGANIZER hook (see CalcMgr::Create).
   void runTestCommand(const string& line);
@@ -695,6 +715,10 @@ protected:
   void makeWorkflowFromRows(Session *into);
   bool p_quitAsking = false;        // the Quit dialog is open (#291)
   bool p_quitConfirmed = false;     // the user said yes; teardown pending
+  std::vector<wxWeakRef<wxWindow> > p_secondary;
+  void trackSecondary(wxWindow *w);
+  string p_orgWindowInfo;           // test hook "orgwindow"
+  bool p_wasHosted = false;         // the host saved the window geometry
 
   void startApp(const string& app, int force, const string& url,
                 const string& codename = "", int amulet = 0);

@@ -151,6 +151,12 @@ def parse():
     parser.add_argument("--wrappers", help="directory holding the ecce "
                         "wrappers (default: <tree>/wrappers, else "
                         "ECCE_TEST_WRAPPERS or /usr/bin)")
+    parser.add_argument("--one-process", action="store_true",
+                        help="run every session with ECCE_ONE_PROCESS=1 (the default "
+                        "since #1067)")
+    parser.add_argument("--separate-processes", action="store_true",
+                        help="run every session with ECCE_ONE_PROCESS=0, "
+                        "one program per tool")
     return parser.parse_args()
 
 
@@ -177,6 +183,10 @@ else:
     wrappers = (args.wrappers or os.environ.get("ECCE_TEST_WRAPPERS")
                 or "/usr/bin")
 os.environ["ECCE_TEST_HOME"] = install
+if args.separate_processes:
+    os.environ["ECCE_ONE_PROCESS"] = "0"
+elif args.one_process:
+    os.environ["ECCE_ONE_PROCESS"] = "1"
 os.environ.pop("ECCE_NO_REAP", None)     # the reaper is under test
 # A local session runs ECCE's own broker, one per session (#1007); the
 # mode-1 cases check that.  Server accounts and modes 2 and 3 keep mosquitto.
@@ -1315,6 +1325,49 @@ def caseRemoteDown(checks, display, logdir):
         session.kill()
 
 
+def secondSessionEnv():
+    """A second `ecce` of the user that must open its own session: in one
+    program (#1069) a plain second start only raises the first window."""
+    if os.environ.get("ECCE_ONE_PROCESS") != "0":
+        return {"ECCE_MULTIPLE_INSTANCES": "1"}
+    return None
+
+
+def handsOver(checks, display, frame1, log):
+    """One program: a plain second `ecce` hands over to the running
+    Organizer, and its own gateway ends quietly (no 'System Error')."""
+    if os.environ.get("ECCE_ONE_PROCESS") == "0":
+        return
+    extra = Session(display, log)
+    try:
+        # Its gateway signs in to the data server before the Organizer
+        # starts; answer that as organizer() does.
+        deadline = time.time() + 90
+        while time.time() < deadline and not extra.ended(1):
+            auth = next((w for w in display.windows()
+                         if w[1] == "ECCE Authentication"), None)
+            if auth:
+                env = display.env()
+                subprocess.run(["xdotool", "windowfocus",
+                                str(int(auth[0], 16))], env=env, timeout=10,
+                               stderr=subprocess.DEVNULL)
+                time.sleep(0.3)
+                subprocess.run(["xdotool", "type", "--delay", "50", "ecce"],
+                               env=env, timeout=10)
+                subprocess.run(["xdotool", "key", "Return"], env=env,
+                               timeout=10)
+                time.sleep(3)
+        checks.check(extra.ended(1), "a plain second `ecce` returns: the "
+                     "running Organizer took the start")
+        titles = [t for _, t in display.windows()]
+        checks.check("System Error" not in titles,
+                     "and no 'System Error' window %s" % titles)
+        checks.check(any(w[0] == frame1[0] for w in display.windows()),
+                     "the first Organizer is still open")
+    finally:
+        extra.kill()
+
+
 def caseDisplays(checks, display, logdir):
     """Mode 1, one user on two displays: the per-user broker is the
     user's, so it outlives the first session and goes with the last."""
@@ -1327,7 +1380,8 @@ def caseDisplays(checks, display, logdir):
                             % display.name):
             return
         gw1 = gatewayIsTheTree(checks, first)
-        second = Session(other, os.path.join(logdir, "displays-2.log"))
+        second = Session(other, os.path.join(logdir, "displays-2.log"),
+                         extra=secondSessionEnv())
         frame2 = second.organizer()
         if not checks.check(frame2, "a second Organizer opened on %s"
                             % other.name):
@@ -1379,7 +1433,10 @@ def caseSameDisplay(checks, display, logdir):
         if not checks.check(frame1, "the first Organizer opened"):
             return
         gw1 = gatewayIsTheTree(checks, first)
-        second = Session(display, os.path.join(logdir, "same-display-2.log"))
+        handsOver(checks, display, frame1,
+                  os.path.join(logdir, "same-display-handover.log"))
+        second = Session(display, os.path.join(logdir, "same-display-2.log"),
+                         extra=secondSessionEnv())
         frame2 = second.organizer()
         if not checks.check(frame2 and frame2[0] != frame1[0],
                             "a second Organizer opened on the same display"):
@@ -1484,6 +1541,12 @@ def twoSessions(checks, display, logdir, tag, brokerUp, stopSays):
     brokerUp() says whether the broker the sessions use is up; stopSays is
     what the second session's stop must print about the broker."""
     p1, p2 = Probe(tag + "-1"), Probe(tag + "-2")
+    # One program (#1069) would answer the second start by raising the first
+    # window; this test is about two sessions sharing the services, so both
+    # opt out.  $DISPLAY is not part of that key: it only draws windows.
+    if os.environ.get("ECCE_ONE_PROCESS") != "0":
+        for p in (p1, p2):
+            p.extra["ECCE_MULTIPLE_INSTANCES"] = "1"
     first = second = None
     try:
         first = Session(display, os.path.join(logdir, tag + "-1.log"),

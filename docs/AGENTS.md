@@ -231,8 +231,8 @@ through the command-line tools in "Commands". You cannot click in the windows.
 | Machine Browser | Runs a few status queries on a registered machine over ECCE's login. | From the Organizer or Launcher |
 | Basis Set Tool | Looks at and edits basis sets. | From the Organizer or Calculation Editor |
 
-Each window is its own program. Experimental: with `ECCE_ONE_PROCESS=1`
-in the environment of `ecce`, the Builder, the Calculation Editor, the
+One program is the default (#1067): unless `ECCE_ONE_PROCESS=0` is in the
+environment of `ecce` (the old route, every window its own program), the Builder, the Calculation Editor, the
 Basis Set Tool, the MD editors, the Periodic Table, the Machine Browser and
 Register Machines open as windows of the Organizer's process instead (the
 last three as plain windows, not tabs); job programs and the other
@@ -276,7 +276,16 @@ second `start` of the same tool and URL meanwhile is dropped. `toolstate` answer
 launches=N`. The tool sends `ecce_tool_up` when its invoke is handled;
 `ECCE_TEST_TOOL_DELAY=<ms>` holds that signal back for a slow-start test.
 
-With `ECCE_ONE_PROCESS=1` the Viewer (`CalculationViewer`) is an in-process
+**Second start and file types (#1069)**, one-program mode only: a second `ecce`
+for the same user, data folder and server (`ECCE_REALUSERHOME`,
+`ECCE_LOCAL_DATA`, `ECCE_SERVER_SESSION`/`ECCE_REMOTE_SERVER`) raises the
+running window and exits with "ECCE is already running for this user".
+`ecce FILE.xyz` (also .pdb .cif .mvm .car .gro; Windows and Linux file managers: Open with ECCE; not offered by Finder on macOS yet, use `ecce FILE` there)
+opens the file in a Builder tab of the running copy, or of the one being
+started. Files are also opened (one Builder each) when the tabbed mode is off. A Quit during the exit does not leave a listener behind: a start then opens a new window. In a tool's tab, File > Quit reads Quit ECCE and quits the whole program. The check needs a private run folder (`$XDG_RUNTIME_DIR/ecce-one`, `$TMPDIR/ecce-one` on macOS, else `/tmp/ecce-one-UID`); if it is not yours with mode 0700 the check is off. `ECCE_MULTIPLE_INSTANCES=1` switches the check off. Test hook
+`raised` (Organizer command file): how many second starts reached the window.
+
+In one-program mode (the default) the Viewer (`CalculationViewer`) is an in-process
 Builder tab as well; `start TOOL URL` twice for one calculation reuses the
 tool's tab (`inprocess` reports `Viewer=N`); closing a tool's tab never
 asks to quit the Organizer (`ToolTabs::closingTool`). Input is blocked
@@ -284,7 +293,7 @@ during tool start and job submit by `InputBlock` (swallows mouse and key
 events, nothing disabled; the separate-window path keeps `wxWindowDisabler`).
 Checked by `ECCE_1088_ONLY=1 tests/apps/one_process_test.py`.
 
-Experimental, with `ECCE_ONE_PROCESS=1`: **Edit > Preferences > Windows
+In one-program mode (the default): **Edit > Preferences > Windows
 and tabs** chooses which tools open as tabs of the Organizer's window (the
 Organizer is the first tab and cannot be closed). Presets **Normal**,
 **Small**, **Wide** (separate windows; default: Normal); **Customize...** sets
@@ -328,10 +337,12 @@ opened after a change follows it; the tab strip itself is made when the
 Organizer starts, so going from Wide to tabs needs a restart (a fresh install is Normal). The window's
 menu bar is the active tab's. Right-click on a tab: **Open in Window** (this
 time) and **Always open in a window** (also sets that tool's row to Window);
-the tool's **Window > Move to Tabs** puts it back. Without
-`ECCE_ONE_PROCESS` every tool opens in a window whatever the setting. Test
+the tool's **Window > Move to Tabs** puts it back. With
+`ECCE_ONE_PROCESS=0` every tool opens in a window whatever the setting. Test
 hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus),
-`launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `tab N`, `towindow N`, `totabs <title part>`, `layout show|normal|small|wide|KEY=tab|window`
+`launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `tab N`, `towindow N`, `totabs <title part>`, `mainwindow` (the main window: `host=MainFrame organizer=hidden ...`, or `host=none`
+when the Organizer is its own window), `menu exit|about|preferences|<id>` and `hostclose` (a menu command, or the window
+manager's close, on the main window; queued, answer the questions with `answer`; Quit, Preferences and About always reach the Organizer, also from a tool tab), `windowmenu [N]` (the **Window** menu every bar has while hosted, `0:Organizer* 1:Viewer`; N chooses that entry and switches the tab; the main window's title then reads "ECCE Organizer <ver> - <tab>"), `orgwindow prefs|find|props URL` then `orgwindowinfo` (the Organizer's modeless windows sit on the main window: `transient=host inside=1 mapped=1`), `layout show|normal|small|wide|KEY=tab|window`
 (prints `preset=... rows=builder:tab,...`), `tabmenu N` (the tab's
 right-click items), `alwayswindow N`, and `prefs windows show|preset NAME|row KEY tab|window [PNG]|snap PNG`
 (the Preferences page and its Customize table, as clicks). A tab's

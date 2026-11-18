@@ -1924,6 +1924,10 @@ configure_file(${CMAKE_SOURCE_DIR}/packaging/desktop/ecce.desktop.in
                ${CMAKE_BINARY_DIR}/wrappers/ecce.desktop @ONLY)
 install(FILES ${CMAKE_BINARY_DIR}/wrappers/ecce.desktop
         DESTINATION ${_ecce_share}/applications COMPONENT client)
+# .mvm is ECCE's own structure format; the other types (xyz, pdb, cif) belong
+# to other programs too and are only offered in "Open with" (#1069).
+install(FILES ${CMAKE_SOURCE_DIR}/packaging/desktop/ecce-mvm.xml
+        DESTINATION ${_ecce_share}/mime/packages COMPONENT client)
 # packaging/desktop/make-icon.py generates the icon files.
 foreach(_size 48 64 128 256)
   install(FILES ${CMAKE_SOURCE_DIR}/packaging/desktop/ecce-${_size}.png
@@ -3739,11 +3743,28 @@ if(PYTHON3_EXECUTABLE)
                        SKIP_RETURN_CODE 77)
   # Builder and Calculation Editor as windows of the Organizer's process,
   # ECCE_ONE_PROCESS=1 (#983).
+  # Two ctests so each part stays inside the per-test budget: the tabbed
+  # window (layouts, tabs, tools) and the core start/Quit checks.
   add_test(NAME apps_organizer_one_process
-           COMMAND ${PYTHON3_EXECUTABLE}
+           COMMAND ${CMAKE_COMMAND} -E env ECCE_TABS_ONLY=1
+                   ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
-  set_tests_properties(apps_organizer_one_process PROPERTIES TIMEOUT 3300
+  add_test(NAME apps_organizer_one_process_core
+           COMMAND ${CMAKE_COMMAND} -E env ECCE_CORE_ONLY=1
+                   ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_one_process
+                       apps_organizer_one_process_core PROPERTIES TIMEOUT 3300
+                       SKIP_RETURN_CODE 77)
+  # A second start brings the running window to the front (#1069).
+  add_test(NAME apps_organizer_single_instance
+           COMMAND ${CMAKE_COMMAND} -E env ECCE_SINGLE_ONLY=1
+                   ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_organizer_single_instance PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # Busy cursor, status line and slow-start window while a tool starts (#1071).
   add_test(NAME apps_organizer_tool_start
@@ -3751,6 +3772,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/organizer_tool_start_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_tool_start PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Separate tool programs (ECCE_ONE_PROCESS=0): a Viewer beside a Builder,
+  # two starts in one batch, Quit (#1106).
+  add_test(NAME apps_separate_viewer
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/separate_viewer_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_separate_viewer PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # Two close requests before the Quit dialog is answered (#291).
   add_test(NAME apps_organizer_close
@@ -5914,6 +5943,10 @@ add_test(NAME packaging_command_wrappers
                  --home ${CMAKE_INSTALL_PREFIX}
                  --wrappers ${ECCE_WRAPPER_DESTINATION})
 set_tests_properties(packaging_command_wrappers PROPERTIES SKIP_RETURN_CODE 77)
+
+add_test(NAME packaging_file_types
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/packaging/file_types_test.py)
 
 add_test(NAME packaging_units_text
          COMMAND ${PYTHON3_EXECUTABLE}
