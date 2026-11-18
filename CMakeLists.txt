@@ -3575,6 +3575,13 @@ if(PYTHON3_EXECUTABLE)
                        SKIP_RETURN_CODE 77)
   # Theory/Runtype Details buttons are enabled on open as after re-choosing
   # (#427).
+  # gui/guiw leave a dependent field's sensitivity to the dialog (#1111).
+  add_test(NAME apps_calced_script_solvation
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calced_script_solvation_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_calced_script_solvation PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   add_test(NAME apps_calced_details_enabled
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calced_details_enabled_test.py
