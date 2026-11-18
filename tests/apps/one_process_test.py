@@ -167,7 +167,9 @@ def runQuit(display, gateway=False):
         url = "file://" + pb.makeCalc(project, "water-q", "created", None)
         cmds = os.path.join(work, "commands")
         script = os.path.join(work, "builder-script")
+        basis = os.path.join(work, "basistool-commands")
         open(cmds, "w").close()
+        open(basis, "w").close()
         with open(script, "w") as handle:
             handle.write("wait 3000\nadd C Tetrahedral 8 0 0\nsavestate\n")
 
@@ -181,6 +183,9 @@ def runQuit(display, gateway=False):
             if not gateway:
                 append("start MDEnergy", 15)   # Quit with these open
                 append("start Basistool " + url, 15)
+                with open(basis, "a") as handle:
+                    handle.write("changed\n")
+                time.sleep(2)
             append("inprocess", 2)
             if gateway:
                 # The session's ecce_quit: forced, the Builder still asks
@@ -196,9 +201,8 @@ def runQuit(display, gateway=False):
             append("close", 3)
             append("answer", 3)
             append("answer no", 3)         # the Builder
-            # The Basis Set Tool's own save question for the calculation it
-            # was opened on; the process
-            # ends after the broker's 10 s linger (OnExit).
+            # No question from the unchanged Basis Set Tool; this waits out
+            # the broker's 10 s linger (OnExit).
             append("answer no", 25)
             if GDB:
                 # Where a process that did not end is: attach, all threads.
@@ -215,6 +219,7 @@ def runQuit(display, gateway=False):
                                "ECCE_ONE_PROCESS": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_BUILDER_SCRIPT": script,
+                               "ECCE_TEST_BASISTOOL": basis,
                                "ECCE_LOCAL_DATA": data},
                           inspect=inspect)
         log = result.log or ""
@@ -241,13 +246,18 @@ def runQuit(display, gateway=False):
                   str(inproc))
             # Which questions were answered (titles), for the record.
             print("      answers: " + str(pb.answers(log, "answer")))
+            # The Basis Set Tool only opened the calculation, so it has
+            # nothing to save and must not ask (#1088).
+            check("BASISTOOL: changed=0" in log,
+                  "the Basis Set Tool has no changes",
+                  "\n".join(l for l in log.splitlines() if "BASISTOOL" in l))
+            asked = pb.answers(log, "answer no")
             check(pb.answers(log, "answer cancel") ==
                   ["answered Save Builder Changes?"] and
-                  pb.answers(log, "answer no") ==
-                  ["answered Save Builder Changes?",
-                   "answered Save Basis Set Tool Changes?"],
-                  "the Builder asked about its changes at each Quit, then "
-                  "the Basis Set Tool about its own",
+                  asked[:1] == ["answered Save Builder Changes?"] and
+                  "answered Save Basis Set Tool Changes?" not in asked,
+                  "the Builder asked about its changes at each Quit, the "
+                  "unchanged Basis Set Tool did not ask",
                   str(pb.answers(log, "answer")))
             check(result.returncode == 0 and "Aborted" not in log,
                   "No in the Builder's question ends the process cleanly",
@@ -381,9 +391,20 @@ def runSingleInstance(display):
             time.sleep(wait)
 
         def organizers():
-            out = subprocess.run(["pgrep", "-fc", "bin/organizer"],
-                                 stdout=subprocess.PIPE, text=True).stdout
-            return int(out.strip() or 0)
+            # Only this test's organizers: ctest -j runs other suites that
+            # start and quit their own, which a system-wide count picks up.
+            mark = ("ECCE_LOCAL_DATA=%s" % data).encode()
+            count = 0
+            for pid in os.listdir("/proc"):
+                try:
+                    if (pid.isdigit() and open("/proc/%s/comm" % pid).read()
+                            .strip() == "organizer" and mark in open(
+                                "/proc/%s/environ" % pid, "rb").read()
+                            .split(b"\0")):
+                        count += 1
+                except OSError:
+                    pass
+            return count
 
         def second(args):
             environment = display.env()
@@ -418,8 +439,7 @@ def runSingleInstance(display):
         check(pb.answers(log, "raised") == ["0", "2"],
               "the running window was asked to come to the front twice",
               str(pb.answers(log, "raised")) + log[-1500:])
-        check(seen.get("before") is not None and
-              seen.get("before") == seen.get("after"),
+        check(seen.get("before") == 1 and seen.get("after") == 1,
               "still the same number of organizer processes",
               "%s -> %s" % (seen.get("before"), seen.get("after")))
         inproc = pb.answers(log, "inprocess")
