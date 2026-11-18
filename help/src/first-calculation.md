@@ -125,6 +125,15 @@ The buttons **Theory Details...** and **Runtype Details...** open further
 options for the chosen theory and run type. The defaults are right for
 this calculation.
 
+### Titles in generated input
+
+Generated input keeps multiword titles, including names such as
+`Water, B3LYP-D3(BJ)/def2-SVP, minimum`. ECCE-QM writes the structure title
+on its `title` line; ORCA carries it in a comment, replacing any `#` in the title
+with a space. NWChem uses the calculation
+annotation for its displayed title. CP2K project names and Quantum ESPRESSO
+prefixes remain identifiers with their existing character and length limits.
+
 To see the input file ECCE will send to NWChem, click **Final Edit...**.
 The button is enabled when the setup is complete (the run state is
 **Ready**). It opens the input file in your text editor: the editor set in

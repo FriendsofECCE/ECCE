@@ -1718,7 +1718,8 @@ sub readChemSys {
     if (/^num_atoms:/) {
       ($junk, $chemsys_atoms) = split;
     } elsif (/^title:/) {
-      ($junk, $chemsys_name) = split;
+      ($chemsys_name = $_) =~ s/^title:\s*//;
+      chomp($chemsys_name);
     } elsif (/^atom_info:/) {
       $symbols = /symbol/;
     } elsif (/^atom_list:/) {

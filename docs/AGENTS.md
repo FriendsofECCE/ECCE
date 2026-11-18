@@ -43,6 +43,17 @@ may not leave the machine.
 5. Say plainly what was checked and what was not. Do not raise optimisation
    cycle limits to make a calculation converge; find the cause.
 
+## Titles in generated input
+
+Input generators preserve spaces and punctuation in the structure's `.frag`
+`title:` line. ECCE-QM writes this as `title <text>`; ORCA includes it as a
+`#` comment (hashes in the title become spaces so they cannot close the comment).
+NWChem's displayed `Title` comes from the `.param` `annotation`,
+while its `Start` name comes from `.param` `title`. Keep those metadata fields
+distinct when generating decks. CP2K project names and QE prefixes still use
+their existing identifier filtering and 40-character limit. Regression test:
+`srun -c 3 ctest --test-dir build-cmake -R inputgen_titles`.
+
 ## Reading final periodic stress
 
 In the Builder, **Properties > Geometry > Stress Tensor** displays the

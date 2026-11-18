@@ -3310,6 +3310,10 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify/run_tests.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/verify)
 
+  add_test(NAME inputgen_titles
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/inputgen/title_test.py)
+
   # An EGL-only Coin gets the surfaceless display, not an EGL X11 one (#237).
   if(ECCE_USE_COIN AND ECCE_GL_X11)
     add_test(NAME coin_egl_display COMMAND egl-display-check)

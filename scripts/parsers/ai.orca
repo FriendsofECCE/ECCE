@@ -270,6 +270,12 @@ sub ORCARoute {
   $route .= &OrbitalGuessToken;
   $route =~ s/\s+/ /g;
   $route =~ s/\s+$//;
+  if (defined($chemsys_name) && $chemsys_name ne "") {
+    my $title = $chemsys_name;
+    # A second hash ends an ORCA comment and would expose title text as input.
+    $title =~ s/#/ /g;
+    $route .= "\n# $title";
+  }
   $route .= "\n# one atom: no geometry optimisation" if (&NoOptForOneAtom());
   return $route;
 }
@@ -1125,7 +1131,8 @@ sub readChemSys {
     if (/^num_atoms:/) {
       (undef, $chemsys_atoms) = split;
     } elsif (/^title:/) {
-      (undef, $chemsys_name) = split;
+      ($chemsys_name = $_) =~ s/^title:\s*//;
+      chomp($chemsys_name);
     } elsif (/^atom_info:/) {
       $symbols = /symbol/;
     } elsif (/^atom_list:/) {
