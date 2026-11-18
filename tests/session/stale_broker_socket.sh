@@ -32,10 +32,15 @@ stale2="$work/run/ecce-$(id -u)-dead/mqtt-cafe0000.sock"
 mkstale "$stale1"; mkstale "$stale2"
 check "stale sockets made" "$(exists "$stale1")$(exists "$stale2")" keptkept
 
+# One a broker file names is not probed (a probe is a connection to a live broker).
+stale3="$work/home/.ECCE/mqtt-named000.sock"
+mkstale "$stale3"
+echo "socket=$stale3" > "$work/home/.ECCE/broker_otherhost_0000000000000000"
 ECCE_GATEWAY_LOCKED=1 ECCE_REAP_QUIET=1 "$gw/ecce-gateway-reap"
 check "a sweep removes the stale socket in the state directory" "$(exists "$stale1")" gone
 check "and the stale socket in a runtime-directory folder" "$(exists "$stale2")" gone
 check "and that folder" "$(exists "$(dirname "$stale2")")" gone
+check "a socket a broker file names is left for the file's sweep" "$(exists "$stale3")" kept
 check "a live broker's socket is kept" "$(exists "$live")" kept
 "$eb" --alive "$live"; check "and still answers" "$?" 0
 kill "$bpid"; sleep 1

@@ -160,10 +160,15 @@ done
 # is stale when nothing accepts a connection on it -- not by its age: a
 # live session's broker may be days old. The state directory holds them, or
 # a private directory under the runtime directory when the path was long.
+# One a broker file still names is left alone: its broker is live, or the
+# file goes with the session's other files, and a probe is a connection
+# that puts a client-less broker back into its 60 s wait for a first client
+# (it then outlived its session by a minute).
 EB="$ECCE_HOME/libexec/eccebroker"
 if [ -x "$EB" ]; then
   for s in "$STATEDIR"/mqtt-*.sock "${XDG_RUNTIME_DIR:-/tmp}"/ecce-"$UID_"-*/mqtt-*.sock; do
     [ -S "$s" ] && [ -O "$s" ] || continue
+    grep -qxF "socket=$s" "$STATEDIR"/broker_* 2>/dev/null && continue
     "$EB" --alive "$s" && continue
     rm -f "$s"
     [ "$(dirname "$s")" = "$STATEDIR" ] || rmdir "$(dirname "$s")" 2>/dev/null
