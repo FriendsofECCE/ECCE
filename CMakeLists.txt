@@ -2832,6 +2832,9 @@ if(NOT WIN32 AND NOT APPLE)
            ${CMAKE_SOURCE_DIR}/tests/session/gateway_lock_holder.sh ${CMAKE_SOURCE_DIR})
   add_test(NAME session-control-dir-claim COMMAND bash
            ${CMAKE_SOURCE_DIR}/tests/session/control_dir_claim.sh ${CMAKE_SOURCE_DIR})
+  add_test(NAME session-stale-broker-socket COMMAND bash
+           ${CMAKE_SOURCE_DIR}/tests/session/stale_broker_socket.sh ${CMAKE_SOURCE_DIR}
+           $<TARGET_FILE:eccebroker>)
 endif()
 
 # tests/gromacs_md -- GROMACS MD study tasks.  gromacs_structure checks the
