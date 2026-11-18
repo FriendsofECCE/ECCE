@@ -1601,10 +1601,14 @@ string GlobalPrefs::dataTest(const string& line)
     vector<string> w;
     string t;
     while (in >> t) {
-      for (size_t k = 0; k < t.size(); k++) if (t[k] == '_') t[k] = ' ';
       w.push_back(t);
     }
     return w;
+  };
+  // Only display names encode spaces as underscores; paths and URLs are literal.
+  auto name = [](string s) {
+    std::replace(s.begin(), s.end(), '_', ' ');
+    return s;
   };
   if (op == "show") {
     string out = "rows=" + std::to_string(p_serverRows.size());
@@ -1641,7 +1645,7 @@ string GlobalPrefs::dataTest(const string& line)
   if (op == "remove") {
     vector<string> w = words();
     for (size_t i = 0; i < p_serverRows.size(); i++)
-      if (!w.empty() && p_serverRows[i].name == w[0]) {
+      if (!w.empty() && p_serverRows[i].name == name(w[0])) {
         p_serverList->SetItemState(i, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
         wxCommandEvent ev(wxEVT_BUTTON, p_removeServer->GetId());
         OnRemoveServer(ev);
@@ -1659,7 +1663,7 @@ string GlobalPrefs::dataTest(const string& line)
     wxTimer timer;
     string result = "dialog did not close";
     timer.Bind(wxEVT_TIMER, [&](wxTimerEvent&) {
-      if (op == "add") dlg.fillForTest(ssh, w[1], w.size() > 3 ? w[2] : "",
+      if (op == "add") dlg.fillForTest(ssh, name(w[1]), w.size() > 3 ? w[2] : "",
                                        w.size() > 4 ? w[3] : "", w.size() > 5 ? w[4] : "");
       else dlg.fillForTest(ssh, "", "", "", "");
       for (int i = 0; i < 5; i++) wxYield();

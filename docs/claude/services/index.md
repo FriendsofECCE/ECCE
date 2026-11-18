@@ -43,6 +43,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 
 ### Pitfalls
 
+- [Preferences Data hook: decode underscores only in display names (#1103)](prefs-data-hook-preserves-paths.md)
 - [Series setup must read the named deck, not the first Inputs entry (#1081)](series-setup-reads-the-named-deck.md)
 - [TCP broker accounts are the data server logins](broker-accounts-are-the-data-server-logins.md)
 - [`ecce_auth_changed` carries no password](auth-changed-carries-no-password.md)
