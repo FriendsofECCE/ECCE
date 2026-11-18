@@ -10,14 +10,20 @@ issues: [1069, 983]
   started. On Linux and macOS the gateway starts the Organizer, on Windows
   ecce.cmd does; only the Organizer exists on all three, so the check sits
   there. A second launcher therefore still runs the wrapper and (Linux) the
-  gateway before the Organizer quits. Under `-remote` that gateway signed in
-  to the central server first (an "ECCE Authentication" prompt) for a start
-  that was then handed over, so `ecce` (packaging/ecce.in) runs
-  `libexec/ecce-one-instance` before the gateway: same context and channel
-  (OneInstanceChannel, GUI-free), exit 0 = handed over. Only under -remote:
-  locally the gateway's wrapper may still set ECCE_LOCAL_DATA from the
-  preference, so the launcher's context would not be the Organizer's (a local
-  data-server start still signs in before the hand-over). It never takes the
+  gateway before the Organizer quits. That gateway signs in to the data
+  server (central under `-remote`, or the user's own Apache in local mode:
+  an "ECCE Authentication" prompt) for a start that is then handed over, so
+  `ecce` (packaging/ecce.in) runs `libexec/ecce-one-instance` before the
+  gateway: same context and channel (OneInstanceChannel, GUI-free), exit 0
+  = handed over. The key must be the Organizer's: with ECCE_LOCAL_DATA
+  unset and no -remote, the gateway's wrapper fills ECCE_LOCAL_DATA from
+  `ecce-localdata` (the LocalData preference), so ecce.in runs the same
+  command and gives the result to the client only (the gateway's own
+  environment is unchanged). A mismatch only means no hand-over by the
+  launcher; the Organizer still hands over after sign-in. Windows needs no
+  launcher check: ecce.cmd sets ECCE_LOCAL_DATA itself and the Organizer
+  claims before its login window. macOS runs the same ecce script (via
+  Resources/ecce.sh). It never takes the
   lock while a copy holds it; a token left by a crash (no lock held) means
   "not running".
 - Key: user name, `ECCE_REALUSERHOME`, `ECCE_LOCAL_DATA`,
@@ -44,8 +50,10 @@ issues: [1069, 983]
   identifies. `WxJMSMessageDispatch::appInvoke` reports such an exit as
   status "ended", not "failed", and the gateway takes "ended" as its
   session being over, with no dialog. Before this, every second `ecce`
-  showed "System Error" and its gateway stayed up. `session_end.py`
-  checks it (same-display); the cases that need two sessions of one user
+  showed "System Error" and its gateway stayed up. With the launcher
+  check this path is only reached when the launcher's key misses.
+  `session_end.py` checks the launcher hand-over (handsOver: same-display,
+  local-pref, remote: no gateway, no prompt); the cases that need two sessions of one user
   (displays, same-display, two-sessions) set `ECCE_MULTIPLE_INSTANCES=1`.
 - Files: `ecce FILE` (packaging/ecce.in) puts them in `ECCE_OPEN_FILES`,
   because the gateway sits between the launcher and the Organizer;

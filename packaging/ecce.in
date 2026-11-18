@@ -252,15 +252,25 @@ switch_to_local() {
   passthrough=()
 }
 
-# One program (#1069): a -remote gateway asks for the server's password
-# before its Organizer could hand over to the running one, so ask the
-# running one first.  Only -remote: there the environment the Organizer
-# keys on is already final; locally the gateway's wrapper may still set
-# ECCE_LOCAL_DATA from the preference.
-if ! $bug && [ -n "${ECCE_REMOTE_SERVER:-}" ] \
-   && [ "${ECCE_ONE_PROCESS:-}" != 0 ] && [ -z "${ECCE_MULTIPLE_INSTANCES+x}" ] \
-   && [ -x "$ECCE_HOME/libexec/ecce-one-instance" ] \
-   && "$ECCE_HOME/libexec/ecce-one-instance"; then
+# One program (#1069): the gateway signs in to the data server (the
+# central one or the user's own) before its Organizer could hand over to
+# the running one, so ask the running one first.  The Organizer keys on
+# ECCE_LOCAL_DATA, which the gateway's wrapper takes from the preference
+# when unset: the client gets that same value, the gateway's environment
+# stays as it was.  A wrong guess only means a normal start.
+one_instance() {
+  local data
+  if [ -z "${ECCE_LOCAL_DATA+x}" ] && [ -z "${ECCE_REMOTE_SERVER:-}" ] \
+     && [ -x "$ECCE_HOME/bin/ecce-localdata" ]; then
+    data=$("$ECCE_HOME/bin/ecce-localdata" 2>/dev/null) || data=
+    ECCE_LOCAL_DATA="$data" "$ECCE_HOME/libexec/ecce-one-instance"
+  else
+    "$ECCE_HOME/libexec/ecce-one-instance"
+  fi
+}
+if ! $bug && [ "${ECCE_ONE_PROCESS:-}" != 0 ] \
+   && [ -z "${ECCE_MULTIPLE_INSTANCES+x}" ] \
+   && [ -x "$ECCE_HOME/libexec/ecce-one-instance" ] && one_instance; then
   exit 0
 fi
 
