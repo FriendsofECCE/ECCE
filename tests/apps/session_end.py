@@ -400,9 +400,29 @@ def brokerPort():
     return int(os.environ["ECCE_BROKER_PORT"])
 
 
+def holders(pid):
+    """`name:pid` of the programs holding a connection to broker `pid`:
+    the peer inode of each of its sockets is the client's own socket."""
+    out = subprocess.run(["ss", "-xpnH"], stdout=subprocess.PIPE,
+                         stderr=subprocess.DEVNULL).stdout.decode()
+    rows = []
+    for line in out.splitlines():
+        f = line.split()
+        if len(f) >= 8:
+            rows.append((f[5], f[7], re.findall(r'\("([^"]+)",pid=(\d+)',
+                                                line)))
+    peers = set(peer for local, peer, who in rows
+                if ("%d" % pid) in [w[1] for w in who])
+    return ["%s:%s" % w for local, peer, who in rows if local in peers
+            for w in who]
+
+
 def brokerStopped(checks, amq, why, sock=None):
     if builtin():
         #  It ends ECCE_BROKER_LINGER s (10) after its last client left.
+        if amq is not None and not waitGone(amq, 30):
+            say("    broker %s still up; connections held by: %s"
+                % (amq, holders(amq)))
         checks.check(amq is not None and waitGone(amq, 30),
                      "the session's broker %s ended on its own: %s"
                      % (amq, why))
