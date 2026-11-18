@@ -1496,6 +1496,7 @@ sub orca()
   $cmd = &userCmd("orcacommand");
 
   $retval .= &pathVar("orca", "$orca", "ECCE_ORCA");
+  $retval .= &cpSplit($::inFile);
   $retval .= "echo \"Using ORCA path: \$orca\" >> $::logfile\n";
   # Debian and Ubuntu desktops have the GNOME screen reader at /usr/bin/orca,
   # a Python script that exits 0 without output when given an input file.
@@ -1533,6 +1534,8 @@ sub orca()
     $retval .= "if [ -z \"\$orcabad\" ]; then \"\$orca\" $::inFile > $::outFile 2>&1; else echo \"\$orcabad\" > $::outFile; false; fi\n";
     $retval .= &orcaIrcEnds($::inFile, $::outFile);
   }
+  $retval .= &cpRuns($::inFile, $::outFile, "\"\$orca\" CPIN",
+                     "grep 'FINAL SINGLE POINT ENERGY' FILE | tail -1 | awk '{print \$NF}'", 1);
   return $retval;
   nouse strict vars;
 }
@@ -1587,6 +1590,57 @@ PERL
 }
 
 #############################################################################
+# Counterpoise (#1091).  ai.ecceqm / ai.orca append the monomer decks to the
+# one input file after "# ecce-run <name>" lines.  cpSplit leaves the complex
+# deck in the input file (so the code runs on it as always) and writes the
+# others to ecce-cp-<name>.<ext>; cpRuns, after the main run, runs them in
+# sequence and appends the energies to the output as one block, which
+# counterpoise.parse turns into properties.  The input file is kept whole as
+# <input>.cp-all, so a re-run splits it again.
+#############################################################################
+sub cpSplit
+{
+  my ($in) = @_;
+  (my $ext = $in) =~ s/.*\.//;
+  my $r = "\n$::CC - counterpoise: split the monomer decks off the input\n";
+  $r .= "if grep -q '^# ecce-run ' $in || [ -e $in.cp-all ]; then\n";
+  $r .= "  [ -e $in.cp-all ] || cp $in $in.cp-all\n";
+  $r .= "  awk -v main=$in -v ext=$ext 'BEGIN{o=main} /^# ecce-run /{o=\"ecce-cp-\" \$3 \".\" ext; next} {print > o}' $in.cp-all\n";
+  $r .= "fi\n";
+  return $r;
+}
+
+# $run: the command line for one deck, with CPIN for its file; $energy: a
+# shell pipeline printing the energy of the output file named FILE.
+sub cpRuns
+{
+  my ($in, $out, $run, $energy, $pal) = @_;
+  (my $ext = $in) =~ s/.*\.//;
+  my $r = "\ncpstatus=\$?\n";
+  $r .= "if ls ecce-cp-*.$ext >/dev/null 2>&1; then\n";
+  $r .= "  cppal=\$(grep -i -m1 '^[[:space:]]*%pal' $in)\n" if ($pal);
+  $r .= "  for cpin in ecce-cp-*.$ext; do\n";
+  $r .= "    cpname=\${cpin#ecce-cp-}; cpname=\${cpname%.$ext}\n";
+  $r .= "    if [ -n \"\$cppal\" ]; then (echo \"\$cppal\"; cat \$cpin) > \$cpin.tmp; mv \$cpin.tmp \$cpin; fi\n" if ($pal);
+  (my $cmd = $run) =~ s/CPIN/\$cpin/g;
+  $r .= "    $cmd > ecce-cp-\$cpname.out 2>&1 || cpstatus=1\n";
+  $r .= "  done\n";
+  $r .= "  { echo 'begin counterpoise'\n";
+  $r .= "    grep '^# ecce-cp-points ' $in | awk '{print \"points \" \$3}'\n";
+  (my $eOut = $energy) =~ s/FILE/$out/;
+  (my $eFrag = $energy) =~ s/FILE/\$cpout/;
+  $r .= "    echo \"complex \$($eOut)\"\n";
+  $r .= "    for cpout in ecce-cp-*.out; do\n";
+  $r .= "      cpname=\${cpout#ecce-cp-}; cpname=\${cpname%.out}\n";
+  $r .= "      echo \"\$cpname \$($eFrag)\"\n";
+  $r .= "    done\n";
+  $r .= "    echo 'end counterpoise'; } >> $out\n";
+  $r .= "fi\n";
+  $r .= "(exit \$cpstatus)\n";
+  return $r;
+}
+
+#############################################################################
 # ECCE-QM, the engine bundled with ECCE (src/qm).  It is not installed
 # anywhere a CONFIG file would name, so with no path configured the copy next
 # to ECCE's own programs is used; ECCE_ECCEQM in the environment, or an
@@ -1607,6 +1661,7 @@ sub ecceqm()
   $retval .= "echo \"Using ecce-qm path: \$ecceqm\" >> $::logfile\n";
   $retval .= "OMP_NUM_THREADS=$::totalprocs\nexport OMP_NUM_THREADS\n";
   $retval .= "ECCE_BASIS_DIR=\"$::ecceHome/data/admin/basissets\"\nexport ECCE_BASIS_DIR\n";
+  $retval .= &cpSplit($::inFile);
   if ($cmd ne "") {
     $retval .= "$cmd\n";
   } else {
@@ -1614,6 +1669,8 @@ sub ecceqm()
     # its checks (#690).
     $retval .= "\"\$ecceqm\" --results results.h5 $::inFile > $::outFile 2>&1\n";
   }
+  $retval .= &cpRuns($::inFile, $::outFile, "\"\$ecceqm\" CPIN",
+                     "grep '^energy_total' FILE | tail -1 | awk '{print \$2}'", 0);
   return $retval;
   nouse strict vars;
 }

@@ -945,6 +945,9 @@ void CalcMgr::runTestCommand(const string& line)
       } else if (sub == "sync") {
         syncServerRoots();
         outcome = "ok";
+      } else if (sub == "rtt") {
+        // Remote scripts run on SSH folders so far (round trips).
+        outcome = std::to_string(SftpEDSI::scriptCount());
       } else if (sub == "roots") {
         vector<string> labels = p_treeCtrl->rootLabels();
         for (size_t i = 0; i < labels.size(); i++)
@@ -2556,6 +2559,21 @@ void CalcMgr::runTestCommand(const string& line)
         outcome = string("strike=") +
             (p_treeCtrl->GetItemFont(node->GetId()).GetStrikethrough() ? "1" : "0") +
             " grey=" + (c == wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT) ? "1" : "0");
+      }
+    } else if (command == "treeimage") {
+      // "treeimage <url>": whether the row has a background colour (none
+      // should), and which ink its icon is drawn in: none, ssh or server.
+      WxResourceTreeItemData *node = p_treeCtrl->findNode(EcceURL(calcName),
+                                                          true, true);
+      if (!node || !node->getResource()) outcome = "no node";
+      else {
+        int img = p_treeCtrl->GetItemImage(node->GetId());
+        const char *ink = "none";
+        if (img == WxResourceImageList::getInkedImageIndex(node->getResource(), 1)) ink = "ssh";
+        else if (img == WxResourceImageList::getInkedImageIndex(node->getResource(), 2)) ink = "server";
+        outcome = string("bg=") +
+            (p_treeCtrl->GetItemBackgroundColour(node->GetId()).IsOk() ? "1" : "0") +
+            " ink=" + ink;
       }
     } else if (command == "treestate") {
       // "treestate <url>": the tree icon shown, against those of running
@@ -5453,6 +5471,11 @@ void CalcMgr::launchSelected(const vector<EcceURL>& urls, bool interactive,
     if (outcome) *outcome = "refused";
     return;
   }
+  // A calculation made by another process (ecce-* tools, scripts) is not in
+  // a folder the tree has already listed. Re-read first, in a pass of its
+  // own: a refresh frees the Resources below it, so no TaskJob is held yet.
+  for (size_t i = 0; i < urls.size(); i++)
+    if (!findNode(urls[i], false, true)) findNodeFresh(urls[i], false);
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
     // Not openWhenFound: that selects the node, which replaces the
@@ -5564,6 +5587,11 @@ bool CalcMgr::launchSelectedAsync(const vector<EcceURL>& urls, string *outcome,
                                   bool askForSettings)
 {
   if (p_batch) { if (outcome) *outcome = "busy"; return false; }
+  // A calculation made by another process (ecce-* tools, scripts) is not in
+  // a folder the tree has already listed. Re-read first, in a pass of its
+  // own: a refresh frees the Resources below it, so no TaskJob is held yet.
+  for (size_t i = 0; i < urls.size(); i++)
+    if (!findNode(urls[i], false, true)) findNodeFresh(urls[i], false);
   vector<TaskJob*> tasks;
   for (size_t i = 0; i < urls.size(); i++) {
     // Not openWhenFound: that selects the node, which replaces the

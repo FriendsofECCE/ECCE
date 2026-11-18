@@ -218,11 +218,32 @@ Input parse_input(std::istream& in) {
     Atom a;
     if (!(ss >> sym >> a.x[0] >> a.x[1] >> a.x[2])) throw Error("bad geometry line: " + gl);
     a.Z = is_dummy_symbol(sym) ? 0 : atomic_number(sym);
+    std::string flag;   // optional fifth column: "ghost"
+    if (ss >> flag) {
+      if (lower(flag) != "ghost") throw Error("bad geometry line (only 'ghost' may follow the coordinates): " + gl);
+      if (a.Z == 0) throw Error("a dummy atom cannot be a ghost: " + gl);
+      a.ghost_Z = a.Z;
+      a.Z = 0;
+    }
     for (double& v : a.x) v *= unit;
     r.mol.atoms.push_back(a);
   }
   if (r.mol.atoms.empty()) throw Error("no geometry given");
   if (r.mol.without_dummies().atoms.empty()) throw Error("the geometry holds only dummy atoms");
+  {
+    bool real = false;
+    for (const auto& at : r.mol.atoms) real = real || at.Z != 0;
+    if (!real) throw Error("the geometry holds no real atom (only dummy or ghost centres): nothing to compute");
+  }
+  if (r.mol.has_ghost()) {
+    // Only a single-point energy is defined: gradients, Hessians, charges
+    // and solvent cavities have no ghost-aware code path.
+    if (r.runtype != RunType::Energy) throw Error("ghost atoms: only runtype energy is supported (no geometry optimisation with ghost centres)");
+    if (r.scf.solvent_eps > 0) throw Error("ghost atoms: not supported with a solvent");
+    if (r.charges.any()) throw Error("ghost atoms: the charges keyword is not supported");
+    if (r.polarizability || r.raman) throw Error("ghost atoms: polarizability/raman are not supported");
+    r.localise = false;
+  }
 
   // constraints: atom numbers are 1-based and count the dummy atoms; bond
   // values are in the geometry units, angles and torsions in degrees.

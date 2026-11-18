@@ -335,9 +335,31 @@ greyed out.
   the chosen set's elements (the ones of your chemical system it does not
   cover are marked, and **Use for all atoms** is then off), **Use for all
   atoms** to assign the set to the whole system and save it, and the current
-  assignment, one line per element when the elements differ. **Full Basis Set
-  Tool...** opens the Basis Set Tool for everything else (different sets for
-  different elements, ECPs, fitting sets). Codes whose details exist only in the older form (NWChem,
+  assignment, one line per element when the elements differ. To give
+  different elements different sets, check the elements in the Elements
+  list (all are checked at first) and use **Assign to checked elements**;
+  a set that lacks one of them cannot be assigned. The library list also
+  holds the ECPs and the charge and exchange fitting sets: pick one and the
+  button becomes **Add ECP to checked elements** or **Add fitting set to
+  checked elements**, which adds it to the elements it covers (a fitting
+  set needs an orbital set on the element first). When you assign an orbital
+  set that was built around an ECP, the panel offers the matching ECP and
+  the elements that need it, with an **Add** button; it is never added
+  unasked. Every element needs a set, so one that has none yet takes the
+  set chosen for **Use for all atoms** (else the set you assign), if it
+  covers it; check it and assign another to change it. The ECP list offers
+  an ECP on the elements that have a core in it (Def2-ECP starts at Rb, so
+  it is not offered on O or H). Charge and exchange fitting sets are
+  listed only when the code and theory use them (ORCA with an RI
+  approximation, DFT in NWChem); otherwise a line under the list says why
+  they are hidden. The library also lists augmenting sets (polarization,
+  diffuse, Rydberg), added to an element that has an orbital set. To
+  assign to single atoms, type their names (H1,H2) in the **Atoms** box:
+  the buttons then act on those atoms and the element's set stays for the
+  others of that element. **Functions** adds tight or diffuse functions
+  to a numbered shell of the first checked element's orbital set. **Full Basis Set
+  Tool...** opens the Basis Set Tool for the contraction editor and the
+  coefficients. Codes whose details exist only in the older form (NWChem,
   MOPAC, Quantum ESPRESSO, CP2K, GROMACS and others) still open those
   details in a window, and the area says so. **Small**: one
   tool per tab, each the full width of the window, for small screens and X

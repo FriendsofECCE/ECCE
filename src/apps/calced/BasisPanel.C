@@ -5,6 +5,11 @@
  */
 #include "wx/wx.h"
 #include "wx/listctrl.h"
+#include "wx/checklst.h"
+#include "wx/spinctrl.h"
+
+#include <algorithm>
+#include <cctype>
 
 #include "dsm/EDSIGaussianBasisSetLibrary.H"
 #include "dsm/EDSIServerCentral.H"
@@ -25,7 +30,13 @@ const Section SECTIONS[] = {
   {TGaussianBasisSet::correlation_consistent, "Correlation consistent"},
   {TGaussianBasisSet::other_generally_contracted, "Generally contracted"},
   {TGaussianBasisSet::ECPOrbital, "With ECP"},
-  {TGaussianBasisSet::DFTOrbital, "DFT orbital"}};
+  {TGaussianBasisSet::DFTOrbital, "DFT orbital"},
+  {TGaussianBasisSet::polarization, "Polarization"},
+  {TGaussianBasisSet::diffuse, "Diffuse"},
+  {TGaussianBasisSet::rydberg, "Rydberg"},
+  {TGaussianBasisSet::ecp, "ECP"},
+  {TGaussianBasisSet::charge, "Charge fitting"},
+  {TGaussianBasisSet::exchange, "Exchange fitting"}};
 
 const char *sectionLabel(TGaussianBasisSet::GBSType t)
 {
@@ -63,21 +74,68 @@ BasisPanel::BasisPanel(wxWindow *parent, CalcEd *editor)
   p_cover = new wxStaticText(this, wxID_ANY, "");
   p_message = new wxStaticText(this, wxID_ANY, "");
   p_message->SetForegroundColour(*wxRED);
+  p_fitNote = new wxStaticText(this, wxID_ANY, "");
   top->Add(p_details, 0, wxEXPAND | wxALL, 4);
   top->Add(p_cover, 0, wxEXPAND | wxLEFT | wxRIGHT, 4);
   top->Add(p_message, 0, wxEXPAND | wxLEFT | wxRIGHT, 4);
+  top->Add(p_fitNote, 0, wxEXPAND | wxLEFT | wxRIGHT, 4);
   wxBoxSizer *row = new wxBoxSizer(wxHORIZONTAL);
   p_use = new wxButton(this, wxID_ANY, "Use for all atoms");
+  p_assign = new wxButton(this, wxID_ANY, "Assign to checked elements");
   wxButton *full = new wxButton(this, wxID_ANY, "Full Basis Set Tool...");
+  p_elements = new wxCheckListBox(this, wxID_ANY, wxDefaultPosition,
+                                  wxSize(-1, 70));
+  top->Add(new wxStaticText(this, wxID_ANY, "Elements"), 0, wxLEFT | wxTOP, 4);
+  top->Add(p_elements, 0, wxEXPAND | wxALL, 4);
+  p_atoms = new wxTextCtrl(this, wxID_ANY);
+  p_atoms->SetHint("Atoms, e.g. H1,H2 (instead of the checked elements)");
+  top->Add(p_atoms, 0, wxEXPAND | wxLEFT | wxRIGHT, 4);
+  row->Add(p_assign, 0, wxRIGHT, 6);
   row->Add(p_use, 0, wxRIGHT, 6);
   row->Add(full, 0);
   top->Add(row, 0, wxALL, 4);
+  wxBoxSizer *app = new wxBoxSizer(wxHORIZONTAL);
+  p_appendKind = new wxChoice(this, wxID_ANY);
+  p_appendKind->Append("Tight");
+  p_appendKind->Append("Diffuse");
+  p_appendKind->SetSelection(0);
+  p_appendShell = new wxSpinCtrl(this, wxID_ANY, "0", wxDefaultPosition,
+                                 wxSize(60, -1), wxSP_ARROW_KEYS, 0, 9, 0);
+  p_appendCount = new wxSpinCtrl(this, wxID_ANY, "1", wxDefaultPosition,
+                                 wxSize(60, -1), wxSP_ARROW_KEYS, 0, 5, 1);
+  wxButton *appendGo = new wxButton(this, wxID_ANY, "Add functions");
+  app->Add(new wxStaticText(this, wxID_ANY, "Functions"), 0,
+           wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
+  app->Add(p_appendKind, 0, wxRIGHT, 6);
+  app->Add(new wxStaticText(this, wxID_ANY, "shell"), 0,
+           wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+  app->Add(p_appendShell, 0, wxRIGHT, 6);
+  app->Add(new wxStaticText(this, wxID_ANY, "number"), 0,
+           wxALIGN_CENTER_VERTICAL | wxRIGHT, 4);
+  app->Add(p_appendCount, 0, wxRIGHT, 6);
+  app->Add(appendGo, 0);
+  top->Add(app, 0, wxALL, 4);
+  appendGo->SetToolTip("Appended to the first checked element, or the "
+                       "element of the first atom named");
+  appendGo->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+    vector<string> els = targetElements();
+    if (els.empty()) { say("Check an element first."); return; }
+    appendFunctions(p_appendKind->GetSelection() == 0, els[0],
+                    p_appendShell->GetValue(), p_appendCount->GetValue());
+  });
+  p_offer = new wxStaticText(this, wxID_ANY, "");
+  p_offerButton = new wxButton(this, wxID_ANY, "Add ECP");
+  top->Add(p_offer, 0, wxEXPAND | wxLEFT | wxRIGHT, 4);
+  top->Add(p_offerButton, 0, wxALL, 4);
+  p_offer->Show(false);
+  p_offerButton->Show(false);
   top->Add(new wxStaticText(this, wxID_ANY, "Current assignment"), 0,
            wxLEFT | wxTOP, 4);
   p_current = new wxStaticText(this, wxID_ANY, "");
   top->Add(p_current, 0, wxEXPAND | wxALL, 4);
   SetSizer(top);
   p_use->Enable(false);
+  p_assign->Enable(false);
 
   for (const Section& s : SECTIONS) {
     vector<const char*> *names = p_lib->gbsNameList(s.type);
@@ -97,9 +155,14 @@ BasisPanel::BasisPanel(wxWindow *parent, CalcEd *editor)
     chosen();
   });
   p_use->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { useForAll(); });
+  p_assign->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { assignChecked(); });
+  p_offerButton->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { acceptEcp(); });
+  p_elements->Bind(wxEVT_CHECKLISTBOX, [this](wxCommandEvent&) { chosen(); });
+  p_atoms->Bind(wxEVT_TEXT, [this](wxCommandEvent&) { chosen(); });
   full->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
     p_ed->openBasisSetTool();
   });
+  fillElements();
   fill();
   refresh();
 }
@@ -113,7 +176,13 @@ void BasisPanel::fill()
   wxString f = p_filter->GetValue().Lower();
   p_shown.clear();
   p_list->DeleteAllItems();
+  string why;
+  p_fitUsed = p_ed->fittingUsed(why);
+  p_fitNote->SetLabel(p_fitUsed ? wxString() : wxString::FromUTF8(
+      ("Fitting sets are hidden. " + why).c_str()));
+  p_fitNote->Wrap(std::max(200, GetSize().x - 20));
   for (const Entry& e : p_all) {
+    if (!p_fitUsed && kindOf(e.type) == FIT) continue;
     if (!f.empty() && wxString::FromUTF8(e.name.c_str()).Lower().Find(f) ==
         wxNOT_FOUND) continue;
     long i = p_list->InsertItem(p_list->GetItemCount(),
@@ -155,6 +224,7 @@ void BasisPanel::chosen()
     p_details->SetLabel("");
     p_cover->SetLabel("");
     p_use->Enable(false);
+    p_assign->Enable(false);
     Layout();
     return;
   }
@@ -175,8 +245,210 @@ void BasisPanel::chosen()
     p_cover->SetForegroundColour(wxNullColour);
   }
   p_cover->SetLabel(text);
-  p_use->Enable(p_uncovered.empty() && !p_covered.empty());
+  Kind kind = kindOf(e.type);
+  p_use->Enable(kind == ORBITAL && p_uncovered.empty() && !p_covered.empty());
+  // An orbital set must cover every checked element; an ECP or fitting set
+  // goes on the ones it covers.
+  size_t on = 0, onCovered = 0;
+  for (const string& el : targetElements()) {
+    on++;
+    if (std::find(p_covered.begin(), p_covered.end(), el) != p_covered.end())
+      onCovered++;
+  }
+  const char *to = p_atoms->GetValue().empty() ? "checked elements"
+                                               : "the named atoms";
+  p_assign->SetLabel(wxString::FromUTF8(((kind == ORBITAL ? "Assign to "
+      : kind == ECP ? "Add ECP to " : kind == FIT ? "Add fitting set to "
+                                                   : "Add augmenting set to ")
+      + string(to)).c_str()));
+  p_assign->Enable(on && (kind == ORBITAL ? onCovered == on : onCovered > 0));
   Layout();
+}
+
+
+BasisPanel::Kind BasisPanel::kindOf(TGaussianBasisSet::GBSType type) const
+{
+  return type == TGaussianBasisSet::ecp ? ECP
+       : (type == TGaussianBasisSet::charge ||
+          type == TGaussianBasisSet::exchange) ? FIT
+       : (type == TGaussianBasisSet::polarization ||
+          type == TGaussianBasisSet::diffuse ||
+          type == TGaussianBasisSet::rydberg) ? AUGMENT : ORBITAL;
+}
+
+
+void BasisPanel::fillElements()
+{
+  p_elementNames = p_ed->systemElements();
+  p_elements->Clear();
+  for (size_t i = 0; i < p_elementNames.size(); i++) {
+    p_elements->Append(wxString::FromUTF8(p_elementNames[i].c_str()));
+    p_elements->Check(i, true);
+  }
+}
+
+
+vector<string> BasisPanel::checked() const
+{
+  vector<string> out;
+  for (size_t i = 0; i < p_elementNames.size(); i++)
+    if (p_elements->IsChecked(i)) out.push_back(p_elementNames[i]);
+  return out;
+}
+
+
+vector<string> BasisPanel::targets() const
+{
+  vector<string> out;
+  string text(p_atoms->GetValue().utf8_str());
+  for (char& ch : text) if (ch == ' ' || ch == ';') ch = ',';
+  size_t at = 0;
+  while (at < text.size()) {
+    size_t to = text.find(',', at);
+    if (to == string::npos) to = text.size();
+    if (to > at) out.push_back(text.substr(at, to - at));
+    at = to + 1;
+  }
+  return out.empty() ? checked() : out;
+}
+
+
+// An atom name is its element symbol and a number.
+vector<string> BasisPanel::targetElements() const
+{
+  vector<string> out;
+  for (string t : targets()) {
+    while (!t.empty() && isdigit((unsigned char)t.back())) t.pop_back();
+    out.push_back(t);
+  }
+  return out;
+}
+
+
+void BasisPanel::setAtoms(const string& names)
+{
+  p_atoms->ChangeValue(wxString::FromUTF8(names.c_str()));
+  chosen();
+}
+
+
+void BasisPanel::say(const string& text)
+{
+  p_messageText = text;
+  p_message->SetLabel(wxString::FromUTF8(text.c_str()));
+  p_message->Wrap(std::max(200, GetSize().x - 20));
+}
+
+
+void BasisPanel::offerEcp(const string& basis, const vector<string>& els)
+{
+  p_ecpOffer = p_ed->matchingEcp(basis, els, p_ecpOfferFor);
+  if (p_ecpOffer.empty()) p_ecpOfferFor.clear();
+  p_offer->SetLabel(p_ecpOffer.empty() ? wxString() : wxString::FromUTF8(
+      ("The library has a matching ECP, " + p_ecpOffer + ", for " +
+       join(p_ecpOfferFor) + ". The set was built for it.").c_str()));
+  p_offerButton->SetLabel(wxString::FromUTF8(("Add " + p_ecpOffer).c_str()));
+  p_offer->Show(!p_ecpOffer.empty());
+  p_offerButton->Show(!p_ecpOffer.empty());
+  p_offer->Wrap(std::max(200, GetSize().x - 20));
+  Layout();
+}
+
+
+bool BasisPanel::assignChecked()
+{
+  if (p_picked < 0 || p_picked >= (int)p_shown.size()) return false;
+  const Entry e = p_shown[p_picked];
+  vector<string> els = targets();
+  if (els.empty()) {
+    say("Check at least one element or name atoms.");
+    return false;
+  }
+  string err;
+  bool ok = p_ed->assignBasis(e.name, e.type, els, err);
+  say(err);
+  if (ok && kindOf(e.type) != FIT)
+    offerEcp(e.type == TGaussianBasisSet::ECPOrbital ? e.name : "", els);
+  Layout();
+  return ok;
+}
+
+
+bool BasisPanel::assignNamed(const string& name, Kind kind,
+                             const vector<string>& elements)
+{
+  setFilter("");
+  size_t at = p_shown.size();
+  for (size_t i = 0; i < p_shown.size(); i++)
+    if (p_shown[i].name == name && kindOf(p_shown[i].type) == kind) {
+      at = i;
+      break;
+    }
+  if (at == p_shown.size()) return false;
+  p_picked = (int)at;
+  p_list->SetItemState(at, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+  vector<string> atoms;
+  for (const string& t : elements)
+    if (std::find(p_elementNames.begin(), p_elementNames.end(), t) ==
+        p_elementNames.end()) atoms.push_back(t);
+  p_atoms->ChangeValue(wxString::FromUTF8(join(atoms, ",").c_str()));
+  for (size_t i = 0; i < p_elementNames.size(); i++)
+    p_elements->Check(i, elements.empty() || std::find(elements.begin(),
+        elements.end(), p_elementNames[i]) != elements.end());
+  chosen();
+  assignChecked();
+  return true;
+}
+
+
+bool BasisPanel::assignMany(Kind kind,
+    const vector<std::pair<string, vector<string> > >& many)
+{
+  vector<CalcEd::BasisStep> steps;
+  for (const auto& m : many) {
+    bool found = false;
+    for (const Entry& e : p_all) {
+      if (e.name != m.first || kindOf(e.type) != kind) continue;
+      CalcEd::BasisStep st;
+      st.name = e.name;
+      st.type = e.type;
+      st.targets = m.second;
+      steps.push_back(st);
+      found = true;
+      break;
+    }
+    if (!found) return false;
+  }
+  string err;
+  bool ok = p_ed->assignBasisSteps(steps, err);
+  say(err);
+  if (ok && kind == ORBITAL && !steps.empty())
+    offerEcp(steps.back().type == TGaussianBasisSet::ECPOrbital
+             ? steps.back().name : "", steps.back().targets);
+  Layout();
+  return ok;
+}
+
+
+bool BasisPanel::appendFunctions(bool tight, const string& element, int shell,
+                                 int count)
+{
+  string err;
+  bool ok = p_ed->appendFunctions(tight, element, shell, count, err);
+  say(err);
+  return ok;
+}
+
+
+bool BasisPanel::acceptEcp()
+{
+  if (p_ecpOffer.empty()) return false;
+  string err;
+  bool ok = p_ed->assignBasis(p_ecpOffer, TGaussianBasisSet::ecp,
+                              p_ecpOfferFor, err);
+  say(err);
+  if (ok) offerEcp("", p_ecpOfferFor);
+  return ok;
 }
 
 
@@ -184,10 +456,11 @@ bool BasisPanel::useForAll()
 {
   if (p_picked < 0 || p_picked >= (int)p_shown.size()) return false;
   string err;
-  bool ok = p_ed->useBasisForAll(p_shown[p_picked].name,
-                                 p_shown[p_picked].type, err);
-  p_message->SetLabel(wxString::FromUTF8(err.c_str()));
-  p_message->Wrap(std::max(200, GetSize().x - 20));
+  const Entry e = p_shown[p_picked];
+  bool ok = p_ed->useBasisForAll(e.name, e.type, err);
+  say(err);
+  if (ok) offerEcp(e.type == TGaussianBasisSet::ECPOrbital ? e.name : "",
+                   vector<string>());
   Layout();
   return ok;
 }
@@ -195,6 +468,9 @@ bool BasisPanel::useForAll()
 
 void BasisPanel::refresh()
 {
+  if (p_elementNames != p_ed->systemElements()) fillElements();
+  string why;
+  if (p_ed->fittingUsed(why) != p_fitUsed) fill();
   vector<string> lines = p_ed->basisAssignmentLines();
   p_current->SetLabel(wxString::FromUTF8(
       lines.empty() ? "None" : [&]() {
@@ -212,10 +488,20 @@ string BasisPanel::describe() const
   for (const string& l : p_ed->basisAssignmentLines())
     cur += (cur.empty() ? "" : "|") + l;
   for (char& c : cur) if (c == ' ') c = '_';
+  string msgText = p_messageText.empty() ? "-" : p_messageText;
+  for (char& c : msgText) c = c == ' ' ? '_' : c == '\n' ? '|' : c;
   return "list=" + StringConverter::toString((int)p_shown.size()) +
          " of " + StringConverter::toString((int)p_all.size()) +
          " picked=" + (p_picked >= 0 ? p_shown[p_picked].name : "-") +
          " covered=" + join(p_covered, ",") + " uncovered=" + join(p_uncovered, ",") +
          " use=" + (p_use->IsEnabled() ? "on" : "off") +
+         " assign=" + (p_assign->IsEnabled() ? "on" : "off") +
+         " checked=" + join(checked(), ",") +
+         " atoms=" + (p_atoms->GetValue().empty() ? string("-")
+                      : string(p_atoms->GetValue().utf8_str())) +
+         " fit=" + (p_fitUsed ? "shown" : "hidden") +
+         " ecpoffer=" + (p_ecpOffer.empty() ? "-" : p_ecpOffer + ":" +
+                         join(p_ecpOfferFor, ",")) +
+         " msg=" + msgText +
          " assigned=" + cur;
 }

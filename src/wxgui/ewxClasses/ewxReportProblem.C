@@ -2,6 +2,8 @@
 #ifndef WX_PRECOMP
 #include "wx/wx.h"
 #endif
+#include <cstdio>
+
 #include <wx/dir.h>
 #include <wx/ffile.h>
 #include <wx/filename.h>
@@ -24,6 +26,12 @@ wxString userHome()
   wxString home;
   if (wxGetEnv("ECCE_REALUSERHOME", &home) && !home.empty()) return home;
   return wxFileName::GetHomeDir();
+}
+
+void step(const wxString& what)
+{
+  fprintf(stderr, "Report a Problem: %s\n", (const char *)what.utf8_str());
+  fflush(stderr);
 }
 
 bool writeText(const wxString& path, const wxString& text)
@@ -183,15 +191,25 @@ wxString ewxReportProblem::collect(wxString& error, wxWindow *parent)
     return "";
   }
 
-  writeText(dir + wxFILE_SEP_PATH + "version.txt",
-            wxString("ECCE ") + Ecce::ecceVersion() + "\n" +
-            wxGetOsDescription() + "\n" +
-            wxString::FromUTF8(GLPath::describeForDisplay().c_str()) + "\n");
+  // One stderr line per step: an empty folder with no zip was reported
+  // from macOS and could not be reproduced, so the next one must show in
+  // the log where collection stopped.
+  step("collecting into " + dir);
+  if (!writeText(dir + wxFILE_SEP_PATH + "version.txt",
+                 wxString("ECCE ") + Ecce::ecceVersion() + "\n" +
+                 wxGetOsDescription() + "\n" +
+                 wxString::FromUTF8(GLPath::describeForDisplay().c_str()) +
+                 "\n")) {
+    error = "Cannot write " + dir + wxFILE_SEP_PATH + "version.txt";
+    return "";
+  }
+  step("version written");
 #ifdef __WXMSW__
   collectWindows(dir);
 #else
   collectPosix(dir, parent);
 #endif
+  step("diagnostics collected");
 
   wxFFileOutputStream out(archive);
   if (!out.IsOk()) {
@@ -204,6 +222,7 @@ wxString ewxReportProblem::collect(wxString& error, wxWindow *parent)
     error = "Cannot write " + archive;
     return "";
   }
+  step("archive " + archive);
   return archive;
 }
 

@@ -22,6 +22,10 @@ static WxJMSMessageDispatch *openTool(const string& app, const wxString& title)
   BuilderMessages *msgs = new BuilderMessages(app, builder);
   builder->setMessages(msgs);
   builder->setInProcess(true);
+  if (app == CALCVIEWER) {
+    builder->setViewerApp(true);
+    builder->SetTitle(_("ECCE Viewer"));
+  }
   // The invoke that follows raises registered shells, then fills this one.
   msgs->registerTopShell(builder);
   msgs->subscribeMessages();

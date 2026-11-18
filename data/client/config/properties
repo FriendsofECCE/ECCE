@@ -143,6 +143,13 @@ Energy		Rotational Symmetry Number (code's)	THERMOSIGMA	NA		PropValue	Thermochem
 # prints both totals (NWChem COSMO).  Gaussian and ORCA SMD print just the
 # cavity-dispersion term, kept apart as ESOLVCDS since it is not the full
 # solvation free energy.
+# Counterpoise (#1091): dE_CP = E_AB(AB) - sum E_X(AB); the raw energy and the
+# BSSE need the monomers in their own basis as well.
+Energy		Counterpoise-corrected Interaction Energy	EINTCP		Energy		PropValue	Counterpoise
+Energy		Raw Interaction Energy			EINTRAW		Energy		PropValue	Counterpoise
+Energy		Basis-Set Superposition Error (BSSE)	EBSSE		Energy		PropValue	Counterpoise
+Energy		Counterpoise Summary (kJ/mol, kcal/mol)	CPTABLE		NA		PropString	Counterpoise
+#
 Energy		Solvation Energy (E_sol - E_gas)	ESOLV		Energy		PropValue	Solvation
 Energy		CPCM Reaction-Field Energy (q.V/2)	EPCM		Energy		PropValue	Solvation
 Energy		SMD Cavity-Dispersion Term (CDS)	ESOLVCDS	Energy		PropValue	Solvation
@@ -195,6 +202,9 @@ ESP		Electro Static Potential		ESPVEC		Energy		PropVector<Grid>
 Geometry	GeometryTrace				GEOMTRACE	Length		PropTSVecTable<Geometry Step,Atom,Coordinate>
 Geometry	Scan Coordinate				SCANCOORD	NA		PropVector<Scan Point>
 Geometry	Scan Energy				SCANENERGY	Energy		PropVector<Scan Point>
+Geometry	Scan CP Interaction Energy		SCANCP		Energy		PropVector<Scan Point>
+Geometry	Scan Raw Interaction Energy		SCANRAW		Energy		PropVector<Scan Point>
+Geometry	Scan BSSE				SCANBSSE	Energy		PropVector<Scan Point>
 Geometry	Scan Structures				SCANGEOM	Length		PropTSVecTable<Scan Step,Atom,Coordinate>
 Pull	Pull Time				PULLTIME	NA		PropVector<Pull Frame>
 Pull	Pull Coordinate				PULLDIST	NA		PropVector<Pull Frame>
@@ -255,6 +265,9 @@ Magnetic	Shielding Tensor			SHIELDTENSOR	PPM		PropVector<Unknown>
 Magnetic	Isotropic Shielding			ISOSHIELD	PPM		PropVector<Atom>
 Magnetic	Shielding Anisotropy			ANISOSHIELD	PPM		PropVector<Atom>
 Magnetic	Shielding Tensor Eigenvalues		SHIELDEIGVAL	PPM		PropVector<Component>
+Magnetic	EPR g-tensor	EPRG	NA	PropTable<Unknown>
+Magnetic	EPR Hyperfine Couplings	EPRA	MHertz	PropTable<Unknown>
+Magnetic	EPR Quadrupole Couplings	EPRQ	MHertz	PropTable<Unknown>
 Magnetic	Spin-dipole Tensor			DIPOLETENSOR	AU		PropVector<Unknown>
 Magnetic	Spin-dipole Tensor Eigenvalues		DIPOLEEIGVAL	AU		PropVector<Component>
 Magnetic	Spin-Spin Indirect Coupling Tensor	SPINSPIN	Hertz		PropTable<Unknown>

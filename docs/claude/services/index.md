@@ -43,6 +43,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 
 ### Pitfalls
 
+- [Preferences Data hook: decode underscores only in display names (#1103)](prefs-data-hook-preserves-paths.md)
 - [Series setup must read the named deck, not the first Inputs entry (#1081)](series-setup-reads-the-named-deck.md)
 - [TCP broker accounts are the data server logins](broker-accounts-are-the-data-server-logins.md)
 - [`ecce_auth_changed` carries no password](auth-changed-carries-no-password.md)
@@ -54,6 +55,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [In local data mode the Organizer's root is the user's home, labelled Local data](organizer-local-tree-has-no-users-level.md)
 - [Waiting for login: a lost monitor parks the job, session start catches it up](waiting-for-login.md)
 - [SftpEDSI (sftp:// URLs): FileEDSI logic on a scratch mirror, mkdir lock, link and test traps (#767)](sftpedsi-ssh-folder-storage.md)
+- [SftpEDSI::Batch: one script per folder click, cache dropped on any change (#1082)](sftpedsi-batch-cache-1082.md)
 - [SSH-folder trees in the Organizer: keyed by address, prompts only while connecting, port refused (#767)](ssh-folder-trees-767.md)
 - [ECCE's own ssh master (ECCE_SSH_CONTROL_DIR): one login per host per state directory](owned-ssh-master.md)
 - [The calculation summary shows the allocation and how much is left (#613)](allocation-left-613.md)
@@ -70,6 +72,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Organizer folder energy cells must not load point orbitals (#928)](organizer-folder-energy-reads-928.md)
 - [The project table's Progress column: made by the Organizer, one cell per message (#284)](progress-table-column-284.md)
 - [Out of contact: silence from the job monitor is "running?", never a final state (#284, #208)](out-of-contact-284.md)
+- [The queued Progress box test must account for startup time (#1096)](progress-contact-test-uses-wall-clock-1096.md)
 - [Xvfb's stderr must not go to a pipe nobody reads (CI display wedge, #127)](xvfb-stderr-must-not-be-a-pipe.md)
 - [Test Xvfb displays must leave :0 through :9 free (#1024)](xvfb-displays-reserve-desktop-numbers.md)
 - [macOS: Terminal.app takes no command, and open(1) returns at once (#133)](macos-terminal-and-editor.md)
@@ -94,6 +97,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [Tabs: menu bars: GetMenuBar() is null in a tab for the Builder and, since the MainFrame host (#1065), the Organizer (use ownMenuBar()); SetMenuBar compares with GetMenuBar() (#983)](tab-hides-the-frames-menu-bar.md)
 - [Tabs: floating AUI frames not children of the page; wxAuiManager::Update non-virtual (#983)](aui-floating-frames-and-update-in-a-tab.md)
 - [The app suite tests the INSTALLED ECCE (/opt/ecce), not build-cmake (#385)](app-tests-run-the-installed-tree.md)
+- [Details and Builder upgrade tests must wait for readiness (#1046)](gui-readiness-waits-1046.md)
 - [The Launcher runs each Launch step on a worker thread; nothing a step calls may touch wx; submit timeout 120 s idle (#424)](launch-steps-run-off-the-gui-thread.md)
 - [Windows MSI: Repair waits ~85 s before its progress page (REINSTALLMODE ecmus); progress-page placeholders; uninstall time (#431)](windows-msi-repair-and-uninstall-time.md)
 - [A failed job's output ends inside a .desc block; the monitor drops it instead of dying, so output, status and progress are stored (#470, #467)](failed-job-ends-inside-a-parse-block.md)

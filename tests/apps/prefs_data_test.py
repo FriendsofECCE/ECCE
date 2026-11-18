@@ -37,6 +37,7 @@ SSH = "ssh|Cluster storage|sftp://me@hpc.example.edu/home/me/ecce"
 PLAIN = [
     ("prefs data show", lambda a: a.startswith("rows=1;This installation|ecce|Set by your administrator;")),
     ("prefs data snap " + shot("data-empty"), lambda a: a == "saved"),
+    ("prefs data snap " + shot("data_empty"), lambda a: a == "saved"),
     # #690: the switch is off until ticked, and the tick reaches EcceGlobal
     ("prefs data discard", lambda a: a == "box=off;file=unset"),
     ("prefs data discard on", lambda a: a == "box=on;file=on"),
@@ -97,7 +98,7 @@ def main():
         # One organizer start: a second one in the same isolated state hit an
         # unrelated bookmark-file parse abort.
         run(display, PLAIN, {"ECCE_TEST_PREFS_ADMIN_SERVER": "1"}, "prefs")
-        for png in ("data-empty", "add-ssh", "add-ecce", "data-two"):
+        for png in ("data-empty", "data_empty", "add-ssh", "add-ecce", "data-two"):
             if not os.path.exists(shot(png)):
                 failures.append("no picture " + png)
                 print("FAIL  missing " + shot(png))

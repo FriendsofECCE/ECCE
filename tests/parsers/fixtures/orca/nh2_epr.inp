@@ -1,0 +1,11 @@
+! UHF def2-SVP TightSCF
+* xyz 0 2
+N  0.000000  0.000000  0.000000
+H  0.800000  0.000000  0.600000
+H -0.800000  0.000000  0.600000
+*
+%eprnmr
+  gtensor true
+  Nuclei = all N { aiso, adip, fgrad }
+  Nuclei = all H { aiso, adip }
+end

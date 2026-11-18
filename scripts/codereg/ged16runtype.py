@@ -16,6 +16,15 @@ class Ged16RunTypePanel(EccePanel):
     def __init__(self, parent, helpURL):
         EccePanel.__init__(self, parent, helpURL)
 
+        if EcceGlobals.RunType == "Energy":
+            cpSizer = EcceBoxSizer(self, label="Counterpoise Correction", cols=1)
+            self.useCp = EcceCheckBox(self,
+                                     label=" Counterpoise correction (structure with 2 or more fragments)",
+                                     name="ES.Runtype.Counterpoise",
+                                     default=False, export=1)
+            cpSizer.AddWidget(self.useCp)
+            self.panelSizer.Add(cpSizer)
+
         if (EcceGlobals.RunType == "Gradient"):
             gradSizer = EcceBoxSizer(self,
                                      label = "Gradient",

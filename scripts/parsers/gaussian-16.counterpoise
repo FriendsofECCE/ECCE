@@ -1,0 +1,34 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+
+my ($total, $bsse, $fragments, $raw, $corrected);
+my $number = qr/([-+]?\d+(?:\.\d*)?(?:[eEdD][-+]?\d+)?)/;
+sub value {
+  my ($text) = @_;
+  $text =~ tr/dD/ee/;
+  return 0 + $text;
+}
+while (<STDIN>) {
+  $total = value($1) if /Counterpoise corrected energy\s*=\s*$number/i;
+  $bsse = value($1) if /BSSE energy\s*=\s*$number/i;
+  $fragments = value($1) if /sum of fragments\s*=\s*$number/i;
+  $raw = value($1) if /complexation energy\s*=\s*$number\s+kcal\/mole\s+\(raw\)/i;
+  $corrected = value($1) if /complexation energy\s*=\s*$number\s+kcal\/mole\s+\(corrected\)/i;
+}
+exit 0 unless defined($total) && defined($bsse) && defined($fragments)
+           && defined($raw) && defined($corrected);
+
+# The complexation lines have only two decimals in kcal/mol. The total and
+# fragment sum preserve Hartree precision for both interaction energies.
+my $cp = $total - $fragments;
+$raw = $cp - $bsse;
+for my $prop (["EINTCP", $cp], ["EINTRAW", $raw], ["EBSSE", $bsse]) {
+  printf "key: %s\nsize:\n1\nvalues:\n%.10f\nunits:\nHartree\nEND\n", @$prop;
+}
+my @cells;
+for my $row (["dE_raw", $raw], ["BSSE", $bsse], ["dE_CP", $cp]) {
+  push @cells, sprintf("%s %.2f kJ/mol (%.2f kcal/mol)",
+                       $row->[0], $row->[1] * 2625.499638, $row->[1] * 627.5094740631);
+}
+print "key: CPTABLE\nsize:\n1\nvalues:\n", join("; ", @cells), "\nunits:\nNA\nEND\n";

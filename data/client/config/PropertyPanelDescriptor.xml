@@ -114,6 +114,8 @@
     <property class="Energy" type="value"/>
     <!-- a string, so not matched by type="value": heads the Solvation group -->
     <property name="SOLVMODEL"/>
+    <!-- a string too: the counterpoise summary in both units (#1091) -->
+    <property name="CPTABLE"/>
   </PropertyPanel>
 
   <PropertyPanel>
@@ -152,6 +154,27 @@
   </PropertyPanel>
 
   <!-- Tensors -->
+  <PropertyPanel>
+    <name>EPR g-tensor</name>
+    <group>Magnetic resonance</group>
+    <class>TablePanel</class>
+    <consumer>true</consumer>
+    <property name="EPRG"/>
+  </PropertyPanel>
+  <PropertyPanel>
+    <name>EPR Hyperfine Couplings</name>
+    <group>Magnetic resonance</group>
+    <class>TablePanel</class>
+    <consumer>true</consumer>
+    <property name="EPRA"/>
+  </PropertyPanel>
+  <PropertyPanel>
+    <name>EPR Quadrupole Couplings</name>
+    <group>Magnetic resonance</group>
+    <class>TablePanel</class>
+    <consumer>true</consumer>
+    <property name="EPRQ"/>
+  </PropertyPanel>
   <PropertyPanel>
     <name>Shielding Tensor</name>
     <group>Magnetic resonance</group>
@@ -640,6 +663,15 @@
     <consumer>true</consumer>
     <allowPin>false</allowPin>
     <property name="ANISOSHIELD"/>
+  </PropertyPanel>
+
+  <PropertyPanel>
+    <name>NMR spectrum</name>
+    <group>Magnetic resonance</group>
+    <class>NmrPanel</class>
+    <consumer>false</consumer>
+    <allowPin>false</allowPin>
+    <property name="ISOSHIELD"/>
   </PropertyPanel>
 
   <PropertyPanel>

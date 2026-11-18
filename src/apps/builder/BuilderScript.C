@@ -61,6 +61,10 @@
 //                                window meanwhile
 //    symmetry                    Symmetry > Find, then the point group
 //    coordsraw                   every atom's coordinates at %.17g
+//    fragments [auto]            report fragment assignments, or reset to molecules
+//    fragment N atoms LIST       assign 1-based atoms (spaces, commas or ranges)
+//    fragment N charge Q mult M  set fragment charge and spin multiplicity
+//    counterpoise orca DIR [MULT [ROUTE...]]  export complex and ghost monomers
 //    atomtable                   the shown text of each Atom Table row
 //    progress N                  the MO Compute progress dialog, N seconds
 //    property NAME               a click on Properties > NAME (toggles it)
@@ -138,6 +142,8 @@
 #include "wxviz/MoleculeDataTable.H"
 #include "tdat/PropVector.H"
 #include "tdat/TBond.H"
+#include "tdat/Counterpoise.H"
+#include "dsm/ICalculation.H"
 #include "util/EventDispatcher.H"
 #include "util/Event.H"
 #include "wxviz/ViewerEvtHandler.H"
@@ -201,6 +207,7 @@
 #include "VizPropertyPanel.H"
 #include "MomentsPanel.H"
 #include "StressPanel.H"
+#include "NmrPanel.H"
 #include "DistortBondsDialog.H"
 #include "wxgui/ewxModalGuard.H"
 
@@ -250,6 +257,35 @@ bool exists(const std::string& path)
   return stat(path.c_str(), &st) == 0;
 }
 
+bool fragmentInteger(const std::string& text, int& value)
+{
+  std::istringstream in(text);
+  char extra;
+  return (in >> value) && !(in >> extra);
+}
+
+bool fragmentAtomList(const std::vector<std::string>& words, int atomCount,
+                      std::vector<int>& atoms)
+{
+  for (size_t i = 3; i < words.size(); ++i) {
+    std::string token = words[i];
+    for (char& c : token) if (c == ',') c = ' ';
+    std::istringstream parts(token);
+    for (std::string part; parts >> part;) {
+      size_t dash = part.find('-');
+      int first, last;
+      if (dash == std::string::npos) {
+        if (!fragmentInteger(part, first)) return false;
+        last = first;
+      } else if (!fragmentInteger(part.substr(0, dash), first) ||
+                 !fragmentInteger(part.substr(dash + 1), last)) return false;
+      if (first < 1 || last < first || last > atomCount) return false;
+      for (int a = first; a <= last; ++a) atoms.push_back(a - 1);
+    }
+  }
+  return !atoms.empty();
+}
+
 }
 
 void Builder::runBuilderScript(const std::string& file)
@@ -291,6 +327,70 @@ void Builder::runBuilderScript(const std::string& file)
       PBC *pbc = dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
       if (w[0] == "wait" && w.size() == 2) {
         st->notBefore = wxGetLocalTimeMillis() + atoi(w[1].c_str());
+      } else if (w[0] == "fragments" || w[0] == "fragment" ||
+                 w[0] == "counterpoise") {
+        std::string error;
+        bool changed = false;
+        bool validSyntax = false;
+        if (!frag || frag->numAtoms() == 0) {
+          error = "No structure atoms";
+        } else {
+          bool unassigned = true;
+          for (int i = 0; i < frag->numAtoms(); ++i)
+            if (frag->atomRef(i)->fragmentId() != 0) unassigned = false;
+          if (w[0] == "fragments" &&
+              (w.size() == 1 || (w.size() == 2 && w[1] == "auto"))) {
+            validSyntax = true;
+            if (unassigned || w.size() == 2)
+              changed = Counterpoise::autoAssign(*frag, error);
+          } else if (w[0] == "fragment") {
+            int id = 0, charge = 0, mult = 0;
+            std::vector<int> atoms;
+            const bool atomCommand = w.size() >= 4 && w[2] == "atoms" &&
+                fragmentAtomList(w, frag->numAtoms(), atoms);
+            const bool stateCommand = w.size() == 6 && w[2] == "charge" &&
+                w[4] == "mult" && fragmentInteger(w[3], charge) &&
+                fragmentInteger(w[5], mult);
+            if (w.size() >= 3 && fragmentInteger(w[1], id) && id > 0 &&
+                (atomCommand || stateCommand)) {
+              validSyntax = true;
+              if (unassigned) changed = Counterpoise::autoAssign(*frag, error);
+              if (error.empty()) {
+                bool ok = atomCommand
+                    ? Counterpoise::assignAtoms(*frag, id, atoms, error)
+                    : Counterpoise::setState(*frag, id, charge, mult, error);
+                changed = changed || ok;
+              }
+            }
+          } else if (w[0] == "counterpoise" && w.size() >= 3 && w[1] == "orca") {
+            int mult = (frag->numElectrons() % 2) ? 2 : 1;
+            if (ICalculation *calc = dynamic_cast<ICalculation*>(p_calculation)) {
+              int stored = static_cast<int>(calc->spinMultiplicity());
+              if (stored > 0) mult = stored;
+            }
+            validSyntax = w.size() == 3 || (fragmentInteger(w[3], mult) && mult > 0);
+            if (validSyntax) {
+              std::string route = "HF def2-SVP";
+              if (w.size() > 4) {
+                route.clear();
+                for (size_t i = 4; i < w.size(); ++i)
+                  route += (i == 4 ? "" : " ") + w[i];
+              }
+              if (unassigned) changed = Counterpoise::autoAssign(*frag, error);
+              if (error.empty()) Counterpoise::writeOrcaInputs(*frag, w[2], route, mult, error);
+              if (error.empty()) fprintf(stderr, "BUILDER: counterpoise orca: %s\n", w[2].c_str());
+            }
+          }
+          if (!validSyntax && error.empty())
+            error = "Usage: fragments [auto]; fragment N atoms LIST; fragment N charge Q mult M; counterpoise orca DIR [MULT [ROUTE...]]";
+        }
+        if (changed) { setDirty(true); updateSave(); }
+        if (!error.empty()) {
+          outcome = "FAIL: " + error;
+          fprintf(stderr, "BUILDER: %s: refused: %s\n", w[0].c_str(), error.c_str());
+        } else if (w[0] != "counterpoise") {
+          fprintf(stderr, "BUILDER: fragments:\n%s", Counterpoise::query(*frag).c_str());
+        }
       } else if (w[0] == "add" && w.size() == 6) {
         interpretCommand("add elem " + w[1] + " geom " + w[2] + " x " + w[3] +
                          " y " + w[4] + " z " + w[5]);
@@ -1925,7 +2025,22 @@ void Builder::runBuilderScript(const std::string& file)
           if (c.second == p_calculation) url = c.first;
         propertyChanged(url, w[1], "");
         fprintf(stderr, "BUILDER: propchange %s\n", w[1].c_str());
-      } else if (w[0] == "scanmorse" || w[0] == "scancompare" || w[0] == "scanpng") {
+      } else if (w[0] == "scan" && w.size() >= 2) {
+        ScanPanel *sp = nullptr;
+        if (p_calculation)
+          for (auto *panel : PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if ((sp = dynamic_cast<ScanPanel*>(panel))) break;
+        if (!sp) outcome = "no Relaxed Scan panel";
+        else if (w[1] == "cpsingle" && (w.size() == 2 || (w.size() == 3 && w[2] == "launch"))) {
+          std::string why;
+          const auto url = sp->counterpoiseSinglePoints(w.size() == 3, why);
+          if (url.empty()) outcome = why;
+          fprintf(stderr, "BUILDER: scan cpsingle url=%s %s\n", url.c_str(), why.c_str());
+        } else if (w[1] == "cpcolumn") {
+          fprintf(stderr, "BUILDER: scan cpcolumn\n%s", sp->counterpoiseColumn().c_str());
+        } else outcome = "use scan cpsingle [launch] or scan cpcolumn";
+      } else if (w[0] == "scanmorse" || w[0] == "scancompare" || w[0] == "scanpng" ||
+                 w[0] == "scanzero" || w[0] == "scanjoin" || w[0] == "scanlayout") {
         //  scanmorse on|off [window]: the Fit Morse check and window (the
         //  panel's unit); logs the fit and the text box (#858).
         //  scancompare [none|NAME...]: lists the scans beside this one, or
@@ -1944,6 +2059,15 @@ void Builder::runBuilderScript(const std::string& file)
           text.Replace("\n", " | ");
           fprintf(stderr, "BUILDER: scanmorse %s\nBUILDER: scanmorsetext [%s]\n",
                   state.c_str(), text.utf8_str().data());
+        } else if (w[0] == "scanzero") {
+          if (w.size() != 2 || !sp->setZero(w[1])) outcome = "use scanzero lowest|largest|first";
+        } else if (w[0] == "scanjoin") {
+          if (w.size() != 2 || (w[1] != "on" && w[1] != "off")) outcome = "use scanjoin on|off";
+          else sp->setJoin(w[1] == "on");
+        } else if (w[0] == "scanlayout") {
+          if (w.size() != 2 || (w[1] != "overlay" && w[1] != "multiples"))
+            outcome = "use scanlayout overlay|multiples";
+          else sp->setSmallMultiples(w[1] == "multiples");
         } else if (w[0] == "scancompare") {
           std::string why, list;
           if (w.size() >= 2) {
@@ -2291,6 +2415,34 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0].compare(0, 4, "gten") == 0 && w[0] != "gtenkind") {
         outcome = ensembleCommand(w);
         if (outcome.empty()) outcome = "ok";
+      } else if (w[0] == "nmr" && w.size() >= 2) {
+        NmrPanel *nmr = nullptr;
+        if (p_calculation)
+          for (PropertyPanel *p : PropertyPanel::getPanels(p_calculation->getURL().toString()))
+            if (auto *panel = dynamic_cast<NmrPanel*>(p)) nmr = panel;
+        bool ok = nmr != nullptr;
+        if (nmr) {
+          nmr->ensureInitialized();
+          const std::string arg = w.size() > 2 ? w[2] : "";
+          if (w[1] == "element") ok = nmr->chooseElement(arg);
+          else if (w[1] == "reference") ok = nmr->setReference(arg == "empty" ? "" : arg);
+          else if (w[1] == "calculation") ok = nmr->referenceCalculation(arg);
+          else if (w[1] == "width") {
+            double v;
+            ok = wxString::FromUTF8(arg.c_str()).ToDouble(&v) && nmr->setWidth(v);
+          } else if (w[1] == "csv") ok = nmr->exportCsv(wxString::FromUTF8(arg.c_str()));
+          else if (w[1] == "png") ok = nmr->exportPng(wxString::FromUTF8(arg.c_str()));
+          else if (w[1] == "click") ok = nmr->clickGroup(atoi(arg.c_str()) - 1);
+          else if (w[1] != "status") ok = false;
+          fprintf(stderr, "NMR: ok=%d %s\n", ok, nmr->summary().c_str());
+          if (w[1] == "click") {
+            fprintf(stderr, "NMR selected:");
+            SGFragment *frag = getSceneGraph().getFragment();
+            if (frag) for (int a : frag->m_atomHighLight) fprintf(stderr, " %d", a + 1);
+            fprintf(stderr, "\n");
+          }
+        }
+        outcome = ok ? "ok" : "FAIL: NMR command";
       } else if (w[0] == "quit") {
         fprintf(stderr, "ECCE_BUILDER_SCRIPT: quit\n");
         Close(true);

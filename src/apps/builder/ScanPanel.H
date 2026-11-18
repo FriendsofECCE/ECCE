@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <wx/timer.h>
 #include "VizPropertyPanel.H"
 
 class wxCheckBox;
@@ -89,6 +90,9 @@ class ScanPanel : public VizPropertyPanel
       /** New calculation from point <index> (default: the clicked one); URL or "". */
       std::string newCalcFromPoint(int index = -1);
 
+      std::string counterpoiseSinglePoints(bool launch, std::string& why);
+      std::string counterpoiseColumn();
+
       /** The scan as CSV; false if the file cannot be written. */
       bool exportCsv(const wxString& path, bool kcal);
 
@@ -104,10 +108,14 @@ class ScanPanel : public VizPropertyPanel
       /** The fit's report as shown in the panel's text box. */
       wxString morseText() const;
 
-      /** Scans beside this one (same folder, same kind of coordinate). */
+      /** Zero mode: lowest, largest or first; false for an unknown mode. */
+      bool setZero(const std::string& mode);
+      void setJoin(bool on);
+      void setSmallMultiples(bool on);
+
+      /** Scans beside this one, for backwards-compatible short script names. */
       std::vector<std::string> compareCandidates();
-      /** Draw these beside the own curve, each relative to its own lowest point;
-       *  false and a reason if a name is not a candidate. */
+      /** Compare calculation URLs, local paths, or sibling names; validates before changing. */
       bool setCompared(const std::vector<std::string>& names, std::string& complaint);
 
       /** The plot as a PNG on white. */
@@ -125,6 +133,10 @@ class ScanPanel : public VizPropertyPanel
       void OnMorse(wxCommandEvent& event);
       void OnCompare(wxCommandEvent& event);
       void runFit();
+      void OnComparisonOptions(wxCommandEvent& event);
+      void rebuildCurves();
+      void drawCurves();
+      void markPoint(int index);
       virtual void receiveFocus();
       virtual void loseFocus();
       int showPoint(int index);
@@ -135,6 +147,10 @@ class ScanPanel : public VizPropertyPanel
       DECLARE_EVENT_TABLE()
 
    private:
+      std::string scanSnapshot() const;
+      void readCounterpoise();
+      std::vector<double> p_cp, p_cpRaw;
+      wxTimer p_cpTimer;
       std::vector<double> p_coord;
       std::vector<double> p_hartree;
       std::string p_coordUnit;
@@ -155,7 +171,20 @@ class ScanPanel : public VizPropertyPanel
       wxTextCtrl *p_morseText;
       std::string p_morseState;  // the hook's line for the last fit
       std::vector<double> p_fitR, p_fitE;   // fitted curve, A and Hartree
-      struct Compared { std::string name; std::vector<double> coord, hartree; };
+      wxChoice *p_zero = nullptr;
+      wxCheckBox *p_join = nullptr, *p_small = nullptr;
+      wxWindow *p_plotArea = nullptr;
+      std::vector<XYPlotCanvas*> p_plots;
+      struct Compared {
+        std::string name, url, elements;
+        std::vector<double> coord, hartree, start;
+        std::vector<int> ownPoint;
+        double firstEnergy = 0;
+        bool interaction = false;
+      };
+      Compared readScan(IPropCalculation *calc) const;
+      double referenceEnergy(const Compared& c) const;
+      std::vector<Compared> p_curves;
       std::vector<Compared> p_compared;
 };
 

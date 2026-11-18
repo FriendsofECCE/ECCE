@@ -32,6 +32,7 @@ use vars qw($opt_h $opt_help $opt_v $opt_n $opt_p $opt_f $opt_b $opt_c $opt_t
 
 push(@INC,"$ENV{ECCE_HOME}/scripts/parsers");
 require "pertab.pl";
+require "cpfrag.pl";
 &loadPT;
 
 $| = 1;
@@ -433,7 +434,19 @@ sub verifyGBSFile {
   close(GBS);
 }
 
+# Counterpoise (#1091): the complex deck stays first and stands alone; each
+# monomer deck follows a "# ecce-run <name>" line, split off by gensub.
+sub counterpoiseDecks {
+  my %z = reverse %number_to_symbol;
+  my @runs = &cpPlan($FragFILE, \%AbiDict,
+                     ($AbiDict{"Charge"} eq "" ? 0 : $AbiDict{"Charge"}),
+                     sub { $z{$tags{$_[0]}} || 0 });
+  return unless (@runs);
+  &cpWriteDecks(\%AbiDict, \@runs, "ecceqm");
+}
+
 sub cleanup {
+  &counterpoiseDecks;
   # Close the source before replacing it; the copy overwrites existing targets
   # reliably across platforms, and failures must not leave the template in place.
   close(TEMPLATE);

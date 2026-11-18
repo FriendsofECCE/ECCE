@@ -52,11 +52,14 @@ def main():
                 send('rows 1')
                 send('resize 20 25 1100 720')
                 send('info')
+                send('changed')
                 send('close')
             result = apps.run(display, name, args=('-context', 'Ar'), env=env,
                               settle=3, inspect=inspect)
             print(run_tests._tail(result.log, 20))
             records = re.findall(r'BASISTOOL: frame=(\d+),(\d+),(\d+),(\d+) grid=(\d+) rows=(\d+) table=(\d+),(\d+) tablemin=(\d+),(\d+)', result.log)
+            check('BASISTOOL: changed=0' in result.log,
+                  'opening a calculation marks no unsaved change')
             check(len(records) == 3 and not result.crashed, 'three geometry samples without a crash')
             if len(records) != 3:
                 return

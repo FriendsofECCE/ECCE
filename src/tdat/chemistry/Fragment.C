@@ -9,6 +9,7 @@
 #include <math.h>       // floor()
 #include <limits.h>
 
+#include <sstream>
 #include <fstream>
   using std::ifstream;
 
@@ -226,6 +227,7 @@ Fragment& Fragment::operator=(const Fragment& frag)
 
       name(frag.name());
       charge(frag.charge());
+      fragmentStates(frag.fragmentStates());
       pointGroup(frag.pointGroup());
       useSymmetry(frag.useSymmetry());
       setMainDisplayStyle(frag.getMainDisplayStyle());
@@ -391,6 +393,12 @@ void Fragment::merge(const Fragment& frag)
   int numAtoms = this->numAtoms();              // Save For the Bond Offset
 
   addAtoms(frag.p_atoms);
+  if (numAtoms == 0) {
+    p_fragmentStates = frag.p_fragmentStates;
+  } else {
+    // An appended structure must not reuse another structure's fragment IDs.
+    for (size_t i = numAtoms; i < p_atoms.size(); ++i) p_atoms[i]->fragmentId(0);
+  }
 
   IBondList* bondIndices = frag.bondIndices();                   // Bonds
   int* atomIdx = bondIndices->matomIndices;
@@ -410,6 +418,12 @@ void Fragment::merge(const Fragment& frag)
  */
 void Fragment::absorbAtoms(Fragment& frag, bool clear)
 {
+
+  if (numAtoms() == 0) {
+    p_fragmentStates = frag.p_fragmentStates;
+  } else {
+    for (TAtm* atom : frag.p_atoms) atom->fragmentId(0);
+  }
 
   frag.fixBondStyles(frag.getMainDisplayStyle());
 
@@ -431,6 +445,12 @@ void Fragment::absorbAtoms(Fragment& frag, bool clear)
  */
 void Fragment::absorb(Fragment& frag, bool clear)
 {
+
+  if (numAtoms() == 0) {
+    p_fragmentStates = frag.p_fragmentStates;
+  } else {
+    for (TAtm* atom : frag.p_atoms) atom->fragmentId(0);
+  }
 
   frag.fixBondStyles(frag.getMainDisplayStyle());
 
@@ -468,6 +488,12 @@ void Fragment::absorb(Fragment& frag, bool clear)
 void Fragment::absorb(Fragment& tmpfrag,
                       TAtm *at, bool normalOrder)
 {
+  if (numAtoms() == 0) {
+    p_fragmentStates = tmpfrag.p_fragmentStates;
+  } else {
+    for (TAtm* atom : tmpfrag.p_atoms) atom->fragmentId(0);
+  }
+
   tmpfrag.fixBondStyles(getMainDisplayStyle());
 
 // Non-null pointer indicates that tmpfrag is being bonded to something in
@@ -4022,6 +4048,7 @@ void Fragment::clearState()
   p_chains.clearChainID();
   p_name = "";
   p_charge = 0;
+  p_fragmentStates.clear();
   p_pointGroup = "C1";
   p_useSymmetry = false;
   clearFirstSolventAtomIndex();
@@ -5925,6 +5952,19 @@ bool Fragment::dumpMVM(ostream& outfile, bool dumpAll)
       }
     }
 
+    bool writeFragments = !p_fragmentStates.empty();
+    for (int i = 0; i < cnt; ++i)
+      writeFragments = writeFragments || p_atoms[i]->fragmentId() != 0;
+    if (writeFragments) {
+      outfile << "fragment_states: " << p_fragmentStates.size() << "\n";
+      for (const auto& entry : p_fragmentStates)
+        outfile << entry.first << " " << entry.second.charge << " "
+                << entry.second.multiplicity << "\n";
+      outfile << "atom_fragment_list:\n";
+      for (int i = 0; i < cnt; ++i)
+        outfile << p_atoms[i]->fragmentId() << "\n";
+    }
+
 // Print out bond list
 
     vector<TBond*>* const mybonds = bonds();
@@ -6241,6 +6281,11 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
   int atomNum, atmCnt, ijunk1;
   int numBonds=0;
   int offset = numAtoms();
+  int fragmentOffset = 0;
+  for (const auto& state : p_fragmentStates)
+    fragmentOffset = std::max(fragmentOffset, state.first);
+  for (int i = 0; i < offset; ++i)
+    fragmentOffset = std::max(fragmentOffset, p_atoms[i]->fragmentId());
   vector<char> bufStore;
   bool setEnvInd = true;
   LatticeDef *lattice = 0;
@@ -6567,6 +6612,38 @@ bool Fragment::restoreMVM(istream& infile, double mult, bool genBonds)
             } else {
               atm->setBehaviorType(TAtm::UNSPECIFIED);
             }
+          }
+        }
+      } else if (STLUtil::compareString(key,"fragment_states") == 0) {
+        int count = -1;
+        std::istringstream countLine(line);
+        countLine >> count;
+        if (!countLine || count < 0) error = true;
+        for (int i = 0; i < count && !error; ++i) {
+          if (!readRecordLine(infile, bufStore, 120)) { error = true; break; }
+          int id;
+          Counterpoise::State state;
+          std::istringstream stateLine(bufStore.data());
+          stateLine >> id >> state.charge >> state.multiplicity;
+          if (!stateLine || id <= 0 || state.multiplicity <= 0 ||
+              id > INT_MAX - fragmentOffset ||
+              p_fragmentStates.count(id + fragmentOffset)) {
+            error = true;
+          } else {
+            p_fragmentStates[id + fragmentOffset] = state;
+          }
+        }
+      } else if (STLUtil::compareString(key,"atom_fragment_list") == 0) {
+        for (int i = 0; i < atmCnt && !error; ++i) {
+          if (!readRecordLine(infile, bufStore, 120)) { error = true; break; }
+          int id;
+          std::istringstream atomLine(bufStore.data());
+          atomLine >> id;
+          if (!atomLine || id < 0 || id > INT_MAX - fragmentOffset ||
+              offset + i >= numAtoms()) {
+            error = true;
+          } else {
+            p_atoms[offset + i]->fragmentId(id ? id + fragmentOffset : 0);
           }
         }
       } else if (STLUtil::compareString(key,"num_bonds") == 0) {

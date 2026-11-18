@@ -234,9 +234,9 @@ partial copy. A name that already exists in the target gets a number added
 
 The trees are told apart by their icon and colour. **Local data** keeps its
 home icon. An ECCE server has a server icon in maroon, and an SSH folder has
-a folder icon with a terminal mark in green. The rows below a server or SSH
-tree have a light tint of the same colour, so you can see where a project is
-kept even when the top of the tree has scrolled out of view. A tree marked
+a folder icon with a terminal mark in green. The project and folder icons
+below a server or SSH tree are drawn in the same colour, so you can see where a
+project is kept even when the top of the tree has scrolled out of view. A tree marked
 **(not connected)** is shown in grey.
 
 A server that your administrator set up for the installation is listed as
@@ -402,6 +402,9 @@ to find out what went wrong into a folder `ecce-bug-<date>` in your home
 folder, and packs it as `ecce-bug-<date>.zip` next to it. On Linux and macOS
 this takes about half a minute; it holds the ECCE version, your system, the
 logs of the services and the checks that ECCE's diagnostic tool makes. On
+macOS it also holds the crash reports macOS wrote for ECCE's programs in the
+last seven days (the newest five, from `~/Library/Logs/DiagnosticReports`);
+crash reports of other programs are left out. On
 Windows it holds the ECCE version, the Windows version, the ECCE logs and the
 last ECCE crash records of the Windows event log.
 

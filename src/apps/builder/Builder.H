@@ -562,6 +562,9 @@ class Builder: public BuilderGUI,
       BuilderMessages *messages() const { return p_msgs; }
       // Opened inside the Organizer's process: Quit closes this window only.
       void setInProcess(bool on) { p_inProcess = on; }
+      // The Viewer is this class under another name; its title says so even
+      // for a calculation that could be edited.
+      void setViewerApp(bool on) { p_viewerApp = on; }
 
       static void moveStartCB(void *userData, SoDragger *dragger);
       static void moveEndCB(void *userData, SoDragger *dragger);
@@ -816,6 +819,7 @@ class Builder: public BuilderGUI,
 
       BuilderMessages *p_msgs = nullptr;
       bool p_inProcess = false;
+      bool p_viewerApp = false;
       bool p_closing = false;
       bool p_quitting = false;   // inside quit(), see there
 

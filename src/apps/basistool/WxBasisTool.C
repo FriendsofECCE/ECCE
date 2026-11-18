@@ -64,6 +64,7 @@
 #include "GridSelectionBlock.H"
 #include "wxgui/WxJMSMessageDispatch.H"
 #include "wxgui/ToolTabs.H"
+
 #include "WxBasisTool.H"
 #include "WxBasisSetCoefficients.H"
 #include "WxBasisSetDetail.H"
@@ -591,6 +592,9 @@ void WxBasisTool::startSizingTest()
                     << " table=" << table.x << "," << table.y
                     << " tablemin=" << best.x << "," << best.y
                     << " minimum=" << GetMinSize().x << "," << GetMinSize().y << std::endl;
+            } else if (verb == "changed") {
+                std::cerr << "BASISTOOL: changed=" << (p_calcChgd ? 1 : 0)
+                    << std::endl;
             } else if (verb == "resize") {
                 int x, y, w, h;
                 if (command >> x >> y >> w >> h) SetSize(x, y, w, h);
@@ -2639,9 +2643,10 @@ void WxBasisTool::resetCodeObjects(bool autoOptimize)
         {
             if (p_optimizeCheckBox->GetValue())
             {
+                // Optimize does nothing without general contractions, so
+                // opening a calculation saved with it on is not a change.
                 config->optimize(false);
                 p_optimizeCheckBox->SetValue(false);
-                showContextChanged(true);
             }
         }
         else if (autoOptimize && preferOpt && config->optimize() == false)

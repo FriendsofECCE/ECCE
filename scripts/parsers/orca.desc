@@ -575,6 +575,20 @@ Frequency=first
 End=CHEMICAL SHIELDING SUMMARY
 [END]
 
+[EPRG]
+Script=orca.epr
+Begin=^ELECTRONIC G-MATRIX\s*$
+Frequency=last
+End=EPR g-tensor done in
+[END]
+
+[EPRA][EPRQ]
+Script=orca.epr
+Begin=^ELECTRIC AND MAGNETIC HYPERFINE STRUCTURE
+Frequency=last
+End=Hyperfine and quadrupole coupling calculation done in
+[END]
+
 # Job progress for the Organizer's Progress box (#284).  No Script: these
 # only feed the monitor's live snapshot, not the property table.
 # SCF: the energy tolerance is printed once per SCF in its settings (the
@@ -794,4 +808,13 @@ Progress=freq real={fq_real} imaginary={fq_imag}
 Begin=^Zero point energy\s+\.\.\.
 Remember=hasm
 Value=-
+[END]
+
+# Counterpoise job (#1091): the block gensub appends after the monomer runs.
+[EINTCP][EINTRAW][EBSSE][CPTABLE][SCANCP][SCANRAW][SCANBSSE]
+Script=counterpoise.parse
+Begin=^begin counterpoise\b
+Frequency=last
+Skip=0
+End=^end counterpoise
 [END]

@@ -286,6 +286,9 @@ endif()
 # results.h5: ECCE's internal results format and converters (wx-free).  The
 # library is part of eccetdat: the job store writes the file and the orbital
 # views read it, and both sit on top of tdat.
+# Declared here, before the test blocks that ask for it; a fresh configure
+# would otherwise see it undefined there and skip those tests.
+option(ECCE_BUILD_QM "Build ecce-qm, the built-in HF/DFT engine" ON)
 option(ECCE_WITH_HDF5 "Build ecce-results and the results.h5 library (needs libhdf5-dev, C API)" ON)
 set(ECCE_HAVE_RESULTSH5 OFF)
 if(ECCE_WITH_HDF5)
@@ -1505,6 +1508,10 @@ install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_bandshift.py
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_spectrum.py
         DESTINATION bin RENAME ecce-spectrum
         COMPONENT client)
+# Its JCAMP-DX reader (#986), imported from the same folder.
+install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/jcampdx.py
+        DESTINATION bin
+        COMPONENT client)
 
 # ecce-displace (#618): the structure displaced along a normal mode.
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/ecce_displace.py
@@ -2563,6 +2570,15 @@ target_link_libraries(dummy_fragment_test PRIVATE eccetdat ecceutil)
 add_test(NAME dummy_fragment COMMAND dummy_fragment_test)
 set_tests_properties(dummy_fragment PROPERTIES
   ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=fragreaders;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/fragreaders-home")
+add_executable(counterpoise_test tests/tdat/counterpoise_test.C)
+target_link_libraries(counterpoise_test PRIVATE eccetdat ecceutil)
+add_test(NAME counterpoise COMMAND counterpoise_test)
+add_test(NAME counterpoise_orca
+  COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/tdat/counterpoise_orca_test.py
+          $<TARGET_FILE:counterpoise_test>)
+set_tests_properties(counterpoise counterpoise_orca PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=counterpoise;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/counterpoise-home")
+set_tests_properties(counterpoise_orca PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 2000)
 add_test(NAME dummy_atoms_decks
   COMMAND python3 ${CMAKE_SOURCE_DIR}/tests/dummy_atoms/run_tests.py)
 
@@ -2605,10 +2621,18 @@ set_tests_properties(cp2k_features PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 1800)
 add_executable(vibspectrum_test tests/spectrum/vibspectrum_test.C)
 target_link_libraries(vibspectrum_test PRIVATE eccetdat ecceutil)
 add_test(NAME vibspectrum COMMAND vibspectrum_test)
+# Writes the JCAMP-DX export of a model spectrum for tests/spectrum/jcamp_tests.py (#986).
+add_executable(jcamp_export_test tests/spectrum/jcamp_export_test.C)
+target_link_libraries(jcamp_export_test PRIVATE eccetdat ecceutil)
 # The same model as an excited-state (UV-vis) spectrum (#383).
 add_executable(uvvis_test tests/spectrum/uvvis_test.C)
 target_link_libraries(uvvis_test PRIVATE eccetdat ecceutil)
 add_test(NAME uvvis COMMAND uvvis_test)
+
+add_executable(nmr_spectrum_test tests/spectrum/nmr_spectrum_test.C)
+target_link_libraries(nmr_spectrum_test PRIVATE eccetdat ecceutil)
+add_test(NAME nmr_spectrum COMMAND nmr_spectrum_test)
+
 
 # tests/atommap -- atom mapping and alignment of reactant/product/guess (#419)
 add_executable(atommap_cli tests/atommap/atommap_cli.C)
@@ -2782,6 +2806,10 @@ if(PYTHON3_FOR_SPECTRUM)
            COMMAND ${PYTHON3_FOR_SPECTRUM}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/progress/codes_test.py)
   set_tests_properties(progress-codes PROPERTIES SKIP_RETURN_CODE 77)
+  # an import or re-parse store ends instead of parking (#1094)
+  add_test(NAME progress-local-parse-ends
+           COMMAND ${PYTHON3_FOR_SPECTRUM}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/progress/local_parse_ends_test.py)
   # every registered code that runs jobs has [PROGRESS] entries (#970)
   add_test(NAME progress-registry
            COMMAND ${PYTHON3_FOR_SPECTRUM}
@@ -2919,6 +2947,12 @@ add_test(NAME bandshift
 add_test(NAME spectrum_cli
          COMMAND ${PYTHON3_EXECUTABLE}
                  ${CMAKE_SOURCE_DIR}/tests/spectrum/cli_tests.py)
+
+# tests/spectrum/jcamp_tests.py -- scripts/jcampdx.py and the JCAMP-DX export (#986).
+add_test(NAME spectrum_jcamp
+         COMMAND ${PYTHON3_EXECUTABLE}
+                 ${CMAKE_SOURCE_DIR}/tests/spectrum/jcamp_tests.py
+                 $<TARGET_FILE:jcamp_export_test>)
 
 # tests/siexport -- scripts/ecce_si_export.py on stored ORCA, G16, ECCE-QM (#625).
 add_test(NAME siexport
@@ -3147,6 +3181,12 @@ if(PYTHON3_EXECUTABLE)
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers/vib_frame_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/parsers)
+
+  add_test(NAME counterpoise_g16
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/g16_counterpoise_test.py
+                   --offline)
+  set_tests_properties(counterpoise_g16 PROPERTIES TIMEOUT 120)
 
   # Gaussian 16 properties declare the unit their values are in (#946).
   add_test(NAME parsers_g16_units
@@ -3490,6 +3530,12 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_constraints PROPERTIES TIMEOUT 1500
                        SKIP_RETURN_CODE 77)
+  add_test(NAME apps_builder_counterpoise
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_counterpoise_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_counterpoise PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # The column's sashes move Build's edges and release the mouse.
   add_test(NAME apps_builder_sash
            COMMAND ${PYTHON3_EXECUTABLE}
@@ -3533,6 +3579,13 @@ if(PYTHON3_EXECUTABLE)
                        SKIP_RETURN_CODE 77)
   # Theory/Runtype Details buttons are enabled on open as after re-choosing
   # (#427).
+  # gui/guiw leave a dependent field's sensitivity to the dialog (#1111).
+  add_test(NAME apps_calced_script_solvation
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calced_script_solvation_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_calced_script_solvation PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   add_test(NAME apps_calced_details_enabled
            COMMAND ${PYTHON3_EXECUTABLE}
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/calced_details_enabled_test.py
@@ -3700,7 +3753,7 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_one_process
-                       apps_organizer_one_process_core PROPERTIES TIMEOUT 2700
+                       apps_organizer_one_process_core PROPERTIES TIMEOUT 3300
                        SKIP_RETURN_CODE 77)
   # A second start brings the running window to the front (#1069).
   add_test(NAME apps_organizer_single_instance
@@ -4206,6 +4259,14 @@ if(PYTHON3_EXECUTABLE)
                    ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/nmode_bandshift_test.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_nmode_bandshift PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
+
+  add_test(NAME apps_nmr_spectrum
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/nmr_spectrum_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_nmr_spectrum PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
 
   # Vibrations panel spectrum: difference, experimental curve, zoom; the
@@ -4837,6 +4898,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR} --local --odd-names
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
   set_tests_properties(launch_oddnames PROPERTIES TIMEOUT 900 SKIP_RETURN_CODE 77)
+  # Scan Compare (#1095): scans of several calculations in one plot, Zero
+  # modes, Join, CSV/PNG export, through the Builder's script hooks.
+  add_test(NAME apps_scan_compare
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/scan_compare_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_scan_compare PROPERTIES TIMEOUT 900)
   # ECCE-QM, the bundled engine: water and triplet O2 created, run through
   # Launch in a local data folder, energies against ORCA, MOs normalised.
   if(ECCE_BUILD_QM)
@@ -4857,6 +4926,32 @@ if(PYTHON3_EXECUTABLE)
              WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
     set_tests_properties(launch_contact PROPERTIES TIMEOUT 1200 SKIP_RETURN_CODE 77)
   endif()
+  # #1091: counterpoise inputs, parser, and the water dimer run by ECCE-QM
+  # (and ORCA when ECCE_ORCA names it); then through Launch.
+  add_test(NAME counterpoise_input
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/counterpoise_test.py
+                   --offline --qm ${CMAKE_BINARY_DIR}/src/qm/ecce-qm
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(counterpoise_input PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+  add_test(NAME launch_counterpoise
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/counterpoise_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_counterpoise PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
+
+  add_test(NAME counterpoise_scan_input
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/counterpoise_scan_test.py --offline
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(counterpoise_scan_input PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+  add_test(NAME launch_counterpoise_scan
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch/counterpoise_scan_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/launch)
+  set_tests_properties(launch_counterpoise_scan PROPERTIES TIMEOUT 1800 SKIP_RETURN_CODE 77)
 
   # #329: CP2K, silicon and a NiO+U optimisation, created and run through
   # Launch in a local data folder; skipped (77) without cp2k.psmp and mpirun.
@@ -5706,7 +5801,6 @@ endif()
 # It fetches libcint (always), and libxc and Eigen unless the system has them
 # (Debian: libxc-dev libeigen3-dev as build dependencies), at configure time.
 # See docs/qm/README.md.
-option(ECCE_BUILD_QM "Build ecce-qm, the built-in HF/DFT engine" ON)
 if(ECCE_BUILD_QM)
   add_subdirectory(src/qm)
   install(TARGETS ecce-qm RUNTIME DESTINATION bin COMPONENT client)

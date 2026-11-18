@@ -282,7 +282,7 @@ def stored_superposition(tmp, display, state):
     csvpath = os.path.join(tmp, "stored-fits.csv")
     scene = os.path.join(tmp, "stored-scene")
     with open(scene, "w") as f:
-        f.write("gtfocus\ngtenselect 3 1 5\ngtenfit\ngtencsv %s\ngtensort 1 down\ngtenfit\n"
+        f.write("background 1 1 1\ngtfocus\ngtenselect 3 1 5\ngtenfit\ngtencsv %s\ngtensort 1 down\ngtenfit\n"
                 "gtenpng %s\ngtenthumbs\ngtenpng %s\n"
                 "gtenselect 1\ngtenfit\ngtenselect 5 3 1\ngtenfit\n"
                 "gtenviewer off\ngtenfit\ngtclose\nhold 1\n" % (csvpath, png, png + ".png"))
@@ -330,8 +330,12 @@ def stored_superposition(tmp, display, state):
             check("PNG table contains every row", image.height == 32 + 62*len(frames), image.size)
             for i in range(len(frames)):
                 crop = image.crop((5, 35 + 62*i, 77, 91 + 62*i)).convert("RGB")
+                # Unlit butane has only three colours on white: hydrogen
+                # shares the background. Carbon and bonds must both remain.
+                colours = {rgb for _count, rgb in (crop.getcolors(10000) or [])}
                 check("thumbnail %d contains rendered atoms and bonds" % (i+1),
-                      len(crop.getcolors(10000) or []) > 3)
+                      (144, 144, 144) in colours and (110, 110, 110) in colours,
+                      sorted(colours))
         check("export reuses the cached pictures",
               open(png, "rb").read() == open(png + ".png", "rb").read())
     else:

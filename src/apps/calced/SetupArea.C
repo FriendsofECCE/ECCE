@@ -324,6 +324,41 @@ bool SetupArea::basisUseAll()
 }
 
 
+int SetupArea::basisAssign(const string& name, int kind,
+                           const vector<string>& elements)
+{
+  if (!p_basisPanel) return -1;
+  if (name.empty() && kind == BasisPanel::ECP)
+    return p_basisPanel->acceptEcp() ? 1 : 0;
+  return p_basisPanel->assignNamed(name, (BasisPanel::Kind)kind, elements)
+             ? 1 : -1;
+}
+
+
+bool SetupArea::basisAssignMany(int kind, const vector<std::pair<string,
+                                vector<string> > >& steps)
+{
+  return p_basisPanel &&
+         p_basisPanel->assignMany((BasisPanel::Kind)kind, steps);
+}
+
+
+bool SetupArea::basisAtoms(const string& names)
+{
+  if (!p_basisPanel) return false;
+  p_basisPanel->setAtoms(names);
+  return true;
+}
+
+
+bool SetupArea::basisAppend(bool tight, const string& element, int shell,
+                            int count)
+{
+  return p_basisPanel &&
+         p_basisPanel->appendFunctions(tight, element, shell, count);
+}
+
+
 void SetupArea::basisChanged()
 {
   if (p_basisPanel) p_basisPanel->refresh();

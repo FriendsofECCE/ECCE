@@ -210,12 +210,13 @@ void VibSpectrum::setIntensities(VibKind kind, const vector<double>& values,
   for (size_t i = 0; i < values.size(); i++)
     if (values[i] != 0.0) p_has[kind] = true;
   p_units[kind] = units;
-  p_relative[kind] = electronic() ? upper(units) != "F"
+  p_relative[kind] = nmr() ? false : electronic() ? upper(units) != "F"
                                   : !knownIntensityUnits(kind, units);
 }
 
 string VibSpectrum::unitLabel(VibKind kind) const
 {
+  if (nmr()) return "nuclei";
   if (p_relative[kind]) return "relative";
   if (electronic()) return "f";
   return kind == VIB_IR ? "km/mol" : "\xC3\x85\xE2\x81\xB4/amu";
@@ -223,6 +224,7 @@ string VibSpectrum::unitLabel(VibKind kind) const
 
 string VibSpectrum::axisLabel(VibKind kind) const
 {
+  if (nmr()) return "Nucleus count";
   if (electronic())
     return p_relative[kind] ? "Absorption (relative)" : "Oscillator strength f";
   const string name = kind == VIB_IR ? "IR" : "Raman";
@@ -233,13 +235,14 @@ string VibSpectrum::axisLabel(VibKind kind) const
 
 bool VibSpectrum::isVibration(int i) const
 {
+  if (nmr()) return std::isfinite(p_freq[i]);
   if (electronic()) return p_freq[i] > 0;
   return VibFrequency::isReal(p_freq[i]) || VibFrequency::isImaginary(p_freq[i]);
 }
 
 bool VibSpectrum::isImaginary(int i) const
 {
-  return !electronic() && VibFrequency::isImaginary(p_freq[i]);
+  return p_x == X_WAVENUMBER && VibFrequency::isImaginary(p_freq[i]);
 }
 
 //  What is drawn for mode i: the code's number, or, when its unit is
@@ -452,6 +455,12 @@ void VibSpectrum::defaultRange(double *lo, double *hi) const
       if (p_cmp->isImaginary(i)) minImag = min(minImag, w);
       else { minReal = min(minReal, w); maxReal = max(maxReal, w); }
     }
+  if (nmr()) {
+    const double pad = max(0.5, 4.0 * p_fwhm);
+    *lo = any ? minReal - pad : 0;
+    *hi = any ? maxReal + pad : 10;
+    return;
+  }
   if (electronic()) { electronicRange(minReal, maxReal, any, lo, hi); return; }
   if (!any || maxReal < 0) { *lo = 0; *hi = 4000; return; }
   //  The margin grows with the range: 100 cm-1 is a few pixels in the
@@ -567,6 +576,67 @@ string vibSpectrumCsv(const VibSpectrum& s, VibKind kind,
 }
 
 
+string vibSpectrumJcamp(const VibSpectrum& s, VibKind kind,
+                        const SpectrumCsvInfo& info,
+                        double lo, double hi, double step)
+{
+  std::ostringstream out;
+  out.imbue(std::locale::classic());
+  out.precision(8);
+  if (!s.has(kind)) kind = s.has(VIB_IR) ? VIB_IR : VIB_RAMAN;
+  const bool curve = s.fwhm() > 0 && step > 0 && hi > lo;
+  const char *type = kind == VIB_IR ? "INFRARED" : "RAMAN";
+  const vector<VibStick> sticks = s.sticks(kind);
+  const string title = info.calculation.empty() ? string("ECCE calculation")
+                                                : info.calculation;
+  const string origin = "ECCE" + (info.code.empty() ? string() : ", " + info.code);
+  const long n = curve ? (long)std::floor((hi - lo) / step + 1e-9) + 1 : 0;
+
+  auto common = [&](const char *datatype) {
+    out << "##JCAMP-DX=4.24\n##DATA TYPE=" << datatype << "\n##ORIGIN=" << origin
+        << "\n##OWNER=calculated\n";
+  };
+  const bool link = curve;
+  if (link) {
+    out << "##TITLE=" << title << " (calculated " << type << ")\n";
+    out << "##JCAMP-DX=4.24\n##DATA TYPE=LINK\n##BLOCKS=2\n##ORIGIN=" << origin
+        << "\n##OWNER=calculated\n";
+    out << "##TITLE=" << title << ", broadened curve\n";
+    common((string(type) + " SPECTRUM").c_str());
+    out << "##STATE=calculated\n##XUNITS=1/CM\n##YUNITS=ARBITRARY UNITS\n";
+    out << "##$INTENSITY UNIT=" << s.unitLabel(kind) << ", per cm-1\n";
+    out << "##$BROADENING=" << (s.lineShape() == LINE_LORENTZIAN ? "Lorentzian" : "Gaussian")
+        << ", FWHM " << s.fwhm() << " cm-1\n";
+    out << "##$FREQUENCY SCALING FACTOR=" << s.scale() << "\n";
+    out << "##XFACTOR=1\n##YFACTOR=1\n";
+    out << "##FIRSTX=" << lo << "\n##LASTX=" << lo + (n - 1) * step
+        << "\n##DELTAX=" << step << "\n##NPOINTS=" << n << "\n";
+    out << "##FIRSTY=" << s.envelope(kind, lo) << "\n";
+    out << "##XYDATA=(X++(Y..Y))\n";
+    for (long i = 0; i < n; i += 5) {
+      out << lo + i * step;
+      for (long j = i; j < n && j < i + 5; j++)
+        out << " " << s.envelope(kind, lo + j * step);
+      out << "\n";
+    }
+    out << "##END=\n";
+  }
+  out << "##TITLE=" << title << ", sticks\n";
+  common((string(type) + " PEAK TABLE").c_str());
+  out << "##XUNITS=1/CM\n##YUNITS=ARBITRARY UNITS\n";
+  out << "##$INTENSITY UNIT=" << s.unitLabel(kind) << "\n";
+  out << "##$FREQUENCY SCALING FACTOR=" << s.scale() << "\n";
+  out << "##XFACTOR=1\n##YFACTOR=1\n##NPOINTS=" << sticks.size() << "\n";
+  out << "##PEAK TABLE=(XY..XY)\n";
+  for (size_t i = 0; i < sticks.size(); i++)
+    out << sticks[i].wavenumber << ", " << sticks[i].intensity << " $$ mode "
+        << sticks[i].mode + 1 << "\n";
+  out << "##END=\n";
+  if (link) out << "##END=\n";
+  return out.str();
+}
+
+
 // ---- units and wording for the electronic spectrum (#383) ------------------
 
 double VibSpectrum::toEv(double x) const
@@ -583,6 +653,7 @@ double VibSpectrum::fromEv(double ev) const
 
 string VibSpectrum::positionUnit() const
 {
+  if (nmr()) return "ppm";
   if (p_x == X_EV) return "eV";
   if (p_x == X_NM) return "nm";
   return "cm\xE2\x81\xBB\xC2\xB9";
@@ -590,6 +661,7 @@ string VibSpectrum::positionUnit() const
 
 string VibSpectrum::xTitle() const
 {
+  if (nmr()) return "Chemical shift (ppm)";
   if (p_x == X_EV) return "Excitation energy (eV)";
   if (p_x == X_NM) return "Wavelength (nm)";
   string t = "Wavenumber (" + positionUnit();
@@ -603,6 +675,7 @@ string VibSpectrum::xTitle() const
 
 string VibSpectrum::envelopeTitle(VibKind kind) const
 {
+  if (nmr()) return "Envelope (nuclei per ppm)";
   if (electronic())
     return string("Absorption envelope (") +
            (p_relative[kind] ? "relative" : "f") + " per eV)";
@@ -612,12 +685,14 @@ string VibSpectrum::envelopeTitle(VibKind kind) const
          " per cm\xE2\x81\xBB\xC2\xB9)";
 }
 
-string VibSpectrum::itemWord() const { return electronic() ? "State" : "Mode"; }
+string VibSpectrum::itemWord() const { return nmr() ? "Group" : electronic() ? "State" : "Mode"; }
 
 string VibSpectrum::positionText(const VibStick& stick) const
 {
   char b[96];
-  if (electronic()) {
+  if (nmr()) {
+    snprintf(b, sizeof b, "%.4f ppm", stick.wavenumber);
+  } else if (electronic()) {
     const double ev = toEv(stick.wavenumber);
     snprintf(b, sizeof b, "%.3f eV (%.1f nm)", ev, evNm() / ev);
   } else {
@@ -628,12 +703,14 @@ string VibSpectrum::positionText(const VibStick& stick) const
 
 string VibSpectrum::intensityName(VibKind kind) const
 {
+  if (nmr()) return "Count  ";
   if (electronic()) return "f  ";
   return kind == VIB_IR ? "IR  " : "Raman  ";
 }
 
 string VibSpectrum::emptyMessage() const
 {
+  if (nmr()) return "Enter a reference shielding to show chemical shifts.";
   return electronic() ? "No excited state has a nonzero oscillator strength."
                       : "This calculation has no infrared or Raman intensities.";
 }

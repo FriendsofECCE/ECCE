@@ -122,6 +122,37 @@ scene script itself drives, so `viewall`, `zoom` and `rotate` before it show
 in the PNG with or without `ECCE_VIEWER_SCENE_HOLD` (#1090). Test:
 `tests/apps/saveimage_test.py`.
 
+## Compare relaxed scans in the Builder
+
+Open **Relaxed Scan** (`ECCE_OPEN_PANEL=Relaxed Scan`) and use
+`ECCE_BUILDER_SCRIPT` commands:
+
+- `scancompare URL_OR_PATH...` replaces the comparison selection with stored
+  calculations anywhere in the project hierarchy, including data-server URLs.
+  Sibling short names remain accepted. `scancompare none` clears it;
+  bare `scancompare` lists sibling names as a convenience. The GUI's
+  **Compare...** calculation browser adds one calculation at a time.
+- `scanzero lowest|largest|first` chooses each curve's reference energy.
+  Default `lowest`; `largest` is the energy at the largest sampled coordinate,
+  not an extrapolation. `first` means stored first point, even after joining.
+- `scanjoin on|off` merges matching first-point geometries (same atom order
+  and elements, pair distances within 1e-4 Å), first coordinates (1e-5) and
+  first energies (1e-6 hartree). Missing structures or unmatched starts stay
+  separate. One common start is kept; other overlaps are retained. Verify the
+  method, state, basis and scanned atoms before joining.
+- `scanlayout overlay|multiples` chooses overlaid curves or a vertical panel
+  per resulting curve with separate y scales and a common x range.
+- `scancsv PATH [kcal]` exports every resulting curve as a labelled CSV block
+  (source URLs, absolute hartree and relative kJ/mol, or kcal/mol).
+- `scanpng PATH [WIDTH HEIGHT]` exports the combined layout on white. Minimum
+  width 200 and height 160 per resulting panel; for multiples use e.g.
+  `scanpng curves.png 1000 1200`. Morse-fit samples appear in PNG only.
+
+`scanmorse on|off [window]` still fits only the active scan. Structure clicks,
+table and playback refer to the active calculation. Test:
+`tests/apps/scan_compare_test.py`, with isolated stored fixtures copied from
+an existing scan example. Put `background 1 1 1` before screenshots.
+
 ## Checking the Basis Set Tool window
 
 `tests/apps/basis_tool_size_test.py` (ctest `apps_basis_tool_size`) checks
@@ -131,7 +162,30 @@ content sizing, selection-row growth and saved geometry on a private
 The isolated `ECCE_TEST_BASISTOOL=<file>` hook reads appended commands:
 `info` reports frame, grid and periodic-table geometry; `resize x y w h`
 sets frame geometry; `rows N` replaces the test grid's rows without changing
-the calculation; `close` closes normally and saves the window settings.
+the calculation; `changed` prints `BASISTOOL: changed=0|1`, whether the
+tool holds an unsaved change; `close` closes normally and saves the window settings.
+
+## Fragment definitions and ORCA counterpoise export
+
+Builder script (`ECCE_BUILDER_SCRIPT`) commands:
+
+| Hook | Meaning |
+|---|---|
+| `fragments` | Print per-fragment atoms, charge and multiplicity; initialise connected-molecule defaults when unassigned |
+| `fragments auto` | Reset to connected molecules, numbered from 1 by first atom; neutral defaults, multiplicity from electron parity |
+| `fragment N atoms LIST` | Move listed 1-based atoms into fragment N; spaces, commas and ranges such as `1-3` accepted |
+| `fragment N charge Q mult M` | Set fragment state; reject if fragment charges do not sum to total structure charge |
+| `counterpoise orca FOLDER [MULT [ROUTE...]]` | Write `complex.inp` and `fragment-N.inp`, partner atoms as ORCA `Symbol:` ghosts; default route `HF def2-SVP` |
+
+MULT is the complex multiplicity (default calculation multiplicity, else
+electron parity). The monomer inputs use each fragment's state. Use an empty
+destination. The exporter validates charge sums and electron/multiplicity
+consistency. Automatic neutral states on a charged structure are pending:
+for total-charge +1 Na⁺···H₂O, explicitly set the Na fragment to `charge 1
+mult 1`. A rejected command leaves the existing state intact.
+`save` persists fragment assignments/states in the MVM structure; XYZ loses
+them. These fragment/export hooks only write inputs. The Counterpoise Energy
+option and Relaxed Scan action below run calculations and collect energies. See [Scripting help](../help/src/scripting-and-ai.md#fragments-and-orca-counterpoise-inputs).
 
 ## Isolated GUI tests
 
@@ -209,6 +263,11 @@ Tests: `tests/apps/organizer_file_view_test.py` for the window and Follow;
 `tests/filedsi/range_test.py` for actual local read byte counts and the exact
 SSH-side range/stat scripts (no login needed). Both run through `srun`.
 
+`treeimage <url>` (`ECCE_TEST_ORGANIZER`) answers `bg=0|1 ink=none|ssh|server`:
+rows below an SSH-folder or ECCE-server root have no background colour, and
+their folder icons are drawn in the root's ink (green or maroon);
+`tests/apps/server_roots_test.py` checks the server case.
+
 Start feedback (#1071, `ECCE_TEST_ORGANIZER`): `start TOOL [URL]` shows a busy
 cursor, "Opening the <tool> for <calculation>..." in the status line, a "Starting
 the <tool>..." window after 1.5 s and a "has not started" note after 30 s; a
@@ -256,7 +315,18 @@ whether the preview contains TEXT, `basis` shows the basis panel
 use=on|off assigned=All_atoms:_<set>`; `basis filter TEXT` narrows the library
 list, `basis pick NAME` chooses a set, `basis all` is Use for all atoms:
 assigns it to the whole system and saves, as the Basis Set Tool's Add to Table
-plus save would; the panel uses the Basis Set Tool's library and `GBSAssign`),
+plus save would; the panel uses the Basis Set Tool's library and `GBSAssign`;
+the describe line also has `assign=on|off checked=<elements> ecpoffer=<ecp>:<elements>|-
+msg=<last message>`; `basis assign NAME [@ O,H|H1] [; NAME2 [@ H]]...` assigns an orbital set to the
+listed elements (default all; the library name is lower case, e.g. `def2-tzvp`),
+replacing what they had, and saves (an element with no set yet takes the assigned one, `msg=<El>_took_<set>_for_now.`; if the set covers none, the call is refused with `msg=Also_choose_a_basis_set_for_...`); `basis ecp NAME
+[@ I]` adds an ECP from the library's ECP list, `basis ecp` alone adds the
+matching ECP the panel offered after an ECP orbital set (`no ECP offered`
+otherwise), `basis fit NAME [@ O]` adds a charge or exchange fitting set
+(names with spaces, e.g. `Ahlrichs Coulomb Fitting`; it needs an orbital set on
+the element first); the stored assignment reads `O: def2-tzvp + ECP
+<name> + charge fit <name>` per element in `assigned=`),
+several `;`-separated sets are applied as one step (`basis assign def2-tzvp @ O ; def2-svp @ H`; an element left without a set takes the set last used with `basis all`, else the assigned one); a target may be an atom name such as `H1`, which makes the basis per-atom, the element's group kept for the other atoms (`assigned=` lists `H: ...|H1: ...`); `basis atoms H1,H2` fills the Atoms box the buttons use instead of the checked elements (empty clears it); `basis aug NAME [@ O]` adds an augmenting (polarization/diffuse/Rydberg) set; `basis tight|diffuse EL SHELL N` appends N tight or diffuse functions to shell SHELL (0 = first) of EL's set (`not possible` if refused); `fit=shown|hidden` in the describe line says whether fitting sets are listed (only with an ORCA RI approximation or a DFT-fitting code such as NWChem; otherwise `basis fit` answers `no such basis set`); `basis ecp Def2-ECP` adds ORCA's ECP only to elements it has a core for,
 `launch` (the Launch... button) shows the Launcher's panel (`area=launch machine=<name> launch=enabled|disabled label=Launch|Launch_anyway`; pre-launch warnings appear in the panel and the button becomes Launch anyway: warn, never block), `launch info` reads it, `launch go` clicks Launch (`Launch is off`, `no Launcher panel` otherwise; `launch info` adds `clipped=N`, controls reaching past the area's right edge), `width N` sets the window's width,
 `info` adds `window= virtual= dry=0|1
 theorysum= runtypesum=` (the editor's summary lines); `no set-up area` under Small, `not a set-up tab` when the active tab is
@@ -404,6 +474,50 @@ marked (experimental) are newer and less tested.
 
 `data/client/cap/` also holds older codes (Gaussian 98, 03 and 09, GAMESS-UK,
 MOLCAS, NWChemMD, MetaDyn); do not expect new features for them.
+
+ECCE-QM ghost centres (counterpoise): in a `.qmin` geometry block a fifth
+column `ghost` after the coordinates (` O 2.91 0.0 0.0 ghost`) makes that atom
+a ghost: the element's basis functions, no nucleus, no electrons. Single-point
+`runtype energy` only; gradients, optimisation, frequencies, solvent, `charges`
+and polarizability are refused with a message. The output's `begin atoms` block
+ends such rows with `ghost`.
+
+Counterpoise calculation (ECCE-QM and ORCA, Energy runs, structure with 2 or
+more fragments): SetupParams keys `ES.Runtype.Counterpoise` (1 = on) and
+`ES.Runtype.CounterpoiseOwn` (1 = also each monomer in its own basis). Fragments
+come from the Builder hooks (`fragments auto`, `fragment N atoms|charge|mult`)
+and are stored in the `.frag` file (`fragment_states`, `atom_fragment_list`).
+`ai.ecceqm`/`ai.orca` append the monomer decks to the one input file after
+`# ecce-run fragment-N[-own]` lines; `gensub` splits them off, runs them after
+the complex in the same folder and appends a `begin counterpoise` energy block
+to the output. Properties (Hartree, Energies panel group Counterpoise):
+`EINTCP` = E_AB(AB) - sum E_X(AB), `EINTRAW` = E_AB(AB) - sum E_X(X),
+`EBSSE` = EINTCP - EINTRAW (positive), and the string `CPTABLE` with kJ/mol and
+kcal/mol. The raw energy and BSSE exist only with the own-basis runs.
+The Relaxed Scan panel supports ECCE-QM and ORCA stored scans:
+`scan cpsingle [launch]` creates one sibling Energy calculation for all stored
+geometries; `launch` requests submission through the Organizer with the copied
+scan machine settings. The GUI action includes the launch request. A second
+call refuses and names the existing calculation. `scan cpcolumn` refreshes and
+prints `point coordinate raw_hartree cp_hartree`, or `pending` until complete.
+The snapshot is stored in `ES.Runtype.CPScanGeometry` (semicolon-separated
+frames of Cartesian Angstrom triples). `SCANCP`, `SCANRAW`, `SCANBSSE` are
+Hartree vectors, one per stored geometry; SCANCP equals per-point EINTCP.
+`ecce:scanCounterpoise` links the source to the sibling; `ecce:scanSource`
+links back. The original scan properties are retained. Table columns ΔE (raw)
+and ΔE (CP), the two active plot curves and CSV/PNG exports use interaction
+energies referenced to the fragments at each geometry, without a further
+lowest/first/largest shift; ordinary comparison scans keep their own zeros.
+Test: `tests/launch/counterpoise_scan_test.py` (real ECCE-QM launch).
+Gaussian 16 scan CP and CP-corrected optimisation are not implemented.
+Gaussian 16 Energy runs use `ES.Runtype.Counterpoise=1`: `ai.gauss16` writes
+native `Counterpoise=N`, consecutive `(Fragment=n)` atom tags and the complex
+then fragment charge/multiplicity pairs. Stored fragment IDs are mapped in
+first-atom order. `ES.Runtype.CounterpoiseOwn` is unused for Gaussian 16;
+`EINTCP`, `EINTRAW`, `EBSSE` and `CPTABLE` are always read from its native
+counterpoise summary in the one job. `EINTCP` is the corrected interaction
+energy, not the corrected total energy. See
+`docs/claude/codereg/counterpoise-job-and-properties-1091.md`.
 
 Property views (which panel shows what) depend on what is stored in `Props/`;
 see "Properties". Analysis views: the MO diagram (experimental; check it
@@ -1341,7 +1455,7 @@ launcher, without command wrappers for these tools.
 | `ecce-si-export` | Export structures and a Supporting Information table; `--checks` makes the Checks table (with core-hours), `--rank` the Compare Energies table. Command line only |
 | `ecce-displacement` | Compare geometries and aligned RMSD |
 | `ecce-bandshift` | Match vibrational bands and report shifts |
-| `ecce-spectrum` | Process spectral curves |
+| `ecce-spectrum` | Process spectral curves. `--exp FILE` and `--parse-exp FILE` read the experimental spectrum as text columns or JCAMP-DX (`.jdx`, `.dx`, `.jcamp`; units from the file, so `--exp-kind` is ignored for JCAMP; NMR/MS files give a one-line error); `--parse-exp` prints `kind`, a `label` line (title, state, origin) and the points. The reader alone: `python3 scripts/jcampdx.py FILE` (#986) |
 | `ecce-displace` | Displace a structure along a normal mode. The Vibrational Frequencies panel of a GeoVib run with imaginary modes below 100 cm-1 shows a note that the optimisation stopped at a saddle (Builder script hook `vibnote` prints it; #1042). The Builder's Properties list groups its rows as Vibrational spectra, Electronic spectra, Magnetic resonance and Diffraction and scattering (#1079); the Builder script command `plist` prints the list as `GROUP/NAME` lines |
 | `ecce-thermo` | Recompute thermochemistry from stored results; `--json` gives per treatment H, S, G and the contributions `U_trans/U_rot/U_vib/U_elec`, `ZPE` (kJ/mol), `S_*`, `Cv_*`, `Cv`, `Cp` (J/mol/K); `--contributions` prints them as text |
 | `ecce-rate` | TST rate constants with Wigner/Eckart tunnelling from reactant, TS and product calculations |
@@ -1368,7 +1482,7 @@ calculation.
 
 | Command | Purpose |
 |---|---|
-| `ecce-diagnose [-o directory] [run-directory]` | Collects what is needed to diagnose a problem into one text file, `ecce-diagnostics-<host>-<time>.txt`. Changes nothing and collects no passwords, but the file holds host names, user names and paths: read it before attaching it to an issue. `ecce --bug` runs it too |
+| `ecce-diagnose [-o directory] [run-directory]` | Collects what is needed to diagnose a problem into one text file, `ecce-diagnostics-<host>-<time>.txt`; on macOS it also copies the newest five crash reports of ECCE's programs from the last 7 days (`~/Library/Logs/DiagnosticReports`, `/Library/Logs/DiagnosticReports`) into `crash-reports/` beside it. Help > Report a Problem... logs each step on stderr as `Report a Problem: ...` (Organizer hook `reportproblem`). Changes nothing and collects no passwords, but the file holds host names, user names and paths: read it before attaching it to an issue. `ecce --bug` runs it too |
 | `ecce-remote-setup <server-host> [data-port]` | Points this client installation at a central server; run once per client installation, as the owner of the installation. Users then start `ecce -remote` |
 | `ecce-dataserver-start`, `ecce-dataserver-status`, `ecce-dataserver-stop` | Start, check and stop this user's data server (`ecce-dataserver-stop --if-unused` refuses while another session or a job still uses it) |
 | `ecce-dataserver-adduser` | Add an account to this user's data server (`-b USER PASS [FIRST] [LAST]` or `--stdin USER [FIRST] [LAST]` without prompts) |
@@ -1412,11 +1526,29 @@ literature or another program without having compared.
   Geometry Trace when GEOMTRACE is stored, and Geometry Step Plots (per-step
   vectors such as TEVEC, PRESSVEC) only when it is not (GROMACS tasks).
 - Gradient: EGRAD, EGRADVEC.
+- Vibrational spectrum files (#986): the Spectrum panel's Experimental...
+  (script `vibspectrum <csv> <calc|-> <diff> <file|-> <zoom|->`,
+  `ECCE_SPECTRUM_EXPERIMENTAL=<file>`) accepts JCAMP-DX besides text columns.
+  Export .csv... writes JCAMP-DX when the file name ends in `.jdx`, `.dx` or
+  `.jcamp` (`spectrumcsv`, `ECCE_SPECTRUM_CSV=<path>.jdx`, or the first
+  argument of `vibspectrum`): one LINK file, block 1 the broadened curve
+  (XYDATA, width and scaling factor in `##$` lines), block 2 the sticks
+  (PEAK TABLE, mode number as a `$$` comment); width 0 gives the peak block
+  only. Reading it back takes the first block, the curve.
 - Vibrations: VIBFREQ (cm-1; leading near-zeros are translations and
   rotations), VIBIR (km/mol), VIBRAM, VIBSYM.
 - Orbitals: MO, ORBENG, ORBOCC, MOAOORDER; LOCMO, LOCMOENG, LOCMOOCC,
   LOCMOLABEL (localised orbitals, ECCE-QM).
 - Charges: MULLIKEN, LOEWDIN, HIRSHFELD, CHELPG, MK, APT where computed.
+- ORCA EPR: EPRG (one row: g1, g2, g3, g_iso, dimensionless), EPRA
+  (per requested nucleus: A1, A2, A3, A_iso in MHz), EPRQ (per nucleus
+  with a quadrupole result: Cq, Q1, Q2, Q3 in MHz). In the Builder's
+  Magnetic resonance group these are **EPR g-tensor**, **EPR Hyperfine
+  Couplings**, and **EPR Quadrupole Couplings**. Nuclear row labels retain
+  ORCA's zero-based output indices and element symbols; only computed nuclei
+  appear. Q1..Q3 use ORCA's printed spin-Hamiltonian prefactor and eta.
+  Import or reparse an ORCA output containing EPR sections to populate them.
+  See the help page `orca-epr` for conventions and the required input.
 - Other: DIPOLE, S2; for MD TIMEVEC, TEMPVEC, PRESSVEC, MDPEVEC, MDKEVEC.
 
 The full list with units is `data/client/config/properties` in the ECCE
@@ -1440,3 +1572,33 @@ names.
 A new command or option is added to this file in the same change that adds it,
 as for the help pages. `tests/ai/agents_md_test.py` fails when a command
 named under "Commands" is not in the build.
+
+### NMR chemical shifts (#384)
+
+Builder **Properties > Magnetic resonance > NMR spectrum** uses `ISOSHIELD`
+(ppm; isotropic shielding from the parsed tensors). Choose H (1H), C (13C)
+or another element and supply its reference shielding. Defaults are empty;
+there is no implicit TMS value. `delta_ppm = sigma_reference - sigma_atom`.
+Reference calculation chooses a sibling calculation in the project folder
+and averages its shieldings of the selected element. Use the same method,
+basis and solvent; ECCE does not verify this. References are separate per
+element and live only as long as the panel. The reversed ppm plot groups
+atoms whose shifts span at most 0.01 ppm, at their mean shift, with atom
+count as stick height. Clicking selects the group's atoms (1-based numbers
+in the table and exports). J-couplings are outside this view.
+
+With `ECCE_BUILDER_SCRIPT`, after `property NMR spectrum`:
+
+- `nmr element H|C|SYMBOL` selects an element present in the structure.
+- `nmr reference VALUE|empty` enters a shielding in ppm or clears it.
+- `nmr calculation NAME` takes that element's mean shielding from a sibling
+  calculation with the given name.
+- `nmr width PPM` sets Lorentzian FWHM (0: sticks only).
+- `nmr click N` clicks group N, numbered from 1, and logs selected atoms.
+- `nmr csv PATH` exports reference provenance, grouped and per-atom data,
+  plus an area-normalised envelope in nuclei per ppm when width is positive.
+- `nmr png PATH` exports the current plot at 1200 by 760 pixels.
+- `nmr status` prints element, reference, width, axis direction and groups.
+
+The script logs `NMR: ok=0|1`; export is refused without a reference. Put
+`background 1 1 1` before screenshots. Help: [NMR spectrum](../help/src/importing-a-calculation.md#nmr-spectrum).

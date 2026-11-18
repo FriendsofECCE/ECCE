@@ -98,8 +98,11 @@ case $cmd in
   apps)     inner='install_tree; cd $SRC && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin tests/apps/run_tests.py "$@"' ;;
   clip)     inner='install_tree; cd $SRC && ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin tests/apps/clip_test.py "$@"' ;;
   apptest)  inner='install_tree; cd $SRC && export ECCE_TEST_HOME=$BLD/install ECCE_TEST_WRAPPERS=$BLD/install-bin ECCE_TEST_BUILD=$BLD/bi && apptests "$@"' ;;
-  run)      inner='configure; cd $SRC && "$@"' ;;
-  *) fail "unknown command '$cmd' (build|ctest|ctesti|teaching|apps|apptest|clip|run)" ;;
+  # run builds and installs first, so a GUI test never runs an old install;
+  # runraw skips that for commands that need no ECCE binaries.
+  run)      inner='install_tree; cd $SRC && "$@"' ;;
+  runraw)   inner='configure; cd $SRC && "$@"' ;;
+  *) fail "unknown command '$cmd' (build|ctest|ctesti|teaching|apps|apptest|clip|run|runraw)" ;;
 esac
 prelude='
 # ccache (paths made relative, so every ref'"'"'s tree shares one cache) and mold

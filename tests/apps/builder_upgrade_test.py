@@ -69,9 +69,12 @@ def main():
         path, restore = setStoredVersion(OLD_VERSION)
         metrics = tempfile.mktemp(prefix="ecce-upgrade-", suffix=".txt")
         try:
+            # Metrics follow panel creation on a timer; slow GL can delay
+            # both past a fixed settle period even though opening succeeds.
             result = apps.run(display, "builder", args=("-context", urls["o2"]),
-                              windowTimeout=60, settle=30,
-                              env={"ECCE_PANEL_METRICS": metrics})
+                              windowTimeout=60, settle=90,
+                              env={"ECCE_PANEL_METRICS": metrics},
+                              ready=lambda: os.path.exists(metrics))
             with open(path) as handle:
                 stored = [l.split("=", 1)[1] for l in handle.read().splitlines()
                           if l.startswith("Version=")]

@@ -70,9 +70,10 @@ def main():
             for label, source, runtype in CASES:
                 calc = makeCalc(project, label, source, runtype)
                 url = "file://" + calc + "/"
-                # read the choices, then choose them again
+                # Dialog defaults arrive asynchronously from helper processes.
+                # Wait for initialization rather than sampling startup speed.
                 first = sym.scripted(display, "calced", "ECCE_CALCED_SCRIPT",
-                                     ["wait 9000", "info", "enabled", "quit"], url)
+                                     ["ready", "info", "enabled", "quit"], url)
                 choice = CHOICE.search(first)
                 sym.check(choice is not None, "%s: the editor opens" % label,
                           run_tests._tail(first, 30))
@@ -81,9 +82,9 @@ def main():
                 theory, runtype = choice.group(1), choice.group(2)
                 opened = STATE.findall(first)
                 again = sym.scripted(display, "calced", "ECCE_CALCED_SCRIPT",
-                                     ["wait 9000", "theory " + theory,
-                                      "wait 3000", "runtype " + runtype,
-                                      "wait 4000", "enabled", "quit"], url)
+                                     ["ready", "theory " + theory,
+                                      "ready", "runtype " + runtype,
+                                      "ready", "enabled", "quit"], url)
                 after = STATE.findall(again)
                 print("%s (%s, %s): on open %s, after re-choosing %s"
                       % (label, theory, runtype, opened, after))

@@ -24,6 +24,9 @@ list VIBNUM12 = RMP4|UMP4|RQCISD(T)|UQCISD(T)|RCCSD|UCCSD|RCCSD(T)|UCCSD(T)
 
 dialog title="ECCE Gaussian-16 Editor: Runtype Details" minwidth=380
 
+box label="Counterpoise Correction" cols=1 when="runtype==Energy"
+check name=ES.Runtype.Counterpoise label=" Counterpoise correction (structure with 2 or more fragments)" default=0 export=1
+
 box label="Gradient" cols=2 when="runtype==Gradient"
 combo name=ES.Runtype.Gradient.Method label="Method:" choices="Analytic|Finite Difference" default=Analytic when="category==SCF || category==DFT || category==CI || category==MP && theory in @MPGRAD || category==CC && theory in @CCGRAD"
 combo name=ES.Runtype.Gradient.Method label="Method:" choices="Analytic" default=Analytic when="category==SE"

@@ -129,7 +129,7 @@ KeyValuePropertyPanel::~KeyValuePropertyPanel()
 //  display order.  A property with no (or an unknown) group goes last.
 static const char *GROUPS[] = {"Final value", "Average over run (\xC2\xB1 s.d.)",
                                "Total", "Components", "Thermochemistry",
-                               "Solvation", "Derived", ""};
+                               "Solvation", "Counterpoise", "Derived", ""};
 static const char *INIFILE = "wxbuilder.ini";
 
 
@@ -309,6 +309,19 @@ void KeyValuePropertyPanel::refresh()
     if (*nameIt == "SOLVMODEL") {
       // A string: shown in the Solvation heading, not as a row.
       if (PropString *ps = dynamic_cast<PropString*>(tprop)) solvModel = ps->value();
+      continue;
+    }
+    if (*nameIt == "CPTABLE") {
+      // A string row: the counterpoise energies in kJ/mol and kcal/mol (#1091).
+      PropString *ps = dynamic_cast<PropString*>(tprop);
+      if (!ps) continue;
+      Row row;
+      row.key = propRef ? propRef->long_name : *nameIt;
+      row.value = ps->value();
+      row.group = "Counterpoise";
+      row.order = propRef ? propRef->order : 0;
+      grouped = true;
+      rows.push_back(row);
       continue;
     }
     string units = tprop->units()=="NA"? "": unitLabel(tprop->units());

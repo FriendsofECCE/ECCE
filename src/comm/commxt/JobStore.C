@@ -322,6 +322,10 @@ static string cpImportDir;
 // Re-parse of the stored outputs: properties are replaced, but run state,
 // dates, status reason and the run log stay as the real run left them.
 static bool gReparse = false;
+// An import or re-parse reads finished files in a scratch copy: there is no
+// job to come back to, so it is never parked for a later catch-up and it
+// ends with the session that started it (#1094).
+static bool localParse(void) { return gReparse || !cpImportDir.empty(); }
 static string cpMdStoreTrj;
 static string cpRxnMetadynamicsTask;
 // Space-separated wildcard patterns the launch found in the deck (a CP2K
@@ -1256,6 +1260,8 @@ static bool parkQuiet = false;
 
 void park(const char* name, const string& msg, int exitStatus)
 {
+  if (localParse())
+    fail(name, msg);
   if (parkQuiet)
     logMessage(name, msg);
   else {
@@ -1412,6 +1418,8 @@ void reconnectAfterSilence(void)
 {
   const string msg =
       "Read timeout--job monitor failed to send heartbeat message";
+  if (localParse())
+    fail("eccejobstore", msg + " while reading the imported files");
   const char* left = getenv("ECCE_JOB_TRIES_LEFT");
   if (left && atoi(left) <= 0) {
     restartSystem("eccejobstore", msg);
@@ -1431,6 +1439,9 @@ void reconnectAfterSilence(void)
 
 void ecceExitMCB(JMSMessage& msg)
 {
+  if (localParse())
+    fail("Messaging", "ECCE quit before the imported files were read; "
+                      "import them again");
   logMessage("Messaging",
              "ECCE quit message--messaging closed");
   exitMessaging();

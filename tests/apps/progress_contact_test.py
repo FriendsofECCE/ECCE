@@ -79,6 +79,7 @@ def run(display, pngs):
         shutil.copy(box.PROJECT_META, os.path.join(project, ".ecce-meta"))
         now = time.time()
         stamp = {"sent": now - 20, "at": int(now - 20)}
+        queueChecked = int(now - 20)
         running = box.makeCalc(project, "water-running", "Running",
                                box.STORED.format(**stamp))
         stored = box.makeCalc(project, "water-lost", "Running",
@@ -129,7 +130,7 @@ def run(display, pngs):
                 "fold open",
                 "summary file://" + queued,
                 "progressbox",
-                "contact file://%s ok %d" % (queued, int(now - 20)),
+                "contact file://%s ok %d" % (queued, queueChecked),
                 "progressbox",
                 "contact file://%s lost %d" % (queued, int(now - 240)),
                 "progressbox",
@@ -140,7 +141,9 @@ def run(display, pngs):
                 "progressbox",
                 "fold shut",
             ]) + "\n")
+        started = time.time()
         log = organizer(display, cmds, data, running)
+        ended = time.time()
         boxes = box.answers(log, "progressbox")
         trees = re.findall(r"ECCE_TEST_ORGANIZER: treestate.*?: (image=.*)", log)
         tables = re.findall(r"ECCE_TEST_ORGANIZER: table.*?: (panel=.*)", log)
@@ -209,7 +212,18 @@ def run(display, pngs):
                       for l in lines(qBox)) and
               field(qBox, "shown") == "1" and field(qBox, "stateicon") == "plain",
               "queued: since, job id, no scheduler state, no progress", qBox)
-        check(any(re.match(r"updated (2\d|3\d) s ago", l) for l in lines(qChecked)) and
+        # The notice predates startup and screenshots; its age depends on
+        # machine load. Bound it by the run, allowing the display's rounding.
+        updated = re.search(r"(?:^| \| )updated (\d+(?:\.\d+)?) (s|min|h) ago(?: \| |$)",
+                            qChecked)
+        ageMatches = False
+        if updated:
+            scale = {"s": 1, "min": 60, "h": 3600}[updated.group(2)]
+            age = float(updated.group(1)) * scale
+            rounding = scale * (0.1 if updated.group(2) == "h" else 1) / 2
+            ageMatches = (int(started) - queueChecked - rounding <= age <=
+                          int(ended) - queueChecked + rounding)
+        check(ageMatches and
               any(l.startswith("Status: Queued since") for l in lines(qChecked)),
               "queued: the monitor's last queue check is 'updated n s ago'", qChecked)
         check(any(re.match(r"contact lost, last heard \d\d:\d\d \(4 min ago\)", l)

@@ -10,6 +10,9 @@
 //                             changes (the same message over the same path)
 //    guiw KEY VALUE          as gui, marked to be written, which is what the
 //                             dialog sends for a value that is not the default
+//                             (an open dialog is reopened on the new values
+//                             before the next other command, so fields that
+//                             depend on them get the sensitivity it computes)
 //    details theory|runtype   the "Theory Details..." / "Runtype Details..."
 //                             button (opens the real dialog)
 //    close-details            close the dialogs, as OK does
@@ -63,7 +66,8 @@ struct CalcScript {
   size_t next;
   wxLongLong notBefore, waitUntil;
   std::string waitingFor, dir;
-  CalcScript() : next(0), notBefore(0), waitUntil(0) {}
+  bool theoryDirty, runtypeDirty, restarted;   // gui/guiw changed a dialog's values
+  CalcScript() : theoryDirty(false), runtypeDirty(false), restarted(false), next(0), notBefore(0), waitUntil(0) {}
 };
 
 // A multi-line note on one log line, so a test can read it with one regex.
@@ -116,6 +120,21 @@ void CalcEd::runCalcEdScript(const string& file)
     if (w[0] == "ready") {
       if (!(p_theoryInitFlag && p_runtypeInitFlag)) return;  // try again
     }
+    // gui/guiw bypass the dialog, so its enable logic never ran and a
+    // dependent field keeps its old stored sensitivity (#1111).  Before the
+    // next other command, reopen an open dialog on the new values: it applies
+    // its own dependencies and sends each field back with the right state.
+    if (w[0] != "gui" && w[0] != "guiw" && w[0] != "guivalue" &&
+        w[0] != "wait" && (st->theoryDirty || st->runtypeDirty)) {
+      if (!st->restarted) {
+        st->restarted = true;
+        if (st->theoryDirty && p_theoryInPort != 0) startTheoryApp(false);
+        if (st->runtypeDirty && p_runtypeInPort != 0) startRuntypeApp(false);
+        return;
+      }
+      if (!(p_theoryInitFlag && p_runtypeInitFlag)) return;
+      st->theoryDirty = st->runtypeDirty = st->restarted = false;
+    }
     st->next++;
     try {
       auto clickButton = [this](wxWindowID id) {
@@ -162,10 +181,13 @@ void CalcEd::runCalcEdScript(const string& file)
           std::string msg = w[1] + "|" + rest(2) + "|" + old->m_units + "|" +
               (old->m_sensitive ? "1" : "0") + "|" +
               (old->m_write || w[0] == "guiw" ? "1" : "0") + "|" + old->m_type + "\n";
-          if (w[1].find("ES.Runtype.") == 0)
+          if (w[1].find("ES.Runtype.") == 0) {
             processRuntypeInput(msg.c_str());
-          else
+            st->runtypeDirty = true;
+          } else {
             processTheoryInput(msg.c_str());
+            st->theoryDirty = true;
+          }
         }
       } else if (w[0] == "guivalue" && w.size() == 2) {
         GUIValue *v = p_GUIValues ? p_GUIValues->get(w[1]) : 0;
