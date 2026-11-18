@@ -1160,8 +1160,9 @@ def _remoteClient(checks, display, logdir, serverEnv, amq, dport, bport,
                      "the client's gateway is connected to the server's "
                      "broker with its data server login (connected: %s)"
                      % sorted(connectedTo(bport)))
-        remoteHandsOver(checks, cdisplay, frame,
-                        os.path.join(logdir, "remote-handover.log"), extra)
+        handsOver(checks, cdisplay, frame,
+                  os.path.join(logdir, "remote-handover.log"), ["-remote"],
+                  extra)
         # The teacher's session ends: its reaper runs, exactly as the
         # gateway wrapper's EXIT trap does it, and leaves the marked broker.
         reap = subprocess.run(
@@ -1335,53 +1336,20 @@ def secondSessionEnv():
     return None
 
 
-def handsOver(checks, display, frame1, log):
-    """One program: a plain second `ecce` hands over to the running
-    Organizer, and its own gateway ends quietly (no 'System Error')."""
-    if os.environ.get("ECCE_ONE_PROCESS") == "0":
-        return
-    extra = Session(display, log)
-    try:
-        # Its gateway signs in to the data server before the Organizer
-        # starts; answer that as organizer() does.
-        deadline = time.time() + 90
-        while time.time() < deadline and not extra.ended(1):
-            auth = next((w for w in display.windows()
-                         if w[1] == "ECCE Authentication"), None)
-            if auth:
-                env = display.env()
-                subprocess.run(["xdotool", "windowfocus",
-                                str(int(auth[0], 16))], env=env, timeout=10,
-                               stderr=subprocess.DEVNULL)
-                time.sleep(0.3)
-                subprocess.run(["xdotool", "type", "--delay", "50", "ecce"],
-                               env=env, timeout=10)
-                subprocess.run(["xdotool", "key", "Return"], env=env,
-                               timeout=10)
-                time.sleep(3)
-        checks.check(extra.ended(1), "a plain second `ecce` returns: the "
-                     "running Organizer took the start")
-        titles = [t for _, t in display.windows()]
-        checks.check("System Error" not in titles,
-                     "and no 'System Error' window %s" % titles)
-        checks.check(any(w[0] == frame1[0] for w in display.windows()),
-                     "the first Organizer is still open")
-    finally:
-        extra.kill()
-
-
-def remoteHandsOver(checks, display, frame1, log, extra):
-    """One program under -remote (#1069): a plain second `ecce -remote` is
+def handsOver(checks, display, frame1, log, argv=(), extra=None):
+    """One program (#1069): a plain second `ecce` (or `ecce -remote`) is
     handed to the running Organizer by `ecce` itself, before a gateway
-    starts, so it never asks for the central server's password."""
+    starts, so it never asks for a data server's password: the central
+    one, or in local mode the user's own."""
     if os.environ.get("ECCE_ONE_PROCESS") == "0":
         return
     def count(name):
         return sum(1 for exe in procs(display.name).values()
                    if os.path.basename(exe).split(" ")[0] == name)
     organizers = count("organizer")
+    shown = " ".join(["`ecce"] + list(argv)) + "`"
     t0 = time.time()
-    second = Session(display, log, ["-remote"], extra)
+    second = Session(display, log, list(argv), extra)
     asked = gateway = False
     try:
         while time.time() - t0 < 60 and not second.ended(0.2):
@@ -1395,13 +1363,16 @@ def remoteHandsOver(checks, display, frame1, log, extra):
             said = f.read()
         checks.check(ended and second.proc.returncode == 0
                      and "already running" in said,
-                     "a second `ecce -remote` returned at once (%.1f s, "
-                     "status %s): %s" % (secs, second.proc.returncode,
-                                         said.strip()[-300:]))
+                     "a second %s returned at once (%.1f s, status %s): %s"
+                     % (shown, secs, second.proc.returncode,
+                        said.strip()[-300:]))
         checks.check(not gateway and not asked,
                      "it started no gateway and asked for no password "
                      "(gateway seen: %s, ECCE Authentication seen: %s)"
                      % (gateway, asked))
+        titles = [t for _, t in display.windows()]
+        checks.check("System Error" not in titles,
+                     "and no 'System Error' window %s" % titles)
         checks.check(count("organizer") == organizers == 1,
                      "still one Organizer (%d before, %d after)"
                      % (organizers, count("organizer")))
@@ -2644,6 +2615,11 @@ def caseLocalPref(checks, display, logdir):
                          "no Apache was started")
             checks.check(os.path.isdir(os.path.join(first, "users", "local")),
                          "the folder has users/local")
+            # The folder comes from the preference: `ecce` must key the
+            # hand-over on it as the Organizer does.
+            handsOver(checks, display, frame,
+                      os.path.join(logdir, "local-pref-handover.log"),
+                      extra={"ECCE_HOME": home})
             if shutil.which("import"):
                 preferencesShot(display, frame, logdir)
             quitVia(display, frame)
