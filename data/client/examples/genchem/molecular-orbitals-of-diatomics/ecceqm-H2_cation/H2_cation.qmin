@@ -1,12 +1,32 @@
-title H2+, B3LYP/6-31G*, optimisation and frequencies
+title ECCE-QM
+runtype optfreq
 charge 1
 multiplicity 2
-method ub3lyp
-basis 6-31G*
-runtype optfreq
-localise true
+method uhf
+spherical true
+write_orbitals ecceqm.qmorb
 charges loewdin chelpg mk
+
+basis custom
+basis_data
+shell H S
+  33.87 0.006068
+  5.095 0.045308
+  1.159 0.202822
+  0.3258 0.503903
+  0.1027 0.383421
+shell H S
+  0.3258 1
+shell H S
+  0.1027 1
+shell H P
+  1.407 1
+shell H P
+  0.388 1
+shell H D
+  1.057 1
+end
 geometry
- H      0.00000000     0.00000000     0.00000000
- H      0.00000000     0.00000000     1.06000000
+ H     0.00000     0.00000     0.00000
+ H     0.00000     0.00000     1.06000
 end

@@ -1,0 +1,37 @@
+title ECCE-QM
+runtype optfreq
+charge 0
+multiplicity 3
+method ub3lyp
+spherical true
+write_orbitals ecceqm.qmorb
+charges loewdin chelpg mk
+
+basis 6-31G*
+basis_data
+shell B S
+  2068.8823 0.0018663
+  310.64957 0.0142515
+  70.683033 0.0695516
+  19.86108 0.2325729
+  6.2993048 0.4670787
+  2.127027 0.3634314
+shell B S
+  4.727971 -0.1303938
+  1.1903377 -0.1307889
+  0.3594117 1.1309444
+shell B P
+  4.727971 0.0745976
+  1.1903377 0.3078467
+  0.3594117 0.7434568
+shell B S
+  0.1267512 1
+shell B P
+  0.1267512 1
+shell B D
+  0.6 1
+end
+geometry
+ B     0.00000     0.00000     0.00000
+ B     0.00000     0.00000     1.59000
+end
