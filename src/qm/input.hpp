@@ -50,6 +50,8 @@
 //                                optimises to a first-order saddle point
 //                                (partitioned RFO from a computed Hessian,
 //                                Bofill updates) and then runs frequencies
+//   point_orbitals <yes|no>      scan and irc: write the orbitals of every point
+//                                (default yes; no keeps the output small)
 //   irc_step <x>, irc_max_points <n>, irc_direction <both|forward|backward>,
 //   irc_hessian_every <n>        runtype irc: reaction path from the transition
 //                                state in the editor, Gonzalez-Schlegel steps of
@@ -140,6 +142,7 @@ struct Input {
   IrcOptions irc;
   int irc_direction = 0;   // 0 both, +1 forward, -1 backward
   ScanSpec scan;
+  bool point_orbitals = true;   // scan/IRC: orbitals at every point (a lean output when off)
   // Frequency runs: Cartesian step of the finite-difference Hessian (bohr),
   // temperature (K) and pressure (atm) of the thermochemistry, rotational
   // symmetry number (0: worked out from the geometry).

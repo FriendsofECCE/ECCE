@@ -282,6 +282,11 @@ sub QMControl {
     my $every = $AbiDict{"ES.Runtype.IRC.HessianEvery"};
     $result .= "irc_hessian_every $every\n" if (defined($every) && $every ne "" && $every > 0);
   }
+  # Only the unticked box is written; the engine's default is to store them.
+  if (($AbiDict{"RunType"} eq "IRC" || $AbiDict{"RunType"} eq "Geometry") &&
+      defined($AbiDict{"ES.Runtype.PointOrbitals"}) && $AbiDict{"ES.Runtype.PointOrbitals"} eq "0") {
+    $result .= "point_orbitals no\n";
+  }
   if ($AbiDict{"RunType"} eq "Transition State (Opt-TS)") {
     my $mode = $AbiDict{"ES.Runtype.TS.Mode"};
     $result .= "ts_mode $mode\n" if (defined($mode) && $mode ne "" && $mode > 0);

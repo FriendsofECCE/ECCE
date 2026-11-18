@@ -128,6 +128,10 @@ Input parse_input(std::istream& in) {
     }
     else if (k == "field_step") r.field_step = std::stod(rest);
     else if (k == "maxsteps") r.opt.max_steps = std::stoi(rest);
+    else if (k == "point_orbitals") {
+      const std::string v = lower(rest);
+      r.point_orbitals = !(v == "no" || v == "false" || v == "off" || v == "0");
+    }
     else if (k == "irc_step") r.irc.step = std::stod(rest);
     else if (k == "irc_max_points") r.irc.max_points = std::stoi(rest);
     else if (k == "irc_hessian_every") r.irc.hessian_every = std::stoi(rest);

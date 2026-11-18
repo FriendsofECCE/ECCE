@@ -498,6 +498,14 @@ and ΔE (CP), the two active plot curves and CSV/PNG exports use interaction
 energies referenced to the fragments at each geometry, without a further
 lowest/first/largest shift; ordinary comparison scans keep their own zeros.
 Test: `tests/launch/counterpoise_scan_test.py` (real ECCE-QM launch).
+
+ECCE-QM scans and IRCs store the orbitals of every point (PTORB/PTMO, about
+17 MB for an IRC of 20 atoms). For a lean output set `ES.Runtype.PointOrbitals`
+to 0 (checkbox "Store orbitals at every point", Geometry and IRC run types):
+in a CalcEd script `details runtype`, then `guiw ES.Runtype.PointOrbitals 0`.
+The deck then has `point_orbitals no`; the tables, geometries and final
+orbitals are still written, but the orbital panels have nothing per point.
+Test: `tests/qm/point_orbitals_test.py`, `tests/qm/localise_deck_test.py`.
 Gaussian 16 scan CP and CP-corrected optimisation are not implemented.
 Gaussian 16 Energy runs use `ES.Runtype.Counterpoise=1`: `ai.gauss16` writes
 native `Counterpoise=N`, consecutive `(Fragment=n)` atom tags and the complex

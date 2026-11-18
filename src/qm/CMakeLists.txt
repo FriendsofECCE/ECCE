@@ -199,6 +199,9 @@ if(QM_PYTHON3)
   # parser keys made of them; the full list adds B3LYP ethane and UHF H2.
   add_test(NAME qm_scan_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/scan_test.py $<TARGET_FILE:ecce-qm> --quick)
   add_test(NAME qm_scan COMMAND ${QM_PYTHON3} ${_qm_tests}/scan_test.py $<TARGET_FILE:ecce-qm>)
+  # point_orbitals no: no per-point orbital blocks in a scan or IRC (#1114).
+  add_test(NAME qm_point_orbitals COMMAND ${QM_PYTHON3} ${_qm_tests}/point_orbitals_test.py $<TARGET_FILE:ecce-qm>)
+  set_tests_properties(qm_point_orbitals PROPERTIES TIMEOUT 300)
   add_test(NAME qm_scan_deck COMMAND ${QM_PYTHON3} ${_qm_tests}/scan_deck_test.py $<TARGET_FILE:ecce-qm>)
   # Transition-state search (#452): HCN <-> HNC against ORCA OptTS (tests/qm/ts_oracle.json).
   add_test(NAME qm_ts_quick COMMAND ${QM_PYTHON3} ${_qm_tests}/ts_test.py $<TARGET_FILE:ecce-qm> --quick)

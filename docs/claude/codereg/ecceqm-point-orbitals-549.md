@@ -37,3 +37,7 @@ issues: [549]
 - Size: about nbf^2 x 15.5 bytes per point in the output (and again in the
   stored props); the 84-function NMA scan example (25 points) would grow by
   about 2.8 MB.
+- `point_orbitals no` (#1114; setup key `ES.Runtype.PointOrbitals` = 0, box in
+  ecceqmruntype.dlg/.py for Geometry and IRC) leaves the per-point blocks out
+  and keeps no per-point copies in memory; ai.ecceqm writes the line only for
+  the unticked box. The input checker's keyword list (verifyinput) must know it.

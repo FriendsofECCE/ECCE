@@ -8,6 +8,7 @@ dialog title="ECCE-QM Editor: Runtype Details" message=hide
 list VIB = Vibration|GeoVib|Transition State (Opt-TS)
 list TS = Transition State (Opt-TS)
 list IRC = IRC
+list PTS = Geometry|IRC
 
 box label="Frequencies" when="runtype in @VIB"
 check name=ES.Runtype.Vibration.UseRaman label=" Raman activities (about 7 times the cost)" default=0 export=1
@@ -22,6 +23,9 @@ int name=ES.Runtype.IRC.MaximumStepsValue label="Max points per direction:" defa
 float name=ES.Runtype.IRC.StepSize label="Step (bohr*sqrt(amu)):" default=0.1 hard="(0..)" soft="[0.02..0.5]" export=1
 combo name=ES.Runtype.IRC.Direction label="Direction:" choices="Both|Forward|Backward" default=Both export=1
 int name=ES.Runtype.IRC.HessianEvery label="New Hessian every n points (0: never):" default=0 hard="[0..)" soft="[0..50]" export=1
+
+box label="Scan and Reaction Path Points" when="runtype in @PTS"
+check name=ES.Runtype.PointOrbitals label=" Store orbitals at every point (off: smaller output, no orbitals per point)" default=1 export=1
 
 box label="Counterpoise Correction" when="runtype==Energy"
 check name=ES.Runtype.Counterpoise label=" Counterpoise correction (structure with 2 or more fragments)" default=0 export=1
