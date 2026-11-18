@@ -422,6 +422,9 @@ class CalcEd: public CalcEdGUI,
     string matchingEcp(const string& basis, const vector<string>& elements,
                        vector<string>& covered);
     void openBasisSetTool();
+    // The basis panel in the Set-up tab, a window moved to tabs first;
+    // false without tabs.
+    bool showBasisPanel();
 
     // The window owns its dispatcher (#983) and deletes it with itself.
     void setMessages(CalcEdMessages *msgs) { p_msgs = msgs; }

@@ -100,6 +100,8 @@ def run(display):
         extra = {"ECCE_TEST_GDB": "1"} if GDB else {}
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                           env={**extra, "ECCE_ONE_PROCESS": "1",
+                               # the retired window (#1063)
+                               "ECCE_FULL_BASIS_TOOL": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_TEST_MESSAGES": "1",
                                "ECCE_CALCED_SCRIPT": calced,
@@ -217,6 +219,8 @@ def runQuit(display, gateway=False):
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                           env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
                                "ECCE_ONE_PROCESS": "1",
+                               # the retired window (#1063)
+                               "ECCE_FULL_BASIS_TOOL": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_BUILDER_SCRIPT": script,
                                "ECCE_TEST_BASISTOOL": basis,
@@ -1131,6 +1135,11 @@ def runSetupTab(display):
         url2, url3, hiUrl = ("file://" + calc2, "file://" + calc3,
                              "file://" + hi)
         url4, hi2Url = "file://" + calc4, "file://" + hi2
+        # #1063 stage 3: the per-element mix must reach every code's deck
+        mixes = {code: extra("mix-" + code.lower(), code, None, theory)
+                 for code, theory in (("ORCA", None), ("Gaussian-16", None),
+                                      ("NWChem", None),
+                                      ("ECCE-QM", "SCF/HF"))}
         cmds = os.path.join(work, "commands")
         open(cmds, "w").close()
 
@@ -1211,8 +1220,20 @@ def runSetupTab(display):
             append("setup basis assign def2-tzvp", 15)             # n4
             append("setup basis ecp def2-tzvp-ecp", 15)            # n5
             shot("setup-basis-atoms.png")
+            for mixCalc in mixes.values():
+                append("start CalculationEditor file://" + mixCalc, 25)
+                append("setup basis assign def2-tzvp @ O ; def2-svp @ H", 15)
+                append("setup basis pick Def2-ECP", 3)
+            # The retired Basis Set Tool: its start opens the editor's panel.
+            append("start Basistool " + url, 15)
+            append("setup info", 2)
+            append("inprocess", 2)
             append("close", 3)
             append("answer", 3)
+            append("answer no", 6)
+            append("answer no", 6)
+            append("answer no", 6)
+            append("answer no", 6)
             append("answer no", 6)
             append("answer no", 6)
             append("answer no", 6)
@@ -1366,6 +1387,43 @@ def runSetupTab(display):
               and "H:_def2-tzvp" in more[13],
               "an ECP for all atoms goes on I (it has a core there) and not "
               "on H", more[13])
+        # O def2-TZVP and H def2-SVP, by name or written out; never the
+        # other set's exponents (H 34.06134 is TZVP, O 2266.176 is SVP).
+        for code, mixCalc in mixes.items():
+            deck, used = "", []
+            for root, _dirs, names in os.walk(mixCalc):
+                for n in names:
+                    if n in ("BasisSet.ecce_basisset", ".ecce-meta",
+                             "chemsys.mvm") or n.endswith(".meta"):
+                        continue
+                    try:
+                        txt = open(os.path.join(root, n),
+                                   errors="replace").read()
+                    except OSError:
+                        continue
+                    if re.search(r"(?i)def2-?svp|13\.01070", txt):
+                        deck += txt
+                        used.append(n)
+            check(re.search(r"(?i)def2-?tzvp|27032\.38", deck)
+                  and re.search(r"(?i)def2-?svp|13\.01070", deck)
+                  and "34.06134" not in deck and "2266.176" not in deck
+                  and not re.search(r'(?i)NewGTO\s+H\s+"def2-?tzvp', deck)
+                  and not re.search(r'(?i)NewGTO\s+O\s+"def2-?svp', deck)
+                  and not re.search(r"(?im)^\s*H\s+0\s*\n\s*def2-?tzvp",
+                                    deck),
+                  code + ": the input carries O def2-TZVP and H def2-SVP",
+                  str(used) + "\n" + deck[:1500])
+        ecpPick = [a for a in allSu if "picked=Def2-ECP" in a]
+        check(ecpPick and all(" covered= " in a and "assign=off" in a
+                              for a in ecpPick),
+              "Def2-ECP covers no element of water (no core): nothing to add",
+              str(ecpPick))
+        retired = [a for a in allSu if a.startswith("area=")][-1:]
+        inproc = pb.answers(log, "inprocess")
+        check(retired and retired[0].startswith("area=basis") and inproc
+              and " BasisTool=0 " in inproc[-1],
+              "Basis Set Tool start opens the editor's basis panel, no "
+              "Basis Set Tool window", str(retired) + " / " + str(inproc))
         perElement = ""
         for root, _dirs, names in os.walk(calc2):
             for n in names:
@@ -1455,6 +1513,8 @@ def runTabsTools(display):
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                           env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
                                "ECCE_ONE_PROCESS": "1",
+                               # the retired window (#1063)
+                               "ECCE_FULL_BASIS_TOOL": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_LOCAL_DATA": data},
                           inspect=inspect)
@@ -1575,6 +1635,8 @@ def runTabs1088(display):
         result = apps.run(display, "organizer", windowTimeout=60, settle=20,
                           env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
                                "ECCE_ONE_PROCESS": "1",
+                               # the retired window (#1063)
+                               "ECCE_FULL_BASIS_TOOL": "1",
                                "ECCE_TEST_ORGANIZER": cmds,
                                "ECCE_LOCAL_DATA": data},
                           inspect=inspect)

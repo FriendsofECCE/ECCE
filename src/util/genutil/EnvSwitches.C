@@ -38,6 +38,10 @@ const vector<EnvSwitches::Entry>& EnvSwitches::all()
         "Window and panel diagnostics",
         "Writes how windows are raised and panels placed to the program's error output.",
         false, "", {{"ECCE_DEBUG_RAISE", "1"}, {"ECCE_DEBUG_PANELS", "1"}}});
+    list.push_back({"Advanced.FullBasisTool",
+        "Separate Basis Set Tool window",
+        "Basis Set buttons and menus open the old Basis Set Tool window instead of the editor's basis panel.",
+        false, "", {{"ECCE_FULL_BASIS_TOOL", "1"}}});
     list.push_back({"Advanced.MoSymLog",
         "MO-diagram symmetry log",
         "Appends the symmetry analysis behind the MO diagram to this file.",

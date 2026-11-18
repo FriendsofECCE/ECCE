@@ -9,6 +9,7 @@
 #include "wx/spinctrl.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <cctype>
 
 #include "dsm/EDSIGaussianBasisSetLibrary.H"
@@ -93,6 +94,8 @@ BasisPanel::BasisPanel(wxWindow *parent, CalcEd *editor)
   row->Add(p_assign, 0, wxRIGHT, 6);
   row->Add(p_use, 0, wxRIGHT, 6);
   row->Add(full, 0);
+  // The old window is retired (#1063); Preferences > Advanced brings it back.
+  full->Show(getenv("ECCE_FULL_BASIS_TOOL") != 0);
   top->Add(row, 0, wxALL, 4);
   wxBoxSizer *app = new wxBoxSizer(wxHORIZONTAL);
   p_appendKind = new wxChoice(this, wxID_ANY);
@@ -234,11 +237,27 @@ void BasisPanel::chosen()
       nice == e.name ? "" : " (" + nice + ")") + ", " +
       sectionLabel(e.type)).c_str()));
   for (const string& el : p_ed->systemElements()) {
-    (p_lib->isSupported(e.name, e.type, el) ? p_covered : p_uncovered)
-        .push_back(el);
+    bool has = p_lib->isSupported(e.name, e.type, el);
+    // An ECP covers only the elements it has a core for (Def2-ECP from Rb).
+    if (has && e.type == TGaussianBasisSet::ecp) {
+      vector<TGaussianBasisSet*> sets = p_lib->lookup(
+          e.name.c_str(), TGaussianBasisSet::ecp, el.c_str());
+      has = false;
+      for (TGaussianBasisSet *g : sets) {
+        has = has || g->p_contractions.count(el);
+        delete g;
+      }
+    }
+    (has ? p_covered : p_uncovered).push_back(el);
   }
-  wxString text = "Covers: " + wxString::FromUTF8(join(p_covered).c_str());
-  if (!p_uncovered.empty()) {
+  bool isEcp = e.type == TGaussianBasisSet::ecp;
+  wxString text = (isEcp ? "Core potential for: " : "Covers: ") +
+                  wxString::FromUTF8(join(p_covered).c_str());
+  if (isEcp && !p_uncovered.empty()) {
+    // Elements without a core in the set need no ECP: not an error.
+    text += "\nAll-electron: " + wxString::FromUTF8(join(p_uncovered).c_str());
+    p_cover->SetForegroundColour(wxNullColour);
+  } else if (!p_uncovered.empty()) {
     text += "\nNot covered: " + wxString::FromUTF8(join(p_uncovered).c_str());
     p_cover->SetForegroundColour(*wxRED);
   } else {

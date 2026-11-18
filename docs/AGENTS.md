@@ -155,6 +155,15 @@ an existing scan example. Put `background 1 1 1` before screenshots.
 
 ## Checking the Basis Set Tool window
 
+The window is retired (#1063): with tabs, `start Basistool URL`, the
+calculation's Basis Set button and the editor's basis button open the
+Calculation Editor at its basis panel (the start message carries
+`actiontopic=basis`), and the Organizer's Tools menu has no Basis Set Tool
+item. `ECCE_FULL_BASIS_TOOL=1` (Preferences > Advanced, key
+`Advanced.FullBasisTool`) brings the window, the menu item and the panel's
+**Full Basis Set Tool...** button back; tests of the old window set it.
+Without tabs (`ECCE_ONE_PROCESS=0`, layout Wide) the old window still opens.
+
 `tests/apps/basis_tool_size_test.py` (ctest `apps_basis_tool_size`) checks
 content sizing, selection-row growth and saved geometry on a private
 1366×768 display. `--png DIR` saves a screenshot. Use the installed-tree
@@ -229,7 +238,7 @@ through the command-line tools in "Commands". You cannot click in the windows.
 | Launcher | Chooses machine, queue, cores, wall time and allocation profile, and submits. | Opened from the Organizer for a calculation |
 | Register Machines | Registers compute machines: codes, job script, queues. | **Tools > Register Machines...**, or `ecce -machine` |
 | Machine Browser | Runs a few status queries on a registered machine over ECCE's login. | From the Organizer or Launcher |
-| Basis Set Tool | Looks at and edits basis sets. | From the Organizer or Calculation Editor |
+| Basis Set Tool (retired) | The old basis window; the editor's basis panel replaces it. | Only with `ECCE_FULL_BASIS_TOOL=1` (Preferences > Advanced, **Separate Basis Set Tool window**) |
 
 One program is the default (#1067): unless `ECCE_ONE_PROCESS=0` is in the
 environment of `ecce` (the old route, every window its own program), the Builder, the Calculation Editor, the
@@ -326,7 +335,7 @@ otherwise), `basis fit NAME [@ O]` adds a charge or exchange fitting set
 (names with spaces, e.g. `Ahlrichs Coulomb Fitting`; it needs an orbital set on
 the element first); the stored assignment reads `O: def2-tzvp + ECP
 <name> + charge fit <name>` per element in `assigned=`),
-several `;`-separated sets are applied as one step (`basis assign def2-tzvp @ O ; def2-svp @ H`; an element left without a set takes the set last used with `basis all`, else the assigned one); a target may be an atom name such as `H1`, which makes the basis per-atom, the element's group kept for the other atoms (`assigned=` lists `H: ...|H1: ...`); `basis atoms H1,H2` fills the Atoms box the buttons use instead of the checked elements (empty clears it); `basis aug NAME [@ O]` adds an augmenting (polarization/diffuse/Rydberg) set; `basis tight|diffuse EL SHELL N` appends N tight or diffuse functions to shell SHELL (0 = first) of EL's set (`not possible` if refused); `fit=shown|hidden` in the describe line says whether fitting sets are listed (only with an ORCA RI approximation or a DFT-fitting code such as NWChem; otherwise `basis fit` answers `no such basis set`); `basis ecp Def2-ECP` adds ORCA's ECP only to elements it has a core for,
+several `;`-separated sets are applied as one step (`basis assign def2-tzvp @ O ; def2-svp @ H`; an element left without a set takes the set last used with `basis all`, else the assigned one); a target may be an atom name such as `H1`, which makes the basis per-atom, the element's group kept for the other atoms (`assigned=` lists `H: ...|H1: ...`); `basis atoms H1,H2` fills the Atoms box the buttons use instead of the checked elements (empty clears it); `basis aug NAME [@ O]` adds an augmenting (polarization/diffuse/Rydberg) set; `basis tight|diffuse EL SHELL N` appends N tight or diffuse functions to shell SHELL (0 = first) of EL's set (`not possible` if refused); picking an ECP (`basis pick Def2-ECP`) lists in `covered=` only the elements it has a core for, the rest (all-electron) in `uncovered=`, and `assign=off` when none has a core; `fit=shown|hidden` in the describe line says whether fitting sets are listed (only with an ORCA RI approximation or a DFT-fitting code such as NWChem; otherwise `basis fit` answers `no such basis set`); `basis ecp Def2-ECP` adds ORCA's ECP only to elements it has a core for,
 `launch` (the Launch... button) shows the Launcher's panel (`area=launch machine=<name> launch=enabled|disabled label=Launch|Launch_anyway`; pre-launch warnings appear in the panel and the button becomes Launch anyway: warn, never block), `launch info` reads it, `launch go` clicks Launch (`Launch is off`, `no Launcher panel` otherwise; `launch info` adds `clipped=N`, controls reaching past the area's right edge), `width N` sets the window's width,
 `info` adds `window= virtual= dry=0|1
 theorysum= runtypesum=` (the editor's summary lines); `no set-up area` under Small, `not a set-up tab` when the active tab is

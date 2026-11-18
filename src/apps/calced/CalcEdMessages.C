@@ -87,6 +87,11 @@ void CalcEdMessages::invokeMCB(JMSMessage& msg)
     showEditor();
     ewxRaiseWindow(p_calced);
     p_calced->RequestUserAttention();
+    // The Basis Set button or menu (#1063): after the tab is made.
+    if (action == "basis") {
+      CalcEd *ed = p_calced;
+      ed->CallAfter([ed]() { ed->showBasisPanel(); });
+    }
   } else {
     showEditor();
   }
