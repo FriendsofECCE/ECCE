@@ -1,5 +1,6 @@
 COULOMB	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 DIPOLE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+DIPOLEORIGIN	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 EGIBBS	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 EGRAD	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 EGRADVEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
@@ -32,8 +33,8 @@ S2	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 TE	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 TEVEC	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 THERMOPRES	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
+THERMOSIGMA	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 THERMOTEMP	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 VIB	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 VIBFREQ	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
 VIBIR	http://www.emsl.pnl.gov/ecce:mime-type		text/xml
-THERMOSIGMA	http://www.emsl.pnl.gov/ecce:mime-type		text/xml

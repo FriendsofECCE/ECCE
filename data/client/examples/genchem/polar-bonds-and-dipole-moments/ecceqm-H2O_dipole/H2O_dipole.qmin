@@ -1,0 +1,67 @@
+title ECCE-QM
+runtype optimize
+charge 0
+multiplicity 1
+method b3lyp
+spherical true
+write_orbitals ecceqm.qmorb
+charges loewdin chelpg mk
+
+basis aug-cc-pVDZ
+basis_data
+shell H S
+  13.01 0.019685
+  1.962 0.137977
+  0.4446 0.478148
+  0.122 0.50124
+shell H S
+  0.122 1
+shell H P
+  0.727 1
+shell H S
+  0.02974 1
+shell H P
+  0.141 1
+shell O S
+  11720 0.00071
+  1759 0.00547
+  400.8 0.027837
+  113.7 0.1048
+  37.03 0.283062
+  13.27 0.448719
+  5.025 0.270952
+  1.013 0.015458
+  0.3023 -0.002585
+shell O S
+  11720 -0.00016
+  1759 -0.001263
+  400.8 -0.006267
+  113.7 -0.025716
+  37.03 -0.070924
+  13.27 -0.165411
+  5.025 -0.116955
+  1.013 0.557368
+  0.3023 0.572759
+shell O S
+  0.3023 1
+shell O P
+  17.7 0.043018
+  3.854 0.228913
+  1.046 0.508728
+  0.2753 0.460531
+shell O P
+  0.2753 1
+shell O D
+  1.185 1
+shell O S
+  0.07896 1
+shell O P
+  0.06856 1
+shell O D
+  0.332 1
+end
+geometry
+ O     0.00000     0.00000     0.118396
+ H     0.00000     0.762769     -0.479198
+ H     -0.00000     -0.762769     -0.479198
+end

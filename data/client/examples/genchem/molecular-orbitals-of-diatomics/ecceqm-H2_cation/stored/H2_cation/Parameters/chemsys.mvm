@@ -6,8 +6,8 @@ end_fragment_attributes:
 num_atoms: 2
 atom_info: symbol cart
 atom_list: 
-H 0.00000 0.00000 -0.0274697
-H 0.00000 0.00000 1.08747
+H 0.00000 0.00000 0.00141150
+H 0.00000 0.00000 1.05859
 attr_list:
  0.000000   1   0   0   0
  0.000000   1   0   0   0

@@ -7599,7 +7599,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "48";
+const char *const kExampleSetVersion = "49";
 
 string treeName(string s)
 {
@@ -8868,7 +8868,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "following its closed-shell solution from point to point, so it stays "
      "on the RHF curve where the inward broken-symmetry scan does not."},
     {"H2_cation",
-     "ECCE-QM, UB3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "ECCE-QM, UHF/cc-pVTZ, optimisation and frequencies, orbitals "
      "localised. This calculation shows H2+, held together by a single "
      "electron in the bonding sigma orbital."},
     {"HF",
@@ -8877,7 +8877,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "hydrogen 1s and a fluorine 2p orbital, and the unused fluorine 2p "
      "orbitals as lone pairs."},
     {"HF_dipole",
-     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals localised. "
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals localised. "
      "This calculation shows how the bonding electrons of HF are pulled "
      "towards the more electronegative fluorine atom, so the bond is polar."},
     {"He2",
@@ -8885,7 +8885,7 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "shows He2 at a large distance, where the bonding and the antibonding "
      "orbital are both full, so there is no bond."},
     {"He2_cation",
-     "ECCE-QM, UB3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "ECCE-QM, UHF/cc-pVTZ, optimisation and frequencies, orbitals "
      "localised. This calculation shows He2+, with two electrons in the "
      "bonding and one in the antibonding orbital, which makes a bond of half"
      " the strength of the one in H2."},
@@ -8911,22 +8911,22 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "localised. This calculation shows the two unpaired electrons of O2 in "
      "the two pi* orbitals."},
     {"CH3F",
-     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals "
      "localised. This calculation shows the polar C-F bond of fluoromethane,"
      " with the dipole moment pointing along it from the CH3 group towards "
      "fluorine."},
     {"CO2",
-     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals "
      "localised. This calculation shows that CO2 has polar C=O bonds but no "
      "dipole moment, because the two bond dipoles point in opposite "
      "directions and cancel."},
     {"HBr",
-     "ECCE-QM, B3LYP/def2-SVP, optimisation and frequencies, orbitals "
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals "
      "localised. This calculation shows the polar H-Br bond, with electron "
      "density shifted towards the more electronegative bromine atom, which "
      "gives the molecule a dipole moment."},
     {"HCl",
-     "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals "
      "localised. This calculation shows the polar H-Cl bond, with electron "
      "density shifted towards the more electronegative chlorine atom, which "
      "gives the molecule a dipole moment."},
@@ -8960,8 +8960,52 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "a Density Profile line from one atom to the other finds almost no "
      "density between them, so this attraction cannot be seen in the "
      "density."},
-    {"SO2",
+    {"B2",
+     "ECCE-QM, UB3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows the two unpaired electrons of B2, one "
+     "in each of the two pi orbitals, which lie below the sigma orbital made "
+     "from 2p."},
+    {"C2",
      "ECCE-QM, B3LYP/6-31G*, optimisation and frequencies, orbitals "
+     "localised. This calculation shows C2 with both pi orbitals filled and "
+     "the sigma orbital made from 2p still empty, the order of the left of "
+     "the second period."},
+    {"LiH_dipole",
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals localised. "
+     "This calculation shows the dipole moment of LiH, with hydrogen the "
+     "negative end, for comparison with HF, HCl, HBr, LiF and NaCl."},
+    {"LiF_dipole",
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals localised. "
+     "This calculation shows the dipole moment of LiF, close to that of two "
+     "whole charges, and its localised orbitals, four lone pairs on fluorine "
+     "and no Li-F bond."},
+    {"NaCl_dipole",
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals localised. "
+     "This calculation shows the dipole moment of a single NaCl molecule in "
+     "the gas phase, the most ionic of the six polar diatomics of the topic."},
+    {"H2O_dipole",
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals localised. "
+     "This calculation shows that the two polar O-H bonds of the bent water "
+     "molecule add up to a dipole moment."},
+    {"NH3_dipole",
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals localised. "
+     "This calculation shows that the three polar N-H bonds of the "
+     "pyramidal ammonia molecule add up to a dipole moment."},
+    {"BF3_dipole",
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals localised. "
+     "This calculation shows that BF3 has three polar B-F bonds but no "
+     "dipole moment, because the bonds point to the corners of a triangle and "
+     "cancel."},
+    {"CH4_dipole",
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals localised. "
+     "This calculation shows that the four C-H bond dipoles of methane "
+     "cancel, so the molecule has no dipole moment."},
+    {"SF6_dipole",
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals localised. "
+     "This calculation shows that SF6 has six polar S-F bonds but no dipole "
+     "moment, because opposite bonds cancel."},
+    {"SO2",
+     "ECCE-QM, B3LYP/aug-cc-pVDZ, geometry optimisation, orbitals "
      "localised. This calculation shows that SO2 is bent, so its two polar "
      "bonds do not cancel and the molecule has a dipole moment."},
     {"BF3",

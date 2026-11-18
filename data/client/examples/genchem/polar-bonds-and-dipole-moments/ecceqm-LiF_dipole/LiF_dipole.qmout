@@ -1,0 +1,1663 @@
+progress scf cycle=1 energy=-107.1742569777 grad=1.99e-01/1e-07
+progress scf cycle=2 energy=-107.2525401336 dE=-7.83e-02/1e-10 grad=2.11e-01/1e-07
+progress scf cycle=3 energy=-107.3952613684 dE=-1.43e-01/1e-10 grad=4.50e-02/1e-07
+progress scf cycle=4 energy=-107.3992582137 dE=-4.00e-03/1e-10 grad=1.59e-02/1e-07
+progress scf cycle=5 energy=-107.4000776121 dE=-8.19e-04/1e-10 grad=1.52e-03/1e-07
+progress scf cycle=6 energy=-107.4000840088 dE=-6.40e-06/1e-10 grad=7.88e-05/1e-07
+progress scf cycle=7 energy=-107.4000840451 dE=-3.64e-08/1e-10 grad=1.04e-05/1e-07
+progress scf cycle=8 energy=-107.4000840455 dE=-3.29e-10/1e-10 grad=5.80e-07/1e-07
+progress scf cycle=9 energy=-107.4000840455 dE=-1.19e-12/1e-10 grad=8.34e-09/1e-07 converged=yes
+opt_step 1
+energy_step -107.400084045473
+opt_criteria max_gradient 7.4410e-03 rms_gradient 4.0821e-03 max_step 9.0176e-03 rms_step 5.2063e-03 energy_change 0.0000e+00
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 0.0000000000
+2 F 0.0000000000 0.0000000000 1.5640000000
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 0.0066792545
+2 F 0.0000000000 0.0000000000 -0.0074410200
+end gradient
+progress opt step=1 energy=-107.4000840455 maxgrad=7.44e-03/3e-04 rmsgrad=4.08e-03/1e-04 maxstep=9.02e-03/4e-03 rmsstep=5.21e-03/2e-03
+progress scf cycle=1 energy=-107.4001786808 grad=6.20e-04/1e-07
+progress scf cycle=2 energy=-107.4001841802 dE=-5.50e-06/1e-10 grad=2.79e-04/1e-07
+progress scf cycle=3 energy=-107.4001843273 dE=-1.47e-07/1e-10 grad=1.77e-04/1e-07
+progress scf cycle=4 energy=-107.4001843803 dE=-5.30e-08/1e-10 grad=1.21e-04/1e-07
+progress scf cycle=5 energy=-107.4001844288 dE=-4.85e-08/1e-10 grad=1.93e-06/1e-07
+progress scf cycle=6 energy=-107.4001844289 dE=-3.10e-11/1e-10 grad=2.48e-07/1e-07
+progress scf cycle=7 energy=-107.4001844289 dE=-3.84e-13/1e-10 grad=7.73e-09/1e-07 converged=yes
+opt_step 2
+energy_step -107.400184428855
+opt_criteria max_gradient 4.3578e-03 rms_gradient 2.3231e-03 max_step 1.1842e-02 rms_step 6.8368e-03 energy_change -1.0038e-04
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0047719037
+2 F 0.0000000000 0.0000000000 1.5687719037
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 0.0036591665
+2 F -0.0000000000 -0.0000000000 -0.0043578088
+end gradient
+progress opt step=2 energy=-107.4001844289 maxgrad=4.36e-03/3e-04 rmsgrad=2.32e-03/1e-04 maxstep=1.18e-02/4e-03 rmsstep=6.84e-03/2e-03 dE=-1.00e-04/5e-06
+progress scf cycle=1 energy=-107.4002268028 grad=7.82e-04/1e-07
+progress scf cycle=2 energy=-107.4002359151 dE=-9.11e-06/1e-10 grad=3.60e-04/1e-07
+progress scf cycle=3 energy=-107.4002361693 dE=-2.54e-07/1e-10 grad=2.17e-04/1e-07
+progress scf cycle=4 energy=-107.4002362387 dE=-6.94e-08/1e-10 grad=1.58e-04/1e-07
+progress scf cycle=5 energy=-107.4002363220 dE=-8.33e-08/1e-10 grad=2.46e-06/1e-07
+progress scf cycle=6 energy=-107.4002363220 dE=-5.31e-11/1e-10 grad=3.26e-07/1e-07
+progress scf cycle=7 energy=-107.4002363220 dE=-3.13e-13/1e-10 grad=1.03e-08/1e-07 converged=yes
+opt_step 3
+energy_step -107.400236322037
+opt_criteria max_gradient 5.2662e-04 rms_gradient 2.1802e-04 max_step 6.8427e-04 rms_step 3.9506e-04 energy_change -5.1893e-05
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0110382692
+2 F 0.0000000000 0.0000000000 1.5750382692
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0000886680
+2 F -0.0000000000 -0.0000000000 -0.0005266210
+end gradient
+progress opt step=3 energy=-107.4002363220 maxgrad=5.27e-04/3e-04 rmsgrad=2.18e-04/1e-04 maxstep=6.84e-04/4e-03 rmsstep=3.95e-04/2e-03 dE=-5.19e-05/5e-06
+progress scf cycle=1 energy=-107.4002366160 grad=4.42e-05/1e-07
+progress scf cycle=2 energy=-107.4002366456 dE=-2.96e-08/1e-10 grad=2.06e-05/1e-07
+progress scf cycle=3 energy=-107.4002366464 dE=-8.59e-10/1e-10 grad=1.18e-05/1e-07
+progress scf cycle=4 energy=-107.4002366466 dE=-1.80e-10/1e-10 grad=9.14e-06/1e-07
+progress scf cycle=5 energy=-107.4002366469 dE=-2.76e-10/1e-10 grad=1.40e-07/1e-07
+progress scf cycle=6 energy=-107.4002366469 dE=-1.99e-13/1e-10 grad=1.91e-08/1e-07 converged=yes
+opt_step 4
+energy_step -107.400236646906
+opt_criteria max_gradient 3.1250e-04 rms_gradient 1.7627e-04 max_step 2.3521e-05 rms_step 1.3580e-05 energy_change -3.2487e-07
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114003702
+2 F 0.0000000000 0.0000000000 1.5754003702
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0002979424
+2 F 0.0000000000 0.0000000000 -0.0003124964
+end gradient
+progress opt step=4 energy=-107.4002366469 maxgrad=3.12e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.35e-05/4e-03 rmsstep=1.36e-05/2e-03 dE=-3.25e-07/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.52e-06/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-3.54e-11/1e-10 grad=7.07e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-9.24e-13/1e-10 grad=3.07e-07/1e-07
+progress scf cycle=4 energy=-107.4002366530 dE=-1.14e-13/1e-10 grad=3.10e-07/1e-07
+progress scf cycle=5 energy=-107.4002366530 dE=-3.13e-13/1e-10 grad=4.80e-09/1e-07 converged=yes
+opt_step 5
+energy_step -107.400236652991
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 7.4804e-08 rms_step 4.3188e-08 energy_change -6.0857e-09
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128171
+2 F 0.0000000000 0.0000000000 1.5754128171
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051129
+2 F -0.0000000000 -0.0000000000 -0.0003051590
+end gradient
+progress opt step=5 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=7.48e-08/4e-03 rmsstep=4.32e-08/2e-03 dE=-6.09e-09/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.05e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=0.00e+00/1e-10 grad=1.59e-08/1e-07 converged=yes
+opt_step 6
+energy_step -107.400236653010
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 1.7676e-08 rms_step 1.0205e-08 energy_change -1.8815e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128567
+2 F 0.0000000000 0.0000000000 1.5754128567
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051313
+2 F 0.0000000000 -0.0000000000 -0.0003051401
+end gradient
+progress opt step=6 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=1.77e-08/4e-03 rmsstep=1.02e-08/2e-03 dE=-1.88e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=3.10e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.14e-13/1e-10 grad=5.76e-08/1e-07 converged=yes
+opt_step 7
+energy_step -107.400236653015
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 5.6181e-08 rms_step 3.2436e-08 energy_change -4.5333e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128661
+2 F 0.0000000000 0.0000000000 1.5754128661
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051216
+2 F 0.0000000000 -0.0000000000 -0.0003051496
+end gradient
+progress opt step=7 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=5.62e-08/4e-03 rmsstep=3.24e-08/2e-03 dE=-4.53e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.11e-07/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=1.42e-14/1e-10 grad=2.07e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-1.42e-13/1e-10 grad=9.46e-10/1e-07 converged=yes
+opt_step 8
+energy_step -107.400236653029
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 3.5683e-08 rms_step 2.0601e-08 energy_change -1.3998e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128958
+2 F 0.0000000000 0.0000000000 1.5754128958
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051598
+2 F 0.0000000000 0.0000000000 -0.0003051110
+end gradient
+progress opt step=8 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.57e-08/4e-03 rmsstep=2.06e-08/2e-03 dE=-1.40e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.40e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=1.14e-13/1e-10 grad=2.59e-09/1e-07 converged=yes
+opt_step 9
+energy_step -107.400236653019
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 4.8611e-08 rms_step 2.8066e-08 energy_change 9.1802e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128769
+2 F 0.0000000000 0.0000000000 1.5754128769
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051496
+2 F 0.0000000000 0.0000000000 -0.0003051215
+end gradient
+progress opt step=9 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.86e-08/4e-03 rmsstep=2.81e-08/2e-03 dE=9.18e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=6.71e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=8.53e-14/1e-10 grad=1.00e-08/1e-07 converged=yes
+opt_step 10
+energy_step -107.400236653007
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 6.8966e-09 rms_step 3.9818e-09 energy_change 1.2136e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128512
+2 F 0.0000000000 0.0000000000 1.5754128512
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051375
+2 F -0.0000000000 -0.0000000000 -0.0003051340
+end gradient
+progress opt step=10 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=6.90e-09/4e-03 rmsstep=3.98e-09/2e-03 dE=1.21e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.94e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-8.53e-14/1e-10 grad=3.63e-08/1e-07 converged=yes
+opt_step 11
+energy_step -107.400236653006
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 3.5946e-08 rms_step 2.0754e-08 energy_change 1.5774e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128476
+2 F 0.0000000000 0.0000000000 1.5754128476
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051449
+2 F 0.0000000000 0.0000000000 -0.0003051267
+end gradient
+progress opt step=11 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.59e-08/4e-03 rmsstep=2.08e-08/2e-03 dE=1.58e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=7.00e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.42e-14/1e-10 grad=1.30e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=9.95e-14/1e-10 grad=5.95e-10/1e-07 converged=yes
+opt_step 12
+energy_step -107.400236652996
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 2.2516e-08 rms_step 1.3000e-08 energy_change 9.2086e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128285
+2 F 0.0000000000 0.0000000000 1.5754128285
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051206
+2 F -0.0000000000 0.0000000000 -0.0003051512
+end gradient
+progress opt step=12 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.25e-08/4e-03 rmsstep=1.30e-08/2e-03 dE=9.21e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.52e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=1.56e-13/1e-10 grad=1.65e-09/1e-07 converged=yes
+opt_step 13
+energy_step -107.400236653002
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 3.0305e-08 rms_step 1.7497e-08 energy_change -5.7980e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128405
+2 F 0.0000000000 0.0000000000 1.5754128405
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051270
+2 F -0.0000000000 -0.0000000000 -0.0003051446
+end gradient
+progress opt step=13 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.03e-08/4e-03 rmsstep=1.75e-08/2e-03 dE=-5.80e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=4.26e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.84e-14/1e-10 grad=6.40e-09/1e-07 converged=yes
+opt_step 14
+energy_step -107.400236653010
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 4.4468e-09 rms_step 2.5673e-09 energy_change -7.5033e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128565
+2 F 0.0000000000 0.0000000000 1.5754128565
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051346
+2 F -0.0000000000 -0.0000000000 -0.0003051368
+end gradient
+progress opt step=14 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.45e-09/4e-03 rmsstep=2.57e-09/2e-03 dE=-7.50e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.24e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-7.11e-14/1e-10 grad=2.32e-08/1e-07 converged=yes
+opt_step 15
+energy_step -107.400236653011
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 2.3025e-08 rms_step 1.3293e-08 energy_change -1.3074e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128588
+2 F 0.0000000000 0.0000000000 1.5754128588
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051299
+2 F -0.0000000000 0.0000000000 -0.0003051415
+end gradient
+progress opt step=15 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.30e-08/4e-03 rmsstep=1.33e-08/2e-03 dE=-1.31e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=4.47e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.42e-13/1e-10 grad=8.32e-08/1e-07 converged=yes
+opt_step 16
+energy_step -107.400236653017
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 8.0686e-08 rms_step 4.6584e-08 energy_change -5.8407e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128710
+2 F 0.0000000000 0.0000000000 1.5754128710
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051152
+2 F 0.0000000000 0.0000000000 -0.0003051559
+end gradient
+progress opt step=16 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=8.07e-08/4e-03 rmsstep=4.66e-08/2e-03 dE=-5.84e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.60e-07/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=2.42e-13/1e-10 grad=2.98e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-3.41e-13/1e-10 grad=1.32e-09/1e-07 converged=yes
+opt_step 17
+energy_step -107.400236653037
+opt_criteria max_gradient 3.0517e-04 rms_gradient 1.7617e-04 max_step 5.1000e-08 rms_step 2.9445e-08 energy_change -2.0194e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114129137
+2 F 0.0000000000 0.0000000000 1.5754129137
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051703
+2 F -0.0000000000 -0.0000000000 -0.0003051004
+end gradient
+progress opt step=17 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=5.10e-08/4e-03 rmsstep=2.94e-08/2e-03 dE=-2.02e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=3.43e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=1.42e-14/1e-10 grad=3.70e-09/1e-07 converged=yes
+opt_step 18
+energy_step -107.400236653024
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 6.9794e-08 rms_step 4.0296e-08 energy_change 1.2918e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128867
+2 F 0.0000000000 0.0000000000 1.5754128867
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051557
+2 F 0.0000000000 0.0000000000 -0.0003051153
+end gradient
+progress opt step=18 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=6.98e-08/4e-03 rmsstep=4.03e-08/2e-03 dE=1.29e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=9.61e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-4.26e-14/1e-10 grad=1.44e-08/1e-07 converged=yes
+opt_step 19
+energy_step -107.400236653007
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 9.8507e-09 rms_step 5.6873e-09 energy_change 1.7380e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128498
+2 F 0.0000000000 0.0000000000 1.5754128498
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051382
+2 F -0.0000000000 -0.0000000000 -0.0003051332
+end gradient
+progress opt step=19 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=9.85e-09/4e-03 rmsstep=5.69e-09/2e-03 dE=1.74e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.78e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=1.42e-14/1e-10 grad=5.21e-08/1e-07 converged=yes
+opt_step 20
+energy_step -107.400236653004
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 5.1480e-08 rms_step 2.9722e-08 energy_change 2.7853e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128446
+2 F 0.0000000000 0.0000000000 1.5754128446
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051489
+2 F -0.0000000000 0.0000000000 -0.0003051227
+end gradient
+progress opt step=20 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=5.15e-08/4e-03 rmsstep=2.97e-08/2e-03 dE=2.79e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.00e-07/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=8.53e-14/1e-10 grad=1.87e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-1.42e-13/1e-10 grad=8.52e-10/1e-07 converged=yes
+opt_step 21
+energy_step -107.400236652991
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 3.2239e-08 rms_step 1.8613e-08 energy_change 1.2861e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128173
+2 F 0.0000000000 0.0000000000 1.5754128173
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051141
+2 F -0.0000000000 0.0000000000 -0.0003051578
+end gradient
+progress opt step=21 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.22e-08/4e-03 rmsstep=1.86e-08/2e-03 dE=1.29e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.18e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=7.11e-14/1e-10 grad=2.37e-09/1e-07 converged=yes
+opt_step 22
+energy_step -107.400236652999
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 4.3403e-08 rms_step 2.5058e-08 energy_change -8.0718e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128344
+2 F 0.0000000000 0.0000000000 1.5754128344
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051233
+2 F 0.0000000000 0.0000000000 -0.0003051484
+end gradient
+progress opt step=22 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.34e-08/4e-03 rmsstep=2.51e-08/2e-03 dE=-8.07e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=6.10e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-4.55e-13/1e-10 grad=9.16e-09/1e-07 converged=yes
+opt_step 23
+energy_step -107.400236653011
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 6.3677e-09 rms_step 3.6764e-09 energy_change -1.1369e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128574
+2 F 0.0000000000 0.0000000000 1.5754128574
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051341
+2 F -0.0000000000 0.0000000000 -0.0003051373
+end gradient
+progress opt step=23 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=6.37e-09/4e-03 rmsstep=3.68e-09/2e-03 dE=-1.14e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.78e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.42e-13/1e-10 grad=3.32e-08/1e-07 converged=yes
+opt_step 24
+energy_step -107.400236653012
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 3.2972e-08 rms_step 1.9036e-08 energy_change -1.3785e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128607
+2 F 0.0000000000 0.0000000000 1.5754128607
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051273
+2 F 0.0000000000 -0.0000000000 -0.0003051440
+end gradient
+progress opt step=24 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.30e-08/4e-03 rmsstep=1.90e-08/2e-03 dE=-1.38e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=6.40e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.84e-14/1e-10 grad=1.19e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=2.84e-14/1e-10 grad=5.45e-10/1e-07 converged=yes
+opt_step 25
+energy_step -107.400236653020
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 2.0691e-08 rms_step 1.1946e-08 energy_change -8.2423e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128782
+2 F 0.0000000000 0.0000000000 1.5754128782
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051496
+2 F 0.0000000000 -0.0000000000 -0.0003051215
+end gradient
+progress opt step=25 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.07e-08/4e-03 rmsstep=1.19e-08/2e-03 dE=-8.24e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.40e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.42e-14/1e-10 grad=1.52e-09/1e-07 converged=yes
+opt_step 26
+energy_step -107.400236653015
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 2.7751e-08 rms_step 1.6022e-08 energy_change 5.2864e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128672
+2 F 0.0000000000 0.0000000000 1.5754128672
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051437
+2 F -0.0000000000 -0.0000000000 -0.0003051276
+end gradient
+progress opt step=26 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.78e-08/4e-03 rmsstep=1.60e-08/2e-03 dE=5.29e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=3.91e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.42e-13/1e-10 grad=5.87e-09/1e-07 converged=yes
+opt_step 27
+energy_step -107.400236653008
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 4.0921e-09 rms_step 2.3626e-09 energy_change 6.7359e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128526
+2 F 0.0000000000 0.0000000000 1.5754128526
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051368
+2 F -0.0000000000 -0.0000000000 -0.0003051347
+end gradient
+progress opt step=27 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.09e-09/4e-03 rmsstep=2.36e-09/2e-03 dE=6.74e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.14e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=0.00e+00/1e-10 grad=2.13e-08/1e-07 converged=yes
+opt_step 28
+energy_step -107.400236653007
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 2.1139e-08 rms_step 1.2204e-08 energy_change 1.2079e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128504
+2 F 0.0000000000 0.0000000000 1.5754128504
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051411
+2 F 0.0000000000 0.0000000000 -0.0003051304
+end gradient
+progress opt step=28 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.11e-08/4e-03 rmsstep=1.22e-08/2e-03 dE=1.21e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=4.10e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=2.70e-13/1e-10 grad=7.63e-08/1e-07 converged=yes
+opt_step 29
+energy_step -107.400236653001
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 7.4082e-08 rms_step 4.2771e-08 energy_change 5.7270e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128392
+2 F 0.0000000000 0.0000000000 1.5754128392
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051545
+2 F 0.0000000000 0.0000000000 -0.0003051172
+end gradient
+progress opt step=29 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=7.41e-08/4e-03 rmsstep=4.28e-08/2e-03 dE=5.73e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.47e-07/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=4.26e-14/1e-10 grad=2.74e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-1.28e-13/1e-10 grad=1.21e-09/1e-07 converged=yes
+opt_step 30
+energy_step -107.400236652983
+opt_criteria max_gradient 3.0517e-04 rms_gradient 1.7617e-04 max_step 4.6835e-08 rms_step 2.7040e-08 energy_change 1.8247e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128000
+2 F 0.0000000000 0.0000000000 1.5754128000
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051040
+2 F -0.0000000000 0.0000000000 -0.0003051682
+end gradient
+progress opt step=30 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.68e-08/4e-03 rmsstep=2.70e-08/2e-03 dE=1.82e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=3.15e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.42e-14/1e-10 grad=3.40e-09/1e-07 converged=yes
+opt_step 31
+energy_step -107.400236652995
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 6.4070e-08 rms_step 3.6991e-08 energy_change -1.1909e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128248
+2 F 0.0000000000 0.0000000000 1.5754128248
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051174
+2 F -0.0000000000 0.0000000000 -0.0003051544
+end gradient
+progress opt step=31 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=6.41e-08/4e-03 rmsstep=3.70e-08/2e-03 dE=-1.19e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=8.83e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=9.95e-14/1e-10 grad=1.32e-08/1e-07 converged=yes
+opt_step 32
+energy_step -107.400236653011
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 9.0487e-09 rms_step 5.2243e-09 energy_change -1.5845e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128587
+2 F 0.0000000000 0.0000000000 1.5754128587
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051334
+2 F 0.0000000000 0.0000000000 -0.0003051380
+end gradient
+progress opt step=32 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=9.05e-09/4e-03 rmsstep=5.22e-09/2e-03 dE=-1.58e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.56e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-4.26e-14/1e-10 grad=4.78e-08/1e-07 converged=yes
+opt_step 33
+energy_step -107.400236653013
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 4.7274e-08 rms_step 2.7293e-08 energy_change -2.4585e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128635
+2 F 0.0000000000 0.0000000000 1.5754128635
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051236
+2 F 0.0000000000 0.0000000000 -0.0003051476
+end gradient
+progress opt step=33 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.73e-08/4e-03 rmsstep=2.73e-08/2e-03 dE=-2.46e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=9.20e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.42e-14/1e-10 grad=1.71e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-1.56e-13/1e-10 grad=7.82e-10/1e-07 converged=yes
+opt_step 34
+energy_step -107.400236653025
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 2.9606e-08 rms_step 1.7093e-08 energy_change -1.1937e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128885
+2 F 0.0000000000 0.0000000000 1.5754128885
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051556
+2 F 0.0000000000 0.0000000000 -0.0003051154
+end gradient
+progress opt step=34 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.96e-08/4e-03 rmsstep=1.71e-08/2e-03 dE=-1.19e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.00e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.84e-14/1e-10 grad=2.17e-09/1e-07 converged=yes
+opt_step 35
+energy_step -107.400236653018
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 3.9855e-08 rms_step 2.3010e-08 energy_change 7.6028e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128728
+2 F 0.0000000000 0.0000000000 1.5754128728
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051471
+2 F -0.0000000000 -0.0000000000 -0.0003051241
+end gradient
+progress opt step=35 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.99e-08/4e-03 rmsstep=2.30e-08/2e-03 dE=7.60e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=5.60e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=2.27e-13/1e-10 grad=8.41e-09/1e-07 converged=yes
+opt_step 36
+energy_step -107.400236653007
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 5.8483e-09 rms_step 3.3765e-09 energy_change 1.0232e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128517
+2 F 0.0000000000 0.0000000000 1.5754128517
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051372
+2 F 0.0000000000 0.0000000000 -0.0003051343
+end gradient
+progress opt step=36 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=5.85e-09/4e-03 rmsstep=3.38e-09/2e-03 dE=1.02e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.63e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.27e-13/1e-10 grad=3.05e-08/1e-07 converged=yes
+opt_step 37
+energy_step -107.400236653006
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 3.0276e-08 rms_step 1.7480e-08 energy_change 1.0800e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128486
+2 F 0.0000000000 0.0000000000 1.5754128486
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051434
+2 F -0.0000000000 -0.0000000000 -0.0003051281
+end gradient
+progress opt step=37 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.03e-08/4e-03 rmsstep=1.75e-08/2e-03 dE=1.08e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=5.87e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=4.26e-14/1e-10 grad=1.09e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-8.53e-14/1e-10 grad=5.01e-10/1e-07 converged=yes
+opt_step 38
+energy_step -107.400236652999
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 1.9000e-08 rms_step 1.0970e-08 energy_change 7.7875e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128326
+2 F 0.0000000000 0.0000000000 1.5754128326
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051230
+2 F -0.0000000000 0.0000000000 -0.0003051487
+end gradient
+progress opt step=38 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=1.90e-08/4e-03 rmsstep=1.10e-08/2e-03 dE=7.79e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.28e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.28e-13/1e-10 grad=1.39e-09/1e-07 converged=yes
+opt_step 39
+energy_step -107.400236653003
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 2.5484e-08 rms_step 1.4713e-08 energy_change -4.9738e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128427
+2 F 0.0000000000 0.0000000000 1.5754128427
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051284
+2 F 0.0000000000 -0.0000000000 -0.0003051432
+end gradient
+progress opt step=39 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.55e-08/4e-03 rmsstep=1.47e-08/2e-03 dE=-4.97e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=3.59e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.56e-13/1e-10 grad=5.39e-09/1e-07 converged=yes
+opt_step 40
+energy_step -107.400236653010
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 3.7560e-09 rms_step 2.1685e-09 energy_change -6.4944e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128562
+2 F 0.0000000000 0.0000000000 1.5754128562
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051348
+2 F -0.0000000000 0.0000000000 -0.0003051366
+end gradient
+progress opt step=40 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.76e-09/4e-03 rmsstep=2.17e-09/2e-03 dE=-6.49e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.05e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=1.42e-13/1e-10 grad=1.96e-08/1e-07 converged=yes
+opt_step 41
+energy_step -107.400236653011
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 1.9412e-08 rms_step 1.1208e-08 energy_change -5.4001e-13
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128582
+2 F 0.0000000000 0.0000000000 1.5754128582
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051308
+2 F -0.0000000000 0.0000000000 -0.0003051406
+end gradient
+progress opt step=41 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=1.94e-08/4e-03 rmsstep=1.12e-08/2e-03 dE=-5.40e-13/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=3.76e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-3.41e-13/1e-10 grad=7.01e-08/1e-07 converged=yes
+opt_step 42
+energy_step -107.400236653016
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 6.8029e-08 rms_step 3.9276e-08 energy_change -5.3859e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128684
+2 F 0.0000000000 0.0000000000 1.5754128684
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051184
+2 F 0.0000000000 0.0000000000 -0.0003051527
+end gradient
+progress opt step=42 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=6.80e-08/4e-03 rmsstep=3.93e-08/2e-03 dE=-5.39e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.35e-07/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-4.26e-14/1e-10 grad=2.51e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-9.95e-14/1e-10 grad=1.11e-09/1e-07 converged=yes
+opt_step 43
+energy_step -107.400236653033
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 4.3007e-08 rms_step 2.4830e-08 energy_change -1.6854e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114129044
+2 F 0.0000000000 0.0000000000 1.5754129044
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051648
+2 F 0.0000000000 -0.0000000000 -0.0003051059
+end gradient
+progress opt step=43 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.30e-08/4e-03 rmsstep=2.48e-08/2e-03 dE=-1.69e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.89e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-9.95e-14/1e-10 grad=3.12e-09/1e-07 converged=yes
+opt_step 44
+energy_step -107.400236653022
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 5.8837e-08 rms_step 3.3969e-08 energy_change 1.0857e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128817
+2 F 0.0000000000 0.0000000000 1.5754128817
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051526
+2 F -0.0000000000 0.0000000000 -0.0003051185
+end gradient
+progress opt step=44 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=5.88e-08/4e-03 rmsstep=3.40e-08/2e-03 dE=1.09e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=8.11e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=1.56e-13/1e-10 grad=1.21e-08/1e-07 converged=yes
+opt_step 45
+energy_step -107.400236653007
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 8.3079e-09 rms_step 4.7966e-09 energy_change 1.4936e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128505
+2 F 0.0000000000 0.0000000000 1.5754128505
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051378
+2 F 0.0000000000 0.0000000000 -0.0003051336
+end gradient
+progress opt step=45 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=8.31e-09/4e-03 rmsstep=4.80e-09/2e-03 dE=1.49e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.35e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.71e-13/1e-10 grad=4.39e-08/1e-07 converged=yes
+opt_step 46
+energy_step -107.400236653005
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 4.3408e-08 rms_step 2.5062e-08 energy_change 2.0037e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128461
+2 F 0.0000000000 0.0000000000 1.5754128461
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051468
+2 F 0.0000000000 -0.0000000000 -0.0003051248
+end gradient
+progress opt step=46 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.34e-08/4e-03 rmsstep=2.51e-08/2e-03 dE=2.00e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=8.45e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=2.84e-14/1e-10 grad=1.57e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=0.00e+00/1e-10 grad=7.18e-10/1e-07 converged=yes
+opt_step 47
+energy_step -107.400236652994
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 2.7185e-08 rms_step 1.5695e-08 energy_change 1.0957e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128232
+2 F 0.0000000000 0.0000000000 1.5754128232
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051175
+2 F 0.0000000000 -0.0000000000 -0.0003051544
+end gradient
+progress opt step=47 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.72e-08/4e-03 rmsstep=1.57e-08/2e-03 dE=1.10e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.84e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=2.42e-13/1e-10 grad=2.00e-09/1e-07 converged=yes
+opt_step 48
+energy_step -107.400236653000
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 3.6597e-08 rms_step 2.1129e-08 energy_change -6.4944e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128375
+2 F 0.0000000000 0.0000000000 1.5754128375
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051252
+2 F -0.0000000000 -0.0000000000 -0.0003051464
+end gradient
+progress opt step=48 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.66e-08/4e-03 rmsstep=2.11e-08/2e-03 dE=-6.49e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=5.15e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.84e-14/1e-10 grad=7.72e-09/1e-07 converged=yes
+opt_step 49
+energy_step -107.400236653010
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 5.3699e-09 rms_step 3.1003e-09 energy_change -9.6207e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128569
+2 F 0.0000000000 0.0000000000 1.5754128569
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051343
+2 F 0.0000000000 -0.0000000000 -0.0003051370
+end gradient
+progress opt step=49 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=5.37e-09/4e-03 rmsstep=3.10e-09/2e-03 dE=-9.62e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.50e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=0.00e+00/1e-10 grad=2.80e-08/1e-07 converged=yes
+opt_step 50
+energy_step -107.400236653011
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 2.7801e-08 rms_step 1.6051e-08 energy_change -1.2221e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128598
+2 F 0.0000000000 0.0000000000 1.5754128598
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051287
+2 F 0.0000000000 -0.0000000000 -0.0003051427
+end gradient
+progress opt step=50 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.78e-08/4e-03 rmsstep=1.61e-08/2e-03 dE=-1.22e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=5.39e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.98e-13/1e-10 grad=1.00e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=2.84e-14/1e-10 grad=4.60e-10/1e-07 converged=yes
+opt_step 51
+energy_step -107.400236653019
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 1.7447e-08 rms_step 1.0073e-08 energy_change -7.2191e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128745
+2 F 0.0000000000 0.0000000000 1.5754128745
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051474
+2 F 0.0000000000 0.0000000000 -0.0003051238
+end gradient
+progress opt step=51 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=1.74e-08/4e-03 rmsstep=1.01e-08/2e-03 dE=-7.22e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.18e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-5.68e-14/1e-10 grad=1.28e-09/1e-07 converged=yes
+opt_step 52
+energy_step -107.400236653014
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 2.3400e-08 rms_step 1.3510e-08 energy_change 4.4338e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128652
+2 F 0.0000000000 0.0000000000 1.5754128652
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051424
+2 F 0.0000000000 -0.0000000000 -0.0003051289
+end gradient
+progress opt step=52 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.34e-08/4e-03 rmsstep=1.35e-08/2e-03 dE=4.43e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=3.30e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=0.00e+00/1e-10 grad=4.95e-09/1e-07 converged=yes
+opt_step 53
+energy_step -107.400236653008
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 3.4501e-09 rms_step 1.9919e-09 energy_change 5.9259e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128529
+2 F 0.0000000000 0.0000000000 1.5754128529
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051366
+2 F 0.0000000000 0.0000000000 -0.0003051349
+end gradient
+progress opt step=53 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.45e-09/4e-03 rmsstep=1.99e-09/2e-03 dE=5.93e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=9.60e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.84e-13/1e-10 grad=1.80e-08/1e-07 converged=yes
+opt_step 54
+energy_step -107.400236653008
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 1.7824e-08 rms_step 1.0291e-08 energy_change 6.8212e-13
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128510
+2 F 0.0000000000 0.0000000000 1.5754128510
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051402
+2 F -0.0000000000 -0.0000000000 -0.0003051312
+end gradient
+progress opt step=54 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=1.78e-08/4e-03 rmsstep=1.03e-08/2e-03 dE=6.82e-13/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=3.46e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.85e-13/1e-10 grad=6.44e-08/1e-07 converged=yes
+opt_step 55
+energy_step -107.400236653003
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 6.2464e-08 rms_step 3.6064e-08 energy_change 4.5901e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128416
+2 F 0.0000000000 0.0000000000 1.5754128416
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051516
+2 F -0.0000000000 0.0000000000 -0.0003051201
+end gradient
+progress opt step=55 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=6.25e-08/4e-03 rmsstep=3.61e-08/2e-03 dE=4.59e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.24e-07/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=0.00e+00/1e-10 grad=2.31e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-1.42e-13/1e-10 grad=1.02e-09/1e-07 converged=yes
+opt_step 56
+energy_step -107.400236652987
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 3.9490e-08 rms_step 2.2800e-08 energy_change 1.5788e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128085
+2 F 0.0000000000 0.0000000000 1.5754128085
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051090
+2 F 0.0000000000 -0.0000000000 -0.0003051631
+end gradient
+progress opt step=56 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.95e-08/4e-03 rmsstep=2.28e-08/2e-03 dE=1.58e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.66e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.28e-13/1e-10 grad=2.87e-09/1e-07 converged=yes
+opt_step 57
+energy_step -107.400236652997
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 5.4024e-08 rms_step 3.1191e-08 energy_change -1.0033e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128294
+2 F 0.0000000000 0.0000000000 1.5754128294
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051202
+2 F 0.0000000000 0.0000000000 -0.0003051515
+end gradient
+progress opt step=57 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=5.40e-08/4e-03 rmsstep=3.12e-08/2e-03 dE=-1.00e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=7.44e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.13e-13/1e-10 grad=1.11e-08/1e-07 converged=yes
+opt_step 58
+energy_step -107.400236653011
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 7.6290e-09 rms_step 4.4046e-09 energy_change -1.3699e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128580
+2 F 0.0000000000 0.0000000000 1.5754128580
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051337
+2 F 0.0000000000 -0.0000000000 -0.0003051376
+end gradient
+progress opt step=58 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=7.63e-09/4e-03 rmsstep=4.40e-09/2e-03 dE=-1.37e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.15e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-5.68e-14/1e-10 grad=4.03e-08/1e-07 converged=yes
+opt_step 59
+energy_step -107.400236653013
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 3.9859e-08 rms_step 2.3013e-08 energy_change -1.7337e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128621
+2 F 0.0000000000 0.0000000000 1.5754128621
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051255
+2 F 0.0000000000 -0.0000000000 -0.0003051458
+end gradient
+progress opt step=59 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.99e-08/4e-03 rmsstep=2.30e-08/2e-03 dE=-1.73e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=7.76e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.84e-14/1e-10 grad=1.45e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-2.84e-14/1e-10 grad=6.59e-10/1e-07 converged=yes
+opt_step 60
+energy_step -107.400236653023
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 2.4962e-08 rms_step 1.4412e-08 energy_change -1.0090e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128832
+2 F 0.0000000000 0.0000000000 1.5754128832
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051525
+2 F -0.0000000000 0.0000000000 -0.0003051186
+end gradient
+progress opt step=60 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.50e-08/4e-03 rmsstep=1.44e-08/2e-03 dE=-1.01e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.69e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=0.00e+00/1e-10 grad=1.83e-09/1e-07 converged=yes
+opt_step 61
+energy_step -107.400236653016
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 3.3605e-08 rms_step 1.9402e-08 energy_change 6.4233e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128699
+2 F 0.0000000000 0.0000000000 1.5754128699
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051453
+2 F 0.0000000000 0.0000000000 -0.0003051259
+end gradient
+progress opt step=61 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.36e-08/4e-03 rmsstep=1.94e-08/2e-03 dE=6.42e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=4.73e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.84e-14/1e-10 grad=7.09e-09/1e-07 converged=yes
+opt_step 62
+energy_step -107.400236653008
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 4.9307e-09 rms_step 2.8468e-09 energy_change 8.4839e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128522
+2 F 0.0000000000 0.0000000000 1.5754128522
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051370
+2 F -0.0000000000 0.0000000000 -0.0003051345
+end gradient
+progress opt step=62 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.93e-09/4e-03 rmsstep=2.85e-09/2e-03 dE=8.48e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.38e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.13e-13/1e-10 grad=2.57e-08/1e-07 converged=yes
+opt_step 63
+energy_step -107.400236653007
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 2.5528e-08 rms_step 1.4739e-08 energy_change 1.0658e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128496
+2 F 0.0000000000 0.0000000000 1.5754128496
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051422
+2 F 0.0000000000 0.0000000000 -0.0003051293
+end gradient
+progress opt step=63 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.55e-08/4e-03 rmsstep=1.47e-08/2e-03 dE=1.07e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=4.95e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.98e-13/1e-10 grad=9.22e-08/1e-07 converged=yes
+opt_step 64
+energy_step -107.400236653000
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 8.9460e-08 rms_step 5.1650e-08 energy_change 6.2386e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128360
+2 F 0.0000000000 0.0000000000 1.5754128360
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051584
+2 F -0.0000000000 0.0000000000 -0.0003051133
+end gradient
+progress opt step=64 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=8.95e-08/4e-03 rmsstep=5.16e-08/2e-03 dE=6.24e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.77e-07/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-5.68e-14/1e-10 grad=3.31e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-3.41e-13/1e-10 grad=1.46e-09/1e-07 converged=yes
+opt_step 65
+energy_step -107.400236652978
+opt_criteria max_gradient 3.0517e-04 rms_gradient 1.7617e-04 max_step 5.6545e-08 rms_step 3.2646e-08 energy_change 2.2666e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114127887
+2 F 0.0000000000 0.0000000000 1.5754127887
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003050974
+2 F 0.0000000000 -0.0000000000 -0.0003051749
+end gradient
+progress opt step=65 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=5.65e-08/4e-03 rmsstep=3.26e-08/2e-03 dE=2.27e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=3.80e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.56e-13/1e-10 grad=4.11e-09/1e-07 converged=yes
+opt_step 66
+energy_step -107.400236652992
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 7.7384e-08 rms_step 4.4678e-08 energy_change -1.4182e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128186
+2 F 0.0000000000 0.0000000000 1.5754128186
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051136
+2 F 0.0000000000 -0.0000000000 -0.0003051583
+end gradient
+progress opt step=66 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=7.74e-08/4e-03 rmsstep=4.47e-08/2e-03 dE=-1.42e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.07e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.56e-13/1e-10 grad=1.59e-08/1e-07 converged=yes
+opt_step 67
+energy_step -107.400236653011
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 1.0922e-08 rms_step 6.3057e-09 energy_change -1.9469e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128596
+2 F 0.0000000000 0.0000000000 1.5754128596
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051329
+2 F 0.0000000000 -0.0000000000 -0.0003051384
+end gradient
+progress opt step=67 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=1.09e-08/4e-03 rmsstep=6.31e-09/2e-03 dE=-1.95e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=3.09e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.84e-13/1e-10 grad=5.77e-08/1e-07 converged=yes
+opt_step 68
+energy_step -107.400236653014
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 5.7081e-08 rms_step 3.2956e-08 energy_change -2.9274e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128654
+2 F 0.0000000000 0.0000000000 1.5754128654
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051211
+2 F 0.0000000000 0.0000000000 -0.0003051501
+end gradient
+progress opt step=68 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=5.71e-08/4e-03 rmsstep=3.30e-08/2e-03 dE=-2.93e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.11e-07/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=8.53e-14/1e-10 grad=2.07e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-8.53e-14/1e-10 grad=9.44e-10/1e-07 converged=yes
+opt_step 69
+energy_step -107.400236653028
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 3.5747e-08 rms_step 2.0638e-08 energy_change -1.4040e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128956
+2 F 0.0000000000 0.0000000000 1.5754128956
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051597
+2 F 0.0000000000 -0.0000000000 -0.0003051112
+end gradient
+progress opt step=69 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.57e-08/4e-03 rmsstep=2.06e-08/2e-03 dE=-1.40e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.42e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=1.14e-13/1e-10 grad=2.62e-09/1e-07 converged=yes
+opt_step 70
+energy_step -107.400236653019
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 4.8124e-08 rms_step 2.7784e-08 energy_change 8.9528e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128766
+2 F 0.0000000000 0.0000000000 1.5754128766
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051495
+2 F 0.0000000000 -0.0000000000 -0.0003051216
+end gradient
+progress opt step=70 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.81e-08/4e-03 rmsstep=2.78e-08/2e-03 dE=8.95e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=6.77e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.42e-14/1e-10 grad=1.02e-08/1e-07 converged=yes
+opt_step 71
+energy_step -107.400236653007
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 7.0607e-09 rms_step 4.0765e-09 energy_change 1.2093e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128512
+2 F 0.0000000000 0.0000000000 1.5754128512
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051375
+2 F 0.0000000000 -0.0000000000 -0.0003051340
+end gradient
+progress opt step=71 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=7.06e-09/4e-03 rmsstep=4.08e-09/2e-03 dE=1.21e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.97e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=1.56e-13/1e-10 grad=3.68e-08/1e-07 converged=yes
+opt_step 72
+energy_step -107.400236653005
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 3.6557e-08 rms_step 2.1106e-08 energy_change 1.9895e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128474
+2 F 0.0000000000 0.0000000000 1.5754128474
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051450
+2 F 0.0000000000 0.0000000000 -0.0003051266
+end gradient
+progress opt step=72 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.66e-08/4e-03 rmsstep=2.11e-08/2e-03 dE=1.99e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=7.09e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=5.68e-14/1e-10 grad=1.32e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-1.28e-13/1e-10 grad=6.05e-10/1e-07 converged=yes
+opt_step 73
+energy_step -107.400236652996
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 2.2942e-08 rms_step 1.3245e-08 energy_change 8.9102e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128281
+2 F 0.0000000000 0.0000000000 1.5754128281
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051204
+2 F 0.0000000000 -0.0000000000 -0.0003051514
+end gradient
+progress opt step=73 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.29e-08/4e-03 rmsstep=1.32e-08/2e-03 dE=8.91e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.55e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.42e-14/1e-10 grad=1.68e-09/1e-07 converged=yes
+opt_step 74
+energy_step -107.400236653002
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 3.0770e-08 rms_step 1.7765e-08 energy_change -5.6843e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128402
+2 F 0.0000000000 0.0000000000 1.5754128402
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051269
+2 F 0.0000000000 -0.0000000000 -0.0003051447
+end gradient
+progress opt step=74 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.08e-08/4e-03 rmsstep=1.78e-08/2e-03 dE=-5.68e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=4.33e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.27e-13/1e-10 grad=6.51e-09/1e-07 converged=yes
+opt_step 75
+energy_step -107.400236653010
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 4.5361e-09 rms_step 2.6189e-09 energy_change -7.9154e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128565
+2 F 0.0000000000 0.0000000000 1.5754128565
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051346
+2 F -0.0000000000 0.0000000000 -0.0003051368
+end gradient
+progress opt step=75 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.54e-09/4e-03 rmsstep=2.62e-09/2e-03 dE=-7.92e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.26e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=4.26e-14/1e-10 grad=2.36e-08/1e-07 converged=yes
+opt_step 76
+energy_step -107.400236653011
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 2.3439e-08 rms_step 1.3532e-08 energy_change -8.1002e-13
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128589
+2 F 0.0000000000 0.0000000000 1.5754128589
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051298
+2 F -0.0000000000 -0.0000000000 -0.0003051416
+end gradient
+progress opt step=76 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.34e-08/4e-03 rmsstep=1.35e-08/2e-03 dE=-8.10e-13/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=4.54e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.28e-13/1e-10 grad=8.46e-08/1e-07 converged=yes
+opt_step 77
+energy_step -107.400236653017
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 8.2142e-08 rms_step 4.7425e-08 energy_change -6.0254e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128713
+2 F 0.0000000000 0.0000000000 1.5754128713
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051149
+2 F -0.0000000000 -0.0000000000 -0.0003051563
+end gradient
+progress opt step=77 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=8.21e-08/4e-03 rmsstep=4.74e-08/2e-03 dE=-6.03e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.63e-07/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=7.11e-14/1e-10 grad=3.03e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-3.98e-13/1e-10 grad=1.34e-09/1e-07 converged=yes
+opt_step 78
+energy_step -107.400236653038
+opt_criteria max_gradient 3.0517e-04 rms_gradient 1.7617e-04 max_step 5.1930e-08 rms_step 2.9982e-08 energy_change -2.0790e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114129148
+2 F 0.0000000000 0.0000000000 1.5754129148
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051709
+2 F 0.0000000000 -0.0000000000 -0.0003050997
+end gradient
+progress opt step=78 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=5.19e-08/4e-03 rmsstep=3.00e-08/2e-03 dE=-2.08e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=3.49e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=1.56e-13/1e-10 grad=3.77e-09/1e-07 converged=yes
+opt_step 79
+energy_step -107.400236653024
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 7.1042e-08 rms_step 4.1016e-08 energy_change 1.3415e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128873
+2 F 0.0000000000 0.0000000000 1.5754128873
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051560
+2 F -0.0000000000 -0.0000000000 -0.0003051149
+end gradient
+progress opt step=79 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=7.10e-08/4e-03 rmsstep=4.10e-08/2e-03 dE=1.34e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=9.79e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=1.42e-13/1e-10 grad=1.46e-08/1e-07 converged=yes
+opt_step 80
+energy_step -107.400236653007
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 1.0032e-08 rms_step 5.7920e-09 energy_change 1.7764e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128497
+2 F 0.0000000000 0.0000000000 1.5754128497
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051383
+2 F 0.0000000000 -0.0000000000 -0.0003051332
+end gradient
+progress opt step=80 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=1.00e-08/4e-03 rmsstep=5.79e-09/2e-03 dE=1.78e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.83e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-3.27e-13/1e-10 grad=5.30e-08/1e-07 converged=yes
+opt_step 81
+energy_step -107.400236653004
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 5.2414e-08 rms_step 3.0261e-08 energy_change 2.1885e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128444
+2 F 0.0000000000 0.0000000000 1.5754128444
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051491
+2 F 0.0000000000 -0.0000000000 -0.0003051225
+end gradient
+progress opt step=81 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=5.24e-08/4e-03 rmsstep=3.03e-08/2e-03 dE=2.19e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.02e-07/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-9.95e-14/1e-10 grad=1.90e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=5.68e-14/1e-10 grad=8.67e-10/1e-07 converged=yes
+opt_step 82
+energy_step -107.400236652991
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 3.2825e-08 rms_step 1.8951e-08 energy_change 1.3500e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128167
+2 F 0.0000000000 0.0000000000 1.5754128167
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051137
+2 F -0.0000000000 -0.0000000000 -0.0003051582
+end gradient
+progress opt step=82 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.28e-08/4e-03 rmsstep=1.90e-08/2e-03 dE=1.35e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.22e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=5.68e-14/1e-10 grad=2.41e-09/1e-07 converged=yes
+opt_step 83
+energy_step -107.400236652999
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 4.4190e-08 rms_step 2.5513e-08 energy_change -8.3702e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128340
+2 F 0.0000000000 0.0000000000 1.5754128340
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051231
+2 F 0.0000000000 0.0000000000 -0.0003051486
+end gradient
+progress opt step=83 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.42e-08/4e-03 rmsstep=2.55e-08/2e-03 dE=-8.37e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=6.21e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=1.42e-14/1e-10 grad=9.33e-09/1e-07 converged=yes
+opt_step 84
+energy_step -107.400236653010
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 6.4845e-09 rms_step 3.7438e-09 energy_change -1.1227e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128574
+2 F 0.0000000000 0.0000000000 1.5754128574
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051341
+2 F -0.0000000000 -0.0000000000 -0.0003051373
+end gradient
+progress opt step=84 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=6.48e-09/4e-03 rmsstep=3.74e-09/2e-03 dE=-1.12e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.81e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.84e-14/1e-10 grad=3.38e-08/1e-07 converged=yes
+opt_step 85
+energy_step -107.400236653012
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 3.3570e-08 rms_step 1.9382e-08 energy_change -1.3785e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128609
+2 F 0.0000000000 0.0000000000 1.5754128609
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051272
+2 F 0.0000000000 -0.0000000000 -0.0003051441
+end gradient
+progress opt step=85 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.36e-08/4e-03 rmsstep=1.94e-08/2e-03 dE=-1.38e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=6.51e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=8.53e-14/1e-10 grad=1.21e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-1.56e-13/1e-10 grad=5.55e-10/1e-07 converged=yes
+opt_step 86
+energy_step -107.400236653020
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 2.1067e-08 rms_step 1.2163e-08 energy_change -8.6402e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128786
+2 F 0.0000000000 0.0000000000 1.5754128786
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051498
+2 F -0.0000000000 0.0000000000 -0.0003051213
+end gradient
+progress opt step=86 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.11e-08/4e-03 rmsstep=1.22e-08/2e-03 dE=-8.64e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.42e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.42e-13/1e-10 grad=1.55e-09/1e-07 converged=yes
+opt_step 87
+energy_step -107.400236653015
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 2.8256e-08 rms_step 1.6314e-08 energy_change 5.1870e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128675
+2 F 0.0000000000 0.0000000000 1.5754128675
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051438
+2 F 0.0000000000 0.0000000000 -0.0003051275
+end gradient
+progress opt step=87 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.83e-08/4e-03 rmsstep=1.63e-08/2e-03 dE=5.19e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=3.98e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=8.53e-14/1e-10 grad=5.98e-09/1e-07 converged=yes
+opt_step 88
+energy_step -107.400236653008
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 4.1654e-09 rms_step 2.4049e-09 energy_change 7.3470e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128525
+2 F 0.0000000000 0.0000000000 1.5754128525
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051368
+2 F 0.0000000000 -0.0000000000 -0.0003051347
+end gradient
+progress opt step=88 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.17e-09/4e-03 rmsstep=2.40e-09/2e-03 dE=7.35e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.16e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=1.14e-13/1e-10 grad=2.17e-08/1e-07 converged=yes
+opt_step 89
+energy_step -107.400236653007
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 2.1523e-08 rms_step 1.2426e-08 energy_change 1.0658e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128503
+2 F 0.0000000000 0.0000000000 1.5754128503
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051412
+2 F 0.0000000000 -0.0000000000 -0.0003051303
+end gradient
+progress opt step=89 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.15e-08/4e-03 rmsstep=1.24e-08/2e-03 dE=1.07e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=4.17e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.71e-13/1e-10 grad=7.77e-08/1e-07 converged=yes
+opt_step 90
+energy_step -107.400236653002
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 7.5425e-08 rms_step 4.3547e-08 energy_change 5.1870e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128389
+2 F 0.0000000000 0.0000000000 1.5754128389
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051549
+2 F 0.0000000000 0.0000000000 -0.0003051168
+end gradient
+progress opt step=90 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=7.54e-08/4e-03 rmsstep=4.35e-08/2e-03 dE=5.19e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.50e-07/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.42e-13/1e-10 grad=2.79e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-2.42e-13/1e-10 grad=1.23e-09/1e-07 converged=yes
+opt_step 91
+energy_step -107.400236652983
+opt_criteria max_gradient 3.0517e-04 rms_gradient 1.7617e-04 max_step 4.7683e-08 rms_step 2.7530e-08 energy_change 1.8687e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114127990
+2 F 0.0000000000 0.0000000000 1.5754127990
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051034
+2 F -0.0000000000 -0.0000000000 -0.0003051688
+end gradient
+progress opt step=91 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.77e-08/4e-03 rmsstep=2.75e-08/2e-03 dE=1.87e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=3.21e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=9.95e-14/1e-10 grad=3.46e-09/1e-07 converged=yes
+opt_step 92
+energy_step -107.400236652994
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 6.5234e-08 rms_step 3.7663e-08 energy_change -1.1426e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128242
+2 F 0.0000000000 0.0000000000 1.5754128242
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 0.0000000000 -0.0003051170
+2 F -0.0000000000 0.0000000000 -0.0003051548
+end gradient
+progress opt step=92 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=6.52e-08/4e-03 rmsstep=3.77e-08/2e-03 dE=-1.14e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=8.99e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=7.11e-14/1e-10 grad=1.34e-08/1e-07 converged=yes
+opt_step 93
+energy_step -107.400236653011
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 9.2118e-09 rms_step 5.3184e-09 energy_change -1.6627e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128588
+2 F 0.0000000000 0.0000000000 1.5754128588
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051333
+2 F -0.0000000000 0.0000000000 -0.0003051380
+end gradient
+progress opt step=93 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=9.21e-09/4e-03 rmsstep=5.32e-09/2e-03 dE=-1.66e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.60e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=8.53e-14/1e-10 grad=4.87e-08/1e-07 converged=yes
+opt_step 94
+energy_step -107.400236653013
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 4.8131e-08 rms_step 2.7788e-08 energy_change -2.2169e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128636
+2 F 0.0000000000 0.0000000000 1.5754128636
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051234
+2 F 0.0000000000 0.0000000000 -0.0003051478
+end gradient
+progress opt step=94 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.81e-08/4e-03 rmsstep=2.78e-08/2e-03 dE=-2.22e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=9.37e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.84e-14/1e-10 grad=1.75e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-1.28e-13/1e-10 grad=7.96e-10/1e-07 converged=yes
+opt_step 95
+energy_step -107.400236653026
+opt_criteria max_gradient 3.0516e-04 rms_gradient 1.7617e-04 max_step 3.0142e-08 rms_step 1.7403e-08 energy_change -1.2292e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128891
+2 F 0.0000000000 0.0000000000 1.5754128891
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051559
+2 F -0.0000000000 0.0000000000 -0.0003051150
+end gradient
+progress opt step=95 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.01e-08/4e-03 rmsstep=1.74e-08/2e-03 dE=-1.23e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=2.04e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-2.56e-13/1e-10 grad=2.21e-09/1e-07 converged=yes
+opt_step 96
+energy_step -107.400236653018
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 4.0578e-08 rms_step 2.3428e-08 energy_change 7.6312e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128732
+2 F 0.0000000000 0.0000000000 1.5754128732
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051473
+2 F 0.0000000000 0.0000000000 -0.0003051239
+end gradient
+progress opt step=96 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=4.06e-08/4e-03 rmsstep=2.34e-08/2e-03 dE=7.63e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=5.71e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-5.68e-14/1e-10 grad=8.56e-09/1e-07 converged=yes
+opt_step 97
+energy_step -107.400236653008
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 5.9541e-09 rms_step 3.4376e-09 energy_change 1.0232e-11
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128517
+2 F 0.0000000000 0.0000000000 1.5754128517
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li 0.0000000000 -0.0000000000 -0.0003051372
+2 F 0.0000000000 -0.0000000000 -0.0003051342
+end gradient
+progress opt step=97 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=5.95e-09/4e-03 rmsstep=3.44e-09/2e-03 dE=1.02e-11/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.66e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=8.53e-14/1e-10 grad=3.11e-08/1e-07 converged=yes
+opt_step 98
+energy_step -107.400236653006
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 3.0825e-08 rms_step 1.7797e-08 energy_change 1.7053e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128485
+2 F 0.0000000000 0.0000000000 1.5754128485
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051435
+2 F 0.0000000000 0.0000000000 -0.0003051280
+end gradient
+progress opt step=98 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=3.08e-08/4e-03 rmsstep=1.78e-08/2e-03 dE=1.71e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=5.98e-08/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-1.14e-13/1e-10 grad=1.11e-07/1e-07
+progress scf cycle=3 energy=-107.4002366530 dE=-4.26e-14/1e-10 grad=5.10e-10/1e-07 converged=yes
+opt_step 99
+energy_step -107.400236652999
+opt_criteria max_gradient 3.0515e-04 rms_gradient 1.7617e-04 max_step 1.9344e-08 rms_step 1.1168e-08 energy_change 7.4039e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128322
+2 F 0.0000000000 0.0000000000 1.5754128322
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 0.0000000000 -0.0003051228
+2 F 0.0000000000 -0.0000000000 -0.0003051490
+end gradient
+progress opt step=99 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=1.93e-08/4e-03 rmsstep=1.12e-08/2e-03 dE=7.40e-12/5e-06
+progress scf cycle=1 energy=-107.4002366530 grad=1.31e-09/1e-07
+progress scf cycle=2 energy=-107.4002366530 dE=-3.41e-13/1e-10 grad=1.42e-09/1e-07 converged=yes
+opt_step 100
+energy_step -107.400236653003
+opt_criteria max_gradient 3.0514e-04 rms_gradient 1.7617e-04 max_step 2.5946e-08 rms_step 1.4980e-08 energy_change -4.9027e-12
+begin geometry  # index symbol x y z (angstrom)
+1 Li 0.0000000000 0.0000000000 -0.0114128425
+2 F 0.0000000000 0.0000000000 1.5754128425
+end geometry
+begin gradient  # index symbol dE/dx dE/dy dE/dz (hartree/bohr)
+1 Li -0.0000000000 -0.0000000000 -0.0003051283
+2 F 0.0000000000 0.0000000000 -0.0003051433
+end gradient
+progress opt step=100 energy=-107.4002366530 maxgrad=3.05e-04/3e-04 rmsgrad=1.76e-04/1e-04 maxstep=2.59e-08/4e-03 rmsstep=1.50e-08/2e-03 dE=-4.90e-12/5e-06
+progress opt step=100 converged=no
+# ecce-qm output, format version 1
+format_version 1
+program ecce-qm 0.1
+title ECCE-QM
+runtype optimize
+method b3lyp
+reference rks
+basis aug-cc-pVDZ
+spherical true
+grid 99 590
+charge 0
+multiplicity 1
+nbf 46
+nalpha 6
+nbeta 6
+converged yes
+iterations 2
+opt_converged no
+opt_evaluations 100
+energy_total -107.400236653003
+energy_nuclear 9.004003924364
+energy_one_electron -168.859750369502
+energy_coulomb 64.828614265067
+energy_exchange_hf -2.384362887556
+energy_xc -9.988741585376
+grid_electrons 11.999894372051
+dipole_au -0.000000000000 0.000000000000 -2.496225652861
+dipole_debye -0.000000000000 0.000000000000 -6.344772748973 6.344772748973
+dipole_origin independent 0.000000000000 0.000000000000 0.000000000000  # angstrom
+wall_seconds 42.71
+begin atoms  # index symbol Z x y z (angstrom) mulliken_net_charge [ghost]
+0 Li 3 0.000000000000 0.000000000000 -0.011412842464 0.639249463871
+1 F 9 0.000000000000 0.000000000000 1.575412842464 -0.639249463871
+end atoms
+begin charges loewdin  # index symbol net_charge
+0 Li 0.667118299400
+1 F -0.667118299400
+end charges
+begin charges chelpg  # index symbol net_charge  (3388 fit points)
+0 Li 0.823832227684
+1 F -0.823832227684
+end charges
+begin charges mk  # index symbol net_charge  (517 fit points)
+0 Li 0.815155177138
+1 F -0.815155177138
+end charges
+begin ao_labels  # index label, order of the MO coefficients
+1 0Li 1s
+2 0Li 2s
+3 0Li 3s
+4 0Li 4s
+5 0Li 1px
+6 0Li 1py
+7 0Li 1pz
+8 0Li 2px
+9 0Li 2py
+10 0Li 2pz
+11 0Li 3px
+12 0Li 3py
+13 0Li 3pz
+14 0Li 1dxy
+15 0Li 1dyz
+16 0Li 1dz2
+17 0Li 1dxz
+18 0Li 1dx2y2
+19 0Li 2dxy
+20 0Li 2dyz
+21 0Li 2dz2
+22 0Li 2dxz
+23 0Li 2dx2y2
+24 1F 1s
+25 1F 2s
+26 1F 3s
+27 1F 4s
+28 1F 1px
+29 1F 1py
+30 1F 1pz
+31 1F 2px
+32 1F 2py
+33 1F 2pz
+34 1F 3px
+35 1F 3py
+36 1F 3pz
+37 1F 1dxy
+38 1F 1dyz
+39 1F 1dz2
+40 1F 1dxz
+41 1F 1dx2y2
+42 1F 2dxy
+43 1F 2dyz
+44 1F 2dz2
+45 1F 2dxz
+46 1F 2dx2y2
+end ao_labels
+begin orbitals restricted  # index energy(hartree) occupation
+1 -24.545870165736 2.000000000000
+2 -2.002275353207 2.000000000000
+3 -0.999655371184 2.000000000000
+4 -0.292518908932 2.000000000000
+5 -0.276538059640 2.000000000000
+6 -0.276538059640 2.000000000000
+7 -0.049814187188 0.000000000000
+8 0.003535966561 0.000000000000
+9 0.003535966561 0.000000000000
+10 0.004741462328 0.000000000000
+11 0.019092427665 0.000000000000
+12 0.025796674401 0.000000000000
+13 0.025796674401 0.000000000000
+14 0.048581719143 0.000000000000
+15 0.117473220401 0.000000000000
+16 0.119571363145 0.000000000000
+17 0.119571363145 0.000000000000
+18 0.149218503633 0.000000000000
+19 0.149229747798 0.000000000000
+20 0.161046105536 0.000000000000
+21 0.179297643725 0.000000000000
+22 0.179297643725 0.000000000000
+23 0.259703964908 0.000000000000
+24 0.311788449695 0.000000000000
+25 0.311788449695 0.000000000000
+26 0.352137214173 0.000000000000
+27 0.472922331930 0.000000000000
+28 0.472934873403 0.000000000000
+29 0.510353020911 0.000000000000
+30 0.510353020911 0.000000000000
+31 0.548900936241 0.000000000000
+32 1.151175100132 0.000000000000
+33 1.263721654579 0.000000000000
+34 1.263722767158 0.000000000000
+35 1.371365925419 0.000000000000
+36 1.371365925419 0.000000000000
+37 1.446420774560 0.000000000000
+38 1.578207984816 0.000000000000
+39 1.578207984816 0.000000000000
+40 1.766291442855 0.000000000000
+41 2.331069269964 0.000000000000
+42 4.567996723222 0.000000000000
+43 4.568108773961 0.000000000000
+44 4.589570584293 0.000000000000
+45 4.649057289853 0.000000000000
+46 4.649057289853 0.000000000000
+end orbitals
+begin mo_coefficients restricted  # one line per MO: index then nbf coefficients
+1 0.0000961322 0.0001550520 0.0010368268 -0.0002640811 0.0000000000 -0.0000000000 -0.0012810177 -0.0000000000 0.0000000000 0.0016341371 0.0000000000 -0.0000000000 -0.0002688302 0.0000000000 0.0000000000 -0.0016728598 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0009896412 0.0000000000 0.0000000000 -1.0024318595 -0.0124855056 0.0144110544 -0.0038074509 -0.0000000000 -0.0000000000 0.0004369024 0.0000000000 -0.0000000000 -0.0006999468 -0.0000000000 0.0000000000 0.0005347658 0.0000000000 -0.0000000000 0.0000334616 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0001134618 0.0000000000 -0.0000000000
+2 -0.9837818228 0.0395770720 -0.0069605109 -0.0055690773 -0.0000000000 0.0000000000 0.0600414874 0.0000000000 -0.0000000000 -0.0370165307 0.0000000000 -0.0000000000 0.0015733938 -0.0000000000 0.0000000000 0.0073338860 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0024806582 -0.0000000000 0.0000000000 0.0008983174 -0.0168704047 0.0008209638 -0.0478686145 0.0000000000 0.0000000000 0.0106687249 -0.0000000000 0.0000000000 0.0045930216 0.0000000000 -0.0000000000 0.0130592676 -0.0000000000 0.0000000000 -0.0009882845 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0026724253 -0.0000000000 -0.0000000000
+3 0.0458523939 -0.1128537661 0.0634750257 0.0004849517 -0.0000000000 -0.0000000000 -0.0963082172 0.0000000000 -0.0000000000 0.0609724164 -0.0000000000 0.0000000000 -0.0026077343 0.0000000000 0.0000000000 -0.0075333382 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0081867892 -0.0000000000 0.0000000000 0.0086386092 -0.9494180441 -0.0144620820 0.0156296355 0.0000000000 0.0000000000 0.0392024284 -0.0000000000 -0.0000000000 0.0126124615 0.0000000000 0.0000000000 -0.0193401297 -0.0000000000 -0.0000000000 -0.0004943242 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0104229266 0.0000000000 0.0000000000
+4 -0.0270558407 0.4340711393 -0.2156563960 -0.0043757740 -0.0000000000 0.0000000000 0.4254786808 0.0000000000 -0.0000000000 -0.2545264922 0.0000000000 0.0000000000 0.0100464519 0.0000000000 0.0000000000 0.0163203105 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0473585554 -0.0000000000 0.0000000000 -0.0061708404 -0.0922439466 0.0233789588 -0.2959623507 0.0000000000 0.0000000000 -0.9231858251 0.0000000000 -0.0000000000 -0.0032501688 0.0000000000 0.0000000000 -0.0553540227 -0.0000000000 0.0000000000 0.0018455203 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0264827126 -0.0000000000 0.0000000000
+5 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.1747161835 0.0784069494 0.0000000000 0.1155927784 -0.0518742852 -0.0000000000 -0.0091514428 0.0041068704 0.0000000000 0.0000000000 0.0126854572 0.0000000000 -0.0282673244 0.0000000000 -0.0000000000 0.0022477762 -0.0000000000 -0.0050087764 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.8366607374 0.3754661693 -0.0000000000 -0.0023273389 0.0010444341 0.0000000000 -0.0896125407 0.0402151982 0.0000000000 0.0000000000 -0.0010309184 -0.0000000000 0.0022972215 0.0000000000 0.0000000000 -0.0073559797 0.0000000000 0.0163915151 -0.0000000000
+6 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0784069494 0.1747161835 0.0000000000 -0.0518742852 -0.1155927784 -0.0000000000 0.0041068704 0.0091514428 0.0000000000 -0.0000000000 0.0282673244 0.0000000000 0.0126854572 -0.0000000000 0.0000000000 0.0050087764 0.0000000000 0.0022477762 0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.3754661693 0.8366607374 0.0000000000 0.0010444341 0.0023273389 0.0000000000 0.0402151982 0.0896125407 0.0000000000 -0.0000000000 -0.0022972215 0.0000000000 -0.0010309184 -0.0000000000 0.0000000000 -0.0163915151 -0.0000000000 -0.0073559797 0.0000000000
+7 0.0637128578 -0.5190535253 -0.1503093343 -0.2070362422 -0.0000000000 0.0000000000 0.6323430725 -0.0000000000 -0.0000000000 -0.1744525562 0.0000000000 -0.0000000000 0.0452307947 0.0000000000 0.0000000000 -0.0017615217 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0535809162 0.0000000000 -0.0000000000 0.0000989737 0.0502642301 0.0324954633 -0.1442353419 0.0000000000 0.0000000000 -0.0546989346 -0.0000000000 -0.0000000000 0.0027938610 0.0000000000 -0.0000000000 0.0100113333 0.0000000000 0.0000000000 0.0006539677 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0025110789 0.0000000000 -0.0000000000
+8 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.3222827751 -0.1234965225 -0.0000000000 -0.0286254946 -0.0109690908 0.0000000000 -0.7516429278 -0.2880243530 0.0000000000 -0.0000000000 -0.0045564114 0.0000000000 -0.0118906418 -0.0000000000 0.0000000000 0.0220470809 -0.0000000000 0.0575351780 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0912194400 0.0349546563 0.0000000000 0.0049951768 0.0019141171 0.0000000000 0.0489609913 0.0187615120 0.0000000000 0.0000000000 0.0004039396 -0.0000000000 0.0010541412 0.0000000000 0.0000000000 -0.0012586189 -0.0000000000 -0.0032845556 -0.0000000000
+9 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.1234965225 -0.3222827751 0.0000000000 0.0109690908 -0.0286254946 -0.0000000000 0.2880243530 -0.7516429278 -0.0000000000 -0.0000000000 -0.0118906418 -0.0000000000 0.0045564114 0.0000000000 0.0000000000 0.0575351780 0.0000000000 -0.0220470809 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0349546563 0.0912194400 -0.0000000000 -0.0019141171 0.0049951768 0.0000000000 -0.0187615120 0.0489609913 -0.0000000000 -0.0000000000 0.0010541412 -0.0000000000 -0.0004039396 0.0000000000 0.0000000000 -0.0032845556 0.0000000000 0.0012586189 0.0000000000
+10 -0.0395758315 0.1499538936 0.6439407191 -0.8370842741 0.0000000000 0.0000000000 -0.1952627823 0.0000000000 0.0000000000 0.0654164116 0.0000000000 0.0000000000 0.8648567059 0.0000000000 0.0000000000 0.0193736712 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0430270223 -0.0000000000 0.0000000000 -0.0008835651 -0.0339459394 -0.0130151502 -0.0292919984 -0.0000000000 -0.0000000000 0.0161466721 -0.0000000000 0.0000000000 0.0054399919 -0.0000000000 -0.0000000000 -0.0023836846 -0.0000000000 -0.0000000000 -0.0000985239 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0021380637 0.0000000000 0.0000000000
+11 -0.0386591159 0.0705828421 0.7834389764 -1.2795269838 -0.0000000000 0.0000000000 -0.3181193985 -0.0000000000 0.0000000000 0.1715032837 0.0000000000 -0.0000000000 -0.5081107019 0.0000000000 -0.0000000000 -0.0220081545 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0811867339 -0.0000000000 -0.0000000000 -0.0011828264 0.0248771666 0.0353287495 -0.0236266730 0.0000000000 0.0000000000 0.0284356837 -0.0000000000 0.0000000000 -0.0090034749 0.0000000000 0.0000000000 0.0002568753 -0.0000000000 0.0000000000 -0.0001284661 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0003484777 -0.0000000000 0.0000000000
+12 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.2045404479 0.5591327290 0.0000000000 -0.2139721509 0.5849152764 -0.0000000000 0.2964120991 -0.8102735062 0.0000000000 -0.0000000000 -0.0013791863 -0.0000000000 0.0005045303 -0.0000000000 0.0000000000 -0.0426757244 -0.0000000000 0.0156115200 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0515504864 -0.1409186516 -0.0000000000 -0.0005378114 0.0014701637 -0.0000000000 0.0548321682 -0.1498894725 0.0000000000 -0.0000000000 -0.0017169392 -0.0000000000 0.0006280861 -0.0000000000 -0.0000000000 0.0028276841 -0.0000000000 -0.0010344159 -0.0000000000
+13 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.5591327290 -0.2045404479 0.0000000000 -0.5849152764 -0.2139721509 0.0000000000 0.8102735062 0.2964120991 0.0000000000 -0.0000000000 0.0005045303 0.0000000000 0.0013791863 0.0000000000 0.0000000000 0.0156115200 -0.0000000000 0.0426757244 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.1409186516 0.0515504864 -0.0000000000 -0.0014701637 -0.0005378114 0.0000000000 0.1498894725 0.0548321682 -0.0000000000 -0.0000000000 0.0006280861 -0.0000000000 0.0017169392 0.0000000000 0.0000000000 -0.0010344159 -0.0000000000 -0.0028276841 -0.0000000000
+14 0.0244330849 -0.1666094933 -0.5416753572 0.2837463915 -0.0000000000 -0.0000000000 -0.0356483748 -0.0000000000 -0.0000000000 -1.2917439231 0.0000000000 0.0000000000 0.7074946479 -0.0000000000 -0.0000000000 -0.0178391445 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0798174823 -0.0000000000 -0.0000000000 0.0065763651 0.1306343492 0.0125965367 0.3521595115 0.0000000000 0.0000000000 -0.0134037634 -0.0000000000 -0.0000000000 -0.0295698129 0.0000000000 0.0000000000 0.1015158544 -0.0000000000 0.0000000000 0.0007306973 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0041358669 0.0000000000 0.0000000000
+15 0.1295150012 1.3817342452 -2.9683894003 0.9646316325 0.0000000000 -0.0000000000 -2.1524641275 -0.0000000000 0.0000000000 1.8977070824 0.0000000000 -0.0000000000 -0.2180933930 -0.0000000000 -0.0000000000 -0.1180580524 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.2703683543 -0.0000000000 -0.0000000000 0.0016066486 0.0614565941 0.0098836932 0.8175891796 -0.0000000000 0.0000000000 -0.0258288258 -0.0000000000 0.0000000000 -0.0619677322 0.0000000000 -0.0000000000 -0.4359979408 -0.0000000000 0.0000000000 -0.0063283938 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0382519622 0.0000000000 0.0000000000
+16 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -1.7321684662 0.6659430140 -0.0000000000 2.1008374767 -0.8076801238 0.0000000000 -0.4005559932 0.1539962600 -0.0000000000 0.0000000000 0.0252646530 -0.0000000000 -0.0657152853 0.0000000000 0.0000000000 -0.1711618263 0.0000000000 0.4452049377 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0981275056 -0.0377257340 -0.0000000000 0.0441864677 -0.0169877642 -0.0000000000 -0.1920948481 0.0738520673 -0.0000000000 0.0000000000 -0.0018675508 -0.0000000000 0.0048576417 0.0000000000 -0.0000000000 0.0017420125 0.0000000000 -0.0045311072 -0.0000000000
+17 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.6659430140 -1.7321684662 -0.0000000000 0.8076801238 2.1008374767 0.0000000000 -0.1539962600 -0.4005559932 -0.0000000000 0.0000000000 -0.0657152853 0.0000000000 -0.0252646530 -0.0000000000 -0.0000000000 0.4452049377 -0.0000000000 0.1711618263 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0377257340 0.0981275056 -0.0000000000 0.0169877642 0.0441864677 -0.0000000000 -0.0738520673 -0.1920948481 -0.0000000000 -0.0000000000 0.0048576417 -0.0000000000 0.0018675508 -0.0000000000 0.0000000000 -0.0045311072 0.0000000000 -0.0017420125 -0.0000000000
+18 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.4461624203 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -1.3707955522 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0022758224 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0088903527 0.0000000000 0.0000000000 -0.0000000000 0.0000000000
+19 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.4460899478 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 1.3707388008 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0022759859 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0088900197
+20 -0.0836280794 -0.8058854019 2.1451687298 -0.5348126630 0.0000000000 -0.0000000000 0.4809783224 -0.0000000000 0.0000000000 0.3970752605 0.0000000000 -0.0000000000 -0.1909054007 -0.0000000000 -0.0000000000 -0.4303844656 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 1.5483829005 -0.0000000000 0.0000000000 -0.0165424088 -0.0655792764 0.2040670413 -1.4666245541 0.0000000000 -0.0000000000 -0.1827572426 0.0000000000 0.0000000000 -0.0691537440 0.0000000000 -0.0000000000 0.0685589876 0.0000000000 0.0000000000 0.0028594129 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0023256431 0.0000000000 -0.0000000000
+21 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.1525376404 1.0923079751 -0.0000000000 0.1028001384 -0.7361423103 0.0000000000 -0.0087148642 0.0624063388 0.0000000000 0.0000000000 -0.6383833020 0.0000000000 0.0891483764 0.0000000000 -0.0000000000 1.6868558463 -0.0000000000 -0.2355645261 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0373959833 -0.2677891874 0.0000000000 0.0015173280 -0.0108654458 0.0000000000 0.0555932717 -0.3980982916 -0.0000000000 -0.0000000000 0.0029070464 -0.0000000000 -0.0004059606 0.0000000000 0.0000000000 -0.0252145733 0.0000000000 0.0035211420 -0.0000000000
+22 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -1.0923079751 -0.1525376404 -0.0000000000 0.7361423103 0.1028001384 0.0000000000 -0.0624063388 -0.0087148642 0.0000000000 0.0000000000 0.0891483764 0.0000000000 0.6383833020 0.0000000000 -0.0000000000 -0.2355645261 -0.0000000000 -1.6868558463 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.2677891874 0.0373959833 0.0000000000 0.0108654458 0.0015173280 -0.0000000000 0.3980982916 0.0555932717 -0.0000000000 0.0000000000 -0.0004059606 -0.0000000000 -0.0029070464 -0.0000000000 -0.0000000000 0.0035211420 0.0000000000 0.0252145733 -0.0000000000
+23 0.2174671426 1.5104418790 -2.1372609849 0.3486951577 0.0000000000 0.0000000000 0.5942594243 0.0000000000 -0.0000000000 -0.9906442426 -0.0000000000 0.0000000000 0.1768111523 0.0000000000 0.0000000000 -0.8412754363 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.7939324212 0.0000000000 -0.0000000000 0.0083745865 -0.2548794684 -0.3754795879 1.1541377311 0.0000000000 -0.0000000000 0.0640197350 0.0000000000 -0.0000000000 -0.1033419246 -0.0000000000 -0.0000000000 0.2515895412 0.0000000000 0.0000000000 0.0003518957 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0031699755 0.0000000000 -0.0000000000
+24 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0295553583 -2.2287542616 0.0000000000 0.0085781385 0.6468729806 -0.0000000000 0.0013675386 0.1031253795 0.0000000000 0.0000000000 -0.1246346281 0.0000000000 -0.0016527713 -0.0000000000 -0.0000000000 -1.2702029655 -0.0000000000 -0.0168440749 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0023686510 -0.1786187476 -0.0000000000 -0.0024009780 -0.1810565039 0.0000000000 0.0344556860 2.5982854412 0.0000000000 0.0000000000 0.0127061096 -0.0000000000 0.0001684949 -0.0000000000 -0.0000000000 -0.0082916895 -0.0000000000 -0.0001099555 0.0000000000
+25 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -2.2287542616 0.0295553583 -0.0000000000 0.6468729806 -0.0085781385 0.0000000000 0.1031253795 -0.0013675386 0.0000000000 0.0000000000 0.0016527713 -0.0000000000 -0.1246346281 0.0000000000 -0.0000000000 0.0168440749 -0.0000000000 -1.2702029655 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.1786187476 0.0023686510 -0.0000000000 -0.1810565039 0.0024009780 -0.0000000000 2.5982854412 -0.0344556860 0.0000000000 0.0000000000 -0.0001684949 -0.0000000000 0.0127061096 0.0000000000 -0.0000000000 0.0001099555 0.0000000000 -0.0082916895 0.0000000000
+26 -0.1913289554 -0.3617458404 1.4740413210 -0.1706553976 -0.0000000000 -0.0000000000 2.3696331702 0.0000000000 0.0000000000 -0.6017234254 0.0000000000 -0.0000000000 -0.0891179042 0.0000000000 -0.0000000000 -0.4045146827 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 1.7095741755 -0.0000000000 -0.0000000000 -0.0039066288 -0.0291795434 0.0778032903 -2.2382233730 -0.0000000000 0.0000000000 0.3399392186 -0.0000000000 0.0000000000 0.3253991062 0.0000000000 0.0000000000 -1.6343230958 0.0000000000 0.0000000000 0.0052864241 0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0703323073 -0.0000000000 -0.0000000000
+27 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -2.0828147528 0.0000000000 0.0000000000 -0.0000000000 0.0000000001 1.6332886406 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0067298452 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0080427297 0.0000000000 -0.0000000000 0.0000000000 0.0000000000
+28 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000001 0.0000000000 0.0000000000 0.0000000000 -2.0828297118 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 1.6333359894 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0067293308 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0080440538
+29 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0012059071 0.1263024662 0.0000000000 -0.0014770777 0.1547039209 -0.0000000000 0.0005072646 -0.0531291097 0.0000000000 -0.0000000000 -2.2482057304 0.0000000000 0.0214653548 -0.0000000000 0.0000000000 1.9219917340 -0.0000000000 -0.0183507380 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0026416310 0.2766751309 0.0000000000 -0.0025541689 0.2675146666 0.0000000000 0.0056512069 -0.5918875275 0.0000000000 0.0000000000 0.0160698696 -0.0000000000 -0.0001534314 0.0000000000 -0.0000000000 -0.0444070740 0.0000000000 0.0004239886 0.0000000000
+30 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.1263024662 0.0012059071 -0.0000000000 0.1547039209 0.0014770777 0.0000000000 -0.0531291097 -0.0005072646 0.0000000000 0.0000000000 -0.0214653548 -0.0000000000 -2.2482057304 -0.0000000000 -0.0000000000 0.0183507380 0.0000000000 1.9219917340 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.2766751309 0.0026416310 -0.0000000000 0.2675146666 0.0025541689 -0.0000000000 -0.5918875275 -0.0056512069 0.0000000000 -0.0000000000 0.0001534314 -0.0000000000 0.0160698696 -0.0000000000 -0.0000000000 -0.0004239886 0.0000000000 -0.0444070740 -0.0000000000
+31 -0.0413354338 0.0496002634 -0.4815816832 0.1002452486 0.0000000000 0.0000000000 0.6714406459 0.0000000000 -0.0000000000 -0.8030664026 -0.0000000000 0.0000000000 0.1237112618 0.0000000000 0.0000000000 2.3316249089 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -1.6498628821 0.0000000000 -0.0000000000 0.0596859206 -0.0557431039 -1.2527117219 1.1917831836 0.0000000000 -0.0000000000 -0.0448637969 0.0000000000 -0.0000000000 0.3021177911 -0.0000000000 -0.0000000000 -0.1975287897 0.0000000000 0.0000000000 -0.0009910026 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0598460505 -0.0000000000 -0.0000000000
+32 1.4092380237 6.5521431973 -4.1154378862 0.1351827618 -0.0000000000 0.0000000000 3.3819637020 0.0000000000 -0.0000000000 -1.9952548240 0.0000000000 0.0000000000 0.0299630514 -0.0000000000 -0.0000000000 1.0367224895 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.3736586132 -0.0000000000 -0.0000000000 -0.0290712614 -0.1705424964 0.0718656279 -3.2865535674 -0.0000000000 0.0000000000 0.4868069960 -0.0000000000 -0.0000000000 -0.3564163933 0.0000000000 -0.0000000000 1.3621216288 0.0000000000 0.0000000000 -0.0236705869 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.7957229855 0.0000000000 -0.0000000000
+33 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.3498736989 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.1419821045 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0202740969 -0.0000000001 -0.0000000000 0.0000000000 0.0000000000 1.0340349812
+34 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.3498701576 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.1419788703 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0202697904 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 1.0340327489 0.0000000000 0.0000000000 0.0000000000 0.0000000001
+35 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 1.0363315081 0.5571050846 0.0000000000 -0.5723523125 -0.3076818383 -0.0000000000 0.0194341231 0.0104472832 0.0000000000 0.0000000000 0.2720535915 0.0000000000 0.5060763518 0.0000000000 -0.0000000000 -0.0198211292 -0.0000000000 -0.0368714292 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.1388456903 -0.0746398613 0.0000000000 0.1430450535 0.0768973306 -0.0000000000 -0.6480681882 -0.3483847398 0.0000000000 0.0000000000 -0.0061039949 0.0000000000 -0.0113547020 -0.0000000000 -0.0000000000 0.5272538214 -0.0000000000 0.9808019403 -0.0000000000
+36 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.5571050846 -1.0363315081 0.0000000000 -0.3076818383 0.5723523125 -0.0000000000 0.0104472832 -0.0194341231 0.0000000000 -0.0000000000 -0.5060763518 0.0000000000 0.2720535915 0.0000000000 0.0000000000 0.0368714292 0.0000000000 -0.0198211292 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0746398613 0.1388456903 0.0000000000 0.0768973306 -0.1430450535 -0.0000000000 -0.3483847398 0.6480681882 0.0000000000 -0.0000000000 0.0113547020 0.0000000000 -0.0061039949 -0.0000000000 0.0000000000 -0.9808019403 -0.0000000000 0.5272538214 -0.0000000000
+37 2.0290538106 7.9800011888 -5.2716632667 0.1976473134 -0.0000000000 0.0000000000 3.4202274907 0.0000000000 -0.0000000000 -2.2028461631 -0.0000000000 0.0000000000 0.0619988374 -0.0000000000 0.0000000000 0.6256289963 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.2688217964 -0.0000000000 -0.0000000000 0.0415447849 0.2295785619 -0.1214462297 -3.6048449947 0.0000000000 -0.0000000000 0.8850323507 -0.0000000000 -0.0000000000 -1.1027955876 0.0000000000 -0.0000000000 2.1683724261 -0.0000000000 -0.0000000000 -0.0057151343 0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.6240078635 -0.0000000000 -0.0000000000
+38 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0412432258 -0.0915495181 0.0000000000 0.1534675266 0.3406590499 -0.0000000000 -0.0334661299 -0.0742863346 0.0000000000 -0.0000000000 -0.7576391538 -0.0000000000 -0.3413178280 -0.0000000000 0.0000000000 0.6871275266 -0.0000000000 0.3095522106 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.5615123258 -1.2464151842 0.0000000000 0.8774612398 1.9477417724 -0.0000000000 -0.3329009960 -0.7389559181 0.0000000000 0.0000000000 0.0049126459 -0.0000000000 0.0022131560 0.0000000000 0.0000000000 -0.1831892883 -0.0000000000 -0.0825271103 -0.0000000000
+39 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0915495181 -0.0412432258 0.0000000000 -0.3406590499 0.1534675266 -0.0000000000 0.0742863346 -0.0334661299 -0.0000000000 0.0000000000 -0.3413178280 -0.0000000000 0.7576391538 -0.0000000000 -0.0000000000 0.3095522106 0.0000000000 -0.6871275266 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 1.2464151842 -0.5615123258 -0.0000000000 -1.9477417724 0.8774612398 0.0000000000 0.7389559181 -0.3329009960 -0.0000000000 0.0000000000 0.0022131560 0.0000000000 -0.0049126459 0.0000000000 -0.0000000000 -0.0825271103 0.0000000000 0.1831892883 -0.0000000000
+40 -3.2495941790 -12.7722052194 7.7505901669 -0.2659787894 0.0000000000 -0.0000000000 -7.5586062976 -0.0000000000 0.0000000000 4.2616471745 0.0000000000 -0.0000000000 -0.0689456800 0.0000000000 -0.0000000000 -1.0862307818 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.3815026139 0.0000000000 0.0000000000 -0.0856545792 -0.3922380002 0.4146987571 7.1943975214 0.0000000000 -0.0000000000 0.9761918620 -0.0000000000 -0.0000000000 -1.9688411897 -0.0000000000 0.0000000000 -1.8076977343 -0.0000000000 -0.0000000000 0.0001053684 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.2690196582 0.0000000000 -0.0000000000
+41 0.4342578033 1.5051377609 -0.5136966091 -0.0610597071 -0.0000000000 -0.0000000000 0.3174563823 0.0000000000 0.0000000000 0.1536294201 -0.0000000000 0.0000000000 -0.0902147875 -0.0000000000 0.0000000000 -0.5465209620 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.4162273349 -0.0000000000 0.0000000000 -0.8157539519 -3.6209971892 4.9218363026 -2.1918275468 -0.0000000000 0.0000000000 -0.0377474603 0.0000000000 -0.0000000000 0.0010997869 0.0000000000 0.0000000000 0.4271506619 0.0000000000 0.0000000000 -0.0249487410 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.1306345727 -0.0000000000 0.0000000000
+42 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.1086498447 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0333785748 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -1.1744202096 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.6113583819 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000
+43 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.0000000000 0.1086492555 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 -0.0333785254 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 1.1744201379 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.6113545936
+44 -0.3257969168 -0.8629739694 0.5559271575 -0.0199934716 -0.0000000000 -0.0000000000 -0.3116280754 0.0000000000 0.0000000000 0.1890469709 -0.0000000000 -0.0000000000 -0.0039134687 -0.0000000000 -0.0000000000 0.1039440606 -0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0866775043 0.0000000000 -0.0000000000 0.0391482908 0.1582982937 -0.2938561611 0.4933401497 -0.0000000000 -0.0000000000 -0.0063779980 0.0000000000 0.0000000000 0.0090759886 0.0000000000 0.0000000000 -0.2420398646 -0.0000000000 0.0000000000 -1.1799691324 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.6429061687 -0.0000000000 -0.0000000000
+45 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 -0.0333507007 -0.4930946604 -0.0000000000 0.0197361863 0.2918022076 0.0000000000 -0.0009461315 -0.0139886830 -0.0000000000 -0.0000000000 -0.2636400202 -0.0000000000 -0.0178314229 0.0000000000 0.0000000000 0.0496580179 0.0000000000 0.0033586445 -0.0000000000 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 -0.0013538455 -0.0200167904 0.0000000000 0.0049020901 0.0724780712 -0.0000000000 0.0169333467 0.2503618421 -0.0000000000 -0.0000000000 1.1898837424 0.0000000000 0.0804783741 0.0000000000 0.0000000000 -0.7057464997 -0.0000000000 -0.0477335128 -0.0000000000
+46 -0.0000000000 -0.0000000000 0.0000000000 -0.0000000000 0.4930946604 -0.0333507007 -0.0000000000 -0.2918022076 0.0197361863 0.0000000000 0.0139886830 -0.0009461315 -0.0000000000 -0.0000000000 -0.0178314229 0.0000000000 0.2636400202 0.0000000000 0.0000000000 0.0033586445 -0.0000000000 -0.0496580179 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 0.0200167904 -0.0013538455 0.0000000000 -0.0724780712 0.0049020901 -0.0000000000 -0.2503618421 0.0169333467 -0.0000000000 -0.0000000000 0.0804783741 -0.0000000000 -1.1898837424 -0.0000000000 0.0000000000 -0.0477335128 0.0000000000 0.7057464997 0.0000000000
+end mo_coefficients
+begin localised_orbitals restricted  # index energy(hartree) occupation label
+1 -1.981870231029 2 core Li1
+2 -24.217883527976 2 core F2
+3 -1.266748607498 2 lone pair F2 (sp0.0)
+4 -0.373817432556 2 lone pair F2 (p)
+5 -0.276538059640 2 lone pair F2 (p)
+6 -0.276538059640 2 lone pair F2 (p)
+end localised_orbitals
+begin localised_mo_coefficients restricted  # one line per localised MO: index then nbf coefficients
+1 -0.9826233183 0.0889478174 -0.0320599366 -0.0059882641 -0.0000000000 0.0000000000 0.1073609611 0.0000000000 -0.0000000000 -0.0655359801 0.0000000000 -0.0000000000 0.0027117545 -0.0000000000 0.0000000000 0.0093667634 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0076098894 -0.0000000000 0.0000000000 0.0015403751 0.0359869708 0.0040079881 -0.0773950387 0.0000000000 0.0000000000 -0.0819355157 -0.0000000000 0.0000000000 0.0034260852 0.0000000000 -0.0000000000 0.0088301105 -0.0000000000 0.0000000000 -0.0007695273 0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0006048892 -0.0000000000 0.0000000000
+2 -0.0035353079 -0.0117121822 0.0061568707 -0.0000762694 0.0000000000 -0.0000000000 -0.0143886944 -0.0000000000 0.0000000000 0.0091186010 0.0000000000 -0.0000000000 -0.0005418274 0.0000000000 0.0000000000 -0.0017623886 -0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0007426879 0.0000000000 0.0000000000 -0.9960349798 0.0916181656 0.0145456342 0.0106964745 -0.0000000000 -0.0000000000 0.0466414976 0.0000000000 0.0000000000 -0.0018316404 -0.0000000000 0.0000000000 0.0055674619 0.0000000000 -0.0000000000 -0.0000160891 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0004694192 0.0000000000 -0.0000000000
+3 -0.0163543980 -0.0956727217 0.0557847384 -0.0000312850 0.0000000000 -0.0000000000 -0.0784172072 0.0000000000 -0.0000000000 0.0502664573 0.0000000000 0.0000000000 -0.0021982078 0.0000000000 0.0000000000 -0.0066761641 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 -0.0063564662 -0.0000000000 0.0000000000 -0.0977067106 -0.9470620511 -0.0120254295 0.0027230264 0.0000000000 0.0000000000 0.0102417616 -0.0000000000 -0.0000000000 0.0126180343 0.0000000000 0.0000000000 -0.0200779149 -0.0000000000 -0.0000000000 -0.0004893837 -0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.0096745513 0.0000000000 0.0000000000
+4 0.0695168632 0.4307179309 -0.2154265539 -0.0038211038 -0.0000000000 0.0000000000 0.4195608810 0.0000000000 -0.0000000000 -0.2509371125 0.0000000000 0.0000000000 0.0098893884 0.0000000000 0.0000000000 0.0156292874 0.0000000000 -0.0000000000 -0.0000000000 -0.0000000000 0.0470969498 -0.0000000000 0.0000000000 -0.0578661368 -0.0610621622 0.0243275483 -0.2898828694 0.0000000000 0.0000000000 -0.9192002823 0.0000000000 -0.0000000000 -0.0041128821 0.0000000000 0.0000000000 -0.0556493373 -0.0000000000 0.0000000000 0.0019483840 -0.0000000000 -0.0000000000 0.0000000000 0.0000000000 0.0268875995 -0.0000000000 0.0000000000
+5 0.0000000000 0.0000000000 -0.0000000000 0.0000000000 -0.1747161835 0.0784069494 0.0000000000 0.1155927784 -0.0518742852 -0.0000000000 -0.0091514428 0.0041068704 0.0000000000 0.0000000000 0.0126854572 0.0000000000 -0.0282673244 0.0000000000 -0.0000000000 0.0022477762 -0.0000000000 -0.0050087764 -0.0000000000 0.0000000000 0.0000000000 -0.0000000000 -0.0000000000 -0.8366607374 0.3754661693 -0.0000000000 -0.0023273389 0.0010444341 0.0000000000 -0.0896125407 0.0402151982 0.0000000000 0.0000000000 -0.0010309184 -0.0000000000 0.0022972215 0.0000000000 0.0000000000 -0.0073559797 0.0000000000 0.0163915151 -0.0000000000
+6 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.0784069494 0.1747161835 0.0000000000 -0.0518742852 -0.1155927784 -0.0000000000 0.0041068704 0.0091514428 0.0000000000 -0.0000000000 0.0282673244 0.0000000000 0.0126854572 -0.0000000000 0.0000000000 0.0050087764 0.0000000000 0.0022477762 0.0000000000 0.0000000000 0.0000000000 0.0000000000 -0.0000000000 0.3754661693 0.8366607374 0.0000000000 0.0010444341 0.0023273389 0.0000000000 0.0402151982 0.0896125407 0.0000000000 -0.0000000000 -0.0022972215 0.0000000000 -0.0010309184 -0.0000000000 0.0000000000 -0.0163915151 -0.0000000000 -0.0073559797 0.0000000000
+end localised_mo_coefficients
+end_of_output
+
+-----ECCE Log Information-----
+Starting Job: Wed Nov 18 10:20:38 PM CET 2026
+Starting Job (UTC): 2026-11-18T21:20:38Z
+Using ecce-qm path: /home/andy/ecce-offload/tmp/teaching-redo/home/.cache/ecce-apps-mgvsmpns/ecce-home/bin/ecce-qm
+ecce-qm exit status = 241
+Final exit status = 241
+Completed Job: Wed Nov 18 10:21:21 PM CET 2026
+Completed Job (UTC): 2026-11-18T21:21:21Z

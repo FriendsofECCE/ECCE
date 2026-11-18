@@ -116,8 +116,9 @@ GENCHEM = {
     "ar-gas-200K": ["dynamics:", "dynamics:TE", "dynamics:MDMSD", "dynamics:MDSPEED"],
 }
 # The ECCE-QM topics: the calculation names are the folder names without
-# "ecceqm-"; atoms, ions and the He2 single point have no vibrations, and
-# the LiF optimisation ran out of steps before its frequencies.
+# "ecceqm-"; atoms, ions and the He2 single point have no vibrations, the LiF
+# optimisation ran out of steps before its frequencies, and the dipole-moment
+# topic holds optimisations without frequencies.
 _GC = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..",
                    "data", "client", "examples", "genchem")
 for _topic in sorted(os.listdir(_GC)):
@@ -129,7 +130,8 @@ for _topic in sorted(os.listdir(_GC)):
         _molecular = _topic in ("molecular-orbitals-of-diatomics",
                                 "polar-bonds-and-dipole-moments", "vsepr",
                                 "lewis-structures-and-resonance")
-        GENCHEM[_name] = (QM_LOC if _molecular and _name not in ("He2", "LiF")
+        GENCHEM[_name] = (["TE"] + QM_LOC[len(VIBS):] if _topic == "polar-bonds-and-dipole-moments"
+                          else QM_LOC if _molecular and _name not in ("He2", "LiF")
                           else SCAN if _topic == "bond-formation"
                           else VIBS + ["MO"] if _topic == "intermolecular-interactions"
                           else ["TE", "MO"])
