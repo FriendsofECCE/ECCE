@@ -46,6 +46,10 @@ if "--shots" in sys.argv:
 if "--tabs-only" in sys.argv:
     sys.argv.remove("--tabs-only")
     os.environ["ECCE_TABS_ONLY"] = "1"
+# --1088-only: only runTabs1088 (as ECCE_1088_ONLY=1).
+if "--1088-only" in sys.argv:
+    sys.argv.remove("--1088-only")
+    os.environ["ECCE_1088_ONLY"] = "1"
 
 
 def check(ok, what, detail=""):
