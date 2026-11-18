@@ -101,6 +101,7 @@ public:
                  bool filterSelf = true);
   void notifyReady();
   void appExec();
+  void restartExecTimerIfWaiting();
   void appInvoke();
   void invokeStatusCheck();
   void disconnect();

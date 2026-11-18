@@ -544,6 +544,7 @@ void WxJMSMessageDispatch::getAppMCB(JMSMessage& startMsg)
     statusMsg->addProperty("status", "ok");
     publish("ecce_invoke_status", *statusMsg);
     delete statusMsg;
+    restartExecTimerIfWaiting();
   }
 }
 
@@ -610,6 +611,7 @@ void WxJMSMessageDispatch::completeStartupProcess(int pid, const string& status)
          break;
       }
    }
+   restartExecTimerIfWaiting();
 }
 
 
@@ -739,6 +741,20 @@ long WxJMSMessageDispatch::startToolWin(const string& app, string& error)
   return (long)pi.dwProcessId;
 }
 #endif
+
+
+// appExec starts one packet per shot; without a new shot a request that
+// arrived meanwhile stays queued forever (#1106).
+void WxJMSMessageDispatch::restartExecTimerIfWaiting()
+{
+  if (!p_toAppExec || p_toAppExec->IsRunning()) return;
+  for (size_t i = 0; i < p_startups.size(); i++) {
+    if (!p_startups[i].execStarted) {
+      p_toAppExec->Start(100, true);
+      return;
+    }
+  }
+}
 
 
 void WxJMSMessageDispatch::appExec()
@@ -882,6 +898,7 @@ void WxJMSMessageDispatch::appExec()
     // only one app exec'd per call
     break;
   }
+  restartExecTimerIfWaiting();
 }
 
 
