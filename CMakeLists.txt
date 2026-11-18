@@ -3717,6 +3717,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_tool_start PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
+  # Separate tool programs (ECCE_ONE_PROCESS=0): a Viewer beside a Builder,
+  # two starts in one batch, Quit (#1106).
+  add_test(NAME apps_separate_viewer
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/separate_viewer_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_separate_viewer PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # Two close requests before the Quit dialog is answered (#291).
   add_test(NAME apps_organizer_close
            COMMAND ${PYTHON3_EXECUTABLE}

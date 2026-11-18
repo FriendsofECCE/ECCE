@@ -56,7 +56,9 @@ def tools(procs):
     return [p for p in procs if p[1] in ("builder", "organizer", "gateway")]
 
 
-def run(display):
+def run(display, batch=False):
+    """batch: both start lines in one write, so the Organizer has the second
+    request queued while the first tool starts (#1106)."""
     data = tempfile.mkdtemp(prefix="ecce-sepviewer-data-")
     work = tempfile.mkdtemp(prefix="ecce-sepviewer-")
     seen = {}
@@ -75,9 +77,14 @@ def run(display):
             time.sleep(wait)
 
         def inspect(_display):
-            append("start Builder " + urlA, 30)
-            seen["builder"] = tools(ours(cmds))
-            append("start CalculationViewer " + urlB, 40)
+            if batch:
+                append("start Builder " + urlA + "\nstart CalculationViewer " +
+                       urlB, 70)
+                seen["builder"] = tools(ours(cmds))
+            else:
+                append("start Builder " + urlA, 30)
+                seen["builder"] = tools(ours(cmds))
+                append("start CalculationViewer " + urlB, 40)
             append("toolstate", 2)
             seen["viewer"] = tools(ours(cmds))
             append("close", 4)
@@ -99,9 +106,16 @@ def run(display):
         print("      toolstate: %s" % pb.answers(log, "toolstate"))
         if os.environ.get("ECCE_SEPVIEWER_LOG"):
             print(log[-12000:])
+        if batch:
+            st = pb.answers(log, "toolstate")
+            check(bool(st) and st[-1].startswith("state=up") and
+                  st[-1].endswith("launches=2"),
+                  "two requests in one batch: both tools came up",
+                  str(st) + log[-3000:])
         b = [p for p in seen.get("builder", []) if p[1] == "builder"]
-        check(len(b) == 1 and not b[0][2], "a Builder program started",
-              str(seen.get("builder")))
+        if not batch:
+            check(len(b) == 1 and not b[0][2], "a Builder program started",
+                  str(seen.get("builder")))
         v = [p for p in seen.get("viewer", []) if p[1] == "builder" and p[2]]
         check(len(v) == 1, "a Viewer program started beside the Builder",
               str(seen.get("viewer")) + log[-3000:])
@@ -119,7 +133,8 @@ def run(display):
 
 def main():
     def checkApp(display, name, results, verbose=False):
-        run(display)
+        run(display, False)
+        run(display, True)
         if failures:
             results.fail("separate-viewer", "; ".join(failures))
     run_tests.checkApp = checkApp
