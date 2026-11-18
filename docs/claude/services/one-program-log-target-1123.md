@@ -2,7 +2,7 @@
 type: pitfall
 title: "One program: the process has one wx log target; a modal wxLogGui box from a tool stops queued events on macOS (#1123)"
 area: services
-paths: ["src/wxgui/jms/ToolLog.C", "include/wxgui/ToolLog.H", "src/apps/organizer/CalcMgrApp.C", "src/apps/builder/Builder.C", "src/wxgui/ewxClasses/ewxLogTextCtrl.C"]
+paths: ["src/tdat/resources/RefMachine.C", "src/comm/commtools/RunMgmt.C", "src/wxgui/jms/ToolLog.C", "include/wxgui/ToolLog.H", "src/apps/organizer/CalcMgrApp.C", "src/apps/builder/Builder.C", "src/wxgui/ewxClasses/ewxLogTextCtrl.C"]
 issues: [1123, 1119, 1065, 1069, 983]
 ---
 - `wxLog::SetActiveTarget` is per process. A separate Builder makes its log
@@ -24,3 +24,9 @@ issues: [1123, 1119, 1065, 1069, 983]
   the dead control.
 - With `ECCE_TEST_ORGANIZER` the Organizer chains `wxLogStderr`, so log
   text reaches the test log; without it a macOS hang shows nothing.
+- What the Builder logged on macOS was "The machine you are running on ...
+  has just been added": uname gives "Name-MacBook-Pro.local", the resolver
+  (and so MyMachines) "name-macbook-pro.local", and the case-sensitive
+  `RefMachine::fullLookup`/`abbrevLookup` never matched, so every Organizer,
+  Builder and Viewer start registered the machine again. Host names are
+  compared without case now.
