@@ -142,6 +142,36 @@ def basisPick(display, project):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def chargeAndSpin(display, project):
+    """Both script interfaces persist an ion and reject invalid fields."""
+    for app, variable in (("calced", "ECCE_CALCED_SCRIPT"),
+                          ("builder", "ECCE_BUILDER_SCRIPT")):
+        calc = makeCalc(project, app + "-anion", SOURCE)
+        steps = ["charge -1", "mult 4", "charge nonsense", "charge 1.5",
+                 "charge 999999999999999999999", "mult nonsense", "mult 0",
+                 "mult -2", "mult 3", "mult 14", "mult 4"]
+        if app == "calced":
+            log = runScript(display, calc, steps + ["button save", "wait 8000"])
+        else:
+            log = sym.scripted(display, app, variable,
+                               ["wait 4000"] + steps + ["save", "wait 3000", "quit"],
+                               "file://" + calc + "/")
+        tail = run_tests._tail(log, 40)
+        for command in ("charge -1", "mult 4"):
+            sym.check(variable + ": " + command + ": ok" in log,
+                      app + ": accepts " + command, tail)
+        for command in steps[2:-1]:
+            sym.check(variable + ": " + command + ": FAIL:" in log,
+                      app + ": rejects " + command, tail)
+        # Reopen to check persistence rather than only the live fields.
+        log = runScript(display, calc, ["button save", "wait 8000"])
+        deck = decks(calc)
+        sym.check(re.search(r"^\s*\*\s+xyz\s+-1\s+4\s*$", deck, re.M | re.I)
+                  is not None,
+                  app + ": reopened calculation generates charge -1, multiplicity 4",
+                  deck[:1000] + "\n" + run_tests._tail(log, 20))
+
+
 def main():
     def checkApp(display, name, results, verbose=False):
         folder = os.path.join(fixture.stateDir(), "solvation-localdata")
@@ -154,6 +184,7 @@ def main():
         try:
             solvation(display, project)
             basisPick(display, project)
+            chargeAndSpin(display, project)
         finally:
             restorePrefs()
             os.environ.pop("ECCE_LOCAL_DATA", None)

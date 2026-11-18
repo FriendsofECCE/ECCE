@@ -27,6 +27,7 @@
 //    residues                    the residue names of the structure, on stderr
 //    menustate NAME              whether Tools > NAME is enabled, on stderr
 //    save                        File > Save
+//    charge INTEGER | mult INTEGER   total charge / spin multiplicity
 //    savemenu                    the File > Save menu event, if enabled
 //    savestate                   dirty flag and Save menu/toolbar enabled state
 //    context URL                 switch to (or back to) calculation URL
@@ -327,6 +328,36 @@ void Builder::runBuilderScript(const std::string& file)
       PBC *pbc = dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
       if (w[0] == "wait" && w.size() == 2) {
         st->notBefore = wxGetLocalTimeMillis() + atoi(w[1].c_str());
+      } else if (w[0] == "charge" || w[0] == "mult") {
+        ICalculation *calc = dynamic_cast<ICalculation*>(p_calculation);
+        int value;
+        if (w.size() != 2 || !fragmentInteger(w[1], value)) {
+          outcome = "FAIL: expected an integer";
+        } else if (!frag || !calc || isReadOnly()) {
+          outcome = "FAIL: no editable calculation";
+        } else {
+          const bool charge = w[0] == "charge";
+          const int oldCharge = frag->charge();
+          if (charge) frag->charge(value);
+          int mult = charge ? (int)calc->spinMultiplicity() : value;
+          const int electrons = frag->numElectrons();
+          const bool allowed = mult > 0 && mult - 1 <= electrons &&
+                               electrons % 2 == (mult - 1) % 2;
+          // CalcEd retains an allowed spin after a charge edit, otherwise
+          // it selects singlet/doublet from the new electron parity.
+          if (charge && !allowed) mult = electrons % 2 ? 2 : 1;
+          if (!charge && !allowed) {
+            outcome = "FAIL: multiplicity incompatible with electron count";
+          } else if (!calc->spinMultiplicity((SpinMult::SpinMultEnum)mult) ||
+                     !calc->openShells(mult - 1)) {
+            frag->charge(oldCharge);
+            outcome = "FAIL: unable to store spin";
+          } else {
+            setDirty(true);
+            updateSave();
+            fprintf(stderr, "BUILDER: charge=%d mult=%d\n", frag->charge(), mult);
+          }
+        }
       } else if (w[0] == "fragments" || w[0] == "fragment" ||
                  w[0] == "counterpoise") {
         std::string error;
