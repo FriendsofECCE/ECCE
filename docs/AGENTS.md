@@ -189,6 +189,13 @@ option and Relaxed Scan action below run calculations and collect energies. See 
 
 ## Isolated GUI tests
 
+Builder hook `key text cut|copy|paste|undo|selectall` fills an editable
+single-line field with `abc`, focuses it, selects its text, and sends the
+frame's shortcut command. It prefers the focused field, then the first
+visible enabled field; if none exists, it opens the Symmetry panel and
+uses its first text field. `key viewer selectall` focuses the 3-D view instead.
+See [Scripting help](../help/src/scripting-and-ai.md#builder-shortcut-checks).
+
 Run GUI checks through `tests/` with an isolated HOME and test data.
 The shared Xvfb harness chooses a free display from `:90` through `:999`,
 checking both sockets and lock files; `ECCE_TEST_XDISPLAYS=a-b` restricts

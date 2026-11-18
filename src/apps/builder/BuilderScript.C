@@ -499,19 +499,35 @@ void Builder::runBuilderScript(const std::string& file)
                      ? ID_ACCEL_COPY : w[2] == "paste" ? ID_ACCEL_PASTE
                      : w[2] == "selectall" ? ID_ACCEL_SELECTALL : ID_ACCEL_UNDO;
         wxTextCtrl *field = 0;
+        auto editableField = [](wxWindow *win) -> wxTextCtrl* {
+          wxTextCtrl *t = dynamic_cast<wxTextCtrl*>(win);
+          return t && t->IsShownOnScreen() && t->IsEnabled() &&
+                 t->IsEditable() && !t->IsMultiLine() ? t : nullptr;
+        };
         std::function<void(wxWindow*)> find = [&](wxWindow *p) {
           for (wxWindow *c : p->GetChildren()) {
             if (field) return;
-            wxTextCtrl *t = dynamic_cast<wxTextCtrl*>(c);
-            if (t && t->IsShownOnScreen() && t->IsEditable() &&
-                !t->IsMultiLine())
+            if (wxTextCtrl *t = editableField(c))
               field = t;
             else
               find(c);
           }
         };
         if (w[1] == "text") {
-          find(this);
+          wxWindow *focused = wxWindow::FindFocus();
+          if (focused && IsDescendant(focused)) field = editableField(focused);
+          if (!field) find(this);
+          if (!field) {
+            // The default layout has no editable text field. The Symmetry
+            // panel provides one without applying an edit to the structure.
+            const int tool = p_toolMenu->FindItem(NAME_TOOL_SYMMETRY);
+            p_toolMenu->Check(tool, true);
+            wxCommandEvent show(wxEVT_MENU, tool);
+            show.SetInt(1);
+            GetEventHandler()->ProcessEvent(show);
+            for (int i = 0; i < 5; i++) wxTheApp->Yield(true);
+            find(p_mgr.GetPane(NAME_TOOL_SYMMETRY).window);
+          }
           if (field) {
             field->SetValue("abc");
             field->SetFocus();
@@ -523,7 +539,7 @@ void Builder::runBuilderScript(const std::string& file)
         for (int i = 0; i < 5; i++) wxTheApp->Yield(true);
         wxWindow *focus = wxWindow::FindFocus();
         wxCommandEvent ev(wxEVT_MENU, id);
-        GetEventHandler()->ProcessEvent(ev);
+        if (w[1] != "text" || field) GetEventHandler()->ProcessEvent(ev);
         outcome = std::string("ok focus=") +
                   (focus ? wxString(focus->GetClassInfo()->GetClassName()) : wxString("none"))
                       .ToStdString();
