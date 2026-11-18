@@ -156,6 +156,21 @@ for f in "$broker_prefix"*; do
   [ -n "$(find "$f" -mmin +1 2>/dev/null)" ] && rm -f "$f"
 done
 
+# Sockets of ECCE's own broker (#1007) that a crash left behind. A socket
+# is stale when nothing accepts a connection on it -- not by its age: a
+# live session's broker may be days old. The state directory holds them, or
+# a private directory under the runtime directory when the path was long.
+EB="$ECCE_HOME/libexec/eccebroker"
+if [ -x "$EB" ]; then
+  for s in "$STATEDIR"/mqtt-*.sock "${XDG_RUNTIME_DIR:-/tmp}"/ecce-"$UID_"-*/mqtt-*.sock; do
+    [ -S "$s" ] && [ -O "$s" ] || continue
+    "$EB" --alive "$s" && continue
+    rm -f "$s"
+    [ "$(dirname "$s")" = "$STATEDIR" ] || rmdir "$(dirname "$s")" 2>/dev/null
+    say "removed stale broker socket $(basename "$s")"
+  done
+fi
+
 # The ssh masters (#487). A directory made since #631 belongs to a state
 # directory (.state names it): closed once no ECCE program of that state
 # directory lives, in any session; a job store keeps its masters. One in the

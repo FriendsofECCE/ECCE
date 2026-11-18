@@ -7,8 +7,9 @@ gateway goes. The broker and the data server stay up; only an explicit Quit and 
 This drives that through the real wrappers on a private Xvfb, closing
 windows the way a window manager does (WM_DELETE_WINDOW):
 
-  organizer   close the Organizer; `ecce` returns, the per-user broker
-              is stopped (mode 1), the data server is still running
+  organizer   close the Organizer; `ecce` returns, the session's own broker
+              (eccebroker, #1007) ends after its 10 s grace, the data
+              server is still running
   builder     open a Builder first; closing the Organizer alone must not
               end the session, closing the Builder afterwards must
   jobstore    a stand-in for a running eccejobstore must not hold the
@@ -28,8 +29,8 @@ windows the way a window manager does (WM_DELETE_WINDOW):
   remote-down `ecce -remote` with nothing listening on the central
               server's ports: one message naming them, a non-zero exit,
               no gateway left to abort
-  displays    one user on two displays: the per-user broker outlives the
-              first session and goes with the last
+  displays    one user on two displays: a broker and socket each, one
+              ending with its session while the other stays
   same-display  two `ecce` on one display are two sessions (#233): each
               ends alone, and neither sweeps the other's files
   two-sessions  two sessions; the second's Quit and Stop Server is not
@@ -177,11 +178,9 @@ else:
                 or "/usr/bin")
 os.environ["ECCE_TEST_HOME"] = install
 os.environ.pop("ECCE_NO_REAP", None)     # the reaper is under test
-# The mode-1 cases check the per-user mosquitto (pid file, one broker per
-# account); a local session runs ECCE's own broker since #1007, so they run
-# the ECCE_BROKER=mosquitto route unless told otherwise.  Modes 2 and 3 are
-# the same either way.
-os.environ.setdefault("ECCE_BROKER", "mosquitto")
+# A local session runs ECCE's own broker, one per session (#1007); the
+# mode-1 cases check that.  Server accounts and modes 2 and 3 keep mosquitto.
+# ECCE_BROKER=mosquitto in the environment runs the old per-user route.
 
 import apps      # noqa: E402  (reads ECCE_TEST_HOME at import)
 import fixture   # noqa: E402
@@ -338,9 +337,57 @@ def statedir():
     return os.path.join(os.environ["ECCE_REALUSERHOME"], ".ECCE")
 
 
-def broker():
-    """Pid of this user's mosquitto, or None."""
+def builtin():
+    """Does a local session of this run use ECCE's own broker (#1007)?"""
+    return (os.environ.get("ECCE_BROKER") != "mosquitto"
+            and not os.path.exists(os.path.join(statedir(),
+                                                "mosquitto.server")))
+
+
+def ownBrokers():
+    """Pids of this state directory's eccebroker processes, by session id."""
+    found = {}
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        try:
+            exe = os.readlink("/proc/%s/exe" % entry)
+            env = environOf(int(entry))
+        except OSError:
+            continue
+        if (os.path.basename(exe) == "eccebroker"
+                and env.get("ECCE_REALUSERHOME") ==
+                os.environ["ECCE_REALUSERHOME"]):
+            found[env.get("ECCE_SESSION_ID")] = int(entry)
+    return found
+
+
+def broker(session=None):
+    """Pid of the broker a local session uses: its own eccebroker, or this
+    user's mosquitto; None if there is none."""
+    if builtin() and session is not None:
+        return ownBrokers().get(session.sid(timeout=0))
     return pidfile(os.path.join(statedir(), "mosquitto.pid"))
+
+
+def brokerSocket(session):
+    """The socket in a session's broker file, or None."""
+    try:
+        with open(sessionkey.brokerFile(statedir(), session.sid(timeout=0))
+                  ) as handle:
+            for line in handle:
+                if line.startswith("socket="):
+                    return line.strip()[len("socket="):]
+    except OSError:
+        pass
+    return None
+
+
+def waitGone(pid, timeout):
+    deadline = time.time() + timeout
+    while alive(pid) and time.time() < deadline:
+        time.sleep(0.3)
+    return not alive(pid)
 
 
 def portOpen(port):
@@ -353,7 +400,15 @@ def brokerPort():
     return int(os.environ["ECCE_BROKER_PORT"])
 
 
-def brokerStopped(checks, amq, why):
+def brokerStopped(checks, amq, why, sock=None):
+    if builtin():
+        #  It ends ECCE_BROKER_LINGER s (10) after its last client left.
+        checks.check(amq is not None and waitGone(amq, 30),
+                     "the session's broker %s ended on its own: %s"
+                     % (amq, why))
+        checks.check(sock is None or not os.path.exists(sock),
+                     "and removed its socket")
+        return
     checks.check(amq is not None and not alive(amq),
                  "the per-user broker %s was stopped: %s" % (amq, why))
     checks.check(broker() is None, "and its pidfile removed")
@@ -650,13 +705,21 @@ def caseOrganizer(checks, display, logdir):
         if not checks.check(frame, "the Organizer opened"):
             return
         gw = gatewayIsTheTree(checks, session)
-        amq = broker()
+        amq = broker(session)
+        sock = brokerSocket(session)
         checks.check(amq and alive(amq), "broker running (%s)" % amq)
+        checks.check(not builtin() or (sock and os.path.basename(sock)
+                                       .startswith("mqtt-")
+                                       and os.path.exists(sock)),
+                     "its socket exists (%s)" % sock)
         t0 = time.time()
         quitVia(display, frame)
         endsCleanly(checks, session, d, gw, t0)
+        if builtin():
+            checks.check(alive(amq), "the broker outlives the gateway by "
+                         "its grace")
         brokerStopped(checks, amq, "the user's last session ended "
-                      "(mode 1, #191)")
+                      "(mode 1, #191)", sock)
         checks.check(portOpen(fixture.dataserverPort()),
                      "data server left running (a plain quit, #97)")
     finally:
@@ -699,6 +762,20 @@ def caseBuilder(checks, display, logdir):
         session.kill()
 
 
+#  What a running job store is to the broker: a connected MQTT 5 client.
+HOLDER = r"""
+import socket, sys, time
+s = socket.socket(socket.AF_UNIX)
+s.connect(sys.argv[1])
+cid = b"standin"
+head = b"\x00\x04MQTT\x05\x02\x00\x00\x00" + len(cid).to_bytes(2, "big") + cid
+s.sendall(b"\x10" + bytes([len(head)]) + head)
+s.recv(64)
+while True:
+    time.sleep(1)
+"""
+
+
 def caseJobstore(checks, display, logdir):
     """A running job monitor must neither hold the session nor die with it.
 
@@ -714,7 +791,7 @@ def caseJobstore(checks, display, logdir):
     os.unlink(fake)
     shutil.copy("/bin/sleep", fake)
     session = Session(display, os.path.join(logdir, "jobstore.log"))
-    job = None
+    job = holder = None
     try:
         frame = session.organizer()
         if not checks.check(frame, "the Organizer opened"):
@@ -733,6 +810,14 @@ def caseJobstore(checks, display, logdir):
                                start_new_session=True)
         time.sleep(1)
         sid = session.sid()
+        amq = broker(session)
+        sock = brokerSocket(session)
+        holder = None
+        if builtin():
+            holder = subprocess.Popen([sys.executable, "-c", HOLDER, sock],
+                                      stdout=subprocess.DEVNULL,
+                                      stderr=subprocess.DEVNULL)
+            time.sleep(1)
         bfile = sessionkey.brokerFile(statedir(), sid)
         afile = sessionkey.authFile(statedir(), sid)
         hadAuth = os.path.exists(afile)
@@ -743,9 +828,13 @@ def caseJobstore(checks, display, logdir):
                      "(%.1fs)" % (time.time() - t0))
         checks.check(not alive(gw), "gateway gone")
         checks.check(job.poll() is None, "the job monitor survived")
-        amq = broker()
+        if builtin():
+            #  Longer than the grace: only the connected client holds it.
+            time.sleep(15)
         checks.check(amq is not None and alive(amq),
-                     "broker kept for the job monitor (reaper's rule)")
+                     "broker kept for the job monitor (%s)"
+                     % ("a client is connected" if builtin()
+                        else "reaper's rule"))
         #  Decision 6 of #233: the job store keeps its session's id, so
         #  its session's broker file and credential stay while it runs.
         run("ecce-gateway-reap", display.env())
@@ -758,6 +847,12 @@ def caseJobstore(checks, display, logdir):
         os.killpg(job.pid, 9)
         job.wait()
         job = None
+        if holder is not None:
+            holder.kill()
+            holder.wait()
+            checks.check(waitGone(amq, 30),
+                         "the last client leaving ends the broker after "
+                         "its grace")
         said = run("ecce-gateway-reap", display.env(),
                    "--if-idle").stdout.decode().strip()
         checks.check(not alive(amq) and not os.path.exists(bfile)
@@ -768,6 +863,9 @@ def caseJobstore(checks, display, logdir):
         if job is not None:
             os.killpg(job.pid, 9)
             job.wait()
+        if holder is not None and holder.poll() is None:
+            holder.kill()
+            holder.wait()
         session.kill()
         os.unlink(fake)
         os.symlink(original, fake)
@@ -786,7 +884,7 @@ def caseStop(checks, display, logdir):
         if not checks.check(frame, "the Organizer opened"):
             return
         gw = gatewayIsTheTree(checks, session)
-        amq = broker()
+        amq = broker(session)
         checks.check(amq and alive(amq), "broker running (%s)" % amq)
         t0 = time.time()
         for script in ("ecce-dataserver-stop", "ecce-gateway-stop"):
@@ -794,9 +892,10 @@ def caseStop(checks, display, logdir):
                            env=session.env(), stdout=session.log,
                            stderr=subprocess.STDOUT, timeout=120)
         endsCleanly(checks, session, d, gw, t0, apps=False)
-        checks.check(amq is not None and not alive(amq),
+        #  Its broker file is gone, which ends an eccebroker within a second.
+        checks.check(amq is not None and waitGone(amq, 10),
                      "the broker %s was stopped, as asked" % amq)
-        checks.check(broker() is None, "and its pidfile removed")
+        checks.check(builtin() or broker() is None, "and its pidfile removed")
         checks.check(not portOpen(fixture.dataserverPort()),
                      "the data server was stopped, as asked")
     finally:
@@ -865,7 +964,7 @@ def caseQuitStop(checks, display, logdir):
         if not checks.check(frame, "the Organizer opened"):
             return
         gw = gatewayIsTheTree(checks, session)
-        amq = broker()
+        amq = broker(session)
         time.sleep(3)
         dialog = None
         deadline = time.time() + 40
@@ -886,13 +985,13 @@ def caseQuitStop(checks, display, logdir):
                                             - watch.exited))
         before = watch.text()
         late = watch.text(after=watch.exited + 0.1)
-        checks.check("stopping mosquitto broker" in before,
+        checks.check("stopping gateway" in before,
                      "the teardown's messages were printed")
         if not checks.check(not late, "nothing printed after `ecce` "
                             "returned: %r" % late):
             for t, data in watch.chunks:
                 say("    %+.2fs %r" % (t - watch.exited, data))
-        checks.check(amq is not None and not alive(amq),
+        checks.check(amq is not None and waitGone(amq, 10),
                      "the broker %s was stopped" % amq)
         checks.check(not portOpen(fixture.dataserverPort()),
                      "the data server was stopped")
@@ -1214,18 +1313,33 @@ def caseDisplays(checks, display, logdir):
                             % other.name):
             return
         gw2 = gatewayIsTheTree(checks, second)
-        amq = broker()
-        checks.check(amq and alive(amq), "one broker for both (%s)" % amq)
+        amq = broker(first)
+        amq2 = broker(second)
+        if builtin():
+            socks = (brokerSocket(first), brokerSocket(second))
+            checks.check(amq and amq2 and amq != amq2 and socks[0]
+                         and socks[1] and socks[0] != socks[1],
+                         "each session has its own broker and socket "
+                         "(%s, %s)" % (amq, amq2))
+        else:
+            socks = (None, None)
+            checks.check(amq and alive(amq), "one broker for both (%s)" % amq)
         t0 = time.time()
         quitVia(display, frame1)
         endsCleanly(checks, first, display.name, gw1 or -1, t0)
-        checks.check(amq is not None and alive(amq),
-                     "the broker survives the first session: the user "
-                     "is still on %s" % other.name)
+        if builtin():
+            brokerStopped(checks, amq, "its session ended", socks[0])
+            checks.check(alive(amq2), "the other session's broker is "
+                         "still up")
+        else:
+            checks.check(amq is not None and alive(amq),
+                         "the broker survives the first session: the user "
+                         "is still on %s" % other.name)
         t0 = time.time()
         quitVia(other, frame2)
         endsCleanly(checks, second, other.name, gw2 or -1, t0)
-        brokerStopped(checks, amq, "the user's last session ended")
+        brokerStopped(checks, amq2 if builtin() else amq,
+                      "the user's last session ended", socks[1])
     finally:
         for session in (first, second):
             if session is not None:
@@ -1260,8 +1374,14 @@ def caseSameDisplay(checks, display, logdir):
                           sessionkey.authFile(statedir(), sid))
             checks.check(os.path.exists(files[sid][0]),
                          "session %s has its own broker file" % sid)
-        amq = broker()
-        checks.check(amq and alive(amq), "one broker for both (%s)" % amq)
+        amq = broker(first)
+        amq2 = broker(second)
+        if builtin():
+            checks.check(amq and amq2 and amq != amq2,
+                         "a broker each (%s, %s)" % (amq, amq2))
+        else:
+            checks.check(amq and alive(amq), "one broker for both (%s)" % amq)
+        sock1 = brokerSocket(first)
         t0 = time.time()
         quitVia(display, frame1)
         endsCleanly(checks, first, display.name, gw1 or -1, t0)
@@ -1277,12 +1397,18 @@ def caseSameDisplay(checks, display, logdir):
                      "files")
         checks.check(not os.path.exists(files[s1][1]),
                      "the first session's credential is gone")
-        checks.check(amq is not None and alive(amq),
-                     "the broker survives the first session")
+        if builtin():
+            brokerStopped(checks, amq, "its session ended", sock1)
+            checks.check(alive(amq2), "the second session's broker is "
+                         "still up")
+        else:
+            checks.check(amq is not None and alive(amq),
+                         "the broker survives the first session")
         t0 = time.time()
         quitVia(display, frame2)
         endsCleanly(checks, second, display.name, gw2 or -1, t0)
-        brokerStopped(checks, amq, "the user's last session ended")
+        brokerStopped(checks, amq2 if builtin() else amq,
+                      "the user's last session ended")
     finally:
         for session in (first, second):
             if session is not None:
@@ -1360,7 +1486,7 @@ def twoSessions(checks, display, logdir, tag, brokerUp, stopSays):
         checks.check(offer == "stop withheld, services in use",
                      "the second Organizer's Quit does not offer Quit and "
                      "Stop Server while the first session runs (%s)" % offer)
-        amq = broker()
+        amq = broker(first)
         mark1 = len(Probe.logText(first))
         #  What the button ran, in CalcMgr::confirmAndQuit's order, in case
         #  it was offered before the first session started.
@@ -1408,7 +1534,8 @@ def twoSessions(checks, display, logdir, tag, brokerUp, stopSays):
 def caseTwoSessionsStop(checks, display, logdir):
     """Mode 1, the per-user broker and data server."""
     twoSessions(checks, display, logdir, "two-sessions",
-                lambda: broker() is not None and alive(broker()),
+                lambda: (bool(ownBrokers()) if builtin()
+                         else broker() is not None and alive(broker())),
                 "broker left running")
 
 
@@ -1493,14 +1620,14 @@ def caseServicesKilled(checks, display, logdir):
             stdin=subprocess.DEVNULL, stdout=open(gdbLog, "w"),
             stderr=subprocess.STDOUT) if org and shutil.which("gdb") else None
         time.sleep(3)
-        amq = broker()
+        amq = broker(session)
         run("ecce-dataserver-stop", display.env())
         if amq:
             os.kill(amq, 9)
         #  What the 9.0.0-alpha.6-rc2 reaper's stop removed with it.
         for name in os.listdir(statedir()):
-            if name.startswith("broker_") or name in ("mosquitto.sock",
-                                                      "mosquitto.pid"):
+            if name.startswith(("broker_", "mqtt-")) or name in (
+                    "mosquitto.sock", "mosquitto.pid"):
                 os.unlink(os.path.join(statedir(), name))
         deadline = time.time() + 30
         while portOpen(fixture.dataserverPort()) and time.time() < deadline:
@@ -1936,8 +2063,9 @@ def caseBug(checks, display, logdir):
         #  ecce-diagnose runs after the session ends and takes ~30s.
         checks.check(session.ended(180), "`ecce --bug` returned")
         found = sorted(os.listdir(folder))
-        for want in ("session.log", "bug-mode.txt", "mosquitto.log",
-                     "error_log", "services.txt"):
+        for want in ("session.log", "bug-mode.txt", "error_log",
+                     "services.txt") + (() if builtin() else
+                                        ("mosquitto.log",)):
             checks.check(want in found, "the folder holds %s" % want)
         checks.check(any(f.startswith("ecce-diagnostics-") for f in found),
                      "the folder holds the ecce-diagnose output")
@@ -3132,9 +3260,12 @@ def main():
     finally:
         apps.stopServices(display)
         display.__exit__(None, None, None)
-    checks.check(broker() is None and not portOpen(
+    deadline = time.time() + 30
+    while ownBrokers() and time.time() < deadline:
+        time.sleep(0.5)
+    checks.check(broker() is None and not ownBrokers() and not portOpen(
                      int(os.environ["ECCE_BROKER_PORT"])),
-                 "the run's broker is stopped at the end")
+                 "the run's brokers are stopped at the end")
     say("%d failure(s); logs in %s" % (len(checks.failed), logdir))
     return 1 if checks.failed else 0
 

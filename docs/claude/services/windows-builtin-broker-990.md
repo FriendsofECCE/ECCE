@@ -45,12 +45,20 @@ sockets, in ecceutil, wx-free) runs in the Organizer.
   `-remote` and `siteconfig/SharedBroker` are decided before the mode-1
   branch and never reach it. `ECCE_BROKER=mosquitto`, or no
   `libexec/eccebroker` in the install, keeps the old per-user route.
-- **Tests.** `tests/apps/session_end.py` runs its mode-1 cases with
-  `ECCE_BROKER=mosquitto` by default: they check the per-user mosquitto
-  (pid file, one broker shared by an account's sessions), which the
-  built-in broker is not. The launch harnesses link `eccebroker` into
+- **Tests.** `tests/apps/session_end.py` runs its mode-1 cases against the
+  built-in broker, one per session: it ends 10 s after its last client, a
+  connected client (a stand-in job store holding an MQTT connection; a
+  `sleep` is not a client) keeps it, and two sessions have two brokers and
+  sockets. `ECCE_BROKER=mosquitto` runs the per-user route instead; a
+  server marker forces it. The launch harnesses link `eccebroker` into
   their tree's `libexec` and set `ECCE_BROKER_LINGER=900`, since no window
   holds the broker open between their jobs.
+- **Stale sockets.** A crashed broker leaves `mqtt-*.sock` in `~/.ECCE` (or
+  in `$XDG_RUNTIME_DIR/ecce-<uid>-*/`). The reap sweep (every
+  `ecce-gateway-start`) removes one that `eccebroker --alive SOCK` cannot
+  connect to; never by age, since a live session's broker may be days old.
+  Test: `ctest -R session-stale-broker-socket`. A probe is one connection,
+  which restarts a client-less broker's 60 s first-client wait.
 - **Escape hatch.** `ECCE_BROKER=mosquitto` in the environment of `ecce.cmd`
   runs the old path (`ecce-broker-win` + a mosquitto installed on the machine
   and found by `ecce-find-mosquitto`; mosquitto.exe is no longer bundled).

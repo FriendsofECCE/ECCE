@@ -9,14 +9,20 @@
 //                                     the background once the broker file is
 //                                     written and ends grace seconds (default
 //                                     10) after its last client left
+//   eccebroker --alive SOCKET         (Linux, macOS) exit 0 if something accepts
+//                                     a connection on the Unix socket; the reap
+//                                     sweep's test for a stale mqtt-*.sock
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <string>
 
 #ifndef _WIN32
 #include <fcntl.h>
 #include <signal.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 #include <unistd.h>
 #endif
 
@@ -65,12 +71,27 @@ static int serve(int grace)
   MqttBroker::serveForSession(grace, 60);
   return 0;
 }
+
+static int alive(const char* path)
+{
+  sockaddr_un a;
+  memset(&a, 0, sizeof a);
+  if (strlen(path) >= sizeof a.sun_path) return 1;
+  a.sun_family = AF_UNIX;
+  strcpy(a.sun_path, path);
+  int s = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (s < 0) return 1;
+  int ok = connect(s, (sockaddr*)&a, sizeof a) == 0;
+  close(s);
+  return ok ? 0 : 1;
+}
 #endif
 
 int main(int argc, char** argv)
 {
   std::string a = argc > 1 ? argv[1] : "";
 #ifndef _WIN32
+  if (a == "--alive" && argc > 2) return alive(argv[2]);
   if (a == "--serve") return serve(argc > 2 ? atoi(argv[2]) : 10);
 #endif
   MqttBroker b;
