@@ -27,7 +27,7 @@ SKIP = 77
 # set folder -> (project it is imported into, number of calculations)
 SETS = {"getting-started": ("Examples/Getting_Started", 6),
         "computational": ("Examples/Computational", 4),
-        "organic": ("Examples/Organic_Chemistry", 21),
+        "organic": ("Examples/Organic_Chemistry", 35),
         "spectroscopy": ("Examples/Spectroscopy", 19),
         "genchem": ("Examples/General_Chemistry", 127),
         "workflows": ("Examples/Workflows", 9),
@@ -41,8 +41,9 @@ VOLATILE = {"owner", "creationdate", "createdWith", "currentVersion",
             "launch_profile", "launch_allocleft", "submitdate", "version",
             "taskIndex"}
 # The progress record carries the clock of the run it came from.
-# seq counts the monitor's messages, which depends on timing, not content.
-CLOCK = re.compile(r"(seq|sent|at)=[0-9.]+")
+# seq counts the monitor's messages, which depends on timing, not content;
+# eta is an IRC's or scan's time-to-go estimate, from the parse's own clock.
+CLOCK = re.compile(r"(seq|sent|at|eta)=[0-9.]+")
 IGNORED_FILES = re.compile(r"(^|/)(Thumbnail[^/]*|[^/]*\.lock)$")
 DATE = re.compile(r"\b(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d\d \w{3} \d{4} "
                   r"\d\d:\d\d:\d\d GMT")

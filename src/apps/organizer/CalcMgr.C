@@ -7599,7 +7599,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "47";
+const char *const kExampleSetVersion = "48";
 
 string treeName(string s)
 {
@@ -8355,6 +8355,92 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ORCA, B3LYP-D3BJ/ma-def2-SVP. Optimisation and frequencies. This calcu"
      "lation shows the product of the SN2 reaction, with an electronic energ"
      "y of -499.863026 Eh."},
+    // Substitution vs elimination (#1098): F- + CH3CH2Cl, one reactant complex
+    {"f_etcl_complex",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVPD, charge -1, optimisation, orbitals loc"
+     "alised. This calculation shows the F-...CH3CH2Cl complex both reaction"
+     "s start from, with F- hydrogen-bonded to a methyl hydrogen anti to the"
+     " chlorine (F...H 1.659 Å, that C-H stretched to 1.144 Å against 1.101 "
+     "Å), at -638.911671 Eh, the zero of energy for the SN2 and E2 calculati"
+     "ons of this topic."},
+    {"f_etcl_sn2_ts",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVPD, charge -1, transition-state optimisat"
+     "ion and frequencies, orbitals localised. This calculation shows the SN"
+     "2 transition state, with one imaginary mode at -357.30 cm-1, F-C and C"
+     "-Cl distances of 2.168 and 2.189 Å, an F-C-Cl angle of 165.8 degrees, "
+     "and an electronic energy of -638.906897 Eh, 12.5 kJ/mol above the reac"
+     "tant complex."},
+    {"f_etcl_sn2_irc",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVPD, charge -1, intrinsic reaction coordin"
+     "ate from the SN2 transition state, 68 points. This calculation shows t"
+     "he path from an F-...CH3CH2Cl complex (C-F 2.722 Å, C-Cl 1.891 Å, -638"
+     ".911380 Eh) through the transition state to fluoroethane with the chlo"
+     "ride leaving (C-F 1.433 Å, -638.950177 Eh)."},
+    {"f_etcl_sn2_product",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVPD, charge -1, optimisation, orbitals loc"
+     "alised. This calculation shows the SN2 product complex CH3CH2F...Cl- ("
+     "C-F 1.428 Å), at -638.955415 Eh, 114.8 kJ/mol below the reactant compl"
+     "ex."},
+    {"f_etcl_e2_ts",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVPD, charge -1, transition-state optimisat"
+     "ion and frequencies, orbitals localised. This calculation shows the E2"
+     " transition state, with one imaginary mode at -586.84 cm-1, the transf"
+     "erring hydrogen anti-periplanar to the chlorine (H-C-C-Cl 180.0 degree"
+     "s; C-H 1.303 Å, H-F 1.275 Å, C-Cl 2.113 Å, C-C 1.437 Å), and an electr"
+     "onic energy of -638.908578 Eh, 8.1 kJ/mol above the reactant complex."},
+    {"f_etcl_e2_irc",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVPD, charge -1, intrinsic reaction coordin"
+     "ate from the E2 transition state, 65 points. This calculation shows th"
+     "e path from the reactant complex (C-H 1.147 Å, F...H 1.643 Å, -638.911"
+     "651 Eh) through the transition state to ethene, HF and Cl- (C-C 1.345 "
+     "Å, H-F 0.958 Å, -638.931285 Eh)."},
+    {"f_etcl_e2_product",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVPD, charge -1, optimisation, orbitals loc"
+     "alised. This calculation shows the E2 products ethene, HF and Cl- toge"
+     "ther (C-C 1.343 Å, H-F 0.952 Å), at -638.932459 Eh, 54.6 kJ/mol below "
+     "the reactant complex."},
+    // Keto-enol tautomerism (#1098)
+    {"acetone_keto",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVP, optimisation, orbitals localised. This"
+     " calculation shows acetone, the keto form (C=O 1.210 Å, C-C 1.519 Å), "
+     "at -192.905528 Eh, the zero of energy for the acetone calculations of "
+     "this topic."},
+    {"propen_2_ol",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVP, optimisation, orbitals localised. This"
+     " calculation shows propen-2-ol, the enol form of acetone (C=C 1.342 Å,"
+     " C-O 1.362 Å, O-H 0.968 Å), at -192.882027 Eh, 61.7 kJ/mol above acet"
+     "one."},
+    {"keto_enol_ts",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVP, transition-state optimisation and freq"
+     "uencies, orbitals localised. This calculation shows the direct 1,3-hyd"
+     "rogen shift from acetone to propen-2-ol without water, with one imagin"
+     "ary mode at -2115.91 cm-1, the hydrogen bridging carbon and oxygen acr"
+     "oss a four-membered ring (C-H 1.506 Å, O-H 1.281 Å; among the localise"
+     "d orbitals a delocalised C2-H3-C1 bond), and an electronic energy of -"
+     "192.799160 Eh, 279.3 kJ/mol above acetone."},
+    {"keto_enol_water",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVP, optimisation and frequencies. This cal"
+     "culation shows the water molecule that relays the proton in the water"
+     "-assisted transition state, at -76.321749 Eh; acetone plus this water "
+     "is the reference energy for that transition state."},
+    {"keto_enol_ts_water",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVP, transition-state optimisation and freq"
+     "uencies, orbitals localised. This calculation shows the keto-enol tran"
+     "sition state with one water molecule as a proton relay, with one imagi"
+     "nary mode at -1763.05 cm-1, a six-membered ring in which one proton mo"
+     "ves from carbon to water (C-H 1.471 Å, H-O 1.209 Å) while another move"
+     "s from water to the carbonyl oxygen (O-H 1.178 Å, H-O 1.265 Å), and a"
+     "n electronic energy of -269.187898 Eh, 103.4 kJ/mol above acetone plus"
+     " water."},
+    {"acac_keto",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVP, optimisation, orbitals localised. This"
+     " calculation shows acetylacetone in its diketo form, with two C=O bond"
+     "s of 1.210 Å on either side of a CH2 group, at -345.361645 Eh."},
+    {"acac_enol",
+     "ECCE-QM, B3LYP-D3(BJ)/def2-SVP, optimisation, orbitals localised. This"
+     " calculation shows the enol form of acetylacetone, held by an intramol"
+     "ecular O-H...O hydrogen bond (O-H 1.022 Å, H...O 1.548 Å, O...O 2.493 "
+     "Å), at -345.370824 Eh, 24.1 kJ/mol below the diketo form."},
     {"sulfate",
      "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and "
      "Raman. This calculation shows the S–O stretches of the free "

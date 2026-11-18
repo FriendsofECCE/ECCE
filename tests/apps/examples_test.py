@@ -78,6 +78,21 @@ ORGANIC = {
     "sn2_ts": VIBS, "sn2_irc": ["TE", "IRCCOORD", "IRCENERGY"],
     "product_complex": VIBS, "bromide": ["TE"], "methyl_chloride": VIBS,
 }
+# #1098, ECCE-QM: substitution vs elimination and keto-enol tautomerism.
+# Minima are optimisations only; transition states carry their frequencies.
+QM_MIN = ["TE", "GEOMTRACE", "MO", "LOCMO", "LOCMOLABEL"]
+QM_TS = VIBS + ["GEOMTRACE", "MO", "LOCMO", "LOCMOLABEL"]
+# The IRCs ran with point_orbitals no, which keeps the example set small.
+QM_IRC = ["TE", "IRCCOORD", "IRCENERGY", "IRCGEOM"]
+NOT_HELD = {"f_etcl_sn2_irc": ["PTORB", "PTMO"], "f_etcl_e2_irc": ["PTORB", "PTMO"]}
+ORGANIC.update({
+    "f_etcl_complex": QM_MIN, "f_etcl_sn2_product": QM_MIN,
+    "f_etcl_e2_product": QM_MIN, "f_etcl_sn2_ts": QM_TS, "f_etcl_e2_ts": QM_TS,
+    "f_etcl_sn2_irc": QM_IRC, "f_etcl_e2_irc": QM_IRC,
+    "acetone_keto": QM_MIN, "propen_2_ol": QM_MIN, "acac_keto": QM_MIN,
+    "acac_enol": QM_MIN, "keto_enol_ts": QM_TS, "keto_enol_ts_water": QM_TS,
+    "keto_enol_water": QM_TS,
+})
 SPECTROSCOPY = {c: ORCA_RAMAN for c in (
     "formaldehyde", "acetaldehyde", "acetone", "acetic_acid", "acetate_anion",
     "methyl_acetate", "ethyl_acetate", "methyl_propionate",
@@ -399,6 +414,9 @@ def run(display, data, work):
             missing = [n for n in names if n not in got.get(calc, ())]
             if missing:
                 problems.append("%s/%s lacks %s" % (project, calc, missing))
+            extra = [n for n in NOT_HELD.get(calc, ()) if n in got.get(calc, ())]
+            if extra:
+                problems.append("%s/%s holds %s" % (project, calc, extra))
             meta = os.path.join(calcPath(os.path.join(root, project), calc),
                                 ".ecce-meta")
             text = open(meta, errors="replace").read() if os.path.exists(meta) else ""

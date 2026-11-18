@@ -3,3 +3,5 @@ Single, double and triple C-C bonds, benzene pi orbitals, and the transition sta
 bonding-in-hydrocarbons|Bonding in hydrocarbons
 conformations|Conformations
 reactions|Reactions
+substitution-vs-elimination|Substitution vs elimination
+keto-enol-tautomerism|Keto-enol tautomerism

@@ -15,7 +15,7 @@ runs, 103 ECCE-QM calcs (the Intermolecular interactions topic with
 D3(BJ), #724) and one ORCA bond curve (#559; a calc name must be unique
 in the set, the test harness counts by name, and `+`/`-` are written
 `_cation`/`_anion`/`_HF`) (one `1-dynamics` task each, see md-speed-and-msd-come-from-the-mdanalysis-program.md);
-`organic` -> `Examples_Organic`, 17 calcs, and
+`organic` -> `Examples_Organic`, 35 calcs (#1098 added the ECCE-QM SN2/E2 and keto-enol topics), and
 `spectroscopy` -> `Examples_Spectroscopy`, 10 calcs, #447/#485), each with a
 `set.txt` (display name, one line).
 `CalcMgr::openExampleSet` (File > Open Example Calculations asks which set;
