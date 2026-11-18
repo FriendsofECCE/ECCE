@@ -718,13 +718,21 @@ void RefMachine::codes(const char* codes)
 }
 
 
+// Host names are case-insensitive: macOS's uname gives "Name-MacBook.local"
+// while the resolver, and so the registered name, gives "name-macbook.local".
+static bool sameHost(const string& a, const string& b)
+{
+  return a.size() == b.size() && strcasecmp(a.c_str(), b.c_str()) == 0;
+}
+
+
 RefMachine* RefMachine::fullLookup(const string& fullname)
 {
   enforce_initialization();
 
   int idx;
   for (idx=0; idx<s_fullname_list->size() &&
-              (*s_fullname_list)[idx]!=fullname; idx++);
+              !sameHost((*s_fullname_list)[idx], fullname); idx++);
 
   RefMachine *tempRefMachine = (RefMachine*)0;
   if (idx < s_fullname_list->size()) {
@@ -740,9 +748,10 @@ RefMachine* RefMachine::abbrevLookup(const string& abbrevname)
   enforce_initialization();
 
   int idx = 0;
-  for (; idx<s_fullname_list->size() && !((*s_fullname_list)[idx]==abbrevname ||
+  for (; idx<s_fullname_list->size() &&
+         !(sameHost((*s_fullname_list)[idx], abbrevname) ||
          ((*s_fullname_list)[idx].length()>abbrevname.length() &&
-          (*s_fullname_list)[idx].substr(0,abbrevname.length())==abbrevname &&
+          sameHost((*s_fullname_list)[idx].substr(0,abbrevname.length()), abbrevname) &&
           (*s_fullname_list)[idx][abbrevname.length()]=='.')); idx++);
 
   RefMachine *tempRefMachine = (RefMachine*)0;
