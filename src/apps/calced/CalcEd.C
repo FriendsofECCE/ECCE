@@ -455,6 +455,12 @@ CalcEd::~CalcEd( )
   LiveCount::add("CalcEd", -1);
   ToolTabs::release(this, false);
   delete p_ESPCnstrnt;
+  // In one process a closed tab must free its context (#1136); freeContext
+  // also resets the controls, which are going.
+  delete p_frag;
+  delete p_fullFrag;
+  delete p_GUIValues;
+  delete p_basis;
   closeTheoryApp(true);
   closeRuntypeApp(true);
   // Other windows of the process (#983) may still use their configs.
