@@ -3804,6 +3804,8 @@ CalcMgr::~CalcMgr( )
   p_autoPoll = 0;
   delete p_serverTimer;
   p_serverTimer = 0;
+  delete p_quitRetry;
+  p_quitRetry = 0;
   for (wxTimer *t : p_hookTimers) delete t;
   p_hookTimers.clear();
   delete p_toolStartup;
@@ -4757,6 +4759,7 @@ bool CalcMgr::confirmAndQuit()
   // after the answer has nothing left to ask.
   if (p_quitAsking) return false;
   if (p_quitConfirmed) return true;
+  if (p_quitRetry && p_quitRetry->IsRunning()) return false;   // decided already
   if (ToolTabs::closingTool()) return false;
   if (p_batch) {
     //  Quitting would leave calculations half submitted.
@@ -4792,10 +4795,33 @@ bool CalcMgr::confirmAndQuit()
 
   if (result == wxID_CANCEL)
     return false;
+  return finishQuit(result);
+}
+
+
+bool CalcMgr::finishQuit(int result)
+{
   // Tool windows in this process (#983) ask about their own unsaved work;
   // one that stays open cancels the Quit.
-  if (!InProcessTools::closeAll(false))
+  if (!InProcessTools::closeAll(false)) {
+    // Not a refusal: a tab whose close was under way (it yields) turned the
+    // request down. Finish once that close has returned, never under it.
+    if (InProcessTools::closing()) {
+      if (getenv("ECCE_TEST_ORGANIZER"))
+        cerr << "ECCE_TEST_ORGANIZER: quit waits for a tool's close" << endl;
+      p_quitAnswer = result;
+      if (!p_quitRetry) {
+        p_quitRetry = new wxTimer();
+        p_quitRetry->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+          if (InProcessTools::closing()) return;
+          p_quitRetry->Stop();
+          finishQuit(p_quitAnswer);
+        });
+      }
+      p_quitRetry->Start(100);
+    }
     return false;
+  }
 
   p_quitConfirmed = true;
   // Hosted: the Organizer's frame goes before the window that holds it.
