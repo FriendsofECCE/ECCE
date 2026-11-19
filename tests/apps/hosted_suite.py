@@ -25,6 +25,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+# Only a test that defines --build itself is given it.
+BUILD_OPT = re.compile(r"""add_argument\(\s*["']--build["']""")
 TOOLS = re.compile(r'ecce-(builder|calced|launcher)|apps\.run\([^,]+, *"(builder|calced)"')
 
 
@@ -58,6 +60,13 @@ def tail(text, n=6):
     return " | ".join(fails[:n]) or " | ".join(text.splitlines()[-3:])
 
 
+def handedOver(logdir):
+    for path in glob.glob(os.path.join(logdir, "*.log")):
+        if "already running for this user" in open(path, errors="replace").read():
+            return True
+    return False
+
+
 def runOne(test, mode, out, timeout):
     name = os.path.basename(test)[:-3]
     home = os.path.join(out, "home", mode + "-" + name)
@@ -77,7 +86,8 @@ def runOne(test, mode, out, timeout):
             [os.path.join(HERE, "hosted")] +
             ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))
     args = [sys.executable, test]
-    if bld and "--build" in open(test, errors="replace").read():
+    text = open(test, errors="replace").read()
+    if bld and BUILD_OPT.search(text):
         args += ["--build", os.path.join(bld, "bi")]
     started = time.time()
     log = os.path.join(out, "%s.%s.log" % (name, mode))
@@ -92,9 +102,14 @@ def runOne(test, mode, out, timeout):
         handle.write(text)
     verdict = ("PASS" if rc == 0 else "SKIP" if rc == 77 else
                "TIMEOUT" if rc == "TIMEOUT" else "FAIL(%s)" % rc)
+    if mode == "hosted" and verdict != "PASS" and handedOver(
+            env["ECCE_TEST_HOSTED_LOGDIR"]):
+        # The test runs its own Organizer: the shim's tool went to that one,
+        # without the shim's hooks, so the result says nothing about tabs.
+        verdict = "HANDOVER"
     line = "%-40s %-7s %-10s %5.0fs %s" % (
         name, mode, verdict, time.time() - started,
-        "" if verdict in ("PASS", "SKIP") else tail(text))
+        "" if verdict in ("PASS", "SKIP", "HANDOVER") else tail(text))
     print(line, flush=True)
     return name, mode, verdict
 
@@ -132,9 +147,9 @@ def main():
     print("\n== summary")
     for m in modes:
         vs = [table[n].get(m) for n in table]
-        print("%-7s PASS %d  FAIL %d  SKIP %d  TIMEOUT %d" % (
+        print("%-7s PASS %d  FAIL %d  SKIP %d  TIMEOUT %d  HANDOVER %d" % (
             m, vs.count("PASS"), sum(1 for v in vs if v and v.startswith("FAIL")),
-            vs.count("SKIP"), vs.count("TIMEOUT")))
+            vs.count("SKIP"), vs.count("TIMEOUT"), vs.count("HANDOVER")))
     print("\n== differences")
     for n in sorted(table):
         if len(set(table[n].get(m) for m in modes)) > 1:

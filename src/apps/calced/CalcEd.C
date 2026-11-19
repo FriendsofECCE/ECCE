@@ -1162,6 +1162,14 @@ void CalcEd::makeSetupArea(wxWindow *area)
 bool CalcEd::previewDeck(string& deck, string& error)
 {
   if (!p_iCalc || !isReady()) return false;
+  // DeckWriter runs the stored code's generator; until Save stores a new
+  // code it would be fed the new code's theory and fail.
+  const JCode *stored = p_iCalc->application();
+  if (p_code && (!stored || stored->name() != p_code->name())) {
+    error = "the code becomes " + p_code->name() + " when Save writes "
+            "the input";
+    return false;
+  }
   DeckWriter::Options opt;
   opt.useExpCoeff = getUseExpCoeff();
   opt.openShells = getOpenShells();

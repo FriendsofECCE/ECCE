@@ -102,7 +102,9 @@ def main():
     s = harness.Session(build, "qmsize", {}, local=True, keep=args.keep)
     png = args.png or os.path.join(s.state, "png")
     os.makedirs(png, exist_ok=True)
-    for exe in ("launcher",):
+    # Hosted (ECCE_TEST_HOSTED=1), the Launcher runs as a tab of the Organizer.
+    hosted = ("organizer",) if os.environ.get("ECCE_TEST_HOSTED") == "1" else ()
+    for exe in ("launcher",) + hosted:
         harness.link(os.path.join(build, exe), os.path.join(s.home, "bin", exe))
     wrappers = os.path.join(s.state, "wrappers")
     shutil.rmtree(wrappers, ignore_errors=True)
