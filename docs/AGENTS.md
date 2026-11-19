@@ -97,6 +97,23 @@ Angstrom, N from 1; without `center` the selection is the centre). It prints one
 caps=M`; undo restores the periodic structure. The geometry is in the wx-free
 `tdat/ClusterCut.H`; test `tests/apps/builder_cut_cluster_test.py`.
 
+Build > Solvate (#1118) fills the periodic cell, or a rectangular cell of
+the structure's extent plus a margin (structure centred), with a shipped
+solvent box (`data/client/solvents/*.xyz`), on the client, for any code.
+Builder script: `solvate [solvent NAME] [margin A] [scale S]` (defaults
+water216, 10 A, 1.0; scale times the sum of vdW radii is the solute-solvent
+cut-off). It prints `BUILDER: solvate molecules=N added=M atoms=T cell=A B C
+density=D`; undo removes the solvent. Waters are HOH residues (OW, HW1, HW2),
+and GROMACS Prepare skips `gmx solvate` for a structure that has them
+(`Solvent already present ...` in its output). The geometry is wx-free in
+`tdat/Solvate.H`; `solvate_cli SOLVENT.xyz SOLUTE.xyz|- MARGIN|"a b c"
+[SCALE]` (build tree) writes the solvated XYZ to stdout. Tests: ctest
+`solvate`, `tests/apps/builder_solvate_test.py`. The old Solvate window
+(Condensed Reaction Study) opens only with Preferences > Advanced
+"Separate Solvate window" (`ECCE_SOLVATE_WINDOW=1`); otherwise a Solvate
+task opens in the Builder and a new Condensed Reaction Study gets no
+Solvate task.
+
 For isolated GUI checks, `ECCE_BUILDER_SCRIPT` accepts `list Stress Tensor`,
 `stressinfo` (panel summary plus one `label N anchor=x,y,z` line per principal axis; anchors lie outside the cell), `vector STRESS` (the six rendered half-arrows),
 and `viewer Stress Tensor` (toggle). `tests/apps/stress_tensor_test.py`

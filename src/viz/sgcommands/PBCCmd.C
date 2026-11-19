@@ -63,8 +63,11 @@ void PBCCmd::undo()
       SGFragment *sgfrag = sg->getFragment();
 
 
+      // "replicate" makes PBC read the restored lattice; a command that
+      // added the lattice (Solvate on a molecule) restores none.
       string replicate;
-      if (shouldAutoReplicateOnUndo()) replicate = "replicate";
+      if (shouldAutoReplicateOnUndo() && sgfrag->getLattice())
+         replicate = "replicate";
 
       // Choose only one event to avoid duplicate processing.
       // Hopefully tools that respond to Residue change also handle

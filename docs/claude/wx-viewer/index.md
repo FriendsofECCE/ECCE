@@ -114,6 +114,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [A PDB's CRYST1 was never read into the lattice: a GROMACS box opened in the Viewer had no cell; LatticeDef(a,b,c,angles) is not the PDB frame (#930)](pdb-reader-took-no-cell-from-cryst1.md)
 - [CRYST1 must not reach a molecular calculation: the cell is drawn around the molecules and every viewAll frames it (#968)](crystal-cell-must-not-reach-a-molecular-calculation-968.md)
 - [Layer builder: spacing is along the a-b normal, shifts accumulate, tilt wraps differently from an orthogonal reference, water H 1.5 A from everything (#357)](layer-builder-traps.md)
+- [PBCCmd::undo asks PBC to replicate the restored lattice; a command that added the lattice restores none (#1118)](pbccmd-undo-replicate-needs-lattice-1118.md)
 - [Depth peeling copies from a multisampled window (#360)](depth-peeling-copies-from-a-multisampled-window.md)
 - [Auto-centre after property commands](auto-centre-after-property-commands.md)
 - ["1 1 1" in one text field reads "111" in Cantarell: one field per number](space-separated-values-need-one-field-each.md)

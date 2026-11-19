@@ -1830,8 +1830,28 @@ GENION_RMIN=""
     *) echo "Unknown SOURCE $SOURCE" >> @@OUT@@; exit 1;;
   esac
 
+  # Solvent placed in the Builder (#1118): its waters came through pdb2gmx
+  # as SOL; keep them and the structure's cell, and add no more.
+  PRESOLV=`awk 'NR > 2 && substr($0, 6, 5) ~ /^(SOL|HOH|WAT) *$/ && substr($0, 11, 5) ~ /^ *O/ { n++ } END { print n + 0 }' step1.gro`
+  PREBOX=`tail -n 1 step1.gro | awk '{ print ($1 > 0 && $2 > 0 && $3 > 0) }'`
   prepStep 2 editconf
-  if [ "$SOURCE" = minff ]; then
+  if [ "$SOURCE" != minff ] && [ "$PRESOLV" -gt 0 ] && [ "$PREBOX" = 1 ]; then
+    cp step1.gro step2.gro
+    # the box in editconf's wording, which the summary below reads
+    tail -n 1 step2.gro | awk '
+      function acosd(x) { return atan2(sqrt(1 - x * x), x) * 180 / 3.14159265358979 }
+      { for (i = NF + 1; i <= 9; i++) $i = 0
+        la = sqrt($1 * $1 + $4 * $4 + $5 * $5); lb = sqrt($6 * $6 + $2 * $2 + $7 * $7)
+        lc = sqrt($8 * $8 + $9 * $9 + $3 * $3)
+        print "Solvent already present in the structure; its cell is kept."
+        printf "new box vectors : %.3f %.3f %.3f (nm)\n", la, lb, lc
+        printf "new box angles  : %.2f %.2f %.2f (degrees)\n",
+          acosd(($6 * $8 + $2 * $9 + $7 * $3) / (lb * lc)),
+          acosd(($1 * $8 + $4 * $9 + $5 * $3) / (la * lc)),
+          acosd(($1 * $6 + $4 * $2 + $5 * $7) / (la * lb)) }' > prep.step
+    cat prep.step >> @@OUT@@
+    BOX=cell
+  elif [ "$SOURCE" = minff ]; then
     # z is the stacking direction: lengthen its component of the cell vector
     # and keep the tilt, which editconf -box would drop
     n=`wc -l < step1.gro | tr -d ' '`
@@ -1869,7 +1889,11 @@ GENION_RMIN=""
   cp prep.step prep.editconf
 
   prepStep 3 solvate
-  if [ "$SOURCE" = minff ] && [ $MINFF_WATER = 0 ]; then
+  if [ "$SOURCE" != minff ] && [ "$PRESOLV" -gt 0 ]; then
+    echo "Solvent already present in the structure ($PRESOLV water molecules); gmx solvate skipped." >> @@OUT@@
+    echo "Solvent already present in the structure; gmx solvate skipped." >> @@LOG@@
+    cp step2.gro step3.gro
+  elif [ "$SOURCE" = minff ] && [ $MINFF_WATER = 0 ]; then
     echo "No water layer requested; the mineral keeps its cell and no water is added." >> @@OUT@@
     cp step2.gro step3.gro
   else

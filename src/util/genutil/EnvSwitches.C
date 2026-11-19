@@ -42,6 +42,10 @@ const vector<EnvSwitches::Entry>& EnvSwitches::all()
         "Separate Basis Set Tool window",
         "Basis Set buttons and menus open the old Basis Set Tool window instead of the editor's basis panel.",
         false, "", {{"ECCE_FULL_BASIS_TOOL", "1"}}});
+    list.push_back({"Advanced.SolvateWindow",
+        "Separate Solvate window",
+        "A Solvate task opens the old Solvate window, and a new Condensed Reaction Study starts with one, instead of Build > Solvate in the Builder.",
+        false, "", {{"ECCE_SOLVATE_WINDOW", "1"}}});
     list.push_back({"Advanced.MoSymLog",
         "MO-diagram symmetry log",
         "Appends the symmetry analysis behind the MO diagram to this file.",

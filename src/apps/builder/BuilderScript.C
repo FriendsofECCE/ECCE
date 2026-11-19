@@ -886,6 +886,24 @@ void Builder::runBuilderScript(const std::string& file)
             }
           }
         }
+      } else if (w[0] == "solvate" && frag) {
+        //  solvate [solvent NAME] [margin A] [scale S]: Build > Solvate.
+        std::string solvent = "water216";
+        double margin = 10.0, scale = 1.0;
+        bool valid = (w.size() % 2) == 1;
+        for (size_t i = 1; valid && i + 1 < w.size(); i += 2) {
+          if (w[i] == "solvent") solvent = w[i + 1];
+          else if (w[i] == "margin") margin = atof(w[i + 1].c_str());
+          else if (w[i] == "scale") scale = atof(w[i + 1].c_str());
+          else valid = false;
+        }
+        if (!valid || !(margin >= 1.0 && margin <= 50.0) || !(scale >= 0.3 && scale <= 2.0))
+          outcome = "FAIL: solvate [solvent NAME] [margin 1-50] [scale 0.3-2]";
+        else {
+          std::string message;
+          if (!solvateStructure(solvent, margin, scale, message))
+            outcome = "FAIL: solvate: " + message;
+        }
       } else if ((w[0] == "select_protein" || w[0] == "select_ligand") &&
                  w.size() == 1 && frag) {
         if (!selectResidueClass(w[0] == "select_ligand"))

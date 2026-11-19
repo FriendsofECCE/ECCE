@@ -11,7 +11,10 @@ script gensub writes, with MERGE=0:
   * the index file gromacs.mkndx writes has one group per chain (mol:...);
   * CENTER="x y z" ends in the solute's geometric centre at x y z in the
     prepared structure, and no CENTER leaves it at the middle of the box;
-  * md.gmxprep refuses a CENTER that is not empty or three numbers.
+  * md.gmxprep refuses a CENTER that is not empty or three numbers;
+  * with --solvate-cli (the build tree's solvate_cli): a structure already
+    solvated as Build > Solvate does it (#1118) keeps its waters and cell,
+    and the job says gmx solvate was skipped.
 
     tests/gromacs_md/prepare_options_test.py [-v]
 
@@ -72,6 +75,69 @@ def posre_blocks(gmx, rundir, define):
     return blocks, atoms
 
 
+def presolvated_pdb(cli, path, tmp):
+    """1L2Y solvated by solvate_cli, written as Fragment::dumpPDB writes a
+    structure solvated in the Builder: CRYST1, HOH residues OW HW1 HW2.
+    Returns the number of waters and the cell (Angstrom)."""
+    atoms = [l for l in open(os.path.join(FIXTURES, "1l2y.pdb")) if l.startswith("ATOM")]
+    xyz = os.path.join(tmp, "solute.xyz")
+    with open(xyz, "w") as h:
+        h.write("%d\n\n" % len(atoms))
+        for l in atoms:
+            el = l[76:78].strip() or l[12:16].strip()[0]
+            h.write("%s %s %s %s\n" % (el, l[30:38], l[38:46], l[46:54]))
+    rc, out = run([cli, os.path.join(rt.REPO, "data", "client", "solvents", "water216.xyz"),
+                   xyz, "8"],
+                  env=dict(os.environ, ECCE_HOME=rt.REPO, ECCE_REALUSER="solvate",
+                           ECCE_REALUSERHOME=tmp))
+    if not check(rc == 0, "solvate_cli solvates 1L2Y"):
+        print(out)
+        return 0, None
+    lines = out.splitlines()
+    cell = [float(x) for x in lines[1].split()[1:4]]
+    body = lines[2:]
+    pdb = ["CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f P 1           1\n" % tuple(cell + [90, 90, 90])]
+    for l, b in zip(atoms, body):
+        x, y, z = (float(v) for v in b.split()[1:4])
+        pdb.append(l[:30] + "%8.3f%8.3f%8.3f" % (x, y, z) + l[54:])
+    pdb.append("TER\n")
+    waters = body[len(atoms):]
+    names = (" OW ", " HW1", " HW2")
+    for i, b in enumerate(waters):
+        x, y, z = (float(v) for v in b.split()[1:4])
+        el = b.split()[0]
+        pdb.append("HETATM%5d %4s HOH  %4d    %8.3f%8.3f%8.3f  1.00  0.00          %2s\n"
+                   % ((len(atoms) + i + 1) % 100000, names[i % 3], (i // 3 + 2) % 10000,
+                      x, y, z, el))
+    pdb.append("END\n")
+    with open(path, "w") as h:
+        h.writelines(pdb)
+    return len(waters) // 3, cell
+
+
+def presolvated_test(gmx, home, tmp, cli):
+    pdb = os.path.join(tmp, "presolvated.pdb")
+    nwat, cell = presolvated_pdb(cli, pdb, tmp)
+    if not cell:
+        return
+    rcp = "SOURCE=protein\nFF=amber99sb-ildn\nWATER=tip3p\nBOX=dodecahedron\nDIST=1.0\nCONC=0\n"
+    d = rt.prepare(gmx, home, tmp, "presolvated", rcp, pdb)
+    if d is None:
+        return
+    out = open(os.path.join(d, "gromacs.gmxlog"), errors="replace").read()
+    check("gmx solvate skipped" in out, "the output says gmx solvate was skipped")
+    check(" solvate -cp " not in out and "Adding" not in out.split("step 3/4")[-1].split("step 4/4")[0],
+          "gmx solvate did not run")
+    lines, box = gro_atoms(os.path.join(d, "ion.gro"))
+    mols = rt.molecules(os.path.join(d, "topol.top"))
+    print("  presolvated: %d waters placed, topology %s, box %s, cell %s"
+          % (nwat, mols, box[:3], cell))
+    # Trp-cage is +1: genion replaces one water by a chloride
+    check(mols.get("SOL") == nwat - 1, "the topology keeps the placed waters less one for the ion")
+    check(all(abs(box[i] - cell[i] / 10.0) < 0.002 for i in range(3)),
+          "the box is the cell of the solvated structure")
+
+
 def main():
     rt.verbose = "-v" in sys.argv
     gmx = rt.find_gmx()
@@ -118,6 +184,9 @@ def main():
             else:
                 check(all(abs(c[i] - v) < 0.01 for i, v in enumerate((2, 2, 5))),
                       "CENTER=2 2 5: the solute's centre is at 2 2 5 nm")
+
+        if "--solvate-cli" in sys.argv:
+            presolvated_test(gmx, home, tmp, sys.argv[sys.argv.index("--solvate-cli") + 1])
 
         d = results["centred"]
         itps = sorted(f for f in os.listdir(d) if f.endswith(".itp"))

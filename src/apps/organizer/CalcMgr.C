@@ -11866,9 +11866,21 @@ bool CalcMgr::checkMovable(WxResourceTreeItemData * node)
 /**
  * Invoke tool application by sending message.
  */
+// Preferences > Advanced "Separate Solvate window" (ECCE_SOLVATE_WINDOW=1).
+static bool solvateWindowWanted()
+{
+  const char *v = getenv("ECCE_SOLVATE_WINDOW");
+  return v && string(v) == "1";
+}
+
 void CalcMgr::startApp(const string& appIn, int force, const string& url,
                        const string& codename, int debug)
 {
+  // The Solvate window is retired (#1118): Build > Solvate does its job.
+  if (appIn == "SolvationEditor" && !solvateWindowWanted()) {
+    startApp("Builder", force, url, codename, debug);
+    return;
+  }
   // The Basis Set Tool window is retired (#1063): its button and menu open
   // the editor at its basis panel, unless Preferences > Advanced asks for
   // the old window.  Without tabs the editor has no panel to show.
@@ -14402,7 +14414,8 @@ void CalcMgr::createResource(ResourceType * resType,
 
     // Immediately create a Solvate task for a condensed reaction study
     if (newRes->getApplicationType() ==
-                     ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
+                     ResourceDescriptor::AT_CONDENSED_REACTION_STUDY &&
+        solvateWindowWanted()) {
       ResourceDescriptor rd = ResourceDescriptor::getResourceDescriptor();
       ResourceType *rt = rd.getResourceType(
                                ResourceDescriptor::RT_VIRTUAL_DOCUMENT, 

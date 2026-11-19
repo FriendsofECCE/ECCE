@@ -2376,6 +2376,10 @@ void  SGContainer::touchChemDisplay(SGFragment* frag)
 //         p_displays[idx]->residueLabelIndex = cdResidueIndices[idx];
       }
       delete [] cdResidueIndices;
+   } else if (nResidues == 0) {
+      // ChemDisplay frees its per-residue arrays when the data has no
+      // residues; an index left from before (undo of Solvate) reads them.
+      for (ChemDisplay *cd : p_displays) cd->residueIndex.setNum(0);
    }
 #ifdef timertests
   T.stop();
