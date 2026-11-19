@@ -51,6 +51,7 @@ bool PropertyPanel::Create(IPropCalculation *calculation,
   }
 
   p_calculation = calculation;
+  p_owner = parent;
   p_propertyPanels[calculation->getURL().toString()].insert(this);
   p_allPropertyPanels.insert(this);
 
@@ -229,7 +230,8 @@ bool PropertyPanel::needsRefresh() const
  * Either the name or both the url and name may be omitted.
  */
 set<PropertyPanel*> PropertyPanel::getPanels(const string& url,
-                                             const string& name)
+                                             const string& name,
+                                             const wxWindow *owner)
 {
   set<PropertyPanel*> ret;
 
@@ -238,6 +240,9 @@ set<PropertyPanel*> PropertyPanel::getPanels(const string& url,
   } else {
     ret = p_propertyPanels[url];
   }
+  if (owner)
+    for (auto it = ret.begin(); it != ret.end(); )
+      it = (*it)->p_owner == owner ? std::next(it) : ret.erase(it);
 
   if (!name.empty()) {
     set<PropertyPanel*>::iterator panel;
@@ -259,7 +264,8 @@ set<PropertyPanel*> PropertyPanel::getPanels(const string& url,
  * Either the url or both the url and key may be omitted.
  */
 set<PropertyPanel*> PropertyPanel::getPanelsForPropertyName(const string& url,
-                                                            const string& key)
+                                                            const string& key,
+                                                            const wxWindow *owner)
 {
   set<PropertyPanel*> ret;
 
@@ -268,6 +274,9 @@ set<PropertyPanel*> PropertyPanel::getPanelsForPropertyName(const string& url,
   } else {
     ret = p_propertyPanels[url];
   }
+  if (owner)
+    for (auto it = ret.begin(); it != ret.end(); )
+      it = (*it)->p_owner == owner ? std::next(it) : ret.erase(it);
 
   if (!key.empty()) {
     set<PropertyPanel*>::iterator panel;
@@ -300,7 +309,8 @@ void PropertyPanel::removePanels(const string& url, const string& name)
 }
 
 
-bool PropertyPanel::panelExists(const string& url, const string& name)
+bool PropertyPanel::panelExists(const string& url, const string& name,
+                                const wxWindow *owner)
 {
   set<PropertyPanel*> panels;
 
@@ -312,6 +322,7 @@ bool PropertyPanel::panelExists(const string& url, const string& name)
 
   set<PropertyPanel*>::iterator panel;
   for (panel = panels.begin(); panel != panels.end(); ++panel) {
+    if (owner && (*panel)->p_owner != owner) continue;
     if ((*panel)->getName() == name) {
       return true;
     }

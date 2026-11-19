@@ -98,12 +98,19 @@ class PropertyPanel : public ewxPanel
     IPropCalculation* getCalculation() const;
     bool needsInitialization() const;
     bool needsRefresh() const;
+    //  The registry holds every panel in the process; in one program
+    //  (#983) two Builders or Viewers can show the same calculation, so a
+    //  Builder passes itself as owner to see only the panels it created.
     static set<PropertyPanel*> getPanels(const string& url="",
-                                         const string& name="");
+                                         const string& name="",
+                                         const wxWindow *owner=0);
     static set<PropertyPanel*> getPanelsForPropertyName(const string& url="",
-                                                        const string& key="");
+                                                        const string& key="",
+                                                        const wxWindow *owner=0);
     static void removePanels(const string& url="", const string& name="");
-    static bool panelExists(const string& url, const string& name);
+    static bool panelExists(const string& url, const string& name,
+                            const wxWindow *owner=0);
+    wxWindow *getOwner() const { return p_owner; }
 
     // setters
     void setDescription(PropertyPanelDescription *description);
@@ -126,6 +133,8 @@ class PropertyPanel : public ewxPanel
   private:
     PropertyPanelDescription *p_description;
     IPropCalculation *p_calculation;
+    //  The parent at Create(): tabs reparent a panel, its owner stays.
+    wxWindow *p_owner = 0;
 
     bool p_needsInitialization;
     bool p_needsRefresh;

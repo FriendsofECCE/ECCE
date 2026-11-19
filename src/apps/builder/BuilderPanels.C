@@ -1149,7 +1149,7 @@ void Builder::updatePropertyIndex()
   PropertyPanelFactory &factory = PropertyPanelFactory::getPropertyPanelFactory();
   vector<std::pair<int, PropertyIndexPanel::Entry> > ordered;
   set<PropertyPanel*> panels =
-      PropertyPanel::getPanels(p_calculation->getURL().toString());
+      PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
   for (set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end();
        ++it) {
     if (panelRedundant((*it)->getName())) continue;
