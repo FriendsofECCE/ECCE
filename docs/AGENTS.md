@@ -43,6 +43,14 @@ may not leave the machine.
 5. Say plainly what was checked and what was not. Do not raise optimisation
    cycle limits to make a calculation converge; find the cause.
 
+## One Builder script per tab
+
+`ECCE_BUILDER_SCRIPT` runs once per process: in one program only the first
+Builder or Viewer tab runs it. With `ECCE_BUILDER_SCRIPT_EACH=1` every
+Builder and Viewer runs the script when it opens, so a test can rewrite the
+file between `start` commands and give each tab its own steps (the
+Viewer-tab close test in `tests/apps/one_process_test.py --panels-only`).
+
 ## Scripted total charge and multiplicity
 
 `ECCE_CALCED_SCRIPT` and `ECCE_BUILDER_SCRIPT` accept `charge INTEGER` and

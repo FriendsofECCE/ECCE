@@ -812,6 +812,7 @@ class Builder: public BuilderGUI,
       ewxTextCtrl *p_cmd;
 
       ViewerEvtHandler *p_viewerEvtHandler;
+      bool p_builderScriptStarted = false;  // ECCE_BUILDER_SCRIPT_EACH
       BuilderAuiManager p_mgr;
 
       int p_toolCount;

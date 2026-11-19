@@ -6680,11 +6680,16 @@ void Builder::updatePropertyMenus()
 
   //  ECCE_BUILDER_SCRIPT=<file>: the steps of a tutorial, done through the
   //  controls' own handlers (BuilderScript.C).  Inert unless set.
+  //  Once per process; with ECCE_BUILDER_SCRIPT_EACH=1 once per Builder,
+  //  so each tab of one program runs it.
   static bool builderScriptStarted = false;
   if (const char *bscript = getenv("ECCE_BUILDER_SCRIPT")) {
-    if (!builderScriptStarted && p_calculation != 0 && getSG() != 0 &&
+    const bool each = getenv("ECCE_BUILDER_SCRIPT_EACH") != 0;
+    if (!(each ? p_builderScriptStarted : builderScriptStarted) &&
+        p_calculation != 0 && getSG() != 0 &&
         p_mgr.GetPane(NAME_TOOL_PBC).IsOk()) {
       builderScriptStarted = true;
+      p_builderScriptStarted = true;
       runBuilderScript(bscript);
     }
   }
