@@ -1285,6 +1285,26 @@ wxString CalcEd::setupCommand(const wxString& arg)
         return "usage: basis tight|diffuse EL SHELL COUNT";
       if (!p_setupArea->basisAppend(rest.StartsWith("tight"), el, shell, count))
         return "not possible";
+    } else if (rest.StartsWith("contractions")) {
+      // basis contractions EL [ROW uncontract|delete|keep]
+      static const char *usage =
+          "usage: basis contractions EL [ROW uncontract|delete|keep]";
+      wxStringTokenizer tok(rest.AfterFirst(' '), " ");
+      string el = tok.HasMoreTokens() ? string(tok.GetNextToken().utf8_str()) : "";
+      long row = -1;
+      string action;
+      if (tok.HasMoreTokens() && !tok.GetNextToken().ToLong(&row)) return usage;
+      if (tok.HasMoreTokens()) action = string(tok.GetNextToken().utf8_str());
+      if (el.empty() || (row >= 0) != !action.empty()) return usage;
+      string out;
+      p_setupArea->basisContraction(el, row, action, out);
+      return wxString::FromUTF8(out.c_str());
+    } else if (rest == "coefficients") {
+      // One line: the text's line ends are shown as '|'.
+      string text = p_setupArea->basisCoefficients();
+      if (text.empty()) return "no basis set";
+      for (char& c : text) if (c == '\n') c = '|';
+      return "coefficients=" + wxString::FromUTF8(text.c_str());
     } else if (rest.StartsWith("assign") || rest.StartsWith("ecp") ||
                rest.StartsWith("fit") || rest.StartsWith("aug")) {
       // basis assign|ecp|fit|aug NAME [@ T,T] [; NAME [@ T,T]]...; T is an
@@ -1823,6 +1843,24 @@ bool CalcEd::assignBasisSteps(const vector<BasisStep>& steps, string& message)
     }
   }
   return commitBasis(config);
+}
+
+
+string CalcEd::basisCodeName() const
+{
+  return p_code ? p_code->name() : string();
+}
+
+
+// Contraction edits change p_basis in place, so there is no new config to
+// commit; the rest is what commitBasis does.
+void CalcEd::basisEdited()
+{
+  updateBasisSetFields();
+  enableLaunch();
+  enableSave();
+  doSave();
+  if (p_setupArea) p_setupArea->basisChanged();
 }
 
 

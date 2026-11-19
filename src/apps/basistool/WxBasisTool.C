@@ -66,9 +66,9 @@
 #include "wxgui/ToolTabs.H"
 
 #include "WxBasisTool.H"
-#include "WxBasisSetCoefficients.H"
+#include "wxgui/WxBasisSetCoefficients.H"
 #include "WxBasisSetDetail.H"
-#include "WxContractionEditor.H"
+#include "wxgui/WxContractionEditor.H"
 
 
 
@@ -931,6 +931,10 @@ void WxBasisTool::showEditorButtonClickCB(wxCommandEvent& event)
     if (p_cntrcEdit == NULL)
     {
         p_cntrcEdit = new WxContractionEditor(this);
+        p_cntrcEdit->onChanged = [this]() {
+            updateNumbers();
+            showContextChanged(true);
+        };
 
         if (p_prefs != NULL)
             p_cntrcEdit->loadSettings(p_prefs);

@@ -18,8 +18,7 @@
 #include "wxgui/ewxChoice.H"
 #include "wxgui/ewxGrid.H"
 
-#include "WxContractionEditor.H"
-#include "WxBasisTool.H"
+#include "wxgui/WxContractionEditor.H"
 
 
           // Contraction Table
@@ -617,7 +616,6 @@ void WxContractionEditor::updateSummaryTable(const string& symbol,
     string tmp;
     int value;
     int endShell;
-    WxBasisTool *prnt = (WxBasisTool *)(p_prntWindow);
 
     int k = p_elmtsChoice->GetSelection();
     GBSSummaryGridModel *mdlSmmry = (*p_smmryGridModels)[k];
@@ -702,8 +700,7 @@ void WxContractionEditor::updateSummaryTable(const string& symbol,
             p_summaryGrid->SetCellValue(shellIdx, 2, StringConverter::toString(value));
         }
 
-        prnt->updateNumbers();
-        prnt->showContextChanged(true);
+        if (onChanged) onChanged();
     }
 
 //    DebugLeaveMethod();

@@ -56,6 +56,11 @@ public:
   bool basisAppend(bool tight, const std::string& element, int shell,
                    int count);
   void basisChanged();
+  // Contractions of EL: ROW < 0 only summarises, else uncontract|delete|keep
+  // that row.  OUT is the summary, or the reason when false.
+  bool basisContraction(const std::string& el, int row,
+                        const std::string& action, std::string& out);
+  std::string basisCoefficients();
   // A user edit of an embedded dialog's field (test hook "setup set").
   bool setValue(const std::string& name, const std::string& value);
   // The details have no .dlg and opened as the Python dialog's window.

@@ -29,7 +29,7 @@
 #include "wxgui/ewxTextCtrl.H"
 ////@end includes
 
-#include "WxBasisSetCoefficientsGUI.H"
+#include "wxgui/WxBasisSetCoefficientsGUI.H"
 
 ////@begin XPM images
 

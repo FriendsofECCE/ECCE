@@ -1466,6 +1466,104 @@ def runSetupTab(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runBasisContractions(display):
+    """#1063: the basis panel's contraction editor and exponents view; the
+    hooks do what the dialog's boxes do."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        calc = pb.makeCalc(project, "water-orca", "created", None)
+        meta = os.path.join(calc, ".ecce-meta")
+        text = open(meta).read().replace("ecce:application\t\tNWChem",
+                                         "ecce:application\t\tORCA")
+        open(meta, "w").write(text)
+        os.remove(os.path.join(calc, "Parameters", "BasisSet.ecce_basisset"))
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+        decks = []
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def deck():
+            """The saved input's text and its number of one-primitive S
+            shells."""
+            for root, _dirs, names in os.walk(calc):
+                for n in names:
+                    try:
+                        body = open(os.path.join(root, n)).read()
+                    except (UnicodeDecodeError, OSError):
+                        continue
+                    if "%basis" in body:
+                        return body, len(re.findall(r"^\s*S 1\s*$", body, re.M))
+            return "", 0
+
+        def inspect(_display):
+            append("start CalculationEditor file://" + calc, 25)
+            append("setup basis filter 6-31G", 3)
+            append("setup basis pick 6-31G*", 3)
+            append("setup basis all", 15)
+            append("setup basis contractions O", 3)               # c0
+            append("setup save", 15)
+            decks.append(deck())
+            append("setup basis contractions O 0 uncontract", 15)  # c1
+            append("setup basis contractions O 2 uncontract", 3)   # refused
+            append("setup save", 15)
+            decks.append(deck())
+            append("setup basis coefficients", 3)
+            append("setup basis contractions O 0 keep", 15)        # c2
+            append("setup basis contractions O 1 delete", 15)      # c3
+            append("close", 3)
+            append("answer no", 6)
+            append("answer no", 15)
+
+        setLayout(display, "normal")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        su = pb.answers(log, "setup")
+        summ = [a for a in su if a.startswith("contractions O:")]
+        coef = [a for a in su if a.startswith("coefficients=")]
+        shown = lambda a, l: re.search(r" %s=(\d+)/(\d+)" % l, a)
+        ok = len(summ) == 4 and len(decks) == 2
+        check(ok, "the contraction hooks answered", "\n".join(su))
+        if ok:
+            s0, s1, s2 = (shown(a, "s") for a in summ[:3])
+            check(s0 and s1 and s2 and s0.group(1) != s0.group(2) and
+                  s1.group(1) == s0.group(1) and s1.group(2) == s1.group(1) and
+                  s2.groups() == s0.groups(),
+                  "uncontracting the oxygen s function makes every primitive "
+                  "a function, keep restores it", " / ".join(summ[:3]))
+            check(decks[1][1] >= decks[0][1] + 5,
+                  "the saved input lists the uncontracted primitives as "
+                  "one-primitive shells",
+                  "S 1 shells %d -> %d" % (decks[0][1], decks[1][1]))
+            p0, p3 = shown(summ[0], "p"), shown(summ[3], "p")
+            check(p0 and (not p3 or p3.groups() != p0.groups()),
+                  "deleting the p function changes the summary",
+                  summ[0] + " / " + summ[3])
+        check(any(a.startswith("row 2 ") for a in su),
+              "a function that is not contracted cannot be uncontracted",
+              "\n".join(su))
+        check(coef and "5484.6" in coef[0],
+              "the exponents view lists the 6-31G* oxygen exponent 5484.67",
+              coef[0][:300] if coef else "\n".join(su))
+        check(not result.crashed and result.returncode == 0,
+              "the Organizer ends cleanly after the contraction edits",
+              "returncode %s\n%s" % (result.returncode, log[-2000:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def runTabsTools(display):
     """#983 stage 2: MD Energy, MD Prepare and the Basis Set Tool as tabs.
     Each shows its menus and windows, its frame stays unmapped, the page is
@@ -2278,8 +2376,14 @@ def main():
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
+        if os.environ.get("ECCE_CONTRACTIONS_ONLY") == "1":
+            runBasisContractions(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         if os.environ.get("ECCE_SETUP_ONLY") == "1":
             runSetupTab(display)
+            runBasisContractions(display)
             runSetupLaunch(display)
             if failures:
                 results.fail("one-process", "; ".join(failures))
@@ -2322,6 +2426,7 @@ def main():
         runGeometry(display)
         runTabsEditor(display)
         runSetupTab(display)
+        runBasisContractions(display)
         runTabsTools(display)
         runTabsLauncher(display)
         runSetupLaunch(display)

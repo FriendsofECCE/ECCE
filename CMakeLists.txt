@@ -493,6 +493,11 @@ target_compile_definitions(eccewxguimd PRIVATE ${wxWidgets_DEFINITIONS})
 target_include_directories(eccewxguimd PRIVATE ${wxWidgets_INCLUDE_DIRS})
 target_link_libraries(eccewxguimd PRIVATE ${wxWidgets_LIBRARIES})
 
+ecce_library(eccewxguibasis src/wxgui/basistools)
+target_compile_definitions(eccewxguibasis PRIVATE ${wxWidgets_DEFINITIONS})
+target_include_directories(eccewxguibasis PRIVATE ${wxWidgets_INCLUDE_DIRS})
+target_link_libraries(eccewxguibasis PRIVATE ${wxWidgets_LIBRARIES})
+
 ecce_library(eccewxplotctrl src/wxgui/wxplotctrl)
 target_compile_definitions(eccewxplotctrl PRIVATE ${wxWidgets_DEFINITIONS})
 target_include_directories(eccewxplotctrl PRIVATE ${wxWidgets_INCLUDE_DIRS})
@@ -750,12 +755,12 @@ target_link_libraries(eccejobstore PRIVATE
   ${XercesC_LIBRARIES})
 
 # --- wx apps ---
-set(ECCE_BASISTOOL_LINK eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+set(ECCE_BASISTOOL_LINK eccewxguibasis eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_tool_objects(basistool-objs src/apps/basistool EXCLUDE WxBasisToolApp.C
   LINK ${ECCE_BASISTOOL_LINK})
 ecce_app(basistool src/apps/basistool WX MAIN WxBasisToolApp.C OBJECTS basistool-objs
   LINK ${ECCE_BASISTOOL_LINK})
-set(ECCE_CALCED_LINK ecce-details-wx eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
+set(ECCE_CALCED_LINK eccewxguibasis ecce-details-wx eccecomm eccercmd eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil)
 ecce_tool_objects(calced-objs src/apps/calced EXCLUDE CalcEdApp.C
   LINK ${ECCE_CALCED_LINK})
 ecce_app(calced src/apps/calced WX MAIN CalcEdApp.C OBJECTS calced-objs
@@ -863,7 +868,7 @@ ecce_app(organizer src/apps/organizer WX GL MAIN CalcMgrApp.C
   OBJECTS organizer-objs organizer-shared-objs builder-objs calced-objs
     mddynamics-objs mdenergy-objs mdoptimize-objs gmxprepare-objs basistool-objs mdprepare-objs launcher-objs
     pertable-objs machbrowser-objs machregister-objs
-  LINK eccewxguimd ecce-details-wx ${ECCE_BUILDER_LINK})
+  LINK eccewxguimd eccewxguibasis ecce-details-wx ${ECCE_BUILDER_LINK})
 target_include_directories(organizer PRIVATE ${CMAKE_SOURCE_DIR}/src/apps/builder)
 ecce_app(vizthumbnail src/apps/vizthumbnail WX GL
   LINK eccewxviz eccewxinv eccevizsg eccemoiv ecceinv eccewxgui eccewxplotctrl eccewxthings eccedsi eccedav eccecipc eccefaces eccexml eccetdat ecceutil ${ECCE_X11_LIBS} jpeg freetype)
@@ -3786,6 +3791,14 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_organizer_one_process
                        apps_organizer_one_process_core PROPERTIES TIMEOUT 3300
+                       SKIP_RETURN_CODE 77)
+  # The basis panel's contraction editor and exponents view (#1063).
+  add_test(NAME apps_basis_contractions
+           COMMAND ${CMAKE_COMMAND} -E env ECCE_CONTRACTIONS_ONLY=1
+                   ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/one_process_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_basis_contractions PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
   # A second start brings the running window to the front (#1069).
   add_test(NAME apps_organizer_single_instance
