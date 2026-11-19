@@ -367,7 +367,7 @@ greyed out.
   window are reached only by ticking **Separate Basis Set Tool window** in
   **Edit > Preferences > Advanced** (kept for one release), which also
   brings back a **Full Basis Set Tool...** button here. Codes whose details exist only in the older form (NWChem,
-  MOPAC, Quantum ESPRESSO, CP2K, GROMACS and others) still open those
+  Quantum ESPRESSO, CP2K, GROMACS and others) still open those
   details in a window, and the area says so. **Small**: one
   tool per tab, each the full width of the window, for small screens and X
   forwarding. **Wide**: every tool in a window of its own, as
@@ -416,6 +416,18 @@ wins, and the tab says so.
   the file given.
 - **Remembered ssh logins**: the hosts whose SSH passwords are kept;
   **Forget** removes one. Shown where a password store is available.
+
+#### MOPAC native Details dialogs
+
+MOPAC's **Theory Details...** and **Runtype Details...** also have native
+C++ versions, shown in the Set-up tab's detail area in **Normal** layout.
+For separate Details windows, start ECCE with `ECCE_NATIVE_DIALOGS=1`
+to use the native versions.
+They offer the same settings and defaults as the Python versions, including
+COSMO solvent and custom dielectric constant, SCF and thread settings,
+geometry steps and gradient norm (kcal/mol/Angstrom), and thermochemistry.
+Energy and Gradient have no run type settings. For separate Details windows,
+set `ECCE_NATIVE_DIALOGS=0` to use the Python versions.
 
 ### Gateway window
 
