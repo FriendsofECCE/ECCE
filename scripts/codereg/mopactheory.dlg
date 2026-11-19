@@ -1,0 +1,18 @@
+# Keep the wire settings in step with mopactheory.py; the native oracle
+# compares defaults, choices, ranges and restored values.
+
+dialog title="ECCE MOPAC Editor: Theory Details"
+
+box label="SCF Convergence" cols=2
+int name=ES.Theory.SCF.ConvergenceIterations label="Max. SCF Iterations (0 = MOPAC default, 2000):" default=0 hard="[0..)" export=1
+check name=ES.Theory.SCF.Precise label=" Tighter criteria (PRECISE)" default=0 export=1
+check name=ES.Theory.SCF.PrintMOs label=" Print molecular orbitals (VECTORS)" default=1 export=1
+check name=ES.Theory.SCF.ESPCharges label=" ESP-fitted charges (ESP)" default=0 export=1
+
+box label="Solvent"
+combo name=ES.Theory.SCF.SolvationModel label="Model:" choices="None|COSMO" default=None export=1
+combo name=ES.Theory.SCF.Solvent label="Solvent:" choices="Water|Methanol|Cyclohexane|Benzene|Acetonitrile|Custom" default=Water export=1 enable_if="ES.Theory.SCF.SolvationModel==COSMO"
+float name=ES.Theory.SCF.Dielectric label="Dielectric constant (Custom):" default=78.4 hard="[1..)" export=1 enable_if="ES.Theory.SCF.SolvationModel==COSMO && ES.Theory.SCF.Solvent==Custom"
+
+box label="Parallel"
+int name=ES.Theory.SCF.NumProcessors label="Threads (1 = use launcher's count):" default=1 hard="[1..)" export=1

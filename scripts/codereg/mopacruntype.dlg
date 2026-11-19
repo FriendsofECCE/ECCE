@@ -1,0 +1,18 @@
+# Conditional boxes preserve the empty Energy and Gradient dialogs and
+# keep the geometry and frequency settings independent for GeoVib.
+
+dialog title="ECCE MOPAC Editor: Runtype Details"
+
+list OPT = Geometry|GeoVib
+list VIB = Vibration|GeoVib
+
+box label="Geometry Optimization" cols=2 when="runtype in @OPT"
+check name=ES.Runtype.GeomOpt.MaximumSteps label=" Max Steps:" default=0 export=1
+int name=ES.Runtype.GeomOpt.MaximumStepsValue default=50 hard="[1..)" soft="[1..200]" export=1 enable_if="ES.Runtype.GeomOpt.MaximumSteps==1"
+
+box label="Convergence" cols=2 when="runtype in @OPT"
+check name=ES.Runtype.GeomOpt.ConvergenceGradient label=" Gradient Norm:" default=0 export=1
+float name=ES.Runtype.GeomOpt.ConvergenceGradient.Value unit=kcal/mol/Angstrom default=1.0 hard="(0..)" soft="[0.001..10]" export=1 enable_if="ES.Runtype.GeomOpt.ConvergenceGradient==1"
+
+box label="Frequencies" when="runtype in @VIB"
+check name=ES.Runtype.Vibration.Thermo label=" Thermochemistry (THERMO)" default=1 export=1
