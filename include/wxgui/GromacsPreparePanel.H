@@ -93,6 +93,7 @@ class GromacsPreparePanel : public ewxPanel
       void OnMinffChoice(wxCommandEvent& event);
       void OnMineralForceField(wxCommandEvent& event);
       void OnMinffCell(wxCommandEvent& event);
+      void OnMinffStructure(wxCommandEvent& event);
       void OnMinffBuild(wxCommandEvent& event);
 
    private:
@@ -119,9 +120,12 @@ class GromacsPreparePanel : public ewxPanel
       void showCellWarning();
       void detachMineral();
       bool buildMineral(bool withDialog, string& message);
+      bool runMinff(const vector<string>& argv, const string& out, bool withDialog,
+                    bool fromBuilder, string& message);
       bool storeMineral(const string& dir, string& message);
       void showMineral();
       void relayout();
+      bool mineralFromBuilder() const;
 
       MDEdBase *p_owner;
       GromacsPrepareModel *p_model;
@@ -143,6 +147,8 @@ class GromacsPreparePanel : public ewxPanel
       string repeat() const;
       void setRepeat(const string& value);
       ewxChoice *p_mvariant, *p_mangle, *p_mions, *p_mff, *p_mbend;
+      ewxChoice *p_mstruct;              // unit-cell file or the Builder's structure
+      vector<wxWindow*> p_cellOnly;      // cell, repeat, substitutions, seed
       ewxCheckBox *p_mrigid;
       ewxButton *p_mcellBtn, *p_mbuild;
       wxPanel *p_mbuildFrame;

@@ -212,6 +212,18 @@ folder on your disk. A calculation saved in a folder can be reopened with
 
 Structures you save into a project are kept with your other data: the data server, or the local folder if you use local data mode (see [Installation](installation.md)).
 
+## Exporting the structure to a file
+
+**File > Export Structure...** writes the structure for another program. A
+`.gro` (GROMACS) or `.pdb` file keeps the residues and the periodic cell, so a
+Layer Builder stack keeps its layers, its water (residue HOH, atoms OW, HW1,
+HW2) and its ions (one residue each, named by the element). An `.xyz` file has
+only elements and positions. Atoms that have no residue are written as HOH
+when they form a water, as their own residue when they are a lone ion, and
+otherwise as one residue UNK. To type such a structure for GROMACS with MINFF
+inside ECCE, use GROMACS Prepare with **Mineral from: the Builder** (see
+[GROMACS Prepare](gromacs-prepare.md)).
+
 ## Saving a picture of the 3-D view
 
 **File > Save Image...** writes a PNG of the 3-D view for a paper or a slide.

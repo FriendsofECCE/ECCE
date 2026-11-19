@@ -1834,6 +1834,16 @@ GENION_RMIN=""
   # as SOL; keep them and the structure's cell, and add no more.
   PRESOLV=`awk 'NR > 2 && substr($0, 6, 5) ~ /^(SOL|HOH|WAT) *$/ && substr($0, 11, 5) ~ /^ *O/ { n++ } END { print n + 0 }' step1.gro`
   PREBOX=`tail -n 1 step1.gro | awk '{ print ($1 > 0 && $2 > 0 && $3 > 0) }'`
+  # A mineral typed with its water and ions (from the Builder, #1140): the
+  # structure is the system; no water layer, and ions only to neutralise.
+  MINFF_SYSTEM=0
+  if [ "$SOURCE" = minff ] && [ "$PRESOLV" -gt 0 ]; then
+    MINFF_SYSTEM=1
+    [ $MINFF_WATER = 1 ] && echo "The structure has its own water; the water layer of $DIST nm is not added." >> @@OUT@@
+    MINFF_WATER=0
+    awk '/\[ *molecules *\]/ { f = 1; next } f && NF == 2 && $1 !~ /^;/ { s = s (s ? ", " : "") $1 " " $2 }
+         END { print "Molecules in the structure: " s }' topol.top >> @@OUT@@
+  fi
   prepStep 2 editconf
   if [ "$SOURCE" != minff ] && [ "$PRESOLV" -gt 0 ] && [ "$PREBOX" = 1 ]; then
     cp step1.gro step2.gro
@@ -1893,6 +1903,9 @@ GENION_RMIN=""
     echo "Solvent already present in the structure ($PRESOLV water molecules); gmx solvate skipped." >> @@OUT@@
     echo "Solvent already present in the structure; gmx solvate skipped." >> @@LOG@@
     cp step2.gro step3.gro
+  elif [ $MINFF_SYSTEM = 1 ]; then
+    echo "Solvent already present in the structure ($PRESOLV water molecules); no water layer added, gmx solvate skipped." >> @@OUT@@
+    cp step2.gro step3.gro
   elif [ "$SOURCE" = minff ] && [ $MINFF_WATER = 0 ]; then
     echo "No water layer requested; the mineral keeps its cell and no water is added." >> @@OUT@@
     cp step2.gro step3.gro
@@ -1937,13 +1950,20 @@ MDPEOF
   case "$FF" in gromos*) maxwarn=1;; esac
   prepRun "$gmx" grompp -f ions.mdp -c step3.gro -p topol.top -o ions.tpr -maxwarn $maxwarn || exit 1
   cp prep.step prep.grompp
-  if [ "$SOURCE" = minff ] && [ $MINFF_WATER = 0 ]; then
+  QSYS=`sed -n 's/.*System has non-zero total charge: *\([-0-9.eE+]*\).*/\1/p' prep.grompp | head -1`
+  QSYS=${QSYS:-0}
+  if [ $MINFF_SYSTEM = 1 ] && [ -z "$GENION_CONC" ] &&
+     { [ "$NEUT" = 0 ] || [ "`echo "$QSYS" | awk '{ print ($1 < 0.01 && $1 > -0.01) }'`" = 1 ]; }; then
+    echo "The structure's ions are kept (total charge $QSYS); genion adds none." >> @@OUT@@
+    cp step3.gro ion.gro
+  elif [ "$SOURCE" = minff ] && [ $MINFF_WATER = 0 ] && [ $MINFF_SYSTEM = 0 ]; then
     echo "No solvent to replace with ions; the charge of the mineral is left as it is." >> @@OUT@@
     cp step3.gro ion.gro
   elif [ "$NEUT" = 0 ] && [ -z "$GENION_CONC" ]; then
     echo "Neutralising is off and the salt concentration is 0: no ions are added." >> @@OUT@@
     cp step3.gro ion.gro
   else
+    [ $MINFF_SYSTEM = 1 ] && echo "The structure's total charge is $QSYS: genion replaces water by $PNAME/$NNAME to neutralise it." >> @@OUT@@
     prepRun genionRun || exit 1
     if [ "$SOURCE" = minff ]; then
       # genion names the ion atom after the molecule (Na), but min.ff's

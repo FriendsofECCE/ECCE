@@ -358,6 +358,10 @@ class Builder: public BuilderGUI,
       /// selected atoms (numbered from 1).
       /// @return why nothing was written, or empty
       // traceStep >= 0 takes the coordinates from that GEOMTRACE step
+      /** File > Export Structure...: .gro or .pdb with residues and the
+          cell, .xyz without; "" when written, else the reason. */
+      string exportStructure(const string& path);
+      void OnExportStructureClick(wxCommandEvent& event);
       string writeStructureXyz(const string& path, vector<int>& selected,
                                int traceStep = -1);
       // The calculation has a lattice (#587): powder and single crystal are

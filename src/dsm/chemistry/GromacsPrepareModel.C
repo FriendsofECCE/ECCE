@@ -28,6 +28,7 @@ void GromacsPrepareModel::reset()
    p_mrep = "1 1 1";
    p_msubs = "";
    p_mseed = "";
+   p_mstruct = "cell";
    p_mcell = "";
    p_msummary = "";
    p_mions = "HFE";

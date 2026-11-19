@@ -51,6 +51,8 @@ class GromacsPrepareModel : public ITaskModel
       string minffSubstitutions() const { return p_msubs; }
       string minffSeed() const { return p_mseed; }
       string minffCell() const { return p_mcell; }
+      /** "cell": a unit-cell file; "builder": the Builder's whole structure. */
+      string minffStructure() const { return p_mstruct; }
       string minffSummary() const { return p_msummary; }
       // min.ff's ion parameter set: HFE or IOD
       string minffIonSet() const { return p_mions; }
@@ -82,6 +84,7 @@ class GromacsPrepareModel : public ITaskModel
       void minffSubstitutions(const string& v) { p_msubs = v; }
       void minffSeed(const string& v) { p_mseed = v; }
       void minffCell(const string& v) { p_mcell = v; }
+      void minffStructure(const string& v) { p_mstruct = v; }
       void minffSummary(const string& v) { p_msummary = v; }
       void minffIonSet(const string& v) { p_mions = v; }
       void mineralForceField(const string& v) { p_mff = v; }
@@ -97,7 +100,7 @@ class GromacsPrepareModel : public ITaskModel
    private:
       string p_center, p_size, p_source, p_ff, p_water, p_his, p_box, p_pname, p_nname;
       string p_mvariant, p_mmineral, p_mrep, p_msubs, p_mseed, p_mcell, p_msummary, p_mions;
-      string p_mff, p_mbend;
+      string p_mff, p_mbend, p_mstruct;
       int p_mangle;
       bool p_ignh, p_merge, p_neut, p_mrigid;
       double p_dist, p_conc, p_rmin;

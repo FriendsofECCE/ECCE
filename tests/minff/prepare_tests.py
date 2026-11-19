@@ -206,6 +206,81 @@ def judge(gmx, rundir, label, cell_in, layer, charge_in, expect_ions=None):
           label + ": potential energy %.5g -> %.5g kJ/mol" % (pe[0], pe[-1]))
 
 
+def builder_gro(layer_gro, dst, with_na=True):
+    """The layer as the Builder writes it (its own residue name, element
+    atom names for water), with 2 waters and, optionally, 1 Na in the gap."""
+    L = open(layer_gro).read().splitlines()
+    atoms = L[2:-1]
+    box = [float(x) for x in L[-1].split()]
+    z = [float(l[36:44]) for l in atoms]
+    top, cz = max(z), box[2]
+    x0, y0 = box[0] / 2, box[1] / 2
+    out = ["%5d%-5s%5s%5d%s" % (1, "MMT", l[10:15].strip(), i + 1, l[20:44])
+           for i, l in enumerate(atoms)]
+    extra = []
+    for k, zz in enumerate((top + 0.45, top + 0.85)):
+        extra += [(2 + k, "HOH", "O", (x0, y0, zz)), (2 + k, "HOH", "H", (x0 + 0.0957, y0, zz)),
+                  (2 + k, "HOH", "H", (x0 - 0.024, y0 + 0.0927, zz))]
+    if with_na:
+        extra.append((4, "NA", "Na", (x0 - 0.5, y0 - 0.5, top + 0.65)))
+    for r, rn, an, (x, y, zz) in extra:
+        out.append("%5d%-5s%5s%5d%8.3f%8.3f%8.3f" % (r, rn, an, len(out) + 1, x, y, zz))
+    check(top + 1.2 < min(z) + cz, "the gap holds the waters and the ion")
+    open(dst, "w").write("builder export\n%d\n%s\n%s\n" % (len(out), "\n".join(out), L[-1]))
+
+
+def system_cases(py, gmx, tmp, layer_gro, q_layer):
+    for name, with_na in (("system-na", True), ("system-charged", False)):
+        print("== " + name)
+        gro = os.path.join(tmp, name + ".gro")
+        builder_gro(layer_gro, gro, with_na)
+        out = os.path.join(tmp, name)
+        r = run([py, SCRIPT, "system", gro, "-o", out])
+        if not check(r.returncode == 0, name + ": minff_topology.py system"):
+            print(r.stderr[-1500:])
+            continue
+        import json
+        s = json.loads(r.stdout)
+        mols = molecules(os.path.join(out, "topol.top"))
+        want = {"MIN": 1, "SOL": 2, **({"Na": 1} if with_na else {})}
+        check(mols == want, name + ": molecules %s (want %s)" % (mols, want))
+        q = q_layer + (1 if with_na else 0)
+        check(abs(s["total_charge"] - q) < 1e-3 and s["waters"] == 2,
+              name + ": total charge %.4f (want %.1f), 2 waters" % (s["total_charge"], q))
+        conf = open(os.path.join(out, "conf.gro")).read().splitlines()
+        check([l[5:10].strip() for l in conf[2:-1]][-3:] == ["SOL"] * 3
+              and [l[10:15].strip() for l in conf[-4:-1]] == ["OW", "HW1", "HW2"],
+              name + ": SOL last, with the water model's atom names")
+        d = prepare(gmx, tmp, name, out,
+                    "SOURCE=minff\nWATER=opc3\nDIST=1\nCONC=0\nPNAME=Na\n", 0, q)
+        if not d:
+            continue
+        log = open(os.path.join(d, "gromacs.gmxlog"), errors="replace").read()
+        check("water layer of 1 nm is not added" in log,
+              name + ": the water layer is not added to a structure with water")
+        top = os.path.join(d, "ecceSession.gmxtop")
+        mols = molecules(top)
+        if with_na:
+            check("genion adds none" in log and mols == want,
+                  name + ": neutral, so genion adds nothing (%s)" % mols)
+        else:
+            check("genion replaces water" in log and mols == {"MIN": 1, "SOL": 1, "Na": 1},
+                  name + ": charge -1 neutralised by genion (%s)" % mols)
+        fin = os.path.join(d, "ecceSession_prepare.gro")
+        check(box_of(fin) == box_of(os.path.join(out, "conf.gro")),
+              name + ": the structure's cell is kept")
+        shutil.copy(top, os.path.join(d, "chk.top"))
+        open(os.path.join(d, "em.mdp"), "w").write(EM_MDP)
+        r = run([gmx, "grompp", "-f", "em.mdp", "-c", fin, "-p", "chk.top", "-o", "em.tpr"],
+                cwd=d)
+        m = re.search(r"non-zero total charge: *(\S+)", r.stdout + r.stderr)
+        if not check(r.returncode == 0 and not m, name + ": grompp, charge 0"):
+            print(r.stderr[-1500:])
+            continue
+        r = run([gmx, "mdrun", "-deffnm", "em", "-nt", "1"], cwd=d)
+        check(r.returncode == 0, name + ": mdrun minimises it")
+
+
 def mineral_only(src, dst):
     L = open(src).read().splitlines()
     keep = [l for l in L[2:-1] if l[5:10].strip() == "MIN"]
@@ -302,6 +377,15 @@ def main():
         d = prepare(gmx, tmp, "pyro-nowater", p, "SOURCE=minff\nDIST=0\nCONC=0\n", 0, -4)
         if d:
             judge(gmx, d, "charged pyrophyllite, no water", None, 0.0, s["total_charge"])
+
+    # 4. a whole structure as the Builder exports it (#1140): a charged
+    # layer with 2 waters and 1 Na in its gap, typed as it is
+    b = os.path.join(tmp, "layer")
+    s = build(py, os.path.join(uc, "Pyrophyllite_Lee_Guggenheim_1981_GII_0.071.pdb"), b,
+              "--replicate", "4", "3", "1", "--substitute", "Al", "Mgo", "1", "--seed", "1",
+              "--add-gap", "1.6")
+    if s:
+        system_cases(py, gmx, tmp, os.path.join(b, "conf.gro"), s["total_charge"])
 
     # 3. the montmorillonite of a real MINFF run (optional)
     if os.path.exists(REAL):

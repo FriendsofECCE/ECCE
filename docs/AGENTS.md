@@ -181,6 +181,8 @@ A fixed Å-per-pixel scale is not available yet (#1133). Test:
 `tests/apps/saveimage_test.py`.
 
 Layer Builder (`ECCE_BUILDER_SCRIPT`): `pbclayer <field> <value>` sets a field (layers, spacing, shifta, shiftb, ion1/ion2/ion3 with ion1n, ion1q, ion1min and likewise 2 and 3, water, watermin, seed); `pbcpress layers` presses Build Layers. Three ion rows. Test: `tests/apps/pbc_layers_test.py`.
+Builder File > Export Structure... writes `.gro` or `.pdb` with residues and the cell (`.xyz` without); Builder script `savegro PATH` / `savepdb PATH` (prints `BUILDER: savegro: done`). Atoms without a residue are written as HOH (water, OW/HW1/HW2) or as a residue named by the element (a lone ion). Test: ctest `fragreaders`.
+GROMACS Prepare, Mineral source, **Mineral from: the Builder** (#1140): the Builder's whole structure (mineral, water, ions; e.g. a Layer Builder stack) is typed as it is by `minff_topology.py system STRUCTURE.gro -o DIR [--variant|--mineral|--angle-k|--water|--ion-set]` (MIN, then ion molecules, SOL last; summary in `minff.json`: `waters`, `ions`, `total_charge`). Editor hook `set mstruct builder|cell` (then `set mbuild 1`); `summary` shows `mstruct=`. The job adds no water layer and runs genion only for a non-zero total charge. Test: ctest `minff_prepare` (case "system-na", "system-charged").
 
 ## Compare relaxed scans in the Builder
 

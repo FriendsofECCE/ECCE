@@ -1248,6 +1248,10 @@ void Builder::runBuilderScript(const std::string& file)
           fprintf(stderr, "BUILDER: dna refused: %s\n", e.what());
         }
         fprintf(stderr, "BUILDER: dna: %d atoms\n", (int)frag->numAtoms());
+      } else if ((w[0] == "savegro" || w[0] == "savepdb") && w.size() == 2) {
+        //  savegro|savepdb PATH: File > Export Structure... to that file.
+        const std::string err = exportStructure(w[1]);
+        fprintf(stderr, "BUILDER: %s: %s\n", w[0].c_str(), err.empty() ? "done" : err.c_str());
       } else if (w[0] == "savexyz" && w.size() == 2) {
         std::vector<int> none;
         const std::string err = writeStructureXyz(w[1], none);

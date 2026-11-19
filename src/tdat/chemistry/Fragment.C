@@ -5391,13 +5391,57 @@ bool Fragment::dumpGRO(ostream& out)
   char buf[200];
   out << (p_name.empty() ? "ECCE structure" : p_name) << "\n";
   out << numAtoms() << "\n";
+  // Atoms without a residue: a water (O bonded to exactly two H) becomes
+  // HOH and a lone unbonded atom its own residue named by its element, so
+  // MINFF typing and GROMACS see water and ions; the rest stays UNK 1.
+  int nextRes = 1;
+  for (int i = 0; i < numAtoms(); i++) {
+    Residue *r = atomRef(i)->getResidue();
+    if (r) nextRes = std::max(nextRes, r->number() + 1);
+  }
+  vector<string> ownName(numAtoms());
+  vector<int> ownNum(numAtoms(), 1);
+  std::unordered_map<TAtm*, int> at;
+  for (int i = 0; i < numAtoms(); i++) at[atomRef(i)] = i;
+  for (int i = 0; i < numAtoms(); i++) {
+    TAtm *atom = atomRef(i);
+    if (atom->getResidue() || !ownName[i].empty()) continue;
+    vector<TAtm*> *nb = atom->connectedAtoms();
+    const string sym = atom->atomicSymbol();
+    if (sym == "O" && nb->size() == 2 &&
+        (*nb)[0]->atomicSymbol() == "H" && (*nb)[1]->atomicSymbol() == "H" &&
+        !(*nb)[0]->getResidue() && !(*nb)[1]->getResidue()) {
+      const int num = nextRes++;
+      ownName[i] = "HOH"; ownNum[i] = num;
+      for (int k = 0; k < 2; k++) {
+        int j = at[(*nb)[k]];
+        ownName[j] = "HOH"; ownNum[j] = num;
+      }
+    } else if (nb->empty() && sym != "H" && sym != "O") {
+      ownName[i] = sym; ownNum[i] = nextRes++;
+      for (char& ch : ownName[i]) ch = toupper((unsigned char)ch);
+    }
+    delete nb;
+  }
   for (int i = 0; i < numAtoms(); i++) {
     TAtm *atom = atomRef(i);
     Residue *res = atom->getResidue();
-    string rn = res ? res->name() : string("UNK");
-    int rnum = res ? res->number() : 1;
+    string rn = res ? res->name() : (ownName[i].empty() ? string("UNK") : ownName[i]);
+    int rnum = res ? res->number() : ownNum[i];
     string an = atom->atomName();
     if (an.empty()) an = atom->atomicSymbol();
+    // GROMACS's water atom names, for water named only by its elements
+    const string trn = STLUtil::trim(rn);
+    if ((trn == "HOH" || trn == "SOL" || trn == "WAT") &&
+        STLUtil::trim(an) == atom->atomicSymbol()) {
+      if (an == "O") an = "OW";
+      else if (an == "H") {
+        bool second = i > 0 && atomRef(i - 1)->getResidue() == res &&
+                      atomRef(i - 1)->atomicSymbol() == "H" &&
+                      (res || ownNum[i - 1] == ownNum[i]);
+        an = second ? "HW2" : "HW1";
+      }
+    }
     const double *c = atom->coordinates();
     snprintf(buf, sizeof(buf), "%5d%-5.5s%5.5s%5d%8.3f%8.3f%8.3f",
              rnum % 100000, STLUtil::trim(rn).c_str(),
