@@ -116,14 +116,14 @@ BEGIN_EVENT_TABLE(IRCPanel, VizPropertyPanel)
 END_EVENT_TABLE()
 
 IRCPanel::IRCPanel()
-  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(500)
+  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(50)
 {
 }
 
 IRCPanel::IRCPanel(IPropCalculation *calculation,
         wxWindow *parent, wxWindowID id, const wxPoint& pos,
         const wxSize& size, long style, const wxString& name)
-  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(500)
+  : VizPropertyPanel(), p_unit(NULL), p_plot(NULL), p_grid(NULL), p_view(NULL), p_status(NULL), p_playback(NULL), p_extras(NULL), p_delay(50)
 {
   Create(calculation, parent, id, pos, size, style, name);
 }

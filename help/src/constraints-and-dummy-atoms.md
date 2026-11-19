@@ -220,7 +220,8 @@ a dissociation, and the residual is large.
 The **Relaxed Scan** panel and the **IRC Path** panel have a playback control
 under the plot. Its buttons step through the points and show each structure
 in the 3D view. **Delay:** sets the time between points in milliseconds
-(500 by default), as in the Geometry Trace. Tick **Loop** to play forward
+(50 on the IRC Path and 500 on the Relaxed Scan by default), as in the
+Geometry Trace. Tick **Loop** to play forward
 to the last point, then backward to the first, and repeat until you press
 stop. The IRC Path panel gives the energy in the unit chosen under **Energy
 unit:** and the reaction coordinate in amu½·bohr.
