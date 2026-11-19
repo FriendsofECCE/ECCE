@@ -244,6 +244,9 @@ SGViewer::SGViewer( wxWindow* parent, wxWindowID id,
 SGViewer::~SGViewer()
 {
   LiveCount::add("SGViewer", -1);
+  // Our reference from the constructor: without this the whole scene (and
+  // the Builder's scene graphs under p_topRoot) outlived the viewer (#1136).
+  if (p_newRoot) p_newRoot->unref();
 }
 
 
