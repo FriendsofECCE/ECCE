@@ -1413,9 +1413,15 @@ def runSetupTab(display):
                                     deck),
                   code + ": the input carries O def2-TZVP and H def2-SVP",
                   str(used) + "\n" + deck[:1500])
-        ecpPick = [a for a in allSu if "picked=def2-tzvp-ecp" in a]
-        check(ecpPick and all(" covered= " in a and "assign=off" in a
-                              for a in ecpPick),
+        hiPick = [a for a in allSu if "picked=def2-tzvp-ecp" in a
+                  and "checked=H,I" in a]
+        check(hiPick and " covered=I uncovered=H " in hiPick[0],
+              "HI: def2-tzvp-ecp has a core for I only", str(hiPick))
+        ecpPick = [a for a in allSu if "picked=def2-tzvp-ecp" in a
+                   and "checked=O,H" in a]
+        check(len(ecpPick) == len(mixes)
+              and all(" covered= " in a and "assign=off" in a
+                      for a in ecpPick),
               "def2-tzvp-ecp covers no element of water (no core): nothing to add",
               str(ecpPick))
         retired = [a for a in allSu if a.startswith("area=")][-1:]
