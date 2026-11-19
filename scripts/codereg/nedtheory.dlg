@@ -1,0 +1,116 @@
+# Keep field definitions and wire values in step with nedtheory.py.
+# tests/dialogs/native_test.py compares the live dialogs.
+
+dialog title="ECCE NWChem Editor: Theory Details"
+
+list NOSYM = C1|c1
+list ITERATIVE = Iterative SCF
+list CUBIC = SC|FCC|BCC
+list LOCALX = Slater (local)
+list LOCALC = VWN 1 (local)|VWN 2 (local)|VWN 3 (local)|VWN 4 (local)|VWN 5 (local)|VWN 1/RPA (local)|Perdew 1981 (local)|Perdew-Wang 1991 (local)
+
+
+box label="General" cols=2
+combo name="ES.Theory.SCF.Direct" label="SCF Computed:" choices="Direct|Semi-Direct" default="Semi-Direct" when="(category==SCF || category==MP || category==CC)"
+combo name="ES.Theory.SCF.Direct" label="SCF Computed:" choices="In Core|Direct" default="In Core" when="(category==DFT)"
+combo name="ES.Theory.NWPW.Spintype" label="Spin Type:" choices="Restricted|Unrestricted" default="Restricted" when="(category==NWPW)"
+combo name="ES.Theory.SCF.InitialGuess" label="  Orbital Initial Guess:" choices="NWChem Atomic Guess|Core Hamiltonian" default="NWChem Atomic Guess" when="(category==SCF || category==DFT || category==MP || category==CC)"
+combo name="ES.Theory.NWPW.InitialGuess" label="  Orbital Initial Guess:" choices="LCAO|LCAO_skip" default="LCAO" when="(category==NWPW)"
+
+box label="Charges" cols=1 when="(category==SCF || category==DFT) && runtype!=ESP"
+check name="ES.Theory.NWChem.ESPCharges" label=" ESP-fitted charges (task esp)" default="0" when="(category==SCF || category==DFT) && runtype!=ESP"
+
+box label="Geometry" cols=2
+float name="ES.Theory.SymmetryTol" label="Tolerance:" default="0.01" hard="(0..)" unit="Angstroms" enable_if="symmetry && symmetry not in @NOSYM"
+check name="ES.Theory.UseAutoZ" label=" Use Automatic Z-matrix" default="1"
+
+box label="Memory/Disk Limits" cols=2 when="category==SCF"
+check name="ES.Theory.SCF.Memory" label=" Memory:" default="0"
+int name="ES.Theory.SCF.MemorySize" label="" default="2" hard="[0..)" unit="Gigabytes / core" export="1" enable_if="ES.Theory.SCF.Memory==1"
+check name="ES.Theory.SCF.Disk" label=" Disk:" default="0" when="(category==SCF)" enable_if="ES.Theory.SCF.Direct==Semi-Direct"
+int name="ES.Theory.SCF.DiskSize" label="" default="64" hard="[0..)" unit="Megawords" export="1" when="(category==SCF)" enable_if="ES.Theory.SCF.Direct==Semi-Direct && ES.Theory.SCF.Disk==1"
+
+box label="Memory Limit" cols=2 when="category!=SCF"
+check name="ES.Theory.SCF.Memory" label=" Memory:" default="0"
+int name="ES.Theory.SCF.MemorySize" label="" default="2" hard="[0..)" unit="Gigabytes / core" export="1" enable_if="ES.Theory.SCF.Memory==1"
+
+box label="SCF Convergence" cols=2
+combo name="ES.Theory.SCF.ConvergenceAlgorithm" label="Algorithm:" choices="Quadratic|Conjugate Gradient" default="Quadratic" when="(category==SCF || category==MP || category==CC)"
+combo name="ES.Theory.SCF.ConvergenceAlgorithm" label="Algorithm:" choices="DIIS|Iterative SCF" default="DIIS" when="(category==DFT)"
+combo name="ES.Theory.SCF.ConvergenceAlgorithm" label="Algorithm:" choices="CG|LMBFGS" default="CG" when="(category==NWPW)"
+float name="ES.Theory.SCF.ConvergenceGradient.Value" label="Gradient:" default="0.0001" hard="(0..)" soft="[1e-10..1e-2]" unit="Hartree" when="(category==SCF)" enable_if="category!=DFT || ES.Theory.SCF.ConvergenceAlgorithm not in @ITERATIVE"
+float name="ES.Theory.SCF.ConvergenceGradient.Value" label="Gradient:" default="0.0005" hard="(0..)" soft="[1e-10..1e-2]" unit="Hartree" when="(category==DFT)" enable_if="category!=DFT || ES.Theory.SCF.ConvergenceAlgorithm not in @ITERATIVE"
+float name="ES.Theory.SCF.ConvergenceDensity.Value" label="Delta Density:" default="1e-05" hard="(0..)" soft="[1e-10..1e-2]" when="(category==DFT)"
+float name="ES.Theory.SCF.ConvergenceEnergy.Value" label="Delta Energy:" default="1e-06" hard="(0..)" soft="[1e-10..1e-2]" unit="Hartree" when="(category==DFT)"
+int name="ES.Theory.SCF.ConvergenceIterations" label="Max. Iterations:" default="20" hard="[0..)" when="(category==SCF || category==MP || category==CC || category==NWPW)"
+int name="ES.Theory.SCF.ConvergenceIterations" label="Max. Iterations:" default="30" hard="[0..)" when="(category==DFT)"
+float name="ES.Theory.NWPW.ConvergenceDensity.Value" label="Delta Density:" default="1e-07" hard="(0..)" soft="[1e-10..1e-2]" when="(category==NWPW)"
+float name="ES.Theory.NWPW.ConvergenceEnergy.Value" label="Delta Energy:" default="1e-07" hard="(0..)" soft="[1e-10..1e-2]" unit="Hartree" when="(category==NWPW)"
+check name="ES.Theory.SCF.Damping" label=" Damping Percentage:" default="0" when="(category==DFT)"
+int name="ES.Theory.SCF.DampingValue" label="" default="70" hard="[0..100]" export="1" when="(category==DFT)" enable_if="ES.Theory.SCF.Damping==1"
+check name="ES.Theory.SCF.LevelShift" label=" Level Shift Size:" default="0"
+float name="ES.Theory.SCF.LevelShiftSize" label="" default="20" hard="[0..)" unit="Hartree" export="1" when="(category==SCF || category==MP || category==CC || category==NWPW)" enable_if="ES.Theory.SCF.LevelShift==1"
+float name="ES.Theory.SCF.LevelShiftSize" label="" default="0.5" hard="[0..)" unit="Hartree" export="1" when="(category==DFT)" enable_if="ES.Theory.SCF.LevelShift==1"
+check name="ES.Theory.SCF.NewLevelShift" label=" New Level Shift After:" default="0" when="(category==SCF || category==MP || category==CC)" enable_if="ES.Theory.SCF.LevelShift==1"
+float name="ES.Theory.SCF.NewLevelShiftCrossover" label="" default="0.5" hard="[0..)" unit="Hartree" export="1" when="(category==SCF || category==MP || category==CC)" enable_if="ES.Theory.SCF.LevelShift==1 && ES.Theory.SCF.NewLevelShift==1"
+float name="ES.Theory.SCF.NewLevelShiftSize" label="       Size:" default="0" hard="[0..)" unit="Hartree" when="(category==SCF || category==MP || category==CC)" enable_if="ES.Theory.SCF.LevelShift==1 && ES.Theory.SCF.NewLevelShift==1"
+
+box label="Solvation" cols=2 when="category!=NWPW"
+check name="ES.Theory.SCF.UseCosmo" label=" Use COSMO Solvation" default="0" when="(category==SCF || category==DFT || category==MP || category==CC)"
+float name="ES.Theory.SCF.SolventRadius" label="Solvent Radius:" default="0.5" hard="[0..)" unit="Angstroms" when="(category==SCF || category==DFT || category==MP || category==CC)" enable_if="ES.Theory.SCF.UseCosmo==1"
+combo name="ES.Theory.SCF.Solvent" label="Solvent:" choices="Water: 78.4|Methanol: 33.0|Cyclohexane: 2.0243|Benzene: 2.2825|Acetonitrile: 36.64|Other" default="Water: 78.4" when="(category==SCF || category==DFT || category==MP || category==CC)" enable_if="ES.Theory.SCF.UseCosmo==1" dep_before="ES.Theory.SCF.SolventRadius"
+float name="ES.Theory.SCF.Dielectric" label="Dielectric constant (εᵣ):" default="78.4" hard="(0..)" when="(category==SCF || category==DFT || category==MP || category==CC)" enable_if="ES.Theory.SCF.UseCosmo==1 && ES.Theory.SCF.Solvent==Other"
+
+box label="Theory Options - MP" cols=1 when="category==MP"
+check name="ES.Theory.MP.UseTightConvergence" label=" Use Tight Convergence" default="0" when="(category==MP)"
+
+box label="Theory Options - CC" cols=2 when="category==CC"
+float name="ES.Theory.CC.ConvergenceEnergy.Value" label="Delta Energy:" default="1e-06" hard="[0..)" soft="[1e-12..1e-2]" unit="Hartree" when="(category==CC)"
+int name="ES.Theory.CC.ConvergenceIterations" label="Max. Iterations:" default="20" hard="[0..)" when="(category==CC)"
+
+box label="Theory Options - NWPW" cols=2 when="category==NWPW"
+combo name="ES.Theory.NWPW.XCFunctionals" label="Exchange-Correlation:" choices="lda|pbe96|revpbe|blyp|hf|pbe0|revpbe0|lda-sic|pbe96-sic|revpbe-sic|lda-0.5sic|pbe96-0.5sic|revpbe-0.5sic|lda-0.4sic|pbe96-0.4sic|revpbe-0.4sic" default="lda" when="(category==NWPW)"
+check name="ES.Theory.NWPW.UseCutoff" label="Cutoff Energy:" default="1" when="(category==NWPW)"
+float name="ES.Theory.NWPW.Cutoff" label="" default="30.0" hard="[0..)" unit="Hartree" export="1" when="(category==NWPW)" enable_if="ES.Theory.NWPW.UseCutoff==1"
+check name="ES.Theory.NWPW.UseNpDimensions" label="np_dimensions" default="0" when="(category==NWPW)"
+int name="ES.Theory.NWPW.NpDimensionsRows" label="Rows:" default="-1" hard="[-1..)" when="(category==NWPW)" enable_if="ES.Theory.NWPW.UseNpDimensions==1"
+int name="ES.Theory.NWPW.NpDimensionsCols" label="Columns:" default="-1" hard="[-1..)" when="(category==NWPW)" enable_if="ES.Theory.NWPW.UseNpDimensions==1"
+check name="ES.Theory.NWPW.UseRcut" label="Ewald rcut:" default="0" when="(category==NWPW)"
+float name="ES.Theory.NWPW.EwaldRcut" label="" default="0.0" hard="[0..)" when="(category==NWPW)" enable_if="ES.Theory.NWPW.UseRcut==1" dep_before="ES.Theory.NWPW.NpDimensionsRows"
+check name="ES.Theory.NWPW.UseNcut" label="Ewald ncut:" default="0" when="(category==NWPW)"
+int name="ES.Theory.NWPW.EwaldNcut" label="" default="1" hard="[0..)" when="(category==NWPW)" enable_if="ES.Theory.NWPW.UseNcut==1" dep_before="ES.Theory.NWPW.NpDimensionsRows"
+int name="ES.Theory.NWPW.mapping" label="Parallel Mapping" default="1" hard="[1..2]" when="(category==NWPW)"
+combo name="ES.Theory.NWPW.Mulliken" label="Mulliken:" choices="None|LCAO|Kawai" default="None" when="(category==NWPW)"
+
+box label="Unit Cell" cols=2 when="category==NWPW"
+combo name="ES.Theory.NWPW.CellType" label="Cell Type:" choices="None|SC|FCC|BCC|LatticeVectors" default="None" export="1" when="(category==NWPW)"
+combo name="ES.Theory.NWPW.CellBoundary" label="  Boundary Condition:" choices="periodic|aperiodic" default="periodic" when="(category==NWPW)"
+float name="ES.Theory.NWPW.CellL" label="L:" default="20.0" hard="[0..)" when="(category==NWPW)" enable_if="category==NWPW" show_if="ES.Theory.NWPW.CellType in @CUBIC" dep_before="ES.Theory.NWPW.Cutoff"
+float name="ES.Theory.NWPW.a1x" label="a1:" default="20.0" when="(category==NWPW)" enable_if="category==NWPW" show_if="ES.Theory.NWPW.CellType==LatticeVectors" dep_before="ES.Theory.NWPW.Cutoff"
+float name="ES.Theory.NWPW.a1y" label="" default="0.0" when="(category==NWPW)" enable_if="category==NWPW" show_if="ES.Theory.NWPW.CellType==LatticeVectors" dep_before="ES.Theory.NWPW.Cutoff"
+float name="ES.Theory.NWPW.a1z" label="" default="0.0" when="(category==NWPW)" enable_if="category==NWPW" show_if="ES.Theory.NWPW.CellType==LatticeVectors" dep_before="ES.Theory.NWPW.Cutoff"
+float name="ES.Theory.NWPW.a2x" label="a2:" default="0.0" when="(category==NWPW)" enable_if="category==NWPW" show_if="ES.Theory.NWPW.CellType==LatticeVectors" dep_before="ES.Theory.NWPW.Cutoff"
+float name="ES.Theory.NWPW.a2y" label="" default="20.0" when="(category==NWPW)" enable_if="category==NWPW" show_if="ES.Theory.NWPW.CellType==LatticeVectors" dep_before="ES.Theory.NWPW.Cutoff"
+float name="ES.Theory.NWPW.a2z" label="" default="0.0" when="(category==NWPW)" enable_if="category==NWPW" show_if="ES.Theory.NWPW.CellType==LatticeVectors" dep_before="ES.Theory.NWPW.Cutoff"
+float name="ES.Theory.NWPW.a3x" label="a3:" default="0.0" when="(category==NWPW)" enable_if="category==NWPW" show_if="ES.Theory.NWPW.CellType==LatticeVectors" dep_before="ES.Theory.NWPW.Cutoff"
+float name="ES.Theory.NWPW.a3y" label="" default="0.0" when="(category==NWPW)" enable_if="category==NWPW" show_if="ES.Theory.NWPW.CellType==LatticeVectors" dep_before="ES.Theory.NWPW.Cutoff"
+float name="ES.Theory.NWPW.a3z" label="" default="20.0" when="(category==NWPW)" enable_if="category==NWPW" show_if="ES.Theory.NWPW.CellType==LatticeVectors" dep_before="ES.Theory.NWPW.Cutoff"
+
+box label="Theory Options - DFT" cols=1 when="category==DFT"
+combo name="ES.Theory.DFT.XCFunctionals" label="Combined XC:" choices="None|Adiabatic Conn. (hybrid)|B1LYP (hybrid)|B3LYP (hybrid)|B3P86 (hybrid)|B3PW91 (hybrid)|BB1K (hybrid)|Becke 1997 (hybrid)|Becke 1997-1 (hybrid)|Becke 1997-2 (hybrid)|Becke 1997-GGA1 (Gradient Corr.)|Becke 1998 (hybrid)|Becke Half and Half (hybrid)|BLYP (hybrid)|BOP (Gradient Corr.)|BP86 (GGA)|CAM-B3LYP (range)|CAM-s12g (range)|CAM-s12h (range)|Filatov-Thiel 1997 (Gradient Corr.)|Gaussian B3 (hybrid)|HCTH (Gradient Corr.)|HCTH 120 (Gradient Corr.)|HCTH 147 (Gradient Corr.)|HCTH 407 (Gradient Corr.)|HCTHP 14 (Gradient Corr.)|HSE03 (range)|LC-wPBE (range)|M05 (hybrid)|M05-2X (hybrid)|M06 (hybrid)|M06-2X (hybrid)|M06-HF (hybrid)|M06-L (hybrid)|M11 (range)|MN15 (hybrid)|Mod. Perdew-Wang 1K (hybrid)|mPW1LYP (hybrid)|mPW1PBE (hybrid)|mPW1PW91 (hybrid)|mPW3PBE (hybrid)|OPBE (GGA)|PBE (GGA)|PBE0 (hybrid)|PBEOP (Gradient Corr.)|r2SCAN (Meta-GGA)|s12g (GGA)|s12h (hybrid)|SCAN (Meta-GGA)|SSB-D (GGA)|TPSSh (hybrid)|VSXC (hybrid)|wB97X (range)|X3LYP (hybrid)|xTPSS03 (Meta-GGA)" default="PBE0 (hybrid)" default_if="rxn==0 && env.ECCE_NWCHEM_DFT_USE_B3LYP==true => B3LYP (hybrid)" export="1" when="(category==DFT)"
+combo name="ES.Theory.DFT.ExchangeFunctionals" label="Exchange:" choices="Slater (local)|Becke88 (Gradient Corr.)|Perdew 1991 (Gradient Corr.)|PBE 1996 (Gradient Corr.)|Gill 1996 (Gradient Corr.)|Optimized Exchange (Gradient Corr.)|Mod. Perdew-Wang 1991 (Gradient Corr.)|Filatov-Thiel 1997 (Gradient Corr.)|M05 (Meta-GGA)|M05-2X (Meta-GGA)|M06 (Meta-GGA)|M06-HF (Meta-GGA)|M06-2X (Meta-GGA)|M06-L (Meta-GGA)|VSXC (Meta-GGA)|rPBE (Hybr.)|revPBE (Hybr.)|PW6B95 (Hybr.)|PWB6k (Hybr.)|PKZB99 (Meta-GGA)|TPSS03 (Meta-GGA)" default="Slater (local)" when="(category==DFT)" enable_if="ES.Theory.DFT.XCFunctionals==None" dep_before="ES.Theory.SCF.Solvent"
+combo name="ES.Theory.DFT.CorrelationFunctionals" label="Correlation:" choices="VWN 1 (local)|VWN 2 (local)|VWN 3 (local)|VWN 4 (local)|VWN 5 (local)|VWN 1/RPA (local)|Perdew 1981 (local)|Perdew-Wang 1991 (local)|Perdew 1986 (Gradient Corr.)|Lee-Yang-Parr (Gradient Corr.)|Perdew 1991 (Gradient Corr.)|PBE 1996 (Gradient Corr.)|Filatov-Thiel 1997 (Gradient Corr.)|M05 (Meta-GGA)|M05-2X (Meta-GGA)|M06 (Meta-GGA)|M06-HF (Meta-GGA)|M06-2X (Meta-GGA)|M06-L (Meta-GGA)|OP (Gradient Corr.)|PKZB99 (Meta-GGA)|TPSS03 (Meta-GGA)|BC95 (Meta-GGA)|PW6B95 (Meta-GGA)|PWB6K (Meta-GGA)|VSXC (Meta-GGA)" default="VWN 5 (local)" when="(category==DFT)" enable_if="ES.Theory.DFT.XCFunctionals==None" dep_before="ES.Theory.DFT.ExchangeFunctionals"
+float name="ES.Theory.DFT.CoulombCutoff" label="Coulomb Screening Tolerance:" default="1e-10" hard="[0..)" exp="1" when="(category==DFT)"
+combo name="ES.Theory.DFT.Dispersion" label="Dispersion:" choices="None|Grimme D1|Grimme D2|Grimme D3|Grimme D3(BJ)" default="None" export="1" when="(category==DFT)"
+
+box label="Grid Options" cols=2 when="category==DFT"
+combo name="ES.Theory.DFT.GridDensity" label="Quality:" choices="Extra Coarse|Coarse|Medium|Fine|Extra Fine" default="Medium" when="(category==DFT)"
+combo name="ES.Theory.DFT.GridAngular" label="Angular:" choices="Gauss-Legendre|Lebedev" default="Lebedev" when="(category==DFT)"
+combo name="ES.Theory.DFT.GridPartition" label="Partition:" choices="Becke|Erf1|SSF" default="Erf1" when="(category==DFT)"
+combo name="ES.Theory.DFT.GridRadial" label="Radial:" choices="Euler|Mura|Treutler" default="Mura" when="(category==DFT)"
+
+box label="Frozen Core Options" cols=2 when="category==MP || category==CC"
+check name="ES.Theory.UseFrozenCores" label=" Use Frozen Core Orbitals" default="1" export="1" when="(category==MP || category==CC)" enable_if="nfrozen>=0" dep_before="ES.Theory.SCF.Solvent"
+int name="ES.Theory.CorrelOrb.FrozenCoreValue" label="Freeze:" default="$nfrozen" hard="[0..$nocc]" export="1" when="(category==MP || category==CC)" enable_if="nfrozen>=0 && ES.Theory.UseFrozenCores==1" dep_before="ES.Theory.SCF.Solvent"
+status severity=warning when="category==DFT && ES.Theory.DFT.ExchangeFunctionals in @LOCALX && ES.Theory.DFT.CorrelationFunctionals not in @LOCALC" text="The exchange functional is local and the correlation functional uses the Gradient correction approximation. It is recommended that you use either local functionals for both exchange and correlation or Gradient Corrected functionals for both exchange and correlation."
+status severity=warning when="category==DFT && ES.Theory.DFT.ExchangeFunctionals not in @LOCALX && ES.Theory.DFT.CorrelationFunctionals in @LOCALC" text="The correlation functional is local and the exchange functional uses the Gradient correction approximation. It is recommended that you use either local functionals for both exchange and correlation or Gradient Corrected functionals for both exchange and correlation."

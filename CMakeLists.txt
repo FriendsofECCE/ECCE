@@ -3279,11 +3279,15 @@ if(PYTHON3_EXECUTABLE)
   # The G16 Runtype dialog has 349 contexts; --dedupe replays the restore
   # cases once per group of contexts with identical Python inventories.
   foreach(_d orcatheory orcaruntype ged16theory ged16runtype ecceqmruntype
-             xtbtheory xtbruntype)
+             xtbtheory xtbruntype nedtheory nedruntype)
     set(_extra "")
     set(_timeout 3600)   # ORCA runs ~25 min on an idle machine
     if(_d MATCHES "^ged16")
       set(_extra --dedupe --jobs 4)   # half of an 8-core desk machine
+      set(_timeout 7200)
+    endif()
+    if(_d MATCHES "^ned")
+      set(_extra --dedupe --jobs 3)
       set(_timeout 7200)
     endif()
     add_test(NAME dialogs_native_${_d}
@@ -3296,6 +3300,17 @@ if(PYTHON3_EXECUTABLE)
     set_tests_properties(dialogs_native_${_d} PROPERTIES SKIP_RETURN_CODE 77
                          TIMEOUT ${_timeout} RUN_SERIAL TRUE)
   endforeach()
+
+  add_test(NAME dialogs_native_nedtheory_b3lyp
+           COMMAND ${CMAKE_COMMAND} -E env ECCE_NWCHEM_DFT_USE_B3LYP=true
+                   ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/dialogs/native_test.py
+                   --dialog $<TARGET_FILE:ecce-dialog>
+                   --py ${CMAKE_CURRENT_SOURCE_DIR}/scripts/codereg/nedtheory.py
+                   --dlg ${CMAKE_CURRENT_SOURCE_DIR}/scripts/codereg/nedtheory.dlg
+                   --case DFT/RDFT/Energy --dedupe --jobs 3)
+  set_tests_properties(dialogs_native_nedtheory_b3lyp PROPERTIES
+                       SKIP_RETURN_CODE 77 TIMEOUT 900 RUN_SERIAL TRUE)
 
   # tests/verify -- the input-deck checker (#148).  Runs the real
   # scripts/parsers/verifyinput over decks captured from real runs and

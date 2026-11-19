@@ -329,6 +329,13 @@ during tool start and job submit by `InputBlock` (swallows mouse and key
 events, nothing disabled; the separate-window path keeps `wxWindowDisabler`).
 Checked by `ECCE_1088_ONLY=1 tests/apps/one_process_test.py`.
 
+NWChem's native Theory and Runtype Details are opt-in with
+`ECCE_NATIVE_DIALOGS=1`; `ECCE_NATIVE_DIALOGS=0` selects the Python dialogs.
+The `.dlg` files preserve the existing settings keys, units and wire values.
+`ECCE_NWCHEM_DFT_USE_B3LYP=true` selects B3LYP outside reaction studies in
+both implementations. Oracle checks: `dialogs_native_nedtheory` and
+`dialogs_native_nedruntype` (`tests/dialogs/native_test.py --dedupe`).
+
 In one-program mode (the default): **Edit > Preferences > Windows
 and tabs** chooses which tools open as tabs of the Organizer's window (the
 Organizer is the first tab and cannot be closed). Presets **Normal**,
@@ -337,7 +344,7 @@ each tool's row (Builder / Viewer, Calculation Editor, Basis Set Tool, MD
 editors, MD Prepare) to Tab or Window, which makes the layout Custom. Under
 Normal the Calculation Editor's tab is the Set-up tab: a detail area right
 of the editor shows the Theory or Runtype Details (codes with a `.dlg`
-description: ECCE-QM, ORCA, xTB, Gaussian 16; others open the Python
+description: ECCE-QM, ORCA, xTB, Gaussian 16, NWChem; others open the Python
 dialog's window) or, with no detail chosen, the input file (after an
 unsaved change, a dry run of the generator with the editor's settings,
 500 ms after the last change; the calculation is not written). The window

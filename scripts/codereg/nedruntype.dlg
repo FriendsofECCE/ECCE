@@ -1,0 +1,71 @@
+# Keep field definitions and wire values in step with nedruntype.py.
+# tests/dialogs/native_test.py compares the live dialogs.
+
+dialog title="ECCE NWChem Editor: Runtype Details"
+
+list GEOPT = Geometry|GeoVib
+list DRIVER = NWChem Driver
+list STEPPER = NWChem Stepper
+list GIAO = RHF|RDFT
+
+
+box label="Geometry Optimization" cols=2 when="runtype==Geometry"
+combo name="ES.Runtype.GeomOpt.SearchAlgorithm" label="Search Algorithm:" choices="NWChem Driver|NWChem Stepper" default="NWChem Driver" export="1" when="runtype in @GEOPT"
+combo name="ES.Runtype.GeomOpt.SearchFor" label="Find:" choices="Minimum|Transition State" default="Minimum" default_if="rxn!=0 && calcname==Transition-State => Transition State" when="runtype in @GEOPT" export_if="rxn!=0 && calcname==Transition-State"
+int name="ES.Runtype.GeomOpt.TransitionMode" label="Uphill Mode:" default="1" hard="[1..$nmodes]" when="runtype in @GEOPT" enable_if="ES.Runtype.GeomOpt.SearchFor!=Minimum"
+
+box label="Geometry Optimization + Vibration" cols=2 when="runtype==GeoVib"
+combo name="ES.Runtype.GeomOpt.SearchAlgorithm" label="Search Algorithm:" choices="NWChem Driver|NWChem Stepper" default="NWChem Driver" export="1" when="runtype in @GEOPT"
+combo name="ES.Runtype.GeomOpt.SearchFor" label="Find:" choices="Minimum|Transition State" default="Minimum" default_if="rxn!=0 && calcname==Transition-State => Transition State" when="runtype in @GEOPT" export_if="rxn!=0 && calcname==Transition-State"
+int name="ES.Runtype.GeomOpt.TransitionMode" label="Uphill Mode:" default="1" hard="[1..$nmodes]" when="runtype in @GEOPT" enable_if="ES.Runtype.GeomOpt.SearchFor!=Minimum"
+
+box label="Convergence" cols=1 when="runtype in @GEOPT"
+combo name="ES.Runtype.GeomOpt.Convergence" label="Tolerance:" choices="Tight|Default|Loose|Explicit" default="Default" export="1" when="runtype in @GEOPT" enable_if="ES.Runtype.GeomOpt.SearchAlgorithm in @DRIVER"
+float name="ES.Runtype.GeomOpt.GradientMax" label="Max. Gradient Value: " default="0.00045" hard="[0..)" soft="[1e-5..1e-2]" unit="Hartree/Bohr" export="1" when="runtype in @GEOPT" enable_if="ES.Runtype.GeomOpt.Convergence==Explicit && ES.Runtype.GeomOpt.SearchAlgorithm in @DRIVER"
+float name="ES.Runtype.GeomOpt.GradientRMS" label="Max. RMS Gradient:  " default="0.0003" hard="[0..)" soft="[1e-5..1e-2]" unit="Hartree/Bohr" export="1" when="runtype in @GEOPT" enable_if="ES.Runtype.GeomOpt.Convergence==Explicit && ES.Runtype.GeomOpt.SearchAlgorithm in @DRIVER"
+float name="ES.Runtype.GeomOpt.StepSizeMax" label="Max. Step Size:         " default="0.0018" hard="[0..)" soft="[1e-5..1e-2]" unit="Bohr" export="1" when="runtype in @GEOPT" enable_if="ES.Runtype.GeomOpt.Convergence==Explicit && ES.Runtype.GeomOpt.SearchAlgorithm in @DRIVER"
+float name="ES.Runtype.GeomOpt.StepSizeRMS" label="Max. RMS Step Size:" default="0.0012" hard="[0..)" soft="[1e-5..1e-2]" unit="Bohr" export="1" when="runtype in @GEOPT" enable_if="ES.Runtype.GeomOpt.Convergence==Explicit && ES.Runtype.GeomOpt.SearchAlgorithm in @DRIVER"
+float name="ES.Runtype.GeomOpt.ConvergenceGradient.Value" label="Stepper Gradient Max.:" default="0.0008" hard="[0..)" soft="[1e-5..1e-2]" unit="Hartree/Bohr" when="runtype in @GEOPT" enable_if="ES.Runtype.GeomOpt.SearchAlgorithm in @STEPPER"
+int name="ES.Runtype.GeomOpt.MaximumStepsValue" label="Maximum Steps:" default="20" hard="[0..)" soft="[1..100]" when="runtype in @GEOPT"
+
+box label="Properties" cols=1 when="runtype==Property && (category==SCF || category==DFT)"
+check name="ES.Runtype.Property.Efield" label="Electric Field at Nuclei" default="1" export="1" when="runtype==Property && (category==SCF || category==DFT)"
+check name="ES.Runtype.Property.EfieldGrad" label="Electric Field Gradient at Nuclei" default="1" export="1" when="runtype==Property && (category==SCF || category==DFT)"
+check name="ES.Runtype.Property.EDens" label="Electron Density at Nuclei" default="1" export="1" when="runtype==Property && (category==SCF || category==DFT)"
+check name="ES.Runtype.Property.GIAO" label="NMR Shielding (GIAO Method)" default="1" export="1" when="runtype==Property && (category==SCF || category==DFT) && theory in @GIAO"
+check name="ES.Runtype.Property.Hyperfine" label="NMR Hyperfine Coupling (Fermi-Contact and Spin-Dipole Expectation Values)" default="1" export="1" when="runtype==Property && (category==SCF || category==DFT) && theory not in @GIAO && theory!=ROHF && mult>1"
+check name="ES.Runtype.Property.SpinSpin" label="NMR Indirect Spin-Spin Coupling" default="1" export="1" when="runtype==Property && (category==SCF || category==DFT) && theory not in @GIAO && theory!=ROHF && mult==1"
+
+box label="ESP Charge Fitting Grid parameters" cols=2 when="runtype==ESP"
+float name="ES.Runtype.ESP.GridRange" label="Grid Range:" default="0.4" hard="(0..)" soft="[0.25..1]" unit="nm" export="1" when="runtype==ESP"
+float name="ES.Runtype.ESP.GridSpacing" label="Grid Spacing:" default="0.035" hard="(0..)" soft="[0.01..0.1]" unit="nm" export="1" when="runtype==ESP"
+float name="ES.Runtype.ESP.ProbeRadius" label="Probe Radius:" default="0.07" hard="(0..)" soft="[0.05..0.15]" unit="nm" when="runtype==ESP"
+float name="ES.Runtype.ESP.ProbeScaleFactor" label="Probe Scale Factor:" default="1" hard="(0..)" when="runtype==ESP"
+check name="ES.Runtype.ESP.Screening" label="Screening Tolerance: " default="0" when="runtype==ESP"
+float name="ES.Runtype.ESP.ScreeningTolerance" label="" default="1e-05" hard="(0..)" when="runtype==ESP" enable_if="ES.Runtype.ESP.Screening==1"
+
+box label="ESP Restraint Settings" cols=2 when="runtype==ESP"
+check name="ES.Runtype.ESP.UseRestraints" label="Use Charge Restraining Potential" default="1" export="1" when="runtype==ESP"
+check name="ES.Runtype.ESP.HydrogenFree" label="Do Not Restrain Hydrogens" default="0" when="runtype==ESP" enable_if="ES.Runtype.ESP.UseRestraints==1"
+combo name="ES.Runtype.ESP.RestraintAlgorithm" label="Restraint Algorithm:" choices="Harmonic|Hyperbolic" default="Hyperbolic" export="1" when="runtype==ESP" enable_if="ES.Runtype.ESP.UseRestraints==1"
+float name="ES.Runtype.ESP.HarmForceConstant" label="Harmonic:" default="0.005" hard="(0..)" unit="au" when="runtype==ESP" enable_if="ES.Runtype.ESP.UseRestraints==1 && ES.Runtype.ESP.RestraintAlgorithm==Harmonic" dep_before="ES.Runtype.ESP.HydrogenFree"
+float name="ES.Runtype.ESP.HypForceConstant" label="Hyperbolic:" default="0.001" hard="(0..)" unit="au" when="runtype==ESP" enable_if="ES.Runtype.ESP.UseRestraints==1 && ES.Runtype.ESP.RestraintAlgorithm!=Harmonic" dep_before="ES.Runtype.ESP.HydrogenFree"
+float name="ES.Runtype.ESP.Tightness" label="Tightness:" default="0.1" hard="(0..)" unit="e" when="runtype==ESP" enable_if="ES.Runtype.ESP.UseRestraints==1 && ES.Runtype.ESP.RestraintAlgorithm!=Harmonic" dep_before="ES.Runtype.ESP.HydrogenFree"
+int name="ES.Runtype.ESP.MaxIterations" label="Max. Iterations:" default="25" hard="[1..)" when="runtype==ESP" enable_if="ES.Runtype.ESP.UseRestraints==1 && ES.Runtype.ESP.RestraintAlgorithm!=Harmonic" dep_before="ES.Runtype.ESP.HydrogenFree"
+float name="ES.Runtype.ESP.HypTolerance" label="Tightness:" default="0.001" hard="(0..)" unit="e" when="runtype==ESP" enable_if="ES.Runtype.ESP.UseRestraints==1 && ES.Runtype.ESP.RestraintAlgorithm!=Harmonic" dep_before="ES.Runtype.ESP.HydrogenFree"
+
+box label="Car-Parrinello" cols=2 when="runtype==Car-Parrinello && category==NWPW"
+combo name="ES.Runtype.CPMD.Algorithm" label="CPMD Algorithm:" choices="Constant Energy|Constant Temperature" default="Constant Energy" export="1" when="runtype==Car-Parrinello && category==NWPW"
+float name="ES.Runtype.CPMD.TimeStep" label="Time Step: " default="5.0" hard="[1e-5..)" soft="[1e-5..20]" unit="Atomic" export="1" when="runtype==Car-Parrinello && category==NWPW"
+float name="ES.Runtype.CPMD.FakeMass" label="Fake Mass: " default="500.0" hard="[0..)" unit="Atomic" export="1" when="runtype==Car-Parrinello && category==NWPW"
+int name="ES.Runtype.CPMD.InnerIterations" label="Inner Iterations:" default="10" hard="[1..)" when="runtype==Car-Parrinello && category==NWPW"
+int name="ES.Runtype.CPMD.OuterIterations" label="Outer Iterations:" default="100" hard="[1..)" when="runtype==Car-Parrinello && category==NWPW"
+float name="ES.Runtype.CPMD.electronscaling" label="Electronic scaling: " default="1.0" hard="[1..)" unit="Atomic" export="1" when="runtype==Car-Parrinello && category==NWPW"
+float name="ES.Runtype.CPMD.ionscaling" label="Ionic scaling: " default="1.0" hard="[1..)" unit="Atomic" export="1" when="runtype==Car-Parrinello && category==NWPW"
+float name="ES.Runtype.CPMD.electronPeriod" label="Electron Period: " default="1000.0" hard="[1..)" unit="Atomic" export="1" when="runtype==Car-Parrinello && category==NWPW"
+float name="ES.Runtype.CPMD.electronTemperature" label="Electron Temperature: " default="298.15" hard="[1..)" unit="Atomic" export="1" when="runtype==Car-Parrinello && category==NWPW"
+float name="ES.Runtype.CPMD.ionPeriod" label="Ionic Period: " default="1000.0" hard="[1..)" unit="Atomic" export="1" when="runtype==Car-Parrinello && category==NWPW"
+float name="ES.Runtype.CPMD.ionTemperature" label="Ionic Temperature: " default="298.15" hard="[1..)" unit="Atomic" export="1" when="runtype==Car-Parrinello && category==NWPW"
+check name="ES.Runtype.CPMD.Translation" label="Constrain Translation" default="1" export="1" when="runtype==Car-Parrinello && category==NWPW"
+check name="ES.Runtype.CPMD.Rotation" label="Constrain Rotation" default="0" export="1" when="runtype==Car-Parrinello && category==NWPW"
+check name="ES.Runtype.CPMD.Restart" label="Restart" default="0" export="1" when="runtype==Car-Parrinello && category==NWPW"

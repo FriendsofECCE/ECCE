@@ -27,6 +27,9 @@ control's value by name; unknown is empty), the right one is a literal unless it
 starts with `$` (a variable) or is `@N` (choice N of this combo, in `export_if`).
 argv names: restore port restoreflag rw debug category theory runtype calc
 calcname rxn symmetry pointgroup nelec mult nfrozen nocc nvirt nmodes.
+`env.NAME` in an expression reads an environment variable (empty if unset),
+including in `default_if`. This keeps environment-selected
+defaults in a code pack's data instead of compiled per-code logic.
 
 **Build time (argv only):** `when=`, `default_if="cond => value; cond => value"`
 (first true wins), `$name` inside `label soft hard default`. **Live (argv and
@@ -71,3 +74,5 @@ so the inventory diff skips `enabled` for them; the lines they send cover it.
 A `status` goes to the message area on a false-to-true change; the Python NEB
 dialog showed it as a label inside the box, so the native window has no empty
 line there.
+`severity=warning` or `severity=error` also flashes the message background;
+the default is normal text.

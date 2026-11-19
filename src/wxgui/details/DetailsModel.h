@@ -116,6 +116,7 @@ private:
     int item = -1;
     std::string target, value, when, text, before;
     bool silent = false, on = false;
+    Severity severity = NORMAL;
   };
   std::vector<Step> steps_;
 

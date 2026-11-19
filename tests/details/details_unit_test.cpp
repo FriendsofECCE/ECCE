@@ -4,6 +4,7 @@
 #include "DetailsModel.h"
 
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
 
@@ -353,6 +354,36 @@ static void inventory()
   CHECK(j.find("\"enabled\": false") != string::npos);   // Core, before Flag
 }
 
+static void environmentDefaults()
+{
+  Description d;
+  std::istringstream source(
+    "box label=Environment\n"
+    "text name=T.Env default=missing "
+    "default_if=\"env.PATH==$expected => found\"\n"
+    "check name=T.Missing default=0 "
+    "default_if=\"!env.ECCE_DETAILS_TEST_UNSET_411 => 1\"\n"
+    "status text=Warning severity=warning when=T.Missing==1\n"
+    "status text=Error severity=error when=T.Missing==1\n");
+  CHECK(d.parse(source));
+  const char *path = std::getenv("PATH");
+  Params p = params();
+  p.vars["expected"] = path ? path : "";
+  Model m(d, p);
+  string error;
+  CHECK(m.build(error));
+  CHECK_EQ(m.items()[m.find("T.Env")].def, "found");
+  if (!std::getenv("ECCE_DETAILS_TEST_UNSET_411")) {
+    CHECK_EQ(m.items()[m.find("T.Missing")].def, "1");
+    Recorder r;
+    m.attach(&r, &r);
+    m.initialize();
+    CHECK(r.statuses.size() == 2);
+    CHECK_EQ(r.statuses[0], "1:Warning");
+    CHECK_EQ(r.statuses[1], "2:Error");
+  }
+}
+
 int main()
 {
   expressions();
@@ -365,6 +396,7 @@ int main()
   calcpick();
   restore();
   inventory();
+  environmentDefaults();
   if (failures) { fprintf(stderr, "%d failure(s)\n", failures); return 1; }
   printf("details_unit: ok\n");
   return 0;

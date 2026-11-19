@@ -410,6 +410,15 @@ wins, and the tab says so.
 - **Remembered ssh logins**: the hosts whose SSH passwords are kept;
   **Forget** removes one. Shown where a password store is available.
 
+### Native NWChem Details
+
+With `ECCE_NATIVE_DIALOGS=1`, NWChem's **Theory Details...** and
+**Runtype Details...** use the native C++ dialogs. The fields, defaults,
+units and saved settings match the Python dialogs, including COSMO,
+frozen cores, plane-wave cells and ESP restraints. The existing
+`ECCE_NWCHEM_DFT_USE_B3LYP=true` setting also selects B3LYP as the default
+outside reaction studies. Set `ECCE_NATIVE_DIALOGS=0` to use Python.
+
 ### Gateway window
 
 Present only when the Gateway window is in use (`ECCE_GATEWAY_WINDOW=1`).

@@ -54,6 +54,12 @@ void Model::dbg(const string& m) const
 
 bool Model::lookupVar(const string& n, string& v) const
 {
+  // Code packs can preserve environment-selected defaults without a C++ hook.
+  if (n.compare(0, 4, "env.") == 0) {
+    const char *value = std::getenv(n.c_str() + 4);
+    v = value ? value : "";
+    return true;
+  }
   std::map<string, string>::const_iterator it = par_.vars.find(n);
   if (it == par_.vars.end()) return false;
   v = it->second;
@@ -264,7 +270,7 @@ void Model::checkDependency()
       bool on = eval(st.when, true);
       if (on && !st.on)
         say(substitute(st.text, [this](const string& n, string& v) {
-              return lookupAny(n, v); }), NORMAL);
+              return lookupAny(n, v); }), st.severity);
       st.on = on;
     }
   }
@@ -494,6 +500,8 @@ bool Model::build(string& error)
       st.type = Step::StatusMsg;
       st.text = L.get("text");
       st.when = L.get("when");
+      st.severity = L.get("severity") == "warning" ? WARNING :
+                    L.get("severity") == "error" ? ERROR : NORMAL;
       steps_.push_back(st);
     } else if (std::find(kinds, kinds + 8, c) != kinds + 8) {
       if (curBox < 0 || !boxOn || !eval(L.get("when"), false)) continue;

@@ -157,7 +157,9 @@ def contexts(py):
         if base not in (code.theoryDialog, code.runtypeDialog):
             continue
         for category, theory, runtypes in code.theories:
-            rts = (runtypes[:1] if theoryDlg else runtypes) or ["Energy"]
+            # NWChem Theory omits the ESP-charge toggle for the ESP run type.
+            rts = (runtypes[:1] if theoryDlg and base != "nedtheory.py"
+                   else runtypes) or ["Energy"]
             for rt in rts:
                 c = (category, theory, rt)
                 if c not in found:
@@ -230,6 +232,29 @@ def restoreCases(inv):
             cases.extend([("RI " + mode, [menu(modekey, mode)]),
                           ("RI override " + mode, [legacy, menu(modekey, mode)]),
                           ("RI override reversed " + mode, [menu(modekey, mode), legacy])])
+    names = {w["name"] for w in ws}
+    if "ES.Theory.NWChem.ESPCharges" in names:
+        cases.append(("ESP charges", [tog("ES.Theory.NWChem.ESPCharges", 1)]))
+    if "ES.Theory.NWPW.CellType" in names:
+        for cell in ("SC", "FCC", "BCC", "LatticeVectors"):
+            cases.append(("cell " + cell,
+                          [menu("ES.Theory.NWPW.CellType", cell)]))
+    if "ES.Theory.SCF.UseCosmo" in names:
+        cases.append(("COSMO other", [tog("ES.Theory.SCF.UseCosmo", 1),
+                      menu("ES.Theory.SCF.Solvent", "Other")]))
+        if "ES.Theory.DFT.CoulombCutoff" in names:
+            cases.append(("separate XC", [menu(FN, "None"),
+                          menu("ES.Theory.DFT.CorrelationFunctionals",
+                               "Lee-Yang-Parr (Gradient Corr.)")]))
+    if "ES.Runtype.GeomOpt.SearchAlgorithm" in names:
+        cases.append(("driver explicit", [
+            menu("ES.Runtype.GeomOpt.SearchAlgorithm", "NWChem Driver"),
+            menu("ES.Runtype.GeomOpt.Convergence", "Explicit"),
+            menu("ES.Runtype.GeomOpt.SearchFor", "Transition State")]))
+    if "ES.Runtype.ESP.UseRestraints" in names:
+        cases.extend([
+            ("ESP harmonic", [menu("ES.Runtype.ESP.RestraintAlgorithm", "Harmonic")]),
+            ("ESP unrestrained", [tog("ES.Runtype.ESP.UseRestraints", 0)])])
     cases.append(("unknown key", ["ES.Nothing|7||1|1|integer_input"]))
     return cases
 
@@ -420,8 +445,14 @@ def main():
             # The inventories and restore cases of ~1000 contexts are the
             # bulk of the work for the Runtype dialogs; build them in the pool.
             tasks = []
+            variants = VARIANTS
+            if os.path.basename(py).startswith("ned"):
+                variants += (("symmetry c2v", dict(symmetryGroup="c2v")),
+                             ("symmetry c1", dict(symmetryGroup="c1")),
+                             ("reaction TS", dict(reactionStudyFlag=1,
+                                                  calculationName="Transition-State")))
             for category, theory, runtype in ctxs:
-                for vname, vov in VARIANTS:
+                for vname, vov in variants:
                     ov = dict(vov, category=category, theory=theory,
                               runType=runtype)
                     tag = "%s/%s/%s %s" % (category, theory, runtype, vname)
@@ -468,7 +499,7 @@ def main():
                 print("FAIL  inventory " + d)
                 failed += 1
         print("%s  inventory diff (%d contexts)" % (
-            "ok  " if not diffs else "FAIL", len(ctxs) * len(VARIANTS)))
+            "ok  " if not diffs else "FAIL", len(tasks)))
         jobs = [j for j in jobs if a.case in j[0]]
         with concurrent.futures.ThreadPoolExecutor(a.jobs) as pool:
             for title, ok, pl, nl, perr, nerr in pool.map(
