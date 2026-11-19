@@ -116,8 +116,9 @@ define its queues. Open it in any of these ways:
   Registration, without a session.
 
 The list on the left shows every machine ECCE knows, with a column
-**From**: `site` for the machines supplied with the installation
-(`localhost` and `dummy` among them) and `yours` for the ones you added.
+**Registered by**: `site` for the machines supplied with the installation
+(`localhost` and `dummy` among them; `server` when you work with a central
+server) and `you` for the ones you added.
 Site machines are shared by everyone who uses the installation. If you
 select one and click **Save**, ECCE stores your own copy under the same
 name, and your copy is used instead of the shared one. **Delete Machine**

@@ -275,7 +275,7 @@ void WxMachineRegister::createControls()
     p_list = new wxListCtrl(panel, wxID_ANY, wxDefaultPosition,
                             wxSize(230, -1), wxLC_REPORT|wxLC_SINGLE_SEL);
     p_list->InsertColumn(0, "Name", wxLIST_FORMAT_LEFT, 140);
-    p_list->InsertColumn(1, "From", wxLIST_FORMAT_LEFT, 70);
+    p_list->InsertColumn(1, "Registered by", wxLIST_FORMAT_LEFT, 100);
     left->Add(p_list, wxSizerFlags(1).Expand().Border(wxLEFT|wxRIGHT|wxBOTTOM));
     top->Add(left, 0, wxEXPAND);
 
@@ -2027,7 +2027,7 @@ void WxMachineRegister::loadMachinesList()
     for (size_t i = 0; i < p_rows.size(); i++)
     {
         long idx = p_list->InsertItem((long)i, p_rows[i].name);
-        p_list->SetItem(idx, 1, p_rows[i].from);
+        p_list->SetItem(idx, 1, p_rows[i].from == "yours" ? "you" : p_rows[i].from);
     }
     p_inListUpdate = false;
 }
