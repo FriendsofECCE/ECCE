@@ -259,3 +259,4 @@ unit is produced in `ai.<code>`/the `.tpl`, closest to the input deck.
 - [ECCE-QM ghost centres (#1091)](ecceqm-ghost-centres-1091.md) - `ghost` geometry column, Z = 0 + basis_Z(), grid includes ghosts, energy only.
 - [Counterpoise job and properties](counterpoise-job-and-properties-1091.md): one input, split by gensub, block parsed by counterpoise.parse (#1091)
 - [GROMACS Prepare, Mineral from the Builder (#1140)](gromacs-prepare-mineral-from-builder-1140.md) - `minff_topology.py system`, MIN/ions/SOL order, no water layer, genion only for a charge.
+- [GROMACS NPT on a mineral stack: compressibility (#1140)](gromacs-npt-mineral-compressibility-1140.md) - water's value makes C-rescale oscillate and mdrun segfault; default 2e-6 /bar with PeriodicMolecules.

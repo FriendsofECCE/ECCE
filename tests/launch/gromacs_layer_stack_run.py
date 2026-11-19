@@ -171,7 +171,8 @@ def main():
 
         if not launch(prep, "Prepare", 1800):
             return 1
-        steps = {opt: None, eq: int(args.nvt_ps / 0.001), dyn: int(args.npt_ps / 0.001)}
+        # the editors' time step is 2 fs (gromacs.mdp dt = 0.002)
+        steps = {opt: None, eq: int(args.nvt_ps / 0.002), dyn: int(args.npt_ps / 0.002)}
         for url, exe, tool, what in ((opt, "mdoptimize", "MDOptimize", "Optimize (EM)"),
                                      (eq, "mddynamics", "MDDynamics", "Equilibrate (NVT)"),
                                      (dyn, "mddynamics", "MDDynamics", "Dynamics (NPT)")):

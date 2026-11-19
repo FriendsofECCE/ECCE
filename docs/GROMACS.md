@@ -106,7 +106,7 @@ K, kJ/mol, Pa and 1/Pa; only the last two are converted (to bar and 1/bar).
 | Dynamics: remove centre of mass motion, interval | `comm-mode`, `nstcomm` |
 | Dynamics: constant temperature, temperature, relaxation time | `tcoupl = v-rescale`, `ref-t`, `tau-t` |
 | Dynamics: annealing | `annealing = single`, `annealing-time`, `annealing-temp` |
-| Dynamics: constant pressure, pressure, relaxation time, compressibility | `pcoupl = C-rescale`, `ref-p`, `tau-p`, `compressibility` |
+| Dynamics: constant pressure, pressure, relaxation time, compressibility | `pcoupl = C-rescale`, `ref-p`, `tau-p`, `compressibility` (default 4.5e-5, or 2e-6 with periodic molecules) |
 | Dynamics: continue | `continuation = yes`, `gen-vel = no`; otherwise `gen-vel = yes`, `gen-temp` |
 | Run settings: defines, restrain positions + name | `define` (user flags, then `-D<name>`); `refcoord-scaling = com` when a barostat is on |
 | Run settings: groups, centre-of-mass and thermostat choice | `comm-grps`, `tc-grps` (with `tau-t`/`ref-t` repeated per group); `; ecce-group name = RES` comments that `gromacs.mkndx` turns into `ecce_groups.ndx` at launch, passed to grompp with `-n` |

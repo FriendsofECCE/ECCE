@@ -59,6 +59,10 @@ constant:
 - **NPT:** number of atoms, pressure and temperature. The thermostat and the
   barostat hold them and the box changes size; the Pressure tab gives the
   pressure and the compressibility.
+  Left at its default, the compressibility is water's (4.5e-5 /bar), or
+  2e-6 /bar when molecules cross the cell (a mineral): a mineral stack is
+  much stiffer than water, and water's value makes the box swing until the
+  run fails. The value sets how fast the box relaxes, not its final size.
 
 NPT keeps the thermostat on, since pressure coupling without temperature
 coupling is not a useful ensemble. A calculation made earlier opens with the
