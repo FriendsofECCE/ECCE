@@ -96,6 +96,23 @@ void LauncherScript::finish()
 
 void LauncherScript::onTimer(wxTimerEvent&)
 {
+    // Modal loops must keep reading answers, while other commands wait for
+    // the launch or check to return.
+    if (p_running)
+    {
+        p_timer.StartOnce(200);
+        if (p_cmds.empty()) return;
+        const auto w = words(p_cmds.front());
+        if (w[0] != "answer" && w[0] != "shot" && w[0] != "wait") return;
+        bool modal = false;
+        for (auto node = wxTopLevelWindows.GetFirst(); node; node = node->GetNext())
+            if (auto dlg = wxDynamicCast(node->GetData(), wxDialog))
+                modal = modal || dlg->IsModal();
+        if (!modal) return;
+        p_cmds.pop_front();
+        p_timer.StartOnce(runCommand(w));
+        return;
+    }
     if (p_cmds.empty() || p_frameRef.get() == NULL)
     {
         finish();
@@ -104,7 +121,10 @@ void LauncherScript::onTimer(wxTimerEvent&)
     string line = p_cmds.front();
     p_cmds.pop_front();
     fprintf(stderr, "[LAUNCHER] > %s\n", line.c_str());
+    p_running = true;
+    p_timer.StartOnce(200);
     int delay = runCommand(words(line));
+    p_running = false;
     p_timer.StartOnce(delay);
 }
 
@@ -118,6 +138,23 @@ int LauncherScript::runCommand(const vector<string>& w)
     {
         if (!p_frame->selectMachine(w[1]))
             fail("machine " + w[1] + ": not in the list");
+    }
+    else if (cmd == "answer" && n == 2)
+    {
+        int id = w[1] == "yes" ? wxID_YES : w[1] == "cancel" ? wxID_CANCEL :
+                 w[1] == "ok" ? wxID_OK : w[1] == "no" ? wxID_NO : wxID_NONE;
+        wxDialog *dialog = nullptr;
+        for (auto node = wxTopLevelWindows.GetFirst(); node; node = node->GetNext())
+            if (auto dlg = wxDynamicCast(node->GetData(), wxDialog))
+                if (dlg->IsModal()) dialog = dlg;
+        if (id == wxID_NONE || !dialog || !dialog->FindWindow(id))
+            fail("answer: no matching modal button");
+        else
+        {
+            fprintf(stderr, "[LAUNCHER] answered %s: %s\n",
+                    (const char *)dialog->GetTitle().utf8_str(), w[1].c_str());
+            dialog->EndModal(id);
+        }
     }
     else if (cmd == "pick" && n == 2)
     {

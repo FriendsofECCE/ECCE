@@ -20,6 +20,7 @@
     click advanced        the Advanced fold button
     username NAME         type into the Username field
     launch                click Launch
+ *    answer yes|cancel|ok|no   answer the open wx modal dialog
  *    mpicheck CODE         Launch's missing-MPI check for CODE on the chosen
  *                          machine; logs "go" or "cancel"
  *    sizecheck             Launch's ECCE-QM size warning for the calculation
@@ -73,6 +74,7 @@ class LauncherScript : public wxEvtHandler
         std::deque<std::string>  p_cmds;
         int                      p_failures;
         bool                     p_loaded;
+        bool                     p_running = false;
 };
 
 #endif
