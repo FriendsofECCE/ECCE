@@ -272,6 +272,7 @@ class LaunchPanel : public WxLauncherGUI,
         void buildArgs(EcceMap& kvargs);
         void startShell();
         bool inlineConfirm(const string& text);
+        void setLaunchLabel(const wxString& label);
         void say(const string& text, const WxFeedback::Severity& severity = WxFeedback::WARNING,
                  const bool& clear = false, const bool& flush = false);
         void sayClear();
