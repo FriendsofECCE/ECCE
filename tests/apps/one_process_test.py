@@ -2109,8 +2109,16 @@ def runPanelTeardown(display):
                             inspect=inspect)
 
         # 1. The Properties list of the water example.
+        waterDir = water[len("file://"):]
+
         def listing(_display):
-            append("examples spectroscopy", 25)
+            # The set copies one calculation at a time (~30 s each).
+            append("examples spectroscopy", 5)
+            deadline = time.time() + 1200
+            while (time.time() < deadline and not os.path.exists(
+                    os.path.join(waterDir, ".ecce-meta"))):
+                time.sleep(5)
+            time.sleep(10)
             builderScript(["wait 10000", "plist"])
             append("start CalculationViewer " + water, 30)
 
