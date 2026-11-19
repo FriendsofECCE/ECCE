@@ -4,13 +4,13 @@
 
 #include <chrono>
 #include <cstdio>
-#include <filesystem>
+#include "util/Filesystem.H"
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <vector>
 
-namespace fs = std::filesystem;
+namespace fs = ecce::fs;
 static int failures = 0;
 
 static void check(bool ok, const std::string& what)
@@ -159,7 +159,7 @@ int main(int argc, char** argv)
          "N+1 ORCA single-point inputs written: " + error);
    for (int i = 0; i < 3; ++i) {
       const std::string filename = i == 0 ? "complex.inp" : "fragment-" + std::to_string(i) + ".inp";
-      std::ifstream file(folder / filename);
+      std::ifstream file((folder / filename).string());
       std::stringstream text;
       text << file.rdbuf();
       check(text.str().find("! HF def2-SVP") != std::string::npos && geometry(text.str()) == expected[i],
