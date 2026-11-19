@@ -2,8 +2,8 @@
 type: pitfall
 title: "The PropertyPanel registry is process-wide: a Builder must ask for its own panels (#1139)"
 area: wx-viewer
-paths: ["src/apps/builder/PropertyPanel.C", "src/apps/builder/PropertyPanel.H", "src/apps/builder/Builder.C", "src/apps/builder/BuilderPanels.C", "tests/apps/one_process_test.py"]
-issues: [1139, 1131, 1135, 983]
+paths: ["src/apps/builder/PropertyPanel.C", "src/apps/builder/VizPropertyPanel.C", "src/apps/builder/MoDiagramPanel.C", "src/apps/builder/MoPanel.C", "src/apps/builder/PointNote.C", "src/wxgui/jms/ToolTabs.C", "src/apps/builder/PropertyPanel.H", "src/apps/builder/Builder.C", "src/apps/builder/BuilderPanels.C", "tests/apps/one_process_test.py"]
+issues: [1139, 1131, 1135, 983, 1141]
 ---
 `PropertyPanel::getPanels(url)` and `panelExists(url, name)` return every
 panel for that URL in the process. With one program (#983) a Builder and a
@@ -18,6 +18,13 @@ tabs reparent it). Code that touches a Builder's panes passes `this`:
 `getPanels(url, "", this)`, `panelExists(url, name, this)`,
 `getPanelsForPropertyName(url, key, this)`. Calls without an owner still
 see every panel; use them only for something meant to cross tools.
-`VizPropertyPanel::getPanels()` has no owner filter yet (quit and
-closeContext unfocus every viewer's panels for the URL).
+Panels looking for a sibling (MO diagram -> MOs, Density Map ->
+profile, IRC -> MOs) pass `getOwner()`; `VizPropertyPanel::getPanels()`
+takes the same owner argument.
+
+A panel finds its Builder with `PropertyPanel::builder()` (the owner), any
+other window with `Builder::containing(w)`. Never `GetParent()` or
+`wxGetTopLevelParent()`: hosted as a tab, a Builder's windows are children
+of the tab page under the Organizer's frame, so both miss it and the code
+silently does nothing (#1141: empty Diffraction pane).
 Test: `tests/apps/one_process_test.py --1131`.

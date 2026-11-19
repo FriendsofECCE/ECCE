@@ -28,6 +28,7 @@ wxStaticText *addOrbitalPointNote(wxWindow *parent, wxSizer *sizer,
  * updated.  Does nothing unless the calculation stores per-point orbitals
  * and the point differs from the current one.
  */
-void selectOrbitalPoint(IPropCalculation *calc, int tableIndex, int row);
+void selectOrbitalPoint(IPropCalculation *calc, int tableIndex, int row,
+                        const wxWindow *owner);
 
 #endif

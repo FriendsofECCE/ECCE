@@ -159,6 +159,10 @@ class Builder: public BuilderGUI,
     DECLARE_EVENT_TABLE()
 
    public:
+    //  The Builder a window is in.  Hosted as a tab (#983) its windows sit
+    //  in the tab page under the Organizer's frame, so neither GetParent()
+    //  nor wxGetTopLevelParent() reaches it.
+    static Builder *containing(const wxWindow *w);
 
     enum WIDGET_ID {
       ID_TOOLMENU_ITEM = 3000,

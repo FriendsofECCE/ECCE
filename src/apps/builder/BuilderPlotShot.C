@@ -139,7 +139,7 @@ bool Builder::plotShotCommand(SceneScript& s, const vector<string>& w,
   if (!mode.empty()) {
     MoPanel *mo = 0;
     set<PropertyPanel*> panels =
-        PropertyPanel::getPanels(p_calculation->getURL().toString());
+        PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
     for (set<PropertyPanel*>::iterator it = panels.begin();
          it != panels.end() && !mo; ++it)
       mo = dynamic_cast<MoPanel*>(*it);
@@ -274,7 +274,7 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
   }
   DensityMapPanel *dm = 0;
   set<PropertyPanel*> panels =
-      PropertyPanel::getPanels(p_calculation->getURL().toString());
+      PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
   for (set<PropertyPanel*>::iterator it = panels.begin();
        it != panels.end() && !dm; ++it)
     dm = dynamic_cast<DensityMapPanel*>(*it);
@@ -318,7 +318,7 @@ bool Builder::densityMapCommand(SceneScript& s, const vector<string>& w,
     ok = dm->useCurrentView();
   } else if (cmd == "dmfollow" && w.size() >= 2) {
     set<PropertyPanel*> all =
-        PropertyPanel::getPanels(p_calculation->getURL().toString());
+        PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
     ok = false;
     for (set<PropertyPanel*>::iterator it = all.begin(); it != all.end(); ++it)
       if (MoPanel *mo = dynamic_cast<MoPanel*>(*it))
@@ -469,7 +469,7 @@ bool Builder::densityProfileCommand(SceneScript& s, const vector<string>& w,
   }
   DensityProfilePanel *dp = 0;
   set<PropertyPanel*> panels =
-      PropertyPanel::getPanels(p_calculation->getURL().toString());
+      PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
   for (set<PropertyPanel*>::iterator it = panels.begin();
        it != panels.end() && !dp; ++it)
     dp = dynamic_cast<DensityProfilePanel*>(*it);
@@ -594,7 +594,7 @@ bool Builder::opdosCommand(SceneScript& s, const vector<string>& w, const string
     updatePanes(true);
   }
   OpdosPanel *op = 0;
-  set<PropertyPanel*> panels = PropertyPanel::getPanels(p_calculation->getURL().toString());
+  set<PropertyPanel*> panels = PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
   for (set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end() && !op; ++it)
     op = dynamic_cast<OpdosPanel*>(*it);
   if (!op) return s.fail(w[0] + ": no OPDOS panel for this calculation");

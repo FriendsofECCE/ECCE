@@ -53,8 +53,10 @@ class VizPropertyPanel : public PropertyPanel,
     //  The panel's "Show in viewer" box (0 until the panel is shown).
     wxCheckBox *viewerToggle() const { return p_viewerToggle; }
 
+    //  owner: only the panels that Builder created (PropertyPanel::getPanels).
     static set<VizPropertyPanel*> getPanels(const string& url="",
-                                            const string& name="");
+                                            const string& name="",
+                                            const wxWindow *owner=0);
 
   // setters
     void setFocus(const bool& value);

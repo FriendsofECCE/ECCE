@@ -430,7 +430,7 @@ string Builder::vinaScriptCommand(const vector<string>& w)
   }
   if (w[0] == "poses" && w.size() >= 2) {
     EnsemblePropertyPanel *en = 0;
-    for (PropertyPanel *p : PropertyPanel::getPanels(getContext()))
+    for (PropertyPanel *p : PropertyPanel::getPanels(getContext(), "", this))
       if ((en = dynamic_cast<EnsemblePropertyPanel*>(p))) break;
     if (!en) return "FAIL: no ensemble panel";
     if (w[1] == "select" && w.size() == 3) {

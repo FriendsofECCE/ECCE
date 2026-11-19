@@ -461,7 +461,7 @@ int IRCPanel::showPoint(int index)
   sg.touchChemDisplay();
   ecce::EventDispatcher::getDispatcher().publish(ecce::Event("StepChange"));
   const int oldPoint = calc->orbitalPoint();
-  selectOrbitalPoint(calc, p_frame[index], index);
+  selectOrbitalPoint(calc, p_frame[index], index, getOwner());
   if (p_stepping && showMo()) followMo(calc, oldPoint);
   return p_frame[index];
 }
@@ -477,7 +477,7 @@ void IRCPanel::followMo(IPropCalculation *calc, int oldPoint)
     return;
   }
   MoPanel *mp = 0;
-  for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString()))
+  for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString(), "", getOwner()))
     if ((mp = dynamic_cast<MoPanel*>(p)) != 0) break;
   if (!mp) {
     p_status->SetLabel("Open the MOs panel and select an orbital to follow it.");
@@ -548,7 +548,7 @@ void IRCPanel::drawFollowed()
   if (!calc || p_pendingMo < 0) return;
   const int mo = p_pendingMo;
   p_pendingMo = -1;
-  for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString()))
+  for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString(), "", getOwner()))
     if (MoPanel *mp = dynamic_cast<MoPanel*>(p)) { mp->showOrbital(mo); break; }
 }
 

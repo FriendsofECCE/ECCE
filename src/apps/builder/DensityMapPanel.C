@@ -1025,7 +1025,7 @@ void DensityMapPanel::followMo(int mo, bool beta)
   //  The MO list and the MO Diagram tell this panel; the Density Profile
   //  follows the same selection through it.
   if (getCalculation()) {
-    std::set<PropertyPanel*> panels = PropertyPanel::getPanels(getCalculation()->getURL().toString());
+    std::set<PropertyPanel*> panels = PropertyPanel::getPanels(getCalculation()->getURL().toString(), "", getOwner());
     for (std::set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end(); ++it) {
       DensityProfilePanel *dp = dynamic_cast<DensityProfilePanel*>(*it);
       if (dp) dp->followMo(mo, beta);

@@ -217,7 +217,7 @@ void PlotAnyPropertyPanel::OnPointClick(int index)
   if (getName() != "Geometry Step Plots" || !getCalculation() || !p_plotCtrl)
     return;
   set<PropertyPanel*> panels =
-      PropertyPanel::getPanels(getCalculation()->getURL().toString());
+      PropertyPanel::getPanels(getCalculation()->getURL().toString(), "", getOwner());
   for (PropertyPanel *p : panels) {
     GeomTracePropertyPanel *gt = dynamic_cast<GeomTracePropertyPanel*>(p);
     if (!gt) continue;

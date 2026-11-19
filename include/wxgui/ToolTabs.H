@@ -90,6 +90,8 @@ public:
   // The window the tool's controls are children of while hosted (the
   // frame's FindWindow(id) no longer reaches them), else null.
   static wxWindow *client(const wxTopLevelWindow *tool);
+  // The tool whose tab page is w, else null.
+  static wxTopLevelWindow *pageTool(const wxWindow *w);
   // The tool's Show/Raise/SetTitle while hosted: select / retitle its tab.
   static void select(wxTopLevelWindow *tool);
   static void setTitle(wxTopLevelWindow *tool, const wxString& title);

@@ -1709,7 +1709,7 @@ void Builder::setContext(const string& url, const bool& force)
     // unset focus of all viz prop panels, if we have any for the last context
     // this fixes seg fault if we're animating a trj, geom trace, vib, etc
     set<VizPropertyPanel*> vizpanels =
-            VizPropertyPanel::getPanels(p_calculation->getURL());
+            VizPropertyPanel::getPanels(p_calculation->getURL(), "", this);
     set<VizPropertyPanel*>::iterator vizpanel;
     for (vizpanel = vizpanels.begin();
          vizpanel != vizpanels.end();
@@ -4428,7 +4428,7 @@ bool Builder::pauseVibrationKey()
 {
   if (!p_calculation) return false;
   for (PropertyPanel *p :
-       PropertyPanel::getPanels(p_calculation->getURL().toString()))
+       PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
     if (NModePanel *nm = dynamic_cast<NModePanel*>(p))
       if (nm->hasFocus() && nm->togglePause()) return true;
   return false;
@@ -5680,7 +5680,7 @@ void Builder::doClose(const string& context, const bool& autoOpen)
 
   // unset focus of all viz prop panels
   // this fixes seg fault if we're animating a trj or geom trace
-  set<VizPropertyPanel*> panels = VizPropertyPanel::getPanels(contextToClose);
+  set<VizPropertyPanel*> panels = VizPropertyPanel::getPanels(contextToClose, "", this);
   set<VizPropertyPanel*>::iterator panel;
   for (panel = panels.begin(); panel != panels.end(); ++panel) {
     (*panel)->setFocus(false);
@@ -5907,7 +5907,7 @@ bool Builder::imageOnFineSurface(const string& path, int w, int h, bool white, i
   };
   if (factor > 1 && p_calculation != 0) {
     set<PropertyPanel*> panels =
-        PropertyPanel::getPanels(p_calculation->getURL().toString());
+        PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
     for (set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end(); ++it)
       if (MoPanel *mo = dynamic_cast<MoPanel*>(*it))
         return mo->renderOnFineGrid(factor, render);
@@ -7177,7 +7177,7 @@ void Builder::updatePropertyMenus()
         if (w[0] == "cubegrid" && w.size() == 4) {
           Cube *cube = 0;
           set<PropertyPanel*> cp =
-              PropertyPanel::getPanels(p_calculation->getURL().toString());
+              PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
           for (set<PropertyPanel*>::iterator it = cp.begin();
                it != cp.end() && !cube; ++it)
             cube = dynamic_cast<Cube*>(*it);
@@ -7597,7 +7597,7 @@ void Builder::updatePropertyMenus()
         if (w[0] == "modiagram" && w.size() == 4) {
           MoDiagramPanel *md = 0;
           set<PropertyPanel*> dp =
-              PropertyPanel::getPanels(p_calculation->getURL().toString());
+              PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
           for (set<PropertyPanel*>::iterator it = dp.begin();
                it != dp.end() && !md; ++it)
             md = dynamic_cast<MoDiagramPanel*>(*it);
@@ -7643,7 +7643,7 @@ void Builder::updatePropertyMenus()
         if (w[0] == "modipick" && w.size() >= 3 && w.size() <= 4) {
           MoDiagramPanel *md = 0;
           set<PropertyPanel*> dp =
-              PropertyPanel::getPanels(p_calculation->getURL().toString());
+              PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
           for (set<PropertyPanel*>::iterator it = dp.begin();
                it != dp.end() && !md; ++it)
             md = dynamic_cast<MoDiagramPanel*>(*it);
@@ -7659,7 +7659,7 @@ void Builder::updatePropertyMenus()
         if (w[0] == "modioptions" && w.size() == 2) {
           MoDiagramPanel *md = 0;
           set<PropertyPanel*> dp =
-              PropertyPanel::getPanels(p_calculation->getURL().toString());
+              PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
           for (set<PropertyPanel*>::iterator it = dp.begin();
                it != dp.end() && !md; ++it)
             md = dynamic_cast<MoDiagramPanel*>(*it);
@@ -7674,7 +7674,7 @@ void Builder::updatePropertyMenus()
         if ((w[0] == "moselect" || w[0] == "gridfaces") && w.size() == 2) {
           MoPanel *mo = 0;
           set<PropertyPanel*> mp =
-              PropertyPanel::getPanels(p_calculation->getURL().toString());
+              PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
           for (set<PropertyPanel*>::iterator it = mp.begin();
                it != mp.end() && !mo; ++it)
             mo = dynamic_cast<MoPanel*>(*it);
@@ -7718,7 +7718,7 @@ void Builder::updatePropertyMenus()
           for (size_t k = 2; k < w.size(); k++) type += " " + w[k];
           MoPanel *mo = 0;
           set<PropertyPanel*> mp =
-              PropertyPanel::getPanels(p_calculation->getURL().toString());
+              PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
           for (set<PropertyPanel*>::iterator it = mp.begin();
                it != mp.end() && !mo; ++it)
             mo = dynamic_cast<MoPanel*>(*it);
@@ -7732,7 +7732,7 @@ void Builder::updatePropertyMenus()
         if (w[0] == "moiso" && w.size() == 2) {
           MoPanel *mo = 0;
           set<PropertyPanel*> mp =
-              PropertyPanel::getPanels(p_calculation->getURL().toString());
+              PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
           for (set<PropertyPanel*>::iterator it = mp.begin();
                it != mp.end() && !mo; ++it)
             mo = dynamic_cast<MoPanel*>(*it);
@@ -7746,7 +7746,7 @@ void Builder::updatePropertyMenus()
           return s.fail("unknown command: " + w[0]);
         MoPanel *mo = 0;
         set<PropertyPanel*> panels =
-            PropertyPanel::getPanels(p_calculation->getURL().toString());
+            PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
         for (set<PropertyPanel*>::iterator it = panels.begin();
              it != panels.end() && !mo; ++it)
           mo = dynamic_cast<MoPanel*>(*it);
@@ -8575,6 +8575,18 @@ void Builder::surfacesChanged()
 
 
 
+Builder *Builder::containing(const wxWindow *w)
+{
+  //  A floating pane's frame has the managed window (the page) as parent.
+  for (; w; w = w->GetParent()) {
+    if (Builder *b = dynamic_cast<Builder*>(const_cast<wxWindow*>(w))) return b;
+    if (wxTopLevelWindow *tool = ToolTabs::pageTool(w))
+      return dynamic_cast<Builder*>(tool);
+  }
+  return 0;
+}
+
+
 //  Show a property panel as a click on its Properties menu entry does: the
 //  pane shown, made the detail or accordion panel, and its menu entry
 //  checked.  testSize: the ECCE_OPEN_PANEL_SIZE hook for a floating pane.
@@ -9020,7 +9032,7 @@ void Builder::quit(const bool& allowCancel)
   if (ret != wxID_CANCEL) {
     // unset focus of all viz prop panels
     // this fixes seg fault if we're animating a trj, geom trace, vib, etc
-    set<VizPropertyPanel*> panels = VizPropertyPanel::getPanels();
+    set<VizPropertyPanel*> panels = VizPropertyPanel::getPanels("", "", this);
     set<VizPropertyPanel*>::iterator panel;
     for (panel = panels.begin(); panel != panels.end(); ++panel) {
       (*panel)->setFocus(false);

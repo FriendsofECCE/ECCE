@@ -116,7 +116,8 @@ bool VizPropertyPanel::isPinned() const
 
 
 set<VizPropertyPanel*> VizPropertyPanel::getPanels(const string& url,
-                                                   const string& name)
+                                                   const string& name,
+                                                   const wxWindow *owner)
 {
   set<VizPropertyPanel*> ret;
 
@@ -136,6 +137,9 @@ set<VizPropertyPanel*> VizPropertyPanel::getPanels(const string& url,
     }
   }
 
+  if (owner)
+    for (auto it = ret.begin(); it != ret.end(); )
+      it = (*it)->getOwner() == owner ? std::next(it) : ret.erase(it);
   return ret;
 }
 
@@ -171,7 +175,7 @@ void VizPropertyPanel::doFocus(const bool& value)
     // since this panel is "taking focus", make all other panels lose theirs
     // only if they currently have focus (saves from spurious loseFocus calls)
     set<VizPropertyPanel*> panels =
-            getPanels(getCalculation()->getURL().toString());
+            getPanels(getCalculation()->getURL().toString(), "", getOwner());
     set<VizPropertyPanel*>::iterator panelIt;
     for (panelIt = panels.begin(); panelIt != panels.end(); ++panelIt) {
       if ((*panelIt)->hasFocus())
@@ -204,7 +208,7 @@ void VizPropertyPanel::doPin(const bool& value)
     // since this panel is "adding focus", make non-pinned panels lose theirs
     // only if they currently have focus (saves from spurious loseFocus calls)
     set<VizPropertyPanel*> panels =
-            getPanels(getCalculation()->getURL().toString());
+            getPanels(getCalculation()->getURL().toString(), "", getOwner());
     set<VizPropertyPanel*>::iterator panelIt;
     for (panelIt = panels.begin(); panelIt != panels.end(); ++panelIt) {
       if (!(*panelIt)->isPinned() && (*panelIt)->hasFocus()) {
