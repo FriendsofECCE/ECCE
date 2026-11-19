@@ -74,6 +74,10 @@ PartialCharge::PartialCharge(wxWindow* parent, wxWindowID id,
  */
 PartialCharge::~PartialCharge()
 {
+  // Its subscriptions call back into this window: in one process the
+  // dispatcher would outlive it and keep them (#1131).
+  delete p_msgDispatcher;
+  p_msgDispatcher = 0;
 }
 
 
