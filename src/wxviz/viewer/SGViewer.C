@@ -246,6 +246,9 @@ SGViewer::~SGViewer()
   LiveCount::add("SGViewer", -1);
   // Our reference from the constructor: without this the whole scene (and
   // the Builder's scene graphs under p_topRoot) outlived the viewer (#1136).
+  // Selected paths start at the selection node and hold it, and with it
+  // the scene above the molecule: a cycle unless emptied first.
+  p_ecceSel->deselectAll();
   if (p_newRoot) p_newRoot->unref();
 }
 
