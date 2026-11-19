@@ -6,6 +6,8 @@
  * once-per-process part (login, preferences, the app's own listeners).
  */
 #include "dsm/ResourceDescriptor.H"
+#include "viz/SGContainer.H"
+#include "viz/SGFragment.H"
 
 #include "wxgui/InProcessTools.H"
 #include "wxgui/ToolTabs.H"
@@ -44,6 +46,16 @@ static WxJMSMessageDispatch *openViewer() { return openTool(CALCVIEWER, _("Viewe
 
 void registerBuilderInProcess()
 {
+  // "builderinfo": what the active Builder or Viewer tab draws, so a test
+  // can tell that it shows the molecule without a screenshot (#1122).
+  ToolTabs::addCommand("builderinfo", [](const wxString&) -> wxString {
+    Builder *b = dynamic_cast<Builder*>(ToolTabs::activeTool());
+    if (!b) return "not a Builder tab";
+    SGContainer *sg = b->getSG();
+    SGFragment *frag = sg ? sg->getFragment() : NULL;
+    return wxString::Format("atoms=%d title=%s",
+                            frag ? (int)frag->numAtoms() : -1, b->GetTitle());
+  });
   InProcessTools::add(BUILDER, openBuilder);
   InProcessTools::add(CALCVIEWER, openViewer);
 }

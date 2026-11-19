@@ -2,7 +2,7 @@
 type: map
 title: "Second `ecce` start (#1069): the check is in organizer startup, a lock plus a local socket, keyed by user and data folder, not by session id"
 area: services
-paths: ["src/wxgui/jms/OneInstance.C", "include/wxgui/OneInstance.H", "src/wxgui/jms/OneInstanceChannel.C", "include/wxgui/OneInstanceChannel.H", "src/apps/oneinstance/ecce-one-instance.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/MainFrame.C", "packaging/ecce.in", "packaging/windows/ecce-splash", "packaging/windows/ecce.vbs", "packaging/windows/make-msi.ps1", "tests/apps/one_process_test.py"]
+paths: ["src/wxgui/jms/OneInstance.C", "include/wxgui/OneInstance.H", "src/wxgui/jms/OneInstanceChannel.C", "include/wxgui/OneInstanceChannel.H", "src/apps/oneinstance/ecce-one-instance.C", "src/apps/organizer/CalcMgrApp.C", "src/wxgui/jms/MainFrame.C", "packaging/ecce.in", "packaging/macos/launcher.m", "packaging/macos/Info.plist.in", "packaging/windows/ecce-splash", "packaging/windows/ecce.vbs", "packaging/windows/make-msi.ps1", "tests/apps/one_process_test.py"]
 issues: [1069, 983]
 ---
 - Where: `CalcMgrApp::OnInit`, right after `takeOneProcessSwitch` and only
@@ -59,7 +59,7 @@ issues: [1069, 983]
   because the gateway sits between the launcher and the Organizer;
   `ecce.vbs` forwards its arguments to ecce.cmd, which passes `%*` to
   organizer.exe. `CalcMgr::openStructureFiles` starts a Builder with a
-  `file://` URL. macOS: `CalcMgrApp::MacOpenFiles` is in place, but `packaging/macos/launcher.c` is the bundle's executable and swallows the `odoc` Apple event, so Info.plist declares no document types and Finder's "Open with" does not offer ECCE; `ecce FILE` from a shell works. Handling `odoc` needs an Apple-event handler in the launcher that forwards the paths (ECCE_OPEN_FILES at launch, the socket otherwise); not done, untestable without a Mac.
+  `file://` URL. macOS: Finder sends `odoc` to ECCE.app's executable, `packaging/macos/launcher.m`, not to the Organizer (a Helpers bundle; its `CalcMgrApp::MacOpenFiles` only sees files dropped on its own Dock icon). The launcher runs an AppKit loop (activation policy Prohibited, `LSUIElement`: no second Dock icon): files of the launch go on ecce.sh's command line; later ones and a reopen (ECCE.app clicked) start ecce.sh again, whose `ecce-one-instance` hands them over. `NSTreatUnknownArgumentsAsOpen=NO`, or AppKit would also open ecce's own arguments; `ECCE_APP_RUN` skips the loop. Info.plist: .mvm Owner (exported UTI), .xyz/.pdb/.cif Alternate.
 - ecce-splash (Windows) ignores organizer.exe processes that were running
   before it, so a second start no longer says "window shown after 0 s", and
   treats an exit status 0 of the new one as the hand-over, not an error.

@@ -41,7 +41,7 @@ done
 sed -e "s/@VERSION@/$VERSION/" -e "s/@MINOS@/${MACOSX_DEPLOYMENT_TARGET:-11.0}/" "$HERE/Info.plist.in" > "$APP/Contents/Info.plist"
 install -m 755 "$HERE/ecce.sh" "$RES/ecce.sh"
 # A Mach-O, not the script: TCC's responsible process must be ECCE, not bash.
-cc -O2 -Wall -o "$APP/Contents/MacOS/ecce" "$HERE/launcher.c"
+cc -O2 -Wall -fobjc-arc -framework AppKit -o "$APP/Contents/MacOS/ecce" "$HERE/launcher.m"
 "$HERE/make-icns.sh" "$RES/ecce.icns"
 
 # The Python the Details dialogs and the first-start window run on.

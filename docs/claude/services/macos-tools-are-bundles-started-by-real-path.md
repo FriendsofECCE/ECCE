@@ -2,7 +2,7 @@
 type: pitfall
 title: "macOS: Dock icon, menu name and LSUIElement need a bundle started by its real path, not through a link (#344, #354)"
 area: services
-paths: [packaging/macos/make-helpers.sh, packaging/macos/make-app.sh, src/wxgui/ewxClasses/ewxApp.C, src/wxgui/jms/WxJMSMessageDispatch.C, include/util/Ecce.H, src/apps/gateway/GatewayApp.C]
+paths: [packaging/macos/make-helpers.sh, packaging/macos/make-app.sh, packaging/macos/launcher.m, src/wxgui/ewxClasses/ewxApp.C, src/wxgui/jms/WxJMSMessageDispatch.C, include/util/Ecce.H, src/apps/gateway/GatewayApp.C]
 issues: [344, 354]
 ---
 Each wx program lives in `ECCE.app/Contents/Helpers/<Title>.app` (made by
@@ -36,7 +36,7 @@ was a bash script the TCC log (`log show --predicate 'subsystem ==
 "com.apple.TCC"'`) said `responsible={identifier=com.apple.bash}`, so the
 `NS*FolderUsageDescription` keys never applied and ~/Downloads silently
 listed empty with no prompt (#344). `ECCE.app`'s executable is now a small
-Mach-O (`packaging/macos/launcher.c`) that `posix_spawn`s `Resources/ecce.sh` (not in MacOS: codesign would want it signed) as a
+Mach-O (`packaging/macos/launcher.m`) that `posix_spawn`s `Resources/ecce.sh` (not in MacOS: codesign would want it signed) as a
 child; never `exec` there (that would make bash the responsible process
 again). A tool started by the gateway is a background UIElement app and is
 not activated by macOS: `ewxApp` activates it and raises its first window.

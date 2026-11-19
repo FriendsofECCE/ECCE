@@ -24,10 +24,17 @@ def read(*p):
 
 plist = plistlib.loads(read("macos", "Info.plist.in")
                        .replace("@VERSION@", "1").replace("@MINOS@", "11").encode())
-# launcher.c is the bundle's executable and gets kAEOpenDocuments, which it
-# does not handle: advertising types would make Finder offer ECCE and drop
-# the files.
-check("CFBundleDocumentTypes" not in plist, "macOS: no document types yet")
+docs = plist.get("CFBundleDocumentTypes", [])
+mvm = [d for d in docs if "org.friendsofecce.ecce.mvm" in d.get("LSItemContentTypes", [])]
+check(len(mvm) == 1 and mvm[0].get("LSHandlerRank") == "Owner", "macOS: .mvm is ECCE's")
+for ext in ("xyz", "pdb", "cif"):
+    rank = [d.get("LSHandlerRank") for d in docs if ext in d.get("CFBundleTypeExtensions", [])]
+    check(rank == ["Alternate"], "macOS: .%s only as an alternative" % ext)
+check(any("mvm" in t["UTTypeTagSpecification"]["public.filename-extension"]
+          for t in plist.get("UTExportedTypeDeclarations", [])), "macOS: .mvm type exported")
+launcher = read("macos", "launcher.m")
+check("openFiles:" in launcher and "NSTreatUnknownArgumentsAsOpen" in launcher,
+      "macOS: the launcher takes Finder's open-document event")
 
 xml.dom.minidom.parseString(read("desktop", "ecce-mvm.xml"))
 check("*.mvm" in read("desktop", "ecce-mvm.xml"), "mime XML names .mvm")

@@ -2,11 +2,11 @@
 #include "tdat/Fragment.H"
 #include "tdat/TAtm.H"
 #include "tdat/TBond.H"
+#include "util/Filesystem.H"
 
 #include <algorithm>
 #include <cctype>
 #include <cmath>
-#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <limits>
@@ -309,7 +309,7 @@ bool writeOrcaInputs(const Fragment& fragment, const std::string& folder,
     if (!writeOrcaXyz(input, fragment, id, totalMultiplicity, error)) return false;
     inputs[id ? "fragment-" + std::to_string(id) + ".inp" : "complex.inp"] = input.str();
   }
-  namespace fs = std::filesystem;
+  namespace fs = ecce::fs;
   std::error_code ec;
   const fs::path directory(folder);
   if (fs::exists(directory, ec)) {
@@ -325,7 +325,7 @@ bool writeOrcaInputs(const Fragment& fragment, const std::string& folder,
     }
   }
   for (const auto& input : inputs) {
-    std::ofstream out(directory / input.first);
+    std::ofstream out((directory / input.first).string());
     out << input.second;
     out.close();
     if (!out) { error = "Could not write " + input.first; return false; }

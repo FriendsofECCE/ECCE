@@ -173,6 +173,10 @@ if(APPLE)
   include_directories(AFTER ${CMAKE_SOURCE_DIR}/packaging/macos-compat)
   # ghc::filesystem for util/Filesystem.H below macOS 10.15.
   include_directories(AFTER ${CMAKE_SOURCE_DIR}/third_party)
+  # Some dependencies (HDF5) have @rpath install names; the installed (staged)
+  # programs need an rpath to their lib directory or dyld refuses to start
+  # them. bundle_libs.py replaces these rpaths when it builds ECCE.app.
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
 endif()
 
 set(ECCE_VERSION_RAW "")
