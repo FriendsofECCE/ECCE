@@ -29,7 +29,7 @@ In the Layer Builder panel:
   from the one below it, as fractions of a and b. The shift adds up: layer
   *i* is displaced *i* times the shift. Two layers in AB stacking need the
   shift once; for ABC stacking use three layers.
-- **Ion**, **n**, **q**, **min Å** (two rows): an element symbol, how many
+- **Ion**, **n**, **q**, **min Å** (three rows): an element symbol, how many
   of them go in **each** gap between layers, their charge, and the smallest
   distance each may have to any atom already there. The charge is stored as
   the atom's charge.
@@ -74,7 +74,7 @@ result.
 
 ## Limits
 
-- The two ion rows cover up to two kinds of ion; a third kind has to be
+- The three ion rows cover up to three kinds of ion; a fourth kind has to be
   added by hand afterwards.
 - Water placement is random and does not relax: it avoids overlaps, nothing
   more. Minimise and equilibrate before using it.

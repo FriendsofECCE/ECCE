@@ -34,8 +34,8 @@ void PBCLayerCmd::init()
    addParameter(new CommandParameter("spacing", 0.0));
    addParameter(new CommandParameter("shiftA", 0.0));
    addParameter(new CommandParameter("shiftB", 0.0));
-   for (int i = 1; i <= 2; i++) {
-      string p = i == 1 ? "ion1" : "ion2";
+   for (int i = 1; i <= 3; i++) {
+      string p = "ion" + std::to_string(i);
       addParameter(new CommandParameter(p + "sym", ""));
       addParameter(new CommandParameter(p + "n", 0));
       addParameter(new CommandParameter(p + "q", 0.0));
@@ -83,8 +83,8 @@ bool PBCLayerCmd::execute()
    opt.spacing = getParameter("spacing")->getDouble();
    opt.shiftA = getParameter("shiftA")->getDouble();
    opt.shiftB = getParameter("shiftB")->getDouble();
-   for (int i = 1; i <= 2; i++) {
-      string p = i == 1 ? "ion1" : "ion2";
+   for (int i = 1; i <= 3; i++) {
+      string p = "ion" + std::to_string(i);
       Ion ion;
       ion.symbol = getParameter(p + "sym")->getString();
       ion.count = getParameter(p + "n")->getInteger();

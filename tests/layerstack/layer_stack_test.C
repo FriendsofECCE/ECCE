@@ -369,11 +369,58 @@ static void testFill()
   check(!built && !err.empty(), "an impossible request reports an error: " + err);
 }
 
+// Three kinds of ion in one gap (the Layer Builder's three rows).
+static void testThreeIons()
+{
+  Cell cell;
+  std::vector<Atom> layer, out;
+  graphene(layer, cell, 0.0);
+  double big[3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) big[i][j] = cell[i][j] * (i < 2 ? 4 : 1);
+  std::vector<Atom> sheet;
+  for (int i = 0; i < 4; i++)
+    for (int j = 0; j < 4; j++)
+      for (size_t k = 0; k < layer.size(); k++) {
+        Atom a = layer[k];
+        for (int c = 0; c < 3; c++)
+          a.xyz[c] += i * cell[0][c] + j * cell[1][c];
+        sheet.push_back(a);
+      }
+  Options opt;
+  opt.nLayers = 2;
+  opt.spacing = 12.0;
+  opt.seed = 3;
+  const char* sym[3] = {"Na", "Ca", "Mg"};
+  const double chg[3] = {1.0, 2.0, 2.0};
+  const int cnt[3] = {3, 2, 1};
+  for (int i = 0; i < 3; i++) {
+    Ion ion;
+    ion.symbol = sym[i];
+    ion.count = cnt[i];
+    ion.charge = chg[i];
+    ion.minDist = 3.0;
+    opt.ions.push_back(ion);
+  }
+  Cell nc, bigc;
+  std::string err;
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) bigc[i][j] = big[i][j];
+  check(buildLayerStack(sheet, bigc, opt, out, nc, &err), "three ion kinds build " + err);
+  int n[3] = {0, 0, 0};
+  for (size_t i = 0; i < out.size(); i++)
+    if (out[i].kind == ION)
+      for (int k = 0; k < 3; k++)
+        if (out[i].symbol == sym[k]) { n[k]++; check(out[i].charge == chg[k], "ion charge kept"); }
+  check(n[0] == 6 && n[1] == 4 && n[2] == 2, "6 Na, 4 Ca, 2 Mg for two gaps");
+}
+
 int main()
 {
   testGraphite();
   testClay();
   testFill();
+  testThreeIons();
   printf("%s\n", failures ? "FAILED" : "all passed");
   return failures ? 1 : 0;
 }

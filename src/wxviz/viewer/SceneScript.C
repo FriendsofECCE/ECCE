@@ -73,6 +73,7 @@
 #include "util/SFile.H"
 #include "util/TempStorage.H"
 #include "wxviz/VizRender.H"
+#include "wxviz/ViewerEvtHandler.H"
 #include "wxviz/ImageConverter.H"
 
 #include "wxviz/MotionListener.H"
@@ -193,12 +194,31 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     SoCamera *cam = p_viewer->getCamera();
     if (!cam) return fail("zoom: no camera");
     float f = (float)atof(w[1].c_str());
+    //  An orthographic camera ignores its distance; its height is the zoom.
+    if (cam->isOfType(SoOrthographicCamera::getClassTypeId())) {
+      SoOrthographicCamera *oc = (SoOrthographicCamera*)cam;
+      if (f > 0) oc->height.setValue(oc->height.getValue() / f);
+      return true;
+    }
     SbVec3f dir;
     cam->orientation.getValue().multVec(SbVec3f(0, 0, -1), dir);
     float d = cam->focalDistance.getValue();
     SbVec3f focal = cam->position.getValue() + dir * d;
     cam->focalDistance.setValue(d / f);
     cam->position.setValue(focal - dir * (d / f));
+  } else if (c == "ortho" && w.size() == 2 && (w[1] == "on" || w[1] == "off")) {
+    //  "ortho on|off": the camera button's own handler, so the icon and the
+    //  camera stay in step; frame again, the cameras size views differently.
+    SoCamera *cam = p_viewer->getCamera();
+    if (!cam) return fail("ortho: no camera");
+    const bool isOrtho = cam->isOfType(SoOrthographicCamera::getClassTypeId());
+    if (isOrtho != (w[1] == "on")) {
+      wxCommandEvent ev(wxEVT_MENU, ViewerEvtHandler::ID_CAMERA_TYPE);
+      wxWindow *top = wxGetTopLevelParent(p_viewer);
+      if (!top || !top->GetEventHandler()->ProcessEvent(ev))
+        p_viewer->toggleCameraType();
+    }
+    p_viewer->viewAll();
   } else if ((c == "wheelburst" || c == "zoomburst") && w.size() == 5) {
     SoWxRenderArea *area = findRenderArea(p_viewer);
     SoCamera *camera = p_viewer->getCamera();
@@ -748,8 +768,10 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     else if (cam->isOfType(SoOrthographicCamera::getClassTypeId()))
       size = ((SoOrthographicCamera*)cam)->height.getValue();
     fprintf(stderr, "SCENE camera %s: pos %.5g %.5g %.5g rot %.5g %.5g %.5g %.5g"
-            " focal %.5g size %.5g\n", rest.c_str(), p[0], p[1], p[2],
-            axis[0], axis[1], axis[2], angle, cam->focalDistance.getValue(), size);
+            " focal %.5g size %.5g type %s\n", rest.c_str(), p[0], p[1], p[2],
+            axis[0], axis[1], axis[2], angle, cam->focalDistance.getValue(), size,
+            cam->isOfType(SoOrthographicCamera::getClassTypeId()) ? "orthographic"
+                                                                  : "perspective");
   } else if (c == "viewall") {
     p_viewer->viewAll();
   } else if (c == "resetview") {
