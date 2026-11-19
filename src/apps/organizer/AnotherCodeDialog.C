@@ -24,16 +24,20 @@ string lower(string s)
 AnotherCodeDialog::AnotherCodeDialog(wxWindow *parent, int count,
     const std::vector<std::pair<string, string> >& codes, const EcceURL& folder,
     std::function<bool(EcceURL&)> chooser, int hiddenCodes)
-  : wxDialog(parent, wxID_ANY, _("New from This in Another Code")),
+  : wxDialog(parent, wxID_ANY, count == 1 ? _("New Calculation in Another Code")
+                                          : _("New Calculations in Another Code")),
     p_codes(codes), p_folder(folder), p_chooser(chooser), p_hidden(hiddenCodes)
 {
   wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
-  top->Add(new wxStaticText(this, wxID_ANY, U(count == 1
-      ? "One new calculation is made from the selected one, with its final "
-        "geometry, charge and multiplicity."
-      : std::to_string(count) + " new calculations are made from the selected "
-        "ones, each with its final geometry, charge and multiplicity.")),
-      0, wxALL, 10);
+  //  Wrapped, so the longest sentence does not set the dialog's width.
+  const int wrap = FromDIP(420);
+  wxStaticText *intro = new wxStaticText(this, wxID_ANY, U(count == 1
+      ? "A new calculation is made with the final geometry, charge and "
+        "multiplicity of the selected one."
+      : std::to_string(count) + " new calculations are made, one from each "
+        "selected calculation, with its final geometry, charge and multiplicity."));
+  intro->Wrap(wrap);
+  top->Add(intro, 0, wxALL, 10);
   wxFlexGridSizer *grid = new wxFlexGridSizer(2, 8, 8);
   grid->AddGrowableCol(1);
   grid->Add(new wxStaticText(this, wxID_ANY, _("Code")), 0, wxALIGN_CENTER_VERTICAL);
@@ -45,7 +49,7 @@ AnotherCodeDialog::AnotherCodeDialog(wxWindow *parent, int count,
     if (p_codes[i].first == "ORCA") sel = (int)i;
   p_code->SetSelection(sel);
   grid->Add(p_code, 1, wxEXPAND);
-  grid->Add(new wxStaticText(this, wxID_ANY, _("End of the names")), 0, wxALIGN_CENTER_VERTICAL);
+  grid->Add(new wxStaticText(this, wxID_ANY, _("Name ending")), 0, wxALIGN_CENTER_VERTICAL);
   p_suffix = new wxTextCtrl(this, wxID_ANY);
   grid->Add(p_suffix, 1, wxEXPAND);
   grid->Add(new wxStaticText(this, wxID_ANY, _("Folder")), 0, wxALIGN_CENTER_VERTICAL);
@@ -56,9 +60,14 @@ AnotherCodeDialog::AnotherCodeDialog(wxWindow *parent, int count,
   where->Add(choose, 0);
   grid->Add(where, 1, wxEXPAND);
   top->Add(grid, 0, wxEXPAND | wxLEFT | wxRIGHT, 10);
-  top->Add(new wxStaticText(this, wxID_ANY, _("The first one opens in the Calculation "
-      "Editor. Set up the theory, run type, basis set and launch settings there; "
-      "the others are made with the same setup.")), 0, wxALL, 10);
+  wxStaticText *next = new wxStaticText(this, wxID_ANY, U(count == 1
+      ? "It opens in the Calculation Editor, where you set up the theory, run "
+        "type, basis set and launch settings."
+      : "The first one opens in the Calculation Editor, where you set up the "
+        "theory, run type, basis set and launch settings; the other " +
+        std::to_string(count - 1) + " get the same setup."));
+  next->Wrap(wrap);
+  top->Add(next, 0, wxALL, 10);
   top->Add(CreateStdDialogButtonSizer(wxOK | wxCANCEL), 0, wxEXPAND | wxALL, 10);
   SetSizerAndFit(top);
   p_suffix->SetValue(U("_" + lower(codeLabel())));
