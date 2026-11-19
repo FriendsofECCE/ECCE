@@ -1,5 +1,3 @@
-#include <cstdio>
-#include <cstdlib>
 #if defined(__GNUG__) && !defined(__APPLE__)
 #pragma implementation "SoWxViewer.h"
 #endif
@@ -145,8 +143,6 @@ SoWxViewer::~SoWxViewer( )
   // detach everything
   if ( p_sceneGraph != NULL )
     setSceneGraph(NULL);
-  if (getenv("ECCE_TEST_ORGANIZER"))
-    fprintf(stderr, "LEAKDBG ~SoWxViewer sceneRoot refs=%d\n", p_sceneRoot->getRefCount());
   p_sceneRoot->unref();
 
   // delete everything

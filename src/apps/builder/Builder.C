@@ -767,9 +767,6 @@ Builder::~Builder()
   p_calculation = 0;
   p_commandManager = 0;
   // The viewer, a child destroyed after this body, keeps its own reference.
-  if (p_sgMgr && getenv("ECCE_TEST_ORGANIZER"))
-    fprintf(stderr, "LEAKDBG ~Builder sgMgr refs=%d children=%d\n",
-            p_sgMgr->getRefCount(), p_sgMgr->getNumChildren());
   if (p_sgMgr) p_sgMgr->unref();
   p_sgMgr = 0;
 
