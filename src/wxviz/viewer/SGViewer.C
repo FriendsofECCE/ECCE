@@ -246,6 +246,9 @@ SGViewer::~SGViewer()
   LiveCount::add("SGViewer", -1);
   // Our reference from the constructor: without this the whole scene (and
   // the Builder's scene graphs under p_topRoot) outlived the viewer (#1136).
+  if (getenv("ECCE_TEST_ORGANIZER"))
+    fprintf(stderr, "LEAKDBG ~SGViewer newRoot refs=%d topRoot refs=%d sel refs=%d\n",
+            p_newRoot->getRefCount(), p_topRoot->getRefCount(), p_ecceSel->getRefCount());
   if (p_newRoot) p_newRoot->unref();
 }
 
