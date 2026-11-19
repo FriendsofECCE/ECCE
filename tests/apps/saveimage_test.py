@@ -81,6 +81,40 @@ saveimage {out}/c90.png 1 white
 zoom 2
 saveimage {out}/cz.png 1 white
 """
+ORTHO_SCENE = """viewall
+hold 2
+ortho on
+viewall
+camera ortho
+saveimage {out}/o1.png 1 white
+zoom 2
+camera orthozoom
+ortho off
+camera persp
+"""
+
+
+def checkOrtho(out, log):
+    import re
+    p = []
+    cams = dict(re.findall(r"SCENE camera (\S+):.* type (\w+)", log))
+    sizes = dict(re.findall(r"SCENE camera (\S+):.* size ([0-9.e+-]+)", log))
+    if cams.get("ortho") != "orthographic":
+        p.append("ortho on: camera type %s" % cams.get("ortho"))
+    if cams.get("persp") != "perspective":
+        p.append("ortho off: camera type %s" % cams.get("persp"))
+    try:
+        if not float(sizes["orthozoom"]) < float(sizes["ortho"]) * 0.75:
+            p.append("zoom 2 did not shrink the orthographic height")
+    except (KeyError, ValueError):
+        p.append("no camera lines")
+    if not os.path.exists(os.path.join(out, "o1.png")):
+        p.append("no orthographic image")
+    if "FAIL" in log:
+        p.append("a scene command failed")
+    return p
+
+
 def checkCapture(out, log):
     from PIL import Image, ImageChops
     p = []
@@ -254,7 +288,8 @@ def main():
             for tag, text, checker, extra in (
                     ("saveimage_light", LIGHT_SCENE, checkLight, {}),
                     ("saveimage_capture", CAPTURE_SCENE, checkCapture,
-                     {"ECCE_VIEWER_SCENE_HOLD": None}),):
+                     {"ECCE_VIEWER_SCENE_HOLD": None}),
+                    ("saveimage_ortho", ORTHO_SCENE, checkOrtho, {}),):
                 with open(scene, "w") as h:
                     h.write(text.format(out=out))
                 env = {"ECCE_VIEWER_SCENE": scene, "ECCE_VIEWER_SCENE_OUT": out,

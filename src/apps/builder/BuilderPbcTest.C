@@ -177,7 +177,7 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
   }
 
   //  "pbclayer <field> <value>": set a Layer Builder field (layers spacing
-  //  shifta shiftb ion1 ion1n ion1q ion1min ion2 ... water watermin seed).
+  //  shifta shiftb ion1..ion3 ion1n.. ion1q.. ion1min.. water watermin seed).
   if (c == "pbclayer" && w.size() == 3) {
     if (!layer) return s.fail("pbclayer: no Layer Builder panel");
     static const struct { const char* n; wxWindowID id; bool spin; } f[] = {
@@ -193,6 +193,10 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
       {"ion2n", LayerBuilder::ID_SPIN_LAYER_ION2N, true},
       {"ion2q", LayerBuilder::ID_TEXT_LAYER_ION2Q, false},
       {"ion2min", LayerBuilder::ID_TEXT_LAYER_ION2MIN, false},
+      {"ion3", LayerBuilder::ID_TEXT_LAYER_ION3SYM, false},
+      {"ion3n", LayerBuilder::ID_SPIN_LAYER_ION3N, true},
+      {"ion3q", LayerBuilder::ID_TEXT_LAYER_ION3Q, false},
+      {"ion3min", LayerBuilder::ID_TEXT_LAYER_ION3MIN, false},
       {"water", LayerBuilder::ID_SPIN_LAYER_WATER, true},
       {"watermin", LayerBuilder::ID_TEXT_LAYER_WATERMIN, false},
       {"seed", LayerBuilder::ID_SPIN_LAYER_SEED, true}};

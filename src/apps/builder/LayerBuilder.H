@@ -25,6 +25,10 @@ public:
   static const wxWindowID ID_SPIN_LAYER_ION2N;
   static const wxWindowID ID_TEXT_LAYER_ION2Q;
   static const wxWindowID ID_TEXT_LAYER_ION2MIN;
+  static const wxWindowID ID_TEXT_LAYER_ION3SYM;
+  static const wxWindowID ID_SPIN_LAYER_ION3N;
+  static const wxWindowID ID_TEXT_LAYER_ION3Q;
+  static const wxWindowID ID_TEXT_LAYER_ION3MIN;
   static const wxWindowID ID_SPIN_LAYER_WATER;
   static const wxWindowID ID_TEXT_LAYER_WATERMIN;
   static const wxWindowID ID_SPIN_LAYER_SEED;

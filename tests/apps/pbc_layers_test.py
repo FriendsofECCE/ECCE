@@ -46,6 +46,15 @@ CASES = (
                             "pbclayer ion1n 2", "pbclayer seed 5",
                             "pbcpress layers"],
      {"C": 2, "H": 8 + 16, "O": 8, "Na": 4}, "C"),
+    ("three-ions", LAYER + ["pbclayer layers 2", "pbclayer spacing 9",
+                            "pbclayer ion1 Na", "pbclayer ion1n 1",
+                            "pbclayer ion2 Ca", "pbclayer ion2n 1",
+                            "pbclayer ion3 Mg", "pbclayer ion3n 1",
+                            "pbclayer ion3q 2", "pbclayer ion1min 1.5",
+                            "pbclayer ion2min 1.5", "pbclayer ion3min 1.5",
+                            "pbclayer seed 5",
+                            "pbcpress layers"],
+     {"C": 2, "H": 8, "Na": 2, "Ca": 2, "Mg": 2}, "C"),
 )
 
 

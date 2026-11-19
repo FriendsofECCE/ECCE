@@ -24,6 +24,10 @@ const wxWindowID LayerBuilder::ID_TEXT_LAYER_ION2SYM = wxNewId();
 const wxWindowID LayerBuilder::ID_SPIN_LAYER_ION2N = wxNewId();
 const wxWindowID LayerBuilder::ID_TEXT_LAYER_ION2Q = wxNewId();
 const wxWindowID LayerBuilder::ID_TEXT_LAYER_ION2MIN = wxNewId();
+const wxWindowID LayerBuilder::ID_TEXT_LAYER_ION3SYM = wxNewId();
+const wxWindowID LayerBuilder::ID_SPIN_LAYER_ION3N = wxNewId();
+const wxWindowID LayerBuilder::ID_TEXT_LAYER_ION3Q = wxNewId();
+const wxWindowID LayerBuilder::ID_TEXT_LAYER_ION3MIN = wxNewId();
 const wxWindowID LayerBuilder::ID_SPIN_LAYER_WATER = wxNewId();
 const wxWindowID LayerBuilder::ID_TEXT_LAYER_WATERMIN = wxNewId();
 const wxWindowID LayerBuilder::ID_SPIN_LAYER_SEED = wxNewId();
@@ -70,10 +74,11 @@ LayerBuilder::LayerBuilder(wxWindow *parent, wxWindowID id)
   layerSizer->Add(new ewxStaticText(lp, wxID_STATIC, _("Between the layers, per gap:")), 0, wxLEFT|wxTOP, 3);
   wxFlexGridSizer* ig = new wxFlexGridSizer(0, 8, 2, 3);
   layerSizer->Add(ig, 0, wxGROW|wxALL, 2);
-  const wxWindowID ionIds[2][4] = {
+  const wxWindowID ionIds[3][4] = {
       {ID_TEXT_LAYER_ION1SYM, ID_SPIN_LAYER_ION1N, ID_TEXT_LAYER_ION1Q, ID_TEXT_LAYER_ION1MIN},
-      {ID_TEXT_LAYER_ION2SYM, ID_SPIN_LAYER_ION2N, ID_TEXT_LAYER_ION2Q, ID_TEXT_LAYER_ION2MIN}};
-  for (int r = 0; r < 2; r++) {
+      {ID_TEXT_LAYER_ION2SYM, ID_SPIN_LAYER_ION2N, ID_TEXT_LAYER_ION2Q, ID_TEXT_LAYER_ION2MIN},
+      {ID_TEXT_LAYER_ION3SYM, ID_SPIN_LAYER_ION3N, ID_TEXT_LAYER_ION3Q, ID_TEXT_LAYER_ION3MIN}};
+  for (int r = 0; r < 3; r++) {
     ig->Add(new ewxStaticText(lp, wxID_STATIC, _("Ion:")), 0, wxALIGN_CENTER_VERTICAL);
     tc = new ewxTextCtrl(lp, ionIds[r][0], _T(""), wxDefaultPosition, wxSize(40, -1), 0);
     tc->SetToolTip(_("Element symbol, e.g. Na"));
@@ -120,7 +125,7 @@ void LayerBuilder::OnButtonLayerBuild(wxCommandEvent& event)
       ewxTextCtrl *t = (ewxTextCtrl*)FindWindow(id);
       return t->GetValue().Trim().ToDouble(&v);
    };
-   double spacing = 0, sa = 0, sb = 0, wmin = 0, q[2] = {0, 0}, imin[2] = {0, 0};
+   double spacing = 0, sa = 0, sb = 0, wmin = 0, q[3] = {0, 0, 0}, imin[3] = {0, 0, 0};
    if (!num(ID_TEXT_LAYER_SPACING, spacing) || spacing <= 0.0) {
       wxLogWarning(wxString::FromUTF8("Enter the interlayer spacing in Å: the distance from one layer to the next."));
       return;
@@ -128,7 +133,8 @@ void LayerBuilder::OnButtonLayerBuild(wxCommandEvent& event)
    if (!num(ID_TEXT_LAYER_SHIFTA, sa) || !num(ID_TEXT_LAYER_SHIFTB, sb) ||
        !num(ID_TEXT_LAYER_WATERMIN, wmin) ||
        !num(ID_TEXT_LAYER_ION1Q, q[0]) || !num(ID_TEXT_LAYER_ION1MIN, imin[0]) ||
-       !num(ID_TEXT_LAYER_ION2Q, q[1]) || !num(ID_TEXT_LAYER_ION2MIN, imin[1])) {
+       !num(ID_TEXT_LAYER_ION2Q, q[1]) || !num(ID_TEXT_LAYER_ION2MIN, imin[1]) ||
+       !num(ID_TEXT_LAYER_ION3Q, q[2]) || !num(ID_TEXT_LAYER_ION3MIN, imin[2])) {
       wxLogWarning("A shift, charge or minimum distance is not a number.");
       return;
    }
@@ -140,10 +146,10 @@ void LayerBuilder::OnButtonLayerBuild(wxCommandEvent& event)
    cmd->getParameter("spacing")->setDouble(spacing);
    cmd->getParameter("shiftA")->setDouble(sa);
    cmd->getParameter("shiftB")->setDouble(sb);
-   const wxWindowID sym[2] = {ID_TEXT_LAYER_ION1SYM, ID_TEXT_LAYER_ION2SYM};
-   const wxWindowID cnt[2] = {ID_SPIN_LAYER_ION1N, ID_SPIN_LAYER_ION2N};
-   for (int i = 0; i < 2; i++) {
-      std::string p = i == 0 ? "ion1" : "ion2";
+   const wxWindowID sym[3] = {ID_TEXT_LAYER_ION1SYM, ID_TEXT_LAYER_ION2SYM, ID_TEXT_LAYER_ION3SYM};
+   const wxWindowID cnt[3] = {ID_SPIN_LAYER_ION1N, ID_SPIN_LAYER_ION2N, ID_SPIN_LAYER_ION3N};
+   for (int i = 0; i < 3; i++) {
+      std::string p = "ion" + std::to_string(i + 1);
       cmd->getParameter(p + "sym")->setString(
          ((ewxTextCtrl*)FindWindow(sym[i]))->GetValue().Trim().ToStdString());
       cmd->getParameter(p + "n")->setInteger(((ewxSpinCtrl*)FindWindow(cnt[i]))->GetValue());

@@ -173,8 +173,14 @@ its dialogs answered. At factor 2 or 4 the shown orbital/density is recomputed
 on a grid of 30 x factor points per axis (cap 160) for the render only, then
 redrawn as before (log line `MOPANEL: fine grid N`). Use it for documentation figures. The image is drawn from the viewer the
 scene script itself drives, so `viewall`, `zoom` and `rotate` before it show
-in the PNG with or without `ECCE_VIEWER_SCENE_HOLD` (#1090). Test:
+in the PNG with or without `ECCE_VIEWER_SCENE_HOLD` (#1090). `ortho on|off`
+switches the camera between orthographic and perspective (then frames the
+scene), so a `saveimage` after it is an orthographic figure; `zoom <f>` scales
+the height of an orthographic camera, and `camera` prints `type orthographic|perspective`.
+A fixed Å-per-pixel scale is not available yet (#1133). Test:
 `tests/apps/saveimage_test.py`.
+
+Layer Builder (`ECCE_BUILDER_SCRIPT`): `pbclayer <field> <value>` sets a field (layers, spacing, shifta, shiftb, ion1/ion2/ion3 with ion1n, ion1q, ion1min and likewise 2 and 3, water, watermin, seed); `pbcpress layers` presses Build Layers. Three ion rows. Test: `tests/apps/pbc_layers_test.py`.
 
 ## Compare relaxed scans in the Builder
 
