@@ -3902,6 +3902,13 @@ if(PYTHON3_EXECUTABLE)
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_progress_table PROPERTIES TIMEOUT 900
                        SKIP_RETURN_CODE 77)
+  # The Viewer button keeps its place in every run state (#1088).
+  add_test(NAME apps_viewer_button_states
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/viewer_button_states_test.py
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_viewer_button_states PROPERTIES TIMEOUT 900
+                       SKIP_RETURN_CODE 77)
   # Out of contact and the folding Progress box (#284): state icons, the
   # greyed box and its actions, the amber table cell, the remembered fold.
   add_test(NAME apps_progress_contact

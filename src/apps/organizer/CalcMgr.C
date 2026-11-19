@@ -2690,6 +2690,20 @@ void CalcMgr::runTestCommand(const string& line)
                                    ? "running?" : "plain") +
                   " copyvalue=" + box->copyText(0) +
                   " energyselectable=" + (box->energySelectable() ? "1" : "0");
+        // Where the box and every tool button sit, to see none overlap (#1088).
+        outcome += " boxrect=" + std::to_string(box->GetPosition().x) + "," +
+                   std::to_string(box->GetPosition().y) + "," +
+                   std::to_string(box->GetSize().x) + "," +
+                   std::to_string(box->GetSize().y);
+        for (wxWindow *w : panel->GetChildren()) {
+          EcceTool *tool = dynamic_cast<EcceTool*>(w);
+          if (!tool || tool->getLabel().empty()) continue;
+          outcome += " toolrect:" + string(tool->getLabel().ToUTF8()) + "=" +
+                     std::to_string(tool->GetPosition().x) + "," +
+                     std::to_string(tool->GetPosition().y) + "," +
+                     std::to_string(tool->GetSize().x) + "," +
+                     std::to_string(tool->GetSize().y);
+        }
         if (wxWindow *anno = panel->FindWindow("annotation"))
           outcome += " annotation=" + std::to_string(anno->GetSize().x) + " panelclient=" +
                      std::to_string(panel->GetClientSize().x);
