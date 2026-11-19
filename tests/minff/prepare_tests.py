@@ -213,7 +213,11 @@ def builder_gro(layer_gro, dst, with_na=True):
     atoms = L[2:-1]
     box = [float(x) for x in L[-1].split()]
     z = [float(l[36:44]) for l in atoms]
-    top, cz = max(z), box[2]
+    # c lengthened so the gap above the layer is 2 nm (--add-gap opens none
+    # for a cell that is not bonded across c)
+    top = max(z)
+    box[2] = top - min(z) + 2.0
+    cz = box[2]
     x0, y0 = box[0] / 2, box[1] / 2
     out = ["%5d%-5s%5s%5d%s" % (1, "MMT", l[10:15].strip(), i + 1, l[20:44])
            for i, l in enumerate(atoms)]
@@ -226,7 +230,8 @@ def builder_gro(layer_gro, dst, with_na=True):
     for r, rn, an, (x, y, zz) in extra:
         out.append("%5d%-5s%5s%5d%8.3f%8.3f%8.3f" % (r, rn, an, len(out) + 1, x, y, zz))
     check(top + 1.2 < min(z) + cz, "the gap holds the waters and the ion")
-    open(dst, "w").write("builder export\n%d\n%s\n%s\n" % (len(out), "\n".join(out), L[-1]))
+    boxline = "".join("%10.5f" % v for v in box)
+    open(dst, "w").write("builder export\n%d\n%s\n%s\n" % (len(out), "\n".join(out), boxline))
 
 
 def system_cases(py, gmx, tmp, layer_gro, q_layer):
@@ -383,7 +388,7 @@ def main():
     b = os.path.join(tmp, "layer")
     s = build(py, os.path.join(uc, "Pyrophyllite_Lee_Guggenheim_1981_GII_0.071.pdb"), b,
               "--replicate", "4", "3", "1", "--substitute", "Al", "Mgo", "1", "--seed", "1",
-              "--add-gap", "1.6")
+              )
     if s:
         system_cases(py, gmx, tmp, os.path.join(b, "conf.gro"), s["total_charge"])
 
