@@ -71,6 +71,8 @@ def runOne(test, mode, out, timeout):
                    ECCE_TEST_BUILD=os.path.join(bld, "bi"))
     if mode == "hosted":
         env["ECCE_TEST_HOSTED"] = "1"
+        env["ECCE_TEST_HOSTED_LOGDIR"] = os.path.join(out, "hosted-" + name)
+        os.makedirs(env["ECCE_TEST_HOSTED_LOGDIR"], exist_ok=True)
         env["PYTHONPATH"] = os.pathsep.join(
             [os.path.join(HERE, "hosted")] +
             ([env["PYTHONPATH"]] if env.get("PYTHONPATH") else []))

@@ -51,22 +51,31 @@ proc = subprocess.Popen([organizer], env=env, stdout=subprocess.PIPE,
                         stderr=subprocess.STDOUT)
 
 state = {"ready": False, "seen": False, "gone": False}
-KEY = tool + "="
+# A Builder on a calculation with results counts as a Viewer.
+KEYS = ("Builder=", "Viewer=") if tool == "Builder" else (tool + "=",)
+keep = os.environ.get("ECCE_TEST_HOSTED_LOGDIR")
+copy = (open(os.path.join(keep, "%s-%d.log" % (tool, os.getpid())), "wb")
+        if keep else None)
 
 
 def pump():
     out = sys.stdout.buffer
     for line in iter(proc.stdout.readline, b""):
-        out.write(line)
-        out.flush()
+        if copy:
+            copy.write(line)
+            copy.flush()
         text = line.decode("utf-8", "replace")
         if "ECCE_TEST_ORGANIZER: inprocess" in text:
+            # The shim's own polling: not part of the tool's output.
             state["ready"] = True
-            n = text.split(KEY, 1)[1].split()[0] if KEY in text else ""
-            if n.isdigit() and int(n) > 0:
+            counts = [text.split(k, 1)[1].split()[0] for k in KEYS if k in text]
+            if any(n.isdigit() and int(n) > 0 for n in counts):
                 state["seen"] = True
-            elif n == "0" and state["seen"]:
+            elif counts and state["seen"]:
                 state["gone"] = True
+            continue
+        out.write(line)
+        out.flush()
 
 
 def append(line):
@@ -88,7 +97,7 @@ threading.Thread(target=pump, daemon=True).start()
 append("inprocess")
 started = False
 while proc.poll() is None:
-    time.sleep(1)
+    time.sleep(2)
     if state["ready"] and not started:
         append("start %s %s" % (tool, url))
         started = True
