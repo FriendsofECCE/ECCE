@@ -19,11 +19,11 @@
 //                                 Dynamics task chained as the Organizer's New menu chains
 //                                 them; prints the study's and the tasks' URLs, one a line
 //   launchjob gromacsprepstudy <parentURL> <name> <pdbFile> [ff=F] [water=W] [box=B] [dist=D] [conc=C] [neut=0|1]
-//                                 [merge=0|1] [equilibrate] [bare] [frag=<pdb>|-]
+//                                 [merge=0|1] [equilibrate] [dynamics] [bare] [frag=<pdb>|-]
 //                                 a project and a GROMACS MD study with a Prepare task on <pdbFile>
 //                                 (stored as its .gmxpdb, the recipe written as the editor
 //                                 would) and an Optimize task, plus an Equilibrate with the
-//                                 word "equilibrate"; "bare" leaves the Prepare without a
+//                                 word "equilibrate" and a Dynamics with "dynamics"; "bare" leaves the Prepare without a
 //                                 structure or recipe, as New makes it; prints the URLs, one a line.
 //                                 frag=<pdb> instead of the .gmxpdb stores <pdb> as the Builder's
 //                                 save does (MdTask::fragment: the first save is the original
@@ -408,7 +408,7 @@ static int doGromacsPrepStudy(const vector<string>& a)
   cout << session->getURL().toString() << endl;
 
   GromacsPrepareModel pm;
-  bool equilibrate = false, bare = false;
+  bool equilibrate = false, dynamics = false, bare = false;
   string fragFile;
   for (size_t i = 3; i < a.size(); i++) {
     string::size_type eq = a[i].find('=');
@@ -421,6 +421,7 @@ static int doGromacsPrepStudy(const vector<string>& a)
     else if (k == "neut") pm.neutralise(v != "0");
     else if (k == "merge") pm.mergeChains(v == "1");
     else if (k == "equilibrate") equilibrate = true;
+    else if (k == "dynamics") dynamics = true;
     else if (k == "bare") bare = true;
     else if (k == "frag") fragFile = v;
     else { cerr << "gromacsprepstudy: unknown setting " << a[i] << endl; return 2; }
@@ -428,6 +429,7 @@ static int doGromacsPrepStudy(const vector<string>& a)
 
   vector<string> names = { "prepare", "optimize" };
   if (equilibrate) names.push_back("equilibrate");
+  if (dynamics) names.push_back("dynamics");
   for (size_t i = 0; i < names.size(); i++) {
     ResourceType* tt = typeNamed("gromacs_md_" + names[i]);
     Resource* r = tt ? session->createChild(names[i], tt) : 0;
@@ -463,7 +465,8 @@ static int doGromacsPrepStudy(const vector<string>& a)
       task->setState(ResourceDescriptor::STATE_READY);
     } else {
       ResourceDescriptor::CONTENTTYPE ct = names[i] == "optimize"
-          ? ResourceDescriptor::CT_MDOPTIMIZE : ResourceDescriptor::CT_MDEQUILIBRATE;
+          ? ResourceDescriptor::CT_MDOPTIMIZE : names[i] == "dynamics"
+          ? ResourceDescriptor::CT_MDDYNAMICS : ResourceDescriptor::CT_MDEQUILIBRATE;
       GromacsMDModel mm(ct);
       if (!generateInput(task, mm, "md.gmxtask", "gromacs.mdp")) {
         cerr << "could not write the .mdp of " << names[i] << endl;

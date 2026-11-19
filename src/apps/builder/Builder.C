@@ -7155,6 +7155,16 @@ void Builder::updatePropertyMenus()
           return bmp.SaveFile(outdir + "/" + w[1] + ".png", wxBITMAP_TYPE_PNG) ||
                  s.fail("screen: cannot save " + w[1]);
         }
+        //  "savegro|savepdb <path>": File > Export Structure; "savecalc":
+        //  File > Save, so a structure built in a scene reaches its task.
+        if ((w[0] == "savegro" || w[0] == "savepdb") && w.size() == 2) {
+          const string err = exportStructure(w[1]);
+          return err.empty() || s.fail(w[0] + ": " + err);
+        }
+        if (w[0] == "savecalc" && w.size() == 1) {
+          doSave();
+          return true;
+        }
         //  "savethumb": the calculation thumbnail, as File > Save writes it.
         if (w[0] == "savethumb" && w.size() == 1) {
           doSaveThumb();
