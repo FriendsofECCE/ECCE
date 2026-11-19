@@ -77,6 +77,12 @@ settings for a hard start, such as a point from a relaxed scan:
   calculations per coordinate.
 
 The optimiser stops under the same thresholds as ORCA's default optimisation.
+The maximum and RMS gradient criteria use the part of the Cartesian gradient
+that can change the geometry: rigid translation and rotation are removed,
+as are forces absorbed by geometry constraints. With fixed atoms, only the
+constraints are projected out, since the fixed atoms anchor the molecule.
+The gradient tables still contain the full Cartesian gradient in hartree/bohr.
+
 The vibration calculation takes the second derivatives analytically for
 Hartree-Fock and the LDA, GGA and global-hybrid functionals (restricted closed
 shell or unrestricted, also with a solvent or D3(BJ)) and otherwise from finite
