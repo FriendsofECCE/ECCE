@@ -8,8 +8,11 @@ issues: [1118]
 `Fragment::dumpPDB` writes atoms residue by residue, and only calls
 `FragUtil::createResidues` when the fragment has none. Atoms added after
 residues exist, with no residue of their own, are silently left out of the
-PDB that MD tasks (GROMACS Prepare) receive. `SolvateCmd` therefore runs
-`createResidues` on a residue-less solute first, then makes one `HOH`
+PDB that MD tasks (GROMACS Prepare) receive. The Fragment copy behind
+undo (`operator=`) also needs every atom in a residue, residues in atom
+order, or it indexes past the residue list (SIGSEGV on undo). `SolvateCmd`
+therefore puts a residue-less solute into one `MOL` residue (not
+`createResidues`, whose order is not guaranteed), then makes one `HOH`
 residue per water with atom names ` OW `, ` HW1`, ` HW2` (four characters:
 dumpPDB uses the name only when it is exactly four long).
 

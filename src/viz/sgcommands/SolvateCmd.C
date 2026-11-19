@@ -8,7 +8,6 @@
 #include "util/Event.H"
 using namespace ecce;
 
-#include "tdat/FragUtil.H"
 #include "tdat/LatticeDef.H"
 #include "tdat/Residue.H"
 #include "tdat/Solvate.H"
@@ -111,10 +110,14 @@ bool SolvateCmd::execute()
    }
 
    // Every atom needs a residue, or the PDB written for GROMACS Prepare
-   // drops it: give the solute ECCE's own residues before adding solvent.
+   // drops it; and the Fragment copy behind undo needs residues in atom
+   // order.  A solute without residues becomes one residue.
    if (frag->numAtoms() > 0 && frag->numResidues() == 0) {
-      FragUtil util(frag);
-      util.createResidues();
+      Residue *mol = new Residue("MOL ", 1);
+      frag->addResidue(mol);
+      mol->firstAtomPtr(frag->atomRef(0));
+      for (size_t i = 0; i < frag->numAtoms(); ++i)
+         frag->atomRef(i)->atomResidue(mol);
    }
    int resNum = 0;
    for (size_t i = 0; i < frag->numResidues(); ++i)

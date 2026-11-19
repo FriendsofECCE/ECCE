@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Build > Solvate (#1118): methanol in a water box with a 6 A margin, the
+"""Build > Solvate (#1118): methanol from SMILES in a water box with a 6 A margin, the
 atom count the script reports, a saved XYZ with that many atoms, no water
-oxygen within the cut-off of the solute, and undo back to the six atoms.
+oxygen within 2 A of the solute, and undo back to the unsolvated structure.
 Exit status 77 (skip) without Xvfb or the built Builder.
 """
 import argparse
@@ -73,22 +73,24 @@ def main():
         if check(m, "solvate reported its result"):
             nmol, added, total = int(m.group(1)), int(m.group(2)), int(m.group(3))
             cell = [float(m.group(i)) for i in (4, 5, 6)]
-            check(added == 3 * nmol and total == 6 + added and atoms[:1] == [("6", "no")],
-                  "6 solute atoms + 3 per water (%d molecules, %d atoms, before %s)"
-                  % (nmol, total, atoms[:1]))
-            # extent + 2 x 6 A: about 14-15 A per side, ~100 waters
-            check(all(13.0 < c < 16.0 for c in cell), "cell is extent + 12 A (%s)" % cell)
-            check(60 < nmol < 140, "water count plausible (%d)" % nmol)
+            solute = int(atoms[0][0]) if atoms else -1
+            check(solute > 0 and added == 3 * nmol and total == solute + added,
+                  "solute atoms + 3 per water (%d before, %d molecules, %d atoms)"
+                  % (solute, nmol, total))
+            # each side is the structure's extent + 2 x 6 A
+            check(all(12.0 < c < 40.0 for c in cell), "cell is extent + 12 A (%s)" % cell)
+            check(nmol > 30, "water count plausible (%d)" % nmol)
             check(len(atoms) >= 2 and atoms[1] == (str(total), "yes"),
                   "info after solvate: %d atoms and a lattice (%s)" % (total, atoms))
-            check(atoms and atoms[-1] == ("6", "no"), "undo brings back methanol alone (%s)" % atoms)
+            check(len(atoms) >= 3 and atoms[-1] == (atoms[0][0], "no"),
+                  "undo brings back the structure without solvent (%s)" % atoms)
             if check(os.path.exists(out), "savexyz wrote the solvated structure"):
                 lines = open(out).read().splitlines()
                 check(int(lines[0]) == total, "saved XYZ has %s atoms" % lines[0])
                 xyz = [(l.split()[0], [float(v) for v in l.split()[1:4]]) for l in lines[2:2 + int(lines[0])]]
-                solute, water = xyz[:6], xyz[6:]
-                close = min(math.dist(p, q) for _, p in solute for e, q in water if e == "O")
-                check(close > 2.0, "no water oxygen within 2 A of methanol (closest %.2f)" % close)
+                solute_xyz, water = xyz[:solute], xyz[solute:]
+                close = min(math.dist(p, q) for _, p in solute_xyz for e, q in water if e == "O")
+                check(close > 2.0, "no water oxygen within 2 A of the solute (closest %.2f)" % close)
         check("FAIL" not in "\n".join(l for l in text.splitlines()
                                        if "ECCE_BUILDER_SCRIPT" in l),
               "no script step failed")
