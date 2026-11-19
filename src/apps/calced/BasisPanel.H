@@ -30,6 +30,8 @@ class wxButton;
 class wxCheckListBox;
 class wxChoice;
 class wxSpinCtrl;
+class WxContractionEditor;
+class WxBasisSetCoefficients;
 
 class BasisPanel : public wxPanel
 {
@@ -63,6 +65,16 @@ public:
   void setAtoms(const std::string& names);
   // Add the ECP offered after an ECP orbital set; false if none offered.
   bool acceptEcp();
+  // Contractions of ELEMENT as "s=9/3 p=4/2" (primitives/contracted per
+  // shell).  ROW >= 0 first sets that contraction row to ACTION
+  // (uncontract, delete or keep); false with the reason in OUT if refused.
+  bool setContraction(const std::string& element, int row,
+                      const std::string& action, std::string& out);
+  // Exponents and coefficients as the editor's code lists them.
+  std::string coefficients() const;
+  // The Edit contractions and exponents windows.
+  void editContractions();
+  void showCoefficients();
   // The editor's basis changed: redraw the assignment.
   void refresh();
   std::string describe() const;
@@ -83,6 +95,9 @@ private:
   wxTextCtrl *p_atoms;
   wxChoice *p_appendKind;
   wxSpinCtrl *p_appendShell, *p_appendCount;
+  WxContractionEditor *p_cntrcEdit = nullptr;
+  WxBasisSetCoefficients *p_coeffs = nullptr;
+  bool p_inEdit = false;  // the contraction editor is the one changing the basis
   bool p_fitUsed = true;
   std::vector<std::string> p_elementNames;
   std::string p_messageText, p_ecpOffer;

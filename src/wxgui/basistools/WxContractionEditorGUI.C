@@ -33,7 +33,7 @@
 #include "wxgui/ewxButton.H"
 ////@end includes
 
-#include "WxContractionEditorGUI.H"
+#include "wxgui/WxContractionEditorGUI.H"
 #include "wxgui/ewxBitmap.H"
 
 ////@begin XPM images

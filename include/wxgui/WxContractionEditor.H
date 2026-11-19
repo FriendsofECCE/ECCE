@@ -1,15 +1,17 @@
 #ifndef WXCONTRACTIONEDITOR_HH
 #define WXCONTRACTIONEDITOR_HH
 
+#include <functional>
+
 #include <wx/event.h>
 
 #include "util/Preferences.H"
 
 #include "dsm/TGBSConfig.H"
 
-#include "WxContractionEditorGUI.H"
-#include "GBSContractionGridModel.H"
-#include "GBSSummaryGridModel.H"
+#include "wxgui/WxContractionEditorGUI.H"
+#include "wxgui/GBSContractionGridModel.H"
+#include "wxgui/GBSSummaryGridModel.H"
 
 class ewxChoice;
 class ewxGrid;
@@ -52,6 +54,9 @@ class WxContractionEditor: public WxContractionEditorGUI //, public wxEvtHandler
         void summaryGridCellSelectedCB( wxGridEvent& event );
         void contractGridCellChangedCB( wxGridEvent& event );
         void summaryGridCellChangedCB( wxGridEvent& event );
+
+        // Called after every edit; the owner redraws its counts and saves.
+        std::function<void()> onChanged;
 
         void setConfiguration(TGBSConfig* cnfg);
         void selectElement(int idx);

@@ -4,7 +4,7 @@
 #include "dsm/TGBSConfig.H"
 #include "dsm/TGaussianBasisSet.H"
 
-#include "GBSSummaryGridModel.H"
+#include "wxgui/GBSSummaryGridModel.H"
 
 
 GBSSummaryGridModel::GBSSummaryGridModel(TGBSConfig *cnfg, string symbol)

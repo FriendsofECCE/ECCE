@@ -391,6 +391,11 @@ class CalcEd: public CalcEdGUI,
     // mixed), Use for all atoms (assigns and saves), and the Basis Set Tool.
     vector<string> systemElements() const;
     vector<string> basisAssignmentLines() const;
+    // The configuration the contraction editor changes in place, and the
+    // step that carries such a change to the saved calculation.
+    TGBSConfig *basisConfig() const { return p_basis; }
+    string basisCodeName() const;
+    void basisEdited();
     bool useBasisForAll(const string& name, TGaussianBasisSet::GBSType type,
                         string& message);
     // Per-element assignment on the Basis Set Tool's GBSAssign: an orbital

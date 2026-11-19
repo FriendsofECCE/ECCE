@@ -1,5 +1,5 @@
 
-#include "GBSContractionGridItem.H"
+#include "wxgui/GBSContractionGridItem.H"
 
 
 GBSContractionGridItem::GBSContractionGridItem(const TGaussianBasisSet *gbs, string cntrc, int shellIdx, ContractionInfo *info)

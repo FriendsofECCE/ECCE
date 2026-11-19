@@ -3,7 +3,7 @@
 #include "dsm/TGBSConfig.H"
 #include "dsm/TGaussianBasisSet.H"
 
-#include "GBSContractionGridModel.H"
+#include "wxgui/GBSContractionGridModel.H"
 
 
 GBSContractionGridModel::GBSContractionGridModel(TGBSConfig *cnfg, string symbol)

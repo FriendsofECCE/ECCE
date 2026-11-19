@@ -42,7 +42,7 @@
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxTextCtrl.H"
 
-#include "WxBasisSetCoefficients.H"
+#include "wxgui/WxBasisSetCoefficients.H"
 
 
 IMPLEMENT_CLASS( WxBasisSetCoefficients, WxBasisSetCoefficientsGUI )
@@ -87,23 +87,25 @@ void WxBasisSetCoefficients::createControls()
 
 void WxBasisSetCoefficients::showDetails(TCalculation *calc)
 {
-//    cout << "WxBasisSetCoefficients::showDetails(TCalculation *calc)" << endl;
-
-    TGBSConfig *cnfg = calc->gbsConfig();
     const JCode* code = calc->application();
+    showDetails(calc->gbsConfig(), code ? code->name() : string());
+}
 
-    if ((cnfg != NULL) && (code != NULL))
+
+string WxBasisSetCoefficients::formatted(TGBSConfig *cnfg, const string& codeName)
+{
+    if (cnfg == NULL || codeName.empty()) return "";
+    char* data = (char*)cnfg->dump(codeName.c_str(), false);
+    return data ? string(data) : string();
+}
+
+
+void WxBasisSetCoefficients::showDetails(TGBSConfig *cnfg, const string& codeName)
+{
+    if ((cnfg != NULL) && !codeName.empty())
     {
-        string codeName = code->name();
-        char* basis_data = (char*)cnfg->dump(codeName.c_str(), false);
-        string label = cnfg->name() + " formatted for " + codeName;
-
-//        cout << "label=\"" << label << "\"" << endl;
- //       cout << "basis_data=" << basis_data << endl;
-//        cout << "length=" << StringConverter::toString((int)(strlen(basis_data))) << endl;
-
-        p_detailTextCtrl->SetValue(basis_data);
-        p_headerStaticText->SetLabel(label);
+        p_detailTextCtrl->SetValue(formatted(cnfg, codeName));
+        p_headerStaticText->SetLabel(cnfg->name() + " formatted for " + codeName);
     }
     else
     {

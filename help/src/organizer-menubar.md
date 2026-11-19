@@ -363,10 +363,18 @@ greyed out.
   others of that element. **Functions** adds tight or diffuse functions
   to a numbered shell of the first checked element's orbital set. Picking an ECP shows
   the elements it has a core for and the ones that stay all-electron. The
-  contraction editor and the coefficient view of the old Basis Set Tool
-  window are reached only by ticking **Separate Basis Set Tool window** in
-  **Edit > Preferences > Advanced** (kept for one release), which also
-  brings back a **Full Basis Set Tool...** button here. Codes whose details exist only in the older form (NWChem,
+  **Edit contractions...** opens the contraction editor: for each element,
+  the contracted functions of its sets, each with an **Uncontract** and a
+  **Delete** box (a function whose primitives are not contracted cannot be
+  uncontracted), and a summary per angular momentum of the number of
+  primitives and contracted functions, and of the tight and diffuse
+  functions added. A change is saved to the calculation at once and shows in
+  the input file. **Show exponents and coefficients** lists the exponents
+  and coefficients of the current assignment as the chosen code's input
+  gives them; it follows the assignment while it is open. The old Basis Set
+  Tool window can still be brought back by ticking **Separate Basis Set
+  Tool window** in **Edit > Preferences > Advanced** (kept for one release),
+  which also adds a **Full Basis Set Tool...** button here. Codes whose details exist only in the older form (NWChem,
   Quantum ESPRESSO, CP2K, GROMACS and others) still open those
   details in a window, and the area says so. **Small**: one
   tool per tab, each the full width of the window, for small screens and X

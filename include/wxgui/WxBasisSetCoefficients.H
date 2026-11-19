@@ -1,13 +1,16 @@
 #ifndef WXBASISSETCOEFFICIENTS_HH
 #define WXBASISSETCOEFFICIENTS_HH
 
-#include "WxBasisSetCoefficientsGUI.H"
+#include <string>
+
+#include "wxgui/WxBasisSetCoefficientsGUI.H"
 
 class ewxButton;
 class ewxTextCtrl;
 class ewxStaticText;
 class Preferences;
 class TCalculation;
+class TGBSConfig;
 
 #define WXBASISSETCOEFFICIENTS_WINDOW_MINWIDTH     550
 #define WXBASISSETCOEFFICIENTS_WINDOW_MINHEIGHT    400
@@ -36,6 +39,10 @@ class WxBasisSetCoefficients: public WxBasisSetCoefficientsGUI
         void closeButtonClickCB(wxCommandEvent& event);
 
         void showDetails(TCalculation *calc);
+        // The same view for a configuration held elsewhere (the editor's).
+        void showDetails(TGBSConfig *cnfg, const std::string& codeName);
+        // The exponents and coefficients as the code's input lists them.
+        static std::string formatted(TGBSConfig *cnfg, const std::string& codeName);
 
     private:
         void createControls();

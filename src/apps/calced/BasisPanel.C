@@ -16,6 +16,10 @@
 #include "dsm/EDSIServerCentral.H"
 #include "util/StringConverter.H"
 
+#include "wxgui/GBSContractionGridModel.H"
+#include "wxgui/WxBasisSetCoefficients.H"
+#include "wxgui/WxContractionEditor.H"
+
 #include "BasisPanel.H"
 #include "CalcEd.H"
 
@@ -97,6 +101,15 @@ BasisPanel::BasisPanel(wxWindow *parent, CalcEd *editor)
   // The old window is retired (#1063); Preferences > Advanced brings it back.
   full->Show(getenv("ECCE_FULL_BASIS_TOOL") != 0);
   top->Add(row, 0, wxALL, 4);
+  wxBoxSizer *editRow = new wxBoxSizer(wxHORIZONTAL);
+  wxButton *contractions = new wxButton(this, wxID_ANY, "Edit contractions...");
+  wxButton *coefficients = new wxButton(this, wxID_ANY,
+                                        "Show exponents and coefficients");
+  editRow->Add(contractions, 0, wxRIGHT, 6);
+  editRow->Add(coefficients, 0);
+  top->Add(editRow, 0, wxALL, 4);
+  contractions->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { editContractions(); });
+  coefficients->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { showCoefficients(); });
   wxBoxSizer *app = new wxBoxSizer(wxHORIZONTAL);
   p_appendKind = new wxChoice(this, wxID_ANY);
   p_appendKind->Append("Tight");
@@ -485,8 +498,114 @@ bool BasisPanel::useForAll()
 }
 
 
+void BasisPanel::editContractions()
+{
+  TGBSConfig *config = p_ed->basisConfig();
+  if (!config || config->isEmpty()) {
+    say("Choose an orbital basis set first.");
+    return;
+  }
+  if (!p_cntrcEdit) {
+    p_cntrcEdit = new WxContractionEditor(this);
+    // Each edit changes the basis in place; save it like an assignment.
+    p_cntrcEdit->onChanged = [this]() {
+      p_inEdit = true;
+      p_ed->basisEdited();
+      p_inEdit = false;
+    };
+  }
+  p_cntrcEdit->setConfiguration(config);
+  p_cntrcEdit->selectElement(0);
+  p_cntrcEdit->Show();
+  p_cntrcEdit->Raise();
+}
+
+
+void BasisPanel::showCoefficients()
+{
+  TGBSConfig *config = p_ed->basisConfig();
+  if (!config || config->isEmpty()) {
+    say("Choose an orbital basis set first.");
+    return;
+  }
+  if (!p_coeffs) p_coeffs = new WxBasisSetCoefficients(this);
+  p_coeffs->showDetails(config, p_ed->basisCodeName());
+  p_coeffs->Raise();
+}
+
+
+string BasisPanel::coefficients() const
+{
+  return WxBasisSetCoefficients::formatted(p_ed->basisConfig(),
+                                           p_ed->basisCodeName());
+}
+
+
+bool BasisPanel::setContraction(const string& element, int row,
+                                const string& action, string& out)
+{
+  TGBSConfig *config = p_ed->basisConfig();
+  if (!config || config->isEmpty() || !config->findGroup(element)) {
+    out = "no basis set for " + element;
+    return false;
+  }
+  if (row >= 0) {
+    GBSContractionGridModel model(config, element);
+    if (row >= model.size()) {
+      out = "no contraction row " + StringConverter::toString(row);
+      return false;
+    }
+    bool unc = model.isItemUncontracted(row), del = model.isItemDeleted(row);
+    if (action == "uncontract") {
+      if (!model.getItemUncontractAllowed(row)) {
+        out = "row " + StringConverter::toString(row) + " has no contraction";
+        return false;
+      }
+      if (del) model.toggleItemDeleted(row);
+      if (!unc) model.toggleItemUncontracted(row);
+    } else if (action == "delete") {
+      if (!del) model.toggleItemDeleted(row);
+    } else if (action == "keep") {
+      if (del) model.toggleItemDeleted(row);
+      if (unc) model.toggleItemUncontracted(row);
+    } else {
+      out = "unknown action " + action;
+      return false;
+    }
+    p_ed->basisEdited();
+  }
+  GBSContractionGridModel model(config, element);
+  out = "contractions " + element + ":";
+  for (int r = 0; r <= TGaussianBasisSet::maxShell; r++) {
+    if (model.getTotalFrom(r) <= 0) continue;
+    string shell(TGaussianBasisSet::shell_formatter[r]);
+    for (char& c : shell) c = (char)tolower((unsigned char)c);
+    out += " " + shell + "=" + StringConverter::toString(model.getTotalFrom(r)) +
+           "/" + StringConverter::toString(model.getTotalTo(r));
+  }
+  return true;
+}
+
+
 void BasisPanel::refresh()
 {
+  // An assignment may have replaced the configuration the windows show.
+  if (!p_inEdit) {
+    TGBSConfig *config = p_ed->basisConfig();
+    bool usable = config && !config->isEmpty();
+    if (p_cntrcEdit && p_cntrcEdit->IsShown()) {
+      if (usable) {
+        p_cntrcEdit->setConfiguration(config);
+        p_cntrcEdit->selectElement(0);
+      } else {
+        p_cntrcEdit->Hide();
+      }
+    }
+    if (p_coeffs && p_coeffs->IsShown()) {
+      if (usable) p_coeffs->showDetails(config, p_ed->basisCodeName());
+      else p_coeffs->Hide();
+    }
+  }
   if (p_elementNames != p_ed->systemElements()) fillElements();
   string why;
   if (p_ed->fittingUsed(why) != p_fitUsed) fill();

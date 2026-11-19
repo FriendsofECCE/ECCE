@@ -359,6 +359,20 @@ bool SetupArea::basisAppend(bool tight, const string& element, int shell,
 }
 
 
+bool SetupArea::basisContraction(const string& el, int row,
+                                 const string& action, string& out)
+{
+  if (!p_basisPanel) { out = "no basis panel"; return false; }
+  return p_basisPanel->setContraction(el, row, action, out);
+}
+
+
+string SetupArea::basisCoefficients()
+{
+  return p_basisPanel ? p_basisPanel->coefficients() : string();
+}
+
+
 void SetupArea::basisChanged()
 {
   if (p_basisPanel) p_basisPanel->refresh();
