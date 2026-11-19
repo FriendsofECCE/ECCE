@@ -78,6 +78,7 @@ Read this before changing any dialog, panel, sizer, grid, ewx control or the Ope
 - [The ESP colour bar draws the surface's own ramp and the grid's colour range; it follows the surface on screen, not the type drop-down (#210)](esp-colour-bar-reads-the-surfaces-own-ramp.md)
 
 - [A failed live property update must not free the cached property; a panel's timer must die with the panel (#217)](property-cache-and-panel-timers-outlive-their-objects.md)
+- [The PropertyPanel registry is process-wide: a Builder must ask for its own panels (#1139)](property-panel-registry-is-process-wide.md)
 - [The Inventor viewer works in framebuffer pixels; wx sizes and mouse positions are logical units (#133)](viewer-sizes-are-framebuffer-pixels.md)
 - [Normal modes belong to the calculated structure; reloading a fragment needs touchNumbers (#244)](normal-modes-belong-to-the-calculated-structure.md)
 - [macOS (wx 3.3): opening a calculation with MOs crashed the Builder in wxAuiManager::DoFrameLayout](macos-builder-nested-updatepanes-crash.md)

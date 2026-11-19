@@ -1855,7 +1855,7 @@ void Builder::setContext(const string& url, const bool& force)
 
   // auto-open single panels
   set<PropertyPanel*> panels =
-          PropertyPanel::getPanels(p_calculation->getURL().toString());
+          PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
   if (panels.size() == 1) {
     bool doOpen = false;
     TaskJob * taskjob = dynamic_cast<TaskJob*>(p_calculation);
@@ -6204,7 +6204,7 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
   // Detach all PropertyPanels from aui management -- we'll restore them later
   set<PropertyPanel*> ppanels;
   set<PropertyPanel*>::iterator ppanelIt;
-  ppanels = PropertyPanel::getPanels();
+  ppanels = PropertyPanel::getPanels("", "", this);
   for (ppanelIt = ppanels.begin(); ppanelIt != ppanels.end(); ++ppanelIt) {
     wxAuiPaneInfo &pane = p_mgr.GetPane(*ppanelIt);
     if (pane.IsOk()) {
@@ -6277,7 +6277,7 @@ void Builder::loadPaneLayout(const wxString& layoutName_, const bool& update)
   }
 
   // Add property panels back in from our internal layout cache
-  ppanels = PropertyPanel::getPanels(p_calculation->getURL().toString());
+  ppanels = PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
   for (ppanelIt = ppanels.begin(); ppanelIt != ppanels.end(); ++ppanelIt) {
     PropertyPanel *panel = *ppanelIt;
     wxAuiPaneInfo pane;
@@ -6641,7 +6641,7 @@ void Builder::updatePropertyMenus()
   }
 
   // look up panels to add to menu
-  panels = PropertyPanel::getPanels(p_calculation->getURL().toString());
+  panels = PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
   for (panelIt = panels.begin(); panelIt != panels.end(); ++panelIt) {
     PropertyPanel *panel = *panelIt;
     if (panelRedundant(panel->getName())) continue;
@@ -6664,7 +6664,7 @@ void Builder::updatePropertyMenus()
     if (panelRedundant(*name)) {
       continue;
     } else if (name->find("Metadynamics Potential")==string::npos) {
-      if (!PropertyPanel::panelExists(urlstr, *name)) {
+      if (!PropertyPanel::panelExists(urlstr, *name, this)) {
         createPropertyPanel(*name);
         needUpate = true;
       }
@@ -6680,7 +6680,7 @@ void Builder::updatePropertyMenus()
   }
 
   // Diffraction is a property of the structure rather than a parsed key.
-  if (calcHasStructure() && !PropertyPanel::panelExists(urlstr, "Diffraction")) {
+  if (calcHasStructure() && !PropertyPanel::panelExists(urlstr, "Diffraction", this)) {
     createPropertyPanel("Diffraction");
     needUpate = true;
   }
@@ -8658,18 +8658,20 @@ void Builder::removePropertyPanels(const string& context)
     contextToClose = p_calculation->getURL();
   }
 
-  set<PropertyPanel*> panels = PropertyPanel::getPanels(contextToClose);
+  set<PropertyPanel*> panels =
+      PropertyPanel::getPanels(contextToClose, "", this);
   set<PropertyPanel*>::iterator panelIt;
   for (panelIt = panels.begin(); panelIt != panels.end(); ++panelIt) {
     p_folded.erase(*panelIt);
     p_tabHidden.erase(*panelIt);
     p_columnSeen.erase(*panelIt);
     p_baseProportion.erase(*panelIt);
+    p_propertyPanelInfo.erase(*panelIt);
     if (p_detail == *panelIt) p_detail = 0;
     if (p_accordionOpen == *panelIt) p_accordionOpen = 0;
     p_mgr.DetachPane(*panelIt);
+    (*panelIt)->Destroy();
   }
-  PropertyPanel::removePanels(contextToClose);
 }
 
 
@@ -8851,7 +8853,7 @@ void Builder::urlStateMCB(JMSMessage& msg)
     if (state < ResourceDescriptor::STATE_SUBMITTED) {
       removePropertyPanels(urlstr);
     } else if (state > ResourceDescriptor::STATE_READY) {
-      set<PropertyPanel*> panels = PropertyPanel::getPanels(urlstr);
+      set<PropertyPanel*> panels = PropertyPanel::getPanels(urlstr, "", this);
       set<PropertyPanel*>::iterator panel;
       for (panel = panels.begin(); panel != panels.end(); ++panel) {
         (*panel)->stateChange(state);
@@ -8921,7 +8923,7 @@ void Builder::propertyChanged(const string& urlstr, const string& propName,
   key = keylist[0];
   calc->updateProperty(key, value);
   set<PropertyPanel*> panels =
-          PropertyPanel::getPanelsForPropertyName(urlstr, key);
+          PropertyPanel::getPanelsForPropertyName(urlstr, key, this);
   set<PropertyPanel*>::iterator panel;
   for (panel = panels.begin(); panel != panels.end(); ++panel) {
     (*panel)->propertyUpdate(propName);
@@ -8930,7 +8932,7 @@ void Builder::propertyChanged(const string& urlstr, const string& propName,
   set<string> names = ppf.getPanelNamesForProperties(vector<string>(1,key));
   set<string>::iterator name;
   for (name = names.begin(); name != names.end(); ++name) {
-    if (!PropertyPanel::panelExists(urlstr, *name)) {
+    if (!PropertyPanel::panelExists(urlstr, *name, this)) {
       // In this case, we don't have one of these yet
       // so we'll have to add it.
 
