@@ -108,8 +108,14 @@ def main():
         os.environ.get("TMPDIR", "/tmp"), "hosted-suite"))
     ap.add_argument("--timeout", type=int, default=900)
     ap.add_argument("--only")
+    ap.add_argument("--direct", action="store_true",
+                    help="only tests that start a tool themselves, or "
+                    "builder_*/calced_* tests (not those that only import one)")
     a = ap.parse_args()
     tests = [os.path.abspath(t) for t in a.tests] or candidates()
+    if a.direct:
+        tests = [t for t in tests if TOOLS.search(open(t, errors="replace").read())
+                 or os.path.basename(t).startswith(("builder_", "calced_"))]
     if a.only:
         tests = [t for t in tests if re.search(a.only, os.path.basename(t))]
     os.makedirs(a.out, exist_ok=True)
