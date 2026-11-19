@@ -249,13 +249,14 @@ def scenarioA(display):
         check(r.returncode == 0 and "already running" in r.stdout,
               "A second plain start hands over and exits (%.1f s)"
               % (time.time() - t0), "status %d: %s" % (r.returncode, r.stdout[-800:]))
-        xyz = os.path.join(o.work, "co2.xyz")
+        xyz = os.path.join(data, "co2.xyz")
         with open(xyz, "w") as h:
             h.write("3\nco2\nC 0 0 0\nO 0 0 1.16\nO 0 0 -1.16\n")
         r = subprocess.run([os.path.join(apps.WRAPPERS, "ecce-organizer"), xyz],
                            env=env, stdout=subprocess.PIPE,
                            stderr=subprocess.STDOUT, text=True, timeout=120)
-        time.sleep(12)
+        time.sleep(10)
+        o.send("answer", 6)         # an .xyz asks for its units first
         tabs = o.ask("tabs") or ""
         info = o.ask("builderinfo") or ""
         check(r.returncode == 0 and "Builder=1" in (o.ask("inprocess") or ""),
@@ -267,7 +268,8 @@ def scenarioA(display):
         closeAll(o)
         o.stop()
         o = Org(display, data, args=[xyz])
-        time.sleep(15)
+        time.sleep(10)
+        o.send("answer", 6)
         info = o.ask("builderinfo") or ""
         check("atoms=3" in info, "A first start with FILE.xyz shows its 3 atoms",
               info + " | " + (o.ask("tabs") or ""))
