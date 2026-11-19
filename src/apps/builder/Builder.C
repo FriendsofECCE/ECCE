@@ -252,6 +252,8 @@ using std::vector;
 #include <wx/spinctrl.h>
 #include <wx/accel.h>
 #include "wxgui/ToolTabs.H"
+#include "wxgui/InProcessTools.H"
+#include "wx/stopwatch.h"
 #include "Builder.H"
 #include "BuilderMessages.H"
 
@@ -731,6 +733,7 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
 
 Builder::~Builder()
 {
+  InProcessTools::setClosing(this, false);   // a Quit waiting must not wait for it
   destroyOwnPropertyPanels();
   ToolTabs::release(this, false);
   unsubscribe();
@@ -3180,10 +3183,21 @@ void Builder::mainWindowCloseCB( wxCloseEvent& event )
       return;
    }
    p_closing = true;
+   InProcessTools::setClosing(this, true);
+   //  Test hook: stay inside the close, yielding, for this many ms, as a
+   //  slow quit() does (one_process_test runQuitDuringClose).
+   if (const char *hold = getenv("ECCE_TEST_CLOSE_HOLD")) {
+      wxStopWatch sw;
+      while (sw.Time() < atol(hold)) {
+         ::wxYieldIfNeeded();
+         wxMilliSleep(20);
+      }
+   }
    saveSettings();
    //  A forced close (session end, Organizer Quit in one process) offers
    //  no Cancel: it could not be honoured.
    quit(event.CanVeto());
+   InProcessTools::setClosing(this, false);
    p_closing = false;   // reached only when the user cancelled the quit
    //  In one process the Organizer's Quit asks this window first (#983).
    //  After quit()'s Destroy() a frame is only scheduled for deletion and

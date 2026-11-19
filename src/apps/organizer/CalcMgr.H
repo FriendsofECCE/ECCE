@@ -179,6 +179,7 @@ public:
 
   /// wxEVT_COMMAND_MENU_SELECTED event handler for wxID_EXIT
   bool confirmAndQuit();
+  bool finishQuit(int answer);
   static bool publishGatewayQuit();
 
   /// One command of the ECCE_TEST_ORGANIZER hook (see CalcMgr::Create).
@@ -716,6 +717,8 @@ protected:
   void makeWorkflowFromRows(Session *into);
   bool p_quitAsking = false;        // the Quit dialog is open (#291)
   bool p_quitConfirmed = false;     // the user said yes; teardown pending
+  wxTimer *p_quitRetry = 0;         // a Quit waiting for a tool's close
+  int p_quitAnswer = 0;
   std::vector<wxWeakRef<wxWindow> > p_secondary;
   void trackSecondary(wxWindow *w);
   string p_orgWindowInfo;           // test hook "orgwindow"

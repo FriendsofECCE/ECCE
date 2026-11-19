@@ -1938,6 +1938,59 @@ def runSetupLaunch(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runQuitDuringClose(display):
+    """#1131: Quit answered while a Builder tab's close is still running (held
+    5 s, yielding, by ECCE_TEST_CLOSE_HOLD): the tab turns the Quit's close
+    request down, and the Quit finishes once that close has returned."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        calc = os.path.join(project, "water-c")
+        shutil.copytree(os.path.join(HERE, "..", "ecceqm", "fixtures",
+                                     "h2o-geometry"), calc, symlinks=True)
+        url = "file://" + calc
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            append("start Builder " + url, 15)
+            append("tabs", 2)
+            append("closetools", 1)
+            append("menu exit", 1.5)
+            append("answer ok", 25)
+
+        setLayout(display, "small")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_TEST_CLOSE_HOLD": "5000",
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        tabs = pb.answers(log, "tabs")
+        check(tabs and "Builder" in tabs[0], "the Builder was a tab", str(tabs))
+        check(pb.answers(log, "answer ok") == ["answered Quit ECCE"]
+              and "close already in progress" in log
+              and "quit waits for a tool's close" in log,
+              "the Quit came while the Builder's close was running and "
+              "waited for it", log[-2000:])
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log and "host destroyed" in log,
+              "the Quit finished after the close: the Organizer exits 0",
+              "returncode %s\n%s" % (result.returncode, log[-2500:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def runQuitJob(display):
     """#1131: Builder, Editor and Viewer tabs closed by closetools while a
     localhost job runs, then Quit: no tool window is left behind, and the
@@ -2268,6 +2321,7 @@ def main():
                 results.fail("one-process", "; ".join(failures))
             return
         if os.environ.get("ECCE_1131_ONLY") == "1":
+            runQuitDuringClose(display)
             runQuitJob(display)
             if failures:
                 results.fail("one-process", "; ".join(failures))
@@ -2325,6 +2379,7 @@ def main():
         runTabsTools(display)
         runTabsLauncher(display)
         runSetupLaunch(display)
+        runQuitDuringClose(display)
         runQuitJob(display)
         runTabsPopups(display)
         runUtilityWindows(display)
