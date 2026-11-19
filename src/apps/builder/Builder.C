@@ -7560,6 +7560,8 @@ void Builder::updatePropertyMenus()
               shown += (shown.empty() ? "" : ",") + pi.name.ToStdString();
           }
           out << "shown " << shown << "\n";
+          if (MoPanel *mo = dynamic_cast<MoPanel*>(p_mgr.GetPane("MOs").window))
+            out << "mopanel " << mo->selectedSurface() << "\n";
           if (p_index) for (const auto& entry : p_index->listing())
             out << "entry " << entry << "\n";
           if (p_index) for (const auto& line : p_index->rowRects())

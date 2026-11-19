@@ -28,6 +28,13 @@ from orca_mo_test import makeCalc   # noqa: E402
 
 SKIP = 77
 STEPS = 5            # rows clicked, one per "ptree" after the first
+#  ECCE_LIST_SEQUENCE="MOs,Surfaces,MOs" (or --sequence ...): click these rows in this order
+#  instead (no wheel step), and check the orbital panel's mode too (#965).
+if "--sequence" in sys.argv:
+    os.environ["ECCE_LIST_SEQUENCE"] = sys.argv[sys.argv.index("--sequence") + 1]
+SEQUENCE = [x for x in os.environ.get("ECCE_LIST_SEQUENCE", "").split(",") if x]
+if SEQUENCE:
+    STEPS = len(SEQUENCE)
 failures = []
 
 
@@ -53,6 +60,8 @@ def readTree(path):
                                 int(f[3]), int(f[4])))
         elif f[0] == "treewin":
             out["win"] = line.strip()
+        elif f[0] == "mopanel":
+            out["mo"] = f[1] if len(f) > 1 else ""
         elif f[0] == "tree":
             out["sel"] = line.split(None, 1)[1].strip() if len(f) > 1 else ""
     return out
@@ -101,6 +110,7 @@ def main():
             scene += "shot s%d\nptree p%d\n" % (i, i)
         scene += "hold 2\n"
         clicked = []
+        modes = []
         panels = set()
 
         def clicker(disp):
@@ -114,7 +124,7 @@ def main():
             #  Half the steps after a wheel scroll in the list, which is
             #  how a user reaches a row the list does not show.
             for n in range(1, STEPS + 1):
-                if n == 3:
+                if n == 3 and not SEQUENCE:
                     #  A wheel scroll instead of a click: the next step
                     #  clicks on the rows as the list draws them after it.
                     f = state["win"].split()
@@ -148,6 +158,12 @@ def main():
                 if not rows:
                     clicked.append(("no row inside the tree", state["win"]))
                     break
+                if SEQUENCE:
+                    rows = [r for r in state["rows"]
+                            if r[0] == SEQUENCE[n - 1]]
+                    if not rows:
+                        clicked.append((SEQUENCE[n - 1], "not listed"))
+                        break
                 name, x, y, w, h = rows[(n - 1) % len(rows)]
                 ready = os.path.join(out, "s%d.ready" % n)
                 end = time.time() + 120
@@ -179,6 +195,8 @@ def main():
                     clicked.append((name, "?"))
                     break
                 clicked.append((name, state["sel"]))
+                if SEQUENCE:
+                    modes.append((name, state.get("mo", "")))
 
         os.makedirs(out, exist_ok=True)
         script = os.path.join(out, "scene")
@@ -211,6 +229,10 @@ def main():
         for name, x, y, w, h in first["rows"]:
             print("      row %-28s %4d %4d %3dx%-3d" % (name, x, y, w, h))
         check(len(clicked) >= 1, "clicks were made", clicked)
+        for name, mode in modes:
+            if name in ("MOs", "Surfaces"):
+                check(mode == name, "after a click on %r the orbital panel "
+                      "is in %r mode" % (name, name), "mode %r" % mode)
         for name, got in clicked:
             check(got == name, "a click on %r selects %r" % (name, name),
                   "selected %r" % got)

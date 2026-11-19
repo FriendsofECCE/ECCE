@@ -2108,6 +2108,64 @@ def runQuitJob(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runReopenViewer(display):
+    """#1209: a Viewer opened, closed and opened again on the same
+    finished calculation draws its structure the second time too."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        calc = os.path.join(project, "f_etcl_sn2_irc")
+        shutil.copytree(os.path.join(
+            HERE, "..", "..", "data", "client", "examples", "organic",
+            "substitution-vs-elimination", "ecceqm-f_etcl_sn2_irc", "stored",
+            "f_etcl_sn2_irc"), calc, symlinks=True)
+        url = "file://" + calc
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            append("start CalculationViewer " + url, 25)
+            append("tabs", 2)
+            append("builderinfo", 2)
+            append("tabclose 1", 10)
+            append("tabs", 2)
+            append("start CalculationViewer " + url, 25)
+            append("tabs", 2)
+            append("builderinfo", 2)
+            append("menu exit", 3)
+            append("answer ok", 20)
+
+        setLayout(display, "normal")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        info = pb.answers(log, "builderinfo")
+        print("tabs:", pb.answers(log, "tabs"))
+        print("builderinfo:", info)
+        drawn = [re.search(r"atoms=(\d+) inscene=1", i) for i in info]
+        check(len(info) == 2 and drawn[0] and int(drawn[0].group(1)) > 0,
+              "the first Viewer draws the structure", str(info))
+        check(len(info) == 2 and drawn[1] and drawn[0]
+              and drawn[1].group(1) == drawn[0].group(1),
+              "a Viewer reopened after its tab was closed draws it too",
+              str(info))
+        check(not result.crashed, "no crash", log[-2500:])
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def runTabsPopups(display):
     """Popup menus and secondary windows of a tab (#1068): a menu popped up
     over the Builder tab and the editor tab attaches to the visible page and
@@ -2349,6 +2407,9 @@ def main():
     if "--1131" in sys.argv:    # same as ECCE_1131_ONLY=1
         sys.argv.remove("--1131")
         os.environ["ECCE_1131_ONLY"] = "1"
+    if "--1209" in sys.argv:
+        sys.argv.remove("--1209")
+        os.environ["ECCE_1209_ONLY"] = "1"
     if "--1088" in sys.argv:    # same as ECCE_1088_ONLY=1, for the offload
         sys.argv.remove("--1088")
         os.environ["ECCE_1088_ONLY"] = "1"
@@ -2362,6 +2423,11 @@ def main():
             return
         if os.environ.get("ECCE_UTILS_ONLY") == "1":
             runUtilityWindows(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
+        if os.environ.get("ECCE_1209_ONLY") == "1":
+            runReopenViewer(display)
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
@@ -2431,6 +2497,7 @@ def main():
         runTabsLauncher(display)
         runSetupLaunch(display)
         runQuitJob(display)
+        runReopenViewer(display)
         runTabsPopups(display)
         runUtilityWindows(display)
         runTabs1088(display)
