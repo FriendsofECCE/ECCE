@@ -137,8 +137,9 @@ public:
   // Runs the handler for one message (owner's thread).
   void process(const MqttInbound& in);
 
-  // After this, queued or posted messages are dropped.
-  void kill() { p_alive = false; }
+  // After this, queued or posted messages are dropped, and no receive()
+  // on another thread is still running the arrival hook.
+  void kill();
 
   // Hold, target and self filters, then hand over; true if accepted.
   // libmosquitto's thread, or the publisher's for in-process delivery.
@@ -151,6 +152,7 @@ private:
   std::map<std::string, std::string> p_aliases;   // topic -> tool name
   std::atomic<bool> p_held{false};
   std::atomic<bool> p_alive{true};
+  std::atomic<int> p_busy{0};   // receive() calls in progress
   int p_pipe[2];
   std::deque<MqttInbound> p_queue;
 };

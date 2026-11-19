@@ -1938,6 +1938,78 @@ def runSetupLaunch(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runQuitJob(display):
+    """#1131: Builder, Editor and Viewer tabs closed by closetools while a
+    localhost job runs, then Quit: no tool window is left behind, and the
+    Organizer exits 0 with the job's watchers still connected."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        calc = os.path.join(project, "water-q")
+        shutil.copytree(os.path.join(HERE, "..", "ecceqm", "fixtures",
+                                     "h2o-geometry"), calc, symlinks=True)
+        meta = open(os.path.join(calc, ".ecce-meta")).read()
+        open(os.path.join(calc, ".ecce-meta"), "w").write(
+            re.sub(r"(ecce:state\t\t)\w+", r"\1ready", meta))
+        url = "file://" + calc
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            append("start Builder " + url, 15)
+            append("start CalculationEditor " + url, 30)
+            append("setup launch", 6)
+            append("setup launch go", 8)
+            append("setup launch get state", 2)
+            append("start CalculationViewer " + url, 20)
+            append("tabs", 2)
+            append("closetools", 8)
+            append("tabs", 2)
+            append("inprocess", 2)
+            append("setup launch get state", 2)
+            append("menu exit", 3)
+            append("answer ok", 25)
+
+        setLayout(display, "normal")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        print("job state before/after closetools:",
+              pb.answers(log, "setup launch get state"))
+        check(pb.answers(log, "closetools") == ["queued", "closed"],
+              "closetools closed the tool tabs",
+              str(pb.answers(log, "closetools")))
+        tabs = pb.answers(log, "tabs")
+        check(len(tabs) >= 2 and "Viewer" in tabs[0] and "Builder" in tabs[0]
+              and re.match(r"0:Organizer\*? menus", tabs[-1]),
+              "Builder, Editor and Viewer were tabs; only the Organizer is "
+              "left after closetools", str(tabs))
+        inproc = pb.answers(log, "inprocess")
+        left = re.findall(r"tlw=(Builder|CalcEd|PartialCharge|MoCoeffs|"
+                          r"GridDlg|wxAuiFloatingFrame)\b", inproc[-1]) \
+            if inproc else ["no answer"]
+        check(not left, "no tool frame is left after closetools",
+              inproc[-1] if inproc else "")
+        check(not result.crashed and result.returncode == 0
+              and "Aborted" not in log,
+              "Quit after closetools with a job's watchers connected exits 0",
+              "returncode %s\n%s" % (result.returncode, log[-2500:]))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def runTabsPopups(display):
     """Popup menus and secondary windows of a tab (#1068): a menu popped up
     over the Builder tab and the editor tab attaches to the visible page and
@@ -2176,6 +2248,9 @@ def runPanelTeardown(display):
 
 
 def main():
+    if "--1131" in sys.argv:    # same as ECCE_1131_ONLY=1
+        sys.argv.remove("--1131")
+        os.environ["ECCE_1131_ONLY"] = "1"
     if "--1088" in sys.argv:    # same as ECCE_1088_ONLY=1, for the offload
         sys.argv.remove("--1088")
         os.environ["ECCE_1088_ONLY"] = "1"
@@ -2189,6 +2264,11 @@ def main():
             return
         if os.environ.get("ECCE_UTILS_ONLY") == "1":
             runUtilityWindows(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
+        if os.environ.get("ECCE_1131_ONLY") == "1":
+            runQuitJob(display)
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
@@ -2245,6 +2325,7 @@ def main():
         runTabsTools(display)
         runTabsLauncher(display)
         runSetupLaunch(display)
+        runQuitJob(display)
         runTabsPopups(display)
         runUtilityWindows(display)
         runTabs1088(display)

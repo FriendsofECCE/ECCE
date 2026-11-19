@@ -233,8 +233,31 @@ static bool wellFormedBody(string body)
   return true;
 }
 
+namespace {
+thread_local int t_receiving = 0;
+
+// Counted before the alive check, so kill() either sees the call or the
+// call sees the endpoint dead.
+struct InFlight {
+  std::atomic<int>& n;
+  explicit InFlight(std::atomic<int>& c) : n(c) { n++; t_receiving++; }
+  ~InFlight() { t_receiving--; n--; }
+};
+}
+
+void MqttEndpoint::kill()
+{
+  p_alive = false;
+  // The arrival hook runs subscriber code on the messaging thread, and the
+  // subscriber is freed once this returns. A thread that is inside
+  // receive() itself (local delivery) cannot wait for it.
+  if (t_receiving > 0) return;
+  while (p_busy > 0) std::this_thread::yield();
+}
+
 bool MqttEndpoint::receive(const MqttInbound& in)
 {
+  InFlight inFlight(p_busy);
   if (!p_alive || p_held) return false;
 
   // The receiver applies JMS's "targetid is NULL or me, targetname is NULL

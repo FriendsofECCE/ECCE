@@ -165,6 +165,9 @@ void WxJMSMessageDispatch::ensureTimers()
  */
 WxJMSMessageDispatch::~WxJMSMessageDispatch()
 {
+  // Before this object's members go: messageArrived, an override, runs on
+  // the messaging thread and uses p_publisher.
+  unsubscribe();
   InProcessTools::untrack(this);
   disconnect();
 }
