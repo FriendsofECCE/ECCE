@@ -22,15 +22,6 @@ import harness  # noqa: E402
 from harness import say  # noqa: E402
 
 check = eb.check
-METHANOL = """6
-methanol
-C   -0.046   0.663   0.000
-O   -0.046  -0.758   0.000
-H   -1.086   0.975   0.000
-H    0.437   1.077   0.890
-H    0.437   1.077  -0.890
-H    0.868  -1.065   0.000
-"""
 
 
 def main():
@@ -66,18 +57,15 @@ def main():
         display = xdisplay.Display().__enter__()
         env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita",
                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
-        mol = os.path.join(s.state, "methanol.xyz")
         out = os.path.join(s.state, "solvated.xyz")
-        with open(mol, "w") as h:
-            h.write(METHANOL)
 
         text = eb.runBuilder(
             s, env, wrappers, "solvate",
-            ["wait 3000", "info", "solvate solvent water216 margin 6 scale 1.0",
+            ["wait 3000", "smiles CO", "wait 500", "info", "solvate solvent water216 margin 6 scale 1.0",
              "info", "expect lattice yes", "savexyz " + out,
              "key viewer undo", "wait 500", "info",
              "expect lattice no", "quit"],
-            None, structure=mol)
+            None)
         m = re.search(r"BUILDER: solvate molecules=(\d+) added=(\d+) atoms=(\d+) "
                       r"cell=(\S+) (\S+) (\S+) density=(\S+)", text)
         atoms = re.findall(r"BUILDER: atoms=(\d+) lattice=(\w+)", text)
@@ -85,8 +73,9 @@ def main():
         if check(m, "solvate reported its result"):
             nmol, added, total = int(m.group(1)), int(m.group(2)), int(m.group(3))
             cell = [float(m.group(i)) for i in (4, 5, 6)]
-            check(added == 3 * nmol and total == 6 + added,
-                  "6 solute atoms + 3 per water (%d molecules, %d atoms)" % (nmol, total))
+            check(added == 3 * nmol and total == 6 + added and atoms[:1] == [("6", "no")],
+                  "6 solute atoms + 3 per water (%d molecules, %d atoms, before %s)"
+                  % (nmol, total, atoms[:1]))
             # extent + 2 x 6 A: about 14-15 A per side, ~100 waters
             check(all(13.0 < c < 16.0 for c in cell), "cell is extent + 12 A (%s)" % cell)
             check(60 < nmol < 140, "water count plausible (%d)" % nmol)
