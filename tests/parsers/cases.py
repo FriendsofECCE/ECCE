@@ -3303,6 +3303,14 @@ UNCOVERED = {
     ('gaussian-16.desc', 'EAM12][EAM1VEC'): "Needs a UHF AM1 job.",
     ('gaussian-16.desc', 'EPM31][EPM3VEC'): "Needs an RHF PM3 job.",
     ('gaussian-16.desc', 'EPM32][EPM3VEC'): "Needs a UHF PM3 job.",
+    # The counterpoise block is written by the job script after the fragment
+    # runs; tests/launch/counterpoise*_test.py run such jobs end to end.
+    ('ecceqm.desc', 'EINTCP][EINTRAW][EBSSE][CPTABLE][SCANCP][SCANRAW][SCANBSSE'):
+        "Needs a counterpoise job (dimer + ghost fragments).",
+    ('orca.desc', 'EINTCP][EINTRAW][EBSSE][CPTABLE][SCANCP][SCANRAW][SCANBSSE'):
+        "Needs a counterpoise job (dimer + ghost fragments).",
+    ('gaussian-16.desc', 'EINTCP][EINTRAW][EBSSE][CPTABLE'):
+        "Needs a Gaussian Counterpoise= job.",
 }
 
 
