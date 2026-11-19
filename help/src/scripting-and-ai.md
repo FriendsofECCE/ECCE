@@ -46,6 +46,17 @@ regenerate input. In Builder, spin is stored immediately; follow with `save`
 to store the structure's charge. Open CalcEd and save to regenerate input.
 These commands set the total state, separately from individual fragment states.
 
+## Builder shortcut checks
+
+In an isolated GUI test, `ECCE_BUILDER_SCRIPT` accepts
+`key text cut|copy|paste|undo|selectall`. The hook uses the focused editable
+single-line text field, or the first visible enabled one. If the layout
+contains none, it opens the Symmetry panel and uses its first text field.
+It sets the text to `abc`, focuses the field, selects its text and sends
+the shortcut command. `key text selectall` selects text while leaving the
+structure's selection alone; `key viewer selectall` focuses the 3-D view
+and selects all atoms.
+
 ## Fragments and ORCA counterpoise inputs
 
 The Builder's `ECCE_BUILDER_SCRIPT` hooks can define fragments and export
