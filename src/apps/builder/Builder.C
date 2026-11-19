@@ -103,6 +103,7 @@ using std::vector;
 #include "wxgui/ewxCursor.H"
 #include "wxgui/ewxGenericFileDialog.H"
 #include "wxgui/ewxLogTextCtrl.H"
+#include "wxgui/ToolLog.H"
 #include "wxgui/ewxMessageDialog.H"
 #include "tdat/CifIO.H"
 #include "tdat/LatticeDef.H"
@@ -746,6 +747,10 @@ Builder::~Builder()
     delete p_contextHistory;
   }
 
+  if (p_toolLog) {
+    ToolLog::unregisterTool(this);
+    p_toolLog->detach();
+  }
   if (!MqttLink::localDelivery()) wxLog::SetActiveTarget(NULL);
   delete p_msgs;
   // Other windows of the process (#983) may still use their configs.
@@ -1237,11 +1242,12 @@ void Builder::createToolPanels()
 
   ewxTextCtrl * log = new ewxTextCtrl(this, wxID_ANY, "", wxDefaultPosition,
           wxDefaultSize, wxTE_MULTILINE|wxTE_READONLY|wxSUNKEN_BORDER);
-  //  The log target is process-wide: in one process (#983) it stays the
-  //  Organizer's, and this panel only shows what is written to it directly.
-  //  No ewxLogTextCtrl then: it pushes itself onto the text control as its
-  //  event handler and must live as long as the control.
-  if (!MqttLink::localDelivery())
+  //  The log target is process-wide: in one process (#983) the Organizer's
+  //  ToolLog sends this tool's messages here, never to a modal box (#1123).
+  if (ToolLog::installed()) {
+    p_toolLog = new ewxLogTextCtrl(log, GetStatusBar());
+    ToolLog::registerTool(this, p_toolLog);
+  } else if (!MqttLink::localDelivery())
     delete wxLog::SetActiveTarget(new ewxLogTextCtrl(log, GetStatusBar()));
   addToolPanel(log, NAME_TOOL_LOG, false, false);
   //  In the one-column layouts the log lives collapsed to its caption bar.

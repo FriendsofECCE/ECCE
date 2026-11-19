@@ -19,7 +19,8 @@ issues: [1119, 1069, 983]
   rebuilt with `Delete` on every bar swap and menu open, so on macOS every
   tool opened as a tab ended ECCE. Fix: `wxMenuBar::SetAutoWindowMenu(false)`
   in `ToolTabs::setHost`, before any bar is installed. The price: no
-  Minimize/Zoom items or Cocoa window list in that process's Window menu.
+  Zoom item or Cocoa window list in that process's Window menu; ToolTabs
+  adds its own Minimize (Cmd-M, `wxID_ICONIZE_FRAME`) on macOS (#1123).
 - Any other code that keeps a wx menu titled "Window" on macOS and edits it
   has the same fault while the automatic Window menu is on.
 - After the exception wx cleans up with the host frame already destroyed;

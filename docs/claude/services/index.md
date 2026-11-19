@@ -126,4 +126,5 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [In a tab, frame GetSizer/FindWindow/Layout and controls made with `this` as parent miss the page (#983)](tab-children-made-later-need-the-page-as-parent.md)
 - [Dialogs of a tab: ewxModalGuard moves dialogs of a hidden tool frame over the Organizer (#983)](tools-as-tabs.md)
 - [A wx log window at start-up blocks Quit; quitting during the example import; two-sessions vs one program (#1065)](log-window-blocks-quit-1065.md)
+- [One program: one wx log target per process; a modal wxLogGui box from a tool stops queued events on macOS (#1123)](one-program-log-target-1123.md)
 - [Two tool starts within 100 ms left the second queued; Windows Quit lingered behind a separate tool (#1106)](start-queue-and-windows-quit-1106.md)

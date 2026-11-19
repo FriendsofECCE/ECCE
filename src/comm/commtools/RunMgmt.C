@@ -9,6 +9,8 @@
 
 // system includes
 #include <signal.h>
+#include <string.h>
+#include <strings.h>
 #include <unistd.h>
 #include <vector>
 #include <cstdio>
@@ -584,7 +586,8 @@ bool RunMgmt::registerLocalMachine(string& msg)
   RefMachine* refMachine = (RefMachine*)0;
 
   // Lookup fully qualified name if we think we have one
-  if (fullwhereami.find(whereami)==0  && fullwhereami!=whereami)
+  if (fullwhereami.size() > whereami.size() &&
+      strncasecmp(fullwhereami.c_str(), whereami.c_str(), whereami.size()) == 0)
     refMachine = RefMachine::fullLookup(fullwhereami);
   
   // If we don't have a hit, try the plain old hostname
