@@ -3,6 +3,7 @@
  *
  * The Launcher window or tab around a LaunchPanel (LaunchPanel.C).
  */
+#include "util/LiveCount.H"
 #include "wx/wxprec.h"
 #include "wx/wx.h"
 
@@ -16,6 +17,7 @@ IMPLEMENT_CLASS(WxLauncher, ewxFrame)
 
 WxLauncher::WxLauncher(wxWindow* parent)
 {
+  LiveCount::add("WxLauncher", 1);
     SetExtraStyle(wxWS_EX_VALIDATE_RECURSIVELY);
     ewxFrame::Create(parent, WxLauncherGUI::ID_FRAME_WXLAUNCHER,
                      SYMBOL_WXLAUNCHERGUI_TITLE, wxDefaultPosition,
@@ -66,6 +68,7 @@ WxLauncher::WxLauncher(wxWindow* parent)
 
 WxLauncher::~WxLauncher()
 {
+  LiveCount::add("WxLauncher", -1);
     ToolTabs::release(this, false);
     delete p_msgs;
     if (p_toolPrefs != NULL)

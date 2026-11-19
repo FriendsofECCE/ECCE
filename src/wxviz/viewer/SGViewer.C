@@ -6,6 +6,8 @@
 // using namespace std;
 
 #include <algorithm>
+
+#include "util/LiveCount.H"
 #include <cmath>
 #include "inv/elements/SoViewportRegionElement.H"
 #include "inv/sensors/SoFieldSensor.H"
@@ -128,6 +130,7 @@ SGViewer::SGViewer( wxWindow* parent, wxWindowID id,
                     long style, Type type, SoCamera *cameraToCopy ):
   SoWxExaminerViewer( parent, id, pos, size, style, type )
 {
+  LiveCount::add("SGViewer", 1);
   p_renderArea->EnableTouchEvents(wxTOUCH_ZOOM_GESTURE);
   p_renderArea->Bind(wxEVT_GESTURE_ZOOM, [this](wxZoomGestureEvent& event) {
     const double factor = event.GetZoomFactor();
@@ -240,6 +243,7 @@ SGViewer::SGViewer( wxWindow* parent, wxWindowID id,
 
 SGViewer::~SGViewer()
 {
+  LiveCount::add("SGViewer", -1);
 }
 
 

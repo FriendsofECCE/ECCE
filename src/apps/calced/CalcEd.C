@@ -1,3 +1,4 @@
+#include "util/LiveCount.H"
 #ifdef _WIN32
 #include <algorithm>
 #include <windows.h>
@@ -219,6 +220,7 @@ CalcEd::CalcEd( )
     p_runtypeHoldFlag(false),
     p_runtypeInitFlag(false)
 {
+  LiveCount::add("CalcEd", 1);
 
 }
 
@@ -268,6 +270,7 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
     p_runtypeHoldFlag(false),
     p_runtypeInitFlag(false)
 {
+  LiveCount::add("CalcEd", 1);
   Create(parent, id, caption, pos, size, style);
 
   restoreSettings();
@@ -449,6 +452,7 @@ void CalcEd::runTestCommand(const string& line)
 
 CalcEd::~CalcEd( )
 {
+  LiveCount::add("CalcEd", -1);
   ToolTabs::release(this, false);
   delete p_ESPCnstrnt;
   closeTheoryApp(true);

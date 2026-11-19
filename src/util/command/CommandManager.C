@@ -3,6 +3,7 @@
  *
  *
  */
+#include "util/LiveCount.H"
 #include <iostream>
    using namespace std;
 
@@ -15,6 +16,7 @@
  */
 CommandManager::CommandManager(const string& name, int maxStackSize)
 {
+  LiveCount::add("CommandManager", 1);
   p_name =  name;
   p_maxStackSize = maxStackSize;
 
@@ -27,6 +29,7 @@ CommandManager::CommandManager(const string& name, int maxStackSize)
  */
 CommandManager::~CommandManager()
 {
+  LiveCount::add("CommandManager", -1);
    clearCommands();
 }
 

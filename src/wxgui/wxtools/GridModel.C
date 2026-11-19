@@ -53,6 +53,8 @@ GridModel::GridModel() : wxGridTableBase()
  */
 GridModel::~GridModel()
 {
+  // The model owns its elements (DeleteRows and Clear delete them too).
+  Clear();
 }
 
 
@@ -173,18 +175,10 @@ void GridModel::SetValueAsGridElement(int row, int col, GridElement* element)
 
 void GridModel::Clear()
 {
-  if (p_rows > 0) {
-    for (int i = 0; i < p_rows; i++) {
-      for (int j = 0; j < p_cols; j++) {
-        if (p_elements[i][j] != 0) {
-          delete p_elements[i][j];
-          p_elements[i][j] = 0;
-        }
-        p_elements[i].clear();
-      }
-    }
-    p_elements.clear();
-  }
+  for (size_t i = 0; i < p_elements.size(); i++)
+    for (size_t j = 0; j < p_elements[i].size(); j++)
+      delete p_elements[i][j];
+  p_elements.clear();
   p_rows = 0;
   p_cols = 0;
 }

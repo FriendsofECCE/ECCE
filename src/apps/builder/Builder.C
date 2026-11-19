@@ -1,3 +1,4 @@
+#include "util/LiveCount.H"
 #include "wx/wrapsizer.h"
 #include <algorithm>
 #include <fstream>
@@ -491,6 +492,7 @@ Builder::Builder()
     p_propertyPanelInfo(),
     p_panelBuildDepth(0)
 {
+  LiveCount::add("Builder", 1);
 }
 
 
@@ -569,6 +571,7 @@ Builder::Builder( wxWindow* parent, bool standalone, wxWindowID id,
     p_propertyPanelInfo(),
     p_panelBuildDepth(0)
 {
+  LiveCount::add("Builder", 1);
   Create(parent, standalone, id, caption, pos, size, style);
 }
 
@@ -733,6 +736,7 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
 
 Builder::~Builder()
 {
+  LiveCount::add("Builder", -1);
   destroyOwnPropertyPanels();
   ToolTabs::release(this, false);
   unsubscribe();
@@ -749,6 +753,22 @@ Builder::~Builder()
   if (p_contextHistory) {
     delete p_contextHistory;
   }
+
+  // In one process a closed tab must free its contexts (#1136): undo
+  // stacks, constraint models, the scene graphs, and the calculations this
+  // Builder made itself.  Calculations from EDSIFactory belong to its pool.
+  for (auto& cm : p_commandManagers) delete cm.second;
+  p_commandManagers.clear();
+  for (auto& m : p_constraintModels) delete m.second;
+  p_constraintModels.clear();
+  for (auto& c : p_calculations)
+    if (!dynamic_cast<Resource*>(c.second)) delete c.second;
+  p_calculations.clear();
+  p_calculation = 0;
+  p_commandManager = 0;
+  // The viewer, a child destroyed after this body, keeps its own reference.
+  if (p_sgMgr) p_sgMgr->unref();
+  p_sgMgr = 0;
 
   if (p_toolLog) {
     ToolLog::unregisterTool(this);
@@ -2842,7 +2862,8 @@ SGViewer&   Builder::getViewer()
 
 SGContainer* Builder::getSG()
 {
-  return p_sgMgr->getSceneGraph();
+  // Null once ~Builder has freed the contexts (child windows die after it).
+  return p_sgMgr ? p_sgMgr->getSceneGraph() : NULL;
 }
 
 CommandManager* Builder::getCM()
