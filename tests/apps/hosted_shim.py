@@ -22,6 +22,7 @@ import time
 tool, wrapper, argv = sys.argv[1], sys.argv[2], sys.argv[3:]
 url = ""
 rest = []
+pipe = []
 i = 0
 while i < len(argv):
     a = argv[i]
@@ -29,7 +30,7 @@ while i < len(argv):
         url = argv[i + 1]
         i += 2
     elif a == "-pipe" and i + 1 < len(argv):
-        rest += argv[i:i + 2]       # stdin authentication: not used hosted
+        pipe = argv[i:i + 2]        # the credentials: the Organizer reads them
         i += 2
     elif a.startswith("-"):
         rest.append(a)
@@ -82,8 +83,9 @@ env = dict(os.environ, ECCE_ONE_PROCESS="1", ECCE_TEST_ORGANIZER=cmds,
            ECCE_HOSTED_SHIM=str(os.getpid()))
 env.pop("ECCE_TEST_HOSTED", None)
 organizer = os.path.join(os.path.dirname(wrapper), "ecce-organizer")
-sys.stdout.write("HOSTED: %s %s (dropped: %s) via %s\n"
-                 % (tool, url or "-", " ".join(rest) or "-", organizer))
+sys.stdout.write("HOSTED: %s %s (dropped: %s) via %s %s\n"
+                 % (tool, url or "-", " ".join(rest) or "-", organizer,
+                    " ".join(pipe)))
 sys.stdout.flush()
 
 
@@ -95,7 +97,7 @@ def dieWithShim():
         pass
 
 
-proc = subprocess.Popen([organizer], env=env, stdout=subprocess.PIPE,
+proc = subprocess.Popen([organizer] + pipe, env=env, stdout=subprocess.PIPE,
                         stderr=subprocess.STDOUT, start_new_session=True,
                         preexec_fn=dieWithShim)
 
