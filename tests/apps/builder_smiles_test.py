@@ -153,9 +153,13 @@ def main():
         # 2. Beside an open structure.
         text = eb.runBuilder(s, env, wrappers, "smiles2",
                              ["wait 3000", "coords", "smiles " + CYS, "coords",
-                              "key viewer undo", "coords", "quit"],
+                              "savestate", "key viewer undo", "coords", "quit"],
                              args.shots, structure=dms)
         d = dumps(text)
+        # The first edit after opening marks the structure changed (#1137).
+        st = re.findall(r"BUILDER: dirty=(\d) save_enabled=(\d)", text)
+        check(st and st[0][0] == "1",
+              "the first SMILES marks the structure changed (%s)" % st)
         if check(len(d) == 3 and len(d[0]) == 9 and len(d[1]) == 22 and
                  len(d[2]) == 9, "added beside: 9, 22, undone 9 atoms (%s)"
                  % [len(x) for x in d]):

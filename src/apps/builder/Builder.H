@@ -611,6 +611,7 @@ class Builder: public BuilderGUI,
       bool openPropertyPanel(const wxString& name, bool testSize = false);
    private:
       void removePropertyPanels(const string& context="");
+      void destroyOwnPropertyPanels();
 
       void toggleTool(int id, bool isChecked);
       bool getToolState(int id) const;
