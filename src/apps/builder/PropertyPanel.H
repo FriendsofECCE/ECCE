@@ -14,6 +14,7 @@
 #include "wxgui/ewxPanel.H"
 
 
+class Builder;
 class IPropCalculation;
 class PropertyPanelDescription;
 class wxCustomButton;
@@ -111,6 +112,8 @@ class PropertyPanel : public ewxPanel
     static bool panelExists(const string& url, const string& name,
                             const wxWindow *owner=0);
     wxWindow *getOwner() const { return p_owner; }
+    //  The Builder or Viewer that created this panel (0 if none).
+    Builder *builder() const;
 
     // setters
     void setDescription(PropertyPanelDescription *description);

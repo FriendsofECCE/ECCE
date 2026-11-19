@@ -92,7 +92,8 @@ wxStaticText *addOrbitalPointNote(wxWindow *parent, wxSizer *sizer,
   return label;
 }
 
-void selectOrbitalPoint(IPropCalculation *calc, int tableIndex, int row)
+void selectOrbitalPoint(IPropCalculation *calc, int tableIndex, int row,
+                        const wxWindow *owner)
 {
   if (!calc || !calc->hasPointOrbitals()) return;
   const std::string url = calc->getURL().toString();
@@ -100,7 +101,7 @@ void selectOrbitalPoint(IPropCalculation *calc, int tableIndex, int row)
   rowOf()[url] = row;
   calc->orbitalPoint(tableIndex);
   const std::string text = orbitalPointNote(calc);
-  for (PropertyPanel *p : PropertyPanel::getPanels(url)) {
+  for (PropertyPanel *p : PropertyPanel::getPanels(url, "", owner)) {
     wxStaticText *note = dynamic_cast<wxStaticText*>(
         wxWindow::FindWindowByName(NOTE_NAME, p));
     if (note) {
@@ -113,9 +114,9 @@ void selectOrbitalPoint(IPropCalculation *calc, int tableIndex, int row)
     else if (MoDiagramPanel *g = dynamic_cast<MoDiagramPanel*>(p)) g->refresh();
   }
   //  Which surfaces are offered depends on the point's orbitals.
-  for (PropertyPanel *p : PropertyPanel::getPanels(url))
+  for (PropertyPanel *p : PropertyPanel::getPanels(url, "", owner))
     if (dynamic_cast<MoPanel*>(p)) {
-      if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(p)))
+      if (auto *builder = p->builder())
         builder->surfacesChanged();
       break;
     }

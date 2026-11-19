@@ -67,7 +67,7 @@ public:
   }
 protected:
   void initialize() override {
-    auto *builder = dynamic_cast<Builder*>(GetParent());
+    auto *builder = PropertyPanel::builder();
     if (!builder) return;
     auto *s = new wxBoxSizer(wxVERTICAL);
     auto *toggle = new wxButton(this, wxID_ANY, "Pattern (return to pane)");
@@ -1655,7 +1655,7 @@ void Builder::runPanelLayoutTest()
 
   vector<string> names;
   set<PropertyPanel*> panels =
-      PropertyPanel::getPanels(p_calculation->getURL().toString());
+      PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
   for (set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end();
        ++it) {
     names.push_back((*it)->getName());
@@ -1928,7 +1928,7 @@ void Builder::runClipAudit()
   std::shared_ptr<std::deque<Step> > steps(new std::deque<Step>());
   vector<string> names;
   set<PropertyPanel*> panels =
-      PropertyPanel::getPanels(p_calculation->getURL().toString());
+      PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
   for (set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end();
        ++it) {
     names.push_back((*it)->getName());

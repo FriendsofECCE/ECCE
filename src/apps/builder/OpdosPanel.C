@@ -642,7 +642,7 @@ bool OpdosPanel::showListedMo(int row)
   const wxString name = wxString::Format("MO %d%s", m.mo, p_unres ? (m.spin ? " beta" : " alpha") : "");
   //  The same path as a click on an MO-diagram level: the MOs panel computes the surface.
   MoPanel *mo = nullptr;
-  std::set<PropertyPanel*> panels = PropertyPanel::getPanels(getCalculation()->getURL().toString(), "MOs");
+  std::set<PropertyPanel*> panels = PropertyPanel::getPanels(getCalculation()->getURL().toString(), "MOs", getOwner());
   for (std::set<PropertyPanel*>::iterator it = panels.begin(); it != panels.end() && !mo; ++it)
     mo = dynamic_cast<MoPanel*>(*it);
   p_drawn.clear();

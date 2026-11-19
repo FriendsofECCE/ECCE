@@ -5,6 +5,7 @@
 
 #include "PropertyPanel.H"
 #include "PropertyPanelFactory.H"
+#include "Builder.H"
 
 
 IMPLEMENT_DYNAMIC_CLASS(PropertyPanel, ewxPanel)
@@ -67,6 +68,13 @@ PropertyPanel::~PropertyPanel()
     p_propertyPanels[p_calculation->getURL().toString()].erase(this);
     p_allPropertyPanels.erase(this);
   }
+}
+
+
+Builder *PropertyPanel::builder() const
+{
+  if (Builder *b = dynamic_cast<Builder*>(p_owner)) return b;
+  return Builder::containing(this);
 }
 
 

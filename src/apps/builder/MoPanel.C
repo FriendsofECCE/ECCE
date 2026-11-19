@@ -72,10 +72,11 @@
 
 //  The MO diagram is always canonical; it labels itself while the table
 //  lists the localised set.
-static void tellDiagrams(IPropCalculation *calc, bool localised)
+static void tellDiagrams(IPropCalculation *calc, bool localised,
+                         const wxWindow *owner)
 {
    if (calc == 0) return;
-   for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString()))
+   for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString(), "", owner))
       if (MoDiagramPanel *d = dynamic_cast<MoDiagramPanel*>(p))
          d->orbitalSetChanged(localised);
 }
@@ -580,7 +581,7 @@ void MoPanel::setSurfaceMode(bool on)
    p_surfaceMode = on;
    //  A surface from the other mode would sit under the wrong controls.
    dropDrawnSurface();
-   if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this)))
+   if (auto *builder = PropertyPanel::builder())
       builder->setPaneCaption(this, on ? "Surfaces" : "MOs");
    populateTypeChoice();
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
@@ -607,7 +608,7 @@ void MoPanel::updateUIOptions()
       if (fieldKey(entry.label) == "Spin Density") spinOk = true;
    }
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
-   if (p_localised) tellDiagrams(getCalculation(), false);
+   if (p_localised) tellDiagrams(getCalculation(), false, getOwner());
    p_localised = false;
    populateTypeChoice();
    if (!(expt->getProperty("LOCMO") && expt->getProperty("LOCMOENG")) &&
@@ -1199,7 +1200,7 @@ void MoPanel::tellDensityMap()
    if (calc == 0 || p_mogrid == 0 || p_selectedRow < 0 || p_localised ||
        p_selectedRow >= p_mogrid->GetNumberRows())
       return;
-   std::set<PropertyPanel*> panels = PropertyPanel::getPanels(calc->getURL().toString());
+   std::set<PropertyPanel*> panels = PropertyPanel::getPanels(calc->getURL().toString(), "", getOwner());
    for (std::set<PropertyPanel*>::iterator it = panels.begin();
         it != panels.end(); ++it) {
       DensityMapPanel *dm = dynamic_cast<DensityMapPanel*>(*it);
@@ -2626,7 +2627,7 @@ void MoPanel::setLocalised(bool localised)
 {
    p_localised = localised;
    rebuildTable();
-   tellDiagrams(getCalculation(), localised);
+   tellDiagrams(getCalculation(), localised, getOwner());
 }
 
 
@@ -2993,7 +2994,7 @@ void MoPanel::reflow()
    const int tableFloor = 100;
    const int need = GetSizer()->CalcMin().y - p_mogrid->GetMinSize().y +
                     tableFloor;
-   Builder *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this));
+   Builder *builder = PropertyPanel::builder();
    //  Shown-ness is read when the call runs: the first fill happens while
    //  the pane is still being put on screen.
    if (builder) {
@@ -3232,7 +3233,7 @@ void MoPanel::showMainView()
    //  A graph needs more height than the table's three rows; the
    //  Properties list above gives it up.
    if (IsShownOnScreen())
-      if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this)))
+      if (auto *builder = PropertyPanel::builder())
          builder->openPanelChanged();
 }
 
@@ -3499,7 +3500,7 @@ void MoPanel::onFieldTypeChanged(wxCommandEvent& event)
    showFieldViewControls(fieldView, nciSel);
    updateFieldNote();
    if (IsShownOnScreen())
-      if (auto *builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this)))
+      if (auto *builder = PropertyPanel::builder())
          builder->syncIndexSelection(this);
 
    {

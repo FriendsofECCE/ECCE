@@ -52,11 +52,11 @@
 
 namespace {
 
-GeomTracePropertyPanel *tracePanel(IPropCalculation *calc)
+GeomTracePropertyPanel *tracePanel(IPropCalculation *calc, const wxWindow *owner)
 {
   if (!calc) return 0;
   set<PropertyPanel*> panels =
-      PropertyPanel::getPanels(calc->getURL().toString());
+      PropertyPanel::getPanels(calc->getURL().toString(), "", owner);
   for (PropertyPanel *p : panels) {
     GeomTracePropertyPanel *gt = dynamic_cast<GeomTracePropertyPanel*>(p);
     if (gt) return gt;
@@ -122,7 +122,7 @@ string stepMessage(int step, int atoms, int values)
 
 bool Builder::traceFrame(int index)
 {
-  GeomTracePropertyPanel *gt = tracePanel(p_calculation);
+  GeomTracePropertyPanel *gt = tracePanel(p_calculation, this);
   if (!gt || !plotOf(gt)) return false;
   gt->showFrame(index);
   spin(50);
@@ -139,7 +139,7 @@ bool Builder::traceFrame(int index)
 string Builder::ensembleCommand(const vector<string>& w)
 {
   const string& c = w[0];
-  GeomTracePropertyPanel *gt = tracePanel(p_calculation);
+  GeomTracePropertyPanel *gt = tracePanel(p_calculation, this);
   {
     EnsemblePropertyPanel *en = dynamic_cast<EnsemblePropertyPanel*>(gt);
     if (!en) return (c + ": no ensemble panel");
@@ -227,7 +227,7 @@ string Builder::ensembleCommand(const vector<string>& w)
 bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
 {
   const string& c = w[0];
-  GeomTracePropertyPanel *gt = tracePanel(p_calculation);
+  GeomTracePropertyPanel *gt = tracePanel(p_calculation, this);
   PlaybackControl *pb = playback(gt);
 
   //  "gtframe <n>" (0-based; "last"): show that frame as gtstep does, and
@@ -254,7 +254,7 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     if (!gt) {
       string have;
       for (PropertyPanel *p :
-           PropertyPanel::getPanels(p_calculation->getURL().toString()))
+           PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
         have += " [" + p->getName() + "]";
       return s.fail("gtfocus: no Geometry Trace panel in " +
                     p_calculation->getURL().toString() + "; panels:" + have);
@@ -329,7 +329,7 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
       return s.fail("gtupdate " + w[1] + ": updateProperty threw");
     }
     set<PropertyPanel*> panels = PropertyPanel::getPanelsForPropertyName(
-        p_calculation->getURL().toString(), "GEOMTRACE");
+        p_calculation->getURL().toString(), "GEOMTRACE", this);
     for (PropertyPanel *p : panels) p->propertyUpdate("GEOMTRACE");
     spin(20);
     return true;
@@ -428,7 +428,7 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
     } else {
       PlotAnyPropertyPanel *any = 0;
       for (PropertyPanel *p :
-           PropertyPanel::getPanels(p_calculation->getURL().toString()))
+           PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
         if (p->getName() == "Geometry Step Plots" &&
             (any = dynamic_cast<PlotAnyPropertyPanel*>(p)) != 0) break;
       if (!any) return s.fail("gtstepclick: no Geometry Step Plots panel");
@@ -581,7 +581,7 @@ bool Builder::traceStressCommand(SceneScript& s, const vector<string>& w)
 
   //  "gtunfocusall": what quit() does to the panels before it exits.
   if (c == "gtunfocusall") {
-    set<VizPropertyPanel*> panels = VizPropertyPanel::getPanels();
+    set<VizPropertyPanel*> panels = VizPropertyPanel::getPanels("", "", this);
     for (VizPropertyPanel *p : panels) p->setFocus(false);
     spin(50);
     return true;
@@ -615,7 +615,7 @@ bool Builder::nmodeTestCommand(SceneScript& s, const vector<string>& w)
   NModePanel *nm = 0;
   if (p_calculation)
     for (PropertyPanel *p :
-         PropertyPanel::getPanels(p_calculation->getURL().toString()))
+         PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
       if ((nm = dynamic_cast<NModePanel*>(p)) != 0) break;
   if (!nm) return s.fail(c + ": no Normal Modes panel");
   fprintf(stderr, "VIBTEST: %s\n", c.c_str());

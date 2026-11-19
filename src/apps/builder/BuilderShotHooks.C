@@ -74,7 +74,7 @@ bool Builder::shotHookCommand(SceneScript& s, const vector<string>& w,
     MullikenPanel *mul = 0;
     PartialCharges *part = 0;
     for (PropertyPanel *p :
-         PropertyPanel::getPanels(p_calculation->getURL().toString())) {
+         PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this)) {
       if (p->getName() != name && p != pane.window) continue;
       if (!mul) mul = dynamic_cast<MullikenPanel*>(p);
       if (!part) part = dynamic_cast<PartialCharges*>(p);

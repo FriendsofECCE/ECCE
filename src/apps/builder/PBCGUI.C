@@ -210,7 +210,7 @@ void PBCGUI::refit()
     InvalidateBestSize();
     Layout();
     if (IsShownOnScreen()) {
-        Builder* builder = dynamic_cast<Builder*>(wxGetTopLevelParent(this));
+        Builder* builder = Builder::containing(this);
         if (builder) {
             builder->CallAfter([builder]() {
                 builder->toolPaneResized(Builder::NAME_TOOL_PBC);

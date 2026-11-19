@@ -977,6 +977,13 @@ wxSizer *ToolTabs::sizer(const wxTopLevelWindow *tool, wxSizer *own)
 }
 
 
+wxTopLevelWindow *ToolTabs::pageTool(const wxWindow *w)
+{
+  Tab *t = findPage(w);
+  return t ? t->tool : 0;
+}
+
+
 wxWindow *ToolTabs::client(const wxTopLevelWindow *tool)
 {
   Tab *t = findTool(tool);

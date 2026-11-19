@@ -408,7 +408,7 @@ int ScanPanel::showPoint(int index)
   // that showed them all.
   if (wholeInView && getFW().atomsOutsideView()) getFW().center();
   ecce::EventDispatcher::getDispatcher().publish(ecce::Event("StepChange"));
-  selectOrbitalPoint(calc, p_frame[index], index);
+  selectOrbitalPoint(calc, p_frame[index], index, getOwner());
   return p_frame[index];
 }
 

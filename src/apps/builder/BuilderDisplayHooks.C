@@ -68,7 +68,7 @@ void Builder::createDisplayPanel()
     if (getSG()) getSG()->touchLattice();
     if (!p_calculation) return;
     for (PropertyPanel *p :
-         PropertyPanel::getPanels(p_calculation->getURL().toString())) {
+         PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this)) {
       if (!p->IsShownOnScreen()) continue;
       if (MoPanel *mo = dynamic_cast<MoPanel*>(p)) mo->surfaceStyleChanged();
       else if (Cube *cube = dynamic_cast<Cube*>(p)) cube->surfaceStyleChanged();

@@ -1669,7 +1669,7 @@ void Builder::runBuilderScript(const std::string& file)
         MoPanel *mp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((mp = dynamic_cast<MoPanel*>(p)) != 0) break;
         if (!mp) {
           outcome = "no MOs panel";
@@ -1686,7 +1686,7 @@ void Builder::runBuilderScript(const std::string& file)
         NModePanel *nm = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((nm = dynamic_cast<NModePanel*>(p)) != 0) break;
         if (!nm) {
           outcome = "no Vibrational Frequencies panel";
@@ -1704,7 +1704,7 @@ void Builder::runBuilderScript(const std::string& file)
         NModePanel *nm = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((nm = dynamic_cast<NModePanel*>(p)) != 0) break;
         double mismatch = 1.0;
         int selected = -1;
@@ -1727,7 +1727,7 @@ void Builder::runBuilderScript(const std::string& file)
         NModePanel *nm = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((nm = dynamic_cast<NModePanel*>(p)) != 0) break;
         if (!nm) outcome = "no Vibrational Frequencies panel";
         else {
@@ -1742,7 +1742,7 @@ void Builder::runBuilderScript(const std::string& file)
         NModePanel *nm = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((nm = dynamic_cast<NModePanel*>(p)) != 0) break;
         if (!nm) outcome = "no Vibrational Frequencies panel";
         else fprintf(stderr, "BUILDER: specfactor %s\n",
@@ -1754,7 +1754,7 @@ void Builder::runBuilderScript(const std::string& file)
         ScanPanel *sp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
         if (!sp) {
           outcome = "no Relaxed Scan panel";
@@ -1770,7 +1770,7 @@ void Builder::runBuilderScript(const std::string& file)
         PullPanel *pp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((pp = dynamic_cast<PullPanel*>(p)) != 0) break;
         if (!pp) {
           outcome = "no Pull Force panel";
@@ -1785,7 +1785,7 @@ void Builder::runBuilderScript(const std::string& file)
         PullPanel *pp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((pp = dynamic_cast<PullPanel*>(p)) != 0) break;
         if (!pp) {
           outcome = "no Pull Force panel";
@@ -1845,7 +1845,7 @@ void Builder::runBuilderScript(const std::string& file)
         GmxAnalysisPanel *gp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((gp = dynamic_cast<GmxAnalysisPanel*>(p)) != 0) break;
         if (!gp) {
           outcome = "no MD Analysis panel";
@@ -1891,7 +1891,7 @@ void Builder::runBuilderScript(const std::string& file)
         MdAnalysisPanel *mp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString())) {
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this)) {
             if (w[0] == "mdfit" || w[0] == "mdloglog") mp = dynamic_cast<MsdPanel*>(p);
             else if (speed) mp = dynamic_cast<SpeedPanel*>(p);
             else mp = dynamic_cast<MsdPanel*>(p);
@@ -1933,7 +1933,7 @@ void Builder::runBuilderScript(const std::string& file)
         ReactionPanel *rp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((rp = dynamic_cast<ReactionPanel*>(p)) != 0) break;
         if (!rp) {
           outcome = "no Reaction Energies panel";
@@ -1951,7 +1951,7 @@ void Builder::runBuilderScript(const std::string& file)
         ThermoPanel *tp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((tp = dynamic_cast<ThermoPanel*>(p)) != 0) break;
         if (!tp) {
           outcome = "no Thermochemistry panel";
@@ -2004,7 +2004,7 @@ void Builder::runBuilderScript(const std::string& file)
         IRCPanel *ip = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
         if (!ip) {
           outcome = "no IRC Path panel";
@@ -2022,7 +2022,7 @@ void Builder::runBuilderScript(const std::string& file)
         IRCPanel *ip = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString())) {
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this)) {
             if (!sp) sp = dynamic_cast<ScanPanel*>(p);
             if (!ip) ip = dynamic_cast<IRCPanel*>(p);
           }
@@ -2053,7 +2053,7 @@ void Builder::runBuilderScript(const std::string& file)
         ScanPanel *sp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
         if (!sp) outcome = "no Relaxed Scan panel";
         else {
@@ -2067,7 +2067,7 @@ void Builder::runBuilderScript(const std::string& file)
         ScanPanel *sp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
         if (!sp) {
           outcome = "no Relaxed Scan panel";
@@ -2097,7 +2097,7 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0] == "scan" && w.size() >= 2) {
         ScanPanel *sp = nullptr;
         if (p_calculation)
-          for (auto *panel : PropertyPanel::getPanels(p_calculation->getURL().toString()))
+          for (auto *panel : PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((sp = dynamic_cast<ScanPanel*>(panel))) break;
         if (!sp) outcome = "no Relaxed Scan panel";
         else if (w[1] == "cpsingle" && (w.size() == 2 || (w.size() == 3 && w[2] == "launch"))) {
@@ -2117,7 +2117,7 @@ void Builder::runBuilderScript(const std::string& file)
         ScanPanel *sp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
         if (!sp) {
           outcome = "no Relaxed Scan panel";
@@ -2157,7 +2157,7 @@ void Builder::runBuilderScript(const std::string& file)
         ScanPanel *sp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
         fprintf(stderr, "BUILDER: scanstatus [%s]\n",
                 sp ? sp->status().utf8_str().data() : "no panel");
@@ -2169,7 +2169,7 @@ void Builder::runBuilderScript(const std::string& file)
         ScanPanel *sp = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString())) {
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this)) {
             if (w[0] == "ircplayopt" && (ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
             if (w[0] == "scanplayopt" && (sp = dynamic_cast<ScanPanel*>(p)) != 0) break;
           }
@@ -2194,7 +2194,7 @@ void Builder::runBuilderScript(const std::string& file)
         IRCPanel *ip = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
         if (!ip) outcome = "no IRC Path panel";
         else fprintf(stderr, "BUILDER: ircaxes %s\n", ip->axisText(atoi(w[1].c_str())).c_str());
@@ -2203,7 +2203,7 @@ void Builder::runBuilderScript(const std::string& file)
         IRCPanel *ip = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
         if (!ip) outcome = "no IRC Path panel";
         else ip->setTableView(w[1] == "table");
@@ -2215,7 +2215,7 @@ void Builder::runBuilderScript(const std::string& file)
         IRCPanel *ip = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
         if (!ip) {
           outcome = "no IRC Path panel";
@@ -2242,7 +2242,7 @@ void Builder::runBuilderScript(const std::string& file)
         IRCPanel *ip = 0;
         if (p_calculation)
           for (PropertyPanel *p :
-               PropertyPanel::getPanels(p_calculation->getURL().toString()))
+               PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if ((ip = dynamic_cast<IRCPanel*>(p)) != 0) break;
         if (!ip) {
           outcome = "no IRC Path panel";
@@ -2267,7 +2267,7 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0] == "overlay") {
         std::string list;
         set<VizPropertyPanel*> panels =
-            VizPropertyPanel::getPanels(p_calculation->getURL().toString());
+            VizPropertyPanel::getPanels(p_calculation->getURL().toString(), "", this);
         for (VizPropertyPanel *panel : panels) {
           wxAuiPaneInfo &pane = p_mgr.GetPane(panel);
           wxCheckBox *box = panel->viewerToggle();
@@ -2344,7 +2344,7 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0] == "stressinfo") {
         bool found = false;
         for (PropertyPanel *panel : PropertyPanel::getPanels(
-                 p_calculation->getURL().toString())) {
+                 p_calculation->getURL().toString(), "", this)) {
           if (auto *stress = dynamic_cast<StressPanel*>(panel)) {
             fprintf(stderr, "BUILDER: stressinfo\n%s\n",
                     (stress->summaryText()+"\n"+stress->labelAnchorText()).c_str());
@@ -2360,7 +2360,7 @@ void Builder::runBuilderScript(const std::string& file)
             for (wxWindow *c : win->GetChildren()) count(c);
           };
           for (VizPropertyPanel *panel : VizPropertyPanel::getPanels(
-                   p_calculation->getURL().toString()))
+                   p_calculation->getURL().toString(), "", this))
             if (panel->getName() == w[1] || panel->hasFocus()) count(panel);
           fprintf(stderr, "BUILDER: vector %s slider=%d\n", w[1].c_str(),
                   sliders);
@@ -2407,7 +2407,7 @@ void Builder::runBuilderScript(const std::string& file)
         //  table rows and the arrow count are logged.
         MomentsPanel *mp = 0;
         for (VizPropertyPanel *panel : VizPropertyPanel::getPanels(
-                 p_calculation->getURL().toString()))
+                 p_calculation->getURL().toString(), "", this))
           if (MomentsPanel *m = dynamic_cast<MomentsPanel*>(panel))
             if (m->hasBondDipoles()) mp = m;
         if (!mp) {
@@ -2487,7 +2487,7 @@ void Builder::runBuilderScript(const std::string& file)
       } else if (w[0] == "nmr" && w.size() >= 2) {
         NmrPanel *nmr = nullptr;
         if (p_calculation)
-          for (PropertyPanel *p : PropertyPanel::getPanels(p_calculation->getURL().toString()))
+          for (PropertyPanel *p : PropertyPanel::getPanels(p_calculation->getURL().toString(), "", this))
             if (auto *panel = dynamic_cast<NmrPanel*>(p)) nmr = panel;
         bool ok = nmr != nullptr;
         if (nmr) {

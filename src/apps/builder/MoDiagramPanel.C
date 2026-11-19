@@ -72,6 +72,7 @@
 #include "MoPanel.H"
 #include "wxgui/ewxConfig.H"
 #include "MoDiagramPanel.H"
+#include "Builder.H"
 
 using std::max;
 using std::min;
@@ -293,7 +294,7 @@ string MoDiagramPanel::orbitalComposition(const vector<int>& orbengIndices)
   IPropCalculation *calc = getCalculation();
   if (calc == 0 || noCompositionFor(calc)) return "";
   set<PropertyPanel*> panels =
-      PropertyPanel::getPanels(calc->getURL().toString(), "MOs");
+      PropertyPanel::getPanels(calc->getURL().toString(), "MOs", getOwner());
   for (set<PropertyPanel*>::iterator it = panels.begin();
        it != panels.end(); ++it) {
     MoPanel *mo = dynamic_cast<MoPanel*>(*it);
@@ -309,7 +310,7 @@ void MoDiagramPanel::orbitalClicked(int orbengIndex)
   if (calc == 0) return;
 
   set<PropertyPanel*> panels =
-      PropertyPanel::getPanels(calc->getURL().toString(), "MOs");
+      PropertyPanel::getPanels(calc->getURL().toString(), "MOs", getOwner());
 
   for (set<PropertyPanel*>::iterator it = panels.begin();
        it != panels.end(); ++it) {
@@ -324,8 +325,18 @@ void MoDiagramPanel::orbitalClicked(int orbengIndex)
     return;
   }
 
-  getFW().showMessage("Open the MOs panel (Properties menu) to show an "
-                      "orbital from the diagram.", false/*warning*/);
+  //  The MOs panel is created only when the Builder offers it, i.e. when
+  //  the calculation has MO vectors; opening it builds it.
+  static bool tried = false;
+  Builder *builder = PropertyPanel::builder();
+  if (builder && !tried && builder->openPropertyPanel("MOs")) {
+    tried = true;
+    orbitalClicked(orbengIndex);
+    tried = false;
+    return;
+  }
+  getFW().showMessage("This calculation has no MO data: the diagram's orbitals "
+                      "cannot be shown.", false/*warning*/);
 }
 
 
@@ -1227,7 +1238,7 @@ void MoDiagramPanel::initialize()
   IPropCalculation *calc = getCalculation();
   bool localised = false;
   if (calc != 0)
-    for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString(), "MOs"))
+    for (PropertyPanel *p : PropertyPanel::getPanels(calc->getURL().toString(), "MOs", getOwner()))
       if (MoPanel *mo = dynamic_cast<MoPanel*>(p)) localised = mo->localisedShown();
   orbitalSetChanged(localised);
   build();
@@ -4391,7 +4402,7 @@ void MoDiagramPanel::buildOnce()
     if (on && !coreCandidates.empty()) {
       MoPanel *mo = 0;
       set<PropertyPanel*> panels = PropertyPanel::getPanels(
-          getCalculation()->getURL().toString(), "MOs");
+          getCalculation()->getURL().toString(), "MOs", getOwner());
       for (set<PropertyPanel*>::iterator it = panels.begin();
            it != panels.end() && !mo; ++it)
         mo = dynamic_cast<MoPanel*>(*it);
