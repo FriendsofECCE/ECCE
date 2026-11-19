@@ -756,6 +756,8 @@ Builder::~Builder()
   // stacks, constraint models, the scene graphs, and the calculations this
   // Builder made itself.  Calculations from EDSIFactory belong to its pool.
   for (auto& cm : p_commandManagers) delete cm.second;
+  for (Command *cmd : p_spentCommands) delete cmd;
+  p_spentCommands.clear();
   p_commandManagers.clear();
   for (auto& m : p_constraintModels) delete m.second;
   p_constraintModels.clear();
@@ -2946,6 +2948,7 @@ bool Builder::execute(Command *cmd, bool batch)
          if (cmd->execute() && cmd->isUndoable()) {
             didit = true;
             getCM()->append(cmd);
+            p_spentCommands.erase(cmd);
             updateUndoMenus();
             // A command that succeeds may still have a note for the user.
             string note = cmd->getErrorMessage();
@@ -2955,6 +2958,7 @@ bool Builder::execute(Command *cmd, bool batch)
             // See if there is an error message for backwards compatability
             string msg = cmd->getErrorMessage();
             if (msg != "") reportError(msg);
+            p_spentCommands.insert(cmd);
          }
 
          // Make camera view all after execute.  Not after a property

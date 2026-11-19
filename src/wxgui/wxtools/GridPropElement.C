@@ -60,6 +60,7 @@ GridPropElement::GridPropElement(Resource *resource, ResourceProperty *property)
   p_resource = resource;
 
   // Save local copy of ResourceProperty
+  delete p_property;  // the base constructor made a plain one
   p_property = new ResourceProperty(*property);
 
   // Get property value from Resource
