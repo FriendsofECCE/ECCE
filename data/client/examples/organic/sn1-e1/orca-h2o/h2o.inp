@@ -1,0 +1,16 @@
+%pal nprocs 3 end
+! RKS B3LYP ma-def2-SVP PrintBasis Opt Freq TightSCF CPCM(water) D3BJ UseSym
+%output
+  Print[P_MOs] 1
+  Print[P_OrbEn] 2
+end
+%elprop
+  Quadrupole true
+end
+%maxcore 1000
+
+* xyz 0 1
+ O     0.00000     0.00000     0.117000
+ H     0.00000     0.757000     -0.467000
+ H     0.00000     -0.757000     -0.467000
+*

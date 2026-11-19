@@ -1,5 +1,6 @@
 Organic Chemistry
-Single, double and triple C-C bonds, benzene pi orbitals, and the transition states and reaction paths of a Diels-Alder and an SN2 reaction, and relaxed torsion scans of ethane, butane and N-methylacetamide.
+Single, double and triple C-C bonds, benzene pi orbitals, and the transition states and reaction paths of a Diels-Alder and an SN2 reaction, the SN1 and E1 reactions of tert-butyl chloride in water, and relaxed torsion scans of ethane, butane and N-methylacetamide.
 bonding-in-hydrocarbons|Bonding in hydrocarbons
 conformations|Conformations
 reactions|Reactions
+sn1-e1|SN1 and E1

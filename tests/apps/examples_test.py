@@ -78,6 +78,14 @@ ORGANIC = {
     "sn2_ts": VIBS, "sn2_irc": ["TE", "IRCCOORD", "IRCENERGY"],
     "product_complex": VIBS, "bromide": ["TE"], "methyl_chloride": VIBS,
 }
+# SN1 and E1 of tert-butyl chloride in water (CPCM)
+ORGANIC.update({
+    "tbucl": VIBS, "sn1_scan": SCAN, "tbu_cation": VIBS,
+    "tbu_cation_charges": ["TE", "MO", "ESPFIT", "HIRSHFELD"],
+    "h2o": VIBS, "sn1_water": ["TE"], "tbuoh2": VIBS,
+    "e1_ts": VIBS, "e1_irc": ["TE", "IRCCOORD", "IRCENERGY"],
+    "e1_reactant": VIBS, "e1_product": VIBS,
+})
 SPECTROSCOPY = {c: ORCA_RAMAN for c in (
     "formaldehyde", "acetaldehyde", "acetone", "acetic_acid", "acetate_anion",
     "methyl_acetate", "ethyl_acetate", "methyl_propionate",

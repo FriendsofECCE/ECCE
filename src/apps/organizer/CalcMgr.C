@@ -7466,7 +7466,7 @@ struct ExampleSet {
   }
 };
 const char *const kExamplesTop = "Examples";
-const char *const kExampleSetVersion = "47";
+const char *const kExampleSetVersion = "49";
 
 string treeName(string s)
 {
@@ -8222,6 +8222,48 @@ string CalcMgr::openExampleSet(const string& setId, string& message,
      "ORCA, B3LYP-D3BJ/ma-def2-SVP. Optimisation and frequencies. This calcu"
      "lation shows the product of the SN2 reaction, with an electronic energ"
      "y of -499.863026 Eh."},
+    // Organic, SN1 and E1: tert-butyl chloride in water.
+    {"tbucl",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP with CPCM(water). Optimisation and "
+     "frequencies of (CH3)3CCl. This calculation shows the starting material "
+     "of the SN1 and E1 reactions, with a C–Cl bond of 1.896 Å, no imaginary "
+     "frequency and an electronic energy of -617.666373 Eh."},
+    {"sn1_scan",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP with CPCM(water). Relaxed scan of the C–Cl "
+     "distance of (CH3)3CCl from 1.896 to 3.996 Å in 21 steps of 0.1 Å. This "
+     "calculation shows the energy rising without a maximum as the bond "
+     "breaks: 72.9 kJ/mol at 2.996 Å and 95.2 kJ/mol at 3.996 Å, where the "
+     "last step still adds 1.1 kJ/mol."},
+    {"tbu_cation",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP with CPCM(water). Optimisation and "
+     "frequencies of (CH3)3C+, started with the methyl groups turned away "
+     "from three-fold symmetry. This calculation shows the carbocation that "
+     "SN1 and E1 share: planar at the central carbon (C–C–C angles 119.7 to "
+     "120.6 degrees, together 360.0), C–C bonds of 1.46 Å, no imaginary "
+     "frequency, and an electronic energy of -157.430857 Eh."},
+    {"tbu_cation_charges",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP with CPCM(water). Single point of the "
+     "optimised (CH3)3C+ with Mulliken, Löwdin, Hirshfeld and CHELPG "
+     "charges. This calculation shows that each scheme puts the +1 charge "
+     "in a different place: the central carbon has +0.27 (Hirshfeld), +0.11 "
+     "(Löwdin), +0.77 (CHELPG) and -0.78 (Mulliken), and the nine hydrogens "
+     "together +0.78 (Hirshfeld) and +1.30 (Löwdin)."},
+    {"h2o",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP with CPCM(water). Optimisation and "
+     "frequencies of H2O. This calculation shows the nucleophile and base of "
+     "the SN1 and E1 steps, with an electronic energy of -76.351467 Eh."},
+    {"sn1_water",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP with CPCM(water). Optimisation of (CH3)3C+ "
+     "with one water molecule placed with its oxygen 2.90 Å from the central "
+     "carbon. This calculation shows the second SN1 step: the optimisation "
+     "goes on to the C–O bond of (CH3)3COH2+ (1.582 Å), 70.5 kJ/mol below the "
+     "start, without stopping at a complex of the cation and water."},
+    {"tbuoh2",
+     "ORCA, B3LYP-D3BJ/ma-def2-SVP with CPCM(water). Optimisation and "
+     "frequencies of (CH3)3COH2+. This calculation shows the SN1 product "
+     "before the loss of a proton, with a C–O bond of 1.583 Å and no "
+     "imaginary frequency; it lies 58.8 kJ/mol below (CH3)3C+ plus H2O "
+     "(electronic energies, no zero-point correction)."},
     {"sulfate",
      "ORCA, PBE0-D3BJ/def2-SVP with CPCM(water), frequencies with IR and "
      "Raman. This calculation shows the S–O stretches of the free "

@@ -27,7 +27,7 @@ SKIP = 77
 # set folder -> (project it is imported into, number of calculations)
 SETS = {"getting-started": ("Examples/Getting_Started", 6),
         "computational": ("Examples/Computational", 4),
-        "organic": ("Examples/Organic_Chemistry", 21),
+        "organic": ("Examples/Organic_Chemistry", 32),
         "spectroscopy": ("Examples/Spectroscopy", 19),
         "genchem": ("Examples/General_Chemistry", 127),
         "workflows": ("Examples/Workflows", 9),
