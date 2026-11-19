@@ -299,7 +299,7 @@ Basis Set Tool, the MD editors, the Periodic Table, the Machine Browser and
 Register Machines open as windows of the Organizer's process instead (the
 last three as plain windows, not tabs); job programs and the other
 tools stay separate. Off by default. Quitting the Organizer (or the
-session's `ecce_quit`) then closes those windows first, each asking about
+session's `ecce_quit`) then closes those windows first (with `ECCE_ONE_PROCESS=0` the Organizer's Quit also ends the separate tools on Windows and macOS, where Quit ends the application; on Linux they stay open and keep the session), each asking about
 its own unsaved changes; Cancel in one of them cancels the Quit. Test hooks
 (`ECCE_TEST_ORGANIZER`): `inprocess` (pid, open Builder/Calculation Editor/MD Energy/Basis Set
 Tool/MD Prepare windows),
@@ -342,7 +342,7 @@ launches=N`. The tool sends `ecce_tool_up` when its invoke is handled;
 for the same user, data folder and server (`ECCE_REALUSERHOME`,
 `ECCE_LOCAL_DATA`, `ECCE_SERVER_SESSION`/`ECCE_REMOTE_SERVER`) raises the
 running window and exits with "ECCE is already running for this user".
-`ecce FILE.xyz` (also .pdb .cif .mvm .car .gro; Windows and Linux file managers: Open with ECCE; not offered by Finder on macOS yet, use `ecce FILE` there)
+`ecce FILE.xyz` (also .pdb .cif .mvm .car .gro; file managers on Windows and Linux, and Finder on macOS: Open with ECCE; .mvm opens in ECCE by default, the others only offer it; a double-click on ECCE.app while it runs raises its window)
 opens the file in a Builder tab of the running copy, or of the one being
 started. Files are also opened (one Builder each) when the tabbed mode is off. A Quit during the exit does not leave a listener behind: a start then opens a new window. In a tool's tab, File > Quit reads Quit ECCE and quits the whole program. The check needs a private run folder (`$XDG_RUNTIME_DIR/ecce-one`, `$TMPDIR/ecce-one` on macOS, else `/tmp/ecce-one-UID`); if it is not yours with mode 0700 the check is off. `ECCE_MULTIPLE_INSTANCES=1` switches the check off. `ecce` itself asks the running copy first (`$ECCE_HOME/libexec/ecce-one-instance [FILE ...]`, exit 0: handed over, 1: none running), so a second start starts no gateway and asks for no password, under `-remote` and in local mode (the user's own data server or a local data folder) alike; with ECCE_LOCAL_DATA unset, `ecce` gives the client the folder `ecce-localdata` prints, as the Organizer gets it. Test hook
 `raised` (Organizer command file): how many second starts reached the window.
@@ -402,7 +402,7 @@ time) and **Always open in a window** (also sets that tool's row to Window);
 the tool's **Window > Move to Tabs** puts it back. With
 `ECCE_ONE_PROCESS=0` every tool opens in a window whatever the setting. Test
 hooks: `tabs` (tabs, `*` = active, tools in windows, the menu bar's menus),
-`launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `tab N`, `towindow N`, `totabs <title part>`, `mainwindow` (the main window: `host=MainFrame organizer=hidden ...`, or `host=none`
+`launcher machine|pick NAME|launch|get WHAT` (the Launcher script's commands on the active Launcher tab; `get machines` lists the machine choice), `builderinfo` (the active Builder or Viewer tab: `atoms=N title=...`, the atoms its scene draws; `not a Builder tab` otherwise), `tab N`, `towindow N`, `totabs <title part>`, `mainwindow` (the main window: `host=MainFrame organizer=hidden ...`, or `host=none`
 when the Organizer is its own window), `menu exit|about|preferences|minimize|<id>` and `hostclose` (a menu command, or the window
 manager's close, on the main window; queued, answer the questions with `answer`; Quit, Preferences and About always reach the Organizer, also from a tool tab; a logged error never opens a modal box: a tool tab's goes to its log panel, others to a non-modal box on the main window, and with `ECCE_TEST_ORGANIZER` every log message is also on stderr), `windowmenu [N]` (the **Window** menu every bar has while hosted, `0:Organizer* 1:Viewer`; N chooses that entry and switches the tab; the main window's title then reads "ECCE Organizer <ver> - <tab>"; on macOS this menu has its own Minimize (Cmd-M; hook `menu minimize`) but no Zoom item or window list, since wx's automatic Window menu is off in one-program mode; `ECCE_DEBUG_MENUS=1` logs every menu-bar swap on stderr), `orgwindow prefs|find|props URL` then `orgwindowinfo` (the Organizer's modeless windows sit on the main window: `transient=host inside=1 mapped=1`), `layout show|normal|small|wide|KEY=tab|window`
 (prints `preset=... rows=builder:tab,...`), `tabmenu N` (the tab's

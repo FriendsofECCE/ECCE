@@ -17,5 +17,34 @@
   <key>NSDesktopFolderUsageDescription</key><string>ECCE reads the structure and input files you pick on your Desktop.</string>
   <key>NSDocumentsFolderUsageDescription</key><string>ECCE reads the structure and input files you pick in your Documents folder.</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.education</string>
+  <key>LSUIElement</key><true/>
+  <!-- Open with ECCE (#1069): .mvm is ECCE's own and opens in it by default;
+       .xyz/.pdb/.cif belong to other programs too, so ECCE is only an
+       alternative there. launcher.m receives the open-document event. -->
+  <key>CFBundleDocumentTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeName</key><string>ECCE molecule</string>
+      <key>CFBundleTypeRole</key><string>Editor</string>
+      <key>LSHandlerRank</key><string>Owner</string>
+      <key>LSItemContentTypes</key><array><string>org.friendsofecce.ecce.mvm</string></array>
+    </dict>
+    <dict>
+      <key>CFBundleTypeName</key><string>Structure file</string>
+      <key>CFBundleTypeRole</key><string>Viewer</string>
+      <key>LSHandlerRank</key><string>Alternate</string>
+      <key>CFBundleTypeExtensions</key><array><string>xyz</string><string>pdb</string><string>cif</string></array>
+    </dict>
+  </array>
+  <key>UTExportedTypeDeclarations</key>
+  <array>
+    <dict>
+      <key>UTTypeIdentifier</key><string>org.friendsofecce.ecce.mvm</string>
+      <key>UTTypeDescription</key><string>ECCE molecule</string>
+      <key>UTTypeConformsTo</key><array><string>public.data</string></array>
+      <key>UTTypeTagSpecification</key>
+      <dict><key>public.filename-extension</key><array><string>mvm</string></array></dict>
+    </dict>
+  </array>
 </dict>
 </plist>

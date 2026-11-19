@@ -3665,7 +3665,7 @@ void CalcMgr::runTestCommand(const string& line)
                command == "layout" || command == "tabmenu" ||
                command == "alwayswindow" || command == "setup" ||
                command == "launcher" || command == "windowmenu" ||
-               command == "quitlabel") {
+               command == "quitlabel" || command == "builderinfo") {
       // Tools as tabs (#983): list, select, Open in Window, Move to Tabs,
       // the Windows and tabs setting, the tab's right-click menu.
       wxString result;
@@ -4754,8 +4754,13 @@ bool CalcMgr::confirmAndQuit()
   else Destroy();
   // Only the Organizer that hosts the session's broker (Windows, local)
   // has no gateway to end the separate tools; without this the broker
-  // lingers while they stay connected (#1106).
+  // lingers while they stay connected (#1106). On macOS Quit ends the
+  // application, so its separate tools go too (#1120); Linux keeps them.
+#ifdef __APPLE__
+  publishGatewayQuit();
+#else
   if (MqttBroker::hostsSession()) publishGatewayQuit();
+#endif
   if (getenv("ECCE_TEST_ORGANIZER")) {
     // Test hook (#983): a top-level window still alive 3 s after Quit keeps
     // the process running; name them.

@@ -20,5 +20,8 @@ issues: [1106, 990]
   Windows local only; Linux/macOS adopt `eccebroker`, `-remote` and
   SharedBroker never set `ECCE_LOCAL_BROKER`) Quit publishes it through
   `CalcMgr::publishGatewayQuit()`, the code of the `gatewayquit` hook, and
-  the linger ends after 15 s at most. A job store hearing `ecce_quit` only
+  the linger ends after 15 s at most. On macOS the Organizer's Quit
+  publishes it unconditionally (#1120): the gateway there outlived Quit as
+  long as a separate Builder was open, as on Linux, where that is wanted
+  (`session_end.py` builder case). A job store hearing `ecce_quit` only
   closes its messaging (`ecceExitMCB`), the job and its stored state go on.
