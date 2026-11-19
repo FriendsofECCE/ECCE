@@ -155,6 +155,31 @@ replaces a different atom; the cluster can therefore reach about two bonds
 past the radius. The result replaces the structure,
 without a lattice, and **Edit > Undo** brings the periodic structure back.
 
+## Fill a box with solvent
+
+**Build > Solvate...** surrounds the structure with solvent molecules, for any
+code: GROMACS, LAMMPS, CP2K or Quantum ESPRESSO boxes, or a cluster model
+with explicit solvent for ORCA, xTB or ECCE-QM. It needs no other program.
+
+- **Solvent box** is one of the pre-equilibrated boxes ECCE ships
+  (water216 and water64, both water at about 0.98 g/cm3). Copies of the box
+  are laid side by side until the cell is covered.
+- If the structure has a periodic cell, that cell is filled and the atoms
+  stay where they are. Otherwise a rectangular cell is made that is the
+  structure's extent plus the **Margin** (Å) on each side, and the structure
+  is moved to its centre.
+- A solvent molecule is left out when one of its atoms is closer to an atom
+  of the structure than the **Overlap scale** times the sum of the two van
+  der Waals radii (1.0 by default; a smaller value packs the solvent closer).
+  Where the cell is not a whole number of solvent boxes, molecules that
+  would clash with the next periodic image are also left out, so the density
+  near the cell faces is a few percent lower.
+
+Each water becomes its own HOH residue with atoms OW, HW1 and HW2, so
+**GROMACS Prepare** takes the waters as they are: it skips `gmx solvate`,
+keeps the cell, and its output says so. The result is one step, and
+**Edit > Undo** removes the solvent again.
+
 ## Select within a distance
 
 **Edit > Select Within Distance...** extends a selection to nearby atoms.

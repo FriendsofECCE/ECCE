@@ -179,6 +179,7 @@ class Builder: public BuilderGUI,
       ID_DIFFRACTION,
       ID_REPLACE_GROUP,
       ID_CUT_CLUSTER,
+      ID_SOLVATE,
       ID_VINA_BOX,
       ID_VIEW_TOGGLE_COLUMN,
       ID_VIEW_RESET_LAYOUT,
@@ -460,6 +461,8 @@ class Builder: public BuilderGUI,
       bool selectWithin(double radius, bool molecules, bool keep);
       // Build > Cut Cluster (#1033); whole 0 none/1 molecules/2 units, cap 0/1 H/2 OH
       bool cutCluster(double radius, int whole, int cap, string& message);
+      bool solvateStructure(const string& solvent, double margin, double scale,
+                            string& message);
       virtual void OnSelectMoleculeClick( wxCommandEvent& event );
       virtual void OnSelectSolventClick( wxCommandEvent& event );
       virtual void OnSelectIonsClick( wxCommandEvent& event );
@@ -496,6 +499,7 @@ class Builder: public BuilderGUI,
       void OnDiffraction( wxCommandEvent& event );
       void OnReplaceGroup( wxCommandEvent& event );
       void OnCutCluster( wxCommandEvent& event );
+      void OnSolvate( wxCommandEvent& event );
       void OnVinaBoxFromSelection(wxCommandEvent& event);
 
       virtual void OnPaneClose(wxAuiManagerEvent& event);

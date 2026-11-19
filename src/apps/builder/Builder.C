@@ -155,6 +155,8 @@ using std::vector;
 #include "DistortBondsDialog.H"
 #include "viz/SelectWithinCmd.H"
 #include "viz/ClusterCutCmd.H"
+#include "viz/SolvateCmd.H"
+#include "tdat/Solvate.H"
 #include "wxgui/ewxDialog.H"
 #include <wx/checkbox.h>
 #include "TakeCoordsDialog.H"
@@ -956,6 +958,14 @@ void Builder::createMenus()
     SGFragment *frag = sg ? sg->getFragment() : NULL;
     event.Enable(frag && frag->getLattice() && !frag->m_atomHighLight.empty());
   }, ID_CUT_CLUSTER);
+  p_buildMenu->Append(ID_SOLVATE, _("Solvate..."),
+                      _("Fill the periodic cell, or a box around the structure, with solvent"));
+  Bind(wxEVT_MENU, &Builder::OnSolvate, this, ID_SOLVATE);
+  Bind(wxEVT_UPDATE_UI, [this](wxUpdateUIEvent& event) {
+    SGContainer *sg = p_sgMgr ? getSG() : NULL;
+    SGFragment *frag = sg ? sg->getFragment() : NULL;
+    event.Enable(frag && (frag->getLattice() || frag->numAtoms() > 0));
+  }, ID_SOLVATE);
 
   p_modeMenu = GetMenuBar()->GetMenu(GetMenuBar()->FindMenu(_("Mode")));
   p_modeMenu->AppendRadioItem(ID_MODE_SELECT,
@@ -1354,6 +1364,7 @@ void Builder::createReadOnlyIds()
   p_readOnlyDisabledIds.insert(ID_ADD_SMILES);
   p_readOnlyDisabledIds.insert(ID_REPLACE_GROUP);
   p_readOnlyDisabledIds.insert(ID_CUT_CLUSTER);
+  p_readOnlyDisabledIds.insert(ID_SOLVATE);
 
   p_readOnlyDisabledIds.insert(ViewerEvtHandler::ID_CLEAN_COORD);
   p_readOnlyDisabledIds.insert(ViewerEvtHandler::ID_ADD_H);
@@ -3686,6 +3697,93 @@ void Builder::OnCutCluster(wxCommandEvent&)
   string message;
   cutCluster(rad->GetValue(), wholeBox->GetSelection(),
              capBox->GetSelection(), message);
+}
+
+bool Builder::solvateStructure(const string& solvent, double margin,
+                               double scale, string& message)
+{
+  SolvateCmd *cmd = new SolvateCmd("Solvate", getSG(), 0);
+  cmd->getParameter("solvent")->setString(solvent);
+  cmd->getParameter("margin")->setDouble(margin);
+  cmd->getParameter("scale")->setDouble(scale);
+  PBC *pbc = dynamic_cast<PBC*>(p_mgr.GetPane(NAME_TOOL_PBC).window);
+  if (pbc) pbc->execute(cmd);
+  else execute(cmd);
+  const bool ok = cmd->molecules() > 0;
+  message = cmd->getErrorMessage();
+  if (ok) {
+    SGFragment *frag = getSG()->getFragment();
+    double a = 0, b = 0, c = 0, al, be, ga;
+    if (frag && frag->getLattice())
+      frag->getLattice()->getLattice(a, b, c, al, be, ga);
+    fprintf(stderr, "BUILDER: solvate molecules=%d added=%d atoms=%d cell=%.3f %.3f %.3f density=%.3f\n",
+            cmd->molecules(), cmd->atomsAdded(), frag ? (int)frag->numAtoms() : -1,
+            a, b, c, cmd->density());
+  }
+  return ok;
+}
+
+void Builder::OnSolvate(wxCommandEvent&)
+{
+  SGFragment *frag = getSG()->getFragment();
+  if (!frag || (!frag->getLattice() && frag->numAtoms() == 0)) return;
+  vector<string> names = solvate::solventNames(string(Ecce::ecceDataPath()) +
+                                               "/client/solvents");
+  if (names.empty()) return;
+  ewxConfig *config = ewxConfig::getConfig("wxbuilder.ini");
+  double margin = 10.0, scale = 1.0;
+  wxString last;
+  config->Read("Solvate/Margin", &margin, 10.0);
+  config->Read("Solvate/Scale", &scale, 1.0);
+  config->Read("Solvate/Solvent", &last, "water216");
+  margin = std::isfinite(margin) ? std::max(1.0, std::min(50.0, margin)) : 10.0;
+  scale = std::isfinite(scale) ? std::max(0.3, std::min(2.0, scale)) : 1.0;
+
+  ewxDialog dlg(this, wxID_ANY, _("Solvate"));
+  wxBoxSizer *top = new wxBoxSizer(wxVERTICAL);
+  wxFlexGridSizer *grid = new wxFlexGridSizer(3, 6, 6);
+  grid->Add(new wxStaticText(&dlg, wxID_ANY, _("Solvent box:")), 0, wxALIGN_CENTER_VERTICAL);
+  wxChoice *solvent = new wxChoice(&dlg, wxID_ANY);
+  for (const string& n : names) solvent->Append(n);
+  int sel = solvent->FindString(last);
+  solvent->SetSelection(sel == wxNOT_FOUND ? 0 : sel);
+  grid->Add(solvent, 0);
+  grid->AddSpacer(0);
+  const bool cell = frag->getLattice() != 0;
+  grid->Add(new wxStaticText(&dlg, wxID_ANY, _("Margin:")), 0, wxALIGN_CENTER_VERTICAL);
+  wxSpinCtrlDouble *marg = new wxSpinCtrlDouble(&dlg, wxID_ANY, "",
+      wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 1.0, 50.0, margin, 0.5);
+  marg->SetDigits(1);
+  marg->Enable(!cell);
+  grid->Add(marg, 0);
+  grid->Add(new wxStaticText(&dlg, wxID_ANY, wxString::FromUTF8("\xC3\x85 around the structure")),
+            0, wxALIGN_CENTER_VERTICAL);
+  grid->Add(new wxStaticText(&dlg, wxID_ANY, _("Overlap scale:")), 0, wxALIGN_CENTER_VERTICAL);
+  wxSpinCtrlDouble *sc = new wxSpinCtrlDouble(&dlg, wxID_ANY, "",
+      wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 0.3, 2.0, scale, 0.05);
+  sc->SetDigits(2);
+  grid->Add(sc, 0);
+  grid->Add(new wxStaticText(&dlg, wxID_ANY, _("x sum of van der Waals radii")),
+            0, wxALIGN_CENTER_VERTICAL);
+  top->Add(grid, 0, wxALL, 8);
+  top->Add(new wxStaticText(&dlg, wxID_ANY, cell
+      ? _("The periodic cell is filled; the structure stays where it is.")
+      : _("A rectangular cell is made around the structure, which is centred in it.")),
+      0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+  top->Add(dlg.CreateStdDialogButtonSizer(wxOK | wxCANCEL | wxHELP), 0, wxALL | wxEXPAND, 8);
+  dlg.Bind(wxEVT_BUTTON, [](wxCommandEvent&) { WxHelpViewer::showKey("BuilderSolvate"); },
+           wxID_HELP);
+  dlg.SetSizerAndFit(top);
+  dlg.CentreOnParent();
+  if (dlg.ShowModal() != wxID_OK) return;
+  config->Write("Solvate/Margin", marg->GetValue());
+  config->Write("Solvate/Scale", sc->GetValue());
+  config->Write("Solvate/Solvent", solvent->GetStringSelection());
+  config->Flush();
+  string message;
+  wxBusyCursor busy;
+  solvateStructure(solvent->GetStringSelection().ToStdString(), marg->GetValue(),
+                   sc->GetValue(), message);
 }
 
 void Builder::OnSelectMoleculeClick( wxCommandEvent& event )

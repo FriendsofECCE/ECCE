@@ -38,6 +38,10 @@ const vector<EnvSwitches::Entry>& EnvSwitches::all()
         "Window and panel diagnostics",
         "Writes how windows are raised and panels placed to the program's error output.",
         false, "", {{"ECCE_DEBUG_RAISE", "1"}, {"ECCE_DEBUG_PANELS", "1"}}});
+    list.push_back({"Advanced.SolvateWindow",
+        "Separate Solvate window",
+        "A Solvate task opens the old Solvate window, and a new Condensed Reaction Study starts with one, instead of Build > Solvate in the Builder.",
+        false, "", {{"ECCE_SOLVATE_WINDOW", "1"}}});
     list.push_back({"Advanced.MoSymLog",
         "MO-diagram symmetry log",
         "Appends the symmetry analysis behind the MO diagram to this file.",

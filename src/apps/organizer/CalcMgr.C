@@ -11848,9 +11848,21 @@ bool CalcMgr::checkMovable(WxResourceTreeItemData * node)
 /**
  * Invoke tool application by sending message.
  */
+// Preferences > Advanced "Separate Solvate window" (ECCE_SOLVATE_WINDOW=1).
+static bool solvateWindowWanted()
+{
+  const char *v = getenv("ECCE_SOLVATE_WINDOW");
+  return v && string(v) == "1";
+}
+
 void CalcMgr::startApp(const string& app, int force, const string& url,
                        const string& codename, int debug)
 {
+  // The Solvate window is retired (#1118): Build > Solvate does its job.
+  if (app == "SolvationEditor" && !solvateWindowWanted()) {
+    startApp("Builder", force, url, codename, debug);
+    return;
+  }
   if (app == "CalculationEditor" && !url.empty()) {
     Resource *step = EDSIFactory::getResource(EcceURL(url));
     if (step && !step->getProp(VDoc::getEcceNamespace() + ":recipe.step").empty()
@@ -14376,7 +14388,8 @@ void CalcMgr::createResource(ResourceType * resType,
 
     // Immediately create a Solvate task for a condensed reaction study
     if (newRes->getApplicationType() ==
-                     ResourceDescriptor::AT_CONDENSED_REACTION_STUDY) {
+                     ResourceDescriptor::AT_CONDENSED_REACTION_STUDY &&
+        solvateWindowWanted()) {
       ResourceDescriptor rd = ResourceDescriptor::getResourceDescriptor();
       ResourceType *rt = rd.getResourceType(
                                ResourceDescriptor::RT_VIRTUAL_DOCUMENT, 

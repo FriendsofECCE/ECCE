@@ -5449,6 +5449,24 @@ bool Fragment::dumpPDB(ostream& outfile, bool writeBonds)
   }
   if (outfile) {
     ret = true;
+    // The cell, so pdb2gmx keeps the box of a structure solvated in the
+    // Builder (#1118).  Only in the PDB frame (a along x, b in the xy
+    // plane), which CRYST1 implies and the reader above assumes.
+    LatticeDef *lat = getLattice();
+    if (lat) {
+      vector<MPoint> *v = lat->toVectors();
+      MPoint a = (*v)[0], b = (*v)[1];
+      delete v;
+      if (fabs(a.y()) < 1.e-6 && fabs(a.z()) < 1.e-6 && fabs(b.z()) < 1.e-6) {
+        double la, lb, lc, al, be, ga;
+        lat->getLattice(la, lb, lc, al, be, ga);
+        char cryst[81];
+        snprintf(cryst, sizeof(cryst),
+                 "CRYST1%9.3f%9.3f%9.3f%7.2f%7.2f%7.2f P 1           1",
+                 la, lb, lc, al, be, ga);
+        outfile << cryst << endl;
+      }
+    }
     int i, rcnt = numResidues();
     for (i = 0; i < rcnt; i++) {
       res = p_residueSequence[i];

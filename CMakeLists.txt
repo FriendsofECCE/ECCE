@@ -2596,6 +2596,15 @@ add_executable(layer_stack_test tests/layerstack/layer_stack_test.C)
 target_link_libraries(layer_stack_test PRIVATE eccetdat ecceutil)
 add_test(NAME layer_stack COMMAND layer_stack_test)
 
+# tests/solvate (#1118): solvent placement for the Builder's Solvate, wx-free.
+add_executable(solvate_test tests/solvate/solvate_test.C)
+target_link_libraries(solvate_test PRIVATE eccetdat ecceutil)
+add_executable(solvate_cli tests/solvate/solvate_cli.C)
+target_link_libraries(solvate_cli PRIVATE eccetdat ecceutil)
+add_test(NAME solvate COMMAND solvate_test ${CMAKE_SOURCE_DIR})
+set_tests_properties(solvate PROPERTIES
+  ENVIRONMENT "ECCE_HOME=${CMAKE_SOURCE_DIR};ECCE_REALUSER=solvate;ECCE_REALUSERHOME=${CMAKE_BINARY_DIR}/solvate-home")
+
 # tests/metal_bonds (#325): Metal bonds need no nubs.
 add_executable(metal_bond_test tests/metal_bonds/metal_bond_test.C)
 target_link_libraries(metal_bond_test PRIVATE eccetdat ecceutil)
@@ -2909,7 +2918,8 @@ add_test(NAME gromacs_lone_ion_names
 set_tests_properties(gromacs_lone_ion_names PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77)
 add_test(NAME gromacs_prepare_options
          COMMAND ${PYTHON3_EXECUTABLE}
-                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/prepare_options_test.py)
+                 ${CMAKE_SOURCE_DIR}/tests/gromacs_md/prepare_options_test.py
+                 --solvate-cli $<TARGET_FILE:solvate_cli>)
 set_tests_properties(gromacs_prepare_options PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
 # Every tool a resource type enables has a summary view for its content type.
 add_test(NAME resource_tool_views
@@ -5465,6 +5475,14 @@ if(PYTHON3_EXECUTABLE)
                    --build ${CMAKE_BINARY_DIR}
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
   set_tests_properties(apps_builder_cut_cluster PROPERTIES TIMEOUT 600
+                       SKIP_RETURN_CODE 77)
+  # Build > Solvate: water round methanol, saved and undone (#1118).
+  add_test(NAME apps_builder_solvate
+           COMMAND ${PYTHON3_EXECUTABLE}
+                   ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps/builder_solvate_test.py
+                   --build ${CMAKE_BINARY_DIR}
+           WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/apps)
+  set_tests_properties(apps_builder_solvate PROPERTIES TIMEOUT 600
                        SKIP_RETURN_CODE 77)
   # No bond orders in building; Clean's derived orders and bond lengths (#439).
   add_test(NAME apps_builder_bond_model
