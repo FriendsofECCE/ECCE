@@ -154,7 +154,12 @@ if ($Separate) {
   $tabs = Ask "tabs"
   Say "tabs: $tabs"
   Check ((Ask "inprocess") -match "\bBuilder=1\b" -and @([regex]::Matches($tabs, "\d+:Builder")).Count -eq 1) "the open Builder is reused, not started again"
-  foreach ($t in @(@("Basistool", "BasisTool", "basistool"), @("Launcher", "Launcher", "launcher"), @("MachineRegister", "MachineRegister", "machregister"))) {
+  # Basistool is the Calculation Editor's basis panel in tabs (#1063): no
+  # BasisTool window, no basistool.exe, and no second editor.
+  Say ("start Basistool: " + (Ask "start Basistool $calc"))
+  Start-Sleep 5
+  Check ((Ask "inprocess") -match "\bCalculationEditor=1\b" -and (Mine basistool).Count -eq 0) "Basistool opens the editor's basis panel, not a second program"
+  foreach ($t in @(@("Launcher", "Launcher", "launcher"), @("MachineRegister", "MachineRegister", "machregister"))) {
     Say ("start $($t[0]): " + (Ask "start $($t[0]) $calc"))
     Check ((WaitHook "inprocess" "\b$($t[1])=[1-9]" 30) -or (WaitWindow $t[2] 1 5)) "$($t[0]) opens from the Organizer"
   }
