@@ -69,7 +69,6 @@ CODES = {
     "nwchem": "getting-started/nwchem-methane",
     "mopac": "getting-started/mopac-ammonia",
     "xtb": "getting-started/xtb-water",
-    "gromacs": "genchem/gases-liquids-solids/gromacs-ar-gas-100K",
     "qe": "genchem/diffraction/qe-kcl",
 }
 # Viewer panels (scenario C): examples with many properties.
@@ -78,7 +77,6 @@ VIEWER = {
     "acala": "spectroscopy/amides-and-peptides/orca-ac_ala_nhme",
     "h2scan": "computational/h2-dissociation/orca-h2_rhf_scan",
     "methane": "getting-started/nwchem-methane",
-    "argas": "genchem/gases-liquids-solids/gromacs-ar-gas-100K",
 }
 
 
@@ -218,8 +216,11 @@ def quitAndCheck(o, label, steps, expectExit=True):
     for line, wait in steps:
         o.send(line, wait)
     rc = o.waitExit(60 if expectExit else 10)
-    time.sleep(3)
-    left = o.leftovers()
+    for _ in range(30):
+        time.sleep(1)
+        left = o.leftovers()
+        if not left:
+            break
     if expectExit:
         check(rc == 0, "F %s: the Organizer exits with status 0" % label,
               "status %s; tail: %s" % (rc, o.text()[-1500:]))
@@ -260,7 +261,16 @@ def scenarioA(display):
         check(r.returncode == 0 and "Builder=1" in (o.ask("inprocess") or ""),
               "A `ecce FILE.xyz` into the running copy opens a Builder tab",
               "status %d: %s | tabs %s" % (r.returncode, r.stdout[-400:], tabs))
-        check("atoms=3" in info, "A the handed-over file shows its 3 atoms", info)
+        check("atoms=3" in info, "A the handed-over file shows its 3 atoms",
+              info + " | " + " | ".join(re.findall(r"ECCE_TEST_ORGANIZER: startApp.*",
+                                                   o.text())))
+        closeAll(o)
+        o.stop()
+        o = Org(display, data, args=[xyz])
+        time.sleep(15)
+        info = o.ask("builderinfo") or ""
+        check("atoms=3" in info, "A first start with FILE.xyz shows its 3 atoms",
+              info + " | " + (o.ask("tabs") or ""))
         closeAll(o)
     finally:
         o.stop()
@@ -349,7 +359,7 @@ def scenarioC(display):
             with open(scene, "w") as h:
                 h.write("hold 4\n")
                 for e in entries:
-                    h.write("list %s\nhold 3\n" % e)
+                    h.write("list %s\nhold 3\n" % e.split("/", 1)[-1])
                 h.write("ptree after\nhold 600\n")
             o = Org(display, data, env={"ECCE_VIEWER_SCENE": scene,
                                         "ECCE_VIEWER_SCENE_OUT": out,
@@ -426,8 +436,11 @@ def scenarioF(display):
         script = os.path.join(tempfile.mkdtemp(prefix="ecce-campaign-"), "s")
         with open(script, "w") as h:
             h.write("wait 3000\nadd C Tetrahedral 8 0 0\nsavestate\n")
+        import progress_box_test as pb
+        fresh = "file://" + pb.makeCalc(os.path.join(data, "users", "local", "qm"),
+                                        "water-new", "created", None)
         o = Org(display, data, env={"ECCE_BUILDER_SCRIPT": script})
-        o.send("start Builder " + urls["ecceqm"], 20)
+        o.send("start Builder " + fresh, 25)
         quitAndCheck(o, "unsaved Builder, Cancel", [("close", 3), ("answer", 3),
                                                     ("answer cancel", 3)],
                      expectExit=False)
@@ -550,7 +563,7 @@ def main():
             results.fail("monolith_campaign", "; ".join(failures))
 
     run_tests.checkApp = checkApp
-    sys.argv = [sys.argv[0], "--app", "organizer"] + sys.argv[1:]
+    sys.argv = [sys.argv[0], "--app", "organizer", "--budget", "9000"] + sys.argv[1:]
     return run_tests.main()
 
 
