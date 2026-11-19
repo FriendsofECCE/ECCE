@@ -796,12 +796,19 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
 WATER_RESNAMES = ("SOL", "HOH", "WAT", "H2O", "TIP3", "TIP4", "SPC", "OPC", "OPC3")
 
 
+_SYMBOLS = set("""H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe
+Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe
+Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb
+Bi Po At Rn Fr Ra Ac Th Pa U Np Pu""".split())
+
+
 def _element(a):
-    """Element of an atom read by atomipy, from its element field or name."""
-    e = str(a.get("element") or "").strip()
-    if not e:
-        e = re.sub(r"[^A-Za-z]", "", str(a.get("type", "")))[:2]
-    return e[:1].upper() + e[1:].lower()
+    """Element of an atom read by atomipy.  Its element field can be a MINFF
+    type (Ow, Hw, Ob for OW, HW1, ...), so two letters count only when they
+    are an element symbol, else the first letter does."""
+    e = re.sub(r"[^A-Za-z]", "", str(a.get("element") or a.get("type", "")))
+    two = e[:2].capitalize()
+    return two if two in _SYMBOLS else e[:1].upper()
 
 
 def ion_molecules(ffdir):
