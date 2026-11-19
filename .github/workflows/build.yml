@@ -772,6 +772,11 @@ jobs:
           tests\windows\organizer-probe.ps1 -Ecce "$env:RUNNER_TEMP\unpacked\ecce" -Out windows-run\probe
           $e = $LASTEXITCODE
           Get-Content windows-run\probe\summary.txt >> $env:GITHUB_STEP_SUMMARY
+          # The old route, ECCE_ONE_PROCESS=0: every tool its own program.
+          $env:Path = "$env:SystemRoot\System32;$env:SystemRoot"
+          tests\windows\organizer-probe.ps1 -Ecce "$env:RUNNER_TEMP\unpacked\ecce" -Out windows-run\probe-separate -Separate
+          if ($LASTEXITCODE -ne 0) { $e = 1 }
+          Get-Content windows-run\probe-separate\summary.txt >> $env:GITHUB_STEP_SUMMARY
           exit $e
 
       # ECCE-QM water and O2 (ROKS) end to end from the unpacked zip: deck,

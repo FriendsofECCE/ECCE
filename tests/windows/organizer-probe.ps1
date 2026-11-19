@@ -7,8 +7,10 @@
 # application icon.
 # Exit 1 on any failure.
 #   organizer-probe.ps1 -Ecce <install root with bin\organizer.exe> -Out <dir>
-#     [-Exe <a build's organizer.exe>] [-PathPrefix <its DLL dirs>]
-param([string]$Ecce, [string]$Out, [string]$Exe = "", [string]$PathPrefix = "")
+#     [-Exe <a build's organizer.exe>] [-PathPrefix <its DLL dirs>] [-Separate]
+# -Separate runs the old route (ECCE_ONE_PROCESS=0, every tool its own program);
+# by default the tools open as tabs of organizer.exe (#1067).
+param([string]$Ecce, [string]$Out, [string]$Exe = "", [string]$PathPrefix = "", [switch]$Separate)
 $ErrorActionPreference = "Continue"
 $Ecce = (Resolve-Path $Ecce).Path
 New-Item -ItemType Directory -Force "$Out\home", "$Out\local" | Out-Null
@@ -51,6 +53,7 @@ $env:HOST = $env:COMPUTERNAME
 $env:ECCE_REALUSERHOME = "$Out\home" -replace "\\", "/"
 $env:ECCE_LOCAL_DATA = "$Out\local" -replace "\\", "/"
 Remove-Item Env:ECCE_NO_MESSAGING -ErrorAction SilentlyContinue
+if ($Separate) { $env:ECCE_ONE_PROCESS = "0" } else { Remove-Item Env:ECCE_ONE_PROCESS -ErrorAction SilentlyContinue }
 $env:ECCE_NO_DATASERVER = "1"
 $env:ECCE_SESSION_LIVENESS = "lease"
 $env:ECCE_SESSION_ID = -join ((1..16) | ForEach-Object { "{0:x}" -f (Get-Random -Maximum 16) })
@@ -73,11 +76,14 @@ for ($i = 0; $i -lt 60 -and -not $bf; $i++) {
 }
 Check ($null -ne $bf -and ((Get-Content $bf.FullName) -match "^host=127\.0\.0\.1$")) "the session broker is up, on loopback"
 function Ask($cmd, $wait = 60) {
+  # A repeated command is answered again: wait for a line beyond the old ones.
+  $pat = "^ECCE_TEST_ORGANIZER: $([regex]::Escape($cmd)): (.*)$"
+  $before = @(Select-String -Path $err -Pattern $pat -ErrorAction SilentlyContinue).Count
   Add-Content $cmds $cmd
   for ($i = 0; $i -lt $wait; $i++) {
     Start-Sleep 1
-    $l = Select-String -Path $err -Pattern "^ECCE_TEST_ORGANIZER: $([regex]::Escape($cmd)): (.*)$" -ErrorAction SilentlyContinue | Select-Object -Last 1
-    if ($l) { return $l.Matches[0].Groups[1].Value }
+    $l = @(Select-String -Path $err -Pattern $pat -ErrorAction SilentlyContinue)
+    if ($l.Count -gt $before) { return $l[-1].Matches[0].Groups[1].Value }
     if ($p.HasExited) { return "exited rc=$($p.ExitCode)" }
   }
   return "no answer in ${wait}s"
@@ -110,19 +116,57 @@ $nc = Ask "newcalc probeproj water MOPAC"
 Say "newcalc: $nc"
 $calc = if ($nc -match "^ok (\S+)") { $Matches[1] } else { "" }
 Check ($calc -ne "") "a MOPAC calculation made in the project"
-Say ("start CalcEd: " + (Ask "start CalculationEditor $calc"))
-Check (WaitWindow "calced") "the Calculation Editor opens from the Organizer"
-Add-Content $calcedCmds "builder"
-Check (WaitWindow "builder") "the Builder opens from the Calculation Editor"
-Say ("start Builder: " + (Ask "start Builder $calc"))
-Start-Sleep 10
-Check ((Mine builder).Count -eq 1) "the open Builder is reused, not started again"
-foreach ($t in @(@("Basistool", "basistool"), @("Launcher", "launcher"), @("MachineRegister", "machregister"))) {
-  Say ("start $($t[0]): " + (Ask "start $($t[0]) $calc"))
-  Check (WaitWindow $t[1]) "$($t[0]) opens from the Organizer"
+# One program: a tool is a tab of the Organizer, seen through the tabs and
+# inprocess hooks; wait until a pattern shows (the hook answers at once).
+function WaitHook($cmd, $pattern, $wait = 60) {
+  $r = ""
+  for ($i = 0; $i -lt $wait; $i++) {
+    $r = Ask $cmd 10
+    if ($r -match $pattern) { return $true }
+    Start-Sleep 1
+  }
+  Say "  $cmd stayed: $r"
+  return $false
 }
-Say ("start CalculationViewer: " + (Ask "start CalculationViewer $calc"))
-Check (WaitWindow "builder" 2) "the Viewer opens from the Organizer"
+if ($Separate) {
+  Say ("start CalcEd: " + (Ask "start CalculationEditor $calc"))
+  Check (WaitWindow "calced") "the Calculation Editor opens from the Organizer"
+  Add-Content $calcedCmds "builder"
+  Check (WaitWindow "builder") "the Builder opens from the Calculation Editor"
+  Say ("start Builder: " + (Ask "start Builder $calc"))
+  Start-Sleep 10
+  Check ((Mine builder).Count -eq 1) "the open Builder is reused, not started again"
+  foreach ($t in @(@("Basistool", "basistool"), @("Launcher", "launcher"), @("MachineRegister", "machregister"))) {
+    Say ("start $($t[0]): " + (Ask "start $($t[0]) $calc"))
+    Check (WaitWindow $t[1]) "$($t[0]) opens from the Organizer"
+  }
+  Say ("start CalculationViewer: " + (Ask "start CalculationViewer $calc"))
+  Check (WaitWindow "builder" 2) "the Viewer opens from the Organizer"
+} else {
+  Say ("start CalcEd: " + (Ask "start CalculationEditor $calc"))
+  Check (WaitHook "inprocess" "CalculationEditor=1\b") "the Calculation Editor opens from the Organizer, as a tab"
+  Say ("tabs: " + (Ask "tabs"))
+  Add-Content $calcedCmds "builder"
+  Check (WaitHook "inprocess" "\bBuilder=1\b") "the Builder opens from the Calculation Editor, as a tab"
+  Say ("tabs: " + (Ask "tabs"))
+  Say ("start Builder: " + (Ask "start Builder $calc"))
+  Start-Sleep 10
+  $tabs = Ask "tabs"
+  Say "tabs: $tabs"
+  Check ((Ask "inprocess") -match "\bBuilder=1\b" -and @([regex]::Matches($tabs, "\d+:Builder")).Count -eq 1) "the open Builder is reused, not started again"
+  # Basistool is the Calculation Editor's basis panel in tabs (#1063): no
+  # BasisTool window, no basistool.exe, and no second editor.
+  Say ("start Basistool: " + (Ask "start Basistool $calc"))
+  Start-Sleep 5
+  Check ((Ask "inprocess") -match "\bCalculationEditor=1\b" -and (Mine basistool).Count -eq 0) "Basistool opens the editor's basis panel, not a second program"
+  foreach ($t in @(@("Launcher", "Launcher", "launcher"), @("MachineRegister", "MachineRegister", "machregister"))) {
+    Say ("start $($t[0]): " + (Ask "start $($t[0]) $calc"))
+    Check ((WaitHook "inprocess" "\b$($t[1])=[1-9]" 30) -or (WaitWindow $t[2] 1 5)) "$($t[0]) opens from the Organizer"
+  }
+  Say ("start CalculationViewer: " + (Ask "start CalculationViewer $calc"))
+  Check (WaitHook "inprocess" "\bViewer=[1-9]") "the Viewer opens from the Organizer"
+  Check ((Mine calced).Count -eq 0 -and (Mine builder).Count -eq 0) "no calced.exe or builder.exe: the tools run inside organizer.exe"
+}
 
 $p.Refresh()
 Check ((-not $p.HasExited) -and $p.Responding) "organizer alive and responding"
