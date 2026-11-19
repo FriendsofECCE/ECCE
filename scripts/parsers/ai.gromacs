@@ -224,7 +224,12 @@ sub GMXPressureCoupling {
   #  off-diagonal terms).
   my $type = lc(&stringOr("ES.Runtype.MD.PressureType", "isotropic"));
   my $p = $AbiDict{"ES.Runtype.MD.Pressure"};
-  my $c = &numOr("ES.Runtype.MD.Compressibility", "4.5e-5");
+  #  Water's compressibility tells the barostat a mineral stack is ~20x
+  #  softer than it is (atoms are scaled one by one, so the sheets stretch):
+  #  with tau-p 0.5 the box then oscillates with growing amplitude and the
+  #  run crashes. 2e-6 /bar is a clay's order (bulk modulus ~50 GPa).
+  my $c = &numOr("ES.Runtype.MD.Compressibility",
+                 (&numOr("ES.Theory.MD.PeriodicMolecules", "0") == 1) ? "2e-6" : "4.5e-5");
   my ($refp, $comp) = ($p, $c);
   if ($type eq "semiisotropic") {
     $refp = "$p $p"; $comp = "$c $c";

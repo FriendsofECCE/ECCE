@@ -146,8 +146,10 @@ if ($runtype{$task} eq "Dynamics") {
     # Pa -> bar, 1/Pa -> 1/bar
     $p{"ES.Runtype.MD.Pressure"} = get("Dynamics", "NPTPressure", 1.01325e5) / 1.0e5;
     $p{"ES.Runtype.MD.PressureTime"} = get("Dynamics", "NPTRxTime", 0.5);
-    $p{"ES.Runtype.MD.Compressibility"} =
-        get("Dynamics", "Compressibility", 4.53e-10) * 1.0e5;
+    # Only a value the user set: the model leaves its default out, and
+    # ai.gromacs picks the default by what the system is.
+    $p{"ES.Runtype.MD.Compressibility"} = get("Dynamics", "Compressibility", 0) * 1.0e5
+      if (get("Dynamics", "Compressibility", "") ne "");
   }
   $p{"ES.Runtype.MD.RemoveCM"} =
       (get("Dynamics", "RemoveCM", 0) == 1) ?
