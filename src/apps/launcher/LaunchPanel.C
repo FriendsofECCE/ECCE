@@ -1509,7 +1509,7 @@ void LaunchPanel::launchButtonClickCB(wxCommandEvent& event)
     if (p_pendingWarning.empty())
     {
         p_acked.clear();
-        p_launchButton->SetLabel("Launch");
+        setLaunchLabel("Launch");
     }
 }
 
@@ -1522,13 +1522,23 @@ void LaunchPanel::launchCancelled()
 }
 
 
+// A relabelled button keeps the size of its old label until the sizer is
+// told, so "Launch anyway" was cut off on Windows.
+void LaunchPanel::setLaunchLabel(const wxString& label)
+{
+    p_launchButton->SetLabel(label);
+    p_launchButton->InvalidateBestSize();
+    p_launchButton->GetParent()->Layout();
+}
+
+
 bool LaunchPanel::inlineConfirm(const string& text)
 {
     if (p_acked.count(text))
         return true;
     p_pendingWarning = text;
     say(text, WxFeedback::WARNING);
-    p_launchButton->SetLabel("Launch anyway");
+    setLaunchLabel("Launch anyway");
     return false;
 }
 
