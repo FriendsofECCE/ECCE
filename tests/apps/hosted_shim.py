@@ -41,14 +41,70 @@ while i < len(argv):
 work = tempfile.mkdtemp(prefix="ecce-hosted-")
 cmds = os.path.join(work, "commands")
 open(cmds, "w").close()
-env = dict(os.environ, ECCE_ONE_PROCESS="1", ECCE_TEST_ORGANIZER=cmds)
+
+
+def orphans():
+    """Organizers of earlier shims of this HOME whose shim is gone.
+
+    A test that stops the tool with a plain kill of the shim leaves the
+    Organizer running, and the next start for the same user and data
+    would then only hand over to it ("ECCE is already running").
+    """
+    home = os.environ.get("HOME", "").encode()
+    found = []
+    for pid in os.listdir("/proc"):
+        if not pid.isdigit():
+            continue
+        try:
+            words = open("/proc/%s/environ" % pid, "rb").read().split(b"\0")
+        except OSError:
+            continue
+        shim = [w for w in words if w.startswith(b"ECCE_HOSTED_SHIM=")]
+        if shim and b"HOME=" + home in words:
+            owner = int(shim[0].split(b"=", 1)[1])
+            if owner != os.getpid() and not os.path.exists("/proc/%d" % owner):
+                found.append(int(pid))
+    return found
+
+
+for _ in range(20):
+    left = orphans()
+    if not left:
+        break
+    for pid in left:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except OSError:
+            pass
+    time.sleep(0.5)
+
+env = dict(os.environ, ECCE_ONE_PROCESS="1", ECCE_TEST_ORGANIZER=cmds,
+           ECCE_HOSTED_SHIM=str(os.getpid()))
 env.pop("ECCE_TEST_HOSTED", None)
 organizer = os.path.join(os.path.dirname(wrapper), "ecce-organizer")
 sys.stdout.write("HOSTED: %s %s (dropped: %s) via %s\n"
                  % (tool, url or "-", " ".join(rest) or "-", organizer))
 sys.stdout.flush()
+
+
+def dieWithShim():
+    try:
+        import ctypes
+        ctypes.CDLL("libc.so.6").prctl(1, signal.SIGKILL)   # PR_SET_PDEATHSIG
+    except OSError:
+        pass
+
+
 proc = subprocess.Popen([organizer], env=env, stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT)
+                        stderr=subprocess.STDOUT, start_new_session=True,
+                        preexec_fn=dieWithShim)
+
+
+def killOrganizer(sig):
+    try:
+        os.killpg(proc.pid, sig)
+    except OSError:
+        pass
 
 state = {"ready": False, "seen": False, "gone": False}
 # A Builder on a calculation with results counts as a Viewer.
@@ -65,6 +121,8 @@ def pump():
             copy.write(line)
             copy.flush()
         text = line.decode("utf-8", "replace")
+        if "already running" in text:
+            out.write(b"HOSTED: HARNESS: handed over to an Organizer still running\n")
         if "ECCE_TEST_ORGANIZER: inprocess" in text:
             # The shim's own polling: not part of the tool's output.
             state["ready"] = True
@@ -84,10 +142,7 @@ def append(line):
 
 
 def forward(sig, _frame):
-    try:
-        proc.send_signal(sig)
-    except ProcessLookupError:
-        pass
+    killOrganizer(sig)
 
 
 signal.signal(signal.SIGTERM, forward)
@@ -105,14 +160,15 @@ while proc.poll() is None:
         append("inprocess")
     if state["gone"]:
         time.sleep(1)
-        proc.terminate()
+        killOrganizer(signal.SIGTERM)
         try:
             proc.wait(timeout=15)
         except subprocess.TimeoutExpired:
-            proc.kill()
+            killOrganizer(signal.SIGKILL)
         break
 
 code = proc.wait()
+killOrganizer(signal.SIGKILL)       # whatever the wrapper left behind
 time.sleep(0.3)
 try:
     os.unlink(cmds)
