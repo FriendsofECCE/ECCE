@@ -12,6 +12,9 @@ Launch makes before anything is submitted, on a calculation opened with
     does not;
   * water, GeoVib, B3LYP/6-31G* (3 atoms, 18 functions) is not asked.
 
+The script answers the warning with yes/cancel, then submits benzene with a
+stand-in engine to check that it leaves Ready without running the chemistry.
+
 The memory paragraph (more than 25 atoms or 150 functions) is not reached by
 a stored fixture, so the arithmetic is only checked for benzene's absence of it.
 Exit status 77 (skip) without Xvfb, import or binaries.
@@ -38,17 +41,25 @@ check = bo.check
 FIXTURES = os.path.join(REPO, "tests", "ecceqm", "fixtures")
 
 
-def launcher(s, env, wrappers, url, answer, png=None, name="x"):
+def launcher(s, env, wrappers, url, answer, png=None, name="x", launch=False):
     """Runs the Launcher on the calculation; returns its log text."""
     work = os.path.join(s.state, name)
     shutil.rmtree(work, ignore_errors=True)
     os.makedirs(work)
     script = os.path.join(work, "script")
     with open(script, "w") as handle:
-        handle.write("wait 2500\nsizecheck\nquit\n")
+        commands = "wait 2500\n"
+        if launch:
+            commands += "machine localhost\nprocs 1\nrundir %s\nlaunch\n" % os.path.join(work, "run")
+        else:
+            commands += "sizecheck\n"
+        if answer:
+            commands += "answer %s\n" % answer
+        commands += "print launcherror\nprint state\nquit\n"
+        handle.write(commands)
     log = os.path.join(work, "launcher.log")
-    lenv = dict(env, ECCE_LAUNCHER_SCRIPT=script, ECCE_TEST_DIALOG_ANSWER=answer,
-                ECCE_TEST_DIALOG_CLOSE="7")
+    lenv = dict(env, ECCE_LAUNCHER_SCRIPT=script, ECCE_TEST_DIALOG_ANSWER="cancel",
+                ECCE_TEST_DIALOG_CLOSE="60")
     proc = subprocess.Popen([os.path.join(wrappers, "ecce-launcher"), "-context", url],
                             env=lenv, cwd=os.path.join(s.home, "bin"),
                             stdout=open(log, "w"), stderr=subprocess.STDOUT,
@@ -109,6 +120,16 @@ def main():
         display = xdisplay.Display().__enter__()
         env = s.env({"DISPLAY": display.name, "GTK_THEME": "Adwaita",
                      "PATH": wrappers + os.pathsep + s.env()["PATH"]})
+        help_result = subprocess.run([os.path.join(build, "ecce-launch"), "--help"],
+                                     env=env, capture_output=True, text=True, timeout=30)
+        check(help_result.returncode == 0 and "--accept-large-qm" in help_result.stdout,
+              "ecce-launch --help documents explicit large-QM acceptance")
+        option_result = subprocess.run(
+            [os.path.join(build, "ecce-launch"), "--accept-large-qm", "file:///unused"],
+            env=dict(env, ECCE_SESSION_ID="0123456789abcdef"),
+            capture_output=True, text=True, timeout=30)
+        check(option_result.returncode == 2 and "not running" in option_result.stderr,
+              "ecce-launch accepts the option before checking for a session")
         urls = {n: eg.install(s, n, FIXTURES) for n in ("c6h6-geovib", "h2o-geovib")}
 
         text = launcher(s, env, wrappers, urls["c6h6-geovib"], "yes",
@@ -127,11 +148,33 @@ def main():
         check("sizecheck: go" in text, "Launch anyway goes on")
         text = launcher(s, env, wrappers, urls["c6h6-geovib"], "cancel", None,
                         "benzene-cancel")
-        check("sizecheck: cancel" in text, "Cancel does not launch")
-        text = launcher(s, env, wrappers, urls["h2o-geovib"], "yes", None, "water")
+        check("sizecheck: cancel" in text and "FAIL" not in text,
+              "Cancel does not launch")
+        text = launcher(s, env, wrappers, urls["h2o-geovib"], None, None, "water")
         check("ECCE_TEST_DIALOG:" not in text and "sizecheck: go" in text,
               "water GeoVib is not warned about")
         check("FAIL" not in text, "no script failure")
+        # Submission is the subject of this check; avoid a costly frequency run.
+        deck = os.path.join(s.state, "submission.qmin")
+        with open(deck, "w") as handle:
+            handle.write("# Input consumed by the submission stub, not a chemistry engine.\n")
+        # The stored warning fixture omits empty VDoc collections.
+        for collection in ("Inputs", "Outputs", "Props"):
+            os.makedirs(os.path.join(urls["c6h6-geovib"][len("file://"):], collection),
+                        exist_ok=True)
+        rc, out = s.driver("mdfile", urls["c6h6-geovib"], deck, "ecceqm.qmin")
+        check(rc == 0, "the submission fixture has a stored input: " + out)
+        stub = os.path.join(s.state, "qm-stub")
+        with open(stub, "w") as handle:
+            handle.write("#!/bin/sh\necho end_of_output\n")
+        os.chmod(stub, 0o755)
+        text = launcher(s, dict(env, ECCE_ECCEQM=stub), wrappers,
+                        urls["c6h6-geovib"], "yes", name="benzene-launch", launch=True)
+        say(text[-2500:])
+        check("answered Large ECCE-QM calculation: yes" in text,
+              "the Launcher script answers the large calculation question")
+        check("state = Ready" not in text and "state = " in text
+              and "FAIL" not in text, "the large calculation leaves Ready after scripted Launch")
     finally:
         if display:
             display.__exit__(None, None, None)

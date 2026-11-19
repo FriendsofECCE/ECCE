@@ -1147,7 +1147,7 @@ carried out: check before repeating); 64 usage error.
 
 ### ecce-launch
 
-    ecce-launch [on=MACHINE] [profile=NAME] [queue=QUEUE] [wall=H:MM] <calculation>...
+    ecce-launch [--accept-large-qm] [on=MACHINE] [profile=NAME] [queue=QUEUE] [wall=H:MM] <calculation>...
 
 Submits Ready calculations with the rules of **Run Mgmt > Launch Selected**,
 using the settings stored in each calculation unless overridden. `on=` and
@@ -1676,3 +1676,16 @@ With `ECCE_BUILDER_SCRIPT`, after `property NMR spectrum`:
 
 The script logs `NMR: ok=0|1`; export is refused without a reference. Put
 `background 1 1 1` before screenshots. Help: [NMR spectrum](../help/src/importing-a-calculation.md#nmr-spectrum).
+
+## Scripted large ECCE-QM launches
+
+The stand-alone Launcher asks **Large ECCE-QM calculation** in a wx modal
+dialog. Its `ECCE_LAUNCHER_SCRIPT` hook accepts `answer yes` after
+`launch` (or `sizecheck`) to choose **Launch anyway**; `answer cancel`
+keeps the calculation Ready. `answer ok` and `answer no` handle other
+wx modal dialogs. Commands run in order, including while a dialog is open.
+
+`ecce-launch --accept-large-qm CALCULATION` explicitly accepts the size
+warning. The Organizer's batch submission already proceeds without this
+question, including when the option is omitted. `ecce-launch --help` lists
+the option. This does not change the calculation's resource settings.

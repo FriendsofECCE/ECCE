@@ -84,7 +84,7 @@ already be in the queue. Launch anyway goes ahead.
 With ECCE running, calculations prepared outside the window can be launched
 from a terminal:
 
-    ecce-launch [on=MACHINE] [profile=NAME] [queue=QUEUE] [wall=H:MM] <calculation folder or URL>...
+    ecce-launch [--accept-large-qm] [on=MACHINE] [profile=NAME] [queue=QUEUE] [wall=H:MM] <calculation folder or URL>...
 
 The Organizer submits them in one batch, with the same rules as Launch
 Selected, and its tree shows the change at once. `on=` and `profile=` act as
@@ -184,3 +184,16 @@ bytes)`, for a pattern that matched nothing `pattern: no file matched`, and
 `name: not fetched: reason` when nothing could be fetched; the exit status is
 0 when at least one file was fetched (or listed) and nothing was refused. Paths, URLs and the message
 without a running ECCE session are as for `ecce-launch`.
+
+## Scripted large ECCE-QM launches
+
+The stand-alone Launcher asks **Large ECCE-QM calculation** in a wx modal
+dialog. Its `ECCE_LAUNCHER_SCRIPT` hook accepts `answer yes` after
+`launch` (or `sizecheck`) to choose **Launch anyway**; `answer cancel`
+keeps the calculation Ready. `answer ok` and `answer no` handle other
+wx modal dialogs. Commands run in order, including while a dialog is open.
+
+`ecce-launch --accept-large-qm CALCULATION` explicitly accepts the size
+warning. The Organizer's batch submission already proceeds without this
+question, including when the option is omitted. `ecce-launch --help` lists
+the option. This does not change the calculation's resource settings.

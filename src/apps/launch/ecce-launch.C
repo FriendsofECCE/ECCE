@@ -157,10 +157,20 @@ int main(int argc, char **argv)
     else if (a.compare(0, 6, "queue=") == 0) queue = a.substr(6);
     else if (a.compare(0, 5, "wall=") == 0) wall = a.substr(5);
     else if (a == "--move") move = true;
+    // Batch submission already accepts size warnings without a dialog.
+    else if (a == "--accept-large-qm") continue;
+    else if (a == "--help" || a == "-h") {
+      std::cout << "usage: ecce-launch [--move] [--accept-large-qm] [on=MACHINE] "
+                   "[profile=NAME] [queue=QUEUE] [wall=H:MM] <calculation path or URL>...\n"
+                   "  --accept-large-qm  Accept the Large ECCE-QM calculation warning.\n"
+                   "                     Batch launches already accept it; this makes consent explicit.\n"
+                   "  --move             Move a pending Slurm job; needs on=MACHINE.\n";
+      return 0;
+    }
     else args.push_back(a);
   }
   if (args.empty() || (move && on.empty())) {
-    std::cerr << "usage: ecce-launch [--move] [on=MACHINE] [profile=NAME] [queue=QUEUE] "
+    std::cerr << "usage: ecce-launch [--move] [--accept-large-qm] [on=MACHINE] [profile=NAME] [queue=QUEUE] "
                  "[wall=H:MM] <calculation path or URL>...\n"
                  "       --move needs on=MACHINE" << std::endl;
     return 64;
