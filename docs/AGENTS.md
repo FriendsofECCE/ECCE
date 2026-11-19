@@ -43,6 +43,24 @@ may not leave the machine.
 5. Say plainly what was checked and what was not. Do not raise optimisation
    cycle limits to make a calculation converge; find the cause.
 
+## Scripted total charge and multiplicity
+
+`ECCE_CALCED_SCRIPT` and `ECCE_BUILDER_SCRIPT` accept `charge INTEGER` and
+`mult INTEGER` for the total calculation state, separately from `fragment N
+charge Q mult M`. Set charge first, then multiplicity: e.g. `charge -1`,
+`mult 2` for an 11-electron water anion. Charge changes keep an allowed spin,
+otherwise choose singlet/doublet by electron parity. Multiplicity must be
+positive, match electron parity and be at most the electron count plus one.
+Invalid syntax or unavailable/read-only fields log `FAIL`. CalcEd invokes
+the Charge/Spin typed-field handlers; invalid spin logs `FAIL` and selects
+the GUI default. Builder rejects invalid spin without changing it.
+
+CalcEd: `button save` persists the fields and regenerates input. Builder:
+spin is stored immediately, `save` persists the structure charge; then save
+in CalcEd to regenerate input. The regression is in
+`tests/apps/calced_script_solvation_test.py` (`apps_calced_script_solvation`).
+See [Scripting and AI assistants](../help/src/scripting-and-ai.md).
+
 ## Reading final periodic stress
 
 In the Builder, **Properties > Geometry > Stress Tensor** displays the

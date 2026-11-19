@@ -22,6 +22,30 @@ scripts and AI assistants:
 | `ecce-contacts` | metal-donor contacts of a structure |
 | `ecce-annotate --exclude` | the [excluded mark](excluded.md); it is not shown in the Organizer |
 
+## Total charge and spin in scripts
+
+Both `ECCE_CALCED_SCRIPT` and `ECCE_BUILDER_SCRIPT` accept `charge INTEGER`
+and `mult INTEGER` for a calculation's total charge and spin multiplicity.
+For example, for a water anion (11 electrons):
+
+```text
+charge -1
+mult 2
+```
+
+Set charge before multiplicity. A charge change keeps an allowed spin, or
+selects singlet for even electrons and doublet for odd electrons. Multiplicity
+must be positive, have the correct electron parity, and cannot exceed the
+electron count plus one. Malformed values and unavailable/read-only fields
+report `FAIL` in the script log. CalcEd uses the same typed-field handlers as
+the GUI; an incompatible multiplicity reports `FAIL` and selects the default
+spin as the GUI does. Builder rejects an incompatible multiplicity unchanged.
+
+In CalcEd, follow these commands with `button save` to store the fields and
+regenerate input. In Builder, spin is stored immediately; follow with `save`
+to store the structure's charge. Open CalcEd and save to regenerate input.
+These commands set the total state, separately from individual fragment states.
+
 ## Fragments and ORCA counterpoise inputs
 
 The Builder's `ECCE_BUILDER_SCRIPT` hooks can define fragments and export

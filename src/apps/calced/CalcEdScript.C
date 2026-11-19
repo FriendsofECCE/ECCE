@@ -6,6 +6,7 @@
 //    ready                    wait until both details dialogs have started
 //    theory NAME | runtype NAME   Theory: / Runtype: choices
 //    basis NAME               the quick-pick basis set menu entry NAME
+//    charge INTEGER | mult INTEGER   the Charge / Spin fields
 //    gui KEY VALUE            what the Details dialog sends when that field
 //                             changes (the same message over the same path)
 //    guiw KEY VALUE          as gui, marked to be written, which is what the
@@ -53,6 +54,7 @@
 #include "dsm/JCode.H"
 #include "dsm/ResourceType.H"
 #include "wxgui/ewxChoice.H"
+#include "wxgui/ewxComboBox.H"
 #include "wxgui/ewxStaticText.H"
 #include "wxgui/ewxThemeColours.H"
 
@@ -167,6 +169,32 @@ void CalcEd::runCalcEdScript(const string& file)
         st->notBefore = wxGetLocalTimeMillis() + atoi(w[1].c_str());
       } else if (w[0] == "ready") {
         // reached: both dialogs are up
+      } else if (w[0] == "charge" || w[0] == "mult") {
+        const bool charge = w[0] == "charge";
+        const int id = charge ? ID_COMBOBOX_CALCED_CHARGE
+                              : ID_COMBOBOX_CALCED_SPIN_MULT;
+        ewxComboBox *box = (ewxComboBox*)FindWindow(id);
+        int value;
+        char extra;
+        std::istringstream number(w.size() == 2 ? w[1] : "");
+        if (!(number >> value) || (number >> extra)) {
+          outcome = "FAIL: expected an integer";
+        } else if (!p_frag || !p_fullFrag || !box || !box->IsEnabled()) {
+          outcome = "FAIL: field not available";
+        } else {
+          // Use the typed-field handlers so spin restrictions and dirty
+          // state follow exactly the same path as an interactive edit.
+          box->SetValue(w[1]);
+          wxCommandEvent ev(wxEVT_TEXT_ENTER, id);
+          ev.SetEventObject(box);
+          ev.SetString(w[1]);
+          if (charge) OnComboboxCalcedChargeEnter(ev);
+          else {
+            OnComboboxCalcedSpinMultEnter(ev);
+            if ((int)getSpinMult() != value)
+              outcome = "FAIL: multiplicity incompatible with electron count";
+          }
+        }
       } else if (w[0] == "theory" && w.size() >= 2) {
         if (!choose(ID_CHOICE_CALCED_THEORY, rest(1)))
           outcome = "FAIL: no such theory";
