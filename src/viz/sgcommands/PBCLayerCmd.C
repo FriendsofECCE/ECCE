@@ -109,6 +109,13 @@ bool PBCLayerCmd::execute()
    // Undo state only now, so a refused request leaves nothing to undo.
    cloneFragment(frag);
 
+   // Each layer's copies of the residues get their own numbers: residues
+   // are found by name and number from their first atom, so three "MIN 1"
+   // would each take the atoms of the layers after them too (dumpPDB).
+   const size_t nres0 = frag->numResidues();
+   int maxNum0 = 0;
+   for (size_t r = 0; r < nres0; r++)
+      maxNum0 = max(maxNum0, frag->findResidue((int)r)->number());
    SGFragment *base = new SGFragment(*frag);
    base->m_atomHighLight.clear();
    for (int i = 0; i < m; i++)
@@ -124,6 +131,10 @@ bool PBCLayerCmd::execute()
       delete copy;
    }
    delete base;
+   for (size_t r = nres0; nres0 > 0 && r < frag->numResidues(); r++) {
+      Residue *res = frag->findResidue((int)r);
+      res->number(res->number() + (int)(r / nres0) * maxNum0);
+   }
 
    // A structure read with residues (.gro, .pdb) is drawn and numbered per
    // residue, and every atom must have one: each ion and water gets its own.

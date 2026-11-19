@@ -1,6 +1,7 @@
 #include "wx/wrapsizer.h"
 #include <algorithm>
 #include <fstream>
+#include <wx/filename.h>
 using std::ifstream;
 using std::ofstream;
 #include <iostream>
@@ -265,6 +266,7 @@ IMPLEMENT_CLASS( Builder, BuilderGUI )
 
 BEGIN_EVENT_TABLE( Builder, BuilderGUI )
     EVT_MENU( ID_SAVE_IMAGE, Builder::OnSaveImageClick )
+    EVT_MENU( ID_EXPORT_STRUCTURE, Builder::OnExportStructureClick )
     EVT_MENU( ID_MODE_SELECT, Builder::OnModeClick )
     EVT_MENU( ID_MODE_ROTATE, Builder::OnModeClick )
     EVT_MENU( ID_MODE_TRANSLATE, Builder::OnModeClick )
@@ -5914,6 +5916,43 @@ bool Builder::imageOnFineSurface(const string& path, int w, int h, bool white, i
 }
 
 
+string Builder::exportStructure(const string& path)
+{
+  SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
+  if (frag == 0 || frag->numAtoms() == 0) return "no structure";
+  string ext = path.size() > 4 ? path.substr(path.size() - 4) : "";
+  for (char& c : ext) c = tolower((unsigned char)c);
+  if (ext == ".xyz") {
+    vector<int> none;
+    return writeStructureXyz(path, none);
+  }
+  if (ext != ".gro" && ext != ".pdb") return "unknown format (use .gro, .pdb or .xyz)";
+  ofstream out(path.c_str());
+  if (!out) return "cannot write " + path;
+  bool ok = ext == ".gro" ? frag->dumpGRO(out) : frag->dumpPDB(out, false);
+  out.close();
+  return ok && out.good() ? "" : "could not write " + path;
+}
+
+
+/**
+ * File > Export Structure...: the structure for another program, with its
+ * residues and cell (.gro, .pdb), e.g. a Layer Builder stack for GROMACS.
+ */
+void Builder::OnExportStructureClick(wxCommandEvent&)
+{
+  wxFileDialog fd(this, _("Export Structure"), "", "structure.gro",
+                  "GROMACS (*.gro)|*.gro|PDB (*.pdb)|*.pdb|XYZ (*.xyz)|*.xyz",
+                  wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+  if (fd.ShowModal() != wxID_OK) return;
+  wxFileName fn(fd.GetPath());
+  if (fn.GetExt().empty())
+    fn.SetExt(fd.GetFilterIndex() == 1 ? "pdb" : fd.GetFilterIndex() == 2 ? "xyz" : "gro");
+  const string err = exportStructure(string(fn.GetFullPath().ToUTF8()));
+  if (!err.empty()) showMessage("Export Structure: " + err, true);
+}
+
+
 /**
  * File > Save Image...: a PNG of the 3-D view at 1x, 2x or 4x its size,
  * with blended transparency and smooth edges (VizRender::image).
@@ -7117,6 +7156,16 @@ void Builder::updatePropertyMenus()
           mdc.SelectObject(wxNullBitmap);
           return bmp.SaveFile(outdir + "/" + w[1] + ".png", wxBITMAP_TYPE_PNG) ||
                  s.fail("screen: cannot save " + w[1]);
+        }
+        //  "savegro|savepdb <path>": File > Export Structure; "savecalc":
+        //  File > Save, so a structure built in a scene reaches its task.
+        if ((w[0] == "savegro" || w[0] == "savepdb") && w.size() == 2) {
+          const string err = exportStructure(w[1]);
+          return err.empty() || s.fail(w[0] + ": " + err);
+        }
+        if (w[0] == "savecalc" && w.size() == 1) {
+          doSave();
+          return true;
         }
         //  "savethumb": the calculation thumbnail, as File > Save writes it.
         if (w[0] == "savethumb" && w.size() == 1) {

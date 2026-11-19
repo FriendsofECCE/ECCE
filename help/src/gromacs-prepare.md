@@ -76,6 +76,16 @@ is stored in the task; Launch then only adds water and ions.
   **Parameters**, **O-M-O angle constant** or **Ion parameters**; it has an
   **M-O-H bend** (*None*, *Pouvreau 2017 (Al, Mg)* or *Cygan 2004 generic*)
   and a **Rigid water** box instead.
+- **Mineral from:** *a unit-cell file* (below), or *the Builder (with its
+  water and ions)*: the structure in the Builder, for example a Layer Builder
+  stack with water and Na+, Ca2+ or Mg2+ between the layers, is used as it is,
+  with its cell. The mineral atoms get their MINFF types as one molecule
+  (MIN), each water becomes a water of the chosen water model (SOL) and each
+  ion one of MINFF's ions (Na, Ca, Mg, ...), with the ion parameters chosen
+  below. **Unit cell**, **Repeat**, **Substitutions** and **Random seed** do
+  not apply, and no water layer is added. The job adds ions only when the
+  structure's total charge is not zero (it says so in its output). Build
+  topology again after changing the structure in the Builder.
 - **Unit cell:** a `.pdb`, `.gro` or `.cif` file of the mineral's unit cell,
   with its cell. **Repeat (a b c)** repeats it along the cell axes, for
   example `4 3 3`. A layer or a stack drawn in the Builder, saved as a PDB

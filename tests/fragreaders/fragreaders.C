@@ -21,6 +21,7 @@
 #include "tdat/TAtm.H"
 #include "tdat/TPerTab.H"
 #include "tdat/TBond.H"
+#include "util/STLUtil.H"
 
 using namespace std;
 
@@ -273,6 +274,67 @@ int main(int argc, char **argv)
         delete v;
       }
     }
+    delete frag;
+  }
+
+  // File > Export Structure (#1140): a layer with water and ions written as
+  // .gro and .pdb reads back with the same atoms, residues and cell.
+  if (Fragment *frag = load(dir + "/layer_water_ions.gro", "GRO")) {
+    const string tag = "export";
+    auto same = [&](Fragment& b, const string& how, bool cellExact) {
+      bool atoms = b.numAtoms() == frag->numAtoms(), res = atoms;
+      for (int i = 0; atoms && i < frag->numAtoms(); i++) {
+        TAtm *x = frag->atomRef(i), *y = b.atomRef(i);
+        for (int k = 0; k < 3; k++)
+          atoms = atoms && fabs(x->coordinates()[k] - y->coordinates()[k]) < 2e-3;
+        atoms = atoms && x->atomicSymbol() == y->atomicSymbol();
+        Residue *rx = x->getResidue(), *ry = y->getResidue();
+        res = res && rx && ry && STLUtil::trim(rx->name()) == STLUtil::trim(ry->name())
+              && rx->number() == ry->number();
+      }
+      check(atoms, tag + " " + how + ": same atoms and positions");
+      check(res, tag + " " + how + ": same residue names and numbers");
+      bool cell = b.getLattice() != 0;
+      if (cell) {
+        vector<MPoint> *u = frag->getLattice()->toVectors(), *v = b.getLattice()->toVectors();
+        for (int k = 0; k < 3; k++) {
+          const double tol = cellExact ? 1e-3 : 2e-2;
+          cell = cell && fabs((*u)[k].x() - (*v)[k].x()) < tol &&
+                 fabs((*u)[k].y() - (*v)[k].y()) < tol && fabs((*u)[k].z() - (*v)[k].z()) < tol;
+        }
+        delete u;
+        delete v;
+      }
+      check(cell, tag + " " + how + ": same cell");
+    };
+    stringstream gs;
+    check(frag->dumpGRO(gs), tag + ": dumpGRO writes");
+    const string text = gs.str();
+    check(text.find("    2HOH     OW") != string::npos && text.find("    3NA      Na") != string::npos,
+          tag + ": water and ion residues are written as they are");
+    Fragment g;
+    check(g.restoreGRO(gs, false), tag + ": the .gro reads back");
+    same(g, ".gro", true);
+    stringstream ps;
+    check(frag->dumpPDB(ps, false) && ps.str().find("CRYST1") != string::npos,
+          tag + ": dumpPDB writes CRYST1");
+    Fragment p;
+    FragUtil pu(&p);
+    check(pu.load(ps, "PDB", 1.0, true, 1, " ", " "), tag + ": the .pdb reads back");
+    same(p, ".pdb", false);
+    delete frag;
+  }
+  // Atoms without residues (a structure from .xyz): water becomes HOH with
+  // GROMACS's atom names, a lone ion its own residue, the rest UNK.
+  if (Fragment *frag = load(dir + "/water_ions_nores.xyz", "XYZ")) {
+    stringstream gs;
+    frag->dumpGRO(gs);
+    const string t = gs.str();
+    check(t.find("    1UNK     Si") != string::npos && t.find("    1UNK      O") != string::npos,
+          "no residues: the bonded pair stays UNK 1");
+    check(t.find("HOH     OW") != string::npos && t.find("HOH    HW1") != string::npos &&
+          t.find("HOH    HW2") != string::npos, "no residues: the water is HOH OW HW1 HW2");
+    check(t.find("NA      Na") != string::npos, "no residues: the lone Na is residue NA");
     delete frag;
   }
 

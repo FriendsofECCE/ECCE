@@ -68,6 +68,7 @@ void GromacsPrepareModelXMLizer::deserialize(const string& data,
    m->minffSubstitutions(getTagValue(root, "MinffSubstitutions"));
    m->minffSeed(getTagValue(root, "MinffSeed"));
    m->minffCell(getTagValue(root, "MinffCell"));
+   if (!(v = getTagValue(root, "MinffStructure")).empty()) m->minffStructure(v);
    m->minffSummary(getTagValue(root, "MinffSummary"));
    if (!(v = getTagValue(root, "MinffIonSet")).empty()) m->minffIonSet(v);
    // a task stored before ClayFF was offered is MINFF
@@ -111,6 +112,7 @@ void GromacsPrepareModelXMLizer::serialize(const Serializable& object,
       << "<MinffSubstitutions>" << m->minffSubstitutions()
       << "</MinffSubstitutions>\n"
       << "<MinffSeed>" << m->minffSeed() << "</MinffSeed>\n"
+      << "<MinffStructure>" << m->minffStructure() << "</MinffStructure>\n"
       << "<MinffCell>" << m->minffCell() << "</MinffCell>\n"
       << "<MinffSummary>" << m->minffSummary() << "</MinffSummary>\n"
       << "<MinffIonSet>" << m->minffIonSet() << "</MinffIonSet>\n"

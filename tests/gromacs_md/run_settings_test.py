@@ -107,6 +107,16 @@ def text_tests():
               and k["nstpcouple"] == ["20"],
               "pcoupltype %d expands ref-p and compressibility (%s | %s)"
               % (typ, k["ref-p"], k["compressibility"]))
+    # no Compressibility in the model (the GUI's default): water's, or a
+    # mineral's when molecules cross the cell (#1140)
+    unset = re.sub(r"\s*<Compressibility>[^<]*</Compressibility>", "", npt())
+    for pm, cp in ((0, "4.5e-5 4.5e-5"), (1, "2e-6 2e-6")):
+        rc, mdp = mdp_of(EQ, dynamics=unset, interaction=tag("GmxPcoupltype", 1) +
+                         tag("PeriodicMolecules", pm))
+        k = keys(mdp)
+        check(k.get("compressibility") == [cp],
+              "default compressibility with PeriodicMolecules %d is %s (%s)"
+              % (pm, cp, k.get("compressibility")))
     rc, mdp = mdp_of(EQ, dynamics=rt.dyn(500, True),
                      interaction=tag("GmxBarostat", 1))
     check("pcoupl" not in keys(mdp), "no barostat setting without pressure coupling")

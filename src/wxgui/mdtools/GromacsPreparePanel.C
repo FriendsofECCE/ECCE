@@ -53,6 +53,7 @@ static const wxWindowID ID_MSEED = wxNewId();
 static const wxWindowID ID_MVARIANT = wxNewId();
 static const wxWindowID ID_MANGLE = wxNewId();
 static const wxWindowID ID_MCELL = wxNewId();
+static const wxWindowID ID_MSTRUCT = wxNewId();
 static const wxWindowID ID_MBUILD = wxNewId();
 static const wxWindowID ID_FF = wxNewId();
 static const wxWindowID ID_OTHERFF = wxNewId();
@@ -334,8 +335,24 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
                       "O-M-O angles."));
   p_minffOnly.push_back(p_mff);
   g->Add(p_mff, 0);
+  lab = label(box, _("Mineral from:"));
+  p_minffOnly.push_back(lab);
+  p_minffFfOnly.push_back(lab);
+  g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
+  wxArrayString mst;
+  mst.Add(_("a unit-cell file"));
+  mst.Add(_("the Builder (with its water and ions)"));
+  p_mstruct = new ewxChoice(box, ID_MSTRUCT, wxDefaultPosition, wxDefaultSize, mst);
+  p_mstruct->SetToolTip(_("A unit-cell file is repeated, substituted and given a water "
+                          "layer here. The Builder's structure (for example a Layer "
+                          "Builder stack) is used as it is: its water and ions are kept "
+                          "and typed, and ions are added only if its charge is not zero."));
+  p_minffOnly.push_back(p_mstruct);
+  p_minffFfOnly.push_back(p_mstruct);
+  g->Add(p_mstruct, 0);
   lab = label(box, _("Unit cell:"));
   p_minffOnly.push_back(lab);
+  p_cellOnly.push_back(lab);
   g->Add(lab, 0, wxALIGN_CENTER_VERTICAL);
   wxBoxSizer *cellRow = new wxBoxSizer(wxHORIZONTAL);
   p_cellLabel = clippedLabel(box);
@@ -344,6 +361,8 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   cellRow->Add(p_cellLabel, 1, wxALIGN_CENTER_VERTICAL | wxRIGHT, 6);
   p_mcellBtn = new ewxButton(box, ID_MCELL, _("Browse..."));
   p_minffOnly.push_back(p_mcellBtn);
+  p_cellOnly.push_back(p_mcellBtn);
+  p_cellOnly.push_back(p_cellLabel);
   cellRow->Add(p_mcellBtn, 0);
   g->Add(cellRow, 1, wxEXPAND);
   lab = label(box, _("Repeat (a b c):"));
@@ -590,6 +609,7 @@ GromacsPreparePanel::GromacsPreparePanel(MDEdBase *owner, wxWindow *parent)
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnMinffChoice, this, ID_MVARIANT);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnMinffChoice, this, ID_MANGLE);
   Bind(wxEVT_BUTTON, &GromacsPreparePanel::OnMinffCell, this, ID_MCELL);
+  Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnMinffStructure, this, ID_MSTRUCT);
   Bind(wxEVT_BUTTON, &GromacsPreparePanel::OnMinffBuild, this, ID_MBUILD);
   Bind(wxEVT_CHOICE, &GromacsPreparePanel::OnForceField, this, ID_FF);
   Bind(wxEVT_BUTTON, &GromacsPreparePanel::OnImportForceField, this, ID_FFIMPORT);
@@ -730,6 +750,14 @@ void GromacsPreparePanel::showFields()
   p_mbend->Enable(p_editable);
   p_mrigid->Enable(p_editable);
   p_mcellBtn->Enable(p_editable);
+  p_mstruct->Enable(p_editable);
+  // the Builder's structure is used as it is: no cell to repeat or substitute
+  if (mineralFromBuilder()) {
+    for (size_t i = 0; i < p_cellOnly.size(); i++) p_cellOnly[i]->Enable(false);
+    for (int i = 0; i < 3; i++) p_mrep[i]->Enable(false);
+    p_msubs->Enable(false);
+    p_mseed->Enable(false);
+  }
   p_mbuild->Enable(p_editable);
 
   // What does not apply to the source is hidden, not just greyed
@@ -942,6 +970,7 @@ void GromacsPreparePanel::refreshGUI()
     if (p_model->clayffBend() == CLAYFF_BENDS[i].id) bd = i;
   p_mbend->SetSelection(bd);
   p_mrigid->SetValue(p_model->clayffRigidWater());
+  p_mstruct->SetSelection(p_model->minffStructure() == "builder" ? 1 : 0);
   p_badRmin.clear();
   p_buildWarnings.clear();
   p_badDistance.clear();
@@ -1109,6 +1138,7 @@ void GromacsPreparePanel::showMineral()
       if (names[i] == "topol.gmxmin") p_built = true;
   }
   string cell = p_cellPath.empty() ? p_model->minffCell() : p_cellPath;
+  if (mineralFromBuilder()) cell = "the Builder's structure";
   string::size_type s = cell.find_last_of("/\\");
   if (s != string::npos) cell = cell.substr(s + 1);
   p_cellLabel->SetLabel(cell.empty() ? _("none chosen") : U(cell.c_str()));
@@ -1472,6 +1502,21 @@ string GromacsPreparePanel::cellStartDir() const
   return Ecce::realUserHome();
 }
 
+bool GromacsPreparePanel::mineralFromBuilder() const
+{
+  return p_model != 0 && !isClayff() && p_model->minffStructure() == "builder";
+}
+
+void GromacsPreparePanel::OnMinffStructure(wxCommandEvent&)
+{
+  if (p_refreshing || p_model == 0) return;
+  p_model->minffStructure(p_mstruct->GetSelection() == 1 ? "builder" : "cell");
+  showFields();
+  showMineral();
+  minffStale();
+  changed();
+}
+
 void GromacsPreparePanel::OnMinffCell(wxCommandEvent&)
 {
   Preferences prefs("GromacsPrepare");
@@ -1619,7 +1664,8 @@ struct ScratchDir
 bool GromacsPreparePanel::buildMineral(bool withDialog, string& message)
 {
   if (p_model == 0) { message = "No model."; return false; }
-  if (p_cellPath.empty()) {
+  const bool fromBuilder = mineralFromBuilder();
+  if (!fromBuilder && p_cellPath.empty()) {
     message = "Choose the mineral's unit cell first (a .pdb, .gro or .cif file).";
     return false;
   }
@@ -1631,10 +1677,52 @@ bool GromacsPreparePanel::buildMineral(bool withDialog, string& message)
     message = "No scratch directory could be made.";
     return false;
   }
-  string out = string(scratch.path.ToUTF8());
+  string out = string(scratch.path.ToUTF8()) + "/out";
 
   vector<string> argv;
   argv.push_back(Ecce::scriptCommand(string(Ecce::ecceHome()) + "/scripts/minff_topology.py"));
+  if (fromBuilder) {
+    // the whole structure, residues and cell as the Builder has them
+    MdTask *t = task();
+    Fragment frag;
+    if (t == 0 || !t->getFragment(frag) || frag.numAtoms() == 0) {
+      message = "The Builder has no structure for this calculation.";
+      return false;
+    }
+    if (frag.getLattice() == 0) {
+      message = "The Builder's structure has no cell; a mineral system needs one.";
+      return false;
+    }
+    string gro = string(scratch.path.ToUTF8()) + "/builder.gro";
+    std::ofstream gs(gro.c_str());
+    if (!frag.dumpGRO(gs)) {
+      message = "The Builder's structure could not be written.";
+      return false;
+    }
+    gs.close();
+    argv.push_back("system");
+    argv.push_back(gro);
+    argv.push_back("-o");
+    argv.push_back(out);
+    argv.push_back("--variant");
+    argv.push_back(p_model->minffVariant());
+    if (p_model->minffVariant() == "tminff") {
+      if (p_model->minffMineral().empty()) {
+        message = "TMINFF needs the name of the mineral, for example Montmorillonite.";
+        return false;
+      }
+      argv.push_back("--mineral");
+      argv.push_back(p_model->minffMineral());
+    }
+    argv.push_back("--angle-k");
+    argv.push_back(std::to_string(p_model->minffAngleK()));
+    argv.push_back("--water");
+    argv.push_back(p_model->waterModel());
+    argv.push_back("--ion-set");
+    argv.push_back(p_model->minffIonSet());
+    argv.push_back("--gui");
+    return runMinff(argv, out, withDialog, true, message);
+  }
   argv.push_back("build");
   argv.push_back(p_cellPath);
   argv.push_back("-o");
@@ -1698,7 +1786,15 @@ bool GromacsPreparePanel::buildMineral(bool withDialog, string& message)
   // a bare cell gets the vacuum MINFF needs, instead of a layer bonded to itself
   argv.push_back("--add-gap");
   argv.push_back("--gui");
+  return runMinff(argv, out, withDialog, false, message);
+}
 
+// Runs minff_topology.py (argv) with a progress dialog, stores what it wrote
+// in out and words the result for the summary.
+bool GromacsPreparePanel::runMinff(const vector<string>& argv, const string& out,
+                                   bool withDialog, bool fromBuilder, string& message)
+{
+  const bool clay = isClayff();
   vector<const char*> cargv;
   for (size_t i = 0; i < argv.size(); i++) cargv.push_back(argv[i].c_str());
   cargv.push_back(0);
@@ -1738,6 +1834,20 @@ bool GromacsPreparePanel::buildMineral(bool withDialog, string& message)
     return false;
   }
   if (!storeMineral(out, message)) return false;
+  if (fromBuilder) {
+    string ions = jsonObjectKeys(so, "ions");
+    p_buildWarnings = jsonStrings(so, "warnings");
+    p_model->minffCell("");
+    p_model->minffSummary("Built from the Builder's structure: " + jsonField(so, "n_atoms") +
+        " atoms (mineral " + jsonField(so, "mineral_atoms") + ", " + jsonField(so, "waters") +
+        " waters" + (ions.empty() ? string("") : ", ions " + ions) + "), charge " +
+        jsonField(so, "total_charge") + ", water " + p_model->waterModel() + "." +
+        (so.find("\"untyped_atoms\": []") == string::npos ? " Some atoms have no MINFF type." : ""));
+    showMineral();
+    showCellWarning();
+    changed();
+    return true;
+  }
 
   // the result in words, from the script's own summary
   string atoms = jsonField(so, "n_atoms"), charge = jsonField(so, "total_charge");
@@ -1985,6 +2095,9 @@ bool GromacsPreparePanel::testSet(const string& field, const string& value,
   } else if (field == "source") {
     p_source->SetSelection(value == "minff" ? 1 : 0);
     OnSource(ev);
+  } else if (field == "mstruct") {
+    p_mstruct->SetSelection(value == "builder" ? 1 : 0);
+    OnMinffStructure(ev);
   } else if (field == "mcell") {
     p_cellPath = value;
     showMineral();
@@ -2063,6 +2176,7 @@ string GromacsPreparePanel::summary() const
      << " mineral=" << p_model->minffSummary()
      << " rmin=" << p_model->ionMinDistance()
      << " ionset=" << p_model->minffIonSet()
+     << " mstruct=" << p_model->minffStructure()
      << " mff=" << p_model->mineralForceField()
      << " bend=" << p_model->clayffBend()
      << " rigid=" << (p_model->clayffRigidWater() ? 1 : 0)

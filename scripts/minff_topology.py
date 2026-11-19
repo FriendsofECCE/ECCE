@@ -25,11 +25,14 @@ minff commit MINFF_COMMIT into ~/.cache/ecce/minff/<commit>.
         [--water opc3] [--add-gap [NM]] [--ion-set HFE|IOD] [--gui]
         [--forcefield minff|clayff] [--clayff-bend none|moh|moh2004]
         [--clayff-rigid-water]
+    minff_topology.py system STRUCTURE -o OUTDIR [--variant gminff|tminff]
+        [--mineral NAME] [--angle-k K] [--water opc3] [--ion-set HFE|IOD]
     minff_topology.py minerals [--angle-k K]
     minff_topology.py fetch
 """
 import argparse
 import contextlib
+import errno
 import json
 import math
 import os
@@ -160,7 +163,12 @@ def fetch_pinned():
                 m.name = rel                          # drop minff-<commit>/
                 t.extract(m, os.path.join(tmp, "x"), **(
                     {"filter": "data"} if sys.version_info >= (3, 12) else {}))
-        os.rename(os.path.join(tmp, "x"), d)
+        try:
+            os.rename(os.path.join(tmp, "x"), d)
+        except OSError as e:
+            # another process filled the cache first: its copy is the same commit
+            if e.errno not in (errno.EEXIST, errno.ENOTEMPTY) or not os.path.isdir(d):
+                raise
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return d
@@ -782,6 +790,260 @@ def build(cell, outdir, replicate=(1, 1, 1), substitutions=(), min_distance=5.5,
     return summary
 
 
+# ------------------------------------------------------- whole structures
+
+# residue names a structure may give its water (the Builder writes HOH)
+WATER_RESNAMES = ("SOL", "HOH", "WAT", "H2O", "TIP3", "TIP4", "SPC", "OPC", "OPC3")
+
+
+_SYMBOLS = set("""H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe
+Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe
+Cs Ba La Ce Pr Nd Pm Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb
+Bi Po At Rn Fr Ra Ac Th Pa U Np Pu""".split())
+
+
+def _element(a):
+    """Element of an atom read by atomipy.  Its element field can be a MINFF
+    type (Ow, Hw, Ob for OW, HW1, ...), so two letters count only when they
+    are an element symbol, else the first letter does."""
+    e = re.sub(r"[^A-Za-z]", "", str(a.get("element") or a.get("type", "")))
+    two = e[:2].capitalize()
+    return two if two in _SYMBOLS else e[:1].upper()
+
+
+def ion_molecules(ffdir):
+    """{molecule name: (atom name, charge)} of min.ff's ions.itp; every
+    water model's block uses the same names."""
+    mols, cur, st = {}, None, 0
+    with open(os.path.join(ffdir, "min.ff", "ions.itp"), encoding="utf-8", errors="replace") as f:
+        for line in f:
+            s = line.split(";")[0].strip()
+            if not s or s.startswith("#"):
+                continue
+            if s.startswith("["):
+                sec = s.strip("[] ").strip()
+                st = 1 if sec == "moleculetype" else 2 if sec == "atoms" else 0
+                continue
+            w = s.split()
+            if st == 1:
+                cur, st = w[0], 0
+            elif st == 2 and cur and cur not in mols and len(w) >= 7:
+                mols[cur] = (w[4], float(w[6]))
+                st = 0
+    return mols
+
+
+def _ion_element(name):
+    m = re.match(r"[A-Z][a-z]?", name)
+    return m.group(0) if m else name
+
+
+def water_layout(path):
+    """The water model's SOL atoms in order: (name, None) for a real atom,
+    (name, (i, j, k, a, b)) for a virtual_sites3 site placed from atoms
+    i, j, k (1-based)."""
+    atoms, vs, sec = [], {}, ""
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            s = line.split(";")[0].strip()
+            if not s:
+                continue
+            if s.startswith("#"):
+                if s.startswith("#else"):
+                    sec = "skip"          # one variant of the atoms is enough
+                continue
+            if s.startswith("["):
+                sec = s.strip("[] ").strip()
+                continue
+            w = s.split()
+            if sec == "atoms" and len(w) >= 5:
+                atoms.append(w[4])
+            elif sec in ("virtual_sites3", "dummies3") and len(w) >= 7 and w[4] == "1":
+                vs[int(w[0])] = (int(w[1]), int(w[2]), int(w[3]), float(w[5]), float(w[6]))
+    return [(n, vs.get(i + 1)) for i, n in enumerate(atoms)]
+
+
+def split_structure(atoms, ion_names):
+    """Mineral atoms, waters [(O, H, H)] and ions [(atom, molecule)] of a
+    whole structure, by residue: a water residue is O + 2 H (a 4-site
+    water's virtual site is dropped and placed again), an ion a residue of
+    one atom that min.ff has an ion for; everything else is mineral."""
+    groups, key = [], None
+    for a in atoms:
+        k = (str(a.get("resname", "")).upper(), a.get("molid"))
+        if k != key:
+            groups.append([])
+            key = k
+        groups[-1].append(a)
+    by_elem = {}
+    for name in ion_names:
+        by_elem.setdefault(_ion_element(name), []).append(name)
+    mineral, waters, ions = [], [], []
+    for g in groups:
+        rn = str(g[0].get("resname", "")).upper()
+        if rn in WATER_RESNAMES:
+            real = [a for a in g if _element(a) in ("O", "H")]
+            o = [a for a in real if _element(a) == "O"]
+            h = [a for a in real if _element(a) == "H"]
+            if len(o) != 1 or len(h) != 2:
+                raise MinffError("water residue %s %s is not one O and two H"
+                                 % (g[0].get("resname"), g[0].get("molid")))
+            waters.append((o[0], h[0], h[1]))
+            continue
+        if len(g) == 1:
+            e = _element(g[0])
+            cands = by_elem.get(e, [])
+            exact = [n for n in cands if n.upper() in (rn, rn + "+")]
+            pick = exact or [n for n in cands if n == e] or cands
+            if pick and e not in ("O", "H"):
+                ions.append((g[0], pick[0]))
+                continue
+        mineral.extend(g)
+    return mineral, waters, ions
+
+
+def _gro_line(resnr, resname, name, nr, xyz_nm):
+    return "%5d%-5.5s%5.5s%5d%8.3f%8.3f%8.3f" % (
+        resnr % 100000, resname, name, nr % 100000, xyz_nm[0], xyz_nm[1], xyz_nm[2])
+
+
+def build_system(structure, outdir, variant="gminff", mineral=None, angle_k=500,
+                 water="opc3", ion_set="HFE", log=sys.stderr, gui=False):
+    """A whole structure (mineral with water and ions, e.g. a Layer Builder
+    stack): the mineral is typed by atomipy as one molecule MIN, waters
+    become the water model's SOL and ions min.ff's ion molecules.  Nothing
+    is added or moved: the cell and positions are the structure's."""
+    if ion_set not in ION_SETS:
+        raise MinffError("ion set must be one of %s" % (ION_SETS,))
+    if variant not in ("gminff", "tminff"):
+        raise MinffError("variant must be gminff or tminff")
+    if angle_k not in ANGLE_KS:
+        raise MinffError("angle k must be one of %s" % (ANGLE_KS,))
+    if water not in WATER_MODELS:
+        raise MinffError("water model must be one of %s" % sorted(WATER_MODELS))
+    if not os.path.isfile(structure):
+        raise MinffError("structure file not found: %s" % structure)
+    ap = import_atomipy()
+    ffdir = minff_dir()
+    if variant == "tminff":
+        minerals = list_minerals(angle_k, ffdir)
+        if mineral not in minerals:
+            raise MinffError("TMINFF needs --mineral NAME, one of: %s" % ", ".join(minerals))
+    else:
+        mineral = None
+    ion_mols = ion_molecules(ffdir)
+    layout = water_layout(os.path.join(ffdir, "min.ff", WATER_MODELS[water][0]))
+
+    os.makedirs(outdir, exist_ok=True)
+    with contextlib.redirect_stdout(log), tempfile.TemporaryDirectory() as tmp:
+        atoms, box = ap.import_auto(structure)
+        if not atoms:
+            raise MinffError("no atoms read from %s" % structure)
+        if not box or not any(box[:3]):
+            raise MinffError("the structure has no cell; a mineral system needs one")
+        min_atoms, waters, ions = split_structure(atoms, ion_mols)
+        if not min_atoms:
+            raise MinffError("the structure has no mineral atoms (only water and ions)")
+        for i, a in enumerate(min_atoms):
+            a.update(index=i + 1, molid=1, resname="MIN")
+        min_atoms = ap.minff(min_atoms, box)
+        itp_tmp = os.path.join(tmp, "min.itp")
+        ap.write_itp(min_atoms, box, itp_tmp, molecule_name="MIN", KANGLE=angle_k,
+                     water_model=water)
+        gro_tmp = os.path.join(tmp, "min.gro")
+        ap.write_gro(min_atoms, box, gro_tmp)
+        shutil.copy(itp_tmp, os.path.join(outdir, "min.itp"))
+        with open(gro_tmp, encoding="utf-8") as f:
+            mlines = f.read().splitlines()
+
+    # MIN first, then the ions by kind, SOL last: genion, if it still has
+    # to neutralise, replaces waters and appends its ions after SOL
+    nmin = int(mlines[1])
+    lines = mlines[2:2 + nmin]
+    resnr, nr = 1, nmin
+    order, counts = [], {}
+    for _a, m in ions:
+        if m not in order:
+            order.append(m)
+    for m in order:
+        aname = ion_mols[m][0]
+        for a, mm in ions:
+            if mm == m:
+                resnr += 1
+                nr += 1
+                lines.append(_gro_line(resnr, m, aname, nr,
+                                       (a["x"] / 10, a["y"] / 10, a["z"] / 10)))
+                counts[m] = counts.get(m, 0) + 1
+    for o, h1, h2 in waters:
+        resnr += 1
+        pos = [(o["x"], o["y"], o["z"]), (h1["x"], h1["y"], h1["z"]), (h2["x"], h2["y"], h2["z"])]
+        for i, (name, vs) in enumerate(layout):
+            if vs:
+                p0, p1, p2 = pos[vs[0] - 1], pos[vs[1] - 1], pos[vs[2] - 1]
+                x = [p0[k] + vs[3] * (p1[k] - p0[k]) + vs[4] * (p2[k] - p0[k]) for k in range(3)]
+            else:
+                x = pos[i]
+            nr += 1
+            lines.append(_gro_line(resnr, "SOL", name, nr, [v / 10 for v in x]))
+    with open(os.path.join(outdir, "conf.gro"), "w", encoding="utf-8") as f:
+        f.write("MINFF system from %s\n%d\n" % (os.path.basename(structure), len(lines)))
+        f.write("\n".join(lines) + "\n" + mlines[2 + nmin] + "\n")
+
+    add_posres_noh(os.path.join(outdir, "min.itp"))
+    dst = os.path.join(outdir, "min.ff")
+    if os.path.isdir(dst):
+        shutil.rmtree(dst)
+    shutil.copytree(os.path.join(ffdir, "min.ff"), dst)
+    known = ff_block_types(ffdir, variant, angle_k, mineral)
+    if variant == "tminff":
+        with open(os.path.join(outdir, "min_bonded.itp"), "w", encoding="utf-8") as f:
+            f.write(restrict_bonded(os.path.join(ffdir, "min.ff", "ffbonded.itp"), known))
+    top = topol_text(variant, angle_k, mineral, water, ion_set).rstrip("\n")
+    top = top.replace("[ system ]\nMINFF mineral", "[ system ]\nMINFF mineral with water and ions")
+    top += "\n" + "".join("%-6s %d\n" % (m, counts[m]) for m in order)
+    if waters:
+        top += "SOL    %d\n" % len(waters)
+    with open(os.path.join(outdir, "topol.top"), "w", encoding="utf-8") as f:
+        f.write(top + "\n")
+
+    itp = read_itp_atoms(os.path.join(outdir, "min.itp"))
+    tcounts = {}
+    for t, _ in itp:
+        tcounts[t] = tcounts.get(t, 0) + 1
+    qmin = sum(q for _, q in itp)
+    qion = sum(ion_mols[m][1] * counts[m] for m in counts)
+    summary = {
+        "variant": variant.upper() if variant == "gminff" else "TMINFF",
+        "forcefield": "minff",
+        "mineral": mineral,
+        "angle_k": angle_k,
+        "water": water,
+        "structure": os.path.basename(structure),
+        "n_atoms": len(lines),
+        "mineral_atoms": len(itp),
+        "mineral_charge": round(qmin, 6),
+        "waters": len(waters),
+        "ions": {m: counts[m] for m in order},
+        "type_counts": dict(sorted(tcounts.items())),
+        "total_charge": round(qmin + qion, 6),
+        "untyped_atoms": [i + 1 for i, (t, _) in enumerate(itp) if t not in known],
+        "types_missing_from_ff": sorted(t for t in tcounts if t not in known),
+        "minff_commit": MINFF_COMMIT if not os.environ.get("ECCE_MINFF_DIR") else "ECCE_MINFF_DIR",
+        "files": {"topology": "topol.top", "molecule": "min.itp", "structure": "conf.gro"},
+        "warnings": [],
+    }
+    if abs(summary["total_charge"]) > 1e-3:
+        summary["warnings"].append(
+            "the structure has a net charge of %.4f e; the Prepare job neutralises it "
+            "with the chosen ions in place of water" % summary["total_charge"])
+    for w in summary["warnings"]:
+        print("minff_topology: WARNING: " + w, file=sys.stderr)
+    with open(os.path.join(outdir, "minff.json"), "w", encoding="utf-8") as f:
+        json.dump(summary, f, indent=2)
+        f.write("\n")
+    return summary
+
+
 # ------------------------------------------------------------------- CLI
 
 def main(argv=None):
@@ -819,11 +1081,21 @@ def main(argv=None):
                    help="with --forcefield clayff, write #define RIGID_WATER (SETTLE SPC)")
     b.add_argument("--gui", action="store_true",
                    help="worded for the ECCE editor: warnings do not name command-line flags")
+    y = sub.add_parser("system", help="type a whole structure as it is (mineral, water, "
+                       "ions; e.g. the Builder's): MIN, ion molecules, SOL")
+    y.add_argument("structure", help="structure with residues and cell: .gro or .pdb")
+    y.add_argument("-o", "--outdir", required=True)
+    y.add_argument("--variant", choices=("gminff", "tminff"), default="gminff")
+    y.add_argument("--mineral", help="mineral block for --variant tminff")
+    y.add_argument("--angle-k", type=int, default=500, choices=ANGLE_KS)
+    y.add_argument("--water", default="opc3", choices=sorted(WATER_MODELS))
+    y.add_argument("--ion-set", choices=ION_SETS, default="HFE")
+    y.add_argument("--gui", action="store_true")
     m = sub.add_parser("minerals", help="list the TMINFF minerals")
     m.add_argument("--angle-k", type=int, default=500, choices=ANGLE_KS)
     sub.add_parser("fetch", help="download the pinned minff commit (for the tests) and print its directory")
     a = p.parse_args(argv)
-    if a.cmd == "build" and not os.environ.get("ECCE_MINFF_REEXEC"):
+    if a.cmd in ("build", "system") and not os.environ.get("ECCE_MINFF_REEXEC"):
         try:
             import_atomipy()
         except MinffError:
@@ -837,6 +1109,10 @@ def main(argv=None):
     try:
         if a.cmd == "fetch":
             print(fetch_pinned())
+        elif a.cmd == "system":
+            s = build_system(a.structure, a.outdir, a.variant, a.mineral, a.angle_k,
+                             a.water, a.ion_set, gui=a.gui)
+            print(json.dumps(s, indent=2))
         elif a.cmd == "minerals":
             print("\n".join(list_minerals(a.angle_k)))
         else:

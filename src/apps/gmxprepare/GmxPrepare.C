@@ -342,7 +342,9 @@ string GmxPrepare::verifyText()
    }
    GromacsPrepareModel *m = prepModel();
    const bool minff = m->source() == "minff";
-   const bool water = !minff || m->boxDistance() > 0;
+   // the Builder's whole structure (#1140): its water and ions are kept
+   const bool sys = minff && m->minffStructure() == "builder";
+   const bool water = !sys && (!minff || m->boxDistance() > 0);
    const string w = m->waterModel();
    string wbox = "spc216.gro";
    if (w == "tip4p" || w == "tip4pew" || w == "opc" || w == "tip4p-fb") wbox = "tip4p.gro";
@@ -356,7 +358,8 @@ string GmxPrepare::verifyText()
          src = string("Mineral, ") + (m->mineralForceField() == "clayff" ? "ClayFF" : "MINFF");
          if (!m->minffMineral().empty()) src += ": " + m->minffMineral();
          if (!m->minffVariant().empty()) src += " (" + m->minffVariant() + ")";
-         if (!m->minffReplicate().empty()) src += ", repeat " + m->minffReplicate();
+         if (sys) src += ", the Builder's structure with its water and ions";
+         else if (!m->minffReplicate().empty()) src += ", repeat " + m->minffReplicate();
       } else {
          src = p_panel != 0 && !p_panel->sourceFile().empty()
                   ? "Structure from the file " + p_panel->sourceFile()
@@ -367,7 +370,9 @@ string GmxPrepare::verifyText()
       char d[64];
       string box;
       snprintf(d, sizeof d, "%g", m->boxDistance());
-      if (minff)
+      if (sys)
+         box = "the structure's cell, kept; no water layer";
+      else if (minff)
          box = water ? string("unit cell kept; c lengthened by a ") + d + " nm water layer"
                      : "unit cell kept, no water layer";
       else
@@ -375,7 +380,10 @@ string GmxPrepare::verifyText()
                                      : "rectangular, " + m->boxSize() + " nm") +
                (m->boxCenter().empty() ? "" : ", solute centred at " + m->boxCenter() + " nm");
       string ions;
-      if (!water) {
+      if (sys) {
+         ions = "those in the structure; genion only if its total charge is not 0"
+                " (with " + m->positiveIon() + "/" + m->negativeIon() + ")";
+      } else if (!water) {
          ions = "none (no solvent to replace)";
       } else {
          if (m->neutralise()) ions = "neutralise with " + m->positiveIon() + "+/" + m->negativeIon() + "-";
@@ -387,7 +395,7 @@ string GmxPrepare::verifyText()
       }
       o << "Source:      " << src << "\n"
         << "Force field: " << ff << "\n"
-        << "Water model: " << (water ? w : string("none")) << "\n"
+        << "Water model: " << (water || sys ? w : string("none")) << "\n"
         << "Box:         " << box << "\n"
         << "Ions:        " << ions << "\n";
       if (!minff)
@@ -420,6 +428,8 @@ string GmxPrepare::verifyText()
    if (water) {
       o << "3. gmx solvate -cp step2.gro -cs " << wbox
         << " -o step3.gro -p topol.top\n";
+   } else if (sys) {
+      o << "3. the structure's own water is kept: no gmx solvate\n";
    } else {
       o << "3. no water layer: step2.gro is used as it is\n";
    }
