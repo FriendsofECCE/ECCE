@@ -11784,6 +11784,10 @@ void CalcMgr::getToolsMenu(wxMenu & menu, WxResourceTreeItemData * itemData)
 
   vector<ResourceTool *>::iterator toolItor = toolVec.begin();
   for (;toolItor != toolVec.end(); toolItor++) {
+    // The editor's basis panel replaces the Basis Set Tool (see startApp).
+    if ((*toolItor)->getName() == BASISTOOL &&
+        !getenv("ECCE_FULL_BASIS_TOOL") && ToolTabs::enabled())
+      continue;
     // The MD editors are registered once, as NWChem's, and also edit the
     // GROMACS tasks: name the code of the task (as the summary buttons do).
     wxString label = wxString::FromUTF8((*toolItor)->getMenuItem().c_str());
@@ -11862,9 +11866,16 @@ bool CalcMgr::checkMovable(WxResourceTreeItemData * node)
 /**
  * Invoke tool application by sending message.
  */
-void CalcMgr::startApp(const string& app, int force, const string& url,
+void CalcMgr::startApp(const string& appIn, int force, const string& url,
                        const string& codename, int debug)
 {
+  // The Basis Set Tool window is retired (#1063): its button and menu open
+  // the editor at its basis panel, unless Preferences > Advanced asks for
+  // the old window.  Without tabs the editor has no panel to show.
+  string app = appIn;
+  bool basisPanel = app == BASISTOOL && !url.empty() &&
+                    !getenv("ECCE_FULL_BASIS_TOOL") && ToolTabs::enabled();
+  if (basisPanel) app = CALCED;
   if (app == "CalculationEditor" && !url.empty()) {
     Resource *step = EDSIFactory::getResource(EcceURL(url));
     if (step && !step->getProp(VDoc::getEcceNamespace() + ":recipe.step").empty()
@@ -11925,6 +11936,7 @@ void CalcMgr::startApp(const string& app, int force, const string& url,
   msg->addProperty("appname",app);
   msg->addIntProperty("forcenew",force);
   msg->addProperty("calcurl",url);
+  if (basisPanel) msg->addProperty("actiontopic", "basis");
   if (codename != "") {
     msg->addProperty("codename", codename);
     msg->addIntProperty("debug",debug);

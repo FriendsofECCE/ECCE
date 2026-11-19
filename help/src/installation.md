@@ -373,7 +373,10 @@ developers and the people helping you may ask you to turn on: the C++
 Details dialogs, fixed-function lighting in the 3-D view, no progress
 records for older calculations, diagnostic output, and log files for the
 MO-diagram symmetry analysis and for data-server logins. Leave them off
-otherwise.
+otherwise. **Separate Basis Set Tool window** makes the Basis Set buttons
+and menus open the old Basis Set Tool window instead of the editor's basis
+panel (`ECCE_FULL_BASIS_TOOL=1` does the same); it is kept for one release
+for its contraction editor.
 
 **OpenGL drawing** at the top of the tab chooses how the 3-D view draws text
 and transparent surfaces. **Automatic**, the default, reads the name of the

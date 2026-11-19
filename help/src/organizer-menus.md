@@ -66,7 +66,7 @@ as a downloaded editor copy.
   and a run directory.
 
 The Builder, the Electronic Structure Editor (**Tools > Electronic Structure
-Editor...**, Ctrl+E), the Basis Set Tool and the Viewer are opened from the
+Editor...**, Ctrl+E), its basis panel and the Viewer are opened from the
 toolbar and the **Tools** menu; while a tool starts the Organizer shows a busy
 cursor and "Opening the Viewer for ..." in its status line, a small
 "Starting ..." window if that takes more than a moment, and a second click on the

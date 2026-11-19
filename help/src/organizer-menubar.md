@@ -166,7 +166,11 @@ menu is grey.
   selected calculation.
 - **Builder...** (Ctrl+B): the structure of the selected calculation in the
   Builder.
-- **Basis Set Tool...** (Ctrl+S).
+- The calculation's **Basis Set** button opens its Calculation Editor at
+  the basis panel (see the Set-up tab below). The separate Basis Set Tool
+  window is retired; it is listed here again, as **Basis Set Tool...**
+  (Ctrl+S), only with **Separate Basis Set Tool window** ticked in
+  **Edit > Preferences > Advanced**.
 - **Launcher...** (Ctrl+L): from the ready state on.
 - **Viewer...** (Ctrl+R): the results of the selected calculation.
 - For an MD task, the editor of its kind (Prepare, Optimize, Energy or
@@ -313,7 +317,7 @@ window of its own. This needs the tools to run in one program
 (the default); with `ECCE_ONE_PROCESS=0` in the environment every tool opens
 in its own window and the tab says so.
 
-Clicking Builder, Viewer or Basis Set Tool again for a calculation that
+Clicking Builder or Viewer again for a calculation that
 already has that tool open switches to its tab. Closing a tool's tab
 closes only that tool. While a tool starts or a job is submitted, clicks
 and keys are ignored and the cursor shows the wait; the controls are not
@@ -357,9 +361,12 @@ greyed out.
   assign to single atoms, type their names (H1,H2) in the **Atoms** box:
   the buttons then act on those atoms and the element's set stays for the
   others of that element. **Functions** adds tight or diffuse functions
-  to a numbered shell of the first checked element's orbital set. **Full Basis Set
-  Tool...** opens the Basis Set Tool for the contraction editor and the
-  coefficients. Codes whose details exist only in the older form (NWChem,
+  to a numbered shell of the first checked element's orbital set. Picking an ECP shows
+  the elements it has a core for and the ones that stay all-electron. The
+  contraction editor and the coefficient view of the old Basis Set Tool
+  window are reached only by ticking **Separate Basis Set Tool window** in
+  **Edit > Preferences > Advanced** (kept for one release), which also
+  brings back a **Full Basis Set Tool...** button here. Codes whose details exist only in the older form (NWChem,
   MOPAC, Quantum ESPRESSO, CP2K, GROMACS and others) still open those
   details in a window, and the area says so. **Small**: one
   tool per tab, each the full width of the window, for small screens and X

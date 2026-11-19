@@ -154,6 +154,11 @@ and that stop working once its windows are in the page:
   hidden frame is a gtk deiconify and would map it.
 - The Basis Set Tool's menu bar has no File menu (first menu "Molecular
   Basis"); the test checks that name.
+- Retired (#1063): `CalcMgr::startApp` and `CalcEd::startApp` turn a
+  Basistool start into the editor's basis panel (`actiontopic=basis`,
+  shown via `CallAfter` once the tab exists) unless `ECCE_FULL_BASIS_TOOL`
+  is set or tabs are off. Tests of the old window must set it, or
+  `start Basistool` silently opens the editor instead.
 
 ## Editor tab: scrolling and children made later
 

@@ -1446,10 +1446,9 @@ void CalcEd::OnToolClick(wxCommandEvent &event)
   // tool is that panel's button.
   ResourceTool *basis =
       ResourceDescriptor::getResourceDescriptor().getTool(BASISTOOL);
-  if (p_setupArea && basis && event.GetId() == basis->getId()) {
-    p_setupArea->showBasis();
+  if (basis && event.GetId() == basis->getId() &&
+      (p_setupArea || !getenv("ECCE_FULL_BASIS_TOOL")) && showBasisPanel())
     return;
-  }
   // ... and the Launch... button shows the Launcher's panel.
   ResourceTool *launcher =
       ResourceDescriptor::getResourceDescriptor().getTool(LAUNCHER);
@@ -1470,6 +1469,15 @@ void CalcEd::openBasisSetTool()
   if (!basis) return;
   doSave();
   startApp(basis->getId(), 0, p_context);
+}
+
+
+bool CalcEd::showBasisPanel()
+{
+  if (!p_setupArea && ToolTabs::enabled()) ToolTabs::moveToTabs(this);
+  if (!p_setupArea) return false;
+  p_setupArea->showBasis();
+  return true;
 }
 
 
@@ -4181,7 +4189,7 @@ string CalcEd::ecpElementsMessage() const
     msg += (e == ecp.begin() ? "" : ", ") + *e;
   msg += ", which ECCE-QM does not have, so the input for this basis set "
          "cannot be written.  Choose another basis set from the Basis Set menu "
-         "or the Basis Set Tool, or another molecule.";
+         "or the Basis Set button's panel, or another molecule.";
   return msg;
 }
 
@@ -4216,7 +4224,7 @@ bool CalcEd::isGbsValid()
       p_feedback->setMessage(ecpWarning, WxFeedback::WARNING);
     } else if (!GBSRules::isComplete(p_frag, p_basis, p_code, &theory)) {
       p_feedback->setMessage("The selected configuration doesn't cover all "
-              "elements in the chemical system.  Use the Basis Set Tool to "
+              "elements in the chemical system.  Use the Basis Set button to "
               "complete the coverage.", WxFeedback::ERROR);
       ret = false;
     } else {
@@ -5520,6 +5528,11 @@ void CalcEd::startApp(int id, int force, const string& url) const
 
 void CalcEd::startApp(const string& app, int force, const string& url) const
 {
+  // The retired Basis Set Tool (#1063): the basis panel instead, as the
+  // Organizer does.
+  if (app == BASISTOOL && !getenv("ECCE_FULL_BASIS_TOOL") &&
+      const_cast<CalcEd*>(this)->showBasisPanel())
+    return;
   // A tool that opens in this process (#983, the editor is a window of the
   // Organizer): the gateway would start a program instead.
   if (InProcessTools::handles(app)) {
