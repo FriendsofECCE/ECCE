@@ -288,7 +288,7 @@ def main():
             for tag, text, checker, extra in (
                     ("saveimage_light", LIGHT_SCENE, checkLight, {}),
                     ("saveimage_capture", CAPTURE_SCENE, checkCapture,
-                     {"ECCE_VIEWER_SCENE_HOLD": None})
+                     {"ECCE_VIEWER_SCENE_HOLD": None}),
                     ("saveimage_ortho", ORTHO_SCENE, checkOrtho, {}),):
                 with open(scene, "w") as h:
                     h.write(text.format(out=out))
