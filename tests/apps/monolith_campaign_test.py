@@ -533,8 +533,7 @@ def scenarioH(display, rounds=30):
         live = liveCounts(o)
         kept = {c: n for c, n in live.items() if n > live0.get(c, 0)}
         check(not kept, "H closed tabs leave no live tool objects (#1136)",
-              "before %s after %s\n%s" % (live0, live, "\n".join(
-                  l for l in o.text().splitlines() if "LEAKDBG" in l)[-3000:]))
+              "before %s after %s" % (live0, live))
         quitAndCheck(o, "after the soak", [("close", 3), ("answer", 3),
                                            ("answer no", 2), ("answer no", 2)])
     finally:
