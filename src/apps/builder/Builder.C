@@ -6705,6 +6705,9 @@ void Builder::updatePropertyMenus()
     wxTimer *timer = ewxWindowTimer(this);   // deleted with the window (#983)
     timer->Bind(wxEVT_TIMER, [this, path](wxTimerEvent&) {
       wxAuiPaneInfoArray &panes = p_mgr.GetAllPanes();
+      // Hosted as a tab, the panes live in the tab's page, not this frame.
+      wxWindow *host = p_mgr.GetManagedWindow();
+      const wxSize client = host->GetClientSize();
       FILE *f = fopen(path.c_str(), "w");
       if (f) {
         static const char *modeNames[] = { "classic", "stacked", "accordion",
@@ -6714,8 +6717,8 @@ void Builder::updatePropertyMenus()
       for (size_t i = 0; f && i < panes.GetCount(); ++i) {
         if (panes.Item(i).dock_direction == wxAUI_DOCK_CENTER) {
           fprintf(f, "viewer %d of %d px wide, %d of %d px high\n",
-                  panes.Item(i).rect.width, GetClientSize().x,
-                  panes.Item(i).rect.height, GetClientSize().y);
+                  panes.Item(i).rect.width, client.x,
+                  panes.Item(i).rect.height, client.y);
         }
       }
       //  One line per shown pane: where AUI put it, and whether its window
@@ -6747,12 +6750,11 @@ void Builder::updatePropertyMenus()
                 p.name.ToStdString().c_str(), p.rect.x, p.rect.y,
                 p.rect.width, p.rect.height,
                 p.window->IsShownOnScreen() ? "onscreen" : "hidden",
-                p.window->GetParent() == this ? "docked" : "reparented",
+                p.window->GetParent() == host ? "docked" : "reparented",
                 content ? content->GetMinSize().x : 0,
                 p.window->GetClientSize().x);
       }
-      if (f) fprintf(f, "client %d %d\n", GetClientSize().x,
-                     GetClientSize().y);
+      if (f) fprintf(f, "client %d %d\n", client.x, client.y);
       if (f) fclose(f);
     });
     timer->StartOnce(12000);

@@ -490,6 +490,8 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
   //  rectangle; then the client size and every shown pane's name.
   if (c == "panestate" && w.size() >= 2) {
     std::ofstream out(outdir + "/" + w[1] + ".txt");
+    // Hosted as a tab, the panes live in the tab's page, not this frame.
+    wxWindow *host = p_mgr.GetManagedWindow();
     for (size_t i = 2; i < w.size(); i++) {
       string name = w[i];
       for (char& ch : name) if (ch == '_') ch = ' ';
@@ -499,7 +501,7 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
           << (p.IsOk() ? 1 : 0) << " shown " << (p.IsOk() && p.IsShown())
           << " floating " << (p.IsOk() && p.IsFloating())
           << " close " << (p.IsOk() && p.HasCloseButton())
-          << " child " << (p.IsOk() && p.window && p.window->GetParent() == this)
+          << " child " << (p.IsOk() && p.window && p.window->GetParent() == host)
           << " ticked " << (id != wxNOT_FOUND && p_toolMenu->IsChecked(id))
           << " rect " << p.rect.x << " " << p.rect.y << " " << p.rect.width
           << " " << p.rect.height;
@@ -509,7 +511,8 @@ bool Builder::pbcTestCommand(SceneScript& s, const vector<string>& w,
           << " pin " << (p.IsOk() && p.HasPinButton()) << " folded "
           << (p.IsOk() && p_folded.count(p.window)) << "\n";
     }
-    out << "client " << GetClientSize().x << " " << GetClientSize().y << "\n";
+    out << "client " << host->GetClientSize().x << " "
+        << host->GetClientSize().y << "\n";
     wxAuiPaneInfoArray &all = p_mgr.GetAllPanes();
     for (size_t i = 0; i < all.GetCount(); i++) {
       if (all.Item(i).IsShown() && !all.Item(i).IsToolbar())

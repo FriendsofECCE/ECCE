@@ -83,10 +83,6 @@ env = dict(os.environ, ECCE_ONE_PROCESS="1", ECCE_TEST_ORGANIZER=cmds,
            ECCE_HOSTED_SHIM=str(os.getpid()))
 env.pop("ECCE_TEST_HOSTED", None)
 organizer = os.path.join(os.path.dirname(wrapper), "ecce-organizer")
-sys.stdout.write("HOSTED: %s %s (dropped: %s) via %s %s\n"
-                 % (tool, url or "-", " ".join(rest) or "-", organizer,
-                    " ".join(pipe)))
-sys.stdout.flush()
 
 
 def dieWithShim():
@@ -114,6 +110,12 @@ KEYS = ("Builder=", "Viewer=") if tool == "Builder" else (tool + "=",)
 keep = os.environ.get("ECCE_TEST_HOSTED_LOGDIR")
 copy = (open(os.path.join(keep, "%s-%d.log" % (tool, os.getpid())), "wb")
         if keep else None)
+# Into the kept log only: some tests count the lines of a tool's output.
+if copy:
+    copy.write(("HOSTED: %s %s (dropped: %s) via %s %s\n"
+                % (tool, url or "-", " ".join(rest) or "-", organizer,
+                   " ".join(pipe))).encode())
+    copy.flush()
 
 
 def pump():
