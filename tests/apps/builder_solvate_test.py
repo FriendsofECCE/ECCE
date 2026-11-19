@@ -65,7 +65,7 @@ def main():
              "info", "expect lattice yes", "savexyz " + out,
              "key viewer undo", "wait 500", "info",
              "expect lattice no", "quit"],
-            None)
+            None, structure=None)
         m = re.search(r"BUILDER: solvate molecules=(\d+) added=(\d+) atoms=(\d+) "
                       r"cell=(\S+) (\S+) (\S+) density=(\S+)", text)
         atoms = re.findall(r"BUILDER: atoms=(\d+) lattice=(\w+)", text)
