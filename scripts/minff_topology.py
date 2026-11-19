@@ -32,6 +32,7 @@ minff commit MINFF_COMMIT into ~/.cache/ecce/minff/<commit>.
 """
 import argparse
 import contextlib
+import errno
 import json
 import math
 import os
@@ -162,7 +163,12 @@ def fetch_pinned():
                 m.name = rel                          # drop minff-<commit>/
                 t.extract(m, os.path.join(tmp, "x"), **(
                     {"filter": "data"} if sys.version_info >= (3, 12) else {}))
-        os.rename(os.path.join(tmp, "x"), d)
+        try:
+            os.rename(os.path.join(tmp, "x"), d)
+        except OSError as e:
+            # another process filled the cache first: its copy is the same commit
+            if e.errno not in (errno.EEXIST, errno.ENOTEMPTY) or not os.path.isdir(d):
+                raise
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return d

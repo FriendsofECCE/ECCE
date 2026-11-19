@@ -92,7 +92,8 @@ def main():
         say("FAIL: services")
         return 1
     rc, out = s.driver("gromacsprepstudy", s.userUrl(), "claystack",
-                       os.path.join(FIXTURES, "1l2y.pdb"), "bare", "equilibrate", "dynamics")
+                       os.path.join(FIXTURES, "1l2y.pdb"),
+                       "frag=" + os.path.join(FIXTURES, "na_unk.pdb"), "equilibrate", "dynamics")
     urls = urls_of(out)
     if rc != 0 or len(urls) != 5:
         say("FAIL: study: %s" % out)
@@ -113,7 +114,9 @@ def main():
         os.chmod(os.path.join(wrappers, entry), 0o755)
 
     stack_gro = os.path.join(s.state, "stack.gro")
-    scene = ["hold 3", "importfile " + os.path.abspath(args.layer), "hold 3",
+    # the scene starts only on a loaded molecule, so the Prepare holds a
+    # placeholder ion that is cleared first
+    scene = ["hold 3", "cmd clear", "hold 2", "importfile " + os.path.abspath(args.layer), "hold 3",
              "pbcpress fold", "hold 3", "pbclayer layers %d" % args.layers,
              "pbclayer spacing " + args.spacing]
     for k, ion in enumerate(args.ions.split(";")):
