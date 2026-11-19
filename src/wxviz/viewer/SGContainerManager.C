@@ -1,3 +1,4 @@
+#include "util/LiveCount.H"
 #ifdef DEBUG
 #include <iostream>
   using std::cerr;
@@ -35,6 +36,7 @@ SO_NODE_SOURCE(SGContainerManager);
 SGContainerManager::SGContainerManager(void)
   : p_context("")
 {
+  LiveCount::add("SGContainerManager", 1);
   SO_NODE_CONSTRUCTOR(SGContainerManager);
 }
 
@@ -42,6 +44,7 @@ SGContainerManager::SGContainerManager(void)
 
 SGContainerManager::~SGContainerManager()
 {
+  LiveCount::add("SGContainerManager", -1);
 }
 
 

@@ -1,3 +1,4 @@
+#include "util/LiveCount.H"
 #include <iostream>
   using std::cerr;
   using std::cout;
@@ -88,6 +89,7 @@ void SGContainer::initClass()
 /////////////////////////////////////////////////////////////////////////////
 SGContainer::SGContainer()
 {
+  LiveCount::add("SGContainer", 1);
   SO_NODE_CONSTRUCTOR(SGContainer);
   constructor();
 }
@@ -1333,6 +1335,7 @@ void SGContainer::removeStyleNodes(int which)
 /////////////////////////////////////////////////////////////////////////////
 SGContainer::~SGContainer()
 {
+  LiveCount::add("SGContainer", -1);
 }
 
 

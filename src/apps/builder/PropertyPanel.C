@@ -1,4 +1,5 @@
 
+#include "util/LiveCount.H"
 #include "util/ErrMsg.H"
 
 #include "dsm/IPropCalculation.H"
@@ -22,6 +23,7 @@ PropertyPanel::PropertyPanel()
     p_needsRefresh(false),
     p_paneMinHeight(0)
 {
+  LiveCount::add("PropertyPanel", 1);
 }
 
 
@@ -36,6 +38,7 @@ PropertyPanel::PropertyPanel(IPropCalculation *calculation,
     p_needsRefresh(false),
     p_paneMinHeight(0)
 {
+  LiveCount::add("PropertyPanel", 1);
   Create(calculation, parent, id, pos, size, style, name);
 }
 
@@ -60,6 +63,7 @@ bool PropertyPanel::Create(IPropCalculation *calculation,
 
 PropertyPanel::~PropertyPanel()
 {
+  LiveCount::add("PropertyPanel", -1);
   // due to isRelevant needing a PropertyPanel instance, but otherwise
   // Create has not been called, we need to check here for a valid calc
   if (p_calculation) {

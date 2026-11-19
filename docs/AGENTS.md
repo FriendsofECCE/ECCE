@@ -352,6 +352,12 @@ second `start` of the same tool and URL meanwhile is dropped. `toolstate` answer
 launches=N`. The tool sends `ecce_tool_up` when its invoke is handled;
 `ECCE_TEST_TOOL_DELAY=<ms>` holds that signal back for a slow-start test.
 
+Live objects (#1136, `ECCE_TEST_ORGANIZER`, one-program mode): `livecount`
+answers `Builder=N CalcEd=N CommandManager=N PropertyPanel=N SGContainer=N
+SGContainerManager=N SGViewer=N WxLauncher=N` (classes never made are left out).
+After every tool tab is closed the counts return to their values before the
+first tab; `tests/apps/monolith_campaign_test.py H` checks that and the RSS.
+
 **Second start and file types (#1069)**, one-program mode only: a second `ecce`
 for the same user, data folder and server (`ECCE_REALUSERHOME`,
 `ECCE_LOCAL_DATA`, `ECCE_SERVER_SESSION`/`ECCE_REMOTE_SERVER`) raises the
