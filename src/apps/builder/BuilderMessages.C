@@ -385,6 +385,12 @@ void BuilderMessages::quitMCB(JMSMessage& msg)
     //  handler, whose guard then also covers the Organizer's Quit (#983).
     p_builder->Close(true);
     unsubscribe();
+#ifdef __WXMAC__
+    //  A separate Builder on macOS closed its window here but its main loop
+    //  kept running, so Quit left the process behind (#1120).
+    if (!p_builder->inProcess())
+      wxTheApp->CallAfter([]() { wxTheApp->ExitMainLoop(); });
+#endif
   }
 }
 

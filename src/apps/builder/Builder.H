@@ -567,6 +567,7 @@ class Builder: public BuilderGUI,
       BuilderMessages *messages() const { return p_msgs; }
       // Opened inside the Organizer's process: Quit closes this window only.
       void setInProcess(bool on) { p_inProcess = on; }
+      bool inProcess() const { return p_inProcess; }
       // The Viewer is this class under another name; its title says so even
       // for a calculation that could be edited.
       void setViewerApp(bool on) { p_viewerApp = on; }
