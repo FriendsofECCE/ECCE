@@ -381,7 +381,8 @@ sub readChemSys {
     if (/^num_atoms:/) {
       (undef, $chemsys_atoms) = split;
     } elsif (/^title:/) {
-      (undef, $chemsys_name) = split;
+      ($chemsys_name = $_) =~ s/^title:\s*//;
+      chomp($chemsys_name);
     } elsif (/^atom_info:/) {
       $symbols = /symbol/;
     } elsif (/^lattice_vectors:/) {

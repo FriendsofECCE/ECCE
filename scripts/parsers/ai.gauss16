@@ -1737,7 +1737,10 @@ sub qstStructures {
     my %b = (tags => [], xyz => [], title => "", n => 0);
     <QSTF>;
     while (<QSTF>) {
-      if (/^title:\s*(\S+)/) { $b{title} = $1; }
+      if (/^title:/) {
+        ($b{title} = $_) =~ s/^title:\s*//;
+        chomp($b{title});
+      }
       elsif (/^num_atoms:\s*(\d+)/) { $b{n} = $1; }
       elsif (/^atom_list:/) {
         for (my $i = 0; $i < $b{n}; $i++) {
@@ -2433,7 +2436,8 @@ sub readChemSys {
     if (/^num_atoms:/) {
       ($junk, $chemsys_atoms) = split;
     } elsif (/^title:/) {
-      ($junk, $chemsys_name) = split;
+      ($chemsys_name = $_) =~ s/^title:\s*//;
+      chomp($chemsys_name);
     } elsif (/^atom_info:/) {
       $symbols = /symbol/;
     } elsif (/^atom_list:/) {

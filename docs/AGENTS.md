@@ -61,6 +61,17 @@ in CalcEd to regenerate input. The regression is in
 `tests/apps/calced_script_solvation_test.py` (`apps_calced_script_solvation`).
 See [Scripting and AI assistants](../help/src/scripting-and-ai.md).
 
+## Titles in generated input
+
+Input generators preserve spaces and punctuation in the structure's `.frag`
+`title:` line. ECCE-QM writes this as `title <text>`; ORCA includes it as a
+`#` comment (hashes in the title become spaces so they cannot close the comment).
+NWChem's displayed `Title` comes from the `.param` `annotation`,
+while its `Start` name comes from `.param` `title`. Keep those metadata fields
+distinct when generating decks. CP2K project names and QE prefixes still use
+their existing identifier filtering and 40-character limit. Regression test:
+`ctest -R inputgen_titles`.
+
 ## Reading final periodic stress
 
 In the Builder, **Properties > Geometry > Stress Tensor** displays the
