@@ -46,6 +46,10 @@ if "--shots" in sys.argv:
 if "--tabs-only" in sys.argv:
     sys.argv.remove("--tabs-only")
     os.environ["ECCE_TABS_ONLY"] = "1"
+# --panels-only: only runPanelTeardown (as ECCE_PANELS_ONLY=1).
+if "--panels-only" in sys.argv:
+    sys.argv.remove("--panels-only")
+    os.environ["ECCE_PANELS_ONLY"] = "1"
 # --1088-only: only runTabs1088 (as ECCE_1088_ONLY=1).
 if "--1088-only" in sys.argv:
     sys.argv.remove("--1088-only")
@@ -2051,6 +2055,126 @@ def runUtilityWindows(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+# Panels the water example must offer; with them the test cannot pass on a
+# renamed or missing panel (#1135).
+TEARDOWN_REQUIRED = ("Density Map", "MOs", "MO Diagram", "Dipole Moment")
+
+
+def panelNames():
+    """Every property panel name the descriptor defines."""
+    path = os.path.join(os.path.dirname(os.path.dirname(HERE)), "data",
+                        "client", "config", "PropertyPanelDescriptor.xml")
+    return set(re.findall(r"<name>([^<]+)</name>", open(path).read()))
+
+
+def runPanelTeardown(display):
+    """Closing a Viewer tab with a property panel up leaves the Organizer
+    running (#1135): the panels' destructors take their overlays out of the
+    viewer, so they have to go before it.  A first run lists the water
+    example's Properties; the second opens each of them in its own Viewer
+    tab and closes the tab.  Last, the first Add from SMILES on a new
+    calculation marks it changed (#1137)."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        fresh = "file://" + pb.makeCalc(project, "water-s", "created", None)
+        water = "file://" + os.path.join(data, "users", "local", "Examples",
+                                         "Spectroscopy", "Small_molecules",
+                                         "water")
+        cmds = os.path.join(work, "commands")
+        script = os.path.join(work, "builder-script")
+
+        def builderScript(lines):
+            with open(script, "w") as handle:
+                handle.write("\n".join(lines) + "\n")
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def organizer(inspect):
+            open(cmds, "w").close()
+            setLayout(display, "small")
+            return apps.run(display, "organizer", windowTimeout=60, settle=20,
+                            env={**({"ECCE_TEST_GDB": "1"} if GDB else {}),
+                                 "ECCE_ONE_PROCESS": "1",
+                                 "ECCE_TEST_ORGANIZER": cmds,
+                                 "ECCE_BUILDER_SCRIPT": script,
+                                 "ECCE_BUILDER_SCRIPT_EACH": "1",
+                                 "ECCE_LOCAL_DATA": data},
+                            inspect=inspect)
+
+        # 1. The Properties list of the water example.
+        waterDir = water[len("file://"):]
+
+        def listing(_display):
+            # The set copies one calculation at a time (~30 s each).
+            append("examples spectroscopy", 5)
+            deadline = time.time() + 1200
+            while (time.time() < deadline and not os.path.exists(
+                    os.path.join(waterDir, ".ecce-meta"))):
+                time.sleep(5)
+            time.sleep(10)
+            builderScript(["wait 10000", "plist"])
+            append("start CalculationViewer " + water, 30)
+
+        builderScript(["wait 1000"])
+        log = organizer(listing).log or ""
+        entries = re.findall(r"BUILDER: entry (.*)", log)
+        known = panelNames()
+        names = sorted(n for n in known
+                       if any(e == n or e.endswith("/" + n) for e in entries))
+        print("      panels: " + ", ".join(names))
+        if not check(all(n in names for n in TEARDOWN_REQUIRED),
+                     "the water example lists %s" % ", ".join(TEARDOWN_REQUIRED),
+                     "\n".join(entries) or log[-3000:]):
+            return
+
+        # 2. Each panel up, then its Viewer tab closed.
+        def teardown(_display):
+            for name in names:
+                builderScript(["wait 10000", "list " + name, "wait 3000"])
+                append("start CalculationViewer " + water, 25)
+                append("tabs", 2)
+                append("tabclose 1", 10)
+                append("tabs", 2)
+            builderScript(["wait 8000", "smiles CCO", "savestate"])
+            append("start Builder " + fresh, 20)
+            append("tabs", 2)
+
+        result = organizer(teardown)
+        log = result.log or ""
+        if GDB:
+            print(log[-8000:])
+        check(not result.crashed and "Segmentation" not in log,
+              "closing Viewer tabs with property panels up: no crash",
+              result.signalName or log[-3000:])
+        listed = dict(re.findall(r"ECCE_BUILDER_SCRIPT: list (.+?): (.*)", log))
+        tabs = pb.answers(log, "tabs")
+        n = len(names)
+        check(len(tabs) == 2 * n + 1,
+              "the Organizer answers after every tab close (%d of %d)"
+              % (len(tabs), 2 * n + 1), "\n".join(tabs))
+        for i, name in enumerate(names):
+            check(listed.get(name) == "ok", "%s opened from the Properties "
+                  "list" % name, str(listed.get(name)))
+            if 2 * i + 1 < len(tabs):
+                check("1:Viewer" in tabs[2 * i] and "1:" not in tabs[2 * i + 1],
+                      "the Viewer tab with %s closed" % name,
+                      tabs[2 * i] + " -> " + tabs[2 * i + 1])
+        state = re.findall(r"BUILDER: dirty=(\d) save_enabled=(\d)", log)
+        check(state and state[-1] == ("1", "1"),
+              "the first SMILES on a new calculation marks it changed "
+              "and enables Save (#1137)", str(state))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def main():
     if "--1088" in sys.argv:    # same as ECCE_1088_ONLY=1, for the offload
         sys.argv.remove("--1088")
@@ -2090,6 +2214,11 @@ def main():
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
+        if os.environ.get("ECCE_PANELS_ONLY") == "1":
+            runPanelTeardown(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         if os.environ.get("ECCE_POPUPS_ONLY") == "1":
             runTabsPopups(display)
             if failures:
@@ -2119,6 +2248,7 @@ def main():
         runTabsPopups(display)
         runUtilityWindows(display)
         runTabs1088(display)
+        runPanelTeardown(display)
         if os.environ.get("ECCE_TABS_ONLY") == "1":
             if failures:
                 results.fail("one-process", "; ".join(failures))

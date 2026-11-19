@@ -731,6 +731,7 @@ bool Builder::Create( wxWindow* parent, bool standalone, wxWindowID id,
 
 Builder::~Builder()
 {
+  destroyOwnPropertyPanels();
   ToolTabs::release(this, false);
   unsubscribe();
   //  Not PopEventHandler: after a tab's release the AUI manager (a member,
@@ -790,6 +791,7 @@ void Builder::SetTitle(const wxString& title)
 
 bool Builder::Destroy()
 {
+  destroyOwnPropertyPanels();
   ToolTabs::release(this, false);
   return BuilderGUI::Destroy();
 }
@@ -5467,6 +5469,9 @@ void Builder::OnReplaceGroup(wxCommandEvent& event)
 string Builder::addFromSmiles(const string& smiles, bool extended)
 {
   if (!getSG() || !getSG()->getFragment()) return "No structure is open.";
+  // The menu item is off for a read-only calculation; setDirty() would
+  // keep such an edit unmarked and unsaved (#1137).
+  if (isReadOnly()) return "The calculation is read-only.";
   SmilesCmd *cmd = new SmilesCmd("Add from SMILES", getSG());
   cmd->getParameter("mode")->setString("add");
   cmd->getParameter("smiles")->setString(smiles);
@@ -5480,6 +5485,7 @@ string Builder::replaceGroupFromSmiles(const string& smiles)
 {
   SGFragment *frag = getSG() ? getSG()->getFragment() : 0;
   if (!frag) return "No structure is open.";
+  if (isReadOnly()) return "The calculation is read-only.";
   int first = -1, attach = -1;
   if (frag->m_bondHighLight.size() == 1) {
     vector<TBond*> *all = frag->bonds();
@@ -6674,11 +6680,16 @@ void Builder::updatePropertyMenus()
 
   //  ECCE_BUILDER_SCRIPT=<file>: the steps of a tutorial, done through the
   //  controls' own handlers (BuilderScript.C).  Inert unless set.
+  //  Once per process; with ECCE_BUILDER_SCRIPT_EACH=1 once per Builder,
+  //  so each tab of one program runs it.
   static bool builderScriptStarted = false;
   if (const char *bscript = getenv("ECCE_BUILDER_SCRIPT")) {
-    if (!builderScriptStarted && p_calculation != 0 && getSG() != 0 &&
+    const bool each = getenv("ECCE_BUILDER_SCRIPT_EACH") != 0;
+    if (!(each ? p_builderScriptStarted : builderScriptStarted) &&
+        p_calculation != 0 && getSG() != 0 &&
         p_mgr.GetPane(NAME_TOOL_PBC).IsOk()) {
       builderScriptStarted = true;
+      p_builderScriptStarted = true;
       runBuilderScript(bscript);
     }
   }
@@ -8608,6 +8619,35 @@ void Builder::removePropertyPanels(const string& context)
     p_mgr.DetachPane(*panelIt);
   }
   PropertyPanel::removePanels(contextToClose);
+}
+
+
+// Panels take their overlays out of the viewer in their destructors, so
+// they must go while the viewer exists: the frame's own child teardown
+// may delete the viewer's panel first (#1135).  Only this Builder's panes;
+// the PropertyPanel registry is shared by every Builder in the process.
+void Builder::destroyOwnPropertyPanels()
+{
+  vector<PropertyPanel*> mine;
+  wxAuiPaneInfoArray& panes = p_mgr.GetAllPanes();
+  for (size_t i = 0; i < panes.GetCount(); i++)
+    if (PropertyPanel *panel = dynamic_cast<PropertyPanel*>(panes[i].window))
+      mine.push_back(panel);
+  if (mine.empty()) return;
+  for (PropertyPanel *panel : mine) {
+    if (VizPropertyPanel *viz = dynamic_cast<VizPropertyPanel*>(panel))
+      viz->setFocus(false);
+    p_folded.erase(panel);
+    p_tabHidden.erase(panel);
+    p_columnSeen.erase(panel);
+    p_baseProportion.erase(panel);
+    p_propertyPanelInfo.erase(panel);
+    if (p_detail == panel) p_detail = 0;
+    if (p_accordionOpen == panel) p_accordionOpen = 0;
+    p_mgr.DetachPane(panel);
+    panel->Destroy();
+  }
+  if (!IsBeingDeleted()) p_mgr.Update();
 }
 
 

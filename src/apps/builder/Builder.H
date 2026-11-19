@@ -611,6 +611,7 @@ class Builder: public BuilderGUI,
       bool openPropertyPanel(const wxString& name, bool testSize = false);
    private:
       void removePropertyPanels(const string& context="");
+      void destroyOwnPropertyPanels();
 
       void toggleTool(int id, bool isChecked);
       bool getToolState(int id) const;
@@ -811,6 +812,7 @@ class Builder: public BuilderGUI,
       ewxTextCtrl *p_cmd;
 
       ViewerEvtHandler *p_viewerEvtHandler;
+      bool p_builderScriptStarted = false;  // ECCE_BUILDER_SCRIPT_EACH
       BuilderAuiManager p_mgr;
 
       int p_toolCount;
