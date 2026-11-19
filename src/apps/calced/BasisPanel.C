@@ -7,6 +7,7 @@
 #include "wx/listctrl.h"
 #include "wx/checklst.h"
 #include "wx/spinctrl.h"
+#include "wx/weakref.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -384,7 +385,9 @@ bool BasisPanel::assignChecked()
     return false;
   }
   string err;
+  wxWeakRef<BasisPanel> self(this);
   bool ok = p_ed->assignBasis(e.name, e.type, els, err);
+  if (!self) return ok;   // see useForAll
   say(err);
   if (ok && kindOf(e.type) != FIT)
     offerEcp(e.type == TGaussianBasisSet::ECPOrbital ? e.name : "", els);
@@ -439,7 +442,9 @@ bool BasisPanel::assignMany(Kind kind,
     if (!found) return false;
   }
   string err;
+  wxWeakRef<BasisPanel> self(this);
   bool ok = p_ed->assignBasisSteps(steps, err);
+  if (!self) return ok;   // see useForAll
   say(err);
   if (ok && kind == ORBITAL && !steps.empty())
     offerEcp(steps.back().type == TGaussianBasisSet::ECPOrbital
@@ -453,7 +458,9 @@ bool BasisPanel::appendFunctions(bool tight, const string& element, int shell,
                                  int count)
 {
   string err;
+  wxWeakRef<BasisPanel> self(this);
   bool ok = p_ed->appendFunctions(tight, element, shell, count, err);
+  if (!self) return ok;   // see useForAll
   say(err);
   return ok;
 }
@@ -463,20 +470,27 @@ bool BasisPanel::acceptEcp()
 {
   if (p_ecpOffer.empty()) return false;
   string err;
+  wxWeakRef<BasisPanel> self(this);
   bool ok = p_ed->assignBasis(p_ecpOffer, TGaussianBasisSet::ecp,
                               p_ecpOfferFor, err);
+  if (!self) return ok;   // see useForAll
   say(err);
   if (ok) offerEcp("", p_ecpOfferFor);
   return ok;
 }
 
 
+// The editor saves with a progress dialog whose event loop can switch or
+// rebuild the set-up area, destroying this panel (#1134): no member is
+// touched once it is gone.
 bool BasisPanel::useForAll()
 {
   if (p_picked < 0 || p_picked >= (int)p_shown.size()) return false;
   string err;
   const Entry e = p_shown[p_picked];
+  wxWeakRef<BasisPanel> self(this);
   bool ok = p_ed->useBasisForAll(e.name, e.type, err);
+  if (!self) return ok;   // see useForAll
   say(err);
   if (ok) offerEcp(e.type == TGaussianBasisSet::ECPOrbital ? e.name : "",
                    vector<string>());

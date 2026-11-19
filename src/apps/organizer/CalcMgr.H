@@ -680,6 +680,7 @@ protected:
   wxFileSystemWatcher *p_autoWatcher = 0;
   wxTimer *p_autoDebounce = 0;   // settles a burst of events, then retries while busy
   wxTimer *p_autoPoll = 0;       // 30 s, remote folders only
+  std::vector<wxTimer*> p_hookTimers;   // test hooks' timers (call into this)
   string p_autoUrl;              // the folder armed
   string p_autoStamp;            // its last known modification time (remote)
   bool p_autoDirty = false;

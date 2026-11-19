@@ -568,7 +568,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   //  set; for tests/apps/calcimport_test.py.
   if (const char *importPath = getenv("ECCE_TEST_CALCIMPORT")) {
     string path = importPath;
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = new wxTimer();   // deleted with this window
+    p_hookTimers.push_back(timer);
     timer->Bind(wxEVT_TIMER, [this, path](wxTimerEvent&) {
       EDSIServerCentral central;
       EcceURL home = central.getDefaultUserHome();
@@ -599,8 +600,10 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   if (const char *cmdPath = getenv("ECCE_TEST_ORGANIZER")) {
     string path = cmdPath;
     auto done = std::make_shared<size_t>(0);
-    wxTimer *timer = new wxTimer();   // lives until the process exits
-    timer->Bind(wxEVT_TIMER, [this, path, done](wxTimerEvent&) {
+    auto depth = std::make_shared<int>(0);
+    wxTimer *timer = new wxTimer();   // deleted with this window
+    p_hookTimers.push_back(timer);
+    timer->Bind(wxEVT_TIMER, [this, path, done, depth](wxTimerEvent&) {
       // The example import pumps timers from its progress dialog; a command
       // that rebuilds the tree there frees Resources the import still uses.
       if (p_batchImport) return;
@@ -609,10 +612,16 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
       size_t n = 0;
       while (std::getline(in, line)) {
         if (n++ < *done) continue;
-        *done = n;
         if (!line.empty() && line.back() == '\r')   // written on Windows
           line.pop_back();
+        // A command can run the event loop (a save's progress dialog, a
+        // tool's close): the next one waits until it returns, except a
+        // dialog answer, which is meant for that loop.
+        if (*depth > 0 && line.compare(0, 6, "answer") != 0) break;
+        *done = n;
+        ++*depth;
         runTestCommand(line);
+        --*depth;
       }
     });
     timer->Start(500);
@@ -621,7 +630,8 @@ bool CalcMgr::Create( wxWindow* parent, wxWindowID id, const wxString& caption,
   //  ECCE_TEST_HELP=<png>: open Help > Organizer, save the help window to
   //  <png> and exit (tests/apps/help_test.py).
   if (getenv("ECCE_TEST_HELP")) {
-    wxTimer *timer = new wxTimer();   // lives until the process exits
+    wxTimer *timer = new wxTimer();   // deleted with this window
+    p_hookTimers.push_back(timer);
     timer->Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
       wxCommandEvent ev;
       OnHelpClick(ev);
@@ -3767,6 +3777,18 @@ void CalcMgr::runTestCommand(const string& line)
  */
 CalcMgr::~CalcMgr( )
 {
+  // All of these call back into this window, the folder watcher from its
+  // own thread on Windows: none may outlive it.
+  delete p_autoWatcher;
+  p_autoWatcher = 0;
+  delete p_autoDebounce;
+  p_autoDebounce = 0;
+  delete p_autoPoll;
+  p_autoPoll = 0;
+  delete p_serverTimer;
+  p_serverTimer = 0;
+  for (wxTimer *t : p_hookTimers) delete t;
+  p_hookTimers.clear();
   delete p_toolStartup;
   p_toolStartup = 0;
   CodeChoice::setListener(nullptr);
