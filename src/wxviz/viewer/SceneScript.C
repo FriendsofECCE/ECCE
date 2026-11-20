@@ -143,6 +143,7 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     //  "background r g b" (0..1), as the Background preference does.
     if (w.size() != 4) return fail("background: r g b");
     p_viewer->setBackgroundColor(SbColor(atof(w[1].c_str()), atof(w[2].c_str()), atof(w[3].c_str())));
+    p_sg->setDepthCueColor(atof(w[1].c_str()), atof(w[2].c_str()), atof(w[3].c_str()));
     //  The contrasting text colour, as ViewerEvtHandler::setBackground
     //  picks it; otherwise the corner text stays green on white.
     SbColor fg = p_viewer->calculateContrastingColor();

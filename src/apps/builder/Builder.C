@@ -3453,6 +3453,7 @@ void Builder::eventMCB(const Event& event)
    }
    else if (name == "SyncToggle") {
      wxCommandEvent * evt = (wxCommandEvent *)event.getObject();
+     if (evt->GetEventObject() != this) return;
      int id = evt->GetId();
      bool isChecked = evt->IsChecked();
      toggleTool(id, isChecked);

@@ -27,6 +27,10 @@ std::set<string> gAllocBusy;
 //  good answer: a monitor may have logged in meanwhile.
 std::map<string, std::pair<long, string> > gAllocFailed;
 const long RETRY_SECONDS = 30;
+//  One login per host at a time: two accounts on one cluster would otherwise
+//  open two connections and ask for the password twice.
+std::mutex gLoginMu;
+std::map<string, std::mutex> gHostLogin;
 
 string allocCachePath()
 {
@@ -140,16 +144,27 @@ AllocationQuery::Result AllocationQuery::check(const Target& t, bool force,
       bool ran = RCommand::execOnLiveLogin(machine, user, front, bypass,
                                            shellPath, command, out);
       if (!ran && openLogin) {
+        std::mutex *hostMu;
+        {
+          std::lock_guard<std::mutex> g(gLoginMu);
+          hostMu = &gHostLogin[machine];
+        }
+        std::lock_guard<std::mutex> one(*hostMu);
+        //  The other account's login may have left a shared connection.
+        ran = RCommand::execOnLiveLogin(machine, user, front, bypass,
+                                        shellPath, command, out);
         //  The login every other operation makes (stored password, askpass);
         //  it reuses a live shared connection and leaves a new one open.
-        RCommand rc(machine, remShell, locShell, user, "", front, bypass,
-                    shellPath, libPath, sourceFile);
-        if (!rc.isOpen()) {
-          string e = rc.commError();
-          e = e.substr(0, e.find('\n'));
-          why = "not logged in to " + machine + (e.empty() ? "" : ": " + e);
-        } else if (!(ran = rc.execout(command, out, "", 20))) {
-          why = "the allocation command failed on " + machine;
+        if (!ran) {
+          RCommand rc(machine, remShell, locShell, user, "", front, bypass,
+                      shellPath, libPath, sourceFile);
+          if (!rc.isOpen()) {
+            string e = rc.commError();
+            e = e.substr(0, e.find('\n'));
+            why = "not logged in to " + machine + (e.empty() ? "" : ": " + e);
+          } else if (!(ran = rc.execout(command, out, "", 20))) {
+            why = "the allocation command failed on " + machine;
+          }
         }
       } else if (!ran) {
         why = "not logged in to " + machine + ": press Refresh to log in";

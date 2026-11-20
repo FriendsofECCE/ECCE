@@ -212,6 +212,7 @@ public:
     void      setSelectModeDrag(int on_off);
     void      setResidueLabels(int on_off);
     void      setDepthCue(int on_off, float r, float g, float b);
+    void      setDepthCueColor(float r, float g, float b);
     void      setShowHydrogens(int on_off);
 
     // public state - what is this used for??

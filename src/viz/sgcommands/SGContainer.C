@@ -1782,6 +1782,17 @@ void SGContainer::setDepthCue(int flag, float r, float g, float b)
 }
 
 
+/**
+ * The haze colour, kept equal to the background so depth cueing fades
+ * atoms into it instead of darkening them on a light background (#1214).
+ */
+void SGContainer::setDepthCueColor(float r, float g, float b)
+{
+   for (size_t idx=0; idx<p_displayParams.size(); idx++)
+      p_displayParams[idx]->fogColor.setValue(r, g, b);
+}
+
+
 void SGContainer::setShowHydrogens(int on_off)
 {
    for (size_t idx=0; idx<p_displays.size(); idx++) {
