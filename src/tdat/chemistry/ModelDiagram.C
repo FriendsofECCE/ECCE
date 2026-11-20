@@ -1182,6 +1182,7 @@ bool ModelDiagram::build(const Input& in,
             m.orbitals.insert(m.orbitals.end(), l.orbitals.begin(), l.orbitals.end());
             m.energies.insert(m.energies.end(), l.energies.begin(), l.energies.end());
             m.degeneracy = (int)m.orbitals.size();
+            m.nearMerged = true;
          } else {
             merged.push_back(l);
          }
@@ -1498,6 +1499,7 @@ bool ModelDiagram::build(const Input& in,
          lv.calcOccupancy = R.occupancy;
          lv.calcOccupancyBeta = R.occupancyBeta;
          lv.calcDegeneracy = R.degeneracy > 0 ? R.degeneracy : (int)R.orbitals.size();
+         lv.nearMerged = R.nearMerged;
       }
       lv.symLabel = lower(L.base);
       string constructSplit, slopeText;
@@ -1548,6 +1550,7 @@ bool ModelDiagram::build(const Input& in,
          }
          text += " (E = " + signedNumber(R.energy*HARTREE, 2) + " eV, overlap " + fmt("%.2f", L.overlap) + ").";
          if (L.overlap < POOR_OVERLAP) text += "  Overlap below " + fmt("%.2f", POOR_OVERLAP) + ".";
+         if (R.nearMerged) text += "  These MOs are degenerate within 0.5 mEh (no symmetry found).";
       }
       lv.detail = text;
       centreIndex[order[oi]] = (int)out.centre.levels.size();
@@ -1779,6 +1782,7 @@ bool ModelDiagram::build(const Input& in,
          lv.degeneracy = lv.calcDegeneracy = real[R].degeneracy > 0 ? real[R].degeneracy : (int)real[R].orbitals.size();
          lv.hasCalc = true;
          lv.calcEnergy = real[R].energy;
+         lv.nearMerged = real[R].nearMerged;
          lv.detail = pass == 0 ? "HOMO: no model partner." : "LUMO: no model partner.";
          out.centre.calcOnly.push_back(lv);
       }

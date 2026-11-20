@@ -2901,6 +2901,7 @@ class MoDiagramCanvas : public wxPanel
       const double ob = calc ? l.calcOccupancyBeta : l.occupancyBeta;
       if (ob >= 0.0) out << ", occupancy " << oa << " alpha, " << ob << " beta";
       else out << ", occupancy " << oa;
+      if (l.nearMerged) out << ", degenerate within 0.5 mEh (no symmetry found)";
       if (p_owner != 0 && !l.orbitals.empty()) {
         const string comp = p_owner->orbitalComposition(l.orbitals);
         if (!comp.empty()) out << "\n" << comp;

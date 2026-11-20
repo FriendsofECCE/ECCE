@@ -103,6 +103,9 @@ def main():
                     check(bool(together), "ethane_scan: MO 5 and MO 6 are one level, each clickable")
                     check(any({8, 9} <= ms for ms in levels.values()),
                           "ethane_scan: MO 8 and MO 9 are one level")
+                    #  Grouped by energy alone, so the hover text must say so.
+                    check("degenerate within 0.5 mEh (no symmetry found)" in hits,
+                          "ethane_scan: a merged level's hover says it was grouped by energy")
         finally:
             subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")],
                            env=display.env(), timeout=120)
