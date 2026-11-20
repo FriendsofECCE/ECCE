@@ -43,6 +43,10 @@ public:
   static int count(const string& app);
   // Asks every tool window to close; false if one refused (Organizer Quit).
   static bool closeAll(bool force);
+  // A tool's close handler is running (it may yield): a Quit meanwhile
+  // waits for it rather than tearing down under it.
+  static void setClosing(wxTopLevelWindow *frame, bool on);
+  static bool closing();
 };
 
 #endif

@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <map>
+#include <set>
 #include <vector>
 
 #include "wx/app.h"
@@ -131,6 +132,28 @@ int InProcessTools::count(const string& app)
   for (const Window& w : windows())
     if (w.app == app) n++;
   return n;
+}
+
+
+namespace {
+std::set<wxTopLevelWindow*>& closingFrames()
+{
+  static auto *s = new std::set<wxTopLevelWindow*>;
+  return *s;
+}
+}
+
+
+void InProcessTools::setClosing(wxTopLevelWindow *frame, bool on)
+{
+  if (on) closingFrames().insert(frame);
+  else closingFrames().erase(frame);
+}
+
+
+bool InProcessTools::closing()
+{
+  return !closingFrames().empty();
 }
 
 
