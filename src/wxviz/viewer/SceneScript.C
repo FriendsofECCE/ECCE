@@ -143,6 +143,7 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     //  "background r g b" (0..1), as the Background preference does.
     if (w.size() != 4) return fail("background: r g b");
     p_viewer->setBackgroundColor(SbColor(atof(w[1].c_str()), atof(w[2].c_str()), atof(w[3].c_str())));
+    p_sg->setDepthCueColor(atof(w[1].c_str()), atof(w[2].c_str()), atof(w[3].c_str()));
     //  The contrasting text colour, as ViewerEvtHandler::setBackground
     //  picks it; otherwise the corner text stays green on white.
     SbColor fg = p_viewer->calculateContrastingColor();
@@ -217,12 +218,25 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     if (!cam) return fail("ortho: no camera");
     const bool isOrtho = cam->isOfType(SoOrthographicCamera::getClassTypeId());
     if (isOrtho != (w[1] == "on")) {
+      //  From the viewer upwards, as a toolbar click travels: in tab mode the
+      //  top-level window is the Organizer, not the Builder that owns the handler.
       wxCommandEvent ev(wxEVT_MENU, ViewerEvtHandler::ID_CAMERA_TYPE);
-      wxWindow *top = wxGetTopLevelParent(p_viewer);
-      if (!top || !top->GetEventHandler()->ProcessEvent(ev))
+      ev.SetEventObject(p_viewer);
+      if (p_viewer->HandleWindowEvent(ev)) {
+        fprintf(stderr, "SCENE ortho: via the viewer's handler\n");
+      } else {
+        fprintf(stderr, "SCENE ortho: no handler, camera toggled directly\n");
         p_viewer->toggleCameraType();
+      }
     }
     p_viewer->viewAll();
+  } else if (c == "depthcue" && w.size() == 2 && (w[1] == "on" || w[1] == "off")) {
+    //  "depthcue on|off": the Depth cueing toggle's own handler.
+    wxCommandEvent ev(wxEVT_MENU, ViewerEvtHandler::ID_DEPTH_CUEING);
+    ev.SetEventObject(p_viewer);
+    ev.SetInt(w[1] == "on");
+    if (!p_viewer->HandleWindowEvent(ev)) return fail("depthcue: no handler");
+    fprintf(stderr, "SCENE depthcue %s: via the viewer's handler\n", w[1].c_str());
   } else if ((c == "wheelburst" || c == "zoomburst") && w.size() == 5) {
     SoWxRenderArea *area = findRenderArea(p_viewer);
     SoCamera *camera = p_viewer->getCamera();

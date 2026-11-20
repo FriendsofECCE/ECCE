@@ -3,8 +3,8 @@ type: map
 title: "The calculation summary shows the allocation and how much is left (#613)"
 area: services
 section: "Design"
-paths: ["include/dsm/AllocationLeft.H", "tests/machregister/testAllocationLeft.C", "src/apps/builder/CalcInfoPanel.C", "src/apps/organizer/CalculationContextPanel.C", "include/comm/AllocationQuery.H", "src/comm/rcommand/AllocationQuery.C", "src/tdat/resources/RefMachine.C", "src/tdat/resources/RefQueueMgr.C", "siteconfig/QueueManagers", "src/apps/machbrowser/MachineBrowser.C", "src/comm/rcommand/OpenSshTransport.C", "src/comm/rcommand/RCommand.C", "include/dsm/MachinePreferences.H", "include/dsm/AllocationProfiles.H"]
-issues: [613, 541, 487, 599]
+paths: ["tests/launch/allocations_ssh_test.py", "src/apps/organizer/AllocationsDialog.C", "include/dsm/AllocationLeft.H", "tests/machregister/testAllocationLeft.C", "src/apps/builder/CalcInfoPanel.C", "src/apps/organizer/CalculationContextPanel.C", "include/comm/AllocationQuery.H", "src/comm/rcommand/AllocationQuery.C", "src/tdat/resources/RefMachine.C", "src/tdat/resources/RefQueueMgr.C", "siteconfig/QueueManagers", "src/apps/machbrowser/MachineBrowser.C", "src/comm/rcommand/OpenSshTransport.C", "src/comm/rcommand/RCommand.C", "include/dsm/MachinePreferences.H", "include/dsm/AllocationProfiles.H"]
+issues: [613, 541, 487, 599, 1226]
 ---
 **Status: built after review.** The maintainer approved the one remote-shell
 change (`RCommand::execOnLiveLogin`, over `OpenSshTransport::loginIsLive()`).
@@ -43,7 +43,7 @@ was submitted with) and **Left:** (core-hours used of allocated, "checked
   and front end, exactly as `MachineBrowser::queryStatus` builds it, with
   `execout(cmd, out, "", timeout=20)`. Under `ECCE_SSH_CONTROL_DIR`
   (`owned-ssh-master.md`) that is a session on the shared master.
-- **No new login, ever.** The summary must not be what opens a login. Before
+- **No new login, except Refresh (#1226).** The summary must not be what opens a login. Before
   running, ask the transport whether a master is live
   (`OpenSshTransport::masterAlive()`, `ssh -O check`, a local socket test);
   if not, show the cached value or nothing, and run nothing. This needs one
@@ -163,3 +163,17 @@ stores it in `launch_account`, for the GUI launch and `ecce-launch` alike (both
 run `Launch`). A script with no account directive leaves the stored value
 alone. `launch_allocleft` stays unwritten (see above): ECCE has no number at
 submit time and adds no query there.
+
+## Refresh logs in (#1226)
+The one exception to "no new login": **Refresh** in Tools > Allocations
+(`AllocationQuery::check` with `force`). When `execOnLiveLogin` finds no live
+login, the background thread builds an `RCommand` from the registry, as
+Launch and the terminal do: key or agent, the password cache under
+`ECCE_SSH_CONTROL_DIR`, else `ecce-askpass`; no new auth mechanism. A new
+OpenSSH master stays open for later reads. Logins are serialised per host
+(`gHostLogin`), so two accounts on one cluster log in once. Opening the
+window, the summaries and every non-forced read still never log in. The
+reason a check did not run (`Result::why`) is shown: `not checked: <why>` with
+no answer, `<used> (old; <why>)` and `<time> (old)` over an older one.
+Test: `tests/launch/allocations_ssh_test.sh` (test sshd, a key host and a
+refused-key host, `allocations` then `allocations refresh`).

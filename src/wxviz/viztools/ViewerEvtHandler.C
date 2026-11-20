@@ -491,6 +491,11 @@ void ViewerEvtHandler::depthCue(wxCommandEvent & event)
 
   Command *cmd = new DepthCueCmd("Depth Cue", &sg);
   cmd->getParameter("hazeOn")->setBoolean(event.IsChecked());
+  // Haze into the background, not black.
+  SbColor bg = fw.getViewer().getBackgroundColor();
+  cmd->getParameter("red")->setDouble(bg[0]);
+  cmd->getParameter("green")->setDouble(bg[1]);
+  cmd->getParameter("blue")->setDouble(bg[2]);
   fw.execute(cmd);
 
   syncToggle(event);
@@ -927,6 +932,9 @@ void ViewerEvtHandler::generateBond(wxCommandEvent & event)
 
 void ViewerEvtHandler::syncToggle(wxCommandEvent & event)
 {
+  // The dispatcher is process-wide: name the owner so only the Builder
+  // whose viewer changed ticks its toolbar and menu.
+  event.SetEventObject(p_parent);
   EventDispatcher::getDispatcher().publish(Event("SyncToggle", "", "",
                                                  (void *)&event));
 }
@@ -1153,6 +1161,7 @@ void ViewerEvtHandler::setBackground(float r, float g, float b)
   cmd->getParameter("green")->setDouble(g);
   cmd->getParameter("blue")->setDouble(b);
   fw.execute(cmd);
+  sg.setDepthCueColor(r, g, b);
 
   // Automatically compute something that contrasts
   SbColor fg = viewer.calculateContrastingColor();

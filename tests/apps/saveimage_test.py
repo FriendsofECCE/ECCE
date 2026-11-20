@@ -6,6 +6,8 @@ the view's size, show the lobe in a colour blended with the white background
 (not the pure lobe colour), and have no screen-door grid inside the lobe.
 A "rotatex"/"rotate" turn followed at once by saveimage must keep the atoms
 as bright as before the turn: the headlight follows the camera (#1075).
+The Depth cueing and Perspective toggles (#1214): on, off and on again
+through their handler; off gives back the first picture.
 
 Same installed tree and isolation as shot_hooks_test.py
 (ECCE_TEST_HOME, ECCE_TEST_WRAPPERS).  Exit 77 (skip) without them.
@@ -92,6 +94,87 @@ camera orthozoom
 ortho off
 camera persp
 """
+
+
+# #1214: on/off/on of both toggles through the toolbar's handler.
+TOGGLE_SCENE = """windowsize 900 700
+background 1 1 1
+viewall
+hold 2
+saveimage {out}/t0.png 1
+depthcue on
+hold 1
+saveimage {out}/t1.png 1
+depthcue off
+hold 1
+saveimage {out}/t2.png 1
+depthcue on
+hold 1
+saveimage {out}/t3.png 1
+depthcue off
+ortho on
+hold 1
+camera tortho
+saveimage {out}/t4.png 1
+ortho off
+hold 1
+camera tpersp
+saveimage {out}/t5.png 1
+"""
+
+
+def diffMean(a, b):
+    """Mean absolute pixel difference (0..255) of two images."""
+    from PIL import Image, ImageChops, ImageStat
+    x = Image.open(a).convert("L")
+    y = Image.open(b).convert("L")
+    if x.size != y.size:
+        return 255.0
+    return ImageStat.Stat(ImageChops.difference(x, y)).mean[0]
+
+
+def drawnMean(path):
+    """Mean luminance of the pixels that are not the white background."""
+    from PIL import Image
+    px = [v for v in Image.open(path).convert("L").getdata() if v < 247]
+    return (sum(px) / len(px) if px else 255.0), len(px)
+
+
+def checkToggles(out, log):
+    import re
+    p = []
+    f = lambda n: os.path.join(out, n + ".png")
+    try:
+        same, on, again = diffMean(f("t0"), f("t2")), diffMean(f("t0"), f("t1")), \
+            diffMean(f("t1"), f("t3"))
+        d0, n0 = drawnMean(f("t0"))
+        d1, n1 = drawnMean(f("t1"))
+        persp, ortho = diffMean(f("t0"), f("t5")), diffMean(f("t0"), f("t4"))
+    except OSError as e:
+        return ["missing image: %s" % e]
+    print("      depthcue: on vs off %.3f, off again vs first %.3f, on again vs on %.3f;"
+          " drawn mean %.1f -> %.1f" % (on, same, again, d0, d1))
+    print("      ortho: on vs first %.3f, off again vs first %.3f" % (ortho, persp))
+    if on < 0.05:
+        p.append("depth cueing on did not change the picture")
+    if same > 0.02:
+        p.append("depth cueing off did not restore the picture (%.3f)" % same)
+    if again > 0.02:
+        p.append("depth cueing on again differs from the first on (%.3f)" % again)
+    if d1 < d0 - 1.0:
+        p.append("depth cueing darkened the molecule on white (%.1f -> %.1f)" % (d0, d1))
+    if ortho < 0.05:
+        p.append("orthographic on did not change the picture")
+    if persp > 0.02:
+        p.append("perspective back did not restore the picture (%.3f)" % persp)
+    cams = dict(re.findall(r"SCENE camera (\S+):.* type (\w+)", log))
+    if cams.get("tortho") != "orthographic" or cams.get("tpersp") != "perspective":
+        p.append("camera types %s" % cams)
+    if "no handler" in log or log.count("via the viewer's handler") < 6:
+        p.append("a toggle did not reach the viewer's handler")
+    if "FAIL" in log:
+        p.append("a scene command failed")
+    return p
 
 
 def checkOrtho(out, log):
@@ -289,7 +372,8 @@ def main():
                     ("saveimage_light", LIGHT_SCENE, checkLight, {}),
                     ("saveimage_capture", CAPTURE_SCENE, checkCapture,
                      {"ECCE_VIEWER_SCENE_HOLD": None}),
-                    ("saveimage_ortho", ORTHO_SCENE, checkOrtho, {}),):
+                    ("saveimage_ortho", ORTHO_SCENE, checkOrtho, {}),
+                    ("saveimage_toggles", TOGGLE_SCENE, checkToggles, {}),):
                 with open(scene, "w") as h:
                     h.write(text.format(out=out))
                 env = {"ECCE_VIEWER_SCENE": scene, "ECCE_VIEWER_SCENE_OUT": out,
