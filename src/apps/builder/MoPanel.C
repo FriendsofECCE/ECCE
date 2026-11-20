@@ -576,6 +576,7 @@ void MoPanel::showOrbitalControls()
 
 void MoPanel::setSurfaceMode(bool on)
 {
+   if (const char *t965 = getenv("ECCE_TRACE_965")) if (FILE *f965 = fopen(t965, "a")) { fprintf(f965, "T965 setSurfaceMode %d (was %d)\n", on, p_surfaceMode); fclose(f965); }
    if (on == p_surfaceMode) return;
    ensureInitialized();
    p_surfaceMode = on;
@@ -2230,6 +2231,7 @@ void MoPanel::OnGridOkButton(wxCommandEvent& evt)
 
 void MoPanel::OnMoSelection(wxGridEvent& event)
 {
+   if (const char *t965 = getenv("ECCE_TRACE_965")) if (FILE *f965 = fopen(t965, "a")) { fprintf(f965, "T965 OnMoSelection row %d surface %d shown %d focus %p\n", event.GetRow(), p_surfaceMode, IsShownOnScreen(), (void*)wxWindow::FindFocus()); fclose(f965); }
    p_selectedRow = event.GetRow();
    tellDensityMap();
    chooseMoFieldType();
@@ -2591,6 +2593,7 @@ void MoPanel::chooseMoFieldType()
 {
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
    if (typewin == 0) return;
+   if (const char *t965 = getenv("ECCE_TRACE_965")) if (FILE *f965 = fopen(t965, "a")) { fprintf(f965, "T965 chooseMoFieldType surface %d\n", p_surfaceMode); fclose(f965); }
    if (p_surfaceMode) setSurfaceMode(false);
    //  Both orbital sets count as orbitals; the localised one must survive.
    const int sel = typewin->GetSelection();
@@ -3009,6 +3012,7 @@ bool MoPanel::selectFieldType(const string& name)
 {
    ewxChoice *typewin = (ewxChoice*)FindWindow(ID_CHOICE_MO_TYPE);
    const bool orbital = name == "MO" || name == "Localised MO";
+   if (const char *t965 = getenv("ECCE_TRACE_965")) if (FILE *f965 = fopen(t965, "a")) { fprintf(f965, "T965 selectFieldType %s\n", name.c_str()); fclose(f965); }
    if (orbital == p_surfaceMode) setSurfaceMode(!orbital);
    const int at = typewin->FindString(wxString::FromUTF8(fieldLabel(name).c_str()));
    if (at == wxNOT_FOUND) return false;
