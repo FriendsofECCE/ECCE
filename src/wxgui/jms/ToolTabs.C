@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <map>
+#include <memory>
 #include <vector>
 
 #include "wx/aui/auibook.h"
@@ -18,6 +19,7 @@
 #include "wx/msgdlg.h"
 #include "wx/timer.h"
 #include "wx/weakref.h"
+#include "wx/wupdlock.h"
 #include "wx/control.h"
 #include "wx/dcclient.h"
 #include "wx/frame.h"
@@ -930,6 +932,9 @@ bool ToolTabs::adopt(wxFrame *tool, wxAuiManager *mgr, const wxString& title)
     t->menubar = mb;
   }
   setMoveToTabsItem(tool, t->menubar, false);
+  // One redraw of the main window when the page is complete, not one per
+  // reparented window, menu bar swap and layout (#1210).
+  wxWindowUpdateLocker hold(s_hostFrame);
   ToolPage *page = new ToolPage(s_book, tool, mgr == 0, (bool)t->side);
   moveClient(tool, page->body(), mgr);
   page->takeStatusBar(tool);
@@ -1100,6 +1105,8 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
   wxWindow *page = t->page;
   wxSize size = page->GetSize();
   int idx = s_book->GetPageIndex(page);
+  // As in adopt: the main window is redrawn once, after the page is gone.
+  std::unique_ptr<wxWindowUpdateLocker> hold(new wxWindowUpdateLocker(s_hostFrame));
   // The tab's menu bar leaves the main window first.
   if (s_hostFrame->wxFrame::GetMenuBar() == t->menubar)
     putBar(!t->pinned && mainTab() ? mainTab()->menubar : 0);
@@ -1111,6 +1118,7 @@ void ToolTabs::release(wxTopLevelWindow *tlw, bool showFrame)
   tp->giveStatusBar(tool);
   if (idx != wxNOT_FOUND) s_book->DeletePage(idx);
   placeMenus(activeTab());
+  hold.reset();
   if (t->menubar) {
     tool->SetMenuBar(t->menubar);
     setMoveToTabsItem(tool, t->menubar, showFrame);
