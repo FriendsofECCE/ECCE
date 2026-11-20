@@ -2003,11 +2003,9 @@ void MoDiagramPanel::refresh()
  * RAII lifetime for the "building..." progress dialog. Created empty;
  * progress() only actually pops up a dialog once 300ms have elapsed,
  * so a fast build (water, a small organic) never flashes one. Every
- * return from buildOnce() destroys this stack-local, which deletes
+ * return from buildOnce() destroys this stack-local, which Destroy()s
  * the dialog if one was ever created -- no explicit cleanup needed at
- * each of buildOnce()'s many early returns.  Deleted, not Destroy()ed:
- * the progress dialog re-enables the other windows only in its
- * destructor, which Destroy() defers to the next idle time.
+ * each of buildOnce()'s many early returns.
  */
 namespace {
 class MoDiagramProgress
@@ -2020,7 +2018,7 @@ class MoDiagramProgress
 
     ~MoDiagramProgress()
     {
-      delete p_dlg;
+      if (p_dlg != 0) p_dlg->Destroy();
     }
 
     void progress(int percent, const wxString& stage)

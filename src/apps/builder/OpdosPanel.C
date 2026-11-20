@@ -60,7 +60,7 @@ class OpdosProgress
 {
   public:
     explicit OpdosProgress(wxWindow *parent) : p_parent(parent) {}
-    ~OpdosProgress() { delete p_dlg; }
+    ~OpdosProgress() { if (p_dlg) p_dlg->Destroy(); }
     void stage(const wxString& msg, double frac)
     {
       p_msg = msg;
