@@ -2161,6 +2161,63 @@ def runQuitJob(display):
         shutil.rmtree(work, ignore_errors=True)
 
 
+def runTabPaint(display):
+    """#1210: what is painted on the main window while a Viewer tab opens
+    and closes (paintlog: each painted window, in order)."""
+    data = tempfile.mkdtemp(prefix="ecce-oneproc-data-")
+    work = tempfile.mkdtemp(prefix="ecce-oneproc-")
+    try:
+        project = os.path.join(data, "users", "local", "oneproc")
+        os.makedirs(project)
+        shutil.copy(pb.PROJECT_META, os.path.join(project, ".ecce-meta"))
+        calc = os.path.join(project, "f_etcl_sn2_irc")
+        shutil.copytree(os.path.join(
+            HERE, "..", "..", "data", "client", "examples", "organic",
+            "substitution-vs-elimination", "ecceqm-f_etcl_sn2_irc", "stored",
+            "f_etcl_sn2_irc"), calc, symlinks=True)
+        url = "file://" + calc
+        cmds = os.path.join(work, "commands")
+        open(cmds, "w").close()
+
+        def append(line, wait):
+            with open(cmds, "a") as handle:
+                handle.write(line + "\n")
+            time.sleep(wait)
+
+        def inspect(_display):
+            append("paintlog on", 3)
+            append("paintlog", 2)
+            append("paintlog on", 1)
+            append("start CalculationViewer " + url, 25)
+            append("paintlog", 2)
+            append("builderinfo", 2)
+            append("paintlog on", 1)
+            append("tabclose 1", 10)
+            append("paintlog", 2)
+            append("tabs", 2)
+            append("menu exit", 3)
+            append("answer ok", 20)
+
+        setLayout(display, "normal")
+        result = apps.run(display, "organizer", windowTimeout=60, settle=20,
+                          env={"ECCE_ONE_PROCESS": "1",
+                               "ECCE_TEST_ORGANIZER": cmds,
+                               "ECCE_LOCAL_DATA": data},
+                          inspect=inspect)
+        log = result.log or ""
+        logs = pb.answers(log, "paintlog")
+        for name, entry in zip(("idle", "open", "close"), logs):
+            print("paintlog %s: %s" % (name, entry))
+        check(len(logs) == 3, "paintlog answered for idle, open and close",
+              str(logs))
+        info = pb.answers(log, "builderinfo")
+        check(info and re.search(r"atoms=[1-9]\d* inscene=1", info[0]),
+              "the Viewer draws its structure", str(info))
+    finally:
+        shutil.rmtree(data, ignore_errors=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def runReopenViewer(display):
     """#1209: a Viewer opened, closed and opened again on the same
     finished calculation draws its structure the second time too."""
@@ -2479,6 +2536,11 @@ def main():
             if failures:
                 results.fail("one-process", "; ".join(failures))
             return
+        if os.environ.get("ECCE_1210_ONLY") == "1":
+            runTabPaint(display)
+            if failures:
+                results.fail("one-process", "; ".join(failures))
+            return
         if os.environ.get("ECCE_1209_ONLY") == "1":
             runReopenViewer(display)
             if failures:
@@ -2553,6 +2615,7 @@ def main():
         runQuitDuringClose(display)
         runQuitJob(display)
         runReopenViewer(display)
+        runTabPaint(display)
         runTabsPopups(display)
         runUtilityWindows(display)
         runTabs1088(display)
