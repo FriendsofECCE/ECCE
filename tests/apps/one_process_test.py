@@ -50,6 +50,10 @@ if "--tabs-only" in sys.argv:
 if "--panels-only" in sys.argv:
     sys.argv.remove("--panels-only")
     os.environ["ECCE_PANELS_ONLY"] = "1"
+# --1210-only: only runTabPaint (as ECCE_1210_ONLY=1).
+if "--1210-only" in sys.argv:
+    sys.argv.remove("--1210-only")
+    os.environ["ECCE_1210_ONLY"] = "1"
 # --1088-only: only runTabs1088 (as ECCE_1088_ONLY=1).
 if "--1088-only" in sys.argv:
     sys.argv.remove("--1088-only")
