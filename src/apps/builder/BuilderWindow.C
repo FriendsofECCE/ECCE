@@ -8,6 +8,9 @@
 #include "dsm/ResourceDescriptor.H"
 #include "viz/SGContainer.H"
 #include "viz/SGFragment.H"
+#include "wxviz/SGViewer.H"
+
+#include "inv/actions/SoSearchAction.H"
 
 #include "wxgui/InProcessTools.H"
 #include "wxgui/ToolTabs.H"
@@ -53,8 +56,23 @@ void registerBuilderInProcess()
     if (!b) return "not a Builder tab";
     SGContainer *sg = b->getSG();
     SGFragment *frag = sg ? sg->getFragment() : NULL;
-    return wxString::Format("atoms=%d title=%s",
-                            frag ? (int)frag->numAtoms() : -1, b->GetTitle());
+    //  "inscene": the fragment's scene graph is under the viewer's root,
+    //  i.e. drawn, not only loaded (#1209).
+    int inScene = -1;
+    if (sg) {
+      SoNode *root = b->getViewer().getSceneGraph();
+      inScene = 0;
+      if (root) {
+        SoSearchAction find;
+        find.setNode(sg);
+        find.setInterest(SoSearchAction::FIRST);
+        find.apply(root);
+        inScene = find.getPath() != NULL;
+      }
+    }
+    return wxString::Format("atoms=%d inscene=%d title=%s",
+                            frag ? (int)frag->numAtoms() : -1, inScene,
+                            b->GetTitle());
   });
   InProcessTools::add(BUILDER, openBuilder);
   InProcessTools::add(CALCVIEWER, openViewer);
