@@ -33,14 +33,16 @@ namespace AllocationQuery
         std::string raw;        // the output line naming the account, for a tooltip
         std::string remaining;  // for the launch snapshot, "" when unknown
         long when;              // time of the answer shown, 0 if none
-        Result() : state(NotLoggedIn), when(0) {}
+        std::string why;        // why the last check did not run or failed
+        bool old;               // a later check failed: used/when are older
+        Result() : state(NotLoggedIn), when(0), old(false) {}
     };
 
     //  What is known now. Answers are kept 15 minutes per cluster and account;
-    //  a refresh runs on a background thread and only over an ssh connection
-    //  that is already logged in, so it never asks for a password. force
-    //  asks again at once. onDone is called from that thread when a refresh
-    //  has finished.
+    //  a refresh runs on a background thread over an ssh connection that is
+    //  already logged in. Only force (the user's Refresh) opens a login when
+    //  there is none, as Launch does: silent with a key, the askpass dialog
+    //  with a password. onDone is called from that thread when it has finished.
     Result check(const Target& t, bool force, std::function<void()> onDone);
 }
 

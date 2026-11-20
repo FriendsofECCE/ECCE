@@ -17,11 +17,22 @@ const int COL_MACHINE = 0, COL_ACCOUNT = 1, COL_USED = 2, COL_CHECKED = 3;
 
 string usedText(const AllocationQuery::Result& r)
 {
-  if (r.when > 0)
-    return r.used.empty() ? "not recognised" : r.used;
+  //  A running check, and one that could not run, say so even over an old value.
   if (r.state == AllocationQuery::Result::Checking)
     return "checking...";
-  return "not checked: not logged in to " + r.host;
+  if (r.when > 0 && !r.old)
+    return r.used.empty() ? "not recognised" : r.used;
+  const string why = r.why.empty() ? "not logged in to " + r.host : r.why;
+  if (r.when > 0)
+    return (r.used.empty() ? string("not recognised") : r.used) + " (old; " + why + ")";
+  return "not checked: " + why;
+}
+
+string checkedText(const AllocationQuery::Result& r)
+{
+  if (r.state == AllocationQuery::Result::Checking || r.when <= 0)
+    return "";
+  return AllocationLeft::checkedAt(r.when) + (r.old ? " (old)" : "");
 }
 }
 
@@ -35,7 +46,7 @@ AllocationsDialog::AllocationsDialog(wxWindow *parent)
   p_list->AppendColumn(_("Machine"), wxLIST_FORMAT_LEFT, 130);
   p_list->AppendColumn(_("Account"), wxLIST_FORMAT_LEFT, 140);
   p_list->AppendColumn(_("Used"), wxLIST_FORMAT_LEFT, 340);
-  p_list->AppendColumn(_("Checked"), wxLIST_FORMAT_LEFT, 70);
+  p_list->AppendColumn(_("Checked"), wxLIST_FORMAT_LEFT, 100);
   top->Add(p_list, 1, wxEXPAND | wxALL, 8);
 
   //  Close stays in view when the window is made small.
@@ -92,8 +103,7 @@ void AllocationsDialog::update(bool force)
     p_results.push_back(r);
     p_tips.push_back(r.when > 0 && r.used.empty() ? r.raw : string());
     p_list->SetItem(i, COL_USED, wxString::FromUTF8(usedText(r).c_str()));
-    p_list->SetItem(i, COL_CHECKED, r.when > 0 ?
-        wxString(AllocationLeft::checkedAt(r.when)) : wxString());
+    p_list->SetItem(i, COL_CHECKED, wxString::FromUTF8(checkedText(r).c_str()));
   }
 }
 
@@ -110,9 +120,7 @@ std::vector<string> AllocationsDialog::rowTexts() const
   std::vector<string> v;
   for (size_t i = 0; i < p_results.size(); i++)
     v.push_back(p_targets[i].machine + "|" + p_targets[i].account + "|" +
-                usedText(p_results[i]) + "|" +
-                (p_results[i].when > 0 ? AllocationLeft::checkedAt(p_results[i].when)
-                                       : string()));
+                usedText(p_results[i]) + "|" + checkedText(p_results[i]));
   return v;
 }
 

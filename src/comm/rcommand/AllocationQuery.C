@@ -25,7 +25,7 @@ std::set<string> gAllocBusy;
 //  When a query last failed (no live shared login, or the command failed), per
 //  key. A failure is tried again after this, not after the 15 minutes of a
 //  good answer: a monitor may have logged in meanwhile.
-std::map<string, long> gAllocFailed;
+std::map<string, std::pair<long, string> > gAllocFailed;
 const long RETRY_SECONDS = 30;
 
 string allocCachePath()
@@ -114,9 +114,10 @@ AllocationQuery::Result AllocationQuery::check(const Target& t, bool force,
     }
     have = gAllocCache.find(key, e);
     fresh = !force && gAllocCache.fresh(key, now);
-    std::map<string, long>::const_iterator f = gAllocFailed.find(key);
+    std::map<string, std::pair<long, string> >::const_iterator f = gAllocFailed.find(key);
     failed = f != gAllocFailed.end();
-    if (failed && !force && now - f->second < RETRY_SECONDS)
+    if (failed) r.why = f->second.second;
+    if (failed && !force && now - f->second.first < RETRY_SECONDS)
       fresh = true;                       // failed a moment ago
     if (!fresh && gAllocBusy.count(key))
       fresh = true;                       // being read
@@ -130,11 +131,29 @@ AllocationQuery::Result AllocationQuery::check(const Target& t, bool force,
     //  The shared login is keyed on the host, not on ECCE's machine name.
     const string machine = host, user = prefs->getUsername(),
                  front = rgstn->frontendMachine(), bypass = rgstn->frontendBypass(),
-                 shellPath = rgstn->shellPath();
+                 shellPath = rgstn->shellPath(), remShell = prefs->getRemoteShell(),
+                 locShell = rgstn->shell(), libPath = rgstn->libPath(),
+                 sourceFile = rgstn->sourceFile();
+    const bool openLogin = force;
     std::thread([=]() {
-      string out, text;
-      const bool ran = RCommand::execOnLiveLogin(machine, user, front, bypass,
-                                                 shellPath, command, out);
+      string out, text, why;
+      bool ran = RCommand::execOnLiveLogin(machine, user, front, bypass,
+                                           shellPath, command, out);
+      if (!ran && openLogin) {
+        //  The login every other operation makes (stored password, askpass);
+        //  it reuses a live shared connection and leaves a new one open.
+        RCommand rc(machine, remShell, locShell, user, "", front, bypass,
+                    shellPath, libPath, sourceFile);
+        if (!rc.isOpen()) {
+          string e = rc.commError();
+          e = e.substr(0, e.find('\n'));
+          why = "not logged in to " + machine + (e.empty() ? "" : ": " + e);
+        } else if (!(ran = rc.execout(command, out, "", 20))) {
+          why = "the allocation command failed on " + machine;
+        }
+      } else if (!ran) {
+        why = "not logged in to " + machine + ": press Refresh to log in";
+      }
       if (ran)
         text = AllocationLeft::encode(out, account);
       {
@@ -147,7 +166,7 @@ AllocationQuery::Result AllocationQuery::check(const Target& t, bool force,
           o << gAllocCache.serialise();
         } else {
           //  In memory only: an older answer stays on file.
-          gAllocFailed[key] = (long)time(NULL);
+          gAllocFailed[key] = std::make_pair((long)time(NULL), why);
         }
       }
       if (onDone) onDone();
@@ -157,8 +176,9 @@ AllocationQuery::Result AllocationQuery::check(const Target& t, bool force,
   if (have) {
     AllocationLeft::decode(e.text, r.used, r.raw, &r.remaining);
     r.when = e.when;
+    r.old = failed && r.state != Result::Checking;
     if (r.state != Result::Checking)
-      r.state = Result::Value;
+      r.state = failed ? Result::NotLoggedIn : Result::Value;
   } else if (r.state != Result::Checking) {
     r.state = failed ? Result::NotLoggedIn : Result::Checking;
   }
