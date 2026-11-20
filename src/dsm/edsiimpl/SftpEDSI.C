@@ -17,6 +17,7 @@
 #include <set>
 #include <sstream>
 
+#include "comm/DirectTransport.H"
 #include "comm/RCommand.H"
 #include "comm/OpenSshTransport.H"
 #include "util/SessionLease.H"
@@ -75,11 +76,13 @@ RCommand* newLogin(const string& authority, const string& user)
   const bool had = e != 0;
   if (e) saved = e;
   if (!gInteractive) putEnv("ECCE_ASKPASS", "/bin/false");
+  ecceSshTiming("SftpEDSI login to " + user + "@" + authority + " begins");
   RCommand* rc = new RCommand(host, "ssh", "bash", user, "", "", "", "", "", "",
                               port == 22 ? 0 : port);
   if (!gInteractive) {
     putEnv("ECCE_ASKPASS", had ? saved.c_str() : 0);
   }
+  ecceSshTiming(string("SftpEDSI login ") + (rc->isOpen() ? "open" : "failed"));
   return rc;
 }
 
@@ -165,7 +168,9 @@ bool writeFile(const string& p, const string& data)
 bool runRemote(const string& user, const string& host, const string& script,
                string& out, string& err, int timeout = 60)
 {
+  ecceSshTiming("runRemote waits for the lock: " + script.substr(0, script.find('\n')));
   std::lock_guard<std::mutex> g(gMutex);
+  ecceSshTiming("runRemote has the lock");
   const string key = user + "@" + host;
   for (int attempt = 0; attempt < 2; attempt++) {
     RCommand *&rc = gLogins[key];

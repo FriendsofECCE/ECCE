@@ -6,6 +6,8 @@
 #include <cerrno>
 #include <chrono>
 #include <csignal>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <vector>
 
@@ -374,7 +376,26 @@ TransportResult DirectTransport::runProcess(const std::vector<std::string>& args
   for (size_t i = 0; i < store.size(); i++)
     cs.argv.push_back(const_cast<char*>(store[i].c_str()));
   cs.argv.push_back(0);
-  return runChild(cs, input, inFd, outFd, false, timeoutSec);
+  if (!getenv("ECCE_SSH_TIMING"))
+    return runChild(cs, input, inFd, outFd, false, timeoutSec);
+  std::string what;
+  for (size_t i = 0; i < args.size() && what.size() < 300; i++)
+    what += (i ? " " : "") + args[i];
+  ecceSshTiming("start " + what);
+  TransportResult r = runChild(cs, input, inFd, outFd, false, timeoutSec);
+  ecceSshTiming("end status=" + std::to_string(r.status) +
+                (r.timedOut ? " timedout" : "") + " " + what.substr(0, 120));
+  return r;
+}
+
+void ecceSshTiming(const std::string& step)
+{
+  if (!getenv("ECCE_SSH_TIMING")) return;
+  using namespace std::chrono;
+  static const steady_clock::time_point t0 = steady_clock::now();
+  const long ms = (long)duration_cast<milliseconds>(steady_clock::now() - t0).count();
+  fprintf(stderr, "ecce-ssh-timing %7ld ms [%ld] %s\n", ms,
+          (long)syscall(SYS_gettid), step.c_str());
 }
 
 long DirectTransport::spawnProcess(const std::vector<std::string>& args, int in,

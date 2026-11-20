@@ -7,6 +7,11 @@
 
 // Runs scripts on this machine with fork/exec of /bin/sh; on Windows with
 // CreateProcess, scripts running under an sh.exe found at run time.
+// ECCE_SSH_TIMING=1: one stderr line per step of a remote login and per
+// ssh process, with milliseconds since the first, to find where a slow
+// connection waits (#1220).
+void ecceSshTiming(const std::string& step);
+
 class DirectTransport : public Transport {
 public:
   virtual TransportResult run(const std::string& script, int timeoutSec = -1);

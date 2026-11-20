@@ -346,6 +346,15 @@ rows below an SSH-folder or ECCE-server root have no background colour, and
 their folder icons are drawn in the root's ink (green or maroon);
 `tests/apps/server_roots_test.py` checks the server case.
 
+Server and SSH-folder roots (`ECCE_TEST_ORGANIZER`): `server rootpos NAME`
+answers the screen position `x y` of that root's label, for a real
+right-click with xdotool; `ECCE_TEST_POPUP_LOG=<file>` appends the labels of
+every context menu the Organizer pops up (`;`-separated, `-` for a
+separator).  A connected root offers `Disconnect;Remove from list;-;` and
+then its folder's items (#1221).  `ECCE_SSH_TIMING=1` writes
+`ecce-ssh-timing <ms> [tid] <step>` lines to stderr for each ssh process and
+each step of a login, to find where a slow connection waits (#1220).
+
 Start feedback (#1071, `ECCE_TEST_ORGANIZER`): `start TOOL [URL]` shows a busy
 cursor, "Opening the <tool> for <calculation>..." in the status line, a "Starting
 the <tool>..." window after 1.5 s and a "has not started" note after 30 s; a

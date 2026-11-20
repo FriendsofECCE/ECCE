@@ -105,6 +105,7 @@ what the deployment mode needs (GETTING_STARTED, "Deployment modes"):
 - [passdialog exit status and ecce-askpass](passdialog-exit-status.md) — a wx OnInit returning false exits 255; askpass took OK as cancel (#487)
 - [Ubuntu 26.04 mosquitto AppArmor profile blocks the per-user broker; ecce-client adds a local block (#646)](ubuntu-26-mosquitto-apparmor-profile.md)
 - [A host that accepts TCP but never sends the ssh banner: bounded connect, no libssh retry after a timeout, Organizer connects off the GUI thread with a working Cancel](silent-host-connect.md)
+- [Popup menu items Bind()-ed on the menu did nothing (ewxPopupMenu), and a connected server root got no Disconnect](popup-menu-bound-items.md)
 - [ecce-annotate](ecce-annotate-writes-through-the-organizer.md): through the Organizer, else FileEDSI; never a hand-edited `.ecce-meta` (#742).
 - [ecce-move / ecce-rename](ecce-move-goes-through-the-organizer.md): the Organizer's own move, no offline mode (#824).
 - [Copy and move between trees](cross-tree-copy-890.md): TreeCopy through the EDSIs, verify then remove, ecce-copy (#890).
