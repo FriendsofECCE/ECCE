@@ -2209,11 +2209,26 @@ def runTabPaint(display):
                                "ECCE_LOCAL_DATA": data},
                           inspect=inspect)
         log = result.log or ""
-        logs = pb.answers(log, "paintlog")
+        # "paintlog on" answers "on"; only the reports carry paints=.
+        logs = [a for a in pb.answers(log, "paintlog")
+                if a.startswith("paints=")]
         for name, entry in zip(("idle", "open", "close"), logs):
             print("paintlog %s: %s" % (name, entry))
         check(len(logs) == 3, "paintlog answered for idle, open and close",
               str(logs))
+        if len(logs) == 3:
+            # Frames of the main window drawn between the Organizer page and
+            # the Viewer's first paint: the tab's page shown empty (#1210).
+            seq = logs[1].split("seq=", 1)[1].split(",")
+            first = next((i for i, e in enumerate(seq)
+                          if e.startswith("SoWxExaminerViewer")), len(seq))
+            last = max([i for i, e in enumerate(seq[:first])
+                        if e.startswith("ProjectContextPanel")] or [0])
+            empty = sum(1 for e in seq[last:first]
+                        if e.startswith("MainFrame"))
+            empty = max(0, empty - (first < len(seq)))  # the Viewer's own frame
+            print("paintlog open: %d frame(s) of an empty tab page before "
+                  "the Viewer draws" % empty)
         info = pb.answers(log, "builderinfo")
         check(info and re.search(r"atoms=[1-9]\d* inscene=1", info[0]),
               "the Viewer draws its structure", str(info))
