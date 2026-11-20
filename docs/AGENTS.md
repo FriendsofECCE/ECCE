@@ -791,7 +791,10 @@ before exporting. To use the property pane through `ECCE_BUILDER_SCRIPT`:
   single crystal, frame, Debye), source (Cu, Mo, Co, Other), scaling (log, sqrt,
   linear), scheme (Film, Dark), transform (Auto, Helical, Finite model), axis,
   zone. `phi` sets the released start-angle slider.
-- `xrd breakout 1|0` opens/closes Pattern without calculating again.
+- `xrd breakout 1|0` opens/closes Pattern; opening calculates only if the
+  pattern is missing or out of date. Choosing a view (`xrd set view N`)
+  always calculates at once, also for a slow structure.
+- `xrd canvas-shot FILE` saves the shown pattern canvas as on screen.
   `xrd options`, `xrd close-options`, `xrd defaults` operate Options.
 - `xrd hover TWO_THETA` / `xrd click TWO_THETA` send pointer events to the
   powder or Debye plot. For layer/frame use `xrd hover H K L` or

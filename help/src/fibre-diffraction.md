@@ -61,8 +61,10 @@ only the newest result is shown.
 ## Slow structures and Update
 
 If a run takes more than about two seconds, Diffraction says so and shows
-**Update** for that structure. Subsequent changes wait for Update, including
-view and source changes; the first run finishes normally. A change during a
+**Update** for that structure. Subsequent changes of settings and source wait
+for Update; the first run finishes normally. Choosing another **View**, and
+opening the **Pattern** window on a pattern that is not up to date, always
+calculate at once. A change during a
 run cancels that run. Press Update to calculate the latest settings. Exposure,
 colour scheme, intensity scaling, gamma, labels, overlays and backdrop opacity
 redraw immediately without running the calculation.

@@ -1001,7 +1001,7 @@ DiffractionView::DiffractionView(wxWindow *parent, const string& structure,
       p_view->SetSelection(p_debye ? 4 : 0);
       status("This view needs a periodic structure with a unit cell."); return;
     }
-    onPattern(mode); requestCalculation();
+    onPattern(mode); requestCalculation(true);
   });
   p_source->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { onSource(); requestCalculation(); });
   p_pattern->Bind(wxEVT_TOGGLEBUTTON, [this](wxCommandEvent&) { if (p_breakout) p_breakout(p_pattern->GetValue()); });
@@ -1076,6 +1076,7 @@ void DiffractionView::onPattern(int mode)
   p_leftWin->FitInside();
   if (p_options->IsShown()) showOptions();
   p_lines.clear();
+  p_tt.clear(); p_y.clear(); p_meas.clear();
   p_pointer->SetLabel("");
   p_measure->SetLabel("");
   p_pick = 0;
@@ -1615,14 +1616,18 @@ void DiffractionView::cancelCalculation()
   p_load = {};
 }
 
-void DiffractionView::requestCalculation()
+// A view change clears the pattern, so it calculates at once even for a slow
+// structure; waiting for Update would leave the pane empty (#1222).
+void DiffractionView::requestCalculation(bool now)
 {
   if (p_loading) return;
   clearTip();
   cancelCalculation();
   p_dirty = true;
   p_error.clear();
-  if (p_manual) {
+  if (now) {
+    startCalculation();
+  } else if (p_manual) {
     p_debounce.Stop();
     status("This structure takes over 2 seconds. Settings changed; press Update.");
   } else {
@@ -1763,6 +1768,11 @@ void DiffractionView::restoreDefaults()
   updateImage(); requestCalculation();
 }
 
+void DiffractionView::ensureResult()
+{
+  if (!p_loading && !p_process && (p_dirty || p_completed == 0)) startCalculation();
+}
+
 void DiffractionView::setBreakoutHandler(const std::function<void(bool)>& handler)
 {
   p_breakout = handler;
@@ -1799,7 +1809,7 @@ void DiffractionDialog::dockTo(wxWindow *host)
 void DiffractionDialog::breakout(bool open)
 {
   if (!p_dock) {
-    if (open) { Show(); Raise(); }
+    if (open) { Show(); Raise(); p_view->ensureResult(); }
     return;
   }
   wxWindow *target = open ? static_cast<wxWindow*>(this) : p_dock;
@@ -1811,7 +1821,7 @@ void DiffractionDialog::breakout(bool open)
   p_view->Show();
   p_dock->GetSizer()->Show(size_t(0), open);
   p_dock->Layout(); Layout();
-  if (open) { Show(); Raise(); } else Hide();
+  if (open) { Show(); Raise(); p_view->ensureResult(); } else Hide();
 }
 
 void DiffractionView::clearTip()
@@ -1879,6 +1889,9 @@ wxString DiffractionView::script(const vector<string>& args)
     memory.SelectObject(wxNullBitmap);
     return bitmap.SaveFile(wxString::FromUTF8(args[2].c_str()), wxBITMAP_TYPE_PNG) ? "saved" : "failed";
   }
+  if (args[1] == "canvas-shot" && args.size() > 2)
+    return ecceWindowShot(p_powder ? static_cast<wxWindow*>(p_plot) : static_cast<wxWindow*>(p_panel),
+                          wxString::FromUTF8(args[2].c_str())) ? "saved" : "failed";
   if (args[1] == "options-shot" && args.size() > 2)
     return ecceWindowShot(p_options, wxString::FromUTF8(args[2].c_str())) ? "saved" : "failed";
   if (args[1] == "export" && args.size() > 3)

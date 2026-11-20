@@ -74,7 +74,9 @@ public:
   // The reflection under a 2theta (degrees), as hovering shows it; "" if none.
   wxString reflectionText(double twoTheta, double tolerance) const;
 
-  void requestCalculation();
+  void requestCalculation(bool now = false);
+  // Starts a run if the shown pattern is missing or out of date.
+  void ensureResult();
   bool waitForResult(std::string& why);
   void showOptions();
   void setBreakoutHandler(const std::function<void(bool)>& handler);
