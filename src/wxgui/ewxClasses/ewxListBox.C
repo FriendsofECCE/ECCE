@@ -91,7 +91,8 @@ bool ewxListBox::Create(wxWindow* parent, wxWindowID id,
 
 ewxListBox::~ewxListBox()
 {
-  PopEventHandler(true);
+  PopEventHandler(true);  // disabler
+  PopEventHandler(true);  // help handler, leaked before (#1136)
 }
 
 

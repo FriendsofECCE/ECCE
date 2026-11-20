@@ -9,6 +9,7 @@
 #include "wxgui/WxHelpViewer.H"
 #include "wxgui/ewxHelpHandler.H"
 #include "wxgui/ewxWindowUtils.H"
+#include "util/LiveCount.H"
 
 #define ID_MENU_HELP 50000
 #define ID_MENU_FEEDBACK 50001
@@ -23,10 +24,12 @@ ewxHelpHandler::ewxHelpHandler(wxWindow *win)
 {
    // Our help keys are always on the top window, not its subcontrols
    p_win = ewxWindowUtils::getTopWindow(win);
+   LiveCount::add("ewxHelpHandler", 1);
 }
 
 ewxHelpHandler::~ewxHelpHandler()
 {
+   LiveCount::add("ewxHelpHandler", -1);
    p_win = 0;
 }
 
