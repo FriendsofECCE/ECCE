@@ -89,6 +89,20 @@ def main():
                                                 hits, re.M):
                     levels.setdefault(key, set()).add(int(mo))
                 check(bool(levels), "%s: the diagram has click targets" % name)
+                #  A calculated level naming several MOs has one target per MO.
+                sets = 0
+                for key, desc in re.findall(r"^hit MO \d+ key (\d+) box .*? \| MOs ([\d, ]+), E =",
+                                            hits, re.M):
+                    want = set(int(x) for x in desc.split(","))
+                    sets += 1
+                    check(levels.get(key) == want, "%s: level %s opens MOs %s (targets %s)"
+                          % (name, key, sorted(want), sorted(levels.get(key, ()))))
+                check(sets > 0, "%s: the diagram has a degenerate calculated level" % name)
+                if name == "ethane_scan":
+                    together = [ms for ms in levels.values() if {5, 6} <= ms]
+                    check(bool(together), "ethane_scan: MO 5 and MO 6 are one level, each clickable")
+                    check(any({8, 9} <= ms for ms in levels.values()),
+                          "ethane_scan: MO 8 and MO 9 are one level")
         finally:
             subprocess.run([os.path.join(apps.INSTALL, "bin", "ecce-gateway-stop")],
                            env=display.env(), timeout=120)
