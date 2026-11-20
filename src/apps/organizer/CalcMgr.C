@@ -3675,13 +3675,15 @@ void CalcMgr::runTestCommand(const string& line)
                 " PeriodicTable=" + std::to_string(InProcessTools::count(PERTAB)) +
                 " MachineBrowser=" + std::to_string(InProcessTools::count(MACHBROWSER)) +
                 " MachineRegister=" + std::to_string(InProcessTools::count(MACHREGISTER)) +
-                " Viewer=" + std::to_string(InProcessTools::count(CALCVIEWER));
+                " Viewer=" + std::to_string(InProcessTools::count(CALCVIEWER)) +
+                (IsEnabled() ? "" : " organizer=disabled");
       // Top-level windows still alive: one left over keeps the main loop
       // (and the process) running after the Organizer's frame is gone.
       for (wxWindow *w : wxTopLevelWindows)
         if (w != this)
           outcome += string(" tlw=") + wxString(w->GetClassInfo()->GetClassName()).utf8_str().data() +
-                     (w->IsShown() ? "" : "(hidden)") + "/" + string(w->GetLabel().utf8_str());
+                     (w->IsShown() ? "" : "(hidden)") + (w->IsEnabled() ? "" : "(disabled)") +
+                     "/" + string(w->GetLabel().utf8_str());
     } else if (command == "mainwindow" || command == "menu" ||
                command == "hostclose" || command == "tabs" || command == "tab" ||
                command == "tabsel" || command == "tabsave" ||
