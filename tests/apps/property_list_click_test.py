@@ -103,6 +103,10 @@ def main():
     #  A short screen: the list gets a share of the column, so with every
     #  property panel listed it scrolls, which is the case that failed.
     xdisplay.SCREEN = "1280x700x24"
+    #  A sequence checks what a click does, not reaching a row: a tall
+    #  screen keeps every row inside the list.
+    if SEQUENCE:
+        xdisplay.SCREEN = os.environ.get("ECCE_LIST_SCREEN", "1600x1400x24")
     try:
         url = makeCalc(data, "proplist")
         out = os.path.join(work, "run")
@@ -162,10 +166,14 @@ def main():
                     clicked.append(("no row inside the tree", state["win"]))
                     break
                 if SEQUENCE:
+                    #  The same inside-the-tree rule: a row past the edge is
+                    #  a click on whatever lies under it (the MO grid).
                     rows = [r for r in state["rows"]
-                            if r[0] == SEQUENCE[n - 1]]
+                            if r[0] == SEQUENCE[n - 1]
+                            and r[2] >= top and r[2] + r[4] <= top + height]
                     if not rows:
-                        clicked.append((SEQUENCE[n - 1], "not listed"))
+                        clicked.append((SEQUENCE[n - 1],
+                                        "not inside the tree: " + state["win"]))
                         break
                 name, x, y, w, h = rows[(n - 1) % len(rows)]
                 ready = os.path.join(out, "s%d.ready" % n)
