@@ -22,6 +22,8 @@ import progress_box_test as pb  # noqa: E402
 
 failures = []
 ROUNDS = int(os.environ.get("ECCE_FIRST_OPEN_ROUNDS", "3"))
+# ECCE_NO_PREPARSED: the slow first start of a new package version.
+PARSE_ROUNDS = int(os.environ.get("ECCE_FIRST_OPEN_PARSE_ROUNDS", "2"))
 
 
 def check(ok, what, detail=""):
@@ -32,7 +34,7 @@ def check(ok, what, detail=""):
     return ok
 
 
-def run(display, label, importExamples, startDelay):
+def run(display, label, importExamples, startDelay, parse=False):
     data = tempfile.mkdtemp(prefix="ecce-firstopen-data-")
     work = tempfile.mkdtemp(prefix="ecce-firstopen-")
     try:
@@ -55,7 +57,9 @@ def run(display, label, importExamples, startDelay):
 
         def inspect(_display):
             time.sleep(startDelay)
-            append("start CalculationViewer " + url, 40)
+            # Parsing every example takes minutes; the commands wait for the
+            # import, so the start window is checked once it has run.
+            append("start CalculationViewer " + url, 300 if parse else 40)
             append("toolstate", 2)
             append("inprocess", 2)
             append("tabs", 2)
@@ -68,6 +72,8 @@ def run(display, label, importExamples, startDelay):
                "ECCE_LOCAL_DATA": data, "ECCE_TEST_MESSAGES": "1"}
         if importExamples:
             env["ECCE_NO_EXAMPLE_IMPORT"] = ""
+        if parse:
+            env["ECCE_NO_PREPARSED"] = "1"
         result = apps.run(display, "organizer", windowTimeout=60, settle=5,
                           env=env, inspect=inspect)
         log = result.log or ""
@@ -76,6 +82,8 @@ def run(display, label, importExamples, startDelay):
         print(label, "toolstate:", states)
         print(label, "inprocess:", inproc)
         print(label, "tabs:", pb.answers(log, "tabs"))
+        print(label, "import:", [l for l in log.splitlines()
+                                 if "imported in" in l or "example copy" in l][:3])
         check(not result.crashed, label + ": no crash",
               result.signalName or log[-1500:])
         check(len(states) == 2 and all("window=none" in s and "busy=0" in s
@@ -96,6 +104,9 @@ def main():
     def checkApp(display, name, results, verbose=False):
         for i in range(ROUNDS):
             run(display, "import round %d" % (i + 1), True, 0.5 * i)
+        for i in range(PARSE_ROUNDS):
+            run(display, "parsed import round %d" % (i + 1), True, 0.5 * i,
+                parse=True)
         run(display, "no import", False, 0)
         if failures:
             results.fail("viewer-first-open", "; ".join(failures))
