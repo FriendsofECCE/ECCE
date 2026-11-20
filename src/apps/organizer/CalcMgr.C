@@ -15032,9 +15032,17 @@ void CalcMgr::updateRemoveNode(const EcceURL & url)
  */
 void CalcMgr::updateBookmarkMenu()
 {
+  wxMenuBar * menuBar = ownMenuBar();
+  const int pos = menuBar ? menuBar->FindMenu(_("Bookmarks")) : wxNOT_FOUND;
+  if (pos == wxNOT_FOUND) return;
+
   startDisabler();
 
-  wxMenu* bookmarkMenu = new wxMenu;
+  // Refill the menu in place: wxOSX's wxMenuBar::Replace does not give the
+  // new menu its title, so the bar showed an empty title (#1127).
+  wxMenu* bookmarkMenu = menuBar->GetMenu(pos);
+  while (bookmarkMenu->GetMenuItemCount() > 0)
+    bookmarkMenu->Destroy(bookmarkMenu->FindItemByPosition(0));
   bookmarkMenu->Append(wxID_ADD_BOOKMARK, _("&Add to Bookmarks\tCtrl+D"),
                        _T(""), wxITEM_NORMAL);
   bookmarkMenu->Append(wxID_MANAGE_BOOKMARK, _("&Manage Bookmarks..."),
@@ -15047,10 +15055,6 @@ void CalcMgr::updateBookmarkMenu()
                          p_bookmarkEditor->getBookmarkUrl(i),
                          wxITEM_NORMAL);
   }
-  
-  wxMenuBar * menuBar = ownMenuBar();
-  delete menuBar->Replace(menuBar->FindMenu(_("Bookmarks")),
-                          bookmarkMenu, _("&Bookmarks"));
 
   stopDisabler();
 }

@@ -860,6 +860,12 @@ def runTabs(display):
               "the window title names the active tab and keeps "
               "'Organizer'", str(mw))
         orgMenus = tabs[0].split("menus=")[-1] if tabs else ""
+        check(bool(tabs) and all(
+                  t.split("menus=")[-1] and
+                  "" not in t.split("menus=")[-1].split(",") for t in tabs)
+              and ",Bookmarks,Run Mgmt," in "," + orgMenus + ",",
+              "no menu bar has an empty title; the Organizer's Bookmarks "
+              "menu keeps its title after its refill (#1127)", str(tabs))
         check(len(tabs) >= 4 and tabs[0].startswith("0:Organizer*"),
               "the Organizer is the first tab", str(tabs) + log[-1500:])
         if len(tabs) >= 4:
