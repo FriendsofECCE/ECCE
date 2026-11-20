@@ -1336,6 +1336,10 @@ void SGContainer::removeStyleNodes(int which)
 SGContainer::~SGContainer()
 {
   LiveCount::add("SGContainer", -1);
+  // The constructor's extra references kept the display subtree (every
+  // ChemDisplay and ChemDisplayParam) alive after the container (#1136).
+  if (p_dynamicStyles) p_dynamicStyles->unref();
+  if (p_display) p_display->unref();
 }
 
 

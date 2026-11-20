@@ -1,3 +1,4 @@
+#include "util/LiveCount.H"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -283,6 +284,7 @@ ChemDisplay::ChemDisplay()
 //
 ////////////////////////////////////////////////////////////////////////
 {
+  LiveCount::add("ChemDisplay", 1);
 	SO_NODE_CONSTRUCTOR(ChemDisplay);
 
 	SO_NODE_ADD_FIELD(atomIndex, (0,-1));
@@ -407,6 +409,7 @@ ChemDisplay::~ChemDisplay()
 //
 ////////////////////////////////////////////////////////////////////////
 {
+  LiveCount::add("ChemDisplay", -1);
 	if (aromaticRingCoords != NULL)
 		delete [] aromaticRingCoords;
 

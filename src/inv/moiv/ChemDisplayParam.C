@@ -61,6 +61,7 @@
 	Daniel Soto	2002/02/05
 */
 #ifdef WIN32
+#include "util/LiveCount.H"
 #include <windows.h>
 #endif
 #ifndef __gl_h_
@@ -110,6 +111,7 @@ ChemDisplayParam::ChemDisplayParam()
 //
 ////////////////////////////////////////////////////////////////////////
 {
+  LiveCount::add("ChemDisplayParam", 1);
     mShowRings = TRUE;
 
     SO_NODE_CONSTRUCTOR(ChemDisplayParam);
@@ -433,6 +435,7 @@ ChemDisplayParam::~ChemDisplayParam()
 //
 ////////////////////////////////////////////////////////////////////////
 {
+  LiveCount::add("ChemDisplayParam", -1);
 }
 
 void ChemDisplayParam::setShowRings(SbBool showRings)
