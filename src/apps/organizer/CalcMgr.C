@@ -3720,6 +3720,26 @@ void CalcMgr::runTestCommand(const string& line)
       outcome = p_toolStartup->shot(calcName) ? "saved" : "no window";
     } else if (command == "toolstate") {
       outcome = p_toolStartup->report();
+      // A start feedback or greyed panel left behind: which loop runs this
+      // command, and whether a progress dialog or the import is still alive.
+      wxEventLoopBase *active = wxEventLoopBase::GetActive();
+      outcome += string(" loop=") +
+                 (!active ? "none"
+                  : active == wxTheApp->GetMainLoop() ? "main" : "NESTED") +
+                 " yielding=" + (active && active->IsYielding() ? "1" : "0") +
+                 " gtklevel=" + std::to_string(MainFrame::loopLevel()) +
+                 " import="+ (p_batchImport ? "1" : "0") +
+                 " disabler=" + std::to_string(p_disablerCount);
+      int dialogs = 0;
+      for (wxWindow *w : wxTopLevelWindows) {
+        if (!w->IsKindOf(wxCLASSINFO(wxGenericProgressDialog))) continue;
+        dialogs++;
+        outcome += string(" progress='") + w->GetLabel().utf8_str().data() +
+                   "'" + (w->IsShown() ? "" : "(hidden)") +
+                   (w->IsEnabled() ? "" : "(disabled)") +
+                   (w->IsBeingDeleted() ? "(deleting)" : "");
+      }
+      outcome += " progressdialogs=" + std::to_string(dialogs);
     } else if (command == "start") {
       // "start TOOL [URL]": what a tool button does (startApp), e.g.
       // "start CalculationEditor <calc url>".
