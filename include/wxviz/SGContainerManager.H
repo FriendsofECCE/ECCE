@@ -46,6 +46,7 @@ class SGContainerManager : public SoSeparator
     void loadAtomRadii(SGContainer* sg);
 
     SbName goodName(const string& name) const;
+    SoNode *findChild(const SbName& name) const;
 
   private:
     SbName p_context;

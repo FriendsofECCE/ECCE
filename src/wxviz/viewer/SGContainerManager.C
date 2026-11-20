@@ -53,13 +53,26 @@ void SGContainerManager::initClass(void)
 
 
 
+//  Names are looked up among this manager's own children: Inventor's name
+//  dictionary is process-wide, and with tools as tabs (#983) another
+//  Builder or Viewer on the same calculation, or one closed but not yet
+//  freed, holds a container of the same name (#1209).
+SoNode *SGContainerManager::findChild(const SbName& name) const
+{
+  for (int i = getNumChildren() - 1; i >= 0; --i)
+    if (getChild(i)->getName() == name) return getChild(i);
+  return NULL;
+}
+
+
+
 SGContainer* SGContainerManager::getSceneGraph()
 {
   if (p_context == "") {
     // this indicates no children, which is invalid
     return NULL;
   }
-  return (SGContainer*) SoNode::getByName(p_context);
+  return (SGContainer*) findChild(p_context);
 }
 
 
@@ -81,7 +94,7 @@ void SGContainerManager::setSceneGraph(const string& _name)
   }
 
   // see if the context already exists
-  if (SoNode::getByName(name)) {
+  if (findChild(name)) {
     p_context = name;
   } else {
     createAndSwitchToNewSceneGraph(_name);
@@ -89,7 +102,7 @@ void SGContainerManager::setSceneGraph(const string& _name)
 
   // hide all then show the scenegraph in case it wasn't before
   showAll(false);
-  ((SGContainer*)SoNode::getByName(name))->whichChild.setValue(0);
+  ((SGContainer*)findChild(name))->whichChild.setValue(0);
 }
 
 
@@ -112,7 +125,7 @@ void SGContainerManager::removeSceneGraph(const string& _name)
     return;
   }
 
-  SoNode * node = SoNode::getByName(name);
+  SoNode * node = findChild(name);
   if (node) {
     removeChild(node);
   } else {
@@ -126,7 +139,7 @@ void SGContainerManager::removeSceneGraph(const string& _name)
 void SGContainerManager::renameSceneGraph(const string& oldName,
                                           const string& newName)
 {
-  SoNode * node = SoNode::getByName(goodName(oldName));
+  SoNode * node = findChild(goodName(oldName));
   if (node) {
     node->setName(goodName(newName));
   } else {
@@ -139,7 +152,7 @@ void SGContainerManager::renameSceneGraph(const string& oldName,
 
 void SGContainerManager::showSceneGraph(const string& name, const bool& show)
 {
-  SGContainer * sg = (SGContainer*) SoNode::getByName(goodName(name));
+  SGContainer * sg = (SGContainer*) findChild(goodName(name));
   if (sg) {
     sg->whichChild.setValue(show ? 0 : -1);
   } else {
