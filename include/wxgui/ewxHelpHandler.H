@@ -1,6 +1,8 @@
 #ifndef _HELPHANDLER_H
 #define _HELPHANDLER_H
 
+#include <string>
+
 #include "wx/event.h"
 
 
@@ -30,6 +32,7 @@ class ewxHelpHandler : public wxEvtHandler
       void OnHelpClicked(wxCommandEvent& event);
 
       wxWindow *p_win;
+      std::string p_countKey;  // livecount key per owner class (#1136)
       DECLARE_EVENT_TABLE()
 };
 
