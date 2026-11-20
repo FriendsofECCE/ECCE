@@ -2994,14 +2994,13 @@ void MoPanel::reflow()
    const int tableFloor = 100;
    const int need = GetSizer()->CalcMin().y - p_mogrid->GetMinSize().y +
                     tableFloor;
-   Builder *builder = PropertyPanel::builder();
    //  Shown-ness is read when the call runs: the first fill happens while
-   //  the pane is still being put on screen.
-   if (builder) {
-      builder->CallAfter([builder, this, need]() {
-         if (IsShownOnScreen()) builder->propertyPaneRoom(this, need);
-      });
-   }
+   //  the pane is still being put on screen.  Queued on the panel, not the
+   //  Builder, so a panel destroyed first (a closed tab) drops the call.
+   CallAfter([this, need]() {
+      Builder *builder = PropertyPanel::builder();
+      if (builder && IsShownOnScreen()) builder->propertyPaneRoom(this, need);
+   });
 }
 
 
