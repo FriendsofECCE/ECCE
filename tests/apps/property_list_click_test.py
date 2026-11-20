@@ -163,11 +163,11 @@ def main():
                     clicked.append(("no row inside the tree", state["win"]))
                     break
                 if SEQUENCE:
-                    #  The same inside-the-tree rule: a row past the edge is
-                    #  a click on whatever lies under it (the MO grid).
+                    #  The click goes to the row's middle, which must lie in
+                    #  the tree: past its edge it lands on the MO grid.
                     rows = [r for r in state["rows"]
                             if r[0] == SEQUENCE[n - 1]
-                            and r[2] >= top and r[2] + r[4] <= top + height]
+                            and top <= r[2] + r[4] // 2 < top + height]
                     if not rows:
                         clicked.append((SEQUENCE[n - 1],
                                         "not inside the tree: " + state["win"]))
