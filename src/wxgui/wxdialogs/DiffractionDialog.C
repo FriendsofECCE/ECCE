@@ -1077,6 +1077,7 @@ void DiffractionView::onPattern(int mode)
   if (p_options->IsShown()) showOptions();
   p_lines.clear();
   p_tt.clear(); p_y.clear(); p_meas.clear();
+  p_plot->Refresh();
   p_pointer->SetLabel("");
   p_measure->SetLabel("");
   p_pick = 0;
