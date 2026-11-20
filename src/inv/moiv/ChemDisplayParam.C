@@ -61,7 +61,6 @@
 	Daniel Soto	2002/02/05
 */
 #ifdef WIN32
-#include "util/LiveCount.H"
 #include <windows.h>
 #endif
 #ifndef __gl_h_
@@ -69,6 +68,7 @@
 #endif /* __gl_h_ */
 
 #include "inv/actions/SoGLRenderAction.H"
+#include "util/LiveCount.H"
 #include "inv/actions/SoCallbackAction.H"
 #include "inv/actions/SoPickAction.H"
 #include "inv/actions/SoGetBoundingBoxAction.H"
