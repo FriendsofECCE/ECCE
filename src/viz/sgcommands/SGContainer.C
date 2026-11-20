@@ -1,3 +1,4 @@
+#include "util/LiveCount.H"
 #include <iostream>
   using std::cerr;
   using std::cout;
@@ -88,6 +89,7 @@ void SGContainer::initClass()
 /////////////////////////////////////////////////////////////////////////////
 SGContainer::SGContainer()
 {
+  LiveCount::add("SGContainer", 1);
   SO_NODE_CONSTRUCTOR(SGContainer);
   constructor();
 }
@@ -1333,6 +1335,11 @@ void SGContainer::removeStyleNodes(int which)
 /////////////////////////////////////////////////////////////////////////////
 SGContainer::~SGContainer()
 {
+  LiveCount::add("SGContainer", -1);
+  // The constructor's extra references kept the display subtree (every
+  // ChemDisplay and ChemDisplayParam) alive after the container (#1136).
+  if (p_dynamicStyles) p_dynamicStyles->unref();
+  if (p_display) p_display->unref();
 }
 
 
@@ -1672,14 +1679,16 @@ DisplayStyle::Style SGContainer::toOurStyle(ChemDisplayParam::DisplayBinding sty
  */
 SoPath *SGContainer::getSelectionPath(ChemSelection * esel, int index)
 {
-   SoSearchAction *getCD = new SoSearchAction;
-   getCD->setInterest(SoSearchAction::FIRST);
-   getCD->setNode(p_displays[index]);
-
-   getCD->setFind(SoSearchAction::NODE);
-   getCD->apply(esel);
-   SoPath * pathCD =   getCD->getPath();
-   return pathCD; 
+   // The caller owns one reference (unref when done).  A leaked action
+   // kept its path, and so the viewer's whole scene, alive (#1136).
+   SoSearchAction getCD;
+   getCD.setInterest(SoSearchAction::FIRST);
+   getCD.setNode(p_displays[index]);
+   getCD.setFind(SoSearchAction::NODE);
+   getCD.apply(esel);
+   SoPath *pathCD = getCD.getPath();
+   if (pathCD) pathCD->ref();
+   return pathCD;
 }
 
 

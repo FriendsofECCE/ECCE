@@ -473,6 +473,16 @@ def scenarioF(display):
         shutil.rmtree(data, ignore_errors=True)
 
 
+def liveCounts(o):
+    """The `livecount` hook as {class: live instances}."""
+    out = {}
+    for w in (o.ask("livecount") or "").split():
+        c, _, n = w.partition("=")
+        if n.lstrip("-").isdigit():
+            out[c] = int(n)
+    return out
+
+
 def scenarioH(display, rounds=30):
     data, urls = localData(["ecceqm", "orca", "hf", "acala", "methane", "mopac"])
     o = Org(display, data)
@@ -485,13 +495,16 @@ def scenarioH(display, rounds=30):
                 ("CalculationEditor", urls["mopac"]), ("Builder", urls["methane"])]
         o.ask("inprocess")
         samples.append((0, o.sample()))
+        live0 = live1 = liveCounts(o)
         for k in range(rounds):
             tool, url = plan[k % len(plan)]
             o.send("start %s %s" % (tool, url), 10)
             closeAll(o, 2)
             if o.proc.poll() is not None:
                 break
-            if k + 1 in (1, rounds // 2, rounds):
+            if k + 1 == len(plan):
+                live1 = liveCounts(o)
+            if k + 1 in (1, 10, rounds):
                 o.ask("inprocess")
                 samples.append((k + 1, o.sample()))
         for k, s in samples:
@@ -507,12 +520,25 @@ def scenarioH(display, rounds=30):
                   "(%.0f MB; middle-to-end %.0f MB)" % (
                       rounds, grow,
                       (last.get("VmRSS", 0) - mid.get("VmRSS", 0)) / 1024.0))
+            # Past the first tabs (caches, fonts, GL) a closed tab must give
+            # back what it held (#1136): about 0.4 MB per tab leaked before.
+            ten = samples[2][1]
+            late = (last.get("VmRSS", 0) - ten.get("VmRSS", 0)) / 1024.0
+            check(late < 15, "H RSS growth from tab 10 to %d under 15 MB "
+                  "(%.1f MB)" % (rounds, late))
             check(last.get("Threads", 0) - first.get("Threads", 0) <= 4,
                   "H thread count steady (%s -> %s)" % (first.get("Threads"),
                                                        last.get("Threads")))
             check(last.get("fds", 0) - first.get("fds", 0) <= 10,
                   "H fd count steady (%s -> %s)" % (first.get("fds"),
                                                    last.get("fds")))
+        live = liveCounts(o)
+        # Tool objects go back to the start; help handlers of windows made
+        # once per process (first-use dialogs) only must not grow per tab.
+        kept = {c: n for c, n in live.items()
+                if n > (live1 if c.startswith("ewx") else live0).get(c, 0)}
+        check(not kept, "H closed tabs leave no live tool objects (#1136)",
+              "start %s first cycle %s end %s" % (live0, live1, live))
         quitAndCheck(o, "after the soak", [("close", 3), ("answer", 3),
                                            ("answer no", 2), ("answer no", 2)])
     finally:

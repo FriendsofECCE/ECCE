@@ -851,6 +851,9 @@ class Builder: public BuilderGUI,
       void saveConstraints();
       IPropCalculation *p_calculation;
       map<string, CommandManager*> p_commandManagers;
+      // Executed commands no undo stack took; callers may still read them
+      // after execute(), so they go with the Builder (#1136).
+      set<Command*> p_spentCommands;
       CommandManager *p_commandManager;
       map<string, bool> p_dirty;
       map<string, bool> p_import;

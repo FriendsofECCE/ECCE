@@ -68,6 +68,7 @@
 #endif /* __gl_h_ */
 
 #include "inv/actions/SoGLRenderAction.H"
+#include "util/LiveCount.H"
 #include "inv/actions/SoCallbackAction.H"
 #include "inv/actions/SoPickAction.H"
 #include "inv/actions/SoGetBoundingBoxAction.H"
@@ -110,6 +111,7 @@ ChemDisplayParam::ChemDisplayParam()
 //
 ////////////////////////////////////////////////////////////////////////
 {
+  LiveCount::add("ChemDisplayParam", 1);
     mShowRings = TRUE;
 
     SO_NODE_CONSTRUCTOR(ChemDisplayParam);
@@ -433,6 +435,7 @@ ChemDisplayParam::~ChemDisplayParam()
 //
 ////////////////////////////////////////////////////////////////////////
 {
+  LiveCount::add("ChemDisplayParam", -1);
 }
 
 void ChemDisplayParam::setShowRings(SbBool showRings)

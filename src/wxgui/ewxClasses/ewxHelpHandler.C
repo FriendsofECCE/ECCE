@@ -9,6 +9,7 @@
 #include "wxgui/WxHelpViewer.H"
 #include "wxgui/ewxHelpHandler.H"
 #include "wxgui/ewxWindowUtils.H"
+#include "util/LiveCount.H"
 
 #define ID_MENU_HELP 50000
 #define ID_MENU_FEEDBACK 50001
@@ -23,10 +24,21 @@ ewxHelpHandler::ewxHelpHandler(wxWindow *win)
 {
    // Our help keys are always on the top window, not its subcontrols
    p_win = ewxWindowUtils::getTopWindow(win);
+   LiveCount::add("ewxHelpHandler", 1);
+   //  Per owner class and name, so a leaked handler names its window.
+   p_countKey = "ewxHelpHandler:";
+   if (win)
+     p_countKey += std::string(wxString(win->GetClassInfo()->GetClassName())
+                               .ToStdString()) + "/" +
+                   win->GetName().ToStdString();
+   for (char& c : p_countKey) if (c == ' ' || c == '=') c = '_';
+   LiveCount::add(p_countKey.c_str(), 1);
 }
 
 ewxHelpHandler::~ewxHelpHandler()
 {
+   LiveCount::add("ewxHelpHandler", -1);
+   LiveCount::add(p_countKey.c_str(), -1);
    p_win = 0;
 }
 

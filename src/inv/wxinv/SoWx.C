@@ -26,6 +26,22 @@ void SoWx::init(wxWindow * topWin)
 }
 
 
+void SoWx::release(wxWindow * topWin)
+{
+  wxEvtHandler *h = topWin->GetEventHandler();
+  while (h && h != topWin) {
+    wxEvtHandler *next = h->GetNextHandler();
+    if (SoWxEventHandler *s = dynamic_cast<SoWxEventHandler*>(h)) {
+      topWin->RemoveEventHandler(s);
+      if (s == p_eventHandler) p_eventHandler = 0;
+      delete s;
+    }
+    h = next;
+  }
+  if (p_topWindow == topWin) p_topWindow = 0;
+}
+
+
 wxTopLevelWindow * SoWx::getTopLevelWidget(wxWindow * child)
 {
   if (child == NULL)

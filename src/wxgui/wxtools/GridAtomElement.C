@@ -60,6 +60,7 @@ GridAtomElement::GridAtomElement(TAtm *atom, AtomProperty *property)
   }
 
   // Save local copy of ResourceProperty
+  delete p_property;  // the base constructor made a plain one
   p_property = new AtomProperty(*property);
 
   // Get atom value
@@ -84,6 +85,7 @@ GridAtomElement::GridAtomElement(Residue *res, AtomProperty *property)
   }
 
   // Save local copy of ResourceProperty
+  delete p_property;  // the base constructor made a plain one
   p_property = new AtomProperty(*property);
 
   // Get atom value

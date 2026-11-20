@@ -35,7 +35,9 @@
  */
 ewxTextCtrl::ewxTextCtrl()
   : wxTextCtrl(),
-    ewxStyledWindow()
+    ewxStyledWindow(),
+    p_unitHelper(0),
+    p_disabler(0)
 {
 
 }
@@ -103,6 +105,12 @@ bool ewxTextCtrl::Create(wxWindow* parent, wxWindowID id,
  */
 ewxTextCtrl::~ewxTextCtrl()
 {
+  // wx does not free pushed handlers; in one process every closed tab
+  // leaked two per entry field (#1136).
+  if (p_disabler) {
+    PopEventHandler(true);  // help handler
+    PopEventHandler(true);  // disabler
+  }
   if (p_unitHelper != 0)
     delete p_unitHelper;
 }

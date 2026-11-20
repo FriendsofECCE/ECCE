@@ -1,3 +1,4 @@
+#include "util/LiveCount.H"
 #ifdef _WIN32
 #include <algorithm>
 #include <windows.h>
@@ -219,6 +220,7 @@ CalcEd::CalcEd( )
     p_runtypeHoldFlag(false),
     p_runtypeInitFlag(false)
 {
+  LiveCount::add("CalcEd", 1);
 
 }
 
@@ -268,6 +270,7 @@ CalcEd::CalcEd( wxWindow* parent, wxWindowID id, const wxString& caption,
     p_runtypeHoldFlag(false),
     p_runtypeInitFlag(false)
 {
+  LiveCount::add("CalcEd", 1);
   Create(parent, id, caption, pos, size, style);
 
   restoreSettings();
@@ -449,8 +452,15 @@ void CalcEd::runTestCommand(const string& line)
 
 CalcEd::~CalcEd( )
 {
+  LiveCount::add("CalcEd", -1);
   ToolTabs::release(this, false);
   delete p_ESPCnstrnt;
+  // In one process a closed tab must free its context (#1136); freeContext
+  // also resets the controls, which are going.
+  delete p_frag;
+  delete p_fullFrag;
+  delete p_GUIValues;
+  delete p_basis;
   closeTheoryApp(true);
   closeRuntypeApp(true);
   // Other windows of the process (#983) may still use their configs.

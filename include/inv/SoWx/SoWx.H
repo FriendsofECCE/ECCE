@@ -10,6 +10,9 @@
 class SoWx {
 public:
   static void init(wxWindow * topWin);
+  //  Removes and frees the handlers init pushed on topWin; call it from the
+  //  window's destructor, before its base classes pop their own handlers.
+  static void release(wxWindow * topWin);
   
   static wxTopLevelWindow * getTopLevelWidget(wxWindow * child);
 

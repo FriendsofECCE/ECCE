@@ -29,6 +29,7 @@
 #include "wx/image.h"
 #include <set>
 #include "wx/tokenzr.h"
+#include "util/LiveCount.H"
 #include "wx/settings.h"
 #include "wx/sizer.h"
 #include "wx/statusbr.h"
@@ -1283,6 +1284,8 @@ bool ToolTabs::testCommand(const wxString& cmd, const wxString& arg,
   }
   if (cmd == "tabs") {
     outcome = describe();
+  } else if (cmd == "livecount") {
+    outcome = LiveCount::report();
   } else if (cmd == "mainwindow") {
     // The main window as the process sees it: the host (or none, the
     // Organizer's own frame), whether the Organizer's frame is hidden and

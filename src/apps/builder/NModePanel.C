@@ -724,6 +724,11 @@ void NModePanel::buildLayout()
    p_->Detach(p_sliderSizer);
    p_styleSizer->Detach(p_animateSizer);
    p_styleSizer->Detach(p_vectorSizer);
+   // Detached sizers are no longer owned by any window.
+   delete p_;
+   p_ = 0;
+   delete p_styleSizer;
+   p_styleSizer = 0;
 
    wxStaticBoxSizer *group = new wxStaticBoxSizer(wxVERTICAL, this, "Mode in the viewer");
    wxStaticBox *sb = group->GetStaticBox();

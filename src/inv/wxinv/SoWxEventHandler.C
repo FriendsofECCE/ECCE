@@ -6,6 +6,7 @@
 
 #include "inv/SoWx/SoWxEventHandler.H"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <iostream>
@@ -18,12 +19,16 @@ BEGIN_EVENT_TABLE(SoWxEventHandler, wxEvtHandler)
 END_EVENT_TABLE()
 
 
+std::vector<SoWxEventHandler*> SoWxEventHandler::s_live;
+
+
 SoWxEventHandler::SoWxEventHandler(wxWindow * topWin)
   : wxEvtHandler() {
   p_topWin = topWin;
   p_topWin->PushEventHandler(this);
   //  p_workProcOn = false;
   p_timer = new wxTimer(this, ID_SOWXTIMER);
+  s_live.push_back(this);
 
   SoDB::getSensorManager()->setChangedCallback
     (SoWxEventHandler::sensorManagerChangedCallback, this);
@@ -39,8 +44,11 @@ SoWxEventHandler::SoWxEventHandler(wxWindow * topWin)
  * which caused crash on exit.
  */
 SoWxEventHandler::~SoWxEventHandler() {
+  //  Each Builder pushes one; the sensors go on with the newest still open.
+  s_live.erase(std::remove(s_live.begin(), s_live.end(), this), s_live.end());
   SoDB::getSensorManager()->setChangedCallback
-    (SoWxEventHandler::sensorManagerChangedCallback, NULL);
+    (SoWxEventHandler::sensorManagerChangedCallback,
+     s_live.empty() ? NULL : s_live.back());
 
   delete p_timer;
 }

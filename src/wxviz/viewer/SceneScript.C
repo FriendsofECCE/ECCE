@@ -81,6 +81,10 @@
 #include "wxviz/SGSelection.H"
 #include "wxviz/SGViewer.H"
 
+#include "inv/SoPath.H"
+// Releases a path from SGContainer::getSelectionPath.
+namespace { struct PathRef { SoPath *p; ~PathRef() { if (p) p->unref(); } }; }
+
 SceneScript::SceneScript(SGViewer *viewer, SGContainer *sg,
                          IPropCalculation *calc, const string& outdir)
   : p_viewer(viewer), p_sg(sg), p_calc(calc), p_outdir(outdir)
@@ -349,6 +353,7 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
     int found = 0;
     for (size_t ds = 0; ds < names.size(); ds++) {
       SoPath *pathCD = p_sg->getSelectionPath(esel, ds);
+      PathRef keepPath{pathCD};
       if (!pathCD) continue;
       MFVec2i lAtoms;
       int n = 0;
@@ -360,6 +365,7 @@ bool SceneScript::exec(const vector<string>& w, const string& rest)
       cpt->ref();
       cpt->setPath(pathCD, &lAtoms, NULL, NULL, NULL);
       esel->merge(cpt);
+      cpt->unref();
       found += n;
     }
     if (!found) return fail("select: atoms not in any display");
