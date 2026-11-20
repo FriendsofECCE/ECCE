@@ -97,9 +97,6 @@ def main():
     data = os.path.join(work, "data")
     os.makedirs(os.path.join(data, "users", "local"))
     os.environ["ECCE_LOCAL_DATA"] = data
-    trace = os.path.join(work, "trace965.txt")
-    if "--trace" in sys.argv:
-        os.environ["ECCE_TRACE_965"] = trace
     #  A short screen: the list gets a share of the column, so with every
     #  property panel listed it scrolls, which is the case that failed.
     xdisplay.SCREEN = "1280x700x24"
@@ -190,9 +187,6 @@ def main():
                                    check=False)
                 while not os.path.exists(ready) and time.time() < end:
                     time.sleep(0.3)
-                if "--trace" in sys.argv:
-                    with open(trace, "a") as tf:
-                        tf.write("STEP %d press %s\n" % (n, name))
                 #  Press and release apart, as a hand does: the panel the
                 #  press opens relays the column out in between.
                 subprocess.run(["xdotool", "mousemove", str(x + 10),
@@ -201,9 +195,6 @@ def main():
                 time.sleep(float(os.environ.get("ECCE_CLICK_HOLD", "0.0")))
                 subprocess.run(["xdotool", "mouseup", "1"], env=env,
                                stderr=subprocess.DEVNULL)
-                if "--trace" in sys.argv:
-                    with open(trace, "a") as tf:
-                        tf.write("STEP %d released\n" % n)
                 time.sleep(1.5)
                 open(os.path.join(out, "s%d.go" % n), "w").close()
                 state = waitFor(os.path.join(out, "p%d.txt" % n),
@@ -254,8 +245,6 @@ def main():
             check(got == name, "a click on %r selects %r" % (name, name),
                   "selected %r" % got)
     finally:
-        if os.path.exists(trace):
-            print("".join("      | " + l for l in open(trace)), end="")
         shutil.rmtree(work, ignore_errors=True)
     print("FAILED: " + ", ".join(failures) if failures else "PASSED")
     return 1 if failures else 0

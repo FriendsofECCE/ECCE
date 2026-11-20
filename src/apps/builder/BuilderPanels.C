@@ -1004,7 +1004,6 @@ void Builder::syncIndexSelection(wxWindow *win)
 void Builder::selectDetail(const string& name)
 {
   string panelName = name;
-  if (const char *t965 = getenv("ECCE_TRACE_965")) if (FILE *f965 = fopen(t965, "a")) { fprintf(f965, "T965 selectDetail %s\n", name.c_str()); fclose(f965); }
   MoPanel *mo = dynamic_cast<MoPanel*>(p_mgr.GetPane("MOs").window);
   bool surface = false;
   if (mo && name == "Surfaces" && !mo->surfaceEntries().empty()) {
@@ -1032,7 +1031,6 @@ void Builder::selectDetail(const string& name)
   if (surface) mo->setSurfaceMode(true);
   else if (mo && name == "MOs") mo->selectFieldType("MO");
   if (p_index) p_index->setSelected(name);
-  if (const char *t965 = getenv("ECCE_TRACE_965")) if (FILE *f965 = fopen(t965, "a")) { fprintf(f965, "T965 selectDetail %s done\n", name.c_str()); fclose(f965); }
 }
 
 
